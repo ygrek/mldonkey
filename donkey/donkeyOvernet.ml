@@ -1268,8 +1268,8 @@ let _ =
 	let md42 = Md4.of_string b in
         store_published_file md41 (md42,
          [
-           { tag_name = "filename"; tag_value = String "john" };
-           { tag_name = "size"; tag_value = Uint32 (Int32.of_int (Random.int 200)) };
+            string_tag "filename" "john" ;
+            int_tag "size" (Random.int 200);
          ] );
         ""
     ), "";

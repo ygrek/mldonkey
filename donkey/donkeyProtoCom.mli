@@ -29,6 +29,7 @@ type client_sock = TcpBufferedSocket.t
 val verbose : bool ref
 val server_send : TcpBufferedSocket.t -> DonkeyProtoServer.t -> unit
 val client_send : TcpBufferedSocket.t -> DonkeyProtoClient.t -> unit
+val emule_send : TcpBufferedSocket.t -> DonkeyProtoClient.t -> unit
 val servers_send : TcpBufferedSocket.t list -> DonkeyProtoServer.t -> unit
 
   

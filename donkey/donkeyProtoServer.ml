@@ -44,8 +44,7 @@ module Connect = struct
       let ip = get_ip s 17 in
       let port = get_port s 21 in
 (*      Printf.printf "port: %d" port; print_newline ();*)
-      let ntags = get_int s 23 in
-      let tags, pos = get_tags s 27 ntags names_of_tag in
+      let tags, pos = get_tags s 23 names_of_tag in
       {
         md4 = md4;
         ip = ip;
@@ -74,8 +73,6 @@ module Connect = struct
       buf_md4 buf t.md4;
       buf_ip buf t.ip;
       buf_port buf t.port;
-      let ntags = List.length t.tags in
-      buf_int buf ntags;
       buf_tags buf t.tags names_of_tag  
   end
 
@@ -198,8 +195,7 @@ module Share = struct
       let md4 = get_md4 s pos in
       let ip = get_ip s (pos + 16) in
       let port = get_port s (pos + 20) in
-      let ntags = get_int s (pos+22) in
-      let tags, pos = get_tags s (pos+26) ntags names_of_tag in
+      let tags, pos = get_tags s (pos+22) names_of_tag in
       let file = {
           f_md4 = md4;
           f_ip = ip;
@@ -245,7 +241,6 @@ module Share = struct
           buf_md4 buf file.f_md4;
           buf_ip buf file.f_ip;
           buf_port buf file.f_port;
-          buf_int buf (List.length file.f_tags);
           buf_tags buf file.f_tags names_of_tag;
           write_files buf files
     
@@ -261,7 +256,6 @@ module Share = struct
           buf_md4 buf file.f_md4;
           buf_ip buf file.f_ip;
           buf_port buf file.f_port;
-          buf_int buf (List.length file.f_tags);
           buf_tags buf file.f_tags names_of_tag;
           if Buffer.length buf < max_len then
             write_files_max buf files (nfiles+1) max_len
@@ -392,8 +386,7 @@ module ServerInfo = struct
       let ip = get_ip s 17 in
       let port = get_port s 21 in
 (*      Printf.printf "port: %d" port; print_newline (); *)
-      let ntags = get_int s 23 in
-      let tags, pos = get_tags s 27 ntags names_of_tag in
+      let tags, pos = get_tags s 23 names_of_tag in
       {
         md4 = md4;
         ip = ip;
@@ -422,7 +415,6 @@ module ServerInfo = struct
       buf_md4 buf t.md4;
       buf_ip buf t.ip;
       buf_port buf t.port;
-      buf_int buf (List.length t.tags);
       buf_tags buf t.tags names_of_tag
   
   end
@@ -446,8 +438,7 @@ module QueryReply  = struct
       let md4 = get_md4 s pos in
       let ip = get_ip s (pos + 16) in
       let port = get_port s (pos + 20) in
-      let ntags = get_int s (pos+22) in
-      let tags, pos = get_tags s (pos+26) ntags names_of_tag in
+      let tags, pos = get_tags s (pos+22) names_of_tag in
       let file = {
           f_md4 = md4;
           f_ip = ip;
@@ -496,7 +487,6 @@ module QueryReply  = struct
           buf_md4 buf file.f_md4;
           buf_ip buf file.f_ip;
           buf_port buf file.f_port;
-          buf_int buf (List.length file.f_tags);
           buf_tags buf file.f_tags names_of_tag;
           write_files buf files
 
@@ -527,8 +517,7 @@ module QueryUdpReply  = struct
       let md4 = get_md4 s pos in
       let ip = get_ip s (pos + 16) in
       let port = get_port s (pos + 20) in
-      let ntags = get_int s (pos+22) in
-      let tags, pos = get_tags s (pos+26) ntags names_of_tag in
+      let tags, pos = get_tags s (pos+22) names_of_tag in
       let file = {
           f_md4 = md4;
           f_ip = ip;
@@ -563,7 +552,6 @@ module QueryUdpReply  = struct
       buf_md4 buf file.f_md4;
       buf_ip buf file.f_ip;
       buf_port buf file.f_port;
-      buf_int buf (List.length file.f_tags);
       buf_tags buf file.f_tags names_of_tag
 
   end
@@ -848,8 +836,7 @@ module QueryUsersReply = struct (* request 67 *)
       let md4 = get_md4 s pos in
        let ip = get_ip s (pos+16) in
       let port = get_port s (pos+20) in
-      let ntags = get_int s (pos+22) in
-      let tags, pos = get_tags s (pos+26) ntags names_of_tag in
+      let tags, pos = get_tags s (pos+22) names_of_tag in
       parse_clients s pos (nclients-1) (
         {
           md4 = md4;
@@ -888,8 +875,6 @@ module QueryUsersReply = struct (* request 67 *)
           buf_md4 buf t.md4;
           buf_ip buf t.ip;
           buf_port buf t.port;
-          let ntags = List.length t.tags in
-          buf_int buf ntags;
           buf_tags buf t.tags names_of_tag) t
   end
   

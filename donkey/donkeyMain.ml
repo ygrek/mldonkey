@@ -219,10 +219,9 @@ let enable () =
     let reset_tags () =
       client_tags :=
       [
-        { tag_name = "name"; tag_value =  String !!client_name };
-        { tag_name = "version"; tag_value =  Uint32 (Int32.of_int 
-              !!DonkeyOptions.protocol_version) };
-        { tag_name = "port"; tag_value =  Uint32 (Int32.of_int !client_port) };
+        string_tag "name" !!client_name;
+        int_tag "version" !!DonkeyOptions.protocol_version;
+        int_tag "port" !client_port;
       ]
     in
     reset_tags ();

@@ -289,7 +289,6 @@ let write buf t =
       buf_int8 buf 17;
       buf_md4 buf md4;
       buf_md4 buf r_md4;
-      buf_int32 buf (Int32.of_int (List.length r_tags));
       buf_tags buf r_tags names_of_tag
 
   | OvernetNoResult md4 ->
@@ -300,7 +299,6 @@ let write buf t =
       buf_int8 buf 19;
       buf_md4 buf md4;
       buf_md4 buf r_md4;
-      buf_int32 buf (Int32.of_int (List.length r_tags));
       buf_tags buf r_tags names_of_tag
       
   | OvernetPublished md4 ->
@@ -401,8 +399,7 @@ let parse opcode s =
           end;
         let md4 = get_md4 s 0 in
         let r_md4 = get_md4 s 16 in
-        let ntags = get_int s 32 in
-        let r_tags, pos = get_tags s 36 ntags names_of_tag in
+        let r_tags, pos = get_tags s 32 names_of_tag in
         OvernetSearchResult (md4, r_md4, r_tags)
     
     | 18 ->
@@ -418,8 +415,7 @@ let parse opcode s =
           end;
         let md4 = get_md4 s 0 in
         let r_md4 = get_md4 s 16 in
-        let ntags = get_int s 32 in
-        let r_tags, pos = get_tags s 36 ntags names_of_tag in
+        let r_tags, pos = get_tags s 32 names_of_tag in
         OvernetPublish (md4, r_md4, r_tags)
         
     | 20 ->

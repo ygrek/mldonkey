@@ -46,8 +46,7 @@ module Connect  = struct
       let ip = get_ip s 18 in
       let port = get_port s 22 in
 (*      Printf.printf "port: %d" port; print_newline (); *)
-      let ntags = get_int s 24 in
-      let tags, pos = get_tags s 28 ntags names_of_tag in
+      let tags, pos = get_tags s 24 names_of_tag in
       let len = String.length s in
       let server_info = 
         let len = String.length s in 
@@ -88,8 +87,6 @@ module Connect  = struct
       buf_md4 buf t.md4;
       buf_ip buf t.ip;
       buf_port buf t.port;
-      let ntags = List.length t.tags in
-      buf_int buf ntags;
       buf_tags buf t.tags names_of_tag;
       begin
         match t.server_info with
@@ -124,8 +121,7 @@ module ConnectReply  = struct
       let ip = get_ip s 17 in
       let port = get_port s 21 in
 (*      Printf.printf "port: %d" port; print_newline (); *)
-      let ntags = get_int s 23 in
-      let tags, pos = get_tags s 27 ntags names_of_tag in
+      let tags, pos = get_tags s 23 names_of_tag in
       let server_info = 
         let len = String.length s in 
         if len = pos + 6 then begin
@@ -159,8 +155,6 @@ module ConnectReply  = struct
       buf_md4 buf t.md4;
       buf_ip buf t.ip;
       buf_port buf t.port;
-      let ntags = List.length t.tags in
-      buf_int buf ntags;
       buf_tags buf t.tags names_of_tag;
       begin
         match t.server_info with
@@ -474,8 +468,7 @@ module ViewFilesReply = struct
       let md4 = get_md4 s pos in
       let ip = get_ip s (pos + 16) in
       let port = get_port s (pos + 20) in
-      let ntags = get_int s (pos+22) in
-      let tags, pos = get_tags s (pos+26) ntags names_of_tag in
+      let tags, pos = get_tags s (pos+22) names_of_tag in
       let file = {
           f_md4 = md4;
           f_ip = ip;
@@ -509,7 +502,6 @@ module ViewFilesReply = struct
           buf_md4 buf file.f_md4;
           buf_ip buf file.f_ip;
           buf_port buf file.f_port;
-          buf_int buf (List.length file.f_tags);
           buf_tags buf file.f_tags names_of_tag;
           write_files buf files
     
@@ -525,7 +517,6 @@ module ViewFilesReply = struct
           buf_md4 buf file.f_md4;
           buf_ip buf file.f_ip;
           buf_port buf file.f_port;
-          buf_int buf (List.length file.f_tags);
           buf_tags buf file.f_tags names_of_tag;
           if Buffer.length buf < max_len then
             write_files_max buf files (nfiles+1) max_len
@@ -570,7 +561,8 @@ module NewUserID = struct
       buf_ip buf ip1;
       buf_ip buf ip2
   end
-  
+
+
 module Sources = struct 
 
     type t = {
@@ -607,6 +599,137 @@ module Sources = struct
           buf_ip buf ip2) t.sources
   end
   
+
+      
+module EmuleClientInfo = struct 
+
+    type t = {
+        version : int; (* CURRENT_VERSION_SHORT = 0x24*)
+        protversion : int; (* EMULE_PROTOCOL_VERSION = 0x1 *)
+        tags : tag list;
+      }
+      
+    let names_of_tag =
+      [
+        0x20, "compression"; (* ET_COMPRESSION *)
+        0x21, "udp_port"     (* ET_UDPPORT *)
+      ]
+      
+    let parse len s =
+      let version = get_int8 s 1 in
+      let protversion = get_int8 s 2 in
+      let tags,_ = get_tags s 3 names_of_tag in
+      {
+        version = version; 
+        protversion = protversion;
+        tags = tags;
+      }
+      
+    let print m t = 
+      Printf.printf "%s:\n" m;
+      Printf.printf "  version: %d\n" t.version;
+      Printf.printf "  protversion: %d\n" t.version;
+      Printf.printf "  tags: ???"; print_newline ()
+        
+    let write buf t = 
+      buf_int8 buf t.version;
+      buf_int8 buf t.protversion;
+      buf_tags buf t.tags names_of_tag;
+      
+  end
+      
+module EmuleQueueRanking = struct 
+
+    type t = int
+      
+    let parse len s = get_int16 s 1      
+    let print t = 
+      Printf.printf "QUEUE RANKING: %d" t; print_newline ()
+
+    let string_null10 = String.make 10 (char_of_int 0)
+      
+    let write buf t = 
+      buf_int16 buf t;
+      Buffer.add_string buf string_null10
+            
+  end
+      
+module EmuleRequestSources = struct 
+
+    type t =  Md4.t
+      
+    let parse len s = 
+      get_md4 s 1
+      
+    let print t = 
+      Printf.printf "EMULE REQUEST SOURCES: %s" (Md4.to_string t);
+      print_newline ()
+
+    let write buf t = 
+      buf_md4 buf t 
+            
+  end
+      
+module EmuleRequestSourcesReply = struct 
+    
+    type source = {
+        ip : Ip.t;
+        port : int;
+        server_ip : Ip.t;
+        server_port : int;
+      }
+    
+    type t = {
+        md4 : Md4.t;
+        sources : source array;        
+      }
+    
+    let dummy_source = {
+        ip = Ip.null;
+        port = 0;
+        server_ip = Ip.null;
+        server_port = 0;
+      }
+    
+    let parse len s = 
+      let md4 = get_md4 s 1 in
+      let nsources = get_int16 s 17 in
+      let sources = Array.create nsources dummy_source in
+      for i = 0 to nsources-1 do
+        let pos = 19 + i *12 in
+        sources.(i) <- {
+          ip = get_ip s pos;
+          port = get_int16 s (pos+4);
+          server_ip = get_ip s (pos+6);
+          server_port = get_int16 s (pos+10);
+        }
+      done;
+      {
+        md4 = md4;
+        sources = sources;
+      }
+    
+    let print t = 
+      Printf.printf "EMULE SOURCES REPLY: %d sources for %s" 
+        (Array.length t.sources)
+      (Md4.to_string t.md4); 
+      print_newline ();
+      Array.iter (fun s ->
+          if Ip.valid s.ip then
+            Printf.printf "  %s:%d" (Ip.to_string s.ip) s.port
+          else 
+            Printf.printf "  Indirect from %s:%d"
+              (Ip.to_string s.server_ip) s.server_port;
+          print_newline ();
+      ) t.sources
+
+    let write buf t = 
+      buf_md4 buf t.md4;
+      buf_int16 buf (Array.length t.sources);
+      ()
+            
+  end
+
   
 type t = 
 | ConnectReq of Connect.t
@@ -633,50 +756,14 @@ type t =
 | EndOfDownloadReq of EndOfDownload.t
 | NewUserIDReq of NewUserID.t
 | NoSuchFileReq of NoSuchFile.t  
-  
-let parse magic s =
-  if magic <> 227 then begin
-      Printf.printf "Magic %d" magic; print_newline ();
-    end;
-  try 
-    let len = String.length s in
-    if len = 0 then raise Not_found;
-    let opcode = int_of_char (s.[0]) in
-(*Printf.printf "opcode: %d" opcode; print_newline (); *)
-    match opcode with 
-    | 1 -> ConnectReq (Connect.parse len s)
-    | 70 -> BlocReq (Bloc.parse len s)
-    | 71 -> QueryBlocReq (QueryBloc.parse len s)
-    | 72 -> NoSuchFileReq (NoSuchFile.parse len s)
-    | 73 -> EndOfDownloadReq (EndOfDownload.parse len s)
-    | 74 -> ViewFilesReq (ViewFiles.parse len s)
-    | 75 -> ViewFilesReplyReq (ViewFilesReply.parse len s)
-    | 76 -> ConnectReplyReq (ConnectReply.parse len s)
-    | 77 -> NewUserIDReq (NewUserID.parse len s)
-    | 79 -> QueryChunksReq (QueryChunks.parse len s)
-    | 80 -> QueryChunksReplyReq (QueryChunksReply.parse len s)
-    | 81 -> QueryChunkMd4Req (QueryChunkMd4.parse len s)
-    | 82 -> QueryChunkMd4ReplyReq (QueryChunkMd4Reply.parse len s)
-(* JoinQueue: the sender wants to join the upload queue *)
-    | 84 -> JoinQueueReq (JoinQueue.parse len s) 
-(* AvailableSlot: there is an available slot in upload queue *)
-    | 85 -> AvailableSlotReq (AvailableSlot.parse len s)
-(* ReleaseSlot: the upload is finished *)
-    | 86 -> ReleaseSlotReq (ReleaseSlot.parse len s)
-(* CloseSlot: the upload slot is not available *)
-    | 87 -> CloseSlotReq (CloseSlot.parse len s)
-    | 88 -> QueryFileReq (QueryFile.parse len s)
-    | 89 -> QueryFileReplyReq (QueryFileReply.parse len s)
-    | 78 -> SayReq (Say.parse len s)
-    | 250 -> SourcesReq (Sources.parse len s)        
-    | _ -> raise Not_found
-  with
-    e -> 
-      Printf.printf "From client:"; print_newline ();
-      dump s;
-      print_newline ();
-      UnknownReq s
-      
+
+| EmuleClientInfoReq of EmuleClientInfo.t
+| EmuleClientInfoReplyReq of EmuleClientInfo.t
+| EmuleQueueRankingReq of EmuleQueueRanking.t
+| EmuleRequestSourcesReq of EmuleRequestSources.t
+| EmuleRequestSourcesReplyReq of EmuleRequestSourcesReply.t
+
+        
 let print t =
   begin
     match t with
@@ -703,6 +790,18 @@ let print t =
     | EndOfDownloadReq t -> EndOfDownload.print t
     | NewUserIDReq t -> NewUserID.print t
     | NoSuchFileReq t -> NoSuchFile.print t
+        
+    | EmuleClientInfoReq t -> 
+        EmuleClientInfo.print "EMULE CLIENT INFO"  t
+    | EmuleClientInfoReplyReq t -> 
+        EmuleClientInfo.print "EMULE CLIENT INFO REPLY" t
+    | EmuleQueueRankingReq t -> 
+        EmuleQueueRanking.print t
+    | EmuleRequestSourcesReq t -> 
+        EmuleRequestSources.print  t
+    | EmuleRequestSourcesReplyReq t -> 
+        EmuleRequestSourcesReply.print t
+        
     | UnknownReq s ->  
         let len = String.length s in
         Printf.printf "UnknownReq:\n";
@@ -724,6 +823,91 @@ let print t =
         done;
         Printf.printf "]\n"
   end
+
+let parse magic s =
+  try 
+    let len = String.length s in
+    if len = 0 then raise Not_found;
+    let opcode = int_of_char (s.[0]) in
+(*Printf.printf "opcode: %d" opcode; print_newline (); *)
+    match magic with
+      227 ->
+        begin
+          match opcode with 
+          | 1 -> ConnectReq (Connect.parse len s)
+          | 70 -> BlocReq (Bloc.parse len s)
+          | 71 -> QueryBlocReq (QueryBloc.parse len s)
+          | 72 -> NoSuchFileReq (NoSuchFile.parse len s)
+          | 73 -> EndOfDownloadReq (EndOfDownload.parse len s)
+          | 74 -> ViewFilesReq (ViewFiles.parse len s)
+          | 75 -> ViewFilesReplyReq (ViewFilesReply.parse len s)
+          | 76 -> ConnectReplyReq (ConnectReply.parse len s)
+          | 77 -> NewUserIDReq (NewUserID.parse len s)
+          | 79 -> QueryChunksReq (QueryChunks.parse len s)
+          | 80 -> QueryChunksReplyReq (QueryChunksReply.parse len s)
+          | 81 -> QueryChunkMd4Req (QueryChunkMd4.parse len s)
+          | 82 -> QueryChunkMd4ReplyReq (QueryChunkMd4Reply.parse len s)
+(* JoinQueue: the sender wants to join the upload queue *)
+          | 84 -> JoinQueueReq (JoinQueue.parse len s) 
+(* AvailableSlot: there is an available slot in upload queue *)
+          | 85 -> AvailableSlotReq (AvailableSlot.parse len s)
+(* ReleaseSlot: the upload is finished *)
+          | 86 -> ReleaseSlotReq (ReleaseSlot.parse len s)
+(* CloseSlot: the upload slot is not available *)
+          | 87 -> CloseSlotReq (CloseSlot.parse len s)
+          | 88 -> QueryFileReq (QueryFile.parse len s)
+          | 89 -> QueryFileReplyReq (QueryFileReply.parse len s)
+          | 78 -> SayReq (Say.parse len s)
+          | 250 -> SourcesReq (Sources.parse len s)        
+              
+          | _ -> raise Not_found
+        end 
+
+    | 0xc5  -> (* emule extended protocol *)
+        begin
+(*
+  Printf.printf "Emule magic: %d opcode %d:" magic opcode; print_newline ();
+          dump s; print_newline ();
+  *)        
+          let t = match opcode with
+            | 1 -> EmuleClientInfoReq (EmuleClientInfo.parse len s)
+            | 2 -> EmuleClientInfoReplyReq (EmuleClientInfo.parse len s)
+            | 0x60 -> EmuleQueueRankingReq (EmuleQueueRanking.parse len s)
+            | 0x81 -> EmuleRequestSourcesReq (EmuleRequestSources.parse len s)
+            | 0x82 -> EmuleRequestSourcesReplyReq (
+                  EmuleRequestSourcesReply.parse len s)
+
+
+                (*
+#define OP_COMPRESSEDPART       0x40
+#define OP_FILEDESC             0x61
+#define OP_VERIFYUPSREQ         0x71
+#define OP_VERIFYUPSANSWER      0x72
+#define OP_UDPVERIFYUPREQ       0x73
+#define OP_UDPVERIFYUPA         0x74
+*)
+
+            | _ -> raise Not_found
+          in
+          (*
+          Printf.printf "EMULE MESSAGE: "; print_newline ();
+          print t;
+          print_newline (); *)
+          t
+        end              
+
+        (* Compressed packet, probably sent by cDonkey ? *)
+    | 0xD4 -> 
+          UnknownReq s        
+    | _ -> 
+        Printf.printf "Strange magic: %d" magic; print_newline ();
+        raise Not_found
+  with
+  | e -> 
+      Printf.printf "From client: %s" (Printexc2.to_string e); print_newline ();
+      dump s;
+      print_newline ();
+      UnknownReq s
   
 let write buf t =
   match t with
@@ -796,6 +980,22 @@ let write buf t =
   | NoSuchFileReq t ->
       buf_int8 buf 72;
       NoSuchFile.write buf t
+      
+  | EmuleClientInfoReq t ->
+      buf_int8 buf 1;
+      EmuleClientInfo.write buf t
+  | EmuleClientInfoReplyReq t ->
+      buf_int8 buf 2;
+      EmuleClientInfo.write buf t
+  | EmuleQueueRankingReq t ->
+      buf_int8 buf 0x60;
+      EmuleQueueRanking.write buf t
+  | EmuleRequestSourcesReq t ->
+      buf_int8 buf 0x81;
+      EmuleRequestSources.write buf t
+  | EmuleRequestSourcesReplyReq t ->
+      buf_int8 buf 0x82;
+      EmuleRequestSourcesReply.write buf t
+      
   | UnknownReq s ->
       Buffer.add_string buf s
-    

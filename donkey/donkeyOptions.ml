@@ -23,7 +23,8 @@ open CommonOptions
 
 let donkey_ini = create_options_file (
     Filename.concat file_basedir "edonkey.ini")
-  
+
+let donkey_ini = downloads_ini (* temporary aliased *)
   
 let initial_score = define_option downloads_ini ["initial_score"] "" int_option 5
 
@@ -181,8 +182,10 @@ open Md4
     
 let mldonkey_md4 md4 =
   let md4 = Md4.direct_to_string md4 in
+  (*
   md4.[5] <- 'M';
-  md4.[14] <- 'L';
+md4.[14] <- 'L';
+  *)
   Md4.direct_of_string md4
 
 let client_md4 = define_option downloads_ini ["client_md4"]

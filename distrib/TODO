@@ -1,6 +1,28 @@
 TODO list for client
 ====================
 
+New bugs in unstable-2-02-1:
+ * prevent propagation of challenge md4s
+ * limit sources propagation to a given number of md4
+ * add an option for overnet access
+ * add an option for locale (or verify that LANG is set correctly LANG=C ??)
+ * keep connecting to bad sources with earlier times if we are not using
+    all the connection slots...
+ * emule credit system works by testing md4s... 
+   + maybe we could modify our
+    md4 to be the one of the client we downloaded the most from ? This
+    client should have a good upload credit, no ? 
+   + Or we could do community
+    sharing, ie all use the same md4 (but change it often so it doesnot get
+    banned). The md4 of the week :)
+   + we could also have a md4 leader: we give him the list of files we
+    download, and we receive a ack if we can use its md4 (to avoid having
+    several clients downloading the same file and having the same md4)
+   + problem: if we are too many on the same md4, we could avec a debit and
+    not a credit :(
+   + could we simply break emule credit system ? make it useless, and it
+    will disappear.
+
 donkey/:
  * New source management
  * MLdonkey client generate "Exceeding Block Boundaries" errors which lose

@@ -1,6 +1,15 @@
 ChangeLog	
 =========
 
+2003/01/09: Simon (tag unstable-2-02-2)
+  - DonkeyClient/DonkeyProtoClient: complete implementation of Emule 
+      client-to-client source propagation.
+  - DonkeyClient: limitation of file groups to 1000 files
+      (should reduce memory usage)
+  - DonkeyGlobals: removed the mldonkey letters in md4
+  - Makefile: 'mlim' is compiled only if mldonkey_gui is compiled
+  - DonkeyOptions: removed options are back in downloads.ini  
+
 2003/01/08: Simon (tag unstable-2-02-1)
   - Fixed some bugs in new sources management. Seems to works pretty well.
       BUT DEVELOPMENT ONLY VERSION, USE IT AT YOUR OWN RISKS !!

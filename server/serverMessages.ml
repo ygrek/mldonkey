@@ -95,7 +95,6 @@ module ServerConnect = struct
       buf_port buf t.port;
       buf_int buf t.max_clients;
       buf_int buf t.max_files;
-      buf_int buf (List.length t.tags);
       buf_tags buf t.tags names_of_tag
 
 end
@@ -140,7 +139,6 @@ module ACKConnect = struct
       buf_md4 buf t.group_id;
       buf_int buf t.server_master_id;
       buf_int buf t.server_id;
-      buf_int buf (List.length t.tags);
       buf_tags buf t.tags names_of_tag
    
 end
@@ -191,7 +189,6 @@ module ConnectRocky = struct
       buf_int buf t.server_id;
       buf_ip buf t.server_ip;
       buf_port buf t.server_port;
-      buf_int buf (List.length t.server_tags);
       buf_tags buf t.server_tags names_of_tag
    
 end
@@ -750,7 +747,6 @@ module QueryFileInfoReply = struct
         buf_int buf (List.length t);
         List.iter (fun i -> 
                    buf_md4 buf i.md4;
-                   buf_int buf (List.length i.tags);
                    buf_tags buf i.tags names_of_tag;
                   ) t
 

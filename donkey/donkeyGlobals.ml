@@ -583,6 +583,9 @@ let new_client key =
   in
   c
 
+let find_indirect_client key =  
+    H.find clients_by_kind { dummy_client with client_kind = key }
+  
 let client_type c =
   client_type (as_client c.client_client)
 

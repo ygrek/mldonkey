@@ -36,9 +36,9 @@ let verbose = ref false
 let buf = TcpBufferedSocket.internal_buf
 
         
-let client_msg_to_string msg =
+let client_msg_to_string magic msg =
   Buffer.clear buf;
-  buf_int8 buf 227;
+  buf_int8 buf magic;
   buf_int buf 0;
   DonkeyProtoClient.write buf msg;
 (*  
@@ -73,8 +73,18 @@ let server_send sock m =
   write_string sock (server_msg_to_string m)
   
 let client_send sock m =
-  write_string sock (client_msg_to_string m)
+  write_string sock (client_msg_to_string 227 m)
 
+let emule_send sock m =
+  let m = client_msg_to_string 0xc5 m in
+  (*
+  Printf.printf "Message to emule client:"; print_newline ();
+  LittleEndian.dump m;
+  print_newline ();
+  print_newline (); *)
+  write_string sock m
+
+let client_msg_to_string m = client_msg_to_string 227 m
   
 let servers_send socks m =
   let m = server_msg_to_string m in
@@ -298,9 +308,8 @@ let direct_server_send s msg =
   server_send s msg
 
 let tag_file file =
-  { tag_name = "filename";
-    tag_value = String (
-      
+  (string_tag "filename"
+    (
       let name = file_best_name file in
       let name = if String2.starts_with name "hidden." then
           String.sub name 7 (String.length name - 7)
@@ -309,10 +318,8 @@ let tag_file file =
           Printf.printf "SHARING %s" name; print_newline ();
         end;
       name
-    
-    ); } ::
-  { tag_name = "size";
-    tag_value = Uint32 file.file_file.impl_file_size; } ::
+    ))::
+  (int32_tag "size" file.file_file.impl_file_size) ::
   (
     (match file.file_format with
         Unknown_format ->

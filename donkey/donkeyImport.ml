@@ -70,8 +70,7 @@ module Server = struct
         try
           let ip = get_ip s pos in
           let port = get_port s (pos+4) in
-          let ntags = get_int s (pos+6) in
-          let tags, pos = get_tags s (pos+10) ntags names_of_tag in
+          let tags, pos = get_tags s (pos+6) names_of_tag in
           Some ({
             ip = ip;
             port = port;
@@ -99,7 +98,6 @@ dump (String.sub s pos len);
       List.iter (fun s ->
           buf_ip buf s.ip;
           buf_port buf s.port;
-          buf_int buf (List.length s.tags);
           buf_tags buf s.tags names_of_tag
       ) t
 
@@ -148,8 +146,7 @@ module Known = struct
             b
         ) in
       let pos = pos + 22 + 16 * nblocks in
-      let ntags = get_int s pos in
-      let tags, pos = get_tags s (pos+4) ntags names_of_tag in
+      let tags, pos = get_tags s pos names_of_tag in
       read_files s pos (n-1) ({
           mtime = mtime;
           md4 = md4;
@@ -169,7 +166,6 @@ module Known = struct
           buf_md4 buf file.md4;
           buf_int16 buf (Array.length file.blocks);
           Array.iter (buf_md4 buf) file.blocks;
-          buf_int buf (List.length file.tags);
           buf_tags buf file.tags names_of_tag
       ) t
     
@@ -231,8 +227,7 @@ module Part = struct
             b
         ) in
       let pos = pos + 18 + 16 * nblocks in
-      let ntags = get_int s pos in
-      let tags, pos = get_tags s (pos+4) ntags names_of_tag in
+      let tags, pos = get_tags s pos names_of_tag in
       let start_pos = ref Int32.zero in
       let absents = ref [] in
       List.iter (fun tag ->
@@ -262,7 +257,6 @@ module Part = struct
       buf_md4 buf file.md4;
       buf_int16 buf (Array.length file.blocks);
       Array.iter (buf_md4 buf) file.blocks;
-      buf_int buf (List.length file.tags);
       buf_tags buf file.tags names_of_tag
     
     
@@ -311,16 +305,13 @@ module Pref = struct
       assert (get_int s 5 = 0);
       let md4 = get_md4 s 9 in
       assert (get_int16 s 25 = 0);
-      let ntags = get_int s 27 in
 (*      Printf.printf "ntags : %d at pos %d" ntags 27; print_newline ();  *)
-      let client_tags, pos = get_tags s 31 ntags names_of_client_tag in
+      let client_tags, pos = get_tags s 27 names_of_client_tag in
       
       assert (get_int s pos = 0);
       assert (get_md4 s (pos+4) = Md4.null);
       assert (get_int16 s (pos + 20) = 0);
-      let ntags = get_int s (pos + 22) in
-(*      Printf.printf "ntags : %d at pos %d" ntags (pos+22); print_newline (); *)
-      let option_tags, pos = get_tags s (pos+26) ntags names_of_option_tag in
+      let option_tags, pos = get_tags s (pos+22) names_of_option_tag in
       
       {
         md4 = md4;

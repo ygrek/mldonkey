@@ -17,6 +17,14 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+(*
+
+New idea: what about trying to connect anyway if not all the slots
+where tried ? We could reconnect more frequently to bad sources if we
+have time to do it.
+
+*)
+
 open Options
 open CommonOptions
 open DonkeyOptions
@@ -307,4 +315,9 @@ let source_has_new_chunk c =
 let source_has_file c = 
   if c.client_score = Client_not_connected then
     c.client_score <- Client_has_file
-    
+  
+(* this will be configurable later *)
+let need_new_sources () =
+  Fifo.length sources_queues.(new_sources_queue) < 1000 &&
+  Fifo.length clients_queues.(good_clients_queue) < 500
+  

@@ -185,6 +185,8 @@ let client_udp_send ip port t =
       t
     end
 
+let max_file_groups = 1000
+let file_groups_fifo = Fifo.create ()
 
 let find_sources_in_groups c md4 =
   if !!propagate_sources then
@@ -244,10 +246,14 @@ let find_sources_in_groups c md4 =
                 ) group.group;
                 new_udp_client c group
     with _ ->
-        if c.client_brand <> Brand_mldonkey1 then
-          let group = { group = UdpClientMap.empty } in
-          Hashtbl.add file_groups md4 group;
-          new_udp_client c group
+        if c.client_brand <> Brand_mldonkey1 then begin
+            if Fifo.length file_groups_fifo >= max_file_groups then 
+              Hashtbl.remove file_groups (Fifo.take file_groups_fifo);
+            let group = { group = UdpClientMap.empty } in
+            Hashtbl.add file_groups md4 group;
+            Fifo.put file_groups_fifo md4;
+            new_udp_client c group
+          end
           
 let clean_groups () =
   let one_day_before = last_time () -. one_day in
@@ -530,6 +536,20 @@ let client_to_client challenge for_files c t sock =
       end;
       
       identify_client_brand c;
+      
+      if c.client_brand = Brand_newemule then  begin
+(*    Printf.printf "Emule Extended Protocol query"; print_newline ();*)
+          let module E = M.EmuleClientInfo in
+          emule_send sock (M.EmuleClientInfoReq {
+              E.version = 0x24; 
+              E.protversion = 0x1;
+              E.tags = [
+(*           int_tag "compression" 0; *)
+                int_tag "udp_port" (!!port+4)
+              ]
+            })
+        end;
+      
       set_client_state c Connected_idle;      
       
       let challenge_md4 =  Md4.random () in
@@ -556,6 +576,30 @@ print_newline ();
             end
         end;
       is_banned c sock
+  
+  | M.EmuleClientInfoReq t ->      
+(*      Printf.printf "Emule Extended Protocol asked"; print_newline (); *)
+      if c.client_brand = Brand_newemule then  begin
+          let module E = M.EmuleClientInfo in
+          emule_send sock (M.EmuleClientInfoReplyReq {
+              E.version = 0x24; 
+              E.protversion = 0x1;
+              E.tags = [
+                int_tag "compression" 0;
+                int_tag "udp_port" (!!port+4)
+              ]
+            })
+        end
+  
+  
+  | M.EmuleRequestSourcesReq t ->
+(*       Printf.printf "Emule requested sources"; print_newline (); *)
+      ()
+  
+  | M.EmuleClientInfoReplyReq t -> 
+(*   Printf.printf "Emule Extended Protocol activated"; print_newline (); *)
+      ()
+  
   
   | M.ViewFilesReplyReq t ->
       c.client_next_view_files <- last_time () +. 3600. *. 6.;
@@ -684,6 +728,17 @@ print_newline ();
                     Known_location _ -> "OUT" | _ -> "IN") in
               printf_string s;
               c.client_rating <- c.client_rating + 1;
+
+(* ask for more sources *)
+              if c.client_brand = Brand_newemule &&
+                DonkeySources1.need_new_sources () then begin
+                  
+(*              Printf.printf "Emule query sources"; print_newline (); *)
+                  let module E = M.EmuleRequestSources in
+                  emule_send sock (M.EmuleRequestSourcesReq file.file_md4)
+                end;
+              
+              
               if not (List.mem t.Q.name file.file_filenames) then begin
                   file.file_filenames <- file.file_filenames @ [t.Q.name] ;
                   update_best_name file
@@ -920,12 +975,16 @@ is checked for the file.
   | M.QueryFileReq t when !has_upload = 0 && 
     not (!!ban_queue_jumpers && c.client_banned) ->
       
+      let could_be_challenge = ref false in
+      
       if challenge.challenge_md4 = t then begin
-          Printf.printf "Client replied to challenge !!"; print_newline ();
+(*      Printf.printf "Client replied to challenge !!"; print_newline (); *)
           c.client_brand <- Brand_mldonkey3;
+          could_be_challenge := true;
         end;
       
       if not challenge.challenge_ok  then begin
+          could_be_challenge := true;
           DonkeyProtoCom.direct_client_send sock (
             let module M = DonkeyProtoClient in
             let module C = M.QueryFile in
@@ -933,7 +992,8 @@ is checked for the file.
           challenge.challenge_ok <- true;
         end;
       
-      (try client_wants_file c t with _ -> ());
+      (try if not !could_be_challenge then
+            client_wants_file c t with _ -> ());
       if t = Md4.null && c.client_brand = Brand_edonkey then  begin
           c.client_brand <- Brand_mldonkey1;
           if Random.int 100 < 2 then
@@ -967,6 +1027,39 @@ is checked for the file.
           
           DonkeySources1.add_file_location file c
         with _ -> () end
+  
+  
+  | M.EmuleRequestSourcesReplyReq t ->
+(*      Printf.printf "Emule sent sources"; print_newline (); *)
+      let module Q = M.EmuleRequestSourcesReply in
+      begin
+        try
+          let file = find_file t.Q.md4 in
+(* Always accept sources when already received !
+  
+          if file.file_enough_sources then begin
+              Printf.printf "** Dropped %d sources for %s **" (List.length t.Q.sources) (file_best_name file);
+              print_newline ()
+            end else *)
+          Array.iter (fun s ->
+              if Ip.valid s.Q.ip && Ip.reachable s.Q.ip then
+                ignore (DonkeySources1.new_source (s.Q.ip, s.Q.port) file)
+              else
+                begin
+                  let module C = DonkeyProtoServer.QueryCallUdp in
+                  DonkeyProtoCom.udp_send (get_udp_sock ())
+                  s.Q.server_ip (s.Q.server_port+4)
+                    (DonkeyProtoServer.QueryCallUdpReq {
+                      C.ip = client_ip None;
+                      C.port = !client_port;
+                      C.id = s.Q.ip;
+                    })
+                  
+                end
+          ) t.Q.sources
+        with _ -> ()
+      end
+      
       
   | M.SourcesReq t ->
       
@@ -1155,8 +1248,6 @@ let read_first_message overnet m sock =
 
       let kind = Indirect_location (!name,t.CR.md4) in
       let c = new_client kind in
-
-      
       
       begin
         match c.client_sock with
@@ -1168,6 +1259,7 @@ let read_first_message overnet m sock =
             close sock "already connected"; raise Not_found
       end;
 
+      
       set_write_power sock c.client_power;
       set_read_power sock c.client_power;
 
@@ -1215,6 +1307,21 @@ let read_first_message overnet m sock =
           C.server_info = t.CR.server_info;
         }
       );
+
+            
+      if c.client_brand = Brand_newemule then  begin
+(*          Printf.printf "Emule Extended Protocol query"; print_newline (); *)
+          let module E = M.EmuleClientInfo in
+          emule_send sock (M.EmuleClientInfoReq {
+              E.version = 0x24; 
+              E.protversion = 0x1;
+              E.tags = [
+(*                int_tag "compression" 0; *)
+                int_tag "udp_port" (!!port+4)
+              ]
+            })
+        end;
+
       
       set_client_state c Connected_idle;      
       query_files c sock; 
