@@ -3,6 +3,10 @@ ChangeLog
 
 2005/03/02: spiralvoice (version 2.5.30 = 2.6pre12, tag release-2-5-30)
 
+
+                Many changes and patches applied, 
+            labeled as UNSTABLE until further tested.
+
 This version solves the serious file corruption bug in version 2-5-29
 ---------------------------------------------------------------------
 These patches were applied to 2-5-29 by b8_bavard without mentioning
