@@ -69,8 +69,8 @@ ifeq ("$(ZLIB)" , "yes")
 endif
 
 ifneq ("$(LIBPTHREAD)" , "")
-  LIBS_opt += -cclib -lpthread
-  LIBS_byte += -cclib -lpthread
+  LIBS_opt += -cclib $(LIBPTHREAD)
+  LIBS_byte += -cclib $(LIBPTHREAD)
 endif
 
 MP3TAG_SRCS=     mp3tagui/mp3_info.ml  mp3tagui/mp3_genres.ml \

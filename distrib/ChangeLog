@@ -1,7 +1,10 @@
 ChangeLog	
 =========
 
-2002/02/24: Simon (v 2.02-17)
+2002/02/25: Simon (v 2.02-19)
+  - Fixed Makefile for pthread library
+
+2002/02/24: Simon (v 2.02-18)
   - eDonkey: 
      * Fixes: good sources dropped
   - Limewire:
