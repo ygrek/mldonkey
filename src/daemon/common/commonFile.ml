@@ -461,18 +461,18 @@ let file_print file o =
   (file_priority file);
   
   if use_html_mods o then begin
-	  (match n.network_name with 
-	  	"BitTorrent" ->  ();
-       | _ -> (
-      Printf.bprintf buf "ed2k: \\<a href=\\\"ed2k://|file|%s|%s|%s|/\\\"\\>ed2k://|file|%s|%s|%s|/\\</A\\>\n\n"
-        (info.G.file_name) 
-      (Int64.to_string info.G.file_size)
-      (Md4.to_string info.G.file_md4)
-      (info.G.file_name) 
-      (Int64.to_string info.G.file_size)
-      (Md4.to_string info.G.file_md4);
-
-            Printf.bprintf buf "\\<script language=javascript\\>
+      (match n.network_name with 
+          "BitTorrent" ->  ();
+        | _ -> (
+              Printf.bprintf buf "ed2k: \\<a href=\\\"ed2k://|file|%s|%s|%s|/\\\"\\>ed2k://|file|%s|%s|%s|/\\</A\\>\n\n"
+                (info.G.file_name) 
+              (Int64.to_string info.G.file_size)
+              (Md4.to_string info.G.file_md4)
+              (info.G.file_name) 
+              (Int64.to_string info.G.file_size)
+              (Md4.to_string info.G.file_md4);
+              
+              Printf.bprintf buf "\\<script language=javascript\\>
 \\<!-- 
 function submitRenameForm() {
 var formID = document.getElementById(\\\"renameForm\\\")
@@ -482,52 +482,63 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
 }
 //--\\>
 \\</script\\>" (file_num file);
-      
-      Printf.bprintf buf "\\<form name=\\\"renameForm\\\" id=\\\"renameForm\\\" action=\\\"javascript:submitRenameForm();\\\"\\>";
-	  Printf.bprintf buf "\\<select name=\\\"newName\\\" id=\\\"newName\\\" onchange=\\\"this.form.submit()\\\"\\>";
-      Printf.bprintf buf "\\<option value=\\\"%s\\\" selected\\>%s\n" (file_best_name file) (file_best_name file);
-      List.iter (fun name -> 
-          Printf.bprintf buf "\\<option value=\\\"%s\\\"\\>%s\n" name name;
-      ) info.G.file_names;
-      
-      Printf.bprintf buf "\\</select\\>\\</form\\>\n";
-	 )
-	)
-
-  end
+              
+              Printf.bprintf buf "\\<form name=\\\"renameForm\\\" id=\\\"renameForm\\\" action=\\\"javascript:submitRenameForm();\\\"\\>";
+              Printf.bprintf buf "\\<select name=\\\"newName\\\" id=\\\"newName\\\" onchange=\\\"this.form.submit()\\\"\\>";
+              Printf.bprintf buf "\\<option value=\\\"%s\\\" selected\\>%s\n" (file_best_name file) (file_best_name file);
+              List.iter (fun name -> 
+                  Printf.bprintf buf "\\<option value=\\\"%s\\\"\\>%s\n" name name;
+              ) info.G.file_names;
+              
+              Printf.bprintf buf "\\</select\\>\\</form\\>\n";
+            )
+      )
+    
+    end
   else begin
       Printf.bprintf buf "Chunks: [%-s]\n" info.G.file_chunks;
       List.iter (fun name -> 
           Printf.bprintf buf "    (%s)\n" name) info.G.file_names
-  end;
-
-
+    end;
+  
+  
   
   (try
-
-	let bitTorrentHeader () = 
-
-		html_mods_table_header buf "sourcesTable" "sources" [ 
-		( "1", "srh br ac", "Client number", "Num" ) ; 
-		( "0", "srh br", "Client UID", "UID" ) ; 
-		( "0", "srh", "IP address", "IP address" ) ; 
-		( "0", "srh br ar", "Port", "Port" ) ; 
-		( "1", "srh ar", "Total UL bytes to this client for all files", "UL" ) ; 
-		( "1", "srh ar br", "Total DL bytes from this client for all files", "DL" ) ; 
-		( "1", "srh ar", "Interested [T]rue, [F]alse", "I" ) ; 
-		( "1", "srh ar", "Choked [T]rue, [F]alse", "C" ) ; 
-		( "1", "srh br ar", "Allowed to write", "A" ) ; 
+      
+      let bitTorrentHeader () = 
+        
+        html_mods_table_header buf "sourcesTable" "sources" [ 
+          ( "1", "srh br ac", "Client number", "Num" ) ; 
+          ( "0", "srh br", "Client UID", "UID" ) ; 
+          ( "0", "srh", "IP address", "IP address" ) ; 
+          ( "0", "srh br ar", "Port", "Port" ) ; 
+          ( "1", "srh ar", "Total UL bytes to this client for all files", "UL" ) ; 
+          ( "1", "srh ar br", "Total DL bytes from this client for all files", "DL" ) ; 
+          ( "1", "srh ar", "Interested [T]rue, [F]alse", "I" ) ; 
+          ( "1", "srh ar", "Choked [T]rue, [F]alse", "C" ) ; 
+          ( "1", "srh br ar", "Allowed to write", "A" ) ; 
 (* 
 		( "0", "srh", "Bitmap (absent|partial|present|verified)", (colored_chunks 
         (Array.init (String.length info.G.file_chunks)
         (fun i -> ((int_of_char info.G.file_chunks.[i])-48)))) ) ; 
 *)
-		( "1", "srh ar", "Number of full chunks", (Printf.sprintf "%d"
-		(String.length (String2.replace info.G.file_chunks '0' "")) )) ]
-
-	in
-
-	let fastTrackHeader () = 
+          ( "1", "srh ar", "Number of full chunks", (Printf.sprintf "%d"
+		(String.length (String2.replace (String2.replace info.G.file_chunks '0' "") '1' "")) )) ]
+      
+      in
+      
+      let fastTrackHeader () = 
+        
+        html_mods_table_header buf "sourcesTable" "sources" [ 
+          ( "1", "srh br ac", "Client number", "Num" ) ; 
+          ( "0", "srh br", "Client Name", "Name" ) ; 
+          ( "0", "srh", "IP address", "IP address" ) ; 
+          ( "1", "srh ar", "Total UL bytes to this client for all files", "UL" ) ; 
+          ( "1", "srh ar br", "Total DL bytes from this client for all files", "DL" ) ; ]
+      
+      in
+      
+	let gnutellaHeader () = 
 
 		html_mods_table_header buf "sourcesTable" "sources" [ 
 		( "1", "srh br ac", "Client number", "Num" ) ; 
@@ -538,50 +549,51 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
 
 	in
 
-	let defaultHeader () = 
-
-		html_mods_table_header buf "sourcesTable" "sources" [ 
-		( "1", "srh ac", "Client number (click to add as friend)", "Num" ) ; 
-		( "0", "srh", "[A] = Active downlaod from client", "A" ) ; 
-		( "0", "srh", "Client state", "CS" ) ; 
-		( "0", "srh", "Client name", "Name" ) ; 
-		( "0", "srh", "Client brand", "CB" ) ; 
-		( "0", "srh", "Overnet [T]rue, [F]alse", "O" ) ; 
-		( "0", "srh", "Connection [I]ndirect, [D]irect", "C" ) ; 
-		( "0", "srh br", "IP address", "IP address" ) ; 
-		( "1", "srh ar", "Total UL bytes to this client for all files", "UL" ) ; 
-		( "1", "srh ar br", "Total DL bytes from this client for all files", "DL" ) ; 
-		( "1", "srh ar", "Your queue rank on this client", "Rnk" ) ; 
-		( "1", "srh ar br", "Source score", "Scr" ) ; 
-		( "1", "srh ar", "Last ok (minutes)", "LO" ) ; 
-		( "1", "srh ar", "Last try (minutes)", "LT" ) ; 
-		( "1", "srh ar br", "Next try (minutes)", "NT" ) ; 
-		( "0", "srh", "Has a slot [T]rue, [F]alse", "H" ) ; 
-		( "0", "srh br", "Banned [T]rue, [F]alse", "B" ) ; 
-		( "1", "srh ar", "Requests sent", "RS" ) ; 
-		( "1", "srh ar", "Requests received", "RR" ) ; 
-		( "1", "srh ar br", "Connected time (minutes)", "CT" ) ; 
-		( "0", "srh br", "Client MD4", "MD4" ) ; 
-		( "0", "srh", "Chunks (absent|partial|present|verified)", (colored_chunks 
-        (Array.init (String.length info.G.file_chunks)
-        (fun i -> ((int_of_char info.G.file_chunks.[i])-48)))) ) ; 
-		( "1", "srh ar", "Number of full chunks", (Printf.sprintf "%d"
-        (let fc = ref 0 in (String.iter (fun s -> if s = '2' then incr fc) info.G.file_chunks );!fc ))) ];
-
-	  in
+      let defaultHeader () = 
+        
+        html_mods_table_header buf "sourcesTable" "sources" [ 
+          ( "1", "srh ac", "Client number (click to add as friend)", "Num" ) ; 
+          ( "0", "srh", "[A] = Active downlaod from client", "A" ) ; 
+          ( "0", "srh", "Client state", "CS" ) ; 
+          ( "0", "srh", "Client name", "Name" ) ; 
+          ( "0", "srh", "Client brand", "CB" ) ; 
+          ( "0", "srh", "Overnet [T]rue, [F]alse", "O" ) ; 
+          ( "0", "srh", "Connection [I]ndirect, [D]irect", "C" ) ; 
+          ( "0", "srh br", "IP address", "IP address" ) ; 
+          ( "1", "srh ar", "Total UL bytes to this client for all files", "UL" ) ; 
+          ( "1", "srh ar br", "Total DL bytes from this client for all files", "DL" ) ; 
+          ( "1", "srh ar", "Your queue rank on this client", "Rnk" ) ; 
+          ( "1", "srh ar br", "Source score", "Scr" ) ; 
+          ( "1", "srh ar", "Last ok (minutes)", "LO" ) ; 
+          ( "1", "srh ar", "Last try (minutes)", "LT" ) ; 
+          ( "1", "srh ar br", "Next try (minutes)", "NT" ) ; 
+          ( "0", "srh", "Has a slot [T]rue, [F]alse", "H" ) ; 
+          ( "0", "srh br", "Banned [T]rue, [F]alse", "B" ) ; 
+          ( "1", "srh ar", "Requests sent", "RS" ) ; 
+          ( "1", "srh ar", "Requests received", "RR" ) ; 
+          ( "1", "srh ar br", "Connected time (minutes)", "CT" ) ; 
+          ( "0", "srh br", "Client MD4", "MD4" ) ; 
+          ( "0", "srh", "Chunks (absent|partial|present|verified)", (colored_chunks 
+                (Array.init (String.length info.G.file_chunks)
+                (fun i -> ((int_of_char info.G.file_chunks.[i])-48)))) ) ; 
+          ( "1", "srh ar", "Number of full chunks", (Printf.sprintf "%d"
+                (let fc = ref 0 in (String.iter (fun s -> if s = '2' then incr fc) info.G.file_chunks );!fc ))) ];
+      
+      in
       
       let srcs = file_sources file in
       Printf.bprintf buf "%d sources:\n" (List.length srcs);
       
       if use_html_mods o && srcs <> [] then begin
-
-	  (match n.network_name with 
-	  	"BitTorrent" ->  bitTorrentHeader ();
-	   | "Fasttrack" ->  fastTrackHeader ();
-       | _ -> defaultHeader ();)
-	
-	  end;
-
+          
+          (match n.network_name with 
+              "BitTorrent" ->  bitTorrentHeader ();
+            | "Fasttrack" ->  fastTrackHeader ();
+	   | "Gnutella" ->  gnutellaHeader ();
+            | _ -> defaultHeader ();)
+        
+        end;
+      
       let counter = ref 0 in
       List.iter (fun c ->
           incr counter;

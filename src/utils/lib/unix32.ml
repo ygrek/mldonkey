@@ -514,6 +514,9 @@ let buffered_write t offset s pos_s len_s =
   | Some e -> 
       raise e
 
+let buffered_write_copy t offset s pos_s len_s = 
+  buffered_write t offset (String.sub s pos_s len_s) 0 len_s
+      
 let write t offset s pos_s len_s =  
   let fd, offset = fd_of_chunk t offset (Int64.of_int len_s) in
   let final_pos = Unix2.c_seek64 fd offset Unix.SEEK_SET in

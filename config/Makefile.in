@@ -292,6 +292,7 @@ CYMES_SRCS=\
 
 OPENNAP_SRCS= \
  $(SRC_OPENNAP)/napigator.mll \
+ $(SRC_OPENNAP)/winmx_xor_c.c \
  $(SRC_OPENNAP)/opennapTypes.ml \
  $(SRC_OPENNAP)/opennapProtocol.ml \
  $(SRC_OPENNAP)/opennapOptions.ml \
@@ -362,6 +363,7 @@ FASTTRACK_SRCS= \
   $(SRC_FASTTRACK)/fasttrackHandler.ml \
   $(SRC_FASTTRACK)/fasttrack.ml \
   $(SRC_FASTTRACK)/fasttrackServers.ml \
+  $(SRC_FASTTRACK)/fasttrackPandora.ml \
   $(SRC_FASTTRACK)/fasttrackInteractive.ml \
   $(SRC_FASTTRACK)/fasttrackMain.ml
 

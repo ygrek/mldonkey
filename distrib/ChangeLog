@@ -1,6 +1,13 @@
 ChangeLog	
 =========
 
+2003/05/25: Simon  (release-2-5-rc1)
+  - Applied patch #1523, #1527
+  - Fasttrack:
+      * Limitation on the number of simultaneous sources for a file
+  - Fixed major file corruption bug when using 'buffer_writes' in bittorrent,
+      fasttrack and gnutella.
+
 2003/05/24: Simon  (release-2-4-6)
   - Mac OS X:
       * Fixed a compilation problem

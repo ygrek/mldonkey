@@ -1,6 +1,11 @@
 (*
  translated by kokamomi@gueststars.net
  så det så.
+ 
+ Installation:
+ # cp ~/.mldonkey_gui_messages.ini .mldonkey_gui_messages.ini.bak
+ # cp /sökväg/till/din/mldonkey-distribution/i18n/gui_messages.ini.sv ~/.mldonkey_gui_messages.ini
+ 
 *)
 
  ok = Ok
@@ -11,6 +16,8 @@
  rate = Hastighet
  age = Ålder
  last_seen = "Senast sedd"
+ eta = "Tid kvar"
+ priority = Prioritet
  state = Tillstånd
  servers = Servrar
  downloads = Nedladdningar
@@ -18,6 +25,7 @@
  searches = Sökningar
  options = Inställningar
  not_connected = "Ej ansluten"
+ black_listed = "Svartlistade"
  connected_to_servers = "Ansluten till %d/%d server/sevrar"
  downloading_files = "Laddar ner %d file(r)"
  no_current_search = "Ingen pågående sökning"
@@ -41,7 +49,7 @@
  disconnect = "Koppla från"
  download_limit = "Nedladdningsbegränsning (kB/s)"
  upload_limit = "Uppladdningsbegränsning (kB/s)"
- timeouts = Time-outs
+ timeouts = Timeouts
  server_connection = "Serveranslutning"
  client_connection = "Clientanslutning"
  save_and_apply_options = "Aktivera och spara inställningar"
@@ -59,8 +67,8 @@
  artist = Artist
  title = Titel
  min_bitrate = "Minsta bitrate"
- stop_search = Avbryt
- close_search = Stäng
+ stop_search = "Avbryt sökning"
+ close_search = "Avsluta sökning"
  mp3_options = "Mp3-inställningar"
  submit = Skicka
  results = "%d Resultat"
@@ -73,6 +81,8 @@
  view_files = "Kolla filer"
  view_users = "Kolla vänner"
  files = Filer
+ network = Nätverk
+ display = Display
  filename = Filnamn
  size = Storlek
  properties = Egenskaper
@@ -85,13 +95,14 @@
  downloaded = Nedladdad
  availability = Tillgänglighet
  cancel = Avbryt
- retry_connect = "Försök återansluta"
+ retry_connect = Återanslut
  disconnect_all = "Koppla från alla"
  connected_to_locations = "Ansluten till %d / %d platser"
  add_to_friends = "Lägg till bland vänner"
  add_server = "Lägg till server"
  add_friend = "Lägg till vän"
- connect_more_servers = "Anslut fler servrar"
+ connect_more_servers = "Fler servrar"
+ connect_more_servers_tips = "Anslut till fler servrar"
  users = Användare
  status = Status
  connect = Anslut
@@ -107,7 +118,8 @@
  server_nfiles = Files
  ed2k = "ed2k:"
  recover_md4 = "Återvinn MD4:"
- remove_old_servers = "Ta bort gamla servrar"
+ remove_old_servers = Gallra
+ remove_old_servers_tips = "Gallra ut gamla servrar"
  max_server_age = "Max serverålder (dagar)"
  max_hits = "Max träffar"
  features = Finesser
@@ -141,12 +153,14 @@
  direct = Direkt
  upload = Uppladdning
  pause_resume_dl = "Pausa/Fortsätt"
- verify_chunks = "Verifiera stycken"
- preview = Förhandsvisning
- get_format = "Skaffa formatinfo"
+ verify_chunks = "Verifiera delar"
+ preview = Förhandsvisa
+ get_format = "Formatinfo"
  find_friend = "Hitta vän"
- remove_all_friends = "Ta bort alla vänner"
- toggle_display_all_servers = "Visa alla servrar"
+ remove_all_friends = Töm
+ remove_all_friends_tips = "Ta bort alla vänner"
+ toggle_display_all_servers = "Visa alla"
+ toggle_display_all_servers_tips = "Visa alla servrar (även ej anslutna)"
  browse_files = "Bläddra filer"
  show_hidden_fields = "Visa dolda fält"
  uploads = Uppladdningar
@@ -177,7 +191,7 @@
  tracknum = "Låtnummer"
  comment = Kommentar
  genre = Genre
- local_search = "Lokal sökning"
+ local_search = "Sök lokalt"
  extended_search = "Utökad sökning"
  o_gui_port = "Användargränssnittsport"
  h_gui_port = "Serverport att ansluta till"
@@ -211,6 +225,8 @@
  o_use_availability_height = "Use height encoded availability"
  h_use_relative_availability = "Beräkna %% tillgänglighet utan nedladdade stycken"
  o_use_relative_availability = "Använd relativ %% tillgänglighet"
+ h_chunk_width = "Bredd på segment i tilgänlighetsstapeln"
+ o_chunk_width = "Segmentbredd"
  h_toolbars_style = "Hur visas verktygsfältets knappar: text, ikon eller båda?"
  o_toolbars_style = "Typ av verktygsfält"
  o_layout = Layout

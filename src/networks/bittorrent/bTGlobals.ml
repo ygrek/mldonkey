@@ -136,9 +136,9 @@ let new_file file_id file_name file_size file_tracker piece_size =
   Int64Swarmer.set_size swarmer file_size;  
   Int64Swarmer.set_writer swarmer (fun offset s pos len ->      
       if !!CommonOptions.buffer_writes then 
-        Unix32.buffered_write t offset s pos len
+        Unix32.buffered_write_copy t offset s pos len
       else
-        Unix32.write  t offset s pos len
+        Unix32.write t offset s pos len
   );
   Int64Swarmer.set_verifier partition (fun b ->
       if file.file_chunks = [||] then raise Not_found;

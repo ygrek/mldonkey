@@ -151,6 +151,7 @@ two different tables to look up for clients ? *)
 and client = {
     client_client : client CommonClient.client_impl;
     mutable client_downloads : download list;
+    mutable client_in_queues : file list;
     mutable client_connection_control : connection_control;
     mutable client_sock : tcp_connection;
     mutable client_user : user;
@@ -158,6 +159,7 @@ and client = {
     mutable client_requests : download list;
     mutable client_host : (Ip.t * int) option;
     mutable client_reconnect : bool;
+    mutable client_connected_for : file option;
   }
 
 and file_uri =
@@ -191,6 +193,8 @@ and file = {
     mutable file_search : local_search;
     mutable file_hash : Md5Ext.t;
     mutable file_filenames : string list;
+    mutable file_clients_queue : client Queues.Queue.t;
+    mutable file_nconnected_clients : int;
   }
 
 and download = {

@@ -238,8 +238,6 @@ let new_server ip port =
       h.host_server <- Some s;
       s
     
-let (reconnect_clients: client Fifo.t) = Fifo.create ()
-        
 let extract_uids arg = 
   match String2.split (String.lowercase arg) ':' with
   | "urn" :: "sha1" :: sha1_s :: _ ->
@@ -294,7 +292,7 @@ let megabyte = Int64.of_int (1024 * 1024)
       
 let new_file file_id file_name file_size file_hash = 
   let file_temp = Filename.concat !!temp_directory 
-      (Printf.sprintf "GNUT-%s" (Md4.to_string file_id)) in
+      (Printf.sprintf "FT-%s" (Md4.to_string file_id)) in
   let t = Unix32.create file_temp [Unix.O_RDWR; Unix.O_CREAT] 0o666 in
   let swarmer = Int64Swarmer.create () in
   let partition = fixed_partition swarmer megabyte in
@@ -310,6 +308,8 @@ let new_file file_id file_name file_size file_hash =
       file_search = search;
       file_hash = file_hash;
       file_filenames = [file_name];
+      file_clients_queue = Queues.workflow (fun _ -> false);
+      file_nconnected_clients = 0;
     } and file_impl =  {
       dummy_file_impl with
       impl_file_fd = t;
@@ -329,8 +329,14 @@ let new_file file_id file_name file_size file_hash =
   lprintf "SET SIZE : %Ld\n" file_size;
   Int64Swarmer.set_size swarmer file_size;  
   Int64Swarmer.set_writer swarmer (fun offset s pos len ->      
+      
+      (*
+      lprintf "DOWNLOADED: %d/%d/%d\n" pos len (String.length s);
+      AnyEndian.dump_sub s pos len;
+*)
+      
       if !!CommonOptions.buffer_writes then 
-        Unix32.buffered_write t offset s pos len
+        Unix32.buffered_write_copy t offset s pos len
       else
         Unix32.write  t offset s pos len
   );
@@ -396,6 +402,8 @@ client_error = false;
           client_downloads = [];
           client_host = None;
           client_reconnect = false;
+          client_in_queues = [];
+          client_connected_for = None;
         } and impl = {
           dummy_client_impl with
           impl_client_val = c;
@@ -423,7 +431,10 @@ let add_download file c index =
         }];
       file.file_clients <- c :: file.file_clients;
       file_add_source (as_file file.file_file) (as_client c.client_client);
-      Fifo.put reconnect_clients c
+      if not (List.memq file c.client_in_queues) then begin
+          Queue.put file.file_clients_queue (0,c);
+          c.client_in_queues <- file :: c.client_in_queues
+        end;
     end
     
 let rec find_download file list = 
@@ -562,4 +573,5 @@ let client_name () =
       String2.replace_char !ft_client_name ' ' '_';
     end;
   !ft_client_name
-      
+  
+let file_chunk_size = 307200

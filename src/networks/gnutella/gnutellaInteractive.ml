@@ -30,11 +30,13 @@ open CommonResult
 open CommonTypes
 open CommonComplexOptions
 open CommonFile
+open CommonInteractive
 open Options
 open GnutellaTypes
 open GnutellaOptions
 open GnutellaGlobals
 open GnutellaComplexOptions
+open BasicSocket
 
 open GnutellaProtocol
 
@@ -356,12 +358,69 @@ let _ =
         P.client_downloaded = zero;
         P.client_uploaded = zero;
         P.client_upload = None;
-		P.client_sock_addr = "";
+        P.client_sock_addr = (match c.client_user.user_kind with
+                        | Known_location (ip,port) -> Ip.to_string ip
+                        | _ -> "");
       }
   );
   client_ops.op_client_browse <- (fun c immediate ->
       browse_client c
-  )
+  );
+
+    client_ops.op_client_bprint <- (fun c buf ->
+        let cc = as_client c.client_client in
+        let cinfo = client_info cc in
+        Printf.bprintf buf "%s (%s)\n"
+          cinfo.GuiTypes.client_name
+          cinfo.GuiTypes.client_sock_addr
+    );    
+    client_ops.op_client_bprint_html <- (fun c buf file ->
+        let cc = as_client c.client_client in
+        let cinfo = client_info cc in
+        
+        html_mods_td buf [
+          ("", "sr br ar", Printf.sprintf "%d" (client_num cc));
+          ("", "sr br", cinfo.GuiTypes.client_name);
+          ("", "sr", cinfo.GuiTypes.client_sock_addr);
+          ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_uploaded));
+          ("", "sr ar br", (size_of_int64 cinfo.GuiTypes.client_downloaded)); ];
+    );    
+   client_ops.op_client_dprint <- (fun c o file ->
+        let info = file_info file in
+        let buf = o.conn_buf in
+        let cc = as_client c.client_client in
+        let cinfo = client_info cc in
+        client_print cc o; 
+        Printf.bprintf buf "client: %s downloaded: %s uploaded: %s"
+          "gN" (* cinfo.GuiTypes.client_software *)
+          (Int64.to_string cinfo.GuiTypes.client_downloaded)
+        (Int64.to_string cinfo.GuiTypes.client_uploaded);
+        Printf.bprintf buf "\nfilename: %s\n\n" info.GuiTypes.file_name;
+    );    
+    client_ops.op_client_dprint_html <- (fun c o file str ->
+        let info = file_info file in
+        let buf = o.conn_buf in
+        let cc = as_client c.client_client in
+        let cinfo = client_info cc in
+        Printf.bprintf buf " \\<tr onMouseOver=\\\"mOvr(this);\\\"
+    onMouseOut=\\\"mOut(this);\\\" class=\\\"%s\\\"\\>" str;
+        
+        html_mods_td buf [ 
+          ("", "srb ar", Printf.sprintf "%d" (client_num cc));
+          ((string_of_connection_state (client_state cc)), "sr",
+            (short_string_of_connection_state (client_state cc)));
+          ("", "sr", cinfo.GuiTypes.client_name);
+          ("", "sr", "gN"); (* cinfo.GuiTypes.client_software *)
+          ("", "sr", "F");
+          ("", "sr ar", Printf.sprintf "%d" 
+              (((last_time ()) - cinfo.GuiTypes.client_connect_time) / 60));
+          ("", "sr", "D");
+          ("", "sr", (cinfo.GuiTypes.client_sock_addr));
+          ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_uploaded));
+          ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_downloaded));
+          ("", "sr", info.GuiTypes.file_name); ];
+        true
+    )     
   
   
 let _ =  

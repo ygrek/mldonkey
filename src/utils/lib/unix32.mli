@@ -38,6 +38,7 @@ val mtime64 : string -> float
 val flush : unit -> unit
 val flush_fd : t -> unit
 val buffered_write : t -> int64 -> string -> int -> int -> unit
+val buffered_write_copy : t -> int64 -> string -> int -> int -> unit
 val write : t -> int64 -> string -> int -> int -> unit
 val max_buffered : int64 ref
 val remove : t -> unit

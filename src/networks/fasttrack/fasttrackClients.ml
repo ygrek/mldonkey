@@ -27,115 +27,47 @@ accepted (using the refill function of the socket ?), and check which range
 to ask at that point.
 *)
 
+open Queues
+open Printf2
+open Md4
+open Options
 
-(*
-SENDING REQUEST: GET FastTrack://62.175.4.76:2798/.hash=9c1e0c03f1a38ba838feaf4b8ac0d560b43bc148 HTTP/1.1\013\nHost: 62.175.4.76:2798\013\nUser-Agent: MLDonkey 2.4-1\013\nRange: bytes=0-262143\013\n\013\n
-Asking 00000000000000000000000000000000 For Range 0-262143
-Disconnected from source
-CLIENT PARSE HEADER
-HEADER FROM CLIENT:
-ascii: [
-HTTP/1.0 501 Not Implemented
-X-Kazaa-Username: rcb(13)
-X-Kazaa-Network: KaZaA(13)
-X-Kazaa-IP: 168.226.112.135:1959(13)
-X-Kazaa-SupernodeIP: 200.75.229.212:1214(13)
-]
-
-
-ascii:[
-HTTP/1.0 503 Service Unavailable
-Retry-After: 284(13)
-X-Kazaa-Username: johnl(13)
-X-Kazaa-Network: KaZaA(13)
-X-Kazaa-IP: 62.251.115.29:1457(13)
-X-Kazaa-SupernodeIP: 195.169.211.25:3534(13)
-]
-
-ascii:[
-HTTP/1.1 206 Partial Content(13)
-Content-Range: bytes 3145728-3407871/6128453(13)
-Content-Length: 262144(13)
-Accept-Ranges: bytes(13)
-Date: Thu, 15 May 2003 22:28:38 GMT(13)
-Server: KazaaClient Nov  3 2002 20:29:03(13)
-Connection: close(13)
-Last-Modified: Sat, 22 Feb 2003 19:58:52 GMT(13)
-X-Kazaa-Username: defaultuser(13)
-X-Kazaa-Network: KaZaA(13)
-X-Kazaa-IP: 212.8.74.24:1214(13)
-X-Kazaa-SupernodeIP: 193.204.34.214:2093(13)
-X-KazaaTag: 4=A solas con mi corazon(13)
-X-KazaaTag: 6=Rosa(13)
-X-KazaaTag: 8=Rosa(13)
-X-KazaaTag: 14=Pop(13)
-X-KazaaTag: 1=2002(13)
-X-KazaaTag: 26=http://www.elitemp3.net(13)
-X-KazaaTag: 10=es(13)
-X-KazaaTag: 12=1(186) album - 29-04-2002(13)
-X-KazaaTag: 5=386(13)
-X-KazaaTag: 21=128(13)
-X-KazaaTag: 3==qyWzRb1Qvnk4mtaBytIM1iHQuK8=(13)
-Content-Type: audio/mpeg(13)
-(13)]
-
-HTTP/1.1206 Partial Content(13)
-Content-Range: bytes 0-262143/3937679(13)
-Content-Length: 262144(13)
-Accept-Ranges: bytes(13)
-Date: Thu, 15 May 2003 22:18:12 GMT(13)
-Server: KazaaClient Nov  3 2002 20:29:03(13)
-Connection: close(13)
-Last-Modified: Mon, 05 May 2003 04:14:57 GMT(13)
-X-Kazaa-Username: shaz2003(13)
-X-Kazaa-Network: KaZaA(13)
-X-Kazaa-IP: 81.103.29.119:3641(13)
-X-Kazaa-SupernodeIP: 131.111.202.241:2674(13)
-X-KazaaTag: 5=246(13)
-X-KazaaTag: 21=128(13)
-X-KazaaTag: 4=Fighter(13)
-X-KazaaTag: 6=Christina Aguliera(13)
-X-KazaaTag: 8=Stripped(13)
-X-KazaaTag: 14=Other(13)
-X-KazaaTag: 1=2002(13)
-X-KazaaTag: 26=© christinas_eyedol 2002(13)
-X-KazaaTag: 12=album version, stripped, fighter, real, christina, aguilera(13)
-X-KazaaTag: 10=en(13)
-X-KazaaTag: 18=Video Clip(13)
-X-KazaaTag: 28=div3(13)
-X-KazaaTag: 17=24(13)
-X-KazaaTag: 9=241229701(13)
-X-KazaaTag: 24=http://www.MusicInter.com(13)
-X-KazaaTag: 3==kd8c6QgrXm0wvCYl5Uo0Aa9C7qg=(13)
-Content-Type: audio/mpeg(13)
-\n
-
-  
-*)
+open BasicSocket
+open TcpBufferedSocket
   
 open CommonShared
 open CommonUploads
-open Printf2
 open CommonOptions
 open CommonDownloads
-open Md4
 open CommonInteractive
 open CommonClient
 open CommonComplexOptions
 open CommonTypes
 open CommonFile
-open Options
-open BasicSocket
-open TcpBufferedSocket
-
 open CommonGlobals
 open CommonSwarming  
+  
 open FasttrackTypes
 open FasttrackOptions
 open FasttrackGlobals
 open FasttrackComplexOptions
-
 open FasttrackProtocol
+
+      (*
+let max_range_size = Int64.of_int (256 * 1024)
+  *)
+let min_range_size = Int64.of_int (256 * 1024)
+
+let range_size file =  min_range_size
+  (*
+  let range =  file_size file // (Int64.of_int 10) in
+  max (min range max_range_size) min_range_size
+*)
+let max_queued_ranges = 1
+
+let nranges file = 
+  Int64.to_int (Int64.div (file_size file) 
+    min_range_size) + 5
 
 let download_finished file = 
   file_completed (as_file file.file_file);
@@ -158,20 +90,25 @@ let disconnect_client c r =
           close sock r;
           c.client_sock <- NoConnection;
           if c.client_reconnect then
-            Fifo.put reconnect_clients c
+            List.iter (fun d ->
+                let file = d.download_file in
+                if not (List.memq file c.client_in_queues) then begin
+                    Queue.put file.file_clients_queue (0,c);
+                    c.client_in_queues <- file :: c.client_in_queues
+                  end;
+            ) c.client_downloads;
+          match c.client_connected_for with
+            None -> ()
+          | Some file -> 
+              file.file_nconnected_clients <- file.file_nconnected_clients - 1;
+              lprintf "For file %s, %d/%d clients connected (disconnected from %d)\n"
+                (file.file_name) file.file_nconnected_clients (nranges file)
+                (client_num (as_client c.client_client));
+              c.client_connected_for <- None
       with e -> 
           lprintf "Exception %s in disconnect_client\n"
             (Printexc2.to_string e))
   | _ -> ()
-
-let max_range_size = Int64.of_int (1 * 1024 * 1024)
-let min_range_size = Int64.of_int (256 * 1024)
-  
-let range_size file =
-  let range =  file_size file // (Int64.of_int 10) in
-  max (min range max_range_size) min_range_size
-
-let max_queued_ranges = 1
   
 let rec client_parse_header c gconn sock header = 
   if !verbose_msg_clients then begin
@@ -304,11 +241,11 @@ let rec client_parse_header c gconn sock header =
     ;
     set_client_state c (Connected_downloading);
     let counter_pos = ref start_pos in
-(* Send the next request !!! *)
+(* Send the next request *)
     for i = 1 to max_queued_ranges do
       if List.length d.download_ranges <= max_queued_ranges then
         (try get_from_client sock c with _ -> ());
-    done;
+    done; 
     gconn.gconn_handler <- Reader (fun gconn sock ->
         let b = TcpBufferedSocket.buf sock in
         let to_read = min (end_pos -- !counter_pos) 
@@ -368,8 +305,9 @@ lprintf "READ: buf_used %d\n" to_read_int;
                 *)
                 Int64Swarmer.free_range r;
                 d.download_ranges <- tail;
-                gconn.gconn_handler <- HttpHeader
-                  (client_parse_header c);
+                (* If we have no more range to receive, disconnect *)
+                if d.download_ranges = [] then raise Exit;
+                gconn.gconn_handler <- HttpHeader (client_parse_header c);
           end)
   
   with e ->
@@ -486,66 +424,86 @@ let connect_client c =
   | ConnectionWaiting -> ()
   | ConnectionAborted -> c.client_sock <- ConnectionWaiting;
   | NoConnection ->
+      
+(* Count this connection in the first file counter. Here, we assume
+that the connection will not be aborted (otherwise, disconnect_client
+  should clearly be called). *)
+      (try List.iter (fun d ->
+              let file = d.download_file in
+              if file_state file = FileDownloading then
+                begin
+                  c.client_connected_for <- Some file;
+                  file.file_nconnected_clients <- 
+                  file.file_nconnected_clients + 1;
+                  lprintf "For file %s, %d/%d clients connected (connecting %d)\n"
+                    (file.file_name)
+                  file.file_nconnected_clients (nranges file) 
+                    (client_num (as_client c.client_client));
+                  raise Exit;
+                end
+          ) c.client_downloads with _ -> ());
+      
       add_pending_connection (fun _ ->
-          match c.client_sock with
-            ConnectionAborted -> c.client_sock <- NoConnection
-          | Connection _ | NoConnection -> ()
-          | _ ->
-              if List.exists (fun d ->
-                    file_state d.download_file = FileDownloading
-                ) c.client_downloads 
-              then
-                try
-                  if !verbose_msg_clients then begin
-                      lprintf "connect_client\n";
-                    end;
-                  match c.client_user.user_kind with
-                    Indirect_location _ -> ()
-                  | Known_location (ip, port) ->
-                      if !verbose_msg_clients then begin
-                          lprintf "connecting %s:%d\n" (Ip.to_string ip) port; 
-                        end;
-                      c.client_reconnect <- false;
-                      let sock = connect "gnutella download" 
-                          (Ip.to_inet_addr ip) port
-                          (fun sock event ->
-                            match event with
-                              BASIC_EVENT (RTIMEOUT|LTIMEOUT) ->
-                                disconnect_client c Closed_for_timeout
-                            | BASIC_EVENT (CLOSED s) ->
-                                disconnect_client c s
-                                
+            match c.client_sock with
+              ConnectionAborted -> c.client_sock <- NoConnection
+            | Connection _ | NoConnection -> ()
+            | _ ->
+                if List.exists (fun d ->
+                      let file = d.download_file in
+                      file_state file = FileDownloading 
+                  ) c.client_downloads 
+                then
+                  try
+                    if !verbose_msg_clients then begin
+                        lprintf "connect_client\n";
+                      end;
+                    match c.client_user.user_kind with
+                      Indirect_location _ -> ()
+                    | Known_location (ip, port) ->
+                        if !verbose_msg_clients then begin
+                            lprintf "connecting %s:%d\n" (Ip.to_string ip) port; 
+                          end;
+                        c.client_reconnect <- false;
+                        let sock = connect "gnutella download" 
+                            (Ip.to_inet_addr ip) port
+                            (fun sock event ->
+                              match event with
+                                BASIC_EVENT (RTIMEOUT|LTIMEOUT) ->
+                                  disconnect_client c Closed_for_timeout
+                              | BASIC_EVENT (CLOSED s) ->
+                                  disconnect_client c s
+
 (* You can only use the CONNECTED signal if the socket is not yet controlled
   by the bandwidth manager... *)
-                                
-                            | CONNECTED ->
+                              
+                              | CONNECTED ->
 (*           lprintf "CONNECTED !!! Asking for range...\n"; *)
-                                init_client sock;                
-                                get_from_client sock c
-                            | _ -> ()
-                        )
-                      in
-                      c.client_host <- Some (ip, port);
-                      set_client_state c Connecting;
-                      c.client_sock <- Connection sock;
-                      TcpBufferedSocket.set_closer sock (fun _ s ->
-                          disconnect_client c s
-                      );
-                      set_rtimeout sock 30.;
-                      if !verbose_msg_clients then begin
-                          lprintf "READY TO DOWNLOAD FILE\n";
-                        end;
-                      set_fasttrack_sock sock !verbose_msg_clients
-                        (HttpHeader (client_parse_header c))
-                      
+                                  init_client sock;                
+                                  get_from_client sock c
+                              | _ -> ()
+                          )
+                        in
+                        c.client_host <- Some (ip, port);
+                        set_client_state c Connecting;
+                        c.client_sock <- Connection sock;
+                        TcpBufferedSocket.set_closer sock (fun _ s ->
+                            disconnect_client c s
+                        );
+                        set_rtimeout sock 30.;
+                        if !verbose_msg_clients then begin
+                            lprintf "READY TO DOWNLOAD FILE\n";
+                          end;
+                        set_fasttrack_sock sock !verbose_msg_clients
+                          (HttpHeader (client_parse_header c))
+                  
                   with e ->
                       lprintf "Exception %s while connecting to client\n" 
                         (Printexc2.to_string e);
                       disconnect_client c (Closed_for_exception e)
-      );
-      c.client_sock <- ConnectionWaiting
-      
-
+        );
+        c.client_sock <- ConnectionWaiting
+        
+(*
 let current_downloads = ref []
 
 let push_handler cc gconn sock header = 
@@ -755,7 +713,6 @@ BUG:
 | _ -> ());
       raise e
 
-      (*
 let listen () =
   try
     let sock = TcpServerSocket.create "gnutella client server" 
