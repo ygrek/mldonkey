@@ -731,6 +731,17 @@ let _ =
       if not (List.mem file.file_md4 !!old_files) then
         old_files =:= file.file_md4 :: !!old_files;
       lprintf "REMEMBER SHARE FILE INFO %s\n" new_name; 
+      
+(**************************************************************
+
+Since the new version of Unix32.rename does not update the
+file name, we need to create a new 'file' and stop using the old
+one. For that, we need first to remove definitively the old one
+from the system, and thus to disconnect all uploaders for this
+file.---------> to be done urgently
+
+***************************************************************)
+      
       DonkeyShare.remember_shared_info file new_name
   );
   network.op_network_connected <- (fun _ ->
@@ -958,10 +969,6 @@ let _ =
   file_ops.op_file_cancel <- (fun file ->
       Hashtbl.remove files_by_md4 file.file_md4;
       current_files := List2.removeq file !current_files;
-      (try  Unix32.remove (file_fd file)  with e -> 
-            lprintf "Sys.remove %s exception %s\n" 
-            (file_disk_name file)
-            (Printexc2.to_string e); );
       if !!keep_cancelled_in_old_files &&
         not (List.mem file.file_md4 !!old_files) then
         old_files =:= file.file_md4 :: !!old_files;

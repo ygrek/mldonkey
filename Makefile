@@ -72,6 +72,7 @@ SRC_OPENFT=src/networks/openFT
 SRC_FASTTRACK=src/networks/fasttrack
 SRC_SOULSEEK=src/networks/soulseek
 SRC_DIRECTCONNECT=src/networks/direct_connect
+SRC_FILETP=src/networks/fileTP
 
 IM=src/im
 
@@ -459,11 +460,20 @@ FASTTRACK_SRCS= \
   $(SRC_FASTTRACK)/fasttrackProto.ml \
   $(SRC_FASTTRACK)/fasttrackClients.ml \
   $(SRC_FASTTRACK)/fasttrackHandler.ml \
-  $(SRC_FASTTRACK)/fasttrack.ml \
   $(SRC_FASTTRACK)/fasttrackServers.ml \
   $(SRC_FASTTRACK)/fasttrackPandora.ml \
   $(SRC_FASTTRACK)/fasttrackInteractive.ml \
   $(SRC_FASTTRACK)/fasttrackMain.ml
+
+FILETP_SRCS= \
+  $(SRC_FILETP)/fileTPTypes.ml \
+  $(SRC_FILETP)/fileTPOptions.ml \
+  $(SRC_FILETP)/fileTPGlobals.ml \
+  $(SRC_FILETP)/fileTPComplexOptions.ml \
+  $(SRC_FILETP)/fileTPProtocol.ml \
+  $(SRC_FILETP)/fileTPClients.ml \
+  $(SRC_FILETP)/fileTPInteractive.ml \
+  $(SRC_FILETP)/fileTPMain.ml
 
 SOULSEEK_SRCS= \
   $(SRC_SOULSEEK)/slskTypes.ml \
@@ -1138,6 +1148,53 @@ mlfasttrack+gui_CMXA=cdk.cmxa \
    common.cmxa client.cmxa mlfasttrack.cmxa driver.cmxa \
    gmisc.cmxa icons.cmxa guibase.cmxa gui.cmxa
 mlfasttrack+gui_SRCS= $(MAIN_SRCS)
+
+
+
+
+ifeq ("$(FILETP)" , "yes")
+SUBDIRS += src/networks/fileTP
+
+CORE_SRCS += $(FILETP_SRCS)
+
+## TARGETS += mlfileTP$(EXE)
+
+ifeq ("$(COMPILE_GUI)" , "yes")
+
+## BUNDLE_TARGETS += mlfileTP+gui$(EXE)
+
+endif
+endif
+
+
+mlfileTP_CMXA= cdk.cmxa common.cmxa client.cmxa mlfileTP.cmxa driver.cmxa
+mlfileTP_SRCS= $(MAIN_SRCS)
+
+
+FILETP_ZOG := $(filter %.zog, $(FILETP_SRCS)) 
+FILETP_MLL := $(filter %.mll, $(FILETP_SRCS)) 
+FILETP_MLY := $(filter %.mly, $(FILETP_SRCS)) 
+FILETP_ML4 := $(filter %.ml4, $(FILETP_SRCS)) 
+FILETP_ML := $(filter %.ml %.mll %.zog %.mly %.ml4, $(FILETP_SRCS)) 
+FILETP_C := $(filter %.c, $(FILETP_SRCS)) 
+FILETP_CMOS=$(foreach file, $(FILETP_ML),   $(basename $(file)).cmo) 
+FILETP_CMXS=$(foreach file, $(FILETP_ML),   $(basename $(file)).cmx) 
+FILETP_OBJS=$(foreach file, $(FILETP_C),   $(basename $(file)).o)    
+
+TMPSOURCES += $(FILETP_ML4:.ml4=.ml) $(FILETP_MLL:.mll=.ml) $(FILETP_MLY:.mly=.ml) $(FILETP_MLY:.mly=.mli) $(FILETP_ZOG:.zog=.ml) 
+ 
+build/mlfileTP.cmxa: $(FILETP_OBJS) $(FILETP_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(FILETP_OBJS) $(LIBS_flags) $(_LIBS_flags) $(FILETP_CMXS) 
+ 
+build/mlfileTP.cma: $(FILETP_OBJS) $(FILETP_CMOS) 
+	$(OCAMLC) -a -o $@  $(FILETP_OBJS) $(LIBS_flags) $(_LIBS_flags) $(FILETP_CMOS) 
+ 
+
+
+mlfileTP+gui_CMXA=cdk.cmxa \
+   common.cmxa client.cmxa mlfileTP.cmxa driver.cmxa \
+   gmisc.cmxa icons.cmxa guibase.cmxa gui.cmxa
+mlfileTP+gui_SRCS= $(MAIN_SRCS)
 
 
 
@@ -2394,6 +2451,8 @@ releaseclean: clean
 	rm -f src/utils/lib/gAutoconf.ml.new
 	rm -f icons/tux/*.ml_icons
 	rm -f icons/tux/*.ml
+	rm -f icons/kde/*.ml_icons
+	rm -f icons/kde/*.ml
 	rm -f icons/mldonkey/*.ml_icons
 	rm -f icons/mldonkey/*.ml
 

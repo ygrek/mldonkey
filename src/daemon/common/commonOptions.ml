@@ -389,6 +389,11 @@ let enable_openft = define_expert_option current_section
   "Set to true if you also want mldonkey to run as a OpenFT sub node (experimental)"
     bool_option false
 
+let enable_fileTP = define_expert_option current_section
+    ["enable_fileTP"]
+  "Set to true if you also want mldonkey to download HTTP files (experimental)"
+    bool_option true
+
   
   
   

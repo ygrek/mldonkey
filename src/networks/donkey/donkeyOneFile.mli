@@ -29,7 +29,7 @@ val start_download : DonkeyTypes.client -> unit
 val restart_download : DonkeyTypes.client -> unit
 val next_file : DonkeyTypes.client -> unit
   
-val remove_file : Md4.t -> unit
+(*val remove_file : Md4.t -> unit *)
 
 val check_files_md4s : unit -> unit
 val clean_client_zones : DonkeyTypes.client -> unit

@@ -78,7 +78,7 @@ let _ =
         begin
           old_files =:= (file.file_name, file_size file) :: !!old_files;
           set_file_state file FileShared;
-          try Unix32.rename (file_fd file) (new_name) with _ -> ()
+(*          try Unix32.rename (file_fd file) (new_name) with _ -> () *)
         end	
   )
   
@@ -89,8 +89,10 @@ let _ =
   file_ops.op_file_cancel <- (fun file ->
       remove_file file;
       BTClients.disconnect_clients file;
+(*
       (try  Unix32.remove (file_fd file)  with e -> ());
       file_cancel (as_file file.file_file);
+*)
   );
   file_ops.op_file_info <- (fun file ->
       {

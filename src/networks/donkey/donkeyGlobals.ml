@@ -337,10 +337,12 @@ let new_file file_state file_name md4 file_size writable =
       Hashtbl.add files_by_md4 md4 file;
       file
 
+      (*
 let change_hardname file file_name =
   let fd = file.file_file.impl_file_fd in
   Unix32.rename fd file_name
-          
+    *)
+
 let add_client_chunks file client_chunks =
   for i = 0 to file.file_nchunks - 1 do
     if client_chunks.(i) then 

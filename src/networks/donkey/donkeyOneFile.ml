@@ -1022,6 +1022,7 @@ let move_file_to_done_files md4 =
       raise e
         *)
 
+(*
 let remove_file md4 =
   try
     let file = Hashtbl.find files_by_md4 md4 in
@@ -1041,6 +1042,7 @@ let remove_file md4 =
   with e ->
       lprintf "remove_file NOT FOUND\n";
       raise e
+        *)
 
 let check_file_downloaded file =
   if file.file_absent_chunks = [] then

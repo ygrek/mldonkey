@@ -735,17 +735,17 @@ module Int64Swarmer = (struct
           let decr_availability t i =
             t.t_availability.(i) <- t.t_availability.(i) - 1
           in
-          lprintf "clean_uploader_chunks:\n";
+(*          lprintf "clean_uploader_chunks:\n"; *)
           
           let t = up.up_t in
           for i = 0 to Array.length up.up_complete_blocks - 1 do
-            lprintf "decr_availability complete[%d] %d\n" i
-              up.up_complete_blocks.(i);
+(*            lprintf "decr_availability complete[%d] %d\n" i
+              up.up_complete_blocks.(i); *)
             decr_availability t up.up_complete_blocks.(i)
           done;
           for i = 0 to Array.length up.up_partial_blocks - 1 do
             let b,_,_ = up.up_partial_blocks.(i) in
-            lprintf "decr_availability partial[%d] %d\n" i b;
+(*            lprintf "decr_availability partial[%d] %d\n" i b; *)
             decr_availability t b
           done;
           (match up.up_block with

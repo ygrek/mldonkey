@@ -4,6 +4,21 @@ ChangeLog
 Note: Due to the changes in CommonSwarming, this version is to be considered
  as EXPERIMENTAL on all networks, EXCEPT Edonkey & Overnet.
 
+2004/02/06: Fabrice (version 2.5.6, tag release-2-5-6)
+  * CommonInteractive:
+     * file_cancel: removes the file itself
+  * Unix32:
+     * new function 'destroy' to completely destroy a FD, so that it cannot
+        be used afterwards (but it does not remove the file). Used
+        in CommonInteractive.file_commit and CommonInteractive.file_cancel.
+  * DonkeyInteractive: clients might get stucked if they tried to
+      upload a file that has just been commited, since the name is not
+      updated anymore in Unix32.rename. We need to remove the former 'file' 
+      structure and then add a new one for the shared file, thus disconnecting
+      all the former uploaders (knowing them, they will reconnect asap :)).
+      To be done.
+  * Applied patches #2586, #2587, #2588
+
 2004/02/05: Fabrice (version 2.5.5, tag release-2-5-5)
   * Change in the version numbers, keep only 3 digits :)
 

@@ -78,8 +78,15 @@ let file_commited_name file =
     else new_name in
   new_name  
   
-(* This function is called on each downloaded file when the "commit" command
-  is received. *)
+(********
+These two functions 'file_commit' and 'file_cancel' should be the two only
+functions in mldonkey able to destroy a file, the first one by moving it, 
+the second one by deleting it. 
+
+Note that when the network specific file_commit function is called, the
+file has already been moved to the incoming/ directory under its new
+name.
+*)
   
 let file_commit file =
   let impl = as_file_impl file in
@@ -88,7 +95,7 @@ let file_commit file =
     try
       set_file_disk_name file new_name;
       let best_name = file_best_name file in  
-      Unix32.close (file_fd file);
+      Unix32.destroy (file_fd file);
       (* Commit the file first, and share it after... *)
       impl.impl_file_ops.op_file_commit impl.impl_file_val new_name;
       if not (Unix2.is_directory new_name) then 
@@ -101,12 +108,15 @@ let file_commit file =
       
 let file_cancel file =
   try
-  let impl = as_file_impl file in
-
-  if impl.impl_file_state <> FileCancelled then begin
+    let impl = as_file_impl file in    
+    if impl.impl_file_state <> FileCancelled then begin
         update_file_state impl FileCancelled;
         impl.impl_file_ops.op_file_cancel impl.impl_file_val;
-        Unix32.close (file_fd file);
+        (try  Unix32.remove (file_fd file)  with e -> 
+              lprintf "Sys.remove %s exception %s\n" 
+                (file_disk_name file)
+              (Printexc2.to_string e); );
+        Unix32.destroy (file_fd file);
         files =:= List2.removeq file !!files;
     end
   with e ->

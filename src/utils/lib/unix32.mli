@@ -74,3 +74,6 @@ val create_sparsefile :  string -> t
 
 val ro_flag :  Unix.open_flag list
 val rw_flag :  Unix.open_flag list
+  
+val destroy : t -> unit
+  

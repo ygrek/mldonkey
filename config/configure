@@ -309,7 +309,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT build build_cpu build_vendor build_os host host_cpu host_vendor host_os CPP RANLIB ac_ct_RANLIB GNU_MAKE OCAMLC RPMBUILD WGET OCAMLOPT OCAMLDEP OCAMLLEX OCAMLYACC OCAMLMKTOP CAMLP4 PERL EGREP GTK_CONFIG PTHREAD_CC PTHREAD_LIBS PTHREAD_CFLAGS COMPRESS EXTRA_DIRS TYPE_FORMAT OCAMLDEP_OPTIONS WINDOWS MORE_TARGETS MORE_SUBDIRS LABLGL_CMA LABLGL_CMXA CONFIG_INCLUDES CURRENT_DIR MD4ARCH MD4COMP ZLIB ICONV AUDIO_GALAXY OPEN_NAPSTER DIRECT_CONNECT GNUTELLA GNUTELLA2 BITTORRENT SOULSEEK OPENFT FASTTRACK DONKEY OPEN_DONKEY DONKEY_SERVER CYMES DEVEL JABBR BUILD_NEWGUI OCAMLOPT_DIL COMPILE_GUI REQUIRED_OCAML REQUIRED_LABLGTK ARCH PATCHED_OCAMLOPT COMPRESS_EXT RELEASENAME CHECKBOUNDS CURRENT_VERSION CURRENT_RELEASE GTOOLBOX_POPUPMENU OS_FILES MYCONFIG_ARGS MYCONFIG_ARGS_DEFINED TARGET_TYPE HAS_ZLIB ZLIB__UNCOMPRESS_STRING2 ZLIB__COMPRESS_STRING LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT build build_cpu build_vendor build_os host host_cpu host_vendor host_os CPP RANLIB ac_ct_RANLIB GNU_MAKE OCAMLC RPMBUILD WGET OCAMLOPT OCAMLDEP OCAMLLEX OCAMLYACC OCAMLMKTOP CAMLP4 PERL EGREP GTK_CONFIG PTHREAD_CC PTHREAD_LIBS PTHREAD_CFLAGS COMPRESS EXTRA_DIRS TYPE_FORMAT OCAMLDEP_OPTIONS WINDOWS MORE_TARGETS MORE_SUBDIRS LABLGL_CMA LABLGL_CMXA CONFIG_INCLUDES CURRENT_DIR MD4ARCH MD4COMP ZLIB ICONV AUDIO_GALAXY OPEN_NAPSTER DIRECT_CONNECT GNUTELLA GNUTELLA2 BITTORRENT FILETP SOULSEEK OPENFT FASTTRACK DONKEY OPEN_DONKEY DONKEY_SERVER CYMES DEVEL JABBR BUILD_NEWGUI OCAMLOPT_DIL COMPILE_GUI REQUIRED_OCAML REQUIRED_LABLGTK ARCH PATCHED_OCAMLOPT COMPRESS_EXT RELEASENAME CHECKBOUNDS CURRENT_VERSION CURRENT_RELEASE GTOOLBOX_POPUPMENU OS_FILES MYCONFIG_ARGS MYCONFIG_ARGS_DEFINED TARGET_TYPE HAS_ZLIB ZLIB__UNCOMPRESS_STRING2 ZLIB__COMPRESS_STRING LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -1292,7 +1292,7 @@ MYCONFIG_ARGS_DEFINED=yes
 echo $MYCONFIG_ARGS
 
 CURRENT_VERSION=2.5
-CURRENT_RELEASE=5
+CURRENT_RELEASE=6
 
 REQUIRED_OCAML=3.07
 DOWNLOAD_OCAML=3.07pl2
@@ -1313,6 +1313,7 @@ CYMES=no
 DONKEY=yes
 BITTORRENT=yes
 FASTTRACK=yes
+FILETP=yes
 
 BUILD_GUI=yes
 BUILD_NEWGUI=yes
@@ -1351,7 +1352,6 @@ if test ! "$MULTINET" = "yes"; then
   SOULSEEK=no
   OPENFT=no
   CYMES=no
-  BITTORRENT=no
   FASTTRACK=no
   RELEASENAME="$RELEASENAME-nomultinet"
 fi
@@ -8650,6 +8650,37 @@ fi
     BAD_TARGETS="$BAD_TARGETS bittorrent"
   fi
 
+  if test "$FILETP" = "yes"; then
+    echo "$as_me:$LINENO: checking for ../src/networks/fileTP" >&5
+echo $ECHO_N "checking for ../src/networks/fileTP... $ECHO_C" >&6
+if test "${ac_cv_file____src_networks_fileTP+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  test "$cross_compiling" = yes &&
+  { { echo "$as_me:$LINENO: error: cannot check for file existence when cross compiling" >&5
+echo "$as_me: error: cannot check for file existence when cross compiling" >&2;}
+   { (exit 1); exit 1; }; }
+if test -r "../src/networks/fileTP"; then
+  ac_cv_file____src_networks_fileTP=yes
+else
+  ac_cv_file____src_networks_fileTP=no
+fi
+fi
+echo "$as_me:$LINENO: result: $ac_cv_file____src_networks_fileTP" >&5
+echo "${ECHO_T}$ac_cv_file____src_networks_fileTP" >&6
+if test $ac_cv_file____src_networks_fileTP = yes; then
+  FILETP=yes
+else
+
+      FILETP=no
+      BAD_TARGETS="$BAD_TARGETS fileTP"
+
+fi
+
+  else
+    BAD_TARGETS="$BAD_TARGETS fileTP"
+  fi
+
   if test "$SOULSEEK" = "yes"; then
     if test "$ZLIB" = "yes"; then
        echo "$as_me:$LINENO: checking for ../src/networks/soulseek" >&5
@@ -9719,6 +9750,7 @@ fi
 
 
 
+
 AUTOCONF=../src/utils/lib/autoconf.ml
 GTK_AUTOCONF=../src/utils/lib/gAutoconf.ml
                                                                                                               ac_config_files="$ac_config_files Makefile.config Makefile.config.i386 Makefile.config.i486 Makefile.config.i586 Makefile.config.i686 mldonkey.rc $AUTOCONF.new $GTK_AUTOCONF.new ../packages/rpm/mldonkey.spec ../packages/rpm/Makefile ../packages/windows/mlnet.nsi"
@@ -10396,6 +10428,7 @@ s,@DIRECT_CONNECT@,$DIRECT_CONNECT,;t t
 s,@GNUTELLA@,$GNUTELLA,;t t
 s,@GNUTELLA2@,$GNUTELLA2,;t t
 s,@BITTORRENT@,$BITTORRENT,;t t
+s,@FILETP@,$FILETP,;t t
 s,@SOULSEEK@,$SOULSEEK,;t t
 s,@OPENFT@,$OPENFT,;t t
 s,@FASTTRACK@,$FASTTRACK,;t t

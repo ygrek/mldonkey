@@ -47,33 +47,47 @@ let really_write fd s pos len =
       raise e
 
 module FDCache = struct
-
+    
     type t = {
         mutable fd : Unix.file_descr option;
         mutable filename : string;
+        mutable destroyed : bool;
 (*        mutable exist : bool; *)
       }
-
+    
     let cache_size = ref 0
     let cache = Fifo.create ()
-
+    
     let create f =
 (*      let exist = Sys.file_exists f in *)
       {
         filename = f;
         fd = None;
+        destroyed = false;
 (*        exist = exist; *)
       }
-
+      
     let close t =
-      match t.fd with
-      | Some fd ->
+      if not t.destroyed then begin
+          match t.fd with
+          | Some fd ->
 (*          lprintf "close_one: closing %d\n" (Obj.magic fd); *)
-          (try Unix.close fd with _ -> ());
-          t.fd <- None;
-          decr cache_size
-      | None -> ()
+              (try Unix.close fd with _ -> ());
+              t.fd <- None;
+              decr cache_size
+          | None -> ()
+        end
 
+    let check_destroyed t =
+      if t.destroyed then
+        failwith "Unix32: Cannot use destroyed FD"
+        
+    let destroy t =
+      if not t.destroyed then begin
+          close t;
+          t.destroyed <- true
+        end
+        
     let rec close_one () =
       if not (Fifo.empty cache) then
         let t = Fifo.take cache in
@@ -85,6 +99,7 @@ module FDCache = struct
 
 
     let local_force_fd t =
+      check_destroyed t;
       let fd =
         match t.fd with
           None ->
@@ -111,23 +126,32 @@ module FDCache = struct
       done
 
     let rename t f =
+      check_destroyed t;
       close t;
-      Unix2.rename t.filename f
+      Unix2.rename t.filename f;
+      destroy t
 
     let ftruncate64 t len =
+      check_destroyed t;
       Unix2.c_ftruncate64 (local_force_fd t) len
 
-    let getsize64 t = Unix2.c_getsize64 t.filename
+    let getsize64 t = 
+      check_destroyed t;
+      Unix2.c_getsize64 t.filename
 
     let mtime64 t =
+      check_destroyed t;
       let st = Unix.LargeFile.stat t.filename in
       st.Unix.LargeFile.st_mtime
 
     let exists t =
+      check_destroyed t;
       Sys.file_exists t.filename
 
     let remove t =
-      if exists t then Sys.remove t.filename
+      check_destroyed t;
+      if exists t then Sys.remove t.filename;
+      destroy t
 
     let read file file_pos string string_pos len =
       let fd = local_force_fd file in
@@ -142,6 +166,8 @@ module FDCache = struct
       really_write fd string string_pos len
 
     let copy_chunk t1 t2 pos1 pos2 len64 =
+      check_destroyed t1;
+      check_destroyed t2;
       let buffer_len = 128 * 1024 in
       let buffer_len64 = Int64.of_int buffer_len in
       let buffer = String.make buffer_len '\001' in
@@ -172,6 +198,8 @@ module type File =   sig
     val remove : t -> unit
     val read : t -> int64 -> string -> int -> int -> unit
     val write : t -> int64 -> string -> int -> int -> unit
+      
+    val destroy : t -> unit
   end
 
 
@@ -197,6 +225,7 @@ module DiskFile = struct
     let remove = FDCache.remove
     let read = FDCache.read
     let write = FDCache.write
+    let destroy = FDCache.destroy
   end
 
 let zero_chunk_len = Int64.of_int 65536
@@ -377,6 +406,9 @@ module MultiFile = struct
 
     let close t =
       List.iter (fun file -> FDCache.close file.fd) t.files
+
+    let destroy t =
+      List.iter (fun file -> FDCache.destroy file.fd) t.files
 
     let rename t f =
       close t;
@@ -651,7 +683,10 @@ module SparseFile = struct
     
     let close t =
       Array.iter (fun file -> FDCache.close file.fd) t.chunks
-    
+
+    let destroy t =
+      Array.iter (fun file -> FDCache.destroy file.fd) t.chunks
+      
     let rename t f =
       close t;
       
@@ -833,12 +868,13 @@ module SparseFile = struct
 
 
 type file_kind =
-  MultiFile of MultiFile.t
+| MultiFile of MultiFile.t
 | DiskFile of DiskFile.t
 | SparseFile of SparseFile.t
-
+| Destroyed
+  
 type t = {
-    file_kind : file_kind;
+    mutable file_kind : file_kind;
     mutable filename : string;
     mutable error : exn option;
     mutable buffers : (string * int * int * int64 * int64) list;
@@ -875,7 +911,9 @@ let create f creator =
         } in
       H.add table t;
       t
-
+    
+    
+      
 let create_diskfile filename _ _ =
   create filename (fun f -> DiskFile (DiskFile.create f))
 
@@ -892,19 +930,22 @@ let ftruncate64 t len =
   | DiskFile t -> DiskFile.ftruncate64 t len
   | MultiFile t -> MultiFile.ftruncate64 t len
   | SparseFile t -> SparseFile.ftruncate64 t len
-
+  | Destroyed -> failwith "Unix32.ftruncate64 on destroyed FD"
+      
 let mtime64 t =
   match t.file_kind with
   | DiskFile t -> DiskFile.mtime64 t
   | MultiFile t -> MultiFile.mtime64 t
   | SparseFile t -> SparseFile.mtime64 t
-
+  | Destroyed -> failwith "Unix32.mtime64 on destroyed FD"
+      
 let getsize64 t =
   match t.file_kind with
   | DiskFile t -> DiskFile.getsize64 t
   | MultiFile t -> MultiFile.getsize64 t
   | SparseFile t -> SparseFile.getsize64 t
-
+  | Destroyed -> failwith "Unix32.getsize64 on destroyed FD"
+      
 (*
 For chunked files, we should read read the meta-file instead of the file.
 *)
@@ -939,11 +980,15 @@ let _ =
 let filename t = t.filename
 
 let write file file_pos string string_pos len =
+  if len > 0 then
   match file.file_kind with
   | DiskFile t -> DiskFile.write t file_pos string string_pos len
   | MultiFile t -> MultiFile.write t file_pos string string_pos len
   | SparseFile t -> SparseFile.write t file_pos string string_pos len
-
+  | Destroyed -> failwith "Unix32.write on destroyed FD"
+  else
+    lprintf "Unix32.write: error, invalid argument len = 0\n"
+        
 let buffer = Buffer.create 65000
 
 
@@ -954,7 +999,7 @@ let flush_buffer t offset =
   let len = String.length s in
   try
     if verbose then lprintf "seek64 %Ld\n" offset;
-    write t offset s 0 len;
+    if len > 0 then write t offset s 0 len;
 (*
     let fd, offset =  fd_of_chunk t offset (Int64.of_int len) in
     let final_pos = Unix2.c_seek64 fd offset Unix.SEEK_SET in
@@ -1023,7 +1068,8 @@ let read t file_pos string string_pos len =
   | DiskFile t -> DiskFile.read t file_pos string string_pos len
   | MultiFile t -> MultiFile.read t file_pos string string_pos len
   | SparseFile t -> SparseFile.read t file_pos string string_pos len
-
+  | Destroyed -> failwith "Unix32.read on destroyed FD"
+      
 let flush _ =
   try
     if verbose then lprintf "flush all\n";
@@ -1172,7 +1218,19 @@ let close t =
   | DiskFile t -> DiskFile.close t
   | MultiFile t -> MultiFile.close t
   | SparseFile t -> SparseFile.close t
+  | Destroyed -> failwith "Unix32.close on destroyed FD"
 
+let destroy t =
+  if t.file_kind <> Destroyed then begin
+      H.remove table t;
+      (match t.file_kind with
+        | DiskFile t -> DiskFile.destroy t
+        | MultiFile t -> MultiFile.destroy t
+        | SparseFile t -> SparseFile.destroy t
+        | Destroyed -> ());
+      t.file_kind <- Destroyed
+    end
+    
 (* let create_ro filename = create_diskfile filename ro_flag 0o666 *)
 let create_rw filename = create_diskfile filename rw_flag 0o666
 let create_ro = create_rw
@@ -1184,14 +1242,16 @@ let fd_of_chunk t pos len =
       flush_fd t;
       MultiFile.fd_of_chunk tt pos len
   | SparseFile t -> SparseFile.fd_of_chunk t pos len
-
+  | Destroyed -> failwith "Unix32.fd_of_chunk on destroyed FD"
+      
 let exists t =
   flush_fd t;
   match t.file_kind with
   | DiskFile t -> DiskFile.exists t
   | MultiFile t -> MultiFile.exists t
   | SparseFile t -> SparseFile.exists t
-
+  | Destroyed -> failwith "Unix32.exists on destroyed FD"
+      
 let remove t =
   flush_fd t;
   close t;
@@ -1199,7 +1259,8 @@ let remove t =
   | DiskFile t -> DiskFile.remove t
   | MultiFile t -> MultiFile.remove t
   | SparseFile t -> SparseFile.remove t
-
+  | Destroyed -> failwith "Unix32.remove on destroyed FD"
+      
 let getsize s =  getsize64 (create_ro s)
 let mtime s =  mtime64 (create_ro s)
 
@@ -1212,7 +1273,7 @@ let rename t f =
   | DiskFile t -> DiskFile.rename t f
   | MultiFile t -> MultiFile.rename t f
   | SparseFile t -> SparseFile.rename t f
-
+  | Destroyed -> failwith "Unix32.rename on destroyed FD"
 
 (* module MultiFile_Test = (MultiFile : File) *)
 module DiskFile_Test = (DiskFile : File)
