@@ -2106,6 +2106,13 @@ releaseclean: clean
 	rm -f tools/zoggy/*.cm?
 	rm -f $(TMPSOURCES)
 	rm -rf patches/build
+	rm -f .depend
+	rm -f packages/rpm/*.spec
+	rm -f windows/mlnet.nsi
+	rm -f src/utils/lib/autoconf.ml
+	rm -f src/utils/lib/autoconf.ml.new
+	rm -f src/utils/lib/gAutoconf.ml
+	rm -f src/utils/lib/gAutoconf.ml.new
 
 distclean: releaseclean
 	rm -rf patches/local

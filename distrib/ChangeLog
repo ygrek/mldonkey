@@ -4,7 +4,7 @@ ChangeLog
 2003/11/29: Fabrice
   * Removed patch #1261 
   * Applied patch #2243 (bind sockets), #2377 (mlnet.static),
-      #2378
+      #2378 (ocaml url)
   * Fixed compilation problem in oldgui
   * ED2K: send compressed ShareReq message to zlib-enabled servers.
 

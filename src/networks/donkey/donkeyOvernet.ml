@@ -379,7 +379,9 @@ let get_local_distribution md4 nb =
 let get_uniform_distribution () =
   let peers = ref [] in
   for i=0 to 255 do
-    let pos = ref (Random.int global_peers_size.(i)) in
+    let size = global_peers_size.(i) in
+    let size = if size > 0 then size else 1 in
+    let pos = ref (Random.int size) in
     Hashtbl.iter (fun a b -> if !pos=0 then peers := b :: !peers; decr pos) !!global_peers.(i)
   done;
   !peers
