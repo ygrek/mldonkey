@@ -2,6 +2,12 @@ ChangeLog
 =========
 
 2003/11/29: Fabrice
+  * Unix32: create_ro = create_rw
+  * New module BTTracker, to implement a tracker for BitTorrent.
+      Command "compute_torrent <filename>" in console to generate
+      the torrent file associated with filename. Not working yet.
+
+2003/11/29: Fabrice
   * Removed patch #1261 
   * Applied patch #2243 (bind sockets), #2377 (mlnet.static),
       #2378 (ocaml url)

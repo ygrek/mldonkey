@@ -380,7 +380,7 @@ let rec exec_timers = function
 let loop () =
   while true do
     try
-(*      select [] 0.05; *)
+      (try select [] 0.05;  with _ -> ());
       let time = update_time () in
       exec_tasks !fd_tasks;
       exec_hooks !after_select_hooks;

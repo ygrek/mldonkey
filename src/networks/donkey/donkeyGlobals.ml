@@ -265,7 +265,7 @@ let new_file file_state file_name md4 file_size writable =
       let file_size =
         if file_size = Int64.zero then
           try
-            Unix32.getsize64 file_name
+            Unix32.getsize file_name
           with _ ->
               failwith "Zero length file ?"
         else file_size

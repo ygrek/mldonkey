@@ -194,7 +194,7 @@ let enable () =
               try
                 let file_disk_name = file_disk_name file in
                 if Unix32.file_exists file_disk_name &&
-                  Unix32.getsize64 file_disk_name <> Int64.zero then begin
+                  Unix32.getsize file_disk_name <> Int64.zero then begin
                     lprintf "FILE DOWNLOADED"; lprint_newline ();
                     DonkeyShare.remember_shared_info file file_disk_name;
                     lprintf "REMEMBERED"; lprint_newline ();

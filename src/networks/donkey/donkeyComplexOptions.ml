@@ -305,7 +305,7 @@ let value_to_file is_done assocs =
     with _ -> update_best_name file);
   
   (try
-      let mtime = Unix32.mtime64 (file_disk_name file)  in
+      let mtime = Unix32.mtime (file_disk_name file)  in
       let old_mtime = value_to_float (List.assoc "file_mtime" assocs) in
       file.file_mtime <- old_mtime;
       let file_chunks = get_value "file_all_chunks" value_to_string in
@@ -378,7 +378,7 @@ let file_to_value file =
     "file_chunks_age", List (Array.to_list 
         (Array.map int_to_value file.file_chunks_age));
     "file_mtime", float_to_value (
-      try Unix32.mtime64 (file_disk_name file) with _ -> 0.0)
+      try Unix32.mtime (file_disk_name file) with _ -> 0.0)
   ]
   
 module SharedFileOption = struct

@@ -561,3 +561,11 @@ let string_of_tag tag =
     Uint64 i| Fint64 i -> Int64.to_string i
   | Addr x -> Ip.to_string x
   | String s -> s
+
+type arg_handler =  ui_conn -> string
+type arg_kind = 
+  Arg_none of arg_handler
+| Arg_multiple of (string list -> arg_handler)
+| Arg_one of (string -> arg_handler)
+| Arg_two of (string -> string -> arg_handler)
+| Arg_three of (string -> string -> string -> arg_handler)

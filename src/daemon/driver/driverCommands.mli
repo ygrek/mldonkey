@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open GuiTypes
+open CommonTypes
 
 (* val commands : (string * arg_kind * string) list *)
 val execute_command :

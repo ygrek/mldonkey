@@ -24,6 +24,15 @@ open CommonTypes
 open CommonSwarming
 open BTRate
 
+type torrent = {
+    mutable torrent_name : string;
+    mutable torrent_length : int64;
+    mutable torrent_announce : string;
+    mutable torrent_piece_size : int64;
+    mutable torrent_files :  (string * int64) list;
+    mutable torrent_pieces : Sha1.t array;
+  }
+
 type client = {
     client_client : client CommonClient.client_impl;
     mutable client_file : file;

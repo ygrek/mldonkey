@@ -41,6 +41,7 @@ and form_arg = {
   } 
 and version = HTTP1_0 | HTTP1_1 | HTTP
 and request = {
+    sock : TcpBufferedSocket.t;
     request : string;
     version : version;
     get_url : Url.url;
@@ -63,4 +64,4 @@ val need_auth : Buffer.t -> string -> unit
 val html_escaped : string -> string
   
 val handler : config -> 'a -> TcpServerSocket.event -> unit
-val parse_head : string -> request
+val parse_head : TcpBufferedSocket.t -> string -> request

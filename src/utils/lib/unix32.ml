@@ -1,3 +1,4 @@
+
 (* Copyright 2001, 2002 b8_bavard, b8_fee_carabine, INRIA *)
 (*
     This file is part of mldonkey.
@@ -992,9 +993,13 @@ let close t =
   | MultiFile t -> MultiFile.close t
   | SparseFile t -> SparseFile.close t
 
-let create_ro filename = create_diskfile filename [Unix.O_RDONLY] 0o666
-let create_rw filename = create_diskfile filename 
-    [Unix.O_CREAT; Unix.O_RDWR] 0o666
+let ro_flag =  [Unix.O_RDONLY]
+let rw_flag =  [Unix.O_CREAT; Unix.O_RDWR]
+
+  
+(* let create_ro filename = create_diskfile filename ro_flag 0o666 *)
+let create_rw filename = create_diskfile filename rw_flag 0o666
+let create_ro = create_rw
 
 let fd_of_chunk t pos len = 
   match t.file_kind with
@@ -1019,8 +1024,8 @@ let remove t =
   | MultiFile t -> MultiFile.remove t
   | SparseFile t -> SparseFile.remove t
 
-let getsize64 s =  getsize64 (create_ro s)
-let mtime64 s =  mtime64 (create_ro s)
+let getsize s =  getsize64 (create_ro s)
+let mtime s =  mtime64 (create_ro s)
 
 let file_exists s = exists (create_ro s)
 

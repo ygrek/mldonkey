@@ -36,8 +36,8 @@ val networks_iter_all : (CommonTypes.network -> unit) -> unit
 val networks_iter_all_until_true : (CommonTypes.network -> bool) -> bool
 val network_find_by_name : string -> CommonTypes.network
 val network_find_by_num : int -> CommonTypes.network
-val network_commands : (string * GuiTypes.arg_kind * string) list ref
-val register_commands : (string * GuiTypes.arg_kind * string) list -> unit
+val network_commands : (string * CommonTypes.arg_kind * string) list ref
+val register_commands : (string * CommonTypes.arg_kind * string) list -> unit
 val network_connect_servers : CommonTypes.network -> unit
 val network_forget_search : CommonTypes.network -> CommonTypes.search -> unit
 val network_close_search : CommonTypes.network -> CommonTypes.search -> unit

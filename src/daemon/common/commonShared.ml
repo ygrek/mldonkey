@@ -136,7 +136,7 @@ let new_shared dirname prio filename fullname =
   let codedname = Filename.concat dirname filename in
 (*  lprintf "\ndirname %s \nfilename %s \nfullname %s\ncodedname %s"
 dirname filename fullname codedname; lprint_newline (); *)
-  let size = Unix32.getsize64 fullname in
+  let size = Unix32.getsize fullname in
   incr files_scanned;
   files_scanned_size := Int64.add !files_scanned_size size;
   CommonNetwork.networks_iter (fun n -> 
@@ -201,8 +201,7 @@ let shared_find num =
 let shared_iter f =
   H.iter f shareds_by_num
 
-let file_size filename = 
-  Unix32.getsize64 filename
+let file_size filename =  Unix32.getsize filename
 let local_dirname = Sys.getcwd ()
   
 (* Prevent sharing of temp directory to avoid sending incomplete files *)

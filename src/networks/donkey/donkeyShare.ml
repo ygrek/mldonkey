@@ -167,11 +167,11 @@ let check_shared_files () =
         let rec job_creater _ =
           try
             if not (Sys.file_exists sh.shared_name) then begin
-                lprintf "Shared file doesn't exist"; lprint_newline ();
+                lprintf "Shared file doesn't exist\n"; 
                 raise Not_found;
               end;
-            if Unix32.getsize64 sh.shared_name <> sh.shared_size then begin
-                lprintf "Bad shared file size" ; lprint_newline ();
+            if Unix32.getsize sh.shared_name <> sh.shared_size then begin
+                lprintf "Bad shared file size\n" ; 
                 raise Not_found;
               end;
             computation := true;
@@ -198,10 +198,9 @@ let check_shared_files () =
                         sh_name = sh.shared_name;
                         sh_size = sh.shared_size;
                         sh_md4s = List.rev sh.shared_list;
-                        sh_mtime = Unix32.mtime64 sh.shared_name;
+                        sh_mtime = Unix32.mtime sh.shared_name;
                       } in
-                    lprintf "NEW SHARED FILE %s" sh.shared_name; 
-                    lprint_newline ();
+                    lprintf "NEW SHARED FILE %s\n" sh.shared_name; 
                     Hashtbl.add shared_files_info sh.shared_name s;
                     known_shared_files =:= s :: !!known_shared_files;
                     new_file_to_share s sh.shared_shared.impl_shared_codedname (Some  sh.shared_shared);
@@ -232,17 +231,15 @@ let _ =
 lprintf "Searching %s" fullname; lprint_newline ();
 *)
         let s = Hashtbl.find shared_files_info fullname in
-        let mtime = Unix32.mtime64 fullname in
+        let mtime = Unix32.mtime fullname in
         if s.sh_mtime = mtime && s.sh_size = size then begin
             if !verbose_share then begin
-                lprintf "USING OLD MD4s for %s" fullname;
-                lprint_newline (); 
+                lprintf "USING OLD MD4s for %s\n" fullname;
               end;
             new_file_to_share s codedname None
           end else begin
             if !verbose_share then begin                
-                lprintf "Shared file %s has been modified" fullname;
-                lprint_newline ();
+                lprintf "Shared file %s has been modified\n" fullname;
               end;
             Hashtbl.remove shared_files_info fullname;
             known_shared_files =:= List2.removeq s !!known_shared_files;
@@ -250,7 +247,7 @@ lprintf "Searching %s" fullname; lprint_newline ();
           end
       with Not_found ->
           if !verbose_share then begin
-              lprintf "No info on %s" fullname; lprint_newline (); 
+              lprintf "No info on %s\n" fullname; 
             end;
           
           let rec iter list left =
@@ -290,10 +287,10 @@ let remember_shared_info file new_name =
   if file.file_md4s <> [] then
     try
       let disk_name = file_disk_name file in
-      let mtime = Unix32.mtime64 disk_name in
+      let mtime = Unix32.mtime disk_name in
       
       if !verbose_share then begin
-          lprintf "Remember %s" new_name; lprint_newline ();
+          lprintf "Remember %s\n" new_name; 
         end;
       
       if not (Hashtbl.mem shared_files_info new_name) then
@@ -307,9 +304,8 @@ let remember_shared_info file new_name =
         known_shared_files =:= s :: !!known_shared_files;    
         Hashtbl.add shared_files_info new_name s
     with e ->
-        lprintf "Exception %s in remember_shared_info"
-          (Printexc2.to_string e);
-        lprint_newline ()
+        lprintf "Exception %s in remember_shared_info\n"
+          (Printexc2.to_string e)
         
 let must_share_file file = must_share_file file (file_best_name file) None
   

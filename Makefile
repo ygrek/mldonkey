@@ -347,6 +347,7 @@ BITTORRENT_SRCS= \
   $(SRC_BITTORRENT)/bTProtocol.ml \
   $(SRC_BITTORRENT)/bTGlobals.ml \
   $(SRC_BITTORRENT)/bTComplexOptions.ml \
+  $(SRC_BITTORRENT)/bTTracker.ml \
   $(SRC_BITTORRENT)/bTClients.ml \
   $(SRC_BITTORRENT)/bTInteractive.ml \
   $(SRC_BITTORRENT)/bTMain.ml

@@ -250,10 +250,9 @@ let new_file file_id name file_size =
       let file_temp = Filename.concat !!temp_directory 
           (Printf.sprintf "SK-%s" (Md4.to_string file_id)) in
       let current_size = try
-          Unix32.getsize64 file_temp
+          Unix32.getsize file_temp
         with e ->
-            lprintf "Exception %s in current_size" (Printexc2.to_string e); 
-            lprint_newline ();
+            lprintf "Exception %s in current_size\n" (Printexc2.to_string e); 
             Int64.zero
       in
       

@@ -32,6 +32,10 @@ let client_port = define_option bittorrent_section ["client_port"]
     "The port to bind the client to"
     int_option 6882
   
+let tracker_port = define_option bittorrent_section ["tracker_port"]
+  "The port to bind the tracker to"
+    int_option 13000
+  
   
 let commit_in_subdir = define_option bittorrent_section ["commit_in_subdir"]
   "The subdirectory of temp/ where files should be moved to"

@@ -1,6 +1,7 @@
 TODO list for client
 ====================
 
+* Remove create_ro
 * Fix the address in client_info sent as a string instead of an ADDR
 * Put as many config files as possible in ~/.mldonkey/,~/.mldonkey/mlgui
 * Fix performance problems in CommonSwarming

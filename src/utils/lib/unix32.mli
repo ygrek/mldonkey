@@ -24,7 +24,8 @@ val close : t -> unit
 (* val force_fd : t -> Unix.file_descr *)
   
 (* val seek64 : t -> int64 -> Unix.seek_command -> int64  *)
-val getsize64 : string -> int64
+val getsize : string -> int64
+val getsize64 : t -> int64
 val ftruncate64 : t -> int64 -> unit
 
 val close_all : unit -> unit
@@ -33,7 +34,8 @@ val fds_size : int
 val filename : t -> string
 val rename : t -> string -> unit 
 val max_cache_size : int ref
-val mtime64 : string -> float
+val mtime : string -> float
+val mtime64 : t -> float
   
 val flush : unit -> unit
 val flush_fd : t -> unit
@@ -69,4 +71,5 @@ val create_rw : string -> t
 val create_multifile :     
   string -> Unix.open_flag list -> int -> (string * int64) list -> t
 
-  
+val ro_flag :  Unix.open_flag list
+val rw_flag :  Unix.open_flag list

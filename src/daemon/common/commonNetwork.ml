@@ -170,7 +170,7 @@ let register_escape_char (c : char) (f : unit -> string) =
 let escape_char c = (List.assq c !network_escape_chars) ()
 *)
   
-let network_commands = ref ([] : (string * GuiTypes.arg_kind * string) list)
+let network_commands = ref ([] : (string * CommonTypes.arg_kind * string) list)
   
 let register_commands list = 
   network_commands := list @ !network_commands

@@ -107,6 +107,7 @@ type version =
 | HTTP
   
 type request = {
+    sock : TcpBufferedSocket.t;
     request : string;
     version : version;
     get_url : Url.url;
@@ -204,7 +205,7 @@ let split_head s =
   in
   iter 0 []
   
-let parse_head s =
+let parse_head sock s =
   let h = split_head s in
 (*  List.iter (fun s -> lprintf "LINE: [%s]\n" (escaped s)) h; *)
   match h with 
@@ -251,6 +252,7 @@ let parse_head s =
                 
         ) default_options headers in
       {
+        sock = sock;
         get_url = Url.of_string file;
         options = options;
         headers = headers;
@@ -686,7 +688,7 @@ Sys.set_signal Sys.sigchld (Sys.Signal_handle sigchild_handler);
 open TcpBufferedSocket
   
 let manage config sock head = 
-  let request = parse_head head in
+  let request = parse_head sock head in
   let rec iter reqs =
     match reqs with
       (file, handler) :: reqs when file = request.get_url.Url.file ->

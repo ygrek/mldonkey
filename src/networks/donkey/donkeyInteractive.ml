@@ -647,7 +647,7 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+renameTextOut+'\\\"';
                 try
                   ignore (Hashtbl.find files_by_md4 md4)
                 with Not_found ->
-                    let size = Unix32.getsize64 (Filename.concat 
+                    let size = Unix32.getsize (Filename.concat 
                           !!temp_directory filename) in
                     if size <> zero then
                       let names = try DonkeyIndexer.find_names md4 
