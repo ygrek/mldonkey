@@ -379,31 +379,6 @@ MLNET_SRCS= \
   $(DRIVER_SRCS)
 
 
-#### IM stuff is now automatically included in the GUI
-
-
-SUBDIRS += im im/yahoo
-  
-IM_CORE += im/imTypes.ml im/imEvent.ml \
-   im/imProtocol.ml im/imIdentity.ml im/imAccount.ml \
-   im/imChat.ml im/imRoom.ml \
-   im/imOptions.ml
-
-IM_CORE +=   im/yahoo/yahoo.ml
-
-IM_GUI_CORE += im/gui_im_base.zog   \
-    im/gui_im.ml  im/gui_im_rooms.ml
-
-TARGETS += mlim
-
-ifeq ("$(DEVEL)", "yes")
-  SUBDIRS += im/msn im/irc
-
-  IM_CORE +=    im/msn/msn.ml im/irc/irc.ml
-endif
-
-IM_CORE +=   im/imMain.ml
-
 
 #######################################################################
 
@@ -537,6 +512,33 @@ MLCHAT_SRCS= \
 
 
 TARGETS += mldonkey_gui$(EXE)   mldonkey_gui2$(EXE)  mlchat$(EXE) mldonkey_guistarter$(EXE)
+
+
+#### IM stuff is now automatically included in the GUI
+
+
+SUBDIRS += im im/yahoo
+  
+IM_CORE += im/imTypes.ml im/imEvent.ml \
+   im/imProtocol.ml im/imIdentity.ml im/imAccount.ml \
+   im/imChat.ml im/imRoom.ml \
+   im/imOptions.ml
+
+IM_CORE +=   im/yahoo/yahoo.ml
+
+IM_GUI_CORE += im/gui_im_base.zog   \
+    im/gui_im.ml  im/gui_im_rooms.ml
+
+TARGETS += mlim
+
+ifeq ("$(DEVEL)", "yes")
+  SUBDIRS += im/msn im/irc
+
+  IM_CORE +=    im/msn/msn.ml im/irc/irc.ml
+endif
+
+IM_CORE +=   im/imMain.ml
+
 endif
 
 
