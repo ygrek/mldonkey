@@ -140,6 +140,15 @@ let basename filename =
     match list with [] -> name | name :: tail -> iter tail name
   in
   iter (path_of_filename filename) filename
+
+let escaped filename =
+  let s = String.copy filename in
+  for i = 0 to String.length filename - 1 do
+    match filename.[i] with
+    | '\\' | '/' | ':' -> s.[i] <- '_'
+    | _ -> ()
+  done;
+  s
   
 let _ = (* some assertions on these functions *)
   assert (basename "c:\\Program Files\\Toto history.exe" = "Toto history.exe");

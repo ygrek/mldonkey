@@ -32,20 +32,13 @@ let client_port = define_option bittorrent_section ["client_port"]
     "The port to bind the client to"
     int_option 6882
   
-let commit_in_subdir = define_option bittorrent_section ["commit_in_subdir"]
-  "The subdirectory of temp/ where files should be moved to"
-    string_option "BT"
   
 let client_uid = define_option bittorrent_section ["client_uid"]
     "The UID of this client" Sha1.option (Sha1.random ())
 
-let network_options_prefix = define_option bittorrent_section
-    ["options_prefix"] "The prefix which is appended to options names
-    when they are used in the telnet/WEB interfaces"
-    string_option "BT-"
   
 let shortname o =
-  Printf.sprintf "%s%s" !!network_options_prefix (shortname o)
+  Printf.sprintf "BT-%s" (shortname o)
   
 let gui_bittorrent_options_panel = 
   (*
@@ -57,16 +50,10 @@ let gui_bittorrent_options_panel =
   
   [
     "Port", shortname client_port, "T";
-    "Commit Downloads In Incoming Subdir", shortname commit_in_subdir, "T";
-(*    "Delete Original", shortname delete_original, "B"; *)
   ]
 
   
     
-let tracker_port = define_option bittorrent_section ["tracker_port"]
-  "The port to bind the tracker to"
-    int_option 6881
-
 (*
 let torrent_files =
   define_option bittorrent_section ["torrent_files"]
@@ -92,12 +79,33 @@ let max_uploaders_per_torrent = define_option bittorrent_section ["max_uploaders
     "Maximum number of uploaders for one torrent"
     int_option 5
 
+let max_bt_uploaders = define_option bittorrent_section ["max_bt_uploaders"]
+    "Maximum number of uploaders for bittorrent"
+    int_option 5
+
+(* numwant: Optional. Number of peers that the client would like to receive from the tracker. 
+This value is permitted to be zero. If omitted, typically defaults to 50 peers.   *)
+
+let numwant = define_option bittorrent_section ["numwant"]
+    "Number of peers to request from tracker (Negative # = let tracker decide)"
+    int_option (-1)
+
 let _ =
-  option_hook max_uploaders_per_torrent
-    (fun _ ->
-      if !!max_uploaders_per_torrent < 1 then max_uploaders_per_torrent =:= 5)
+  begin
+    option_hook max_uploaders_per_torrent
+      (fun _ ->
+        if !!max_uploaders_per_torrent < 1 then max_uploaders_per_torrent =:= 5);
+    option_hook max_bt_uploaders
+      (fun _ ->
+        if !!max_bt_uploaders < 0 then max_bt_uploaders =:= 5)
+  end
   
   
 let cookies = define_option bittorrent_section ["cookies"]
     "Cookies send with http request to get .torrent file"
     (list_option (tuple2_option (string_option, list_option (tuple2_option (string_option, string_option))))) []
+
+let referers = define_option bittorrent_section ["referers"]
+    "Referer sent with http request to get .torrent file" 
+    (list_option (tuple2_option (string_option, string_option))) [(".*suprnova.*", "http://www.suprnova.org/")]
+    

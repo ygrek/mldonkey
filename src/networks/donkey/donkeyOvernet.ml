@@ -314,7 +314,7 @@ module Make(Proto: sig
       val command_prefix : string
       val source_brand : bool
         
-      val udp_send : UdpSocket.t -> Ip.t -> int -> t -> unit
+      val udp_send : UdpSocket.t -> Ip.t -> int -> bool -> t -> unit
       val udp_handler : (t -> UdpSocket.udp_packet -> unit) -> 
         UdpSocket.t -> UdpSocket.event -> unit
         
@@ -756,7 +756,13 @@ let udp_send_direct ip port msg =
   match !udp_sock with
     None -> ()
   | Some sock ->
-      Proto.udp_send sock ip port msg
+      Proto.udp_send sock ip port false msg
+
+let udp_send_ping ip port msg =
+  match !udp_sock with
+    None -> ()
+  | Some sock ->
+      Proto.udp_send sock ip port true msg
 
 let udp_send p msg =
   p.peer_last_send <- last_time ();
@@ -830,8 +836,10 @@ let get_closest_peers md4 nb =
         let p = Fifo.take fifo in
         Fifo.put fifo p;
         if p.peer_last_recv <> 0 then begin
+            if !verbose_overnet then begin
             lprintf () "Adding good search peer %s:%d\n"
               (Ip.to_string p.peer_ip) p.peer_port;
+	    end;
             decr nb;
             list := p :: !list;
           end;
@@ -1282,12 +1290,14 @@ let udp_client_handler t p =
       udp_send p (OvernetConnectReply (get_any_peers 20))
   
   | OvernetConnectReply ps ->
+      UdpSocket.declare_pong other_ip;
       let rec iter list =
         match list with
           [] -> ()
         | [p] ->
             new_peer_message p;
             if other_port <> p.peer_port || other_ip <> p.peer_ip then
+              if !verbose_overnet then
               lprintf () "Bad IP or port\n";
             let p = new_peer p in
             ()
@@ -2113,7 +2123,7 @@ let enable () =
                         [] -> ()
                       | (ip, port) :: tail ->
                           boot_peers_copy := tail;
-                          udp_send_direct ip port (OvernetConnect my_peer);
+                          udp_send_ping ip port (OvernetConnect my_peer);
                           ()
                     
                     done

@@ -34,13 +34,7 @@ open DonkeyOvernet
 
 module Proto = struct
     
-    let names_of_tag =
-      [
-        "\001", "filename";
-        "\002", "size";
-        "\003", "type";
-        "\004", "format";
-      ]
+    let names_of_tag = file_common_tags
     
     let buf_peer buf p =
       buf_md4 buf p.peer_md4;
@@ -188,8 +182,9 @@ module Proto = struct
       let peer_kind = ref 0 in
       List.iter (fun tag ->
           match tag.tag_name with
-            "loc" ->
+            Field_UNKNOWN "loc" ->
               for_string_tag tag (fun bcp ->
+                  if !verbose_overnet then
                   lprintf "loc tag : [%s]\n" bcp;
                   if String2.starts_with bcp "bcp://" then
                     let bcp2 = String.sub bcp 6 (String.length bcp - 6) 
@@ -215,7 +210,7 @@ module Proto = struct
               )
           | _ ->
               lprintf "Unused source tag [%s]\n"
-                (String.escaped tag.tag_name)
+                (escaped_string_of_field tag)
       ) r_tags;
       {
           peer_ip = !peer_ip;
@@ -287,7 +282,7 @@ module Proto = struct
             
             let sources = ref false in
             List.iter (fun tag ->
-                if tag.tag_name = "loc" then sources := true;
+                if tag.tag_name = Field_UNKNOWN "loc" then sources := true;
             ) r_tags;
             if !sources then
               let peer = get_peer_from_result ip port r_md4 r_tags in
@@ -307,7 +302,7 @@ module Proto = struct
                         
             let sources = ref false in
             List.iter (fun tag ->
-                if tag.tag_name = "loc" then sources := true;
+                if tag.tag_name = Field_UNKNOWN "loc" then sources := true;
             ) r_tags;
             if !sources then
               let peer = get_peer_from_result ip port r_md4 r_tags in
@@ -422,7 +417,7 @@ module Proto = struct
  
     let udp_buf = Buffer.create 2000
 
-    let udp_send sock ip port msg =
+    let udp_send sock ip port ping msg =
       try
         Buffer.clear udp_buf;
         buf_int8 udp_buf 227;
@@ -436,29 +431,33 @@ module Proto = struct
 (*dump s; lprint_newline ();*)
           end;
         let len = String.length s in
-        UdpSocket.write sock s ip port
+        UdpSocket.write sock ping s ip port
       with e ->
           lprintf "Exception %s in udp_send\n" (Printexc2.to_string e)
 
-    let udp_send sock ip port msg =
+    let udp_send sock ip port ping msg =
       match msg with
       | OvernetSearchFilesResults (target, ((_ :: _ :: _) as results)) ->
           List.iter (fun r ->
-              udp_send sock ip port (OvernetSearchFilesResults (target, [r]))
+              udp_send sock ip port ping 
+                (OvernetSearchFilesResults (target, [r]))
           ) results
       | OvernetSearchSourcesResults (target, ((_ :: _ :: _) as results)) ->
           List.iter (fun r ->
-              udp_send sock ip port (OvernetSearchSourcesResults (target, [r]))
+              udp_send sock ip port ping
+                (OvernetSearchSourcesResults (target, [r]))
           ) results
       | OvernetPublishFiles (target, ((_ :: _ :: _) as results)) ->
           List.iter (fun r ->
-              udp_send sock ip port (OvernetPublishFiles (target, [r]))
+              udp_send sock ip port ping
+                (OvernetPublishFiles (target, [r]))
           ) results
       | OvernetPublishSources (target, ((_ :: _ :: _) as results)) ->
           List.iter (fun r ->
-              udp_send sock ip port (OvernetPublishSources (target, [r]))
+              udp_send sock ip port ping
+                (OvernetPublishSources (target, [r]))
           ) results
-      | _ -> udp_send sock ip port msg
+      | _ -> udp_send sock ip port ping msg
           
     let enable_overnet = enable_overnet
     let command_prefix = "ov_"    

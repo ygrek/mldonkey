@@ -250,8 +250,13 @@ let get_uint64_2 proto s pos =
       get_uint64_32 s pos, pos + 4
   in i, pos
 
-let get_tag s pos =
+let get_tag_name s pos =
   let name, pos = get_string s pos in
+  let tag_name = field_of_string name in
+  tag_name, pos
+  
+let get_tag s pos =
+  let tag_name, pos = get_tag_name s pos in
   let value, pos =
     match get_uint8 s pos with
       0 -> 
@@ -263,9 +268,10 @@ let get_tag s pos =
     | 3 -> Addr (get_ip s (pos+1)), pos+5
     | 4 -> Uint16 (get_int16 s (pos+1)), pos+3
     | 5 -> Uint8 (get_uint8 s (pos+1)), pos+2
+    | 6 -> Pair (get_uint64_32 s (pos+1), get_uint64_32 s (pos+5)), pos+9
     | _ -> assert false
   in
-  { tag_name = name; tag_value = value }, pos
+  { tag_name = tag_name; tag_value = value }, pos
 
 let get_result proto s pos =
   let num  = get_int s pos in
@@ -1007,6 +1013,9 @@ let from_gui (proto : int array) opcode s =
     | 64 ->
         InterestedInSources (get_bool s 2)
         
+    | 65 -> 
+        GetVersion
+        
     | _ -> 
         lprintf "FROM GUI:Unknown message %d\n" opcode; 
         raise FromGuiMessageNotImplemented
@@ -1458,6 +1467,10 @@ let to_gui (proto : int array) opcode s =
     | 57 ->
         let s, pos = get_search get_string proto s 2 in
         Search s
+        
+    | 58 ->
+        let s, pos = get_string s 2 in 
+        Version s
         
     | _ -> 
         lprintf "TO GUI:Unknown message %d\n" opcode; 

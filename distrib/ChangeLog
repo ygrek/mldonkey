@@ -1,6 +1,73 @@
 ChangeLog	
 =========
 
+  After a long while, a new commit, with many changes, so should be seen
+	 as UNSTABLE until well tested.
+	
+2004/10/26: Fabrice (version 2.5.29 = 2.6pre11, tag release-2-5-29)
+  - Bittorrent: files should be shared even after commit.
+  - Removed some options:
+       * "incoming_directory", replaced by "shared_directories", with
+           strategy "incoming_files" (for downloaded files) and
+           "incoming_directories" (for downloaded directories on Bittorrent).
+       * For networks, "network_options_prefix" and "commit_in_subdir".
+
+2004/10/22: Fabrice
+  - Measure latencies between clients and send them to redirectors:
+     * On TCP connections
+     * On UDP: 
+         * Edonkey Server Ping/Pong
+         * Overnet/Kademlia clients Connect/ConnectReply
+         * Fasttrack Supernode Ping/Pong
+
+2004/10/18: Fabrice
+  - Many changes and patches applied, labeled as UNSTABLE until further
+      tested.
+  - Applied Savannah patches: #3321 (print_sources), #3338 (BT-quit), 
+     #3341 (BT-numwant), #3352 (GUI-GetVersion), #3356 (BT-showfile),
+     #3363 (gzip-0len), #3407 (BT-referer), #3408 (complete),
+     #3409 (download-sort), #3411 (setoptions), #3412 (BT-delay),
+     #3413 (BT-messages), #3414 (BT-latepeerid), #3415 (ED2K-ip),
+     #3420 (BT-chooser), #3421 (BT-events), #3422 (BT-reshare),
+     #3423 (BT-manualstop), #3425 (BT-latepeerid2), #3427 (logchats),
+     #3428 (BT-delay2), #3429 (BT-handler), #3430 (BT-verify),
+     #3435 (BT-assert1), #3436 (BT-parsehead), #3438 (ED2K-proto),
+     #3439 (swarm2), #3442 (kad-options), #3443 (log)
+  - Default is now Swarming2.
+
+2004/10/13: Fabrice
+  - Gnutella/Gnutella2: deflate_connections works
+
+2004/10/07: Fabrice
+  - CommonUploads: 
+      * Description of shared files is saved on disk during execution.
+      * Computed UIDs, Md4s and tiger-trees are stored in shared_files.ini
+          between executions.
+  - Fasttrack:
+      * Experimental ultrapeer mode for local experimentations (will not
+          work on the Fasttrack network).
+
+2004/10/03: Fabrice
+  - Bittorrent:
+      * Start download without the torrent, when enough information is known.
+
+2004/09/27: Fabrice
+  - Fasttrack:
+      * Clean protocol specification
+      * Basic ultrapeer
+
+2004/09/21: Fabrice
+  - Gnutella/Gnutella2: 
+      * Implemented basic ultrapeer (without Bloom filters)
+      * Implemented HTTP upload
+      * Implemented TigerTree verification
+
+2004/08/31: Fabrice
+  - Bug fixes: 
+      * chunk*.tmp are always removed
+  - Applied patches: #3305 (config gtk), #3306 (mlgui align), #3307 (clean),
+      #3313 (ft), #3317 (bt softs), #3319 (floats), 
+
 2004/08/18: Fabrice (version 2.5.28 = 2.6pre10, tag release-2-5-28)
   - Tested CommonSwarming2 with Edonkey and BT (should also work with 
       Fasttrack).

@@ -57,7 +57,7 @@ module Udp = DonkeyProtoUdp
 let active_lifetime = 1200.
   
 let is_banned c sock = 
-  c.client_banned <- Hashtbl.mem banned_ips (peer_ip sock)
+  c.client_banned <- Hashtbl.mem banned_ips (fst (peer_addr sock))
 
 
 (* Supports Emule Extended Protocol *)
@@ -68,7 +68,7 @@ let supports_eep cb =
   | _ -> false
 
 let ban_client c sock msg = 
-    let ip = peer_ip sock in
+    let ip = fst (peer_addr sock) in
   if not (Hashtbl.mem banned_ips ip) then
     let module M = DonkeyProtoClient in
     
@@ -535,8 +535,8 @@ let to_lowercase s = String.lowercase s
 let string_of_tags_list tags =
   let s = ref "" in
   List.iter (fun tag ->
-    let st = to_lowercase (CommonTypes.string_of_tag tag.tag_value) in
-    let str = tag.tag_name ^ " : " ^ st ^ " ; " in
+    let st = to_lowercase (string_of_tag_value tag.tag_value) in
+    let str = (escaped_string_of_field tag) ^ " : " ^ st ^ " ; " in
     s := !s ^ str
   ) tags;
   !s 
@@ -545,9 +545,9 @@ let identify_client_mod_brand c tags =
 
   if c.client_mod_brand = Brand_mod_unknown then begin
       List.iter (fun tag ->
-        let s = to_lowercase (CommonTypes.string_of_tag tag.tag_value) in 
+        let s = to_lowercase (string_of_tag_value tag.tag_value) in 
           match tag.tag_name with
-           "mod_version" ->
+           Field_UNKNOWN "mod_version" ->
                begin
                let rec iter i len =
                  let sub = fst mod_array.(i) in
@@ -569,9 +569,9 @@ let identify_client_mod_brand c tags =
 let update_client_from_tags c tags =
   List.iter (fun tag ->
       match tag.tag_name with
-      | "name" -> ()
-      | "version" -> ()
-      | "emule_udpports" -> 
+      | Field_UNKNOWN "name" -> ()
+      | Field_UNKNOWN "version" -> ()
+      | Field_UNKNOWN "emule_udpports" -> 
           for_two_int16_tag tag (fun ed2k_port kad_port ->
 (* Kademlia: we should use this client to bootstrap Kademlia *)
               if kad_port <> 0 then
@@ -579,11 +579,11 @@ let update_client_from_tags c tags =
                   c.client_ip kad_port
           )
 
-      | "emule_miscoptions1" ->
+      | Field_UNKNOWN "emule_miscoptions1" ->
           for_int64_tag tag (fun i ->
               DonkeyProtoClient.update_emule_proto_from_miscoptions1 
               c.client_emule_proto i)
-      | "emule_version" ->
+      | Field_UNKNOWN "emule_version" ->
           for_int_tag tag (fun i ->
               c.client_emule_proto.emule_version <- i)
       | _ -> ()
@@ -592,7 +592,7 @@ let update_client_from_tags c tags =
 let update_emule_proto_from_tags c tags = 
   List.iter (fun tag -> 
       match tag.tag_name with
-        "compatableclient" -> 
+        Field_UNKNOWN "compatableclient" -> 
           for_int_tag tag (fun i ->
               match i with 
                 1 -> c.client_brand <- Brand_cdonkey
@@ -603,29 +603,29 @@ let update_emule_proto_from_tags c tags =
               | 20 -> c.client_brand <- Brand_lphant
               | _ -> ()
           )          
-      | "compression" ->
+      | Field_UNKNOWN "compression" ->
           for_int_tag tag (fun i -> 
               c.client_emule_proto.emule_compression <- i)
-      | "udpver" ->
+      | Field_UNKNOWN "udpver" ->
           for_int_tag tag (fun i -> 
               c.client_emule_proto.emule_udpver <- i)          
-      | "udpport" -> ()
-      | "sourceexchange" ->
+      | Field_UNKNOWN "udpport" -> ()
+      | Field_UNKNOWN "sourceexchange" ->
           for_int_tag tag (fun i -> 
               c.client_emule_proto.emule_sourceexchange <- i)          
-      | "comments" ->
+      | Field_UNKNOWN "comments" ->
           for_int_tag tag (fun i -> 
               c.client_emule_proto.emule_comments <- i)          
-      | "extendedrequest" ->
+      | Field_UNKNOWN "extendedrequest" ->
           for_int_tag tag (fun i -> 
               c.client_emule_proto.emule_extendedrequest <- i)          
-      | "features" ->
+      | Field_UNKNOWN "features" ->
           for_int_tag tag (fun i -> 
               c.client_emule_proto.emule_secident <- i land 0x3)          
       
-      | s -> 
+      | _ -> 
           if !verbose_msg_clients then
-            lprintf "Unknown Emule tag: [%s]\n" (String.escaped s)
+            lprintf "Unknown Emule tag: [%s]\n" (escaped_string_of_field tag)
   ) tags
 
 let query_id ip port id =
@@ -902,7 +902,7 @@ let client_to_client for_files c t sock =
         c.client_tags <- t.CR.tags;
       List.iter (fun tag ->
           match tag with
-            { tag_name = "name"; tag_value = String s } -> 
+            { tag_name = Field_UNKNOWN "name"; tag_value = String s } -> 
               set_client_name c s t.CR.md4
           | _ -> ()
       ) c.client_tags;
@@ -1446,10 +1446,12 @@ is checked for the file.
             client_send c (
               M.NoSuchFileReq md4);
             
+           if !verbose then begin
             lprintf "DUMPING File table\n";
             Hashtbl.iter (fun md4 _ ->
                 lprintf "    %s\n" (Md4.to_string md4)
                 ) files_by_md4;
+	   end
         | e -> 
             lprintf "Exception %s in QueryFileReq\n"
               (Printexc.to_string e)
@@ -1481,15 +1483,17 @@ end else *)
           Array.iter (fun s ->
               try
                 let addr = 
-                  if Ip.valid s.Q.src_ip then
-                    if ip_reachable s.Q.src_ip then
+		  if Ip.valid s.Q.src_ip  && ip_reachable s.Q.src_ip then
                       Direct_address (s.Q.src_ip, s.Q.src_port)
-                    else raise Not_found
-                  else begin
+		  else
+		    if low_id s.Q.src_ip && ip_reachable s.Q.src_ip then
+		        begin
 (*                      lprintf "RIA: Received indirect address\n"; *)
                       Indirect_address (s.Q.src_server_ip, s.Q.src_server_port,
                         id_of_ip s.Q.src_ip)
-                    end
+                	end
+		   else
+		     raise Not_found
                 in
                 let s = DonkeySources.find_source_by_uid addr in
                 DonkeySources.set_request_result s file.file_sources
@@ -1798,14 +1802,14 @@ let read_first_message overnet m sock =
       let name = ref "" in
       List.iter (fun tag ->
           match tag with
-            { tag_name = "name"; tag_value = String s } -> name := s
+            { tag_name = Field_UNKNOWN "name"; tag_value = String s } -> name := s
           | _ ->  ()
       ) t.CR.tags;
       
       let kind = if Ip.valid t.CR.ip && Ip.reachable t.CR.ip then
           Direct_address (t.CR.ip, t.CR.port)
         else
-        if not (Ip.valid t.CR.ip) then
+        if low_id t.CR.ip && Ip.reachable t.CR.ip then
           match t.CR.server_info with
             None ->  Invalid_address  (!name, Md4.to_string t.CR.md4)
           | Some (ip,port) ->
@@ -2093,14 +2097,16 @@ let query_locations_reply s t =
         let port = l.Q.port in
         try
           let addr = 
-            if Ip.valid ip then
-              (if ip_reachable ip  then 
+            if Ip.valid ip && ip_reachable ip then
                   Direct_address (ip, port)
-                else raise Not_found)
-            else begin
+            else
+	      if low_id ip && ip_reachable ip then
+	      begin
 (*              lprintf "RIA: Received indirect address\n"; *)
                 Indirect_address (s.server_ip, s.server_port, id_of_ip ip)
               end
+	      else
+	       raise Not_found
           in
           
 (* TODO: verify that new sources are queried as soon as possible. Maybe we
@@ -2247,7 +2253,8 @@ let _ =
         | Invalid_address _ -> ()
         | Indirect_address (ip, port, id) ->
 
-            query_id ip port id
+       if low_id ip && ip_reachable ip then
+              query_id ip port id; 
 
                   
       with e -> 

@@ -59,6 +59,9 @@ let rec safe_mkdir dir =
       if not (is_directory dir) then 
         failwith (Printf.sprintf "%s not a directory" dir)
     end
+  else 
+  if is_link dir then
+    failwith (Printf.sprintf "%s is an orphan symbolic link" dir)
   else begin
       let predir = Filename.dirname dir in
       if predir <> dir then safe_mkdir predir;

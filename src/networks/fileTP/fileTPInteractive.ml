@@ -140,17 +140,6 @@ let _ =
           cinfo.GuiTypes.client_name
           (string_of_client_addr c)
     );
-    client_ops.op_client_bprint_html <- (fun c buf file ->
-        let cc = as_client c in
-        let cinfo = client_info cc in
-
-        html_mods_td buf [
-          ("", "sr br ar", Printf.sprintf "%d" (client_num cc));
-          ("", "sr br", cinfo.GuiTypes.client_name);
-          ("", "sr", (string_of_client_addr c));
-          ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_uploaded));
-          ("", "sr ar br", (size_of_int64 cinfo.GuiTypes.client_downloaded)); ];
-    );
    client_ops.op_client_dprint <- (fun c o file ->
         let info = file_info file in
         let buf = o.conn_buf in

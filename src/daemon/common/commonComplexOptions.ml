@@ -140,17 +140,18 @@ let value_to_tag =
           IntValue i -> Uint64 i
         | _ -> String (value_to_string v2)
       in
-      { tag_name = name; tag_value = value })
+      { tag_name = field_of_string name; tag_value = value })
   
 let tag_to_value = 
   tuple2_to_value (fun tag ->
-      string_to_value tag.tag_name, 
+      string_to_value (string_of_field tag.tag_name), 
       match tag.tag_value with
         Uint64 i -> int64_to_value i
       | String s -> string_to_value s
       | Addr _ -> assert false
       | Fint64 i -> int64_to_value i
       | Uint16 n | Uint8 n -> int_to_value n
+      | Pair (n1,n2) -> assert false
   )
   
 module ResultOption = struct 
@@ -186,12 +187,12 @@ module ResultOption = struct
       | _ -> assert false
     
     let result_to_value rs =
-      let r = CommonResult.get_result rs in
+      let r = CommonResult.IndexedResults.get_result rs in
       
       let tags = ref [] in
       List.iter (fun tag ->
           match tag.tag_name with
-            "availability" | "completesources" -> ()
+            Field_Availability | Field_Completesources -> ()
           | _ -> tags := tag :: !tags;
       ) r.result_tags;
       
@@ -577,37 +578,47 @@ module SharingOption = struct
               try conv (List.assoc name assocs) 
               with _ -> default 
             in
-            let sharing_recursive = get_value "recursive"
-                value_to_bool false 
+            let get_bool_value name =  get_value name value_to_bool false in
+            let sharing_recursive = get_bool_value "recursive" in
+            let sharing_minsize = get_value "minsize" value_to_int64 zero 
             in
-            let sharing_minsize = get_value "minsize"
-                value_to_int64 zero 
-            in
-            let sharing_maxsize = get_value "maxsize"
-                value_to_int64 Int64.max_int 
+            let sharing_maxsize = get_value "maxsize" value_to_int64
+              Int64.max_int 
             in
             let sharing_extensions = get_value "extensions"
                 (value_to_list value_to_string) [] 
             in
+            let sharing_directories = get_bool_value "directories" in
+            let sharing_incoming = get_bool_value "incoming" in
             {
-             sharing_recursive = sharing_recursive; 
-             sharing_minsize = sharing_minsize; 
-             sharing_maxsize = sharing_maxsize; 
-             sharing_extensions = sharing_extensions; 
+              sharing_directories = sharing_directories;
+              sharing_incoming = sharing_incoming;
+              sharing_recursive = sharing_recursive; 
+              sharing_minsize = sharing_minsize; 
+              sharing_maxsize = sharing_maxsize; 
+              sharing_extensions = sharing_extensions; 
             }
           end
       | _ -> assert false
     
     let sharing_to_value s =
-      let list = [
-          "recursive", bool_to_value s.sharing_recursive;
+      let assocs = [
           "extensions", 
           list_to_value string_to_value s.sharing_extensions;
           "minsize", int64_to_value s.sharing_minsize;
           "maxsize", int64_to_value s.sharing_maxsize;
         ]
       in
-      Options.Module list
+      let add_bool_value name v assocs =
+        if v then
+          (name , bool_to_value v) :: assocs
+        else assocs
+      in
+      let assocs = add_bool_value "directories" s.sharing_directories assocs in
+      let assocs = add_bool_value "incoming" s.sharing_incoming assocs in
+      let assocs = add_bool_value "recursive" s.sharing_recursive assocs in
+
+      Options.Module assocs
       
     let t =
       define_option_class "Sharing" value_to_sharing
@@ -616,11 +627,31 @@ module SharingOption = struct
   end
 
 let sharing_only_directory = {
-      sharing_extensions = [];
-      sharing_recursive = false;
-      sharing_minsize = Int64.of_int 1;
-      sharing_maxsize = Int64.max_int;
-    }  
+    sharing_incoming = false;
+    sharing_directories = false;
+    sharing_extensions = [];
+    sharing_recursive = false;
+    sharing_minsize = Int64.of_int 1;
+    sharing_maxsize = Int64.max_int;
+  }  
+  
+let sharing_incoming_directories = {
+    sharing_incoming = true;
+    sharing_directories = true;
+    sharing_extensions = [];
+    sharing_recursive = false;
+    sharing_minsize = Int64.of_int 1;
+    sharing_maxsize = Int64.max_int;
+  }  
+  
+let sharing_incoming_files = {
+    sharing_incoming = true;
+    sharing_directories = false;
+    sharing_extensions = [];
+    sharing_recursive = false;
+    sharing_minsize = Int64.of_int 1;
+    sharing_maxsize = Int64.max_int;
+  }
   
 let sharing_strategies = define_option searches_section
     ["customized_sharing"] ""
@@ -629,6 +660,9 @@ let sharing_strategies = define_option searches_section
 
 (* For mp3 sharers: recursively share all .mp3 files < 10 MB *)
     "mp3s", {
+      sharing_incoming = false;
+      sharing_directories = false;
+      
       sharing_extensions = [".mp3"];
       sharing_recursive = true;
       sharing_minsize = zero;
@@ -637,6 +671,8 @@ let sharing_strategies = define_option searches_section
 
 (* For video sharers: recursively share all .avi files > 500 MB *)
     "avis", {
+      sharing_incoming = false;
+      sharing_directories = false;
       sharing_extensions = [".avi"];
       sharing_recursive = true;
       sharing_minsize = megabytes 500;
@@ -644,16 +680,50 @@ let sharing_strategies = define_option searches_section
     };
 
     "all_files", {
+      sharing_incoming = false;
+      sharing_directories = false;
       sharing_extensions = [];
       sharing_recursive = true;
       sharing_minsize = Int64.of_int 1;
       sharing_maxsize = Int64.max_int;
     };
     
+    "incoming_files",  sharing_incoming_files;
+    
+    "incoming_directories", sharing_incoming_directories;
+    
 (* For incoming directory, share all files in the directory (not recursive) *)
     "only_directory", sharing_only_directory;
   ]
 
+let _ =
+  option_hook sharing_strategies (fun _ ->
+      
+      if not (List.exists 
+            (fun (_,s) -> s.sharing_incoming && s.sharing_directories) 
+          !!sharing_strategies) then
+        sharing_strategies =:= 
+          ("incoming_directories", sharing_incoming_directories) :: 
+        !!sharing_strategies;
+      
+      if not (List.exists 
+            (fun (_,s) -> s.sharing_incoming && not s.sharing_directories) 
+          !!sharing_strategies) then
+        sharing_strategies =:= 
+          ("incoming_files", sharing_incoming_files) :: !!sharing_strategies;
+      
+  )
+
+let sharing_strategies name =
+  match name with
+  | "incoming_files" -> sharing_incoming_files
+  | "incoming_directories" -> sharing_incoming_directories
+  | "only_directory" -> sharing_only_directory
+  | _ ->
+      try
+        List.assoc name !!sharing_strategies
+      with _ -> sharing_only_directory
+  
 (*************************************************************************)
 (*                                                                       *)
 (*                         SHARED                                        *)
@@ -740,6 +810,51 @@ let shared_directories =
   ]
 
 
+let incoming_files () =
+  try
+    List.find (fun s -> s.shdir_strategy = "incoming_files") 
+    !!shared_directories
+  with Not_found ->
+        let dirname = Filename.concat "incoming" "files" in
+        let s = {
+        shdir_dirname = dirname;
+        shdir_priority = 0;
+        shdir_networks = [];
+        shdir_strategy = "incoming_files";
+          }
+        in
+        shared_directories =:= s :: !!shared_directories;
+        s
+
+let incoming_directories () =
+  try
+    List.find (fun s -> s.shdir_strategy = "incoming_directories") 
+    !!shared_directories
+  with Not_found ->
+      let dirname = Filename.concat "incoming" "directories" in
+      let s = {
+          shdir_dirname = dirname;
+          shdir_priority = 0;
+          shdir_networks = [];
+          shdir_strategy = "incoming_directories";
+        }
+      in
+      shared_directories =:= s :: !!shared_directories;
+      s
+
+let _ =
+(* Check the definition of the incoming_files and incoming_directories in
+shared_directories *)
+  let verification = ref false in
+  option_hook shared_directories (fun _ ->
+      if not !verification then begin
+          verification := true;
+          ignore (incoming_files ());
+          ignore (incoming_directories ());
+          verification := false
+        end
+  )
+      
     
 (*************************************************************************)
 (*                                                                       *)

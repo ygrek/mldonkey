@@ -824,13 +824,13 @@ let add_reply_header r header value =
 let parse_range range =
   try
     let npos = (String.index range 'b')+6 in
+    let len = String.length range in
     let dash_pos = try String.index range '-' with _ -> -10 in
-    let slash_pos = try String.index range '/' with _ -> -20 in
+    let slash_pos = try String.index range '/' with _ -> len in
     let star_pos = try String.index range '*' with _ -> -30 in
     if star_pos = slash_pos-1 then
       Int64.zero, None, None (* "bytes */X" *)
     else
-    let len = String.length range in
     let x = Int64.of_string (
         String.sub range npos (dash_pos - npos) )
     in
@@ -841,6 +841,9 @@ let parse_range range =
     let y = Int64.of_string (
         String.sub range (dash_pos+1) (slash_pos - dash_pos - 1))
     in
+    if slash_pos = len then
+      x, Some y, None (* "bytes=x-y" *)      
+    else
     if slash_pos = star_pos - 1 then 
       x, Some y, None (* "bytes x-y/*" *)
     else
@@ -856,12 +859,14 @@ let parse_range range =
         (Printexc2.to_string e) range;
       raise e
 
+(*
 let parse_range range =
   let x, y, z = parse_range range in
   lprintf "Range parsed: %Ld-%s/%s" x
     (match y with None -> "" | Some y -> Int64.to_string y)    
-  (match z with None -> "*" | Some y -> Int64.to_string y);
+  (match z with None -> "*" | Some y -> Int64.to_string y); 
   x, y, z
+    *)
 
 open Int64ops
   

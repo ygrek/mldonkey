@@ -41,16 +41,13 @@ open SlskTypes
     
 open CommonNetwork
   
-let network = new_network "Soulseek"  
+let network = new_network "SLSK" "Soulseek"  
     [ 
     NetworkHasServers; 
     NetworkHasSearch;
     NetworkHasRooms;
     NetworkHasChat;
   ]
-    (fun _ -> !!network_options_prefix)
-  (fun _ -> !!commit_in_subdir)
-(*    network_options_prefix commit_in_subdir *)
   
 let connection_manager = network.network_connection_manager      
   

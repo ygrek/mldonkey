@@ -70,7 +70,8 @@ let split s c =
     try
       if pos = len then [""] else
       let pos2 = String.index_from s pos c in
-      (String.sub s pos (pos2-pos)) :: (iter (pos2+1))
+      if pos2 = pos then "" :: iter (pos+1) else
+        (String.sub s pos (pos2-pos)) :: (iter (pos2+1))
     with _ -> [String.sub s pos (len-pos)]
   in
   iter 0
@@ -255,11 +256,15 @@ let tokens s =
 
 external contains : string -> string -> bool = "ml_strstr"  
   
+let rec strneql s1 s2 len =
+  len = 0 || (
+    let len = len - 1 in
+    s1.[len] = s2.[len] && strneql s1 s2 len)
   
 let starts_with s1 s2 =
   let len1 = String.length s1 in
   let len2 = String.length s2 in
-  len2 <= len1 && String.sub s1 0 len2 = s2
+  len2 <= len1 && strneql s1 s2 len2
 
 let replace_char s c1 c2 =
   for i = 0 to String.length s - 1 do

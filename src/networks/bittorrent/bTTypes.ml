@@ -19,7 +19,6 @@
 
 
 open Md4
-
 open CommonTypes
 open CommonDownloads
 open BTRate
@@ -71,24 +70,39 @@ type client = {
     mutable client_incoming : bool;
     mutable client_registered_bitfield : bool;
     mutable client_last_optimist : int;
+    mutable client_software : string;
   }
 
+and tracker_info = {
+    tracker_url : string;
+    mutable tracker_interval : int;
+    mutable tracker_last_conn : int;
+    mutable tracker_last_clients_num : int;
+  }
+  
 and file = {
     file_file : file CommonFile.file_impl;
     file_piece_size : int64;
-    file_tracker : string;
     file_id : Sha1.t;
     file_name : string;
     mutable file_swarmer : Int64Swarmer.t option;
     mutable file_clients : ((Ip.t*int), client) Hashtbl.t ;
     mutable file_clients_num : int ;
     mutable file_chunks : Sha1.t array; 
-    mutable file_tracker_connected : bool;
-    mutable file_tracker_interval : int;
-    mutable file_tracker_last_conn : int;
     mutable file_files : (string * int64) list;
     mutable file_blocks_downloaded : int list;
     (* vvv probably a network specific value vvv ?what about file_downloaded?*)
     mutable file_uploaded : int64;
-    mutable file_torr_fname : string;
+    mutable file_torrent_diskname : string;
+    mutable file_trackers : tracker_info list;
+    mutable file_tracker_connected : bool;
+    mutable file_completed_hook : (file -> unit);
   }
+
+and ft = {
+    ft_file : ft CommonFile.file_impl;
+    ft_id : int;
+    ft_filename : string;
+    mutable ft_retry : (ft -> unit);
+  }
+  

@@ -21,6 +21,9 @@ open Int64ops
 open Printf2
 open BasicSocket
 
+  
+let latencies = Hashtbl.create 2131
+
 let max_opened_connections = ref (fun () -> maxi 20 (MlUnix.max_sockets - 50))
 let max_connections_per_second = ref (fun () -> 50)
 
@@ -97,13 +100,14 @@ type t = {
     mutable write_power : int;
     mutable read_power : int;
 
-    mutable peer_ip : Ip.t;
+    mutable peer_addr : (Ip.t * int) option;
     mutable my_ip : Ip.t;
 
     mutable noproxy : bool;
     mutable connecting : bool;
-    mutable host : string;
-
+    mutable host : Ip.t;
+    mutable connect_time : float;
+    
     mutable token : token;
 
     mutable compression : (
@@ -262,6 +266,23 @@ let use_token token fd =
 (*                                                                       *)
 (*************************************************************************)
 
+let add_connect_latency ip time =
+  if ip <> Ip.null && time > 1. then
+    let delay = current_time () -. time in
+    let delayf = 1000. *. delay in
+    let delay = int_of_float delayf in
+    let delay = if delay > 65000 then 65000 else delay in
+(*
+lprintf "add_connect_latency %s -> %d (%f)\n" 
+(Ip.to_string ip) delay delayf;
+  *)
+    try
+      let latency, samples = Hashtbl.find latencies ip in
+      incr samples;
+      if !latency > delay then latency := delay
+    with _ -> 
+        Hashtbl.add latencies ip (ref delay, ref 1)
+        
 let forecast_bytes t nbytes =
   match t with
     None -> ()
@@ -399,6 +420,8 @@ let buf_add t b s pos1 len =
         lprintf "]\n";
 
         t.event_handler t BUFFER_OVERFLOW;
+(* TODO: why do we have this ??? in case of BUFFER_OVERFLOW, just close the
+  socket !!! *)
       end
     else
     let new_len = mini (maxi (2 * max_len) (b.len + len)) b.max_buf_size  in
@@ -532,7 +555,14 @@ end; *)
               None -> ()
             | Some bc ->
                 bc.moved_bytes <-
-                Int64.add bc.moved_bytes (Int64.of_int nw));
+                  Int64.add bc.moved_bytes (Int64.of_int nw));
+          if t.nwrite = 0 then begin
+(*              if t.connecting then 
+                lprintf "WRITE BEFORE CONNECTION.......\n";
+              lprintf "add_connect_latency at %f\n" (current_time ()); *)
+              add_connect_latency t.host t.connect_time;
+            end;
+          
           t.nwrite <- t.nwrite + nw;
           if nw = 0 then (close t Closed_by_peer; pos2) else
             pos1 + nw
@@ -728,7 +758,11 @@ let can_write_handler t sock max_len =
             None -> ()
           | Some bc ->
               bc.moved_bytes <-
-              Int64.add bc.moved_bytes (Int64.of_int nw));
+                    Int64.add bc.moved_bytes (Int64.of_int nw));
+            if t.nwrite = 0 then begin
+(*                lprintf "add_connect_latency at %f\n" (current_time ()); *)
+                add_connect_latency t.host t.connect_time;
+              end;
         t.nwrite <- t.nwrite + nw;
         b.len <- b.len - nw;
         b.pos <- b.pos + nw;
@@ -781,6 +815,22 @@ let tcp_handler_write t sock =
               end
           end
   end
+  
+let get_latencies () =
+  let b = Buffer.create 300 in
+  let counter = ref 0 in  
+  Hashtbl.iter (fun ip (latency, samples) ->
+      incr counter;
+  ) latencies;
+  LittleEndian.buf_int b !counter;
+  Hashtbl.iter (fun ip (latency, samples) ->
+      lprintf "   Latency TCP: %s -> %d (%d samples)\n" (Ip.to_string ip) !latency !samples;
+      LittleEndian.buf_ip b ip;
+      LittleEndian.buf_int16 b !latency;
+      LittleEndian.buf_int16 b !samples;
+  ) latencies;
+  Hashtbl.clear latencies;
+  Buffer.contents b
   
 let tcp_handler t event =
   match event with
@@ -997,7 +1047,8 @@ let set_reader t f =
               let rstr_pos = 12 (*String.index_from b.buf (rcode_pos+1) ' '*) in
               let rstr_end = String.index_from b.buf (rstr_pos+1) '\n' in
               let rstr = String.sub b.buf (rstr_pos+1) (rstr_end-rstr_pos-1) in
-              lprintf "From proxy for %s: %s %s\n" sock.host rcode rstr;
+              lprintf "From proxy for %s: %s %s\n" 
+                (Ip.to_string sock.host) rcode rstr;
               rcode, rstr, rstr_end
             with _ ->
                 "", "", 0
@@ -1066,9 +1117,9 @@ let set_write_controler t bc =
   set_allow_write t.sock_out bc.allow_io;
   bandwidth_controler t t.sock_out
 
-let set_monitored t =
-  t.monitored <- true
-
+let set_monitored t b = t.monitored <- b
+let monitored t = t.monitored
+  
 let set_rtimeout s t = set_rtimeout s.sock_in t
 let set_wtimeout s t = set_wtimeout s.sock_out t
 
@@ -1125,11 +1176,12 @@ let create token name fd handler =
       write_control = None;
       write_power = 1;
       read_power = 1;
-      peer_ip = Ip.null;
+      connect_time = 0.;
+      peer_addr = None;
       my_ip = Ip.null;
       noproxy = true;
       connecting = false;
-      host = "";
+      host = Ip.null;
       compression = None;
     } in
   let sock = BasicSocket.create name fd (fun _ event ->
@@ -1176,11 +1228,12 @@ let create_pipe token name fd_in fd_out handler =
       write_control = None;
       write_power = 1;
       read_power = 1;
-      peer_ip = Ip.null;
+      peer_addr = None;
       my_ip = Ip.null;
       noproxy = true;
       connecting = false;
-      host = "";
+      host = Ip.null;
+      connect_time = 0.;
       compression = None;
     } in
   
@@ -1237,11 +1290,12 @@ let create_blocking token name fd handler =
       write_control = None;
       write_power = 1;
       read_power = 1;
-      peer_ip = Ip.null;
+      peer_addr = None;
       my_ip = Ip.null;
       noproxy = true;
       connecting = false;
-      host = "";
+      host = Ip.null;
+      connect_time = 0.;
       compression = None;
     } in
   let sock = create_blocking name fd (fun sock event ->
@@ -1272,7 +1326,8 @@ let connect token name host port handler =
         None -> Ip.null, 0
       | Some (h, p) -> Ip.from_name h, p
     in
-    let use_proxy = proxy_ip <> Ip.null && proxy_ip <> (Ip.of_inet_addr host) in
+    let ip = Ip.of_inet_addr host in
+    let use_proxy = proxy_ip <> Ip.null && proxy_ip <> ip in
     if use_proxy then begin
 (* connect to proxy in blocking mode, so we sure, connections established when we send CONNECT *)
         lprintf "via proxy\n";
@@ -1302,9 +1357,11 @@ let connect token name host port handler =
     
     must_write t.sock_out true;
     try
+      t.host <- ip;
+(*      lprintf "add_connect at %f\n" (current_time ()); *)
+      t.connect_time <- current_time ();
       if use_proxy then begin
           t.noproxy <- false;
-          t.host <- (Unix.string_of_inet_addr host)
         end else
         Unix.connect s (Unix.ADDR_INET(host,port));
       
@@ -1351,22 +1408,28 @@ let my_ip t =
     | _ -> raise Not_found
   else t.my_ip
 
-let peer_ip t =
-  if t.peer_ip = Ip.null then
-  let fd = fd t.sock_out in
-  match Unix.getpeername fd with
-      Unix.ADDR_INET (ip, port) ->
-        let ip = Ip.of_inet_addr ip in
-        t.peer_ip <- ip; ip
+let peer_addr t =
+  match t.peer_addr with
+    Some (ip, port) -> (ip,port)
+  | None ->
+      let fd = fd t.sock_out in
+      match Unix.getpeername fd with
+        Unix.ADDR_INET (ip, port) ->
+          let ip = Ip.of_inet_addr ip in
+          t.peer_addr <- Some (ip, port); 
+          ip, port
   | _ -> raise Not_found
-  else
-    t.peer_ip
 
+let peer_ip t = fst (peer_addr t)
+let peer_port t = snd (peer_addr t)
+          
+          (*
 let host t =
   let fd = fd t.sock_out in
   match Unix.getpeername fd with
     Unix.ADDR_INET (ip, port) -> Ip.of_inet_addr ip, port
   | _ -> raise Not_found
+        *)
 
 (*************************************************************************)
 (*                                                                       *)
@@ -1463,13 +1526,15 @@ let deflate_connection sock =
 
 let rec iter_deflate sock zs wbuf =
   if wbuf.len > 0 then begin
-      lprintf "iter_deflate\n";
+(*      lprintf "iter_deflate\n"; *)
       let (_, used_in, used_out) = Zlib.deflate zs
           wbuf.buf wbuf.pos wbuf.len
           compression_buffer 0 compression_buffer_len
           Zlib.Z_SYNC_FLUSH in
-      lprintf "deflated %d/%d -> %d\n" used_in wbuf.len used_out;
+(*
+     lprintf "deflated %d/%d -> %d\n" used_in wbuf.len used_out;
       lprintf "[%s]\n" (String.escaped (String.sub compression_buffer 0 used_out));
+*)
       write sock compression_buffer 0 used_out;
       buf_used wbuf used_in;
       if used_in > 0 || used_out > 0 then
@@ -1499,13 +1564,17 @@ let to_deflate conn =
 
 let rec iter_inflate zs sock b rbuf =
   if b.len > 0 then begin
-      lprintf "iter_inflate %d\n" b.len;
-      lprintf "[%s]\n" (String.escaped (String.sub b.buf b.pos b.len));
+(*
+lprintf "iter_inflate %d\n" b.len;
+lprintf "[%s]\n" (String.escaped (String.sub b.buf b.pos b.len));
+*)
       let (_, used_in, used_out) = Zlib.inflate zs b.buf b.pos b.len
           compression_buffer 0 compression_buffer_len
           Zlib.Z_SYNC_FLUSH in
+(*
       lprintf "inflated %d/%d -> %d\n" used_in b.len used_out;
       lprintf "[%s]\n" (String.escaped (String.sub compression_buffer 0 used_out));
+*)
       buf_add sock rbuf compression_buffer 0 used_out;
       buf_used b used_in;
       if used_in > 0 || used_out > 0 then
@@ -1516,7 +1585,7 @@ let buf t =
   match t.compression with
     None -> t.rbuf
   | Some (zs, _, rbuf, _) ->
-      lprintf "CanBeCompressed.buf\n";
+(*      lprintf "CanBeCompressed.buf\n"; *)
       let b = buf t in
       if b.len > 0 then iter_inflate zs t b rbuf;
       rbuf

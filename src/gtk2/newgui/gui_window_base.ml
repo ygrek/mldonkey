@@ -154,7 +154,7 @@ class window () =
   in
   let label_connect_status =
     GMisc.label ~text:(Gui_messages.mW_lb_not_connected)
-      ~justify:`LEFT ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0)
+      ~justify:`LEFT ~line_wrap:true ~xalign:(0.0) ~yalign:(0.0)
       ~packing:(hbox_status#pack ~expand:true ~fill:true) ()
   in
   object

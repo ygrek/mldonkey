@@ -40,8 +40,15 @@ open BTOptions
 open BTProtocol
 open CommonDownloads  
 open CommonNetwork
-
+open TcpMessages
+  
+  
 let send_client c m = send_client c.client_sock m
+
+let as_ft file = as_file file.ft_file
+let ft_num file = file_num (as_ft file)
+let ft_size file = file.ft_file.impl_file_size
+let ft_state file = file_state (as_ft file)  
   
 let as_file file = as_file file.file_file        
 let file_size file = file.file_file.impl_file_size
@@ -54,6 +61,7 @@ let file_state file = file_state (as_file file)
 let file_num file = file_num (as_file file)
 let file_must_update file = file_must_update (as_file file)
 
+  
 let set_file_state file state = 
  CommonFile.set_file_state (as_file file) state
 
@@ -69,25 +77,13 @@ let set_client_disconnected client =
 let client_num c = client_num (as_client c)
 
   
-let network = new_network "BitTorrent"  
+let network = new_network "BT" "BitTorrent"  
     [ 
     NetworkHasMultinet; 
     NetworkHasUpload;
   ]
-    (fun _ -> !!network_options_prefix)
-  (fun _ -> !!commit_in_subdir)
-(*  network_options_prefix commit_in_subdir *)
-  (*
-     op_result_network : network;
-     op_result_download : ('a -> string list -> unit);
-     op_result_info : ('a -> CommonTypes.result_info);
-  *)
+
 let connection_manager = network.network_connection_manager
-  
-  (*
-let (result_ops : result CommonResult.result_ops) = 
-  CommonResult.new_result_ops network
-    *)
 
 let (server_ops : server CommonServer.server_ops) = 
   CommonServer.new_server_ops network
@@ -99,6 +95,9 @@ let (user_ops : user CommonUser.user_ops) =
   CommonUser.new_user_ops network
   
 let (file_ops : file CommonFile.file_ops) = 
+  CommonFile.new_file_ops network
+  
+let (ft_ops : ft CommonFile.file_ops) = 
   CommonFile.new_file_ops network
   
 let (client_ops : client CommonClient.client_ops) = 
@@ -149,94 +148,354 @@ let check_if_interesting file c =
         c.client_alrd_sent_notinterested <- true;
         send_client c NotInterested
       end
+
+let add_torrent_infos file trackers =
+  List.iter (fun tracker ->
+      file.file_trackers <- tracker :: file.file_trackers
+  ) trackers
+
+let create_temp_file file_temp file_files =
+  lprintf "create_temp_file %s\n" file_temp;
+  let file_fd =
+    if file_files <> [] then
+      Unix32.create_multifile file_temp
+        [Unix.O_RDWR; Unix.O_CREAT] 0o666 file_files
+    else
+      Unix32.create_rw file_temp 
+  in
+  if Unix32.destroyed file_fd then 
+    failwith 
+      (Printf.sprintf
+        "create_temp_file: Unix32.create returned a destroyed FD for %s\n"
+        file_temp);
+  file_fd
+
+let set_trackers file file_trackers =
+  file.file_trackers <- (List.map (fun url -> {
+          tracker_url = url;
+          tracker_interval = 600;
+          tracker_last_conn = 0;
+          tracker_last_clients_num = 0;
+        } ) file_trackers) @ file.file_trackers
+    
+let new_file file_id t torrent_diskname file_temp file_state = 
+  try
+    Hashtbl.find files_by_uid file_id
+  with Not_found -> 
+      let file_fd = create_temp_file file_temp t.torrent_files in
+      let rec file = {
+          file_tracker_connected = false;
+          file_file = file_impl;
+          file_piece_size = t.torrent_piece_size;
+          file_id = file_id;
+          file_name = t.torrent_name;
+          file_clients_num = 0;
+          file_clients = Hashtbl.create 113;
+          file_swarmer = None;
+          file_trackers = [];
+          file_chunks = t.torrent_pieces;
+          file_files = t.torrent_files;
+          file_blocks_downloaded = [];
+          file_uploaded = Int64.zero;
+          file_torrent_diskname = torrent_diskname;
+          file_completed_hook = (fun _ -> ());
+        } and file_impl =  {
+          dummy_file_impl with
+          impl_file_fd = file_fd;
+          impl_file_size = t.torrent_length;
+          impl_file_downloaded = Int64.zero;
+          impl_file_val = file;
+          impl_file_ops = file_ops;
+          impl_file_age = last_time ();          
+          impl_file_best_name = t.torrent_name;
+        }
+      in
+      set_trackers file [t.torrent_announce];
+      if file_state <> FileShared then begin
+          let kernel = Int64Swarmer.create_swarmer file_temp (file_size file)
+            (min max_range_len file.file_piece_size) in
+          let swarmer = Int64Swarmer.create kernel (as_file file) 
+            file.file_piece_size in
+          file.file_swarmer <- Some swarmer;
+          Int64Swarmer.set_verified swarmer (fun _ num ->
+              file.file_blocks_downloaded <- (num) :: 
+              file.file_blocks_downloaded;
+              file_must_update file;
+(*Automatically send Have to ALL clients once a piece is verified
+            NB : will probably have to check if client can be interested*)
+              Hashtbl.iter (fun _ c ->
+                  
+                  if c.client_registered_bitfield then
+                    begin
+                      match c.client_bitmap with
+                        None -> ()
+                      | Some bitmap ->
+                          if (bitmap.[num] <> '1') then
+                            send_client c (Have (Int64.of_int num));
+                          check_if_interesting file c                          
+                    end				
+              ) file.file_clients
+          
+          );
+          Int64Swarmer.set_verifier swarmer (Verification
+              (Array.map (fun sha1 -> Sha1 sha1) file.file_chunks));
+        end;
+      current_files := file :: !current_files;
+      Hashtbl.add files_by_uid file_id file;
+      file_add file_impl file_state;
+(*      lprintf "ADD FILE TO DOWNLOAD LIST\n"; *)
+      file
       
-let new_file file_id file_name file_size file_tracker piece_size
-    file_u file_chunks file_state = 
-(*  let t = Unix32.create_rw file_temp in*)
-  let rec file = {
-      file_file = file_impl;
-      file_piece_size = piece_size;
-      file_id = file_id;
-      file_name = file_name;
-      file_clients_num = 0;
-      file_clients = Hashtbl.create 113;
-      file_swarmer = None;
-      file_tracker = file_tracker;
-      file_chunks = file_chunks;
-      file_tracker_connected = false;
-      file_tracker_last_conn = 0;
-      file_tracker_interval = 600;
-      file_files = [];
-      file_blocks_downloaded = [];
-      file_uploaded = Int64.zero;
-      file_torr_fname = "";
+let new_download file_id t torrent_diskname = 
+  let file_temp = Filename.concat !!DO.temp_directory 
+      (Printf.sprintf "BT-%s" (Sha1.to_string file_id)) in
+  new_file file_id t torrent_diskname file_temp FileDownloading
+      
+let ft_by_num = Hashtbl.create 13
+let ft_counter = ref 0
+  
+let new_ft file_name =
+  incr ft_counter;
+  let rec ft = {
+      ft_file = file_impl;
+      ft_id = !ft_counter;
+      ft_filename = file_name;
+      ft_retry = (fun _ -> ());
     } and file_impl =  {
       dummy_file_impl with
-      impl_file_fd = file_u;
-      impl_file_size = file_size;
+      impl_file_fd = Unix32.bad_fd;
+      impl_file_size = zero;
       impl_file_downloaded = Int64.zero;
-      impl_file_val = file;
-      impl_file_ops = file_ops;
+      impl_file_val = ft;
+      impl_file_ops = ft_ops;
       impl_file_age = last_time ();          
       impl_file_best_name = file_name;
     }
   in
-  if file_state <> FileShared then begin
-    let kernel = Int64Swarmer.create_swarmer 
-        (Unix32.filename file_u) file_size
-        (min max_range_len piece_size) in
-    let swarmer = Int64Swarmer.create kernel (as_file file) piece_size in
-    file.file_swarmer <- Some swarmer;
-    Int64Swarmer.set_verifier swarmer (Verification
-        (Array.map (fun sha1 -> Sha1 sha1) file_chunks));
-    Int64Swarmer.set_verified swarmer (fun _ num ->
-        file.file_blocks_downloaded <- (num) :: 
-        file.file_blocks_downloaded;
-        file_must_update file;
-(*Automatically send Have to ALL clients once a piece is verified
-            NB : will probably have to check if client can be interested*)
-        Hashtbl.iter (fun _ c ->
-            
-            if c.client_registered_bitfield then
-              begin
-                match c.client_bitmap with
-                  None -> ()
-                | Some bitmap ->
-                    if (bitmap.[num] <> '1') then
-                      send_client c (Have (Int64.of_int num));
-                    check_if_interesting file c                          
-              end				
-        ) file.file_clients
-    
-    );
-  end;
-  current_files := file :: !current_files;
-  Hashtbl.add files_by_uid file_id file;
-  file_add file_impl file_state;
-(*      lprintf "ADD FILE TO DOWNLOAD LIST\n"; *)
-  file
+  Hashtbl.add ft_by_num !ft_counter ft;
+  file_add file_impl FileDownloading;
+  ft
   
-let new_file file_id 
-    file_name file_size file_tracker piece_size file_files file_temp 
-  file_chunks file_state =
-  try
-    Hashtbl.find files_by_uid file_id;
-  with Not_found -> 
-      let file_u = 
-        if file_files <> [] then
-          Unix32.create_multifile file_temp [Unix.O_RDWR; Unix.O_CREAT] 0o666 file_files
+  
+let dot_string s =
+  let len = String.length s in
+  let rec iter i b =
+    if i < len then begin
+      Buffer.add_char b s.[i];
+      if i < len-1 then Buffer.add_char b '.';
+      iter (i+1) b;
+    end else b;
+  in
+  Buffer.contents (iter 0 (Buffer.create (len*2)))
+
+let dot_string_of_list s l =
+  let buf = Buffer.create (List.length l) in
+  List.iter (fun i -> Buffer.add_char buf s.[i]) l;
+  dot_string (Buffer.contents buf)
+
+let check_all s c l =
+  let ch = char_of_int c in
+  List.for_all (fun i -> s.[i] = ch) l
+
+(* from azureus/gpl *)
+let decode_az_style s =
+  if check_all s 45 [0;7] then begin
+    let s_id = (String.sub s 1 2) in
+    let result = ref
+    (match s_id with
+      | "AZ" -> "Azureus"
+      | "BB" -> "BitBuddy"
+      | "BX" -> "Bittorrent X"
+      | "LT" -> "libTorrent"
+      | "TN" -> "TorrentDotNET"
+      | "TS" -> "TorrentStorm"
+      | "SS" -> "SwarmScope"
+      | "MT" -> "MoonlightTorrent"
+      | "XT" -> "XanTorrent"
+      | "bk" -> "BitKitten (libtorrent)"
+      | _ -> "")
+    in
+    if not (!result = "") then 
+      result := !result ^ " " ^ (dot_string (String.sub s 3 4));
+    !result;
+  end else "" 
+
+let decode_tornado_style s =
+  if check_all s 45 [4;5;6;7;8] then begin
+    let s_id = String.sub s 0 1 in
+    let result = ref
+     (match s_id with
+     | "T" -> "BitTornado"
+     | "A" -> "ABC"
+     | _ -> "")
+    in
+    if not (!result = "") then
+      result := !result ^ " " ^ dot_string (String.sub s 1 3);
+    !result;
+  end else ""
+
+let decode_mainline_style s =
+  if check_all s 45 [2;4;6;7] then begin
+    let s_id = String.sub s 0 1 in
+    let result = ref
+     (match s_id with
+     | "M" -> "Mainline"
+     | _ -> "")
+    in
+    if !result != "" then
+      result := !result ^ " " ^ dot_string_of_list s [1;3;5];
+    !result
+  end else ""
+
+let decode_simple_style s =
+  let simple_list = ref
+    [ (0, "martini", "Martini Man");
+      (0, "oernu", "BTugaXP");
+      (0, "BTDWV-", "Deadman Walking");
+      (0, "PRC.P---", "BitTorrent Plus! II");
+      (0, "P87.P---", "BitTorrent Plus!");
+      (0, "S587Plus", "BitTorrent Plus!");
+      (5, "Azureus", "Azureus 2.0.3.2");
+      (0, "-G3", "G3 Torrent");
+      (4, "btfans", "SimpleBT");
+      (0, "btuga", "BTugaXP");
+      (0, "DansClient", "XanTorrent");
+      (0, "Deadman Walking-", "Deadman") ]
+  in
+  let len = List.length !simple_list in
+  let rec check pos =
+    if pos >= len then ""
+    else
+      let (x,y,z) = List.nth !simple_list pos in
+      if (String.sub s x (String.length y)) = y then z
+        else check (pos+1);
+  in
+  check 0
+
+let decode_mburst s = 
+  if "Mbrst" = String.sub s 0 5 then
+     "Burst! " ^ (dot_string_of_list s [5;7;9])
+  else ""
+
+let decode_turbo s =
+  if "turbobt" = String.sub s 0 7 then
+    "TurboBT " ^ String.sub s 7 5
+  else ""
+
+let decode_xbt s =
+  if "XBT" = String.sub s 0 3 then
+    "XBT " ^ (dot_string (String.sub s 3 3))
+  else ""
+
+let decode_shadow s =
+  if "S" = String.sub s 0 1 then
+    let result = ref "" in
+    if check_all s 45 [6;7;8] then begin
+      let i1 = int_of_string ("0x" ^ String.sub s 1 1) in
+      let i2 = int_of_string ("0x" ^ String.sub s 2 1) in
+      let i3 = int_of_string ("0x" ^ String.sub s 3 1) in
+      result := Printf.sprintf "Shad0w %d.%d.%d" i1 i2 i3
+    end;
+
+    if s.[8] = (char_of_int 0) then begin
+      let i1 = int_of_char s.[1] in
+      let i2 = int_of_char s.[2] in
+      let i3 = int_of_char s.[3] in
+      result := Printf.sprintf "Shad0w %d.%d.%d" i1 i2 i3
+    end;
+
+    !result;
+  else ""
+
+let decode_bitspirit s = 
+  let result = ref "" in
+  if "BS" = String.sub s 2 2 then begin
+    if s.[1] = (char_of_int 0) then result := "BitSpirit v1";
+    if s.[1] = (char_of_int 2) then result := "BitSpirit v2";
+  end;
+  !result
+
+let decode_upnp s =
+  if "U" = String.sub s 0 1 && s.[8] = '-' then
+    "UPnP " ^ (dot_string (String.sub s 1 3))
+  else ""
+
+let decode_bitcomet s =
+  if "exbc" = String.sub s 0 4 then 
+    Printf.sprintf "BitComet %d.%d%d"
+      (int_of_char s.[4])
+      ((int_of_char s.[5]) / 10)
+      ((int_of_char s.[5]) mod 10)
+  else ""
+
+let decode_shareaza s = 
+  let rec not_zeros pos =
+    if pos > 15 then true else 
+      if s.[pos] = (char_of_int 0) then false else not_zeros (pos+1)
+  in
+  let rec weird_crap pos = 
+    if pos > 19 then true else 
+      let i1 = (int_of_char s.[pos]) in
+      let i2 = (int_of_char s.[(pos mod 16)]) in
+      let i3 = (int_of_char s.[(15 - (pos mod 16))]) in
+      if not (i1 = (i2 lxor i3)) then false else weird_crap (pos+1)
+  in
+  if (not_zeros 0) && (weird_crap 16) then "Shareaza" else ""
+
+let decode_non_zero s =
+  let max_pos = ((String.length s) - 1) in
+  let zero = char_of_int 0 in
+  let rec find_non_zero pos =
+    if pos > max_pos then max_pos else
+      if not (s.[pos] = zero) then pos else
+        find_non_zero (pos+1)
+  in
+  let result = ref "" in
+  let fnz = find_non_zero 0 in
+  if fnz = 9 then begin
+    if check_all s 3 [9;10;11] then 
+      result := "Snark";
+  end
+  else begin 
+    if fnz = 12 then begin
+      if check_all s 97 [12;13] then
+        result := "Experimental 3.2.1b2"
+      else begin
+        if check_all s 0 [12;13] then
+          result := "Experimental 3.1"
         else
-          Unix32.create_rw file_temp 
-      in
-      new_file file_id file_name file_size file_tracker piece_size file_u
-        file_chunks file_state
-      
-let new_download file_id 
-  file_name file_size file_tracker piece_size file_files =
-  let file_temp = Filename.concat !!DO.temp_directory 
-      (Printf.sprintf "BT-%s" (Sha1.to_string file_id)) in
-  new_file file_id 
-    file_name file_size file_tracker piece_size file_files file_temp
+          result := "Mainline"
+      end;
+    end;
+  end;
+  !result
+
+let parse_software s =
+  try 
+  let rec try_styles i =
+    if i > 12 then "" else begin
+    let res = ref
+      (match i with
+         | 0 -> decode_az_style s
+         | 1 -> decode_tornado_style s
+         | 2 -> decode_mainline_style s
+         | 3 -> decode_simple_style s
+         | 4 -> decode_mburst s
+         | 5 -> decode_turbo s
+         | 6 -> decode_xbt s
+         | 7 -> decode_shadow s
+         | 8 -> decode_bitspirit s
+         | 9 -> decode_upnp s
+         | 10 -> decode_bitcomet s
+         | 11 -> decode_shareaza s
+         | 12 -> decode_non_zero s
+         | _ -> "")
+    in
+    if !res = "" then try_styles (i+1) else !res;
+  end
+  in
+  try_styles 0
+  with _ -> ""
       
 let new_client file peer_id kind =
   try
@@ -277,6 +536,8 @@ let new_client file peer_id kind =
           client_incoming = false;
 	  client_registered_bitfield = false;
 	  client_last_optimist = 0;
+          client_software = if peer_id = Sha1.null then "" 
+            else (parse_software (Sha1.direct_to_string peer_id));
         } and impl = {
           dummy_client_impl with
           impl_client_val = c;
@@ -299,6 +560,8 @@ let remove_client c =
     c.client_file.file_clients_num <- c.client_file.file_clients_num  - 1;
     file_remove_source (as_file c.client_file) (as_client c)
 
-let downloads_directory = Filename.concat "torrents" "downloads"
-let tracked_directory = Filename.concat "torrents" "tracked"
-let seeded_directory = Filename.concat "torrents" "seeded"
+  
+let old_torrents_directory = "torrents"
+let downloads_directory = Filename.concat old_torrents_directory "downloads"
+let tracked_directory = Filename.concat old_torrents_directory "tracked"
+let seeded_directory = Filename.concat old_torrents_directory "seeded"

@@ -172,7 +172,7 @@ let rec buf_query buf q =
   | Q_COMBO _ -> assert false
       
 let buf_tag buf t =
-  buf_string buf t.tag_name;
+  buf_string buf (string_of_field t.tag_name);
   match t.tag_value with
   | Uint64 s -> buf_int8 buf 0; buf_int64_32 buf s
   | Fint64 s -> buf_int8 buf 1; buf_int64_32 buf s
@@ -180,6 +180,7 @@ let buf_tag buf t =
   | Addr ip -> buf_int8 buf 3; buf_ip buf ip
   | Uint16 n -> buf_int8 buf 4; buf_int16 buf n
   | Uint8 n -> buf_int8 buf 5; buf_int8 buf n
+  | Pair (n1,n2) -> buf_int8 buf 6; buf_int64_32 buf n1; buf_int64_32 buf n2
       
 let buf_host_state proto buf t =
   if proto < 12 then
@@ -852,6 +853,10 @@ let rec to_gui (proto : int array) buf t =
         let proto = proto.(57) in
         buf_opcode buf 57; buf_search buf_string proto buf s
     
+    | Version s ->
+        let proto = proto.(58) in
+        buf_opcode buf 58; buf_string buf s
+    
     | GiftServerAttach _ -> assert false
     | GiftServerStats _ -> assert false
   with e ->
@@ -1055,6 +1060,7 @@ protocol version. Do not send them ? *)
         
     | InterestedInSources interested ->
         buf_int16 buf 64; buf_bool buf interested
+    | GetVersion -> buf_opcode buf 65; 
         
   with e ->
       lprintf "GuiEncoding.from_gui: Exception %s\n"

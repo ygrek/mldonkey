@@ -61,8 +61,8 @@ open BTProtocol
 open BTOptions
 open BTGlobals
 open BTComplexOptions
-
 open BTChooser
+open TcpMessages
   
 let http_ok = "HTTP 200 OK"
 let http11_ok = "HTTP/1.1 200 OK"
@@ -87,64 +87,79 @@ let current_uploaders = ref ([] : BTTypes.client list)
    The function will get a file as an argument (@see 
    get_sources_from_tracker for an example)
 *)
-let connect_tracker file event f =
-  let url = file.file_tracker in
+let connect_trackers file event f =
   
-  let args,must_check_delay, downloaded = 
+  let args,must_check_delay, downloaded, left = 
     
     match file.file_swarmer with
       None -> 
-        [("event", "completed")],true,(Int64.of_int 0)
-    | Some swarmer ->
-        lprintf "Connect tracker.........\n";
-        let downloaded = Int64Swarmer.downloaded swarmer in
-        match event with
-        | "completed" -> 
-(* ok, when downloading, "completed" shoud be sent immediatly! But
-when sharing, only every interval *)
-            
-            if file_state file = FileDownloading then
-              
-              [("event", "completed")],false,(Int64Swarmer.downloaded swarmer)
-            else
-              [("event", "completed")],true,(Int64.of_int 0)
-        | "started" -> [("event", "started")],true,(Int64Swarmer.downloaded swarmer)
-        | "stopped" -> [("event", "stopped")],false,(Int64Swarmer.downloaded swarmer)
-        | _ -> [],true,(Int64Swarmer.downloaded swarmer)
-  in
-  if (not must_check_delay) || (file.file_tracker_last_conn + 
-        file.file_tracker_interval 
-        < last_time ())
-  then
-    let args = 
-      ("info_hash", Sha1.direct_to_string file.file_id) ::
-      ("peer_id", Sha1.direct_to_string !!client_uid) ::
-      ("port", string_of_int !!client_port) ::
-      ("uploaded", Int64.to_string file.file_uploaded) ::
-      ("downloaded", Int64.to_string downloaded) ::
-      ("left", Int64.to_string ((file_size file) -- downloaded)) ::
-      ("compact","1") ::
-      args
-    in  
-    let module H = Http_client in
-    let r = {
-        H.basic_request with
-        H.req_url = Url.of_string ~args: args file.file_tracker;
-        H.req_proxy = !CommonOptions.http_proxy;
-        H.req_user_agent = 
-        Printf.sprintf "MLdonkey/%s" Autoconf.current_version;
-      } in
+        begin 
+          match event with
+          | "started" -> [("event", "started")],true,zero,zero
+          | "stopped" -> [("event", "stopped")],false,zero,zero
+          | _ -> [],true, zero, zero
+        end
     
+    | Some swarmer ->
+        let local_downloaded = Int64Swarmer.downloaded swarmer in
+        let left = file_size file -- local_downloaded in
+        match event with
+          | "completed" -> [("event", "completed")],false,zero,zero
+        | "started" -> [("event", "started")],true,local_downloaded, left
+        | "stopped" -> [("event", "stopped")],false,local_downloaded, left
+        | _ -> [],true,local_downloaded, left
+  in
+  
+  let args = 
+    ("info_hash", Sha1.direct_to_string file.file_id) ::
+    ("peer_id", Sha1.direct_to_string !!client_uid) ::
+    ("port", string_of_int !!client_port) ::
+    ("uploaded", Int64.to_string file.file_uploaded) ::
+    ("downloaded", Int64.to_string downloaded) ::
+    ("left", Int64.to_string ((file_size file) -- downloaded)) ::
+    ("compact","1") ::
+    args
+  in  
+  let args = if !!numwant > -1 then
+      ("numwant", string_of_int !!numwant) :: args else args in
+  
+  List.iter (fun t ->  
+      if 
+        (file.file_clients_num < !!ask_tracker_threshold )
+        ||
+        t.tracker_last_conn + 14400 < last_time()
+        ||
+        t.tracker_last_conn + t.tracker_interval < last_time()
+      then
+        begin
+          if !verbose_msg_servers then 
+            lprintf "get_sources_from_tracker: tracker_connected:%s last_clients:%i last_conn-last_time:%i file: %s\n"
+              (string_of_bool file.file_tracker_connected) t.tracker_last_clients_num
+              (t.tracker_last_conn - last_time()) file.file_name;
+          t.tracker_last_conn <- (last_time() - (t.tracker_interval + 30));
+
+
+        let module H = Http_client in
+        let url = t.tracker_url in
+        let r = {
+            H.basic_request with
+            H.req_url = Url.of_string ~args: args url;
+            H.req_proxy = !CommonOptions.http_proxy;
+            H.req_user_agent = 
+            Printf.sprintf "MLdonkey/%s" Autoconf.current_version;
+          } in
+        
         lprintf "Request sent to tracker\n";
         H.wget r 
           (fun fileres -> 
-            file.file_tracker_last_conn <- last_time ();
-            file.file_tracker_connected <- true;        
-            f fileres
+            t.tracker_last_conn <- last_time ();
+            file.file_tracker_connected <- true;
+            f t fileres
         )
-      else
-        lprintf "Request NOT sent to tracker - remaning: %d\n" (file.file_tracker_interval - (last_time () - file.file_tracker_last_conn))
-        
+        end else
+        lprintf "Request NOT sent to tracker - remaning: %d\n" 
+        (t.tracker_interval - (last_time () - t.tracker_last_conn))
+  ) file.file_trackers        
 
 (** In this function we decide which peers will be 
   uploaders. We send a choke message to current uploaders
@@ -152,31 +167,17 @@ when sharing, only every interval *)
   for clients that are in next list (and not in current) 
 *)
 let recompute_uploaders () =
-  
-(*  lprintf "recompute_uploaders\n"; *)
-  
-  next_uploaders := choose_best_downloaders
-    (List.filter
-      (fun f ->  file_state f = FileDownloading )
-    !current_files );
-  
-  next_uploaders := !next_uploaders @ (choose_best_uploaders
-      (List.filter
-        (fun f ->  file_state f = FileShared )
-      !current_files )); 
-
-(*  lprintf "next_uploaders: %d \n" (List.length !next_uploaders); *)
-  
-(*Send choke if a current_uploader is not in next_uploaders*)      
+  if !verbose_upload then lprintf "recompute_uploaders\n";
+  next_uploaders := choose_uploaders current_files;
+  (*Send choke if a current_uploader is not in next_uploaders*)      
   List.iter ( fun c -> if ((List.mem c !next_uploaders)==false) then
         begin
           set_client_has_a_slot (as_client c) false;
-(*we will let him finish is download and 
-			choke him on next_request*)
+          (*we will let him finish his download and choke him on next_request*)
         end
   ) !current_uploaders;
-
-(*don't send Choke if new uploader is already an uploaders *)            
+  
+  (*don't send Choke if new uploader is already an uploaders *)            
   List.iter ( fun c -> if ((List.mem c !current_uploaders)==false) then
         begin
           set_client_has_a_slot (as_client c) true;
@@ -188,7 +189,7 @@ let recompute_uploaders () =
         end
   ) !next_uploaders;
   current_uploaders := !next_uploaders
-  
+
 
 (****** Fabrice: why are clients which are disconnected removed ???
   These clients might still be useful to reconnect to, no ? *)
@@ -291,23 +292,40 @@ let disconnect_clients file =
 *)         
 let download_finished file = 
   if List.memq file !current_files then begin      
-    (*CommonComplexOptions.file_completed*)    
+      connect_trackers file "completed" (fun _ _ -> ()); (*must be called before swarmer gets removed from file*)
+(*CommonComplexOptions.file_completed*)    
       file_completed (as_file file);
-      remove_file file;
-      disconnect_clients file;
-      connect_tracker file "stopped" (fun _ -> ());
-(* start sharing! - Copy file from torrents/download to torrent/seeded *)
+      
+(* Remove the swarmer for this file as it is not useful anymore... *)
+      file.file_swarmer <- None;
+      
+(* At this point, the file state is FileDownloaded. We should not remove
+  the file. *)
+(*
+remove_file file;
+disconnect_clients file;
+*)
+      
+(* Why do we send a "stopped" event to the tracker ??? *)
+      connect_trackers file "stopped" (fun _ _ -> ());
+(* start sharing! - Copy file from torrents/download to torrent/seeded 
+Hum, this shouldn't be useful anymore as we copy downloads and share files
+  in torrents/.
+  
       try
-        let s = File.to_string file.file_torr_fname in  
-        if String.length s = 0 then raise Not_found;
-        let filename = Filename.concat seeded_directory 
-          ((String2.replace file.file_name '/' "") ^ ".torrent") in
-        File.from_string filename s
+        match file.file_torrent_diskname with
+          None -> ()
+        | Some torrent_diskname ->
+            let s = File.to_string torrent_diskname in  
+            if String.length s = 0 then raise Not_found;
+            let filename = Filename.concat seeded_directory 
+                ((String2.replace file.file_name '/' "") ^ ".torrent") in
+            File.from_string filename s
       with _ ->
-        lprintf "Unable to start sharing %s\n" file.file_torr_fname
+        lprintf "Unable to start sharing %s\n" file.file_name
     end
-          
-
+*)
+    end
 
       
 (** Check if a file is finished or not.
@@ -315,16 +333,7 @@ let download_finished file =
   @param file The file to check status
 *)
 let check_finished swarmer file = 
-  match file_state file with
-    FileCancelled | FileShared | FileDownloaded -> ()
-  | _ ->
-      let bitmap = Int64Swarmer.verified_bitmap swarmer in
-      for i = 0 to String.length bitmap - 1 do
-        if bitmap.[i] <> '3' then raise Not_found;
-      done;  
-      if (file_size file <> Int64Swarmer.downloaded swarmer)
-      then
-        lprintf "Downloaded size differs after complete verification\n";
+  if Int64Swarmer.check_finished swarmer then
       download_finished file
       
     
@@ -421,11 +430,16 @@ let rec client_parse_header counter cc init_sent gconn sock
     let c = 
       match !cc with 
         None ->
-          let c = new_client file peer_id (TcpBufferedSocket.host sock) in
+          let c = new_client file peer_id (TcpBufferedSocket.peer_addr sock) in
           lprintf "CLIENT %d: incoming CONNECTION\n" (client_num c);
           cc := Some c;
           c
-      | Some c -> c
+      | Some c -> 
+         (* client could have had Sha1.null as peer_id/uid *)
+         if c.client_uid <> peer_id then 
+          c.client_software <- (parse_software (Sha1.direct_to_string peer_id));
+          c
+
 (*          if c.client_uid <> peer_id then begin
               lprintf "Unexpected client by UID\n";
               let ccc = new_client file peer_id (TcpBufferedSocket.host sock) in
@@ -491,17 +505,23 @@ let rec client_parse_header counter cc init_sent gconn sock
 
 (*    send_client c Unchoke;  *)
     
-    set_rtimeout sock 300.;
+    set_rtimeout sock !!client_timeout;
 (*Once parse succesfully we define the function
     client_to_client to be the function used when a message
     is read*)
     gconn.gconn_handler <- Reader (fun gconn sock ->
-        bt_handler bt_parser (client_to_client c) sock
+        bt_handler TcpMessages.parser (client_to_client c) c.client_software sock
     );
     
     ()
   with e ->
+    begin
+      match e with
+        | Not_found ->
+          lprintf "BT: requested file not shared [%s]\n" (Sha1.direct_to_string file_id)
+        | _ ->
       lprintf "Exception %s in client_parse_header\n" (Printexc2.to_string e);
+    end;
       close sock (Closed_for_exception e);
       raise e
 
@@ -678,12 +698,12 @@ of the subpiece in the piece(!), r is a (CommonSwarmer) range *)
 and client_to_client c sock msg = 
   if !verbose_msg_clients then begin
       let (timeout, next) = get_rtimeout sock in
-      lprintf "CLIENT %d: (%d, %d,%d) Received " 
+      lprintf "CLIENT %d: (%d, %d,%d) Received %s" 
         (client_num c)
       (last_time ())
       (int_of_float timeout)
-      (int_of_float next);
-      bt_print msg;
+      (int_of_float next)
+      (TcpMessages.to_string msg);
     end;
   
   let file = c.client_file in
@@ -778,6 +798,10 @@ and client_to_client c sock msg =
 (* Check if the client is still interesting for us... *)
         check_if_interesting file c
     
+    | PeerID p ->
+      c.client_software <- (parse_software p);
+      c.client_uid <- Sha1.direct_of_string p
+
     | BitField p ->
 (*A bitfield is a summary of what a client have*)
         
@@ -830,7 +854,8 @@ and client_to_client c sock msg =
           (try get_from_client sock c with _ -> ())
         done*)
         end;
-        if c.client_incoming then send_bitfield c;
+        (*a bitfield must only be sent after the handshake and befor everything else: NOT here
+        if c.client_incoming then send_bitfield c;*)
     
     | Have n ->
 (*A client can send a Have without sending a Bitfield*)
@@ -882,11 +907,13 @@ and client_to_client c sock msg =
         begin
           set_client_state (c) (Connected (-1));
 (*remote peer will clear the list of range we sent*)
-          let up = match c.client_uploader with
-              None -> assert false
-            | Some up -> up in 
-          
-          Int64Swarmer.clear_uploader_ranges up;
+          begin
+          match c.client_uploader with
+              None ->
+                lprintf "BT: Choke send, but no client bitmap\n"
+            | Some up -> 
+          Int64Swarmer.clear_uploader_ranges up
+          end;
           c.client_ranges_sent <- [];
           c.client_range_waiting <- None;
           c.client_choked <- true;
@@ -952,7 +979,7 @@ let connect_client c =
   if can_open_connection connection_manager then
   match c.client_sock with
     NoConnection ->
-      
+    
       let token =
         add_pending_connection connection_manager (fun token ->
             try
@@ -1041,7 +1068,7 @@ let listen () =
 	      the TcpServerSocket means that a new client try 
 		to connect to us*)
 	      let ip = (Ip.of_inet_addr from_ip) in 
-              lprintf "CONNECTION RECEIVED FROM %s\n"
+              if !verbose_sources > 1 then lprintf "CONNECTION RECEIVED FROM %s\n"
                 (Ip.to_string (Ip.of_inet_addr from_ip))
               ; 
 (*Reject this connection if we don't want
@@ -1132,8 +1159,9 @@ let resume_clients file =
   Hashtbl.iter (fun _ c ->
       try
         match c.client_sock with 
-        | Connection sock -> 
-            lprintf "RESUME: Client is already conencted\n";
+        | Connection sock -> ()
+            (*i think this one is not realy usefull for debugging
+			lprintf "RESUME: Client is already connected\n"; *)
         | _ ->
             (try 
 	       (*test if we can connect client according to the its 
@@ -1162,25 +1190,25 @@ let resume_clients file =
   we really ask sources to the tracker
 *)
 let get_sources_from_tracker file = 
-  lprintf "get_sources_from_tracker\n";
-  let f filename = 
+  let f t filename = 
 (*This is the function which will be called by the http client
 for parsing the response*)
-    lprintf "Filename %s\n" filename;
     let v = Bencode.decode (File.to_string filename) in
     
-    lprintf "Received: %s\n" (Bencode.print v);
-    let interval = ref 600 in
+    t.tracker_interval <- 600;
+    t.tracker_last_clients_num <- 0;
     match v with
       Dictionary list ->
         List.iter (fun (key,value) ->
             match (key, value) with
               String "interval", Int n -> 
-                file.file_tracker_interval <- Int64.to_int n
+                t.tracker_interval <- Int64.to_int n
             | String "peers", List list ->
                 List.iter (fun v ->
                     match v with
                       Dictionary list ->
+                        t.tracker_last_clients_num <- t.tracker_last_clients_num + 1;
+                        
                         let peer_id = ref Sha1.null in
                         let peer_ip = ref Ip.null in
                         let port = ref 0 in
@@ -1188,7 +1216,7 @@ for parsing the response*)
                         List.iter (fun v ->
                             match v with
                               String "peer id", String id -> 
-                                peer_id := Sha1.direct_of_string id
+                                peer_id := Sha1.direct_of_string id;
                             | String "ip", String ip ->
                                 peer_ip := Ip.of_string ip
                             | String "port", Int p ->
@@ -1200,14 +1228,14 @@ for parsing the response*)
                           !peer_id <> !!client_uid &&
                           !peer_ip != Ip.null &&
                           !port <> 0 && 
-			   (match match_ip !Ip_set.bl !peer_ip with
-				None -> true
-			      | Some br ->
-				  if !verbose_connect then
-				    lprintf "%s:%d blocked: %s\n"
-				      (Ip.to_string !peer_ip) !port br.blocking_description;
-				  false)
-			then
+                          (match match_ip !Ip_set.bl !peer_ip with
+                              None -> true
+                            | Some br ->
+                                if !verbose_connect then
+                                  lprintf "%s:%d blocked: %s\n"
+                                    (Ip.to_string !peer_ip) !port br.blocking_description;
+                                false)
+                        then
                           let c = new_client file !peer_id (!peer_ip,!port)
                           in
                           lprintf "Received %s:%d\n" (Ip.to_string !peer_ip)
@@ -1219,32 +1247,34 @@ for parsing the response*)
                 
                 ) list
             | String "peers", String p ->
-		let rec iter_comp s pos l =
-		  if pos < l then
-		    let ip = Ip.of_ints (get_uint8 s pos,get_uint8 s (pos+1),
-			      get_uint8 s (pos+2),get_uint8 s (pos+3))
-		    and port = get_int16 s (pos+4) 
-		    in 
-		      ignore( new_client file Sha1.null (ip,port));
-		      iter_comp s (pos+6) l
-		in
-		  iter_comp p 0 (String.length p)
+                let rec iter_comp s pos l =
+                  if pos < l then
+                    let ip = Ip.of_ints (get_uint8 s pos,get_uint8 s (pos+1),
+                        get_uint8 s (pos+2),get_uint8 s (pos+3))
+                    and port = get_int16 s (pos+4) 
+                    in 
+                    ignore( new_client file Sha1.null (ip,port));
+                    t.tracker_last_clients_num <- t.tracker_last_clients_num + 1;
+                    
+                    iter_comp s (pos+6) l
+                in
+                iter_comp p 0 (String.length p)
             | _ -> ()
         ) list;
 (*Now, that we have added new clients to a file, it's time
 	to connect to them*)
+        if !verbose_sources > 0 then 
+          lprintf "get_sources_from_tracker: got %i sources for file %s\n" 
+          t.tracker_last_clients_num file.file_name;
         resume_clients file
     
     | _ -> assert false    
   in
   let event = 
-    if file.file_tracker_connected then "" else
-    match file_state file with
-      FileShared -> "completed"
-    | _ -> "started" 
+    if file.file_tracker_connected then ""
+    else "started"
   in
-  if file.file_clients_num < !!ask_tracker_threshold then
-    connect_tracker file event f
+  connect_trackers file event f
     
     
   
@@ -1260,16 +1290,11 @@ let recover_files () =
           (try check_finished swarmer file with e -> ());
           match file_state file with
             FileDownloading ->
-(* This one is useless vvv (it's called in 
-	     get_sources_from_tracker)
-	     (try resume_clients file with _ -> ());*)
-              (try 
-                  get_sources_from_tracker file  
-                with _ -> ())
+              (try get_sources_from_tracker file with _ -> ())
           | FileShared ->
               (try 
-                  connect_tracker file "completed" (fun _ -> ())
-                with _ -> ())
+                  connect_trackers file "" (fun _ _ -> ()) with _ -> ())
+          | FilePaused -> () (*when we are paused we do nothing, not even logging this vvvv*)
           | s -> lprintf "Other state %s!!\n" (string_of_state s)
       ) !current_files
       
@@ -1355,12 +1380,11 @@ let file_resume file =
 *)
 let file_stop file =
     if file.file_tracker_connected then 
-      begin
-	connect_tracker file "stopped" (fun _ -> ());
-	  (*This vvvv must be after after this ^^^^ *)
-	file.file_tracker_connected <- false
-      end
-      
+    begin
+      connect_trackers file "stopped" (fun _ _ -> 
+          lprintf "BT-Tracker return: stopped %s\n" file.file_name;
+          file.file_tracker_connected <- false)
+    end
       
 (**
   Create the 'hooks'

@@ -82,9 +82,9 @@ let resolve_one t =
 
 let valid (j,k,l,i) = 
   j > 0 && j < 224 && 
-  k >= 0 && k < 255 && 
-  l >= 0 && l < 255 &&
-  i > 0 && i < 255
+  k >= 0 && k <= 255 && 
+  l >= 0 && l <= 255 &&
+  i >= 0 && i <= 255
   
 let reachable ip = 
   !allow_local_network ||

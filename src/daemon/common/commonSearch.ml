@@ -31,22 +31,6 @@ let search_num = ref 0
 let searches_by_num = Hashtbl.create 1027
 
   
-let search_string q =
-  let rec iter q =
-    match q with
-      QAnd (q1, q2) -> Printf.sprintf "(%s) AND (%s)" (iter q1) (iter q2)
-    | QOr (q1, q2) ->  Printf.sprintf "(%s) OR (%s)" (iter q1) (iter q2)
-    | QAndNot (q1, q2) ->  Printf.sprintf "(%s) AND NOT (%s)" (iter q1) (iter q2)
-    | QHasWord s -> Printf.sprintf "CONTAINS[%s]" s
-    | QHasField (f,s) -> Printf.sprintf "[%s]CONTAINS[%s]" (string_of_field f) s
-    | QHasMinVal (f,v) -> Printf.sprintf "[%s]>%Ld" (string_of_field f) v
-    | QHasMaxVal (f,v) -> Printf.sprintf "[%s]<%Ld" (string_of_field f) v
-    | QNone ->
-	lprintf "QNone in query\n";
-	""
-  in
-  iter q
-  
 let new_search user s =
   incr search_num;
   let time = last_time () in
@@ -60,7 +44,7 @@ let new_search user s =
       search_nresults = 0;
       search_results = Intmap.empty;
       search_waiting = 0;
-      search_string = search_string s.GuiTypes.search_query;
+      search_string = CommonIndexing.string_of_query s.GuiTypes.search_query;
       search_closed = false;
       op_search_new_result_handlers = [];
       op_search_end_reply_handlers = [];
@@ -106,7 +90,7 @@ let search_of_args args =
         iter args  ((QHasMaxVal(Field_Size, maxsize)) :: q)
     | "-avail"  :: avail :: args ->
         let avail = Int64.of_string avail in
-        iter args ((QHasMinVal(Field_unknown "avail", avail)) :: q)
+        iter args ((QHasMinVal(Field_Availability, avail)) :: q)
     | "-uid"  :: uid :: args ->
         iter args ((QHasField(Field_Uid, uid)) :: q)
     | "-media"  :: filetype :: args ->
@@ -124,7 +108,7 @@ let search_of_args args =
     | "-album"  :: format :: args ->
         iter args ((QHasField(Field_Album, format)) :: q)
     | "-field"  :: field :: format :: args ->
-        iter args ((QHasField(Field_unknown field, format)) :: q)
+        iter args ((QHasField(Field_UNKNOWN field, format)) :: q)
     | "-network" :: name :: args ->
         net := (network_find_by_name name).network_num;
         iter args q
@@ -835,7 +819,7 @@ let rec mftp_query_of_query_entry qe =
         try
           let bitrate =  Int64.of_string s
           in
-          QHasMinVal(Field_unknown "bitrate", bitrate)
+          QHasMinVal(Field_UNKNOWN "bitrate", bitrate)
         with _ -> QNone
       end
 
@@ -850,209 +834,14 @@ let rec mftp_query_of_query_entry qe =
                        SEARCH FILTERING
 
 *********************************************************************)
-      
-module Indexing = struct
-    let name_bit = 1 lsl 0
-(* "size" *)
-(* "bitrate" *)
-    let artist_bit = 1 lsl 1 (* tag "Artiste" *)
-    let title_bit = 1 lsl 2  (* tag "Title" *)
-    let album_bit = 1 lsl 3 (* tag "Album" *)
-    let media_bit = 1 lsl 4 (* "type" *)
-    let format_bit = 1 lsl 5 (* "format" *)
-    let uid_bit = 1 lsl 6  (* uid *)
-      
-    let index_result index_string r =
-      
-      List.iter (fun name ->
-          index_string name name_bit
-      ) r.result_names;
-      
-      List.iter (fun tag ->
-          match tag with
-          | { tag_name = "Artist"; tag_value = String s } -> 
-              index_string s artist_bit
-          | { tag_name = "Title"; tag_value = String s } -> 
-              index_string s title_bit
-          | { tag_name = "Album"; tag_value = String s } -> 
-              index_string s album_bit
-(* we could directly use the fields of r *)
-          | { tag_name = "format"; tag_value = String s } -> 
-              index_string s format_bit
-          | { tag_name = "type"; tag_value = String s } -> 
-              index_string  s media_bit
-          | { tag_name = "length" } -> ()
-          | { tag_value = String s } -> 
-              index_string s name_bit
-          | _ -> ()
-      ) r.result_tags;
 
-      List.iter (fun uid ->
-          index_string (match Uid.to_uid uid with
-              Ed2k _ -> "ed2k"
-            | Md5Ext _ -> "ft"
-            | TigerTree _ -> "ttr"
-            | Md5 _ -> "md5"
-            | Sha1 _ -> "sha1"
-            | Bitprint _ -> "bp"
-            | BTUrl _ -> "bt"
-          ) uid_bit
-      ) r.result_uids;
-      
-      if r.result_format <> "" then
-        index_string r.result_format format_bit;
-      if r.result_type <> "" then
-        index_string r.result_type media_bit
-    
-    
-    exception EmptyQuery
-(*
-      exception InvertQuery of CommonTypes.result_info Indexer.query
-    exception PassInvertQuery of CommonTypes.result_info Indexer.query
-*)
-    
-    let has_word s bit =
-      match String2.stem s with
-        [] -> raise EmptyQuery
-      | s :: tail -> 
-          List.fold_left (fun q s ->
-              Indexer.And (q, (Indexer.HasField (bit, s)))
-          ) (Indexer.HasField (bit, s)) tail
-    
-    let query_to_indexer doc_value q =
-      let rec iter q =
-        match q with
-        | QAnd (q1, q2) ->
-            (try
-                let e1 = iter q1 in
-                try
-                  let e2 = iter q2 in
-                  Indexer.And (e1,e2)
-                with 
-                  EmptyQuery -> e1
-(*                | InvertQuery e2 -> Indexer.AndNot(e1, e2) *)
-              with 
-                EmptyQuery -> iter q2
-(*
-                  | InvertQuery e1 ->
-                  try
-                    let e2 = iter q2 in
-                    Indexer.AndNot (e2,e1)
-                  with 
-| InvertQuery e2 -> raise (InvertQuery (Indexer.And(e1, e2)))
-  *)
-            )
-        | QOr  (q1, q2) ->
-            (try
-                let e1 = iter q1 in
-                try
-                  let e2 = iter q2 in
-                  Indexer.Or (e1,e2)
-                with _ -> e1
-              with _ -> iter q2
-            )
-        
-        | QAndNot (q1, q2) ->
-            (
-(*              try *)
-              let e1 = iter q1 in
-              try
-                let e2 = iter q2 in
-                Indexer.AndNot (e1,e2)
-              with 
-                EmptyQuery -> e1
-(*                | InvertQuery e2 -> Indexer.And (e1,e2) 
-              with EmptyQuery -> 
-                  try
-                    let e2 = iter q2 in
-                    raise (PassInvertQuery e2)
-                  with InvertQuery e2 -> e2
-                  | PassInvertQuery e2 -> raise (InvertQuery e2) *)
-            )
-        
-        | QHasWord s -> has_word s 0x7fffffff
-        | QHasField (f, s) ->
-            has_word s (
-              match f with
-                Field_Type -> media_bit 
-              | Field_Format -> format_bit
-              | Field_Title -> title_bit 
-              | Field_Artist -> artist_bit 
-              | Field_Album -> album_bit 
-              | Field_Uid -> uid_bit
-              | _ -> 0x7fffffff);
-        | QHasMinVal (f,size) ->
-            Indexer.Predicate
-              (if f = Field_Size then
-                (fun doc -> 
-                    let r = doc_value doc in
-                    r.result_size >= size)
-              else (fun doc -> true))
-        
-        | QHasMaxVal (f,size) ->
-            Indexer.Predicate (
-              if f = Field_Size then
-                (fun doc -> 
-                    let r = doc_value doc in
-                    r.result_size <= size)
-              else (fun doc -> true))
-        | QNone ->
-            failwith "query_to_indexer: QNone in query"
-      in
-      iter q
-  
+module Search = struct
+    let add_search_result s r = 
+      search_add_result_in s (find_result r.result_num)
   end
-
-
-module DocIndexer = Indexer2.FullMake(Document)
-  
-  
-module MakeIndex (FilterResult : sig end) = struct      
-    
-    open Indexing
-    open FilterResult
-    open Document
-    
-    let index = DocIndexer.create ()
-    
-    let index_string doc s fields =
-      let words = String2.stem s in
-      List.iter (fun s ->
-(*          lprintf "ADD %d: [%s] in index [field %d]\n"  
-            doc.result_num s fields;  *)
-          DocIndexer.add  index s doc fields
-      ) words 
       
-    let add rs = 
-      let r = get_result rs in
-      index_result (index_string rs.stored_result_index) r
-      
-    let find s = 
-      
-      let ss = s.search_query in
-      let req = query_to_indexer Document.doc_value ss in  
-      
-      let docs = DocIndexer.query index req in
-(*  lprintf "%d results\n" (List.length docs);  *)
-      Array.iter (fun doc ->
-          if DocIndexer.filtered doc then begin
-              lprintf "doc filtered\n"; 
-            end else
-          let r = Document.doc_value doc in
-(*    merge_result s doc.num; *)
-(*          lprintf "search_add_result: %d\n" r.result_num;  *)
-          search_add_result_in s (find_result r.result_num)
-      ) docs
-
-    let clear () =
-      DocIndexer.clear index
-
-    let stats () = DocIndexer.stats index
-      
-  end  
-
-module Filter = MakeIndex(struct end)
-module Local = MakeIndex(struct end)
+module Filter = IndexedResults.MakeIndex(Search)
+module Local = IndexedResults.MakeIndex(Search)
 
 let clean_local_search = ref 0
   

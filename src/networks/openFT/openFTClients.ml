@@ -268,7 +268,6 @@ let get_from_client sock (c: client) (file : file) =
         let minimal_read = 1
         let client_disconnected = on_close c
         let download_finished = on_finished file
-        let subdir_option = commit_in_subdir
       end) in
   let d = M.new_download sock 
       (as_client c.client_client)

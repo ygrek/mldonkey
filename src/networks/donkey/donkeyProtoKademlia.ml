@@ -37,18 +37,13 @@ module P = struct
     
     let names_of_tag =
       [
-        "\001", "filename";
-        "\002", "size";
-        "\003", "type";
-        "\004", "format";
-        "\021", "availability";
-        "\250", "serverport"; (* 0xFA *)
-        "\251", "serverip";   (* 0xFB *)
-        "\252", "sourceuport"; (* 0xFC *)
-        "\253", "sourceport"; (* 0xFD *)
-        "\254", "sourceip"; (* 0xFE *)
-        "\255", "sourcetype";  (* 0xFF *)
-      ]
+        "\250", Field_UNKNOWN "serverport"; (* 0xFA *)
+        "\251", Field_UNKNOWN "serverip";   (* 0xFB *)
+        "\252", Field_UNKNOWN "sourceuport"; (* 0xFC *)
+        "\253", Field_UNKNOWN "sourceport"; (* 0xFD *)
+        "\254", Field_UNKNOWN "sourceip"; (* 0xFE *)
+        "\255", Field_UNKNOWN "sourcetype";  (* 0xFF *)
+      ] @ file_common_tags
 
 (* This fucking Emule implementation uses 4 32-bits integers instead of
   16 8-bits integers... welcome back to the non-portability problems... *)
@@ -243,22 +238,22 @@ module P = struct
           let peer_kind = ref 0 in
           List.iter (fun tag ->
               match tag.tag_name with
-                "sourceport" ->
+                Field_UNKNOWN "sourceport" ->
                   for_int_tag tag (fun port ->
                       peer_tcpport := port)
-              | "sourceuport" ->
+              | Field_UNKNOWN "sourceuport" ->
                   for_int_tag tag (fun port ->
                       peer_udpport := port)
-              | "sourceip" ->
+              | Field_UNKNOWN "sourceip" ->
                   for_int64_tag tag (fun ip ->
                       peer_ip := Ip.of_int64 ip
                   )
-              | "sourcetype" ->
+              | Field_UNKNOWN "sourcetype" ->
                   for_int_tag tag (fun kind ->
                       peer_kind := kind)
               | _ ->
                   lprintf "Unused source tag [%s]\n"
-                    (String.escaped tag.tag_name)
+                    (escaped_string_of_field tag)
           ) r_tags;
           {
             peer_ip = !peer_ip;
@@ -326,7 +321,7 @@ module P = struct
               (_, first_tags) :: _ ->
                 let sources = ref false in
                 List.iter (fun tag ->
-                    if tag.tag_name = "sourceport" then sources := true;
+                    if tag.tag_name = Field_UNKNOWN "sourceport" then sources := true;
                 ) first_tags;
                 if !sources then
                   let peers = get_peers_from_results Ip.null 0 answers in
@@ -352,7 +347,7 @@ module P = struct
               (_, first_tags) :: _ ->
                 let sources = ref false in
                 List.iter (fun tag ->
-                    if tag.tag_name = "sourceport" then sources := true;
+                    if tag.tag_name = Field_UNKNOWN "sourceport" then sources := true;
                 ) first_tags;
                 if !sources then
                   let peers = get_peers_from_results ip port answers in
@@ -419,7 +414,7 @@ module P = struct
       let t = parse ip port opcode msg in
       t      
     
-    let udp_send sock ip port msg =
+    let udp_send sock ip port ping msg =
       try
         Buffer.clear udp_buf;
         write udp_buf msg;
@@ -449,7 +444,7 @@ module P = struct
           end;
 *)        
         
-        UdpSocket.write sock s ip port
+        UdpSocket.write sock ping s ip port
       with
       | MessageNotImplemented -> ()
       | e -> lprintf "Exception %s in udp_send\n" (Printexc2.to_string e)

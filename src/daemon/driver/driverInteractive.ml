@@ -194,17 +194,18 @@ let save_config () =
         Printf2.lprintf "Exception %s while flushing\n" (Printexc2.to_string e)
   );
   if !initialization_completed then (
-    Options.save_with_help downloads_ini;
-    CommonComplexOptions.save ();
-    networks_iter_all (fun r -> 
-        List.iter (fun opfile ->
-            Options.save_with_help opfile          
-        ) r.network_config_file);
-  ) else (
-    Printf2.lprintf "Initialization not completed, bypassing state saving\n"
-  );
+      Options.save_with_help downloads_ini;
+      CommonComplexOptions.save ();
+      CommonUploads.save ();
+      networks_iter_all (fun r -> 
+          List.iter (fun opfile ->
+              Options.save_with_help opfile          
+          ) r.network_config_file);
+    ) else (
+      Printf2.lprintf "Initialization not completed, bypassing state saving\n"
+    );
   ()
-    
+  
 let age_to_day date =
   (last_time () - date) / Date.day_in_secs
 
@@ -931,7 +932,12 @@ let display_file_list buf o =
 (*      List.iter (fun file -> CommonFile.file_print file o)   !!done_files; *)
       simple_print_file_list true buf 
         (List2.tail_map file_info !!done_files) o; 
-      if not (use_html_mods o) then Printf.bprintf buf
+      if not (use_html_mods o) then 
+        if !!auto_commit then
+          Printf.bprintf buf
+            "Files will be automatically commited in the incoming directory"
+        else
+          Printf.bprintf buf
           "Use 'commit' to move downloaded files to the incoming directory"
     end
 
@@ -947,133 +953,141 @@ let old_print_search buf o results =
   let user = o.conn_user in
   let counter = ref 0 in
   if use_html_mods o then 
-       html_mods_table_header buf "resultsTable" "results" [ 
-		( "0", "srh", "Network", "Network" ) ; 
-		( "0", "srh", "File", "File (mouseover)" ) ; 
-		( "1", "srh ar", "Size", "Size" ) ; 
-		( "1", "srh ar", "Availability", "A" ) ; 
-		( "1", "srh ar", "Complete Sources", "C" ) ; 
-		( "0", "srh", "Hash (click for bitzi lookup)", "Hash (bitzi click)" ) ; 
-		( "0", "srh", "Tags", "Tags (mouseover)" ) ] ; 
+    html_mods_table_header buf "resultsTable" "results" [ 
+      ( "0", "srh", "Network", "Network" ) ; 
+      ( "0", "srh", "File", "File (mouseover)" ) ; 
+      ( "1", "srh ar", "Size", "Size" ) ; 
+      ( "1", "srh ar", "Availability", "A" ) ; 
+      ( "1", "srh ar", "Complete Sources", "C" ) ; 
+      ( "0", "srh", "Hash (click for bitzi lookup)", "Hash (bitzi click)" ) ; 
+      ( "0", "srh", "Tags", "Tags (mouseover)" ) ] ; 
   
   (try
       List.iter (fun (rs,r,avail) ->
-        if !!display_downloaded_results || not r.result_done  then begin
-          incr counter;
-          if !counter >= !!max_displayed_results then raise Exit;          
-          
-          if use_html_mods o then
-            begin
-              if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
-              else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
-            end;
-          
-          user.ui_last_results <- (!counter, rs) :: user.ui_last_results;
-          if use_html_mods o then Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>"
+          if !!display_downloaded_results || not r.result_done  then begin
+              incr counter;
+              if !counter >= !!max_displayed_results then raise Exit;          
+              
+              if use_html_mods o then
+                begin
+                  if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
+                  else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
+                end;
+              
+              user.ui_last_results <- (!counter, rs) :: user.ui_last_results;
+              if use_html_mods o then Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>"
                   (
 (* TODO RESULT: use the uids to display from which networks it is downloadable
                   let n = network_find_by_num r.result_network in
               n.network_name *) "--")
-          else Printf.bprintf  buf "[%5d] %s " 
+              else Printf.bprintf  buf "[%5d] %s " 
                   !counter
-                
+
 (* TODO RESULT:
               (let n = network_find_by_num r.result_network in
                   n.network_name) *)
-                "--";
-
-          if o.conn_output = HTML then begin
-            if !!html_mods then begin
-			Printf.bprintf buf "\\<td title=\\\"";
-		  	let nl = ref false in
-          List.iter (fun t ->
-				  match t.tag_name with 
-					| "FTH" | "urn" -> ()  
-					| _ -> 
-						Buffer.add_string buf ((if !nl then "\n" else begin nl := true;"" end) ^ 
-            "|| (" ^ t.tag_name ^ "): " ^ get_tag_value t);
-          ) r.result_tags;
-
-			Printf.bprintf buf "\\\" class=\\\"sr\\\"\\>\\<a href=results\\?d=%d target=\\\"$S\\\"\\>" r.result_num
-			end
-            else Printf.bprintf buf "\\<a href=results\\?d=%d $S\\>" r.result_num;
-			end;
-            begin
-              match r.result_names with
-                [] -> ()
-              | name :: names ->
-                  Printf.bprintf buf "%s\n" (shorten name !!max_name_len);
-                  List.iter (fun s -> 
-                      if use_html_mods o then Printf.bprintf buf "\\<BR\\>";
-                      Printf.bprintf buf "       %s\n" s
-                  ) names;
-            end;
-          if r.result_done then 
-            begin
-              if use_html_mods o then Printf.bprintf buf "\\<BR\\>";
-              Printf.bprintf buf " ALREADY DOWNLOADED\n "
-            end;
-          begin
-            match r.result_comment with
-              "" -> ()
-            | comment -> begin
-                  if use_html_mods o then Printf.bprintf buf "\\<BR\\>";
-                  Printf.bprintf buf "COMMENT: %s\n" comment
+                  "--";
+              
+              if o.conn_output = HTML then begin
+                  if !!html_mods then begin
+                      Printf.bprintf buf "\\<td title=\\\"";
+                      let nl = ref false in
+                      List.iter (fun t ->
+                          match t.tag_name with 
+                          | Field_UNKNOWN "FTH" | Field_UNKNOWN "urn" -> ()  
+                          | _ -> 
+                              Buffer.add_string buf ((if !nl then "\n" else begin nl := true;"" end) ^ 
+                                  "|| (" ^ 
+                                escaped_string_of_field t ^ "): " ^ get_tag_value t);
+                      ) r.result_tags;
+                      
+                      Printf.bprintf buf "\\\" class=\\\"sr\\\"\\>\\<a href=results\\?d=%d target=\\\"$S\\\"\\>" r.result_num
+                    end
+                  else Printf.bprintf buf "\\<a href=results\\?d=%d $S\\>" r.result_num;
                 end;
-          end;
-          if o.conn_output = HTML then 
-            begin
-              if !!html_mods then Printf.bprintf buf "\\</a\\>\\</td\\>"
-              else Printf.bprintf buf "\\</a href\\>";
-            end;
+              begin
+                match r.result_names with
+                  [] -> ()
+                | name :: names ->
+                    Printf.bprintf buf "%s\n" (shorten name !!max_name_len);
+                    List.iter (fun s -> 
+                        if use_html_mods o then Printf.bprintf buf "\\<BR\\>";
+                        Printf.bprintf buf "       %s\n" s
+                    ) names;
+              end;
+              if r.result_done then 
+                begin
+                  if use_html_mods o then Printf.bprintf buf "\\<BR\\>";
+                  Printf.bprintf buf " ALREADY DOWNLOADED\n "
+                end;
+              begin
+                match r.result_comment with
+                  "" -> ()
+                | comment -> begin
+                      if use_html_mods o then Printf.bprintf buf "\\<BR\\>";
+                      Printf.bprintf buf "COMMENT: %s\n" comment
+                    end;
+              end;
+              if o.conn_output = HTML then 
+                begin
+                  if !!html_mods then Printf.bprintf buf "\\</a\\>\\</td\\>"
+                  else Printf.bprintf buf "\\</a href\\>";
+                end;
               let hash = ref (string_of_uids r.result_uids) in
-			let cavail = ref (string_of_int avail) in
-			let csource = ref "" in
-			List.iter (fun t ->
-			    (match t.tag_name with 
-        			| "urn" | "FTH"  -> hash := get_tag_value t
-				| "availability" -> cavail := get_tag_value t
-				| "completesources" -> csource := get_tag_value t
-				| _ -> ())) r.result_tags;
-
-          if use_html_mods o then 
-            Printf.bprintf buf "\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+              let cavail = ref (string_of_int avail) in
+              let csource = ref "" in
+              List.iter (fun t ->
+                  (match t.tag_name with 
+                    | Field_UNKNOWN "urn"
+                    | Field_UNKNOWN "FTH"  -> hash := get_tag_value t
+                    | Field_Availability -> cavail := get_tag_value t
+                    | Field_Completesources -> csource := get_tag_value t
+                    | _ -> ())) r.result_tags;
+              
+              if use_html_mods o then 
+                Printf.bprintf buf "\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
 			\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
 			\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
 			\\<td class=\\\"sr\\\"\\>\\<a href=\\\"http://bitzi.com/lookup/%s\\\"\\>%s\\</a\\>\\</td\\>"
-            (size_of_int64 r.result_size)
-			!cavail
-			!csource
-
-			(if String.contains !hash ':' then
-				String.sub !hash 
-				((String.rindex !hash ':')+1)
-				((String.length !hash) - (String.rindex !hash ':') - 1)
-			else !hash) !hash
-          else	Printf.bprintf  buf "          %10s %10s " 
-              (Int64.to_string r.result_size)
-            (string_of_uids r.result_uids);
-          
-          if use_html_mods o then begin 
-			Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>";
-          List.iter (fun t ->
-				  (match t.tag_name with 
-					| "completesources" | "availability" | "urn" | "FTH"  -> () 
-					| _ -> 
-					Buffer.add_string buf ("\\<span title=\\\"" ^ 
-          get_tag_value t ^ "\\\"\\>(" ^ t.tag_name ^ ") \\</span\\>");
-                )
-          ) r.result_tags;
-          Printf.bprintf buf "\\</td\\>\\</tr\\>";
-		  end
-		  else
-      		List.iter (fun t ->
-              Buffer.add_string buf (Printf.sprintf "%-3s "
-                  (if t.tag_name = "availability" then !cavail else
-          get_tag_value t))
-          ) r.result_tags;
-          Buffer.add_char buf '\n';
-	end
+                  (size_of_int64 r.result_size)
+                !cavail
+                  !csource
+                  
+                  (if String.contains !hash ':' then
+                    String.sub !hash 
+                      ((String.rindex !hash ':')+1)
+                    ((String.length !hash) - (String.rindex !hash ':') - 1)
+                  else !hash) !hash
+              else	Printf.bprintf  buf "          %10s %10s " 
+                  (Int64.to_string r.result_size)
+                (string_of_uids r.result_uids);
+              
+              if use_html_mods o then begin 
+                  Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>";
+                  List.iter (fun t ->
+                      (match t.tag_name with 
+                        | Field_Completesources
+                        | Field_Availability
+(* TODO : "urn" shouldn't be some kind of Field_Uid of Gnutella ? *)
+                        | Field_UNKNOWN "urn" 
+(* TODO : "FTH" shouldn't be some kind of Field_Uid of Fasttrack ? *)
+                        | Field_UNKNOWN "FTH"  -> () 
+                        | _ -> 
+                            Buffer.add_string buf ("\\<span title=\\\"" ^ 
+                                get_tag_value t ^ "\\\"\\>(" ^ 
+                              escaped_string_of_field t ^ ") \\</span\\>");
+                      )
+                  ) r.result_tags;
+                  Printf.bprintf buf "\\</td\\>\\</tr\\>";
+                end
+              else
+                List.iter (fun t ->
+                    Buffer.add_string buf (Printf.sprintf "%-3s "
+                        (if t.tag_name = Field_Availability then !cavail else
+                          get_tag_value t))
+                ) r.result_tags;
+              Buffer.add_char buf '\n';
+            end
       ) results;
       if use_html_mods o then Printf.bprintf buf "\\</table\\>"
     with _ -> ())
@@ -1147,7 +1161,7 @@ let print_search_html buf results o search_num =
                 let buf = Buffer.create 100 in
                 List.iter (fun t ->
                     Buffer.add_string buf (Printf.sprintf "%-3s "
-                        (if t.tag_name = "availability" then "" else
+                        (if t.tag_name = Field_Availability then "" else
                         match t.tag_value with
                           String s -> s
                         | Uint64 i -> Int64.to_string i
@@ -1299,7 +1313,7 @@ let print_results stime buf o results =
                   
                   List.iter (fun t ->
                       Buffer.add_string buf (Printf.sprintf "%-3s "
-                          (if t.tag_name = "availability" then "" else
+                          (if t.tag_name = Field_Availability then "" else
                           match t.tag_value with
                             String s -> s
                           | Uint64 i -> Int64.to_string i
@@ -1357,7 +1371,7 @@ let print_search buf s o =
   user.ui_last_results <- [];
   let results = ref [] in
   Intmap.iter (fun r_num (avail,rs) ->
-      let r = get_result rs in
+      let r = IndexedResults.get_result rs in
       results := (rs, r, !avail) :: !results) s.search_results;
   let results = Sort.list (fun (_, r1,_) (_, r2,_) ->
         r1.result_size > r2.result_size

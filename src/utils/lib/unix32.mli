@@ -52,8 +52,8 @@ val copy_chunk : t -> t -> int64 -> int64 -> int -> unit
     
 val file_exists : string -> bool
 
-val fd_of_chunk : t -> int64 -> int64 -> 
-  (Unix.file_descr * int64 * string option) 
+val apply_on_chunk : t -> int64 -> int64 -> 
+  (Unix.file_descr -> int64 -> 'a) -> 'a
   
 
 val create_diskfile : string -> Unix.open_flag list -> int -> t
@@ -77,3 +77,6 @@ val rw_flag :  Unix.open_flag list
   
 val destroy : t -> unit
   
+val bad_fd : t
+  
+val destroyed : t -> bool

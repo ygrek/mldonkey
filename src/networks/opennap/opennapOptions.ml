@@ -65,14 +65,7 @@ let max_shared_files = define_option opennap_section ["max_shared_files"]
   "The maximal number of files to share on a server"
     int_option 400
   
-let commit_in_subdir = define_option opennap_section ["commit_in_subdir"]
-  "The subdirectory of temp/ where files should be moved to"
-    string_option "Napster"
       
-let network_options_prefix = define_option opennap_section
-    ["options_prefix"] "The prefix which is appended to options names
-    when they are used in the telnet/WEB interfaces"
-    string_option "OpenNap-"
   
 let shortname o =
   Printf.sprintf "%s%s" !!network_options_prefix (shortname o)
@@ -91,5 +84,4 @@ let gui_opennap_options_panel =
     "Max Connected Servers (<10)", shortname max_connected_servers, "T";
     "Use Napigator", shortname use_napigator, "B";
     "Napigator List URL", shortname servers_list_url, "T";
-    "Commit Downloads In Incoming Subdir", shortname commit_in_subdir, "T";
   ]

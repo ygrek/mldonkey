@@ -56,13 +56,13 @@ module Server = struct
     
     let names_of_tag =
       [
-        "\001", "name";
-        "\015", "port";
-        "\016", "ip";
-        "\012", "ping";
-        "\014", "prof";
-        "\013", "history";
-        "\011", "description";
+        "\001", Field_UNKNOWN "name";
+        "\015", Field_UNKNOWN "port";
+        "\016", Field_UNKNOWN "ip";
+        "\012", Field_UNKNOWN "ping";
+        "\014", Field_UNKNOWN "prof";
+        "\013", Field_UNKNOWN "history";
+        "\011", Field_UNKNOWN "description";
       ]
     
     
@@ -124,13 +124,7 @@ module Known = struct
     
     type t = file list      
     
-    let names_of_tag =
-      [
-        "\001", "filename";
-        "\002", "size";
-        "\003", "type";
-        "\004", "format";
-      ]
+    let names_of_tag = file_common_tags
     
     
     let rec read_files s pos n left =
@@ -205,14 +199,13 @@ module Part = struct
     
     let names_of_tag =
       [
-        "\001", "filename";
-        "\002", "size";
-        "\004", "format";
-        "\008", "downloaded";
-        "\018", "diskname";
-        "\019", "priority";
-        "\020", "status";
-      ]
+        "\008", Field_UNKNOWN "downloaded";
+        "\018", Field_UNKNOWN "diskname";
+        "\019", Field_UNKNOWN "priority";
+        "\020", Field_UNKNOWN "status";
+        "\t", Field_UNKNOWN "start_pos";
+        "\n", Field_UNKNOWN "absent";
+      ] @ file_common_tags
     
     
     let rec read_file s pos =
@@ -232,11 +225,9 @@ module Part = struct
       let absents = ref [] in
       List.iter (fun tag ->
           let s = tag.tag_name in
-          if String.length s > 0 then
-            let c = s.[0] in
-            match c, tag.tag_value with
-              '\t', Uint64 p -> start_pos := p;
-            | '\n', Uint64 p -> 
+          match s, tag.tag_value with
+            Field_UNKNOWN "start_pos", Uint64 p -> start_pos := p;
+          | Field_UNKNOWN "absent", Uint64 p -> 
                 absents := (!start_pos, p) :: !absents;
             | _ -> ()
       ) tags;
@@ -297,9 +288,9 @@ module Pref = struct
     
     let names_of_client_tag =
       [
-        "\001", "name";
-        "\017", "version";
-        "\015", "port";
+        "\001", Field_UNKNOWN  "name";
+        "\017", Field_UNKNOWN "version";
+        "\015", Field_UNKNOWN "port";
       ]
       
     let names_of_option_tag = []

@@ -210,7 +210,7 @@ let lprintf_max_size = ref 100
 let lprintf_size = ref 0
 let lprintf_fifo = Fifo.create ()
 let lprintf_to_stdout = ref true
-
+  
 let lprintf_output = ref (Some stderr)
   
 let _ =

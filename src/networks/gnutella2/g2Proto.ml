@@ -31,6 +31,7 @@ open CommonTypes
 open CommonOptions
 open CommonHosts
 
+open G2Network
 open G2Options
 open G2Types
 open G2Protocol
@@ -874,7 +875,7 @@ let resend_udp_packets () =
                 Fifo.take udp_packet_waiting_for_ack in
               if not !acked then begin
 (*                  lprintf "UDP resend %d\n" seq; *)
-                  UdpSocket.write sock s ip port;
+                  UdpSocket.write sock false s ip port;
                   if times < 3 then 
                     Fifo.put udp_packet_waiting_for_ack (s, ip, port, seq, 
                       times+1, 
@@ -911,7 +912,7 @@ let udp_send ip port msg =
           end;
         Fifo.put udp_packet_waiting_for_ack 
           (s, ip, port, !udp_counter, 0, last_time () + 10, ref false);
-        UdpSocket.write sock s ip port;
+        UdpSocket.write sock false s ip port;
 (*        UdpSocket.write sock s Ip.localhost !!client_port *)
       with e ->
           lprintf "Exception %s in udp_send\n" (Printexc2.to_string e)
@@ -927,13 +928,14 @@ let udp_send_ack ip port counter =
         in
         let len = String.length s in
 (*        lprintf "ack sent\n"; *)
-        UdpSocket.write sock s ip port
+        UdpSocket.write sock false s ip port
       with e ->
           lprintf "Exception %s in udp_send\n" (Printexc2.to_string e)
 
           
 let host_send sock h p = 
   let ip = h.host_addr in
+  let ip = Ip.ip_of_addr ip in
   let port = h.host_port in
   match sock with
   | Connection _   ->
@@ -1391,9 +1393,9 @@ let server_recover_file file sock s =
       | UserSearch (_,words, xml_query) ->
 (*          server_send_query ss.search_uid words NoConnection s *)
           ()
-      | FileWordSearch (_,words) ->
+(*      | FileWordSearch (_,words) ->
 (*          server_send_query ss.search_uid words NoConnection s *)
-          ()
+          () *)
       | FileUidSearch (file, uid) ->
           server_ask_uid NoConnection s ss.search_uid uid file.file_name        
   ) file.file_searches
@@ -1538,238 +1540,6 @@ let print_string s buf =
   with e ->
       lprintf "EXCEPTION: %s\n" (Printexc2.to_string e);
       dump buf
-
-module Pandora = struct
-    
-    type t = UDP | TCP
-    
-    type cnx = {
-        ip1 : string;
-        port1 : int;
-        ip2 : string;
-        port2 : int;
-        mutable buf : string list;
-      }
-    let connections = Hashtbl.create 13
-    
-    let new_packet t (n : int) ip1 port1 ip2 port2 s =
-      match t with
-        TCP -> 
-          let cnx = 
-            try
-              Hashtbl.find connections n
-            with _ ->
-                let cnx = {
-                    ip1 = ip1;
-                    port1 = port1;
-                    ip2 = ip2;
-                    port2 = port2;
-                    buf = [];
-                  } in
-                Hashtbl.add connections n  cnx;
-                cnx
-          in
-          cnx.buf <- cnx.buf @ [ s ]
-      
-      | UDP -> try
-            let p = parse_udp_packet (Ip.of_string ip1) port1 s in
-            lprintf "\nPACKET %s:%d -> %s:%d\n%s\n\n" ip1 port1 ip2 port2
-              (Print.print p)
-          with e ->
-(* lprintf "Could not parse: %s\n" (Printexc2.to_string e) *) ()
-    
-    let hescaped s =
-      String2.replace_char s '\r' ' ';s
-    
-    let rec iter s pos =
-      if pos < String.length s then
-        if s.[pos] = '\n' then
-          if s.[pos+1] = '\n' then pos+2
-          else
-          if s.[pos+1] = '\r' then
-            if s.[pos+2] = '\n' then pos+3
-            else iter s (pos+1)
-          else iter s (pos+1)
-        else 
-        if s.[pos] = '\r' then
-          if s.[pos] = '\n' then
-            if s.[pos+1] = '\n' then pos+2
-            else
-            if s.[pos+1] = '\r' then
-              if s.[pos+2] = '\n' then pos+3
-              else iter s (pos+1)
-            else iter s (pos+1)
-          else
-            iter s (pos+1)
-        else iter s (pos+1)
-      else pos
-    
-    let parse_string s =
-(*      lprintf "Parse string:\n %s\n" (String.escaped s); *)
-      let rec iter pos =
-(*          lprintf "iter %d\n" pos; *)
-        if pos < String.length s then
-          try
-          let p, decoded, pos = parse s pos in
-          
-(*
-          lprintf "decoded:\n";
-          dump decoded;
-*)
-          
-          (try
-              let encoded = g2_encode p in
-(*
-              lprintf "encoded:\n";
-dump encoded;
-  *)
-              let pp, _, _ = parse encoded 0 in
-              
-              if encoded <> decoded then begin
-                  lprintf "ENCODER / DECODER ERROR:\n";
-                  lprintf "CORRECT:\n";
-                  dump decoded;
-                  lprintf "INCORRECT:\n";
-                  dump encoded;
-                  lprintf "______________________\n";
-                end;
-              assert (pp = p)
-            with e ->
-                lprintf "Exception %s in Encoding\n" 
-                  (Printexc2.to_string e));
-          
-          lprintf "Packet: \n%s\n" (Print.print p);
-          iter pos
-          with Not_found -> 
-              String.sub s pos (String.length s - pos)
-        else ""
-      in
-      iter 0
-      
-    let piter s1 deflate h msgs = 
-      let len = String.length s1 in
-      try
-        if len > 0 then
-          if deflate then
-            let z = Zlib.inflate_init true in
-            let s =  
-              let s2 = String.make 100000 '\000' in
-              let f = Zlib.Z_SYNC_FLUSH in
-              let (_,used_in, used_out) = Zlib.inflate z s1 0 len s2 0 100000 f in
-              lprintf "decompressed %d/%d\n" used_out len;
-              String.sub s2 0 used_out
-            in
-            begin
-(* First of all, deflate in one pass *)
-              try
-(*                lprintf "PARSE ONE BEGIN...\n%s\n" (String.escaped s1); *)
-                let z = Zlib.inflate_init true in
-                let s =  
-                  let s2 = String.make 1000000 '\000' in
-                  let f = Zlib.Z_SYNC_FLUSH in
-                  let len = String.length s1 in
-                  let (_,used_in, used_out) = Zlib.inflate z s1 0 len s2
-                      0 1000000 f in
-                  String.sub s2 0 used_out
-                in
-                ignore (parse_string s);
-(*                lprintf "...PARSE ONE END\n"; *)
-              with e ->
-                  lprintf "Exception %s in deflate1\n" (Printexc2.to_string e)
-            end;
-            let z = Zlib.inflate_init true in
-            let rec iter list offset rem buf =
-              match list with
-                [] -> ()
-              | m :: tail ->
-                  let len = String.length m in
-                  if len <= offset then iter tail (offset - len) rem buf else
-                  let m = if offset > 0 then String.sub m offset (len - offset) else m in
-                  let rem = rem ^ m in
-                  let len = String.length rem in
-                  let s2 = String.make 100000 '\000' in
-                  let f = Zlib.Z_SYNC_FLUSH in
-(*                  lprintf "deflating %d bytes\n" len; *)
-                  let (_,used_in, used_out) = Zlib.inflate z rem 0 len s2 0 100000 f in
-(*                  lprintf "decompressed %d/%d[%d]\n" used_out len used_in; *)
-                  let m = buf ^ (String.sub s2 0 used_out) in
-                  
-                  let buf =
-                    try
-                      parse_string m
-                    with
-                      e ->
-                        lprintf "Exception %s while parse_string\n"
-                          (Printexc2.to_string e);
-                        ""
-                  in
-                  
-                  let rem = 
-                    if used_in < len then String.sub rem used_in len else "" in
-                  iter tail 0 rem buf
-            in
-            iter msgs h "" ""
-          else
-            ignore (parse_string s1)
-      with e ->
-          lprintf "Exception %s while deflating \n O\nCUT:%s\n"
-            (Printexc2.to_string e) (String.escaped s1)
-          
-    let commit () =  
-      Hashtbl.iter (fun _ cnx ->
-          let buf = Buffer.create 1000 in
-          List.iter (fun b ->
-              Buffer.add_string buf b;
-          ) cnx.buf;
-          let s = Buffer.contents buf in
-          let len = String.length s in
-          lprintf "\n-----------------------------------------------\n";
-          lprintf "\nCONNECTION %s:%d -> %s:%d: %d bytes\n" 
-            cnx.ip1 cnx.port1 cnx.ip2 cnx.port2 len;
-          begin
-          try
-            if String2.starts_with s "GNUTELLA CONNECT" then begin
-                let h1 = iter s 0 in
-                let h2 = iter s h1 in
-                let s1 = (String.sub s h2 (len-h2)) in
-                let s2 = (String.sub s h1 (h2-h1)) in
-                lprintf "Header 1: \n%s\n" (hescaped (String.sub s 0 h1));
-                lprintf "Header 2: \n%s\n" (hescaped s2);
-                let deflate = try ignore (String2.search_from s2 0 "deflate");
-                    lprintf "deflate\n"; true with _ -> false in
-                piter s1 deflate h2 cnx.buf
-              end else 
-            if String2.starts_with s "GNUTELLA" then begin
-                let h1 = iter s 0 in
-                let s1 = (String.sub s h1 (len-h1)) in
-                let s2 = (String.sub s 0 h1) in
-                lprintf "Header 1: \n%s\n" (hescaped s2);
-                let deflate = try ignore (String2.search_from s2 0 "deflate");
-                    lprintf "deflate\n"; true with _ -> false in
-                  piter s1 deflate h1 cnx.buf;
-              end else 
-            if String2.starts_with s "GET" then begin
-                lprintf "Http connect to\n";
-                let h1 = iter s 0 in
-                lprintf "Header 1: \n%s\n" (hescaped (String.sub s 0 h1));
-              end else 
-            if String2.starts_with s "HTTP" then begin
-                lprintf "Http connected from\n";
-                let h1 = iter s 0 in
-                lprintf "Header 1: \n%s\n" (hescaped (String.sub s 0 h1));
-              end else 
-                lprintf "Starting [%s]\n" (String.escaped
-                    (String.sub s 0 (min len 100)))
-          with 
-          | e ->
-              lprintf "Exception %s in\n%s\n" (Printexc2.to_string e)
-              (String.escaped s);
-              ()            
-          end;
-          lprintf "\nEND OF CONNECTION\n---------------------------------------\n";
-      ) connections;
-      
-  end
   
 let ask_for_uids sh =
   CommonUploads.ask_for_uid sh SHA1 (fun sh uid -> 
@@ -1783,5 +1553,91 @@ let ask_for_uids sh =
       ());
   CommonUploads.ask_for_uid sh ED2K (fun sh uid -> 
       lprintf "Could share urn:bitprint:\n";
-      ());
+      ())
+  
+let check_primitives () = ()
+let recover_files_delay = 3600.
+    
+let xml_to_string xml = 
+  "<?xml version=\"1.0\"?>" ^ (  Xml.to_string xml)
+      
+let audio_schema tags = 
+  Element ("audios",
+    [("xsi:nonamespaceschemalocation",
+        "http://www.limewire.com/schemas/audio.xsd")],
+    [Element ("audio", tags, [])])
+
+(*
+[
+("artist", "Tom Jones");
+("album", "Mars Attacks Soundtrack");
+("title", "It&apos;s Not Unusal");
+
+("sampleRate", "44100"); 
+("seconds", "239"); 
+("index", "0");
+("bitrate", "128")
+("track", "1"); 
+("description", "Tom Jones, hehe"); 
+("genre", "Retro");
+("year", "1997")
+] 
+
+*)
+  
+let translate_query q =
+
+  let keywords = ref [] in
+  let add_words w =
+    keywords := (String2.split_simplify w ' ') @ !keywords
+  in
+  let audio = ref false in
+  let tags = ref [] in  
+  let rec iter q = 
+    match q with
+    | QOr (q1,q2) 
+    | QAnd (q1, q2) -> iter q1; iter q2
+    | QAndNot (q1,q2) -> iter q1 
+    | QHasWord w ->  add_words w
+    | QHasField(field, w) ->
+        begin
+          match field with
+            Field_Type -> 
+              begin
+                match String.lowercase w with
+                  "audio" -> audio := true
+                | _ -> add_words w
+              end
+          | Field_Format ->
+              begin
+                match String.lowercase w with
+                | "mp3" | "wav" -> 
+                    add_words w;
+                    audio := true
+                | _ -> add_words w
+              end
+          | Field_Album -> tags := ("album", w) :: !tags; add_words w
+          | Field_Artist -> tags := ("artist", w) :: !tags; add_words w
+          | Field_Title -> tags := ("title", w) :: !tags; add_words w
+          | _ -> add_words w
+        end
+    | QHasMinVal (field, value) -> ()
+    | QHasMaxVal (field, value) -> ()
+    | QNone ->  ()
+  in
+  iter q;
+  !keywords, if !audio then xml_to_string (audio_schema !tags) else ""
+
+let new_search_uid () = Md4.random ()
+    
+let cancel_recover_files file =
+  List.iter (fun s ->
+      Hashtbl.remove searches_by_uid s.search_uid
+  ) file.file_searches
+          
+let parse_url url = 
+  let (name, uids) = parse_magnet url in
+  (name, zero, uids)
+
+let ask_for_push _ = ()
   

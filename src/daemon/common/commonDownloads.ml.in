@@ -50,7 +50,6 @@ module Make(M: sig
       val file : f -> file
       val client :   c -> client
       val client_disconnected :  (f, c) download -> unit
-      val subdir_option : string Options.option_record
       val download_finished :  (f, c) download -> unit
     end) = 
   struct

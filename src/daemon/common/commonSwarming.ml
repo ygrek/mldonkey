@@ -142,6 +142,7 @@ module type Maker = functor (M : CommonEnv) -> sig
 
 (* raise Exit if one block checksum has been computed *)
   val verify_one_chunk : t -> unit
+  val verify_some_chunks : unit -> unit
   val get_checksums : t -> CommonTypes.uid_type array
   
   val compute_last_seen : t -> int array
@@ -158,4 +159,6 @@ module type Maker = functor (M : CommonEnv) -> sig
   val has_multinet : bool
   val merge : M.CommonTypes.file -> M.CommonTypes.file -> unit
   val subfiles : t -> M.CommonTypes.file list
+    
+  val check_finished : t -> bool
 end

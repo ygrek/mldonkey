@@ -191,7 +191,7 @@ let udp_send t ip port msg =
     Buffer.clear buf;
     DonkeyProtoUdp.write buf msg;
     let s = Buffer.contents buf in
-    UdpSocket.write t s ip port
+    UdpSocket.write t false s ip port
   with e ->
       lprintf "Exception %s in udp_send" (Printexc2.to_string e);
       lprint_newline () 
@@ -244,7 +244,7 @@ let new_string msg s =
 let empty_string = ""
   
 let tag_file file =
-  (string_tag "filename"
+  (string_tag Field_Filename
     (
       let name = file_best_name file in
       let name = if String2.starts_with name "hidden." then
@@ -255,7 +255,7 @@ let tag_file file =
         end;
       name
     ))::
-  (int64_tag "size" file.file_file.impl_file_size) ::
+  (int64_tag Field_Size file.file_file.impl_file_size) ::
   (
     (match file.file_format with
         FormatNotComputed next_time when
@@ -282,18 +282,18 @@ let tag_file file =
       FormatNotComputed _ | FormatUnknown -> []
     | AVI _ ->
         [
-          { tag_name = "type"; tag_value = String "Video" };
-          { tag_name = "format"; tag_value = String "avi" };
+          { tag_name = Field_Type; tag_value = String "Video" };
+          { tag_name = Field_Format; tag_value = String "avi" };
         ]
     | MP3 _ ->
         [
-          { tag_name = "type"; tag_value = String "Audio" };
-          { tag_name = "format"; tag_value = String "mp3" };
+          { tag_name = Field_Type; tag_value = String "Audio" };
+          { tag_name = Field_Format; tag_value = String "mp3" };
         ]
     | FormatType (format, kind) ->
         [
-          { tag_name = "type"; tag_value = String kind };
-          { tag_name = "format"; tag_value = String format };
+          { tag_name = Field_Type; tag_value = String kind };
+          { tag_name = Field_Format; tag_value = String format };
         ]
   )        
   

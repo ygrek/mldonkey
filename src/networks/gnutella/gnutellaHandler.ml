@@ -17,28 +17,36 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open CommonDownloads
 open Printf2
 open Md4
+open Options  
+  
+open BasicSocket
+open TcpBufferedSocket
+
+open CommonUploads
 open CommonOptions
 open CommonSearch
 open CommonServer
 open CommonComplexOptions
 open CommonFile
-open BasicSocket
-open TcpBufferedSocket
-
+open CommonDownloads
 open CommonTypes
 open CommonGlobals
-open Options
+
+open GnutellaNetwork
 open GnutellaTypes
 open GnutellaGlobals
 open GnutellaOptions
 open GnutellaProtocol
 open GnutellaComplexOptions
-
-  
 open GnutellaProto
+  
+(*************************************************************************)
+(*                                                                       *)
+(*                         update_user                                   *)
+(*                                                                       *)
+(*************************************************************************)
 
 let update_user t =
   let module Q = QueryReply in
@@ -48,6 +56,12 @@ let update_user t =
   in
   user.user_speed <- t.Q.speed;
   user
+  
+(*************************************************************************)
+(*                                                                       *)
+(*                         update_client                                 *)
+(*                                                                       *)
+(*************************************************************************)
 
 let update_client t =
   let module Q = QueryReply in
@@ -58,11 +72,17 @@ let update_client t =
   
   c.client_user.user_speed <- t.Q.speed;
   c
+  
+(*************************************************************************)
+(*                                                                       *)
+(*                         server_to_client                              *)
+(*                                                                       *)
+(*************************************************************************)
 
 let server_to_client s p sock =
   set_lifetime sock 3600.;
   if !verbose_msg_servers then begin
-      lprintf "server_to_client\n";
+      lprintf "RECEIVED server_to_client:\n";
       print p;
     end;
   match p.pkt_payload with
@@ -77,10 +97,11 @@ let server_to_client s p sock =
             PongReq {
               P.ip = (client_ip (Connection sock));
               P.port = !!client_port;
+(* TODO: change this *)
               P.nfiles = 10;
               P.nkb = 10;
               P.ggep = [];
-              (*
+(*
               [
                 Cobs.GGEP_GUE_guess 1; 
                 Cobs.GGEP_VC_vendor ("MLDK", 2,4)]; *)
@@ -107,15 +128,17 @@ let server_to_client s p sock =
         lprintf "SEARCH RECEIVED\n";
       begin
         try
-          let q = 
-            let q = 
-              match String2.split_simplify t.Query.keywords ' ' with
-                [] -> raise Not_found
-              | s :: tail ->
-                  List.fold_left (fun q s ->
-                      QAnd (q, (QHasWord s))
-                  ) (QHasWord s) tail
-            in
+          let files =
+            let find_file q =
+              let q = 
+                let q = 
+                  match String2.split_simplify t.Query.keywords ' ' with
+                    [] -> raise Not_found
+                  | s :: tail ->
+                      List.fold_left (fun q s ->
+                          QAnd (q, (QHasWord s))
+                      ) (QHasWord s) tail
+                in
 (*
             match t.Search.sizelimit with
             | NoLimit -> q
@@ -124,33 +147,53 @@ let server_to_client s p sock =
             | AtLeast n -> 
 QAnd (QHasMinVal (CommonUploads.filesize_field, n),q)
 *) 
-            q
+                q
+              in
+              let files = CommonUploads.query q in
+              files
+            in
+            let rec iter_exts exts =
+              match exts with
+                [] -> find_file t
+              | ext :: tail ->
+                  if String.length ext > 20 && String2.starts_with ext "urn:" then
+                    let uid = ext in
+                    let sh = find_by_uid (Uid.of_string uid) in
+                    [sh, IndexedSharedFiles.get_result sh.shared_info]
+                  else
+                    iter_exts tail
+            in
+            iter_exts t.Query.xml_query
           in
-          try
-            let files = CommonUploads.query q in
-            if !verbose_msg_servers then
-              lprintf "%d replies found\n" (Array.length files); 
+          let files = Array.of_list files in
+          if !verbose_msg_servers then
+            lprintf "%d replies found\n" (Array.length files); 
 
 (* How many matches should we return ? Let's say 10. *)
-            if files <> [||] then
-              let module M = QueryReply in
-              let module C = CommonUploads in
-              let replies = ref [] in
-              for i = 0 to mini (Array.length files - 1) 9 do
-                let sh = files.(i) in
-                let infos = ref [] in
-                List.iter (fun uid ->
-                    match Uid.to_uid uid with
-                      Sha1 _ -> infos := Uid.to_string uid :: !infos;
-                    |  _ -> ()
-                ) sh.CommonUploads.shared_uids;
+          if files <> [||] then
+            let module M = QueryReply in
+            let module C = CommonUploads in
+            let replies = ref [] in
+            for i = 0 to mini (Array.length files - 1) 9 do
+              let sh, info = files.(i) in
+              let infos = ref [] in
+              List.iter (fun uid ->
+                  match Uid.to_uid uid with
+                    Sha1 _ | Bitprint _ -> 
+                      infos := Uid.to_string uid :: !infos;
+                  | Ed2k _ when GnutellaNetwork.accept_ed2kuid ->
+                      infos := Uid.to_string uid :: !infos;
+                  |  _ -> ()
+              ) info.CommonUploads.shared_uids;
+              if !infos <> [] then
                 replies := {
-                  M.index = sh.C.shared_id;
-                  M.size = sh.C.shared_size;
+                  M.index = info.C.shared_id;
+                  M.size = info.C.shared_size;
                   M.name = Filename.basename sh.C.shared_codedname;
                   M.info = !infos;
                 } :: !replies
-              done;
+            done;
+            if !replies <> [] then
               let module P = QueryReply in
               let t = QueryReplyReq {
                   P.guid = !!client_uid;
@@ -164,15 +207,14 @@ QAnd (QHasMinVal (CommonUploads.filesize_field, n),q)
                   P.stable = None; 
                   P.xml_reply = ""; 
                   P.support_chat = false; 
-                  P.dont_connect = None;
+                  P.dont_connect = if !!dont_connect then Some true else None;
                 } in
               let pp = { (new_packet t) with
                   pkt_hops = 0;
                   pkt_uid = p.pkt_uid;
                 } in
               server_send s pp
-          
-          with Not_found -> ()
+              
         with Not_found -> ()
 (*            lprintf "Query browse\n"    *)
       end
@@ -206,9 +248,15 @@ QAnd (QHasMinVal (CommonUploads.filesize_field, n),q)
 information. *)
                   lprintf "xml of result: %s\n" (String.escaped s);
                 end else
-                uids := (extract_uids s) @ !uids
+                uids := (GnutellaGlobals.extract_uids s) @ !uids
           ) f.Q.info;
           
+          lprintf "Received %d uids\n" (List.length !uids);
+          List.iter (fun uid ->
+              lprintf "   %s\n" (Uid.to_string uid);
+          ) !uids;
+          
+          (*
           (try
               let file = Hashtbl.find files_by_key (f.Q.name, f.Q.size) in
               if !verbose_msg_servers then
@@ -217,6 +265,7 @@ information. *)
               let c = update_client t in
               add_download file c (FileByIndex (f.Q.index, f.Q.name))
             with _ -> ());
+*)
           
           List.iter (fun uid ->
               try
@@ -244,7 +293,9 @@ information. *)
                 
                 let c = update_client t in
                 add_download file c (FileByIndex (f.Q.index,f.Q.name));
-              with _ -> ()
+                GnutellaClients.connect_client c
+              with _ -> 
+                  lprintf "No file with uid %s\n" (Uid.to_string uid)
           ) !uids;
           
           match s with
@@ -260,6 +311,12 @@ information. *)
               | _ -> ()
       ) t.Q.files;
   | _ -> ()
+  
+(*************************************************************************)
+(*                                                                       *)
+(*                         init                                          *)
+(*                                                                       *)
+(*************************************************************************)
 
 let init s sock gconn =       
   connected_servers := s :: !connected_servers;
@@ -274,12 +331,19 @@ let init s sock gconn =
             ]
         ))) with pkt_ttl = 1; };
   gconn.gconn_handler <- Reader
-    (gnutella_handler parse (server_to_client s))
+    (gnutella_handler parse (server_to_client s));
+  List.iter (fun file -> server_recover_file file sock s) !current_files
 
-  (*
-    Gnutella.recover_files_from_server s;    
-*)
   
-let udp_handler ip port buf =
+(*************************************************************************)
+(*                                                                       *)
+(*                         udp_client_handler                            *)
+(*                                                                       *)
+(*************************************************************************)
+  
+let udp_client_handler ip port buf =
   lprintf "Unexpected UDP packet: \n%s\n" (String.escaped buf)
   
+  
+let update_shared_files () = ()
+let declare_word _ = new_shared_words := true

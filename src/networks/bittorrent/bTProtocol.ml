@@ -242,63 +242,140 @@ and gconn = {
     mutable gconn_close_on_write : bool;
   }
 
-type msg = 
-| Choke
-| Unchoke
-| Interested
-| NotInterested
-| Have of int64
-| BitField of string
-| Request of int * int64 * int64
-| Piece of int * int64 * string * int * int
-| Cancel of int64 * int64 * int64
-| Ping  
-
   
-let bt_print msg =
-  match msg with
-  | Choke -> lprintf "Choke\n"
-  | Unchoke -> lprintf "Unchoke\n"
-  | Interested -> lprintf "Interested\n"
-  | NotInterested -> lprintf "NotInterested\n"
-  | Have n -> lprintf "Have %Ld\n" n
-  | BitField s -> lprintf "BitField %s\n" (String.escaped s)
-  | Request (index, offset, len) -> 
-      lprintf "Request %d %Ld[%Ld]\n" index offset len
-  | Piece (index, offset, s, pos, len) -> 
-      lprintf "Piece %d %Ld[%d]\n" index offset len
-  | Cancel _ -> lprintf "Cancel\n"
-  | Ping   -> lprintf "Ping\n"
+module TcpMessages = struct
     
-let bt_parser opcode m = 
-  match opcode with
-    0 -> Choke
-  | 1 -> Unchoke
-  | 2 -> Interested
-  | 3 -> NotInterested
-  | 4 -> Have (get_uint64_32 m 0)
-  | 5 -> BitField m
-  | 6 -> Request (get_int m 0, get_uint64_32 m 4, get_uint64_32 m 8)
-  | 7 -> Piece (get_int m 0, get_uint64_32 m 4, m, 8, String.length m - 8)
-  | _ -> raise Not_found
+    type msg = 
+    | Choke
+    | Unchoke
+    | Interested
+    | NotInterested
+    | Have of int64
+    | BitField of string
+    | Request of int * int64 * int64
+    | Piece of int * int64 * string * int * int
+    | Cancel of int64 * int64 * int64
+    | Ping  
+    | PeerID of string
+    
+    
+    let to_string msg =
+      match msg with
+      | Choke -> "Choke"
+      | Unchoke -> "Unchoke"
+      | Interested -> "Interested"
+      | NotInterested -> "NotInterested"
+      | Have n -> Printf.sprintf  "Have %Ld" n
+      | BitField s -> Printf.sprintf "BitField %s" (String.escaped s)
+      | Request (index, offset, len) -> 
+          Printf.sprintf "Request %d %Ld[%Ld]" index offset len
+      | Piece (index, offset, s, pos, len) -> 
+          Printf.sprintf "Piece %d %Ld[%d]" index offset len
+      | Cancel _ ->  "Cancel"
+      | Ping   -> "Ping"
+      | PeerID s ->  Printf.sprintf  "PeerID [%s]" (String.escaped s)
+    
+    let parser opcode m = 
+        match opcode with
+          0 -> Choke
+        | 1 -> Unchoke
+        | 2 -> Interested
+        | 3 -> NotInterested
+        | 4 -> Have (get_uint64_32 m 0)
+        | 5 -> BitField m
+        | 6 -> Request (get_int m 0, get_uint64_32 m 4, get_uint64_32 m 8)
+        | 7 -> Piece (get_int m 0, get_uint64_32 m 4, m, 8, String.length m - 8)
+        | -1 -> PeerID m
+        | _ -> raise Not_found
+    
+    let buf = Buffer.create 100
+    
+    let write msg = 
+      Buffer.clear buf;
+      begin
+        buf_int buf 0;
+        match msg with
+        | Choke -> buf_int8 buf 0
+        | Unchoke -> buf_int8 buf 1
+        | Interested -> buf_int8 buf 2
+        | NotInterested -> buf_int8 buf 3
+        | Have i -> buf_int8 buf 4; buf_int64_32 buf i
+        | BitField string -> buf_int8 buf 5; Buffer.add_string buf string
+        | Request (index, pos, len) ->
+            buf_int8 buf 6; 
+            buf_int buf index; buf_int64_32 buf pos; buf_int64_32 buf len
+        | Piece (num, index, s, pos, len) ->
+            buf_int8 buf 7; 
+            buf_int buf num;
+            buf_int64_32 buf index; 
+            Buffer.add_substring buf s pos len
+        
+        | Cancel _ -> ()
+        | PeerID _ -> ()
+        | Ping -> ()          
+      end;
+      let s = Buffer.contents buf in
+      str_int s 0 (String.length s - 4);
+      s
+  end
   
-let bt_handler parse_fun handler sock =
+            
+let bt_handler parse_fun handler client_software sock =
   try
     let b = TcpBufferedSocket.buf sock in
+    let first = ref (
+      if client_software = "NULL" then 0
+      else 1
+    ) in
 (*
     lprintf "BT HANDLER\n";
 dump (String.sub b.buf b.pos b.len);
   *)
     try
-      while not (closed sock) && b.len >= 4 do
-(*        lprintf "BT RECEIVED %d %d/%d \n" b.pos b.len (String.length b.buf); *)
+      (*it is possible to connection be closed, BEFORE we use all data in buffer?*)
+      while b.len >= 4 do
+        (*lprintf "BT RECEIVED %d %d/%d \n" b.pos b.len (String.length b.buf);*)
+        (*hack: if we can guess a peer_id came in late, throw it away and parse the rest as usual
+                otherwise everything we got is thrown away*)
+        (* oo boy, o boy, what a fuck up!! What if clientid is [\0\0\0\0\0\0\0\0 ....]?? *)
         let msg_len = get_int b.buf b.pos in
-        if msg_len < 0 then
+        if !first == 0 then
           begin
-            lprintf "BT: Unknown message dropped!!\n";
-            dump (String.sub b.buf b.pos b.len);
-            buf_used b b.len;
+            if b.len < 20 then
+              begin
+                if not (closed sock) then
+                  begin
+                    lprintf "BT: Received only %d in first packet, waiting more data\n" b.len;
+                    dump (String.sub b.buf b.pos b.len);
+                    raise Not_found;
+                  end;
+                lprintf "BT: First message too small (%d), disconnected\n" b.len;
+                dump (String.sub b.buf b.pos b.len);
+                buf_used b b.len;
+              end
+            else
+              begin
+                let payload = String.sub b.buf b.pos 20 in
+                lprintf "BT: late peer_id  data_len: %i  peer_id: [%s]\n" b.len (String.escaped payload);
+                let p = parse_fun (-1) payload in
+                buf_used b 20;
+                try
+                  handler sock p;
+                  first := 1
+                with e ->
+                  lprintf "Exception %s in BTProtocol.parse_fun\n"
+                    (Printexc2.to_string e);
+                  lprintf "      PeerID\n";
+                  dump payload
+              end
           end
+        else if msg_len < 0 || msg_len > 20000 then
+              begin
+                lprintf "BT: Unknown message dropped!! data_len: %i\n" b.len;
+                dump (String.sub b.buf b.pos b.len);
+                buf_used b b.len;
+                close sock Closed_by_user;
+              end
         else
           begin
             if b.len >= 4 + msg_len then
@@ -426,37 +503,12 @@ With bencoded payload:
           int: length (power of 2, 2 ^ 15)
 *)
 
-let buf = Buffer.create 100
 let send_client client_sock msg =
     do_if_connected  client_sock (fun sock ->
-  try
-        Buffer.clear buf;
-(*        lprintf "send_client\n";         *)
-        begin
-          buf_int buf 0;
-          match msg with
-          | Choke -> buf_int8 buf 0
-          | Unchoke -> buf_int8 buf 1
-          | Interested -> buf_int8 buf 2
-          | NotInterested -> buf_int8 buf 3
-          | Have i -> buf_int8 buf 4; buf_int64_32 buf i
-          | BitField string -> buf_int8 buf 5; Buffer.add_string buf string
-          | Request (index, pos, len) ->
-              buf_int8 buf 6; 
-              buf_int buf index; buf_int64_32 buf pos; buf_int64_32 buf len
-          | Piece (num, index, s, pos, len) ->
-              buf_int8 buf 7; 
-              buf_int buf num;
-              buf_int64_32 buf index; 
-              Buffer.add_substring buf s pos len
-          
-          | Cancel _ -> ()
-          | Ping -> ()          
-        end;
-        let s = Buffer.contents buf in
-        str_int s 0 (String.length s - 4);
+      try
+        let s = TcpMessages.write msg in
         if !verbose_msg_clients then begin
-            bt_print msg;
+            lprintf "send message: %s\n" (TcpMessages.to_string msg);
           end;
 (*        dump s; *)
         write_string sock s

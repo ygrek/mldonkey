@@ -123,42 +123,43 @@ let reset_tags () =
   let emule_miscoptions1 = D.emule_miscoptions1 m in
   client_to_client_tags :=
   [
-    string_tag "name" (local_login ());
-    int_tag "version" protocol_version;
-    int_tag "emule_udpports" (!!donkey_port+4);
-    int_tag "emule_version" m.emule_version;
-    int64_tag "emule_miscoptions1" emule_miscoptions1;
-    int_tag "port" !!donkey_port;
+    string_tag (Field_UNKNOWN "name") (local_login ());
+    int_tag (Field_UNKNOWN "version") protocol_version;
+    int_tag (Field_UNKNOWN "emule_udpports") (!!donkey_port+4);
+    int_tag (Field_UNKNOWN "emule_version") m.emule_version;
+    int64_tag (Field_UNKNOWN "emule_miscoptions1") emule_miscoptions1;
+    int_tag (Field_UNKNOWN "port") !!donkey_port;
   ];      
   client_to_server_tags :=
   [
-    string_tag "name" (local_login ());
-    int_tag "version" protocol_version;
-    int_tag "port" !!donkey_port;
+    string_tag (Field_UNKNOWN "name") (local_login ());
+    int_tag (Field_UNKNOWN "version") protocol_version;
+    int_tag (Field_UNKNOWN "port") !!donkey_port;
   ];      
   if Autoconf.has_zlib then
-    client_to_server_tags := (int_tag "extended" 1)::!client_to_server_tags;
+    client_to_server_tags := (int_tag 
+      (Field_UNKNOWN "extended") 1)::!client_to_server_tags;
   emule_info.DonkeyProtoClient.EmuleClientInfo.tags <- [
-    int_tag "compression" 
+    int_tag (Field_UNKNOWN "compression") 
       (if !!emule_compression then m.emule_compression else 0);
-    int_tag "udpver" m.emule_udpver;
-    int_tag "udpport" (!!donkey_port+4);
-    int_tag "sourceexchange" m.emule_sourceexchange;
-    int_tag "comments" m.emule_comments;
-    int_tag "compatableclient" 10; 
-    int_tag "extendedrequest" m.emule_extendedrequest;
-    int_tag "features" m.emule_features;
+    int_tag (Field_UNKNOWN "udpver") m.emule_udpver;
+    int_tag (Field_UNKNOWN "udpport") (!!donkey_port+4);
+    int_tag (Field_UNKNOWN "sourceexchange") m.emule_sourceexchange;
+    int_tag (Field_UNKNOWN "comments") m.emule_comments;
+    int_tag (Field_UNKNOWN "compatableclient") 10; 
+    int_tag (Field_UNKNOWN "extendedrequest") m.emule_extendedrequest;
+    int_tag (Field_UNKNOWN "features") m.emule_features;
     
   ];
   overnet_connect_tags :=
   [
-    string_tag "name" (local_login ());
-    int_tag "version" !!DonkeyProtoOvernet.overnet_protocol_connect_version; 
+    string_tag (Field_UNKNOWN "name") (local_login ());
+    int_tag (Field_UNKNOWN "version") !!DonkeyProtoOvernet.overnet_protocol_connect_version; 
   ];
   overnet_connectreply_tags :=
   [
-    string_tag "name" (local_login ());
-    int_tag "version" !!DonkeyProtoOvernet.overnet_protocol_connectreply_version; 
+    string_tag (Field_UNKNOWN "name") (local_login ());
+    int_tag (Field_UNKNOWN "version") !!DonkeyProtoOvernet.overnet_protocol_connectreply_version; 
   ]
   
 let enable () =
@@ -209,8 +210,8 @@ let enable () =
                     file_commit (as_file file)
               end
           with e ->
-              lprintf "Exception %s while recovering download %s"
-                (Printexc2.to_string e) (file_disk_name file); lprint_newline ();
+              lprintf "Exception %s while recovering download %s\n"
+                (Printexc2.to_string e) (file_disk_name file); 
       ) files_by_md4;
       
       let list = ref [] in
@@ -252,9 +253,8 @@ be useful when users want to share files that they had already previously
               udp_sock := Some sock;
               UdpSocket.set_write_controler sock udp_write_controler;
             with e ->
-                lprintf "Exception %s while binding UDP socket"
+                lprintf "Exception %s while binding UDP socket\n"
                   (Printexc2.to_string e);
-                lprint_newline ();
           end;
           sock
         with e ->
@@ -303,15 +303,6 @@ be useful when users want to share files that they had already previously
       add_session_timer enabler 1. second_timer;
       add_session_timer enabler 60. (fun _ ->
           (try
-              List.iter (fun file ->
-                  match file.file_swarmer with
-                    None -> ()
-                  | Some swarmer ->
-                      Int64Swarmer.verify_one_chunk swarmer
-              ) !current_files
-            with _ -> ()
-          );
-          (try
               DonkeyServers.query_locations_timer ();
             with _ -> ());
           List.iter (fun file -> DonkeyShare.must_share_file file) 
@@ -339,7 +330,7 @@ let _ =
   file_ops.op_file_commit <- (fun file ->
       DonkeyInteractive.save_file file 
         (DonkeyInteractive.saved_name file);
-      lprintf "SAVED"; lprint_newline ();
+      lprintf "SAVED\n";
 );
   *)
   network.op_network_enable <- enable;

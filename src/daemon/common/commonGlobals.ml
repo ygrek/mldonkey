@@ -258,64 +258,6 @@ let want_comb_not andnot comb f none value =
             comb q  (f w)
         ) (f w) tail)
 
-      
-let rec rec_simplify_query q =
-  match q with
-    QAnd (q1, q2) ->
-      (
-       match (rec_simplify_query q1, rec_simplify_query q2) with
-	QNone, QNone -> QNone
-       | QNone, q2' -> q2'
-       | q1', QNone -> q1'
-       | q1', q2' -> QAnd (q1',q2')
-      )
-  | QOr (q1, q2) ->
-      (
-       match (rec_simplify_query q1, rec_simplify_query q2) with
-	 QNone, QNone -> QNone
-       | QNone, q2' -> q2'
-       | q1', QNone -> q1'
-       | q1', q2' -> QOr (q1',q2')
-      )
-  | QAndNot (q1, q2) ->
-      (
-       match (rec_simplify_query q1, rec_simplify_query q2) with
-	 QNone, QNone -> QNone
-       | QNone, q2' -> QNone
-       | q1', QNone -> q1'
-       | q1', q2' -> QAndNot (q1',q2')
-      )
-  | QHasWord _
-  | QHasField _
-  | QHasMinVal _
-  | QHasMaxVal _
-  | QNone -> q
-
-let rec canonize_query q =
-  let q1 = match q with
-    
-    | QAnd (q, QNone) | QAnd (QNone, q) -> q
-    | QOr (q, QNone) | QOr (QNone,q) -> q
-    | QAndNot (q, QNone) -> q
-    
-    | QAndNot ( QAndNot (q1,q2), q3 ) ->   QAndNot ( q1, QAnd(q2,q3))
-    | QAndNot (q1, QAndNot(q2,q3)) ->      QAndNot (QAnd(q1,q2), q3)          
-    | QAnd (q1, QAndNot (q2,q3)) ->        QAndNot (QAnd (q1,q2), q3)
-    | QAnd (QAndNot (q1, q2), q3) ->       QAndNot (QAnd (q1, q3), q2)
-    
-    | QAnd (q1, q2) -> QAnd (canonize_query q1, canonize_query q2)
-    | QOr (q1, q2) -> QOr (canonize_query q1, canonize_query q2)
-    | QAndNot (q1, q2) -> QAndNot (canonize_query q1, canonize_query q2)
-    | _ -> q
-  in
-  if q <> q1 then canonize_query q1 else q
-    
-let simplify_query q =
-  let q = canonize_query q in
-  match rec_simplify_query q with
-    QNone -> QHasWord " "
-  | q' -> q'
-
             
 let string_of_tags tags =
   let buf = Buffer.create 100 in
@@ -390,56 +332,73 @@ let  download_counter = ref Int64.zero
 let nshared_files = ref 0
 let nshared_bytes = ref Int64.zero
 let shared_counter = ref Int64.zero
+            
+let string_of_field t =
+  match t with
+  | Field_Artist -> "artist"
+  | Field_Title -> "title"
+  | Field_Album -> "album"
+  | Field_Format -> "format"
+  | Field_Type -> "type"
+  | Field_Length -> "length"
+  | Field_Availability -> "availability"
+  | Field_Completesources -> "completesources"
+  | Field_Filename -> "filename"
+  | Field_Size -> "size"
+  | Field_Uid -> "uid"
+  | Field_Bitrate -> "bitrate"
+  | Field_Codec -> "codec"
+  | Field_UNKNOWN s -> s
+            
+let field_of_string t =
+  match String.lowercase t with
+  | "artist" -> Field_Artist
+  | "title" -> Field_Title
+  | "album" -> Field_Album
+  | "format" -> Field_Format
+  | "type" -> Field_Type
+  | "length" -> Field_Length
+  | "availability" -> Field_Availability
+  | "completesources" -> Field_Completesources
+  | "filename" -> Field_Filename
+  | "size" -> Field_Size
+  | "uid" -> Field_Uid
+  | "bitrate" -> Field_Bitrate
+  | "codec" -> Field_Codec
+  | _ -> Field_UNKNOWN t
 
-let tag_name tag =
-  String.escaped tag.tag_name 
-        
+let escaped_string_of_field tag =
+  match tag.tag_name with 
+  | Field_UNKNOWN s -> String.escaped s
+  | t -> string_of_field t
+
+      
+let string_of_tag tag =
+  Printf.sprintf "  \"%s\" = %s" (escaped_string_of_field tag)
+  (string_of_tag_value tag.tag_value)  
+
 let rec print_tags tags =
   match tags with
     [] -> ()
   | tag :: tags ->
-      lprintf "  \"%s\" = " (tag_name tag);
-      begin
-        match tag.tag_value with
-        | Uint16 n | Uint8 n -> lprintf "%d" n
-        | Uint64 n -> lprintf "%s" (Int64.to_string n)
-        | Fint64 n -> lprintf "%s" (Int64.to_string n)
-        | Addr ip -> lprintf "%s" (Ip.to_string ip)
-        | String s -> lprintf "\"%s\"" 
-              (String.escaped s)
-      end;
+      lprintf "  \"%s\" = %s" (escaped_string_of_field tag)
+      (string_of_tag_value tag.tag_value);
       print_tags tags
 
 let rec fprint_tags oc tags =
   match tags with
     [] -> Printf.fprintf oc "\n"
   | tag :: tags ->
-      Printf.fprintf oc "%s = " (tag_name tag);
-      begin
-        match tag.tag_value with
-        | Uint8 n | Uint16 n -> Printf.fprintf oc "%d" n
-        | Uint64 n -> Printf.fprintf oc "%s" (Int64.to_string n)
-        | Fint64 n -> Printf.fprintf oc "%s" (Int64.to_string n)
-        | Addr ip -> Printf.fprintf oc "%s" (Ip.to_string ip)
-        | String s -> Printf.fprintf oc "\"%s\"" 
-              (String.escaped s)
-      end;
+      Printf.fprintf oc "%s = %s" (escaped_string_of_field tag)
+      (string_of_tag_value tag.tag_value);
       fprint_tags oc tags
 
 let rec bprint_tags buf tags =
   match tags with
     [] -> Printf.bprintf buf "\n"
   | tag :: tags ->
-      Printf.bprintf buf "%s = " (tag_name tag);
-      begin
-        match tag.tag_value with
-        | Uint8 n | Uint16 n -> Printf.bprintf buf "%d" n
-        | Uint64 n -> Printf.bprintf buf "%s" (Int64.to_string n)
-        | Fint64 n -> Printf.bprintf buf "%s" (Int64.to_string n)
-        | Addr ip -> Printf.bprintf buf "%s" (Ip.to_string ip)
-        | String s -> Printf.bprintf buf "\"%s\"" 
-              (String.escaped s)
-      end;
+      Printf.bprintf buf "%s = %s" (escaped_string_of_field tag)
+      (string_of_tag_value tag.tag_value);
       bprint_tags buf tags
 
 let aborted_download = ref (None : int option)
@@ -464,6 +423,13 @@ let chat_message_fifo = (Fifo.create () : (int * string * int * string * string)
 
 let log_chat_message i num n s = 
   Fifo.put chat_message_fifo (last_time(),i,num,n,s);
+  try
+    let oc = open_out_gen [Open_creat; Open_wronly; Open_append] 0o600 !messages_log in
+    Printf.fprintf oc "%s: %s (%s): %s\n" (Date.simple (BasicSocket.date_of_int (last_time ()))) n i s;
+    close_out oc;
+  with e ->
+    lprintf "[ERROR] Exception %s while trying to log message to %s\n"
+      (Printexc2.to_string e) !messages_log;
   
   while (Fifo.length chat_message_fifo) > !!html_mods_max_messages  do
     let foo = Fifo.take chat_message_fifo in ()
@@ -484,6 +450,41 @@ let html_mods_td buf l =
      Printf.bprintf buf "\\<td class=\\\"%s\\\" %s\\>%s\\</td\\>" 
      c (if t <> "" then "title=\\\"" ^ t ^ "\\\"" else "") d;
     ) l
+  
+let html_mods_counter = ref true
+
+let html_mods_cntr () =
+    html_mods_counter := not !html_mods_counter;
+    if !html_mods_counter then 1 else 2
+
+let html_mods_cntr_init () =
+  html_mods_counter := true
+
+(* ripped from gui_misc *)
+
+let ko = 1024.0 
+let mo = ko *. ko 
+let go = mo *. ko 
+let tob = go *. ko 
+
+let size_of_int64 size =
+  if !!html_mods_human_readable then
+    let f = Int64.to_float size in
+  if f > tob then
+      Printf.sprintf "%.2fT" (f /. tob)
+  else
+     if f > go then
+      Printf.sprintf "%.2fG" (f /. go)
+     else
+      if f > mo then
+      Printf.sprintf "%.1fM" (f /. mo)
+      else
+     if f > ko then
+       Printf.sprintf "%.1fk" (f /. ko)
+     else
+       Int64.to_string size
+  else
+    Int64.to_string size
   
 let debug_clients = ref Intset.empty
 
@@ -634,7 +635,9 @@ let update_upload_history () =
 let detected_uplink_capacity () =
   List.fold_left maxi 0 (Fifo2.to_list upload_history)
 
-
+let new_tag name v =
+  { tag_name = name; tag_value = v }
+  
 let int_tag s i = 
   { tag_name = s; tag_value = Uint64 (Int64.of_int i) }
 
@@ -649,6 +652,7 @@ let for_int_tag tag f =
     Uint64 i | Fint64 i -> f (Int64.to_int i)
   | String _ -> ()
   | Addr _ -> ()
+  | Pair _ -> ()
   | Uint16 n | Uint8 n -> f n
 
 let for_int64_tag tag f =
@@ -656,6 +660,7 @@ let for_int64_tag tag f =
     Uint64 i | Fint64 i -> f i
   | String _ -> ()
   | Addr _ -> ()
+  | Pair _ -> ()
   | Uint8 n | Uint16 n -> f (Int64.of_int n)
 
 let for_two_int16_tag tag f =
@@ -668,6 +673,7 @@ let for_two_int16_tag tag f =
       f i0 i1
   | String _ -> ()
   | Addr _ -> ()
+  | Pair _ -> ()
   | Uint8 n | Uint16 n -> f n 0
       
 let for_string_tag tag f =
@@ -675,6 +681,7 @@ let for_string_tag tag f =
     Uint64 _ | Fint64 _ -> ()
   | String s -> f s
   | Addr _ -> ()
+  | Pair _ -> ()
   | Uint16 _ | Uint8 _ -> ()
       
 (* Name,FrameHeight *)

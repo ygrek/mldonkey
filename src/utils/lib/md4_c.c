@@ -28,12 +28,13 @@
 
 value md4_xor(value m1_v, value m2_v, value m3_v) 
 {
+  int len = caml_string_length(m1_v);
   char *m1 = String_val(m1_v);
   char *m2 = String_val(m2_v);
   char *m3 = String_val(m3_v);
   int i;
 
-  for(i = 0; i<16; i++) m3[i] = m1[i] ^ m2[i];
+  for(i = 0; i<len; i++) m3[i] = m1[i] ^ m2[i];
 
   return Val_unit;
 }

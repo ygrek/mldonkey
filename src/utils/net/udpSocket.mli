@@ -21,7 +21,8 @@ type event =
   | CAN_REFILL
   | READ_DONE
   | BASIC_EVENT of BasicSocket.event
-type udp_packet = { udp_content : string; udp_addr : Unix.sockaddr; } 
+type udp_packet = { 
+    udp_ping: bool; udp_content : string; udp_addr : Unix.sockaddr; } 
 type t
 (*
   type t = {
@@ -40,7 +41,7 @@ val set_reader : t -> (t -> unit) -> unit
 val sock : t -> BasicSocket.t
 val closed : t -> bool
 val close : t -> BasicSocket.close_reason -> unit
-val write : t -> string -> Ip.t -> int -> unit
+val write : t -> bool -> string -> Ip.t -> int -> unit
 val create : Unix.inet_addr -> int -> handler -> t
 val create_sendonly : unit -> t
 val can_write : t -> bool
@@ -58,4 +59,7 @@ val new_bandwidth_controler : TcpBufferedSocket.bandwidth_controler ->
 val remaining_bytes : bandwidth_controler -> int
 val use_remaining_bytes : bandwidth_controler -> int -> unit
   
+  
+val get_latencies : unit -> string
+val declare_pong : Ip.t -> unit
   

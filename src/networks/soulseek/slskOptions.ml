@@ -62,11 +62,7 @@ let max_known_servers = define_option soulseek_section
     ["query_serverlist_limit"] 
   "The limit on the number of servers to avoid asking for a new list" int_option 100
   
-let commit_in_subdir = define_option soulseek_section ["commit_in_subdir"]
-  "The subdirectory of temp/ where files should be moved to"
-    string_option "SoulSeek"
 
-  
 let verbose_clients = 
   define_option soulseek_section ["verbose_clients"] 
   "level of verbosity when communicating with clients" 
@@ -81,13 +77,9 @@ let next_token =
     "the last token used for a query is saved here" int_option 1
   
         
-let network_options_prefix = define_option soulseek_section
-    ["options_prefix"] "The prefix which is appended to options names
-    when they are used in the telnet/WEB interfaces"
-    string_option "SLSK-"
   
 let shortname o =
-  Printf.sprintf "%s%s" !!network_options_prefix (shortname o)
+  Printf.sprintf "SLSK-%s" (shortname o)
     
 let gui_soulseek_options_panel = 
   (*
@@ -104,6 +96,5 @@ let gui_soulseek_options_panel =
   *)
     "Login (nothing for global one)", shortname login, "T";
     "Password", shortname password, "T";
-    "Commit Downloads In Incoming Subdir", shortname commit_in_subdir, "T";
   ]
 

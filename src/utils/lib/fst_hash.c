@@ -178,10 +178,23 @@ static unsigned int fst_hash_small (unsigned char* data, unsigned int len, unsig
 }
 
 
+#include "caml/mlvalues.h"
+
+/* returns checksum of fzhash */
+uint16 fst_hash_checksum (unsigned char *hash)
+{
+        uint16 sum = 0;
+        int i;
+
+        /* calculate 2 byte checksum used in the URL from 20 byte fthash */
+        for (i = 0; i < 20; i++)
+                sum = checksumtable[hash[i] ^ (sum >> 8)] ^ (sum << 8);
+
+        return (sum & 0x3fff);
+}
+
 #define FST_HASH_CHUNK 307200
 /*****************************************************************************/
-
-#include "caml/mlvalues.h"
 
 // hash file
 int fst_hash_file (unsigned char *fth, char *file, int64 filesize)
@@ -303,6 +316,9 @@ void fst_hash_string (unsigned char *fth, unsigned char *file, int64 filesize)
   fth[19] = (smallhash >> 24) & 0xff;
 }
 
+
+
+
 #include "caml/fail.h"
 
 value fst_hash_file_ml(value digest, value filename, value filesize)
@@ -316,4 +332,9 @@ value fst_hash_string_ml(value digest, value s, value size)
 {
   fst_hash_string(String_val(digest), String_val(s), Int_val(size));
   return Val_unit;
+}
+
+value fst_hash_checksum_ml(value digest)
+{
+  return Val_int(fst_hash_checksum(String_val(digest)));
 }

@@ -35,7 +35,6 @@ open OpenFTOptions
 open CommonNetwork
   
 let network = new_network "OpenFT"  
-    network_options_prefix commit_in_subdir
 
 let connection_manager = network.network_connection_manager
   

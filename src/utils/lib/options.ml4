@@ -424,7 +424,7 @@ and save_value indent oc v =
   match v with
     StringValue s -> Printf.fprintf oc "%s" (safe_string s)
   | IntValue i -> Printf.fprintf oc "%s" (Int64.to_string i)
-  | FloatValue f -> Printf.fprintf oc "%f" f
+  | FloatValue f -> Printf.fprintf oc "%F" f
   | List l ->
       Printf.fprintf oc "[";
       save_list_nl (indent ^ "  ") oc l;
@@ -815,7 +815,16 @@ let save opfile =
   opfile.file_before_save_hook ();
   let filename = opfile.file_name in
   let temp_file = filename ^ ".tmp" in
-  let old_file = filename ^ ".old" in
+  let old_file = 
+    let dirname = Filename.dirname filename in
+    let basename = Filename.basename filename in
+    let old_config = Filename.concat dirname "old_config" in
+    if not (Sys.file_exists old_config) then Unix.mkdir old_config 0o755;
+    let old_file = Filename.concat old_config filename in
+    let old_old_file = filename ^ ".old" in
+    if not (Sys.file_exists old_file) && (Sys.file_exists old_old_file) then
+      Sys.rename old_old_file old_file;
+    old_file in
   let oc = open_out temp_file in
   try
     once_values_counter := 0;

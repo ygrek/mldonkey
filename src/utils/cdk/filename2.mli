@@ -61,3 +61,5 @@ val path_of_filename : string -> string list
   
 val basename : string -> string
   
+val escaped : string -> string
+  

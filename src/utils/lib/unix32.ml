@@ -188,8 +188,8 @@ module FDCache = struct
 module type File =   sig
     type t
     val create : string -> t
-    val fd_of_chunk : t -> int64 -> int64 ->
-      Unix.file_descr * int64 * string option
+    val apply_on_chunk : t -> int64 -> int64 ->
+      (Unix.file_descr -> int64 -> 'a) -> 'a
     val close : t -> unit
     val rename : t -> string -> unit
     val ftruncate64 : t -> int64 -> unit
@@ -210,9 +210,9 @@ module DiskFile = struct
 
     let create = FDCache.create
 
-    let fd_of_chunk t pos_s len_s =
+    let apply_on_chunk t pos_s len_s f =
       let fd = FDCache.local_force_fd t in
-      fd, pos_s, None
+      f fd pos_s
 
     let close = FDCache.close
 
@@ -366,14 +366,14 @@ module MultiFile = struct
         (max_len -- max_possible_write)
 
 
-    let fd_of_chunk t chunk_begin chunk_len =
+    let apply_on_chunk t chunk_begin chunk_len f =
       let (file, tail) = find_file t chunk_begin in
       let chunk_end = chunk_begin ++ chunk_len in
       let file_begin = file.pos in
       let max_current_pos = file_begin ++ file.current_len in
       if max_current_pos >= chunk_end then
         let fd = FDCache.local_force_fd file.fd in
-        fd, chunk_begin -- file_begin, None
+        f fd (chunk_begin -- file_begin)
       else
       let temp_file = Filename.temp_file "chunk" ".tmp" in
       let file_out = FDCache.create temp_file in
@@ -402,7 +402,13 @@ module MultiFile = struct
       );
       FDCache.close file_out;
       let fd = FDCache.local_force_fd file_out in
-      fd, zero, Some temp_file
+      try 
+        let v = f fd zero in
+        Sys.remove temp_file;
+        v
+      with e -> 
+          Sys.remove temp_file;
+          raise e
 
 
     let close t =
@@ -626,7 +632,7 @@ module SparseFile = struct
     
     let build t = ()
     
-    let fd_of_chunk t chunk_begin chunk_len =
+    let apply_on_chunk t chunk_begin chunk_len f =
       
       let index = find_read_pos t chunk_begin in
       let nchunks = Array.length t.chunks in
@@ -640,7 +646,7 @@ module SparseFile = struct
         let chunk = t.chunks.(index) in
         let in_chunk_pos = chunk_begin -- chunk.pos in
         let fd = FDCache.local_force_fd chunk.fd in
-        fd, in_chunk_pos, None
+        f fd in_chunk_pos
       
       else
       
@@ -680,7 +686,13 @@ module SparseFile = struct
       
       FDCache.close file_out;
       let fd = FDCache.local_force_fd file_out in
-      fd, zero, Some temp_file
+      try
+        let v = f fd zero in
+        Sys.remove temp_file;
+        v
+      with e -> 
+          Sys.remove temp_file;
+          raise e
     
     let close t =
       Array.iter (fun file -> FDCache.close file.fd) t.chunks
@@ -1058,7 +1070,9 @@ let read t file_pos string string_pos len =
   | DiskFile t -> DiskFile.read t file_pos string string_pos len
   | MultiFile t -> MultiFile.read t file_pos string string_pos len
   | SparseFile t -> SparseFile.read t file_pos string string_pos len
-  | Destroyed -> failwith "Unix32.read on destroyed FD"
+  | Destroyed -> failwith 
+        (Printf.sprintf "Unix32.read on destroyed FD %s"
+          (filename t))
       
 let flush _ =
   try
@@ -1152,14 +1166,14 @@ let destroy t =
 let create_rw filename = create_diskfile filename rw_flag 0o666
 let create_ro = create_rw
 
-let fd_of_chunk t pos len =
+let apply_on_chunk t pos len f =
   match t.file_kind with
-  | DiskFile t -> DiskFile.fd_of_chunk t pos len
+  | DiskFile t -> DiskFile.apply_on_chunk t pos len f
   | MultiFile tt ->
       flush_fd t;
-      MultiFile.fd_of_chunk tt pos len
-  | SparseFile t -> SparseFile.fd_of_chunk t pos len
-  | Destroyed -> failwith "Unix32.fd_of_chunk on destroyed FD"
+      MultiFile.apply_on_chunk tt pos len f
+  | SparseFile t -> SparseFile.apply_on_chunk t pos len f
+  | Destroyed -> failwith "Unix32.apply_on_chunk on destroyed FD"
       
 let exists t =
   flush_fd t;
@@ -1296,7 +1310,7 @@ The following functions have to be rewritten:
 
 (* TODO: there is no need to create a temporary file when the wanted chunk
 overlaps different parts, but these parts are on the same physical file. *)
-    let fd_of_chunk t chunk_begin chunk_len =
+    let apply_on_chunk t chunk_begin chunk_len f =
       let chunk_end = chunk_begin ++ chunk_len in
       let rec iter list =
         match list with 
@@ -1304,7 +1318,7 @@ overlaps different parts, but these parts are on the same physical file. *)
         | part :: tail ->
             if part.part_begin <= chunk_begin &&
               part.part_end >= chunk_end then
-              fd_of_chunk part.part_file chunk_begin chunk_len              
+              apply_on_chunk part.part_file chunk_begin chunk_len f
             else
             if part.part_end > chunk_begin then
               make_temp_file list
@@ -1329,8 +1343,13 @@ overlaps different parts, but these parts are on the same physical file. *)
         in
         fill zero chunk_begin chunk_len list;
         old_close file_out;
-        let fd, _, _ = fd_of_chunk file_out zero chunk_len in
-        fd, zero, Some temp_file
+        try
+          let v = apply_on_chunk file_out zero chunk_len f in
+          Sys.remove temp_file;
+          v
+        with e ->
+            Sys.remove temp_file;
+            raise e
       
       in
       
@@ -1375,5 +1394,12 @@ when these two files have already been partially downloaded ? This
       ()
       
   end
+let destroyed t = t.file_kind = Destroyed
   
 type t = file
+
+let bad_fd = 
+  let t = create_rw "/dev/null" in
+  t.file_kind <- Destroyed;
+  t
+  

@@ -23,23 +23,26 @@ open Md4
 open Options
 open BasicSocket
 
+open CommonOptions
 open CommonHosts
 open CommonDownloads
 open CommonTypes
 open CommonFile
-
+open CommonSwarming
+  
+open GnutellaNetwork
 open GnutellaTypes
 open GnutellaOptions
 open GnutellaGlobals
 
 let ultrapeers = define_option gnutella_section
     ["cache"; "ultrapeers"]
-    "Known ultrapeers" (list_option (tuple2_option (Ip.option, int_option)))
+    "Known ultrapeers" (list_option (tuple2_option (Ip.addr_option, int_option)))
   []
 
 let peers = define_option gnutella_section
     ["cache"; "peers"]
-    "Known Peers" (list_option (tuple2_option (Ip.option, int_option)))
+    "Known Peers" (list_option (tuple2_option (Ip.addr_option, int_option)))
   []
 
 module ClientOption = struct
@@ -108,12 +111,13 @@ let value_to_file file_size file_state assocs =
   in
   
   let file_name = get_value "file_name" value_to_string in
-  let file_id = 
+  let file_temp = 
     try
-      Md4.of_string (get_value "file_id" value_to_string)
-    with _ -> failwith "Bad file_id"
+      Printf.sprintf "GNUT-%s" (get_value "file_id" value_to_string)
+    with _ -> 
+        get_value "file_temp" value_to_string
   in
-
+  
   let file_uids = ref [] in
   let uids_option = try
       value_to_list value_to_string (List.assoc "file_uids" assocs) 
@@ -121,37 +125,43 @@ let value_to_file file_size file_state assocs =
   in
   List.iter (fun v ->
       file_uids := (Uid.of_string v) :: !file_uids) uids_option;
+
+
+(* recover the hash stored by versions <= 2.5.28 *)
+  (try
+      let hash = 
+        Uid.create (Md5Ext (
+            Md5Ext.of_string (get_value "file_hash" value_to_string)))
+      in 
+      file_uids := hash :: !file_uids;
+    with _ -> ());
   
+  let file = new_file file_temp file_name file_size !file_uids in
   
-  let file = new_file file_id file_name file_size !file_uids in
+  (try
+      file.file_ttr <- Some (get_value "file_ttr" (value_to_array 
+            (fun v -> TigerTree.of_string (value_to_string v))));      
+    with _ -> ());
   
+    
   (match file.file_swarmer with
       None -> ()
     | Some swarmer ->
         Int64Swarmer.value_to_swarmer swarmer assocs;
+        Int64Swarmer.set_verifier swarmer (
+          match file.file_ttr with
+            None -> VerificationNotAvailable
+          | Some ttr ->
+              lprintf "[TTR] set_verifier\n";
+              Verification (Array.map (fun ttr -> TigerTree ttr) ttr))
   );
-(*
-  (try 
-      Int64Swarmer.set_present file.file_swarmer 
-        (get_value "file_present_chunks" 
-          (value_to_list value_to_int32pair));
-      add_file_downloaded file.file_file
-        (Int64Swarmer.downloaded file.file_swarmer)      
-    with _ -> ()                
-  );
-*)  
+  
   (try
       ignore (get_value "file_sources" (value_to_list (fun v ->
               match v with
-              | SmallList [c; index; name] | List [c;index; name] ->
+              | SmallList (c :: tail) | List (c :: tail) ->
                   let s = ClientOption.value_to_client c in
-                  add_download file s (
-                    FileByIndex (value_to_int index, value_to_string name))
-    
-(*              | SmallList [c; index] | List [c;index] ->
-                  let s = ClientOption.value_to_client c in
-                  add_download file s (
-                    FileByUrl (value_to_string index)) *)
+                  add_download file s (GnutellaNetwork.value_to_index tail)
               | _ -> failwith "Bad source"
           )))
     with e -> 
@@ -165,16 +175,13 @@ let file_to_value file =
     [
       "file_name", string_to_value file.file_name;
       "file_downloaded", int64_to_value (file_downloaded file);
-      "file_id", string_to_value (Md4.to_string file.file_id);
+      "file_temp", string_to_value file.file_temp;
+      
       "file_sources", 
       list_to_value (fun c ->
-          match (find_download file c.client_downloads).download_uri with
-            FileByIndex (i,n) -> 
-              SmallList [ClientOption.client_to_value c; int_to_value i; 
-                string_to_value n]
-          | FileByUrl s -> 
-              SmallList [ClientOption.client_to_value c; 
-                string_to_value s] 
+          let d = find_download file c.client_downloads in
+          let tail = index_to_value d.download_uri in
+          SmallList (ClientOption.client_to_value c :: tail)      
       ) file.file_clients
       ;
       "file_uids", list_to_value (fun uid ->
@@ -187,7 +194,13 @@ let file_to_value file =
 *)  
     ]
   in
-  match file.file_swarmer with
+  let assocs =
+    match file.file_ttr with
+      None -> assocs
+    | Some ttr ->
+        ("file_ttr", array_to_value TigerTree.hash_to_value ttr) :: assocs
+  in
+    match file.file_swarmer with
     None -> assocs 
   | Some swarmer ->
       Int64Swarmer.swarmer_to_value swarmer assocs
@@ -196,24 +209,85 @@ let old_files =
   define_option gnutella_section ["old_files"]
     "" (list_option (tuple2_option (string_option, int64_option))) []
     
-    
+
+  (*
 let save_config () =
+  lprintf "GnutellaComplexOptions: save_config\n";
   ultrapeers =:= [];
   peers =:= [];
   
-  Queue.iter (fun (_,h) -> 
-      try
-        let o = match h.host_kind with Ultrapeer -> ultrapeers | _ -> peers in
-
-(* Don't save hosts that are older than 1 hour, and not responding *)
-        if max h.host_connected h.host_age > last_time () - 3600 then
-          o =:= (h.host_addr, h.host_port) :: !!o; 
-      with _ -> ())
-  H.workflow;
+  let files = !!old_files in
+  old_files =:= [];
+  List.iter (fun file ->
+      if not (List.mem file !!old_files) then 
+        old_files =:= file :: !!old_files
+  ) files;
   
   ()
-  
+  *)
+
 let _ =
   network.op_network_file_of_option <- value_to_file;
-  file_ops.op_file_to_option <- file_to_value
+  file_ops.op_file_to_option <- file_to_value;
+  
+  set_after_load_hook gnutella_ini (fun _ ->
+      
+      List.iter (fun (ip,port) -> 
+          ignore (H.new_host ip port Ultrapeer)) !!ultrapeers;
+      
+      List.iter (fun (ip,port) -> 
+          ignore (H.new_host ip port Peer)) !!peers;      
+      
+      ultrapeers =:= [];
+      peers =:= [];
+  );
+  
+  set_before_save_hook gnutella_ini (fun _ ->
+
+      let ultrapeers_list = ref [] in
+      let peers_list = ref [] in
+
+      let next_obsolete = last_time () + 3600 in
+      Queue.iter (fun (_,h) -> 
+          try
+            let list = match h.host_kind with 
+                Ultrapeer -> ultrapeers_list
+              | _ -> peers_list
+            in
+            if h.host_kind <> IndexServer then
+              list := ( (h.host_addr, h.host_port), 
+                if h.host_obsolete = 0 then next_obsolete else h.host_obsolete
+              ) :: !list
+          with _ -> ())
+      H.workflow;
+      
+      let ultrapeers_list = List.sort (fun (_, a1) (_, a2) -> 
+            compare a2 a1) !ultrapeers_list in
+      let ultrapeers_list, _ = List2.cut !!max_known_ultrapeers ultrapeers_list
+      in
+      ultrapeers =:= List2.tail_map fst ultrapeers_list;
+      
+      let peers_list = List.sort (fun (_, a1) (_, a2) -> 
+            
+            compare a2 a1) !peers_list in
+      let peers_list, _ = List2.cut !!max_known_peers ultrapeers_list
+      in
+      peers =:= List2.tail_map fst peers_list;
+
+      
+      List.iter (fun s ->
+          let h = s.server_host in
+          let o = ultrapeers in
+          if h.host_kind <> IndexServer  then
+            let key = (h.host_addr, h.host_port) in
+            if not (List.mem key !!o) then
+              o =:= key :: !!o
+      ) !connected_servers
+      
+  );
+  
+  set_after_save_hook gnutella_ini (fun _ ->
+      ultrapeers =:= [];
+      peers =:= [];
+  )
   

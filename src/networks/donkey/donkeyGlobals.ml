@@ -51,7 +51,7 @@ plugin.
   
 **************************************************************)  
   
-let network = CommonNetwork.new_network "Donkey"
+let network = CommonNetwork.new_network "ED2K" "Donkey"
          [ 
     NetworkHasServers; 
     NetworkHasSearch;
@@ -60,9 +60,6 @@ let network = CommonNetwork.new_network "Donkey"
     NetworkHasChat;
   ]
 
-    (fun _ -> !!network_options_prefix)
-  (fun _ -> !!commit_in_subdir)
-(*    network_options_prefix commit_in_subdir *)
 let connection_manager = network.network_connection_manager
 let connections_controler = TcpServerSocket.create_connections_contoler
     "Edonkey" (fun _ _ -> true)
@@ -155,7 +152,7 @@ let files_queries_per_minute = 1
     
 let nclients = ref 0
 
-let protocol_version = 61
+let protocol_version = 62
 let max_file_groups = 1000
   
 let udp_sock = ref (None: UdpSocket.t option)
@@ -265,30 +262,31 @@ let get_udp_sock () =
   
 let update_best_name file =
   
-  let md4_name = Md4.to_string file.file_md4 in
-  
-  if file_best_name file = md4_name then
+  let best_name = file_best_name file in
+(*  lprintf "update_best_name: %s\n" best_name; *)
+  if String2.starts_with best_name "urn:" ||
+    best_name = Md4.to_string file.file_md4
+    then
     try
-(*      lprintf "BEST NAME IS MD4 !!!\n";  *)
-      let rec good_name file list =
-        match list with
-          [] -> raise Not_found;
-        | (t,_) :: q -> if t <> md4_name then
-              (String2.replace t '/' "::") else good_name file q in
-      
-      set_file_best_name (as_file file) 
-      (good_name file file.file_filenames);
-     
-(*      lprintf "BEST NAME now IS %s" (file_best_name file); *)
+      let file = as_file file in
+(*      lprintf "Propose filename...\n"; *)
+      CommonFile.propose_filename file;
+      let impl = as_file_impl file in
+      match impl.impl_file_probable_name with
+        None -> ()
+      | Some best_name ->
+          let best_name = String2.replace best_name '/' "::" in
+          set_file_best_name file best_name;
+          lprintf "BEST NAME now IS %s" best_name;
     with Not_found -> ()
 
         
-let new_file file_state file_name md4 file_size writable =
-  lprintf "NEW FILE TO DOWNLOAD ??????????? %s\n" file_name;
+let new_file file_diskname file_state md4 file_size filenames writable =
+  
   try
     find_file md4 
   with _ ->
-      let file_exists = Unix32.file_exists file_name in
+      let file_exists = Unix32.file_exists file_diskname in
       
       let t = 
         if
@@ -297,16 +295,16 @@ let new_file file_state file_name md4 file_size writable =
 (* Only if the option is set *)
           !!emulate_sparsefiles &&
 (* Only if the file does not already exists *)
-          not (Sys.file_exists file_name)
+          not (Sys.file_exists file_diskname)
         then
-          Unix32.create_sparsefile file_name
+          Unix32.create_sparsefile file_diskname
         else
-          Unix32.create_diskfile file_name Unix32.rw_flag 0o666
+          Unix32.create_diskfile file_diskname Unix32.rw_flag 0o666
       in
       let file_size =
         if file_size = Int64.zero then
           try
-            Unix32.getsize file_name
+            Unix32.getsize file_diskname
           with _ ->
               failwith "Zero length file ?"
         else file_size
@@ -321,12 +319,13 @@ let new_file file_state file_name md4 file_size writable =
           [md4] 
         else [] in
       let rec file = {
+          file_diskname = file_diskname;
           file_file = file_impl;
           file_shared = None;
           file_md4 = md4;
           file_swarmer = None;
           file_nchunks = nchunks;
-          file_filenames = [Filename.basename file_name, GuiTypes.noips() ];
+          file_filenames = filenames;
           file_computed_md4s = Array.of_list md4s;
           file_format = FormatNotComputed 0;
           file_sources = DonkeySources.create_file_sources_manager
@@ -339,7 +338,7 @@ let new_file file_state file_name md4 file_size writable =
           impl_file_age = last_time ();          
           impl_file_size = file_size;
           impl_file_fd = t;
-          impl_file_best_name = Filename.basename file_name;
+          impl_file_best_name = Filename.basename file_diskname;
           impl_file_last_seen = last_time () - 100 * 24 * 3600;
         }
       in
@@ -349,7 +348,7 @@ let new_file file_state file_name md4 file_size writable =
       (match file_state with
           FileShared -> ()
         | _ ->
-            let kernel = Int64Swarmer.create_swarmer file_name file_size zone_size in
+            let kernel = Int64Swarmer.create_swarmer file_diskname file_size zone_size in
             let swarmer = Int64Swarmer.create kernel (as_file file) block_size
             in
             file.file_swarmer <- Some swarmer;
@@ -878,12 +877,8 @@ let check_result r tags =
       if !verbose then begin
           lprintf "BAD RESULT:\n";
           List.iter (fun tag ->
-              lprintf "[%s] = [%s]" tag.tag_name
-                (match tag.tag_value with
-                  String s -> s
-                | Uint64 i | Fint64 i -> Int64.to_string i
-                | Uint16 n | Uint8 n -> string_of_int n
-                | Addr _ -> "addr");
+              lprintf "[%s] = [%s]" (string_of_field tag.tag_name)
+                (string_of_tag_value tag.tag_value);
               lprintf "\n";
           ) tags;
         end;
@@ -897,14 +892,14 @@ let result_of_file md4 tags =
     } in  
   List.iter (fun tag ->
       match tag with
-        { tag_name = "filename"; tag_value = String s } ->
+        { tag_name = Field_Filename; tag_value = String s } ->
           r.result_names <- s :: r.result_names
-      | { tag_name = "size"; tag_value = Uint64 v } ->
+      | { tag_name = Field_Size; tag_value = Uint64 v } ->
           r.result_size <- v;
-      | { tag_name = "format"; tag_value = String s } ->
+      | { tag_name = Field_Format; tag_value = String s } ->
           r.result_tags <- tag :: r.result_tags;
           r.result_format <- s
-      | { tag_name = "type"; tag_value = String s } ->
+      | { tag_name = Field_Type; tag_value = String s } ->
           r.result_tags <- tag :: r.result_tags;
           r.result_type <- s
       | _ ->
@@ -998,3 +993,7 @@ let server_accept_multiple_getsources s =
 
 let server_send_multiple_replies s =
   (s.server_flags land DonkeyProtoUdp.PingServerReplyUdp.multiple_replies) <> 0
+
+let low_id ip =
+  let _,_,_,i = Ip.to_ints ip in
+    i==0

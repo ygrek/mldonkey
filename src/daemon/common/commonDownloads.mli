@@ -34,7 +34,6 @@ module Basic :
                val file : f -> CommonTypes.file
                val client : c -> CommonTypes.client
                val client_disconnected : (f, c) download -> unit
-               val subdir_option : string Options.option_record
                val download_finished : (f, c) download -> unit
              end) ->
         sig
@@ -89,6 +88,7 @@ module Int64Swarmer :
     val print_uploader : uploader -> unit
     val verify_all_chunks : t -> bool -> unit
     val verify_one_chunk : t -> unit
+    val verify_some_chunks : unit -> unit
       val get_checksums : t -> CommonTypes.uid_type array 
     val compute_last_seen : t -> int array
     val print_uploaders : t -> unit
@@ -101,4 +101,5 @@ module Int64Swarmer :
     val has_multinet : bool
     val merge : CommonTypes.file -> CommonTypes.file -> unit
     val subfiles : t -> CommonTypes.file list
+    val check_finished : t -> bool
   end

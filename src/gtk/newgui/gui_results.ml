@@ -280,7 +280,7 @@ let duration_of_tags tags =
   let value = ref "" in
   List.iter (fun t ->
     match t.tag_name with
-        "length" -> value := string_of_tag_value t.tag_value
+        Field_Length -> value := string_of_tag_value t.tag_value
       | _ -> ()
   ) tags;
   !value
@@ -289,7 +289,7 @@ let codec_of_tags tags =
   let value = ref "" in
   List.iter (fun t ->
     match t.tag_name with
-        "codec" -> value := string_of_tag_value t.tag_value
+        Field_UNKNOWN "codec" -> value := string_of_tag_value t.tag_value
       | _ -> ()
   ) tags;
   !value
@@ -298,7 +298,7 @@ let bitrate_of_tags tags =
   let value = ref 0 in
   List.iter (fun t ->
     match t.tag_name with
-        "bitrate" -> value := int_of_tag_value t.tag_value
+        Field_UNKNOWN "bitrate" -> value := int_of_tag_value t.tag_value
       | _ -> ()
   ) tags;
   !value
@@ -307,7 +307,7 @@ let availability_of_tags tags =
   let value = ref 0 in
   List.iter (fun t ->
     match t.tag_name with
-        "availability" -> value := int_of_tag_value t.tag_value
+        Field_Availability -> value := int_of_tag_value t.tag_value
       | _ -> ()
   ) tags;
   !value
@@ -316,7 +316,7 @@ let completesources_of_tags tags =
   let value = ref 0 in
   List.iter (fun t ->
     match t.tag_name with
-        "completesources" -> value := int_of_tag_value t.tag_value
+        Field_Completesources -> value := int_of_tag_value t.tag_value
       | _ -> ()
   ) tags;
   !value

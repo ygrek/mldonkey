@@ -229,12 +229,8 @@ let shared_add_directory shared_dir local_dir =
   
 let shared_scan_directory shared_dir local_dir =
   let dirname = shared_dir.shdir_dirname in
-  let strategy = try
-      List.assoc shared_dir.shdir_strategy 
-        !!CommonComplexOptions.sharing_strategies
-    with _ -> 
-        CommonComplexOptions.sharing_only_directory    
-  in
+  let strategy = 
+    CommonComplexOptions.sharing_strategies shared_dir.shdir_strategy in
   let dirname = 
     if Filename.is_relative dirname then
       Filename.concat file_basedir dirname

@@ -1,0 +1,7 @@
+
+#where "_gnutella" = "_fasttrack"
+#where "gnutella_" = "fasttrack_"
+#where "Gnutella" = "Fasttrack"
+#include "src/networks/gnutella/gnutellaOptions.ml"
+  
+  

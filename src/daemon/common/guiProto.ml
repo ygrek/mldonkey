@@ -29,9 +29,9 @@ type gift_command =
   
 let gui_extension_poll = 1
   
-let to_gui_last_opcode = 57
-let from_gui_last_opcode = 64
-let best_gui_version = 29
+let to_gui_last_opcode = 58
+let from_gui_last_opcode = 65
+let best_gui_version = 30
   
 (* I will try to report all changes to the protocol here: send me patches
 if I don't !
@@ -141,6 +141,7 @@ the messages (it will use the version specified in CoreProtocol instead
 
 (* Understood by core protocol 27 *)
 | InterestedInSources of bool 
+| GetVersion
   
 type to_gui =
 (* This message is the first message sent by the core *)
@@ -204,6 +205,7 @@ type to_gui =
 | Uploaders of int list
 | Pending of int list
 | Search of string search_request
+| Version of string
   
 | GiftServerAttach of string * string
 | GiftServerStats of (string * string * string * string) list
@@ -281,6 +283,7 @@ let string_of_from_gui t =
   | GiftStats -> "GiftStats"
   
   | InterestedInSources _ -> "InterestedInSources"
+  | GetVersion -> "GetVersion"
       
 let string_of_to_gui t =
   match t with
@@ -346,6 +349,7 @@ let string_of_to_gui t =
   | Uploaders _ -> "Uploaders"
   | Pending _ -> "Pending"
   | Search _ -> "Search"
+  | Version _ -> "Version"
       
   | GiftServerAttach _ -> "GiftServerAttach"
   | GiftServerStats _ -> "GiftServerStats"

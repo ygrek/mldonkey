@@ -45,7 +45,7 @@ directories. Moreover, we should have a different sharing strategy.
 Default would be: share all files greater than 1 MB in incoming/ on Edonkey.
   
 *)
-  
+
 (*******************************************************************
 
   
@@ -58,32 +58,167 @@ let ed2k_block_size = Int64.of_int 9728000
 let tiger_block_size = Int64.of_int (1024 * 1024)
   
 type shared_file = {
-    shared_fullname : string;
     shared_codedname : string;
-    shared_size : int64;
+    shared_info : Store.index;
     shared_fd : Unix32.t;
-    shared_id : int;
     shared_format : CommonTypes.format;
     shared_impl : shared_file shared_impl;
-    mutable shared_md4s : Md4.t array;
-    mutable shared_tiger : TigerTree.t array;
-    shared_mtime : float;
-    mutable shared_uids : Uid.t list;
     mutable shared_uids_wanted : 
     (file_uid_id * (shared_file -> Uid.t -> unit)) list;
   }
 
+and shared_info = {
+    shared_fullname : string;
+    shared_size : int64;
+    mutable shared_md4s : Md4.t array;
+    mutable shared_tiger : TigerTree.t array;
+    mutable shared_bitprint : Uid.t option;
+    mutable shared_mtime : float;
+    mutable shared_uids : Uid.t list;    
+    mutable shared_id : int;
+  }
+  
 and shared_tree =
   { 
     shared_dirname : string;
     mutable shared_files : shared_file list;
     mutable shared_dirs : (string * shared_tree) list;
-  }
+  }  
 
-let network = CommonNetwork.new_network "Global Shares"
+type local_search = {
+    mutable local_search_results : (shared_file * shared_info) list;
+    mutable local_search_query : query;
+  }
+  
+module IndexingSharedFiles = struct
+
+    let store_name = "shared_store"
+
+    let search_query s = s.local_search_query
+      
+    type search = local_search
+    type result = shared_info
+      
+    let result_names sh = [sh.shared_fullname]
+    let result_size sh = sh.shared_size
+    let result_uids sh = []
+    let result_tags sh = []
+      
+(* We should probably directly use the Store.index here so that all 
+shared_infos are stored on disk. *)
+    type stored_result = Store.index
+    let result_index r = r
+      
+  end
+
+module IndexedSharedFiles = CommonIndexing.Make(IndexingSharedFiles)
+  
+  
+(*************************************************************************)
+(*                                                                       *)
+(*                         SAVED SHARED FILES                            *)
+(*                                                                       *)
+(*************************************************************************)
+
+  
+module SharedFileOption = struct
+    
+    let get_value assocs name conv = 
+      try conv (List.assoc name assocs) 
+      with _ -> failwith (Printf.sprintf "Bad shared file %s" name) 
+    
+    let value_to_info v = 
+      match v with
+        Options.Module assocs ->
+          let sh_md4s = get_value assocs "md4s"
+              (value_to_array (fun v ->
+                  Md4.of_string (value_to_string v)))
+          in
+          let sh_ttr = get_value assocs "ttr"
+              (value_to_array (fun v ->
+                  TigerTree.of_string (value_to_string v)))
+          in
+          let sh_uids = get_value assocs "uids"
+              (value_to_list (fun v ->
+                  Uid.of_string (value_to_string v)))
+          in
+          
+          let sh_size = get_value assocs "size"  value_to_int64 in
+          let sh_name = get_value assocs "name" value_to_filename in
+          let sh_mtime = get_value assocs "mtime" value_to_float in
+
+          let sh_bitprint = ref None in
+          List.iter (fun uid ->
+              match Uid.to_uid uid with
+                Bitprint _ -> sh_bitprint := Some uid;
+              | _ -> ()
+          ) sh_uids;
+
+          { shared_fullname = sh_name; 
+            shared_mtime = sh_mtime;
+            shared_size = sh_size; 
+            shared_md4s = sh_md4s;
+            shared_tiger = sh_ttr;
+            shared_bitprint = !sh_bitprint;
+            shared_uids = sh_uids;
+            shared_id = 0;
+          }
+          
+      | _ -> failwith "Options: not a shared file info option"
+      
+    let info_to_value info =
+      Options.Module [
+        "name", filename_to_value info.shared_fullname;
+        "md4s", array_to_value Md4.hash_to_value info.shared_md4s;
+        "mtime", float_to_value info.shared_mtime;
+        "size", int64_to_value info.shared_size;
+        "ttr", array_to_value TigerTree.hash_to_value info.shared_tiger;
+        "uids", list_to_value (fun v ->
+            string_to_value (Uid.to_string v)) info.shared_uids;
+      ]    
+    
+    let t = define_option_class "SharedFile" value_to_info info_to_value
+  end
+
+    
+let shared_ini = create_options_file (
+    Filename.concat file_basedir "shared_files.ini")
+
+let shared_section = file_section shared_ini [] ""
+
+let old_shared_files = define_option shared_section 
+    ["shared_files"] "" 
+    (list_option SharedFileOption.t) []
+
+let infos_by_name = Hashtbl.create 113
+  
+let _ =
+  set_after_load_hook shared_ini (fun _ ->
+      List.iter (fun info ->
+          let index = IndexedSharedFiles.add info in
+          Hashtbl.add infos_by_name info.shared_fullname index
+      ) !!old_shared_files;
+      old_shared_files =:= [];
+  );
+  set_before_save_hook shared_ini (fun _ ->
+      Hashtbl.iter (fun _ index ->
+          old_shared_files =:= (IndexedSharedFiles.get_result index)
+          :: !!old_shared_files
+      ) infos_by_name
+  );
+  set_after_save_hook shared_ini (fun _ -> old_shared_files =:= [])
+
+let load () = try Options.load shared_ini with _ -> ()
+let save () = Options.save shared_ini
+  
+(*************************************************************************)
+(*                                                                       *)
+(*                         NETWORK                                       *)
+(*                                                                       *)
+(*************************************************************************)
+  
+let network = CommonNetwork.new_network "GS" "Global Shares"
     [ VirtualNetwork ]
-  (fun _ -> "")
-    (fun _ -> "")
 
 let _ = 
   network.op_network_connected <- (fun _ -> false);
@@ -105,11 +240,51 @@ let _ =
   
 let (shared_ops : shared_file CommonShared.shared_ops) = 
   CommonShared.new_shared_ops network
+  
+  
+  
+let waiting_shared_files = ref []
+let shareds_by_uid = Hashtbl.create 13
+let shareds_by_id = Hashtbl.create 13
+
+let add_by_uid uid sh =
+  let urn = Uid.to_string uid in
+  Hashtbl.add shareds_by_uid uid sh
+  
+let find_by_uid uid =
+  let urn = Uid.to_string uid in
+  Hashtbl.find shareds_by_uid uid
+  
+  
+module SharedFilesIndex = IndexedSharedFiles.MakeIndex (struct 
+      let add_search_result s sh = 
+        let r = Hashtbl.find shareds_by_id sh.shared_id in
+        s.local_search_results <- (r, sh) :: s.local_search_results
+    end)
 
   
+let current_job = ref None
+              
+(*******************************************************************
+
   
+                      DATA STRUCTURES
+
   
+*******************************************************************)
   
+let shareds_counter = ref 1
+let shared_counter = ref (Int64.zero)
+let shared_files = Hashtbl.create 13 
+  
+let new_shared_dir dirname = {
+    shared_dirname = dirname;
+    shared_files = [];
+    shared_dirs = [];
+  }
+
+let shared_tree = new_shared_dir ""
+
 (*******************************************************************
 
   
@@ -243,15 +418,13 @@ let make_tiger_tree array =
   fill_tiger_tree s list;
   flatten_tiger_array s
   
-let waiting_shared_files = ref []
-
-(* The shared files indexed by the strings (lowercase), corresponding to
-their uids *)
-let shareds_by_uid = Hashtbl.create 13
+let build_tiger_tree_file uid ttr = 
+  let s = make_tiger_tree ttr in
+  Unix2.safe_mkdir "ttr";
+  File.from_string (Filename.concat "ttr" (Uid.to_string uid)) s
   
-let current_job = ref None
-
 let rec start_job_for sh (wanted_id, handler) = 
+  let info = IndexedSharedFiles.get_result sh.shared_info in
   try
     List.iter (fun id ->
         match wanted_id,Uid.to_uid id with
@@ -259,33 +432,38 @@ let rec start_job_for sh (wanted_id, handler) =
         | SHA1, Sha1 _
         | ED2K, Ed2k _
         | MD5, Md5 _ 
+        | MD5EXT, Md5Ext _ 
+        | TIGER, TigerTree _
           -> (try handler sh id with _ -> ()); raise Exit
         | _ -> ()
-    ) sh.shared_uids;
+    ) info.shared_uids;
     
     match wanted_id with
       SHA1 -> 
-        CommonHasher.compute_sha1 (Unix32.filename sh.shared_fd)
-        zero sh.shared_size (fun job ->
-            if job.CommonHasher.job_error then begin
-                lprintf "Error during hashing of %s\n" sh.shared_fullname; 
-                current_job := None;
-              end else
-              begin
-                let sha1 = job.CommonHasher.job_result
-                in
-                let urn = Printf.sprintf "urn:sha1:%s" (Sha1.to_string sha1)
-                in
-                lprintf "%s has uid %s (%s)\n" sh.shared_fullname urn
-                  (Sha1.to_string job.CommonHasher.job_result)
-                ;
-                let uid = Uid.create (Sha1 sha1) in
-                sh.shared_uids <- uid :: sh.shared_uids;
-                Hashtbl.add shareds_by_uid (String.lowercase urn) sh;
-                start_job_for sh (wanted_id, handler)  
-              end
-        );
-    
+        begin
+          try
+            CommonHasher.compute_sha1 (Unix32.filename sh.shared_fd)
+            zero info.shared_size (fun job ->
+                if job.CommonHasher.job_error then begin
+                    lprintf "Error during hashing of %s\n" info.shared_fullname; 
+                    current_job := None;
+                  end else
+                  begin
+                    let sha1 = job.CommonHasher.job_result
+                    in
+                    let uid = Uid.create (Sha1 sha1) in
+                    info.shared_uids <- uid :: info.shared_uids;
+                    IndexedSharedFiles.update_result sh.shared_info info;
+                    
+                    add_by_uid uid sh;
+                    start_job_for sh (wanted_id, handler)  
+                  end
+            );
+          with e ->
+              current_job := None;
+              raise e              
+        end    
+        
     | BITPRINT ->
         let sha1 = ref None in
         let tiger = ref None in
@@ -294,14 +472,19 @@ let rec start_job_for sh (wanted_id, handler) =
             | Sha1 (s) -> sha1 := Some s
             | TigerTree (s) -> tiger := Some s
             | _ -> ()
-        ) sh.shared_uids;
+        ) info.shared_uids;
         begin
           match !sha1, !tiger with
             Some sha1, Some tiger ->
               let uid = Uid.create (Bitprint (sha1, tiger)) in
-              let urn = Uid.to_string uid in
-              sh.shared_uids <- uid :: sh.shared_uids;
-              Hashtbl.add shareds_by_uid (String.lowercase urn) sh;
+              info.shared_uids <- uid :: info.shared_uids;
+              info.shared_bitprint <- Some uid;
+              IndexedSharedFiles.update_result sh.shared_info info;
+              
+              add_by_uid uid sh;
+              
+              build_tiger_tree_file uid info.shared_tiger;
+              
               start_job_for sh (wanted_id, handler)
           
           | _ -> ()
@@ -321,69 +504,97 @@ computation ??? *)
     
     | MD5EXT ->
         let md5ext =  
-          let fd = Unix32.create_rw sh.shared_fullname in
-          let file_size = Unix32.getsize64 fd in
-          let len64 = min (Int64.of_int 307200) file_size in
-          let len = Int64.to_int len64 in
-          let s = String.create len in
-          Unix32.read fd zero s 0 len;
-          Md5Ext.string s
+          try
+            let fd = Unix32.create_rw info.shared_fullname in
+            let file_size = Unix32.getsize64 fd in
+            let len64 = min (Int64.of_int 307200) file_size in
+            let len = Int64.to_int len64 in
+            let s = String.create len in
+            Unix32.read fd zero s 0 len;
+            Md5Ext.string s
+          with e ->
+              current_job := None;
+              raise e
         in
         let uid = Uid.create (Md5Ext (md5ext)) in
-        let urn = Uid.to_string uid in
-        sh.shared_uids <- uid :: sh.shared_uids;
-        Hashtbl.add shareds_by_uid (String.lowercase urn) sh;
+        info.shared_uids <- uid :: info.shared_uids;
+        IndexedSharedFiles.update_result sh.shared_info info;
+
+        add_by_uid uid sh;
         start_job_for sh (wanted_id, handler)  
     
     | ED2K ->
-        let size = sh.shared_size in
+        let size = info.shared_size in
         let chunk_size = ed2k_block_size  in
         let nhashes = Int64.to_int (size // chunk_size) + 1 in
         let rec iter pos hashes =
           if pos < size then
-            CommonHasher.compute_md4 sh.shared_fullname
-              pos (min (size -- pos) chunk_size)
-            (fun job ->
-                iter (pos ++ chunk_size) (job.CommonHasher.job_result :: hashes))
+            try
+              CommonHasher.compute_md4 info.shared_fullname
+                pos (min (size -- pos) chunk_size)
+              (fun job ->
+                  if job.CommonHasher.job_error then begin
+                      lprintf "Error during hashing of %s\n" info.shared_fullname; 
+                      current_job := None;
+                    end else begin
+                      
+                      iter (pos ++ chunk_size) (job.CommonHasher.job_result :: hashes)
+                    end)
+            with e ->
+                current_job := None;
+                raise e
           else
           let list = List.rev hashes in
           let ed2k = md4_of_list list in
           let uid = Uid.create (Ed2k (ed2k)) in
           let urn = Uid.to_string uid in
-          sh.shared_md4s <- Array.of_list list;
-          sh.shared_uids <- uid :: sh.shared_uids;
-          Hashtbl.add shareds_by_uid (String.lowercase urn) sh;
+          info.shared_md4s <- Array.of_list list;
+          info.shared_uids <- uid :: info.shared_uids;
+          IndexedSharedFiles.update_result sh.shared_info info;
+
+          add_by_uid uid sh;
           start_job_for sh (wanted_id, handler)                
         in
         iter zero []
     
     | TIGER -> 
-        let size = sh.shared_size in
-        let chunk_size = tiger_block_size in
-        let nhashes = Int64.to_int (size // chunk_size) + 1 in
-        let rec iter pos hashes =
-          if pos < size then
-            CommonHasher.compute_tiger sh.shared_fullname
-              pos (min (size -- pos) chunk_size)
-            (fun job ->
-                iter (pos ++ chunk_size) (job.CommonHasher.job_result :: hashes))
-          else
-          let array = Array.of_list (List.rev hashes) in
-          let tiger = tiger_of_array array in
-          let uid = Uid.create (TigerTree (tiger)) in
-          let urn = Uid.to_string uid in
-          sh.shared_tiger <- array;
-          sh.shared_uids <- uid :: sh.shared_uids;
-          Hashtbl.add shareds_by_uid (String.lowercase urn) sh;
-          start_job_for sh (wanted_id, handler)                
-        in
-        iter zero []
         
+        if TigerTree.enabled then
+
+          let size = info.shared_size in
+          let chunk_size = tiger_block_size in
+          let nhashes = Int64.to_int (size // chunk_size) + 1 in
+          let rec iter pos hashes =
+            if pos < size then
+                CommonHasher.compute_tiger info.shared_fullname
+                  pos (min (size -- pos) chunk_size)
+              (fun job ->
+                    if job.CommonHasher.job_error then begin
+                      lprintf "Error during hashing of %s\n" 
+                      info.shared_fullname; 
+                        current_job := None;
+                      end else begin
+                        iter (pos ++ chunk_size) 
+                        (job.CommonHasher.job_result :: hashes)
+                      end)
+            else
+            let array = Array.of_list (List.rev hashes) in
+            let tiger = tiger_of_array array in
+            let uid = Uid.create (TigerTree (tiger)) in
+            info.shared_tiger <- array;
+            info.shared_uids <- uid :: info.shared_uids;
+            IndexedSharedFiles.update_result sh.shared_info info;
+
+            add_by_uid uid sh;
+            start_job_for sh (wanted_id, handler)                
+          in
+          iter zero []
+          
     | _ -> raise Exit
     
   with Exit -> 
       current_job := None
-  
+  | e -> current_job := None; raise e  
   
 let shared_files_timer _ =
   match !current_job with
@@ -395,6 +606,7 @@ let shared_files_timer _ =
           match sh.shared_uids_wanted with
             [] ->  waiting_shared_files := tail;
           | uid :: tail ->
+              lprintf "shared_files_timer: starting job\n";
               sh.shared_uids_wanted <- tail;
               current_job := Some sh;
               start_job_for sh uid
@@ -402,194 +614,7 @@ let shared_files_timer _ =
 let ask_for_uid sh uid f =
   sh.shared_uids_wanted <- (uid,f) :: sh.shared_uids_wanted;
   waiting_shared_files := sh :: !waiting_shared_files
-              
-(*******************************************************************
 
-  
-                      DATA STRUCTURES
-
-  
-*******************************************************************)
-  
-let shareds_counter = ref 0
-let shared_counter = ref (Int64.zero)
-let shared_files = Hashtbl.create 13 
-  
-module Document = struct
-    type t = shared_file
-      
-    let num t = t.shared_id
-    let filtered t = false
-    let filter t bool = ()
-  end
-
-module DocIndexer = Indexer2.FullMake(Document)
-  
-let index = DocIndexer.create ()
-let table = Hashtbl.create 1023     
-
-let filesize_field = "size"
-  
-(*******************************************************************
-
-  
-                      INDEXER
-
-  
-*******************************************************************)
-
-  
-module Indexer = struct
-        
- let stem s =
-  let s = String.lowercase (String.copy s) in
-  for i = 0 to String.length s - 1 do
-    let c = s.[i] in
-    match c with
-      'a'..'z' | '0' .. '9' -> ()
-    | _ -> s.[i] <- ' ';
-  done;
-  String2.split_simplify s ' '
-
-let name_bit = 1
-(* "size" *)
-(* "bitrate" *)
-let artist_bit = 2 (* tag "Artiste" *)
-let title_bit = 4  (* tag "Title" *)
-let album_bit = 8 (* tag "Album" *)
-let media_bit = 16 (* "type" *)
-let format_bit = 32 (* "format" *)
-      
-let index_string doc s fields =
-  let words = stem s in
-  List.iter (fun s ->
-(*      lprintf "ADD [%s] in index\n" s;  *)
-      DocIndexer.add  index s doc fields
-  ) words 
-  
-let index_name doc name = 
-  index_string doc name 1 (* general search have field 1 *)
-
-(***********************************************)
-
-let bit_of_field field =
-  match field with
-  | Field_Filename -> name_bit
-  | Field_Artist -> artist_bit
-  | Field_Title -> title_bit
-  | Field_Album -> album_bit
-  | Field_Format -> format_bit 
-  | Field_Type -> media_bit
-  | _ -> raise Not_found
-        
-let rec query_to_query t = 
-  match t with
-  | QAnd (q1,q2) -> Indexer.And (query_to_query q1, query_to_query q2)
-  | QOr (q1, q2) -> Indexer.Or (query_to_query q1, query_to_query q2)
-  | QAndNot (q1,q2) -> Indexer.AndNot (query_to_query q1, query_to_query q2)
-  | QHasWord w -> Indexer.HasWord w
-  | QHasField (field, w) -> Indexer.HasField(bit_of_field field, w)
-  | QHasMinVal (field, minval) -> 
-      Indexer.Predicate (fun s -> 
-          match field with 
-          | Field_Size -> s.shared_size >= minval
-          | _ -> true)
-  | QHasMaxVal (field, maxval) -> 
-      Indexer.Predicate (fun s -> 
-          match field with 
-          | Field_Size -> s.shared_size <= maxval
-          | _ -> true)
-  
-  
-  | _ -> failwith "Query not implemented by server"
-
-(*
-  
-type query =
-  QAnd of query * query
-| QOr of query * query
-| QAndNot of query * query
-| QHasWord of string
-| QHasField of string * string
-| QHasMinVal of string * int32
-| QHasMaxVal of string * int32
-  
-type 'a query =
-  And of 'a query * 'a query
-| Or of 'a query * 'a query
-| AndNot of 'a query * 'a query
-| HasWord of string
-| HasField of int * string
-| Predicate of ('a -> bool)
-
-    *)
-
-let index_file s =
-  index_string s s.shared_codedname name_bit
-
-  (*
-  List.iter (fun tag ->
-      match tag with
-      | { tag_name = "filename"; tag_value = String s } -> 
-          index_string doc s name_bit
-      | { tag_name = "Artist"; tag_value = String s } -> 
-          index_string doc s artist_bit
-      | { tag_name = "Title"; tag_value = String s } -> 
-          index_string doc s title_bit
-      | { tag_name = "Album"; tag_value = String s } -> 
-          index_string doc s album_bit
-      | { tag_name = "format"; tag_value = String s } -> 
-          index_string doc s format_bit
-      | { tag_name = "type"; tag_value = String s } -> 
-          index_string doc s media_bit
-      | _ -> ()
-  ) file.f_tags  
-*)
-  
-(*
-let add file = 
-  try
-    let doc = Hashtbl.find table file.f_md4 in
-    let file2 = Store.get store doc in
-
-    if file <> file2 then
-      index_file doc file;
-    (*lprintf "Must check files with same md4\n"; *)
-    ()
-  with _ ->
-      let doc = Store.add store file in
-      Hashtbl.add table file.f_md4 doc;
-      index_file doc file;
-      ()   
-
-let get_def file_md4 =
-  let doc = Hashtbl.find table file_md4 in
-    (Store.get store doc)
-  *)
-
-let find query = DocIndexer.query index query 
-        
-let find_map query = 
-  DocIndexer.query_map index query
-
-(*
-let get docs num = 
-  let len = Array.length docs.docs in
-  let rec iter pos num list =
-    if num = 0 || pos >= len then
-      begin
-        docs.next_doc <- pos;
-        if pos >= len then
-          docs.docs <- [||];
-        list
-      end
-    else
-      iter (pos+1) (num-1) (Store.get store docs.docs.(pos) :: list)
-  in
-  iter docs.next_doc num []
-*)
-end
-  
 (*******************************************************************
 
   
@@ -597,15 +622,6 @@ end
 
   
 *******************************************************************)
-
-  
-let new_shared_dir dirname = {
-    shared_dirname = dirname;
-    shared_files = [];
-    shared_dirs = [];
-  }
-
-let shared_tree = new_shared_dir ""
 
 let rec add_shared_file node sh dir_list =
   match dir_list with
@@ -622,14 +638,46 @@ let rec add_shared_file node sh dir_list =
             new_node
       in
       add_shared_file node sh dir_tail
-  
+
+let new_info full_name size =
+  incr shareds_counter;
+  let fd = Unix32.create_ro full_name in
+  let mtime = Unix32.mtime64 fd in
+  try
+    let index = Hashtbl.find infos_by_name full_name in
+    let info = IndexedSharedFiles.get_result index in
+    if info.shared_mtime <> mtime then begin
+        Hashtbl.remove infos_by_name full_name;
+        IndexedSharedFiles.remove_result index;
+        raise Not_found;
+      end;
+    
+    info.shared_id <- !shareds_counter;
+    IndexedSharedFiles.update_result index info;
+    info, index
+  with Not_found ->
+      let info = {
+          shared_fullname = full_name;
+          shared_uids = [];
+          shared_mtime = mtime;
+          shared_md4s = [||];
+          shared_tiger = [||];
+          shared_bitprint = None;          
+          shared_size = size;
+          shared_id = !shareds_counter;
+        } in
+      let index =IndexedSharedFiles.add info in
+      Hashtbl.add infos_by_name full_name index;
+      info, index
+      
 let add_shared full_name codedname size =
   try
     Hashtbl.find shared_files codedname
   with Not_found ->
-      incr shareds_counter;
       
       let fd = Unix32.create_ro full_name in
+
+      let info, index = new_info full_name size in
       
       let rec impl = {
           impl_shared_update = 1;
@@ -644,36 +692,44 @@ let add_shared full_name codedname size =
           impl_shared_requests = 0;
         } 
       and sh = {
-          shared_fullname = full_name;
+          shared_info = index;
           shared_codedname = codedname;
-          shared_size = size;
-          shared_id = !shareds_counter;
           shared_fd=  fd;
           shared_format = CommonMultimedia.get_info full_name;
           shared_impl = impl;
           shared_uids_wanted = [];
-          shared_uids = [];
-          shared_mtime = Unix32.mtime64 fd;
-          shared_md4s = [||];
-          shared_tiger = [||];
         } in
       
       update_shared_num impl;
       
-      lprintf "FILE ADDED: %s\n" codedname; 
-      Hashtbl.add table !shareds_counter sh;
+(*      lprintf "FILE ADDED: %s\n" codedname;  *)
       Hashtbl.add shared_files codedname sh;
-      Indexer.index_file sh;
+      Hashtbl.add shareds_by_id info.shared_id sh;
+      
+      List.iter (fun uid -> add_by_uid uid sh) info.shared_uids;
+      
+      SharedFilesIndex.add sh.shared_info;
       add_shared_file shared_tree sh (String2.split codedname '/');
       shared_counter := Int64.add !shared_counter size;
-      lprintf "Total shared : %s\n" (Int64.to_string !shared_counter);
+(*      lprintf "Total shared : %Ld\n" !shared_counter; *)
       sh
+
+let iter f =
+  Hashtbl.iter (fun _ sh ->
+      f sh
+  ) shared_files
       
-let query q = Indexer.find (Indexer.query_to_query q)
+let query q = 
+  let s = {
+    local_search_query = q;
+    local_search_results = []
+    } in
+  SharedFilesIndex.find s;
+  s.local_search_results
   
 let find_by_name name = Hashtbl.find shared_files name
   
-let find_by_num num = Hashtbl.find table num
+(*let find_by_num num = Hashtbl.find table num *)
 
 (**********************************************************************
 
@@ -1013,6 +1069,33 @@ let upload_download_timer () =
   (try next_uploads ()
   with e ->  lprintf "exc %s in upload\n" (Printexc2.to_string e))
               
+  
+let words_of_filename =
+  let extension_list = [
+      "mp3" ; "avi" ; "jpg" ; "jpeg" ; "txt" ; "mov" ; "mpg" 
+    ]
+  in      
+  let rec remove_short list list2 =
+    match list with
+      [] -> List.rev list2
+    | s :: list -> 
+        if List.mem s extension_list then 
+          remove_short list (s :: list2) else 
+        
+        if String.length s < 5 then (* keywords should had list be 5 bytes *)
+          remove_short list list2
+        else
+          remove_short list (s :: list2)
+  in
+  
+  let get_name_keywords file_name =
+    match remove_short (String2.stem file_name) [] with 
+      [] | [_] -> 
+        lprintf "Not enough keywords to recover %s\n" file_name;
+        [file_name]
+    | l -> l
+  in
+  get_name_keywords
   
   
 open LittleEndian  

@@ -28,7 +28,7 @@ open CommonGlobals
 open DonkeyTypes
 open DonkeyMftp
 
-  
+(*  
 let field_of_tagname s =
   match s with
   | "size" -> Field_Size
@@ -38,7 +38,7 @@ let field_of_tagname s =
   | "Title" -> Field_Title
   | "format" -> Field_Format
   | "type" -> Field_Type
-  | s -> Field_unknown s
+  | s -> Field_UNKNOWN s
       
   
 let tagname_of_field field =
@@ -52,7 +52,7 @@ let tagname_of_field field =
   | Field_Type -> "type"
   | Field_Uid -> "uid"
   | Field_unknown s -> s
-
+*)
   
 module Connect = struct 
     type t = {
@@ -64,10 +64,10 @@ module Connect = struct
     
     let names_of_tag =
       [
-       "\001", "name";
-       "\017", "version";
-       "\015", "port";
-       "\032", "extended";
+       "\001", Field_UNKNOWN "name";
+       "\017", Field_UNKNOWN "version";
+       "\015", Field_UNKNOWN "port";
+       "\032", Field_UNKNOWN "extended";
       ]
     
     let parse len s =
@@ -75,7 +75,7 @@ module Connect = struct
       let ip = get_ip s 17 in
       let port = get_port s 21 in
 (*      lprintf "port: %d\n" port;*)
-      let tags, pos = get_tags s 23 names_of_tag in
+      let tags, pos = DonkeyMftp.get_tags s 23 names_of_tag in
       {
         md4 = md4;
         ip = ip;
@@ -208,18 +208,12 @@ module Message = struct
     let write buf t =
       buf_string buf t
   end
-
+  
 module Share = struct 
     
     type t = tagged_file list
     
-    let names_of_tag =
-      [
-        "\001", "filename";
-        "\002", "size";
-        "\003", "type";
-        "\004", "format";
-      ]
+    let names_of_tag = file_common_tags
     
     let rec get_files  s pos n =
       if n = 0 then [], pos else
@@ -370,8 +364,8 @@ module ServerInfo = struct
     
     let names_of_tag =
       [
-        "\001", "name";
-        "\011", "description";
+        "\001", Field_UNKNOWN "name";
+        "\011", Field_UNKNOWN "description";
       ]
     
     let parse len s =
@@ -416,15 +410,8 @@ module QueryReply  = struct
       
     type t = tagged_file list
 
-    let names_of_tag = [
-        "\001", "filename";
-        "\002", "size";
-        "\003", "type";
-        "\004", "format";
-        "\021", "availability";
-	"\048", "completesources";
-      ]        
-
+    let names_of_tag = file_common_tags
+      
           
     let rec get_files  s pos n =
       if n = 0 then [], pos else
@@ -520,14 +507,17 @@ module QueryNext = NoArg(struct let m = "QUERY NEXT" end)
   
   
 module Query  = struct (* request 22 *)
+
+(* TODO : build a complete list of tags used in these queries and their correct
+translation, i.e. Field_Artist = "Artist" instead of "artist" *)
     
     let names_of_tag =
       [
-        "\002", "size";
-        "\003", "type";
-        "\004", "format";
-        "\021", "availability";
-	"\048", "completesources";
+        "\002", Field_Size;
+        "\003", Field_Type;
+        "\004", Field_Format;
+        "\021", Field_Availability;
+        "\048", Field_Completesources;
       ]
     
     let rec parse_query s pos =
@@ -557,10 +547,10 @@ module Query  = struct (* request 22 *)
           let name, pos = get_string s pos in          
           let name = try
               List.assoc name names_of_tag
-            with _ -> name
+            with _ -> field_of_string name
           in
           
-          QHasField (field_of_tagname name, field), pos
+          QHasField (name, field), pos
       
       | 3 -> 
           let field = get_uint64_32 s (pos + 1) in
@@ -568,12 +558,12 @@ module Query  = struct (* request 22 *)
           let name, pos = get_string s (pos + 6) in
           let name = try
               List.assoc name names_of_tag
-            with _ -> name
+            with _ -> field_of_string name
           in
           begin
             match minmax with
-              1 -> QHasMinVal (field_of_tagname name, field)
-            | 2 -> QHasMaxVal (field_of_tagname name, field)
+              1 -> QHasMinVal (name, field)
+            | 2 -> QHasMaxVal (name, field)
             | _ -> failwith "Unknown QUERY minmax"
           end, pos
       | 4 -> QHasWord "", pos + 1
@@ -676,10 +666,9 @@ module Query  = struct (* request 22 *)
           buf_string buf s
       | QHasField (name, field) ->
           
-          let name = tagname_of_field name in
           let name = try
                 rev_assoc name names_of_tag
-            with _ -> name in
+            with _ -> string_of_field name in
           
           buf_int8 buf 2;
           buf_string buf field;
@@ -687,10 +676,9 @@ module Query  = struct (* request 22 *)
       
       | QHasMinVal (name, field) ->
           
-          let name = tagname_of_field name in
           let name = try 
               rev_assoc name names_of_tag
-            with _ -> name
+            with _ -> string_of_field name
           in
           
           buf_int8 buf 3;
@@ -700,10 +688,9 @@ module Query  = struct (* request 22 *)
 
       | QHasMaxVal (name, field) ->
           
-          let name = tagname_of_field name in
           let name = try
               rev_assoc name names_of_tag
-              with _ -> name in
+              with _ -> string_of_field name in
 
           buf_int8 buf 3;
           buf_int64_32 buf field;
@@ -759,9 +746,9 @@ module QueryUsersReply = struct (* request 67 *)
     
     let names_of_tag =
       [
-        "\001", "name";
-        "\017", "version";
-        "\015", "port";
+        "\001", Field_UNKNOWN "name";
+        "\017", Field_UNKNOWN "version";
+        "\015", Field_UNKNOWN "port";
       ]
     
     let rec parse_clients s pos nclients left =

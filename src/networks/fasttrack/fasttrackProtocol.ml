@@ -26,89 +26,27 @@ open LittleEndian
 open AnyEndian
 open TcpBufferedSocket
 
+open CommonUploads
+open CommonTypes
 open CommonOptions
 open CommonGlobals
-
+open CommonShared
+  
+open FasttrackNetwork
 open FasttrackOptions
 open FasttrackTypes
 open FasttrackGlobals
 
-type ghandler =
-  HttpHeader of (gconn -> TcpBufferedSocket.t -> string -> unit)
-| Reader of (gconn -> TcpBufferedSocket.t -> unit)
-| CipherReader of (cipher * (gconn -> TcpBufferedSocket.t -> unit))
-
-and gconn = {
-    mutable gconn_handler : ghandler;
-    mutable gconn_refill : (TcpBufferedSocket.t -> unit) list;
-    mutable gconn_close_on_write : bool;
-  }
-  
-module type FasttrackProtocol = sig
-    val handler : gconn -> TcpBufferedSocket.t -> unit
-  end
-
-let handlers info gconn =
-  let rec iter_read sock nread =
-(*    lprintf "iter_read %d\n" nread;  *)
-    let b = TcpBufferedSocket.buf sock in
-    if b.len > 0 then
-      match gconn.gconn_handler with
-      | HttpHeader h ->
-          let end_pos = b.pos + b.len in
-          let begin_pos =  b.pos in
-          let rec iter i n_read =
-            if i < end_pos then
-              if b.buf.[i] = '\r' then
-                iter (i+1) n_read
-              else
-              if b.buf.[i] = '\n' then
-                if n_read then begin
-                    let header = String.sub b.buf b.pos (i - b.pos) in
-(*                    if info then begin
-                        lprintf "HEADER : ";
-                        dump header; lprint_newline ();
-end; *)
-                    
-                    (try h gconn sock header with
-                        e -> close sock (Closed_for_exception e));
-                    if not (TcpBufferedSocket.closed sock) then begin
-                        let nused = i - b.pos + 1 in
-(*                        lprintf "HEADER: buf_used %d\n" nused; *)
-                        buf_used b nused;
-                        iter_read sock 0
-                      end
-                  end else
-                  iter (i+1) true
-              else
-                iter (i+1) false
-          in
-          iter begin_pos false
-      | Reader h -> 
-          let len = b.len in
-          h gconn sock;
-          if b.len < len then iter_read sock b.len
-      | CipherReader (cipher, h) ->
-(*          lprintf "CipherReader %d: [%s]\n" nread
-            (String.escaped (String.sub b.buf b.pos b.len)); *)
-          if nread > 0 then begin
-(*              AnyEndian.dump_sub b.buf (b.pos + b.len - nread) nread; *)
-              apply_cipher cipher b.buf (b.pos + b.len - nread) nread;
-            end;
-          let len = b.len in
-          h gconn sock;
-          if b.len < len then iter_read sock 0
-          
-  in
-  iter_read
-
 let set_fasttrack_sock sock info ghandler = 
   let gconn = {
+      gconn_file_info_sent = [];
+      gconn_client_info_sent = false;
       gconn_handler = ghandler;
       gconn_refill = [];
       gconn_close_on_write = false;
+      gconn_verbose = ref false;
     } in
-  TcpBufferedSocket.set_reader sock (handlers info gconn);
+  TcpBufferedSocket.set_reader sock (FasttrackFunctions.handlers info gconn);
   TcpBufferedSocket.set_refill sock (fun sock ->
       match gconn.gconn_refill with
         [] -> ()
@@ -127,87 +65,6 @@ let set_fasttrack_sock sock info ghandler =
 (*                TcpBufferedSocket.close sock "write done" *)
           | refill :: _ -> refill sock)
 
-let parse_range range =
-  try
-    let npos = (String.index range 'b')+6 in
-    let dash_pos = try String.index range '-' with _ -> -10 in
-    let slash_pos = try String.index range '/' with _ -> -20 in
-    let star_pos = try String.index range '*' with _ -> -30 in
-    if star_pos = slash_pos-1 then
-      Int64.zero, None, None (* "bytes */X" *)
-    else
-    let len = String.length range in
-    let x = Int64.of_string (
-        String.sub range npos (dash_pos - npos) )
-    in
-    if len = dash_pos + 1 then
-(* bytes x- *)
-      x, None, None
-    else
-    let y = Int64.of_string (
-        String.sub range (dash_pos+1) (slash_pos - dash_pos - 1))
-    in
-    if slash_pos = star_pos - 1 then 
-      x, Some y, None (* "bytes x-y/*" *)
-    else
-(* bytes x-y/len *)
-    
-    let z = Int64.of_string (
-        String.sub range (slash_pos+1) (len - slash_pos -1) )
-    in
-    x, Some y, Some z
-  with 
-  | e ->
-      lprintf "Exception %s for range [%s]\n" 
-        (Printexc2.to_string e) range;
-      raise e
-
-let parse_range range =
-  let x, y, z = parse_range range in
-  lprintf "Range parsed: %Ld-%s/%s" x
-    (match y with None -> "" | Some y -> Int64.to_string y)    
-  (match z with None -> "*" | Some y -> Int64.to_string y);
-  x, y, z
-
-  
-module WordSet = Set.Make(struct
-      type t = string
-      let compare = compare
-    end)
-  
-let new_shared_words = ref false
-let all_shared_words = ref []
-
-let update_shared_words () = 
-  all_shared_words := [];
-  let module M = CommonUploads in
-  let words = ref WordSet.empty in
-  let register_words s = 
-    let ws = stem s in
-    List.iter (fun w ->
-        words := WordSet.add w !words
-    ) ws
-  in
-  let rec iter node =
-    List.iter (fun sh ->
-        lprintf "CODED name: %s\n" sh.M.shared_codedname;
-        register_words sh.M.shared_codedname;
-    ) node.M.shared_files;
-    List.iter (fun (_,node) ->
-        register_words node.M.shared_dirname;
-        iter node
-    ) node.M.shared_dirs;
-  in
-  iter M.shared_tree;
-  WordSet.iter (fun s ->
-      all_shared_words := s :: !all_shared_words
-  ) !words;
-  lprintf "SHARED WORDS: ";
-  List.iter (fun s ->
-      lprintf "%s " s
-  ) !all_shared_words;
-  lprint_newline ()
-
   
 let udp_handler f sock event =
   match event with
@@ -223,6 +80,8 @@ let udp_handler f sock event =
       ) ;
   | _ -> ()
 
+let bits32 = 0xffffffffL
+let neg32_bit = 0x80000000L
 let len5 = Int64.of_int (128*128*128*128)
 let len4 = Int64.of_int (128*128*128)
 let len3 = Int64.of_int (128*128)
@@ -230,8 +89,25 @@ let len2 = Int64.of_int (128)
   
 let int64_7f = Int64.of_int 0x7f
 let int64_80 = Int64.of_int 0x80
+
+(* TODO: check this implementation of buf_dynint, supposed to
+  be better... *)
+let rec iter len n =
+  if n > len2 then
+    let s = iter (len+1) (Int64.shift_right_logical n 7) in
+    s.[len] <- char_of_int (0x80 lor (Int64.to_int (Int64.logand n int64_7f)));
+    s
+  else
+  let s = String.create (len+1) in
+  s.[len] <- char_of_int (Int64.to_int n);
+  s
+  
+let buf_dynint b data = 
+  let data = Int64.logand bits32 data in
+  Buffer.add_string b (iter 0 data)
   
 let buf_dynint b data =
+  let data = Int64.logand bits32 data in
   let buf = String.create 6 in
 
   let len = 
@@ -247,8 +123,8 @@ let buf_dynint b data =
   let data = ref (Int64.shift_right_logical data  7) in
   
   for i = i - 1 downto 0 do
-    buf.[i] <- char_of_int (Int64.to_int
-        (Int64.logor int64_80 (Int64.logand !data int64_7f)));
+    buf.[i] <- char_of_int (0x80 lor (Int64.to_int
+          (Int64.logand !data int64_7f)));
     data := Int64.shift_right_logical !data  7;
   done;
   Buffer.add_string b (String.sub buf 0 len)
@@ -273,4 +149,133 @@ let get_dynint s pos =
     else 
       ret, len
   in
-  iter len pos zero
+  let v,pos = iter len pos zero in
+  let v = if Int64.logand v neg32_bit <> zero then 
+      42949672956L -- v else v in
+  v, pos
+ 
+let known_download_headers = []
+ 
+let parse_headers c first_line headers =
+  
+  if !verbose_unknown_messages then begin
+      let unknown_header = ref false in
+      List.iter (fun (header, _) ->
+          unknown_header := !unknown_header || not (List.mem header known_download_headers)
+      ) headers;
+      if !unknown_header then begin
+          lprintf "FT DEVEL: Download Header contains unknown fields\n";
+          lprintf "    %s\n" first_line;
+          List.iter (fun (header, (value,header2)) ->
+              lprintf "    [%s] = [%s](%s)\n" header value header2;
+          ) headers;
+          lprintf "FT DEVEL: end of header\n";        
+        end;
+    end
+  
+let fasttrack_200_ok = "no such thing :)"
+  
+  
+(* This is the typical reply of a busy FT client.
+ascii:[
+HTTP/1.0 503 Service Unavailable(10)
+Retry-After: 300(10)(10)
+X-Kazaa-Username: K++_www.kazaaKPP.com(10)(10)
+X-Kazaa-Network: KaZaA(10)(10)
+X-Kazaa-IP: 80.56.???.???:3223(10)(10)
+X-Kazaa-SupernodeIP: 80.57.???.???:1070(10)(10)]
+*)
+
+open CommonUploads
+  
+let headers_of_shared_file gconn sh = 
+  let headers = ref [] in
+  List.iter (fun uid ->
+      match Uid.to_uid uid with
+        Md5Ext hash ->
+          let hash = Md5Ext.to_hexa_case false hash in
+          headers := 
+          ("X-KazaaTag", Printf.sprintf "3=%s" hash) :: !headers
+      | _ -> ()
+  ) sh.shared_uids;
+  
+  if not (List.mem sh.shared_id gconn.gconn_file_info_sent) then begin
+      
+      gconn.gconn_file_info_sent <- 
+        sh.shared_id :: gconn.gconn_file_info_sent;
+      
+(* TODO: add other X-KazaaTag headers using 'name_of_tag' *)
+      ()
+    end;
+  !headers
+  
+let request_of_download request d = 
+  let url = Printf.sprintf "/.hash=%s" d.download_uri in 
+  let s = Printf.sprintf "%s %s HTTP/1.0" request url in
+  s
+  
+let make_download_request c s headers =
+  
+(* hum... what will happen if no client support HEAD request ? We might
+lose them during the first connection... *)
+
+(* TODO: use HEAD requests
+  if !!fasttrack_experimental && c.client_support_head_request &&
+    not d.download_head_requested then begin
+      c.client_support_head_request <- false;
+      d.download_head_requested <- true;
+      d.download_ranges <- d.download_ranges @ [HEADReq];
+      make_kazaa_request c "HEAD" url
+        [
+        "Accept", "multipart/byteranges";
+        "Range", "0-";
+      ]
+    end;  *)
+  let headers =
+(*      Printf.bprintf buf "User-Agent: %s\r\n" user_agent; *)
+    ("X-Kazaa-Network", Printf.sprintf "%s" FasttrackNetwork.network_name) ::
+    ("Connection", "Keep-Alive") ::
+    ("X-Kazaa-Username", client_name ()) ::
+    ("Connection", "Keep-Alive") ::
+    (match c.client_host with
+        None -> headers
+      | Some (ip, port) ->
+          ("Host", Printf.sprintf "%s:%d" (Ip.to_string ip) port) :: headers)
+  in
+  make_http_header s headers
+  
+let find_download_by_index index dlist = raise Not_found
+  
+let find_file_to_upload gconn url = 
+  let sh = 
+    let file = url.Url.short_file in
+
+    if String2.starts_with file "/.hash=" then
+      let hash = String.sub file 7 (String.length file - 7) in
+      let hash = Md5Ext.of_hexa hash in
+      let uid = Uid.create (Md5Ext hash) in
+      let urn = Uid.to_string uid in
+      lprintf "Trying to find %s\n" urn;
+      find_by_uid uid
+    else
+    raise Not_found 
+  in
+    
+  
+  let impl = sh.shared_impl in
+  impl.impl_shared_requests <- impl.impl_shared_requests + 1;
+  shared_must_update_downloaded (as_shared impl);
+
+  let info = IndexedSharedFiles.get_result sh.shared_info in
+  (fun pos upload_buffer spos rlen ->
+      
+      let impl = sh.shared_impl in
+      impl.impl_shared_uploaded <- 
+        impl.impl_shared_uploaded ++ (Int64.of_int rlen);
+      shared_must_update_downloaded (as_shared impl);
+      
+      Unix32.read sh.shared_fd pos upload_buffer spos rlen),
+  info.shared_size,
+  
+  headers_of_shared_file gconn info
+  

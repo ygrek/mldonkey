@@ -27,7 +27,6 @@ open DonkeyProtoCom
 open ServerTypes
   
 let network = CommonNetwork.new_network "Donkey:server"
-    network_options_prefix commit_in_subdir
 
 let connection_manager = network.network_connection_manager
   

@@ -76,7 +76,7 @@ let binary_result_handler gui num r =
 let gift_result_handler gui num r =
   gui.gui_id_counter <- gui.gui_id_counter + 1;
   gui_send gui (P.Search_result (num, gui.gui_id_counter, Some 
-      (get_result r))) 
+      (IndexedResults.get_result r))) 
           
 let gui_can_write gui =
   match gui.gui_sock with
@@ -160,7 +160,7 @@ let update_room_info room =
     end
   
 let update_result_info r =
-  let r = get_result r in
+  let r = IndexedResults.get_result r in
 (*  let update = r.result_update in
   let result_num = r.result_num in
   if update < !gui_counter then begin *)
@@ -271,7 +271,7 @@ let send_update_room gui room_num update =
 
 let send_update_result gui result_num update =
   let r = find_result result_num in
-  let result_info = P.Result_info (get_result r) in
+  let result_info = P.Result_info (IndexedResults.get_result r) in
   gui_send gui result_info  
   
   let send_update_shared gui shfile_num update =
@@ -449,7 +449,7 @@ let gui_initialize gui =
 (*
 lprintf "options for net %s\n" r.network_name; 
 *)
-              let prefix = r.network_prefix () in
+              let prefix = r.network_shortname ^ "-" in
               let args = simple_options prefix opfile in
 (*
 lprintf "Sending for %s\n" prefix; 
@@ -471,7 +471,7 @@ lprintf "Sending for %s\n" prefix;
 
 (* Options panels defined in each plugin *)
       networks_iter_all (fun r ->
-          let prefix = r.network_prefix () in
+          let prefix = r.network_shortname ^ "-" in
           List.iter (fun file ->
               
               List.iter (fun s ->
@@ -647,7 +647,7 @@ let gui_reader (gui: gui_record) t _ =
               
               let user = gui.gui_conn.conn_user in
               let query = 
-                try CommonGlobals.simplify_query
+                try CommonIndexing.simplify_query
                     (CommonSearch.mftp_query_of_query_entry 
                       s.GuiTypes.search_query)
                 with Not_found ->
@@ -974,6 +974,9 @@ search.op_search_end_reply_handlers;
                   update_shared_info s;
               ) 
 
+          | P.GetVersion ->
+              gui_send gui (P.Version Autoconf.current_version)
+
           | P.GiftAttach _ ->
               gui_send gui (P.GiftServerAttach ("mldonkey", "1.1"))
           | P.GiftStats ->
@@ -1272,18 +1275,19 @@ let install_hooks () =
       ) 
   ) downloads_ini;
   networks_iter_all (fun r ->
-      let prefix = r.network_prefix()  in
+      let prefix = r.network_shortname ^ "-"  in
       List.iter (fun opfile ->
           iter_file (fun o ->
+                option_hook o (fun _ ->
+                    with_guis (fun gui ->
               try
                 let oo = strings_of_option o in
                 let oo = { oo with
                     option_name = Printf.sprintf "%s%s" prefix oo.option_name
                   } in
-                option_hook o (fun _ ->
-                    with_guis (fun gui ->
-                        gui_send gui (P.Options_info [oo])))
-              with _ -> ()
+                      gui_send gui (P.Options_info [oo])
+                    with _ -> ())
+                )
           ) opfile)
       r.network_config_file 
       )      

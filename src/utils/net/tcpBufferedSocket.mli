@@ -78,7 +78,9 @@ val set_max_input_buffer : t -> int -> unit
 val set_max_output_buffer : t -> int -> unit  
 val can_write : t -> bool  
 val can_write_len : t -> int -> bool  
-val set_monitored : t -> unit
+  
+val set_monitored : t -> bool -> unit
+val monitored : t -> bool
   
 val close_after_write : t -> unit
 
@@ -90,8 +92,10 @@ val change_rate : bandwidth_controler -> int -> unit
 
   
 val my_ip : t -> Ip.t
+val peer_addr : t -> Ip.t * int
 val peer_ip : t -> Ip.t
-val host : t -> Ip.t * int
+val peer_port : t -> int
+(*val host : t -> Ip.t * int *)
   
 val stats :  Buffer.t -> t -> unit
 val buf_size : t -> int * int
@@ -168,3 +172,4 @@ val must_write : t -> bool -> unit
 val max_refill : t -> int
 val output_buffered : t -> int
   
+val get_latencies : unit -> string

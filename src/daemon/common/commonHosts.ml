@@ -38,9 +38,7 @@ type ('server,'request,'ip) host = {
     host_addr : 'ip;
     host_port : int;
 (* the last time we have indirectly heard about this host *)
-    mutable host_age : int;
-(* the last time this host has talked to us *)
-    mutable host_connected : int;
+    mutable host_obsolete : int;
     
 (* the set of requests to perform on this host, and the last time they have 
   been done *)
@@ -65,10 +63,10 @@ module Make(M: sig
         ) list
       
       val default_requests : host_kind -> (request * int) list
-        
+      
       val max_ultrapeers : int Options.option_record
       val max_peers : int Options.option_record
-
+    
     end) = struct
     
     open M
@@ -77,7 +75,8 @@ module Make(M: sig
 host object is inspected every two minutes. *)
     let (workflow : (server, request,ip) host Queues.Queue.t) = 
       Queues.workflow (fun time -> time + 120 > last_time ())
-    
+
+      
     let host_queue_add q h time =
       if not (List.memq q h.host_queues) then begin
           Queue.put q (time, h);
@@ -92,49 +91,67 @@ host object is inspected every two minutes. *)
       h
     
     let hosts_by_key = Hashtbl.create 103
-
+    
     let indexservers_counter = ref 0
     let ultrapeers_counter = ref 0
     let peers_counter = ref 0
-
+      
+(* The number of new hosts that have been rejected *)
+    let indexservers_pressure = ref 0
+    let ultrapeers_pressure = ref 0
+    let peers_pressure = ref 0
+    
+    let host_num = ref 0
+    
     let counter n =
       match n with
       | Ultrapeer -> ultrapeers_counter
       | IndexServer -> indexservers_counter
       | _ -> peers_counter
-
+    
+    let pressure n =
+      match n with
+      | Ultrapeer -> ultrapeers_pressure
+      | IndexServer -> indexservers_pressure
+      | _ -> peers_pressure
+    
     let max_hosts n =
       match n with 
       | Ultrapeer -> !!max_ultrapeers
       | IndexServer -> max_int
       | _ -> !!max_peers
-          
+    
     let new_host ip port host_kind = 
       let key = (ip,port) in
       try
         let h = Hashtbl.find hosts_by_key key in
-        h.host_age <- last_time ();
+        h.host_obsolete <- 0;
         h
       with _ ->
+          incr host_num;
+          let host = {
+              host_num = !(counter host_kind);
+              host_server = None;
+              host_addr = ip;
+              host_port = port;
+              
+              host_obsolete = 0;
+              host_requests = default_requests host_kind;
+              
+              host_kind = host_kind;
+              host_queues = [];
+            } in
           if !(counter host_kind) < max_hosts host_kind then begin
               incr (counter host_kind);
-              let host = {
-                  host_num = !(counter host_kind);
-                  host_server = None;
-                  host_addr = ip;
-                  host_port = port;
-                  
-                  host_age = last_time ();
-                  host_requests = default_requests host_kind;
-                  host_connected = 0;
-                  
-                  host_kind = host_kind;
-                  host_queues = [];
-                } in
               Hashtbl.add hosts_by_key key host;
               host_queue_add workflow host 0;
               host
-            end else raise Not_found
+            end else begin
+(* Be careful, we don't remember this host, so don't expect it to appear in the
+workflow... *)
+              incr (pressure host_kind);
+              host
+            end
             
     let rec set_request_rec list r tail =
       match list with
@@ -146,13 +163,21 @@ host object is inspected every two minutes. *)
     
     let set_request h r =
       h.host_requests <- set_request_rec h.host_requests r []
-    
-    
+
+    let under_pressure kind =
+      ! (pressure kind) <> 0 || 
+      !(counter kind) * 110 / 100 > (max_hosts kind)
+      
+(* TODO: we should try to be more clever. We should take care of the 
+"pressure", i.e. the new hosts that we discover. If we don't discover
+new hosts, we should keep the old ones. If we discover new hosts, we should
+remove the old ones. *)
     let manage_host h =
       try
         let current_time = last_time () in
-(* Don't do anything with hosts older than one hour and not responding *)
-        if max h.host_connected h.host_age > last_time () - 3600 then begin
+(* Don't do anything with hosts older than one hour and not responding...
+  but then, why do we keep then if we cannot remove them ? *)
+        if not (under_pressure h.host_kind) || h.host_obsolete = 0 then begin
             host_queue_add workflow h current_time;
 (* From here, we must dispatch to the different queues *)
             List.iter (fun (request, last) ->
@@ -167,13 +192,12 @@ host object is inspected every two minutes. *)
     
           end    
         else 
-        if max h.host_connected h.host_age > last_time () - 3 * 3600
-            || h.host_queues <> []
-          then begin
+        if h.host_queues <> [] then begin
             host_queue_add workflow h current_time;      
           end else begin
 (* This host is too old, remove it *)
             decr (counter h.host_kind);
+            decr (pressure h.host_kind);
             Hashtbl.remove hosts_by_key  (h.host_addr, h.host_port)
           end  
       
@@ -186,7 +210,15 @@ host object is inspected every two minutes. *)
         manage_host h;
         iter ()
       in
-      (try iter () with _ -> ());
+      (try iter () with _ -> ())
       
+    let try_connect h =
+      if h.host_obsolete = 0 then
+(* This host will become obsolete if it doesn't reply to us in the 
+  next 3 hours *)
+        h.host_obsolete <- last_time () + 3600
+      
+    let connected h =
+      h.host_obsolete <- 0
       
   end

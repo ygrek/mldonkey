@@ -31,11 +31,14 @@ val customized_queries : unit ->
   (string * CommonTypes.query_entry) list 
 val special_queries : (string * string) list Options.option_record
   
-val sharing_strategies :
-  (string * CommonTypes.sharing_strategy) list Options.option_record
+val sharing_strategies : string -> CommonTypes.sharing_strategy
 
 val shared_directories : 
   CommonTypes.shared_directory list Options.option_record
+  
+val incoming_files : unit -> CommonTypes.shared_directory
+val incoming_directories : unit -> CommonTypes.shared_directory
+  
 val sharing_only_directory : CommonTypes.sharing_strategy
 
 val swarmers_section : Options.options_section

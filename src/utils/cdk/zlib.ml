@@ -80,6 +80,8 @@ let compress_string ?(level = 6) inbuf =
 
 (* header info from camlzip/gpl *)
 let gzip_string ?(level = 6) inbuf =
+  if String.length inbuf <= 0 then "" else
+  begin
   let zs = deflate_init level false in
   let out_crc = ref Int32.zero in
   let rec compr inpos outbuf outpos =
@@ -121,7 +123,7 @@ let gzip_string ?(level = 6) inbuf =
   write_int32 buf !out_crc;
   write_int32 buf (Int32.of_int (String.length inbuf));
   Buffer.contents buf
-
+  end
 
 let uncompress ?(header = true) refill flush =
   let inbuf = String.create buffer_size

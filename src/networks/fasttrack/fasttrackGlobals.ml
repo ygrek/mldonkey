@@ -39,57 +39,24 @@ open CommonFile
 open CommonGlobals
 open CommonDownloads  
 open CommonNetwork
-  
+
+open FasttrackNetwork
 open FasttrackTypes
 open FasttrackOptions
 
 let search_num = ref 0
-                  
-let extension_list = [
-    "mp3" ; "avi" ; "jpg" ; "jpeg" ; "txt" ; "mov" ; "mpg" 
-]
 
-      
-let rec remove_short list list2 =
-  match list with
-    [] -> List.rev list2
-  | s :: list -> 
-      if List.mem s extension_list then 
-        remove_short list (s :: list2) else 
-      
-      if String.length s < 5 then (* keywords should had list be 5 bytes *)
-        remove_short list list2
-      else
-        remove_short list (s :: list2)
-
-let stem s =
-  let s = String.lowercase (String.copy s) in
-  for i = 0 to String.length s - 1 do
-    match s.[i] with
-      'a'..'z' | '0' .. '9' -> ()
-    | _ -> s.[i] <- ' '
-  done;
-  lprintf "STEM %s\n" s;
-  remove_short (String2.split s ' ') []
-
-let get_name_keywords file_name =
-  match stem file_name with 
-    [] | [_] -> 
-      lprintf "Not enough keywords to recover %s\n" file_name;
-      [file_name]
-  | l -> l
-
+let should_update_shared_files = ref false
   
   
-let network = new_network "Fasttrack"  
+let network = new_network "FT" "Fasttrack"  
          [ 
     NetworkHasSupernodes; 
     NetworkHasRooms;
     NetworkHasChat;
     NetworkHasSearch;
   ]
-    (fun _ -> !!network_options_prefix)
-  (fun _ -> !!commit_in_subdir)
+
 let connection_manager = network.network_connection_manager
   
 let (server_ops : server CommonServer.server_ops) = 
@@ -142,7 +109,6 @@ let set_client_disconnected client =
 let nservers = ref 0
 let ready _ = false      
 let hosts_counter = ref 0
-let udp_sock = ref (None : UdpSocket.t option)
 let old_client_name = ref ""
 let ft_client_name = ref ""  
 let file_chunk_size = 307200
@@ -155,6 +121,7 @@ let file_chunk_size = 307200
 
 let current_files = ref ([] : FasttrackTypes.file list)
 let listen_sock = ref (None : TcpServerSocket.t option)
+let udp_sock = ref (None: UdpSocket.t option)
 let result_sources = Hashtbl.create 1011  
 (* let hosts_by_key = Hashtbl.create 103 *)
 let (searches_by_uid : (int, local_search) Hashtbl.t) = Hashtbl.create 11
@@ -232,12 +199,14 @@ let new_server ip port =
           
           server_need_qrt = true;
           server_ping_last = Md4.random ();
-          server_nfiles_last = 0;
+          server_nfiles_last = zero;
           server_nkb_last = 0;
           server_vendor = "";
           
           server_connected = zero;
+          server_query_key = ();
           server_searches = Fifo.create ();
+          server_shared = Intset.empty;
         } and
         server_impl = {
           dummy_server_impl with
@@ -257,53 +226,58 @@ let add_source r (user : user) =
         Hashtbl.add result_sources r.stored_result_num ss;
         ss
   in
-  if not (List.memq user !ss) then begin
-      ss := user :: !ss
+  if not (List.mem_assq user !ss) then begin
+      ss := (user, last_time ()) :: !ss
     end
     
-let new_result file_name file_size tags hash =
+let new_result file_name file_size tags hashes _ =
   
-  let r = 
-    try
-      Hashtbl.find results_by_uid hash
-    with _ -> 
-        let r = { dummy_result with
-            result_names = [file_name];
-            result_size = file_size;
-            result_tags = tags;
-            result_uids = [Uid.create (Md5Ext hash)];
-          }
-        in
-        let r = update_result_num r in
-        Hashtbl.add results_by_uid hash r;
-        r
-  in
-  r
-  
+  match hashes with
+  | [ hash ] ->
+      let r = 
+        try
+          Hashtbl.find results_by_uid hash
+        with _ -> 
+            let r = { dummy_result with
+                result_names = [file_name];
+                result_size = file_size;
+                result_tags = tags;
+                result_uids = [Uid.create (Md5Ext hash)];
+              }
+            in
+            let r = update_result_num r in
+            Hashtbl.add results_by_uid hash r;
+            r
+      in
+      r
+  | _ -> assert false
+      
 let min_range_size = megabyte
       
-let new_file file_id file_name file_size file_hash = 
-  let file_temp = Filename.concat !!temp_directory 
-      (Printf.sprintf "FT-%s" (Md4.to_string file_id)) in
+let new_file file_temporary file_name file_size file_hash = 
+  let file_temp = Filename.concat !!temp_directory file_temporary in
+(*      (Printf.sprintf "FT-%s" (Md4.to_string file_id)) in *)
   let t = Unix32.create_rw file_temp in
   let file_chunk_size =
     max megabyte (
       file_size // (max (Int64.of_int 5) (file_size // (megabytes 5)))
     )
   in
-  let keywords = get_name_keywords file_name in
+  let keywords = CommonUploads.words_of_filename file_name in
   let words = String2.unsplit keywords ' ' in
+  let uid = Uid.create (Md5Ext file_hash) in
   let rec file = {
       file_file = file_impl;
-      file_id = file_id;
+      file_temp = file_temporary;
       file_name = file_name;
       file_clients = [];
       file_swarmer = None;
-      file_search = search;
-      file_hash = file_hash;
+      file_searches = [search];
+      file_uids = [uid];
       file_filenames = [file_name, GuiTypes.noips()];
       file_clients_queue = Queues.workflow (fun _ -> false);
       file_nconnected_clients = 0;
+      file_ttr = None;
     } and file_impl =  {
       dummy_file_impl with
       impl_file_fd = t;
@@ -314,8 +288,9 @@ let new_file file_id file_name file_size file_hash =
       impl_file_age = last_time ();          
       impl_file_best_name = file_name;
     } and search = {
-      search_search = FileSearch file;
-      search_id = !search_num;
+      search_search = FileUidSearch (file, file_hash);
+      search_uid = !search_num;
+      search_hosts = Intset.empty;
     } 
   in
   incr search_num;
@@ -323,7 +298,7 @@ let new_file file_id file_name file_size file_hash =
   let swarmer = Int64Swarmer.create kernel (as_file file) 
       file_chunk_size in
   file.file_swarmer <- Some swarmer;
-  Hashtbl.add searches_by_uid search.search_id search;
+  Hashtbl.add searches_by_uid search.search_uid search;
 (*  lprintf "SET SIZE : %Ld\n" file_size;*)
   Int64Swarmer.set_verifier swarmer NoVerification;
   Int64Swarmer.set_verified swarmer (fun _ _ ->
@@ -349,13 +324,22 @@ let new_file file_id file_name file_size file_hash =
 
 exception FileFound of file
   
-let new_file file_id file_name file_size file_hash =
-  try
-    Hashtbl.find files_by_uid file_hash 
-  with _ ->
-      let file = new_file file_id file_name file_size file_hash in
-      Hashtbl.add files_by_uid file_hash file;
-    file    
+let new_file file_id file_name file_size file_uids =
+  let file = ref None in
+  List.iter (fun uid ->
+      match Uid.to_uid uid with
+        Md5Ext file_hash ->
+          file := Some (try
+              Hashtbl.find files_by_uid file_hash 
+            with _ ->
+                let file = new_file file_id file_name file_size file_hash in
+                Hashtbl.add files_by_uid file_hash file;
+                file)
+      | _ -> ()
+  ) file_uids;
+  match !file with
+    None -> assert false
+  | Some file -> file
               
 let new_user kind =
   try
@@ -372,7 +356,6 @@ let new_user kind =
 (*          user_files = []; *)
           user_speed = 0;
           user_vendor = "";
-          user_gnutella2 = false;
           user_nick = "";
         }  and user_impl = {
           dummy_user_impl with
@@ -418,23 +401,29 @@ client_error = false;
       Hashtbl.add clients_by_uid kind c;
       c
     
-let add_download file c =
+let add_download file c () =
 (*  let r = new_result file.file_name (file_size file) in *)
 (*  add_source r c.client_user index; *)
   lprintf "Adding file to client\n";
   if not (List.memq c file.file_clients) then begin
       let chunks = [ Int64.zero, file_size file ] in
-(*      let bs = Int64Swarmer.register_uploader file.file_swarmer 
-        (Int64Swarmer.AvailableRanges chunks) in *)
-      c.client_downloads <- c.client_downloads @ [{
+      let d = {
           download_file = file;
 (*          download_uri = index; *)
           download_chunks = chunks;
           download_uploader = None;
           download_ranges = [];
           download_block = None;
-          download_head = HeadNotRequested;
-        }];
+          download_uri = "";
+          download_head_requested = false;
+          download_ttr_requested = false;
+        } in
+      c.client_downloads <- c.client_downloads @ [d];
+      List.iter (fun uid ->
+          match Uid.to_uid uid with
+            Md5Ext hash -> d.download_uri <- Md5Ext.to_hexa_case false hash
+          | _ -> ()
+      ) file.file_uids;
       file.file_clients <- c :: file.file_clients;
       file_add_source (as_file file) (as_client c);
       if not (List.memq file c.client_in_queues) then begin
@@ -462,7 +451,11 @@ let remove_download file list =
   
   
 let remove_file file = 
-  Hashtbl.remove files_by_uid file.file_hash;
+  List.iter (fun uid ->
+      match Uid.to_uid uid with
+        Md5Ext hash ->  Hashtbl.remove files_by_uid hash
+      | _ -> ()
+  ) file.file_uids;
   current_files := List2.removeq file !current_files  
 
 let client_ip sock =
@@ -485,9 +478,10 @@ let disconnect_from_server nservers s reason =
           Connected _ ->
             let connection_time = Int64.to_int (
                 (int64_time ()) -- s.server_connected) in
-            lprintf "DISCONNECT FROM SERVER %s:%d after %d seconds\n" 
+            lprintf "DISCONNECT FROM SERVER %s:%d after %d seconds [%s]\n" 
               (Ip.string_of_addr h.host_addr) h.host_port
               connection_time 
+            (string_of_reason reason)
             ;
         | _ -> ()
       );

@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Int64ops
 open Options
 open Printf2
 open Md4
@@ -41,59 +42,116 @@ open BTOptions
 open BTGlobals
 open BTComplexOptions
 open BTProtocol
+            
+open Bencode
   
 open Gettext  
 let _s x = _s "BTInteractive" x
 let _b x = _b "BTInteractive" x  
 
-let _ =
-  network.op_network_connected <- (fun _ -> true)
-
-let file_num file =
-  file.file_file.impl_file_num
-
-let _ =
-  file_ops.op_file_all_sources <- (fun file ->
+let op_file_all_sources file =
 (*      lprintf "file_sources\n"; *)
-      let list = ref [] in
-      Hashtbl.iter (fun _ c ->
-          list := (as_client c) :: !list
-      ) file.file_clients;
-      !list
-  );
-  file_ops.op_file_files <- (fun file impl -> 
-      match file.file_swarmer with
-        None -> [CommonFile.as_file impl]
-      | Some swarmer ->
-          Int64Swarmer.subfiles swarmer)
-  ;
-  file_ops.op_file_active_sources <- file_ops.op_file_all_sources;
-  file_ops.op_file_debug <- (fun file ->
-      let buf = Buffer.create 100 in
+  let list = ref [] in
+  Hashtbl.iter (fun _ c ->
+      list := (as_client c) :: !list
+  ) file.file_clients;
+  !list
+
+let op_file_files file impl =
+  match file.file_swarmer with
+    None -> [CommonFile.as_file impl]
+  | Some swarmer ->
+      Int64Swarmer.subfiles swarmer
+
+let op_file_debug file =
+  let buf = Buffer.create 100 in
 (*      Int64Swarmer.debug_print buf file.file_swarmer; *)
-      Hashtbl.iter (fun _ c ->
-          Printf.bprintf buf "Client %d: %s\n" (client_num c)
-          (match c.client_sock with
-              NoConnection -> "No Connection"
-            | Connection _  -> "Connected"
-            | ConnectionWaiting _ -> "Waiting for Connection"
-          )
-      ) file.file_clients;
-      Buffer.contents buf
-  );
-  file_ops.op_file_commit <- (fun file new_name ->
+  Hashtbl.iter (fun _ c ->
+      Printf.bprintf buf "Client %d: %s\n" (client_num c)
+      (match c.client_sock with
+          NoConnection -> "No Connection"
+        | Connection _  -> "Connected"
+        | ConnectionWaiting _ -> "Waiting for Connection"
+      )
+  ) file.file_clients;
+  Buffer.contents buf
+
+let op_file_commit file new_name =
+  if file_state file <> FileShared then 
+    begin
       if not (List.mem (file.file_name, file_size file) !!old_files) then
-        begin
-          old_files =:= (file.file_name, file_size file) :: !!old_files;
-          set_file_state file FileShared;
-(*          try Unix32.rename (file_fd file) (new_name) with _ -> () *)
-        end	
-  );
-  file_ops.op_file_print_sources_html_header <- (fun file buf info ->
+        old_files =:= (file.file_name, file_size file) :: !!old_files;
+      set_file_state file FileShared;
+      
+      if Unix32.destroyed (file_fd file) then
+        lprintf "op_file_commit: FD is destroyed... repairing\n";
+      
+(* During the commit operation, for security, the file_fd is destroyed. So
+  we create it again to be able to share this file again. *)
+      set_file_fd (as_file file) (create_temp_file new_name file.file_files);
+      
+      if Unix32.destroyed (file_fd file) then
+        lprintf "op_file_commit: FD is destroyed... could not repair !!!\n";
+      
+      let new_torrent_diskname = 
+        Filename.concat seeded_directory 
+          (Filename.basename file.file_torrent_diskname)
+      in
+      (try
+          Sys.rename file.file_torrent_diskname new_torrent_diskname;
+        with _ -> ());
+
+    end	
+    
+let op_file_print_html file buf =
+  
+  html_mods_cntr_init ();
+  
+  Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+  html_mods_td buf [ 
+    ("Filename", "sr br", "Filename");
+    ("", "sr", file.file_name ) ];
+  
+  Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+  
+  html_mods_td buf [
+    ("Tracker", "sr br", "Tracker");
+    ("", "sr", match file.file_trackers with
+        [] -> ""
+      | t :: _ -> t.tracker_url) ]; 
+  
+  Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" 
+    (html_mods_cntr ());
+  html_mods_td buf [
+    ("Torrent Fname", "sr br", "Torrent Fname");
+    ("", "sr", file.file_torrent_diskname) ]; 
+  
+  Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+  html_mods_td buf [
+    ("Connect Interval", "sr br", "Con Inverval");
+    ("", "sr", match file.file_trackers with
+        [] -> "-"
+      | t :: _ -> Printf.sprintf "%d" t.tracker_interval ) ]; 
+  
+  Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+  html_mods_td buf [
+    ("Last Connect", "sr br", "Last Connect");
+    ("", "sr", match file.file_trackers with
+        [] -> "-"
+      | t :: _ -> string_of_date t.tracker_last_conn) ]
+
+let op_file_print_sources_html file buf =
+  
+  if Hashtbl.length file.file_clients > 0 then begin
+      
+      let chunks = (match file.file_swarmer with
+            None -> "" | Some swarmer ->
+              Int64Swarmer.verified_bitmap swarmer) in
       
       html_mods_table_header buf "sourcesTable" "sources al" [ 
         ( "1", "srh br ac", "Client number", "Num" ) ; 
         ( "0", "srh br", "Client UID", "UID" ) ; 
+        ( "0", "srh br", "Client software", "Soft" ) ; 
         ( "0", "srh", "IP address", "IP address" ) ; 
         ( "0", "srh br ar", "Port", "Port" ) ; 
         ( "1", "srh ar", "Total UL bytes to this client for all files", "UL" ) ; 
@@ -101,6 +159,19 @@ let _ =
         ( "1", "srh ar", "Interested [T]rue, [F]alse", "I" ) ; 
         ( "1", "srh ar", "Choked [T]rue, [F]alse", "C" ) ; 
         ( "1", "srh br ar", "Allowed to write", "A" ) ; 
+        
+        ( "1", "srh ar", "Interesting [T]rue, [F]alse", "I" );
+        ( "1", "srh ar", "Already sent interested [T]rue, [F]alse", "A" );
+        ( "1", "srh br ar", "Already sent not interested [T]rue, [F]alse", "N" );
+        
+        ( "1", "srh ar", "Good [T]rue, [F]alse", "G" );
+        ( "1", "srh ar", "Incoming [T]rue, [F]alse", "I" );
+        ( "1", "srh br ar", "Registered bitfield [T]rue, [F]alse", "B" );
+        
+        ( "1", "srh ar", "Optimist Time", "O" );
+        ( "1", "srh ar", "Last optimist", "L.Opt" );
+        ( "1", "srh br ar", "Num try", "N" );
+
 (* 
 		( "0", "srh", "Bitmap (absent|partial|present|verified)", (colored_chunks 
         (Array.init (String.length info.G.file_chunks)
@@ -108,85 +179,163 @@ let _ =
 *)
         ( "1", "srh ar", "Number of full chunks", (Printf.sprintf "%d"
               (String.length (String2.replace
-                (String2.replace info.G.file_chunks '0' "") '1' "")) )) ]      
-  )
-  
-  
-module P = GuiTypes
-  
-let _ =
-  file_ops.op_file_cancel <- (fun file ->
-      remove_file file;
-      BTClients.disconnect_clients file;
+                  (String2.replace chunks '0' "") '1' "")) )) ]      ;
+      
+      Hashtbl.iter (fun _ c ->
+          Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr());
+          
+          html_mods_td buf [
+            ("", "sr br ar", Printf.sprintf "%d" (client_num c));
+            ("", "sr br", (Sha1.to_string c.client_uid));
+            ("", "sr", (Ip.to_string (fst c.client_host)));
+            ("", "sr br ar", Printf.sprintf "%d" (snd c.client_host));
+            ("", "sr ar", (size_of_int64 c.client_uploaded));
+            ("", "sr ar br", (size_of_int64 c.client_downloaded));
+            ("", "sr", (if c.client_interested then "T" else "F"));
+            ("", "sr", (if c.client_choked then "T" else "F"));
+            ("", "sr br ar", (Int64.to_string c.client_allowed_to_write));
+(* This is way too slow for 1000's of chunks on a page with 100's of sources 
+    ("", "sr", (CommonFile.colored_chunks (Array.init (String.length c.client_bitmap)
+       (fun i -> (if c.client_bitmap.[i] = '1' then 2 else 0)) )) );
+*)
+            ("", "sr", (if c.client_interesting then "T" else "F"));
+            ("", "sr", (if c.client_alrd_sent_interested then "T" else "F"));
+            ("", "br sr", (if c.client_alrd_sent_notinterested then "T" else "F"));
+            
+            ("", "sr", (if c.client_good then "T" else "F"));
+            ("", "sr", (if c.client_incoming then "T" else "F"));
+            ("", "br sr", (if c.client_registered_bitfield then "T" else "F"));
+            
+            ("", "sr", Printf.sprintf "%d" c.client_optimist_time);
+            ("", "ar sr", string_of_date c.client_last_optimist);
+            ("", "br sr", Printf.sprintf "%d" c.client_num_try);
+            
+            ("", "sr ar", (let fc = ref 0 in 
+                (match c.client_bitmap with
+                    None -> ()
+                  | Some bitmap ->
+                      String.iter (fun s -> if s = '1' then incr fc) bitmap );
+                (Printf.sprintf "%d" !fc) ) ) ];
+          
+          Printf.bprintf buf "\\</tr\\>";
+      
+      ) file.file_clients;
+      
+      Printf.bprintf buf "\\</table\\>\\</div\\>\\<br\\>";
+    
+    end
+
+let op_file_check file =
+  lprintf "Checking chunks of %s\n" file.file_name;
+  match file.file_swarmer with
+    None ->
+      lprintf "verify_chunks: no swarmer to verify chunks"
+  | Some swarmer ->
+      Int64Swarmer.verify_all_chunks swarmer true
+
+let op_file_cancel file =
+  BTClients.file_stop file;
+  remove_file file;
+  BTClients.disconnect_clients file
 (*
       (try  Unix32.remove (file_fd file)  with e -> ());
       file_cancel (as_file file.file_file);
 *)
-  );
-  file_ops.op_file_info <- (fun file ->
-      let last_seen = match file.file_swarmer with
-          None -> [| last_time () |]
-        | Some swarmer -> Int64Swarmer.compute_last_seen swarmer in
-      {
-        P.file_fields = P.Fields_file_info.all;
-        
-        P.file_comment = file_comment (as_file file);
-        P.file_name = file.file_name;
-        P.file_num = (file_num file);
-        P.file_network = network.network_num;
-        P.file_names = [file.file_name, P.noips()];
-        P.file_md4 = Md4.null;
-        P.file_size = file_size file;
-        P.file_downloaded = file_downloaded file;
-        P.file_all_sources = 0;
-        P.file_active_sources = 0;
-        P.file_state = file_state file;
-        P.file_sources = None;
-        P.file_download_rate = file_download_rate file.file_file;
-        P.file_chunks = (match file.file_swarmer with
-          None -> "" | Some swarmer ->
-            Int64Swarmer.verified_bitmap swarmer);
-        P.file_availability =  
-        [network.network_num,(match file.file_swarmer with
-          None -> "" | Some swarmer ->
-                Int64Swarmer.availability swarmer)];
-        P.file_format = FormatNotComputed 0;
-        P.file_chunks_age = last_seen;
-        P.file_age = file_age file;
-        P.file_last_seen = BasicSocket.last_time ();
-        P.file_priority = file_priority (as_file file);
-        P.file_uids = [];
-      }    
-  )
 
-module C = CommonTypes
-            
-open Bencode
+let op_ft_cancel ft = 
+  Hashtbl.remove ft_by_num ft.ft_id
+
+let op_ft_commit ft newname = 
+  Hashtbl.remove ft_by_num ft.ft_id
+  
+let op_file_info file =
+  
+  let module P = GuiTypes in
+  
+  let last_seen = match file.file_swarmer with
+      None -> [| last_time () |]
+    | Some swarmer -> Int64Swarmer.compute_last_seen swarmer in
+  {
+    P.file_fields = P.Fields_file_info.all;
+    
+    P.file_comment = file_comment (as_file file);
+    P.file_name = file.file_name;
+    P.file_num = (file_num file);
+    P.file_network = network.network_num;
+    P.file_names = [file.file_name, P.noips()];
+    P.file_md4 = Md4.null;
+    P.file_size = file_size file;
+    P.file_downloaded = file_downloaded file;
+    P.file_all_sources = 0;
+    P.file_active_sources = 0;
+    P.file_state = file_state file;
+    P.file_sources = None;
+    P.file_download_rate = file_download_rate file.file_file;
+    P.file_chunks = (match file.file_swarmer with
+        None -> "" | Some swarmer ->
+          Int64Swarmer.verified_bitmap swarmer);
+    P.file_availability =  
+    [network.network_num,(match file.file_swarmer with
+          None -> "" | Some swarmer ->
+            Int64Swarmer.availability swarmer)];
+    P.file_format = FormatNotComputed 0;
+    P.file_chunks_age = last_seen;
+    P.file_age = file_age file;
+    P.file_last_seen = BasicSocket.last_time ();
+    P.file_priority = file_priority (as_file file);
+    P.file_uids = [];
+  }    
+
+let op_ft_info ft =
+  
+  let module P = GuiTypes in
+  
+  {
+    P.file_fields = P.Fields_file_info.all;
+    
+    P.file_comment = file_comment (as_ft ft);
+    P.file_name = ft.ft_filename;
+    P.file_num = ft_num ft;
+    P.file_network = network.network_num;
+    P.file_names = [ft.ft_filename, P.noips()];
+    P.file_md4 = Md4.null;
+    P.file_size = ft_size ft;
+    P.file_downloaded = zero;
+    P.file_all_sources = 0;
+    P.file_active_sources = 0;
+    P.file_state = ft_state ft;
+    P.file_sources = None;
+    P.file_download_rate = 0.;
+    P.file_chunks = "";
+    P.file_availability =  [network.network_num, ""];
+    P.file_format = FormatNotComputed 0;
+    P.file_chunks_age = [| last_time () |];
+    P.file_age = 0;
+    P.file_last_seen = BasicSocket.last_time ();
+    P.file_priority = 0;
+    P.file_uids = [];
+  }    
+
   
   
-let load_torrent_string s =  
-  let file_id, torrent = BTTracker.decode_torrent s in
-  let file = new_download file_id torrent.torrent_name 
-      torrent.torrent_length 
-      torrent.torrent_announce torrent.torrent_piece_size 
-      torrent.torrent_files torrent.torrent_pieces FileDownloading
-  in
-  file.file_files <- torrent.torrent_files;
-  file.file_torr_fname <- "/dev/null";
+let load_torrent_string torrent_basename s =  
+  let file_id, torrent = BTTorrent.decode_torrent s in
+  
+  let torrent_diskname = Filename.concat 
+    downloads_directory torrent_basename in
+  File.from_string torrent_diskname s;
+  
+  let file = new_download file_id torrent torrent_diskname   in
   BTClients.get_sources_from_tracker file;
   file
   
-let load_torrent_file filename =
+let load_torrent_file torrent_basename filename =
   let s = File.to_string filename in  
   
-  let download_filename = Filename.concat downloads_directory
-      (Filename.basename filename) in
-  File.from_string download_filename s;
-  lprintf "BTInteractive.load_torrent_file %s\n" download_filename;
-  let file = load_torrent_string s in
-  file.file_torr_fname <- download_filename
+  lprintf "BTInteractive.load_torrent_file %s\n" filename;
+  ignore (load_torrent_string torrent_basename s)
 
-let parse_tracker_reply file filename =
+let parse_tracker_reply file t filename =
 (*This is the function which will be called by the http client
 for parsing the response*)
 (* Intrested only in interval*)
@@ -194,250 +343,245 @@ for parsing the response*)
   let v = Bencode.decode (File.to_string filename) in
 
   lprintf "Received: %s\n" (Bencode.print v);
-  file.file_tracker_interval <- 600;
+  t.tracker_interval <- 600;
   match v with
     Dictionary list ->
       List.iter (fun (key,value) ->
           match (key, value) with
             String "interval", Int n ->
-              file.file_tracker_interval <- Int64.to_int n;
-              lprintf ".. interval %d ..\n" file.file_tracker_interval
+              t.tracker_interval <- Int64.to_int n;
+              lprintf ".. interval %d ..\n" t.tracker_interval
           | _ -> ()
       ) list;
   | _ -> assert false
   
-let try_share_file filename =
+let try_share_file torrent_diskname =
 (*  lprintf "BTInteractive.try_share_file: %s\n" filename; *)
-  let ss = filename in
-  let s = File.to_string filename in  
-  let file_id, torrent = BTTracker.decode_torrent s in
+  let s = File.to_string torrent_diskname in  
+  let file_id, torrent = BTTorrent.decode_torrent s in
   
-  let filename = Filename.concat (Filename.concat !!incoming_directory !!commit_in_subdir) torrent.torrent_name in
-
-  if Sys.file_exists filename then 
-    let file_u = 
-      if torrent.torrent_files <> [] then
-        Unix32.create_multifile filename
-          [Unix.O_RDWR; Unix.O_CREAT] 0o666 torrent.torrent_files
-      else
-        Unix32.create_rw filename
+  try
+    let filename = 
+      let rec iter list =
+        match list with
+          [] -> raise Not_found
+        | sh :: tail ->
+            let s = sharing_strategies sh.shdir_strategy in
+            if match torrent.torrent_files with
+                [] -> not s.sharing_directories
+              | _ ->  s.sharing_directories then
+              let filename = 
+                Filename.concat sh.shdir_dirname torrent.torrent_name
+              in
+              lprintf "Checking for %s\n" filename;
+              if Sys.file_exists filename then filename else
+                iter tail
+            else
+              iter tail
+      in
+      iter !!shared_directories
     in
+    
+    let file = new_file file_id torrent torrent_diskname 
+        filename FileShared in
     lprintf "Sharing file %s\n" filename;
-    
-    let file = new_file file_id torrent.torrent_name 
-        torrent.torrent_length 
-        torrent.torrent_announce torrent.torrent_piece_size 
-        torrent.torrent_files filename torrent.torrent_pieces FileShared
-    in
-    file.file_torr_fname <- ss;
-
-    (*
-    let swarmer = match file.file_swarmer with 
-        None -> assert false 
-      | Some swarmer -> swarmer in
-    
-    let verified = Int64Swarmer.verified_bitmap swarmer in
-    let verified = String.make (String.length verified) '3' in
-    Int64Swarmer.set_verified_bitmap swarmer verified;
-*)
-    
-    lprintf "......\n";
-    file.file_files <- torrent.torrent_files;
-    BTClients.connect_tracker file "completed" 
+    BTClients.connect_trackers file "started" 
       (parse_tracker_reply file)
-
-    
+  with e ->
+      lprintf "BTInteractive: cannot share torrent %s for %s\n"
+        torrent_diskname (Printexc2.to_string e)
+      
 (* Call one minute after start, and then every 20 minutes. Should 
   automatically contact the tracker. *)    
 let share_files _ =
-  lprintf "BTInteractive.share_files\n";
+  if !verbose_share then lprintf "BTInteractive.share_files\n";
   List.iter (fun dir ->
       let filenames = Unix2.list_directory dir in
       List.iter (fun file ->
           let filename = Filename.concat dir file in
           try_share_file filename
       ) filenames
-  ) [seeded_directory; tracked_directory];
-  let copy_shfiles = current_files in
+  ) [seeded_directory];
+  let copy_shfiles = !current_files in
   List.iter (fun file ->
-    if not (Sys.file_exists file.file_torr_fname) && file_state file = FileShared then
-    begin
-      lprintf "Removing torrent share for %s\n" file.file_torr_fname;
-      BTClients.file_stop file;
-      remove_file file;
-      BTClients.disconnect_clients file
-    end
-  ) !copy_shfiles
-    
-  
-let _ =
-  network.op_network_parse_url <- (fun url ->
-      let ext = String.lowercase (Filename2.last_extension url) in
-      lprintf "Last extension: %s\n" ext;
-      if ext = ".torrent" || ext = ".tor" then
-        try
-          lprintf "Trying to load %s\n" url;
-          load_torrent_file url;
-          true
-        with e ->
-            lprintf "Exception %s while loading\n" (Printexc2.to_string e);
-            let module H = Http_client in
-	    let u = Url.of_string url in
-            let r = {
-                H.basic_request with
-                H.req_url = u;
-                H.req_proxy = !CommonOptions.http_proxy;
-                H.req_user_agent = 
-                Printf.sprintf "MLdonkey/%s" Autoconf.current_version;
-		H.req_headers = try
-		  let cookies = List.assoc u.Url.server !!BTOptions.cookies in
-		  [ ( "Cookie", List.fold_left (fun res (key, value) ->
-		  	if res = "" then
-			  key ^ "=" ^ value
-			else
-			  res ^ "; " ^ key ^ "=" ^ value
-		    ) "" cookies
-		  ) ]
-		with Not_found -> [];
-              } in
-            
-            H.wget r load_torrent_file;
-            lprintf "wget started\n";
-            
-            true
-      else
-        false
-  )
-  
-let _ = (
-    client_ops.op_client_info <- (fun c ->
-        let (ip,port) = c.client_host in
-        let id = c.client_uid in
-        {
-          P.client_network = network.network_num;
-          P.client_kind = Known_location (ip,port);
-          P.client_state = client_state (as_client c);
-          P.client_type = client_type c;
-          P.client_tags = [];
-          P.client_name = 
-          (Printf.sprintf "%s:%d" (Ip.to_string ip) port);
-          P.client_files = None;
-          P.client_num = (client_num c);
-          P.client_rating = 0;
-          P.client_chat_port = 0 ;
-          P.client_connect_time = BasicSocket.last_time ();
-          P.client_software = "";
-          P.client_emulemod = "";
-          P.client_downloaded = c.client_downloaded;
-          P.client_uploaded = c.client_uploaded;
-          P.client_upload = None;
-(*          P.client_sock_addr = (Ip.to_string ip); *)
-        }
-    );
-    client_ops.op_client_connect <- (fun c ->
-        BTClients.connect_client c   
-    );
-    client_ops.op_client_disconnect <- (fun c ->
-        BTClients.disconnect_client c Closed_by_user
-    );
-    client_ops.op_client_bprint <- (fun c buf ->
-        let cc = as_client c in
-        let cinfo = client_info cc in
-        Printf.bprintf buf "%s (%s)\n" 
-          cinfo.GuiTypes.client_name
-          (Sha1.to_string c.client_uid)
-    );
-    client_ops.op_client_bprint_html <- (fun c buf file ->
-        
-        html_mods_td buf [
-          ("", "sr br ar", Printf.sprintf "%d" (client_num c));
-          ("", "sr br", (Sha1.to_string c.client_uid));
-          ("", "sr", (Ip.to_string (fst c.client_host)));
-          ("", "sr br ar", Printf.sprintf "%d" (snd c.client_host));
-          ("", "sr ar", (size_of_int64 c.client_uploaded));
-          ("", "sr ar br", (size_of_int64 c.client_downloaded));
-          ("", "sr", (if c.client_interested then "T" else "F"));
-          ("", "sr", (if c.client_choked then "T" else "F"));
-          ("", "sr br ar", (Int64.to_string c.client_allowed_to_write));
-(* This is way too slow for 1000's of chunks on a page with 100's of sources 
-		("", "sr", (CommonFile.colored_chunks (Array.init (String.length c.client_bitmap)
-       (fun i -> (if c.client_bitmap.[i] = '1' then 2 else 0)) )) );
-*)
-          ("", "sr ar", (let fc = ref 0 in 
-              (match c.client_bitmap with
-                  None -> ()
-                | Some bitmap ->
-                    String.iter (fun s -> if s = '1' then incr fc) bitmap );
-              (Printf.sprintf "%d" !fc) ) ) ];
-    );
-    client_ops.op_client_dprint <- (fun c o file ->
-        let info = file_info file in
-        let buf = o.conn_buf in
-        let cc = as_client c in
-        let cinfo = client_info cc in
-        client_print cc o;
-        Printf.bprintf buf (_b "\n%18sDown  : %-10s                  Uploaded: %-10s  Ratio: %s%1.1f (%s)\n") ""
-        (Int64.to_string c.client_downloaded)
-        (Int64.to_string c.client_uploaded)
-        (if c.client_downloaded > c.client_uploaded then "-" else "+")
-        (if c.client_uploaded > Int64.zero then (Int64.to_float (Int64.div c.client_downloaded c.client_uploaded)) else (1.))
-        ("BT");
-        (Printf.bprintf buf (_b "%18sFile  : %s\n") "" info.GuiTypes.file_name);
-    );
-    client_ops.op_client_dprint_html <- (fun c o file str ->
-        let info = file_info file in
-        let buf = o.conn_buf in
-        let cc = as_client c in
-        let cinfo = client_info cc in
-        Printf.bprintf buf " \\<tr onMouseOver=\\\"mOvr(this);\\\"
-	onMouseOut=\\\"mOut(this);\\\" class=\\\"%s\\\"\\>" str;
-        
-        let show_emulemods_column = ref false in
-           if Autoconf.donkey = "yes" then begin
-               if !!emule_mods_count then
-                   show_emulemods_column := true
-        end;
+      if not (Sys.file_exists file.file_torrent_diskname) && 
+        file_state file = FileShared then
+        begin
+          lprintf "Removing torrent share for %s\n" file.file_torrent_diskname;
+          BTClients.file_stop file;
+          remove_file file;
+          BTClients.disconnect_clients file
+        end
+  ) copy_shfiles
 
-        html_mods_td buf ([
-          ("", "srb ar", Printf.sprintf "%d" (client_num c));
-          ((string_of_connection_state (client_state cc)), "sr", 
-            (short_string_of_connection_state (client_state cc)));
-          ((Sha1.to_string c.client_uid), "sr", cinfo.GuiTypes.client_name);
-          ("", "sr", "bT"); (* cinfo.GuiTypes.client_software *)
-          ] @
-          (if !show_emulemods_column then [("", "sr", "")] else [])
-          @ [
-          ("", "sr", "F");
-          ("", "sr ar", Printf.sprintf "%d" 
-              (((last_time ()) - cinfo.GuiTypes.client_connect_time) / 60));
-          ("", "sr", "D");
-          ("", "sr", (Ip.to_string (fst c.client_host)));
-          ("", "sr ar", (size_of_int64 c.client_uploaded));
-          ("", "sr ar", (size_of_int64 c.client_downloaded));
-          ("", "sr", info.GuiTypes.file_name); ]);
+let retry_all_ft () =
+  Hashtbl.iter (fun _ ft ->
+      try ft.ft_retry ft with e ->
+          lprintf "ft_retry: exception %s\n" (Printexc2.to_string e)
+  ) ft_by_num
+  
+let load_torrent_from_web r file_diskname ft =
+  lprintf "load_torrent_from_web...\n";
+  let module H = Http_client in
+  
+  lprintf "calling...\n";
+  H.wget r (fun filename ->
+      lprintf "done...\n";
+      if ft_state ft = FileDownloading then begin
+          load_torrent_file file_diskname filename;
+          file_cancel (as_ft ft);
+        end)
+  
+let op_network_parse_url url =
+  let ext = String.lowercase (Filename2.last_extension url) in
+  lprintf "Last extension: %s\n" ext;
+  if ext = ".torrent" || ext = ".tor" then
+    try
+      lprintf "Trying to load %s\n" url;
+      load_torrent_file url url;
+      true
+    with e ->
+        lprintf "Exception %s while loading\n" (Printexc2.to_string e);
+        
+        let u = Url.of_string url in
+        let module H = Http_client in
+        let r = {
+            H.basic_request with
+            H.req_url = u;
+            H.req_proxy = !CommonOptions.http_proxy;
+            H.req_user_agent = 
+            Printf.sprintf "MLdonkey/%s" Autoconf.current_version;
+            H.req_referer = (
+              let referers = !!BTOptions.referers in
+              let (rule_search,rule_value) = 
+                try (List.find(fun (rule_search,rule_value) ->
+                        Str.string_match (Str.regexp rule_search) url 0
+                    ) referers )
+                with Not_found -> ("",url) in
+              Some (Url.of_string rule_value) ); 
+            H.req_headers = try
+              let cookies = List.assoc u.Url.server !!BTOptions.cookies in
+              [ ( "Cookie", List.fold_left (fun res (key, value) ->
+                      if res = "" then
+                        key ^ "=" ^ value
+                      else
+                        res ^ "; " ^ key ^ "=" ^ value
+                  ) "" cookies
+                ) ]
+            with Not_found -> [];
+          } in
+        
+        let file_diskname = Filename.basename u.Url.short_file in
+        let ft = new_ft file_diskname in
+        ft.ft_retry <- load_torrent_from_web r file_diskname;
+        load_torrent_from_web r (Filename.basename u.Url.short_file) ft;
+        lprintf "wget started\n";            
         true
-    )
-)
+  else
+    false
 
+let op_client_info c =
+  let module P = GuiTypes in
+  let (ip,port) = c.client_host in
+  let id = c.client_uid in
+  {
+    P.client_network = network.network_num;
+    P.client_kind = Known_location (ip,port);
+    P.client_state = client_state (as_client c);
+    P.client_type = client_type c;
+    P.client_tags = [];
+    P.client_name = 
+    (Printf.sprintf "%s:%d" (Ip.to_string ip) port);
+    P.client_files = None;
+    P.client_num = (client_num c);
+    P.client_rating = 0;
+    P.client_chat_port = 0 ;
+    P.client_connect_time = BasicSocket.last_time ();
+    P.client_software = c.client_software;
+    P.client_emulemod = "";
+    P.client_downloaded = c.client_downloaded;
+    P.client_uploaded = c.client_uploaded;
+    P.client_upload = Some (c.client_file.file_name);
+(*          P.client_sock_addr = (Ip.to_string ip); *)
+  }
+
+let op_client_connect c =
+  BTClients.connect_client c   
+
+let op_client_disconnect c=
+  BTClients.disconnect_client c Closed_by_user
+
+let op_client_bprint c buf =
+  let cc = as_client c in
+  let cinfo = client_info cc in
+  Printf.bprintf buf "%s (%s)\n" 
+    cinfo.GuiTypes.client_name
+    (Sha1.to_string c.client_uid)
+
+let op_client_dprint c o file =
+  let info = file_info file in
+  let buf = o.conn_buf in
+  let cc = as_client c in
+  let cinfo = client_info cc in
+  client_print cc o;
+  Printf.bprintf buf (_b "\n%18sDown  : %-10s                  Uploaded: %-10s  Ratio: %s%1.1f (%s)\n") ""
+    (Int64.to_string c.client_downloaded)
+  (Int64.to_string c.client_uploaded)
+  (if c.client_downloaded > c.client_uploaded then "-" else "+")
+  (if c.client_uploaded > Int64.zero then (Int64.to_float (Int64.div c.client_downloaded c.client_uploaded)) else (1.))
+  ("BT");
+  (Printf.bprintf buf (_b "%18sFile  : %s\n") "" info.GuiTypes.file_name)  
+
+let op_client_dprint_html c o file str =
+  let info = file_info file in
+  let buf = o.conn_buf in
+  let cc = as_client c in
+  let cinfo = client_info cc in
+  Printf.bprintf buf " \\<tr onMouseOver=\\\"mOvr(this);\\\"
+	onMouseOut=\\\"mOut(this);\\\" class=\\\"%s\\\"\\>" str;
   
-let _ =
-  CommonNetwork.register_commands 
+  let show_emulemods_column = ref false in
+  if Autoconf.donkey = "yes" then begin
+      if !!emule_mods_count then
+        show_emulemods_column := true
+    end;
+  
+    html_mods_td buf ([
+        ("", "srb ar", Printf.sprintf "%d" (client_num c));
+        ((string_of_connection_state (client_state cc)), "sr", 
+          (short_string_of_connection_state (client_state cc)));
+        ((Sha1.to_string c.client_uid), "sr", cinfo.GuiTypes.client_name);
+        ("", "sr", "bT"); (* cinfo.GuiTypes.client_software *)
+      ] @
+        (if !show_emulemods_column then [("", "sr", "")] else [])
+      @ [
+        ("", "sr", "F");
+        ("", "sr ar", Printf.sprintf "%d" 
+            (((last_time ()) - cinfo.GuiTypes.client_connect_time) / 60));
+        ("", "sr", "D");
+        ("", "sr", (Ip.to_string (fst c.client_host)));
+        ("", "sr ar", (size_of_int64 c.client_uploaded));
+        ("", "sr ar", (size_of_int64 c.client_downloaded));
+        ("", "sr", info.GuiTypes.file_name); ]);
+    true    
+      
+let op_network_connected _ = true
+    
+    
+let commands =
+  
     [
     "compute_torrent", "Network/Bittorrent", Arg_one (fun filename o ->
-        let announce = Printf.sprintf "http://%s:%d/tracker"
-            (Ip.to_string (CommonOptions.client_ip None)) !!tracker_port in
+        let announce = Printf.sprintf "http://%s:%d/"
+            (Ip.to_string (CommonOptions.client_ip None)) 
+          !!BTTracker.tracker_port in
         
         let basename = Filename.basename filename in
-        let torrent = Filename.concat tracked_directory 
+        let torrent = Filename.concat seeded_directory 
             (Printf.sprintf "%s.torrent" basename)
         in
-        lprintf "1\n";
-        BTTracker.generate_torrent announce torrent filename;
-        lprintf "2\n";
-        BTTracker.scan_tracked_directory ();
-        lprintf "3\n";
+        BTTorrent.generate_torrent announce torrent filename;
         try_share_file torrent;
-        lprintf "4\n";
         ".torrent file generated"
     ), _s " <filename> : generate the corresponding <filename>.torrent file
 in torrents/tracked/. The file is automatically tracked, and seeded if
@@ -445,13 +589,17 @@ in torrents/tracked/. The file is automatically tracked, and seeded if
     
     "torrents", "Network/Bittorrent", Arg_none (fun o ->
         
-        if !!tracker_port <> 0 then
+        if !!BTTracker.tracker_port <> 0 then
           begin          
             Printf.bprintf o.conn_buf (_b ".torrent files available:\n");
-            let files = Unix2.list_directory tracked_directory in
+            let files1 = Unix2.list_directory tracked_directory in
+            let files2 = Unix2.list_directory downloads_directory in
+            let files3 = Unix2.list_directory seeded_directory in
+            let files = files1 @ files2 @ files3 in
             List.iter (fun file ->
                 Printf.bprintf o.conn_buf "http://%s:%d/%s\n"
-                  (Ip.to_string (CommonOptions.client_ip None)) !!tracker_port
+                  (Ip.to_string (CommonOptions.client_ip None)) 
+                !!BTTracker.tracker_port
                   file
             ) files;
             _s "done"
@@ -469,6 +617,17 @@ in torrents/tracked/. The file is automatically tracked, and seeded if
       _s "done"
 
     ), _s " : print all sedded .torrent files on this server";
+    
+    "reshare_torrents", "Network/Bittorrent", Arg_none (fun o ->
+        share_files ();
+        _s "done"
+       ), _s " : recheck torrents/* directories for changes";
+    
+    "stop_all_bt", "Network/Bittorrent", Arg_none (fun o ->
+         List.iter (fun file -> BTClients.file_stop file ) !current_files;
+         _s "started sending stops"
+        ), _s " : stops all bittorrent downloads, use this if you want to make sure that the stop signal actualy gets to the tracker when shuting mlnet down, but you have to wait till the stops get to the tracker and not wait too long, so mldonkey reconnects to the tracker :)";
+    
     (*
     "print_torrent", Arg_one (fun filename o ->
 
@@ -480,7 +639,7 @@ in torrents/tracked/. The file is automatically tracked, and seeded if
 
 open LittleEndian
   
-let gui_message s =
+let op_gui_message s =
   match get_int16 s 0 with
     0 ->
       let text = String.sub s 2 (String.length s - 2) in
@@ -489,4 +648,31 @@ let gui_message s =
   | opcode -> failwith (Printf.sprintf "BT: Unknown message opcode %d" opcode)
   
 let _ =
-  network.op_network_gui_message <- gui_message
+
+  ft_ops.op_file_cancel <- op_ft_cancel;
+  ft_ops.op_file_commit <- op_ft_commit;
+  ft_ops.op_file_info <- op_ft_info;
+  
+  file_ops.op_file_all_sources <- op_file_all_sources;
+  file_ops.op_file_files <- op_file_files;
+  file_ops.op_file_active_sources <- op_file_all_sources;
+  file_ops.op_file_debug <- op_file_debug;
+  file_ops.op_file_commit <- op_file_commit;
+  file_ops.op_file_print_html <- op_file_print_html;
+  file_ops.op_file_print_sources_html <- op_file_print_sources_html;
+  file_ops.op_file_check <- op_file_check;
+  file_ops.op_file_cancel <- op_file_cancel;
+  file_ops.op_file_info <- op_file_info;
+  
+  network.op_network_gui_message <- op_gui_message;
+  network.op_network_connected <- op_network_connected;
+  network.op_network_parse_url <- op_network_parse_url;
+  
+  client_ops.op_client_info <- op_client_info;
+  client_ops.op_client_connect <- op_client_connect;
+  client_ops.op_client_disconnect <- op_client_disconnect;
+  client_ops.op_client_bprint <- op_client_bprint;
+  client_ops.op_client_dprint <- op_client_dprint;
+  client_ops.op_client_dprint_html <- op_client_dprint_html;
+  
+  CommonNetwork.register_commands commands;

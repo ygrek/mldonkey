@@ -49,6 +49,7 @@ type 'a file_impl = {
     mutable impl_file_best_name : string;
     mutable impl_file_priority: int; (* normal = 0, low < 0, high > 0 *)
     mutable impl_file_last_seen : int;
+    mutable impl_file_probable_name : string option;
   }
 
 
@@ -75,11 +76,12 @@ it will happen soon. *)
     mutable op_file_active_sources : ('a -> client list);
     mutable op_file_comment : ('a -> string);
     mutable op_file_set_priority : ('a -> int -> unit);
+    mutable op_file_print_html : ('a -> Buffer.t -> unit);
     mutable op_file_print_sources_html : ('a -> Buffer.t -> unit);
     mutable op_file_files : ('a -> 'a file_impl -> file list);    
 (* added in 2.5.27 to remove use of network names in global modules *)
-    mutable op_file_print_sources_html_header : ('a -> Buffer.t -> GuiTypes.file_info -> unit);
     mutable op_file_debug : ('a -> string);
+    mutable op_file_proposed_filenames : ('a -> string list);
   }
 
 (*************************************************************************)
@@ -117,6 +119,7 @@ let dummy_file_impl = {
     impl_file_priority = 0;
     impl_file_last_seen = 0;
     impl_file_comment = "";
+    impl_file_probable_name = None;
   }
   
 let dummy_file = as_file dummy_file_impl  
@@ -273,11 +276,56 @@ let file_active_sources file =
   let impl = as_file_impl file in
   try impl.impl_file_ops.op_file_active_sources impl.impl_file_val with _ -> []
 
+(* Default for networks that don't implement it *)
+let default_file_print_sources_html file buf = 
+  let cfile = as_file file in
+  let allsources = ref (file_all_sources cfile) in
+  if List.length !allsources > 0 then begin
+
+    html_mods_table_header buf "sourcesTable" "sources al" [ 
+        ( "1", "srh br ac", "Client number", "Num" ) ; 
+        ( "0", "srh br", "Client Name", "Name" ) ; 
+        ( "0", "srh br", "IP address", "IP address" ) ; 
+        ( "1", "srh ar", "Total UL bytes to this client for all files", "UL" ) ; 
+        ( "1", "srh ar br", "Total DL bytes from this client for all files", "DL" ) ; ];
+
+    html_mods_cntr_init ();
+
+    List.iter (fun c ->
+        let cinfo = client_info c in
+        let addr = 
+        (match cinfo.GuiTypes.client_kind with
+          Indirect_location (name, _) -> ""
+        | Known_location (ip, port) -> Printf.sprintf "%s:%d" (Ip.to_string ip) port 
+        )
+        in
+
+        Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr());
+
+        html_mods_td buf [
+          ("", "sr br ar", Printf.sprintf "%d" (client_num c));
+          ("", "sr br", cinfo.GuiTypes.client_name);
+          ("", "sr br", addr);
+          ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_uploaded));
+          ("", "sr ar br", (size_of_int64 cinfo.GuiTypes.client_downloaded)); ];
+
+        Printf.bprintf buf "\\</tr\\>";
+
+    ) !allsources;
+
+    Printf.bprintf buf "\\</table\\>\\</div\\>\\<br\\>";
+
+  end
+
+
 let file_print_sources_html (file : file) buf =
   let file = as_file_impl file in
-  file.impl_file_ops.op_file_print_sources_html file.impl_file_val buf
-
+  try file.impl_file_ops.op_file_print_sources_html file.impl_file_val buf with _ -> 
+    default_file_print_sources_html file buf
   
+let file_print_html file buf =
+  let impl = as_file_impl file in
+  impl.impl_file_ops.op_file_print_html impl.impl_file_val buf
   
   
 let file_find num = 
@@ -354,7 +402,9 @@ let set_file_fd file fd =
   (as_file_impl file).impl_file_fd <- fd
 
 let set_file_disk_name file filename=
-  Unix32.rename (file_fd file) filename
+  let orig_fd = file_fd file in
+  if orig_fd != Unix32.bad_fd then
+    Unix32.rename orig_fd filename
   
 let file_downloaded file = (as_file_impl file).impl_file_downloaded
 
@@ -480,73 +530,13 @@ let file_print file o =
         ("", "sr", Printf.sprintf "%d" (List.length srcs)) ];
       
       Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+      let tt = ref "0=Missing, 1=Partial, 2=Complete, 3=Verified" in
       html_mods_td buf [
-        ("0=Missing, 1=Partial, 2=Complete, 3=Verified", "sr br", "Chunks");
-        ("0=Missing, 1=Partial, 2=Complete, 3=Verified", "sr", info.G.file_chunks) ];
-      
-      (match n.network_name with 
-          "BitTorrent" -> (
-              Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
-              html_mods_td buf [
-                ("Filename", "sr br", "Filename");
-                ("", "sr", (file_best_name file)) ]; )
-        
-        | _ -> (
-              
-              Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
-              html_mods_td buf [
-                ("Fake check links", "sr br", "Fakecheck");
-                ("", "sr", Printf.sprintf "\\<a target=\\\"_blank\\\" href=\\\"http://donkeyfakes.gambri.net/fakecheck.php\\?hash=%s\\\"\\>[Donkey-Fakes]\\</a\\>" 
-                    (Md4.to_string info.G.file_md4) 
-                ) ];
-              
-              
-              Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
-              
-              html_mods_td buf [
-                ("ed2k link", "sr br", "ed2k link");
-                ("", "sr", Printf.sprintf "\\<a href=\\\"ed2k://|file|%s|%s|%s|/\\\"\\>ed2k://|file|%s|%s|%s|/\\</A\\>" 
-                    (info.G.file_name)
-                  (Int64.to_string info.G.file_size)
-                  (Md4.to_string info.G.file_md4)
-                  (info.G.file_name)
-                  (Int64.to_string info.G.file_size)
-                  (Md4.to_string info.G.file_md4)) ];
-              
-              Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
-              let optionlist = ref "" in
-              List.iter (fun (name,_) -> 
-                  optionlist := !optionlist ^ Printf.sprintf "\\<option value=\\\"%s\\\"\\>%s\n" name name;
-              ) info.G.file_names;
-              
-              
-              let input_size = (Printf.sprintf "%d" ((String.length (file_best_name file))+3)) in
-              html_mods_td buf [
-                ("Rename file by selecting an alternate name", "sr br", "Filename");
-                ("Rename file", "sr", 
-                  Printf.sprintf "\\<script language=javascript\\>
-\\<!-- 
-function submitRenameForm(i) {
-var formID = document.getElementById(\\\"renameForm\\\" + i)
-var regExp = new RegExp (' ', 'gi') ;
-var renameTextOut = formID.newName.value.replace(regExp, '+'); 
-parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
-}
-//--\\>
-\\</script\\>" (file_num file) 
+        (!tt, "sr br", "Chunks");
+        (!tt, "sr", info.G.file_chunks) ];
                   
-                  ^ "\\<table border=0 cellspacing=0 cellpadding=0\\>\\<tr\\>\\<td\\>"
-                    ^ "\\<form name=\\\"renameForm1\\\" id=\\\"renameForm1\\\" action=\\\"javascript:submitRenameForm(1);\\\"\\>"
-                    ^ "\\<select name=\\\"newName\\\" id=\\\"newName\\\" onchange=\\\"this.form.submit()\\\"\\>"
-                    ^ Printf.sprintf "\\<option value=\\\"%s\\\" selected\\>%s\n" (file_best_name file) (file_best_name file)
-                  ^ !optionlist 
-                    ^ "\\</select\\>\\</td\\>\\</tr\\>\\</form\\>\\<tr\\>\\<td\\>\\<form name=\\\"renameForm2\\\" id=\\\"renameForm2\\\" action=\\\"javascript:submitRenameForm(2);\\\"\\>"
-                    ^ "\\<input name=\\\"newName\\\" type=text size=" ^ input_size ^ " value=\\\"" ^ (file_best_name file) ^ "\\\"\\>\\</input\\>\\</td\\>\\</tr\\>\\</form\\>\\</table\\>"
                 
-                ) ];
-            
-            )
-      );
+      file_print_html file buf;
       
       Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>"; 
       Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>\\</div\\>\\<br\\>";
@@ -562,51 +552,35 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
       (Int64.to_string info.G.file_downloaded)
       (file_priority file);
       Printf.bprintf buf "Chunks: [%-s]\n" info.G.file_chunks;
+      (match impl.impl_file_probable_name with
+          None -> ()
+        | Some filename ->
+            Printf.bprintf buf "Probable name: %s\n" filename);
       List.iter (fun (name,_) -> Printf.bprintf buf "    (%s)\n" name) info.G.file_names
     end;
   
   (try
             
-      
       if !!print_all_sources then begin
-          
-          if not (use_html_mods o) then 
+          if use_html_mods o then
+            file_print_sources_html file buf
+          else begin
             Printf.bprintf buf "%d sources:\n" (List.length srcs);
-          
-          if use_html_mods o && srcs <> [] then begin
-
-(* [TODO] Hum... we should add a method in network for that, not use the name
-of the network !!! *)
-              impl.impl_file_ops.op_file_print_sources_html_header 
-                file buf info;
-            end;
-          
-          
           let counter = ref 0 in
           let print_source c =
-              incr counter;
-              
-              if use_html_mods o then begin
-                  Printf.bprintf buf " \\<tr onMouseOver=\\\"mOvr(this);\\\" 
-				onMouseOut=\\\"mOut(this);\\\" class=\\\"%s\\\"\\>"
-                    (if (!counter mod 2 == 0) then "dl-1" else "dl-2");
-                  client_bprint_html c buf file;
-                  Printf.bprintf buf "\\</tr\\>";
-                end
-              else begin
                   Printf.bprintf buf "  [%4d] " (client_num c);
                   client_bprint c buf;
-              end
           in
           List.iter print_source srcs;
-        
         end;
-      if use_html_mods o && srcs <> [] then begin
-          Printf.bprintf buf "\\</table\\>\\</div\\>\\<br\\>";
-          if !!html_mods_vd_queues then file_print_sources_html file buf;
         end
     
     with _ -> ())
+  
+
+
+
+
   
 
 (*************************************************************************)
@@ -755,9 +729,10 @@ let new_file_ops network =
       op_file_active_sources = (fun _ -> fni network "file_active_sources");
       op_file_comment = (fun _ -> ni_ok network "file_comment"; "");
       op_file_set_priority = (fun _ _ -> ni_ok network "file_set_priority");
-      op_file_print_sources_html = (fun _ _ -> ni_ok network "file_print_sources_html");
+      op_file_print_html = (fun _ _ -> ni_ok network "file_print_html");
+      op_file_print_sources_html = (fun _ _ -> fni network "file_print_sources_html");
       op_file_debug = (fun _ -> "");
-      op_file_print_sources_html_header = (fun _ _ _ -> ());
+      op_file_proposed_filenames = (fun impl -> []);
     }
   in
   let ff = (Obj.magic f : int file_ops) in
@@ -796,6 +771,8 @@ let check_file_implementations () =
         lprintf "op_file_all_sources\n";
       if c.op_file_active_sources == cc.op_file_active_sources then
         lprintf "op_file_active_sources\n";
+      if c.op_file_print_html == cc.op_file_print_html then
+        lprintf "op_file_print_html\n";
       if c.op_file_print_sources_html == cc.op_file_print_sources_html then
         lprintf "op_file_print_sources_html\n";
   ) !files_ops;
@@ -836,34 +813,85 @@ let file_verify file key begin_pos end_pos =
   Unix32.flush_fd (file_fd file);
   if !verbose_md4 then begin
       lprintf "Checksum to compute: %Ld-%Ld of %s\n" begin_pos end_pos
-      (file_disk_name file);
+        (file_disk_name file);
     end;
-  let computed = match key with
-  | Ed2k md4 ->
-      let result = Md4.digest_subfile (file_fd file) 
-        begin_pos (end_pos -- begin_pos) in
-      Ed2k result
-  | Sha1 sha1 ->
-      let result = Sha1.digest_subfile (file_fd file) 
-        begin_pos (end_pos -- begin_pos) in
-      Sha1 result
-  | _ -> 
-      raise Not_found
-  in
-  let result = computed = key in
-  if !verbose_md4 then begin
-      lprintf "Checksum computed: %s against %s = %s\n"
-        (string_of_uid key) 
-      (string_of_uid computed)
-       (if result then "VERIFIED" else "CORRUPTED");
-    end;
-  result
+  try
+    let computed = match key with
+      | Ed2k md4 ->
+          let result = Md4.digest_subfile (file_fd file) 
+            begin_pos (end_pos -- begin_pos) in
+          Ed2k result
+      | Sha1 sha1 ->
+          let result = Sha1.digest_subfile (file_fd file) 
+            begin_pos (end_pos -- begin_pos) in
+          Sha1 result
+      | TigerTree ttr ->
+          let result = TigerTree.digest_subfile (file_fd file) 
+            begin_pos (end_pos -- begin_pos) in
+          TigerTree result
+      | _ -> 
+          raise Not_found
+    in
+    let result = computed = key in
+    if !verbose_md4 then begin
+        lprintf "Checksum computed: %s against %s = %s\n"
+          (string_of_uid key) 
+        (string_of_uid computed)
+        (if result then "VERIFIED" else "CORRUPTED");
+      end;
+    result
+  with e ->
+      if e = Not_found then raise Not_found;
+      if !verbose_md4 then  lprintf "Checksum computed: chunk MISSING\n";
+      false
+      
 
+    
 let file_mtime file = Unix32.mtime64 (file_fd file)
   
 let file_copy file1 file2 pos1 pos2 size =
   Unix32.copy_chunk (file_fd file1)  (file_fd file2)
   pos1 pos2 (Int64.to_int size)
+  
+let propose_filename file =
+(*  lprintf "propose_filename...\n"; *)
+  let impl = as_file_impl file in
+  let filenames = impl.impl_file_ops.op_file_proposed_filenames 
+      impl.impl_file_val in
+(*  lprintf "  %d names proposed\n" (List.length filenames); *)
+  let h = Hashtbl.create 113 in
+  let filenames = List2.tail_map (fun filename ->
+        filename, String2.stem filename) filenames in
+  List.iter (fun (_, words) ->
+      List.iter (fun w ->
+          try
+            let r = Hashtbl.find h w in
+            incr r
+          with _ ->
+              Hashtbl.add h w (ref 0)
+      ) words
+  ) filenames;
+  let filenames = List2.tail_map (fun (filename, words) ->
+        let initial_value = 
+          if String2.starts_with filename "urn:" then 0 else 1
+        in
+        let v = ref initial_value in
+        List.iter (fun w ->
+            v := !v + ! (Hashtbl.find h w)
+        ) words;
+(*        lprintf "    %d FOR %s\n" !v filename; *)
+
+        filename, !v
+    ) filenames in
+  let filenames = List.sort (fun (_,s1) (_,s2) ->
+        compare s2 s1
+    ) filenames in
+  match filenames with
+    [] -> ()
+  | (filename,_) :: _ -> impl.impl_file_probable_name <- Some filename
+
+let propose_filenames () =
+  H.iter (fun file -> propose_filename file)  files_by_num
 
 (*************************************************************************)
 (*                                                                       *)
@@ -873,3 +901,7 @@ let file_copy file1 file2 pos1 pos2 size =
 
 let com_files_by_num = files_by_num
 let files_by_num = ()
+
+  
+  
+  

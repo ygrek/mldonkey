@@ -10,13 +10,13 @@ class box () =
       ~packing:(scroll#add_with_viewport) ()
   in
   let downloads_frame =
-    GBin.frame ~border_width:5 ~label:(Gui_messages.gT_lb_downloads) ~label_xalign:(-1.0)
-    ~label_yalign:(-1.0) ~shadow_type:`ETCHED_OUT
+    GBin.frame ~border_width:5 ~label:(Gui_messages.gT_lb_downloads) ~label_xalign:(0.0)
+    ~label_yalign:(0.0) ~shadow_type:`ETCHED_OUT
     ~packing:(vbox_1#pack ~expand:true ~fill:true ~padding:3) ()
   in
   let uploads_frame =
-    GBin.frame ~border_width:5 ~label:(Gui_messages.gT_lb_uploads) ~label_xalign:(-1.0)
-    ~label_yalign:(-1.0) ~shadow_type:`ETCHED_OUT
+    GBin.frame ~border_width:5 ~label:(Gui_messages.gT_lb_uploads) ~label_xalign:(0.0)
+    ~label_yalign:(0.0) ~shadow_type:`ETCHED_OUT
     ~packing:(vbox_1#pack ~expand:true ~fill:true ~padding:3) ()
   in
   object

@@ -65,9 +65,6 @@ decide whether to connect immediatly or not. *)
     
     mutable op_client_bprint : ('a -> Buffer.t -> unit);
     
-    mutable op_client_bprint_html : ('a -> Buffer.t -> 
-    CommonTypes.file -> unit);
-
     mutable op_client_dprint : ('a -> CommonTypes.ui_conn -> 
 	CommonTypes.file -> unit);
 
@@ -154,10 +151,6 @@ let client_bprint (client: client) buf =
   let client = as_client_impl client in
   client.impl_client_ops.op_client_bprint client.impl_client_val buf
 
-let client_bprint_html (client: client) buf file =
-  let client = as_client_impl client in
-  client.impl_client_ops.op_client_bprint_html client.impl_client_val buf file
-
 let client_dprint (client: client) o file =
   let client = as_client_impl client in
   client.impl_client_ops.op_client_dprint client.impl_client_val o file
@@ -210,7 +203,6 @@ let new_client_ops network =
       op_client_clear_files = (fun _ -> ni_ok network "client_clear_files");
       op_client_browse = (fun _ _ -> ni_ok network "client_browse");
       op_client_bprint = (fun _ _ -> ni_ok network "client_bprint");
-      op_client_bprint_html = (fun _ _ _ -> ni_ok network "client_bprint_html");
       op_client_dprint = (fun _ _ _ -> ni_ok network "client_dprint");
       op_client_dprint_html = (fun _ _ _ _ -> fni network "client_dprint_html");
       op_client_can_upload = (fun _ _ -> ni_ok network "client_can_upload");

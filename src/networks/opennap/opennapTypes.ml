@@ -82,6 +82,7 @@ and client = {
     mutable client_all_files : result list option;
   }
   
+  (*
 and result = {
     result_result : result CommonResult.result_impl;
     result_name : string;
@@ -89,6 +90,7 @@ and result = {
     result_info : CommonTypes.tag list;
     mutable result_sources : (user * string) list;
   }
+*)
   
 and file = {
     file_file : file CommonFile.file_impl;

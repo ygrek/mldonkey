@@ -22,19 +22,26 @@ open Printf2
 open Options
 open CommonTypes
 
-let next_result_num = ref 0
+module StoredResult = struct
+    type result = CommonTypes.result_info
+    type stored_result = CommonTypes.result
+    type search = CommonTypes.search
     
-let (store: CommonTypes.result_info Store.t) = 
-  Store.create (Filename.concat CommonOptions.file_basedir "store")
-  
-module Document = struct
-    type t = Store.index
+    let store_name = "store"
+    let result_names r = r.result_names
+    let result_size r = r.result_size
+    let result_uids r = r.result_uids
+    let result_tags r = r.result_tags
       
-    let num t = Store.index t
-    let filtered t = Store.get_attrib store t
-    let filter t bool = Store.set_attrib store t bool
-    let doc_value t = Store.get store t
+    let result_index r = r.stored_result_index
+      
+    let search_query s = s.search_query
+      
   end
+  
+module IndexedResults = CommonIndexing.Make(StoredResult)
+  
+let next_result_num = ref 0
 
 let (results_by_uid : (uid_type, result) Hashtbl.t) = Hashtbl.create 1027
 let (known_uids : (uid_type, int) Hashtbl.t) = Hashtbl.create 1027
@@ -59,7 +66,7 @@ let declare_result rs r uid =
       if time < r.result_time then begin
           r.result_time <- time;
           r.result_modified <- false;
-          Store.update store rs.stored_result_index r;
+          IndexedResults.update_result rs r;
         end
     with _ ->
         Hashtbl.add known_uids uid r.result_time);
@@ -71,7 +78,7 @@ let update_result_num r =
       [] ->
         r.result_num <- !next_result_num;
         r.result_modified <- false;
-        let index = Store.add store r in
+        let index = IndexedResults.add r in
         let rs = { 
             stored_result_index = index;
             stored_result_num = !next_result_num;
@@ -85,7 +92,7 @@ let update_result_num r =
         let uid = Uid.to_uid uid in
         try
           let rs = Hashtbl.find results_by_uid uid in
-          let rr = Store.get store rs.stored_result_index in
+          let rr = IndexedResults.get_result rs in
           List.iter (set_result_name rr) r.result_names;
           List.iter (set_result_tag rr) r.result_tags;
           rs
@@ -95,10 +102,7 @@ let update_result_num r =
 
 let find_result num =
   Hashtbl.find results_by_num num
-  
-let get_result rs =
-  Store.get store rs.stored_result_index
-  
+    
 let dummy_result = {
     result_num = 0;
     result_uids = [];
@@ -114,7 +118,7 @@ let dummy_result = {
   }
   
 let result_download rs names force =
-  let r = Store.get store rs.stored_result_index in
+  let r = IndexedResults.get_result rs in
   let files = ref [] in
   CommonNetwork.networks_iter (fun n ->
       files := (n.op_network_download r) :: !files
@@ -131,12 +135,12 @@ let update_result r =
   let num = r.result_num in
   let rs = Hashtbl.find results_by_num num in
   r.result_modified <- false;
-  Store.update store rs.stored_result_index r
+  IndexedResults.update_result rs r
 
 let update_result2 rs r =
   if r.result_modified then begin
       r.result_modified <- false;
-      Store.update store rs.stored_result_index r
+      IndexedResults.update_result rs r
     end
   
   
@@ -154,6 +158,6 @@ let _ =
       Hashtbl.iter (fun _ _ -> incr counter) known_uids;
       Printf.bprintf buf "  known_uids: %d\n" !counter;
       
-      let in_mem, total = Store.stats store in
+      let in_mem, total = IndexedResults.stats () in
       Printf.bprintf buf "  store: %d loaded/ %d max\n" in_mem total
   )

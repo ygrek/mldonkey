@@ -1,4 +1,3 @@
-val search_string : CommonTypes.query -> string
 val search_num : int ref
 val searches_by_num : (int, CommonTypes.search) Hashtbl.t
 val new_search :
@@ -20,36 +19,6 @@ val or_comb : CommonTypes.query -> CommonTypes.query -> CommonTypes.query
 val and_comb : CommonTypes.query -> CommonTypes.query -> CommonTypes.query
 val andnot : CommonTypes.query -> CommonTypes.query -> CommonTypes.query
 val mftp_query_of_query_entry : CommonTypes.query_entry -> CommonTypes.query
-
-module Indexing :
-  sig
-    val name_bit : int
-    val artist_bit : int
-    val title_bit : int
-    val album_bit : int
-    val media_bit : int
-    val format_bit : int
-    val index_result :
-      (string -> int -> unit) -> CommonTypes.result_info -> unit
-    exception EmptyQuery
-    val has_word : string -> int -> 'a Indexer.query
-    val query_to_indexer :
-      ('a -> CommonTypes.result_info) ->
-      CommonTypes.query -> 'a Indexer.query
-  end 
-module DocIndexer :
-  sig
-    type index = Indexer2.FullMake(CommonResult.Document).index
-    val create : unit -> index
-    val add : index -> string -> CommonResult.Document.t -> int -> unit
-    val clear : index -> unit
-    val filter_words : index -> string list -> unit
-    val clear_filter : index -> unit
-    val filtered : CommonResult.Document.t -> bool
-    val query : index -> CommonResult.Document.t Indexer.query -> CommonResult.Document.t array
-    val query_map :
-      index -> CommonResult.Document.t Indexer.query -> CommonResult.Document.t Intmap.t
-  end
 module Filter :
   sig
     val add : CommonTypes.result -> unit

@@ -35,7 +35,8 @@ open CommonFile
 open CommonTypes
 open CommonGlobals
 open CommonHosts
-  
+
+open G2Network
 open G2Types
 open G2Globals
 open G2Options
@@ -43,12 +44,15 @@ open G2Protocol
 open G2ComplexOptions
 open G2Proto
 
+(* TODO: try to find a more general function *)
+let g2_tag_of_name name = field_of_string name
+  
 let update_client u =
   new_client u.user_kind
 
 let find_urn urn =
   try
-    [Hashtbl.find CommonUploads.shareds_by_uid (Uid.to_string urn)]
+    [find_by_uid urn]
    with _ -> []
 
 let gnutella_uid md4 =
@@ -72,7 +76,7 @@ let g2_packet_handler s sock gconn p =
   if !verbose_msg_servers then begin
       lprintf "Received %s packet from %s:%d: \n%s\n" 
         (match sock with Connection _  -> "TCP" | _ -> "UDP")
-      (Ip.to_string h.host_addr) h.host_port
+      (Ip.string_of_addr h.host_addr) h.host_port
         (Print.print p);
     end;
   match p.g2_payload with 
@@ -104,7 +108,8 @@ let g2_packet_handler s sock gconn p =
         ])
   
   | UPROD -> ()
-  
+  (* We have sent a UPROC request, this is the reply of the client *)
+      
   | LNI ->
       List.iter (fun p ->
           match p.g2_payload with
@@ -154,8 +159,8 @@ let g2_packet_handler s sock gconn p =
             match ss.search_search with
             | UserSearch (_,words,xml_query) ->
                 server_send_query ss.search_uid words xml_query NoConnection s
-            | FileWordSearch (_,words) -> ()
-(*                server_send_query ss.search_uid words NoConnection s *)
+(*            | FileWordSearch (_,words) -> ()
+(*                server_send_query ss.search_uid words NoConnection s *) *)
             | FileUidSearch (file, uid) ->
                 server_ask_uid NoConnection s ss.search_uid uid file.file_name
       ) searches_by_uid;
@@ -231,7 +236,7 @@ let g2_packet_handler s sock gconn p =
             in
             q
           in
-          Array.iter (fun file ->
+          List.iter (fun (file,_) ->
               files := file :: !files
           ) ( CommonUploads.query q)
         end;
@@ -240,7 +245,7 @@ let g2_packet_handler s sock gconn p =
         server_send sock s (packet (QH2 (0,md4))
           ( 
             (packet (QH2_GU !!client_uid) []) ::
-            (packet (QH2_NA (h.host_addr, h.host_port)) []) ::
+            (packet (QH2_NA (Ip.ip_of_addr h.host_addr, h.host_port)) []) ::
             (packet (QH2_V "MLDK") []) ::
             (packet QH2_UPRO [packet  (QH2_UPRO_NICK (local_login ())) []]) ::
             (List.map (fun sh ->
@@ -263,7 +268,7 @@ packet QH2_H (
                     !uids
                   )
 *)
-                  
+                  let info = IndexedSharedFiles.get_result sh.shared_info in
                   packet QH2_H (
                     (packet (QH2_H_DN (
                           Filename.basename sh.shared_codedname)) []) ::
@@ -271,7 +276,7 @@ packet QH2_H (
                     (packet (QH2_H_G 1) []) :: (* meaning ??? *)
                     (List.map (fun uid ->
                           packet (QH2_H_URN uid) []  
-                      ) sh.shared_uids)
+                      ) info.shared_uids)
                   )
               ) !files)
           ))
@@ -282,7 +287,7 @@ packet QH2_H (
           match c.g2_payload with
             KHL_NH (ip,port) 
           | KHL_CH ((ip,port),_) ->
-              let h = H.new_host ip port Ultrapeer in ()
+              let h = H.new_host (Ip.addr_of_ip ip) port Ultrapeer in ()
           | _ -> ()
       ) p.g2_children;
       let children = ref [] in
@@ -293,7 +298,7 @@ packet QH2_H (
               Connected _ ->
                 let p = packet 
                     (KHL_CH 
-                      ((h.host_addr, h.host_port), int64_time ()))
+                      ((Ip.ip_of_addr h.host_addr, h.host_port), int64_time ()))
                   [
                     (packet (KHL_CH_V s.server_vendor) [])
                   ] in
@@ -316,8 +321,8 @@ packet QH2_H (
       List.iter (fun c ->
           match c.g2_payload with
           | QA_D ((ip,port),_) ->
-              let h = H.new_host ip port Ultrapeer in
-              h.host_connected <- last_time ();
+              let h = H.new_host (Ip.addr_of_ip ip) port Ultrapeer in
+              H.connected h;
               begin
                 match ss with
                   None -> ()
@@ -326,8 +331,8 @@ packet QH2_H (
               end
 (* These ones have not been searched yet *)
           | QA_S ((ip,port),_) -> 
-              let h = H.new_host ip port Ultrapeer in
-              h.host_connected <- last_time ();
+              let h = H.new_host (Ip.addr_of_ip ip) port Ultrapeer in
+              H.connected h;
           
           
           | _ -> ()
@@ -438,7 +443,8 @@ XML ("audios",
                     let (file_type, tags, _) = Xml.xml_of file in
                     (urn, size, name, url, 
                       List.map (fun (tag, v) ->
-                          string_tag tag v) tags)
+                          string_tag (g2_tag_of_name tag) v) 
+                      tags)
                 ) user_files files
               end else begin
                 lprintf "ERROR: Not enough XML entries %d/%d\n"
@@ -469,7 +475,7 @@ XML ("audios",
         (match !user_vendor with Some v -> user.user_vendor <- v | _ -> ());
         user.user_uid <- !user_uid;
         user.user_nick <- !user_nick; 
-        user.user_gnutella2 <- true;
+(*        user.user_gnutella2 <- true; *)
         user
       in
       
@@ -482,7 +488,8 @@ XML ("audios",
             | Some uid ->
                 Printf.sprintf "/uri-res/N2R?%s" (Uid.to_string uid)
           in
-          
+
+          (*
           (match size with
               None -> ()
             | Some size ->
@@ -493,6 +500,7 @@ XML ("audios",
                   let c = update_client user in
                   add_download file c (FileByUrl url)
                 with _ -> ());
+*)
           
           (match urn with
               None -> ()
@@ -545,12 +553,13 @@ file_must_update file;
 
           
 let udp_packet_handler ip port msg = 
-  let h = H.new_host ip port Ultrapeer in
-  h.host_connected <- last_time ();
+  let addr = Ip.addr_of_ip ip in
+  let h = H.new_host addr port Ultrapeer in
+  H.connected h;
 (*  if !verbose_udp then
     lprintf "Received UDP packet from %s:%d: \n%s\n" 
       (Ip.to_string ip) port (Print.print msg);*)
-  let s = new_server ip port in
+  let s = new_server addr port in
   s.server_connected <- int64_time ();
   g2_packet_handler s NoConnection () msg
   (*
@@ -583,7 +592,7 @@ let init s sock gconn =
 (* A good session: PI, KHL, LNI *)
   
     
-let udp_handler ip port buf =
+let udp_client_handler ip port buf =
   if String.length buf > 3 && String.sub buf 0 3 = "GND" then
     try
       udp_packet_handler ip port
@@ -591,3 +600,8 @@ let udp_handler ip port buf =
     with AckPacket | FragmentedPacket -> ()
   else
     lprintf "Unexpected UDP packet: \n%s\n" (String.escaped buf)
+
+      
+let update_shared_files () = ()
+let declare_word _ = new_shared_words := true
+  

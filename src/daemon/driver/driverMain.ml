@@ -26,6 +26,7 @@ open BasicSocket
 open CommonInteractive
 open CommonInteractive
 
+open CommonDownloads
 open CommonTypes
 open CommonOptions
 open CommonGlobals
@@ -38,7 +39,9 @@ module Dp500 = DriverLink.DP500(struct
       module CommonTypes = CommonTypes
       module CommonFile = CommonFile
       module CommonOptions = CommonOptions
-        
+
+      let incoming_directory () =
+        (CommonComplexOptions.incoming_files ()).shdir_dirname
       let files () = !!CommonComplexOptions.files
       
     end)
@@ -59,6 +62,11 @@ let minute_timer () =
   CommonUploads.upload_credit_timer ();
   CommonInteractive.force_download_quotas ();
   CommonResult.dummy_result.result_time <- last_time ();
+  (try
+      Int64Swarmer.verify_some_chunks ()
+    with _ -> ()
+  );
+  
   if !!auto_commit then
     List.iter (fun file ->
         file_commit file
@@ -70,7 +78,9 @@ let hourly_timer timer =
   CommonShared.shared_check_files ();
   if !CommonWeb.hours mod !!compaction_delay = 0 then Gc.compact ();
   DriverControlers.check_calendar ();
-  CommonWeb.connect_redirector ()
+  CommonWeb.connect_redirector ();
+  CommonFile.propose_filenames ()
+  
 
 let second_timer timer =
   (try 
@@ -315,7 +325,7 @@ used. For example, we can add new we_binfos... *)
   
   networks_iter_all (fun r ->
       List.iter (fun opfile ->
-          let prefix = r.network_prefix () in
+          let prefix = r.network_shortname ^ "-" in
           let args = simple_args prefix opfile in
           let args = List2.tail_map (fun (arg, spec, help) ->
                 (Printf.sprintf "-%s" arg, spec, help)) args
@@ -369,7 +379,33 @@ used. For example, we can add new we_binfos... *)
 
 (**** CREATE DIRS   ****)
   
+  (*
   Unix2.safe_mkdir !!incoming_directory;
+  
+  File.from_string (Filename.concat !!incoming_directory "Readme.txt")
+  "This directory contains the files downloaded, after commit.
+The 'incoming/files/' folder contains simple files. 
+The 'incoming/directories/' folder contains whole directories (probably
+   downloaded with Bittorrent).
+
+If you want to share files, you should:
+  - Put simple files or directories where all files should be shared separately
+   in the 'incoming/files/' folder, or better, in the shared/ folder.
+   is for downloaded files. Files to be shared should be
+   put in the 'shared/' directory instead.
+  - Put directories that should be shared as one file in the 
+   'incoming/directories/' folder. Currently, such directories can only be
+   shared on the Bittorrent network, by providing the corresponding
+   .torrent in the 'torrents/seeded/' folder.
+";
+  
+  Unix2.safe_mkdir (Filename.concat !!incoming_directory "files");
+  Unix2.safe_mkdir (Filename.concat !!incoming_directory "directories");
+*)
+  
+  List.iter (fun s ->
+      Unix2.safe_mkdir s.shdir_dirname;
+  ) !!CommonComplexOptions.shared_directories;
   Unix2.safe_mkdir "searches";
   Unix2.safe_mkdir !!temp_directory
 
@@ -403,12 +439,14 @@ let _ =
 
 (*  lprintf "(1) CommonComplexOptions.load\n"; *)
   CommonComplexOptions.load ();
+  CommonUploads.load ();
 
 (*  lprintf "(2) CommonComplexOptions.load done\n"; *)
   begin
     let old_save_results = !!save_results in
     save_results =:= 0;
     CommonComplexOptions.save ();
+    CommonUploads.save ();
     save_results =:= old_save_results;
   end;
 
@@ -442,13 +480,9 @@ let _ =
   add_infinite_timer 3600. hourly_timer;
   add_infinite_timer 0.1 CommonUploads.upload_download_timer;
 
-  CommonShared.shared_add_directory {
-    shdir_dirname = !!incoming_directory;
-    shdir_priority = !!incoming_directory_prio;
-    shdir_strategy = "only_directory";
-    shdir_networks = [];
-  };
-  List.iter CommonShared.shared_add_directory !!CommonComplexOptions.shared_directories;  
+  List.iter 
+    CommonShared.shared_add_directory
+  !!CommonComplexOptions.shared_directories;  
   
   add_infinite_timer 1800. (fun timer ->
       DriverInteractive.browse_friends ());

@@ -218,10 +218,6 @@ let upload_power = define_expert_option donkey_section ["upload_power"]
   over other networks, where upload is less efficient, without preventing
   upload from these networks." int_option 5
 
-let commit_in_subdir = define_expert_option donkey_section ["commit_in_subdir"]
-  "The subdirectory of temp/ where files should be moved to"
-    string_option ""
-
 let remove_old_servers_delay = define_expert_option donkey_section ["remove_old_servers_delay"]
   "How often should remove old donkey be called (in seconds, 0 to disable)"
     float_option 900.
@@ -239,11 +235,6 @@ let _ =
     if !!servers_walking_period > 0 &&
       !!servers_walking_period < 4 then
 	servers_walking_period =:= 4)
-
-let network_options_prefix = define_expert_option donkey_section
-    ["options_prefix"] "The prefix which is appended to options names
-    when they are used in the telnet/WEB interfaces"
-    string_option ""
   
 let keep_cancelled_in_old_files = define_expert_option donkey_section
     ["keep_cancelled_in_old_files"] 
@@ -325,7 +316,6 @@ let gui_donkey_options_panel =
     "Max Number of Connected Servers", shortname max_connected_servers, "T";
     "Max Upload Slots", shortname max_upload_slots, "T";
     "Max Sources Per Download", shortname max_sources_per_file, "T";
-    "Commit Downloads In Incoming Subdir", shortname commit_in_subdir, "T";
     "Port", shortname donkey_port, "T";
     "Login", shortname login, "T";
     "Download Chunks in Random order", shortname random_order_download, "B";    

@@ -24,7 +24,8 @@ open Printf2
 open Md4
 open Options
 open BasicSocket
-  
+
+open CommonUploads
 open CommonDownloads
 open CommonSearch
 open CommonGlobals
@@ -38,7 +39,8 @@ open CommonComplexOptions
 open CommonFile
 open CommonInteractive
 open CommonHosts
-  
+
+open GnutellaHandler
 open GnutellaTypes
 open GnutellaOptions
 open GnutellaGlobals
@@ -48,7 +50,7 @@ open GnutellaProtocol
 (* Don't share files greater than 10 MB on Gnutella and limit to 200 files. 
  Why ? Because we don't store URNs currently, and we don't want mldonkey
  to compute hashes for hours at startup *)
-let max_shared_file_size = Int64.of_int 10000000
+let max_shared_file_size = 1000000000L
 let max_shared_files = 200
 let shared_files_counter = ref 0
 
@@ -65,6 +67,19 @@ type query =
 	   must be simplified before transforming into strings *)
 *)
 
+let recover_file file =
+  match file.file_swarmer with
+    None -> ()
+  | Some swarmer ->
+      GnutellaClients.check_finished swarmer file;
+      if file_state file = FileDownloading then
+        GnutellaServers.really_recover_file file        
+
+let download_file r =
+  let file = GnutellaServers.really_download_file r in
+  recover_file file;
+  as_file file
+
 
 let find_search s =
   let module M = struct exception Found of local_search end in
@@ -77,76 +92,73 @@ let find_search s =
     raise Not_found
   with M.Found s -> s
 
-let xml_to_string xml = 
-  "<?xml version=\"1.0\"?>" ^ (  Xml.to_string xml)
-      
-let audio_schema tags = 
-  Element ("audios",
-    [("xsi:nonamespaceschemalocation",
-        "http://www.limewire.com/schemas/audio.xsd")],
-    [Element ("audio", tags, [])])
+let result_download r =  
+  lprintf ".............. result_download ..............\n";
+  let rec iter uids =
+    match uids with
+      [] -> raise IgnoreNetwork
+    | uid :: tail ->
+        match Uid.to_uid uid with
+          Sha1 _ | Bitprint _ when GnutellaNetwork.accept_bitprint ->
+            download_file r
+        | Ed2k _ when GnutellaNetwork.accept_ed2kuid  ->
+            download_file r
+        | Md5Ext _ when GnutellaNetwork.accept_md5ext  ->
+            download_file r
+        | _  -> iter tail
+  in
+  lprintf "%d uids\n" (List.length r.result_uids);
+  iter r.result_uids
 
-(*
-[
-("artist", "Tom Jones");
-("album", "Mars Attacks Soundtrack");
-("title", "It&apos;s Not Unusal");
-
-("sampleRate", "44100"); 
-("seconds", "239"); 
-("index", "0");
-("bitrate", "128")
-("track", "1"); 
-("description", "Tom Jones, hehe"); 
-("genre", "Retro");
-("year", "1997")
-] 
-
-*)
+let declare_file _ = should_update_shared_files := true
   
-let xml_query_of_query q =
+let ask_for_uids sh =
+  let info = IndexedSharedFiles.get_result sh.shared_info in
+  if GnutellaNetwork.accept_ed2kuid then begin
+      lprintf "Ask for ED2K uid\n";
+      CommonUploads.ask_for_uid sh ED2K (fun sh uid ->
+          let uid = Uid.to_string uid in
+          declare_word uid;
+          declare_file ();
+          lprintf "Ed2k uid available (size %d)\n" 
+            (Array.length info.CommonUploads.shared_md4s);
+      );
+    end;
+  if GnutellaNetwork.accept_md5ext then begin
+      lprintf "Ask for MD5EXT uid\n";
+      CommonUploads.ask_for_uid sh MD5EXT (fun sh uid ->
+          let uid = Uid.to_string uid in
+          declare_word uid;
+          declare_file ();          
+          lprintf "Md5ext uid available: %s\n"  uid
+      );
+    end;
 
-  let keywords = ref [] in
-  let add_words w =
-    keywords := (String2.split_simplify w ' ') @ !keywords
-  in
-  let audio = ref false in
-  let tags = ref [] in  
-  let rec iter q = 
-    match q with
-    | QOr (q1,q2) 
-    | QAnd (q1, q2) -> iter q1; iter q2
-    | QAndNot (q1,q2) -> iter q1 
-    | QHasWord w ->  add_words w
-    | QHasField(field, w) ->
-        begin
-          match field with
-            Field_Type -> 
-              begin
-                match String.lowercase w with
-                  "audio" -> audio := true
-                | _ -> add_words w
-              end
-          | Field_Format ->
-              begin
-                match String.lowercase w with
-                | "mp3" | "wav" -> 
-                    add_words w;
-                    audio := true
-                | _ -> add_words w
-              end
-          | Field_Album -> tags := ("album", w) :: !tags; add_words w
-          | Field_Artist -> tags := ("artist", w) :: !tags; add_words w
-          | Field_Title -> tags := ("title", w) :: !tags; add_words w
-          | _ -> add_words w
-        end
-    | QHasMinVal (field, value) -> ()
-    | QHasMaxVal (field, value) -> ()
-    | QNone ->  ()
-  in
-  iter q;
-  !keywords, if !audio then xml_to_string (audio_schema !tags) else ""
-      
+  if GnutellaNetwork.accept_bitprint then begin
+      lprintf "Ask for BITPRINT uid\n";
+      CommonUploads.ask_for_uid sh BITPRINT (fun sh uid ->
+          declare_word uid;
+          declare_file ();
+          lprintf "Bitprint tree available (size %d)\n" 
+            (Array.length info.CommonUploads.shared_tiger);
+          ()
+      );
+      CommonUploads.ask_for_uid sh TIGER (fun sh uid ->
+          let uid = Uid.to_string uid in
+          declare_word uid;
+          declare_file ();
+          lprintf "Tiger tree available (size %d)\n" 
+            (Array.length info.CommonUploads.shared_tiger);
+      );
+      CommonUploads.ask_for_uid sh SHA1 (fun sh uid -> 
+          let uid = Uid.to_string uid in
+          lprintf "Could share urn: %s\n" uid;
+(* TODO : enter this shared file in the QRT *)
+          declare_word uid;
+          declare_file ();          
+      );
+    end
+    
 let _ =
   network.op_network_search <- (fun search buf ->
       match search.search_type with
@@ -154,20 +166,20 @@ let _ =
       | _ ->
           
           let query = search.search_query in
-          let words, xml_query = xml_query_of_query query in
+          let words, xml_query = GnutellaProto.translate_query query in
           let words = String2.unsplit words ' ' in
 
 (* Maybe we could generate the id for the query from the query itself, so
 that we can reuse queries *)
-          let uid = Md4.random () in
           
+          let uid = GnutellaProto.new_search_uid () in 
           let s = {
               search_search = UserSearch (search, words, xml_query);
               search_uid = uid;
               search_hosts = Intset.empty;
             } in
           
-          GnutellaScheduler.send_query uid words xml_query;
+          GnutellaServers.send_query s;
           
           Hashtbl.add searches_by_uid uid s;
           ());
@@ -181,17 +193,29 @@ that we can reuse queries *)
       !connected_servers <> []
   );
   network.op_network_share <- (fun fullname codedname size ->
+      (*
+      lprintf "*************** op_network_share %s\n
+      %d %d %Ld %Ld" fullname
+        !shared_files_counter max_shared_files 
+        size max_shared_file_size      
+      ; *)
       if !shared_files_counter < max_shared_files &&
         size < max_shared_file_size then begin
+(*          lprintf "*************** op_network_share %s\n" fullname; *)
+
           incr shared_files_counter;
-          GnutellaProtocol.new_shared_words := true;
+          declare_word codedname;
           let sh = CommonUploads.add_shared fullname codedname size in
-          GnutellaProto.ask_for_uids sh
+(*          lprintf "*************** op_network_share %s\n" fullname; *)
+          
+          List.iter declare_word (String2.stem codedname);
+          
+          ask_for_uids sh
         end
   );
 (* TODO RESULT *)
   network.op_network_download <- (fun r ->
-      raise IgnoreNetwork
+      result_download r
   )
   
 let file_num file =
@@ -209,23 +233,30 @@ let _ =
         None -> [CommonFile.as_file impl]
       | Some swarmer ->
           Int64Swarmer.subfiles swarmer)
-;
+  ;
   file_ops.op_file_active_sources <- file_ops.op_file_all_sources;
+  file_ops.op_file_check <- (fun file ->
+      match file.file_swarmer with
+        None -> failwith "verify_chunks: no swarmer to verify chunks"
+      | Some swarmer ->
+          match file.file_ttr with
+            None -> failwith "No TTR for verification"
+          | Some ttt ->
+              Int64Swarmer.verify_all_chunks swarmer true  
+  );  
+  
   file_ops.op_file_recover <- (fun file ->
-      GnutellaServers.recover_file file;
+      recover_file file;
       List.iter (fun c ->
           GnutellaServers.get_file_from_source c file
       ) file.file_clients
   );
-  file_ops.op_file_print_sources_html_header <- (fun file buf info ->      
-      html_mods_table_header buf "sourcesTable" "sources al" [ 
-        ( "1", "srh br ac", "Client number", "Num" ) ; 
-        ( "0", "srh br", "Client Name", "Name" ) ; 
-        ( "0", "srh", "IP address", "IP address" ) ; 
-        ( "1", "srh ar", "Total UL bytes to this client for all files", "UL" ) ; 
-        ( "1", "srh ar br", "Total DL bytes from this client for all files", "DL" ) ; ]      
-  )
-
+  file_ops.op_file_resume <- (fun file ->
+      recover_file file;
+      List.iter (fun c ->
+          GnutellaServers.get_file_from_source c file
+      ) file.file_clients
+  );
   
 module P = GuiTypes
   
@@ -233,9 +264,7 @@ let _ =
   file_ops.op_file_cancel <- (fun file ->
       remove_file file;
       file_cancel (as_file file);
-      List.iter (fun s ->
-          Hashtbl.remove searches_by_uid s.search_uid
-      ) file.file_searches
+      GnutellaProto.cancel_recover_files file
   );
   file_ops.op_file_info <- (fun file ->
       {
@@ -254,8 +283,15 @@ let _ =
         P.file_state = file_state file;
         P.file_sources = None;
         P.file_download_rate = file_download_rate file.file_file;
-        P.file_chunks = "0";
-        P.file_availability = [network.network_num, "0"];
+        
+         P.file_chunks = (match file.file_swarmer with
+             None -> "" | Some swarmer ->
+               Int64Swarmer.verified_bitmap swarmer);
+        P.file_availability =   [network.network_num,
+           (match file.file_swarmer with
+           None -> "" | Some swarmer ->
+                 Int64Swarmer.availability swarmer)];
+        
         P.file_format = FormatNotComputed 0;
         P.file_chunks_age = [|0|];
         P.file_age = file_age file;
@@ -271,7 +307,7 @@ let _ =
         {
           P.server_num = (server_num s);
           P.server_network = network.network_num;
-          P.server_addr = Ip.addr_of_ip s.server_host.host_addr;
+          P.server_addr = s.server_host.host_addr;
           P.server_port = s.server_host.host_port;
           P.server_score = 0;
           P.server_tags = [];
@@ -287,7 +323,7 @@ let _ =
         raise Not_found
   );
   server_ops.op_server_connect <- (fun s ->
-      GnutellaServers.connect_server s.server_host []);
+      GnutellaServers.connect_server s.server_host);
   server_ops.op_server_disconnect <-
 (fun s -> GnutellaServers.disconnect_server s BasicSocket.Closed_by_user);
   server_ops.op_server_to_option <- (fun _ -> raise Not_found)
@@ -323,7 +359,7 @@ let _ =
   network.op_network_parse_url <- (fun url ->
       match String2.split (String.escaped url) '|' with
       | "gnut://" :: "server" :: ip :: port :: _ ->  
-          let ip = Ip.of_string ip in
+          let ip = Ip.addr_of_string ip in
           let port = int_of_string port in
           let s = new_server ip port in
           true
@@ -342,12 +378,12 @@ let _ =
           true
       
       | _ -> 
-          let (name, uids) = parse_magnet url in
+          let (name, size, uids) = GnutellaProto.parse_url url in
           if uids <> [] then begin
 (* Start a download for this file *)
-              let rs = new_result name Int64.zero [] uids [] in
-              let r = get_result rs in
-              let file = GnutellaServers.download_file r in
+              let rs = new_result name size [] uids [] in
+              let r = IndexedResults.get_result rs in
+              let file = download_file r in
               CommonInteractive.start_download file;
               true
             end
@@ -397,17 +433,6 @@ let _ =
         Printf.bprintf buf "%s (%s)\n"
           cinfo.GuiTypes.client_name
           (string_of_kind cinfo.GuiTypes.client_kind)
-    );    
-    client_ops.op_client_bprint_html <- (fun c buf file ->
-        let cc = as_client c in
-        let cinfo = client_info cc in
-        
-        html_mods_td buf [
-          ("", "sr br ar", Printf.sprintf "%d" (client_num cc));
-          ("", "sr br", cinfo.GuiTypes.client_name);
-          ("", "sr", (string_of_kind cinfo.GuiTypes.client_kind));
-          ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_uploaded));
-          ("", "sr ar br", (size_of_int64 cinfo.GuiTypes.client_downloaded)); ];
     );    
    client_ops.op_client_dprint <- (fun c o file ->
         let info = file_info file in
@@ -471,7 +496,7 @@ let _ =
       });
   
   network.op_network_add_server <- (fun ip port ->
-      as_server (new_server (Ip.ip_of_addr ip) port).server_server
+      as_server (new_server ip port).server_server
   )
 
 open Queues
@@ -490,9 +515,14 @@ let commands = [
           (Queue.length waiting_udp_queue);
         ""
     ), " :\t\t\t\tprint stats on Gnutella network";
-    
+
     ]
   
 let _ = 
   CommonNetwork.register_commands commands
   
+
+let recover_files () = (* called every 10 minutes *)
+  List.iter (fun file ->
+      try recover_file file  with _ -> ()
+  ) !current_files;

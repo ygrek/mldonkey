@@ -388,7 +388,32 @@ let print_record t ip_firewall s =
                   lprintf "    SHARED:\n";
                   lprintf "       Shared: %Ld, uploaded: %Ld\n"
                     total_shared total_uploaded;
+    
+              | "LTCY" ->
+                  let loop_delay = get_int s 0 in
+                   
+                  let pos = 4 in
+                  let ntcp = get_int s pos in
+                  for i = 0 to ntcp - 1 do
+                    let ip = get_ip s (pos+4+8*i) in
+                    let latency = get_int16 s (pos+8+8*i) in
+                    let samples = get_int16 s (pos+10+8*i) in
+                    lprintf "TCP %d %s %s %d \n" 
+                      samples
+                      (Ip.to_string ip_firewall)
+                    (Ip.to_string ip) latency
+                  done;
                   
+                  let pos = pos + 4+ 8 * ntcp in
+                  let nudp = get_int s pos in
+                  for i = 0 to nudp - 1 do
+                    let ip = get_ip s (pos+4+8*i) in
+                    let latency = get_int16 s (pos+8+8*i) in
+                    let samples = get_int16 s (pos+10+8*i) in
+                    lprintf "UDP %d %s %s %d\n" samples
+                      (Ip.to_string ip_firewall)
+                    (Ip.to_string ip) latency
+                  done;
                 
               | _ -> lprintf "    Unknown kind of info: %s\n" n;
             with e ->
@@ -653,6 +678,8 @@ let _ =
         ) (S.read file)
     with _ -> lprintf "Could not load old server list\n"; 
   end;
+  MlUnix.set_signal  Sys.sigpipe (*Sys.Signal_ignore*)
+    (Sys.Signal_handle (fun _ -> lprintf "SIGPIPE\n"));
   BasicSocket.add_timer 30. dump_servers_list;
   BasicSocket.add_timer 30. dump_peers_list;
   BasicSocket.add_infinite_timer 300. dump_servers_list;

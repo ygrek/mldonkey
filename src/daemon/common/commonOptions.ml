@@ -125,6 +125,8 @@ let files_ini = create_options_file (
 let friends_ini = create_options_file (
     Filename.concat file_basedir "friends.ini")
 
+let messages_log = ref (Filename.concat file_basedir "messages.log")
+
 let servers_section = file_section servers_ini [] ""
   
 
@@ -286,7 +288,7 @@ let telnet_bind_addr = define_expert_option current_section ["telnet_bind_addr"]
     Ip.option (Ip.of_inet_addr Unix.inet_addr_any)
 
 let print_all_sources =
-  define_expert_option current_section ["print_all_sources"] "Should *all* sources for a file be shown on HTML/telnet vd <num>" bool_option false
+  define_expert_option current_section ["print_all_sources"] "Should *all* sources for a file be shown on HTML/telnet vd <num>" bool_option true
     
 let improved_telnet =
   define_expert_option current_section ["improved_telnet"] "Improved telnet interface" bool_option true
@@ -333,7 +335,7 @@ let loop_delay = define_expert_option current_section
   ["loop_delay"] 
 "The delay in milliseconds to wait in the event loop. Can be decreased to
 increase the bandwidth usage, or increased to lower the CPU usage."
-  int_option 30
+  int_option 5
   
 let nolimit_ips = define_option current_section ["nolimit_ips"]
     ~desc: "No-limit IPs"
@@ -417,6 +419,11 @@ let enable_gnutella2 = define_option current_section
 let enable_fasttrack = define_option current_section
     ["enable_fasttrack"]
   "Set to true if you also want mldonkey to run as a Fasttrack sub node (experimental)"
+    bool_option false
+
+let enable_ares = define_option current_section
+    ["enable_ares"]
+  "Set to true if you also want mldonkey to run as a Ares sub node (experimental)"
     bool_option false
   
 let enable_directconnect = define_option current_section
@@ -797,6 +804,7 @@ let temp_directory = define_option current_section ["temp_directory" ]
     "The directory where temporary files should be put" 
     string_option (Filename.concat file_basedir "temp")
 
+(*
 let incoming_directory_prio =
   define_expert_option current_section ["incoming_directory_prio" ]
       "The upload prio of the incoming directory"
@@ -811,7 +819,8 @@ let default_sharing_strategy =
   define_option current_section ["default_sharing_strategy" ] 
     "Sharing strategy the share command will use when none is specified"
     string_option "all_files"
-
+*)
+  
 let previewer = define_expert_option current_section ["previewer"]
   "Name of program used for preview (first arg is local filename, second arg
     is name of file as searched on eDonkey" string_option
@@ -1166,7 +1175,7 @@ let max_displayed_results = define_expert_option current_section
   
 let options_version = define_expert_option current_section ["options_version"]
     "(internal option)"
-    int_option 1
+    int_option 2
 
 
   
@@ -1308,17 +1317,22 @@ let _ =
         global_login =:= new_name ()
   );
   
+  let lprintf_to_file = ref false in
   option_hook log_file (fun _ ->
       if !!log_file <> "" then
         try
           let oc = open_out !!log_file in
+          lprintf_to_file := true;
           lprintf "Logging in %s\n" !!log_file;
           log_to_file oc;
         with e ->
             lprintf "Exception %s while opening log file: %s\n"
               (Printexc2.to_string e) !!log_file
-(*      else
-        lprintf_to_stdout := false *)
+      else
+      if !lprintf_to_file then begin
+          lprintf_to_file := false;
+          close_log ()
+        end
   );  
   option_hook max_upload_slots (fun _ ->
       if !!max_upload_slots < 3 then
@@ -1376,6 +1390,7 @@ let _ =
 
 let verbose_msg_servers = ref false
 let verbose_msg_clients = ref false
+let verbose_msg_raw = ref false
 let verbose_msg_clienttags = ref false
 let verbose_sources = ref 0
 let verbose = ref false
@@ -1390,13 +1405,16 @@ let verbose_connect = ref false
 let verbose_udp = ref false
 let verbose_swarming = ref false
 let verbose_activity = ref false
-
+let verbose_supernode = ref false
+  
 let set_all v =
   
   verbose_connect := v;
   verbose_msg_clients := v;
+  verbose_msg_raw := v;
   verbose_msg_clienttags := v;
   verbose_msg_servers := v;
+  verbose_supernode := v;
   BasicSocket.debug := v;
   verbose := v;
   verbose_download := v;
@@ -1420,6 +1438,7 @@ let _ =
       List.iter (fun s ->
           match s with
           | "mc" -> verbose_msg_clients := true;
+          | "mr" | "raw" -> verbose_msg_raw := true;
           | "mct" -> verbose_msg_clienttags := true;
           | "ms" -> verbose_msg_servers := true;
           | "verb" -> verbose := true;
@@ -1434,6 +1453,7 @@ let _ =
           | "md4" -> verbose_md4 := true
           | "connect" -> verbose_connect := true
           | "udp" -> verbose_udp := true
+          | "ultra" | "super" -> verbose_supernode := true
           | "swarming" -> verbose_swarming := true
           | "hc" -> Http_client.verbose := true
           | "hs" -> Http_server.verbose := true
@@ -1489,14 +1509,14 @@ let _ =
   option_hook allow_local_network (fun _ ->
       Ip.allow_local_network := !!allow_local_network)
 
-let update_options () =
+let rec update_options () =
   match !!options_version with
     0 ->
       
       web_infos =:= List.map (fun (kind, period, url) ->
           kind, period * 24, url  
       ) !!web_infos;
-
+      
       web_infos =:= !!web_infos @ [
         ("rss", 6,    
           "http://www.ed2k-it.com/forum/news_rss.php");
@@ -1508,6 +1528,15 @@ let update_options () =
           "http://varchars.com/rss/suprnova-movies.rss");
       ];
       
-      options_version =:= 1
+      options_version =:= 1;
+      update_options ()
+  
+  | 1 -> 
+
+(* 5 ms is a good unit, for measuring latency between clients. *)
+      loop_delay =:= 5;
+      
+      options_version =:= 2;
+      update_options ()
       
   | _ -> ()

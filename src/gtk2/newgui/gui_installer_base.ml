@@ -24,7 +24,7 @@ class window () =
   in
   let wl_78 =
     GMisc.label ~text:"Welcome to MLdonkey installer" ~justify:`CENTER
-      ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0)
+      ~line_wrap:true ~xalign:(0.0) ~yalign:(0.0)
       ~packing:(hbox_77#pack ~expand:false ~fill:true) ()
   in
   let notebook =
@@ -76,7 +76,7 @@ class tab () =
   in
   let _ =
     GMisc.label ~width:100 ~height:50 ~text:"Next" ~justify:`CENTER
-      ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0) ~xpad:3 ~ypad:3
+      ~line_wrap:true ~xalign:(0.0) ~yalign:(0.0) ~xpad:3 ~ypad:3
       ~packing:(button_next#add) ()
   in
   object

@@ -36,7 +36,7 @@ open CommonSwarming
 (*************************************************************************)
 
 (* let debug_all = true *)
-let exit_on_error = ref true
+let exit_on_error = ref false
   
 open CommonTypes
   
@@ -78,7 +78,6 @@ type chunk = {
     chunk_size : int64;
   }
 
-  
 type t = {
     mutable t_primary : bool;
     t_file : file;
@@ -1073,63 +1072,137 @@ let verify t chunks num begin_pos end_pos =
     
 let verify_chunk t i = 
   if t.t_converted_verified_bitmap.[i] = '2' then
+    let nblocks = String.length t.t_converted_verified_bitmap in
     match t.t_verifier with
       NoVerification
     | VerificationNotAvailable -> ()
     
+    | Verification chunks when Array.length chunks = nblocks ->
+        
+        begin try
+            let s = t.t_s in
+            let block_begin = t.t_block_size ** i in
+            let block_end = block_begin ++  t.t_block_size in
+            let block_end = min block_end s.s_size in
+            if verify t chunks i block_begin block_end then begin
+                set_verified_chunk t i;
+                t.t_verified t.t_nverified_blocks i;
+              
+              end else begin
+                
+                lprintf "VERIFICATION OF BLOC %d OF %s FAILED\n"
+                  i (file_best_name t.t_file);
+                t.t_ncomplete_blocks <- t.t_ncomplete_blocks - 1;
+                
+                if List.for_all (fun i ->
+                      s.s_verified_bitmap.[i] = '2'
+                  ) t.t_t2s_blocks.(i) then begin
+                    
+                    lprintf "  Swarmer block was complete. Removing data...\n";
+                    
+                    t.t_converted_verified_bitmap.[i] <- '0';
+                    
+                    List.iter (fun i ->
+                        match s.s_blocks.(i) with
+                          EmptyBlock -> set_bitmap_0 s i
+                        | PartialBlock _ ->  set_bitmap_1 s i
+                        | CompleteBlock ->
+                            let block_begin = compute_block_begin s i in
+                            let block_end = compute_block_end s i in
+                            add_file_downloaded None s (block_begin -- block_end);
+                            
+                            s.s_blocks.(i) <- EmptyBlock;
+                            set_bitmap_0 s i
+                        
+                        | VerifiedBlock -> assert false
+                    ) t.t_t2s_blocks.(i)
+                  end else begin
+                    let nsub = ref 0 in
+                    
+                    lprintf "  Swarmer was incomplete: ";
+                    List.iter (fun i ->
+                        lprintf "%c" s.s_verified_bitmap.[i];
+                        if s.s_verified_bitmap.[i] = '2' then incr nsub;
+                    ) t.t_t2s_blocks.(i);
+                    lprintf "   = %d/%d\n" !nsub (List.length t.t_t2s_blocks.(i));
+                    
+                    t.t_converted_verified_bitmap.[i] <- '1'
+                  end;
+              end
+          with VerifierNotReady -> ()
+        end
+        
     | Verification chunks ->
-        try
-          let s = t.t_s in
-          let block_begin = t.t_block_size ** i in
-          let block_end = block_begin ++  t.t_block_size in
-          let block_end = min block_end s.s_size in
-          if verify t chunks i block_begin block_end then begin
-              set_verified_chunk t i;
-              t.t_verified t.t_nverified_blocks i;
-            
-            end else begin
+        assert (Array.length chunks = 1);
+        let can_verify = ref true in
+        let nblocks= String.length t.t_converted_verified_bitmap in
+        for i = 0 to nblocks - 1 do
+          if t.t_converted_verified_bitmap.[i] < '2' then
+            can_verify := false
+        done;
+        if !can_verify then begin
+            try
+              let s = t.t_s in
+              if verify t chunks 0 zero s.s_size then begin
+                  for i = 0 to nblocks - 1 do
+                    if t.t_converted_verified_bitmap.[i] = '2' then begin
+                        
+                        set_verified_chunk t i;
+                        t.t_verified t.t_nverified_blocks i;
+                      end
+                  done
               
-              lprintf "VERIFICATION OF BLOC %d OF %s FAILED\n"
-                i (file_best_name t.t_file);
-              t.t_ncomplete_blocks <- t.t_ncomplete_blocks - 1;
-              
-              if List.for_all (fun i ->
-                    s.s_verified_bitmap.[i] = '2'
-                ) t.t_t2s_blocks.(i) then begin
+              end else begin
+                
+                lprintf "VERIFICATION OF BLOCS OF %s FAILED\n"
+                    (file_best_name t.t_file);
                   
-                  lprintf "  Swarmer block was complete. Removing data...\n";
+                  for i = 0 to nblocks - 1 do
+                    if t.t_converted_verified_bitmap.[i] = '2' then begin
                   
-                  t.t_converted_verified_bitmap.[i] <- '0';
-                  
-                  List.iter (fun i ->
-                      match s.s_blocks.(i) with
-                        EmptyBlock -> set_bitmap_0 s i
-                      | PartialBlock _ ->  set_bitmap_1 s i
-                      | CompleteBlock ->
-                          let block_begin = compute_block_begin s i in
-                          let block_end = compute_block_end s i in
-                          add_file_downloaded None s (block_begin -- block_end);
-                          
-                          s.s_blocks.(i) <- EmptyBlock;
-                          set_bitmap_0 s i
-                      
-                      | VerifiedBlock -> assert false
-                  ) t.t_t2s_blocks.(i)
-                end else begin
-                  let nsub = ref 0 in
-                  
-                  lprintf "  Swarmer was incomplete: ";
-                  List.iter (fun i ->
-                      lprintf "%c" s.s_verified_bitmap.[i];
-                      if s.s_verified_bitmap.[i] = '2' then incr nsub;
-                  ) t.t_t2s_blocks.(i);
-                  lprintf "   = %d/%d\n" !nsub (List.length t.t_t2s_blocks.(i));
-                  
-                  t.t_converted_verified_bitmap.[i] <- '1'
-                end;
-            end
-        with VerifierNotReady -> ()
+                        t.t_ncomplete_blocks <- t.t_ncomplete_blocks - 1;
+                        if List.for_all (fun i ->
+                              s.s_verified_bitmap.[i] = '2'
+                          ) t.t_t2s_blocks.(i) then begin
+                    
+                            t.t_converted_verified_bitmap.[i] <- '0';
+                            
+                            List.iter (fun i ->
+                                match s.s_blocks.(i) with
+                                  EmptyBlock -> set_bitmap_0 s i
+                                | PartialBlock _ ->  set_bitmap_1 s i
+                                | CompleteBlock ->
+                                    let block_begin = t.t_block_size ** i in
+                                    let block_end = block_begin ++  t.t_block_size in
+                                    let block_end = min block_end s.s_size in
+                                    let block_begin = compute_block_begin s i in
+                                    let block_end = compute_block_end s i in
+                                    add_file_downloaded None s (block_begin -- block_end);
+                                    
+                                    s.s_blocks.(i) <- EmptyBlock;
+                                    set_bitmap_0 s i
+                        
+                                | VerifiedBlock -> assert false
+                            ) t.t_t2s_blocks.(i)
+                          end else begin
+                            let nsub = ref 0 in
+                            
+                            lprintf "  Swarmer was incomplete: ";
+                            List.iter (fun i ->
+                                lprintf "%c" s.s_verified_bitmap.[i];
+                                if s.s_verified_bitmap.[i] = '2' then incr nsub;
+                                ) t.t_t2s_blocks.(i);
+                            lprintf "   = %d/%d\n" !nsub (List.length t.t_t2s_blocks.(i));
+                    
+                            t.t_converted_verified_bitmap.[i] <- '1'
+                          end;
+                      end
+                  done
+              end
+          with VerifierNotReady -> ()
+        end
 
+            
 (*************************************************************************)
 (*                                                                       *)
 (*                         must_verify_chunk (internal)                  *)
@@ -2286,7 +2359,7 @@ let received (up : uploader) (file_begin : Int64.t)
 
 let present_chunks s =
   let nblocks = Array.length s.s_blocks in
-  lprintf "present_chunks...%d blocks\n" nblocks;
+(*  lprintf "present_chunks...%d blocks\n" nblocks; *)
   
   let rec iter_block_out i block_begin list = 
     if debug_present_chunks then
@@ -2459,6 +2532,9 @@ let duplicate_chunks () =
 (*                                                                       *)
 (*************************************************************************) 
 
+  
+(* TODO: where is this used ? check that the fact of using the UID for
+  small files does not create any problem. *)
 let get_checksums t =
   match t.t_verifier with
     Verification tab -> tab
@@ -2493,23 +2569,24 @@ let set_verified_bitmap primary t bitmap =
           end
     
     | '3' ->
-        lprintf "Setting 3 on %d\n" i;        
+(*        lprintf "Setting 3 on %d\n" i;        *)
         t.t_converted_verified_bitmap.[i] <- '3';
         if primary then
           let s = t.t_s in
           List.iter (fun i ->
-              lprintf "Should set %d\n" i;
+(*              lprintf "Should set %d\n" i; *)
               match s.s_blocks.(i) with
                 CompleteBlock -> 
-                  lprintf "CompleteBlock\n";
+(*                  lprintf "CompleteBlock\n"; *)
                   set_verified_block s i
               | EmptyBlock | PartialBlock _ ->
-                  lprintf "EmptyBlock/PartialBlock\n";
+(*                  lprintf "EmptyBlock/PartialBlock\n"; *)
                   set_completed_block None s i;
-                  lprintf "set_verified_block\n";
+(*                  lprintf "set_verified_block\n"; *)
                   set_verified_block s i
               | VerifiedBlock -> 
-                  lprintf "Block already verified\n"
+(*                  lprintf "Block already verified\n" *)
+                  ()
           ) t.t_t2s_blocks.(i);
           if t.t_converted_verified_bitmap.[i] <> '3' then
             lprintf "FIELD AS BEEN CLEARED\n"
@@ -2795,9 +2872,8 @@ let swarmer_to_value t other_vals =
 (*                                                                       *)
 (*************************************************************************)
 
-let verify_one_chunk t =
-  let s = t.t_s in
-(*  lprintf "verify_one_chunk: %d networks\n" (List.length s.s_networks); *)
+let verify_one_chunk s =
+(*  lprintf "verify_one_chunk: %d networks\n" (List.length s.s_networks);  *)
   List.iter (fun t ->
 (*      lprintf "verify_one_chunk of file %d\n" (file_num t.t_file); *)
       let bitmap = t.t_converted_verified_bitmap in
@@ -2811,6 +2887,27 @@ let verify_one_chunk t =
   ) s.s_networks;
 (*  lprintf "verify_one_chunk: nothing done\n"; *)
   ()
+  
+(*************************************************************************)
+(*                                                                       *)
+(*                         verify_some_chunks                            *)
+(*                                                                       *)
+(*************************************************************************)
+
+let verify_some_chunks () =
+  HS.iter (fun s ->
+      try
+        verify_one_chunk s
+      with _ -> ()) swarmers_by_name
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         verify_one_chunk                              *)
+(*                                                                       *)
+(*************************************************************************)
+
+let verify_one_chunk t =
+  verify_one_chunk t.t_s
   
 (*************************************************************************)
 (*                                                                       *)
@@ -3056,7 +3153,22 @@ let _ =
       Printf.bprintf buf "  Uploaders: %d\n" !counter;
       Printf.bprintf buf "  Storage: %d bytes\n" !storage;
   )
-  
+
+let check_finished t = 
+  try
+    let file = t.t_file in
+    match file_state file with
+      FileCancelled | FileShared | FileDownloaded -> false
+    | _ ->
+        let bitmap = verified_bitmap t in
+        for i = 0 to String.length bitmap - 1 do
+          if bitmap.[i] <> '3' then raise Not_found;
+        done;  
+        if file_size file <> downloaded t then
+          lprintf "Downloaded size differs after complete verification\n";
+        true
+  with _ -> false      
+      
   
 end 
 

@@ -20,9 +20,11 @@
 open Printf2
 open Options
 
-let debug = ref false
-
-(* Try to better display the errors related to connections *)
+(*************************************************************************)
+(*                                                                       *)
+(*                         TYPES                                         *)
+(*                                                                       *)
+(*************************************************************************)
 
 type close_reason =
     Closed_for_timeout    (* timeout exceeded *)
@@ -82,89 +84,65 @@ type timer = {
     mutable delay : float;
   }
 
-let nb_sockets = ref 0
 
-let allow_read = ref true
-let allow_write = ref true
+(*************************************************************************)
+(*                                                                       *)
+(*                         EXTERNALS                                     *)
+(*                                                                       *)
+(*************************************************************************)
 
 external change_fd_event_setting : t -> unit = "ml_change_fd_event_setting"  "noalloc"
 external add_fd_to_event_set : t -> unit = "ml_add_fd_to_event_set"  "noalloc"
 external remove_fd_from_event_set : t -> unit = "ml_remove_fd_from_event_set"  "noalloc"
-  
-let set_allow_read s ref = 
-  s.read_allowed <- ref;   
-  change_fd_event_setting s
-let set_allow_write s ref = 
-  s.write_allowed <- ref;
-  change_fd_event_setting s
-  
-let minf (x: float) (y: float) =
-  if x > y then y else x
-
-let mini (x: int) (y: int) =
-  if x > y then y else x
-
-let maxf (x: float) (y: float) =
-  if x < y then y else x
-
-let maxi (x: int) (y: int) =
-  if x < y then y else x
-  
-let infinite_timeout = 3600. *. 24. *. 365. (* one year ! *)
-
-let current_time = ref (Unix.gettimeofday ())
-let last_time = ref (int_of_float (!current_time -. 1000000000.))
-  
-let update_time () =
-  current_time := Unix.gettimeofday ();
-  last_time := (int_of_float (!current_time -. 1000000000.));
-  !current_time
-
-let fd t = t.fd
-
-let must_write t b  = 
-  if b <> t.want_to_write then begin
-    t.want_to_write <- b;
-    change_fd_event_setting t
-  end
-let must_read t b  = 
-  if b <> t.want_to_read then begin
-    t.want_to_read <- b;
-    change_fd_event_setting t
-  end
-
-(* let set_before_select t f = t.before_select <- f *)
-    
-let dummy_fd = Obj.magic (-1)
-
-let closed_tasks = ref []
 
 external get_fd_num : Unix.file_descr -> int = "ml_get_fd_num" "noalloc"
 
-let print_socket buf s =  
-  Printf.bprintf buf "FD %s:%d: %20s\n" 
-     (s.name) (get_fd_num s.fd)
-  (Date.to_string s.born)
+external select: t list -> float -> unit = "ml_select" 
+external use_poll : bool -> unit = "ml_use_poll"
+external has_threads : unit -> bool = "ml_has_pthread"
 
-let sprint_socket s =  
-  let buf = Buffer.create 100 in
-  print_socket buf s; 
-  Buffer.contents buf
+(*  external setsock_iptos_throughput: Unix.file_descr -> int = "setsock_iptos_throughput" *)
 
-let close t msg =
-  if t.fd <> dummy_fd then begin
-      if !debug then begin
-          lprintf "CLOSING: %s" (sprint_socket t); 
-        end;
-      (try 
-          Unix.close t.fd;
-          with _ -> ());
-      t.fd <- dummy_fd;
-      closed_tasks := t :: !closed_tasks;
-      t.closed <- true;
-      t.error <- msg;
-      decr nb_sockets
-    end
+(*************************************************************************)
+(*                                                                       *)
+(*                         Global values                                 *)
+(*                                                                       *)
+(*************************************************************************)
+  
+let can_read = 1
+let can_write = 2
+
+  
+let debug = ref false
+let nb_sockets = ref 0
+let allow_read = ref true
+let allow_write = ref true
+  
+let infinite_timeout = 3600. *. 24. *. 365. (* one year ! *)
+let current_time = ref (Unix.gettimeofday ())
+let last_time = ref (int_of_float (!current_time -. 1000000000.))
+    
+let dummy_fd = Obj.magic (-1)
+let closed_tasks = ref []
+let fd_tasks  = ref ([]: t list)
+let before_select_hooks = ref []
+let after_select_hooks = ref []
+let timeout = ref infinite_timeout
+let timers = ref []
+let loop_delay = ref 0.005
+let verbose_bandwidth = ref 0  
+let bandwidth_second_timers = ref []
+let use_threads = ref true
+
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         Accessors                                     *)
+(*                                                                       *)
+(*************************************************************************)
+
+let fd t = t.fd
+(* let set_before_select t f = t.before_select <- f *)
 
 let closed t = t.closed
 
@@ -183,23 +161,127 @@ let set_handler t handler =
   t.event_handler <- handler
 
 let handler t = t.event_handler
-
-let fd_tasks  = ref ([]: t list)
-
-let before_select_hooks = ref []
   
+    
 let set_before_select_hook f =
   before_select_hooks := f :: !before_select_hooks
 
-let after_select_hooks = ref []
-  
 let set_after_select_hook f =
   after_select_hooks := f :: !after_select_hooks
+
+      
+let add_bandwidth_second_timer f =
+  bandwidth_second_timers := f :: !bandwidth_second_timers
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         PRINTERS                                      *)
+(*                                                                       *)
+(*************************************************************************)
+  
+let string_of_reason c =
+  match c with
+    Closed_for_timeout -> "timeout"
+  | Closed_for_lifetime -> "lifetime"
+  | Closed_by_peer -> "peer"
+  | Closed_for_error error -> Printf.sprintf "error %s" error
+  | Closed_by_user -> "user"
+  | Closed_for_overflow -> "overflow"
+  | Closed_connect_failed -> "connect failed"
+  | Closed_for_exception e -> Printf.sprintf "exception %s"
+        (Printexc2.to_string e)
+  
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         Simple functions                              *)
+(*                                                                       *)
+(*************************************************************************)
+  
+let minf (x: float) (y: float) =
+  if x > y then y else x
+
+let mini (x: int) (y: int) =
+  if x > y then y else x
+
+let maxf (x: float) (y: float) =
+  if x < y then y else x
+
+let maxi (x: int) (y: int) =
+  if x < y then y else x
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         Some functions                                *)
+(*                                                                       *)
+(*************************************************************************)
+
+let set_allow_read s ref = 
+  s.read_allowed <- ref;   
+  change_fd_event_setting s
+  
+let set_allow_write s ref = 
+  s.write_allowed <- ref;
+  change_fd_event_setting s
+  
+let update_time () =
+  current_time := Unix.gettimeofday ();
+  last_time := (int_of_float (!current_time -. 1000000000.));
+  !current_time
+
+let must_write t b  = 
+  if b <> t.want_to_write then begin
+    t.want_to_write <- b;
+    change_fd_event_setting t
+  end
+let must_read t b  = 
+  if b <> t.want_to_read then begin
+    t.want_to_read <- b;
+    change_fd_event_setting t
+  end
+
+let print_socket buf s =  
+  Printf.bprintf buf "FD %s:%d: %20s\n" 
+     (s.name) (get_fd_num s.fd)
+  (Date.to_string s.born)
+
+let sprint_socket s =  
+  let buf = Buffer.create 100 in
+  print_socket buf s; 
+  Buffer.contents buf
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         close                                         *)
+(*                                                                       *)
+(*************************************************************************) 
+
+let close t msg =
+  if t.fd <> dummy_fd then begin
+      if !debug then begin
+          lprintf "CLOSING: %s" (sprint_socket t); 
+        end;
+      (try 
+          Unix.close t.fd;
+          with _ -> ());
+      t.fd <- dummy_fd;
+      closed_tasks := t :: !closed_tasks;
+      t.closed <- true;
+      t.error <- msg;
+      decr nb_sockets
+    end
   
 let default_before_select t = ()
 
 let dump_basic_socket buf = ()
-  
+
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         create_blocking                               *)
+(*                                                                       *)
+(*************************************************************************) 
+ 
 let create_blocking name fd handler =
   
   let (fdnum : int) = get_fd_num fd in
@@ -213,7 +295,7 @@ let create_blocking name fd handler =
   incr nb_sockets;
   MlUnix.set_nonblock fd;
 (*  lprintf "NEW FD %d\n" (Obj.magic fd); *)
-  let _ = update_time () in
+  ignore (update_time ());
   let t = {
       fd = fd;
       
@@ -253,16 +335,24 @@ let create_blocking name fd handler =
   t
 
   
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         create                                        *)
+(*                                                                       *)
+(*************************************************************************)
+
 let create name fd handler =
   MlUnix.set_nonblock fd;
   create_blocking name fd handler
-  
-external select: t list -> float -> unit = "ml_select" 
-external use_poll : bool -> unit = "ml_use_poll"
- 
-let timeout = ref infinite_timeout
-let timers = ref []
-  
+
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         iter_task                                     *)
+(*                                                                       *)
+(*************************************************************************)
+     
 let rec iter_task old_tasks time =
   match old_tasks with
     [] -> ()
@@ -286,6 +376,12 @@ let rec iter_task old_tasks time =
           iter_task old_tail time;
         end
 
+(*************************************************************************)
+(*                                                                       *)
+(*                         iter_timer                                    *)
+(*                                                                       *)
+(*************************************************************************)
+
 let rec iter_timer timers time =
   match timers with
     [] -> []
@@ -297,6 +393,12 @@ let rec iter_timer timers time =
           timeout := minf (t.next_time -. time) !timeout;
           t :: (iter_timer timers time)
         end
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         TIMERS                                        *)
+(*                                                                       *)
+(*************************************************************************)
           
 let add_timer delay f =
   timers := {
@@ -336,10 +438,14 @@ let add_session_option_timer enabler option f =
   in
   add_timer !!option f
   
-let add_infinite_option_timer option f = add_session_option_timer (ref true) option f
-  
-let can_read = 1
-let can_write = 2
+let add_infinite_option_timer option f = 
+  add_session_option_timer (ref true) option f
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         iter_hooks                                    *)
+(*                                                                       *)
+(*************************************************************************)
 
 let rec exec_hooks list =
   match list with
@@ -347,6 +453,12 @@ let rec exec_hooks list =
   | f :: tail ->
       (try f () with _ -> ());
       exec_hooks tail
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         exec_tasks                                    *)
+(*                                                                       *)
+(*************************************************************************)
 
 let rec exec_tasks = 
   function [] -> ()
@@ -369,6 +481,12 @@ let rec exec_tasks =
               t.event_handler t CAN_WRITE with _ -> ());
       );
       exec_tasks tail
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         exec_timers                                   *)
+(*                                                                       *)
+(*************************************************************************)
       
 let rec exec_timers = function
     [] -> ()
@@ -380,14 +498,12 @@ let rec exec_timers = function
           end
       );
       exec_timers tail
-      
-let loop_delay = ref 0.02
 
-let verbose_bandwidth = ref 0
-  
-let bandwidth_second_timers = ref []
-let add_bandwidth_second_timer f =
-  bandwidth_second_timers := f :: !bandwidth_second_timers
+(*************************************************************************)
+(*                                                                       *)
+(*                         loop                                          *)
+(*                                                                       *)
+(*************************************************************************)
   
 let loop () =
   add_infinite_timer 1.0 (fun _ ->
@@ -448,15 +564,6 @@ let shutdown t s =
     
 let nb_sockets () = !nb_sockets
   
-let _ =
-  Printexc2.register_exn (fun e ->
-      match e with
-        Unix.Unix_error (e, f, arg) ->
-          Printf.sprintf "%s failed%s: %s" f (if arg = "" then "" else 
-              "on " ^ arg) (Unix.error_message e)
-      | _ -> raise e
-  )
-  
 let stats buf t =
   lprintf "Socket %d\n" (get_fd_num t.fd)
 
@@ -480,31 +587,11 @@ let print_sockets buf =
   
 let info t = t.name
   
-let _ =
-  add_timer 300. (fun t ->
-      reactivate_timer t;
-      if !debug then
-        let buf = Buffer.create 100 in        
-        print_sockets buf;
-        lprintf "%s\n" (Buffer.contents buf);
-  )
-  
 let set_printer s f =
   s.printer <- f
   
 let set_dump_info s f =
   s.dump_info <- f
-  
-let _ =
-  Heap.add_memstat "BasicSocket" (fun level buf ->
-      Printf.bprintf buf "  %d timers\n" (List.length !timers); 
-      Printf.bprintf buf "  %d fd_tasks:\n" (List.length !fd_tasks); 
-      if level > 0 then
-        List.iter (fun t -> t.dump_info buf) !fd_tasks;
-      Printf.bprintf buf "  %d closed_tasks:\n" (List.length !closed_tasks); 
-      if level > 0 then
-        List.iter (fun t -> t.dump_info buf) !closed_tasks;
-  )
 
 let prevent_close s = s.can_close <- false
 let close_all () =
@@ -513,9 +600,7 @@ let close_all () =
         close s Closed_by_user
   ) !fd_tasks
   
-  
-(*  external setsock_iptos_throughput: Unix.file_descr -> int = "setsock_iptos_throughput" *)
-  
+    
 let last_time () = !last_time
 let start_time = last_time ()
 let date_of_int date = 
@@ -526,24 +611,43 @@ let string_of_date date =
     Date.to_string (date_of_int date)
 let normalize_time time =
   if time >= 1000000000 || time < 0 then time - 1000000000 else time
-
-let use_threads = ref true
-external has_threads : unit -> bool = "ml_has_pthread"
   
 let get_rtimeout t = t.rtimeout, t.next_rtimeout -. !current_time
 
 let int64_time () = Int64.of_float !current_time
-  
-let string_of_reason c =
-  match c with
-    Closed_for_timeout -> "timeout"
-  | Closed_for_lifetime -> "lifetime"
-  | Closed_by_peer -> "peer"
-  | Closed_for_error error -> Printf.sprintf "error %s" error
-  | Closed_by_user -> "user"
-  | Closed_for_overflow -> "overflow"
-  | Closed_connect_failed -> "connect failed"
-  | Closed_for_exception e -> Printf.sprintf "exception %s"
-        (Printexc2.to_string e)
 
 let update_time () = ignore (update_time ())
+let current_time () = !current_time
+  
+(*************************************************************************)
+(*                                                                       *)
+(*                         MAIN                                          *)
+(*                                                                       *)
+(*************************************************************************)
+  
+let _ =
+  Heap.add_memstat "BasicSocket" (fun level buf ->
+      Printf.bprintf buf "  %d timers\n" (List.length !timers); 
+      Printf.bprintf buf "  %d fd_tasks:\n" (List.length !fd_tasks); 
+      if level > 0 then
+        List.iter (fun t -> t.dump_info buf) !fd_tasks;
+      Printf.bprintf buf "  %d closed_tasks:\n" (List.length !closed_tasks); 
+      if level > 0 then
+        List.iter (fun t -> t.dump_info buf) !closed_tasks;
+  );
+
+  Printexc2.register_exn (fun e ->
+      match e with
+        Unix.Unix_error (e, f, arg) ->
+          Printf.sprintf "%s failed%s: %s" f (if arg = "" then "" else 
+              "on " ^ arg) (Unix.error_message e)
+      | _ -> raise e
+  );
+  
+  add_timer 300. (fun t ->
+      reactivate_timer t;
+      if !debug then
+        let buf = Buffer.create 100 in        
+        print_sockets buf;
+        lprintf "%s\n" (Buffer.contents buf);
+  )

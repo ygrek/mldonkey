@@ -112,7 +112,7 @@ module Make(Proto: sig
       val command_prefix : string
       val source_brand : bool
         
-      val udp_send : UdpSocket.t -> Ip.t -> int -> t -> unit
+      val udp_send : UdpSocket.t -> Ip.t -> int -> bool -> t -> unit
       val udp_handler : (t -> UdpSocket.udp_packet -> unit) -> 
         UdpSocket.t -> UdpSocket.event -> unit
         

@@ -33,14 +33,7 @@ module QueryReplyUdp  = struct
     
     type t = tagged_file list
     
-    let names_of_tag = [
-        "\001", "filename";
-        "\002", "size";
-        "\003", "type";
-        "\004", "format";
-        "\021", "availability";
-	"\048", "completesources";
-      ]        
+    let names_of_tag = file_common_tags
         
     let get_file  s pos =
       let md4 = get_md4 s pos in

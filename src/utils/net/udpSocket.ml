@@ -28,7 +28,55 @@ type event =
 | READ_DONE 
 | BASIC_EVENT of BasicSocket.event
 
+type ping = {
+    ping_ip : Ip.t;
+    mutable ping_die_time : int;
+    mutable ping_obsolete_time : int;
+    mutable ping_time : float;
+  }
+
+let latencies = Hashtbl.create 2131
+let pings_fifo = Fifo.create ()
+let pings_hashtbl = Hashtbl.create 2131
+  
+let declare_ping ip = 
+  
+  try
+    let ping = Hashtbl.find pings_hashtbl ip in
+    ping.ping_obsolete_time <- 0; (* ping is void *)
+    ping.ping_die_time <- last_time () + 50
+  with _ ->
+      let ping = {
+          ping_ip = ip;
+          ping_obsolete_time = last_time () + 50;
+          ping_die_time = last_time () + 50;
+          ping_time = current_time ();
+        } in
+      Hashtbl.add pings_hashtbl ip ping;
+      Fifo.put pings_fifo (ping.ping_die_time, ping)
+  
+let declare_pong ip = 
+  try
+    let ping = Hashtbl.find pings_hashtbl ip in
+    if ping.ping_obsolete_time > last_time () then begin
+        ping.ping_die_time <- 0;
+        let time = ping.ping_time in
+        let ip = ping.ping_ip in
+        let delay = current_time () -. time in
+        let delay = 1000. *. delay in
+        let delay = int_of_float delay in
+        let delay = if delay > 65000 then 65000 else delay in
+        try
+          let latency, samples = Hashtbl.find latencies ip in
+          incr samples;
+          if !latency > delay then latency := delay
+        with _ -> 
+            Hashtbl.add latencies ip (ref delay, ref 1)            
+      end
+  with _ -> ()
+
 type udp_packet = {
+    udp_ping : bool;
     udp_content: string;
     udp_addr: Unix.sockaddr;
 (*
@@ -39,8 +87,15 @@ type udp_packet = {
 
 let max_wlist_size = ref 100000
   
-let local_sendto a b c d e f = 
-  Unix.sendto a b c d e f
+let local_sendto sock p = 
+  if p.udp_ping then begin
+      match p.udp_addr with
+        Unix.ADDR_INET(ip, _) ->
+          let ip = Ip.of_inet_addr ip  in
+          declare_ping ip
+      | _ -> ()
+  end;
+  Unix.sendto sock p.udp_content 0 (String.length p.udp_content) [] p.udp_addr
    
 
 module PacketSet = Set.Make (struct
@@ -137,7 +192,7 @@ let print_addr addr =
 
 let max_delayed_send = 30
   
-let write t s ip port =
+let write t ping s ip port =
 (*  lprintf "UDP write to %s:%d\n" (Ip.to_string ip) port; *)
   if not (closed t) && t.wlist_size < !max_wlist_size then 
     let s, addr = match t.socks_local with
@@ -163,7 +218,8 @@ let write t s ip port =
 
               let code = 
                 try
-                  local_sendto (fd sock) s 0 len [] addr 
+                  if ping then declare_ping ip;
+                  Unix.sendto (fd sock) s 0 len [] addr 
                 with e ->
                     lprintf "Exception in sendto %s:%d\n" (Ip.to_string ip) port;
                     raise e
@@ -177,20 +233,21 @@ lprintf "UDP sent [%s]" (String.escaped
             with
               Unix.Unix_error ((Unix.EWOULDBLOCK | Unix.ENOBUFS), _, _) -> 
                 t.wlist <- PacketSet.add  (0, {
+                    udp_ping = ping;
                     udp_content = s ;
                     udp_addr = addr;
                   }) t.wlist;
                 t.wlist_size <- t.wlist_size + String.length s;
                 must_write sock true;
             | e ->
-                lprintf "Exception %s in sendto"
+                lprintf "Exception %s in sendto\n"
                   (Printexc2.to_string e);
-                lprint_newline ();
                 print_addr addr;
                 raise e
           end
         else begin
             t.wlist <- PacketSet.add (0, {
+                udp_ping = ping;
                 udp_content = s ;
                 udp_addr = addr;
               })  t.wlist;
@@ -201,6 +258,7 @@ lprintf "UDP sent [%s]" (String.escaped
 
         begin
           t.wlist <- PacketSet.add (bc.base_time + max_delayed_send, {
+              udp_ping = ping;
               udp_content = s;
               udp_addr = addr;
             })  t.wlist;
@@ -218,8 +276,7 @@ let rec iter_write_no_bc t sock =
   t.wlist_size <- t.wlist_size - String.length p.udp_content;
   let len = String.length p.udp_content in
   begin try
-      ignore (
-        local_sendto (fd sock) p.udp_content 0 len  [] p.udp_addr);
+      ignore (local_sendto (fd sock) p);
       udp_uploaded_bytes := Int64.add !udp_uploaded_bytes (Int64.of_int len);
     with
       Unix.Unix_error ((Unix.EWOULDBLOCK | Unix.ENOBUFS), _, _) as e -> raise e
@@ -253,8 +310,7 @@ let rec iter_write t sock bc =
     begin try
         
 
-        ignore (
-          local_sendto (fd sock) p.udp_content 0 len  [] p.udp_addr);
+        ignore (local_sendto (fd sock) p);
         udp_uploaded_bytes := Int64.add !udp_uploaded_bytes (Int64.of_int len);
         bc.remaining_bytes <- bc.remaining_bytes - (len + !
           TcpBufferedSocket.ip_packet_size) ;
@@ -289,6 +345,7 @@ let udp_handler t sock event =
       udp_downloaded_bytes := Int64.add !udp_downloaded_bytes (Int64.of_int len);
       t.rlist <- {
         udp_content = s;
+        udp_ping = false;
         udp_addr = addr;
       } :: t.rlist;
       t.event_handler t READ_DONE
@@ -457,3 +514,37 @@ let set_socks_proxy t ss =
       (Printexc2.to_string e); lprint_newline ();
     close t "socks proxy error"; raise e
 *)
+
+  
+let get_latencies () =
+  let b = Buffer.create 300 in
+  let counter = ref 0 in  
+  Hashtbl.iter (fun ip (latency, samples) ->
+      incr counter;
+  ) latencies;
+  LittleEndian.buf_int b !counter;
+  Hashtbl.iter (fun ip (latency, samples) ->
+      lprintf "   Latency UDP: %s -> %d (%d samples)\n" (Ip.to_string ip) !latency !samples;
+      LittleEndian.buf_ip b ip;
+      LittleEndian.buf_int16 b !latency;
+      LittleEndian.buf_int16 b !samples;
+  ) latencies;
+  Hashtbl.clear latencies;
+  Buffer.contents b
+      
+let _ =
+  add_infinite_timer 5. (fun _ ->
+      try
+        while true do
+          let (die_time, ping) = Fifo.head pings_fifo in
+          if die_time < last_time () then begin
+              ignore (Fifo.take pings_fifo);
+              if ping.ping_die_time > last_time () then
+                Fifo.put pings_fifo (ping.ping_die_time, ping)
+              else
+                Hashtbl.remove pings_hashtbl ping.ping_ip
+            end else raise Exit
+        done
+      with _ -> ()
+  )
+

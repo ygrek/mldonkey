@@ -459,8 +459,8 @@ let value_reader gui t =
 
     | GiftServerAttach _
     | GiftServerStats _ -> assert false
-
-    | Search s -> ()
+    | Version _
+    | Search _ -> ()
         
   with e ->
       lprintf "Exception %s in reader\n" (Printexc2.to_string e)

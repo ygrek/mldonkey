@@ -28,13 +28,14 @@
 #define METHOD_MD4      Val_int(0)
 #define METHOD_MD5      Val_int(1)
 #define METHOD_SHA1     Val_int(2)
-#define METHOD_TIGER     Val_int(2)
+#define METHOD_TIGER     Val_int(3)
 
 #define JOB_BEGIN_POS   1
 #define JOB_LEN         2
 #define JOB_METHOD      3
 #define JOB_RESULT      4
 #define JOB_HANDLER     5
+#define JOB_ERROR       6
 
 #include "../../utils/lib/md4.h"
 #include "../../utils/lib/md5.h"
@@ -63,6 +64,9 @@ static void HASH_NAME##_unsafe64_fd_direct (OS_FD fd, off_t pos, long len, \
  \
     nread = os_read (fd, local_hash_buffer, max_nread); \
  \
+    if(nread <= 0) { \
+        unix_error(errno, "HASH_NAME##unsafe64_fd_direct: Read", Nothing); \
+    } \
     if(nread == 0){ \
       HASH_FINISH (&context, digest); \
  \
@@ -79,15 +83,18 @@ COMPLETE_HASH(sha1,SHA1_CTX,sha1_begin,sha1_hash, sha1_end)
 COMPLETE_HASH(md5,md5_state_t,md5_init,md5_append,md5_finish)
 COMPLETE_HASH(md4,MD4_CTX,MD4Init,MD4Update,md4_finish)
 
-static void tiger_tree_fd(OS_FD fd, int len, int pos, int block_size, char *digest)
+static void tiger_tree_fd(OS_FD fd, long len, off_t pos, 
+  int block_size, char *digest)
 {
   static char tiger_buffer[BLOCK_SIZE+1];
+
   if(block_size == BLOCK_SIZE){
     int length = (len - pos > BLOCK_SIZE) ? BLOCK_SIZE : len - pos;
     char *s = tiger_buffer+1;
     int toread = length;
     char *curs = s;
-      while (toread!=0){
+
+      while (toread>0){
       int max_nread = toread;
 /* HASH_BUFFER_LEN > toread ? toread : HASH_BUFFER_LEN; */
 
@@ -225,7 +232,8 @@ value ml_job_start(value job_v, value fd_v)
   if(Field(job_v, JOB_METHOD) == METHOD_TIGER)
   {
 /* This does a complete computation on the chunk */
-    tiger_tree_fd(job_fd, job_len, job_pos, tiger_block_size(job_len), digest);
+    os_lseek(job_fd, job_pos, SEEK_SET);
+    tiger_tree_fd(job_fd, job_len, 0, tiger_block_size(job_len), digest);
     return Val_unit;
   }
   
@@ -316,7 +324,7 @@ static void * hasher_thread(void * arg)
     
     if(!job_done){
 
-/*      fprintf(stderr,"job started\n");  */
+/*      fprintf(stderr,"job started\n");   */
       
       if(job_method == METHOD_MD4)
         md4_unsafe64_fd_direct(job_fd, job_begin_pos, job_len, job_result);
@@ -328,7 +336,8 @@ static void * hasher_thread(void * arg)
             sha1_unsafe64_fd_direct(job_fd, job_begin_pos, job_len, job_result);
           else 
             if( job_method == METHOD_TIGER){
-              tiger_tree_fd(job_fd, job_len, job_begin_pos, tiger_block_size(job_len), job_result);
+              int bsize = tiger_block_size(job_len);
+              tiger_tree_fd(job_fd, job_len, 0, bsize, job_result);
             } else {
               printf("commonHasher_c.c: method sha1 not implemented\n");
               exit(2);

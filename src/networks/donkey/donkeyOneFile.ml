@@ -129,6 +129,8 @@ let unshare_file file =
 let declare_completed_file file = 
   DonkeyShare.remember_shared_info file (file_disk_name file);
   file_completed (as_file file);
+  file.file_swarmer <- None;
+  
   
   unshare_file file;
   ignore (CommonShared.new_shared "completed" 0 (
@@ -475,9 +477,9 @@ let search_found filter search md4 tags =
   let new_tags = ref [] in
   List.iter (fun tag ->
       match tag with
-        { tag_name = "filename"; tag_value = String s } -> file_name := s
-      | { tag_name = "size"; tag_value = Uint64 v } -> file_size := v
-      | { tag_name = "availability";
+        { tag_name = Field_Filename; tag_value = String s } -> file_name := s
+      | { tag_name = Field_Size; tag_value = Uint64 v } -> file_size := v
+      | { tag_name = Field_Availability;
 	  tag_value = (Uint64 v| Fint64 v) } ->
           availability := Int64.to_int v;  new_tags := tag :: !new_tags
       | _ -> new_tags := tag :: !new_tags

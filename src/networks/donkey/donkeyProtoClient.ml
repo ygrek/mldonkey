@@ -105,16 +105,16 @@ module Connect  = struct
     
     let names_of_tag =
       [
-        "\001", "name";
-        "\017", "version";
-        "\015", "port";
-        "\031", "udpport";
-        "\060", "downloadtime";
-        "\061", "incompleteparts";
-        "\085", "mod_version";
-        "\249", "emule_udpports";
-        "\250", "emule_miscoptions1";
-        "\251", "emule_version";
+        "\001", Field_UNKNOWN "name";
+        "\017", Field_UNKNOWN "version";
+        "\015", Field_UNKNOWN "port";
+        "\031", Field_UNKNOWN "udpport";
+        "\060", Field_UNKNOWN "downloadtime";
+        "\061", Field_UNKNOWN "incompleteparts";
+        "\085", Field_UNKNOWN "mod_version";
+        "\249", Field_UNKNOWN "emule_udpports";
+        "\250", Field_UNKNOWN "emule_miscoptions1";
+        "\251", Field_UNKNOWN "emule_version";
       ]
       
     let parse len s =
@@ -618,13 +618,7 @@ module ViewFilesReply = struct
     
     type t = tagged_file list
     
-    let names_of_tag =
-      [
-        "\001", "filename";
-        "\002", "size";
-        "\003", "type";
-        "\004", "format";
-      ]
+    let names_of_tag = file_common_tags
     
     let rec get_files  s pos n =
       if n = 0 then [], pos else
@@ -812,6 +806,9 @@ module EmuleClientInfo = struct
         "\160", "mod_wombat";
         "\161", "dev_wombat";
       ]
+
+    let names_of_tag = 
+      List.map (fun (v, name) -> (v, Field_UNKNOWN name)) names_of_tag
       
     let parse len s =
       let version = get_uint8 s 1 in

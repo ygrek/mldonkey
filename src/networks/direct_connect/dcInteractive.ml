@@ -248,13 +248,13 @@ let _ =
         P.user_tags = (
           let list = if user.user_data > 1. then 
               [ 
-                { tag_name =  "link"; tag_value = String user.user_link };
-                { tag_name =  "shared"; tag_value = String (
+                { tag_name =  Field_UNKNOWN "link"; tag_value = String user.user_link };
+                { tag_name =  Field_UNKNOWN "shared"; tag_value = String (
                     Printf.sprintf "%12.0f" user.user_data) }
               ]          else []
           in
           if user.user_admin then
-            { tag_name =  "admin"; tag_value = String "admin" } :: list
+            { tag_name =  Field_UNKNOWN "admin"; tag_value = String "admin" } :: list
           else list
         );
             

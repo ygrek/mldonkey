@@ -34,7 +34,8 @@ type 'a file_impl = {
   mutable impl_file_last_rate : float;
   mutable impl_file_best_name : string;
   mutable impl_file_priority : int;
-  mutable impl_file_last_seen : int;
+    mutable impl_file_last_seen : int;
+    mutable impl_file_probable_name : string option;
 } 
 and 'a file_ops = {
   mutable op_file_network : CommonTypes.network;
@@ -52,11 +53,11 @@ and 'a file_ops = {
   mutable op_file_active_sources : 'a -> CommonTypes.client list;
   mutable op_file_comment : 'a -> string;
   mutable op_file_set_priority : 'a -> int -> unit;
+    mutable op_file_print_html: 'a -> Buffer.t -> unit;
     mutable op_file_print_sources_html : 'a -> Buffer.t -> unit;
     mutable op_file_files : ('a -> 'a file_impl -> CommonTypes.file list);    
-    mutable op_file_print_sources_html_header : 
-    'a -> Buffer.t -> GuiTypes.file_info -> unit;
     mutable op_file_debug : 'a -> string;
+    mutable op_file_proposed_filenames : 'a -> string list;
 } 
 val as_file : 'a file_impl -> CommonTypes.file
 val as_file_impl : CommonTypes.file -> 'a file_impl
@@ -125,4 +126,5 @@ val file_mtime : CommonTypes.file -> float
   val file_copy :
   CommonTypes.file -> CommonTypes.file -> int64 -> int64 -> int64 -> unit
 val file_files : CommonTypes.file -> CommonTypes.file list
-  
+val propose_filenames : unit -> unit
+val propose_filename : CommonTypes.file -> unit

@@ -64,7 +64,7 @@ OK   op_network_share : (shared -> unit);
 OK   op_network_parse_url
 *)
   
-let network = new_network "Direct Connect"  
+let network = new_network "DC" "Direct Connect"  
     [ 
     NetworkHasServers; 
     NetworkHasRooms;
@@ -72,8 +72,6 @@ let network = new_network "Direct Connect"
     NetworkHasSearch;
     NetworkHasUpload;
     ]
-    (fun _ -> !!network_options_prefix)
-  (fun _ -> !!commit_in_subdir)
 
 let connection_manager = network.network_connection_manager
   

@@ -73,7 +73,6 @@ module Download = CommonDownloads.Basic.Make(struct
       
       let file file = as_file file.file_file
       let client client = as_client client.client_client        
-      let subdir_option = commit_in_subdir
       
       let client_disconnected d =
         lprintf "DISCONNECTED FROM SOURCE"; lprint_newline ();

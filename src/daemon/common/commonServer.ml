@@ -317,7 +317,11 @@ let server_print s o =
   let impl = as_server_impl s in
   let n = impl.impl_server_ops.op_server_network in
   try
-    let info = server_info s in
+    let info = 
+      try server_info s with e -> 
+          lprintf "Exception %s in server_info (%s)\n"
+            (Printexc2.to_string e) n.network_name;
+          raise e in
     let buf = o.conn_buf in
 	
 	if use_html_mods o then begin

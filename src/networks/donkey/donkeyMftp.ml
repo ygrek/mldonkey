@@ -20,11 +20,13 @@
 open AnyEndian
 
 open Printf2
-open CommonTypes
 open LittleEndian
 open Int64ops
 open TcpBufferedSocket
 
+  open CommonTypes
+open CommonGlobals
+  
 let const_int32_255 = Int64.of_int 255
 let output_int32_8 oc i =
   output_char oc (char_of_int (Int64.to_int (
@@ -68,33 +70,34 @@ let buf_addr buf (ip,port) =
 
 let buf_tag buf tag names_of_tag =
   let name = try rev_assoc tag.tag_name names_of_tag 
-    with _ -> tag.tag_name
+    with _ -> string_of_field tag.tag_name
   in
 (* try
             let i = rev_assoc name names_of_tag in
             String.make 1 (char_of_int i)
           with _ -> name *) 
-    match tag.tag_value with
-    | Uint64 n -> 
-        buf_int8 buf 3;
-        buf_string buf name;
-        buf_int64_32 buf n
-    | Fint64 n -> 
-        buf_int8 buf 4;
-        buf_string buf name;
-        buf_int64_32 buf n
-    | Addr ip -> assert false
-    | String s -> 
-        buf_int8 buf 2;
-        buf_string buf name;
-        buf_string buf s
-    | Uint16 n ->
-        buf_int8 buf 8;
-        buf_int16 buf n
-    | Uint8 n ->
-        buf_int8 buf 9;
-        buf_int8 buf n
-  
+  match tag.tag_value with
+  | Uint64 n -> 
+      buf_int8 buf 3;
+      buf_string buf name;
+      buf_int64_32 buf n
+  | Fint64 n -> 
+      buf_int8 buf 4;
+      buf_string buf name;
+      buf_int64_32 buf n
+  | Addr ip -> assert false
+  | String s -> 
+      buf_int8 buf 2;
+      buf_string buf name;
+      buf_string buf s
+  | Uint16 n ->
+      buf_int8 buf 8;
+      buf_int16 buf n
+  | Uint8 n ->
+      buf_int8 buf 9;
+      buf_int8 buf n
+  | Pair _ -> assert false
+      
 let rec buf_tags buf tags names_of_tag =
   buf_int buf (List.length tags);
   let rec iter_tags tags =
@@ -144,7 +147,7 @@ let get_port s pos =
 
 let get_string = get_string16
   
-let get_tag names_of_tag s pos =
+let get_tag (names_of_tag : (string * field) list) s pos =
   let t = get_uint8 s pos in
   let name, pos2 = get_string s (pos+1) in
 (*  lprintf "tag name = %s" (String.escaped name);   *)
@@ -168,7 +171,7 @@ let get_tag names_of_tag s pos =
         List.assoc name names_of_tag
       with Not_found ->
 (*          lprintf "Unknown tag \"%s\"\n" (String.escaped name); *)
-          name);
+          field_of_string name);
     tag_value = v
   }, pos
   
@@ -203,3 +206,17 @@ let rec find_tag v tags =
 
 
 
+
+let file_common_tags = [
+    "\001", Field_Filename;
+    "\002", Field_Size;
+    "\003", Field_Type;
+    "\004", Field_Format;
+
+    "\021", Field_Availability;
+    "\048", Field_Completesources;
+    
+    "Artist", Field_Artist;
+    "Album", Field_Album;
+    "Title", Field_Title;
+  ]

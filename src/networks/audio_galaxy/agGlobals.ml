@@ -30,7 +30,6 @@ module DO = CommonOptions
 open CommonNetwork
   
 let network = new_network "Audio Galaxy"
-    network_options_prefix commit_in_subdir
   
 let (file_ops : file CommonFile.file_ops) = CommonFile.new_file_ops network
   

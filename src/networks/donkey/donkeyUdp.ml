@@ -268,6 +268,7 @@ let udp_client_handler t p =
   | Udp.PingServerReplyUdpReq t ->
       let module M = Udp.PingServerReplyUdp in
       let s = udp_from_server p in
+      UdpSocket.declare_pong s.server_ip;
       s.server_last_message <- last_time ();
       s.server_nfiles <- Int64.of_int t.M.files;
       s.server_nusers <- Int64.of_int t.M.users;

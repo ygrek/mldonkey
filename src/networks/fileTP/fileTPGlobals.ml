@@ -43,10 +43,9 @@ open FileTPOptions
 
   
   
-let network = new_network "FileTP"  
+let network = new_network "FTP" "FileTP"  
     [ ]
-    (fun _ -> !!network_options_prefix)
-  (fun _ -> !!commit_in_subdir)
+
 let connection_manager = network.network_connection_manager
   
   (*

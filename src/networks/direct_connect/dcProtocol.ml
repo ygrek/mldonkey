@@ -940,8 +940,9 @@ let make_shared_list () =
     in
     List.iter (fun sh ->
         buf_tabs buf ntabs;
+        let info = IndexedSharedFiles.get_result sh.shared_info in  
         Printf.bprintf buf "%s|%Ld\r\n" (
-          Filename.basename sh.shared_codedname) sh.shared_size
+          Filename.basename sh.shared_codedname) info.shared_size
     ) node.shared_files;
     List.iter (fun (_, node) ->
         iter ntabs node

@@ -59,6 +59,10 @@ let result_name r =
     [] -> None
   | name :: _ -> Some name
 
+
+let op_file_proposed_filenames file = 
+  lprintf "op_file_proposed_filenames\n";
+  List2.tail_map fst file.file_filenames
       
 let reconnect_all file =
   DonkeyProtoOvernet.Overnet.recover_file file;
@@ -92,9 +96,9 @@ let load_server_met filename =
           let server = check_add_server r.S.ip r.S.port in
           List.iter (fun tag ->
               match tag with
-                { tag_name = "name"; tag_value = String s } -> 
+                { tag_name = Field_UNKNOWN "name"; tag_value = String s } -> 
                   server.server_name <- s;
-              |  { tag_name = "description" ; tag_value = String s } ->
+              |  { tag_name = Field_UNKNOWN "description" ; tag_value = String s } ->
                   server.server_description <- s
               | _ -> ()
           ) r.S.tags
@@ -123,27 +127,38 @@ let really_query_download filenames size md4 location old_file absents =
       if file.file_md4 = md4 then raise already_done) 
   !current_files;
 
-  let temp_file = Filename.concat !!temp_directory (Md4.to_string md4) in
+  let uid = Uid.create (Ed2k md4) in
+  let file_diskname = Filename.concat !!temp_directory 
+    (Uid.to_string uid) in
   begin
     match old_file with
-      None -> ()
-    | Some filename ->
+    | Some filename when file_diskname <> filename ->
         if Sys.file_exists filename && not (
-            Unix32.file_exists temp_file) then
+            Unix32.file_exists file_diskname) then
           (try 
               if !verbose then begin
                   lprintf "Renaming from %s to %s\n" filename
-                    temp_file; 
+                    file_diskname; 
                 end;
-              Unix2.rename filename temp_file;
-              Unix.chmod temp_file 0o644;
+              Unix2.rename filename file_diskname;
+              Unix.chmod file_diskname 0o644;
               with e -> 
                 lprintf "Could not rename %s to %s: exception %s\n"
-                  filename temp_file (Printexc2.to_string e);
-                 );        
+                  filename file_diskname (Printexc2.to_string e);
+          );        
+    | _ -> ()
   end;
-  
-  let file = new_file FileDownloading temp_file md4 size true in
+
+(* TODO RESULT  let other_names = DonkeyIndexer.find_names md4 in *)
+  let filenames =
+    let other_names = [] in
+    let filenames = List.fold_left (fun names name ->
+          if List.mem name names then names else names @ [name]
+      ) filenames other_names in 
+    (List.map (fun name -> name , { ips=[]; nips=0}) filenames)
+  in
+
+  let file = new_file file_diskname FileDownloading md4 size filenames true in
   begin
     match absents with
       None -> ()
@@ -154,15 +169,6 @@ let really_query_download filenames size md4 location old_file absents =
             let absents = Sort.list (fun (p1,_) (p2,_) -> p1 <= p2) absents in
             Int64Swarmer.set_absent swarmer absents
   end;
-  
-(* TODO RESULT  let other_names = DonkeyIndexer.find_names md4 in *)
-  let other_names = [] in
-  let filenames = List.fold_left (fun names name ->
-        if List.mem name names then names else names @ [name]
-    ) filenames other_names in 
-  file.file_filenames <- file.file_filenames @ (List.map 
-    (fun name -> name , { ips=[]; nips=0}) filenames);
-  update_best_name file;
 
   DonkeyProtoOvernet.Overnet.recover_file file;
   DonkeyProtoKademlia.Kademlia.recover_file file;
@@ -261,7 +267,7 @@ let result_download r filenames force =
     | uid :: tail ->
         match Uid.to_uid uid with
           Ed2k md4 ->
-            query_download filenames r.result_size md4 None None None force        
+            query_download filenames r.result_size md4 None None None force
         | _  -> iter tail
   in
   iter r.result_uids
@@ -292,11 +298,11 @@ let import_temp temp_dir =
             let size = ref Int64.zero in
             List.iter (fun tag ->
                 match tag with
-                  { tag_name = "filename"; tag_value = String s } ->
+                  { tag_name = Field_Filename; tag_value = String s } ->
                     lprintf "Import Donkey %s\n" s; 
                     
                     filenames := s :: !filenames;
-                | { tag_name = "size"; tag_value = Uint64 v } ->
+                | { tag_name = Field_Size; tag_value = Uint64 v } ->
                     size := v
                 | _ -> ()
             ) f.P.tags;
@@ -315,16 +321,16 @@ let import_config dirname =
 
   List.iter (fun tag ->
       match tag with
-      | { tag_name = "name"; tag_value = String s } ->
+      | { tag_name = Field_UNKNOWN "name"; tag_value = String s } ->
           login =:=  s
-      | { tag_name = "port"; tag_value = Uint64 v } ->
+      | { tag_name = Field_UNKNOWN "port"; tag_value = Uint64 v } ->
           donkey_port =:=  Int64.to_int v
       | _ -> ()
   ) ct;
 
   List.iter (fun tag ->
       match tag with
-      | { tag_name = "temp"; tag_value = String s } ->
+      | { tag_name = Field_UNKNOWN "temp"; tag_value = String s } ->
           if Sys.file_exists s then (* be careful on that *)
             temp_dir := s
           else (lprintf "Bad temp directory, using default\n";
@@ -809,41 +815,6 @@ DonkeySources.recompute_ready_sources ()        *)
       ()
   );
   file_ops.op_file_pause <- (fun file -> ()  );
-  file_ops.op_file_print_sources_html_header <- (fun file buf info ->
-      
-      html_mods_table_header buf "sourcesTable" "sources al" ([ 
-          ( "1", "srh ac", "Client number (click to add as friend)", "Num" ) ; 
-          ( "0", "srh", "[A] = Active download from client", "A" ) ; 
-          ( "0", "srh", "Client state", "CS" ) ; 
-          ( "0", "srh", "Client name", "Name" ) ; 
-          ( "0", "srh", "Client brand", "CB" ) ; 
-        ] @
-          (if !!emule_mods_count then [( "0", "srh", "eMule MOD", "EM" )] else [])
-        @ [
-          ( "0", "srh", "Overnet [T]rue, [F]alse", "O" ) ; 
-          ( "0", "srh", "Connection [I]ndirect, [D]irect", "C" ) ; 
-          ( "0", "srh br", "IP address", "IP address" ) ; 
-          ( "1", "srh ar", "Total UL bytes to this client for all files", "UL" ) ; 
-          ( "1", "srh ar br", "Total DL bytes from this client for all files", "DL" ) ; 
-          ( "1", "srh ar", "Your queue rank on this client", "Rnk" ) ; 
-          ( "1", "srh ar br", "Source score", "Scr" ) ; 
-          ( "1", "srh ar", "Last ok (minutes)", "LO" ) ; 
-          ( "1", "srh ar", "Last try (minutes)", "LT" ) ; 
-          ( "1", "srh ar br", "Next try (minutes)", "NT" ) ; 
-          ( "0", "srh", "Has a slot [T]rue, [F]alse", "H" ) ; 
-          ( "0", "srh br", "Banned [T]rue, [F]alse", "B" ) ; 
-          ( "1", "srh ar", "Requests sent", "RS" ) ; 
-          ( "1", "srh ar", "Requests received", "RR" ) ; 
-          ( "1", "srh ar br", "Connected time (minutes)", "CT" ) ; 
-          ( "0", "srh br", "Client MD4", "MD4" ) ; 
-          ( "0", "srh", "Chunks (absent|partial|present|verified)", 
-            (colored_chunks 
-                (Array.init (String.length info.G.file_chunks)
-                (fun i -> ((int_of_char info.G.file_chunks.[i])-48)))) ) ; 
-          ( "1", "srh ar", "Number of full chunks", (Printf.sprintf "%d"
-                (let fc = ref 0 in (String.iter (fun s -> if s = '2' then incr fc) 
-                  info.G.file_chunks );!fc ))) ])
-  );
   
   file_ops.op_file_commit <- (fun file new_name ->
       
@@ -1085,9 +1056,197 @@ let _ =
       ) file.file_sources;
       !list
   );
+  file_ops.op_file_print_html <- (fun file buf ->
+
+     html_mods_cntr_init ();
+
+     let tr () = 
+      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ())
+     in 
+
+      tr ();
+      html_mods_td buf [
+        ("Fake check links", "sr br", "Fakecheck");
+        ("", "sr", Printf.sprintf "\\<a target=\\\"_blank\\\" href=\\\"http://donkeyfakes.gambri.net/fakecheck.php\\?hash=%s\\\"\\>[Donkey-Fakes]\\</a\\>"
+            (Md4.to_string file.file_md4)
+        ) ];
+
+      tr ();
+      html_mods_td buf [
+        ("ed2k link", "sr br", "ed2k link");
+        ("", "sr", Printf.sprintf "\\<a href=\\\"ed2k://|file|%s|%s|%s|/\\\"\\>ed2k://|file|%s|%s|%s|/\\</A\\>"
+            (file_best_name file)
+          (Int64.to_string (file_size file))
+          (Md4.to_string file.file_md4)
+          (file_best_name file)
+          (Int64.to_string (file_size file))
+          (Md4.to_string file.file_md4)) ];
+
+      tr ();
+      let optionlist = ref "" in
+      List.iter (fun (name,_) ->
+          optionlist := !optionlist ^ Printf.sprintf "\\<option value=\\\"%s\\\"\\>%s\n" name name;
+      ) file.file_filenames;
+
+
+      let input_size = (Printf.sprintf "%d" ((String.length (file_best_name file))+3)) in
+      html_mods_td buf [
+        ("Rename file by selecting an alternate name", "sr br", "Filename");
+        ("Rename file", "sr",
+          Printf.sprintf "\\<script language=javascript\\>
+\\<!-- 
+function submitRenameForm(i) {
+var formID = document.getElementById(\\\"renameForm\\\" + i)
+var regExp = new RegExp (' ', 'gi') ;
+var renameTextOut = formID.newName.value.replace(regExp, '+'); 
+parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
+}
+//--\\>
+\\</script\\>" (file_num file)
+
+   ^ "\\<table border=0 cellspacing=0 cellpadding=0\\>\\<tr\\>\\<td\\>"
+   ^ "\\<form name=\\\"renameForm1\\\" id=\\\"renameForm1\\\" action=\\\"javascript:submitRenameForm(1);\\\"\\>"
+   ^ "\\<select name=\\\"newName\\\" id=\\\"newName\\\" onchange=\\\"this.form.submit()\\\"\\>"
+   ^ Printf.sprintf "\\<option value=\\\"%s\\\" selected\\>%s\n" (file_best_name file) (file_best_name file)
+   ^ !optionlist
+   ^ "\\</select\\>\\</td\\>\\</tr\\>\\</form\\>\\<tr\\>\\<td\\>\\<form name=\\\"renameForm2\\\" id=\\\"renameForm2\\\" action=\\\"javascript:submitRenameForm(2);\\\"\\>"
+   ^ "\\<input name=\\\"newName\\\" type=text size=" ^ input_size ^ " value=\\\"" ^ (file_best_name file) ^ "\\\"\\>\\</input\\>\\</td\\>\\</tr\\>\\</form\\>\\</table\\>"
+    ) ];
+
+
+  );
   file_ops.op_file_print_sources_html <- (fun file buf ->
-(* TODO:       if !!source_management = 3 then DonkeySources.print_sources_html file buf *)
-      ()
+
+   if List.length (file_ops.op_file_all_sources file) > 0 then begin
+
+      let chunks = 
+      (match file.file_swarmer with
+       None -> "" | Some swarmer ->
+       Int64Swarmer.verified_bitmap swarmer)
+      in
+
+
+      html_mods_table_header buf "sourcesTable" "sources al" ([ 
+          ( "1", "srh ac", "Client number (click to add as friend)", "Num" ) ; 
+          ( "0", "srh", "[A] = Active download from client", "A" ) ; 
+          ( "0", "srh", "Client state", "CS" ) ; 
+          ( "0", "srh", "Client name", "Name" ) ; 
+          ( "0", "srh", "Client brand", "CB" ) ; 
+        ] @
+          (if !!emule_mods_count then [( "0", "srh", "eMule MOD", "EM" )] else [])
+        @ [
+          ( "0", "srh", "Overnet [T]rue, [F]alse", "O" ) ; 
+          ( "0", "srh", "Connection [I]ndirect, [D]irect", "C" ) ; 
+          ( "0", "srh br", "IP address", "IP address" ) ; 
+          ( "1", "srh ar", "Total UL bytes to this client for all files", "UL" ) ; 
+          ( "1", "srh ar br", "Total DL bytes from this client for all files", "DL" ) ; 
+          ( "1", "srh ar", "Your queue rank on this client", "Rnk" ) ; 
+          ( "1", "srh ar br", "Source score", "Scr" ) ; 
+          ( "1", "srh ar", "Last ok (minutes)", "LO" ) ; 
+          ( "1", "srh ar", "Last try (minutes)", "LT" ) ; 
+          ( "1", "srh ar br", "Next try (minutes)", "NT" ) ; 
+          ( "0", "srh", "Has a slot [T]rue, [F]alse", "H" ) ; 
+          ( "0", "srh br", "Banned [T]rue, [F]alse", "B" ) ; 
+          ( "1", "srh ar", "Requests sent", "RS" ) ; 
+          ( "1", "srh ar", "Requests received", "RR" ) ; 
+          ( "1", "srh ar br", "Connected time (minutes)", "CT" ) ; 
+          ( "0", "srh br", "Client MD4", "MD4" ) ; 
+          ( "0", "srh", "Chunks (absent|partial|present|verified)", 
+            (colored_chunks 
+                (Array.init (String.length chunks)
+                (fun i -> ((int_of_char chunks.[i])-48)))) ) ; 
+          ( "1", "srh ar", "Number of full chunks", (Printf.sprintf "%d"
+                (let fc = ref 0 in (String.iter (fun s -> if s = '2' then incr fc) 
+                  chunks );!fc ))) ]);
+
+
+      let counter = ref 0 in
+      DonkeySources.iter_all_sources (fun s -> 
+          let s_uid = s.DonkeySources.source_uid in
+          let c = new_client s_uid in
+          let c1 = (as_client c) in
+          incr counter;
+
+        try 
+          let i = (client_info (as_client c)) in
+
+
+          Printf.bprintf buf "\\<tr onMouseOver=\\\"mOvr(this);\\\" 
+        onMouseOut=\\\"mOut(this);\\\" class=\\\"%s\\\"\\>"
+           (if (!counter mod 2 == 0) then "dl-1" else "dl-2");
+
+          
+          Printf.bprintf buf "\\<td title=\\\"Add as Friend\\\" class=\\\"srb ar\\\"
+    onClick=\\\"parent.fstatus.location.href='submit?q=friend_add+%d'\\\"\\>%d\\</TD\\>"
+            (client_num c) (client_num c);
+          
+          html_mods_td buf ([
+            ("", "sr", (match c.client_download with 
+                  None -> Printf.sprintf "" 
+                | Some _ -> Printf.sprintf "%s" ( 
+                      let qfiles = c.client_file_queue in
+                      let (qfile, qchunks,_) =  List.hd qfiles in
+                      if (qfile == file) then
+                        "A" else "";)) );
+            ((string_of_connection_state (client_state c)), "sr", 
+              (short_string_of_connection_state (client_state c)) );
+            (String.escaped c.client_name, "sr", client_short_name c.client_name);
+            (brand_to_string c.client_brand, "sr", gbrand_to_string c.client_brand);
+            ] @
+            (if !!emule_mods_count then [(brand_mod_to_string c.client_mod_brand, "sr", gbrand_mod_to_string c.client_mod_brand)] else [])
+            @ [
+              ("", "sr", (if DonkeySources.source_brand c.client_source
+                  then "T" else "F"));
+            ("", "sr", (match c.client_kind with 
+                  | Direct_address (ip,port) -> Printf.sprintf "D"
+                  | _ -> Printf.sprintf "I"
+                ));
+            ("", "sr br", match c.client_kind with
+                Direct_address (ip,port) -> Printf.sprintf "%s" (Ip.to_string ip)
+              | _ -> (string_of_client_addr c));
+            ("", "sr ar", (size_of_int64 c.client_uploaded));
+            ("", "sr ar br", (size_of_int64 c.client_downloaded));
+            ("", "sr ar", Printf.sprintf "%d" c.client_rank);
+            ("", "sr ar br", Printf.sprintf "%d" c.client_score);
+            ("", "sr ar", (string_of_date (c.client_source.DonkeySources.source_age)));
+            ("", "sr ar", ("-"));
+            ("", "sr ar br", "-");
+            ("", "sr ar", (if client_has_a_slot (as_client c) then "T" else "F"));
+            ("", "sr ar br", (if c.client_banned then "T" else "F"));
+            ("", "sr ar", Printf.sprintf "%d" c.client_requests_sent);
+            ("", "sr ar", Printf.sprintf "%d" c.client_requests_received);
+            ("", "sr ar br", Printf.sprintf "%d" (((last_time ()) - c.client_connect_time) / 60));
+            ("", "sr br", (Md4.to_string c.client_md4)); ]);
+          
+          Printf.bprintf buf "\\<td class=\\\"sr \\\"\\>";
+          
+          ( let qfiles = c.client_file_queue in
+            if qfiles <> [] then begin
+                try
+                  let _, qchunks,_ = List.find (fun (qfile, _,_) ->
+                        qfile == file) qfiles in
+                  let tc = ref 0 in
+                  Printf.bprintf buf "%s\\</td\\>\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>" 
+                    (CommonFile.colored_chunks (Array.init (Array.length qchunks) 
+                      (fun i -> (if qchunks.(i) then 2 else 0)) )) 
+                  (Array.iter (fun b -> if b then incr tc) qchunks;!tc);
+                with Not_found -> (
+                      Printf.bprintf buf "\\</td\\>\\<td class=\\\"sr ar\\\"\\>\\</td\\>" 
+                    );
+              end
+            else
+              Printf.bprintf buf "\\</td\\>\\<td class=\\\"sr ar\\\"\\>\\</td\\>" 
+          );
+
+           Printf.bprintf buf "\\</tr\\>";
+        with _ -> ()
+
+      ) file.file_sources;
+
+    Printf.bprintf buf "\\</table\\>\\</div\\>\\<br\\>";
+
+   end;
+
   );
   file_ops.op_file_cancel <- (fun file ->
       Hashtbl.remove files_by_md4 file.file_md4;
@@ -1110,7 +1269,20 @@ let _ =
         None -> [CommonFile.as_file impl]
       | Some swarmer ->
           Int64Swarmer.subfiles swarmer)
-  
+
+let try_recover_temp_file filename md4 =
+  try
+    ignore (Hashtbl.find files_by_md4 md4)
+  with Not_found ->
+      let size = Unix32.getsize (Filename.concat !!temp_directory filename) in
+      if size <> zero then
+        let names = (* TODO RESULT try DonkeyIndexer.find_names md4 
+                with _ -> *) [] in
+        let file = 
+          query_download names size md4 None (Some filename) None true
+        in        
+        recover_md4s md4
+        
 let _ =
   network.op_network_extend_search <- (fun s e ->
       match e with
@@ -1134,19 +1306,7 @@ let _ =
           if String.length filename = 32 then
             try
               let md4 = Md4.of_string filename in
-              try
-                ignore (Hashtbl.find files_by_md4 md4)
-              with Not_found ->
-                  let size = Unix32.getsize (Filename.concat 
-                        !!temp_directory filename) in
-                  if size <> zero then
-                    let names = (* TODO RESULT try DonkeyIndexer.find_names md4 
-                with _ -> *) [] in
-                    let file = 
-                      query_download names size md4 None None None true
-                    in
-                    
-                    recover_md4s md4
+              try_recover_temp_file filename md4
             with e ->
                 lprintf "exception %s in recover_temp\n"
                   (Printexc2.to_string e); 
@@ -1213,79 +1373,6 @@ lprint_newline ();
         c.client_name
         (string_of_date (c.client_source.DonkeySources.source_age))
   );
-  
-  
-  client_ops.op_client_bprint_html <- (fun c buf file ->
-      
-      begin
-        try 
-          let i = (client_info (as_client c)) in
-          
-          Printf.bprintf buf "\\<td title=\\\"Add as Friend\\\" class=\\\"srb ar\\\"
-		onClick=\\\"parent.fstatus.location.href='submit?q=friend_add+%d'\\\"\\>%d\\</TD\\>"
-            (client_num c) (client_num c);
-          
-          html_mods_td buf ([
-            ("", "sr", (match c.client_download with 
-                  None -> Printf.sprintf "" 
-                | Some _ -> Printf.sprintf "%s" ( 
-                      let qfiles = c.client_file_queue in
-                      let (qfile, qchunks,_) =  List.hd qfiles in
-                      if (qfile == (as_file_impl file).impl_file_val) then
-                        "A" else "";)) );
-            ((string_of_connection_state (client_state c)), "sr", 
-              (short_string_of_connection_state (client_state c)) );
-            (String.escaped c.client_name, "sr", client_short_name c.client_name);
-            (brand_to_string c.client_brand, "sr", gbrand_to_string c.client_brand);
-            ] @
-            (if !!emule_mods_count then [(brand_mod_to_string c.client_mod_brand, "sr", gbrand_mod_to_string c.client_mod_brand)] else [])
-            @ [
-              ("", "sr", (if DonkeySources.source_brand c.client_source
-                  then "T" else "F"));
-            ("", "sr", (match c.client_kind with 
-                  | Direct_address (ip,port) -> Printf.sprintf "D"
-                  | _ -> Printf.sprintf "I"
-                ));
-            ("", "sr br", match c.client_kind with
-                Direct_address (ip,port) -> Printf.sprintf "%s" (Ip.to_string ip)
-              | _ -> (string_of_client_addr c));
-            ("", "sr ar", (size_of_int64 c.client_uploaded));
-            ("", "sr ar br", (size_of_int64 c.client_downloaded));
-            ("", "sr ar", Printf.sprintf "%d" c.client_rank);
-            ("", "sr ar br", Printf.sprintf "%d" c.client_score);
-            ("", "sr ar", (string_of_date (c.client_source.DonkeySources.source_age)));
-            ("", "sr ar", ("-"));
-            ("", "sr ar br", "-");
-            ("", "sr ar", (if client_has_a_slot (as_client c) then "T" else "F"));
-            ("", "sr ar br", (if c.client_banned then "T" else "F"));
-            ("", "sr ar", Printf.sprintf "%d" c.client_requests_sent);
-            ("", "sr ar", Printf.sprintf "%d" c.client_requests_received);
-            ("", "sr ar br", Printf.sprintf "%d" (((last_time ()) - c.client_connect_time) / 60));
-            ("", "sr br", (Md4.to_string c.client_md4)); ]);
-          
-          Printf.bprintf buf "\\<td class=\\\"sr \\\"\\>";
-          
-          ( let qfiles = c.client_file_queue in
-            if qfiles <> [] then begin
-                try
-                  let _, qchunks,_ = List.find (fun (qfile, _,_) ->
-                        qfile == (as_file_impl file).impl_file_val) qfiles in
-                  let tc = ref 0 in
-                  Printf.bprintf buf "%s\\</td\\>\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>" 
-                    (CommonFile.colored_chunks (Array.init (Array.length qchunks) 
-                      (fun i -> (if qchunks.(i) then 2 else 0)) )) 
-                  (Array.iter (fun b -> if b then incr tc) qchunks;!tc);
-                with Not_found -> (
-                      Printf.bprintf buf "\\</td\\>\\<td class=\\\"sr ar\\\"\\>\\</td\\>" 
-                    );
-              end
-            else
-              Printf.bprintf buf "\\</td\\>\\<td class=\\\"sr ar\\\"\\>\\</td\\>" 
-          );
-        with _ -> ()
-      end;
-  );
-  
   client_ops.op_client_dprint <- (fun c o file ->
       let info = file_info file in
       let buf = o.conn_buf in
@@ -1418,7 +1505,7 @@ let _ =
       lprintf "COMMENTS ADDED\n"; 
   );
   
-  
+  file_ops.op_file_proposed_filenames <- op_file_proposed_filenames;  
   network.op_network_add_server <- (fun ip port ->
       let s = DonkeyComplexOptions.force_add_server (Ip.ip_of_addr ip) port in
       as_server s.server_server

@@ -249,7 +249,8 @@ let client_reader c t sock =
             
             c.client_pos <- Int64.sub t.Get.pos Int64.one;
             lprintf "from pos %Ld\n" c.client_pos;
-            let rem = Int64.sub sh.shared_size c.client_pos in
+            let info = IndexedSharedFiles.get_result sh.shared_info in  
+            let rem = Int64.sub info.shared_size c.client_pos in
             lprintf "remaining %Ld\n" rem;
             server_send !verbose_msg_clients sock (FileLengthReq rem);
             c.client_download <- DcUpload sh
@@ -297,7 +298,8 @@ close it after a long timeout. *)
           
           | DcUpload sh -> 
               lprintf "DcUpload"; lprint_newline ();            
-              let slen = sh.shared_size in
+              let info = IndexedSharedFiles.get_result sh.shared_info in  
+              let slen = info.shared_size in
               let pos = c.client_pos in
               if pos < slen then
                 let rlen = 

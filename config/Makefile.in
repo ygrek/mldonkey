@@ -19,6 +19,9 @@ include config/Makefile.config
 
 ##################################################################
 
+DEVFLAGS= -warn-error Am 
+# -dtypes
+
 NO_LIBS_byte=
 NO_LIBS_opt=
 NO_STATIC_LIBS_opt=
@@ -90,6 +93,7 @@ SRC_FASTTRACK=src/networks/fasttrack
 SRC_SOULSEEK=src/networks/soulseek
 SRC_DIRECTCONNECT=src/networks/direct_connect
 SRC_FILETP=src/networks/fileTP
+SRC_ARES=src/networks/ares
 
 IM=src/$(GTK)/im
 CHAT_GUI=src/$(GTK)/chat
@@ -135,9 +139,22 @@ ifeq ("$(ZLIB)" , "yes")
 endif
 
 
+ifeq ("$(SUPERNODES)", "yes")
+  FASTTRACK_SUPERNODE=$(SRC_FASTTRACK)/fasttrackSupernode.ml
+else
+
+endif
+
 ifeq ("$(ICONV)" , "yes")
   LIBS_flags += -cclib -liconv
 #  LIBS_byte += -cclib -liconv
+endif
+
+ifeq ("$(BROOSNET)", "yes")
+  BROOSNET = \
+       $(SRC_BITTORRENT)/bTBrooseTypes.ml \
+       $(SRC_BITTORRENT)/bTProtoBroosnet.ml \
+       $(SRC_BITTORRENT)/bTBroosnet.ml
 endif
 
 CDK_SRCS += $(LIB)/autoconf.ml
@@ -231,6 +248,7 @@ COMMON_SRCS=$(COMMON)/commonTypes.ml \
   $(COMMON)/commonChat.ml \
   $(COMMON)/commonHasher.ml \
   $(COMMON)/commonHosts.ml \
+  $(COMMON)/commonIndexing.ml \
   $(COMMON)/commonHasher_c.c
 
 COMMON_CLIENT_SRCS= \
@@ -327,170 +345,6 @@ DONKEY_SRCS= \
 #  $(SRC_DONKEY)/donkeySources.ml  \
 
 
-MLPIC_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  src/pic/picTypes.ml \
-  src/pic/picOptions.ml \
-  src/pic/picGlobals.ml \
-  src/pic/picDB.ml \
-  src/pic/picGenerator.ml \
-  src/pic/picThemeFrames.ml \
-  src/pic/picThemeFilm.ml \
-  src/pic/picThemeEditor.ml \
-  src/pic/picThemeAlbum.ml \
-  src/pic/picHttp.ml \
-  src/pic/picMain.ml
-
-SPIDER_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  $(MP3TAG_SRCS) \
-  \
-  $(COMMON)/commonTypes.ml \
-  $(COMMON)/commonOptions.ml \
-  $(COMMON)/commonMessages.ml \
-  $(COMMON)/commonGlobals.ml \
-  $(COMMON)/commonWeb.ml \
-  $(COMMON)/commonHasher.ml \
-  $(COMMON)/commonHasher_c.c \
-  \
-  src/spider/ecrawler/spiderTypes.ml \
-  src/spider/ecrawler/spiderOptions.ml \
-  src/spider/ecrawler/spiderMftp.ml \
-  src/spider/ecrawler/spiderImport.ml \
-  src/spider/ecrawler/spiderOpenProtocol.ml \
-  src/spider/ecrawler/spiderProtoClient.ml \
-  src/spider/ecrawler/spiderProtoServer.ml  \
-  src/spider/ecrawler/spiderProtoUdp.ml  \
-  \
-  src/spider/ecrawler/spiderGlobals.ml \
-  src/spider/ecrawler/spiderArgs.ml \
-  src/spider/ecrawler/spiderProtoCom.ml  \
- \
-  src/spider/ecrawler/spiderComplexOptions.ml \
-  src/spider/ecrawler/spiderSupernode.ml \
-  src/spider/ecrawler/spiderIndexer.ml \
-  src/spider/ecrawler/spiderShare.ml \
-  src/spider/ecrawler/spiderReliability.ml \
-  src/spider/ecrawler/spiderOneFile.ml \
-  src/spider/ecrawler/spiderClient.ml \
-  src/spider/ecrawler/spiderProtoOvernet.ml \
-  \
-  src/spider/ecrawler/spiderTrap.ml \
-  src/spider/ecrawler/spiderOvernet.ml \
-  src/spider/ecrawler/spiderServers.ml \
-  src/spider/ecrawler/spiderSearch.ml \
-  src/spider/ecrawler/spiderInteractive.ml \
-  \
-  src/spider/ecrawler/spiderMain.ml \
-  src/daemon/common/commonMain.ml
-
-TESTRSS_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) tools/testrss.ml
-
-CLUSTER_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  src/cluster/clusterMain.ml
-
-ANALYSER1_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  $(MP3TAG_SRCS) \
-  \
-  $(COMMON)/commonTypes.ml \
-  $(COMMON)/commonOptions.ml \
-  $(COMMON)/commonMessages.ml \
-  $(COMMON)/commonGlobals.ml \
-  $(COMMON)/commonWeb.ml \
-  $(COMMON)/commonHasher.ml \
-  $(COMMON)/commonHasher_c.c \
-  \
-  src/spider/ecrawler/spiderTypes.ml \
-  src/spider/ecrawler/spiderOptions.ml \
-  src/spider/ecrawler/spiderMftp.ml \
-  src/spider/ecrawler/spiderImport.ml \
-  src/spider/ecrawler/spiderOpenProtocol.ml \
-  src/spider/ecrawler/spiderProtoClient.ml \
-  src/spider/ecrawler/spiderProtoServer.ml  \
-  src/spider/ecrawler/spiderProtoUdp.ml  \
-  \
-  src/spider/ecrawler/spiderGlobals.ml \
-  src/spider/ecrawler/spiderArgs.ml \
-  src/spider/ecrawler/spiderProtoCom.ml  \
- \
-  src/spider/ecrawler/spiderComplexOptions.ml \
-  src/spider/ecrawler/spiderSupernode.ml \
-  src/spider/ecrawler/spiderIndexer.ml \
-  src/spider/ecrawler/spiderShare.ml \
-  src/spider/ecrawler/spiderReliability.ml \
-  src/spider/ecrawler/spiderOneFile.ml \
-  \
-  src/spider/analyser1/spiderDependencies.ml \
-  src/spider/analyser1/spiderUtils.ml \
-  src/spider/analyser1/spiderFiles.ml \
-  src/spider/analyser1/spiderGenTables.ml \
-  src/spider/analyser1/spiderTables.ml \
-  src/spider/analyser1/spiderChunks.ml \
-  src/spider/analyser1/spiderCommands.ml \
-  src/spider/analyser1/spiderClustering.ml \
-  src/spider/analyser1/spiderCorruption.ml \
-  src/spider/analyser1/spiderRoutes.ml \
-  src/spider/analyser1/spiderStats.ml \
-  \
-  src/spider/analyser1/analyser1Main.ml \
-  src/daemon/common/commonMain.ml
-
-DP500_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  $(MP3TAG_SRCS) \
-  \
-  $(COMMON)/commonTypes.ml \
-  $(COMMON)/commonOptions.ml \
-  $(COMMON)/commonMessages.ml \
-  $(COMMON)/commonGlobals.ml \
-  \
-  src/daemon/driver/driverLink.ml \
-  tools/dp500.ml \
-  \
-  src/daemon/common/commonMain.ml
-
-BTVIEW_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  $(MP3TAG_SRCS) \
-  \
-  $(COMMON)/commonTypes.ml \
-  $(COMMON)/commonOptions.ml \
-  $(COMMON)/commonMessages.ml \
-  $(COMMON)/commonGlobals.ml \
-  $(COMMON)/commonWeb.ml \
-  $(COMMON)/commonHasher.ml \
-  $(COMMON)/commonSwarming.ml \
-  $(COMMON)/commonHasher_c.c \
-  \
-  $(SRC_BITTORRENT)/bencode.ml \
-  $(SRC_BITTORRENT)/bTProtocol.ml \
-  src/btview/btviewTypes.ml \
-  src/btview/btviewGlobals.ml \
-  src/btview/btviewOptions.ml \
-  src/btview/btviewClients.ml \
-  src/btview/btviewInteractive.ml \
-  \
-  src/btview/btviewMain.ml \
-  src/daemon/common/commonMain.ml
-
-
-CYMES_SRCS=\
-  $(SRC_CYMES)/serverTypes.ml \
-  $(SRC_CYMES)/serverOptions.ml \
-  $(SRC_CYMES)/serverGlobals.ml \
-  $(SRC_CYMES)/serverMessages.ml \
-  $(SRC_CYMES)/serverLocate.ml \
-  $(SRC_CYMES)/serverIndexer.ml \
-  $(SRC_CYMES)/serverLog.ml \
-  $(SRC_CYMES)/serverSubscriptions.ml \
-  $(SRC_CYMES)/serverServer.ml \
-  $(SRC_CYMES)/serverClients.ml \
-  $(SRC_CYMES)/serverUdp.ml  \
-  $(SRC_CYMES)/serverMain.ml
-
 OPENNAP_SRCS= \
  $(SRC_OPENNAP)/napigator.mll \
  $(SRC_OPENNAP)/winmx_xor_c.c \
@@ -510,13 +364,15 @@ GNUTELLA_SRCS= \
   $(SRC_GNUTELLA)/gnutellaOptions.ml \
   $(SRC_GNUTELLA)/gnutellaGlobals.ml \
   $(SRC_GNUTELLA)/gnutellaComplexOptions.ml \
+  $(SRC_GNUTELLA)/gnutellaFunctions.ml \
   $(SRC_GNUTELLA)/gnutellaProtocol.ml \
-  $(SRC_GNUTELLA)/gnutellaClients.ml \
   $(SRC_GNUTELLA)/gnutellaProto.ml \
+  $(SRC_GNUTELLA)/gnutellaClients.ml \
+  $(SRC_GNUTELLA)/gnutellaPandora.ml \
   $(SRC_GNUTELLA)/gnutellaHandler.ml \
   $(SRC_GNUTELLA)/gnutellaRedirector.ml \
-  $(SRC_GNUTELLA)/gnutellaScheduler.ml \
   $(SRC_GNUTELLA)/gnutellaServers.ml \
+  $(SRC_GNUTELLA)/gnutellaSupernode.ml \
   $(SRC_GNUTELLA)/gnutellaInteractive.ml \
   $(SRC_GNUTELLA)/gnutellaMain.ml
 
@@ -532,15 +388,51 @@ GNUTELLA2_SRCS= \
   $(SRC_GNUTELLA2)/g2Options.mlt \
   $(SRC_GNUTELLA2)/g2Globals.mlt \
   $(SRC_GNUTELLA2)/g2ComplexOptions.mlt \
+  $(SRC_GNUTELLA2)/g2Functions.mlt \
   $(SRC_GNUTELLA2)/g2Protocol.mlt \
-  $(SRC_GNUTELLA2)/g2Clients.mlt \
   $(SRC_GNUTELLA2)/g2Proto.ml \
+  $(SRC_GNUTELLA2)/g2Clients.mlt \
+  $(SRC_GNUTELLA2)/g2Pandora.ml \
   $(SRC_GNUTELLA2)/g2Handler.ml \
   $(SRC_GNUTELLA2)/g2Redirector.ml \
-  $(SRC_GNUTELLA2)/g2Scheduler.mlt \
   $(SRC_GNUTELLA2)/g2Servers.mlt \
+  $(SRC_GNUTELLA2)/g2Supernode.ml \
   $(SRC_GNUTELLA2)/g2Interactive.mlt \
   $(SRC_GNUTELLA2)/g2Main.mlt
+
+
+# The only files specific to Fasttrack are:
+#  $(SRC_FASTTRACK)/fasttrackNetwork.ml 
+#  $(SRC_FASTTRACK)/fasttrackGlobals.ml 
+#  $(SRC_FASTTRACK)/fasttrackProtocol.ml 
+#  $(SRC_FASTTRACK)/fasttrackProto.ml 
+#  $(SRC_FASTTRACK)/fasttrackHandler.ml 
+#  $(SRC_FASTTRACK)/fasttrackServers.ml 
+#  $(SRC_FASTTRACK)/fasttrackPandora.ml 
+
+
+FASTTRACK_SRCS= \
+  $(SRC_FASTTRACK)/enc_type_1.c \
+  $(SRC_FASTTRACK)/enc_type_2.c \
+  $(SRC_FASTTRACK)/enc_type_20.c \
+  $(SRC_FASTTRACK)/enc_type_80.c \
+  $(SRC_FASTTRACK)/fst_crypt.c \
+  $(SRC_FASTTRACK)/fst_crypt_ml.c \
+  $(SRC_FASTTRACK)/fasttrackNetwork.ml \
+  $(SRC_FASTTRACK)/fasttrackTypes.mlt \
+  $(SRC_FASTTRACK)/fasttrackOptions.mlt \
+  $(SRC_FASTTRACK)/fasttrackGlobals.ml \
+  $(SRC_FASTTRACK)/fasttrackComplexOptions.mlt \
+  $(SRC_FASTTRACK)/fasttrackFunctions.mlt \
+  $(SRC_FASTTRACK)/fasttrackProtocol.ml \
+  $(SRC_FASTTRACK)/fasttrackProto.ml \
+  $(SRC_FASTTRACK)/fasttrackClients.mlt \
+  $(SRC_FASTTRACK)/fasttrackHandler.ml \
+  $(SRC_FASTTRACK)/fasttrackServers.ml \
+  $(FASTTRACK_SUPERNODE) \
+  $(SRC_FASTTRACK)/fasttrackPandora.ml \
+  $(SRC_FASTTRACK)/fasttrackInteractive.mlt \
+  $(SRC_FASTTRACK)/fasttrackMain.mlt
 
 BITTORRENT_SRCS= \
   $(SRC_BITTORRENT)/bencode.ml \
@@ -548,12 +440,14 @@ BITTORRENT_SRCS= \
   $(SRC_BITTORRENT)/bTTypes.ml \
   $(SRC_BITTORRENT)/bTOptions.ml \
   $(SRC_BITTORRENT)/bTProtocol.ml \
+  $(SRC_BITTORRENT)/bTTorrent.ml \
   $(SRC_BITTORRENT)/bTGlobals.ml \
   $(SRC_BITTORRENT)/bTComplexOptions.ml \
   $(SRC_BITTORRENT)/bTTracker.ml \
   $(SRC_BITTORRENT)/bTChooser.ml \
   $(SRC_BITTORRENT)/bTClients.ml \
   $(SRC_BITTORRENT)/bTInteractive.ml \
+  $(BROOSNET) \
   $(SRC_BITTORRENT)/bTMain.ml
   
 OPENFT_SRCS= \
@@ -567,25 +461,19 @@ OPENFT_SRCS= \
   $(SRC_OPENFT)/openFTInteractive.ml \
   $(SRC_OPENFT)/openFTMain.ml
 
-FASTTRACK_SRCS= \
-  $(SRC_FASTTRACK)/enc_type_1.c \
-  $(SRC_FASTTRACK)/enc_type_2.c \
-  $(SRC_FASTTRACK)/enc_type_20.c \
-  $(SRC_FASTTRACK)/enc_type_80.c \
-  $(SRC_FASTTRACK)/fst_crypt.c \
-  $(SRC_FASTTRACK)/fst_crypt_ml.c \
-  $(SRC_FASTTRACK)/fasttrackTypes.ml \
-  $(SRC_FASTTRACK)/fasttrackOptions.ml \
-  $(SRC_FASTTRACK)/fasttrackGlobals.ml \
-  $(SRC_FASTTRACK)/fasttrackComplexOptions.ml \
-  $(SRC_FASTTRACK)/fasttrackProtocol.ml \
-  $(SRC_FASTTRACK)/fasttrackProto.ml \
-  $(SRC_FASTTRACK)/fasttrackClients.ml \
-  $(SRC_FASTTRACK)/fasttrackHandler.ml \
-  $(SRC_FASTTRACK)/fasttrackServers.ml \
-  $(SRC_FASTTRACK)/fasttrackPandora.ml \
-  $(SRC_FASTTRACK)/fasttrackInteractive.ml \
-  $(SRC_FASTTRACK)/fasttrackMain.ml
+ARES_SRCS= \
+  $(SRC_ARES)/aresTypes.ml \
+  $(SRC_ARES)/aresOptions.ml \
+  $(SRC_ARES)/aresGlobals.ml \
+  $(SRC_ARES)/aresComplexOptions.ml \
+  $(SRC_ARES)/aresProtocol.ml \
+  $(SRC_ARES)/aresProto.ml \
+  $(SRC_ARES)/aresClients.ml \
+  $(SRC_ARES)/aresHandler.ml \
+  $(SRC_ARES)/aresServers.ml \
+  $(SRC_ARES)/aresPandora.ml \
+  $(SRC_ARES)/aresInteractive.ml \
+  $(SRC_ARES)/aresMain.ml
 
 FILETP_SRCS= \
   $(SRC_FILETP)/fileTPTypes.ml \
@@ -669,14 +557,6 @@ GET_RANGE_SRCS = \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS) \
   $(CHAT_SRCS)   tools/get_range.ml
 
-CONTESTER_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  src/contest/pass.c src/contest/contester.ml
-
-SAFEEXEC_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  src/contest/pass.c src/contest/safeexec.ml
-
 KDE_APPLET=yes
 
 ifeq ("$(OPENFT)" , "yes")
@@ -713,6 +593,204 @@ mlnet+gui_CMXA=cdk.cmxa common.cmxa client.cmxa core.cmxa driver.cmxa \
   gmisc.cmxa icons.cmxa guibase.cmxa gui.cmxa
 mlnet+gui_SRCS=$(MAIN_SRCS)
 
+
+#######################################################################
+
+#              Sources for other development tools
+
+#######################################################################
+
+
+CONTESTER_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  src/contest/pass.c src/contest/contester.ml
+
+SAFEEXEC_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  src/contest/pass.c src/contest/safeexec.ml
+
+MLPIC_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  src/pic/picTypes.ml \
+  src/pic/picOptions.ml \
+  src/pic/picGlobals.ml \
+  src/pic/picDB.ml \
+  src/pic/picGenerator.ml \
+  src/pic/picThemeFrames.ml \
+  src/pic/picThemeFilm.ml \
+  src/pic/picThemeEditor.ml \
+  src/pic/picThemeAlbum.ml \
+  src/pic/picHttp.ml \
+  src/pic/picMain.ml
+
+TMK_SRCS= \
+  src/spider/tmk/ml_curses.c \
+  src/spider/tmk/curses.mlcpp \
+  \
+  src/spider/tmk/tmkStruct.ml \
+  src/spider/tmk/tmkArea.ml \
+  src/spider/tmk/tmkStyle.ml \
+  src/spider/tmk/tmkStyle_p.mly \
+  src/spider/tmk/tmkStyle_l.mll \
+  src/spider/tmk/tmkSignal.ml \
+  src/spider/tmk/tmkTerminal.ml \
+  src/spider/tmk/tmkMain.ml \
+  src/spider/tmk/tmkWidget.ml \
+  src/spider/tmk/tmkContainer.ml \
+  src/spider/tmk/tmkPacking.ml \
+  src/spider/tmk/tmkMisc.ml \
+  src/spider/tmk/tmkButton.ml \
+  src/spider/tmk/tmkList.ml \
+  src/spider/tmk/tmkEntry.ml \
+  src/spider/tmk/tmkFrame.ml \
+
+
+DISASM_SRCS= \
+  $(TMK_SRCS) \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  src/spider/disasm/ansi.c \
+  src/spider/disasm/asmserv.c \
+  src/spider/disasm/assembl.c \
+  src/spider/disasm/disasm.c \
+  src/spider/disasm/mldisasm_c.c \
+  src/spider/disasm/mldisasm.ml \
+  src/spider/disasm/aSMmain.ml \
+  
+
+SPIDER_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  $(MP3TAG_SRCS) $(CHAT_SRCS) $(COMMON_SRCS) $(COMMON_CLIENT_SRCS) \
+  \
+  src/spider/ecrawler/spiderTypes.ml \
+  src/spider/ecrawler/spiderOptions.ml \
+  $(SRC_DONKEY)/donkeyTypes.ml \
+  $(SRC_DONKEY)/donkeyMftp.ml \
+  $(SRC_DONKEY)/donkeyImport.ml \
+  $(SRC_DONKEY)/donkeyOpenProtocol.ml \
+  $(SRC_DONKEY)/donkeyProtoClient.ml \
+  $(SRC_DONKEY)/donkeyProtoServer.ml  \
+  $(SRC_DONKEY)/donkeyProtoUdp.ml  \
+  \
+  src/spider/ecrawler/spiderGlobals.ml \
+  src/spider/ecrawler/spiderArgs.ml \
+  src/spider/ecrawler/spiderProtoCom.ml  \
+ \
+  src/spider/ecrawler/spiderComplexOptions.ml \
+  src/spider/ecrawler/spiderSupernode.ml \
+  src/spider/ecrawler/spiderIndexer.ml \
+  src/spider/ecrawler/spiderShare.ml \
+  src/spider/ecrawler/spiderReliability.ml \
+  src/spider/ecrawler/spiderOneFile.ml \
+  src/spider/ecrawler/spiderClient.ml \
+  \
+  src/spider/ecrawler/spiderTrap.ml \
+  src/spider/ecrawler/spiderOvernet.ml \
+  src/spider/ecrawler/spiderServers.ml \
+  src/spider/ecrawler/spiderSearch.ml \
+  src/spider/ecrawler/spiderInteractive.ml \
+  \
+  src/spider/ecrawler/spiderMain.ml \
+  src/daemon/common/commonMain.ml
+
+TESTRSS_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) tools/testrss.ml
+
+CLUSTER_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  src/cluster/clusterMain.ml
+
+ANALYSER1_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  $(MP3TAG_SRCS) $(CHAT_SRCS) $(COMMON_SRCS) $(COMMON_CLIENT_SRCS) \
+  \
+  src/spider/ecrawler/spiderTypes.ml \
+  src/spider/ecrawler/spiderOptions.ml \
+  $(SRC_DONKEY)/donkeyTypes.ml \
+  $(SRC_DONKEY)/donkeyMftp.ml \
+  $(SRC_DONKEY)/donkeyImport.ml \
+  $(SRC_DONKEY)/donkeyOpenProtocol.ml \
+  $(SRC_DONKEY)/donkeyProtoClient.ml \
+  $(SRC_DONKEY)/donkeyProtoServer.ml  \
+  $(SRC_DONKEY)/donkeyProtoUdp.ml  \
+  \
+  src/spider/ecrawler/spiderGlobals.ml \
+  src/spider/ecrawler/spiderArgs.ml \
+  src/spider/ecrawler/spiderProtoCom.ml  \
+ \
+  src/spider/ecrawler/spiderComplexOptions.ml \
+  src/spider/ecrawler/spiderSupernode.ml \
+  src/spider/ecrawler/spiderIndexer.ml \
+  src/spider/ecrawler/spiderShare.ml \
+  src/spider/ecrawler/spiderReliability.ml \
+  src/spider/ecrawler/spiderOneFile.ml \
+  \
+  src/spider/analyser1/spiderDependencies.ml \
+  src/spider/analyser1/spiderUtils.ml \
+  src/spider/analyser1/spiderFiles.ml \
+  src/spider/analyser1/spiderGenTables.ml \
+  src/spider/analyser1/spiderTables.ml \
+  src/spider/analyser1/spiderChunks.ml \
+  src/spider/analyser1/spiderCommands.ml \
+  src/spider/analyser1/spiderClustering.ml \
+  src/spider/analyser1/spiderCorruption.ml \
+  src/spider/analyser1/spiderRoutes.ml \
+  src/spider/analyser1/spiderStats.ml \
+  \
+  src/spider/analyser1/analyser1Main.ml \
+  src/daemon/common/commonMain.ml
+
+DP500_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  $(MP3TAG_SRCS) \
+  \
+  $(COMMON)/commonTypes.ml \
+  $(COMMON)/commonOptions.ml \
+  $(COMMON)/commonMessages.ml \
+  $(COMMON)/commonGlobals.ml \
+  \
+  src/daemon/driver/driverLink.ml \
+  tools/dp500.ml \
+  \
+  src/daemon/common/commonMain.ml
+
+BTVIEW_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  $(MP3TAG_SRCS) \
+  \
+  $(COMMON)/commonTypes.ml \
+  $(COMMON)/commonOptions.ml \
+  $(COMMON)/commonMessages.ml \
+  $(COMMON)/commonGlobals.ml \
+  $(COMMON)/commonWeb.ml \
+  $(COMMON)/commonHasher.ml \
+  $(COMMON)/commonSwarming.ml \
+  $(COMMON)/commonHasher_c.c \
+  \
+  $(SRC_BITTORRENT)/bencode.ml \
+  $(SRC_BITTORRENT)/bTProtocol.ml \
+  src/btview/btviewTypes.ml \
+  src/btview/btviewGlobals.ml \
+  src/btview/btviewOptions.ml \
+  src/btview/btviewClients.ml \
+  src/btview/btviewInteractive.ml \
+  \
+  src/btview/btviewMain.ml \
+  src/daemon/common/commonMain.ml
+
+
+CYMES_SRCS=\
+  $(SRC_CYMES)/serverTypes.ml \
+  $(SRC_CYMES)/serverOptions.ml \
+  $(SRC_CYMES)/serverGlobals.ml \
+  $(SRC_CYMES)/serverMessages.ml \
+  $(SRC_CYMES)/serverLocate.ml \
+  $(SRC_CYMES)/serverIndexer.ml \
+  $(SRC_CYMES)/serverLog.ml \
+  $(SRC_CYMES)/serverSubscriptions.ml \
+  $(SRC_CYMES)/serverServer.ml \
+  $(SRC_CYMES)/serverClients.ml \
+  $(SRC_CYMES)/serverUdp.ml  \
+  $(SRC_CYMES)/serverMain.ml
 
 
 #######################################################################
@@ -755,6 +833,9 @@ SUBDIRS += $(SRC_GUI) $(SRC_GUI2) $(CONFIGWIN) $(OKEY) $(GPATTERN) icons/$(ICONS
 GTK_LIBS_byte=-I +labl$(GTK) $(LABLGL_CMA) lablgtk.cma
 GTK_LIBS_opt=-I +labl$(GTK)  $(LABLGL_CMXA) lablgtk.cmxa
 GTK_STATIC_LIBS_opt=-I +labl$(GTK) lablgtk.cmxa
+
+CURSES_LIBS_byte=-cclib -lncurses
+CURSES_LIBS_opt=-cclib -lncurses
 
 
 CONFIGWIN_SRCS= \
@@ -931,12 +1012,12 @@ NEWGUI_SRCS=  \
   $(SRC_GUI)/gui_com.ml \
   $(SRC_GUI)/gui_types.ml \
   $(SRC_GUI)/gui_graph_base.ml $(SRC_GUI)/gui_graph.ml \
-  $(SRC_GUI)/gui_console_base.zog $(SRC_GUI)/gui_console.ml \
+  $(SRC_GUI)/gui_console_base.ml $(SRC_GUI)/gui_console.ml \
   $(SRC_GUI)/gui_users_base.ml $(SRC_GUI)/gui_users.ml \
   $(SRC_GUI)/gui_results_base.ml $(SRC_GUI)/gui_results.ml \
   $(SRC_GUI)/gui_rooms_base.ml $(SRC_GUI)/gui_rooms.ml \
   $(SRC_GUI)/gui_friends_base.ml $(SRC_GUI)/gui_friends.ml \
-  $(SRC_GUI)/gui_cdget_base.zog $(SRC_GUI)/gui_cdget.ml \
+  $(SRC_GUI)/gui_cdget_base.ml $(SRC_GUI)/gui_cdget.ml \
   $(SRC_GUI)/gui_queries_base.ml $(SRC_GUI)/gui_queries.ml \
   $(SRC_GUI)/gui_servers_base.ml $(SRC_GUI)/gui_servers.ml \
   $(SRC_GUI)/gui_uploads_base.ml $(SRC_GUI)/gui_uploads.ml \
@@ -1044,7 +1125,7 @@ IM_CORE += $(IM)/imTypes.ml $(IM)/imEvent.ml \
 
 IM_CORE +=  $(IM)/irc/irc.ml
 
-IM_GUI_CORE += $(IM)/gui_im_base.zog $(IM)/gui_im.ml
+IM_GUI_CORE += $(IM)/gui_im_base.ml $(IM)/gui_im.ml
 
 TARGETS += mlim
 
@@ -1071,16 +1152,18 @@ $1_MLL := $(filter %.mll, $($1_SRCS))
 $1_MLY := $(filter %.mly, $($1_SRCS)) 
 $1_ML4 := $(filter %.ml4, $($1_SRCS)) 
 $1_MLT := $(filter %.mlt, $($1_SRCS)) 
-$1_ML := $(filter %.ml %.mll %.zog %.mly %.ml4 %.mlt, $($1_SRCS)) 
+$1_MLP := $(filter %.mlcpp, $($1_SRCS)) 
+$1_ML := $(filter %.ml %.mll %.zog %.mly %.ml4 %.mlt %.mlcpp, $($1_SRCS)) 
 $1_C := $(filter %.c, $($1_SRCS)) 
 $1_CMOS=$(foreach file, $($1_ML),   $(basename $(file)).cmo) 
 $1_CMXS=$(foreach file, $($1_ML),   $(basename $(file)).cmx) 
 $1_OBJS=$(foreach file, $($1_C),   $(basename $(file)).o)    
 
-TMPSOURCES += $($1_ML4:.ml4=.ml) $($1_MLT:.mlt=.ml) $($1_MLL:.mll=.ml) $($1_MLY:.mly=.ml) $($1_MLY:.mly=.mli)  $($1_ZOG:.zog=.ml) 
+TMPSOURCES += $($1_ML4:.ml4=.ml) $($1_MLT:.mlt=.ml) $($1_MLP:.mlcpp=.ml) $($1_MLL:.mll=.ml) $($1_MLY:.mly=.ml) $($1_MLY:.mly=.mli)  $($1_ZOG:.zog=.ml) 
  
 ZOGSOURCES +=  $($1_ZOG:.zog=.ml) 
 MLTSOURCES +=  $($1_MLT:.mlt=.ml)
+MLPSOURCES +=  $($1_MLP:.mlcpp=.ml)
 
 build/$2.cmxa: $($1_OBJS) $($1_CMXS) 
 	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $[[@]]  $($1_OBJS) $(LIBS_flags) $($3_LIBS_flags) $($1_CMXS) 
@@ -1130,6 +1213,7 @@ EXPAND_DRIVER(mlbt,BITTORRENT,bittorrent)
 EXPAND_DRIVER(mldonkey,DONKEY,$(DONKEY_DIR))
 EXPAND_DRIVER(mlcymes,CYMES,cymes)
 EXPAND_DRIVER(mlslsk,SOULSEEK,soulseek)
+EXPAND_DRIVER(mlares,ARES,ares)
 
 libcdk_SRCS=  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS)
 libcommon_SRCS= $(CHAT_SRCS) $(COMMON_SRCS)
@@ -1182,7 +1266,8 @@ $1_MLL := $(filter %.mll, $($1_SRCS))
 $1_MLY := $(filter %.mly, $($1_SRCS)) 
 $1_ML4 := $(filter %.ml4, $($1_SRCS)) 
 $1_MLT := $(filter %.mlt, $($1_SRCS)) 
-$1_ML := $(filter %.ml %.mll %.zog %.mly %.ml4 %.mlt, $($1_SRCS)) 
+$1_MLP := $(filter %.mlcpp, $($1_SRCS)) 
+$1_ML := $(filter %.ml %.mll %.zog %.mly %.ml4 %.mlt %.mlcpp, $($1_SRCS)) 
 $1_C := $(filter %.c, $($1_SRCS)) 
 $1_CMOS=$(foreach file, $($1_ML),   $(basename $(file)).cmo) 
 $1_CMXS=$(foreach file, $($1_ML),   $(basename $(file)).cmx) 
@@ -1191,7 +1276,7 @@ $1_OBJS=$(foreach file, $($1_C),   $(basename $(file)).o)
 $1_CMXAS := $(foreach file, $($1_CMXA),   build/$(basename $(file)).cmxa)
 $1_CMAS=$(foreach file, $($1_CMXA),   build/$(basename $(file)).cma)    
 
-TMPSOURCES += $($1_ML4:.ml4=.ml) $($1_MLT:.mlt=.ml) $($1_MLL:.mll=.ml) $($1_MLY:.mly=.ml) $($1_MLY:.mly=.mli) $($1_ZOG:.zog=.ml) 
+TMPSOURCES += $($1_ML4:.ml4=.ml) $($1_MLT:.mlt=.ml) $($1_MLP:.mlcpp=.ml) $($1_MLL:.mll=.ml) $($1_MLY:.mly=.ml) $($1_MLY:.mly=.mli) $($1_ZOG:.zog=.ml) 
  
 $2: $($1_OBJS) $($1_CMXS) $($1_CMXAS)
 	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $[[@]]  $($1_OBJS) $(LIBS_opt) $(LIBS_flags) $($3_LIBS_opt) $($3_LIBS_flags) -I build $($1_CMXAS) $($1_CMXS) 
@@ -1244,6 +1329,7 @@ EXPAND(HASH_FILES,hash_files)
 EXPAND(INSTALLER,mldonkey_installer,GTK,INSTALLER)
 EXPAND(MLPIC,mlpic)
 EXPAND(SPIDER,mlspider)
+EXPAND(DISASM,disasm,CURSES)
 EXPAND(ANALYSER1,analyser1,BIGARRAY)
 EXPAND(BTVIEW,btview)
 EXPAND(CLUSTER,cluster)
@@ -1345,11 +1431,15 @@ clean:
 	rm -f *_plugin
 	rm -f mldonkey mlgui
 	(for i in $(SUBDIRS); do \
-		rm -f  $$i/*.cm? $$i/*.o ; \
+		rm -f  $$i/*.cm? $$i/*.o $$i/*.annot ; \
 	done)
 
-moreclean: clean
+
+
+tmpclean: 
 	rm -f $(TMPSOURCES)
+
+moreclean: clean tmpclean
 
 releaseclean: clean moreclean
 	rm -f config/config.cache config/config.log config/config.status
@@ -1364,6 +1454,7 @@ releaseclean: clean moreclean
 	rm -f config/Makefile.config.i686
 	rm -f config/mldonkey.rc
 	rm -f config/config.h
+	rm -f config/confdefs.h
 	rm -f packages/rpm/*.spec
 	rm -f packages/windows/mlnet.nsi
 	rm -f src/utils/lib/autoconf.ml
@@ -1376,6 +1467,10 @@ releaseclean: clean moreclean
 	rm -f icons/kde/*.ml
 	rm -f icons/mldonkey/*.ml_icons
 	rm -f icons/mldonkey/*.ml
+	rm -rf config/autom4te.cache/
+	rm -rf mldonkey-distrib*
+	rm -f mldonkey-$(CURRENT_VERSION).*
+	rm -f src/daemon/common/commonDownloads.ml
 
 distclean: releaseclean
 	rm -rf patches/local
@@ -1607,7 +1702,7 @@ rpm: sourcedist
 
 -include .depend
 
-.SUFFIXES: .mli .ml .cmx .cmo .o .c .cmi .mll .mly .zog .plugindep .xpm .ml .cc .ml_icons .ml4 .mlt .mlii
+.SUFFIXES: .mli .ml .cmx .cmo .o .c .cmi .mll .mly .zog .plugindep .xpm .ml .cc .ml_icons .ml4 .mlt .mlii .mlcpp
 
 .mli.cmi :
 	$(OCAMLC) $(OFLAGS) $(INCLUDES) -c $<
@@ -1633,7 +1728,10 @@ rpm: sourcedist
 	$(OCAMLOPT) $(PLUGIN_FLAG) $(OFLAGS) $(INCLUDES) -c $<
 
 .ml.cmo :
-	$(OCAMLC) $(OFLAGS) $(INCLUDES) -c $<
+	$(OCAMLC) $(DEVFLAGS) $(OFLAGS) $(INCLUDES) -c $<
+
+.mlcpp.ml:
+	cpp $< > $@
 
 .mll.ml :
 	$(OCAMLLEX) $<

@@ -7,7 +7,7 @@ val networks_by_name : (string, CommonTypes.network) Hashtbl.t
 val networks_by_num : (int, CommonTypes.network) Hashtbl.t
 val networks_ops : (CommonTypes.network * CommonTypes.network) list ref
 val new_network :
-    string ->     CommonTypes.network_flag list -> (unit -> string) -> (unit -> string) -> CommonTypes.network
+    string ->  string ->   CommonTypes.network_flag list -> CommonTypes.network
 
 val check_network_implementations : unit -> unit
 val network_connected_servers :

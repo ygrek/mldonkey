@@ -20,48 +20,26 @@
 open Queues
 open Md4
 
+open GuiTypes
+  
 open CommonTypes
 open CommonDownloads
 
-
-type query_key =
-  NoUdpSupport
-| GuessSupport
-| UdpSupport of Md4.t
-| UdpQueryKey of int64
-
-  (*
-type host = {
-    host_num : int;
-    mutable host_server : server option;
-    host_ip : Ip.t;
-    host_port : int;
-    mutable host_age : int;
-    mutable host_udp_request : int;
-    mutable host_tcp_request : int;
-    mutable host_connected : int;
-(* 0 -> gnutella1 or gnutella2, 1 -> gnutella1, 2 -> gnutella2 *)
-    mutable host_kind : int;
-    mutable host_ultrapeer : bool;
-    
-    mutable host_queues : host Queue.t list;
-  }
-    *)
     
 type request = 
 | Tcp_Connect
 | Udp_Connect
 
-type host = (server, request, Ip.t) CommonHosts.host
+type host = (server, request, Ip.addr) CommonHosts.host
   
 and server = {
     server_server : server CommonServer.server_impl;
     mutable server_agent : string;
     mutable server_sock : tcp_connection;
+    mutable server_ciphers : GnutellaNetwork.ciphers option;
     mutable server_nfiles : int64;
-    mutable server_nkb : int;
-
     mutable server_nusers : int64;
+    mutable server_nkb : int;
     
     mutable server_need_qrt : bool;
     mutable server_ping_last : Md4.t;
@@ -70,19 +48,21 @@ and server = {
     mutable server_vendor : string;
     mutable server_connected : int64;
     
-(*    mutable server_gnutella2 : bool; *)
     mutable server_host : host;
-    mutable server_query_key : query_key;
+    mutable server_query_key : GnutellaNetwork.query_key;
+    mutable server_searches : local_search Fifo.t;
+    
+    mutable server_shared : Intset.t;
   }
 
-type search_type =
-  UserSearch of search * string * string
-| FileUidSearch of file * Uid.t
-| FileWordSearch of file * string
+and search_type =
+  UserSearch of search * string * GnutellaNetwork.search_extension
+| FileUidSearch of file * GnutellaNetwork.file_uid
+(*| FileWordSearch of file * string *)
   
 and local_search = {
     search_search : search_type;
-    search_uid : Md4.t;
+    search_uid : GnutellaNetwork.search_uid;
     mutable search_hosts : Intset.t;
   }
 
@@ -93,7 +73,6 @@ and user = {
     mutable user_speed : int;
     mutable user_uid : Md4.t;
     mutable user_vendor : string;
-    mutable user_gnutella2 : bool;
     mutable user_nick : string;
   }
 
@@ -104,51 +83,103 @@ two different tables to look up for clients ? *)
 and client = {
     client_client : client CommonClient.client_impl;
     mutable client_downloads : download list;
+    mutable client_in_queues : file list;
     mutable client_connection_control : connection_control;
     mutable client_sock : tcp_connection;
     mutable client_user : user;
     mutable client_all_files : file list option;
     mutable client_requests : download list;
     mutable client_host : (Ip.t * int) option;
+    mutable client_reconnect : bool;
+    mutable client_connected_for : file option;
+    mutable client_support_head_request : bool;
   }
-
-and file_uri =
-  FileByIndex of int * string
-| FileByUrl of string
   
 and upload_client = {
     uc_sock : TcpBufferedSocket.t;
-    uc_file : CommonUploads.shared_file;
+    uc_partial : bool;
+    uc_reader : (int64 -> string -> int -> int -> unit);
     mutable uc_chunk_pos : int64;
     uc_chunk_len : int64;
     uc_chunk_end : int64;
+    uc_size : int64;
+    uc_header : string;
   }
 
-  (*
-and result = {
-    result_result : result_info;
-    mutable result_sources : (user * file_uri) list;
-    mutable result_uids : Uid.t list;
-  }
-*)
+and download_request = 
+  RANGEReq of int64 * int64 * Int64Swarmer.range
+| HEADReq
+| TTRReq of int
+  
   
 and file = {
     file_file : file CommonFile.file_impl;
-    file_id : Md4.t;
+    file_temp : string;
     mutable file_name : string;
     mutable file_swarmer : Int64Swarmer.t option;
     mutable file_clients : client list;
     mutable file_uids : Uid.t list; 
     mutable file_searches : local_search list;
+    mutable file_filenames : (string * ips_list) list;
+    mutable file_clients_queue : client Queues.Queue.t;
+    mutable file_nconnected_clients : int;
+    mutable file_ttr : TigerTree.t array option;
   }
 
 and download = {
     download_file : file;
-    download_uri : file_uri;
+    mutable download_uri : GnutellaNetwork.file_uri;
     mutable download_chunks : (int64 * int64) list;
     mutable download_uploader : Int64Swarmer.uploader option;
-    mutable download_ranges : (int64 * int64 * Int64Swarmer.range) list;
+    mutable download_ranges : download_request list;
     mutable download_block : Int64Swarmer.block option;
+    mutable download_head_requested : bool;
+    mutable download_ttr_requested : bool;
   }
 
+and headers = (string * (string * string)) list
+
+and head_request =
+  HeadNotRequested
+| HeadRequested
+| Head of string * headers
+
+type ghandler =
+  HttpReader of 
+  int * (* Number of bytes that need to be read to find the connection type *)
+  (string * 
+    (gconn -> TcpBufferedSocket.t -> string * headers -> unit)) list *
+  (gconn -> TcpBufferedSocket.t -> unit) (* default connection *)
+| Reader of (gconn -> TcpBufferedSocket.t -> unit)
+| CipherReader of (GnutellaNetwork.cipher * (gconn -> TcpBufferedSocket.t -> unit))
   
+and gconn = {
+    mutable gconn_handler : ghandler;
+    mutable gconn_refill : (TcpBufferedSocket.t -> unit) list;
+    mutable gconn_close_on_write : bool;
+    mutable gconn_file_info_sent : int list;
+    mutable gconn_client_info_sent : bool;
+    mutable gconn_verbose : bool ref;
+  }
+  
+open Printf2
+  
+let print_head first_line headers =
+  lprintf "HEADER: %s\n" first_line;
+  List.iter (fun (header, (value,_)) ->
+      lprintf "   %s = %s\n" header value;
+  ) headers;
+  lprintf "\n\n"
+  
+let make_http_header code headers =
+  let buf = Buffer.create 100 in
+  Printf.bprintf buf "%s\r\n" code;
+  List.iter (fun (field, value) ->
+      Printf.bprintf buf "%s: %s\r\n" field value
+  ) headers;
+  Buffer.add_string buf "\r\n";
+  Buffer.contents buf
+
+
+let plugin_enable_hooks = ref ([] : (bool ref -> unit) list)
+let plugin_disable_hooks = ref [(fun () -> ())]

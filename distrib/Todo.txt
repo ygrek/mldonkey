@@ -1,21 +1,58 @@
 TODO list for client
 ====================
 
+URGENT WORK:
+============
+
+(0) Check that removal of the Swarmer after file_completed is not harmful.
+
+(1) Why is the QRT sent so often ?
+(2) Implement PUSH in Gnutella and Fasttrack
+
+(9) When a file is commited, it should not be shared anymore in temp/.
+    Moreover, in temp, it should not be shared under is URN name.
+(10) CANCEL A FILE, AND RESTART THE DOWNLOAD: <<<<<<<<<
+
+
+
+
+
 Before 2.6:
-  * Fasttrack: present/absent not correctly stored ?
   * Re-implement contributors in CommonSwarming
   * Re-implement already downloaded files.
 
-  * Why does a BT client appears twice in the upload_fifo ?
+  * Why does a BT client appear twice in the upload_fifo ?
   * Secondary file should have '2' if primary file has not 3...
   * Use a strategy for each network that tries to finish partially
       downloaded chunks for itself or the primary network.
-  * Do we query FileChunksReq too often ?
   * Does the PartialChunk strategy work ?
   * Why are chunks verified before completeness ?
   * After a while, shared files are not shared anymore ! why ???
   * When a connection succeeds and downloads, we should retry the connection
      ASAP.
+  * How to remove servers from disabled networks ?
+  * When a file is commited, we should add a flag to say if it has been
+      verified or not.
+
+GNUTELLA:
+  * Use GET /urn-... type of downloads
+  * When is recover_file called ?
+  * All slots used ???
+  * Why do we lose some ultrapeers ?
+  * For files without TTR, use the SHA1 when all chunks are '2'
+  * Why is the QRT sent so often ??
+
+BITTORRENT:
+  * Why does BT stop uploading after a file is downloaded ?
+
+FASTTRACK:
+  * Verify that cancelled files are correctly removed, even the swarmers !
+  * What does "precondition failed" means ??
+  * Infinite loop somewhere...
+
+SWARMING: disconnect verification scheme from network, at least when the
+  network doesn't use bitmaps. Find alternative UIDs for files (Gnutella2)
+  and download TigerTree when available.
 
 URGENT:
  * Understand why we ask several times for the same chunks

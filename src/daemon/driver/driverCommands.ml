@@ -366,6 +366,7 @@ let _ =
               ) "" msglist in
             let cnum = int_of_string n in
             client_say (client_find cnum) msg;
+	    log_chat_message "localhost" 0 !!global_login msg;
             Printf.sprintf "Sending msg to client #%d: %s" cnum msg;
         | _ ->  
             if use_html_mods o then begin
@@ -691,7 +692,7 @@ let _ =
                 let rs = client_files c in
                 
                 let rs = List2.tail_map (fun (s, rs) ->
-                      let r = get_result rs in
+                      let r = IndexedResults.get_result rs in
                       rs, r, 1
                   ) rs in
                 o.conn_user.ui_last_results <- [];
@@ -1305,8 +1306,6 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                   | 5 -> 
                       [
                         strings_of_option previewer; 
-                        strings_of_option incoming_directory; 
-                        strings_of_option incoming_directory_prio; 
                         strings_of_option temp_directory; 
                         strings_of_option file_completed_cmd; 
                         strings_of_option allow_browse_share; 
@@ -1325,6 +1324,9 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                       ] 
                   | 7 -> 
                       ( (if Autoconf.donkey = "yes" then [(strings_of_option enable_overnet)] else [])
+			@ [
+			] @
+			(if Autoconf.donkey = "yes" then [(strings_of_option enable_kademlia)] else [])
 			@ [
 			] @
 			(if Autoconf.donkey = "yes" then [(strings_of_option enable_donkey)] else [])
@@ -1473,7 +1475,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                     List.iter (fun s ->
                         print_section 
                           (Printf.sprintf "%s::%s" r.network_name
-                            (section_name s)) (r.network_prefix ()) s
+                            (section_name s)) (r.network_shortname ^ "-") s
                     ) (sections file)
                 ) r.network_config_file
             );
@@ -1573,9 +1575,11 @@ let _ =
               ( "0", "srh", "Directory", "Directory" ) ]; 
             
             let counter = ref 0 in
-            
+
+(* TODO update HTML for incoming directories now in shared_directories
             Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>\\<td title=\\\"Incoming directory is always shared\\\" class=\\\"srb\\\"\\>Incoming\\</td\\>
 \\<td class=\\\"sr ar\\\"\\>0\\</td\\>\\<td title=\\\"Incoming\\\" class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>" !!incoming_directory;
+*)
             
             List.iter (fun shared_dir -> 
                 incr counter;
@@ -1602,7 +1606,7 @@ let _ =
           begin
             
             Printf.bprintf buf "Shared directories:\n";
-            Printf.bprintf buf "  %d %s\n" !!incoming_directory_prio !!incoming_directory;
+(*            Printf.bprintf buf "  %d %s\n" !!incoming_directory_prio !!incoming_directory; *)
             List.iter (fun sd -> 
                 Printf.bprintf buf "  %d %s\n" 
                 sd.shdir_priority sd.shdir_dirname)
@@ -1615,8 +1619,8 @@ let _ =
     "share", Arg_multiple (fun args o ->
         let (prio, arg, strategy) = match args with
           | [prio; arg; strategy] -> int_of_string prio, arg, strategy
-          | [prio; arg] -> int_of_string prio, arg, !!default_sharing_strategy
-          | [arg] -> 0, arg, !!default_sharing_strategy
+          | [prio; arg] -> int_of_string prio, arg, "only_directory"
+          | [arg] -> 0, arg, "only_directory"
           | _  -> failwith "Bad number of arguments"
         in
 

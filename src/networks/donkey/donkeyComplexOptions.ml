@@ -65,33 +65,33 @@ I know this is stupid, but "give the people what they want"..
 *)
 
 let create_online_sig () =
-
+  
   let most_users = ref Int64.zero in
-	let server_name= ref "" in
-	let server_ip = ref "" in
-	let server_port = ref 0 in
-	List.iter (fun s -> 
-		if s.server_nusers > !most_users then begin 
-			server_name := s.server_name;
-			server_ip := (Ip.to_string s.server_ip);
-			server_port := s.server_port;
-			most_users := s.server_nusers;
-		end
-	) (connected_servers());
-
-	let oc = open_out (Filename.concat file_basedir "onlinesig.dat") in
-
+  let server_name= ref "" in
+  let server_ip = ref "" in
+  let server_port = ref 0 in
+  List.iter (fun s -> 
+      if s.server_nusers > !most_users then begin 
+          server_name := s.server_name;
+          server_ip := (Ip.to_string s.server_ip);
+          server_port := s.server_port;
+          most_users := s.server_nusers;
+        end
+  ) (connected_servers());
+  
+  let oc = open_out (Filename.concat file_basedir "onlinesig.dat") in
+  
   if !most_users = Int64.zero then
-		output_string oc ("0\n")
-	else 
-		output_string oc (Printf.sprintf "1|%s|%s|%d\n" !server_name !server_ip !server_port);
-	let dlkbs = (( (float_of_int !udp_download_rate) +. (float_of_int !control_download_rate)) /. 1024.0) in
-    let ulkbs = (( (float_of_int !udp_upload_rate) +. (float_of_int !control_upload_rate)) /. 1024.0) in
-	
-	output_string oc (Printf.sprintf "%.1f|%.1f|%d\n" dlkbs ulkbs 
-			(Intmap.length !CommonUploads.pending_slots_map));
-	close_out oc
-    
+    output_string oc ("0\n")
+  else 
+    output_string oc (Printf.sprintf "1|%s|%s|%d\n" !server_name !server_ip !server_port);
+  let dlkbs = (( (float_of_int !udp_download_rate) +. (float_of_int !control_download_rate)) /. 1024.0) in
+  let ulkbs = (( (float_of_int !udp_upload_rate) +. (float_of_int !control_upload_rate)) /. 1024.0) in
+  
+  output_string oc (Printf.sprintf "%.1f|%.1f|%d\n" dlkbs ulkbs 
+      (Intmap.length !CommonUploads.pending_slots_map));
+  close_out oc
+  
 (************ COMPLEX OPTIONS *****************)
   
 let value_to_addr v =
@@ -270,15 +270,25 @@ let value_to_file file_size file_state assocs =
     try conv (List.assoc name assocs) with _ -> []
   in
   
-  let file_md4_name = 
+  let file_md4 = 
     try
       get_value "file_md4" value_to_string
     with _ -> failwith "Bad file_md4"
   in
+  let file_diskname = try
+      get_value "file_diskname" value_to_string
+    with _ -> 
+        let filename = Filename.concat !!temp_directory file_md4 in
+        if Sys.file_exists filename then filename else
+          Filename.concat  !!temp_directory 
+            (Printf.sprintf "urn:ed2k:%s" file_md4)
+  in
+
+  let filenames = List.map (fun name -> name, GuiTypes.noips()) 
+    (get_value_nil "file_filenames" (value_to_list value_to_string)) in
   
-  let file = DonkeyGlobals.new_file file_state (
-      Filename.concat !!temp_directory file_md4_name)
-    (Md4.of_string file_md4_name) file_size true in
+  let file = DonkeyGlobals.new_file file_diskname file_state
+    (Md4.of_string file_md4) file_size filenames true in
 
   (*
   (try 
@@ -291,17 +301,12 @@ let value_to_file file_size file_state assocs =
     with _ -> ()                );
 *)
   
-  file.file_filenames <-
-    List.map (fun name -> name, GuiTypes.noips()) 
-  (get_value_nil "file_filenames" (value_to_list value_to_string));
   
-  (*
   
   (try
-      set_file_best_name (as_file file.file_file)
+      set_file_best_name (as_file file)
       (get_value "file_filename" value_to_string)
     with _ -> update_best_name file);
-*)
   
 (*
   (try
@@ -319,7 +324,8 @@ let value_to_file file_size file_state assocs =
     with _ -> 
         lprintf "Could not load chunks states\n"; );
 *)
-  let md4s = get_value "file_md4s" (value_to_array value_to_md4) in
+  let md4s = try get_value "file_md4s" (value_to_array value_to_md4) 
+    with _ -> [||] in
   
   if md4s <> [||] then file.file_computed_md4s <- md4s;
   
@@ -377,6 +383,7 @@ let file_to_value file =
   let fields =
     [
       "file_md4", string_to_value (Md4.to_string file.file_md4);
+      "file_diskname", string_to_value file.file_diskname;
 (*      "file_all_chunks", string_to_value (string_of_chunks file);   *)
 (*      "file_absent_chunks", List
         (List.map (fun (i1,i2) -> 

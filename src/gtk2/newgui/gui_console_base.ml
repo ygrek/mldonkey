@@ -19,7 +19,7 @@ class box () =
   in
   let _ =
     GMisc.label ~width:180 ~text:(Gui_messages.cT_lb_command)
-      ~justify:`LEFT ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0)
+      ~justify:`LEFT ~line_wrap:true ~xalign:(0.0) ~yalign:(0.0)
       ~packing:(_anonymous_container_3#pack ~expand:false ~fill:true) ()
   in
   let we_command =
@@ -33,7 +33,7 @@ class box () =
   in
   let _ =
     GMisc.label ~width:180 ~text:(Gui_messages.cT_lb_clear_console)
-      ~justify:`RIGHT ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0)
+      ~justify:`RIGHT ~line_wrap:true ~xalign:(0.0) ~yalign:(0.0)
       ~packing:(wb_clear_console#add) ()
   in
   object

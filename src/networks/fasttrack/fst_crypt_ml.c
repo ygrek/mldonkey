@@ -39,13 +39,10 @@ value ml_apply_cipher(value cipher_v, value s_v, value pos_v, value len_v)
   return Val_unit;
 }
 
-value ml_init_cipher(value cipher_v, value seed_v, value encode_v)
+value ml_init_cipher(value cipher_v)
 {
   FSTCipher* cipher = (FSTCipher*) cipher_v;
-  unsigned int seed = Int32_val(seed_v);
-  unsigned int encode = Int_val(encode_v);
-
-  fst_cipher_init(cipher, seed, encode);
+  fst_cipher_init(cipher, cipher->seed, cipher->enc_type);
 
   return Val_unit;
 }
@@ -64,11 +61,9 @@ value ml_set_cipher(value cipher_v, value seed_v, value encode_v)
   return Val_unit;
 }
 
-value ml_cipher_packet_get(value s_v, value pos_v, 
-  value in_cipher_v, value out_cipher_v)
+value ml_cipher_packet_get(value s_v, value pos_v, value in_cipher_v)
 {
   FSTCipher* in_cipher = (FSTCipher*) in_cipher_v;
-  FSTCipher* out_cipher = (FSTCipher*) out_cipher_v;
   char *s = String_val(s_v);
   int pos = Int_val(pos_v);
   unsigned int seed;
@@ -84,16 +79,36 @@ value ml_cipher_packet_get(value s_v, value pos_v,
   enc_type = htonl (((unsigned int*)(s+pos+4))[0]);
   enc_type = fst_cipher_decode_enc_type (seed, enc_type);
 
+  in_cipher->seed = seed;
+  in_cipher->enc_type = enc_type;
 /*  printf("in seed:%X enc_type: %X\n", seed, out_cipher->enc_type);  */
 
-  if(enc_type > 0x29)    failwith ("ERROR: unsupported encryption");
-
-  out_cipher->seed ^= seed; /* xor send cipher with received seed */
-  fst_cipher_init(out_cipher, out_cipher->seed, out_cipher->enc_type);
-  fst_cipher_init(in_cipher, seed, enc_type);
+/*  if(enc_type > 0x29)    failwith ("ERROR: unsupported encryption"); */
 
   return Val_unit;
 }
+
+value ml_xor_ciphers(value out_cipher_v, value in_cipher_v){
+  FSTCipher* in_cipher = (FSTCipher*) in_cipher_v;
+  FSTCipher* out_cipher = (FSTCipher*) out_cipher_v;
+
+  out_cipher->seed ^= in_cipher->seed; /* xor send cipher with received seed */
+
+  return Val_unit;
+}
+
+value ml_xor_ciphers2(value out_cipher_v, value in_cipher_v){
+  FSTCipher* in_cipher = (FSTCipher*) in_cipher_v;
+  FSTCipher* out_cipher = (FSTCipher*) out_cipher_v;
+  unsigned int seed = out_cipher->seed;
+
+  out_cipher->seed ^= in_cipher->seed; /* xor send cipher with received seed */
+  in_cipher->seed ^= seed;
+  fst_cipher_init(out_cipher, out_cipher->seed, out_cipher->enc_type);
+
+  return Val_unit;
+}
+
 
 value ml_cipher_packet_set(value cipher_v, value s_v, value pos_v)
 {
@@ -101,24 +116,36 @@ value ml_cipher_packet_set(value cipher_v, value s_v, value pos_v)
   char *s = String_val(s_v);
   int pos = Int_val(pos_v);
 
-/*
-  printf("ml_cipher_packet_set %X seed:%X enc_type:%X\n", cipher,
-    cipher->seed, cipher->enc_type
-  );
-*/
-
-/* in OCAML: "\250\000\182\043" */
-  /* ((unsigned int*)(s+pos))[0] = 0x02BB600FA; random number? */
-  s[pos] = 250;
-  s[pos+1] = 0;
-  s[pos+2] = 182;
-  s[pos+3] = 43;
-  ((unsigned int*)(s+pos+4))[0] = htonl(cipher->seed);
-  ((unsigned int*)(s+pos+8))[0] = htonl(
+  ((unsigned int*)(s+pos))[0] = htonl(cipher->seed);
+  ((unsigned int*)(s+pos+4))[0] = htonl(
     fst_cipher_encode_enc_type(cipher->seed, cipher->enc_type));
 
   return Val_unit;
 }
+
+value ml_cipher_enc_type(value cipher_v)
+{
+  FSTCipher* cipher = (FSTCipher*) cipher_v;
+
+  return Val_int(cipher->enc_type);
+}
+
+value ml_cipher_packet_set_xored(value cipher_v, value s_v, value pos_v, value xor_cipher_v)
+{
+  FSTCipher* cipher = (FSTCipher*) cipher_v;
+  FSTCipher* xor_cipher = (FSTCipher*) xor_cipher_v;
+  char *s = String_val(s_v);
+  int pos = Int_val(pos_v);
+  unsigned int seed = cipher->seed;
+
+  seed ^= xor_cipher->seed;
+  ((unsigned int*)(s+pos))[0] = htonl(seed);
+  ((unsigned int*)(s+pos+4))[0] = htonl(
+    fst_cipher_encode_enc_type(cipher->seed, cipher->enc_type));
+
+  return Val_unit;
+}
+
 
 value ml_cipher_free(value cipher_v)
 {

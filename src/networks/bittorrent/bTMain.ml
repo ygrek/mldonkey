@@ -54,20 +54,21 @@ let enable () =
   if not !is_enabled then
     let enabler = ref true in
     lprintf "enabling...\n";
-    Unix2.safe_mkdir "torrents";
-    Unix2.safe_mkdir downloads_directory;
-    Unix2.safe_mkdir tracked_directory;  
+    Unix2.safe_mkdir old_torrents_directory;
     Unix2.safe_mkdir seeded_directory;
+    Unix2.safe_mkdir tracked_directory;
+    Unix2.safe_mkdir downloads_directory;
     is_enabled := true;
-    if !!tracker_port > 0 then (
+    if !!BTTracker.tracker_port > 0 then (
         try BTTracker.start_tracker () 
         with e ->
             lprintf "Exception in BTTracker.start_tracker: %s\n"
               (Printexc2.to_string e));
-    add_infinite_timer 1200. (fun _ ->
+    add_session_timer enabler 300. (fun _ ->
         BTInteractive.share_files ();
-        BTTracker.clean_tracker_timer ());
+    );
     add_timer 10. BTInteractive.share_files;
+    add_session_timer enabler 600. BTInteractive.retry_all_ft;
     network.op_network_disable <- disable enabler;
     
     if not !!enable_bittorrent then enable_bittorrent =:= true;

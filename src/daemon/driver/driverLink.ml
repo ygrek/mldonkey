@@ -49,7 +49,6 @@ module DP500(M: sig
 
       module CommonOptions : sig 
           
-          val incoming_directory : string Options.option_record
           val temp_directory : string Options.option_record
           val dp500_directory : string Options.option_record
           val allowed_ips : Ip.t list Options.option_record
@@ -58,7 +57,8 @@ module DP500(M: sig
           val telnet_bind_addr : Ip.t Options.option_record
           val dp500_port : int Options.option_record
         end
-        
+
+      val incoming_directory : unit -> string        
       val files : unit -> file list
         
     end) =
@@ -290,7 +290,7 @@ let exec_command telnet line sock =
             | "VIDEO" -> 
 
                 if argument = "" then begin
-                    if !!incoming_directory <> "" then
+                    if incoming_directory () <> "" then
                       write_string sock (Printf.sprintf "%s|%s|1|\r\n"
                           mlnet_incoming_string mlnet_incoming_string
                       );
@@ -300,9 +300,9 @@ let exec_command telnet line sock =
                           mlnet_temp_string mlnet_temp_string 
                       );
                     end;
-                if !!incoming_directory <> "" &&
+                if incoming_directory () <> "" &&
                   String2.starts_with argument mlnet_incoming_string then
-                    list_directory !!incoming_directory
+                    list_directory (incoming_directory ())
                       (String.sub argument mlnet_incoming_string_len
                         (String.length argument - mlnet_incoming_string_len))
                   

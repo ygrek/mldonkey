@@ -361,24 +361,27 @@ lprint_newline ()
                       | AtLeast n -> 
                           QAnd (QHasMinVal (Field_Size, n),q)
                     ) in
-                  lprintf "%d replies found" (Array.length files); 
+                  lprintf "%d replies found" (List.length files); 
                   lprint_newline ();
-                  for i = 0 to mini (Array.length files - 1) 50 do 
-                    let sh = files.(i) in
+                  
+                  let files,_ = List2.cut 50 files in
+                  let module U = CommonUploads in
+                  List.iter (fun (sh, info) ->
+                      
                     server_send !verbose_msg_servers sock (SRReq (
                         let module S = SR in
                         {
                           S.owner = s.server_last_nick (* Printf.sprintf "Hub:%s" nick *);
                           S.filename = sh.CommonUploads.shared_codedname;
-                          S.filesize = sh.CommonUploads.shared_size;
+                          S.filesize = info.CommonUploads.shared_size;
                           S.open_slots = 1;
                           S.all_slots = 1;      (* TODO *)
                           S.server_name = s.server_name; (* BUG VERIFY TODO *)
                           S.server_ip = Some (Printf.sprintf "%s:%d" (Ip.to_string (Ip.ip_of_addr s.server_addr)) s.server_port);
                           S.to_nick = Some nick;
                         }
-                      ))
-                  done
+                        ))
+                  ) files
                 with Not_found -> 
                     lprintf "NO REPLY TO SEARCH"; lprint_newline ();
               end else

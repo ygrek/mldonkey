@@ -30,6 +30,24 @@ open CommonTypes
 open CommonOptions
 open CommonHosts
 
+type cipher
+type ciphers
+    
+type query_key =
+  NoUdpSupport
+| GuessSupport
+| UdpSupport of Md4.t
+| UdpQueryKey of int64
+
+type search_extension = string
+type search_uid = Md4.t
+type file_uid = Uid.t
+  
+    
+type file_uri =
+  FileByIndex of int * string
+| FileByUrl of string
+
 let port = 6347
 let config_file = "gnutella2.ini"
 let redirectors = [
@@ -52,4 +70,26 @@ let redirectors = [
 let options_prefix = "G2-"
 let has_accept = true
 let accept_header = "application/x-gnutella2"
+let max_known_peers_default = 20
+let accept_ed2kuid = true
+let accept_bitprint = true
+let accept_md5ext = false
+  
+  
+let max_queued_ranges = 6
+  
+let value_to_index tail =
+  match tail with
+    [index; name] ->
+      FileByIndex (value_to_int index, value_to_string name)
+  | _ -> failwith "Bad source"
+      
+let index_to_value uri =
+  match uri with
+    FileByIndex (i,n) -> 
+      [ int_to_value i; string_to_value n]
+  | FileByUrl s -> 
+      [ string_to_value s] 
+            
+let apply_cipher _ _ _ _ = ()
   

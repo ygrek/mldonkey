@@ -182,7 +182,7 @@ let connect_redirector () =
           let s = gen_redirector_packet () in
           try            
             let name, port = !!mlnet_redirector in
-            UdpSocket.write propagation_socket s (Ip.from_name name) port;
+            UdpSocket.write propagation_socket false s (Ip.from_name name) port;
             
           with e ->
               lprintf "Exception %s in udp_sendonly\n" (Printexc2.to_string e);
@@ -311,3 +311,33 @@ let _ =
       feed.rss_date <- last_time ();
       feed.rss_value <- c
   )
+
+let initialized = ref false
+let tcp_latencies_block = ref ""
+let udp_latencies_block = ref ""
+  
+let _ =
+(* Latency block *)
+  add_redirector_info "LTCY" (fun buf ->
+      
+      if not !initialized then begin
+          tcp_latencies_block := TcpBufferedSocket.get_latencies ();
+          udp_latencies_block := UdpSocket.get_latencies ();
+          initialized := true;
+        end;
+      
+      buf_int buf !!loop_delay;
+      
+(* TCP block *)
+      Buffer.add_string buf !tcp_latencies_block;
+      
+(* UDP block *)
+      Buffer.add_string buf !udp_latencies_block;
+  );
+(* Every 6 hours *)
+  add_infinite_timer 21600. (fun _ ->
+      initialized := true;
+      tcp_latencies_block := TcpBufferedSocket.get_latencies ();
+      udp_latencies_block := UdpSocket.get_latencies ();
+  )
+  

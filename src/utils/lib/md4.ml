@@ -347,13 +347,9 @@ module Make(M: sig
     
     let digest_subfile fd pos len =
       let digest = String.create hash_length in
-      let (fd, pos, filename) = Unix32.fd_of_chunk fd pos len in
-      digest_subfile digest fd pos len;
-      (match filename with
-          None -> ()
-        | Some filename ->
-            Sys.remove filename
-      );
+      Unix32.apply_on_chunk fd pos len 
+        (fun fd pos ->
+          digest_subfile digest fd pos len);
       digest
     
     let create () =  String.create hash_length
@@ -493,14 +489,9 @@ module PreTigerTree = Make(struct
       
       let unsafe_file digest filename file_size = 
         let fd = Unix32.create_diskfile filename [Unix.O_RDONLY] 0o444 in
-        let (fd, pos, filename) = Unix32.fd_of_chunk fd Int64.zero file_size in
-        let digest = digest_subfile digest fd pos file_size in
-        (match filename with
-            None -> ()
-          | Some filename ->
-              Sys.remove filename
-        );
-        digest
+        Unix32.apply_on_chunk fd Int64.zero file_size 
+          (fun fd pos ->
+            digest_subfile digest fd pos file_size)
     
       module Base = Base32
         

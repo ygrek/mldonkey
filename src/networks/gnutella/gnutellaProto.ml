@@ -20,18 +20,21 @@
 (* UDP connect back: if we are not guess capable, we can only send packets
   if we have been allowed to using GTKG/7 *)
 
+open Int64ops
 open Printf2
 open Options
 open Md4
 open AnyEndian
 open LittleEndian
 open TcpBufferedSocket
-
+open Xml_types
+  
 open CommonHosts
 open CommonTypes
 open CommonOptions
 open CommonGlobals
-  
+
+open GnutellaNetwork
 open GnutellaGlobals
 open GnutellaTypes
 open GnutellaOptions
@@ -554,6 +557,11 @@ let print p =
 let buf = Buffer.create 1000
 
 let server_msg_to_string pkt = 
+  
+  if !verbose_msg_servers then begin
+      lprintf "SENDING :\n";
+      print pkt;
+    end; 
   Buffer.clear buf;
   buf_md4 buf pkt.pkt_uid;
   buf_int8 buf (match pkt.pkt_type with
@@ -575,10 +583,6 @@ let server_msg_to_string pkt =
   let s = Buffer.contents buf in
   let len = String.length s - 23 in
   str_int s 19 len;
-  if !verbose_msg_servers then begin
-      lprintf "SENDING :\n";
-      dump s;
-    end;
   s 
 
 let new_packet t =
@@ -617,7 +621,7 @@ let udp_send ip port msg =
               (Ip.to_string ip) port
             (String.escaped s);
           end;
-        UdpSocket.write sock s ip port;
+        UdpSocket.write sock false s ip port;
 (*        UdpSocket.write sock s Ip.localhost !!client_port *)
       with e ->
           lprintf "Exception %s in udp_send\n" (Printexc2.to_string e)
@@ -633,7 +637,8 @@ let server_send s t =
         match s.server_query_key with
           GuessSupport ->
             let h = s.server_host in
-            udp_send h.host_addr h.host_port t
+            let ip = Ip.ip_of_addr h.host_addr in
+            udp_send ip h.host_port t
         | _ -> ()
       end
   | Connection sock ->
@@ -766,8 +771,8 @@ let server_recover_file file sock s =
       match ss.search_search with
         FileUidSearch (file, fuid) ->
           server_ask_uid s ss.search_uid fuid
-      | FileWordSearch (file, words) ->
-          server_send_query ss.search_uid words "" sock s;          
+(*      | FileWordSearch (file, words) ->
+          server_send_query ss.search_uid words "" sock s;           *)
       | _ -> ()          
   ) file.file_searches
   
@@ -801,6 +806,7 @@ let server_send_push s uid uri =
   server_send s p
 
 let create_qrt_table words table_size =
+  lprintf "create_qrt_table\n";
   let infinity = 7 in
   let table_length = 1 lsl table_size in
   let old_array = Array.create table_length infinity in
@@ -820,10 +826,8 @@ let create_qrt_table words table_size =
   done;
   table
 
-let cached_qrt_table = ref ""
-
 let send_qrt_sequence s update_table =
-  
+
   if update_table then cached_qrt_table := "";
   let table_size = 10 in
   let infinity = 7 in
@@ -839,7 +843,10 @@ let send_qrt_sequence s update_table =
   
   let compressor, table =
     if Autoconf.has_zlib then
-      1, Autoconf.zlib__compress_string table
+      1, 
+      let t = Autoconf.zlib__compress_string table in
+      assert (Autoconf.zlib__uncompress_string2 t = table);
+      t
     else
       0, table 
   in
@@ -852,186 +859,118 @@ let send_qrt_sequence s update_table =
       QrtPatch.table = table;
     }
 
+
+
 let server_send_qkr _ = ()
 
   
   
-module Pandora = struct
-    
-    type t = UDP | TCP
-    
-    type cnx = {
-        ip1 : string;
-        port1 : int;
-        ip2 : string;
-        port2 : int;
-        packets : Buffer.t;
-      }
-    let connections = Hashtbl.create 13
-    
-    let rec piter s pos = 
-      let len = String.length s in
-      if String.length s - pos >= 23 then
-        let msg_len = get_int s (pos+19) in
-        if len >= 23 + msg_len then
-          let pkt_uid = get_md4 s pos in
-          let pkt_type = match get_uint8 s (pos+16) with
-              0 -> PING
-            | 1 -> PONG
-            | 2 -> BYE
-            | 48 -> QRP
-            | 49 -> VENDOR
-            | 64 -> PUSH
-            | 128 -> QUERY
-            | 129 -> QUERY_REPLY
-            | n -> UNKNOWN n
-          in
-          let pkt_ttl = get_uint8 s  (pos+17) in
-          let pkt_hops = get_uint8 s  (pos+18) in
-          let data = String.sub s (pos+23) msg_len in
-          let pkt = {
-              pkt_uid = pkt_uid;
-              pkt_type = pkt_type;
-              pkt_ttl = pkt_ttl;
-              pkt_hops = pkt_hops;
-              pkt_payload = data;
-            } in
-          begin
-            try
-              let pkt = parse pkt in
-              print pkt;
-              if pkt_type = QUERY then
-                dump (String.sub s pos (msg_len + 23))
-            with e ->
-                lprintf "Exception %s\n" (Printexc2.to_string e)
-          end;
-          piter s (pos + msg_len + 23)
-(*
-        else 
-          lprintf "Remaining %d bytes: %s\n"
-            (len - pos) (String.sub s pos (len-pos))
-      else 
-        lprintf "Remaining %d bytes: %s\n"
-          (len - pos) (String.sub s pos (len-pos))
-*)
-    
-    let rec iter s pos =
-      if s.[pos] = '\n' then
-        if s.[pos+1] = '\n' then pos+2
-        else
-        if s.[pos+1] = '\r' then
-          if s.[pos+2] = '\n' then pos+3
-          else iter s (pos+1)
-        else iter s (pos+1)
-      else 
-      if s.[pos] = '\r' then
-        if s.[pos] = '\n' then
-          if s.[pos+1] = '\n' then pos+2
-          else
-          if s.[pos+1] = '\r' then
-            if s.[pos+2] = '\n' then pos+3
-            else iter s (pos+1)
-          else iter s (pos+1)
-        else
-          iter s (pos+1)
-      else iter s (pos+1)
-    
-    let hescaped s =
-      String2.replace_char s '\r' ' ';s
-    
-    let commit () =  
-      Hashtbl.iter (fun _ cnx ->
-          let s = Buffer.contents cnx.packets in
-          let len = String.length s in
-          try
-            if String2.starts_with s "GNUTELLA CONNECT" then begin
-                let h1 = iter s 0 in
-                let h2 = iter s h1 in
-                lprintf "\n-----------------------------------------------\n";
-                lprintf "\nCONNECTION %s:%d -> %s:%d: %d bytes\n" 
-                  cnx.ip1 cnx.port1 cnx.ip2 cnx.port2 len;
-                lprintf "Header 1: \n%s\n" (hescaped (String.sub s 0 h1));
-                lprintf "Header 2: \n%s\n" (hescaped (String.sub s h1 
-                      (h2-h1)));              
-                piter s h2
-              end else 
-            if String2.starts_with s "GNUTELLA" then begin
-                let h1 = iter s 0 in
-                lprintf "\n-----------------------------------------------\n";
-                lprintf "\nCONNECTION %s:%d -> %s:%d: %d bytes\n" 
-                  cnx.ip1 cnx.port1 cnx.ip2 cnx.port2 len;
-                
-                lprintf "Header 1: \n%s\n" (hescaped (String.sub s 0 h1));
-                piter s h1
-              end else ()
-(*
-            if String2.starts_with s "GET" then begin
-                lprintf "Http connect to\n";
-                let h1 = iter s 0 in
-                lprintf "Header 1: \n%s\n" (hescaped (String.sub s 0 h1));
-              end else 
-            if String2.starts_with s "HTTP" then begin
-                lprintf "Http connected from\n";
-                let h1 = iter s 0 in
-                lprintf "Header 1: \n%s\n" (hescaped (String.sub s 0 h1));
-              end else 
-              lprintf "Starting %s\n" (String.escaped
-(String.sub s 0 (min len 20)))
-  *)
-          with 
-          
-          | e ->
-(*
-              lprintf "Exception %s in\n%s\n" (Printexc2.to_string e)
-              (String.escaped s)
-*) ()            
-      ) connections;
-      lprintf "\n\n#use \"limewire.ml\";;\n\n"
-    
-    
-    
-    let new_packet (kind:t) (number:int) ip1 port1 ip2 port2 data = 
-      match kind with
-        UDP -> 
-          begin
-            try
-(*              lprintf "New packet:\n%s\n" (String.escaped data);          *)
-              piter data 0;
-            with e ->
-(*                lprintf "Could not parse UDP packet:\n"; *)
-                ()
-          end
-      | TCP ->  
-          let cnx = 
-            try
-              Hashtbl.find connections number
-            with _ ->
-                let cnx = {
-                    ip1 = ip1;
-                    port1 = port1;
-                    ip2 = ip2;
-                    port2 = port2;
-                    packets = Buffer.create 100;
-                  } in
-                Hashtbl.add connections number cnx;
-                cnx
-          in
-          Buffer.add_string cnx.packets data
-          
-  end
-  
   
 let resend_udp_packets () = ()
-  
-let ask_for_uids sh =
-  CommonUploads.ask_for_uid sh SHA1 (fun sh uid -> 
-      lprintf "Could share urn\n";
-      ())
-  
   
 let known_download_headers = []
 let known_supernode_headers = []
 let is_same_network gnutella2 = not gnutella2
   
 let host_send_qkr h = ()
+  
+let check_primitives () = ()
+let recover_files_delay = 3600.
+  
+  
+let xml_to_string xml = 
+  "<?xml version=\"1.0\"?>" ^ (  Xml.to_string xml)
+      
+let audio_schema tags = 
+  Element ("audios",
+    [("xsi:nonamespaceschemalocation",
+        "http://www.limewire.com/schemas/audio.xsd")],
+    [Element ("audio", tags, [])])
+
+(*
+[
+("artist", "Tom Jones");
+("album", "Mars Attacks Soundtrack");
+("title", "It&apos;s Not Unusal");
+
+("sampleRate", "44100"); 
+("seconds", "239"); 
+("index", "0");
+("bitrate", "128")
+("track", "1"); 
+("description", "Tom Jones, hehe"); 
+("genre", "Retro");
+("year", "1997")
+] 
+
+*)
+  
+let translate_query q =
+
+  let keywords = ref [] in
+  let add_words w =
+    keywords := (String2.split_simplify w ' ') @ !keywords
+  in
+  let audio = ref false in
+  let tags = ref [] in  
+  let rec iter q = 
+    match q with
+    | QOr (q1,q2) 
+    | QAnd (q1, q2) -> iter q1; iter q2
+    | QAndNot (q1,q2) -> iter q1 
+    | QHasWord w ->  add_words w
+    | QHasField(field, w) ->
+        begin
+          match field with
+            Field_Type -> 
+              begin
+                match String.lowercase w with
+                  "audio" -> audio := true
+                | _ -> add_words w
+              end
+          | Field_Format ->
+              begin
+                match String.lowercase w with
+                | "mp3" | "wav" -> 
+                    add_words w;
+                    audio := true
+                | _ -> add_words w
+              end
+          | Field_Album -> tags := ("album", w) :: !tags; add_words w
+          | Field_Artist -> tags := ("artist", w) :: !tags; add_words w
+          | Field_Title -> tags := ("title", w) :: !tags; add_words w
+          | _ -> add_words w
+        end
+    | QHasMinVal (field, value) -> ()
+    | QHasMaxVal (field, value) -> ()
+    | QNone ->  ()
+  in
+  iter q;
+  !keywords, if !audio then xml_to_string (audio_schema !tags) else ""
+
+let new_search_uid () = Md4.random ()
+
+let cancel_recover_files file =
+  List.iter (fun s ->
+      Hashtbl.remove searches_by_uid s.search_uid
+  ) file.file_searches
+  
+          
+let parse_url url = 
+  let (name, uids) = parse_magnet url in
+  (name, zero, uids)
+  
+    
+let ask_for_push uid =
+  let module P = Push in
+  let p = {
+      P.guid = uid;
+      P.index = 0;
+      P.port = !!client_port;
+      P.ip = client_ip NoConnection;
+    } in
+  let pkt = new_packet (PushReq p) in
+  List.iter (fun s ->
+      server_send s pkt
+  ) !connected_servers
   

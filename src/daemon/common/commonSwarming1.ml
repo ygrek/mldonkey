@@ -519,38 +519,88 @@ let verify_block t i =
     match t.t_verifier with
       NoVerification
     | VerificationNotAvailable -> ()
-        
+    
+    | Verification chunks when Array.length chunks = Array.length t.t_blocks ->
+        begin
+          try
+            let block_begin = t.t_block_size ** i in
+            let block_end = block_begin ++  t.t_block_size in
+            let block_end = min block_end t.t_size in
+            if verify t chunks i block_begin block_end then begin
+                set_toverify_block t i;
+                set_verified_chunk t i;
+                t.t_verified t.t_nverified_blocks i;
+              
+              end else begin
+                
+                lprintf "VERIFICATION OF BLOC %d OF %s FAILED\n"
+                  i (file_best_name t.t_file);
+                t.t_ncomplete_blocks <- t.t_ncomplete_blocks - 1;
+                
+                match t.t_blocks.(i) with
+                  EmptyBlock ->
+                    t.t_verified_bitmap.[i] <- '0'
+                | PartialBlock _ -> 
+                    t.t_verified_bitmap.[i] <- '1'
+                | CompleteBlock ->
+                    add_file_downloaded t.t_file (block_begin -- block_end);
+                    
+                    t.t_blocks.(i) <- EmptyBlock;
+                    t.t_verified_bitmap.[i] <- '0'
+                
+                | _ -> assert false
+              end
+          with VerifierNotReady -> ()
+        end
     | Verification chunks ->
-        try
-          let block_begin = t.t_block_size ** i in
-          let block_end = block_begin ++  t.t_block_size in
-          let block_end = min block_end t.t_size in
-          if verify t chunks i block_begin block_end then begin
-              set_toverify_block t i;
-              set_verified_chunk t i;
-              t.t_verified t.t_nverified_blocks i;
-            
-            end else begin
-              
-              lprintf "VERIFICATION OF BLOC %d OF %s FAILED\n"
-                i (file_best_name t.t_file);
-              t.t_ncomplete_blocks <- t.t_ncomplete_blocks - 1;
-              
-              match t.t_blocks.(i) with
-                EmptyBlock ->
-                  t.t_verified_bitmap.[i] <- '0'
-              | PartialBlock _ -> 
-                  t.t_verified_bitmap.[i] <- '1'
-              | CompleteBlock ->
-                  add_file_downloaded t.t_file (block_begin -- block_end);
+        assert (Array.length chunks = 1);
+        let can_verify = ref true in
+        let nblocks= String.length t.t_verified_bitmap in
+        for i = 0 to nblocks - 1 do
+          if t.t_verified_bitmap.[i] < '2' then
+            can_verify := false
+        done;
+        if !can_verify then begin
+            try
+              if verify t chunks 0 zero t.t_size then begin
+                  for i = 0 to nblocks - 1 do
+                    if t.t_verified_bitmap.[i] = '2' then begin
+                        set_toverify_block t i;
+                        set_verified_chunk t i;
+                        t.t_verified t.t_nverified_blocks i;
+                      end
+                  done
+                
+                end else begin
                   
-                  t.t_blocks.(i) <- EmptyBlock;
-                  t.t_verified_bitmap.[i] <- '0'
-              
-              | _ -> assert false
-            end
-        with VerifierNotReady -> ()
-
+                  lprintf "VERIFICATION OF BLOCS OF %s FAILED\n"
+                    (file_best_name t.t_file);
+                  
+                  for i = 0 to nblocks - 1 do
+                    if t.t_verified_bitmap.[i] = '2' then begin
+                        t.t_ncomplete_blocks <- t.t_ncomplete_blocks - 1;
+                        
+                        match t.t_blocks.(i) with
+                          EmptyBlock ->
+                            t.t_verified_bitmap.[i] <- '0'
+                        | PartialBlock _ -> 
+                            t.t_verified_bitmap.[i] <- '1'
+                        | CompleteBlock ->
+                            let block_begin = t.t_block_size ** i in
+                            let block_end = block_begin ++  t.t_block_size in
+                            let block_end = min block_end t.t_size in
+                            add_file_downloaded t.t_file 
+                              (block_begin -- block_end);
+                            
+                            t.t_blocks.(i) <- EmptyBlock;
+                            t.t_verified_bitmap.[i] <- '0'
+                        | _ -> assert false
+                      end
+                  done
+                end
+            with VerifierNotReady -> ()    
+          end
+        
 (*************************************************************************)
 (*                                                                       *)
 (*                         must_verify_chunk                             *)
@@ -1691,8 +1741,10 @@ let duplicate_chunks () =
   let chunks = Hashtbl.create 100 in
   HS.iter (fun t ->
       match t.t_verifier with
-        NoVerification | VerificationNotAvailable -> ()
-      | Verification checksums ->
+        NoVerification
+      | VerificationNotAvailable -> ()
+      | Verification checksums 
+          when Array.length checksums = Array.length t.t_blocks ->
           let rec iter i len pos bsize size =
             if i < len then
               let c = {
@@ -1711,6 +1763,7 @@ let duplicate_chunks () =
               iter (i+1) len (pos ++ bsize) bsize size
           in
           iter 0 (Array.length checksums) zero t.t_block_size t.t_size
+      | Verification _ -> ()
   ) swarmers_by_num;
   Hashtbl.iter (fun c (has, has_not) ->
       match !has, !has_not with
@@ -1973,7 +2026,7 @@ let swarmer_to_value t other_vals =
 
 (*************************************************************************)
 (*                                                                       *)
-(*                         verify_one_block                              *)
+(*                         verify_one_chunk                              *)
 (*                                                                       *)
 (*************************************************************************)
 
@@ -1986,6 +2039,18 @@ let verify_one_chunk t =
       end
   done
   
+(*************************************************************************)
+(*                                                                       *)
+(*                         verify_some_chunks                            *)
+(*                                                                       *)
+(*************************************************************************)
+
+let verify_some_chunks () =
+  HS.iter (fun s ->
+      try
+        verify_one_chunk s
+      with _ -> ()) swarmers_by_num
+  
 
 (*************************************************************************)
 (*                                                                       *)
@@ -1997,61 +2062,76 @@ let verify_one_chunk t =
     
 let _ = 
   BasicSocket.add_infinite_timer 300. duplicate_chunks;
-      Heap.add_memstat "CommonSwarming1" (fun level buf ->
-          let counter = ref 0 in
-          let nchunks = ref 0 in
-          let nblocks = ref 0 in
-          let nranges = ref 0 in
-          HS.iter (fun t -> 
-              let n = String.length t.t_verified_bitmap in
-              nchunks := !nchunks + n;
-              
-              Array.iter (fun b ->
-                  match b with 
-                  | PartialBlock b ->
-                      incr nblocks;
-                      iter_block_ranges (fun _ -> incr nranges) b
-                  | _ -> ()                    
-              ) t.t_blocks;
-              
-              incr counter
-          ) swarmers_by_num;
-          let block_storage = 64 * !nblocks in
+  Heap.add_memstat "CommonSwarming1" (fun level buf ->
+      let counter = ref 0 in
+      let nchunks = ref 0 in
+      let nblocks = ref 0 in
+      let nranges = ref 0 in
+      HS.iter (fun t -> 
+          let n = String.length t.t_verified_bitmap in
+          nchunks := !nchunks + n;
           
-          Printf.bprintf buf "  Swarmers: %d\n" !counter;
-          Printf.bprintf buf "    nchunks: %d nblocks: %d nranges: %d\n"
-            !nchunks !nblocks !nranges;
-          Printf.bprintf buf "  Storage (without blocks): %d bytes\n"
-            ( !counter * 108 +
-              !nchunks * 17 + 
-              !nblocks * 64 +
-              !nranges * 84);
+          Array.iter (fun b ->
+              match b with 
+              | PartialBlock b ->
+                  incr nblocks;
+                  iter_block_ranges (fun _ -> incr nranges) b
+              | _ -> ()                    
+          ) t.t_blocks;
+          
+          incr counter
+      ) swarmers_by_num;
+      let block_storage = 64 * !nblocks in
+      
+      Printf.bprintf buf "  Swarmers: %d\n" !counter;
+      Printf.bprintf buf "    nchunks: %d nblocks: %d nranges: %d\n"
+        !nchunks !nblocks !nranges;
+      Printf.bprintf buf "  Storage (without blocks): %d bytes\n"
+        ( !counter * 108 +
+          !nchunks * 17 + 
+          !nblocks * 64 +
+          !nranges * 84);
+      
+      let counter = ref 0 in
+      let storage = ref 0 in
+      HU.iter (fun up -> 
+          storage := !storage + 76 + 
+            Array.length up.up_complete_blocks * 4 +
+            List.length up.up_ranges * (12 + 16 + 12 + 12 +  4) +
+            Array.length up.up_partial_blocks * (16 + 12 + 12) +
+            (8 + match up.up_chunks with
+              AvailableRanges list -> List.length list * (12 + 12 + 12 + 12)
+            | AvailableCharBitmap s -> 8 + String.length s
+            | AvailableBoolBitmap a -> 4 * 4 * Array.length a
+          ) ;
+          incr counter;
+      ) uploaders_by_num;
+      Printf.bprintf buf "  Uploaders: %d\n" !counter;
+      Printf.bprintf buf "  Storage: %d bytes\n" !storage;
+  )
 
-          let counter = ref 0 in
-          let storage = ref 0 in
-          HU.iter (fun up -> 
-              storage := !storage + 76 + 
-                Array.length up.up_complete_blocks * 4 +
-                List.length up.up_ranges * (12 + 16 + 12 + 12 +  4) +
-                Array.length up.up_partial_blocks * (16 + 12 + 12) +
-                (8 + match up.up_chunks with
-                  AvailableRanges list -> List.length list * (12 + 12 + 12 + 12)
-                | AvailableCharBitmap s -> 8 + String.length s
-                | AvailableBoolBitmap a -> 4 * 4 * Array.length a
-              ) ;
-              incr counter;
-          ) uploaders_by_num;
-          Printf.bprintf buf "  Uploaders: %d\n" !counter;
-          Printf.bprintf buf "  Storage: %d bytes\n" !storage;
-      )
+let has_multinet = false
 
-   let has_multinet = false
-  
-   let merge t1 t2 = failwith "CommonSwarming1 does not implement multi-nets downloads"
+let merge t1 t2 = failwith "CommonSwarming1 does not implement multi-nets downloads"
 
-  let subfiles t = [t.t_file]
-  
-  end 
+let subfiles t = [t.t_file]
+
+let check_finished t = 
+  try
+    let file = t.t_file in
+    match file_state file with
+      FileCancelled | FileShared | FileDownloaded -> false
+    | _ ->
+        let bitmap = verified_bitmap t in
+        for i = 0 to String.length bitmap - 1 do
+          if bitmap.[i] <> '3' then raise Not_found;
+        done;  
+        if file_size file <> downloaded t then
+          lprintf "Downloaded size differs after complete verification\n";
+        true
+  with _ -> false      
+
+end 
 
 (*
 (*************************************************************************)

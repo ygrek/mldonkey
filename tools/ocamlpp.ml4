@@ -126,7 +126,8 @@ let new_env = { regexps = []; defines = []; ifs = [] }
   
 open Genlex
 let lexer = make_lexer [ 
-    "include"; "where"; "and" ; "define";
+    "include"; "where"; "and" ; 
+    "define"; "enddef";
     "ifdef"; "else"; "endif";
     "=" ; "#" ]
   

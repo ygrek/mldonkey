@@ -35,10 +35,6 @@ let enabled = define_option fileTP_section
     bool_option true
 *)  
   
-let commit_in_subdir = define_option fileTP_section ["commit_in_subdir"]
-  "The subdirectory of temp/ where files should be moved to"
-    string_option "FileTP"
-
 let user_agent = Printf.sprintf "MLdonkey/%s" Autoconf.current_version
 
 let mirrors = define_option fileTP_section ["mirrors"]
@@ -81,13 +77,9 @@ let verbose_servers =
     "level of verbosity when communicating with servers" int_option 0
     *)
 
-let network_options_prefix = define_option fileTP_section
-    ["options_prefix"] "The prefix which is appended to options names
-    when they are used in the telnet/WEB interfaces"
-    string_option "FTP-"
   
 let shortname o =
-  Printf.sprintf "%s%s" !!network_options_prefix (shortname o)
+  Printf.sprintf "FTP-%s" (shortname o)
   
 let gui_fileTP_options_panel = 
   (*
@@ -100,7 +92,6 @@ let gui_fileTP_options_panel =
 (*    "Max Connected Ultrapeers", shortname max_ultrapeers, "T"; 
     "Max Known Ultrapeers", shortname max_known_ultrapeers, "T";
     "Max Known Peers", shortname max_known_peers, "T";    *)
-    "Commit Downloads In Incoming Subdir", shortname commit_in_subdir, "T";
   ]
   
 let network_name = "KaZaA"

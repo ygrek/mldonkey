@@ -39,6 +39,13 @@ let is_enabled = ref false
 let disable enabler () =
   if !enabler then begin
       enabler := false;
+      
+      List.iter (fun f -> 
+          try f () with e ->
+              lprintf "Exception %s in plugin_enable_hooks\n"
+                (Printexc2.to_string e)
+      ) !plugin_disable_hooks;
+      
       Hashtbl2.safe_iter (fun h -> 
           match h.host_server with
             None -> ()
@@ -56,55 +63,89 @@ let disable enabler () =
           udp_sock := None;
           UdpSocket.close sock Closed_by_user
     end
+
+let udp_handler sock event =
+(*  lprintf "Gnutella: udp_handler called\n"; *)
+  match event with
+    UdpSocket.READ_DONE ->
+(*      lprintf "Gnutella: udp read_packets...\n"; *)
+      UdpSocket.read_packets sock (fun p -> 
+          try
+(*            lprintf "Gnutella: udp one packet...\n"; *)
+            let pbuf = p.UdpSocket.udp_content in
+            let len = String.length pbuf in
+            let (ip,port) = match p.UdpSocket.udp_addr with
+              | Unix.ADDR_INET(ip, port) -> Ip.of_inet_addr ip, port
+              | _ -> raise Not_found
+            in
+(*            lprintf "Gnutella: calling udp_client_handler %s:%d\n"
+              (Ip.to_string ip) port; *)
+            let buf = p.UdpSocket.udp_content in
+            let len = String.length buf in
+            GnutellaHandler.udp_client_handler ip port buf 
+          with e ->
+              lprintf "Error %s in udp_handler\n"
+                (Printexc2.to_string e); 
+      ) ;
+  | _ -> ()
     
 let enable () =
   if not !is_enabled then
     let enabler = ref true in
+    GnutellaProto.check_primitives ();
     is_enabled := true;
-  network.op_network_disable <- disable enabler;
-  
-  if not !!enable_gnutella then enable_gnutella =:= true;
-
-  List.iter (fun (ip,port) -> 
-      ignore (H.new_host ip port Ultrapeer)) !!ultrapeers;
-
-  List.iter (fun (ip,port) -> 
-      ignore (H.new_host ip port Peer)) !!peers;
-  
+    network.op_network_disable <- disable enabler;
+    
+    if not !!enable_gnutella then enable_gnutella =:= true;
+    
+    List.iter (fun f -> 
+        try f enabler with e ->
+            lprintf "Exception %s in plugin_enable_hooks\n"
+              (Printexc2.to_string e)
+    ) !plugin_enable_hooks;
+    
     add_session_timer enabler 1.0 (fun timer ->
-        H.manage_hosts ();
+        GnutellaServers.manage_hosts ();
         GnutellaProto.resend_udp_packets ();
-        GnutellaScheduler.connect_servers GnutellaServers.connect_server;      
-      );
+        GnutellaServers.connect_servers GnutellaServers.connect_server;      
+    );
+    
+    GnutellaServers.ask_for_files ();
+    
+    add_session_timer enabler 60.0 (fun timer ->
+        GnutellaServers.ask_for_files ();
+        GnutellaServers.send_pings ();
+        if !should_update_shared_files then begin
+            should_update_shared_files := false;
+            GnutellaHandler.update_shared_files ()
+          end
+    );
+    
+    GnutellaInteractive.recover_files ();
+    add_session_timer enabler GnutellaProto.recover_files_delay (fun timer ->
+        GnutellaInteractive.recover_files ();
+    );
 
-  GnutellaServers.ask_for_files ();
-  
-  add_session_timer enabler 60.0 (fun timer ->
-      GnutellaServers.ask_for_files ();
-      GnutellaScheduler.send_pings ();
-  );
-
-  GnutellaServers.recover_files ();
-  add_session_timer enabler 3600.0 (fun timer ->
-      GnutellaServers.recover_files ();
-  );
-
-  GnutellaClients.listen ();
-  let sock = (UdpSocket.create (Ip.to_inet_addr !!client_bind_addr)
-        !!client_port (GnutellaProtocol.udp_handler 
-        GnutellaServers.udp_handler)) in
-  udp_sock := Some sock;
-  
-  UdpSocket.set_write_controler sock CommonGlobals.udp_write_controler;
-  ()
-  
+    add_session_timer enabler 1800. (fun _ ->
+        GnutellaClients.clean_sources ());
+    
+    GnutellaClients.listen ();
+(* Check the port returned by listen, and put the udp socket on it *)
+    let sock = (UdpSocket.create (Ip.to_inet_addr !!client_bind_addr)
+        !!client_port udp_handler ) in
+    lprintf "Gnutella: UDP socket bound on port %d\n" !!client_port;
+    udp_sock := Some sock;
+    
+    UdpSocket.set_write_controler sock CommonGlobals.udp_write_controler;
+    ()
+    
 let _ =
   network.op_network_is_enabled <- (fun _ -> !!CommonOptions.enable_gnutella);
   option_hook enable_gnutella (fun _ ->
       if !CommonOptions.start_running_plugins then
         if !!enable_gnutella then network_enable network
       else network_disable network);
-  network.op_network_save_complex_options <- GnutellaComplexOptions.save_config;
+(*  network.op_network_save_complex_options <- GnutellaComplexOptions.save_config; *)
   (*
   network.op_network_load_simple_options <- 
     (fun _ -> 

@@ -19,6 +19,7 @@
 
 open AnyEndian
 open LittleEndian
+open Int64ops
 open Printf2
 open CommonOptions
 open BasicSocket  
@@ -62,16 +63,9 @@ let canonize_basename name =
   done;
   Buffer.contents buf
   
-let file_commited_name file =   
+let file_commited_name incoming_dir file =   
   let network = file_network file in
   let best_name = file_best_name file in
-  let file_name = file_disk_name file in
-  let incoming_dir =
-    if network.network_incoming_subdir () <> "" then
-      Filename.concat !!incoming_directory
-        (network.network_incoming_subdir ())
-    else !!incoming_directory
-  in
   (try Unix2.safe_mkdir incoming_dir with _ -> ());
   let new_name = 
     Filename.concat incoming_dir (canonize_basename  best_name)
@@ -104,20 +98,31 @@ let file_commit file =
     let subfiles = file_files file in
     match subfiles with
       file :: secondary_files ->
-        let new_name = file_commited_name file in
+        let file_name = file_disk_name file in
+        let incoming =
+          if Unix2.is_directory file_name then
+            incoming_directories ()
+          else 
+            incoming_files ()
+        in        
+        let new_name = file_commited_name 
+            incoming.shdir_dirname file in
         (try
             set_file_disk_name file new_name;
             let best_name = file_best_name file in  
             Unix32.destroy (file_fd file);
             lprintf "destroyed\n";
             let impl = as_file_impl file in
+            
+(* When the commit action is called, the file is supposed not to exist
+anymore. *)
             impl.impl_file_ops.op_file_commit impl.impl_file_val new_name;
             
             begin
               try
                 if not (Unix2.is_directory new_name) then 
                   ignore (CommonShared.new_shared 
-                      !!incoming_directory !!incoming_directory_prio
+                      incoming.shdir_dirname incoming.shdir_priority
                       best_name new_name);
               with e ->
                   lprintf "Exception %s while trying to share commited file\n"
@@ -133,8 +138,8 @@ let file_commit file =
 (* Commit the file first, and share it after... *)
                 try
                   let impl = as_file_impl file in
-                  impl.impl_file_ops.op_file_cancel impl.impl_file_val;
                   update_file_state impl FileCancelled;
+                  impl.impl_file_ops.op_file_cancel impl.impl_file_val;
                   done_files =:= List2.removeq file !!done_files;
                   files =:= List2.removeq file !!files;
                   
@@ -154,13 +159,16 @@ let file_cancel file =
         failwith "Cannot cancel non primary file";
       List.iter (fun file ->
           try
-            impl.impl_file_ops.op_file_cancel impl.impl_file_val;
             update_file_state impl FileCancelled;
+            impl.impl_file_ops.op_file_cancel impl.impl_file_val;
             files =:= List2.removeq file !!files;
           with e ->
               lprintf "Exception %s in file_cancel\n" (Printexc2.to_string e);
       ) subfiles;
-      (try  Unix32.remove (file_fd file)  with e -> 
+      (try  
+          let fd = file_fd file in
+          if fd != Unix32.bad_fd then Unix32.remove (file_fd file)  
+        with e -> 
             lprintf "Sys.remove %s exception %s\n" 
               (file_disk_name file)
             (Printexc2.to_string e); );
@@ -193,7 +201,7 @@ let mail_for_completed_file file =
     in
 
     let line4 = if !!url_in_mail <> "" then
-	Printf.sprintf "\r\n%s/%s\r\n" !!url_in_mail (file_best_name file)
+	Printf.sprintf "\r\n<%s/%s>\r\n" !!url_in_mail (Url.encode (file_best_name file))
       else
         Printf.sprintf "";
     in
@@ -220,8 +228,7 @@ let file_completed (file : file) =
         let file_name = file_disk_name file in
         let file_id = Filename.basename file_name in
         ignore (CommonShared.new_shared "completed" 0 (
-            file_best_name file )
-          file_name);
+            file_best_name file ) file_name);
         (try mail_for_completed_file file with e ->
               lprintf "Exception %s in sendmail\n" (Printexc2.to_string e);
               );
@@ -350,31 +357,6 @@ let time_of_sec sec =
 	else if minutes > 0 then Printf.sprintf "%d:%02d" minutes seconds
     	else Printf.sprintf "00:%02d" seconds
   
-(* ripped from gui_misc *)
-
-let ko = 1024.0 
-let mo = ko *. ko 
-let go = mo *. ko 
-let tob = go *. ko 
-
-let size_of_int64 size =
-  if !!html_mods_human_readable then
-    let f = Int64.to_float size in
-	if f > tob then
-      Printf.sprintf "%.2fT" (f /. tob)
-	else
-     if f > go then
-      Printf.sprintf "%.2fG" (f /. go)
-     else
-      if f > mo then
-      Printf.sprintf "%.1fM" (f /. mo)
-      else
-     if f > ko then
-       Printf.sprintf "%.1fk" (f /. ko)
-     else
-       Int64.to_string size
-  else
-    Int64.to_string size
 
   
 let display_vd = ref false
@@ -581,11 +563,11 @@ let send_custom_query user buf query args =
       | Q_MP3_BITRATE _ ->
           let bitrate = get_arg "bitrate" in
           if bitrate = "" then raise Not_found;
-          QHasMinVal(Field_unknown "bitrate", Int64.of_string bitrate)
+          QHasMinVal(Field_UNKNOWN "bitrate", Int64.of_string bitrate)
     
     in
     try
-      let request = CommonGlobals.simplify_query (iter q) in
+      let request = CommonIndexing.simplify_query (iter q) in
       Printf.bprintf buf "Sending query !!!";
       
       let s = 
@@ -618,7 +600,7 @@ let sort_options l =
       String.compare o1.option_name o2.option_name) l
     
 let opfile_args r opfile =
-  let prefix = r.network_prefix () in
+  let prefix = r.network_shortname ^ "-" in
   let args = simple_options prefix opfile in
   args
   
@@ -686,7 +668,7 @@ let apply_on_fully_qualified_options name f =
     if not (networks_iter_all_until_true (fun r ->
             try
               List.iter (fun opfile ->
-                  let prefix = r.network_prefix () in
+                  let prefix = r.network_shortname ^ "-" in
 (*                  lprintf "Prefix [%s]\n" prefix; *)
                   iter prefix opfile;
               )
@@ -741,14 +723,14 @@ let keywords_of_query query =
     | QHasMinVal (field, value) ->
         begin
           match field with
-            Field_unknown "bitrate"
+            Field_UNKNOWN "bitrate"
           | Field_Size
           | _ -> ()
         end
     | QHasMaxVal (field, value) ->
         begin
           match field with
-            Field_unknown "bitrate"
+            Field_UNKNOWN "bitrate"
           | Field_Size
           | _ -> ()
         end
@@ -770,11 +752,11 @@ let _ =
   add_infinite_timer filter_search_delay (fun _ ->
 (*      if !!filter_search then *) begin
 (*          lprintf "Filter search results\n"; *)
-          List.iter (fun user ->
-              List.iter  (fun s -> CommonSearch.Filter.find s) 
-              user.ui_user_searches;
-          ) !ui_users
-        end;
+        List.iter (fun user ->
+            List.iter  (fun s -> CommonSearch.Filter.find s) 
+            user.ui_user_searches;
+        ) !ui_users
+      end;
       CommonSearch.Filter.clear ();
   )
   
@@ -813,10 +795,12 @@ let force_download_quotas () =
   let files = List.sort (fun f1 f2 -> 
         let v = file_priority f2 - file_priority f1 in
         if v <> 0 then v else
-        let s1 = file_downloaded f1 in
-        let s2 = file_downloaded f2 in
-        if s1 = s2 then 0 else
-        if s2 > s1 then 1 else -1
+(* Try to download in priority files with fewer bytes missing
+   Rationale: once completed, it may allow to recover some disk space *)
+        let r1 = file_size f1 -- file_downloaded f1 in
+        let r2 = file_size f2 -- file_downloaded f2 in
+        if r1 = r2 then 0 else
+        if r2 < r1 then 1 else -1 
         )
     !!CommonComplexOptions.files in
   

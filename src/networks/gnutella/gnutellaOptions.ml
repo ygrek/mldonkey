@@ -43,6 +43,11 @@ let client_port = define_option gnutella_section ["client_port"]
     "The port to bind the client to"
     int_option GnutellaNetwork.port
   
+let gnutella_experimental = define_option gnutella_section
+    ["experimental"]
+    "Activate this option if you want to test experimental features."
+    bool_option false
+
 let gnutella_hostfiles = define_option gnutella_section 
     ["hostfiles"]
   "A list of GWCache urls"
@@ -67,19 +72,15 @@ let redirectors = define_option gnutella_section
 (* (Ip.of_string "64.61.25.171")   *)
   
   
-let commit_in_subdir = define_option gnutella_section ["commit_in_subdir"]
-  "The subdirectory of temp/ where files should be moved to"
-    string_option "Gnutella"
-
 let user_agent = Printf.sprintf "MLdonkey/%s" Autoconf.current_version
 
 let max_known_ultrapeers = define_option gnutella_section ["max_known_ultrapeers"]
   "Maximal number of ultrapeers remembered"
-    int_option 100
+    int_option 500
 
 let max_known_peers = define_option gnutella_section ["max_known_peers"]
   "Maximal number of peers remembered"
-  int_option 100
+  int_option GnutellaNetwork.max_known_peers_default
     
 let server_connection_timeout = 
   define_option gnutella_section ["server_connection_timeout"] 
@@ -105,23 +106,44 @@ let verbose_servers =
   define_option gnutella_section ["verbose_servers"] 
     "level of verbosity when communicating with servers" int_option 0
     *)
-
-let network_options_prefix = define_option gnutella_section
-    ["options_prefix"] "The prefix which is appended to options names
-    when they are used in the telnet/WEB interfaces"
-    string_option GnutellaNetwork.options_prefix
   
 let max_available_slots = define_option gnutella_section
     ["max_available_slots"] "The maximal number of slots for upload by Gnutella clients"
     int_option 5
   
 let shortname o =
-  Printf.sprintf "%s%s" !!network_options_prefix (shortname o)
+  Printf.sprintf "%s%s" GnutellaNetwork.options_prefix (shortname o)
+
+let sha1_verification_threshold = define_option gnutella_section
+    ["sha1_verification_threshold"]
+  "Under this threshold, files are verified using the SHA1 digest
+(always available), without using the tiger-tree (experimental)."
+    int64_option Int64ops.zero
   
 let deflate_connections = define_option gnutella_section 
   ["deflate_connections"]
   "(only for development tests)"  
     bool_option false
+  
+let keep_alive = define_option gnutella_section 
+    ["keep_alive"]
+  "(only for development tests)"  
+    bool_option true
+
+let dont_connect = define_option gnutella_section 
+    ["dont_connect"]
+  "(only for development tests)"  
+    bool_option false
+
+let supernode_enabled = define_option gnutella_section 
+  ["supernode_enabled"]
+  "(only for development tests)"  
+    bool_option false
+
+let incoming_data_log = define_option gnutella_section
+    ["incoming_data_log"]
+    "(only for development tests)"
+    string_option ""
   
 let gui_gnutella_options_panel = 
   (*
@@ -135,7 +157,6 @@ let gui_gnutella_options_panel =
 (*    "Max Connected Ultrapeers", shortname max_ultrapeers, "T"; 
     "Max Known Ultrapeers", shortname max_known_ultrapeers, "T";
     "Max Known Peers", shortname max_known_peers, "T";    *)
-    "Commit Downloads In Incoming Subdir", shortname commit_in_subdir, "T";
     "Max Available Slots", shortname max_available_slots, "T";
     
     "          Max Connected Ultrapeers", shortname max_ultrapeers, "T"; 

@@ -39,7 +39,7 @@ module DO = CommonOptions
   
 open CommonNetwork
   
-let network = new_network "Open Napster"
+let network = new_network "ON" "Open Napster"
     [ 
     NetworkHasServers; 
     NetworkHasRooms;
@@ -47,15 +47,9 @@ let network = new_network "Open Napster"
     NetworkHasSearch;
   ]
   
-    (fun _ -> !!network_options_prefix)
-  (fun _ -> !!commit_in_subdir)
-(*    network_options_prefix commit_in_subdir *)
   
 let connection_manager = network.network_connection_manager
-  
-let (result_ops : result CommonResult.result_ops) = 
-  CommonResult.new_result_ops network
-  
+    
 let (server_ops : server CommonServer.server_ops) = 
   CommonServer.new_server_ops network
 

@@ -11,7 +11,7 @@ MYCONFIG_ARGS_DEFINED=yes
 echo $MYCONFIG_ARGS
 
 CURRENT_VERSION=2.5
-CURRENT_RELEASE=28
+CURRENT_RELEASE=29
 
 REQUIRED_OCAML=3.08
 DOWNLOAD_OCAML=3.08.0
@@ -33,6 +33,8 @@ DONKEY=yes
 BITTORRENT=yes
 FASTTRACK=yes
 FILETP=yes
+ARES=yes
+BROOSNET=yes
 
 FORCE_MINGW=no
 
@@ -40,7 +42,7 @@ BUILD_GUI=yes
 BUILD_NEWGUI=yes
 
 PROFILE=no
-SWARMING2=no
+SWARMING1=no
 
 MULTINET=yes
 AC_ARG_ENABLE(multinet,      [--disable-multinet:       allows you to only compile support for edonkey + Overnet], [MULTINET="$enableval"])
@@ -70,6 +72,8 @@ if test ! "$MULTINET" = "yes"; then
   FILETP=no
   BITTORRENT=no
   RELEASENAME="$RELEASENAME-nomultinet"
+  ARES=no
+  BROOSNET=no
 fi
 
 AC_ARG_ENABLE(batch, [--enable-batch:           reply YES to all queries in this script], [BATCH="$enableval"])
@@ -98,6 +102,8 @@ AC_ARG_ENABLE(audiogalaxy,   [--disable-audiogalaxy:    allows you to remove sup
 
 AC_ARG_ENABLE(openft,        [--disable-openft:         allows you to remove support for OpenFT], [OPENFT="$enableval"])
 
+AC_ARG_ENABLE(ares,     [--disable-ares:      allows you to remove support for Ares], [ARES="$enableval"])
+
 AC_ARG_ENABLE(cymes,         [--disable-cymes:          allows you to remove support for Cymes], [CYMES="$enableval"])
 
 AC_ARG_ENABLE(ocamlver, [--enable-ocamlver=3.08.0:   allows you to change the required version of ocaml], [REQUIRED_OCAML="$enableval"])
@@ -123,7 +129,7 @@ ifelse(AC_ACVERSION, [2.13], [],
 
 ])
 
-AC_ARG_ENABLE(swarming2, [--enable-swarming2:           very experimental], [SWARMING2="$enableval"])
+AC_ARG_ENABLE(swarming1, [--enable-swarming1:           very experimental], [SWARMING1="$enableval"])
 
 AC_CANONICAL_HOST
 AC_CHECK_PROG(CC,gcc3,"gcc3")
@@ -573,6 +579,21 @@ fi
     BAD_TARGETS="$BAD_TARGETS FastTrack(devel)"
   fi
 
+  if test "$ARES" = "yes" ; then
+    AC_CHECK_FILE(../src/networks/ares,ARES=yes, [
+      ARES=no
+      BAD_TARGETS="$BAD_TARGETS Ares(devel)"
+    ])
+  else
+    BAD_TARGETS="$BAD_TARGETS Ares(devel)"
+  fi
+
+  if test "$BROOSNET" = "yes" ; then
+    AC_CHECK_FILE(../src/networks/bittorrent/bTBroosnet.ml,ARES=yes, [
+      BROOSNET=no
+    ])
+  fi
+
   if test "$CYMES" = "yes" ; then
     AC_CHECK_FILE(../src/networks/cymes,CYMES=yes, [
       CYMES=no
@@ -611,6 +632,10 @@ else
   GTK=gtk
   GUIS="mldonkey_gui\$(EXE) mldonkey_gui2\$(EXE) mlchat\$(EXE)"
 fi
+
+if test "$BUILD_GUI" = "no"; then
+    LABLGTK_CONFIG=no
+else
 
 AC_MSG_CHECKING(Checking for native code lablgtk)
 if test -f `$OCAMLC -where`/labl$GTK/lablgtk.$OCAMLLIB_EXT; then
@@ -709,6 +734,7 @@ if test "$IM" = "yes"; then
     fi
   fi
 fi
+fi
 
 if test "$PTHREAD_LIBS" = "no"; then
  PTHREAD_LIBS="" 
@@ -799,15 +825,18 @@ fi
 
 AC_CHECK_FILE(../src/pic/picMain.ml,EXTRA_DIRS="$EXTRA_DIRS src/pic", )
 AC_CHECK_FILE(../src/spider/ecrawler/spiderMain.ml,EXTRA_DIRS="$EXTRA_DIRS src/spider/ecrawler src/spider/analyser1", )
+AC_CHECK_FILE(../src/spider/disasm/mldisasm.ml,EXTRA_DIRS="$EXTRA_DIRS src/spider/disasm src/spider/tmk", )
 AC_CHECK_FILE(../src/btview/btviewMain.ml,EXTRA_DIRS="$EXTRA_DIRS src/btview", )
 AC_CHECK_FILE(../src/cluster/clusterMain.ml,EXTRA_DIRS="$EXTRA_DIRS src/cluster", )
 
+AC_CHECK_FILE(../src/networks/fasttrack/fasttrackSupernode.ml,SUPERNODES="yes", )
 
 
-if test "$SWARMING2" = "yes"; then
-    COMMONSWARMING=CommonSwarming2
-else
+
+if test "$SWARMING1" = "yes"; then
     COMMONSWARMING=CommonSwarming1
+else
+    COMMONSWARMING=CommonSwarming2
 fi
 
 
@@ -851,12 +880,16 @@ AC_SUBST(DONKEY)
 AC_SUBST(OPEN_DONKEY)
 AC_SUBST(DONKEY_SERVER)
 AC_SUBST(CYMES)
+AC_SUBST(ARES)
+AC_SUBST(BROOSNET)
 
 AC_SUBST(CPP)
 AC_SUBST(DEVEL)
 AC_SUBST(JABBR)
 
 AC_SUBST(BUILD_NEWGUI)
+
+AC_SUBST(SUPERNODES)
 
 AC_SUBST(OCAMLOPT_DIL)
 AC_SUBST(COMPILE_GUI)

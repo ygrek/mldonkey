@@ -52,8 +52,8 @@ class window () =
       ~packing:(box#pack ~expand:false ~fill:true) ()
   in
   let label_connect_status =
-    GMisc.label ~text:"" ~justify:`LEFT ~line_wrap:true ~xalign:(-1.0)
-    ~yalign:(-1.0) ~packing:(hbox_status#pack ~expand:true ~fill:true) ()
+    GMisc.label ~text:"" ~justify:`LEFT ~line_wrap:true ~xalign:(0.0)
+    ~yalign:(0.0) ~packing:(hbox_status#pack ~expand:true ~fill:true) ()
   in
   object
     val window = window
@@ -123,8 +123,8 @@ class accounts () =
       ~packing:(box#pack ~expand:false ~fill:true) ()
   in
   let label_connect_status =
-    GMisc.label ~text:"" ~justify:`LEFT ~line_wrap:true ~xalign:(-1.0)
-    ~yalign:(-1.0) ~packing:(hbox_status#pack ~expand:true ~fill:true) ()
+    GMisc.label ~text:"" ~justify:`LEFT ~line_wrap:true ~xalign:(0.0)
+    ~yalign:(0.0) ~packing:(hbox_status#pack ~expand:true ~fill:true) ()
   in
   object
     val window = window
@@ -203,8 +203,8 @@ class window2 () =
       ~packing:(box#pack ~expand:false ~fill:true) ()
   in
   let label_connect_status =
-    GMisc.label ~text:"" ~justify:`LEFT ~line_wrap:true ~xalign:(-1.0)
-    ~yalign:(-1.0) ~packing:(hbox_status#pack ~expand:true ~fill:true) ()
+    GMisc.label ~text:"" ~justify:`LEFT ~line_wrap:true ~xalign:(0.0)
+    ~yalign:(0.0) ~packing:(hbox_status#pack ~expand:true ~fill:true) ()
   in
   object
     val window = window
@@ -249,8 +249,8 @@ class room_tab () =
       ~packing:(room_vbox#pack ~expand:false ~fill:true) ()
   in
   let nick_label =
-    GMisc.label ~text:"My nick:" ~justify:`LEFT ~line_wrap:true ~xalign:(-1.0)
-    ~yalign:(-1.0) ~packing:(hbox_91#pack ~expand:false ~fill:true) ()
+    GMisc.label ~text:"My nick:" ~justify:`LEFT ~line_wrap:true ~xalign:(0.0)
+    ~yalign:(0.0) ~packing:(hbox_91#pack ~expand:false ~fill:true) ()
   in
   let entry =
     GEdit.entry ~visibility:true ~editable:true

@@ -37,234 +37,263 @@ open CommonTypes
 open CommonGlobals
 open CommonInteractive
 
-  
+open FasttrackNetwork
 open FasttrackTypes
 open FasttrackGlobals
 open FasttrackOptions
 open FasttrackProtocol
 open FasttrackComplexOptions
 open FasttrackProto
-          
+
+    
+let declare_shared s sh info hash = 
+  let num = info.shared_id in
+  if not (Intset.mem num s.server_shared) then begin
+      s.server_shared <- Intset.add num s.server_shared;
+      let module M = TcpMessages in
+      let sh = {
+          M.shared_type = 0;
+          M.shared_hash = hash;
+          M.shared_checksum = 
+          Int64.of_int (fst_hash_checksum (Md5Ext.direct_to_string hash));
+          M.shared_size = info.shared_size;
+          M.shared_tags = [
+            string_tag Field_Filename (Filename.basename sh.shared_codedname)
+          ];
+        } in
+      server_send s M.DirectPacket (M.ShareFileReq sh)
+    end
+  
+  
+let update_shared_files () = 
+  CommonUploads.iter (fun sh ->
+      let info = IndexedSharedFiles.get_result sh.shared_info in
+      let uids = info.shared_uids in
+      List.iter (fun uid ->
+          match Uid.to_uid uid with
+            Md5Ext hash ->
+              List.iter (fun s ->
+                  declare_shared s sh info hash
+              ) !connected_servers
+          | _ -> ()
+      ) uids
+  )  
+  
+let declare_shared_files s = 
+  CommonUploads.iter (fun sh ->
+      let info = IndexedSharedFiles.get_result sh.shared_info in
+      let uids = info.shared_uids in
+      List.iter (fun uid ->
+          match Uid.to_uid uid with
+            Md5Ext hash ->
+                  declare_shared s sh info hash
+          | _ -> ()
+      ) uids
+  )  
+  
+  
 let udp_packet_handler ip port msg = 
   let h = H.new_host ip port Ultrapeer in
   H.host_queue_add active_udp_queue h (last_time ());
-  h.host_connected <- last_time ();
+  H.connected h;
 (*  if !verbose_udp then
     lprintf "Received UDP packet from %s:%d: \n%s\n" 
       (Ip.to_string ip) port (Print.print msg);*)
   let s = new_server ip port in
   s.server_connected <- int64_time ()
 
-
-let server_msg_handler sock s msg_type m =
+let tcp_node_handler_hook = ref None
+  
+let server_msg_handler sock s addr t =
 (*  lprintf "Message received: %d len %d\n" msg_type (String.length m); *)
-  match msg_type with
-    0x00 -> (* SessMsgNodeList *)
-      lprintf "SessMsgNodeList\n";
-      set_rtimeout sock half_day;
-      set_server_state s (Connected (-1));
-      s.server_connected <- int64_time ();    
-      if not (List.memq s !connected_servers) then
-        connected_servers := s :: !connected_servers;
-      
-      let n = String.length m / 8 in
-      for i = 0 to n - 1 do
-        let l_ip = LittleEndian.get_ip m (i*8) in
-        let l_port = BigEndian.get_int16 m (i*8+4) in
-        let unknown = BigEndian.get_int16 m (i*8+6) in
+  let module M = TcpMessages in
+  if !verbose_msg_servers then begin
+      lprintf "\nRECEIVED from supernode %s:%d: %s\n%s\n" 
+        (Ip.string_of_addr s.server_host.host_addr)
+      s.server_host.host_port      
+        (M.string_of_path addr) (M.to_string t);
+    end;
+  (match !tcp_node_handler_hook with
+      None -> ()
+    | Some f -> f sock s addr t);
+(* Here, we only take care of Supernode -> Node messages *)
+  if addr = M.DirectPacket then
+    match t with
+    
+    | M.NodeListReq list -> 
+        set_rtimeout sock half_day;
+        set_server_state s (Connected (-1));
+        s.server_connected <- int64_time ();    
+        if not (List.memq s !connected_servers) then
+          connected_servers := s :: !connected_servers;
         
-        lprintf "    LittleEndian Node %s:%d   %d\n" (Ip.to_string l_ip) l_port unknown;
-        let (h : host) = H.new_host (Ip.addr_of_ip l_ip) l_port Ultrapeer in
-        ();
-      done;
-      if s.server_host.host_kind = IndexServer then
-        close sock Closed_by_user
-      else begin
-          List.iter (fun file ->
-              Fifo.put s.server_searches file.file_search
-          ) !current_files;
-        end
-  
-  | 0x06 -> (* SessMsgQuery *)
-      lprintf "SessMsgQuery\n";
+        List.iter (fun (ip,port,seen,slots) ->
+            try
+              let (h : host) = H.new_host (Ip.addr_of_ip ip) port Ultrapeer in
+              ()
+            with Not_found -> ()
+        ) list;
+        
+        if s.server_host.host_kind = IndexServer then
+          close sock Closed_by_user
+        else begin
+            List.iter (fun file ->
+                List.iter (fun ss -> 
+                    Fifo.put s.server_searches ss) file.file_searches
+            ) !current_files;
+          end
+    
+    | M.DeclareNeighbours list -> 
 
-(*
-
-
-*)
-  
-  | 0x07 -> (* SessMsgQueryReply *)
-      lprintf "SessMsgQueryReply\n";
-
-(* probably supernode address *)
-      let s_ip = LittleEndian.get_ip m 0 in
-      let s_port = BigEndian.get_int16 m 4 in
-      
-      let id = BigEndian.get_int16 m 6 in
-      
-      let s = Hashtbl.find searches_by_uid id in
-      
-      let nresults = BigEndian.get_int16 m 8 in
-      lprintf "Results: %d\n" nresults;
-      
-      let len = String.length m in
-      let rec iter pos n = 
-        if n > 0 && pos + 32 < len then
-          let user_ip = LittleEndian.get_ip m pos in
-          let user_port = BigEndian.get_int16 m (pos+4) in
-          let user_bandwidth = get_uint8 m (pos+6) in
-          let pos = pos + 7 in
-          let user_name, user_netname, pos =
-            if get_uint8 m pos = 2 then
-              "unknown", "unknown", pos+1
-            else
-            let end_name = String.index_from m pos '\001' in
-            let end_netname = String.index_from m end_name '\000' in
-            String.sub m pos (end_name - pos),
-            String.sub m (end_name+1) (end_netname - end_name -1),
-            end_netname + 1
-          in
-          
-          lprintf "   User %s@%s %s:%d\n" user_name user_netname
-            (Ip.to_string user_ip) user_port;
-          
-          let result_hash = Md5Ext.direct_of_string (String.sub m pos 20) in
-          let checksum, pos = get_dynint m (pos+20) in
-          let result_size, pos = get_dynint m pos in
-          let ntags, pos = get_dynint m pos in
-          let ntags = Int64.to_int ntags in
-          
-          lprintf "   Result %s size: %Ld tags: %d\n" 
-            (Md5Ext.to_string_case false result_hash) result_size ntags;
-          
-          
-          let rec iter_tags name pos n tags =
-            if n > 0 && pos < len-2 then
-              let tag, pos = get_dynint m pos in
-              let tag = Int64.to_int tag in
-              let tag_len, pos = get_dynint m pos in
-              let tag_len = Int64.to_int tag_len in
-              let tagdata =
-					let dynint, npos = get_dynint m pos in
-					match tag with 
-					| 5 -> time_of_sec (Int64.to_int dynint); 
-					| 21 -> Printf.sprintf "%Ld kbs" dynint; 
-					| 13 -> let dynint2, _ = get_dynint m npos in
-						  Printf.sprintf "%Ldx%Ld" dynint dynint2; 
-					| 1 | 17 -> Printf.sprintf "%Ld" dynint; 
-					| 29 -> (match (Int64.to_int dynint) with
-							| 0 -> "Very Poor"
-							| 1 -> "Poor"
-							| 2 -> "OK"
-							| 3 -> "Good"
-							| 4 -> "Excellent"
-							| _ -> "Unknown rating")
- 				 	| _ -> String.sub m pos tag_len 
-				in
-              let name = if tag = 2 then tagdata else name in
-              let tag = try
-                  List2.assoc_inv tag name_of_tag
-                with _ -> 
-                    string_of_int tag
-              in
-              iter_tags name (pos + tag_len) (n-1) 
-              ((string_tag tag tagdata) :: tags)
-            else
-              name, tags, pos
-          in
-          let result_name, tags, pos = iter_tags "Unknown" pos ntags [] in
-          List.iter (fun tag ->
-              lprintf "      Tag: %s --> %s\n" 
-              tag.tag_name (string_of_tag tag.tag_value);
-          ) tags;
-          let user = new_user (Known_location (user_ip, user_port)) in
+(* Hum... receiving this messages means that we are connected to a supernode
+AS A SUPERNODE, which is not good at this point, since we want to
+be connected only AS A NODE. We should transfer this connection to
+the FasttrackSupernode module, and get rid of it. *)
+        
+        set_rtimeout sock half_day;
+        set_server_state s (Connected (-1));
+        s.server_connected <- int64_time ();    
+        if not (List.memq s !connected_servers) then
+          connected_servers := s :: !connected_servers;
+        
+        List.iter (fun n ->
+            try
+              let ip = n.M.neighbour_ip in
+              let port = n.M.neighbour_port in
+              let (h : host) = H.new_host (Ip.addr_of_ip ip) port Ultrapeer in
+              ()
+            with Not_found -> ()
+        ) list;
+        
+        if s.server_host.host_kind = IndexServer then
+          close sock Closed_by_user
+        else begin
+            List.iter (fun file ->
+                List.iter (fun ss -> 
+                    Fifo.put s.server_searches ss) file.file_searches
+            ) !current_files;
+          end
+    
+    | M.QueryReplyReq ( (s_ip, s_port), id, results) ->
+        
+        let s = Hashtbl.find searches_by_uid id in
+        
+        List.iter (fun (user, meta) ->
+            let user = new_user (Known_location (
+                  user.M.user_ip, user.M.user_port)) in
 (*
           let url = Printf.sprintf 
             "FastTrack://%s:%d/.hash=%s" (Ip.to_string user_ip)
             user_port (Md5Ext.to_string_case false result_hash) in *)
 (*          let url = Printf.sprintf 
-              "/.hash=%s" (Md5Ext.to_string_case false result_hash) in  *)
-          begin
-            match s.search_search with
-              UserSearch (sss, _,_,_) ->
-                
-                let rs = new_result result_name result_size tags result_hash in
-                let r = get_result rs in
-                add_source rs user;
-                CommonInteractive.search_add_result false sss rs
+"/.hash=%s" (Md5Ext.to_string_case false result_hash) in  *)
             
-            | FileSearch file ->
-                let c = new_client user.user_kind in
-                add_download file c (* (FileByUrl url) *);
-                
-                if not (List.mem_assoc result_name file.file_filenames) then 
-                  file.file_filenames <- file.file_filenames @ [result_name, GuiTypes.noips()] ;
-                
-            | _ -> ()
-          end;
-          iter pos (n-1)
-      in
-      iter 10 nresults
+            let result_name = M.get_filename meta.M.meta_tags in
+            
+            begin
+              match s.search_search with
+                UserSearch (sss, _,_) ->
+                  
+                  let rs = new_result 
+                      result_name 
+                      meta.M.meta_size 
+                      meta.M.meta_tags [meta.M.meta_hash] [] in
+                  let r = IndexedResults.get_result rs in
+                  add_source rs user;
+                  CommonInteractive.search_add_result false sss rs
+              
+              | FileUidSearch (file, file_hash) -> ()
+                  (*
+                  let c = new_client user.user_kind in
+                  add_download file c ()(* (FileByUrl url) *);
+                  
+                  if not (List.mem_assoc result_name file.file_filenames) then 
+                    file.file_filenames <- file.file_filenames @ [
+                      result_name, GuiTypes.noips()] ;
+*)            
+            end;
+            
+            try
+              let file = Hashtbl.find files_by_uid meta.M.meta_hash in
+              let c = new_client user.user_kind in
+              add_download file c ()(* (FileByUrl url) *);
+              
+              if not (List.mem_assoc result_name file.file_filenames) then 
+                file.file_filenames <- file.file_filenames @ [
+                  result_name, GuiTypes.noips()] ;
+              
+            with _ -> ()
+        ) results
+    
+    | M.NetworkStatsReq (stats, netname, nusers) ->
+        
+        begin
+          match stats with
+            [] -> ()
+          | stats :: _ ->
+              s.server_nusers <- stats.TcpMessages.nusers;
+              s.server_nfiles <- stats.TcpMessages.nfiles;
+              s.server_nkb <- stats.TcpMessages.nkb;
+        end
+    | M.NetworkNameReq netname ->
+        server_send s M.DirectPacket (M.NetworkNameReq network_name)
+    
+    | M.PingReq ->
+        server_send s M.DirectPacket M.PongReq
+    
+    | M.Unknown_03 -> 
+        declare_shared_files s;
 
-  | 0x08 -> (* SessMsgQueryEnd *)
-      lprintf "SessMsgQueryEnd\n";
-      
-(*
-fst_searchlist_process_reply (FST_PLUGIN->searches, msg_type, msg_data);
+    | M.NetworkGlobalStats _
+    | M.Unknown_2b _
+    | M.AskUDPConnectionReq _
+    | M.RandomFilesReq _
+    | M.UnknownMessageReq (_, _)
+    | M.UnknownReq (_, _)
+    | M.Unknown_23 _
+    | M.Unknown_1e _
+    | M.SearchForwardReq (_, _, _)
+    | M.SearchForward2Req (_, _, _)
+    | M.SearchReq _
+    | M.NodeInfoReq (_, _, _, _)
+    | M.UnshareFileReq _
+    | M.ShareFileReq _
+    | M.ExternalIpReq _
+    | M.PushRequestReq _
+    | M.ProtocolVersionReq _
+    | M.PongReq
+    | M.QueryReplyEndReq _ -> ()
+        
+let udp_node_handler_hook = ref None
+  
+let udp_client_handler ip port p =
+  let module M = UdpMessages in
+  let t = M.parse p in
+  if !verbose_udp  then 
+    lprintf "UDP PACKET FROM %s:%d:\n  %s\n" 
+      (Ip.to_string ip) port
+      (M.to_string t);
+  match !udp_node_handler_hook with
+  | Some f -> f ip port t
+  | None ->
+      match t with
+      | M.PingReq (min_enc_type, _, netname) -> ()
+(*          udp_send ip port (M.NodePongReq (min_enc_type, netname)) *)
+      | M.SupernodePongReq (min_enc_type, _, netname) -> 
+          UdpSocket.declare_pong ip
+      | M.NodePongReq (min_enc_type, _) -> 
+          UdpSocket.declare_pong ip
+      | M.UnknownReq _ -> ()
 
+          
+let declare_word _ = ()
+  
+(* media type
 
-*)
-      
-  | 0x09 -> (* SessMsgNetworkStats *)
-      lprintf "SessMsgNetworkStats\n";
-      
-      s.server_nusers <- BigEndian.get_uint64_32 m 0;
-      s.server_nfiles <- BigEndian.get_uint64_32 m 4;
-
-      let mantissa = BigEndian.get_int16 m 8 in
-      let exponent = BigEndian.get_int16 m 10 in
-
-      if exponent >= 30 then 
-        s.server_nkb <- (mantissa lsl (exponent-30))
-      else
-        s.server_nkb <- (mantissa lsl (30-exponent));
-      
-(*
-unsigned int mantissa, exponent;
-
-if(fst_packet_remaining(msg_data) < 12) // 97 bytes total now? was 60?
-break;
-
-FST_PLUGIN->stats->users = ntohl(fst_packet_get_uint32 (msg_data));	// number of users	
-FST_PLUGIN->stats->files = ntohl(fst_packet_get_uint32 (msg_data));	// number of files
-
-mantissa = ntohs(fst_packet_get_uint16 (msg_data));	// mantissa of size
-exponent = ntohs(fst_packet_get_uint16 (msg_data));	// exponent of size
-
-if (exponent >= 30)
-FST_PLUGIN->stats->size = mantissa << (exponent-30);
-else
-FST_PLUGIN->stats->size = mantissa >> (30-exponent);	 
-
-// what follows in the packet is the number of files and their size per media type (6 times)
-// we do not currently care for those
-
-// something else with a size of 37 byte follows, dunno what it is
-
-FST_DBG_3 ("received network stats: %d users, %d files, %d GB", FST_PLUGIN->stats->users, FST_PLUGIN->stats->files, FST_PLUGIN->stats->size);
-break;
-
-
+        MEDIA_TYPE_UNKNOWN  = 0x00,
+        MEDIA_TYPE_AUDIO    = 0x01,
+        MEDIA_TYPE_VIDEO    = 0x02,
+        MEDIA_TYPE_IMAGE    = 0x03,
+        MEDIA_TYPE_DOCUMENT = 0x04,
+        MEDIA_TYPE_SOFTWARE = 0x05
   *)
-      
-  | 0x1d -> (* SessMsgNetworkName *)
-      lprintf "SessMsgNetworkName\n";
-
-      let netname = m in
-      
-      lprintf "   ***** Sending Network Name\n";
-      server_send s 0x1d network_name
-
-  | _ ->
-      lprintf "   ******* FastTrack Unknown message %d\n" msg_type;
-      AnyEndian.dump m

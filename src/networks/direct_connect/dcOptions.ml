@@ -71,10 +71,6 @@ let max_known_servers = define_option directconnect_section
     "The limit on the number of servers to avoid asking for a new list" 
   int_option 100
     
-let commit_in_subdir = define_option directconnect_section ["commit_in_subdir"]
-  "The subdirectory of temp/ where files should be moved to"
-    string_option "DC"
-
 let servers_list_url = define_option directconnect_section ["servers_list_url"]
     "The URL from which the first server list is downloaded"
     string_option  "http://www.neo-modus.com/PublicHubList.config"
@@ -94,13 +90,9 @@ let client_keyinfo = define_option directconnect_section
     ["client_keyinfo"] "The key info sent in the handshake message"
     string_option "Pk=mldc"
   
-let network_options_prefix = define_option directconnect_section
-    ["options_prefix"] 
-  "The prefixes used before Direct-Connect options"
-    string_option "DC-"
 
 let shortname o =
-  Printf.sprintf "%s%s" !!network_options_prefix (shortname o)
+  Printf.sprintf "DC-%s" (shortname o)
     
 let gui_dc_options_panel = 
   (*
@@ -114,7 +106,6 @@ let gui_dc_options_panel =
     "Description", shortname client_description, "T";
     "Port", shortname dc_port, "T";
     "Hub List URL", shortname servers_list_url, "T";
-    "Commit Downloads In Incoming Subdir", shortname commit_in_subdir, "T";
     "Search Timeout", shortname search_timeout, "T";
     ("Max Connected Servers", shortname max_connected_servers, "T");
     ("Firewalled", shortname firewalled, "B");

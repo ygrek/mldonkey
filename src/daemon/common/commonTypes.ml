@@ -42,7 +42,8 @@ type uid_type =
 | TigerTree of TigerTree.t
 | Md5Ext of Md5Ext.t     (* for Fasttrack *)
 | BTUrl of Sha1.t
-
+| NoUid
+  
 and file_uid_id = 
 | BITPRINT
 | SHA1
@@ -68,7 +69,8 @@ let string_of_uid uid =
       Printf.sprintf "urn:sig2dat:%s" (Md5Ext.to_base32 md5)
   | BTUrl url ->
       Printf.sprintf "urn:bt:%s" (Sha1.to_string url)
-
+  | NoUid -> ""
+      
 (* Maybe it would be better to raise an exception for errors ? *)      
 let uid_of_string s =
   let s = String.lowercase s in
@@ -113,49 +115,35 @@ module Uid : sig
   end = struct
     
     type t = {
-        mutable uid_string : string option;
-        mutable uid_type : uid_type option;
+        mutable uid_string : string;
+        mutable uid_type : uid_type;
       }
     
     let no = {
-        uid_type = None;
-        uid_string = None;
+        uid_type = NoUid;
+        uid_string = "";
       }
     
     let create uid = {
-        uid_string = None ;
-        uid_type = Some uid;
+        uid_string = string_of_uid uid ;
+        uid_type = uid;
       }
     
     let of_string s = 
-      if s = "" then no else
-        {
-          uid_string = Some s;
-          uid_type = None;
+      let uid = uid_of_string s in
+      let s = string_of_uid uid in
+      {
+        uid_string = s;
+        uid_type = uid;
         }
         
-    let to_string t =
-      match t.uid_string, t.uid_type with 
-        Some s, _ -> s
-      | None, Some uid -> 
-          let s = string_of_uid uid in
-          t.uid_string <- Some s;
-          s
-      | None, None -> ""
+    let to_string t = t.uid_string
     
-    let to_uid t = 
-      match t.uid_type, t.uid_string with 
-        Some uid, _ -> uid
-      | None, Some s -> 
-          let uid = uid_of_string s in
-          t.uid_type <- Some uid;
-          uid
-      | None, None -> assert false
-    
+    let to_uid t = t.uid_type    
     
     let derive uid =
       match uid.uid_type with
-        Some (Bitprint (sha1, tiger)) ->
+         (Bitprint (sha1, tiger)) ->
           [create (Sha1 (sha1)); create (TigerTree(tiger))]
       | _ -> []
         
@@ -176,7 +164,7 @@ module Uid : sig
     
     let rec expand_rec list uids =
       match list with
-        [] -> []
+        [] -> uids
       | t :: tail ->
           let list = derive t in
           expand_rec (list@tail) (add t uids)
@@ -192,18 +180,7 @@ let string_of_uids list =
   match list with
     [] -> "<unknown>"
   | uid :: _ -> Uid.to_string uid
-  
-type field_name =
-  Field_Size
-| Field_Filename
-| Field_Artist
-| Field_Album
-| Field_Title
-| Field_Format
-| Field_Type
-| Field_Uid  
-| Field_unknown of string
-  
+    
 type file_state =
   FileDownloading
 | FileQueued
@@ -226,41 +203,6 @@ let string_of_state file_state =
 | FileNew -> "FileNew"
 | FileAborted _ -> "FileAborted"
 
-let string_of_field field =
-  match field with
-    Field_Size -> "size"
-  | Field_Filename -> "filename"
-  | Field_Artist -> "artist"
-  | Field_Album -> "album"
-  | Field_Title -> "title"
-  | Field_Format -> "format"
-  | Field_Type -> "type"
-  | Field_Uid -> "uid"
-  | Field_unknown s -> s
-
-let field_of_string s =
-  match String.lowercase s with
-    "size" -> Field_Size
-  | "filename" -> Field_Filename
-  | "artist" -> Field_Artist
-  | "album" -> Field_Album
-  | "title" -> Field_Title
-  | "format" -> Field_Format
-  | "type" -> Field_Type
-  | "uid" -> Field_Uid
-  | _ -> Field_unknown s
-      
-type query =
-  QAnd of query * query
-| QOr of query * query
-| QAndNot of query * query
-| QHasWord of string
-| QHasField of field_name * string
-| QHasMinVal of field_name * int64
-| QHasMaxVal of field_name * int64
-| QNone (** temporary, used when no value is available ;
-	   must be simplified before transforming into strings *)
-
   
   
   
@@ -273,13 +215,41 @@ type tag_value =
 | Addr of Ip.t
 | Uint16 of int
 | Uint8 of int
-
+| Pair of int64 * int64
+  
+type field =
+| Field_Artist (* "Artist" *)
+| Field_Title  (* "Title" *)
+| Field_Album  (* "Album" *)
+| Field_Format (* "format" *)
+| Field_Type   (* "type" *)
+| Field_Length (* "length" *)
+| Field_Bitrate (* "bitrate" *)
+| Field_Codec   (* "codec" *)
+| Field_Availability (* "availability" or "avail" *)
+| Field_Completesources (* "completesources" *)
+| Field_Filename (* "filename" *)
+| Field_Size
+| Field_Uid  
+| Field_UNKNOWN of string
+  
 type tag = {
-    mutable tag_name : string;
+    mutable tag_name : field;
     mutable tag_value : tag_value;
   }
 
   
+type query =
+  QAnd of query * query
+| QOr of query * query
+| QAndNot of query * query
+| QHasWord of string
+| QHasField of field * string
+| QHasMinVal of field * int64
+| QHasMaxVal of field * int64
+| QNone (** temporary, used when no value is available ;
+	   must be simplified before transforming into strings *)
+
   
 type client_type = int
 let client_friend_tag = 1
@@ -336,6 +306,8 @@ type tcp_connection =
 | Connection of TcpBufferedSocket.t (* We are connected *)
 
 type sharing_strategy = {
+    sharing_incoming : bool;
+    sharing_directories : bool;
     sharing_recursive : bool;
     sharing_minsize : int64;
     sharing_maxsize : int64;
@@ -449,10 +421,9 @@ type network = {
     network_name : string;
     network_num : int;
     network_connection_manager : TcpBufferedSocket.connection_manager;
+    network_shortname: string;
     mutable network_flags : network_flag list;
     mutable network_config_file : Options.options_file list;
-    mutable network_incoming_subdir: (unit -> string);
-    mutable network_prefix: (unit -> string);
     mutable op_network_connected_servers : (unit -> server list);
     mutable op_network_is_enabled : (unit -> bool);
     mutable op_network_save_complex_options : (unit -> unit);
@@ -681,12 +652,13 @@ let short_string_of_connection_state s =
     
 exception IgnoreNetwork
   
-let string_of_tag tag =
+let string_of_tag_value tag =
   match tag with
     Uint64 i| Fint64 i -> Int64.to_string i
   | Addr x -> Ip.to_string x
-  | String s -> s
+  | String s -> String.escaped s
   | Uint16 n | Uint8 n -> string_of_int n
+  | Pair (n1, n2) -> Printf.sprintf "%Ld x %Ld" n1 n2
       
 type arg_handler =  ui_conn -> string
 type arg_kind = 

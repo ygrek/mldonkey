@@ -598,6 +598,7 @@ and file = {
     mutable file_swarmer : Int64Swarmer.t option;
     
     mutable file_nchunks : int;
+    mutable file_diskname : string;
 (*    mutable file_chunks : chunk array; *)
 (*    mutable file_chunks_order : int array; *)
 (*    mutable file_chunks_age : int array; *)

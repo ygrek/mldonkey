@@ -203,15 +203,14 @@ let network_parse_url n url =
     
 let network_info n = n.op_network_info ()
 
-let new_network name flags prefix_option subdir_option = 
+let new_network shortname name flags = 
   let manager = TcpBufferedSocket.create_connection_manager name in
   let r =
     {
       network_name = name;
       network_num = network_uid ();
-      network_prefix = prefix_option;
+      network_shortname = shortname;
       network_flags = flags;
-      network_incoming_subdir = subdir_option;
       network_config_file = [];
       network_connection_manager = manager;
       op_network_connected_servers = (fun _ -> fni name "connected_servers");

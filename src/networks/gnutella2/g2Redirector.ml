@@ -49,7 +49,7 @@ let g2_parse_redirector_page f =
             try
               let ip, port = String2.cut_at ip_port ':' in
               let h = H.new_host 
-                  (Ip.of_string ip) (int_of_string port) Ultrapeer in
+                  (Ip.addr_of_string ip) (int_of_string port) Ultrapeer in
               ()
             with _ -> ()
           end

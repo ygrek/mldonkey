@@ -231,9 +231,9 @@ let client_to_server s t sock =
       s.server_tags <- t.Q.tags;
       List.iter (fun tag ->
           match tag with
-            { tag_name = "name"; tag_value = String name } -> 
+            { tag_name = Field_UNKNOWN "name"; tag_value = String name } -> 
               s.server_name <- name
-          | { tag_name = "description"; tag_value = String desc } ->
+          | { tag_name = Field_UNKNOWN "description"; tag_value = String desc } ->
               s.server_description <- desc
           | _ -> ()
       ) s.server_tags;
@@ -351,7 +351,7 @@ and remove clients whose server is deconnected. *)
           user_add user_impl;
           List.iter (fun tag ->
               match tag with
-                { tag_name = "name"; tag_value = String s } -> 
+                { tag_name = Field_UNKNOWN "name"; tag_value = String s } -> 
                   user.user_name <- s
               | _ -> ()
           ) user.user_tags;
@@ -649,7 +649,8 @@ let udp_walker_timer () =
         end
   | s :: tail ->
       udp_walker_list := tail;
-      UdpSocket.write (get_udp_sock ()) udp_ping s.server_ip (s.server_port + 4)
+      UdpSocket.write (get_udp_sock ()) true
+      udp_ping s.server_ip (s.server_port + 4)
       
       
       

@@ -20,7 +20,6 @@ and 'a client_ops = {
     mutable op_client_files : 'a -> (string * CommonTypes.result) list;
     mutable op_client_clear_files : 'a -> unit;
     mutable op_client_bprint : 'a -> Buffer.t -> unit;
-    mutable op_client_bprint_html : 'a -> Buffer.t -> CommonTypes.file -> unit;
     mutable op_client_dprint :
     'a -> CommonTypes.ui_conn -> CommonTypes.file -> unit;
     mutable op_client_dprint_html :
@@ -37,8 +36,6 @@ val client_say : CommonTypes.client -> string -> unit
 val client_debug : CommonTypes.client -> bool -> unit
 val client_files : CommonTypes.client -> (string * CommonTypes.result) list
 val client_bprint : CommonTypes.client -> Buffer.t -> unit
-val client_bprint_html :
-  CommonTypes.client -> Buffer.t -> CommonTypes.file -> unit
 val client_dprint :
   CommonTypes.client -> CommonTypes.ui_conn -> CommonTypes.file -> unit
 val client_dprint_html :

@@ -85,7 +85,9 @@ let new_file_to_share sh codedname old_impl =
     lprintf "Sharing file with MD4: %s\n" (Md4.to_string md4);
     end;
     
-    let file = new_file FileShared sh.sh_name md4 sh.sh_size false in
+    let file = new_file sh.sh_name FileShared md4 sh.sh_size
+        [Filename.basename sh.sh_name, GuiTypes.noips()]
+        false in
     must_share_file file codedname old_impl;
     file.file_computed_md4s <- md4s;
     file_md4s_to_register := file :: !file_md4s_to_register;
@@ -224,7 +226,7 @@ let check_shared_files () =
                         sh_md4s = Array.of_list (List.rev sh.shared_list);
                         sh_mtime = Unix32.mtime sh.shared_name;
                       } in
-                    lprintf "NEW SHARED FILE %s\n" sh.shared_name; 
+                    lprintf "Donkey: NEW SHARED FILE %s\n" sh.shared_name; 
                     Hashtbl.add shared_files_info 
                       (s.sh_name, s.sh_size, s.sh_mtime) s;
                     known_shared_files =:= s :: !!known_shared_files;

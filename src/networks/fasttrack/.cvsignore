@@ -1,2 +1,8 @@
 *.cm?
 *.o
+fasttrackOptions.ml
+fasttrackMain.ml
+fasttrackInteractive.ml
+fasttrackTypes.ml
+fasttrackClients.ml
+fasttrackComplexOptions.ml

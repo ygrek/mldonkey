@@ -24,8 +24,7 @@ type ('a, 'c, 'd) host = {
   mutable host_server : 'a option;
   host_addr : 'd;
   host_port : int;
-  mutable host_age : int;
-  mutable host_connected : int;
+  mutable host_obsolete : int;
   mutable host_requests : ('c * int) list;
   mutable host_kind : host_kind;
   mutable host_queues : ('a, 'c, 'd) host Queues.Queue.t list;
@@ -61,6 +60,8 @@ module Make :
       int -> host_kind -> (M.server, M.request, M.ip) host
     val set_request : ('a, 'c, 'd) host -> 'c -> unit
     val manage_hosts : unit -> unit
+    val try_connect : ('a, 'c, 'd) host -> unit
+    val connected : ('a, 'c, 'd) host -> unit
   end
   
   
