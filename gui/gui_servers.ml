@@ -58,9 +58,9 @@ class box columns users wl_status =
       columns <- l;
       self#set_titles (List.map Gui_columns.Server.string_of_column !!columns);
       self#update
-
-      
-      
+    
+    
+    
     method column_menu  i = 
       [
         `I ("Sort", self#resort_column i);
@@ -68,14 +68,14 @@ class box columns users wl_status =
           (fun _ -> 
               match !!columns with
                 _ :: _ :: _ ->
-                                                      (let l = !!columns in
+                  (let l = !!columns in
                     match List2.cut i l with
                       l1, _ :: l2 ->
                         columns =:= l1 @ l2;
                         self#set_columns columns
                     | _ -> ())
-
-                  
+              
+              
               | _ -> ()
           )
         );
@@ -96,8 +96,8 @@ class box columns users wl_status =
                     )))
             ) Gui_columns.Server.column_strings));
       ]
-
-      
+    
+    
     method box = box#coerce
     
     method compare_by_col col s1 s2 =
@@ -227,7 +227,7 @@ class box columns users wl_status =
       we_ip#set_text "";
       we_port#set_text ""
 *)
-          
+    
     method on_deselect s = users#clear
     
     method menu =
@@ -244,12 +244,17 @@ class box columns users wl_status =
         `I ((gettext M.remove_old_servers_text), self#remove_old_servers)
       ]	
     
-    method set_tb_style = wtool#set_style
+    method set_tb_style st = 
+        if Options.(!!) Gui_options.mini_toolbars then
+          (wtool1#misc#hide (); wtool2#misc#show ()) else
+          (wtool2#misc#hide (); wtool1#misc#show ());
+      wtool1#set_style st;
+      wtool2#set_style st;
 
 (** {2 Handling core messages} *)
-
+    
     method filter = is_filtered
-
+    
     method update_server s s_new row =
       s.server_score <- s_new.server_score ;
       s.server_tags <- s_new.server_tags ;
@@ -259,14 +264,14 @@ class box columns users wl_status =
       s.server_name <- s_new.server_name ;
       s.server_description <- s_new.server_description ;
       if s.server_state = RemovedHost then 
-	self#remove_item row s
+        self#remove_item row s
       else begin
-	self#refresh_item row s
-      end;
+          self#refresh_item row s
+        end;
       if !G.nservers <> self#size then begin
-	G.nservers := self#size;
-	self#update_wl_status
-      end;
+          G.nservers := self#size;
+          self#update_wl_status
+        end;
       
       (if s.server_users != s_new.server_users then begin
             s.server_users <- s_new.server_users ;
@@ -294,15 +299,15 @@ class box columns users wl_status =
         Not_found ->
           if s.server_state <> RemovedHost then
             (
-	     self#add_item s;
-             if !G.nservers <> self#size then begin
-	       G.nservers := self#size;
-	       self#update_wl_status
-             end;
-             if Mi.is_connected s.server_state then begin
-               incr G.nconnected_servers;
-	       self#update_wl_status
-	     end
+              self#add_item s;
+              if !G.nservers <> self#size then begin
+                  G.nservers := self#size;
+                  self#update_wl_status
+                end;
+              if Mi.is_connected s.server_state then begin
+                  incr G.nconnected_servers;
+                  self#update_wl_status
+                end
             )
     
     method h_server_filter_networks = self#refresh_filter
@@ -315,10 +320,10 @@ class box columns users wl_status =
       try
         let (row, serv) = self#find_server num in
         self#h_server_info { serv with server_state = state }
-        
+      
       with
         Not_found -> Gui_com.send (GuiProto.GetServer_info num)
-          
+    
     
     method h_server_busy num nusers nfiles =
       try
@@ -332,6 +337,16 @@ class box columns users wl_status =
           row
       with
         Not_found -> ()
+    
+    method clean_table list = 
+      let data = ref [] in
+      List.iter (fun (s_num :int) ->
+          try
+            let row, s = self#find_server s_num in
+            data := s :: !data
+          with _ -> ()
+      ) list;
+      self#reset_data !data
     
     method h_server_user num user_num =
       try
@@ -349,74 +364,60 @@ class box columns users wl_status =
               Gui_com.send (GuiProto.GetServer_info num);
               Gui_com.send (GuiProto.GetServer_users num)
             end
-            
+    
     initializer
       box#vbox#pack ~expand: true pl#box ;
 
 (*      ignore (wb_add#connect#clicked self#add_server); *)
+      
+      Gui_misc.insert_buttons wtool1 wtool2 
+        ~text: (gettext M.remove)
+      ~tooltip: (gettext M.remove)
+      ~icon: (M.o_xpm_remove)
+      ~callback: self#remove
+        ();
+      
+      Gui_misc.insert_buttons wtool1 wtool2 
+        ~text: (gettext M.connect)
+      ~tooltip: (gettext M.connect)
+      ~icon: (M.o_xpm_connect)
+      ~callback: self#connect
+        ();
 
-      ignore
-	(wtool#insert_button 
-	   ~text: (gettext M.remove)
-	   ~tooltip: (gettext M.remove)
-	   ~icon: (Gui_options.pixmap M.o_xpm_remove)#coerce
-	   ~callback: self#remove
-	   ()
-	);
-
-      ignore
-	(wtool#insert_button 
-	   ~text: (gettext M.connect)
-	   ~tooltip: (gettext M.connect)
-	   ~icon: (Gui_options.pixmap M.o_xpm_connect)#coerce
-	   ~callback: self#connect
-	   ()
-	);
-
-      ignore
-	(wtool#insert_button 
-	   ~text: (gettext M.disconnect)
-	   ~tooltip: (gettext M.disconnect)
-	   ~icon: (Gui_options.pixmap M.o_xpm_disconnect)#coerce
-	   ~callback: self#disconnect
-	   ()
-	);
-
-      ignore
-	(wtool#insert_button 
-	   ~text: (gettext M.view_users)
-	   ~tooltip: (gettext M.view_users)
-	   ~icon: (Gui_options.pixmap M.o_xpm_view_users)#coerce
-	   ~callback: self#view_users
-	   ()
-	);
-
-      ignore
-	(wtool#insert_button 
-	   ~text: (gettext M.connect_more_servers_text)
-	   ~tooltip: (gettext M.connect_more_servers_tips)
-	   ~icon: (Gui_options.pixmap M.o_xpm_connect_more_servers)#coerce
-	   ~callback: self#connect_more_servers
-	   ()
-	);
-
-      ignore
-	(wtool#insert_button 
-	   ~text: (gettext M.remove_old_servers_text)
-	   ~tooltip: (gettext M.remove_old_servers_tips)
-	   ~icon: (Gui_options.pixmap M.o_xpm_remove_old_servers)#coerce
-	   ~callback: self#remove_old_servers
-	   ()
-	);
-
-      ignore
-	(wtool#insert_button 
-	   ~text: (gettext M.toggle_display_all_servers_text)
-	   ~tooltip: (gettext M.toggle_display_all_servers_tips)
-	   ~icon: (Gui_options.pixmap M.o_xpm_toggle_display_all_servers)#coerce
-	   ~callback: self#toggle_display_all_servers
-	   ()
-	);
+      Gui_misc.insert_buttons wtool1 wtool2 
+        ~text: (gettext M.disconnect)
+      ~tooltip: (gettext M.disconnect)
+      ~icon: (M.o_xpm_disconnect)
+      ~callback: self#disconnect
+        ();
+      
+      Gui_misc.insert_buttons wtool1 wtool2 
+        ~text: (gettext M.view_users)
+      ~tooltip: (gettext M.view_users)
+      ~icon: (M.o_xpm_view_users)
+      ~callback: self#view_users
+        ();
+      
+      Gui_misc.insert_buttons wtool1 wtool2 
+        ~text: (gettext M.connect_more_servers_text)
+      ~tooltip: (gettext M.connect_more_servers_tips)
+      ~icon: (M.o_xpm_connect_more_servers)
+      ~callback: self#connect_more_servers
+        ();
+      
+      Gui_misc.insert_buttons wtool1 wtool2 
+        ~text: (gettext M.remove_old_servers_text)
+      ~tooltip: (gettext M.remove_old_servers_tips)
+      ~icon: (M.o_xpm_remove_old_servers)
+      ~callback: self#remove_old_servers
+        ();
+      
+      Gui_misc.insert_buttons wtool1 wtool2 
+        ~text: (gettext M.toggle_display_all_servers_text)
+      ~tooltip: (gettext M.toggle_display_all_servers_tips)
+      ~icon: (M.o_xpm_toggle_display_all_servers)
+      ~callback: self#toggle_display_all_servers
+        ();
   end
 
 class pane_servers () =
@@ -452,6 +453,8 @@ class pane_servers () =
     method h_server_state = box_servers#h_server_state
     method h_server_busy = box_servers#h_server_busy
     method h_server_user = box_servers#h_server_user
+
+    method clean_table servers = box_servers#clean_table servers
       
     initializer
       servers_frame#add box_servers#coerce;

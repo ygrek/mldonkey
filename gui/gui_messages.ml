@@ -25,7 +25,7 @@ open Gettext
 let message_file_name = try
     Sys.getenv "MLDONKEY_GUI_MESSAGES"
   with _ -> 
-      Filename.concat (try Sys.getenv "HOME" with _ -> ".") ".mldonkey_gui_messages.ini"
+      Filename.concat CommonOptions.home_basedir ".mldonkey_gui_messages.ini"
   
 let _ =
   Printf.printf "Using Message File %s" message_file_name; print_newline ()
@@ -237,7 +237,7 @@ let mUploads = message "mUploads" (T.option T.format) "Uploads"
 let software = "MLDonkey"
 let software_version = "1.0"
 
-let chat_config_file = Filename.concat Sysenv.home ".mldonkey_chat.ini"
+let chat_config_file = Filename.concat CommonOptions.home_basedir ".mldonkey_chat.ini"
 
 (** {2 Command line messages} *)
 
@@ -431,6 +431,33 @@ let o_xpm_find_friend = "find_friend"
 let o_xpm_remove_all_friends = "remove_all_friends"
 let o_xpm_close_room = "close_room"
 let o_xpm_refresh = "refresh"
+
+let o_xpm_mini_remove = "remove_mini"
+let o_xpm_mini_cancel = "cancel_mini"
+let o_xpm_mini_connect = "connect_mini"
+let o_xpm_mini_disconnect = "disconnect_mini"
+let o_xpm_mini_view_users = "view_users_mini"
+let o_xpm_mini_connect_more_servers = "connect_more_servers_mini"
+let o_xpm_mini_remove_old_servers = "remove_old_servers_mini"
+let o_xpm_mini_save = "save_mini"
+let o_xpm_mini_save_all = "save_all_mini"
+let o_xpm_mini_save_as = "save_as_mini"
+let o_xpm_mini_edit_mp3 = "edit_mp3_mini"
+let o_xpm_mini_pause_resume = "pause_resume_mini"
+let o_xpm_mini_get_format = "get_format_mini"
+let o_xpm_mini_preview = "preview_mini"
+let o_xpm_mini_verify_chunks = "verify_chunks_mini"
+let o_xpm_mini_retry_connect = "retry_connect_mini"
+let o_xpm_mini_add_to_friends = "add_to_friends_mini"
+let o_xpm_mini_toggle_display_all_servers = "toggle_display_all_servers_mini"
+let o_xpm_mini_download = "download_mini"
+let o_xpm_mini_submit_search = "submit_search_mini"
+let o_xpm_mini_extend_search = "extend_search_mini"
+let o_xpm_mini_local_search = "local_search_mini"
+let o_xpm_mini_find_friend = "find_friend_mini"
+let o_xpm_mini_remove_all_friends = "remove_all_friends_mini"
+let o_xpm_mini_close_room = "close_room_mini"
+let o_xpm_mini_refresh = "refresh_mini"
 
   
 

@@ -490,6 +490,10 @@ fichier selectionne. Si ca marche toujours dans ton interface, pas de
 
     | Shared_file_info si ->
         gui#tab_uploads#h_shared_file_info si
+
+    | CleanTables (clients, servers) ->
+        gui#tab_servers#clean_table servers;
+        gui#tab_downloads#clean_table clients
         
     | Shared_file_upload (num,size,requests) ->
         gui#tab_uploads#h_shared_file_upload num size requests

@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-
+open CommonOptions
 open CommonGlobals
 open CommonNetwork
 open Options
@@ -256,6 +256,12 @@ let server_new_user server user =
   user_must_update user;
   CommonEvent.add_event (Server_new_user_event (server, user))
 
+let servers_get_all () =
+  let list = ref [] in
+  H.iter (fun c ->
+      list := (server_num c) :: !list) servers_by_num;
+  !list
+  
 let servers_by_num = ()
   
     
@@ -285,13 +291,52 @@ let server_print s o =
   try
     let info = server_info s in
     let buf = o.conn_buf in
-    Printf.bprintf buf "[%s %-5d] %s:%-5d %-20s %-20s"
+    
+    
+    if use_html_mods o then
+      Printf.bprintf buf "
+     \\<td class=\\\"sr\\\"\\>%d\\</td\\>
+     %s
+     \\<td class=\\\"sr\\\"\\>%s\\</td\\>
+     \\<td class=\\\"sr\\\"\\>%s\\</td\\>
+     \\<td class=\\\"sr\\\"\\>%s:%d\\</td\\>
+     \\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
+     \\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
+     \\<td class=\\\"sr\\\"\\>%s\\</td\\>
+     \\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>\n"
+        (server_num s)
+      (
+        Printf.sprintf
+          "\\<TD class=\\\"srb\\\" onMouseOver=\\\"mOvr(this,'#94AE94');\\\"
+               onMouseOut=\\\"mOut(this,this.background);\\\"
+               onClick=\\\"location.href='/submit?q=%s+%d'\\\"\\>%s\\</TD\\>"
+          (match impl.impl_server_state with
+            NotConnected _ -> "c"
+          | _ -> "x")
+        (server_num s)
+        (match impl.impl_server_state with
+            NotConnected _ -> "Connect"
+          | _ -> "Disconnect")
+      )
+      
       n.network_name
-      (server_num s)
-    (string_of_addr info.G.server_addr) info.G.server_port
-      info.G.server_name
-      info.G.server_description
-    ;
+        (string_of_connection_state impl.impl_server_state)
+      (string_of_addr info.G.server_addr) 
+      info.G.server_port
+        info.G.server_nusers
+        info.G.server_nfiles
+        info.G.server_name
+        info.G.server_description
+    else
+      begin
+        
+        Printf.bprintf buf "[%s %-5d] %s:%-5d %-20s %-20s"
+          n.network_name
+          (server_num s)
+        (string_of_addr info.G.server_addr) info.G.server_port
+          info.G.server_name
+          info.G.server_description
+        ;
 (*
   List.iter (fun t ->
       Printf.bprintf buf "%-3s "
@@ -303,17 +348,11 @@ let server_print s o =
       )
 ) info.G.server_tags;
   *)
-    Printf.bprintf buf " %6d %7d %s" info.G.server_nusers info.G.server_nfiles
-      (match impl.impl_server_state with
-        NotConnected true -> "Queued Out"
-      | Connected  true -> "Queued In"
-      | Connecting -> "Connecting"
-      | Connected_initiating -> "Initiating"
-      | Connected_downloading -> "Downloading"
-      | Connected false -> "Connected"
-      | NotConnected false -> ""
-      | _ -> "");
-    Buffer.add_char buf '\n'
+        Printf.bprintf buf " %6d %7d %s" info.G.server_nusers info.G.server_nfiles
+          (string_of_connection_state impl.impl_server_state); 
+        Buffer.add_char buf '\n'
+      end;
+    
   with e -> 
       Printf.printf "Exception %s in CommonServer.server_print"
         (Printexc2.to_string e); print_newline () 

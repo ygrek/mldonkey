@@ -29,7 +29,8 @@ module O = Gui_options
 let (!!) = Options.(!!)
 
 let max_console_lines = ref 500
-
+let line_threshold = 50
+  
 class box () =
   object (self)
     inherit Gui_console_base.box () as box
@@ -40,9 +41,15 @@ class box () =
     val mutable history = Fifo.create ()
     
     method insert_line t =
-      if Fifo.length lines > !max_console_lines then begin
+      if Fifo.length lines > !max_console_lines + line_threshold then begin
           let (line_pos, len) = Fifo.take lines in
           let line_pos = line_pos - removed_size in
+          let rec iter n len =
+            if n = 0 then len else
+            let (_, addlen) = Fifo.take lines in
+            iter (n-1) (len+addlen)
+          in
+          let len = iter line_threshold len in
           text#delete_text ~start: line_pos ~stop: (line_pos+len);
           removed_size <- removed_size + len;
         end;

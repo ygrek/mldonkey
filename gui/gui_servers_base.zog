@@ -1,6 +1,8 @@
 <entity name=box>
   <vbox name=vbox width="" height="" border_width="" homogeneous="false" spacing="" tab_label="" expand="false" fill="true" padding="">
-    <toolbar name=wtool width="" height="" border_width="" orientation="`HORIZONTAL" style="`BOTH" space_size="2" space_style="`LINE" tooltips="true" button_relief="`NONE" tab_label="" expand="false" fill="true" padding="2">
+    <toolbar name=wtool1 width="" height="" border_width="" orientation="`HORIZONTAL" style="`BOTH" space_size="2" space_style="`LINE" tooltips="true" button_relief="`NONE" tab_label="" expand="false" fill="true" padding="2">
+    </toolbar>
+    <toolbar name=wtool2 width="" height="" border_width="" orientation="`HORIZONTAL" style="`BOTH" space_size="2" space_style="`LINE" tooltips="true" button_relief="`NONE" tab_label="" expand="false" fill="true" padding="2">
     </toolbar>
   </vbox>
 </entity>
@@ -18,7 +20,9 @@
 </entity>
 <entity name=box_old>
   <vbox name=vbox width="" height="" border_width="" homogeneous="false" spacing="" tab_label="" expand="false" fill="true" padding="">
-    <toolbar name=wtool width="" height="" border_width="" orientation="`HORIZONTAL" style="`BOTH" space_size="2" space_style="`LINE" tooltips="true" button_relief="`NONE" tab_label="" expand="false" fill="true" padding="2">
+    <toolbar name=wtool1 width="" height="" border_width="" orientation="`HORIZONTAL" style="`BOTH" space_size="2" space_style="`LINE" tooltips="true" button_relief="`NONE" tab_label="" expand="false" fill="true" padding="2">
+    </toolbar>
+    <toolbar name=wtool2 width="" height="" border_width="" orientation="`HORIZONTAL" style="`BOTH" space_size="2" space_style="`LINE" tooltips="true" button_relief="`NONE" tab_label="" expand="false" fill="true" padding="2">
     </toolbar>
     <hbox name=hbox_add width="" height="" border_width="" homogeneous="false" spacing="" tab_label="" expand="false" fill="true" padding="">
       <label name=_ width="" height="" text="Gettext.gettext+Gui_messages.ip^%22:+%22" justification="`LEFT" line_wrap="true" x_alignment="" y_alignment="" x_padding="2" y_padding="" tab_label="" expand="false" fill="true" padding="">

@@ -32,7 +32,7 @@ module M = Gui_messages
 module C = Gui_columns
 
 let mldonkey_gui_ini = create_options_file 
-    (Filename.concat Sysenv.home ".mldonkey_gui.ini")
+    (Filename.concat CommonOptions.home_basedir ".mldonkey_gui.ini")
   
 module KeyOption = struct
     
@@ -165,6 +165,8 @@ let color_files_listed =  define_option mldonkey_gui_ini ["colors"; "files_liste
 (** {2 Icons} *)
 
 let xpm_label s = ["icons" ; s]
+let xpm_mini_label s = ["mini_icons" ; s]
+
 let xpm_remove = define_option mldonkey_gui_ini (xpm_label M.o_xpm_remove)
     "" filename_option ""
 let xpm_cancel = define_option mldonkey_gui_ini (xpm_label M.o_xpm_cancel)
@@ -218,6 +220,60 @@ let xpm_close_room =  define_option mldonkey_gui_ini (xpm_label M.o_xpm_close_ro
 let xpm_refresh =  define_option mldonkey_gui_ini (xpm_label M.o_xpm_refresh)
     "" filename_option ""
 
+  
+let xpm_mini_remove = define_option mldonkey_gui_ini (xpm_mini_label M.o_xpm_mini_remove)
+    "" filename_option ""
+let xpm_mini_cancel = define_option mldonkey_gui_ini (xpm_mini_label M.o_xpm_mini_cancel)
+    "" filename_option ""
+let xpm_mini_connect = define_option mldonkey_gui_ini (xpm_mini_label M.o_xpm_mini_connect)
+    "" filename_option ""
+let xpm_mini_disconnect = define_option mldonkey_gui_ini (xpm_mini_label M.o_xpm_mini_disconnect)
+    "" filename_option ""
+let xpm_mini_view_users = define_option mldonkey_gui_ini (xpm_mini_label M.o_xpm_mini_view_users)
+    "" filename_option ""
+let xpm_mini_connect_more_servers = define_option mldonkey_gui_ini (xpm_mini_label M.o_xpm_mini_connect_more_servers)
+    "" filename_option ""
+let xpm_mini_toggle_display_all_servers = define_option mldonkey_gui_ini (xpm_mini_label M.o_xpm_mini_toggle_display_all_servers)
+    "" filename_option ""
+let xpm_mini_remove_old_servers = define_option mldonkey_gui_ini (xpm_mini_label M.o_xpm_mini_remove_old_servers)
+    "" filename_option ""
+let xpm_mini_save = define_option mldonkey_gui_ini (xpm_mini_label M.o_xpm_mini_save)
+    "" filename_option ""
+let xpm_mini_save_all = define_option mldonkey_gui_ini (xpm_mini_label M.o_xpm_mini_save_all)
+    "" filename_option ""
+let xpm_mini_save_as = define_option mldonkey_gui_ini (xpm_mini_label M.o_xpm_mini_save_as)
+    "" filename_option ""
+let xpm_mini_edit_mp3 = define_option mldonkey_gui_ini (xpm_mini_label M.o_xpm_mini_edit_mp3)
+    "" filename_option ""
+let xpm_mini_pause_resume = define_option mldonkey_gui_ini (xpm_mini_label M.o_xpm_mini_pause_resume)
+    "" filename_option ""
+let xpm_mini_get_format = define_option mldonkey_gui_ini (xpm_mini_label M.o_xpm_mini_get_format)
+    "" filename_option ""
+let xpm_mini_preview = define_option mldonkey_gui_ini (xpm_mini_label M.o_xpm_mini_preview)
+    "" filename_option ""
+let xpm_mini_verify_chunks = define_option mldonkey_gui_ini (xpm_mini_label M.o_xpm_mini_verify_chunks)
+    "" filename_option ""
+let xpm_mini_retry_connect = define_option mldonkey_gui_ini (xpm_mini_label M.o_xpm_mini_retry_connect)
+    "" filename_option ""
+let xpm_mini_add_to_friends = define_option mldonkey_gui_ini (xpm_mini_label M.o_xpm_mini_add_to_friends)
+    "" filename_option ""
+let xpm_mini_download = define_option mldonkey_gui_ini (xpm_mini_label M.o_xpm_mini_download)
+    "" filename_option ""
+let xpm_mini_submit_search = define_option mldonkey_gui_ini (xpm_mini_label M.o_xpm_mini_submit_search)
+    "" filename_option ""
+let xpm_mini_extend_search = define_option mldonkey_gui_ini (xpm_mini_label M.o_xpm_mini_extend_search)
+    "" filename_option ""
+let xpm_mini_local_search = define_option mldonkey_gui_ini (xpm_mini_label M.o_xpm_mini_local_search)
+    "" filename_option ""
+let xpm_mini_find_friend =  define_option mldonkey_gui_ini (xpm_mini_label M.o_xpm_mini_find_friend)
+    "" filename_option ""
+let xpm_mini_remove_all_friends =  define_option mldonkey_gui_ini (xpm_mini_label M.o_xpm_mini_remove_all_friends)
+    "" filename_option ""
+let xpm_mini_close_room =  define_option mldonkey_gui_ini (xpm_mini_label M.o_xpm_mini_close_room)
+    "" filename_option ""
+let xpm_mini_refresh =  define_option mldonkey_gui_ini (xpm_mini_label M.o_xpm_mini_refresh)
+    "" filename_option ""
+
 (** {2 Toolbars style} *)
 
 let tb_styles = [ "both", `BOTH ; 
@@ -248,6 +304,10 @@ let (class_tbstyle : Gtk.Tags.toolbar_style option_class) =
 let toolbars_style = define_option mldonkey_gui_ini
     ["toolbars_style"] (gettext M.h_toolbars_style)
     class_tbstyle `BOTH
+
+let mini_toolbars = define_option mldonkey_gui_ini
+    ["mini_toolbars"] "Use mini icons in toolbars"
+    bool_option true
 
 (** {2 Layout} *)
 
@@ -284,7 +344,7 @@ let searches_hpane_left = define_option mldonkey_gui_ini
 let downloads_vpane_up = define_option mldonkey_gui_ini
     ["layout"; "downloads_vpane_up"]
   "Size in % of up part of the downloads vpane (downloaded/downloading)"
-    int_option 40
+    int_option 50
 
 let downloads_wpane_up = define_option mldonkey_gui_ini
     ["layout"; "downloads_wpane_up"]
@@ -471,7 +531,7 @@ let table = [
   M.o_xpm_save_all, (Save_all_xpm.t, xpm_save_all);
   M.o_xpm_save_as, (Save_as_xpm.t, xpm_save_as);
   M.o_xpm_edit_mp3, (Edit_mp3_xpm.t, xpm_edit_mp3);
-  M.o_xpm_pause_resume, (Gui_icons.pause_resume, xpm_pause_resume);
+  M.o_xpm_pause_resume, (Pause_resume_xpm.t, xpm_pause_resume);
   M.o_xpm_get_format, (Get_format_xpm.t, xpm_get_format);
   M.o_xpm_preview, (Preview_xpm.t, xpm_preview);
   M.o_xpm_verify_chunks, (Verify_chunks_xpm.t, xpm_verify_chunks);
@@ -482,9 +542,36 @@ let table = [
   M.o_xpm_extend_search, (Extend_search_xpm.t, xpm_extend_search);
   M.o_xpm_local_search, (Local_search_xpm.t, xpm_local_search);
   M.o_xpm_find_friend, (Get_format_xpm.t, xpm_find_friend) ;  
-  M.o_xpm_remove_all_friends, (Gui_icons.remove_all_friends, xpm_remove_all_friends) ; 
+  M.o_xpm_remove_all_friends, (Remove_all_friends_xpm.t, xpm_remove_all_friends) ; 
   M.o_xpm_close_room, (Trash_xpm.t, xpm_close_room) ;
   M.o_xpm_refresh, (Refres_xpm.t, xpm_refresh) ;
+  M.o_xpm_mini_remove, (Trash_xpm.mini, xpm_mini_remove) ;
+  M.o_xpm_mini_cancel, (Cancel_xpm.mini, xpm_mini_cancel);
+  M.o_xpm_mini_connect, (Connect_xpm.mini, xpm_mini_connect);
+  M.o_xpm_mini_disconnect, (Disconnect_xpm.mini, xpm_mini_disconnect);
+  M.o_xpm_mini_view_users, (View_users_xpm.mini, xpm_mini_view_users);
+  M.o_xpm_mini_connect_more_servers, (Connect_more_xpm.mini, xpm_mini_connect_more_servers);
+  M.o_xpm_mini_remove_old_servers, (Trash_xpm.mini, xpm_mini_remove_old_servers);
+    M.o_xpm_mini_toggle_display_all_servers, (
+      Get_format_xpm.mini, xpm_mini_toggle_display_all_servers);
+  M.o_xpm_mini_save, (Save_xpm.mini, xpm_mini_save);
+  M.o_xpm_mini_save_all, (Save_all_xpm.mini, xpm_mini_save_all);
+  M.o_xpm_mini_save_as, (Save_as_xpm.mini, xpm_mini_save_as);
+  M.o_xpm_mini_edit_mp3, (Edit_mp3_xpm.mini, xpm_mini_edit_mp3);
+  M.o_xpm_mini_pause_resume, (Pause_resume_xpm.mini, xpm_mini_pause_resume);
+  M.o_xpm_mini_get_format, (Get_format_xpm.mini, xpm_mini_get_format);
+  M.o_xpm_mini_preview, (Preview_xpm.mini, xpm_mini_preview);
+  M.o_xpm_mini_verify_chunks, (Verify_chunks_xpm.mini, xpm_mini_verify_chunks);
+  M.o_xpm_mini_retry_connect, (Connect_xpm.mini, xpm_mini_retry_connect); 
+  M.o_xpm_mini_add_to_friends, (Add_to_friends_xpm.mini, xpm_mini_add_to_friends);
+  M.o_xpm_mini_download, (Download_xpm.mini, xpm_mini_download);
+   M.o_xpm_mini_submit_search, (Get_format_xpm.mini, xpm_mini_submit_search); 
+  M.o_xpm_mini_extend_search, (Extend_search_xpm.mini, xpm_mini_extend_search);
+  M.o_xpm_mini_local_search, (Local_search_xpm.mini, xpm_mini_local_search);
+  M.o_xpm_mini_find_friend, (Get_format_xpm.mini, xpm_mini_find_friend) ;  
+  M.o_xpm_mini_remove_all_friends, (Remove_all_friends_xpm.mini, xpm_mini_remove_all_friends) ; 
+  M.o_xpm_mini_close_room, (Trash_xpm.mini, xpm_mini_close_room) ;
+  M.o_xpm_mini_refresh, (Refres_xpm.mini, xpm_mini_refresh) ;
 ] 
 
 let gdk_pix i =
@@ -510,9 +597,9 @@ let gdk_pix i =
       GDraw.pixmap_from_xpm_d ~data: Trash_xpm.t
 	~colormap: (Gdk.Color.get_system_colormap ())
 	() 
-
-let pixmap i = 
-  GMisc.pixmap (gdk_pix i) ()
+      
+let pixmap i = GMisc.pixmap (gdk_pix i) ()
+      
 
 
 
@@ -526,4 +613,9 @@ let downloads_up = define_option mldonkey_gui_ini
     ["downloads_up"]
   "Put the download frame up"
   bool_option true
+
+let chunk_width = define_option mldonkey_gui_ini
+    ["chunk_width"]
+    "The chunk width in pixel"
+    int_option 3
   

@@ -239,7 +239,7 @@ let disconnect_server s =
 *)
       DG.connection_failed (s.server_connection_control);
       s.server_sock <- None;
-      set_server_state s (NotConnected false);
+      set_server_state s (NotConnected (-1));
       connected_servers := List2.removeq s !connected_servers
 
 let server_handler s sock event = 
@@ -285,7 +285,7 @@ print_newline (); *)
   | OP.LoginAckReq mail ->
       set_rtimeout sock DG.half_day;
 (*      Printf.printf "*****  CONNECTED %s  ******" mail; print_newline (); *)
-      set_server_state s (Connected false);
+      set_server_state s (Connected (-1));
       connected_servers := s :: !connected_servers;
       
       (try
@@ -465,7 +465,7 @@ let connect_server s =
 (*      Printf.printf "DISCONNECTED IMMEDIATLY"; print_newline (); *)
         decr nservers;
         s.server_sock <- None;
-        set_server_state s (NotConnected false);
+        set_server_state s (NotConnected (-1));
         DG.connection_failed s.server_connection_control
         
 let rec connect_one_server () =

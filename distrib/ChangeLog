@@ -1,6 +1,67 @@
 ChangeLog	
 =========
 
+2002/02/17: Simon (release unstable-2-02-10)
+  - DonkeySources3: new source management (use 'sources' command for info)
+      * Increased default max_clients_per_second to 30
+      * Removed ban on rank > 500
+  - Applied last html_mods patch. Does not work well on my Mozilla version.
+     So, disabled by default (activate with html_mods = true). WEB Messages
+     have been changed, so that foreign translations are not ok anymore.
+  - DonkeyServers: query more files before deconnection from clients.
+
+2002/02/15: Simon
+  - GUI:
+      * Added small icons (used by default)
+  - Core:
+      * better chroot support
+         * set shell variable MLDONKEY_CHROOT=/dir if you want mldonkey to
+            chroot itself in /dir. mldonkey must be started as root (or setuid)
+            and should drop its priviledges using run_as_user/run_as_useruid.
+         * added option 'run_as_useruid'. The directory where mldonkey
+            will save its files must be writtable by this user, and
+            the incoming directory too (recall: options can be set on the
+            command line: #root> /usr/local/bin/mldonkey -run_as_useruid 502).
+
+2002/02/09: Simon
+  - GUI:
+      * New query tabs: "ShareReactor Search" and "Jigle Search"
+      * More options in "FreeDB Search" tab
+  - Ip: DNS queries are now always cached.
+
+2002/02/07: Simon
+  - Applied patch #1079 (fragmentation)
+  - DonkeyOvernet:
+      * Keyword store completely rewritten
+      * Remove keywords older than 1 hour 
+
+2002/02/06: Simon
+  - GUI:
+      * New query tab "IMDB Search"
+
+2002/02/05: Simon
+  - Applied html_mods patch 2 from Mike Jones
+  - GUI:
+      * New query tab "FreeDB Search"
+
+2002/02/04: Simon
+  - Ported to Ocaml CVS version: 3.06+21 is required on Mac OS X. Downloads
+      are done from Savannah for 3.06 and 3.06+21
+  - GUI: 
+      * New message CleanTables sent every 30 minutes to the GUI to clean
+          source tables.
+  - DonkeyProto: closer to Overnet 0.44, still some information missing
+      A client browse trace is available in DonkeyProtoClient.ml
+
+2003/02/03: Simon
+  - WEB interface: applied patch html_mods
+  - Applied patch 1053 (separated blocks in GUI)
+  - GUI: 
+    * moved column popup on right button
+
+2003/02/01: Simon
+  - GUI: display rank when possible
+
 2003/01/30: Simon (tag unstable-2-02-9, and good week-end)
   - Net: attempt to take into account TCP/IP packets size in bandwidth control.
       Seems to work better

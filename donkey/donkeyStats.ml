@@ -1,8 +1,30 @@
+(* Copyright 2001, 2002 b8_bavard, b8_fee_carabine, INRIA *)
+(*
+    This file is part of mldonkey.
+
+    mldonkey is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    mldonkey is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with mldonkey; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*)
+
+open DonkeyGlobals
+open CommonOptions 
 open CommonTypes
 open CommonGlobals
 open CommonNetwork
 open DonkeyTypes
 open GuiTypes
+open CommonMessages
 open BasicSocket (* last_time *)
 
 let brand_count = 9
@@ -32,18 +54,18 @@ let brand_of_int b =
   | 8 -> Brand_mldonkey3
   | _ -> raise Not_found
       
-let brand_to_string b =
+let gbrand_to_string b =
   match b with
-    Brand_unknown -> "unknown"
-  | Brand_edonkey -> "eDonkey"
-  | Brand_mldonkey1 -> "old mldonkey"
-  | Brand_mldonkey2 -> "new mldonkey"
-  | Brand_mldonkey3 -> "trusted mldonkey"
-  | Brand_overnet -> "Overnet"
-  | Brand_oldemule -> "old eMule"
-  | Brand_newemule -> "new eMule"
-  | Brand_server -> "server"
-      
+    Brand_unknown -> "unk"
+  | Brand_edonkey -> "eDK"
+  | Brand_mldonkey1 -> "oML"
+  | Brand_mldonkey2 -> "nML"
+  | Brand_mldonkey3 -> "tML"
+  | Brand_overnet -> "OVR"
+  | Brand_oldemule -> "oEM"
+  | Brand_newemule -> "nEM"
+  | Brand_server -> "SER"
+
 type brand_stat = {
   mutable brand_seen : int;
   mutable brand_banned : int;
@@ -185,6 +207,86 @@ let print_stats buf =
     done
   end
 
+let new_print_stats_html buf =
+  let one_minute = 60 in
+  let one_hour = 3600 in
+  let one_day = 86400 in
+  let uptime = last_time () - start_time in
+  let days = uptime / one_day in
+  let rem = uptime - days * one_day in
+  let hours = rem / one_hour in
+  let rem = rem - hours * one_hour in
+  let mins = rem / one_minute in
+
+  Printf.bprintf buf "Uptime: %d seconds (%d+%02d:%02d)\n" uptime days hours mins;
+	
+		Printf.bprintf buf "\\<table class=\\\"sources\\\"\\>\\<tr\\>
+\\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C.T\\<br\\>%s\\</td\\>
+\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Seen\\<br\\>%d\\</td\\>
+\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>(%%)\\</td\\>
+\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>DL\\<br\\>%.1f\\</td\\>
+\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>(%%)\\<br\\>%.1f\\</td\\>
+\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>DL\\</td\\>
+\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>UL\\<br\\>%.1f\\</td\\>
+\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>(%%)\\<br\\>%.1f\\</td\\>
+\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>UL\\</td\\>
+\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Banned\\<br\\>%d\\</td\\>
+\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>(%%)\\<br\\>%.0f\\</td\\>
+\\</tr\\>"
+    "ALL"
+    stats_all.brand_seen
+    ((Int64.to_float stats_all.brand_download) /. 1024.0 /. 1024.0)
+  ((Int64.to_float stats_all.brand_download) /. (float_of_int uptime) /. 1024.0)
+  ((Int64.to_float stats_all.brand_upload) /. 1024.0 /. 1024.0)
+  ((Int64.to_float stats_all.brand_upload) /. (float_of_int uptime) /. 1024.0)
+  stats_all.brand_banned 
+    (100. *. (float_of_int stats_all.brand_banned) /. (float_of_int
+    stats_all.brand_seen));
+
+let counter = ref 0 in
+
+ for i=1 to brand_count-1 do
+
+
+         
+    if brand_of_int i != Brand_server then (* dont print server stats *)
+      let brandstr = gbrand_to_string (brand_of_int i) in
+     
+      incr counter;
+    	 if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
+                                     else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
+      
+      
+Printf.bprintf buf "
+\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%.f\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%.1f\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%.1f\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%.0f\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%.1f\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%.1f\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%.0f\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%.0f\\</td\\>\\</tr\\>\n"
+    
+    
+      (brandstr)
+      stats_by_brand.(i).brand_seen 
+        (100. *. (float_of_int stats_by_brand.(i).brand_seen) /. (float_of_int stats_all.brand_seen))
+      ((Int64.to_float stats_by_brand.(i).brand_download) /. 1024.0 /. 1024.0)
+      ((Int64.to_float stats_by_brand.(i).brand_download) /. (float_of_int uptime) /. 1024.0)
+      (100. *. (Int64.to_float stats_by_brand.(i).brand_download) /. (Int64.to_float stats_all.brand_download))
+      ((Int64.to_float stats_by_brand.(i).brand_upload) /. 1024.0 /. 1024.0)
+      ((Int64.to_float stats_by_brand.(i).brand_upload) /. (float_of_int uptime) /. 1024.0)
+      (100. *. (Int64.to_float stats_by_brand.(i).brand_upload) /. (Int64.to_float stats_all.brand_upload))
+      stats_by_brand.(i).brand_banned 
+        (100. *. (float_of_int stats_by_brand.(i).brand_banned) /. (float_of_int stats_all.brand_banned))
+  done;
+
+    Printf.bprintf buf "\\</table\\>\n"
+  
+
 
 let new_print_stats buf =
   let one_minute = 60 in
@@ -196,6 +298,7 @@ let new_print_stats buf =
   let hours = rem / one_hour in
   let rem = rem - hours * one_hour in
   let mins = rem / one_minute in
+
   Printf.bprintf buf "Uptime: %d seconds (%d+%02d:%02d)\n" uptime days hours mins;
   
   Printf.bprintf buf "      Client| seen      |  Downloads       |  Uploads         |  Banned\n";
@@ -231,8 +334,7 @@ let new_print_stats buf =
       stats_by_brand.(i).brand_banned 
         (100. *. (float_of_int stats_by_brand.(i).brand_banned) /. (float_of_int stats_all.brand_banned))
   done
-
-
+  
 let _ =
   register_commands 
     [
@@ -247,4 +349,27 @@ let _ =
 	  new_print_stats buf;
 	  ""
    ), ":\t\t\t\tshow table of download/upload by clients brand";
+   "cshtml", Arg_none (fun o ->
+	let buf = o.conn_buf in
+	  new_print_stats_html buf;
+	  ""
+   ), ":\t\t\t\tshow table of download/upload by clients brand";
+   "reload_messages", Arg_none (fun o ->
+	begin
+
+    try
+      Options.load message_file
+    with
+      Sys_error _ ->
+        (try Options.save message_file with _ -> ())
+    | e ->
+        Printf.printf "Error %s loading message file %s"
+          (Printexc2.to_string e)
+        (Options.options_file_name message_file);
+        print_newline ();
+        Printf.printf "Using default messages."; print_newline ();
+
+	end;
+    ""
+ ), ":\t\t\t\treload messages file";
   ]

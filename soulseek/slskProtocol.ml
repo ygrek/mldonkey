@@ -633,7 +633,7 @@ ascii: [
           Printf.printf "GET PEER ADDRESS REPLY %s = %s:%d" name 
             (Ip.to_string ip) port; print_newline ();
       | AddUserReplyReq (name, present) ->
-          Printf.printf "ADD USER REPLY %s %b" name present;
+          Printf.printf "ADD USER REPLY %s %s" name (string_of_bool present);
           print_newline ();
       | UserStatusReq (user, status) ->
           Printf.printf "USER STATUS %s %d" user status;

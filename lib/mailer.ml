@@ -10,8 +10,8 @@ type mail = {
   
 let simple_connect hostname port = (* from netbase.ml *)
   let s = socket PF_INET SOCK_STREAM 0 in
-  let h = Unix.gethostbyname hostname in
-  let addr = h.h_addr_list.(0) in
+  let h = Ip.from_name  hostname in
+  let addr = Ip.to_inet_addr h in
   try
     Unix.connect s (ADDR_INET(addr,port));
     s

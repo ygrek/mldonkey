@@ -442,13 +442,12 @@ module ClientOption = struct
         | md4 :: tail ->
             try
               let file = find_file md4 in
-              let s = DonkeySources1.S.old_source basic_score last_conn addr file in
+              let s = DonkeySources.old_source basic_score last_conn addr file in
               s.source_overnet <- overnet_source;
               List.iter (fun md4 ->
                   try
                     let file = find_file md4 in
-                    DonkeySources1.add_source_request s file 0 
-                      File_expected;
+                    DonkeySources.add_source_request s file 0 File_expected;
                   with _ -> ()
               ) files;
               s
@@ -574,7 +573,7 @@ let save _ =
   Printf.printf "SAVING SHARED FILES AND SOURCES"; print_newline ();
   Options.save_with_help shared_files_ini;
   sources =:= [];
-  DonkeySources1.S.iter (fun s -> 
+  DonkeySources.iter (fun s -> 
       (match s.source_client with
         SourceClient c -> s.source_files <- c.client_files;
       | _ -> ());      

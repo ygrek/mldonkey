@@ -18,33 +18,39 @@
 *)
 
 type http_request =
-  GET of Url.url
-| POST of Url.url
-| HEAD of Url.url
-| PUT of Url.url
-| DELETE of Url.url
-| TRACE of Url.url
-| OPTIONS of Url.url option (* None = '*' *)
-| CONNECT of string * int
-
-type http_headers =
-| Generic of string * string
-| Referer of Url.url
+  GET
+| POST
+| HEAD
+| PUT
+| DELETE
+| TRACE
   
-type get_args =
-  Timeout of float
-| Args of (string * string) list
-| Headers of http_headers list
-| Post
-| Proxy of string * int
+  (*
+| OPTIONS of url option (* None = '*' *)
+| CONNECT of string * int
+*)
+  
+type request = {
+    req_headers : ( string * string ) list;
+    req_user_agent : string;
+    req_accept : string;
+    req_proxy : (string * int) option;
+
+    req_url : Url.url;
+    req_request : http_request;
+    req_referer : Url.url option;
+  }
 
 type content_handler = 
   int -> (string * string) list -> TcpBufferedSocket.t -> int -> unit
 
-val get_page : Url.url -> get_args list -> content_handler ->
-  (unit -> unit) -> unit
+val basic_request : request
+  
+val get_page : request -> content_handler -> (unit -> unit) -> unit
+val wget : request -> (string -> unit) -> unit
 
-val wget : string -> (string -> unit) -> unit
+val wget_string : request -> (string -> unit) ->
+  (int -> int -> unit) -> unit
 
   
   

@@ -1,6 +1,8 @@
 <entity name=box>
   <vbox name=vbox homogeneous="false" expand="true" fill="true" width="-1" height="-1" border_width="-1" spacing="-1" tab_label="" padding="-1">
-    <toolbar name=wtool orientation="`HORIZONTAL" style="`BOTH" space_size="2" space_style="`LINE" tooltips="true" button_relief="`NONE" expand="false" fill="true" padding="2" width="-1" height="-1" border_width="-1" tab_label="">
+    <toolbar name=wtool1 orientation="`HORIZONTAL" style="`BOTH" space_size="2" space_style="`LINE" tooltips="true" button_relief="`NONE" expand="false" fill="true" padding="2" width="-1" height="-1" border_width="-1" tab_label="">
+    </toolbar>
+    <toolbar name=wtool2 orientation="`HORIZONTAL" style="`BOTH" space_size="2" space_style="`LINE" tooltips="true" button_relief="`NONE" expand="false" fill="true" padding="2" width="-1" height="-1" border_width="-1" tab_label="">
     </toolbar>
   </vbox>
 </entity>

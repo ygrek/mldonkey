@@ -1,4 +1,4 @@
-(* Copyright 2001, 2002 b8_bavard, b8_fee_carabine, INRIA *)
+(* Copyright 2001, 2002 Simon, INRIA *)
 (*
     This file is part of mldonkey.
 
@@ -17,12 +17,17 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-(* This module implements Printf like functions that take care of the
-level of verbosity to choose when something should be printed. *)
-
-open Printf
-
-val debug : bool -> ('a, unit, exn -> string) format -> 'a
-val debug_end : exn
-  
-  
+val old_source : int -> int -> Ip.t * int -> DonkeyTypes.file -> 
+  DonkeyTypes.source
+val iter : (DonkeyTypes.source -> unit) -> unit
+val source_of_client : DonkeyTypes.client -> unit    
+val reschedule_sources : DonkeyTypes.file -> unit
+val new_source : Ip.t * int -> DonkeyTypes.file -> DonkeyTypes.source
+val need_new_sources : DonkeyTypes.file -> bool
+val check_sources :     (DonkeyTypes.client -> unit) -> unit
+val print_sources : Buffer.t -> unit
+val recompute_ready_sources : unit -> unit
+val client_connected : DonkeyTypes.client -> unit
+val add_source_request : DonkeyTypes.source ->
+  DonkeyTypes.file -> int -> DonkeyTypes.request_result -> unit
+val init : unit -> unit  

@@ -38,25 +38,6 @@ open DonkeyMftp
 open DonkeyProtoOvernet
 
 (*
-DONE
-----
-More publish tuning (3min for publish, 40s timeout)
-Answer ans store FilePublish requests from other peers (one more step to completion !)
-  We use a local storage divided in 2 parts (80% - 20%) to keep an high-quality subset.
-Fix OCL loading (change default list, and add exception catching)
-Help message in ovstats
-Dump packet on Udp_handler exception (to check if overnet is responsible for Not_found)
-Avoid to add private addresses in search lists and peer lists
-Answer FileSearch requests (one more step to protocol completion)
-Have the overnet_publish flag to true by default. Publish works well and is very smooth,
-    has been tested, - I believe - is ready for Prime Time :)
-Rework search : clean create_search functions, they do not add searches to overnet_searches
-More publish tuning : we only start publish-searches by group of 5 (there are many publish-searches
-    by file, ie NB_KEYWORDS(filename)+1), every 3 minutes, only if less than 5 searches 
-    are currently started...
-*)
-
-(*
 TODO
 ----
 Enforce correct search
@@ -84,7 +65,7 @@ R 1Eh (30) : (nothing) (=> BCP type 2)
 S 15h (21) : md4 (my MD4) IP (my ip) port (my port UDP)
 R 16h (22) : port (his ??? TCP port)
 *)
-
+  
 module XorSet = Set.Make (
   struct
     type t = Md4.t * peer
@@ -93,47 +74,37 @@ module XorSet = Set.Make (
   end
 )
 
-  
-  
-module XorSet2 = Set.Make (
-  struct
-    type t = Md4.t * (Md4.t * CommonTypes.tag list)
-    let compare (m1,p1) (m2,p2) = compare (m1,p1) (m2,p2)
-  end
-)
+module XorMd4Set = Set.Make (
+    struct
+      type t = Md4.t (* distance *) * Md4.t (* md4 *)
+      let compare (m1,p1) (m2,p2) = 
+        let c = compare m1 m2 in
+        if c = 0 then compare p1 p2 else c
+    end
+  )
 
+module XorMd4Map = Map.Make (
+    struct
+      type t = Md4.t
+      let compare = compare
+    end
+  )
+  
 let boot_peers = ref []
   
 let min_peers_per_block = 2
 let min_peers_before_connect = 5
 let max_searches_for_publish = 5
 let search_max_queries = 64
-
-  (*
-  let overnet_default_ocl = define_option downloads_ini 
-    ["ocl_links"] ""
-  (list_option string_option)
-  [
-    "http://savannah.nongnu.org/download/mldonkey/network/peers.ocl";        
-    "http://members.lycos.co.uk/appbyhp2/FlockHelpApp/contact-files/contact.ocl" ;
-  ]
-*)
   
 let global_peers_size = Array.make 256 0
 (*let firewalled_overnet_peers = Hashtbl.create 13*)
 
-  (* 20% of max_size_file_store*)
-let published_files1 : (Md4.t,Md4.t*CommonTypes.tag list) Hashtbl.t = 
-  Hashtbl.create 10
-let published_files_fifo1 = Queue.create ()
-let published_files_size1 = ref 0
- 
-(* 80% of max_size_file_store*)
-let published_files2 : (Md4.t,Md4.t*CommonTypes.tag list) Hashtbl.t = 
-  Hashtbl.create 10
-let published_files_fifo2 = Queue.create ()
-let published_files_size2 = ref 0
- 
+let published_keyword_set = ref XorMd4Set.empty
+let published_keyword_table = Hashtbl.create 103
+let published_keyword_size = ref 0
+  
+
 module PeerOption = struct
     
     let value_to_peer v = 
@@ -168,6 +139,16 @@ end
 let overnet_store_size = 
   define_option downloads_ini ["overnet_store_size"] "Size of the filename storage used to answer queries" 
     int_option 2000
+  
+let overnet_protocol_connect_version = 
+  define_option downloads_ini ["overnet_protocol_connect_version"] 
+    "The protocol version sent on Overnet connections"
+    int_option 1044
+  
+let overnet_protocol_connectreply_version = 
+  define_option downloads_ini ["overnet_protocol_connectreply_version"] 
+    "The protocol version sent on Overnet connections replies"
+    int_option 44
 
 let overnet_port = 
   define_option downloads_ini ["overnet_port"] "port for overnet" 
@@ -553,15 +534,57 @@ let create_keyword_search w =
       List.iter (fun peer -> add_search_peer search peer) (get_local_distribution md4 search_max_queries);
       search  
 	
-let store_published_file md4 file =
-  let dist = Md4.xor overnet_md4 md4 in
+let store_published_file kw_md4 file_md4 file_tags time =
+  let dist = Md4.xor overnet_md4 kw_md4 in
 
   if !verbose_overnet then 
     begin
-      Printf.printf "PUBLISH at %s (dist=%s)" (Md4.to_string md4) (Md4.to_string dist);
+      Printf.printf "PUBLISH at %s (dist=%s)" (Md4.to_string kw_md4) (Md4.to_string dist);
       print_newline ();
     end;
 
+  try
+    let (size, files) = Hashtbl.find published_keyword_table kw_md4 in
+    
+    try
+      let (tags, file_time) = XorMd4Map.find file_md4 !files in
+      file_time := time
+    with _ -> 
+        incr size;
+        files := XorMd4Map.add file_md4 (file_tags, ref time) !files
+    
+  with _ ->
+      let do_it = 
+        if !published_keyword_size > !!overnet_store_size then
+          
+(* Take the keyword which is the furthest from us, and remove it if
+    it is farther than the new file *)
+          
+          let (max_elt, max_md4) as e = 
+            XorMd4Set.min_elt !published_keyword_set in
+          let distance = Md4.xor overnet_md4 kw_md4 in
+          if distance < max_elt then begin
+              published_keyword_set := XorMd4Set.remove e 
+                !published_keyword_set;
+              Hashtbl.remove published_keyword_table max_md4;
+              decr published_keyword_size;
+              true
+            end else false
+        else true
+      in
+
+      if do_it then begin
+          incr published_keyword_size;
+          Hashtbl.add published_keyword_table kw_md4 
+            (ref 1, ref (XorMd4Map.add file_md4 (file_tags, ref time) 
+            XorMd4Map.empty));
+          published_keyword_set := XorMd4Set.add 
+            (Md4.xor overnet_md4 kw_md4, kw_md4)
+          !published_keyword_set
+        end
+      
+  
+    (*
   if Md4.up2 dist = 0 then
     begin
       if !published_files_size2 >= ((!!overnet_store_size*8)/10) then
@@ -571,7 +594,7 @@ let store_published_file md4 file =
         Hashtbl.remove published_files2 rem;
       end;
       Queue.add md4 published_files_fifo2;
-      Hashtbl.add published_files2 md4 file;
+      Hashtbl.add published_files2 md4 file (last_time ());
       incr published_files_size2;
     end
   else 
@@ -583,38 +606,48 @@ let store_published_file md4 file =
         Hashtbl.remove published_files1 rem;
       end;	
       Queue.add md4 published_files_fifo1;
-      Hashtbl.add published_files1 md4 file;
+      Hashtbl.add published_files1 md4 (file, last_time ());
       incr published_files_size1;
     end  
-
-let get_results_from_query ip port md4 size =
-  let xorset = ref XorSet2.empty and
-      nb_results = ref 0 in
-  let iter () = 
-    while !nb_results < size do
-      let (a,b) as e = XorSet2.min_elt !xorset in
-      udp_send ip port (OvernetSearchResult(md4,(fst b),(snd b)));
-      (*Printf.printf "SEND SEARCH: %s at dist %s" (Md4.to_string (fst b)) (Md4.to_string a); 
-      print_newline ();*)
-      xorset:=XorSet2.remove e !xorset;
-      incr nb_results;
-    done
+*)
+    
+let clean_published_files () =
+  let min_time = last_time () - 3600 in
+  let keywords = Hashtbl2.to_list2 published_keyword_table in
+  Hashtbl.clear published_keyword_table;
+  published_keyword_set := XorMd4Set.empty;
+  published_keyword_size := 0;
+  List.iter (fun (kw_md4, (size, files)) ->
+      XorMd4Map.iter (fun file_md4 (file_tags, time) ->
+          if !time > min_time then
+            store_published_file kw_md4 file_md4 file_tags !time
+      ) !files
+  ) keywords
+    
+let get_results_from_query ip port kw_md4 min max =
+  
+  let rec iter1 n xorset = 
+    if n < max then
+      let (distance,md4) as e = XorMd4Set.min_elt xorset in
+      let (size, files) = Hashtbl.find published_keyword_table md4 in
+      iter2 n xorset files
+      
+  and iter2 n xorset files =
+    let n_sent = ref n in
+    XorMd4Map.iter (fun file_md4 (file_tags, time) ->
+        incr n_sent;
+        if !n_sent > min then
+          udp_send ip port (OvernetSearchResult(kw_md4,file_md4,file_tags));
+        if !n_sent > max then raise Exit) !files;
+    iter1 !n_sent xorset
   in
-
-  begin
-    try 
-      Hashtbl.iter (fun a b -> xorset:=XorSet2.add (Md4.xor md4 a,b) !xorset ) published_files2;  
-      iter();
-    with _ -> ()
-  end;  
-  if !nb_results < size then
-    begin
-      try 
-	Hashtbl.iter (fun a b -> xorset:=XorSet2.add (Md4.xor md4 a,b) !xorset ) published_files1;
-	iter();
-      with _ -> ()
-    end
-
+  
+  let xorset = ref XorMd4Set.empty in
+  Hashtbl.iter (fun key_md4 _ -> 
+      xorset:=XorMd4Set.add (Md4.xor kw_md4 key_md4,key_md4) !xorset ) 
+  published_keyword_table;  
+  iter1 0 !xorset
+  
 let recover_file (file : DonkeyTypes.file) = 
   try
     let s = Hashtbl.find overnet_searches file.file_md4 in ()
@@ -771,9 +804,9 @@ let udp_client_handler t p =
   | OvernetPublish (md4, r_md4, r_tags) -> 
       begin
         let other_ip = ip_of_udp_packet p in
-	let other_port = port_of_udp_packet p in
-        store_published_file md4 (r_md4,r_tags);
-	udp_send other_ip other_port (OvernetPublished md4);
+        let other_port = port_of_udp_packet p in
+        store_published_file md4 r_md4 r_tags (last_time ());
+        udp_send other_ip other_port (OvernetPublished md4);
       end
   | OvernetGetSearchResults (md4, kind, min, max) ->
       begin
@@ -785,7 +818,7 @@ let udp_client_handler t p =
 	      (Md4.to_string md4) kind min max;
 	    print_newline ();
 	  end;
-	get_results_from_query other_ip other_port md4 max;
+	get_results_from_query other_ip other_port md4 min max;
 	udp_send other_ip other_port (OvernetNoResult md4);
       end
   | OvernetPublished (md4) -> ()      
@@ -885,7 +918,7 @@ let udp_client_handler t p =
 				  bcp (Md4.to_string md4);
 				print_newline (); *)
                                   if Ip.valid ip && Ip.reachable ip then
-                                    let c = DonkeySources1.S.new_source (ip, port) file in
+                                    let c = DonkeySources.new_source (ip, port) file in
                                     c.source_overnet <- true;
                               | _ ->
 				Printf.printf "Ill formed bcp: %s" bcp;
@@ -1147,6 +1180,7 @@ let enable enabler =
   );
 (* every 3h for re-publish and cleaning *)
   add_session_timer enabler 10800. (fun _ ->
+      (try clean_published_files () with _ -> ());
       if !!enable_overnet then begin
           remove_old_global_peers ();
           publish_shared_files ()
@@ -1291,29 +1325,20 @@ let _ =
     "ovstore", Arg_none (fun o -> 
         let buf = o.conn_buf in
 
-        Printf.bprintf buf "Overnet store Level 2:\n"; 
+        Printf.bprintf buf "Overnet store:\n"; 
         Printf.bprintf buf "  size = %d, max_size = %d\n" 
-          !published_files_size2 ((!!overnet_store_size*8)/10); 
-        Printf.bprintf buf "\n";        
-   
-        Hashtbl.iter (fun a b -> 
-           Printf.bprintf buf "  md4=%s r_md4=%s\n" (Md4.to_string a) (Md4.to_string (fst b));
-           Printf.bprintf buf "    tags=";
-           bprint_tags buf (snd b);
-           Printf.bprintf buf "\n";
-        ) published_files2;
-
-        Printf.bprintf buf "Overnet store Level 1:\n"; 
-        Printf.bprintf buf "  size = %d, max_size = %d\n" 
-          !published_files_size1 ((!!overnet_store_size*2)/10); 
+          !published_keyword_size !!overnet_store_size; 
         Printf.bprintf buf "\n";        
 
-        Hashtbl.iter (fun a b -> 
-           Printf.bprintf buf "  md4=%s r_md4=%s\n" (Md4.to_string a) (Md4.to_string (fst b));
-           Printf.bprintf buf "    tags=";
-           bprint_tags buf (snd b);
-           Printf.bprintf buf "\n";
-        ) published_files1;
+        Hashtbl.iter (fun kw_md4 (size, files) -> 
+            Printf.bprintf buf "  md4=%s, files =\n" (Md4.to_string kw_md4);
+            XorMd4Map.iter (fun file_md4 (file_tags,_) ->
+                Printf.bprintf buf "    r_md4=%s\n" (Md4.to_string file_md4);
+                Printf.bprintf buf "    tags=";
+                bprint_tags buf file_tags;
+                Printf.bprintf buf "\n";
+            ) !files
+        ) published_keyword_table;
 
         ""
      ), " dump the Overnet File Store";
@@ -1322,18 +1347,18 @@ let _ =
     "ovtst", Arg_two (fun a b o ->
 	let md41 = Md4.of_string a in
 	let md42 = Md4.of_string b in
-        store_published_file md41 (md42,
+        store_published_file md41 md42
          [
             string_tag "filename" "john" ;
             int_tag "size" (Random.int 200);
-         ] );
+         ] 0;
         ""
     ), "";
 
     "ovtst2", Arg_two (fun a b o ->
 	let md4 = Md4.of_string a in
 	let size = int_of_string b in
-        get_results_from_query (Ip.of_string "10.0.0.10") (4665) md4 size;
+        get_results_from_query (Ip.of_string "10.0.0.10") (4665) md4 0 size;
         ""
     ), "";
 
@@ -1373,7 +1398,8 @@ let overnet_search (ss : search) =
     let ws = keywords_of_query q in
     List.iter (fun w -> 
       let s = create_keyword_search w in
-      Hashtbl.iter (fun r_md4 r_tags -> DonkeyOneFile.search_found ss r_md4 r_tags) s.search_results;
+        Hashtbl.iter (fun r_md4 r_tags -> 
+            DonkeyOneFile.search_found ss r_md4 r_tags) s.search_results;
       begin
 	match s.search_kind with
 	  KeywordSearch sss -> s.search_kind <- KeywordSearch (ss :: sss)
@@ -1382,4 +1408,4 @@ let overnet_search (ss : search) =
       Hashtbl.add overnet_searches s.search_md4 s;	 
       )
       ws
-    
+  

@@ -1,6 +1,102 @@
 TODO list for client
 ====================
 
+
+Downloads seem to work only from firewalled hosts...
+
+Some fields are not necessary anymore:
+  - zone_file
+  - zone_present (zone_begin >= zone_end)
+  - client_on_list
+
+
+Overnet: add a lifetime to registered files
+
+New overnet proto:
+
+CONNECT
+(227)(57)(0)(0)(0)
+(1)
+(16)  (* version *)
+(103)(198)(105)(115)(81)(255)(74)(236)(41)(205)(186)(171)(242)(251)(227)(70)(*
+client ID *)
+(81)(100)(86)(143)   (* IP address *)
+(55)(18)             (* port *)
+(2)(0)(0)(0)          (* 2 tags *)
+(3)                   (* int tag *)
+(1)(0)(17)            (* tag = version *)
+(20)(4)(0)(0)         (* 4.20 *)
+(2)                   (* string tag *)
+(1)(0)(1)             (* tag = client name *)
+(5)(0) p b w l l      (* "pbwll" *)
+(0)(0)(0)(0)(0)(0)    (* server & port IP address *)
+(53)(249)(122)(216)   (* a hash on the message ? some md4 stuff *)
+
+CONNECT REPLY
+(227)
+(57)(0)(0)(0)
+(76)
+(89)(106)(76)(24)(81)(1)(79)(248)(50)(22)(30)(155)(91)(163)(161)(212)
+(193)(250)(133)(161)
+(54)(18)
+(2)(0)(0)(0)
+(3)
+(1)(0)(17)
+(44)(0)(0)(0)          (* Here, 44 ! *)
+(2)
+(1)(0)(1)
+(6)(0)(102)(101)(114)(114)(101)(116)
+(0)(0)(0)(0)(0)(0)
+(10)(26)(58)(153)]
+
+
+
+
+=======
+New overnet proto:
+
+CONNECT
+(227)(57)(0)(0)(0)
+(1)
+(16)  (* version *)
+(103)(198)(105)(115)(81)(255)(74)(236)(41)(205)(186)(171)(242)(251)(227)(70)(*
+client ID *)
+(81)(100)(86)(143)   (* IP address *)
+(55)(18)             (* port *)
+(2)(0)(0)(0)          (* 2 tags *)
+(3)                   (* int tag *)
+(1)(0)(17)            (* tag = version *)
+(20)(4)(0)(0)         (* 4.20 *)
+(2)                   (* string tag *)
+(1)(0)(1)             (* tag = client name *)
+(5)(0) p b w l l      (* "pbwll" *)
+(0)(0)(0)(0)(0)(0)    (* server & port IP address *)
+(53)(249)(122)(216)   (* a hash on the message ? some md4 stuff *)
+
+CONNECT REPLY
+(227)
+(57)(0)(0)(0)
+(76)
+(89)(106)(76)(24)(81)(1)(79)(248)(50)(22)(30)(155)(91)(163)(161)(212)
+(193)(250)(133)(161)
+(54)(18)
+(2)(0)(0)(0)
+(3)
+(1)(0)(17)
+(44)(0)(0)(0)          (* Here, 44 ! *)
+(2)
+(1)(0)(1)
+(6)(0)(102)(101)(114)(114)(101)(116)
+(0)(0)(0)(0)(0)(0)
+(10)(26)(58)(153)]
+
+
+
+
+Patches:
+  * html_mods: .mldonkey_messages moved in commonMessages
+  * Remove old_emules
+
 Core:
 =====
 * Different login/password for different users.

@@ -66,9 +66,9 @@ let reconnect gui value_reader =
   (try disconnect gui with _ -> ());
   let sock = TcpBufferedSocket.connect ""
       (try
-        let h = Unix.gethostbyname 
+        let h = Ip.from_name
             (if !!O.hostname = "" then Unix.gethostname () else !!O.hostname) in
-        h.Unix.h_addr_list.(0)
+        Ip.to_inet_addr h
       with 
         e -> 
           Printf.printf "Exception %s in gethostbyname" (Printexc2.to_string e);
@@ -87,34 +87,38 @@ let reconnect gui value_reader =
               Printf.printf "to the correct IP address of the host running mldonkey."; print_newline ();
               
               raise Not_found
-      )
-      !!O.port
+    )
+    !!O.port
       (fun _ _ -> ()) 
   in
   try
     connection := Some sock;
-    TcpBufferedSocket.set_closer sock (fun _ _ -> 
+    TcpBufferedSocket.set_closer sock (fun _ msg -> 
         match !connection with
           None -> ()
         | Some s -> 
             if s == sock then begin
-              connection := None;
-              gui#label_connect_status#set_text (gettext M.not_connected);
-	      when_disconnected gui
-            end
+                connection := None;
+                gui#label_connect_status#set_text (gettext M.not_connected);
+                when_disconnected gui
+              end
     );
     TcpBufferedSocket.set_max_write_buffer sock !!O.interface_buffer;
+    TcpBufferedSocket.set_handler sock TcpBufferedSocket.BUFFER_OVERFLOW
+    (fun _ -> 
+        Printf.printf "BUFFER OVERFLOW"; print_newline ();
+        TcpBufferedSocket.close sock "overflow");
     TcpBufferedSocket.set_reader sock (
       GuiDecoding.gui_cut_messages
         (fun opcode s ->
           try
             let m = GuiDecoding.to_gui !gui_protocol_used opcode s in
-            value_reader gui m
+            value_reader gui m;
           with e ->
-            Printf.printf "Exception %s in decode/exec" (Printexc2.to_string e); 
-	    print_newline ();
-            raise e
-        ));
+              Printf.printf "Exception %s in decode/exec" (Printexc2.to_string e); 
+              print_newline ();
+              raise e
+      ));
     gui#label_connect_status#set_text "Connecting";
     send (GuiProto.GuiProtocol GuiEncoding.best_gui_version)
   with e ->
@@ -122,7 +126,7 @@ let reconnect gui value_reader =
       print_newline ();
       TcpBufferedSocket.close sock "error";
       connection := None
-
+      
 let connected _ = !connection <> None
       
 end

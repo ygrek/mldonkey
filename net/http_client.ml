@@ -30,58 +30,73 @@ open TcpBufferedSocket
 
   
 type http_request =
-  GET of url
-| POST of url
-| HEAD of url
-| PUT of url
-| DELETE of url
-| TRACE of url
+  GET
+| POST
+| HEAD
+| PUT
+| DELETE
+| TRACE
+  
+  (*
 | OPTIONS of url option (* None = '*' *)
 | CONNECT of string * int
+*)
+  
+type request = {
+    req_headers : ( string * string ) list;
+    req_user_agent : string;
+    req_accept : string;
+    req_proxy : (string * int) option;
 
-type http_headers =
-| Generic of string * string
-| Referer of url
+    req_url : url;
+    req_request : http_request;
+    req_referer : Url.url option;
+  }
 
 type content_handler = 
   int -> (string * string) list -> TcpBufferedSocket.t -> int -> unit
-  
-let string_of_header = function
-  | Generic (a, b) -> a ^ ": " ^ b ^ "\r\n"
-  | Referer u -> "Referer: " ^ (Url.to_string false u) ^ "\r\n"
 
-let make_full_request url args headers ispost toproxy =
-  let args = url.args@args in
+let basic_request = {
+    req_url = Url.of_string "http://www.mldonkey.net/";
+    req_referer = None;
+
+    req_request = GET;
+    req_proxy = None;
+    req_headers = [];
+    req_user_agent = "Wget 1.4";
+    req_accept = "*/*";
+  }
+      
+let make_full_request r =
+  let url = r.req_url in
+  let args = url.args in
   let res = Buffer.create 80 in
-  let is_real_post = ispost && args <> [] in
+  let is_real_post = r.req_request = POST && args <> [] in
   if is_real_post
   then Buffer.add_string res "POST "
   else Buffer.add_string res "GET ";
-  if toproxy
-  then Buffer.add_string res (Url.to_string false url)
-  else (Buffer.add_string res url.file);
-  if (not is_real_post) && args <> []
-  then
-    (Buffer.add_char res '?';
-     let rec manage_args = function
-      | [] -> assert false
-      | [a, ""] ->
-          Buffer.add_string res a
-      | [a, b] ->
-          Buffer.add_string res a; Buffer.add_char res '='; Buffer.add_string res b
-      | (a,b)::l ->
-          Buffer.add_string res a; Buffer.add_char res '='; Buffer.add_string res b;
-          Buffer.add_char res '&'; manage_args l in
-    manage_args args);
+  Buffer.add_string res (
+    let url = 
+      if r.req_proxy <> None
+      then  Url.to_string false url
+      else url.file
+    in
+    let url = if is_real_post then url else
+        Url.put_args url args
+    in
+    url);
   Buffer.add_string res " HTTP/1.0\r\nHost: ";
   Buffer.add_string res url.server;
   Buffer.add_string res "\r\n";
-  let manage_headers = function
-    | [] -> ()
-    | a::l -> Buffer.add_string res (string_of_header a) in
-  manage_headers headers;
-  Buffer.add_string res "User-Agent: Wget 1.4\r\n";
-  Buffer.add_string res "Accept: */*\r\n";
+  List.iter (fun (a,b) ->
+      Printf.bprintf res "%s: %s\r\n" a b      
+  ) r.req_headers;
+  Printf.bprintf res "User-Agent: %s\r\n" r.req_user_agent;
+  Printf.bprintf res "Accept: %s\r\n" r.req_accept;
+  (match r.req_referer with
+      None -> ()
+    | Some url -> 
+        Printf.bprintf res "Referer: %s\r\n"  (Url.to_string false url));
   if is_real_post
   then
     (let post = Buffer.create 80 in
@@ -101,14 +116,8 @@ let make_full_request url args headers ispost toproxy =
   else
     Buffer.add_string res "\r\n";
   let s = Buffer.contents res in
+(*   Printf.printf "URL: %s" s; print_newline ();  *)
   s
-
-type get_args =
-  Timeout of float
-| Args of (string * string) list
-| Headers of http_headers list
-| Post
-| Proxy of string * int
 
 let split_head s =
   let rec iter pos1 res =
@@ -180,15 +189,17 @@ print_newline ();
 let http_reply_handler headers_handler =
   read_header (parse_header headers_handler)
   
-let get_page url get_args content_handler f =
-  let rec get_url level url =
+let get_page r content_handler f =
+  let rec get_url level r =
+    
+    let url = r.req_url in
+    (*
     let args = ref [] in
     let headers = ref [] in
     let ispost = ref false in
     let timeout = ref 300.0 in
     let proxy = ref None in
     List.iter (function   
-        Timeout t -> timeout := t
       | Args l -> args := l@ !args
       | Headers l -> headers := l @ !headers;
       | Post -> ispost := true
@@ -197,13 +208,12 @@ let get_page url get_args content_handler f =
     let args = !args in
     let headers = !headers in
     let ispost = !ispost in
-    let timeout = !timeout in
     let proxy = !proxy in
-    
-    let request = make_full_request url args headers ispost (proxy <> None) in
+*)    
+    let request = make_full_request r in
     
     let server, port =
-      match proxy with
+      match r.req_proxy with
       | None -> url.server, url.port
       | Some (s, p) -> s, p
     in
@@ -256,7 +266,8 @@ headers;
             try
               let url = List.assoc "Location" headers in
               Printf.printf "Indirection %s" url; print_newline ();
-              get_url (level+1) (Url.of_string url)
+              let r = { r with req_url = Url.of_string url } in
+              get_url (level+1) r
             
             with e ->
                 List.iter (fun (name, value) ->
@@ -272,15 +283,15 @@ headers;
         close sock "bad reply";
         raise Not_found
 
-  in get_url 0 url
+  in get_url 0 r
 
   
-let wget url f = 
+let wget r f = 
     
   let file_buf = Buffer.create 1000 in
   let file_size = ref 0 in
 
-  get_page (Url.of_string url) []
+  get_page r
     (fun maxlen headers sock nread ->
         let buf = TcpBufferedSocket.buf sock in
         
@@ -299,7 +310,8 @@ let wget url f =
   (fun _ ->  
       let s = Buffer.contents file_buf in
       if s = "" then begin  
-            Printf.printf "Empty content for url %s" url;
+          Printf.printf "Empty content for url %s" 
+            (Url.to_string false r.req_url);
           print_newline ();
         end;
       let filename = Filename.temp_file "http_" ".tmp" in
@@ -311,6 +323,32 @@ let wget url f =
             "Exception %s in loading downloaded file %s"
             (Printexc2.to_string e) filename;
           Sys.remove filename 
+  )
+  
+let wget_string r f progress = 
+    
+  let file_buf = Buffer.create 1000 in
+  let file_size = ref 0 in
+
+  get_page r
+    (fun maxlen headers sock nread ->
+        let buf = TcpBufferedSocket.buf sock in
+        
+        if nread > 0 then begin
+            let left = 
+              if maxlen >= 0 then
+                mini (maxlen - !file_size) nread
+              else nread
+          in
+          Buffer.add_string file_buf (String.sub buf.buf buf.pos left);
+          progress left maxlen;
+          buf_used sock left;
+          file_size := !file_size + left;
+          if nread > left then
+            TcpBufferedSocket.close sock "end read"
+        end)
+  (fun _ ->  
+      f (Buffer.contents file_buf)
   )
 
   

@@ -167,7 +167,7 @@ let client_parse_header c sock header =
                     print_newline ();
                     raise Exit
                   end;
-                set_client_state c (Connected true);    
+                set_client_state c (Connected 0);    
           end else begin
             if !!verbose_clients > 0 then begin
                 Printf.printf "BAD HEADER FROM CONNECTED CLIENT:"; print_newline ();

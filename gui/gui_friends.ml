@@ -36,13 +36,15 @@ let (!!) = Options.(!!)
 let string_color_of_state state =
   match state with
   | Connected_downloading -> gettext M.downloading, Some !!O.color_downloading 
-  | Connected false -> gettext M.connected, Some !!O.color_connected 
+  | Connected (-1) -> gettext M.connected, Some !!O.color_connected 
   | Connecting  -> gettext M.connecting, Some !!O.color_connecting
-  | NotConnected false -> "", None
+  | NotConnected (-1) -> "", None
   | NewHost -> "NEW HOST", None
   | Connected_initiating -> gettext M.initiating, Some !!O.color_not_connected
-  | Connected true -> gettext M.queued, Some !!O.color_connected
-  | NotConnected true -> "Queued out",  Some !!O.color_not_connected
+  | Connected 0 -> gettext M.queued, Some !!O.color_connected
+  | NotConnected 0 -> "Queued out",  Some !!O.color_not_connected
+  | Connected n -> Printf.sprintf "Ranked %d" n, Some !!O.color_connected
+  | NotConnected n -> Printf.sprintf "Ranked %d Out" n,  Some !!O.color_not_connected
   | RemovedHost -> gettext M.removed, Some !!O.color_not_connected
   | BlackListedHost -> gettext M.black_listed, Some !!O.color_not_connected
       
@@ -201,7 +203,12 @@ class box columns friend_tab =
 
     method find_client num = self#find num
 
-    method set_tb_style = wtool#set_style
+    method set_tb_style tb = 
+        if Options.(!!) Gui_options.mini_toolbars then
+          (wtool1#misc#hide (); wtool2#misc#show ()) else
+          (wtool2#misc#hide (); wtool1#misc#show ());
+      wtool1#set_style tb;
+      wtool2#set_style tb
 
     initializer
       box#vbox#pack ~expand: true pl#box
@@ -287,30 +294,24 @@ class box_friends box_files friend_tab =
         Not_found -> ()
     
     initializer
-      ignore
-        (wtool#insert_button 
+      Gui_misc.insert_buttons wtool1 wtool2
           ~text: (gettext M.find_friend)
         ~tooltip: (gettext M.find_friend)
-        ~icon: (Gui_options.pixmap M.o_xpm_find_friend)#coerce
+        ~icon: (M.o_xpm_find_friend)
           ~callback: self#find_friend
-          ()
-      );
-      ignore
-        (wtool#insert_button 
-          ~text: (gettext M.remove)
-        ~tooltip: (gettext M.remove)
-        ~icon: (Gui_options.pixmap M.o_xpm_remove)#coerce
-          ~callback: self#remove
-          ()
-      );
-      ignore
-        (wtool#insert_button 
-          ~text: (gettext M.remove_all_friends_text)
-        ~tooltip: (gettext M.remove_all_friends_tips)
-        ~icon: (Gui_options.pixmap M.o_xpm_remove_all_friends)#coerce
-          ~callback: self#remove_all_friends
-          ()
-      );
+        ();
+      Gui_misc.insert_buttons wtool1 wtool2
+        ~text: (gettext M.remove)
+      ~tooltip: (gettext M.remove)
+      ~icon: (M.o_xpm_remove)
+      ~callback: self#remove
+        ();
+      Gui_misc.insert_buttons wtool1 wtool2
+        ~text: (gettext M.remove_all_friends_text)
+      ~tooltip: (gettext M.remove_all_friends_tips)
+      ~icon: (M.o_xpm_remove_all_friends)
+      ~callback: self#remove_all_friends
+      ();
 end
 
 
@@ -425,15 +426,13 @@ class box_list (client_info_box : GPack.box) friend_tab =
       vbox_list#pack ~expand: true prebox#coerce;
       vbox_list#pack ~expand: false label_locs#coerce;
       
-      ignore
-        (wtool#insert_button 
-          ~text: (gettext M.add_to_friends)
-        ~tooltip: (gettext M.add_to_friends)
-        ~icon: (Gui_options.pixmap M.o_xpm_add_to_friends)#coerce
-          ~callback: self#add_to_friends
-          ()
-      );
-    
+      Gui_misc.insert_buttons wtool1 wtool2
+        ~text: (gettext M.add_to_friends)
+      ~tooltip: (gettext M.add_to_friends)
+      ~icon: (M.o_xpm_add_to_friends)
+      ~callback: self#add_to_friends
+        ()
+      
     val mutable selected = None
     method on_select c = 
       match selected with

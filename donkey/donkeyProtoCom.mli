@@ -27,7 +27,7 @@ type client_sock = TcpBufferedSocket.t
     *)
 
 val server_send : TcpBufferedSocket.t -> DonkeyProtoServer.t -> unit
-val client_send : TcpBufferedSocket.t -> DonkeyProtoClient.t -> unit
+val client_send : DonkeyTypes.client -> DonkeyProtoClient.t -> unit
 val emule_send : TcpBufferedSocket.t -> DonkeyProtoClient.t -> unit
 val servers_send : TcpBufferedSocket.t list -> DonkeyProtoServer.t -> unit
 
@@ -66,7 +66,8 @@ val server_msg_to_string : DonkeyProtoServer.t -> string
 val client_msg_to_string : DonkeyProtoClient.t -> string
   
 val direct_server_send : TcpBufferedSocket.t -> DonkeyProtoServer.t -> unit
-val direct_client_send : TcpBufferedSocket.t -> DonkeyProtoClient.t -> unit
+val direct_client_send : DonkeyTypes.client -> DonkeyProtoClient.t -> unit
+val direct_client_sock_send : TcpBufferedSocket.t -> DonkeyProtoClient.t -> unit
 val direct_servers_send : TcpBufferedSocket.t list -> DonkeyProtoServer.t -> unit
 val direct_server_send_share : 
   TcpBufferedSocket.t  -> DonkeyTypes.file list -> unit

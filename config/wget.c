@@ -45,11 +45,15 @@ void parse_url( char *input, char *host, int *port, char *pathname, char* outfil
 
 int main(int argc, char ** argv){
 
+   if(argc > 1)
+     {
+	
+   
   char *url = argv[1];
   char    host[256];
   char    pathname[4096];
   int port = 80;
-  char outfile[256];
+  char *outfile;
   int f;  
   struct  sockaddr_in address ;
   struct  hostent *hp;
@@ -58,8 +62,11 @@ int main(int argc, char ** argv){
   char buf[2000];
   int nread;
 
+	outfile = malloc(256);
  parse_url (url, host, &port, pathname, outfile);
 
+	if(argc > 2) outfile = argv[2];
+   
 
 
     printf( "host    = %s\n", host );
@@ -68,6 +75,7 @@ int main(int argc, char ** argv){
     printf( "path    = %s\n", pathname );
     printf( "outfile    = %s\n", outfile );
 
+   
 
     f = open(outfile,  O_CREAT | O_TRUNC | O_WRONLY, 0644);
 
@@ -103,7 +111,7 @@ int main(int argc, char ** argv){
     }
 
     printf( "Connected\n") ;
-    sprintf( buf, "GET %s\r\n", pathname );
+    sprintf( buf, "GET %s\r\n\r\n", pathname );
 
      write(fd, buf, strlen(buf));
 
@@ -115,6 +123,7 @@ int main(int argc, char ** argv){
     close(f);
     close(fd);
     return 0;
+}
 }
 
 

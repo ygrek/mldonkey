@@ -45,6 +45,7 @@ rule xml = parse
 	| '\''	{ reset(); STRING(q_string lexbuf) }
 	| "<--" { com_string lexbuf; }
 	| "<%"	{ code_string lexbuf; }
+	| "<!"	{ doc_string lexbuf; }
 	| ident	{ update lexbuf; IDENT(String.lowercase (get lexbuf)) }
 	| _		{ error lexbuf; }
 and
@@ -70,4 +71,9 @@ and
 	code_string = parse
 	| "%>"		{ xml lexbuf; }
 	| [^'%']+	{ code_string lexbuf; }
+	| _			{ error lexbuf; }
+and
+	doc_string = parse
+	| ">"		{ xml lexbuf; }
+	| [^'>']+	{ doc_string lexbuf; }
 	| _			{ error lexbuf; }

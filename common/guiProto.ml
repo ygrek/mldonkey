@@ -81,7 +81,7 @@ type from_gui =
 | RefreshUploadStats
   
 | SetFilePriority of int * int
-  
+
 let gui_extension_poll = 1
   
 type to_gui =
@@ -150,6 +150,8 @@ type to_gui =
 (* option_type *) option_widget
 
 | BadPassword
+| CleanTables of (* clients *) int list * (* servers *) int list
+  
   
 let from_gui_to_string t = 
   match t with
@@ -265,3 +267,5 @@ let string_of_to_gui t =
   | Add_plugin_option _ -> "Add_plugin_option"
   
   | BadPassword -> "BadPassword"
+      
+  | CleanTables _ -> "CleanTables"

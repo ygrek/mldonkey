@@ -104,57 +104,75 @@ let create ?(proto="http") ?(server="") ?(port=80) ?(user="") ?(pass="") file =
   let url = { proto=proto; server=server; port=port; full_file=file;
       user=user; passwd=pass; file = short_file; args = args; string = "" } in
   { url with string = to_string true url }
+
+let put_args s args =
+  if args = [] then s else
+  let res = Buffer.create 256 in
+  Buffer.add_string res s;
+  Buffer.add_char res '?';
+  let rec manage_args = function
+    | [] -> assert false
+    | [a, ""] ->
+        Buffer.add_string res (encode a)
+    | [a, b] ->
+        Buffer.add_string res (encode a); Buffer.add_char res '='; Buffer.add_string res 
+          (encode b)
+    | (a,b)::l ->
+        Buffer.add_string res (encode a); Buffer.add_char res '='; Buffer.add_string res 
+          (encode b);
+        Buffer.add_char res '&'; manage_args l in
+(*  Printf.printf "len args %d" (List.length args); print_newline ();*)
+  manage_args args;
+  Buffer.contents res  
   
-  
-let of_string s =
-  let get_two init_pos =
-    let pos = ref init_pos in
-    while s.[!pos] <> ':' && s.[!pos] <> '/' && s.[!pos] <> '@' do
-      incr pos
-    done;
-    let first = String.sub s init_pos (!pos - init_pos) in
-    if s.[!pos] = ':'
-    then
-      (let deb = !pos+1 in
-      while s.[!pos] <> '@' && s.[!pos] <> '/' do
+let of_string ?(args=[]) s =
+  let s = put_args s args in
+  let url =
+    let get_two init_pos =
+      let pos = ref init_pos in
+      while s.[!pos] <> ':' && s.[!pos] <> '/' && s.[!pos] <> '@' do
         incr pos
       done;
-      (first, String.sub s deb (!pos-deb), !pos))
-    else
-      (first, "", !pos) in
-  let cut init_pos default_port =
-    let stra, strb, new_pos = get_two init_pos in
-    let user, pass, host, port, end_pos =
-      if s.[new_pos] = '@'
+      let first = String.sub s init_pos (!pos - init_pos) in
+      if s.[!pos] = ':'
       then
-        (let host, port_str, end_pos = get_two (new_pos+1) in
-        let port =
-          if port_str="" then default_port else int_of_string port_str in
-        stra, strb, host, port, end_pos)
+        (let deb = !pos+1 in
+          while s.[!pos] <> '@' && s.[!pos] <> '/' do
+            incr pos
+          done;
+          (first, String.sub s deb (!pos-deb), !pos))
       else
-        (let port = if strb="" then default_port else int_of_string strb in
-        "anonymous", "cdk@caml.opt", stra, port, new_pos) in
-    let len = String.length s in
-    let file = String.sub s end_pos (len - end_pos) in
-    host, port, file, user, pass in
-  if String2.check_prefix s "http://"
-  then
-    try
-      let host, port, full_file, user, pass = cut 7 80 in
-      create ~server:host ~port  ~user ~pass full_file
-    with _ -> raise (Invalid_argument "this string is not a valid http url")
-  else if String2.check_prefix s "ftp://"
-  then
-    try
-      let host, port, file, user, pass = cut 6 21 in
-      create ~proto:"ftp" ~server:host ~port ~user ~pass file
-    with _ -> raise (Invalid_argument "this string is not a valid ftp url")
-  else
+        (first, "", !pos) in
+    let cut init_pos default_port =
+      let stra, strb, new_pos = get_two init_pos in
+      let user, pass, host, port, end_pos =
+        if s.[new_pos] = '@'
+        then
+          (let host, port_str, end_pos = get_two (new_pos+1) in
+            let port =
+              if port_str="" then default_port else int_of_string port_str in
+            stra, strb, host, port, end_pos)
+        else
+          (let port = if strb="" then default_port else int_of_string strb in
+            "anonymous", "cdk@caml.opt", stra, port, new_pos) in
+      let len = String.length s in
+      let file = String.sub s end_pos (len - end_pos) in
+      host, port, file, user, pass in
+    if String2.check_prefix s "http://"
+    then
+      try
+        let host, port, full_file, user, pass = cut 7 80 in
+        create ~server:host ~port ~user ~pass full_file
+      with _ -> raise (Invalid_argument "this string is not a valid http url")
+    else if String2.check_prefix s "ftp://"
+    then
+      try
+        let host, port, file, user, pass = cut 6 21 in
+        create ~proto:"ftp" ~server:host ~port ~user ~pass file
+      with _ -> raise (Invalid_argument "this string is not a valid ftp url")
+    else
 (* we accept URL with no protocol for local files *)
-  let file = s in
-  create ~proto: "file"  file
-
-  (*
-let to_string with_args url = 
-  if with_args then url.string else to_string false url
-*)
+    let file = s in
+    create ~proto: "file"  file
+  in
+  url 

@@ -68,14 +68,17 @@ type query_entry =
 | Q_MP3_ALBUM of string * string
 | Q_MP3_BITRATE of string * string
 
+(* only internal to GUI *)
+| Q_COMBO of string * string * string list
+  
 | Q_HIDDEN of query_entry list
   
     
 type host_state =
-| NotConnected of bool (* Queued or not ... *)
+| NotConnected of int (* >= 0 Queued *)
 | Connecting
 | Connected_initiating
-| Connected of bool    (* Queued or not *)
+| Connected of int    (* >= 0 Queued *)
 | Connected_downloading
   
 | NewHost
@@ -338,3 +341,19 @@ let is_connected state =
   | NewHost
   | BlackListedHost
   | RemovedHost -> false
+
+let string_of_connection_state s = 
+  match s with
+  | Connected (-1) -> "Connected"
+  | NotConnected (-1) -> ""
+  | NotConnected 0 -> "Queued Out"
+  | Connected  0 -> "Queued In"
+  | NotConnected n -> Printf.sprintf "Ranked %d Out" n
+  | Connected  n -> Printf.sprintf "Ranked %d" n
+  | Connecting -> "Connecting"
+  | Connected_initiating -> "Initiating"
+  | Connected_downloading -> "Downloading"
+      
+  | RemovedHost -> "Removed"
+  | BlackListedHost -> "Black"
+  | NewHost -> "New"

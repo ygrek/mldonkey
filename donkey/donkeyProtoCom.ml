@@ -40,12 +40,13 @@ let client_msg_to_string magic msg =
   buf_int buf 0;
   DonkeyProtoClient.write buf msg;
 
+  (*
   if !verbose_msg_clients then begin
       Printf.printf "MESSAGE TO CLIENT:";  print_newline (); 
       DonkeyProtoClient.print msg; 
       print_newline ();
     end;
-  
+*)  
   let s = Buffer.contents buf in
   let len = String.length s - 5 in
   str_int s 1 len;
@@ -56,10 +57,14 @@ let server_msg_to_string msg =
   buf_int8 buf 227;
   buf_int buf 0;
   DonkeyProtoServer.write buf msg;
-  (*
-  Printf.printf "MESSAGE TO SERVER:";  print_newline ();
-  DonkeyProtoServer.print msg;   
-  print_newline (); *)
+  
+  
+  if !verbose_msg_servers then begin
+      Printf.printf "MESSAGE TO SERVER:";  print_newline (); 
+      DonkeyProtoServer.print msg; 
+      print_newline ();
+    end;
+
   let s = Buffer.contents buf in
   let len = String.length s - 5 in
   str_int s 1 len;
@@ -71,9 +76,27 @@ let server_send sock m =
   DonkeyProtoServer.print m;
 *)
   write_string sock (server_msg_to_string m)
-  
-let client_send sock m =
+
+let direct_client_sock_send sock m =
   write_string sock (client_msg_to_string 227 m)
+  
+let client_send c m =
+  if !verbose_msg_clients then begin
+      Printf.printf "Received from client %s(%s)"
+        c.client_name (brand_to_string c.client_brand);
+      (match c.client_kind with
+          Indirect_location _ -> ()
+        | Known_location (ip,port) ->
+            Printf.printf " [%s:%d]" (Ip.to_string ip) port;
+      );
+      print_newline ();
+      DonkeyProtoClient.print m;
+      print_newline ();
+    end;
+  match c.client_sock with
+    None -> ()
+  | Some sock ->
+      direct_client_sock_send sock m
 
 let emule_send sock m =
   let m = client_msg_to_string 0xc5 m in

@@ -45,7 +45,7 @@ let disconnect_server s =
   | Some sock ->
       close sock "";
       s.server_sock <- None;
-      set_server_state s (NotConnected false);
+      set_server_state s (NotConnected (-1));
       connected_servers := List2.removeq s !connected_servers
 
 let server_to_client s m sock =
@@ -72,7 +72,7 @@ let server_to_client s m sock =
         
       end
   | S2C.RoomListReq t ->
-      set_server_state s (Connected false);
+      set_server_state s (Connected (-1));
       connected_servers := s :: !connected_servers;
       List.iter (fun (name, nusers) ->
           let room = new_room name in
@@ -172,7 +172,7 @@ let connect_server s =
               (Printexc2.to_string e); print_newline ();
 (*      Printf.printf "DISCONNECTED IMMEDIATLY"; print_newline (); *)
             s.server_sock <- None;
-            set_server_state s (NotConnected false);
+            set_server_state s (NotConnected (-1));
             connection_failed s.server_connection_control
               
 let recover_files () = ()
@@ -238,7 +238,7 @@ let rec connect_servers () =
     match !server_list with
       [] ->
         if !load_server_list_last + 600 < last_time () then
-          CommonInteractive.load_url slsk_kind "http://www.slsk.org/slskinfo2";
+          load_url slsk_kind "http://www.slsk.org/slskinfo2";
         Hashtbl.iter (fun _ s ->
             server_list := s :: !server_list) servers_by_addr
     | s :: tail ->
@@ -247,4 +247,4 @@ let rec connect_servers () =
 
         
 let _ =
-  CommonInteractive.add_web_kind slsk_kind load_server_list
+  add_web_kind slsk_kind load_server_list

@@ -190,19 +190,6 @@ let string_of_tags tags =
   ) tags;
   Buffer.contents buf
 
-let string_of_state state =
-  match state with
-  | NotConnected false
-  | NewHost -> ""
-  | Connecting -> "Connecting"
-  | Connected_initiating -> "Initiating"
-  | Connected_downloading -> "Downloading"
-  | Connected false -> "Connected"
-  | Connected true -> "Queued"
-  | NotConnected true -> "Queued out"
-  | RemovedHost -> "Removed"
-  | BlackListedHost -> "Black Listed"
-
 let color_of_state state =
   match state with
   | Connected_downloading
@@ -252,7 +239,7 @@ let (clist_servers :
     (fun s -> Printf.sprintf "%16s : %-5d" (
           string_of_addr  s.server_addr) s.server_port);
 (* STATUS *)  
-    (fun s -> string_of_state s.server_state);
+    (fun s -> string_of_connection_state s.server_state);
 (* NUSERS *)  
     (fun s -> 
         if s.server_nusers = 0 then "" else
@@ -437,7 +424,7 @@ let (clist_file_locations :
           Known_location _ -> "Direct"
         | _ -> "");
     shorten_client_name;
-    (fun c -> string_of_state c.client_state);
+    (fun c -> string_of_connection_state c.client_state);
   ]
 
 let add_friend_location =
@@ -701,7 +688,7 @@ let clist_friends = MyCList.create gui tab_friends#clist_friends
     [
     (fun c -> 
         match c.client_files with
-          None -> string_of_state c.client_state
+          None -> string_of_connection_state c.client_state
         | Some _ -> "Files listed");    
     (fun c -> let name = c.client_name in
         if name = "" then "<unknown>" else shorten_client_name c);

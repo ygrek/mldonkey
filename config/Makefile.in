@@ -428,7 +428,7 @@ SMALL_ICONS= \
   icons/small/view_users_small.xpm
 
 
-ALL_ICONS=$(foreach file, $(ICONS),   $(basename $(file)).ml_icon)
+ALL_ICONS=$(foreach file, $(ICONS),   $(basename $(file)).ml_icons)
 ALL_ICONS_SRCS=$(foreach file, $(ICONS),   $(basename $(file))_xpm.ml)
 
 $(ALL_ICONS_SRCS): $(ALL_ICONS)
@@ -930,7 +930,7 @@ buildrpm:
 
 -include .depend
 
-.SUFFIXES: .mli .ml .cmx .cmo .o .c .cmi .mll .mly .zog .plugindep .xpm .ml .cc .ml_icon .ml4 .mlii
+.SUFFIXES: .mli .ml .cmx .cmo .o .c .cmi .mll .mly .zog .plugindep .xpm .ml .cc .ml_icons .ml4 .mlii
 
 .mli.cmi :
 	$(OCAMLC) $(OFLAGS) $(INCLUDES) -c $<
@@ -943,7 +943,7 @@ buildrpm:
 .ml.cmi :
 	$(OCAMLC) $(OFLAGS) $(INCLUDES) -c $<
 
-.xpm.ml_icon :
+.xpm.ml_icons :
 	echo "let t = [|" > $@
 	grep '"' $< | sed 's/",$$/";/' | sed 's/"};$$/"/' >> $@
 	echo "|]" >> $@

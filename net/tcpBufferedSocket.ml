@@ -341,7 +341,12 @@ let dummy_sock = Obj.magic 0
 
 let exn_exit = Exit
   
+  
+(* max_len is the maximal length we authorized to read, min_read_size
+is the minimal size we authorize to read *)
+  
 let can_read_handler t sock max_len =
+(*  let max_len = 100000 in (* REMOVE THIS: don't care about bw *) *)
   let b = t.rbuf in
   let curpos = b.pos + b.len in
   let can_read =
@@ -350,7 +355,8 @@ let can_read_handler t sock max_len =
         min_buffer_read
       end 
     else
-    if max_len - curpos < min_read_size then
+    let buf_len = String.length b.buf in
+    if buf_len - curpos < min_read_size then
       if b.len + min_read_size > b.max_buf_size then
         (
           t.event_handler t BUFFER_OVERFLOW; 
@@ -360,16 +366,16 @@ let can_read_handler t sock max_len =
           0
         )
       else
-      if b.len + min_read_size < max_len then
+      if b.len + min_read_size < buf_len then
         ( 
           String.blit b.buf b.pos b.buf 0 b.len;
           b.pos <- 0;
-          max_len - b.len
+          buf_len - b.len
         )
       else
       let new_len = mini 
           (maxi 
-            (2 * max_len) (b.len + min_read_size)) b.max_buf_size  
+            (2 * buf_len) (b.len + min_read_size)) b.max_buf_size  
       in
       let new_buf = String.create new_len in
       String.blit b.buf b.pos new_buf 0 b.len;
@@ -377,14 +383,15 @@ let can_read_handler t sock max_len =
       b.buf <- new_buf;
       new_len - b.len
     else
-      max_len - curpos
+      buf_len - curpos
   in
   let can_read = mini max_len can_read in
   if can_read > 0 then
     let nread = try
-(*        Printf.printf "try read %d" can_read; print_newline ();*)
-        Unix.read (fd sock) b.buf (b.pos + b.len) can_read
+(*        Printf.printf "Unix.read %d/%d/%d"  (String.length b.buf) (b.pos + b.len) can_read; print_newline (); *)
+        Unix.read (fd sock) b.buf (b.pos + b.len) can_read;
         
+	
       with 
         Unix.Unix_error((Unix.EWOULDBLOCK | Unix.EAGAIN), _,_) as e -> raise e
       | e ->
@@ -395,6 +402,14 @@ let can_read_handler t sock max_len =
           raise e
     
     in
+
+    (*
+    if nread = max_len then begin
+        Printf.printf "Unix.read: read limited %d" nread;
+        print_newline ();   
+    end;
+*)
+    
     tcp_downloaded_bytes := Int64.add !tcp_downloaded_bytes (Int64.of_int nread);
     (match t.read_control with
         None -> () | Some bc ->
@@ -487,10 +502,10 @@ let tcp_handler t sock event =
       begin
         match t.read_control with
           None ->
-            can_read_handler t sock (String.length t.rbuf.buf)
+            can_read_handler t sock 1000000
         | Some bc ->
             if bc.total_bytes = 0 then 
-              can_read_handler t sock (String.length t.rbuf.buf)
+              can_read_handler t sock 1000000
             else begin
 (*                Printf.printf "DELAYED"; print_newline (); *)
                 if bc.remaining_bytes > 0 then
@@ -610,8 +625,8 @@ let create name fd handler =
     } in
   let sock = BasicSocket.create name fd (tcp_handler t) in
   let name = (fun () ->
-        Printf.sprintf "%s (nread: %d nwritten: %d) [U %b,D %b]" name t.nread t.nwrite
-        (t.read_control <> None) (t.write_control <> None);
+        Printf.sprintf "%s (nread: %d nwritten: %d) [U %s,D %s]" name t.nread t.nwrite
+        (string_of_bool (t.read_control <> None)) (string_of_bool (t.write_control <> None));
         ;
     ) in
   set_printer sock name;
@@ -736,8 +751,7 @@ let _ =
                 let can_read = maxi !ip_packet_size (can_read * t.read_power) in
                 let old_nread = t.nread in
                 (try
-                    can_read_handler t t.sock (mini can_read 
-                        (String.length t.rbuf.buf)) 
+                    can_read_handler t t.sock can_read  
                   with _ -> ());
                 bc.remaining_bytes <- bc.remaining_bytes - 
                 t.nread + old_nread;

@@ -84,7 +84,7 @@ let query_locations s n_per_round =
                       file_priority f2 - file_priority f1
                   ) files in
                 
-                s.server_waiting_queries <- !current_files;
+                s.server_waiting_queries <- files;
                 if s.server_waiting_queries <> [] then
                   let nqueries = ref 0 in
  		  List.iter (fun file ->
@@ -106,16 +106,15 @@ let query_locations s n_per_round =
       
 (* every 60 seconds *)
 let query_locations_timer () =
-  if DonkeySources1.S.need_new_sources () then 
-    List.iter (fun s ->
+  List.iter (fun s ->
 (* During the first 20 minutes, don't send any localisation query
 to the server *)
-        if s.server_queries_credit = 0 then
-          query_locations s !!files_queries_per_minute
-        else 
-          s.server_queries_credit <- s.server_queries_credit - 1
-    ) (connected_servers())
-    
+      if s.server_queries_credit <= 0 then
+        query_locations s !!files_queries_per_minute
+      else 
+        s.server_queries_credit <- s.server_queries_credit - 1
+  ) (connected_servers())
+  
 let _ =
   server_ops.op_server_sort <- (fun s ->
       (3600 * s.server_score) +
@@ -136,7 +135,7 @@ let disconnect_server s =
       s.server_sock <- None;
       s.server_score <- s.server_score - 1;
       s.server_users <- [];
-      set_server_state s (NotConnected false);
+      set_server_state s (NotConnected (-1));
       s.server_master <- false;
       remove_connected_server s
       
@@ -152,10 +151,10 @@ let last_message_sender = ref (-1)
 let client_to_server s t sock =
   let module M = DonkeyProtoServer in
 
-  (*
-  Printf.printf "Message from server:"; print_newline ();
-  DonkeyProtoServer.print t; print_newline ();
-*)
+  if !verbose_msg_servers then begin
+      Printf.printf "Message from server:"; print_newline ();
+      DonkeyProtoServer.print t; print_newline ();
+    end;
   
   match t with
     M.SetIDReq t ->
@@ -219,16 +218,15 @@ let client_to_server s t sock =
           | _ -> ()
       ) s.server_tags;
       printf_char 'S';
-      set_server_state s (Connected false);
+      set_server_state s (Connected (-1));
       add_connected_server s;
       
 (* Send localisation queries to the server. We are limited by the maximalù
 number of queries that can be sent per minute (for lugdunum, it's one!).
 Once the first queries have been sent, we must wait 20 minutes before next
 queries. *)
-      if DonkeySources1.S.need_new_sources () then 
-        query_locations s (20 * !!files_queries_per_minute);
-      s.server_queries_credit <- !!files_queries_initial_delay
+      query_locations s (20 * !!files_queries_per_minute);
+      s.server_queries_credit <- (* !!files_queries_initial_delay *) 0
 (*      !server_is_connected_hook s sock *)
   
   | M.InfoReq (users, files) ->
@@ -254,7 +252,7 @@ connection from another client. In this case, we should immediatly connect.
               friend_add c
 
           | Some file ->
-              ignore (DonkeySources1.S.new_source (t.Q.ip, t.Q.port) file)
+              ignore (DonkeySources.new_source (t.Q.ip, t.Q.port) file)
         end
 
   | M.QueryIDFailedReq t ->
@@ -586,9 +584,8 @@ let next_walker_start = ref 0
 let walker_timer () = 
   
   if !!servers_walking_period > 0 &&
-    !nservers < max_allowed_connected_servers () + !!max_walker_servers &&
-    DonkeySources1.S.need_new_sources () then
-    
+    !nservers < max_allowed_connected_servers () + !!max_walker_servers 
+  then
     match !walker_list with
       [] ->
         begin      
@@ -750,7 +747,16 @@ connections *)
         (match s.server_sock with
             None -> assert false
           | Some sock ->
-              (shutdown sock "max allowed"));
+              
+(* We will disconnect from this server. Send the last queries and
+  wait for 60 seconds to disconnect. *)
+              
+              List.iter (fun file ->
+                  query_location file sock 
+              ) s.server_waiting_queries;
+              
+              
+              set_lifetime sock 60.);
       end
   in
   

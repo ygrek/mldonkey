@@ -73,7 +73,6 @@ let get_array f s pos =
 
 let get_bool s pos = (get_int8 s pos) = 1
 
-
 let rec get_query s pos =
   let op = get_int8 s pos in
   match op with
@@ -357,18 +356,32 @@ assert (priority = file_info.file_priority);
     file_priority = priority;
   }, pos
 
-let get_host_state s pos = 
-  match get_int8 s pos with
-  | 0 -> NotConnected false
+let get_host_state proto s pos =
+  if proto <= 12 then
+  (match get_int8 s pos with
+  | 0 -> NotConnected (-1)
   | 1 -> Connecting
   | 2 -> Connected_initiating
   | 3 -> Connected_downloading
-  | 4 -> Connected false
-  | 5 -> Connected true
+  | 4 -> Connected (-1)
+  | 5 -> Connected 0
   | 6 -> NewHost
   | 7 -> RemovedHost
   | 8 -> BlackListedHost
-  | 9 -> NotConnected true
+  | 9 -> NotConnected 0
+  | _ -> assert false), pos+1
+  else
+  match get_int8 s pos with
+  | 0 -> NotConnected (-1), pos+1
+  | 1 -> Connecting, pos+1
+  | 2 -> Connected_initiating, pos+1
+  | 3 -> Connected_downloading, pos+1
+  | 4 -> Connected (-1), pos+1
+  | 5 -> Connected (get_int s (pos+1)), pos+5
+  | 6 -> NewHost, pos+1
+  | 7 -> RemovedHost, pos+1
+  | 8 -> BlackListedHost, pos+1
+  | 9 -> NotConnected (get_int s (pos+1)), pos+5
   | _ -> assert false
 
 
@@ -395,8 +408,8 @@ let get_server proto s pos =
   let tags, pos = get_list get_tag s (pos+6) in
   let nusers = get_int s pos in
   let nfiles = get_int s (pos+4) in
-  let state = get_host_state s (pos+8) in
-  let name, pos = get_string s (pos+9) in
+  let state, pos = get_host_state proto s (pos+8) in
+  let name, pos = get_string s pos in
   let description, pos = get_string s pos in
   {
     server_num = num;
@@ -436,9 +449,9 @@ let get_client proto s pos =
   let num = get_int s pos in
   let net = get_int s (pos+4) in
   let kind, pos = get_kind s (pos+8) in
-  let state = get_host_state s pos in
-  let t = get_client_type s (pos+1) in
-  let tags, pos = get_list get_tag s (pos+2) in
+  let state,pos = get_host_state proto s pos in
+  let t = get_client_type s pos in
+  let tags, pos = get_list get_tag s (pos+1) in
   let name, pos = get_string s pos in
   let rating = get_int s pos in
   let chat_port = get_int s (pos+4) in
@@ -742,6 +755,9 @@ let from_gui opcode s =
         let result_num = get_int s pos in
         let force = get_bool s (pos+4) in
         Download_query (list, result_num, false)
+
+    | 51 ->
+        SetFilePriority(get_int s 2, get_int s 6)      
     
     | _ -> 
         Printf.printf "FROM GUI:Unknown message %d" opcode; print_newline ();
@@ -761,330 +777,337 @@ let from_gui opcode s =
 ****************)
 let to_gui proto opcode s =
   try
-
-  match opcode with
-  | 0 -> CoreProtocol (get_int s 2)
-  
-  | 1 ->
-      let list, pos = get_list (fun s pos ->
-            let name, pos = get_string s pos in
-            let value, pos = get_string s pos in
-            (name, value), pos
-        ) s 2 in
-      Options_info list
-  
-  | 3 ->
-      let list, pos = get_list (fun s pos ->
-            let name, pos = get_string s pos in
-            let q, pos = get_query s pos in
-            (name, q), pos) s 2 in
-      DefineSearches list
-  
-  | 4 -> 
-      let r, pos = get_result s 2 in
-      Result_info r
-  
-  | 5 ->
-      let n1 = get_int s 2 in
-      let n2 = get_int s 6 in
-      Search_result (n1,n2)
-  
-  | 6 -> 
-      let n1 = get_int s 2 in
-      let n2 = get_int s 6 in
-      Search_waiting (n1,n2)
-  
-  | 7 -> 
-      let file_info, pos = get_file proto s 2 in
-      File_info file_info
-  
-  | 8 ->
-      let n = get_int s 2 in
-      let size = get_int64_32 s 6 in
-      let rate, pos = get_float s 10 in
-      File_downloaded (n, size, rate, BasicSocket.last_time ())
     
-  | 9 ->
-      let file_num = get_int s 2 in
-      let client_num = get_int s 6 in
-      let avail,_ = get_string s 10 in
-      File_update_availability (file_num, client_num, avail)
-  
-  | 10 -> 
-      let n1 = get_int s 2 in
-      let n2 = get_int s 6 in
-      File_add_source (n1,n2)
-  
-  | 11 ->
-      let n1 = get_int s 2 in
-      let n2 = get_int s 6 in
-      let n3 = get_int s 10 in
-      Server_busy (n1,n2,n3)
-  
-  | 12 -> 
-      let n1 = get_int s 2 in
-      let n2 = get_int s 6 in
-      Server_user  (n1,n2)
-  
-  | 13 -> 
-      let int = get_int s 2 in
-      let host_state = get_host_state s 6 in
-      Server_state (int,host_state)
-  
-  | 14 ->
-      let server_info, pos = get_server proto s 2 in
-      Server_info server_info
-  
-  | 15 -> 
-      let client_info, pos = get_client proto s 2 in
-      Client_info client_info
-  
-  | 16 -> 
-      let int = get_int s 2 in
-      let host_state = get_host_state s 6 in
-      Client_state (int, host_state)
-  
-  | 17 ->
-      let int = get_int s 2 in
-      let client_type = get_client_type s 6 in
-      Client_friend (int, client_type)
-  
-  | 18 ->
-      let n1 = get_int s 2 in
-      let s1, pos = get_string s 6 in
-      let n2 = get_int s pos in          
-      Client_file (n1, s1, n2)
-  
-  | 19 -> 
-      let string, pos = get_string s 2 in
-      Console string
-  
-  | 20 -> 
-      let network_info, pos = get_network s 2 in
-      Network_info network_info
-  
-  | 21 ->
-      let user_info, pos = get_user s 2 in
-      User_info user_info
-  
-  | 22 ->
-      let room_info, pos = get_room proto s 2 in
-      Room_info room_info
-  
-  | 23 ->
-      let int = get_int s 2 in
-      let room_message, pos = get_message s 6 in
-      Room_message (int, room_message) 
-      
-  | 24 ->
-      let n1 = get_int s 2 in
-      let n2 = get_int s 6 in          
-      Room_add_user (n1,n2)
-
-  | 25 ->
-      let upload = get_int64 s 2 in
-      let download = get_int64 s 10 in
-      let shared = get_int64 s 18 in
-      let nshared = get_int s 26 in
-      Client_stats {
-        upload_counter = upload;
-        download_counter = download;
-        shared_counter = shared;
-        nshared_files = nshared;
-        tcp_upload_rate = 0;
-        tcp_download_rate = 0;
-        udp_upload_rate = 0;
-        udp_download_rate = 0;
-        connected_networks = [];
-        ndownloading_files = 0;
-        ndownloaded_files = 0;
-      }
-
-  | 26 -> let s, pos = get_server proto s 2 in Server_info s
-  | 27 -> 
-      let int = get_int s 2 in 
-      let message, pos = get_string s 6 in
-      MessageFromClient (int, message)
-      
-  | 28 -> 
-      let list, pos = get_list (get_server proto) s 2 in
-      ConnectedServers list
-      
-  | 29 ->
-      let list, pos = get_list (get_file proto) s 2 in
-      DownloadFiles list
-      
-  | 30 ->
-      let list, pos = get_list (get_file proto) s 2 in
-      DownloadedFiles list
-  
-  | 31 ->
-      let room_info, pos = get_room proto s 2 in
-      Room_info room_info
-
-  | 32 -> 
-      let room = get_int s 2 in 
-      let user = get_int s 6 in
-      Room_remove_user (room, user)
-  | 33 ->
-      let s = get_shared_info s 2 in
-      Shared_file_info s
-      
-  | 34 ->
-      let num = get_int s 2 in
-      let upload = get_int64 s 6 in
-      let requests = get_int s 14 in
-      Shared_file_upload (num, upload, requests)
-      
-  | 35 ->
-      let num = get_int s 2 in
-      Shared_file_unshared num
-
-  | 36 -> 
-      let section, pos = get_string s 2 in
-      let message, pos = get_string s pos in 
-      let option, pos = get_string s pos in
-      let optype = 
-        match get_int8 s pos with
-          0 -> StringEntry 
-        | 1 -> BoolEntry 
-        | 2 -> FileEntry
-        | _ -> assert false in
-      Add_section_option (section, message, option, optype)
-  
-  | 37 ->
-      let upload = get_int64 s 2 in
-      let download = get_int64 s 10 in
-      let shared = get_int64 s 18 in
-      let nshared = get_int s 26 in
-      let tcp_upload_rate = get_int s 30 in
-      let tcp_download_rate = get_int s 34 in
-      
-      Client_stats {
-        upload_counter = upload;
-        download_counter = download;
-        shared_counter = shared;
-        nshared_files = nshared;
-        udp_upload_rate = 0;
-        udp_download_rate = 0;
-        tcp_upload_rate = tcp_upload_rate;
-        tcp_download_rate = tcp_download_rate;
-        connected_networks = [];
-        ndownloading_files = 0;
-        ndownloaded_files = 0;
-
-      }
-      
-  | 38 -> 
-      let section, pos = get_string s 2 in
-      let message, pos = get_string s pos in 
-      let option, pos = get_string s pos in
-      let optype = 
-        match get_int8 s pos with
-          0 -> StringEntry 
-        | 1 -> BoolEntry 
-        | 2 -> FileEntry
-        | _ -> assert false in
-      Add_plugin_option (section, message, option, optype)
-  
-  | 39 ->
-      let upload = get_int64 s 2 in
-      let download = get_int64 s 10 in
-      let shared = get_int64 s 18 in
-      let nshared = get_int s 26 in
-      let tcp_upload_rate = get_int s 30 in
-      let tcp_download_rate = get_int s 34 in
-      let udp_upload_rate = get_int s 38 in
-      let udp_download_rate = get_int s 42 in
-      
-      Client_stats {
-        upload_counter = upload;
-        download_counter = download;
-        shared_counter = shared;
-        nshared_files = nshared;
-        udp_upload_rate = udp_upload_rate;
-        udp_download_rate = udp_download_rate;
-        tcp_upload_rate = tcp_upload_rate;
-        tcp_download_rate = tcp_download_rate;
-        connected_networks = [];
-        ndownloading_files = 0;
-        ndownloaded_files = 0;
-      }
-
-        |  40 ->
-      let file, pos = get_file proto s 2 in
-      File_info file
-            
-  | 41 ->
-      let list, pos = get_list (get_file proto) s 2 in
-      DownloadFiles list
-      
-  | 42 ->
-      let list, pos = get_list (get_file proto) s 2 in
-      DownloadedFiles list
-
-  | 43 ->
-      let file, pos = get_file proto s 2 in
-      File_info file
-            
-  | 44 ->
-      let list, pos = get_list (get_file proto) s 2 in
-      DownloadFiles list
-      
-  | 45 ->
-      let list, pos = get_list (get_file proto) s 2 in
-      DownloadedFiles list
-  
-  | 46 ->
-      let n = get_int s 2 in
-      let size = get_int64_32 s 6 in
-      let rate, pos = get_float s 10 in
-      let last_seen = get_int s pos in
-      File_downloaded (n, size, rate, 
-        BasicSocket.last_time () - last_seen)
-
-  | 47 -> BadPassword
-  
-  | 48 ->
-      let s = get_shared_info_version_10 s 2 in
-      Shared_file_info s      
-
-  | 49 ->
-      let upload = get_int64 s 2 in
-      let download = get_int64 s 10 in
-      let shared = get_int64 s 18 in
-      let nshared = get_int s 26 in
-      let tcp_upload_rate = get_int s 30 in
-      let tcp_download_rate = get_int s 34 in
-      let udp_upload_rate = get_int s 38 in
-      let udp_download_rate = get_int s 42 in
-      let ndownloading_files = get_int s 46 in
-      let ndownloaded_files = get_int s 50 in
-      let connected_networks, pos = get_list
-        (fun s pos -> get_int s pos, pos+4)  s 54 in
-      
-      Client_stats {
-        upload_counter = upload;
-        download_counter = download;
-        shared_counter = shared;
-        nshared_files = nshared;
-        udp_upload_rate = udp_upload_rate;
-        udp_download_rate = udp_download_rate;
-        tcp_upload_rate = tcp_upload_rate;
-        tcp_download_rate = tcp_download_rate;
-        connected_networks = connected_networks;
-        ndownloading_files = ndownloading_files;
-        ndownloaded_files = ndownloaded_files;
-      }
-  
-  | 50 -> 
-      let n1 = get_int s 2 in
-      let n2 = get_int s 6 in
-      File_remove_source (n1,n2)
-      
-  | _ -> 
-      Printf.printf "TO GUI:Unknown message %d" opcode; print_newline ();
-      assert false
+    match opcode with
+    | 0 -> CoreProtocol (get_int s 2)
+    
+    | 1 ->
+        let list, pos = get_list (fun s pos ->
+              let name, pos = get_string s pos in
+              let value, pos = get_string s pos in
+              (name, value), pos
+          ) s 2 in
+        Options_info list
+    
+    | 3 ->
+        let list, pos = get_list (fun s pos ->
+              let name, pos = get_string s pos in
+              let q, pos = get_query s pos in
+              (name, q), pos) s 2 in
+        DefineSearches list
+    
+    | 4 -> 
+        let r, pos = get_result s 2 in
+        Result_info r
+    
+    | 5 ->
+        let n1 = get_int s 2 in
+        let n2 = get_int s 6 in
+        Search_result (n1,n2)
+    
+    | 6 -> 
+        let n1 = get_int s 2 in
+        let n2 = get_int s 6 in
+        Search_waiting (n1,n2)
+    
+    | 7 -> 
+        let file_info, pos = get_file proto s 2 in
+        File_info file_info
+    
+    | 8 ->
+        let n = get_int s 2 in
+        let size = get_int64_32 s 6 in
+        let rate, pos = get_float s 10 in
+        File_downloaded (n, size, rate, BasicSocket.last_time ())
+    
+    | 9 ->
+        let file_num = get_int s 2 in
+        let client_num = get_int s 6 in
+        let avail,_ = get_string s 10 in
+        File_update_availability (file_num, client_num, avail)
+    
+    | 10 -> 
+        let n1 = get_int s 2 in
+        let n2 = get_int s 6 in
+        File_add_source (n1,n2)
+    
+    | 11 ->
+        let n1 = get_int s 2 in
+        let n2 = get_int s 6 in
+        let n3 = get_int s 10 in
+        Server_busy (n1,n2,n3)
+    
+    | 12 -> 
+        let n1 = get_int s 2 in
+        let n2 = get_int s 6 in
+        Server_user  (n1,n2)
+    
+    | 13 -> 
+        let int = get_int s 2 in
+        let host_state, pos = get_host_state proto s 6 in
+        Server_state (int,host_state)
+    
+    | 14 ->
+        let server_info, pos = get_server proto s 2 in
+        Server_info server_info
+    
+    | 15 -> 
+        let client_info, pos = get_client proto s 2 in
+        Client_info client_info
+    
+    | 16 -> 
+        let int = get_int s 2 in
+        let host_state, pos = get_host_state proto s 6 in
+        Client_state (int, host_state)
+    
+    | 17 ->
+        let int = get_int s 2 in
+        let client_type = get_client_type s 6 in
+        Client_friend (int, client_type)
+    
+    | 18 ->
+        let n1 = get_int s 2 in
+        let s1, pos = get_string s 6 in
+        let n2 = get_int s pos in          
+        Client_file (n1, s1, n2)
+    
+    | 19 -> 
+        let string, pos = get_string s 2 in
+        Console string
+    
+    | 20 -> 
+        let network_info, pos = get_network s 2 in
+        Network_info network_info
+    
+    | 21 ->
+        let user_info, pos = get_user s 2 in
+        User_info user_info
+    
+    | 22 ->
+        let room_info, pos = get_room proto s 2 in
+        Room_info room_info
+    
+    | 23 ->
+        let int = get_int s 2 in
+        let room_message, pos = get_message s 6 in
+        Room_message (int, room_message) 
+    
+    | 24 ->
+        let n1 = get_int s 2 in
+        let n2 = get_int s 6 in          
+        Room_add_user (n1,n2)
+    
+    | 25 ->
+        let upload = get_int64 s 2 in
+        let download = get_int64 s 10 in
+        let shared = get_int64 s 18 in
+        let nshared = get_int s 26 in
+        Client_stats {
+          upload_counter = upload;
+          download_counter = download;
+          shared_counter = shared;
+          nshared_files = nshared;
+          tcp_upload_rate = 0;
+          tcp_download_rate = 0;
+          udp_upload_rate = 0;
+          udp_download_rate = 0;
+          connected_networks = [];
+          ndownloading_files = 0;
+          ndownloaded_files = 0;
+        }
+    
+    | 26 -> let s, pos = get_server proto s 2 in Server_info s
+    | 27 -> 
+        let int = get_int s 2 in 
+        let message, pos = get_string s 6 in
+        MessageFromClient (int, message)
+    
+    | 28 -> 
+        let list, pos = get_list (get_server proto) s 2 in
+        ConnectedServers list
+    
+    | 29 ->
+        let list, pos = get_list (get_file proto) s 2 in
+        DownloadFiles list
+    
+    | 30 ->
+        let list, pos = get_list (get_file proto) s 2 in
+        DownloadedFiles list
+    
+    | 31 ->
+        let room_info, pos = get_room proto s 2 in
+        Room_info room_info
+    
+    | 32 -> 
+        let room = get_int s 2 in 
+        let user = get_int s 6 in
+        Room_remove_user (room, user)
+    | 33 ->
+        let s = get_shared_info s 2 in
+        Shared_file_info s
+    
+    | 34 ->
+        let num = get_int s 2 in
+        let upload = get_int64 s 6 in
+        let requests = get_int s 14 in
+        Shared_file_upload (num, upload, requests)
+    
+    | 35 ->
+        let num = get_int s 2 in
+        Shared_file_unshared num
+    
+    | 36 -> 
+        let section, pos = get_string s 2 in
+        let message, pos = get_string s pos in 
+        let option, pos = get_string s pos in
+        let optype = 
+          match get_int8 s pos with
+            0 -> StringEntry 
+          | 1 -> BoolEntry 
+          | 2 -> FileEntry
+          | _ -> assert false in
+        Add_section_option (section, message, option, optype)
+    
+    | 37 ->
+        let upload = get_int64 s 2 in
+        let download = get_int64 s 10 in
+        let shared = get_int64 s 18 in
+        let nshared = get_int s 26 in
+        let tcp_upload_rate = get_int s 30 in
+        let tcp_download_rate = get_int s 34 in
+        
+        Client_stats {
+          upload_counter = upload;
+          download_counter = download;
+          shared_counter = shared;
+          nshared_files = nshared;
+          udp_upload_rate = 0;
+          udp_download_rate = 0;
+          tcp_upload_rate = tcp_upload_rate;
+          tcp_download_rate = tcp_download_rate;
+          connected_networks = [];
+          ndownloading_files = 0;
+          ndownloaded_files = 0;
+        
+        }
+    
+    | 38 -> 
+        let section, pos = get_string s 2 in
+        let message, pos = get_string s pos in 
+        let option, pos = get_string s pos in
+        let optype = 
+          match get_int8 s pos with
+            0 -> StringEntry 
+          | 1 -> BoolEntry 
+          | 2 -> FileEntry
+          | _ -> assert false in
+        Add_plugin_option (section, message, option, optype)
+    
+    | 39 ->
+        let upload = get_int64 s 2 in
+        let download = get_int64 s 10 in
+        let shared = get_int64 s 18 in
+        let nshared = get_int s 26 in
+        let tcp_upload_rate = get_int s 30 in
+        let tcp_download_rate = get_int s 34 in
+        let udp_upload_rate = get_int s 38 in
+        let udp_download_rate = get_int s 42 in
+        
+        Client_stats {
+          upload_counter = upload;
+          download_counter = download;
+          shared_counter = shared;
+          nshared_files = nshared;
+          udp_upload_rate = udp_upload_rate;
+          udp_download_rate = udp_download_rate;
+          tcp_upload_rate = tcp_upload_rate;
+          tcp_download_rate = tcp_download_rate;
+          connected_networks = [];
+          ndownloading_files = 0;
+          ndownloaded_files = 0;
+        }
+    
+    |  40 ->
+        let file, pos = get_file proto s 2 in
+        File_info file
+    
+    | 41 ->
+        let list, pos = get_list (get_file proto) s 2 in
+        DownloadFiles list
+    
+    | 42 ->
+        let list, pos = get_list (get_file proto) s 2 in
+        DownloadedFiles list
+    
+    | 43 ->
+        let file, pos = get_file proto s 2 in
+        File_info file
+    
+    | 44 ->
+        let list, pos = get_list (get_file proto) s 2 in
+        DownloadFiles list
+    
+    | 45 ->
+        let list, pos = get_list (get_file proto) s 2 in
+        DownloadedFiles list
+    
+    | 46 ->
+        let n = get_int s 2 in
+        let size = get_int64_32 s 6 in
+        let rate, pos = get_float s 10 in
+        let last_seen = get_int s pos in
+        File_downloaded (n, size, rate, 
+          BasicSocket.last_time () - last_seen)
+    
+    | 47 -> BadPassword
+    
+    | 48 ->
+        let s = get_shared_info_version_10 s 2 in
+        Shared_file_info s      
+    
+    | 49 ->
+        let upload = get_int64 s 2 in
+        let download = get_int64 s 10 in
+        let shared = get_int64 s 18 in
+        let nshared = get_int s 26 in
+        let tcp_upload_rate = get_int s 30 in
+        let tcp_download_rate = get_int s 34 in
+        let udp_upload_rate = get_int s 38 in
+        let udp_download_rate = get_int s 42 in
+        let ndownloading_files = get_int s 46 in
+        let ndownloaded_files = get_int s 50 in
+        let connected_networks, pos = get_list
+            (fun s pos -> get_int s pos, pos+4)  s 54 in
+        
+        Client_stats {
+          upload_counter = upload;
+          download_counter = download;
+          shared_counter = shared;
+          nshared_files = nshared;
+          udp_upload_rate = udp_upload_rate;
+          udp_download_rate = udp_download_rate;
+          tcp_upload_rate = tcp_upload_rate;
+          tcp_download_rate = tcp_download_rate;
+          connected_networks = connected_networks;
+          ndownloading_files = ndownloading_files;
+          ndownloaded_files = ndownloaded_files;
+        }
+    
+    | 50 -> 
+        let n1 = get_int s 2 in
+        let n2 = get_int s 6 in
+        File_remove_source (n1,n2)
+    
+    | 51 ->
+        let clients,pos = get_list (fun s pos ->
+              get_int s pos, pos+4) s 2 in
+        let servers,pos = get_list (fun s pos ->
+              get_int s pos, pos+4) s pos in
+        CleanTables (clients, servers)
+        
+    | _ -> 
+        Printf.printf "TO GUI:Unknown message %d" opcode; print_newline ();
+        assert false
 
 
   with e ->

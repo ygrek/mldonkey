@@ -39,7 +39,7 @@ let rec dollar_escape with_frames s =
         | 'O' -> if with_frames then
               Buffer.add_string b " target=\"output\""; false
         | 'S' -> if with_frames then
-              Buffer.add_string b " target=\"status\""; false
+              Buffer.add_string b " target=\"fstatus\""; false
         | 'P' -> if with_frames then
               Buffer.add_string b " target=\"_parent\""; false
         | 'G' -> false
@@ -313,7 +313,11 @@ let buf = Buffer.create 1000
 open Http_server
 
 let add_simple_commands buf =
-  Buffer.add_string buf !!CommonMessages.web_common_header  
+  Buffer.add_string buf (if !!html_mods then
+      !!CommonMessages.web_common_header_mods
+    else
+      !!CommonMessages.web_common_header_old)
+
 
 let http_add_header buf = 
   Buffer.add_string  buf "HTTP/1.0 200 OK\r\n";
@@ -330,15 +334,21 @@ let html_open_page buf t r open_body =
   
   http_add_header buf;
   
-  Buffer.add_string buf
-  "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Frameset//EN\" 
-  \"http://www.w3.org/TR/html4/frameset.dtd\">\n<HTML>\n<HEAD>\n";
+  if not !!html_mods  then 
+    Buffer.add_string buf
+      "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Frameset//EN\" 
+        \"http://www.w3.org/TR/html4/frameset.dtd\">\n<HTML>\n<HEAD>\n";
+  
   if !CommonInteractive.display_vd then begin
-      Buffer.add_string buf !!CommonMessages.download_html_header;
+      Buffer.add_string buf 
+        (if !!html_mods then !!CommonMessages.download_html_header_mods
+        else !!CommonMessages.download_html_header_old);
       Printf.bprintf buf "<meta http-equiv=Refresh
-      content=\"%d\">" !!vd_reload_delay;
-    end else
-    Buffer.add_string buf !!CommonMessages.html_header;
+          content=\"%d\">" !!vd_reload_delay;
+    end else 
+    Buffer.add_string buf !!(if !!html_mods then 
+        CommonMessages.html_header_mods else CommonMessages.html_header_old);
+  
   Buffer.add_string buf "</HEAD>\n";
   if open_body then Buffer.add_string buf "<BODY>\n";    
   if not !!use_html_frames then add_simple_commands buf;
@@ -363,18 +373,32 @@ let http_handler options t r =
         match r.get_url.Url.file with
         | "/commands.html" ->
             html_open_page buf t r true;
-            Buffer.add_string buf !!CommonMessages.web_common_header
+            Buffer.add_string buf !!(if !!html_mods then
+                CommonMessages.web_common_header_mods
+              else
+                CommonMessages.web_common_header_old)
         | "/" | "/index.html" -> 
             if !!use_html_frames then begin
                 html_open_page buf t r false;
-                Printf.bprintf buf "
+                if !!html_mods then
+                  
+                  Printf.bprintf buf "
+                  <frameset src=\"index\" rows=\"%d,25,*\">
+                  <frame name=\"commands\" NORESIZE SCROLLING=\"NO\" NOSHADE marginwidth=0 marginheight=0 BORDER=0 FRAMESPACING=0 FRAMEBORDER=0 src=\"/commands.html\">
+                  <frame name=\"fstatus\" NORESIZE SCROLLING=\"NO\" NOSHADE marginwidth=0 marginheight=0 BORDER=0 FRAMESPACING=0 FRAMEBORDER=0 src=\"/noframe.html\">
+                  <frame name=\"output\" NORESIZE NOSHADE marginwidth=0 marginheight=0 BORDER=0 FRAMESPACING=0 FRAMEBORDER=0 src=\"/oneframe.html\">
+            </frameset>" !!commands_frame_height
+                else
+                  
+                  
+                  Printf.bprintf buf "
             <frameset src=\"index\" rows=\"%d,2*\">
                <frameset src=\"index\" cols=\"5*,1*\">
                   <frame name=\"commands\" src=\"/commands.html\">
-                  <frame name=\"status\" src=\"/noframe.html\">
+                  <frame name=\"fstatus\" src=\"/noframe.html\">
                </frameset>
                <frame name=\"output\" src=\"/oneframe.html\">
-            </frameset>" !!commands_frame_height             
+            </frameset>" !!commands_frame_height; 
               end else
               html_open_page buf t r true
         | "/complex_search.html" ->

@@ -122,8 +122,10 @@ let commands = [
         match args with
           [arg] ->
             let num = int_of_string arg in
-            if o.conn_output = HTML then
-              Printf.bprintf  buf "\\<a href=/files\\>Display all files\\</a\\>\\<br\\>";
+            if o.conn_output = HTML then begin
+                Printf.bprintf  buf "\\<a href=/files\\>Display all files\\</a\\>\\<br\\>";
+                Printf.bprintf  buf "\\<a href=/submit?q=verify_chunks %d\\>Verify Chunks\\</a\\>\\<br\\>" num;
+              end;
             List.iter 
               (fun file -> if (as_file_impl file).impl_file_num = num then 
                   CommonFile.file_print file o)
@@ -137,6 +139,26 @@ let commands = [
             DriverInteractive.display_file_list buf o;
             ""    
     ), "<num> :\t\t\t\tview file info";
+    
+    "verify_chunks", Arg_multiple (fun args o -> 
+        let buf = o.conn_buf in
+        match args with
+          [arg] ->
+            let num = int_of_string arg in
+            if o.conn_output = HTML then
+              List.iter 
+                (fun file -> if (as_file_impl file).impl_file_num = num then 
+                    begin
+                      Printf.bprintf  buf "Verifying Chunks of file %d" num;
+                      file_check file; 
+                    end
+              )
+              !!files;
+            ""
+        | _ -> ();
+            "done"    
+    ), "<num> :\t\t\t\tverify chunks of file <num>";
+    
     
     "vm", Arg_none (fun o ->
         CommonInteractive.print_connected_servers o;
@@ -184,16 +206,47 @@ let commands = [
             let impl = as_shared_impl s in
             list := impl :: !list
         );
+        
+        if use_html_mods o  then 
+          Printf.bprintf buf "\\<table class=\\\"upstats\\\"\\>\\<tr\\>
+\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>Requests\\</td\\>
+\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>Bytes\\</td\\>
+\\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>File\\</td\\>
+\\</tr\\>";
+        
+        let counter = ref 0 in 
+        
+        
         let list = Sort.list (fun f1 f2 ->
               (f1.impl_shared_requests = f2.impl_shared_requests &&
                 f1.impl_shared_uploaded > f2.impl_shared_uploaded) ||
               (f1.impl_shared_requests > f2.impl_shared_requests )
           ) !list in
+        
+        
+        
         List.iter (fun impl ->
-            Printf.bprintf buf "%-50s requests: %8d bytes: %10s\n"
-              impl.impl_shared_codedname impl.impl_shared_requests
-              (Int64.to_string impl.impl_shared_uploaded);
+            if use_html_mods o then
+              begin
+                incr counter;
+                if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
+                else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
+                
+                Printf.bprintf buf "\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>\\<td
+            class=\\\"sr ar\\\"\\>%s\\</td\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>\n"
+                  impl.impl_shared_requests
+                  (Int64.to_string impl.impl_shared_uploaded)
+                impl.impl_shared_codedname ;
+              
+              end
+            else
+              Printf.bprintf buf "%-50s requests: %8d bytes: %10s\n"
+                impl.impl_shared_codedname impl.impl_shared_requests
+                (Int64.to_string impl.impl_shared_uploaded);
         ) list;
+        
+        if use_html_mods o then Printf.bprintf buf "\\</table\\>";
+        
         "done"
     ), ":\t\t\t\tstatistics on upload";
     
@@ -348,9 +401,17 @@ let commands = [
             (List.length !!customized_queries);
         List.iter (fun (name, q) ->
             if o.conn_output = HTML then
-              Printf.bprintf buf 
+              begin        
+           
+                if !!html_mods then
+                Printf.bprintf buf 
+                  "\\<a href=/submit\\?custom=%s $O\\> %s \\</a\\>  " 
+                  (Url.encode name) name
+				else
+				Printf.bprintf buf 
                 "\\<a href=/submit\\?custom=%s $O\\> %s \\</a\\>\n" 
-                (Url.encode name) name
+                (Url.encode name) name; 
+              end
             else
               Printf.bprintf buf "[%s]\n" name
         ) !! customized_queries; ""
@@ -425,6 +486,19 @@ let commands = [
         ""
     ), "<num> :\t\t\t\tview client";
     
+    "vfr", Arg_none (fun o ->
+        List.iter (fun c ->
+            client_print c o) !!friends;
+        ""
+    ), ":\t\t\t\tview friends";
+    
+    "gfr", Arg_one (fun num o ->
+        let num = int_of_string num in
+        let c = client_find num in
+        client_browse c true;        
+        "client browse"
+    ), " <num> : \t\t\task friend files";
+    
     "x", Arg_one (fun num o ->
         let num = int_of_string num in
         let s = server_find num in
@@ -437,20 +511,43 @@ let commands = [
     "use_poll", Arg_one (fun arg o ->
         let b = bool_of_string arg in
         BasicSocket.use_poll b;
-        Printf.sprintf "poll: %b" b
+        Printf.sprintf "poll: %s" (string_of_bool b)
     ), "<bool> :\t\t\tuse poll instead of select";
     
     "vma", Arg_none (fun o ->
         let buf = o.conn_buf in       
         let nb_servers = ref 0 in
+        
+        if use_html_mods o  then 
+          Printf.bprintf buf "\\<table class=\\\"servers\\\"\\>\\<tr\\>
+\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>#\\</td\\>
+\\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Button\\</td\\>
+\\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Network\\</td\\>
+\\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Status\\</td\\>
+\\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>IP\\</td\\>
+\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Users\\</td\\>
+\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Files\\</td\\>
+\\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Name\\</td\\>
+\\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Details\\</td\\>
+";
         Intmap.iter (fun _ s ->
             try
               incr nb_servers;
+              if use_html_mods o then begin
+                  if (!nb_servers mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
+                  else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
+                end;
+              
+              
               server_print s o
             with e ->
                 Printf.printf "Exception %s in server_print"
                   (Printexc2.to_string e); print_newline ();
         ) !!servers;
+        
+        if use_html_mods o then Printf.bprintf buf "\\</table\\>";
+
+        
         Printf.sprintf "Servers: %d known\n" !nb_servers
     ), ":\t\t\t\t\tlist all known servers";
     

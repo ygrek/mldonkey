@@ -23,8 +23,8 @@ open BasicSocket
 open CommonTypes
 
 
-let version = Printf.sprintf "
-MLDonkey %s: Objective-Caml Client/Server for the eDonkey2000 Network" 
+let version = Printf.sprintf 
+"MLDonkey %s: Objective-Caml Client/Server for the eDonkey2000 Network" 
   Autoconf.current_version
   
 (* Should we try to find another port when we cannot bind to the one set
@@ -403,3 +403,33 @@ let init_hooks = ref ([] : (unit -> unit) list)
   
 let add_init_hook f =
   init_hooks := f :: !init_hooks
+
+
+let file_kinds = ref []
+
+let add_web_kind kind f =
+  file_kinds := (kind,f) :: !file_kinds
+
+let mldonkey_wget url f = 
+  let module H = Http_client in
+  let r = {
+      H.basic_request with
+      H.req_url = Url.of_string url;
+      H.req_user_agent = 
+      Printf.sprintf "MLdonkey %s" Autoconf.current_version;
+    } in
+  
+  H.wget r f  
+  
+  
+let load_url kind url =
+  Printf.printf "QUERY URL %s" url; print_newline ();
+  let f = 
+    try 
+      List.assoc kind !file_kinds 
+    with e -> failwith (Printf.sprintf "Unknown kind [%s]" kind)
+  in 
+  try
+    mldonkey_wget url f
+  with e -> failwith (Printf.sprintf "Exception %s while loading %s"
+          (Printexc2.to_string e) url)

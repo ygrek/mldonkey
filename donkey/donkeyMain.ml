@@ -59,13 +59,14 @@ let fivemin_timer timer =
 
 let second_timer timer =
   (try
+(*
       if !verbose_src_manager then begin
           Printf.printf "Check sources"; print_newline ();
-        end;
-      DonkeySources1.S.check_sources DonkeyClient.reconnect_client;
-      if !verbose_src_manager then begin
+        end; *)
+      DonkeySources.check_sources DonkeyClient.reconnect_client;
+(*      if !verbose_src_manager then begin
           Printf.printf "Check sources done"; print_newline ();
-        end;
+        end; *)
     with e ->
         if !verbose_src_manager then begin
             Printf.printf "Exception %s while checking sources" 
@@ -222,12 +223,16 @@ let enable () =
         string_tag "name" !!client_name;
         int_tag "version" !!DonkeyOptions.protocol_version;
         int_tag "port" !client_port;
-      ];
-      overnet_client_tags :=
+      ];      
+      overnet_connect_tags :=
       [
         string_tag "name" !!client_name;
-        int_tag "version" !!DonkeyOptions.protocol_version;
-        int_tag "port" !overnet_client_port;
+        int_tag "version" !!DonkeyOvernet.overnet_protocol_connect_version; 
+      ];
+      overnet_connectreply_tags :=
+      [
+        string_tag "name" !!client_name;
+        int_tag "version" !!DonkeyOvernet.overnet_protocol_connectreply_version; 
       ]
     in
     reset_tags ();

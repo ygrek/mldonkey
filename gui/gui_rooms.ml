@@ -133,7 +133,12 @@ class rooms_box columns () =
     
     method remove_room row room = self#remove_item row room
     
-    method set_tb_style = wtool#set_style
+    method set_tb_style tb = 
+        if Options.(!!) Gui_options.mini_toolbars then
+          (wtool1#misc#hide (); wtool2#misc#show ()) else
+          (wtool2#misc#hide (); wtool1#misc#show ());
+      wtool1#set_style tb;
+      wtool2#set_style tb
     
     initializer
       box#vbox#pack ~expand: true pl#box ;
@@ -413,12 +418,11 @@ class pane_rooms () =
                     Hashtbl.add widgets room.room_num (users, messages);
                     
                     
-                    ignore
-                      (users#wtool#insert_button 
-                        ~text: (gettext M.close_room)
-                      ~tooltip: (gettext M.close_room)
-                      ~icon: (Gui_options.pixmap M.o_xpm_close_room)#coerce
-                        ~callback: (fun _ ->  
+                    Gui_misc.insert_buttons users#wtool1 users#wtool2
+                      ~text: (gettext M.close_room)
+                    ~tooltip: (gettext M.close_room)
+                    ~icon: (M.o_xpm_close_room)
+                    ~callback: (fun _ ->  
                           match room.room_state with
                             RoomOpened ->
                               Gui_com.send (GuiProto.SetRoomState (
@@ -434,8 +438,7 @@ class pane_rooms () =
                                   Printf.printf "Exception %s in close room"
                                     (Printexc2.to_string e); print_newline ();
                       )
-                      ()
-                    );
+                    ();
 
                     List.iter (fun msg ->
                         append_message room messages msg

@@ -134,34 +134,35 @@ let supernode_browse_handler node msg sock =
 let supernode_browse_client node =
   try
     let sock = TcpBufferedSocket.connect "supernode browse client" 
-      (Ip.to_inet_addr node.node_ip)  node.node_port (fun _ _ -> ()) in
-  TcpBufferedSocket.set_read_controler sock download_control;
-  TcpBufferedSocket.set_write_controler sock upload_control;
-  set_rtimeout sock !!client_timeout;
-  set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
-      printf_string "[BR?]";
-      close s "timeout"
-  );
-  set_reader sock (DonkeyProtoCom.cut_messages DonkeyProtoClient.parse
-		     (supernode_browse_handler node));
-  let server_ip, server_port =         
-    try
-      let s = DonkeyGlobals.last_connected_server () in
-      s.server_ip, s.server_port
-    with _ -> Ip.localhost, 4665
-  in
-  direct_client_send sock (
-   let module M = DonkeyProtoClient in
-   let module C = M.Connect in
-   M.ConnectReq {
-    C.md4 = !!client_md4;
-    C.ip = client_ip None;
-    C.port = !client_port;
-    C.tags = !client_tags;
-    C.version = 16;
-    C.server_info = Some (server_ip, server_port);
+        (Ip.to_inet_addr node.node_ip)  node.node_port (fun _ _ -> ()) in
+    TcpBufferedSocket.set_read_controler sock download_control;
+    TcpBufferedSocket.set_write_controler sock upload_control;
+    set_rtimeout sock !!client_timeout;
+    set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
+        printf_string "[BR?]";
+        close s "timeout"
+    );
+    set_reader sock (DonkeyProtoCom.cut_messages DonkeyProtoClient.parse
+        (supernode_browse_handler node));
+    let server_ip, server_port =         
+      try
+        let s = DonkeyGlobals.last_connected_server () in
+        s.server_ip, s.server_port
+      with _ -> Ip.localhost, 4665
+    in
+    direct_client_sock_send sock (
+      let module M = DonkeyProtoClient in
+      let module C = M.Connect in
+      M.ConnectReq {
+        C.md4 = !!client_md4;
+        C.ip = client_ip None;
+        C.port = !client_port;
+        C.tags = !client_tags;
+        C.version = 16;
+        C.server_info = Some (server_ip, server_port);
+        C.left_bytes = left_bytes;
     });
-  direct_client_send sock (
+  direct_client_sock_send sock (
     let module M = DonkeyProtoClient in
     let module C = M.ViewFiles in
     M.ViewFilesReq C.t)

@@ -21,6 +21,7 @@ open Md4
 open CommonClient
 open Options
 open CommonTypes
+open CommonOptions
   
 type 'a file_impl = {
     mutable impl_file_update : int;
@@ -378,6 +379,7 @@ file_ops.op_file_print <- (fun f o ->
 *)
 
 module G = GuiTypes
+  
 let file_print file o = 
   let impl = as_file_impl file in
   let info = file_info file in
@@ -390,18 +392,77 @@ let file_print file o =
     | name :: _ -> name)
   (Int64.to_string info.G.file_size)
   (Int64.to_string info.G.file_downloaded);
-
-  Printf.bprintf buf "Chunks: [%-s]\n" info.G.file_chunks;
   
-  List.iter (fun name -> 
-      Printf.bprintf buf "    (%s)\n" name) info.G.file_names;
+  
+  
+  if use_html_mods o then
+    
+    begin
+      
+      Printf.bprintf buf "\\<FORM\\>\\<SELECT\\>";
+      let counter = ref 0 in
+      List.iter (fun name -> 
+          incr counter;
+          Printf.bprintf buf "\\<OPTION";
+          if !counter = 2 then Printf.bprintf buf " SELECTED";
+          Printf.bprintf buf "\\>%s\n" name
+      
+      ) info.G.file_names;
+      
+      Printf.bprintf buf "\\</SELECT\\>\\</FORM\\>\n";
+    end
+  else
+    begin
+      Printf.bprintf buf "Chunks: [%-s]\n" info.G.file_chunks;
+      List.iter (fun name -> 
+          Printf.bprintf buf "    (%s)\n" name) info.G.file_names
+    
+    end;
+  
   (try
       
       let srcs = file_sources file in
       Printf.bprintf buf "%d sources:\n" (List.length srcs);
+      
+      if List.length srcs > 0 && use_html_mods o then
+        Printf.bprintf buf "\\<table class=\\\"sources\\\"\\>\\<tr\\>
+\\<td title=\\\"Number\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>#\\</td\\>
+\\<td title=\\\"Client Number\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>C.Num\\</td\\>
+\\<td title=\\\"A=Active Download from Client\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>A\\</td\\>
+\\<td title=\\\"Client Name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Name\\</td\\>
+\\<td title=\\\"Client Type\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C.T\\</td\\>
+\\<td title=\\\"Connection [I]nDirect, [D]irect\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C\\</td\\>
+\\<td title=\\\"IP Address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>IP\\</td\\>
+\\<td title=\\\"Total UL Bytes to this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>UL\\</td\\>
+\\<td title=\\\"Total DL Bytes from this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>DL\\</td\\>
+\\<td title=\\\"Your queue rank on this client\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Rank\\</td\\>
+\\<td title=\\\"Source score\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Score\\</td\\>
+\\<td title=\\\"Last OK (in minutes)\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>L.Ok\\</td\\>
+\\<td title=\\\"Last Try (in minutes)\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>L.Try\\</td\\>
+\\<td title=\\\"Next Try (in minutes)\\\"onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>N.Try\\</td\\>
+\\<td title=\\\"Chunks\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>%s\\</td\\>
+\\</tr\\>"
+          info.G.file_chunks;
+      
+      let counter = ref 0 in
       List.iter (fun c ->
-          client_bprint buf c
-      ) srcs
+          incr counter;
+          
+          if use_html_mods o then begin
+              if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>\\<td class=\\\"sr\\\"\\>%d\\</td\\>" !counter
+              else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>\\<td class=\\\"sr\\\"\\>%d\\</td\\>" !counter;
+              client_bprint_html buf c file;
+              Printf.bprintf buf "\\</tr\\>";
+            end
+          else
+            client_bprint buf c;
+      
+      
+      ) srcs;
+      if List.length srcs > 0 && use_html_mods o then
+        Printf.bprintf buf "\\</table\\>"
+        
+
     with _ -> ())
 
 let file_size file = 

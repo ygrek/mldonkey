@@ -128,20 +128,22 @@ class box columns () =
             `I (gettext M.browse_files, self#browse_files)
           ]
 
-    method set_tb_style = wtool#set_style
+    method set_tb_style tb = 
+        if Options.(!!) Gui_options.mini_toolbars then
+          (wtool1#misc#hide (); wtool2#misc#show ()) else
+          (wtool2#misc#hide (); wtool1#misc#show ());
+      wtool1#set_style tb;
+      wtool2#set_style tb
 
     method find_user num = self#find num
 
     initializer
       box#vbox#pack ~expand: true pl#box ;
-      ignore
-	(wtool#insert_button 
+      Gui_misc.insert_buttons wtool1 wtool2
 	   ~text: (gettext M.add_to_friends)
 	   ~tooltip: (gettext M.add_to_friends)
-	   ~icon: (Gui_options.pixmap M.o_xpm_add_to_friends)#coerce
-	   ~callback: self#add_to_friends
-	   ()
-	);
+	   ~icon: (M.o_xpm_add_to_friends)
+	   ~callback: self#add_to_friends ()
   end
 
 class box_users () =

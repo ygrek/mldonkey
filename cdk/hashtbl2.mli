@@ -18,6 +18,8 @@
 *)
 
 val to_list : ('a, 'b) Hashtbl.t -> 'b list
+
+val to_list2 : ('a, 'b) Hashtbl.t -> ('a * 'b) list
   
 (* can be used with a function that can modify the hashtbl *)
 val safe_iter : ('a -> unit) -> ('b, 'a) Hashtbl.t -> unit

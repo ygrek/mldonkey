@@ -17,30 +17,19 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open DonkeyTypes
-
+val old_source : int -> int -> Ip.t * int -> DonkeyTypes.file -> 
+  DonkeyTypes.source
+val iter : (DonkeyTypes.source -> unit) -> unit
+val source_of_client : DonkeyTypes.client -> unit    
+val reschedule_sources : DonkeyTypes.file -> unit
+val new_source : Ip.t * int -> DonkeyTypes.file -> DonkeyTypes.source
+val need_new_sources : DonkeyTypes.file -> bool
+val check_sources :     (DonkeyTypes.client -> unit) -> unit
+val print_sources : Buffer.t -> unit
+val recompute_ready_sources : unit -> unit
+val client_connected : DonkeyTypes.client -> unit
 val add_source_request : DonkeyTypes.source ->
-    DonkeyTypes.file -> int -> DonkeyTypes.request_result -> unit
-val set_request_result : DonkeyTypes.client ->
-    DonkeyTypes.file -> DonkeyTypes.request_result -> unit  
+  DonkeyTypes.file -> int -> DonkeyTypes.request_result -> unit
+val init : unit -> unit
   
-val query_file :
-  TcpBufferedSocket.t -> DonkeyTypes.client -> DonkeyTypes.file -> unit
-val add_file_location : DonkeyTypes.file -> DonkeyTypes.client -> unit
-val remove_file_location : DonkeyTypes.file -> DonkeyTypes.client -> unit
-
-  
-(* Specific to the source management used *)
-module S : sig
-    val old_source : int -> int -> Ip.t * int -> DonkeyTypes.file -> source
-    val iter : (DonkeyTypes.source -> unit) -> unit
-    val source_of_client : DonkeyTypes.client -> unit    
-    val reschedule_sources : DonkeyTypes.file -> unit
-    val new_source : Ip.t * int -> DonkeyTypes.file -> source
-    val need_new_sources : unit -> bool
-    val check_sources :     (DonkeyTypes.client -> unit) -> unit
-    val print_sources : Buffer.t -> unit
-    val recompute_ready_sources : unit -> unit
-    val client_connected : DonkeyTypes.client -> unit
-  end
   

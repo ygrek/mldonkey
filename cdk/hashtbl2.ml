@@ -276,6 +276,11 @@ let to_list h =
   iter (fun _ s -> list := s :: !list) h;
   !list
 
+let to_list2 h =
+  let list = ref [] in
+  iter (fun k s -> list := (k,s) :: !list) h;
+  !list
+
 let safe_iter f h =
   List.iter (fun x -> f x) (to_list h)
   

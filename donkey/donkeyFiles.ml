@@ -168,24 +168,6 @@ let force_check_locations () =
   with e ->
       Printf.printf "force_check_locations: %s" (Printexc2.to_string e);
       print_newline ()
-      
-let new_friend c =  
-  friend_add c
-
-let browse_client c =
-  match c.client_sock with
-  | Some sock    ->
-      (*
-      Printf.printf "****************************************";
-      print_newline ();
-      Printf.printf "       ASK VIEW FILES         ";
-print_newline ();
-  *)
-      direct_client_send sock (
-        let module M = DonkeyProtoClient in
-        let module C = M.ViewFiles in
-        M.ViewFilesReq C.t);          
-  | _ -> ()
 
 let add_user_friend s u = 
   let kind = 
@@ -204,7 +186,7 @@ let add_user_friend s u =
   let c = new_client kind  in
   c.client_tags <- u.user_tags;
   set_client_name c u.user_name u.user_md4;
-  new_friend c
+  friend_add c
 
   
 let udp_from_server p =
@@ -272,17 +254,17 @@ module NewUpload = struct
     let complete_bandwidth = ref 0
     let counter = ref 1    
     let sent_bytes = Array.create 10 0
-
-      
+    
+    
     let check_end_upload c sock = ()
-      (*
+(*
       if c.client_bucket = 0 then
 	direct_client_send sock (
 	  let module M = DonkeyProtoClient in
 	  let module Q = M.CloseSlot in
 	    M.CloseSlotReq Q.t)
 *)
-      
+    
     let rec send_small_block c sock file begin_pos len_int = 
 (*      let len_int = Int32.to_int len in *)
       remaining_bandwidth := !remaining_bandwidth - len_int;
@@ -290,7 +272,7 @@ module NewUpload = struct
         if !verbose then begin
             Printf.printf "send_small_block(%s-%s) %Ld %d"
               c.client_name (brand_to_string c.client_brand)
-              (begin_pos) (len_int);
+            (begin_pos) (len_int);
             print_newline ();
           end;
         
@@ -329,7 +311,7 @@ module NewUpload = struct
           printf_string "U[IN]";
         
         write_string sock upload_buffer;
-	check_end_upload c sock
+        check_end_upload c sock
       with e -> 
           Printf.printf "Exception %s in send_small_block" (Printexc2.to_string e);
           print_newline () 
@@ -428,7 +410,7 @@ Divide the bandwidth between the clients
       if !remaining_bandwidth < old_remaining_bandwidth then
         next_uploads ()
     
-    let next_uploads () =
+    let next_uploads () = 
       sent_bytes.(!counter-1) <- sent_bytes.(!counter-1) - !remaining_bandwidth;
       if verbose_upload then begin
           Printf.printf "Left %d" !remaining_bandwidth; print_newline ();
@@ -439,7 +421,7 @@ Divide the bandwidth between the clients
           counter := 1;
           total_bandwidth := 
           (if !!max_hard_upload_rate = 0 then 10000 * 1024
-            else (!!max_hard_upload_rate - 1) * 1024 );
+            else (maxi (!!max_hard_upload_rate - 1) 1) * 1024 );
           complete_bandwidth := !total_bandwidth;
           if verbose_upload then begin
               Printf.printf "Init to %d" !total_bandwidth; print_newline ();
@@ -470,7 +452,6 @@ Divide the bandwidth between the clients
       if !remaining_bandwidth > 0 then 
         next_uploads ()
       
-      
     let reset_upload_timer () = ()
   end
       
@@ -478,21 +459,7 @@ module OldUpload = struct
     
     let remaining_bandwidth = ref 0
     
-    let check_end_upload c sock = ()
-      
-      (*
-      if c.client_bucket = 0 then
-        direct_client_send sock (
-          let module M = DonkeyProtoClient in
-          let module Q = M.CloseSlot in
-M.CloseSlotReq Q.t)
-   *)
-(* FUCK THE CLOSE SLOT, MLdonkey clients does nothing with this. Very
-good. Emule clients probably retries to enter the queue, while we are
-blocked. This fucking new mechanism simply prevents mldonkey clients
-from downloading from othe mldonkey clients. Why should something that
-works correctly always be complexified until it doesnot work anymore ??? *)
-        
+    let check_end_upload c sock = ()        
         
     let send_small_block c sock file begin_pos len = 
       let len_int = Int64.to_int len in

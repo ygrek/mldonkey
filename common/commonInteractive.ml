@@ -27,23 +27,6 @@ open CommonNetwork
 open CommonResult
 open CommonServer
 open CommonTypes
-
-let file_kinds = ref []
-
-let add_web_kind kind f =
-  file_kinds := (kind,f) :: !file_kinds
-  
-let load_url kind url =
-  Printf.printf "QUERY URL %s" url; print_newline ();
-  let f = 
-    try 
-      List.assoc kind !file_kinds 
-    with e -> failwith (Printf.sprintf "Unknown kind [%s]" kind)
-  in 
-  try
-    Http_client.wget url f  
-  with e -> failwith (Printf.sprintf "Exception %s while loading %s"
-          (Printexc2.to_string e) url)
       
 let days = ref 0      
 let hours = ref 0    
@@ -100,12 +83,33 @@ let print_connected_servers o =
   let buf = o.conn_buf in
   networks_iter (fun r ->
       try
-      let list = network_connected_servers r in
-      Printf.bprintf buf "--- Connected to %d servers on the %s network ---\n"
-        (List.length list) r.network_name;
+        let list = network_connected_servers r in
+        Printf.bprintf buf "--- Connected to %d servers on the %s network ---\n"
+          (List.length list) r.network_name;
+        
+        if use_html_mods o && List.length list > 0 then 
+          Printf.bprintf buf "\\<table class=\\\"servers\\\"\\>\\<tr\\>
+\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>#\\</td\\>
+\\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Button\\</td\\>
+\\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Network\\</td\\>
+\\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Status\\</td\\>
+\\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>IP\\</td\\>
+\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Users\\</td\\>
+\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Files\\</td\\>
+\\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Name\\</td\\>
+\\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Details\\</td\\>
+";
+        
+      let counter = ref 0 in  
       List.iter (fun s ->
+      incr counter;
+        if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
+            else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
+
           server_print s o;
       ) list;
+        if use_html_mods o && List.length list > 0 then Printf.bprintf buf
+        "\\</table\\>";
       with e ->
           Printf.bprintf  buf "Exception %s in print_connected_servers"
             (Printexc2.to_string e);
@@ -132,6 +136,7 @@ let send_custom_query buf s args =
     in
     let rec iter q =
       match q with
+      | Q_COMBO _ -> assert false
       | Q_KEYWORDS _ -> 
           let value = get_arg "keywords" in
           want_and_not andnot (fun w -> QHasWord w) value

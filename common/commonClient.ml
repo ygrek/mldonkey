@@ -18,7 +18,7 @@
 *)
 
 
-
+open CommonOptions
 open Options
 open CommonTypes
   
@@ -57,6 +57,9 @@ decide whether to connect immediatly or not. *)
     mutable op_client_clear_files : ('a -> unit);
     
     mutable op_client_bprint : (Buffer.t -> 'a -> unit);
+    
+    mutable op_client_bprint_html : (Buffer.t -> 'a -> 
+    CommonTypes.file -> unit);
   }
   
 let client_counter = CommonUser.user_counter
@@ -120,8 +123,12 @@ let client_files client=
 
 let client_bprint buf client =
   let client = as_client_impl client in
-  client.impl_client_ops.op_client_bprint buf client.impl_client_val
+  client.impl_client_ops.op_client_bprint client.impl_client_val buf
 
+let client_bprint_html buf client file =
+  let client = as_client_impl client in
+  client.impl_client_ops.op_client_bprint_html client.impl_client_val buf file
+  
 let client_connect client=
   let client = as_client_impl client in
   client.impl_client_ops.op_client_connect client.impl_client_val
@@ -156,6 +163,7 @@ let new_client_ops network =
       op_client_clear_files = (fun _ -> ni_ok network "client_clear_files");
       op_client_browse = (fun _ _ -> ni_ok network "client_browse");
       op_client_bprint = (fun _ _ -> ni_ok network "client_bprint");
+      op_client_bprint_html = (fun _ _ _ -> ni_ok network "client_bprint_html");
     } in
   let cc = (Obj.magic c : int client_ops) in
   clients_ops := (cc, { cc with op_client_network = c.op_client_network })
@@ -217,8 +225,8 @@ let set_client_state c state =
 let set_client_disconnected c =
   let impl = as_client_impl c in
   match impl.impl_client_state with
-    Connected true -> set_client_state c (NotConnected true)
-  | _ ->  set_client_state c (NotConnected false)
+    Connected n -> set_client_state c (NotConnected n)
+  | _ ->  set_client_state c (NotConnected (-1))
     
 let new_client (client : 'a client_impl) =
   incr client_counter;
@@ -260,7 +268,13 @@ let _ =
       H.iter (fun _ -> incr counter) clients_by_num;
       Printf.bprintf buf "  clients: %d\n" !counter;
   )
-  
+
+let clients_get_all () =
+  let list = ref [] in
+  H.iter (fun c ->
+      list := (client_num c) :: !list) clients_by_num;
+  !list
+    
 let clients_by_num = ()
   
 let client_new_file (client :client) (dirname:string) r =
@@ -275,14 +289,27 @@ let client_print c o =
   let n = impl.impl_client_ops.op_client_network in
   let info = client_info c in
   let buf = o.conn_buf in
-    Printf.bprintf buf "[%s %-5d] %d %23s %-20s"
-    n.network_name
-    (client_num c)
-  i.GuiTypes.client_rating
-  (match info.G.client_kind with
-      Indirect_location (name, _) -> name
-    | Known_location (ip, port) ->
-        Printf.sprintf "%s:%d" (Ip.to_string ip) port
-  )
-  info.G.client_name
+  if use_html_mods o then begin
+      Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+    \\<td class=\\\"sr\\\"\\>%s\\</td\\>
+    \\<td class=\\\"sr\\\"\\>%s\\</td\\>"
+        n.network_name 
+        (match info.G.client_kind with
+          Indirect_location (name, _) -> Printf.sprintf "I"
+        | Known_location (ip, port) -> Printf.sprintf "D"
+      ) 
+      info.G.client_name      
+    end
+  else begin
+      Printf.bprintf buf "[%s %-5d] %d %23s %-20s"
+        n.network_name
+        (client_num c)
+      i.GuiTypes.client_rating
+        (match info.G.client_kind with
+          Indirect_location (name, _) -> name
+        | Known_location (ip, port) ->
+            Printf.sprintf "%s:%d" (Ip.to_string ip) port
+      )
+      info.G.client_name
+    end
 

@@ -22,6 +22,24 @@ open CommonTypes
 open LittleEndian
 open CommonGlobals
 open DonkeyMftp
+
+(*
+BAD MESSAGE FROM CONNECTING CLIENT
+UnknownReq:
+ascii: [(1)(16)(231)(129)(131)(26) O(247)(154)(145)(251)(253)(167) G }(207) j(146)(140) { l(139) F(18)(0)(0)(0)(0)(0)(0)(0)(0)(0)(0)]
+dec: [
+(1)
+(16)
+(231)(129)(131)(26)(79)(247)(154)(145)(251)(253)(167)(71)(125)(207)(106)(146)
+(140)(123)(108)(139)
+(70)(18)
+(0)(0)(0)(0)
+(0)(0)(0)(0)(0)(0)
+]
+
+
+
+  *)
   
 module Connect  = struct
     type t = {
@@ -31,6 +49,7 @@ module Connect  = struct
         port: int;
         tags : tag list;
         server_info : (Ip.t * int) option;
+        left_bytes: string;
       }
     
     let names_of_tag =
@@ -38,6 +57,7 @@ module Connect  = struct
         1, "name";
         17, "version";
         15, "port";
+        31, "server_udp";
       ]
     
     let parse len s =
@@ -49,15 +69,9 @@ module Connect  = struct
       let tags, pos = get_tags s 24 names_of_tag in
       let len = String.length s in
       let server_info = 
-        let len = String.length s in 
-        if len = pos + 6 then begin
-(*            Printf.printf "Overnet Connect Message"; print_newline (); *)
-            None end else begin
-(*            Printf.printf "Normal Connect Message %d" (len - pos) ; 
-            print_newline (); *)
-            Some (get_ip s pos, get_port s (pos+4)) 
-          end
+        Some (get_ip s pos, get_port s (pos+4)) 
       in
+      let left_bytes = String.sub s (pos+6) (String.length s - pos - 6) in
       {
         md4 = md4;
         version = version;
@@ -65,6 +79,7 @@ module Connect  = struct
         port = port;
         tags = tags;
         server_info = server_info;
+        left_bytes = left_bytes;
       }
     
     let print t = 
@@ -76,11 +91,14 @@ module Connect  = struct
       Printf.printf "tags: ";
       print_tags t.tags;
       print_newline ();
-      match t.server_info with
-        None -> ()
-      | Some (ip, port) ->
-          Printf.printf "ip_server: %s\n" (Ip.to_string ip);
-          Printf.printf "port_server: %d\n" port
+      (match t.server_info with
+          None -> ()
+        | Some (ip, port) ->
+            Printf.printf "ip_server: %s\n" (Ip.to_string ip);
+            Printf.printf "port_server: %d\n" port);
+      String.iter (fun c -> Printf.printf "(%d)" (int_of_char c)) 
+      t.left_bytes;
+      Printf.printf "\n"
     
     let write buf t =
       buf_int8 buf t.version;
@@ -90,13 +108,14 @@ module Connect  = struct
       buf_tags buf t.tags names_of_tag;
       begin
         match t.server_info with
-          None -> ()
+          None -> 
+            buf_ip buf Ip.null;
+	    buf_port buf 0
         | Some (ip, port) ->
             buf_ip buf ip;
             buf_port buf port;
       end;
-      buf_int buf 0;
-      buf_int16 buf 0
+      Buffer.add_string buf t.left_bytes
 
   end
 
@@ -107,6 +126,7 @@ module ConnectReply  = struct
         port: int;
         tags : tag list;
         server_info : (Ip.t * int) option;
+        left_bytes : string;
       }
     
     let names_of_tag =
@@ -122,19 +142,15 @@ module ConnectReply  = struct
       let port = get_port s 21 in
 (*      Printf.printf "port: %d" port; print_newline (); *)
       let tags, pos = get_tags s 23 names_of_tag in
-      let server_info = 
-        let len = String.length s in 
-        if len = pos + 6 then begin
-            None end else begin
-            Some (get_ip s pos, get_port s (pos+4)) 
-          end
-      in
+      let server_info =  Some (get_ip s pos, get_port s (pos+4)) in
+      let left_bytes = String.sub s (pos+6) (String.length s - pos - 6) in
       {
         md4 = md4;
         ip = ip;
         port = port;
         tags = tags;
         server_info = server_info;
+        left_bytes = left_bytes;
       }
     
     let print t = 
@@ -145,12 +161,15 @@ module ConnectReply  = struct
       Printf.printf "tags: ";
       print_tags t.tags;
       print_newline ();
-      match t.server_info with
-        None -> ()
-      | Some (ip, port) ->
-          Printf.printf "ip_server: %s\n" (Ip.to_string ip);
-          Printf.printf "port_server: %d\n" port    
-    
+      (match t.server_info with
+          None -> ()
+        | Some (ip, port) ->
+            Printf.printf "ip_server: %s\n" (Ip.to_string ip);
+            Printf.printf "port_server: %d\n" port);
+      String.iter (fun c -> Printf.printf "(%d)" (int_of_char c)) 
+      t.left_bytes;
+      Printf.printf "\n"
+      
     let write buf t =
       buf_md4 buf t.md4;
       buf_ip buf t.ip;
@@ -163,9 +182,7 @@ module ConnectReply  = struct
             buf_ip buf ip;
             buf_port buf port;
       end;
-      buf_int buf 0;
-      buf_int16 buf 0
-
+      Buffer.add_string buf t.left_bytes
   end
 
 module Say = struct
@@ -1061,3 +1078,90 @@ let write buf t =
       
   | UnknownReq s ->
       Buffer.add_string buf s
+
+(*
+
+
+------------------------------------------------------
+1044008574.297 192.168.0.3:37522 -> 80.26.114.12:13842 of len 6
+? Become Friend ? ping ?
+
+(227)(1)(0)(0)(0)
+(98) 
+
+------------------------------------------------------
+1044008576.274 80.26.114.12:13842 -> 192.168.0.3:37522 of len 6
+? OK ? pong ?
+
+(227)(1)(0)(0)(0)(99)]
+
+------------------------------------------------------
+1044008687.977 192.168.0.3:37522 -> 80.26.114.12:13842 of len 6
+Browse Main Dir
+  
+(227)(1)(0)(0)(0)
+(93)
+
+------------------------------------------------------
+1044008690.832 80.26.114.12:13842 -> 192.168.0.3:37522 of len 43
+Browse Main Dir Reply
+(227)(38)(0)(0)(0)
+(95)
+(2)(0)(0)(0) --------> 2 directories:
+(12)(0) C : \ D o w n l o a d s
+(17)(0) ! I n c o m p l e t e   F i l e s
+
+
+------------------------------------------------------
+1044008766.137 192.168.0.3:37522 -> 80.26.114.12:13842 of len 20
+Browse directory
+  
+(227)(15)(0)(0)(0)
+(94)
+(12)(0) C : \ D o w n l o a d s
+
+------------------------------------------------------
+1044008769.045 80.26.114.12:13842 -> 192.168.0.3:37522 of len 300
+(227) p(8)(0)(0) `(12)(0) C : \ D o w n l o a d s(21)(0)(0)(0)(152) 2(229)(158)(218)(141)(217)(138) n(181) 6 ( ) h V(179)(0)(0)(0)(0)(0)(0)(3)(0)(0)(0)(2)(1)(0)(1)(11)(0) d e s k t o p . i n i(3)(1)(0)(2)(180)(0)(0)(0)(3)(1)(0)(19)(0)(0)(0)(0) y(16)(15) 9 O Z(219) i e(200)(10) |(29)(27) F(128)(0)(0)(0)(0)(0)(0)(5)(0)(0)(0)(2)(1)(0)(1)(15)(0) u t b o n u s p a c k . z i p(3)(1)(0)(2) J(16)(221)(0)(2)(1)(0)(3)(3)(0) P r o(2)(1)(0)(4)(3)(0) z i p(3)(1)(0)(19)(0)(0)(0)(0)(178)(145)(161)(146) P(199)(228)(249) K a :(9)(237)(246)(233) v(0)(0)(0)(0)(0)(0)(5)(0)(0)(0)(2)(1)(0)(1)(11)(0) c t f m a p s . z i p(3)(1)(0)(2)(236)(239)(23)(0)(2)(1)(0)(3)(3)(0) P r o(2)(1)(0)(4)(3)(0) z i p(3)(1)(0)(19)(0)(0)(0)(0) a n(251)(225) ^ g(205)(133)(25)(12) # ' J A(221) `(0)(0)(0)(0)(0)(0)(5)(0)(0)(0)(2)(1)(0)(1)(23)(0) u t i n o x x p a c k - n o - u m o d . z i p(3)(1)(0)(2)]
+(227)(112)(8)(0)(0)
+  
+(96)
+(12)(0) C : \ D o w n l o a d s
+(21)(0)(0)(0) 21 files
+
+(152)(50)(229)(158)(218)(141)(217)(138)(110)(181)(54)(40)(41)(104)(86)(179)
+(0)(0)(0)(0)
+(0)(0)
+(3)(0)(0)(0)
+(2)
+(1)(0)(1)
+(11)(0)  d e s k t o p . i n i
+(3)
+(1)(0)(2)
+(180)(0)(0)(0)
+(3)
+(1)(0)(19)
+(0)(0)(0)(0)
+
+(121)(16)(15)(57)(79)(90)(219)(105)(101)(200)(10)(124)(29)(27)(70)(128)
+(0)(0)(0)(0)
+(0)(0)
+(5)(0)(0)(0)
+(2)
+(1)(0)(1)
+(15)(0) u t b o n u s p a c k . z i p
+(3)
+(1)(0)(2)
+(74)(16)(221)(0)
+(2)
+(1)(0)(3)
+(3)(0) Pro
+(2)
+(1)(0)(4)
+(3)(0) zip
+(3)
+(1)(0)(19)
+(0)(0)(0)(0)
+....
+  
+*)

@@ -20,7 +20,25 @@
 open Md4
 open CommonTypes
 
-    
+          
+module SourcesQueue = struct
+    type 'a t = {
+        head : (unit -> int * 'a);
+        put : (int * 'a -> unit);
+        length : (unit -> int);
+        take : (unit -> int * 'a);
+        iter : ( ('a -> unit) -> unit);
+        put_back : (int * 'a -> unit);
+      }
+      
+    let head t = t.head ()
+    let put t x = t.put x
+    let iter f t = t.iter f
+    let length t = t.length ()
+    let take t = t.take ()
+    let put_back t e = t.put_back e
+  end
+
 type request_record = {
   mutable last_request : int;
   mutable nwarnings : int;
@@ -159,7 +177,6 @@ and client = {
     mutable client_checked : bool;
     mutable client_chat_port : int ;
     mutable client_connected : bool;
-    mutable client_on_list : bool;
 (* statistics *)
     mutable client_last_filereqs : int;    
     mutable client_downloaded : Int64.t;
@@ -175,6 +192,7 @@ and client = {
     mutable client_connect_time : int;
     mutable client_requests_received : int;
     mutable client_requests_sent: int;
+    mutable client_from_queues : file list;
   }
   
 and upload_info = {
@@ -208,7 +226,6 @@ and zone = {
     mutable zone_end : int64;
     mutable zone_nclients : int;
     mutable zone_present : bool;
-    zone_file : file;
   }
   
 and source = {
@@ -265,6 +282,9 @@ and file = {
     mutable file_locations : client Intmap.t; 
     mutable file_mtime : float;
     mutable file_initialized : bool;
+(* Source management number 3 !! *)
+    mutable file_clients : (client * int) Fifo.t;
+    mutable file_sources : source SourcesQueue.t array;
   }
 
 and file_to_share = {
@@ -343,3 +363,119 @@ let client_new_file client r =
     
 let server_state server =
   CommonServer.server_state (as_server server.server_server)
+
+    
+module SourcesQueueCreate = struct  
+    open SourcesQueue
+    
+    let fifo () = 
+      let t = Fifo.create () in
+      {
+        head = (fun _ -> Fifo.head t);
+        put = (fun x -> Fifo.put t x);
+        length = (fun _ -> Fifo.length t);
+        take = (fun _ -> Fifo.take t);
+        iter = (fun f -> Fifo.iter (fun (_,x) -> f x) t);
+        put_back = (fun e -> Fifo.put_back_ele t e);
+      }
+
+    let lifo () = 
+      let t = ref [] in
+      {
+        head = (fun _ -> match !t with 
+              [] -> raise Fifo.Empty | x :: _ -> x);
+        put = (fun x -> t := x :: !t);
+        length = (fun _ -> List.length !t);
+        take = (fun _ -> match !t with 
+              [] -> raise Fifo.Empty | x :: tail -> 
+                t:=tail; x);        
+        iter = (fun f -> List.iter (fun (_,x) -> f x) !t);
+        put_back = (fun e -> t := e :: !t);
+        }      
+      
+    module SourcesSet = Set.Make (
+        struct
+          type t = int * source
+          let compare (t1,s1) (t2,s2) = 
+            if s1.source_addr = s2.source_addr then begin
+                0 end else              
+            let x = compare t1 t2 in
+            if x = 0 then compare s1.source_addr s2.source_addr else x
+        end
+      )
+
+    let oldest_first () = 
+      let t = ref SourcesSet.empty in
+      {
+        head = (fun _ -> try SourcesSet.min_elt !t with _ -> raise Fifo.Empty);
+        put = (fun x ->  t := SourcesSet.add x !t);
+        length = (fun _ -> SourcesSet.cardinal !t);
+        take = (fun _ ->
+            try 
+              let x = SourcesSet.min_elt !t in
+              t := SourcesSet.remove x !t;
+              x
+            with _ -> raise Fifo.Empty);
+        iter = (fun f ->
+            SourcesSet.iter (fun (_,x) -> f x) !t);
+        put_back = (fun e -> t := SourcesSet.add e !t);
+      }
+
+    let oldest_last () = 
+      let t = ref SourcesSet.empty in
+      {
+        head = (fun _ ->
+            try SourcesSet.max_elt !t with _ -> raise Fifo.Empty);
+        put = (fun x ->  t := SourcesSet.add x !t);
+        length = (fun _ -> SourcesSet.cardinal !t);
+        take = (fun _ ->
+            try
+              let x = SourcesSet.max_elt !t in
+              t := SourcesSet.remove x !t;
+              x
+            with _ -> raise Fifo.Empty);
+        iter = (fun f ->
+            SourcesSet.iter (fun (_,x) -> f x) !t);
+        put_back = (fun e -> t := SourcesSet.add e !t);
+      }
+
+      (*
+    let max_first compare =
+      let module SourceSet = Set.Make(struct
+            type t = source
+            let compare = compare
+          end) in
+      let t = ref SourcesSet.empty in
+      {
+        head = (fun _ -> SourcesSet.max_elt !t);
+        put = (fun x ->  t := SourcesSet.add x !t);
+        length = (fun _ -> SourcesSet.cardinal !t);
+        take = (fun _ ->
+            let x = SourcesSet.max_elt !t in
+            t := SourcesSet.remove x !t;
+            x);
+        iter = (fun f ->
+            SourcesSet.iter f !t);
+        put_back = (fun e -> t := SourcesSet.add e !t);
+        }
+
+    let min_first compare =
+      let module SourceSet = Set.Make(struct
+            type t = source
+            let compare = compare
+          end) in
+      let t = ref SourcesSet.empty in
+      {
+        head = (fun _ -> SourcesSet.min_elt !t);
+        put = (fun x ->  t := SourcesSet.add x !t);
+        length = (fun _ -> SourcesSet.cardinal !t);
+        take = (fun _ ->
+            let x = SourcesSet.min_elt !t in
+            t := SourcesSet.remove x !t;
+            x);
+        iter = (fun f ->
+            SourcesSet.iter f !t);
+        put_back = (fun e -> t := SourcesSet.add e !t);
+        }
+*)
+  end

@@ -8,7 +8,7 @@ CONFIG_ARGS=$*
 echo $CONFIG_ARGS
 
 CURRENT_VERSION=2.02
-CURRENT_RELEASE=9
+CURRENT_RELEASE=10
 
 REQUIRED_OCAML=3.06
 REQUIRED_LABLGTK=1.2.4
@@ -75,6 +75,7 @@ IM=yes
 AC_ARG_ENABLE(devel, [--enable-devel:       (undocumented)], [DEVEL="$enableval"])
 
 AC_CANONICAL_HOST
+AC_CHECK_PROG(CC,gcc3,"gcc3")
 AC_PROG_CC
 AC_EXEEXT
 AC_PROG_CPP
@@ -102,6 +103,54 @@ AC_ARG_ENABLE(local-prefix, [--enable-local-prefix=prefix:           allows you 
 
 LOCAL=$LOCAL_DIR
 LOCAL_OCAML=$LOCAL_DIR/bin
+
+
+
+echo $host
+
+case "$host" in
+  alpha*-*-osf*)                arch=alpha; system=digital;;
+  alpha*-*-linux*)              arch=alpha; system=linux;;
+  alpha*-*-freebsd*)            arch=alpha; system=freebsd;;
+  alpha*-*-netbsd*)             arch=alpha; system=netbsd;;
+  alpha*-*-openbsd*)            arch=alpha; system=openbsd;;
+  sparc-*-sunos4.*)             arch=sparc; system=sunos;;
+  sparc-*-solaris2.*)           arch=sparc; system=solaris;;
+  sparc-*-*bsd*)                arch=sparc; system=bsd;;
+  sparc-*-linux*)               arch=sparc; system=linux;;
+  i?86-*-linux*)           arch=i386; system=linux;;
+  i?86-*-*bsd*)            arch=i386; system=bsd;;
+  i?86-*-nextstep*)        arch=i386; system=nextstep;;
+  i?86-*-solaris*)         arch=i386; system=solaris;;
+  i?86-*-beos*)            arch=i386; system=beos;;
+  i?86-*-cygwin*)          arch=i386; system=cygwin;;
+  mips-*-irix6*)                arch=mips; system=irix;;
+  hppa1.1-*-hpux*)              arch=hppa; system=hpux;;
+  hppa1.1-*-nextstep*)          arch=hppa; system=nextstep;;
+  rs6000-*-aix*)                arch=power; model=rs6000; system=aix;;
+  powerpc-*-aix*)               arch=power; model=ppc; system=aix;;
+  powerpc-*-linux*)             arch=power; model=ppc; system=elf;;
+  powerpc-*-rhapsody*)          arch=power; model=ppc; system=rhapsody;;
+  powerpc-*-darwin*)            arch=power; model=ppc; system=rhapsody
+    REQUIRED_OCAML=3.06+21
+    
+    echo "***************************************************"
+    echo
+    echo "On Mac OS X, you must use a CVS version of Ocaml"
+    echo "($REQUIRED_OCAML for example): you can get a tar.gz"
+    echo "from :"
+    echo "http://savannah.nongnu.org/download/mldonkey/tools/"
+    echo
+    echo "***************************************************"
+	
+    case `uname -r` in
+      6.0) CHECKBOUNDS=true;;
+    esac
+    ;;
+  arm*-*-linux*)                arch=arm; system=linux;;
+  ia64-*-linux*)                arch=ia64; system=linux;;
+esac
+
 
 BUILD_OCAML=no
 if test -z "$ac_cv_prog_OCAMLC"; then 
@@ -152,7 +201,9 @@ if test "$BUILD_OCAML" = "yes"; then
       if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then
         echo Downloading ...
 
-        $WGET http://pauillac.inria.fr/caml/distrib/ocaml-"$REQUIRED_OCAML"/ocaml-"$REQUIRED_OCAML".tar.gz
+#  http://pauillac.inria.fr/caml/distrib/ocaml-"$REQUIRED_OCAML"/ocaml-"$REQUIRED_OCAML".tar.gz
+
+        $WGET  http://savannah.nongnu.org/download/mldonkey/tools/ocaml-"$REQUIRED_OCAML".tar.gz
       fi
       if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then exit 1; fi
 
@@ -526,40 +577,6 @@ case "`uname -s`" in
   *) CURRENT_DIR="./";;
 esac
 
-echo $host
-
-case "$host" in
-  alpha*-*-osf*)                arch=alpha; system=digital;;
-  alpha*-*-linux*)              arch=alpha; system=linux;;
-  alpha*-*-freebsd*)            arch=alpha; system=freebsd;;
-  alpha*-*-netbsd*)             arch=alpha; system=netbsd;;
-  alpha*-*-openbsd*)            arch=alpha; system=openbsd;;
-  sparc-*-sunos4.*)             arch=sparc; system=sunos;;
-  sparc-*-solaris2.*)           arch=sparc; system=solaris;;
-  sparc-*-*bsd*)                arch=sparc; system=bsd;;
-  sparc-*-linux*)               arch=sparc; system=linux;;
-  i?86-*-linux*)           arch=i386; system=linux;;
-  i?86-*-*bsd*)            arch=i386; system=bsd;;
-  i?86-*-nextstep*)        arch=i386; system=nextstep;;
-  i?86-*-solaris*)         arch=i386; system=solaris;;
-  i?86-*-beos*)            arch=i386; system=beos;;
-  i?86-*-cygwin*)          arch=i386; system=cygwin;;
-  mips-*-irix6*)                arch=mips; system=irix;;
-  hppa1.1-*-hpux*)              arch=hppa; system=hpux;;
-  hppa1.1-*-nextstep*)          arch=hppa; system=nextstep;;
-  rs6000-*-aix*)                arch=power; model=rs6000; system=aix;;
-  powerpc-*-aix*)               arch=power; model=ppc; system=aix;;
-  powerpc-*-linux*)             arch=power; model=ppc; system=elf;;
-  powerpc-*-rhapsody*)          arch=power; model=ppc; system=rhapsody;;
-  powerpc-*-darwin*)            arch=power; model=ppc; system=rhapsody
-    case `uname -r` in
-      6.0) CHECKBOUNDS=true;;
-    esac
-    ;;
-  arm*-*-linux*)                arch=arm; system=linux;;
-  ia64-*-linux*)                arch=ia64; system=linux;;
-esac
-
 AC_CHECK_PROG(COMPRESS, bzip2, bzip2)
 AC_CHECK_PROG(COMPRESS, gzip, gzip)
 
@@ -581,6 +598,12 @@ esac
 
 ARCH=$arch
 
+case "$OCAMLVERSION" in
+  3.06) TYPE_FORMAT="";;
+  *) TYPE_FORMAT="type ('a,'b,'c) ml_format = ('a,'b, 'c,'c) format  type ('a,'b,'c) format = ('a,'b, 'c) ml_format";;
+esac		    
+
+AC_SUBST(TYPE_FORMAT)
 AC_SUBST(OCAMLC)
 AC_SUBST(OCAMLOPT)
 AC_SUBST(OCAMLLEX)

@@ -78,7 +78,7 @@ let spy_relay f in_fd out_fd =
       iter_w 0 nread 
   in
   iter_r ()
-      
+
 let simple_connect hostname port =
   let s = socket PF_INET SOCK_STREAM 0 in
   let h = Unix.gethostbyname hostname in

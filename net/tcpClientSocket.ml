@@ -557,8 +557,9 @@ let create name fd handler =
     } in
   let sock = BasicSocket.create name fd (tcp_handler t) in
   let name = (fun () ->
-        Printf.sprintf "%s (nread: %d nwritten: %d) [U %b,D %b]" name t.nread t.nwrite
-        (t.read_control <> None) (t.write_control <> None);
+        Printf.sprintf "%s (nread: %d nwritten: %d) [U %s,D %s]" name t.nread t.nwrite
+        (string_of_bool (t.read_control <> None)) 
+	(string_of_bool (t.write_control <> None));
         ;
     ) in
   set_printer sock name;

@@ -96,15 +96,19 @@ let localhost = of_string "127.0.0.1"
 let to_sockaddr ip port =
   Unix.ADDR_INET (to_inet_addr ip, port)
 
-let rec get_non_local_ip list =
-  match list with
-    [] -> raise Not_found
-  | ip :: tail ->
-      let ip = of_inet_addr ip in
-      if ip = (127,0,0,1) then
-        get_non_local_ip tail
-      else ip
-
+let get_non_local_ip list =
+  let rec iter list = 
+    match list with
+      [] -> raise Not_found
+    | ip :: tail ->
+        let ip = of_inet_addr ip in
+        if ip = (127,0,0,1) then
+          iter tail
+        else ip
+  in
+  try iter list
+  with _ -> match list with [] -> raise Not_found  | ip :: _ -> of_inet_addr ip
+    
 let gethostbyname name = 
   let h = Unix.gethostbyname name in
   let list = Array.to_list h.Unix.h_addr_list in
@@ -117,15 +121,17 @@ let resolve_name name =
     let (ip, time) = Hashtbl.find ip_cache name in
     if time < current_time then
       try
+        Printf.printf "Resolving %s ..." name; flush stdout;
         let ip = gethostbyname name in
+        Printf.printf "done"; print_newline ();
         Hashtbl.remove ip_cache name;
-        Hashtbl.add ip_cache name (ip, current_time +. 900.);
+        Hashtbl.add ip_cache name (ip, current_time +. 3600.);
         ip
       with _ -> ip
     else ip
   with _ ->
       let ip = gethostbyname name in
-      Hashtbl.add ip_cache name (ip, current_time +. 900.);
+      Hashtbl.add ip_cache name (ip, current_time +. 3600.);
       ip
       
 
@@ -133,9 +139,7 @@ let from_name name =
   if String.length name > 0 && name.[0] >= '0' && name.[0] <= '9' then
     of_string name 
   else  try
-    Printf.printf "Resolving %s ..." name; flush stdout;
-    let ip = gethostbyname name in
-    Printf.printf "done"; print_newline ();
+    let ip = resolve_name name in
     ip
   with _ -> 
       raise Not_found
@@ -144,9 +148,7 @@ let my () =
   try
     let name = Unix.gethostname () in
     try
-      let h = Unix.gethostbyname name in
-      let list = Array.to_list h.Unix.h_addr_list in
-      get_non_local_ip list
+      resolve_name name 
     with _ -> 
         if String.length name > 0 && name.[0] >= '0' && name.[0] <= '9' then
           of_string name 

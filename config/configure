@@ -1208,7 +1208,7 @@ CONFIG_ARGS=$*
 echo $CONFIG_ARGS
 
 CURRENT_VERSION=2.02
-CURRENT_RELEASE=9
+CURRENT_RELEASE=10
 
 REQUIRED_OCAML=3.06
 REQUIRED_LABLGTK=1.2.4
@@ -1408,6 +1408,41 @@ host_cpu=`echo $ac_cv_host | sed 's/^\([^-]*\)-\([^-]*\)-\(.*\)$/\1/'`
 host_vendor=`echo $ac_cv_host | sed 's/^\([^-]*\)-\([^-]*\)-\(.*\)$/\2/'`
 host_os=`echo $ac_cv_host | sed 's/^\([^-]*\)-\([^-]*\)-\(.*\)$/\3/'`
 
+
+# Extract the first word of "gcc3", so it can be a program name with args.
+set dummy gcc3; ac_word=$2
+echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
+if test "${ac_cv_prog_CC+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  if test -n "$CC"; then
+  ac_cv_prog_CC="$CC" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_CC=""gcc3""
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+
+fi
+fi
+CC=$ac_cv_prog_CC
+if test -n "$CC"; then
+  echo "$as_me:$LINENO: result: $CC" >&5
+echo "${ECHO_T}$CC" >&6
+else
+  echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6
+fi
 
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
@@ -2612,6 +2647,54 @@ fi;
 LOCAL=$LOCAL_DIR
 LOCAL_OCAML=$LOCAL_DIR/bin
 
+
+
+echo $host
+
+case "$host" in
+  alpha*-*-osf*)                arch=alpha; system=digital;;
+  alpha*-*-linux*)              arch=alpha; system=linux;;
+  alpha*-*-freebsd*)            arch=alpha; system=freebsd;;
+  alpha*-*-netbsd*)             arch=alpha; system=netbsd;;
+  alpha*-*-openbsd*)            arch=alpha; system=openbsd;;
+  sparc-*-sunos4.*)             arch=sparc; system=sunos;;
+  sparc-*-solaris2.*)           arch=sparc; system=solaris;;
+  sparc-*-*bsd*)                arch=sparc; system=bsd;;
+  sparc-*-linux*)               arch=sparc; system=linux;;
+  i?86-*-linux*)           arch=i386; system=linux;;
+  i?86-*-*bsd*)            arch=i386; system=bsd;;
+  i?86-*-nextstep*)        arch=i386; system=nextstep;;
+  i?86-*-solaris*)         arch=i386; system=solaris;;
+  i?86-*-beos*)            arch=i386; system=beos;;
+  i?86-*-cygwin*)          arch=i386; system=cygwin;;
+  mips-*-irix6*)                arch=mips; system=irix;;
+  hppa1.1-*-hpux*)              arch=hppa; system=hpux;;
+  hppa1.1-*-nextstep*)          arch=hppa; system=nextstep;;
+  rs6000-*-aix*)                arch=power; model=rs6000; system=aix;;
+  powerpc-*-aix*)               arch=power; model=ppc; system=aix;;
+  powerpc-*-linux*)             arch=power; model=ppc; system=elf;;
+  powerpc-*-rhapsody*)          arch=power; model=ppc; system=rhapsody;;
+  powerpc-*-darwin*)            arch=power; model=ppc; system=rhapsody
+    REQUIRED_OCAML=3.06+21
+
+    echo "***************************************************"
+    echo
+    echo "On Mac OS X, you must use a CVS version of Ocaml"
+    echo "($REQUIRED_OCAML for example): you can get a tar.gz"
+    echo "from :"
+    echo "http://savannah.nongnu.org/download/mldonkey/tools/"
+    echo
+    echo "***************************************************"
+
+    case `uname -r` in
+      6.0) CHECKBOUNDS=true;;
+    esac
+    ;;
+  arm*-*-linux*)                arch=arm; system=linux;;
+  ia64-*-linux*)                arch=ia64; system=linux;;
+esac
+
+
 BUILD_OCAML=no
 if test -z "$ac_cv_prog_OCAMLC"; then
    BUILD_OCAML=yes
@@ -2754,7 +2837,9 @@ if test "$BUILD_OCAML" = "yes"; then
       if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then
         echo Downloading ...
 
-        $WGET http://pauillac.inria.fr/caml/distrib/ocaml-"$REQUIRED_OCAML"/ocaml-"$REQUIRED_OCAML".tar.gz
+#  http://pauillac.inria.fr/caml/distrib/ocaml-"$REQUIRED_OCAML"/ocaml-"$REQUIRED_OCAML".tar.gz
+
+        $WGET  http://savannah.nongnu.org/download/mldonkey/tools/ocaml-"$REQUIRED_OCAML".tar.gz
       fi
       if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then exit 1; fi
 
@@ -7247,40 +7332,6 @@ case "`uname -s`" in
   *) CURRENT_DIR="./";;
 esac
 
-echo $host
-
-case "$host" in
-  alpha*-*-osf*)                arch=alpha; system=digital;;
-  alpha*-*-linux*)              arch=alpha; system=linux;;
-  alpha*-*-freebsd*)            arch=alpha; system=freebsd;;
-  alpha*-*-netbsd*)             arch=alpha; system=netbsd;;
-  alpha*-*-openbsd*)            arch=alpha; system=openbsd;;
-  sparc-*-sunos4.*)             arch=sparc; system=sunos;;
-  sparc-*-solaris2.*)           arch=sparc; system=solaris;;
-  sparc-*-*bsd*)                arch=sparc; system=bsd;;
-  sparc-*-linux*)               arch=sparc; system=linux;;
-  i?86-*-linux*)           arch=i386; system=linux;;
-  i?86-*-*bsd*)            arch=i386; system=bsd;;
-  i?86-*-nextstep*)        arch=i386; system=nextstep;;
-  i?86-*-solaris*)         arch=i386; system=solaris;;
-  i?86-*-beos*)            arch=i386; system=beos;;
-  i?86-*-cygwin*)          arch=i386; system=cygwin;;
-  mips-*-irix6*)                arch=mips; system=irix;;
-  hppa1.1-*-hpux*)              arch=hppa; system=hpux;;
-  hppa1.1-*-nextstep*)          arch=hppa; system=nextstep;;
-  rs6000-*-aix*)                arch=power; model=rs6000; system=aix;;
-  powerpc-*-aix*)               arch=power; model=ppc; system=aix;;
-  powerpc-*-linux*)             arch=power; model=ppc; system=elf;;
-  powerpc-*-rhapsody*)          arch=power; model=ppc; system=rhapsody;;
-  powerpc-*-darwin*)            arch=power; model=ppc; system=rhapsody
-    case `uname -r` in
-      6.0) CHECKBOUNDS=true;;
-    esac
-    ;;
-  arm*-*-linux*)                arch=arm; system=linux;;
-  ia64-*-linux*)                arch=ia64; system=linux;;
-esac
-
 # Extract the first word of "bzip2", so it can be a program name with args.
 set dummy bzip2; ac_word=$2
 echo "$as_me:$LINENO: checking for $ac_word" >&5
@@ -7369,6 +7420,12 @@ case $host in
 esac
 
 ARCH=$arch
+
+case "$OCAMLVERSION" in
+  3.06) TYPE_FORMAT="";;
+  *) TYPE_FORMAT="type ('a,'b,'c) ml_format = ('a,'b, 'c,'c) format  type ('a,'b,'c) format = ('a,'b, 'c) ml_format";;
+esac
+
 
 
 
@@ -8016,6 +8073,7 @@ s,@CAMLP4@,$CAMLP4,;t t
 s,@PERL@,$PERL,;t t
 s,@GTK_CONFIG@,$GTK_CONFIG,;t t
 s,@COMPRESS@,$COMPRESS,;t t
+s,@TYPE_FORMAT@,$TYPE_FORMAT,;t t
 s,@MORE_TARGETS@,$MORE_TARGETS,;t t
 s,@MORE_SUBDIRS@,$MORE_SUBDIRS,;t t
 s,@LABLGL_CMA@,$LABLGL_CMA,;t t

@@ -208,9 +208,9 @@ let reconnect gui =
   clean_gui ();
   let sock = TcpBufferedSocket.connect "gui to core"
       (try
-        let h = Unix.gethostbyname 
+        let ip = Ip.from_name 
             (if !!hostname = "" then Unix.gethostname () else !!hostname) in
-        h.Unix.h_addr_list.(0)
+        Ip.to_inet_addr ip       
       with 
         e -> 
           Printf.printf "Exception %s in gethostbyname" (Printexc2.to_string e);

@@ -30,7 +30,7 @@ open Options
 module M = Gui2_messages
 
 let mldonkey_gui_ini = create_options_file 
-    (Filename.concat Sysenv.home ".mldonkey_gui.ini")
+    (Filename.concat CommonOptions.home_basedir ".mldonkey_gui.ini")
   
 module KeyOption = struct
     

@@ -461,6 +461,8 @@ let server_msg_to_string pkt =
   let s = Buffer.contents buf in
   let len = String.length s - 23 in
   str_int s 19 len;
+  Printf.printf "SENDING :"; print_newline ();
+  dump s;
   s 
 
 let new_packet t =
@@ -486,9 +488,8 @@ let server_send sock t =
       
 let gnutella_handler parse f sock nread =
   let b = TcpBufferedSocket.buf sock in
-(*  Printf.printf "GNUTELLA HANDLER"; print_newline ();
-dump (String.sub b.buf b.pos b.len);
-  *)
+  Printf.printf "GNUTELLA HANDLER"; print_newline ();
+  dump (String.sub b.buf b.pos b.len);
   try
     while b.len >= 23 do
       let msg_len = get_int b.buf (b.pos+19) in

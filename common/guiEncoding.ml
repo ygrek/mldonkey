@@ -131,7 +131,8 @@ let rec buf_query buf q =
   | Q_HIDDEN list ->
       buf_int8 buf 13;
       buf_list buf buf_query  list
-
+  | Q_COMBO _ -> assert false
+      
 let buf_tag buf t =
   buf_string buf t.tag_name;
   match t.tag_value with
@@ -148,23 +149,23 @@ let buf_host_state proto buf t =
       | Connecting -> 1
       | Connected_initiating -> 2
       | Connected_downloading -> 3
-      | Connected false -> 4
-      | Connected true -> 5
+      | Connected (-1) -> 4
+      | Connected _ -> 5
       | NewHost -> 6
       | RemovedHost -> 7
       | BlackListedHost -> if proto < 10 then 0 else 8)
   else    
   match t with
-  | NotConnected false -> buf_int8 buf 0
+  | NotConnected (-1) -> buf_int8 buf 0
   | Connecting -> buf_int8 buf  1
   | Connected_initiating -> buf_int8 buf 2
   | Connected_downloading -> buf_int8 buf 3
-  | Connected false -> buf_int8 buf 4
-  | Connected true -> buf_int8 buf 5
+  | Connected (-1) -> buf_int8 buf 4
+  | Connected n -> buf_int8 buf 5; buf_int buf n
   | NewHost -> buf_int8 buf 6
   | RemovedHost -> buf_int8 buf 7
   | BlackListedHost -> buf_int8 buf (if proto < 10 then 0 else 8)
-  | NotConnected true -> buf_int8 buf 9
+  | NotConnected n -> buf_int8 buf 9; buf_int buf n
       
     
 let buf_client_type buf t =
@@ -282,7 +283,6 @@ let buf_file proto buf f =
       buf_string buf f.file_name;
       if proto >= 9 then begin
           let ls = compute_last_seen f.file_last_seen in
-          Printf.printf "last seen %d" ls; print_newline ();
           buf_int buf ls;
           if proto >= 12 then begin
               buf_int buf f.file_priority
@@ -501,7 +501,9 @@ let rec to_gui_version_0 proto buf t =
   | File_remove_source (n1,n2) -> buf_int16 buf 50;
       buf_int buf n1; buf_int buf n2
 
-  | File_update_availability _ -> raise UnsupportedGuiMessage
+  | File_update_availability _
+  | CleanTables _
+    -> raise UnsupportedGuiMessage
       
 let to_gui_version_2 proto buf t =
   match t with
@@ -609,23 +611,28 @@ let to_gui_version_11 proto buf t =
   | File_update_availability (file_num, client_num, avail) -> buf_int16 buf 9;
       buf_int buf file_num; buf_int buf client_num; buf_string buf avail
 
+  | CleanTables (clients, servers) ->      buf_int16 buf 51;
+      buf_list buf (fun buf i -> buf_int buf i) clients;
+      buf_list buf (fun buf i -> buf_int buf i) servers
+      
   | _ -> to_gui_version_10 proto buf t
 (* next message must be 49 *) 
       
 let to_gui_funs = [| 
-    to_gui_version_0; 
-    to_gui_version_0;
-    to_gui_version_2;
-    to_gui_version_3;
-    to_gui_version_3;
-    to_gui_version_5;
-    to_gui_version_6;
-    to_gui_version_6; 
-    to_gui_version_8; 
-    to_gui_version_9; 
-    to_gui_version_10; 
-    to_gui_version_11; 
-    to_gui_version_11; 
+    to_gui_version_0; (* 0 *)
+    to_gui_version_0; (* 1 *)
+    to_gui_version_2; (* 2 *)
+    to_gui_version_3; (* 3 *)
+    to_gui_version_3; (* 4 *)
+    to_gui_version_5; (* 5 *)
+    to_gui_version_6; (* 6 *)
+    to_gui_version_6; (* 7 *)
+    to_gui_version_8;  (* 8 *)
+    to_gui_version_9;  (* 9 *)
+    to_gui_version_10; (* 10 *)
+    to_gui_version_11; (* 11 *)
+    to_gui_version_11; (* 12 *)
+    to_gui_version_11; (* 13 *)
   |]
 
 let to_gui proto = to_gui_funs.(proto) proto
@@ -789,19 +796,20 @@ let from_gui_version_7 proto buf t  =
   | _ -> from_gui_version_4 proto buf t
         
 let from_gui_funs = [| 
-    from_gui_version_0; 
-    from_gui_version_0;
-    from_gui_version_2; 
-    from_gui_version_3; 
-    from_gui_version_4; 
-    from_gui_version_4; 
-    from_gui_version_4; 
-    from_gui_version_7;  
-    from_gui_version_7;  
-    from_gui_version_7;  
-    from_gui_version_7;  
-    from_gui_version_7;  
-    from_gui_version_7;  
+    from_gui_version_0;   (* 0 *)
+    from_gui_version_0;   (* 1 *)
+    from_gui_version_2;   (* 2 *)
+    from_gui_version_3;   (* 3 *)
+    from_gui_version_4;   (* 4 *)
+    from_gui_version_4;   (* 5 *)
+    from_gui_version_4;   (* 6 *)
+    from_gui_version_7;   (* 7 *)
+    from_gui_version_7;   (* 8 *)
+    from_gui_version_7;   (* 9 *)
+    from_gui_version_7;   (* 10 *)
+    from_gui_version_7;   (* 11 *)
+    from_gui_version_7;   (* 12 *)
+    from_gui_version_7;   (* 13 *)
     |]
 
   
@@ -887,3 +895,5 @@ let _ =
   assert (check_from_gui GetDownloadedFiles);
   assert (check_from_gui (SetRoomState (5, RoomPaused)));
   assert (check_from_gui RefreshUploadStats) ; 
+  assert (check_from_gui (SetFilePriority (5,6)));
+  

@@ -273,7 +273,6 @@ let send_update_old gui =
           
 let connecting_writer gui _ =
   try
-    
     let rec iter list =
       if gui_can_write gui then
         match list with
@@ -326,7 +325,7 @@ send_update_old
 let console_messages = Fifo.create ()
         
 let gui_closed gui sock  msg =
-(*  Printf.printf "DISCONNECTED FROM GUI"; print_newline (); *)
+  Printf.printf "DISCONNECTED FROM GUI %s" msg; print_newline (); 
   guis := List2.removeq gui !guis
 
 let gui_reader (gui: gui_record) t _ =
@@ -345,7 +344,7 @@ let gui_reader (gui: gui_record) t _ =
         List.iter (fun (ext, bool) ->
             if ext = P.gui_extension_poll then
               (            
-                Printf.printf "Extension POLL %b" bool; print_newline ();
+                Printf.printf "Extension POLL %s" (string_of_bool bool); print_newline ();
                 gui.gui_poll <- bool
               )
         ) list
@@ -840,7 +839,8 @@ let gui_handler t event =
         TcpBufferedSocket.set_reader sock (GuiDecoding.gui_cut_messages
             (fun opcode s ->
               let m = GuiDecoding.from_gui opcode s in
-              gui_reader gui m sock));
+              gui_reader gui m sock;
+              ));
         TcpBufferedSocket.set_closer sock (gui_closed gui);
         TcpBufferedSocket.set_handler sock TcpBufferedSocket.BUFFER_OVERFLOW
           (fun _ -> 
@@ -848,8 +848,12 @@ let gui_handler t event =
             close sock "overflow");
         (* sort GUIs in increasing order of their num *)
         
-      else 
-        Unix.close s
+      else begin
+          Printf.printf "Connection from that IP %s not allowed"
+            (Ip.to_string from_ip);
+          print_newline ();
+          Unix.close s
+        end
   | _ -> ()
 
 let add_gui_event ev =
@@ -984,7 +988,23 @@ let compute_bandwidth uploaded_bytes downloaded_bytes bandwidth_samples =
   
 (* We should probably only send "update" to the current state of
 the info already sent to *)
+let next_clean_table = ref (last_time () + 1800)
+  
 let update_gui_info () =
+  begin
+    if !next_clean_table < last_time () then begin
+        next_clean_table := last_time () + 1800;
+        let clients = CommonClient.clients_get_all () in
+        let servers = CommonServer.servers_get_all () in
+        with_guis (fun gui ->
+            
+            
+            
+            gui_send gui (CleanTables (clients, servers))  
+        );
+      end;
+  end;
+  
   
   let tcp_upload_rate, tcp_download_rate = 
     compute_bandwidth !tcp_uploaded_bytes !tcp_downloaded_bytes
@@ -1079,7 +1099,7 @@ let _ =
                   if !gui_reconnected then begin
                       Printf.printf "close gui ..."; print_newline ();
                       local_gui := None;
-                      gui_closed gui () ()
+                      gui_closed gui () "local"
                     end else
                     (try
                         while true do

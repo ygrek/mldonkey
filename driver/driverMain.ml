@@ -42,6 +42,7 @@ let hourly_timer timer =
     
 let start_interfaces () =
   
+  
   if !!http_port <> 0 then begin try
         ignore (DriverControlers.create_http_handler ());
       with e ->
@@ -51,16 +52,20 @@ let start_interfaces () =
     end;
   
   ignore (find_port  "telnet server" !!telnet_bind_addr
-    telnet_port DriverControlers.telnet_handler);  
+      telnet_port DriverControlers.telnet_handler);  
+  Printf.printf "2"; print_newline ();
   
   if !!chat_port <> 0 then begin
       ignore (find_port "chat server" !!chat_bind_addr
-        chat_port DriverControlers.chat_handler);  
-      CommonChat.send_hello ()
+          chat_port DriverControlers.chat_handler);  
+      try
+        CommonChat.send_hello ()
+      with _ -> Printf.printf "CommonChat.send_hello failed"; print_newline ();
     end;
 
   gui_server_sock := find_port "gui server"  !!gui_bind_addr
     gui_port gui_handler;  
+
   add_infinite_option_timer update_gui_delay DriverInterface.update_gui_info
 
 
@@ -110,7 +115,7 @@ let save_mlsubmit_reg () =
 
     !!http_login !!http_password (Ip.to_string (client_ip None)) !!http_port
   in
-  File.from_string "mlsubmit.reg" file;
+  File.from_string (Filename.concat file_basedir "mlsubmit.reg") file;
     
 (* Generate the mldonkey_submit file *)
   
@@ -300,7 +305,6 @@ let _ =
   Options.save_with_help searches_ini;
   
   networks_iter (fun r -> network_load_complex_options r);
-  
   networks_iter_all (fun r -> 
       Printf.printf "Network %s %s" r.network_name
         (if network_is_enabled r then "enabled" else "disabled");
@@ -308,7 +312,7 @@ let _ =
   networks_iter (fun r -> network_enable r);
   
   add_infinite_option_timer save_options_delay (fun timer ->
-      DriverInteractive.save_config ());  
+      DriverInteractive.save_config ());
   start_interfaces ();
   
   add_infinite_timer 3600. hourly_timer;
@@ -319,9 +323,7 @@ let _ =
       DriverInteractive.browse_friends ());
   
   Options.prune_file downloads_ini;
-  
   (try load_web_infos () with _ -> ());
-  
   Printf.printf "Welcome to MLdonkey client"; print_newline ();
   Printf.printf "Check http://www.mldonkey.net/ for updates"; 
   print_newline ();
@@ -349,24 +351,37 @@ let _ =
             Printf.printf "Not running under X, not trying to start the GUI";
             print_newline ());
   );
-  
-  save_mlsubmit_reg ();
-  DriverInteractive.save_config ();
-  
-  Unix32.max_cache_size := MlUnix.max_filedescs;
-  
+ 
   if !!run_as_user <> "" then begin
       try
         let new_pw = Unix.getpwnam !!run_as_user  in
         MlUnix.setuid new_pw.Unix.pw_uid;
         let pw = Unix.getpwuid (Unix.getuid()) in
-        Printf.printf "dchub is now running as %s\n"  pw.Unix.pw_name;
+        Printf.printf "mldonkey is now running as %s\n"  pw.Unix.pw_name;
       with e ->
-          Printf.printf "Exception %s trying to set user_uid"
-          (Printexc2.to_string e);
+          Printf.printf "Exception %s trying to set user_uid [%s]"
+          (Printexc2.to_string e) !!run_as_user;
           print_newline ();
-    end
+          exit 2
+    end;
+ 
+  if !!run_as_useruid <> 0 then begin
+      try
+        MlUnix.setuid !!run_as_useruid;
+        Printf.printf "mldonkey is now running as uid %d\n"  !!run_as_useruid;
+      with e ->
+          Printf.printf "Exception %s trying to set user_uid [%d]"
+          (Printexc2.to_string e) !!run_as_useruid;
+          print_newline ();
+          exit 2
+    end;
+  
+  save_mlsubmit_reg ();
+  DriverInteractive.save_config ();
+  
+  Unix32.max_cache_size := MlUnix.max_filedescs
  
 let _ =
+  Printf.printf "Core started"; print_newline ();
   core_included := true
   

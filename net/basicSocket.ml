@@ -408,13 +408,13 @@ let stats buf t =
   
 let print_socket s =
   print_socket s;
-  Printf.printf "  rtimeout %5.0f/%5.0f read %b & %b write %b & %b (born %f)" 
+  Printf.printf "  rtimeout %5.0f/%5.0f read %s & %s write %s & %s (born %f)" 
     (s.next_rtimeout -. last_time ())
   s.rtimeout
-    (s.want_to_read)
-  (!(s.read_allowed))
-  (s.want_to_write)
-  (!(s.write_allowed))
+    (string_of_bool s.want_to_read)
+  (string_of_bool !(s.read_allowed))
+  (string_of_bool s.want_to_write)
+  (string_of_bool !(s.write_allowed))
   (last_time () -. s.born)
   ;
   print_newline ()

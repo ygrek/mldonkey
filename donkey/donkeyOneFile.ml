@@ -35,21 +35,7 @@ open DonkeyTypes
 open DonkeyOptions
 open CommonOptions
 open DonkeyComplexOptions
-open DonkeyGlobals
-  
-let client_state t =
-  match t with
-    Connected false -> "Connected"
-  | NotConnected false -> ""
-  | Connected true -> "Queued"
-  | NotConnected true -> "Queued out"
-  | Connected_downloading -> "Downloading"
-  | Connecting -> "Connecting"
-  | Connected_initiating -> "Initiating"
-  | RemovedHost -> "Removed"
-  | NewHost -> "New"
-  | BlackListedHost -> "Black Listed"
-          
+open DonkeyGlobals          
   
 let chunk_pos i =
   Int64.mul (Int64.of_int i)  block_size
@@ -108,7 +94,6 @@ let rec create_zones file begin_pos end_pos list =
       zone_end = zone_end2;
       zone_nclients = 0;
       zone_present = false;
-      zone_file = file;
     } :: list ) 
   
 let client_file c =
@@ -182,7 +167,7 @@ let query_zones c b =
 (*          Printf.printf "CLIENT: put in download fifo"; print_newline (); *)
         Fifo.put download_fifo (sock, msg, len)
         end else
-        direct_client_send sock msg
+        direct_client_send c msg
         
 
         
@@ -505,7 +490,7 @@ and find_zone1 c b zones =
       file.file_chunks.(b.block_pos) <- state;
 (*      (file.file_all_chunks).[b.block_pos] <- (if state = PresentVerified 
 then '1' else '0'); *)
-
+      
       file.file_absent_chunks <- List.rev (find_absents file);
       c.client_block <- None;
       find_client_block c
@@ -517,6 +502,45 @@ then '1' else '0'); *)
         end else
         find_zone1 c b zones
 
+and zero_block file i =
+(* disk fragmentation prevention:
+   This should help the bad filesystems, and the others too ;)
+   When a chunk is about to be used for the first time, zero it, 
+   allocating all the disk space at once *)
+  try
+    (match file.file_chunks.(i) with
+        AbsentTemp | AbsentVerified ->
+(*	   Printf.printf "Allocating disk space";
+	   print_newline (); *)
+          let chunk_begin = chunk_pos i in
+          let final_pos = Unix32.seek64 (file_fd file) 
+            chunk_begin Unix.SEEK_SET in
+          if final_pos <> chunk_begin then begin
+              Printf.printf "BAD LSEEK %Ld/%Ld"
+                (final_pos)
+              (chunk_begin); print_newline ();
+              raise Not_found
+            end;
+          let fd = try
+              Unix32.force_fd (file_fd file) 
+            with e -> 
+                Printf.printf "In Unix32.force_fd"; print_newline ();
+                raise e
+          in
+          let buffer_size = 128 * 1024 in
+          let buffer = String.make buffer_size '\000' in
+          let remaining = ref (Int64.to_int (Int64.sub (chunk_end file i) chunk_begin)) in
+          while !remaining >= buffer_size do
+            Unix2.really_write fd buffer 0 buffer_size;
+            remaining := !remaining - buffer_size;
+          done;
+          if !remaining > 0 then
+            Unix2.really_write fd buffer 0 !remaining;
+      
+      | _ -> Printf.printf "Trying to zero some existing chunk!!";
+          print_newline ())
+  with _ -> ()
+      
 and check_file_block c file i max_clients =
   if c.client_chunks.(i) then begin
       begin
@@ -539,6 +563,7 @@ and check_file_block c file i max_clients =
               (b.block_begin) (b.block_end);
               print_newline ();
             end;
+	  zero_block file i;
           c.client_block <- Some b;
           file.file_chunks.(i) <- PartialVerified b;
           find_client_zone c;
@@ -574,7 +599,7 @@ and start_download c =
         [] -> ()
       | (file, chunks) :: _ ->
           
-          direct_client_send sock (
+          direct_client_send c (
             let module M = DonkeyProtoClient in
             let module Q = M.JoinQueue in
             M.JoinQueueReq Q.t);                        
@@ -604,13 +629,13 @@ and restart_download c =
               c.client_all_chunks.[i] <- '1';
           done;          
           if file.file_md4s = [] && file_size file > block_size then begin
-              direct_client_send sock (
+              direct_client_send c (
                 let module M = DonkeyProtoClient in
                 let module C = M.QueryChunkMd4 in
                 M.QueryChunkMd4Req file.file_md4);
             end;                   
           set_rtimeout sock !!queued_timeout;
-          set_client_state c (Connected true)
+          set_client_state c (Connected 0)
 
 and find_client_block c =
 (* find an available block *)
@@ -839,6 +864,7 @@ let disconnect_chunk ch =
   | AbsentTemp | AbsentVerified | PresentTemp  | PresentVerified -> ()
 
 let verify_chunks file =
+  Printf.printf "Start verifying\n";
   if file.file_md4s <> [] then
     for i = 0 to file.file_nchunks - 1 do
       let b = file.file_chunks.(i)  in
@@ -875,6 +901,7 @@ let verify_chunks file =
               (if state = PresentVerified then '1' else '0'); *)
     
     done;
+  Printf.printf "Done verifying\n";
   file.file_absent_chunks <- List.rev (find_absents file);
   compute_size file
  
@@ -1088,7 +1115,7 @@ let download_engine () =
             (try
                 let (sock, msg, len) = Fifo.take download_fifo in
                 download_credit := !download_credit - (len / 1000 + 1);
-                direct_client_send sock msg
+                direct_client_sock_send sock msg
               with _ -> ());
             iter ()
           end

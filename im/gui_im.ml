@@ -600,7 +600,7 @@ class room_window (room: room) =
         (room_users#wtool#insert_button 
           ~text: "Leave"
           ~tooltip: "Leave this room"
-          ~icon: (Gui_icons.pixmap [] "trash.xpm")#coerce
+          ~icon: (Gui_options.pixmap Gui_messages.o_xpm_remove)#coerce
           ~callback: self#quit_this_room
           ()
       );

@@ -194,15 +194,20 @@ class upstats_box () =
     method h_shared_file_upload =
       upstats#h_shared_file_upload 
 
+    method set_tb_style tb = 
+        if Options.(!!) Gui_options.mini_toolbars then
+          (wtool1#misc#hide (); wtool2#misc#show ()) else
+          (wtool2#misc#hide (); wtool1#misc#show ());
+      wtool1#set_style tb;
+      wtool2#set_style tb
+
     initializer
       vbox#pack ~expand: true ~padding: 2 upstats#box;
 
-      ignore
-	(wtool#insert_button 
-	   ~text: (gettext M.refresh)
-	   ~tooltip: (gettext M.refresh)
-	   ~icon: (Gui_options.pixmap M.o_xpm_refresh)#coerce
-	   ~callback: self#refresh
-	   ()
-	);
+      Gui_misc.insert_buttons wtool1 wtool2 
+        ~text: (gettext M.refresh)
+      ~tooltip: (gettext M.refresh)
+      ~icon: M.o_xpm_refresh
+        ~callback: self#refresh 
+      ()
   end

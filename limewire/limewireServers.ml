@@ -225,7 +225,7 @@ print_newline ();
   *)
       close sock "timeout";
       s.server_sock <- None;
-      set_server_state s (NotConnected false);
+      set_server_state s (NotConnected (-1));
       decr nservers;
       if List.memq s !connected_servers then begin
           connected_servers := List2.removeq s !connected_servers;
@@ -344,7 +344,7 @@ begin
                   (Ip.to_string s.server_ip) s.server_port;
                 print_newline (); *)
             write_string sock "GNUTELLA/0.6 200 OK\r\n\r\n";
-            set_server_state s (Connected false);
+            set_server_state s (Connected (-1));
             recover_files_from_server sock
       end else 
     if String2.starts_with header gnutella_503_shielded then begin

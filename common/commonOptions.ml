@@ -22,13 +22,27 @@ open BasicSocket
 open Options
 open Unix
 
-  
-let file_basedir = 
+let (file_basedir, home_basedir) = 
   try
-    Sys.getenv "MLDONKEY_DIR"
-  with _ -> 
-      Unix.getcwd ()
-
+    if (String2.starts_with 
+          (Filename.basename Sys.argv.(0))  "mldonkey_gui")
+    then raise Exit;
+    let chroot_dir = Sys.getenv "MLDONKEY_CHROOT" in
+    try
+      Unix.chdir chroot_dir;
+      Unix.chroot chroot_dir;
+      Printf.printf "mldonkey is now running in %s\n"  chroot_dir;
+        ".", "."
+        
+    with e ->
+        Printf.printf "Exception %s trying to chroot %s"
+          (Printexc2.to_string e) chroot_dir;
+        print_newline ();
+        exit 2
+  with _ ->  
+      (try Sys.getenv "MLDONKEY_DIR" with _ -> Unix.getcwd ()),
+      (try Sys.getenv "HOME" with _ -> ".")
+      
 let cmd_basedir = Autoconf.current_dir (* will not work on Windows *)
   
 let downloads_ini = create_options_file (
@@ -108,7 +122,6 @@ let max_hard_download_rate = define_option downloads_ini ["max_hard_download_rat
   "The maximal download rate you can tolerate on your link in kB/s (0 = no limit)
   The limit will apply on all your connections (clients and servers) and both
 control and data messages." int_option 0
-
   
 let password = define_option downloads_ini ["password"] 
   "The password to access your client from the GUI (setting it disables
@@ -169,13 +182,16 @@ let enable_openft = define_option downloads_ini
     bool_option false
 
 let _ =
-  match Filename.basename Sys.argv.(0) with
-  | "mldc" -> enable_directconnect =:= true
-  | "mlnap" -> enable_opennap =:= true
-  | "mldonkey" -> enable_donkey =:= true
-  | "mlslsk" -> enable_soulseek =:= true
-  | "mlgnut" -> enable_limewire =:= true
-  | _ -> ()
+  let bin_name = Filename.basename Sys.argv.(0) in
+  List.iter (fun (prefix, option) ->
+      if String2.starts_with bin_name prefix then
+        option =:= true
+  )
+  [ "mldc", enable_directconnect;
+    "mlnap", enable_opennap; 
+    "mldonkey", enable_donkey;
+    "mlslsk", enable_soulseek;
+    "mlgnut", enable_limewire;]
   
 let smtp_server = define_option downloads_ini ["smtp_server"] 
   "The mail server you want to use (must be SMTP). Use hostname or IP address"
@@ -343,6 +359,11 @@ let run_as_user = define_option expert_ini ["run_as_user"]
   have been bound (can be use not to run with root priviledges when 
 a port < 1024 is needed)" string_option ""
 
+let run_as_useruid = define_option expert_ini ["run_as_useruid"]
+  "The UID of the user (0=disabled) you want mldonkey to run as, after the ports
+  have been bound (can be use not to run with root priviledges when 
+a port < 1024 is needed)" int_option 0
+
 let addr_option  =  define_option_class "Addr" 
     (fun value ->
       let s = value_to_string value in
@@ -462,7 +483,12 @@ let max_reask_delay = define_option expert_ini ["max_reask_delay"]
     "The maximal delay between two connections to the same client" 
   int_option 3600
 
-    
+let html_mods = define_option expert_ini
+    ["html_mods"] "Whether to use the modified WEB interface" bool_option false
+
+let use_html_mods o =
+  o.CommonTypes.conn_output = CommonTypes.HTML && !!html_mods
+  
 let html_checkbox_file_list = define_option expert_ini
     ["html_checkbox_file_list"] "Whether to use checkboxes in the WEB interface" bool_option true
     

@@ -182,6 +182,8 @@ module QueryOption = struct
             SmallList [StringValue "MP3_ALBUM"; StringValue label; StringValue s]
         | Q_MP3_BITRATE (label, s) ->
             SmallList [StringValue "MP3_BITRATE"; StringValue label; StringValue s]
+
+      | Q_COMBO _ -> assert false
           
     let rec value_to_query v =
       match v with
@@ -537,7 +539,7 @@ let server_add impl =
   if impl.impl_server_state = NewHost then begin
       server_update_num impl;
       servers =:= Intmap.add (server_num server) server !!servers;
-      impl.impl_server_state <- NotConnected false
+      impl.impl_server_state <- NotConnected (-1)
     end
 
 let contacts = ref []

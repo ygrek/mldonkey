@@ -196,7 +196,7 @@ let client_to_client c t sock =
           c.client_requests <- List.remove_assoc req c.client_requests;
           let reason =  String.lowercase reason in
           if reason = "queued" then
-            set_client_state c (Connected true)
+            set_client_state c (Connected 0)
           else
             update_file_state (file.file_file) (FileAborted reason)
         with

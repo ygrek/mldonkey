@@ -145,6 +145,8 @@ let custom_query buf query =
     let rec iter q in_op =
       match q with
       
+      | Q_COMBO _ -> assert false
+        
       | Q_AND list ->
           if in_op <> IN_AND then begin
               Buffer.add_string buf "<table border=1>";
@@ -412,6 +414,8 @@ let custom_query buf query =
     and iter_hidden q =
       match q with
       
+      | Q_COMBO _ -> assert false
+          
       | Q_AND list | Q_OR list | Q_HIDDEN list ->
           List.iter iter_hidden list
           
@@ -669,6 +673,7 @@ let andnot q1 q2 = QAndNot (q1,q2)
 let rec mftp_query_of_query_entry qe =
   match qe with
     Q_AND ([]|[_]) -> QNone
+  | Q_COMBO _ -> assert false
   | Q_AND (h :: q) ->
       List.fold_left
 	(fun acc -> fun q -> QAnd (acc, mftp_query_of_query_entry q))

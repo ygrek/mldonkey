@@ -22,7 +22,6 @@ open Md4
 val find_client_zone : DonkeyTypes.client -> unit
 val update_zone : DonkeyTypes.file -> 
   int64 -> int64 -> DonkeyTypes.zone -> unit
-val client_state : CommonTypes.host_state -> string
 val client_file : DonkeyTypes.client -> DonkeyTypes.file
 val find_client_block : DonkeyTypes.client -> unit
 val verify_chunks : DonkeyTypes.file -> unit 

@@ -170,9 +170,9 @@ let calc_file_eta f =
     then
       let time = BasicSocket.last_time () in
       let age = time - f.file_age in
-	if age > 0
-	then downloaded /. (float_of_int age)
-	else 0.
+      if age > 0
+      then downloaded /. (float_of_int age)
+      else 0.
     else rate
   in
   let eta = 
@@ -181,21 +181,21 @@ let calc_file_eta f =
     else missing /. rate
   in
   int_of_float eta
-  
+
 class box columns sel_mode () =
   let titles = List.map Gui_columns.File.string_of_column !!columns in
   object (self)
     inherit [file_info] Gpattern.plist sel_mode titles true (fun f -> f.file_num) as pl
-    inherit Gui_downloads_base.box () as box
-      
+      inherit Gui_downloads_base.box () as box
+    
     
     val mutable columns = columns
-
+    
     method set_columns l =
       columns <- l;
       self#set_titles (List.map Gui_columns.File.string_of_column !!columns);
       self#update
-
+    
     method column_menu  i = 
       [
         `I ("Sort", self#resort_column i);
@@ -203,14 +203,14 @@ class box columns sel_mode () =
           (fun _ -> 
               match !!columns with
                 _ :: _ :: _ ->
-                                                      (let l = !!columns in
+                  (let l = !!columns in
                     match List2.cut i l with
                       l1, _ :: l2 ->
                         columns =:= l1 @ l2;
                         self#set_columns columns
                     | _ -> ())
-
-                  
+              
+              
               | _ -> ()
           )
         );
@@ -231,226 +231,223 @@ class box columns sel_mode () =
                     )))
             ) Gui_columns.file_column_strings));
       ]
-
-      
+    
+    
     method box = box#coerce
     method vbox = box#vbox
-
+    
     method compare_by_col col f1 f2 =
       match col with
       | Col_file_name -> compare f1.file_name f2.file_name
       |	Col_file_size -> compare f1.file_size f2.file_size
       |	Col_file_downloaded -> compare f1.file_downloaded f2.file_downloaded
       |	Col_file_percent -> compare 
-	    (Int64.to_float f1.file_downloaded /. Int64.to_float f1.file_size) 
-	    (Int64.to_float f2.file_downloaded /. Int64.to_float f2.file_size) 
+            (Int64.to_float f1.file_downloaded /. Int64.to_float f1.file_size) 
+          (Int64.to_float f2.file_downloaded /. Int64.to_float f2.file_size) 
       |	Col_file_rate-> compare f1.file_download_rate f2.file_download_rate
       |	Col_file_state -> compare f1.file_state f2.file_state
       |	Col_file_availability ->
-	  let fn =
-	    if !!Gui_options.use_relative_availability
-	    then file_availability
-	    else fun f -> string_availability f.file_availability
-	  in
-	    compare (float_avail (fn f1)) (float_avail (fn f2))
+          let fn =
+            if !!Gui_options.use_relative_availability
+            then file_availability
+            else fun f -> string_availability f.file_availability
+          in
+          compare (float_avail (fn f1)) (float_avail (fn f2))
       |	Col_file_md4 -> compare (Md4.to_string f1.file_md4) (Md4.to_string f2.file_md4)
       |	Col_file_format -> compare f1.file_format f2.file_format
       | Col_file_network -> compare f1.file_network f2.file_network
       |	Col_file_age -> compare f1.file_age f2.file_age
       |	Col_file_last_seen -> compare f1.file_last_seen f2.file_last_seen
       | Col_file_eta -> compare (calc_file_eta f1) (calc_file_eta f2)
-          
+    
     method compare f1 f2 =
       let abs = if current_sort >= 0 then current_sort else - current_sort in
       let col = 
-	try List.nth !!columns (abs - 1) 
-	with _ -> Col_file_name
+        try List.nth !!columns (abs - 1) 
+        with _ -> Col_file_name
       in
       let res = self#compare_by_col col f1 f2 in
       current_sort * res
-
+    
     method content_by_col f col =
       match col with
-	Col_file_name -> 
-	  let s_file = Gui_misc.short_name f.file_name in
-	  s_file
+        Col_file_name -> 
+          let s_file = Gui_misc.short_name f.file_name in
+          s_file
       |	Col_file_size ->
-	  Gui_misc.size_of_int64 f.file_size 
+          Gui_misc.size_of_int64 f.file_size 
       |	Col_file_downloaded ->
-	  Gui_misc.size_of_int64 f.file_downloaded
+          Gui_misc.size_of_int64 f.file_downloaded
       |	Col_file_percent ->
-	  Printf.sprintf "%5.1f" 
-	    (Int64.to_float f.file_downloaded /. Int64.to_float f.file_size *. 100.)
+          Printf.sprintf "%5.1f" 
+            (Int64.to_float f.file_downloaded /. Int64.to_float f.file_size *. 100.)
       |	Col_file_rate ->
-	  if f.file_download_rate > 0. then
+          if f.file_download_rate > 0. then
             Printf.sprintf "%5.1f" (f.file_download_rate /. 1024.)
           else ""
       |	Col_file_state ->
-	  string_of_file_state f.file_state 
+          string_of_file_state f.file_state 
       |	Col_file_availability ->
-	  if !!Gui_options.use_relative_availability
-	  then file_availability f
-	  else string_availability f.file_availability
+          if !!Gui_options.use_relative_availability
+          then file_availability f
+          else string_availability f.file_availability
       | Col_file_md4 -> Md4.to_string f.file_md4
       | Col_file_format -> string_of_format f.file_format
       | Col_file_network -> Gui_global.network_name f.file_network
       |	Col_file_age ->
-	  let age = (BasicSocket.last_time ()) - f.file_age in
-	    time_to_string age
+          let age = (BasicSocket.last_time ()) - f.file_age in
+          time_to_string age
       |	Col_file_last_seen ->
-	  if f.file_last_seen > 0
-	  then let last = (BasicSocket.last_time ())
-			  - f.file_last_seen in
-	    time_to_string last
-	  else Printf.sprintf "---"
+          if f.file_last_seen > 0
+          then let last = (BasicSocket.last_time ())
+              - f.file_last_seen in
+            time_to_string last
+          else Printf.sprintf "---"
       | Col_file_eta ->
-	  let eta = calc_file_eta f in
-	    if eta >= 1000 * 60 * 60 * 24 then
-	      Printf.sprintf "---"
-	    else time_to_string eta
-          
+          let eta = calc_file_eta f in
+          if eta >= 1000 * 60 * 60 * 24 then
+            Printf.sprintf "---"
+          else time_to_string eta
+    
     method content f =
       let strings = List.map 
-	  (fun col -> P.String (self#content_by_col f col))
-	  !!columns 
+          (fun col -> P.String (self#content_by_col f col))
+        !!columns 
       in
       let col_opt = 
-	match color_opt_of_file f with
-	  None -> Some `BLACK
-	| Some c -> Some (`NAME c)
+        match color_opt_of_file f with
+          None -> Some `BLACK
+        | Some c -> Some (`NAME c)
       in
       (strings, col_opt)
-
+    
     method find_file num = self#find num
-
+    
     method remove_file f row = 
       self#remove_item row f;
       selection <- List.filter (fun fi -> fi.file_num <> f.file_num) selection
-
-    method set_tb_style = wtool#set_style
-
+    
+    method set_tb_style tb = 
+        if Options.(!!) Gui_options.mini_toolbars then
+          (wtool1#misc#hide (); wtool2#misc#show ()) else
+          (wtool2#misc#hide (); wtool1#misc#show ());
+      wtool2#set_style tb;
+      wtool1#set_style tb
+    
     initializer
       box#vbox#pack ~expand: true pl#box;
-      
 
-  end
-    
+
+end
+
 class box_downloaded wl_status () =
   object (self)
     inherit box O.downloaded_columns `SINGLE () as super
-
+    
     method update_wl_status : unit =
       wl_status#set_text 
-	(Printf.sprintf !!Gui_messages.downloaded_files !G.ndownloaded !G.ndownloads)
-
+        (Printf.sprintf !!Gui_messages.downloaded_files !G.ndownloaded !G.ndownloads)
+    
     method content f = 
       (fst (super#content f), Some (`NAME !!O.color_downloaded))
-
+    
     method save ev =
       match self#selection with
-	f :: _ ->
-	  let items = save_menu_items f in
-	  GAutoconf.popup_menu ~entries: items ~button: 1 ~time: 0
+        f :: _ ->
+          let items = save_menu_items f in
+          GAutoconf.popup_menu ~entries: items ~button: 1 ~time: 0
       |	_ ->
-	  ()
-
+          ()
+    
     method save_all () = 
       self#iter	(fun f -> 
           Gui_com.send (GuiProto.SaveFile (f.file_num, file_first_name f)))
-
+    
     method edit_mp3_tags () = 
       match self#selection with
-	file :: _ ->
-	  (
-	   match file.file_format with
-             MP3 (tag,_) ->
-               Mp3_ui.edit_tag_v1 (gettext M.edit_mp3) tag ;
-               Gui_com.send (GuiProto.ModifyMp3Tags (file.file_num, tag))
-	   | _ ->
-	       ()
-	  )
+        file :: _ ->
+          (
+            match file.file_format with
+              MP3 (tag,_) ->
+                Mp3_ui.edit_tag_v1 (gettext M.edit_mp3) tag ;
+                Gui_com.send (GuiProto.ModifyMp3Tags (file.file_num, tag))
+            | _ ->
+                ()
+          )
       |	_ ->
-	  ()
-
+          ()
+    
     method menu =
       match self#selection with
-	[] -> [ `I ((gettext M.save_all), self#save_all) ]
+        [] -> [ `I ((gettext M.save_all), self#save_all) ]
       |	file :: _ ->
           [ 
             `I ((gettext M.save_as), save_as file) ;
             `M ((gettext M.save), save_menu_items file) ;
             `I ((gettext M.preview), preview file) ;
-	  ] @
-	  (match file.file_format with
-	    MP3 _ -> [`I ((gettext M.edit_mp3), self#edit_mp3_tags)]
-	  | _ -> []) @
-	  [ `S ;
-	    `I ((gettext M.save_all), self#save_all) 
-	  ]
+          ] @
+            (match file.file_format with
+              MP3 _ -> [`I ((gettext M.edit_mp3), self#edit_mp3_tags)]
+            | _ -> []) @
+            [ `S ;
+            `I ((gettext M.save_all), self#save_all) 
+          ]
 
-    (** {2 Handling core messages} *)
-
+(** {2 Handling core messages} *)
+    
     method h_downloaded f =
       try
-	ignore (self#find_file f.file_num)
+        ignore (self#find_file f.file_num)
       with
         Not_found ->
           incr ndownloaded;
-	  self#update_wl_status ;
-	  self#add_item f
-
+          self#update_wl_status ;
+          self#add_item f
+    
     method h_removed f =
       try
         let (row, _) = self#find_file f.file_num in
         decr ndownloaded;
-	self#update_wl_status ;
+        self#update_wl_status ;
         self#remove_file f row
       with
-	Not_found ->
-	  ()
-
+        Not_found ->
+          ()
+    
     method save_as () = 
       match self#selection with 
       | [] -> ()
       | file :: _ -> save_as file ()
-          
+    
     initializer
-      ignore
-	(wtool#insert_button 
-	   ~text: (gettext M.save)
-	   ~tooltip: (gettext M.save)
-	   ~icon: (Gui_options.pixmap M.o_xpm_save)#coerce
-	   ~callback: self#save
-	   ()
-	);
-
-      ignore
-	(wtool#insert_button 
-	   ~text: (gettext M.save_as)
-	   ~tooltip: (gettext M.save_as)
-	   ~icon: (Gui_options.pixmap M.o_xpm_save_as)#coerce
-	   ~callback: self#save_as
-	   ()
-	);
-
-      ignore
-	(wtool#insert_button 
-	   ~text: (gettext M.save_all)
-	   ~tooltip: (gettext M.save_all)
-	   ~icon: (Gui_options.pixmap M.o_xpm_save_all)#coerce
-	   ~callback: self#save_all
-	   ()
-	);
-
-      ignore
-	(wtool#insert_button 
-	   ~text: (gettext M.edit_mp3)
-	   ~tooltip: (gettext M.edit_mp3)
-	   ~icon: (Gui_options.pixmap M.o_xpm_edit_mp3)#coerce
-	   ~callback: self#edit_mp3_tags
-	   ()
-	);
-  end
+      Gui_misc.insert_buttons wtool1 wtool2 
+        ~text: (gettext M.save)
+      ~tooltip: (gettext M.save)
+      ~icon: (M.o_xpm_save)
+      ~callback: self#save
+        ();
+      
+      Gui_misc.insert_buttons wtool1 wtool2 
+        ~text: (gettext M.save_as)
+      ~tooltip: (gettext M.save_as)
+      ~icon: (M.o_xpm_save_as)
+      ~callback: self#save_as
+        ();
+      
+      Gui_misc.insert_buttons wtool1 wtool2 
+        ~text: (gettext M.save_all)
+      ~tooltip: (gettext M.save_all)
+      ~icon: (M.o_xpm_save_all)
+      ~callback: self#save_all
+        ();
+      
+      Gui_misc.insert_buttons wtool1 wtool2 
+        ~text: (gettext M.edit_mp3)
+      ~tooltip: (gettext M.edit_mp3)
+      ~icon: (M.o_xpm_edit_mp3)
+      ~callback: self#edit_mp3_tags
+        ();
+      end
 
 let colorGreen = `NAME "green"
 let colorRed   = `NAME "red"
@@ -478,9 +475,10 @@ let redraw_chunks draw_avail file =
   drawing#rectangle ~filled: true ~x:0 ~y:0 ~width:wx ~height:wy ();
   
   let nchunks = String.length file.file_chunks in
-  let dx = min 3 (wx / nchunks) in
+  let dx = min !!O.chunk_width (wx / nchunks) in
   let offset = (wx - nchunks * dx) / 2 in
   let offset = if offset < 0 then 0 else offset in
+  let dx2 = if dx <= 3 then dx else dx - 1 in
   for i = 0 to nchunks - 1 do
     if !!Gui_options.use_availability_height
     then begin
@@ -489,7 +487,7 @@ let redraw_chunks draw_avail file =
             drawing#set_foreground colorGreen;
             drawing#rectangle ~filled: true
             ~x:(offset + i*dx) ~y: 0 
-              ~width: dx ~height:wy ()
+              ~width: dx2 ~height:wy ()
           end
         else
         let h = int_of_char (file.file_availability.[i])
@@ -499,19 +497,19 @@ let redraw_chunks draw_avail file =
             drawing#set_foreground colorRed;
             drawing#rectangle ~filled: true
             ~x:(offset + i*dx) ~y: 0
-              ~width: dx ~height:wy ();
+              ~width: dx2 ~height:wy ();
           end
         else begin
             let h = min ((wy * h) / !!Gui_options.availability_max) wy in
             drawing#set_foreground colorGray;
             drawing#rectangle ~filled: true
             ~x:(offset + i*dx) ~y: 0
-              ~width: dx ~height: (wy - h) ();
+              ~width: dx2 ~height: (wy - h) ();
             
             drawing#set_foreground colorBlue;
             drawing#rectangle ~filled: true
             ~x:(offset + i*dx) ~y: (wy - h)
-            ~width: dx ~height:h ();
+            ~width: dx2 ~height:h ();
           end
       end else begin
         drawing#set_foreground (
@@ -524,7 +522,7 @@ let redraw_chunks draw_avail file =
           | _ -> colorBlack);
         drawing#rectangle ~filled: true
         ~x:(offset + i*dx) ~y: 0 
-          ~width: dx ~height:wy ()
+          ~width: dx2 ~height:wy ()
       end
   done
 
@@ -754,63 +752,74 @@ class box_downloads box_locs wl_status () =
     
     method h_file_remove_location (num:int) (src:int) = ()
     
+    method clean_table list = 
+      let set = ref Intset.empty in
+      List.iter (fun c_num ->
+          set := Intset.add c_num !set
+      ) list;
+      self#iter (fun file ->
+          match file.file_sources with
+            None -> ()
+          | Some sources ->
+              file.file_sources <- Some (List.filter (fun c ->
+                  Intset.mem c !set) sources)
+      );
+      let all = Hashtbl2.to_list locations in 
+      Hashtbl.clear locations;
+      List.iter (fun c ->
+          if Intset.mem c.client_num !set then
+            Hashtbl.add locations c.client_num c
+      ) all
+    
     method preview () =
       match self#selection with
         [] -> ()
       | file :: _ -> preview file ()
     
     initializer
-      ignore
-        (wtool#insert_button 
+
+        Gui_misc.insert_buttons wtool1 wtool2 
           ~text: (gettext M.cancel)
         ~tooltip: (gettext M.cancel)
-        ~icon: (Gui_options.pixmap M.o_xpm_cancel)#coerce
+      ~icon: (M.o_xpm_cancel)
           ~callback: self#cancel
-          ()
-      );
-      ignore
-        (wtool#insert_button 
+          ();
+
+      Gui_misc.insert_buttons wtool1 wtool2 
           ~text: (gettext M.retry_connect)
         ~tooltip: (gettext M.retry_connect)
-        ~icon: (Gui_options.pixmap M.o_xpm_retry_connect)#coerce
+        ~icon: (M.o_xpm_retry_connect)
           ~callback: self#retry_connect
-          ()
-      );
-      ignore
-        (wtool#insert_button 
+          ();
+
+        Gui_misc.insert_buttons wtool1 wtool2 
           ~text: (gettext M.pause_resume_dl)
         ~tooltip: (gettext M.pause_resume_dl)
-        ~icon: (Gui_options.pixmap M.o_xpm_pause_resume)#coerce
+        ~icon: (M.o_xpm_pause_resume)
           ~callback: self#pause_resume
-          ()
-      );
-      
-      ignore
-        (wtool#insert_button 
+          ();
+
+        Gui_misc.insert_buttons wtool1 wtool2 
           ~text: (gettext M.verify_chunks)
         ~tooltip: (gettext M.verify_chunks)
-        ~icon: (Gui_options.pixmap M.o_xpm_verify_chunks)#coerce
+      ~icon: (M.o_xpm_verify_chunks)
           ~callback: self#verify_chunks
-          ()
-      );
-      
-      ignore
-        (wtool#insert_button 
+          ();
+
+        Gui_misc.insert_buttons wtool1 wtool2 
           ~text: (gettext M.preview)
         ~tooltip: (gettext M.preview)
-        ~icon: (Gui_options.pixmap M.o_xpm_preview)#coerce
+        ~icon: (M.o_xpm_preview)
           ~callback: self#preview
-          ()
-      );
-      
-      ignore
-        (wtool#insert_button 
+          ();
+
+        Gui_misc.insert_buttons wtool1 wtool2 
           ~text: (gettext M.get_format)
         ~tooltip: (gettext M.get_format)
-        ~icon: (Gui_options.pixmap M.o_xpm_get_format)#coerce
+        ~icon: (M.o_xpm_get_format)
           ~callback: self#get_format
-          ()
-      );
+          ();
+
       ignore (draw_availability#event#connect#expose (fun _ ->
             match last_displayed_file with
               None -> true
@@ -885,6 +894,8 @@ class pane_downloads () =
       locs#h_update_location c_new
 
 (*    method h_remove_client c = dls#remove_client c *)
+
+    method clean_table clients = dls#clean_table clients
       
     method on_entry_return () =
       match entry_ed2k_url#text with
@@ -903,11 +914,11 @@ class pane_downloads () =
       
       clients_wpane#add1 locs#coerce;
       clients_wpane#add2 client_info_box#coerce;
-      downloaded_frame#add dled#coerce;
+      downloaded_frame#add dled#coerce; 
       downloads_frame#add dls#coerce ;
       if !!Gui_options.downloads_up then  begin
           vpaned#add1 downloads_frame#coerce;
-          vpaned#add2 downloaded_frame#coerce;
+          vpaned#add2 downloaded_frame#coerce; 
         end else begin
           vpaned#add2 downloads_frame#coerce;
           vpaned#add1 downloaded_frame#coerce;

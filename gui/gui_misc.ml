@@ -38,200 +38,6 @@ let mo = ko *. ko
 let go = mo *. ko
 
 
-(*
-let option_of_string s =
-  if s = "" then None else Some s
-  
-let submit_search (gui: gui) local ()=
-  let module P = GuiProto in
-  incr search_counter;
-  let search_num = !search_counter in
-  current_search := !search_counter;
-  nresults := 0;
-  update_searches_label ();
-  let s = gui#tab_searches in
-  let q = match s#entry_search_words#text with
-      "" -> []
-    | s -> [want_and_not (fun s -> QHasWord s) s] in
-  let q = match s#entry_search_minsize#text with
-      "" -> q
-    | v -> 
-        (QHasMinVal ("size", 
-            Int32.mul (Int32.of_string v)
-            (unit_of_string s#combo_search_minsize_unit#entry#text)
-          )) :: q
-  in
-  let q = match s#entry_search_maxsize#text with
-      "" -> q
-    | v -> 
-        (QHasMaxVal ("size", 
-            Int32.mul (Int32.of_string v)
-            (unit_of_string s#combo_search_maxsize_unit#entry#text)
-          )) :: q
-  in
-  let q = match s#combo_format#entry#text with
-      "" -> q
-    | v ->
-        let v = try List.assoc v  search_format_list with _ -> v in
-        (want_comb_not or_comb
-            (fun w -> QHasField("format", w)) v) :: q
-
-  in
-  let q = match s#combo_search_media#entry#text with
-      "" -> q
-    | v ->
-        (QHasField("type", 
-            try List.assoc v  search_media_list with _ -> v)) :: q
-
-  in
-  let q = match s#entry_title#text with
-      "" -> q
-    | v -> (want_comb_not and_comb (fun v -> QHasField("Title", v)) v):: q
-  in
-  let q = match s#entry_artist#text with
-      "" -> q
-    | v -> (want_comb_not and_comb (fun v -> QHasField("Artist", v)) v):: q
-  in
-  let q = match s#entry_album#text with
-      "" -> q
-    | v -> (want_comb_not and_comb (fun v -> QHasField("Album", v)) v) :: q
-  in
-  let q = match s#combo_min_bitrate#entry#text with
-      "" -> q
-    | v -> (QHasMaxVal("bitrate", Int32.of_string v)) :: q
-  in
-  match q with 
-    [] -> ()
-  | q1 :: tail ->
-      let q = List.fold_left (fun q1 q2 ->
-            QAnd (q1,q2)
-        ) q1 tail in
-  gui_send (P.Search_query (local, 
-      { 
-        P.search_max_hits = int_of_string s#combo_max_hits#entry#text;
-        P.search_query = q;
-        P.search_num = !search_counter;
-      }));
-  let new_tab = new box_search () in
-
-  let clist_search = MyCList.create gui new_tab#clist_search_results       
-      [
-(* SIZE *)
-      (fun r -> (Printf.sprintf "%10s" (Int32.to_string r.result_size)));
-(* NAME *)
-      (fun r -> (*short_name*) (first_name r)) ;
-(* FORMAT *)      
-      (fun r -> r.result_format);
-(* TAGS *)
-      (fun r -> string_of_tags r.result_tags);
-(* MD4 *)
-      (fun r -> Md4.to_string r.result_md4);
-    ] 
-    
-  in
-  MyCList.set_can_select_all clist_search;
-  MyCList.set_size_callback clist_search (fun n ->
-      if search_num = !current_search then begin
-          nresults := n; update_searches_label ()
-        end);
-  MyCList.set_selected_callback clist_search (fun _ r ->
-      tab_searches#label_file_comment#set_text (
-        match r.result_comment with
-          None -> ""
-        | Some comment ->
-            Printf.sprintf "%s COMMENT: %s" (first_name r) comment
-      ));
-  MyCList.set_context_menu clist_search search_make_menu;
-  ignore (new_tab#button_search_download#connect#clicked 
-      (search_download clist_search gui));
-  ignore (new_tab#button_stop#connect#clicked 
-      (search_stop clist_search gui !search_counter));
-  ignore (new_tab#button_close#connect#clicked 
-      (search_close clist_search gui !search_counter));
-  let label_query = new_tab#label_query in
-  Hashtbl.add searches !search_counter (clist_search, label_query);
-  let n = add_search_page clist_search in
-  tab_searches#notebook_results#append_page 
-    ~tab_label:(GMisc.label ~text:(
-      Printf.sprintf "Search %d" !search_counter) ())#coerce
-    new_tab#coerce;
-  tab_searches#notebook_results#goto_page n
-
-let clean_gui _ =
-  gui#label_connect_status#set_text "Not connected";
-  MyCList.clear clist_servers;
-  MyCList.clear clist_downloads;
-  MyCList.clear clist_downloaded;
-  MyCList.clear clist_friends;
-  MyCList.clear clist_server_users;
-  MyCList.clear clist_friend_files;
-  MyCList.clear clist_file_locations;
-  Hashtbl.clear locations;
-  Hashtbl.clear searches;
-  (let text = gui#tab_console#text in
-    text#delete_text 0 (text#length));
-  (let text = gui#tab_friends#text_dialog in
-    text#delete_text 0 (text#length));
-  nconnected_servers := 0;
-  ndownloaded := 0;
-  ndownloads := 0;
-  current_file := None;
-  current_friend := -1;
-  update_server_label ();
-  update_download_label ();
-  ignore (update_current_file ())
-  
-let disconnect gui = 
-  match !connection_sock with
-    None -> ()
-  | Some sock ->
-      clean_gui ();
-      TcpBufferedSocket.close sock "user close";
-      connection_sock := None
-
-let reconnect gui =
-  (try disconnect gui with _ -> ());
-  clean_gui ();
-  let sock = TcpBufferedSocket.connect "gui to client"
-      (try
-        let h = Unix.gethostbyname 
-            (if !!hostname = "" then Unix.gethostname () else !!hostname) in
-        h.Unix.h_addr_list.(0)
-      with 
-        e -> 
-          Printf.printf "Exception %s in gethostbyname" (Printexc2.to_string e);
-          print_newline ();
-          try 
-            inet_addr_of_string !!hostname
-          with e ->
-              Printf.printf "Exception %s in inet_addr_of_string" 
-                (Printexc2.to_string e);
-              print_newline ();
-              raise Not_found
-    )
-    !!port (fun _ _ -> 
-        ()) in
-  try
-    connection_sock := Some sock;
-    TcpBufferedSocket.set_closer sock (fun _ _ -> 
-        match !connection_sock with
-          None -> ()
-        | Some s -> 
-            if s == sock then begin
-                connection_sock := None;
-                clean_gui ();      
-              end
-    );
-    TcpBufferedSocket.set_max_write_buffer sock !!interface_buffer;
-    TcpBufferedSocket.set_reader sock (value_handler (value_reader gui));
-    gui#label_connect_status#set_text "Connecting"
-  with e ->
-      Printf.printf "Exception %s in connecting" (Printexc2.to_string e);
-      print_newline ();
-      TcpBufferedSocket.close sock "error";
-      connection_sock := None
-*)
-
 let (!!) = Options.(!!)
 let (=:=) = Options.(=:=)
 
@@ -324,6 +130,8 @@ let rec rec_description_of_query q =
   | Q_MP3_TITLE (_,s)
   | Q_MP3_ALBUM (_,s) -> [s]
 
+  | Q_COMBO _ -> []
+      
   | Q_MP3_BITRATE _ -> []
 
 
@@ -383,3 +191,21 @@ let color_of_name name =
   let b = !(accs.(2)) mod 210 in
   let s = Printf.sprintf "#%02X%02X%02X" r g b in
   `NAME s
+
+let insert_buttons (wtool1: GButton.toolbar) (wtool2 : GButton.toolbar)
+  ~text ~tooltip ~icon ~callback () =
+  ignore
+    (wtool1#insert_button 
+      ~text: text
+      ~tooltip: tooltip
+      ~icon: (Gui_options.pixmap icon)#coerce
+      ~callback: callback
+      ());
+  ignore
+    (wtool2#insert_button 
+      ~text: text
+      ~tooltip: tooltip
+      ~icon: (Gui_options.pixmap (icon ^ "_mini"))#coerce
+      ~callback: callback
+      ())
+  

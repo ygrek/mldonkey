@@ -138,8 +138,9 @@ let max_sources_age = define_option downloads_ini
     int_option 3
   
 let max_clients_per_second = define_option downloads_ini
-    ["max_clients_per_second"] "Maximal number of connections to sources per second"
-    int_option 5
+    ["max_clients_per_second"] 
+  "Maximal number of connections to sources per second"
+  int_option 30
   
 let log_clients_on_console = define_option downloads_ini
   ["log_clients_on_console"] 
@@ -311,6 +312,14 @@ let max_emule_slots = define_option donkey_ini
     ["max_emule_slots"] "Part of the queue that Emule clients are limited to
     (default is 33 (%) of the slots, set to 100 (%) for no limitation)"
   int_option 33
+
+  
+let source_management = define_option donkey_ini
+    ["source_management"] "Which source management to use:
+    1: based on separate time queues, shared by files (2.02-1...2.02-5)
+    2: based on unified queues with scores, shared by files (2.02-6...2.02-9)
+    3: based on separate file queues (2.02-10)
+    " int_option 3
   
 let _ =
   option_hook max_emule_slots (fun _ ->

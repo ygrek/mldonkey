@@ -37,7 +37,7 @@ val client_wants_file : DonkeyTypes.client -> Md4.t -> unit
   
 val clean_groups : unit -> unit
   
-val client_send_if_possible : TcpBufferedSocket.t -> 
+val client_send_if_possible : DonkeyTypes.client -> TcpBufferedSocket.t -> 
   DonkeyProtoClient.t -> unit
 
   

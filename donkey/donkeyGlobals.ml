@@ -233,7 +233,8 @@ open DonkeyMftp
   
 let client_tags = ref ([] : tag list)
 let client_port = ref 0
-let overnet_client_tags = ref ([] : tag list)
+let overnet_connectreply_tags = ref ([] : tag list)
+let overnet_connect_tags = ref ([] : tag list)
 let overnet_client_port = ref 0
 
 (* overnet_md4 should be different from client_md4 for protocol safety reasons *)
@@ -405,6 +406,17 @@ let new_file file_state file_name md4 file_size writable =
           file_locations = Intmap.empty;
           file_mtime = 0.0;
           file_initialized = false;
+          
+          file_clients = Fifo.create ();
+          file_sources = [| 
+            SourcesQueueCreate.lifo ();
+            SourcesQueueCreate.oldest_first ();
+            SourcesQueueCreate.oldest_last ();
+            SourcesQueueCreate.fifo ();
+            SourcesQueueCreate.fifo ();
+            SourcesQueueCreate.fifo ();
+            SourcesQueueCreate.fifo ();
+          |];
         }
       and file_impl = {
           dummy_file_impl with
@@ -538,7 +550,6 @@ let dummy_client =
       client_power = 0;
       client_downloaded = Int64.zero;
       client_uploaded = Int64.zero;
-      client_on_list = false;
       client_banned = false;
       client_has_a_slot = false;
       client_overnet = false;
@@ -549,7 +560,8 @@ let dummy_client =
       client_connect_time = 0;
       client_requests_sent = 0;
       client_requests_received = 0;
-    } and
+      client_from_queues = [];
+      } and
     client_impl = {
       dummy_client_impl with            
       impl_client_val = c;
@@ -586,7 +598,6 @@ let create_client key num =
       client_power = !!upload_power;
       client_downloaded = Int64.zero;
       client_uploaded = Int64.zero;
-      client_on_list = false;            
       client_banned = false;
       client_has_a_slot = false;
       client_overnet = false;
@@ -597,6 +608,7 @@ let create_client key num =
       client_connect_time = 0;
       client_requests_received = 0;
       client_requests_sent = 0;
+      client_from_queues = [];
       } and
     client_impl = {
       dummy_client_impl with            
@@ -996,3 +1008,21 @@ let string_of_file_state s =
   | FileCancelled -> "File Cancelled"
   | FileNew -> "File New"
   | FileAborted s -> Printf.sprintf "Aborted: %s" s
+
+let left_bytes = "MLDK"
+
+let overnet_server_ip = ref Ip.null
+let overnet_server_port = ref 0
+
+        
+let brand_to_string b =
+  match b with
+    Brand_unknown -> "unknown"
+  | Brand_edonkey -> "eDonkey"
+  | Brand_mldonkey1 -> "old mldonkey"
+  | Brand_mldonkey2 -> "new mldonkey"
+  | Brand_mldonkey3 -> "trusted mldonkey"
+  | Brand_overnet -> "Overnet"
+  | Brand_oldemule -> "old eMule"
+  | Brand_newemule -> "new eMule"
+  | Brand_server -> "server"

@@ -17,3 +17,5 @@ let check_array s pos =
 
 let has_zlib = @HAS_ZLIB@
 let zlib_uncompress s = @ZLIB_UNCOMPRESS@
+
+@TYPE_FORMAT@

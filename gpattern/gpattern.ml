@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open GtkBase
+
 type content =
 | String of string 
 | Pixmap of GDraw.pixmap
@@ -185,12 +187,10 @@ class virtual ['a] filtered_plist
       ignore (wlist#connect#click_column
           (fun c -> 
             GToolbox.autosize_clist self#wlist;
-            GAutoconf.popup_menu
-              ~button: 1
-              ~time: 0
-              ~entries: (self#column_menu c); 
+            self#resort_column c ()
         )
       );
+
 (* connect the press on button 3 for contextual menu *)
       ignore (wlist#event#connect#button_press ~callback:
         (
@@ -198,14 +198,36 @@ class virtual ['a] filtered_plist
             GdkEvent.Button.button ev = 3 &&
             GdkEvent.get_type ev = `BUTTON_PRESS &&
             (
-              GAutoconf.popup_menu
-                ~button: 3
-                ~time: 0
-                ~entries: self#menu;
+              GToolbox.popup_menu 
+                ~x: (int_of_float (GdkEvent.Button.x ev))
+              ~y: (int_of_float (GdkEvent.Button.y ev))
+              ~entries: self#menu;
               true
             )
         )
       );
+      
+      
+(* connect the press on button 3 for title contextual menu *)
+      for col = 0 to wlist#columns - 1 do
+        let w = wlist#column_widget col in
+        let b = Widget.get_ancestor w#as_widget (Type.from_name "GtkButton") in
+        let button = new GButton.button (Object.unsafe_cast b) in
+        ignore (button#event#connect#button_press ~callback:
+          (
+            fun ev ->
+              GdkEvent.Button.button ev = 3 &&
+              GdkEvent.get_type ev = `BUTTON_PRESS &&
+              (
+                GAutoconf.popup_menu
+                  ~button: 3
+                  ~time: 0
+                  ~entries: (self#column_menu col);
+                true
+              )
+          )
+        )
+      done
 (*
 
 (* Connection bouton droit sur un titre, pour chaque colonne *)

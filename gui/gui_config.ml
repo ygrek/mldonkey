@@ -130,17 +130,17 @@ let create_gui_params () =
       (List.map fst GO.tb_styles)
       (GO.tbstyle_to_string !!GO.toolbars_style)
   in
-(*
-  let auto_resize = bool
-      ~help: M.h_auto_resize
-      ~f: (fun b -> GO.auto_resize =:= b)
-      M.o_auto_resize !!GO.auto_resize
+  let tb_icons = bool
+      ~help: "Mini icons in toolbars:"
+      ~f: (fun b -> GO.mini_toolbars =:= b)
+      "Mini icons in toolbars:" !!GO.mini_toolbars
   in
-*)
+
   let layout_options = Section
       ((gettext M.o_layout),
        [
-	 tb_style ;
+        tb_style ;
+        tb_icons;
        ] 
       )
   in
@@ -319,7 +319,8 @@ let update_toolbars_style gui =
   gui#tab_downloads#set_tb_style !!GO.toolbars_style;
   gui#tab_servers#set_tb_style !!GO.toolbars_style ;
   gui#tab_friends#set_tb_style !!GO.toolbars_style ;
-  gui#tab_queries#set_tb_style !!GO.toolbars_style 
+  gui#tab_queries#set_tb_style !!GO.toolbars_style ;
+  gui#tab_uploads#set_tb_style !!GO.toolbars_style
 
     
 let save_options gui =
