@@ -31,6 +31,21 @@ let nshared =
   "Shared: %d/%ld"
     *)
 
+val save_strings : unit -> unit
+val set_strings_file : string -> unit
+
+val _b : string -> ('a, 'b, 'c) format -> ('a, 'b, 'c) format
+val _s : string -> string -> string
+
+type 'a _string
+
+val bb_ : string -> ('a, 'b, 'c) format -> ('a, 'b, 'c) format _string
+val _bb : ('a, 'b, 'c) format _string -> ('a, 'b, 'c) format
+
+val ss_ : string -> string -> string _string    
+val _ss : string _string -> string      
+
+  
 module T :
   sig
     val int : 'b arrow -> (int -> 'b) arrow
@@ -48,20 +63,6 @@ module T :
     val boption : 'a arrow ->
       ('a, Buffer.t, unit) format Options.option_class
   end
-  
+
 val gettext : ('a, unit, string) format Options.option_record -> 'a
 val buftext : Buffer.t -> ('a, Buffer.t, unit) format Options.option_record -> 'a
-
-module NEW : sig
-
-    type 'a message
-    
-    val save_message_file : unit -> unit
-    val set_message_file : string -> unit
-
-    val b_ : ('a, 'b, 'c) format -> ('a, 'b, 'c) format message
-    val s_ : string -> string message
-      
-    val p_ : 'a message -> 'a
-      
-  end

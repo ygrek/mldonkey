@@ -1,0 +1,356 @@
+(************************************)
+(*                                  *)
+
+         module "Ed2k_hash"
+
+(*                                  *)
+(************************************)
+
+" <hash> : Set hash type you want to compute (ed2k, sig2dat,bp)" = " <hash> : Set hash type you want to compute (ed2k, sig2dat,bp)"
+
+" <nth size>: check C file functions" = " <nth size>: check C file functions"
+
+" <filenames> : compute hashes of filenames" = " <filenames> : compute hashes of filenames"
+
+(************************************)
+(*                                  *)
+
+         module "Former Translation"
+
+(*                                  *)
+(************************************)
+
+"Misc" = "Diverses"
+
+"Columns titles" = "Spaltentitel"
+
+"Shared files upload info" = "Info zu freigegebenen Dateien"
+
+"Columns for the results of searches and files of a friends" = "Spalten f\252r Suchergebnisse und Dateien von Freunden"
+
+"Columns for the locations of a file" = "Spalten f\252r Dateipositionen"
+
+"File locations" = "Dateistandorte"
+
+"Columns for the friends" = "Spalten f\252r Freunde"
+
+"Columns for the downloaded files" = "Spalten f\252r heruntergeladene Dateien"
+
+"Columns for the files being downloaded" = "Spalten f\252r herunterladende Dateien"
+
+"Columns for the servers" = "Spalten f\252r Server"
+
+"Style of toolbars" = "Stil f\252r Schaltfl\228chen"
+
+"What is displayed in toolbar buttons : text, icon or both" = "Schaltfl\228chen: Text, Icon oder beides"
+
+"Use relative %% availability" = "Benutze relative %% Verf\252gbarkeit"
+
+"Calculate %% availability ignoring already present chunks" = "Berechne %% Verf\252gbarkeit und ignoriere bereits vorhandene Balken"
+
+"Use height encoded availability" = "Benutze h\246hencodierte Verf\252gbarkeit"
+
+"Display the availability of a chunk as height or color coded bar" = "Zeige Verf\252gbarkeit eines Balkens als Ausschlag oder farbcodierten Balken"
+
+"Use size suffixes (G, M, k)" = "Benutze Suffixes (G, M, k)"
+
+"Files auto-expand depth" = "Dateinamen automatisch anpassen"
+
+"Auto-resize lists columns" = "Spaltengr\246\223e automatisch anpassen"
+
+"Auto-resize" = "Gr\246\223e automatisch anpassen"
+
+"Colors" = "Farben"
+
+"Files listed" = "Dateiliste"
+
+"Color for not connected servers or users" = "Farbe f\252r nicht bestehende Client- oder Serververbindungen"
+
+"Color for connected servers or users" = "Farbe f\252r Client- oder Serververbindungen"
+
+"Color for unavailable files" = "Farbe f\252r nicht verf\252gbare Dateien"
+
+"Not available" = "Nicht verf\252gbar"
+
+"Color for available files, not downloading" = "Farbe f\252r verf\252gbare Dateien, die nicht runtergeladen werden"
+
+"Available" = "Verf\252gbar"
+
+"Color for files being downloaded" = "Farbe f\252r herunterladende Dateien"
+
+"Color for downloaded files" = "Farbe f\252r heruntergeladene Dateien"
+
+"Default color in lists" = "Standardfarben in der Liste"
+
+"Default" = "Standard"
+
+"The password to use when connecting to the server" = "Passwort f\252r die Serververbindung"
+
+"The server hostname to connect to" = "Der Servername zu dem verbunden werden soll"
+
+"The server port to connect to" = "Der Server port zu dem verbunden werden soll"
+
+"Extended Search" = "Suche ausdehnen"
+
+"Local Search" = "Lokale Suche"
+
+"Comment" = "Kommentar"
+
+"Track number" = "Track Nummer"
+
+"Year" = "Jahr"
+
+"Results" = "Ergebnisse"
+
+"Queries" = "Anfragen"
+
+"Settings" = "Einstellungen"
+
+"Help" = "Hilfe"
+
+"Quit" = "GUI Beenden"
+
+"Reconnect" = "Mit dem Kern neu verbinden"
+
+"Kill core" = "mldonkey-Kern killen"
+
+"File" = "Datei"
+
+"Refresh" = "Aktualisieren"
+
+"Uploaded" = "Hochgeladen"
+
+"Uploads stats" = "Uploadstatus"
+
+"Requests" = "Anfragen"
+
+"Show hidden fields" = "Zeige versteckte Dateien an"
+
+"Browse files" = "Dateien durchbrowsen"
+
+"Display all servers" = "Alle Server anzeigen"
+
+"Remove all friends" = "Entferne alle Freunde"
+
+"Find friend" = "Finde Freunde"
+
+"Get format info" = "Formatinformationen"
+
+"Preview" = "Vorschau"
+
+"Verify chunks" = "Balken verifizieren"
+
+"Pause/Resume" = "Pause/Weiter"
+
+"Direct" = "Direktverbindung"
+
+"Edit mp3 tags" = "mp3 tags bearbeiten"
+
+"Save file as" = "Datei speichern als"
+
+"Unknown" = "Unbekannt"
+
+"Done" = "Fertig"
+
+"Paused" = "Pausiert"
+
+"Cancelled" = "Abgebrochen"
+
+"Downloading" = "Herunterladen"
+
+"Queued" = "Warte"
+
+"Removed" = "Entfernt"
+
+"Connected" = "Verbunden"
+
+"Initiating" = "Initialisiere"
+
+"Connecting" = "Verbinde"
+
+"No" = "Nein"
+
+"Yes" = "Ja"
+
+"Kind" = "Art"
+
+"Clear Console" = "Konsole l\246schen"
+
+"Console" = "Konsole"
+
+"Command" = "Kommando"
+
+"Set Option" = "Option festlegen"
+
+"Value:" = "Wert:"
+
+"Client hostname" = "Clientname"
+
+"Max Hits" = "Maximale Treffer"
+
+"Max server age (days)" = "Maximales Server-Alter (Tage)"
+
+"Remove old\nservers" = "Alte Server entfernen"
+
+"Recover MD4:" = "MD4 wiederherstellen:"
+
+"Description" = "Beschreibung"
+
+"Save" = "Speichern"
+
+"Save all" = "Alle speichern"
+
+"%d Downloaded Files" = "%d heruntergeladene Dateien"
+
+"Downloaded Files: %d/%d" = "Heruntergeladene Dateien: %d/%d"
+
+"Downloading Files" = "Lade Dateien herunter"
+
+"Connect" = "Verbinden"
+
+"Users" = "Benutzer"
+
+"Connect more\nservers" = "Mit mehr Servern verbinden"
+
+"Add friend" = "Freund hinzuf\252gen"
+
+"Add server" = "Server hinzuf\252gen"
+
+"Add to friends" = "Zu Freundesliste hinzuf\252gen"
+
+"Connected to %d / %d locations" = "Verbunden mit %d / %d Teilnehmern"
+
+"Disconnect all" = "Alle Verbindungen trennen"
+
+"Retry connect" = "Neu verbinden"
+
+"Availability" = "Verf\252gbarkeit"
+
+"Downloaded" = "Heruntergeladen"
+
+"Subscribe" = "Eintragen"
+
+"Force Download" = "Download erzwingen"
+
+"Download selected directory" = "Lade ausgew\228hltes Verzeichnis runter"
+
+"Download selected files" = "Lade ausgew\228hlte Dateien runter"
+
+"Properties" = "Eigenschaften"
+
+"Size" = "Gr\246\223e"
+
+"Filename" = "Dateiname"
+
+"Files" = "Dateien"
+
+"View users" = "Benutzer ansehen"
+
+"View files" = "Dateien ansehen"
+
+"Close room" = "Raum schlie\223en"
+
+"Remove" = "Entfernen"
+
+"%d Results" = "%d Ergebnisse"
+
+"Submit" = "Abschicken"
+
+"Mp3 options" = "mp3-Optionen"
+
+"Close" = "Schlie\223en"
+
+"Min bitrate" = "Minimale Bitrate"
+
+"Title" = "Titel"
+
+"Artist" = "K\252nstler"
+
+"Friend" = "Freund"
+
+"Type" = "Typ"
+
+"Network" = "Netzwerk"
+
+"Media" = "Medien"
+
+"Max size" = "Maximalgr\246\223e"
+
+"Min size" = "Mindestgr\246\223e"
+
+"Search" = "Suche"
+
+"Query" = "Anfrage"
+
+"Apply and save options" = "Einstellungen \252bernehmen und speichern"
+
+"Client connection" = "Client Verbindung"
+
+"Server connection" = "Server Verbindung"
+
+"Upload limit (kB/s)" = "Uploadlimit (kB/s)"
+
+"Download limit (kB/s)" = "Downloadlimit (kB/s)"
+
+"Disconnect" = "Verbindung zum Kern trennen"
+
+"Max connected clients" = "Maximale Clientverbindungen"
+
+"Max connected servers" = "Maximale Serververbindungen"
+
+"Gui refresh delay" = "Verz\246gerung f\252r GUI-Aktualisierung"
+
+"Long retry delay" = "Lange Wiederholverz\246gerung"
+
+"Medium retry delay" = "Medium Wiederholverz\246gerung"
+
+"Small retry delay" = "Kleine Wiederholverz\246gerung"
+
+"Check serverDB connection" = "Pr\252fe Server-DB-Verbindungen"
+
+"Check server connection" = "Pr\252fe Serververbindungen"
+
+"Check client connections" = "Pr\252fe Clientverbindungen"
+
+"Save options delay" = "Speichere Verz\246gerungsoptionen"
+
+"Delays" = "Verz\246gerungen"
+
+"GUI port" = "GUI-Port"
+
+"Control port" = "Steuerungs-Port"
+
+"Connection port" = "Verbindungs-Port"
+
+"No current search" = "Keine aktuelle Suche"
+
+"Downloading %d file(s)" = "Lade %d Datei(en) runter"
+
+"Connected to %d/%d server(s)" = "Verbunden mit %d/%d Server(n)"
+
+"Not connected" = "Nicht verbunden"
+
+"Options" = "Optionen"
+
+"Searches" = "Suche"
+
+"Friends" = "Freunde"
+
+"Servers" = "Server"
+
+"State" = "Status"
+
+"Last seen" = "Zuletzt gesehen"
+
+"Age" = "Alter"
+
+"Rate" = "Geschwindigkeit"
+
+"Address" = "Adresse"
+
+"Password" = "Passwort"
+
+"Cancel" = "Abbrechen"
+
+"Ok" = "OK"
+

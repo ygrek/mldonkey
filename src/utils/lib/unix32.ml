@@ -201,10 +201,15 @@ module DiskFile = struct
 
 let zero_chunk_len = Int64.of_int 65536
 let zero_chunk_name = "zero_chunk"
-let zero_chunk_fd =
-  let fd = FDCache.create zero_chunk_name in
-  FDCache.ftruncate64 fd zero_chunk_len;
-  fd
+let zero_chunk_fd_option = ref None
+let zero_chunk_fd () =
+  match !zero_chunk_fd_option with
+    Some fd -> fd
+  | None ->
+      let fd = FDCache.create zero_chunk_name in
+      FDCache.ftruncate64 fd zero_chunk_len;
+      zero_chunk_fd_option := Some fd;
+      fd
 
 module MultiFile = struct
 
@@ -325,7 +330,7 @@ module MultiFile = struct
     let rec fill_zeros file_out file_pos max_len =
       if max_len > zero then
         let max_possible_write = min max_len zero_chunk_len in
-        FDCache.copy_chunk zero_chunk_fd file_out
+        FDCache.copy_chunk (zero_chunk_fd()) file_out
           zero file_pos max_possible_write;
         fill_zeros file_out (file_pos ++ max_possible_write)
         (max_len -- max_possible_write)
@@ -459,32 +464,32 @@ module MultiFile = struct
   end
 
 module SparseFile = struct
-
+    
     type chunk = {
         mutable chunkname : string;
         mutable pos : int64;
         mutable len : int64;
         mutable fd : FDCache.t;
       }
-
+    
     type t = {
         mutable filename : string;
         mutable dirname : string;
         mutable size : int64;
         mutable chunks : chunk array;
       }
-
+    
     let rights = 0o664
     let access = [Unix.O_CREAT; Unix.O_RDWR]
-
-    let zero_chunk =
+    
+    let zero_chunk () =
       {
         chunkname = zero_chunk_name;
         pos = zero;
         len = zero_chunk_len;
-        fd = zero_chunk_fd;
+        fd = zero_chunk_fd ();
       }
-
+    
     let create filename =
 (*      lprintf "SparseFile.create %s\n" filename; *)
       let dirname = filename ^ ".chunks" in
@@ -496,7 +501,7 @@ module SparseFile = struct
         chunks = [||];
         size = zero;
       }
-
+    
     let find_read_pos t pos =
       let nchunks = Array.length t.chunks in
       let rec iter t start len =
@@ -513,7 +518,7 @@ module SparseFile = struct
         iter t next (start+len-next)
       in
       iter t 0 nchunks
-
+    
     let find_write_pos t pos =
       let nchunks = Array.length t.chunks in
       let rec iter t start len =
@@ -585,95 +590,95 @@ module SparseFile = struct
       done;
       exit 0
 *)
-
+    
     let build t = ()
-
+    
     let fd_of_chunk t chunk_begin chunk_len =
-
+      
       let index = find_read_pos t chunk_begin in
       let nchunks = Array.length t.chunks in
-
+      
       if index < nchunks &&
         ( let chunk = t.chunks.(index) in
           chunk.pos <= chunk_begin &&
           chunk.len >= (chunk_len -- (chunk_begin -- chunk.pos))
         ) then
-
+        
         let chunk = t.chunks.(index) in
         let in_chunk_pos = chunk_begin -- chunk.pos in
         let fd = FDCache.local_force_fd chunk.fd in
         fd, in_chunk_pos, None
-
+      
       else
-
+      
       let temp_file = Filename.temp_file "chunk" ".tmp" in
       let file_out = FDCache.create temp_file in
-
+      
       let rec iter pos index chunk_begin chunk_len =
-
+        
         if chunk_len > zero then
           let chunk =
-            if index >= nchunks then begin
-                zero_chunk.pos <- chunk_begin;
-                zero_chunk
-              end
+            if index >= nchunks then 
+              let z = zero_chunk () in
+              z.pos <- chunk_begin;
+              z
             else
             let chunk = t.chunks.(index) in
             let next_pos = chunk.pos in
-            if next_pos > chunk_begin then begin
-                zero_chunk.pos <- chunk_begin;
-                zero_chunk.len <- min zero_chunk_len (next_pos -- chunk_begin);
-                zero_chunk
-              end
+            if next_pos > chunk_begin then 
+              let z = zero_chunk () in
+              z.pos <- chunk_begin;
+              z.len <- min zero_chunk_len (next_pos -- chunk_begin);
+              z
             else
               chunk
           in
-
+          
           let in_chunk_pos = chunk_begin -- chunk.pos in
           let max_len = min chunk_len (chunk.len -- in_chunk_pos) in
-
+          
           FDCache.copy_chunk chunk.fd file_out
             in_chunk_pos pos max_len;
           iter (pos ++ max_len) (index+1) (chunk_begin ++ max_len)
           (chunk_len -- max_len)
-
+      
       in
       iter zero (find_read_pos t chunk_begin) chunk_begin chunk_len;
-
+      
       FDCache.close file_out;
       let fd = FDCache.local_force_fd file_out in
       fd, zero, Some temp_file
-
+    
     let close t =
       Array.iter (fun file -> FDCache.close file.fd) t.chunks
-
+    
     let rename t f =
       close t;
-
+      
       let chunk_begin = zero in
       let chunk_len = t.size in
       let index = 0 in
       let nchunks = Array.length t.chunks in
-
+      
       let file_out = FDCache.create f in
-
+      
       let rec iter pos index chunk_begin chunk_len =
-
+        
         if chunk_len > zero then
           let chunk =
-            if index >= nchunks then begin
-                zero_chunk.pos <- chunk_begin;
-                zero_chunk
-              end
+            if index >= nchunks then 
+              let z = zero_chunk () in
+              z.pos <- chunk_begin;
+              z
             else
             let chunk = t.chunks.(index) in
             let next_pos = chunk.pos in
-            if next_pos > chunk_begin then begin
-                zero_chunk.pos <- chunk_begin;
-                zero_chunk.len <- min zero_chunk_len (next_pos -- chunk_begin);
-                zero_chunk
-              end
-            else
+            if next_pos > chunk_begin then 
+              let z = zero_chunk () in
+              z.pos <- chunk_begin;
+              z.len <- min zero_chunk_len (next_pos -- chunk_begin);
+              z
+              else
               chunk
           in
 
@@ -683,7 +688,7 @@ module SparseFile = struct
           FDCache.copy_chunk chunk.fd file_out
             in_chunk_pos pos max_len;
 
-          if chunk != zero_chunk then FDCache.remove chunk.fd;
+          if chunk.fd != zero_chunk_fd () then FDCache.remove chunk.fd;
 
           iter (pos ++ max_len) (index+1) (chunk_begin ++ max_len)
           (chunk_len -- max_len)
@@ -724,18 +729,18 @@ module SparseFile = struct
 
         if chunk_len64 > zero then
           let chunk =
-            if index >= nchunks then begin
-                zero_chunk.pos <- chunk_begin;
-                zero_chunk
-              end
+            if index >= nchunks then
+              let z = zero_chunk () in
+              z.pos <- chunk_begin;
+              z
             else
             let chunk = t.chunks.(index) in
             let next_pos = chunk.pos in
-            if next_pos > chunk_begin then begin
-                zero_chunk.pos <- chunk_begin;
-                zero_chunk.len <- min zero_chunk_len (next_pos -- chunk_begin);
-                zero_chunk
-              end
+            if next_pos > chunk_begin then 
+              let z = zero_chunk () in
+              z.pos <- chunk_begin;
+              z.len <- min zero_chunk_len (next_pos -- chunk_begin);
+              z
             else
               chunk
           in

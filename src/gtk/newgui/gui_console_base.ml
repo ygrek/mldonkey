@@ -14,7 +14,7 @@ class box () =
       ~packing:(_anonymous_container_1#pack ~expand:false ~fill:true) ()
   in
   let _ =
-    GMisc.label ~width:180 ~text:(Gettext.gettext Gui_messages.cT_lb_command)
+    GMisc.label ~width:180 ~text:(Gui_messages.cT_lb_command)
       ~justify:`LEFT ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_3#pack ~expand:false ~fill:true) ()
   in
@@ -28,7 +28,7 @@ class box () =
       ~packing:(_anonymous_container_3#pack ~expand:false ~fill:true) ()
   in
   let _ =
-    GMisc.label ~width:180 ~text:(Gettext.gettext Gui_messages.cT_lb_clear_console)
+    GMisc.label ~width:180 ~text:(Gui_messages.cT_lb_clear_console)
       ~justify:`RIGHT ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(wb_clear_console#add) ()
   in

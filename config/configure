@@ -1292,7 +1292,7 @@ MYCONFIG_ARGS_DEFINED=yes
 echo $MYCONFIG_ARGS
 
 CURRENT_VERSION=2.5
-CURRENT_RELEASE=4+4
+CURRENT_RELEASE=4+5
 
 REQUIRED_OCAML=3.07
 DOWNLOAD_OCAML=3.07pl2
@@ -3834,65 +3834,35 @@ LOCAL_OCAML=$LOCAL_DIR/bin
 set dummy ocamlc.opt; ac_word=$2
 echo "$as_me:$LINENO: checking for $ac_word" >&5
 echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
-if test "${ac_cv_prog_OCAMLC+set}" = set; then
+if test "${ac_cv_path_OCAMLC+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
-  if test -n "$OCAMLC"; then
-  ac_cv_prog_OCAMLC="$OCAMLC" # Let the user override the test.
-else
-as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
+  case $OCAMLC in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_OCAMLC="$OCAMLC" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+as_dummy="$LOCAL_DIR/bin:$PATH"
+for as_dir in $as_dummy
 do
   IFS=$as_save_IFS
   test -z "$as_dir" && as_dir=.
   for ac_exec_ext in '' $ac_executable_extensions; do
   if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_prog_OCAMLC=""$LOCAL_DIR/bin/ocamlc.opt""
+    ac_cv_path_OCAMLC="$as_dir/$ac_word$ac_exec_ext"
     echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
     break 2
   fi
 done
 done
 
-  test -z "$ac_cv_prog_OCAMLC" && ac_cv_prog_OCAMLC="$LOCAL_DIR/bin"
+  test -z "$ac_cv_path_OCAMLC" && ac_cv_path_OCAMLC=""$LOCAL_DIR/bin/ocamlc.opt""
+  ;;
+esac
 fi
-fi
-OCAMLC=$ac_cv_prog_OCAMLC
-if test -n "$OCAMLC"; then
-  echo "$as_me:$LINENO: result: $OCAMLC" >&5
-echo "${ECHO_T}$OCAMLC" >&6
-else
-  echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6
-fi
+OCAMLC=$ac_cv_path_OCAMLC
 
-# Extract the first word of "ocamlc.opt", so it can be a program name with args.
-set dummy ocamlc.opt; ac_word=$2
-echo "$as_me:$LINENO: checking for $ac_word" >&5
-echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6
-if test "${ac_cv_prog_OCAMLC+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  if test -n "$OCAMLC"; then
-  ac_cv_prog_OCAMLC="$OCAMLC" # Let the user override the test.
-else
-as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-  for ac_exec_ext in '' $ac_executable_extensions; do
-  if $as_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_prog_OCAMLC="ocamlc.opt"
-    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-done
-
-fi
-fi
-OCAMLC=$ac_cv_prog_OCAMLC
 if test -n "$OCAMLC"; then
   echo "$as_me:$LINENO: result: $OCAMLC" >&5
 echo "${ECHO_T}$OCAMLC" >&6

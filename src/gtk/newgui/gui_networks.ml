@@ -37,20 +37,20 @@ let (!!) = Options.(!!)
 
 let data =
 [|
-  (M.o_xpm_bt_net_on, M.o_xpm_bt_net_off, gettext M.nT_lb_display_bt,
-    gettext M.nT_lb_net_bt);
-  (M.o_xpm_dc_net_on, M.o_xpm_dc_net_off, gettext M.nT_lb_display_dc,
-    gettext M.nT_lb_net_dc);
-  (M.o_xpm_ftt_net_on, M.o_xpm_ftt_net_off, gettext M.nT_lb_display_ftt,
-    gettext M.nT_lb_net_ftt);
-  (M.o_xpm_ed2k_net_on, M.o_xpm_ed2k_net_off, gettext M.nT_lb_display_ed2k,
-    gettext M.nT_lb_net_ed2k);
-  (M.o_xpm_gnut_net_on, M.o_xpm_gnut_net_off, gettext M.nT_lb_display_gnut,
-    gettext M.nT_lb_net_gnut);
-  (M.o_xpm_nap_net_on, M.o_xpm_nap_net_off, gettext M.nT_lb_display_nap,
-    gettext M.nT_lb_net_nap);
-  (M.o_xpm_slsk_net_on, M.o_xpm_slsk_net_off, gettext M.nT_lb_display_slsk,
-    gettext M.nT_lb_net_slsk);
+  (M.o_xpm_bt_net_on, M.o_xpm_bt_net_off, M.nT_lb_display_bt,
+    M.nT_lb_net_bt);
+  (M.o_xpm_dc_net_on, M.o_xpm_dc_net_off, M.nT_lb_display_dc,
+    M.nT_lb_net_dc);
+  (M.o_xpm_ftt_net_on, M.o_xpm_ftt_net_off, M.nT_lb_display_ftt,
+    M.nT_lb_net_ftt);
+  (M.o_xpm_ed2k_net_on, M.o_xpm_ed2k_net_off, M.nT_lb_display_ed2k,
+    M.nT_lb_net_ed2k);
+  (M.o_xpm_gnut_net_on, M.o_xpm_gnut_net_off, M.nT_lb_display_gnut,
+    M.nT_lb_net_gnut);
+  (M.o_xpm_nap_net_on, M.o_xpm_nap_net_off, M.nT_lb_display_nap,
+    M.nT_lb_net_nap);
+  (M.o_xpm_slsk_net_on, M.o_xpm_slsk_net_off, M.nT_lb_display_slsk,
+    M.nT_lb_net_slsk);
 |]
 
 

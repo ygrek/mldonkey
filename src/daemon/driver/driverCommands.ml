@@ -38,8 +38,11 @@ open DriverInteractive
 open CommonOptions
 open CommonInteractive
 open CommonEvent
+open Gettext
 
-  
+let _s x = _s "DriverCommands" x
+let _b x = _b "DriverCommands" x  
+    
 let execute_command arg_list output cmd args =
   let buf = output.conn_buf in
   try
@@ -56,7 +59,7 @@ let execute_command arg_list output cmd args =
               | Arg_one f, [arg] -> f arg  output
               | Arg_two f, [a1;a2] -> f a1 a2 output
               | Arg_three f, [a1;a2;a3] -> f a1 a2 a3 output
-              | _ -> !!bad_number_of_args
+              | _ -> bad_number_of_args
             )
           else
             iter tail
@@ -159,8 +162,13 @@ let list_options oo list =
   list;
   if oo.conn_output = HTML then
     Printf.bprintf  buf "\\</table\\>"
-  
-let commands = [
+
+(*** Note: don't add _s to all command description as it is already done here *)
+    
+let commands = 
+  List2.tail_map
+    (fun (cmd, action, desc) -> (cmd, action, _s desc))
+  [
 
 (*
     "dump_heap", Arg_none (fun o ->

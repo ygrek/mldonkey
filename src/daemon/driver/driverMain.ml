@@ -27,8 +27,12 @@ open Options
 open DriverInterface
 open CommonOptions
 open CommonGlobals
-open CommonNetwork
-
+open CommonNetwork  
+open Gettext (* open last  as most modules redefine _s and _b *)
+  
+let _s x = _s "DriverMain" x
+let _b x = _b "DriverMain" x
+  
 let keep_console_output = ref false
 let daemon = ref false
   
@@ -55,11 +59,11 @@ let second_timer timer =
   (try 
       update_link_stats () 
     with e -> 
-        lprintf "Exception %s" (Printexc2.to_string e); lprint_newline ());
+        lprintf (_b "Exception %s\n") (Printexc2.to_string e));
 	  (try 
      CommonUploads.refill_upload_slots ()
    with e -> 
-        lprintf "Exception %s" (Printexc2.to_string e); lprint_newline ());
+        lprintf (_b "Exception %s\n") (Printexc2.to_string e));
   CommonUploads.reset_upload_timer ();
   CommonUploads.shared_files_timer ();
   ()
@@ -70,21 +74,19 @@ let start_interfaces () =
   if !!http_port <> 0 then begin try
         ignore (DriverControlers.create_http_handler ());
       with e ->
-          lprintf "Exception %s while starting HTTP interface"
+          lprintf (_b "Exception %s while starting HTTP interface\n")
             (Printexc2.to_string e);
-          lprint_newline ();
     end;
   
   ignore (find_port  "telnet server" !!telnet_bind_addr
       telnet_port DriverControlers.telnet_handler);  
-(*lprintf "2"; lprint_newline ();*)
   
   if !!chat_port <> 0 then begin
       ignore (find_port "chat server" !!chat_bind_addr
           chat_port DriverControlers.chat_handler);  
       try
         CommonChat.send_hello ()
-      with _ -> lprintf "CommonChat.send_hello failed"; lprint_newline ();
+      with _ -> lprintf (_b "CommonChat.send_hello failed"); 
     end;
   
   gui_server_sock := find_port "gui server"  !!gui_bind_addr
@@ -99,7 +101,7 @@ let start_interfaces () =
 
 let _ =
   add_web_kind "motd.html" (fun filename ->
-      lprintf "motd.html changed"; lprint_newline ();
+      lprintf (_b "motd.html changed\n"); 
     motd_html =:= File.to_string filename
   );
   add_web_kind "motd.conf" (fun filename ->
@@ -117,14 +119,14 @@ let _ =
 	| "del_item" ->
             CommonInteractive.del_item_from_fully_qualified_options name value
 	| _ -> 
-	    lprintf "UNUSED LINE: %s" line; lprint_newline ()
+	    lprintf (_b "UNUSED LINE: %s\n") line
           
       done;
     with 
     | End_of_file ->
 	close_in ic
-    | e -> lprintf "Error while reading motd.conf(%s): %s" filename
-	(Printexc2.to_string e); lprint_newline ();
+    | e -> lprintf (_b "Error while reading motd.conf(%s): %s\n") filename
+	(Printexc2.to_string e); 
 	close_in ic
 			   )
 
@@ -260,17 +262,17 @@ let load_config () =
   );
 
 (* Here, we try to update options when a new version of mldonkey is
-used. For example, we can add new web_infos... *)
+used. For example, we can add new we_binfos... *)
   if !!options_version < 1 then begin
-      lprintf "Updating options to level 1"; lprint_newline ();
-(*  web_infos =:= 
+      lprintf (_b "Updating options to level 1\n"); 
+(*  we_binfos =:= 
         (
         ("server.met", 1, "http://ocbmaurice.dyns.net/pl/slist.pl?download");        
         ):: 
-      !!web_infos;*)
+      !!we_binfos;*)
     end;
   if !!options_version < 2 then begin
-      lprintf "Updating options to level 2"; lprint_newline ();
+      lprintf (_b "Updating options to level 2\n"); 
       if !!min_reask_delay = 720 then min_reask_delay =:= 600
     end;
   options_version =:= 2;
@@ -296,17 +298,15 @@ used. For example, we can add new web_infos... *)
   
   Arg.parse ([
       "-v", Arg.Unit (fun _ ->
-          lprintf "%s" (CommonGlobals.version ());
-          lprint_newline ();
-          exit 0), " : print version number and exit";
+          lprintf "%s\n" (CommonGlobals.version ());
+          exit 0), _s " : print version number and exit";
       "-exit", Arg.Unit (fun _ -> exit 0), ": exit immediatly";
       "-format", Arg.String (fun file ->
           let format = CommonMultimedia.get_info file in
-          ()), " <filename> : check file format";
+          ()), _s  " <filename> : check file format";
       "-test_ip", Arg.String (fun ip ->
-          lprintf "%s = %s" ip (Ip.to_string (Ip.of_string ip));
-          lprint_newline ();
-          exit 0), "<ip> : undocumented";
+          lprintf "%s = %s\n" ip (Ip.to_string (Ip.of_string ip));
+          exit 0), _s "<ip> : undocumented";
       "-check_impl", Arg.Unit (fun _ ->
           CommonNetwork.check_network_implementations ();
           CommonClient.check_client_implementations ();
@@ -315,21 +315,21 @@ used. For example, we can add new web_infos... *)
           CommonResult.check_result_implementations ();
           lprint_newline ();
           exit 0), 
-      " : display information on the implementations";
+      _s " : display information on the implementations";
       "-stdout", Arg.Unit (fun _ ->
           keep_console_output := true;
           log_to_file stdout;
       ), 
-       ": keep output to stdout after startup";
+       _s ": keep output to stdout after startup";
        "-stderr", Arg.Unit (fun _ ->
            keep_console_output := true;
            log_to_file stderr;
        ), 
-       ": keep output to stderr after startup";
+       _s ": keep output to stderr after startup";
       "-daemon", Arg.Set daemon,
-      ": start as a daemon (detach from console and run in background";
-      "-find_port", Arg.Set find_other_port, " : find another port when one
-      is already used";
+      _s ": start as a daemon (detach from console and run in background";
+      "-find_port", Arg.Set find_other_port, 
+      _s " : find another port when one is already used";
     ] @ 
       !more_args
       @
@@ -372,9 +372,7 @@ let _ =
   add_infinite_option_timer download_sample_rate CommonFile.sample_timer;  
   
   (try Options.load servers_ini with _ -> ());
-  lprintf "Loading files_ini....................\n";
   (try Options.load files_ini with _ -> ());
-  lprintf "Loading friends_ini....................\n";
   (try Options.load friends_ini with _ -> ());
   (try Options.load searches_ini with _ -> ());
   
@@ -385,8 +383,9 @@ let _ =
   
   networks_iter (fun r -> network_load_complex_options r);
   networks_iter_all (fun r -> 
-      lprintf  "Network %s %s\n" r.network_name
-        (if network_is_enabled r then "enabled" else "disabled");
+      lprintf  (_b "Network %s %s\n") r.network_name
+        (if network_is_enabled r then 
+          (_s "enabled") else (_s "disabled"));
       );  
   networks_iter (fun r -> 
     network_enable r;
@@ -423,17 +422,14 @@ let _ =
   Options.prune_file downloads_ini;
 (*  Options.prune_file downloads_expert_ini; *)
   (try CommonWeb.load_web_infos () with _ -> ());
-  lprintf "Welcome to MLdonkey client"; lprint_newline ();
-  lprintf "Check http://www.mldonkey.net/ for updates"; 
-  lprint_newline ();
-  lprintf "To command: telnet %s %d" 
+  lprintf (_b "Welcome to MLdonkey client\n"); 
+  lprintf (_b "Check http://www.mldonkey.net/ for updates\n"); 
+  lprintf (_b "To command: telnet %s %d\n") 
 	(if !!telnet_bind_addr = Ip.any then "127.0.0.1" 
 		else Ip.to_string !!telnet_bind_addr)  !!telnet_port; 
-  lprint_newline ();
-  lprintf "Or with browser: http://%s:%d" 
+  lprintf (_b "Or with browser: http://%s:%d\n") 
 	(if !!http_bind_addr = Ip.any then "127.0.0.1" 
 		else Ip.to_string !!http_bind_addr)  !!http_port; 
-  lprint_newline ();
   
   lprint_string (DriverControlers.text_of_html !!motd_html);
   lprint_newline ();
@@ -451,8 +447,8 @@ let _ =
             Sys.file_exists asker then
             ignore (Sys.command (Printf.sprintf "%s %s&" asker !!mldonkey_gui));
         with Not_found -> 
-            lprintf "Not running under X, not trying to start the GUI";
-            lprint_newline ());
+            lprintf (_b "Not running under X, not trying to start the GUI\n")
+            );
   );
  
   if !!run_as_user <> "" then begin
@@ -460,22 +456,20 @@ let _ =
         let new_pw = Unix.getpwnam !!run_as_user  in
         MlUnix.setuid new_pw.Unix.pw_uid;
         let pw = Unix.getpwuid (Unix.getuid()) in
-        lprintf "mldonkey is now running as %s\n"  pw.Unix.pw_name;
+        lprintf (_b "mldonkey is now running as %s\n")  pw.Unix.pw_name;
       with e ->
-          lprintf "Exception %s trying to set user_uid [%s]"
+          lprintf (_b "Exception %s trying to set user_uid [%s]\n")
           (Printexc2.to_string e) !!run_as_user;
-          lprint_newline ();
           exit 2
     end;
  
   if !!run_as_useruid <> 0 then begin
       try
         MlUnix.setuid !!run_as_useruid;
-        lprintf "mldonkey is now running as uid %d\n"  !!run_as_useruid;
+        lprintf (_b "mldonkey is now running as uid %d\n")  !!run_as_useruid;
       with e ->
-          lprintf "Exception %s trying to set user_uid [%d]"
+          lprintf (_b "Exception %s trying to set user_uid [%d]\n")
           (Printexc2.to_string e) !!run_as_useruid;
-          lprint_newline ();
           exit 2
     end;
   
@@ -485,11 +479,11 @@ let _ =
   Unix32.max_cache_size := MlUnix.max_filedescs
  
 let _ =
-  lprintf "Core started\n"; 
+  lprintf (_b "Core started\n"); 
   core_included := true;
   
   if not !keep_console_output then begin
-      lprintf "Disabling output to console, to enable: stdout true\n";
+      lprintf (_b "Disabling output to console, to enable: stdout true\n");
       
       if !!log_file <> "" then begin
           (*

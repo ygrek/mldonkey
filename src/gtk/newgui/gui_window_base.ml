@@ -7,15 +7,15 @@ module M = Gui_messages
 
 let main_nbk_data =
 [
- (M.o_xpm_nbk_networks_on, M.o_xpm_nbk_networks_off, M.o_xpm_nbk_networks_menu, gettext M.mW_lb_networks);
- (M.o_xpm_nbk_servers_on, M.o_xpm_nbk_servers_off, M.o_xpm_nbk_servers_menu, gettext M.mW_lb_servers);
- (M.o_xpm_nbk_downloads_on, M.o_xpm_nbk_downloads_off, M.o_xpm_nbk_downloads_menu, gettext M.mW_lb_downloads);
- (M.o_xpm_nbk_friends_on, M.o_xpm_nbk_friends_off, M.o_xpm_nbk_friends_menu, gettext M.mW_lb_friends);
- (M.o_xpm_nbk_search_on, M.o_xpm_nbk_search_off, M.o_xpm_nbk_search_menu, gettext M.mW_lb_search);
- (M.o_xpm_nbk_rooms_on, M.o_xpm_nbk_rooms_off, M.o_xpm_nbk_rooms_menu, gettext M.mW_lb_rooms);
- (M.o_xpm_nbk_uploads_on, M.o_xpm_nbk_uploads_off, M.o_xpm_nbk_uploads_menu, gettext M.mW_lb_uploads);
- (M.o_xpm_nbk_console_on, M.o_xpm_nbk_console_off, M.o_xpm_nbk_console_menu, gettext M.mW_lb_console);
- (M.o_xpm_nbk_graphs_on, M.o_xpm_nbk_graphs_off, M.o_xpm_nbk_graphs_menu, gettext M.mW_lb_graph);
+ (M.o_xpm_nbk_networks_on, M.o_xpm_nbk_networks_off, M.o_xpm_nbk_networks_menu, M.mW_lb_networks);
+ (M.o_xpm_nbk_servers_on, M.o_xpm_nbk_servers_off, M.o_xpm_nbk_servers_menu, M.mW_lb_servers);
+ (M.o_xpm_nbk_downloads_on, M.o_xpm_nbk_downloads_off, M.o_xpm_nbk_downloads_menu, M.mW_lb_downloads);
+ (M.o_xpm_nbk_friends_on, M.o_xpm_nbk_friends_off, M.o_xpm_nbk_friends_menu, M.mW_lb_friends);
+ (M.o_xpm_nbk_search_on, M.o_xpm_nbk_search_off, M.o_xpm_nbk_search_menu, M.mW_lb_search);
+ (M.o_xpm_nbk_rooms_on, M.o_xpm_nbk_rooms_off, M.o_xpm_nbk_rooms_menu, M.mW_lb_rooms);
+ (M.o_xpm_nbk_uploads_on, M.o_xpm_nbk_uploads_off, M.o_xpm_nbk_uploads_menu, M.mW_lb_uploads);
+ (M.o_xpm_nbk_console_on, M.o_xpm_nbk_console_off, M.o_xpm_nbk_console_menu, M.mW_lb_console);
+ (M.o_xpm_nbk_graphs_on, M.o_xpm_nbk_graphs_off, M.o_xpm_nbk_graphs_menu, M.mW_lb_graph);
 ]
 
 let tab_box n str data =
@@ -119,32 +119,32 @@ class window () =
       ~packing:(vbox#pack ~expand:true ~fill:true) ()
   in
   let buttonAbout = wtool1#insert_button
-		     ~tooltip:(Gettext.gettext Gui_messages.mW_ti_about)
+		     ~tooltip:(Gui_messages.mW_ti_about)
                      ~icon: (Gui_options.pixmap Gui_messages.o_xpm_about)#coerce
                    ();
   in
   let buttonIm = wtool1#insert_button
-                  ~tooltip:(Gettext.gettext Gui_messages.mW_ti_im)
+                  ~tooltip:(Gui_messages.mW_ti_im)
                   ~icon: (Gui_options.pixmap Gui_messages.o_xpm_im)#coerce
                  ();
   in
   let buttonOptions = wtool1#insert_button
-                       ~tooltip:(Gettext.gettext Gui_messages.mW_ti_settings)
+                       ~tooltip:(Gui_messages.mW_ti_settings)
                        ~icon: (Gui_options.pixmap Gui_messages.o_xpm_settings)#coerce
                        ();
   in
   let buttonQuit = wtool1#insert_button
-                    ~tooltip:(Gettext.gettext Gui_messages.mW_ti_exit)
+                    ~tooltip:(Gui_messages.mW_ti_exit)
                     ~icon: (Gui_options.pixmap Gui_messages.o_xpm_exit)#coerce
                     ();
   in
   let buttonGui = wtool1#insert_button
-                   ~tooltip:(Gettext.gettext Gui_messages.mW_ti_gui)
+                   ~tooltip:(Gui_messages.mW_ti_gui)
                    ~icon: (Gui_options.pixmap Gui_messages.o_xpm_gui)#coerce
                     ();
   in
   let buttonKill = wtool1#insert_button
-                    ~tooltip:(Gettext.gettext Gui_messages.mW_ti_kill_core)
+                    ~tooltip:(Gui_messages.mW_ti_kill_core)
                     ~icon: (Gui_options.pixmap Gui_messages.o_xpm_kill_core)#coerce
                     ();
   in
@@ -153,7 +153,7 @@ class window () =
       ~packing:(box#pack ~expand:false ~fill:true) ()
   in
   let label_connect_status =
-    GMisc.label ~text:(Gettext.gettext Gui_messages.mW_lb_not_connected)
+    GMisc.label ~text:(Gui_messages.mW_lb_not_connected)
       ~justify:`LEFT ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(hbox_status#pack ~expand:true ~fill:true) ()
   in

@@ -819,6 +819,7 @@ MLDONKEY_IM_SRCS= \
    $(IM_GUI_CORE) $(IM)/gui_im_main.ml  $(MAIN_SRCS)
 
 STARTER_SRCS= $(SRC_GUI)/gui_starter.ml
+STARTER_CMXA=cdk.cmxa
 
 INSTALLER_CMXA= cdk.cmxa gmisc.cmxa common.cmxa
 INSTALLER_SRCS= \

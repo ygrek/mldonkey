@@ -5,7 +5,7 @@ class box () =
     GPack.hbox ~border_width:2 ~homogeneous:false ~spacing:5 ~packing:(evbox1#add) ()
   in
   let label_servers =
-    GMisc.label ~text:(Gettext.gettext Gui_messages.sT_lb_servers)
+    GMisc.label ~text:(Gui_messages.sT_lb_servers)
       ~justify:`LEFT ~line_wrap:true
       ~packing:(_anonymous_container_1#pack ~expand:false ~fill:true ~padding:3) ()
   in

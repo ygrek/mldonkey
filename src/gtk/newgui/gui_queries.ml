@@ -42,56 +42,56 @@ let (!!) = Options.(!!)
 
 let label_to_text_list =
   [
-   ("Complex Search", gettext M.qT_lb_complex_searches );
-   ("MP3 Search", gettext M.qT_lb_mp3_searches );
-   ("Movie Search", gettext M.qT_lb_movie_searches );
-   ("Album Search", gettext M.qT_lb_album_searches );
-   ("And Not", gettext M.qT_lb_and_not );
-   ("Audio", gettext M.qT_tx_audio );
-   ("Video", gettext M.qT_tx_video );
-   ("Program", gettext M.qT_tx_program );
-   ("Image", gettext M.qT_tx_image );
-   ("Documentation", gettext M.qT_tx_documentation );
-   ("Collection", gettext M.qT_tx_collection );
-   ("Keywords", gettext M.qT_lb_keywords );
-   ("Media", gettext M.qT_lb_media );
-   ("Format", gettext M.qT_lb_format );
-   ("Min size", gettext M.qT_lb_min_size );
-   ("Max size", gettext M.qT_lb_max_size );
-   ("Min Bitrate", gettext M.qT_lb_min_bitrate );
-   ("Title", gettext M.qT_lb_title );
-   ("Number of results", gettext M.qT_lb_number_of_results );
-   ("Sort by", gettext M.qT_lb_sort_by );
-   ("Album", gettext M.qT_lb_album );
-   ("Fields", gettext M.qT_lb_fields );
-   ("Artist", gettext M.qT_lb_artist );
-   ("Track/Title", gettext M.qT_lb_track_title );
-   ("Track", gettext M.qT_lb_track );
-   ("Rest", gettext M.qT_lb_rest );
-   ("Categories", gettext M.qT_lb_categories );
-   ("All", gettext M.qT_lb_all );
-   ("Blues", gettext M.qT_lb_blues );
-   ("Classical", gettext M.qT_lb_classical );
-   ("Data", gettext M.qT_lb_data );
-   ("Folk", gettext M.qT_lb_folk );
-   ("Rock", gettext M.qT_lb_rock );
-   ("Soundtrack", gettext M.qT_lb_soundtrack );
-   ("Availability", gettext M.qT_lb_availability );
-   ("Size", gettext M.qT_lb_size );
-   ("DVD Rips", gettext M.qT_lb_dvd_rips );
-   ("Screeners", gettext M.qT_lb_screeners );
-   ("PC Games", gettext M.qT_lb_pc_games );
-   ("Software", gettext M.qT_lb_software );
-   ("Anime", gettext M.qT_lb_anime );
-   ("Series", gettext M.qT_lb_series);
-   ("Funstuff", gettext M.qT_lb_funstuff );
-   ("Adult", gettext M.qT_lb_adult );
-   ("Consoles", gettext M.qT_lb_consoles );
-   ("Books", gettext M.qT_lb_books );
-   ("XBOX", gettext M.qT_lb_xbox );
-   ("Hentai", gettext M.qT_lb_hentai );
-   ("PS2", gettext M.qT_lb_ps2 );
-   ("Gay", gettext M.qT_lb_gay);
+   ("Complex Search", M.qT_lb_complex_searches );
+   ("MP3 Search", M.qT_lb_mp3_searches );
+   ("Movie Search", M.qT_lb_movie_searches );
+   ("Album Search", M.qT_lb_album_searches );
+   ("And Not", M.qT_lb_and_not );
+   ("Audio", M.qT_tx_audio );
+   ("Video", M.qT_tx_video );
+   ("Program", M.qT_tx_program );
+   ("Image", M.qT_tx_image );
+   ("Documentation", M.qT_tx_documentation );
+   ("Collection", M.qT_tx_collection );
+   ("Keywords", M.qT_lb_keywords );
+   ("Media", M.qT_lb_media );
+   ("Format", M.qT_lb_format );
+   ("Min size", M.qT_lb_min_size );
+   ("Max size", M.qT_lb_max_size );
+   ("Min Bitrate", M.qT_lb_min_bitrate );
+   ("Title", M.qT_lb_title );
+   ("Number of results", M.qT_lb_number_of_results );
+   ("Sort by", M.qT_lb_sort_by );
+   ("Album", M.qT_lb_album );
+   ("Fields", M.qT_lb_fields );
+   ("Artist", M.qT_lb_artist );
+   ("Track/Title", M.qT_lb_track_title );
+   ("Track", M.qT_lb_track );
+   ("Rest", M.qT_lb_rest );
+   ("Categories", M.qT_lb_categories );
+   ("All", M.qT_lb_all );
+   ("Blues", M.qT_lb_blues );
+   ("Classical", M.qT_lb_classical );
+   ("Data", M.qT_lb_data );
+   ("Folk", M.qT_lb_folk );
+   ("Rock", M.qT_lb_rock );
+   ("Soundtrack", M.qT_lb_soundtrack );
+   ("Availability", M.qT_lb_availability );
+   ("Size", M.qT_lb_size );
+   ("DVD Rips", M.qT_lb_dvd_rips );
+   ("Screeners", M.qT_lb_screeners );
+   ("PC Games", M.qT_lb_pc_games );
+   ("Software", M.qT_lb_software );
+   ("Anime", M.qT_lb_anime );
+   ("Series", M.qT_lb_series);
+   ("Funstuff", M.qT_lb_funstuff );
+   ("Adult", M.qT_lb_adult );
+   ("Consoles", M.qT_lb_consoles );
+   ("Books", M.qT_lb_books );
+   ("XBOX", M.qT_lb_xbox );
+   ("Hentai", M.qT_lb_hentai );
+   ("PS2", M.qT_lb_ps2 );
+   ("Gay", M.qT_lb_gay);
  ]
  
 
@@ -229,7 +229,7 @@ let rec form_of_entry f_submit qe =
       let (w2,e2,f2) = form_of_entry f_submit qe2 in
       vbox#pack ~padding: 2 ~expand: e1 w1;
       vbox#pack ~padding:2 ~expand:false (GMisc.label
-        ~text:(gettext M.qT_lb_and_not) ())#coerce;
+        ~text:(M.qT_lb_and_not) ())#coerce;
       vbox#pack ~padding: 2 ~expand: e2 w2;
       (wf#coerce, false, QF_ANDNOT (f1, f2))
 
@@ -517,20 +517,20 @@ class box submit_search query_entry =
           (fun () -> hide_or_show wchk_show#active form));
 
       Gui_misc.insert_buttons wtool1 wtool2 
-        ~text: (gettext M.qT_lb_submit)
-        ~tooltip: (gettext M.qT_ti_submit)
+        ~text: (M.qT_lb_submit)
+        ~tooltip: (M.qT_ti_submit)
         ~icon: (M.o_xpm_submit_search)
         ~callback: self#submit
         ();
       Gui_misc.insert_buttons wtool1 wtool2
-        ~text: (gettext M.qT_lb_local_search)
-        ~tooltip: (gettext M.qT_ti_local_search)
+        ~text: (M.qT_lb_local_search)
+        ~tooltip: (M.qT_ti_local_search)
         ~icon: (M.o_xpm_local_search)
         ~callback: self#local
         ();
       Gui_misc.insert_buttons wtool1 wtool2
-        ~text: (gettext M.qT_lb_subscribe)
-        ~tooltip: (gettext M.qT_ti_subscribe)
+        ~text: (M.qT_lb_subscribe)
+        ~tooltip: (M.qT_ti_subscribe)
         ~icon: (M.o_xpm_subscribe_search)
         ~callback: self#subscribe
         ();
@@ -570,8 +570,8 @@ class url_box query_entry submit_search =
       nets_wcombo#misc#hide ();
 
       Gui_misc.insert_buttons wtool1 wtool2
-        ~text: (gettext M.qT_lb_submit)
-        ~tooltip: (gettext  M.qT_ti_submit)
+        ~text: (M.qT_lb_submit)
+        ~tooltip: ( M.qT_ti_submit)
         ~icon: (M.o_xpm_submit_search)
         ~callback: self#submit
         ()
@@ -638,14 +638,14 @@ class paned () =
       let wl = GMisc.label ~text: desc () in
       let box_res = new Gui_results.search_result_box s.GuiTypes.search_num () in
       ignore (Gui_misc.insert_buttons box_res#wtool1 box_res#wtool2
-          ~text: (gettext  M.qT_lb_close_search)
-          ~tooltip: (gettext M.qT_ti_close_search)
+          ~text: ( M.qT_lb_close_search)
+          ~tooltip: (M.qT_ti_close_search)
           ~icon: (M.o_xpm_close_search)
           ~callback:(self#close_query s.GuiTypes.search_num true)
           ());
       ignore (Gui_misc.insert_buttons box_res#wtool1 box_res#wtool2
-          ~text: (gettext M.qT_lb_stop_search)
-          ~tooltip: (gettext M.qT_ti_stop_search)
+          ~text: (M.qT_lb_stop_search)
+          ~tooltip: (M.qT_ti_stop_search)
           ~icon: (M.o_xpm_stop_search)
           ~callback:(self#close_query s.GuiTypes.search_num false)
           ());
@@ -666,8 +666,8 @@ class paned () =
       let box_res = result_box qe in
       static_results <- box_res :: static_results;
       ignore (Gui_misc.insert_buttons box_res#wtool1 box_res#wtool2
-          ~text: (gettext M.qT_lb_close_search)
-          ~tooltip: (gettext M.qT_ti_close_search)
+          ~text: (M.qT_lb_close_search)
+          ~tooltip: (M.qT_ti_close_search)
           ~icon: (M.o_xpm_close_search)
           ~callback:(fun _ ->
             static_results <- List2.removeq box_res static_results;
@@ -734,7 +734,7 @@ class paned () =
               if net.net_enabled then
                 nets := (net.net_name, num) :: !nets
             ) networks;
-            let nets = (gettext  M.qT_tx_all_networks, 0) :: !nets in
+            let nets = ( M.qT_tx_all_networks, 0) :: !nets in
             combo#set_popdown_strings (List.map fst nets);
             w#set_nets nets
           end
@@ -749,10 +749,10 @@ class paned () =
     wnote_queries#append_page
       ~tab_label:
         (tab_box M.o_xpm_sharereactor_search 
-        (gettext M.qT_lb_sharereactor_searches))#coerce
+        (M.qT_lb_sharereactor_searches))#coerce
       ~menu_label:
         (menu_label_box M.o_xpm_sharereactor_search 
-        (gettext M.qT_lb_sharereactor_searches))#coerce
+        (M.qT_lb_sharereactor_searches))#coerce
       b#coerce;
     self#set_list_bg (`NAME !!Gui_options.color_list_bg) 
       (Gdk.Font.load_fontset !!O.font_list);
@@ -763,10 +763,10 @@ class paned () =
     wnote_queries#append_page
       ~tab_label:
         (tab_box M.o_xpm_jigle_search 
-        (gettext M.qT_lb_jigle_searches))#coerce
+        (M.qT_lb_jigle_searches))#coerce
       ~menu_label:
         (menu_label_box M.o_xpm_jigle_search 
-        (gettext M.qT_lb_jigle_searches))#coerce
+        (M.qT_lb_jigle_searches))#coerce
       b#coerce;
     self#set_list_bg (`NAME !!Gui_options.color_list_bg) 
       (Gdk.Font.load_fontset !!O.font_list);
@@ -777,24 +777,24 @@ class paned () =
     wnote_queries#append_page
       ~tab_label:
         (tab_box M.o_xpm_freedb_search 
-        (gettext M.qT_lb_freedb_searches))#coerce
+        (M.qT_lb_freedb_searches))#coerce
       ~menu_label:
         (menu_label_box M.o_xpm_freedb_search 
-        (gettext M.qT_lb_freedb_searches))#coerce
+        (M.qT_lb_freedb_searches))#coerce
       b#coerce;
     self#set_list_bg (`NAME !!Gui_options.color_list_bg) 
       (Gdk.Font.load_fontset !!O.font_list);
     
-    let b = new url_box (Q_KEYWORDS ((Gettext.gettext Gui_messages.qT_lb_title), ""))
+    let b = new url_box (Q_KEYWORDS ((Gui_messages.qT_lb_title), ""))
         (self#submit_url_search (new Gui_cdget.IMDB.results)) in
     static_queries_box <- b :: static_queries_box;
     wnote_queries#append_page
       ~tab_label:
         (tab_box M.o_xpm_imdb_search 
-        (gettext M.qT_lb_imdb_searches))#coerce
+        (M.qT_lb_imdb_searches))#coerce
       ~menu_label:
         (menu_label_box M.o_xpm_imdb_search 
-        (gettext M.qT_lb_imdb_searches))#coerce
+        (M.qT_lb_imdb_searches))#coerce
       b#coerce;
     self#set_list_bg (`NAME !!Gui_options.color_list_bg) 
       (Gdk.Font.load_fontset !!O.font_list);

@@ -1,0 +1,344 @@
+(************************************)
+(*                                  *)
+
+         module "Ed2k_hash"
+
+(*                                  *)
+(************************************)
+
+" <hash> : Set hash type you want to compute (ed2k, sig2dat,bp)" = " <hash> : Set hash type you want to compute (ed2k, sig2dat,bp)"
+
+" <nth size>: check C file functions" = " <nth size>: check C file functions"
+
+" <filenames> : compute hashes of filenames" = " <filenames> : compute hashes of filenames"
+
+(************************************)
+(*                                  *)
+
+         module "Former Translation"
+
+(*                                  *)
+(************************************)
+
+"Misc" = "Overigen"
+
+"Columns titles" = "Kolom titels"
+
+"Shared files upload info" = "Gedeelde bestanden upload info"
+
+"Columns for the results of searches and files of a friends" = "Kolommen voor de resultaten van zoekopdrachten en bestanden van vrienden"
+
+"Columns for the locations of a file" = "Kolommen voor de lokaties van een bestand"
+
+"File locations" = "Bestandslokaties"
+
+"Columns for the friends" = "Kolommen voor de vrienden"
+
+"Columns for the downloaded files" = "Kolommen voor de gedownloade bestanden"
+
+"Columns for the files being downloaded" = "Kolummen voor de bestanden die worden gedownload"
+
+"Columns for the servers" = "Kolummen voor de servers"
+
+"Layout" = "Opmaak"
+
+"Style of toolbars" = "Stijl van gereedschapsbalken"
+
+"What is displayed in toolbar buttons : text, icon or both" = "Wat word getoond in gereedschapsbalk knoppen: tekst, icoon of beiden"
+
+"Use relative %% availability" = "Gebruik relatieve %% beschikbaarheid"
+
+"Calculate %% availability ignoring already present chunks" = "Bereken %% beschikbaarheid, zoder op al aanwezige blokken te letten"
+
+"Use height encoded availability" = "Gebruik hoogte gecodeerde beschikbaarheid"
+
+"Display the availability of a chunk as height or color coded bar" = "Toon de beschikbaarheid van een blok als hoogte of kleur gecodeerde balk"
+
+"Use size suffixes (G, M, k)" = "Gebruik formaat toevoegsels (G, M, k)"
+
+"Files auto-expand depth" = "Automatisch bestandsdiepte uitbereiden"
+
+"Auto-resize lists columns" = "Automatisch grootte van kolommen getoonde bestanden aanpassen"
+
+"Auto-resize" = "Automatisch grootte aanpassen"
+
+"Colors" = "Kleuren"
+
+"Files listed" = "Getoonde bestanden"
+
+"Color for not connected servers or users" = "Kleur voor niet verbonden servers of gebruikers"
+
+"Color for connected servers or users" = "Kleur voor verbonden servers of gebruikers"
+
+"Color for unavailable files" = "Kleur voor niet beschikbare bestanden"
+
+"Not available" = "Niet beschikbaar"
+
+"Color for available files, not downloading" = "Kleur voor beschikbare bestanden, niet downloaden"
+
+"Available" = "Beschikbaar"
+
+"Color for files being downloaded" = "Kleur voor bestanden die worden gedownload"
+
+"Color for downloaded files" = "Kleur voor gedownloade bestanden"
+
+"Default color in lists" = "Standaar kleur in lijsten"
+
+"Default" = "Standaard"
+
+"The password to use when connecting to the server" = "Het te gebruiken wachtwoord voor verbinding met de server"
+
+"The server hostname to connect to" = "De server hostname om te verbinden met"
+
+"The server port to connect to" = "De server poort om te verbinden met"
+
+"Extended Search" = "Uitgebreid zoeken"
+
+"Local Search" = "Lokaal zoeken"
+
+"Comment" = "Commentaar"
+
+"Track number" = "Track nummer"
+
+"Year" = "Jaar"
+
+"Rooms" = "Ruimtes"
+
+"Results" = "Resultaten"
+
+"Settings" = "Instellingen"
+
+"Quit" = "Stoppen"
+
+"Reconnect" = "Opnieuw verbinden"
+
+"File" = "Bestand"
+
+"Refresh" = "Vernieuwen"
+
+"Uploaded" = "Geupload"
+
+"Uploads stats" = "Upload statistieken"
+
+"Requests" = "Aanvragen"
+
+"Show hidden fields" = "Toon verborgen velden"
+
+"Browse files" = "Browse bestanden"
+
+"Display all servers" = "Toon alle servers"
+
+"Remove all friends" = "Verwijder alle vrienden"
+
+"Find friend" = "Vind vriend"
+
+"Get format info" = "Haal format info"
+
+"Preview" = "Voorbeeld"
+
+"Verify chunks" = "Verifieer blokken"
+
+"Pause/Resume" = "Pauseren/Hervatten"
+
+"Edit mp3 tags" = "Bewerk mp3 tags"
+
+"Save file as" = "Bewaar bestand als"
+
+"Unknown" = "Onbekend"
+
+"Done" = "Klaar"
+
+"Paused" = "Gepauseerd"
+
+"Cancelled" = "Geannuleerd"
+
+"Downloading" = "Downloaden"
+
+"Removed" = "Verwijderd"
+
+"Connected" = "Verbonden"
+
+"Initiating" = "Initieren"
+
+"Connecting" = "Verbinden"
+
+"No" = "Nee"
+
+"Yes" = "Ja"
+
+"Kind" = "Vriendelijk"
+
+"Clear Console" = "Console leegmaken"
+
+"Command" = "Commando"
+
+"Set Option" = "Stel Optie in"
+
+"Value:" = "Waarde:"
+
+"Option:" = "Optie:"
+
+"Client hostname" = "Client hostnaam"
+
+"Max server age (days)" = "Max server leeftijd (in dagen)"
+
+"Remove old\nservers" = "Verwijder oude\nservers"
+
+"Recover MD4:" = "Haal MD4 terug:"
+
+"Description" = "Omschrijving"
+
+"Save" = "Bewaar"
+
+"Save all" = "Bewaar allen"
+
+"%d Downloaded Files" = "%d gedownloade bestanden"
+
+"Downloaded Files: %d/%d" = "Gedownloade bestanden: %d/%d"
+
+"Downloading Files" = "Bestanden Downloaden"
+
+"Connect" = "Verbind"
+
+"Users" = "Gebruikers"
+
+"Connect more\nservers" = "Verbind met meer\nservers"
+
+"Add friend" = "Vriend toevoegen"
+
+"Add server" = "Server toevoegen"
+
+"Add to friends" = "Toevoegen aan vrienden"
+
+"Connected to %d / %d locations" = "Verbonden met %d / %d locaties"
+
+"Disconnect all" = "Allen afkoppelen"
+
+"Retry connect" = "Verbinding opnieuw proberen"
+
+"Availability" = "Beschikbaarheid"
+
+"Downloaded" = "GeDownloade"
+
+"Subscribe" = "Inschrijven"
+
+"Force Download" = "Forceer Download"
+
+"Download selected directory" = "Download geselecteerde map"
+
+"Download selected files" = "Download geselecteerde bestanden"
+
+"Properties" = "Eigenschappen"
+
+"Size" = "Grootte"
+
+"Filename" = "Bestandsnaam"
+
+"Files" = "Bestanden"
+
+"View users" = "Bekijk gebruikers"
+
+"View files" = "Bekijk bestanden"
+
+"Close room" = "Sluit ruimte"
+
+"Remove" = "Verwijderen"
+
+"Port" = "Poort"
+
+"%d Results" = "%d Resultaten"
+
+"Submit" = "Indienen"
+
+"Mp3 options" = "Mp3 opties"
+
+"Close" = "Sluiten"
+
+"Title" = "Titel"
+
+"Artist" = "Artiest"
+
+"Friend" = "Vriend"
+
+"Network" = "Netwerk"
+
+"Max size" = "Max grootte"
+
+"Min size" = "Min grootte"
+
+"Search" = "Zoek"
+
+"Apply and save options" = "Opties toepassen en bewaren"
+
+"Client connection" = "Client verbinding"
+
+"Server connection" = "Server verbinding"
+
+"Upload limit (kB/s)" = "Upload limiet (kB/s)"
+
+"Download limit (kB/s)" = "Download limiet (kB/s)"
+
+"Disconnect" = "Afkoppelen"
+
+"Max connected clients" = "Max aantal verbonden clients"
+
+"Max connected servers" = "Max aantal verbonden servers"
+
+"Name" = "Naam"
+
+"General" = "Algemeen"
+
+"Gui refresh delay" = "Gui vernieuw vertraging"
+
+"Long retry delay" = "Lange retry vertraging"
+
+"Medium retry delay" = "Middellange retry vertraging"
+
+"Small retry delay" = "Korte retry vertraging"
+
+"Check serverDB connection" = "Controleer serverDB verbinding"
+
+"Check server connection" = "Controleer server verbining"
+
+"Check client connections" = "Controleer client verbindingen"
+
+"Save options delay" = "Bewaar optie vertraging"
+
+"Delays" = "Vertragingen"
+
+"Ports" = "Poorten"
+
+"GUI port" = "GUI poort"
+
+"Control port" = "Controle poort"
+
+"Connection port" = "Verbindingspoort"
+
+"No current search" = "Geen huidige zoekopdracht"
+
+"Downloading %d file(s)" = "%d bestand(en) aan het downloaden"
+
+"Connected to %d/%d server(s)" = "Verbonden met %d/%d server(s)"
+
+"Not connected" = "Niet verbonden"
+
+"Options" = "Opties"
+
+"Searches" = "Zoekopdrachten"
+
+"Friends" = "Vrienden"
+
+"State" = "Staat"
+
+"Last seen" = "Laatst gezien"
+
+"Age" = "Leeftijd"
+
+"Rate" = "Ratio"
+
+"Address" = "Adres"
+
+"Password" = "Wachtwoord"
+
+"Cancel" = "Annuleren"
+

@@ -39,31 +39,31 @@ let (!!) = Options.(!!)
 
 let string_color_of_state state =
   match state with
-  | Connected_downloading _ -> gettext M.fT_tx_downloading, Some !!O.color_downloading 
-  | Connected (-1) -> gettext M.fT_tx_connected, Some !!O.color_connected 
-  | Connecting  -> gettext M.fT_tx_connecting, Some !!O.color_connecting
-  | NewHost -> gettext M.fT_tx_new_host, None
-  | Connected_initiating -> gettext M.fT_tx_initiating, Some !!O.color_not_connected
-  | Connected 0 -> gettext M.fT_tx_queued, Some !!O.color_connected
+  | Connected_downloading _ -> M.fT_tx_downloading, Some !!O.color_downloading 
+  | Connected (-1) -> M.fT_tx_connected, Some !!O.color_connected 
+  | Connecting  -> M.fT_tx_connecting, Some !!O.color_connecting
+  | NewHost -> M.fT_tx_new_host, None
+  | Connected_initiating -> M.fT_tx_initiating, Some !!O.color_not_connected
+  | Connected 0 -> M.fT_tx_queued, Some !!O.color_connected
   | Connected n -> Printf.sprintf !!Gui_messages.fT_tx_ranked n, Some !!O.color_connected
   | NotConnected (_,n) -> 
       if n = -1 then
         "", None
       else
       if n = 0 then
-        gettext M.fT_tx_queued_out,  Some !!O.color_not_connected 
+        M.fT_tx_queued_out,  Some !!O.color_not_connected 
       else
       if n > 0 then
         Printf.sprintf !!Gui_messages.fT_tx_ranked_out n,  Some !!O.color_not_connected
       else
         Printf.sprintf !!Gui_messages.fT_tx_failed (- n - 1), Some !!O.color_not_connected
-  | RemovedHost -> gettext M.fT_tx_removed, Some !!O.color_not_connected
-  | BlackListedHost -> gettext M.fT_tx_black_listed, Some !!O.color_not_connected        
+  | RemovedHost -> M.fT_tx_removed, Some !!O.color_not_connected
+  | BlackListedHost -> M.fT_tx_black_listed, Some !!O.color_not_connected        
       
 let string_color_of_client friend_tab c =
   match c.gclient_files with
     Some _ when friend_tab ->
-      gettext M.fT_tx_files_listed, Some !!O.color_files_listed
+      M.fT_tx_files_listed, Some !!O.color_files_listed
   | _ -> string_color_of_state c.gclient_state
 
 let shorten maxlen s =
@@ -223,9 +223,9 @@ class box columns friend_tab =
       
     method column_menu  i = 
       [
-        `I (gettext M.mAutosize, fun _ -> self#wlist#columns_autosize ());
-        `I (gettext M.mSort, self#resort_column i);
-        `I (gettext M.mRemove_column,
+        `I (M.mAutosize, fun _ -> self#wlist#columns_autosize ());
+        `I (M.mSort, self#resort_column i);
+        `I (M.mRemove_column,
           (fun _ -> 
               match !!columns with
                 _ :: _ :: _ ->
@@ -240,7 +240,7 @@ class box columns friend_tab =
               | _ -> ()
           )
         );
-        `M (gettext M.mAdd_column_after, (
+        `M (M.mAdd_column_after, (
             List.map (fun (c,s,_) ->
                 (`I (s, (fun _ -> 
                         let c1, c2 = List2.cut (i+1) !!columns in
@@ -248,7 +248,7 @@ class box columns friend_tab =
                         self#set_columns columns
                     )))
             ) Gui_columns.Client.column_strings));
-        `M (gettext M.mAdd_column_before, (
+        `M (M.mAdd_column_before, (
             List.map (fun (c,s,_) ->
                 (`I (s, (fun _ -> 
                         let c1, c2 = List2.cut i !!columns in
@@ -290,13 +290,13 @@ class box columns friend_tab =
         Col_client_name -> shorten !!O.max_client_name_len f.gclient_name
       | Col_client_state -> fst (string_color_of_client friend_tab f)
       | Col_client_type -> (let t =  f.gclient_type in
-            if t land client_friend_tag <> 0 then gettext M.fT_tx_friend else
-            if t land client_contact_tag <> 0 then gettext M.fT_tx_contact else
-              gettext M.fT_tx_normal)
+            if t land client_friend_tag <> 0 then M.fT_tx_friend else
+            if t land client_contact_tag <> 0 then M.fT_tx_contact else
+              M.fT_tx_normal)
       | Col_client_network -> Gui_global.network_name f.gclient_network
       | Col_client_kind -> (
           match f.gclient_kind with
-            Known_location _ -> gettext M.fT_tx_direct
+            Known_location _ -> M.fT_tx_direct
           | _ -> "")
       | Col_client_rating -> string_of_int f.gclient_rating
       | Col_client_connect_time -> Gui_graph.time_to_string (BasicSocket.last_time () - f.gclient_connect_time)
@@ -370,7 +370,7 @@ class box_friends box_files friend_tab =
       Gui_com.send GuiProto.RemoveAllFriends
     
     method find_friend () =
-      match GToolbox.input_string (gettext M.fT_wt_find_friend) (gettext M.fT_lb_name)with
+      match GToolbox.input_string (M.fT_wt_find_friend) (M.fT_lb_name)with
         None -> ()
       |	Some s ->
           Gui_com.send (GuiProto.FindFriend s)
@@ -409,11 +409,11 @@ class box_friends box_files friend_tab =
     
     method menu =
       match self#selection with
-        [] -> [ `I (gettext M.fT_me_find_friend, self#find_friend) ;
-            `I (gettext M.fT_me_remove_all_friends, self#remove_all_friends)]
-      |	_ -> [ `I (gettext M.fT_me_find_friend, self#find_friend) ;
-            `I (gettext M.fT_me_remove, self#remove) ;
-            `I (gettext M.fT_me_remove_all_friends, self#remove_all_friends)]
+        [] -> [ `I (M.fT_me_find_friend, self#find_friend) ;
+            `I (M.fT_me_remove_all_friends, self#remove_all_friends)]
+      |	_ -> [ `I (M.fT_me_find_friend, self#find_friend) ;
+            `I (M.fT_me_remove, self#remove) ;
+            `I (M.fT_me_remove_all_friends, self#remove_all_friends)]
     
     method to_core_client c =
       {
@@ -569,12 +569,12 @@ class box_friends box_files friend_tab =
                      (Gui_global.network_name c.gclient_network));
             c.gclient_pixmap <-
               Some (get_friend_pix (self#to_core_client c));
-          ), gettext M.pW_lb_friends_add_icons, 1)
+          ), M.pW_lb_friends_add_icons, 1)
           else
             ((fun c ->
               c.gclient_net_pixmap <- None;
               c.gclient_pixmap <- None;
-            ), gettext M.pW_lb_friends_remove_icons, 1)
+            ), M.pW_lb_friends_remove_icons, 1)
       in
       Gui_options.generate_with_progress label self#get_all_items f step
 
@@ -606,7 +606,7 @@ class box_list friend_tab =
     method menu =
       match self#selection with
         [] -> []
-      |	_ -> [ `I (gettext M.uT_me_add_to_friends, self#add_to_friends) ]
+      |	_ -> [ `I (M.uT_me_add_to_friends, self#add_to_friends) ]
     
     method to_core_client c =
       {
@@ -762,12 +762,12 @@ class box_list friend_tab =
                 c.gclient_pixmap <-
                   Some (type_pix c.gclient_type)
               end
-          ), gettext M.pW_lb_uploads_add_icons, 1)
+          ), M.pW_lb_uploads_add_icons, 1)
           else
             ((fun c ->
               c.gclient_net_pixmap <- None;
               c.gclient_pixmap <- None;
-            ), gettext M.pW_lb_uploads_remove_icons, 1)
+            ), M.pW_lb_uploads_remove_icons, 1)
       in
       Gui_options.generate_with_progress label self#get_all_items f step
     
@@ -779,8 +779,8 @@ class box_list friend_tab =
                   true))
 (*
       Gui_misc.insert_buttons wtool1 wtool2
-        ~text: (gettext M.add_to_friends)
-      ~tooltip: (gettext M.add_to_friends)
+        ~text: (M.add_to_friends)
+      ~tooltip: (M.add_to_friends)
       ~icon: (M.o_xpm_add_to_friends)
       ~callback: self#add_to_friends
         ()

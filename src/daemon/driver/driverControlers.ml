@@ -96,7 +96,7 @@ let eval auth cmd o =
     [] -> ()
     | ["longhelp"] | ["??"] ->
            let module M = CommonMessages in
-           Buffer.add_string  buf !!M.available_commands_are;
+           Buffer.add_string  buf M.available_commands_are;
           if use_html_mods o then 
             html_mods_table_header buf "voTable" "vo" [
              ( "0", "srh", "Command", "Command" ) ;
@@ -180,17 +180,17 @@ Use '$rhelp command$n' or '$r? command$n' for help on a command.
             auth := true;
             o.conn_user <- find_ui_user user;
             let module M = CommonMessages in
-            Buffer.add_string buf !!M.full_access
+            Buffer.add_string buf M.full_access
           end else 
         let module M = CommonMessages in
-        Buffer.add_string buf !!M.bad_login
+        Buffer.add_string buf M.bad_login
       else
       if !auth then
         DriverCommands.execute_command 
           !CommonNetwork.network_commands o cmd args      
       else
       let module M = CommonMessages in
-      Buffer.add_string buf !!M.command_not_authorized
+      Buffer.add_string buf M.command_not_authorized
 
               
 (* This function is called every hour to check if we have something to do 

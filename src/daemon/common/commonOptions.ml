@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Gettext
 open Printf2
 open Md4
 open BasicSocket
@@ -71,7 +72,30 @@ let (file_basedir, home_basedir) =
       (try Sys.getenv "MLDONKEY_DIR" with _ -> 
             !!mldonkey_directory),
       home_dir
-      
+
+let _ = 
+  let filename = 
+        try
+      Sys.getenv "MLDONKEY_STRINGS"
+    with _ ->
+        Filename.concat config_dir "mlnet_strings"
+  in
+  Unix2.safe_mkdir (Filename.dirname filename);
+  set_strings_file filename
+
+
+let _s x = _s "CommonOptions" x
+let _b x = _b "CommonOptions" x  
+  
+let define_option a b ?desc c d e = 
+  match desc with
+    None -> define_option a b (_s c) d e
+  | Some desc -> define_option a b ~desc: (_s desc) (_s c) d e
+let define_expert_option a b ?desc c d e = 
+  match desc with
+    None -> define_expert_option a b (_s c) d e
+  | Some desc -> define_expert_option a b ~desc: (_s desc) (_s c) d e
+
 let cmd_basedir = Autoconf.current_dir (* will not work on Windows *)
 
 let html_themes_dir = Filename.concat file_basedir "html_themes"

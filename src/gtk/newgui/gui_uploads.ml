@@ -64,9 +64,9 @@ class box columns () =
     
     method column_menu  i = 
       [
-        `I (gettext M.mAutosize, fun _ -> self#wlist#columns_autosize ());
-        `I (gettext M.mSort, self#resort_column i);
-        `I (gettext M.mRemove_column,
+        `I (M.mAutosize, fun _ -> self#wlist#columns_autosize ());
+        `I (M.mSort, self#resort_column i);
+        `I (M.mRemove_column,
           (fun _ -> 
               match !!columns with
                 _ :: _ :: _ ->
@@ -80,7 +80,7 @@ class box columns () =
               | _ -> ()
           )
         );
-        `M (gettext M.mAdd_column_after, (
+        `M (M.mAdd_column_after, (
             List.map (fun (c,s,_) ->
                 (`I (s, (fun _ -> 
                         let c1, c2 = List2.cut (i+1) !!columns in
@@ -88,7 +88,7 @@ class box columns () =
                         self#set_columns columns
                     )))
             ) Gui_columns.Shared_files_up.column_strings));
-        `M (gettext M.mAdd_column_before, (
+        `M (M.mAdd_column_before, (
             List.map (fun (c,s,_) ->
                 (`I (s, (fun _ -> 
                         let c1, c2 = List2.cut i !!columns in
@@ -172,7 +172,7 @@ console ???? *)
       match self#selection with
         [] -> []
       |	list ->
-          [ `I ((gettext M.uT_me_copy_ed2k), copy_ed2k_links list) 
+          [ `I ((M.uT_me_copy_ed2k), copy_ed2k_links list) 
           ] 
     
     method find_file num = self#find num
@@ -289,18 +289,18 @@ class upstats_box () =
       label_uploaders#misc#set_style style;
 
       Gui_misc.insert_buttons wtool1 wtool2 
-        ~text: (gettext M.uT_lb_add_shared_directory)
-        ~tooltip: (gettext M.uT_ti_add_shared_directory)
+        ~text: (M.uT_lb_add_shared_directory)
+        ~tooltip: (M.uT_ti_add_shared_directory)
         ~icon: M.o_xpm_add_shared_directory
         ~callback: (fun _ -> 
           let module C = Configwin in
 	  let prio = ref 0 in
           let dir = ref "" in
           let params = [
-              C.string ~f: (fun p -> prio := int_of_string(p)) (gettext M.uT_lb_priority) "0";
-              C.filename ~f: (fun d -> dir := d) (gettext M.uT_lb_directory) ""] 
+              C.string ~f: (fun p -> prio := int_of_string(p)) (M.uT_lb_priority) "0";
+              C.filename ~f: (fun d -> dir := d) (M.uT_lb_directory) ""] 
           in
-          match C.simple_edit (gettext M.uT_wt_add_new_directory) 
+          match C.simple_edit (M.uT_wt_add_new_directory) 
                    ~with_apply:false
                    params with
             C.Return_apply -> 

@@ -67,7 +67,7 @@ class window () =
       tab_rooms#clear;
       tab_graph#clear;
       tab_uploads#clear;
-      label_connect_status#set_text (gettext M.mW_lb_not_connected)
+      label_connect_status#set_text (M.mW_lb_not_connected)
 
     initializer
 
@@ -135,7 +135,7 @@ class window () =
 	  Okey.add ~cond w ~mods k f
 	with
 	  Not_found ->
-            lprintf "%s %s\n" (gettext M.mW_tx_action_unknown) action
+            lprintf "%s %s\n" (M.mW_tx_action_unknown) action
       in
 
       (* Global shortcuts *)

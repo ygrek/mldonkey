@@ -154,7 +154,7 @@ let networks_combo all_possible =
         nets := (net.net_name, num) :: !nets
   ) networks;
   let nets = if all_possible then 
-      (Gettext.gettext Gui_messages.qT_tx_all_networks, 0) :: !nets
+      (Gui_messages.qT_tx_all_networks, 0) :: !nets
     else !nets in
   let wcombo = GEdit.combo
       ~popdown_strings: (List.map fst nets)

@@ -1,0 +1,244 @@
+(************************************)
+(*                                  *)
+
+         module "Ed2k_hash"
+
+(*                                  *)
+(************************************)
+
+" <hash> : Set hash type you want to compute (ed2k, sig2dat,bp)" = " <hash> : Set hash type you want to compute (ed2k, sig2dat,bp)"
+
+" <nth size>: check C file functions" = " <nth size>: check C file functions"
+
+" <filenames> : compute hashes of filenames" = " <filenames> : compute hashes of filenames"
+
+(************************************)
+(*                                  *)
+
+         module "Former Translation"
+
+(*                                  *)
+(************************************)
+
+"Files listed" = "Fichiers listes"
+
+"Year" = "Annee"
+
+"Rooms" = "Chambres"
+
+"Results" = "Resultats"
+
+"Queries" = "Requetes"
+
+"Settings" = "Proprietes"
+
+"Help" = "Aide"
+
+"Quit" = "Quitter"
+
+"Reconnect" = "Reconnecter"
+
+"Kill core" = "Tuer Serveur"
+
+"File" = "Fichiers"
+
+"Refresh" = "Raffraichir"
+
+"Uploaded" = "Partage"
+
+"Uploads stats" = "Statistiques des\nPartages"
+
+"Requests" = "Requetes"
+
+"Uploads" = "Partages"
+
+"Browse files" = "Voir les Fichiers"
+
+"Display all servers" = "Afficher tous\nles Serveurs"
+
+"Remove all friends" = "Retirer tous\nles Amis"
+
+"Find friend" = "Trouver un Ami"
+
+"Get format info" = "Extraire le Format"
+
+"Preview" = "Previsualiser"
+
+"Verify chunks" = "Verifier Chunks"
+
+"Upload" = "Partage"
+
+"Edit mp3 tags" = "Editer les Tags mp3"
+
+"Save file as" = "Sauver sous"
+
+"Unknown" = "Inconnu"
+
+"Paused" = "Pause"
+
+"Cancelled" = "Abandonne"
+
+"Downloading" = "En Chargement"
+
+"Queued" = "En Attente"
+
+"Removed" = "Retire"
+
+"Connected" = "Connecte"
+
+"Initiating" = "Connection en Cours"
+
+"Connecting" = "Connection en Cours"
+
+"No" = "Non"
+
+"Yes" = "Oui"
+
+"Clear Console" = "Effacer la Console"
+
+"Command" = "Commande"
+
+"Set Option" = "Fixer une Option"
+
+"Value:" = "Valeur:"
+
+"Remove old\nservers" = "Retirer Vieux\nServeurs"
+
+"Recover MD4:" = "Restaurer MD4:"
+
+"Save" = "Sauver"
+
+"Save all" = "Tout Sauver"
+
+"%d Downloaded Files" = "%d Fichiers Charges"
+
+"Downloaded Files: %d/%d" = "Chargements: %d/%d"
+
+"Connect" = "Connecter"
+
+"Users" = "Clients"
+
+"Connect more\nservers" = "Plus de\nServeurs"
+
+"Add friend" = "Ajouter un Ami"
+
+"Add server" = "Ajouter un serveur"
+
+"Add to friends" = "Ajouter aux Amis"
+
+"Connected to %d / %d locations" = "Connecte a %d / %d sources"
+
+"Disconnect all" = "Tout Deconnecter"
+
+"Retry connect" = "Reconnecter"
+
+"Availability" = "Disponibilite"
+
+"Downloaded" = "Charges"
+
+"Subscribe" = "Souscrire"
+
+"Force Download" = "Forcer le Chargement"
+
+"Download" = "Charger"
+
+"Download selected directory" = "Charger le Repertoire"
+
+"Download selected files" = "Charger les Fichiers"
+
+"Properties" = "Proprietes"
+
+"Size" = "Taille"
+
+"Filename" = "Nom du Fichier"
+
+"Files" = "Fichiers"
+
+"View users" = "Voir Clients"
+
+"View files" = "Voir Fichiers"
+
+"Close room" = "Fermer"
+
+"Remove" = "Supprimer"
+
+"%d Results" = "%d Resultats"
+
+"Submit" = "Soumettre"
+
+"Mp3 options" = "Options Mp3"
+
+"Close" = "Fermer"
+
+"Stop" = "Stoppe"
+
+"Min bitrate" = "Taux Min"
+
+"Title" = "Titre"
+
+"Artist" = "Artiste"
+
+"Browse" = "Observe"
+
+"Friend" = "Ami"
+
+"Network" = "Reseau"
+
+"Max size" = "Taille Max"
+
+"Min size" = "Taille Min"
+
+"Search" = "Recherche"
+
+"Query" = "Requete"
+
+"Apply and save options" = "Applique/Sauve Options"
+
+"Timeouts" = "Delais"
+
+"Disconnect" = "Deconnecter"
+
+"Max connected clients" = "Nbr Max Clients Connectes"
+
+"Max connected servers" = "Nbr Max Serveurs Connectes"
+
+"Name" = "Nom"
+
+"Save options delay" = "Delai de Sauvegarde"
+
+"Delays" = "Delais"
+
+"GUI port" = "Port de GUI"
+
+"Control port" = "Port de Control"
+
+"Connection port" = "Port de Connection"
+
+"No current search" = "Pas de Recherche"
+
+"Downloading %d file(s)" = "%d telechargement(s)"
+
+"Connected to %d/%d server(s)" = "Connecte a %d/%d serveur(s)"
+
+"Not connected" = "Non Connecte"
+
+"Searches" = "Recherches"
+
+"Friends" = "Amis"
+
+"Downloads" = "Chargements"
+
+"Servers" = "Serveurs"
+
+"State" = "Etat"
+
+"Last seen" = "Vu"
+
+"Rate" = "Taux"
+
+"Address" = "Addresse"
+
+"Password" = "Mot de Passe"
+
+"Cancel" = "Abandonner"
+

@@ -34,7 +34,7 @@ class paned () =
       ~packing:(_anonymous_container_1#pack ~expand:false ~fill:false) ()
   in
   let label_entry_ed2k_url =
-    GMisc.label ~text:(Gettext.gettext Gui_messages.dT_lb_ed2k) ~justify:`LEFT
+    GMisc.label ~text:(Gui_messages.dT_lb_ed2k) ~justify:`LEFT
       ~line_wrap:true ~packing:(_anonymous_container_2#pack ~expand:false ~fill:false ~padding:5 ) ()
   in
   let entry_ed2k_url =

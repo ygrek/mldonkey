@@ -28,6 +28,18 @@
 open Gettext
 open Options
 
+let _s x = _s "Gui_options" x
+let _b x = _b "Gui_options" x  
+    
+let define_option a b ?desc c d e = 
+  match desc with
+    None -> define_option a b (_s c) d e
+  | Some desc -> define_option a b ~desc: (_s desc) (_s c) d e
+let define_expert_option a b ?desc c d e = 
+  match desc with
+    None -> define_expert_option a b (_s c) d e
+  | Some desc -> define_expert_option a b ~desc: (_s desc) (_s c) d e
+
 module M = Gui_messages
 module C = Gui_columns
 
@@ -188,67 +200,67 @@ let add_binding map binding action =
 (** {2 Colors} *)
 
 let color_default = define_option mldonkey_gui_section ["colors"; "default"]
-    (gettext M.h_col_default) string_option "Black"
+    ( M.h_col_default) string_option "Black"
 let color_downloaded =  define_option mldonkey_gui_section ["colors"; "downloaded"]
-    (gettext M.h_col_downloaded) string_option "Blue"
+    ( M.h_col_downloaded) string_option "Blue"
 let color_downloading =  define_option mldonkey_gui_section ["colors"; "downloading"]
-    (gettext M.h_col_downloading) string_option "DarkGreen"
+    ( M.h_col_downloading) string_option "DarkGreen"
 let color_available =  define_option mldonkey_gui_section ["colors"; "available"]
-    (gettext M.h_col_avail) string_option "Orange"
+    ( M.h_col_avail) string_option "Orange"
 let color_not_available =  define_option mldonkey_gui_section ["colors"; "not_available"]
-    (gettext M.h_col_not_avail) string_option "Red"
+    ( M.h_col_not_avail) string_option "Red"
 let color_connected =  define_option mldonkey_gui_section ["colors"; "connected"]
-    (gettext M.h_col_connected) string_option "DarkGreen"
+    ( M.h_col_connected) string_option "DarkGreen"
 let color_not_connected =  define_option mldonkey_gui_section ["colors"; "not_connected"]
-    (gettext M.h_col_not_connected) string_option "Black"
+    ( M.h_col_not_connected) string_option "Black"
 let color_connecting =  define_option mldonkey_gui_section ["colors"; "connecting"]
-    (gettext M.h_col_connecting) string_option "Orange"
+    ( M.h_col_connecting) string_option "Orange"
 let color_files_listed =  define_option mldonkey_gui_section ["colors"; "files_listed"]
-    (gettext M.h_col_files_listed) string_option "Blue"
+    ( M.h_col_files_listed) string_option "Blue"
 let color_files_result =  define_option mldonkey_gui_section ["colors"; "files_result"]
-    (gettext M.h_col_files_listed) string_option "Blue"
+    ( M.h_col_files_listed) string_option "Blue"
 let color_tab_selected =  define_option mldonkey_gui_section ["colors"; "tab_selected"]
-    (gettext M.h_col_tab_selected) string_option "#ffffff"
+    ( M.h_col_tab_selected) string_option "#ffffff"
 let color_tab_not_selected =  define_option mldonkey_gui_section ["colors"; "tab_not_selected"]
-    (gettext M.h_col_tab_not_selected) string_option "#636363"
+    ( M.h_col_tab_not_selected) string_option "#636363"
 let color_list_bg =  define_option mldonkey_gui_section ["colors"; "list_bg"]
-    (gettext M.h_col_list_bg) string_option "#FFFFDB"
+    ( M.h_col_list_bg) string_option "#FFFFDB"
 let color_network_enabled =  define_option mldonkey_gui_section ["colors"; "network_enabled"]
-    (gettext M.h_col_network_enabled) string_option "#ffffff"
+    ( M.h_col_network_enabled) string_option "#ffffff"
 let color_network_disabled =  define_option mldonkey_gui_section ["colors"; "network_disabled"]
-    (gettext M.h_col_network_disabled) string_option "#636363"
+    ( M.h_col_network_disabled) string_option "#636363"
 
 (** {2 Fonts} *)
 
 let font_list =  define_option mldonkey_gui_section ["fonts"; "list"]
-    (gettext M.h_font_list) string_option
+    ( M.h_font_list) string_option
      ( if Autoconf.windows then "-unknown-Tahoma-normal-r-normal-*-*-100-*-*-p-*-iso8859-1"
      else "-*-*-*-*-*-*-*-*-*-*-*-*-*-*" )
 
 let font_main_tab =  define_option mldonkey_gui_section ["fonts"; "main_tab"]
-    (gettext M.h_font_main_tab) string_option
+    ( M.h_font_main_tab) string_option
      ( if Autoconf.windows then "-unknown-Tahoma-normal-r-normal-*-*-100-*-*-p-*-iso8859-1"
      else "-*-*-*-*-*-*-*-*-*-*-*-*-*-*" )
 
 let font_networks =  define_option mldonkey_gui_section ["fonts"; "networks"]
-    (gettext M.h_font_networks) string_option
+    ( M.h_font_networks) string_option
      ( if Autoconf.windows then "-unknown-Tahoma-normal-r-normal-*-*-100-*-*-p-*-iso8859-1"
      else "-*-*-*-*-*-*-*-*-*-*-*-*-*-*" )
 
 let font_graphic =  define_option mldonkey_gui_section ["fonts"; "graphic"]
-    (gettext M.h_font_graphic)  string_option
+    ( M.h_font_graphic)  string_option
      ( if Autoconf.windows then "-unknown-Tahoma-normal-r-normal-*-*-80-*-*-p-*-iso8859-1"
      else "-*-*-*-*-*-*-*-*-*-*-*-*-*-*" )
 
 (*
 let font_list =  define_option mldonkey_gui_section ["fonts"; "list"]
-    (gettext M.h_font_list) string_option "-bitstream-bitstream vera sans-medium-r-normal-*-10-*-*-*-p-*-iso8859-1"
+    ( M.h_font_list) string_option "-bitstream-bitstream vera sans-medium-r-normal-*-10-*-*-*-p-*-iso8859-1"
 let font_main_tab =  define_option mldonkey_gui_section ["fonts"; "main_tab"]
-    (gettext M.h_font_main_tab) string_option "-2rebels-andover-medium-r-normal-*-48-*-*-*-p-*-iso8859-1"
+    ( M.h_font_main_tab) string_option "-2rebels-andover-medium-r-normal-*-48-*-*-*-p-*-iso8859-1"
 let font_networks =  define_option mldonkey_gui_section ["fonts"; "networks"]
-    (gettext M.h_font_networks) string_option "-2rebels-andover-medium-r-normal-*-48-*-*-*-p-*-iso8859-1"
+    ( M.h_font_networks) string_option "-2rebels-andover-medium-r-normal-*-48-*-*-*-p-*-iso8859-1"
 let font_graphic =  define_option mldonkey_gui_section ["fonts"; "graphic"]
-    (gettext M.h_font_graphic) string_option "-bitstream-bitstream vera sans-medium-r-normal-*-10-*-*-*-p-*-iso8859-1"
+    ( M.h_font_graphic) string_option "-bitstream-bitstream vera sans-medium-r-normal-*-10-*-*-*-p-*-iso8859-1"
 *)
 
 (** {2 Icons} *)
@@ -554,74 +566,74 @@ let (class_tbstyle : Gtk.Tags.toolbar_style option_class) =
 
 let toolbars_style = define_option mldonkey_gui_section
     ["toolbars_style"] 
-    (gettext M.h_toolbars_style)
+    ( M.h_toolbars_style)
     class_tbstyle `ICONS
 
 let mini_toolbars = define_option mldonkey_gui_section
     ["mini_toolbars"] 
-    (gettext M.h_mini_toolbars)
+    ( M.h_mini_toolbars)
     bool_option true
 
 (** {2 Layout} *)
 
 let servers_vpane_up = define_option mldonkey_gui_section
     ["layout"; "servers_vpane_up"]
-    (gettext M.h_servers_vpane_up)
+    ( M.h_servers_vpane_up)
     int_option 72
 
 let friends_hpane_left = define_option mldonkey_gui_section
     ["layout"; "friends_hpane_left"]
-    (gettext M.h_friends_hpane_left)
+    ( M.h_friends_hpane_left)
     int_option 17
 
 let friends_vpane_up = define_option mldonkey_gui_section
     ["layout"; "friends_vpane_up"]
-    (gettext M.h_friends_vpane_up)
+    ( M.h_friends_vpane_up)
     int_option 69
 
 let friends_hpane_dirs = define_option mldonkey_gui_section
     ["layout"; "friends_hpane_dirs"]
-    (gettext M.h_friends_hpane_dirs)
+    ( M.h_friends_hpane_dirs)
     int_option 13
 
 let rooms_hpane_left = define_option mldonkey_gui_section
     ["layout"; "rooms_hpane_left"]
-    (gettext M.h_rooms_hpane_left)
+    ( M.h_rooms_hpane_left)
     int_option 30
 
 let rooms_hpane2_left = define_option mldonkey_gui_section
     ["layout"; "rooms_hpane2_left"]
-    (gettext M.h_rooms_hpane2_left)
+    ( M.h_rooms_hpane2_left)
     int_option 50
 
 let rooms_vpane_up = define_option mldonkey_gui_section
     ["layout"; "rooms_vpane_up"]
-    (gettext M.h_rooms_vpane_up)
+    ( M.h_rooms_vpane_up)
     int_option 50
 
 let uploads_vpane_up = define_option mldonkey_gui_section
     ["layout"; "uploads_vpane_up"]
-    (gettext M.h_uploads_vpane_up)
+    ( M.h_uploads_vpane_up)
     int_option 72
 
 let gui_width = define_option mldonkey_gui_section
     ["layout"; "width"]
-    (gettext M.h_gui_width)
+    ( M.h_gui_width)
     int_option 600
 
 let gui_height = define_option mldonkey_gui_section
     ["layout"; "height"]
-    (gettext M.h_gui_height)
+    ( M.h_gui_height)
     int_option 400
 
 let last_tab = define_option mldonkey_gui_section
     ["layout"; "last_tab"]
-    (gettext M.h_last_tab) 
+    ( M.h_last_tab) 
     int_option 0
 
 let notebook_tab = define_option mldonkey_gui_section
     ["layout"; "tab_position"]
-    (gettext M.h_tab_position) 
+    ( M.h_tab_position) 
     TabPosition.t `TOP
 
 (** {2 List columns} *)
@@ -631,7 +643,7 @@ let notebook_tab = define_option mldonkey_gui_section
 
 let downloads_columns = define_option mldonkey_gui_section
     ["downloads_columns"] 
-    (gettext M.h_downloads_columns)
+    ( M.h_downloads_columns)
     (list_option C.File.class_column)
   [
    C.Col_file_network; C.Col_file_priority ;
@@ -645,7 +657,7 @@ let downloads_columns = define_option mldonkey_gui_section
 
 let friends_columns = define_option mldonkey_gui_section
     ["friends_columns"] 
-    (gettext M.h_friends_columns)
+    ( M.h_friends_columns)
     (list_option C.Client.class_column)
   [
    C.Col_client_name ;
@@ -653,7 +665,7 @@ let friends_columns = define_option mldonkey_gui_section
 
 let file_locations_columns = define_option mldonkey_gui_section
     ["file_locations_columns"] 
-    (gettext M.h_file_locations_columns)
+    ( M.h_file_locations_columns)
     (list_option C.Client.class_column)
   [
    C.Col_client_network ; C.Col_client_name ;
@@ -667,7 +679,7 @@ let file_locations_columns = define_option mldonkey_gui_section
 (** {3 Users} *)
 
 let users_columns = define_option mldonkey_gui_section
-    ["users_columns"] (gettext M.h_users_columns)
+    ["users_columns"] ( M.h_users_columns)
     (list_option C.User.class_column)
   [
    C.Col_user_name ; C.Col_user_kind ;
@@ -676,7 +688,7 @@ let users_columns = define_option mldonkey_gui_section
 
 let rooms_columns = define_option mldonkey_gui_section
     ["rooms_columns"] 
-    (gettext M.h_rooms_columns)
+    ( M.h_rooms_columns)
     (list_option C.Room.class_column)
   [
    C.Col_room_network ; C.Col_room_name ;
@@ -687,7 +699,7 @@ let rooms_columns = define_option mldonkey_gui_section
 
 let servers_columns = define_option mldonkey_gui_section
     ["server_columns"] 
-    (gettext M.h_servers_columns)
+    ( M.h_servers_columns)
     (list_option C.Server.class_column)
   [
    C.Col_server_network ; C.Col_server_name ;
@@ -700,7 +712,7 @@ let servers_columns = define_option mldonkey_gui_section
 
 let results_columns = define_option mldonkey_gui_section
     ["results_columns"] 
-    (gettext M.h_results_columns)
+    ( M.h_results_columns)
     (list_option C.Result.class_column)
   [
    C.Col_result_network ; C.Col_result_name ;
@@ -715,7 +727,7 @@ let results_columns = define_option mldonkey_gui_section
 
 let shared_files_up_columns = define_option mldonkey_gui_section
     ["shared_files_up_columns"] 
-    (gettext M.h_shared_files_up_columns)
+    ( M.h_shared_files_up_columns)
     (list_option C.Shared_files_up.class_column)
   [
    C.Col_shared_file ; C.Col_shared_size;
@@ -726,89 +738,89 @@ let shared_files_up_columns = define_option mldonkey_gui_section
 
 let login = define_option mldonkey_gui_section 
     ["login"]
-    (gettext M.h_login)
+    ( M.h_login)
     string_option "admin"
 
 let password = define_option mldonkey_gui_section 
     ["password"] 
-    (gettext M.h_gui_password) 
+    ( M.h_gui_password) 
     string_option ""
 
 let port = define_option mldonkey_gui_section 
     ["port"] 
-    (gettext M.h_gui_port) 
+    ( M.h_gui_port) 
     int_option 4001
 
 let hostname = define_option mldonkey_gui_section 
     ["hostname"] 
-    (gettext M.h_hostname) 
+    ( M.h_hostname) 
     string_option "localhost"
 
 let history = define_option mldonkey_gui_section 
     ["history"]
-    (gettext M.h_history)
+    ( M.h_history)
     (list_option (tuple2_option (string_option, int_option))) []
   
 (** Max Depth used to auto expand the trees in the Friends Tab. *)
 let files_auto_expand_depth = define_option mldonkey_gui_section 
     ["files_auto_expand_depth"]
-    (gettext M.h_files_auto_expand_depth) 
+    ( M.h_files_auto_expand_depth) 
     int_option 3
 
 (** Whether we must print sizes in bytes or use G, M and k suffixes. *)
 let use_size_suffixes = define_option mldonkey_gui_section
     ["use_size_suffixes"]
-    (gettext M.h_use_size_suffixes) 
+    ( M.h_use_size_suffixes) 
     bool_option true
 
 let use_availability_height = define_option mldonkey_gui_section 
     ["availability_height"]
-    (gettext M.h_use_availability_height)
+    ( M.h_use_availability_height)
     bool_option true
 
 let availability_max = define_option mldonkey_gui_section 
     ["availability_max"]
-    (gettext M.h_availability_max)
+    ( M.h_availability_max)
     int_option 10
   
 let use_relative_availability = define_option mldonkey_gui_section 
     ["relative_availability"]
-    (gettext M.h_use_relative_availability)
+    ( M.h_use_relative_availability)
     bool_option true
 
 let use_icons = define_option mldonkey_gui_section 
     ["use_icons"]
-    (gettext M.h_use_icons)
+    ( M.h_use_icons)
     bool_option true
 
 let use_graphical_availability = define_option mldonkey_gui_section 
     ["graphical_availability"]
-    (gettext M.h_use_graphical_availability)
+    ( M.h_use_graphical_availability)
     bool_option true
 
 let max_file_name_len = define_option mldonkey_gui_section 
     ["max_file_name_len"] 
-    (gettext M.h_max_file_name_len)
+    ( M.h_max_file_name_len)
     int_option 70
 
 let max_client_name_len = define_option mldonkey_gui_section 
     ["max_client_name_len"]
-    (gettext M.h_max_client_name_len)
+    ( M.h_max_client_name_len)
     int_option 40
 
 let max_result_name_len = define_option mldonkey_gui_section 
     ["max_result_name_len"]
-    (gettext M.h_max_result_name_len)
+    ( M.h_max_result_name_len)
     int_option 70
     
 let compaction_overhead = define_option mldonkey_gui_section 
     ["compaction_overhead"]
-    (gettext M.h_compaction_overhead)
+    ( M.h_compaction_overhead)
     int_option 50
 
 let interface_buffer = define_option mldonkey_gui_section
     ["interface_buffer"] 
-    (gettext M.h_interface_buffer)
+    ( M.h_interface_buffer)
     int_option 10000000
 
   
@@ -820,68 +832,68 @@ let _ =
 
 let copy_messages = define_option mldonkey_gui_section
     ["copy_messages"]
-    (gettext M.h_copy_messages) 
+    ( M.h_copy_messages) 
     bool_option true
 
 (** {2 Graph Options} *)
 let max_download_rate =  define_option mldonkey_gui_section 
     ["max_download_rate"]
-    (gettext M.h_max_download_rate) 
+    ( M.h_max_download_rate) 
     int_option 64
 
 let max_upload_rate =  define_option mldonkey_gui_section 
     ["max_upload_rate"]
-    (gettext M.h_max_upload_rate) 
+    ( M.h_max_upload_rate) 
     int_option 16
 
 let download_time_range =  define_option mldonkey_gui_section 
     ["download_time_range"]
-    (gettext M.h_download_time_range) 
+    ( M.h_download_time_range) 
     string_option "6h"
 
 let upload_time_range = define_option mldonkey_gui_section 
     ["upload_time_range"]
-    (gettext M.h_upload_time_range) 
+    ( M.h_upload_time_range) 
     string_option "6h"
 
 let color_bg_download =  define_option mldonkey_gui_section 
     ["bg_download"]
-    (gettext M.h_col_bg_download) 
+    ( M.h_col_bg_download) 
     string_option "#454b55"
 
 let color_bg_upload = define_option mldonkey_gui_section 
     ["bg_upload"]
-    (gettext M.h_col_bg_upload) 
+    ( M.h_col_bg_upload) 
     string_option "#454b55"
 
 let color_grid_download =  define_option mldonkey_gui_section 
     ["grid_download"]
-    (gettext M.h_col_grid_download) 
+    ( M.h_col_grid_download) 
     string_option "#fffcc6"
 
 let color_grid_upload = define_option mldonkey_gui_section 
     ["grid_upload"]
-    (gettext M.h_col_grid_upload) 
+    ( M.h_col_grid_upload) 
     string_option "#fffcc6"
 
 let color_fg_download = define_option mldonkey_gui_section 
     ["fg_download"]
-    (gettext M.h_col_fg_download) 
+    ( M.h_col_fg_download) 
     string_option "#83afff"
 
 let color_fg_upload = define_option mldonkey_gui_section 
     ["fg_upload"]
-    (gettext M.h_col_fg_upload) 
+    ( M.h_col_fg_upload) 
     string_option "#6eec8b"
 
 let color_fg_download_av = define_option mldonkey_gui_section 
     ["fg_download_av"]
-    (gettext M.h_col_fg_download_av) 
+    ( M.h_col_fg_download_av) 
     string_option "#2d62c1"
 
 let color_fg_upload_av = define_option mldonkey_gui_section 
     ["fg_upload_av"]
-    (gettext M.h_col_fg_upload_av) 
+    ( M.h_col_fg_upload_av) 
     string_option "#61b722"
 
 

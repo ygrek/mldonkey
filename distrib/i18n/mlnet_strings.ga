@@ -1,0 +1,390 @@
+(************************************)
+(*                                  *)
+
+         module "Ed2k_hash"
+
+(*                                  *)
+(************************************)
+
+" <hash> : Set hash type you want to compute (ed2k, sig2dat,bp)" = " <hash> : Set hash type you want to compute (ed2k, sig2dat,bp)"
+
+" <nth size>: check C file functions" = " <nth size>: check C file functions"
+
+" <filenames> : compute hashes of filenames" = " <filenames> : compute hashes of filenames"
+
+(************************************)
+(*                                  *)
+
+         module "Former Translation"
+
+(*                                  *)
+(************************************)
+
+"Misc" = "Outros"
+
+"Client" = "Cliente"
+
+"Columns titles" = "T\237tulos das columnas"
+
+"Shared files upload info" = "Informaci\243ns sobre arquivos compartidos"
+
+"Columns for the results of searches and files of a friends" = "Columnas para os resultados de busquedas e arquivos de amigos"
+
+"Columns for the locations of a file" = "Columnas Localizaci\243n dos arquivos"
+
+"File locations" = "Localizaci\243n dos arquivos"
+
+"Columns for the friends" = "Columnas para os amigos"
+
+"Columns for the downloaded files" = "Columnas para os arquivos descargados"
+
+"Columns for the files being downloaded" = "Columnas para as descargas que est\225n sendo feitas"
+
+"Columns for the servers" = "Columnas para os servidores"
+
+"Layout" = "Estilo"
+
+"Style of toolbars" = "Estilo da Barra de ferramentas"
+
+"What is displayed in toolbar buttons : text, icon or both" = "Como ser\225n mostrados os bot\243ns da barra de ferramentas : texto, \237conas ou ambos"
+
+"Use relative %% availability" = "Usar disponibilidade relativa"
+
+"Calculate %% availability ignoring already present chunks" = "Calcular a %% de dispo\241ibilidade ignorando os chunks xa presentes"
+
+"Use height encoded availability" = "Usar dispo\241ibilidade por tama\241o"
+
+"Display the availability of a chunk as height or color coded bar" = "Mostrar a dispo\241ibilidade do chunk con tamanho ou cor gravada na barra"
+
+"Use size suffixes (G, M, k)" = "Usar sufixos de tama\241o (G, M, k)"
+
+"Files auto-expand depth" = "Profundidade dos arquivos auto-expansibles"
+
+"Auto-resize lists columns" = "Tama\241o autom\225tico das columnas de listas"
+
+"Auto-resize" = "Tama\241o autom\225tico"
+
+"Colors" = "Cores"
+
+"Files listed" = "Arquivos listados"
+
+"Color for not connected servers or users" = "Cor para servidores ou usuarios non conectados"
+
+"Color for connected servers or users" = "Cor para servidores ou usuarios conectados"
+
+"Color for unavailable files" = "Cor para arquivos indispo\241ibles"
+
+"Not available" = "Non dispo\241oble"
+
+"Color for available files, not downloading" = "Cor para arquivos dispo\241ibles, non descargando"
+
+"Available" = "Dispo\241ible"
+
+"Color for files being downloaded" = "Cor para arquivos sendo descargados"
+
+"Color for downloaded files" = "Cor para arquivos descargados"
+
+"Default color in lists" = "Cores por defecto nas listas"
+
+"Default" = "Por defecto"
+
+"GUI server" = "Servidor de GUI"
+
+"The password to use when connecting to the server" = "O password para conectar \243 servidor"
+
+"The server hostname to connect to" = "Nome do servidor para conectar"
+
+"Hostname" = "Nome"
+
+"The server port to connect to" = "Porta do servidor para conectar"
+
+"Extended Search" = "Busqueda estendida"
+
+"Local Search" = "Busqueda Local"
+
+"Genre" = "X\233nero"
+
+"Comment" = "Comentario"
+
+"Track number" = "Numero da Pista"
+
+"Year" = "Ano"
+
+"Rooms" = "Salas"
+
+"Results" = "Resultados"
+
+"Queries" = "Busquedas"
+
+"Settings" = "Configuraci\243ns"
+
+"Help" = "Axuda"
+
+"Quit" = "Sair"
+
+"Reconnect" = "Reconectar"
+
+"Kill core" = "Matar core"
+
+"File" = "Arquivo"
+
+"Refresh" = "Atualizar"
+
+"Uploaded" = "Enviado"
+
+"Uploads stats" = "Estat\237sticas de Envio"
+
+"Requests" = "Pedidos"
+
+"Uploads" = "Envios"
+
+"Show hidden fields" = "Mostrar campos ocultos"
+
+"Browse files" = "Navegar polos arquivos"
+
+"Display all servers" = "Mostrar todos"
+
+"Remove all friends" = "Remover todos"
+
+"Find friend" = "Buscar"
+
+"Get format info" = "Inf do formato"
+
+"Preview" = "Previsuaizaci\243n"
+
+"Verify chunks" = "Verificar chunks"
+
+"Pause/Resume" = "(Des) Pausa"
+
+"Upload" = "Envio"
+
+"Direct" = "Directo"
+
+"Edit mp3 tags" = "Editar tags mp3"
+
+"Save file as" = "Gravar arquivo como:"
+
+"Unknown" = "Desco\241ecido"
+
+"Done" = "Terminado"
+
+"Paused" = "Pausado"
+
+"Cancelled" = "Cancelado"
+
+"Downloading" = "Descargando"
+
+"Queued" = "En espera"
+
+"Removed" = "Borrado"
+
+"Connected" = "Conectado"
+
+"Initiating" = "Iniciando"
+
+"Connecting" = "Conectando"
+
+"No" = "Non"
+
+"Yes" = "Si"
+
+"Chat" = "Bate-papo"
+
+"Kind" = "Tipo"
+
+"Clear Console" = "Limpar Consola"
+
+"Console" = "Consola"
+
+"Command" = "Comando"
+
+"Set Option" = "Axustar Opci\243n"
+
+"Value:" = "Valor:"
+
+"Option:" = "Opci\243ns:"
+
+"Client hostname" = "Nome do Cliente"
+
+"Features" = "Funci\243ns"
+
+"Max Hits" = "Max Resultados"
+
+"Max server age (days)" = "Idade Max (dias)"
+
+"Remove old\nservers" = "Borrar vellos"
+
+"Recover MD4:" = "Recuperar MD4:"
+
+"Description" = "Descripci\243n"
+
+"Save" = "Gravar"
+
+"Save all" = "Gravar todos"
+
+"%d Downloaded Files" = "%d Arquivos descargados"
+
+"Downloaded Files: %d/%d" = "Descargando arquivos: %d/%d"
+
+"Downloading Files" = "Descargando arquivos"
+
+"Connect" = "Conectar"
+
+"Status" = "Estado"
+
+"Users" = "Usuarios"
+
+"Connect more\nservers" = "Conectar mais servidores"
+
+"Add friend" = "Engadir amigo"
+
+"Add server" = "Engadir servidor"
+
+"Add to friends" = "Engadir \243s amigos"
+
+"Connected to %d / %d locations" = "Conectado a %d / %d locais"
+
+"Disconnect all" = "Desconectar todos"
+
+"Retry connect" = "Reconectar"
+
+"Availability" = "Dispo\241ibilidade"
+
+"Downloaded" = "Descargado"
+
+"Subscribe" = "Inscribir"
+
+"Force Download" = "Forzar a Descarga"
+
+"Download" = "Descargar"
+
+"Download selected directory" = "Descargar diretorio selecionado"
+
+"Download selected files" = "Descargar arquivos selecionados"
+
+"Properties" = "Propiedades"
+
+"Size" = "Tama\241o"
+
+"Filename" = "Nome do Arquivo"
+
+"Files" = "Arquivos"
+
+"View users" = "Ver usuarios"
+
+"View files" = "Ver arquivos"
+
+"Close room" = "Pechar sala"
+
+"Remove" = "Remover"
+
+"Port" = "Porta"
+
+"%d Results" = "%d Resultados"
+
+"Submit" = "Enviar"
+
+"Mp3 options" = "Opci\243ns de Mp3"
+
+"Close" = "Pechar"
+
+"Stop" = "Parar"
+
+"Min bitrate" = "Bitrate Min"
+
+"Title" = "T\237tulo"
+
+"Artist" = "Artista"
+
+"Browse" = "Navegador"
+
+"Friend" = "Amigo"
+
+"Type" = "Tipo"
+
+"Network" = "Rede"
+
+"Format" = "Formato"
+
+"Max size" = "Tama\241o Max"
+
+"Min size" = "Tama\241o Min"
+
+"Search" = "Procura"
+
+"Query" = "Busca"
+
+"Apply and save options" = "Aplicar e gravar opci\243ns"
+
+"Client connection" = "Conexi\243n do Cliente"
+
+"Server connection" = "Conexi\243n do servidor"
+
+"Upload limit (kB/s)" = "Limite de Envio (kB/s)"
+
+"Download limit (kB/s)" = "Limite de Descargamento (kB/s)"
+
+"Disconnect" = "Desconectar"
+
+"Max connected clients" = "Max de clientes conectados"
+
+"Max connected servers" = "Max de servidores connectados"
+
+"Name" = "Nome"
+
+"General" = "Xeral"
+
+"Gui refresh delay" = "tempo de espera para atualizaci\243n da GUI"
+
+"Long retry delay" = "Tempo de espera longo para nova tentativa"
+
+"Medium retry delay" = "Tempo de espera medio para nova tentativa"
+
+"Small retry delay" = "Tempo de espera pequeno para nova tentativa"
+
+"Check serverDB connection" = "Verificar conexi\243n do BD do servidor"
+
+"Check server connection" = "Verificar conexi\243n do servidor"
+
+"Check client connections" = "Verificar conexi\243n do cliente"
+
+"Save options delay" = "Gravar opci\243ns de atraso"
+
+"Delays" = "Atrasos"
+
+"Ports" = "Portas"
+
+"GUI port" = "Porta GUI"
+
+"Control port" = "Porta de Control"
+
+"Connection port" = "Porta de Conexi\243n"
+
+"No current search" = "Sen procuras atuais"
+
+"Downloading %d file(s)" = "Descargando %d arquivo(s)"
+
+"Connected to %d/%d server(s)" = "Conectado en %d/%d servidor(es)"
+
+"Not connected" = "Non conectado"
+
+"Options" = "Opci\243ns"
+
+"Searches" = "Busquedas"
+
+"Friends" = "Amigos"
+
+"Downloads" = "Descargas"
+
+"Servers" = "Servidores"
+
+"State" = "Estado"
+
+"Last seen" = "Ultima visita"
+
+"Age" = "Idade"
+
+"Address" = "Enderezo"
+
+"Cancel" = "Cancelar"
+

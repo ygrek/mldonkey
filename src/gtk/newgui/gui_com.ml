@@ -121,7 +121,7 @@ let reconnect (gui : gui) value_reader arg reason =
         | Some s -> 
             if s == sock then begin
                 connection := None;
-                gui#set_connect_status (gettext M.mW_lb_not_connected);
+                gui#set_connect_status (M.mW_lb_not_connected);
                 when_disconnected gui
               end
     );
@@ -141,7 +141,7 @@ let reconnect (gui : gui) value_reader arg reason =
               lprint_newline ();
               raise e
       ));
-    gui#set_connect_status (gettext M.mW_lb_connecting);
+    gui#set_connect_status (M.mW_lb_connecting);
     send (GuiProto.GuiProtocol GuiEncoding.best_gui_version)
   with e ->
       lprintf "Exception %s in connecting\n" (Printexc2.to_string e);
@@ -184,7 +184,7 @@ module UseFifo = struct
                   lprint_newline ();
           );
         end;      
-      gui#set_connect_status (gettext M.mW_lb_connecting);
+      gui#set_connect_status (M.mW_lb_connecting);
       send (GuiProto.GuiProtocol GuiEncoding.best_gui_version)
       
     let connected _ = true

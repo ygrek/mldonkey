@@ -17,10 +17,14 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Gettext
 open Md4
 open LittleEndian
 open Unix
 open Printf2
+
+let _s x = _s "Ed2k_hash" x
+let _b x = _b "Ed2k_hash" x  
 
 let zero = Int64.zero
 let one = Int64.one
@@ -299,10 +303,10 @@ let check_external_functions size =
         let (sha1, tiger2) = bitprint_file file file_size in
         lprintf "urn:bitprint:%s.%s\n" (Sha1.to_string sha1) (TigerTree.to_string tiger2);
         
-        lprintf "Renaming...\n";
+        lprintf (_b "Renaming...\n");
         Unix32.rename file (filename ^ ".final");            
         
-        lprintf "Removing %s\n" filename;
+        lprintf (_b "Removing %s\n") filename;
         Unix32.remove file;
         
         let file = f' (filename ^ ".final") file_size in
@@ -310,7 +314,7 @@ let check_external_functions size =
         
         lprintf "done\n"
       with e ->
-          lprintf "   **********    Exception %s in check_external_functions %s.%d KB\n"
+          lprintf (_b "   **********    Exception %s in check_external_functions %s.%d KB\n")
             (Printexc2.to_string e) name size)
   file_types
 
@@ -319,13 +323,15 @@ let check_external_functions size =
 (*                         MAIN                                          *)
 (*                                                                       *)
 (*************************************************************************)
-  
+
+
 let hash = ref ""
   
 let _ =
+(*  set_strings_file "mlnet_strings"; *)
   Arg.parse [
-    "-hash", Arg.String ( (:=) hash), " <hash> : Set hash type you want to compute (ed2k, sig2dat,bp)";
-    "-check", Arg.Int check_external_functions, " <nth size>: check C file functions";
+    "-hash", Arg.String ( (:=) hash), _s " <hash> : Set hash type you want to compute (ed2k, sig2dat,bp)";
+    "-check", Arg.Int check_external_functions, _s " <nth size>: check C file functions";
   ] (fun filename ->
       match !hash with
       | "ed2k" -> ed2k_hash_filename filename
@@ -335,5 +341,5 @@ let _ =
           ed2k_hash_filename filename;
           sig2dat_hash_filename filename;
           bitprint_filename filename
-  ) " <filenames> : compute hashes of filenames";
-  
+  ) (_s " <filenames> : compute hashes of filenames");
+  exit 0

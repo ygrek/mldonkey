@@ -937,7 +937,7 @@ lprint_newline (); *)
       initializer
         Gui_misc.insert_buttons wtool1 wtool2
         ~text: (gettext M.qT_lb_download_selected_dir)
-        ~tooltip: (gettext M.qT_ti_download_selected_dir)
+        ~tooltip: (M.qT_ti_download_selected_dir)
         ~icon: (M.o_xpm_download_directory)
         ~callback: self#download
         ();
@@ -1134,7 +1134,7 @@ lprint_newline (); *)
       initializer
         Gui_misc.insert_buttons wtool1 wtool2
           ~text: (gettext M.qT_lb_download_selected_dir)
-          ~tooltip: (gettext M.qT_ti_download_selected_dir)
+          ~tooltip: (M.qT_ti_download_selected_dir)
           ~icon: (M.o_xpm_download_directory)
           ~callback: self#download
           ();

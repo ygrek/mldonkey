@@ -57,9 +57,9 @@ class box columns () =
     
     method column_menu  i = 
       [
-        `I (gettext M.mAutosize, fun _ -> self#wlist#columns_autosize ());
-        `I (gettext M.mSort, self#resort_column i);
-        `I (gettext M.mRemove_column,
+        `I (M.mAutosize, fun _ -> self#wlist#columns_autosize ());
+        `I (M.mSort, self#resort_column i);
+        `I (M.mRemove_column,
           (fun _ -> 
               match !!columns with
                 _ :: _ :: _ ->
@@ -72,7 +72,7 @@ class box columns () =
               | _ -> ()
           )
         );
-        `M (gettext M.mAdd_column_after, (
+        `M (M.mAdd_column_after, (
             List.map (fun (c,s,_) ->
                 (`I (s, (fun _ -> 
                         let c1, c2 = List2.cut (i+1) !!columns in
@@ -80,7 +80,7 @@ class box columns () =
                         self#set_columns columns
                     )))
             ) Gui_columns.User.column_strings));
-        `M (gettext M.mAdd_column_before, (
+        `M (M.mAdd_column_before, (
             List.map (fun (c,s,_) ->
                 (`I (s, (fun _ -> 
                         let c1, c2 = List2.cut i !!columns in
@@ -111,7 +111,7 @@ class box columns () =
       match col with
         Col_user_name -> f.user_name
       | Col_user_kind -> 
-          if Ip.valid f.user_ip then (gettext M.rT_tx_direct) else ""
+          if Ip.valid f.user_ip then (M.rT_tx_direct) else ""
       | Col_user_tags -> CommonGlobals.string_of_tags f.user_tags
 
     method content f =
@@ -136,8 +136,8 @@ class box columns () =
       match self#selection with
 	[] -> []
       |	_ -> [ 
-            `I (gettext M.rT_me_add_to_friends, self#add_to_friends);
-            `I (gettext M.rT_me_browse_files, self#browse_files)
+            `I (M.rT_me_add_to_friends, self#add_to_friends);
+            `I (M.rT_me_browse_files, self#browse_files)
           ]
 
     method set_tb_style tb = 

@@ -1,0 +1,386 @@
+(************************************)
+(*                                  *)
+
+         module "Ed2k_hash"
+
+(*                                  *)
+(************************************)
+
+" <hash> : Set hash type you want to compute (ed2k, sig2dat,bp)" = " <hash> : Set hash type you want to compute (ed2k, sig2dat,bp)"
+
+" <nth size>: check C file functions" = " <nth size>: check C file functions"
+
+" <filenames> : compute hashes of filenames" = " <filenames> : compute hashes of filenames"
+
+(************************************)
+(*                                  *)
+
+         module "Former Translation"
+
+(*                                  *)
+(************************************)
+
+"Misc" = "Miscel\183l\224nia"
+
+"Columns titles" = "T\237tols de columnes"
+
+"Shared files upload info" = "Informaci\243 de les pujades dels fitxers compartits"
+
+"Columns for the results of searches and files of a friends" = "Columnes pels resultats de cerques i fitxers d'un amic"
+
+"Columns for the locations of a file" = "Columnes per les localitzacions dels fitxers"
+
+"File locations" = "Localitzaci\243 dels fitxers"
+
+"Columns for the friends" = "Columnes pels amics"
+
+"Columns for the downloaded files" = "Columnes pels fitxers baixats"
+
+"Columns for the files being downloaded" = "Columnes pels fitxers essent baixats"
+
+"Columns for the servers" = "Columnes pels servidors"
+
+"Layout" = "Estructura"
+
+"Style of toolbars" = "Estil de Barra de Botons"
+
+"What is displayed in toolbar buttons : text, icon or both" = "Que mostro en la barra de botons: text, icones o ambd\243s"
+
+"Use relative %% availability" = "Usa %% de disponibilitat relativa"
+
+"Calculate %% availability ignoring already present chunks" = "Calcula %% de disponibilitat ignorant els chunks ja presents"
+
+"Use height encoded availability" = "Usa disponibilitat codificada per llarg\224ria"
+
+"Display the availability of a chunk as height or color coded bar" = "Mostra la disponibilitat d'un chunk com llarg\224ria o color"
+
+"Use size suffixes (G, M, k)" = "Usa els sufixos de grand\224ria (G, M, k)"
+
+"Files auto-expand depth" = "Grand\224ria dels fitxers auto-expandibles"
+
+"Auto-resize lists columns" = "Amplada de columnes autom\224tica"
+
+"Auto-resize" = "Amplada autom\224tica"
+
+"Files listed" = "Fitxers llistats"
+
+"Color for not connected servers or users" = "Color dels servidors o usuaris NO connectats"
+
+"Color for connected servers or users" = "Color dels servidors o usuaris connectats"
+
+"Color for unavailable files" = "Color dels fitxers no disponibles"
+
+"Not available" = "No Disponible"
+
+"Color for available files, not downloading" = "Color dels fitxers disponibles que no s'estan baixant"
+
+"Available" = "Disponible"
+
+"Color for files being downloaded" = "Colors dels fitxers mentre s'estan baixant"
+
+"Color for downloaded files" = "Color dels fitxers baixats"
+
+"Default color in lists" = "Color per defecte en les llistes"
+
+"Default" = "Defecte"
+
+"GUI server" = "servidor GUI"
+
+"The password to use when connecting to the server" = "La contrasenya a usar per connectar-se al servidor"
+
+"The server hostname to connect to" = "Nom del host a on connectar-se"
+
+"Hostname" = "Nom del Host"
+
+"The server port to connect to" = "Port del servidor a on connectar-se"
+
+"Extended Search" = "Cerca Extesa"
+
+"Local Search" = "Cerca Local"
+
+"Genre" = "G\232nere"
+
+"Comment" = "Comentar"
+
+"Track number" = "N\250mero de pista"
+
+"Year" = "Any"
+
+"Rooms" = "Canals"
+
+"Results" = "Resultats"
+
+"Queries" = "Consultes"
+
+"Settings" = "Configuracions"
+
+"Help" = "Ajuda"
+
+"Quit" = "Surt"
+
+"Reconnect" = "Reconnecta"
+
+"Kill core" = "Mata el servidor"
+
+"File" = "Fitxer"
+
+"Refresh" = "Refresca"
+
+"Uploaded" = "Pujat"
+
+"Uploads stats" = "Estad\237stiques de les pujades"
+
+"Requests" = "Sol\183licituts"
+
+"Uploads" = "Pujades"
+
+"Show hidden fields" = "Mostra caps ocults"
+
+"Browse files" = "Navega pels fitxers"
+
+"Display all servers" = "Mostra tots els servidors"
+
+"Remove all friends" = "Esborra tots els amics"
+
+"Find friend" = "Troba un amic"
+
+"Get format info" = "Dona informaci\243 del format"
+
+"Preview" = "Previsualitza"
+
+"Verify chunks" = "Verifica Chunks"
+
+"Pause/Resume" = "Atura/Repr\232n"
+
+"Upload" = "Pujat"
+
+"Direct" = "Directe"
+
+"Edit mp3 tags" = "Edita detalls MP3"
+
+"Save file as" = "Desa el fitxer com"
+
+"Unknown" = "Desconegut"
+
+"Done" = "Fet"
+
+"Paused" = "Pausat"
+
+"Cancelled" = "Cancel\183lat"
+
+"Downloading" = "Baixant"
+
+"Queued" = "Encuat"
+
+"Removed" = "Esborrat"
+
+"Connected" = "Conectat"
+
+"Initiating" = "Iniciant"
+
+"Connecting" = "Connectant"
+
+"Yes" = "S\237"
+
+"Chat" = "Xerrar"
+
+"Kind" = "Tipus"
+
+"Clear Console" = "Neteja Consola"
+
+"Console" = "Consola"
+
+"Command" = "Comanda"
+
+"Set Option" = "Fixa Opci\243"
+
+"Value:" = "Valor:"
+
+"Option:" = "Opci\243:"
+
+"Client hostname" = "Nom del Client"
+
+"Features" = "Funcions"
+
+"Max Hits" = "M\224xim de resultats"
+
+"Max server age (days)" = "Edat m\224xima del servidor (d\237es)"
+
+"Remove old\nservers" = "Esborra servidors vells"
+
+"Recover MD4:" = "Recupera MD4:"
+
+"Description" = "Descripci\243"
+
+"Save" = "Desa"
+
+"Save all" = "Desa tot"
+
+"%d Downloaded Files" = "%d Fitxers Baixats"
+
+"Downloaded Files: %d/%d" = "Fitxers Baixats: %d/%d"
+
+"Downloading Files" = "Baixant Fitxers"
+
+"Connect" = "Connecta"
+
+"Status" = "Estat"
+
+"Users" = "Usuaris"
+
+"Connect more\nservers" = "Connecta a m\233s servidors"
+
+"Add friend" = "Afegeix amic"
+
+"Add server" = "Afegeix servidor"
+
+"Add to friends" = "Afegeix a Amics"
+
+"Connected to %d / %d locations" = "Connectat a %d / %d llocs"
+
+"Disconnect all" = "Desconnecta-ho tot"
+
+"Retry connect" = "Reintentar connexi\243"
+
+"Availability" = "Disponibilitat"
+
+"Downloaded" = "Baixats"
+
+"Subscribe" = "Subscriu"
+
+"Force Download" = "For\231a la baixada"
+
+"Download" = "Baixa"
+
+"Download selected directory" = "Baixa els directoris seleccionats"
+
+"Download selected files" = "Baixa els fitxers seleccionats"
+
+"Properties" = "Propietats"
+
+"Size" = "Grand\224ria"
+
+"Filename" = "Nom de fitxer"
+
+"Files" = "Fitxers"
+
+"View users" = "Veure usuaris"
+
+"View files" = "Veure fitxers"
+
+"Close room" = "Tanca canal"
+
+"Remove" = "Esborra"
+
+"%d Results" = "%d Resultats"
+
+"Submit" = "Envia"
+
+"Mp3 options" = "Opcions de MP3"
+
+"Close" = "Tanca"
+
+"Stop" = "Atura"
+
+"Min bitrate" = "Bitrate m\237nim"
+
+"Title" = "T\237tol"
+
+"Artist" = "Artista"
+
+"Browse" = "Contacte"
+
+"Friend" = "Amic"
+
+"Album" = "\192lbum"
+
+"Type" = "Tipus"
+
+"Network" = "Xarxa"
+
+"Media" = "Mitj\224"
+
+"Max size" = "Capacitat m\237nima"
+
+"Min size" = "Capacitat m\237nima"
+
+"Search" = "Cerca"
+
+"Query" = "Consulta"
+
+"Apply and save options" = "Aplica i desa les opcions"
+
+"Client connection" = "Connexi\243 a Client"
+
+"Server connection" = "Connexi\243 a Servidor"
+
+"Upload limit (kB/s)" = "L\237mit de Pujada (kB/s)"
+
+"Download limit (kB/s)" = "L\237mit de Baixada (kB/s)"
+
+"Disconnect" = "Desconnecta"
+
+"Max connected clients" = "Max de clients connectats"
+
+"Max connected servers" = "Max de servidors connectats"
+
+"Name" = "Nom"
+
+"Gui refresh delay" = "Retard del refresc del GUI"
+
+"Long retry delay" = "Retard del reintent llarg"
+
+"Medium retry delay" = "Retard del reintent mig"
+
+"Small retry delay" = "Retard del reintent curt"
+
+"Check serverDB connection" = "Comprova la connexi\243 al servidorDB"
+
+"Check server connection" = "Comprova les connexions als servidors"
+
+"Check client connections" = "Comprova les connexions als clients"
+
+"Save options delay" = "Retard en desar les opcions"
+
+"Delays" = "Retards"
+
+"GUI port" = "Port del GUI"
+
+"Control port" = "Port de control"
+
+"Connection port" = "Port de connexi\243"
+
+"No current search" = "No hi ha cap cerca actualment"
+
+"Downloading %d file(s)" = "Baixant %d fitxers(s)"
+
+"Connected to %d/%d server(s)" = "Connectat a %d/%d servidor(s)"
+
+"Not connected" = "No connectat"
+
+"Options" = "Opcions"
+
+"Searches" = "Cerques"
+
+"Friends" = "Amics"
+
+"Downloads" = "Baixades"
+
+"Servers" = "Servidors"
+
+"State" = "Estat"
+
+"Last seen" = "Darrera vista"
+
+"Age" = "Edat"
+
+"Rate" = "R\224tio"
+
+"Address" = "Adre\231a"
+
+"Password" = "Contrasenya"
+
+"Cancel" = "Cancel\183la"
+
+"Ok" = "Accepta"
+

@@ -140,9 +140,9 @@ let file_first_name b f =
     else String.sub f.data.gfile_name 5 ((String.length f.data.gfile_name) - 5)
 
 let save_as file b () = 
-  let file_opt = GToolbox.input_string ~title:(gettext M.dT_wt_save_as)
+  let file_opt = GToolbox.input_string ~title:(M.dT_wt_save_as)
     ~text:(file_first_name b file)
-    (gettext M.dT_lb_save_as) in
+    (M.dT_lb_save_as) in
   match file_opt with
     None -> ()
   | Some name -> 
@@ -185,36 +185,36 @@ let client_to_general_state state file_num =
 let string_of_file_state f =
   match f.data.gfile_state with
   | FDownloading -> if f.data.gfile_download_rate > 0.
-                        then gettext M.dT_tx_downloading
-                        else gettext M.dT_tx_waiting
-  | FCancelled -> gettext M.dT_tx_cancelled
-  | FQueued -> gettext M.dT_tx_queued
-  | FPaused -> gettext M.dT_tx_paused
-  | FDownloaded -> gettext M.dT_tx_complete
-  | FShared  -> gettext M.dT_tx_dl_done
+                        then M.dT_tx_downloading
+                        else M.dT_tx_waiting
+  | FCancelled -> M.dT_tx_cancelled
+  | FQueued -> M.dT_tx_queued
+  | FPaused -> M.dT_tx_paused
+  | FDownloaded -> M.dT_tx_complete
+  | FShared  -> M.dT_tx_dl_done
   | FNew -> assert false
   | FAborted s -> Printf.sprintf !!Gui_messages.dT_tx_dl_aborted s
-  | CConnected_downloading -> gettext M.dT_tx_downloading
-  | CConnected (-1) -> gettext M.dT_tx_connected
-  | CConnecting  -> gettext M.dT_tx_connecting
-  | CNewHost -> gettext M.dT_tx_new_host
-  | CConnected_initiating -> gettext M.dT_tx_initiating
-  | CConnected 0 -> gettext M.dT_tx_queued
+  | CConnected_downloading -> M.dT_tx_downloading
+  | CConnected (-1) -> M.dT_tx_connected
+  | CConnecting  -> M.dT_tx_connecting
+  | CNewHost -> M.dT_tx_new_host
+  | CConnected_initiating -> M.dT_tx_initiating
+  | CConnected 0 -> M.dT_tx_queued
   | CConnected n -> Printf.sprintf !!Gui_messages.dT_tx_ranked n
   | CNotConnected (_,n) ->
       if n = -1 then
         ""
       else
       if n = 0 then
-        (gettext M.dT_tx_queued_out)
+        (M.dT_tx_queued_out)
       else
       if n > 0 then
          Printf.sprintf !!Gui_messages.dT_tx_ranked_out n
       else
          Printf.sprintf !!Gui_messages.dT_tx_failed (- n - 1)
        
-  | CRemovedHost -> gettext M.dT_tx_removed
-  | CBlackListedHost -> gettext M.dT_tx_black_listed
+  | CRemovedHost -> M.dT_tx_removed
+  | CBlackListedHost -> M.dT_tx_black_listed
 
       
 let some_is_available f =
@@ -303,7 +303,7 @@ let string_of_format format =
       Printf.sprintf "MP3: %s - %s (%d): %s"
 	tag.M.artist tag.M.album 
 	tag.M.tracknum tag.M.title
-  | _ -> (gettext M.dT_tx_unknown)
+  | _ -> (M.dT_tx_unknown)
 
 let time_to_string time =
   let days = time / 60 / 60 / 24 in
@@ -374,9 +374,9 @@ class box columns sel_mode () =
     
     method column_menu  i = 
       [
-        `I (gettext M.mAutosize, fun _ -> self#wlist#columns_autosize ());
-        `I (gettext M.mSort, self#resort_column i);
-        `I (gettext M.mRemove_column,
+        `I (M.mAutosize, fun _ -> self#wlist#columns_autosize ());
+        `I (M.mSort, self#resort_column i);
+        `I (M.mRemove_column,
           (fun _ -> 
               match !!columns with
                 _ :: _ :: _ ->
@@ -391,7 +391,7 @@ class box columns sel_mode () =
               | _ -> ()
           )
         );
-        `M (gettext M.mAdd_column_after, (
+        `M (M.mAdd_column_after, (
             List.map (fun (c,s,_) ->
                 (`I (s, (fun _ -> 
                         let c1, c2 = List2.cut (i+1) !!columns in
@@ -399,7 +399,7 @@ class box columns sel_mode () =
                         self#set_columns columns
                     )))
             ) Gui_columns.file_column_strings));
-        `M (gettext M.mAdd_column_before, (
+        `M (M.mAdd_column_before, (
             List.map (fun (c,s,_) ->
                 (`I (s, (fun _ -> 
                         let c1, c2 = List2.cut i !!columns in
@@ -414,7 +414,7 @@ class box columns sel_mode () =
       (* Printf.printf "Gui_downloads has_changed_width\n";
       flush stdout;*)
       List.iter ( fun (col, width) ->
-        if ((self#wlist#column_title col) = (gettext M.c_avail)) && (!the_col_width <> width)
+        if ((self#wlist#column_title col) = (M.c_avail)) && (!the_col_width <> width)
           then begin
             (* Printf.printf "Column No %d Width %d Width_ref %d\n" col width !the_col_width;
             flush stdout;*)
@@ -531,9 +531,9 @@ class box columns sel_mode () =
       |	Col_file_priority ->
           if (List.length f.data.gfile_num) = 1 then
             (match f.data.gfile_priority with
-                 -10 -> gettext M.dT_tx_priority_low
-               | 0 -> gettext M.dT_tx_priority_normal
-               | 10 -> gettext M.dT_tx_priority_high
+                 -10 -> M.dT_tx_priority_low
+               | 0 -> M.dT_tx_priority_normal
+               | 10 -> M.dT_tx_priority_high
                | _ -> Printf.sprintf "%d" f.data.gfile_priority)
             else ""
     
@@ -750,12 +750,12 @@ class box_downloads wl_status () =
            !G.ndownloaded !G.ndownloads)
     
     method cancel () =
-      let s = ref (gettext M.dT_lb_ask_cancel_download_files) in
+      let s = ref (M.dT_lb_ask_cancel_download_files) in
       List.iter (fun f -> 
         s := !s ^ (file_first_name icons_are_used f) ^ "\n" 
       ) self#selection;
-      match GToolbox.question_box (gettext M.dT_wt_cancel)
-        [ gettext M.pW_lb_ok ; gettext M.pW_lb_cancel] !s 
+      match GToolbox.question_box (M.dT_wt_cancel)
+        [ M.pW_lb_ok ; M.pW_lb_cancel] !s 
       with
         1 ->
           List.iter
@@ -881,7 +881,7 @@ class box_downloads wl_status () =
           (
             match file.data.gfile_format with
               MP3 (tag,_) ->
-                Mp3_ui.edit_tag_v1 (gettext M.dT_wt_edit_mp3) tag ;
+                Mp3_ui.edit_tag_v1 (M.dT_wt_edit_mp3) tag ;
                 Gui_com.send (GuiProto.ModifyMp3Tags (List.hd file.data.gfile_num, tag))
             | _ ->
                 ()
@@ -896,35 +896,35 @@ class box_downloads wl_status () =
           if List.length file.data.gfile_num = 1 then
             (if tail = [] then
                 [
-                  `I ((gettext M.dT_me_view_sources), fun _ -> self#show_hide_sources file) ;
-                  `I ((gettext M.dT_me_preview), preview file) ;
+                  `I ((M.dT_me_view_sources), fun _ -> self#show_hide_sources file) ;
+                  `I ((M.dT_me_preview), preview file) ;
                   `S ;
                 ]
               else  [])@
-          `I ((gettext M.dT_me_pause_resume_dl), self#pause_resume) ::
-          `I ((gettext M.dT_me_retry_connect), self#retry_connect) ::
-          `I ((gettext M.dT_me_cancel), self#cancel) ::
+          `I ((M.dT_me_pause_resume_dl), self#pause_resume) ::
+          `I ((M.dT_me_retry_connect), self#retry_connect) ::
+          `I ((M.dT_me_cancel), self#cancel) ::
             `S ::
-          `I ((gettext M.dT_me_verify_chunks), self#verify_chunks) ::
-            `M ((gettext M.dT_me_set_priority), [
-                `I ((gettext M.dT_me_set_priority_high), self#set_priority 10);
-                `I ((gettext M.dT_me_set_priority_normal), self#set_priority 0);
-                `I ((gettext M.dT_me_set_priority_low), self#set_priority (-10));
+          `I ((M.dT_me_verify_chunks), self#verify_chunks) ::
+            `M ((M.dT_me_set_priority), [
+                `I ((M.dT_me_set_priority_high), self#set_priority 10);
+                `I ((M.dT_me_set_priority_normal), self#set_priority 0);
+                `I ((M.dT_me_set_priority_low), self#set_priority (-10));
             ]) ::
-          `I ((gettext M.dT_me_get_format), self#get_format) ::
+          `I ((M.dT_me_get_format), self#get_format) ::
             `S ::
           (match (file.data.gfile_state, file.data.gfile_format) with
-               (FDownloaded, MP3 _) -> [`I ((gettext M.dT_me_edit_mp3), self#edit_mp3_tags)]
+               (FDownloaded, MP3 _) -> [`I ((M.dT_me_edit_mp3), self#edit_mp3_tags)]
              | _ -> []) @
-          `I ((gettext M.dT_me_save_all), self#save_all) ::           
+          `I ((M.dT_me_save_all), self#save_all) ::           
           (if tail = [] then
               [
-                `I ((gettext M.dT_me_save_as), save_as file icons_are_used) ;
-                  `M ((gettext M.dT_me_save), save_menu_items file) ;
+                `I ((M.dT_me_save_as), save_as file icons_are_used) ;
+                  `M ((M.dT_me_save), save_menu_items file) ;
               ]
             else  [])
             else
-            [ `I (gettext M.dT_me_add_to_friends, self#add_to_friends) ]
+            [ `I (M.dT_me_add_to_friends, self#add_to_friends) ]
 
     method resize_all_avail_pixmap =
       if use_avail_pixmap then
@@ -1448,7 +1448,7 @@ class box_downloads wl_status () =
               String.sub child.data.gfile_name 7 
                 ((String.length child.data.gfile_name) - 7);
           ) f.children
-          ), gettext M.pW_lb_downloads_add_icons, 1)
+          ), M.pW_lb_downloads_add_icons, 1)
           else
             ((fun f ->
             f.data.gfile_name <- "(+)- " ^ f.data.gfile_name;
@@ -1458,7 +1458,7 @@ class box_downloads wl_status () =
             List.iter (fun child ->
               child.data.gfile_name <- "   |-- " ^ child.data.gfile_name;
             ) f.children
-            ), gettext M.pW_lb_downloads_remove_icons, 1)
+            ), M.pW_lb_downloads_remove_icons, 1)
       in
       Gui_options.generate_with_progress label self#get_all_items f step
   

@@ -41,27 +41,27 @@ let create_gui_params () =
   (** Server options *)
 
   let gui_port = string 
-      ~help: (gettext M.h_gui_port)
+      ~help: (M.h_gui_port)
       ~f: (fun s -> safe_int_of_string GO.port s) 
-      (gettext M.o_gui_port) (string_of_int !!GO.port)
+      (M.o_gui_port) (string_of_int !!GO.port)
   in
   let gui_hostname = string 
-      ~help: (gettext M.h_hostname)
+      ~help: (M.h_hostname)
       ~f: (fun s -> GO.hostname =:= s) 
-      (gettext M.o_hostname) !!GO.hostname 
+      (M.o_hostname) !!GO.hostname 
   in
   let gui_login = string
-      ~help: (gettext M.h_login)
+      ~help: (M.h_login)
       ~f: (fun s -> GO.login =:= s)
-      (gettext M.o_login) !!GO.login
+      (M.o_login) !!GO.login
   in
   let gui_password = password
-      ~help: (gettext M.h_gui_password)
+      ~help: (M.h_gui_password)
       ~f: (fun s -> GO.password =:= s)
-      (gettext M.o_password) !!GO.password
+      (M.o_password) !!GO.password
   in
   let server_options = Section
-      ((gettext M.o_gui_server),
+      ((M.o_gui_server),
        [
 	 gui_port ; gui_hostname ; gui_login ; gui_password ;
        ] 
@@ -70,82 +70,82 @@ let create_gui_params () =
 
   (** Colors *)
   let color_default = color 
-      ~help: (gettext M.h_col_default)
+      ~help: (M.h_col_default)
       ~f: (fun s -> GO.color_default =:= s)
-      (gettext M.o_col_default) !!GO.color_default 
+      (M.o_col_default) !!GO.color_default 
   in
   let color_downloaded = color
-      ~help: (gettext M.h_col_downloaded)
+      ~help: (M.h_col_downloaded)
       ~f: (fun s -> GO.color_downloaded =:= s)
-      (gettext M.o_col_downloaded) !!GO.color_downloaded
+      (M.o_col_downloaded) !!GO.color_downloaded
   in
   let color_downloading = color
-      ~help: (gettext M.h_col_downloading)
+      ~help: (M.h_col_downloading)
       ~f: (fun s -> GO.color_downloading =:= s)
-      (gettext M.o_col_downloading) !!GO.color_downloading
+      (M.o_col_downloading) !!GO.color_downloading
   in
   let color_available = color
-      ~help: (gettext M.h_col_avail)
+      ~help: (M.h_col_avail)
       ~f: (fun s -> GO.color_available =:= s)
-      (gettext M.o_col_avail) !!GO.color_available
+      (M.o_col_avail) !!GO.color_available
   in
   let color_not_available = color
-      ~help: (gettext M.h_col_not_avail)
+      ~help: (M.h_col_not_avail)
       ~f: (fun s -> GO.color_not_available =:= s)
-      (gettext M.o_col_not_avail) !!GO.color_not_available 
+      (M.o_col_not_avail) !!GO.color_not_available 
   in
   let color_connected = color
-      ~help: (gettext M.h_col_connected)
+      ~help: (M.h_col_connected)
       ~f: (fun s -> GO.color_connected =:= s)
-      (gettext M.o_col_connected) !!GO.color_connected
+      (M.o_col_connected) !!GO.color_connected
   in
   let color_not_connected = color
-      ~help: (gettext M.h_col_not_connected)
+      ~help: (M.h_col_not_connected)
       ~f: (fun s -> GO.color_not_connected =:= s)
-      (gettext M.o_col_not_connected) !!GO.color_not_connected
+      (M.o_col_not_connected) !!GO.color_not_connected
   in
   let color_connecting = color
-      ~help: (gettext M.h_col_connecting)
+      ~help: (M.h_col_connecting)
       ~f: (fun s -> GO.color_connecting =:= s)
-      (gettext M.o_col_connecting) !!GO.color_connecting
+      (M.o_col_connecting) !!GO.color_connecting
   in
   let color_files_listed = color
-      ~help: (gettext M.h_col_files_listed)
+      ~help: (M.h_col_files_listed)
       ~f: (fun s -> GO.color_files_listed =:= s)
-      (gettext M.o_col_files_listed) !!GO.color_files_listed
+      (M.o_col_files_listed) !!GO.color_files_listed
   in
   let color_files_result = color
-      ~help: (gettext M.h_col_files_result)
+      ~help: (M.h_col_files_result)
       ~f: (fun s -> GO.color_files_result =:= s)
-      (gettext M.o_col_files_result) !!GO.color_files_result
+      (M.o_col_files_result) !!GO.color_files_result
   in
   let color_tab_selected = color
-      ~help: (gettext M.h_col_tab_selected)
+      ~help: (M.h_col_tab_selected)
       ~f: (fun s -> GO.color_tab_selected =:= s)
-      (gettext M.o_col_tab_selected) !!GO.color_tab_selected
+      (M.o_col_tab_selected) !!GO.color_tab_selected
   in
   let color_tab_not_selected = color
-      ~help: (gettext M.h_col_tab_not_selected)
+      ~help: (M.h_col_tab_not_selected)
       ~f: (fun s -> GO.color_tab_not_selected =:= s)
-      (gettext M.o_col_tab_not_selected) !!GO.color_tab_not_selected
+      (M.o_col_tab_not_selected) !!GO.color_tab_not_selected
   in
   let color_list_bg = color
-      ~help: (gettext M.h_col_list_bg)
+      ~help: (M.h_col_list_bg)
       ~f: (fun s -> GO.color_list_bg =:= s)
-      (gettext M.o_col_list_bg) !!GO.color_list_bg
+      (M.o_col_list_bg) !!GO.color_list_bg
   in
   let color_network_enabled = color
-      ~help: (gettext M.h_col_network_enabled)
+      ~help: (M.h_col_network_enabled)
       ~f: (fun s -> GO.color_network_enabled =:= s)
-      (gettext M.o_col_network_enabled) !!GO.color_network_enabled
+      (M.o_col_network_enabled) !!GO.color_network_enabled
   in
   let color_network_disabled = color
-      ~help: (gettext M.h_col_network_disabled)
+      ~help: (M.h_col_network_disabled)
       ~f: (fun s -> GO.color_network_disabled =:= s)
-      (gettext M.o_col_network_disabled) !!GO.color_network_disabled
+      (M.o_col_network_disabled) !!GO.color_network_disabled
   in
   let colors_options = Section
-      ((gettext M.o_colors),
+      ((M.o_colors),
        [
 	 color_default ; color_downloaded ;
 	 color_downloading ; color_available ;
@@ -163,31 +163,31 @@ let create_gui_params () =
   
   let tb_style = combo
       ~expand:false
-      ~help: (gettext M.h_toolbars_style) 
+      ~help: (M.h_toolbars_style) 
       ~f:(fun s -> GO.toolbars_style =:= GO.string_to_tbstyle s)
       ~new_allowed:false ~blank_allowed:false
-      (gettext M.o_toolbars_style) 
+      (M.o_toolbars_style) 
       (List.map fst GO.tb_styles)
       (GO.tbstyle_to_string !!GO.toolbars_style)
   in
   let tb_icons = bool
-      ~help: (gettext M.h_mini_toolbars)
+      ~help: (M.h_mini_toolbars)
       ~f: (fun b -> GO.mini_toolbars =:= b)
-      (gettext M.o_mini_toolbars) !!GO.mini_toolbars
+      (M.o_mini_toolbars) !!GO.mini_toolbars
   in
 
   let tab_pos = combo
       ~expand:false
-      ~help: (gettext M.h_tab_position)
+      ~help: (M.h_tab_position)
       ~f:(fun s -> GO.notebook_tab =:= GO.TabPosition.string_to_pos s)
       ~new_allowed:false ~blank_allowed:false
-      (gettext M.o_tab_position)
+      (M.o_tab_position)
       GO.TabPosition.values
       (GO.TabPosition.pos_to_string !!GO.notebook_tab)
   in
 
   let layout_options = Section
-      ((gettext M.o_layout),
+      ((M.o_layout),
        [
         tb_style ;
         tb_icons;
@@ -215,7 +215,7 @@ let create_gui_params () =
 
   (** Columns options *)
   let servers_cols = list
-      ~help: (gettext M.h_servers_columns)
+      ~help: (M.h_servers_columns)
       ~f: (fun l -> GO.servers_columns =:= l)
       ~add: (sel 
 	       (List.map (fun (c,_,_) -> c ) Gui_columns.server_column_strings)
@@ -225,7 +225,7 @@ let create_gui_params () =
       !!GO.servers_columns
   in
   let dls_cols = list
-      ~help: (gettext M.h_downloads_columns)
+      ~help: (M.h_downloads_columns)
       ~f: (fun l -> GO.downloads_columns =:= l)
       ~add: (sel 
 	       (List.map (fun (c,_,_) -> c ) Gui_columns.file_column_strings)
@@ -236,7 +236,7 @@ let create_gui_params () =
   in
 (*
   let dled_cols = list
-      ~help: (gettext M.h_downloaded_columns)
+      ~help: (M.h_downloaded_columns)
       ~f: (fun l -> GO.downloaded_columns =:= l)
       ~add: (sel 
 	       (List.map fst Gui_columns.file_column_strings)
@@ -247,7 +247,7 @@ let create_gui_params () =
   in
 *)
   let friends_cols = list
-      ~help: (gettext M.h_friends_columns)
+      ~help: (M.h_friends_columns)
       ~f: (fun l -> GO.friends_columns =:= l)
       ~add: (sel 
 	       (List.map (fun (c,_,_) -> c ) Gui_columns.client_column_strings)
@@ -257,7 +257,7 @@ let create_gui_params () =
       !!GO.friends_columns
   in
   let file_locs_cols = list
-      ~help: (gettext M.h_file_locations_columns)
+      ~help: (M.h_file_locations_columns)
       ~f: (fun l -> GO.file_locations_columns =:= l)
       ~add: (sel 
 	       (List.map (fun (c,_,_) -> c ) Gui_columns.client_column_strings)
@@ -267,7 +267,7 @@ let create_gui_params () =
       !!GO.file_locations_columns
   in
   let results_cols = list
-      ~help: (gettext M.h_results_columns)
+      ~help: (M.h_results_columns)
       ~f: (fun l -> GO.results_columns =:= l)
       ~add: (sel 
 	       (List.map (fun (c,_,_) -> c ) Gui_columns.result_column_strings)
@@ -277,7 +277,7 @@ let create_gui_params () =
       !!GO.results_columns
   in
   let shared_cols = list
-      ~help: (gettext M.h_shared_files_up_columns)
+      ~help: (M.h_shared_files_up_columns)
       ~f: (fun l -> GO.shared_files_up_columns =:= l)
       ~add: (sel 
 	       (List.map (fun (c,_,_) -> c ) Gui_columns.shared_file_up_column_strings)
@@ -287,88 +287,88 @@ let create_gui_params () =
       !!GO.shared_files_up_columns
   in
   let columns_options = Section_list
-      ((gettext M.o_columns),
+      ((M.o_columns),
        [
-	 Section ((gettext M.o_servers_columns) ,[servers_cols]) ; 
-	 Section ((gettext M.o_downloads_columns) ,[dls_cols]); 
-         Section ((gettext M.o_results_columns) ,[results_cols]);
-         Section ((gettext M.o_friends_columns) ,[friends_cols]) ;
-         Section ((gettext M.o_file_locations_columns) ,[file_locs_cols]) ;
-         Section ((gettext M.o_shared_files_up_colums) ,[shared_cols]) ;
+	 Section ((M.o_servers_columns) ,[servers_cols]) ; 
+	 Section ((M.o_downloads_columns) ,[dls_cols]); 
+         Section ((M.o_results_columns) ,[results_cols]);
+         Section ((M.o_friends_columns) ,[friends_cols]) ;
+         Section ((M.o_file_locations_columns) ,[file_locs_cols]) ;
+         Section ((M.o_shared_files_up_colums) ,[shared_cols]) ;
        ]
       )
   in
 (*
   let columns_options = Section_list
-      ((gettext M.o_columns),
+      ((M.o_columns),
        [
-	 Section ((gettext M.o_servers_columns) ,[servers_cols]) ;
-	 Section ((gettext M.o_downloads_columns) ,[dls_cols]);
-	 Section ((gettext M.o_downloaded_columns) ,[dled_cols]); 
-	 Section ((gettext M.o_results_columns) ,[results_cols]);
-	 Section ((gettext M.o_friends_columns) ,[friends_cols]) ; 
-	 Section ((gettext M.o_file_locations_columns) ,[file_locs_cols]) ;
-	 Section ((gettext M.o_shared_files_up_colums) ,[shared_cols]) ;
+	 Section ((M.o_servers_columns) ,[servers_cols]) ;
+	 Section ((M.o_downloads_columns) ,[dls_cols]);
+	 Section ((M.o_downloaded_columns) ,[dled_cols]); 
+	 Section ((M.o_results_columns) ,[results_cols]);
+	 Section ((M.o_friends_columns) ,[friends_cols]) ; 
+	 Section ((M.o_file_locations_columns) ,[file_locs_cols]) ;
+	 Section ((M.o_shared_files_up_colums) ,[shared_cols]) ;
        ] 
       )
   in
 *)
   let files_auto_expand_depth = string
       ~f: (safe_int_of_string GO.files_auto_expand_depth)
-      ~help: (gettext M.h_files_auto_expand_depth)
-      (gettext M.o_files_auto_expand_depth)
+      ~help: (M.h_files_auto_expand_depth)
+      (M.o_files_auto_expand_depth)
       (string_of_int !!GO.files_auto_expand_depth)
   in
   let use_size_suffixes = bool
       ~f: (fun b -> GO.use_size_suffixes =:= b)
-      ~help: (gettext M.h_use_size_suffixes)
-      (gettext M.o_use_size_suffixes)
+      ~help: (M.h_use_size_suffixes)
+      (M.o_use_size_suffixes)
       !!GO.use_size_suffixes
   in
   let use_availability_height = bool
       ~f: (fun b -> GO.use_availability_height =:= b)
-      ~help: (gettext M.h_use_availability_height)
-      (gettext M.o_use_availability_height)
+      ~help: (M.h_use_availability_height)
+      (M.o_use_availability_height)
       !!GO.use_availability_height
   in
   let use_relative_availability = bool
       ~f: (fun b -> GO.use_relative_availability =:= b)
-      ~help: (gettext M.h_use_relative_availability)
-      (gettext M.o_use_relative_availability)
+      ~help: (M.h_use_relative_availability)
+      (M.o_use_relative_availability)
       !!GO.use_relative_availability
   in
   let use_icons = bool
       ~f: (fun b -> GO.use_icons =:= b)
-      ~help: (gettext M.h_use_icons)
-      (gettext M.o_use_icons)
+      ~help: (M.h_use_icons)
+      (M.o_use_icons)
       !!GO.use_icons
   in
   let use_graphical_availability = bool
       ~f: (fun b -> GO.use_graphical_availability =:= b)
-      ~help: (gettext M.h_use_graphical_availability)
-      (gettext M.o_use_graphical_availability)
+      ~help: (M.h_use_graphical_availability)
+      (M.o_use_graphical_availability)
       !!GO.use_graphical_availability
   in
   let max_file_name_len = string
       ~f: (safe_int_of_string GO.max_file_name_len)
-      ~help: (gettext M.h_max_file_name_len)
-      (gettext M.o_max_file_name_len)
+      ~help: (M.h_max_file_name_len)
+      (M.o_max_file_name_len)
       (string_of_int !!GO.max_file_name_len)
   in
   let max_client_name_len = string
       ~f: (safe_int_of_string GO.max_client_name_len)
-      ~help: (gettext M.h_max_client_name_len)
-      (gettext M.o_max_client_name_len)
+      ~help: (M.h_max_client_name_len)
+      (M.o_max_client_name_len)
       (string_of_int !!GO.max_client_name_len)
   in
   let max_result_name_len = string
       ~f: (safe_int_of_string GO.max_result_name_len)
-      ~help: (gettext M.h_max_result_name_len)
-      (gettext M.o_max_result_name_len)
+      ~help: (M.h_max_result_name_len)
+      (M.o_max_result_name_len)
       (string_of_int !!GO.max_result_name_len)
   in
   let misc_options = Section
-      ((gettext M.o_misc),
+      ((M.o_misc),
        [
 	 files_auto_expand_depth ;
 	 use_size_suffixes ;
@@ -385,67 +385,67 @@ let create_gui_params () =
 
         (** Graph options *)
   let max_download_rate = string
-      ~help: (gettext M.h_max_download_rate)
+      ~help: (M.h_max_download_rate)
       ~f: (safe_int_of_string GO.max_download_rate)
-      (gettext M.o_max_download_rate) (string_of_int !!GO.max_download_rate)
+      (M.o_max_download_rate) (string_of_int !!GO.max_download_rate)
   in
   let max_upload_rate = string
-      ~help: (gettext M.h_max_upload_rate)
+      ~help: (M.h_max_upload_rate)
       ~f: (safe_int_of_string GO.max_upload_rate)
-      (gettext M.o_max_upload_rate) (string_of_int !!GO.max_upload_rate)
+      (M.o_max_upload_rate) (string_of_int !!GO.max_upload_rate)
   in
   let download_time_range = string
-      ~help: (gettext M.h_download_time_range)
+      ~help: (M.h_download_time_range)
       ~f: (fun s -> GO.download_time_range =:= s)
-      (gettext M.o_download_time_range) (!!GO.download_time_range)
+      (M.o_download_time_range) (!!GO.download_time_range)
   in
   let upload_time_range = string
-      ~help: (gettext M.h_upload_time_range)
+      ~help: (M.h_upload_time_range)
       ~f: (fun s -> GO.upload_time_range =:= s)
-      (gettext M.o_upload_time_range) (!!GO.upload_time_range)
+      (M.o_upload_time_range) (!!GO.upload_time_range)
   in
   let color_bg_download = color
-      ~help: (gettext M.h_col_bg_download)
+      ~help: (M.h_col_bg_download)
       ~f: (fun s -> GO.color_bg_download =:= s)
-      (gettext M.o_col_bg_download) !!GO.color_bg_download
+      (M.o_col_bg_download) !!GO.color_bg_download
   in
   let color_bg_upload = color
-      ~help: (gettext M.h_col_bg_upload)
+      ~help: (M.h_col_bg_upload)
       ~f: (fun s -> GO.color_bg_upload =:= s)
-      (gettext M.o_col_bg_upload) !!GO.color_bg_upload
+      (M.o_col_bg_upload) !!GO.color_bg_upload
   in
   let color_grid_download = color
-      ~help: (gettext M.h_col_grid_download)
+      ~help: (M.h_col_grid_download)
       ~f: (fun s -> GO.color_grid_download =:= s)
-      (gettext M.o_col_grid_download) !!GO.color_grid_download
+      (M.o_col_grid_download) !!GO.color_grid_download
   in
   let color_grid_upload = color
-      ~help: (gettext M.h_col_grid_upload)
+      ~help: (M.h_col_grid_upload)
       ~f: (fun s -> GO.color_grid_upload =:= s)
-      (gettext M.o_col_grid_upload) !!GO.color_grid_upload
+      (M.o_col_grid_upload) !!GO.color_grid_upload
   in
   let color_fg_download = color
-      ~help: (gettext M.h_col_fg_download)
+      ~help: (M.h_col_fg_download)
       ~f: (fun s -> GO.color_fg_download =:= s)
       (gettext M.o_col_fg_download) !!GO.color_fg_download
   in
   let color_fg_upload = color
-      ~help: (gettext M.h_col_fg_upload)
+      ~help: (M.h_col_fg_upload)
       ~f: (fun s -> GO.color_fg_upload =:= s)
-      (gettext M.o_col_fg_upload) !!GO.color_fg_upload
+      (M.o_col_fg_upload) !!GO.color_fg_upload
   in
   let color_fg_download_av = color
-      ~help: (gettext M.h_col_fg_download_av)
+      ~help: (M.h_col_fg_download_av)
       ~f: (fun s -> GO.color_fg_download_av =:= s)
-      (gettext M.o_col_fg_download_av) !!GO.color_fg_download_av
+      (M.o_col_fg_download_av) !!GO.color_fg_download_av
   in
   let color_fg_upload_av = color
-      ~help: (gettext M.h_col_fg_upload_av)
+      ~help: (M.h_col_fg_upload_av)
       ~f: (fun s -> GO.color_fg_upload_av =:= s)
-      (gettext M.o_col_fg_upload_av) !!GO.color_fg_upload_av
+      (M.o_col_fg_upload_av) !!GO.color_fg_upload_av
   in
   let graph_options = Section
-      ((gettext M.o_graph),
+      ((M.o_graph),
        [
 	 max_download_rate ;
 	 max_upload_rate ;
@@ -465,27 +465,27 @@ let create_gui_params () =
 
   (** Fonts *)
   let font_list = font
-      ~help: (gettext M.h_font_list)
+      ~help: (M.h_font_list)
       ~f: (fun s -> GO.font_list =:= s)
-      (gettext M.o_font_list) !!GO.font_list
+      (M.o_font_list) !!GO.font_list
   in
   let font_main_tab = font
-      ~help: (gettext M.h_font_main_tab)
+      ~help: (M.h_font_main_tab)
       ~f: (fun s -> GO.font_main_tab =:= s)
-      (gettext M.o_font_main_tab) !!GO.font_main_tab
+      (M.o_font_main_tab) !!GO.font_main_tab
   in
   let font_networks = font
-      ~help: (gettext M.h_font_networks)
+      ~help: (M.h_font_networks)
       ~f: (fun s -> GO.font_networks =:= s)
-      (gettext M.o_font_networks) !!GO.font_networks
+      (M.o_font_networks) !!GO.font_networks
   in
   let font_graphic = font
-      ~help: (gettext M.h_font_graphic)
+      ~help: (M.h_font_graphic)
       ~f: (fun s -> GO.font_graphic =:= s)
-      (gettext M.o_font_graphic) !!GO.font_graphic
+      (M.o_font_graphic) !!GO.font_graphic
   in
   let fonts_options = Section
-      ((gettext M.o_fonts),
+      ((M.o_fonts),
        [
          font_list ;
          font_main_tab ;
@@ -630,13 +630,13 @@ let edit_options gui =
           compare (String.lowercase n1) (String.lowercase n2)
         ) !plugins_sections) in
     let structure = [
-        Section_list ((gettext M.o_gui), gui_params) ;
-        Section_list ((gettext M.o_client), client_params) ;
-        Section_list ((gettext M.o_plugins), plugins_params) ;
+        Section_list ((M.o_gui), gui_params) ;
+        Section_list ((M.o_client), client_params) ;
+        Section_list ((M.o_plugins), plugins_params) ;
       ] 
     in
     match Configwin.get ~height:600 ~width:400 
-        (gettext M.o_options) structure 
+        (M.o_options) structure 
     with
       Return_ok | Return_apply -> 
         Gui_misc.save_gui_options gui;      

@@ -73,10 +73,10 @@ let input_widget2 ~widget1 ~widget2 ~get_text ~bind_ok ~title message1 message2 
     ()
   in
   vbox_saisie#pack widget1 ~padding: 3;
-  let wb_ok = GButton.button ~label:(gettext M.pW_lb_ok)
+  let wb_ok = GButton.button ~label:(M.pW_lb_ok)
       ~packing: (hbox_boutons#pack ~expand: true ~padding: 3) () in
   wb_ok#grab_default ();
-  let wb_cancel = GButton.button ~label:(gettext M.pW_lb_cancel)
+  let wb_cancel = GButton.button ~label:(M.pW_lb_cancel)
       ~packing: (hbox_boutons#pack ~expand: true ~padding: 3) () in
   let f_ok () =
     retour := Some (get_text ()) ;
@@ -157,9 +157,9 @@ class box columns users wl_status =
     
     method column_menu  i = 
       [
-        `I (gettext M.mAutosize, fun _ -> GToolbox.autosize_clist self#wlist);
-        `I (gettext M.mSort, self#resort_column i);
-        `I (gettext M.mRemove_column,
+        `I (M.mAutosize, fun _ -> GToolbox.autosize_clist self#wlist);
+        `I (M.mSort, self#resort_column i);
+        `I (M.mRemove_column,
           (fun _ -> 
               match !!columns with
                 _ :: _ :: _ ->
@@ -174,7 +174,7 @@ class box columns users wl_status =
               | _ -> ()
           )
         );
-        `M (gettext M.mAdd_column_after, (
+        `M (M.mAdd_column_after, (
             List.map (fun (c,s,_) ->
                 (`I (s, (fun _ -> 
                         let c1, c2 = List2.cut (i+1) !!columns in
@@ -182,7 +182,7 @@ class box columns users wl_status =
                         self#set_columns columns
                     )))
             ) Gui_columns.Server.column_strings));
-        `M (gettext M.mAdd_column_before, (
+        `M (M.mAdd_column_before, (
             List.map (fun (c,s,_) ->
                 (`I (s, (fun _ -> 
                         let c1, c2 = List2.cut i !!columns in
@@ -282,9 +282,9 @@ class box columns users wl_status =
       self#selection
     
     method add_server () =
-      let text1 = gettext M.sT_lb_add_server in
-      let text2 = gettext M.sT_lb_network in
-      let title = gettext M.sT_wt_add_server in
+      let text1 = M.sT_lb_add_server in
+      let text2 = M.sT_lb_network in
+      let title = M.sT_wt_add_server in
       let nets,wcombo = Gui_global.networks_combo false in
       let we_chaine = GEdit.entry ~width: 200 ~text:"" () in
       match
@@ -345,14 +345,14 @@ class box columns users wl_status =
       (match self#selection with
           [] -> []
         |	_ ->
-            [ `I ((gettext M.sT_me_connect), self#connect) ;
-              `I ((gettext M.sT_me_disconnect), self#disconnect) ;
-              `I ((gettext M.sT_me_view_users), self#view_users) ;
-              `I ((gettext M.sT_me_remove), self#remove) ;
+            [ `I ((M.sT_me_connect), self#connect) ;
+              `I ((M.sT_me_disconnect), self#disconnect) ;
+              `I ((M.sT_me_view_users), self#view_users) ;
+              `I ((M.sT_me_remove), self#remove) ;
               `S ]
       ) @
-        [ `I ((gettext M.sT_me_connect_more_servers), self#connect_more_servers) ;
-        `I ((gettext M.sT_me_remove_old_servers), self#remove_old_servers)
+        [ `I ((M.sT_me_connect_more_servers), self#connect_more_servers) ;
+        `I ((M.sT_me_remove_old_servers), self#remove_old_servers)
       ]	
     
     method set_tb_style st = 
@@ -534,12 +534,12 @@ class box columns users wl_status =
             Some (Gui_options.network_pix
                     (Gui_global.network_name s.gserver_network));
           s.gserver_pixmap <- Some (get_pix s.gserver_state)
-          ), gettext M.pW_lb_servers_add_icons, 1)
+          ), M.pW_lb_servers_add_icons, 1)
           else
             ((fun s ->
             s.gserver_net_pixmap <- None;
             s.gserver_pixmap <- None
-            ), gettext M.pW_lb_servers_remove_icons, 1)
+            ), M.pW_lb_servers_remove_icons, 1)
       in
       Gui_options.generate_with_progress label self#get_all_items f step
 
@@ -556,57 +556,57 @@ class box columns users wl_status =
 (*      ignore (wb_add#connect#clicked self#add_server); *)
 (*
       Gui_misc.insert_buttons wtool1 wtool2 
-        ~text: (gettext M.remove)
-      ~tooltip: (gettext M.remove)
+        ~text: (M.remove)
+      ~tooltip: (M.remove)
       ~icon: (M.o_xpm_remove)
       ~callback: self#remove
         ();
       
       Gui_misc.insert_buttons wtool1 wtool2 
-        ~text: (gettext M.connect)
-      ~tooltip: (gettext M.connect)
+        ~text: (M.connect)
+      ~tooltip: (M.connect)
       ~icon: (M.o_xpm_connect)
       ~callback: self#connect
         ();
       
       Gui_misc.insert_buttons wtool1 wtool2 
-        ~text: (gettext M.disconnect)
-      ~tooltip: (gettext M.disconnect)
+        ~text: (M.disconnect)
+      ~tooltip: (M.disconnect)
       ~icon: (M.o_xpm_disconnect)
       ~callback: self#disconnect
         ();
       
       Gui_misc.insert_buttons wtool1 wtool2 
-        ~text: (gettext M.view_users)
-      ~tooltip: (gettext M.view_users)
+        ~text: (M.view_users)
+      ~tooltip: (M.view_users)
       ~icon: (M.o_xpm_view_users)
       ~callback: self#view_users
         ();
       
       Gui_misc.insert_buttons wtool1 wtool2 
-        ~text: (gettext M.connect_more_servers_text)
-      ~tooltip: (gettext M.connect_more_servers_tips)
+        ~text: (M.connect_more_servers_text)
+      ~tooltip: (M.connect_more_servers_tips)
       ~icon: (M.o_xpm_connect_more_servers)
       ~callback: self#connect_more_servers
         ();
       
       Gui_misc.insert_buttons wtool1 wtool2 
-        ~text: (gettext M.remove_old_servers_text)
-      ~tooltip: (gettext M.remove_old_servers_tips)
+        ~text: (M.remove_old_servers_text)
+      ~tooltip: (M.remove_old_servers_tips)
       ~icon: (M.o_xpm_remove_old_servers)
       ~callback: self#remove_old_servers
         ();
 *)
       Gui_misc.insert_buttons wtool1 wtool2 
-        ~text: (gettext M.sT_lb_display_all_servers)
-        ~tooltip: (gettext M.sT_ti_display_all_servers)
+        ~text: (M.sT_lb_display_all_servers)
+        ~tooltip: (M.sT_ti_display_all_servers)
         ~icon: (M.o_xpm_toggle_display_all_servers)
         ~callback: self#toggle_display_all_servers
         ();
       
       Gui_misc.insert_buttons wtool1 wtool2
-        ~text: (gettext M.sT_lb_add_server)
-        ~tooltip: (gettext M.sT_ti_add_server)
+        ~text: (M.sT_lb_add_server)
+        ~tooltip: (M.sT_ti_add_server)
         ~icon: (M.o_xpm_add_server)
         ~callback: self#add_server
         ()
@@ -666,7 +666,7 @@ class pane_servers () =
       vpaned_servers#add1 box_servers#coerce;
       vpaned_servers#add2 box_users#coerce;
       
-      box_users#label_users#set_text (Gettext.gettext  M.sT_lb_users);
+      box_users#label_users#set_text ( M.sT_lb_users);
 
 (*
       queries_frame#add box_queries#coerce;

@@ -4,6 +4,16 @@ ChangeLog
 Note: Due to the changes in CommonSwarming, this version is to be considered
  as EXPERIMENTAL on all networks, EXCEPT Edonkey & Overnet.
 
+2003/02/02: Fabrice (version 2.5.4+5)
+  * New Internationnalisation format: short strings are stored for translation
+      in ~/.mldonkey/mlnet_strings.$LANG. The new scheme allows easy 
+      translation of options descriptions and all other strings used
+      after CommonOption. Can also be used to translate the interfaces.
+      Unfortunately, this new scheme makes most of the former translations
+      obsolete, but most of them have been approximately changed to the
+      new format (see distrib/i18n/mlnet_strings.*, copy yours in
+      ~/.mldonkey/ to check)
+
 2003/02/01/ Fabrice (version 2.5.4+4)
   * Applied patches #2532 (new-gui), #2535 (INSTALL.txt), #2549 (vers mesg), 
        #2550 (minsize shared)

@@ -192,22 +192,10 @@ val download_control : TcpBufferedSocket.bandwidth_controler
   
 let gui_server_sock = ref (None : TcpServerSocket.t option)
       
-let exit_handlers = ref []
 let do_at_exit f =
-  exit_handlers := f :: !exit_handlers
+  Pervasives.at_exit (fun _ -> try f () with e -> ())
       
-let exit_properly n =
-(*  lprintf "exit_properly handlers\n"; *)
-  List.iter (fun f -> try 
-(*        lprintf "exit_properly handler ...\n";  *)
-        f () ;
-(*        lprintf "exit_properly done\n"; *)
-      with e -> 
-          lprintf "exit_properly (exception %s)"
-            (Printexc2.to_string e); lprint_newline ();
-  ) !exit_handlers;
-(*  lprintf "exit_properly DONE\n"; *)
-  Pervasives.exit n
+let exit_properly n = Pervasives.exit n
 
 let user_socks = ref ([] : TcpBufferedSocket.t list)
 let dialog_history = ref ([] : (int * string * string) list )

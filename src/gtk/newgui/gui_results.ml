@@ -45,7 +45,7 @@ let color_opt_of_file f =
 
 let first_name names =
   match names with
-    [] -> gettext M.qT_tx_unknown
+    [] -> M.qT_tx_unknown
   | n :: _ -> n
 
 let shorten_name s = Filename2.shorten !!O.max_result_name_len s
@@ -341,9 +341,9 @@ class box s_num columns () =
         
     method column_menu  i = 
       [
-        `I (gettext M.mAutosize, fun _ -> self#wlist#columns_autosize ());
-        `I (gettext M.mSort, self#resort_column i);
-        `I (gettext M.mRemove_column,
+        `I (M.mAutosize, fun _ -> self#wlist#columns_autosize ());
+        `I ( M.mSort, self#resort_column i);
+        `I ( M.mRemove_column,
           (fun _ -> 
               match !!columns with
                 _ :: _ :: _ ->
@@ -358,7 +358,7 @@ class box s_num columns () =
               | _ -> ()
           )
         );
-        `M (gettext M.mAdd_column_after, (
+        `M (M.mAdd_column_after, (
             List.map (fun (c,s,_) ->
                 (`I (s, (fun _ -> 
                         let c1, c2 = List2.cut (i+1) !!columns in
@@ -366,7 +366,7 @@ class box s_num columns () =
                         self#set_columns columns
                     )))
             ) Gui_columns.Result.column_strings));
-        `M (gettext M.mAdd_column_before, (
+        `M ( M.mAdd_column_before, (
             List.map (fun (c,s,_) ->
                 (`I (s, (fun _ -> 
                         let c1, c2 = List2.cut i !!columns in
@@ -392,8 +392,8 @@ class box s_num columns () =
       match self#selection with
         [] -> []
       |	_ -> [
-            `I (gettext M.qT_tx_download, self#download);
-            `I (gettext M.qT_tx_force_download, self#force_download);
+            `I (M.qT_tx_download, self#download);
+            `I (M.qT_tx_force_download, self#force_download);
           ]
     
     
@@ -513,12 +513,12 @@ class box s_num columns () =
                     (Gui_global.network_name r.gresult_network));
           r.gresult_pixmap <-
             Some (result_mapping r.gresult_names)
-          ), gettext M.pW_lb_results_add_icons, 1)
+          ), M.pW_lb_results_add_icons, 1)
           else
             ((fun r ->
             r.gresult_net_pixmap <- None;
             r.gresult_pixmap <- None;
-            ), gettext M.pW_lb_results_remove_icons, 1)
+            ), M.pW_lb_results_remove_icons, 1)
       in
       Gui_options.generate_with_progress label self#get_all_items f step;
       self#update
@@ -542,8 +542,8 @@ class box s_num columns () =
       if s_num >= 0 then
 (*	wb_extend_search <- Some *)
         Gui_misc.insert_buttons  wtool1 wtool2
-          ~text: (gettext M.qT_lb_extended_search)
-          ~tooltip: (gettext M.qT_ti_extended_search)
+          ~text: (M.qT_lb_extended_search)
+          ~tooltip: (M.qT_ti_extended_search)
           ~icon: (M.o_xpm_extend_search)
           ~callback: self#extend_search
           ()
@@ -720,8 +720,8 @@ class box_dir_files () =
           let files = GuiTypes.list_files ft in
           let len = List.length files in
           match (GToolbox.question_box
-              (gettext M.qT_wt_download_selected_dir)
-              [gettext M.pW_lb_ok ; gettext M.pW_lb_cancel]
+              (M.qT_wt_download_selected_dir)
+              [ M.pW_lb_ok ; M.pW_lb_cancel]
               (Printf.sprintf !!Gui_messages.qT_lb_confirm_download_dir 
                  len ft.GuiTypes.file_tree_name)) 
           with
@@ -743,7 +743,7 @@ class box_dir_files () =
       
       Gui_misc.insert_buttons wtool1 wtool2 
         ~text: (gettext M.qT_lb_download_selected_dir)
-        ~tooltip: (gettext M.qT_ti_download_selected_dir)
+        ~tooltip: (M.qT_ti_download_selected_dir)
         ~icon: (M.o_xpm_download_directory)
         ~callback: self#download_selected_dir
         ();

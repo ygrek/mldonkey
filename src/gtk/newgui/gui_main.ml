@@ -158,7 +158,7 @@ let value_reader gui t =
           Gui_com.from_gui_protocol_used.(i) <- version;
         done;
         lprintf "Using protocol %d for communications\n" version;
-        gui#label_connect_status#set_text (gettext  M.mW_lb_connected);
+        gui#label_connect_status#set_text ( M.mW_lb_connected);
         Com.send (Password (!!O.login, !!O.password))
 
     | Console text ->
@@ -427,8 +427,8 @@ let value_reader gui t =
     | Shared_file_unshared _ ->  ()
     | BadPassword -> 
         GToolbox.message_box 
-          ~title:(gettext M.pW_wt_bad_password)
-          (gettext M.pW_lb_bad_password)
+          ~title:(M.pW_wt_bad_password)
+          (M.pW_lb_bad_password)
     
     | GiftServerAttach _
     | GiftServerStats _ -> assert false
@@ -457,19 +457,19 @@ let generate_connect_menu gui menu =
 let gui_menu gui =
   let menu = GMenu.menu () in
   let reconnect =
-    GMenu.menu_item ~label:(gettext M.mW_me_reconnect)
+    GMenu.menu_item ~label:(M.mW_me_reconnect)
       ~packing:(menu#add) ()
   in
   let disconnect =
-    GMenu.menu_item ~label:(gettext M.mW_me_disconnect)
+    GMenu.menu_item ~label:(M.mW_me_disconnect)
       ~packing:(menu#add) ()
   in
   let scanports =
-    GMenu.menu_item ~label:(gettext M.mW_me_scan_ports) 
+    GMenu.menu_item ~label:(M.mW_me_scan_ports) 
       ~packing:(menu#add) ()
   in
   let reconnect_to =
-    GMenu.menu_item ~label:(gettext M.mW_me_reconnect_to)
+    GMenu.menu_item ~label:(M.mW_me_reconnect_to)
       ~packing:(menu#add) ()
   in
   let reconnect_to_menu = GMenu.menu ~packing:(reconnect_to#set_submenu) () in

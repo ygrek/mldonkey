@@ -21,6 +21,10 @@ open Printf2
 open Gettext
 open Options
 open Str (* global_replace *)
+
+  
+let _s x = _s "CommonMessages" x
+let _b x = _b "CommonMessages" x
   
 let message_file_name = try
     Sys.getenv "MLDONKEY_MESSAGES"
@@ -661,26 +665,21 @@ let web_common_header_old = define_option message_section ["web_common_header_ol
 "
 
   
-let available_commands_are = string "available_commands_are" 
-  "Available commands are:\n"
+let available_commands_are = _s  "Available commands are:\n"
   
-let command_not_authorized = string "command_not_authorized"
-  "Command not authorized\n use 'auth <user> <password>' before."
+let command_not_authorized = _s "Command not authorized\n use 'auth <user> <password>' before."
 
-let bad_login = string "bad_login"
-  "Bad login/password"
+let bad_login = _s  "Bad login/password"
   
-let full_access = string "full_access"
-  "Full access enabled"
+let full_access = _s "Full access enabled"
 
 let download_started = message "download_started"
     (T.boption (T.int T.bformat)) "Download of file %d started<br>"
 
-let no_such_command = message "no_such_command"
+let no_such_command  = message "no_such_command"
     (T.boption (T.string T.bformat))   "No such command %s\n"
   
-let bad_number_of_args = string "bad_number_of_args" 
-    "Bad number of arguments"
+let bad_number_of_args = _s    "Bad number of arguments"
 
 (* Colour arrays 
 
@@ -771,9 +770,9 @@ let load_message_file () =
       Sys_error _ ->
         (try Options.save message_file with _ -> ())
     | e ->
-        lprintf "Error %s loading message file %s\n"
+        lprintf (_b "Error %s loading message file %s\n")
           (Printexc2.to_string e)
         (Options.options_file_name message_file);
-        lprintf "Using default messages.\n";
+        lprintf (_b "Using default messages.\n");
   end
   )

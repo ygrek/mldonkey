@@ -28,7 +28,7 @@ class box () =
       ~packing:(common_frame#add) ()
   in
   let network_label =
-    GMisc.label ~text:(Gettext.gettext Gui_messages.qT_lb_network)
+    GMisc.label ~text:(Gui_messages.qT_lb_network)
       ~justify:`LEFT ~line_wrap:true
       ~packing:(_anonymous_container_1#pack ~expand:false ~fill:true ~padding: 2) ()
   in
@@ -37,7 +37,7 @@ class box () =
     _anonymous_container_1#pack nets_wcombo#coerce ~padding: 5
   in
   let  max_hits_label =
-    GMisc.label ~text:(Gettext.gettext Gui_messages.qT_lb_max_hits)
+    GMisc.label ~text:(Gui_messages.qT_lb_max_hits)
       ~justify:`LEFT ~line_wrap:true
       ~packing:(_anonymous_container_1#pack ~expand:false ~fill:true) ()
   in
@@ -54,7 +54,7 @@ class box () =
       ~packing:(hbox_show#pack ~expand:false ~fill:true) ()
   in
   let show_hidden_fields_label =
-    GMisc.label ~text:(Gettext.gettext Gui_messages.qT_lb_show_hidden_fields)
+    GMisc.label ~text:(Gui_messages.qT_lb_show_hidden_fields)
       ~justify:`LEFT ~line_wrap:true ~xpad:2
       ~packing:(hbox_show#pack ~expand:false ~fill:true) ()
   in

@@ -34,7 +34,7 @@ class paned () =
   in
   let label =
     GMisc.label
-      ~justify:`LEFT ~line_wrap:true ~text:(Gettext.gettext Gui_messages.fT_lb_messages)
+      ~justify:`LEFT ~line_wrap:true ~text:(Gui_messages.fT_lb_messages)
       ~packing:(hbox#pack ~expand:false ~fill:true ~padding:3) ()
   in
   object

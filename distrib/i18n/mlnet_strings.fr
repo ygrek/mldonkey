@@ -1,0 +1,322 @@
+(************************************)
+(*                                  *)
+
+         module "Ed2k_hash"
+
+(*                                  *)
+(************************************)
+
+" <hash> : Set hash type you want to compute (ed2k, sig2dat,bp)" = " <hash> : Set hash type you want to compute (ed2k, sig2dat,bp)"
+
+" <nth size>: check C file functions" = " <nth size>: check C file functions"
+
+" <filenames> : compute hashes of filenames" = " <filenames> : compute hashes of filenames"
+
+(************************************)
+(*                                  *)
+
+         module "Former Translation"
+
+(*                                  *)
+(************************************)
+
+"Files listed" = "Fichiers list\233s"
+
+"Year" = "Ann\233e"
+
+"Rooms" = "Forums"
+
+"Results" = "R\233sultats"
+
+"Queries" = "Requ\232tes"
+
+"Settings" = "Propri\233t\233s"
+
+"Help" = "Aide"
+
+"Quit" = "Quitter"
+
+"Reconnect" = "Reconnecter"
+
+"Kill core" = "Tuer Serveur"
+
+"File" = "Fichiers"
+
+"Refresh" = "Raffraichir"
+
+"Uploaded" = "Partag\233"
+
+"Uploads stats" = "Statistiques des\nPartages"
+
+"Requests" = "Requ\232tes"
+
+"Uploads" = "Partages"
+
+"Browse files" = "Voir les Fichiers"
+
+"Display all servers" = "Afficher tous\nles Serveurs"
+
+"Remove all friends" = "Retirer tous\nles Amis"
+
+"Find friend" = "Trouver un Ami"
+
+"Get format info" = "Extraire le Format"
+
+"Preview" = "Pr\233visualiser"
+
+"Verify chunks" = "Verifier Chunks"
+
+"Upload" = "Partage"
+
+"Edit mp3 tags" = "Editer les Tags mp3"
+
+"Save file as" = "Sauver sous"
+
+"Unknown" = "Inconnu"
+
+"Paused" = "Paus\233"
+
+"Cancelled" = "Abandonn\233"
+
+"Downloading" = "En Chargement"
+
+"Queued" = "En Attente"
+
+"Removed" = "Retir\233"
+
+"Connected" = "Connecte"
+
+"Initiating" = "Connection en Cours"
+
+"Connecting" = "En cours de connection"
+
+"No" = "Non"
+
+"Yes" = "Oui"
+
+"Clear Console" = "Effacer la Console"
+
+"Command" = "Commande"
+
+"Set Option" = "Fixer une Option"
+
+"Value:" = "Valeur:"
+
+"Remove old\nservers" = "Retirer Vieux\nServeurs"
+
+"Recover MD4:" = "Restaurer MD4:"
+
+"Save" = "Sauver"
+
+"Save all" = "Sauver Tous"
+
+"%d Downloaded Files" = "%d Fichiers Charg\233s"
+
+"Downloaded Files: %d/%d" = "Chargements: %d/%d"
+
+"Connect" = "Connecter"
+
+"Users" = "Clients"
+
+"Connect more\nservers" = "Plus de\nServeurs"
+
+"Add friend" = "Ajouter un Ami"
+
+"Add server" = "Ajouter un serveur"
+
+"Add to friends" = "Ajouter aux Amis"
+
+"Connected to %d / %d locations" = "Connect\233 \224 %d / %d sources"
+
+"Disconnect all" = "Tout D\233connecter"
+
+"Retry connect" = "Reconnecter"
+
+"Availability" = "Disponibilit\233"
+
+"Downloaded" = "Charg\233s"
+
+"Subscribe" = "Souscrire"
+
+"Force Download" = "Forcer le Chargement"
+
+"Download" = "Charger"
+
+"Download selected directory" = "Charger le R\233pertoire"
+
+"Download selected files" = "Charger les Fichiers"
+
+"Properties" = "Propri\233t\233s"
+
+"Size" = "Taille"
+
+"Filename" = "Nom du Fichier"
+
+"Files" = "Fichiers"
+
+"View users" = "Voir Clients"
+
+"View files" = "Voir Fichiers"
+
+"Close room" = "Fermer"
+
+"Remove" = "Supprimer"
+
+"%d Results" = "%d R\233sultats"
+
+"Submit" = "Soumettre"
+
+"Mp3 options" = "Options Mp3"
+
+"Close" = "Fermer"
+
+"Stop" = "Stoppe"
+
+"Min bitrate" = "Taux Min"
+
+"Title" = "Titre"
+
+"Artist" = "Artiste"
+
+"Browse" = "Observe"
+
+"Friend" = "Ami"
+
+"Network" = "R\233seau"
+
+"Max size" = "Taille Max"
+
+"Min size" = "Taille Min"
+
+"Search" = "Recherches"
+
+"Query" = "Requ\232te"
+
+"Apply and save options" = "Applique/Sauve Options"
+
+"Timeouts" = "D\233lais"
+
+"Disconnect" = "D\233connecter"
+
+"Max connected clients" = "Nbr Max Clients Connect\233s"
+
+"Max connected servers" = "Nbr Max Serveurs Connect\233s"
+
+"Name" = "Nom"
+
+"Save options delay" = "Delai de Sauvegarde"
+
+"Delays" = "Delais"
+
+"GUI port" = "Port de GUI"
+
+"Control port" = "Port de Control"
+
+"Connection port" = "Port de Connection"
+
+"No current search" = "Pas de Recherche"
+
+"Downloading %d file(s)" = "%d t\233l\233chargement(s)"
+
+"Connected to %d/%d server(s)" = "Connect\233 \224 %d/%d serveur(s)"
+
+"Not connected" = "Non Connect\233"
+
+"Searches" = "Recherches"
+
+"Friends" = "Amis"
+
+"Downloads" = "Telechargements"
+
+"Servers" = "Serveurs"
+
+"State" = "Etat"
+
+"Last seen" = "Vu"
+
+"Rate" = "Taux"
+
+"Address" = "Addresses"
+
+"Password" = "Mot de Passe"
+
+"Cancel" = "Abandon"
+
+(************************************)
+(*                                  *)
+
+         module "DriverMain"
+
+(*                                  *)
+(************************************)
+
+"Disabling output to console, to enable: stdout true\n" = "Suppression des messages sur la console, pour activer: stdout true\n"
+
+"Core started\n" = "Core lance'\n"
+
+"Or with browser: http://%s:%d\n" = "Ou avec le brouteur: http://%s:%d\n"
+
+"To command: telnet %s %d\n" = "Pour commander: telnet %s %d\n"
+
+"Check http://www.mldonkey.net/ for updates\n" = "Pour les mises \224 jour: http://www.mldonkey.net/\n"
+
+"Welcome to MLdonkey client\n" = "Bienvenu sur MLdonkey\n"
+
+" : print version number and exit" = " : afficher la version et terminer"
+
+" <filename> : check file format" = " <fichier> : v\233rifier le format du fichier"
+
+"<ip> : undocumented" = "<ip> : non-document\233"
+
+" : display information on the implementations" = " : afficher des informations sur l'implantation"
+
+": keep output to stdout after startup" = ": garder les messages sur stdout apr\232s le d\233marrage"
+
+": keep output to stderr after startup" = ": garder les messages sur stderr apr\232s le d\233marrage"
+
+": start as a daemon (detach from console and run in background" = ": d\233marrer comme un d\233mon (se d\233tache de la console et tourne en tache de fond)"
+
+" : find another port when one is already used" = " : trouver un autre port si un port est d\233j\224 utilis\233"
+
+"enabled" = "activ\233"
+
+"disabled" = "desactiv\233"
+
+"Network %s %s\n" = "R\233seau %s %s\n"
+
+(************************************)
+(*                                  *)
+
+         module "Gui_Options"
+
+(*                                  *)
+(************************************)
+
+"Columns for the servers" = "Colonnes des serveurs"
+
+(************************************)
+(*                                  *)
+
+         module "Gui_messages"
+
+(*                                  *)
+(************************************)
+
+"Graph" = "Graphes"
+
+"Networks" = "Reseaux"
+
+"Display Soulseek" = "Afficher Soulseek"
+
+"Display Fasttrack" = "Afficher Fasttrack"
+
+"Display Gnutella" = "Afficher Gnutella"
+
+"Display Open Napster" = "Afficher Open Napster"
+
+"Display Edonkey / Overnet" = "Afficher Edonkey / Overnet"
+
+"Display Direct Connect" = "Afficher Direct Connect"
+
+"Display BitTorrent" = "Afficher BitTorrent"
+
