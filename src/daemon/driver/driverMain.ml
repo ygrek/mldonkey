@@ -76,7 +76,7 @@ let start_interfaces () =
   
   ignore (find_port  "telnet server" !!telnet_bind_addr
       telnet_port DriverControlers.telnet_handler);  
-  (*lprintf "2"; lprint_newline ();*)
+(*lprintf "2"; lprint_newline ();*)
   
   if !!chat_port <> 0 then begin
       ignore (find_port "chat server" !!chat_bind_addr
@@ -85,10 +85,13 @@ let start_interfaces () =
         CommonChat.send_hello ()
       with _ -> lprintf "CommonChat.send_hello failed"; lprint_newline ();
     end;
-
+  
   gui_server_sock := find_port "gui server"  !!gui_bind_addr
     gui_port gui_handler;  
-
+  if !!gift_port <> 0 then
+    ignore (find_port "gift server"  !!gui_bind_addr
+        gift_port gift_handler);
+  
   add_infinite_option_timer update_gui_delay DriverInterface.update_gui_info;
   add_infinite_timer 1. second_timer
 
@@ -213,6 +216,8 @@ let load_config () =
       let oc = open_out (options_file_name downloads_ini) in
       close_out oc; 
     end;
+  
+  (*
   let exists_expert_ini = Sys.file_exists 
       (options_file_name downloads_expert_ini) in
   if not exists_expert_ini then begin
@@ -228,10 +233,10 @@ let load_config () =
           let oc = open_out (options_file_name downloads_expert_ini) in
           close_out oc; 
         end
-    end;
+    end; *)
   (try 
       Options.load downloads_ini;
-      Options.load downloads_expert_ini;      
+(*      Options.load downloads_expert_ini;       *)
     with e -> 
         lprintf "Exception %s during options load\n" (Printexc2.to_string e); 
         exit 2;
@@ -275,8 +280,7 @@ used. For example, we can add new web_infos... *)
   
   
   more_args := !more_args
-    @ (Options.simple_args downloads_ini)
-    @ (Options.simple_args downloads_expert_ini);
+    @ (Options.simple_args downloads_ini);
   
   networks_iter_all (fun r ->
       List.iter (fun opfile ->
@@ -311,8 +315,16 @@ used. For example, we can add new web_infos... *)
           lprint_newline ();
           exit 0), 
       " : display information on the implementations";
-      "-stdout", Arg.Set keep_console_output, 
-      ": keep output to console after startup";
+       "-stdout", Arg.Unit (fun _ ->
+           keep_console_output := true;
+           lprintf_output := Some stdout
+       ), 
+       ": keep output to stdout after startup";
+       "-stderr", Arg.Unit (fun _ ->
+           keep_console_output := true;
+           lprintf_output := Some stderr;
+       ), 
+       ": keep output to stderr after startup";
       "-daemon", Arg.Set daemon,
       ": start as a daemon (detach from console and run in background";
       "-find_port", Arg.Set find_other_port, " : find another port when one
@@ -387,6 +399,7 @@ let _ =
   add_infinite_timer 60. minute_timer;
   add_infinite_timer 3600. hourly_timer;
   add_infinite_timer 0.1 CommonUploads.upload_download_timer;
+  add_infinite_timer 1. CanBeCompressed.deflate_timer;
 
   shared_add_directory (!!incoming_directory, !!incoming_directory_prio);
   List.iter shared_add_directory !!shared_directories;  
@@ -395,7 +408,7 @@ let _ =
       DriverInteractive.browse_friends ());
   
   Options.prune_file downloads_ini;
-  Options.prune_file downloads_expert_ini;
+(*  Options.prune_file downloads_expert_ini; *)
   (try load_web_infos () with _ -> ());
   lprintf "Welcome to MLdonkey client"; lprint_newline ();
   lprintf "Check http://www.mldonkey.net/ for updates"; 

@@ -750,48 +750,53 @@ word64 table[4*256] = {
 /* If these headers are placed at the beginning of the file, the computation
  * is incorrect... */
 
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-
-#if 0
-#define MAX_TIGER_CHUNK_SIZE 8192
-static char tiger_buffer[MAX_TIGER_CHUNK_SIZE];
-
-void tiger_hash(char prefix, char *s, int len, unsigned char *digest)
+void swap_digest(unsigned char *digest)
 {
-   
-         if(len>= MAX_TIGER_CHUNK_SIZE){
-	                printf("tiger_hash: error chunk too big\n");
-	                exit(2);
-     }
-   
-   
-   tiger_buffer[0] = prefix;
-   memcpy(tiger_buffer+1, s, len);
-   static_tiger((word64*)tiger_buffer, (len+1), (word64*) (digest));
+  #ifdef BIG_ENDIAN
+  {
+    int i,j; 
+    for(i=0; i<3; i++){
+      for(j=0;j<4;++j){
+        char s0 = digest[i*8+j];
+        char s1 = digest[i*8+7-j];
+        digest[i*8+j] = s1;
+        digest[i*8+7-j] = s0;
+      }
+    }
+  }
+  #endif
+  
 }
-#else
+
+#include <string.h>
+
+char hexa(int i)
+{
+  if(i>9) return 'A'+i-10; else return '0'+i;
+}
+
 #define MAX_TIGER_CHUNK_SIZE 1024
 static word64 tiger_buffer[MAX_TIGER_CHUNK_SIZE];
 void tiger_hash(char prefix, char *s, int len, unsigned char *digest)
-{
-   
-      char *buffer = (char*) tiger_buffer;
-   
-      if(len>= 8*MAX_TIGER_CHUNK_SIZE)
-     {
-	
-	        printf("tiger_hash: error chunk too big\n");
-	        exit(2);
-     }
-   
-   
-      buffer[0] = prefix;
-      memcpy(buffer+1, s, len);
-      static_tiger(tiger_buffer, (len+1), (word64*) (digest));
+{  
+  char *buffer = (char*) tiger_buffer;
+  
+  buffer[0] = prefix;
+  memcpy(buffer +1, s, len);
+  static_tiger(tiger_buffer, (len +1), (word64*) (digest));
+  
+  swap_digest(digest);
+  
+/*
+{int i; char* r = (char*)digest;
+      printf("Tiger Hash: ");
+      for(i=0; i<24; i++){
+         printf("%c%c", hexa((r[i] & 0xf0) >> 4), hexa(r[i] & 0xf));
+      }
+      printf("\n");
 }
-#endif
+*/
+}
 
 
 void tiger_tree_string(char *s, int len, int pos, int block_size, char *digest)
@@ -834,7 +839,7 @@ int tiger_block_size(int len)
   return block_size;
 }
 
-value tiger_unsafe_string(value digest_v, value string_v, value len_v)
+value tigertree_unsafe_string(value digest_v, value string_v, value len_v)
 {
   unsigned char *digest = String_val(digest_v);
   unsigned char *string = String_val(string_v);
@@ -845,29 +850,15 @@ value tiger_unsafe_string(value digest_v, value string_v, value len_v)
   return Val_unit;
 }
 
-#if 0
-#include <stdio.h>
-
-value tiger_unsafe_file (value digest_v, value filename_v)
+value tiger_unsafe_string(value digest_v, value string_v, value len_v)
 {
-  char *filename  = String_val(filename_v);
   unsigned char *digest = String_val(digest_v);
-  FILE *file;
-  tiger_state_t context;
-  int len;
+  unsigned char *string = String_val(string_v);
+  long len = Long_val(len_v);
 
-  if ((file = fopen (filename, "rb")) == NULL)
-    raise_not_found();
-
-  else {
-    tiger_init (&context);
-    while ((len = fread (hash_buffer, 1, HASH_BUFFER_LEN, file)))
-      tiger_append (&context, hash_buffer, len);
-    tiger_finish (&context, digest);
-
-    fclose (file);
-  }
+  static_tiger ((word64*)string, len, (word64*) digest);  
+  swap_digest(digest);
+  
   return Val_unit;
 }
-#endif
 

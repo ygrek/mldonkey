@@ -19,6 +19,7 @@
 
 (** GUI for the lists of files. *)
 
+open Printf2
 open Options
 open Md4
 
@@ -77,26 +78,30 @@ let string_of_file_state state =
       
       
 let some_is_available f =
-  if !!Gui_options.use_relative_availability
-  then
-    let rec loop i =
-      if i < 0
-      then false
-      else
-      if CommonGlobals.partial_chunk f.file_chunks.[i] &&
-	  f.file_availability.[i] <> (char_of_int 0)
-	then true
-	else loop (i - 1)
-    in
-      loop ((String.length f.file_availability) - 1)
-  else
-    let b = ref false in
-    let len = String.length f.file_availability in
+  let b = ref false in
+  
+  List.iter (fun (_, avail) ->
+(* We cannot use anymore relative availability as we cannot relate the 
+  partial chunks with positions in the availability...
+      if !!Gui_options.use_relative_availability
+      then
+        for i = 0 to String.length avail - 1 do
+          if CommonGlobals.partial_chunk f.file_chunks.[i] &&
+            f.file_availability.[i] <> '\000'
+          then true
+          else loop (i - 1)
+        in
+        loop ((String.length f.file_availability) - 1)
+else
+  *)
+      let len = String.length avail in
       for i = 0 to len - 1 do
-	b := !b or int_of_char f.file_availability.[i] <> 0
+        b := !b || avail.[i] <> '\000'
       done;
-      !b
+  ) f.file_availability;
+        !b
 
+  
 let color_opt_of_file f =
   if f.file_download_rate > 0. then
     Some !!O.color_downloading
@@ -119,23 +124,26 @@ let file_availability f =
     else
       if CommonGlobals.partial_chunk f.file_chunks.[i]
       then
-	if f.file_availability.[i] <> (char_of_int 0)
+(*	if f.file_availability.[i] <> '\000'
 	then loop (i - 1) (p +. 1.0) (n +. 1.0)
-	else loop (i - 1) p (n +. 1.0)
+	else *) loop (i - 1) p (n +. 1.0)
       else loop (i - 1) p n
   in
-    loop ((String.length f.file_availability) - 1) 0.0 0.0
+    loop ((String.length f.file_chunks) - 1) 0.0 0.0
 
-let string_availability s =
-  let len = String.length s in
-  let p = ref 0 in
-  for i = 0 to len - 1 do
-    if int_of_char s.[i] <> 0 then begin
-      incr p
-    end
-  done;
-  if len = 0 then "" else 
-  Printf.sprintf "%5.1f" (float_of_int !p /. float_of_int len *. 100.)
+let string_availability f =
+  let maxi = ref 0. in
+  List.iter (fun (_, avail) ->
+      let len = String.length avail in
+      let p = ref 0 in
+      for i = 0 to len - 1 do
+        if avail.[i] <> '\000' then begin
+            incr p
+          end
+      done;
+      maxi := max !maxi (float_of_int !p /. float_of_int len *. 100.)
+  ) f.file_availability;
+  Printf.sprintf "%5.1f" !maxi
 
 let string_of_format format =
   match format with
@@ -257,7 +265,7 @@ class box columns sel_mode () =
           let fn =
             if !!Gui_options.use_relative_availability
             then file_availability
-            else fun f -> string_availability f.file_availability
+            else string_availability
           in
           compare (float_avail (fn f1)) (float_avail (fn f2))
       |	Col_file_md4 -> compare (Md4.to_string f1.file_md4) (Md4.to_string f2.file_md4)
@@ -298,7 +306,7 @@ class box columns sel_mode () =
       |	Col_file_availability ->
           if !!Gui_options.use_relative_availability
           then file_availability f
-          else string_availability f.file_availability
+          else string_availability f
       | Col_file_md4 -> Md4.to_string f.file_md4
       | Col_file_format -> string_of_format f.file_format
       | Col_file_network -> Gui_global.network_name f.file_network
@@ -483,146 +491,93 @@ let colorBlack = `BLACK
 let colorCyan = `NAME "cyan"
 
 let drawing = ref (None :   [ `window] GDraw.drawable option)
-  
-let redraw_chunks draw_avail file =
-  let drawing = match !drawing with
-      None -> 
-        
-        let w = draw_avail#misc#window in
-        let d = new GDraw.drawable w in
-        draw_avail#misc#show ();
-        drawing := Some d;
-        d        
-    | Some d -> d
-  in
-  
-  try
-    let wx, wy = drawing#size in
-    drawing#set_foreground colorWhite;
-    drawing#rectangle ~filled: true ~x:0 ~y:0 ~width:wx ~height:wy ();
-    let nchunks = String.length file.file_chunks in
-    let dx = min !!O.chunk_width (wx / nchunks) in
-    
-    if wx > nchunks*dx && dx > 0 then
-      
-      let offset = (wx - nchunks * dx) / 2 in
-      let offset = if offset < 0 then 0 else offset in
-      let dx2 = if dx <= 2 then dx else dx - 1 in
-      for i = 0 to nchunks - 1 do
-        if !!Gui_options.use_availability_height
-        then begin
-            if file.file_chunks.[i] >= '2'
-            then begin
-                drawing#set_foreground colorGreen;
-                drawing#rectangle ~filled: true
-                ~x:(offset + i*dx) ~y: 0 
-                  ~width: dx2 ~height:wy ()
-              end
-            else
-            let h = int_of_char (file.file_availability.[i])
-            in
-            if h = 0
-            then
-              begin
-                drawing#set_foreground (            
-                  if file.file_chunks.[i] = '0' then
-                    colorRed
-                  else
-                    colorCyan
-                );
-                drawing#rectangle ~filled: true
-                ~x:(offset + i*dx) ~y: 0
-                  ~width: dx2 ~height:wy ();
-              end
-            else begin
-                let h = min ((wy * h) / !!Gui_options.availability_max) wy in
-                drawing#set_foreground colorGray;
-                drawing#rectangle ~filled: true
-                ~x:(offset + i*dx) ~y: 0
-                  ~width: dx2 ~height: (wy - h) ();
-                
-                drawing#set_foreground colorBlue;
-                drawing#rectangle ~filled: true
-                ~x:(offset + i*dx) ~y: (wy - h)
-                ~width: dx2 ~height:h ();
-              end
-          end else begin
-            drawing#set_foreground (
-              if file.file_chunks.[i] >= '2' then
-                colorGreen
-              else
-              match int_of_char file.file_availability.[i] with
-                0 -> colorRed
-              | 1 -> colorBlue
-              | _ -> colorBlack);
-            drawing#rectangle ~filled: true
-            ~x:(offset + i*dx) ~y: 0 
-              ~width: dx2 ~height:wy ()
-          end
-      done          
-    else
-      
-    let group = (nchunks+wx-1) / wx in
-    let chunk n =
-      let p = n * group in
-      let get i = 
-        let v = 
-          if i < nchunks then file.file_chunks.[i] else '2'
-        in
-        v
-      in
-      let current = String.make 1 (get p) in
-      for i = p+1 to p+group-1 do
-        current.[0] <- (
-          match get i, current with
-            '0',"0" -> '0'
-          | '1', _ -> '1'
-          | ('2' | '3'), ("2"|"3") -> '2'
-          | _ -> '1')
-      done;
-      current.[0]
-    in
-    let avail i =
-      let p = i * group in
-      let get i = 
-        if i < nchunks then file.file_availability.[i] else '\200'
-      in
-      let current = ref (get p) in
-      for i = p+1 to p+group-1 do
-        current := min (get i) !current
-      done;
-      !current
-    in
-    let dx = 1 in
-    let nchunks = nchunks / group in  
 
+  
+let draw_chunks (drawing : unit GDraw.drawable) file =
+  let wx, wy = drawing#size in
+  drawing#set_foreground colorWhite;
+  drawing#rectangle ~filled: true ~x:0 ~y:0 ~width:wx ~height:wy ();
+  let nchunks = String.length file.file_chunks in
+  let dx = min !!O.chunk_width (wx / nchunks) in
+  
+  if wx > nchunks*dx && dx > 0 then
+    
     let offset = (wx - nchunks * dx) / 2 in
     let offset = if offset < 0 then 0 else offset in
     let dx2 = if dx <= 2 then dx else dx - 1 in
     for i = 0 to nchunks - 1 do
-      let chunk = chunk i in
-      let avail = avail i in
+      drawing#set_foreground (
+        match file.file_chunks.[i] with
+        | '0' -> colorRed
+        | '1' -> colorBlue
+        | '2' -> colorBlack
+        | _ -> colorGreen);
+      drawing#rectangle ~filled: true
+      ~x:(offset + i*dx) ~y: 0 
+        ~width: dx2 ~height:wy ()
+    done          
+  else
+  
+  let group = (nchunks+wx-1) / wx in
+  let chunk n =
+    let p = n * group in
+    let get i = 
+      let v = 
+        if i < nchunks then file.file_chunks.[i] else '2'
+      in
+      v
+    in
+    let current = String.make 1 (get p) in
+    for i = p+1 to p+group-1 do
+      current.[0] <- (
+        match get i, current with
+          '0',"0" -> '0'
+        | '1', _ -> '1'
+        | ('2' | '3'), ("2"|"3") -> '2'
+        | _ -> '1')
+    done;
+    current.[0]
+  in
+  let dx = 1 in
+  let nchunks = nchunks / group in  
+  
+  let offset = (wx - nchunks * dx) / 2 in
+  let offset = if offset < 0 then 0 else offset in
+  let dx2 = if dx <= 2 then dx else dx - 1 in
+  for i = 0 to nchunks - 1 do
+    let chunk = chunk i in
+    drawing#set_foreground (
+        match file.file_chunks.[i] with
+        | '0' -> colorRed
+        | '1' -> colorBlue
+        | '2' -> colorBlack
+        | _ -> colorGreen);
+    drawing#rectangle ~filled: true
+    ~x:(offset + i*dx) ~y: 0 
+      ~width: dx2 ~height:wy ()
+  done
+  
+let draw_availability (drawing: unit GDraw.drawable) availability =
+  let wx, wy = drawing#size in
+  drawing#set_foreground colorWhite;
+  drawing#rectangle ~filled: true ~x:0 ~y:0 ~width:wx ~height:wy ();
+  let nchunks = String.length availability in
+  let dx = min !!O.chunk_width (wx / nchunks) in
+  
+  if wx > nchunks*dx && dx > 0 then
+    
+    let offset = (wx - nchunks * dx) / 2 in
+    let offset = if offset < 0 then 0 else offset in
+    let dx2 = if dx <= 2 then dx else dx - 1 in
+    for i = 0 to nchunks - 1 do
       if !!Gui_options.use_availability_height
       then begin
-          if chunk >= '2'
-          then begin
-              drawing#set_foreground colorGreen;
-              drawing#rectangle ~filled: true
-              ~x:(offset + i*dx) ~y: 0 
-                ~width: dx2 ~height:wy ()
-            end
-          else
-          let h = int_of_char avail
+          let h = int_of_char (availability.[i]) 
           in
           if h = 0
           then
             begin
-              drawing#set_foreground (            
-                if chunk = '0' then
-                  colorRed
-                else
-                  colorCyan
-              );
+              drawing#set_foreground colorRed;
               drawing#rectangle ~filled: true
               ~x:(offset + i*dx) ~y: 0
                 ~width: dx2 ~height:wy ();
@@ -634,6 +589,63 @@ let redraw_chunks draw_avail file =
               ~x:(offset + i*dx) ~y: 0
                 ~width: dx2 ~height: (wy - h) ();
               
+              drawing#set_foreground colorBlue;
+              drawing#rectangle ~filled: true
+              ~x:(offset + i*dx) ~y: (wy - h)
+              ~width: dx2 ~height:h ();
+            end
+        end else begin
+          drawing#set_foreground (
+            match int_of_char availability.[i]  with
+              0 -> colorRed
+            | 1 -> colorBlue
+            | _ -> colorBlack);
+          drawing#rectangle ~filled: true
+          ~x:(offset + i*dx) ~y: 0 
+            ~width: dx2 ~height:wy ()
+        end
+    done          
+  else
+  
+  let group = (nchunks+wx-1) / wx in
+  let avail i =
+    let p = i * group in
+    let get i = 
+      if i < nchunks then availability.[i] else '\200'
+    in
+    let current = ref (get p) in
+    for i = p+1 to p+group-1 do
+      current := min (get i) !current
+    done;
+    !current
+  in
+  let dx = 1 in
+  let nchunks = nchunks / group in  
+  
+  let offset = (wx - nchunks * dx) / 2 in
+  let offset = if offset < 0 then 0 else offset in
+  let dx2 = if dx <= 2 then dx else dx - 1 in
+  for i = 0 to nchunks - 1 do
+    let avail = avail i in
+    if !!Gui_options.use_availability_height
+    then begin
+        let h = int_of_char avail
+        in
+        if h = 0
+        then
+          begin
+            drawing#set_foreground colorRed;
+            drawing#rectangle ~filled: true
+            ~x:(offset + i*dx) ~y: 0
+              ~width: dx2 ~height:wy ();
+          end
+        else begin
+            let h = min ((wy * h) / !!Gui_options.availability_max) wy in
+            drawing#set_foreground colorGray;
+            drawing#rectangle ~filled: true
+            ~x:(offset + i*dx) ~y: 0
+              ~width: dx2 ~height: (wy - h) ();
+            
             drawing#set_foreground colorBlue;
             drawing#rectangle ~filled: true
             ~x:(offset + i*dx) ~y: (wy - h)
@@ -641,9 +653,6 @@ let redraw_chunks draw_avail file =
           end
       end else begin
         drawing#set_foreground (
-          if chunk >= '2' then
-            colorGreen
-          else
           match int_of_char avail with
             0 -> colorRed
           | 1 -> colorBlue
@@ -652,16 +661,42 @@ let redraw_chunks draw_avail file =
         ~x:(offset + i*dx) ~y: 0 
           ~width: dx2 ~height:wy ()
       end
-    done
+  done
+  
+let redraw_chunks display_caption draw_avail view_availability file =
+  let (drawing : unit GDraw.drawable) = match !drawing with
+      None ->         
+        let w = draw_avail#misc#window in
+        let d = new GDraw.drawable w in
+        draw_avail#misc#show ();
+        drawing := Some d;
+        d        
+    | Some d -> d
+  in
+  try
+    if view_availability = 0 then begin
+        display_caption#set_text "Downloaded Chunks";
+        draw_chunks drawing file
+      end else
+    let (net, a) = 
+      List.nth file.file_availability (view_availability-1) in
+    display_caption#set_text (Printf.sprintf "Availability on %s" 
+      (try (Hashtbl.find networks net).net_name with _ -> "??"));
+    draw_availability drawing a
   with e ->
       Printf2.lprintf "Exception %s during drawing\n"
         (Printexc2.to_string e)
-      
+
 class box_downloads box_locs wl_status () =
   let draw_availability =
     GMisc.drawing_area ~height:20
       ()
   in
+  let display_caption =
+    GMisc.label ~text:"Current chunks" ~justify:`LEFT ~line_wrap:true
+    ~xalign:(-1.0) ~yalign:(-1.0) ()
+  in
+  
   let label_file_info = GMisc.label () in
   object (self)
     inherit box O.downloads_columns `EXTENDED ()
@@ -735,16 +770,33 @@ class box_downloads box_locs wl_status () =
                 `I ((gettext M.save_as), save_as file) ;
               ]
             else  [])
-    
+
+(* 0 = current chunks, 1-n availability *)
+    val mutable view_availability = 0
     val mutable last_displayed_file = None
     val mutable label_shown = false
-      
+    
     method on_select file =
       if not label_shown then begin
           label_shown <- true;
+          let hbox =  GPack.hbox ~homogeneous:false () in
+          let button =  GButton.button () in
           self#vbox#pack ~expand: false ~fill: true label_file_info#coerce ;
-          self#vbox#pack ~expand: false ~fill: true draw_availability#coerce
-          
+          self#vbox#pack ~expand:false ~fill:true hbox#coerce;
+          hbox#pack ~expand:false ~fill:false button#coerce;
+          hbox#add draw_availability#coerce;
+          button#add display_caption#coerce;
+          ignore (button#connect#clicked (fun _ ->
+              match last_displayed_file with
+                Some file ->
+                    let n = view_availability + 1 in
+                    lprintf "view_availability %d/%d\n" n
+                      (List.length file.file_availability);
+                    view_availability <- (if
+                      n > List.length file.file_availability 
+                    then 0 else n);
+                  redraw_chunks display_caption draw_availability view_availability file;
+              | _ -> ()));
         end;
       label_file_info#set_text 
         (
@@ -754,7 +806,8 @@ class box_downloads box_locs wl_status () =
         (string_of_format file.file_format)
         ;
       );
-      redraw_chunks draw_availability file;
+      view_availability <- 0;
+      redraw_chunks display_caption draw_availability view_availability file;
       last_displayed_file <- Some file;
       box_locs#update_data_by_file (Some file)
     
@@ -774,6 +827,10 @@ class box_downloads box_locs wl_status () =
       f.file_nlocations <- f_new.file_nlocations ;
       f.file_nclients <- f_new.file_nclients ;
       f.file_state <- f_new.file_state ;
+      let must_redraw = 
+        (f.file_chunks <> f_new.file_chunks) || 
+        (f.file_availability <> f_new.file_availability)
+      in
       f.file_chunks <- f_new.file_chunks ;
       f.file_availability <- f_new.file_availability ;
       f.file_priority <- f_new.file_priority;
@@ -784,6 +841,11 @@ class box_downloads box_locs wl_status () =
       f.file_age <- f_new.file_age;
       f.file_last_seen <- f_new.file_last_seen;
       self#update_row f row;
+      if must_redraw then 
+        match last_displayed_file with 
+        | Some file when f == file ->
+            redraw_chunks display_caption draw_availability view_availability file;
+        | _ -> ()
     
     method h_file_downloaded num dled rate =
       try
@@ -980,7 +1042,7 @@ class box_downloads box_locs wl_status () =
             match last_displayed_file with
               None -> true
             | Some file -> 
-                redraw_chunks draw_availability file; true
+                redraw_chunks display_caption draw_availability view_availability file; true
         ));
 
 end

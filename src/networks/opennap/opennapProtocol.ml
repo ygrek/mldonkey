@@ -1011,7 +1011,7 @@ let opennap_handler f sock nread =
         begin
           let msg_type = get_int16 b.buf (b.pos+2) in
           let data = String.sub b.buf (b.pos+4) msg_len in
-          TcpBufferedSocket.buf_used sock (msg_len + 4);
+          TcpBufferedSocket.buf_used b (msg_len + 4);
           let t = parse msg_type data msg_len in
 (*          print t; *)
           f t sock

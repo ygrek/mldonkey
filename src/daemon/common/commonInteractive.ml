@@ -78,7 +78,7 @@ let cut_messages f sock nread =
       if b.len >= 4 + msg_len then
         begin
           let s = String.sub b.buf (b.pos+4) msg_len in
-          buf_used sock (msg_len + 4);
+          buf_used b (msg_len + 4);
           let opcode = LittleEndian.get_int16 s 0 in
           (f opcode s : unit)
         end
@@ -378,13 +378,12 @@ let send_custom_query user buf query args =
         (Printexc2.to_string e)
 
 let sort_options l =
-  List.sort (fun (option_name1, _) (option_name2, _) ->
-	       String.compare option_name1 option_name2) l
-
+  List.sort (fun o1 o2 ->
+      String.compare o1.option_name o2.option_name) l
+    
 let all_simple_options () =
-  let options = ref (
-      sort_options ((simple_options downloads_ini) 
-		    @ (simple_options downloads_expert_ini))
+  let options = ref (sort_options
+      (simple_options downloads_ini) 
     )
   in
   networks_iter_all (fun r ->
@@ -393,31 +392,12 @@ let all_simple_options () =
           let prefix = r.network_prefix () in
           let args = 
             if prefix = "" then args else 
-              List2.tail_map (fun (arg, value) ->
-                (Printf.sprintf "%s%s" prefix arg, value)) 
+              List2.tail_map (fun o ->
+                  { o with option_name = 
+                    (Printf.sprintf "%s%s" prefix o.option_name) })
             args
           in
           options := !options @ args)
-      r.network_config_file 
-  );
-  !options
-
-let all_simple_options_html () =
-  let options = ref (
-      (simple_options_html downloads_ini) @
-      (simple_options_html downloads_expert_ini)) in
-  networks_iter_all (fun r ->
-      List.iter (fun opfile ->
-          let args = simple_options_html opfile in
-          let prefix = r.network_prefix () in
-          let args = 
-            if prefix = "" then args else 
-              List2.tail_map (fun (arg, value, def, help) ->
-                (Printf.sprintf "%s%s" prefix arg, value, def, help)) 
-            args
-          in
-          options := !options @ args
-      )
       r.network_config_file 
   );
   !options
@@ -428,15 +408,14 @@ let apply_on_fully_qualified_options name f =
     end;
   let rec iter prefix opfile =
     let args = simple_options opfile in
-    List.iter (fun (old_name, old_value) ->
-        let new_name = Printf.sprintf "%s%s" prefix old_name in
+    List.iter (fun o ->
+        let new_name = Printf.sprintf "%s%s" prefix o.option_name in
         if new_name = name then
-          (f opfile old_name old_value; raise Exit))
+          (f opfile o.option_name o.option_value; raise Exit))
     args
   in
   try
     iter "" downloads_ini;
-    iter "" downloads_expert_ini;
     if not (networks_iter_all_until_true (fun r ->
             try
               List.iter (fun opfile ->

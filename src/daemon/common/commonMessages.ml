@@ -24,23 +24,25 @@ open Str (* global_replace *)
   
 let message_file_name = try
     Sys.getenv "MLDONKEY_MESSAGES"
-  with _ -> 
+  with _ ->
       Filename.concat CommonOptions.home_basedir ".mldonkey_messages.ini"
-
-      (*
+    
+      (* 
 let _ =
-  lprintf "Using Message File %s" message_file_name; lprint_newline ()
-  *)
+  lprintf "Using Message File %s\n" message_file_name; 
+  *)  
 
 let message_file = Options.create_options_file message_file_name
-let message name t x = define_option message_file [name] "" t x
-let string name x = define_option message_file [name] "" string_option x
+let message_section = file_section message_file [] ""
+    
+let message name t x = define_option message_section [name] "" t x
+let string name x = define_option message_section [name] "" string_option x
 
 (* Please do not modify *_mods0, add/modify your own html_mods_theme *)
 
 (* Style 0 *)
 
-let html_css_mods0 = define_option message_file ["html_css_mods0"] 
+let html_css_mods0 = define_option message_section ["html_css_mods0"] 
   "Main CSS style 0" 
     string_option  
 "
@@ -60,8 +62,8 @@ input.txt {background: @C6@}
 input.txt2 {background: @C11@;
 font: 12px courier; padding: 0px;
 width: 38px; height: 18px; line-height: 14px; color: #000;
-BORDER-RIGHT: #000 2px solid; BORDER-TOP: #fff 1px solid;
-BORDER-LEFT: #fff 1px solid; BORDER-BOTTOM: #000 2px solid;
+BORDER-RIGHT: #fff 1px solid; BORDER-TOP: #000 2px solid;
+BORDER-LEFT: #000 2px solid; BORDER-BOTTOM: #fff 1px solid;
 }
 input.but2 {background: @C14@;
 border: 0px; padding: 0px; font: bold 10px verdana; 
@@ -149,7 +151,7 @@ td.ac {text-align: center;}
 .chunk3 { background: @C8@}
 "
 
-let html_js_mods0 = define_option message_file ["html_js_mods0"] 
+let html_js_mods0 = define_option message_section ["html_js_mods0"] 
   "Main JS include style 0" 
     string_option  
 "
@@ -267,7 +269,7 @@ top.fstatus.document.close();
 //-->
   "
 
-let html_header_mods0 = define_option message_file ["html_header_mods0"] 
+let html_header_mods0 = define_option message_section ["html_header_mods0"] 
   "Header - style 0" 
     string_option
   "
@@ -277,7 +279,7 @@ let html_header_mods0 = define_option message_file ["html_header_mods0"]
 </script>
 "
 
-let download_html_css_mods0 = define_option message_file ["download_html_css_mods0"] 
+let download_html_css_mods0 = define_option message_section ["download_html_css_mods0"] 
   "Download CSS - style 0" 
     string_option  
 "
@@ -317,7 +319,7 @@ a.extern:visited,a.extern:hover,a.extern:active { color: #000099; }
 .extern:hover { color: #000; }
 "
 
-let download_html_js_mods0 = define_option message_file ["download_html_js_mods0"] 
+let download_html_js_mods0 = define_option message_section ["download_html_js_mods0"] 
   "Download JS include style 0" 
     string_option  
 "
@@ -334,7 +336,7 @@ function mOut(src) {
 //-->
 "
   
-let download_html_header_mods0 = define_option message_file ["download_html_header_mods0"] 
+let download_html_header_mods0 = define_option message_section ["download_html_header_mods0"] 
   "Download header - style 0" 
     string_option
   "
@@ -343,7 +345,7 @@ let download_html_header_mods0 = define_option message_file ["download_html_head
 <script language=\"javascript\" src=\"di.js\"></script>
   "
   
-let web_common_header_mods0 = define_option message_file ["web_common_header_mods0"] 
+let web_common_header_mods0 = define_option message_section ["web_common_header_mods0"] 
   "Web header - style 0" 
     string_option 
 "
@@ -375,7 +377,7 @@ onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onclick=\"showTab(6);mSub('fstatus','version');mSub('output','help');\">Help+</TD></TR></TBODY></TABLE></TD>
 <FORM name=cmdFormular action=submit target=output>
 <TD noWrap width=100% title=\\\"Input mldonkey commands here\\\"><TABLE cellSpacing=0 cellpadding=0 width=\"100%\"><TBODY><TR>
-<TD style=\"padding: 0px; border: 0px;\" title=\"Input mldonkey command here\">
+<TD style=\"padding: 0px; padding-left: 4px; border: 0px;\" title=\"Input mldonkey command here\">
 <INPUT class=\"txt2\" style=\"WIDTH: 99%;\" name=q>
 </TD></TR></TBODY></TABLE></TD><TD noWrap>
 <TABLE class=commands cellSpacing=0 cellPadding=0 width=\"100%\"><TBODY><TR>
@@ -519,7 +521,7 @@ onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','networks')\">Networks</TD>
 <TD class=\"bu bbig\" title=\"View ChangeLog\" 
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"top.output.location.href='http://savannah.nongnu.org/cgi-bin/viewcvs/*checkout*/mldonkey/mldonkey/distrib/ChangeLog?rev=HEAD&content-type=text/plain'\">ChangeLog</TD>
+onClick=\"top.output.location.href='http://savannah.nongnu.org/cgi-bin/viewcvs/mldonkey/mldonkey/distrib/ChangeLog'\">ChangeLog</TD>
 <TD class=\"bu bbig\" title=\"HomePage\" 
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"top.output.location.href='http://www.mldonkey.net/'\">Homepage</TD>
@@ -540,7 +542,7 @@ onClick=\"mSub('output','kill')\">Kill core</TD>
 
 (* Old *)
 
-let html_css_old = define_option message_file
+let html_css_old = define_option message_section
   ["html_css_old"]
   "The old css"
     string_option  
@@ -553,7 +555,7 @@ a.extern:visited,a.extern:active { color: #000099; }
 a.extern:hover { color: #000000; } 
   "
 
-let html_js_old = define_option message_file
+let html_js_old = define_option message_section
   ["html_js_old"]
   "The old js"
     string_option  
@@ -566,7 +568,7 @@ return true;
 //-->
   "
 
-let html_header_old = define_option message_file ["html_header_old"]
+let html_header_old = define_option message_section ["html_header_old"]
   "The header used in the WEB interface (modify to add your CSS)"
     string_option  
   "<title>MLDonkey: Web Interface</title>
@@ -574,7 +576,7 @@ let html_header_old = define_option message_file ["html_header_old"]
 <script language=\"javascript\" src=\"i.js\"></script>
     "
   
-let download_html_css_old = define_option message_file ["download_html_css_old"]
+let download_html_css_old = define_option message_section ["download_html_css_old"]
   "The small CSS)"
     string_option  
   "
@@ -592,7 +594,7 @@ a.extern:visited,a.extern:active { color: #000099; }
 a.extern:hover { color: #000000; }
   "
   
-let download_html_js_old = define_option message_file ["download_html_js_old"]
+let download_html_js_old = define_option message_section ["download_html_js_old"]
   "The old js"
     string_option  
 "
@@ -600,7 +602,7 @@ let download_html_js_old = define_option message_file ["download_html_js_old"]
 //-->
   "
   
-let download_html_header_old = define_option message_file ["download_html_header_old"]
+let download_html_header_old = define_option message_section ["download_html_header_old"]
   "The header used in the WEB interface for downloads (modify to add your CSS)"
     string_option  
   "
@@ -609,7 +611,7 @@ let download_html_header_old = define_option message_file ["download_html_header
 <script language=\"javascript\" src=\"di.js\"></script>
 "
 
-let web_common_header_old = define_option message_file ["web_common_header_old"]
+let web_common_header_old = define_option message_section ["web_common_header_old"]
   "The header displayed in the WEB interface"
     string_option
   "
@@ -756,8 +758,8 @@ let load_message_file () =
   (
 
 (* Don't bother loading it for most users so their settings will always be current,
-   without having to delete message_file for each new version.
-   Users can set _load_message_file true if they want to modify and use their own. 
+   without having to delete message_section for each new version.
+   Users can set _load_message_section true if they want to modify and use their own. 
    (reload_messages command)
 *)
 	if (not !!CommonOptions.html_mods) || (!!CommonOptions.html_mods && !!CommonOptions.html_mods_load_message_file) then begin
@@ -767,10 +769,9 @@ let load_message_file () =
       Sys_error _ ->
         (try Options.save message_file with _ -> ())
     | e ->
-        lprintf "Error %s loading message file %s"
-          (Printexc2.to_string e) 
+        lprintf "Error %s loading message file %s\n"
+          (Printexc2.to_string e)
         (Options.options_file_name message_file);
-        lprint_newline ();
-        lprintf "Using default messages."; lprint_newline ();
-	end
+        lprintf "Using default messages.\n";
+  end
   )

@@ -25,11 +25,7 @@
   The .gwmlrc will be created by a dedicated tool, which could be used
   to generate both .gwmlrc and .efunsrc files.
 
-Note: this is redundant, since such options could also be better set
-in the .Xdefaults file (using Xrm to load them). Maybe we should merge
-both approaches in a latter release.
-  
-    *)
+*)
 
 open Printf2
 
@@ -51,26 +47,51 @@ type 'a option_class =
   { class_name : string;
     from_value : option_value -> 'a;
     to_value : 'a -> option_value;
-    mutable class_hooks : ('a option_record -> unit) list }
+    mutable class_hooks : ('a option_record -> unit) list;
+    mutable string_wrappers : (('a -> string) * (string -> 'a)) option;
+  }
 and 'a option_record =
-  { option_name : string list;
+  { 
     option_class : 'a option_class;
     mutable option_value : 'a;
+    option_name : string list;
+    mutable option_desc : string;
     option_help : string;
     option_default : 'a;
     mutable option_hooks : (unit -> unit) list;
-    mutable string_wrappers : (('a -> string) * (string -> 'a)) option;
-    option_file : options_file }
+    option_section : options_section;
+    option_advanced : bool;    
+    }
 and options_file =
   { mutable file_name : string;
-    mutable file_header_options : Obj.t option_record list;
-    mutable file_options : Obj.t option_record list;
+    mutable file_sections : options_section list;
     mutable file_rc : option_module;
     mutable file_pruned : bool }
-
+and options_section = {
+    section_name : string list;
+    section_help : string;
+    section_file : options_file;
+    mutable section_options : Obj.t option_record list;
+  }
+  
+let file_section file section_name section_help =
+  let s = {
+      section_name = section_name;
+      section_help = section_help;
+      section_file = file;
+      section_options = [];
+    }
+  in
+  file.file_sections <- file.file_sections @ [s];
+  s
+  
 let create_options_file name =
-  {file_name = name; file_header_options = []; file_options = [];
-   file_rc = []; file_pruned = false}
+  let file =
+    { file_name = name; file_sections = [];
+      file_rc = []; file_pruned = false}
+  in
+  ignore (file_section file ["Header"] "These options must be read first");
+  file
   
 let set_options_file opfile name = opfile.file_name <- name
 let print_options_not_found = ref false
@@ -80,7 +101,7 @@ let define_option_class
     (to_value : 'a -> option_value) =
   let c =
     {class_name = class_name; from_value = from_value; to_value = to_value;
-     class_hooks = []}
+     class_hooks = []; string_wrappers = None;}
   in
   c  
 
@@ -102,46 +123,50 @@ let find_value list m =
 let prune_file file = file.file_pruned <- true
 
 let define_simple_option
-  normalp (opfile : options_file) (option_name : string list)
-    (option_help : string) (option_class : 'a option_class)
-    (default_value : 'a) =
+    normalp (section : options_section) (option_name : string list) desc
+  (option_help : string) (option_class : 'a option_class)
+  (default_value : 'a) (advanced : bool) =
+  let desc = match desc with None -> "" | Some s -> s in
   let o =
-    {option_name = option_name; option_help = option_help;
-     option_class = option_class; option_value = default_value;
-     option_default = default_value; string_wrappers = None;
-     option_hooks = []; option_file = opfile}
+    { option_name = option_name; option_help = option_help;
+      option_class = option_class; option_value = default_value;
+      option_default = default_value; 
+      option_hooks = []; option_section = section;
+      option_advanced = advanced; option_desc = desc; }
   in
-  if normalp then
-    opfile.file_options <-
-      (Obj.magic o : Obj.t option_record) :: opfile.file_options
-  else
-    opfile.file_header_options <-
-      (Obj.magic o : Obj.t option_record) :: opfile.file_header_options;
+  section.section_options <- 
+    section.section_options @ [ (Obj.magic o : Obj.t option_record) ];
   o.option_value <-
     begin try
-      o.option_class.from_value (find_value option_name opfile.file_rc)
+      o.option_class.from_value (
+        find_value option_name section.section_file.file_rc)
     with
       OptionNotFound -> default_value
     | e ->
         lprintf "Options.define_option, for option %s: "
           (match option_name with
-             [] -> "???"
-           | name :: _ -> name);
+            [] -> "???"
+          | name :: _ -> name);
         lprintf "%s" (Printexc2.to_string e);
         lprint_newline ();
         default_value
-    end;
+  end;
   o
-
-
+  
 let define_header_option
   opfile option_name option_help option_class default_value =
-  define_simple_option false opfile option_name option_help option_class
-    default_value
+  define_simple_option false (List.hd opfile.file_sections)
+  option_name None option_help option_class
+    default_value false
 
-let define_option opfile option_name option_help option_class default_value =
-  define_simple_option true opfile option_name option_help option_class
-    default_value
+let define_option opfile option_name ?desc option_help option_class default_value =
+  define_simple_option true opfile option_name desc option_help option_class
+    default_value false
+
+let define_expert_option
+  opfile option_name ?desc option_help option_class default_value =
+  define_simple_option true opfile option_name desc option_help option_class
+    default_value true
 
   
 open Genlex2
@@ -151,13 +176,11 @@ let once_values_counter = ref 0
 let once_values_rev = Hashtbl.create 13
 
 let lexer = make_lexer ["="; "{"; "}"; "["; "]"; ";"; "("; ")"; ","; "."; "@"]
-  
-    
+      
 let rec parse_gwmlrc = parser
 | [< id = parse_id; 'Kwd "="; v = parse_option ; 
       eof = parse_gwmlrc >] -> (id, v) :: eof
 | [< >] -> []
-
     
 and parse_option = parser
 | [< 'Kwd "{"; v = parse_gwmlrc; 'Kwd "}" >] -> Module v
@@ -211,7 +234,7 @@ let exec_chooks o =
          _ -> ())
     o.option_class.class_hooks  
   
-let really_load filename header_options options =
+let really_load filename sections =
   let temp_file = filename ^ ".tmp" in
   if Sys.file_exists temp_file then
     begin
@@ -268,8 +291,8 @@ let really_load filename header_options options =
               lprint_newline ();
               exit 2
         in
-        List.iter affect_option header_options;
-        List.iter affect_option options;
+      List.iter (fun s ->
+          List.iter affect_option s.section_options) sections;
         close_in ic;
         list
       with
@@ -294,7 +317,7 @@ let escaped s =
     n :=
       !n +
         (match unsafe_get s i with
-           '\"' | '\\' -> 2
+           '"' | '\\' -> 2
          | '\n' | '\t' -> 1
          | c -> if is_printable c then 1 else 4)
   done;
@@ -304,7 +327,7 @@ let escaped s =
     n := 0;
     for i = 0 to String.length s - 1 do
       begin match unsafe_get s i with
-        '\"' | '\\' as c -> unsafe_set s' !n '\\'; incr n; unsafe_set s' !n c
+        '"' | '\\' as c -> unsafe_set s' !n '\\'; incr n; unsafe_set s' !n c
       | '\n' | '\t' as c -> unsafe_set s' !n c
       | c ->
           if is_printable c then unsafe_set s' !n c
@@ -424,21 +447,19 @@ and save_module_fields indent oc m =
       Printf.fprintf oc "\n";
       save_module_fields indent oc tail
 
-
 let options_file_name f = f.file_name
 
 let load opfile =
   try
     opfile.file_rc <-
-      really_load opfile.file_name opfile.file_header_options
-        opfile.file_options
+      really_load opfile.file_name opfile.file_sections
   with
     Not_found -> lprintf "No %s found" opfile.file_name; lprint_newline ()
 
 let append opfile filename =
   try
     opfile.file_rc <-
-      really_load filename opfile.file_header_options opfile.file_options @
+      really_load filename opfile.file_sections @
         opfile.file_rc
   with
     Not_found -> lprintf "No %s found" filename; lprint_newline ()
@@ -466,12 +487,7 @@ let string_to_value s = StringValue s
   
 let rec value_to_int64 v =
   match v with
-  | StringValue s -> 
-       let s = String.lowercase s in
-       (match s with
-         "true" -> Int64.one
-        | "false" -> Int64.zero
-        | _ -> Int64.of_string s)
+    StringValue s -> Int64.of_string s
   | IntValue i -> i
   | FloatValue i -> Int64.of_float i
   | OnceValue v -> value_to_int64 v
@@ -690,7 +706,6 @@ let value_to_path v =
 let path_to_value list =
   StringValue (Filepath.colonpath_to_string (List.map Filename2.to_string list))
 
-
 let string_option =
   define_option_class "String" value_to_string string_to_value
 let color_option = define_option_class "Color" value_to_string string_to_value
@@ -773,6 +788,17 @@ let option_to_value o =
          (Printexc2.to_string e);
        lprint_newline ();
        StringValue "")
+
+let string_of_string_list list =
+  let rec iter s list =
+    match list with 
+      [] -> s
+    | ss :: tail -> 
+        iter (Printf.sprintf "%s.%s" s ss) tail
+  in
+  match list with
+    [] -> ""
+  | s :: tail -> iter s tail
   
 let save opfile =
   let filename = opfile.file_name in
@@ -782,10 +808,50 @@ let save opfile =
   try
     once_values_counter := 0;
     Hashtbl.clear once_values_rev;
-    save_module "" oc
-      (List.map option_to_value
-        (opfile.file_header_options @ 
-        (List.rev opfile.file_options)));
+    let advanced = ref false in
+    List.iter (fun s ->
+        let options = List.filter (fun o -> 
+              if o.option_advanced then advanced := true; 
+              not o.option_advanced)  
+          s.section_options in
+        if options <> [] then begin
+            if s.section_name <> [] then begin
+                Printf.fprintf oc "\n\n";
+                Printf.fprintf oc "    (************************************)\n";
+                
+                Printf.fprintf oc "    (* SECTION : %s *)\n" (string_of_string_list s.section_name);
+                Printf.fprintf oc "    (* %s *)\n" s.section_help;
+                Printf.fprintf oc "    (************************************)\n";
+                Printf.fprintf oc "\n\n";
+              end;
+            save_module "" oc (List.map option_to_value options)
+          end
+    ) opfile.file_sections;
+    if !advanced then begin
+        Printf.fprintf oc "\n\n\n";
+        Printf.fprintf oc "(*****************************************************************)\n";
+        Printf.fprintf oc "(*                                                               *)\n";
+        Printf.fprintf oc "(*                       ADVANCED OPTIONS                        *)\n";
+        Printf.fprintf oc "(*                                                               *)\n";
+        Printf.fprintf oc "(*        All the options after this line are for the expert     *)\n";
+        Printf.fprintf oc "(*        user. Do not modify them if you are not   sure.        *)\n";
+        Printf.fprintf oc "(*                                                               *)\n";
+        Printf.fprintf oc "(*****************************************************************)\n";
+        Printf.fprintf oc "\n\n\n";
+        List.iter (fun s ->
+            let options = List.filter (fun o -> o.option_advanced)  
+              s.section_options in
+            if options = [] then () else let _ = () in
+            Printf.fprintf oc "\n\n";
+            Printf.fprintf oc "    (************************************)\n";
+            
+            Printf.fprintf oc "    (* SECTION : %s FOR EXPERTS *)\n" (string_of_string_list s.section_name);
+            Printf.fprintf oc "    (* %s *)\n" s.section_help;
+            Printf.fprintf oc "    (************************************)\n";
+            Printf.fprintf oc "\n\n";
+            save_module "" oc (List.map option_to_value options)
+        ) opfile.file_sections;
+      end;
     if not opfile.file_pruned then
       begin
         let rem = ref [] in
@@ -794,14 +860,14 @@ let save opfile =
           (fun (name, value) ->
              try
                List.iter
-                 (fun list ->
+                 (fun s ->
                     List.iter
                       (fun o ->
                          match o.option_name with
                            n :: _ -> if n = name then raise Exit
                          | _ -> ())
-                      list)
-                 [opfile.file_header_options; opfile.file_options];
+                      s.section_options)
+                 opfile.file_sections;
                rem := (name, value) :: !rem;
                Printf.fprintf oc "%s = " (safe_string name);
                save_value "  " oc value;
@@ -843,27 +909,29 @@ let rec iter_order f list =
   | v :: tail -> f v; iter_order f tail
   
 let help oc opfile =
-  List.iter
-    (fun o ->
-       Printf.fprintf oc "OPTION \"";
-       begin match o.option_name with
-         [] -> Printf.fprintf oc "???"
-       | [name] -> Printf.fprintf oc "%s" name
-       | name :: tail ->
-           Printf.fprintf oc "%s" name;
-           iter_order (fun name -> Printf.fprintf oc ":%s" name) o.option_name
-       end;
-       Printf.fprintf oc "\" (TYPE \"%s\"): %s\n   CURRENT: \n"
-         o.option_class.class_name o.option_help;
-       begin try
-         once_values_counter := 0;
-         Hashtbl.clear once_values_rev;
-         save_value "" oc (o.option_class.to_value o.option_value)
-       with
-         _ -> ()
-       end;
-       Printf.fprintf oc "\n")
-    opfile.file_options;
+  List.iter (fun s ->
+      List.iter
+        (fun o ->
+          Printf.fprintf oc "OPTION \"";
+          begin match o.option_name with
+              [] -> Printf.fprintf oc "???"
+            | [name] -> Printf.fprintf oc "%s" name
+            | name :: tail ->
+                Printf.fprintf oc "%s" name;
+                iter_order (fun name -> Printf.fprintf oc ":%s" name) o.option_name
+          end;
+          Printf.fprintf oc "\" (TYPE \"%s\"): %s\n   CURRENT: \n"
+            o.option_class.class_name o.option_help;
+          begin try
+              once_values_counter := 0;
+              Hashtbl.clear once_values_rev;
+              save_value "" oc (o.option_class.to_value o.option_value)
+            with
+              _ -> ()
+          end;
+          Printf.fprintf oc "\n")
+      s.section_options;
+  ) opfile.file_sections;
   flush oc
   
     
@@ -925,72 +993,52 @@ let shortname o = String.concat ":" o.option_name
 let get_class o = o.option_class
 let get_help o =
   let help = o.option_help in if help = "" then "No Help Available" else help
+let advanced o = o.option_advanced
 
-
+(*
 let simple_options opfile =
   let list = ref [] in
-  List.iter
-    (fun o ->
-       match o.option_name with
-         [] | _ :: _ :: _ -> ()
-       | [name] ->
-           match o.option_class.to_value o.option_value with
-             Module _ | SmallList _ | List _ | DelayedValue _ ->
-               begin match o.string_wrappers with
-                 None -> ()
-               | Some (to_string, from_string) ->
-                   list := (name, to_string o.option_value) :: !list
-               end
-           | v -> list := (name, safe_value_to_string v) :: !list)
-    opfile.file_options;
+  List.iter (fun s ->
+      List.iter
+        (fun o ->
+          match o.option_name with
+            [] | _ :: _ :: _ -> ()
+          | [name] ->
+              match o.option_class.to_value o.option_value with
+                Module _ | SmallList _ | List _ | DelayedValue _ ->
+                  begin match o.option_class.string_wrappers with
+                      None -> ()
+                    | Some (to_string, from_string) ->
+                        list := (name, to_string o.option_value) :: !list
+                  end
+              | v -> list := (name, safe_value_to_string v) :: !list)
+      s.section_options)
+  opfile.file_sections;
   !list
-
-let simple_options_html opfile =
-  let list = ref [] in
-  List.iter
-    (fun o ->
-       match o.option_name with
-         [] | _ :: _ :: _ -> ()
-       | [name] ->
-           match o.option_class.to_value o.option_value with
-             Module _ | SmallList _ | List _ | DelayedValue _ ->
-               begin match o.string_wrappers with
-                 None -> ()
-               | Some (to_string, from_string) ->
-                   list :=
-                     (name, to_string o.option_value,
-                      safe_value_to_string
-                        (o.option_class.to_value o.option_default),
-                      o.option_help) ::
-                       !list
-               end
-           | v ->
-               list :=
-                 (name, safe_value_to_string v,
-                safe_value_to_string
-                  (o.option_class.to_value o.option_default),
-                  o.option_help) ::
-                   !list)
-    opfile.file_options;
-  !list
+*)
   
-
+  
 let get_option opfile name =
-  let rec iter name list =
+  let rec iter name list sections =
     match list with
-      [] ->
-        prerr_endline
-          (Printf.sprintf "option [%s] not_found in %s"
-             (String.concat ";" name) opfile.file_name);
-        raise Not_found
-    | o :: list -> if o.option_name = name then o else iter name list
+    | o :: list -> if o.option_name = name then o else 
+          iter name list sections
+    | [] ->
+        match sections with 
+          [] ->
+            prerr_endline
+              (Printf.sprintf "option [%s] not_found in %s"
+                (String.concat ";" name) opfile.file_name);
+            raise Not_found
+        | s :: tail ->
+            iter name s.section_options tail
   in
-  iter [name] opfile.file_options
+  iter [name] [] opfile.file_sections
   
   
 let set_simple_option opfile name v =
   let o = get_option opfile name in
-  begin match o.string_wrappers with
+  begin match o.option_class.string_wrappers with
     None -> o.option_value <- o.option_class.from_value (string_to_value v)
   | Some (_, from_string) -> o.option_value <- from_string v
   end;
@@ -999,7 +1047,7 @@ let set_simple_option opfile name v =
     
 let get_simple_option opfile name =
   let o = get_option opfile name in
-  match o.string_wrappers with
+  match o.option_class.string_wrappers with
     None -> safe_value_to_string (o.option_class.to_value o.option_value)
   | Some (to_string, _) -> to_string o.option_value
   
@@ -1008,18 +1056,83 @@ let set_option_hook opfile name hook =
   
 let set_string_wrappers o to_string from_string =
   o.string_wrappers <- Some (to_string, from_string)
+
+let option_type o = (get_class o).class_name
+
+let once_value v = OnceValue v
+
+  (*
+let strings_of_option o =
+  match o.option_name with
+    [] | _ :: _ :: _ -> failwith "Complex option"
+  | [name] ->
+      name,
+      (match o.option_class.string_wrappers with
+         None -> safe_value_to_string (o.option_class.to_value o.option_value)
+       | Some (to_string, _) -> to_string o.option_value)
+      *)
+
+
+let restore_default o = 
+  o =:= o.option_default
+let set_option_desc o s =
+  o.option_desc <- s 
+  
+module M = struct
+    
+    type option_info = {
+        option_name : string;
+        option_desc : string;
+        option_value : string;
+        option_help : string;
+        option_advanced : bool;
+        option_default : string;
+        option_type : string;
+      }
+  
+  end
+
+let string_of_option_value o v =
+  match o.option_class.string_wrappers with
+    None ->
+      value_to_string (o.option_class.to_value v)
+  | Some (to_string, _) -> to_string v
+  
+let strings_of_option o =
+  match o.option_name with
+    [] | _ :: _ :: _ -> failwith "Complex option"
+  | [name] ->
+      let desc = if o.option_desc = "" then name else o.option_desc in
+      {
+        M.option_name = name;
+        M.option_desc = desc;
+        M.option_value = string_of_option_value o o.option_value;
+        M.option_default = string_of_option_value o o.option_default;
+        M.option_advanced = o.option_advanced;
+        M.option_help = o.option_help;
+        M.option_type = o.option_class.class_name;
+      }
+  
+let simple_options opfile =
+  let list = ref [] in
+  List.iter (fun s ->
+      List.iter
+        (fun o ->
+          try list := strings_of_option o :: !list  with _ -> ())
+      s.section_options)
+  opfile.file_sections;
+  List.rev !list
   
 let simple_args opfile =
-  List.map
-    (fun (name, v) ->
-       "-" ^ name,
+  List2.tail_map
+    (fun oi ->
+       "-" ^ oi.M.option_name,
        Arg.String
          (fun s ->
-            lprintf "Setting option %s" name;
-            lprint_newline ();
-            set_simple_option opfile name s),
+            lprintf "Setting option %s\n" oi.M.option_name;
+            set_simple_option opfile oi.M.option_name s),
        Printf.sprintf "<string> : \t%s (current: %s)"
-         (get_option opfile name).option_help v)
+         oi.M.option_help oi.M.option_value)
     (simple_options opfile)
 
 let prefixed_args prefix file =
@@ -1028,29 +1141,31 @@ let prefixed_args prefix file =
        let s = String.sub s 1 (String.length s - 1) in
        Printf.sprintf "-%s:%s" prefix s, f, h)
     (simple_args file)
+  
+let sections file = file.file_sections
+let section_name s = string_of_string_list s.section_name
+  
+let strings_of_section_options s =
+  let list = ref [] in
+  List.iter
+  (fun o ->
+      try list := strings_of_option o :: !list  with _ -> ())
+  s.section_options;
+  List.rev !list
 
-let option_type o = (get_class o).class_name
-
-let once_value v = OnceValue v
-    
-let strings_of_option o =
-  match o.option_name with
-    [] | _ :: _ :: _ -> failwith "Complex option"
-  | [name] ->
-      name,
-      (match o.string_wrappers with
-         None -> safe_value_to_string (o.option_class.to_value o.option_value)
-       | Some (to_string, _) -> to_string o.option_value)
-
-let strings_of_option_html o =
-  match o.option_name with
-    [] | _ :: _ :: _ -> failwith "Complex option"
-  | [name] ->
-      name, (match o.string_wrappers with
-          None ->
-            safe_value_to_string (o.option_class.to_value o.option_value)
-        | Some (to_string, _) ->
-            to_string o.option_value),
-      safe_value_to_string (o.option_class.to_value o.option_default),
-      o.option_help
-
+type option_info = M.option_info = {
+    option_name : string;
+    option_desc : string;
+    option_value : string;
+    option_help : string;
+    option_advanced : bool;
+    option_default : string;
+    option_type : string;
+  }
+  
+let iter_section f s =
+  List.iter f s.section_options
+  
+let iter_file f file =
+  List.iter (iter_section f) file.file_sections
+  

@@ -19,6 +19,7 @@
 
 open Printf2
 open Md4
+open Options
 open CommonMessages
 open CommonGlobals
 open CommonShared
@@ -73,12 +74,12 @@ let list_options_html o list =
   
   let counter = ref 0 in
   
-  List.iter (fun (name, value, def, help) ->
+  List.iter (fun o ->
       incr counter;
       if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
       else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
       
-      if String.contains value '\n' then 
+      if String.contains o.option_value '\n' then 
         Printf.bprintf buf "
                   \\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>%s\\<form action=\\\"submit\\\" target=\\\"$S\\\"\\> 
                   \\<input type=hidden name=setoption value=q\\>
@@ -88,7 +89,7 @@ let list_options_html o list =
                   \\</textarea\\>\\<input type=submit value=Modify\\>
                   \\</td\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>
                   \\</form\\>
-                  " help name name value def
+                  " o.option_help o.option_name o.option_name o.option_value o.option_default
       
       else  
         
@@ -97,26 +98,26 @@ let list_options_html o list =
           Printf.bprintf buf "
               \\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>%s\\</td\\>
 		      \\<td class=\\\"sr\\\"\\>\\<form action=\\\"submit\\\" target=\\\"$S\\\"\\>\\<input type=hidden 
-				name=setoption value=q\\>\\<input type=hidden name=option value=%s\\>"  help name name;
+				name=setoption value=q\\>\\<input type=hidden name=option value=%s\\>"  o.option_help o.option_name o.option_name;
           
-          if value = "true" || value = "false" then 
+          if o.option_value = "true" || o.option_value = "false" then 
             
             Printf.bprintf buf "\\<select style=\\\"font-family: verdana; font-size: 10px;\\\"
 									name=\\\"value\\\" onchange=\\\"this.form.submit()\\\"\\>
 									\\<option selected\\>%s\\<option\\>%s\\</select\\>"
-              value 
-              (if value="true" then "false" else "true")
+              o.option_value 
+              (if o.option_value="true" then "false" else "true")
           else
             
             Printf.bprintf buf "\\<input style=\\\"font-family: verdana; font-size: 10px;\\\" 
 				type=text name=value size=20 value=\\\"%s\\\"\\>"
-              value;
+              o.option_value;
           
           Printf.bprintf buf "
               \\</td\\>
               \\<td class=\\\"sr\\\"\\>%s\\</td\\>
 			  \\</tr\\>\\</form\\>
-              " def
+              " o.option_default
         end;
   
   
@@ -124,13 +125,13 @@ let list_options_html o list =
   Printf.bprintf  buf "\\</table\\>\\</div\\>"
   
 
-let list_options o list = 
-  let buf = o.conn_buf in
-  if o.conn_output = HTML then
+let list_options oo list = 
+  let buf = oo.conn_buf in
+  if oo.conn_output = HTML then
     Printf.bprintf  buf "\\<table border=0\\>";
-  List.iter (fun (name, value) ->
-      if String.contains value '\n' then begin
-          if o.conn_output = HTML then
+  List.iter (fun o ->
+      if String.contains o.option_value '\n' then begin
+          if oo.conn_output = HTML then
             Printf.bprintf buf "
                   \\<tr\\>\\<td\\>\\<form action=\\\"submit\\\" $S\\> 
                   \\<input type=hidden name=setoption value=q\\>
@@ -141,10 +142,10 @@ let list_options o list =
                   \\<input type=submit value=Modify\\>
                   \\</td\\>\\</tr\\>
                   \\</form\\>
-                  " name name value
+                  " o.option_name o.option_name o.option_value
         end
       else
-      if o.conn_output = HTML then
+      if oo.conn_output = HTML then
         Printf.bprintf buf "
               \\<tr\\>\\<td\\>\\<form action=\\\"submit\\\" $S\\> 
 \\<input type=hidden name=setoption value=q\\>
@@ -152,11 +153,11 @@ let list_options o list =
               \\<input type=text name=value size=40 value=\\\"%s\\\"\\>
 \\</td\\>\\</tr\\>
 \\</form\\>
-              " name name value
+              " o.option_name o.option_name o.option_value
       else
-        Printf.bprintf buf "$b%s$n = $r%s$n\n" name value)
+        Printf.bprintf buf "$b%s$n = $r%s$n\n" o.option_name o.option_value)
   list;
-  if o.conn_output = HTML then
+  if oo.conn_output = HTML then
     Printf.bprintf  buf "\\</table\\>"
   
 let commands = [
@@ -192,8 +193,8 @@ let commands = [
             let num = int_of_string arg in
             if o.conn_output = HTML then
               begin
-				if use_html_mods o then 
-        		Printf.bprintf buf "\\<div class=\\\"sourcesTable al\\\"\\>\\<table cellspacing=0 cellpadding=0\\> 
+                if use_html_mods o then 
+                  Printf.bprintf buf "\\<div class=\\\"sourcesTable al\\\"\\>\\<table cellspacing=0 cellpadding=0\\> 
 				\\<tr\\>\\<td\\>
 				\\<table cellspacing=0 cellpadding=0 width=100%%\\>\\<tr\\>
 				\\<td nowrap class=\\\"fbig\\\"\\>\\<a href=\\\"files\\\"\\>Display all files\\</a\\>\\</td\\>
@@ -204,11 +205,11 @@ let commands = [
 				\\</tr\\>\\</table\\>
 				\\</td\\>\\</tr\\>
 				\\<tr\\>\\<td\\>" num num
-				else begin	
-                Printf.bprintf  buf "\\<a href=\\\"files\\\"\\>Display all files\\</a\\>  ";
-                Printf.bprintf  buf "\\<a href=\\\"submit?q=verify_chunks+%d\\\"\\>Verify chunks\\</a\\>  " num;
-                Printf.bprintf  buf "\\<a href=\\\"submit?q=preview+%d\\\"\\>Preview\\</a\\> \n " num;
-				end
+                else begin	
+                    Printf.bprintf  buf "\\<a href=\\\"files\\\"\\>Display all files\\</a\\>  ";
+                    Printf.bprintf  buf "\\<a href=\\\"submit?q=verify_chunks+%d\\\"\\>Verify chunks\\</a\\>  " num;
+                    Printf.bprintf  buf "\\<a href=\\\"submit?q=preview+%d\\\"\\>Preview\\</a\\> \n " num;
+                  end
               end;
             List.iter 
               (fun file -> if (as_file_impl file).impl_file_num = num then 
@@ -283,10 +284,10 @@ let commands = [
     
     "vm", Arg_none (fun o ->
         let buf = o.conn_buf in
-		if use_html_mods o then Printf.bprintf buf 
-		"\\<div class=\\\"servers\\\"\\>\\<table align=center border=0 cellspacing=0 cellpadding=0\\>\\<tr\\>\\<td\\>";
+        if use_html_mods o then Printf.bprintf buf 
+            "\\<div class=\\\"servers\\\"\\>\\<table align=center border=0 cellspacing=0 cellpadding=0\\>\\<tr\\>\\<td\\>";
         CommonInteractive.print_connected_servers o;
-		if use_html_mods o then Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>\\</div\\>";
+        if use_html_mods o then Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>\\</div\\>";
         ""), ":\t\t\t\t\t$blist connected servers$n";
     
     "q", Arg_none (fun o ->
@@ -323,15 +324,16 @@ let commands = [
             
             list_options_html o  (
               [
-                strings_of_option_html max_hard_upload_rate; 
-                strings_of_option_html max_hard_download_rate;
-                strings_of_option_html telnet_port; 
-                strings_of_option_html gui_port; 
-                strings_of_option_html http_port;
-                strings_of_option_html global_login;
-                strings_of_option_html allowed_ips;
-                strings_of_option_html set_client_ip; 
-                strings_of_option_html force_client_ip; 
+(* replaced strings_of_option_html by strings_of_option *)
+                strings_of_option max_hard_upload_rate; 
+                strings_of_option max_hard_download_rate;
+                strings_of_option telnet_port; 
+                strings_of_option gui_port; 
+                strings_of_option http_port;
+                strings_of_option global_login;
+                strings_of_option allowed_ips;
+                strings_of_option set_client_ip; 
+                strings_of_option force_client_ip; 
               ] );
             
             Printf.bprintf buf "\\</td\\>\\<tr\\>\\</table\\>\\</div\\>"
@@ -369,7 +371,7 @@ let commands = [
             html_mods_style =:= 0;
             commands_frame_height =:= (snd !html_mods_styles.(!!html_mods_style));
             use_html_frames =:= true;
-			CommonMessages.colour_changer() ;
+            CommonMessages.colour_changer() ;
           end;
         
         "\\<script language=Javascript\\>top.window.location.reload();\\</script\\>"
@@ -387,7 +389,7 @@ let commands = [
         else begin
             html_mods =:= true;
             use_html_frames =:= true;
-			html_mods_theme =:= "";
+            html_mods_theme =:= "";
             let num = int_of_string (List.hd args) in
             
             if num >= 0 && num < (Array.length !html_mods_styles) then begin
@@ -408,29 +410,29 @@ let commands = [
     "html_theme", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
         if args = [] then begin
-			Printf.bprintf buf "Usage: html_theme <theme name>\n";
-			Printf.bprintf buf "To use internal theme: html_theme \\\"\\\"\n";
-			Printf.bprintf buf "Current theme: %s\n\n" !!html_mods_theme;
-			Printf.bprintf buf "Available themes:\n";
-			if Sys.file_exists html_themes_dir then begin
-			let list = Unix2.list_directory html_themes_dir in
-			List.iter (fun d ->
-				if Unix2.is_directory (Filename.concat html_themes_dir d) then 
-					Printf.bprintf buf "%s\n" d;	
-			) (List.sort (fun d1 d2 -> compare d1 d2) list);
-			end;
+            Printf.bprintf buf "Usage: html_theme <theme name>\n";
+            Printf.bprintf buf "To use internal theme: html_theme \\\"\\\"\n";
+            Printf.bprintf buf "Current theme: %s\n\n" !!html_mods_theme;
+            Printf.bprintf buf "Available themes:\n";
+            if Sys.file_exists html_themes_dir then begin
+                let list = Unix2.list_directory html_themes_dir in
+                List.iter (fun d ->
+                    if Unix2.is_directory (Filename.concat html_themes_dir d) then 
+                      Printf.bprintf buf "%s\n" d;	
+                ) (List.sort (fun d1 d2 -> compare d1 d2) list);
+              end;
             ""
           end
         else begin
-            (* html_mods =:= true;
+(* html_mods =:= true;
             use_html_frames =:= true; *)
             html_mods_theme =:= List.hd args;
             "\\<script language=Javascript\\>top.window.location.reload();\\</script\\>"
           end
     
     ), "<theme>:\t\t\tselect html_theme";
-	
-
+    
+    
     
     
     "voo", Arg_multiple (fun args o ->
@@ -468,113 +470,113 @@ if (\\\"0123456789.\\\".indexOf(v) == -1)
             list_options_html o (
               match args with
                 [] | _ :: _ :: _ -> 
-                  let v=   CommonInteractive.all_simple_options_html () in
+                  let v=   CommonInteractive.all_simple_options () in
                   v
-                  
+              
               | [tab] ->
                   let tab = int_of_string tab in
                   match tab with
                     1 -> 
                       [
-                        strings_of_option_html global_login; 
-                        strings_of_option_html set_client_ip; 
-                        strings_of_option_html force_client_ip; 
-                        strings_of_option_html run_as_user; 
-                        strings_of_option_html run_as_useruid; 
-                        strings_of_option_html max_upload_slots; 
-                        strings_of_option_html dynamic_slots; 
-                        strings_of_option_html max_hard_upload_rate; 
-                        strings_of_option_html max_hard_download_rate; 
-                        strings_of_option_html max_opened_connections; 
-                        strings_of_option_html max_concurrent_downloads; 
+                        strings_of_option global_login; 
+                        strings_of_option set_client_ip; 
+                        strings_of_option force_client_ip; 
+                        strings_of_option run_as_user; 
+                        strings_of_option run_as_useruid; 
+                        strings_of_option max_upload_slots; 
+                        strings_of_option dynamic_slots; 
+                        strings_of_option max_hard_upload_rate; 
+                        strings_of_option max_hard_download_rate; 
+                        strings_of_option max_opened_connections; 
+                        strings_of_option max_concurrent_downloads; 
                       ] 
                   
                   | 2 -> 
                       [
-                        strings_of_option_html gui_bind_addr; 
-                        strings_of_option_html telnet_bind_addr; 
-                        strings_of_option_html http_bind_addr; 
-                        strings_of_option_html chat_bind_addr; 
-                        strings_of_option_html gui_port; 
-                        strings_of_option_html telnet_port; 
-                        strings_of_option_html http_port; 
-                        strings_of_option_html chat_port; 
-                        strings_of_option_html http_realm; 
-                        strings_of_option_html allowed_ips; 
+                        strings_of_option gui_bind_addr; 
+                        strings_of_option telnet_bind_addr; 
+                        strings_of_option http_bind_addr; 
+                        strings_of_option chat_bind_addr; 
+                        strings_of_option gui_port; 
+                        strings_of_option telnet_port; 
+                        strings_of_option http_port; 
+                        strings_of_option chat_port; 
+                        strings_of_option http_realm; 
+                        strings_of_option allowed_ips; 
                       ] 
                   | 3 -> 
                       [
-                        strings_of_option_html html_mods_use_relative_availability; 
-                        strings_of_option_html html_mods_human_readable; 
-                        strings_of_option_html html_mods_vd_network; 
-                        strings_of_option_html html_mods_vd_active_sources; 
-                        strings_of_option_html html_mods_vd_age; 
-                        strings_of_option_html html_mods_vd_last; 
-                        strings_of_option_html html_mods_vd_prio; 
-                        strings_of_option_html html_mods_vd_queues; 
-                        strings_of_option_html html_mods_show_pending; 
-                        strings_of_option_html html_mods_load_message_file; 
-                        strings_of_option_html html_mods_max_messages; 
-                        strings_of_option_html html_mods_bw_refresh_delay; 
-                        strings_of_option_html commands_frame_height; 
-                        strings_of_option_html display_downloaded_results; 
-                        strings_of_option_html vd_reload_delay; 
-                        strings_of_option_html max_name_len; 
+                        strings_of_option html_mods_use_relative_availability; 
+                        strings_of_option html_mods_human_readable; 
+                        strings_of_option html_mods_vd_network; 
+                        strings_of_option html_mods_vd_active_sources; 
+                        strings_of_option html_mods_vd_age; 
+                        strings_of_option html_mods_vd_last; 
+                        strings_of_option html_mods_vd_prio; 
+                        strings_of_option html_mods_vd_queues; 
+                        strings_of_option html_mods_show_pending; 
+                        strings_of_option html_mods_load_message_file; 
+                        strings_of_option html_mods_max_messages; 
+                        strings_of_option html_mods_bw_refresh_delay; 
+                        strings_of_option commands_frame_height; 
+                        strings_of_option display_downloaded_results; 
+                        strings_of_option vd_reload_delay; 
+                        strings_of_option max_name_len; 
                       ] 
                   | 4 -> 
                       [
-                        strings_of_option_html save_options_delay; 
-                        strings_of_option_html update_gui_delay; 
-                        strings_of_option_html server_connection_timeout; 
-                        strings_of_option_html client_timeout; 
-                        strings_of_option_html ip_cache_timeout; 
-                        strings_of_option_html compaction_delay; 
-                        strings_of_option_html min_reask_delay; 
-                        strings_of_option_html max_reask_delay; 
-                        strings_of_option_html buffer_writes; 
-                        strings_of_option_html buffer_writes_delay; 
-                        strings_of_option_html buffer_writes_threshold; 
+                        strings_of_option save_options_delay; 
+                        strings_of_option update_gui_delay; 
+                        strings_of_option server_connection_timeout; 
+                        strings_of_option client_timeout; 
+                        strings_of_option ip_cache_timeout; 
+                        strings_of_option compaction_delay; 
+                        strings_of_option min_reask_delay; 
+                        strings_of_option max_reask_delay; 
+                        strings_of_option buffer_writes; 
+                        strings_of_option buffer_writes_delay; 
+                        strings_of_option buffer_writes_threshold; 
                       ] 
                   | 5 -> 
                       [
-                        strings_of_option_html previewer; 
-                        strings_of_option_html incoming_directory; 
-                        strings_of_option_html temp_directory; 
-                        strings_of_option_html file_completed_cmd; 
-                        strings_of_option_html allow_browse_share; 
-                        strings_of_option_html auto_commit; 
-                        strings_of_option_html log_file; 
+                        strings_of_option previewer; 
+                        strings_of_option incoming_directory; 
+                        strings_of_option temp_directory; 
+                        strings_of_option file_completed_cmd; 
+                        strings_of_option allow_browse_share; 
+                        strings_of_option auto_commit; 
+                        strings_of_option log_file; 
                       ] 
                   | 6 -> 
                       [
-                        strings_of_option_html mail; 
-                        strings_of_option_html smtp_port; 
-                        strings_of_option_html smtp_server; 
-                        strings_of_option_html add_mail_brackets; 
-                        strings_of_option_html filename_in_subject; 
+                        strings_of_option mail; 
+                        strings_of_option smtp_port; 
+                        strings_of_option smtp_server; 
+                        strings_of_option add_mail_brackets; 
+                        strings_of_option filename_in_subject; 
                       ] 
                   | 7 -> 
                       [
-                        strings_of_option_html enable_server; 
-                        strings_of_option_html enable_overnet; 
-                        strings_of_option_html enable_donkey; 
-                        strings_of_option_html enable_bittorrent; 
-                        strings_of_option_html enable_fasttrack; 
-                        strings_of_option_html enable_opennap; 
-                        strings_of_option_html enable_soulseek; 
-                        strings_of_option_html enable_audiogalaxy; 
-                        strings_of_option_html enable_gnutella; 
-                        strings_of_option_html enable_directconnect; 
-                        strings_of_option_html enable_openft; 
-                        strings_of_option_html tcpip_packet_size; 
-                        strings_of_option_html mtu_packet_size; 
-                        strings_of_option_html minimal_packet_size; 
-                        strings_of_option_html network_update_url; 
-                        strings_of_option_html mlnet_redirector; 
+                        strings_of_option enable_server; 
+                        strings_of_option enable_overnet; 
+                        strings_of_option enable_donkey; 
+                        strings_of_option enable_bittorrent; 
+                        strings_of_option enable_fasttrack; 
+                        strings_of_option enable_opennap; 
+                        strings_of_option enable_soulseek; 
+                        strings_of_option enable_audiogalaxy; 
+                        strings_of_option enable_gnutella; 
+                        strings_of_option enable_directconnect; 
+                        strings_of_option enable_openft; 
+                        strings_of_option tcpip_packet_size; 
+                        strings_of_option mtu_packet_size; 
+                        strings_of_option minimal_packet_size; 
+                        strings_of_option network_update_url; 
+                        strings_of_option mlnet_redirector; 
                       ] 
                   
                   | _ -> 
-                      let v = CommonInteractive.all_simple_options_html () in
+                      let v = CommonInteractive.all_simple_options () in
                       v
             );
             Printf.bprintf buf "
@@ -595,41 +597,93 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
             Array.iteri (fun i h -> 
                 Printf.bprintf buf "\\<option value=\\\"%d\\\"\\>%s\\</option\\>\n" i (fst h);
             ) !html_mods_styles;
-
-			if Sys.file_exists html_themes_dir then
-			let list = Unix2.list_directory html_themes_dir in
-			List.iter (fun d ->
-				if Unix2.is_directory (Filename.concat html_themes_dir d) then 
-					let sd = (if String.length d > 11 then String.sub d 0 11 else d) in
-					Printf.bprintf buf "\\<option value=\\\"%s\\\"\\>%s\\</option\\>\n" d sd;
-			) (List.sort (fun d1 d2 -> compare d1 d2) list);
-			
             
-            Printf.bprintf buf "
+            if Sys.file_exists html_themes_dir then
+              let list = Unix2.list_directory html_themes_dir in
+              List.iter (fun d ->
+                  if Unix2.is_directory (Filename.concat html_themes_dir d) then 
+                    let sd = (if String.length d > 11 then String.sub d 0 11 else d) in
+                    Printf.bprintf buf "\\<option value=\\\"%s\\\"\\>%s\\</option\\>\n" d sd;
+              ) (List.sort (fun d1 d2 -> compare d1 d2) list);
+              
+              
+              Printf.bprintf buf "
 \\</select\\>\\</td\\>
 \\</tr\\>\\</table\\>";
-            Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>\\</div\\>";
+              Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>\\</div\\>";
           end
         else begin
             list_options o  (let v = CommonInteractive.all_simple_options () in
-			     match args with
-				 [] -> v
-			       | args ->
-				   let match_star = Str.regexp "\\*" in
-				   let options_filter = Str.regexp (
-				     "^\\(" ^ (List.fold_left (fun acc a ->
-				       acc ^
-				       (if acc <> "" then "\\|" else "") ^
-				       (Str.global_replace match_star ".*" a)
-				     ) "" args) ^ "\\)$") in
-				   List.filter (fun (option_name, _) ->
-				     Str.string_match options_filter option_name 0
-				   ) v
-			    );
+              match args with
+                [] -> v
+              | args ->
+                  let match_star = Str.regexp "\\*" in
+                  let options_filter = Str.regexp (
+                      "^\\(" ^ (List.fold_left (fun acc a ->
+                            acc ^
+                              (if acc <> "" then "\\|" else "") ^
+                              (Str.global_replace match_star ".*" a)
+                        ) "" args) ^ "\\)$") in
+                  List.filter (fun o ->
+                      Str.string_match options_filter o.option_name 0
+                  ) v
+            );
           end;
         ""
     ), ":\t\t\t\t\tprint all options";
-    
+
+    "options", Arg_multiple (fun args o ->
+        let buf = o.conn_buf in
+        match args with
+          [] ->
+            Printf.bprintf buf "Available sections for options: \n";
+            
+            List.iter (fun s ->
+                Printf.bprintf buf "  $b%s$n\n" (section_name s);
+            ) (sections downloads_ini);
+            
+            networks_iter (fun r ->
+                List.iter (fun file ->
+                    List.iter (fun s ->
+                        Printf.bprintf buf "  $b%s::%s$n\n" 
+                          r.network_name
+                          (section_name s);
+                    ) (sections file)
+                ) r.network_config_file
+            );
+            "\n\nUse 'options section' to see options in this section"
+        
+        | ss -> 
+            
+            let print_section name prefix (s: options_section) =
+              if List.mem name ss then
+                Printf.bprintf buf "Options in section $b%s$n:\n" name;
+              List.iter (fun o ->
+                  Printf.bprintf buf "  %s [$r%s%s$n]= $b%s$n\n" 
+                    (if o.option_desc = "" then
+                      o.option_name else o.option_desc)
+                  prefix o.option_name o.option_value
+              ) (strings_of_section_options s)
+            in
+            List.iter (fun s ->
+                print_section (section_name s) "" s
+            ) (sections downloads_ini);
+            
+            networks_iter (fun r ->
+                List.iter (fun file ->
+                    List.iter (fun s ->
+                        print_section 
+                          (Printf.sprintf "%s::%s" r.network_name
+                          (section_name s)) (r.network_prefix ()) s
+                    ) (sections file)
+                ) r.network_config_file
+            );
+            
+            "\nUse '$rset option \"value\"$n' to change a value where options is
+the name between []"
+    ), ":\t\t\t\t$bprint options values by section$n";
+
+    (*
     "options", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
         match args with
@@ -673,6 +727,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
             "\nUse '$rset option \"value\"$n' to change a value where options is
 the name between []"
     ), ":\t\t\t\t$bprint options values by section$n";
+*)
     
     "upstats", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -734,6 +789,16 @@ the name between []"
         "done"
     ), ":\t\t\t\tstatistics on upload";
     
+    "add_url", Arg_two (fun kind url o ->
+        let buf = o.conn_buf in
+        let v = (kind, 1, url) in
+        if not (List.mem v !!web_infos) then
+          web_infos =:=  v :: !!web_infos;
+        load_url kind url;
+        "url added to web_infos. downloading now"
+    ), "<kind> <url> :\t\t\tload this file from the web.
+\t\t\t\t\tkind is either server.met (if the downloaded file is a server.met)";
+
     "set", Arg_two (fun name value o ->
         try
           try
@@ -760,12 +825,8 @@ the name between []"
 );
   *)
           with _ -> 
-              try
                 Options.set_simple_option downloads_ini name value;
                 Printf.sprintf "option %s value changed" name
-              with _ ->
-                  Options.set_simple_option downloads_expert_ini name value;
-                  Printf.sprintf "option %s value changed" name
         with e ->
             Printf.sprintf "Error %s" (Printexc2.to_string e)
     ), "<option_name> <option_value> :\t$bchange option value$n";

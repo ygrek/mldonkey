@@ -1,5 +1,8 @@
 /*
- * Copyright (C) 2003 Markus Kern (mkern@users.sourceforge.net)
+ * $Id$
+ *
+ * Copyright (C) 2003 giFT-FastTrack project
+ * http://developer.berlios.de/projects/gift-fasttrack
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,19 +18,39 @@
 #ifndef _CRYPT_H_
 #define _CRYPT_H_
 
+
+
+
+#define FST_DBG(fmt)
+#define FST_DBG_1(fmt,a)
+#define FST_DBG_2(fmt,a,b)
+#define FST_DBG_3(fmt,a,b,c)
+#define FST_DBG_4(fmt,a,b,c,d)
+#define FST_DBG_5(fmt,a,b,c,d,e)
+
+# define FST_HEAVY_DBG(fmt)
+# define FST_HEAVY_DBG_1(fmt,a)
+# define FST_HEAVY_DBG_2(fmt,a,b)
+# define FST_HEAVY_DBG_3(fmt,a,b,c)
+# define FST_HEAVY_DBG_4(fmt,a,b,c,d)
+# define FST_HEAVY_DBG_5(fmt,a,b,c,d,e)
+
+#define FST_WARN(fmt)
+#define FST_WARN_1(fmt,a)
+#define FST_WARN_2(fmt,a,b)
+#define FST_WARN_3(fmt,a,b,c)
+
+#define FST_ERR(fmt)
+#define FST_ERR_1(fmt,a)
+#define FST_ERR_2(fmt,a,b)
+#define FST_ERR_3(fmt,a,b,c)
+
+#define TRUE 1
+#define FALSE 0
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#if 0
-#define FST_HEAVY_DBG(x) printf(x)
-#define FST_DBG(x)       printf(x)
-#define FST_DBG_2(x,y,z) printf(x,y,z)
-#endif
-
-#define FST_HEAVY_DBG(x) 
-#define FST_DBG(x)       
-#define FST_DBG_2(x,y,z) 
 
 /*****************************************************************************/
 
@@ -39,32 +62,32 @@ typedef struct
 	unsigned int enc_type;
 	unsigned char pad[63];
 	unsigned char lookup[256];
+	unsigned int pad16[20];
 	unsigned int seed;
-	
-	unsigned char buf[80];	// used in clock_cipher?
 } FSTCipher;
 
 /*****************************************************************************/
 
-// allocate and init cipher
+/* allocate and init cipher */
 FSTCipher *fst_cipher_create();
 
-// free cipher
-void fst_cipher_free(FSTCipher *cipher);
+/* free cipher */
+void fst_cipher_free (FSTCipher *cipher);
 
-// initialize cipher state
-void fst_cipher_init(FSTCipher *cipher, unsigned int seed, unsigned int enc_type);
+/* initialize cipher state */
+/* returns FALSE if enc_type is not supported, TRUE otherwise */
+int fst_cipher_init (FSTCipher *cipher, unsigned int seed, unsigned int enc_type);
 
-// encrypt / decrypt a block of data with cipher
-void fst_cipher_crypt(FSTCipher *cipher, unsigned char *data, int len);
+/* encrypt / decrypt a block of data with cipher */
+void fst_cipher_crypt (FSTCipher *cipher, unsigned char *data, int len);
 
 /*****************************************************************************/
 
-// returns encrypted enc_type
-unsigned int fst_cipher_encode_enc_type(unsigned int seed, unsigned int enc_type);
+/* returns encrypted enc_type */
+unsigned int fst_cipher_encode_enc_type (unsigned int seed, unsigned int enc_type);
 
-// returns decrypted enc_type
-unsigned int fst_cipher_decode_enc_type(unsigned int seed, unsigned int crypted_enc_type);
+/* returns decrypted enc_type */
+unsigned int fst_cipher_decode_enc_type (unsigned int seed, unsigned int crypted_enc_type);
 
 /*****************************************************************************/
 

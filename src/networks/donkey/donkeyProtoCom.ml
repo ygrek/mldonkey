@@ -129,7 +129,7 @@ let client_handler2 c ff f =
                 lprint_newline ();
               end;
             let s = String.sub b.buf (b.pos+5) msg_len in
-            TcpBufferedSocket.buf_used sock  (msg_len + 5);
+            buf_used b  (msg_len + 5);
             let t = M.parse opcode s in
 (*          M.print t;   
 lprint_newline (); *)
@@ -160,7 +160,7 @@ let cut_messages parse f sock nread =
               lprint_newline ();
             end;
           let s = String.sub b.buf (b.pos+5) msg_len in
-          TcpBufferedSocket.buf_used sock (msg_len + 5);
+          buf_used b (msg_len + 5);
           let t = parse opcode s in
           f t sock
         end

@@ -277,3 +277,19 @@ let stem s =
   done;
   split_simplify s ' '
   
+let map f s =
+  let len = String.length s in
+  if len = 0 then [||] else
+  let v = f s.[0] in
+  let array = Array.create len v in
+  for i = 1 to len -1 do 
+    array.(i) <- f s.[i]
+  done;
+  array
+  
+let iteri f s =
+  let len = String.length s in
+  for i = 0 to len-1 do
+    f i s.[i]
+  done
+  

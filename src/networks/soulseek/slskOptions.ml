@@ -24,63 +24,64 @@ let cmd_basedir = Autoconf.current_dir (* will not work on Windows *)
 
 let soulseek_ini = create_options_file (
     Filename.concat file_basedir "soulseek.ini")
+let soulseek_section = file_section soulseek_ini [] ""
   
   
-let max_connected_servers = define_option soulseek_ini
+let max_connected_servers = define_option soulseek_section
   ["max_connected_servers"] 
     "The number of servers you want to stay connected to" int_option 10
 
-let ip_cache_timeout = define_option soulseek_ini
+let ip_cache_timeout = define_option soulseek_section
     ["ip_cache_timeout"]
     "The time an ip address can be kept in the cache"
     float_option 3600.
 
-let load_serverlist = define_option soulseek_ini ["load_serverlist"]
+let load_serverlist = define_option soulseek_section ["load_serverlist"]
   "Download a list of servers"
     bool_option true
   
 (*
-let main_server_name = define_option soulseek_ini ["main_server_name"]
+let main_server_name = define_option soulseek_section ["main_server_name"]
     "The main server to connect to" string_option "mail.soulseek.org"
 
-let main_server_port = define_option soulseek_ini ["main_server_port"]
+let main_server_port = define_option soulseek_section ["main_server_port"]
   "The main server to connect to" int_option 2242
 *)
   
-let slsk_port = define_option soulseek_ini ["client_port"]
+let slsk_port = define_option soulseek_section ["client_port"]
   "The port to bind the client to"
     int_option 2234
   
-let login = define_option soulseek_ini ["login"]
+let login = define_option soulseek_section ["login"]
   "Your login on SoulSeek" string_option ""
 
-let password = define_option soulseek_ini ["password"]
+let password = define_option soulseek_section ["password"]
     "Your password on SoulSeek" string_option "mldonkey"
   
-let max_known_servers = define_option soulseek_ini
+let max_known_servers = define_option soulseek_section
     ["query_serverlist_limit"] 
   "The limit on the number of servers to avoid asking for a new list" int_option 100
   
-let commit_in_subdir = define_option soulseek_ini ["commit_in_subdir"]
+let commit_in_subdir = define_option soulseek_section ["commit_in_subdir"]
   "The subdirectory of temp/ where files should be moved to"
     string_option "SoulSeek"
 
   
 let verbose_clients = 
-  define_option soulseek_ini ["verbose_clients"] 
+  define_option soulseek_section ["verbose_clients"] 
   "level of verbosity when communicating with clients" 
     int_option 0
     
 let verbose_servers = 
-  define_option soulseek_ini ["verbose_servers"] 
+  define_option soulseek_section ["verbose_servers"] 
     "level of verbosity when communicating with servers" int_option 0
 
 let next_token = 
-  define_option soulseek_ini ["next_token"]
+  define_option soulseek_section ["next_token"]
     "the last token used for a query is saved here" int_option 1
   
         
-let network_options_prefix = define_option soulseek_ini
+let network_options_prefix = define_option soulseek_section
     ["options_prefix"] "The prefix which is appended to options names
     when they are used in the telnet/WEB interfaces"
     string_option "slsk-"
@@ -90,7 +91,7 @@ let shortname o =
     
 let gui_soulseek_options_panel = 
   (*
-  define_option soulseek_ini ["gui_soulseek_options_panel"]
+  define_option soulseek_section ["gui_soulseek_options_panel"]
   "Which options are configurable in the GUI option panel, and in the
   soulseek section. Last entry indicates the kind of widget used (B=Boolean,T=Text)"
 (list_option (tuple3_option (string_option, string_option, string_option)))

@@ -46,6 +46,14 @@ plugin.
 open CommonNetwork
   
 let network = CommonNetwork.new_network "Donkey"
+         [ 
+    NetworkHasServers; 
+    NetworkHasSearch;
+    NetworkHasUpload;
+    NetworkHasMultinet;
+    NetworkHasChat;
+  ]
+
     (fun _ -> !!network_options_prefix)
   (fun _ -> !!commit_in_subdir)
 (*    network_options_prefix commit_in_subdir *)

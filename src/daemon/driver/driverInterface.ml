@@ -42,18 +42,40 @@ open CommonGlobals
   
 module P = GuiProto
   
-let gui_send gui t =
+let binary_gui_send gui t =
   match gui.gui_sock with
     None -> 
       Fifo.put core_gui_fifo t
   | Some sock ->
       try
-        GuiEncoding.gui_send (GuiEncoding.to_gui gui.gui_version) 
+        GuiEncoding.gui_send (GuiEncoding.to_gui gui.gui_proto_to_gui_version) 
         sock t
+      with UnsupportedGuiMessage -> 
+(* the message is probably not supported by this GUI *)
+
+          ()
+  
+let gift_gui_send gui t =
+  match gui.gui_sock with
+    None -> 
+      Fifo.put core_gui_fifo t
+  | Some sock ->
+      try
+        GiftEncoding.gui_send gui sock t
       with UnsupportedGuiMessage -> 
 (* the message is probably not supported by this GUI *)
           ()
 
+let gui_send gui t =
+  gui.gui_send gui t
+
+let binary_result_handler gui num r =
+  gui_send gui (P.Search_result (num, result_num r, None)) 
+
+let gift_result_handler gui num r =
+  gui.gui_id_counter <- gui.gui_id_counter + 1;
+  gui_send gui (P.Search_result (num, gui.gui_id_counter, Some (result_info r))) 
+          
 let gui_can_write gui =
   match gui.gui_sock with
     None -> not !gui_reconnected
@@ -82,7 +104,7 @@ let update_user_info user =
   let user_num = impl.impl_user_num in
   if update < !gui_counter then begin
       with_guis (fun gui -> 
-          update_events gui update user_num (gui.gui_users)
+          update_events gui update user_num (gui.gui_events.gui_users)
       );
       impl.impl_user_update <- !gui_counter
     end
@@ -93,7 +115,7 @@ let update_client_info client =
   let client_num = impl.impl_client_num in
   if update < !gui_counter then begin
       with_guis (fun gui -> 
-          update_events gui update client_num (gui.gui_clients)
+          update_events gui update client_num (gui.gui_events.gui_clients)
       );
       impl.impl_client_update <- !gui_counter
     end
@@ -104,7 +126,7 @@ let update_server_info server =
   let server_num = impl.impl_server_num in
   if update < !gui_counter then begin
       with_guis (fun gui -> 
-          update_events gui update server_num ( gui.gui_servers)
+          update_events gui update server_num ( gui.gui_events.gui_servers)
       );
       impl.impl_server_update <- !gui_counter
     end
@@ -115,7 +137,7 @@ let update_file_info file =
   let file_num = impl.impl_file_num in
   if update < !gui_counter then begin
       with_guis (fun gui -> 
-          update_events gui update file_num (gui.gui_files)
+          update_events gui update file_num (gui.gui_events.gui_files)
       );
       impl.impl_file_update <- !gui_counter
     end
@@ -126,7 +148,7 @@ let update_room_info room =
   let room_num = impl.impl_room_num in
   if update < !gui_counter then begin
       with_guis (fun gui -> 
-          update_events gui update room_num (gui.gui_rooms)
+          update_events gui update room_num (gui.gui_events.gui_rooms)
       );
       impl.impl_room_update <- !gui_counter
     end
@@ -137,7 +159,7 @@ let update_result_info result =
   let result_num = impl.impl_result_num in
   if update < !gui_counter then begin
       with_guis (fun gui -> 
-          update_events gui update result_num ( gui.gui_results)
+          update_events gui update result_num ( gui.gui_events.gui_results)
       );
       impl.impl_result_update <- !gui_counter
     end
@@ -148,7 +170,7 @@ let update_shared_info shared =
   let shared_num = impl.impl_shared_num in
   if update < !gui_counter then begin
       with_guis (fun gui -> 
-          update_events gui update shared_num ( gui.gui_shared_files)
+          update_events gui update shared_num ( gui.gui_events.gui_shared_files)
       );
       impl.impl_shared_update <- !gui_counter
     end
@@ -186,13 +208,14 @@ let send_event gui ev =
   | Server_new_user_event (s,u) ->
       gui_send gui (P.Server_user (server_num s, user_num u))
       
-  | Search_new_result_event (for_gui, int, r) ->      
-      gui_send gui (P.Search_result (int, result_num r))
+  | Search_new_result_event (for_gui, events, int, r) ->      
+      for_gui int r
+(*      gui_send gui (P.Search_result (int, result_num r)) *)
     
   | Console_message_event msg ->
       gui_send gui (P.Console msg)
 
-  | _ ->  lprintf "Event not treated"; lprint_newline ()
+  | _ ->  lprintf "Event not treated\n"
     
 let send_update_file gui file_num update =
   let file = file_find file_num in
@@ -259,17 +282,17 @@ let send_update_result gui result_num update =
     gui_send gui msg
 
 let send_update_old gui =
-  match gui.gui_old_events with
+  match gui.gui_events.gui_old_events with
   | ev :: tail ->
-      gui.gui_old_events <- tail;
+      gui.gui_events.gui_old_events <- tail;
       send_event gui ev;
       true
   | [] ->
-      match gui.gui_new_events with
+      match gui.gui_events.gui_new_events with
         [] -> false
       | list ->
-          gui.gui_old_events <- List.rev list;
-          gui.gui_new_events <- [];
+          gui.gui_events.gui_old_events <- List.rev list;
+          gui.gui_events.gui_new_events <- [];
           true
           
 let connecting_writer gui _ =
@@ -289,13 +312,13 @@ let connecting_writer gui _ =
                 iter list
     in
     iter [
-        (gui.gui_files, send_update_file);
-        (gui.gui_users, send_update_user);
-        (gui.gui_clients, send_update_client);
-        (gui.gui_servers, send_update_server);
-        (gui.gui_rooms, send_update_room);
-        (gui.gui_results, send_update_result);
-        (gui.gui_shared_files, send_update_shared);      
+        (gui.gui_events.gui_files, send_update_file);
+        (gui.gui_events.gui_users, send_update_user);
+        (gui.gui_events.gui_clients, send_update_client);
+        (gui.gui_events.gui_servers, send_update_server);
+        (gui.gui_events.gui_rooms, send_update_room);
+        (gui.gui_events.gui_results, send_update_result);
+        (gui.gui_events.gui_shared_files, send_update_shared);      
       ]
 
                     
@@ -329,6 +352,148 @@ let gui_closed gui sock  msg =
 (*  lprintf "DISCONNECTED FROM GUI %s" msg; lprint_newline (); *)
   guis := List2.removeq gui !guis
 
+
+
+let gui_initialize gui = 
+
+  gui.gui_initialized <- true;
+  let connecting = ref true in
+  networks_iter_all (fun n ->
+      gui_send gui (Network_info (network_info n)));
+  gui_send gui (Console (DriverControlers.text_of_html !!motd_html));
+  
+  networks_iter_all (fun n ->
+      gui_send gui (Network_info (network_info n)));
+  gui_send gui (Console (DriverControlers.text_of_html !!motd_html));
+  
+  
+  if gui.gui_poll then begin
+      
+      let gui = gui.gui_events in
+      gui.gui_new_events <- [];
+      gui.gui_old_events <- [];
+      
+      gui.gui_files <- create_events ();            
+      gui.gui_clients <- create_events ();
+      gui.gui_servers <- create_events ();
+      gui.gui_rooms <- create_events ();
+      gui.gui_users <- create_events ();
+      gui.gui_results <- create_events ();
+      gui.gui_shared_files <- create_events ();
+    
+    
+    end else begin
+      
+      List.iter (fun c ->
+          addevent gui.gui_events.gui_clients (client_num c) true
+      ) !!friends;
+      
+      List.iter (fun file ->
+          addevent gui.gui_events.gui_files (file_num file) true;
+          List.iter (fun c ->
+              addevent gui.gui_events.gui_clients (client_num c) true;
+              gui.gui_events.gui_new_events <-
+                (File_add_source_event (file,c))
+              :: gui.gui_events.gui_new_events
+          ) (file_sources file)
+      ) !!files;
+      
+      List.iter (fun file ->
+          addevent gui.gui_events.gui_files (file_num file) true;
+      ) !!done_files;
+      
+      networks_iter_all (fun n ->
+          List.iter (fun s ->
+              addevent gui.gui_events.gui_servers (server_num s) true
+          ) (n.op_network_connected_servers ())
+      );
+      
+      server_iter (fun s ->
+          addevent gui.gui_events.gui_servers (server_num s) true
+      );
+      
+      rooms_iter (fun room ->
+          if room_state room <> RoomClosed then begin
+              addevent gui.gui_events.gui_rooms (room_num room) true;
+              List.iter (fun user ->
+                  lprintf "room add user"; lprint_newline ();
+                  addevent gui.gui_events.gui_users (user_num user) true;
+                  gui.gui_events.gui_new_events <-
+                    (Room_add_user_event (room,user))
+                  :: gui.gui_events.gui_new_events
+              ) (room_users room)
+            
+            end
+      );
+      
+      shared_iter (fun s ->
+          addevent gui.gui_events.gui_shared_files (shared_num s) true
+      );
+      
+      Fifo.iter (fun ev ->
+          gui.gui_events.gui_new_events <- ev :: gui.gui_events.gui_new_events
+      ) console_messages;                
+      
+      gui_send gui (
+        P.Options_info (simple_options downloads_ini));
+      networks_iter_all (fun r ->
+          List.iter (fun opfile ->
+(*
+lprintf "options for net %s" r.network_name; lprint_newline ();
+*)
+              let args = simple_options opfile in
+              let prefix = r.network_prefix () in
+(*
+lprintf "Sending for %s" prefix; lprint_newline ();
+ *)
+              gui_send gui (P.Options_info (
+                  List.map (fun o ->
+                      { o with option_name = 
+                        (Printf.sprintf "%s%s" prefix o.option_name)
+                      }
+                  )  args)
+              );
+(*                            lprintf "sent for %s" prefix; lprint_newline (); *)
+          )
+          r.network_config_file 
+      );
+
+(* Options panels defined in downloads.ini *)
+      List.iter (fun s ->
+          let section = section_name s in
+          List.iter (fun o ->
+              gui_send gui (
+                P.Add_section_option (section, o))
+          ) (strings_of_section_options s)
+      ) (sections downloads_ini);
+
+(* Options panels defined in each plugin *)
+      networks_iter_all (fun r ->
+          let prefix = r.network_prefix () in
+          List.iter (fun file ->
+              
+              List.iter (fun s ->
+                  let section = section_name s in
+                  List.iter (fun o ->
+                      gui_send gui (
+                        P.Add_plugin_option (r.network_name, 
+                          { o with
+                            option_name = (
+                              Printf.sprintf "%s%s" prefix o.option_name);  
+                          }))
+                  ) (strings_of_section_options s)
+              ) (sections file)
+          ) r.network_config_file
+      );
+      
+      gui_send gui (P.DefineSearches !!CommonComplexOptions.customized_queries);
+      match gui.gui_sock with
+        None -> ()
+      | Some sock ->
+          BasicSocket.must_write (TcpBufferedSocket.sock sock) true;
+          set_handler sock WRITE_DONE (connecting_writer gui);
+    end
+  
 let gui_reader (gui: gui_record) t _ =
   
   let module P = GuiProto in  
@@ -336,10 +501,13 @@ let gui_reader (gui: gui_record) t _ =
     match t with    
     
     | GuiProtocol version ->
-        gui.gui_version <- min GuiEncoding.best_gui_version version;
-        lprintf "Using protocol %d for communications with the GUI" 
-          gui.gui_version;
-        lprint_newline ();
+        let version = min GuiEncoding.best_gui_version version in
+        gui.gui_proto_to_gui_version <- Array.create 
+          (GuiDecoding.to_gui_last_opcode + 1) version;
+        gui.gui_proto_from_gui_version <- Array.create 
+          (GuiDecoding.from_gui_last_opcode + 1) version;
+        lprintf "Using protocol %d for communications with the GUI\n" 
+          version    
     
     | P.GuiExtensions list ->
         List.iter (fun (ext, bool) ->
@@ -360,147 +528,19 @@ let gui_reader (gui: gui_record) t _ =
               TcpBufferedSocket.close sock (Closed_for_error "Bad Password")
           
           | _ ->
-              let connecting = ref true in
-
-(*
-            begin
-              match !gui_option with
-                None -> ()
-              | Some gui -> close gui.gui_sock "new gui"
-end;
-  *)
               guis := gui :: !guis;
-              
-              
               gui.gui_auth <- true;
               
-              if gui.gui_poll then begin
-                  
-                  gui.gui_new_events <- [];
-                  gui.gui_old_events <- [];
-                  
-                  gui.gui_files <- create_events ();            
-                  gui.gui_clients <- create_events ();
-                  gui.gui_servers <- create_events ();
-                  gui.gui_rooms <- create_events ();
-                  gui.gui_users <- create_events ();
-                  gui.gui_results <- create_events ();
-                  gui.gui_shared_files <- create_events ();
-                
-                
-                end else begin
-                  
-                  List.iter (fun c ->
-                      addevent gui.gui_clients (client_num c) true
-                  ) !!friends;
-                  
-                  List.iter (fun file ->
-                      addevent gui.gui_files (file_num file) true;
-                      List.iter (fun c ->
-                          addevent gui.gui_clients (client_num c) true;
-                          gui.gui_new_events <-
-                            (File_add_source_event (file,c))
-                          :: gui.gui_new_events
-                      ) (file_sources file)
-                  ) !!files;
-                  
-                  List.iter (fun file ->
-                      addevent gui.gui_files (file_num file) true;
-                  ) !!done_files;
-                  
-                  networks_iter (fun n ->
-                      List.iter (fun s ->
-                          addevent gui.gui_servers (server_num s) true
-                      ) (n.op_network_connected_servers ())
-                  );
-                  
-                  server_iter (fun s ->
-                      addevent gui.gui_servers (server_num s) true
-                  );
-                  
-                  rooms_iter (fun room ->
-                      if room_state room <> RoomClosed then begin
-                          addevent gui.gui_rooms (room_num room) true;
-                          List.iter (fun user ->
-                              lprintf "room add user"; lprint_newline ();
-                              addevent gui.gui_users (user_num user) true;
-                              gui.gui_new_events <-
-                                (Room_add_user_event (room,user))
-                              :: gui.gui_new_events
-                          ) (room_users room)
-                        
-                        end
-                  );
-                  
-                  shared_iter (fun s ->
-                      addevent gui.gui_shared_files (shared_num s) true
-                  );
-                  
-                  Fifo.iter (fun ev ->
-                      gui.gui_new_events <- ev :: gui.gui_new_events
-                  ) console_messages;                
-                  
-                  gui_send gui (
-                    P.Options_info (simple_options downloads_ini));
-                  gui_send gui (
-                    P.Options_info (simple_options downloads_expert_ini));
-                  networks_iter_all (fun r ->
-                      List.iter (fun opfile ->
-(*
-lprintf "options for net %s" r.network_name; lprint_newline ();
-*)
-                          let args = simple_options opfile in
-                          let prefix = r.network_prefix () in
-(*
-lprintf "Sending for %s" prefix; lprint_newline ();
- *)
-                          gui_send gui (P.Options_info (
-                              List.map (fun (arg, value) ->
-                                  let long_name = Printf.sprintf "%s%s" 
-                                      prefix arg in
-                                  (long_name, value)
-                              )  args)
-                          );
-(*                            lprintf "sent for %s" prefix; lprint_newline (); *)
-                      )
-                      r.network_config_file 
-                  );
-
-(* Options panels defined in downloads.ini *)
-                  List.iter (fun (section, message, option, optype) ->
-                      gui_send gui (
-                        P.Add_section_option (section, message, option,
-                          match optype with
-                          | "B" -> BoolEntry 
-                          | "F" -> FileEntry 
-                          | _ -> StringEntry
-                        )))
-                  gui_options_panel;
-
-(* Options panels defined in each plugin *)
-                  List.iter (fun (section, list) ->
-                      
-                      List.iter (fun (message, option, optype) ->
-                          gui_send gui (
-                            P.Add_plugin_option (section, message, option,
-                              match optype with
-                              | "B" -> BoolEntry 
-                              | "F" -> FileEntry 
-                              | _ -> StringEntry
-                            )))
-                      (List.rev list))
-                  ! CommonInteractive.gui_options_panels;
-                  
-                  gui_send gui (P.DefineSearches !!CommonComplexOptions.customized_queries);
-                  match gui.gui_sock with
-                    None -> ()
-                  | Some sock ->
-                      BasicSocket.must_write (TcpBufferedSocket.sock sock) true;
-                      set_handler sock WRITE_DONE (connecting_writer gui);
-                end
+              if not gui.gui_initialized then 
+                gui_initialize gui;
+              
         end
     | _ ->
         if gui.gui_auth then
+          let _ =
+            if not gui.gui_initialized then 
+              gui_initialize gui;
+          in
           match t with
           | P.Command cmd ->
               let o = gui.gui_conn in
@@ -514,6 +554,16 @@ lprintf "Sending for %s" prefix; lprint_newline ();
                   DriverControlers.dollar_escape o false
                     (Buffer.contents buf)))
           
+          | P.MessageVersions list ->
+              List.iter (fun (opcode, from_guip, proto) ->
+                  if from_guip then
+                    (if opcode <= GuiDecoding.from_gui_last_opcode then
+                        gui.gui_proto_from_gui_version.(opcode) <- proto)
+                  else
+                    (if opcode <= GuiDecoding.to_gui_last_opcode then
+                        gui.gui_proto_to_gui_version.(opcode) <- proto)
+              ) list
+              
           | P.SetOption (name, value) ->
               CommonInteractive.set_fully_qualified_options name value
           
@@ -564,6 +614,13 @@ lprintf "Sending for %s" prefix; lprint_newline ();
               exit_properly 0
           
           | P.Search_query s ->
+              
+              let search_num = s.GuiTypes.search_num in
+              add_timer 60. (fun _ ->
+                  gui_send gui (Search_waiting (search_num, 0))
+              );
+              gui.gui_id_counter <- maxi gui.gui_id_counter search_num;
+              
               let user = gui.gui_conn.conn_user in
               let query = 
                 try CommonGlobals.simplify_query
@@ -581,7 +638,8 @@ lprintf "Sending for %s" prefix; lprint_newline ();
               gui.gui_searches <- (num, search) :: gui.gui_searches;
               search.op_search_new_result_handlers <- (fun r ->
                   CommonEvent.add_event
-                    (Search_new_result_event (gui, num, r))
+                    (Search_new_result_event (
+                      gui.gui_result_handler, gui.gui_events, num, r))
               ) :: search.op_search_new_result_handlers;
               networks_iter (fun r -> 
                   if search.search_network = 0 ||
@@ -589,7 +647,6 @@ lprintf "Sending for %s" prefix; lprint_newline ();
                   then
                     
                     r.op_network_search search buf);
-              
 (*
         search.op_search_end_reply_handlers <- 
           (fun _ -> send_waiting gui num search.search_waiting) ::
@@ -626,6 +683,10 @@ search.op_search_end_reply_handlers;
           
           | P.RemoveDownload_query num ->
               file_cancel (file_find num)
+          
+          | P.ViewUsers num -> 
+              let s = server_find num in
+              server_query_users s
           
           | P.ServerUsers_query num -> 
               let s = server_find num in
@@ -668,10 +729,10 @@ search.op_search_end_reply_handlers;
               ) (client_files c)
           
           | P.GetClient_info num ->
-              addevent gui.gui_clients num true
+              addevent gui.gui_events.gui_clients num true
           
           | P.GetUser_info num ->
-              addevent gui.gui_users num true
+              addevent gui.gui_events.gui_users num true
           
           | P.GetServer_users num ->    
               let s = server_find num in
@@ -681,7 +742,7 @@ search.op_search_end_reply_handlers;
               ) users
           
           | P.GetServer_info num ->
-              addevent gui.gui_servers num true
+              addevent gui.gui_events.gui_servers num true
           
           | P.GetFile_locations num ->
               let file = file_find num in
@@ -691,7 +752,7 @@ search.op_search_end_reply_handlers;
               ) clients
           
           | P.GetFile_info num ->
-              addevent gui.gui_files num true
+              addevent gui.gui_events.gui_files num true
           
           | P.ConnectFriend num ->
               let c = client_find num in
@@ -734,10 +795,6 @@ search.op_search_end_reply_handlers;
                 file_resume file          
               else
                 file_pause file
-          
-          | P.ViewUsers num -> 
-              let s = server_find num in
-              server_query_users s
           
           | P.FindFriend user -> 
               networks_iter (fun n ->
@@ -813,7 +870,17 @@ search.op_search_end_reply_handlers;
               shared_iter (fun s ->
                   update_shared_info s;
               ) 
-  
+
+          | P.GiftAttach _ ->
+              gui_send gui (P.GiftServerAttach ("mldonkey", "1.1"))
+          | P.GiftStats ->
+              let list = ref [] in
+              networks_iter (fun n ->
+                  list := (
+                    n.network_name, "0", "0", "0"
+                  ) :: !list
+              );
+              gui_send gui (P.GiftServerStats !list)
   with 
     Failure s ->
       gui_send gui (Console (Printf.sprintf "Failure: %s\n" s))
@@ -822,12 +889,9 @@ search.op_search_end_reply_handlers;
           Printf.sprintf "from_gui: exception %s for message %s\n" (
             Printexc2.to_string e) (GuiProto.from_gui_to_string t)))
 
-let new_gui sock =
-  incr gui_counter;
-  let gui = {
-      gui_searches = [];
-      gui_sock = sock;
-      gui_search_nums = [];
+      
+let gui_events () = 
+  {
       
       gui_new_events = [];
       gui_old_events = [];
@@ -839,10 +903,26 @@ let new_gui sock =
       gui_users = create_events ();
       gui_results = create_events ();
       gui_shared_files = create_events ();
-      gui_version = 0;
+    
+  }
+  
+let new_gui gui_send gui_auth sock  =
+  incr gui_counter;
+  let gui = {
+      gui_searches = [];
+      gui_sock = sock;
+      gui_search_nums = [];
+      gui_events = gui_events ();
+      gui_proto_to_gui_version = Array.create (GuiDecoding.to_gui_last_opcode+1) 0;
+      gui_proto_from_gui_version = Array.create (GuiDecoding.from_gui_last_opcode+1) 0;
       gui_num = !gui_counter;
-      gui_auth = false;
+      gui_auth = gui_auth;
       gui_poll = false;
+      gui_result_handler = (fun _ _ -> ());
+      gui_id_counter = 33000;
+      gui_identifiers = Hashtbl.create 1023;
+      gui_identifiers_rev = Hashtbl.create 1023;
+      gui_initialized = false;
       gui_conn = { 
         conn_output = TEXT; 
         conn_sortvd = BySize;
@@ -851,11 +931,9 @@ let new_gui sock =
         conn_user = default_user;
         conn_width = 80; conn_height = 25;
       };
+      gui_send = gui_send;
     } in
   gui_send gui (P.CoreProtocol GuiEncoding.best_gui_version);
-  networks_iter_all (fun n ->
-      gui_send gui (Network_info (network_info n)));
-  gui_send gui (Console (DriverControlers.text_of_html !!motd_html));
   gui
   
 let gui_handler t event = 
@@ -870,12 +948,50 @@ let gui_handler t event =
             "gui connection"
             s in
         
-        let gui = new_gui (Some sock) in
-        
+        let gui = new_gui binary_gui_send 
+          false (Some sock) in
+        gui.gui_result_handler <- binary_result_handler gui;
         TcpBufferedSocket.set_max_write_buffer sock !!interface_buffer;
         TcpBufferedSocket.set_reader sock (GuiDecoding.gui_cut_messages
             (fun opcode s ->
-              let m = GuiDecoding.from_gui gui.gui_version opcode s in
+              let m = GuiDecoding.from_gui gui.gui_proto_from_gui_version opcode s in
+              gui_reader gui m sock;
+              ));
+        TcpBufferedSocket.set_closer sock (gui_closed gui);
+        TcpBufferedSocket.set_handler sock TcpBufferedSocket.BUFFER_OVERFLOW
+          (fun _ -> 
+            lprintf "BUFFER OVERFLOW"; lprint_newline ();
+            close sock Closed_for_overflow);
+        (* sort GUIs in increasing order of their num *)
+        
+      else begin
+          lprintf "Connection from that IP %s not allowed"
+            (Ip.to_string from_ip);
+          lprint_newline ();
+          Unix.close s
+        end
+  | _ -> ()
+        
+let gift_handler t event = 
+  match event with
+    TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
+      let from_ip = Ip.of_inet_addr from_ip in
+      lprintf "CONNECTION FROM GUI"; lprint_newline ();
+      if Ip.matches from_ip !!allowed_ips then 
+        
+        let module P = GuiProto in
+        let sock = TcpBufferedSocket.create_simple 
+            "gui connection"
+            s in
+        
+        let gui = new_gui gift_gui_send true (Some sock) in
+        gui.gui_result_handler <- gift_result_handler gui;
+        guis := gui :: !guis;
+        
+        TcpBufferedSocket.set_max_write_buffer sock !!interface_buffer;
+        TcpBufferedSocket.set_reader sock (GiftDecoding.gui_cut_messages
+            (fun s ->
+              let m = GiftDecoding.from_gui gui s in
               gui_reader gui m sock;
               ));
         TcpBufferedSocket.set_closer sock (gui_closed gui);
@@ -893,9 +1009,10 @@ let gui_handler t event =
         end
   | _ -> ()
 
+      
 let add_gui_event ev =
   with_guis (fun gui ->
-      gui.gui_new_events <- ev :: gui.gui_new_events
+      gui.gui_events.gui_new_events <- ev :: gui.gui_events.gui_new_events
   )
 
 let rec update_events list = 
@@ -971,7 +1088,7 @@ let rec update_events list =
               update_user_info u;
               add_gui_event event
 
-          | Search_new_result_event (gui, int, r) ->
+          | Search_new_result_event (events, gui, int, r) ->
               update_result_info r;
               gui.gui_new_events <- event :: gui.gui_new_events
               
@@ -1005,8 +1122,9 @@ let update_gui_info () =
   
   
   let nets = ref [] in
-  networks_iter (fun n -> if network_connected n then 
-        nets := n.network_num :: !nets);
+  networks_iter_all (fun n -> 
+      nets := 
+        (n.network_num, List.length (network_connected_servers n)) :: !nets);
      
   let msg = (Client_stats {
         upload_counter = !upload_counter;
@@ -1031,29 +1149,29 @@ let update_gui_info () =
   )
   
 let install_hooks () = 
-  List.iter (fun ini ->
-      List.iter (fun (name,_) ->
-          set_option_hook ini name (fun _ ->
-              with_guis (fun gui ->
-                  gui_send gui (P.Options_info [name, 
-                      get_simple_option ini name])
-              )
-          )
-      ) (simple_options ini)) 
-  [downloads_ini; downloads_expert_ini];
+  iter_file (fun o ->
+      option_hook o (fun _ ->
+          with_guis (fun gui ->
+              try
+                let oo = strings_of_option o in
+                gui_send gui (P.Options_info [oo])
+              with _ -> ())
+      ) 
+  ) downloads_ini;
   networks_iter_all (fun r ->
+      let prefix = r.network_prefix()  in
       List.iter (fun opfile ->
-          let args = simple_options opfile in
-          let prefix = r.network_prefix()  in
-          List.iter (fun (arg, value) ->
-              let long_name = Printf.sprintf "%s%s" prefix arg in
-              set_option_hook opfile arg (fun _ ->
-                  with_guis (fun gui ->
-                      gui_send gui (P.Options_info [long_name, 
-                          get_simple_option opfile arg])
-                  )
-              )                  
-          )  args)
+          iter_file (fun o ->
+              try
+                let oo = strings_of_option o in
+                let oo = { oo with
+                    option_name = Printf.sprintf "%s%s" prefix oo.option_name
+                  } in
+                option_hook o (fun _ ->
+                    with_guis (fun gui ->
+                        gui_send gui (P.Options_info [oo])))
+              with _ -> ()
+          ) opfile)
       r.network_config_file 
       )      
 
@@ -1097,7 +1215,8 @@ let _ =
             if !gui_reconnected then begin
                 lprintf "gui_reconnected !"; lprint_newline ();
                 gui_reconnected := false;
-                let gui = new_gui None in
+                let gui = new_gui binary_gui_send false None in
+                gui.gui_result_handler <- binary_result_handler gui;
                 local_gui := Some gui;
                 ()
               end

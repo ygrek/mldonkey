@@ -208,7 +208,7 @@ let lprintf_size = ref 0
 let lprintf_fifo = Fifo.create ()
 let lprintf_to_stdout = ref true
 
-let lprintf_output = ref (Some stdout)
+let lprintf_output = ref (Some stderr)
   
 let _ =
   set_lprintf_handler (fun s -> 

@@ -87,35 +87,29 @@ let make_full_request r =
         Url.put_args url args
     in
     url);
-  Buffer.add_string res " HTTP/1.0\r\nHost: ";
-  Buffer.add_string res url.server;
-  Buffer.add_string res "\r\n";
+  Printf.bprintf res " HTTP/1.0\r\nHost: %s\r\n" url.server;
   List.iter (fun (a,b) ->
       Printf.bprintf res "%s: %s\r\n" a b      
   ) r.req_headers;
   Printf.bprintf res "User-Agent: %s\r\n" r.req_user_agent;
   Printf.bprintf res "Accept: %s\r\n" r.req_accept;
-  (match r.req_referer with
-      None -> ()
+  (match r.req_referer with None -> ()
     | Some url -> 
         Printf.bprintf res "Referer: %s\r\n"  (Url.to_string false url));
-  if is_real_post
-  then
-    (let post = Buffer.create 80 in
-     let rec make_post = function
-      | [] -> assert false
-      | [a, b] ->
+  if is_real_post then begin
+      let post = Buffer.create 80 in
+      let rec make_post = function
+          | [] -> assert false
+        | [a, b] ->
             Printf.bprintf post "%s%c%s" (Url.encode a) '=' (Url.encode b)
         | (a,b)::l ->
             Printf.bprintf post "%s%c%s%c" 
               (Url.encode a) '=' (Url.encode b) '&';
             make_post l in
-     make_post args;
-     Buffer.add_string res "Content-Type: application/x-www-form-urlencoded\r\nContent-Length: ";
-     Buffer.add_string res (string_of_int (Buffer.length post));
-     Buffer.add_string res "\r\n\r\n";
-     Buffer.add_buffer res post)
-  else
+      make_post args;
+      Printf.bprintf res "Content-Type: application/x-www-form-urlencoded\r\nContent-Length: %d\r\n\r\n%s"
+        (Buffer.length post) (Buffer.contents post)
+    end else
     Buffer.add_string res "\r\n";
   let s = Buffer.contents res in
 (*   lprintf "URL: %s\n" s;  *)
@@ -171,13 +165,13 @@ let read_header header_handler  sock nread =
         if c = '\n' then
           let len = i + 2 - b.pos in
           let header = String.sub b.buf b.pos len in
-          buf_used sock len;
+          buf_used b len;
           header_handler sock header        
         else
         if c = '\r' && i <= end_pos - 3 && b.buf.[i+2] = '\n' then
           let len = i + 3 - b.pos in
           let header = String.sub b.buf b.pos len in
-          buf_used sock len;
+          buf_used b len;
           header_handler sock header
         else 
           iter (i+1)
@@ -337,7 +331,7 @@ let wget r f =
             else nread
           in
           Buffer.add_string file_buf (String.sub buf.buf buf.pos left);
-          buf_used sock left;
+          buf_used buf left;
           file_size := !file_size + left;
           if nread > left then
             TcpBufferedSocket.close sock Closed_by_user
@@ -376,7 +370,7 @@ let wget_string r f progress =
           in
           Buffer.add_string file_buf (String.sub buf.buf buf.pos left);
           progress left maxlen;
-          buf_used sock left;
+          buf_used buf left;
           file_size := !file_size + left;
           if nread > left then
             TcpBufferedSocket.close sock Closed_by_user

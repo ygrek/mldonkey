@@ -42,7 +42,7 @@ let gui_cut_messages f sock nread =
       if b.len >= 4 + msg_len then
         begin
           let s = String.sub b.buf (b.pos+4) msg_len in
-          buf_used sock (msg_len + 4);
+          buf_used b (msg_len + 4);
           let opcode = get_int16 s 0 in
           (f opcode s : unit)
         end
@@ -308,7 +308,16 @@ let get_file proto s pos =
   let nclients = get_int s (pos+28) in
   let state, pos = get_file_state s (pos+32) in
   let chunks, pos = get_string s pos in
-  let availability, pos = get_string s pos in
+  let availability, pos = 
+    if proto > 17 then
+      get_list (fun s pos ->
+          let net = get_int s pos in
+          let avail, pos = get_string s (pos+4) in
+          (net, avail), pos
+      ) s pos
+    else
+    let avail, pos = get_string s pos in
+    [net, avail], pos in
   let rate, pos = get_float s pos in
   let chunks_age, pos = get_array get_int_float s pos in
   let age, pos = get_int_float s pos in
@@ -358,6 +367,7 @@ assert (priority = file_info.file_priority);
     file_name = name;
     file_last_seen = BasicSocket.last_time () - last_seen;
     file_priority = priority;
+    file_uids = [];
   }, pos
 
 let get_host_state proto s pos =
@@ -516,20 +526,51 @@ let get_client proto s pos =
       client_sock_addr = sock_addr;
   }, pos
 
-let get_network s pos =
+let default_flags = [
+    NetworkHasServers ;
+    NetworkHasRooms;
+    NetworkHasMultinet;
+    NetworkHasSearch;
+    NetworkHasChat;
+    NetworkHasUpload
+  ]
+  
+let get_network proto s pos =
   let num = get_int s pos in
   let name, pos = get_string s (pos+4) in
   let enabled = get_bool s pos in
   let config_file, pos = get_string s (pos+1) in
   let uploaded = get_int64 s pos in
   let downloaded = get_int64 s (pos+8) in
+  let connected, flags, pos = 
+    if proto > 17 then 
+      let connected = get_int s (pos+16) in
+      let flags, pos = 
+        get_list (fun s pos ->
+            (match get_int16 s pos with
+                0 -> NetworkHasServers
+              | 1 -> NetworkHasRooms
+              | 2 -> NetworkHasMultinet
+              | 3 -> VirtualNetwork
+              | 4 -> NetworkHasSearch
+              | 5 -> NetworkHasChat
+              | 6 -> NetworkHasSupernodes
+              | 7 -> NetworkHasUpload
+              | _ -> UnknownNetworkFlag
+            ), pos+2
+        ) s (pos+20)  
+      in
+      connected, flags, pos
+    else 0, default_flags, pos+16 in
   { network_netnum = num;
     network_netname = name;
+    network_netflags = flags;
     network_enabled = enabled;
     network_config_filename = config_file;
     network_uploaded = uploaded;
     network_downloaded = downloaded;
-  }, pos+16
+    network_connected = connected;
+  }, pos
 
 
 let get_user s pos = 
@@ -608,15 +649,21 @@ let get_shared_info_version_10 s pos =
     shared_requests = requests;
     shared_id = md4;
   }
+
   
+  
+let to_gui_last_opcode = 54  
+let from_gui_last_opcode = 55
+
 (***************
 
      Decoding of messages from the GUI to the Core 
 
 ****************)
 
-let from_gui proto opcode s =
+let from_gui (proto : int array) opcode s =
   try
+    let proto = if opcode > from_gui_last_opcode then 0 else proto.(opcode) in    
     match opcode with
       0 -> GuiProtocol (get_int s 2)
     
@@ -624,7 +671,14 @@ let from_gui proto opcode s =
     | 2 -> CleanOldServers
     | 3 -> KillServer
     | 4 -> ExtendedSearch (-1, ExtendSearchRemotely)
-    | 5 -> let pass,_ = get_string s 2 in Password ("admin", pass)
+    | 5
+    | 52 -> 
+        if proto < 14 then
+           let pass,_ = get_string s 2 in Password ("admin", pass)
+        else
+        let pass,pos = get_string s 2 in
+        let login,pos = get_string s pos in
+        Password (login, pass)
     | 6 -> 
         let local = get_bool s 2 in
         let search, pos = get_search proto s 3 in
@@ -806,11 +860,6 @@ let from_gui proto opcode s =
 
     | 51 ->
         SetFilePriority(get_int s 2, get_int s 6)      
-
-    | 52 -> 
-        let pass,pos = get_string s 2 in
-        let login,pos = get_string s pos in
-        Password (login, pass)
             
     | 53 ->
         let int = get_int s 2 in 
@@ -823,15 +872,22 @@ let from_gui proto opcode s =
         let port = get_int16 s 10 in
         AddServer_query (net, ip, port) 
         
+    | 55 ->
+        let list, pos = get_list  (fun s pos ->
+              let opcode = get_int16 s pos in
+              let from_guip = get_bool s (pos+2) in
+              let proto = get_int s (pos+3) in
+              (opcode, from_guip, proto), pos+7
+          )  s 2 in
+        MessageVersions list
     | _ -> 
-        lprintf "FROM GUI:Unknown message %d" opcode; lprint_newline ();
+        lprintf "FROM GUI:Unknown message %d\n" opcode; 
         raise Not_found
   
   
   with e ->
-      lprintf "Decoding gui proto[%d]: exception %s, opcode %d" proto
+      lprintf "Decoding gui proto[%d]: exception %s, opcode %d\n" proto.(opcode)
         (Printexc2.to_string e) opcode;
-      lprint_newline ();
       dump s;
       lprint_newline ();
       raise e
@@ -841,17 +897,34 @@ let from_gui proto opcode s =
      Decoding of messages from the Core to the GUI 
 
 ****************)
-let to_gui proto opcode s =
+      
+let dummy_option = 
+  let module M = Options in
+  {
+    M.option_name = "";
+    M.option_desc = "";
+    M.option_default = "";
+    M.option_value = "";
+    M.option_help = "";
+    M.option_type = "";
+    M.option_advanced = false;
+  }
+      
+let to_gui (proto : int array) opcode s =
   try
-    
+    let proto = if opcode > to_gui_last_opcode then 0 else proto.(opcode) in    
     match opcode with
     | 0 -> CoreProtocol (get_int s 2)
     
     | 1 ->
         let list, pos = get_list (fun s pos ->
+              let module M = Options in
               let name, pos = get_string s pos in
               let value, pos = get_string s pos in
-              (name, value), pos
+              { dummy_option with
+                M.option_name = name;
+                M.option_value = value;
+              }, pos
           ) s 2 in
         Options_info list
     
@@ -869,7 +942,7 @@ let to_gui proto opcode s =
     | 5 ->
         let n1 = get_int s 2 in
         let n2 = get_int s 6 in
-        Search_result (n1,n2)
+        Search_result (n1,n2, None)
     
     | 6 -> 
         let n1 = get_int s 2 in
@@ -942,7 +1015,7 @@ let to_gui proto opcode s =
         Console string
     
     | 20 -> 
-        let network_info, pos = get_network s 2 in
+        let network_info, pos = get_network proto s 2 in
         Network_info network_info
     
     | 21 ->
@@ -1026,14 +1099,37 @@ let to_gui proto opcode s =
         let section, pos = get_string s 2 in
         let message, pos = get_string s pos in 
         let option, pos = get_string s pos in
-        let optype = 
-          match get_int8 s pos with
-            0 -> StringEntry 
-          | 1 -> BoolEntry 
-          | 2 -> FileEntry
-          | _ -> assert false in
-        Add_section_option (section, message, option, optype)
-    
+        let module M = Options in
+        let o = if proto > 16 then 
+            let optype, pos = get_string s pos in
+            let help, pos = get_string s pos in
+            let value, pos = get_string s pos in
+            let default, pos = get_string s pos in
+            let advanced = get_bool s pos in
+            {
+              M.option_desc = message;
+              M.option_name = option;
+              M.option_type = optype;
+              M.option_help = help;
+              M.option_value = value;
+              M.option_default = default;
+              M.option_advanced = advanced;
+            }
+          else
+          let optype = 
+            match get_int8 s pos with
+              0 -> "String" 
+            | 1 -> "Bool" 
+            | 2 -> "Filename"
+            | _ -> assert false in
+          {
+            dummy_option with
+            M.option_desc = message;
+            M.option_name = option;
+            M.option_type = optype;
+          } in
+        Add_section_option (section, o)
+        
     | 37 ->
         let upload = get_int64 s 2 in
         let download = get_int64 s 10 in
@@ -1061,13 +1157,36 @@ let to_gui proto opcode s =
         let section, pos = get_string s 2 in
         let message, pos = get_string s pos in 
         let option, pos = get_string s pos in
-        let optype = 
-          match get_int8 s pos with
-            0 -> StringEntry 
-          | 1 -> BoolEntry 
-          | 2 -> FileEntry
-          | _ -> assert false in
-        Add_plugin_option (section, message, option, optype)
+        let module M = Options in
+        let o = if proto > 16 then 
+            let optype, pos = get_string s pos in
+            let help, pos = get_string s pos in
+            let value, pos = get_string s pos in
+            let default, pos = get_string s pos in
+            let advanced = get_bool s pos in
+            {
+              M.option_desc = message;
+              M.option_name = option;
+              M.option_type = optype;
+              M.option_help = help;
+              M.option_value = value;
+              M.option_default = default;
+              M.option_advanced = advanced;
+            }
+          else
+          let optype = 
+            match get_int8 s pos with
+              0 -> "String" 
+            | 1 -> "Bool" 
+            | 2 -> "Filename"
+            | _ -> assert false in
+          {
+            dummy_option with
+            M.option_desc = message;
+            M.option_name = option;
+            M.option_type = optype;
+          } in
+        Add_plugin_option (section, o)
     
     | 39 ->
         let upload = get_int64 s 2 in
@@ -1143,7 +1262,12 @@ let to_gui proto opcode s =
         let ndownloading_files = get_int s 46 in
         let ndownloaded_files = get_int s 50 in
         let connected_networks, pos = get_list
-            (fun s pos -> get_int s pos, pos+4)  s 54 in
+            (fun s pos -> 
+              if proto > 17 then 
+                (get_int s pos, get_int s (pos+4)), pos+8
+              else
+                ( (get_int s pos,0),  pos+4 )
+          )  s 54 in
         
         Client_stats {
           upload_counter = upload;
@@ -1180,13 +1304,14 @@ let to_gui proto opcode s =
     | 54 -> 
         let list, pos = get_list (get_file proto) s 2 in
         DownloadedFiles list
+        
     | _ -> 
         lprintf "TO GUI:Unknown message %d" opcode; lprint_newline ();
         raise Not_found
 
 
   with e ->
-      lprintf "Decoding gui proto[%d]: exception %s, opcode %d" proto
+      lprintf "Decoding gui proto[%d]: exception %s, opcode %d" proto.(opcode)
         (Printexc2.to_string e) opcode;
       lprint_newline ();
       dump s;

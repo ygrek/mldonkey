@@ -31,13 +31,13 @@ open FasttrackTypes
 open FasttrackOptions
 open FasttrackGlobals
 
-let ultrapeers = define_option fasttrack_ini
+let ultrapeers = define_option fasttrack_section
     ["cache"; "ultrapeers"]
     "Known ultrapeers" (list_option (tuple2_option
       (Ip.addr_option, int_option)))
   []
 
-let peers = define_option fasttrack_ini
+let peers = define_option fasttrack_section
     ["cache"; "peers"]
     "Known Peers" (list_option (tuple2_option (Ip.addr_option, int_option)))
   []
@@ -187,7 +187,7 @@ let file_to_value file =
   ]
   
 let old_files = 
-  define_option fasttrack_ini ["old_files"]
+  define_option fasttrack_section ["old_files"]
     "" (list_option (tuple2_option (string_option, int64_option))) []
     
     

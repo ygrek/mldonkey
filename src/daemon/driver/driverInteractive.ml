@@ -81,34 +81,42 @@ let calc_file_eta f =
   end
   )
 
+      
 let file_availability f =
-  let rec loop i p n =
-    if i < 0
-    then 
-      if n < 0.0001
-      then 0.0
-      else (p /. n *. 100.0)
-    else
-      if partial_chunk f.file_chunks.[i]
-      then
-    if f.file_availability.[i] <> (char_of_int 0)
-    then loop (i - 1) (p +. 1.0) (n +. 1.0)
-    else loop (i - 1) p (n +. 1.0)
-      else loop (i - 1) p n
-  in  
-    loop ((String.length f.file_availability) - 1) 0.0 0.0
-
+  match f.file_availability with
+    (_,avail) :: _ ->
+      let rec loop i p n =
+        if i < 0
+        then 
+          if n < 0.0001
+          then 0.0
+          else (p /. n *. 100.0)
+        else
+        if partial_chunk f.file_chunks.[i]
+        then
+          if avail.[i] <> (char_of_int 0)
+          then loop (i - 1) (p +. 1.0) (n +. 1.0)
+          else loop (i - 1) p (n +. 1.0)
+        else loop (i - 1) p n
+      in  
+      loop ((String.length avail) - 1) 0.0 0.0
+  | _ -> 0.0
+      
 let string_availability s =
-  let len = String.length s in
-  let p = ref 0 in
-  for i = 0 to len - 1 do
-    if int_of_char s.[i] <> 0 then begin
-        incr p
-      end
-  done;
-  if len = 0 then 0.0 else 
-    (float_of_int !p /. float_of_int len *. 100.)
-
+  match s with
+    (_,s) :: _ ->
+      
+      let len = String.length s in
+      let p = ref 0 in
+      for i = 0 to len - 1 do
+        if int_of_char s.[i] <> 0 then begin
+            incr p
+          end
+      done;
+      if len = 0 then 0.0 else 
+        (float_of_int !p /. float_of_int len *. 100.)
+  | _ -> 0.0
+      
 let get_file_availability f = 
 if !!html_mods_use_relative_availability
 	then file_availability f 
@@ -157,9 +165,8 @@ let save_config () =
         Printf2.lprintf "Exception %s while flushing\n" (Printexc2.to_string e)
   );
   Options.save_with_help downloads_ini;
-  Options.save_with_help downloads_expert_ini;
   CommonComplexOptions.save ();
-  networks_iter (fun r -> 
+  networks_iter_all (fun r -> 
       List.iter (fun opfile ->
           Options.save_with_help opfile          
       ) r.network_config_file);

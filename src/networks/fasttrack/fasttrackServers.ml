@@ -50,11 +50,11 @@ let server_parse_after s gconn sock =
       match int_of_char b.buf.[b.pos] with
         0x50 ->
 (*          lprintf "We have got a ping\n"; *)
-          buf_used sock 1;
+          buf_used b 1;
           server_send_pong s
       | 0x52 ->
 (*          lprintf "We have got a pong\n"; *)
-          buf_used sock 1          
+          buf_used b 1          
       | 0x4b ->
 (*          lprintf "We have got a real packet\n"; *)
           begin
@@ -97,7 +97,7 @@ let server_parse_after s gconn sock =
                           (Int64.lognot (Int64.of_int (size + msg_type))) 
                         int64_ffffffff);
                       let m = String.sub b.buf (b.pos+5) size in
-                      buf_used sock (size + 5);
+                      buf_used b (size + 5);
                       FasttrackHandler.server_msg_handler sock s msg_type m
                     end (* else
                   lprintf "Waiting for remaining %d bytes\n"
@@ -146,7 +146,7 @@ let server_parse_netname s gconn sock =
       if buf.[pos] = '\000' then begin
           let netname = String.sub buf start_pos (pos-start_pos) in
 (*          lprintf "netname: [%s]\n" (String.escaped netname); *)
-          buf_used sock (pos-start_pos+1);
+          buf_used b (pos-start_pos+1);
           match s.server_ciphers with
             None -> assert false
           | Some ciphers ->
@@ -165,7 +165,7 @@ let server_parse_cipher s gconn sock =
       None -> assert false
     | Some ciphers ->
         cipher_packet_get b.buf b.pos ciphers.in_cipher ciphers.out_cipher;
-        buf_used sock 8;
+        buf_used b 8;
         server_crypt_and_send s ciphers.out_cipher (network_name ^ "\000");
         gconn.gconn_handler <- CipherReader (ciphers.in_cipher, server_parse_netname s);
         lprintf "waiting for netname\n"
@@ -183,7 +183,7 @@ let connect_server h =
   match s.server_sock with
     ConnectionWaiting -> ()
   | ConnectionAborted -> s.server_sock <- ConnectionWaiting
-  | Connection _ -> ()
+  | Connection _ | CompressedConnection _ -> ()
   | NoConnection -> 
       incr nservers;
       s.server_sock <- ConnectionWaiting;
@@ -193,7 +193,7 @@ let connect_server h =
             ConnectionAborted -> 
               s.server_sock <- NoConnection;
               free_ciphers s
-          | Connection _ | NoConnection -> ()
+          | Connection _ | CompressedConnection _ | NoConnection -> ()
           | ConnectionWaiting ->
               try
                 let ip = Ip.ip_of_addr h.host_addr in

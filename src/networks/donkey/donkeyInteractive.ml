@@ -804,16 +804,17 @@ let _ =
             
             );          
             P.file_priority = file_priority  file;
-            P.file_availability = String2.init file.file_nchunks (fun i ->
+            P.file_availability = [network.network_num, String2.init file.file_nchunks (fun i ->
 
 (* Could file.file_available_chunks.(i) be under 0 ? *)
                 let n = maxi 0 (mini file.file_available_chunks.(i) 127) in
                 char_of_int n 
-            );
+            )];
             P.file_format = file.file_format;
             P.file_chunks_age = file.file_chunks_age;
             P.file_age = file_age file;
             P.file_last_seen = file.file_file.impl_file_last_seen;
+            P.file_uids = [];
           } in
         v
       with e ->

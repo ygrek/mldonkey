@@ -29,6 +29,7 @@ open Gui_global
 open CommonTypes
 open GuiProto
 open GuiTypes
+open Gui_types
 open Gui_columns
 
 module M = Gui_messages

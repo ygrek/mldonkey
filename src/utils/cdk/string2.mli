@@ -98,3 +98,6 @@ val shorten : int -> string -> string
 (* [stem s] cuts the string [s] in small words, for indexation eg *)
 val stem : string -> string list
   
+val map : (char -> 'a) -> string -> 'a array
+val iteri: (int -> char -> unit) -> string -> unit
+  

@@ -189,13 +189,20 @@ let buf_create max =
 
 let error t = t.error
       
-let buf t = t.rbuf
-let sock t = t.sock
-  
-let closed t = closed t.sock
+let set_closer t f =
+  let old_handler = t.event_handler in
+  let handler t ev =
+(*    if t.monitored then (lprintf "set_closer handler\n"); *)
+    match ev with
+      BASIC_EVENT (CLOSED s) ->
+(*        lprintf "READ_DONE %d\n" nread; *)
+        f t s
+    |_ -> old_handler t ev
+  in
+  t.event_handler <- handler
+
       
-let buf_used t nused =
-  let b = t.rbuf in
+let buf_used b nused =
   if nused = b.len then
     ( b.len <- 0; 
       b.pos <- 0;
@@ -205,6 +212,28 @@ let buf_used t nused =
   else
     (b.len <- b.len - nused; b.pos <- b.pos + nused)
 
+let sock_used t nused = buf_used t.rbuf nused
+
+    
+let set_handler t event handler =
+  let old_handler = t.event_handler in
+  let handler t ev =
+(*    if t.monitored then (lprintf "set_handler handler\n"; ); *)
+    if ev = event then
+      handler t
+    else
+      old_handler t ev
+  in
+  t.event_handler <- handler
+
+let set_refill t f =
+  set_handler t CAN_REFILL f;
+  if t.wbuf.len = 0 then (try f t with _ -> ())
+
+let buf t = t.rbuf
+let sock t = t.sock
+  
+let closed t = closed t.sock
 
 let buf_add t b s pos1 len =
   let curpos = b.pos + b.len in
@@ -509,7 +538,7 @@ exception Http_proxy_error of string
 let http_proxy = ref None
 
 let set_reader t f =
-  lprintf "set_reader for %s\n" t.host;
+(*  lprintf "set_reader for %s\n" t.host; *)
   let old_handler = t.event_handler in
   let ff =
     if t.noproxy then
@@ -537,7 +566,7 @@ let set_reader t f =
               "200" -> (*lprintf "Connect to client via proxy ok\n";*)
                 let pos = String.index_from b.buf (rstr_end+1) '\n' in
                 let used = pos + 1 - b.pos in
-                buf_used sock used;
+                sock_used sock used;
                 if nread != used then
                   f sock (nread - used)
             | _ ->
@@ -559,19 +588,6 @@ let set_reader t f =
     | _ -> old_handler t ev
   in
   t.event_handler <- handler
-
-let set_closer t f =
-  let old_handler = t.event_handler in
-  let handler t ev =
-(*    if t.monitored then (lprintf "set_closer handler\n"); *)
-    match ev with
-      BASIC_EVENT (CLOSED s) ->
-(*        lprintf "READ_DONE %d\n" nread; *)
-        f t s
-    |_ -> old_handler t ev
-  in
-  t.event_handler <- handler
-
       
 let set_handler t event handler =
   let old_handler = t.event_handler in
@@ -727,7 +743,7 @@ let create_simple name fd =
   
 let connect name host port handler =
   try
-    lprintf "CONNECT %s:%d\n" (Unix.string_of_inet_addr host) port;
+(*    lprintf "CONNECT %s:%d\n" (Unix.string_of_inet_addr host) port; *)
     let s = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
     let proxy_ip, proxy_port =
       match !http_proxy with
@@ -964,7 +980,7 @@ let value_handler f sock nread =
         begin
           let s = String.sub b.buf (b.pos+5) msg_len in
           let t = Marshal.from_string  s 0 in
-          buf_used sock  (msg_len + 5);
+          buf_used b  (msg_len + 5);
           f t sock;
           ()
         end

@@ -67,6 +67,10 @@ let client_num c = client_num (as_client c)
 
   
 let network = new_network "BitTorrent"  
+    [ 
+    NetworkHasMultinet; 
+    NetworkHasUpload;
+  ]
     (fun _ -> !!network_options_prefix)
   (fun _ -> !!commit_in_subdir)
 (*  network_options_prefix commit_in_subdir *)

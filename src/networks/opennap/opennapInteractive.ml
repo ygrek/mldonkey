@@ -143,12 +143,13 @@ let _ =
         P.file_sources = None;
         P.file_download_rate = 0.0;
         P.file_chunks = "0";
-        P.file_availability = "0";
+        P.file_availability = [network.network_num, "0"];
         P.file_format = FormatUnknown;
         P.file_chunks_age = [|0 |];
         P.file_age = 0;
         P.file_last_seen = BasicSocket.last_time ();
         P.file_priority = file_priority (as_file file.file_file);
+        P.file_uids = [];
         }    
   )
   

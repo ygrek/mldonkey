@@ -51,7 +51,7 @@ let disconnect_client c reason =
     lprintf "CLIENT %d: disconnected\n" (client_num c);
   match c.client_sock with
     NoConnection | ConnectionWaiting | ConnectionAborted -> ()
-  | Connection sock -> 
+  | Connection sock | CompressedConnection (_,_,_,sock) -> 
       close sock reason;
       try
         List.iter (fun r -> Int64Swarmer.free_range r) c.client_ranges;
@@ -164,12 +164,12 @@ let rec client_parse_header counter cc init_sent gconn sock
           if !verbose_msg_clients then
             lprintf "Client was not connected !!!\n";
           c.client_sock <- Connection sock
-      | Connection s when s != sock -> 
+      | Connection s | CompressedConnection (_,_,_,s) when s != sock -> 
           if !verbose_msg_clients then 
             lprintf "CLIENT %d: IMMEDIATE RECONNECTION\n" (client_num c);
           disconnect_client c (Closed_for_error "Reconnected");
           c.client_sock <- Connection sock;
-      | Connection _ -> ()
+      | Connection _ | CompressedConnection _ -> ()
     );
     
     set_client_state (c) (Connected (-1));
@@ -492,7 +492,7 @@ and client_to_client c sock msg =
       
 let connect_client c =
   if (match c.client_sock with
-      | Connection sock -> 
+      | Connection sock | CompressedConnection (_,_,_,sock) -> 
           if closed sock then
             (
               lprintf "Sock is already closed\n";
@@ -839,7 +839,7 @@ let client_can_upload c allowed =
 (*  lprintf "allowed to upload %d\n" allowed; *)
   match c.client_sock with
     NoConnection | ConnectionWaiting | ConnectionAborted -> ()
-  | Connection sock ->
+  | Connection sock | CompressedConnection (_,_,_,sock) ->
       match c.client_upload_requests with
         [] -> ()
       | _ :: tail ->

@@ -85,9 +85,17 @@ let nb_sockets = ref 0
 
 let allow_read = ref true
 let allow_write = ref true
+
+external change_fd_event_setting : t -> unit = "ml_change_fd_event_setting"  "noalloc"
+external add_fd_to_event_set : t -> unit = "ml_add_fd_to_event_set"  "noalloc"
+external remove_fd_from_event_set : t -> unit = "ml_remove_fd_from_event_set"  "noalloc"
   
-let set_allow_read s ref = s.read_allowed <- ref
-let set_allow_write s ref = s.write_allowed <- ref
+let set_allow_read s ref = 
+  s.read_allowed <- ref;   
+  change_fd_event_setting s
+let set_allow_write s ref = 
+  s.write_allowed <- ref;
+  change_fd_event_setting s
   
 let minf (x: float) (y: float) =
   if x > y then y else x
@@ -104,17 +112,25 @@ let maxi (x: int) (y: int) =
 let infinite_timeout = 3600. *. 24. *. 365. (* one year ! *)
 
 let current_time = ref (Unix.gettimeofday ())
-
+let last_time = ref (int_of_float !current_time - 1000000000)
+  
 let update_time () =
   current_time := Unix.gettimeofday ();
+  last_time := (int_of_float !current_time - 1000000000);
   !current_time
-
-let last_time () = !current_time
 
 let fd t = t.fd
 
-let must_write t b  = t.want_to_write <- b
-let must_read t b  = t.want_to_read <- b
+let must_write t b  = 
+  if b <> t.want_to_write then begin
+    t.want_to_write <- b;
+    change_fd_event_setting t
+  end
+let must_read t b  = 
+  if b <> t.want_to_read then begin
+    t.want_to_read <- b;
+    change_fd_event_setting t
+  end
 
 (* let set_before_select t f = t.before_select <- f *)
     
@@ -189,13 +205,13 @@ let create_blocking name fd handler =
 (*
   if fdnum >= Unix32.fds_size then begin
       Unix.close fd;
-      lprintf "**** File descriptor above limit %d!!" fdnum; lprint_newline ();
+      lprintf "**** File descriptor above limit %d!!\n" fdnum; 
       failwith "File Descriptor removed";
     end;
 *)
   incr nb_sockets;
   MlUnix.set_nonblock fd;
-(*  lprintf "NEW FD %d" (Obj.magic fd); lprint_newline (); *)
+(*  lprintf "NEW FD %d\n" (Obj.magic fd); *)
   let _ = update_time () in
   let t = {
       fd = fd;
@@ -221,16 +237,17 @@ let create_blocking name fd handler =
       error = Closed_by_peer;
 (*      before_select = default_before_select; *)
       name = (fun _ -> name);
-      born = last_time();
+      born = !current_time;
       
       dump_info = dump_basic_socket;
       can_close = true;
     } in
-(*  lprintf "ADD ONE TASK"; lprint_newline (); *)
+(*  lprintf "ADD ONE TASK\n"; *)
   if !debug then begin
       lprintf "OPENING: %s" ( sprint_socket t);
     end;
   fd_tasks := t :: !fd_tasks; 
+  add_fd_to_event_set t;
   t
 
   
@@ -248,8 +265,11 @@ let rec iter_task old_tasks time =
   match old_tasks with
     [] -> ()
   | t :: old_tail ->
-(*      lprintf "NEXT TASK"; lprint_newline (); *)
-      if t.closed then iter_task old_tail time else
+(*      lprintf "NEXT TASK\n"; *)
+      if t.closed then begin
+          remove_fd_from_event_set t;
+          iter_task old_tail time 
+       end else
         begin
           fd_tasks := t :: !fd_tasks;
           
@@ -278,7 +298,7 @@ let rec iter_timer timers time =
           
 let add_timer delay f =
   timers := {
-    next_time = last_time () +. delay;
+    next_time = !current_time +. delay;
     time_handler = f;
     applied = false;
     delay = delay;
@@ -286,7 +306,7 @@ let add_timer delay f =
 
 let reactivate_timer t =
   if t.applied then begin
-      t.next_time <- last_time () +. t.delay;
+      t.next_time <- !current_time +. t.delay;
       t.applied <- false;
     end
 
@@ -373,37 +393,36 @@ let loop () =
             (try t.event_handler t (CLOSED t.error) with _ -> ());
       done;
       
-(*      lprintf "before iter_timer"; lprint_newline (); *)
+(*      lprintf "before iter_timer\n"; *)
       let time = update_time () in
       timeout := infinite_timeout;
       timers := iter_timer !timers time;
-(*      lprintf "before iter_task"; lprint_newline ();*)
+(*      lprintf "before iter_task\n"; *)
       
       let old_tasks = !fd_tasks in
       fd_tasks := [];
       iter_task old_tasks time;
 
-(*      lprintf "timeout %f" !timeout; lprint_newline (); *)
+(*      lprintf "timeout %f\n" !timeout; *)
       
       if !timeout < 0.01 then timeout := 0.01;
 (*      
-      lprintf "TASKS: %d" (List.length !tasks); lprint_newline ();
-      lprintf "TIMEOUT: %f" !timeout; lprint_newline ();
+      lprintf "TASKS: %d\n" (List.length !tasks); 
+      lprintf "TIMEOUT: %f\n" !timeout; 
 timeout := 5.;
 *)
       exec_hooks !before_select_hooks;
-(*      lprintf "Tasks %d" (List.length !fd_tasks); lprint_newline ();*)
+(*      lprintf "Tasks %d\n" (List.length !fd_tasks); *)
       select !fd_tasks !timeout; 
     with e ->
-        lprintf "Exception %s in Select.loop" (Printexc2.to_string e);
-        lprint_newline ();
+        lprintf "Exception %s in Select.loop\n" (Printexc2.to_string e);
   done
   
   
   
 let shutdown t s =
   if t.fd <> dummy_fd then begin
-(*      lprintf "SHUTDOWN"; lprint_newline (); *)
+(*      lprintf "SHUTDOWN\n";  *)
       (try Unix.shutdown t.fd Unix.SHUTDOWN_ALL with _ -> ());
       close t s
     end
@@ -425,13 +444,13 @@ let stats buf t =
 let print_socket buf s =
   print_socket buf s;
   Printf.bprintf buf "  rtimeout %5.0f/%5.0f read %s & %s write %s & %s (born %f)\n" 
-    (s.next_rtimeout -. last_time ())
+    (s.next_rtimeout -. !current_time)
   s.rtimeout
     (string_of_bool s.want_to_read)
   (string_of_bool !(s.read_allowed))
   (string_of_bool s.want_to_write)
   (string_of_bool !(s.write_allowed))
-  (last_time () -. s.born)
+  (!current_time -. s.born)
   
 let print_sockets buf =
   Printf.bprintf buf "PRINT SOCKETS: %d\n" (List.length !fd_tasks);
@@ -446,8 +465,7 @@ let _ =
       if !debug then
         let buf = Buffer.create 100 in        
         print_sockets buf;
-        lprintf "%s" (Buffer.contents buf);
-        lprint_newline ();
+        lprintf "%s\n" (Buffer.contents buf);
         )
   
 let set_printer s f =
@@ -475,7 +493,7 @@ let close_all () =
   
 (*  external setsock_iptos_throughput: Unix.file_descr -> int = "setsock_iptos_throughput" *)
   
-let last_time () = int_of_float !current_time - 1000000000
+let last_time () = !last_time
 let start_time = last_time ()
 let date_of_int date = 
   float_of_int (if date >= 1000000000 then date else date + 1000000000)
@@ -492,3 +510,14 @@ let get_rtimeout t = t.rtimeout, t.next_rtimeout -. !current_time
 let int64_time () = Int64.of_float !current_time
 let int32_time () = Int32.of_float !current_time
   
+let string_of_reason c =
+  match c with
+    Closed_for_timeout -> "timeout"
+  | Closed_for_lifetime -> "lifetime"
+  | Closed_by_peer -> "peer"
+  | Closed_for_error error -> Printf.sprintf "error %s" error
+  | Closed_by_user -> "user"
+  | Closed_for_overflow -> "overflow"
+  | Closed_connect_failed -> "connect failed"
+  | Closed_for_exception e -> Printf.sprintf "exception %s"
+        (Printexc2.to_string e)

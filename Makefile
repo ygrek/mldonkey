@@ -146,7 +146,7 @@ LIB_SRCS=   \
   $(LIB)/indexer.ml $(LIB)/indexer1.ml $(LIB)/indexer2.ml $(LIB)/host.ml  \
   $(LIB)/misc.ml $(LIB)/unix32.ml  $(LIB)/md4.ml \
   $(LIB)/avifile.ml $(LIB)/http_lexer.mll $(LIB)/url.ml \
-  $(LIB)/date.ml \
+  $(LIB)/date.ml  $(LIB)/fst_hash.c \
   $(LIB)/md4_comp.c $(LIB)/md4_c.c \
   $(LIB)/gettext.ml $(LIB)/md5_c.c $(LIB)/sha1_c.c \
   $(LIB)/tiger.c \
@@ -160,6 +160,7 @@ NET_SRCS = \
   $(NET)/tcpServerSocket.ml \
   $(NET)/udpSocket.ml $(NET)/http_server.ml $(NET)/http_client.ml \
   $(NET)/multicast.ml $(NET)/multicast_c.c  \
+  $(NET)/cobs.ml \
   $(NET)/terminal.ml
 
 #  $(NET)/tcpClientSocket.ml 
@@ -180,6 +181,10 @@ COMMON_SRCS=$(COMMON)/commonTypes.ml \
   $(COMMON)/commonGlobals.ml \
   $(COMMON)/guiDecoding.ml \
   $(COMMON)/guiEncoding.ml \
+  $(COMMON)/giftLexer.mll \
+  $(COMMON)/giftParser.mly \
+  $(COMMON)/giftEncoding.ml \
+  $(COMMON)/giftDecoding.ml \
   $(COMMON)/commonChat.ml \
   $(COMMON)/commonHasher.ml \
   $(COMMON)/commonHasher_c.c
@@ -313,7 +318,6 @@ OPENNAP_SRCS= \
  $(SRC_OPENNAP)/opennapMain.ml 
 
 GNUTELLA_SRCS= \
-  $(SRC_GNUTELLA)/cobs.ml \
   $(SRC_GNUTELLA)/gnutellaTypes.ml \
   $(SRC_GNUTELLA)/gnutellaOptions.ml \
   $(SRC_GNUTELLA)/gnutellaGlobals.ml \
@@ -360,6 +364,7 @@ FASTTRACK_SRCS= \
   $(SRC_FASTTRACK)/enc_type_1.c \
   $(SRC_FASTTRACK)/enc_type_2.c \
   $(SRC_FASTTRACK)/enc_type_20.c \
+  $(SRC_FASTTRACK)/enc_type_80.c \
   $(SRC_FASTTRACK)/fst_crypt.c \
   $(SRC_FASTTRACK)/fst_crypt_ml.c \
   $(SRC_FASTTRACK)/fasttrackTypes.ml \
@@ -658,6 +663,7 @@ GUI_BASE_SRCS= \
   $(ALL_ICONS_SRCS) $(SRC_GUI)/gui_options.ml 
 
 NEWGUI_SRCS=  \
+  $(SRC_GUI)/gui_types.ml \
   $(SRC_GUI)/gui_misc.ml \
   $(SRC_GUI)/gui_com.ml \
   $(SRC_GUI)/gui_graph_base.ml $(SRC_GUI)/gui_graph.ml \

@@ -205,7 +205,7 @@ let rec client_parse_header c gconn sock header =
             raise e
       with e -> 
           try
-            if code <> 206 then raise Not_found;
+            if code <> 206 && code <> 200 then raise Not_found;
             let (len,_) = List.assoc "content-length" headers in
             let len = Int64.of_string len in
             lprintf "Specified length: %Ld\n" len;
@@ -313,7 +313,7 @@ end_pos !counter_pos b.len to_read;
 lprintf "READ %Ld\n" (new_downloaded -- old_downloaded);
 lprintf "READ: buf_used %d\n" to_read_int;
   *)
-        TcpBufferedSocket.buf_used sock to_read_int;
+        TcpBufferedSocket.buf_used b to_read_int;
         counter_pos := !counter_pos ++ to_read;
         if !counter_pos = end_pos then begin
             match d.download_ranges with
@@ -406,11 +406,17 @@ and get_from_client sock (c: client) =
                   raise Not_found
             in
             let buf = Buffer.create 100 in
+            let url = Printf.sprintf 
+               "/.hash=%s" (Md5Ext.to_hexa_case false file.file_hash) in 
+ 
+             Printf.bprintf buf "GET %s HTTP/1.0\r\n" url;
+
+            (*
             (match d.download_uri with
                 FileByUrl url -> Printf.bprintf buf "GET %s HTTP/1.0\r\n" url
               | FileByIndex (index, name) -> 
                   Printf.bprintf buf "GET /get/%d/%s HTTP/1.1\r\n" index
-                    name);
+                    name); *)
             (match c.client_host with
                 None -> ()
               | Some (ip, port) ->
@@ -441,7 +447,7 @@ let init_client sock =
   
 let connect_client c =
   match c.client_sock with
-  | Connection sock -> ()
+  | Connection sock | CompressedConnection (_,_,_,sock) -> ()
   | ConnectionWaiting -> ()
   | ConnectionAborted -> c.client_sock <- ConnectionWaiting;
   | NoConnection ->

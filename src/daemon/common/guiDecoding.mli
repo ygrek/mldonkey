@@ -18,7 +18,12 @@
 *)
 
 
-val to_gui : int -> int -> string -> GuiProto.to_gui
-val from_gui : int -> int -> string -> GuiProto.from_gui
+
+val to_gui : int array -> int -> string -> GuiProto.to_gui
+val from_gui : int array -> int -> string -> GuiProto.from_gui
   
 val gui_cut_messages : (int -> string -> unit) -> TcpBufferedSocket.t -> 'a -> unit
+  
+val to_gui_last_opcode : int
+val from_gui_last_opcode : int
+  

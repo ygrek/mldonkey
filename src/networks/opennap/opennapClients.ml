@@ -145,7 +145,7 @@ let read_stream c file sock b =
       lprintf "NEW SOURCE POS %s" (Int64.to_string c.source_pos);
 lprint_newline ();
   *)
-    TcpBufferedSocket.buf_used sock b.len;
+    TcpBufferedSocket.buf_used b b.len;
     if c.client_pos > file_downloaded file then begin
         add_file_downloaded file.file_file
         (Int64.sub c.client_pos (file_downloaded file))
@@ -166,7 +166,7 @@ let client_reader c =
               
 (*              lprintf "1 RECEIVED"; lprint_newline (); *)
               state := 1;
-              buf_used sock 1;            
+              buf_used b 1;            
               write_string sock "GET";
               match c.client_files with
                 (file, filename) :: _ ->
@@ -207,7 +207,7 @@ let client_reader c =
           if pos_end >= 0 then
             let len = pos_end - b.pos in
             let size = String.sub b.buf b.pos len in
-            buf_used sock len;            
+            buf_used b len;            
 (*            lprintf "SIZE READ : [%s]" size; lprint_newline ();*)
             let total_size = Int64.of_string size in
             state := 2;
@@ -246,7 +246,7 @@ let client_reader2 c sock nread =
             lprintf "FROM [%s] FILE [%s] SIZE [%s]" nick file_name size;
             lprint_newline (); 
           
-          buf_used sock b.len;
+          buf_used b b.len;
           
           let file_name = OpennapGlobals.basename file_name in
           let file = OpennapGlobals.find_file 

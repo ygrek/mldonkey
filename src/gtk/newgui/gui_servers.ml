@@ -26,6 +26,7 @@ open Gettext
 open CommonGlobals
 open CommonTypes
 open GuiTypes
+open Gui_types
 open Gui_columns
 open Gui_global
   

@@ -30,6 +30,7 @@ open Gettext
 open Gui_global
 open CommonTypes
 open GuiTypes
+open Gui_types
 open GuiProto
 open Gui_columns
 
@@ -206,26 +207,30 @@ let string_of_file_state f =
       
       
 let some_is_available f =
-  if !!Gui_options.use_relative_availability
-  then
-    let rec loop i =
-      if i < 0
-      then false
+  match f.data.gfile_availability with
+    (_,avail) :: _ ->
+      
+      if !!Gui_options.use_relative_availability
+      then
+        let rec loop i =
+          if i < 0
+          then false
+          else
+          if CommonGlobals.partial_chunk f.data.gfile_chunks.[i] &&
+            avail.[i] <> (char_of_int 0)
+          then true
+          else loop (i - 1)
+        in
+        loop ((String.length avail) - 1)
       else
-      if CommonGlobals.partial_chunk f.data.gfile_chunks.[i] &&
-	  f.data.gfile_availability.[i] <> (char_of_int 0)
-	then true
-	else loop (i - 1)
-    in
-      loop ((String.length f.data.gfile_availability) - 1)
-  else
-    let b = ref false in
-    let len = String.length f.data.gfile_availability in
+      let b = ref false in
+      let len = String.length avail in
       for i = 0 to len - 1 do
-	b := !b or int_of_char f.data.gfile_availability.[i] <> 0
+        b := !b or int_of_char avail.[i] <> 0
       done;
       !b
-
+  | _ -> false
+      
 let color_opt_of_file f =
   if f.data.gfile_download_rate > 0. then
     Some !!O.color_downloading
@@ -239,33 +244,41 @@ let float_avail s =
   with _ -> 0.0
 
 let file_availability f =
-  let rec loop i p n =
-    if i < 0
-    then
-      if n = 0.0
-      then "---"
-      else Printf.sprintf "%5.1f" (p /. n *. 100.0)
-    else
-      if CommonGlobals.partial_chunk f.data.gfile_chunks.[i]
-      then
-	if f.data.gfile_availability.[i] <> (char_of_int 0)
-	then loop (i - 1) (p +. 1.0) (n +. 1.0)
-	else loop (i - 1) p (n +. 1.0)
-      else loop (i - 1) p n
-  in
-    loop ((String.length f.data.gfile_availability) - 1) 0.0 0.0
-
+  match f.data.gfile_availability with
+    (_,avail) :: _ ->
+      
+      let rec loop i p n =
+        if i < 0
+        then
+          if n = 0.0
+          then "---"
+          else Printf.sprintf "%5.1f" (p /. n *. 100.0)
+        else
+        if CommonGlobals.partial_chunk f.data.gfile_chunks.[i]
+        then
+          if avail.[i] <> (char_of_int 0)
+          then loop (i - 1) (p +. 1.0) (n +. 1.0)
+          else loop (i - 1) p (n +. 1.0)
+        else loop (i - 1) p n
+      in
+      loop ((String.length avail) - 1) 0.0 0.0
+  | _ -> "---"
+      
 let string_availability s =
-  let len = String.length s in
-  let p = ref 0 in
-  for i = 0 to len - 1 do
-    if s.[i] <> '0' then begin
-      incr p
-    end
-  done;
-  if len = 0 then "" else 
-  Printf.sprintf "%5.1f" (float_of_int !p /. float_of_int len *. 100.)
-
+  match s with
+    (_,s) :: _ ->
+      
+      let len = String.length s in
+      let p = ref 0 in
+      for i = 0 to len - 1 do
+        if s.[i] <> '0' then begin
+            incr p
+          end
+      done;
+      if len = 0 then "" else 
+        Printf.sprintf "%5.1f" (float_of_int !p /. float_of_int len *. 100.)
+  | _ -> ""
+      
 let string_of_format format =
   match format with
     AVI f ->
@@ -637,42 +650,47 @@ let _ =
 let get_avail_pixmap avail chunks is_file =
   let (width, height) = (!the_col_width - 3, 16) in (* clist height has previously been fixed *)
   let pixmap = GDraw.pixmap ~width:width ~height:height
-                 ~colormap:(Gdk.Color.get_system_colormap ()) ()
+      ~colormap:(Gdk.Color.get_system_colormap ()) ()
   in
   let nchunks = String.length chunks in
-  try begin
-    for i = 0 to (width - 1) do
-      let ind = i * (nchunks - 1) / (width - 1) in
+  try 
+    match avail with
+      (_,avail) :: _ ->
+        
+        
         begin
-          if is_file then
-            if chunks.[ind] >= '2'
-              then pixmap#put_pixmap
-                ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
-                color_green#pixmap
-            else
+          for i = 0 to (width - 1) do
+            let ind = i * (nchunks - 1) / (width - 1) in
+            begin
+              if is_file then
+                if chunks.[ind] >= '2'
+                then pixmap#put_pixmap
+                    ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
+                    color_green#pixmap
+                else
                 let h = int_of_char (avail.[ind]) in
-            if h = 0
-                  then if chunks.[ind] = '0' then
-                         pixmap#put_pixmap
-                           ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
-                           color_red#pixmap
+                if h = 0
+                then if chunks.[ind] = '0' then
+                    pixmap#put_pixmap
+                      ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
+                      color_red#pixmap
                   else
-                         pixmap#put_pixmap
-                           ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
-                           color_orange#pixmap
-            else begin
+                    pixmap#put_pixmap
+                      ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
+                      color_orange#pixmap
+                else begin
                     let h = if h >= !!O.availability_max then
-                              0
-                              else (!!O.availability_max - h)
-        in
+                        0
+                      else (!!O.availability_max - h)
+                    in
                     let color_blue = !color_blue_relative.(h) in
                     pixmap#put_pixmap
                       ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
                       color_blue#pixmap
-            end
-          else
-            if avail.[ind] >= '1'
-          then
+                  end
+              else
+              if avail.[ind] >= '1'
+              then
                 if chunks.[ind] >= '2' then
                   pixmap#put_pixmap
                     ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
@@ -682,19 +700,19 @@ let get_avail_pixmap avail chunks is_file =
                     ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
                     color_green#pixmap
               else
-                if chunks.[ind] > '2' then
-                  pixmap#put_pixmap
-                    ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
-                    color_orange#pixmap
-                  else
-                  pixmap#put_pixmap
-                    ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
-                    color_red#pixmap
+              if chunks.[ind] > '2' then
+                pixmap#put_pixmap
+                  ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
+                  color_orange#pixmap
+              else
+                pixmap#put_pixmap
+                  ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
+                  color_red#pixmap
             end
-    done;
-    pixmap
-          end
-
+          done;
+          pixmap
+        end
+    | _ -> raise Not_found  
   with _ ->
       begin
         for i = 0 to (width - 1) do
@@ -704,7 +722,7 @@ let get_avail_pixmap avail chunks is_file =
         done;
         pixmap
       end
-
+      
 class box_downloads wl_status () =
 
   let label_file_info = GMisc.label () in
@@ -813,7 +831,7 @@ class box_downloads wl_status () =
         child.data.gfile_avail_pixmap <- None;
       ) file.children
 
-    method expand_file (c_list : int * (GuiTypes.gui_client_info list)) =
+    method expand_file (c_list : int * (gui_client_info list)) =
       (* Printf.printf "Gui_downloads Received Clients : %d\n" (List.length (snd c_list));
       flush stdout; *)
       let file_num = fst c_list in
@@ -1128,12 +1146,12 @@ class box_downloads wl_status () =
         fi.children <-
             (match fi.children with
                 [] ->
-                   self#make_child fi client_num avail
+                   self#make_child fi client_num [0,avail]
               | l ->
                    let length = List.length l in
                    let rec iter i n =
                       if i = n then
-                        l@(self#make_child fi client_num avail)
+                        l@(self#make_child fi client_num [0,avail])
                         else
                           begin
                             let child = List.nth l i in
@@ -1143,7 +1161,7 @@ class box_downloads wl_status () =
                                 let c_array = Array.of_list l in
                                 Array.blit c_array (i + 1) c_array i (length - i - 1);
                                 let new_l = Array.to_list (Array.sub c_array 0 (length - 1)) in
-                                new_l@(self#make_child fi client_num avail)
+                                new_l@(self#make_child fi client_num [0,avail])
                               end
                               else iter (i + 1) n
                           end
@@ -1178,12 +1196,12 @@ class box_downloads wl_status () =
         fi.children <-
             (match fi.children with
                 [] ->
-                   self#make_child fi src ""
+                   self#make_child fi src [0,""]
               | l ->
                    let length = List.length l in
                    let rec iter i n =
                       if i = n then
-                        l@(self#make_child fi src "")
+                        l@(self#make_child fi src [0,""])
                         else
                           begin
                             let child = List.nth l i in

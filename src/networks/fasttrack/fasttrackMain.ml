@@ -131,10 +131,12 @@ let _ =
         network_netnum = network.network_num;
         network_config_filename = (match network.network_config_file with
             [] -> "" | opfile :: _ -> options_file_name opfile);
+        network_netflags = network.network_flags;
         network_netname = network.network_name;
         network_enabled = network.op_network_is_enabled ();
         network_uploaded = Int64.zero;
         network_downloaded = Int64.zero;
+        network_connected = List.length !connected_servers;
       });
   CommonInteractive.register_gui_options_panel "Fasttrack" 
   gui_fasttrack_options_panel

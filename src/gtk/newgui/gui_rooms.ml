@@ -24,6 +24,7 @@ open Options
 open Gettext
 open CommonTypes
 open GuiTypes
+open Gui_types
 open Gui_columns
 
 module M = Gui_messages
@@ -56,7 +57,7 @@ class rooms_box columns () =
   
   let titles = List.map Gui_columns.Room.string_of_column !!columns in 
   object (self)
-    inherit [GuiTypes.gui_room_info] Gpattern.filtered_plist `SINGLE titles true
+    inherit [Gui_types.gui_room_info] Gpattern.filtered_plist `SINGLE titles true
     (fun r -> r.groom_num) as pl
       inherit Gui_users_base.box () as box
     

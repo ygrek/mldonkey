@@ -144,7 +144,7 @@ let value_reader gui t =
         lprintf "MESSAGE RECEIVED: %s" 
           (string_of_to_gui t);
         lprint_newline ();
-        
+      
       end;
     
     
@@ -160,74 +160,80 @@ let value_reader gui t =
             begin
               try
                 let nn = Hashtbl.find Gui_global.networks n.network_netnum in
-            nn.net_enabled <- n.network_enabled;
-                (* Printf.printf "Gui_main net exist %d : %s : %b\n" nn.net_num nn.net_name nn.net_enabled;
+                nn.net_enabled <- n.network_enabled;
+(* Printf.printf "Gui_main net exist %d : %s : %b\n" nn.net_num nn.net_name nn.net_enabled;
                 flush stdout; *)
                 Gui_networks.fill_box box i nn.net_enabled nn.net_displayed true;
                 gui#tab_queries#update_wcombos
-          with _ ->
-              let nn = {
-                  net_num = n.network_netnum;
-                  net_name = n.network_netname;
-                  net_enabled = n.network_enabled;
-                  net_displayed = true;
-                } in
-                (* Printf.printf "Gui_main net new %d : %s : %b\n" nn.net_num nn.net_name nn.net_enabled;
+              with _ ->
+                  let nn = {
+                      net_num = n.network_netnum;
+                      net_name = n.network_netname;
+                      net_enabled = n.network_enabled;
+                      net_displayed = true;
+                    } in
+(* Printf.printf "Gui_main net new %d : %s : %b\n" nn.net_num nn.net_name nn.net_enabled;
                 flush stdout;*)
-                Gui_networks.fill_box box i nn.net_enabled nn.net_displayed true;
-                ignore (box#wtog_net#connect#toggled ~callback:(fun _ ->
-                    (* nn.net_enabled <- not nn.net_enabled; *) (* Not necessary - wait for the core answer instead *)
-                    (* Printf.printf "Gui_main callback wtog %d : %s : %b - wtog state %b\n"
+                  Gui_networks.fill_box box i nn.net_enabled nn.net_displayed true;
+                  ignore (box#wtog_net#connect#toggled ~callback:(fun _ ->
+(* nn.net_enabled <- not nn.net_enabled; *) (* Not necessary - wait for the core answer instead *)
+(* Printf.printf "Gui_main callback wtog %d : %s : %b - wtog state %b\n"
                       nn.net_num nn.net_name nn.net_enabled box#wtog_net#active;
                     flush stdout;*)
-                    Com.send (EnableNetwork (nn.net_num,
-                        box#wtog_net#active)
-                    )));
-                ignore (box#wchk_net#connect#toggled ~callback:(fun _ ->
-                    nn.net_displayed <- not nn.net_displayed;
-                    networks_filtered := (if nn.net_displayed then
-                        List2.removeq nn.net_num !networks_filtered
-                      else nn.net_num :: !networks_filtered);
-                    (* Printf.printf "Gui_main callback wcheck %d : %s : %b\n" nn.net_num nn.net_name nn.net_displayed;
+                        Com.send (EnableNetwork (nn.net_num,
+                            box#wtog_net#active)
+                        )));
+                  ignore (box#wchk_net#connect#toggled ~callback:(fun _ ->
+                        nn.net_displayed <- not nn.net_displayed;
+                        networks_filtered := (if nn.net_displayed then
+                            List2.removeq nn.net_num !networks_filtered
+                          else nn.net_num :: !networks_filtered);
+(* Printf.printf "Gui_main callback wcheck %d : %s : %b\n" nn.net_num nn.net_name nn.net_displayed;
                     flush stdout;*)
-                    gui#tab_servers#h_server_filter_networks;
-                    gui#tab_queries#h_search_filter_networks;
-                    Gui_networks.fill_box box i nn.net_enabled nn.net_displayed true
-                ));
-              Hashtbl.add Gui_global.networks n.network_netnum nn;
-                gui#tab_queries#update_wcombos;
-              ()
+                        gui#tab_servers#h_server_filter_networks;
+                        gui#tab_queries#h_search_filter_networks;
+                        Gui_networks.fill_box box i nn.net_enabled nn.net_displayed true
+                    ));
+                  Hashtbl.add Gui_global.networks n.network_netnum nn;
+                  gui#tab_queries#update_wcombos;
+                  ()
+            end
+          
+          with _ -> ()
+        
         end
     
-          with _ -> ()
-
-        end
-
     | Client_stats s ->
         gui#tab_uploads#wl_status#set_text
           (Printf.sprintf "Shared: %5d/%-12s   U/D bytes/s: %7d[%5d]/%-7d[%5d]" 
             s.nshared_files 
             (Gui_misc.size_of_int64 s.upload_counter)
           (s.tcp_upload_rate + s.udp_upload_rate) s.udp_upload_rate
-          (s.tcp_download_rate + s.udp_download_rate) s.udp_download_rate
+            (s.tcp_download_rate + s.udp_download_rate) s.udp_download_rate
         );
         gui#tab_graph#set_upload_rate (s.tcp_upload_rate + s.udp_upload_rate);
         gui#tab_graph#set_download_rate (s.tcp_download_rate + s.udp_download_rate)
     
     | CoreProtocol v -> 
-        Gui_com.gui_protocol_used := min v GuiEncoding.best_gui_version;
-        lprintf "Using protocol %d for communications" !Gui_com.gui_protocol_used;
-        lprint_newline ();
+        
+        
+        let version = min v GuiEncoding.best_gui_version in
+        for i = 0 to GuiDecoding.to_gui_last_opcode do
+          Gui_com.to_gui_protocol_used.(i) <- version;
+        done;
+        for i = 0 to GuiDecoding.from_gui_last_opcode do
+          Gui_com.from_gui_protocol_used.(i) <- version;
+        done;
+        lprintf "Using protocol %d for communications\n" version;
         gui#label_connect_status#set_text (gettext M.connected);
         Com.send (Password (!!O.login, !!O.password))
     
-    | Search_result (num,r) -> 
+    | Search_result (num,r,_) -> 
         begin try
             let r = Hashtbl.find G.results r in
             gui#tab_queries#h_search_result num r
           with _ -> 
-              lprintf "Exception in Search_result %d %d" num r;
-              lprint_newline ();
+              lprintf "Exception in Search_result %d %d\n" num r;
         end
     
     | Search_waiting (num,waiting) -> 
@@ -307,49 +313,58 @@ let value_reader gui t =
     
     | Options_info list ->
 (*        lprintf "Options_info"; lprint_newline ();*)
+        let module M = Options in
         let rec iter list =
           match list with
             [] -> ()
-          | (name, value) :: tail ->
+          | o :: tail ->
               (
                 try
                   let reference = 
-                    List.assoc name Gui_options.client_options_assocs 
+                    List.assoc o.M.option_name Gui_options.client_options_assocs 
                   in                  
-                  reference := value;
-                  Gui_config.add_option_value name reference
+                  reference := o.M.option_value;
+                  Gui_config.add_option_value o.M.option_name reference
                 with _ -> 
-                    Gui_config.add_option_value name (ref value)
+                    Gui_config.add_option_value o.M.option_name (ref o.M.option_value)
               );
               iter tail
         in
         iter list
-    
-    | Add_section_option (section, message, option, optype) ->
-        let line = message, optype, option in
+        
+    | Add_section_option (section, o) ->
+        let optype = match o.option_type with
+            "Bool" -> BoolEntry
+          | "Filename" -> FileEntry
+          | _ -> StringEntry in
+        let line = o.option_desc, optype, o.option_name in
         (try
             let options = List.assoc section !client_sections in
             if not (List.mem line !options) then
               options := !options @ [line]
-        with _ ->
-            client_sections := !client_sections  @[section, ref [line]]
+          with _ ->
+              client_sections := !client_sections  @[section, ref [line]]
         )          
     
-    | Add_plugin_option (section, message, option, optype) ->
-        let line = message, optype, option in
+    | Add_plugin_option (section, o) ->
+        let optype = match o.option_type with
+            "Bool" -> BoolEntry
+          | "Filename" -> FileEntry
+          | _ -> StringEntry in
+        let line = o.option_desc, optype, o.option_name in
         (try
             let options = List.assoc section !plugins_sections in
             if not (List.mem line !options) then
               options := !options @ [line]
-        with _ ->
-            plugins_sections := !plugins_sections  @[section, ref [line]]
+          with _ ->
+              plugins_sections := !plugins_sections  @[section, ref [line]]
         )          
-        
+    
     | DefineSearches l ->
         gui#tab_queries#h_define_searches l
     
     | Client_state (num, state) ->
-      (* lprintf "Client_state" ; lprint_newline (); *)
+(* lprintf "Client_state" ; lprint_newline (); *)
         gui#tab_friends#h_update_friend_state (num , state);
         gui#tab_uploads#h_update_client_state (num , state);
         gui#tab_downloads#h_update_client_state (num , state)
@@ -368,7 +383,7 @@ let value_reader gui t =
 (* Here, the dirname is forgotten: it should be used to build a tree
   when possible... *)
         gui#tab_friends#h_add_friend_files (num , dirname, file_num)
-
+    
     | Client_info c -> 
 (*        lprintf "Client_info"; lprint_newline (); *)
         gui#tab_friends#h_update_friend c;
@@ -394,18 +409,18 @@ fichier selectionne. Si ca marche toujours dans ton interface, pas de
                     MyCList.update clist_file_locations c.client_num c
         end
 *)
-
-
+    
+    
     | Room_message (_, PrivateMessage(num, mes) )
     | Room_message (0, PublicMessage(num, mes) )
     | MessageFromClient (num, mes) ->
-	(
-	 try
-           let box_uploaders = gui#tab_uploads#box_uploaders in
-           let (row , c ) = box_uploaders#find_client num in
-	   let d = gui#tab_friends#get_dialog c in
-	   d#handle_message mes
-	 with
+        (
+          try
+            let box_uploaders = gui#tab_uploads#box_uploaders in
+            let (row , c ) = box_uploaders#find_client num in
+            let d = gui#tab_friends#get_dialog c in
+            d#handle_message mes
+          with
             Not_found ->
               try
                 match t with
@@ -416,7 +431,7 @@ fichier selectionne. Si ca marche toujours dans ton interface, pas de
                   lprintf "Client %d not found in reader.MessageFromClient" num;
                   lprint_newline ()
         )    
-        
+    
     | Room_message (num, msg) ->
         begin try
             gui#tab_rooms#add_room_message num msg
@@ -424,24 +439,28 @@ fichier selectionne. Si ca marche toujours dans ton interface, pas de
               lprintf "Exception in Room_message %d" num;
               lprint_newline ();
         end
-
+    
     | (DownloadedFiles _|DownloadFiles _|ConnectedServers _) -> assert false
-
+    
     | Shared_file_info si ->
         gui#tab_uploads#h_shared_file_info si
-
+    
     | CleanTables (clients, servers) ->
         gui#tab_servers#clean_table servers;
         gui#tab_downloads#clean_table clients;
         gui#tab_uploads#clean_table clients
-        
+    
     | Shared_file_upload (num,size,requests) ->
         gui#tab_uploads#h_shared_file_upload num size requests
     | Shared_file_unshared _ ->  ()
     | BadPassword -> 
         GToolbox.message_box ~title: "Bad Password" 
-        "Authorization Failed\nPlease, open the File->Settings menu and
+          "Authorization Failed\nPlease, open the File->Settings menu and
           enter a valid password"
+    
+    | GiftServerAttach _
+    | GiftServerStats _ -> assert false
+        
   with e ->
       lprintf "Exception %s in reader" (Printexc2.to_string e);
       lprint_newline ()

@@ -33,10 +33,8 @@ val gui_file_change_hook :
   DonkeyTypes.file -> DonkeyTypes.gui_record -> unit
 *)
 
-  val gui_handler : 'a -> TcpServerSocket.event -> unit
-  
+val gui_handler : 'a -> TcpServerSocket.event -> unit
 val update_gui_info : unit -> unit
-
 val install_hooks : unit -> unit
-
 val restart_gui_server : (unit -> unit) ref
+val gift_handler : 'a -> TcpServerSocket.event -> unit

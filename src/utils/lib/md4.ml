@@ -175,14 +175,78 @@ module Base32 = struct
       r
       
   end
+
+module Base6427 = struct  
+    let base64tbl = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+    
+    let _ = assert (String.length base64tbl = 64)
+    
+    let to_string _ hashbin =
+      let hash64 = String.create 30 in
+      let hashbin n = int_of_char hashbin.[n] in
+      hash64.[0] <- '=';
+      let j = ref 1 in
+      for i = 0 to 6 do
+        let tmp = if i < 6 then
+            ((hashbin (3*i)) lsl 16) lor ((hashbin(3*i+1)) lsl 8) 
+            lor (hashbin (3*i+2))
+          else
+            ((hashbin(3*i)) lsl 16) lor ((hashbin(3*i+1)) lsl 8)
+        in
+        for k = 0 to 3 do
+          hash64.[!j] <- base64tbl.[(tmp lsr ((3- k)*6)) land 0x3f];
+          incr j
+        done
+      done;
+      hash64.[!j-1] <- '=';
+      String.sub hash64 0 !j
+    
+    let base64tbl_inv = String.create 126
+    let _ = 
+      for i = 0 to 63 do
+        base64tbl_inv.[int_of_char base64tbl.[i]] <- char_of_int i
+      done
+    
+    let of_string _ hash64 =
+      let hashbin = String.make 20 '\000' in
+      let hash64 n = 
+        let c = hash64.[n] in
+        int_of_char base64tbl_inv.[int_of_char c]
+      in
+      let j = ref 0 in
+      for i = 0 to 6 do
+        if i < 6 then
+          let tmp = ref 0 in
+          for k = 0 to 3 do
+            tmp := (!tmp lsl 6) lor (hash64 (i*4+k+1))
+          done;
+          hashbin.[!j] <- char_of_int ((!tmp lsr 16) land 0xff);
+          hashbin.[!j+1] <- char_of_int ((!tmp lsr  8) land 0xff);
+          hashbin.[!j+2] <- char_of_int ((!tmp lsr  0) land 0xff);
+          j := !j + 3;
+        else
+        let tmp = ref 0 in
+        for k = 0 to 2 do
+          tmp := (!tmp lsl 6) lor (hash64 (i*4+k+1))
+        done;
+        tmp := (!tmp lsl 6);
+        hashbin.[!j] <- char_of_int ((!tmp lsr 16) land 0xff);
+        hashbin.[!j+1] <- char_of_int ((!tmp lsr  8) land 0xff);
+        j := !j + 2;
+      done;
+      hashbin
+      
+    let to_string_case _ = to_string
+  end
+  
   
 module type Digest = sig
     type t
-    
+
     val null : t
     val one : t
     val two : t
-
+      
     val to_string : t -> string
     val to_string_case : bool -> t -> string
     val of_string : string -> t
@@ -223,8 +287,12 @@ module Make(M: sig
       val hash_length : int
       val hash_name : string
       
+(* [unsafe_string digest string string_len] *)
       val unsafe_string : string -> string -> int -> unit
-      val unsafe_file : string -> string -> unit
+          
+(* [unsafe_file digest filename filesize] *)
+        val unsafe_file : string -> string -> int64 -> unit
+(* [unsafe_string digest file_fd offset len] *)
       val digest_subfile : string -> Unix.file_descr -> int64 -> int64 -> unit 
     
       module Base : Base
@@ -238,7 +306,7 @@ module Make(M: sig
     let null = String.make hash_length '\000'
     let one = String.make hash_length '\001'
     let two =  String.make hash_length '\002'
-    
+
     let string s =
       let len = String.length s in
       let digest = String.create hash_length in
@@ -254,7 +322,8 @@ module Make(M: sig
     
     let file s =
       let digest = String.create hash_length in
-      unsafe_file digest s;
+      let file_size = Unix32.getsize64 s in
+      unsafe_file digest s file_size;
       digest
     
     let digest_subfile fd pos len =
@@ -309,7 +378,7 @@ module Md4 = Make(struct
       let hash_name = "Md4"        
       
       external unsafe_string : string -> string -> int -> unit = "md4_unsafe_string"
-      external unsafe_file : string -> string -> unit = "md4_unsafe_file"
+      external unsafe_file : string -> string -> int64 -> unit = "md4_unsafe_file"
       external digest_subfile : string -> Unix.file_descr -> int64 -> int64 -> unit =
         "md4_unsafe64_fd"
   
@@ -321,7 +390,7 @@ module Md5 = Make(struct
       let hash_name = "Md5"        
       
       external unsafe_string : string -> string -> int -> unit = "md5_unsafe_string"
-      external unsafe_file : string -> string -> unit = "md5_unsafe_file"
+      external unsafe_file : string -> string -> int64 -> unit = "md5_unsafe_file"
       external digest_subfile : string -> Unix.file_descr -> int64 -> int64 -> unit =
         "md5_unsafe64_fd"
     
@@ -333,7 +402,7 @@ module PreSha1 = Make(struct
       let hash_name = "Sha1"        
       
       external unsafe_string : string -> string -> int -> unit = "sha1_unsafe_string"
-      external unsafe_file : string -> string -> unit = "sha1_unsafe_file"
+      external unsafe_file : string -> string -> int64 -> unit = "sha1_unsafe_file"
       external digest_subfile : string -> Unix.file_descr -> int64 -> int64 -> unit =
         "sha1_unsafe64_fd"
       
@@ -371,30 +440,46 @@ module Sha1 = struct
           false
   end
   
-(* NOT YET IMPLEMENTED *)
-module PreTiger = Make(struct
+module Tiger = Make(struct
       let hash_length = 24
       let hash_name = "Tiger"        
       
-      external unsafe_string : string -> string -> int -> unit = "tiger_unsafe_string"
+      external unsafe_string : string -> string -> int -> unit = 
+        "tiger_unsafe_string"
         
       let unsafe_file digest filename = 
         Printf2.lprintf "Tiger.unsafe_file not implemented\n";
         exit 2
         
-(*
-      external unsafe_file : string -> string -> unit = "sha1_unsafe_file"
-*)
+      let digest_subfile digest fd pos len = 
+        Printf2.lprintf "Tiger.digest_subfile not implemented\n";
+        exit 2
+    
+      module Base = Base32
+        
+    end)
+  
+module PreTigerTree = Make(struct
+      let hash_length = 24
+      let hash_name = "TigerTree"        
+      
+      external unsafe_string : string -> string -> int -> unit = "tigertree_unsafe_string"
       external digest_subfile : string -> Unix.file_descr -> int64 -> int64 -> unit =
-        "tiger_unsafe64_fd"
+        "tigertree_unsafe64_fd"
+        
+      let unsafe_file digest filename file_size = 
+        let fd = Unix32.create filename [Unix.O_RDONLY] 0o444 in
+        let (fd, pos) = Unix32.fd_of_chunk fd Int64.zero file_size in
+        digest_subfile digest fd pos file_size;
+        ()
     
       module Base = Base32
         
     end)
 
-module Tiger = struct
-    include PreTiger
-    open PreTiger
+module TigerTree = struct
+    include PreTigerTree
+    open PreTigerTree
     open Printf2
     open Test
             
@@ -417,20 +502,42 @@ module Tiger = struct
             lprintf "(used only if you run the Gnutella plugin)\n";
             false
   end
-  
+
 (* Use urn:tree:tiger: also ... *)
         
   
-module Md5Ext = Make(struct
+module PreMd5Ext = Make(struct
       let hash_length = 20
       let hash_name = "Md5Ext"        
 
-      let unsafe_string _ _ _ = 
-        failwith "Md5Ext.unsafe_string not implemented"
-      let unsafe_file _ _ = 
-        failwith "Md5Ext.unsafe_file not implemented"
+      external unsafe_string : string -> string -> int -> unit =
+        "fst_hash_string_ml"
+        
+      external unsafe_file : string -> string -> int64 -> unit = "fst_hash_file_ml"
       let digest_subfile _ _ _ _ = 
         failwith "Md5Ext.digest_subfile not implemented"
     
-      module Base = Base16
+      module Base = Base6427
+        
     end)
+  
+module Md5Ext = struct
+    include PreMd5Ext
+    
+    open Printf2
+    
+    let enabled =
+      try
+        let s1 = "abcedefghijklmneo" in
+        assert (to_string (string s1) = "=DLr2bO9taE9mZwmabUd/9e7///8=");
+        let s2 = String.make 1000 'A' in
+        assert (to_string (string s2) = "=dkRnLQSSkPA5DZyZPH00PRf8//8=");
+        true
+      
+      with e ->
+          lprintf "Unable to correct correct Fasttrack hash.\n";
+          lprintf "You will not be able to share your files on the\n";
+          lprintf "Fasttrack network.\n";
+          false
+  
+  end

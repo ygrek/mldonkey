@@ -1,8 +1,11 @@
 ChangeLog	
 =========
 
-2003/11/19: Fabrice
+2003/11/20: Fabrice
    * Modified to compile with ocaml-3.07
+   * Started merging -devel and -stable versions
+      * Gnutella and Gnutella2 plugins disabled
+      * Should fix GUI protocol problems with G2GUI
 
 2003/11/17: Fabrice
    * Applied patches

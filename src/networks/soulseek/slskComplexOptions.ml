@@ -23,11 +23,11 @@ open SlskTypes
 open CommonTypes
   
 let old_files = 
-  define_option soulseek_ini ["old_files"]
+  define_option soulseek_section ["old_files"]
     "" (list_option (tuple2_option (string_option, int64_option))) []
 
 let servers = 
-  define_option soulseek_ini ["servers"]
+  define_option soulseek_section ["servers"]
     "" (list_option (tuple2_option (string_option, int_option))) 
   (* this server is no more actual [ ("mail.slsk.org", 2240) ] *)
   [

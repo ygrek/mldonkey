@@ -716,13 +716,13 @@ lprint_newline ();
         if c = '\n' then
           let len = i + 2 - b.pos in
           let header = String.sub b.buf b.pos len in
-          buf_used sock len;
+          buf_used b len;
           manage config sock header        
         else
         if c = '\r' && i <= end_pos - 3 && b.buf.[i+2] = '\n' then
           let len = i + 3 - b.pos in
           let header = String.sub b.buf b.pos len in
-          buf_used sock len;
+          buf_used b len;
           manage config sock header
         else 
           iter (i+1)

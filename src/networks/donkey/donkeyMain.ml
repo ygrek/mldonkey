@@ -48,7 +48,7 @@ let _ =
         if !!enable_donkey then network_enable network
         else network_disable network);
   network.network_config_file <- [
-    donkey_ini; donkey_expert_ini]
+    donkey_ini]
 
 let hourly_timer timer =
   DonkeyClient.clean_groups ();
@@ -314,9 +314,11 @@ let _ =
         network_config_filename = (match network.network_config_file with
             [] -> "" | opfile :: _ -> options_file_name opfile);
         network_netname = network.network_name;
+        network_netflags = network.network_flags;
         network_enabled = network.op_network_is_enabled ();
         network_uploaded = Int64.zero;
         network_downloaded = Int64.zero;
+        network_connected = List.length (connected_servers ());
       });
   CommonInteractive.register_gui_options_panel "eDonkey" 
     gui_donkey_options_panel;

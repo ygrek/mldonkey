@@ -188,12 +188,13 @@ let network_clean_servers r = r.op_network_clean_servers ()
 let network_parse_url n url = n.op_network_parse_url url
 let network_info n = n.op_network_info ()
 
-let new_network name prefix_option subdir_option = 
+let new_network name flags prefix_option subdir_option = 
   let r =
     {
       network_name = name;
       network_num = network_uid ();
       network_prefix = prefix_option;
+     network_flags = flags;
       network_incoming_subdir = subdir_option;
       network_config_file = [];
       op_network_connected_servers = (fun _ -> fni name "connected_servers");

@@ -24,6 +24,7 @@ open Options
 open Gettext
 open CommonTypes
 open GuiTypes
+open Gui_types
 open Gui_columns
 open GMain
 

@@ -32,6 +32,17 @@ type 'a option_record
 (*d The abstract type for an option *)
 
 type options_file
+type options_section
+
+type option_info = {
+    option_name : string;
+    option_desc : string;
+    option_value : string;
+    option_help : string;
+    option_advanced : bool;
+    option_default : string;
+    option_type : string;
+  }
 
 exception SideEffectOption
 
@@ -54,10 +65,16 @@ val save : options_file -> unit
 val save_with_help : options_file -> unit
 (*d [save_with_help ()] saves all the options values to the option file,
 with the help provided for each option. *)
+
+val file_section : options_file -> string list -> string -> options_section
   
 (*4 Creating options *)  
-val define_option : options_file ->
-  string list ->  string -> 'a option_class -> 'a -> 'a option_record
+val define_option : options_section ->
+  string list ->  ?desc: string ->
+  string -> 'a option_class -> 'a -> 'a option_record
+val define_expert_option : options_section ->
+  string list ->    ?desc: string ->
+  string -> 'a option_class -> 'a -> 'a option_record
 val define_header_option : options_file ->
   string list ->  string -> 'a option_class -> 'a -> 'a option_record
 val option_hook : 'a option_record -> (unit -> unit) -> unit
@@ -99,6 +116,7 @@ val ( =:= ) : 'a option_record -> 'a -> unit
 val shortname : 'a option_record -> string
 val option_type : 'a option_record -> string
 val get_help : 'a option_record -> string  
+val advanced : 'a option_record -> bool
   
 (*4 Creating new option classes *)
 
@@ -148,12 +166,11 @@ val filename_to_value : string -> option_value
 val value_to_filename : option_value -> string
 
 val set_simple_option : options_file -> string -> string -> unit
-val simple_options : options_file -> (string * string) list
-val simple_options_html : options_file -> (string * string * string * string) list
+val simple_options : options_file -> option_info list
 val get_simple_option : options_file -> string -> string
 val set_option_hook : options_file -> string -> (unit -> unit) -> unit
 
-val set_string_wrappers : 'a option_record -> 
+val set_string_wrappers : 'a option_class -> 
   ('a -> string) -> (string -> 'a) -> unit
 
 val simple_args : options_file -> (string * Arg.spec * string) list
@@ -162,8 +179,19 @@ val prefixed_args :
   string -> options_file -> (string * Arg.spec * string) list
 
 val once_value : option_value -> option_value
-val strings_of_option : 'a option_record -> string * string
-val strings_of_option_html : 'a option_record  -> string * string * string * string
+val strings_of_option : 'a option_record  -> option_info
 
 val array_to_value : ('a -> option_value) -> 'a array -> option_value
 val value_to_array : (option_value -> 'a) -> option_value -> 'a array
+
+val restore_default : 'a option_record -> unit
+val set_option_desc : 'a option_record -> string -> unit
+  
+val sections : options_file -> options_section list
+val strings_of_section_options : 
+  options_section -> option_info list
+  
+val section_name : options_section -> string
+val iter_file : (Obj.t option_record -> unit) -> options_file -> unit
+val iter_section : (Obj.t option_record -> unit) -> options_section -> unit
+  

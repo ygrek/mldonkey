@@ -221,12 +221,13 @@ let _ =
         P.file_sources = None;
         P.file_download_rate = file_download_rate file.file_file;
         P.file_chunks = "0";
-        P.file_availability = "0";
+        P.file_availability = [network.network_num, "0"];
         P.file_format = FormatNotComputed 0;
         P.file_chunks_age = [|0|];
         P.file_age = file_age file;
         P.file_last_seen = BasicSocket.last_time ();
         P.file_priority = file_priority (as_file file.file_file);
+        P.file_uids = [];
       }    
   )
   
@@ -277,65 +278,6 @@ let _ =
       }   
   )
             
-
-let base64tbl = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-  
-let _ = assert (String.length base64tbl = 64)
-
-let bin20tobase6427 hashbin =
-  let hash64 = String.create 30 in
-  let hashbin n = int_of_char hashbin.[n] in
-  hash64.[0] <- '=';
-  let j = ref 1 in
-  for i = 0 to 6 do
-    let tmp = if i < 6 then
-        ((hashbin (3*i)) lsl 16) lor ((hashbin(3*i+1)) lsl 8) 
-        lor (hashbin (3*i+2))
-      else
-        ((hashbin(3*i)) lsl 16) lor ((hashbin(3*i+1)) lsl 8)
-    in
-    for k = 0 to 3 do
-      hash64.[!j] <- base64tbl.[(tmp lsr ((3- k)*6)) land 0x3f];
-      incr j
-    done
-  done;
-  hash64.[!j-1] <- '=';
-  String.sub hash64 0 !j
-
-let base64tbl_inv = String.create 126
-let _ = 
-  for i = 0 to 63 do
-    base64tbl_inv.[int_of_char base64tbl.[i]] <- char_of_int i
-  done
-  
-let base6427tobin20 hash64 =
-  let hashbin = String.make 20 '\000' in
-  let hash64 n = 
-    let c = hash64.[n] in
-    int_of_char base64tbl_inv.[int_of_char c]
-  in
-  let j = ref 0 in
-  for i = 0 to 6 do
-    if i < 6 then
-      let tmp = ref 0 in
-      for k = 0 to 3 do
-        tmp := (!tmp lsl 6) lor (hash64 (i*4+k+1))
-      done;
-      hashbin.[!j] <- char_of_int ((!tmp lsr 16) land 0xff);
-      hashbin.[!j+1] <- char_of_int ((!tmp lsr  8) land 0xff);
-      hashbin.[!j+2] <- char_of_int ((!tmp lsr  0) land 0xff);
-      j := !j + 3;
-    else
-    let tmp = ref 0 in
-    for k = 0 to 2 do
-      tmp := (!tmp lsl 6) lor (hash64 (i*4+k+1))
-    done;
-    tmp := (!tmp lsl 6);
-    hashbin.[!j] <- char_of_int ((!tmp lsr 16) land 0xff);
-    hashbin.[!j+1] <- char_of_int ((!tmp lsr  8) land 0xff);
-    j := !j + 2;
-  done;
-  hashbin
   
   
 let _ =
@@ -403,8 +345,7 @@ let _ =
           
           lprintf "sig2dat: [%s] [%s] [%s]\n" filename size hash;
           let size = Int64.of_string size in
-          let hash = base6427tobin20 hash in
-          let hash = Md5Ext.direct_of_string hash in
+          let hash = Md5Ext.of_string hash in
           
           let r = new_result filename size [] hash in
           FasttrackServers.download_file r;

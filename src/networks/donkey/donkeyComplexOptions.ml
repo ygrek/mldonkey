@@ -34,12 +34,17 @@ open DonkeyGlobals
 
 let shared_files_ini = create_options_file (
     Filename.concat file_basedir "shared_files_new.ini")
-  
+
 let file_sources_ini = create_options_file (
     Filename.concat file_basedir "file_sources.ini")
   
 let stats_ini = create_options_file (
     Filename.concat file_basedir "stats.ini")
+
+let shared_section = file_section shared_files_ini [] ""
+let stats_section = file_section stats_ini [] ""
+let file_sources_section = file_section file_sources_ini [] ""
+  
 
 
 (* emulate emule onlinesig.dat 
@@ -580,7 +585,7 @@ let done_files =
     *)
 
 let old_files = 
-  define_option donkey_expert_ini ["old_files"] 
+  define_option donkey_section ["old_files"] 
   "The files that were downloaded" (list_option Md4.option) []
 
   (*
@@ -594,7 +599,7 @@ let known_servers = define_option servers_ini["known_servers"] "List of known se
     (list_option ServerOption.t) []
     *)
 
-let known_shared_files = define_option shared_files_ini 
+let known_shared_files = define_option shared_section 
     ["shared_files"] "" 
     (list_option SharedFileOption.t) []
   
@@ -629,7 +634,7 @@ let remove_server ip port =
   with _ -> ()
 
       
-let sources = define_option file_sources_ini 
+let sources = define_option file_sources_section 
     ["sources"] "" 
     (listiter_option ClientOption.t) []
   
@@ -642,14 +647,14 @@ let load _ =
     with Sys_error _ ->
         Options.save_with_help shared_files_ini)
   
-let guptime = define_option stats_ini ["guptime"] "" int_option 0
+let guptime = define_option stats_section ["guptime"] "" int_option 0
   
 let new_stats_array () = 
   Array.init brand_count (fun _ ->
       { dummy_stats with brand_seen = 0 }
   )
   
-let gstats_by_brand = define_option stats_ini ["stats"] "" 
+let gstats_by_brand = define_option stats_section ["stats"] "" 
     (array_option StatsOption.t) (new_stats_array ())
 
 let _ =

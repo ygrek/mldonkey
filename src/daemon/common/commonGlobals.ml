@@ -697,3 +697,124 @@ let schedule_connections () =
 let add_pending_connection f =
   Fifo.put waiting_connections f
   
+      
+let parse_magnet url =
+  let url = Url.of_string url in
+  if url.Url.file = "magnet:" then 
+    let uids = ref [] in
+    let name = ref "" in
+    List.iter (fun (value, arg) ->
+        if String2.starts_with value "xt" then
+          uids := expand_uids (uid_of_string arg :: !uids)
+        else 
+        if String2.starts_with value "dn" then
+          name := Url.decode arg
+        else 
+        if arg = "" then
+(* This is an error in the magnet, where a & has been kept instead of being
+  url-encoded *)
+          name := Printf.sprintf "%s&%s" !name value
+        else
+          lprintf "MAGNET: unused field %s = %s\n"
+            value arg
+    ) url.Url.args;
+    !name, !uids
+  else raise Not_found
+
+module CanBeCompressed = struct
+    
+    let to_deflate = ref []
+    let to_deflate_len = ref 0
+    
+    
+    let compression_buffer_len = 20000
+    let compression_buffer = String.create compression_buffer_len
+    
+    let deflate_connection sock =
+      lprintf "Creating deflate connection\n";
+      let comp = Deflate (Zlib.inflate_init true, Zlib.deflate_init 6 true) in
+      CompressedConnection (comp, 
+        buf_create !max_buffer_size, buf_create !max_buffer_size, sock)
+    
+    let rec iter_deflate sock zs wbuf =
+      if wbuf.len > 0 then begin
+          lprintf "iter_deflate\n";
+          let (_, used_in, used_out) = Zlib.deflate zs
+              wbuf.buf wbuf.pos wbuf.len 
+              compression_buffer 0 compression_buffer_len
+              Zlib.Z_SYNC_FLUSH in      
+          lprintf "deflated %d/%d -> %d\n" used_in wbuf.len used_out;
+          lprintf "[%s]\n" (String.escaped (String.sub compression_buffer 0 used_out));
+          write sock compression_buffer 0 used_out;
+          buf_used wbuf used_in;
+          if used_in > 0 || used_out > 0 then
+            iter_deflate sock zs wbuf
+        end
+        
+    let deflate_timer _ =
+      List.iter (fun conn ->
+          try 
+            match conn with
+              CompressedConnection (comp, _, wbuf, sock) ->
+                if closed sock then raise Exit;
+                let Deflate (_, zs) = comp in
+                iter_deflate sock zs wbuf
+            | _ -> ()
+          with e -> 
+              lprintf "[ERROR] Exception %s in CanBeCompressed.deflate_timer\n"
+                (Printexc2.to_string e)
+      ) !to_deflate;
+      to_deflate := [];
+      to_deflate_len := 0
+    
+    let to_deflate conn =
+      if not (List.memq conn !to_deflate) then
+        to_deflate := conn :: !to_deflate;
+      if !to_deflate_len > 1000000 then
+        deflate_timer ()
+    
+    let write_string conn s =
+      lprintf "write_string\n";
+      let len = String.length s in
+      match conn with
+        Connection sock -> write_string sock s
+      | CompressedConnection (_,_,wbuf,sock) ->
+          lprintf "CanBeCompressed.write_string %d\n" len;
+          to_deflate_len := !to_deflate_len + len;
+          to_deflate conn;
+          buf_add sock wbuf s 0 len
+      | _ -> assert false
+    
+    let rec iter_inflate zs sock b rbuf =
+      if b.len > 0 then begin
+          lprintf "iter_inflate %d\n" b.len;
+          lprintf "[%s]\n" (String.escaped (String.sub b.buf b.pos b.len));
+          let (_, used_in, used_out) = Zlib.inflate zs b.buf b.pos b.len 
+              compression_buffer 0 compression_buffer_len
+              Zlib.Z_SYNC_FLUSH in
+          lprintf "inflated %d/%d -> %d\n" used_in b.len used_out;
+          lprintf "[%s]\n" (String.escaped (String.sub compression_buffer 0 used_out));
+          buf_add sock rbuf compression_buffer 0 used_out;
+          buf_used b used_in;
+          if used_in > 0 || used_out > 0 then
+            iter_inflate zs sock b rbuf
+        end
+        
+    let buf conn =
+      lprintf "CanBeCompressed.buf\n";
+      try
+        match conn with
+          Connection sock -> buf sock
+        | CompressedConnection (comp,rbuf,_,sock) ->
+            
+            let b = buf sock in
+            let Deflate (zs, _) = comp in
+            if b.len > 0 then iter_inflate zs sock b rbuf;
+            rbuf
+        | _ -> assert false
+      with e ->
+          lprintf "[ERROR] Exception %s in CanBeCompressed.buf\n"
+            (Printexc2.to_string e);
+          raise e
+  end
+  

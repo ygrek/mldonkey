@@ -66,7 +66,8 @@ and shared_tree =
   }
 
 let network = CommonNetwork.new_network "Global Shares"
-    (fun _ -> "")
+    [ VirtualNetwork ]
+  (fun _ -> "")
     (fun _ -> "")
 
 let _ = 

@@ -145,34 +145,37 @@ module TabPosition = struct
     
     let t = define_option_class "TabPosition" value_to_pos pos_to_value
   end
+
+  
+let mldonkey_gui_section = file_section mldonkey_gui_ini [] ""
   
 (** {2 Key mappings} *)
 
-let keymap_global = define_option mldonkey_gui_ini ["keymaps"; "global"]
+let keymap_global = define_option mldonkey_gui_section ["keymaps"; "global"]
     "Global key bindings" 
   (list_option (tuple2_option (KeyOption.t, string_option))) []
 
-let keymap_servers = define_option mldonkey_gui_ini ["keymaps"; "servers"]
+let keymap_servers = define_option mldonkey_gui_section ["keymaps"; "servers"]
   "Key bindings for servers tab"   
   (list_option (tuple2_option (KeyOption.t, string_option))) []
 
-let keymap_downloads = define_option mldonkey_gui_ini ["keymaps"; "downloads"]
+let keymap_downloads = define_option mldonkey_gui_section ["keymaps"; "downloads"]
   "Key bindings for downloads tab" 
   (list_option (tuple2_option (KeyOption.t, string_option))) []
 
-let keymap_friends = define_option mldonkey_gui_ini ["keymaps"; "friends"]
+let keymap_friends = define_option mldonkey_gui_section ["keymaps"; "friends"]
   "Key bindings for friends tab" 
   (list_option (tuple2_option (KeyOption.t, string_option))) []
 
-let keymap_queries = define_option mldonkey_gui_ini ["keymaps"; "queries"]
+let keymap_queries = define_option mldonkey_gui_section ["keymaps"; "queries"]
   "Key bindings for queries tab" 
   (list_option (tuple2_option (KeyOption.t, string_option))) []
 
-let keymap_results = define_option mldonkey_gui_ini ["keymaps"; "results"]
+let keymap_results = define_option mldonkey_gui_section ["keymaps"; "results"]
   "Key bindings for results tab" 
   (list_option (tuple2_option (KeyOption.t, string_option))) []
 
-let keymap_console = define_option mldonkey_gui_ini ["keymaps"; "console"]
+let keymap_console = define_option mldonkey_gui_section ["keymaps"; "console"]
   "Key bindings for console tab" 
     (list_option (tuple2_option (KeyOption.t, string_option))) []
 
@@ -182,56 +185,56 @@ let add_binding map binding action =
   
 (** {2 Colors} *)
 
-let color_default = define_option mldonkey_gui_ini ["colors"; "default"]
+let color_default = define_option mldonkey_gui_section ["colors"; "default"]
     (gettext M.h_col_default) string_option "Black"
-let color_downloaded =  define_option mldonkey_gui_ini ["colors"; "downloaded"]
+let color_downloaded =  define_option mldonkey_gui_section ["colors"; "downloaded"]
     (gettext M.h_col_downloaded) string_option "Blue"
-let color_downloading =  define_option mldonkey_gui_ini ["colors"; "downloading"]
+let color_downloading =  define_option mldonkey_gui_section ["colors"; "downloading"]
     (gettext M.h_col_downloading) string_option "DarkGreen"
-let color_available =  define_option mldonkey_gui_ini ["colors"; "available"]
+let color_available =  define_option mldonkey_gui_section ["colors"; "available"]
     (gettext M.h_col_avail) string_option "Orange"
-let color_not_available =  define_option mldonkey_gui_ini ["colors"; "not_available"]
+let color_not_available =  define_option mldonkey_gui_section ["colors"; "not_available"]
     (gettext M.h_col_not_avail) string_option "Red"
-let color_connected =  define_option mldonkey_gui_ini ["colors"; "connected"]
+let color_connected =  define_option mldonkey_gui_section ["colors"; "connected"]
     (gettext M.h_col_connected) string_option "DarkGreen"
-let color_not_connected =  define_option mldonkey_gui_ini ["colors"; "not_connected"]
+let color_not_connected =  define_option mldonkey_gui_section ["colors"; "not_connected"]
     (gettext M.h_col_not_connected) string_option "Black"
-let color_connecting =  define_option mldonkey_gui_ini ["colors"; "connecting"]
+let color_connecting =  define_option mldonkey_gui_section ["colors"; "connecting"]
     M.h_col_connecting string_option "Orange"
-let color_files_listed =  define_option mldonkey_gui_ini ["colors"; "files_listed"]
+let color_files_listed =  define_option mldonkey_gui_section ["colors"; "files_listed"]
     M.h_col_files_listed string_option "Blue"
-let color_files_result =  define_option mldonkey_gui_ini ["colors"; "files_result"]
+let color_files_result =  define_option mldonkey_gui_section ["colors"; "files_result"]
     M.h_col_files_listed string_option "Blue"
-let color_tab_selected =  define_option mldonkey_gui_ini ["colors"; "tab_selected"]
+let color_tab_selected =  define_option mldonkey_gui_section ["colors"; "tab_selected"]
     M.h_col_tab_selected string_option "#ffffff"
-let color_tab_not_selected =  define_option mldonkey_gui_ini ["colors"; "tab_not_selected"]
+let color_tab_not_selected =  define_option mldonkey_gui_section ["colors"; "tab_not_selected"]
     M.h_col_tab_not_selected string_option "#636363"
-let color_list_bg =  define_option mldonkey_gui_ini ["colors"; "list_bg"]
+let color_list_bg =  define_option mldonkey_gui_section ["colors"; "list_bg"]
     M.h_col_list_bg string_option "#FFFFDB"
-let color_network_enabled =  define_option mldonkey_gui_ini ["colors"; "network_enabled"]
+let color_network_enabled =  define_option mldonkey_gui_section ["colors"; "network_enabled"]
     M.h_col_network_enabled string_option "#ffffff"
-let color_network_disabled =  define_option mldonkey_gui_ini ["colors"; "network_disabled"]
+let color_network_disabled =  define_option mldonkey_gui_section ["colors"; "network_disabled"]
     M.h_col_network_disabled string_option "#636363"
 
 (** {2 Fonts} *)
 
-let font_list =  define_option mldonkey_gui_ini ["fonts"; "list"]
+let font_list =  define_option mldonkey_gui_section ["fonts"; "list"]
     (gettext M.h_font_list) string_option "-*-*-*-*-*-*-*-*-*-*-*-*-*-*"
-let font_main_tab =  define_option mldonkey_gui_ini ["fonts"; "main_tab"]
+let font_main_tab =  define_option mldonkey_gui_section ["fonts"; "main_tab"]
     (gettext M.h_font_main_tab) string_option "-*-*-*-*-*-*-*-*-*-*-*-*-*-*"
-let font_networks =  define_option mldonkey_gui_ini ["fonts"; "networks"]
+let font_networks =  define_option mldonkey_gui_section ["fonts"; "networks"]
     (gettext M.h_font_networks) string_option "-*-*-*-*-*-*-*-*-*-*-*-*-*-*"
-let font_graphic =  define_option mldonkey_gui_ini ["fonts"; "graphic"]
+let font_graphic =  define_option mldonkey_gui_section ["fonts"; "graphic"]
     (gettext M.h_font_graphic) string_option "-*-*-*-*-*-*-*-*-*-*-*-*-*-*"
 
 (*
-let font_list =  define_option mldonkey_gui_ini ["fonts"; "list"]
+let font_list =  define_option mldonkey_gui_section ["fonts"; "list"]
     (gettext M.h_font_list) string_option "-bitstream-bitstream vera sans-medium-r-normal-*-10-*-*-*-p-*-iso8859-1"
-let font_main_tab =  define_option mldonkey_gui_ini ["fonts"; "main_tab"]
+let font_main_tab =  define_option mldonkey_gui_section ["fonts"; "main_tab"]
     (gettext M.h_font_main_tab) string_option "-2rebels-andover-medium-r-normal-*-48-*-*-*-p-*-iso8859-1"
-let font_networks =  define_option mldonkey_gui_ini ["fonts"; "networks"]
+let font_networks =  define_option mldonkey_gui_section ["fonts"; "networks"]
     (gettext M.h_font_networks) string_option "-2rebels-andover-medium-r-normal-*-48-*-*-*-p-*-iso8859-1"
-let font_graphic =  define_option mldonkey_gui_ini ["fonts"; "graphic"]
+let font_graphic =  define_option mldonkey_gui_section ["fonts"; "graphic"]
     (gettext M.h_font_graphic) string_option "-bitstream-bitstream vera sans-medium-r-normal-*-10-*-*-*-p-*-iso8859-1"
 *)
 
@@ -240,273 +243,273 @@ let font_graphic =  define_option mldonkey_gui_ini ["fonts"; "graphic"]
 let xpm_label s = ["icons" ; s]
 let xpm_mini_label s = ["mini_icons" ; s]
 
-let xpm_toggle_display_all_servers = define_option mldonkey_gui_ini (xpm_label M.o_xpm_toggle_display_all_servers)
+let xpm_toggle_display_all_servers = define_option mldonkey_gui_section (xpm_label M.o_xpm_toggle_display_all_servers)
     "" filename_option ""
-let xpm_add_server = define_option mldonkey_gui_ini (xpm_label M.o_xpm_add_server)
+let xpm_add_server = define_option mldonkey_gui_section (xpm_label M.o_xpm_add_server)
     "" filename_option ""
-let xpm_submit_search = define_option mldonkey_gui_ini (xpm_label M.o_xpm_submit_search)
+let xpm_submit_search = define_option mldonkey_gui_section (xpm_label M.o_xpm_submit_search)
     "" filename_option ""
-let xpm_extend_search = define_option mldonkey_gui_ini (xpm_label M.o_xpm_extend_search)
+let xpm_extend_search = define_option mldonkey_gui_section (xpm_label M.o_xpm_extend_search)
     "" filename_option ""
-let xpm_local_search = define_option mldonkey_gui_ini (xpm_label M.o_xpm_local_search)
+let xpm_local_search = define_option mldonkey_gui_section (xpm_label M.o_xpm_local_search)
     "" filename_option ""
-let xpm_subscribe_search = define_option mldonkey_gui_ini (xpm_label M.o_xpm_subscribe_search)
+let xpm_subscribe_search = define_option mldonkey_gui_section (xpm_label M.o_xpm_subscribe_search)
     "" filename_option ""
-let xpm_stop_search = define_option mldonkey_gui_ini (xpm_label M.o_xpm_stop_search)
+let xpm_stop_search = define_option mldonkey_gui_section (xpm_label M.o_xpm_stop_search)
     "" filename_option ""
-let xpm_close_search = define_option mldonkey_gui_ini (xpm_label M.o_xpm_close_search)
+let xpm_close_search = define_option mldonkey_gui_section (xpm_label M.o_xpm_close_search)
     "" filename_option ""
-let xpm_close_room =  define_option mldonkey_gui_ini (xpm_label M.o_xpm_close_room)
+let xpm_close_room =  define_option mldonkey_gui_section (xpm_label M.o_xpm_close_room)
     "" filename_option ""
-let xpm_add_shared_directory =  define_option mldonkey_gui_ini (xpm_label M.o_xpm_add_shared_directory)
+let xpm_add_shared_directory =  define_option mldonkey_gui_section (xpm_label M.o_xpm_add_shared_directory)
     "" filename_option ""
-let xpm_download_directory =  define_option mldonkey_gui_ini (xpm_label M.o_xpm_download_directory)
+let xpm_download_directory =  define_option mldonkey_gui_section (xpm_label M.o_xpm_download_directory)
     "" filename_option ""
 
-let xpm_mini_toggle_display_all_servers = define_option mldonkey_gui_ini
+let xpm_mini_toggle_display_all_servers = define_option mldonkey_gui_section
     (xpm_mini_label M.o_xpm_mini_toggle_display_all_servers)
     "" filename_option ""
-let xpm_mini_add_server = define_option mldonkey_gui_ini (xpm_mini_label M.o_xpm_mini_add_server)
+let xpm_mini_add_server = define_option mldonkey_gui_section (xpm_mini_label M.o_xpm_mini_add_server)
     "" filename_option ""
-let xpm_mini_submit_search = define_option mldonkey_gui_ini (xpm_mini_label M.o_xpm_mini_submit_search)
+let xpm_mini_submit_search = define_option mldonkey_gui_section (xpm_mini_label M.o_xpm_mini_submit_search)
     "" filename_option ""
-let xpm_mini_extend_search = define_option mldonkey_gui_ini (xpm_mini_label M.o_xpm_mini_extend_search)
+let xpm_mini_extend_search = define_option mldonkey_gui_section (xpm_mini_label M.o_xpm_mini_extend_search)
     "" filename_option ""
-let xpm_mini_local_search = define_option mldonkey_gui_ini (xpm_mini_label M.o_xpm_mini_local_search)
+let xpm_mini_local_search = define_option mldonkey_gui_section (xpm_mini_label M.o_xpm_mini_local_search)
     "" filename_option ""
-let xpm_mini_subscribe_search = define_option mldonkey_gui_ini (xpm_label M.o_xpm_mini_subscribe_search)
+let xpm_mini_subscribe_search = define_option mldonkey_gui_section (xpm_label M.o_xpm_mini_subscribe_search)
     "" filename_option ""
-let xpm_mini_stop_search = define_option mldonkey_gui_ini (xpm_label M.o_xpm_mini_stop_search)
+let xpm_mini_stop_search = define_option mldonkey_gui_section (xpm_label M.o_xpm_mini_stop_search)
     "" filename_option ""
-let xpm_mini_close_search = define_option mldonkey_gui_ini (xpm_label M.o_xpm_mini_close_search)
+let xpm_mini_close_search = define_option mldonkey_gui_section (xpm_label M.o_xpm_mini_close_search)
     "" filename_option ""
-let xpm_mini_close_room =  define_option mldonkey_gui_ini (xpm_mini_label M.o_xpm_mini_close_room)
+let xpm_mini_close_room =  define_option mldonkey_gui_section (xpm_mini_label M.o_xpm_mini_close_room)
     "" filename_option ""
-let xpm_mini_add_shared_directory =  define_option mldonkey_gui_ini (xpm_label M.o_xpm_mini_add_shared_directory)
+let xpm_mini_add_shared_directory =  define_option mldonkey_gui_section (xpm_label M.o_xpm_mini_add_shared_directory)
     "" filename_option ""
-let xpm_mini_download_directory =  define_option mldonkey_gui_ini (xpm_label M.o_xpm_mini_download_directory)
-    "" filename_option ""
-
-let xpm_nbk_networks_on = define_option mldonkey_gui_ini (xpm_label M.o_xpm_nbk_networks_on)
-    "" filename_option ""
-let xpm_nbk_networks_off = define_option mldonkey_gui_ini (xpm_label M.o_xpm_nbk_networks_off)
-    "" filename_option ""
-let xpm_nbk_networks_menu = define_option mldonkey_gui_ini (xpm_label M.o_xpm_nbk_networks_menu)
-    "" filename_option ""
-let xpm_nbk_servers_on = define_option mldonkey_gui_ini (xpm_label M.o_xpm_nbk_servers_on)
-    "" filename_option ""
-let xpm_nbk_servers_off = define_option mldonkey_gui_ini (xpm_label M.o_xpm_nbk_servers_off)
-    "" filename_option ""
-let xpm_nbk_servers_menu = define_option mldonkey_gui_ini (xpm_label M.o_xpm_nbk_servers_menu)
-    "" filename_option ""
-let xpm_nbk_downloads_on = define_option mldonkey_gui_ini (xpm_label M.o_xpm_nbk_downloads_on)
-    "" filename_option ""
-let xpm_nbk_downloads_off = define_option mldonkey_gui_ini (xpm_label M.o_xpm_nbk_downloads_off)
-    "" filename_option ""
-let xpm_nbk_downloads_menu = define_option mldonkey_gui_ini (xpm_label M.o_xpm_nbk_downloads_menu)
-    "" filename_option ""
-let xpm_nbk_friends_on = define_option mldonkey_gui_ini (xpm_label M.o_xpm_nbk_friends_on)
-    "" filename_option ""
-let xpm_nbk_friends_off = define_option mldonkey_gui_ini (xpm_label M.o_xpm_nbk_friends_off)
-    "" filename_option ""
-let xpm_nbk_friends_menu = define_option mldonkey_gui_ini (xpm_label M.o_xpm_nbk_friends_menu)
-    "" filename_option ""
-let xpm_nbk_search_on = define_option mldonkey_gui_ini (xpm_label M.o_xpm_nbk_search_on)
-    "" filename_option ""
-let xpm_nbk_search_off = define_option mldonkey_gui_ini (xpm_label M.o_xpm_nbk_search_off)
-    "" filename_option ""
-let xpm_nbk_search_menu = define_option mldonkey_gui_ini (xpm_label M.o_xpm_nbk_search_menu)
-    "" filename_option ""
-let xpm_nbk_rooms_on = define_option mldonkey_gui_ini (xpm_label M.o_xpm_nbk_rooms_on)
-    "" filename_option ""
-let xpm_nbk_rooms_off = define_option mldonkey_gui_ini (xpm_label M.o_xpm_nbk_rooms_off)
-    "" filename_option ""
-let xpm_nbk_rooms_menu = define_option mldonkey_gui_ini (xpm_label M.o_xpm_nbk_rooms_menu)
-    "" filename_option ""
-let xpm_nbk_uploads_on = define_option mldonkey_gui_ini (xpm_label M.o_xpm_nbk_uploads_on)
-    "" filename_option ""
-let xpm_nbk_uploads_off = define_option mldonkey_gui_ini (xpm_label M.o_xpm_nbk_uploads_off)
-    "" filename_option ""
-let xpm_nbk_uploads_menu = define_option mldonkey_gui_ini (xpm_label M.o_xpm_nbk_uploads_menu)
-    "" filename_option ""
-let xpm_nbk_console_on = define_option mldonkey_gui_ini (xpm_label M.o_xpm_nbk_console_on)
-    "" filename_option ""
-let xpm_nbk_console_off = define_option mldonkey_gui_ini (xpm_label M.o_xpm_nbk_console_off)
-    "" filename_option ""
-let xpm_nbk_console_menu = define_option mldonkey_gui_ini (xpm_label M.o_xpm_nbk_console_menu)
-    "" filename_option ""
-let xpm_nbk_graphs_on = define_option mldonkey_gui_ini (xpm_label M.o_xpm_nbk_graphs_on)
-    "" filename_option ""
-let xpm_nbk_graphs_off = define_option mldonkey_gui_ini (xpm_label M.o_xpm_nbk_graphs_off)
-    "" filename_option ""
-let xpm_nbk_graphs_menu = define_option mldonkey_gui_ini (xpm_label M.o_xpm_nbk_graphs_menu)
+let xpm_mini_download_directory =  define_option mldonkey_gui_section (xpm_label M.o_xpm_mini_download_directory)
     "" filename_option ""
 
-let xpm_about = define_option mldonkey_gui_ini (xpm_label M.o_xpm_about)
+let xpm_nbk_networks_on = define_option mldonkey_gui_section (xpm_label M.o_xpm_nbk_networks_on)
     "" filename_option ""
-let xpm_im = define_option mldonkey_gui_ini (xpm_label M.o_xpm_im)
+let xpm_nbk_networks_off = define_option mldonkey_gui_section (xpm_label M.o_xpm_nbk_networks_off)
     "" filename_option ""
-let xpm_settings = define_option mldonkey_gui_ini (xpm_label M.o_xpm_settings)
+let xpm_nbk_networks_menu = define_option mldonkey_gui_section (xpm_label M.o_xpm_nbk_networks_menu)
     "" filename_option ""
-let xpm_exit = define_option mldonkey_gui_ini (xpm_label M.o_xpm_exit)
+let xpm_nbk_servers_on = define_option mldonkey_gui_section (xpm_label M.o_xpm_nbk_servers_on)
     "" filename_option ""
-let xpm_gui = define_option mldonkey_gui_ini (xpm_label M.o_xpm_gui)
+let xpm_nbk_servers_off = define_option mldonkey_gui_section (xpm_label M.o_xpm_nbk_servers_off)
     "" filename_option ""
-let xpm_kill_core = define_option mldonkey_gui_ini (xpm_label M.o_xpm_kill_core)
+let xpm_nbk_servers_menu = define_option mldonkey_gui_section (xpm_label M.o_xpm_nbk_servers_menu)
     "" filename_option ""
-let xpm_splash_screen = define_option mldonkey_gui_ini (xpm_label M.o_xpm_splash_screen)
+let xpm_nbk_downloads_on = define_option mldonkey_gui_section (xpm_label M.o_xpm_nbk_downloads_on)
+    "" filename_option ""
+let xpm_nbk_downloads_off = define_option mldonkey_gui_section (xpm_label M.o_xpm_nbk_downloads_off)
+    "" filename_option ""
+let xpm_nbk_downloads_menu = define_option mldonkey_gui_section (xpm_label M.o_xpm_nbk_downloads_menu)
+    "" filename_option ""
+let xpm_nbk_friends_on = define_option mldonkey_gui_section (xpm_label M.o_xpm_nbk_friends_on)
+    "" filename_option ""
+let xpm_nbk_friends_off = define_option mldonkey_gui_section (xpm_label M.o_xpm_nbk_friends_off)
+    "" filename_option ""
+let xpm_nbk_friends_menu = define_option mldonkey_gui_section (xpm_label M.o_xpm_nbk_friends_menu)
+    "" filename_option ""
+let xpm_nbk_search_on = define_option mldonkey_gui_section (xpm_label M.o_xpm_nbk_search_on)
+    "" filename_option ""
+let xpm_nbk_search_off = define_option mldonkey_gui_section (xpm_label M.o_xpm_nbk_search_off)
+    "" filename_option ""
+let xpm_nbk_search_menu = define_option mldonkey_gui_section (xpm_label M.o_xpm_nbk_search_menu)
+    "" filename_option ""
+let xpm_nbk_rooms_on = define_option mldonkey_gui_section (xpm_label M.o_xpm_nbk_rooms_on)
+    "" filename_option ""
+let xpm_nbk_rooms_off = define_option mldonkey_gui_section (xpm_label M.o_xpm_nbk_rooms_off)
+    "" filename_option ""
+let xpm_nbk_rooms_menu = define_option mldonkey_gui_section (xpm_label M.o_xpm_nbk_rooms_menu)
+    "" filename_option ""
+let xpm_nbk_uploads_on = define_option mldonkey_gui_section (xpm_label M.o_xpm_nbk_uploads_on)
+    "" filename_option ""
+let xpm_nbk_uploads_off = define_option mldonkey_gui_section (xpm_label M.o_xpm_nbk_uploads_off)
+    "" filename_option ""
+let xpm_nbk_uploads_menu = define_option mldonkey_gui_section (xpm_label M.o_xpm_nbk_uploads_menu)
+    "" filename_option ""
+let xpm_nbk_console_on = define_option mldonkey_gui_section (xpm_label M.o_xpm_nbk_console_on)
+    "" filename_option ""
+let xpm_nbk_console_off = define_option mldonkey_gui_section (xpm_label M.o_xpm_nbk_console_off)
+    "" filename_option ""
+let xpm_nbk_console_menu = define_option mldonkey_gui_section (xpm_label M.o_xpm_nbk_console_menu)
+    "" filename_option ""
+let xpm_nbk_graphs_on = define_option mldonkey_gui_section (xpm_label M.o_xpm_nbk_graphs_on)
+    "" filename_option ""
+let xpm_nbk_graphs_off = define_option mldonkey_gui_section (xpm_label M.o_xpm_nbk_graphs_off)
+    "" filename_option ""
+let xpm_nbk_graphs_menu = define_option mldonkey_gui_section (xpm_label M.o_xpm_nbk_graphs_menu)
+    "" filename_option ""
+
+let xpm_about = define_option mldonkey_gui_section (xpm_label M.o_xpm_about)
+    "" filename_option ""
+let xpm_im = define_option mldonkey_gui_section (xpm_label M.o_xpm_im)
+    "" filename_option ""
+let xpm_settings = define_option mldonkey_gui_section (xpm_label M.o_xpm_settings)
+    "" filename_option ""
+let xpm_exit = define_option mldonkey_gui_section (xpm_label M.o_xpm_exit)
+    "" filename_option ""
+let xpm_gui = define_option mldonkey_gui_section (xpm_label M.o_xpm_gui)
+    "" filename_option ""
+let xpm_kill_core = define_option mldonkey_gui_section (xpm_label M.o_xpm_kill_core)
+    "" filename_option ""
+let xpm_splash_screen = define_option mldonkey_gui_section (xpm_label M.o_xpm_splash_screen)
     "" filename_option ""
   
-let xpm_album_search = define_option mldonkey_gui_ini (xpm_label M.o_xpm_album_search)
+let xpm_album_search = define_option mldonkey_gui_section (xpm_label M.o_xpm_album_search)
     "" filename_option ""
-let xpm_movie_search = define_option mldonkey_gui_ini (xpm_label M.o_xpm_movie_search)
+let xpm_movie_search = define_option mldonkey_gui_section (xpm_label M.o_xpm_movie_search)
     "" filename_option ""
-let xpm_mp3_search = define_option mldonkey_gui_ini (xpm_label M.o_xpm_mp3_search)
+let xpm_mp3_search = define_option mldonkey_gui_section (xpm_label M.o_xpm_mp3_search)
     "" filename_option ""
-let xpm_complex_search = define_option mldonkey_gui_ini (xpm_label M.o_xpm_complex_search)
+let xpm_complex_search = define_option mldonkey_gui_section (xpm_label M.o_xpm_complex_search)
     "" filename_option ""
-let xpm_sharereactor_search = define_option mldonkey_gui_ini (xpm_label M.o_xpm_sharereactor_search)
+let xpm_sharereactor_search = define_option mldonkey_gui_section (xpm_label M.o_xpm_sharereactor_search)
     "" filename_option ""
-let xpm_jigle_search = define_option mldonkey_gui_ini (xpm_label M.o_xpm_jigle_search)
+let xpm_jigle_search = define_option mldonkey_gui_section (xpm_label M.o_xpm_jigle_search)
     "" filename_option ""
-let xpm_freedb_search = define_option mldonkey_gui_ini (xpm_label M.o_xpm_freedb_search)
+let xpm_freedb_search = define_option mldonkey_gui_section (xpm_label M.o_xpm_freedb_search)
     "" filename_option ""
-let xpm_imdb_search = define_option mldonkey_gui_ini (xpm_label M.o_xpm_imdb_search)
-    "" filename_option ""
-
-let xpm_bt = define_option mldonkey_gui_ini (xpm_label M.o_xpm_bt)
-    "" filename_option ""
-let xpm_dc = define_option mldonkey_gui_ini (xpm_label M.o_xpm_dc)
-    "" filename_option ""
-let xpm_ed2k = define_option mldonkey_gui_ini (xpm_label M.o_xpm_ed2k)
-    "" filename_option ""
-let xpm_fasttrack = define_option mldonkey_gui_ini (xpm_label M.o_xpm_fasttrack)
-    "" filename_option ""
-let xpm_gnutella = define_option mldonkey_gui_ini (xpm_label M.o_xpm_gnutella)
-    "" filename_option ""
-let xpm_napster = define_option mldonkey_gui_ini (xpm_label M.o_xpm_napster)
-    "" filename_option ""
-let xpm_slsk = define_option mldonkey_gui_ini (xpm_label M.o_xpm_slsk)
-    "" filename_option ""
-let xpm_unknown = define_option mldonkey_gui_ini (xpm_label M.o_xpm_unknown)
+let xpm_imdb_search = define_option mldonkey_gui_section (xpm_label M.o_xpm_imdb_search)
     "" filename_option ""
 
-let xpm_downloading = define_option mldonkey_gui_ini (xpm_label M.o_xpm_downloading)
+let xpm_bt = define_option mldonkey_gui_section (xpm_label M.o_xpm_bt)
     "" filename_option ""
-let xpm_connect_y = define_option mldonkey_gui_ini (xpm_label M.o_xpm_connect_y)
+let xpm_dc = define_option mldonkey_gui_section (xpm_label M.o_xpm_dc)
     "" filename_option ""
-let xpm_connect_m = define_option mldonkey_gui_ini (xpm_label M.o_xpm_connect_m)
+let xpm_ed2k = define_option mldonkey_gui_section (xpm_label M.o_xpm_ed2k)
     "" filename_option ""
-let xpm_connect_n = define_option mldonkey_gui_ini (xpm_label M.o_xpm_connect_n)
+let xpm_fasttrack = define_option mldonkey_gui_section (xpm_label M.o_xpm_fasttrack)
     "" filename_option ""
-let xpm_removedhost = define_option mldonkey_gui_ini (xpm_label M.o_xpm_removedhost)
+let xpm_gnutella = define_option mldonkey_gui_section (xpm_label M.o_xpm_gnutella)
     "" filename_option ""
-let xpm_blacklistedhost = define_option mldonkey_gui_ini (xpm_label M.o_xpm_blacklistedhost)
+let xpm_napster = define_option mldonkey_gui_section (xpm_label M.o_xpm_napster)
     "" filename_option ""
-let xpm_files_listed = define_option mldonkey_gui_ini (xpm_label M.o_xpm_files_listed)
+let xpm_slsk = define_option mldonkey_gui_section (xpm_label M.o_xpm_slsk)
     "" filename_option ""
-let xpm_server_c = define_option mldonkey_gui_ini (xpm_label M.o_xpm_server_c)
-    "" filename_option ""
-let xpm_server_ci = define_option mldonkey_gui_ini (xpm_label M.o_xpm_server_ci)
-    "" filename_option ""
-let xpm_server_nc = define_option mldonkey_gui_ini (xpm_label M.o_xpm_server_nc)
+let xpm_unknown = define_option mldonkey_gui_section (xpm_label M.o_xpm_unknown)
     "" filename_option ""
 
-let xpm_friend_user = define_option mldonkey_gui_ini (xpm_label M.o_xpm_friend_user)
+let xpm_downloading = define_option mldonkey_gui_section (xpm_label M.o_xpm_downloading)
     "" filename_option ""
-let xpm_contact_user = define_option mldonkey_gui_ini (xpm_label M.o_xpm_contact_user)
+let xpm_connect_y = define_option mldonkey_gui_section (xpm_label M.o_xpm_connect_y)
     "" filename_option ""
-let xpm_normal_user = define_option mldonkey_gui_ini (xpm_label M.o_xpm_normal_user)
+let xpm_connect_m = define_option mldonkey_gui_section (xpm_label M.o_xpm_connect_m)
     "" filename_option ""
-
-let xpm_priority_0 = define_option mldonkey_gui_ini (xpm_label M.o_xpm_priority_0)
+let xpm_connect_n = define_option mldonkey_gui_section (xpm_label M.o_xpm_connect_n)
     "" filename_option ""
-let xpm_priority_1 = define_option mldonkey_gui_ini (xpm_label M.o_xpm_priority_1)
+let xpm_removedhost = define_option mldonkey_gui_section (xpm_label M.o_xpm_removedhost)
     "" filename_option ""
-let xpm_priority_2 = define_option mldonkey_gui_ini (xpm_label M.o_xpm_priority_2)
+let xpm_blacklistedhost = define_option mldonkey_gui_section (xpm_label M.o_xpm_blacklistedhost)
     "" filename_option ""
-
-let xpm_mimetype_binary = define_option mldonkey_gui_ini (xpm_label M.o_xpm_mimetype_binary)
+let xpm_files_listed = define_option mldonkey_gui_section (xpm_label M.o_xpm_files_listed)
     "" filename_option ""
-let xpm_mimetype_cdimage = define_option mldonkey_gui_ini (xpm_label M.o_xpm_mimetype_cdimage)
+let xpm_server_c = define_option mldonkey_gui_section (xpm_label M.o_xpm_server_c)
     "" filename_option ""
-let xpm_mimetype_debian = define_option mldonkey_gui_ini (xpm_label M.o_xpm_mimetype_debian)
+let xpm_server_ci = define_option mldonkey_gui_section (xpm_label M.o_xpm_server_ci)
     "" filename_option ""
-let xpm_mimetype_html = define_option mldonkey_gui_ini (xpm_label M.o_xpm_mimetype_html)
-    "" filename_option ""
-let xpm_mimetype_images = define_option mldonkey_gui_ini (xpm_label M.o_xpm_mimetype_images)
-    "" filename_option ""
-let xpm_mimetype_java = define_option mldonkey_gui_ini (xpm_label M.o_xpm_mimetype_java)
-    "" filename_option ""
-let xpm_mimetype_pdf = define_option mldonkey_gui_ini (xpm_label M.o_xpm_mimetype_pdf)
-    "" filename_option ""
-let xpm_mimetype_postscript = define_option mldonkey_gui_ini (xpm_label M.o_xpm_mimetype_postscript)
-    "" filename_option ""
-let xpm_mimetype_real = define_option mldonkey_gui_ini (xpm_label M.o_xpm_mimetype_real)
-    "" filename_option ""
-let xpm_mimetype_recycled = define_option mldonkey_gui_ini (xpm_label M.o_xpm_mimetype_recycled)
-    "" filename_option ""
-let xpm_mimetype_rpm = define_option mldonkey_gui_ini (xpm_label M.o_xpm_mimetype_rpm)
-    "" filename_option ""
-let xpm_mimetype_shellscript = define_option mldonkey_gui_ini (xpm_label M.o_xpm_mimetype_shellscript)
-    "" filename_option ""
-let xpm_mimetype_soffice = define_option mldonkey_gui_ini (xpm_label M.o_xpm_mimetype_soffice)
-    "" filename_option ""
-let xpm_mimetype_sound = define_option mldonkey_gui_ini (xpm_label M.o_xpm_mimetype_sound)
-    "" filename_option ""
-let xpm_mimetype_source = define_option mldonkey_gui_ini (xpm_label M.o_xpm_mimetype_source)
-    "" filename_option ""
-let xpm_mimetype_spreadsheet = define_option mldonkey_gui_ini (xpm_label M.o_xpm_mimetype_spreadsheet)
-    "" filename_option ""
-let xpm_mimetype_tex = define_option mldonkey_gui_ini (xpm_label M.o_xpm_mimetype_tex)
-    "" filename_option ""
-let xpm_mimetype_text = define_option mldonkey_gui_ini (xpm_label M.o_xpm_mimetype_text)
-    "" filename_option ""
-let xpm_mimetype_tgz = define_option mldonkey_gui_ini (xpm_label M.o_xpm_mimetype_tgz)
-    "" filename_option ""
-let xpm_mimetype_video = define_option mldonkey_gui_ini (xpm_label M.o_xpm_mimetype_video)
-    "" filename_option ""
-let xpm_mimetype_wordprocessing = define_option mldonkey_gui_ini (xpm_label M.o_xpm_mimetype_wordprocessing)
-    "" filename_option ""
-let xpm_mimetype_unknown = define_option mldonkey_gui_ini (xpm_label M.o_xpm_mimetype_unknown)
+let xpm_server_nc = define_option mldonkey_gui_section (xpm_label M.o_xpm_server_nc)
     "" filename_option ""
 
-let xpm_tree_closed = define_option mldonkey_gui_ini (xpm_label M.o_xpm_tree_closed)
+let xpm_friend_user = define_option mldonkey_gui_section (xpm_label M.o_xpm_friend_user)
     "" filename_option ""
-let xpm_tree_opened = define_option mldonkey_gui_ini (xpm_label M.o_xpm_tree_opened)
+let xpm_contact_user = define_option mldonkey_gui_section (xpm_label M.o_xpm_contact_user)
+    "" filename_option ""
+let xpm_normal_user = define_option mldonkey_gui_section (xpm_label M.o_xpm_normal_user)
     "" filename_option ""
 
-let xpm_bt_net_on = define_option mldonkey_gui_ini (xpm_label M.o_xpm_bt_net_on)
+let xpm_priority_0 = define_option mldonkey_gui_section (xpm_label M.o_xpm_priority_0)
     "" filename_option ""
-let xpm_dc_net_on = define_option mldonkey_gui_ini (xpm_label M.o_xpm_dc_net_on)
+let xpm_priority_1 = define_option mldonkey_gui_section (xpm_label M.o_xpm_priority_1)
     "" filename_option ""
-let xpm_ed2k_net_on = define_option mldonkey_gui_ini (xpm_label M.o_xpm_ed2k_net_on)
+let xpm_priority_2 = define_option mldonkey_gui_section (xpm_label M.o_xpm_priority_2)
     "" filename_option ""
-let xpm_ftt_net_on = define_option mldonkey_gui_ini (xpm_label M.o_xpm_ftt_net_on)
+
+let xpm_mimetype_binary = define_option mldonkey_gui_section (xpm_label M.o_xpm_mimetype_binary)
     "" filename_option ""
-let xpm_gnut_net_on = define_option mldonkey_gui_ini (xpm_label M.o_xpm_gnut_net_on)
+let xpm_mimetype_cdimage = define_option mldonkey_gui_section (xpm_label M.o_xpm_mimetype_cdimage)
     "" filename_option ""
-let xpm_nap_net_on = define_option mldonkey_gui_ini (xpm_label M.o_xpm_nap_net_on)
+let xpm_mimetype_debian = define_option mldonkey_gui_section (xpm_label M.o_xpm_mimetype_debian)
     "" filename_option ""
-let xpm_slsk_net_on = define_option mldonkey_gui_ini (xpm_label M.o_xpm_slsk_net_on)
+let xpm_mimetype_html = define_option mldonkey_gui_section (xpm_label M.o_xpm_mimetype_html)
     "" filename_option ""
-let xpm_mld_tux_on = define_option mldonkey_gui_ini (xpm_label M.o_xpm_mld_tux_on)
+let xpm_mimetype_images = define_option mldonkey_gui_section (xpm_label M.o_xpm_mimetype_images)
     "" filename_option ""
-let xpm_bt_net_off = define_option mldonkey_gui_ini (xpm_label M.o_xpm_bt_net_off)
+let xpm_mimetype_java = define_option mldonkey_gui_section (xpm_label M.o_xpm_mimetype_java)
     "" filename_option ""
-let xpm_dc_net_off = define_option mldonkey_gui_ini (xpm_label M.o_xpm_dc_net_off)
+let xpm_mimetype_pdf = define_option mldonkey_gui_section (xpm_label M.o_xpm_mimetype_pdf)
     "" filename_option ""
-let xpm_ed2k_net_off = define_option mldonkey_gui_ini (xpm_label M.o_xpm_ed2k_net_off)
+let xpm_mimetype_postscript = define_option mldonkey_gui_section (xpm_label M.o_xpm_mimetype_postscript)
     "" filename_option ""
-let xpm_ftt_net_off = define_option mldonkey_gui_ini (xpm_label M.o_xpm_ftt_net_off)
+let xpm_mimetype_real = define_option mldonkey_gui_section (xpm_label M.o_xpm_mimetype_real)
     "" filename_option ""
-let xpm_gnut_net_off = define_option mldonkey_gui_ini (xpm_label M.o_xpm_gnut_net_off)
+let xpm_mimetype_recycled = define_option mldonkey_gui_section (xpm_label M.o_xpm_mimetype_recycled)
     "" filename_option ""
-let xpm_nap_net_off = define_option mldonkey_gui_ini (xpm_label M.o_xpm_nap_net_off)
+let xpm_mimetype_rpm = define_option mldonkey_gui_section (xpm_label M.o_xpm_mimetype_rpm)
     "" filename_option ""
-let xpm_slsk_net_off = define_option mldonkey_gui_ini (xpm_label M.o_xpm_slsk_net_off)
+let xpm_mimetype_shellscript = define_option mldonkey_gui_section (xpm_label M.o_xpm_mimetype_shellscript)
     "" filename_option ""
-let xpm_mld_tux_off = define_option mldonkey_gui_ini (xpm_label M.o_xpm_mld_tux_off)
+let xpm_mimetype_soffice = define_option mldonkey_gui_section (xpm_label M.o_xpm_mimetype_soffice)
+    "" filename_option ""
+let xpm_mimetype_sound = define_option mldonkey_gui_section (xpm_label M.o_xpm_mimetype_sound)
+    "" filename_option ""
+let xpm_mimetype_source = define_option mldonkey_gui_section (xpm_label M.o_xpm_mimetype_source)
+    "" filename_option ""
+let xpm_mimetype_spreadsheet = define_option mldonkey_gui_section (xpm_label M.o_xpm_mimetype_spreadsheet)
+    "" filename_option ""
+let xpm_mimetype_tex = define_option mldonkey_gui_section (xpm_label M.o_xpm_mimetype_tex)
+    "" filename_option ""
+let xpm_mimetype_text = define_option mldonkey_gui_section (xpm_label M.o_xpm_mimetype_text)
+    "" filename_option ""
+let xpm_mimetype_tgz = define_option mldonkey_gui_section (xpm_label M.o_xpm_mimetype_tgz)
+    "" filename_option ""
+let xpm_mimetype_video = define_option mldonkey_gui_section (xpm_label M.o_xpm_mimetype_video)
+    "" filename_option ""
+let xpm_mimetype_wordprocessing = define_option mldonkey_gui_section (xpm_label M.o_xpm_mimetype_wordprocessing)
+    "" filename_option ""
+let xpm_mimetype_unknown = define_option mldonkey_gui_section (xpm_label M.o_xpm_mimetype_unknown)
+    "" filename_option ""
+
+let xpm_tree_closed = define_option mldonkey_gui_section (xpm_label M.o_xpm_tree_closed)
+    "" filename_option ""
+let xpm_tree_opened = define_option mldonkey_gui_section (xpm_label M.o_xpm_tree_opened)
+    "" filename_option ""
+
+let xpm_bt_net_on = define_option mldonkey_gui_section (xpm_label M.o_xpm_bt_net_on)
+    "" filename_option ""
+let xpm_dc_net_on = define_option mldonkey_gui_section (xpm_label M.o_xpm_dc_net_on)
+    "" filename_option ""
+let xpm_ed2k_net_on = define_option mldonkey_gui_section (xpm_label M.o_xpm_ed2k_net_on)
+    "" filename_option ""
+let xpm_ftt_net_on = define_option mldonkey_gui_section (xpm_label M.o_xpm_ftt_net_on)
+    "" filename_option ""
+let xpm_gnut_net_on = define_option mldonkey_gui_section (xpm_label M.o_xpm_gnut_net_on)
+    "" filename_option ""
+let xpm_nap_net_on = define_option mldonkey_gui_section (xpm_label M.o_xpm_nap_net_on)
+    "" filename_option ""
+let xpm_slsk_net_on = define_option mldonkey_gui_section (xpm_label M.o_xpm_slsk_net_on)
+    "" filename_option ""
+let xpm_mld_tux_on = define_option mldonkey_gui_section (xpm_label M.o_xpm_mld_tux_on)
+    "" filename_option ""
+let xpm_bt_net_off = define_option mldonkey_gui_section (xpm_label M.o_xpm_bt_net_off)
+    "" filename_option ""
+let xpm_dc_net_off = define_option mldonkey_gui_section (xpm_label M.o_xpm_dc_net_off)
+    "" filename_option ""
+let xpm_ed2k_net_off = define_option mldonkey_gui_section (xpm_label M.o_xpm_ed2k_net_off)
+    "" filename_option ""
+let xpm_ftt_net_off = define_option mldonkey_gui_section (xpm_label M.o_xpm_ftt_net_off)
+    "" filename_option ""
+let xpm_gnut_net_off = define_option mldonkey_gui_section (xpm_label M.o_xpm_gnut_net_off)
+    "" filename_option ""
+let xpm_nap_net_off = define_option mldonkey_gui_section (xpm_label M.o_xpm_nap_net_off)
+    "" filename_option ""
+let xpm_slsk_net_off = define_option mldonkey_gui_section (xpm_label M.o_xpm_slsk_net_off)
+    "" filename_option ""
+let xpm_mld_tux_off = define_option mldonkey_gui_section (xpm_label M.o_xpm_mld_tux_off)
     "" filename_option ""
 
 (** {2 Toolbars style} *)
@@ -536,92 +539,92 @@ let (class_tbstyle : Gtk.Tags.toolbar_style option_class) =
       define_option_class "toolbar_style" 
     value_to_tbstyle tbstyle_to_value
 
-let toolbars_style = define_option mldonkey_gui_ini
+let toolbars_style = define_option mldonkey_gui_section
     ["toolbars_style"] (gettext M.h_toolbars_style)
     class_tbstyle `ICONS
 
-let mini_toolbars = define_option mldonkey_gui_ini
+let mini_toolbars = define_option mldonkey_gui_section
     ["mini_toolbars"] "Use mini icons in toolbars"
     bool_option true
 
 (** {2 Layout} *)
 
-let servers_vpane_up = define_option mldonkey_gui_ini
+let servers_vpane_up = define_option mldonkey_gui_section
     ["layout"; "servers_vpane_up"]
   "Size in % of upper part of the servers hpane"
     int_option 72
 
-let friends_hpane_left = define_option mldonkey_gui_ini
+let friends_hpane_left = define_option mldonkey_gui_section
   ["layout"; "friends_hpane_left"]
   "Size in % of left part of the friends hpane"
     int_option 17
 
-let friends_vpane_up = define_option mldonkey_gui_ini
+let friends_vpane_up = define_option mldonkey_gui_section
     ["layout"; "friends_vpane_up"]
     "Size in % of up part of the friends vpane"
     int_option 69
 
-let friends_hpane_dirs = define_option mldonkey_gui_ini
+let friends_hpane_dirs = define_option mldonkey_gui_section
     ["layout"; "friends_hpane_dirs"]
     "Size in % of the directories part of the files box"
     int_option 13
 
-let rooms_hpane_left = define_option mldonkey_gui_ini
+let rooms_hpane_left = define_option mldonkey_gui_section
     ["layout"; "rooms_hpane_left"]
     "Size in % of left part of the rooms hpane"
     int_option 30
 
-let rooms_hpane2_left = define_option mldonkey_gui_ini
+let rooms_hpane2_left = define_option mldonkey_gui_section
     ["layout"; "rooms_hpane_left"]
     "Size in % of left part of the second rooms hpane"
     int_option 50
 
-let rooms_vpane_up = define_option mldonkey_gui_ini
+let rooms_vpane_up = define_option mldonkey_gui_section
     ["layout"; "rooms_hpane_left"]
     "Size in % of upper part of the rooms vpane"
     int_option 50
 
-let uploads_vpane_up = define_option mldonkey_gui_ini
+let uploads_vpane_up = define_option mldonkey_gui_section
     ["layout"; "uploads_vpane_up"]
     "Size in % of up part of the uploads vpane"
     int_option 72
 
 (*
-let servers_hpane_left = define_option mldonkey_gui_ini
+let servers_hpane_left = define_option mldonkey_gui_section
     ["layout"; "servers_hpane_left"]
     "Size in % of left part of the servers hpane"
     int_option 80
 
-let downloads_hpane_left = define_option mldonkey_gui_ini
+let downloads_hpane_left = define_option mldonkey_gui_section
     ["layout"; "downloads_hpane_left"]
   "Size in % of left part of the downloads hpane"
     int_option 80
 
-let searches_hpane_left = define_option mldonkey_gui_ini
+let searches_hpane_left = define_option mldonkey_gui_section
     ["layout"; "searches_hpane_left"]
   "Size in % of left part of the searches hpane"
     int_option 40
   
-let downloads_vpane_up = define_option mldonkey_gui_ini
+let downloads_vpane_up = define_option mldonkey_gui_section
     ["layout"; "downloads_vpane_up"]
   "Size in % of up part of the downloads vpane (downloaded/downloading)"
     int_option 50
 
-let downloads_wpane_up = define_option mldonkey_gui_ini
+let downloads_wpane_up = define_option mldonkey_gui_section
     ["layout"; "downloads_wpane_up"]
   "Size in % of up part of the downloads vpane (locations/client info)"
     int_option 75
 *)
 
-let gui_width = define_option mldonkey_gui_ini
+let gui_width = define_option mldonkey_gui_section
     ["layout"; "width"]
     "Width of GUI window" int_option 600
 
-let gui_height = define_option mldonkey_gui_ini
+let gui_height = define_option mldonkey_gui_section
     ["layout"; "height"]
   "Height of GUI window" int_option 400
 
-let notebook_tab = define_option mldonkey_gui_ini
+let notebook_tab = define_option mldonkey_gui_section
     ["layout"; "tab_position"]
     "Position of tab (left, right, top, bottom)" TabPosition.t `TOP
 
@@ -632,7 +635,7 @@ let notebook_tab = define_option mldonkey_gui_ini
 (** {3 Files} *)
 
 
-let downloads_columns = define_option mldonkey_gui_ini
+let downloads_columns = define_option mldonkey_gui_section
     ["downloads_columns"] (gettext M.h_downloads_columns)
     (list_option C.File.class_column)
   [
@@ -644,7 +647,7 @@ let downloads_columns = define_option mldonkey_gui_ini
   ]
 
 (*
-let downloaded_columns = define_option mldonkey_gui_ini
+let downloaded_columns = define_option mldonkey_gui_section
     ["downloaded_columns"] (gettext M.h_downloaded_columns)
     (list_option C.File.class_column)
     [ C.Col_file_name ; C.Col_file_size ; 
@@ -653,14 +656,14 @@ let downloaded_columns = define_option mldonkey_gui_ini
 
 (** {3 Clients} *)
 
-let friends_columns = define_option mldonkey_gui_ini
+let friends_columns = define_option mldonkey_gui_section
     ["friends_columns"] (gettext M.h_friends_columns)
     (list_option C.Client.class_column)
   [
    C.Col_client_name ;
   ]
 
-let file_locations_columns = define_option mldonkey_gui_ini
+let file_locations_columns = define_option mldonkey_gui_section
     ["file_locations_columns"] (gettext M.h_file_locations_columns)
     (list_option C.Client.class_column)
   [
@@ -673,7 +676,7 @@ let file_locations_columns = define_option mldonkey_gui_ini
 
 (** {3 Users} *)
 
-let users_columns = define_option mldonkey_gui_ini
+let users_columns = define_option mldonkey_gui_section
     ["users_columns"] "Columns of the users lists"
     (list_option C.User.class_column)
   [
@@ -681,7 +684,7 @@ let users_columns = define_option mldonkey_gui_ini
    C.Col_user_tags ;
   ]
 
-let rooms_columns = define_option mldonkey_gui_ini
+let rooms_columns = define_option mldonkey_gui_section
     ["rooms_columns"] "Columns of the room lists"
     (list_option C.Room.class_column)
   [
@@ -691,7 +694,7 @@ let rooms_columns = define_option mldonkey_gui_ini
 
 (** {3 Servers} *)
 
-let servers_columns = define_option mldonkey_gui_ini
+let servers_columns = define_option mldonkey_gui_section
     ["server_columns"] (gettext M.h_servers_columns)
     (list_option C.Server.class_column)
   [
@@ -703,7 +706,7 @@ let servers_columns = define_option mldonkey_gui_ini
 
 (** {3 Results} *)
 
-let results_columns = define_option mldonkey_gui_ini
+let results_columns = define_option mldonkey_gui_section
     ["results_columns"] (gettext M.h_results_columns)
     (list_option C.Result.class_column)
   [
@@ -715,7 +718,7 @@ let results_columns = define_option mldonkey_gui_ini
 
 (** {3 Upload info} *)
 
-let shared_files_up_columns = define_option mldonkey_gui_ini
+let shared_files_up_columns = define_option mldonkey_gui_section
     ["shared_files_up_columns"] M.h_shared_files_up_columns
     (list_option C.Shared_files_up.class_column)
   [
@@ -725,71 +728,71 @@ let shared_files_up_columns = define_option mldonkey_gui_ini
 
 (** {2 Others} *)
 
-let login = define_option mldonkey_gui_ini ["login"] 
+let login = define_option mldonkey_gui_section ["login"] 
     "Your login name (default is admin)" string_option "admin"
-let password = define_option mldonkey_gui_ini ["password"] 
+let password = define_option mldonkey_gui_section ["password"] 
     (gettext M.h_gui_password) string_option ""
-let port = define_option mldonkey_gui_ini ["port"] 
+let port = define_option mldonkey_gui_section ["port"] 
     (gettext M.h_gui_port) int_option 4001
-let hostname = define_option mldonkey_gui_ini ["hostname"] 
+let hostname = define_option mldonkey_gui_section ["hostname"] 
     (gettext M.h_hostname) string_option "localhost"
 
-let history = define_option mldonkey_gui_ini ["history"]
+let history = define_option mldonkey_gui_section ["history"]
     "History of connected cores"
   (list_option (tuple2_option (string_option, int_option))) []
   
 (** Profondeur max pour l'auto expand des arborescences des fichiers
    des friends. *)
-let files_auto_expand_depth = define_option mldonkey_gui_ini 
+let files_auto_expand_depth = define_option mldonkey_gui_section 
     ["files_auto_expand_depth"]
     (M.h_files_auto_expand_depth) int_option 3
 
 (** Whether we must print sizes in bytes or use G, M and k suffixes. *)
-let use_size_suffixes = define_option mldonkey_gui_ini
+let use_size_suffixes = define_option mldonkey_gui_section
     ["use_size_suffixes"]
     (M.h_use_size_suffixes) bool_option true
 
-let use_availability_height = define_option mldonkey_gui_ini ["availability_height"]
+let use_availability_height = define_option mldonkey_gui_section ["availability_height"]
   "Display the availability of each chunk as the height of the colored bar"
     bool_option true
 
-let availability_max = define_option mldonkey_gui_ini ["availability_max"]
+let availability_max = define_option mldonkey_gui_section ["availability_max"]
   "If use_availability_height is true, which availability corresponds to
   a full bar ?"
     int_option 10
   
-let use_relative_availability = define_option mldonkey_gui_ini ["relative_availability"]
+let use_relative_availability = define_option mldonkey_gui_section ["relative_availability"]
   "Calculate the % avilability ignoring already present chunks"
     bool_option true
 
-let use_icons = define_option mldonkey_gui_ini ["use_icons"]
+let use_icons = define_option mldonkey_gui_section ["use_icons"]
   "Use icons in all the lists"
     bool_option true
 
-let use_graphical_availability = define_option mldonkey_gui_ini ["graphical_availability"]
+let use_graphical_availability = define_option mldonkey_gui_section ["graphical_availability"]
   "Use graphical representation for the availability in the downloads tab"
     bool_option true
 
-let max_client_name_len = define_option mldonkey_gui_ini
+let max_client_name_len = define_option mldonkey_gui_section
     ["max_client_name_len"] "Max length of a source name"
     int_option 40
 
-let max_result_name_len = define_option mldonkey_gui_ini
+let max_result_name_len = define_option mldonkey_gui_section
     ["max_result_name_len"] "Max length of a source name"
     int_option 70
     
-let compaction_overhead = define_option mldonkey_gui_ini 
+let compaction_overhead = define_option mldonkey_gui_section 
     ["compaction_overhead"] 
     "The percentage of free memory before a compaction is triggered"
     int_option 50
 
 (*
-let auto_resize = define_option mldonkey_gui_ini
+let auto_resize = define_option mldonkey_gui_section
     ["auto_resize"]
   "auto resize columns" bool_option true
 *)
 
-let interface_buffer = define_option mldonkey_gui_ini
+let interface_buffer = define_option mldonkey_gui_section
     ["interface_buffer"] "The size of the buffer to the core"
     int_option 10000000
 
@@ -1058,47 +1061,47 @@ let pixmap i = GMisc.pixmap (gdk_pix i) ()
 
 
 
-let copy_messages = define_option mldonkey_gui_ini
+let copy_messages = define_option mldonkey_gui_section
     ["copy_messages"]
   "For bundle binaries, should we directly pass structures between
     the core and the GUI (faster), or copy them (fewer bugs) " bool_option 
   true
 
-let downloads_up = define_option mldonkey_gui_ini
+let downloads_up = define_option mldonkey_gui_section
     ["downloads_up"]
   "Put the download frame up"
   bool_option true
 
-let chunk_width = define_option mldonkey_gui_ini
+let chunk_width = define_option mldonkey_gui_section
     ["chunk_width"]
     "The chunk width in pixel"
     int_option 3
   
 (** {2 Graph Options} *)
-let max_download_rate =  define_option mldonkey_gui_ini ["max_download_rate"]
+let max_download_rate =  define_option mldonkey_gui_section ["max_download_rate"]
     (gettext M.h_max_download_rate) int_option 64
-let max_upload_rate =  define_option mldonkey_gui_ini ["max_upload_rate"]
+let max_upload_rate =  define_option mldonkey_gui_section ["max_upload_rate"]
     (gettext M.h_max_upload_rate) int_option 16
-let download_time_range =  define_option mldonkey_gui_ini ["download_time_range"]
+let download_time_range =  define_option mldonkey_gui_section ["download_time_range"]
     (gettext M.h_download_time_range) string_option "6h"
-let upload_time_range = define_option mldonkey_gui_ini ["upload_time_range"]
+let upload_time_range = define_option mldonkey_gui_section ["upload_time_range"]
     (gettext M.h_upload_time_range) string_option "6h"
 
-let color_bg_download =  define_option mldonkey_gui_ini ["bg_download"]
+let color_bg_download =  define_option mldonkey_gui_section ["bg_download"]
     (gettext M.h_col_bg_download) string_option "#454b55"
-let color_bg_upload =  define_option mldonkey_gui_ini ["bg_upload"]
+let color_bg_upload =  define_option mldonkey_gui_section ["bg_upload"]
     (gettext M.h_col_bg_upload) string_option "#454b55"
-let color_grid_download =  define_option mldonkey_gui_ini ["grid_download"]
+let color_grid_download =  define_option mldonkey_gui_section ["grid_download"]
     (gettext M.h_col_grid_download) string_option "#fffcc6"
-let color_grid_upload =  define_option mldonkey_gui_ini ["grid_upload"]
+let color_grid_upload =  define_option mldonkey_gui_section ["grid_upload"]
     (gettext M.h_col_grid_upload) string_option "#fffcc6"
-let color_fg_download =  define_option mldonkey_gui_ini ["fg_download"]
+let color_fg_download =  define_option mldonkey_gui_section ["fg_download"]
     (gettext M.h_col_fg_download) string_option "#83afff"
-let color_fg_upload =  define_option mldonkey_gui_ini ["fg_upload"]
+let color_fg_upload =  define_option mldonkey_gui_section ["fg_upload"]
     (gettext M.h_col_fg_upload) string_option "#6eec8b"
-let color_fg_download_av =  define_option mldonkey_gui_ini ["fg_download_av"]
+let color_fg_download_av =  define_option mldonkey_gui_section ["fg_download_av"]
     (gettext M.h_col_fg_download_av) string_option "#2d62c1"
-let color_fg_upload_av =  define_option mldonkey_gui_ini ["fg_upload_av"]
+let color_fg_upload_av =  define_option mldonkey_gui_section ["fg_upload_av"]
     (gettext M.h_col_fg_upload_av) string_option "#61b722"
 
 

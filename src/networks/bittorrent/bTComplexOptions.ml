@@ -184,7 +184,7 @@ let file_to_value file =
   ]
   
 let old_files = 
-  define_option bittorrent_ini ["old_files"]
+  define_option bittorrent_section ["old_files"]
     "" (list_option (tuple2_option (string_option, int64_option))) []
     
     

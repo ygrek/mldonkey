@@ -20,7 +20,7 @@ touch install-sh
 BATCH=no
 AUDIO_GALAXY=no
 OPEN_NAPSTER=yes
-GNUTELLA=yes
+GNUTELLA=no
 DIRECT_CONNECT=yes
 SOULSEEK=yes
 OPENFT=no

@@ -39,6 +39,13 @@ module DO = CommonOptions
 open CommonNetwork
   
 let network = new_network "Open Napster"
+    [ 
+    NetworkHasServers; 
+    NetworkHasRooms;
+    NetworkHasChat;
+    NetworkHasSearch;
+  ]
+  
     (fun _ -> !!network_options_prefix)
   (fun _ -> !!commit_in_subdir)
 (*    network_options_prefix commit_in_subdir *)

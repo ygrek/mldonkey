@@ -50,6 +50,37 @@ extern void leave_blocking_section();
 #define FD_TASK_READ_ALLOWED 6
 #define FD_TASK_WRITE_ALLOWED 7
 
+/* Stubs that could be used by epoll */
+
+value ml_change_fd_event_setting(value task_v){
+  int fd = Socket_val(Field(task_v,FD_TASK_FD));
+  int must_read = ((Field(task_v, FD_TASK_RLEN) != Val_int(0)) &&
+    (Field(Field(task_v, FD_TASK_READ_ALLOWED),0) == Val_true));
+  int must_write = ( (Field(task_v, FD_TASK_WLEN) != Val_int(0)) &&
+    (Field(Field(task_v, FD_TASK_WRITE_ALLOWED),0) == Val_true));
+  
+  return Val_unit;
+}
+
+value ml_add_fd_to_event_set(value task_v){
+  int fd = Socket_val(Field(task_v,FD_TASK_FD));
+  int must_read = ((Field(task_v, FD_TASK_RLEN) != Val_int(0)) &&
+    (Field(Field(task_v, FD_TASK_READ_ALLOWED),0) == Val_true));
+  int must_write = ( (Field(task_v, FD_TASK_WLEN) != Val_int(0)) &&
+    (Field(Field(task_v, FD_TASK_WRITE_ALLOWED),0) == Val_true));
+
+  return Val_unit;
+}
+
+value ml_remove_fd_from_event_set(value task_v){
+  int fd = Socket_val(Field(task_v,FD_TASK_FD));
+
+  return Val_unit;
+}
+
+
+
+
 #if defined(HAVE_POLL) && defined(HAVE_SYS_POLL_H)
 
 #include <sys/poll.h>
@@ -63,8 +94,8 @@ value try_poll(value fdlist, value timeout) /* ML */
   int tm = (int)(1e3 * (double)Double_val(timeout));
   int nfds = 0;
   int retcode;
-  value res;
-  int notimeout;
+/*  value res; */
+/*  int notimeout; */
   value l;  
   int must_read;
   int must_write;
@@ -110,7 +141,7 @@ value try_poll(value fdlist, value timeout) /* ML */
     for(pos=0; pos<nfds && retcode > 0; pos++){
       if (ufds[pos].revents){
         value v = pfds[pos];
-        int fd = Socket_val(Field(v,FD_TASK_FD));
+/*        int fd = Socket_val(Field(v,FD_TASK_FD)); */
       /*  printf("TESTING %d AT %d\n", fd, pos); */
       /*  fprintf(stderr, "FOR FD in POLL %d[%d]\n", fd, ufds[pos].revents); */
         value flags = Val_int(0);
@@ -135,12 +166,12 @@ value try_select(value fdlist, value timeout) /* ML */
   struct timeval tv;
   struct timeval * tvp;
   int retcode;
-  value res;
-  int notimeout;
+/*  value res; */
+/*  int notimeout; */
   value l;  
   int maxfd = 0 ;
 
-  restart_select:
+/*  restart_select: */
 
   FD_ZERO(&read);
   FD_ZERO(&write);
@@ -320,7 +351,7 @@ value ml_setsock_iptos_throughput(value sock_v)
 
 value ml_getsize64(value path)
 {
-  int ret;
+/*  int ret; */
 
   return copy_int64(os_getfilesize(String_val(path)));
 }
@@ -431,140 +462,93 @@ value ml_ints_of_string(value s_v)
 /*******************************************************************
 
 
-                     md4
+                     hashes
 
 
 *******************************************************************/
-
-#include "md4.h"
 
 unsigned char hash_buffer[HASH_BUFFER_LEN];
 
-value md4_unsafe64_fd (value digest_v, value fd_v, value pos_v, value len_v)
-{
-  OS_FD fd = Fd_val(fd_v);
-  long pos = Int64_val(pos_v);
-  long len = Int64_val(len_v);
-  unsigned char *digest = String_val(digest_v);
-  MD4_CTX context;
-  int nread;
+#define ML_HASH(HASH_NAME,HASH_CONTEXT,HASH_INIT,HASH_APPEND,HASH_FINISH) \
+value HASH_NAME##_unsafe64_fd (value digest_v, value fd_v, value pos_v, value len_v) \
+{ \
+  OS_FD fd = Fd_val(fd_v); \
+  long pos = Int64_val(pos_v); \
+  long len = Int64_val(len_v); \
+  unsigned char *digest = String_val(digest_v); \
+  HASH_CONTEXT context; \
+  int nread; \
+ \
+  HASH_INIT (&context); \
+  os_lseek(fd, pos, SEEK_SET); \
+ \
+  while (len!=0){ \
+    int max_nread = HASH_BUFFER_LEN > len ? len : HASH_BUFFER_LEN; \
+ \
+    nread = os_read (fd, hash_buffer, max_nread); \
+ \
+    if(nread < 0) { \
+      unix_error(errno, "md4_safe_fd: Read", Nothing); \
+    } \
+ \
+    if(nread == 0){ \
+      HASH_FINISH (&context, digest); \
+ \
+      return Val_unit; \
+    } \
+ \
+    HASH_APPEND (&context, hash_buffer, nread); \
+    len -= nread; \
+  } \
+  HASH_FINISH (&context, digest); \
+ \
+  return Val_unit; \
+} \
+\
+value HASH_NAME##_unsafe_string(value digest_v, value string_v, value len_v) \
+{ \
+  unsigned char *digest = String_val(digest_v); \
+  unsigned char *string = String_val(string_v); \
+  long len = Long_val(len_v); \
+  HASH_CONTEXT context; \
+ \
+  HASH_INIT (&context); \
+  HASH_APPEND (&context, string, len); \
+  HASH_FINISH (&context, digest); \
+  \
+  return Val_unit; \
+} \
+ \
+value HASH_NAME##_unsafe_file (value digest_v, value filename_v, value file_size) \
+{ \
+  char *filename  = String_val(filename_v); \
+  unsigned char *digest = String_val(digest_v); \
+  FILE *file; \
+  HASH_CONTEXT context; \
+  int len; \
+ \
+  if ((file = fopen (filename, "rb")) == NULL) \
+    raise_not_found(); \
+ \
+  else { \
+    HASH_INIT (&context); \
+    while ((len = fread (hash_buffer, 1, HASH_BUFFER_LEN, file)) >0) \
+      HASH_APPEND (&context, hash_buffer, len); \
+    HASH_FINISH (&context, digest); \
+ \
+    fclose (file); \
+  } \
+  return Val_unit; \
+} \
 
-  MD4Init (&context);
-  os_lseek(fd, pos, SEEK_SET);
 
-  while (len!=0){
-    int max_nread = HASH_BUFFER_LEN > len ? len : HASH_BUFFER_LEN;
-
-    nread = os_read (fd, hash_buffer, max_nread);
-
-    if(nread < 0) {
-      unix_error(errno, "md4_safe_fd: Read", Nothing);
-    }
-
-    if(nread == 0){
-      MD4Final (digest, &context);
-
-      return Val_unit;
-    }
-
-    MD4Update (&context, hash_buffer, nread);
-    len -= nread;
-  }
-  MD4Final (digest, &context);
-
-  return Val_unit;
-}
-
-/*******************************************************************
-
-
-                     md5
-
-
-*******************************************************************/
+#include "md4.h"
 #include "md5.h"
-
-value md5_unsafe64_fd (value digest_v, value fd_v, value pos_v, value len_v)
-{
-  OS_FD fd = Fd_val(fd_v);
-  long pos = Int64_val(pos_v);
-  long len = Int64_val(len_v);
-  unsigned char *digest = String_val(digest_v);
-  md5_state_t context;
-  int nread;
-
-  md5_init (&context);
-  os_lseek(fd, pos, SEEK_SET);
-
-  while (len!=0){
-    int max_nread = HASH_BUFFER_LEN > len ? len : HASH_BUFFER_LEN;
-
-    nread = os_read (fd, hash_buffer, max_nread);
-
-    if(nread < 0) {
-      unix_error(errno, "md5_safe_fd: Read", Nothing);
-    }
-
-    if(nread == 0){
-      md5_finish (&context, digest);
-
-      return Val_unit;
-    }
-
-    md5_append (&context, hash_buffer, nread);
-    len -= nread;
-  }
-  md5_finish (&context, digest);
-
-  return Val_unit;
-}
-
-
-
-/*******************************************************************
-
-
-                     sha1
-
-
-*******************************************************************/
 #include "sha1_c.h"
 
-value sha1_unsafe64_fd (value digest_v, value fd_v, value pos_v, value len_v)
-{
-  OS_FD fd = Fd_val(fd_v);
-  long pos = Int64_val(pos_v);
-  long len = Int64_val(len_v);
-  unsigned char *digest = String_val(digest_v);
-  SHA1_CTX context;
-  int nread;
-
-  sha1_init (&context);
-  os_lseek(fd, pos, SEEK_SET);
-
-  while (len!=0){
-    int max_nread = HASH_BUFFER_LEN > len ? len : HASH_BUFFER_LEN;
-
-    nread = os_read (fd, hash_buffer, max_nread);
-
-    if(nread < 0) {
-      unix_error(errno, "sha1_safe_fd: Read", Nothing);
-    }
-
-    if(nread == 0){
-      sha1_finish (&context, digest);
-
-      return Val_unit;
-    }
-
-    sha1_append (&context, hash_buffer, nread);
-    len -= nread;
-  }
-  sha1_finish (&context, digest);
-
-  return Val_unit;
-}
-
+ML_HASH(sha1,SHA1_CTX,sha1_init,sha1_append, sha1_finish)
+ML_HASH(md5,md5_state_t,md5_init,md5_append,md5_finish)
+ML_HASH(md4,MD4_CTX,MD4Init,MD4Update,md4_finish)
 
 /*******************************************************************
 
@@ -575,11 +559,9 @@ value sha1_unsafe64_fd (value digest_v, value fd_v, value pos_v, value len_v)
 *******************************************************************/
 #include "tiger.h"
 
-
-static char tiger_buffer[BLOCK_SIZE+1];
-
-void tiger_tree_fd(OS_FD fd, int len, int pos, int block_size, char *digest)
+static void tiger_tree_fd(OS_FD fd, int len, int pos, int block_size, char *digest)
 {
+  static char tiger_buffer[BLOCK_SIZE+1];
   if(block_size == BLOCK_SIZE){
     int length = (len - pos > BLOCK_SIZE) ? BLOCK_SIZE : len - pos;
     char *s = tiger_buffer+1;
@@ -612,13 +594,13 @@ void tiger_tree_fd(OS_FD fd, int len, int pos, int block_size, char *digest)
   }
 }
 
-value tiger_unsafe64_fd (value digest_v, value fd_v, value pos_v, value len_v)
+value tigertree_unsafe64_fd (value digest_v, value fd_v, value pos_v, value len_v)
 {
   OS_FD fd = Fd_val(fd_v);
   long pos = Int64_val(pos_v);
   long len = Int64_val(len_v);
   unsigned char *digest = String_val(digest_v);
-  int nread;
+/*  int nread; */
 
   os_lseek(fd, pos, SEEK_SET);
 

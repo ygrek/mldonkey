@@ -34,7 +34,8 @@ let _ =
   *)
 
 let message_file = Options.create_options_file message_file_name
-let message name t x = define_option message_file [name] "" t x
+let message_section = file_section message_file [] ""
+let message name t x = define_option message_section [name] "" t x
 let and_not = message "and_not" (T.option T.format) "And Not"
 let audio = message "audio" (T.option T.format) "Audio"
 let video = message "video" (T.option T.format) "Video"

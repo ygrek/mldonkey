@@ -77,6 +77,12 @@ let get_name_keywords file_name =
   
   
 let network = new_network "Fasttrack"  
+         [ 
+    NetworkHasSupernodes; 
+    NetworkHasRooms;
+    NetworkHasChat;
+    NetworkHasSearch;
+  ]
     (fun _ -> !!network_options_prefix)
   (fun _ -> !!commit_in_subdir)
       

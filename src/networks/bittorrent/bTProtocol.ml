@@ -295,12 +295,12 @@ dump (String.sub b.buf b.pos b.len);
         let msg_len = get_int b.buf b.pos in
         if b.len >= 4 + msg_len then
           begin
-              TcpBufferedSocket.buf_used sock 4;
+              buf_used b 4;
 (*              lprintf "Message complete\n"; *)
             if msg_len > 0 then 
               let opcode = get_int8 b.buf b.pos in
               let payload = String.sub b.buf (b.pos+1) (msg_len-1) in
-              TcpBufferedSocket.buf_used sock msg_len;
+              buf_used b msg_len;
 (*              lprintf "Opcode %d\n" opcode; *)
                 try
                   let p = parse_fun opcode payload in
@@ -333,7 +333,7 @@ let handlers info gconn =
             let peer_id = Sha1.direct_of_string 
                 (String.sub  b.buf (b.pos+29+slen) 20) in
             let proto,pos = get_string8 b.buf b.pos in
-            TcpBufferedSocket.buf_used sock (slen+49);
+            buf_used b (slen+49);
             h gconn sock (proto, file_id, peer_id);
             if not (TcpBufferedSocket.closed sock) then 
               iter_read sock 0
@@ -405,7 +405,7 @@ let send_client c msg =
       NoConnection | ConnectionWaiting | ConnectionAborted -> 
         failwith "Client is not connected\n"
 (*      lprintf "send_client: not connected\n";        *) 
-    | Connection sock ->
+    | Connection sock | CompressedConnection (_,_,_,sock) ->
         Buffer.clear buf;
 (*        lprintf "send_client\n";         *)
         begin

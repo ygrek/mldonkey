@@ -28,7 +28,8 @@ val reconnect :  (< clear : 'b; label_connect_status : < set_text : string -> 'c
     ('a -> GuiProto.to_gui -> unit) -> BasicSocket.close_reason -> unit
 val connected : unit -> bool
   
-val gui_protocol_used : int ref
+val to_gui_protocol_used : int array
+val from_gui_protocol_used : int array
   
 val scan_ports : unit -> unit
   

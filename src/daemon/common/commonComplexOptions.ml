@@ -91,14 +91,16 @@ module FileOption = struct
     ;;
   end
 
-    
+
+let files_section = file_section files_ini [] "" 
+  
 let done_files = 
-  define_option files_ini ["done_files"] 
+  define_option files_section ["done_files"] 
     "The files whose download is finished" (
     listiter_option (FileOption.t true)) []
   
 let files = 
-  define_option files_ini ["files"] 
+  define_option files_section ["files"] 
     "The files currently being downloaded" (
     listiter_option (FileOption.t false)) []
     
@@ -134,7 +136,7 @@ module ServerOption = struct
   end
 
 
-let servers = define_option servers_ini
+let servers = define_option servers_section
     ["known_servers"] "List of known servers"
     (intmap_option (fun s -> server_num s) ServerOption.t) Intmap.empty
 
@@ -268,8 +270,11 @@ module QueryOption = struct
       
     let t = define_option_class "Query" value_to_query query_to_value    
   end
-      
-let customized_queries = define_option searches_ini ["customized_queries"] ""
+
+let searches_section = file_section searches_ini [] ""
+  
+let customized_queries = define_option searches_section
+  ["customized_queries"] ""
     (list_option (tuple2_option (string_option, QueryOption.t)))
   [ 
     "Complex Search", 
@@ -352,9 +357,10 @@ module ClientOption = struct
       client_to_value
     ;;
   end
-  
+
+let friends_section = file_section friends_ini [] ""
 let friends = 
-  define_option friends_ini ["friends"] 
+  define_option friends_section ["friends"] 
     "The list of known friends" (listiter_option (ClientOption.t true)) []
   
 let load () = 

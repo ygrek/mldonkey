@@ -97,7 +97,7 @@ module Make(M: sig
 (*
       lprintf "NEW SOURCE POS %s\n" (Int64.to_string c.client_pos);
   *)
-        TcpBufferedSocket.buf_used sock b.len;
+        buf_used b b.len;
         if d.download_pos > file_downloaded file then 
           add_file_downloaded (as_file_impl file)
           (Int64.sub d.download_pos (file_downloaded file));
