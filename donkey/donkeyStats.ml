@@ -5,29 +5,29 @@ open DonkeyTypes
 open GuiTypes
 open BasicSocket (* last_time *)
 
-let brand_count = 9
+let brand_count = 8
 
 let brand_to_int b =
   match b with
       Brand_unknown -> 0
     | Brand_edonkey -> 1
     | Brand_mldonkey1 -> 2
-    | Brand_mldonkey2 -> 4
-    | Brand_overnet -> 5
-    | Brand_oldemule -> 6
-    | Brand_newemule -> 7
-    | Brand_server -> 8
+    | Brand_mldonkey2 -> 3
+    | Brand_overnet -> 4
+    | Brand_oldemule -> 5
+    | Brand_newemule -> 6
+    | Brand_server -> 7
 
 let brand_of_int b =
   match b with
       0 -> Brand_unknown
     | 1 -> Brand_edonkey
     | 2 -> Brand_mldonkey1
-    | 4 -> Brand_mldonkey2
-    | 5 -> Brand_overnet
-    | 6 -> Brand_oldemule
-    | 7 -> Brand_newemule
-    | 8 -> Brand_server
+    | 3 -> Brand_mldonkey2
+    | 4 -> Brand_overnet
+    | 5 -> Brand_oldemule
+    | 6 -> Brand_newemule
+    | 7 -> Brand_server
     | _ -> raise Not_found
 
 let brand_to_string b =
@@ -58,12 +58,9 @@ let dummy_stats =
   in stat
 
 let stats_all = dummy_stats 
-let stats_by_brand = Array.create brand_count dummy_stats
-(* unalias them, is there a better way ? *)
-let _ =
-  for i=0 to brand_count-1 do
-    stats_by_brand.(i) <- { dummy_stats with brand_seen = 0 }
-  done
+let stats_by_brand = Array.init brand_count (fun _ ->
+  { dummy_stats with brand_seen = 0 }
+    )
 
 let count_seen c =
   stats_all.brand_seen <- stats_all.brand_seen + 1;

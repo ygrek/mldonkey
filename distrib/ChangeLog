@@ -161,8 +161,8 @@ ChangeLog
 	faster.
   - gui/gui_downloads.ml: Call to remove_client removed until a new message
 	is added	for that in the protocol
-  - net/udpSocket.ml: implementation of SOCKS 5 support for UDP. Must check that
-	bytes are correctly ordered.
+  - net/udpSocket.ml: implementation of SOCKS 5 support for UDP. Must 
+         check that bytes are correctly ordered.
 
 2002/11/10: Simon
   - Fabrice has to move, and his new employer does not allow him to
