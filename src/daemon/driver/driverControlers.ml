@@ -587,13 +587,13 @@ let read_theme_page page =
 	close_in file; s
   
 let add_simple_commands buf =
-	let this_page = "commands.html" in
+  let this_page = "commands.html" in
   Buffer.add_string buf (
-		if !!html_mods_theme != "" && theme_page_exists this_page then
-			read_theme_page this_page else
-			if !!html_mods then !!CommonMessages.web_common_header_mods0
-			else !!CommonMessages.web_common_header_old)
-
+    if !!html_mods_theme != "" && theme_page_exists this_page then
+      read_theme_page this_page else
+    if !!html_mods then !!CommonMessages.web_common_header_mods0
+    else !!CommonMessages.web_common_header_old)
+  
 let http_add_gen_header buf =
   Buffer.add_string  buf "HTTP/1.0 200 OK\r\n";
   Buffer.add_string  buf "Server: MLdonkey\r\n";
@@ -614,7 +614,7 @@ let http_add_js_header buf =
   http_add_gen_header buf;
   Buffer.add_string  buf "Content-Type: text/javascript; charset=iso-8859-1\r\n";
   Buffer.add_string  buf "\r\n"
-
+  
 let any_ip = Ip.of_inet_addr Unix.inet_addr_any
   
 let html_open_page buf t r open_body =
@@ -722,7 +722,7 @@ let http_handler o t r =
               Printf.bprintf buf "<p align=\"left\"><small>";
               let mfiles = List2.tail_map file_info !!files in
               List.iter (fun file ->
-Printf.bprintf buf  "<a href=\"wap.wml?%s=%d\">%s</a> <a href=\"wap.wml?VDC=%d\">C</a> [%-5d] %5.1f %s %s/%s <br />" (if downloading file then "VDP" else "VDR" ) (file.file_num) (if downloading file then "P" else "R" ) (file.file_num) (file.file_num) (file.file_download_rate /. 1024.)(short_name file) (print_human_readable file (Int64.sub file.file_size file.file_downloaded)) (print_human_readable file file.file_size);
+                  Printf.bprintf buf  "<a href=\"wap.wml?%s=%d\">%s</a> <a href=\"wap.wml?VDC=%d\">C</a> [%-5d] %5.1f %s %s/%s <br />" (if downloading file then "VDP" else "VDR" ) (file.file_num) (if downloading file then "P" else "R" ) (file.file_num) (file.file_num) (file.file_download_rate /. 1024.)(short_name file) (print_human_readable file (Int64.sub file.file_size file.file_downloaded)) (print_human_readable file file.file_size);
               
               ) mfiles;
               Printf.bprintf buf "<br />Downloaded %d/%d files " (List.length !!done_files) (List.length !!files);
@@ -928,10 +928,14 @@ Printf.bprintf buf  "<a href=\"wap.wml?%s=%d\">%s</a> <a href=\"wap.wml?VDC=%d\"
                     rawcmd := String.sub cmd 0 (String.index cmd ' ');
                   
                   (match !rawcmd with 
-                    | "vm" | "vma" | "view_custom_queries"  | "xs" | "vr" | "afr" | "friend_remove" | "reshare" | "recover_temp"
-                    | "c" | "commit" | "bw_stats" | "ovweb" | "friends" | "message_log" | "friend_add" | "remove_old_servers"
-                    | "downloaders" | "uploaders" | "scan_temp" | "cs" | "version" | "rename" | "force_download" | "close_fds"
-                    | "vd" | "vo" | "voo" | "upstats" | "shares" | "share" | "unshare" -> drop_pre := true;
+                    | "vm" | "vma" | "view_custom_queries"  | "xs" | "vr"
+                    | "afr" | "friend_remove" | "reshare" | "recover_temp"
+                    | "c" | "commit" | "bw_stats" | "ovweb" | "friends"
+                    | "message_log" | "friend_add" | "remove_old_servers"
+                    | "downloaders" | "uploaders" | "scan_temp" | "cs"
+                    | "version" | "rename" | "force_download" | "close_fds"
+                    | "vd" | "vo" | "voo" | "upstats" | "shares" | "share"
+                    | "unshare" -> drop_pre := true;
                     | _ -> ());
                   
                   Printf.bprintf buf "%s\n" 
@@ -940,67 +944,67 @@ Printf.bprintf buf  "<a href=\"wap.wml?%s=%d\">%s</a> <a href=\"wap.wml?VDC=%d\"
               | [ ("custom", query) ] ->
                   html_open_page buf t r true;
                   CommonSearch.custom_query buf query
-                  
+              
               | ("custom", query) :: args ->
                   html_open_page buf t r true;
                   send_custom_query o.conn_user buf query  args
-  
+              
               | [ "setoption", _ ; "option", name; "value", value ] ->
                   html_open_page buf t r true;
                   CommonInteractive.set_fully_qualified_options name value;
                   Buffer.add_string buf "Option value changed"
-
+              
               | args -> 
                   List.iter (fun (s,v) ->
                       lprintf "[%s]=[%s]" (String.escaped s) (String.escaped v);
                       lprint_newline ()) args;
                   
                   raise Not_found
-end
-
+            end
+        
         | "/h.css" ->
             Buffer.clear buf;
             html_page := false; 
             http_add_css_header buf;
-			let this_page = "h.css" in
+            let this_page = "h.css" in
             Buffer.add_string buf (
-				if !!html_mods_theme != "" && theme_page_exists this_page then
-					read_theme_page this_page else
-						if !!html_mods then !CommonMessages.html_css_mods
-               			else !!CommonMessages.html_css_old)
-
+              if !!html_mods_theme != "" && theme_page_exists this_page then
+                read_theme_page this_page else
+              if !!html_mods then !CommonMessages.html_css_mods
+              else !!CommonMessages.html_css_old)
+        
         | "/dh.css" ->          
             Buffer.clear buf;
             html_page := false; 
             http_add_css_header buf;
-			let this_page = "dh.css" in
+            let this_page = "dh.css" in
             Buffer.add_string buf (
-				if !!html_mods_theme != "" && theme_page_exists this_page then
-					read_theme_page this_page else
-						if !!html_mods then !CommonMessages.download_html_css_mods
-               			else !!CommonMessages.download_html_css_old)
-
+              if !!html_mods_theme != "" && theme_page_exists this_page then
+                read_theme_page this_page else
+              if !!html_mods then !CommonMessages.download_html_css_mods
+              else !!CommonMessages.download_html_css_old)
+        
         | "/i.js" ->
             Buffer.clear buf;
             html_page := false; 
             http_add_js_header buf;
-			let this_page = "i.js" in
+            let this_page = "i.js" in
             Buffer.add_string buf (
-				if !!html_mods_theme != "" && theme_page_exists this_page then
-					read_theme_page this_page else
-						if !!html_mods then !!CommonMessages.html_js_mods0
-               			else !!CommonMessages.html_js_old)
-
+              if !!html_mods_theme != "" && theme_page_exists this_page then
+                read_theme_page this_page else
+              if !!html_mods then !!CommonMessages.html_js_mods0
+              else !!CommonMessages.html_js_old)
+        
         | "/di.js" ->          
             Buffer.clear buf;
             html_page := false; 
             http_add_js_header buf;
-			let this_page = "di.js" in
+            let this_page = "di.js" in
             Buffer.add_string buf (
-				if !!html_mods_theme != "" && theme_page_exists this_page then
-					read_theme_page this_page else
-						if !!html_mods then !!CommonMessages.download_html_js_mods0
-             			else !!CommonMessages.download_html_js_old)
+              if !!html_mods_theme != "" && theme_page_exists this_page then
+                read_theme_page this_page else
+              if !!html_mods then !!CommonMessages.download_html_js_mods0
+              else !!CommonMessages.download_html_js_old)
         | cmd ->
             html_open_page buf t r true;
             Printf.bprintf buf "No page named %s" (html_escaped cmd)

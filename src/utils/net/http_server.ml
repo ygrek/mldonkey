@@ -20,6 +20,8 @@
 open Printf2
 open BasicSocket
 open TcpBufferedSocket
+
+let verbose = ref false
   
 let html_escaped s =
   String2.convert false (fun b escaped c ->

@@ -1017,6 +1017,8 @@ let verbosity = define_expert_option current_section ["verbosity"]
   share: debug sharing
   md4 : md4 computation
   udp : udp messages
+  hc: http_client messages
+  hs: http_server messages
 "
     string_option ""
   
@@ -1200,6 +1202,8 @@ let _ =
       verbose_md4 := false;
       verbose_udp := false;
       verbose_swarming := false;
+      Http_client.verbose := false;
+      Http_server.verbose := false;
       
       List.iter (fun s ->
           match s with
@@ -1220,6 +1224,8 @@ let _ =
           | "connect" -> verbose_connect := true
           | "udp" -> verbose_udp := true
           | "swarming" -> verbose_swarming := true
+          | "hc" -> Http_client.verbose := true
+          | "hs" -> Http_server.verbose := true
               
           | "all" ->
               
@@ -1238,6 +1244,8 @@ let _ =
               verbose_md4 := true;
               verbose_udp := true;
               verbose_swarming := true;
+              Http_client.verbose := true;
+              Http_server.verbose := true;
               
           | _ -> ()
       

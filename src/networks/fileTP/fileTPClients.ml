@@ -38,16 +38,15 @@ open CommonFile
 open CommonGlobals
 open CommonSwarming  
   
-open FasttrackTypes
-open FasttrackOptions
-open FasttrackGlobals
-open FasttrackComplexOptions
-open FasttrackProtocol
+open FileTPTypes
+open FileTPOptions
+open FileTPGlobals
+open FileTPComplexOptions
+open FileTPProtocol
 
       (*
 let max_range_size = Int64.of_int (256 * 1024)
   *)
-
 let range_size file =  min_range_size
   (*
   let range =  file_size file // (Int64.of_int 10) in
@@ -71,16 +70,21 @@ let disconnect_client c r =
           set_client_disconnected c r;
           close sock r;
           c.client_sock <- NoConnection;
+          List.iter (fun d ->
+              let file = d.download_file in
+              match d.download_uploader with
+                None -> ()
+              | Some up ->
+                  Int64Swarmer.disconnect_uploader up
+            ) c.client_downloads;
           if c.client_reconnect then
             List.iter (fun d ->
                 let file = d.download_file in
-              Int64Swarmer.disconnect_uploader d.download_uploader;
                 if not (List.memq file c.client_in_queues) then begin
                     Queue.put file.file_clients_queue (0,c);
                     c.client_in_queues <- file :: c.client_in_queues
                   end;
             ) c.client_downloads;
-          c.client_downloads <- [];
           match c.client_connected_for with
             None -> ()
           | Some file -> 
@@ -94,12 +98,21 @@ let disconnect_client c r =
       with e -> 
           lprintf "Exception %s in disconnect_client\n"
             (Printexc2.to_string e))
+  | ConnectionWaiting token  -> 
+      cancel_token token;
+      c.client_sock <- NoConnection;
+      (match c.client_connected_for with
+            None -> ()
+          | Some file -> 
+            file.file_nconnected_clients <- file.file_nconnected_clients - 1
+      );
+      c.client_connected_for <- None;
   | _ -> ()
-
+      
 let download_finished file = 
   if List.memq file !current_files then begin
       file_completed (as_file file.file_file);
-      FasttrackGlobals.remove_file file;
+      FileTPGlobals.remove_file file;
       old_files =:= (file.file_name, file_size file) :: !!old_files;
       List.iter (fun c ->
           c.client_downloads <- remove_download file c.client_downloads
@@ -111,31 +124,11 @@ let check_finished file =
     (file_size file = Int64Swarmer.downloaded file.file_swarmer) then begin
       download_finished file
     end
-
-let make_kazaa_request buf c request url =
-  Printf.bprintf buf "%s %s HTTP/1.0\r\n" request url;
-
-(*
-            (match d.download_uri with
-                FileByUrl url -> Printf.bprintf buf "GET %s HTTP/1.0\r\n" url
-              | FileByIndex (index, name) -> 
-                  Printf.bprintf buf "GET /get/%d/%s HTTP/1.1\r\n" index
-                    name); *)
-  (match c.client_host with
-      None -> ()
-    | Some (ip, port) ->
-        Printf.bprintf buf "Host: %s:%d\r\n" 
-          (Ip.to_string ip) port);
-(*      Printf.bprintf buf "User-Agent: %s\r\n" user_agent; *)
-  Printf.bprintf buf "X-Kazaa-Network: %s\r\n" network_name;
-  Printf.bprintf buf "X-Kazaa-Username: %s\r\n" (client_name ());
-  Printf.bprintf buf "Connection: Keep-Alive\r\n"
-  
+    
 let rec client_parse_header c gconn sock header = 
   if !verbose_msg_clients then begin
       lprintf "CLIENT PARSE HEADER\n"; 
     end;
-  
   try
     set_lifetime sock 3600.;
     let d = 
@@ -151,12 +144,6 @@ let rec client_parse_header c gconn sock header =
         lprintf "HEADER FROM CLIENT:\n";
         AnyEndian.dump_ascii header; 
       end;
-    if d.download_head = HeadRequested then begin
-        lprintf "Received Reply to HEAD request: %s\n"
-          (String.escaped header);
-        d.download_head <- Head  header;
-      end
-    else
     let file = d.download_file in
     let size = file_size file in
     
@@ -191,7 +178,7 @@ let rec client_parse_header c gconn sock header =
     if !verbose_unknown_messages then begin
         let unknown_header = ref false in
         List.iter (fun (header, _) ->
-            unknown_header := !unknown_header || not (List.mem header FasttrackProto.known_download_headers)
+            unknown_header := !unknown_header || not (List.mem header known_download_headers)
         ) headers;
         if !unknown_header then begin
             lprintf "FT DEVEL: Download Header contains unknown fields\n";
@@ -207,15 +194,6 @@ let rec client_parse_header c gconn sock header =
     if  code < 200 || code > 299 then
       failwith "Bad HTTP code";
     
-(** Do it only when we are sure that the HEAD request was correct, ie that
-the client made a difference between a GET and a HEAD, which is by
-the way not the case of mldonkey...
-  *)
-    (if !!fasttrack_experimental && 
-        not c.client_support_head_request then
-        match d.download_head with 
-          Head _ -> c.client_support_head_request <- true
-        | _ -> ());
     
     let start_pos, end_pos = 
       try
@@ -321,16 +299,19 @@ end_pos !counter_pos b.len to_read;
           Int64Swarmer.downloaded file.file_swarmer in
 (*        List.iter (fun (_,_,r) -> Int64Swarmer.free_range r)  
         d.download_ranges; *)
-
+        
         begin
           try
-            Int64Swarmer.received d.download_uploader
-              !counter_pos b.buf b.pos to_read_int;
+            match d.download_uploader with
+              None -> assert false
+            | Some up ->
+                Int64Swarmer.received up
+                  !counter_pos b.buf b.pos to_read_int;
           with e -> 
               lprintf "FT: Exception %s in Int64Swarmer.received\n"
                 (Printexc2.to_string e)
         end;
-          c.client_reconnect <- true;
+        c.client_reconnect <- true;
 (*          List.iter (fun (_,_,r) ->
               Int64Swarmer.alloc_range r) d.download_ranges; *)
         let new_downloaded = 
@@ -370,7 +351,7 @@ lprintf "READ: buf_used %d\n" to_read_int;
                 *)
 (*                Int64Swarmer.free_range r; *)
                 d.download_ranges <- tail;
-                (* If we have no more range to receive, disconnect *)
+(* If we have no more range to receive, disconnect *)
                 if d.download_ranges = [] then raise Exit;
                 gconn.gconn_handler <- HttpHeader (client_parse_header c);
           end)
@@ -412,79 +393,76 @@ and get_from_client sock (c: client) =
                 lprintf "\n\nFinding Range: \n";
               end;
             let range = 
-              try
-                let rec iter () =
-                  match d.download_block with
-                    None -> 
-                      if !verbose_swarming then lprintf "No block\n";
-                      let b = Int64Swarmer.find_block d.download_uploader in
-                      
-                      lprintf "GOT BLOCK:\n";
-                      Int64Swarmer.print_uploaders file.file_swarmer;
-                      
-                      if !verbose_swarming then begin
-                          lprintf "Block Found: "; Int64Swarmer.print_block b;
-                        end;
-                      d.download_block <- Some b;
-                      iter ()
-                  | Some b ->
-                      if !verbose_swarming then begin
-                          lprintf "Current Block: "; Int64Swarmer.print_block b;
-                        end;
-                      try
-                        let r = Int64Swarmer.find_range d.download_uploader in
-                        
-                        lprintf "GOT RANGE:\n";
-                        Int64Swarmer.print_uploaders file.file_swarmer;
-                        
-                        let (x,y) = Int64Swarmer.range_range r in 
-                        d.download_ranges <- d.download_ranges @ [x,y,r];
-(*                        Int64Swarmer.alloc_range r; *)
-                        Printf.sprintf "%Ld-%Ld" x (y -- Int64.one)
-                      with Not_found ->
-                          if !verbose_swarming then 
-                            lprintf "Could not find range in current block\n";
-(*                          d.download_blocks <- List2.removeq b d.download_blocks; *)
-                          d.download_block <- None;
+              match d.download_uploader with
+                None -> assert false
+              | Some up ->
+                  try
+                    let rec iter () =
+                      match d.download_block with
+                        None -> 
+                          if !verbose_swarming then lprintf "No block\n";
+                          let b = Int64Swarmer.find_block up in
+                          
+(*                          lprintf "GOT BLOCK:\n"; *)
+                          Int64Swarmer.print_uploaders file.file_swarmer;
+                          
+                          if !verbose_swarming then begin
+                              lprintf "Block Found: "; Int64Swarmer.print_block b;
+                            end;
+                          d.download_block <- Some b;
                           iter ()
-                in
-                iter ()
-              with Not_found -> 
-                  lprintf "Unable to get a block !!";
-                  check_finished file;
-                  raise Not_found
+                      | Some b ->
+                          if !verbose_swarming then begin
+                              lprintf "Current Block: "; Int64Swarmer.print_block b;
+                            end;
+                          try
+                            let r = Int64Swarmer.find_range up in
+                            
+(*                            lprintf "GOT RANGE:\n"; *)
+                            Int64Swarmer.print_uploaders file.file_swarmer;
+                            
+                            let (x,y) = Int64Swarmer.range_range r in 
+                            d.download_ranges <- d.download_ranges @ [x,y,r];
+(*                        Int64Swarmer.alloc_range r; *)
+                            Printf.sprintf "%Ld-%Ld" x (y -- Int64.one)
+                          with Not_found ->
+                              if !verbose_swarming then 
+                                lprintf "Could not find range in current block\n";
+(*                          d.download_blocks <- List2.removeq b d.download_blocks; *)
+                              d.download_block <- None;
+                              iter ()
+                    in
+                    iter ()
+                  with Not_found -> 
+                      lprintf "Unable to get a block !!";
+                      check_finished file;
+                      raise Not_found
             in
             let buf = Buffer.create 100 in
-            let url = Printf.sprintf 
-               "/.hash=%s" (Md5Ext.to_hexa_case false file.file_hash) in 
-
-(* hum... what will happen if no client support HEAD request ? We might
-  lose them during the first connection... *)
-            if !!fasttrack_experimental && c.client_support_head_request &&
-              d.download_head = HeadNotRequested then begin
-                c.client_support_head_request <- false;
-                d.download_head <- HeadRequested;
-                make_kazaa_request buf c "HEAD" url;
-                Printf.bprintf buf "Accept: multipart/byteranges\r\n";
-                Printf.bprintf buf "Range: 0-\r\n";
-                Printf.bprintf buf "\r\n";
-              end;
-            make_kazaa_request buf c "GET" url;
+            let url = d.download_url in
             
-(* fst_http_request_set_header (request, "Connection", "close"); *)
+             Printf.bprintf buf "GET %s HTTP/1.0\r\n" url;
+
+            (*
+            (match d.download_uri with
+                FileByUrl url -> Printf.bprintf buf "GET %s HTTP/1.0\r\n" url
+              | FileByIndex (index, name) -> 
+                  Printf.bprintf buf "GET /get/%d/%s HTTP/1.1\r\n" index
+                    name); *)
+            Printf.bprintf buf "Host: %s\r\n" c.client_hostname;
+            Printf.bprintf buf "User-Agent: %s\r\n" user_agent; 
             Printf.bprintf buf "Range: bytes=%s\r\n" range;
+            Printf.bprintf buf "Connection: Keep-Alive\r\n";
             Printf.bprintf buf "\r\n";
             let s = Buffer.contents buf in
             if !verbose_msg_clients then
               lprintf "SENDING REQUEST to %s: %s\n" 
-                (match c.client_host with
-                  None -> "(??)"
-                | Some (ip,port) -> Ip.to_string ip)
+              c.client_hostname
               (String.escaped s);
             write_string sock s;
             c.client_requests <- c.client_requests @ [d];
             if !verbose_msg_clients then 
-              lprintf "Asking %s For Range %s\n" (Md4.to_string c.client_user.user_uid) 
+              lprintf "Asking %s For Range %s\n" c.client_hostname 
               range
           end
   in
@@ -496,9 +474,10 @@ let init_client sock =
   ()
   
 let connect_client c =
+(*  lprintf "connect_client...\n"; *)
   match c.client_sock with
     NoConnection ->
-
+(*      lprintf "NoConnection\n"; *)
 (* Count this connection in the first file counter. Here, we assume
 that the connection will not be aborted (otherwise, disconnect_client
   should clearly be called). *)
@@ -517,8 +496,12 @@ that the connection will not be aborted (otherwise, disconnect_client
                   raise Exit;
                 end
           ) c.client_downloads with _ -> ());
+(*      lprintf "...\n"; *)
+      let ip = Ip.from_name c.client_hostname in
+(*      lprintf "connect_client... pending\n"; *)
       let token =     
         add_pending_connection connection_manager (fun token ->
+            lprintf "Connection accepted\n";
             if List.exists (fun d ->
                   let file = d.download_file in
                   file_state file = FileDownloading 
@@ -528,53 +511,64 @@ that the connection will not be aborted (otherwise, disconnect_client
                 if !verbose_msg_clients then begin
                     lprintf "connect_client\n";
                   end;
-                match c.client_user.user_kind with
-                  Indirect_location _ -> ()
-                | Known_location (ip, port) ->
-                    if !verbose_msg_clients then begin
-                        lprintf "connecting %s:%d\n" (Ip.to_string ip) port; 
-                      end;
-                    c.client_reconnect <- false;
-                    let sock = connect token "fasttrack download" 
-                        (Ip.to_inet_addr ip) port
-                        (fun sock event ->
-                          match event with
-                            BASIC_EVENT (RTIMEOUT|LTIMEOUT) ->
-                              disconnect_client c Closed_for_timeout
-                          | BASIC_EVENT (CLOSED s) ->
-                              disconnect_client c s
+                if !verbose_msg_clients then begin
+                    lprintf "connecting %s:%d\n" (Ip.to_string ip) 
+                    c.client_port; 
+                  end;
+                c.client_reconnect <- false;
+                let sock = connect token "fileTP download" 
+                    (Ip.to_inet_addr ip) c.client_port
+                    (fun sock event ->
+                      match event with
+                        BASIC_EVENT (RTIMEOUT|LTIMEOUT) ->
+                          disconnect_client c Closed_for_timeout
+                      | BASIC_EVENT (CLOSED s) ->
+                          disconnect_client c s
 
 (* You can only use the CONNECTED signal if the socket is not yet controlled
 by the bandwidth manager... 2004/02/03: Normally, not true anymore, it should now work
   even in this case... *)
+                      
+                      | CONNECTED ->
+                          lprintf "CONNECTED !!! Asking for range...\n"; 
                           
-                          | CONNECTED ->
-(*           lprintf "CONNECTED !!! Asking for range...\n"; *)
-                              init_client sock;                
-                              get_from_client sock c
-                          | _ -> ()
-                      )
-                    in
-                    c.client_host <- Some (ip, port);
-                    set_client_state c Connecting;
-                    c.client_sock <- Connection sock;
-                    TcpBufferedSocket.set_closer sock (fun _ s ->
-                        disconnect_client c s
-                    );
-                    set_rtimeout sock 30.;
-                    if !verbose_msg_clients then begin
-                        lprintf "READY TO DOWNLOAD FILE\n";
-                      end;
-                    set_fasttrack_sock sock !verbose_msg_clients
-                      (HttpHeader (client_parse_header c))
+                          List.iter (fun d ->
+                              let file = d.download_file in
+                              let chunks = [ Int64.zero, file_size file ] in
+                              let bs = Int64Swarmer.register_uploader file.file_swarmer 
+                                  (Int64Swarmer.AvailableRanges chunks) in
+                              d.download_uploader <- Some bs
+                          ) c.client_downloads;
+                          
+                          init_client sock;                
+                          get_from_client sock c
+                      | _ -> ()
+                  )
+                in
+                set_client_state c Connecting;
+                c.client_sock <- Connection sock;
+                TcpBufferedSocket.set_closer sock (fun _ s ->
+                    disconnect_client c s
+                );
+                set_rtimeout sock 30.;
+                if !verbose_msg_clients then begin
+                    lprintf "READY TO DOWNLOAD FILE\n";
+                  end;
+                set_fileTP_sock sock !verbose_msg_clients
+                  (HttpHeader (client_parse_header c))
               
               with e ->
                   lprintf "Exception %s while connecting to client\n" 
                     (Printexc2.to_string e);
                   disconnect_client c (Closed_for_exception e)
+            else
+              disconnect_client c Closed_by_user
         ) in
       c.client_sock <- ConnectionWaiting token
-  | _ -> ()
+  | ConnectionWaiting _ -> 
+(*      lprintf "ConnectionWaiting...\n" *) ()
+  | Connection _ ->
+(*      lprintf "Already connected\n" *) ()
       
 (*
 let current_downloads = ref []
@@ -819,7 +813,7 @@ let listen () =
                   | None -> ()
               );
               BasicSocket.set_rtimeout (TcpBufferedSocket.sock sock) 30.;
-              set_fasttrack_sock sock !verbose_msg_clients
+              set_fileTP_sock sock !verbose_msg_clients
                 (HttpHeader (push_handler c));
           | _ -> ()
       ) in
@@ -829,3 +823,52 @@ let listen () =
       lprintf "Exception %s while init gnutella server\n" 
         (Printexc2.to_string e)
 *)    
+
+
+        
+let get_file_from_source c file =
+(*  lprintf "      get_file_from_source\n"; *)
+  if connection_can_try c.client_connection_control then begin
+(*      lprintf "       Queuing connection...\n"; *)
+      connection_try c.client_connection_control;
+      if not (List.memq file c.client_in_queues) then begin
+          Queue.put file.file_clients_queue (1,c);
+          c.client_in_queues <- file :: c.client_in_queues
+        end
+    end
+
+let ask_for_files () = (* called every minute *)
+(*  lprintf "ask_for_files\n"; *)
+  List.iter (fun file ->
+(*      lprintf "  for file\n"; *)
+      List.iter (fun c ->
+(*          lprintf "   for client\n"; *)
+          get_file_from_source c file
+      ) file.file_clients
+  ) !current_files;
+(*  lprintf "done\n"; *)
+  ()
+
+
+let nranges file = 
+  Int64.to_int (Int64.div (file_size file) 
+    min_range_size) + 5
+  
+let manage_hosts () = 
+  List.iter (fun file ->
+      if file_state file = FileDownloading then
+        try
+(* For each file, we allow only (nranges+5) simultaneous communications, 
+  to prevent too many clients from saturing the line for only one file. *)
+          let max_nconnected_clients = nranges file in
+(*          lprintf "max_nconnected_clients: %d > %d\n" max_nconnected_clients 
+           file.file_nconnected_clients; *)
+          while file.file_nconnected_clients < max_nconnected_clients do
+            let (_,c) = Queue.take file.file_clients_queue in
+(*            lprintf "One client\n"; *)
+            c.client_in_queues <- List2.removeq file c.client_in_queues;
+            connect_client c
+          done
+        with _ -> ()
+  ) !current_files
+  

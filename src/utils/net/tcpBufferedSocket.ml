@@ -68,6 +68,7 @@ type buf = {
     mutable pos : int;
     mutable len : int;
     mutable max_buf_size:int;
+    mutable min_buf_size: int
   }
 
 type t = {
@@ -273,7 +274,7 @@ let accept_connection_bandwidth rc wc =
 (*                                                                       *)
 (*************************************************************************)
 
-let min_buffer_read = 500
+let min_buffer_read = 2000
 let min_read_size = min_buffer_read - 100
 
 let old_strings_size = 20
@@ -302,6 +303,7 @@ let buf_create max =
     pos = 0;
     len = 0;
     max_buf_size = max;
+    min_buf_size = min_read_size;
   }
 
 
@@ -506,11 +508,16 @@ let can_read_handler t sock max_len =
 (*  let max_len = 100000 in (* REMOVE THIS: don't care about bw *) *)
   let b = t.rbuf in
   let curpos = b.pos + b.len in
+(*  lprintf "curpos %d/%d\n" curpos b.len; *)
   let can_read =
-    if b.buf = "" then begin
-        b.buf <- new_string ();
-        min_buffer_read
-      end
+    if b.buf = "" then 
+      if b.min_buf_size <= min_buffer_read then begin
+          b.buf <- new_string ();
+          min_buffer_read
+        end else begin
+          b.buf <- String.create b.min_buf_size;
+          b.min_buf_size
+        end
     else
     let buf_len = String.length b.buf in
     if buf_len - curpos < min_read_size then
@@ -545,7 +552,7 @@ let can_read_handler t sock max_len =
   let can_read = mini max_len can_read in
   if can_read > 0 then
     let nread = try
-(*        lprintf "Unix.read %d/%d/%d\n"  (String.length b.buf) (b.pos + b.len) can_read; *)
+(*        lprintf "Unix.read %d/%d/%d\n"  (String.length b.buf) (b.pos + b.len) can_read;  *)
         Unix.read (fd sock) b.buf (b.pos + b.len) can_read;
 
 	
@@ -559,7 +566,8 @@ let can_read_handler t sock max_len =
           raise e
 
     in
-
+    b.min_buf_size <- mini b.max_buf_size (
+      maxi (nread + nread / 2) min_read_size);
     (*
     if nread = max_len then begin
         lprintf "Unix.read: read limited %d\n" nread;
@@ -1349,6 +1357,7 @@ let _ =
                 let can_read = maxi !ip_packet_size (can_read * t.read_power) in
                 let old_nread = t.nread in
                 (try
+(*                    lprintf "allow to read %d\n" can_read; *)
                     can_read_handler t t.sock can_read
                   with _ -> ());
                 bc.remaining_bytes <- bc.remaining_bytes -

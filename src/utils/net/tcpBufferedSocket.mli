@@ -30,6 +30,7 @@ and buf = {
   mutable pos : int;
   mutable len : int;
   mutable max_buf_size : int;
+  mutable min_buf_size : int;
   } 
 
 type token

@@ -29,6 +29,7 @@ type http_request =
 | OPTIONS of url option (* None = '*' *)
 | CONNECT of string * int
 *)
+val verbose : bool ref 
   
 type request = {
     req_headers : ( string * string ) list;
@@ -48,6 +49,7 @@ val basic_request : request
   
 val get_page : request -> content_handler -> (unit -> unit) -> unit
 val wget : request -> (string -> unit) -> unit
+val whead : request -> ( (string * string) list -> unit) -> unit
 
 val wget_string : request -> (string -> unit) ->
   (int -> int -> unit) -> unit

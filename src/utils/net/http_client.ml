@@ -36,6 +36,8 @@ type http_request =
 | PUT
 | DELETE
 | TRACE
+
+let verbose = ref false
   
   (*
 | OPTIONS of url option (* None = '*' *)
@@ -74,7 +76,8 @@ let make_full_request r =
   let is_real_post = r.req_request = POST && args <> [] in
   if is_real_post
   then Buffer.add_string res "POST "
-  else Buffer.add_string res "GET ";
+  else 
+    Buffer.add_string res (if r.req_request = HEAD then "HEAD " else "GET ");
   Buffer.add_string res (
     let url = 
       if r.req_proxy <> None
@@ -93,7 +96,8 @@ let make_full_request r =
   ) r.req_headers;
   Printf.bprintf res "User-Agent: %s\r\n" r.req_user_agent;
   Printf.bprintf res "Accept: %s\r\n" r.req_accept;
-  (match r.req_referer with None -> ()
+  Printf.bprintf res "Connection: close\r\n";
+ (match r.req_referer with None -> ()
     | Some url -> 
         Printf.bprintf res "Referer: %s\r\n"  (Url.to_string false url));
   if is_real_post then begin
@@ -112,7 +116,8 @@ let make_full_request r =
     end else
     Buffer.add_string res "\r\n";
   let s = Buffer.contents res in
-(*   lprintf "URL: %s\n" s;  *)
+  if !verbose then
+    lprintf "Http_client.make_full_request on URL: %s\n" s;
   s
 
 let split_head s =
@@ -134,7 +139,7 @@ let parse_header headers_handler sock header =
   match headers with 
     [] -> failwith "Ill formed reply"
   | ans :: headers ->
-      lprintf "ANSWER %s\n" ans;
+      if !verbose then lprintf "Http_client.parse_header: ANSWER %s\n" ans;
       let ans_code = int_of_string (String.sub ans 9 3) in
       let headers = List.map (fun s ->
             let sep = String.index s ':' in
@@ -148,7 +153,7 @@ let parse_header headers_handler sock header =
       with _ -> 
           TcpBufferedSocket.close sock (Closed_for_error "bad header")
   
-let read_header header_handler  sock nread =  
+let read_header header_handler sock nread =  
   let b = TcpBufferedSocket.buf sock in
   let end_pos = b.pos + b.len in
   let new_pos = end_pos - nread in
@@ -242,7 +247,8 @@ let get_page r content_handler f =
           )
         in
         let nread = ref false in
-        lprintf "Request: %s\n" (String.escaped request);
+        if !verbose then 
+          lprintf "Http_client.get_page: %s\n" (String.escaped request);
         TcpBufferedSocket.write_string sock request;
         TcpBufferedSocket.set_reader sock (http_reply_handler nread 
             (default_headers_handler url level));
@@ -270,6 +276,7 @@ headers;
         TcpBufferedSocket.set_closer sock (fun _ _ -> 
 (*            lprintf "default_headers_handler closer\n"; *)
             f ());
+        
         let content_length = ref (-1) in
         List.iter (fun (name, content) ->
             if String.lowercase name = "content-length" then
@@ -366,6 +373,17 @@ let wget r f =
             (Printexc2.to_string e) filename;
           Sys.remove filename 
   )
+  
+let whead r f = 
+  
+  get_page r
+    (fun maxlen headers ->
+      lprintf "Http_client.headers...\n";
+      (try f headers with _ -> ());
+      fun sock nread -> 
+        close sock Closed_by_user
+  )
+  (fun _ ->  ())
   
 let wget_string r f progress = 
     

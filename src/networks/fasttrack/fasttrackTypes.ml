@@ -162,6 +162,7 @@ and client = {
     mutable client_host : (Ip.t * int) option;
     mutable client_reconnect : bool;
     mutable client_connected_for : file option;
+    mutable client_support_head_request : bool;
   }
 
 and file_uri =
@@ -205,8 +206,14 @@ and download = {
     mutable download_uploader : Int64Swarmer.uploader;
     mutable download_ranges : (int64 * int64 * Int64Swarmer.range) list;
     mutable download_block : Int64Swarmer.block option;
+    mutable download_head : head_request;
   }
 
+and head_request =
+  HeadNotRequested
+| HeadRequested
+| Head of string
+  
 external create_cipher : unit -> cipher = "ml_create_cipher"
 external apply_cipher : cipher -> string -> int -> int -> unit
   = "ml_apply_cipher"

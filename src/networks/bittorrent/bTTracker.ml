@@ -453,7 +453,8 @@ let http_handler t r =
   Buffer.add_string  buf "Connection: close\r\n";
   Buffer.add_string  buf "Content-Type: application/x-bittorrent\r\n";
   Buffer.add_string  buf "\r\n";
-  Buffer.add_string buf s;
+  
+  if r.request = "GET" then Buffer.add_string buf s;
 
 (* Send the answer *)        
   let s = Buffer.contents buf in

@@ -65,3 +65,5 @@ val html_escaped : string -> string
   
 val handler : config -> 'a -> TcpServerSocket.event -> unit
 val parse_head : TcpBufferedSocket.t -> string -> request
+  
+val verbose : bool ref 

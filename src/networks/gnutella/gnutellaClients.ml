@@ -484,6 +484,7 @@ end;
               (Ip.to_string ip) port);
       Printf.bprintf buf "User-Agent: %s\r\n" user_agent;
       Printf.bprintf buf "Range: bytes=%s\r\n" range;
+      Printf.bprintf buf "Connection: Keep-Alive\r\n";    
       Printf.bprintf buf "\r\n";
       let s = Buffer.contents buf in
       if !verbose_msg_clients then

@@ -4,6 +4,15 @@ ChangeLog
 Note: Due to the changes in CommonSwarming, this version is to be considered
  as EXPERIMENTAL on all networks, EXCEPT Edonkey & Overnet.
 
+2004/02/06: Fabrice (version 2.5.7, tag release-2-5-7)
+  * New network 'FileTP' for simple file transfer protocols:
+     * Basic HTTP protocol: 
+        use 'http <http://url>' to start a download.
+        use 'mirror <file_num> <http://url>' to add a mirror.
+  * TcpBufferedSocket: initial size of buffer now depends on the last
+        read input. might cause problems in memory until a better cache of
+        buffers is implemented
+
 2004/02/06: Fabrice (version 2.5.6, tag release-2-5-6)
   * CommonInteractive:
      * file_cancel: removes the file itself

@@ -277,6 +277,8 @@ let new_result file_name file_size tags hash =
         result
   in
   r
+  
+let min_range_size = megabyte
       
 let new_file file_id file_name file_size file_hash = 
   let file_temp = Filename.concat !!temp_directory 
@@ -288,7 +290,7 @@ let new_file file_id file_name file_size file_hash =
     )
   in
   let swarmer = Int64Swarmer.create file_size 
-      file_chunk_size megabyte in
+      file_chunk_size min_range_size in
   let keywords = get_name_keywords file_name in
   let words = String2.unsplit keywords ' ' in
   let rec file = {
@@ -346,7 +348,8 @@ let new_file file_id file_name file_size file_hash =
   try
     Hashtbl.find files_by_uid file_hash 
   with _ ->
-    let file = new_file file_id file_name file_size file_hash in
+      let file = new_file file_id file_name file_size file_hash in
+      Hashtbl.add files_by_uid file_hash file;
     file    
               
 let new_user kind =
@@ -399,6 +402,7 @@ client_error = false;
           client_reconnect = false;
           client_in_queues = [];
           client_connected_for = None;
+          client_support_head_request = true;
         } and impl = {
           dummy_client_impl with
           impl_client_val = c;
@@ -424,6 +428,7 @@ let add_download file c index =
           download_uploader = bs;
           download_ranges = [];
           download_block = None;
+          download_head = HeadNotRequested;
         }];
       file.file_clients <- c :: file.file_clients;
       file_add_source (as_file file.file_file) (as_client c.client_client);

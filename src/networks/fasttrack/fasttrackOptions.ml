@@ -40,15 +40,13 @@ let _ =
   
 let client_port = define_option fasttrack_section ["client_port"]
     "The port to bind the client to"
-    int_option 1214
-  
-  (*
-let enabled = define_option fasttrack_section
-    ["fasttrack2_enabled"]
-    "Do you want to support Fasttrack2 protocol (not yet supported)"
-    bool_option true
-*)  
-  
+    int_option 1214 
+
+let fasttrack_experimental = define_option fasttrack_section
+    ["experimental"]
+    "Activate this option if you want to test experimental features."
+    bool_option false
+
 let commit_in_subdir = define_option fasttrack_section ["commit_in_subdir"]
   "The subdirectory of temp/ where files should be moved to"
     string_option "Fasttrack"
