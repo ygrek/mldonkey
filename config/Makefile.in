@@ -107,11 +107,11 @@ CHAT_SRCS = chat/chat_messages.ml\
         chat/chat_config.ml\
 
 COMMON_SRCS=common/commonTypes.ml \
-  common/commonMessages.ml \
   common/guiTypes.ml \
   common/guiProto.ml \
   common/commonEvent.ml \
   common/commonOptions.ml \
+  common/commonMessages.ml \
   common/commonGlobals.ml \
   common/guiDecoding.ml \
   common/guiEncoding.ml \
@@ -176,7 +176,11 @@ DONKEY_SRCS= \
   \
   donkey/donkeyGlobals.ml \
   donkey/donkeyProtoCom.ml  \
+  donkey/donkeySourcesMisc.ml \
   donkey/donkeySources1.ml  \
+  donkey/donkeySources2.ml  \
+  donkey/donkeySources3.ml  \
+  donkey/donkeySources.ml  \
  \
   donkey/donkeyComplexOptions.ml \
   donkey/donkeySupernode.ml \
@@ -186,7 +190,6 @@ DONKEY_SRCS= \
   donkey/donkeyStats.ml \
   donkey/donkeyClient.ml \
   donkey/donkeyProtoOvernet.ml \
-  donkey/donkeySources2.ml  \
   \
   donkey/donkeyOvernet.ml \
   donkey/donkeyFiles.ml  \
@@ -410,6 +413,8 @@ ICONS= \
   icons/$(ICONS_CHOICE)/save.xpm \
   icons/$(ICONS_CHOICE)/trash.xpm icons/$(ICONS_CHOICE)/verify_chunks.xpm \
   icons/$(ICONS_CHOICE)/view_users.xpm \
+  icons/$(ICONS_CHOICE)/pause_resume.xpm \
+  icons/$(ICONS_CHOICE)/remove_all_friends.xpm 
  
 SMALL_ICONS= \
   icons/small/add_to_friends_small.xpm icons/small/cancel_small.xpm \
@@ -432,11 +437,10 @@ GUI_BASE_SRCS= \
   gui/gui_messages.ml   gui/gui_global.ml \
   gui/gui_columns.ml \
   gui/gui_keys.ml \
-  $(ALL_ICONS_SRCS) \
-  gui/gui_icons.ml \
+  $(ALL_ICONS_SRCS) gui/gui_options.ml 
 
 GUI_SRCS=  \
-  gui/gui_options.ml gui/gui_misc.ml \
+  gui/gui_misc.ml \
   gui/gui_com.ml \
   gui/gui_help_base.zog gui/gui_help.ml \
   gui/gui_console_base.zog gui/gui_console.ml \
@@ -445,6 +449,7 @@ GUI_SRCS=  \
   gui/gui_results_base.zog gui/gui_results.ml \
   gui/gui_rooms_base.zog gui/gui_rooms.ml \
   gui/gui_friends_base.zog gui/gui_friends.ml \
+  gui/gui_cdget_base.zog gui/gui_cdget.ml \
   gui/gui_queries_base.zog gui/gui_queries.ml \
   gui/gui_servers_base.zog gui/gui_servers.ml \
   gui/gui_downloads_base.zog gui/gui_downloads.ml \
@@ -941,6 +946,9 @@ buildrpm:
 .xpm.ml_icon :
 	echo "let t = [|" > $@
 	grep '"' $< | sed 's/",$$/";/' | sed 's/"};$$/"/' >> $@
+	echo "|]" >> $@
+	echo "let mini = [|" >> $@
+	grep '"' $*_mini.xpm | sed 's/",$$/";/' | sed 's/"};$$/"/' >> $@
 	echo "|]" >> $@
 	cp -f $@ $*_xpm.ml
 
