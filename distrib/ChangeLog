@@ -2,7 +2,8 @@ ChangeLog
 =========
 
 2005/04/04: spiralvoice (version 2.5.30-2 = 2.6pre14, tag release-2-5-30-2)
-  This release shares the same code as Amorphous SVN revision 249.
+  This release shares the same code as Amorphous SVN revision 249
+  plus some additional patches from Savannah.
 
                 Many changes and patches applied, 
             labeled as UNSTABLE until further tested.
