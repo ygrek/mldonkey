@@ -1,23 +1,25 @@
+
+
 class window () =
   let window =
-    GWindow.window ~width:400 ~height:200 ~title:(Gui_messages.software)
-      ~allow_shrink:true ~allow_grow:true ~auto_shrink:true ~modal:false ()
+    GWindow.window ~width:400 ~height:200 ~title:(Gui_messages.iM_wt_software)
+    ~allow_shrink:true ~allow_grow:true ~auto_shrink:true ~modal:false ()
   in
   let box =
     GPack.vbox ~width:600 ~height:440 ~homogeneous:false ~packing:(window#add)
-      ()
+    ()
   in
   let menubar =
     GMenu.menu_bar ~packing:(box#pack ~expand:false ~fill:false) ()
   in
   let _Menu =
-    GMenu.menu_item ~label:(Gettext.gettext Gui_messages.mFile)
-      ~packing:(menubar#add) ()
+    GMenu.menu_item ~label:(Gui_messages.iM_me_file)
+    ~packing:(menubar#add) ()
   in
   let _FileMenu = GMenu.menu ~packing:(_Menu#set_submenu) () in
   let itemOptions =
-    GMenu.menu_item ~label:(Gettext.gettext Gui_messages.mSettings)
-      ~packing:(_FileMenu#add) ()
+    GMenu.menu_item ~label:(Gui_messages.iM_me_settings)
+    ~packing:(_FileMenu#add) ()
   in
   let _ = GMenu.menu_item ~packing:(_FileMenu#add) () in
   let itemSetStatus =
@@ -32,8 +34,8 @@ class window () =
   in
   let _ = GMenu.menu_item ~packing:(_FileMenu#add) () in
   let itemQuit =
-    GMenu.menu_item ~label:(Gettext.gettext Gui_messages.mQuit)
-      ~packing:(_FileMenu#add) ()
+    GMenu.menu_item ~label:(Gui_messages.iM_me_quit)
+    ~packing:(_FileMenu#add) ()
   in
   let accel_menubar = GtkData.AccelGroup.create () in
   let _ = window#add_accel_group accel_menubar in
@@ -41,7 +43,7 @@ class window () =
   let _ = menuSetStatus#set_accel_group accel_menubar in
   let friends =
     GPack.hbox ~homogeneous:false ~packing:(box#pack ~expand:true ~fill:true)
-      ()
+    ()
   in
   let hbox_status =
     GPack.hbox ~homogeneous:false ~spacing:10
@@ -49,7 +51,7 @@ class window () =
   in
   let label_connect_status =
     GMisc.label ~text:"" ~justify:`LEFT ~line_wrap:true ~xalign:(-1.0)
-      ~yalign:(-1.0) ~packing:(hbox_status#pack ~expand:true ~fill:true) ()
+    ~yalign:(-1.0) ~packing:(hbox_status#pack ~expand:true ~fill:true) ()
   in
   object
     val window = window
@@ -78,39 +80,39 @@ class window () =
     method friends = friends
     method hbox_status = hbox_status
     method label_connect_status = label_connect_status
-  end
+end
 class accounts () =
   let window =
-    GWindow.window ~width:400 ~height:200 ~title:(Gui_messages.software)
-      ~allow_shrink:true ~allow_grow:true ~auto_shrink:true ~modal:false ()
+    GWindow.window ~width:400 ~height:200 ~title:(Gui_messages.iM_wt_software)
+    ~allow_shrink:true ~allow_grow:true ~auto_shrink:true ~modal:false ()
   in
   let box =
     GPack.vbox ~width:600 ~height:440 ~homogeneous:false ~packing:(window#add)
-      ()
+    ()
   in
   let menubar =
     GMenu.menu_bar ~packing:(box#pack ~expand:false ~fill:false) ()
   in
   let _Menu =
-    GMenu.menu_item ~label:(Gettext.gettext Gui_messages.mFile)
-      ~packing:(menubar#add) ()
+    GMenu.menu_item ~label:(Gui_messages.iM_me_file)
+    ~packing:(menubar#add) ()
   in
   let _FileMenu = GMenu.menu ~packing:(_Menu#set_submenu) () in
   let itemOptions =
-    GMenu.menu_item ~label:(Gettext.gettext Gui_messages.mSettings)
-      ~packing:(_FileMenu#add) ()
+    GMenu.menu_item ~label:(Gui_messages.iM_me_settings)
+    ~packing:(_FileMenu#add) ()
   in
   let _ = GMenu.menu_item ~packing:(_FileMenu#add) () in
   let itemQuit =
-    GMenu.menu_item ~label:(Gettext.gettext Gui_messages.mQuit)
-      ~packing:(_FileMenu#add) ()
+    GMenu.menu_item ~label:(Gui_messages.iM_me_quit)
+    ~packing:(_FileMenu#add) ()
   in
   let accel_menubar = GtkData.AccelGroup.create () in
   let _ = window#add_accel_group accel_menubar in
   let _ = _FileMenu#set_accel_group accel_menubar in
   let friends =
     GPack.hbox ~homogeneous:false ~packing:(box#pack ~expand:true ~fill:true)
-      ()
+    ()
   in
   let hbox_status =
     GPack.hbox ~homogeneous:false ~spacing:10
@@ -118,7 +120,7 @@ class accounts () =
   in
   let label_connect_status =
     GMisc.label ~text:"" ~justify:`LEFT ~line_wrap:true ~xalign:(-1.0)
-      ~yalign:(-1.0) ~packing:(hbox_status#pack ~expand:true ~fill:true) ()
+    ~yalign:(-1.0) ~packing:(hbox_status#pack ~expand:true ~fill:true) ()
   in
   object
     val window = window
@@ -139,56 +141,56 @@ class accounts () =
     method friends = friends
     method hbox_status = hbox_status
     method label_connect_status = label_connect_status
-  end
+end
 class window2 () =
   let window =
-    GWindow.window ~width:640 ~height:400 ~title:(Gui_messages.software)
-      ~allow_shrink:true ~allow_grow:true ~auto_shrink:true ~modal:false ()
+    GWindow.window ~width:640 ~height:400 ~title:(Gui_messages.iM_wt_software)
+    ~allow_shrink:true ~allow_grow:true ~auto_shrink:true ~modal:false ()
   in
   let box =
     GPack.vbox ~width:600 ~height:440 ~homogeneous:false ~packing:(window#add)
-      ()
+    ()
   in
   let menubar =
     GMenu.menu_bar ~packing:(box#pack ~expand:false ~fill:false) ()
   in
   let _Menu =
-    GMenu.menu_item ~label:(Gettext.gettext Gui_messages.mFile)
-      ~packing:(menubar#add) ()
+    GMenu.menu_item ~label:(Gui_messages.iM_me_file)
+    ~packing:(menubar#add) ()
   in
   let _FileMenu = GMenu.menu ~packing:(_Menu#set_submenu) () in
   let itemOptions =
-    GMenu.menu_item ~label:(Gettext.gettext Gui_messages.mSettings)
-      ~packing:(_FileMenu#add) ()
+    GMenu.menu_item ~label:(Gui_messages.iM_me_settings)
+    ~packing:(_FileMenu#add) ()
   in
   let _ = GMenu.menu_item ~packing:(_FileMenu#add) () in
   let itemQuit =
-    GMenu.menu_item ~label:(Gettext.gettext Gui_messages.mQuit)
-      ~packing:(_FileMenu#add) ()
+    GMenu.menu_item ~label:(Gui_messages.iM_me_quit)
+    ~packing:(_FileMenu#add) ()
   in
   let accel_menubar = GtkData.AccelGroup.create () in
   let _ = window#add_accel_group accel_menubar in
   let _ = _FileMenu#set_accel_group accel_menubar in
   let main_notebook =
     GPack.notebook ~tab_pos:`LEFT ~show_tabs:true ~homogeneous_tabs:true
-      ~show_border:true ~scrollable:true ~popup:true
-      ~packing:(box#pack ~expand:true ~fill:true) ()
+    ~show_border:true ~scrollable:true ~popup:true
+    ~packing:(box#pack ~expand:true ~fill:true) ()
   in
   let accounts_hbox =
     GPack.hbox ~homogeneous:false
       ~packing:(
-        fun w ->
-          main_notebook#append_page
-            ~tab_label:((GMisc.label ~text:"Accounts" ())#coerce) w)
-      ()
+      fun w ->
+        main_notebook#append_page
+          ~tab_label:((GMisc.label ~text:"Accounts" ())#coerce) w)
+    ()
   in
   let contacts_hbox =
     GPack.hbox ~homogeneous:false
       ~packing:(
-        fun w ->
-          main_notebook#append_page
-            ~tab_label:((GMisc.label ~text:"Friends" ())#coerce) w)
-      ()
+      fun w ->
+        main_notebook#append_page
+          ~tab_label:((GMisc.label ~text:"Friends" ())#coerce) w)
+    ()
   in
   let hbox_status =
     GPack.hbox ~homogeneous:false ~spacing:10
@@ -196,7 +198,7 @@ class window2 () =
   in
   let label_connect_status =
     GMisc.label ~text:"" ~justify:`LEFT ~line_wrap:true ~xalign:(-1.0)
-      ~yalign:(-1.0) ~packing:(hbox_status#pack ~expand:true ~fill:true) ()
+    ~yalign:(-1.0) ~packing:(hbox_status#pack ~expand:true ~fill:true) ()
   in
   object
     val window = window
@@ -221,7 +223,7 @@ class window2 () =
     method contacts_hbox = contacts_hbox
     method hbox_status = hbox_status
     method label_connect_status = label_connect_status
-  end
+end
 class room_tab () =
   let room_vbox = GPack.vbox ~homogeneous:false () in
   let wpane =
@@ -234,7 +236,7 @@ class room_tab () =
   in
   let text =
     GEdit.text ~editable:false ~word_wrap:true ~line_wrap:true
-      ~packing:(wscroll#add) ()
+    ~packing:(wscroll#add) ()
   in
   let hbox_91 =
     GPack.hbox ~homogeneous:false
@@ -242,11 +244,11 @@ class room_tab () =
   in
   let nick_label =
     GMisc.label ~text:"My nick:" ~justify:`LEFT ~line_wrap:true ~xalign:(-1.0)
-      ~yalign:(-1.0) ~packing:(hbox_91#pack ~expand:false ~fill:true) ()
+    ~yalign:(-1.0) ~packing:(hbox_91#pack ~expand:false ~fill:true) ()
   in
   let entry =
     GEdit.entry ~visibility:true ~editable:true
-      ~packing:(hbox_91#pack ~expand:true ~fill:true) ()
+    ~packing:(hbox_91#pack ~expand:true ~fill:true) ()
   in
   object
     val room_vbox = room_vbox
@@ -264,4 +266,4 @@ class room_tab () =
     method nick_label = nick_label
     method entry = entry
     method coerce = room_vbox#coerce
-  end
+end
