@@ -1,6 +1,11 @@
 ChangeLog	
 =========
 
+2003/03/04: Simon (v 2.02-27)
+  - Bug fixes: 
+     * 'log' command correctly set the size of the log (otherwise, an 
+      exception is raised... and no GUI can connect for eg)
+
 2003/03/04: Simon (v 2.02-26)
   - Applied patches #1219, #1220, #1221, #1222
   - Redirection of output to a log:

@@ -1062,6 +1062,7 @@ the name between []"
         (try
             while true do
               let s = Fifo.take lprintf_fifo in
+              decr lprintf_size;
               Buffer.add_string buf s
             done
           with _ -> ());
