@@ -987,12 +987,14 @@ let client_handler c sock event =
   match event with
     BASIC_EVENT (CLOSED s) ->
       disconnect_client c;
+      (*
       if c.client_name <> "" then begin
           Printf.printf "client %s(%s) disconnected: reason %s"
             c.client_name (brand_to_string c.client_brand) s;
           print_newline ();
         end
-
+*)
+      
   | _ -> ()
 
 let client_handler2 c sock event = 
