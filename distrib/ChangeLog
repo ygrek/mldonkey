@@ -1,6 +1,9 @@
 ChangeLog	
 =========
 
+2002/12/10: Simon
+  - Fixed another problem with stats
+	
 2002/12/09: Simon
   - Fabrice should compile and release binaries for 2.01
   - Fixed problem with stats
