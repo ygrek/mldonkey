@@ -1,9 +1,60 @@
 ChangeLog	
 =========
 
- 2.5.17 is EXPERIMENTAL, as the eDonkey plugin has been modified A LOT, 
-  and some features not tested enough (recovery, copy_chunks), or
-  disabled (reliability). Avoid releasing binaries of this one.
+  Again an experimental version, the source management for Edonkey was
+_completely_ rewritten, generalized, and should soon be used by all other
+plugins if it is measured as efficient enough.
+
+2004/04/16: Fabrice (version 2.5.18, tag release-2-5-18)
+  - Fixed bug solved by patch #2937
+  - DonkeyInteractive: new command 'set_brothers' to associate a list of
+      files as probably colocated.
+  - CommonSources: everything should work now.
+ 
+2004/04/15: Fabrice
+  - CommonSources: the implementation seems correct and enough efficient,
+      still missing the limitation on the number of sources.
+  - CommonSwarming: better handling of the 'last_seen' field
+
+2004/04/11: Fabrice
+  - Applied Savannah patches: #2928 (already downloaded), 
+       #2861 (useless options), #2852 (typo), #2915 (avoid getpeername),
+       #2911 (bt log), #2907 (html prio), #2896 (autoconf), 
+       #2872 (voo html), #2871 (clean servers), #2866 (autorel),
+
+2004/04/07: Fabrice
+  - DonkeyNeighbours: try to use semantic links to find new sources for
+      files among known sources. Send hit-ratio to redirector to gather
+      stats.
+
+2004/04/06: Fabrice
+  - CommonGlobals: only execute 'do_at_exit' in the main process, not
+      in the forked ones (should solve bug #7738).
+
+2004/03/23: Fabrice
+  - CommonSwarming: print an error message instead of pausing a file. Still
+      to find the origin of the error message.
+  - Bandwidth management has changed a bit, but without great success...
+
+2004/03/22: Fabrice
+  - Safer options-saving at exit: close all the sockets to prevent "not
+     enough file descriptors" error and remove a file called
+    "config_files_space.tmp" to free 'config_files_security_space' megabytes
+    created at startup.
+  - Applied patches from Savannah: #2844(share), #2846(bt)
+
+2004/03/21: Fabrice
+  - Applied patches from Savannah: #2832 (telnet_max_name_len), 
+      #2833 (filetp), #2620, #2834 (mingw), #2836 (guardian_p2p url),
+      #2837 (html), #2840 (overnet), #2841 (localtime)
+
+2004/03/18: Fabrice
+  - Applied patches from Savannah: #2792 (doc), #2805 (comestic)
+  - PClink for DP500: better handling of long filenames to prevent
+       freezing the player.
+
+2004/03/17: Fabrice
+  - Applied some patches for Solaris
 
 2004/03/17: Fabrice (version 2.5.17, tag release-2-5-17)
   - TcpBufferedSocket: new option 'copy_read_buffer', every byte downloaded
@@ -39,7 +90,6 @@ ChangeLog
         #2750 (blocking_updated2), #2753 (bug 2586)
         #2751 (get_range)          #2754 (depend_mingw)
         #2752 (sourcesanitize)
-
 
 2004/03/07: Fabrice (version 2.5.15, tag release-2-5-15)
   - Applied patches #2755 (joinqueuemd4), #2866 (bttt), #2867 (buf_str)

@@ -17,28 +17,31 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open CommonInteractive
 open Printf2
 open Md4
+open Options
+open BasicSocket
+open TcpBufferedSocket
+
+open CommonInteractive
 open CommonUser
 open CommonSearch
 open CommonComplexOptions
 open CommonServer
 open CommonOptions
-open CommonTypes
-open Options
-open BasicSocket
-open TcpBufferedSocket
+open CommonTypes  
+open CommonOptions
+open CommonGlobals
+open CommonSources
+
 open DonkeyMftp
 open DonkeyImport
 open DonkeyProtoCom
 open DonkeyTypes
 open DonkeyOptions
-open CommonOptions
 open DonkeyComplexOptions
 open DonkeyGlobals
-open CommonGlobals
-
+  
 let udp_send_if_possible sock addr msg =
   udp_send sock addr msg
 
@@ -112,7 +115,7 @@ let query_locations_timer () =
 (* During the first 20 minutes, don't send any localisation query
 to the server *)
       if s.server_queries_credit <= 0 then
-        query_locations s !!files_queries_per_minute
+        query_locations s files_queries_per_minute
       else 
         s.server_queries_credit <- s.server_queries_credit - 1
   ) (connected_servers())
@@ -159,9 +162,9 @@ let last_message_sender = ref (-1)
       
 let client_to_server s t sock =
   let module M = DonkeyProtoServer in
-
+  
   s.server_last_message <- last_time ();
-
+  
   if !verbose_msg_servers then begin
       lprintf "Message from server:\n"; 
       DonkeyProtoServer.print t; lprintf "\n"
@@ -171,22 +174,22 @@ let client_to_server s t sock =
     M.SetIDReq (zlib, t) ->
       s.server_has_zlib <- zlib;
       if not (Ip.valid t) && !!force_high_id then
-	disconnect_server s (Closed_for_error "Low ID")
+        disconnect_server s (Closed_for_error "Low ID")
       else begin
-	s.server_cid <- Some t;
-	set_rtimeout sock !!connected_server_timeout; 
+          s.server_cid <- Some t;
+          set_rtimeout sock !!connected_server_timeout; 
 (* force deconnection after one hour if nothing  appends *)
-	set_server_state s Connected_initiating;
-	s.server_score <- s.server_score + 5;
-	connection_ok (s.server_connection_control);
-      
-	direct_server_send sock (
-          let module A = M.AckID in
-          M.AckIDReq A.t
-	);
-
-	if Ip.valid t && !!use_server_ip then
-	  last_high_id := t;
+          set_server_state s Connected_initiating;
+          s.server_score <- s.server_score + 5;
+          connection_ok (s.server_connection_control);
+          
+          direct_server_send sock (
+            let module A = M.AckID in
+            M.AckIDReq A.t
+          );
+          
+          if Ip.valid t && !!use_server_ip then
+            last_high_id := t;
 
 (*
       server_send sock (M.ShareReq (make_tagged (
@@ -200,18 +203,18 @@ let client_to_server s t sock =
           )));
 *)
         end
-        
+  
   | M.MessageReq msg ->
       if !last_message_sender <> server_num s then begin
-	let server_header = Printf.sprintf "\n+-- From server %s [%s:%d] ------\n"
-	  s.server_name (Ip.to_string s.server_ip) s.server_port in
+          let server_header = Printf.sprintf "\n+-- From server %s [%s:%d] ------\n"
+              s.server_name (Ip.to_string s.server_ip) s.server_port in
           CommonEvent.add_event (Console_message_event server_header);
-	last_message_sender := server_num s
-      end;
-	  s.server_banner <- s.server_banner ^ Printf.sprintf "%s\n" msg;
+          last_message_sender := server_num s
+        end;
+      s.server_banner <- s.server_banner ^ Printf.sprintf "%s\n" msg;
       let msg = Printf.sprintf "| %s\n" msg in
       CommonEvent.add_event (Console_message_event msg)
-      
+  
   | M.ServerListReq l ->
       if !!update_server_list then
         let module Q = M.ServerList in
@@ -235,39 +238,39 @@ let client_to_server s t sock =
       ) s.server_tags;
       printf_char 'S';
 
-      (* nice and ugly, but it doesn't require any new fields *)
+(* nice and ugly, but it doesn't require any new fields *)
       set_server_state s (Connected 
-      (match s.server_cid with
-        Some t -> if Ip.valid t then (-2) else (-1)
-        | _ -> (-1)));
+          (match s.server_cid with
+            Some t -> if Ip.valid t then (-2) else (-1)
+          | _ -> (-1)));
 
-      (* add_connected_server s; *)
-      
+(* add_connected_server s; *)
+
 (* Send localisation queries to the server. We are limited by the maximal
 number of queries that can be sent per minute (for lugdunum, it's one!).
 Once the first queries have been sent, we must wait 20 minutes before next
 queries. *)
-      query_locations s (20 * !!files_queries_per_minute);
+      query_locations s (20 * files_queries_per_minute);
       s.server_queries_credit <- (* !!files_queries_initial_delay *) 0
 (*      !server_is_connected_hook s sock *)
   
   | M.InfoReq (users, files) ->
       s.server_nusers <- users;
       s.server_nfiles <- files;
-	  if (users < !!min_users_on_server) then
-	  begin
-        Printf.printf "%s:%d remove server min_users_on_server limit hit!"
-		(Ip.to_string s.server_ip) s.server_port; print_newline ();
- 
-		disconnect_server s Closed_for_timeout;
-        server_remove (as_server s.server_server);
-	  end;
+      if (users < !!min_users_on_server) then
+        begin
+          Printf.printf "%s:%d remove server min_users_on_server limit hit!"
+            (Ip.to_string s.server_ip) s.server_port; print_newline ();
+          
+          disconnect_server s Closed_for_timeout;
+          server_remove (as_server s.server_server);
+        end;
       server_must_update s
   
   | M.Mldonkey_MldonkeyUserReplyReq ->
       s.server_mldonkey <- true;
       printf_string "[MLDONKEY SERVER]"
-        
+  
   | M.QueryIDReplyReq t -> 
 (* This can either be a reply to a QueryID or a indirect request for
 connection from another client. In this case, we should immediatly connect.
@@ -277,12 +280,15 @@ connection from another client. In this case, we should immediatly connect.
       if Ip.valid t.Q.ip && ip_reachable t.Q.ip then begin
           match Fifo.take s.server_id_requests with
             None -> 
-              let c = new_client (Known_location (t.Q.ip, t.Q.port)) in
+              let c = new_client (Direct_address (t.Q.ip, t.Q.port)) in
               DonkeyClient.reconnect_client c;
               friend_add c
 
           | Some file ->
-              ignore (DonkeySources.new_source (t.Q.ip, t.Q.port) file)
+              let s = DonkeySources.find_source_by_uid 
+                  (Direct_address (t.Q.ip, t.Q.port)) in
+              DonkeySources.set_request_result s file.file_sources 
+                File_new_source         
         end
 
   | M.QueryIDFailedReq t ->
@@ -509,6 +515,7 @@ position to the min_left_servers position.
   let t2 = Unix.gettimeofday () in
   lprintf "Delay to detect black-listed servers: %2.2f\n" (t2 -. t1); 
   
+  if List.length !to_keep > !!min_left_servers then begin
   let array = Array.of_list !to_keep in
   Array.sort (fun (ls1,_) (ls2,_) ->
       if ls1 = ls2 then 0 else if ls1 > ls2 then -1 else 1
@@ -534,6 +541,7 @@ position to the min_left_servers position.
         to_remove := s :: !to_remove
       end
   done;
+  end;
   let t3 = Unix.gettimeofday () in
   lprintf "Delay to detect old servers: %2.2f\n" (t3 -. t2); 
 
@@ -671,14 +679,6 @@ Each client issues 1 packet/4hour, so 100000 clients means 25000/hour,
 *)
   
 let udp_ping = String.create 6
-  
-let _ = 
-  udp_ping.[0] <- char_of_int 0xe3;
-  udp_ping.[1] <- char_of_int 0x96;
-  udp_ping.[2] <- char_of_int (Random.int 256);
-  udp_ping.[3] <- char_of_int (Random.int 256);
-  udp_ping.[4] <- char_of_int (Random.int 256);
-  udp_ping.[5] <- char_of_int (Random.int 256)
   
 let udp_walker_timer () = 
   match !udp_walker_list with
@@ -831,5 +831,21 @@ now if needed *)
   if !verbose then begin
       lprintf "MASTER: clean %d connected %d masters\n" 
         !nconnected_servers !nmasters; 
-    end;
-      
+    end
+
+open LittleEndian
+    
+let _ = 
+  udp_ping.[0] <- char_of_int 0xe3;
+  udp_ping.[1] <- char_of_int 0x96;
+  udp_ping.[2] <- char_of_int (Random.int 256);
+  udp_ping.[3] <- char_of_int (Random.int 256);
+  udp_ping.[4] <- char_of_int (Random.int 256);
+  udp_ping.[5] <- char_of_int (Random.int 256);
+  
+  CommonWeb.add_redirector_info "DKSV" (fun buf ->
+      buf_list (fun buf s ->
+          buf_ip buf s.server_ip;
+          buf_int16 buf s.server_port;
+      ) buf (connected_servers ())
+  )

@@ -65,7 +65,8 @@ it will happen soon. *)
     mutable op_file_set_format : ('a -> CommonTypes.format -> unit);
     mutable op_file_check : ('a -> unit);
     mutable op_file_recover : ('a -> unit);
-    mutable op_file_sources : ('a -> client list);
+    mutable op_file_all_sources : ('a -> client list);
+    mutable op_file_active_sources : ('a -> client list);
     mutable op_file_comment : ('a -> string);
     mutable op_file_set_priority : ('a -> int -> unit);
     mutable op_file_print_sources_html : ('a -> Buffer.t -> unit);
@@ -240,9 +241,13 @@ let file_debug (file : file) =
   let file = as_file_impl file in
   file.impl_file_ops.op_file_debug file.impl_file_val
 
-let file_sources file =
+let file_all_sources file =
   let impl = as_file_impl file in
-  try impl.impl_file_ops.op_file_sources impl.impl_file_val with _ -> []
+  try impl.impl_file_ops.op_file_all_sources impl.impl_file_val with _ -> []
+
+let file_active_sources file =
+  let impl = as_file_impl file in
+  try impl.impl_file_ops.op_file_active_sources impl.impl_file_val with _ -> []
 
 let file_print_sources_html (file : file) buf =
   let file = as_file_impl file in
@@ -266,7 +271,8 @@ let new_file_ops network =
       op_file_check = (fun _ -> ni_ok network "file_check");
       op_file_recover = (fun _ -> ni_ok network "file_recover");
       op_file_set_format = (fun _ -> fni network "file_set_format");
-      op_file_sources = (fun _ -> fni network "file_sources");
+      op_file_all_sources = (fun _ -> fni network "file_all_sources");
+      op_file_active_sources = (fun _ -> fni network "file_active_sources");
       op_file_comment = (fun _ -> ni_ok network "file_comment"; "");
       op_file_set_priority = (fun _ _ -> ni_ok network "file_set_priority");
       op_file_print_sources_html = (fun _ _ -> ni_ok network "file_print_sources_html");
@@ -305,8 +311,10 @@ let check_file_implementations () =
         lprintf "op_file_recover\n";
       if c.op_file_set_format == cc.op_file_set_format then
         lprintf "op_file_set_format\n";
-      if c.op_file_sources == cc.op_file_sources then
-        lprintf "op_file_sources\n";
+      if c.op_file_all_sources == cc.op_file_all_sources then
+        lprintf "op_file_all_sources\n";
+      if c.op_file_active_sources == cc.op_file_active_sources then
+        lprintf "op_file_active_sources\n";
       if c.op_file_print_sources_html == cc.op_file_print_sources_html then
         lprintf "op_file_print_sources_html\n";
   ) !files_ops;
@@ -414,7 +422,7 @@ module G = GuiTypes
 let file_downloaders file o cnt = 
   let buf = o.conn_buf in
 
-      let srcs = file_sources file in
+      let srcs = file_active_sources file in
 		
       let counter = ref cnt in
       List.iter (fun c ->
@@ -464,7 +472,7 @@ let file_print file o =
   let info = file_info file in
   let n = impl.impl_file_ops.op_file_network in
   let buf = o.conn_buf in
-  let srcs = file_sources file in
+  let srcs = file_all_sources file in
 
 
 (* TODO: make multinet aware *)
@@ -537,7 +545,8 @@ let file_print file o =
               let input_size = (Printf.sprintf "%d" ((String.length (file_best_name file))+3)) in
               html_mods_td buf [
                 ("Rename file by selecting an alternate name", "sr br", "Filename");
-                ("Rename file", "sr", Printf.sprintf "\\<script language=javascript\\>
+                ("Rename file", "sr", 
+                  Printf.sprintf "\\<script language=javascript\\>
 \\<!-- 
 function submitRenameForm(i) {
 var formID = document.getElementById(\\\"renameForm\\\" + i)
@@ -554,7 +563,9 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
                     ^ Printf.sprintf "\\<option value=\\\"%s\\\" selected\\>%s\n" (file_best_name file) (file_best_name file)
                   ^ !optionlist 
                     ^ "\\</select\\>\\</td\\>\\</tr\\>\\</form\\>\\<tr\\>\\<td\\>\\<form name=\\\"renameForm2\\\" id=\\\"renameForm2\\\" action=\\\"javascript:submitRenameForm(2);\\\"\\>"
-                    ^ "\\<input name=\\\"newName\\\" type=text size=" ^ input_size ^ " value=\\\"" ^ (file_best_name file) ^ "\\\"\\>\\</input\\>\\</td\\>\\</tr\\>\\</form\\>\\</table\\>") ];
+                    ^ "\\<input name=\\\"newName\\\" type=text size=" ^ input_size ^ " value=\\\"" ^ (file_best_name file) ^ "\\\"\\>\\</input\\>\\</td\\>\\</tr\\>\\</form\\>\\</table\\>"
+                  
+                  ) ];
             
             )
       );
@@ -564,10 +575,11 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
     
     end else
     begin
-      Printf.bprintf buf "[%-s %5d] %-50s %10s %10s\npriority %d\n" 
-        n.network_name (file_num file) (match info.G.file_names with
+      Printf.bprintf buf "[%-s %5d] %s %10s %10s\npriority %d\n" 
+        n.network_name (file_num file) 
+      (match info.G.file_names with
           [] -> Md4.to_string info.G.file_md4
-        | (name,_) :: _ -> name)
+        | (name,_) :: _ -> String2.shorten !!max_name_len name)
       (Int64.to_string info.G.file_size)
       (Int64.to_string info.G.file_downloaded)
       (file_priority file);

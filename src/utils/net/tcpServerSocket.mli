@@ -21,10 +21,13 @@ type event =
 | BASIC_EVENT of BasicSocket.event
   
 type t
-  
-and handler = t -> event -> unit
+type handler = t -> event -> unit
 
 val sock : t -> BasicSocket.t
 val create : string -> Unix.inet_addr -> int -> handler -> t
 val close : t -> BasicSocket.close_reason -> unit
+  
+type connections_controler    
+val set_accept_controler : t -> connections_controler -> unit
+val create_connections_contoler : string -> (int -> int -> bool) -> connections_controler
   

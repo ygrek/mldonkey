@@ -124,9 +124,9 @@ let max_walker_servers = define_expert_option donkey_section
     ["max_walker_servers"] "Number of servers that can be used to walk
 between servers" int_option 1
     
-let max_sources_age = define_expert_option donkey_section
+(* let max_sources_age = define_expert_option donkey_section
     ["max_source_age"] "Sources that have not been connected for this number of days are removed"
-    int_option 3
+    int_option 3 *)
   
 let max_clients_per_second = define_expert_option donkey_section
     ["max_clients_per_second"] 
@@ -185,18 +185,6 @@ let port_black_list = define_expert_option donkey_section
     will eventually be removed"
     (list_option int_option) []
    
-let protocol_version = 
-  define_expert_option donkey_section ["protocol_version"] 
-    "The version of the protocol that should be sent to servers "
-    int_option 61
-  
-  (*
-let emule_protocol_version = 
-  define_expert_option donkey_section ["emule_protocol_version"] 
-    "The version of the protocol that should be sent to eMule peers "
-    int_option 0x26
-    *)
-
 let queued_timeout = 
   define_expert_option donkey_section ["queued_timeout"] 
     "How long should we wait in the queue of another client"
@@ -240,25 +228,13 @@ let upload_power = define_expert_option donkey_section ["upload_power"]
   over other networks, where upload is less efficient, without preventing
   upload from these networks." int_option 5
 
-let propagate_servers = define_expert_option donkey_section ["propagate_servers"]
-  "Send an UDP packet to a central servers with the list of servers you
-  are currently connected to, for the central server to be able to
-    generate accurate server lists." bool_option false
-
-let files_queries_per_minute = define_expert_option donkey_section
-    ["files_queries_per_minute"] 
-  "Maximal number of localisation queries that can be sent to
-  one server per minute. Some servers kick clients when this
-  value is greater than 1" int_option 1
-
-let files_queries_initial_delay = define_expert_option donkey_section
-    ["files_queries_initial_delay"] 
-  "Initial delay after sending the first localisation queries to
-  a server, before sending other localisation queries." int_option 20
-
 let commit_in_subdir = define_expert_option donkey_section ["commit_in_subdir"]
   "The subdirectory of temp/ where files should be moved to"
     string_option ""
+
+let remove_old_servers_delay = define_expert_option donkey_section ["remove_old_servers_delay"]
+  "How often should remove old donkey be called (in seconds, 0 to disable)"
+    float_option 900.
 
 let min_left_servers = define_expert_option donkey_section ["min_left_servers"]
   "Minimal number of servers remaining after remove_old_servers"
@@ -283,10 +259,6 @@ let keep_cancelled_in_old_files = define_expert_option donkey_section
     ["keep_cancelled_in_old_files"] 
     "Are the cancelled files added to the old files list to prevent re-download ?"
     bool_option false
-  
-let new_upload_system = define_expert_option donkey_section
-    ["new_upload_system"] "Should we use the new experimental upload system"
-    bool_option true
   
 let send_warning_messages = define_expert_option donkey_section
     ["send_warning_messages"] "true if you want your mldonkey to lose some
@@ -318,12 +290,12 @@ let login = define_option donkey_section ["login"]
 
   
   
-let source_management = define_expert_option donkey_section
+(* let source_management = define_expert_option donkey_section
     ["source_management"] "Which source management to use:
     1: based on separate time queues, shared by files (2.02-1...2.02-5)
     2: based on unified queues with scores, shared by files (2.02-6...2.02-9)
     3: based on separate file queues (2.02-10)
-    " int_option 3
+    " int_option 3 *)
   
 let sources_per_chunk = 
   define_expert_option donkey_section ["sources_per_chunk"]
@@ -341,16 +313,9 @@ let become_master_delay =
   define_expert_option donkey_section ["become_master_delay"] 
     "(only for development tests)" int_option 120
 
-let _ = 
-(* Clients should never send more than 5 localisations queries
-per minute. Greater values are bad for server ressources.  *)
-  option_hook files_queries_per_minute (fun _ ->
-      if !!files_queries_per_minute > 5 then 
-        files_queries_per_minute =:= 5)
-  
 let gui_donkey_options_panel = 
   [
-    "Maximal Source Age", shortname max_sources_age, "T";
+(*    "Maximal Source Age", shortname max_sources_age, "T"; *)
     "Maximal Server Age", shortname max_server_age, "T";
     "Min Left Servers After Clean", shortname min_left_servers, "T";
     "Update Server List", shortname update_server_list, "B";
@@ -360,7 +325,6 @@ let gui_donkey_options_panel =
     "Max Number of Connected Servers", shortname max_connected_servers, "T";
     "Max Upload Slots", shortname max_upload_slots, "T";
     "Max Sources Per Download", shortname max_sources_per_file, "T";
-    "Protocol Version", shortname protocol_version, "T";
     "Commit Downloads In Incoming Subdir", shortname commit_in_subdir, "T";
     "Port", shortname port, "T";
     "Login", shortname login, "T";

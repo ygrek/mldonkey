@@ -67,7 +67,8 @@ let pclink_reader telnet sock nread =
     write s b.buf b.pos b.len;
     buf_used b b.len
 
-let pclink_buf = String.create 33000
+let pclink_buf = ref ""
+let pclink_buf_len = ref 0
 
 let good_file kind is_dir file =
   String.length file > 1 && file.[0] <> '.' && 
@@ -78,7 +79,7 @@ let good_file kind is_dir file =
     (match String.lowercase kind with
         "video" -> [ ".avi"; ".mpg"; ".mpeg" ]
       | "audio" -> [ ".mp3"; ".ogg"; ".wma" ]
-      | "picture" -> [ ".jpg"; ".jpeg"; ".gif"; ".tiff" ]
+      | "picture" -> [ ".jpg"; ".jpeg"; ".jpe"; ".gif"; ".tiff" ]
       | kind -> 
           if !verbose_dp500 then lprintf "Unknow kind [%s]\n" kind;
           []))
@@ -86,6 +87,59 @@ let good_file kind is_dir file =
 (* An horrible hack... The DP500 requires to have an extension of the
 file before playing it, so we add it after a @, but we then need
 to remove it when the file is received. *)
+
+let nregistered_files = ref 0
+let registered_files_of_diskname = Hashtbl.create 13
+let registered_files_of_num = Hashtbl.create 13
+
+let max_best_name_len = 100
+let max_disk_name_len = 80
+  
+let need_correction best_name disk_name =
+  
+  (String.length best_name > max_best_name_len) ||
+  (String.length disk_name > max_disk_name_len) ||
+  ( let best_ext = Filename2.last_extension best_name in
+    let disk_ext = Filename2.last_extension disk_name in  
+    String.lowercase best_ext <> String.lowercase disk_ext)
+
+let correct_length best_name =
+  let len = String.length best_name in
+  if len > max_best_name_len then
+    (String.sub best_name 0 (max_best_name_len - 8)) ^ "..." ^ 
+    (String.sub best_name (len-5) 5)
+  else
+    best_name
+    
+  
+let register_file best_name disk_name =
+  
+  let disk_name = 
+    let len = String.length disk_name in
+    if len > 2 && disk_name.[0] = '.' &&
+      disk_name.[1] = '/' then
+      String.sub disk_name 2 (len-2)
+    else
+      disk_name
+  in
+
+  if need_correction best_name disk_name then
+    (best_name, disk_name)
+  else
+  
+  let ext = Filename2.last_extension best_name in
+  
+  let n =
+    try
+      Hashtbl.find registered_files_of_diskname disk_name
+    with _ -> 
+        let n = !nregistered_files in
+        incr nregistered_files;
+        Hashtbl.add registered_files_of_diskname disk_name n;
+        Hashtbl.add registered_files_of_num n (best_name, disk_name);
+        n
+  in
+  correct_length best_name, Printf.sprintf "%d@%s" n ext
   
 let correct_file file =
   let file = 
@@ -93,12 +147,19 @@ let correct_file file =
       let pos = String.index file '@' in
       let num = int_of_string (String.sub file 0 pos) in
       let ext = String.sub file (pos+1) (String.length file - pos - 1) in
+      
+      let (best_name, disk_name) = Hashtbl.find registered_files_of_num num in
+      if Filename2.last_extension best_name = ext then
+        disk_name else disk_name ^ ext
+        
+      (*
       let file = CommonFile.file_find num in
       if Filename2.last_extension (file_best_name file) = ext then
         file_disk_name file
       else
         file_disk_name file ^ ext
-        
+*)
+      
     with _ -> file in
   file
   
@@ -125,7 +186,7 @@ let exec_command telnet line sock =
                 let abs_file = Filename.concat argument file in
                 let full_file = Filename.concat base_directory abs_file in
                 (file,file, full_file)) files
-
+          
           in
           
           let mlnet_incoming_string = "MLNET INCOMING" in
@@ -134,7 +195,7 @@ let exec_command telnet line sock =
           let mlnet_temp_string = "MLNET TEMP" in
           let mlnet_temp_string_len = String.length mlnet_temp_string in
           
-           
+          
           let base_directory, argument, files = match kind with
             | "VIDEO" -> 
                 if argument = "" then begin
@@ -148,8 +209,8 @@ let exec_command telnet line sock =
                 if String2.starts_with argument mlnet_incoming_string then
                   list_directory !!incoming_directory
                     (String.sub argument mlnet_incoming_string_len
-                        (String.length argument - mlnet_incoming_string_len))
-
+                      (String.length argument - mlnet_incoming_string_len))
+                
                 else
                 if String2.starts_with argument mlnet_temp_string then
                   !!temp_directory,
@@ -161,18 +222,23 @@ let exec_command telnet line sock =
                       let disk_name = file_disk_name file in
                       let ext = Filename2.last_extension best_name in
                       lprintf "Adding %s\n" best_name;
+                      let file_size = Int64.to_float (file_size file) in
+                      let file_downloaded = 
+                        Int64.to_float (file_downloaded file) in
+                        
                       list := (
-                        Printf.sprintf "%4.1fM %s"
-                          (Int64.to_float (file_size file) /. 1048576.)
-                        best_name, Filename.basename disk_name,
-                        Printf.sprintf "%d@%s" (file_num file) ext) :: 
+                        Printf.sprintf "%2.1f%%/%4.1fM %s"
+                        (file_downloaded /. file_size)
+                        (file_size /. 1048576.)
+                        best_name, Filename.basename disk_name, disk_name
+(* Printf.sprintf "%d@%s" (file_num file) ext *)) :: 
                       !list
                   ) !!files;
                   !list
                 else
-                list_directory
-                  (Filename.concat !!dp500_directory "video") argument
-                
+                  list_directory
+                    (Filename.concat !!dp500_directory "video") argument
+            
             | "AUDIO" -> 
                 list_directory
                   (Filename.concat !!dp500_directory "audio") argument
@@ -180,14 +246,14 @@ let exec_command telnet line sock =
             | "PICTURE" -> 
                 list_directory (Filename.concat !!dp500_directory "photos")
                 argument
-                
+            
             | _ -> failwith "No such kind"          
           in
           
           let files = List.sort (fun (s1,_,_) (s2,_,_) ->
                 compare (String.lowercase s1) (String.lowercase s2)) files in
           
-
+          
           List.iter (fun (best_name,file, full_file) ->
               lprintf "Check %s/%s\n" best_name full_file;
               let is_dir = Unix2.is_directory full_file in
@@ -197,14 +263,9 @@ let exec_command telnet line sock =
                     Printf.sprintf "%s|%s|1|\r\n"
                       best_name file
                   else
-                    Printf.sprintf "%s|%s|0|\r\n"
-                      best_name 
-                      (let len = String.length full_file in
-                      if len > 2 && full_file.[0] = '.' &&
-                        full_file.[1] = '/' then
-                        String.sub full_file 2 (len-2)
-                      else
-                        full_file)
+                  let (best_name, disk_name) = register_file best_name full_file
+                  in
+                  Printf.sprintf "%s|%s|0|\r\n" best_name disk_name
                 in
                 if !verbose_dp500 then lprintf "Write [%s]\n" (String.escaped line);
                 write_string sock line;
@@ -242,7 +303,12 @@ let exec_command telnet line sock =
               let size = Int64.to_int size in
               String.create size, size
             else
-              pclink_buf, len_read
+            if len_read > !pclink_buf_len then begin
+                pclink_buf := String.create len_read;
+                pclink_buf_len := len_read;
+                !pclink_buf, len_read
+              end else
+              !pclink_buf, len_read
           in
           Unix32.read fd (Int64.of_string begin_read) pclink_buf 0 len_read;
           write sock pclink_buf 0 len_read;
@@ -252,6 +318,7 @@ let exec_command telnet line sock =
       raise Not_found
       
   with e ->
+      close sock (Closed_for_error "");
       if !verbose_dp500 then lprintf "Exception %s for [%s]\n" (Printexc2.to_string e) line
       
       

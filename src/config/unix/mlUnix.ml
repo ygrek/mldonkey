@@ -55,23 +55,23 @@ let execvp_command cmd args handler =
       sock, id
 
 let fork_and_exec cmd args = 
-            match Unix.fork() with
-              0 -> begin
-                  try
-                    match Unix.fork() with
-                      0 -> begin
-                          try
-                            Unix.execv cmd args;
-                            exit 0
-                          with e -> 
-                              lprintf "Exception %s while starting file_completed_cmd" (Printexc2.to_string e); lprint_newline ();
-                              exit 127
-                        end
-                    | id -> exit 0
-                  with _ -> exit 0
-                end
-            | id -> ignore (snd(Unix.waitpid [] id))
-
+  match Unix.fork() with
+    0 -> begin
+        try
+          match Unix.fork() with
+            0 -> begin
+                try
+                  Unix.execv cmd args;
+                  exit 0
+                with e -> 
+                    lprintf "Exception %s while starting file_completed_cmd\n" (Printexc2.to_string e); 
+                    exit 127
+              end
+          | id -> exit 0
+        with _ -> exit 0
+      end
+  | id -> ignore (snd(Unix.waitpid [] id))
+      
 let setuid = Unix.setuid
 let set_close_on_exec = Unix.set_close_on_exec
 let set_signal signal f = Sys.set_signal signal f

@@ -129,7 +129,7 @@ let length map =
   
 let top = function
     Empty -> raise Not_found
-  | Node(l, v, d, r, _) -> d
+  | Node(l, v, d, r, _) -> v, d
 
 let rec infix_nth map res =
   match res, map with

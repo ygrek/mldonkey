@@ -446,7 +446,7 @@ class box_friends box_files friend_tab =
         gclient_name = c.client_name;
         gclient_files = c.client_files;
         gclient_rating = c.client_rating;
-        gclient_connect_time = c.client_connect_time;
+        gclient_connect_time = (BasicSocket.last_time () - c.client_connect_time);
         gclient_software = c.client_software;
         gclient_emulemod = c.client_emulemod;
         gclient_downloaded = c.client_downloaded;
@@ -482,7 +482,7 @@ class box_friends box_files friend_tab =
           (* added *)
           f.gclient_tags <- f_new.client_tags;
           f.gclient_rating <- f_new.client_rating;
-          f.gclient_connect_time <-  f_new.client_connect_time;
+          f.gclient_connect_time <-  (BasicSocket.last_time () - f_new.client_connect_time);
           f.gclient_software <- f_new.client_software;
           f.gclient_emulemod <- f_new.client_emulemod;
           f.gclient_downloaded <- f_new.client_downloaded;
@@ -649,7 +649,7 @@ class box_list friend_tab =
         gclient_name = c.client_name;
         gclient_files = c.client_files;
         gclient_rating = c.client_rating;
-        gclient_connect_time =  c.client_connect_time;
+        gclient_connect_time =  (BasicSocket.last_time () - c.client_connect_time);
         gclient_software = c.client_software;
         gclient_emulemod = c.client_emulemod;
         gclient_downloaded = c.client_downloaded;
@@ -693,7 +693,7 @@ class box_list friend_tab =
                     let (row, c) = self#find_client c_new.client_num in
                     c.gclient_state <- c_new.client_state;
                     c.gclient_rating <- c_new.client_rating;
-                    c.gclient_connect_time <- c_new.client_connect_time;
+                    c.gclient_connect_time <- (BasicSocket.last_time () - c_new.client_connect_time);
                     c.gclient_name <- c_new.client_name;
                     c.gclient_kind <- c_new.client_kind;
                     c.gclient_tags <- c_new.client_tags;

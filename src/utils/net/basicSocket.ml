@@ -65,7 +65,8 @@ type t = {
     mutable event_handler : handler;
     mutable error : close_reason;
 
-    mutable name : unit -> string;
+    mutable name : string;
+    mutable printer : (t -> string);
     born : float;
     mutable dump_info : (Buffer.t -> unit);
 (*    mutable before_select : (t -> unit); *)
@@ -141,9 +142,9 @@ let closed_tasks = ref []
 external get_fd_num : Unix.file_descr -> int = "ml_get_fd_num" "noalloc"
 
 let print_socket buf s =  
-  Printf.bprintf buf "FD %d: %20s Socket %s \n" 
-    (get_fd_num s.fd)
-  (Date.to_string s.born) (s.name ())
+  Printf.bprintf buf "FD %s:%d: %20s\n" 
+     (s.name) (get_fd_num s.fd)
+  (Date.to_string s.born)
 
 let sprint_socket s =  
   let buf = Buffer.create 100 in
@@ -236,7 +237,8 @@ let create_blocking name fd handler =
       event_handler = handler;
       error = Closed_by_peer;
 (*      before_select = default_before_select; *)
-      name = (fun _ -> name);
+      name = name;
+      printer = (fun _ -> "");
       born = !current_time;
       
       dump_info = dump_basic_socket;
@@ -324,14 +326,16 @@ let add_infinite_timer delay f = add_session_timer (ref true) delay f
 
 let add_session_option_timer enabler option f = 
   let f t =
-    if !enabler then begin
-        t.delay <- !!option;
-        reactivate_timer t;
-        f ()
-      end
+    if !enabler then 
+      let delay = !!option in
+(* Negative delays are re-examined every minute, and the timer is only called
+     if the delay becomes positive again. *)
+      t.delay <- (if delay > 0. then delay else 60.);
+      reactivate_timer t;
+      if delay > 0. then f ()
   in
   add_timer !!option f
-
+  
 let add_infinite_option_timer option f = add_session_option_timer (ref true) option f
   
 let can_read = 1
@@ -379,7 +383,18 @@ let rec exec_timers = function
       
 let loop_delay = ref 0.02
 
+let verbose_bandwidth = ref 0
+  
+let bandwidth_second_timers = ref []
+let add_bandwidth_second_timer f =
+  bandwidth_second_timers := f :: !bandwidth_second_timers
+  
 let loop () =
+  add_infinite_timer 1.0 (fun _ ->
+      if !verbose_bandwidth > 0 then 
+        lprintf "[BW1] Resetting bandwidth counters\n";
+      List.iter (fun f -> try f () with _ -> ()) !bandwidth_second_timers
+  );
   while true do
     try
       if !loop_delay > 0. then (try select [] !loop_delay;  with _ -> ());
@@ -443,6 +458,8 @@ let _ =
   
 let stats buf t =
   lprintf "Socket %d\n" (get_fd_num t.fd)
+
+let sock_num t = get_fd_num t.fd
   
 let print_socket buf s =
   print_socket buf s;
@@ -460,7 +477,7 @@ let print_sockets buf =
   List.iter (print_socket buf) !fd_tasks;
   ()
   
-let info t = t.name ()
+let info t = t.name
   
 let _ =
   add_timer 300. (fun t ->
@@ -469,10 +486,10 @@ let _ =
         let buf = Buffer.create 100 in        
         print_sockets buf;
         lprintf "%s\n" (Buffer.contents buf);
-        )
+  )
   
 let set_printer s f =
-  s.name <- f
+  s.printer <- f
   
 let set_dump_info s f =
   s.dump_info <- f
@@ -501,7 +518,9 @@ let start_time = last_time ()
 let date_of_int date = 
   if date >= 1000000000 then (float_of_int date) else (float_of_int date +. 1000000000.)
   
-let string_of_date date = Date.to_string (date_of_int date)
+let string_of_date date = 
+  if date < 1 then "never" else
+    Date.to_string (date_of_int date)
 let normalize_time time =
   if time >= 1000000000 || time < 0 then time - 1000000000 else time
 

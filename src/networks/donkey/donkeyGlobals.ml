@@ -63,6 +63,8 @@ let network = CommonNetwork.new_network "Donkey"
   (fun _ -> !!commit_in_subdir)
 (*    network_options_prefix commit_in_subdir *)
 let connection_manager = network.network_connection_manager
+let connections_controler = TcpServerSocket.create_connections_contoler
+    "Edonkey" (fun _ _ -> true)
   
 let (shared_ops : file CommonShared.shared_ops) = 
   CommonShared.new_shared_ops network
@@ -153,7 +155,56 @@ module H = Weak2.Make(struct
 
   
 let clients_by_kind = H.create 127
+  
+  (*
+module HS = Weak2.Make(struct
+      type t = source
+      let hash s = Hashtbl.hash s.source_addr
+      
+      let equal x y = x.source_addr = y.source_addr
+    end)
+  
+let verbose_sources = verbose_src_manager
+let source_counter = ref 0
+let stats_new_sources = ref 0
+let sources_by_address = HS.create 13557
+let stats_sources = ref 0
+
+  
+let create_source new_score source_age addr = 
+  let ip, port = addr in
+  if !verbose_sources then begin
+      lprintf "queue_new_source %s:%d\n" (Ip.to_string ip) port; 
+    end;
+  try
+    let finder =  { dummy_source with source_addr = addr } in
+    let s = HS.find sources_by_address finder in
+    
+    incr stats_new_sources;
+    s
+  
+  with _ ->
+      let n = CommonClient.book_client_num () in
+      let s = { dummy_source with
+(*          source_num = (incr source_counter;!source_counter); *)
+          source_addr = addr;
+          source_age = source_age;
+          source_last_score = new_score;
+          source_last_age = source_age;
+          source_client_num = n;
+          source_files = [];
+        }  in
+      HS.add sources_by_address s;
+      incr stats_sources;
+      if !verbose_sources then begin
+          lprintf "Source %d added\n" n; 
+        end;
+      s
+        *)
+
 (* let clients_by_name = Hashtbl.create 127 *)
+
+let clients_root = ref []
 
 let nservers = ref 0
 let servers_by_key = Hashtbl.create 127
@@ -174,10 +225,13 @@ let block_size = Int64.of_int 9728000
   
 let queue_timeout = ref (60. *. 10.) (* 10 minutes *)
     
+let files_queries_per_minute = 1
+    
 let nclients = ref 0
   
 let connected_server_list = ref ([]  : server list)
 
+let protocol_version = 61
   
 let (banned_ips : (Ip.t, int) Hashtbl.t) = Hashtbl.create 113
 let (old_requests : (int * int, request_record) Hashtbl.t) = 
@@ -307,35 +361,28 @@ let new_file file_state file_name md4 file_size writable =
       let rec file = {
           file_file = file_impl;
           file_shared = None;
-          file_exists = file_exists;
+(*          file_exists = file_exists; *)
           file_md4 = md4;
           file_swarmer = None;
           file_nchunks = nchunks;
 
 (*          file_chunks = [||]; *)
 (*          file_chunks_order = [||]; *)
-          file_chunks_age = [||];
+(*          file_chunks_age = [||]; *)
 (*          file_all_chunks = String.make nchunks '0'; *)
 (*          file_absent_chunks =   [Int64.zero, file_size]; *)
           file_filenames = [Filename.basename file_name, GuiTypes.noips() ];
-          file_nsources = 0;
+(*          file_nsources = 0; *)
           file_md4s = Array.of_list md4s;
 (*          file_available_chunks = Array.create nchunks 0; *)
           file_format = FormatNotComputed 0;
-          file_locations = Intmap.empty;
+(*          file_locations = Intmap.empty; *)
 (*          file_mtime = 0.0; *)
-          file_initialized = false;
+(*          file_initialized = false; *)
           
-          file_clients = Fifo.create ();
-          file_sources = [| 
-            SourcesQueueCreate.lifo ();
-            SourcesQueueCreate.fifo ();
-            SourcesQueueCreate.oldest_first ();
-            SourcesQueueCreate.oldest_last ();
-            SourcesQueueCreate.fifo ();
-            SourcesQueueCreate.fifo ();
-            SourcesQueueCreate.fifo ();
-          |];
+(*          file_clients = Fifo.create (); *)
+          file_sources = DonkeySources.create_file_sources_manager
+            (Md4.to_string md4) 
         }
       and file_impl = {
           dummy_file_impl with
@@ -348,6 +395,8 @@ let new_file file_state file_name md4 file_size writable =
           impl_file_last_seen = last_time () - 100 * 24 * 3600;
         }
       in
+      
+      file.file_sources.DonkeySources.manager_file <- (fun () -> as_file file);
       
       (let swarmer = Int64Swarmer.create (as_file file) block_size zone_size
         in
@@ -496,9 +545,9 @@ let dummy_client =
   let rec c = {
       client_client = client_impl;
       client_upload = None;
-      client_kind = Indirect_location ("", Md4.null);   
-      client_source = None;
-      client_sock = NoConnection;
+      client_kind = Direct_address (Ip.null, 0);
+      client_source = DonkeySources.dummy_source;
+(*      client_sock = NoConnection; *)
       client_ip = Ip.null;
       client_md4 = Md4.null;
       client_last_filereqs = 0;
@@ -506,7 +555,7 @@ let dummy_client =
       client_download = None;
 (*      client_block = None; *)
 (*      client_zones = []; *)
-      client_connection_control =  new_connection_control_recent_ok ( ());
+(*      client_connection_control =  new_connection_control_recent_ok ( ()); *)
       client_file_queue = [];
       client_tags = [];
       client_name = "";
@@ -517,16 +566,12 @@ let dummy_client =
       client_brand = Brand_unknown;
       client_mod_brand = Brand_mod_unknown;
       client_checked = false;
-      client_chat_port = 0 ; (** A VOIR : où trouver le 
-            port de chat du client ? *)
       client_connected = false;
-      client_power = 0;
       client_downloaded = Int64.zero;
       client_uploaded = Int64.zero;
       client_banned = false;
       client_overnet = false;
       client_score = 0;
-      client_files = [];
       client_next_queue = 0;
       client_rank = 0;
       client_connect_time = 0;
@@ -547,19 +592,18 @@ let dummy_client =
   c  
     
   
-let create_client key num =  
+let create_client key =  
+  let s = DonkeySources.find_source_by_uid key in
   let rec c = {
 (*      dummy_client with *)
       
       client_client = client_impl;
-      client_connection_control =  new_connection_control_recent_ok ( ());
+(*      client_connection_control =  new_connection_control_recent_ok ( ()); *)
       client_next_view_files = last_time () - 1;
       client_kind = key;   
-      client_power = !!upload_power;
-
       client_upload = None;
-      client_source = None;
-      client_sock = NoConnection;
+      client_source = s;
+(*      client_sock = NoConnection; *)
       client_ip = Ip.null;
       client_md4 = Md4.null;
       client_last_filereqs = 0;
@@ -576,15 +620,12 @@ let create_client key num =
       client_brand = Brand_unknown;
       client_mod_brand = Brand_mod_unknown;
       client_checked = false;
-      client_chat_port = 0 ; (** A VOIR : où trouver le 
-            port de chat du client ? *)
       client_connected = false;
       client_downloaded = Int64.zero;
       client_uploaded = Int64.zero;
       client_banned = false;
       client_overnet = false;
       client_score = 0;
-      client_files = [];
       client_next_queue = 0;
       client_rank = 0;
       client_connect_time = 0;
@@ -592,7 +633,7 @@ let create_client key num =
       client_requests_sent = 0;
       client_indirect_address = None;      
       client_slot = SlotNotAsked; 
-      client_debug = Intset.mem num !debug_clients;
+      client_debug = Intset.mem s.DonkeySources.source_num !debug_clients;
       client_pending_messages = [];
     } and
     client_impl = {
@@ -603,23 +644,28 @@ let create_client key num =
     }
   in
   Heap.set_tag c tag_client;
-  CommonClient.new_client_with_num client_impl num;
+  CommonClient.new_client_with_num client_impl s.DonkeySources.source_num;
   H.add clients_by_kind c;
+  clients_root := c :: !clients_root;
   c
 
 let new_client key =
   try
     H.find clients_by_kind { dummy_client with client_kind = key }
   with _ ->
-      create_client key (book_client_num ())
+      create_client key
 
+let create_client = ()
+      
+      (*
 let new_client_with_num key num =
   try
-    H.find clients_by_kind { dummy_client with client_kind = key }
+    { dummy_client with client_kind = key }  
   with _ ->
-      create_client key num
-      
-let find_client_by_key key =  
+      create_client key
+        *)
+
+let find_client_by_key key = 
   H.find clients_by_kind { dummy_client with client_kind = key }
   
 let client_type c =
@@ -642,13 +688,14 @@ let set_client_name c name md4 =
       if not (Hashtbl.mem clients_by_name c.client_name) then
         Hashtbl.add clients_by_name c.client_name c;
 *)
-      
+
+      (*
       try      
         let kind = Indirect_location (name, md4) in
         let cc = H.find clients_by_kind { dummy_client with client_kind = kind } in
         if cc != c && client_type cc land client_friend_tag <> 0 then
           friend_add c
-      with _ -> ()
+      with _ -> () *)
     end
     
 exception ClientFound of client
@@ -703,10 +750,10 @@ end;
 *)
       let num = client_num c in
       incr client_counter;
-      match c.client_sock with
+      match c.client_source.DonkeySources.source_sock with
         NoConnection -> begin
             match c.client_kind with
-              Indirect_location _ -> incr unconnected_unknown_clients
+              Indirect_address _ -> incr unconnected_unknown_clients
             | _ -> ()
           end
       | ConnectionWaiting _  -> ()
@@ -728,15 +775,15 @@ end;
   
   let bad_clients_in_files = ref 0 in
   Hashtbl.iter (fun _ file ->
-      Intmap.iter (fun _ c ->
-          match c.client_sock with
+      DonkeySources.iter_all_sources (fun s ->
+          match s.DonkeySources.source_sock with
             NoConnection -> begin
-                match c.client_kind with
-                  Indirect_location _ -> incr bad_clients_in_files
+                match s.DonkeySources.source_uid with
+                  Indirect_address _ -> incr bad_clients_in_files
                 | _ -> ()
               end
           | _ -> ()              
-      ) file.file_locations;
+      ) file.file_sources;
   ) files_by_md4;
   
   Printf.bprintf buf "Clients: %d\n" !client_counter;
@@ -1005,12 +1052,10 @@ let _ =
       let list = H.to_list clients_by_kind in
       lprintf "Clients_by_kind: %d\n" (List.length list);
       List.iter (fun c ->
-          lprintf "[%d ok: %s tried: %s next: %s state: %d rating: %d]\n" 
+          lprintf "[%d ok: %s rating: %d]\n" 
           (client_num c)
-          (string_of_date (c.client_connection_control.control_last_ok))
-          (string_of_date (c.client_connection_control.control_last_try))
-          (string_of_date (connection_next_try c.client_connection_control))
-          c.client_connection_control.control_state
+          (string_of_date (c.client_source.DonkeySources.source_age))
+(* TODO: add connection state *)
           c.client_rating
           ;
      ) list;
@@ -1035,11 +1080,10 @@ let join_queue_by_id  = Hashtbl.create 13
 
 let client_id c = 
   match c.client_kind with
-    Known_location (ip, port) -> (ip,ip, port)
-  | _ -> match c.client_indirect_address with
-        None -> raise Not_found
-      | Some addr -> addr
-          
+    Direct_address (ip, port) -> (ip, port, ip)
+  | Indirect_address (ip, port, ip') -> (ip, port, ip')
+  | Invalid_address _ -> (Ip.null, 0, Ip.null)
+      
 let save_join_queue c =
   if c.client_file_queue <> [] then
     let files = List.map (fun (file, chunks, _) ->

@@ -390,12 +390,13 @@ let gui_initialize gui =
       
       List.iter (fun file ->
           addevent gui.gui_events.gui_files (file_num file) true;
+          let sources = file_active_sources file in
           List.iter (fun c ->
               addevent gui.gui_events.gui_clients (client_num c) true;
               gui.gui_events.gui_new_events <-
                 (File_add_source_event (file,c))
               :: gui.gui_events.gui_new_events
-          ) (file_sources file)
+          ) (file_active_sources file)
       ) !!files;
       
       List.iter (fun file ->
@@ -753,7 +754,7 @@ search.op_search_end_reply_handlers;
           
           | P.GetFile_locations num ->
               let file = file_find num in
-              let clients = file_sources file in
+              let clients = file_active_sources file in
               List.iter (fun c ->
                   file_add_source file c
               ) clients

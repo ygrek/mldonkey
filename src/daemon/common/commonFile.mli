@@ -48,7 +48,8 @@ and 'a file_ops = {
   mutable op_file_set_format : 'a -> CommonTypes.format -> unit;
   mutable op_file_check : 'a -> unit;
   mutable op_file_recover : 'a -> unit;
-  mutable op_file_sources : 'a -> CommonTypes.client list;
+  mutable op_file_all_sources : 'a -> CommonTypes.client list;
+  mutable op_file_active_sources : 'a -> CommonTypes.client list;
   mutable op_file_comment : 'a -> string;
   mutable op_file_set_priority : 'a -> int -> unit;
     mutable op_file_print_sources_html : 'a -> Buffer.t -> unit;
@@ -81,7 +82,8 @@ val file_set_format : CommonTypes.file -> CommonTypes.format -> unit
 val file_check : CommonTypes.file -> unit
 val file_recover : CommonTypes.file -> unit
 val file_preview : CommonTypes.file -> unit
-val file_sources : CommonTypes.file -> CommonTypes.client list
+val file_all_sources : CommonTypes.file -> CommonTypes.client list
+val file_active_sources : CommonTypes.file -> CommonTypes.client list
 val file_print_sources_html : CommonTypes.file -> Buffer.t -> unit
 val files_ops : (int file_ops * int file_ops) list ref
 val new_file_ops : CommonTypes.network -> 'a file_ops

@@ -334,7 +334,9 @@ let send_bitfield c =
     None -> assert false
   | Some swarmer ->
       let bitmap = Int64Swarmer.verified_bitmap swarmer in
+      if !verbose then begin
       lprintf "Verified bitmap: [%s]\n" bitmap;
+      end;
       send_client c (BitField 
       (        
       let nchunks = String.length bitmap in
@@ -445,7 +447,7 @@ let rec client_parse_header counter cc init_sent gconn sock
     connection_ok c.client_connection_control;
     if !verbose_msg_clients then
       lprintf "file and client found\n";
-    if not c.client_incoming then
+(*    if not c.client_incoming then *)
       send_bitfield c;
     c.client_blocks_sent <- file.file_blocks_downloaded;
 (*

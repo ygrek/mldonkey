@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open AnyEndian
 open BasicSocket
 open LittleEndian
 open Unix
@@ -54,7 +55,7 @@ let buf = Buffer.create 70000
 
 let dump_record t s ip =
   Buffer.clear buf;
-  buf_int32 buf t; 
+  buf_int64 buf t; 
   buf_ip buf ip;
   buf_string buf s;
   let m = Buffer.contents buf in
@@ -64,7 +65,7 @@ let dump_record t s ip =
 let read_record ic =
   let s = String.create 100 in
   really_input ic s 0 10;
-  let t = get_int32 s 0 in
+  let t = get_int64 s 0 in
   let ip = get_ip s 4 in
   let len = get_int16 s 8 in
   let s = String.create len in
@@ -94,73 +95,129 @@ let new_peers = ref []
   
 let print_record t ip_firewall s =
   let ip = get_ip s 1 in
-  let ips, pos = get_list get_peer s 5 in
-  let t = Int32.to_float t in
+  let t = Int64.to_float t in
   
   let t = localtime t in
-  Printf.printf  "At %02d:%02d:%02d " 
+  Printf.printf  "At %02d:%02d:%02d\n" 
     t.tm_hour
     t.tm_min
     t.tm_sec
   ;
-  print_newline ();
-  Printf.printf "MLdonkey on %s (through %s): " 
-    (Ip.to_string ip)
-  (Ip.to_string ip_firewall)
-  ;
-  print_newline ();
+  match  s.[0] with
+    '\000' ->
+      let ips, pos = get_list get_peer s 5 in
+      let version, uptime, shared, uploaded, pos =
+        try
+          let version, pos = get_string s pos in
+          let uptime = get_int s pos in
+          let shared = get_int64 s (pos+4) in
+          let uploaded = get_int64 s (pos+12) in
+          
+          version, uptime, shared, uploaded, pos+20
+        
+        
+        
+        with _ ->
+            "unknown", 0, Int64.zero, Int64.zero, pos
+      in
+      
+      
+      Printf.printf "Version: %s, uptime: %02d:%02d, shared: %Ld, uploaded: %Ld"
+        version (uptime / 3600) ((uptime/60) mod 60) shared uploaded;
+      print_newline ();
+      List.iter (fun (ip, port) ->
+          new_servers := (ip, port) :: !new_servers;
+          Printf.printf "            Connected to %s:%d"
+            (Ip.to_string ip) port;
+          print_newline ()) ips;
+      begin
+        try
+          let npeers = get_int s pos in
+          Printf.printf "Overnet peers: %d" npeers; print_newline ();
+          for i = 0 to npeers - 1 do
+            let ip = get_ip s (pos+4+i*6) in
+            let port = get_int16 s (pos+6+i*6) in
+            new_peers := (ip, port) :: !new_peers;
+            Printf.printf "         Overnet Peer %s:%d"        
+              (Ip.to_string ip) port;
+            print_newline ()
+          done;
+        
+        
+        with _ -> ()
+      end
   
-  let version, uptime, shared, uploaded, pos =
-    try
+  | '\001' ->
+      
+      
+      Printf.printf "MLdonkey on %s (through %s):\n" 
+        (Ip.to_string ip)
+      (Ip.to_string ip_firewall)
+      ;
+      
+      let pos = 5 in
       let version, pos = get_string s pos in
       let uptime = get_int s pos in
       let shared = get_int64 s (pos+4) in
       let uploaded = get_int64 s (pos+12) in
+      let pos = pos + 20 in
       
-      version, uptime, shared, uploaded, pos+20
-    
-    
-    
-    with _ ->
-        "unknown", 0, Int64.zero, Int64.zero, pos
-  in
-  
-  
-  Printf.printf "Version: %s, uptime: %02d:%02d, shared: %Ld, uploaded: %Ld"
-    version (uptime / 3600) ((uptime/60) mod 60) shared uploaded;
-  print_newline ();
-  List.iter (fun (ip, port) ->
-      new_servers := (ip, port) :: !new_servers;
-      Printf.printf "            Connected to %s:%d"
-        (Ip.to_string ip) port;
-      print_newline ()) ips;
-  
-  begin
-    try
-      let npeers = get_int s pos in
-      Printf.printf "Overnet peers: %d" npeers; print_newline ();
-      for i = 0 to npeers - 1 do
-        let ip = get_ip s (pos+4+i*6) in
-        let port = get_int16 s (pos+6+i*6) in
-        new_peers := (ip, port) :: !new_peers;
-        Printf.printf "         Overnet Peer %s:%d"        
-        (Ip.to_string ip) port;
-        print_newline ()
-      done;
+      Printf.printf "Version: %s, uptime: %02d:%02d, shared: %Ld, uploaded: %Ld\n"
+        version (uptime / 3600) ((uptime/60) mod 60) shared uploaded;
       
+      let upload_rate = get_int16 s pos in
+      let download_rate = get_int16 s (pos+2) in
+      Printf.printf "   upload: %d download: %d\n" upload_rate download_rate;
+      let lost_upload = get_int s (pos+4) in
+      let load_download = get_int s (pos+8) in
       
-    with _ -> ()
-  end
+      let _ = 
+        get_list (fun s pos ->
+            let n = get_uint8 s pos in
+            let s, pos = get_string s (pos+4) in
+            
+            begin
+              match n with
+              | 1 ->
+                  let pos = 0 in
+                  let ips, pos = get_list (fun s pos ->
+                        (get_ip s pos, get_int16 s (pos+4)), pos
+                    ) s pos in
+                  
+                  List.iter (fun (ip, port) ->
+                      new_servers := (ip, port) :: !new_servers;
+                      Printf.printf "            Connected to %s:%d\n"
+                        (Ip.to_string ip) port;
+                  ) ips;
+              
+              | 2 ->
+                  
+                  let npeers = get_int s pos in
+                  Printf.printf "Overnet peers: %d\n" npeers; 
+                  for i = 0 to npeers - 1 do
+                    let ip = get_ip s (pos+4+i*6) in
+                    let port = get_int16 s (pos+6+i*6) in
+                    new_peers := (ip, port) :: !new_peers;
+                    Printf.printf "         Overnet Peer %s:%d\n"
+                      (Ip.to_string ip) port;
+                  done;
+              | n ->
+                  Printf.printf "Unknown fragment %d\n" n
+            end;
+            (), pos
+        ) s (pos+12) 
+      in
+      
+  ()
+  | _ ->
+      Printf.printf "Unknown format\n";
+      AnyEndian.dump s
   
   
   
 let create_observer port = 
   let sock = UdpSocket.create Unix.inet_addr_any port
     (DonkeyProtoCom.udp_basic_handler (fun s p ->
-        if s.[0] <> '\000' then begin
-            AnyEndian.dump s;
-            failwith "Bad UDP packet"
-          end;
         let ip_firewall = 
           match p.UdpSocket.addr with
             Unix.ADDR_INET (ip, port) -> Ip.of_inet_addr ip
@@ -168,7 +225,7 @@ let create_observer port =
         in
         
         let t = gettimeofday () in
-        let t = Int32.of_float t in
+        let t = Int64.of_float t in
         
         dump_record t s ip_firewall;
         
@@ -181,7 +238,8 @@ let create_observer port =
       (fun t event ->
         match event with
           TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
-            let sock = TcpBufferedSocket.create "observer connection" s 
+            let token = TcpBufferedSocket.create_token TcpBufferedSocket.unlimited_connection_manager in
+            let sock = TcpBufferedSocket.create token "observer connection" s 
                 (fun sock event ->
                   match event with
                     BASIC_EVENT (LTIMEOUT | RTIMEOUT) -> 
@@ -196,8 +254,8 @@ let create_observer port =
             buf_ip b (peer_ip sock);
             let s = Buffer.contents b in
             let len = String.length s in
-            Printf.printf "Sending %d bytes" len; print_newline ();
-            set_max_write_buffer sock (len + 100);
+            Printf.printf "Sending %d bytes\n" len; 
+            set_max_output_buffer sock (len + 100);
             write_string sock s
         | _ -> ()
     ) in
@@ -254,17 +312,15 @@ let count_records () =
       Printf.printf "%d MLdonkey clients" !counter;
       (match !first_record, !last_record with
           Some t1, Some t2 ->
-            Printf.printf " in %3.0ld seconds" (Int32.sub t2 t1)
+            Printf.printf " in %3.0Ld seconds" (Int64.sub t2 t1)
         | _ -> ());
-      Printf.printf " on %d servers" !server_counter; 
-      print_newline ();
+      Printf.printf " on %d servers\n" !server_counter; 
   )
   
 
 let servers_age = ref 60
 let peers_age = ref 2
 let _ =
-  print_newline ();
   Arg.parse [
     "-ascii", Arg.Unit print_ascii, "";
     "-count", Arg.Unit count_records, "";
@@ -280,7 +336,7 @@ let peers_array = Array.create !peers_age []
 
 let dump_list array new_hosts adder dumper =
   try
-    Printf.printf "dump server list"; print_newline ();
+    Printf.printf "dump server list\n"; 
     incr time;
     let len = Array.length array in
     array.(!time mod Array.length array) <- !new_hosts;
@@ -302,8 +358,7 @@ let dump_list array new_hosts adder dumper =
     let list = Hashtbl2.to_list servers in
     dumper list
   with e ->
-      Printf.printf "error: %s" (Printexc2.to_string e);
-      print_newline ()  
+      Printf.printf "error: %s\n" (Printexc2.to_string e)
   
 let dump_servers_list _ = 
   let module S = DonkeyImport.Server in
@@ -356,13 +411,12 @@ let _ =
       List.iter (fun s ->
         servers_array.(0) <- (s.S.ip , s.S.port) :: servers_array.(0)
         ) (S.read file)
-    with _ -> Printf.printf "Could not load old server list"; print_newline ();
+    with _ -> Printf.printf "Could not load old server list\n"; 
   end;
   BasicSocket.add_timer 30. dump_servers_list;
   BasicSocket.add_timer 30. dump_peers_list;
   BasicSocket.add_infinite_timer 300. dump_servers_list;
   BasicSocket.add_infinite_timer 300. dump_peers_list;
-  Printf.printf "Observer started";
-  print_newline ();
+  Printf.printf "Observer started\n";
   BasicSocket.loop ()
   

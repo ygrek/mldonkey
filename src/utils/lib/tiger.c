@@ -778,27 +778,21 @@ char hexa(int i)
 
 #define MAX_TIGER_CHUNK_SIZE 1024
 static word64 tiger_buffer[MAX_TIGER_CHUNK_SIZE];
+
 void tiger_hash(char prefix, char *s, int len, unsigned char *digest)
-{  
+{
   char *buffer = (char*) tiger_buffer;
-  
+  word64 ndigest[3];
+
   buffer[0] = prefix;
   memcpy(buffer +1, s, len);
-  static_tiger(tiger_buffer, (len +1), (word64*) (digest));
-  
-  swap_digest(digest);
-  
-/*
-{int i; char* r = (char*)digest;
-      printf("Tiger Hash: ");
-      for(i=0; i<24; i++){
-         printf("%c%c", hexa((r[i] & 0xf0) >> 4), hexa(r[i] & 0xf));
-      }
-      printf("\n");
-}
-*/
-}
 
+  memcpy(ndigest, digest, 3 * sizeof(word64));
+  static_tiger(tiger_buffer, (len +1), (word64*) (ndigest));
+  memcpy(digest, ndigest, 3 * sizeof(word64));
+
+  swap_digest(digest);
+}
 
 void tiger_tree_string(char *s, int len, int pos, int block_size, char *digest)
 {

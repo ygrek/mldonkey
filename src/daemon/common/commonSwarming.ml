@@ -17,9 +17,10 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-(*
+(* TODO: put/read the last_seen table from the configuration. Don't forget
+  to update file.impl_file_last_seen *)
 
-PROBLEMS:
+(*  PROBLEMS:
   After 'update_uploader_chunks', an uploader can get a block with
   'find_block' that it has already used.
   *)
@@ -174,11 +175,15 @@ module Int64Swarmer = struct
 (*                                                                       *)
 (*************************************************************************)
     
-    let last_seen t =
+    let compute_last_seen t =
+      let last_seen_total = ref (BasicSocket.last_time ()) in
       for i = 0 to String.length t.t_verified_bitmap - 1 do
         if t.t_verified_bitmap.[i] > '2' then
           t.t_last_seen.(i) <- BasicSocket.last_time ()
+        else
+          last_seen_total := min !last_seen_total t.t_last_seen.(i)
       done;
+      (as_file_impl t.t_file).impl_file_last_seen <- !last_seen_total;
       t.t_last_seen
 
 (*************************************************************************)
@@ -604,7 +609,8 @@ module Int64Swarmer = struct
                       | Some rr -> b.block_ranges <- rr
                     end;
                 | Some rr -> rr.range_next <- r.range_next);
-            
+              r.range_next <- None;
+              r.range_prev <- None;
             end
         end
 
@@ -748,7 +754,7 @@ module Int64Swarmer = struct
         end;
         
         List.iter (fun i ->
-            t.t_last_seen.(i) <- BasicSocket.last_time ()
+            t.t_last_seen.(i) <- BasicSocket.last_time ();
         ) !complete_blocks;
         
         let complete_blocks = Array.of_list !complete_blocks in
@@ -1338,13 +1344,55 @@ we thus might put a lot of clients on the same range !
                   | FileCancelled -> ()
                   | _ -> 
                       
-                      t.t_write r.range_current_begin s
-                        (string_begin + 
-                          Int64.to_int (r.range_current_begin -- file_begin))
-                      (Int64.to_int written_len);
+                      let string_pos = string_begin + 
+                          Int64.to_int (r.range_current_begin -- file_begin) in
+                      let string_length = Int64.to_int written_len in
+                      
+                      if 
+                        string_pos < 0 ||
+                        string_pos < string_begin || 
+                        string_len > string_length then begin
+                          lprintf "[ERROR CommonSwarming]: BAD WRITE\n";
+                          lprintf "  received: file_pos:%Ld string:%d %d\n"
+                            file_begin string_begin string_len;
+                          lprintf "  ranges:\n";
+                          List.iter (fun (_,_,r) ->
+                              lprintf "     range: %Ld-[%Ld]-%Ld"
+                                r.range_begin r.range_current_begin
+                                r.range_end;
+                              (match r.range_next with
+                                  None -> ()
+                                | Some rr -> 
+                                    lprintf "  next: %Ld" rr.range_begin);
+                              (match r.range_prev with
+                                  None -> ()
+                                | Some rr -> 
+                                    lprintf "  prev: %Ld" rr.range_begin);
+                              lprintf "\n";
+                              let b = r.range_block in
+                              lprintf "        block: %d[%c] %Ld-%Ld [%s]"
+                                b.block_num 
+                                t.t_verified_bitmap.[b.block_num]
+                                b.block_begin b.block_end
+                                (match t.t_blocks.(b.block_num) with
+                                  EmptyBlock -> "empty"
+                                | PartialBlock _ -> "partial"
+                                | CompleteBlock -> "complete"
+                                | VerifiedBlock -> "verified"
+                              );
+                              let br = b.block_ranges in
+                              lprintf " first range: %Ld(%Ld)"
+                                br.range_begin
+                                (br.range_end -- br.range_current_begin);
+                              lprintf "\n";
+                          ) up.up_ranges;
+                        end else
+                        t.t_write
+                          r.range_current_begin  
+                          s string_pos string_length;
                 end;
                 range_received r r.range_current_begin file_end;
-              
+                
               end
         ) up.up_ranges;
         clean_ranges up
@@ -1676,7 +1724,10 @@ we thus might put a lot of clients on the same range !
         ("file_present_chunks", List
             (List.map (fun (i1,i2) -> 
                 SmallList [int64_to_value i1; int64_to_value i2])
-            (present_chunks t))) ::
+          (present_chunks t))) ::
+      ("file_chunks_age", List (Array.to_list 
+            (Array.map int_to_value t.t_last_seen))) ::
+
         other_vals
       
 (*************************************************************************)

@@ -25,7 +25,50 @@ open BasicSocket
 open CommonTypes
 open UdpSocket
 open TcpBufferedSocket
+
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         short_lazy                                    *)
+(*                                                                       *)
+(*************************************************************************)  
   
+(* Store the result of a computation for a very short time to avoid
+recomputing it too often. Each value is associated with a uniq
+ '(string, int1, int2)' that should be provided by the caller.
+  *)
+
+module ShortLazy : sig
+    val compute : string * int * int -> ('a -> 'b) -> 'a -> 'b
+  end = struct
+
+    type t
+    
+    let short_lazy_values = Hashtbl.create 111
+    let compute name f x =
+      let f = (Obj.magic f : t -> t) in
+      let x = (Obj.magic x : t) in
+      try
+        let (f',x',v) = Hashtbl.find short_lazy_values name in
+        
+        if f' != f || x <> x' then
+          (Hashtbl.remove short_lazy_values name; raise Not_found);
+        Obj.magic (v : t)
+      with _ ->
+          let v = f x in
+          Hashtbl.add short_lazy_values name (f,x,v);
+          Obj.magic (v : t)
+    
+    let _ =
+      add_infinite_timer 5. (fun _ -> Hashtbl.clear short_lazy_values)
+  end
+  
+(*************************************************************************)
+(*                                                                       *)
+(*                         ............                                  *)
+(*                                                                       *)
+(*************************************************************************)
+
 let networks_string = ref ""
   
 let version () = 
@@ -132,9 +175,11 @@ let connection_delay cc =
   cc.control_state <- 0
   
 let upload_control = TcpBufferedSocket.create_write_bandwidth_controler 
+    "Upload"
     (!!max_hard_upload_rate * 1024)
   
 let download_control = TcpBufferedSocket.create_read_bandwidth_controler 
+  "Download"
     (!!max_hard_download_rate * 1024)
 
       
@@ -184,9 +229,13 @@ val download_control : TcpBufferedSocket.bandwidth_controler
 *)
   
 let gui_server_sock = ref (None : TcpServerSocket.t option)
-      
+  
+let pid = Unix.getpid ()
+  
 let do_at_exit f =
-  Pervasives.at_exit (fun _ -> try f () with e -> ())
+  Pervasives.at_exit (fun _ -> 
+      if Unix.getpid () = pid then
+        try f () with e -> ())
       
 let exit_properly n = Pervasives.exit n
 
@@ -431,44 +480,6 @@ let init_hooks = ref ([] : (unit -> unit) list)
 let add_init_hook f =
   init_hooks := f :: !init_hooks
 
-
-let file_kinds = ref []
-
-let add_web_kind kind f =
-  file_kinds := (kind,f) :: !file_kinds
-
-let mldonkey_wget url f = 
-  let module H = Http_client in
-  let r = {
-      H.basic_request with
-      H.req_url = Url.of_string url;
-      H.req_proxy = !CommonOptions.http_proxy;
-      H.req_user_agent = 
-      Printf.sprintf "MLdonkey %s" Autoconf.current_version;
-    } in
-  
-  H.wget r f  
-  
-  
-let load_url kind url =
-  lprintf "QUERY URL %s\n" url; 
-  let f = 
-    try 
-      List.assoc kind !file_kinds 
-    with e -> failwith (Printf.sprintf "Unknown kind [%s]" kind)
-  in 
-  try
-    mldonkey_wget url f
-  with e -> failwith (Printf.sprintf "Exception %s while loading %s"
-          (Printexc2.to_string e) url)
-  
-let load_file kind file =
-  try 
-    (List.assoc kind !file_kinds) file
-  with e -> 
-      lprintf "Exception %s while loading kind %s\n" 
-        (Printexc2.to_string e)
-      kind
 
 let chat_message_fifo = (Fifo.create () : (int * string * int * string * string) Fifo.t) 
 
@@ -798,3 +809,8 @@ let do_if_connected tcp_connection f =
   match tcp_connection with
     Connection sock -> f sock
   | _ -> ()
+  
+let print_localtime () =
+let t = Unix.localtime (Unix.time ()) in
+  let { Unix.tm_mon = tm_mon; Unix.tm_mday = tm_mday; Unix.tm_hour = tm_hour; Unix.tm_min = tm_min; Unix.tm_sec = tm_sec } = t in
+  lprintf " on localtime: %2d/%2d, %02d:%02d:%02d\n" tm_mday (tm_mon+1) tm_hour tm_min tm_sec;

@@ -318,10 +318,11 @@ let _ =
       | _ -> ()
 );
   *)
-  file_ops.op_file_sources <- (fun file ->
+  file_ops.op_file_all_sources <- (fun file ->
       List2.tail_map (fun c -> as_client c.client_client)
       file.file_clients
-  )
+  );
+  file_ops.op_file_active_sources <- file_ops.op_file_all_sources
 
 let client_of_user user =
   let c = new_client user.user_nick in

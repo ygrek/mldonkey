@@ -57,7 +57,7 @@ val udp_handler :
   (DonkeyProtoUdp.t -> UdpSocket.udp_packet -> unit) ->
   UdpSocket.t -> UdpSocket.event -> unit
   
-val propagate_working_servers : (Ip.t * int) list -> (Ip.t * int) list -> unit
+(* val propagate_working_servers : (Ip.t * int) list -> (Ip.t * int) list -> unit *)
 val udp_basic_handler : 
   (string -> UdpSocket.udp_packet -> unit) -> UdpSocket.t -> 
   UdpSocket.event -> unit

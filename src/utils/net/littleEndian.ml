@@ -203,3 +203,12 @@ let buf_string16 buf s =
 let get_string16 s pos =
   let len = get_int16 s pos in
   String.sub s (pos+2) len, pos+2+len
+
+let get_string32 s pos =
+  let len = get_int s pos in
+  String.sub s (pos+4) len, pos+4+len
+
+let buf_string32 buf s =
+  buf_int buf (String.length s);
+  Buffer.add_string buf s
+

@@ -30,7 +30,7 @@ val known_shared_files : DonkeyTypes.shared_file_info
   list Options.option_record
 
 val old_files : Md4.t list Options.option_record
-
+val brotherhood : Md4.t list list Options.option_record
   
 val value_to_addr : Options.option_value -> Ip.t * int
 val value_to_md4 : Options.option_value -> Md4.t

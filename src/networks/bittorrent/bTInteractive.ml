@@ -52,7 +52,7 @@ let file_num file =
   file.file_file.impl_file_num
 
 let _ =
-  file_ops.op_file_sources <- (fun file ->
+  file_ops.op_file_all_sources <- (fun file ->
 (*      lprintf "file_sources\n"; *)
       let list = ref [] in
       Hashtbl.iter (fun _ c ->
@@ -60,6 +60,7 @@ let _ =
       ) file.file_clients;
       !list
   );
+  file_ops.op_file_active_sources <- file_ops.op_file_all_sources;
   file_ops.op_file_debug <- (fun file ->
       let buf = Buffer.create 100 in
 (*      Int64Swarmer.debug_print buf file.file_swarmer; *)
@@ -97,7 +98,7 @@ let _ =
   file_ops.op_file_info <- (fun file ->
       let last_seen = match file.file_swarmer with
           None -> [| last_time () |]
-        | Some swarmer -> Int64Swarmer.last_seen swarmer in
+        | Some swarmer -> Int64Swarmer.compute_last_seen swarmer in
       {
         P.file_fields = P.Fields_file_info.all;
         
@@ -156,7 +157,7 @@ let load_torrent_file filename =
   load_torrent_string s
 
 let try_share_file filename =
-  lprintf "BTInteractive.try_share_file: %s\n" filename;
+(*  lprintf "BTInteractive.try_share_file: %s\n" filename; *)
   let s = File.to_string filename in  
   let file_id, torrent = BTTracker.decode_torrent s in
   

@@ -122,7 +122,18 @@ if !!html_mods_use_relative_availability
 	then file_availability f 
 	else string_availability f.file_availability
 
-let number_of_sources gf = List.length (file_sources (file_find gf.file_num))
+    
+(* WARNING: these computations are much more expensive as they seem.
+We use the ShortLazy to avoid recomputing the result too many times,
+in particular when sorting the files depending on their number of sources... 
+  *)
+  
+let number_of_sources gf = 
+  List.length (file_all_sources (file_find gf.file_num))
+
+let number_of_sources gf =
+  ShortLazy.compute ("number_of_sources", gf.file_num, 0)
+  number_of_sources gf
     
 let number_of_active_sources gf =
   let nasrcs = ref 0 in
@@ -130,9 +141,14 @@ let number_of_active_sources gf =
     match (client_state fsrc) with
         Connected_downloading _ -> incr nasrcs
       | _ -> ()
-  ) (file_sources (file_find gf.file_num));
+  ) (file_active_sources (file_find gf.file_num));
   !nasrcs
 
+let number_of_active_sources gf =
+  ShortLazy.compute ("number_of_active_sources", gf.file_num, 0)
+  number_of_active_sources gf
+  
+  
 let net_name gf =
 	let n = network_find_by_num gf.file_network in
 	n.network_name
@@ -142,6 +158,7 @@ let short_net_name gf =
 	match nn with 
    | "Open Napster" -> "N"
    | "Direct Connect" -> "C"
+   | "FileTP" -> "T"
    | _ -> String.sub nn 0 1 
    
   
@@ -463,14 +480,17 @@ function submitPriority(num,cp,sel) {
 	if (np.charAt(0) == \\\"=\\\") {var p = parseInt(np.substring(1,99));} 
 	else {var p = parseInt(cp) + parseInt(selectID.value);}
 	var str='\\<select id=\\\"selectPriority' + num + '\\\" name=\\\"selectPriority' + num + '\\\" style=\\\"font-size: 8px; font-family: verdana\\\" onchange=\\\"javascript:submitPriority(' + num + ',' + p + ',this)\\\"\\>';
-	if (p != 10 \\&\\& p != 0 \\&\\& p != -10) { str += '\\<OPTION value=\\\"=' + p + '\\\" SELECTED\\>' + p; }
+	if (p != 20 \\&\\& p != 10 \\&\\& p != 0 \\&\\& p != -10 \\&\\& p != -20) { str += '\\<OPTION value=\\\"=' + p + '\\\" SELECTED\\>' + p; }
+	str += '\\<option value=\\\"=20\\\"'; if (p==20) {str += \\\" SELECTED\\\"}; str += '\\>Very High';
 	str += '\\<option value=\\\"=10\\\"'; if (p==10) {str += \\\" SELECTED\\\"}; str += '\\>High';
 	str += '\\<option value=\\\"=0\\\"'; if (p==0) {str += \\\" SELECTED\\\"}; str += '\\>Normal';
 	str += '\\<option value=\\\"=-10\\\"'; if (p==-10) {str += \\\" SELECTED\\\"}; str += '\\>Low';
+	str += '\\<option value=\\\"=-20\\\"'; if (p==-20) {str += \\\" SELECTED\\\"}; str += '\\>Very Low';
+	str += '\\<option value=\\\"10\\\"\\>+10';
 	str += '\\<option value=\\\"5\\\"\\>+5';
 	str += '\\<option value=\\\"1\\\"\\>+1';
 	str += '\\<option value=\\\"-1\\\"\\>-1';
-	str += '\\<option value=\\\"-5\\\"\\>-5';
+	str += '\\<option value=\\\"-10\\\"\\>-10';
 	str += \\\"\\</select\\>\\\";
 	divID.innerHTML = str;
 	parent.fstatus.location.href='submit?q=priority' + params;
@@ -497,7 +517,9 @@ function submitPriority(num,cp,sel) {
 
 \\<table width=\\\"100%%\\\" class=\\\"downloaders\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
 
-\\<td title=\\\"Pause/Resume/Cancel\\\" class=\\\"dlheader\\\"\\>P/R/C\\</td\\>"
+\\<td title=\\\"Pause\\\"  class=\\\"dlheader np\\\"\\>P\\</td\\>
+\\<td title=\\\"Resume\\\" class=\\\"dlheader np\\\"\\>R\\</td\\>
+\\<td title=\\\"Cancel\\\" class=\\\"dlheader brs\\\"\\>C\\</td\\>"
 (if !qnum > 0 then begin
 	Printf.sprintf "title=\\\"Active(%d): %s/%s | Queued(%d): %s/%s\\\""
 	(List.length guifiles - !qnum) (size_of_int64 (Int64.sub !tdl !qdl)) (size_of_int64 (Int64.sub !tsize !qsize))
@@ -548,16 +570,17 @@ let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d'
           (if downloading file then
               Printf.sprintf "
 				onMouseOver=\\\"mOvr(this);return true;\\\" onMouseOut=\\\"mOut(this);\\\"\\>
-                \\<td class=\\\"dl al\\\"\\>\\<input class=checkbox name=pause type=checkbox value=%d\\> R
-                \\<input class=checkbox name=cancel type=checkbox value=%d\\>\\</td\\>"
+                \\<td class=\\\"dl al np\\\"\\>\\<input class=checkbox name=pause type=checkbox value=%d\\>\\</td\\>
+                \\<td class=\\\"dl al np\\\"\\>R\\</td\\>
+                \\<td class=\\\"dl al brs\\\"\\>\\<input class=checkbox name=cancel type=checkbox value=%d\\>\\</td\\>"
                 file.file_num
                 file.file_num
             else 
               Printf.sprintf "
 				onMouseOver=\\\"mOvr(this);return true;\\\" onMouseOut=\\\"mOut(this);\\\"\\>
-                \\<td class=\\\"dl al\\\"\\>P
-                \\<input class=checkbox name=resume type=checkbox value=%d\\>
-                \\<input class=checkbox name=cancel type=checkbox value=%d\\>\\</td\\>"
+                \\<td class=\\\"dl al np\\\"\\>P\\</td\\>
+                \\<td class=\\\"dl al np\\\"\\>\\<input class=checkbox name=resume type=checkbox value=%d\\>\\</td\\>
+                \\<td class=\\\"dl al brs\\\"\\>\\<input class=checkbox name=cancel type=checkbox value=%d\\>\\</td\\>"
                 file.file_num
                 file.file_num);
 
@@ -625,15 +648,19 @@ let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d'
 	      (Printf.sprintf "\\<td class=\\\"dl ar\\\"\\>\\<div id=\\\"divSelectPriority%d\\\"\\>\\<select id=\\\"selectPriority%d\\\" name=\\\"selectPriority%d\\\" 
 			style=\\\"font-size: 8px; font-family: verdana\\\" onchange=\\\"javascript:submitPriority(%d,%d,this)\\\"\\>\n" 
 			file.file_num file.file_num file.file_num file.file_num file.file_priority)
-			^ (match file.file_priority with 0 | -10 | 10 -> "" | _ ->
+			^ (match file.file_priority with 0 | -10 | 10 | -20 | 20 -> "" | _ ->
 			  Printf.sprintf "\\<option value=\\\"=%d\\\" SELECTED\\>%d\n" file.file_priority file.file_priority)
+			^ "\\<option value=\\\"=20\\\""  ^ (if file.file_priority = 20 then " SELECTED" else "") ^ "\\>Very high\n"
 			^ "\\<option value=\\\"=10\\\""  ^ (if file.file_priority = 10 then " SELECTED" else "") ^ "\\>High\n"
 			^ "\\<option value=\\\"=0\\\""  ^ (if file.file_priority = 0 then " SELECTED" else "") ^ "\\>Normal\n"
 			^ "\\<option value=\\\"=-10\\\""  ^ (if file.file_priority = -10 then " SELECTED" else "") ^ "\\>Low\n"
+			^ "\\<option value=\\\"=-20\\\""  ^ (if file.file_priority = -20 then " SELECTED" else "") ^ "\\>Very Low\n"
+			^ "\\<option value=\\\"10\\\"\\>+10\n"
 			^ "\\<option value=\\\"5\\\"\\>+5\n"
 			^ "\\<option value=\\\"1\\\"\\>+1\n"
 			^ "\\<option value=\\\"-1\\\"\\>-1\n"
 			^ "\\<option value=\\\"-5\\\"\\>-5\n"
+			^ "\\<option value=\\\"-10\\\"\\>-10\n"
 			^ "\\</select\\>\\</div\\>"
 	       else "");
 
@@ -1183,7 +1210,7 @@ let print_results buf o results =
                   (
                     let names = r.result_names in
                     let names = if r.result_done then
-                        names @ ["ALREADY DOWNLOADED"] else names in
+                        ["ALREADY DOWNLOADED "] @ names else names in
                     let names = match  r.result_comment with
                         "" -> names
                       |  comment ->
@@ -1193,13 +1220,13 @@ let print_results buf o results =
                       [name] -> name
                     | _ ->
                         let buf = Buffer.create 100 in
-                        Buffer.add_string buf "\\<table\\>\n";
+                        if o.conn_output = HTML then Buffer.add_string buf "\\<table\\>\n";
                         List.iter (fun s -> 
-                            Buffer.add_string buf "\\<tr\\>";
+                            if o.conn_output = HTML then Buffer.add_string buf "\\<tr\\>";
                             Buffer.add_string buf s;
-                            Buffer.add_string buf "\\</tr\\>";
+                            if o.conn_output = HTML then Buffer.add_string buf "\\</tr\\>";
                         ) names;
-                        Buffer.add_string buf "\\</table\\>\n";
+                        if o.conn_output = HTML then Buffer.add_string buf "\\</table\\>\n";
                         
                         Buffer.contents buf
                   )

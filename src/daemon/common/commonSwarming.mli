@@ -84,7 +84,7 @@ module Int64Swarmer :
 (* raise Exit if one block checksum has been computed *)
     val verify_one_block : t -> unit
       
-    val last_seen : t -> int array
+    val compute_last_seen : t -> int array
     val print_uploaders : t -> unit    
       
     val uploader_swarmer : uploader -> t

@@ -32,3 +32,8 @@ let zlib__uncompress_string2 s = @ZLIB__UNCOMPRESS_STRING2@
 let zlib__compress_string s = @ZLIB__COMPRESS_STRING@
 
 @TYPE_FORMAT@
+
+let mldonkey_checks =
+  try 
+    ignore (Sys.getenv "MLDONKEY_CHECKS"); true
+  with _ -> false

@@ -208,9 +208,9 @@ let force_check_locations () =
       lprint_newline ()
 
 let add_user_friend s u = 
-  let kind = 
+  let kind  = 
     if Ip.valid u.user_ip && ip_reachable u.user_ip then
-      Known_location (u.user_ip, u.user_port)
+      Direct_address (u.user_ip, u.user_port)
     else begin
         begin
           match s.server_sock, server_state s with 
@@ -218,7 +218,7 @@ let add_user_friend s u =
               query_id s sock u.user_ip None;
           | _ -> ()
         end;
-        Indirect_location (u.user_name, u.user_md4)
+        Invalid_address (u.user_name, Md4.to_string u.user_md4)
       end
   in
   let c = new_client kind  in

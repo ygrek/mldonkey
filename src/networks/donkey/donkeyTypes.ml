@@ -260,6 +260,51 @@ type brand_mod =
 
 let brand_mod_count = 72
 
+type source_uid = 
+  Direct_address of Ip.t * int
+| Indirect_address of Ip.t * int * Ip.t
+| Invalid_address of string * string
+  
+module DonkeySources = CommonSources.Make(struct
+      
+      open Options
+      
+      type t = source_uid
+      type source_uid = t
+      
+      let direct_source s =
+        match s with Direct_address _ -> true | _ -> false
+      
+      let dummy_source_uid = Direct_address (Ip.null, 0)
+      
+      
+      let value_to_source_uid v = 
+        match v with
+          List [ip;port] | SmallList [ip;port] ->
+            let ip = Ip.of_string (value_to_string ip) in
+            let port = value_to_int port in
+            Direct_address (ip, port)
+        | List [ip;port; ip'] | SmallList [ip;port;ip'] ->
+            let ip = Ip.of_string (value_to_string ip) in
+            let port = value_to_int port in
+            let ip' = Ip.of_string (value_to_string ip') in
+            Indirect_address (ip, port, ip')
+        | _ -> 
+            failwith "bad client address"
+      
+      let source_uid_to_value s = 
+        match s with
+          Direct_address (ip, port) -> 
+            SmallList [string_to_value (Ip.to_string ip); int_to_value port]
+        | Indirect_address (ip, port, ip') -> 
+            SmallList [
+              string_to_value (Ip.to_string ip); 
+              int_to_value port;
+              string_to_value (Ip.to_string ip'); 
+            ]
+        | Invalid_address _ -> failwith "Invalid address"
+    end)
+  
 type server = (*[]*){
     mutable server_server : server CommonServer.server_impl;
     mutable server_ip : Ip.t;
@@ -350,19 +395,37 @@ and server_change_kind =
 
 and availability = bool array
 
+  (*
+and source = {
+(*    source_num : int; *)
+    source_addr : Ip.t * int;
+(*    mutable source_client: client_kind;      *)
+(* This field is not kept up-to-date when source_client = SourceClient c,
+  change c.client_source_for *)
+    mutable source_files : file_request list;
+    mutable source_overnet : bool;
+    mutable source_score : int;
+    mutable source_last_score : int;
+    mutable source_last_age : int;
+    mutable source_client_num : int;
+    mutable source_age : int;
+    mutable source_in_queues : file list;
+    mutable source_sock : tcp_connection;
+  }
+*)
+  
 and client = {
     client_client : client CommonClient.client_impl;
-    mutable client_kind : location_kind;
-    mutable client_source : source option;
+    mutable client_kind : source_uid;
+    client_source : DonkeySources.source;
     mutable client_md4 : Md4.t;
 (*    mutable client_chunks : availability; *)
-    mutable client_sock : tcp_connection;
+(*     mutable client_sock : tcp_connection; *)
     mutable client_ip : Ip.t;
-    mutable client_power : int ;
     mutable client_download : (file * Int64Swarmer.uploader) option; 
 (*    mutable client_block : Int64Swarmer.block option; *)
 (*    mutable client_zones : (int64 * int64 * Int64Swarmer.range) list; *)
-    mutable client_connection_control : connection_control;
+(*    mutable client_connection_control : connection_control; *)
     mutable client_file_queue : (
       file * (* has displayed when connected *)
       availability *
@@ -376,7 +439,6 @@ and client = {
     mutable client_rating : int ;
     mutable client_upload : upload_info option;
     mutable client_checked : bool;
-    mutable client_chat_port : int ;
     mutable client_connected : bool;
 (* statistics *)
     mutable client_last_filereqs : int;    
@@ -387,7 +449,6 @@ and client = {
     mutable client_banned : bool;
     mutable client_overnet : bool;
     mutable client_score : int;
-    mutable client_files : file_request list;
     mutable client_next_queue : int;
     mutable client_rank : int;
     mutable client_connect_time : int;
@@ -440,21 +501,9 @@ and zone = {
     mutable zone_nclients : int;
   }
 *)
-  
-and source = {
-    source_num : int;
-    source_addr : Ip.t * int;
-    mutable source_client: client_kind;     
-(* This field is not kept up-to-date when source_client = SourceClient c,
-  change c.client_source_for *)
-    mutable source_files : file_request list;
-    mutable source_overnet : bool;
-    mutable source_score : int;
-    mutable source_age : int;
-    mutable source_in_queues : file list;
-  }
 
-  
+
+  (*
 and file_request = {
     request_file : file;
     mutable request_time : int;
@@ -469,6 +518,7 @@ and request_result =
 | File_found      (* the file was found *)
 | File_chunk      (* the file has chunks we want *)
 | File_upload     (* we uploaded from this client *)
+*)
   
 and client_kind = 
   SourceClient of client
@@ -480,28 +530,29 @@ and client_kind =
 and file = {
     file_file : file CommonFile.file_impl;
     file_md4 : Md4.t;
-    file_exists : bool;
+(*    file_exists : bool; *)
     
     mutable file_swarmer : Int64Swarmer.t option;
     
     mutable file_nchunks : int;
 (*    mutable file_chunks : chunk array; *)
 (*    mutable file_chunks_order : int array; *)
-    mutable file_chunks_age : int array;
+(*    mutable file_chunks_age : int array; *)
 (*    mutable file_all_chunks : string; *)
 (*    mutable file_absent_chunks : (int64 * int64) list; *)
     mutable file_filenames : (string * GuiTypes.ips_list) list;
-    mutable file_nsources : int;
+(*    mutable file_nsources : int; *)
     mutable file_md4s : Md4.t array;
     mutable file_format : format;
 (*    mutable file_available_chunks : int array; *)
     mutable file_shared : file CommonShared.shared_impl option;
-    mutable file_locations : client Intmap.t; 
+(*    mutable file_locations : client Intmap.t;  *)
 (*    mutable file_mtime : float; *)
-    mutable file_initialized : bool;
+(*    mutable file_initialized : bool; *)
 (* Source management number 3 !! *)
-    mutable file_clients : (client * int) Fifo.t;
-    mutable file_sources : source Queue.t array;
+(*    mutable file_clients : (client * int) Fifo.t;  *)
+(*    mutable file_sources : source Queue.t array; *)
+    mutable file_sources : DonkeySources.file_sources_manager;
   }
 
 and file_to_share = {
@@ -514,7 +565,7 @@ and file_to_share = {
   }
   
 module UdpClientMap = Map.Make(struct
-      type t = location_kind
+      type t = source_uid
       let compare = compare
     end)
   
@@ -580,9 +631,14 @@ let client_new_file client r =
 let server_state server =
   CommonServer.server_state (as_server server.server_server)
 
-    
-module SourcesQueueCreate = struct  
+(*    
+module SourcesQueueCreate = Queues.Make (struct  
 
+      type t = source
+      let compare s1 s2 = compare s1.source_addr s2.source_addr
+    end)
+  
+  (*
     let lifo = lifo 
     let fifo = fifo
     
@@ -672,8 +728,9 @@ module SourcesQueueCreate = struct
         }
 *)
   end
+*)
+  *)
 
-  
 type brand_stat = {
   mutable brand_seen : int;
   mutable brand_banned : int;
@@ -765,4 +822,21 @@ let string_of_pref_tag_name name =
   | PT_PREF_PORT -> ""
   | PT_PREF_VERSION -> ""
   | PT_PREF_TEMP -> ""
-      *)
+        *)
+  (*
+let dummy_source = {
+(*    source_num = 0; *)
+    source_addr = (Ip.null, 0);
+    source_files = [];
+              
+    source_last_score = 0;
+    source_last_age = 0;
+    source_client_num = 0;
+
+    source_overnet = false;
+    source_score = 0;
+    source_age = 0;
+    source_in_queues = [];
+    source_sock = NoConnection;
+  }
+*)

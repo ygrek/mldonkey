@@ -194,12 +194,13 @@ let file_num file =
   file.file_file.impl_file_num
 
 let _ =
-  file_ops.op_file_sources <- (fun file ->
+  file_ops.op_file_all_sources <- (fun file ->
 (*      lprintf "file_sources\n";  *)
       List2.tail_map (fun c ->
           as_client c
       ) file.file_clients
   );
+  file_ops.op_file_active_sources <- file_ops.op_file_all_sources;
   file_ops.op_file_recover <- (fun file ->
       GnutellaServers.recover_file file;
       List.iter (fun c ->

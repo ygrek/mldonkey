@@ -585,6 +585,19 @@ let all_simple_options () =
   );
   !options
 
+let parse_simple_options args = 
+  let v = all_simple_options () in
+  match args with
+    [] -> v 
+    | args ->
+      let match_star = Str.regexp "\\*" in
+      let options_filter = Str.regexp ("^\\(" 
+        ^ (List.fold_left (fun acc a -> acc 
+        ^ (if acc <> "" then "\\|" else "") 
+        ^ (Str.global_replace match_star ".*" a)) "" args) 
+        ^ "\\)$") in
+      List.filter (fun o -> Str.string_match options_filter o.option_name 0) v
+
 let some_simple_options num =
                let cnt = ref 0 in
                let options = ref [] in
@@ -704,7 +717,7 @@ let register_gui_options_panel name panel =
     
     
 let _ =
-  add_infinite_option_timer filter_search_delay (fun _ ->
+  add_infinite_timer filter_search_delay (fun _ ->
 (*      if !!filter_search then *) begin
 (*          lprintf "Filter search results\n"; *)
           List.iter (fun user ->

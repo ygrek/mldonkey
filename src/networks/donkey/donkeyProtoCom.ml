@@ -16,24 +16,28 @@
     along with mldonkey; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
-
-open AnyEndian
+open Options
 open Printf2
-open CommonFile
+  
+open BasicSocket
+open TcpBufferedSocket  
+  
+open AnyEndian
+open LittleEndian
+
+open CommonOptions  
+open CommonTypes
 open CommonGlobals
+open CommonFile
+open CommonGlobals  
+  
 open DonkeyOptions
 open DonkeyGlobals
 open DonkeyTypes
-open CommonTypes
-open Options
-open CommonGlobals
-open LittleEndian
 open DonkeyMftp
-open BasicSocket
-open TcpBufferedSocket
-open CommonOptions
   
 let buf = TcpBufferedSocket.internal_buf
+  
 
         
 let client_msg_to_string magic msg =
@@ -79,15 +83,16 @@ let client_send c m =
       lprintf "Sent to client[%d] %s(%s)" (client_num c)
         c.client_name (brand_to_string c.client_brand);
       (match c.client_kind with
-          Indirect_location _ -> ()
-        | Known_location (ip,port) ->
+          Indirect_address _ | Invalid_address _ -> ()
+        | Direct_address (ip,port) ->
             lprintf " [%s:%d]" (Ip.to_string ip) port;
+            
       );
-      lprint_newline ();
+      CommonGlobals.print_localtime ();
       DonkeyProtoClient.print m;
       lprint_newline ();
     end;
-  do_if_connected c.client_sock (fun sock ->
+  do_if_connected c.client_source.DonkeySources.source_sock (fun sock ->
       direct_client_sock_send sock m)
 
 let emule_send sock m =
@@ -192,76 +197,6 @@ let udp_handler f sock event =
           with e -> ()
       ) ;
   | _ -> ()
-      
-let propagation_socket = UdpSocket.create_sendonly ()
-
-let counter = ref 1
-  
-(* Learn how many people are using mldonkey at a current time, and which 
-servers they are connected to --> build a database of servers
-
-Now, get some more information:
-- Which version do they use ?
-- How much data is shared ?
-
-Note that the exact content/type/name of the files is not sent, nor
-any private information. Just for statistics. Can be disabled in the 
-  downloads.ini config file anyway.
-*)
-  
-let propagate_working_servers servers peers =
-  if !!DonkeyOptions.propagate_servers then begin
-      decr counter;
-      if !counter = 0 then begin
-          counter := 6;
-          try
-            Buffer.clear buf;
-            buf_int8 buf DonkeyOpenProtocol.udp_magic; (* open protocol *)
-            buf_int8 buf 0;    
-            let ip = client_ip None in
-            buf_ip buf ip; (* The client IP *)
-
-(* The server IPs *)
-            buf_list buf_addr buf servers; (* The servers he is connected to *)
-
-(* Some statistics on the network *)
-            buf_string buf Autoconf.current_version;
-            buf_int buf (last_time () - start_time); (* uptime in sec *)
-            let module S = CommonShared in
-            let total_shared = ref Int64.zero in
-            let total_uploaded = ref Int64.zero in
-            
-            S.shared_iter (fun s ->
-                let i = S.as_shared_impl s in
-                total_uploaded := 
-                Int64.add !total_uploaded i.S.impl_shared_uploaded;
-                total_shared := 
-                Int64.add !total_shared i.S.impl_shared_size
-            );
-            
-            buf_int64 buf !total_shared;
-            buf_int64 buf !total_uploaded;
-
-(* Overnet peers *)
-            buf_int buf (List.length peers);
-            List.iter (fun (ip,port) -> 
-                buf_ip buf ip; buf_int16 buf port) peers;
-
-(* Statistics for Supernode creation *)
-            buf_int16 buf !!max_hard_upload_rate;
-            buf_int16 buf !!max_hard_download_rate;
-            buf_int buf (compute_lost_byte upload_control);
-            buf_int buf (compute_lost_byte download_control);
-            
-            let s = Buffer.contents buf in    
-            let name, port = !!mlnet_redirector in
-            UdpSocket.write propagation_socket s (Ip.from_name name) port;
-            
-          with e ->
-              lprintf "Exception %s in udp_sendonly" (Printexc2.to_string e);
-              lprint_newline () 
-        end      
-    end
     
 let udp_basic_handler f sock event =
   match event with

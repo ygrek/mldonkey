@@ -201,7 +201,7 @@ let network_parse_url n url = n.op_network_parse_url url
 let network_info n = n.op_network_info ()
 
 let new_network name flags prefix_option subdir_option = 
-  let manager = TcpBufferedSocket.create_connection_manager () in
+  let manager = TcpBufferedSocket.create_connection_manager name in
   let r =
     {
       network_name = name;

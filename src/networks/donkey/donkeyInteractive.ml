@@ -64,7 +64,7 @@ let reconnect_all file =
   DonkeyOvernet.recover_file file;
   
 (* This is expensive, no ? *)
-  DonkeySources.reschedule_sources file;
+(*  DonkeySources.reschedule_sources file; *)
   List.iter (fun s ->
       match s.server_sock, server_state s with
       | Connection sock, (Connected _ | Connected_downloading _) ->
@@ -165,6 +165,9 @@ let really_query_download filenames size md4 location old_file absents =
   current_files := file :: !current_files;
 (*  !file_change_hook file; *)
 (*  set_file_size file (file_size file); *)
+  
+  DonkeyNeighbours.recover_downloads [file];
+  
   List.iter (fun s ->
       do_if_connected s.server_sock (fun sock ->
           query_location file sock)
@@ -359,24 +362,23 @@ let print_file buf file =
   Printf.bprintf buf "Connected clients:\n";
   let f _ c =
     match c.client_kind with
-      Known_location (ip, port) ->
+      Direct_address (ip, port) ->
         Printf.bprintf  buf "[%-5d] %12s %-5d    %s\n"
           (client_num c)
         (Ip.to_string ip)
         port
-          (match c.client_sock with
+          (match c.client_source.DonkeySources.source_sock with
             NoConnection  -> 
-              string_of_date (connection_last_conn
-                  c.client_connection_control)
+              string_of_date (c.client_source.DonkeySources.source_age)
           | ConnectionWaiting _ -> "Connecting"
           | Connection _ -> "Connected")
     | _ ->
         Printf.bprintf  buf "[%-5d] %12s            %s\n"
           (client_num c)
         "Indirect"
-          (match c.client_sock with
-            NoConnection -> string_of_date (connection_last_conn
-                  c.client_connection_control)
+          (match c.client_source.DonkeySources.source_sock with
+            NoConnection -> 
+              string_of_date (c.client_source.DonkeySources.source_age)
           | ConnectionWaiting _ -> "Connecting"
           | Connection _ -> "Connected")
   in
@@ -431,7 +433,7 @@ let parse_donkey_url url =
   | "friend" :: ip :: port :: _ ->
       let ip = Ip.of_string ip in
       let port = int_of_string port in
-      let c = new_client (Known_location (ip,port)) in
+      let c = new_client (Direct_address (ip,port)) in
       friend_add c;
       true
   
@@ -470,7 +472,7 @@ let commands = [
         in
         let ip = Ip.from_name ip in
         let port = int_of_string port in
-        let c = new_client (Known_location (ip,port)) in
+        let c = new_client (Direct_address (ip,port)) in
         friend_add c;
         "friend added";
     ),  "<ip> [<port>] :\t\t\tadd a friend";
@@ -550,6 +552,27 @@ let commands = [
         ""
     ), ":\t\t\t\t\tprint ID on connected servers";
     
+    "set_brothers", Arg_multiple (fun args o ->
+        let buf = o.conn_buf in
+        
+        let files = ref [] in
+        List.iter (fun arg ->
+            let num = int_of_string arg in
+            List.iter (fun file ->
+                if file_num file = num then begin
+                    Printf.bprintf buf "%s\n" (file_best_name file);
+                    files := file :: !files
+                  end
+            ) !current_files
+        ) args;
+        
+        DonkeySources.set_brothers 
+          (List.map (fun file -> file.file_sources) !files);
+        brotherhood =:= 
+        (List.map (fun file -> file.file_md4) !files) :: !!brotherhood;
+        "    are now defined as colocated"
+    ) , "<f1> < f2> ... :\t\t\tdefine these files as probably colocated";
+    
     "bs", Arg_multiple (fun args o ->
         List.iter (fun arg ->
             let ip = Ip.of_string arg in
@@ -568,7 +591,7 @@ let commands = [
         let v = (kind, 1, url) in
         if not (List.mem v !!web_infos) then
           web_infos =:=  v :: !!web_infos;
-        load_url kind url;
+        CommonWeb.load_url kind url;
         "url added to web_infos. downloading now"
     ), "<kind> <url> :\t\t\tload this file from the web.
 \t\t\t\t\tkind is either server.met (if the downloaded file is a server.met)";
@@ -662,15 +685,17 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+renameTextOut+'\\\"';
     
     "sources", Arg_none (fun o ->
         let buf = o.conn_buf in
-        DonkeySources.print_sources buf;
+        DonkeySources.print buf;
         "done"
     ), ":\t\t\t\tshow sources currently known";
-    
+
+    (*
     "update_sources", Arg_none (fun o ->
         let buf = o.conn_buf in
         DonkeySources.recompute_ready_sources ();
         "done"
     ), ":\t\t\trecompute order of connections to sources (experimental)";
+*)
     
     "xs", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -718,11 +743,7 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+renameTextOut+'\\\"';
     ), "<port1> <port2> ... :\t\tadd these Ports to the port black list";
     
     "send_servers", Arg_none (fun o ->
-        DonkeyProtoCom.propagate_working_servers 
-          (List.map (fun s -> s.server_ip, s.server_port)
-          (connected_servers()))
-        (DonkeyOvernet.connected_peers ())
-        ;
+        CommonWeb.connect_redirector ();
         "done"
     ), ":\t\t\t\tsend the list of connected servers to the redirector";
   
@@ -734,7 +755,10 @@ let _ =
       reconnect_all file;
   );
   file_ops.op_file_set_priority <- (fun file _ ->
-      DonkeySources.recompute_ready_sources ()       );
+(*  TODO: take care priorities in CommonSources
+DonkeySources.recompute_ready_sources ()        *)
+      ()
+  );
   file_ops.op_file_pause <- (fun file -> ()  );
   file_ops.op_file_commit <- (fun file new_name ->
       
@@ -762,7 +786,7 @@ file.---------> to be done urgently
   network.op_network_private_message <- (fun iddest s ->      
       try
         let c = DonkeyGlobals.find_client_by_name iddest in
-        match c.client_sock with
+        match c.client_source.DonkeySources.source_sock with
           NoConnection -> 
             DonkeyClient.reconnect_client c;
             c.client_pending_messages <- c.client_pending_messages @ [s];
@@ -792,6 +816,10 @@ as possible. *)
 let _ =
   file_ops.op_file_info <- (fun file ->
       try
+        let last_seen = match file.file_swarmer with
+            None -> [| last_time () |]
+          | Some swarmer -> Int64Swarmer.compute_last_seen swarmer
+        in
         let v = 
           {
             P.file_fields = Fields_file_info.all;
@@ -818,7 +846,7 @@ let _ =
                   None -> "" | Some swarmer ->
                     Int64Swarmer.availability swarmer)];
             P.file_format = file.file_format;
-            P.file_chunks_age = file.file_chunks_age;
+            P.file_chunks_age = last_seen;
             P.file_age = file_age file;
             P.file_last_seen = file.file_file.impl_file_last_seen;
             P.file_uids = [];
@@ -865,7 +893,7 @@ let _ =
       }
   )
 let string_of_client_addr c =
-  try match c.client_sock with
+  try match c.client_source.DonkeySources.source_sock with
       Connection sock -> (Ip.to_string (peer_ip sock)) 
     | _ -> ""
   with _ -> ""
@@ -874,7 +902,9 @@ let _ =
   client_ops.op_client_info <- (fun c ->
       {
         P.client_network = network.network_num;
-        P.client_kind = c.client_kind;
+        P.client_kind = (match c.client_kind with
+            Direct_address (ip, port) -> Known_location (ip,port)
+          | _ -> Indirect_location (c.client_name,c.client_md4));
         P.client_state = client_state c;
         P.client_type = client_type c;
         P.client_tags = []; (* c.client_tags; *)
@@ -882,13 +912,13 @@ let _ =
         P.client_files = None;
         P.client_num = (client_num c);
         P.client_rating = c.client_rating;
-        P.client_chat_port = c.client_chat_port ;
+        P.client_chat_port = 0 ;
         P.client_connect_time = c.client_connect_time;
         P.client_software = gbrand_to_string c.client_brand;
         P.client_emulemod = gbrand_mod_to_string c.client_mod_brand;
         P.client_downloaded = c.client_downloaded;
         P.client_uploaded = c.client_uploaded;
-(*        P.client_sock_addr =    (); *)
+(*        P.client_source.source_sock_addr =    (); *)
         P.client_upload = 
         (match c.client_upload with
             Some cu -> Some (file_best_name cu.up_file)
@@ -958,18 +988,32 @@ let _ =
   file_ops.op_file_recover <- (fun file ->
       if file_state file = FileDownloading then 
         reconnect_all file);  
-  file_ops.op_file_sources <- (fun file ->
+  file_ops.op_file_all_sources <- (fun file ->
       let list = ref [] in
-      Intmap.iter (fun _ c -> 
-          list := (as_client c) :: !list) file.file_locations;
+      DonkeySources.iter_all_sources (fun s -> 
+          let s_uid = s.DonkeySources.source_uid in
+          let c = new_client s_uid in
+          list := (as_client c) :: !list
+      ) file.file_sources;
+      !list
+  );
+  file_ops.op_file_active_sources <- (fun file ->
+      let list = ref [] in
+      DonkeySources.iter_active_sources (fun s -> 
+          let s_uid = s.DonkeySources.source_uid in
+          let c = new_client s_uid in
+          list := (as_client c) :: !list
+      ) file.file_sources;
       !list
   );
   file_ops.op_file_print_sources_html <- (fun file buf ->
-      if !!source_management = 3 then DonkeySources.print_sources_html file buf
+(* TODO:       if !!source_management = 3 then DonkeySources.print_sources_html file buf *)
+      ()
   );
   file_ops.op_file_cancel <- (fun file ->
       Hashtbl.remove files_by_md4 file.file_md4;
       current_files := List2.removeq file !current_files;
+      DonkeySources.remove_file_sources_manager file.file_sources;
       if !!keep_cancelled_in_old_files &&
         not (List.mem file.file_md4 !!old_files) then
         old_files =:= file.file_md4 :: !!old_files;
@@ -1030,7 +1074,7 @@ let _ =
 when sending a message? emule or ml problem? *)
 let _ =
   client_ops.op_client_say <- (fun c s ->
-      match c.client_sock with
+      match c.client_source.DonkeySources.source_sock with
       | NoConnection -> 
           DonkeyClient.reconnect_client c;
           c.client_pending_messages <- c.client_pending_messages @ [s];
@@ -1046,7 +1090,7 @@ let _ =
           List2.tail_map (fun r -> "", as_result r.result_result) files);
   client_ops.op_client_browse <- (fun c immediate ->
       lprintf "*************** should browse  ***********\n"; 
-      match c.client_sock with
+      match c.client_source.DonkeySources.source_sock with
       | Connection sock    ->
 (*
       lprintf "****************************************";
@@ -1066,7 +1110,7 @@ lprint_newline ();
       | _ -> ()
   );
   client_ops.op_client_connect <- (fun c ->
-      match c.client_sock with
+      match c.client_source.DonkeySources.source_sock with
         NoConnection ->  reconnect_client c
       | _ -> ()
   );
@@ -1078,13 +1122,9 @@ lprint_newline ();
   );
   
   client_ops.op_client_bprint <- (fun c buf ->
-      Printf.bprintf buf "\t\t%s (last_ok <%s> lasttry <%s> nexttry <%s>)\n"
+      Printf.bprintf buf "\t\t%s (last_ok <%s>)\n"
         c.client_name
-        (let last = c.client_connection_control.control_last_ok in
-        if last < 1 then "never" else string_of_date last)
-      (let last = c.client_connection_control.control_last_try in
-        if last < 1 then "never" else string_of_date last)
-      (string_of_date (connection_next_try c.client_connection_control))
+        (string_of_date (c.client_source.DonkeySources.source_age))
   );
   
   
@@ -1115,24 +1155,19 @@ lprint_newline ();
             @ [
             ("", "sr", (if c.client_overnet then "T" else "F"));
             ("", "sr", (match c.client_kind with 
-                  Indirect_location _ -> Printf.sprintf "I"
-                | Known_location (ip,port) -> Printf.sprintf "D"));
+                  | Direct_address (ip,port) -> Printf.sprintf "D"
+                  | _ -> Printf.sprintf "I"
+                ));
             ("", "sr br", match c.client_kind with
-                Known_location (ip,port) -> Printf.sprintf "%s" (Ip.to_string ip)
-              | Indirect_location _ -> (string_of_client_addr c));
+                Direct_address (ip,port) -> Printf.sprintf "%s" (Ip.to_string ip)
+              | _ -> (string_of_client_addr c));
             ("", "sr ar", (size_of_int64 c.client_uploaded));
             ("", "sr ar br", (size_of_int64 c.client_downloaded));
             ("", "sr ar", Printf.sprintf "%d" c.client_rank);
             ("", "sr ar br", Printf.sprintf "%d" c.client_score);
-            ("", "sr ar", (let last = c.client_connection_control.control_last_ok in
-                if last < 1 then "never" else (string_of_int (((last_time ()) - last) / 60))
-              ));
-            ("", "sr ar", (let last = c.client_connection_control.control_last_try in
-                if last < 1 then "never" else ( string_of_int (((last_time ()) - last) / 60))
-              ));
-            ("", "sr ar br", (let next = (connection_next_try c.client_connection_control) in
-                string_of_int ((next - (last_time ())) / 60)
-              ));
+            ("", "sr ar", (string_of_date (c.client_source.DonkeySources.source_age)));
+            ("", "sr ar", ("-"));
+            ("", "sr ar br", "-");
             ("", "sr ar", (if client_has_a_slot (as_client c) then "T" else "F"));
             ("", "sr ar br", (if c.client_banned then "T" else "F"));
             ("", "sr ar", Printf.sprintf "%d" c.client_requests_sent);
@@ -1221,11 +1256,12 @@ lprint_newline ();
                       ("", "sr", (if c.client_overnet then "T" else "F"));
                       ("", "sr ar", Printf.sprintf "%d" (((last_time ()) - c.client_connect_time) / 60));
                       ("", "sr", (match c.client_kind with  
-                            Indirect_location _ -> Printf.sprintf "I"
-                          | Known_location (ip,port) -> Printf.sprintf "D"));
+                            | Direct_address (ip,port) -> Printf.sprintf "D"
+                            | _ -> Printf.sprintf "I"
+                          ));
                       ("", "sr", match c.client_kind with
-                          Known_location (ip,port) -> Printf.sprintf "%s" (Ip.to_string ip)
-                        | Indirect_location _ -> (string_of_client_addr c));
+                          Direct_address (ip,port) -> Printf.sprintf "%s" (Ip.to_string ip)
+                        |  _ -> (string_of_client_addr c));
                       ("", "sr ar", (size_of_int64 c.client_uploaded));
                       ("", "sr ar", (size_of_int64 c.client_downloaded));
                       ("", "sr", info.GuiTypes.file_name) ]);
@@ -1275,17 +1311,17 @@ let _ =
   )
 
 let _ =
-  add_web_kind "server.met" (fun filename ->
+  CommonWeb.add_web_kind "server.met" (fun filename ->
       lprintf "FILE LOADED\n"; 
       let n = load_server_met filename in
       lprintf "%d SERVERS ADDED" n; lprint_newline ();    
   );
-  add_web_kind "servers.met" (fun filename ->
+  CommonWeb.add_web_kind "servers.met" (fun filename ->
       lprintf "FILE LOADED\n"; 
       let n = load_server_met filename in
       lprintf "%d SERVERS ADDED\n" n; 
   );
-  add_web_kind "comments.met" (fun filename ->
+  CommonWeb.add_web_kind "comments.met" (fun filename ->
       DonkeyIndexer.load_comments filename;
       lprintf "COMMENTS ADDED\n"; 
   );

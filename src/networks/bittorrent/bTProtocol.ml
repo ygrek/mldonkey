@@ -293,6 +293,14 @@ dump (String.sub b.buf b.pos b.len);
     try
       while b.len >= 4 do
         let msg_len = get_int b.buf b.pos in
+        if msg_len < 0 then
+          begin
+            lprintf "BT: Unknown message dropped!!\n";
+            dump (String.sub b.buf b.pos b.len);
+            buf_used b b.len;
+          end
+        else
+          begin
         if b.len >= 4 + msg_len then
           begin
               buf_used b 4;
@@ -311,7 +319,8 @@ dump (String.sub b.buf b.pos b.len);
               (*received a ping*)
               set_lifetime sock 130.
           end
-        else raise Not_found
+        else raise Not_found;
+          end
       done
     with 
     | Not_found -> ()

@@ -196,7 +196,7 @@ let save_config () =
   ultrapeers =:= [];
   peers =:= [];
   
-  Queue.iter (fun h -> 
+  Queue.iter (fun (_,h) -> 
       let o = if h.host_kind <> Peer then ultrapeers else peers
       in
 (* Don't save hosts that are older than 1 hour, and not responding *)

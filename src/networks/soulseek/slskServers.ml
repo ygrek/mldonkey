@@ -261,7 +261,7 @@ let can_retry () =
   update_server_list ()
 
 let _ =
-  add_web_kind slsk_kind load_server_list;
+  CommonWeb.add_web_kind slsk_kind load_server_list;
   option_hook login can_retry;
   option_hook global_login can_retry;
   option_hook password can_retry

@@ -45,7 +45,7 @@ Compiling mldonkey with mldonkey_gui support:
 -------------------
 
 You have now two options to compile mldonkey:
-- Individually install Objective-Caml 3.06 and LablGTK 1.2.?. Then, you can
+- Individually install Objective-Caml 3.06 and LablGTK 1.2.6. Then, you can
   compile mldonkey. The instructions are given below at '1)'.
 - If you want to install ocaml and lablgtk only to compile mldonkey. You must
   have a good internet access (you want mldonkey after all :). You must have
@@ -61,7 +61,9 @@ Note: At least 70 M of free disk space is required on the partition where mldonk
 is compiled.
 
 ------------------------------------------------------------------------
-1) Installing required tools: Objective-Caml 3.06 and LablGTK 1.2.3 or 1.2.?
+1) Installing required tools: Objective-Caml and LablGTK 1.2.6
+   Recommended version of Objective-Caml for MinGW is 3.06, on Unix 3.07+2.
+   Example configuration for Ocaml 3.06:
 
  1.1) Objective-Caml 3.06 (from   http://pauillac.inria.fr/caml)
 
@@ -73,15 +75,15 @@ is compiled.
     ~/tmp/ocaml-3.06> make world opt opt.opt
     ~/tmp/ocaml-3.06> make install
 
- 1.2) LablGTK 1.2.3 (from 
+ 1.2) LablGTK 1.2.6 (from 
             http://wwwfun.kurims.kyoto-u.ac.jp/soft/olabl/lablgtk.html)
 
-    ~/tmp> tar zxf lablgtk-1.2.3.tar.gz
-    ~/tmp> cd lablgtk-1.2.3
-    ~/tmp/lablgtk-1.2.3> make configure
-    ~/tmp/lablgtk-1.2.3> make
-    ~/tmp/lablgtk-1.2.3> make opt
-    ~/tmp/lablgtk-1.2.3> make install
+    ~/tmp> tar zxf lablgtk-1.2.6.tar.gz
+    ~/tmp> cd lablgtk-1.2.6
+    ~/tmp/lablgtk-1.2.6> make configure
+    ~/tmp/lablgtk-1.2.6> make
+    ~/tmp/lablgtk-1.2.6> make opt
+    ~/tmp/lablgtk-1.2.6> make install
 
 2) Compiling mldonkey:
 

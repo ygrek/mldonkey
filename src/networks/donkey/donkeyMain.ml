@@ -58,37 +58,27 @@ let _ =
 let hourly_timer timer =
   DonkeyClient.clean_groups ();
   DonkeyClient.clean_requests ();
-  DonkeyProtoCom.propagate_working_servers 
-    (List.map (fun s -> s.server_ip, s.server_port) (connected_servers()))
-    (DonkeyOvernet.connected_peers ())
-    ;
   Hashtbl.clear udp_servers_replies;
-  DonkeyThieves.clean_thieves ()
+  DonkeyThieves.clean_thieves ();
+  DonkeyNeighbours.recover_downloads !current_files
     
 let quarter_timer timer =
-  DonkeyServers.remove_old_servers ();
   clean_join_queue_tables ()
 
 let fivemin_timer timer =
   DonkeyShare.send_new_shared ();
-  DonkeyChunks.duplicate_chunks ()
+  DonkeyChunks.duplicate_chunks ();
+  DonkeySources.clean_sources ();
+  clients_root := []
 
 let second_timer timer =
   (try
-(*
-      if !verbose_src_manager then begin
-          lprintf "Check sources"; lprint_newline ();
-        end; *)
-      DonkeySources.check_sources DonkeyClient.reconnect_client;
-
-(*      if !verbose_src_manager then begin
-          lprintf "Check sources done"; lprint_newline ();
-        end; *)
+      DonkeySources.connect_sources connection_manager;
     with e ->
-        if !verbose_src_manager then begin
-            lprintf "Exception %s while checking sources" 
-              (Printexc2.to_string e) ; lprint_newline ()
-          end)
+        if !verbose_sources then 
+          lprintf "Exception %s while checking sources\n" 
+            (Printexc2.to_string e)
+  )
 
 let halfmin_timer timer =
   DonkeyServers.update_master_servers ()
@@ -130,13 +120,13 @@ let reset_tags () =
   client_to_client_tags :=
   [
     string_tag "name" (local_login ());
-    int_tag "version" !!DonkeyOptions.protocol_version;
+    int_tag "version" protocol_version;
     int_tag "port" !client_port;
   ];      
   client_to_server_tags :=
   [
     string_tag "name" (local_login ());
-    int_tag "version" !!DonkeyOptions.protocol_version;
+    int_tag "version" protocol_version;
     int_tag "port" !client_port;
   ];      
   if Autoconf.has_zlib then
@@ -246,6 +236,7 @@ let enable () =
               (Ip.to_inet_addr !!client_bind_addr)
             !!port (client_connection_handler false) in
           
+          TcpServerSocket.set_accept_controler sock connections_controler;
           listen_sock := Some sock;
           port =:= new_port;
           
@@ -281,7 +272,6 @@ let enable () =
       
       reset_tags ();
       
-      Options.option_hook DonkeyOptions.protocol_version reset_tags;
       Options.option_hook global_login reset_tags;
       Options.option_hook login reset_tags;
 
@@ -324,6 +314,9 @@ let enable () =
           !new_shared_files;  
           new_shared_files := [];
       );
+      add_session_option_timer enabler remove_old_servers_delay 
+          DonkeyServers.remove_old_servers;
+      
     
     DonkeyComplexOptions.load_sources ();
     

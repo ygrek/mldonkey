@@ -42,7 +42,7 @@ module Uid : sig
     val create : uid_type -> t
     val to_string : t -> string
     val of_string : string -> t
-    val to_uid : t -> uid_type     
+    val to_uid : t -> uid_type
     val mem : t -> t list -> bool
     val add : t -> t list -> t list
     val derive : t -> t list
@@ -165,8 +165,7 @@ module Uid : sig
           let list = derive t in
           expand_rec (list@tail) (add t uids)
     
-    let expand uids = expand_rec uids []
-      
+    let expand uids = expand_rec uids []      
       
   end
 

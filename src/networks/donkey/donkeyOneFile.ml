@@ -24,7 +24,8 @@ open Options
   
 open BasicSocket
 open TcpBufferedSocket
-  
+
+open CommonSources
 open CommonSwarming
 open CommonInteractive
 open CommonSearch
@@ -1111,7 +1112,7 @@ let client_has_chunks c file chunks =
 
   failwith "client_has_chunks not implemented"
   
-  DonkeySourcesMisc.add_file_location file c;
+  add_file_location file c;
 
   if file.file_chunks_age = [||] then
     file.file_chunks_age <- Array.create file.file_nchunks 0;
@@ -1126,7 +1127,7 @@ let client_has_chunks c file chunks =
         if chunks.(i) then begin
             change_last_seen := true;
             file.file_chunks_age.(i) <- last_time ();
-            DonkeySourcesMisc.set_request_result c file File_chunk;
+            set_request_result c file File_chunk;
           end 
   done;
   
@@ -1206,7 +1207,7 @@ let check_file_downloaded file =
         None -> ()
       | Some swarmer ->
           let bitmap = Int64Swarmer.verified_bitmap swarmer in
-          lprintf "Verified bitmap: [%s]\n" bitmap;
+(*          lprintf "Verified bitmap: [%s]\n" bitmap; *)
           let rec iter i =
             if i =  String.length bitmap then true
             else
@@ -1221,7 +1222,24 @@ let check_file_downloaded file =
             end
             
 let check_files_downloaded () =
-  List.iter check_file_downloaded !current_files
+  List.iter check_file_downloaded !current_files;
+  Hashtbl.iter (fun file_md4 file ->
+      match file.file_shared with 
+        Some _ -> ()
+      | None ->
+          match file.file_swarmer with
+            None -> ()
+          | Some swarmer ->
+              let bitmap = Int64Swarmer.verified_bitmap swarmer in
+              let rec iter i len =
+                if i < len then
+                  if bitmap.[i] = '3' then
+                    DonkeyShare.must_share_file file
+                  else
+                    iter (i+1) len
+              in
+              iter 0 (String.length bitmap)
+  ) files_by_md4
           
 (* TODO: we should sort the downloads, probably before asking QueryFiles 
   messages. *)
@@ -1262,7 +1280,7 @@ let clean_current_download c =
       c.client_download <- None
 
 let send_get_range_request c file ranges = 
-  match c.client_sock with
+  match c.client_source.DonkeySources.source_sock with
   | Connection sock ->
       
       set_rtimeout sock !queue_timeout;
@@ -1306,7 +1324,7 @@ let send_get_range_request c file ranges =
         | _ -> assert false
       in
       let msg = M.QueryBlocReq msg in
-      set_read_power sock (c.client_power + maxi 0 (file_priority file));
+      set_read_power sock (!!upload_power + maxi 0 (file_priority file));
       lprintf "QUEUE DOWNLOAD REQUEST\n";
       CommonUploads.queue_download_request (fun _ -> 
           direct_client_send c msg ) (Int64.to_int len) 
@@ -1322,8 +1340,8 @@ let rec get_from_client c =
             
             lprintf "get_from_client: no more file\n";
             if not (client_has_a_slot (as_client c)) then begin
-                connection_delay c.client_connection_control;
-                match c.client_sock with
+(*                connection_delay c.client_connection_control; *)
+                match c.client_source.DonkeySources.source_sock with
                   Connection sock ->
                     TcpBufferedSocket.close sock
                       (Closed_for_error "No file to download");
@@ -1411,7 +1429,7 @@ let request_slot c =
       if !verbose_download then begin
           lprintf "start_download...\n";
         end;
-      do_if_connected c.client_sock (fun sock ->
+      do_if_connected c.client_source.DonkeySources.source_sock (fun sock ->
           sort_file_queue c;
           match c.client_file_queue with
             [] -> ()
@@ -1436,7 +1454,7 @@ let block_received c t =
       if file.file_md4 <> t.Q.md4 then begin
           lprintf "DonkeyOneFile.block_received: block for bad file\n  Received: %s\n  Expected: %s\n" (Md4.to_string t.Q.md4) (Md4.to_string file.file_md4)
         end else begin
-          DonkeySourcesMisc.set_request_result c file File_upload;
+          DonkeySources.set_request_result c.client_source file.file_sources File_upload;
           
           c.client_rating <- c.client_rating + 10;
           

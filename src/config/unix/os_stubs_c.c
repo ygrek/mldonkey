@@ -1,5 +1,3 @@
-#include "../../../config/config.h"
-#include "../../utils/lib/os_stubs.h"
 
 
 
@@ -46,6 +44,9 @@
 #if !defined(__MINGW32__)
 #include <sys/mman.h>
 #endif
+
+#include "../../../config/config.h"
+#include "../../utils/lib/os_stubs.h"
 
 int64 os_lseek(OS_FD fd, off_t pos, int dir)
 {

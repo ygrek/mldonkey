@@ -463,7 +463,7 @@ let format_bit = 32 (* "format" *)
 let index_string doc s fields =
   let words = stem s in
   List.iter (fun s ->
-(*      lprintf "ADD [%s] in index" s; lprint_newline (); *)
+(*      lprintf "ADD [%s] in index\n" s;  *)
       DocIndexer.add  index s doc fields
   ) words 
   
@@ -554,7 +554,7 @@ let add file =
 
     if file <> file2 then
       index_file doc file;
-    (*lprintf "Must check files with same md4"; lprint_newline ();*)
+    (*lprintf "Must check files with same md4\n"; *)
     ()
   with _ ->
       let doc = Store.add store file in
@@ -660,14 +660,13 @@ let add_shared full_name codedname size =
       
       update_shared_num impl;
       
-      lprintf "FILE ADDED: %s" codedname; lprint_newline ();
+      lprintf "FILE ADDED: %s\n" codedname; 
       Hashtbl.add table !shareds_counter sh;
       Hashtbl.add shared_files codedname sh;
       Indexer.index_file sh;
       add_shared_file shared_tree sh (String2.split codedname '/');
       shared_counter := Int64.add !shared_counter size;
-      lprintf "Total shared : %s" (Int64.to_string !shared_counter);
-      lprint_newline () ;
+      lprintf "Total shared : %s\n" (Int64.to_string !shared_counter);
       sh
       
 let query q = Indexer.find (Indexer.query_to_query q)
@@ -774,9 +773,9 @@ let next_uploads () =
   done;
 
 (*  if !verbose_upload then begin
-      lprintf "last sec: %d/%d (left %d)" !last_sec !total_bandwidth
+      lprintf "last sec: %d/%d (left %d)\n" !last_sec !total_bandwidth
         (!total_bandwidth - !last_sec);
-      lprint_newline (); (*
+ (*
       for i = 0 to 9 do
         lprintf "    last[%d] = %d\n" i  sent_bytes.(i)
       done; *)
@@ -818,8 +817,8 @@ let add_pending_slot c =
     begin
 (* This is useless since it is the goal of the pending_slots_map 
         else if Fifo.mem pending_slots_fifo (client_num c) then begin
-	lprintf "Avoided inserting a client twice in pending slots";
-	lprint_newline ()
+	lprintf "Avoided inserting a client twice in pending slots\n";
+	
       end else *)
       pending_slots_map := Intmap.add (client_num c) c !pending_slots_map;
     end
@@ -841,7 +840,7 @@ let rec give_a_slot c =
 and find_pending_slot () =
   try
     let rec iter () =
-      let c = Intmap.top !pending_slots_map in
+      let _, c = Intmap.top !pending_slots_map in
       give_a_slot c
     in
     iter ()
@@ -890,8 +889,7 @@ let dynamic_refill_upload_slots () =
   let open_slots n =
     let i = ref n in
     if !verbose_upload then begin
-      lprintf "try to allocate %d more slots" n;
-      lprint_newline ()
+      lprintf "try to allocate %d more slots\n" n;
     end;
     while !i > 0 do
       find_pending_slot ();
@@ -903,11 +901,10 @@ let dynamic_refill_upload_slots () =
 (*  let estimated_capacity = !!max_hard_upload_rate * 1024 in *)
   let estimated_capacity = detected_uplink_capacity () in
   if !verbose_upload then begin
-    lprintf "usage: %d(%d) capacity: %d "
+    lprintf "usage: %d(%d) capacity: %d\n"
       (short_delay_upload_usage ()) 
       (upload_usage ()) 
       estimated_capacity;
-    lprint_newline ()
   end;
   let len = Intmap.length !CommonClient.uploaders in
   if len < !!max_upload_slots then begin
@@ -915,16 +912,14 @@ let dynamic_refill_upload_slots () =
 (* enough free bw for another slot *)
     if short_delay_upload_usage () + slot_bw < estimated_capacity then begin
       if !verbose_upload then begin
-	lprintf "uplink not fully used";
-	lprint_newline ()
+	lprintf "uplink not fully used\n";
       end;
       incr not_saturated_count
     end else reset_state ();
           
     if len < min_upload_slots then begin
       if !verbose_upload then begin
-	lprintf "too few upload slots";
-	lprint_newline ()
+	lprintf "too few upload slots\n";
       end;
       open_slots (min_upload_slots - len);
       reset_state ()

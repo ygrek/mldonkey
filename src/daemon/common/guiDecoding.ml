@@ -1010,7 +1010,7 @@ let to_gui (proto : int array) opcode s =
   try
     let proto = if opcode > to_gui_last_opcode then 0 else proto.(opcode) in    
     
-(*    lprintf "TO GUI: Opcode %d\n" opcode; *)
+(*    lprintf "TO GUI: Opcode %d\n" opcode;  *)
     match opcode with
     | 0 ->
         let version = get_int s 2 in

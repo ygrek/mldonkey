@@ -110,25 +110,37 @@ let value_to_client is_friend assocs =
   let get_value_nil name conv = 
     try conv (List.assoc name assocs) with _ -> []
   in
-  let kind = 
+  let (ip,port) = 
     try
       get_value "client_addr" (fun v ->
           match v with
             List [ip;port] | SmallList [ip;port] ->
               let ip = Ip.of_string (value_to_string ip) in
               let port = value_to_int port in
-              Known_location (ip, port)
+              (ip, port)
           | _ -> failwith  "Options: Not an client option"
       ) 
-    with _ ->        
+    with _ -> 
+        failwith "Source without address: removed"
+(*
         let md4 = try
             get_value "client_md4" value_to_md4 with _ -> Md4.null
         in
         let name = try
             get_value "client_name" value_to_string with _ -> "" in
-        Indirect_location(name, md4)
+        Indirect_location(name, md4) *)
   in
-  let l = DonkeyGlobals.new_client kind in
+  
+  let last_conn = 
+    try
+      let last_conn =
+        (min (get_value "client_age" value_to_int) 
+          (BasicSocket.last_time ()))
+      in
+      let last_conn = normalize_time last_conn in
+      last_conn
+    with _ -> 0 in
+  let l = DonkeyGlobals.new_client (Direct_address (ip,port)) in
   
   let md4 = try
       get_value "client_md4" value_to_md4 
@@ -137,21 +149,15 @@ let value_to_client is_friend assocs =
   let name = try
       get_value "client_name" value_to_string with _ -> "" in
   set_client_name l name md4;
-
+  
+  (*
+  CommonGlobals.connection_set_last_conn l.client_connection_control
+    last_conn;
+*)  
   
   
   (try
       l.client_overnet <- get_value "client_overnet" value_to_bool
-    with _ -> ());
-  
-  (try
-      let last_conn =
-        (min (get_value "client_age" value_to_int) 
-          (BasicSocket.last_time ()))
-      in
-      let last_conn = normalize_time last_conn in
-      CommonGlobals.connection_set_last_conn l.client_connection_control
-        last_conn;
     with _ -> ());
   
 (* Is it really useful ? I don't think so. It is only used when restarting
@@ -171,7 +177,7 @@ let value_to_donkey_client v =
     List [ip;port] | SmallList [ip;port] ->
       let ip = Ip.of_string (value_to_string ip) in
       let port = value_to_int port in
-      DonkeyGlobals.new_client (Known_location (ip, port))
+      DonkeyGlobals.new_client (Direct_address (ip, port))
   | Module assocs ->
       value_to_client false assocs 
   | _ -> assert false
@@ -180,18 +186,18 @@ let client_to_value c =
   let list = [
       "client_md4", string_to_value (Md4.to_string c.client_md4);
       "client_name", string_to_value c.client_name;
-      "client_age", int_to_value (
+(*      "client_age", int_to_value (
         CommonGlobals.connection_last_conn 
-        c.client_connection_control);
+        c.client_connection_control); *)
       "client_last_filereqs", int_to_value c.client_last_filereqs;
       "client_overnet", bool_to_value c.client_overnet;
     ]
   in
   
   match c.client_kind with
-    Known_location (ip, port) ->   
+    Direct_address (ip, port) ->   
       ("client_addr", addr_to_value ip  port) :: list
-  | _ -> list
+  | _ -> raise Exit (* Don't save these options *)
       
 let donkey_client_to_value c =
   Options.Module (client_to_value c)  
@@ -327,6 +333,7 @@ let value_to_file file_size file_state assocs =
   )
    (get_value_nil "file_locations" (value_to_list value_to_donkey_client)); *)
   
+(*
   (try
       file.file_chunks_age <-
         get_value "file_chunks_age" 
@@ -339,7 +346,8 @@ let value_to_file file_size file_state assocs =
     if file.file_chunks_age = [||]
     then 0
     else Array2.min file.file_chunks_age);
-    
+*)
+  
   let md4s = get_value "file_md4s" (value_to_array value_to_md4) in
   file.file_md4s <- (if md4s = [||] then file.file_md4s else md4s);
   file_md4s_to_register := file :: !file_md4s_to_register;
@@ -374,8 +382,6 @@ let file_to_value file =
       "file_md4s", array_to_value Md4.hash_to_value 
         file.file_md4s;
       "file_downloaded", int64_to_value (file_downloaded file);
-      "file_chunks_age", List (Array.to_list 
-          (Array.map int_to_value file.file_chunks_age));
 (*      "file_mtime", float_to_value (
         try Unix32.mtime (file_disk_name file) with _ -> 0.0) *)
     ]
@@ -504,116 +510,6 @@ let value_to_module f v =
       
 let save_time = define_header_option file_sources_ini 
     ["save_time"] "" int_option (last_time ())
-      
-module ClientOption = struct
-    
-    let value_to_source assocs = 
-      let get_value names conv = conv (
-          let rec iter names =
-            match names with [] -> raise Not_found
-            | name :: tail ->
-                try
-                  List.assoc name assocs
-                with Not_found -> iter tail
-          in
-          iter names
-        ) in
-      let get_value_nil name conv = 
-        try conv (List.assoc name assocs) with _ -> []
-      in
-      
-      let addr = get_value ["addr"; "source_addr"] (fun v ->
-            match v with
-              List [ip;port] | SmallList [ip;port] ->
-                let ip = Ip.of_string (value_to_string ip) in
-                let port = value_to_int port in
-                (ip, port)
-            | _ -> failwith  "Options: Not an source option")
-      in
-      let files = get_value ["files"; "source_files"] (value_to_list 
-            Md4.value_to_hash) in
-      
-      let overnet_source = try
-          get_value ["overnet"; "source_overnet"] value_to_bool
-        with _ -> false in
-      
-      let current_time = last_time () in
-      
-      let last_conn = 
-        try
-          min (get_value ["age"; "source_age"] value_to_int) current_time
-        with _ -> current_time
-      in
-      
-      let last_conn = normalize_time last_conn in
-
-      let basic_score = try get_value ["score"] value_to_int with _ -> -10 in
-      
-      let rec iter files =
-        match files with
-          [] -> raise SideEffectOption
-        | md4 :: tail ->
-            try
-              let file = find_file md4 in
-              let s = DonkeySources.old_source basic_score last_conn addr file in
-              s.source_overnet <- overnet_source;
-              List.iter (fun md4 ->
-                  try
-                    let file = find_file md4 in
-                    DonkeySources.add_source_request s file 0 File_expected;
-                  with _ -> ()
-              ) files;
-              s
-            with _ -> iter tail
-      in 
-      iter files
-    
-    let source_to_value s =
-      let last_conn, basic_score = match s.source_client with
-        | SourceLastConnection (basic_score, time, _) -> time, basic_score
-        | SourceClient c -> last_time (), c.client_score
-      in
-      let (ip, port) = s.source_addr in
-      
-      let files = ref [] in
-      let score = ref basic_score in
-      List.iter (fun r ->
-          if r.request_result > File_not_found then begin
-              files := once_value (Md4.hash_to_value r.request_file.file_md4)
-              :: !files;
-              (*
-              score := !score + (match r.request_result with
-                | File_possible
-                | File_not_found -> 0
-                | File_expected -> 1
-                | File_new_source -> 1
-                | File_found -> 20
-                | File_chunk -> 40
-| File_upload -> 60)
-  *)
-            end
-      ) s.source_files;
-      
-      let list = [
-          "score", int_to_value !score;
-          "addr", addr_to_value ip port;
-          "files", smalllist_to_value "file list" 
-            (fun s -> s)
-          !files;
-          
-        ] in
-      let list = 
-        if last_conn < 1 then list else
-          ("age", int_to_value s.source_age) :: list
-      in
-      let list = if s.source_overnet then
-          ("overnet", bool_to_value true) :: list else list
-      in
-      Module list
-      
-    let t = define_option_class "Source" (value_to_module value_to_source)
-      source_to_value
-  end
     
       
 (*  
@@ -641,6 +537,11 @@ module UidOption = struct
 let old_files = 
   define_option donkey_section ["old_files"] 
   "The files that were downloaded" (list_option Md4.option) []
+
+let brotherhood = 
+  define_option donkey_section ["brotherhood"] 
+    "The links between files being downloaded" (list_option 
+      (list_option Md4.option)) []
 
   (*
 let files = 
@@ -687,10 +588,6 @@ let remove_server ip port =
     DonkeyGlobals.remove_server ip port
   with _ -> ()
 
-      
-let sources = define_option file_sources_section 
-    ["sources"] "" 
-    (listiter_option ClientOption.t) []
   
       
 let load _ =
@@ -753,18 +650,12 @@ let save _ =
   diff_time := (last_time () - start_time);
   Options.save_with_help stats_ini;
   Options.save_with_help mod_stats_ini;
-  sources =:= [];
-  DonkeySources.iter (fun s -> 
-      (match s.source_client with
-        SourceClient c -> s.source_files <- c.client_files;
-      | _ -> ());      
-      sources =:= s :: !!sources);
   
   save_time =:= last_time ();
-  
+  let cleaner = DonkeySources.attach_sources_to_file file_sources_section in
   Options.save_with_help file_sources_ini;
+  cleaner ();
   lprintf "SAVED\n"; 
-  sources =:= [];
   create_online_sig ()
     
 let guptime () = !!guptime - !diff_time
@@ -773,6 +664,19 @@ let guptime () = !!guptime - !diff_time
 let load_sources () = 
   (try 
       Options.load file_sources_ini;
+      List.iter (fun list ->
+          let files = ref [] in
+          List.iter (fun m ->
+              try
+                let file = find_file m in
+                files := file.file_sources :: !files
+              with _ -> ()
+          ) list;
+          match !files with
+            [] | [_] -> ()
+          | files ->
+              DonkeySources.set_brothers files
+      ) !!brotherhood
     with _ -> ())
 
     
@@ -789,5 +693,7 @@ let _ =
   client_ops.op_client_to_option <- client_to_value;
   
   network.op_network_load_complex_options <- load;
-  network.op_network_save_complex_options <- save
+  network.op_network_save_complex_options <- save;
   
+  let cleaner = DonkeySources.attach_sources_to_file file_sources_section in
+  cleaner ()

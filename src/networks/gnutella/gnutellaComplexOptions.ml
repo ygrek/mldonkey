@@ -204,7 +204,7 @@ let save_config () =
   ultrapeers =:= [];
   peers =:= [];
   
-  Queue.iter (fun h -> 
+  Queue.iter (fun (_,h) -> 
       try
         let o = match h.host_kind with true -> ultrapeers | _ -> peers in
 

@@ -32,16 +32,22 @@ module Queue :
     type 'a t
     val head : 'a t -> int * 'a
     val put : 'a t -> int * 'a -> unit
-    val iter : ('a -> unit) -> 'a t -> unit
+    val iter : (int * 'a -> unit) -> 'a t -> unit
     val length : 'a t -> int
     val take : 'a t -> int * 'a
     val put_back : 'a t -> int * 'a -> unit
+    val remove : 'a t -> int * 'a -> unit
   end
 val fifo : unit -> 'a Queue.t
 val lifo : unit -> 'a Queue.t
 module Make :
-  functor (M : sig type t end) ->
+  functor (M : sig
+      type t
+      val compare : t -> t -> int
+        end) ->
   sig
+    val lifo : unit -> M.t Queue.t
+    val fifo : unit -> M.t Queue.t
     val oldest_first : unit -> M.t Queue.t
     val oldest_last : unit -> M.t Queue.t
   end
@@ -70,8 +76,9 @@ type 'a impl = {
     put : (int * 'a -> unit);
     length : (unit -> int);
     take : (unit -> int * 'a);
-    iter : ( ('a -> unit) -> unit);
+    iter : ( (int * 'a -> unit) -> unit);
     put_back : (int * 'a -> unit);
+    remove : (int * 'a -> unit);
   }
   
 val of_impl : 'a impl -> 'a Queue.t

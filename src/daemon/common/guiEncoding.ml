@@ -584,13 +584,10 @@ let rec to_gui (proto : int array) buf t =
     match t with
     
     | CoreProtocol (version, max_to_gui, max_from_gui) -> 
-        let proto = proto.(0) in
         buf_int16 buf 0; 
         buf_int buf version;
-        if proto > 25 then begin
-            buf_int buf max_to_gui;
-            buf_int buf max_from_gui
-          end
+        buf_int buf max_to_gui;
+        buf_int buf max_from_gui
     
     | Options_info list -> 
         

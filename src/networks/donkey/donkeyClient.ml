@@ -22,6 +22,7 @@ functions are defined in downloadOneFile.ml *)
 open Printf2
 open Md4
 
+open CommonSources
 open CommonSwarming  
 open CommonRoom
 open CommonShared
@@ -56,7 +57,7 @@ let active_lifetime = 1200.
   
 let is_banned c sock = 
   c.client_banned <- Hashtbl.mem banned_ips (peer_ip sock)
-    
+
 
 (* Supports Emule Extended Protocol *)
 let supports_eep cb = 
@@ -133,7 +134,7 @@ let clean_requests () = (* to be called every hour *)
 let _ =
   
   let client_enter_upload_queue c =
-    do_if_connected  c.client_sock (fun sock ->
+    do_if_connected  c.client_source.DonkeySources.source_sock (fun sock ->
         set_rtimeout sock !!upload_timeout;
         direct_client_send c (
           let module M = DonkeyProtoClient in
@@ -145,8 +146,6 @@ let _ =
               c.client_name (brand_to_string c.client_brand);
           end;
         
-        set_write_power sock (c.client_power);
-        set_read_power sock (c.client_power)
     )  
   in
   client_ops.op_client_enter_upload_queue <- client_enter_upload_queue
@@ -164,8 +163,8 @@ let log_client_info c sock =
     if len > 30 then String.sub s 0 30 else s)
   
   (brand_to_string c.client_brand)
-  (match c.client_kind with Indirect_location _ -> "LowID"
-    | Known_location (ip,port) -> Printf.sprintf "%s:%d"
+  (match c.client_kind with Indirect_address _ | Invalid_address _ -> "LowID"
+    | Direct_address (ip,port) -> Printf.sprintf "%s:%d"
           (Ip.to_string ip) port)
   (last_time () - c.client_connect_time)
   (if c.client_rank > 0 then
@@ -178,46 +177,36 @@ let log_client_info c sock =
   ;
   
   List.iter (fun r ->
-      Buffer.add_char buf (
-        match r.request_result with
-        | File_chunk ->      'C'
-        | File_upload ->     'U'
-        | File_not_found ->  '-'
-        | File_found ->      '+'
-        | File_possible ->   '?'
-        | File_expected ->   '!'
-        | File_new_source -> 'n'
-      )) c.client_files;      
+      Printf.bprintf  buf "(%d)"  r.DonkeySources.request_score;
+  ) c.client_source.DonkeySources.source_files;      
   Buffer.add_char buf '\n';
   let m = Buffer.contents buf in
   CommonEvent.add_event (Console_message_event m)
   
 let disconnect_client c reason =
-  match c.client_sock with
+  match c.client_source.DonkeySources.source_sock with
     NoConnection -> ()
   | ConnectionWaiting token ->
       cancel_token token;
-      c.client_sock <- NoConnection
+      c.client_source.DonkeySources.source_sock <- NoConnection
   | Connection sock ->
       (try
           if c.client_debug then 
             lprintf "Client[%d]: disconnected\n" (client_num c);
-          if c.client_checked then count_seen c;
+          (try if c.client_checked then count_seen c with _ -> ());
           if !!log_clients_on_console && c.client_name <> "" then 
-            log_client_info c sock
-            ;
+            log_client_info c sock;
           (try Hashtbl.remove connected_clients c.client_md4 with _ -> ());
-          CommonUploads.remove_pending_slot (as_client c);
-          connection_failed c.client_connection_control;
-          TcpBufferedSocket.close sock reason;
-          printf_string "-c"; 
+          (try CommonUploads.remove_pending_slot (as_client c) with _ -> ());
           set_client_has_a_slot (as_client c) false;
+(*          connection_failed c.client_connection_control; *)
+          (try TcpBufferedSocket.close sock reason with _ -> ());
 
 (* Remove the Connected and NoLimit tags *)
           set_client_type c (client_type c
               land (lnot (client_initialized_tag lor client_nolimit_tag)));
 (*          c.client_chunks <- [||];*)
-          c.client_sock <- NoConnection;
+          c.client_source.DonkeySources.source_sock <- NoConnection;
           save_join_queue c;
           c.client_slot <- SlotNotAsked;
           let files = c.client_file_queue in
@@ -247,7 +236,7 @@ let disconnect_client c reason =
                 )) c.client_files;      
       lprintf "\n"; *)
       set_client_disconnected c reason;
-      DonkeySources.source_of_client c
+      DonkeySources.source_disconnected c.client_source
   
 let client_send_if_possible c sock msg =
   if can_write_len sock (!!client_buffer_size/2) then
@@ -263,8 +252,8 @@ let client_can_receive c =
       
 let new_udp_client c group =
   match c.client_kind with
-    Indirect_location _ -> ()
-  | Known_location (ip, port) ->
+    Indirect_address _ | Invalid_address _ -> ()
+  | Direct_address (ip, port) ->
       let uc = {
           udp_client_last_conn = last_time ();
           udp_client_ip = ip;
@@ -315,7 +304,7 @@ let find_sources_in_groups c md4 =
       with _ ->
 (* a new client for this group *)
           if client_can_receive c then begin
-              do_if_connected c.client_sock (fun sock ->
+              do_if_connected c.client_source.DonkeySources.source_sock (fun sock ->
 (* send the list of members of the group to the client *)
                   let list = ref [] in
                   UdpClientMap.iter (fun _ uc ->
@@ -325,7 +314,7 @@ let find_sources_in_groups c md4 =
                       | Reliability_suspicious _ -> ()
                   ) group.group;
                   if !list <> [] then begin
-                      if !verbose_src_prop then begin
+                      if !verbose_sources then begin
                           lprintf "Send %d sources from file groups to mldonkey peer\n" (List.length !list); 
                         end;
                       let msg = 
@@ -341,14 +330,14 @@ let find_sources_in_groups c md4 =
             end;
           
           match c.client_kind with 
-            Indirect_location _ -> ()
-          | Known_location (ip, port) ->
+            Indirect_address _ | Invalid_address _ -> ()
+          | Direct_address (ip, port) ->
 (* send this client as a source for the file to
 		     all mldonkey clients in the group. add client to group *)
               
               UdpClientMap.iter (fun _ uc ->
                   if uc.udp_client_can_receive then begin
-                      if !verbose_src_prop then
+                      if !verbose_sources then
                         lprintf "Send new source to file groups UDP peers\n"; 
                       udp_client_send uc (
                         Udp.QueryLocationReplyUdpReq (
@@ -414,78 +403,78 @@ let identify_client_brand c =
 
 let mod_array =
   [|
-      ("extasy", Brand_mod_extasy);
-      ("hunter", Brand_mod_hunter);
-      ("mortimer", Brand_mod_mortimer);
-      ("sivka", Brand_mod_sivka);
-      ("plus", Brand_mod_plus);
-      ("lsd", Brand_mod_lsd);
-      ("maella", Brand_mod_maella);
-      ("pille", Brand_mod_pille);
-      ("morphkad", Brand_mod_morphkad);
-      ("ef-mod", Brand_mod_efmod);
-      ("xtreme", Brand_mod_xtreme);
-      ("bionic", Brand_mod_bionic);
-      ("pawcio", Brand_mod_pawcio);
-      ("gammaoh", Brand_mod_gammaoh);
-      ("zzul", Brand_mod_zzul);
-      ("black hand", Brand_mod_blackhand);
-      ("lovelace", Brand_mod_lovelace);
-      ("morphnext", Brand_mod_morphnext);
-      ("fincan", Brand_mod_fincan);
-      ("ewombat", Brand_mod_ewombat);
-      ("mortillo", Brand_mod_mortillo);
-      ("emulespa\241a", Brand_mod_emulespana);
-      ("blackrat", Brand_mod_blackrat);
-      ("enkeydev", Brand_mod_enkeydev);
-      ("gnaddelwarz", Brand_mod_gnaddelwarz);
-      ("phoenix-kad", Brand_mod_phoenixkad);
-      ("phoenix", Brand_mod_phoenix);
-      ("koizo", Brand_mod_koizo);
-      ("ed2kfiles", Brand_mod_ed2kfiles);
-      ("athlazan", Brand_mod_athlazan);
-      ("goldi cryptum", Brand_mod_goldicryptum);
-      ("cryptum", Brand_mod_cryptum);
-      ("lamerzchoice", Brand_mod_lamerzchoice);
-      ("notdead", Brand_mod_notdead);
-      ("peace", Brand_mod_peace);
-      ("eastshare", Brand_mod_eastshare);
-      ("[mfck]", Brand_mod_mfck);
-      ("echanblard", Brand_mod_echanblard);
-      ("sp4rk", Brand_mod_sp4rk);
-      ("bloodymad", Brand_mod_bloodymad);
-      ("roman2k", Brand_mod_roman2k);
-      ("elfenwombat", Brand_mod_elfenwombat);
-      ("o\178", Brand_mod_o2);
-      ("sf-iom", Brand_mod_sfiom);
-      ("magic-elseve", Brand_mod_magic_elseve);
-      ("schlumpmule", Brand_mod_schlumpmule);
-      ("noamson", Brand_mod_noamson);
-      ("stormit", Brand_mod_stormit);
-      ("omax", Brand_mod_omax);
-      ("spiders", Brand_mod_spiders);
-      ("ib\233rica", Brand_mod_iberica);
-      ("stonehenge", Brand_mod_stonehenge);
-      ("mison", Brand_mod_mison);
-      ("xlillo", Brand_mod_xlillo);
-      ("imperator", Brand_mod_imperator);
-      ("raziboom", Brand_mod_raziboom);
-      ("khaos", Brand_mod_khaos);
-      ("hardmule", Brand_mod_hardmule);
-      ("sc", Brand_mod_sc);
-      ("cy4n1d", Brand_mod_cy4n1d);
-      ("dmx", Brand_mod_dmx);
-      ("ketamine", Brand_mod_ketamine);
-      ("blackmule", Brand_mod_blackmule);
-      ("morphxt", Brand_mod_morphxt);
-      ("ngdonkey", Brand_mod_ngdonkey);
-      ("morph", Brand_mod_morph);
-      ("dm", Brand_mod_dm);
-      ("lc", Brand_mod_lc);
-      ("lh", Brand_mod_lh);
-      ("ice", Brand_mod_ice)
-   |]
-
+    ("extasy", Brand_mod_extasy);
+    ("hunter", Brand_mod_hunter);
+    ("mortimer", Brand_mod_mortimer);
+    ("sivka", Brand_mod_sivka);
+    ("plus", Brand_mod_plus);
+    ("lsd", Brand_mod_lsd);
+    ("maella", Brand_mod_maella);
+    ("pille", Brand_mod_pille);
+    ("morphkad", Brand_mod_morphkad);
+    ("ef-mod", Brand_mod_efmod);
+    ("xtreme", Brand_mod_xtreme);
+    ("bionic", Brand_mod_bionic);
+    ("pawcio", Brand_mod_pawcio);
+    ("gammaoh", Brand_mod_gammaoh);
+    ("zzul", Brand_mod_zzul);
+    ("black hand", Brand_mod_blackhand);
+    ("lovelace", Brand_mod_lovelace);
+    ("morphnext", Brand_mod_morphnext);
+    ("fincan", Brand_mod_fincan);
+    ("ewombat", Brand_mod_ewombat);
+    ("mortillo", Brand_mod_mortillo);
+    ("emulespa\241a", Brand_mod_emulespana);
+    ("blackrat", Brand_mod_blackrat);
+    ("enkeydev", Brand_mod_enkeydev);
+    ("gnaddelwarz", Brand_mod_gnaddelwarz);
+    ("phoenix-kad", Brand_mod_phoenixkad);
+    ("phoenix", Brand_mod_phoenix);
+    ("koizo", Brand_mod_koizo);
+    ("ed2kfiles", Brand_mod_ed2kfiles);
+    ("athlazan", Brand_mod_athlazan);
+    ("goldi cryptum", Brand_mod_goldicryptum);
+    ("cryptum", Brand_mod_cryptum);
+    ("lamerzchoice", Brand_mod_lamerzchoice);
+    ("notdead", Brand_mod_notdead);
+    ("peace", Brand_mod_peace);
+    ("eastshare", Brand_mod_eastshare);
+    ("[mfck]", Brand_mod_mfck);
+    ("echanblard", Brand_mod_echanblard);
+    ("sp4rk", Brand_mod_sp4rk);
+    ("bloodymad", Brand_mod_bloodymad);
+    ("roman2k", Brand_mod_roman2k);
+    ("elfenwombat", Brand_mod_elfenwombat);
+    ("o\178", Brand_mod_o2);
+    ("sf-iom", Brand_mod_sfiom);
+    ("magic-elseve", Brand_mod_magic_elseve);
+    ("schlumpmule", Brand_mod_schlumpmule);
+    ("noamson", Brand_mod_noamson);
+    ("stormit", Brand_mod_stormit);
+    ("omax", Brand_mod_omax);
+    ("spiders", Brand_mod_spiders);
+    ("ib\233rica", Brand_mod_iberica);
+    ("stonehenge", Brand_mod_stonehenge);
+    ("mison", Brand_mod_mison);
+    ("xlillo", Brand_mod_xlillo);
+    ("imperator", Brand_mod_imperator);
+    ("raziboom", Brand_mod_raziboom);
+    ("khaos", Brand_mod_khaos);
+    ("hardmule", Brand_mod_hardmule);
+    ("sc", Brand_mod_sc);
+    ("cy4n1d", Brand_mod_cy4n1d);
+    ("dmx", Brand_mod_dmx);
+    ("ketamine", Brand_mod_ketamine);
+    ("blackmule", Brand_mod_blackmule);
+    ("morphxt", Brand_mod_morphxt);
+    ("ngdonkey", Brand_mod_ngdonkey);
+    ("morph", Brand_mod_morph);
+    ("dm", Brand_mod_dm);
+    ("lc", Brand_mod_lc);
+    ("lh", Brand_mod_lh);
+    ("ice", Brand_mod_ice)
+  |]
+  
 let to_lowercase s = String.lowercase s
 
 let string_of_tags_list tags =
@@ -542,23 +531,25 @@ let identify_emule_compatible c tags =
   ) tags
   
 let query_files c sock =  
+  
+  (*
   let nall_queries = ref 0 in
   let nqueries = ref 0 in
 
 (*  lprintf "Client %d:\n" (client_num c);  *)
   let files = ref [] in
-  (if c.client_files = [] then begin
+  (if c.client_source.DonkeySources.source_files = [] then begin
 (*        lprintf "  query all files\n";  *)
         files := !current_files 
       
       end else
       List.iter (fun r ->
-          if r.request_result > File_not_found then begin
+          if r.request_score > File_not_found then begin
 (*              lprintf "   query file %s\n" (file_best_name r.request_file); 
                *)
               files := r.request_file :: !files
             end;
-      ) c.client_files);
+      ) c.client_source.source_files);
 
 (*
   if !files = [] then begin
@@ -568,14 +559,15 @@ let query_files c sock =
   
   List.iter (fun file ->
       incr nall_queries;
-      DonkeySourcesMisc.query_file c file)
+      DonkeySources.query_file c file)
   !files;
   if !nqueries > 0 then
     c.client_last_filereqs <- last_time ();
   if !verbose then begin
       lprintf "sent %d/%d file queries\n" !nqueries !nall_queries;
     end
-    
+*)
+  ()
 
 (* Nice to see some emule devels here... It's always possible to 
 crack a protocol, but let's try to make it as boring as possible... *)
@@ -643,8 +635,8 @@ let client_to_client for_files c t sock =
       lprintf "Message from client[%d] %s(%s) %s\n" (client_num c)
       c.client_name (brand_to_string c.client_brand)
       (match c.client_kind with
-          Indirect_location _ -> ""
-        | Known_location (ip,port) ->
+          Indirect_address _ | Invalid_address _ -> ""
+        | Direct_address (ip,port) ->
             Printf.sprintf  " [%s:%d]" (Ip.to_string ip) port;
       );
       M.print t;
@@ -662,7 +654,7 @@ let client_to_client for_files c t sock =
       c.client_checked <- true;
       set_client_has_a_slot (as_client c) false;
       
-      DonkeySources.client_connected c;  
+      DonkeySources.source_connected c.client_source;  
       
       let module CR = M.ConnectReply in
       
@@ -691,7 +683,7 @@ let client_to_client for_files c t sock =
       
       Hashtbl.add connected_clients t.CR.md4 c;
       
-      connection_ok c.client_connection_control;
+(*      connection_ok c.client_connection_control; *)
       
       begin
         match t.CR.server_info with
@@ -748,37 +740,31 @@ let client_to_client for_files c t sock =
 (*       lprintf "Emule requested sources\n";  *)
       let file = find_file t in
       let sources = ref [] in
-      Intmap.iter (fun _ c ->
-          match c.client_kind with
-            Indirect_location _ -> () (* not yet supported *)
-          | Known_location (ip, port) ->
-              match c.client_source with
-                None -> ()
-              | Some s ->
-                  if s.source_age > last_time () - 600 &&
-                    (match ip_reliability ip with
-                        Reliability_reliable | Reliability_neutral -> true
-                      | Reliability_suspicious _ -> false) &&
-                    List.exists (fun r ->
-                        match r.request_result with
-                          File_not_found | File_possible | File_expected ->
-                            false
-                        | _ -> true
-                    ) c.client_files then
-                    sources := {
-                      E.ip = ip;
-                      E.port = port;
-                      E.server_ip = Ip.null;
-                      E.server_port = 0;
-                    } :: !sources
-      ) file.file_locations;
+      DonkeySources.iter_all_sources (fun s ->
+          match s.DonkeySources.source_uid with
+            Indirect_address _ | Invalid_address _ -> () (* not yet supported *)
+          | Direct_address (ip, port) ->
+              if s.DonkeySources.source_age > last_time () - 600 &&
+                (match ip_reliability ip with
+                    Reliability_reliable | Reliability_neutral -> true
+                  | Reliability_suspicious _ -> false) &&
+                List.exists (fun r ->
+                    r.DonkeySources.request_score > expected_score
+                ) s.DonkeySources.source_files then
+                sources := {
+                  E.ip = ip;
+                  E.port = port;
+                  E.server_ip = Ip.null;
+                  E.server_port = 0;
+                } :: !sources
+      ) file.file_sources;
       if !sources <> [] then        
         emule_send sock (
           M.EmuleRequestSourcesReplyReq {
             E.md4 = t;
             E.sources = Array.of_list !sources;
           })  
-  
+        
   
   | M.EmuleClientInfoReplyReq t -> 
       
@@ -790,8 +776,8 @@ let client_to_client for_files c t sock =
           lprintf "Message from client[%d] %s(%s)%s\n" (client_num c)
           c.client_name (brand_to_string c.client_brand)
           (match c.client_kind with
-              Indirect_location _ -> ""
-            | Known_location (ip,port) ->
+              Indirect_address _ | Invalid_address _ -> ""
+            | Direct_address (ip,port) ->
                 Printf.sprintf  " [%s:%d]" (Ip.to_string ip) port;
           );
           let xx = string_of_tags_list t.CI.tags in
@@ -885,7 +871,7 @@ end; *)
             | Brand_mldonkey3 -> 
                 if Fifo.length upload_clients >= !!max_upload_slots then
                   Fifo.iter (fun c -> 
-                      if c.client_sock <> None && 
+                      if c.client_source.source_sock <> None && 
                         c.client_brand = Brand_mldonkey3 then raise Exit)
                   upload_clients
             | _ ->
@@ -962,11 +948,14 @@ other one for unlimited sockets.  *)
         try
           let file = find_file t.Q.md4 in
           let s = Printf.sprintf "[FOUND FILE(%s)]" (match c.client_kind with
-                Known_location _ -> "OUT" | _ -> "IN") in
+                Direct_address _ -> "OUT" | _ -> "IN") in
           printf_string s;
           c.client_rating <- c.client_rating + 1;
           
-          DonkeySourcesMisc.set_request_result c file File_found;
+          DonkeyNeighbours.new_neighbour c file;          
+          
+          DonkeySources.set_request_result c.client_source 
+            file.file_sources File_found;
           
           begin
             let ips = 
@@ -1008,14 +997,16 @@ other one for unlimited sockets.  *)
       let module Q = M.QueryChunksReply in      
       let file = find_file t.Q.md4 in
       
-      DonkeySourcesMisc.set_request_result c file File_found;
+      DonkeyNeighbours.new_neighbour c file;          
+      DonkeySources.set_request_result c.client_source file.file_sources File_found;
       
       if file_state file = FileDownloading then begin
 (* ask for the file description *)
 
 (* ask for more sources *)
-          if supports_eep c.client_brand &&
-            DonkeySources.need_new_sources file then begin
+          if supports_eep c.client_brand 
+(* TODO: DonkeySources.need_new_sources file.file_sources *)
+            then begin
 
 (*              lprintf "Emule query sources\n";  *)
               let module E = M.EmuleRequestSources in
@@ -1142,7 +1133,6 @@ is checked for the file.
       if  !CommonUploads.has_upload = 0 && 
         not (!!ban_queue_jumpers && c.client_banned) then
         
-        
         (try client_wants_file c t with _ -> ());
       
       
@@ -1157,7 +1147,7 @@ is checked for the file.
           count_filerequest c;
           let file = find_file t in
           (match file.file_shared with
-              None -> ()
+              None -> raise Not_found
             | Some impl ->
                 shared_must_update_downloaded (as_shared impl);
                 impl.impl_shared_requests <- impl.impl_shared_requests + 1);
@@ -1173,7 +1163,7 @@ is checked for the file.
               Q.md4 = file.file_md4;
               Q.name = published_filename
             });
-          DonkeySourcesMisc.query_file c file
+          DonkeySources.query_file c.client_source file.file_sources
         
         with _ -> 
             direct_client_send c (
@@ -1198,11 +1188,17 @@ end else *)
             end;
           Array.iter (fun s ->
               if Ip.valid s.Q.ip && ip_reachable s.Q.ip then
-                ignore (DonkeySources.new_source (s.Q.ip, s.Q.port) file)
+                let s = DonkeySources.find_source_by_uid 
+                    (Direct_address (s.Q.ip, s.Q.port)) in
+                DonkeySources.set_request_result s file.file_sources
+                  File_new_source
               else
                 begin
-                  DonkeySourcesMisc.ask_indirect_connection_by_udp
-                    s.Q.server_ip s.Q.server_port s.Q.ip                
+(* TODO: add the source even in this case *)
+                  (*
+                  DonkeySources.ask_indirect_connection_by_udp
+s.Q.server_ip s.Q.server_port s.Q.ip                *)
+                  ()
                 end
           ) t.Q.sources
         with _ -> ()
@@ -1223,23 +1219,15 @@ end else *)
             end else *)
           List.iter (fun (ip1, port, ip2) ->
               if Ip.valid ip1 && ip_reachable ip1 then
-                ignore (DonkeySources.new_source (ip1, port) file)
+                let s = DonkeySources.find_source_by_uid (Direct_address (ip1, port))
+                in
+                DonkeySources.set_request_result s file.file_sources
+                  File_new_source
           ) t.Q.sources
         with _ -> ()
       end
   
   | M.SayReq s when (!is_not_spam) s ->
-      
-      let ad_opt =
-        match c.client_kind with
-          Known_location (ip, port) ->
-            (
-              match c.client_chat_port with
-                0 -> None
-              | p ->Some (Ip.to_string ip, p)
-            )
-        |   Indirect_location _ -> None
-      in
 (* A VOIR : historique à gérer *)
 (*      !say_hook c s *)
       private_message_from (as_client c)  s;
@@ -1248,19 +1236,19 @@ end else *)
         ( 
           try
             
-            match c.client_sock with
+            match c.client_source.DonkeySources.source_sock with
               Connection sock -> Ip.to_string (peer_ip sock)
             | _ -> (match c.client_kind with 
-                    Known_location (ip,port) -> Ip.to_string ip
-                  | Indirect_location _ -> "Indirect"
+                    Direct_address (ip,port) -> Ip.to_string ip
+                  | Indirect_address _ | Invalid_address _ -> "Indirect"
                 )
           
           with _ -> 
               
               try 
                 match c.client_kind with 
-                  Known_location (ip,port) -> Ip.to_string ip
-                | Indirect_location _ -> "Indirect"
+                  Direct_address (ip,port) -> Ip.to_string ip
+                | Indirect_address _ | Invalid_address _ -> "Indirect"
               with _ -> ""
         ) 
       in
@@ -1304,7 +1292,7 @@ end else *)
                     Q.md4 = file.file_md4;
                     Q.chunks = chunks;
                   });
-                DonkeySourcesMisc.query_file c file
+                DonkeySources.query_file c.client_source file.file_sources
           with 
           | _ -> ()
         end
@@ -1381,7 +1369,8 @@ end else *)
       begin
         try
           let file = find_file t in
-          DonkeySourcesMisc.set_request_result c file  File_not_found;
+          DonkeySources.set_request_result c.client_source 
+            file.file_sources File_not_found;
         with _ -> ()
       end
         
@@ -1412,7 +1401,7 @@ let client_handler c sock event =
 
 let client_handler2 c sock event = 
   (match event with
-      BASIC_EVENT (CLOSED s) -> decr DonkeySourcesMisc.indirect_connections
+      BASIC_EVENT (CLOSED s) -> decr DonkeySources.indirect_connections
     | _ -> ());
   match !c with
     Some c -> client_handler c sock event
@@ -1427,11 +1416,11 @@ let client_handler2 c sock event =
           
       | _ -> ()
       
-let init_connection sock =
+let init_connection sock ip =
 (*  ignore (setsock_iptos_throughput (fd (TcpBufferedSocket.sock sock))); *)
   
   let nolimit = try
-      Ip.matches (peer_ip sock) !!nolimit_ips
+      Ip.matches ip !!nolimit_ips
     with _ -> false in
   if not nolimit then begin
       TcpBufferedSocket.set_read_controler sock download_control;
@@ -1484,7 +1473,6 @@ let read_first_message overnet m sock =
       
       let module CR = M.Connect in
       
-      
       if t.CR.md4 = !!client_md4 ||
         t.CR.md4 = overnet_md4 then begin
           TcpBufferedSocket.close sock (Closed_for_error "Connected to myself");
@@ -1504,19 +1492,20 @@ let read_first_message overnet m sock =
           | _ ->  ()
       ) t.CR.tags;
       
-      let kind, indirect = try
+      let kind = if Ip.valid t.CR.ip && Ip.reachable t.CR.ip then
+          Direct_address (t.CR.ip, t.CR.port)
+        else
+        if not (Ip.valid t.CR.ip) then
           match t.CR.server_info with
-            Some (ip, port) -> 
-              if not (Ip.valid t.CR.ip) then
-                if Ip.valid ip then
-                  Indirect_location (!name,t.CR.md4),
-                  Some (t.CR.ip, ip, port)
-                else
-                  raise Not_found
-              else
-                Known_location (t.CR.ip, t.CR.port), None
-          | None ->  raise Not_found
-        with _ -> Indirect_location (!name,t.CR.md4), None in
+            None ->  Invalid_address  (!name, Md4.to_string t.CR.md4)
+          | Some (ip,port) ->
+              if Ip.valid ip && Ip.reachable ip then 
+                Indirect_address (ip, port, t.CR.ip)
+              else Invalid_address  (!name, Md4.to_string t.CR.md4)
+        else
+          Invalid_address  (!name, Md4.to_string t.CR.md4)
+      in
+      
       let c = new_client kind in
       
       if c.client_debug || !verbose_msg_clients then begin  
@@ -1528,9 +1517,9 @@ let read_first_message overnet m sock =
       Hashtbl.add connected_clients t.CR.md4 c;
       
       begin
-        match c.client_sock with
+        match c.client_source.DonkeySources.source_sock with
         | NoConnection -> 
-            c.client_sock <- Connection sock;
+            c.client_source.DonkeySources.source_sock <- Connection sock;
             c.client_ip <- peer_ip sock;
             c.client_connected <- false;
             init_client sock c;
@@ -1539,7 +1528,7 @@ let read_first_message overnet m sock =
             
         | ConnectionWaiting token -> 
             cancel_token token;
-            c.client_sock <- Connection sock;
+            c.client_source.DonkeySources.source_sock <- Connection sock;
             c.client_ip <- peer_ip sock;
             c.client_connected <- false;
             init_client sock c;
@@ -1551,23 +1540,23 @@ let read_first_message overnet m sock =
             raise Not_found
       end;
       
+      (*
       begin
         match c.client_source, kind with
-          None, Known_location (ip, port) ->
-            let s = DonkeySourcesMisc.create_source 0 (last_time ()) (ip, port) in
-            c.client_source <- Some s
+          None, Direct_address (ip, port) ->
+            let s = DonkeySources.create_source 0 (last_time ()) (ip, port) in
+            c.client_source <- Some s;
+            c.client_files := !(s.source_files);
         | _ -> 
             c.client_indirect_address <- indirect;
       end;
+*)
       
       c.client_checked <- true;
       
-      set_write_power sock c.client_power;
-      set_read_power sock c.client_power;
-      
       set_client_name c !name t.CR.md4;
-      connection_try c.client_connection_control;
-      connection_ok c.client_connection_control;
+(*      connection_try c.client_connection_control;
+      connection_ok c.client_connection_control; *)
       c.client_tags <- t.CR.tags;
       
       if not (register_client_hash (peer_ip sock) t.CR.md4) &&
@@ -1677,28 +1666,31 @@ let read_first_message overnet m sock =
 let reconnect_client c =
   if can_open_connection connection_manager then 
     match c.client_kind with
-      Indirect_location _ -> ()
-    | Known_location (ip, port) ->
+      Indirect_address _ | Invalid_address _ -> ()
+    | Direct_address (ip, port) ->
         if client_state c <> BlackListedHost then
           if !!black_list && is_black_address ip port ||
             (!!reliable_sources && ip_reliability ip = Reliability_suspicious 0) then
             set_client_state c BlackListedHost
           else
+          match c.client_source.DonkeySources.source_sock with
+            ConnectionWaiting _ | Connection _ -> 
+              (* Already connected ! *)
+              () 
+          | NoConnection ->
           let token =
             add_pending_connection connection_manager (fun token ->
                 try
                   set_client_state c Connecting;
-                  connection_try c.client_connection_control;
+(*                  connection_try c.client_connection_control; *)
                   
                   printf_string "?C";
                   let sock = TcpBufferedSocket.connect token "donkey to client" 
                       (Ip.to_inet_addr ip)
                     port 
                       (client_handler c) (*client_msg_to_string*) in
-                  TcpBufferedSocket.set_write_power sock c.client_power;
-                  TcpBufferedSocket.set_read_power sock c.client_power;
                   c.client_connect_time <- last_time ();
-                  init_connection sock;
+                  init_connection sock ip;
                   init_client sock c;
 (* The lifetime of the client socket is now half an hour, and
 can be increased by AvailableSlotReq, BlocReq, QueryBlocReq 
@@ -1711,7 +1703,7 @@ can be increased by AvailableSlotReq, BlocReq, QueryBlocReq
                     DonkeyProtoCom.cut_messages DonkeyProtoClient.parse
                       (client_to_client files c));
                   
-                  c.client_sock <- Connection sock;
+                  c.client_source.DonkeySources.source_sock <- Connection sock;
                   c.client_ip <- ip;
                   c.client_connected <- true;
                   let server_ip, server_port = 
@@ -1750,11 +1742,12 @@ can be increased by AvailableSlotReq, BlocReq, QueryBlocReq
                 with e -> 
                     lprintf "Exception %s in client connection\n"
                       (Printexc2.to_string e);
-                    connection_failed c.client_connection_control;
-                    set_client_disconnected c (Closed_for_exception e)
+(*                    connection_failed c.client_connection_control; *)
+                    set_client_disconnected c (Closed_for_exception e);
+                    DonkeySources.source_disconnected c.client_source
             )
           in
-          c.client_sock <- ConnectionWaiting token
+          c.client_source.DonkeySources.source_sock <- ConnectionWaiting token
           
 let query_id s sock ip file =
   printf_string "[QUERY ID]";
@@ -1787,7 +1780,8 @@ let query_locations_reply s t =
         
         if Ip.valid ip then
           (if ip_reachable ip  then 
-              ignore (DonkeySources.new_source (ip, port) file))
+              let s = DonkeySources.find_source_by_uid (Direct_address (ip, port)) in
+              DonkeySources.set_request_result s file.file_sources File_new_source)
         else
        match s.server_cid with
            None -> ()
@@ -1798,8 +1792,9 @@ let query_locations_reply s t =
             printf_string "QUERY ID";
             query_id s sock ip (Some file)
         
-        | _ ->
-            DonkeySourcesMisc.ask_indirect_connection_by_udp s.server_ip s.server_port ip
+              | _ ->
+                  (* TODO
+            DonkeySources.ask_indirect_connection_by_udp s.server_ip s.server_port ip *) ()
 (*
             let module Q = Udp.QueryCallUdp in
             udp_server_send s 
@@ -1816,7 +1811,7 @@ let query_locations_reply s t =
 let can_open_indirect_connection () =
   let ns = nb_sockets () in
   ns < MlUnix.max_sockets &&
-  !DonkeySourcesMisc.indirect_connections < !!max_indirect_connections
+  !DonkeySources.indirect_connections < !!max_indirect_connections
 
 let client_connection_handler overnet t event =
   printf_string "[REMOTE CONN]";
@@ -1825,17 +1820,17 @@ let client_connection_handler overnet t event =
       
       if can_open_indirect_connection () then
         begin
-          accept_connection_bandwidth download_control upload_control;
           (try
               let c = ref None in
-              incr DonkeySourcesMisc.indirect_connections;
+              incr DonkeySources.indirect_connections;
               let token = create_token connection_manager in
               let sock = 
                 TcpBufferedSocket.create token "donkey client connection" s 
                   (client_handler2 c) 
 (*client_msg_to_string*)
               in
-              init_connection sock;
+              init_connection sock (Ip.of_inet_addr from_ip);
+              accept_connection_bandwidth sock;
               
 (* Normal connections have 20 minutes to live (AvailableSlot, QueryBloc
   and Bloc messages extend this lifetime), whereas exceeding connections
@@ -1867,3 +1862,102 @@ let client_connection_handler overnet t event =
         end;
   | _ -> 
       ()      
+
+      
+(*************************************************************************)
+(*                                                                       *)
+(*                       Stubs for CommonSources                         *)
+(*                                                                       *)
+(*************************************************************************)
+
+let _ =
+  DonkeySources.functions.DonkeySources.function_query <-
+    (fun s_uid file_uid ->
+      try
+        let c = find_client_by_key s_uid in
+        let file = find_file (Md4.of_string file_uid) in
+        c.client_requests_sent <- c.client_requests_sent + 1;
+        DonkeyProtoCom.direct_client_send c (
+          let module M = DonkeyProtoClient in
+          M.QueryFileReq file.file_md4);
+        ignore (DonkeySources.add_request c.client_source 
+            file.file_sources (last_time ()))        
+      with e -> 
+          lprintf "DonkeyClient.query_source: exception %s\n"
+            (Printexc2.to_string e)
+  );
+  
+  DonkeySources.functions.DonkeySources.function_connect <-
+    (fun s_uid ->
+      try
+        match s_uid with
+          Direct_address _ ->
+            let c = new_client s_uid in        
+            reconnect_client c
+        | Invalid_address _ -> ()
+        | Indirect_address (ip, port, id) ->
+            
+            let client_ip = client_ip None in
+            if ip_reachable client_ip then
+              let module Q = DonkeyProtoUdp.QueryCallUdp in
+              
+              DonkeyProtoCom.udp_send (get_udp_sock ())
+              ip (port+4)
+              (DonkeyProtoUdp.QueryCallUdpReq {
+                  Q.ip = client_ip;
+                  Q.port = !client_port;
+                  Q.id = id;
+                })
+      
+      
+      with e -> 
+          lprintf "DonkeyClient.connect_source: exception %s\n"
+            (Printexc2.to_string e)
+  );
+  
+  DonkeySources.functions.DonkeySources.function_max_connections_per_second <-
+    (fun () -> !!max_clients_per_second);
+  
+  DonkeySources.functions.DonkeySources.function_max_sources_per_file <-
+    (fun () -> !!max_sources_per_file);
+  
+  DonkeySources.functions.DonkeySources.function_string_to_manager <-
+    (fun file_uid ->
+      let file = find_file (Md4.of_string file_uid) in
+      file.file_sources
+  );
+
+  
+(* TODO: verify that the client is destroyed very early. We should also find
+a way to keep the client allocated after the first successful connection,
+for a given time. For example, we could put successful clients in
+a FIFO from where they are removed after 30 minutes. What about using
+  file.file_clients for this purpose !! *)
+  DonkeySources.functions.DonkeySources.function_add_location <- (fun
+      s_uid file_uid ->
+      try
+        let c = new_client s_uid in
+        let file = find_file (Md4.of_string file_uid) in
+        
+        CommonFile.file_add_source (CommonFile.as_file file.file_file) 
+        (CommonClient.as_client c.client_client);
+      
+      with e -> 
+          lprintf "DonkeyClient.add_location: exception %s\n"
+            (Printexc2.to_string e)  
+  );
+  
+  DonkeySources.functions.DonkeySources.function_remove_location <- (fun
+      s_uid file_uid ->
+      try
+        let c = new_client s_uid in
+        let file = find_file (Md4.of_string file_uid) in
+        CommonFile.file_remove_source (CommonFile.as_file file.file_file)
+        (CommonClient.as_client c.client_client);
+        
+      with e -> 
+          lprintf "DonkeyClient.remove_location: exception %s\n"
+            (Printexc2.to_string e)
+  )
+  
+  

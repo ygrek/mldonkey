@@ -133,7 +133,9 @@ open GuiProto
   
 
 let verbose_gui_messages = ref false
-    
+
+let nbr_client_info = ref 0 
+let nbr_add_source = ref 0
 
 let value_reader gui t =
   try
@@ -235,7 +237,8 @@ let value_reader gui t =
         gui#tab_queries#h_search_waiting num waiting
     
     | File_add_source (num, src) -> 
-       (* Printf.printf "File_add_source\n"; flush stdout;*)
+(*        incr nbr_add_source;
+        Printf.printf "File_add_source %3d %3d = %d" num src !nbr_add_source; print_newline (); *)
         gui#tab_downloads#h_file_location num src
     
     | File_remove_source (num, src) ->
@@ -383,7 +386,8 @@ let value_reader gui t =
         gui#tab_friends#h_add_friend_files (num , dirname, file_num)
     
     | Client_info c -> 
-(*        lprintf "Client_info"; lprint_newline (); *)
+(*        incr nbr_client_info;
+        Printf.printf  "Client_info %d, %d/%d" c.client_num !nbr_client_info !nbr_add_source; print_newline (); *)
         gui#tab_friends#h_update_friend c;
         gui#tab_uploads#h_update_client c;
         gui#tab_downloads#h_update_client c

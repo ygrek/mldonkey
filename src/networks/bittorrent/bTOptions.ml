@@ -58,7 +58,7 @@ let gui_bittorrent_options_panel =
   [
     "Port", shortname client_port, "T";
     "Commit Downloads In Incoming Subdir", shortname commit_in_subdir, "T";
-    "Delete Original", shortname delete_original, "B";
+(*    "Delete Original", shortname delete_original, "B"; *)
   ]
 
   

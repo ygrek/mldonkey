@@ -17,17 +17,22 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open CommonInteractive
+open Options
+open Int64ops
 open Printf2
+
+open BasicSocket
+  
+open CommonInteractive
 open CommonInteractive
 open CommonShared
 open CommonTypes
-open BasicSocket
-open Options
-open DriverInterface
 open CommonOptions
 open CommonGlobals
 open CommonNetwork  
+  
+open DriverInterface
+
 open Gettext (* open last  as most modules redefine _s and _b *)
   
 let _s x = _s "DriverMain" x
@@ -53,7 +58,8 @@ let hourly_timer timer =
   if !CommonWeb.hours mod 24 = 0 then do_daily ();
   CommonShared.shared_check_files ();
   if !CommonWeb.hours mod !!compaction_delay = 0 then Gc.compact ();
-  DriverControlers.check_calendar ()
+  DriverControlers.check_calendar ();
+  CommonWeb.connect_redirector ()
 
 let second_timer timer =
   (try 
@@ -104,11 +110,11 @@ let start_interfaces () =
 
 
 let _ =
-  add_web_kind "motd.html" (fun filename ->
+  CommonWeb.add_web_kind "motd.html" (fun filename ->
       lprintf (_b "motd.html changed\n"); 
     motd_html =:= File.to_string filename
   );
-  add_web_kind "motd.conf" (fun filename ->
+  CommonWeb.add_web_kind "motd.conf" (fun filename ->
     let ic = open_in filename in
     try
       while true do
@@ -133,7 +139,7 @@ let _ =
 	(Printexc2.to_string e); 
 	close_in ic
 			   );
-  add_web_kind "guarding.p2p" (fun filename ->
+  CommonWeb.add_web_kind "guarding.p2p" (fun filename ->
       Ip_set.bl := Ip_set.load filename
 (*      Ip_set.bl := Ip_set.load_merge !Ip_set.bl filename *)
   )
@@ -216,7 +222,6 @@ while (my $uri = shift @ARGV) {
     
 let load_config () =
   
-  CommonGlobals.do_at_exit DriverInteractive.save_config;
   DriverInterface.install_hooks ();
 
 (**** LOAD OPTIONS ****)
@@ -358,7 +363,8 @@ let _ =
     (Sys.Signal_handle (fun _ -> lprintf "SIGCHLD\n"));
   MlUnix.set_signal  Sys.sighup
     (Sys.Signal_handle (fun _ ->
-        lprintf "SIGHUP"; BasicSocket.close_all ();
+        lprintf "SIGHUP\n"; BasicSocket.close_all ();
+        CommonGlobals.print_localtime ();
 (*        BasicSocket.print_sockets (); *)
     ));
   MlUnix.set_signal  Sys.sigpipe (*Sys.Signal_ignore*)
@@ -491,6 +497,43 @@ let _ =
 let _ =
   lprintf (_b "Core started\n"); 
   core_included := true;
+  CommonGlobals.print_localtime ();
+
+  let security_space_filename = "config_files_space.tmp" in  
+  begin
+(* Create a 'config_files_security_space' megabytes file to protect some space
+for config files at the end. *)
+    try
+      let security_space_fd = Unix32.create_rw security_space_filename in
+      let _ =
+        let len = 32768 in
+        let len64 = Int64.of_int len in
+        let s = String.create len in
+        let pos = ref zero in
+        for i = 1 to !!config_files_security_space do
+          for j = 1 to 32 do (* 32 = 1 MB / 32kB *)
+            Unix32.write security_space_fd !pos s 0 len;
+            pos := !pos ++ len64
+          done
+        done
+      in
+      Unix32.close security_space_fd;
+    with _ ->
+        lprintf (_b "Cannot create Security space file:\n");
+        lprintf (_b " not enough space on device or bad permissions\n");
+        lprintf (_b "Exiting...\n");
+        exit 2;
+  end;  
+  CommonGlobals.do_at_exit (fun _ -> 
+(* If we have an error with two many file-descriptors, just close all of them *)
+      BasicSocket.close_all ();
+(* In case we have no more space on filesystem for config files, remove
+the security space file *)
+      Sys.remove security_space_filename;
+      DriverInteractive.save_config ();
+
+      CommonGlobals.print_localtime ();
+      lprintf (_b "Core stopped\n"));
   
   if not !keep_console_output then begin
       lprintf (_b "Disabling output to console, to enable: stdout true\n");

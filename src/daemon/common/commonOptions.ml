@@ -209,6 +209,12 @@ let other_section = file_section downloads_ini ["Other"]
   
   
   
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         Main section                                  *)
+(*                                                                       *)
+(*************************************************************************)
   
   
   
@@ -223,6 +229,12 @@ let global_login = define_option current_section ["client_name"]
   
   
   
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         Interfaces section                            *)
+(*                                                                       *)
+(*************************************************************************)
   
   
   
@@ -273,12 +285,11 @@ let improved_telnet =
 
   
   
-  
-  
-  
-  
-  
-  
+(*************************************************************************)
+(*                                                                       *)
+(*                         Bandwidth section                             *)
+(*                                                                       *)
+(*************************************************************************)
   
 let current_section = bandwidth_section
 
@@ -332,15 +343,20 @@ let copy_read_buffer = define_option current_section
   bool_option true
   
   
+
   
   
+  
+  
+  
+(*************************************************************************)
+(*                                                                       *)
+(*                         Networks section                              *)
+(*                                                                       *)
+(*************************************************************************)
+    
 let current_section = networks_section
   
-let enable_server = define_expert_option current_section
-    ["enable_server"]
-  "Set to true if you also want mldonkey to run as a server (experimental)"
-    bool_option false
-
 let enable_overnet = define_option current_section
     ["enable_overnet"]
   "Set to true if you also want mldonkey to run as an overnet client (enable_donkey must be true)"
@@ -407,7 +423,11 @@ let enable_fileTP = define_option current_section
   
   
   
-  
+(*************************************************************************)
+(*                                                                       *)
+(*                         HTML section                                  *)
+(*                                                                       *)
+(*************************************************************************)
   
 let current_section = html_section
   
@@ -465,12 +485,16 @@ let html_checkbox_file_list = define_expert_option current_section
 
   
   
-  
-  
 
   
   
   
+  
+(*************************************************************************)
+(*                                                                       *)
+(*                         Network section                               *)
+(*                                                                       *)
+(*************************************************************************)
   
 let current_section = network_section
 
@@ -502,7 +526,7 @@ let web_infos = define_option current_section
   [
     ("server.met", 1, "http://ocbmaurice.dyndns.org/pl/slist.pl/server.met?download/server-best.met");
     ("ocl",1, "http://members.lycos.co.uk/appbyhp2/FlockHelpApp/contact-files/contact.ocl" );
-    ("guarding.p2p", 1, "http://www.peerguardian.net/pgipdb/guarding.p2p");
+    ("guarding.p2p", 1, "http://www.bluetack.co.uk/config/antip2p.txt");
   ]
   
 let ip_blocking = define_expert_option current_section ["ip_blocking"]
@@ -526,6 +550,11 @@ let tcpip_packet_size = define_expert_option current_section ["tcpip_packet_size
 let mtu_packet_size = define_expert_option current_section ["mtu_packet_size"]
   "The size of the MTU of a TCP/IP packet on your connection"
     int_option 1500
+  
+let packet_frame_size = define_expert_option current_section 
+    ["packet_frame_size"]
+  "The size of the frame packet on your network (on my cable link, it is 250)"
+    int_option 250
 
 let minimal_packet_size = define_expert_option current_section ["minimal_packet_size"]
   "The size of the minimal packet you want mldonkey to send when data is
@@ -561,8 +590,15 @@ let http_proxy_tcp = define_option current_section ["http_proxy_tcp"]
   
   
   
+
   
   
+  
+(*************************************************************************)
+(*                                                                       *)
+(*                         Mail section                                  *)
+(*                                                                       *)
+(*************************************************************************)
   
 let current_section = mail_section
 
@@ -593,6 +629,14 @@ let filename_in_subject = define_option current_section ["filename_in_subject"]
 
   
   
+  
+  
+(*************************************************************************)
+(*                                                                       *)
+(*                         Download section                              *)
+(*                                                                       *)
+(*************************************************************************)
+  
 let current_section = download_section
     
 let auto_commit = define_option current_section
@@ -618,22 +662,19 @@ let max_concurrent_downloads = define_option current_section
     ["max_concurrent_downloads"] 
   "The maximal number of files in Downloading state (other ones are Queued)"
     int_option 60
-    
+  
+  (*
 let delete_original = define_option current_section ["delete_original"]
   "Should MLdonkey delete the file downloaded when splitting has been succesful"
     bool_option false
-    
+    *)
+
 let max_recover_gap = define_option current_section ["max_recover_gap"]
   "The maximal length of zero bytes between non-zero bytes in a file that
 should be interpreted as downloaded during a recovery (0 = no recover at
 byte level, 1 is the minimum)"
     int64_option Int64.zero
     
-let recover_temp_on_startup = define_option current_section
-    ["recover_temp_on_startup"]
-  "Should MLdonkey try to recover downloads of files in temp/ at startup"
-    bool_option true
-
 let file_completed_cmd = define_option current_section 
     ["file_completed_cmd"] "A command that is called when a file is completely
     downloaded. Arguments are: <file_name on disk> <md4> <size>"
@@ -644,12 +685,26 @@ let file_started_cmd = define_option current_section
   "The command which is called when a download is started. Arguments
 are '-file <num>'"
     string_option ""
-  
+
   (*
   (Filename.concat bin_dir "mlprogress")
 *)
   
   
+  
+  
+  
+  
+  
+  
+  
+  
+(*************************************************************************)
+(*                                                                       *)
+(*                         Startup section                               *)
+(*                                                                       *)
+(*************************************************************************)
+
 let current_section = startup_section
   
 let run_as_user = define_option current_section ["run_as_user"]
@@ -669,11 +724,31 @@ let ask_for_gui = define_option current_section ["ask_for_gui"]
 let start_gui = define_option current_section ["start_gui"]
     "Automatically Start the GUI" bool_option false
 
+let recover_temp_on_startup = define_option current_section
+    ["recover_temp_on_startup"]
+  "Should MLdonkey try to recover downloads of files in temp/ at startup"
+    bool_option true
+    
+let config_files_security_space = define_expert_option current_section
+    ["config_files_security_space"]
+  "How many megabytes should MLdonkey keep for saving configuration files."
+    int_option 3
+
+let propagate_servers = define_expert_option current_section ["propagate_servers"]
+  "Send an UDP packet to a central servers with the list of servers you
+  are currently connected to, for the central server to be able to
+    generate accurate server lists." bool_option false
   
   
   
 
   
+(*************************************************************************)
+(*                                                                       *)
+(*                         Path section                                  *)
+(*                                                                       *)
+(*************************************************************************)
+
 let current_section = path_section
 
 let temp_directory = define_option current_section ["temp_directory" ] 
@@ -717,6 +792,11 @@ let mldonkey_gui = define_expert_option current_section ["mldonkey_gui"]
   
   
   
+(*************************************************************************)
+(*                                                                       *)
+(*                         Security section                              *)
+(*                                                                       *)
+(*************************************************************************)
   
 let current_section = security_section
       
@@ -753,7 +833,7 @@ let allow_browse_share = define_option current_section ["allow_browse_share"]
   "Allow others to browse our share list (0: none, 1: friends only, 2: everyone" allow_browse_share_option 2
 
 let messages_filter = define_option current_section ["messages_filter"]
-    "Regexp of messages to filter out" string_option ""
+    "Regexp of messages to filter out, example: string1\\|string2\\|string3" string_option "Your client is connecting too fast"
   
   
   
@@ -763,7 +843,12 @@ let messages_filter = define_option current_section ["messages_filter"]
   
   
   
-  
+(*************************************************************************)
+(*                                                                       *)
+(*                         MLchat section                                  *)
+(*                                                                       *)
+(*************************************************************************)
+
 let current_section = mlchat_section
         
 (** {2 Chat} *)
@@ -807,6 +892,11 @@ let chat_warning_for_downloaded = define_expert_option current_section
   
   
   
+(*************************************************************************)
+(*                                                                       *)
+(*                         Other section                                  *)
+(*                                                                       *)
+(*************************************************************************)
   
 let current_section = other_section
   
@@ -874,18 +964,6 @@ let use_html_frames = define_expert_option current_section ["use_html_frames"]
 
 let commands_frame_height = define_expert_option current_section ["commands_frame_height"] "The height of the command frame in pixel (depends on your screen and browser sizes)" int_option 42
 
-(*
-let filter_search = define_expert_option current_section ["filter_search"]
-  "Should mldonkey filter results of searches
-  (results are displayed only if they exactly match the request,
-    and filtering is done every 'filter_search_delay'." 
-    bool_option false
-    *)
-
-let filter_search_delay = define_expert_option current_section ["filter_search_delay"]
-  "Delay before two filtering on results (results
-    are not displayed until filtered). Min is 1 second." float_option 5.
-    
 let motd_html = define_expert_option current_section ["motd_html"]
     "Message printed at startup (automatically downloaded from the previous
     URL directory" string_option "Welcome to MLdonkey"
@@ -964,7 +1042,6 @@ WEB server</h2>
 let create_mlsubmit =
   define_expert_option current_section ["create_mlsubmit"] "Should the MLSUBMIT.REG file be created" bool_option true
   
-
 let minor_heap_size = define_expert_option current_section
     ["minor_heap_size"] "Size of the minor heap in kB"
     int_option 32
@@ -973,14 +1050,9 @@ let min_reask_delay = define_expert_option current_section ["min_reask_delay"]
   "The minimal delay between two connections to the same client (in seconds)" 
     int_option 600
   
-let max_reask_delay = define_expert_option current_section ["max_reask_delay"]
-    "The maximal delay between two connections to the same client" 
-  int_option 3600
-    
 let display_downloaded_results = define_expert_option current_section
     ["display_downloaded_results"] "Whether to display results already downloaded" bool_option true
 
-    
 let filter_table_threshold = define_expert_option current_section
     ["filter_table_threshold"] "Minimal number of results for filter form to appear"
     int_option 50
@@ -991,7 +1063,7 @@ let client_buffer_size = define_expert_option current_section
 
 let save_options_delay = 
   define_expert_option current_section ["save_options_delay"] 
-    "The delay between two saves of the 'downloads.ini' file (default is 4 minutes)" 
+    "The delay between two saves of the 'downloads.ini' file (default is 15 minutes)" 
   float_option 900.0
 
 let server_connection_timeout = define_expert_option current_section
@@ -1019,10 +1091,10 @@ let calendar = define_expert_option current_section ["calendar"]
       string_option)))
   []
 
-let ip_cache_timeout = define_expert_option current_section
+(* let ip_cache_timeout = define_expert_option current_section
     ["ip_cache_timeout"]
     "The time an ip address can be kept in the cache"
-    int_option 3600
+    int_option 3600 *)
   
 let compaction_overhead = define_expert_option current_section 
     ["compaction_overhead"] 
@@ -1046,6 +1118,11 @@ let options_version = define_expert_option current_section ["options_version"]
   
   
   
+(*************************************************************************)
+(*                                                                       *)
+(*                         Debug section                                  *)
+(*                                                                       *)
+(*************************************************************************)
   
 let current_section = debug_section
 
@@ -1101,6 +1178,11 @@ let verbosity = define_expert_option current_section ["verbosity"]
   
   
   
+(*************************************************************************)
+(*                                                                       *)
+(*                         HOOKS On options                              *)
+(*                                                                       *)
+(*************************************************************************)
   
 let current_section = other_section
 
@@ -1130,6 +1212,8 @@ let client_ip sock =
 
 let start_running_plugins = ref false
   
+let filter_search_delay = 5.0
+  
 (* Infer which nets to start depending on the name used *)
 let _ =
   let name = String.lowercase (Filename.basename Sys.argv.(0)) in
@@ -1149,7 +1233,6 @@ let _ =
   | "mlslsk" -> enable_soulseek =:= true
   | "mlbt" -> enable_bittorrent =:= true
   | "mlnap" -> enable_opennap =:= true
-  | "mlcymes" -> enable_server =:= true
   | _ -> 
 (* default *)
       enable_donkey =:= true;
@@ -1184,8 +1267,6 @@ let _ =
         max_upload_slots =:= 3);
   option_hook buffer_writes_threshold (fun _ ->
       Unix32.max_buffered := Int64.of_int (1024 * !!buffer_writes_threshold));
-  option_hook filter_search_delay (fun _ ->
-      if !!filter_search_delay < 1. then filter_search_delay =:= 1.);
   option_hook log_size (fun _ ->
       lprintf_max_size := !!log_size   
   );
@@ -1219,6 +1300,9 @@ let _ =
   option_hook minimal_packet_size (fun _ ->
       TcpBufferedSocket.minimal_packet_size := !!minimal_packet_size
   );
+  option_hook packet_frame_size (fun _ ->
+      TcpBufferedSocket.packet_frame_size := !!packet_frame_size
+  );
   option_hook network_update_url (fun _ ->
       if !!network_update_url = 
         "http://savannah.nongnu.org/download/mldonkey/network/" then
@@ -1235,8 +1319,7 @@ let _ =
 let verbose_msg_servers = ref false
 let verbose_msg_clients = ref false
 let verbose_msg_clienttags = ref false
-let verbose_src_manager = ref false
-let verbose_src_prop = ref false
+let verbose_sources = ref false
 let verbose = ref false
 let verbose_download = ref false
 let verbose_upload = ref false
@@ -1248,7 +1331,7 @@ let verbose_md4 = ref false
 let verbose_connect = ref false
 let verbose_udp = ref false
 let verbose_swarming = ref false
-  
+
 let _ = 
   option_hook verbosity (fun _ ->
       
@@ -1257,8 +1340,7 @@ let _ =
       verbose_msg_clienttags := false;
       verbose_msg_servers := false;
       BasicSocket.debug := false;
-      verbose_src_prop := false;
-      verbose_src_manager := false;
+      verbose_sources := false;
       verbose := false;
       verbose_download := false;
       verbose_upload := false;
@@ -1271,6 +1353,7 @@ let _ =
       verbose_swarming := false;
       Http_client.verbose := false;
       Http_server.verbose := false;
+      BasicSocket.verbose_bandwidth := 0;
       
       List.iter (fun s ->
           match s with
@@ -1278,9 +1361,8 @@ let _ =
           | "mct" -> verbose_msg_clienttags := true;
           | "ms" -> verbose_msg_servers := true;
           | "verb" -> verbose := true;
-          | "sm" -> verbose_src_manager := true;
+          | "sm" -> verbose_sources := true;
           | "net" -> BasicSocket.debug := true
-          | "sp" -> verbose_src_prop := true
           | "do" -> verbose_download := true
           | "up" -> verbose_upload := true
           | "unk" -> verbose_unknown_messages := true
@@ -1294,14 +1376,15 @@ let _ =
           | "hc" -> Http_client.verbose := true
           | "hs" -> Http_server.verbose := true
               
+          | "bw" -> incr BasicSocket.verbose_bandwidth
+              
           | "all" ->
               
               verbose_connect := true;
               verbose_msg_clients := true;
               verbose_msg_servers := true;
               BasicSocket.debug := true;
-              verbose_src_prop := true;
-              verbose_src_manager := true;
+              verbose_sources := true;
               verbose := true;
               verbose_download := true;
               verbose_upload := true;
@@ -1357,60 +1440,3 @@ let _ =
 let _ = 
   option_hook allow_local_network (fun _ ->
       Ip.allow_local_network := !!allow_local_network)
-
-  (*
-let _ =
-  option_hook max_recover_gap (fun _ ->
-      CommonFile.max_recover_gap := !!max_recover_gap)
-  *)
-
-(*  
-    
-    "Identification", "Allowed IPs", (shortname allowed_ips), "T";
-    
-    "Ports", "Client IP", (shortname set_client_ip), "T";
-    "Ports", "Force Client IP", (shortname force_client_ip), "B";
-    "Ports", "HTTP Port", (shortname http_port), "T";
-    "Ports", "Telnet Port", (shortname telnet_port), "T";
-    "Ports", "GUI Port", (shortname gui_port), "T";
-    "Ports", "HTTP Bind Address", (shortname http_bind_addr), "T";
-    "Ports", "Telnet Bind Address", (shortname telnet_bind_addr), "T";
-    "Ports", "GUI Bind Address", (shortname gui_bind_addr), "T";
-    
-    "Bandwidth", "Maximal Download Bandwidth in kB/s", shortname max_hard_download_rate, "T";
-    "Bandwidth", "Maximal Upload Bandwidth in kB/s", shortname max_hard_upload_rate, "T";
-    "Bandwidth", "Maximal Number of Sockets Used", shortname max_opened_connections, "T";
-    "Bandwidth", "Socket Buffer Size", shortname client_buffer_size, "T";
-
-    "Delays", "Min Reask Delay", shortname min_reask_delay, "T";
-    "Delays", "Max Reask Delay", shortname max_reask_delay, "T";
-    "Delays", "Save Options Delay", shortname save_options_delay, "T";
-    "Delays", "Server Connection Timeout", shortname server_connection_timeout, "T";
-(*    "Delays", "Client Connection Timeout", shortname  *)
-    "Delays", "Update GUI Delay", shortname update_gui_delay, "T";
-    "Delays", "Download-rate Sample Period", shortname download_sample_rate, "T";
-    "Delays", "Download-rate Samples Size", shortname download_sample_size, "T";
-        
-    "Chat", "External Chat Application Port", (shortname chat_app_port), "T";
-    "Chat", "External Chat Application Address", (shortname chat_app_host), "T";
-    "Chat", "Core Chat Port", (shortname chat_port), "T";
-    "Chat", "Core Chat Nick", (shortname chat_console_id), "T";
-    "Chat", "Chat Warning For Downloaded Files", (shortname chat_warning_for_downloaded), "B";
-    
-    "Files", "Temp directory", shortname temp_directory, "F";
-    "Files", "Incoming directory", shortname incoming_directory, "F";
-    "Files", "Previewer program", shortname previewer, "F";
-    
-    "Mail", "SMTP server", shortname smtp_server, "T";
-    "Mail", "SMTP port", shortname smtp_port, "T";
-    "Mail", "Your Email Address", shortname mail, "T";
-    
-    "Debug", "Verbosity", shortname verbosity, "T";
-    
-    "Startup", "Start mldonkey_gui at beginning", shortname start_gui, "B"; 
-    "Startup", "Ask for mldonkey_gui start", shortname ask_for_gui, "B";
-    "Startup", "Path of mldonkey binaries", shortname mldonkey_bin, "F";
-    "Startup", "Name of MLdonkey GUI to start", shortname mldonkey_gui, "F";
-    "Startup", "User MLdonkey should run as", shortname run_as_user, "T";
- ]  
-*)

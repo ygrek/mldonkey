@@ -31,10 +31,10 @@ let max_connected_servers = define_option soulseek_section
   ["max_connected_servers"] 
     "The number of servers you want to stay connected to" int_option 10
 
-let ip_cache_timeout = define_option soulseek_section
+(* let ip_cache_timeout = define_option soulseek_section
     ["ip_cache_timeout"]
     "The time an ip address can be kept in the cache"
-    float_option 3600.
+    float_option 3600. *)
 
 let load_serverlist = define_option soulseek_section ["load_serverlist"]
   "Download a list of servers"

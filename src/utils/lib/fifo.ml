@@ -112,8 +112,6 @@ let mem t v =
         end;
       false
   with _ -> true
-
-      
   
 let realloc t =
   let len = Array.length t.array in
@@ -193,5 +191,66 @@ let rec put_back t list =
     [] -> ()
   | ele :: tail ->
       put_back t tail; put_back_ele t ele
+
+let reformat t =
+  if not t.empty then begin
+      let s = Array.length t.array in
+      let len = s + t.inpos - t.outpos in
+      let tab = Array.create s t.array.(0) in
+      Array.blit t.array t.outpos tab 0 (s - t.outpos);
+      Array.blit t.array 0 tab (s - t.outpos) t.inpos;
+      t.array <- tab;
+      t.inpos <- len;
+      t.outpos <- 0;
+    end
+    
+let remove t e =
+  if not t.empty then begin
+      if t.outpos >= t.inpos then reformat t;
+      let rec iter t i j =
+(*        Printf.printf "i=%d j=%d inpos=%d outpos=%d\n"
+          i j t.inpos t.outpos; print_newline (); *)
+        if i >= t.inpos then
+          (if i > j then begin
+                t.inpos <- j;
+                t.empty <- (t.inpos = t.outpos);
+              end)
+        else
+        let ee = t.array.(i) in
+        if e = ee then
+          iter t (i+1) j
+        else begin
+            if i > j then begin
+(*                Printf.printf "Move i=%d at j=%d" i j; print_newline ();  *)
+                t.array.(j) <- ee;
+              end;
+            iter t (i+1) (j+1)
+          end
+      in
+      iter t t.outpos t.outpos
+    end
+
+(* TEST SUITE
   
-  
+let t = Fifo.create ();;
+
+for i = 0 to 100 do
+  Fifo.put t i
+done;;
+
+for i = 0 to 80 do
+  Fifo.put t (Fifo.take t)
+done;;
+
+Fifo.length t;;
+
+for i = 56 to 76 do
+  Fifo.remove t i
+done
+;;
+
+while true do
+  Printf.printf "%d\n" (Fifo.take t)
+done;;
+
+*)

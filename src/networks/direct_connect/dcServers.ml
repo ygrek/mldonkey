@@ -520,7 +520,7 @@ let parse_servers_list s =
 let load_servers_list url =
   let url = if url = "" then !!servers_list_url
     else "" in
-  mldonkey_wget url (fun filename ->
+  CommonWeb.mldonkey_wget url (fun filename ->
       parse_servers_list (File.to_string filename))
 
 

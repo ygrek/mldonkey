@@ -220,7 +220,7 @@ let _ =
         let v = (kind, 1, url) in
         if not (List.mem v !!web_infos) then
           web_infos =:=  v :: !!web_infos;
-        load_url kind url;
+        CommonWeb.load_url kind url;
         "url added to web_infos. downloading now"
     ), "<kind> <url> :\t\t\tload this file from the web.
 \t\t\t\t\tkind is either server.met (if the downloaded file is a server.met)";
@@ -1217,8 +1217,9 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                   let v=   CommonInteractive.all_simple_options () in
                   v
               
-              | [tab] ->
-                  let tab = int_of_string tab in
+              | [arg] ->
+                  try  
+                  let tab = int_of_string arg in
                   match tab with
                     1 -> 
                       [
@@ -1276,10 +1277,8 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                         strings_of_option update_gui_delay; 
                         strings_of_option server_connection_timeout; 
                         strings_of_option client_timeout; 
-                        strings_of_option ip_cache_timeout; 
                         strings_of_option compaction_delay; 
                         strings_of_option min_reask_delay; 
-                        strings_of_option max_reask_delay; 
                         strings_of_option max_connections_per_second; 
                         strings_of_option buffer_writes; 
                         strings_of_option buffer_writes_delay; 
@@ -1306,10 +1305,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                         strings_of_option filename_in_subject; 
                       ] 
                   | 7 -> 
-                      ([
-                        strings_of_option enable_server; 
-                        ] @
-			(if Autoconf.donkey = "yes" then [(strings_of_option enable_overnet)] else [])
+                      ( (if Autoconf.donkey = "yes" then [(strings_of_option enable_overnet)] else [])
 			@ [
 			] @
 			(if Autoconf.donkey = "yes" then [(strings_of_option enable_donkey)] else [])
@@ -1369,6 +1365,10 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                   | _ -> 
                       let v = CommonInteractive.some_simple_options (tab - !mtabs) in
                       List.sort (fun d1 d2 -> compare d1 d2) v;
+              with _ ->
+                    let v = CommonInteractive.parse_simple_options args in
+                    List.sort (fun d1 d2 -> compare d1 d2) v;
+
             
             );
             Printf.bprintf buf "
@@ -1405,21 +1405,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
               Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>\\</div\\>";
           end
         else begin
-            list_options o  (let v = CommonInteractive.all_simple_options () in
-              match args with
-                [] -> v
-              | args ->
-                  let match_star = Str.regexp "\\*" in
-                  let options_filter = Str.regexp (
-                      "^\\(" ^ (List.fold_left (fun acc a ->
-                            acc ^
-                              (if acc <> "" then "\\|" else "") ^
-                              (Str.global_replace match_star ".*" a)
-                        ) "" args) ^ "\\)$") in
-                  List.filter (fun o ->
-                      Str.string_match options_filter o.option_name 0
-                  ) v
-            );
+            list_options o (CommonInteractive.parse_simple_options args) 
           end;
         ""
     ), ":\t\t\t\t\tprint all options";

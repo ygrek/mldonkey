@@ -43,7 +43,7 @@ open GnutellaProto
   
 (* For Guess hosts ... to be done *)      
 let extend_query f = 
-  let send h =
+  let send (_,h) =
     try
       match h.host_server with
         None -> ()
@@ -80,7 +80,7 @@ let send_pings () =
           lprintf "Udp Support present\n";
           ()
   ) !connected_servers;
-  Queue.iter (fun h ->
+  Queue.iter (fun (_,h) ->
       match h.host_server with
       | None -> () | Some s -> ()
   ) active_udp_queue

@@ -176,7 +176,7 @@ open TcpBufferedSocket
   
 let load_servers_list url f =
 (*  lprintf "QUERY URL %s" url; lprint_newline (); *)
-  CommonGlobals.mldonkey_wget url (fun filename ->
+  CommonWeb.mldonkey_wget url (fun filename ->
     f (translate (File.to_string filename)))
 
 

@@ -49,11 +49,10 @@ val handler : t -> handler
 val closed : t -> bool
 
 (* val set_before_select : t -> (t -> unit) -> unit *)
-  
-  
+    
 val create : string -> Unix.file_descr -> handler -> t
 val create_blocking : string -> Unix.file_descr -> handler -> t
-val set_printer : t -> (unit -> string) -> unit
+val set_printer : t -> (t -> string) -> unit
 val close : t -> close_reason -> unit
 val shutdown : t -> close_reason -> unit
 
@@ -101,8 +100,8 @@ val close_all : unit -> unit
 val start_time : int
   
 (* external setsock_iptos_throughput: Unix.file_descr -> int = "setsock_iptos_throughput"*)
-  
-external get_fd_num : Unix.file_descr -> int = "ml_get_fd_num" "noalloc"
+ 
+val sock_num : t -> int
 val string_of_date : int -> string
 val date_of_int : int -> float
 val normalize_time : int -> int
@@ -115,3 +114,13 @@ val int64_time : unit -> int64
 val string_of_reason : close_reason -> string
   
 val loop_delay : float ref
+
+(*
+0 : not verbose
+1 : summary every second
+2 : system calls
+3 : internal values
+*)
+val verbose_bandwidth :  int ref
+val add_bandwidth_second_timer : (unit -> unit) -> unit
+  

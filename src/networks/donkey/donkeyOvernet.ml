@@ -32,7 +32,8 @@ open CommonGlobals
 open CommonInteractive
 open CommonNetwork
 open CommonOptions
-
+open CommonSources
+  
 open DonkeyTypes
 open DonkeyGlobals
 open DonkeyOptions
@@ -139,6 +140,7 @@ let search_max_queries = 64
   
 let global_peers_size = Array.make 256 0
 
+let is_enabled = ref false
 
 
 (********************************************************************
@@ -748,7 +750,7 @@ let udp_client_handler t p =
   | OvernetConnect (md4, ip, port, kind) ->
       if !verbose_overnet && debug_client other_ip then
         lprintf "CONNECT (%s): sender IP was %s:%d kind=%d\n" (Md4.to_string md4) (Ip.to_string ip) port kind; 
-    if (md4 <> !!client_md4) && (md4 <> !!overnet_md4) && not (Hashtbl.mem connected_clients md4) 
+      if (md4 <> !!client_md4) && (md4 <> !!overnet_md4) && not (Hashtbl.mem connected_clients md4) 
       then begin
           let this_peer =
             {
@@ -760,7 +762,8 @@ let udp_client_handler t p =
             } in
           let ip = (change_private_address ip other_ip) in
 (* verificare per le Indirect_location *)
-          let c = new_client (Known_location (ip, port)) in
+
+          let c = new_client (Direct_address (ip, port)) in
           c.client_ip <- ip;
           c.client_connect_time <- last_time ();
           c.client_overnet <- true;
@@ -983,8 +986,12 @@ PARE DI NO. FARE DELLE PROVE INTERROGANDO L'IP INDICATO RELATIVAMENTE AL MD4 IND
 				  bcp (Md4.to_string md4);
 				lprint_newline (); *)
                                   if Ip.valid ip && ip_reachable ip then
-                                    let c = DonkeySources.new_source (ip, port) file in
-                                    c.source_overnet <- true;
+                                    let s = DonkeySources.find_source_by_uid 
+                                      (Direct_address (ip, port))  in
+                                    DonkeySources.set_request_result s 
+                                      file.file_sources File_new_source
+(* TODO:
+                                    c.source_overnet <- true; *)
                               | _ ->
                                   lprintf "Ill formed bcp: %s" bcp;
                                   lprint_newline ();
@@ -1217,30 +1224,31 @@ let check_current_downloads () =
   ) !DonkeyGlobals.current_files
   
 let enable enabler = 
-  
-  let sock = (UdpSocket.create (Ip.to_inet_addr !!client_bind_addr)
-      (!!overnet_port) (udp_handler udp_client_handler)) in
-  udp_sock := Some sock;
-  
-  UdpSocket.set_write_controler sock udp_write_controler;
-  
-  begin
-    try
-      let sock = TcpServerSocket.create 
-          "overnet client server"
-          (Ip.to_inet_addr !!client_bind_addr)
-        (!!overnet_port) (DonkeyClient.client_connection_handler true) in
-      
-      tcp_sock := Some sock;
-      
-      match Unix.getsockname (BasicSocket.fd (TcpServerSocket.sock sock)) with
-        Unix.ADDR_INET (ip, port) ->
-          overnet_client_port :=  port
-      | _ -> failwith "Bad socket address"
-    with e ->
-        lprintf "Could not affect a TCP port %d for Overnet" !!overnet_port;
-        lprint_newline ();
-        tcp_sock := None;
+  if !!enable_overnet then begin
+    let sock = (UdpSocket.create (Ip.to_inet_addr !!client_bind_addr)
+        (!!overnet_port) (udp_handler udp_client_handler)) in
+    udp_sock := Some sock;
+    
+    UdpSocket.set_write_controler sock udp_write_controler;
+    
+    begin
+      try
+        let sock = TcpServerSocket.create 
+            "overnet client server"
+            (Ip.to_inet_addr !!client_bind_addr)
+          (!!overnet_port) (DonkeyClient.client_connection_handler true) in
+        
+        tcp_sock := Some sock;
+        
+        match Unix.getsockname (BasicSocket.fd (TcpServerSocket.sock sock)) with
+          Unix.ADDR_INET (ip, port) ->
+            overnet_client_port :=  port
+        | _ -> failwith "Bad socket address"
+      with e ->
+          lprintf "Could not affect a TCP port %d for Overnet" !!overnet_port;
+          lprint_newline ();
+          tcp_sock := None;
+    end;
   end;
 
 (* every 3min try a new publish search, if any *)
@@ -1317,11 +1325,31 @@ let _ =
     (fun _ -> if !!overnet_max_known_peers < 4096 then overnet_max_known_peers =:= 4096)
   
 let disable () = 
-  match !udp_sock with
+  begin
+  (match !udp_sock with
     None -> ()
   | Some sock -> 
       udp_sock := None;
-      UdpSocket.close sock Closed_by_user
+      UdpSocket.close sock Closed_by_user);
+  (match !tcp_sock with
+    None -> ()
+  | Some sock -> 
+      tcp_sock := None;
+      TcpServerSocket.close sock Closed_by_user);
+  end
+
+let _ =
+  option_hook enable_overnet
+  	(fun _ -> if !!enable_overnet = false then 
+  	  begin 
+  	    is_enabled := false;
+  	    disable() 
+  	  end else 
+  	  if !is_enabled then begin
+  	    is_enabled := true;
+  	    enable is_enabled
+  	  end
+  	)
       
 let parse_overnet_url url =
   match String2.split (String.escaped url) '|' with
@@ -1412,7 +1440,7 @@ let _ =
         in
         List.iter (fun url ->
             Printf.bprintf o.conn_buf "Loading %s\n" url;
-            load_url "ocl" url) urls;
+            CommonWeb.load_url "ocl" url) urls;
         "web boot started"
     ), "<urls> :\t\t\t\tdownload .ocl URLS (no arg load default)";
     
@@ -1488,7 +1516,7 @@ let _ =
   
   ];
   
-  add_web_kind "ocl" (fun filename ->
+  CommonWeb.add_web_kind "ocl" (fun filename ->
       let s = File.to_string filename in
       let s = String2.replace s '"' "" in
       let lines = String2.split_simplify s '\n' in
@@ -1532,3 +1560,14 @@ let overnet_search (ss : search) =
         Hashtbl.add overnet_searches s.search_md4 s;	 
     )
     ws
+
+let _ =
+  CommonWeb.add_redirector_info "DKOV" (fun buf ->
+      let peers = connected_peers () in
+      let peers, _ = List2.cut 32 peers in (* sending 32 peers is enough ! *)
+      buf_int buf (List.length peers);
+      List.iter (fun (ip,port) -> 
+          buf_ip buf ip; 
+          buf_int16 buf port) 
+      peers;
+  )

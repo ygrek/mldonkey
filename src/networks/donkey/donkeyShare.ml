@@ -79,7 +79,9 @@ let new_file_to_share sh codedname old_impl =
       | _ -> md4_of_array md4s
     in
     
+    if !verbose_share then begin
     lprintf "Sharing file with MD4: %s\n" (Md4.to_string md4);
+    end;
     
     let file = new_file FileShared sh.sh_name md4 sh.sh_size false in
     must_share_file file codedname old_impl;
@@ -104,8 +106,9 @@ let new_file_to_share sh codedname old_impl =
           lprintf "DonkeyOvernet.publish_file: %s" (Printexc2.to_string e);
 lprint_newline ());
   *)
-    lprintf "Sharing %s" sh.sh_name;
-    lprint_newline ();
+    if !verbose_share then begin
+        lprintf "Sharing %s\n" sh.sh_name;
+    end;
   with e ->
       lprintf "Exception %s while sharing %s" (Printexc2.to_string e)
       sh.sh_name; lprint_newline () 

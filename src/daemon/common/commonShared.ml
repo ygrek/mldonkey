@@ -94,10 +94,10 @@ let shared_must_update_downloaded shared =
 
 let update_shared_num impl =
   if impl.impl_shared_num = 0 then begin
-(*      if !verbose then begin *)
+      if !verbose then begin 
           lprintf "NEW SHARED %s/%s\n" impl.impl_shared_codedname
             impl.impl_shared_fullname; 
-(*        end; *)
+        end; 
       incr shared_counter;
       impl.impl_shared_num <- !shared_counter;
       H.add shareds_by_num (as_shared impl);
@@ -133,8 +133,9 @@ let new_shared dirname prio filename fullname =
 	dirnames_prio := (name, prio) :: !dirnames_prio;
         name in
   let codedname = Filename.concat dirname filename in
-  lprintf "\ndirname %s \nfilename %s \nfullname %s\ncodedname %s\n"
-    dirname filename fullname codedname; 
+  if !verbose_share then
+    lprintf "\ndirname %s \nfilename %s \nfullname %s\ncodedname %s\n"
+      dirname filename fullname codedname; 
 
   let size = Unix32.getsize fullname in
   incr files_scanned;

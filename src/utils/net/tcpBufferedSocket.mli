@@ -82,8 +82,8 @@ val set_monitored : t -> unit
   
 val close_after_write : t -> unit
 
-val create_read_bandwidth_controler : int -> bandwidth_controler
-val create_write_bandwidth_controler : int -> bandwidth_controler
+val create_read_bandwidth_controler : string -> int -> bandwidth_controler
+val create_write_bandwidth_controler : string -> int -> bandwidth_controler
 val set_read_controler : t -> bandwidth_controler -> unit
 val set_write_controler : t -> bandwidth_controler -> unit
 val change_rate : bandwidth_controler -> int -> unit
@@ -130,16 +130,14 @@ val not_buffer_more : t -> int -> bool
 val nread : t -> int
 val nwritten : t -> int
   
-val accept_connection_bandwidth :
-  bandwidth_controler ->  bandwidth_controler -> unit 
+val accept_connection_bandwidth : t -> unit
   
 val bind_address : Unix.inet_addr ref
 val ip_packet_size : int ref
 val mtu_packet_size : int ref
 val minimal_packet_size : int ref
-
-val remove_ip_packet : bandwidth_controler -> unit
-
+val packet_frame_size : int ref
+  
 val get_rtimeout : t -> float * float
   
 val http_proxy : (string * int) option ref
@@ -149,7 +147,7 @@ type connection_manager
   
 val unlimited_connection_manager : connection_manager
   
-val create_connection_manager : unit -> connection_manager
+val create_connection_manager : string -> connection_manager
 val add_pending_connection :
   connection_manager -> (token -> unit) -> token
 val can_open_connection : connection_manager -> bool
