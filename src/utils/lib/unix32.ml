@@ -506,8 +506,8 @@ TODO:
 (* first file *)
       let in_pos = chunk_begin -- file_begin in
       let in_len = file_end -- chunk_begin in
-      FDCache.copy_chunk file.fd file_out zero 
-        in_pos (Int64.to_int in_len);
+      FDCache.copy_chunk file.fd file_out 
+      in_pos  zero (Int64.to_int in_len);
 (* other files *)
       do_on_remaining tail in_len  (chunk_len -- in_len)
       (fun file file_pos len ->          
@@ -547,7 +547,7 @@ TODO:
       close t;
       Unix2.remove_all_directory t.dirname
     
-    let read t chunk_begin string string_pos len = 
+    let io f t chunk_begin string string_pos len = 
       let (file, tail) = find_file t chunk_begin in
       
       let chunk_len = Int64.of_int len in
@@ -555,7 +555,7 @@ TODO:
       let file_begin = file.pos in
       let file_end = file_begin ++ file.len in
       if file_end >= chunk_end then
-        FDCache.read file.fd (chunk_begin -- file_begin)
+        f file.fd (chunk_begin -- file_begin)
         string string_pos len
       else
 
@@ -563,46 +563,27 @@ TODO:
       let in_pos = chunk_begin -- file_begin in
       let first_read = file_end -- chunk_begin in
       let in_len = Int64.to_int first_read in
-      FDCache.read file.fd in_pos string 0 in_len;
+      f file.fd in_pos string string_pos in_len;
+      
 (* other files *)
-      do_on_remaining tail in_len  (chunk_len -- first_read)
+      do_on_remaining tail (string_pos + in_len) 
+      (chunk_len -- first_read)
       (fun file string_pos len ->          
           let len = Int64.to_int len in
-          FDCache.read file.fd zero string string_pos len;
+          f file.fd zero string string_pos len;
           string_pos + len
       )
-    
-    let write t chunk_begin string string_pos len = 
-      begin
-        let (file, tail) = find_file t chunk_begin in
-        
-        let chunk_len = Int64.of_int len in
-        let chunk_end = chunk_begin ++ chunk_len in
-        let file_begin = file.pos in
-        let file_end = file_begin ++ file.len in
-        if file_end >= chunk_end then
-          FDCache.write file.fd (chunk_begin -- file_begin)
-          string string_pos len
-        else
 
-(* first file *)
-        let in_pos = chunk_begin -- file_begin in
-        let first_write = file_end -- chunk_begin in
-        let in_len = Int64.to_int first_write in
-        FDCache.write file.fd in_pos string 0 in_len;
-(* other files *)
-        do_on_remaining tail in_len  (chunk_len -- first_write)
-        (fun file string_pos len ->          
-            let len = Int64.to_int len in
-            FDCache.write file.fd zero string string_pos len;
-            string_pos + len
-        );
+    let read t chunk_begin string string_pos len = 
+      io FDCache.read t chunk_begin string string_pos len
       
-      end;        
+    let write t chunk_begin string string_pos len = 
+      io FDCache.write t chunk_begin string string_pos len;
       let time = Unix.time () in
       Unix.utimes t.dirname time time;
       ()
 
+      
             
       
     (*
@@ -1056,7 +1037,6 @@ let rename t f =
 module DiskFile_Test = (DiskFile : File)
 module SparseFile_Test = (SparseFile : File)
 
-  (*
 let _ =
   
   let t = create_multifile "toto" MultiFile.access MultiFile.rights
@@ -1075,12 +1055,18 @@ let _ =
   write t (Int64.of_int 30) "aaaaabbbbb" 0 10;
 *)
   
-  write t zero "123456789\n123456789\n123456789\n123456789\n" 0 40;
+  write t zero "yyyyy123456789X123456789X123456789X123456789X" 5 40;
   write t (Int64.of_int 9) "11" 0 2;
   
   let s = String.create 40 in
   read t zero s 0 40;
   lprintf "%s\n" s;
   flush_fd t;
+  
+  let (fd, pos, filename) = fd_of_chunk t (Int64.of_int 8) (Int64.of_int 25) in
+  lprintf "pos = %Ld in %s\n" pos
+    (match filename with 
+      None -> ""
+    | Some f -> f);
+  
   exit 2
-*)
