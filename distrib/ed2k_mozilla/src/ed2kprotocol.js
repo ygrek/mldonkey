@@ -12,7 +12,7 @@
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is the MLdonkey ed2k protocol handler.
+ * The Original Code is the MLdonkey protocol handler 1.3.
  *
  * The Initial Developer of the Original Code is
  * Simon Peter <dn.tlp@gmx.net>.
@@ -43,21 +43,36 @@ const ED2KPROT_HANDLER_CONTRACTID =
 const ED2KPROT_HANDLER_CID =
     Components.ID("{af8d664a-d002-438f-84a3-01f3a8ff325b}");
 
+const MAGNETPROT_HANDLER_CONTRACTID =
+    "@mozilla.org/network/protocol;1?name=magnet";
+const MAGNETPROT_HANDLER_CID =
+    Components.ID("{3e022170-58b0-4548-ba4c-1f47d54c7767}");
+
+const SIG2DATPROT_HANDLER_CONTRACTID =
+    "@mozilla.org/network/protocol;1?name=sig2dat";
+const SIG2DATPROT_HANDLER_CID =
+    Components.ID("{2a2e71ea-e857-4c71-9c93-04ff681df88a}");
+
 // components used in this file
-const STANDARDURL_CONTRACTID = "@mozilla.org/network/standard-url;1";
 const NS_IOSERVICE_CID = "{9ac9e770-18bc-11d3-9337-00104ba0fd40}";
 const NS_PREFSERVICE_CONTRACTID = "@mozilla.org/preferences-service;1";
+const URI_CONTRACTID = "@mozilla.org/network/simple-uri;1";
+const NS_WINDOWWATCHER_CONTRACTID = "@mozilla.org/embedcomp/window-watcher;1";
+const STREAMIOCHANNEL_CONTRACTID = "@mozilla.org/network/stream-io-channel;1";
 
 // interfaces used in this file
 const nsIProtocolHandler    = Components.interfaces.nsIProtocolHandler;
 const nsIURI                = Components.interfaces.nsIURI;
-const nsIStandardURL        = Components.interfaces.nsIStandardURL;
 const nsISupports           = Components.interfaces.nsISupports;
 const nsIIOService          = Components.interfaces.nsIIOService;
 const nsIPrefService        = Components.interfaces.nsIPrefService;
+const nsIWindowWatcher      = Components.interfaces.nsIWindowWatcher;
+const nsIChannel            = Components.interfaces.nsIChannel;
 
 // some misc. constants
-const PREF_BRANCH   = "network.ed2k."
+const PREF_BRANCH   = "network.mldonkey.";
+const WND_WIDTH = 320;
+const WND_HEIGHT = 200;
 
 // configuration (and defaults)
 cfgUser   = "admin";
@@ -65,71 +80,86 @@ cfgPass   = "";
 cfgServer = "localhost";
 cfgPort   = "4080";
 
-/***** ED2KProtocolHandler *****/
+/***** MLdonkeyProtocolHandler *****/
 
-// exported attributes
-ED2KProtocolHandler.prototype.scheme = "ed2k";
-ED2KProtocolHandler.prototype.defaultPort = -1;
-ED2KProtocolHandler.prototype.protocolFlags = nsIProtocolHandler.URI_NORELATIVE;
-
-function ED2KProtocolHandler()
+function MLdonkeyProtocolHandler(scheme)
 {
+    this.scheme = scheme;
+    this.readPreferences(PREF_BRANCH);
 }
 
-ED2KProtocolHandler.prototype.allowPort = function(aPort, aScheme)
+// attribute defaults
+MLdonkeyProtocolHandler.prototype.defaultPort = -1;
+MLdonkeyProtocolHandler.prototype.protocolFlags = nsIProtocolHandler.URI_NORELATIVE;
+
+MLdonkeyProtocolHandler.prototype.allowPort = function(aPort, aScheme)
 {
     return false;
 }
 
-ED2KProtocolHandler.prototype.newURI = function(aSpec, aCharset, aBaseURI)
+MLdonkeyProtocolHandler.prototype.newURI = function(aSpec, aCharset, aBaseURI)
 {
-    var url =
-      Components.classes[STANDARDURL_CONTRACTID].createInstance(nsIStandardURL);
-    url.init(nsIStandardURL.URLTYPE_STANDARD, -1, aSpec, aCharset, null);
-
-    return url.QueryInterface(nsIURI);
+    var uri = Components.classes[URI_CONTRACTID].createInstance(nsIURI);
+    uri.spec = aSpec;
+    return uri;
 }
 
-ED2KProtocolHandler.prototype.newChannel = function(aURI)
+MLdonkeyProtocolHandler.prototype.newChannel = function(aURI)
 {
-    // rewrite the ed2k URL to a http URL to the mldonkey server
+    // rewrite the URI to a http URL to the mldonkey server
     var myURI = "http://" + cfgUser + ":" + cfgPass + "@" + cfgServer + ":" +
-                cfgPort + "/submit?q=dllink+" + aURI.spec;
+      cfgPort + "/submit?q=dllink+" + encodeURIComponent(decodeURI(aURI.spec));
 
-    // coax the rewritten URL to the http protocol handler
-    var ioServ = Components.classesByID[NS_IOSERVICE_CID].getService(nsIIOService);
-    //    ioServ = ioServ.QueryInterface(nsIIOService);
-    var chan = ioServ.newChannel(myURI, null, null);
+    // open up a window with our newly generated http URL
+    var wwatch = Components.classes[NS_WINDOWWATCHER_CONTRACTID].getService(nsIWindowWatcher);
+    var myWnd = wwatch.openWindow(null, myURI, "MLdonkey", null, null);
+
+    // resize window to a reasonable size
+    myWnd.outerWidth = WND_WIDTH;
+    myWnd.outerHeight = WND_HEIGHT;
+
+    // return a fake empty channel so current window doesn't change
+    var chan = Components.classes[STREAMIOCHANNEL_CONTRACTID].createInstance(nsIChannel);
     return chan;
 }
 
-/***** ED2KProtocolHandlerFactory *****/
+MLdonkeyProtocolHandler.prototype.readPreferences = function(pref_branch)
+{
+    // get preferences branch
+    var PrefService = Components.classes[NS_PREFSERVICE_CONTRACTID].getService(nsIPrefService);
+    var myPrefs = PrefService.getBranch(null);  // Mozilla bug #107617
 
-var ED2KProtocolHandlerFactory = new Object();
+    // read preferences (if available)
+    if(myPrefs.getPrefType(pref_branch + "user") == myPrefs.PREF_STRING)
+      cfgUser = myPrefs.getCharPref(pref_branch + "user");
+    if(myPrefs.getPrefType(pref_branch + "pass") == myPrefs.PREF_STRING)
+      cfgPass = myPrefs.getCharPref(pref_branch + "pass");
+    if(myPrefs.getPrefType(pref_branch + "server") == myPrefs.PREF_STRING)
+      cfgServer = myPrefs.getCharPref(pref_branch + "server");
+    if(myPrefs.getPrefType(pref_branch + "port") == myPrefs.PREF_STRING)
+      cfgPort = myPrefs.getCharPref(pref_branch + "port");
+}
 
-ED2KProtocolHandlerFactory.createInstance = function(outer, iid)
+/***** MLdonkeyProtocolHandlerFactory *****/
+
+function MLdonkeyProtocolHandlerFactory(scheme)
+{
+    this.scheme = scheme;
+}
+
+MLdonkeyProtocolHandlerFactory.prototype.createInstance = function(outer, iid)
 {
     if(outer != null) throw Components.results.NS_ERROR_NO_AGGREGATION;
 
     if(!iid.equals(nsIProtocolHandler) && !iid.equals(nsISupports))
         throw Components.results.NS_ERROR_INVALID_ARG;
 
-    // get preferences branch
-    var PrefService = Components.classes[NS_PREFSERVICE_CONTRACTID].getService(nsIPrefService);
-    var myPrefs = PrefService.getBranch(null);  // Bug #107617
-
-    // read preferences (if available)
-    if(myPrefs.getPrefType(PREF_BRANCH + "user") == myPrefs.PREF_STRING)
-      cfgUser = myPrefs.getCharPref(PREF_BRANCH + "user");
-    if(myPrefs.getPrefType(PREF_BRANCH + "pass") == myPrefs.PREF_STRING)
-      cfgPass = myPrefs.getCharPref(PREF_BRANCH + "pass");
-    if(myPrefs.getPrefType(PREF_BRANCH + "server") == myPrefs.PREF_STRING)
-      cfgServer = myPrefs.getCharPref(PREF_BRANCH + "server");
-    if(myPrefs.getPrefType(PREF_BRANCH + "port") == myPrefs.PREF_STRING)
-      cfgPort = myPrefs.getCharPref(PREF_BRANCH + "port");
-
-    return new ED2KProtocolHandler();
+    return new MLdonkeyProtocolHandler(this.scheme);
 }
+
+var factory_ed2k = new MLdonkeyProtocolHandlerFactory("ed2k");
+var factory_magnet = new MLdonkeyProtocolHandlerFactory("magnet");
+var factory_sig2dat = new MLdonkeyProtocolHandlerFactory("sig2dat");
 
 /***** Ed2kzillaModule *****/
 
@@ -137,36 +167,52 @@ var Ed2kzillaModule = new Object();
 
 Ed2kzillaModule.registerSelf = function(compMgr, fileSpec, location, type)
 {
-    // register ed2k protocol handler object
-    compMgr =
-      compMgr.QueryInterface(Components.interfaces.nsIComponentRegistrar);
-    dump("*** Registering ed2k protocol handler.\n");
+    compMgr = compMgr.QueryInterface(Components.interfaces.nsIComponentRegistrar);
+
+    // register ed2k protocol handler
     compMgr.registerFactoryLocation(ED2KPROT_HANDLER_CID,
                                     "ED2K protocol handler",
                                     ED2KPROT_HANDLER_CONTRACTID,
+                                    fileSpec, location, type);
+
+    // register magnet protocol handler
+    compMgr.registerFactoryLocation(MAGNETPROT_HANDLER_CID,
+                                    "Magnet protocol handler",
+                                    MAGNETPROT_HANDLER_CONTRACTID,
+                                    fileSpec, location, type);
+
+    // register sig2dat protocol handler
+    compMgr.registerFactoryLocation(SIG2DATPROT_HANDLER_CID,
+                                    "Sig2dat protocol handler",
+                                    SIG2DATPROT_HANDLER_CONTRACTID,
                                     fileSpec, location, type);
 }
 
 Ed2kzillaModule.unregisterSelf = function(compMgr, fileSpec, location)
 {
-    compMgr =
-      compMgr.QueryInterface(Components.interfaces.nsIComponentRegistrar);
-    compMgr.unregisterFactoryLocation(ED2KPROT_HANDLER, fileSpec);
+    compMgr = compMgr.QueryInterface(Components.interfaces.nsIComponentRegistrar);
+
+    // unregister our components
+    compMgr.unregisterFactoryLocation(ED2KPROT_HANDLER_CID, fileSpec);
+    compMgr.unregisterFactoryLocation(MAGNETPROT_HANDLER_CID, fileSpec);
+    compMgr.unregisterFactoryLocation(SIG2DATPROT_HANDLER_CID, fileSpec);
 }
 
 Ed2kzillaModule.getClassObject = function(compMgr, cid, iid)
 {
-    if(cid.equals(ED2KPROT_HANDLER_CID)) return ED2KProtocolHandlerFactory;
-
     if(!iid.equals(Components.interfaces.nsIFactory))
         throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
+
+    if(cid.equals(ED2KPROT_HANDLER_CID)) return factory_ed2k;
+    if(cid.equals(MAGNETPROT_HANDLER_CID)) return factory_magnet;
+    if(cid.equals(SIG2DATPROT_HANDLER_CID)) return factory_sig2dat;
 
     throw Components.results.NS_ERROR_NO_INTERFACE;
 }
 
 Ed2kzillaModule.canUnload = function(compMgr)
 {
-    return true;    // this object can be unloaded
+    return true;    // our objects can be unloaded
 }
 
 /***** Entrypoint *****/

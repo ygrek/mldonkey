@@ -12,7 +12,7 @@
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is the MLdonkey ed2k protocol handler installer.
+ * The Original Code is the MLdonkey protocol handler installer.
  *
  * The Initial Developer of the Original Code is
  * Simon Peter <dn.tlp@gmx.net>.
@@ -35,9 +35,9 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-const G_MSG        = "MLdonkey ed2k Protocol Handler 1.0";
+const G_MSG        = "Mozilla MLdonkey Protocol Handler 1.3";
 const G_NAME       = "ed2k";
-const G_VER        = "1.0";
+const G_VER        = "1.3";
 
 var err = initInstall(G_MSG, G_NAME, G_VER);
 logComment("initInstall: " + err);

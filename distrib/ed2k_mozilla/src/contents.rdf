@@ -7,7 +7,7 @@
    <RDF:li resource="urn:mozilla:package:hdl"/>
  </RDF:Seq>  <!-- package information -->
  <RDF:Description about="urn:mozilla:package:ed2k"
-   chrome:displayName="MLdonkey ed2k Protocol Handler"
+   chrome:displayName="Mozilla MLdonkey Protocol Handler"
    chrome:author="Simon Peter <dn.tlp@gmx.net>"
    chrome:name="ed2k">
  </RDF:Description> </RDF:RDF>

@@ -1,22 +1,31 @@
-MLdonkey ed2k Protocol Handler 1.0
+Mozilla MLdonkey Protocol Handler 1.3
 Copyright (C) 2003 Simon Peter <dn.tlp@gmx.net>
 
 Description:
 ------------
 This is a protocol handler for Mozilla (see www.mozilla.org) that forwards
-"ed2k://" links to a running MLdonkey (see www.nongnu.org/mldonkey) client.
+some link types to a running MLdonkey (see www.mldonkey.net) client.
 
-The protocol handler is primarily designed to be used in a UNIX environment,
-but since it is implemented in JavaScript, it should be portable to any other
-platform as well.
+Supported protocols are ed2k:, magnet: and sig2dat:.
 
-Usage:
-------
+The protocol handler is implemented in JavaScript and should run on any
+platform supported by Mozilla.
+
+Installation:
+-------------
+Just open the .xpi installer file with Mozilla and follow the on-screen
+instructions. On a UNIX derivative system, you most likely need to start Mozilla
+as root to complete the installation.
+
+It is best to shutdown Mozilla completely by closing all open windows prior to
+restarting it as root because there may be some startup scripts used by your
+version that may just open another window instead of starting Mozilla as root.
+
 After having installed the package, you need to set it up. Refer to the next
 section on this topic.
 
-After setup, restart Mozilla and everything should be in place. You can use
-"ed2k://" links now just like any other links.
+After setup, restart Mozilla and everything should be in place. Supported link
+types will automatically be forwarded to your MLdonkey when you click on them.
 
 Configuration:
 --------------
@@ -26,31 +35,46 @@ preferences can be set in multiple ways, depending on your browser version.
 For Mozilla 1.3 and up, the preferences are accessible by visiting the URL
 "about:config" inside the browser. This opens a page containing a table of all
 available preference options. Right clicking on the table opens a menu to
-create, modify and reset the options.
+create, modify and reset the options. Note that the preference defaults of this
+protocol handler are internal and NOT visible initially in the list! To set your
+own preferences, you have to create them.
 
-For Mozilla versions below 1.3, you can still set the preferences by creating
-a file 'user.js' in your profile directory (this is
-$HOME/.mozilla/default/<profile>/ on UNIX systems) and set the options there
-by adding lines of the form: user_pref("option", "value"); to it.
+For Mozilla versions below 1.3, you can set the preferences by creating a file
+'user.js' in your profile directory (this is $HOME/.mozilla/default/<profile>/
+on UNIX systems) and set the options there by adding lines of the form:
+user_pref("option", "value"); to it.
 
 The following preference options are available:
 
 Option:			Default:	Description:
 -------			--------	------------
-network.ed2k.server	localhost	hostname on which MLdonkey is running
-network.ed2k.user	admin		login with this username
-network.ed2k.pass			login with this password
-network.ed2k.port	4080		port of the MLdonkey WEB service
+network.mldonkey.server	localhost	hostname on which MLdonkey is running
+network.mldonkey.user	admin		login with this username
+network.mldonkey.pass			login with this password
+network.mldonkey.port	4080		port of the MLdonkey WEB service
 
-Remember to restart Mozilla before any of these options can take effect!
+All these options are string options. Remember to restart Mozilla before any of
+them can take effect!
 
-Bugs:
+News:
 -----
-Using ShareReactor's multi-add feature doesn't work. Only the first file will
-get added.
+Changes for version 1.3:
+- Added support for "sig2dat" links.
+- More fixes for some strange, half-escaped URLs.
+- Fixed size of response window not getting out of bounds.
 
-Legal:
-------
+Changes for version 1.2:
+- Fixed support for unescaped URLs (thanks to Sven Koch).
+
+Changes for version 1.1:
+- MLdonkey's response is now displayed in an extra window.
+- Support for unescaped URLs.
+- Name changed to "Mozilla MLdonkey Protocol Handler".
+- Configuration branch changed to "network.mldonkey".
+- Added support for "magnet:" links.
+
+License:
+--------
 ***** BEGIN LICENSE BLOCK *****
 Version: MPL 1.1/GPL 2.0/LGPL 2.1
 
@@ -64,7 +88,7 @@ WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 for the specific language governing rights and limitations under the
 License.
 
-The Original Code is the MLdonkey ed2k protocol handler.
+The Original Code is the MLdonkey protocol handler.
 
 The Initial Developer of the Original Code is
 Simon Peter <dn.tlp@gmx.net>.
