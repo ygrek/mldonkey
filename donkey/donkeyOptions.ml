@@ -73,8 +73,6 @@ let _ =
         max_connected_servers =:= 10)
   *)
 
-let retry_delay = define_option downloads_ini ["retry_delay"] "" float_option 3600.
-
 let max_server_age = define_option downloads_ini ["max_server_age"] "max number of days after which an unconnected server is removed" int_option 2
 
 let use_file_history = define_option downloads_ini ["use_file_history"] "keep seen files in history to allow local search (can be expensive in memory)" bool_option true
@@ -143,7 +141,7 @@ let max_sources_age = define_option downloads_ini
 let max_clients_per_second = define_option downloads_ini
     ["max_clients_per_second"] 
   "Maximal number of connections to sources per second"
-  int_option 30
+  int_option 10
   
 let max_indirect_connections = define_option downloads_ini
     ["max_indirect_connections"] 
@@ -177,10 +175,6 @@ let max_sources_per_file = define_option downloads_ini ["max_sources_per_file"]
     "Maximal number of sources for each file"
     int_option 500
     
-let good_sources_threshold = define_option downloads_ini ["good_sources_threshold"]
-    "What percentage of good sources is enough"
-    int_option 75
-  
 let min_left_sources = define_option downloads_ini
     ["min_left_sources"]
     "Minimal number of sources for a file"
@@ -252,9 +246,6 @@ let upload_power = define_option donkey_ini ["upload_power"]
   over other networks, where upload is less efficient, without preventing
   upload from these networks." int_option 5
 
-let reward_power = define_option donkey_ini ["reward_power"]
-  "Maximum additional weight granted to good sources" int_option 0
-
 let propagate_servers = define_option donkey_ini ["propagate_servers"]
   "Send an UDP packet to a central servers with the list of servers you
   are currently connected to, for the central server to be able to
@@ -315,17 +306,12 @@ let ban_queue_jumpers = define_option donkey_ini
   
 let ban_period = define_option donkey_ini
     ["ban_period"] "Set the number of hours you want client to remain banned"
-    int_option 6
+    int_option 1
 
 let good_client_rank = define_option donkey_ini
     ["good_client_rank"]
   "Set the maximal rank of a client to be kept as a client"
   int_option 500
-
-let max_emule_slots = define_option donkey_ini
-    ["max_emule_slots"] "Part of the queue that Emule clients are limited to
-    (default is 33 (%) of the slots, set to 100 (%) for no limitation)"
-  int_option 33
 
   
 let source_management = define_option donkey_ini
@@ -334,10 +320,6 @@ let source_management = define_option donkey_ini
     2: based on unified queues with scores, shared by files (2.02-6...2.02-9)
     3: based on separate file queues (2.02-10)
     " int_option 3
-  
-let _ =
-  option_hook max_emule_slots (fun _ ->
-      if !!max_emule_slots < 25 then max_emule_slots =:= 25)
   
 let sources_per_chunk = 
   define_option donkey_ini ["sources_per_chunk"]
@@ -370,7 +352,6 @@ let gui_donkey_options_panel =
     "Max Number of Connected Servers", shortname max_connected_servers, "T";
     "Max Upload Slots", shortname max_upload_slots, "T";
     "Max Sources Per Download", shortname max_sources_per_file, "T";
-    "Good Sources Threshold", shortname good_sources_threshold, "T";
     "Protocol Version", shortname protocol_version, "T";
     "Commit Downloads In Incoming Subdir", shortname commit_in_subdir, "T";
     "Port", shortname port, "T";

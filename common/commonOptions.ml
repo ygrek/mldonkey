@@ -213,6 +213,11 @@ let _ =
     "mlslsk", enable_soulseek;
     "mlgnut", enable_limewire;]
   
+let auto_commit = define_option downloads_ini
+    ["auto_commit"]
+  "Set to false if you don't want mldonkey to automatically put completed files in incoming directory"
+    bool_option true
+
 let smtp_server = define_option downloads_ini ["smtp_server"] 
   "The mail server you want to use (must be SMTP). Use hostname or IP address"
     string_option "127.0.0.1"
@@ -320,10 +325,6 @@ let incoming_directory =
 let http_realm = 
   define_option expert_ini ["http_realm"] "The realm shown when connecting with a WEB browser" string_option "MLdonkey"
 
-let initialized = define_option expert_ini ["initialized"] 
-  "(not used)"
-    bool_option false
-
 let set_client_ip = define_option expert_ini ["client_ip"] 
     "The last IP address used for this client" Ip.option  
     (Ip.my ())
@@ -351,10 +352,6 @@ let _ =
   )
 
   
-let strict_bandwidth = define_option expert_ini ["strict_bandwidth"]
-    "Should the bandwidth be controled more strictly ? (count IP packets)"
-    bool_option true
-    
 let ask_for_gui = define_option expert_ini ["ask_for_gui"]
     "Ask for GUI start"    bool_option true
     
@@ -593,7 +590,7 @@ let save_options_delay =
 
 let server_connection_timeout = define_option expert_ini
   ["server_connection_timeout"] 
-  "timeout when connecting to a server" float_option 5.
+  "timeout when connecting to a server" float_option 15.
   
 let new_print_search = define_option expert_ini
     ["new_print_search"] "Use new display of search results (with tables,

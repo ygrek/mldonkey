@@ -1,6 +1,11 @@
 ChangeLog	
 =========
 
+2003/03/12: Simon (v 2.04rc1-2)
+  - Applied patch #1259, #1261,
+    + pango: 01_more_blocreq_checks, 08_better_default_parameters,
+             60_no_emule_quota, 78_lugdunum_pings_fix, 79_auto_commit
+
 2003/03/11: Simon (v 2.04rc1-1)
   - New changes for Emule compatibility.
   - Added option 'log_file' in downloads.ini

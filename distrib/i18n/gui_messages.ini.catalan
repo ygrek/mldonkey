@@ -1,0 +1,287 @@
+From VM Wed Mar 12 07:58:05 2003
+X-VM-v5-Data: ([t nil nil nil nil nil nil nil nil]
+	[nil "Wednesday" "12" "March" "2003" "02:01:21" "+0100" "Jaume Catarineu" "jaume.catarineu@econ.upf.es" nil nil "another language file for mldonkey GUI (with file attached)" "^From:" nil nil "3" nil nil nil nil nil nil nil nil]
+	nil)
+Return-Path: <jaume.catarineu@econ.upf.es>
+Received: from yuha.menta.net (212.78.128.42) by mail.libertysurf.net (6.5.026)
+        id 3DE3A33200FB5FC3 for mldonkey@monsieurcinema.com; Wed, 12 Mar 2003 02:01:52 +0100
+Received: from gibson.menta.net ([212.78.128.22]) by
+          yuha.menta.net (Netscape Messaging Server 4.15) with ESMTP id
+          HBM2WO02.VZ4 for <mldonkey@monsieurcinema.com>; Wed, 12 Mar 2003
+          02:02:48 +0100 
+Received: from econ.upf.es ([62.57.232.140]) by gibson.menta.net
+          (Netscape Messaging Server 4.15 gibson Mar 14 2002 21:29:48)
+          with ESMTP id HBM2WV00.DRE for <mldonkey@monsieurcinema.com>;
+          Wed, 12 Mar 2003 02:02:55 +0100 
+Message-ID: <3E6E86E1.5080604@econ.upf.es>
+User-Agent: Mozilla/5.0 (Windows; U; Windows NT 5.1; ca; rv:1.2.1) Gecko/20021130
+X-Accept-Language: ca, en
+From: Jaume Catarineu <jaume.catarineu@econ.upf.es>
+Subject: another language file for mldonkey GUI (with file attached)
+To: mldonkey@monsieurcinema.com
+Date: Wed, 12 Mar 2003 02:01:21 +0100
+Organization: Universitat Pompeu Fabra
+MIME-Version: 1.0
+Content-Type: multipart/mixed;
+ boundary="------------050002000404010105020205"
+
+This is a multi-part message in MIME format.
+--------------050002000404010105020205
+Content-Type: text/plain; charset=us-ascii; format=flowed
+Content-Transfer-Encoding: 7bit
+
+**** SHIT! I forgot to attach the file ****
+
+Hi,
+
+Here I attach the catalan version of the "Localized GUI Messages" file.
+Please, feel free posting it on your page at http://www.nongnu.org/mldonkey
+
+Thank you for your work,
+Jaume,
+
+
+--------------050002000404010105020205
+Content-Type: text/plain;
+ name="gui_messages.ini.ca"
+Content-Transfer-Encoding: 8bit
+Content-Disposition: inline;
+ filename="gui_messages.ini.ca"
+
+ ok = Accepta
+ cancel = "Cancel·la"
+ password = "Contrasenya"
+ address = "Adreça"
+ percent = "%%"
+ rate = "Ràtio"
+ age = Edat
+ last_seen = "Darrera vista"
+ state = Estat
+ servers = Servidors
+ downloads = "Baixades"
+ friends = Amics
+ searches = Cerques
+ options = Opcions
+ not_connected = "No connectat"
+ connected_to_servers = "Connectat a %d/%d servidor(s)"
+ downloading_files = "Baixant %d fitxers(s)"
+ no_current_search = "No hi ha cap cerca actualment"
+ connection_port = "Port de connexió"
+ control_port = "Port de control"
+ gui_port = "Port del GUI"
+ ports = Ports
+ delays = Retards
+ save_options_delay = "Retard en desar les opcions"
+ check_client_connections = "Comprova les connexions als clients"
+ check_server_connection = "Comprova les connexions als servidors"
+ check_serverDB_connection = "Comprova la connexió al servidorDB"
+ small_retry_delay = "Retard del reintent curt"
+ medium_retry_delay = "Retard del reintent mig"
+ long_retry_delay = "Retard del reintent llarg"
+ gui_refresh_delay = "Retard del refresc del GUI"
+ general = General
+ name = Nom
+ max_connected_servers = "Max de servidors connectats"
+ max_connected_clients = "Max de clients connectats"
+ disconnect = Desconnecta
+ download_limit = "Límit de Baixada (kB/s)"
+ upload_limit = "Límit de Pujada (kB/s)"
+ timeouts = Timeouts
+ server_connection = "Connexió a Servidor"
+ client_connection = "Connexió a Client"
+ save_and_apply_options = "Aplica i desa les opcions"
+ query = Consulta
+ search = Cerca
+ min_size = "Capacitat mínima"
+ max_size = "Capacitat mínima"
+ media = Mitjà
+ format = Format
+ network = Xarxa
+ client_type = Tipus
+ album = "Àlbum"
+ friend = Amic
+ contact = Contacte
+ artist = Artista
+ title = Títol
+ min_bitrate = "Bitrate mínim"
+ stop_search = Atura
+ close_search = Tanca
+ mp3_options = "Opcions de MP3"
+ submit = Envia
+ results = "%d Resultats"
+ friends = Amics
+ ip = IP
+ port = Port
+ remove = Esborra
+ close = Tanca
+ close_room = "Tanca canal"
+ view_files = "Veure fitxers"
+ view_users = "Veure usuaris"
+ files = Fitxers
+ filename = "Nom de fitxer"
+ size = "Grandària"
+ properties = Propietats
+ md4 = MD4
+ download_selected_files = "Baixa els fitxers seleccionats"
+ download_selected_dir = "Baixa els directoris seleccionats"
+ download = Baixa
+ force_download = "Força la baixada"
+ subscribe = Subscriu
+ downloaded = Baixat
+ availability = Disponibilitat
+ cancel = "Cancel·la"
+ retry_connect = "Reintentar connexió"
+ disconnect_all = "Desconnecta-ho tot"
+ connected_to_locations = "Connectat a %d / %d llocs"
+ add_to_friends = "Afegeix a Amics"
+ add_server = "Afegeix servidor"
+ add_friend = "Afegeix amic"
+ connect_more_servers = "Connecta a més servidors"
+ users = Usuaris
+ status = Estat
+ connect = Connecta
+ disconnect = Desconnecta
+ files_to_download = "Baixant Fitxers"
+ downloaded_files = "Fitxers Baixats: %d/%d"
+ files_downloaded = "%d Fitxers Baixats"
+ save_all = "Desa tot"
+ save = Desa
+ server_name = Nom
+ server_desc = Descripció
+ server_nusers = Usuaris
+ server_nfiles = Fitxers
+ ed2k = "ed2k:"
+ recover_md4 = "Recupera MD4:"
+ remove_old_servers = "Esborra servidors vells"
+ max_server_age = "Edat màxima del servidor (díes)"
+ max_hits = "Màxim de resultats"
+ features = Funcions
+ hostname = "Nom del Client"
+ option_name = "Opció:"
+ option_value = "Valor:"
+ set_option = "Fixa Opció"
+ command = Comanda
+ console = Consola
+ clear_console = "Neteja Consola"
+ friend_kind = Tipus
+ friend_status = Estat
+ friend_name = Nom
+ dialog = Xerrar
+ yes = Sí
+ no = No
+ connecting = Connectant
+ initiating = Iniciant
+ connected = Connectat
+ removed = Esborrat
+ queued = Encuat
+ downloading = Baixant
+ cancelled = Cancel·lat
+ paused = Pausat
+ dl_done = Fet
+ unknown = Desconegut
+ nusers = Usuaris
+ save_as = "Desa el fitxer com"
+ edit_mp3 = "Edita detalls MP3"
+ kind = Tipus
+ direct = Directe
+ upload = Pujat
+ pause_resume_dl = "Atura/Reprèn"
+ verify_chunks = "Verifica Chunks"
+ preview = Previsualitza
+ get_format = "Dona informació del format"
+ find_friend = "Troba un amic"
+ remove_all_friends = "Esborra tots els amics"
+ toggle_display_all_servers = "Mostra tots els servidors"
+ browse_files = "Navega pels fitxers"
+ show_hidden_fields = "Mostra caps ocults"
+ uploads = Pujades
+ requests = "Sol·licituts"
+ upstats = "Estadístiques de les pujades"
+ uploaded = Pujat
+ refresh = Refresca
+ mFile = Fitxer
+ mKill_server = "Mata el servidor"
+ mFile = Fitxer
+ mReconnect = Reconnecta
+ mDisconnect = Desconnecta
+ mQuit = Surt
+ mHelp = Ajuda
+ mSettings = Configuracions
+ mServers = Servidors
+ mDownloads = Baixades
+ mFriends = Amics
+ mConsole = Consola
+ mQueries = Consultes
+ mResults = Resultats
+ mRooms = Canals
+ mUploads = Pujades
+ title = Títol
+ artist = Artista
+ album = Àlbum
+ year = Any
+ tracknum = "Número de pista"
+ comment = Comentar
+ genre = Gènere
+ local_search = "Cerca Local"
+ extended_search = "Cerca Extesa"
+ o_gui_port = "Port del GUI"
+ h_gui_port = "Port del servidor a on connectar-se"
+ o_hostname = "Nom del Host"
+ h_hostname = "Nom del host a on connectar-se"
+ o_password = Contrasenya
+ h_gui_password = "La contrasenya a usar per connectar-se al servidor"
+ o_gui_server = "servidor GUI"
+ o_col_default = Defecte
+ h_col_default = "Color per defecte en les llistes"
+ o_col_downloaded = "Baixat(s)"
+ h_col_downloaded = "Color dels fitxers baixats"
+ o_col_downloading = Baixant
+ h_col_downloading = "Colors dels fitxers mentre s'estan baixant"
+ o_col_avail = Disponible
+ h_col_avail = "Color dels fitxers disponibles que no s'estan baixant"
+ o_col_not_avail = "No Disponible"
+ h_col_not_avail = "Color dels fitxers no disponibles"
+ o_col_connected = Conectat
+ h_col_connected = "Color dels servidors o usuaris connectats"
+ o_col_not_connected = "No connectat"
+ h_col_not_connected = "Color dels servidors o usuaris NO connectats"
+ o_col_connecting = Connectant
+ o_col_files_listed = "Fitxers llistats"
+ o_colors = Colors
+ o_auto_resize = "Amplada automàtica"
+ h_auto_resize = "Amplada de columnes automàtica"
+ o_files_auto_expand_depth = "Grandària dels fitxers auto-expandibles"
+ o_use_size_suffixes = "Usa els sufixos de grandària (G, M, k)"
+ h_use_availability_height = "Mostra la disponibilitat d'un chunk com llargària o color"
+ o_use_availability_height = "Usa disponibilitat codificada per llargària"
+ h_use_relative_availability = "Calcula %% de disponibilitat ignorant els chunks ja presents"
+ o_use_relative_availability = "Usa %% de disponibilitat relativa"
+ h_toolbars_style = "Que mostro en la barra de botons: text, icones o ambdós"
+ o_toolbars_style = "Estil de Barra de Botons"
+ o_layout = Estructura
+ o_servers_columns = Servidors
+ h_servers_columns = "Columnes pels servidors"
+ o_downloads_columns = Baixades
+ h_downloads_columns = "Columnes pels fitxers essent baixats"
+ o_downloaded_columns = Baixats
+ h_downloaded_columns = "Columnes pels fitxers baixats"
+ o_friends_columns = Amics
+ h_friends_columns = "Columnes pels amics"
+ o_file_locations_columns = "Localització dels fitxers"
+ h_file_locations_columns = "Columnes per les localitzacions dels fitxers"
+ o_results_columns = Resultats
+ h_results_columns = "Columnes pels resultats de cerques i fitxers d'un amic"
+ o_shared_files_up_colums = "Informació de les pujades dels fitxers compartits"
+ o_columns = "Títols de columnes"
+ o_gui = GUI
+ o_client = Client
+ o_options = Opcions
+ o_misc = "Miscel·lània"
+
+(*
+ The following options are not used (errors, obsolete, ...) 
+*)
+
+--------------050002000404010105020205--
+
+

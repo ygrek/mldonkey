@@ -119,6 +119,7 @@ td.pr { border-right: #000 solid 1px; }
 td {font-size: 12px; font-face: verdana; }
 tr {font-size: 12px; font-face: verdana; }
 td.sr { white-space: nowrap; padding-top: 2px; padding-bottom: 2px; padding-left: 4px; padding-right: 4px; font-family: verdana; font-size: 10px; color: #000;  }
+td.srp { white-space: nowrap; padding-top: 2px; padding-bottom: 2px; padding-left: 0px; padding-right: 4px; font-family: verdana; font-size: 10px; color: #555;  }
 td.srw { padding-top: 2px; padding-bottom: 2px; padding-left: 4px; padding-right: 4px; font-family: verdana; font-size: 10px; color: #000;  }
 td.srh { cursor: pointer; vertical-align: top; background: #90C890; white-space: nowrap; padding-top: 2px; padding-bottom: 2px; padding-left: 4px; padding-right: 4px; font-family: verdana; font-size: 10px; color: #000;  }
 tr.dl-1 { background: #FFFFFF; }
@@ -270,7 +271,10 @@ function _tabCreateArray(obj,st){
 	var _nCells = rw.item(0).cells.length;
 	for(var i=1;i<_nRows;i++){
 		var _raw = rw.item(i).cells.item(obj.cellIndex).innerHTML;
-		if ( (st==1) && (_raw.search(new RegExp(\"[TGMk]\",\"i\"))) ) {
+		if (st==1) {
+			_raw = _raw.replace((new RegExp('\\\\\\(','gi')), '');
+		   if (_raw.indexOf(\":\") != -1) { _raw = _raw.substring(2,99); }
+		 if (_raw.search(new RegExp(\"[TGMk]\",\"i\"))) {
 		  if (_raw.indexOf(\"T\") != -1) { _raw = parseFloat(_raw) * 1024 * 1024 * 1024 * 1024; } 
 		  else {
 			if (_raw.indexOf(\"G\") != -1) { _raw = parseFloat(_raw) * 1024 * 1024 * 1024; } 
@@ -281,7 +285,7 @@ function _tabCreateArray(obj,st){
 				 }
 			}
 	      }
-		}
+		}}
 			_tabS[i-1]= new _rObj(_raw,rw.item(i).cloneNode(true));
 	}
 	if (st==1) { _tabS.sort(_cmpFloat); }

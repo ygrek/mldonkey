@@ -882,16 +882,6 @@ lprint_newline ();
                       if c.client_sock <> None && 
                         c.client_brand = Brand_mldonkey3 then raise Exit)
                   upload_clients
-            | Brand_newemule ->
-                if Fifo.length upload_clients >= !!max_upload_slots then
-                  raise Exit;
-                let nemule = ref 0 in
-                Fifo.iter (fun c -> 
-                    if c.client_sock <> None && 
-                      ( c.client_brand = Brand_newemule)
-                    then incr nemule) upload_clients;
-                if !nemule > (!!max_upload_slots * !!max_emule_slots) / 100
-                then raise Exit
             | _ ->
                 if Fifo.length upload_clients >= !!max_upload_slots then
                   raise Exit;
@@ -1093,7 +1083,12 @@ is checked for the file.
       
       set_client_state c Connected_downloading;
       let len = Int64.sub end_pos begin_pos in
-      count_download c file (Int64.of_int (String.length t.Q.bloc_str));
+      if Int64.to_int len <> t.Q.bloc_len then begin
+        lprintf "%d: inconsistent packet sizes" (client_num c);
+	lprint_newline ();
+	raise Not_found
+      end;
+      count_download c file len;
       begin
         match c.client_block with
           None -> 

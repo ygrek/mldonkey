@@ -284,18 +284,25 @@ let new_print_stats buf o =
       
       Printf.bprintf buf "\\<table class=\\\"cs\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
 \\<td title=\\\"Client Brand\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C.B\\</td\\>
+\\<td class=\\\"srh\\\"\\>:\\</td\\>
 \\<td title=\\\"Successful Connections\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Seen\\</td\\>
-\\<td title=\\\"Successful Connections Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>%%\\</td\\>
+\\<td title=\\\"Successful Connections Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>%%\\</td\\>
+\\<td class=\\\"srh\\\"\\>|\\</td\\>
 \\<td title=\\\"File Requests Received\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Reqs\\</td\\>
-\\<td title=\\\"File Requests Received Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>%%\\</td\\>
-\\<td title=\\\"Total Downloads\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>DL\\</td\\>
-\\<td title=\\\"Total Downloads Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar \\\"\\>%%\\</td\\>
-\\<td title=\\\"Total Downloads Average KB/s\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>KB/s\\</td\\>
-\\<td title=\\\"Total Uploads\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>UL\\</td\\>
-\\<td title=\\\"Total Uploads Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>%%\\</td\\>
-\\<td title=\\\"Total Uploads Average KB/s\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>KB/s\\</td\\>
+\\<td title=\\\"File Requests Received Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>%%\\</td\\>
+\\<td class=\\\"srh\\\"\\>|\\</td\\>
 \\<td title=\\\"Total Bans\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>B\\</td\\>
-\\<td title=\\\"Total Bans Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>%%\\</td\\>
+\\<td title=\\\"Total Bans Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>%%\\</td\\>
+\\<td class=\\\"srh\\\"\\>|\\</td\\>
+\\<td title=\\\"Total Uploads\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>UL\\</td\\>
+\\<td title=\\\"Total Uploads Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>%%\\</td\\>
+\\<td title=\\\"Total Uploads Average KB/s\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>KB/s\\</td\\>
+\\<td class=\\\"srh\\\"\\>|\\</td\\>
+\\<td title=\\\"Total Downloads\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>DL\\</td\\>
+\\<td title=\\\"Total Downloads Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh \\\"\\>%%\\</td\\>
+\\<td title=\\\"Total Downloads Average KB/s\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>KB/s\\</td\\>
+\\<td class=\\\"srh\\\"\\>|\\</td\\>
+\\<td title=\\\"Total Uploads:Downloads Ratio\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>U:DL\\</td\\>
 \\</tr\\>";
       
       let counter = ref 0 in
@@ -309,25 +316,33 @@ let new_print_stats buf o =
           if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
           else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
           
-          
           Printf.bprintf buf "
 \\<td class=\\\"sr\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr \\\"\\>:\\</td\\>
 \\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
-\\<td class=\\\"sr ar br\\\"\\>%.f\\</td\\>
+\\<td class=\\\"srp \\\"\\>(%.f%%)\\</td\\>
+\\<td class=\\\"sr \\\"\\>|\\</td\\>
+
 \\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
-\\<td class=\\\"sr ar br\\\"\\>%.f\\</td\\>
+\\<td class=\\\"srp \\\"\\>(%.f%%)\\</td\\>
+\\<td class=\\\"sr \\\"\\>|\\</td\\>
+
+\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
+\\<td class=\\\"srp\\\"\\>(%.0f%%)\\</td\\>
+\\<td class=\\\"sr \\\"\\>|\\</td\\>
 
 \\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr ar\\\"\\>%.0f\\</td\\>
-\\<td class=\\\"sr ar br\\\"\\>%.1f\\</td\\>
+\\<td class=\\\"srp \\\"\\>(%.0f%%)\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%.1f\\</td\\>
+\\<td class=\\\"sr \\\"\\>|\\</td\\>
 
 \\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr ar\\\"\\>%.0f\\</td\\>
-\\<td class=\\\"sr ar br\\\"\\>%.1f\\</td\\>
+\\<td class=\\\"srp \\\"\\>(%.0f%%)\\</td\\>
+\\<td class=\\\"sr ar \\\"\\>%.1f\\</td\\>
+\\<td class=\\\"sr \\\"\\>|\\</td\\>
 
-\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
-\\<td class=\\\"sr ar\\\"\\>%.0f\\</td\\>\\</tr\\>\n"
-            
+\\<td class=\\\"sr \\\"\\>1:%.2f\\</td\\>
+\\</tr\\>\n"
             
             (brandstr)
           stats_by_brand.(i).brand_seen 
@@ -335,18 +350,21 @@ let new_print_stats buf o =
           
           stats_by_brand.(i).brand_filerequest 
             (percent_of_ints stats_by_brand.(i).brand_filerequest stats_all.brand_filerequest)
-          
-          (size_of_int64 stats_by_brand.(i).brand_download)
-          (max 0.0 (percent_of_int64s stats_by_brand.(i).brand_download stats_all.brand_download))
-          ((Int64.to_float stats_by_brand.(i).brand_download) /. (float_of_int uptime) /. 1024.0)
-          
+
+          stats_by_brand.(i).brand_banned 
+            (max 0.0 (percent_of_ints stats_by_brand.(i).brand_banned stats_all.brand_banned)) 
+
           (size_of_int64 stats_by_brand.(i).brand_upload) 
           (max 0.0 (percent_of_int64s stats_by_brand.(i).brand_upload stats_all.brand_upload))
           ((Int64.to_float stats_by_brand.(i).brand_upload) /. (float_of_int uptime) /. 1024.0)
           
+          (size_of_int64 stats_by_brand.(i).brand_download)
+          (max 0.0 (percent_of_int64s stats_by_brand.(i).brand_download stats_all.brand_download))
+          ((Int64.to_float stats_by_brand.(i).brand_download) /. (float_of_int uptime) /. 1024.0)
+
+          (if stats_by_brand.(i).brand_upload = Int64.zero then 0.0 else 
+			( (Int64.to_float stats_by_brand.(i).brand_download) /.  (Int64.to_float stats_by_brand.(i).brand_upload) ))
           
-          stats_by_brand.(i).brand_banned 
-            (max 0.0 (percent_of_ints stats_by_brand.(i).brand_banned stats_all.brand_banned)) 
       done;
       
       incr counter;
@@ -356,39 +374,50 @@ let new_print_stats buf o =
       
       Printf.bprintf buf "
 \\<td class=\\\"sr\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr \\\"\\>:\\</td\\>
 \\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
-\\<td class=\\\"sr ar br\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
-\\<td class=\\\"sr ar br\\\"\\>%s\\</td\\>
-
-\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr ar br\\\"\\>%.1f\\</td\\>
-
-\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr ar br\\\"\\>%.1f\\</td\\>
+\\<td class=\\\"srp \\\"\\>(%.f%%)\\</td\\>
+\\<td class=\\\"sr \\\"\\>|\\</td\\>
 
 \\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
-\\<td class=\\\"sr ar\\\"\\>%.0f\\</td\\>\\</tr\\>\\</table\\>\n"
+\\<td class=\\\"srp \\\"\\>(%.f%%)\\</td\\>
+\\<td class=\\\"sr \\\"\\>|\\</td\\>
+
+\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
+\\<td class=\\\"srp\\\"\\>(%.0f%%)\\</td\\>
+\\<td class=\\\"sr \\\"\\>|\\</td\\>
+
+\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+\\<td class=\\\"srp \\\"\\>(%.0f%%)\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%.1f\\</td\\>
+\\<td class=\\\"sr \\\"\\>|\\</td\\>
+
+\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+\\<td class=\\\"srp \\\"\\>(%.0f%%)\\</td\\>
+\\<td class=\\\"sr ar \\\"\\>%.1f\\</td\\>
+\\<td class=\\\"sr \\\"\\>|\\</td\\>
+
+\\<td class=\\\"sr \\\"\\>1:%.2f\\</td\\>
+\\</tr\\>\\</table\\>\n"
         
         "ALL"
         stats_all.brand_seen
-        "100"
+        100.0
         stats_all.brand_filerequest
-        "100"
+        100.0
+        stats_all.brand_banned 
+        (max 0.0 (percent_of_ints stats_all.brand_banned stats_all.brand_seen))
+
+        (size_of_int64 stats_all.brand_upload) 
+        100.0
+        ((Int64.to_float stats_all.brand_upload) /. (float_of_int uptime) /. 1024.0)
         
         (size_of_int64 stats_all.brand_download) 
-      "100" 
+        100.0 
         ((Int64.to_float stats_all.brand_download) /. (float_of_int uptime) /. 1024.0)
-      
-      (size_of_int64 stats_all.brand_upload) 
-      "100"
-        ((Int64.to_float stats_all.brand_upload) /. (float_of_int uptime) /. 1024.0)
-      
-      stats_all.brand_banned 
-        (max 0.0 (percent_of_ints stats_all.brand_banned stats_all.brand_seen));
-      
+
+        (if stats_all.brand_upload = Int64.zero then 0.0 else 
+	    	( (Int64.to_float stats_all.brand_download) /.  (Int64.to_float stats_all.brand_upload) ));
       
       let gstats_all = 
         let stat = {
@@ -420,18 +449,25 @@ let new_print_stats buf o =
       
       Printf.bprintf buf "\\<table class=\\\"cs\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
 \\<td title=\\\"Client Brand\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C.B\\</td\\>
+\\<td class=\\\"srh\\\"\\>:\\</td\\>
 \\<td title=\\\"Successful Connections\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Seen\\</td\\>
-\\<td title=\\\"Successful Connections Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>%%\\</td\\>
+\\<td title=\\\"Successful Connections Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>%%\\</td\\>
+\\<td class=\\\"srh\\\"\\>|\\</td\\>
 \\<td title=\\\"File Requests Received\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Reqs\\</td\\>
-\\<td title=\\\"File Requests Received Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>%%\\</td\\>
-\\<td title=\\\"Total Downloads\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>DL\\</td\\>
-\\<td title=\\\"Total Downloads Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar \\\"\\>%%\\</td\\>
-\\<td title=\\\"Total Downloads Average KB/s\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>KB/s\\</td\\>
-\\<td title=\\\"Total Uploads\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>UL\\</td\\>
-\\<td title=\\\"Total Uploads Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>%%\\</td\\>
-\\<td title=\\\"Total Uploads Average KB/s\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>KB/s\\</td\\>
+\\<td title=\\\"File Requests Received Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>%%\\</td\\>
+\\<td class=\\\"srh\\\"\\>|\\</td\\>
 \\<td title=\\\"Total Bans\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>B\\</td\\>
-\\<td title=\\\"Total Bans Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>%%\\</td\\>
+\\<td title=\\\"Total Bans Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>%%\\</td\\>
+\\<td class=\\\"srh\\\"\\>|\\</td\\>
+\\<td title=\\\"Total Uploads\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>UL\\</td\\>
+\\<td title=\\\"Total Uploads Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>%%\\</td\\>
+\\<td title=\\\"Total Uploads Average KB/s\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>KB/s\\</td\\>
+\\<td class=\\\"srh\\\"\\>|\\</td\\>
+\\<td title=\\\"Total Downloads\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>DL\\</td\\>
+\\<td title=\\\"Total Downloads Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh \\\"\\>%%\\</td\\>
+\\<td title=\\\"Total Downloads Average KB/s\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>KB/s\\</td\\>
+\\<td class=\\\"srh\\\"\\>|\\</td\\>
+\\<td title=\\\"Total Uploads:Downloads Ratio\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>U:DL\\</td\\>
 \\</tr\\>";
       
       for i=1 to brand_count-1 do
@@ -446,41 +482,54 @@ let new_print_stats buf o =
           
           Printf.bprintf buf "
 \\<td class=\\\"sr\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr \\\"\\>:\\</td\\>
 \\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
-\\<td class=\\\"sr ar br\\\"\\>%.f\\</td\\>
+\\<td class=\\\"srp \\\"\\>(%.f%%)\\</td\\>
+\\<td class=\\\"sr \\\"\\>|\\</td\\>
+
 \\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
-\\<td class=\\\"sr ar br\\\"\\>%.f\\</td\\>
+\\<td class=\\\"srp \\\"\\>(%.f%%)\\</td\\>
+\\<td class=\\\"sr \\\"\\>|\\</td\\>
+
+\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
+\\<td class=\\\"srp\\\"\\>(%.0f%%)\\</td\\>
+\\<td class=\\\"sr \\\"\\>|\\</td\\>
 
 \\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr ar\\\"\\>%.0f\\</td\\>
-\\<td class=\\\"sr ar br\\\"\\>%.1f\\</td\\>
+\\<td class=\\\"srp \\\"\\>(%.0f%%)\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%.1f\\</td\\>
+\\<td class=\\\"sr \\\"\\>|\\</td\\>
 
 \\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr ar\\\"\\>%.0f\\</td\\>
-\\<td class=\\\"sr ar br\\\"\\>%.1f\\</td\\>
+\\<td class=\\\"srp \\\"\\>(%.0f%%)\\</td\\>
+\\<td class=\\\"sr ar \\\"\\>%.1f\\</td\\>
+\\<td class=\\\"sr \\\"\\>|\\</td\\>
 
-\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
-\\<td class=\\\"sr ar\\\"\\>%.0f\\</td\\>\\</tr\\>\n"
-            
-            
-            (brandstr)
+\\<td class=\\\"sr \\\"\\>1:%.2f\\</td\\>
+
+
+\\</tr\\>\n"
+
+          (brandstr)
           (!!gstats_by_brand.(i).brand_seen) 
           (percent_of_ints (!!gstats_by_brand.(i).brand_seen) gstats_all.brand_seen)
           
           (!!gstats_by_brand.(i).brand_filerequest)
           (percent_of_ints (!!gstats_by_brand.(i).brand_filerequest) gstats_all.brand_filerequest)
           
+          (!!gstats_by_brand.(i).brand_banned) 
+          (max 0.0 (percent_of_ints (!!gstats_by_brand.(i).brand_banned) gstats_all.brand_banned)) 
+
+          (size_of_int64 (!!gstats_by_brand.(i).brand_upload))
+          (max 0.0 (percent_of_int64s (!!gstats_by_brand.(i).brand_upload) gstats_all.brand_upload))
+          ((Int64.to_float (!!gstats_by_brand.(i).brand_upload)) /. (float_of_int (guptime() + uptime)) /. 1024.0)
+
           (size_of_int64 (!!gstats_by_brand.(i).brand_download))
           (max 0.0 (percent_of_int64s (!!gstats_by_brand.(i).brand_download) gstats_all.brand_download))
           ((Int64.to_float (!!gstats_by_brand.(i).brand_download)) /. (float_of_int (guptime() + uptime)) /. 1024.0)
           
-          (size_of_int64 (!!gstats_by_brand.(i).brand_upload))
-          (max 0.0 (percent_of_int64s (!!gstats_by_brand.(i).brand_upload) gstats_all.brand_upload))
-          ((Int64.to_float (!!gstats_by_brand.(i).brand_upload)) /. (float_of_int (guptime() + uptime)) /. 1024.0)
-          
-          (!!gstats_by_brand.(i).brand_banned) 
-          (max 0.0 (percent_of_ints (!!gstats_by_brand.(i).brand_banned) gstats_all.brand_banned)) 
-          
+          (if !!gstats_by_brand.(i).brand_upload = Int64.zero then 0.0 else 
+			( (Int64.to_float !!gstats_by_brand.(i).brand_download) /.  (Int64.to_float !!gstats_by_brand.(i).brand_upload) ))
 
 
       done;
@@ -489,44 +538,52 @@ let new_print_stats buf o =
       if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
       else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
       
-      
       Printf.bprintf buf "
 \\<td class=\\\"sr\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr \\\"\\>:\\</td\\>
 \\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
-\\<td class=\\\"sr ar br\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
-\\<td class=\\\"sr ar br\\\"\\>%s\\</td\\>
-
-\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr ar br\\\"\\>%.1f\\</td\\>
-
-\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr ar br\\\"\\>%.1f\\</td\\>
+\\<td class=\\\"srp \\\"\\>(%.f%%)\\</td\\>
+\\<td class=\\\"sr \\\"\\>|\\</td\\>
 
 \\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
-\\<td class=\\\"sr ar\\\"\\>%.0f\\</td\\>\\</tr\\>\\</table\\>\\</div\\>\n"
+\\<td class=\\\"srp \\\"\\>(%.f%%)\\</td\\>
+\\<td class=\\\"sr \\\"\\>|\\</td\\>
+
+\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
+\\<td class=\\\"srp\\\"\\>(%.0f%%)\\</td\\>
+\\<td class=\\\"sr \\\"\\>|\\</td\\>
+
+\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+\\<td class=\\\"srp \\\"\\>(%.0f%%)\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%.1f\\</td\\>
+\\<td class=\\\"sr \\\"\\>|\\</td\\>
+
+\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+\\<td class=\\\"srp \\\"\\>(%.0f%%)\\</td\\>
+\\<td class=\\\"sr ar \\\"\\>%.1f\\</td\\>
+\\<td class=\\\"sr \\\"\\>|\\</td\\>
+
+\\<td class=\\\"sr \\\"\\>1:%.2f\\</td\\>
+\\</tr\\>\\</table\\>\\</div\\>\n"
         
         "ALL"
         gstats_all.brand_seen
-        "100"
+        100.0
         gstats_all.brand_filerequest
-        "100"
+        100.0
+        gstats_all.brand_banned 
+        (max 0.0 (percent_of_ints gstats_all.brand_banned gstats_all.brand_seen))
+
+        (size_of_int64 gstats_all.brand_upload) 
+        100.0
+        ((Int64.to_float gstats_all.brand_upload) /. (float_of_int (guptime() + uptime)) /. 1024.0)
         
         (size_of_int64 gstats_all.brand_download) 
-      "100" 
+        100.0 
         ((Int64.to_float gstats_all.brand_download) /. (float_of_int (guptime() + uptime)) /. 1024.0)
       
-      (size_of_int64 gstats_all.brand_upload) 
-      "100"
-        ((Int64.to_float gstats_all.brand_upload) /. (float_of_int (guptime() + uptime)) /. 1024.0)
-      
-      gstats_all.brand_banned 
-        (max 0.0 (percent_of_ints gstats_all.brand_banned gstats_all.brand_seen));
-		
-
-
+        (if gstats_all.brand_upload = Int64.zero then 0.0 else 
+		( (Int64.to_float gstats_all.brand_download) /.  (Int64.to_float gstats_all.brand_upload) ))
     
     end
   else
@@ -535,10 +592,6 @@ let new_print_stats buf o =
       Printf.bprintf buf "      Client| seen      |  Downloads       |  Uploads         |  Banned\n";
       Printf.bprintf buf "------------+-----------+------------------+------------------+----------\n";
       Printf.bprintf buf "%-12s|%6d     |%7.1f %5.1f     |%7.1f %5.1f     |%5d %3.0f%%\n"
-        
-        
-        
-        
         
         "Total"
         stats_all.brand_seen
@@ -571,9 +624,6 @@ let new_print_stats buf o =
             (percent_of_ints stats_by_brand.(i).brand_banned stats_all.brand_banned)
       done
     end
-
-
-
 
 let _ =
   register_commands 

@@ -647,14 +647,15 @@ Each client issues 1 packet/4hour, so 100000 clients means 25000/hour,
 7 packets/second = 7 * 40 bytes = 280 B/s ...
 *)
   
-let udp_ping = String.create 5
+let udp_ping = String.create 6
   
 let _ = 
-  udp_ping.[0] <- char_of_int 0x96;
-  udp_ping.[1] <- char_of_int (Random.int 256);
+  udp_ping.[0] <- char_of_int 0xe3;
+  udp_ping.[1] <- char_of_int 0x96;
   udp_ping.[2] <- char_of_int (Random.int 256);
   udp_ping.[3] <- char_of_int (Random.int 256);
-  udp_ping.[4] <- char_of_int (Random.int 256)
+  udp_ping.[4] <- char_of_int (Random.int 256);
+  udp_ping.[5] <- char_of_int (Random.int 256)
   
 let udp_walker_timer () = 
   match !udp_walker_list with
@@ -667,7 +668,7 @@ let udp_walker_timer () =
         end
   | s :: tail ->
       udp_walker_list := tail;
-      UdpSocket.write (get_udp_sock ()) udp_ping s.server_ip s.server_port
+      UdpSocket.write (get_udp_sock ()) udp_ping s.server_ip (s.server_port + 4)
       
       
       

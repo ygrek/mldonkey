@@ -490,6 +490,8 @@ let file_completed (file : file) =
         ignore (CommonShared.new_shared "completed" (
             file_best_name file )
           file_name);
+	if !!auto_commit then
+	  file_commit file;
         (try mail_for_completed_file file with e ->
               lprintf "Exception %s in sendmail" (Printexc2.to_string e);
               lprint_newline ());
