@@ -296,4 +296,5 @@ let _ =
       | _ -> raise e
   )
   
-  
+let stats buf t =
+  Printf.printf "Socket %d\n" (Obj.magic t.fd)

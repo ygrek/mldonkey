@@ -92,4 +92,33 @@ let random () =
     s.[i] <- char_of_int (Random.int 256)
   done;
   s
+  
+open Options
+  
+module Md4Option = struct
     
+    let value_to_md4 v = (*
+      match v with
+        Options.Module assocs ->
+          let get_value name conv = conv (List.assoc name assocs) in
+          let get_value_nil name conv = 
+            try conv (List.assoc name assocs) with _ -> []
+          in
+          
+          let file_md4_name = 
+            try
+              get_value "file_md4" value_to_string
+            with _ -> failwith "Bad file_md4"
+          in
+          Md4.of_string file_md4_name
+          
+      | _ -> *) of_string (value_to_string v)
+          
+    let md4_to_value v = string_to_value (to_string v)
+    
+    let t =
+      define_option_class "Md4" value_to_md4 md4_to_value
+    ;;
+  end
+
+let option = Md4Option.t

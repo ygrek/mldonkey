@@ -1295,10 +1295,12 @@ class gui () =
   let menubar =
     GMenu.menu_bar ~packing:(box#pack ~expand:false ~fill:false) ()
   in
-  let _Menu =
-    GMenu.menu_item ~label:(Mes.mConnections) ~packing:menubar#add ()
-  in
+  let _Menu = GMenu.menu_item ~label:(Mes.mFile) ~packing:menubar#add () in
   let _FileMenu = GMenu.menu ~packing:_Menu#set_submenu () in
+  let itemOptions =
+    GMenu.menu_item ~label:"Settings" ~packing:_FileMenu#add ()
+  in
+  let _ = GMenu.menu_item ~packing:_FileMenu#add () in
   let itemReconnect =
     GMenu.menu_item ~label:(Mes.mReconnect) ~packing:_FileMenu#add ()
   in
@@ -1308,6 +1310,7 @@ class gui () =
   let itemKill =
     GMenu.menu_item ~label:(Mes.kill_server) ~packing:_FileMenu#add ()
   in
+  let _ = GMenu.menu_item ~packing:_FileMenu#add () in
   let itemQuit = GMenu.menu_item ~label:"Exit" ~packing:_FileMenu#add () in
   let _Menu_notebook =
     GMenu.menu_item ~label:"Pages" ~packing:menubar#add ()
@@ -1324,9 +1327,6 @@ class gui () =
   in
   let itemSearches =
     GMenu.menu_item ~label:"Queries" ~packing:menu456#add ()
-  in
-  let itemOptions =
-    GMenu.menu_item ~label:"Options" ~packing:menu456#add ()
   in
   let itemConsole =
     GMenu.menu_item ~label:"Console" ~packing:menu456#add ()
@@ -1407,6 +1407,7 @@ class gui () =
     val box = box
     val menubar = menubar
     val accel_menubar = accel_menubar
+    val itemOptions = itemOptions
     val itemReconnect = itemReconnect
     val itemDisconnect = itemDisconnect
     val itemKill = itemKill
@@ -1416,7 +1417,6 @@ class gui () =
     val itemDownloads = itemDownloads
     val itemFriends = itemFriends
     val itemSearches = itemSearches
-    val itemOptions = itemOptions
     val itemConsole = itemConsole
     val itemHelp = itemHelp
     val notebook = notebook
@@ -1434,6 +1434,7 @@ class gui () =
     method box = box
     method menubar = menubar
     method accel_menubar = accel_menubar
+    method itemOptions = itemOptions
     method itemReconnect = itemReconnect
     method itemDisconnect = itemDisconnect
     method itemKill = itemKill
@@ -1443,7 +1444,6 @@ class gui () =
     method itemDownloads = itemDownloads
     method itemFriends = itemFriends
     method itemSearches = itemSearches
-    method itemOptions = itemOptions
     method itemConsole = itemConsole
     method itemHelp = itemHelp
     method notebook = notebook

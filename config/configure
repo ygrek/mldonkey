@@ -1,6 +1,6 @@
 #! /bin/sh
 
-# From configure.in Revision: 1.4 
+# From configure.in Revision: 1.5 
 
 # Guess values for system-dependent variables and create Makefiles.
 # Generated automatically using autoconf version 2.13 
@@ -1593,7 +1593,7 @@ if test -f $OCAMLLIB/lablgl.cmxa; then
 fi
 
 if test -f ../secret/mftp_server.ml; then
-   MORE_TARGETS="mldonkey"
+   MORE_TARGETS="mldonkey\$(EXE) mldonkey_s\$(EXE)"
    MORE_SUBDIRS=secret
 fi
 

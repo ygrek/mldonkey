@@ -131,7 +131,7 @@ let dialog = "Chat"
 
 (** Menus labels. *)
 
-let mConnections = "Connections"
+let mFile = "File"
 let kill_server = "Kill core"
 let mFile = "File"
 let mReconnect = "Reconnect"
@@ -168,6 +168,83 @@ let local_search = "Local Search"
 let extended_search = "Extended Search"
 
 let action_unknown s = "Unknown action: "^s
+
+(** {2 Config options labels and messages} *)
+
+let o_gui_port = "GUI port"
+let h_gui_port = "The server port to connect to"
+let o_hostname = "Hostname"
+let h_hostname = "The server hostname to connect to"
+let o_password = "Password"
+let h_gui_password = "The password to use when connecting to the server"
+let o_gui_server = "GUI server"
+let o_col_default = "Default"
+let h_col_default = "Default color in lists"
+let o_col_downloaded = "Downloaded"
+let h_col_downloaded = "Color for downloaded files"
+let o_col_downloading = "Downloading"
+let h_col_downloading = "Color for files being downloaded"
+let o_col_avail = "Available"
+let h_col_avail = "Color for available files, not downloading"
+let o_col_not_avail = "Not available"
+let h_col_not_avail = "Color for unavailable files"
+let o_col_connected = "Connected"
+let h_col_connected = "Color for connected servers or users"
+let o_col_not_connected = "Not connected"
+let h_col_not_connected = "Color for not connected servers or users"
+let o_col_connecting = "Connecting"
+let h_col_connecting = 
+  "Color for servers or users with which a connection is being established"
+let o_col_files_listed = "Files listed"
+let h_col_files_listed = 
+  "Color for users whose list of files has been retrieved"
+let o_colors = "Colors"
+
+let o_auto_resize = "Auto-resize"
+let h_auto_resize = "Auto-resize lists columns"
+
+let o_layout = "Layout"
+
+let o_client_name = "Client name"
+let o_http_port = "HTTP Port" 
+let o_telnet_port = "Telnet port"
+let o_gui_server_port = "GUI port"
+let o_save_options_delay = "Save options delay"
+let o_check_client_cons_delay = "Check client connections delay"
+let o_check_cons_delay = "Check connections delay"
+let o_small_delay = "Small retry delay"
+let o_medium_delay = "Medium retry delay"
+let h_medium_delay = "Minimal delay between two connection attempts to the same host"
+let o_long_delay = "Long retry delay"
+let h_long_delay = 
+  "Minimal delay between two connection attempts to the same host, "^
+  "when the first one failed"
+let o_server_connection_timeout = "Server connection timeout"
+let o_client_timeout = "Client timeout"
+let o_update_gui_delay = "Update GUI delay"
+let o_max_server_age = "Max server age"
+
+let o_smtp_server = "SMTP server"
+let o_smtp_port = "SMTP port"
+let o_mail_address = "Mail address"
+
+let o_temp_dir = "Temp directory"
+let o_incom_dir = "Incoming directory"
+
+let o_max_upload_rate = "Max upload rate"
+let o_max_connected_servers = "Max connected servers"
+let o_max_dl_rate = "Max download rate"
+
+let o_name_auth = "Name and authentification"
+let o_ports = "Ports"
+let o_delays = "Delays"
+let o_directories = "Directories"
+let o_mail = "Mail"
+let o_misc = "Misc"
+
+let o_gui = "GUI"
+let o_client = "Client"
+let o_options = "Options"
 
 (** {2 Strings to specify colors} *)
 
@@ -638,14 +715,13 @@ and the result is given on its standard input in the same format as specified
 above. It can be used to add the result to the index that is used by the
 Finder.
 
-TODO list
-=========
-  * Chat.
+TODO list for client
+====================
   * Plugins.
   * Correct display of availability.
   * Add sleep and wakeup commands.
   * More options in GUI
-  * Popup et historique des dialogues.
+  * Popup
   * Keep (server_ip, server_port, id) for indirect connections.
   * Manager of shared files/directories.
   * Add Friends in console and WEB. 
@@ -655,12 +731,30 @@ TODO list
   * Add prefered servers.
   * Save options in a modular way (each server in a file ?).
   * Recommandation for upload.
-  * Priorities on prefered servers.
   * Download priorities (what does it mean ?).
   * Use source groups for local downloads.
   * Use a cache of data to help diffusing files.
   * Check that program exists before trying to execute.
   * Add customizable searches.
+  * Remove old clients.
+  * Correct boolean searches
+  * Black_list of servers
+  * List of prefered servers
+  * Fix too many sources bug !!!!!!
+  * Fix BUFFER OVERFLOW bug !!!!!
+  * Customized queries in GUI
+  * Add a 'last_connection_date' to sources. Only propagate young
+      verified sources. Remove old sources.
+  * Clean the clients_by_num table from clients which are not useful anymore.
+
+TODO list for server
+====================
+* Send a ping to all clients every minute
+* Implement the whole protocol for TCP clients
+* Implement the whole protocol for UDP clients
+* Implement the protocol for UDP servers
+* Implement indexation
+* Implement localisation
 
 Known bugs:
 ===========
@@ -671,18 +765,31 @@ ChangeLog
 =========
 
 Release 1.15:
+  * Started implementing mldonkey_s (eDonkey compatible server)
   * GUI:
     - Should fit in 640x480 screens.
     - Server can be specified by ip:port in Add Server entry.
+    - Removed some non-tailrecursive functions.
   * Core acts now with all (direct) clients as a server to diffuse sources
      for files. Indirect mldonkey clients can also receive information.
   * WEB interface:
-    - New option 'web_header' to customize the header displayed by the
-       Web interface.
+    - New option 'customized_searches' that can be used to add new
+       queries in the WEB interface (see new option file searches.ini
+       for examples).
+    - Improved searches (work also in the GTK GUI): 
+       * In the keyword/artist/title/album fields, a '-' in front of
+        a word means 'without'. Words separated by
+        spaces must appear in the reply. 
+       * In the format field: you can specify several formats, separated by
+        spaces. A '-' in front of a format means you don't want that format.
+    - New options 'web_header' and 'web_header_frame' to customize the header
+       displayed by the Web interface.
     - Generate correct HTML with HEAD and TITLE :)
-    - Downloads can be sorted by name/downloaded/size/rate.
+    - Downloads can be sorted by name/percent/downloaded/size/rate.
     - Paused downloads are correctly displayed.
     - Use tables instead of spaces (for non-fixed fonts).
+    - Added option 'use_html_frames'. When frames are enabled, clicking
+       on a result to download will only modify the second frame.
   * Core:
     - New option 'file_completed_cmd' for a command which is called when 
      a file download is completed with as arguments: 
@@ -690,15 +797,30 @@ Release 1.15:
     - Started moving local indexation from mldonkey to an auxiliary program,
      controled by options 'local_index_find_cmd' and 'local_index_add_cmd'.
      See the 'Using auxiliary programs for local indexation' section in
-     the help.
-    - New option -client_ip that can be used to force the IP used by
-     mldonkey (if you have a firewall). Be careful with dynamic IPs.
+     the help (in progress, doesn't work).
+    - New command line option -client_ip that can be used to force the
+     IP used by mldonkey (if you have a firewall). Be careful with
+     dynamic IPs.
+    - Delay between md4 computation can be set by 'compute_md4_delay' option.
+     Chunks downloaded improve to reduce long md4 computations.
   * Most problems with ed2k:// links should be fixed (/ at the end, and
      spaces in the middle). MLdonkeySubmit is distributed for Konqueror users.
-  * Boolean expressions (AND, OR, NOT) allowed in searches.
+  * Improved implementation of indexation. Documents description can be
+     stored on disk (in progress). 
+  * Server black list: 'bs <ip1> <ip2> ...' in console to add IPs to the
+    server blacklist. Servers on this black list are eventually removed,
+    and will never be added again.
+  * New option 'master_server_min_users' that prevent mldonkey from remaining
+    connected to a server with too few users.
+  * Telnet interface: 
+     - New command 'remove_old_servers'
   * Fixed bugs:  
    - #100662: only valid server IPs are accepted.
    - Use IP returned by getsockname instead of the one from gethostbyname.
+   - #100761: new option 'update_server_list' to choose whether you want 
+     mldonkey to automatically add new servers to your server list.
+   - Fixed bug preventing sharing of in-download files after restart.
+   - Fixed bug making history.met always increase.
 
 Release 1.14:
   * Bandwidth is now controled by the 'max_hard_download_rate' and

@@ -184,7 +184,7 @@ let update_sizes timer =
       in
       node.desc <- iter 0  t.cols node.desc
       
-    let selection t = List.map (fun num ->
+    let selection t = List2.tail_map (fun num ->
           (Hashtbl.find t.num_table num).value
       ) t.selection
     

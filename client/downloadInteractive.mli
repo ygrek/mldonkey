@@ -31,9 +31,6 @@ val eval : bool ref -> Buffer.t -> string -> DownloadTypes.connection_options ->
 val telnet_handler : TcpServerSocket.t -> TcpServerSocket.event -> unit
 val create_http_handler : unit -> TcpServerSocket.t
   
-val search_string :  Gui_types.search_query -> string
-  
-val send_search : DownloadTypes.search -> Mftp_server.Query.t -> unit
 val load_url : string -> string -> unit
   
 val reconnect_all : DownloadTypes.file -> unit

@@ -26,11 +26,7 @@ let of_inet_addr t =
   of_string (Unix.string_of_inet_addr t)
 
 let of_ints t = t
-let to_int32 (a4, a3, a2, a1 ) =
-  let i1 = Int32.of_int (a1 + 256 * (a2 + 256 * a3)) in
-  i1 +. (Int32.of_int a4)
 
-let to_int t = Int32.to_int (to_int32 t)
 let to_ints t = t
 let to_string (a4, a3, a2, a1) =
   Printf.sprintf "%d.%d.%d.%d" a4 a3 a2 a1
@@ -46,7 +42,23 @@ let to_fixed_string ((a4, a3, a2, a1) as t)=
   with _ -> 
       Printf.sprintf "%03d.%03d.%03d.%03d" a4 a3 a2 a1
 
+let to_int32  ((a4, a3, a2, a1) as t) =
+  let small = a1 + 256 * (a2 + 256 * a3) in
+  Int32.add (Int32.of_int small) (Int32.shift_left (Int32.of_int a4) 24)
 
+let const_int32_255 = Int32.of_int 255
+  
+let of_int32 i =
+  let a4 = Int32.to_int (Int32.logand (Int32.shift_right i 24) const_int32_255)
+  in
+  let a3 = Int32.to_int (Int32.logand (Int32.shift_right i 16) const_int32_255)
+  in
+  let a2 = Int32.to_int (Int32.logand (Int32.shift_right i 8) const_int32_255)
+  in
+  let a1 = Int32.to_int (Int32.logand i const_int32_255)
+  in
+  (a4, a3, a2, a1)
+  
 let resolve_one t =
   try
     Hashtbl.find hostname_table t
@@ -100,3 +112,18 @@ let from_name name =
         with _ -> localhost
       else
         localhost
+        
+
+open Options
+        
+module IpOption = struct
+    
+    let value_to_ip v = of_string (value_to_string v)
+      
+    let ip_to_value ip = string_to_value (to_string ip)
+      
+    let t = define_option_class "Ip" value_to_ip ip_to_value      
+      
+  end
+  
+let option = IpOption.t

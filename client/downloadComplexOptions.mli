@@ -40,3 +40,7 @@ val value_to_md4 : Options.option_value -> Md4.t
   
 val files : DownloadTypes.file list Options.option_record
 val done_files : DownloadTypes.file list Options.option_record
+
+val customized_queries :
+  (string * DownloadTypes.query_entry) list Options.option_record
+  

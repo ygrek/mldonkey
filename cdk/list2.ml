@@ -61,3 +61,5 @@ let cut n list =
   if n < 0 then failwith "List2.sub: invalid parameter";
   cut_rec n list []
   
+let tail_map f list = 
+  List.rev (List.rev_map f list)

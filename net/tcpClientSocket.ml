@@ -62,7 +62,7 @@ and bandwidth_controler = {
 
 let nread t = t.nread
 
-let min_buffer_read = 20000
+let min_buffer_read = 500
 let min_read_size = min_buffer_read - 100  
 (*
 
@@ -530,7 +530,7 @@ let set_write_controler t bc =
   set_before_select t.sock (bandwidth_controler t);
   bandwidth_controler t t.sock
   
-let max_buffer_size = ref  1000000
+let max_buffer_size = ref 50000
   
 let create fd handler =
   Unix.set_close_on_exec fd;
@@ -705,3 +705,13 @@ let my_ip t =
   match Unix.getsockname fd with
     Unix.ADDR_INET (ip, port) -> Ip.of_inet_addr ip
   | _ -> raise Not_found
+      
+let stats buf t =
+  BasicSocket.stats buf t.sock;
+  Printf.bprintf buf "  rbuf size: %d/%d\n" (String.length t.rbuf.buf)
+  t.rbuf.max_buf_size;
+  Printf.bprintf buf "  wbuf size: %d/%d\n" (String.length t.wbuf.buf)
+  t.wbuf.max_buf_size
+
+let buf_size  t =
+  (String.length t.rbuf.buf) + (String.length t.wbuf.buf)

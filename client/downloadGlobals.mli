@@ -125,3 +125,9 @@ val set_server_state :
   
 val upload_control : TcpClientSocket.bandwidth_controler
 val download_control : TcpClientSocket.bandwidth_controler
+
+    
+val file_groups : (Md4.t,DownloadTypes.file_group) Hashtbl.t
+val udp_clients : (Gui_types.location_kind,DownloadTypes.udp_client) Hashtbl.t
+
+val mem_stats : Buffer.t -> unit

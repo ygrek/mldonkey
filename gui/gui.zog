@@ -507,14 +507,20 @@
 <entity name=gui>
   <vbox name=box width="600" height="440" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
     <menubar name=menubar width="-1" height="-1" border_width="-1" accel_group_name="" tab_label="" expand="false" fill="false" padding="-1">
-      <menu_item name=_Menu width="-1" height="-1" border_width="-1" label="Mes.mConnections" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
+      <menu_item name=_Menu width="-1" height="-1" border_width="-1" label="Mes.mFile" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
         <menu name=_FileMenu width="-1" height="-1" border_width="-1" tab_label="" expand="false" fill="true" padding="-1">
+          <menu_item name=itemOptions width="-1" height="-1" border_width="-1" label="%22Settings%22" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
+          </menu_item>
+          <menu_separator name=_ width="" height="" border_width="" tab_label="" expand="false" fill="true" padding="">
+          </menu_separator>
           <menu_item name=itemReconnect width="-1" height="-1" border_width="-1" label="Mes.mReconnect" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
           </menu_item>
           <menu_item name=itemDisconnect width="-1" height="-1" border_width="-1" label="Mes.mDisconnect" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
           </menu_item>
           <menu_item name=itemKill width="-1" height="-1" border_width="-1" label="Mes.kill_server" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
           </menu_item>
+          <menu_separator name=_ width="" height="" border_width="" tab_label="" expand="false" fill="true" padding="">
+          </menu_separator>
           <menu_item name=itemQuit width="-1" height="-1" border_width="-1" label="%22Exit%22" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
           </menu_item>
         </menu>
@@ -528,8 +534,6 @@
           <menu_item name=itemFriends width="-1" height="-1" border_width="-1" label="%22Friends%22" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
           </menu_item>
           <menu_item name=itemSearches width="-1" height="-1" border_width="-1" label="%22Queries%22" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
-          </menu_item>
-          <menu_item name=itemOptions width="-1" height="-1" border_width="-1" label="%22Options%22" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
           </menu_item>
           <menu_item name=itemConsole width="-1" height="-1" border_width="-1" label="%22Console%22" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
           </menu_item>

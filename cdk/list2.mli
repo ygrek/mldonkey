@@ -35,3 +35,5 @@ structural occurence of [ele] has been removed. *)
 
 val cut: int -> 'a list -> 'a list * 'a list
   
+val tail_map : ('a -> 'b) -> 'a list -> 'b list
+  

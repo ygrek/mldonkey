@@ -25,7 +25,6 @@ val save_options : BasicSocket.timer -> unit
 val check_locations : BasicSocket.timer -> unit
 val search_handler :
   DownloadTypes.search ->  Mftp_server.QueryReply.t -> unit
-val make_query : DownloadTypes.search -> Mftp_server.Query.t
 val force_save_options : unit -> unit
 val install_hooks : unit -> unit
 val reset_upload_timer : BasicSocket.timer -> unit

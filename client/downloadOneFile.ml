@@ -182,7 +182,7 @@ let query_zones c b =
           | _ -> assert false
       in
       let msg = M.QueryBlocReq msg in
-      if !!max_download_rate <> 0 then
+      if !!max_hard_download_rate <> 0 then
         Fifo.put download_fifo (sock, msg, len)
       else
         client_send sock msg
@@ -318,53 +318,6 @@ let print_time tm =
     tm.U.tm_hour tm.U.tm_min tm.U.tm_sec;
   print_newline ()
   
-  
-let print_stats file = ()
-  (*
-  print_newline ();
-  print_time (Unix.localtime (last_time ()));
-  compute_size file;
-  let nc = ref 0 in
-  let ncc = ref 0 in
-  List.iter (fun  c ->
-      incr nc;
-      match c.client_sock with
-        None -> ()
-      | _ -> incr ncc;
-  ) file.file_known_locations;
-  List.iter (fun c ->
-      incr nc;
-      match c.client_sock with
-        None -> ()
-      | _ -> incr ncc;
-  ) file.file_indirect_locations;
-  Printf.printf "CLIENTS CONNECTED: %d/%d :" !ncc !nc;
-  List.iter (fun c ->
-      print_char (
-        match c.client_state with
-        | Connected_initiating
-        | Connected_idle -> 'C'
-        | Connecting -> 'c'
-        | NotConnected -> ' '
-        | Connected_queued -> 'Q'
-        | Connected_busy -> 'D'
-        | Removed -> 'R'
-            )
-  ) file.file_known_locations;
-  List.iter (fun c ->
-      print_char (
-        match c.client_state with
-        | Connected_initiating
-        | Connected_idle -> 'C'
-        | Connecting -> 'c'
-        | NotConnected -> ' '
-        | Connected_queued -> 'Q'
-        | Connected_busy -> 'D'
-        | Removed -> 'R'
-            )
-  ) file.file_indirect_locations;
-  print_newline ()
-*)
   
 let verify_chunk file i =
   if file.file_md4s = [] then file.file_chunks.(i) else
@@ -592,7 +545,7 @@ and find_client_block c =
   
   match c.client_files with
     [] -> assert false
-  | (file, chunks) :: files -> 
+  | (file, _) :: files -> 
       
       begin
         match c.client_block with 
@@ -606,6 +559,17 @@ and find_client_block c =
         if c.client_chunks.(last) && file.file_available_chunks.(last) = 1 then
           check_file_block c file last max_int;
 
+(* chunks with MD4 already computed *)
+        for i = 0 to file.file_nchunks - 1 do
+          if c.client_chunks.(i) && (match file.file_chunks.(i) with
+                AbsentVerified -> true
+              | PartialVerified b when b.block_nclients = 0 -> true
+              | _ -> false
+            ) then
+            check_file_block c file i 1
+        done;        
+        
+(* rare chunks *)
         let rare_blocks = ref [] in
         for i = 0 to file.file_nchunks - 1 do
           if c.client_chunks.(i) && file.file_available_chunks.(i) = 1 then
@@ -618,10 +582,13 @@ and find_client_block c =
         List.iter (fun (_,i) ->
             check_file_block c file i max_int) rare_blocks;
 
+(* chunks with no client *)
         check_file_block c file last max_int;
         for i = 0 to file.file_nchunks - 1 do
           check_file_block c file i 1
         done;
+        
+(* chunks with several clients *)
         for i = 0 to file.file_nchunks - 1 do
           check_file_block c file i max_int
         done;
@@ -862,8 +829,7 @@ let check_file_downloaded file =
         
 let update_options file =    
   file.file_absent_chunks <- List.rev (find_absents file);
-  check_file_downloaded file;
-  print_stats file
+  check_file_downloaded file
 
 let new_file_to_share sh =
   try
@@ -930,9 +896,11 @@ let check_files_md4s timer =
             if file.file_md4s <> [] then
               Array.iteri (fun i b ->
                   match b with
-                    PartialVerified _ | AbsentVerified -> ()
-                  | PresentVerified
+                    PartialVerified _ | AbsentVerified
+                  | PresentVerified -> ()
                   | _ ->
+(*                      Printf.printf "verify file md4 %d %d"
+                        file.file_num i; print_newline (); *)
                       verify_file_md4 file i b;
                       compute_size file;
                       raise Not_found
@@ -1043,7 +1011,7 @@ let rec add_shared_files dirname =
   
 let download_engine () =
   if not (Fifo.empty download_fifo) then begin
-      download_credit := !download_credit + !!max_download_rate;
+      download_credit := !download_credit + !!max_hard_download_rate;
       let rec iter () =
         if !download_credit > 0 && not (Fifo.empty download_fifo) then  
           begin

@@ -94,15 +94,17 @@ if availability.(i) then '1' else '0')) c.client_files;
     P.client_num = c.client_num;
     P.client_rating = c.client_rating;
   }
-  
+
+  (*
 let more_file_info file = 
   {
     P.file_known_locations = 
-    List.map client_info file.file_known_locations; 
+    List2.tail_map client_info file.file_known_locations; 
     P.file_indirect_locations = 
-    List.map client_info file.file_indirect_locations;
+    List2.tail_map client_info file.file_indirect_locations;
   }
-
+    *)
+  
 let server_info s =
   {
     P.server_num = s.server_num;
@@ -127,7 +129,7 @@ let user_info s u = {
     P.user_name = u.user_name;
   }
     
-let server_users s = List.map (user_info s) s.server_users
+let server_users s = List2.tail_map (user_info s) s.server_users
   
 let send_file_info gui file =
   let module P = Gui_proto in  
@@ -137,7 +139,7 @@ let send_file_info gui file =
 let send_full_file_info gui file =
   let module P = Gui_proto in  
   let file_info = file_info file in
-  file_info.P.file_more_info <- Some (more_file_info file);
+(*  file_info.P.file_more_info <- Some (more_file_info file); *)
 (*  Printf.printf "SEND INFO"; print_newline (); *)
   gui_send gui (P.File_info file_info)
   
@@ -241,7 +243,24 @@ let add_user_friend s u =
     Some sock, (Connected_idle|Connected_busy) ->
       query_id s sock u.user_ip;
   | _ -> ()
-    
+
+
+let file_locations file = 
+  
+  let ilocs = ref [] in
+  let locs = ref [] in
+  List.iter (fun c ->
+        ilocs := c.client_num :: !ilocs
+  ) file.file_indirect_locations;
+  List.iter (fun c ->
+        locs := c.client_num :: !locs
+  ) file.file_known_locations;
+  
+  let m = P.File_locations (file.file_num,
+      Array.of_list !ilocs,
+      Array.of_list !locs) in
+  m
+  
 let find_user_handler s sock t =
   let module M = Mftp_server in
   let module Q = M.QueryUsersReply in
@@ -278,13 +297,13 @@ let server_of_key t =
       raise Not_found
   
 let gui_reader (gui: gui_record) t sock =
-  (*
+
   if Obj.is_int (Obj.repr t) then
     Printf.printf "from gui: int %d" (Obj.magic t)
   else
     Printf.printf "from gui: %d" (Obj.tag (Obj.repr t)); 
 print_newline ();
-  *)
+  
   try
     let module P = Gui_proto in
     match t with
@@ -347,7 +366,9 @@ print_newline ();
                                   None -> ()
                                 | Some files ->
                                     gui_send gui (P.Client_files (
-                                        c.client_num, c.client_all_files))
+                                        c.client_num, Some (
+                                          List2.tail_map (
+                                            Store.get DownloadIndexer.store) files)))
                               end
                           | [] ->
                               match gui.gui_servers with
@@ -378,12 +399,13 @@ print_newline ();
         gui.gui_searches <- 
           (s.P.search_num, !search_counter) :: gui.gui_searches;
         let rec search = {
+            search_max_hits = s.P.search_max_hits;
             search_query = s.P.search_query;
             search_files = Hashtbl.create 127;
             search_num = !search_counter;
             search_nresults = 0;
             search_waiting = List.length !connected_server_list;
-            search_string = DownloadInteractive.search_string s.P.search_query;
+            search_string = DownloadSearch.search_string s.P.search_query;
             search_handler = (fun ev -> 
                 match ev with
                   Result r -> send_result gui s.P.search_num r
@@ -396,8 +418,8 @@ print_newline ();
         if local then
           DownloadIndexer.find search
         else
-        let query = make_query search in
-        DownloadInteractive.send_search search  query
+        let query = search.search_query in
+        DownloadSearch.send_search search  query
     
     | P.Download_query (filenames, size, md4, location) ->
 (*        Printf.printf "from gui: download"; print_newline (); *)
@@ -420,37 +442,6 @@ print_newline ();
         List.iter (fun (name, value) ->
             Printf.printf "%s:%s" name value; print_newline ();
             set_simple_option downloads_ini name value) list;
-(*
-        port =:= o.P.connection_port;
-        rmt_port =:= o.P.control_port;
-        
-        if !!gui_port <> o.P.gui_port then begin
-            gui_port =:= o.P.gui_port;
-            List.iter (fun gui ->
-                TcpClientSocket.close gui.gui_sock "port changed";
-                !restart_gui_server ();
-            ) !guis;
-          end;
-        
-        save_options_delay =:= o.P.save_options_delay;
-        check_client_connections_delay =:= 
-          o.P.check_client_connections_delay;
-        check_connections_delay =:= o.P.check_server_connections_delay;
-        small_retry_delay =:= o.P.small_retry_delay;
-        medium_retry_delay =:= o.P.medium_retry_delay;
-        long_retry_delay =:= o.P.long_retry_delay;
-        
-        client_name =:= o.P.name;
-        max_connected_servers =:= o.P.max_connected_servers;
-        max_upload_rate =:= o.P.upload_limit;
-        features =:= String2.split_simplify o.P.features ' ';        
-        
-        server_connection_rtimeout =:= o.P.server_timeout;
-        cconn_rtimeout =:= o.P.client_timeout;
-        max_server_age =:= o.P.max_server_age;
-        
-        password =:= o.P.password;
-*)        
         force_save_options ()
     
     | P.RemoveDownload_query md4 ->
@@ -492,13 +483,20 @@ print_newline ();
         
     | P.GetClient_files num ->
         let c = find_client num in
-        gui_send gui (P.Client_files (c.client_num, c.client_all_files))
-        
+        begin
+          match c.client_all_files with
+            None -> ()
+          | Some files ->
+              gui_send gui (P.Client_files (c.client_num, 
+                  Some (
+                    List2.tail_map (Store.get DownloadIndexer.store) files)))
+        end
     | P.GetClient_info num ->
         begin
           try
             let c = find_client num in
-            gui_send gui (P.Client_info (client_info c))
+            if c.client_md4 <> Md4.null || c.client_is_friend = Friend then
+              gui_send gui (P.Client_info (client_info c))
           with Not_found -> ()
         end
         
@@ -515,11 +513,7 @@ print_newline ();
         begin
           try
             let file = find_file md4 in
-            
-            let m = P.File_locations (file.file_num,
-                List.map client_info file.file_indirect_locations,
-                List.map client_info file.file_known_locations) in
-            gui_send gui m
+            gui_send gui (file_locations file)
 
           with _ -> ()
         end
@@ -738,11 +732,19 @@ let gui_server_change_hook s gui =
         
 let gui_client_change_hook c gui = 
   match c.client_changed with
-     NoClientChange ->  ()
+    NoClientChange ->  ()
   | ClientStateChange -> 
       gui_send gui (P.Client_state (c.client_num, c.client_state))
   | ClientFilesChange ->
-      gui_send gui (P.Client_files (c.client_num, c.client_all_files))
+      begin
+        match c.client_all_files with
+          None -> ()
+        | Some files ->
+            gui_send gui (P.Client_files (
+                c.client_num, Some (
+                  List2.tail_map (
+                    Store.get DownloadIndexer.store) files)))            
+      end
   | ClientFriendChange ->
       gui_send gui (P.Client_friend (c.client_num, c.client_is_friend))
   | ClientInfoChange -> send_client_info gui c
@@ -798,9 +800,7 @@ let update_gui_info timer =
       if file.file_new_locations then begin
           file.file_new_locations <- false;
           
-          let m = P.File_locations (file.file_num,
-              List.map client_info file.file_indirect_locations,
-              List.map client_info file.file_known_locations) in
+          let m = file_locations file in
           List.iter (fun gui -> gui_send gui m) !guis;
           
         end

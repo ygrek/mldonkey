@@ -35,7 +35,8 @@ CUSTOM=$(CUSTOM_$(TARGET))
 COMP=$(COMP_$(TARGET))
 GTK_LIBS=$(GTK_LIBS_$(TARGET))
 
-SUBDIRS=cdk configwin mp3tagui okey lib net proto client gui $(MORE_SUBDIRS)
+SUBDIRS=cdk configwin mp3tagui okey lib net proto \
+  client server gui $(MORE_SUBDIRS)
 
 INC_PACKAGES=lablgtk
 INCLUDES +=-I +lablgtk $(foreach file, $(SUBDIRS), -I $(file))
@@ -62,9 +63,9 @@ MP3TAGUI_CMOS=  mp3tagui/mp3_messages.$(EXT) mp3tagui/mp3_ui.$(EXT)
 OKEY_CMOS= okey/okey.$(EXT)
 
 LIB_CMOS= lib/autoconf.$(EXT) \
-  lib/int32ops.$(EXT) lib/ip.$(EXT) lib/options.$(EXT) lib/numset.$(EXT)  \
+  lib/int32ops.$(EXT) lib/options.$(EXT) lib/ip.$(EXT)  lib/numset.$(EXT)  \
   lib/fifo.$(EXT) \
-  lib/hole_tab.$(EXT) lib/indexer.$(EXT) lib/host.$(EXT)  \
+  lib/hole_tab.$(EXT) lib/store.$(EXT) lib/indexer.$(EXT) lib/host.$(EXT)  \
   lib/misc.$(EXT) lib/unix32.$(EXT)  lib/md4.$(EXT) \
   lib/avifile.$(EXT) lib/http_lexer.$(EXT) lib/url.$(EXT) \
   lib/mailer.$(EXT)
@@ -97,10 +98,21 @@ CLIENT_CMOS=client/downloadTypes.$(EXT) \
   client/downloadMultimedia.$(EXT) client/downloadIndexer.$(EXT) \
   client/downloadServers.$(EXT) client/downloadOneFile.$(EXT) \
   client/downloadClient.$(EXT) client/downloadFiles.$(EXT)  \
+  client/downloadSearch.$(EXT) \
   client/downloadInteractive.$(EXT)  client/downloadInterface.$(EXT) \
   client/downloadMain.$(EXT)
 
-TARGETS= mldonkey_gui$(EXE) $(MORE_TARGETS)$(EXE)
+SERVER_CMOS=\
+  server/serverTypes.$(EXT) \
+  server/serverOptions.$(EXT) \
+  server/serverGlobals.$(EXT) \
+  server/serverLocate.$(EXT) \
+  server/serverIndexer.$(EXT) \
+  server/serverClients.$(EXT) \
+  server/serverUdp.$(EXT)  \
+  server/serverMain.$(EXT)
+
+TARGETS= mldonkey_gui$(EXE) $(MORE_TARGETS)
 
 GUI= \
   $(CDK_CMOS) $(LIB_CMOS) $(NET_CMOS) \
@@ -116,7 +128,15 @@ SECRET_CLIENT=  \
   $(MIN_GUI_CMOS) \
   $(CLIENT_CMOS) 
 
+SECRET_SERVER =   \
+  $(MIN_PROTO_CMOS) \
+  $(PROTO_CMOS) \
+  $(MIN_GUI_CMOS) \
+  $(SERVER_CMOS) 
+
+
 CLIENT= $(OPEN_CLIENT) $(SECRET_CLIENT)
+SERVER= $(OPEN_CLIENT) $(SECRET_SERVER)
 BIN_CLIENT=client.$(EXT)
 
 all: byte
@@ -170,6 +190,12 @@ mldonkey$(EXE): $(CMOS) $(CLIENT) $(OBJS)
 mldonkey.static: $(CMOS) $(CLIENT) $(OBJS)
 	$(COMP) -ccopt -static -o mldonkey.static  $(LIBS) $(CMOS) $(CLIENT) $(OBJS)
 
+mldonkey_s$(EXE): $(CMOS) $(SERVER) $(OBJS)
+	$(COMP) -o mldonkey_s$(EXE) $(LIBS) $(CMOS) $(SERVER) $(OBJS)
+
+mldonkey_s.static: $(CMOS) $(SERVER) $(OBJS)
+	$(COMP) -ccopt -static -o mldonkey_s.static  $(LIBS) $(CMOS) $(SERVER) $(OBJS)
+
 open_mldonkey:
 	$(MAKE) TARGET=opt open_mldonkey.opt
 
@@ -185,7 +211,7 @@ open_mldonkey.static: $(CMOS) $(OPEN_CLIENT) $(BIN_CLIENT) $(OBJS)
 include Makefile.cdk
 
 clean: 
-	rm -f *.cm? donkey_* *.byte *.cmi $(TARGETS) *~ *.o core
+	rm -f *.cm? donkey_* *.byte *.cmi $(TARGETS) *~ *.o core *.static
 	rm -f mldonkey mldonkey_gui
 	(for i in $(SUBDIRS); do \
 		rm -f  $$i/*.cm? $$i/*.o ; \

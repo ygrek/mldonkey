@@ -27,6 +27,8 @@
 
 open Options
 
+module M = Gui_messages
+
 let mldonkey_gui_ini = create_options_file 
     (Filename.concat Sysenv.home ".mldonkey_gui.ini")
   
@@ -136,24 +138,23 @@ let add_binding map binding action =
 (** {2 Colors} *)
 
 let color_default = define_option mldonkey_gui_ini ["colors"; "default"]
-    "" string_option "Black"
+    M.h_col_default string_option "Black"
 let color_downloaded =  define_option mldonkey_gui_ini ["colors"; "downloaded"]
-    "" string_option "Blue"
-let color_downloading =  define_option mldonkey_gui_ini 
-  ["colors"; "downloading"]
-    "" string_option "DarkGreen"
+    M.h_col_downloaded string_option "Blue"
+let color_downloading =  define_option mldonkey_gui_ini ["colors"; "downloading"]
+    M.h_col_downloading string_option "DarkGreen"
 let color_available =  define_option mldonkey_gui_ini ["colors"; "available"]
-    "" string_option "Orange"
+    M.h_col_avail string_option "Orange"
 let color_not_available =  define_option mldonkey_gui_ini ["colors"; "not_available"]
-    "" string_option "Red"
+    M.h_col_not_avail string_option "Red"
 let color_connected =  define_option mldonkey_gui_ini ["colors"; "connected"]
-    "" string_option "DarkGreen"
+    M.h_col_connected string_option "DarkGreen"
 let color_not_connected =  define_option mldonkey_gui_ini ["colors"; "not_connected"]
-    "" string_option "Black"
+    M.h_col_not_connected string_option "Black"
 let color_connecting =  define_option mldonkey_gui_ini ["colors"; "connecting"]
-    "" string_option "Orange"
+    M.h_col_connecting string_option "Orange"
 let color_files_listed =  define_option mldonkey_gui_ini ["colors"; "files_listed"]
-    "" string_option "Blue"
+    M.h_col_files_listed string_option "Blue"
 
 (** {2 Layout} *)
 
@@ -197,10 +198,12 @@ let gui_height = define_option mldonkey_gui_ini
   
 (** {2 Others} *)
 
-let password = define_option mldonkey_gui_ini ["password"] "" string_option ""
-let port = define_option mldonkey_gui_ini ["port"] "" int_option 4001
-let hostname = define_option mldonkey_gui_ini ["hostname"] "" string_option 
-  "localhost"
+let password = define_option mldonkey_gui_ini ["password"] 
+    M.h_gui_password string_option ""
+let port = define_option mldonkey_gui_ini ["port"] 
+    M.h_gui_port int_option 4001
+let hostname = define_option mldonkey_gui_ini ["hostname"] 
+    M.h_hostname string_option "localhost"
 
   
   
@@ -238,6 +241,7 @@ let client_name = ref ""
 let client_password = ref ""
 let max_connected_servers = ref ""
 let max_upload_rate = ref ""
+let max_download_rate = ref ""
 let server_connection_timeout = ref ""
 let client_timeout = ref ""
 let max_server_age = ref ""
@@ -263,7 +267,8 @@ let client_options_assocs = [
   "client_name",   client_name;
   "password",  client_password;
   "max_connected_servers", max_connected_servers;
-  "max_upload_rate", max_upload_rate;
+  "max_hard_upload_rate", max_upload_rate;
+  "max_hard_download_rate", max_download_rate;
   "server_connection_timeout", server_connection_timeout;
   "client_timeout", client_timeout;
   "max_server_age", max_server_age;    

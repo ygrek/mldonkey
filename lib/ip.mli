@@ -38,3 +38,7 @@ val to_sockaddr : t -> int -> Unix.sockaddr
 
 val from_name : string -> t
   
+val option : t Options.option_class
+  
+val to_int32 : t -> int32
+val of_int32 : int32 -> t

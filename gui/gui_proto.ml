@@ -22,7 +22,8 @@ open Gui_types
   
 type search = {
     mutable search_num : int;
-    mutable search_query : search_query;
+    mutable search_query : Mftp.query;
+    mutable search_max_hits : int;
   }
 
 type options = {
@@ -119,8 +120,8 @@ and file_info = {
   }
   
 and more_file_info = {
-    mutable file_known_locations : client_info list; 
-    mutable file_indirect_locations : client_info list;
+    mutable file_known_locations : int array; 
+    mutable file_indirect_locations : int array;
   }
 
 and user_info = {
@@ -176,7 +177,7 @@ type to_gui =
 | File_info of file_info
 | File_downloaded of int * int32 * float
 | File_availability of int * string * string
-| File_locations of int * client_info list * client_info list
+| File_locations of int * int array * int array
   
 | Server_busy of server_key * int * int
 | Server_users of server_key * user_info list

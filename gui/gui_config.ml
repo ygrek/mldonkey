@@ -22,6 +22,8 @@
 module GO = Gui_options
 open Configwin
 
+module M = Gui_messages
+
 let (!!) = Options.(!!)
 let (=:=) = Options.(=:=)
 
@@ -35,19 +37,22 @@ let create_gui_params () =
   (** Server options *)
 
   let gui_port = string 
+      ~help: M.h_gui_port
       ~f: (fun s -> safe_int_of_string GO.port s) 
-      "GUI port" (string_of_int !!GO.port)
+      M.o_gui_port (string_of_int !!GO.port)
   in
   let gui_hostname = string 
+      ~help: M.h_hostname
       ~f: (fun s -> GO.hostname =:= s) 
-      "Hostname" !!GO.hostname 
+      M.o_hostname !!GO.hostname 
   in
   let gui_password = string
+      ~help: M.h_gui_password
       ~f: (fun s -> GO.password =:= s)
-      "Password" !!GO.password
+      M.o_password !!GO.password
   in
   let server_options = Section
-      ("Server",
+      (M.o_gui_server,
        [
 	 gui_port ; gui_hostname ; gui_password ;
        ] 
@@ -56,43 +61,52 @@ let create_gui_params () =
 
   (** Colors *)
   let color_default = color 
+      ~help: M.h_col_default
       ~f: (fun s -> GO.color_default =:= s)
-      "Default" !!GO.color_default 
+      M.o_col_default !!GO.color_default 
   in
   let color_downloaded = color
+      ~help: M.h_col_downloaded
       ~f: (fun s -> GO.color_downloaded =:= s)
-      "Downloaded" !!GO.color_downloaded
+      M.o_col_downloaded !!GO.color_downloaded
   in
   let color_downloading = color
+      ~help: M.h_col_downloading
       ~f: (fun s -> GO.color_downloading =:= s)
-      "Downloading" !!GO.color_downloading
+      M.o_col_downloading !!GO.color_downloading
   in
   let color_available = color
+      ~help: M.h_col_avail
       ~f: (fun s -> GO.color_available =:= s)
-      "Available" !!GO.color_available
+      M.o_col_avail !!GO.color_available
   in
   let color_not_available = color
+      ~help: M.h_col_not_avail
       ~f: (fun s -> GO.color_not_available =:= s)
-      "Not available" !!GO.color_not_available 
+      M.o_col_not_avail !!GO.color_not_available 
   in
   let color_connected = color
+      ~help: M.h_col_connected
       ~f: (fun s -> GO.color_connected =:= s)
-      "Connected" !!GO.color_connected
+      M.o_col_connected !!GO.color_connected
   in
   let color_not_connected = color
+      ~help: M.h_col_not_connected
       ~f: (fun s -> GO.color_not_connected =:= s)
-      "Not connected" !!GO.color_not_connected
+      M.o_col_not_connected !!GO.color_not_connected
   in
   let color_connecting = color
+      ~help: M.h_col_connecting
       ~f: (fun s -> GO.color_connecting =:= s)
-      "Connecting" !!GO.color_connecting
+      M.o_col_connecting !!GO.color_connecting
   in
   let color_files_listed = color
+      ~help: M.h_col_files_listed
       ~f: (fun s -> GO.color_files_listed =:= s)
-      "Files listed" !!GO.color_files_listed
+      M.o_col_files_listed !!GO.color_files_listed
   in
   let colors_options = Section
-      ("Colors",
+      (M.o_colors,
        [
 	 color_default ; color_downloaded ;
 	 color_downloading ; color_available ;
@@ -105,11 +119,12 @@ let create_gui_params () =
 
   (** Layout options *)
   let auto_resize = bool
+      ~help: M.h_auto_resize
       ~f: (fun b -> GO.auto_resize =:= b)
-      "Auto resize" !!GO.auto_resize
+      M.o_auto_resize !!GO.auto_resize
   in
   let layout_options = Section
-      ("Layout",
+      (M.o_layout,
        [
 	 auto_resize ;
        ] 
@@ -118,58 +133,65 @@ let create_gui_params () =
 
   [ server_options ; colors_options ; layout_options  ]
   
-let create_option label ref = string ~f: (fun s -> ref := s) label !ref
+let create_option ?help label ref = string ?help ~f: (fun s -> ref := s) label !ref
 
 let create_client_params () =
   (** Name and authentification *)
-  let client_name = create_option "Client name" GO.client_name in
-  let client_password = create_option "Password" GO.client_password in
+  let client_name = create_option M.o_client_name GO.client_name in
+  let client_password = create_option M.o_password GO.client_password in
 
   (** ports *)
-  let port_param = create_option "Port" GO.client_port in
-  let telnet_port = create_option "Telnet port" GO.telnet_port in
-  let gui_port = create_option "Gui port" GO.client_gui_port in
+  let port_param = create_option M.o_http_port GO.client_port in
+  let telnet_port = create_option M.o_telnet_port GO.telnet_port in
+  let gui_port = create_option M.o_gui_server_port GO.client_gui_port in
   
 
   (** delays *)
-  let save_op_delay = create_option "Save options delay" GO.save_options_delay in
-  let check_cl_delay = create_option "Check client connections delay" GO.check_client_connections_delay in
-  let check_delay = create_option "Check connections delay" GO.check_connections_delay in
-  let small_retry = create_option "Small retry delay" GO.small_retry_delay in
-  let medium_retry = create_option "Medium retry delay" GO.medium_retry_delay in
-  let long_retry = create_option "Long retry delay" GO.long_retry_delay in
-  let server_timeout = create_option "Server connection timeout" GO.server_connection_timeout in
-  let client_timeout = create_option "Client timeout" GO.client_timeout in
-  let update_gui_delay = create_option "Update GUI delay" GO.update_gui_delay in
-  let max_server_age = create_option "Max server age" GO.max_server_age in
+  let save_op_delay = create_option M.o_save_options_delay GO.save_options_delay in
+  let check_cl_delay = create_option M.o_check_client_cons_delay GO.check_client_connections_delay in
+  let check_delay = create_option M.o_check_cons_delay GO.check_connections_delay in
+  let small_retry = create_option M.o_small_delay GO.small_retry_delay in
+  let medium_retry = create_option
+      ~help: M.h_medium_delay
+      M.o_medium_delay GO.medium_retry_delay 
+  in
+  let long_retry = create_option
+      ~help: M.h_long_delay
+      M.o_long_delay GO.long_retry_delay 
+  in
+  let server_timeout = create_option M.o_server_connection_timeout GO.server_connection_timeout in
+  let client_timeout = create_option M.o_client_timeout GO.client_timeout in
+  let update_gui_delay = create_option M.o_update_gui_delay GO.update_gui_delay in
+  let max_server_age = create_option M.o_max_server_age GO.max_server_age in
 
   (** mail *)
-  let smtp_server = create_option "SMTP server" GO.smtp_server in
-  let smtp_port = create_option "SMTP port" GO.smtp_port in
-  let mail = create_option "Mail address" GO.mail in
+  let smtp_server = create_option M.o_smtp_server GO.smtp_server in
+  let smtp_port = create_option M.o_smtp_port GO.smtp_port in
+  let mail = create_option M.o_mail_address GO.mail in
 
   (** directories *)
-  let temp_dir = create_option "Temp directory" GO.temp_dir in
-  let incom_dir = create_option "Incoming directory" GO.incoming_dir in
+  let temp_dir = create_option M.o_temp_dir GO.temp_dir in
+  let incom_dir = create_option M.o_incom_dir GO.incoming_dir in
 
   (** misc *)
-  let max_up_rate = create_option "Max upload rate" GO.max_upload_rate in
-  let max_con_servs = create_option "Max connected servers" GO.max_connected_servers in
+  let max_up_rate = create_option M.o_max_upload_rate GO.max_upload_rate in
+  let max_dl_rate = create_option M.o_max_dl_rate GO.max_download_rate in
+  let max_con_servs = create_option M.o_max_connected_servers GO.max_connected_servers in
 
-  [ Section ("Name and authentification",
+  [ Section (M.o_name_auth,
 	     [ client_name;  client_password ]) ;
-    Section ("Ports",
+    Section (M.o_ports, 
 	     [ port_param ; telnet_port ; gui_port]) ;
-    Section ("Delays",
+    Section (M.o_delays,
 	     [ save_op_delay ; check_cl_delay ; check_delay ;
 	       small_retry ; medium_retry ; long_retry ;
 	       server_timeout ; client_timeout ;
 	       update_gui_delay ; max_server_age ;]) ;
-    Section ("Directories",
+    Section (M.o_directories,
 	     [ temp_dir ; incom_dir]) ;
-    Section ("Mail",
+    Section (M.o_mail,
 	     [ smtp_server ; smtp_port ; mail ]);
-    Section ("Misc",
+    Section (M.o_misc,
 	     [max_up_rate ; max_con_servs ]) ;
   ] 
 
@@ -177,10 +199,10 @@ let edit_options () =
   let gui_params = create_gui_params () in 
   let client_params = create_client_params () in
   let structure = [
-    Section_list ("Gui", gui_params) ;
-    Section_list ("Client", client_params) ;
+    Section_list (M.o_gui, gui_params) ;
+    Section_list (M.o_client, client_params) ;
   ] 
   in
-  match Configwin.get "Options" structure with
+  match Configwin.get M.o_options structure with
     Return_ok | Return_apply -> Gui_misc.save_options ()
   | Return_cancel -> ()

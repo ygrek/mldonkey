@@ -432,5 +432,30 @@ let _ =
         (!!max_hard_upload_rate * 1024));  
   option_hook max_hard_download_rate (fun _ ->
       TcpClientSocket.change_rate download_control 
-        (!!max_hard_download_rate * 1024));
+        (!!max_hard_download_rate * 1024))  
   
+    
+let file_groups = Hashtbl.create 1023
+let udp_clients = Hashtbl.create 1023
+
+let mem_stats buf = 
+  Gc.compact ();
+  let client_counter = ref 0 in
+  let unconnected_unknown_clients = ref 0 in
+  let buffers = ref 0 in
+  Hashtbl.iter (fun num c ->
+      incr client_counter;
+      match c.client_sock with
+        None -> begin
+            match c.client_kind with
+              Indirect_location -> incr unconnected_unknown_clients
+            | _ -> ()
+          end
+      | Some sock ->
+          buffers := !buffers + TcpClientSocket.buf_size sock
+  ) clients_by_num;
+  Printf.bprintf buf "Clients: %d\n" !client_counter;
+  Printf.bprintf buf "   Bad Clients: %d\n" !unconnected_unknown_clients;
+  Printf.bprintf buf "   Buffers: %d\n" !buffers;
+  
+  ()

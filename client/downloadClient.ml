@@ -39,9 +39,6 @@ open DownloadComplexOptions
 open DownloadGlobals
 open Gui_types
   
-let file_groups = Hashtbl.create 1023
-let udp_clients = Hashtbl.create 1023
-  
 let new_udp_client c group =
   match c.client_kind with
     Indirect_location -> ()
@@ -275,6 +272,7 @@ print_newline ();
                     result_type = "";
                     result_format = "";
                     result_comment = None;
+                    result_done = false;
                   } in
                 List.iter (fun tag ->
                     match tag with
@@ -759,7 +757,9 @@ for mldonkey clients .*)
                 match c.client_kind with
                   Indirect_location -> ()
                 | Known_location (ip, port) ->
-                    Printf.printf "sending %d sources to new UDP peer" (List.length !sources); print_newline ();
+                    let sources, _ =
+                      List2.cut 20 !sources in
+                    Printf.printf "sending %d sources to new UDP peer" (List.length sources); print_newline ();
                     List.iter (fun (src_ip, src_port, _ ) ->
                         client_udp_send ip port (
                           let module Q = Mftp_server.QueryLocationReply in
@@ -770,7 +770,7 @@ for mldonkey clients .*)
                                 Q.port = src_port;
                               }];
                           });                    
-                    ) !sources;
+                    ) sources;
               end;
 
 (* If this source is new, send a message to all locations so that they can

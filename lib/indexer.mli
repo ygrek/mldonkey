@@ -16,23 +16,36 @@
     along with mldonkey; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
-type 'a  index
-and 'a doc
 
-val print : 'a index -> unit
-val create : unit -> 'a index
-val find_docs : 'a index -> string -> unit
-val make_doc : 'a index -> 'a -> 'a doc
   
-type request = (string * int) list
-val complex_request :
-  'a index -> request -> ('a doc -> bool) -> 'a doc list
+type 'a query =
+  And of 'a query * 'a query
+| Or of 'a query * 'a query
+| AndNot of 'a query * 'a query
+| HasWord of string
+| HasField of int * string
+| Predicate of ('a -> bool)
+  
+module Make(Doc : sig
+      type t
+      
+      val num : t -> int
+      val filtered : t -> bool
+      val filter : t -> bool -> unit
+    end) : sig
     
-val add : 'a index -> string -> 'a doc -> int -> unit
-val value : 'a doc -> 'a
-
-val clear : 'a index -> unit
-
-val filter_words : 'a index -> string list -> unit
-val clear_filter : 'a index -> unit
-val filtered : 'a doc -> bool
+    type   index
+    
+    val print :  index -> unit
+    val create : unit ->  index
+    val find_docs :  index -> string -> unit
+    
+    val add :  index -> string ->  Doc.t -> int -> unit
+    
+    val clear :  index -> unit
+    
+    val filter_words :  index -> string list -> unit
+    val clear_filter :  index -> unit
+    val filtered :  Doc.t -> bool
+    val query : index -> Doc.t query -> Doc.t array
+end

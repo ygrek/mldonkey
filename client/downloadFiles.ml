@@ -29,105 +29,6 @@ open DownloadComplexOptions
 open DownloadOptions
 open DownloadClient  
 open Gui_types
-  
-let make_query search =
-  let search = search.search_query in
-  let module M = Mftp_server in
-  let module Q = M.Query in
-    (
-    let args = List.map (fun s -> Q.HasWord s) search.search_words in
-    
-    let args = match search.search_minsize with
-        None -> args
-      | Some v ->
-          ( Q.HasMinVal ("size", v) :: args)
-    in
-    
-    let args = match search.search_maxsize with
-        None -> args
-      | Some v ->
-          ( Q.HasMaxVal ("size", v) :: args)
-    in
-
-    let args = match search.search_min_bitrate with
-        None -> args
-      | Some v -> 
-          ( Q.HasMinVal ("bitrate", v) :: args)
-    in
-    
-    let args = match search.search_artist with
-        None -> args
-      | Some v ->
-          (Q.HasField ("Artist", v) :: args)
-    in
-    
-    let args = match search.search_title with
-        None -> args
-      | Some v ->
-          (Q.HasField ("Title", v) :: args)
-    in
-    
-    let args = match search.search_album with
-        None -> args
-      | Some v ->
-          (Q.HasField ("Album", v) :: args)
-    in
-    
-    let args = match search.search_avail with
-        None -> args
-      | Some v ->
-          ( Q.HasMaxVal ("availability", v) :: args)
-    in
-    
-    let args = match search.search_media with
-        None -> args
-      | Some v ->
-          ( Q.HasField ("type", v) :: args)
-    in
-    
-    let args = match search.search_format with
-        None -> args
-      | Some v ->
-          ( Q.HasField ("format", v) :: args)
-    in
-    
-    let args = 
-      (List.map (fun (s1,s2) -> Q.HasField (s1, s2)) search.search_fields) @ 
-        args in
-    
-    let rec iter_and q1 q2 args =
-      match args with
-        [] -> Q.And (q1, q2)
-      | q3 :: tail ->
-          Q.And (iter_and q2 q3 tail, q1)
-    in
-    let q = match args with
-        [] -> failwith "Empty search"
-      | q1 :: q2 :: tail ->
-          iter_and q1 q2 tail
-      | [q] -> q
-    in
-    let q = List.fold_left (fun q s ->
-          Q.Or (q, Q.HasWord s)
-      ) q search.search_or in
-    let q = List.fold_left (fun q s ->
-          Q.And (q, Q.HasWord s)
-      ) q search.search_and in
-    let q = List.fold_left (fun q s ->
-          Q.AndNot (q, Q.HasWord s)
-      ) q search.search_not in
-
-    q)
-
-  (*
-let add_availability r v = 
-  List.iter (fun tag ->
-        match tag with
-      | { tag_name = "availability"; tag_value = (Uint32 _ | Fint32 _) } ->
-          tag.tag_value <- Uint32 (Int32.of_int v)
-      | _ ->  ()
-  ) r.result_tags
-    *)
 
 let search_found search md4 tags = 
   let file_name = ref "" in
@@ -143,8 +44,8 @@ let search_found search md4 tags =
       | _ -> new_tags := tag :: !new_tags
   ) tags;
   try
-    let result, old_avail = Hashtbl.find search.search_files md4
-    in
+    let doc, old_avail = Hashtbl.find search.search_files md4 in
+    let result = Store.get DownloadIndexer.store doc in
     old_avail := !old_avail + !availability;
     if not (List.mem !file_name result.result_names) then begin
         DownloadIndexer.add_name result !file_name;
@@ -159,6 +60,7 @@ let search_found search md4 tags =
           result_type = "";
           result_tags = List.rev !new_tags;
           result_comment = None;
+          result_done = false;
         } in
       List.iter (fun tag ->
           match tag with
@@ -171,9 +73,10 @@ let search_found search md4 tags =
       
 (*      Printf.printf "new reply"; print_newline ();*)
       try
-        let result =  DownloadIndexer.index_result new_result in      
-        Hashtbl.add search.search_files md4 (result, availability);
+        let doc = DownloadIndexer.index_result new_result in      
+        Hashtbl.add search.search_files md4 (doc, availability);
         search.search_nresults <- search.search_nresults + 1;
+        let result = Store.get DownloadIndexer.store doc in
         search.search_handler (Result result);
       with _ ->  (* the file was probably filtered *)
           ()
@@ -188,9 +91,24 @@ let search_handler search t =
     
 let force_save_options () =  
   List.iter DownloadOneFile.update_options !!files;
+(*  Printf.printf "Saving downloads.ini ..."; flush stdout; *)
   Options.save_with_help downloads_ini;
+(*
+Printf.printf "done"; print_newline ();
+Printf.printf "Saving searches.ini ..."; flush stdout;
+*)
+  Options.save_with_help searches_ini;
+(*
+Printf.printf "done"; print_newline ();
+Printf.printf "Saving files.ini ..."; flush stdout;
+*)
   Options.save_with_help files_ini;
+(*
+Printf.printf "done"; print_newline ();
+Printf.printf "Saving friends.ini ..."; flush stdout;
+*)
   Options.save_with_help friends_ini;
+(*  Printf.printf "done"; print_newline (); *)
   if !servers_ini_changed then begin
       printf_string "[SAVE OPTIONS]\n";
       DownloadServers.update_options ();
@@ -212,7 +130,6 @@ let find_search num = find_search_rec num !searches
 let make_xs ss =
   let servers, left = List2.cut !!max_xs_packets ss.search_xs_servers in
   ss.search_xs_servers <- left;
-  let query = make_query ss in
   
   List.iter (fun s ->
       match s.server_sock with
@@ -220,7 +137,7 @@ let make_xs ss =
       | None ->
           let module M = Mftp_server in
           let module Q = M.Query in
-          udp_server_send s (M.QueryUdpReq query);
+          udp_server_send s (M.QueryUdpReq ss.search_query);
   ) servers
   
   
@@ -511,7 +428,7 @@ let rec send_client_block_partial c sock per_client =
 let reset_upload_timer timer =
   reactivate_timer timer;
   download_counter := 0;
-  remaining_bandwidth := !!max_upload_rate
+  remaining_bandwidth := !!max_hard_upload_rate
   
   (* timer started every 1/10 seconds *)
 let upload_timer timer =

@@ -48,11 +48,11 @@ val color_connecting : string Options.option_record
 val color_files_listed : string Options.option_record
 
 val servers_hpane_left : int Options.option_record
-val  downloads_hpane_left : int Options.option_record
-val  friends_hpane_left : int Options.option_record
-val  searches_hpane_left : int Options.option_record  
-val  downloads_vpane_up : int Options.option_record
-val  friends_vpane_up : int Options.option_record
+val downloads_hpane_left : int Options.option_record
+val friends_hpane_left : int Options.option_record
+val searches_hpane_left : int Options.option_record  
+val downloads_vpane_up : int Options.option_record
+val friends_vpane_up : int Options.option_record
 val gui_width : int Options.option_record
 val gui_height : int Options.option_record
 
@@ -79,6 +79,7 @@ val client_name : string ref
 val client_password : string ref
 val max_connected_servers : string ref
 val max_upload_rate : string ref
+val max_download_rate : string ref
 val server_connection_timeout : string ref
 val client_timeout : string ref
 val max_server_age : string ref

@@ -205,15 +205,12 @@ let comment_item t get_name get_md4 =
         let comment = ref "" in
         match C.simple_get (Printf.sprintf "Comment %s" 
               (get_name x))
-          [
-            C.Text_param {
-              C.string_label = Printf.sprintf "Comment on %s:" (get_name x);
-              C.string_value = "";
-              C.string_editable = true ;
-              C.string_f_apply = (fun s -> 
-                  comment := s);
-            }
-          ] with
+            [
+              C.text ~f:(fun s -> comment := s)
+		(Printf.sprintf "Comment on %s:" (get_name x))
+		""
+            ] 
+	with
           C.Return_ok -> 
             if !comment <> "" then
               gui_send (Command (Printf.sprintf 
@@ -512,7 +509,7 @@ let (clist_downloaded :
 
   
   
-let current_file = ref (-1)
+let current_file = ref None
   
 let ndownloads = ref 0
 let ndownloaded = ref 0
@@ -521,28 +518,40 @@ let nlocations = ref 0
 let nclocations = ref 0
   
 let set_clist_file_locations_file file =
-  if !current_file <> file.file_num then begin
-      current_file := file.file_num;
-      nclocations := 0;
-      nlocations := 0;
-      match file.file_more_info with
-        None -> 
-          gui_send (GetFile_locations file.file_md4)
-      | Some mi -> 
-          MyCList.clear clist_file_locations;
+  begin
+    match !current_file with 
+      Some f when f == file -> ()
+    | _ ->
+        current_file := Some file;
+        nclocations := 0;
+        nlocations := 0;
+        match file.file_more_info with
+          None -> 
+            gui_send (GetFile_locations file.file_md4)
+        | Some mi -> 
+            MyCList.clear clist_file_locations;
     end;
   match file.file_more_info with
     None -> ()
   | Some mi ->
       nclocations := 0;
       nlocations := 0;
-      List.iter (fun c -> 
-          if is_connected c.client_state then incr nclocations;
-          MyCList.update clist_file_locations c.client_num c) 
+      Array.iter (fun num ->
+          try
+            let c = Hashtbl.find locations num in
+            if is_connected c.client_state then incr nclocations;
+            MyCList.update clist_file_locations c.client_num c
+          with _ -> 
+              gui_send (GetClient_info num)
+              ) 
       mi.file_known_locations;
-      List.iter (fun c -> 
-          if is_connected c.client_state then incr nclocations;
-          MyCList.update clist_file_locations c.client_num c) 
+      Array.iter (fun num ->
+          try
+            let c = Hashtbl.find locations num in
+            if is_connected c.client_state then incr nclocations;
+            MyCList.update clist_file_locations c.client_num c
+          with _ -> 
+              gui_send (GetClient_info num)) 
       mi.file_indirect_locations      
       
 let update_locations_label () =
@@ -882,6 +891,9 @@ let canon_client c =
       cc.client_is_friend <- c.client_is_friend;
       cc.client_rating <- c.client_rating;
       cc.client_name <- c.client_name;
+
+      cc.client_kind <- c.client_kind;
+      cc.client_tags <- c.client_tags;
       
       if is_in_locations then
         MyCList.set_value clist_file_locations c.client_num cc;
@@ -921,6 +933,14 @@ let update_server key s os =
   else
     MyCList.set_value clist_servers key s
 
+let array_memq v tab =
+  try
+    for i = 0 to Array.length tab -1 do
+      if tab.(i) == v then raise Exit
+    done;
+    false
+  with Exit -> true
+    
 let update_file f =
   try
 (*        Printf.printf "Download_file"; print_newline (); *)
@@ -930,9 +950,9 @@ let update_file f =
       None -> ()
     | Some mi ->
         mi.file_known_locations <- 
-          List.map canon_client mi.file_known_locations;
+          (*List2.tail_map canon_client*) mi.file_known_locations;
         mi.file_indirect_locations <- 
-          List.map canon_client mi.file_indirect_locations;
+          (*List2.tail_map canon_client*) mi.file_indirect_locations;
   end;
   match f.file_state with
     FileCancelled ->
@@ -1187,7 +1207,21 @@ print_newline ()
         
     | P.Client_info c -> 
 (*        Printf.printf "Client_info"; print_newline (); *)
-        begin try ignore (canon_client c) with _ -> () end
+        begin try ignore (canon_client c) with _ -> () end;
+        begin
+          match !current_file with
+            None -> ()
+          | Some file ->
+              let num = c.client_num in
+              match file.file_more_info with
+                None -> ()
+              | Some fmi ->
+                  if array_memq num fmi.file_known_locations ||
+                    array_memq num fmi.file_indirect_locations then
+                    let c = Hashtbl.find locations c.client_num in
+                    if is_connected c.client_state then incr nclocations;
+                    MyCList.update clist_file_locations c.client_num c
+        end
         
   with e ->
       Printf.printf "EXception %s in reader" (Printexc.to_string e);

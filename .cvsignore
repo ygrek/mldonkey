@@ -9,3 +9,4 @@ VERSION
 client.ml
 observer
 
+*.ini

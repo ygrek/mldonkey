@@ -18,7 +18,7 @@
 *)
 open Mftp
 
-let version = 18
+let version = 19
   
 module Mp3tag = Mp3tag.Id3v1
   
@@ -45,6 +45,7 @@ and result = {
     mutable result_type : string;
     mutable result_tags : Mftp.tag list;
     mutable result_comment : string option;
+    mutable result_done : bool;
   }
 
 and history_result = {
@@ -80,7 +81,7 @@ and friend_kind =
 | Friend
 | FriendRemoved
 
-  
+  (*
 and search_query = {
     mutable search_words : string list; 
     mutable search_minsize : int32 option;
@@ -98,3 +99,4 @@ and search_query = {
     mutable search_or : string list;
     mutable search_not : string list;
   }
+*)

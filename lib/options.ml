@@ -403,8 +403,22 @@ let rec convert_list c2v l res =
   | v :: list -> 
       try
         convert_list c2v list ((c2v v) :: res)
-      with _ -> convert_list c2v list res
+      with e -> 
+          Printf.printf "Exception %s in Options.convert_list" (
+            Printexc.to_string e);
+          print_newline ();
+          convert_list c2v list res
 
+let option_to_value c2v o =
+  match o with
+    None -> StringValue ""
+  | Some c -> c2v c
+
+let value_to_option v2c v =
+  match v with
+    StringValue "" -> None
+  | _ -> Some (v2c v)
+      
 let list_to_value c2v l =
   List (convert_list c2v l [])
   
@@ -428,7 +442,8 @@ let value_to_path v =
 let path_to_value list =
   StringValue (Filepath.path_to_string (List.map Filename2.to_string list))
 ;;
-  
+
+
 let string_option =
   define_option_class "String" value_to_string string_to_value
 ;;
@@ -448,7 +463,12 @@ let path_option = define_option_class "Path" value_to_path path_to_value;;
 let string2_option =
   define_option_class "String2" value_to_string2 string2_to_value
 ;;
-  
+
+let option_option cl =
+  define_option_class (cl.class_name ^ " Option")
+  (value_to_option cl.from_value)
+  (option_to_value cl.to_value)
+
 let list_option cl =
   define_option_class (cl.class_name ^ " List") (value_to_list cl.from_value)
     (list_to_value cl.to_value)
@@ -558,7 +578,10 @@ let rec save_module indent oc list =
        | m :: tail ->
            let p =
              try List.assoc m !subm with
-               _ -> let p = ref [] in subm := (m, p) :: !subm; p
+              e -> 
+                Printf.printf "Exception %s in Options.save_module" (
+                  Printexc.to_string e); print_newline ();
+                let p = ref [] in subm := (m, p) :: !subm; p
            in
            p := (tail, help, value) :: !p)
     list;
@@ -647,7 +670,9 @@ let save opfile =
             save_value "  " oc value;
             Printf.fprintf oc "\n"
           with
-            _ -> ())
+            e -> 
+              Printf.printf "Exception %s in Options.save" (
+                Printexc.to_string e); print_newline ())
       opfile.file_rc;
     end;
   close_out oc;

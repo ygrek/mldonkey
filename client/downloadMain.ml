@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+
 open Options
 open Mftp
 open Mftp_comm
@@ -83,15 +84,15 @@ let _ =
 
 
 (**** LOAD OPTIONS ****)
-
+    
     let exists_downloads_ini = Sys.file_exists 
         (options_file_name downloads_ini) in
     let exists_servers_ini = Sys.file_exists (options_file_name servers_ini) in
     let exists_files_ini = Sys.file_exists (options_file_name files_ini) in
     let exists_friends_ini = Sys.file_exists (options_file_name friends_ini) in
     if not exists_downloads_ini then begin
-          Printf.printf "No config file found. Generating one."; 
-          print_newline ();
+        Printf.printf "No config file found. Generating one."; 
+        print_newline ();
         let oc = open_out (options_file_name downloads_ini) in
         close_out oc; 
       end;
@@ -99,7 +100,7 @@ let _ =
           Printf.printf "exception during options load"; print_newline ();
           exit 2;
           ());  
-    
+
 (**** PARSE ARGUMENTS ***)    
     
     Arg.parse ([
@@ -108,56 +109,57 @@ let _ =
             force_client_ip =:= true;
             ip_verified := 10;
         ), " <ip> : force client IP address";
-      "-exit", Arg.Unit (fun _ -> exit 0), ": exit immediatly";
-      "-dump", Arg.String (fun file -> 
-          Files.dump_file file), " <filename> : dump file";
-      "-known", Arg.String (fun file ->
-          let module K = Files.Known in
-          let s = File.to_string file in
-          let t = K.read s in
-          K.print t;
-          print_newline ();
-      ), " <filename> : print a known.met file";
-      "-part", Arg.String (fun file ->
-          let module K = Files.Part in
-          let s = File.to_string file in
-          let t = K.read s in
-          K.print t;
-          print_newline ();
-      ), " <filename> : print a .part.met file";
-      "-server", Arg.String (fun file ->
-          let module K = Files.Server in
-          let s = File.to_string file in
-          let t = K.read s in
-          K.print t;
-          print_newline ();
-      ), " <filename> : print a server.met file";
-      "-pref", Arg.String (fun file ->
-          let module K = Files.Pref in
-          let s = File.to_string file in
-          let t = K.read s in
-          K.print t;
-          print_newline ();
-      ), " <filename> : print a server.met file";
-      "-format", Arg.String (fun file ->
-          let format = DownloadMultimedia.get_info file in
-          ()), " <filename> : check file format";
+        "-exit", Arg.Unit (fun _ -> exit 0), ": exit immediatly";
+        "-dump", Arg.String (fun file -> 
+            Files.dump_file file), " <filename> : dump file";
+        "-known", Arg.String (fun file ->
+            let module K = Files.Known in
+            let s = File.to_string file in
+            let t = K.read s in
+            K.print t;
+            print_newline ();
+        ), " <filename> : print a known.met file";
+        "-part", Arg.String (fun file ->
+            let module K = Files.Part in
+            let s = File.to_string file in
+            let t = K.read s in
+            K.print t;
+            print_newline ();
+        ), " <filename> : print a .part.met file";
+        "-server", Arg.String (fun file ->
+            let module K = Files.Server in
+            let s = File.to_string file in
+            let t = K.read s in
+            K.print t;
+            print_newline ();
+        ), " <filename> : print a server.met file";
+        "-pref", Arg.String (fun file ->
+            let module K = Files.Pref in
+            let s = File.to_string file in
+            let t = K.read s in
+            K.print t;
+            print_newline ();
+        ), " <filename> : print a server.met file";
+        "-format", Arg.String (fun file ->
+            let format = DownloadMultimedia.get_info file in
+            ()), " <filename> : check file format";
       ]@ (Options.simple_args downloads_ini) )(fun file -> 
         Files.dump_file file; exit 0
     ) "";
 
-    
+
 (**** CREATE DIRS   ****)
     
     safe_mkdir !!incoming_directory;
     safe_mkdir !!temp_directory;    
-    
+
 (**** LOAD OTHER OPTIONS ****)
     
     (try Options.load shared_files_ini with _ -> ());
     (try Options.load servers_ini with _ -> ());
     (try Options.load files_ini with _ -> ());
     (try Options.load friends_ini with _ -> ());
+    (try Options.load searches_ini with _ -> ());
     if exists_downloads_ini && not exists_files_ini then begin
         Options.append files_ini (options_file_name downloads_ini);
         Options.save_with_help files_ini;
@@ -174,6 +176,7 @@ let _ =
     Options.prune_file files_ini;
     Options.prune_file downloads_ini;
     Options.prune_file friends_ini;
+    Options.save_with_help searches_ini;
     
     features =:= !!features;  
     List.iter (fun file ->
@@ -197,7 +200,7 @@ let _ =
     List.iter (fun c ->
         c.client_is_friend <- Friend;
     ) !!known_friends;
-
+    
     let list = ref [] in
     List.iter (fun file ->
         if Sys.file_exists file.sh_name then begin
@@ -210,17 +213,33 @@ let _ =
     DownloadOneFile.add_shared_files !!incoming_directory;
     List.iter (DownloadOneFile.add_shared_files) !!shared_directories;
     DownloadIndexer.init ();
-    
+
 (**** CREATE WAITING SOCKETS ****)
     
-    if !!http_port <> 0 then
-      ignore (create_http_handler ());
+    if !!http_port <> 0 then begin try
+          ignore (create_http_handler ());
+        with e ->
+            Printf.printf "Exception %s while starting HTTP interface"
+            (Printexc.to_string e);
+            print_newline ();
+      end;
     
-    if !!telnet_port <> 0 then
-      ignore(TcpServerSocket.create !!telnet_port telnet_handler);  
+    if !!telnet_port <> 0 then begin try
+          ignore(TcpServerSocket.create !!telnet_port telnet_handler);  
+        with e ->
+            Printf.printf "Exception %s while starting telnet interface"
+            (Printexc.to_string e);
+            print_newline ();
+      end;
     
-    udp_sock := Some (UdpSocket.create (!!port + 4) 
-      (udp_handler DownloadFiles.udp_client_handler));
+    begin try
+        udp_sock := Some (UdpSocket.create (!!port + 4) 
+          (udp_handler DownloadFiles.udp_client_handler));
+      with e ->
+          Printf.printf "Exception %s while binding UDP socket"
+            (Printexc.to_string e);
+          print_newline ();
+    end;
     
     if !!gui_port <> 0 then
       begin
@@ -234,7 +253,12 @@ let _ =
             gui_server_sock := Some 
               (TcpServerSocket.create !!gui_port gui_handler);  
         );
-        !restart_gui_server ();
+        try
+          !restart_gui_server ();
+        with e ->
+            Printf.printf "Exception %s while starting GUI interface"
+            (Printexc.to_string e);
+            print_newline ();
       end;
     
     let sock = TcpServerSocket.create !!port client_connection_handler in
@@ -281,7 +305,7 @@ let _ =
     add_timer !!check_client_connections_delay DownloadFiles.check_locations;
     add_timer !!save_options_delay DownloadFiles.save_options;  
     add_timer !!check_connections_delay DownloadServers.check_server_connections;
-    add_timer 5.0 DownloadOneFile.check_files_md4s;  
+    add_timer !!compute_md4_delay DownloadOneFile.check_files_md4s;  
     add_timer 5.0 DownloadServers.walker_timer;
     
     add_timer 3600. hourly_timer;
@@ -294,10 +318,9 @@ let _ =
     add_timer 1.0 DownloadFiles.reset_upload_timer;
     add_timer 0.1 DownloadFiles.upload_timer;
 
-    add_timer 60. (fun timer ->
-        reactivate_timer timer;
-        if !!verbose then print_newline () );
+    add_timer 30. DownloadIndexer.add_to_local_index_timer;
     
+
 (**** START PLAYING ****)  
     (try force_check_locations () with _ -> ());
     (try force_check_server_connections true with _ -> ());

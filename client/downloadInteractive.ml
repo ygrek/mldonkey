@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open DownloadSearch
 open Options
 open Mftp
 open Mftp_comm
@@ -55,82 +56,6 @@ let reconnect_all file =
           query_locations file s sock    
       | _ -> ()
   ) !connected_server_list
-
-let search_of_args args =
-  let query = {
-      search_max_hits = 200;
-      search_words = [];
-      search_maxsize = None;
-      search_minsize = None;
-      search_format = None;
-      search_avail = None;
-      search_media = None;
-      search_min_bitrate = None;
-      search_title = None;
-      search_album = None;
-      search_artist = None;
-      search_fields = [];
-      search_and = [];
-      search_not = [];
-      search_or = [];
-    }
-  in
-  let rec iter args =
-    match args with
-      [] -> ()
-    | "-minsize" :: minsize :: args ->
-        let minsize = Int32.of_string minsize in
-        query.search_minsize <- Some minsize;
-        iter args
-    | "-maxsize"  :: maxsize :: args ->
-        let maxsize = Int32.of_string maxsize in
-        query.search_maxsize <- Some maxsize;
-        iter args
-    | "-avail"  :: maxsize :: args ->
-        let maxsize = Int32.of_string maxsize in
-        query.search_avail <- Some maxsize;
-        iter args
-    | "-media"  :: filetype :: args ->
-        query.search_media <- Some filetype;
-        iter args
-    | "-Video"  :: args ->
-        query.search_media <- Some "Video";
-        iter args
-    | "-Audio"  :: filetype :: args ->
-        query.search_media <- Some "Audio";
-        iter args
-    | "-format"  :: format :: args ->
-        query.search_format <- Some format;
-        iter args
-    | "-artist"  :: format :: args ->
-        query.search_artist <- Some format;
-        iter args
-    | "-title"  :: format :: args ->
-        query.search_title <- Some format;
-        iter args
-    | "-album"  :: format :: args ->
-        query.search_album <- Some format;
-        iter args
-    | "-field"  :: field :: format :: args ->
-        query.search_fields <- 
-          (field, format) :: query.search_fields;
-        iter args
-    | "-and" :: s :: args ->
-        query.search_and <- s :: query.search_and;
-        iter args
-    | "-or" :: s :: args ->
-        query.search_or <- s :: query.search_or;
-        iter args
-    | "-not" :: s :: args ->
-        query.search_not <- s :: query.search_not;
-        iter args
-    | s :: args ->
-        query.search_words <-
-          s :: query.search_words;
-        iter args
-  in
-  iter args;
-  query
     
 let last_search = ref []
 
@@ -188,14 +113,21 @@ let print_search buf s output =
   Hashtbl.iter (fun _ (r, avail) ->
       results := (r, avail) :: !results) s.search_files;
   let results = Sort.list (fun (r1,_) (r2,_) ->
+        let r1 = Store.get DownloadIndexer.store r1 in
+        let r2 = Store.get DownloadIndexer.store r2 in
         r1.result_size > r2.result_size
     ) !results in
-  List.iter (fun (r,avail) ->
+  List.iter (fun (doc,avail) ->
+      let r = Store.get DownloadIndexer.store doc in
       incr counter;
       Printf.bprintf  buf "[%5d]" !counter;
       if output.conn_output = HTML then 
-        Printf.bprintf buf "\<A HREF=/submit\?q=download\&md4=%s\&size=%s\>"
-          (Md4.to_string r.result_md4) (Int32.to_string r.result_size);
+        if !!use_html_frames then
+          Printf.bprintf buf "\<A HREF=/submit\?q=download\&md4=%s\&size=%s target=status\>"
+            (Md4.to_string r.result_md4) (Int32.to_string r.result_size)
+        else
+          Printf.bprintf buf "\<A HREF=/submit\?q=download\&md4=%s\&size=%s\>"
+            (Md4.to_string r.result_md4) (Int32.to_string r.result_size);
       last_search := (!counter, 
         (r.result_size, r.result_md4, result_name r)
       ) :: !last_search;
@@ -206,6 +138,8 @@ let print_search buf s output =
             Printf.bprintf buf "%s\n" name;
             List.iter (fun s -> Printf.bprintf buf "       %s\n" s) names;
       end;
+      if r.result_done then Printf.bprintf buf " ALREADY DOWNLOADED\n ";
+
       begin
         match r.result_comment with
           None -> ()
@@ -227,6 +161,7 @@ let print_search buf s output =
               | _ -> "???"
             ))
       ) r.result_tags;
+      
       Buffer.add_char buf '\n';
   ) results
   
@@ -532,7 +467,21 @@ let print_file buf file =
               (match c.client_sock with
                 None -> ""
               | Some _ -> "Connected")
-  ) (file.file_known_locations @ file.file_indirect_locations)
+  ) (file.file_known_locations @ file.file_indirect_locations);
+  Printf.bprintf buf "\nChunks: \n";
+  Array.iteri (fun i c ->
+      Buffer.add_char buf (
+        match c with
+          PresentVerified -> 'V'
+        | PresentTemp -> 'p'
+        | AbsentVerified -> '_'
+        | AbsentTemp -> '.'
+        | PartialTemp _ -> '?'
+        | PartialVerified _ -> '!'
+      )
+  ) file.file_chunks
+  
+  
 
 let short_name file =
   let name = first_name file in
@@ -543,12 +492,87 @@ let short_name file =
     let suffix = String.sub name (len-4) 4 in
     Printf.sprintf "%s...%s" prefix suffix
   else name
+
+type table_align = 
+  Align_Left
+| Align_Right
+| Align_Center
+
+let col_sep = "  "
+let add buf s align max_len =
+  let slen = String.length s in
+  let diff = max_len - slen in
+  match align with
+    Align_Center ->
+      let left = diff / 2 in
+      let right = diff - left in
+      Printf.bprintf buf "%s%s%s" 
+        (String.make left ' ') s (String.make right ' ')
+  | Align_Right ->
+      Printf.bprintf buf "%s%s" (String.make diff ' ') s
+  | Align_Left ->
+      Printf.bprintf buf "%s%s" s (String.make diff ' ')
+      
+let print_table_text buf alignments titles lines =
+  let max_cols = ref (max (Array.length titles) (Array.length alignments)) in
+  List.iter (fun line ->
+      let len = Array.length line in
+      if len > !max_cols then max_cols := len
+  ) lines;
+  let ncols = !max_cols in
+  let cols = Array.create ncols 0 in
+  List.iter (fun line ->
+      let len = Array.length line in
+      for i = 0 to len-1 do 
+        let slen = String.length line.(i) in
+        if cols.(i) <  slen then cols.(i) <- slen
+      done;
+  ) (titles :: lines);
+  Array.iteri (fun i s -> 
+      add buf s Align_Center cols.(i);
+      Buffer.add_string buf col_sep;
+  ) titles;
+  Buffer.add_char buf '\n';
+  let aligns = Array.create ncols Align_Center in
+  Array.iteri (fun i al -> aligns.(i) <- al) alignments; 
+  List.iter (fun line ->
+      Array.iteri (fun i s ->
+          add buf s aligns.(i) cols.(i);
+      Buffer.add_string buf col_sep;
+      ) line;
+      Buffer.add_char buf '\n';      
+  ) lines
+
+let print_table_html buf aligns titles lines =
+  Printf.bprintf buf "\<TABLE\>";
+  Printf.bprintf buf "\<TR\>";
+  Array.iter (fun title ->
+      Printf.bprintf buf "\<TD ALIGN=CENTER\>%s\</TD\>" title;
+  ) titles;
+  let naligns = Array.length aligns in
+  Printf.bprintf buf "\</TR\>";
+  List.iter (fun line ->
+      Printf.bprintf buf "\<TR\>";
+      Array.iteri (fun i title ->
+          Printf.bprintf buf "\<TD%s\>%s\</TD\>" 
+            (if i >= naligns then "" else
+            match aligns.(i) with
+              Align_Center -> " ALIGN=CENTER"
+            | Align_Left -> " ALIGN=LEFT"
+            | Align_Right -> " ALIGN=RIGHT")
+          title;
+      ) line;
+      Printf.bprintf buf "\</TR\>";
+  ) lines;
+  Printf.bprintf buf "\</TABLE\>"
+
+  (*
   
 let simple_print_file buf name_len done_len size_len format file =
   Printf.bprintf buf "[%-5d] "
       file.file_num;
   if format.conn_output = HTML && file.file_state <> FileDownloaded then 
-    Printf.bprintf buf "[\<a href=/submit\?q\=cancel\+%d\>CANCEL\</a\>] " 
+    Printf.bprintf buf "[\<a href=/submit\?q\=cancel\+%d target\=status\>CANCEL\</a\>] " 
     file.file_num;
   let s = short_name file in
   Printf.bprintf buf "%s%s " s
@@ -575,10 +599,78 @@ let simple_print_file buf name_len done_len size_len format file =
   else
     Printf.bprintf buf "%5.1f" (file.file_last_rate /. 1024.);
   Buffer.add_char buf '\n'
-
+*)
   
-let simple_print_file_list_html finished buf files format =
+let simple_print_file_list finished buf files format =
+  let print_table = if format.conn_output = HTML then print_table_html else print_table_text in
+  if not finished then
+    print_table buf 
+      [| Align_Left; Align_Left; Align_Right; Align_Right; Align_Right; Align_Right |] 
+      (if format.conn_output = HTML then
+        [|
+          "[ Num ]"; 
+          "\<a href=/submit\?q\=vd\&sortby\=name\> File \</a\>"; 
+          "\<a href=/submit\?q\=vd\&sortby\=percent\> Percent \</a\>"; 
+          "\<a href=/submit\?q\=vd\&sortby\=done\> Downloaded \</a\>";
+          "\<a href=/submit\?q\=vd\&sortby\=size\> Size \</a\>"; 
+          "\<a href=/submit\?q\=vd\&sortby\=rate\> Rate \</a\>"; 
+        |] else
+        [|
+          "[ Num ]"; 
+          "File";
+          "Percent"; 
+          "Downloaded";
+          "Size";
+          "Rate";
+        |]     
+    )
+      (List.map (fun file ->
+          [|
+            (Printf.sprintf "[%-5d]%s"
+                file.file_num
+                (if format.conn_output = HTML then  Printf.sprintf "[\<a href=/submit\?q\=cancel\+%d target\=status\>CANCEL\</a\>] " file.file_num else ""));
+            (short_name file);
+            (Printf.sprintf "%5.1f" (percent file));
+            (Int32.to_string file.file_downloaded);
+            (Int32.to_string file.file_size);
 
+            (if file.file_state = FilePaused then
+                "Paused"
+              else
+              if file.file_last_rate < 10.24 then
+                "-"
+              else
+                Printf.sprintf "%5.1f" (file.file_last_rate /. 1024.));
+          |]
+      ) files)
+  else
+    print_table buf 
+      [||]     
+    (if format.conn_output = HTML then
+    [|
+      "[ Num ]"; 
+      "\<a href=/submit\?q\=vd\&sortby\=name\> File \</a\>"; 
+      "\<a href=/submit\?q\=vd\&sortby\=size\> Size \</a\>"; 
+      "MD4"; 
+        |] 
+      else
+    [|
+      "[ Num ]"; 
+      "File"; 
+      "Size"; 
+      "MD4"; 
+        |] 
+    )
+    (List.map (fun file ->
+        [|
+            (Printf.sprintf "[%-5d]" file.file_num);
+            (short_name file);
+            (Int32.to_string file.file_size);
+            (Md4.to_string file.file_md4)
+        |]
+    ) files)
+  
+  (*
   Printf.bprintf buf "\<TABLE\>\<TR\>
   \<TD\> [ Num ] \</TD\> 
   \<TD\> \<a href=/submit\?q\=vd\&sortby\=name\> File \</a\> \</TD\>";
@@ -598,7 +690,7 @@ let simple_print_file_list_html finished buf files format =
       Printf.bprintf buf "\<TR\> \<TD ALIGN\=RIGHT\> [%-5d]"
         file.file_num;
       if file.file_state <> FileDownloaded then 
-        Printf.bprintf buf "[\<a href=/submit\?q\=cancel\+%d\>CANCEL\</a\>] " 
+        Printf.bprintf buf "[\<a href=/submit\?q\=cancel\+%d target\=status\>CANCEL\</a\>] " 
           file.file_num;
       Printf.bprintf  buf "\</TD\>";
       Printf.bprintf buf " \<TD\> %s \</TD\> " (short_name file);
@@ -624,12 +716,12 @@ let simple_print_file_list_html finished buf files format =
   ) files;
   
   Printf.bprintf  buf "\</TABLE\>\n"
-
-  
+*)
+(*  
 let simple_print_file_list finished buf files format =
-  if format.conn_output = HTML then
+(*  if format.conn_output = HTML then *)
     simple_print_file_list_html finished buf files format
-  else
+(*  else
   let size_len = ref 10 in
   let done_len = ref 10 in
   let name_len = ref 1 in
@@ -678,197 +770,10 @@ let simple_print_file_list finished buf files format =
   Printf.bprintf buf "%s\n" s;
   
   List.iter (simple_print_file buf !name_len !done_len !size_len format) files
-
-  
-  
-let search_string s =
-  let buf = Buffer.create 100 in
-  (match s.search_minsize with
-      None -> ()
-    | Some i -> 
-        Printf.bprintf  buf "-minsize %s " (Int32.to_string i));
-  (match s.search_maxsize with
-      None -> ()
-    | Some i -> 
-        Printf.bprintf  buf "-maxsize %s " (Int32.to_string i));
-  (match s.search_media with
-      None -> ()
-    | Some i -> 
-        Printf.bprintf  buf "-media %s " i);
-  (match s.search_format with
-      None -> ()
-    | Some i -> 
-        Printf.bprintf  buf "-format %s " i);
-  (match s.search_album with
-      None -> ()
-    | Some i -> 
-        Printf.bprintf  buf "-album %s " i);
-  (match s.search_artist with
-      None -> ()
-    | Some i -> 
-        Printf.bprintf  buf "-artist %s " i);
-  (match s.search_title with
-      None -> ()
-    | Some i -> 
-        Printf.bprintf  buf "-title %s " i);
-  List.iter (fun s ->
-      Printf.bprintf  buf "%s " s
-  ) s.search_words;
-  Buffer.contents buf
-
-let new_search query =
-  incr search_counter;
-  {
-    search_query = query;
-    search_files = Hashtbl.create 127;
-    search_num = !search_counter;
-    search_nresults = 0;
-    search_waiting = List.length !connected_server_list;
-    search_string = search_string query;
-    search_handler = (fun _ -> ());
-    search_xs_servers = !!known_servers;
-  }
+*)
+*)  
 
           
-  
-let local_search search =
-  try
-    let (t_in, t_out) = exec_command !!local_index_find_cmd [||] 
-        (fun sock ev -> ()) in
-    let lines = ref [] in
-    set_reader t_in (fun t_in nread ->
-        let buf = TcpClientSocket.buf t_in in
-        let s = buf.buf in
-        let rec iter () =
-          let pos = buf.pos in
-          let len = buf.len in
-          try
-            let pos2 = String.index_from s pos '\n' in
-            let line = String.sub s pos (pos2 - pos) in
-            buf_used t_in (pos2 - pos + 1);
-            if line = "end result" then
-              let l = List.rev !lines in
-              lines := [];
-              
-              try
-                let r = { 
-                    result_names = [];
-                    result_md4 = Md4.null;
-                    result_size = Int32.zero;
-                    result_format = "";
-                    result_type = "";
-                    result_tags = [];
-                    result_comment = None;
-                  } in
-                List.iter (fun (name, value) ->
-                    match name with
-                      "name" -> r.result_names <- value :: r.result_names
-                    | "md4" -> r.result_md4 <- Md4.of_string value
-                    | "size" -> r.result_size <- Int32.of_string value
-                    | "format" -> r.result_format <- value
-                    | "type" -> r.result_type <- value
-                    | "string_tag" -> 
-                        let name, v = String2.cut_at value ':' in
-                        r.result_tags <- {
-                          tag_name = name;
-                          tag_value = String v;
-                        } :: r.result_tags
-                    | "int_tag" -> 
-                        let name, v = String2.cut_at value ':' in
-                        r.result_tags <- {
-                          tag_name = name;
-                          tag_value = Uint32 (Int32.of_string v);
-                        } :: r.result_tags
-                    | _ ->
-                        Printf.printf "discarding result line %s:%s" name value;
-                        print_newline ();
-                ) l;
-                if r.result_md4 = Md4.null || r.result_size = Int32.zero then
-                  failwith "Not enough information in result";
-                DownloadIndexer.merge_result search r
-              
-              with e -> 
-                  Printf.printf "result discarded for exn %s" 
-                    (Printexc.to_string e); print_newline ()
-            else begin
-                try
-                  let pos = String.index line ':' in
-                  let name = String.sub line 0 pos in
-                  let value = String.sub line (pos+1) 
-                    (String.length line - pos - 1)
-                  in
-                  lines := (name, value) :: !lines
-                with e ->
-                    Printf.printf "Discarding line %s" line; print_newline ();
-              end;
-            iter ()
-          with _ -> ()
-        in
-        iter ()
-    );
-    let buf = Buffer.create 100 in
-    let q = search.search_query in
-    if q.search_words <> [] then
-      Printf.bprintf buf "words:%s\n" (String2.unsplit q.search_words ' ');
-    (match q.search_minsize with None -> () | Some size ->
-          Printf.bprintf buf "minsize:%s\n" (Int32.to_string size));
-    (match q.search_maxsize with None -> () | Some size ->
-          Printf.bprintf buf "maxsize:%s\n" (Int32.to_string size));
-    (match q.search_min_bitrate with None -> () | Some size ->
-          Printf.bprintf buf "minrate:%s\n" (Int32.to_string size));
-    (match q.search_media with None -> () | Some s ->
-          Printf.bprintf buf "media:%s\n" s);
-    (match q.search_format with None -> () | Some s ->
-          Printf.bprintf buf "format:%s\n" s);
-    (match q.search_title with None -> () | Some s ->
-          Printf.bprintf buf "title:%s\n" s);
-    (match q.search_album with None -> () | Some s ->
-          Printf.bprintf buf "album:%s\n" s);
-    (match q.search_artist with None -> () | Some s ->
-          Printf.bprintf buf "artist:%s\n" s);
-    Buffer.add_string buf "end query\n";
-    TcpClientSocket.write_string t_out (Buffer.contents buf)
-  with e ->
-      Printf.printf "Exception %s while starting local_index_find"
-        (Printexc.to_string e); print_newline ()
-      
-let send_search search query =
-  last_xs := search.search_num;
-  List.iter (fun s ->
-      match s.server_sock with
-        None -> ()
-      | Some sock ->
-          let module M = Mftp_server in
-          let module Q = M.Query in
-          server_send sock (M.QueryReq query);
-          let nhits = ref 0 in
-          let rec handler s _ t =
-            let nres = List.length t in
-            nhits := !nhits + nres;
-            if !last_xs = search.search_num && nres = 201 &&
-              !nhits < search.search_query.search_max_hits then
-              begin
-                match s.server_sock with
-                  None -> ()
-                | Some sock ->
-                    server_send sock M.QueryMoreResultsReq;
-                    Fifo.put s.server_search_queries handler      
-              end;
-            search_handler search t
-          in
-          Fifo.put s.server_search_queries handler
-  ) !connected_server_list;
-  make_xs search;
-  local_search search        
-  
-let start_search query buf =
-
-  let search = new_search query in
-  let query = make_query search in
-  searches := search :: !searches;  
-  send_search search query;
-  Printf.bprintf buf "Query %d Sent to %d\n"
-    search.search_num (List.length !connected_server_list)  
   
 let commands = [
     "n", Arg_multiple (fun args buf _ ->
@@ -908,7 +813,8 @@ let commands = [
               None -> ()
             | Some results ->
                 Printf.bprintf buf "Files:\n";
-                List.iter (fun r ->
+                List.iter (fun doc ->
+                    let r = Store.get DownloadIndexer.store doc in
                     if output.conn_output = HTML then 
                       Printf.bprintf buf "\<A HREF=/submit\?q=download\&md4=%s\&size=%s\>"
                         (Md4.to_string r.result_md4) (Int32.to_string r.result_size);
@@ -941,12 +847,17 @@ let commands = [
                     ) r.result_tags;
                     Buffer.add_char buf '\n';
                 ) results
-                
+          
           );
-                
+          
           ""
         with _ -> "No such client"
     ), " <num> : view client";
+
+    "mem_stats", Arg_none (fun buf _ -> 
+        DownloadGlobals.mem_stats buf;
+        ""
+    ), " : print memory stats";
     
     "comments", Arg_one (fun filename buf _ ->
         DownloadIndexer.load_comments filename;
@@ -1034,7 +945,7 @@ let commands = [
             !!done_files;
             ""
         | _ ->
-            Printf.bprintf  buf "Downloading %d files\n" (List.length !!files);
+            Printf.bprintf  buf "Downloaded %d/%d files\n"           (List.length !!done_files) (List.length !!files);
             let list = 
               try
                 let sorter =
@@ -1052,7 +963,7 @@ let commands = [
                   | ByPercent -> (fun f1 f2 ->
                           percent f1 >= percent f2)
                   | _ -> raise Not_found
-                      in
+                in
                 Sort.list sorter !!files
               with _ -> !!files
             in
@@ -1148,6 +1059,34 @@ let commands = [
         raise CommandCloseSocket
     ), ": close telnet";
     
+    "bs", Arg_multiple (fun args buf _ ->
+        List.iter (fun arg ->
+            let ip = Ip.of_string arg in
+            server_black_list =:=  ip :: !!server_black_list;
+        ) args;
+        "done"
+    ), " <ip1> <ip2> ... : add these IPs to the servers black list";
+    
+    "gen_bug", Arg_one (fun arg buf _ ->
+        let n = int_of_string arg in
+        match !!files with
+          [] -> "Couldn't create the bug (no file to download)"
+        | file :: _ ->
+            match file.file_known_locations with
+              [] -> "Couldn't create the bug (no source to add)"
+            | c :: _ ->
+                match c.client_kind with
+                  Known_location (ip, port) ->
+                    for i = 1 to n do
+                      let c = new_client (Known_location (ip, port+i)) in
+                      file.file_known_locations <- 
+                        c :: file.file_known_locations
+                    done;
+                    file.file_new_locations <- true;
+                    Printf.sprintf "%d sources added" n
+                | _ -> "Couldn't create the bug (source is indirect)"
+    ), " : create a bug by adding 10000 new sources to a file";
+    
     "kill", Arg_none (fun buf _ ->
         exit_properly ();
         "exit"), ": save and kill the server";
@@ -1224,8 +1163,21 @@ let commands = [
           Printf.bprintf  buf "\<table border=0\>";
         List.iter (fun (name, value) ->
             if format.conn_output = HTML then
+              if String.contains value '\n' then
+                Printf.bprintf buf "
+              \<tr\>\<td\>\<form action=/submit target=status\> 
+\<input type=hidden name=setoption value=q\>
+\<input type=hidden name=option value=%s\> %s \</td\>\<td\>
+                \<textarea name=value rows=10 cols=70 wrap=virtual\> 
+                %s
+                \</textarea\>
+\<input type=submit value=Modify\>
+\</td\>\</tr\>
+\</form\>
+                " name name value
+              else
               Printf.bprintf buf "
-              \<tr\>\<td\>\<form action=/submit\> 
+              \<tr\>\<td\>\<form action=/submit target=status\> 
 \<input type=hidden name=setoption value=q\>
 \<input type=hidden name=option value=%s\> %s \</td\>\<td\>
               \<input type=text name=value size=40 value=\\\"%s\\\"\>
@@ -1244,7 +1196,7 @@ let commands = [
     "set", Arg_two (fun name value buf _ ->
         try
           Options.set_simple_option downloads_ini name value;
-          "option value changed"
+          Printf.sprintf "option %s value changed" name
         with e ->
             Printf.sprintf "Error %s" (Printexc.to_string e)
     ), " <option_name> <option_value> : change option value";
@@ -1302,6 +1254,11 @@ let commands = [
 \t-or <word> :
 
 ";
+
+    "remove_old_servers", Arg_none (fun buf format ->
+        DownloadServers.remove_old_servers ();
+        "clean done"
+    ), ": remove servers that have not been connected for several days";
     
     "vs", Arg_none (fun buf format ->
         Printf.bprintf  buf "Searching %d queries\n" (List.length !searches);
@@ -1316,6 +1273,20 @@ let commands = [
               (if s.search_waiting = 0 then "done" else
                 string_of_int s.search_waiting)
         ) !searches; ""), ": view all queries";
+
+    "view_custom_queries", Arg_none (fun buf format ->
+        if format.conn_output <> HTML then
+          Printf.bprintf buf "%d custom queries defined\n" 
+            (List.length !!customized_queries);
+        List.iter (fun (name, q) ->
+            if format.conn_output = HTML then
+              Printf.bprintf buf 
+                "\<a href=/submit\?custom=%s target=output\> %s \</a\>\n" 
+              (Url.encode name) name
+            else
+              Printf.bprintf buf "[%s]\n" name
+        ) !! customized_queries; ""
+    ), ": view custom queries";
     
     "cancel", Arg_multiple (fun args buf _ ->
         if args = ["all"] then
@@ -1495,185 +1466,7 @@ let buf = Buffer.create 1000
       
 open Http_server
 
-let add_submit_entry buf =
-  Buffer.add_string buf
-    "<form action=\"submit\">
-<table border=0>
-<tr>
-<td width=\"1%\"><input type=text name=q size=40 value=\"\"></td>
-<td align=left><input type=submit value=\"Execute\"></td>
-</tr>
-</table>
-</form>
-"
-
-let complex_search buf =
-  Buffer.add_string  buf
-  "
-<center>
-<h2> Complex Search </h2>
-</center>
-
-<form action=/submit>
-<table border=0>
-<tr>
-<td width=\"1%\"><input type=text name=query size=40 value=\"\"></td>
-<td align=left><input type=submit value=Search></td>
-</tr>
-</table>
-
-<h3> Simple Options </h3>
-
-<table border=0>
-<tr>
-<td> Min size </td> 
-
-<td> 
-<input type=text name=minsize size=40 value=\"\">
-</td>
-
-<td> 
-<select name=minsize_unit>
-<option value=1048576> MBytes </option>
-<option value=1024> kBytes </option>
-<option value=1> Bytes </option>
-</select>
-</td>
-
-</tr>
-
-<tr>
-<td> Max size </td> 
-
-<td> 
-<input type=text name=maxsize size=40 value=\"\">
-</td>
-
-<td> 
-<select name=maxsize_unit>
-<option value=1048576> Mbytes </option>
-<option value=1024> kBytes </option>
-<option value=1> Bytes </option>
-</select>
-</td>
-
-</tr>
-
-<tr>
-<td> Media </td> 
-
-<td> 
-<input type=text name=media size=40 value=\"\">
-</td>
-
-<td> 
-<select name=media_propose>
-<option value=\"\"> --- </option>
-<option value=Audio> Audio </option>
-<option value=Video> Video </option>
-<option value=Pro> Program </option>
-<option value=Doc> Document </option>
-<option value=Image> Image </option>
-<option value=Col> Collection </option>
-</select>
-</td>
-
-</tr>
-
-<tr>
-<td> Format </td> 
-
-<td> 
-<input type=text name=format size=40 value=\"\">
-</td>
-
-<td> 
-<select name=format_propose>
-<option value=\"\"> --- </option>
-<option value=avi> avi </option>
-<option value=mp3> mp3 </option>
-<option value=zip> zip </option>
-</select>
-</td>
-
-</tr>
-
-</table>
-
-<h3> Mp3 options </h3>
-
-<table border=0>
-
-<tr>
-<td> Album </td> 
-<td> 
-<input type=text name=album size=40 value=\"\">
-</td>
-</tr>
-
-<tr>
-<td> Artist </td> 
-<td> 
-<input type=text name=artist size=40 value=\"\">
-</td>
-</tr>
-
-<tr>
-<td> Title </td> 
-<td> 
-<input type=text name=title size=40 value=\"\">
-</td>
-</tr>
-
-<tr>
-<td>
-Min bitrate
-</td>
-
-
-<td> 
-<select name=bitrate>
-<option value=\"\"> --- </option>
-<option value=64> 64 </option>
-<option value=96> 96 </option>
-<option value=128> 128 </option>
-<option value=160> 160 </option>
-<option value=192> 192 </option>
-</select>
-</td>
-
-</tr>
-
-</table>
-
-<h3> Boolean options </h3>
-
-<table border=0>
-
-<tr>
-<td> And </td> 
-<td> 
-<input type=text name=and size=40 value=\"\">
-</td>
-</tr>
-
-<tr>
-<td> Or </td> 
-<td> 
-<input type=text name=or size=40 value=\"\">
-</td>
-</tr>
-
-<tr>
-<td> Not </td> 
-<td> 
-<input type=text name=not size=40 value=\"\">
-</td>
-</tr>
-
-</table>
-</form>
-"
+let add_submit_entry buf = ()
   
 let add_simple_commands buf =
   Buffer.add_string buf !!web_header
@@ -1711,17 +1504,54 @@ let http_handler options t r =
       Buffer.add_string  buf "\r\n";
       
       html_open_page buf;
-      add_simple_commands buf;
-      add_submit_entry buf;
+      if not !!use_html_frames then begin
+          add_simple_commands buf;
+          add_submit_entry buf;
+        end;
       try
         match r.get_url.Url.file with
-          "/" -> ()
+        | "/commands.html" ->
+            Buffer.add_string buf !!web_commands_frame
+        | "/" | "/index.html" -> 
+            if !!use_html_frames then begin
+                Buffer.clear buf;
+                Printf.bprintf buf 
+                  "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Frameset//EN\"
+            \"http://www.w3.org/TR/html4/frameset.dtd\">";
+                
+                Buffer.add_string buf "<HTML>\n";
+                Buffer.add_string buf "<HEAD>\n";
+                Buffer.add_string buf "<TITLE>\n";
+                Buffer.add_string buf "MLdonkey WEB Interface\n";
+                Buffer.add_string buf "</TITLE>\n";
+                Buffer.add_string buf "</HEAD>\n";
+                Printf.bprintf buf "
+            <frameset src=\"index\" rows=\"%d,2*\">
+               <frameset src=\"index\" cols=\"5*,1*\">
+                  <frame name=\"commands\" src=\"/commands.html\">
+                  <frame name=\"status\" src=\"/noframe.html\">
+               </frameset>
+               <frame name=\"output\" src=\"/oneframe.html\">
+            </frameset>" !!commands_frame_height             
+              end
+              
         | "/complex_search.html" ->
             complex_search buf
+        | "/noframe.html" ->
+            Buffer.clear buf;
+            html_open_page buf;
+
+        | "/oneframe.html" -> ()
+
         | "/submit" ->
             begin
               match r.get_url.Url.args with
               | [ "q", "download"; "md4", md4_string; "size", size_string ] ->
+                  if !!use_html_frames then
+                    begin
+                      Buffer.clear buf;
+                      html_open_page buf;
+                    end;
                   query_download [] (Int32.of_string size_string)
                   (Md4.of_string md4_string) None None None;
                   Printf.bprintf buf  "\n<pre>\nDownload started\n</pre>\n";
@@ -1742,79 +1572,14 @@ let http_handler options t r =
                     html_escaped (Buffer.contents b)
                   in
                   Printf.bprintf buf  "\n<pre>\n%s\n</pre>\n" s;
-                  
-              | 
-                  ("query", query) ::
-                  ("minsize", minsize) ::
-                  ("minsize_unit", minsize_unit) ::
-                  ("maxsize", maxsize) ::
-                  ("maxsize_unit", maxsize_unit) ::
-                  ("media", media) ::
-                  ("media_propose", media_propose) ::
-                  ("format", format) ::
-                  ("format_propose", format_propose) ::
-                  ("album", album) ::
-                  ("artist", artist) ::
-                  ("title", title) ::
-                  ("bitrate", bitrate) :: tail
-                ->
 
-                  let option_of_string s =
-                    if s = "" then None else Some s
-                  in
-                  let query =
-                    {
-                      search_max_hits = 200;
-                      search_words = String2.tokens query;
-                      search_minsize = (
-                        if minsize = "" then None else Some (
-                            Int32.mul (Int32.of_string minsize)
-                            (Int32.of_string minsize_unit)
-                          ));
-                      search_maxsize = (
-                        if maxsize = "" then None else Some (
-                            Int32.mul (Int32.of_string maxsize)
-                            (Int32.of_string maxsize_unit)
-                          ));
-                      search_avail = None;
-                      search_media = (
-                        if media = "" then 
-                          if media_propose = "" then
-                            None 
-                          else Some media_propose
-                        else Some media);
-                      search_format = (
-                        if format = "" then 
-                          if format_propose = "" then
-                            None 
-                          else
-                            Some format_propose
-                        else Some format);
-                      search_min_bitrate = ( 
-                        if bitrate = "" then None else
-                        try
-                          Some (Int32.of_string bitrate)
-                        with _ -> None);    
-                      search_title = option_of_string title;
-                      search_artist = option_of_string artist;
-                      search_album = option_of_string album;
-                      search_fields = [];
-                      search_or = [];
-                      search_not = [];
-                      search_and = [];
-                    }
-                  in
+              | [ ("custom", query) ] ->
                   
-                  List.iter (fun (s,v) ->
-                      match s with
-                      | "and" -> query.search_and <- String2.tokens v
-                      | "or" -> query.search_or <- String2.tokens v
-                      | "not" -> query.search_not <- String2.tokens v
-                      | _ -> ()
-                  ) tail;
+                  custom_query buf query
                   
-                  start_search query buf
-
+              | ("custom", query) :: args ->
+                  send_custom_query buf query args
+  
               | [ "setoption", _ ; "option", name; "value", value ] ->
                   Options.set_simple_option downloads_ini name value;
                   Buffer.add_string buf "Option value changed"
@@ -1826,7 +1591,8 @@ let http_handler options t r =
                   
                   raise Not_found
             end
-        | _ -> raise Not_found
+        | cmd -> 
+            Printf.bprintf buf "No page named %s" cmd
       with e ->
           Printf.bprintf buf "\nException %s\n" (Printexc.to_string e);
     end;

@@ -16,8 +16,8 @@
     along with mldonkey; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
-val index_result : Gui_types.result -> Gui_types.result
-val index_result_no_filter : Gui_types.result -> Gui_types.result
+val index_result : Gui_types.result -> int
+val index_result_no_filter : Gui_types.result -> int 
   
 val find : DownloadTypes.search -> unit
   
@@ -35,4 +35,6 @@ val add_comment : Md4.t -> string -> unit
   
 val load_old_history : unit -> unit
   
-val merge_result: DownloadTypes.search -> Gui_types.result -> unit
+val add_to_local_index_timer : BasicSocket.timer -> unit
+  
+val store : Gui_types.result Store.t

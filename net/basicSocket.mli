@@ -55,3 +55,5 @@ val loop : unit -> unit
 
 val nb_sockets : unit -> int
   
+val stats : Buffer.t -> t -> unit
+  

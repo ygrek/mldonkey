@@ -21,7 +21,8 @@ val shared_files_ini : Options.options_file
 val servers_ini : Options.options_file
 val files_ini : Options.options_file
 val friends_ini : Options.options_file
-
+val searches_ini : Options.options_file
+  
 val temp_directory : string Options.option_record
 val incoming_directory : string Options.option_record
 val client_name : string Options.option_record
@@ -44,8 +45,6 @@ val max_server_age : int Options.option_record
 val interface_buffer : int Options.option_record
 val max_hard_upload_rate : int Options.option_record
 val max_hard_download_rate : int Options.option_record
-val max_upload_rate : int Options.option_record
-val max_download_rate : int Options.option_record
 val password : string Options.option_record
 val features : string Options.option_record
 val max_udp_sends : int Options.option_record
@@ -82,9 +81,18 @@ val file_completed_cmd : string Options.option_record
 val local_index_find_cmd : string Options.option_record
 val local_index_add_cmd : string Options.option_record
   
-module IpOption : sig val t: Ip.t Options.option_class end
-
 val client_ip : Ip.t Options.option_record
 val force_client_ip : bool Options.option_record
 val ip_verified : int ref
+val use_html_frames : bool Options.option_record
   
+val commands_frame_height : int Options.option_record
+val web_commands_frame : string Options.option_record
+  
+val server_black_list : Ip.t list Options.option_record
+val master_server_min_users : int Options.option_record
+val update_server_list : bool Options.option_record
+  
+val compute_md4_delay : float Options.option_record
+
+val minor_heap_size : int Options.option_record

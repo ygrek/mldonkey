@@ -58,49 +58,66 @@ let submit_search (gui: gui) local ()=
   nresults := 0;
   update_searches_label ();
   let s = gui#tab_searches in
+  let q = match s#entry_search_words#text with
+      "" -> []
+    | s -> [want_and_not (fun s -> QHasWord s) s] in
+  let q = match s#entry_search_minsize#text with
+      "" -> q
+    | v -> 
+        (QHasMinVal ("size", 
+            Int32.mul (Int32.of_string v)
+            (unit_of_string s#combo_search_minsize_unit#entry#text)
+          )) :: q
+  in
+  let q = match s#entry_search_maxsize#text with
+      "" -> q
+    | v -> 
+        (QHasMaxVal ("size", 
+            Int32.mul (Int32.of_string v)
+            (unit_of_string s#combo_search_maxsize_unit#entry#text)
+          )) :: q
+  in
+  let q = match s#combo_format#entry#text with
+      "" -> q
+    | v ->
+        let v = try List.assoc v  search_format_list with _ -> v in
+        (want_comb_not or_comb
+            (fun w -> QHasField("format", w)) v) :: q
+
+  in
+  let q = match s#combo_search_media#entry#text with
+      "" -> q
+    | v ->
+        (QHasField("type", 
+            try List.assoc v  search_media_list with _ -> v)) :: q
+
+  in
+  let q = match s#entry_title#text with
+      "" -> q
+    | v -> (want_comb_not and_comb (fun v -> QHasField("Title", v)) v):: q
+  in
+  let q = match s#entry_artist#text with
+      "" -> q
+    | v -> (want_comb_not and_comb (fun v -> QHasField("Artist", v)) v):: q
+  in
+  let q = match s#entry_album#text with
+      "" -> q
+    | v -> (want_comb_not and_comb (fun v -> QHasField("Album", v)) v) :: q
+  in
+  let q = match s#combo_min_bitrate#entry#text with
+      "" -> q
+    | v -> (QHasMaxVal("bitrate", Int32.of_string v)) :: q
+  in
+  match q with 
+    [] -> ()
+  | q1 :: tail ->
+      let q = List.fold_left (fun q1 q2 ->
+            QAnd (q1,q2)
+        ) q1 tail in
   gui_send (P.Search_query (local, 
       { 
-        P.search_query =
-        {
-          search_max_hits = int_of_string s#combo_max_hits#entry#text;
-          search_words = String2.tokens s#entry_search_words#text;
-          search_minsize = (let minsize = s#entry_search_minsize#text in
-            if minsize = "" then None else Some (
-                Int32.mul (Int32.of_string minsize)
-                (unit_of_string s#combo_search_minsize_unit#entry#text)
-              ));
-          search_maxsize = (let maxsize = s#entry_search_maxsize#text in
-            if maxsize = "" then None else Some (
-                Int32.mul (Int32.of_string maxsize)
-                (unit_of_string s#combo_search_minsize_unit#entry#text)
-              ));
-          search_avail = None;
-          search_media = (
-            let media = s#combo_search_media#entry#text in
-            try
-              Some (List.assoc media  search_media_list)
-            with _ -> 
-                if media = "" then None else Some media);
-          search_format = (
-            let format = s#combo_format#entry#text in
-            try
-              Some (List.assoc format search_format_list)
-            with _ -> 
-                if format = "" then None else Some format);
-          search_min_bitrate = ( 
-            let bitrate = s#combo_min_bitrate#entry#text in
-            if bitrate = "" then None else
-            try
-              Some (Int32.of_string bitrate)
-            with _ -> None);    
-          search_title = option_of_string s#entry_title#text;
-          search_artist = option_of_string s#entry_artist#text;
-          search_album = option_of_string s#entry_album#text;
-          search_fields = [];
-          search_and = [];
-          search_not = [];
-          search_or = [];
-        };
+        P.search_max_hits = int_of_string s#combo_max_hits#entry#text;
+        P.search_query = q;
         P.search_num = !search_counter;
       }));
   let new_tab = new box_search () in

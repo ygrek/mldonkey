@@ -12,10 +12,13 @@
 (** Module containing the messages of Configwin.*)
 
 let software = "Configwin";;
-let version = "0.92";;
+let version = "0.93";;
 
 let mAdd = "Add";;
 let mRemove = "Remove";;
+let mUp = "Up";;
+let mEdit = "Edit";;
 let mOk = "Ok";;
 let mCancel = "Cancel";;
 let mApply = "Apply";;
+let mValue = "Value"

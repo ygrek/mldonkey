@@ -372,3 +372,65 @@ let value_handler f sock nread =
       else raise Not_found
     done
   with Not_found -> ()
+
+type query =
+  QAnd of query * query
+| QOr of query * query
+| QAndNot of query * query
+| QHasWord of string
+| QHasField of string * string
+| QHasMinVal of string * int32
+| QHasMaxVal of string * int32
+  
+  
+let want_and_not f value =
+  let ws = String2.split_simplify value ' ' in
+  if ws = [] then raise Not_found;
+  let wanted = ref "" in
+  let not_wanted = ref "" in
+  List.iter (fun w ->
+      let len = String.length w in
+      if len>1 && w.[0] = '-' then
+        let w = String.sub w 1 (len-1) in
+        if !not_wanted = "" then not_wanted := w
+        else not_wanted := !not_wanted ^ " " ^ w
+      else
+      if !wanted = "" then wanted := w
+      else wanted := !wanted ^ " " ^ w
+  ) ws;
+  if !not_wanted = "" then
+    f !wanted
+  else
+  if !wanted = "" then
+    f !wanted
+  else
+    QAndNot (f !wanted, f !not_wanted)
+
+let want_comb_not comb f value =
+  let ws = String2.split_simplify value ' ' in
+  let wanted = ref [] in
+  let not_wanted = ref [] in
+  List.iter (fun w ->
+      let len = String.length w in
+      if len>1 && w.[0] = '-' then
+        let w = String.sub w 1 (len-1) in
+        not_wanted := w :: !not_wanted
+      else wanted := w :: !wanted
+  ) ws;
+  let wanted = match !wanted with
+      [] -> raise Not_found
+    | w :: tail -> 
+        List.fold_left (fun q w ->
+            comb q  (f w)
+        ) (f w) tail
+  in
+  match !not_wanted with
+    [] -> wanted
+  | w :: tail ->
+      QAndNot (wanted, 
+        List.fold_left (fun q w ->
+            comb q  (f w)
+        ) (f w) tail)
+
+let or_comb q1 q2 = QOr(q1,q2)
+let and_comb q1 q2 = QAnd(q1,q2)

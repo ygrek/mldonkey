@@ -29,6 +29,7 @@ let cmd_basedir = Autoconf.current_dir (* will not work on Windows *)
 let downloads_ini = create_options_file (file_basedir ^ "downloads.ini")
 let shared_files_ini = create_options_file (file_basedir ^ "shared_files.ini")
 let servers_ini = create_options_file (file_basedir ^ "servers.ini")
+let searches_ini = create_options_file (file_basedir ^ "searches.ini")
 let files_ini = create_options_file (file_basedir ^ "files.ini")
 let friends_ini = create_options_file (file_basedir ^ "friends.ini")
   
@@ -124,12 +125,15 @@ let max_hard_download_rate = define_option downloads_ini ["max_hard_download_rat
   The limit will apply on all your connections (clients and servers) and both
 control and data messages." int_option 0
 
+(*  
 let max_upload_rate = define_option downloads_ini ["max_upload_rate"] 
   "The maximal upload rate you can tolerate (in kB/s)" int_option 3000
   
 let max_download_rate = define_option downloads_ini ["max_download_rate"] 
   "The maximal download rate you can tolerate in kB/s(0 = no limit)" int_option 0
-
+*)
+  
+  
 let max_xs_packets = define_option downloads_ini ["max_xs_packets"] 
   "Max number of UDP packets per round for eXtended Search" int_option 30
 
@@ -137,9 +141,9 @@ let max_dialog_history = define_option downloads_ini ["max_dialog_history"]
     "Max number of messages of Chat remembered" int_option 30
   
 let _ =
-  option_hook max_upload_rate (fun _ ->
-      if !!max_upload_rate < 1  then
-        max_upload_rate =:= 1)
+  option_hook max_hard_upload_rate (fun _ ->
+      if !!max_hard_upload_rate < 1  then
+        max_hard_upload_rate =:= 1)
   
   
 let string_list_option = define_option_class "String"
@@ -196,7 +200,7 @@ let max_server_age = define_option downloads_ini ["max_server_age"] "max number 
 
 let use_file_history = define_option downloads_ini ["use_file_history"] "keep seen files in history to allow local search (can be expensive in memory)" bool_option true
   
-let save_file_history = define_option downloads_ini ["save_file_history"] "save the file history in a file and load it at startup" bool_option false
+let save_file_history = define_option downloads_ini ["save_file_history"] "save the file history in a file and load it at startup" bool_option true
 
   
 let filters = define_option downloads_ini ["filters"] 
@@ -245,26 +249,27 @@ let web_infos = define_option downloads_ini
 let web_header = define_option downloads_ini
     ["web_header"] "The header displayed in the WEB interface"
     string_option
-    "
+  "
   <h2>Connected to <a href=http://www.freesoftware.fsf.org/mldonkey/> MLdonkey </a> 
 WEB server</h2>
-<br>
+  <br>
+</table>
 <table width=100% border=0>
 <tr>
-  <td><a href=/submit?q=vm> View Connected Servers </a></td>
-  <td><a href=/submit?q=vma> View All Servers </a></td>
-  <td><a href=/submit?q=c> Connect More Servers </a></td>
-  <td><a href=/complex_search.html> Complex Search </a></td>
-  <td><a href=/submit?q=xs> Extended Search </a></td>
-  <td><a href=/submit?q=upstats> Upload Statistics </a></td>
+  <td><a href=/submit?q=vm target=output> View Connected Servers </a></td>
+  <td><a href=/submit?q=vma target=output> View All Servers </a></td>
+  <td><a href=/submit?q=c target=output> Connect More Servers </a></td>
+  <td><a href=/submit?q=view_custom_queries target=output> Custom Searches </a></td>
+  <td><a href=/submit?q=xs target=output> Extended Search </a></td>
+  <td><a href=/submit?q=upstats target=output> Upload Statistics </a></td>
   </tr>
 <tr>
-<td><a href=/submit?q=vr> View Results </a></td>
-<td><a href=/submit?q=vd> View Downloads </a></td>
-<td><a href=/submit?q=commit> Commit Downloads </a></td>
-<td><a href=/submit?q=vs> View Searches </a></td>
-<td><a href=/submit?q=vo> View Options </a></td>
-<td><a href=/submit?q=help> View Help </a></td>
+<td><a href=/submit?q=vr target=output> View Results </a></td>
+<td><a href=/submit?q=vd target=output> View Downloads </a></td>
+<td><a href=/submit?q=commit target=status> Commit Downloads </a></td>
+<td><a href=/submit?q=vs target=output> View Searches </a></td>
+<td><a href=/submit?q=vo target=output> View Options </a></td>
+<td><a href=/submit?q=help target=output> View Help </a></td>
   </tr>
   </table>
 <br>
@@ -279,12 +284,12 @@ let file_completed_cmd = define_option downloads_ini
 let local_index_find_cmd = define_option downloads_ini 
     ["local_index_find_cmd"] "A command used locally to find more results
     during a search"
-    string_option (cmd_basedir ^ "local_index_find") 
+    string_option "" (* (cmd_basedir ^ "local_index_find")  *)
 
 let local_index_add_cmd = define_option downloads_ini 
     ["local_index_add_cmd"] "A command used locally to add new results
     to a local index after a search"
-    string_option (cmd_basedir ^ "local_index_add")
+    string_option "" (* (cmd_basedir ^ "local_index_add") *)
   
 let compaction_overhead = define_option downloads_ini 
     ["compaction_overhead"] 
@@ -297,25 +302,10 @@ let _ =
       Gc.set { gc_control with Gc.max_overhead = !!compaction_overhead };     
   )
   
-  
-module IpOption = struct
-    
-    let value_to_ip v = 
-      Ip.of_string (value_to_string v)
-      
-    let ip_to_value ip =
-      string_to_value (Ip.to_string ip)
-      
-    let t = define_option_class "Ip" value_to_ip ip_to_value      
-      
-  end
-  
-(*  
-*)
 
   
 let client_ip = define_option downloads_ini ["client_ip"] 
-    "The last IP used for this client" IpOption.t  
+    "The last IP used for this client" Ip.option  
     (try
       let name = Unix.gethostname () in
       Ip.from_name name
@@ -327,3 +317,80 @@ let force_client_ip = define_option downloads_ini ["force_client_ip"]
     bool_option false
   
 let ip_verified = ref 0
+
+    
+let use_html_frames = define_option downloads_ini ["use_html_frames"] 
+    "This option controls whether the WEB interface should use frames or not" bool_option true
+
+let commands_frame_height = define_option downloads_ini ["commands_frame_height"] "The height of the command frame in pixel (depends on your screen and browser sizes)" int_option 140
+
+let compute_md4_delay = define_option downloads_ini ["compute_md4_delay"]
+    "The delay between computations of the md4 of chunks"
+  float_option 10.
+  
+let web_commands_frame = define_option downloads_ini
+    ["web_header_frame"] "The header displayed in the WEB interface"
+    string_option
+  "
+  <table width=100% border=0> <tr>
+<td>
+  <h2>Connected to <a href=http://www.freesoftware.fsf.org/mldonkey/> MLdonkey </a> 
+WEB server</h2>
+  </td>
+<td>
+<form action=\"submit\" target=output>
+<table border=0>
+<tr>
+<td width=\"1%\"><input type=text name=q size=40 value=\"\"></td>
+<td align=left><input type=submit value=\"Execute\"></td>
+</tr>
+</table>
+</form>
+  </td>
+</table>
+<table width=100% border=0>
+<tr>
+  <td><a href=/submit?q=vm target=output> View Connected Servers </a></td>
+  <td><a href=/submit?q=vma target=output> View All Servers </a></td>
+  <td><a href=/submit?q=c target=output> Connect More Servers </a></td>
+  <td><a href=/submit?q=view_custom_queries target=status> Custom Searches </a></td>
+  <td><a href=/submit?q=xs target=output> Extended Search </a></td>
+  <td><a href=/submit?q=upstats target=output> Upload Statistics </a></td>
+  </tr>
+<tr>
+<td><a href=/submit?q=vr target=output> View Results </a></td>
+<td><a href=/submit?q=vd target=output> View Downloads </a></td>
+<td><a href=/submit?q=commit target=status> Commit Downloads </a></td>
+<td><a href=/submit?q=vs target=output> View Searches </a></td>
+<td><a href=/submit?q=vo target=output> View Options </a></td>
+<td><a href=/submit?q=help target=output> View Help </a></td>
+  </tr>
+  </table>
+<br>
+"
+
+let server_black_list = define_option downloads_ini 
+    ["server_black_list"] "A list of server IP to remove from server list.
+    Servers on this list can't be added, and will eventually be removed"
+    (list_option Ip.option) []
+  
+let master_server_min_users = define_option downloads_ini
+    ["master_server_min_users"] "The minimal number of users for a server
+    to be admitted as one of the 5 master servers"
+    int_option 0
+  
+let update_server_list = define_option downloads_ini
+    ["dont_update_server_list"] "Unset this option if you don't want auto
+    update of servers list" bool_option true
+  
+let minor_heap_size = define_option downloads_ini
+    ["minor_heap_size"] "Size of the minor heap in kB"
+    int_option 32
+  
+  
+let _ =
+  option_hook minor_heap_size (fun _ ->
+      let gc_control = Gc.get () in
+      Gc.set { gc_control with Gc.minor_heap_size = 
+        (!!minor_heap_size * 1024) };     
+  )

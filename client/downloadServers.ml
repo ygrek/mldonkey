@@ -36,7 +36,7 @@ let first_name file =
   | name :: _ -> name
 
 let make_tagged files =
-    (List.map (fun file ->
+    (List2.tail_map (fun file ->
           { f_md4 = file.file_md4;
             f_ip = !!client_ip;
             f_port = !client_port;
@@ -160,6 +160,7 @@ let client_to_server s t sock =
         M.AckIDReq A.t
       );
       
+      (*
       server_send sock (M.ShareReq (make_tagged (
             if !nservers <=  max_allowed_connected_servers () then
               begin
@@ -169,11 +170,13 @@ let client_to_server s t sock =
               end else
               []
           )));
-  
+*)
+      
   | M.ServerListReq l ->
+      if !!update_server_list then
       let module Q = M.ServerList in
       List.iter (fun s ->
-          if Ip.valid s.Q.ip then
+          if Ip.valid s.Q.ip && not (List.mem s.Q.ip !!server_black_list) then
             ignore (add_server s.Q.ip s.Q.port);
       ) l
   
@@ -298,7 +301,9 @@ let remove_old_servers () =
   let min_last_conn =  last_time () -. 
     float_of_int !!max_server_age *. day in
   List.iter (fun s ->
-      if connection_last_conn s.server_connection_control < min_last_conn then
+      if connection_last_conn s.server_connection_control < min_last_conn ||
+        List.mem s.server_ip !!server_black_list
+      then
         begin
 (*                  Printf.printf "*******  SERVER REMOVED ******"; 
                   print_newline (); *)
@@ -326,22 +331,16 @@ let update_master_servers timer =
   List.iter (fun s ->
       if s.server_master then
         match s.server_sock with
-          None -> 
-            (*
-Printf.printf "SERVER IS DISCONNECTED !!!"; print_newline ();
-*)
-            ()
-        | Some _ -> 
-            (*
-Printf.printf "Master Server is connected"; print_newline ();
-  *)
-            incr nmasters;
+          None -> ()
+        | Some _ -> incr nmasters;
   ) !connected_server_list;
   let nconnected_servers = ref 0 in
   List.iter (fun s ->
       incr nconnected_servers;
       if not s.server_master then
-        if !nmasters <  max_allowed_connected_servers () then begin
+        if !nmasters <  max_allowed_connected_servers () &&
+          s.server_nusers >= !!master_server_min_users
+        then begin
             match s.server_sock with
               None -> 
               (*  Printf.printf "MASTER NOT CONNECTED"; print_newline ();  *)

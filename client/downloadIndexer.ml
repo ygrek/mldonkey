@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open BasicSocket
 open DownloadGlobals
 open Mftp
 open Options
@@ -40,7 +41,23 @@ let album_bit = 8 (* tag "Album" *)
 let media_bit = 16 (* "type" *)
 let format_bit = 32 (* "format" *)
   
-let index = Indexer.create ()
+let store = Store.create ()
+  
+module Document = struct
+    type t = int
+      
+    let num t = t
+    let filtered t = Store.get_attrib store t
+    let filter t bool = Store.set_attrib store t bool
+  end
+
+let doc_value doc = Store.get store doc
+  
+module DocIndexer = Indexer.Make(Document)
+
+open Document
+  
+let index = DocIndexer.create ()
   
 let results = Hashtbl.create 1023
   
@@ -50,8 +67,9 @@ let history_file_oc = ref None
 let update_comment_result md4 comment =
   try
     let doc = Hashtbl.find results md4 in
-    let r = Indexer.value doc in
-    r.result_comment <- Some comment
+    let r = doc_value doc in
+    r.result_comment <- Some comment;
+    Store.update store doc r
   with _ -> ()
   
 let add_comment md4 comment =
@@ -99,13 +117,14 @@ let save_comments () =
   
 let _ =
   load_comments comment_filename
-  
-let comment_result r = 
+
+let comment_result r doc = 
   match r.result_comment with
     Some _ -> ()
   | None ->
       try
-        r.result_comment <- Some (Hashtbl.find comments r.result_md4)
+        r.result_comment <- Some (Hashtbl.find comments r.result_md4);
+        Store.update store doc r
       with _ -> ()
 
 let buf_tag b tag =
@@ -168,6 +187,7 @@ let input_result ic =
       result_type = "";
       result_tags = hresult.hresult_tags;
       result_comment = None;
+      result_done = false;
     }  in
   List.iter (fun tag ->
       match tag with
@@ -193,8 +213,7 @@ let input_old_result ic =
       
       
     end;
-  
-  
+    
   let file = {
       result_names = hresult.hresult_names;
       result_md4 = hresult.hresult_md4;
@@ -203,6 +222,7 @@ let input_old_result ic =
       result_type = "";
       result_tags = hresult.hresult_tags;
       result_comment = None;
+      result_done = false;
     }  in
   printf_char '!';
   List.iter (fun tag ->
@@ -216,7 +236,7 @@ let input_old_result ic =
   file
   
 let clear () =
-  Indexer.clear index;
+  DocIndexer.clear index;
   Hashtbl.clear results;
   match !history_file_oc with
     None -> ()
@@ -270,7 +290,7 @@ let index_string doc s fields =
   let words = stem s in
   List.iter (fun s ->
 (*      Printf.printf "ADD [%s] in index" s; print_newline (); *)
-      Indexer.add  index s doc fields
+      DocIndexer.add  index s doc fields
   ) words 
   
 let index_name r name = 
@@ -278,41 +298,60 @@ let index_name r name =
 
 let indexer = ref None
 
+let add_to_local_index_queue = ref []
 
 let add_to_local_index r =
+  if !!local_index_add_cmd <> "" then 
+    add_to_local_index_queue := r :: !add_to_local_index_queue
   
-  if !!local_index_add_cmd <> "" then begin
+let refill_add_to_local_index t_out =
+  if !add_to_local_index_queue = [] then
+    TcpClientSocket.close t_out "finished"
+  else
+  let (before, after) = List2.cut 50 !add_to_local_index_queue in
+  add_to_local_index_queue := after;
+  
+  let buf = Buffer.create 1000 in
+  List.iter (fun r ->
+      
+      List.iter (fun name -> 
+          Printf.bprintf  buf "name:%s\n" name
+      ) r.result_names;
+      Printf.bprintf buf "size:%s\n" (Int32.to_string r.result_size);
+      Printf.bprintf buf "md4:%s\n" (Md4.to_string r.result_md4);
+      if r.result_format <> "" then
+        Printf.bprintf buf "format:%s\n" r.result_format;
+      if r.result_type <> "" then
+        Printf.bprintf buf "type:%s\n" r.result_type;
+      List.iter (fun tag ->
+          match tag.tag_value with
+            String s ->
+              Printf.bprintf buf "string_tag:%s:%s\n" tag.tag_name s
+          | Uint32 i | Fint32 i ->
+              Printf.bprintf buf "int_tag:%s:%s\n" tag.tag_name 
+                (Int32.to_string i)
+          | _ -> ()
+      ) r.result_tags;
+      Buffer.add_string buf "end result\n";
+      
+  ) before;
+  
+  let s = Buffer.contents buf in
+  TcpClientSocket.write_string t_out s   
+  
+let add_to_local_index_timer timer =
+  reactivate_timer timer;
+  
+  if !add_to_local_index_queue <> [] &&
+    !indexer = None then begin
       try
-        let buf = Buffer.create 100 in
-        
-        List.iter (fun name -> 
-            Printf.bprintf  buf "name:%s\n" name
-        ) r.result_names;
-        Printf.bprintf buf "size:%s\n" (Int32.to_string r.result_size);
-        Printf.bprintf buf "md4:%s\n" (Md4.to_string r.result_md4);
-        if r.result_format <> "" then
-          Printf.bprintf buf "format:%s\n" r.result_format;
-        if r.result_type <> "" then
-          Printf.bprintf buf "type:%s\n" r.result_type;
-        List.iter (fun tag ->
-            match tag.tag_value with
-              String s ->
-                Printf.bprintf buf "string_tag:%s:%s\n" tag.tag_name s
-            | Uint32 i | Fint32 i ->
-                Printf.bprintf buf "int_tag:%s:%s\n" tag.tag_name 
-                  (Int32.to_string i)
-            | _ -> ()
-        ) r.result_tags;
-        Buffer.add_string buf "end result\n";
-        
-        let s = Buffer.contents buf in
         let t_out =
           match !indexer with
             None ->
               let (t_in, t_out) = TcpClientSocket.exec_command !!local_index_add_cmd [||] 
                   (fun sock ev -> ()) in
               indexer := Some (t_in, t_out);
-              TcpClientSocket.set_closer t_out (fun _ _ ->
+              TcpClientSocket.set_closer t_in (fun _ _ ->
                   match !indexer with
                     None -> ()
                   | Some (t_in_old, t_out_old) ->
@@ -327,7 +366,8 @@ let add_to_local_index r =
               t_out
           | Some (t_in, t_out) -> t_out
         in
-        TcpClientSocket.write_string t_out s
+        TcpClientSocket.set_refill t_out refill_add_to_local_index        
+
       with e ->
           Printf.printf "Exception %s while starting local_index_add"
             (Printexc.to_string e); print_newline ()
@@ -340,17 +380,25 @@ let index_result_no_filter r =
 (*    Printf.printf "RESULT %s" (Md4.to_string r.result_md4);
     print_newline (); *)
     let doc = Hashtbl.find results r.result_md4 in
-    let rr = Indexer.value doc in
+    let rr = doc_value doc in
     List.iter (fun name ->
         if not (List.mem name rr.result_names) then begin
             rr.result_names <- name :: rr.result_names;
             index_name doc name
           end
     ) r.result_names;
+    Store.update store doc r;
     doc
   with
     _ -> 
-      let doc = Indexer.make_doc index r in
+
+      if List.mem r.result_md4 !!DownloadComplexOptions.old_files then
+        r.result_done <- true
+      else
+      if Hashtbl.mem files_by_md4  r.result_md4 then
+        r.result_done <- true;
+      
+      let doc = Store.add store r in
       Hashtbl.add results r.result_md4 doc;
 
       (try add_to_local_index r with _ -> ());
@@ -362,7 +410,8 @@ let index_result_no_filter r =
 
       List.iter (fun name ->
           index_name doc name
-      ) r.result_names;      
+      ) r.result_names;
+      
       List.iter (fun tag ->
           match tag with
           | { tag_name = "Artist"; tag_value = String s } -> 
@@ -381,68 +430,95 @@ let index_result_no_filter r =
       doc
 
 let index_result r =
-    if not !!use_file_history then r else
+(*    if not !!use_file_history then r else *)
     let doc = index_result_no_filter r in
-    if Indexer.filtered doc then raise Not_found;
-    Indexer.value doc
+    if DocIndexer.filtered doc then raise Not_found;
+    doc
 
 let add_name r file_name =
   if !!use_file_history then
     try
       let doc = Hashtbl.find results r.result_md4 in
-      let rr = Indexer.value doc in
+      let rr = doc_value doc in
       if r != rr then raise Not_found;
       if not (List.mem file_name r.result_names) then begin
           r.result_names <- file_name :: r.result_names;
+          Store.update store doc r;
           index_name doc file_name
         end
     with _ ->
         r.result_names <- file_name :: r.result_names;
         ignore (index_result_no_filter r)
-  else
-    r.result_names <- file_name :: r.result_names
+  else begin
+      r.result_names <- file_name :: r.result_names;
+      
+    end
 
-  
-let merge_result search r =
-  try
-    let result, old_avail = Hashtbl.find search.search_files r.result_md4
-    in
-    if result != r then
-      List.iter (fun name ->
-          if not (List.mem name result.result_names) then begin
-              add_name result name;
-              result.result_names <- name :: result.result_names
-            end
-      ) r.result_names
-  with _ ->
-      try
-        let result =  index_result r in      
-        Hashtbl.add search.search_files r.result_md4 (result, ref 0);
-        search.search_nresults <- search.search_nresults + 1;
-        search.search_handler (Result result);
-      with _ ->  (* the file was probably filtered *)
-          ()
+let has_word s bit =
+  match stem s with
+    [] -> assert false
+  | s :: tail -> 
+      List.fold_left (fun q s ->
+      Indexer.And (q, (Indexer.HasField (bit, s)))
+      ) (Indexer.HasField (bit, s)) tail
+          
+let query_to_indexer q =
+  let rec iter q =
+    match q with
+      QAnd (q1, q2) ->
+        Indexer.And (iter q1, iter q2)  
+    | QOr  (q1, q2) ->
+        Indexer.Or (iter q1, iter q2)  
+    | QAndNot (q1, q2) ->
+        Indexer.AndNot (iter q1, iter q2)  
+    | QHasWord s -> has_word s 0xffffffff
+    | QHasField (f, s) ->
+        has_word s (
+          if f = "media" then media_bit else
+          if f = "format" then format_bit else
+          if f = "Title" then title_bit else
+          if f = "Artist" then artist_bit else
+          if f = "Album" then album_bit 
+          else 0xffffffff);
+    | QHasMinVal (f,size) ->
+        Indexer.Predicate
+          (if f = "size" then
+            (fun doc -> 
+                let r = doc_value doc in
+                r.result_size >= size)
+          else (fun doc -> true))
 
-  
+    | QHasMaxVal (f,size) ->
+        Indexer.Predicate (
+          if f = "size" then
+            (fun doc -> 
+                let r = doc_value doc in
+                r.result_size <= size)
+          else (fun doc -> true))
+      
+  in
+  iter q
+          
 let find s = 
   if not !!use_file_history then () else
 (*  Indexer.print index; *)
   let req = ref [] in
   let pred = ref (fun _ -> true) in
-
-  let ss = s.search_query in
   
+  let ss = s.search_query in
+  let req = query_to_indexer ss in  
+  (*
   List.iter (fun s -> 
       List.iter (fun s ->
           req := (s, 0xffffffff) :: !req) (stem s) 
   )  ss.search_words;
-
+  
   let with_option o f =
     match o with 
       None -> ()
     | Some v -> f v 
   in
-
+  
   let with_option_bit o bit =
     match o with 
       None -> ()
@@ -454,12 +530,12 @@ let find s =
   with_option ss.search_minsize (fun size -> 
       let old_pred = !pred in
       pred := (fun doc ->
-          let r = Indexer.value doc in
+          let r = doc_value doc in
           r.result_size >= size && old_pred doc));
   with_option ss.search_maxsize (fun  size -> 
       let old_pred = !pred in
       pred := (fun doc ->
-          let r = Indexer.value doc in
+          let r = doc_value doc in
           r.result_size <= size && old_pred doc));
   with_option_bit ss.search_media media_bit;
   with_option_bit ss.search_format format_bit;
@@ -468,14 +544,28 @@ let find s =
   with_option_bit ss.search_album album_bit;  
   
   let req = !req in
+  let pred = !pred in
   
-  let docs = Indexer.complex_request index req !pred in
+  match req with
+    [] -> ()
+  | (word, fields) :: tail ->
+      let req = List.fold_left (fun q (word, fields) ->
+            Indexer.And (q, Indexer.HasField(fields, word)))
+        (Indexer.HasField(fields, word)) tail
+      in
+let req = Indexer.Predicate (pred, req) in
+*)
+
+ let docs = DocIndexer.query index req in
 (*  Printf.printf "%d results" (List.length docs); print_newline (); *)
-  List.iter (fun doc ->
-      let r = Indexer.value doc in
-      comment_result r;
-      merge_result s r
-  ) docs
+Array.iter (fun doc ->
+    let r = doc_value doc in
+    comment_result r doc;
+    
+(*    merge_result s doc.num; *)
+    if not (Hashtbl.mem s.search_files r.result_md4) then
+      Hashtbl.add s.search_files r.result_md4 (doc, ref 0)
+) docs
 
 
 let load_old_history () =
@@ -490,53 +580,62 @@ let load_old_history () =
 let init () =
 (* load history *)
   if !! save_file_history then
-    try
-      Printf.printf  "Loading history file ..."; flush stdout;
-      let list = ref [] in
-      let ic = open_in history_file in
-      try
-        while true do
-          let file = input_result ic in
-          list := (Indexer.value (index_result_no_filter file)) :: !list;
-        done
-      with 
-        End_of_file -> 
-          Printf.printf "done"; print_newline ();
-          close_in ic
-      | _ -> (* some error *)
-          Printf.printf "Error reading history file"; print_newline ();
-          close_in ic;
-          Printf.printf "Generating new file"; print_newline ();
-          begin try
-            List.iter (fun file ->
-                output_result file
-              ) !list;
-              close_history_oc ();
-            with e ->            
-                Printf.printf "Error %s generating new history file"
-                  (Printexc.to_string e);
-                print_newline () 
-          end
-    with _ -> ()
+    begin
+      (try
+          save_file_history =:= false;
+          Printf.printf  "Loading history file ..."; flush stdout;
+          let list = ref [] in
+          let ic = open_in history_file in
+          try
+            while true do
+              let file = input_result ic in
+              list := doc_value (index_result_no_filter file) :: !list;
+            done
+          with 
+            End_of_file -> 
+              Printf.printf "done"; print_newline ();
+              close_in ic
+          | e -> (* some error *)
+              Printf.printf "Error %s reading history file"
+                (Printexc.to_string e)
+              ; print_newline ();
+              close_in ic;
+              Printf.printf "Generating new file"; print_newline ();
+              begin try
+                  (try close_history_oc () with _ -> ());
+                  (try Sys.remove "history.met" with _ -> ());
+                  List.iter (fun file ->
+                      output_result file
+                  ) !list;
+                  close_history_oc ();
+                with e ->            
+                    Printf.printf "Error %s generating new history file"
+                      (Printexc.to_string e);
+                    print_newline () 
+              end
+        with _ -> ());
+      save_file_history =:= true;
+      close_history_oc ()
+    end
             
 let _ =
   Options.option_hook filters (fun _ ->
       try
 (*        Printf.printf "CLEAR OLD FILTERS"; print_newline (); *)
-        Indexer.clear_filter index;
+        DocIndexer.clear_filter index;
 (*        Printf.printf "SET NEW FILTERS"; print_newline (); *)
-        Indexer.filter_words index (stem !!filters)
+        DocIndexer.filter_words index (stem !!filters)
       with e ->
           Printf.printf "Error %s in set filters" (Printexc.to_string e);
           print_newline ();
   );
   DownloadGlobals.do_at_exit (fun _ ->
       if !!save_file_history then begin
-          Printf.printf "Saving history 1"; print_newline (); 
           close_history_oc ();
-          
+          (try Sys.rename history_file (history_file ^ ".tmp") with _ -> ());
+          (try Sys.remove history_file with _ -> ());
           Hashtbl.iter (fun _ doc ->
-              let r = Indexer.value doc in
+              let r = doc_value doc in
               output_result r
           ) results;
           close_history_oc ();
@@ -548,19 +647,21 @@ let _ =
   )
   
 let index_result_no_filter r = 
-  let r = Indexer.value (index_result_no_filter r) in
-  comment_result r;
-  r
+  let doc = index_result_no_filter r in
+  let r = doc_value doc in
+  comment_result r doc;
+  doc
   
 let index_result r = 
-  let r = index_result r in
-  comment_result r;
-  r
+  let doc = index_result r in
+  let r = Store.get store doc in
+  comment_result r doc;
+  doc
   
 let find_names md4 =
   try
     let doc = Hashtbl.find results md4 in
-    let r = Indexer.value doc in
+    let r = doc_value doc in
     r.result_names
   with _ -> []
       

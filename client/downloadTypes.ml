@@ -73,9 +73,10 @@ and search_event =
 | Waiting of int
   
 and search = {
-    mutable search_query : search_query;
+    mutable search_max_hits : int;
+    mutable search_query : Mftp.query;
     mutable search_nresults : int;
-    search_files : (Md4.t, result * (int ref)) Hashtbl.t;
+    search_files : (Md4.t, int * (int ref)) Hashtbl.t;
     search_num : int;
     mutable search_waiting : int;
     mutable search_string : string;
@@ -120,7 +121,7 @@ and client = {
     mutable client_num : int;
     mutable client_is_friend : friend_kind;
     mutable client_next_view_files :  float;
-    mutable client_all_files : result list option;
+    mutable client_all_files : int list option;
     mutable client_tags: Mftp.tag list;
     mutable client_name : string;
     mutable client_all_chunks : string;
@@ -256,3 +257,22 @@ type connection_options = {
     mutable conn_output : output_type; 
     mutable conn_sortvd : sortvd_type;
   }
+
+type query_entry = 
+  Q_AND of query_entry list
+| Q_OR of query_entry list
+| Q_ANDNOT of query_entry * query_entry  
+| Q_MODULE of string * query_entry
+  
+| Q_KEYWORDS of string * string
+| Q_MINSIZE of string * string
+| Q_MAXSIZE of string * string
+| Q_FORMAT of string * string
+| Q_MEDIA of string * string
+  
+| Q_MP3_ARTIST of string * string
+| Q_MP3_TITLE of string * string
+| Q_MP3_ALBUM of string * string
+| Q_MP3_BITRATE of string * string
+
+| Q_HIDDEN of query_entry list

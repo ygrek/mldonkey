@@ -146,8 +146,6 @@ module ServerOption = struct
 
   end
   
-
-  
 module FileOption = struct
     
     let value_to_int32pair v =
@@ -156,7 +154,18 @@ module FileOption = struct
           (value_to_int32 v1, value_to_int32 v2)
       | _ -> 
           failwith "Options: Not an int32 pair"
-    
+
+    let value_to_state v =
+      match v with
+        StringValue "Paused" -> FilePaused
+      | StringValue "Downloading" -> FileDownloading
+      | _ -> raise Not_found
+
+    let state_to_value s = 
+      match s with
+        FilePaused -> StringValue "Paused"
+      | _ -> StringValue "Downloading"
+          
     let value_to_file v =
       match v with
         Options.Module assocs ->
@@ -188,7 +197,11 @@ module FileOption = struct
                     (value_to_list value_to_int32pair);
                 end
             with _ -> ()                );
-          
+    
+          (try
+              let file_state = get_value "file_state" value_to_state in
+              file.file_state <- file_state;
+            with _ -> ());
           
           file.file_filenames <-
             get_value_nil "file_filenames" (value_to_list value_to_string);
@@ -229,6 +242,7 @@ module FileOption = struct
         "file_md4", string_to_value (Md4.to_string file.file_md4);
         "file_size", int32_to_value file.file_size;
         "file_all_chunks", string_to_value file.file_all_chunks;
+        "file_state", state_to_value file.file_state;
         "file_absent_chunks", List
           (List.map (fun (i1,i2) -> 
               SmallList [int32_to_value i1; int32_to_value i2])
@@ -295,37 +309,10 @@ module SharedFileOption = struct
     let t = define_option_class "SharedFile" value_to_shinfo shinfo_to_value
   end
     
-
-module Md4Option = struct
-    
-    let value_to_md4 v = 
-      match v with
-        Options.Module assocs ->
-          let get_value name conv = conv (List.assoc name assocs) in
-          let get_value_nil name conv = 
-            try conv (List.assoc name assocs) with _ -> []
-          in
-          
-          
-          let file_md4_name = 
-            try
-              get_value "file_md4" value_to_string
-            with _ -> failwith "Bad file_md4"
-          in
-          Md4.of_string file_md4_name
-          
-      | _ -> Md4.of_string (value_to_string v)
-    let md4_to_value v = string_to_value (Md4.to_string v)
-    
-    
-    let t =
-      define_option_class "Md4" value_to_md4 md4_to_value
-    ;;
-  end
   
 let allowed_ips = define_option downloads_ini ["allowed_ips"]
     "list of IP address allowed to control the client via telnet/GUI/WEB"
-    (list_option IpOption.t) [Ip.of_string "127.0.0.1"]
+    (list_option Ip.option) [Ip.of_string "127.0.0.1"]
 
 let _ = 
   Options.set_string_wrappers allowed_ips 
@@ -346,14 +333,14 @@ let done_files =
 
 let old_files = 
   define_option downloads_ini ["old_files"] 
-  "The files that were downloaded" (list_option Md4Option.t) []
+  "The files that were downloaded" (list_option Md4.option) []
 
 let known_friends = 
   define_option friends_ini ["friends"] 
   "The list of known friends" (list_option ClientOption.t) []
 
 let client_md4 = define_option downloads_ini ["client_md4"]
-    "The MD4 of this client" Md4Option.t (Md4.random ())
+    "The MD4 of this client" Md4.option (Md4.random ())
   
 let files = 
   define_option files_ini ["files"] 
@@ -384,3 +371,202 @@ let remove_server ip port =
     known_servers  =:= List2.removeq s  !!known_servers ;
     DownloadGlobals.remove_server ip port
   with _ -> ()
+
+      (*
+type query_entry = 
+  Q_AND of query_entry list
+| Q_OR of query_entry list
+| Q_NOT of query_entry * query_entry
+  
+| Q_KEYWORDS of string * string
+| Q_MINSIZE of string * string
+| Q_MAXSIZE of string * string
+| Q_FORMAT of string * string
+| Q_KIND of string * string
+  
+| Q_MP3_AUTHORS of string * string
+| Q_MP3_TITLE of string * string
+| Q_MP3_ALBUM of string * string
+| Q_MP3_BITRATE of string * string
+    *)
+
+let rec string_of_option v =
+  match v with
+    Module m -> "{ MODULE }"
+  | StringValue s -> Printf.sprintf "STRING [%s]" s
+  | IntValue i -> Printf.sprintf "INT [%s]" (Int32.to_string i)
+  | FloatValue f -> Printf.sprintf "FLOAT [%f]" f
+  | List l | SmallList l ->
+      (List.fold_left (fun s v ->
+            s ^ (string_of_option v) ^ ";" 
+        ) "LIST [" l) ^ "]"
+
+module QueryOption = struct
+    let rec query_to_value q =
+      match q with
+      | Q_AND list ->
+          List ((StringValue "AND") :: (List.map query_to_value list))
+      | Q_OR list ->
+          List ((StringValue "OR"):: (List.map query_to_value list))
+      | Q_HIDDEN list ->
+          List ((StringValue "HIDDEN"):: (List.map query_to_value list))
+      | Q_ANDNOT (q1, q2) ->
+          SmallList [StringValue "ANDNOT"; query_to_value q1; query_to_value q2 ]
+      | Q_MODULE (s, q) ->
+          SmallList [StringValue "MODULE"; StringValue s;  query_to_value q]
+          
+        
+        | Q_KEYWORDS (label, s) ->
+            SmallList [StringValue "KEYWORDS"; StringValue label; StringValue s]
+        | Q_MINSIZE (label, s) ->
+            SmallList [StringValue "MINSIZE"; StringValue label; StringValue s]
+        | Q_MAXSIZE (label, s) ->
+            SmallList [StringValue "MAXSIZE"; StringValue label; StringValue s]
+        | Q_FORMAT (label, s) ->
+            SmallList [StringValue "FORMAT"; StringValue label; StringValue s]
+        | Q_MEDIA (label, s) ->
+            SmallList [StringValue "MEDIA"; StringValue label; StringValue s]
+        
+        | Q_MP3_ARTIST (label, s) ->
+            SmallList [StringValue "MP3_ARTIST"; StringValue label; StringValue s]
+        | Q_MP3_TITLE (label, s) ->
+            SmallList [StringValue "MP3_TITLE"; StringValue label; StringValue s]
+        | Q_MP3_ALBUM (label, s) ->
+            SmallList [StringValue "MP3_ALBUM"; StringValue label; StringValue s]
+        | Q_MP3_BITRATE (label, s) ->
+            SmallList [StringValue "MP3_BITRATE"; StringValue label; StringValue s]
+          
+    let rec value_to_query v =
+      match v with
+      | SmallList ((StringValue "AND") :: list)
+      | List ((StringValue "AND") :: list) -> 
+          Q_AND (List.map value_to_query list)
+
+      | SmallList ((StringValue "OR") :: list)
+      | List ((StringValue "OR") :: list) -> 
+          Q_OR (List.map value_to_query list)
+
+      | SmallList ((StringValue "HIDDEN") :: list)
+      | List ((StringValue "HIDDEN") :: list) -> 
+          Q_HIDDEN (List.map value_to_query list)
+
+      | SmallList [StringValue "ANDNOT"; v1; v2 ]
+      | List [StringValue "ANDNOT"; v1; v2 ] -> 
+          Q_ANDNOT (value_to_query v1, value_to_query v2)
+
+      | SmallList [StringValue "MODULE"; StringValue label; v2 ]
+      | List [StringValue "MODULE"; StringValue label; v2 ] -> 
+          Q_MODULE (label, value_to_query v2)
+
+
+          
+      | SmallList [StringValue "KEYWORDS"; StringValue label; StringValue s]
+      | List [StringValue "KEYWORDS"; StringValue label; StringValue s] ->
+          Q_KEYWORDS (label, s)
+
+      | SmallList [StringValue "MINSIZE"; StringValue label; StringValue s]
+      | List [StringValue "MINSIZE"; StringValue label; StringValue s] ->
+          Q_MINSIZE (label, s)
+
+      | SmallList [StringValue "MAXSIZE"; StringValue label; StringValue s]
+      | List [StringValue "MAXSIZE"; StringValue label; StringValue s] ->
+          Q_MAXSIZE (label, s)
+
+      | SmallList [StringValue "MINSIZE"; StringValue label; IntValue s]
+      | List [StringValue "MINSIZE"; StringValue label; IntValue s] ->
+          Q_MINSIZE (label, Int32.to_string s)
+
+      | SmallList [StringValue "MAXSIZE"; StringValue label; IntValue s]
+      | List [StringValue "MAXSIZE"; StringValue label; IntValue s] ->
+          Q_MAXSIZE (label, Int32.to_string s)
+
+      | SmallList [StringValue "FORMAT"; StringValue label; StringValue s]
+      | List [StringValue "FORMAT"; StringValue label; StringValue s] ->
+          Q_FORMAT (label, s)
+
+      | SmallList [StringValue "MEDIA"; StringValue label; StringValue s]
+      | List [StringValue "MEDIA"; StringValue label; StringValue s] ->
+          Q_MEDIA (label, s)
+          
+      | SmallList [StringValue "MP3_ARTIST"; StringValue label; StringValue s]
+      | List [StringValue "MP3_ARTIST"; StringValue label; StringValue s] ->
+          Q_MP3_ARTIST (label, s)
+
+      | SmallList [StringValue "MP3_TITLE"; StringValue label; StringValue s]
+      | List [StringValue "MP3_TITLE"; StringValue label; StringValue s] ->
+          Q_MP3_TITLE (label, s)
+
+      | SmallList [StringValue "MP3_ALBUM"; StringValue label; StringValue s]
+      | List [StringValue "MP3_ALBUM"; StringValue label; StringValue s] ->
+          Q_MP3_ALBUM (label, s)
+
+      | SmallList [StringValue "MP3_BITRATE"; StringValue label; StringValue s]
+      | List [StringValue "MP3_BITRATE"; StringValue label; StringValue s] ->
+          Q_MP3_BITRATE (label, s)
+
+      | SmallList [StringValue "MP3_BITRATE"; StringValue label; IntValue s]
+      | List [StringValue "MP3_BITRATE"; StringValue label; IntValue s] ->
+          Q_MP3_BITRATE (label, Int32.to_string s)
+          
+      | _ -> failwith (Printf.sprintf "Query option: error while parsing %s"
+              (string_of_option  v)
+          )
+      
+    let t = define_option_class "Query" value_to_query query_to_value    
+  end
+      
+let customized_queries = define_option searches_ini ["customized_queries"] ""
+    (list_option (tuple2_option (string_option, QueryOption.t)))
+  [ 
+    "Complex Search", 
+    Q_AND [
+      Q_KEYWORDS ("keywords", "");
+      Q_MODULE ("Simple Options",
+        Q_AND [
+          Q_MINSIZE ("Min Size", "");
+          Q_MAXSIZE ("Max Size", "");
+          Q_MEDIA ("Media", "");
+          Q_FORMAT ("Format", "");
+        ];
+      );
+      Q_MODULE ("Mp3 Options",
+        Q_AND [
+          Q_MP3_ARTIST ("Artist", ""); 
+          Q_MP3_ALBUM ("Album", ""); 
+          Q_MP3_TITLE ("Title", ""); 
+          Q_MP3_BITRATE ("Min Bitrate", ""); 
+        ]
+      );
+    ];
+    "Search for mp3s", 
+    Q_AND [
+      Q_KEYWORDS ("keywords", "");
+      Q_MP3_ARTIST ("Artist", ""); 
+      Q_MP3_ALBUM ("Album", ""); 
+      Q_MP3_TITLE ("Title", ""); 
+      Q_MP3_BITRATE ("Min Bitrate", ""); 
+      Q_HIDDEN [
+        Q_MEDIA ("Media", "Audio");
+        Q_FORMAT ("Format", "mp3");
+      ]
+    ];
+    "Search for movies", 
+    Q_AND [
+      Q_KEYWORDS ("keywords", "");
+      Q_HIDDEN [
+        Q_MINSIZE ("Min Size", "500000000");
+        Q_MEDIA ("Media", "Video");
+        Q_FORMAT ("Format", "avi");
+      ]
+    ];
+    "Search for albums",
+    Q_AND [
+      Q_KEYWORDS ("Keywords", "album");
+      Q_HIDDEN [
+        Q_ANDNOT (
+          Q_MINSIZE ("Min Size", "30000000"),
+          Q_FORMAT ("Format", "mp3")
+        );
+      ]
+    ];
+  ]
