@@ -203,11 +203,36 @@ class virtual ['a] filtered_plist
                 ~button: 3
                 ~time: 0
                 ~entries: self#menu;
-              true
+             true
             )
         )
-      )
-    
+      );
+(*
+      (* Connection bouton droit sur un titre, pour chaque colonne *)
+      for i = 0 to wlist#columns - 1 do
+	let widget = wlist#column_widget i in
+	ignore 
+	  (wlist#event#connect#button_press ~callback:
+	     (
+	      fun ev ->
+		GdkEvent.Button.button ev = 3 &&
+		GdkEvent.get_type ev = `BUTTON_PRESS &&
+		(
+		 GAutoconf.popup_menu
+                   ~button: 3
+                   ~time: 0
+                   ~entries: [`I ("you clicked on the 3rd button", 
+				  fun () -> print_string (wlist#column_title i); print_newline ())
+			     ]; 
+		 true
+		)
+             )
+	  )
+      done;
+*)    
+
+      self#update
+
     initializer
       self#connect_events;
       GToolbox.autosize_clist self#wlist
