@@ -56,10 +56,13 @@ type server_key = {
 
 
 type from_gui =
+| ConnectMore_query
+| CleanOldServers
+| KillServer
+| ExtendedSearch
 | Password of int *  string
 | Search_query of bool (* local or not *) * search
 | Download_query of string list * int32 * Md4.t * (int option)
-| ConnectMore_query
 | AddServer_query of server_key
 | AddNewFriend of Ip.t * int
 | RemoveServer_query of server_key
@@ -72,7 +75,6 @@ type from_gui =
 | RemoveFriend of int
 | FindFriend of string
 | ViewUsers of server_key
-| CleanOldServers
 | ConnectAll of Md4.t
 | ConnectServer of server_key
 | DisconnectServer of server_key
@@ -80,23 +82,18 @@ type from_gui =
 | VerifyAllChunks of Md4.t
 | QueryFormat of Md4.t
 | ModifyMp3Tags of Md4.t * Mp3tag.tag
-| KillServer
 | ForgetSearch of int
 | SetOption of string * string
 | Command of string
-| ExtendedSearch
 | SayFriends of string * int list
 | Preview of Md4.t
-| ConnectFriend of int
-  
+| ConnectFriend of int  
 | GetServer_users of server_key
 | GetClient_files of int
 | GetFile_locations of Md4.t
-  
 | GetServer_info of server_key
 | GetClient_info of int
 | GetFile_info of Md4.t
-  
 | SendMoreInfo of Md4.t list * int list
 
   

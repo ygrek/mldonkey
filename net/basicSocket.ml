@@ -54,6 +54,8 @@ type timer = {
     delay : float;
   }
 
+let nb_sockets = ref 0
+  
 let infinite_timeout = 3600. *. 24. *. 365. (* one year ! *)
 
 let current_time = ref (Unix.gettimeofday ())
@@ -80,6 +82,7 @@ let close t msg =
       closed_tasks := t :: !closed_tasks;
       t.closed <- true;
       t.error <- msg;
+      decr nb_sockets
     end
 
 let closed t = t.closed
@@ -103,6 +106,7 @@ let handler t = t.event_handler
 let tasks  = ref ([]: t list)
 
 let create_blocking fd handler =
+  incr nb_sockets;
   Unix.set_nonblock fd;
 (*  Printf.printf "NEW FD %d" (Obj.magic fd); print_newline (); *)
   current_time := Unix.gettimeofday ();
@@ -253,7 +257,8 @@ let shutdown t s =
       close t s
     end
     
-
+let nb_sockets () = !nb_sockets
+  
 let _ =
   Printexc.register_exn (fun e ->
       match e with
@@ -262,4 +267,5 @@ let _ =
               "on " ^ arg) (Unix.error_message e)
       | _ -> raise e
   )
+  
   

@@ -38,13 +38,6 @@ let client_state t =
   | Connecting -> "Connecting"
   | Connected_initiating -> "Initiating"
   | Removed -> "Removed"
-      
-let set_client_state c s =
-  if c.client_state = Connected_busy then decr nclients;
-  if s = Connected_busy then incr nclients;  
-  c.client_state <- s;
-  c.client_changed <- ClientStateChange;
-  !client_change_hook c
 
 
 let must_share_file file =
@@ -688,8 +681,9 @@ let verify_chunks file =
               match b with
               PartialTemp bloc -> PartialVerified bloc
             | PresentTemp ->
-                  Printf.printf "(CORRUPTION FOUND)"; print_newline ();
-                  AbsentVerified
+                file.file_downloaded <- Int32.sub file.file_downloaded block_size;
+                Printf.printf "(CORRUPTION FOUND)"; print_newline ();
+                AbsentVerified
               | _ -> AbsentVerified);
             file.file_all_chunks.[i] <- 
               (if state = PresentVerified then '1' else '0');

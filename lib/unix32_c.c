@@ -108,3 +108,15 @@ value ml_getdtablesize(value unit)
 {
   return Val_int(getdtablesize());
 }
+
+value ml_strstr(value s_v, value sub_v)
+{
+  char *s = String_val(s_v);
+  char *sub = String_val(sub_v);
+
+  if(strstr(s, sub) == NULL) {
+    return Val_false;
+  }
+  return Val_true;
+}
+

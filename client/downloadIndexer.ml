@@ -58,9 +58,8 @@ let update_comment_result md4 comment =
 let add_comment md4 comment =
   try
     let old_comment = Hashtbl.find comments md4 in
-    if comment <> old_comment then 
-      let comment = Printf.sprintf "%s\n%s"
-          old_comment comment in
+    if not (String2.contains old_comment comment) then 
+      let comment = Printf.sprintf "%s\n%s" old_comment comment in
       Hashtbl.remove comments md4;
       Hashtbl.add comments md4 comment;
       update_comment_result md4 comment
@@ -390,6 +389,7 @@ let init () =
 (* load history *)
   if !! save_file_history then
     try
+      Printf.printf  "Loading history file ..."; flush stdout;
       let list = ref [] in
       let ic = open_in history_file in
       try
@@ -398,7 +398,9 @@ let init () =
           list := (Indexer.value (index_result_no_filter file)) :: !list;
         done
       with 
-        End_of_file -> close_in ic
+        End_of_file -> 
+          Printf.printf "done"; print_newline ();
+          close_in ic
       | _ -> (* some error *)
           Printf.printf "Error reading history file"; print_newline ();
           close_in ic;
@@ -486,12 +488,4 @@ let find_names md4 =
       
 let add_comment md4 comment =
   add_comment md4 comment;
-  save_comments ();
-  try
-    let doc = Hashtbl.find results md4 in
-    let r = Indexer.value doc in
-    match r.result_comment with
-      None -> ()
-    | Some old_comment -> 
-        r.result_comment <- Some (Printf.sprintf "%s\n%s" old_comment comment)
-  with _ -> ()
+  save_comments ()

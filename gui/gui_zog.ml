@@ -1293,18 +1293,6 @@ class gui () =
   let itemHelp = GMenu.menu_item ~label:"Help" ~packing:menu456#add () in
   let accel_menubar = GtkData.AccelGroup.create () in
   let _ = _FileMenu#set_accel_group accel_menubar in
-  let _ =
-    itemReconnect#add_accelerator ~group:accel_menubar ~modi:([`CONTROL])
-      ~flags:([`VISIBLE; `LOCKED]) GdkKeysyms._R
-  in
-  let _ =
-    itemDisconnect#add_accelerator ~group:accel_menubar ~modi:([`CONTROL])
-      ~flags:([`VISIBLE; `LOCKED]) GdkKeysyms._X
-  in
-  let _ =
-    itemQuit#add_accelerator ~group:accel_menubar ~modi:([`CONTROL])
-      ~flags:([`VISIBLE; `LOCKED]) GdkKeysyms._E
-  in
   let _ = menu456#set_accel_group accel_menubar in
   let notebook =
     GPack.notebook ~width:800 ~tab_pos:`TOP ~show_tabs:true

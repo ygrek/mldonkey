@@ -42,7 +42,7 @@ INCLUDES +=-I +lablgtk $(foreach file, $(SUBDIRS), -I $(file))
 
 LIBS=$(CUSTOM) unix.$(LIBEXT)
 
-CFLAGS=-g $(CONFIG_INCLUDES)
+CFLAGS:=$(CFLAGS) $(CONFIG_INCLUDES)
 
 CDK_CMOS=cdk/printexc.$(EXT) cdk/genlex2.$(EXT) cdk/sysenv.$(EXT) \
   cdk/netbase.$(EXT) cdk/filepath.$(EXT) cdk/string2.$(EXT) \
@@ -72,7 +72,7 @@ LIB_CMOS= \
 NET_CMOS = \
   net/basicSocket.$(EXT) \
   net/tcpClientSocket.$(EXT) net/tcpServerSocket.$(EXT) \
-  net/udpSocket.$(EXT) net/http_server.$(EXT)
+  net/udpSocket.$(EXT) net/http_server.$(EXT) net/http_client.$(EXT)
 
 MIN_PROTO_CMOS= proto/mftp.$(EXT) proto/files.$(EXT) proto/openProtocol.$(EXT)
 
@@ -143,7 +143,7 @@ gui/gui.ml: gui/gui_header.ml gui/gui_zog.ml gui/gui_trailer.ml
 	cat gui/gui_trailer.ml >> gui/gui.ml
 
 lib/md4_c.o: lib/md4_c.c
-	ocamlc.opt -ccopt "-O6 -I /byterun -o lib/md4_c.o" -ccopt "" -c lib/md4_c.c
+	ocamlc.opt -ccopt "$(CFLAGS) -O6 -I /byterun -o lib/md4_c.o" -ccopt "" -c lib/md4_c.c
 
 
 byte: $(TARGETS)

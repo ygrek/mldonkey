@@ -832,15 +832,15 @@ let init_connection c  sock files =
   c.client_files <- []
       
 let reconnect_client cid files c =
-  match c.client_kind with
-    Indirect_location -> ()
-  | Known_location (ip, port) ->
+  if can_open_connection () then
+    match c.client_kind with
+      Indirect_location -> ()
+    | Known_location (ip, port) ->
         try
           set_client_state c Connecting;
           connection_try c.client_connection_control;
           
-        printf_string "?C";
-        incr_connections ();
+          printf_string "?C";
           let sock = TcpClientSocket.connect (
               Ip.to_inet_addr ip) 
             port 

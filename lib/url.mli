@@ -37,12 +37,14 @@ val create  :    ?proto:string ->
     (*d create an already parsed url *)
   
 val of_string : string -> url
-    (*d [url_of_string s] returns the url corresponding to the given [s].
+    (*d [of_string s] returns the url corresponding to the given [s].
        this string should start by ["http://"]. [raise Invalid_argument]
        if the string is not an url *)
 
-val to_string : url -> string
-    (*d [string_of_url u] returns a string representing u. the args are not
-        put in this string *)
+val to_string : bool -> url -> string
+(*d [to_string with_args u] returns a string representing u.  *)
 
 val cut_args : string -> (string * string) list
+
+val encode : string -> string
+val decode : string -> string

@@ -60,6 +60,18 @@ let hourly_timer timer =
   Mftp_comm.propagate_working_servers 
     (List.map (fun s -> s.server_ip, s.server_port) !connected_server_list)
   
+let day = ref (-1)
+  
+let do_daily () =
+  incr day;
+  List.iter (fun (kind, period, url) ->
+      if !day mod period = 0 then load_url kind url
+  ) !!web_infos
+  
+let daily_timer timer =
+  reactivate_timer timer;
+  do_daily ()
+  
   
 let _ = 
   try
@@ -242,10 +254,9 @@ let _ =
           print_newline ();
     end;
     
-    client_ip := Ip.of_inet_addr
-      (try
-        Host.ip (Host.from_name (Unix.gethostname ()))
-      with _ -> Host.local_ip
+    client_ip := (try
+        Ip.from_name (Unix.gethostname ())
+      with _ -> Ip.localhost
     );
     
     client_tags :=
@@ -266,6 +277,7 @@ let _ =
     add_timer 5.0 DownloadServers.walker_timer;
     
     add_timer 3600. hourly_timer;
+    add_timer (3600. *. 24.) daily_timer;
     
     add_timer 30. DownloadFiles.upload_credit_timer;
     
@@ -281,6 +293,7 @@ let _ =
 (**** START PLAYING ****)  
     (try force_check_locations () with _ -> ());
     (try force_check_server_connections true with _ -> ());
+    (try do_daily () with _ -> ());
 
 (**** MAIN LOOP ****)  
     force_save_options ();

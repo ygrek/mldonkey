@@ -174,6 +174,8 @@ ignore (gui#clist_download#connect#unselect_row (download_unset_selection gui));
       M.a_page_help, gui#itemHelp#activate;
       M.a_next_page, gui#notebook#next_page;
       M.a_previous_page, gui#notebook#previous_page;
+      M.a_reconnect, gui#itemReconnect#activate;
+      M.a_exit, gui#itemQuit#activate;
     ] 
   in
   List.iter (add window global_actions) !!O.keymap_global;
@@ -292,4 +294,5 @@ ignore (gui#clist_download#connect#unselect_row (download_unset_selection gui));
         | _ -> 
             never_connected := false
   );
+
   loop ()

@@ -179,10 +179,10 @@ let friends_hpane_left = define_option mldonkey_gui_ini
 let searches_hpane_left = define_option mldonkey_gui_ini
     ["layout"; "searches_hpane_left"]
   "Size in % of left part of the searches hpane"
-    int_option 30
+    int_option 40
   
 let downloads_vpane_up = define_option mldonkey_gui_ini
-    ["layout"; "define_option"]
+    ["layout"; "downloads_vpane_up"]
   "Size in % of up part of the downloads vpane"
     int_option 40
 
@@ -210,4 +210,16 @@ let hostname = define_option mldonkey_gui_ini ["hostname"] "" string_option
   
 let max_client_name_len = define_option mldonkey_gui_ini
     ["max_client_name_len"] "Max len of a source name"
-  int_option 18
+    int_option 18
+    
+let compaction_overhead = define_option mldonkey_gui_ini 
+    ["compaction_overhead"] 
+    "The percentage of free memory before a compaction is triggered"
+    int_option 50
+  
+let _ =
+  option_hook compaction_overhead (fun _ ->
+      let gc_control = Gc.get () in
+      Gc.set { gc_control with Gc.max_overhead = !!compaction_overhead };     
+  )
+  

@@ -136,7 +136,8 @@ module ServerOption = struct
             with _ -> ());
           (try
               DownloadGlobals.connection_set_last_conn l.server_connection_control
-                (get_value "server_age" value_to_float);
+                (min (get_value "server_age" value_to_float) 
+                (BasicSocket.last_time ()));
             with _ -> ());
           l
       | _ -> failwith "Options: Not a server"

@@ -193,5 +193,32 @@ let verbose = define_option downloads_ini ["verbose"] "Only for debug"
     bool_option false
 
   
-let max_connections_per_minute = define_option downloads_ini
-    ["max_connections_per_minute"] "Maximal number of connection that can be tried per minute" int_option 500
+let max_opened_connections = define_option downloads_ini
+    ["max_opened_connections"] "Maximal number of opened connections" int_option (Unix32.fds_size - 100)
+
+let web_infos = define_option downloads_ini
+    ["web_infos"] "A list of lines to download on the WEB: each line has 
+    the format: (kind, period, url), where kind is either
+    'server.met' (for a server.met file), or 'comments.met' for
+    a file of comments, and period is the period between updates 
+    (in days), and url is the url of the file to download.
+    IMPORTANT: Put the URL and the kind between quotes.
+    EXAMPLE:
+ web_infos = [
+  ('server.met', 1, 'http://www.primusnet.ch/users/komintern/ed2k/min/server.met'
+ )]
+  "
+    (list_option (
+      tuple3_option (string_option, int_option, string_option)))
+  []
+  
+let compaction_overhead = define_option downloads_ini 
+    ["compaction_overhead"] 
+    "The percentage of free memory before a compaction is triggered"
+    int_option 50
+  
+let _ =
+  option_hook compaction_overhead (fun _ ->
+      let gc_control = Gc.get () in
+      Gc.set { gc_control with Gc.max_overhead = !!compaction_overhead };     
+  )

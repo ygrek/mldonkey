@@ -235,3 +235,4 @@ let tokens s =
   in
   iter_next 0 
 
+external contains : string -> string -> bool = "ml_strstr"  

@@ -184,6 +184,8 @@ let a_page_console = "page_console"
 let a_page_help = "page_help"
 let a_next_page = "next_page"
 let a_previous_page = "previous_page"
+let a_reconnect = "reconnect"
+let a_exit = "exit"
 
 let a_select_all = "select_all"
 let a_connect = "connect"
@@ -608,7 +610,8 @@ TODO list
   * Don't keep history in memory.
   * Allow hostname instead of IPs in servers and friends.
   * Queue uploads per chunk.
-  * wget list of servers, comments and good sources.
+  * Add prefered servers.
+  * Save options in a modular way (each server in a file ?).
 
 Known bugs:
 ===========
@@ -622,6 +625,10 @@ Release 1.13:
   * Annotations on files in file 'comments.met'. Commands 'comments <filename>'
     to load a file, and 'comment <md4> <comment>' to add a new comment.
     Such comments could be downloaded from web sites (sharereactor.com).
+  * New option 'web_infos' and new command 'add_url' on console: allow
+    to download a file from the WEB automatically everyday (or less 
+    frequently). Currently, only server.met and comments.met files are
+    supported.
   * GUI:
      - New config file in $HOME/.mldonkey_gui.ini with GUI options
      - colors added in lists (see .mldonkey_gui.ini)
@@ -629,16 +636,23 @@ Release 1.13:
      - File locations are updated.
      - Improved protocol to decrease bandwidth
      - Comments are displayed in searches, and can be added in contextual menu.
+     - Shortcuts can be configured by options.
   * Mailer accept non-canonnical addresses.
   * Option 'verbose': '#' for download, 'U' for upload, and other messages.
   * When possible, find extra names for files in history.
-  * New command 'close_fds' to close all open files, to free space on disk 
-      after remove.
+  * Console:
+      - New command 'close_fds' to close all open files, to free space on disk 
+        after remove.
+      - New command 'pause' and 'resume' to pause and resume downloads (use
+         arg 'all' to apply to all files).
   * Some control on how many connections can be opened per minute.
+  * Better scheduling of compaction (new option 'compaction_overhead')
+     in both core and GUI that caused delay when exiting.
   * Bug fixes:
     - Remove block change causing many 'exceeding block boundaries'
     - history.dat changed to history.met, using more secure marshaling.
-    - OVERFLOW with GUI should appear less frequently.
+    - OVERFLOW with GUI should not appear anymore.
+    - Compaction makes GUI memory usage better.
 
 Release 1.12:
   * Bug fixes:

@@ -116,6 +116,10 @@ val connection_delay : DownloadTypes.connection_control -> unit
 val printf_char : char -> unit
 val printf_string : string -> unit
   
-val allow_new_connection : unit -> bool
-val incr_connections : unit -> unit
+val can_open_connection : unit -> bool
   
+val set_client_state : 
+  DownloadTypes.client -> Gui_types.connection_state -> unit
+  
+val set_server_state : 
+  DownloadTypes.server -> Gui_types.connection_state -> unit

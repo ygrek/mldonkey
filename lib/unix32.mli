@@ -28,3 +28,6 @@ external getsize32 : string -> int32 = "ml_getsize32"
 val ftruncate32 : t -> int32 -> unit
 
 val close_all : unit -> unit
+
+val fds_size : int
+  

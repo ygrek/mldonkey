@@ -266,24 +266,25 @@ and remove clients whose server is deconnected. *)
         user_tags = cl.Q.tags;
       }
   ) t
-
-let reconnect_all file =
-  List.iter (fun c ->
-      connection_must_try c.client_connection_control;
-      connect_client !client_ip [file] c) file.file_known_locations;
-  List.iter (fun s ->
-      match s.server_sock, s.server_state with
-      | Some sock, (Connected_idle | Connected_busy) ->
-          query_locations file s sock    
-      | _ -> ()
-  ) !connected_server_list
   
   
 let server_of_key t =
-  find_server t.P.key_ip t.P.key_port  
+  try
+    find_server t.P.key_ip t.P.key_port  
+  with Not_found ->
+      Printf.printf "No server %s:%d" (Ip.to_string t.P.key_ip)
+      t.P.key_port;
+      print_newline ();
+      raise Not_found
   
 let gui_reader (gui: gui_record) t sock =
-(*  Printf.printf "from gui"; print_newline (); *)
+  (*
+  if Obj.is_int (Obj.repr t) then
+    Printf.printf "from gui: int %d" (Obj.magic t)
+  else
+    Printf.printf "from gui: %d" (Obj.tag (Obj.repr t)); 
+print_newline ();
+  *)
   try
     let module P = Gui_proto in
     match t with
@@ -489,11 +490,15 @@ let gui_reader (gui: gui_record) t sock =
         
     | P.GetClient_files num ->
         let c = find_client num in
-        gui_send gui (P.Client_files (num, c.client_all_files))
+        gui_send gui (P.Client_files (c.client_num, c.client_all_files))
         
     | P.GetClient_info num ->
-        let c = find_client num in
-        gui_send gui (P.Client_info (client_info c))
+        begin
+          try
+            let c = find_client num in
+            gui_send gui (P.Client_info (client_info c))
+          with Not_found -> ()
+        end
         
     | P.GetServer_users key ->
         let s = server_of_key key in
@@ -523,7 +528,6 @@ let gui_reader (gui: gui_record) t sock =
             gui_send gui (P.File_info (file_info (find_file md4)))
           with _ -> ()
         end
-
         
     | P.ConnectFriend num ->
         let c = find_client num in
@@ -552,7 +556,7 @@ let gui_reader (gui: gui_record) t sock =
           try
             let file = find_file md4 in
             if file.file_state = FileDownloading then 
-              reconnect_all file          
+              DownloadInteractive.reconnect_all file          
           with _ -> ()
         end
     
@@ -585,7 +589,7 @@ let gui_reader (gui: gui_record) t sock =
           match file.file_state with
             FilePaused ->
               file.file_state <- FileDownloading;
-              reconnect_all file
+              DownloadInteractive.reconnect_all file
           
           | _ -> 
               file.file_state <- FilePaused;

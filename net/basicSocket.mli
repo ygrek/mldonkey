@@ -47,3 +47,6 @@ type timer
 val add_timer : float -> (timer -> unit) -> unit
 val reactivate_timer : timer -> unit
 val loop : unit -> unit
+
+val nb_sockets : unit -> int
+  

@@ -39,6 +39,19 @@ let result_name r =
     [] -> None
   | name :: _ -> Some name
 
+      
+      
+let reconnect_all file =
+  List.iter (fun c ->
+      connection_must_try c.client_connection_control;
+      connect_client !client_ip [file] c) file.file_known_locations;
+  List.iter (fun s ->
+      match s.server_sock, s.server_state with
+      | Some sock, (Connected_idle | Connected_busy) ->
+          query_locations file s sock    
+      | _ -> ()
+  ) !connected_server_list
+
 let search_of_args args =
   let query = {
       search_max_hits = 200;
@@ -111,6 +124,8 @@ let forget_search num =
         if s.search_num = num then list else s :: list) 
     [] !searches)
 
+  
+  
 let save_file md4 name =
   let real_name = Filename.concat !!incoming_directory name in
   let files = ref [] in
@@ -223,8 +238,6 @@ let load_server_met filename =
     let s = File.to_string filename in
     let ss = S.read s in
     List.iter (fun r ->
-        Printf.printf "add server %s:%d" (Ip.to_string r.S.ip) r.S.port;
-        print_newline ();
         let server = add_server r.S.ip r.S.port in
         List.iter (fun tag ->
             match tag with
@@ -239,6 +252,53 @@ let load_server_met filename =
       Printf.printf "Exception %s while loading %s" (Printexc.to_string e)
       filename;
       print_newline () 
+
+        
+let load_url kind url =
+  Printf.printf "QUERY URL %s" url; print_newline ();
+  let filename = Filename.temp_file "http_" ".tmp" in
+  let file_oc = open_out filename in
+  let file_size = ref 0 in
+  Http_client.get_page (Url.of_string url) []
+    (Http_client.default_headers_handler 
+      (fun maxlen sock nread ->
+        let buf = TcpClientSocket.buf sock in
+        
+        if nread > 0 then begin
+            let left = 
+              if maxlen >= 0 then
+                min (maxlen - !file_size) nread
+              else nread
+            in
+            output file_oc buf.buf buf.pos left;
+            buf_used sock left;
+            file_size := !file_size + left;
+            if nread > left then
+              TcpClientSocket.close sock "end read"
+          end
+        else
+        if nread = 0 then begin
+            close_out file_oc;
+            try
+              begin
+                match kind with
+                  "server.met" ->
+                    load_server_met filename;
+                    Printf.printf "SERVERS ADDED"; print_newline ();
+                | "comments.met" ->
+                    DownloadIndexer.load_comments filename;
+                    Printf.printf "COMMENTS ADDED"; print_newline ();
+                | _ -> failwith (Printf.sprintf "Unknown kind [%s]" kind)
+              end;
+              Sys.remove filename
+              with e ->
+                  Printf.printf
+                    "Exception %s in loading downloaded file %s"
+                    (Printexc.to_string e) filename
+          
+          end
+    ))
+
       
 let really_query_download filenames size md4 location old_file absents =
   
@@ -636,7 +696,7 @@ let commands = [
         Printf.sprintf "Upload credits : %d minutes\nUpload disabled for %d minutes" !upload_credit !has_upload;
     
     ), " : view upload credits";
-
+    
     "comments", Arg_one (fun filename buf _ ->
         DownloadIndexer.load_comments filename;
         DownloadIndexer.save_comments ();
@@ -672,7 +732,7 @@ let commands = [
             Printf.sprintf "error %s while loading config" (
               Printexc.to_string e)
     ), " <dirname> : import the config from dirname";
-
+    
     "load_old_history", Arg_none (fun buf _ ->
         DownloadIndexer.load_old_history ();
         "Old history loaded"
@@ -698,7 +758,7 @@ let commands = [
         with e -> 
             Printf.sprintf "error %s while loading file" (Printexc.to_string e)
     ), " <filename> : add the servers from a server.met file";
-
+    
     "close_fds", Arg_none (fun buf _ ->
         Unix32.close_all ();
         "All files closed"
@@ -732,6 +792,15 @@ let commands = [
               "Use 'commit' to move downloaded files to the incoming directory"
     
     ), "<num>: view file info";
+    
+    "add_url", Arg_two (fun kind url bud _ ->
+        let v = (kind, 1, url) in
+        if not (List.mem v !!web_infos) then
+          web_infos =:=  v :: !!web_infos;
+        load_url kind url;
+        "url added to web_infos. downloading now"
+    ), " <kind> <url> : load this file from the web. 
+    kind is either server.met (if the downloaded file is a server.met)";
     
     "recover_temp", Arg_none (fun buf _ ->
         let files = Unix2.list_directory !!temp_directory in
@@ -831,7 +900,7 @@ let commands = [
             really_query_download filenames size md4 location old_file absents;
             "download started"
     ), " : force download of an already downloaded file";
-
+    
     "d", Arg_multiple (fun args buf _ ->
         try
           let (size, md4, name) =
@@ -894,7 +963,7 @@ let commands = [
         (Options.simple_options downloads_ini);
         if format = HTML then
           Printf.bprintf  buf "\</table\>";
-
+        
         ""
     ), " : print options";
     
@@ -955,10 +1024,10 @@ let commands = [
 \t-artist <word in artist>
 \t-field <field> <fieldvalue> :
 ";
-        
+    
     "vs", Arg_none (fun buf format ->
-      Printf.bprintf  buf "Searching %d queries\n" (List.length !searches);
-      List.iter (fun s ->
+        Printf.bprintf  buf "Searching %d queries\n" (List.length !searches);
+        List.iter (fun s ->
             Printf.bprintf buf "%s[%-5d]%s %s %s\n" 
               (if format = HTML then 
                 Printf.sprintf "\<a href=/submit\?q=vr\+%d\>" s.search_num
@@ -966,17 +1035,63 @@ let commands = [
             s.search_num 
               (if format = HTML then "\</a\>" else "")
             s.search_string
-            (if s.search_waiting = 0 then "done" else
-              string_of_int s.search_waiting)
+              (if s.search_waiting = 0 then "done" else
+                string_of_int s.search_waiting)
         ) !searches; ""), ": view all queries";
-
+    
     "cancel", Arg_multiple (fun args buf _ ->
+        if args = ["all"] then
+          List.iter (fun file ->
+              remove_file file.file_md4
+          ) !!files
+        else
+          List.iter (fun num ->
+              let num = int_of_string num in
+              List.iter (fun file ->
+                  if file.file_num = num then remove_file file.file_md4
+              ) !!files) args; 
+        ""
+    ), " <num> : cancel download (use arg 'all' for all files)";
+    
+    "pause", Arg_multiple (fun args buf _ ->
+        if args = ["all"] then
+          List.iter (fun file ->
+              file.file_state <- FilePaused;
+              file.file_changed <- FileInfoChange;
+              !file_change_hook file
+          ) !!files
+        else
+          List.iter (fun num ->
+              let num = int_of_string num in
+              List.iter (fun file ->
+                  if file.file_num = num then begin
+                      file.file_state <- FilePaused;
+                      file.file_changed <- FileInfoChange;
+                      !file_change_hook file
+                    end
+              ) !!files) args; ""
+    ), " <num> : pause a download (use arg 'all' for all files)";
+    
+    "resume", Arg_multiple (fun args buf _ ->
+        if args = ["all"] then
+          List.iter (fun file ->
+              file.file_state <- FileDownloading;
+              reconnect_all file;
+              file.file_changed <- FileInfoChange;
+              !file_change_hook file            
+          ) !!files
+        else
         List.iter (fun num ->
             let num = int_of_string num in
             List.iter (fun file ->
-                if file.file_num = num then remove_file file.file_md4
+                if file.file_num = num then begin
+                    file.file_state <- FileDownloading;
+                    reconnect_all file;
+                    file.file_changed <- FileInfoChange;
+                    !file_change_hook file
+                  end
             ) !!files) args; ""
-    ), " <num> : cancel download";
+    ), " <num> : resume a paused download (use arg 'all' for all files)";
 
     "xs", Arg_none (fun buf _ ->
         if !last_xs >= 0 then begin

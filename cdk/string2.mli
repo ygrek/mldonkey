@@ -81,3 +81,5 @@ val resize : string -> int ->  string
 val init : int -> (int -> char) -> string
   
 val tokens: string -> string list
+  
+external contains : string -> string -> bool = "ml_strstr"

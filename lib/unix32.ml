@@ -30,10 +30,10 @@ external getsize32 : string -> int32 = "ml_getsize32"
 external ftruncate32 : Unix.file_descr -> int32 -> unit = "ml_truncate32"
 external getdtablesize : unit -> int = "ml_getdtablesize"
 
-let fd_size = getdtablesize ()
+let fds_size = getdtablesize ()
   
 let _ =
-  Printf.printf "Your system supports %d file descriptors" fd_size;
+  Printf.printf "Your system supports %d file descriptors" fds_size;
   print_newline () 
 
 (* at most 50 files can be opened simultaneously *)

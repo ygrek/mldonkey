@@ -21,8 +21,6 @@ val disconnected_from_client : DownloadTypes.client -> string -> unit
 val update_zone : DownloadTypes.file -> 
   int32 -> int32 -> DownloadTypes.zone -> unit
 val client_state : Gui_types.connection_state -> string
-val set_client_state :
-  DownloadTypes.client -> Gui_types.connection_state -> unit
 val client_file : DownloadTypes.client -> DownloadTypes.file
 val find_client_block : DownloadTypes.client -> unit
 val verify_chunks : DownloadTypes.file -> unit 

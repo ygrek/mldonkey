@@ -98,11 +98,11 @@ let all_servers () =
         
 let update_options () =  
   known_servers =:=  Sort.list (fun s1 s2 -> 
-      s1.server_score < s2.server_score ||
+      s1.server_score > s2.server_score ||
       (s1.server_score = s2.server_score &&
         (connection_last_conn 
             s1.server_connection_control) 
-        < (connection_last_conn s2.server_connection_control))
+        > (connection_last_conn s2.server_connection_control))
   ) !!known_servers
 
 let all_shared () =  
@@ -123,14 +123,9 @@ let server_handler s sock event =
   *)
       connection_failed (s.server_connection_control);
       s.server_sock <- None;
-      s.server_state <- NotConnected;
       s.server_score <- s.server_score - 1;
       s.server_users <- [];
-      s.server_changed <- ServerStateChange;
-      (try !server_change_hook s with e -> 
-            Printf.printf "Exception %s in server_change_hook"
-              (Printexc.to_string e); 
-            print_newline () );
+      set_server_state s NotConnected;
       !server_is_disconnected_hook s
   | _ -> ()
   
@@ -140,10 +135,9 @@ let client_to_server s t sock =
     M.SetIDReq t ->
       s.server_cid <- t;
       set_rtimeout (TcpClientSocket.sock sock) infinite_timeout;
-      s.server_state <- Connected_initiating;
+      set_server_state s Connected_initiating;
       s.server_score <- s.server_score + 5;
       connection_ok (s.server_connection_control);
-      !server_change_hook s;
 
       server_send sock (
         let module A = M.AckID in
@@ -181,9 +175,7 @@ let client_to_server s t sock =
               s.server_description <- desc
           | _ -> ()
       ) s.server_tags;
-      s.server_state <- Connected_idle;
-      !server_change_hook s;
-
+      set_server_state s Connected_idle;
       !server_is_connected_hook s sock
   
   | M.InfoReq (users, files) ->
@@ -195,52 +187,49 @@ let client_to_server s t sock =
       !received_from_server_hook s sock t
       
 let connect_server s =
-  try
+  if can_open_connection () then
+    try
 (*                Printf.printf "CONNECTING ONE SERVER"; print_newline (); *)
-    connection_try s.server_connection_control;
-    s.server_cid <- !client_ip;
-    incr nservers;
-    printf_char 's'; 
-    incr_connections ();
-    let sock = TcpClientSocket.connect (
-        Ip.to_inet_addr s.server_ip) s.server_port 
-        (server_handler s) in
-    s.server_state <- Connecting;
-    !server_change_hook s;
-    
-    set_reader sock (Mftp_comm.server_handler
-        (client_to_server s));
-    set_rtimeout (TcpClientSocket.sock sock) !!server_connection_timeout;
-    set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
-        close s "timeout"  
-    );
-    
-    s.server_sock <- Some sock;
-    s.server_state <- Connecting;
-    server_send sock (
-      let module M = Mftp_server in
-      let module C = M.Connect in
-      M.ConnectReq {
-        C.md4 = !!client_md4;
-        C.ip = !client_ip;
-        C.port = !client_port;
-        C.tags = !client_tags;
-      }
-    );
-  with _ -> 
-      (*
+      connection_try s.server_connection_control;
+      s.server_cid <- !client_ip;
+      incr nservers;
+      printf_char 's'; 
+      let sock = TcpClientSocket.connect (
+          Ip.to_inet_addr s.server_ip) s.server_port 
+          (server_handler s) in
+      set_server_state s Connecting;
+      
+      set_reader sock (Mftp_comm.server_handler
+          (client_to_server s));
+      set_rtimeout (TcpClientSocket.sock sock) !!server_connection_timeout;
+      set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
+          close s "timeout"  
+      );
+      
+      s.server_sock <- Some sock;
+      server_send sock (
+        let module M = Mftp_server in
+        let module C = M.Connect in
+        M.ConnectReq {
+          C.md4 = !!client_md4;
+          C.ip = !client_ip;
+          C.port = !client_port;
+          C.tags = !client_tags;
+        }
+      );
+    with _ -> 
+(*
       Printf.printf "%s:%d IMMEDIAT DISCONNECT "
       (Ip.to_string s.server_ip) s.server_port; print_newline ();
 *)
 (*      Printf.printf "DISCONNECTED IMMEDIATLY"; print_newline (); *)
-      decr nservers;
-      s.server_sock <- None;
-      s.server_state <- NotConnected;
-      connection_failed s.server_connection_control;
-      !server_change_hook s
-      
+        decr nservers;
+        s.server_sock <- None;
+        set_server_state s NotConnected;
+        connection_failed s.server_connection_control
+        
 let rec connect_one_server () =
-  if allow_new_connection () then
+  if can_open_connection () then
     match !servers_list with
       [] ->
         
@@ -295,8 +284,7 @@ let remove_old_servers () =
         begin
 (*                  Printf.printf "*******  SERVER REMOVED ******"; 
                   print_newline (); *)
-          s.server_state <- Removed;
-          !server_change_hook s
+          set_server_state s  Removed;
         end else
         list := s :: !list
   ) !!known_servers;
@@ -382,7 +370,7 @@ let walker_timer timer =
       if !!known_servers <> [] &&
         last_time () > !next_walker_start then begin
           walker_list := !!known_servers;
-          next_walker_start := last_time () +. 3600.;
+          next_walker_start := last_time () +. 4. *. 3600.;
         end
   | s :: tail ->
       walker_list := tail;

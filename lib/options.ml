@@ -395,23 +395,19 @@ let value_to_list v2c v =
   | Module _ -> failwith "Options: not a list option (Module)"
 ;;
 
+let rec convert_list c2v l res =
+  match l with
+    [] -> List.rev res
+  | v :: list -> 
+      try
+        convert_list c2v list ((c2v v) :: res)
+      with _ -> convert_list c2v list res
+
 let list_to_value c2v l =
-  List
-    (List.fold_right
-      (fun v list ->
-          try c2v v :: list with
-            _ -> list)
-       l [])
-;;
+  List (convert_list c2v l [])
   
 let smalllist_to_value c2v l =
-  SmallList
-    (List.fold_right
-       (fun v list ->
-          try c2v v :: list with
-            _ -> list)
-       l [])
-;;
+  SmallList (convert_list c2v l [])
 
 let value_to_path v =
   List.map Filename2.from_string

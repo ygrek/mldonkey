@@ -19,7 +19,6 @@
 
 val last_connected_server : unit -> DownloadTypes.server
 val all_servers : unit -> DownloadTypes.server list
-val connect_one_server : unit -> unit
 val force_check_server_connections : bool -> unit
 val check_server_connections : BasicSocket.timer -> unit
 val connect_server : DownloadTypes.server -> unit

@@ -72,4 +72,6 @@ val shared_directories : string list Options.option_record
 val verbose : bool Options.option_record
   
   
-val max_connections_per_minute : int Options.option_record
+val max_opened_connections : int Options.option_record
+  
+val web_infos : (string * int * string) list Options.option_record

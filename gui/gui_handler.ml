@@ -46,7 +46,9 @@ let _ =
      a "A-c" M.a_page_console;
      a "A-h" M.a_page_help;
      a "A-Left" M.a_previous_page;
-     a "A-Right" M.a_next_page
+     a "A-Right" M.a_next_page;
+     a "C-r" M.a_reconnect;
+     a "C-e" M.a_exit ;
     );
   if !!O.keymap_servers = [] then
     (
@@ -67,7 +69,7 @@ let _ =
     (
      let a = O.add_binding O.keymap_friends in
      a "C-d" M.a_download_selection;
-     a "C-r" M.a_remove_friend;
+     a "C-x" M.a_remove_friend;
      a "C-a" M.a_select_all;
     );
   if !!O.keymap_queries = [] then
@@ -214,21 +216,24 @@ let comment_item t get_name get_md4 =
   ("Comment", for_selection t
       (fun x -> 
         let module C = Configwin in
+        let comment = ref "" in
         match C.simple_get (Printf.sprintf "Comment %s" 
               (get_name x))
           [
-            C.String_param {
+            C.Text_param {
               C.string_label = Printf.sprintf "Comment on %s:" (get_name x);
               C.string_value = "";
               C.string_editable = true ;
               C.string_f_apply = (fun s -> 
-                  gui_send (Command (Printf.sprintf 
-                        "comment %s \"%s\""
-                        (Md4.to_string (get_md4 x))
-                      (String.escaped s))));
+                  comment := s);
             }
           ] with
-          C.Return_ok -> ()
+          C.Return_ok -> 
+            if !comment <> "" then
+              gui_send (Command (Printf.sprintf 
+                    "comment %s \"%s\""
+                    (Md4.to_string (get_md4 x))
+                  (String.escaped !comment)))
         | _ -> ()
     )
   )
@@ -954,6 +959,7 @@ let update_server key s os =
     MyCList.set_value clist_servers key s
 
 let update_file f =
+  try
 (*        Printf.printf "Download_file"; print_newline (); *)
   let clist = gui#tab_downloads#clist_downloads in
   begin
@@ -985,7 +991,10 @@ let update_file f =
         with _ ->
             MyCList.add clist_downloads f.file_num f
       )
-      
+  with e ->
+      Printf.printf "Exception %s in update file %s"
+        (Printexc.to_string e) (Md4.to_string f.file_md4);
+      print_newline () 
 
 let options_assocs_rev = List.map (fun (name,widget) ->
       widget, name) options_assocs
@@ -1100,7 +1109,7 @@ let value_reader (gui: gui) t sock =
         end
         
     | File_info f ->
-        update_file f
+        begin try update_file f with _ -> () end
             
     | P.Server_info s ->
 (*        Printf.printf "Server_info"; print_newline ();  *)
@@ -1219,7 +1228,7 @@ print_newline ()
         
     | P.Client_info c -> 
 (*        Printf.printf "Client_info"; print_newline (); *)
-        ignore (canon_client c)
+        begin try ignore (canon_client c) with _ -> () end
         
   with e ->
       Printf.printf "EXception %s in reader" (Printexc.to_string e);

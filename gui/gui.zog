@@ -509,13 +509,13 @@
     <menubar name=menubar width="800" height="-1" border_width="-1" accel_group_name="" tab_label="" expand="false" fill="false" padding="-1">
       <menu_item name=_Menu width="-1" height="-1" border_width="-1" label="Mes.mConnections" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
         <menu name=_FileMenu width="-1" height="-1" border_width="-1" tab_label="" expand="false" fill="true" padding="-1">
-          <menu_item name=itemReconnect width="-1" height="-1" border_width="-1" label="Mes.mReconnect" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="GdkKeysyms._R" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
+          <menu_item name=itemReconnect width="-1" height="-1" border_width="-1" label="Mes.mReconnect" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
           </menu_item>
-          <menu_item name=itemDisconnect width="-1" height="-1" border_width="-1" label="Mes.mDisconnect" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="GdkKeysyms._X" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
+          <menu_item name=itemDisconnect width="-1" height="-1" border_width="-1" label="Mes.mDisconnect" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
           </menu_item>
           <menu_item name=itemKill width="-1" height="-1" border_width="-1" label="Mes.kill_server" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
           </menu_item>
-          <menu_item name=itemQuit width="-1" height="-1" border_width="-1" label="%22Exit%22" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="GdkKeysyms._E" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
+          <menu_item name=itemQuit width="-1" height="-1" border_width="-1" label="%22Exit%22" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
           </menu_item>
         </menu>
       </menu_item>

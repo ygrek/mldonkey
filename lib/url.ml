@@ -31,9 +31,30 @@ type url = {
     
     string : string;
   }
-  
 (* encode using x-www-form-urlencoded form *)
-let url_decode s =
+let encode s =
+  let pos = ref 0 in
+  let len = String.length s in
+  let res = String.create (3*len) in
+  let hexa_digit x =
+    if x >= 10 then Char.chr (Char.code 'A' + x - 10)
+    else Char.chr (Char.code '0' + x) in
+  for i=0 to len-1 do
+    match s.[i] with
+    | 'a'..'z' | 'A'..'Z' | '0'..'9' | '.' | '-' | '*' | '_' ->
+        res.[!pos] <- s.[i]; incr pos
+    | ' ' -> res.[!pos] <- '+'; incr pos
+    | c ->
+        res.[!pos] <- '%';
+        res.[!pos+1] <- hexa_digit (Char.code c / 16);
+        res.[!pos+2] <- hexa_digit (Char.code c mod 16);
+        pos := !pos + 3
+  done;
+  String.sub res 0 !pos
+
+
+(* decode using x-www-form-urlencoded form *)
+let decode s =
   let len = String.length s in
   let res = String.create len in
   let pos_s = ref 0 in
@@ -58,7 +79,7 @@ let url_decode s =
   String.sub res 0 !pos_r
 
 
-let to_string url =
+let to_string with_args url =
   let res = Buffer.create 80 in
   add_string res url.proto;
   add_string res "://";
@@ -67,14 +88,14 @@ let to_string url =
         || url.port == 21 && url.proto = "ftp")
   then
     (add_char res ':'; add_string res (string_of_int url.port));
-  add_string res url.full_file;
+  add_string res (if with_args then url.full_file else url.file);
   contents res
 
 let cut_args url_end =
   let args = String2.split url_end '&' in
   List.map (fun s -> 
         let (name, value) = String2.cut_at s '=' in
-      url_decode name, url_decode value
+      decode name, decode value
     ) args 
 
 let create ?(proto="http") ?(server="") ?(port=80) ?(user="") ?(pass="") file =
@@ -82,7 +103,7 @@ let create ?(proto="http") ?(server="") ?(port=80) ?(user="") ?(pass="") file =
   let args = cut_args args in
   let url = { proto=proto; server=server; port=port; full_file=file;
       user=user; passwd=pass; file = short_file; args = args; string = "" } in
-  { url with string = to_string url }
+  { url with string = to_string true url }
   
   
 let of_string s =
@@ -133,4 +154,5 @@ let of_string s =
   let file = s in
   create ~proto: "file"  file
 
-let to_string url = url.string
+let to_string with_args url = 
+  if with_args then url.string else to_string false url

@@ -177,7 +177,6 @@ let search_handler search t =
     
 let force_save_options () =  
   List.iter DownloadOneFile.update_options !!files;
-  Gc.compact ();
   Options.save_with_help downloads_ini;
   Options.save_with_help files_ini;
   Options.save_with_help friends_ini;
@@ -220,8 +219,7 @@ let force_check_locations () =
     List.iter (fun file -> 
         if file.file_state = FileDownloading then begin      
             List.iter (fun c ->
-                if allow_new_connection () then      
-                  try connect_client !client_ip [file] c with _ -> ()) 
+                try connect_client !client_ip [file] c with _ -> ()) 
             file.file_known_locations;
             List.iter (fun s ->
                 match s.server_sock with
@@ -265,10 +263,8 @@ let force_check_locations () =
         try connect_client !client_ip [] c with _ -> ()) !interesting_clients;
     interesting_clients := [];
 
-    Printf.printf "try connecting friends"; print_newline ();
     List.iter (fun c ->
-        if allow_new_connection () then
-          try connect_client !client_ip [] c with _ -> ()
+        try connect_client !client_ip [] c with _ -> ()
     ) !!known_friends;
     
   with e ->
@@ -341,7 +337,10 @@ let udp_from_server p =
   match p.UdpSocket.addr with
   | Unix.ADDR_INET(ip, port) ->
       let s = add_server (Ip.of_inet_addr ip) (port-4) in
-      connection_set_last_conn s.server_connection_control (last_time ());
+(* set last_conn, but add a 2 minutes offset to prevent staying connected
+  to this server *)
+      connection_set_last_conn s.server_connection_control (
+        last_time () -. 121.);
       s.server_score <- s.server_score + 3;
       s
   | _ -> raise Not_found

@@ -78,3 +78,25 @@ let localhost = of_string "127.0.0.1"
   
 let to_sockaddr ip port =
   Unix.ADDR_INET (to_inet_addr ip, port)
+
+let rec get_non_local_ip list =
+  match list with
+    [] -> raise Not_found
+  | ip :: tail ->
+      let ip = of_inet_addr ip in
+      if ip = (127,0,0,1) then
+        get_non_local_ip tail
+      else ip
+  
+let from_name name =
+  try
+    let h = Unix.gethostbyname name in
+    let list = Array.to_list h.Unix.h_addr_list in
+    get_non_local_ip list
+  with _ -> 
+      if String.length name > 0 && name.[0] >= '0' && name.[0] <= '9' then
+        try
+          of_string name 
+        with _ -> localhost
+      else
+        localhost

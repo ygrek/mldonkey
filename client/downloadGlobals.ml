@@ -165,7 +165,23 @@ let files_by_md4 = Hashtbl.create 127
 
 let find_file md4 = Hashtbl.find files_by_md4 md4
 
-  
+        
+let set_client_state c s =
+  if c.client_state <> s then begin
+      if c.client_state = Connected_busy then decr nclients;
+      if s = Connected_busy then incr nclients;  
+      c.client_state <- s;
+      c.client_changed <- ClientStateChange;
+      !client_change_hook c
+    end
+    
+let set_server_state s state =
+  if s.server_state <> state then begin
+      s.server_state <- state;
+      s.server_changed <- ServerStateChange;
+      !server_change_hook s
+    end
+    
 let servers_ini_changed = ref true
 let upload_clients = Fifo.create ()
 
@@ -305,8 +321,7 @@ let remove_server ip port =
     (match s.server_sock with
         None -> ()
       | Some sock -> shutdown (TcpClientSocket.sock sock) "remove server");
-    s.server_state <- Removed;
-    !server_change_hook s
+    set_server_state s  Removed;
   with _ -> ()
   
 let indirect_friends = Hashtbl.create 127
@@ -405,17 +420,6 @@ let exit_properly _ =
 (*  Printf.printf "exit_properly DONE"; print_newline (); *)
   Pervasives.exit 0
   
-let current_connections = ref 0
+let can_open_connection () =
+  nb_sockets () < !!max_opened_connections 
   
-let allow_new_connection () =
-  !current_connections < !!max_connections_per_minute 
-  
-let incr_connections () =
-  incr current_connections
-    
-let max_connections_per_minute_timer timer =
-  reactivate_timer timer;
-  current_connections := 0
-  
-let _ =
-  add_timer 60. max_connections_per_minute_timer
