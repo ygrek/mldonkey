@@ -70,8 +70,7 @@ let disconnect gui reason =
 let send t =
   match !connection with
     None -> 
-      lprintf "Message not sent since not connected";
-      lprint_newline ();
+      lprintf "Message not sent since not connected\n";
   | Some sock ->
       GuiEncoding.gui_send (GuiEncoding.from_gui from_gui_protocol_used) sock t
           
@@ -80,6 +79,7 @@ let reconnect (gui : gui) value_reader arg reason =
   let hostname = if !!O.hostname = "" then Unix.gethostname () 
     else !!O.hostname in
   let token = create_token unlimited_connection_manager in
+(*  lprintf "RECONNECTING...\n"; *)
   let sock = TcpBufferedSocket.connect token ""
       (try
         let h = Ip.from_name hostname in
@@ -105,7 +105,7 @@ let reconnect (gui : gui) value_reader arg reason =
     !!O.port
       (fun _ _ -> ()) 
   in
-  
+(*  lprintf "CONNECTION STARTED\n"; *)
   
   if not (List.mem (hostname,!!O.port) !!O.history) then
     begin
@@ -128,7 +128,7 @@ let reconnect (gui : gui) value_reader arg reason =
     TcpBufferedSocket.set_max_write_buffer sock !!O.interface_buffer;
     TcpBufferedSocket.set_handler sock TcpBufferedSocket.BUFFER_OVERFLOW
     (fun _ -> 
-        lprintf "BUFFER OVERFLOW"; lprint_newline ();
+        lprintf "BUFFER OVERFLOW\n"; 
         TcpBufferedSocket.close sock Closed_for_overflow);
     TcpBufferedSocket.set_reader sock (
       GuiDecoding.gui_cut_messages
@@ -137,8 +137,7 @@ let reconnect (gui : gui) value_reader arg reason =
             let m = GuiDecoding.to_gui to_gui_protocol_used opcode s in
             value_reader arg m;
           with e ->
-              lprintf "Exception %s in decode/exec" (Printexc2.to_string e); 
-              lprint_newline ();
+              lprintf "Exception %s in decode/exec\n" (Printexc2.to_string e); 
               raise e
       ));
     gui#set_connect_status (M.mW_lb_connecting);

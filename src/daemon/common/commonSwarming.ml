@@ -366,7 +366,16 @@ module Int64Swarmer = (struct
         lprintf "Block %d: %s-%s\n" 
           b.block_num
           (Int64.to_string b.block_begin)
-        (Int64.to_string b.block_end)
+        (Int64.to_string b.block_end);
+        lprintf "  ranges:\n";
+        let rec iter_range r =
+          lprintf "   %Ld-%Ld\n" r.range_current_begin r.range_end;
+          match r.range_next with
+            None -> ()
+          | Some rr -> iter_range rr
+        in
+        iter_range b.block_ranges;
+        lprintf "\n"
 
 
 
@@ -1161,12 +1170,15 @@ we thus might put a lot of clients on the same range !
 *)
           
           if not (List.memq r up.up_ranges) &&
+            r.range_current_begin < r.range_end &&
             r.range_current_begin >= up.up_block_begin &&
             r.range_end <= up.up_block_end &&
             r.range_nuploading < limit
           then begin
               up.up_ranges <- up.up_ranges @ [r];
               r.range_nuploading <- r.range_nuploading + 1;
+              if r.range_current_begin = r.range_end then
+                lprintf "CS error: range is empty <<<<<<<<<<<--------- error\n";
               r
             end else
           match r.range_next with

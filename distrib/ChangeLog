@@ -4,6 +4,12 @@ ChangeLog
 Note: Due to the changes in CommonSwarming, this version is to be considered
  as EXPERIMENTAL on all networks, EXCEPT Edonkey & Overnet.
 
+2004/02/06: Fabrice (version 2.5.8, tag release-2-5-8)
+  * FileTP:
+     * Basic FTP protocol: 
+        use 'http <ftp://url>' and 'mirror <ftp://url>'
+     * Option 'mirrors': list of list of interchangeable url prefixes.
+
 2004/02/06: Fabrice (version 2.5.7, tag release-2-5-7)
   * New network 'FileTP' for simple file transfer protocols:
      * Basic HTTP protocol: 

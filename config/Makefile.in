@@ -472,6 +472,8 @@ FILETP_SRCS= \
   $(SRC_FILETP)/fileTPComplexOptions.ml \
   $(SRC_FILETP)/fileTPProtocol.ml \
   $(SRC_FILETP)/fileTPClients.ml \
+  $(SRC_FILETP)/fileTPHTTP.ml \
+  $(SRC_FILETP)/fileTPFTP.ml \
   $(SRC_FILETP)/fileTPInteractive.ml \
   $(SRC_FILETP)/fileTPMain.ml
 

@@ -690,7 +690,9 @@ let from_gui_last_opcode = 55
 
 let from_gui (proto : int array) opcode s =
   try
+
     let proto = if opcode > from_gui_last_opcode then 0 else proto.(opcode) in    
+(*    lprintf "FROM GUI: Opcode %d\n" opcode; *)
     match opcode with
       0 -> GuiProtocol (get_int s 2)
     
@@ -948,6 +950,8 @@ let dummy_option =
 let to_gui (proto : int array) opcode s =
   try
     let proto = if opcode > to_gui_last_opcode then 0 else proto.(opcode) in    
+    
+(*    lprintf "TO GUI: Opcode %d\n" opcode; *)
     match opcode with
     | 0 -> CoreProtocol (get_int s 2)
     

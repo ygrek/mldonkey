@@ -102,6 +102,7 @@ let cut_args url_end =
 let create ?(proto="http") ?(server="") ?(port=80) ?(user="") ?(pass="") file =
   let short_file, args = String2.cut_at file '?' in
   let args = cut_args args in
+  let port = if proto = "ftp" && port = 80 then 21 else port in
   let url = { proto=proto; server=server; port=port; full_file=file;
       user=user; passwd=pass; file = short_file; args = args; string = "" } in
   { url with string = to_string true url }
