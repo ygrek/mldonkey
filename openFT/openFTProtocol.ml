@@ -36,7 +36,7 @@ let get_string s pos =
     let end_pos = String.index_from s pos '\000' in
     String.sub s pos (end_pos - pos), end_pos+1
   with _ -> 
-      Printf.printf "No ending zero !!!"; print_newline ();
+      lprintf "No ending zero !!!"; lprint_newline ();
       let len = String.length s in
       String.sub s pos (len - pos), len
 
@@ -52,7 +52,7 @@ module Empty = functor(M: sig val msg : string end) ->
       let parse s = ()
       
       let print t =
-        Printf.printf "message %s" M.msg
+        lprintf "message %s" M.msg
         
       let write buf t = ()
 
@@ -64,16 +64,16 @@ module NotImplemented = functor(M: sig val msg : string end) ->
       type t
         
       let parse s = 
-        Printf.printf "PARSE FOR Message %s not implemented" M.msg;
-        print_newline ();
+        lprintf "PARSE FOR Message %s not implemented" M.msg;
+        lprint_newline ();
         assert false
       
       let print t =
-        Printf.printf "message %s" M.msg
+        lprintf "message %s" M.msg
         
       let write buf t = 
-        Printf.printf "WRITE FOR Message %s not implemented" M.msg;
-        print_newline ();
+        lprintf "WRITE FOR Message %s not implemented" M.msg;
+        lprint_newline ();
         assert false
     end
     
@@ -91,7 +91,7 @@ module VersionReply = struct
       { major_num = major_num; minor_num = minor_num; micro_num = micro_num }
       
     let print t =
-      Printf.printf "VersionReply %d.%d.%d" t.major_num t.minor_num t.micro_num
+      lprintf "VersionReply %d.%d.%d" t.major_num t.minor_num t.micro_num
       
     let write buf t = 
       buf_int16 buf t.major_num;
@@ -118,7 +118,7 @@ module NodeInfoReply = struct
       }
       
     let print t =
-      Printf.printf "NodeInfoReply %s:%d (http:%d)"
+      lprintf "NodeInfoReply %s:%d (http:%d)"
         (Ip.to_string t.ip) t.port t.http_port
       
     let write buf t = 
@@ -159,9 +159,9 @@ module NodeListReply = struct
     
     let print t =
       match t with
-        None -> Printf.printf "NodeListReply"
+        None -> lprintf "NodeListReply"
       | Some t ->
-          Printf.printf "NodeInfoReply %s:%d type %s"
+          lprintf "NodeInfoReply %s:%d type %s"
             (Ip.to_string t.ip) t.port 
             (string_of_node_type t.node_type)
     
@@ -191,7 +191,7 @@ module ClassReply = struct
       node_type
 
     let print t =
-      Printf.printf "ClassReply %s"
+      lprintf "ClassReply %s"
         (string_of_node_type t)
     
     let write buf t = 
@@ -219,8 +219,8 @@ module NodeCapReply = struct
       iter 0
 
     let print t= 
-      Printf.printf "NodeCapReply:"; print_newline ();
-      List.iter (fun s -> Printf.printf "%s " s) t
+      lprintf "NodeCapReply:"; lprint_newline ();
+      List.iter (fun s -> lprintf "%s " s) t
       
     let write buf t =
       List.iter (fun s ->
@@ -239,7 +239,7 @@ module Child = struct
         Some (get_int16 s 0 = 1)
 
     let print t =
-      Printf.printf "Child %s"
+      lprintf "Child %s"
         (match t with None -> "" | Some true -> "OK" | _ -> "NO")
     
     let write buf t =
@@ -256,7 +256,7 @@ module ChildReply = struct
         get_int16 s 0 = 1
 
     let print t =
-      Printf.printf "ChildReply %s"
+      lprintf "ChildReply %s"
         (match t with true -> "OK" | _ -> "NO")
     
     let write buf t =
@@ -281,7 +281,7 @@ module Stats = struct
       | _ -> Retrieve_info
 
     let print t =
-      Printf.printf "Stats %s"
+      lprintf "Stats %s"
         (match t with 
           Submit_digest -> "Submit_digest"
         | _ -> "Retrieve_info")
@@ -316,7 +316,7 @@ module StatsReply = struct
       { nusers = nusers; nfiles = nfiles; size = size }
       
     let print t =
-      Printf.printf "StatsReply %d.%d.%d" t.nusers t.nfiles t.size
+      lprintf "StatsReply %d.%d.%d" t.nusers t.nfiles t.size
       
     let write buf t = 
       buf_int16 buf t.nusers;
@@ -436,7 +436,7 @@ module Search = struct
       }
       
     let print t =
-      Printf.printf "Search %d for [%s] without [%s]" 
+      lprintf "Search %d for [%s] without [%s]" 
         t.id t.words t.exclude
       
     let write buf t = 
@@ -490,7 +490,7 @@ module SearchReply = struct
       }
 
     let print t =
-      Printf.printf "SearchReply for %d : %s size %Ld"
+      lprintf "SearchReply for %d : %s size %Ld"
         t.id t.filename t.size
       
     let write buf t =
@@ -577,8 +577,8 @@ let parse opcode s =
     | _ -> raise Not_found
 
   with e ->
-      Printf.printf "Exception in parse (OPCODE %d): %s" opcode (Printexc2.to_string e);
-      print_newline ();
+      lprintf "Exception in parse (OPCODE %d): %s" opcode (Printexc2.to_string e);
+      lprint_newline ();
       LittleEndian.dump s;
       UnknownReq (opcode, s)
     
@@ -618,18 +618,18 @@ let write buf t =
 let print t = 
   begin
     match t with
-      VersionReq -> Printf.printf "VersionReq"
+      VersionReq -> lprintf "VersionReq"
     | VersionReplyReq t -> VersionReply.print t
-    | ClassReq -> Printf.printf "ClassReq"
+    | ClassReq -> lprintf "ClassReq"
     | ClassReplyReq t -> ClassReply.print t
-    | NodeInfoReq -> Printf.printf "NodeInfoReq"
+    | NodeInfoReq -> lprintf "NodeInfoReq"
     | NodeInfoReplyReq t -> NodeInfoReply.print t
-    | NodeListReq -> Printf.printf "NodeListReq"
+    | NodeListReq -> lprintf "NodeListReq"
     | NodeListReplyReq t -> NodeListReply.print t
-    | NodeCapReq -> Printf.printf "NodeCapReq"
+    | NodeCapReq -> lprintf "NodeCapReq"
     | NodeCapReplyReq t -> NodeCapReply.print t
-    | PingReq -> Printf.printf "PingReq"
-    | PingReplyReq -> Printf.printf "PingReplyReq"
+    | PingReq -> lprintf "PingReq"
+    | PingReplyReq -> lprintf "PingReplyReq"
     
     | ChildReq t -> Child.print t
     | ChildReplyReq t -> ChildReply.print t
@@ -647,10 +647,10 @@ let print t =
     | PushReplyReq t -> PushReply.print t
     
     | UnknownReq (opcode,s) ->
-        Printf.printf "UNKNOWN %d" opcode; print_newline ();
+        lprintf "UNKNOWN %d" opcode; lprint_newline ();
         LittleEndian.dump s
   end;
-  print_newline () 
+  lprint_newline () 
   
 let buf = Buffer.create 1000
       
@@ -666,7 +666,7 @@ let server_msg_to_string t =
     
 let server_send sock t =
 (*
-  Printf.printf "SENDING:"; print_newline ();
+  lprintf "SENDING:"; lprint_newline ();
 print t;
   *)
   let s = server_msg_to_string t in
@@ -709,7 +709,7 @@ let print p =
   | QueryReq t -> Query.print t
   | QueryReplyReq t -> QueryReply.print t
   | UnknownReq (i,s) -> 
-      Printf.printf "UNKNOWN message:"; print_newline ();
+      lprintf "UNKNOWN message:"; lprint_newline ();
       dump s
       
 let buf = Buffer.create 1000
@@ -753,7 +753,7 @@ let server_send_new sock t =
       
 let gnutella_handler parse f sock nread =
   let b = TcpBufferedSocket.buf sock in
-(*  Printf.printf "GNUTELLA HANDLER"; print_newline ();
+(*  lprintf "GNUTELLA HANDLER"; lprint_newline ();
 dump (String.sub b.buf b.pos b.len);
   *)
   try
@@ -808,8 +808,8 @@ let handler info header_handler body_handler =
                 let header = String.sub b.buf b.pos (i - b.pos) in
                 
                 if info > 10 then begin
-                    Printf.printf "HEADER : ";
-                    LittleEndian.dump header; print_newline ();
+                    lprintf "HEADER : ";
+                    LittleEndian.dump header; lprint_newline ();
                   end;
                 header_done := true;
                 
@@ -818,10 +818,10 @@ let handler info header_handler body_handler =
                 buf_used sock nused;              
                 if nread - nused > 20 then begin
 (*
-                  Printf.printf "BEGINNING OF BLOC (6 bytes from header)";
-                  print_newline ();
+                  lprintf "BEGINNING OF BLOC (6 bytes from header)";
+                  lprint_newline ();
                   dump (String.sub b.buf (b.pos-6) (min 20 (b.len - b.pos + 6)));
-Printf.printf "LEFT %d" (nread - nused); print_newline ();
+lprintf "LEFT %d" (nread - nused); lprint_newline ();
 *)
                     ()
                   end;
@@ -832,7 +832,7 @@ Printf.printf "LEFT %d" (nread - nused); print_newline ();
             iter (i+1) false
         else begin
             if info > 0 then (
-                Printf.printf "END OF HEADER WITHOUT END"; print_newline ();
+                lprintf "END OF HEADER WITHOUT END"; lprint_newline ();
                 let header = String.sub b.buf b.pos b.len in
                 LittleEndian.dump header;
               );
@@ -840,8 +840,8 @@ Printf.printf "LEFT %d" (nread - nused); print_newline ();
     in
     iter begin_pos false
     with e ->
-        Printf.printf "Exception %s in handler" (Printexc2.to_string e); 
-        print_newline ();
+        lprintf "Exception %s in handler" (Printexc2.to_string e); 
+        lprint_newline ();
         raise e
 
 let handlers header_handlers body_handler =
@@ -862,8 +862,8 @@ let handlers header_handlers body_handler =
               if n_read then begin
                   let header = String.sub b.buf b.pos (i - b.pos) in
 (*
-                  Printf.printf "HEADER : ";
-                  dump header; print_newline ();
+                  lprintf "HEADER : ";
+                  dump header; lprint_newline ();
 *)
                   headers := tail;
                   header_handler sock header;

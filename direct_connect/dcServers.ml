@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open CommonOptions
 open CommonUser
 open CommonRoom
@@ -152,8 +153,8 @@ let recover_files_from_server s =
           let keywords = 
             match stem file.file_name with 
               [] | [_] -> 
-(*            Printf.printf "Not enough keywords to recover %s" f.file_name;
-            print_newline (); *)
+(*            lprintf "Not enough keywords to recover %s" f.file_name;
+            lprint_newline (); *)
                 [file.file_name]
             | l -> l
           in
@@ -173,13 +174,13 @@ let disconnect_server s =
       (try close sock "user disconnect" with _ -> ());      
       decr nservers;
       if !verbose_msg_servers then begin
-          Printf.printf "%s:%d CLOSED received by server"
-            (server_addr s) s.server_port; print_newline ();
+          lprintf "%s:%d CLOSED received by server"
+            (server_addr s) s.server_port; lprint_newline ();
         end;
       connection_failed (s.server_connection_control);
       s.server_sock <- None;
       if !verbose_msg_servers then begin
-          Printf.printf "******** NOT CONNECTED *****"; print_newline ();
+          lprintf "******** NOT CONNECTED *****"; lprint_newline ();
         end;
       set_server_state s (NotConnected (-1));
       connected_servers := List2.removeq s !connected_servers;
@@ -200,8 +201,8 @@ let server_handler s sock event =
 let rec client_to_server s m sock = 
   
   if !CommonOptions.verbose_msg_servers then begin
-      Printf.printf "From %s:%d"
-        (server_addr s) s.server_port; print_newline ();
+      lprintf "From %s:%d"
+        (server_addr s) s.server_port; lprint_newline ();
       DcProtocol.print m;
     end;
   match m with
@@ -237,8 +238,8 @@ let rec client_to_server s m sock =
 (* nick/ip/port *)
       begin
         if !verbose_msg_servers then begin
-            Printf.printf "From %s:%d"
-              (server_addr s) s.server_port; print_newline ();
+            lprintf "From %s:%d"
+              (server_addr s) s.server_port; lprint_newline ();
             DcProtocol.print m;
           end;
 
@@ -249,8 +250,8 @@ let rec client_to_server s m sock =
           None ->  
             DcClients.connect_client c
         | Some sock ->
-            Printf.printf "We are already connected to that client !!";
-print_newline () 
+            lprintf "We are already connected to that client !!";
+lprint_newline () 
 *)
         DcClients.connect_anon s t.ConnectToMe.ip t.ConnectToMe.port
       end
@@ -267,7 +268,7 @@ print_newline ()
           ) !!login_messages;
           
           if !verbose_msg_servers then begin
-              Printf.printf "*****  CONNECTED  ******"; print_newline (); 
+              lprintf "*****  CONNECTED  ******"; lprint_newline (); 
             end;
           set_server_state s (Connected (-1));
           set_room_state s RoomOpened;
@@ -336,15 +337,15 @@ print_newline ()
         try
           let orig = t.Search.orig in
           
-          Printf.printf "SEARCH from %s !!!" orig; print_newline ();
+          lprintf "SEARCH from %s !!!" orig; lprint_newline ();
           if String.sub orig 0 5 = " Hub:" then
             let nick = String.sub orig 5 (String.length orig - 5) in
-            Printf.printf "nick: %s/%s" nick s.server_last_nick;
-            print_newline ();
+            lprintf "nick: %s/%s" nick s.server_last_nick;
+            lprint_newline ();
             if nick <> s.server_last_nick then begin
                 ignore (user_add s nick);
                 try
-                  Printf.printf "SEARCH RECEIVED"; print_newline ();
+                  lprintf "SEARCH RECEIVED"; lprint_newline ();
                   let files = CommonUploads.query (
                       let q = 
                         match String2.split_simplify t.Search.words ' ' with
@@ -361,8 +362,8 @@ print_newline ()
                       | AtLeast n -> 
                           QAnd (QHasMinVal (CommonUploads.filesize_field, n),q)
                     ) in
-                  Printf.printf "%d replies found" (Array.length files); 
-                  print_newline ();
+                  lprintf "%d replies found" (Array.length files); 
+                  lprint_newline ();
                   for i = 0 to mini (Array.length files - 1) 50 do 
                     let sh = files.(i) in
                     server_send !verbose_msg_servers sock (SRReq (
@@ -380,16 +381,16 @@ print_newline ()
                       ))
                   done
                 with Not_found -> 
-                    Printf.printf "NO REPLY TO SEARCH"; print_newline ();
+                    lprintf "NO REPLY TO SEARCH"; lprint_newline ();
               end else
-              (Printf.printf "MY NICK %s" orig;print_newline ();)
+              (lprintf "MY NICK %s" orig;lprint_newline ();)
           else
-            (Printf.printf "NOT STARTING BY Hub: [%s]" orig;print_newline ();)
+            (lprintf "NOT STARTING BY Hub: [%s]" orig;lprint_newline ();)
 with e ->
-            Printf.printf "Exception %s" (Printexc2.to_string e);
-            print_newline ();
+            lprintf "Exception %s" (Printexc2.to_string e);
+            lprint_newline ();
       end;
-      Printf.printf "END OF SEARCH"; print_newline ();
+      lprintf "END OF SEARCH"; lprint_newline ();
 
   | SRReq t ->
       begin
@@ -399,8 +400,8 @@ with e ->
           try
             let file = find_file (Filename2.basename t.SR.filename) t.SR.filesize in 
             if !verbose_msg_servers then begin
-                Printf.printf "**** FILE RECOVERED on user %s ****"
-                  t.SR.owner; print_newline ();
+                lprintf "**** FILE RECOVERED on user %s ****"
+                  t.SR.owner; lprint_newline ();
               end;
             let user = new_user (Some s) t.SR.owner in
             let c = add_file_client file user t.SR.filename in
@@ -423,7 +424,7 @@ with e ->
   
   | _ -> 
       if !verbose_msg_servers then begin
-          Printf.printf "###UNUSED SERVER MESSAGE###########"; print_newline ();
+          lprintf "###UNUSED SERVER MESSAGE###########"; lprint_newline ();
           DcProtocol.print m
         end
 
@@ -460,11 +461,11 @@ and connect_server s =
           s.server_sock <- Some sock;
         with e -> 
             if !verbose_msg_servers then begin
-                Printf.printf "%s:%d IMMEDIAT DISCONNECT %s"
+                lprintf "%s:%d IMMEDIAT DISCONNECT %s"
                   (string_of_addr s.server_addr) s.server_port
-                  (Printexc2.to_string e); print_newline ();
+                  (Printexc2.to_string e); lprint_newline ();
               end;
-(*      Printf.printf "DISCONNECTED IMMEDIATLY"; print_newline (); *)
+(*      lprintf "DISCONNECTED IMMEDIATLY"; lprint_newline (); *)
             decr nservers;
             s.server_sock <- None;
             set_server_state s (NotConnected (-1));
@@ -484,7 +485,7 @@ let rec connect_one_server () =
         Hashtbl.iter (fun _ h ->
             servers_list := h :: !servers_list) servers_by_addr;
         if !servers_list = [] then begin
-            Printf.printf "No DC server to connect to"; print_newline ();
+            lprintf "No DC server to connect to"; lprint_newline ();
             raise Not_found;
           end;
         connect_one_server ()
@@ -508,7 +509,7 @@ let parse_servers_list s =
           s.server_info <- server_info;
           (try s.server_nusers <- int_of_string server_nusers with _ -> ());
       | _ -> 
-          Printf.printf "Bad line [%s]" s; print_newline ();      
+          lprintf "Bad line [%s]" s; lprint_newline ();      
   ) lines;
   ()
     
@@ -547,8 +548,8 @@ let recover_files_clients () =
       if file_state file = FileDownloading then begin
           List.iter (fun c ->
               if !verbose_msg_servers then begin
-                  Printf.printf "ATTEMPT TO RECOVER CONNECTION TO %s"
-                    c.client_user.user_nick; print_newline ();
+                  lprintf "ATTEMPT TO RECOVER CONNECTION TO %s"
+                    c.client_user.user_nick; lprint_newline ();
                 end;
               try_connect_client c;
               List.iter (fun s ->
@@ -565,8 +566,8 @@ let recover_files_clients () =
           let keywords = 
             match stem file.file_name with 
               [] | [_] -> 
-(*            Printf.printf "Not enough keywords to recover %s" f.file_name;
-            print_newline (); *)
+(*            lprintf "Not enough keywords to recover %s" f.file_name;
+            lprint_newline (); *)
                 [file.file_name]
             | l -> l
           in

@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open Md4
 open CommonSearch
 open CommonGlobals
@@ -72,22 +73,22 @@ let sort_zones b =
       
       
 let rec create_zones file begin_pos end_pos list =
-(*  Printf.printf "create_zones for %ld-%ld"
+(*  lprintf "create_zones for %ld-%ld"
     begin_pos end_pos;
-  print_newline (); *)
+  lprint_newline (); *)
   if begin_pos = end_pos then list
   else
   let zone_end = Int64.add begin_pos zone_size in
-(*  Printf.printf "ZONE END %ld" zone_end; print_newline ();*)
+(*  lprintf "ZONE END %ld" zone_end; lprint_newline ();*)
   let zone_end2 = if zone_end > end_pos then begin
-(*        Printf.printf "%ld > %ld" zone_end
+(*        lprintf "%ld > %ld" zone_end
          end_pos
         
-        ; print_newline (); *)
+        ; lprint_newline (); *)
         end_pos
         
       end else zone_end in
-(*  Printf.printf "CORRECTED ZONE END %ld" zone_end; print_newline (); *)
+(*  lprintf "CORRECTED ZONE END %ld" zone_end; lprint_newline (); *)
   create_zones file zone_end2 end_pos ({
       zone_begin = begin_pos;
       zone_end = zone_end2;
@@ -163,7 +164,7 @@ let query_zones c b =
       let msg = M.QueryBlocReq msg in
       set_read_power sock (c.client_power + maxi 0 (file_priority file));
       if !!max_hard_download_rate <> 0 then begin
-(*          Printf.printf "CLIENT: put in download fifo"; print_newline (); *)
+(*          lprintf "CLIENT: put in download fifo"; lprint_newline (); *)
         Fifo.put download_fifo (sock, msg, len)
         end else
         direct_client_send c msg
@@ -181,14 +182,14 @@ let put_absents file =
   in
   
   let rec iter_chunks_in i zs =
-(*    Printf.printf "iter_chunks_in %d" i; print_newline (); *)
+(*    lprintf "iter_chunks_in %d" i; lprint_newline (); *)
     if i < file.file_nchunks then 
     match zs with
       [] -> ()
       | (begin_pos, end_pos) :: tail ->
           (*
-          Printf.printf "begin_pos %Ld (chnk end %Ld)" begin_pos
-            (chunk_end file i); print_newline (); *)
+          lprintf "begin_pos %Ld (chnk end %Ld)" begin_pos
+            (chunk_end file i); lprint_newline (); *)
           if begin_pos >= chunk_end file i then
             iter_chunks_in (i+1) zs
           else
@@ -196,7 +197,7 @@ let put_absents file =
             iter_chunks_in i tail
           else
           if begin_pos <= chunk_pos i && end_pos >= chunk_end file i then begin
-(*              Printf.printf "full absent chunk %d" i; print_newline (); *)
+(*              lprintf "full absent chunk %d" i; lprint_newline (); *)
               file.file_chunks.(i) <- (
                 if temp_chunk file.file_chunks.(i) then AbsentTemp else 
                   AbsentVerified);
@@ -204,31 +205,31 @@ let put_absents file =
             end else
             
           let b = new_block file i in
-(*          Printf.printf "new_block %d" i; print_newline (); *)
+(*          lprintf "new_block %d" i; lprint_newline (); *)
           file.file_chunks.(i) <- (if temp_chunk file.file_chunks.(i) then 
               PartialTemp b else PartialVerified b);
           iter_blocks_in i b zs
         
   and iter_blocks_in i b zs =
-(*    Printf.printf "iter_blocks_in %d" i; print_newline (); *)
+(*    lprintf "iter_blocks_in %d" i; lprint_newline (); *)
     match zs with
       [] -> 
         sort_zones b
     | (begin_pos, end_pos) :: tail ->
         if begin_pos >= b.block_end then begin
-(*            Printf.printf "need sort_zones..."; print_newline (); *)
+(*            lprintf "need sort_zones..."; lprint_newline (); *)
             sort_zones b;
             iter_chunks_in (i+1) zs 
           end
         else
         if end_pos >= b.block_end then begin
-(*            Printf.printf "need create_zones and sort_zones..."; print_newline (); *)
+(*            lprintf "need create_zones and sort_zones..."; lprint_newline (); *)
             b.block_zones <- create_zones file begin_pos b.block_end
               b.block_zones;
             sort_zones b;
             iter_chunks_in (i+1) ((b.block_end, end_pos) :: tail)
           end else begin
-(*            Printf.printf "need create_zones ..."; print_newline (); *)
+(*            lprintf "need create_zones ..."; lprint_newline (); *)
             b.block_zones <- create_zones file begin_pos end_pos b.block_zones;
             iter_blocks_in i b tail
           end
@@ -237,10 +238,10 @@ let put_absents file =
   in
 
   (*
-  Printf.printf "nchunks %d" file.file_nchunks; print_newline ();
+  lprintf "nchunks %d" file.file_nchunks; lprint_newline ();
   
   List.iter (fun (i1,i2) ->
-      Printf.printf "ABSENT: %Ld-%Ld" i1 i2; print_newline ();
+      lprintf "ABSENT: %Ld-%Ld" i1 i2; lprint_newline ();
   ) file.file_absent_chunks;
 *)  
   
@@ -249,10 +250,10 @@ let put_absents file =
           
 let print_time tm =
   let module U = Unix in
-  Printf.printf "TIME %d/%d/%d %2d:%02d:%02d" 
+  lprintf "TIME %d/%d/%d %2d:%02d:%02d" 
     tm.U.tm_mday tm.U.tm_mon tm.U.tm_year
     tm.U.tm_hour tm.U.tm_min tm.U.tm_sec;
-  print_newline ()
+  lprint_newline ()
   
       
 let rec find_client_zone c = 
@@ -262,12 +263,12 @@ let rec find_client_zone c =
 (* client_zones : les zones en cours de telechargement *)
 (* block_zones : les zones disponibles pour telechargement *)
 (*
-      Printf.printf "Current zones for client:";
+      lprintf "Current zones for client:";
       List.iter (fun z -> 
-          Printf.printf "zone: %ld-%ld"
+          lprintf "zone: %ld-%ld"
             (z.zone_begin) (z.zone_end)
       ) c.client_zones;
-print_newline ();
+lprint_newline ();
   *)
       let z = match c.client_zones with
         | [z1] -> if zone_present z1 then [] else [z1]
@@ -282,7 +283,7 @@ print_newline ();
       
       in
       let rem_zones = List.length b.block_zones in
-(*      Printf.printf "Remaining %d zones" rem_zones; print_newline (); *)
+(*      lprintf "Remaining %d zones" rem_zones; lprint_newline (); *)
       match z with
         [z1;z2;z3] -> ()
       | [z1;z2] when rem_zones <= 2 -> ()
@@ -293,22 +294,22 @@ print_newline ();
 
 and print_client_zones n b c =
   (match c.client_block with
-      None -> Printf.printf "\n%d: CLIENT ZONES WITH NO BLOCK %d" 
+      None -> lprintf "\n%d: CLIENT ZONES WITH NO BLOCK %d" 
           (client_num c) n;
-        print_newline ();
+        lprint_newline ();
     | Some bb ->
         if b != bb then begin
-            Printf.printf "\n%d: CLIENT ZONES WITH BAD BLOCK %d" 
+            lprintf "\n%d: CLIENT ZONES WITH BAD BLOCK %d" 
               (client_num c) n;
-            print_newline ();
+            lprint_newline ();
           end);          
   if !verbose then begin
-      Printf.printf "\n%d: ZONES IN %d" (client_num c) n; 
+      lprintf "\n%d: ZONES IN %d" (client_num c) n; 
       List.iter (fun z ->
-          Printf.printf " [%Ld - %Ld] " (z.zone_begin)(z.zone_end);
-          print_newline ();
+          lprintf " [%Ld - %Ld] " (z.zone_begin)(z.zone_end);
+          lprint_newline ();
       ) c.client_zones;
-      print_newline ();
+      lprint_newline ();
     end;
 
 and find_zone3 c b z1 z2 zones =
@@ -382,21 +383,21 @@ and zero_block file i =
   try
     (match file.file_chunks.(i) with
         AbsentTemp | AbsentVerified ->
-(*	   Printf.printf "Allocating disk space";
-	   print_newline (); *)
+(*	   lprintf "Allocating disk space";
+	   lprint_newline (); *)
           let chunk_begin = chunk_pos i in
           let final_pos = Unix32.seek64 (file_fd file) 
             chunk_begin Unix.SEEK_SET in
           if final_pos <> chunk_begin then begin
-              Printf.printf "BAD LSEEK %Ld/%Ld"
+              lprintf "BAD LSEEK %Ld/%Ld"
                 (final_pos)
-              (chunk_begin); print_newline ();
+              (chunk_begin); lprint_newline ();
               raise Not_found
             end;
           let fd = try
               Unix32.force_fd (file_fd file) 
             with e -> 
-                Printf.printf "In Unix32.force_fd"; print_newline ();
+                lprintf "In Unix32.force_fd"; lprint_newline ();
                 raise e
           in
           let buffer_size = 128 * 1024 in
@@ -409,8 +410,8 @@ and zero_block file i =
           if !remaining > 0 then
             Unix2.really_write fd buffer 0 !remaining;
       
-      | _ -> Printf.printf "Trying to zero some existing chunk!!";
-          print_newline ())
+      | _ -> lprintf "Trying to zero some existing chunk!!";
+          lprint_newline ())
   with _ -> ()
 
 and check_file_block c file i max_clients force =
@@ -418,7 +419,7 @@ and check_file_block c file i max_clients force =
       begin
         match file.file_chunks.(i) with
           AbsentTemp | PartialTemp _ ->
-            Printf.printf "check_file_block: verify md4"; print_newline ();
+            lprintf "check_file_block: verify md4"; lprint_newline ();
             verify_file_md4 file i file.file_chunks.(i)
         | _ -> ()
       end;
@@ -431,9 +432,9 @@ and check_file_block c file i max_clients force =
           
           b.block_nclients <- 1;            
           if !verbose then begin
-              Printf.printf "\n%d: NEW BLOCK [%Ld - %Ld]" (client_num c)
+              lprintf "\n%d: NEW BLOCK [%Ld - %Ld]" (client_num c)
               (b.block_begin) (b.block_end);
-              print_newline ();
+              lprint_newline ();
             end;
           zero_block file i;
 	  b.block_unknown_origin <- false;
@@ -451,10 +452,10 @@ and check_file_block c file i max_clients force =
               b.block_nclients <- b.block_nclients + 1;            
               c.client_block <- Some b;
               if !verbose then begin
-                  Printf.printf "\n%d: NEW CLIENT FOR BLOCK [%Ld - %Ld]"
+                  lprintf "\n%d: NEW CLIENT FOR BLOCK [%Ld - %Ld]"
                     (client_num c)
                   (b.block_begin) (b.block_end);
-                  print_newline ();
+                  lprint_newline ();
                 end;
               
               file.file_chunks.(i) <- PartialVerified b;
@@ -468,7 +469,7 @@ and check_file_block c file i max_clients force =
 and start_download c =
   if not c.client_asked_for_slot then begin
       if !verbose_download then begin
-          Printf.printf "start_download..."; print_newline ();
+          lprintf "start_download..."; lprint_newline ();
         end;
       match c.client_sock with
         None -> ()
@@ -489,7 +490,7 @@ and start_download c =
 
 and restart_download c = 
   if !verbose_download then begin
-      Printf.printf "restart_download..."; print_newline ();
+      lprintf "restart_download..."; lprint_newline ();
     end;
   match c.client_sock with
     None -> ()
@@ -521,34 +522,34 @@ and find_client_block c =
 (* find an available block *)
   
   if !verbose_download then begin
-      Printf.printf "find_client_block: started"; print_newline ();
+      lprintf "find_client_block: started"; lprint_newline ();
     end;
   match c.client_file_queue with
     [] ->
     (* Emule may reconnect and give the slot without us asking for it.
     We have to fix this behavior in the future. *)
       if !verbose_download then begin    
-          Printf.printf "Client %d: NO FILE IN QUEUE" (client_num c); 
-          print_newline ();
+          lprintf "Client %d: NO FILE IN QUEUE" (client_num c); 
+          lprint_newline ();
         end
         
   | (file, (chunks)) :: files -> 
       
       if !verbose_download then begin
-          Printf.printf "File %s state %s"
+          lprintf "File %s state %s"
             (file_best_name file)
           (string_of_file_state 
-              (file_state file)); print_newline ();
+              (file_state file)); lprint_newline ();
         end;
       if file_state file <> FileDownloading then next_file c else 
       
       if !verbose_download then begin
-          Printf.printf "find_client_block: continuing"; print_newline ();
+          lprintf "find_client_block: continuing"; lprint_newline ();
         end;
       
       if !verbose then begin
           for i = 0 to file.file_nchunks - 1 do
-            print_char (match file.file_chunks.(i) with
+            lprint_char (match file.file_chunks.(i) with
               | PartialVerified _ -> 'P'
               | PartialTemp _ -> 'p'
               | AbsentVerified -> 'A'
@@ -556,7 +557,7 @@ and find_client_block c =
               | PresentVerified -> 'D'
               | PresentTemp -> 'd')
           done;
-          print_newline ();
+          lprint_newline ();
         end;
       
       
@@ -576,7 +577,7 @@ and find_client_block c =
         if !!random_order_download then begin
             
             if !verbose_download then begin
-                Printf.printf "find_client_block: random_order_download"; print_newline ();
+                lprintf "find_client_block: random_order_download"; lprint_newline ();
               end;
 
 (* chunks with MD4 already computed *)
@@ -628,8 +629,8 @@ and find_client_block c =
           end else begin
             
             if !verbose_download then begin
-                Printf.printf "find_client_block: NOT RANDOM ORDER (last = %d)" last;
-                print_newline ();
+                lprintf "find_client_block: NOT RANDOM ORDER (last = %d)" last;
+                lprint_newline ();
               end;
             
             if c.client_chunks.(last) then
@@ -688,10 +689,10 @@ and find_client_block c =
 	    aux true;
             
             if !verbose_download then begin
-                Printf.printf "No block found ???"; print_newline ();
+                lprintf "No block found ???"; lprint_newline ();
                 for i = 0 to file.file_nchunks - 1 do
                   
-                  Printf.printf "%d: client %c source %s"
+                  lprintf "%d: client %c source %s"
                     i
                     (if chunks.(i) then '1' else '0')
                   (match file.file_chunks.(i) with
@@ -701,7 +702,7 @@ and find_client_block c =
                     | AbsentVerified -> "A"
                     | PartialTemp _ -> "d"
                     | PartialVerified _ -> "D");
-                  print_newline ();
+                  lprint_newline ();
                 done;
               end;
               
@@ -711,26 +712,26 @@ and find_client_block c =
         next_file c
 with e -> 
     if !verbose_download then begin
-        Printf.printf "find_client_block: exception %s"
-          (Printexc2.to_string e); print_newline ();
+        lprintf "find_client_block: exception %s"
+          (Printexc2.to_string e); lprint_newline ();
         ()
       end
           
 and next_file c =
   
-  Printf.printf "next_file..."; print_newline ();
+  lprintf "next_file..."; lprint_newline ();
   match c.client_file_queue with
     [] -> assert false
   | (file, (chunks) ) :: files -> 
       DonkeyGlobals.remove_client_chunks file chunks;
       match c.client_sock with
         None -> 
-          Printf.printf "next_file: client not connected"; print_newline ();
+          lprintf "next_file: client not connected"; lprint_newline ();
           ()
       | Some sock ->
           match files with
             [] ->
-              Printf.printf "next_file: no more file"; print_newline ();
+              lprintf "next_file: no more file"; lprint_newline ();
               if not c.client_has_a_slot then begin
                   connection_delay c.client_connection_control;
 (* This guy could still want to upload from us !!! *)
@@ -812,11 +813,11 @@ let set_file_size file sz =
       if file.file_chunks = [||] then 
         file.file_chunks <- Array.create file.file_nchunks (
           if not (Sys.file_exists (file_disk_name file)) then begin
-(*            Printf.printf "Setting Absent Verified chunks"; print_newline ();*)
+(*            lprintf "Setting Absent Verified chunks"; lprint_newline ();*)
               
               AbsentVerified
             end else begin
-(*            Printf.printf "Setting Absent Verified chunks"; print_newline (); *)
+(*            lprintf "Setting Absent Verified chunks"; lprint_newline (); *)
               AbsentTemp
             
             end);
@@ -830,9 +831,9 @@ let set_file_size file sz =
       file.file_initialized <- true;
       
       (*
-      Printf.printf "AFTER put_absents:"; print_newline ();
+      lprintf "AFTER put_absents:"; lprint_newline ();
       for i = 0 to file.file_nchunks - 1 do
-        Printf.printf "  chunk[%d]: %s" i 
+        lprintf "  chunk[%d]: %s" i 
           (match file.file_chunks.(i) with
             PresentVerified ->               
               "shared"
@@ -841,7 +842,7 @@ let set_file_size file sz =
           | PartialTemp _ -> "partial compute"
           | AbsentTemp -> "absent compute"
           | PresentTemp -> "present compute");
-        print_newline ();
+        lprint_newline ();
       done;
 *)
 
@@ -858,8 +859,8 @@ let set_file_size file sz =
       
 (*
       List.iter (fun (p0,p1) ->
-Printf.printf "%ld <---> %ld" (p0) (p1);
-  print_newline ();
+lprintf "%ld <---> %ld" (p0) (p1);
+  lprint_newline ();
 ) file.file_absent_chunks;
   *)
     end
@@ -887,19 +888,19 @@ let update_zone file begin_pos end_pos z =
       add_file_downloaded file.file_file (Int64.sub z.zone_end z.zone_begin);
       
       if file_downloaded file > file_size file then begin
-          Printf.printf "******* downloaded %Ld > %Ld size after update_zone ***** for %s"
+          lprintf "******* downloaded %Ld > %Ld size after update_zone ***** for %s"
             (file_downloaded file)
           (file_size file)
           (file_best_name file);
-          print_newline () 
+          lprint_newline () 
         end;
       
       file_must_update file;
       z.zone_begin <- z.zone_end;
       if !verbose && end_pos > z.zone_end then begin
-          Printf.printf "EXCEEDING: %Ld>%Ld" (end_pos)
+          lprintf "EXCEEDING: %Ld>%Ld" (end_pos)
           (z.zone_end);
-          print_newline ();
+          lprint_newline ();
         end
     
     end else
@@ -908,11 +909,11 @@ let update_zone file begin_pos end_pos z =
       
       add_file_downloaded file.file_file (Int64.sub end_pos z.zone_begin);
       if file_downloaded file > file_size file then begin
-          Printf.printf "******* downloaded %Ld > %Ld size after update_zone (2) ***** for %s"
+          lprintf "******* downloaded %Ld > %Ld size after update_zone (2) ***** for %s"
             (file_downloaded file)
           (file_size file)
           (file_best_name file);
-          print_newline () 
+          lprint_newline () 
         end;
       
       z.zone_begin <- end_pos;
@@ -925,11 +926,11 @@ let update_zone file begin_pos end_pos z =
       
       add_file_downloaded file.file_file (Int64.sub z.zone_end begin_pos);
       if file_downloaded file > file_size file then begin
-          Printf.printf "******* downloaded %Ld > %Ld size after update_zone (3) ***** for %s"
+          lprintf "******* downloaded %Ld > %Ld size after update_zone (3) ***** for %s"
             (file_downloaded file)
           (file_size file)
           (file_best_name file);
-          print_newline () 
+          lprint_newline () 
         end;
       
       z.zone_end <- begin_pos;
@@ -941,12 +942,12 @@ let update_zone file begin_pos end_pos z =
 
 (*  else begin 
       if !verbose then begin
-          Printf.printf "CAN'T UPDATE ZONE %ld-%ld WITH %ld-%ld"
+          lprintf "CAN'T UPDATE ZONE %ld-%ld WITH %ld-%ld"
             (z.zone_begin)
           (z.zone_end)
           (begin_pos)
           (end_pos)
-          ; print_newline ();
+          ; lprint_newline ();
         end
     end        
 *)
@@ -984,8 +985,8 @@ let move_file_to_done_files md4 =
     file_completed (as_file file.file_file);
     
   with e -> 
-      Printf.printf "move_file_to_done_files NOT FOUND";
-      print_newline ();
+      lprintf "move_file_to_done_files NOT FOUND";
+      lprint_newline ();
       raise e 
         *)
 
@@ -995,9 +996,9 @@ let remove_file md4 =
     file_cancel (as_file file.file_file);
     Unix32.close (file_fd file);
     (try Sys.remove (file_disk_name file) with e -> 
-          Printf.printf "Exception %s in remove %s"
+          lprintf "Exception %s in remove %s"
             (Printexc2.to_string e) (file_disk_name file);
-          print_newline ());
+          lprint_newline ());
     (try Hashtbl.remove files_by_md4 file.file_md4 with _ -> ());
     (match file.file_shared with
         None -> ()
@@ -1006,8 +1007,8 @@ let remove_file md4 =
 (*    !file_change_hook file; *)
     current_files := List2.removeq file !current_files;
   with e -> 
-      Printf.printf "remove_file NOT FOUND";
-      print_newline ();
+      lprintf "remove_file NOT FOUND";
+      lprint_newline ();
       raise e 
     
 let check_file_downloaded file =
@@ -1025,11 +1026,11 @@ let check_file_downloaded file =
                   PresentVerified -> '1'
                 | PresentTemp ->  '0'
                 | AbsentVerified ->
-                    Printf.printf "(CORRUPTION FOUND)";
-                    print_newline ();
+                    lprintf "(CORRUPTION FOUND)";
+                    lprint_newline ();
                     '0'
                 | _ ->
-                    Printf.printf "OTHER"; print_newline ();
+                    lprintf "OTHER"; lprint_newline ();
                     '0'
 );
   *)
@@ -1063,8 +1064,8 @@ will allow to fasten the sharing of these chunks. *)
             Array.iteri (fun i b ->
                 match b with
                 | PresentTemp ->
-(*                      Printf.printf "verify file md4 %d %d"
-                        file.file_num i; print_newline (); *)
+(*                      lprintf "verify file md4 %d %d"
+                        file.file_num i; lprint_newline (); *)
                     verify_file_md4 file i b;
                     compute_size file;
                     raise Not_found
@@ -1078,8 +1079,8 @@ will allow to fasten the sharing of these chunks. *)
                   PartialVerified _ | AbsentVerified
                 | PresentVerified -> ()
                 | _ ->
-(*                      Printf.printf "verify file md4 %d %d"
-                        file.file_num i; print_newline (); *)
+(*                      lprintf "verify file md4 %d %d"
+                        file.file_num i; lprint_newline (); *)
                     verify_file_md4 file i b;
                     compute_size file;
                     raise Not_found
@@ -1118,9 +1119,9 @@ let search_found search md4 tags =
   ) tags;
   try
     let rs = DonkeyIndexer.find_result md4 in
-(*    Printf.printf "search_add_result"; print_newline (); *)
+(*    lprintf "search_add_result"; lprint_newline (); *)
     CommonInteractive.search_add_result search rs.result_result; (* ADD AVAILABILITY *)
-(*    Printf.printf "search_add_result DONE"; print_newline (); *)
+(*    lprintf "search_add_result DONE"; lprint_newline (); *)
     let doc = rs.result_index in
     let result = Store.get store doc in
 (*    old_avail := !old_avail + !availability; *)
@@ -1135,9 +1136,9 @@ let search_found search md4 tags =
       try
         let rs = DonkeyIndexer.index_result new_result in      
         let doc = rs.result_index in
-(*        Printf.printf "search_add_result"; print_newline (); *)
+(*        lprintf "search_add_result"; lprint_newline (); *)
         CommonInteractive.search_add_result search rs.result_result;
-(*        Printf.printf "search_add_result DONE"; print_newline (); *)
+(*        lprintf "search_add_result DONE"; lprint_newline (); *)
         let result = Store.get store doc in
         ()
       with _ ->  (* the file was probably filtered *)

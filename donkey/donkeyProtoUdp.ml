@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open Md4
 open Autoconf
 open LittleEndian
@@ -55,13 +56,13 @@ module QueryUdpReply  = struct
       get_file s 1
     
     let print t = 
-      Printf.printf "FOUND:\n";
-      Printf.printf "  MD4: %s\n" (Md4.to_string t.f_md4);
-      Printf.printf "  ip: %s\n" (Ip.to_string t.f_ip);
-      Printf.printf "  port: %d\n" t.f_port;
-      Printf.printf "  tags: ";
+      lprintf "FOUND:\n";
+      lprintf "  MD4: %s\n" (Md4.to_string t.f_md4);
+      lprintf "  ip: %s\n" (Ip.to_string t.f_ip);
+      lprintf "  port: %d\n" t.f_port;
+      lprintf "  tags: ";
       print_tags t.f_tags;
-      print_newline ()
+      lprint_newline ()
 
     let fprint oc t = 
       Printf.fprintf oc "FOUND:\n";
@@ -94,9 +95,9 @@ module QueryCallUdp  = struct
       { ip = ip; port = port; id = id; }
       
     let print t = 
-      Printf.printf "QueryCall %s : %d --> %s" (Ip.to_string t.ip) t.port
+      lprintf "QueryCall %s : %d --> %s" (Ip.to_string t.ip) t.port
         (Ip.to_string t.id);
-      print_newline ()
+      lprint_newline ()
 
     let fprint oc t = 
       Printf.fprintf oc "QueryCall %s : %d --> %s\n" (Ip.to_string t.ip) t.port
@@ -121,11 +122,11 @@ module PingServerUdp = struct (* client -> serveur pour identification ? *)
 	Int64.zero
       
     (*let print (t1,t2,t3) = 
-      Printf.printf "MESSAGE 150 UDP %d %d %d" t1 t2 t3;
-      print_newline ()*)
+      lprintf "MESSAGE 150 UDP %d %d %d" t1 t2 t3;
+      lprint_newline ()*)
 
     let print t =
-      Printf.printf "PING %s\n " (Int64.to_string t)
+      lprintf "PING %s\n " (Int64.to_string t)
             
     let fprint oc t =
       Printf.fprintf oc "PING %s\n" (Int64.to_string t)
@@ -152,9 +153,9 @@ module PingServerReplyUdp = struct (* reponse du serveur a 150 *)
       get_int64_32 s 5, get_int64_32 s 9
       
     let print (t1,t2,t3,t4,t5,t6) = 
-      Printf.printf "MESSAGE 150 UDP %d %d %d %d %s %s" t1 t2 t3 t4
+      lprintf "MESSAGE 150 UDP %d %d %d %d %s %s" t1 t2 t3 t4
         (Int64.to_string t5) (Int64.to_string t6);
-      print_newline ()
+      lprint_newline ()
 
     let fprint oc (t1,t2,t3,t4,t5,t6) = 
       Printf.fprintf oc "MESSAGE 150 UDP %d %d %d %d %s %s" t1 t2 t3 t4
@@ -172,7 +173,7 @@ module PingServerReplyUdp = struct (* reponse du serveur a 150 *)
         get_int64_32 s 1, get_int64_32 s 5, get_int64_32 s 9
 
      let print (t1,t2,t3) =
-         Printf.printf "PING REPLY no:%s clients:%s files:%s\n" (Int64.to_string t1)
+         lprintf "PING REPLY no:%s clients:%s files:%s\n" (Int64.to_string t1)
                            (Int64.to_string t2) (Int64.to_string t3)
       
      let fprint oc (t1,t2,t3) =
@@ -203,7 +204,7 @@ module ServerDescUdp = struct
       }
       
   let print t =
-    Printf.printf "ServerDescUdpReq %s\n" (Ip.to_string t.ip)
+    lprintf "ServerDescUdpReq %s\n" (Ip.to_string t.ip)
 
   let write buf t =
     buf_ip buf t.ip
@@ -225,9 +226,9 @@ module ServerDescReplyUdp = struct
      }
       
   let print t =
-    Printf.printf "ServerDescReplyUdpReq\n";
-    Printf.printf "name : %s\n" t.name;
-    Printf.printf "desc : %s\n" t.desc
+    lprintf "ServerDescReplyUdpReq\n";
+    lprintf "name : %s\n" t.name;
+    lprintf "desc : %s\n" t.desc
 
   let write buf t =
     buf_string buf t.name;
@@ -254,7 +255,7 @@ module ServerListUdp = struct
       }
 	
   let print t =
-    Printf.printf "ServerListUdp %s\n" (Ip.to_string t.ip)
+    lprintf "ServerListUdp %s\n" (Ip.to_string t.ip)
 
   let write buf t =
     buf_ip buf t.ip
@@ -298,7 +299,7 @@ let parse magic s =
     let len = String.length s in
     if len = 0 then raise Not_found;
     let opcode = int_of_char (s.[0]) in
-(*    Printf.printf "opcode: %d" opcode; print_newline (); *)
+(*    lprintf "opcode: %d" opcode; lprint_newline (); *)
     match opcode with 
     | 150 -> PingServerUdpReq (PingServerUdp.parse len s)
     | 151 -> PingServerReplyUdpReq (PingServerReplyUdp.parse len s)
@@ -322,7 +323,7 @@ let parse magic s =
     | _ -> raise Exit  
   with
     e -> 
-      Printf.printf "From UDP:"; print_newline ();
+      lprintf "From UDP:"; lprint_newline ();
       dump s;
       UnknownUdpReq (magic, s)
       
@@ -348,19 +349,19 @@ let print t =
     | ServerListUdpReq t -> ServerListUdp.print t
     
     | EmuleReaskFilePingUdpReq md4 ->
-        Printf.printf "EmuleReaskFilePingUdpReq %s" (Md4.to_string md4)
+        lprintf "EmuleReaskFilePingUdpReq %s" (Md4.to_string md4)
     | EmuleReaskAckUdpReq md4 ->
-        Printf.printf "EmuleReaskAckUdpReq %s" (Md4.to_string md4)
+        lprintf "EmuleReaskAckUdpReq %s" (Md4.to_string md4)
     | EmuleFileNotFoundUdpReq ->
-        Printf.printf "EmuleFileNotFoundUdpReq"
+        lprintf "EmuleFileNotFoundUdpReq"
     | EmuleQueueFullUdpReq ->
-        Printf.printf "EmuleQueueFullUdpReq"
+        lprintf "EmuleQueueFullUdpReq"
         
     | UnknownUdpReq (magic, s) -> 
-        Printf.printf "UnknownReq magic %d" magic; print_newline ();
-        dump s; print_newline ();
+        lprintf "UnknownReq magic %d" magic; lprint_newline ();
+        dump s; lprint_newline ();
   end;
-  print_newline ()
+  lprint_newline ()
   
 let write buf t =
   match t with

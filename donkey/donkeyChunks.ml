@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-  
+open Printf2  
 open Md4
 open CommonSearch
 open CommonGlobals
@@ -53,25 +53,25 @@ let verify_chunk file i =
   let len = Int64.sub end_pos begin_pos in
   let md4 = file_md4s.(i) in
   if !verbose then begin
-      Printf.printf "verify_chunk %s[%d] %Ld[%Ld]" 
+      lprintf "verify_chunk %s[%d] %Ld[%Ld]" 
         (file_disk_name file) i
-        begin_pos len; print_newline ();
+        begin_pos len; lprint_newline ();
     end;
   let t1 = Unix.gettimeofday () in
   let new_md4 = Md4.digest_subfile (file_fd file) begin_pos len in
   let t2 = Unix.gettimeofday () in
   if !verbose then begin
-      Printf.printf "Delay for MD4: %2.2f" (t2 -. t1); print_newline ();
+      lprintf "Delay for MD4: %2.2f" (t2 -. t1); lprint_newline ();
     end;
   if new_md4 = md4 then begin
       DonkeyShare.must_share_file file;
       PresentVerified
     end else begin
 (*
-print_newline ();
-Printf.printf "VERIFICATION FAILED";print_newline ();
-Printf.printf "%s\n%s" (Md4.to_string md4) (Md4.to_string new_md4);
-print_newline ();
+lprint_newline ();
+lprintf "VERIFICATION FAILED";lprint_newline ();
+lprintf "%s\n%s" (Md4.to_string md4) (Md4.to_string new_md4);
+lprint_newline ();
 *)
       AbsentVerified
     end      
@@ -177,16 +177,16 @@ let compute_size file =
     let current = Int64.sub (file_size file) !absents in
     file.file_file.impl_file_downloaded <- current;
     if file_downloaded file > file_size file then begin
-        Printf.printf "******* downloaded %Ld > %Ld size after compute_size ***** for %s"
+        lprintf "******* downloaded %Ld > %Ld size after compute_size ***** for %s"
           (file_downloaded file)
         (file_size file)
         (file_best_name file);
-        print_newline () 
+        lprint_newline () 
       end;
     file_must_update file
   
 let verify_chunks file =
-  Printf.printf "Start verifying\n";
+  lprintf "Start verifying\n";
   if file.file_md4s <> [] then
     for i = 0 to file.file_nchunks - 1 do
       let b = file.file_chunks.(i)  in
@@ -197,8 +197,8 @@ let verify_chunks file =
           let state = verify_chunk file i in
           file.file_chunks.(i) <- (
             if state = PresentVerified then begin
-                Printf.printf "(PRESENT VERIFIED)";
-                print_newline ();
+                lprintf "(PRESENT VERIFIED)";
+                lprint_newline ();
                 PresentVerified
               end
             else
@@ -209,14 +209,14 @@ let verify_chunks file =
                   Int64.sub (file_downloaded file) block_size;
                 
                 if file_downloaded file > file_size file then begin
-                    Printf.printf "******* downloaded %Ld > %Ld size after verify_chunks ***** for %s"
+                    lprintf "******* downloaded %Ld > %Ld size after verify_chunks ***** for %s"
                       (file_downloaded file)
                     (file_size file)
                     (file_best_name file);
-                    print_newline () 
+                    lprint_newline () 
                   end;
                 
-                Printf.printf "(CORRUPTION FOUND)"; print_newline ();
+                lprintf "(CORRUPTION FOUND)"; lprint_newline ();
                 file_must_update file;
                 AbsentVerified
               | _ -> AbsentVerified);
@@ -224,7 +224,7 @@ let verify_chunks file =
               (if state = PresentVerified then '1' else '0'); *)
     
     done;
-  Printf.printf "Done verifying\n";
+  lprintf "Done verifying\n";
   file.file_absent_chunks <- List.rev (find_absents file);
   compute_size file
 
@@ -245,10 +245,10 @@ let register_md4 i md4 (begin_pos : int64) (len : int64) file =
     let files = Hashtbl.find md4_table (md4, i, begin_pos, len) in
     if not (List.memq file !files) then begin
         files := file :: !files;
-        Printf.printf "Files";
-        List.iter (fun file -> Printf.printf " %d" (file_num file)) !files;
-        Printf.printf "share block %s" (Md4.to_string md4);
-        print_newline ();
+        lprintf "Files";
+        List.iter (fun file -> lprintf " %d" (file_num file)) !files;
+        lprintf "share block %s" (Md4.to_string md4);
+        lprint_newline ();
       end
   with _ ->
       Hashtbl.add md4_table (md4, i, begin_pos, len) (ref [file])
@@ -269,7 +269,7 @@ let register_md4s md4s file_num file_size =
   iter md4s 0 Int64.zero
 
 let copy_chunk other_file file chunk_pos chunk_size =
-  Printf.printf "Copying chunk"; print_newline ();
+  lprintf "Copying chunk"; lprint_newline ();
   let file_in = 
     Unix.openfile (file_disk_name other_file)
     [Unix.O_RDONLY] 0o666 in
@@ -292,7 +292,7 @@ let copy_chunk other_file file chunk_pos chunk_size =
           iter file_in file_out (len-nread)
       in
       iter file_in file_out len;
-      Printf.printf "Chunk copied"; print_newline ();
+      lprintf "Chunk copied"; lprint_newline ();
       
     with _ -> Unix.close file_out; raise Exit
   
@@ -333,9 +333,9 @@ let duplicate_chunks () =
                     List.iter (fun other_file ->
                         match other_file.file_chunks.(i) with
                           PresentVerified ->
-                            Printf.printf "Should copy chunk %d [%Ld:%Ld] from %s to %s" i chunk_pos chunk_size 
+                            lprintf "Should copy chunk %d [%Ld:%Ld] from %s to %s" i chunk_pos chunk_size 
                               (file_best_name other_file) (file_best_name file);
-                            print_newline ();
+                            lprint_newline ();
 
                             if not (List.memq file !modified_files) then
                               modified_files := file :: !modified_files;

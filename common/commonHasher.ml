@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open CommonOptions
 
 type hash_method = MD4 | MD5 | SHA1
@@ -39,24 +40,24 @@ external job_start : job -> Unix.file_descr -> unit = "ml_job_start"
   
 let _ =
   if BasicSocket.has_threads () then begin
-      Printf.printf "Using threads"; print_newline ();
+      lprintf "Using threads"; lprint_newline ();
     end;
   BasicSocket.add_infinite_timer 0.1 (fun _ ->
-(*      Printf.printf "test job"; print_newline ();  *)
+(*      lprintf "test job"; lprint_newline ();  *)
       try
         match !current_job with
         | None -> raise Not_found
         | Some (job, fd) ->
-(*            Printf.printf "job done "; print_newline (); *)
+(*            lprintf "job done "; lprint_newline (); *)
             if job_done job then begin
                 if !verbose_md4 then begin
-                    Printf.printf "Job finished"; print_newline (); 
+                    lprintf "Job finished"; lprint_newline (); 
                   end;
                 current_job := None;
                 Unix.close fd;
                 (try job.job_handler job with e -> 
-                      Printf.printf "exception %s in job_handler"
-                        (Printexc2.to_string e); print_newline ();
+                      lprintf "exception %s in job_handler"
+                        (Printexc2.to_string e); lprint_newline ();
                       );
                 raise Not_found
               end
@@ -65,24 +66,24 @@ let _ =
           let job = try Fifo.take fifo 
               
             with e -> 
-(*                Printf.printf "No waiting job"; print_newline (); *)
+(*                lprintf "No waiting job"; lprint_newline (); *)
                 raise e
           in
-(*          Printf.printf "Job ready"; print_newline (); *)
+(*          lprintf "Job ready"; lprint_newline (); *)
           try
             let fd = Unix.openfile job.job_name [Unix.O_RDONLY] 0o444 in
             current_job := Some (job, fd);
             if !verbose_md4 then begin
-                Printf.printf "Starting job %s %Ld %Ld" job.job_name
-                  job.job_begin job.job_len; print_newline (); 
+                lprintf "Starting job %s %Ld %Ld" job.job_name
+                  job.job_begin job.job_len; lprint_newline (); 
               end;
             job_start job fd;
             if !verbose_md4 then begin
-                Printf.printf "Job started"; print_newline ();
+                lprintf "Job started"; lprint_newline ();
               end
           with e ->
-              Printf.printf "Exception %s in starting job" 
-                (Printexc2.to_string e); print_newline ();
+              lprintf "Exception %s in starting job" 
+                (Printexc2.to_string e); lprint_newline ();
   )
   
 let compute_md4 name begin_pos len f =

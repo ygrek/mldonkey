@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open Md4
 open CommonClient
 open CommonSearch
@@ -54,7 +55,7 @@ let send_search fast s ss msg =
       match s.server_sock with
         None -> ()
       | Some sock -> 
-          Printf.printf "SENDING SEARCH TO %s" s.server_desc; print_newline ();
+          lprintf "SENDING SEARCH TO %s" s.server_desc; lprint_newline ();
           s.server_searches <- Some ss;
           OP.debug_server_send sock (OP.SearchReq msg)
     in
@@ -102,8 +103,8 @@ let recover_files () =
       let keywords = 
         match stem file.file_name with 
           [] | [_] -> 
-(*            Printf.printf "Not enough keywords to recover %s" f.file_name;
-            print_newline (); *)
+(*            lprintf "Not enough keywords to recover %s" f.file_name;
+            lprint_newline (); *)
             [file.file_name]
         | l -> l
       in
@@ -119,8 +120,8 @@ let recover_files_from_server s =
           let keywords = 
             match stem file.file_name with 
               [] | [_] -> 
-(*                Printf.printf "Not enough keywords to recover %s" f.file_name;
-                print_newline (); *)
+(*                lprintf "Not enough keywords to recover %s" f.file_name;
+                lprint_newline (); *)
                 [file.file_name]
             | l -> l
           in
@@ -143,12 +144,12 @@ let try_nick s sock =
 
 
 let get_file_from_source c file =
-(*  Printf.printf "GET FILE FROM SOURCE !!!!!!!!!!!!!!!!!!!!"; print_newline (); *)
+(*  lprintf "GET FILE FROM SOURCE !!!!!!!!!!!!!!!!!!!!"; lprint_newline (); *)
   try
     if connection_can_try c.client_connection_control then begin
         connection_try c.client_connection_control;      
-(*        Printf.printf "Opennap.get_file_from_source not implemented";  
-print_newline (); *)
+(*        lprintf "Opennap.get_file_from_source not implemented";  
+lprint_newline (); *)
         List.iter (fun s ->
             match s.server_sock with
               None -> ()
@@ -174,20 +175,20 @@ print_newline (); *)
         
         end
   with e ->
-      Printf.printf "Exception %s in get_file_from_source" 
+      lprintf "Exception %s in get_file_from_source" 
       (Printexc2.to_string e);
-      print_newline ()
+      lprint_newline ()
 
   
 let download_file (r : result) =
   let file = new_file (Md4.random ()) r.result_name r.result_size in
-(*  Printf.printf "DOWNLOAD FILE %s" f.file_name; print_newline (); *)
+(*  lprintf "DOWNLOAD FILE %s" f.file_name; lprint_newline (); *)
   if not (List.memq file !current_files) then begin
       current_files := file :: !current_files;
     end;
   List.iter (fun (user, filename) ->
-      Printf.printf "Adding source %s (%d servers)" user.user_nick
-        (List.length user.user_servers); print_newline ();
+      lprintf "Adding source %s (%d servers)" user.user_nick
+        (List.length user.user_servers); lprint_newline ();
       let c = add_file_client file user  filename in
       get_file_from_source c file;
   ) r.result_sources;
@@ -234,8 +235,8 @@ let disconnect_server s =
       
       (try close sock "user disconnect" with _ -> ());
       decr nservers;
-(*      Printf.printf "%s:%d CLOSED received by server"
-      (Ip.to_string s.server_ip) s.server_port; print_newline ();
+(*      lprintf "%s:%d CLOSED received by server"
+      (Ip.to_string s.server_ip) s.server_port; lprint_newline ();
 *)
       DG.connection_failed (s.server_connection_control);
       s.server_sock <- None;
@@ -251,12 +252,12 @@ let client_to_server s t sock =
   match t with
     
   | OP.ErrorReq error ->
-      Printf.printf "SERVER %s:%d %s" (Ip.to_string s.server_ip) 
-      s.server_port s.server_net; print_newline ();
-      Printf.printf "ERROR FROM SERVER: %s" error; print_newline () 
-(*      Printf.printf "SERVER %s:%d %s" (Ip.to_string s.server_ip) 
-      s.server_port s.server_net; print_newline ();
-Printf.printf "MESSAGE FROM SERVER: %s" error; print_newline ()  *)
+      lprintf "SERVER %s:%d %s" (Ip.to_string s.server_ip) 
+      s.server_port s.server_net; lprint_newline ();
+      lprintf "ERROR FROM SERVER: %s" error; lprint_newline () 
+(*      lprintf "SERVER %s:%d %s" (Ip.to_string s.server_ip) 
+      s.server_port s.server_net; lprint_newline ();
+lprintf "MESSAGE FROM SERVER: %s" error; lprint_newline ()  *)
 
   | OP.MessageReq error -> 
       let msg = Printf.sprintf "From server %s [%s:%d]: %s\n"
@@ -265,8 +266,8 @@ Printf.printf "MESSAGE FROM SERVER: %s" error; print_newline ()  *)
 
     
   | OP.NickAlreadyUsedReq ->
-(*      Printf.printf "NICK NAME ALREADY USED %d" s.server_nick; 
-      print_newline (); *)
+(*      lprintf "NICK NAME ALREADY USED %d" s.server_nick; 
+      lprint_newline (); *)
       try_login_on_server s sock;
 (*
       s.server_nick <- s.server_nick + 1;
@@ -274,17 +275,17 @@ try_nick s sock;
 *)
       
   | OP.NickInvalidReq ->
-(*      Printf.printf "NICK NAME IS INVALID %s" !!DO.client_name; 
-print_newline (); *)
+(*      lprintf "NICK NAME IS INVALID %s" !!DO.client_name; 
+lprint_newline (); *)
       ()
       
   | OP.NickUnusedReq ->
-(*      Printf.printf "NICK NAME ACCEPTED"; print_newline (); *)
+(*      lprintf "NICK NAME ACCEPTED"; lprint_newline (); *)
       login_on_server s sock
       
   | OP.LoginAckReq mail ->
       set_rtimeout sock DG.half_day;
-(*      Printf.printf "*****  CONNECTED %s  ******" mail; print_newline (); *)
+(*      lprintf "*****  CONNECTED %s  ******" mail; lprint_newline (); *)
       set_server_state s (Connected (-1));
       connected_servers := s :: !connected_servers;
       
@@ -320,7 +321,7 @@ print_newline (); *)
       s.server_size <- t.SS.size;
       
   | OP.SearchReplyReq t ->
-      Printf.printf "***  SearchReplyReq ***"; print_newline ();
+      lprintf "***  SearchReplyReq ***"; lprint_newline ();
       let module SR = OP.SearchReply in
       begin
         match s.server_searches with 
@@ -335,20 +336,20 @@ print_newline (); *)
             begin
               try
                 let file = find_file (basename t.SR.filename) t.SR.size in 
-                Printf.printf "++++++++++ RECOVER %s ++++++++" t.SR.filename;
-                print_newline (); 
+                lprintf "++++++++++ RECOVER %s ++++++++" t.SR.filename;
+                lprint_newline (); 
                 
-(*                Printf.printf "1"; print_newline (); *)
+(*                lprintf "1"; lprint_newline (); *)
                 let result = new_result (basename t.SR.filename) t.SR.size in
                 let user = new_user (Some s) t.SR.nick in
                 let c = add_file_client file user t.SR.filename in
                 add_source result user t.SR.filename;
-(*                Printf.printf "2"; print_newline (); *)
-(*                Printf.printf "3"; print_newline (); *)
-(*                Printf.printf "4"; print_newline (); *)
+(*                lprintf "2"; lprint_newline (); *)
+(*                lprintf "3"; lprint_newline (); *)
+(*                lprintf "4"; lprint_newline (); *)
                 get_file_from_source c file;
-(*                Printf.printf "5"; print_newline (); *)
-(*                Printf.printf "6"; print_newline (); *)
+(*                lprintf "5"; lprint_newline (); *)
+(*                lprintf "6"; lprint_newline (); *)
               with _ -> ()
             end
       end
@@ -373,7 +374,7 @@ print_newline (); *)
       end
       
   | OP.EndOfSearchReplyReq ->
-      Printf.printf "END OF SEARCH ON %s" s.server_desc; print_newline ();
+      lprintf "END OF SEARCH ON %s" s.server_desc; lprint_newline ();
       begin
         match s.server_searches with 
           None -> assert false
@@ -388,14 +389,14 @@ print_newline (); *)
   | OP.DownloadAckReq t ->
       
       let module DA = OP.DownloadAck in
-      Printf.printf "DownloadAckReq %s !!!!!!!!!!!!!!!!!!!!!!!!" t.DA.nick; 
-      print_newline (); 
+      lprintf "DownloadAckReq %s !!!!!!!!!!!!!!!!!!!!!!!!" t.DA.nick; 
+      lprint_newline (); 
        
       let c = new_client t.DA.nick in
       
       if t.DA.port = 0 then (
-          Printf.printf "************** Must download indirectly  *************"; 
-          print_newline (); 
+          lprintf "************** Must download indirectly  *************"; 
+          lprint_newline (); 
           OP.debug_server_send sock (OP.AlternateDownloadRequestReq (
               let module DR = OP.DownloadRequest in
               {
@@ -404,8 +405,8 @@ print_newline (); *)
               }
             ));
         ) else (
-          Printf.printf "************** Can download directly *************"; 
-          print_newline ();
+          lprintf "************** Can download directly *************"; 
+          lprint_newline ();
           let ip = t.DA.ip in
           let port = t.DA.port in
           c.client_addr <- Some (ip, port);
@@ -424,18 +425,18 @@ print_newline (); *)
         ()
       end;
       let module DE = OP.DownloadError in
-      Printf.printf "?????????Download Error %s %s ???????????" t.DE.nick t.DE.filename; 
-      print_newline ();
+      lprintf "?????????Download Error %s %s ???????????" t.DE.nick t.DE.filename; 
+      lprint_newline ();
       
   | _ -> 
-      Printf.printf "#################  UNUSED   ###############"; 
-      print_newline ();
+      lprintf "#################  UNUSED   ###############"; 
+      lprint_newline ();
       OpennapProtocol.print t
       
 let connect_server s =
   if DG.can_open_connection () then
     try
-(*      Printf.printf "CONNECTING ONE SERVER"; print_newline ();  *)
+(*      lprintf "CONNECTING ONE SERVER"; lprint_newline ();  *)
       DG.connection_try s.server_connection_control;
       incr nservers;
       DG.printf_char 's'; 
@@ -459,10 +460,10 @@ let connect_server s =
 (*      try_login_on_server s sock; *)
       s.server_sock <- Some sock;
     with e -> 
-        Printf.printf "%s:%d IMMEDIAT DISCONNECT %s"
+        lprintf "%s:%d IMMEDIAT DISCONNECT %s"
           (Ip.to_string s.server_ip) s.server_port
-          (Printexc2.to_string e); print_newline ();
-(*      Printf.printf "DISCONNECTED IMMEDIATLY"; print_newline (); *)
+          (Printexc2.to_string e); lprint_newline ();
+(*      lprintf "DISCONNECTED IMMEDIATLY"; lprint_newline (); *)
         decr nservers;
         s.server_sock <- None;
         set_server_state s (NotConnected (-1));
@@ -487,7 +488,7 @@ let rec connect_one_server () =
 
   
 let connect_servers () = 
-(*  Printf.printf "CONNECT SERVERS"; print_newline (); *)
+(*  lprintf "CONNECT SERVERS"; lprint_newline (); *)
   if !nservers < !!max_connected_servers then
     for i = !nservers to !!max_connected_servers do
       connect_one_server ()

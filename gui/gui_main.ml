@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open Options
 open Gettext
 open Gui_global
@@ -34,10 +35,10 @@ let _ =
       Sys_error _ ->
 	(try Options.save O.mldonkey_gui_ini with _ -> ())
      | e ->
-        Printf.printf "Exception %s in load options %s" 
+        lprintf "Exception %s in load options %s" 
 	 (Printexc2.to_string e)
 	 (Options.options_file_name O.mldonkey_gui_ini);
-        print_newline ();
+        lprint_newline ();
   );
   let args = 
     ("-dump_msg", Arg.Unit (fun _ ->
@@ -131,7 +132,7 @@ let canon_client gui c =
       cc.client_state <- c.client_state;
 
       if c.client_state = RemovedHost then begin
-(*          Printf.printf "Removing client %d" c.client_num; print_newline ();
+(*          lprintf "Removing client %d" c.client_num; lprint_newline ();
 *)
           Hashtbl.remove G.locations c.client_num;
 (*          gui#tab_downloads#box_downloads#remove_client cc.client_num *)
@@ -161,7 +162,7 @@ let canon_client gui c =
       
       cc
     with _ ->
-(*        Printf.printf "Adding client %d" c.client_num; print_newline ();  *)
+(*        lprintf "Adding client %d" c.client_num; lprint_newline ();  *)
         Hashtbl.add G.locations c.client_num c;
         begin
           match c.client_type with
@@ -178,9 +179,9 @@ let value_reader gui t =
   try
     
     if !verbose_gui_messages then begin
-        Printf.printf "MESSAGE RECEIVED: %s" 
+        lprintf "MESSAGE RECEIVED: %s" 
           (string_of_to_gui t);
-        print_newline ();
+        lprint_newline ();
         
       end;
     
@@ -242,8 +243,8 @@ let value_reader gui t =
     | CoreProtocol v -> 
         
         Gui_com.gui_protocol_used := min v GuiEncoding.best_gui_version;
-        Printf.printf "Using protocol %d for communications" !Gui_com.gui_protocol_used;
-        print_newline ();
+        lprintf "Using protocol %d for communications" !Gui_com.gui_protocol_used;
+        lprint_newline ();
         gui#label_connect_status#set_text (gettext M.connected);
         Com.send (Password (!!O.password))
     
@@ -252,8 +253,8 @@ let value_reader gui t =
             let r = Hashtbl.find G.results r in
             gui#tab_queries#h_search_result num r
           with _ -> 
-              Printf.printf "Exception in Search_result %d %d" num r;
-              print_newline ();
+              lprintf "Exception in Search_result %d %d" num r;
+              lprint_newline ();
         end
     
     | Search_waiting (num,waiting) -> 
@@ -273,11 +274,11 @@ let value_reader gui t =
         gui#tab_downloads#h_file_availability file_num client_num avail;
     
     | File_info f ->
-(*        Printf.printf "FILE INFO"; print_newline (); *)
+(*        lprintf "FILE INFO"; lprint_newline (); *)
         gui#tab_downloads#h_file_info f;
     
     | Server_info s ->
-(*        Printf.printf "server info"; print_newline (); *)
+(*        lprintf "server info"; lprint_newline (); *)
         gui#tab_servers#h_server_info s
     
     | Server_state (key,state) ->
@@ -287,9 +288,9 @@ let value_reader gui t =
         gui#tab_servers#h_server_busy key nusers nfiles
     
     | Server_user (key, user) ->
-(*        Printf.printf "server user %d %d" key user; print_newline (); *)
+(*        lprintf "server user %d %d" key user; lprint_newline (); *)
         if not (Hashtbl.mem G.users user) then begin
-(*            Printf.printf "Unknown user %d" user; print_newline ();*)
+(*            lprintf "Unknown user %d" user; lprint_newline ();*)
             Gui_com.send (GetUser_info user);
           end else 
           begin
@@ -297,7 +298,7 @@ let value_reader gui t =
           end
     
     | Room_info room ->
-(*        Printf.printf "Room info %d" room.room_num; print_newline (); *)
+(*        lprintf "Room info %d" room.room_num; lprint_newline (); *)
         gui#tab_rooms#room_info room
     
     | User_info user ->
@@ -309,7 +310,7 @@ let value_reader gui t =
               Hashtbl.add G.users user.user_num user; 
               user
         in
-(*        Printf.printf "user_info %s/%d" user.user_name user.user_server; print_newline (); *)
+(*        lprintf "user_info %s/%d" user.user_name user.user_server; lprint_newline (); *)
         gui#tab_servers#h_server_user user.user_server user.user_num;
         Gui_rooms.user_info user
     
@@ -318,8 +319,8 @@ let value_reader gui t =
         begin try
             gui#tab_rooms#add_room_user num user_num
           with e ->
-              Printf.printf "Exception in Room_user %d %d" num user_num;
-              print_newline ();
+              lprintf "Exception in Room_user %d %d" num user_num;
+              lprint_newline ();
         end
     
     | Room_remove_user (num, user_num) -> 
@@ -327,12 +328,12 @@ let value_reader gui t =
         begin try
             gui#tab_rooms#remove_room_user num user_num
           with e ->
-              Printf.printf "Exception in Room_user %d %d" num user_num;
-              print_newline ();
+              lprintf "Exception in Room_user %d %d" num user_num;
+              lprint_newline ();
         end
     
     | Options_info list ->
-(*        Printf.printf "Options_info"; print_newline ();*)
+(*        lprintf "Options_info"; lprint_newline ();*)
         let rec iter list =
           match list with
             [] -> ()
@@ -376,7 +377,7 @@ let value_reader gui t =
     
     | Client_state (num, state) ->
 (*
-	Printf.printf "Client_state" ; print_newline ();
+	lprintf "Client_state" ; lprint_newline ();
 *)
         (
           try
@@ -419,19 +420,19 @@ let value_reader gui t =
                 ignore (canon_client gui { c with client_files = Some tree })
                 
               with _ ->
-(*                  Printf.printf "File already there"; print_newline (); *)
+(*                  lprintf "File already there"; lprint_newline (); *)
                   ()
             with _ ->
-(*                Printf.printf "Unknown client %d" num; print_newline (); *)
+(*                lprintf "Unknown client %d" num; lprint_newline (); *)
                 Com.send (GetClient_info num);
           with _ ->  
-(*              Printf.printf "Unknown file %d" file_num;
-              print_newline (); *)
+(*              lprintf "Unknown file %d" file_num;
+              lprint_newline (); *)
               ()
 	)
 
     | Client_info c -> 
-(*        Printf.printf "Client_info"; print_newline (); *)
+(*        lprintf "Client_info"; lprint_newline (); *)
         (
 	 try
 	   ignore (canon_client gui c) ;
@@ -474,16 +475,16 @@ fichier selectionne. Si ca marche toujours dans ton interface, pas de
                     gui#tab_rooms#add_room_message num msg                
                 | _ -> raise Not_found
               with Not_found ->
-                  Printf.printf "Client %d not found in reader.MessageFromClient" num;
-                  print_newline ()
+                  lprintf "Client %d not found in reader.MessageFromClient" num;
+                  lprint_newline ()
         )    
         
     | Room_message (num, msg) ->
         begin try
             gui#tab_rooms#add_room_message num msg
           with e ->
-              Printf.printf "Exception in Room_message %d" num;
-              print_newline ();
+              lprintf "Exception in Room_message %d" num;
+              lprint_newline ();
         end
 
     | (DownloadedFiles _|DownloadFiles _|ConnectedServers _) -> assert false
@@ -503,8 +504,8 @@ fichier selectionne. Si ca marche toujours dans ton interface, pas de
         "Authorization Failed\nPlease, open the File->Settings menu and
           enter a valid password"
   with e ->
-      Printf.printf "Exception %s in reader" (Printexc2.to_string e);
-      print_newline ()
+      lprintf "Exception %s in reader" (Printexc2.to_string e);
+      lprint_newline ()
 
       
 let generate_connect_menu gui =
@@ -547,26 +548,26 @@ let main () =
   console_message := (fun s -> 
 
       (*
-      Printf.printf "to primary"; print_newline ();
+      lprintf "to primary"; lprint_newline ();
       let e = gui#tab_console#text in
   
       ignore (GtkBase.Selection.owner_set e#as_widget `PRIMARY 0);
 (*      ignore(e#misc#grab_selection `PRIMARY); *)
 (*      e#misc#add_selection_target ~target:"string" `PRIMARY; 
       ignore (e#misc#connect#selection_get (fun sel ~info ~time ->
-            Printf.printf "request selection"; print_newline ();
+            lprintf "request selection"; lprint_newline ();
             sel#return s
         )); *)
       ignore (e#event#connect#selection_clear  (fun sel ->
-            Printf.printf "selection cleared"; print_newline ();
+            lprintf "selection cleared"; lprint_newline ();
             true
         ));
       ignore (e#event#connect#selection_request (fun sel ->
-            Printf.printf "Selection request"; print_newline ();
+            lprintf "Selection request"; lprint_newline ();
             true
         ));
       ignore (e#event#connect#selection_notify (fun sel ->
-            Printf.printf "Selection notify"; print_newline ();
+            lprintf "Selection notify"; lprint_newline ();
             true
 ));
   *)

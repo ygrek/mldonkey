@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open Md4
 open CommonMessages
 open CommonGlobals
@@ -221,15 +222,15 @@ let commands = [
           Printf.bprintf buf "\\<div class=\\\"downloaders\\\"\\>\\<table id=\\\"downloaders\\\" name=\\\"downloaders\\\" 
 							class=\\\"downloaders\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
 \\<td title=\\\"Client Number (Click to Add as Friend)\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ac\\\"\\>Num\\</td\\>
-\\<td title=\\\"Client state\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Cs\\</td\\>
+\\<td title=\\\"Client state\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>CS\\</td\\>
 \\<td title=\\\"Client name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Name\\</td\\>
-\\<td title=\\\"Client brand\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Cb\\</td\\>
+\\<td title=\\\"Client brand\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>CB\\</td\\>
 \\<td title=\\\"Overnet [T]rue, [F]alse\\\"onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>O\\</td\\>
-\\<td title=\\\"Connected time (minutes)\\\"onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Ct\\</td\\>
+\\<td title=\\\"Connected time (minutes)\\\"onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>CT\\</td\\>
 \\<td title=\\\"Connection [I]nDirect, [D]irect\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C\\</td\\>
-\\<td title=\\\"Ip Address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Ip\\</td\\>
-\\<td title=\\\"Total Ul Kbytes to this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Ul\\</td\\>
-\\<td title=\\\"Total Dl Kbytes from this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Dl\\</td\\>
+\\<td title=\\\"IP Address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>IP\\</td\\>
+\\<td title=\\\"Total UL Kbytes to this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>UL\\</td\\>
+\\<td title=\\\"Total DL Kbytes from this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>DL\\</td\\>
 \\<td title=\\\"Filename\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Filename\\</td\\>
 \\</tr\\>";
         
@@ -372,7 +373,7 @@ let commands = [
                   end)
             ! CommonInteractive.gui_options_panels;
             "\n\nUse 'options section' to see options in this section"
-            
+        
         | sections -> 
             List.iter (fun s ->
                 Printf.bprintf buf "Options in section %s:\n" s;
@@ -386,12 +387,12 @@ let commands = [
                 List.iter (fun (section, list) ->
                     if s = section then                    
                       List.iter (fun (message, option, optype) ->
-                      Printf.bprintf buf "  %s [%s]= %s\n" 
-                        message option 
-                        (get_fully_qualified_options option)
+                          Printf.bprintf buf "  %s [%s]= %s\n" 
+                            message option 
+                            (get_fully_qualified_options option)
                       ) !!list)
                 ! CommonInteractive.gui_options_panels;
-                
+            
             ) sections;
             "\nUse 'set option \"value\"' to change a value where options is
 the name between []"
@@ -671,7 +672,7 @@ the name between []"
               let num = int_of_string num in
               List.iter (fun file ->
                   if (as_file_impl file).impl_file_num = num then begin
-                      Printf.printf "TRY TO CANCEL FILE"; print_newline ();
+                      lprintf "TRY TO CANCEL FILE"; lprint_newline ();
                       file_cancel file
                     end
               ) !!files) args; 
@@ -708,7 +709,7 @@ the name between []"
             "directory removed"
           end else
           "directory already unshared"
-          
+    
     ), "<dir> :\t\t\t\tshare directory <dir>";
     
     "pause", Arg_multiple (fun args o ->
@@ -774,7 +775,7 @@ the name between []"
         let c = client_find num in
         client_browse c true;        
         "client browse"
-    ), " <num> : \t\t\t\task friend files";
+    ), "<num> : \t\t\t\task friend files";
     
     "x", Arg_one (fun num o ->
         let num = int_of_string num in
@@ -799,7 +800,7 @@ the name between []"
           Printf.bprintf buf "\\<table class=\\\"servers\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
 \\<td title=\\\"Server Number\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>#\\</td\\>
 \\<td title=\\\"Button\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Button\\</td\\>
-\\<td title=\\\"Hi or Lo ID\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>ID\\</td\\>
+\\<td title=\\\"High or Low ID\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>ID\\</td\\>
 \\<td title=\\\"Network Name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Network\\</td\\>
 \\<td title=\\\"Connection Status\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Status\\</td\\>
 \\<td title=\\\"IP Address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh br\\\"\\>IP\\</td\\>
@@ -820,8 +821,8 @@ the name between []"
               
               server_print s o
             with e ->
-                Printf.printf "Exception %s in server_print"
-                  (Printexc2.to_string e); print_newline ();
+                lprintf "Exception %s in server_print"
+                  (Printexc2.to_string e); lprint_newline ();
         ) !!servers;
         
         if use_html_mods o then Printf.bprintf buf "\\</table\\>";
@@ -856,8 +857,8 @@ the name between []"
     ), "<priority> <files numbers> :\tchange file priorities";
     
     "version", Arg_none (fun o ->
-      if o.conn_output = HTML && !!html_mods then Printf.sprintf "\\<P\\>" ^ 
-        CommonGlobals.version else CommonGlobals.version
+        if o.conn_output = HTML && !!html_mods then Printf.sprintf "\\<P\\>" ^ 
+            CommonGlobals.version () else CommonGlobals.version ()
     ), ":\t\t\t\tprint mldonkey version";
     
     "forget", Arg_one (fun num o ->
@@ -877,22 +878,22 @@ the name between []"
         let c = client_find num in
         friend_add c;
         "Added friend"
-    ), "<num> :\t\t\tadd friend <client#>";
+    ), "<num> :\t\t\tadd friend <num>";
     
-    "friend_remove", Arg_one (fun num o ->
-        let num = int_of_string num in
-        let c = client_find num in
-        friend_remove c;
-        "Removed friend"
-    ), "<num> :\t\t\tremove friend <client#>";
-    
-    "friend_removeall", Arg_none (fun o ->
-        List.iter (fun c ->
-            friend_remove c
-        ) !!friends;
-        "Removed all friends"
-    ), ":\t\t\tremove all friends";
-    
+    "friend_remove", Arg_multiple (fun args o ->
+        if args = ["all"] then begin
+            List.iter (fun c ->
+                friend_remove c
+            ) !!friends;
+            "Removed all friends"
+          end else begin
+            List.iter (fun num ->
+                let num = int_of_string num in
+                let c = client_find num in
+                friend_remove c;
+            ) args; "Removed friend"
+          end
+    ), "<client numbers> :\tremove friend (use arg 'all' for all friends)";    
     
     "friends", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -958,7 +959,7 @@ the name between []"
         ) !!friends;
         
         if o.conn_output = HTML && !!html_mods then 
-          Printf.bprintf buf "\\</tr\\>\\</table\\>\\<A onclick=\\\"javascript:parent.fstatus.location.href='/submit?q=friend_removeall';\\\"\\>Remove All Friends\\</A\\>\\</div\\>";
+          Printf.bprintf buf "\\</tr\\>\\</table\\>\\<a onclick=\\\"javascript:parent.fstatus.location.href='/submit?q=friend_remove+all';\\\"\\>Remove All Friends\\</a\\>\\</div\\>";
         
         ""
     ), ":\t\t\t\tdisplay all friends";
@@ -980,53 +981,55 @@ the name between []"
                 ()
               end
         ) !!friends;
-        ""), " <friend_num> :\t\t\tprint friend files";
+        ""), "<friend_num> :\t\t\tprint friend files";
     
     
     "bw_stats", Arg_none (fun o -> 
         let buf = o.conn_buf in
         if o.conn_output = HTML && !!html_mods then 
           begin
-
-			let dlkbs = 
+            
+            let dlkbs = 
               (( (float_of_int !saved_download_udp_rate) +. (float_of_int !saved_download_tcp_rate)) /. 1024.0) in
-			let ulkbs =
+            let ulkbs =
               (( (float_of_int !saved_upload_udp_rate) +. (float_of_int !saved_upload_tcp_rate)) /. 1024.0) in
-
+            
             
             Printf.bprintf buf "\\<meta http-equiv=\\\"refresh\\\" content=\\\"11\\\"\\>";
             Printf.bprintf buf "\\<div class=\\\"bw_stats\\\"\\>";
             Printf.bprintf buf "\\<table class=\\\"bw_stats\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>";
             Printf.bprintf buf "\\<td\\>\\<table border=0 cellspacing=0 cellpadding=0\\>\\<tr\\>
-\\<td class=\\\"bu bbig bbig1 bb4\\\"\\>Dl: %.1f kbs (%d|%d)\\</td\\>
-\\<td class=\\\"bu bbig bbig1 bb4\\\"\\>Ul: %.1f kbs (%d|%d)\\</td\\>
-\\<td class=\\\"bu bbig bbig1 bb3\\\"\\>Shared: %d/%s\\</td\\>"
+\\<td title=\\\"DL kbs (TCP|UDP)\\\" class=\\\"bu bbig bbig1 bb4\\\"\\>DL: %.1f kbs (%d|%d)\\</td\\>
+\\<td title=\\\"UL kbs (TCP|UDP)\\\" class=\\\"bu bbig bbig1 bb4\\\"\\>UL: %.1f kbs (%d|%d)\\</td\\>
+\\<td title=\\\"Total Shared Files/Bytes\\\" class=\\\"bu bbig bbig1 bb3\\\"\\>Shared: %d/%s\\</td\\>"
               
-			dlkbs
-            !saved_download_udp_rate
+              dlkbs
+              !saved_download_udp_rate
               !saved_download_tcp_rate
-			ulkbs
-            !saved_upload_udp_rate
+              ulkbs
+              !saved_upload_udp_rate
               !saved_upload_tcp_rate
               !nshared_files
               (size_of_int64 !upload_counter);
             
             Printf.bprintf buf "\\</tr\\>\\</table\\>\\</td\\>\\</tr\\>\\</table\\>\\</div\\>";
-
-			Printf.bprintf buf "\\<script language=\\\"JavaScript\\\"\\>window.parent.document.title='(D:%.1f) (U:%.1f) | MLDonkey %s'\\</script\\>"
-			dlkbs ulkbs Autoconf.current_version
-
-
+            
+            Printf.bprintf buf "\\<script language=\\\"JavaScript\\\"\\>window.parent.document.title='(D:%.1f) (U:%.1f) | MLDonkey %s'\\</script\\>"
+              dlkbs ulkbs Autoconf.current_version
+          
+          
           end
         
         else 
-          Printf.bprintf buf "Dl: %d bps ( %d + %d ) | Ul: %d bps ( %d + %d ) [Average bps (UDP+TCP)]"
-            (!saved_download_udp_rate + !saved_download_tcp_rate)
+          Printf.bprintf buf "Down: %.1f KB/s ( %d + %d ) | Up: %.1f KB/s ( %d + %d ) | Shared: %d/%s"
+            (( (float_of_int !saved_download_udp_rate) +. (float_of_int !saved_download_tcp_rate)) /. 1024.0)
           !saved_download_udp_rate
             !saved_download_tcp_rate
-            (!saved_upload_udp_rate + !saved_upload_tcp_rate)
+            (( (float_of_int !saved_upload_udp_rate) +. (float_of_int !saved_upload_tcp_rate)) /. 1024.0)
           !saved_upload_udp_rate
-            !saved_upload_tcp_rate;
+            !saved_upload_tcp_rate
+            !nshared_files
+            (size_of_int64 !upload_counter);
         ""
     ), ":\t\t\t\tprint current bandwidth stats";
     
@@ -1043,8 +1046,8 @@ the name between []"
         ) args;
         Printf.sprintf "%d servers removed" (List.length args)
     ), "<serv1> ... <servx> :\t\tremove servers";
-
-      "server_banner", Arg_one (fun num o ->
+    
+    "server_banner", Arg_one (fun num o ->
         let buf = o.conn_buf in
         let num = int_of_string num in
         let s = server_find num in
@@ -1054,7 +1057,26 @@ the name between []"
         ""
     ), "<num> :\t\t\tprint connected server banner <server num>";
     
-
+    "log", Arg_none (fun o ->
+        let buf = o.conn_buf in
+        (try
+            while true do
+              let s = Fifo.take lprintf_fifo in
+              Buffer.add_string buf s
+            done
+          with _ -> ());
+        "------------- End of log"
+    ), " :\t\t\tdump current log state to console";
+    
+    "stdout", Arg_one (fun arg o ->
+        let buf = o.conn_buf in
+        let b = bool_of_string arg in
+        lprintf_to_stdout := b;
+        Printf.sprintf "log to stdout %s" 
+          (if b then "enabled" else "disabled")
+    ), " :\t\t\treactivate log to stdout";
+    
+    
     ]
 
 let _ =

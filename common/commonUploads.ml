@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-
+open Printf2
 open CommonInteractive
 open CommonClient
 open CommonComplexOptions
@@ -133,7 +133,7 @@ let format_bit = 32 (* "format" *)
 let index_string doc s fields =
   let words = stem s in
   List.iter (fun s ->
-(*      Printf.printf "ADD [%s] in index" s; print_newline (); *)
+(*      lprintf "ADD [%s] in index" s; lprint_newline (); *)
       DocIndexer.add  index s doc fields
   ) words 
   
@@ -224,7 +224,7 @@ let add file =
 
     if file <> file2 then
       index_file doc file;
-    (*Printf.printf "Must check files with same md4"; print_newline ();*)
+    (*lprintf "Must check files with same md4"; lprint_newline ();*)
     ()
   with _ ->
       let doc = Store.add store file in
@@ -304,14 +304,14 @@ let add_shared full_name codedname size =
           shared_fd=  Unix32.create full_name [Unix.O_RDONLY] 0o444;
           shared_format = CommonMultimedia.get_info full_name;
         } in
-      Printf.printf "FILE ADDED: %s" codedname; print_newline ();
+      lprintf "FILE ADDED: %s" codedname; lprint_newline ();
       Hashtbl.add table !shareds_counter sh;
       Hashtbl.add shared_files codedname sh;
       Indexer.index_file sh;
       add_shared_file shared_tree sh (String2.split codedname '/');
       shared_counter := Int64.add !shared_counter size;
-      Printf.printf "Total shared : %s" (Int64.to_string !shared_counter);
-      print_newline () 
+      lprintf "Total shared : %s" (Int64.to_string !shared_counter);
+      lprint_newline () 
     end
     
 let query q = Indexer.find (Indexer.query_to_query q)

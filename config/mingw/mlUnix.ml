@@ -55,7 +55,7 @@ let fork_and_exec cmd args =
                             Unix.execv cmd args;
                             exit 0
                           with e -> 
-                              Printf.printf "Exception %s while starting file_completed_cmd" (Printexc2.to_string e); print_newline ();
+                              lprintf "Exception %s while starting file_completed_cmd" (Printexc2.to_string e); lprint_newline ();
                               exit 127
                         end
                     | id -> exit 0

@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 (** Global variables. *)
 
 (** Number of known servers. *)
@@ -99,8 +100,8 @@ let clear () =
   plugins_sections := []
 
 let console_message = ref (fun s -> 
-      Printf.printf "CONSOLE: %s" s;
-      print_newline () )
+      lprintf "CONSOLE: %s" s;
+      lprint_newline () )
 
 
 let gtk_handler timer =

@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open Md4
 open Options
 
@@ -222,18 +223,18 @@ let udp_send ip port msg =
               begin
                 
                 if !verbose_overnet then begin
-                    Printf.printf "Sending UDP to %s:%d type %d (0x%02X)" 
+                    lprintf "Sending UDP to %s:%d type %d (0x%02X)" 
                       (Ip.to_string ip) port (get_int8 s 1) (get_int8 s 1);
-                    print_newline ();
-(*dump s; print_newline ();*)
+                    lprint_newline ();
+(*dump s; lprint_newline ();*)
                   end;
               end;
 	  end;
         let len = String.length s in
         UdpSocket.write sock s ip port
       with e ->
-          Printf.printf "Exception %s in udp_send" (Printexc2.to_string e);
-          print_newline () 
+          lprintf "Exception %s in udp_send" (Printexc2.to_string e);
+          lprint_newline () 
             
 let search_hits = ref 0
 let source_hits = ref 0
@@ -244,7 +245,7 @@ let remove_old_global_peers () =
       if (b.peer_last_msg < last_time () - 14400) && 
 	(global_peers_size.(i)>min_peers_per_block) then 
 	begin
-	  (*Printf.printf "REM global_peers %s\n" (Md4.to_string a);*)
+	  (*lprintf "REM global_peers %s\n" (Md4.to_string a);*)
 	  Hashtbl.remove !!global_peers.(i) a;
 	  global_peers_size.(i) <- global_peers_size.(i)-1;
 	end
@@ -333,7 +334,7 @@ let add_global_peer peer =
 	  let i=Md4.up peer.peer_md4 in
 	  if Hashtbl.mem !!global_peers.(i) peer.peer_md4 then
 	    begin
-	      (*Printf.printf "UPD global_peers: %s\n" (Md4.to_string peer.peer_md4);*)
+	      (*lprintf "UPD global_peers: %s\n" (Md4.to_string peer.peer_md4);*)
 	      (Hashtbl.find !!global_peers.(i) peer.peer_md4).peer_last_msg <- last_time();
 	    end
 	  else
@@ -341,11 +342,11 @@ let add_global_peer peer =
 	      if global_peers_size.(i) >= (!!overnet_max_known_peers/256) then
 		begin
 		  let p = find_oldest_peer !!global_peers.(i) in
-		  (*Printf.printf "REM global_peers: %s\n" (Md4.to_string p);*)
+		  (*lprintf "REM global_peers: %s\n" (Md4.to_string p);*)
 		  Hashtbl.remove !!global_peers.(i) p;
 		  global_peers_size.(i) <- global_peers_size.(i)-1;
 		end;
-	      (*Printf.printf "ADD global_peers: %s\n" (Md4.to_string peer.peer_md4);*)
+	      (*lprintf "ADD global_peers: %s\n" (Md4.to_string peer.peer_md4);*)
 	      peer.peer_last_msg <- last_time();
               Hashtbl.add !!global_peers.(i) peer.peer_md4 peer;
  	      global_peers_size.(i) <- global_peers_size.(i)+1;
@@ -354,7 +355,7 @@ let add_global_peer peer =
       else
         if !verbose_overnet then
         begin
-	      Printf.printf "Tried to add myself as a peer: %s/%s %s/%s\n" 
+	      lprintf "Tried to add myself as a peer: %s/%s %s/%s\n" 
 	        (Ip.to_string peer.peer_ip) (Ip.to_string (client_ip None))
 	        (Md4.to_string peer.peer_md4) (Md4.to_string overnet_md4); 	    
         end
@@ -384,7 +385,7 @@ let find_new_peers () =
   with _ -> 
       begin
         if !verbose_overnet then begin
-            Printf.printf "FINDING NEW PEERS"; print_newline ();
+            lprintf "FINDING NEW PEERS"; lprint_newline ();
           end;
         List.iter (fun a -> udp_send a.peer_ip a.peer_port 
               (OvernetConnect(overnet_md4,client_ip None,!overnet_client_port, 0) ) )
@@ -401,10 +402,10 @@ let automatic_ocl_load force =
         begin
           next_automatic_ocl_load := last_time () + 3600;
           if !verbose_overnet then begin
-              Printf.printf "NEED TO BOOT FROM KNOWN PEERS"; print_newline();
+              lprintf "NEED TO BOOT FROM KNOWN PEERS"; lprint_newline();
             end;
           List.iter (fun url ->
-              Printf.printf "Loading %s\n" url;
+              lprintf "Loading %s\n" url;
               load_url "ocl" url) !!overnet_default_ocl;
         end
   | _ -> ()
@@ -463,7 +464,7 @@ let add_search_peer s p =
 	    (* Better than one not-yet-asked peer : replace it ! *)
               s.search_not_asked_peers <- XorSet.remove (dd1, pp1) s.search_not_asked_peers;
               s.search_not_asked_peers <- XorSet.add (distance, p) s.search_not_asked_peers;
-	      (*Printf.printf "add_search_peer(%s) : add peer at distance %s [REPLACE]\n"
+	      (*lprintf "add_search_peer(%s) : add peer at distance %s [REPLACE]\n"
 		(Md4.to_string s.search_md4) (Md4.to_string distance);*)
 
             end      
@@ -472,7 +473,7 @@ let add_search_peer s p =
 	      (* We have already asked a peer which is worse. Anyway, we shouldn't drop this one*)
 	      s.search_not_asked_peers <- XorSet.add (distance, p) s.search_not_asked_peers;
 	      s.search_total_peers <- s.search_total_peers + 1 ;
-	      (*Printf.printf "add_search_peer(%s) : add peer at distance %s [ADD]\n"
+	      (*lprintf "add_search_peer(%s) : add peer at distance %s [ADD]\n"
 		(Md4.to_string s.search_md4) (Md4.to_string distance);*)
 	    end
         end
@@ -480,7 +481,7 @@ let add_search_peer s p =
 	begin
           s.search_not_asked_peers <- XorSet.add (distance, p) s.search_not_asked_peers;
 	  s.search_total_peers <- s.search_total_peers + 1 ;
-	  (*Printf.printf "add_search_peer(%s) : add peer at distance %s [NOT ENOUGH]\n"
+	  (*lprintf "add_search_peer(%s) : add peer at distance %s [NOT ENOUGH]\n"
 	    (Md4.to_string s.search_md4) (Md4.to_string distance);*)
 	    
         end
@@ -539,8 +540,8 @@ let store_published_file kw_md4 file_md4 file_tags time =
 
   if !verbose_overnet then 
     begin
-      Printf.printf "PUBLISH at %s (dist=%s)" (Md4.to_string kw_md4) (Md4.to_string dist);
-      print_newline ();
+      lprintf "PUBLISH at %s (dist=%s)" (Md4.to_string kw_md4) (Md4.to_string dist);
+      lprint_newline ();
     end;
 
   try
@@ -721,8 +722,8 @@ let check_filename q tags =
     | QHasWord s -> 
         begin
           if !verbose_overnet then begin
-              Printf.printf "%s CONTAINS[%s]" filename s; 
-              print_newline ();
+              lprintf "%s CONTAINS[%s]" filename s; 
+              lprint_newline ();
             end;
 	  true
 	end
@@ -740,7 +741,7 @@ let udp_client_handler t p =
             
             let other_ip = ip_of_udp_packet p in
 	    if !verbose_overnet then begin
-              Printf.printf "sender IP was %s" (Ip.to_string peer.peer_ip); print_newline ();	    
+              lprintf "sender IP was %s" (Ip.to_string peer.peer_ip); lprint_newline ();	    
 	    end;
 	    peer.peer_ip <- (change_private_address peer.peer_ip other_ip);
 
@@ -749,8 +750,8 @@ let udp_client_handler t p =
 
             if !verbose_overnet then 
 	      begin                
-                Printf.printf "Connected to %s:%d" (Ip.to_string peer.peer_ip) peer.peer_port; 
-		print_newline ();
+                lprintf "Connected to %s:%d" (Ip.to_string peer.peer_ip) peer.peer_port; 
+		lprint_newline ();
               end;
 
 	    (* everything else sould be added *)	    
@@ -772,9 +773,9 @@ let udp_client_handler t p =
         let other_ip = ip_of_udp_packet p in
  	if !verbose_overnet then
 	  begin
-	    Printf.printf "sender IP was %s - packet was from %s" 
+	    lprintf "sender IP was %s - packet was from %s" 
 	      (Ip.to_string ip) (Ip.to_string other_ip); 
-	    print_newline ();	    
+	    lprint_newline ();	    
 	  end;
 	add_global_peer {
  	  peer_md4=md4;
@@ -799,7 +800,7 @@ let udp_client_handler t p =
 	  
 	  let peers = (get_local_distribution md4 nb) in
 	  udp_send s_ip s_port (OvernetSearchReply(md4,peers)); 
-	with _ -> Printf.printf "Cannot find the client IP\n"
+	with _ -> lprintf "Cannot find the client IP\n"
       end
   | OvernetPublish (md4, r_md4, r_tags) -> 
       begin
@@ -814,9 +815,9 @@ let udp_client_handler t p =
 	let other_port = port_of_udp_packet p in
 	if !verbose_overnet then 
 	  begin
-	    Printf.printf "GET SEARCH RESULT for %s %d %d %d"
+	    lprintf "GET SEARCH RESULT for %s %d %d %d"
 	      (Md4.to_string md4) kind min max;
-	    print_newline ();
+	    lprint_newline ();
 	  end;
 	get_results_from_query other_ip other_port md4 min max;
 	udp_send other_ip other_port (OvernetNoResult md4);
@@ -847,12 +848,12 @@ let udp_client_handler t p =
 		      s.search_done_peers <- XorSet.add (distance, sender) s.search_done_peers;
 		    end
 		  else
-		    Printf.printf "BUG: This peer returned results but cannot be found !\n";
+		    lprintf "BUG: This peer returned results but cannot be found !\n";
 		  
 		  if !verbose_overnet then 
 		    begin
-		      Printf.printf "SEARCH_PEER(%s): got answer" (Md4.to_string md4);
-		      print_newline ();
+		      lprintf "SEARCH_PEER(%s): got answer" (Md4.to_string md4);
+		      lprint_newline ();
 		    end;
 		with _ -> (* Cannot find this peer to update his last_msg, this is not an issue*)
 		  ()
@@ -864,7 +865,7 @@ let udp_client_handler t p =
 	  
 	  List.iter (fun p -> add_search_peer s p; add_global_peer p) peers
 	end
-      with _ -> Printf.printf "NO SUCH SEARCH : %s" (Md4.to_string md4); print_newline ();
+      with _ -> lprintf "NO SUCH SEARCH : %s" (Md4.to_string md4); lprint_newline ();
       end
   | OvernetNoResult(md4) -> () 
       (* Nothing to do here, there is just no results to our search *)
@@ -902,9 +903,9 @@ let udp_client_handler t p =
                             match String2.split_simplify bcp2 ':' with
                             | [_;ip;port] ->
 				if !verbose_overnet then begin
-				  Printf.printf "FIXME: Received a BCP type 2 %s for MD4 %s, port=%d"
+				  lprintf "FIXME: Received a BCP type 2 %s for MD4 %s, port=%d"
 				    bcp (Md4.to_string md4) 4662;
-				  print_newline ();
+				  lprint_newline ();
 				end;
 				(*Hashtbl.add firewalled_overnet_peers md4 file;
 				udp_send 
@@ -914,24 +915,24 @@ let udp_client_handler t p =
 				incr source_hits;
 				let ip = Ip.of_string ip in
 				let port = int_of_string port in
-				(*Printf.printf "FIXME: Received a BCP type 1 %s for MD4 %s" 
+				(*lprintf "FIXME: Received a BCP type 1 %s for MD4 %s" 
 				  bcp (Md4.to_string md4);
-				print_newline (); *)
+				lprint_newline (); *)
                                   if Ip.valid ip && Ip.reachable ip then
                                     let c = DonkeySources.new_source (ip, port) file in
                                     c.source_overnet <- true;
                               | _ ->
-				Printf.printf "Ill formed bcp: %s" bcp;
-				print_newline ();
+				lprintf "Ill formed bcp: %s" bcp;
+				lprint_newline ();
 			  end
 			else 
 			  begin
-			    Printf.printf "Not a bcp !!!"; 
-			    print_newline ();
+			    lprintf "Not a bcp !!!"; 
+			    lprint_newline ();
 			  end
 		    | _ -> 
-                        Printf.printf "Not a string location ??"; 
-                        print_newline ();
+                        lprintf "Not a string location ??"; 
+                        lprint_newline ();
                   end
 	     ) r_tags;
           | KeywordSearch sss ->
@@ -941,22 +942,22 @@ let udp_client_handler t p =
                   s.search_hits <- s.search_hits + 1;
                   Hashtbl.add s.search_results r_md4 r_tags;
 
-		  (*Printf.printf "FILE FOUND, TAGS: "; print_newline ();
-		  print_tags r_tags; print_newline ();*)
+		  (*lprintf "FILE FOUND, TAGS: "; lprint_newline ();
+		  print_tags r_tags; lprint_newline ();*)
                   
 		     List.iter (fun ss -> 
 (*
                       if check_filename ss.search_query r_tags then
 		      begin
-			Printf.printf "Matched"; 
-                        print_newline ();
+			lprintf "Matched"; 
+                        lprint_newline ();
 *)
 			DonkeyOneFile.search_found ss r_md4 r_tags;
 (*		      end
 		    else
 		      begin
-			Printf.printf "Not matched"; 
-                        print_newline ();
+			lprintf "Not matched"; 
+                        lprint_newline ();
 		      end
 *)
 		  ) sss
@@ -964,19 +965,19 @@ let udp_client_handler t p =
                 end;
 	      
         with _ ->
-          Printf.printf "NO SUCH SEARCH..."; print_newline ();
+          lprintf "NO SUCH SEARCH..."; lprint_newline ();
       end
       
   | OvernetFirewallConnectionACK(md4) -> 
       begin
-	Printf.printf "OVERNET FIREWALL ACK for md4=%s" (Md4.to_string md4); 
-	print_newline ();
+	lprintf "OVERNET FIREWALL ACK for md4=%s" (Md4.to_string md4); 
+	lprint_newline ();
       end
 
   | OvernetFirewallConnectionNACK(md4) ->
       begin
-	Printf.printf "OVERNET FIREWALL NACK for md4=%s" (Md4.to_string md4); 
-	print_newline ();
+	lprintf "OVERNET FIREWALL NACK for md4=%s" (Md4.to_string md4); 
+	lprint_newline ();
       end
 
   (* send the answer *)
@@ -993,14 +994,14 @@ let udp_client_handler t p =
   | OvernetGetMyIPDone -> ()
       
   | OvernetUnknown _ ->
-      Printf.printf "Last Unknown message coming from %s:%d"
+      lprintf "Last Unknown message coming from %s:%d"
         (Ip.to_string (ip_of_udp_packet p)) (port_of_udp_packet p);
-      print_newline ()
+      lprint_newline ()
 
       
   | _ -> 
       if !verbose_overnet then begin
-	Printf.printf "UNUSED MESSAGE"; print_newline ()
+	lprintf "UNUSED MESSAGE"; lprint_newline ()
       end
     
 let query_min_peer s =
@@ -1008,9 +1009,9 @@ let query_min_peer s =
     let (d,p) as e = XorSet.min_elt s.search_not_asked_peers in
     if !verbose_overnet then 
       begin
-        Printf.printf "SEARCH(%s): Query a not asked peer at distance %s"
+        lprintf "SEARCH(%s): Query a not asked peer at distance %s"
           (Md4.to_string s.search_md4) (Md4.to_string d); 
-        print_newline ();
+        lprint_newline ();
       end;
     s.search_not_asked_peers <- XorSet.remove e s.search_not_asked_peers;
     s.search_asked_peers <- XorSet.add e s.search_asked_peers;
@@ -1065,9 +1066,9 @@ let query_next_peers () =
         (  not_asked_card = 0 && asked_card = 0 ) then 
         begin
           if !verbose_overnet then begin              
-              Printf.printf "Search for %s finished (%d hits %d results)"
+              lprintf "Search for %s finished (%d hits %d results)"
                 (Md4.to_string s.search_md4) s.search_hits s.search_nresults;
-              print_newline ();
+              lprint_newline ();
             end;
           Hashtbl.remove overnet_searches s.search_md4;
         end
@@ -1089,8 +1090,8 @@ let do_publish_shared_files () =
         begin
           if !verbose_overnet then
             begin
-              Printf.printf "OVERNET: I am publishing a file";
-              print_newline ();
+              lprintf "OVERNET: I am publishing a file";
+              lprint_newline ();
             end;
           files_to_be_published := tail;
           Hashtbl.add overnet_searches file.search_md4 file;
@@ -1098,8 +1099,8 @@ let do_publish_shared_files () =
   in
   if !nb_searches <= max_searches_for_publish then
     begin
-(*Printf.printf "OVERNET: currently %d searches" !nb_searches;
-	  print_newline ();*)
+(*lprintf "OVERNET: currently %d searches" !nb_searches;
+	  lprint_newline ();*)
       for i=1 to 5 do
         launch ();
       done;
@@ -1150,8 +1151,8 @@ let enable enabler =
           overnet_client_port :=  port
       | _ -> failwith "Bad socket address"
     with e ->
-        Printf.printf "Could not affect a TCP port %d for Overnet" !!overnet_port;
-        print_newline ();
+        lprintf "Could not affect a TCP port %d for Overnet" !!overnet_port;
+        lprint_newline ();
         tcp_sock := None;
   end;
 
@@ -1383,16 +1384,16 @@ let _ =
               let ip = Ip.from_name name in
                 let port = int_of_string port in
                 if !verbose_overnet then begin
-                    Printf.printf "ADDING OVERNET PEER %s:%d" name port; 
-                    print_newline ();
+                    lprintf "ADDING OVERNET PEER %s:%d" name port; 
+                    lprint_newline ();
                   end;
                 boot_peers := (ip, port) :: !boot_peers
           | _ -> 
-              Printf.printf "BAD LINE ocl: %s" s;
-              print_newline ();
+              lprintf "BAD LINE ocl: %s" s;
+              lprint_newline ();
 	with _ -> 
 	  begin
-	    Printf.printf "DNS failed"; print_newline ();
+	    lprintf "DNS failed"; lprint_newline ();
 	  end
       ) lines
   )

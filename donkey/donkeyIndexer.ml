@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open Md4
 open LittleEndian
 open CommonSearch
@@ -69,11 +70,11 @@ let load_comments filename =
       End_of_file -> close_in ic
     | e ->
         close_in ic;
-        Printf.printf "Error loading %s: %s" filename (Printexc2.to_string e);
-        print_newline () 
+        lprintf "Error loading %s: %s" filename (Printexc2.to_string e);
+        lprint_newline () 
   with e ->
-      Printf.printf "Error loading %s: %s" filename (Printexc2.to_string e);
-      print_newline () 
+      lprintf "Error loading %s: %s" filename (Printexc2.to_string e);
+      lprint_newline () 
 
 let save_comments () =
   let oc = open_out comment_filename in
@@ -181,11 +182,11 @@ let input_old_result ic =
   printf_char '>';
   
   let o = Obj.repr hresult in
-  Printf.printf "Type int: %s" (string_of_bool (Obj.is_int o));
-  print_newline ();
+  lprintf "Type int: %s" (string_of_bool (Obj.is_int o));
+  lprint_newline ();
   if not (Obj.is_int o) then begin
-      Printf.printf "Size: %d" (Obj.size o);
-      print_newline ();
+      lprintf "Size: %d" (Obj.size o);
+      lprint_newline ();
       
       
     end;
@@ -232,7 +233,7 @@ let close_history_oc () =
 let history_file_oc () =
   match !history_file_oc with
     None ->
-(*      Printf.printf "CREATE HISTORY CHANNEL"; print_newline (); *)
+(*      lprintf "CREATE HISTORY CHANNEL"; lprint_newline (); *)
       let oc = open_out_gen [Open_binary; Open_append; Open_wronly;
           Open_creat] 0o666 history_file
       in
@@ -257,7 +258,7 @@ let output_result result =
 let index_string doc s fields =
   let words = String2.stem s in
   List.iter (fun s ->
-(*      Printf.printf "ADD [%s] in index" s; print_newline (); *)
+(*      lprintf "ADD [%s] in index" s; lprint_newline (); *)
       DocIndexer.add  index s doc fields
   ) words 
   
@@ -336,8 +337,8 @@ let add_to_local_index_timer _ =
         TcpBufferedSocket.set_refill t_out refill_add_to_local_index        
 
       with e ->
-          Printf.printf "Exception %s while starting local_index_add"
-            (Printexc2.to_string e); print_newline ()
+          lprintf "Exception %s while starting local_index_add"
+            (Printexc2.to_string e); lprint_newline ()
     
     end
   
@@ -358,8 +359,8 @@ let result_add_by_md4 r =
   
 let index_result_no_filter r =
   try
-(*    Printf.printf "RESULT %s" (Md4.to_string r.result_md4);
-    print_newline (); *)
+(*    lprintf "RESULT %s" (Md4.to_string r.result_md4);
+    lprint_newline (); *)
     let rs = Hashtbl.find results_by_md4 r.result_md4 in
     let rr = doc_value rs.result_index in
     List.iter (fun name ->
@@ -502,10 +503,10 @@ let find s =
   let req = CommonSearch.Indexing.query_to_indexer doc_value ss in  
   
   let docs = DocIndexer.query index req in
-(*  Printf.printf "%d results" (Array.length docs); print_newline (); *)
+(*  lprintf "%d results" (Array.length docs); lprint_newline (); *)
   Array.iter (fun doc ->
       if DocIndexer.filtered doc then begin
-          Printf.printf "doc filtered"; print_newline ();
+          lprintf "doc filtered"; lprint_newline ();
         end else
       let r = doc_value doc in
       
@@ -516,7 +517,7 @@ let find s =
       comment_result r doc;
 
 (*    merge_result s doc.num; *)
-(*      Printf.printf "search_add_result"; print_newline (); *)
+(*      lprintf "search_add_result"; lprint_newline (); *)
       search_add_result_in s rs.result_result
   ) docs
   
@@ -536,7 +537,7 @@ let init () =
     begin
       (try
           save_file_history =:= false;
-          Printf.printf  "Loading history file ..."; flush stdout;
+          lprintf  "Loading history file ..."; 
           let list = ref [] in
           let ic = open_in history_file in
           try
@@ -547,14 +548,14 @@ let init () =
             done
           with 
             End_of_file -> 
-              Printf.printf "done"; print_newline ();
+              lprintf "done"; lprint_newline ();
               close_in ic
           | e -> (* some error *)
-              Printf.printf "Error %s reading history file"
+              lprintf "Error %s reading history file"
                 (Printexc2.to_string e)
-              ; print_newline ();
+              ; lprint_newline ();
               close_in ic;
-              Printf.printf "Generating new file"; print_newline ();
+              lprintf "Generating new file"; lprint_newline ();
               begin try
                   (try close_history_oc () with _ -> ());
                   (try Sys.remove "history.met" with _ -> ());
@@ -563,9 +564,9 @@ let init () =
                   ) !list;
                   close_history_oc ();
                 with e ->            
-                    Printf.printf "Error %s generating new history file"
+                    lprintf "Error %s generating new history file"
                       (Printexc2.to_string e);
-                    print_newline () 
+                    lprint_newline () 
               end
         with _ -> ());
       save_file_history =:= true;
@@ -621,12 +622,12 @@ let install_hooks () =
   Options.option_hook filters (fun _ ->
       
       try
-(*        Printf.printf "CLEAR OLD FILTERS"; print_newline (); *)
+(*        lprintf "CLEAR OLD FILTERS"; lprint_newline (); *)
         DocIndexer.clear_filter index;
-(*        Printf.printf "SET NEW FILTERS"; print_newline (); *)
+(*        lprintf "SET NEW FILTERS"; lprint_newline (); *)
         DocIndexer.filter_words index (String2.stem !!filters)
       with e ->
-          Printf.printf "Error %s in set filters" (Printexc2.to_string e);
-          print_newline ();
+          lprintf "Error %s in set filters" (Printexc2.to_string e);
+          lprint_newline ();
   )
   

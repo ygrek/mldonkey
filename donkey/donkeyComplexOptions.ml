@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open BasicSocket
 open Md4
 open CommonClient
@@ -276,7 +277,7 @@ let value_to_file is_done assocs =
           else PresentTemp
       )
     with _ -> 
-        Printf.printf "Could not load chunks states"; print_newline (););
+        lprintf "Could not load chunks states"; lprint_newline (););
 
 (*
   List.iter (fun c ->
@@ -599,7 +600,7 @@ let sources = define_option file_sources_ini
   
       
 let load _ =
-  Printf.printf "LOADING SHARED FILES AND SOURCES"; print_newline ();
+  lprintf "LOADING SHARED FILES AND SOURCES"; lprint_newline ();
   (try
       Options.load shared_files_ini;
       Options.load stats_ini;
@@ -616,7 +617,7 @@ let gstats_by_brand = define_option stats_ini ["stats"] ""
 let diff_time = ref 0
 
 let save _ =
-  Printf.printf "SAVING SHARED FILES AND SOURCES"; print_newline ();
+  lprintf "SAVING SHARED FILES AND SOURCES"; lprint_newline ();
   Options.save_with_help shared_files_ini;
   guptime =:= !!guptime + (last_time () - start_time) - !diff_time;
   diff_time := (last_time () - start_time);
@@ -631,7 +632,7 @@ let save _ =
   save_time =:= last_time ();
   
   Options.save_with_help file_sources_ini;
-  Printf.printf "SAVED"; print_newline ();
+  lprintf "SAVED"; lprint_newline ();
   sources =:= []
     
 let guptime () = !!guptime - !diff_time

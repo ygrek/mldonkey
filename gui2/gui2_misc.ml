@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open Md4
 
 open CommonTypes
@@ -213,14 +214,14 @@ let reconnect gui =
         Ip.to_inet_addr ip       
       with 
         e -> 
-          Printf.printf "Exception %s in gethostbyname" (Printexc2.to_string e);
-          print_newline ();
+          lprintf "Exception %s in gethostbyname" (Printexc2.to_string e);
+          lprint_newline ();
           try 
             inet_addr_of_string !!hostname
           with e ->
-              Printf.printf "Exception %s in inet_addr_of_string" 
+              lprintf "Exception %s in inet_addr_of_string" 
                 (Printexc2.to_string e);
-              print_newline ();
+              lprint_newline ();
               raise Not_found
     )
     !!port (fun _ _ -> 
@@ -244,15 +245,15 @@ let reconnect gui =
             let m = GuiDecoding.to_gui !gui_protocol_used opcode s in
             value_reader gui m sock
           with e ->
-              Printf.printf "Exception %s in decode/exec" 
-                (Printexc2.to_string e); print_newline ();
+              lprintf "Exception %s in decode/exec" 
+                (Printexc2.to_string e); lprint_newline ();
               raise e
       ));
     gui#label_connect_status#set_text "Connecting";
     gui_send (GuiProto.GuiProtocol GuiEncoding.best_gui_version)
   with e ->
-      Printf.printf "Exception %s in connecting" (Printexc2.to_string e);
-      print_newline ();
+      lprintf "Exception %s in connecting" (Printexc2.to_string e);
+      lprint_newline ();
       TcpBufferedSocket.close sock "error";
       connection_sock := None
 
@@ -335,7 +336,7 @@ let save_options () =
 	     );
     save_gui_options ()
   with _ ->
-    Printf.printf "ERROR SAVING OPTIONS (but port/password/host correctly set for GUI)"; print_newline ()
+    lprintf "ERROR SAVING OPTIONS (but port/password/host correctly set for GUI)"; lprint_newline ()
       
 let servers_remove (gui : gui) () = 
   let module P = GuiProto in

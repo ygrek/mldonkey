@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open OpennapClients
 open OpennapServers
 open CommonOptions
@@ -47,9 +48,9 @@ let enable () =
   if !!use_napigator then
     Napigator.load_servers_list !!servers_list_url
       (fun list -> 
-      Printf.printf "LIST OF %d SERVERS DOWNLOADED"
+      lprintf "LIST OF %d SERVERS DOWNLOADED"
           (List.length list)
-        ; print_newline ();
+        ; lprint_newline ();
         List.iter 
           (fun (desc, ip, port, network) ->
           let s = new_server ip port in

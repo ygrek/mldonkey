@@ -25,6 +25,7 @@ have time to do it.
 
 *)
 
+open Printf2
 open Options
 open CommonOptions
 open DonkeyOptions
@@ -48,8 +49,8 @@ module SourcesSet = Set.Make (
         if s1.source_addr = s2.source_addr then begin
             (if !verbose_sources then
                 if s1.source_num <> s2.source_num then begin
-                    Printf.printf "same addr for different sources!"; 
-                    print_newline ();
+                    lprintf "same addr for different sources!"; 
+                    lprint_newline ();
                     exit 2
                   end);
             0 end else
@@ -60,8 +61,8 @@ module SourcesSet = Set.Make (
             s1.source_score - s2.source_score
         in
         if !verbose_sources && result = 0 then begin
-            Printf.printf "Two different sources are compared equally"; 
-            print_newline ();
+            lprintf "Two different sources are compared equally"; 
+            lprint_newline ();
             exit 2
           end;
         result
@@ -102,7 +103,7 @@ exception UselessSource
 let score s = 
   begin
     if !verbose_sources then begin
-        Printf.printf "score %d" s.source_num; print_newline ();
+        lprintf "score %d" s.source_num; lprint_newline ();
       end;
     match s.source_client with
     | SourceClient _ -> assert false          
@@ -111,7 +112,7 @@ let score s =
           + (last_time () - last_attempt) / 60
         ;
         if !verbose_sources then begin
-            Printf.printf "  initial score: %d" s.source_score; print_newline ();
+            lprintf "  initial score: %d" s.source_score; lprint_newline ();
           end;
         let useful_source = ref false in
         List.iter (fun r ->
@@ -136,22 +137,22 @@ let score s =
               | File_new_source -> 15
             ) / popularity;
             if !verbose_sources then begin
-                Printf.printf "  request %s result %s" (Md4.Md4.to_string r.request_file.file_md4) (string_of_result r.request_result);
-                print_newline ();
+                lprintf "  request %s result %s" (Md4.Md4.to_string r.request_file.file_md4) (string_of_result r.request_result);
+                lprint_newline ();
               end;
         ) s.source_files;
         if not !useful_source then raise UselessSource;
         let (ip,port) = s.source_addr in
         if !verbose_sources then begin
-            Printf.printf "Score for %d(%s:%d) = %d/%d" s.source_num (Ip.to_string ip) port 
+            lprintf "Score for %d(%s:%d) = %d/%d" s.source_num (Ip.to_string ip) port 
               s.source_score basic_score;
-            print_newline ();
+            lprint_newline ();
           end;
   end
 
 let reschedule_source s file =
   if !verbose_sources then begin
-      Printf.printf "reschedule_source %d" s.source_num; print_newline ();
+      lprintf "reschedule_source %d" s.source_num; lprint_newline ();
     end;
   if SourcesSet.mem s !ready_sources then begin
       ready_sources := SourcesSet.remove s !ready_sources ;
@@ -167,8 +168,8 @@ let client_connected c =
 let queue_new_source new_score source_age addr file =
   let ip, port = addr in
   if !verbose_sources then begin
-      Printf.printf "queue_new_source %s:%d" (Ip.to_string ip) port; 
-      print_newline ();
+      lprintf "queue_new_source %s:%d" (Ip.to_string ip) port; 
+      lprint_newline ();
     end;
   try
     let finder =  { dummy_source with source_addr = addr } in
@@ -204,7 +205,7 @@ let queue_new_source new_score source_age addr file =
       H.add sources s;
       incr stats_sources;
       if !verbose_sources then begin
-          Printf.printf "Source %d added" s.source_num; print_newline ();
+          lprintf "Source %d added" s.source_num; lprint_newline ();
         end;
       score s;
       ready_sources := SourcesSet.add s !ready_sources;
@@ -220,7 +221,7 @@ let source_of_client c =
   outside_queue := Intmap.remove (client_num c) !outside_queue;      
   
   if !verbose_sources then begin
-      Printf.printf "source_of_client %d" (client_num c); print_newline ();
+      lprintf "source_of_client %d" (client_num c); lprint_newline ();
     end;
   
   match c.client_source with
@@ -228,7 +229,7 @@ let source_of_client c =
 (* This client is an indirect connection. Can't do anything with it. *)
       
       if !verbose_sources then begin
-          Printf.printf "%d --> indirect" (client_num c); print_newline ();
+          lprintf "%d --> indirect" (client_num c); lprint_newline ();
         end;
       List.iter (fun r -> 
           remove_file_location r.request_file c) c.client_files;
@@ -240,8 +241,8 @@ let source_of_client c =
       
       let ip, port = s.source_addr in
       if !verbose_sources then begin
-          Printf.printf "Old source %s:%d" (Ip.to_string ip) port; 
-          print_newline ();
+          lprintf "Old source %s:%d" (Ip.to_string ip) port; 
+          lprint_newline ();
         end;
       let (files, downloading) = purge_requests c.client_files in
       c.client_files <- files;
@@ -249,7 +250,7 @@ let source_of_client c =
         
         if keep_client c then begin
             if !verbose_sources then begin
-                Printf.printf "%d --> kept" (client_num c); print_newline ();
+                lprintf "%d --> kept" (client_num c); lprint_newline ();
               end;
             
             Fifo.put clients_queue (c, last_time ())
@@ -263,14 +264,14 @@ let source_of_client c =
           end else
         let basic_score = c.client_score in
         if !verbose_sources then begin
-            Printf.printf "%d --> new score %d" (client_num c) basic_score; print_newline ();
+            lprintf "%d --> new score %d" (client_num c) basic_score; lprint_newline ();
           end;
         List.iter (fun r -> remove_file_location r.request_file c) 
         c.client_files;
         if !verbose_sources then begin
-            Printf.printf "Set SourceLastConnection for source %d" 
+            lprintf "Set SourceLastConnection for source %d" 
               s.source_num; 
-            print_newline ();
+            lprint_newline ();
           end;
         s.source_client <- SourceLastConnection (
           basic_score, last_time (), client_num c);
@@ -281,15 +282,15 @@ let source_of_client c =
           score s
         with SourceTooOld ->
             if !verbose_sources then begin
-                Printf.printf "Removed old source %d" s.source_num;
-                print_newline ();
+                lprintf "Removed old source %d" s.source_num;
+                lprint_newline ();
               end;
             H.remove sources s;
             incr stats_remove_old_sources;
       
       with _ ->
           if !verbose_sources then begin
-              Printf.printf "%d --> removed" (client_num c); print_newline ();
+              lprintf "%d --> removed" (client_num c); lprint_newline ();
             end;
           List.iter (fun r -> 
               remove_file_location r.request_file c) c.client_files;
@@ -297,20 +298,20 @@ let source_of_client c =
 
 let reschedule_sources files = 
   if !verbose_sources then begin      
-      Printf.printf "reschedule_sources file not implemented";
-      print_newline () 
+      lprintf "reschedule_sources file not implemented";
+      lprint_newline () 
     end
 
 (* Change a source structure into a client structure before attempting
   a connection. *)
 let client_of_source reconnect_client s basic_score client_num = 
   if !verbose_sources then begin
-      Printf.printf "client_of_source %d" s.source_num; print_newline ();
+      lprintf "client_of_source %d" s.source_num; lprint_newline ();
     end;
   let (files, downloading) = purge_requests s.source_files in
   if !verbose_sources then begin
-      Printf.printf "Source for %d files" (List.length files); 
-      print_newline ();
+      lprintf "Source for %d files" (List.length files); 
+      lprint_newline ();
     end;
   (if downloading then
       let (ip, port) = s.source_addr in
@@ -325,13 +326,13 @@ let client_of_source reconnect_client s basic_score client_num =
       (match c.client_source with
           Some ss when s != ss -> 
             if !verbose_sources then begin
-                Printf.printf "Client already has a source!"; print_newline ();
+                lprintf "Client already has a source!"; lprint_newline ();
               end;
         |  _ -> ());
       c.client_source <- Some s;
       if !verbose_sources then begin
-          Printf.printf "set SourceClient for source %d" s.source_num;
-          print_newline ();
+          lprintf "set SourceClient for source %d" s.source_num;
+          lprint_newline ();
         end;
       
       s.source_client <- SourceClient c;
@@ -372,7 +373,7 @@ let client_of_source reconnect_client s basic_score client_num =
 
 let recompute_ready_sources () =
   if !verbose_sources then begin
-      Printf.printf "recompute_ready_sources"; print_newline ();
+      lprintf "recompute_ready_sources"; lprint_newline ();
     end;
   let t1 = Unix.gettimeofday () in
 
@@ -389,7 +390,7 @@ let recompute_ready_sources () =
           iter i
     | SourceClient c -> 
         if !verbose_sources then begin
-            Printf.printf "ERROR: CLIENT %d" (client_num c); print_newline ();
+            lprintf "ERROR: CLIENT %d" (client_num c); lprint_newline ();
             assert false
           end
   in
@@ -400,7 +401,7 @@ let recompute_ready_sources () =
   let add_source s =
     if s.source_age + !!max_sources_age * half_day < last_time () then begin
         if !verbose_sources then begin
-            Printf.printf " --> drop source too old"; print_newline ();
+            lprintf " --> drop source too old"; lprint_newline ();
           end;
         H.remove sources s;
         incr stats_remove_too_old_sources;
@@ -417,7 +418,7 @@ let recompute_ready_sources () =
   List.iter add_source !list;
   let t2 = Unix.gettimeofday () in
   if !verbose_sources then begin
-      Printf.printf "Delay for Sources: %2.2f" (t2 -. t1); print_newline ();
+      lprintf "Delay for Sources: %2.2f" (t2 -. t1); lprint_newline ();
     end
 
 
@@ -476,7 +477,7 @@ let check_sources reconnect_client =
   
   and iter_sources nclients = 
     if !verbose_sources then begin
-        Printf.printf "iter_sources %d" nclients; print_newline ();
+        lprintf "iter_sources %d" nclients; lprint_newline ();
       end;
     
     if CommonGlobals.can_open_connection () && nclients > 0 then begin
@@ -486,21 +487,21 @@ let check_sources reconnect_client =
         
         let ip, port = s.source_addr in
         if !verbose_sources then begin
-            Printf.printf "One source %d[%s:%d] from ready_sources" 
+            lprintf "One source %d[%s:%d] from ready_sources" 
               s.source_num
               (Ip.to_string ip) port; 
-            print_newline ();
+            lprint_newline ();
           end;
         
         
         if !verbose_sources then begin
             if SourcesSet.mem s !ready_sources then begin
-                Printf.printf "Source %d is still in ready_sources after remove" s.source_num; print_newline ();
+                lprintf "Source %d is still in ready_sources after remove" s.source_num; lprint_newline ();
               end;
           end;
         let ss = SourcesSet.max_elt !ready_sources in
         if !verbose_sources then begin
-            Printf.printf "next max = %d" s.source_num; print_newline ();
+            lprintf "next max = %d" s.source_num; lprint_newline ();
           end;                
         match s.source_client with
         | SourceLastConnection (basic_score, time, client_num) ->
@@ -514,8 +515,8 @@ let check_sources reconnect_client =
         
         | SourceClient c -> 
             if !verbose_sources then begin                    
-                Printf.printf "ERROR: CLIENT %d" (client_num c); 
-                print_newline ();
+                lprintf "ERROR: CLIENT %d" (client_num c); 
+                lprint_newline ();
                 assert false
               end
       
@@ -526,8 +527,8 @@ let check_sources reconnect_client =
   with Not_found -> ()
   | e ->
       if !verbose_sources then begin
-          Printf.printf "Exception %s in check_sources" (Printexc2.to_string e);
-          print_newline ()
+          lprintf "Exception %s in check_sources" (Printexc2.to_string e);
+          lprint_newline ()
         end
 
 let need_new_sources file = 

@@ -194,7 +194,7 @@ let _ =
   )
 
 let browse_client c = 
-  Printf.printf "OpenFT: browse client not implemented"; print_newline ();
+  lprintf "OpenFT: browse client not implemented"; lprint_newline ();
   ()
   
 let _ =

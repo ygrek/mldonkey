@@ -51,7 +51,7 @@ let get_string s pos =
   try
     String.sub s (pos+2) len, pos+2+len
   with e ->
-      Printf.printf "exception in get_string %d(%d)" pos len; print_newline ();
+      lprintf "exception in get_string %d(%d)" pos len; lprint_newline ();
       raise e
   
 let buf_int8 buf i =
@@ -105,23 +105,23 @@ let get_ip s pos =
   
 let dump s =
   let len = String.length s in
-  Printf.printf "ascii: [";
+  lprintf "ascii: [";
   for i = 0 to len - 1 do
     let c = s.[i] in
     let n = int_of_char c in
     if n > 31 && n < 127 then
-      Printf.printf " %c" c
+      lprintf " %c" c
     else
-      Printf.printf "(%d)" n
+      lprintf "(%d)" n
   done;
-  Printf.printf "]\n";
-  Printf.printf "dec: [";
+  lprintf "]\n";
+  lprintf "dec: [";
   for i = 0 to len - 1 do
     let c = s.[i] in
     let n = int_of_char c in
-    Printf.printf "(%d)" n            
+    lprintf "(%d)" n            
   done;
-  Printf.printf "]\n"
+  lprintf "]\n"
 
 (************************************************************************)
   
@@ -184,7 +184,7 @@ module Empty = functor(M: sig val msg : string end) ->
       let parse s = ()
       
       let print t =
-        Printf.printf "message %s" M.msg
+        lprintf "message %s" M.msg
         
       let write buf t = ()
     end
@@ -235,7 +235,7 @@ module FileTransfer = struct
       }
       
     let print t = 
-      Printf.printf "Transfer file: %s %s %s:%d %s %s of size %ld id %ld"
+      lprintf "Transfer file: %s %s %s:%d %s %s of size %ld id %ld"
         (Md4.to_string t.file_id)
       (match t.connect with
           Connect -> "ConnectTo"
@@ -248,7 +248,7 @@ module FileTransfer = struct
       t.filename
         t.size
         t.local_id;
-      print_newline () 
+      lprint_newline () 
             
     let write buf t = 
       buf_md4 buf t.file_id;
@@ -283,9 +283,9 @@ module Login = struct
       }
       
     let print t = 
-      Printf.printf "LOGIN FROM %s [%s] v %s from %s"
+      lprintf "LOGIN FROM %s [%s] v %s from %s"
         t.name t.password t.version (Ip.to_string t.ip);
-      print_newline ()
+      lprint_newline ()
       
     let write buf t = 
       buf_int32 buf 0;
@@ -313,9 +313,9 @@ module FileTransferState = struct
       }
       
     let print t = 
-      Printf.printf "FILE STATE : %s %s" (Md4.to_string t.file_id)
+      lprintf "FILE STATE : %s %s" (Md4.to_string t.file_id)
         (string_of_fts t.file_state);
-      print_newline () 
+      lprint_newline () 
       
     let write buf t = 
       buf_md4 buf t.file_id;
@@ -331,8 +331,8 @@ module StopFileTransfer = struct
       file_id
       
     let print t = 
-      Printf.printf "STOP FILE TRANSFER : %s" (Md4.to_string t);
-      print_newline () 
+      lprintf "STOP FILE TRANSFER : %s" (Md4.to_string t);
+      lprint_newline () 
       
     let write buf t = 
       buf_md4 buf t
@@ -401,7 +401,7 @@ module WrongLogin = struct
       | v -> OtherError v
     
     let print t = 
-      Printf.printf "Login Error %s"
+      lprintf "Login Error %s"
         (match t with
           IncorrectPassword -> "IncorrectPassword"
         | UnknownUsername -> "UnknownUsername"
@@ -410,7 +410,7 @@ module WrongLogin = struct
         | GoldAccoundExpired -> "GoldAccoundExpired"
         | NotGoldAccount -> "NotGoldAccount"
         | OtherError v -> Printf.sprintf "OtherError %d" v);
-      print_newline () 
+      lprint_newline () 
       
     let write buf t = 
       buf_int32 buf (
@@ -502,7 +502,7 @@ let parse msg_type data msg_len =
     | 5 -> ReadyForTransferReq
     | _ -> raise Not_found
   with e -> 
-      Printf.printf "EXception %s in parse" (Printexc2.to_string e); print_newline ();
+      lprintf "EXception %s in parse" (Printexc2.to_string e); lprint_newline ();
       UnknownReq (msg_type,data)
       
 let print t =
@@ -518,10 +518,10 @@ let print t =
     | ReadyForTransferReq -> ReadyForTransfer.print t
     | StopFileTransferReq t -> StopFileTransfer.print t
     | UnknownReq (msg_type, s) -> 
-        Printf.printf "Unknown msg type: %d" msg_type; print_newline ();
+        lprintf "Unknown msg type: %d" msg_type; lprint_newline ();
         dump s
   end;
-  print_newline () 
+  lprint_newline () 
   
 let buf = Buffer.create 10000
 
@@ -590,7 +590,7 @@ let audiogal_handler f sock nread =
   with 
   | Not_found -> ()
   | BadConnection ->
-      Printf.printf "BAD REPLY"; print_newline ();
+      lprintf "BAD REPLY"; lprint_newline ();
       dump (String.sub b.buf b.pos b.len);
       close sock "BadConnection"
 
@@ -628,7 +628,7 @@ let redirection_handler f sock nread =
   with
     Not_found -> ()
   | BadConnection ->
-      Printf.printf "BAD REPLY"; print_newline ();
+      lprintf "BAD REPLY"; lprint_newline ();
       dump (String.sub b.buf b.pos b.len);
       close sock "BadConnection"
 
@@ -681,7 +681,7 @@ SEND: to file transfer
       with
         Not_found -> ()
       | BadConnection ->
-          Printf.printf "BAD REPLY"; print_newline ();
+          lprintf "BAD REPLY"; lprint_newline ();
           dump (String.sub b.buf b.pos b.len);
           close sock "BadConnection"
     
@@ -711,7 +711,7 @@ SEND: to file transfer
         with
           Not_found -> ()
         | BadConnection ->
-            Printf.printf "BAD REPLY"; print_newline ();
+            lprintf "BAD REPLY"; lprint_newline ();
             dump (String.sub b.buf b.pos b.len);
             close sock "BadConnection"
             
@@ -731,7 +731,7 @@ SEND: to file transfer
       let s = Buffer.contents buf in
       let len = String.length s - 4 in
       str_int32 s 4 len;
-      Printf.printf "WRITE STRING OF %d" len; print_newline ();
+      lprintf "WRITE STRING OF %d" len; lprint_newline ();
       write_string sock s 
       
   end
@@ -751,7 +751,7 @@ let server_msg_to_string msg n =
   s 
     
 let server_send sock m =
-  Printf.printf "SENDING TO SERVER:"; print_newline ();
+  lprintf "SENDING TO SERVER:"; lprint_newline ();
   print m;
   write_string sock (server_msg_to_string m !AG.message_counter);
   incr AG.message_counter

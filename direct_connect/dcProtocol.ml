@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open CommonGlobals
 open DcGlobals
 open DcTypes
@@ -29,7 +30,7 @@ module Empty = functor(M: sig val msg : string end) ->
       let parse s = ()
       
       let print t =
-        Printf.printf "message %s" M.msg
+        lprintf "message %s" M.msg
         
       let write buf t = ()
     end
@@ -40,7 +41,7 @@ module Empty2 = functor(M: sig val msg : string end) ->
       let parse s = ()
       
       let print t =
-        Printf.printf "message %s" M.msg
+        lprintf "message %s" M.msg
         
       let write buf t = Printf.bprintf buf "$%s" M.msg
     end
@@ -52,8 +53,8 @@ module SimpleNick =  functor(M: sig val msg : string end) ->
       let parse nick = nick 
       
       let print t = 
-        Printf.printf "%s [%s]" M.msg (String.escaped t) ;
-        print_newline () 
+        lprintf "%s [%s]" M.msg (String.escaped t) ;
+        lprint_newline () 
       
       let write buf t = 
         Printf.bprintf buf " %s" t
@@ -67,8 +68,8 @@ module SimpleNick2 =  functor(M: sig val msg : string end) ->
       let parse nick = nick 
       
       let print t = 
-        Printf.printf "%s [%s]" M.msg (String.escaped t) ;
-        print_newline () 
+        lprintf "%s [%s]" M.msg (String.escaped t) ;
+        lprint_newline () 
       
       let write buf t = 
         Printf.bprintf buf "$%s %s" M.msg t
@@ -87,9 +88,9 @@ module Lock = struct
       | _ -> assert false
       
     let print t = 
-      Printf.printf "LOCK [%s] %s" (String.escaped t.key) 
+      lprintf "LOCK [%s] %s" (String.escaped t.key) 
       (String.escaped t.info);
-      print_newline () 
+      lprint_newline () 
       
     let write buf t = 
       Printf.bprintf buf " %s %s" t.key t.info
@@ -114,11 +115,11 @@ module Direction = struct
       | _ -> assert false
       
     let print t = 
-      Printf.printf "Direction %s %d" (
+      lprintf "Direction %s %d" (
         match t.direction with
           Download -> "Download" 
         | Upload -> "Upload") t.level;
-      print_newline () 
+      lprint_newline () 
       
     let write buf t = 
       Printf.bprintf buf "$Direction %s %d" (match t.direction with
@@ -142,9 +143,9 @@ module Get = struct
       }
       
     let print t = 
-      Printf.printf "Get [%s] %Ld" (String.escaped t.name) 
+      lprintf "Get [%s] %Ld" (String.escaped t.name) 
       t.pos;
-      print_newline () 
+      lprint_newline () 
       
     let write buf t = 
       Printf.bprintf buf "$Get %s$%Ld" t.name t.pos
@@ -157,8 +158,8 @@ module FileLength = struct
     let parse s = Int64.of_string s
       
     let print t = 
-      Printf.printf "FileLength %Ld" t;
-      print_newline () 
+      lprintf "FileLength %Ld" t;
+      lprint_newline () 
       
     let write buf t = 
       Printf.bprintf buf "$FileLength %Ld" t
@@ -174,8 +175,8 @@ module Key = struct
     let parse key = { key = key }
       
     let print t = 
-      Printf.printf "KEY [%s]" (String.escaped t.key) ;
-      print_newline () 
+      lprintf "KEY [%s]" (String.escaped t.key) ;
+      lprint_newline () 
       
     let write buf t = 
       Printf.bprintf buf " %s" t.key
@@ -198,8 +199,8 @@ module To = struct
       | _ -> assert false
       
     let print t = 
-      Printf.printf "To %s FROM %s: %s" t.dest t.orig t.message;
-      print_newline () 
+      lprintf "To %s FROM %s: %s" t.dest t.orig t.message;
+      lprint_newline () 
       
     let write buf t = 
       Printf.bprintf buf " %s From: %s $%s" t.dest t.orig t.message
@@ -215,7 +216,7 @@ module Search = struct
       }
     
     let parse s = 
-(*      Printf.printf "SEARCH: [%s]" (String.escaped s); print_newline (); *)
+(*      lprintf "SEARCH: [%s]" (String.escaped s); lprint_newline (); *)
       let list = String2.split_simplify s ' ' in
       let rec iter before after =
         match after with
@@ -249,16 +250,16 @@ module Search = struct
     let print t = begin
       match t.sizelimit with
       | AtLeast n ->
-          Printf.printf "Search %s TYPE %d FOR %s of at least %Ld" 
+          lprintf "Search %s TYPE %d FOR %s of at least %Ld" 
             t.orig t.filetype t.words n
       | AtMost n ->
-          Printf.printf "Search %s TYPE %d FOR %s of at most %Ld" 
+          lprintf "Search %s TYPE %d FOR %s of at most %Ld" 
             t.orig t.filetype t.words n
       | NoLimit ->
-          Printf.printf "Search %s TYPE %d FOR %s" 
+          lprintf "Search %s TYPE %d FOR %s" 
             t.orig t.filetype t.words
       end;          
-      print_newline () 
+      lprint_newline () 
       
     let write buf t = 
       Printf.bprintf buf " %s %c?%c?%s?%d?%s"
@@ -282,8 +283,8 @@ module HubName = struct
     let parse name = name 
       
     let print t = 
-      Printf.printf "HUB NAME [%s]" (String.escaped t) ;
-      print_newline () 
+      lprintf "HUB NAME [%s]" (String.escaped t) ;
+      lprint_newline () 
       
     let write buf t = 
       Printf.bprintf buf " %s" t
@@ -296,9 +297,9 @@ module NickList = struct
       let parse users = String2.split_simplify users '$' 
           
     let print t = 
-      Printf.printf "NICK LIST "; 
-      List.iter (fun s -> Printf.printf "%s " s) t;
-      print_newline () 
+      lprintf "NICK LIST "; 
+      List.iter (fun s -> lprintf "%s " s) t;
+      lprint_newline () 
       
     let write buf t = 
       Buffer.add_char buf ' ';
@@ -313,9 +314,9 @@ module OpList = struct
       let parse users = String2.split_simplify users '$' 
           
     let print t = 
-      Printf.printf "OP LIST "; 
-      List.iter (fun s -> Printf.printf "%s " s) t;
-      print_newline () 
+      lprintf "OP LIST "; 
+      List.iter (fun s -> lprintf "%s " s) t;
+      lprint_newline () 
       
     let write buf t = 
       Buffer.add_char buf ' ';
@@ -390,10 +391,10 @@ module SR = struct
       end
       
     let print t = 
-      Printf.printf "SEARCH REPLY On %s (%d/%d): %s %Ld" 
+      lprintf "SEARCH REPLY On %s (%d/%d): %s %Ld" 
         t.owner t.open_slots t.all_slots t.filename 
         t.filesize;
-      print_newline () 
+      lprint_newline () 
 
       (*
       opendchub-0.6.7/src/commands.c: * $SR fromnick filename\5filesize openslots/totalslots\5hubname (hubip:hubport)\5tonick| */
@@ -421,8 +422,8 @@ module Version = struct
     let parse version = { version = version }
       
     let print t = 
-      Printf.printf "VERSION [%s]" (String.escaped t.version) ;
-      print_newline () 
+      lprintf "VERSION [%s]" (String.escaped t.version) ;
+      lprint_newline () 
       
     let write buf t = 
       Printf.bprintf buf " %s" t.version
@@ -503,9 +504,9 @@ module MyINFO = struct
             | _ -> assert false
           end
           
-      | list -> List.iter (fun s -> Printf.printf "{%s}" 
+      | list -> List.iter (fun s -> lprintf "{%s}" 
               (String.escaped s)) list;
-          print_newline ();
+          lprint_newline ();
           raise Not_found
 
           
@@ -534,9 +535,9 @@ module MyINFO = struct
 *)
         
     let print t = 
-      Printf.printf "MyINFO %s %s %s %s %f" 
+      lprintf "MyINFO %s %s %s %s %f" 
         t.dest t.nick t.description t.speed t.size;
-      print_newline () 
+      lprint_newline () 
     
     let write buf t = 
       Printf.bprintf buf " %s %s %s$ $%s%c$%s$%10.0f$" 
@@ -564,8 +565,8 @@ module NickAndAddr(M: sig val msg : string end) = struct
       }
       
     let print t = 
-      Printf.printf "%s %s %s:%d" M.msg t.nick (Ip.to_string t.ip) t.port;
-      print_newline () 
+      lprintf "%s %s %s:%d" M.msg t.nick (Ip.to_string t.ip) t.port;
+      lprint_newline () 
       
     let write buf t = 
       Printf.bprintf  buf "$%s %s %s:%d" M.msg t.nick (Ip.to_string t.ip) t.port;
@@ -587,8 +588,8 @@ module RevConnectToMe = struct
       }
       
     let print t = 
-      Printf.printf "RevConnectToMe %s %s" t.dest t.orig;
-      print_newline () 
+      lprintf "RevConnectToMe %s %s" t.dest t.orig;
+      lprint_newline () 
       
     let write buf t = 
       Printf.bprintf  buf "$RevConnectToMe %s %s"  t.dest t.orig;
@@ -660,7 +661,7 @@ let parse debug s =
   try
     
     if debug then begin
-      Printf.printf "PARSE: {%s}" (String.escaped s); print_newline ();
+      lprintf "PARSE: {%s}" (String.escaped s); lprint_newline ();
       end;
     
     let ws = String2.splitn s ' ' 1 in
@@ -697,8 +698,8 @@ let parse debug s =
             
             | "$RevConnectToMe" -> RevConnectToMeReq (RevConnectToMe.parse args)
             | "$ConnectToMe" -> 
-                Printf.printf "Message [%s]" (String.escaped s);
-                print_newline ();
+                lprintf "Message [%s]" (String.escaped s);
+                lprint_newline ();
                 ConnectToMeReq (ConnectToMe.parse args)
             | "$MultiConnectToMe" -> MultiConnectToMeReq 
                   (MultiConnectToMe.parse args)
@@ -718,8 +719,8 @@ let parse debug s =
         end
     | _ -> UnknownReq s
   with e ->
-      Printf.printf "Exception %s in parse" (Printexc2.to_string e);
-      print_newline ();
+      lprintf "Exception %s in parse" (Printexc2.to_string e);
+      lprint_newline ();
       UnknownReq s
       
 let write buf m =
@@ -797,16 +798,16 @@ let print m =
     
     
     | SearchReq t -> Search.print t
-    | MultiSearchReq t -> Printf.printf "MULTI "; Search.print t
+    | MultiSearchReq t -> lprintf "MULTI "; Search.print t
     | MyINFOReq t -> MyINFO.print t
     | ValidateNickReq t -> ValidateNick.print t
     | HubNameReq t -> HubName.print t
     | ToReq t -> To.print t
-    | MessageReq t -> Printf.printf "MESSAGE: %s" t
-    | UnknownReq t -> Printf.printf "UNKNOWN:"; 
+    | MessageReq t -> lprintf "MESSAGE: %s" t
+    | UnknownReq t -> lprintf "UNKNOWN:"; 
         LittleEndian.dump t
   end;
-  print_newline () 
+  lprint_newline () 
   
 let dc_handler debug f sock nread =
   let b = TcpBufferedSocket.buf sock in
@@ -853,25 +854,25 @@ let dc_handler3 debug c ff f r sock nread =
 let buf = Buffer.create 100
       
 let server_send debug sock m =
-(*  Printf.printf "SENDING"; print_newline ();
+(*  lprintf "SENDING"; lprint_newline ();
   print m; *)
   Buffer.clear buf;
   write buf m;
   Buffer.add_char buf '|';
   let s = Buffer.contents buf in
   if debug then begin
-      Printf.printf "BUFFER SENT[%s]" (String.escaped s); print_newline ();
+      lprintf "BUFFER SENT[%s]" (String.escaped s); lprint_newline ();
     end;
   write_string sock s
       
 let debug_server_send sock m =
-  Printf.printf "SENDING"; print_newline ();
+  lprintf "SENDING"; lprint_newline ();
   print m; 
   Buffer.clear buf;
   write buf m;
   Buffer.add_char buf '|';
   let s = Buffer.contents buf in
-  Printf.printf "BUFFER SENT[%s]" (String.escaped s); print_newline ();  
+  lprintf "BUFFER SENT[%s]" (String.escaped s); lprint_newline ();  
   write_string sock s
 
 let rec count_tabs line pos =
@@ -882,9 +883,9 @@ let char_13 = char_of_int 13
     
 let parse_list user s =
   String2.replace_char s char_13 '\n';
-(*  Printf.printf "step 1"; print_newline (); *)
+(*  lprintf "step 1"; lprint_newline (); *)
   let lines = String2.split_simplify s '\n' in
-(*  Printf.printf "step 2"; print_newline (); *)
+(*  lprintf "step 2"; lprint_newline (); *)
   let rec iter ntabs  dirname lines list =
     match lines with 
       [] -> [], list
@@ -896,7 +897,7 @@ let parse_list user s =
             let pos = String.index line '|' in
             let name = String.sub line all_tabs (pos-all_tabs) in
             let size = String.sub line (pos+1) (len - pos - 1) in
-(*            Printf.printf "%s : %s" name size; print_newline (); *)
+(*            lprintf "%s : %s" name size; lprint_newline (); *)
             let r = new_result name (Int64.of_string size) in
             let filename = Filename.concat dirname name in
             add_result_source r user filename;
@@ -908,8 +909,8 @@ let parse_list user s =
                 tail list in
               iter ntabs dirname lines list
         else begin
-(*            Printf.printf "all_tabs: %d; ntabs: %d" all_tabs ntabs; 
-            print_newline (); *)
+(*            lprintf "all_tabs: %d; ntabs: %d" all_tabs ntabs; 
+            lprint_newline (); *)
             assert (all_tabs < ntabs);
             lines, list
           end

@@ -17,15 +17,23 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Printf2
-open CommonGlobals
+open Autoconf
+
+val cprintf : (string -> unit) -> ('a, unit, unit) format -> 'a
+(** [cprintf k format arguments] is the same as [printf format arguments],
+    except that the resulting string is passed as argument to [k]; the
+    result of [k] is then returned as the result of [cprintf]. *)
+
+val lprintf :  ('a, unit, unit) format -> 'a
+val lprintf_nl :  ('a, unit, unit) format -> 'a
+val lprint_newline : unit -> unit  
+val lprint_char : char -> unit  
+val lprint_string : string -> unit  
+val lprint_int : int -> unit  
   
-let _ =
-  List.iter (fun f ->
-      try
-        f ()
-      with e ->
-          lprintf "Exception %s in init_hooks"
-            (Printexc2.to_string e); lprint_newline ();      
-  ) !init_hooks;
-  BasicSocket.loop ()
+val lprintf_to_stdout : bool ref  
+val lprintf_fifo : string Fifo.t
+val lprintf_size : int ref
+val lprintf_max_size : int ref
+val set_lprintf_handler : (string -> unit) -> unit
+  

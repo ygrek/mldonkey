@@ -24,6 +24,9 @@ Before 2.03:
 * I have more clients than in the sources
 * try to ensure that clients that have a pending slot are correctly
    added/removed.
+* Replace network column by network icons, file state by icons too
+* Start as a daemon. -no-daemon option. 'log <file>' command for logging 
+ in a file. 'console' command for logging in the current telnet socket.
 
 Some fields are not necessary anymore:
   - zone_file

@@ -1,3 +1,23 @@
+(* Copyright 2001, 2002 b8_bavard, b8_fee_carabine, INRIA *)
+(*
+    This file is part of mldonkey.
+
+    mldonkey is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    mldonkey is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with mldonkey; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*)
+
+open Printf2
 
 open Indexer
   
@@ -117,7 +137,7 @@ le mot apparait.
     
     let add_doc w doc field filtered =
       if filtered || w.word_filtered then begin
-(*      Printf.printf "FILTER ON DOC"; print_newline (); *)
+(*      lprintf "FILTER ON DOC"; lprint_newline (); *)
           Doc.filter doc true;
         end;
       w.word_docs <- (match w.word_docs with
@@ -129,35 +149,35 @@ le mot apparait.
       let next_suffix = !nsuffixes in
       let suffix, filtered = add_suffix idx s in
 (*  if filtered then begin
-      Printf.printf "SUFFIX %s IS FILTERED..." s; 
-      print_newline (); 
+      lprintf "SUFFIX %s IS FILTERED..." s; 
+      lprint_newline (); 
     end; *)
       match suffix.suffix_word with
       | Some w -> (* the word is already inside *)
-(*        Printf.printf "Word already exists"; print_newline (); *)
+(*        lprintf "Word already exists"; lprint_newline (); *)
           add_doc w doc field filtered
       | None ->
-(*      Printf.printf "New word added"; print_newline (); *)
+(*      lprintf "New word added"; lprint_newline (); *)
           let w = { word_docs = [doc, field]; 
               word_string = s; 
               word_filtered = filtered;
             } in
           if filtered then begin
-(*          Printf.printf "FILTER ON DOC"; print_newline (); *)
+(*          lprintf "FILTER ON DOC"; lprint_newline (); *)
               Doc.filter doc true;
             end;
           suffix.suffix_word <- Some w;
           let len = String.length s in
           let rec iter pos =
-(*        Printf.printf "iter %d/%d" pos len; print_newline (); *)
+(*        lprintf "iter %d/%d" pos len; lprint_newline (); *)
             if pos < len then
               let suff = String.sub s pos (len - pos) in
               let suffix, filtered = add_suffix idx suff in
-(*          Printf.printf "added suffix [%s]" suffix.suffix_value; 
-          print_newline (); *)
+(*          lprintf "added suffix [%s]" suffix.suffix_value; 
+          lprint_newline (); *)
 (*          if filtered then begin
-              Printf.printf "NEXT SUFFIX %s IS FILTERED..." suff; 
-              print_newline ();
+              lprintf "NEXT SUFFIX %s IS FILTERED..." suff; 
+              lprint_newline ();
             end; *)
               match suffix.suffix_word with
               | Some w -> add_doc w doc field filtered
@@ -195,7 +215,7 @@ le mot apparait.
               if len1 < max_len then raise Not_found;
               let str2 = String.sub s pos max_len in
               let str1 = String.sub str 0 max_len in
-(*        Printf.printf "Check [%s] with [%s]" str1 str2; print_newline (); *)
+(*        lprintf "Check [%s] with [%s]" str1 str2; lprint_newline (); *)
               if str1 = str2 then begin
                   Suffix num 
                 end else
@@ -204,7 +224,7 @@ le mot apparait.
           | List (num, list) ->
               if pos = len then Suffix num else
               let c = s.[pos] in
-(*        Printf.printf "Multiplex on [%c]" c; print_newline (); *)
+(*        lprintf "Multiplex on [%c]" c; lprint_newline (); *)
               iter (pos+1) (List.assoc c list)
         in
         iter 0 idx.index_tree
@@ -218,35 +238,35 @@ le mot apparait.
     
     let rec spaces n=
       if n > 0 then begin
-          print_char ' ';
+          lprint_char ' ';
           spaces (n-1)
         end
     
     let print idx =
-      Printf.printf "INDEX"; print_newline ();  
+      lprintf "INDEX"; lprint_newline ();  
       let rec iter pos tree =
         match tree.tree_expr with
         | Suffix s ->
             spaces pos;
-            Printf.printf "SUFFIX %d" s.suffix_num; print_newline (); 
+            lprintf "SUFFIX %d" s.suffix_num; lprint_newline (); 
         | String (s, num) ->
             spaces pos;
-            Printf.printf "[%s]  ---> [%d]" s num.suffix_num;  
+            lprintf "[%s]  ---> [%d]" s num.suffix_num;  
             spaces pos;
-            Printf.printf "  ";
+            lprintf "  ";
             List.iter (fun w ->
-                Printf.printf "%s " w.word_string) num.suffix_words;
-            print_newline ();
+                lprintf "%s " w.word_string) num.suffix_words;
+            lprint_newline ();
         | List(num, list) ->
             spaces pos;
-            Printf.printf "List [%d]" num.suffix_num; print_newline ();
+            lprintf "List [%d]" num.suffix_num; lprint_newline ();
             List.iter (fun (c, tree) ->
                 spaces (pos+2);
-                Printf.printf "Char [%c]" c; print_newline ();
+                lprintf "Char [%c]" c; lprint_newline ();
                 iter (pos+4) tree
             ) list;
         | Filtered tree ->
-            Printf.printf "FILTERED"; print_newline ();
+            lprintf "FILTERED"; lprint_newline ();
             iter (pos+2) tree
       in
       iter 0 idx.index_tree
@@ -259,10 +279,10 @@ le mot apparait.
       }
     
     let print_word_docs w =
-      Printf.printf "Word [%s]" w.word_string; print_newline ();
+      lprintf "Word [%s]" w.word_string; lprint_newline ();
       List.iter (fun (doc, _) ->
-          Printf.printf "    %d" (Doc.num doc); print_newline ()) w.word_docs;
-      print_newline ()
+          lprintf "    %d" (Doc.num doc); lprint_newline ()) w.word_docs;
+      lprint_newline ()
     
     let rec print_suffix_docs suffix = 
       List.iter (fun w ->
@@ -279,7 +299,7 @@ le mot apparait.
           print_suffix_docs s;
           List.iter (fun (c,t) -> print_all_docs t.tree_expr) list
       | Filtered t ->
-          Printf.printf "filtered"; print_newline ();
+          lprintf "filtered"; lprint_newline ();
           print_all_docs t.tree_expr
 
 
@@ -303,8 +323,8 @@ le mot apparait.
     and filter_suffix s =
       List.iter (fun w ->
           if not w.word_filtered then begin
-(*          Printf.printf "FILTER ON WORD [%s]" w.word_string; 
-  print_newline (); *)
+(*          lprintf "FILTER ON WORD [%s]" w.word_string; 
+  lprint_newline (); *)
               w.word_filtered <- true;
               List.iter (fun (doc, where) ->
                   if not (Doc.filtered doc) then
@@ -314,21 +334,21 @@ le mot apparait.
           None -> s.suffix_words | Some w -> w :: s.suffix_words)
     
     let add_filter idx s =
-(*  Printf.printf "ADD FILETRR ON %s" s; print_newline (); *)
+(*  lprintf "ADD FILETRR ON %s" s; lprint_newline (); *)
       let len = String.length s in
       let rec iter pos tree =
         if pos = len then begin
-(*        Printf.printf "FILTER AT FINAL POS"; print_newline (); *)
+(*        lprintf "FILTER AT FINAL POS"; lprint_newline (); *)
             tree.tree_expr <- Filtered { tree_expr = tree.tree_expr };
             filter_tree tree
           end
         else
         match tree.tree_expr with
         | Suffix _ -> 
-(*        Printf.printf "FILTER ON SUFFIX ???"; print_newline (); *)
+(*        lprintf "FILTER ON SUFFIX ???"; lprint_newline (); *)
             assert false
         | String (str, num) ->
-(*        Printf.printf "FILTER ON STRING "; print_newline (); *)
+(*        lprintf "FILTER ON STRING "; lprint_newline (); *)
             if str = "" then
               let new_num = new_word (String.sub s 0 pos) in
               tree.tree_expr <- List (num, 
@@ -343,10 +363,10 @@ le mot apparait.
                       String.sub str 1 (String.length str - 1), num); }]);
             iter pos tree; 
         | Filtered tree ->
-(*        Printf.printf "FILTER ON FILTER"; print_newline (); *)
+(*        lprintf "FILTER ON FILTER"; lprint_newline (); *)
             iter pos tree
         | List (num, list) -> 
-(*        Printf.printf "FILTER IN LIST"; print_newline (); *)
+(*        lprintf "FILTER IN LIST"; lprint_newline (); *)
             let c = s.[pos] in
             try 
               iter (pos+1) (List.assoc c list)
@@ -372,21 +392,21 @@ le mot apparait.
         | String (_,s) 
         | Suffix s -> iter_suffix s
         | Filtered t ->
-(*        Printf.printf "REMOVE FILTER"; print_newline (); *)
+(*        lprintf "REMOVE FILTER"; lprint_newline (); *)
             tree.tree_expr <- t.tree_expr;
             iter tree
       
       and iter_suffix s =
         List.iter (fun w ->
             if w.word_filtered then begin
-(*            Printf.printf "REMOVE FILTERED WORD %s" w.word_string;
-            print_newline (); *)
+(*            lprintf "REMOVE FILTERED WORD %s" w.word_string;
+            lprint_newline (); *)
                 w.word_filtered <- false;
                 List.iter (fun (doc, where) ->
                     if Doc.filtered doc then begin
 (*
-                    Printf.printf "RMOVE FILTER ON DOC"; 
-print_newline ();
+                    lprintf "RMOVE FILTER ON DOC"; 
+lprint_newline ();
   *)
                         Doc.filter doc false
                       end) w.word_docs
@@ -401,7 +421,7 @@ print_newline ();
     
     
     let or_get_fields map tree fields =
-(*  Printf.printf "get_fields"; print_newline (); *)
+(*  lprintf "get_fields"; lprint_newline (); *)
       let rec iter tree = 
 (* retourne une liste de listes triees de documents *)
         match tree with
@@ -416,18 +436,18 @@ print_newline ();
         | Filtered _ -> ()
       
       and iter_suffix s =
-(*    Printf.printf "iter suffix"; print_newline (); *)
+(*    lprintf "iter suffix"; lprint_newline (); *)
         List.iter (fun w ->
-(*        Printf.printf "occurences of [%s]" w.word_string; print_newline ();  *)
+(*        lprintf "occurences of [%s]" w.word_string; lprint_newline ();  *)
             if not w.word_filtered then
               List.iter (fun (doc, where) ->
-(*            Printf.printf "in doc %d field %d/%d" doc.doc_num where fields; 
-            print_newline (); *)
+(*            lprintf "in doc %d field %d/%d" doc.doc_num where fields; 
+            lprint_newline (); *)
                   if where land fields <> 0 && 
                     not (Doc.filtered doc) &&
                     not (
                       Intmap.mem (Doc.num doc) !map) then begin
-(*                Printf.printf "add doc to map"; print_newline (); *)
+(*                lprintf "add doc to map"; lprint_newline (); *)
                       map := Intmap.add (Doc.num doc) doc !map
                     end
               ) w.word_docs) (match s.suffix_word with
@@ -453,23 +473,23 @@ print_newline ();
         | Filtered _ -> ()
       
       and iter_suffix s =
-(*    Printf.printf "ITER AND SUFFIX [%d]" s.suffix_num; print_newline (); *)
+(*    lprintf "ITER AND SUFFIX [%d]" s.suffix_num; lprint_newline (); *)
         List.iter (fun w ->
             if not w.word_filtered then
-(*        Printf.printf "ON WORD [%s]" w.word_string; print_newline (); *)
+(*        lprintf "ON WORD [%s]" w.word_string; lprint_newline (); *)
               List.iter (fun (doc, where) ->
-(*            Printf.printf "CHECK %d" doc.doc_num; print_newline (); *)
+(*            lprintf "CHECK %d" doc.doc_num; lprint_newline (); *)
                   if where land fields <> 0 &&
                     not (Doc.filtered doc) &&
                     Intmap.mem (Doc.num doc) and_map &&
                     not (
                       Intmap.mem (Doc.num doc) !map) then begin
-(*                Printf.printf "add doc to AND map"; print_newline (); *)
+(*                lprintf "add doc to AND map"; lprint_newline (); *)
                       map := Intmap.add (Doc.num doc) doc !map
                     end
                   else begin
 
-(*                Printf.printf "AND failed"; print_newline (); *)
+(*                lprintf "AND failed"; lprint_newline (); *)
                       ()
                     end
               ) w.word_docs)  (match s.suffix_word with

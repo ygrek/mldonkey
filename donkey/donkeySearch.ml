@@ -89,8 +89,8 @@ let local_search search =
                             tag_value = Uint32 (Int32.of_string v);
                           } :: r.result_tags
                       | _ ->
-                          Printf.printf "discarding result line %s:%s" name value;
-                          print_newline ();
+                          lprintf "discarding result line %s:%s" name value;
+                          lprint_newline ();
                   ) l;
                   if r.result_md4 = Md4.null || r.result_size = Int32.zero then
                     failwith "Not enough information in result";
@@ -98,8 +98,8 @@ let local_search search =
                   add_to_search search r doc
                 
                 with e -> 
-                    Printf.printf "result discarded for exn %s" 
-`                      (Printexc2.to_string e); print_newline ()
+                    lprintf "result discarded for exn %s" 
+`                      (Printexc2.to_string e); lprint_newline ()
               else begin
                   try
                     let pos = String.index line ':' in
@@ -109,7 +109,7 @@ let local_search search =
                     in
                     lines := (name, value) :: !lines
                   with e ->
-                      Printf.printf "Discarding line %s" line; print_newline ();
+                      lprintf "Discarding line %s" line; lprint_newline ();
                 end;
               iter ()
             with _ -> ()
@@ -142,8 +142,8 @@ let local_search search =
 TcpBufferedSocket.write_string t_out (Buffer.contents buf)
   *)
     with e ->
-        Printf.printf "Exception %s while starting local_index_find"
-          (Printexc2.to_string e); print_newline ()
+        lprintf "Exception %s while starting local_index_find"
+          (Printexc2.to_string e); lprint_newline ()
 
 *)
   

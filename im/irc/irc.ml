@@ -19,6 +19,7 @@
 
 (* Translated from sources of Gaim *)
 
+open Printf2
 open Options
 open Md4
 open BigEndian
@@ -271,7 +272,7 @@ let get_sock account =
 let irc_handler account s event = 
   match event with
     BASIC_EVENT (CLOSED s) ->
-      Printf.printf "disconnected from irc"; print_newline ();
+      lprintf "disconnected from irc"; lprint_newline ();
       account.account_sock <- None;
       set_account_status (as_account account) Status_offline;
   | _ -> ()
@@ -333,7 +334,7 @@ let parse_prefix prefix =
 
 let find_room account room_name = 
   try
-    Printf.printf "FIND ROOM [%s]" room_name ; print_newline ();
+    lprintf "FIND ROOM [%s]" room_name ; lprint_newline ();
     Hashtbl.find account.account_rooms room_name
   with _ ->
       let room = new_room_val account room_name in
@@ -418,7 +419,7 @@ add_event (Room_join (as_room room.room_room))
               add_event (Chat_message_event (as_chat chat, as_identity id, msg))
             end
           else begin
-              Printf.printf "UNUSED MESSAGE (bad room ?)"; print_newline ();
+              lprintf "UNUSED MESSAGE (bad room ?)"; lprint_newline ();
             end
       end
       
@@ -494,12 +495,12 @@ add_event (Room_join (as_room room.room_room))
 
 
   | _ -> 
-      Printf.printf "UNUSED MESSAGE"; print_newline ()
+      lprintf "UNUSED MESSAGE"; lprint_newline ()
       
 let cut_messages parser reader sock nread =
     if !verbose then begin
-        Printf.printf "server to client: read %d" nread; 
-        print_newline ();
+        lprintf "server to client: read %d" nread; 
+        lprint_newline ();
       end;
     
     let b = TcpBufferedSocket.buf sock in
@@ -511,8 +512,8 @@ let cut_messages parser reader sock nread =
         if b.buf.[pos] = '\r' && b.buf.[pos+1] = '\n' then begin
             
             if !verbose then begin
-                Printf.printf "server_to_client: complete message"; 
-                print_newline ();
+                lprintf "server_to_client: complete message"; 
+                lprint_newline ();
               end;
 
             let s = String.sub b.buf b.pos (pos-b.pos) in
@@ -520,13 +521,13 @@ let cut_messages parser reader sock nread =
             buf_used sock used;
             
             if !verbose then begin
-                Printf.printf "Message: %s" s; 
-                print_newline ();
+                lprintf "Message: %s" s; 
+                lprint_newline ();
               end;
             
             (try reader (parser s) sock with e -> 
-                  Printf.printf "Exception %s in Irc.cut_messages"
-                    (Printexc2.to_string e); print_newline ();
+                  lprintf "Exception %s in Irc.cut_messages"
+                    (Printexc2.to_string e); lprint_newline ();
             );
 
             if not (closed sock) then
@@ -542,8 +543,8 @@ let irc_login account =
   match account.account_sock with
     Some sock -> () (* already connected *)
   | None ->
-      Printf.printf "connecting to irc %s" account.account_identity.identity_login; 
-      print_newline ();
+      lprintf "connecting to irc %s" account.account_identity.identity_login; 
+      lprint_newline ();
       set_account_status (as_account account) Status_connecting;
 
       try
@@ -560,11 +561,11 @@ let irc_login account =
           account.account_identity.identity_login (Unix.gethostname()) 
         account.account_server account.account_identity.identity_login);
 
-      Printf.printf "connecting to irc %s" account.account_identity.identity_login; print_newline ()
+      lprintf "connecting to irc %s" account.account_identity.identity_login; lprint_newline ()
 
       with e ->
-          Printf.printf "Exception %s in irc_login" (Printexc2.to_string e);
-          print_newline ();
+          lprintf "Exception %s in irc_login" (Printexc2.to_string e);
+          lprint_newline ();
           (match account.account_sock with
               None -> ()
             | Some sock ->
@@ -576,9 +577,9 @@ let irc_keepalive account = ()
 let irc_send account id msg = 
   match account.account_sock with
   | None ->
-      Printf.printf "We are not connected anymore !!!"; print_newline ();
+      lprintf "We are not connected anymore !!!"; lprint_newline ();
   | Some sock -> 
-      Printf.printf "sending private message"; print_newline ();
+      lprintf "sending private message"; lprint_newline ();
       write_string sock (Printf.sprintf "PRIVMSG %s :%s\r\n"
           id msg)
 
@@ -647,8 +648,8 @@ let _ =
       match account.account_sock with
         None ->
 (* One day, all these messages will be displayed in the interface !! *)
-          Printf.printf "Cannot send message because not connected :)";
-          print_newline ();
+          lprintf "Cannot send message because not connected :)";
+          lprint_newline ();
       | Some sock ->
           write_string sock (Printf.sprintf "PRIVMSG %s :%s\r\n" 
               room.room_name msg);
@@ -658,8 +659,8 @@ let _ =
       let account = room.room_account  in
       match account.account_sock with
         None ->
-          Printf.printf "Cannot quit this room since not connected :)";
-          print_newline ();
+          lprintf "Cannot quit this room since not connected :)";
+          lprint_newline ();
       | Some sock ->
           write_string sock (Printf.sprintf "PART %s\r\n" 
               room.room_name);

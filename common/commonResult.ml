@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-
+open Printf2
 open Options
 open CommonTypes
 
@@ -84,7 +84,7 @@ let new_result (result : 'a result_impl) =
 let ni n m = 
   let s = Printf.sprintf "Result.%s not implemented by %s" 
       m n.network_name in
-  print_string s; print_newline ();
+  lprint_string s; lprint_newline ();
   s
   
 let fni n m =  failwith (ni n m)
@@ -114,17 +114,17 @@ let new_result_ops network =
   r
   
 let check_result_implementations () =
-  Printf.printf "\n---- Methods not implemented for CommonResult ----\n";
-  print_newline ();
+  lprintf "\n---- Methods not implemented for CommonResult ----\n";
+  lprint_newline ();
   List.iter (fun (c, cc) ->
       let n = c.op_result_network.network_name in
-      Printf.printf "\n  Network %s\n" n; print_newline ();
+      lprintf "\n  Network %s\n" n; lprint_newline ();
       if c.op_result_download == cc.op_result_download then 
-        Printf.printf "op_result_download\n";
+        lprintf "op_result_download\n";
       if c.op_result_info == cc.op_result_info then
-        Printf.printf "op_result_info\n";
+        lprintf "op_result_info\n";
   ) !results_ops;
-  print_newline () 
+  lprint_newline () 
 
   
 let result_find num = 

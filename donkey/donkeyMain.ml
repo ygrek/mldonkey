@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open CommonClient
 open CommonFile
 open CommonComplexOptions
@@ -64,17 +65,17 @@ let second_timer timer =
   (try
 (*
       if !verbose_src_manager then begin
-          Printf.printf "Check sources"; print_newline ();
+          lprintf "Check sources"; lprint_newline ();
         end; *)
       DonkeySources.check_sources DonkeyClient.reconnect_client;
 
 (*      if !verbose_src_manager then begin
-          Printf.printf "Check sources done"; print_newline ();
+          lprintf "Check sources done"; lprint_newline ();
         end; *)
     with e ->
         if !verbose_src_manager then begin
-            Printf.printf "Exception %s while checking sources" 
-              (Printexc2.to_string e) ; print_newline ()
+            lprintf "Exception %s while checking sources" 
+              (Printexc2.to_string e) ; lprint_newline ()
           end);
   DonkeyFiles.reset_upload_timer ()
 
@@ -143,16 +144,16 @@ let enable () =
                 let file_disk_name = file_disk_name file in
                 if Sys.file_exists file_disk_name &&
                   Unix32.getsize64 file_disk_name <> Int64.zero then begin
-                    Printf.printf "FILE DOWNLOADED"; print_newline ();
+                    lprintf "FILE DOWNLOADED"; lprint_newline ();
                     DonkeyShare.remember_shared_info file file_disk_name;
-                    Printf.printf "REMEMBERED"; print_newline ();
+                    lprintf "REMEMBERED"; lprint_newline ();
                     file_completed (as_file file.file_file);
                     let file_id = Filename.basename file_disk_name in
                     ignore (CommonShared.new_shared "completed" (
                         file_best_name file )
                       file_disk_name);
                     
-                    Printf.printf "COMPLETED"; print_newline ();
+                    lprintf "COMPLETED"; lprint_newline ();
                     (try
                         let format = CommonMultimedia.get_info file_disk_name
                         in
@@ -164,8 +165,8 @@ let enable () =
                   file_commit (as_file file.file_file)
             end
         with e ->
-            Printf.printf "Exception %s while recovering download %s"
-              (Printexc2.to_string e) (file_disk_name file); print_newline ();
+            lprintf "Exception %s while recovering download %s"
+              (Printexc2.to_string e) (file_disk_name file); lprint_newline ();
     ) files_by_md4;
 
     let list = ref [] in
@@ -201,9 +202,9 @@ let enable () =
             udp_sock := Some sock;
             UdpSocket.set_write_controler sock udp_write_controler;
           with e ->
-              Printf.printf "Exception %s while binding UDP socket"
+              lprintf "Exception %s while binding UDP socket"
                 (Printexc2.to_string e);
-              print_newline ();
+              lprint_newline ();
         end;
         sock
       with e ->
@@ -271,8 +272,8 @@ let enable () =
     (try force_check_server_connections true with _ -> ());
 
   with e ->
-      Printf.printf "Error: Exception %s during startup"
-        (Printexc2.to_string e); print_newline ()
+      lprintf "Error: Exception %s during startup"
+        (Printexc2.to_string e); lprint_newline ()
 
 let _ =
 
@@ -283,7 +284,7 @@ let _ =
   file_ops.op_file_commit <- (fun file ->
       DonkeyInteractive.save_file file 
         (DonkeyInteractive.saved_name file);
-      Printf.printf "SAVED"; print_newline ();
+      lprintf "SAVED"; lprint_newline ();
 );
   *)
   network.op_network_enable <- enable;
@@ -313,21 +314,21 @@ let _ =
         let s = File.to_string file in
         let t = K.read s in
         K.print t;
-        print_newline ();
+        lprint_newline ();
     ), " <filename> : print a known.met file";
     "-part", Arg.String (fun file ->
         let module K = DonkeyImport.Part in
         let s = File.to_string file in
         let t = K.read s in
         K.print t;
-        print_newline ();
+        lprint_newline ();
     ), " <filename> : print a .part.met file";
     "-server", Arg.String (fun file ->
         let module K = DonkeyImport.Server in
         let s = File.to_string file in
         let t = K.read s in
         K.print t;
-        print_newline ();
+        lprint_newline ();
         exit 0
     ), " <filename> : print a server.met file";
     "-pref", Arg.String (fun file ->
@@ -335,6 +336,6 @@ let _ =
         let s = File.to_string file in
         let t = K.read s in
         K.print t;
-        print_newline ();
+        lprint_newline ();
     ), " <filename> : print a server.met file";
   ]

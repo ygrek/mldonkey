@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
+
 open Unix
 
 let verbose = false
@@ -60,7 +62,7 @@ let rec iter_write fd s pos len =
 let really_write fd pos s =
   let len = String.length s in
   if verbose then begin
-      Printf.printf "write %d %d" pos len; print_newline ();
+      lprintf "write %d %d" pos len; lprint_newline ();
     end;
   ignore (seek64 fd  (Int64.of_int pos) Unix.SEEK_SET);
   iter_write fd s 0 len
@@ -72,7 +74,7 @@ let rec iter_read fd s pos len =
   
 let really_read fd pos s len =
   if verbose then begin
-      Printf.printf "read %d %d" pos len; print_newline ();
+      lprintf "read %d %d" pos len; lprint_newline ();
     end;
   ignore (seek64 fd  (Int64.of_int pos) Unix.SEEK_SET);
   iter_read fd s 0 len
@@ -105,7 +107,7 @@ let file_store file str =
       let new_weak = Weak.create new_size in
       (try Array.blit file.file_all_pos 0 new_tab 0 pos
         with e ->
-            Printf.printf "exc pos %d" pos; print_newline ();
+            lprintf "exc pos %d" pos; lprint_newline ();
             raise e);
       Weak.blit file.file_cache 0 new_weak 0 pos;
       for i = pos to new_size - 1 do new_tab.(i) <- i+1; done;
@@ -167,9 +169,9 @@ let save t doc v attr =
   in
   let pos = file_store file str in
   if verbose then begin
-      Printf.printf "REALLY WRITE TO %d POS %d LEN %d"
+      lprintf "REALLY WRITE TO %d POS %d LEN %d"
         chunk_size pos len;
-      print_newline ();
+      lprint_newline ();
     end;
   Weak.set file.file_cache pos (Some v);
   let comb = combine pos chunk_size attr in
@@ -182,7 +184,7 @@ let add t v =
       let new_size = (len_all_doc + 10) * 2 in
       let new_tab = Array.create new_size 0 in
       (try Array.blit t.store_all_doc 0 new_tab 0 doc
-        with e -> Printf.printf "Error in blit %d/%d" doc len_all_doc; print_newline ();
+        with e -> lprintf "Error in blit %d/%d" doc len_all_doc; lprint_newline ();
             raise e)
           ;
       for i = doc to new_size - 1 do new_tab.(i) <- i+1; done;
@@ -198,29 +200,29 @@ let get t doc =
   let file = List.assoc chunk_size t.store_files in
   let v =  try Weak.get file.file_cache pos 
     with e ->
-        Printf.printf "Exception %s for doc at pos %d (doc %d, combine %d)" (Printexc2.to_string e)
-        pos doc combine; print_newline ();
+        lprintf "Exception %s for doc at pos %d (doc %d, combine %d)" (Printexc2.to_string e)
+        pos doc combine; lprint_newline ();
         raise e
       in
   match v with
     None ->
       let len = file.file_entry_size in
       if verbose then begin
-          Printf.printf "REALLY READ FROM %d POS %d LEN %d"
+          lprintf "REALLY READ FROM %d POS %d LEN %d"
             chunk_size pos len;
-          print_newline (); 
+          lprint_newline (); 
         end;
       let str = file_retrieve file pos in
       begin
         try
           Marshal.from_string str 0
         with e ->
-            Printf.printf "Marshal.from_string error"; 
-            print_newline (); raise e
+            lprintf "Marshal.from_string error"; 
+            lprint_newline (); raise e
       end
   | Some v -> 
       if verbose then begin
-          Printf.printf "Reply found in cache"; print_newline (); 
+          lprintf "Reply found in cache"; lprint_newline (); 
         end;
       v
 

@@ -97,7 +97,7 @@ let mime_header =
 let mime_header_len = String.length mime_header
   
 let write_string sock s =
-  Printf.printf "SEND [%s]" (String.escaped s); print_newline ();
+  lprintf "SEND [%s]" (String.escaped s); lprint_newline ();
   write_string sock s
   
   
@@ -115,21 +115,21 @@ let get_ns_sock account =
 let msn_ms_handler account s event = 
   match event with
     BASIC_EVENT (CLOSED s) ->
-      Printf.printf "disconnected from Master Server"; print_newline ();
+      lprintf "disconnected from Master Server"; lprint_newline ();
       account.msn_sock <- None
   | _ -> ()
 
 let msn_ns_handler account s event = 
   match event with
     BASIC_EVENT (CLOSED s) ->
-      Printf.printf "disconnected from Notification Server"; print_newline ();
+      lprintf "disconnected from Notification Server"; lprint_newline ();
       account.ns_sock <- None
   | _ -> ()
 
 let msn_ss_handler account ss s event = 
   match event with
     BASIC_EVENT (CLOSED s) ->
-      Printf.printf "disconnected from Switchboard Server"; print_newline ();
+      lprintf "disconnected from Switchboard Server"; lprint_newline ();
       ss.ss_sock <- None;
       account.msn_switches <- List.filter (fun (_,s) -> s != ss) 
       account.msn_switches
@@ -275,7 +275,7 @@ let rec msn_ss_parser account ss sock tokens msg =
   | "USR" :: _ -> 
       begin
         match ss.ss_users with
-          [] -> Printf.printf "NO USER!!!"; print_newline ();
+          [] -> lprintf "NO USER!!!"; lprint_newline ();
         | who :: _ -> 
             write_string sock (Printf.sprintf "CAL %d %s\r\n" account.tryId who);
             incr_tryId account
@@ -303,26 +303,26 @@ let rec msn_ss_parser account ss sock tokens msg =
       in
       let pos = iter 0 in
       let msg = String.sub msg pos (len-pos) in
-      Printf.printf "MSG RECEIVED FROM %s : [%s]" user 
-        (String.escaped msg); print_newline ();
+      lprintf "MSG RECEIVED FROM %s : [%s]" user 
+        (String.escaped msg); lprint_newline ();
 
   | "NAK" :: _ ->
-      Printf.printf "The session is probably closed, and the message was 
-      not received"; print_newline ();
+      lprintf "The session is probably closed, and the message was 
+      not received"; lprint_newline ();
       close sock "closed session"
       
   | "BYE" :: user :: _ ->
-      Printf.printf "User %s is now unavailable" user; print_newline ();
+      lprintf "User %s is now unavailable" user; lprint_newline ();
       
   | opcode :: _ ->
-      Printf.printf "UNKNOWN OPCODE (SS)                        [%s]" opcode; 
-      print_newline ();
+      lprintf "UNKNOWN OPCODE (SS)                        [%s]" opcode; 
+      lprint_newline ();
       match opcode.[0] with
         '0' .. '9' ->
-          Printf.printf "ERROR %s" (msn_error (int_of_string opcode));
-          print_newline ();
+          lprintf "ERROR %s" (msn_error (int_of_string opcode));
+          lprint_newline ();
       | _ ->
-          Printf.printf "UNKNOWN MESSAGE"; print_newline ();
+          lprintf "UNKNOWN MESSAGE"; lprint_newline ();
           ()
 
       
@@ -351,8 +351,8 @@ let rec msn_parser account sock tokens msg =
       in
       let port = int_of_string port in
       let ip = Ip.from_name name in
-      Printf.printf "XFR connect to [%s] %d" (Ip.to_string ip) port;
-      print_newline ();
+      lprintf "XFR connect to [%s] %d" (Ip.to_string ip) port;
+      lprint_newline ();
       close sock "ok";
       account.ns_ip <- ip;
       account.ns_port <- port;
@@ -366,18 +366,18 @@ let rec msn_parser account sock tokens msg =
       let ss = List.assoc num account.msn_xfr_requests in
       account.msn_xfr_requests <- List.remove_assoc num account.msn_xfr_requests;
       
-      Printf.printf "SB request found"; print_newline ();
+      lprintf "SB request found"; lprint_newline ();
       
       let port = int_of_string port in
       let ip = Ip.from_name name in
-      Printf.printf "XFR connect to [%s] %d" (Ip.to_string ip) port;
-      print_newline ();      
+      lprintf "XFR connect to [%s] %d" (Ip.to_string ip) port;
+      lprint_newline ();      
       
       begin
         try
           
           let ss_old = List.assoc (ip, port) account.msn_switches in
-          Printf.printf "ALREADY CONNECTED TO THE SWITCHBOARD";
+          lprintf "ALREADY CONNECTED TO THE SWITCHBOARD";
           raise Not_found (* For now, connect several times *)
         with _ ->
             msn_ss_connect account ss ip port auth
@@ -385,7 +385,7 @@ let rec msn_parser account sock tokens msg =
       
   | "USR" :: _ ::  "MD5" :: _ :: friend :: _ ->
       let s = friend ^ account.account_password in
-      Printf.printf "pass: [%s]" s; print_newline ();
+      lprintf "pass: [%s]" s; lprint_newline ();
       let md5 = String.lowercase (Md5.to_string (Md5.string s)) in
       write_string sock (
         Printf.sprintf "USR %d MD5 S %s\r\n" account.tryId md5);
@@ -408,23 +408,23 @@ let rec msn_parser account sock tokens msg =
       ()
       
   | opcode :: _ ->
-      Printf.printf "UNKNOWN OPCODE                            [%s]" opcode; 
-      print_newline ();
+      lprintf "UNKNOWN OPCODE                            [%s]" opcode; 
+      lprint_newline ();
       match opcode.[0] with
         '0' .. '9' ->
-          Printf.printf "ERROR %s" (msn_error (int_of_string opcode));
-          print_newline ();
+          lprintf "ERROR %s" (msn_error (int_of_string opcode));
+          lprint_newline ();
       | _ ->
-          Printf.printf "UNKNOWN MESSAGE"; print_newline ();
+          lprintf "UNKNOWN MESSAGE"; lprint_newline ();
           ()
 
 and msn_reader msn_parser sock nread = 
   try
-    Printf.printf "server to client %d" nread; 
-    print_newline ();
+    lprintf "server to client %d" nread; 
+    lprint_newline ();
     let b = TcpBufferedSocket.buf sock in
     LittleEndian.dump (String.sub b.buf b.pos b.len);
-    print_newline ();
+    lprint_newline ();
     
     let rec iter pos max_pos =
       if pos < max_pos - 1 then
@@ -443,15 +443,15 @@ and msn_reader msn_parser sock nread =
                 match List.rev tokens with
                   len :: _ ->
                     let len = int_of_string len in
-                    Printf.printf "MUST WAIT: %d" len; print_newline ();
+                    lprintf "MUST WAIT: %d" len; lprint_newline ();
                     if b.len - pos - 2 >= len then begin
-                        Printf.printf "OK !!!!!!"; print_newline ();
+                        lprintf "OK !!!!!!"; lprint_newline ();
                         TcpBufferedSocket.buf_used sock (pos-b.pos+2);
                         let msg = String.sub b.buf b.pos len in
                         TcpBufferedSocket.buf_used sock len;
-                        Printf.printf "MSG:"; print_newline ();
+                        lprintf "MSG:"; lprint_newline ();
                         LittleEndian.dump msg;
-                        print_newline ();
+                        lprint_newline ();
                         msn_parser  sock tokens msg; 
                         
                         (if not (closed sock) &&
@@ -478,7 +478,7 @@ and msn_ns_connect account =
   match account.ns_sock with
     Some sock -> () (* already connected *)
   | None ->
-      Printf.printf "connecting to Notification Server"; print_newline ();
+      lprintf "connecting to Notification Server"; lprint_newline ();
       let sock = TcpBufferedSocket.connect "im to ns" 
           (Ip.to_inet_addr account.ns_ip) 
         account.ns_port 
@@ -489,7 +489,7 @@ and msn_ns_connect account =
       incr_tryId account
 
 and msn_ss_connect account ss ip port auth =
-  Printf.printf "connecting to SwitchBoard Server"; print_newline ();
+  lprintf "connecting to SwitchBoard Server"; lprint_newline ();
   let sock = TcpBufferedSocket.connect "im to ns" 
     (Ip.to_inet_addr ip) 
     port 
@@ -509,7 +509,7 @@ let msn_login account =
   match account.msn_sock with
     Some sock -> () (* already connected *)
   | None ->
-      Printf.printf "connecting to msn"; print_newline ();
+      lprintf "connecting to msn"; lprint_newline ();
       let ip = Ip.from_name msn_server in
       let sock = TcpBufferedSocket.connect "im to msn" 
           (Ip.to_inet_addr ip) 
@@ -539,7 +539,7 @@ let msn_send account who msg =
               msn_really_send account sock msg;
               raise Exit
           | _ ->
-              Printf.printf "ADDING MESSAGE"; print_newline ();
+              lprintf "ADDING MESSAGE"; lprint_newline ();
               ss.ss_messages <- ss.ss_messages @ [who, msg];
               raise Exit
     ) account.msn_switches;

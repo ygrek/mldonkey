@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open Md4
 open Autoconf
 open LittleEndian
@@ -43,7 +44,7 @@ module Connect = struct
       let md4 = get_md4 s 1 in
       let ip = get_ip s 17 in
       let port = get_port s 21 in
-(*      Printf.printf "port: %d" port; print_newline ();*)
+(*      lprintf "port: %d" port; lprint_newline ();*)
       let tags, pos = get_tags s 23 names_of_tag in
       {
         md4 = md4;
@@ -53,11 +54,11 @@ module Connect = struct
       }
     
     let print t = 
-      Printf.printf "CONNECT:\n";
-      Printf.printf "MD4: %s\n" (Md4.to_string t.md4); 
-      Printf.printf "ip: %s\n" (Ip.to_string t.ip);
-      Printf.printf "port: %d\n" t.port;
-      Printf.printf "tags: ";
+      lprintf "CONNECT:\n";
+      lprintf "MD4: %s\n" (Md4.to_string t.md4); 
+      lprintf "ip: %s\n" (Ip.to_string t.ip);
+      lprintf "port: %d\n" t.port;
+      lprintf "tags: ";
       print_tags t.tags
     
     let fprint oc t = 
@@ -101,17 +102,17 @@ ascii [ 9(3)(4)(0) M a i n(0)(0)(2)(0)(5)(0) M u s i c(0)(0)(3)(0)(3)(0) A r t(0
       iter s 2 nchans
 
     let print t =
-      Printf.printf "CHANNELS:\n";
+      lprintf "CHANNELS:\n";
       List.iter (fun c ->
-          Printf.printf "  %s: %d" c.name c.number;
-          print_newline ();
+          lprintf "  %s: %d" c.name c.number;
+          lprint_newline ();
       ) t
 
      let fprint oc t =
       Printf.fprintf oc "CHANNELS:\n";
       List.iter (fun c ->
           Printf.fprintf oc "  %s: %d" c.name c.number;
-          print_newline ();
+          lprint_newline ();
       ) t
 
     let write buf t =
@@ -129,8 +130,8 @@ module SetID = struct
     let parse len s = get_ip s 1 
     
     let print t = 
-      Printf.printf "SET_ID:\n";
-      Printf.printf "id: %s\n" (Ip.to_string t)
+      lprintf "SET_ID:\n";
+      lprintf "id: %s\n" (Ip.to_string t)
 
     let fprint oc t = 
       Printf.fprintf oc "SET_ID:\n";
@@ -149,7 +150,7 @@ module AckID = struct
     let parse len s = ()
     
     let print t = 
-      Printf.printf "ACK_ID:\n"
+      lprintf "ACK_ID:\n"
 
     let fprint oc t = 
       Printf.fprintf oc "ACK_ID\n"
@@ -167,8 +168,8 @@ module Message = struct
       v
     
     let print t = 
-      Printf.printf "MESSAGE:\n";
-      Printf.printf "message = \"%s\"" (String.escaped t)
+      lprintf "MESSAGE:\n";
+      lprintf "message = \"%s\"" (String.escaped t)
     
     let fprint oc t = 
       Printf.fprintf oc "MESSAGE:\n";
@@ -212,15 +213,15 @@ module Share = struct
       files
     
     let print t = 
-      Printf.printf "SHARED:\n";
+      lprintf "SHARED:\n";
       List.iter (fun t ->
-          Printf.printf "FILE:\n";
-          Printf.printf "  MD4: %s\n" (Md4.to_string t.f_md4);
-          Printf.printf "  ip: %s\n" (Ip.to_string t.f_ip);
-          Printf.printf "  port: %d\n" t.f_port;
-          Printf.printf "  tags: ";
+          lprintf "FILE:\n";
+          lprintf "  MD4: %s\n" (Md4.to_string t.f_md4);
+          lprintf "  ip: %s\n" (Ip.to_string t.f_ip);
+          lprintf "  port: %d\n" t.f_port;
+          lprintf "  tags: ";
           print_tags t.f_tags;
-          print_newline ();) t
+          lprint_newline ();) t
     
     let fprint oc t = 
       Printf.fprintf oc "SHARED:\n";
@@ -273,8 +274,8 @@ module Info = struct
       users, files
     
     let print (users, files) = 
-      Printf.printf "INFO:\n";
-      Printf.printf "users: %d files: %d\n"  users files
+      lprintf "INFO:\n";
+      lprintf "users: %d files: %d\n"  users files
 
    let fprint oc (users, files) = 
       Printf.fprintf oc "INFO:\n";
@@ -304,11 +305,11 @@ module ServerList = struct
       iter 0
           
     let print t = 
-      Printf.printf "SERVER LIST";
-      print_newline ();
+      lprintf "SERVER LIST";
+      lprint_newline ();
       List.iter (fun l -> 
-          Printf.printf "   %s : %d" (Ip.to_string l.ip) l.port;
-          print_newline ();
+          lprintf "   %s : %d" (Ip.to_string l.ip) l.port;
+          lprint_newline ();
       ) t
 
     let fprint oc t = 
@@ -345,7 +346,7 @@ module ServerInfo = struct
       let md4 = get_md4 s 1 in
       let ip = get_ip s 17 in
       let port = get_port s 21 in
-(*      Printf.printf "port: %d" port; print_newline (); *)
+(*      lprintf "port: %d" port; lprint_newline (); *)
       let tags, pos = get_tags s 23 names_of_tag in
       {
         md4 = md4;
@@ -355,11 +356,11 @@ module ServerInfo = struct
       }
     
     let print t = 
-      Printf.printf "SERVER INFO:\n";
-      Printf.printf "MD4: %s\n" (Md4.to_string t.md4);
-      Printf.printf "ip: %s\n" (Ip.to_string t.ip);
-      Printf.printf "port: %d\n" t.port;
-      Printf.printf "tags: ";
+      lprintf "SERVER INFO:\n";
+      lprintf "MD4: %s\n" (Md4.to_string t.md4);
+      lprintf "ip: %s\n" (Ip.to_string t.ip);
+      lprintf "port: %d\n" t.port;
+      lprintf "tags: ";
       print_tags t.tags
 
     let fprint oc t = 
@@ -418,15 +419,15 @@ module QueryReply  = struct
     let parse len s = get_replies s 1
     
     let print t = 
-      Printf.printf "FOUND:\n";
+      lprintf "FOUND:\n";
       List.iter (fun t ->
-          Printf.printf "FILE:\n";
-          Printf.printf "  MD4: %s\n" (Md4.to_string t.f_md4);
-          Printf.printf "  ip: %s\n" (Ip.to_string t.f_ip);
-          Printf.printf "  port: %d\n" t.f_port;
-          Printf.printf "  tags: ";
+          lprintf "FILE:\n";
+          lprintf "  MD4: %s\n" (Md4.to_string t.f_md4);
+          lprintf "  ip: %s\n" (Ip.to_string t.f_ip);
+          lprintf "  port: %d\n" t.f_port;
+          lprintf "  tags: ";
           print_tags t.f_tags;
-          print_newline ();) t
+          lprint_newline ();) t
 
     let fprint oc t = 
       Printf.fprintf oc "FOUND:\n";
@@ -467,7 +468,7 @@ module NoArg = functor(M: sig val m : string end) -> (struct
         let parse len s = ()
         
         let print t = 
-          Printf.printf "%s:\n" M.m
+          lprintf "%s:\n" M.m
         
         let write (buf: Buffer.t) (t: t) = unit
           
@@ -562,31 +563,31 @@ module Query  = struct (* request 22 *)
       match t with
         QOr (q1, q2) -> 
           print_query q1; 
-          print_string " OR ";
+          lprint_string " OR ";
           print_query q2
       | QAnd (q1, q2) -> 
           print_query q1; 
-          print_string " AND ";
+          lprint_string " AND ";
           print_query q2
       | QAndNot (q1, q2) -> 
           print_query q1; 
-          print_string " NOT ";
+          lprint_string " NOT ";
           print_query q2
       
       | QHasWord s ->
-          Printf.printf "Contains[%s]" s
+          lprintf "Contains[%s]" s
       | QHasField (name, field) ->
-          Printf.printf "Field[%s] = [%s]" name field
+          lprintf "Field[%s] = [%s]" name field
       | QHasMinVal (name, field) ->
-          Printf.printf "Field[%s] > [%s]" name (Int64.to_string field)
+          lprintf "Field[%s] > [%s]" name (Int64.to_string field)
       | QHasMaxVal (name, field) ->
-          Printf.printf "Field[%s] < [%s]" name (Int64.to_string field)
+          lprintf "Field[%s] < [%s]" name (Int64.to_string field)
       |	QNone ->
 	  prerr_endline "print_query: QNone in query";
 	  ()
     
     let  print t = 
-      Printf.printf "QUERY";
+      lprintf "QUERY";
       print_query t
     
 
@@ -698,13 +699,13 @@ module QueryUsers = struct (* request 26 *)
           let name, pos = get_string s 2 in
           name
       | _ -> 
-          Printf.printf "QueryUsers: unknown tag %d" targ;
-          print_newline ();
+          lprintf "QueryUsers: unknown tag %d" targ;
+          lprint_newline ();
           raise Not_found
           
     let print t =
-      Printf.printf "QUERY USERS [%s]" t;
-      print_newline () 
+      lprintf "QUERY USERS [%s]" t;
+      lprint_newline () 
 
      let fprint oc t =
       Printf.fprintf oc "QUERY USERS [%s]\n" t
@@ -754,13 +755,13 @@ module QueryUsersReply = struct (* request 67 *)
       parse_clients s 5 nclients []
     
     let print t = 
-      Printf.printf "QUERY USERS REPLY:\n";
+      lprintf "QUERY USERS REPLY:\n";
       List.iter (fun t ->
-          Printf.printf "MD4: %s\n" (Md4.to_string t.md4); 
-          Printf.printf "ip: %s\n" (Ip.to_string t.ip);
-          Printf.printf "port: %d\n" t.port;
-          Printf.printf "tags: ";
-          print_tags t.tags; print_newline ();) t
+          lprintf "MD4: %s\n" (Md4.to_string t.md4); 
+          lprintf "ip: %s\n" (Ip.to_string t.ip);
+          lprintf "port: %d\n" t.port;
+          lprintf "tags: ";
+          print_tags t.tags; lprint_newline ();) t
 
     let fprint oc t = 
       Printf.fprintf oc "QUERY USERS REPLY:\n";
@@ -789,7 +790,7 @@ module QueryLocation  = struct
       get_md4 s 1
       
     let print t = 
-      Printf.printf "QUERY LOCATION OF %s" (Md4.to_string t)
+      lprintf "QUERY LOCATION OF %s" (Md4.to_string t)
 
     let fprint oc t = 
       Printf.fprintf oc "QUERY LOCATION OF %s\n" (Md4.to_string t)
@@ -822,11 +823,11 @@ module QueryLocationReply  = struct
       { locs =locs; md4 = md4 }
           
     let print t = 
-      Printf.printf "LOCATION OF %s" (Md4.to_string t.md4);
-      print_newline ();
+      lprintf "LOCATION OF %s" (Md4.to_string t.md4);
+      lprint_newline ();
       List.iter (fun l -> 
-          Printf.printf "   %s : %d" (Ip.to_string l.ip) l.port;
-          print_newline ();
+          lprintf "   %s : %d" (Ip.to_string l.ip) l.port;
+          lprint_newline ();
       ) t.locs
 
      let fprint oc t = 
@@ -852,7 +853,7 @@ module QueryID  = struct
       get_ip s 1
       
     let print t = 
-      Printf.printf "QUERY IP OF %s" (Ip.to_string t)
+      lprintf "QUERY IP OF %s" (Ip.to_string t)
 
     let fprint oc t = 
       Printf.fprintf oc "QUERY IP OF %s\n" (Ip.to_string t)
@@ -868,7 +869,7 @@ module QueryIDFailed  = struct
       get_ip s 1
       
     let print t = 
-      Printf.printf "QUERY IP OF %s FAILED" (Ip.to_string t)
+      lprintf "QUERY IP OF %s FAILED" (Ip.to_string t)
 
     let fprint oc t = 
       Printf.fprintf oc "QUERY IP OF %s FAILED\n" (Ip.to_string t)
@@ -889,8 +890,8 @@ module QueryIDReply  = struct
       { ip = ip; port = port; }
       
     let print t = 
-      Printf.printf "IDENTIFICATION %s : %d" (Ip.to_string t.ip) t.port;
-      print_newline ()
+      lprintf "IDENTIFICATION %s : %d" (Ip.to_string t.ip) t.port;
+      lprint_newline ()
 
     let fprint oc t = 
       Printf.fprintf oc "IDENTIFICATION %s : %d\n" (Ip.to_string t.ip) t.port
@@ -914,8 +915,8 @@ module QueryServers  = struct
       { ip = ip; port = port; }
       
     let print t = 
-      Printf.printf "QUERY SERVERS %s : %d" (Ip.to_string t.ip) t.port;
-      print_newline ()
+      lprintf "QUERY SERVERS %s : %d" (Ip.to_string t.ip) t.port;
+      lprint_newline ()
 
     let fprint oc t = 
       Printf.fprintf oc "QUERY SERVERS %s : %d\n" (Ip.to_string t.ip) t.port
@@ -959,12 +960,12 @@ module QueryServersReply  = struct
 	  { server_ip = Ip.null; server_port = 0; servers = servers }  
       
     let print t = 
-      Printf.printf "SERVERS QUERY REPLY %s : %d" (
+      lprintf "SERVERS QUERY REPLY %s : %d" (
         Ip.to_string t.server_ip) t.server_port;
-      print_newline ();
+      lprint_newline ();
       List.iter (fun s -> 
-          Printf.printf "   %s:%d" (Ip.to_string s.ip) s.port; 
-          print_newline ();
+          lprintf "   %s:%d" (Ip.to_string s.ip) s.port; 
+          lprint_newline ();
       ) t.servers
 
      let fprint oc t = 
@@ -1064,7 +1065,7 @@ let parse magic s =
     let len = String.length s in
     if len = 0 then raise Not_found;
     let opcode = int_of_char (s.[0]) in
-(*    Printf.printf "opcode: %d" opcode; print_newline (); *)
+(*    lprintf "opcode: %d" opcode; lprint_newline (); *)
     match opcode with 
     | 1 -> ConnectReq (Connect.parse len s)
 (*    | 5 -> BadProtocolVersion *)
@@ -1102,7 +1103,7 @@ let parse magic s =
 	raise Not_found
   with
     e -> 
-      Printf.printf "From server:"; print_newline ();
+      lprintf "From server:"; lprint_newline ();
       dump s;
       UnknownReq s
       
@@ -1132,41 +1133,41 @@ let print t =
     | ChatRoomsReq t -> ChatRooms.print t
 
     | QueryMoreResultsReq -> 
-        Printf.printf "QUERY MORE RESULTS"; print_newline ()
+        lprintf "QUERY MORE RESULTS"; lprint_newline ()
     | Mldonkey_MldonkeyUserReplyReq ->
-        Printf.printf "MLDONKEY USER"; print_newline ()
+        lprintf "MLDONKEY USER"; lprint_newline ()
     | Mldonkey_SubscribeReq (num, lifetime, t) -> 
-        Printf.printf "MLDONKEY SUBSCRIPTION %d FOR %d SECONDS" num lifetime; 
-        print_newline ();
+        lprintf "MLDONKEY SUBSCRIPTION %d FOR %d SECONDS" num lifetime; 
+        lprint_newline ();
         Query.print t
     | Mldonkey_NotificationReq (num,t) ->
-        Printf.printf "MLDONKEY NOTIFICATIONS TO %d" num; print_newline ();
+        lprintf "MLDONKEY NOTIFICATIONS TO %d" num; lprint_newline ();
         QueryReply.print t
     | Mldonkey_CloseSubscribeReq num ->
-        Printf.printf "MLDONKEY CLOSE SUBSCRIPTION %d" num; print_newline ();
+        lprintf "MLDONKEY CLOSE SUBSCRIPTION %d" num; lprint_newline ();
     | UnknownReq s -> 
         let len = String.length s in
-        Printf.printf "UnknownReq:\n";
-        Printf.printf "ascii: [";
+        lprintf "UnknownReq:\n";
+        lprintf "ascii: [";
         for i = 0 to len - 1 do
           let c = s.[i] in
           let n = int_of_char c in
           if n > 31 && n < 127 then
-            Printf.printf " %c" c
+            lprintf " %c" c
           else
-            Printf.printf "(%d)" n
+            lprintf "(%d)" n
         done;
-        Printf.printf "]\n";
-        Printf.printf "dec: [";
+        lprintf "]\n";
+        lprintf "dec: [";
         for i = 0 to len - 1 do
           let c = s.[i] in
           let n = int_of_char c in
-          Printf.printf "(%d)" n            
+          lprintf "(%d)" n            
         done;
-        Printf.printf "]\n";
-        print_newline ()
+        lprintf "]\n";
+        lprint_newline ()
   end;
-  print_newline ()
+  lprint_newline ()
 
 let fprint oc t =
   begin
@@ -1201,29 +1202,29 @@ let fprint oc t =
         Printf.fprintf oc "MLDONKEY NOTIFICATIONS TO %d\n" num; 
         QueryReply.fprint oc t
     | Mldonkey_CloseSubscribeReq num ->
-        Printf.printf "MLDONKEY CLOSE SUBSCRIPTION %d\n" num;
+        lprintf "MLDONKEY CLOSE SUBSCRIPTION %d\n" num;
         
     | UnknownReq s -> 
 (* let len = String.length s in*)
         Printf.fprintf oc "UnknownReq\n"
-(* Printf.printf "ascii: [";
+(* lprintf "ascii: [";
         for i = 0 to len - 1 do
           let c = s.[i] in
           let n = int_of_char c in
           if n > 31 && n < 127 then
-            Printf.printf " %c" c
+            lprintf " %c" c
           else
-            Printf.printf "(%d)" n
+            lprintf "(%d)" n
         done;
-        Printf.printf "]\n";
-        Printf.printf "dec: [";
+        lprintf "]\n";
+        lprintf "dec: [";
         for i = 0 to len - 1 do
           let c = s.[i] in
           let n = int_of_char c in
-          Printf.printf "(%d)" n            
+          lprintf "(%d)" n            
         done;
-        Printf.printf "]\n";
-        print_newline ()*)
+        lprintf "]\n";
+        lprint_newline ()*)
   end
   
 (* Why is this called udp_write ??? It is the normal function to encode messages

@@ -56,8 +56,8 @@ let new_file file_id file_name file_size =
       let current_size = try
           Unix32.getsize32 file_temp
         with e ->
-            Printf.printf "Exception %s in current_size" (Printexc2.to_string e); 
-            print_newline ();
+            lprintf "Exception %s in current_size" (Printexc2.to_string e); 
+            lprint_newline ();
             Int32.zero
       in
       let rec file = {

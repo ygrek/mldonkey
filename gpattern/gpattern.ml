@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open GtkBase
 
 type content =
@@ -112,10 +113,10 @@ class virtual ['a] filtered_plist
                     wlist#set_row ~foreground: c row
               end
           with e ->
-              Printf.printf "Exception %s in update_row" (Printexc2.to_string e);
-              print_newline ()
+              lprintf "Exception %s in update_row" (Printexc2.to_string e);
+              lprint_newline ()
         end else begin
-          Printf.printf "update_row < 0"; print_newline ();
+          lprintf "update_row < 0"; lprint_newline ();
         end
     
     method insert ?row d =
@@ -231,7 +232,7 @@ class virtual ['a] filtered_plist
 (*
 
 (* Connection bouton droit sur un titre, pour chaque colonne *)
-      Printf.printf "ncols: %d" wlist#columns; print_newline ();
+      lprintf "ncols: %d" wlist#columns; lprint_newline ();
 
       let col = ref 0 in
       List.iter (fun button ->
@@ -264,7 +265,7 @@ class virtual ['a] filtered_plist
 
           (*
       for i = 0 to wlist#columns - 1 do
-        Printf.printf " for %d" i; print_newline ();
+        lprintf " for %d" i; lprint_newline ();
         let widget = wlist#column_widget i in
 
 (*
@@ -279,7 +280,7 @@ class virtual ['a] filtered_plist
             ~justify:`RIGHT ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0)
           ~packing:button#add ()
         in
-        Printf.printf "done for %d" i; print_newline ();
+        lprintf "done for %d" i; lprint_newline ();
         
         
 (*        let event = new GObj.event_ops widget#as_widget in*)
@@ -303,7 +304,7 @@ class virtual ['a] filtered_plist
           )
         )
       done; *)
-      Printf.printf "ok"; print_newline ();
+      lprintf "ok"; lprint_newline ();
       self#update
 
 *)
@@ -326,9 +327,9 @@ class virtual ['a] filtered_plist
         `I ("sort", self#resort_column i);
         (*
         `I ("you clicked on the 3rd button", 
-          fun () -> print_string (wlist#column_title i); print_newline ();
-            Printf.printf "You asked to remove column %d" i;
-            print_newline ();
+          fun () -> lprint_string (wlist#column_title i); lprint_newline ();
+            lprintf "You asked to remove column %d" i;
+            lprint_newline ();
         ) *)
       ]
       

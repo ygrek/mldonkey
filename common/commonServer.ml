@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open CommonOptions
 open CommonGlobals
 open CommonNetwork
@@ -50,7 +51,7 @@ and 'a server_ops = {
 let ni n m = 
   let s = Printf.sprintf "Server.%s not implemented by %s" 
       m n.network_name in
-  print_string s; print_newline ();
+  lprint_string s; lprint_newline ();
   s
   
 let fni n m =  failwith (ni n m)
@@ -101,7 +102,7 @@ let _ =
   )
 
 let server_must_update s =
-(*  Printf.printf "server_must_update ?"; print_newline (); *)
+(*  lprintf "server_must_update ?"; lprint_newline (); *)
   let impl = as_server_impl s in
   if impl.impl_server_update <> 0 then
     CommonEvent.add_event (Server_info_event s);
@@ -113,7 +114,7 @@ let server_must_update_state s =
     begin
       impl.impl_server_update <- - impl.impl_server_update;
       CommonEvent.add_event (Server_info_event s);
-(*      Printf.printf "server_must_update YES"; print_newline (); *)
+(*      lprintf "server_must_update YES"; lprint_newline (); *)
     end
 
 
@@ -181,33 +182,33 @@ let new_server_ops network =
   
 
 let check_server_implementations () =
-  Printf.printf "\n----- Methods not implemented for CommonServer ----\n";
-  print_newline ();
+  lprintf "\n----- Methods not implemented for CommonServer ----\n";
+  lprint_newline ();
   List.iter (fun (c, cc) ->
       let n = c.op_server_network.network_name in
-      Printf.printf "\n  Network %s\n" n; print_newline ();
+      lprintf "\n  Network %s\n" n; lprint_newline ();
       if c.op_server_remove == cc.op_server_remove then 
-        Printf.printf "op_server_remove\n";
+        lprintf "op_server_remove\n";
       if c.op_server_to_option == cc.op_server_to_option then
-        Printf.printf "op_server_to_option\n";
+        lprintf "op_server_to_option\n";
       if c.op_server_info == cc.op_server_info then
-        Printf.printf "op_server_info\n";
+        lprintf "op_server_info\n";
       if c.op_server_sort == cc.op_server_sort then
-        Printf.printf "op_server_sort\n";
+        lprintf "op_server_sort\n";
       if c.op_server_connect == cc.op_server_connect then
-        Printf.printf "op_server_connect\n";
+        lprintf "op_server_connect\n";
       if c.op_server_disconnect == cc.op_server_disconnect then
-        Printf.printf "op_server_disconnect\n";
+        lprintf "op_server_disconnect\n";
       if c.op_server_find_user == cc.op_server_find_user then
-        Printf.printf "op_server_find_user\n";
+        lprintf "op_server_find_user\n";
       if c.op_server_query_users == cc.op_server_query_users then
-        Printf.printf "op_server_query_users\n";
+        lprintf "op_server_query_users\n";
       if c.op_server_users == cc.op_server_users then
-        Printf.printf "op_server_users\n";
+        lprintf "op_server_users\n";
       if c.op_server_cid == cc.op_server_cid then
-        Printf.printf "op_server_cid\n";
+        lprintf "op_server_cid\n";
   ) !servers_ops;
-  print_newline () 
+  lprint_newline () 
 
 let server_find (num : int) = 
   H.find servers_by_num  (as_server { dummy_server_impl with
@@ -397,6 +398,6 @@ let server_print s o =
       end;
     
   with e -> 
-      Printf.printf "Exception %s in CommonServer.server_print"
-        (Printexc2.to_string e); print_newline () 
+      lprintf "Exception %s in CommonServer.server_print"
+        (Printexc2.to_string e); lprint_newline () 
       

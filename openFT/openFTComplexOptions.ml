@@ -92,9 +92,9 @@ let value_to_file is_done assocs =
               | _ -> failwith "Bad source"
           )))
     with e -> 
-        Printf.printf "Exception %s while loading source"
+        lprintf "Exception %s while loading source"
           (Printexc2.to_string e); 
-        print_newline ();
+        lprint_newline ();
   );
   as_file file.file_file
 
@@ -139,7 +139,7 @@ let save_config () =
   let list = Fifo.to_list ultrapeers_queue in
   ultrapeers =:= (List.map (fun s ->
         (s.server_ip, s.server_port)) !connected_servers) @ list;
-  Printf.printf "SAVE OPTIONS"; print_newline ();
+  lprintf "SAVE OPTIONS"; lprint_newline ();
   Options.save_with_help openft_ini
 
   

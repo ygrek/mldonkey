@@ -15,25 +15,25 @@ let digit_hexa c =
 let dump header s =
   let len = String.length s in
   if len > 0 then begin
-      Printf.printf "%s" header; print_newline ();
-      Printf.printf "MESSAGE SIZE: %d" len; print_newline ();
-      Printf.printf "ascii: [";
+      lprintf "%s" header; lprint_newline ();
+      lprintf "MESSAGE SIZE: %d" len; lprint_newline ();
+      lprintf "ascii: [";
       for i = 0 to len - 1 do
         let c = s.[i] in
         let n = int_of_char c in
         if n > 31 && n < 127 then
-          Printf.printf " %c" c
+          lprintf " %c" c
         else
-          Printf.printf "(%d)" n
+          lprintf "(%d)" n
       done;
-      Printf.printf "]\n";
-      Printf.printf "dec: [";
+      lprintf "]\n";
+      lprintf "dec: [";
       for i = 0 to len - 1 do
         let c = s.[i] in
         let n = int_of_char c in
-        Printf.printf "(%d)" n            
+        lprintf "(%d)" n            
       done;
-      Printf.printf "]\n\n"
+      lprintf "]\n\n"
     end
 
 let dump header s =
@@ -42,14 +42,14 @@ let dump header s =
     let opcode = int_of_char s.[1] in
     begin
       match opcode with
-      | 10 -> Printf.printf "OK: CONNECT MESSAGE"; print_newline ();
-      | 11 -> Printf.printf "OK: CONNECT REPLY"; print_newline ();
-      | 14 -> Printf.printf "OK: SEARCH MESSAGE"; print_newline ();
-      | 15 -> Printf.printf "OK: SEARCH REPLY"; print_newline ();
-      | 16 -> Printf.printf "OK: SEARCH GET REPLIES"; print_newline ();
-      | 17 -> Printf.printf "OK: ONE REPLY"; print_newline ();
+      | 10 -> lprintf "OK: CONNECT MESSAGE"; lprint_newline ();
+      | 11 -> lprintf "OK: CONNECT REPLY"; lprint_newline ();
+      | 14 -> lprintf "OK: SEARCH MESSAGE"; lprint_newline ();
+      | 15 -> lprintf "OK: SEARCH REPLY"; lprint_newline ();
+      | 16 -> lprintf "OK: SEARCH GET REPLIES"; lprint_newline ();
+      | 17 -> lprintf "OK: ONE REPLY"; lprint_newline ();
       | _ ->
-          Printf.printf "UNKNOWN: opcode %d" opcode; print_newline ();
+          lprintf "UNKNOWN: opcode %d" opcode; lprint_newline ();
     end;
     dump header s
 
@@ -80,8 +80,8 @@ let _ =
         let len = end_pos - pos - 2 in
         (*
         if !left > 100000 then begin
-            Printf.printf "DISCARD [%s]" line;
-            print_newline ();
+            lprintf "DISCARD [%s]" line;
+            lprint_newline ();
           end; *)
         let line = String.sub line (pos+2) len in
         iter 0 line len;
@@ -93,6 +93,6 @@ let _ =
         end
     done
   with e -> 
-      Printf.printf "Exception %s" (Printexc2.to_string e);print_newline ();
+      lprintf "Exception %s" (Printexc2.to_string e);lprint_newline ();
       dump !header (Buffer.contents buf)
       

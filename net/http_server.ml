@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open BasicSocket
 
 let html_escaped s =
@@ -207,7 +208,7 @@ let parse_head s =
   let h = split_head s in
 (*
   List.iter (fun s ->
-Printf.printf "LINE: [%s]" (escaped s); print_newline (); ) h;
+lprintf "LINE: [%s]" (escaped s); lprint_newline (); ) h;
   *)
   match h with 
     [] -> failwith "Http_server: Empty head"
@@ -246,8 +247,8 @@ Printf.printf "LINE: [%s]" (escaped s); print_newline (); ) h;
               | _ -> options
             with e ->
                 if !debug then begin
-                    Printf.printf "Exception %s in header %s" (Printexc2.to_string e) name;
-                    print_newline ();
+                    lprintf "Exception %s in header %s" (Printexc2.to_string e) name;
+                    lprint_newline ();
                   end;
                 options
                 
@@ -336,7 +337,7 @@ let complete_multipart_data request ic tail =
             |  _ -> 
                 let tmpfile = Filename.temp_file "http_" "" in
                 if !debug then begin
-                    Printf.printf "WARNING: saving to file %s" tmpfile; print_newline ();
+                    lprintf "WARNING: saving to file %s" tmpfile; lprint_newline ();
                   end;
                 let oc = open_out tmpfile in
                 let rec iter n empty_line =
@@ -378,15 +379,15 @@ let complete_multipart_data request ic tail =
           end
       | (name, (_,value, args)) :: lines ->
           if !debug then begin
-              Printf.printf "ILL FORMED LINE: [%s]" name;
+              lprintf "ILL FORMED LINE: [%s]" name;
               List.iter (fun (name, v) ->
-                  Printf.printf " (%s,%s)" name v) args;
-              print_newline ();
+                  lprintf " (%s,%s)" name v) args;
+              lprint_newline ();
             end;
           raise Exit
       | [] -> 
           if !debug then begin
-              Printf.printf "NO LINES"; print_newline ();
+              lprintf "NO LINES"; lprint_newline ();
             end;
           raise Exit
     in
@@ -399,7 +400,7 @@ let complete_multipart_data request ic tail =
 
 let parse_post_args f len req b =
 (* parse post args *)
-  Printf.printf "CALL HANDLR"; print_newline ();
+  lprintf "CALL HANDLR"; lprint_newline ();
   let s = String.sub b.rbuf b.rpos len in
   Select.buf_used b len;
   let args = Url.cut_args s in
@@ -408,12 +409,12 @@ let parse_post_args f len req b =
   f b req
   
 let check_len f len b pos2 =
-  Printf.printf "check_len: len %d rlen %d" len b.rlen; print_newline ();
+  lprintf "check_len: len %d rlen %d" len b.rlen; lprint_newline ();
   if b.rlen >= len then f b
 
 let complete_post_request ( f : handler ) buf request =
   let len = request.options.content_length in
-  Printf.printf "check_len: len %d rlen %d" len buf.rlen; print_newline ();
+  lprintf "check_len: len %d rlen %d" len buf.rlen; lprint_newline ();
   if buf.rlen >= len then
     parse_post_args f len request buf
   else
@@ -572,8 +573,8 @@ let add_content_type oc file =
                 (Printf.sprintf "Content-Type: %s\n" t)
             with _ -> 
 (*
-  Printf.printf "No content-type for %s" ext;
-print_newline ();
+  lprintf "No content-type for %s" ext;
+lprint_newline ();
   *)
                 iter exts
       in
@@ -594,8 +595,8 @@ let add_content_encoding oc file =
                 (Printf.sprintf "Content-Encoding: %s\n"
                   encoding)
             with _ -> 
-(*                Printf.printf "No encoding for %s" ext;
-print_newline ();
+(*                lprintf "No encoding for %s" ext;
+lprint_newline ();
   *)
                 iter exts
       in
@@ -626,8 +627,8 @@ let give_doc buf request =
     stream_out_string buf ans;
     at_write_end buf.fd_task shutdown;
   with e ->
-      Printf.printf "No such file: %s (%s)" file (Printexc2.to_string e); 
-      print_newline ();
+      lprintf "No such file: %s (%s)" file (Printexc2.to_string e); 
+      lprint_newline ();
       simple_error_404 buf;
       at_write_end buf.fd_task shutdown
 *)      
@@ -639,15 +640,15 @@ let need_auth buf name =
 let simple_give_auth psread pswrite request  =
   try
     if request.options.passwd = pswrite then
-      (Printf.printf  "  Access: Write"; print_newline ();
+      (lprintf  "  Access: Write"; lprint_newline ();
         Write_auth)
     else if
       request.options.passwd = psread then
-      (Printf.printf  "  Access: Read"; print_newline ();
+      (lprintf  "  Access: Read"; lprint_newline ();
         Read_auth)
     else raise Not_found
   with _ -> 
-      Printf.printf "  Access: Forbidden"; print_newline ();
+      lprintf "  Access: Forbidden"; lprint_newline ();
       No_auth
     
 let check_auth auth give_auth handler buf request = 
@@ -706,9 +707,9 @@ let request_handler config sock nread =
   let new_pos = end_pos - nread in
   let new_pos = maxi 0 (new_pos - 1) in
   (*
-  Printf.printf "received [%s]" (String.escaped 
+  lprintf "received [%s]" (String.escaped 
       (String.sub b.buf new_pos nread));
-print_newline ();
+lprint_newline ();
   *)
   let rec iter i =
     let end_pos = b.pos + b.len in
@@ -748,7 +749,7 @@ let handler config t event =
         TcpBufferedSocket.set_reader sock (request_handler config);
         TcpBufferedSocket.set_closer sock request_closer;
         TcpBufferedSocket.set_handler sock TcpBufferedSocket.BUFFER_OVERFLOW
-          (fun _ -> Printf.printf "BUFFER OVERFLOW"; print_newline () );  ()
+          (fun _ -> lprintf "BUFFER OVERFLOW"; lprint_newline () );  ()
       else
         Unix.close s
   | _ -> ()

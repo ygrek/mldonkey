@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open Options
 open BasicSocket
 open ImTypes
@@ -37,7 +38,7 @@ let _ =
   Msn.msn_login ();
   
   add_infinite_timer 10. (fun _ -> 
-      Printf.printf "******** SENDING **********"; print_newline ();
+      lprintf "******** SENDING **********"; lprint_newline ();
       Msn.msn_send "b8_cro@hotmail.com" "Hello");
   
   BasicSocket.loop ()
@@ -45,8 +46,8 @@ let _ =
   *)
 
   (try Options.load accounts_ini with e -> 
-        Printf.printf "Exception during options load accounts"; 
-        print_newline ());
+        lprintf "Exception during options load accounts"; 
+        lprint_newline ());
   Options.save_with_help accounts_ini;
   add_infinite_timer 60. (fun _ ->
       List2.safe_iter account_keepalive !!accounts

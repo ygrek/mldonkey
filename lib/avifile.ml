@@ -16,6 +16,10 @@
     along with mldonkey; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
+
+
+open Printf2
+
 (*
     RIFF('AVI' 
  *            LIST('hdrl'
@@ -94,23 +98,23 @@ let input_string4 ic =
   s
 
 let print_string4 v s =
-  Printf.printf "%s :" v;
+  lprintf "%s :" v;
   for i = 0 to 3 do
     let c = s.[i] in
     let int = int_of_char c in
     if int > 31 && int <127 then
-      print_char c
-    else Printf.printf "[%d]" int
+      lprint_char c
+    else lprintf "[%d]" int
   done;
-  print_newline ()
+  lprint_newline ()
 
 let print_int32 s i=
-  Printf.printf "%s: %s" s (Int32.to_string i);
-  print_newline ()
+  lprintf "%s: %s" s (Int32.to_string i);
+  lprint_newline ()
 
 let print_int16 s i=
-  Printf.printf "%s: %d" s i;
-  print_newline ()
+  lprintf "%s: %d" s i;
+  lprint_newline ()
   
 let load file =
   let ic = open_in file in
@@ -120,8 +124,8 @@ let load file =
 
 (* pos: 4 *)
   let size = input_int32 ic in
-  Printf.printf "SIZE %s" (Int32.to_string size);
-  print_newline ();
+  lprintf "SIZE %s" (Int32.to_string size);
+  lprint_newline ();
 
 (* pos: 8 *)
   let s = input_string4 ic in
@@ -133,22 +137,22 @@ let load file =
 
 (* position 16 *)
   let rec iter_list pos end_pos =
-    Printf.printf "POS %s/%s" (Int32.to_string pos) (Int32.to_string end_pos);
-    print_newline ();    
+    lprintf "POS %s/%s" (Int32.to_string pos) (Int32.to_string end_pos);
+    lprint_newline ();    
     if pos < end_pos then begin
 (* on peut s'arreter quand size = 0 *)
         seek_in ic (Int32.to_int pos);
         let size2 = input_int32 ic in
-        Printf.printf "SIZE2 %s" (Int32.to_string size2);
-        print_newline ();
+        lprintf "SIZE2 %s" (Int32.to_string size2);
+        lprint_newline ();
         
         let header_name = input_string4 ic in
-        print_string4 "header" header_name; print_newline ();
+        print_string4 "header" header_name; lprint_newline ();
 (* pos: pos + 8 *)       
         begin
           match header_name with
             "hdrl" ->
-              Printf.printf "HEADER"; print_newline ();
+              lprintf "HEADER"; lprint_newline ();
               
               let s = input_string4 ic in
               if s <> "avih" then failwith "Bad AVI file (avih absent)";
@@ -192,10 +196,10 @@ let load file =
                   iter_list pos_in last_pos
               
           | "movi" ->
-              Printf.printf "CHUNKS"; print_newline ();
+              lprintf "CHUNKS"; lprint_newline ();
               
           | "strl" ->
-              Printf.printf "STREAM DESCRIPTION"; print_newline ();
+              lprintf "STREAM DESCRIPTION"; lprint_newline ();
               
               let offset = Int32.of_int 4  in
               let pos0 = Int32.add pos offset in
@@ -203,7 +207,7 @@ let load file =
               iter_list pos0 end_pos0
 
           | "strh" ->
-              Printf.printf "STREAM HEADER"; print_newline ();
+              lprintf "STREAM HEADER"; lprint_newline ();
               
               ignore (input_string4 ic);
               

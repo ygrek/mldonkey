@@ -34,7 +34,7 @@ let start () =
       (fun sock event ->
         match event with
           TcpServerSocket.CONNECTION(s, Unix.ADDR_INET(from_ip, from_port)) ->
-            Printf.printf "CONNECTION"; print_newline ();
+            lprintf "CONNECTION"; lprint_newline ();
             let http_client = TcpBufferedSocket.create 
               "audiogalaxy http to client"
               s (fun _ _ -> ()) in
@@ -52,8 +52,8 @@ let start () =
                 let begin_pos = b.pos + b.len - nread in
                 
                 if verbose then begin                
-                    Printf.printf "SENT CLIENT-->SERVER %d bytes" b.len;
-                    print_newline ();
+                    lprintf "SENT CLIENT-->SERVER %d bytes" b.len;
+                    lprint_newline ();
                     AgProtocol.dump (String.sub b.buf b.pos b.len);
                   end;
                 
@@ -69,31 +69,31 @@ let start () =
                           begin
                             let s = String.sub b.buf (b.pos+9) (nsent - 9) in
                             if verbose then begin
-                                Printf.printf "DISCARD referer: [%s]" s; print_newline (); 
+                                lprintf "DISCARD referer: [%s]" s; lprint_newline (); 
                               end;
                             let len = String.length s in
                             if len > 10 && String.sub s 0 7 = "http://" then
                               try
                                 let pos = String.index_from s 7 '/' in
                                 if verbose then begin
-                                    Printf.printf "POSITION: %d" pos;
-                                    print_newline ();
+                                    lprintf "POSITION: %d" pos;
+                                    lprint_newline ();
                                   end;
                                 let tosend =
                                   ("Referer: http://www.audiogalaxy.com:80" ^ 
                                       (String.sub s pos (len - pos)))
                                 in
                                 if verbose then begin
-                                Printf.printf "SENDING [%s]" tosend;
-                                    print_newline ();
+                                lprintf "SENDING [%s]" tosend;
+                                    lprint_newline ();
                                   end;
                                 write_string http_server tosend
 
                                 
                               with _ -> 
                                   if verbose then begin
-                                      Printf.printf "DISCARDED"; 
-                                      print_newline ();
+                                      lprintf "DISCARDED"; 
+                                      lprint_newline ();
                                     end
                               
                           end
@@ -105,8 +105,8 @@ let start () =
                             if nsent < 3 then begin
                                 done_header := true;
                                 if verbose then begin
-                                    Printf.printf "DONE WITH HEADER"; 
-                                    print_newline ();
+                                    lprintf "DONE WITH HEADER"; 
+                                    lprint_newline ();
                                   end;
                                 write http_server b.buf b.pos b.len;
                                 buf_used http_client b.len;
@@ -118,13 +118,13 @@ let start () =
                             write_string http_server 
                               "Host: www.audiogalaxy.com:80\r\n";
                             if verbose then begin
-                                Printf.printf "CHANGE HOST"; 
-                                print_newline (); 
+                                lprintf "CHANGE HOST"; 
+                                lprint_newline (); 
                               end;
                           end;
                         if verbose then begin
                             AgProtocol.dump (String.sub b.buf b.pos nsent); 
-                            print_newline ();
+                            lprint_newline ();
                           end;
                         buf_used http_client nsent;
                         iter (pos+1)
@@ -141,8 +141,8 @@ let start () =
                 TcpBufferedSocket.write http_client
                   b.buf b.pos b.len;
                 if verbose then begin
-                    Printf.printf "SENT SERVER-->CLIENT %d bytes" b.len;
-                    print_newline ();
+                    lprintf "SENT SERVER-->CLIENT %d bytes" b.len;
+                    lprint_newline ();
                   end;
   
                 TcpBufferedSocket.buf_used sock b.len;
@@ -150,15 +150,15 @@ let start () =
             );
             TcpBufferedSocket.set_closer http_client (fun sock s ->
                 if verbose then begin
-                    Printf.printf "CONNECTION FROM CLIENT CLOSED"; 
-                    print_newline ();
+                    lprintf "CONNECTION FROM CLIENT CLOSED"; 
+                    lprint_newline ();
                   end;
                 TcpBufferedSocket.close http_server s
             );
             TcpBufferedSocket.set_closer http_server (fun sock s ->
                 if verbose then begin
-                    Printf.printf "CONNECTION FROM SERVER CLOSED"; 
-                    print_newline ();
+                    lprintf "CONNECTION FROM SERVER CLOSED"; 
+                    lprint_newline ();
                   end;
                 let b = TcpBufferedSocket.buf http_client in
                 if b.len = 0 then

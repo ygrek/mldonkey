@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open Md4
 open BasicSocket
 open Options
@@ -43,13 +44,13 @@ let (file_basedir, home_basedir) =
     try
       Unix.chdir chroot_dir;
       Unix.chroot chroot_dir;
-      Printf.printf "mldonkey is now running in %s\n"  chroot_dir;
+      lprintf "mldonkey is now running in %s\n"  chroot_dir;
         ".", "."
         
     with e ->
-        Printf.printf "Exception %s trying to chroot %s"
+        lprintf "Exception %s trying to chroot %s"
           (Printexc2.to_string e) chroot_dir;
-        print_newline ();
+        lprint_newline ();
         exit 2
   with _ ->  
       (try Sys.getenv "MLDONKEY_DIR" with _ -> 

@@ -16,6 +16,8 @@
     along with mldonkey; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
+
+open Printf2
 open Unix
   
 let list_directory filename =
@@ -67,7 +69,7 @@ let rec safe_mkdir dir =
 (* same as in downloadClient.ml *)
 let rec really_write fd s pos len =
   if len = 0 then begin
-      Printf.printf "really_write 0 BYTES !!!!!!!!!"; print_newline ();
+      lprintf "really_write 0 BYTES !!!!!!!!!"; lprint_newline ();
       raise End_of_file
     end else
   let nwrite = Unix.write fd s pos len in
@@ -100,7 +102,7 @@ let rename oldname newname =
   with
     Unix_error(EXDEV,_,_) as e ->
 (* renaming is not enough, we must COPY *)
-      Printf.printf "COPY %s TO %s" oldname newname; print_newline ();
+      lprintf "COPY %s TO %s" oldname newname; lprint_newline ();
       let copied = ref false in
       try
         copy oldname newname; 

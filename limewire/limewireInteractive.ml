@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open Md4
 open CommonSearch
 open CommonGlobals
@@ -61,7 +62,7 @@ let file_num file =
 
 let _ =
   file_ops.op_file_sources <- (fun file ->
-      Printf.printf "file_sources"; print_newline ();
+      lprintf "file_sources"; lprint_newline ();
       List2.tail_map (fun c ->
           as_client c.client_client
       ) file.file_clients
@@ -177,7 +178,7 @@ let _ =
   )
 
 let browse_client c = 
-  Printf.printf "Limewire: browse client not implemented"; print_newline ();
+  lprintf "Limewire: browse client not implemented"; lprint_newline ();
   ()
   
 let _ =

@@ -23,6 +23,7 @@ where tried ? We could reconnect more frequently to bad sources if we
 have time to do it.
 *)
 
+open Printf2
 open Md4
 open Options
 open CommonOptions
@@ -38,8 +39,8 @@ let stats_remove_bad_sources_of_popular_file = ref 0
 let add_new_source new_score source_age addr = 
   let ip, port = addr in
   if !verbose_sources then begin
-      Printf.printf "queue_new_source %s:%d" (Ip.to_string ip) port; 
-      print_newline ();
+      lprintf "queue_new_source %s:%d" (Ip.to_string ip) port; 
+      lprint_newline ();
     end;
   try
     let finder =  { dummy_source with source_addr = addr } in
@@ -60,7 +61,7 @@ let add_new_source new_score source_age addr =
       H.add sources s;
       incr stats_sources;
       if !verbose_sources then begin
-          Printf.printf "Source %d added" s.source_num; print_newline ();
+          lprintf "Source %d added" s.source_num; lprint_newline ();
         end;
       s
 
@@ -108,7 +109,7 @@ let add_source_request s file time result =
     r.request_result <- result;
 r.request_time <- time;
 *)
-    if !verbose_location then print_char 
+    if !verbose_location then lprint_char 
         (match r.request_result with
           File_possible -> '?'
         | File_not_found -> '-'
@@ -119,7 +120,7 @@ r.request_time <- time;
       add_request s file time result;
       SourcesQueue.put file.file_sources.(match result with
           File_new_source -> 
-            if !verbose_location then print_char '!';
+            if !verbose_location then lprint_char '!';
             new_sources_queue
         | _ -> 
             if last_time () - time < !!min_reask_delay then
@@ -128,16 +129,16 @@ r.request_time <- time;
               old_saved_sources_queue) (time, s);
       if List.memq file s.source_in_queues then begin
           if !verbose_sources then begin
-              Printf.printf "Source is already queued for this file"; 
-              print_newline ();
+              lprintf "Source is already queued for this file"; 
+              lprint_newline ();
             end
         end else
       s.source_in_queues <- file :: s.source_in_queues
 
 let old_source old_source_score source_age addr file = 
   (*
-  Printf.printf "New source connected %d seconds ago" (last_time () - source_age);
-  print_newline ();
+  lprintf "New source connected %d seconds ago" (last_time () - source_age);
+  lprint_newline ();
 *)
   
   let s = add_new_source old_source_score source_age addr in
@@ -145,7 +146,7 @@ let old_source old_source_score source_age addr file =
   s
 
 let new_source  addr file = 
-  if !verbose_location then print_char 'n'; 
+  if !verbose_location then lprint_char 'n'; 
   let last_conn = last_time () - !!min_reask_delay in
   let s = add_new_source 0 last_conn addr in
   add_source_request s file last_conn File_new_source;
@@ -176,7 +177,7 @@ let source_of_client c =
   outside_queue := Intmap.remove (client_num c) !outside_queue;      
   
   if !verbose_sources then begin
-      Printf.printf "source_of_client %d" (client_num c); print_newline ();
+      lprintf "source_of_client %d" (client_num c); lprint_newline ();
     end;
   
   match c.client_source with
@@ -184,7 +185,7 @@ let source_of_client c =
 (* This client is an indirect connection. Can't do anything with it. *)
       
       if !verbose_sources then begin
-          Printf.printf "%d --> indirect" (client_num c); print_newline ();
+          lprintf "%d --> indirect" (client_num c); lprint_newline ();
         end;
       
       begin
@@ -212,14 +213,14 @@ let source_of_client c =
       
       let ip, port = s.source_addr in
       if !verbose_sources then begin
-          Printf.printf "Old source %s:%d score: %d" (Ip.to_string ip) port
+          lprintf "Old source %s:%d score: %d" (Ip.to_string ip) port
             c.client_score; 
-          print_newline ();
+          lprint_newline ();
         end;
       (*
-      Printf.printf "Client %d before purge:" (client_num c);
+      lprintf "Client %d before purge:" (client_num c);
       List.iter (fun r ->
-          print_char (
+          lprint_char (
             match r.request_result with
             | File_chunk ->      'C'
             | File_upload ->     'U'
@@ -229,12 +230,12 @@ let source_of_client c =
             | File_expected ->   '!'
             | File_new_source -> 'n'
           )) c.client_files;      
-      print_newline (); *)
+      lprint_newline (); *)
       let (files, downloading) = purge_requests c.client_files in
       (*
-      Printf.printf "Client %d after purge:" (client_num c);
+      lprintf "Client %d after purge:" (client_num c);
       List.iter (fun r ->
-          print_char (
+          lprint_char (
             match r.request_result with
             | File_chunk ->      'C'
             | File_upload ->     'U'
@@ -244,7 +245,7 @@ let source_of_client c =
             | File_expected ->   '!'
             | File_new_source -> 'n'
           )) files;      
-      print_newline ();  *)
+      lprint_newline ();  *)
       c.client_files <- files;
       try      
         let keep_client = ref false in
@@ -253,7 +254,7 @@ let source_of_client c =
               let file = r.request_file in
 (*              let r = find_client_request c file in *)
               (*
-              print_char (
+              lprint_char (
                 match r.request_result with
                 | File_chunk ->      'C'
                 | File_upload ->     'U'
@@ -312,7 +313,7 @@ let source_of_client c =
               | File_chunk ->
                   keep_client := true;
                   if !verbose_sources then begin
-                      Printf.printf "%d --> kept (source)" (client_num c); print_newline ();
+                      lprintf "%d --> kept (source)" (client_num c); lprint_newline ();
                     end;
                   if not (List.memq file s.source_in_queues) then begin
                       Fifo.put file.file_clients (c, last_time ());
@@ -322,7 +323,7 @@ let source_of_client c =
               | File_upload ->
                   keep_client := true;
                   if !verbose_sources then begin
-                      Printf.printf "%d --> kept (uploader)" (client_num c); print_newline ();
+                      lprintf "%d --> kept (uploader)" (client_num c); lprint_newline ();
                     end;
                   if not (List.memq file s.source_in_queues) then begin
                       Fifo.put file.file_clients (c, last_time ());
@@ -330,18 +331,18 @@ let source_of_client c =
                     end
             
             with 
-              _ -> (* print_char 'e' *) ()
+              _ -> (* lprint_char 'e' *) ()
         ) c.client_files;
-  (*      print_newline (); *)
+  (*      lprint_newline (); *)
         if not !keep_client then begin
             let basic_score = c.client_score in
             List.iter (fun r -> remove_file_location r.request_file c) 
             c.client_files;
 (*
             if !verbose_sources then begin
-                Printf.printf "Set SourceLastConnection for source %d" 
+                lprintf "Set SourceLastConnection for source %d" 
                   s.source_num; 
-                print_newline ();
+                lprint_newline ();
               end; *)
             s.source_client <- SourceLastConnection (
               basic_score, last_time (), client_num c);
@@ -355,11 +356,11 @@ let source_of_client c =
         
       with _ ->          
           if !verbose_sources then  begin
-            Printf.printf "%d --> removed (%d):" (client_num c) c.client_score; 
+            lprintf "%d --> removed (%d):" (client_num c) c.client_score; 
             if not c.client_connected then 
-              Printf.printf "(ind) ";
+              lprintf "(ind) ";
             List.iter (fun r ->
-                print_char (
+                lprint_char (
                   match r.request_result with
                   | File_chunk ->      'C'
                   | File_upload ->     'U'
@@ -370,7 +371,7 @@ let source_of_client c =
                   | File_new_source -> 'n'
                 )) c.client_files;      
             
-            print_newline ();
+            lprint_newline ();
             
             end;
           H.remove sources s;
@@ -436,12 +437,12 @@ let recompute_ready_sources f =
 let client_of_source reconnect_client s file basic_score client_num = 
   
   if !verbose_sources then begin
-      Printf.printf "client_of_source %d" s.source_num; print_newline ();
+      lprintf "client_of_source %d" s.source_num; lprint_newline ();
     end;
   let (files, downloading) = purge_requests s.source_files in
   if !verbose_sources then begin
-      Printf.printf "Source for %d files" (List.length files); 
-      print_newline ();
+      lprintf "Source for %d files" (List.length files); 
+      lprint_newline ();
     end;
   let (ip, port) = s.source_addr in
   let c = DonkeyGlobals.new_client_with_num (Known_location (ip,port))
@@ -455,7 +456,7 @@ let client_of_source reconnect_client s file basic_score client_num =
   (match c.client_source with
       Some ss when s != ss -> 
         if !verbose_sources then begin
-            Printf.printf "Client already has a source!"; print_newline ();
+            lprintf "Client already has a source!"; lprint_newline ();
           end;
     |  _ -> ());
   c.client_source <- Some s;
@@ -501,12 +502,12 @@ let check_source_from_file reconnect_client file =
         
         begin
           match c.client_source with
-            None -> Printf.printf "ERROR: Client source can not be NOne"; 
-              print_newline ();
+            None -> lprintf "ERROR: Client source can not be NOne"; 
+              lprint_newline ();
           | Some s ->
               if not (List.memq file s.source_in_queues) then begin
-                  Printf.printf "ERROR: client should be in file queue (1)";
-                  print_newline ();
+                  lprintf "ERROR: client should be in file queue (1)";
+                  lprint_newline ();
                 end;
               
               s.source_in_queues <- List2.removeq file s.source_in_queues
@@ -516,44 +517,44 @@ let check_source_from_file reconnect_client file =
         stats_register_files c.client_files;
         
         if !verbose_sources then begin
-            Printf.printf "Source: Good Client of %s" (file_best_name file); 
-            print_newline ();
+            lprintf "Source: Good Client of %s" (file_best_name file); 
+            lprint_newline ();
           end;
         
         (useful_client source_of_client reconnect_client c) || (iter_client ())
       
       else begin (*
-          Printf.printf "Client can not be connected: %d" wait_for;
-          print_newline (); *)
+          lprintf "Client can not be connected: %d" wait_for;
+          lprint_newline (); *)
           raise Fifo.Empty
         end
     in
     iter_client ()
   with Fifo.Empty ->
       let rec iter_source i =
-(*        Printf.printf "iter_source %d" i; print_newline (); *)
+(*        lprintf "iter_source %d" i; lprint_newline (); *)
         if i < nqueues then
           try
             
             let _, s = SourcesQueue.head file.file_sources.(i) in
 (*
-Printf.printf "Checking source from queue[%s]" queue_name.(i); print_newline (); 
+lprintf "Checking source from queue[%s]" queue_name.(i); lprint_newline (); 
   *)
             let ip, port = s.source_addr in
             if !verbose_sources then begin
-                Printf.printf "One source %s:%d from queue[%s]" (Ip.to_string ip) port queue_name.(i); print_newline ();
+                lprintf "One source %s:%d from queue[%s]" (Ip.to_string ip) port queue_name.(i); lprint_newline ();
                 
               end;
             if s.source_files = [] then begin
 (* For some reason, this source has been invalidated *)
 (*                
-Printf.printf "ERROR: Source invalidated"; print_newline ();
+lprintf "ERROR: Source invalidated"; lprint_newline ();
 *)
                 let _,s = SourcesQueue.take file.file_sources.(i) in
                                 
                 if not (List.memq file s.source_in_queues) then begin
-                    Printf.printf "ERROR: client should be in file queue (2)";
-                    print_newline ();
+                    lprintf "ERROR: client should be in file queue (2)";
+                    lprint_newline ();
                   end;
                 
                 s.source_in_queues <- List2.removeq file s.source_in_queues;
@@ -570,15 +571,15 @@ Printf.printf "ERROR: Source invalidated"; print_newline ();
                   
                   
                   if not (List.memq file s.source_in_queues) then begin
-                      Printf.printf "ERROR: client should be in file queue (3)";
-                      print_newline ();
+                      lprintf "ERROR: client should be in file queue (3)";
+                      lprint_newline ();
                     end;
                   
                   s.source_in_queues <- List2.removeq file s.source_in_queues;
                   
                   if !verbose_sources then begin
-                      Printf.printf "Source could be connected (last %d)" 
-                        (last_time () - time); print_newline ();
+                      lprintf "Source could be connected (last %d)" 
+                        (last_time () - time); lprint_newline ();
                     end;
                   
                   
@@ -592,9 +593,9 @@ Printf.printf "ERROR: Source invalidated"; print_newline ();
                     incr stats_connect_old_sources;
                   
                   if !verbose_sources then  begin
-                      Printf.printf "Source %d: queue[%s] of file %s (last conn %d)" client_num queue_name.(i)
+                      lprintf "Source %d: queue[%s] of file %s (last conn %d)" client_num queue_name.(i)
                       (file_best_name file)  (last_time () - time)
-                      ; print_newline (); 
+                      ; lprint_newline (); 
                     end;
                   
                   if client_of_source reconnect_client s file basic_score client_num then
@@ -603,7 +604,7 @@ Printf.printf "ERROR: Source invalidated"; print_newline ();
                 else begin
 (* Too early to connect to this source, move to the next queue  *)
                     if !verbose_sources then begin
-                        Printf.printf "Too early for this source %d (last %d)" wait_for (last_time () - time); print_newline ();
+                        lprintf "Too early for this source %d (last %d)" wait_for (last_time () - time); lprint_newline ();
                       end;
                     raise Fifo.Empty
                   end
@@ -612,8 +613,8 @@ Printf.printf "ERROR: Source invalidated"; print_newline ();
 (* This source is already connected, remove it immediatly, and retry *)
                 let _, s = SourcesQueue.take file.file_sources.(i) in
                 if not (List.memq file s.source_in_queues) then begin
-                    Printf.printf "ERROR: client should be in file queue (4)";
-                    print_newline ();
+                    lprintf "ERROR: client should be in file queue (4)";
+                    lprint_newline ();
                   end;
                 
                 s.source_in_queues <- List2.removeq file s.source_in_queues;
@@ -626,8 +627,8 @@ Printf.printf "ERROR: Source invalidated"; print_newline ();
           | Fifo.Empty -> iter_source (i+1)
           | Not_found -> iter_source i
           | e -> 
-              Printf.printf "Exception %s" (Printexc2.to_string e); 
-              print_newline ();
+              lprintf "Exception %s" (Printexc2.to_string e); 
+              lprint_newline ();
               iter_source i
         else
           false
@@ -902,8 +903,8 @@ let check_sources reconnect_client =
 (*
   let buf = Buffer.create 100 in
   print_sources buf;
-  Printf.printf "\n\nSTATS: %s" (Buffer.contents buf);
-  print_newline ();
+  lprintf "\n\nSTATS: %s" (Buffer.contents buf);
+  lprint_newline ();
 *)
   
   let uptime = last_time () - start_time in
@@ -998,7 +999,7 @@ let check_sources reconnect_client =
   
 let reschedule_sources f = ()
   (*
-  Printf.printf "reschedule_sources on sources not implemented"; print_newline ()
+  lprintf "reschedule_sources on sources not implemented"; lprint_newline ()
 *)  
   
 let init () =

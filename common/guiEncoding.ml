@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open CommonFile
 open Md4
 open CommonGlobals
@@ -847,25 +848,25 @@ let _ =
           let s2 = Buffer.contents buf in
           LittleEndian.dump s2;
           if s = s2 then
-            (Printf.printf "s = s2"; print_newline (); false)
+            (lprintf "s = s2"; lprint_newline (); false)
           else
           let len = String.length s in
           let len2 = String.length s2 in
           if len <> len2 then
-            (Printf.printf "different lengths"; print_newline (); false)
+            (lprintf "different lengths"; lprint_newline (); false)
           else
             (for i = 0 to len-1 do
                 if s.[i] <> s2.[i] then
-                  Printf.printf "diff at pos %d(%d)" i
-                    (int_of_char s.[i]); print_newline ();
+                  lprintf "diff at pos %d(%d)" i
+                    (int_of_char s.[i]); lprint_newline ();
               done;
               false)
         end else
       true
         
     with e ->
-        Printf.printf "Exception %s in check" (Printexc2.to_string e);
-        print_newline ();
+        lprintf "Exception %s in check" (Printexc2.to_string e);
+        lprint_newline ();
         false
   in
 (* and    server_info = {

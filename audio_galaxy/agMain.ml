@@ -47,21 +47,21 @@ let enable  () =
   (try
       redirection_server_ip =:= Ip.from_name !!redirection_server
     with e ->
-        Printf.printf "Could not get IP of %s (%s). Using last one." 
+        lprintf "Could not get IP of %s (%s). Using last one." 
         !!redirection_server
           (Printexc2.to_string e);
-        print_newline ());
+        lprint_newline ());
   
-  Printf.printf "redirection_server_ip for %s: %s" 
+  lprintf "redirection_server_ip for %s: %s" 
   !!redirection_server (Ip.to_string !!redirection_server_ip);
-  print_newline ();
+  lprint_newline ();
   (try
       gold_redirection_server_ip =:= Ip.from_name !!gold_redirection_server
     with e ->
-        Printf.printf "Could not get IP of %s (%s). Using last one." 
+        lprintf "Could not get IP of %s (%s). Using last one." 
         !!gold_redirection_server
           (Printexc2.to_string e);
-        print_newline ());
+        lprint_newline ());
   
   AgServers.connect_server ();
   add_timer (*enabler*) 5.0 (fun timer ->

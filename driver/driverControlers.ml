@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open CommonResult
 open CommonInteractive
 open CommonNetwork
@@ -156,9 +157,9 @@ let check_calendar () =
       if List.mem tm.Unix.tm_wday days &&
         List.mem tm.Unix.tm_hour hours then begin
           eval (ref true) command calendar_options;
-          Printf.printf "Calendar execute: %s\n%s" command
+          lprintf "Calendar execute: %s\n%s" command
             (Buffer.contents calendar_options.conn_buf);
-          print_newline ();
+          lprint_newline ();
           Buffer.clear calendar_options.conn_buf;          
         end
   ) !!calendar
@@ -531,8 +532,8 @@ let http_handler options t r =
                       | _ -> ()
                     end
                 | _ -> 
-                    Printf.printf "/files: Unbound argument \"%s=%s\"" arg value;
-                    print_newline ();
+                    lprintf "/files: Unbound argument \"%s=%s\"" arg value;
+                    lprint_newline ();
             ) r.get_url.Url.args;
             let b = Buffer.create 10000 in
             
@@ -584,8 +585,8 @@ let http_handler options t r =
                   
               | args -> 
                   List.iter (fun (s,v) ->
-                      Printf.printf "[%s]=[%s]" (String.escaped s) (String.escaped v);
-                      print_newline ()) args;
+                      lprintf "[%s]=[%s]" (String.escaped s) (String.escaped v);
+                      lprint_newline ()) args;
                   
                   raise Not_found
 end

@@ -75,17 +75,17 @@ let print_record t ip_firewall s =
   let t = Int32.to_float t in
   
   let t = localtime t in
-  Printf.printf "At %02d:%02d:%02d " 
+  lprintf "At %02d:%02d:%02d " 
     t.tm_hour
     t.tm_min
     t.tm_sec
   ;
-  print_newline ();
-  Printf.printf "MLdonkey on %s (through %s): " 
+  lprint_newline ();
+  lprintf "MLdonkey on %s (through %s): " 
     (Ip.to_string ip)
   (Ip.to_string ip_firewall)
   ;
-  print_newline ();
+  lprint_newline ();
   
   let version, uptime, shared, uploaded, pos =
     try
@@ -103,26 +103,26 @@ let print_record t ip_firewall s =
   in
   
   
-  Printf.printf "Version: %s, uptime: %02d:%02d, shared: %Ld, uploaded: %Ld"
+  lprintf "Version: %s, uptime: %02d:%02d, shared: %Ld, uploaded: %Ld"
     version (uptime / 3600) ((uptime/60) mod 60) shared uploaded;
-  print_newline ();
+  lprint_newline ();
   List.iter (fun (ip, port) ->
       new_servers := (ip, port) :: !new_servers;
-      Printf.printf "            Connected to %s:%d"
+      lprintf "            Connected to %s:%d"
         (Ip.to_string ip) port;
-      print_newline ()) ips;
+      lprint_newline ()) ips;
   
   begin
     try
       let npeers = get_int s pos in
-      Printf.printf "Overnet peers: %d" npeers; print_newline ();
+      lprintf "Overnet peers: %d" npeers; lprint_newline ();
       for i = 0 to npeers - 1 do
         let ip = get_ip s (pos+4+i*6) in
         let port = get_int16 s (pos+6+i*6) in
         new_peers := (ip, port) :: !new_peers;
-        Printf.printf "         Overnet Peer %s:%d"        
+        lprintf "         Overnet Peer %s:%d"        
         (Ip.to_string ip) port;
-        print_newline ()
+        lprint_newline ()
       done;
       
       
@@ -199,20 +199,20 @@ let count_records () =
             end;          
       ) ips
   ) (fun _ ->
-      Printf.printf "%d MLdonkey clients" !counter;
+      lprintf "%d MLdonkey clients" !counter;
       (match !first_record, !last_record with
           Some t1, Some t2 ->
-            Printf.printf " in %3.0ld seconds" (Int32.sub t2 t1)
+            lprintf " in %3.0ld seconds" (Int32.sub t2 t1)
         | _ -> ());
-      Printf.printf " on %d servers" !server_counter; 
-      print_newline ();
+      lprintf " on %d servers" !server_counter; 
+      lprint_newline ();
   )
   
 
 let servers_age = ref 60
 let peers_age = ref 2
 let _ =
-  print_newline ();
+  lprint_newline ();
   Arg.parse [
     "-ascii", Arg.Unit print_ascii, "";
     "-count", Arg.Unit count_records, "";
@@ -228,7 +228,7 @@ let peers_array = Array.create !peers_age []
 
 let dump_list array new_hosts adder dumper =
   try
-    Printf.printf "dump server list"; print_newline ();
+    lprintf "dump server list"; lprint_newline ();
     incr time;
     let len = Array.length array in
     array.(!time mod Array.length array) <- !new_hosts;
@@ -250,8 +250,8 @@ let dump_list array new_hosts adder dumper =
     let list = Hashtbl2.to_list servers in
     dumper list
   with e ->
-      Printf.printf "error: %s" (Printexc2.to_string e);
-      print_newline ()  
+      lprintf "error: %s" (Printexc2.to_string e);
+      lprint_newline ()  
   
 let dump_servers_list _ = 
   let module S = DonkeyImport.Server in
@@ -293,13 +293,13 @@ let _ =
       List.iter (fun s ->
         servers_array.(0) <- (s.S.ip , s.S.port) :: servers_array.(0)
         ) (S.read file)
-    with _ -> Printf.printf "Could not load old server list"; print_newline ();
+    with _ -> lprintf "Could not load old server list"; lprint_newline ();
   end;
   BasicSocket.add_timer 30. dump_servers_list;
   BasicSocket.add_timer 30. dump_peers_list;
   BasicSocket.add_infinite_timer 300. dump_servers_list;
   BasicSocket.add_infinite_timer 300. dump_peers_list;
-  Printf.printf "Observer started";
-  print_newline ();
+  lprintf "Observer started";
+  lprint_newline ();
   BasicSocket.loop ()
   

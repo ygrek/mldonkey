@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open CommonOptions
 open SlskProtocol
 open CommonResult
@@ -51,9 +52,9 @@ let disconnect_server s =
 let server_to_client s m sock =
   
   if !verbose_msg_servers then begin
-      Printf.printf "Message from server"; print_newline ();
+      lprintf "Message from server"; lprint_newline ();
       S2C.print m;
-      print_newline ();
+      lprint_newline ();
     end;
   
   match m with
@@ -63,11 +64,11 @@ let server_to_client s m sock =
         match t with
           S2C.LoginAck.Success (message, ip) ->
             set_server_state s Connected_initiating;
-            Printf.printf "Message from server: %s" message;
-            print_newline ();
+            lprintf "Message from server: %s" message;
+            lprint_newline ();
         | S2C.LoginAck.Failure message ->
-            Printf.printf "Rejected from server: %s" message;
-            print_newline ();
+            lprintf "Rejected from server: %s" message;
+            lprint_newline ();
             disconnect_server s
         
       end
@@ -123,13 +124,13 @@ let server_to_client s m sock =
           | _ -> ()
           
         with Not_found ->
-            Printf.printf "Client %s not found" name; print_newline ();
+            lprintf "Client %s not found" name; lprint_newline ();
       end
       
   | _ -> 
-      Printf.printf "Unused message from server:"; print_newline ();
+      lprintf "Unused message from server:"; lprint_newline ();
       SlskProtocol.S2C.print m;
-      print_newline () 
+      lprint_newline () 
       
 let connect_server s = 
   match s.server_sock with
@@ -152,7 +153,7 @@ let connect_server s =
           
           set_rtimeout sock 20.;
           set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
-              Printf.printf "Connection timeout"; print_newline ();
+              lprintf "Connection timeout"; lprint_newline ();
               close s "timeout"  
           );
           set_closer sock (fun _ _ -> disconnect_server s);
@@ -167,10 +168,10 @@ let connect_server s =
             });
           server_send sock (C2S.SetWaitPortReq !!slsk_port)
         with e -> 
-            Printf.printf "%s:%d IMMEDIAT DISCONNECT %s"
+            lprintf "%s:%d IMMEDIAT DISCONNECT %s"
               (string_of_addr s.server_addr) s.server_port
-              (Printexc2.to_string e); print_newline ();
-(*      Printf.printf "DISCONNECTED IMMEDIATLY"; print_newline (); *)
+              (Printexc2.to_string e); lprint_newline ();
+(*      lprintf "DISCONNECTED IMMEDIATLY"; lprint_newline (); *)
             s.server_sock <- None;
             set_server_state s (NotConnected (-1));
             connection_failed s.server_connection_control
@@ -189,8 +190,8 @@ let ask_for_file file =
             (file_size file))
         ];
       with e ->
-          Printf.printf "Exception %s in ask_for_file" (Printexc2.to_string e);
-          print_newline ();
+          lprintf "Exception %s in ask_for_file" (Printexc2.to_string e);
+          lprint_newline ();
   ) file.file_clients
   
 let ask_for_files () =
@@ -218,7 +219,7 @@ let load_server_list filename =
         match String2.split_simplify s ':' with
           [_;_;server_name; server_port] -> 
             let port = int_of_string server_port in
-            Printf.printf "NEW SERVER %s:%d" server_name port; print_newline ();
+            lprintf "NEW SERVER %s:%d" server_name port; lprint_newline ();
             (*
             main_server_name =:= server_name;
 main_server_port =:= port;
@@ -228,8 +229,8 @@ main_server_port =:= port;
         | _ -> ()
     ) (String2.split_simplify s '\n')
   with _ ->
-      Printf.printf "Unable to parse soulseek server file %s" filename;
-      print_newline ()
+      lprintf "Unable to parse soulseek server file %s" filename;
+      lprint_newline ()
   
 let server_list = ref []
       

@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open Unix
 
 let exec_command cmd args handler = 
@@ -62,7 +63,7 @@ let fork_and_exec cmd args =
                             Unix.execv cmd args;
                             exit 0
                           with e -> 
-                              Printf.printf "Exception %s while starting file_completed_cmd" (Printexc2.to_string e); print_newline ();
+                              lprintf "Exception %s while starting file_completed_cmd" (Printexc2.to_string e); lprint_newline ();
                               exit 127
                         end
                     | id -> exit 0

@@ -1,7 +1,27 @@
+(* Copyright 2001, 2002 b8_bavard, b8_fee_carabine, INRIA *)
+(*
+    This file is part of mldonkey.
+
+    mldonkey is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    mldonkey is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with mldonkey; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*)
 
 
 {
 
+  open Printf2
+    
 type token =
 | EOF | BEGIN_TABLE | END_TABLE | BEGIN_ROW | END_ROW | BEGIN_COL | END_COL
 | STRING of string | SPACE
@@ -70,14 +90,14 @@ let translate s =
     in
     iter false false []
   with e ->
-      Printf.printf "Html2table: Exception %s at pos %d"
+      lprintf "Html2table: Exception %s at pos %d"
         (Printexc2.to_string e)
       (Lexing.lexeme_start lexbuf);
-      print_newline ();
+      lprint_newline ();
       []
 
 let rec spaces n =
-  if n>0 then (print_char ' '; spaces (n-1))
+  if n>0 then (lprint_char ' '; spaces (n-1))
 
     (*
 let translate s =
@@ -100,16 +120,16 @@ let translate s =
     | tag :: tail ->
         match tag with
         | BEGIN_TABLE ->
-            spaces pos;Printf.printf "TABLE"; print_newline (); 
+            spaces pos;lprintf "TABLE"; lprint_newline (); 
             iter (pos+1) (BEGIN_TABLE :: tags) tail
         | BEGIN_ROW ->
-            spaces pos;Printf.printf "ROW"; print_newline (); 
+            spaces pos;lprintf "ROW"; lprint_newline (); 
             iter (pos+1) (BEGIN_ROW :: tags) tail
         | BEGIN_COL ->
-            spaces pos;Printf.printf "COL"; print_newline (); 
+            spaces pos;lprintf "COL"; lprint_newline (); 
             iter (pos+1) (BEGIN_COL :: tags) tail
         | STRING s ->
-            spaces pos;Printf.printf "[%s]" s; print_newline (); 
+            spaces pos;lprintf "[%s]" s; lprint_newline (); 
             iter pos tags tail
         | END_COL | END_TABLE | END_ROW ->
             begin
@@ -141,9 +161,9 @@ let translate s =
             let ip = Ip.of_string server_ip in
             if not (Ip.valid ip) then raise Not_found;
             let port = int_of_string server_port in
-(*            Printf.printf "SERVER %s %s:%d FROM %s"
+(*            lprintf "SERVER %s %s:%d FROM %s"
               server_name (Ip.to_string ip) port server_net;
-            print_newline (); *)
+            lprint_newline (); *)
             iter tail ((server_name, ip, port, server_net) :: servers)
           with _ -> iter tail servers
         end
@@ -155,7 +175,7 @@ let translate s =
 open TcpBufferedSocket
   
 let load_servers_list url f =
-(*  Printf.printf "QUERY URL %s" url; print_newline (); *)
+(*  lprintf "QUERY URL %s" url; lprint_newline (); *)
   CommonGlobals.mldonkey_wget url (fun filename ->
     f (translate (File.to_string filename)))
 

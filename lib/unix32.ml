@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
+
 type t = {
     mutable fd : Unix.file_descr option;
     mutable access : int;
@@ -28,8 +30,8 @@ let getsize64 = Unix2.c_getsize64
 let fds_size = Unix2.c_getdtablesize ()
   
 let _ =
-  Printf.printf "Your system supports %d file descriptors" fds_size;
-  print_newline () 
+  lprintf "Your system supports %d file descriptors" fds_size;
+  lprint_newline () 
 
 (* at most 50 files can be opened simultaneously *)
   

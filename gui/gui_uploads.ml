@@ -18,7 +18,7 @@
 *)
 
 (** The box with uploads info *)
-
+open Printf2
 open Options
 open Md4
 
@@ -150,11 +150,11 @@ console ???? *)
         ignore (self#misc#grab_selection `PRIMARY);
         self#misc#add_selection_target ~target:"string" `PRIMARY;
         ignore (self#misc#connect#selection_get (fun sel ~info ~time ->
-              Printf.printf "request selection"; print_newline ();
+              lprintf "request selection"; lprint_newline ();
               sel#return clipboard
           )); 
         ignore (self#event#connect#selection_clear (fun sel ~info ~time ->
-              Printf.printf "request selection"; print_newline ();
+              lprintf "request selection"; lprint_newline ();
               sel#return clipboard
           ));
 *)      
@@ -182,7 +182,7 @@ console ???? *)
 	self#update_row si row
       with
         Not_found ->
-	  Printf.printf "Shared file %d not found" num; print_newline ();
+	  lprintf "Shared file %d not found" num; lprint_newline ();
 
     initializer
       wf_upstats#add pl#box;

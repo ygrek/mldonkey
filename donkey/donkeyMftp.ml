@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open CommonTypes
 open LittleEndian
 open Int32ops
@@ -125,8 +126,8 @@ let read_request ic =
   let s = String.create len in
   really_input ic s 0 len;
   (*
-  Printf.printf "read_request %d [%s]" len (String.escaped s); 
-print_newline ();
+  lprintf "read_request %d [%s]" len (String.escaped s); 
+lprint_newline ();
   *)
   s
 
@@ -134,8 +135,8 @@ let output_request oc s =
   output_char oc (char_of_int 227);
   let len = String.length s in
   (*
-  Printf.printf "output_request %d [%s]" len (String.escaped s); 
-print_newline ();
+  lprintf "output_request %d [%s]" len (String.escaped s); 
+lprint_newline ();
   *)
   output_int oc len;
   output_string oc s
@@ -159,7 +160,7 @@ let get_tags s pos names_of_tag =
     if ntags = 0 then [], pos else
     let t = get_int8 s pos in
     let name, pos2 = get_string s (pos+1) in
-(*  Printf.printf "tag name = %s" (String.escaped name);   *)
+(*  lprintf "tag name = %s" (String.escaped name);   *)
     let name = if String.length name = 1 then
         try
           List.assoc (get_int8 name 0) names_of_tag
@@ -183,8 +184,8 @@ let get_tags s pos names_of_tag =
             else v
           ), pos2+4
       | _ -> 
-          Printf.printf "get_tags: unknown tag %d at pos %d" t pos;
-          print_newline ();
+          lprintf "get_tags: unknown tag %d at pos %d" t pos;
+          lprint_newline ();
           raise Not_found
     in
     let tag = {

@@ -23,6 +23,7 @@ For each file on disk that has to be shared, call
   
 *)
 
+open Printf2
 open Md4
 
 open CommonOptions
@@ -71,7 +72,7 @@ let shareds_by_num = H.create 1027
 let ni n m = 
   let s = Printf.sprintf "Shared.%s not implemented by %s" 
       m n.network_name in
-  print_string s; print_newline ();
+  lprint_string s; lprint_newline ();
   s
   
 let fni  n m =  failwith (ni n m)
@@ -95,8 +96,8 @@ let shared_must_update_downloaded shared =
 let update_shared_num impl =
   if impl.impl_shared_num = 0 then begin
       if !verbose then begin
-          Printf.printf "NEW SHARED %s/%s" impl.impl_shared_codedname
-            impl.impl_shared_fullname; print_newline ();
+          lprintf "NEW SHARED %s/%s" impl.impl_shared_codedname
+            impl.impl_shared_fullname; lprint_newline ();
         end;
       incr shared_counter;
       impl.impl_shared_num <- !shared_counter;
@@ -119,8 +120,8 @@ let files_scanned = ref 0
 let files_scanned_size = ref Int64.zero
   
 let new_shared dirname filename fullname =
-(*  Printf.printf "XXXXXXX\ndirname %s \nfilename %s \nfullname %s"
-    dirname filename fullname; print_newline (); *)
+(*  lprintf "XXXXXXX\ndirname %s \nfilename %s \nfullname %s"
+    dirname filename fullname; lprint_newline (); *)
   let fullname = Filename2.normalize fullname in
   let filename = Filename2.normalize filename in
   let dirname = try
@@ -130,8 +131,8 @@ let new_shared dirname filename fullname =
         Hashtbl.add dirnames dirname name;
         name in
   let codedname = Filename.concat dirname filename in
-(*  Printf.printf "\ndirname %s \nfilename %s \nfullname %s\ncodedname %s"
-    dirname filename fullname codedname; print_newline (); *)
+(*  lprintf "\ndirname %s \nfilename %s \nfullname %s\ncodedname %s"
+    dirname filename fullname codedname; lprint_newline (); *)
   let size = Unix32.getsize64 fullname in
   incr files_scanned;
   files_scanned_size := Int64.add !files_scanned_size size;
@@ -203,7 +204,7 @@ let shared_add_directory dirname local_dir =
   in
   if can_share dirname then
     let full_dir = Filename.concat dirname local_dir in
-    Printf.printf "Sharing sub-directory %s" full_dir; print_newline ();
+    lprintf "Sharing sub-directory %s" full_dir; lprint_newline ();
     let files = Unix2.list_directory full_dir in
     List.iter (fun file ->
         if file <> "" && file.[0] <> '.' then
@@ -221,9 +222,9 @@ let shared_add_directory dirname local_dir =
               then
                   new_shared dirname local_name full_name
             with e -> 
-                Printf.printf "%s will not be shared (exception %s)"
+                lprintf "%s will not be shared (exception %s)"
                   full_name (Printexc2.to_string e);
-                print_newline ();
+                lprint_newline ();
           with _ -> ()
     ) files
 
@@ -235,13 +236,13 @@ let _ =
           waiting_directories := tail;
           shared_add_directory dirname local_dir;
           (*
-          Printf.printf "Shared %d files %Ld bytes"
+          lprintf "Shared %d files %Ld bytes"
             !files_scanned !files_scanned_size;
-          print_newline (); *)
+          lprint_newline (); *)
   )
     
 let shared_add_directory dirname =
-  Printf.printf "SHARING %s" dirname; print_newline ();
+  lprintf "SHARING %s" dirname; lprint_newline ();
   shared_add_directory dirname ""
   
 let shared_check_files () =

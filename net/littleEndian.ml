@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 (* opposite of network order
 
 Big Endian:    strongest byte first (network order)
@@ -209,53 +210,53 @@ let buf_md4 buf s = Buffer.add_string buf (Md4.direct_to_string s)
 let get_md4 s pos =
   try Md4.direct_of_string (String.sub s pos 16)  
   with e ->
-    Printf.printf "exception in get_md4 %d s=%s" pos (String.escaped s); 
-    print_newline ();
+    lprintf "exception in get_md4 %d s=%s" pos (String.escaped s); 
+    lprint_newline ();
     raise e
 
       
 let dump_ascii s =
   let len = String.length s in
-  Printf.printf "ascii: [";
+  lprintf "ascii: [";
   for i = 0 to len - 1 do
     let c = s.[i] in
     let n = int_of_char c in
     if n > 31 && n < 127 then
-      Printf.printf " %c" c
+      lprintf " %c" c
     else
-      Printf.printf "(%d)" n
+      lprintf "(%d)" n
   done;
-  Printf.printf "]\n"
+  lprintf "]\n"
       
 let dump s =
   let len = String.length s in
-  Printf.printf "ascii: [";
+  lprintf "ascii: [";
   for i = 0 to len - 1 do
     let c = s.[i] in
     let n = int_of_char c in
     if n > 31 && n < 127 then
-      Printf.printf " %c" c
+      lprintf " %c" c
     else
-      Printf.printf "(%d)" n
+      lprintf "(%d)" n
   done;
-  Printf.printf "]\n";
-  Printf.printf "dec: [";
+  lprintf "]\n";
+  lprintf "dec: [";
   for i = 0 to len - 1 do
     let c = s.[i] in
     let n = int_of_char c in
-    Printf.printf "(%d)" n            
+    lprintf "(%d)" n            
   done;
-  Printf.printf "]\n"
+  lprintf "]\n"
 
 let dump_sub s pos len =
-  Printf.printf "dec: [";
+  lprintf "dec: [";
   for i = 0 to len - 1 do
     let c = s.[pos+i] in
     let n = int_of_char c in
-    Printf.printf "(%d)" n            
+    lprintf "(%d)" n            
   done;
-  Printf.printf "]\n";
-  print_newline ()
+  lprintf "]\n";
+  lprint_newline ()
 
 
 let buf_string16 buf s =

@@ -708,8 +708,8 @@ class box_downloads box_locs wl_status () =
           | Some sources ->
               if List.memq c sources then
                 let (row, file) = self#find_file file.file_num in
-(*                Printf.printf "Removing client from sources";
-                print_newline (); *)
+(*                lprintf "Removing client from sources";
+                lprint_newline (); *)
                 self#update_file file { file with file_sources = Some (
                     List.filter (fun cc -> cc != c) sources) } 
                 row
@@ -734,7 +734,7 @@ class box_downloads box_locs wl_status () =
     
     method h_file_location num src =
       try
-(*        Printf.printf "Source %d for %d" src num;  print_newline (); *)
+(*        lprintf "Source %d for %d" src num;  lprint_newline (); *)
         let (row, f) = self#find_file num in
         self#update_file f 
           { f with 
@@ -747,12 +747,12 @@ class box_downloads box_locs wl_status () =
           row
       with Not_found -> 
 (* some sources are sent for shared files in eDonkey. have to fix that *)
-(*          Printf.printf "No such file %d" num; print_newline () *)
+(*          lprintf "No such file %d" num; lprint_newline () *)
           ()
     
     method h_file_remove_location (num:int) (src:int) = 
       try
-(*        Printf.printf "Source %d for %d" src num;  print_newline (); *)
+(*        lprintf "Source %d for %d" src num;  lprint_newline (); *)
         let (row, f) = self#find_file num in
         match f.file_sources with
           None -> ()
@@ -766,7 +766,7 @@ class box_downloads box_locs wl_status () =
           row
       with Not_found -> 
 (* some sources are sent for shared files in eDonkey. have to fix that *)
-(*          Printf.printf "No such file %d" num; print_newline () *)
+(*          lprintf "No such file %d" num; lprint_newline () *)
           ()
     
     method clean_table list = 

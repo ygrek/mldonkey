@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open CommonFile
 open CommonGlobals
 open DonkeyOptions
@@ -52,9 +53,9 @@ let server_msg_to_string msg =
   
   
   if !verbose_msg_servers then begin
-      Printf.printf "MESSAGE TO SERVER:";  print_newline (); 
+      lprintf "MESSAGE TO SERVER:";  lprint_newline (); 
       DonkeyProtoServer.print msg; 
-      print_newline ();
+      lprint_newline ();
     end;
 
   let s = Buffer.contents buf in
@@ -64,7 +65,7 @@ let server_msg_to_string msg =
 
 let server_send sock m =
 (*
-  Printf.printf "Message to server"; print_newline ();
+  lprintf "Message to server"; lprint_newline ();
   DonkeyProtoServer.print m;
 *)
   write_string sock (server_msg_to_string m)
@@ -74,16 +75,16 @@ let direct_client_sock_send sock m =
   
 let client_send c m =
   if !verbose_msg_clients then begin
-      Printf.printf "Sent to client %s(%s)"
+      lprintf "Sent to client %s(%s)"
         c.client_name (brand_to_string c.client_brand);
       (match c.client_kind with
           Indirect_location _ -> ()
         | Known_location (ip,port) ->
-            Printf.printf " [%s:%d]" (Ip.to_string ip) port;
+            lprintf " [%s:%d]" (Ip.to_string ip) port;
       );
-      print_newline ();
+      lprint_newline ();
       DonkeyProtoClient.print m;
-      print_newline ();
+      lprint_newline ();
     end;
   match c.client_sock with
     None -> ()
@@ -93,10 +94,10 @@ let client_send c m =
 let emule_send sock m =
   let m = client_msg_to_string 0xc5 m in
   (*
-  Printf.printf "Message to emule client:"; print_newline ();
+  lprintf "Message to emule client:"; lprint_newline ();
   LittleEndian.dump m;
-  print_newline ();
-  print_newline (); *)
+  lprint_newline ();
+  lprint_newline (); *)
   write_string sock m
 
 let client_msg_to_string m = client_msg_to_string 227 m
@@ -111,8 +112,8 @@ let client_handler2 c ff f =
   fun sock nread ->
 
     if !verbose then begin
-        Printf.printf "between clients %d" nread; 
-        print_newline ();
+        lprintf "between clients %d" nread; 
+        lprint_newline ();
       end;
     let module M= DonkeyProtoClient in
     let b = TcpBufferedSocket.buf sock in
@@ -123,14 +124,14 @@ let client_handler2 c ff f =
         if b.len >= 5 + msg_len then
           begin
             if !verbose then begin
-                Printf.printf "client_to_client"; 
-                print_newline ();
+                lprintf "client_to_client"; 
+                lprint_newline ();
               end;
             let s = String.sub b.buf (b.pos+5) msg_len in
             TcpBufferedSocket.buf_used sock  (msg_len + 5);
             let t = M.parse opcode s in
 (*          M.print t;   
-print_newline (); *)
+lprint_newline (); *)
             incr msgs;
             match !c with
               None -> c := ff t sock
@@ -142,8 +143,8 @@ print_newline (); *)
   
 let cut_messages parse f sock nread =
   if !verbose then begin
-      Printf.printf "server to client %d" nread; 
-      print_newline ();
+      lprintf "server to client %d" nread; 
+      lprint_newline ();
     end;
 
   let b = TcpBufferedSocket.buf sock in
@@ -154,8 +155,8 @@ let cut_messages parse f sock nread =
       if b.len >= 5 + msg_len then
         begin
           if !verbose then begin
-              Printf.printf "server_to_client"; 
-              print_newline ();
+              lprintf "server_to_client"; 
+              lprint_newline ();
             end;
           let s = String.sub b.buf (b.pos+5) msg_len in
           TcpBufferedSocket.buf_used sock (msg_len + 5);
@@ -173,8 +174,8 @@ let udp_send t ip port msg =
   let s = Buffer.contents buf in
   UdpSocket.write t s ip port
   with e ->
-      Printf.printf "Exception %s in udp_send" (Printexc2.to_string e);
-      print_newline () 
+      lprintf "Exception %s in udp_send" (Printexc2.to_string e);
+      lprint_newline () 
 
       (*
 let udp_send_if_possible t bc addr msg =
@@ -184,12 +185,12 @@ let udp_send_if_possible t bc addr msg =
     DonkeyProtoServer.udp_write buf msg;
     let s = Buffer.contents buf in
     let len = String.length s in
-    (*Printf.printf "possible ?"; print_newline ();*)
+    (*lprintf "possible ?"; lprint_newline ();*)
     if if_possible bc len then
       UdpSocket.write t s 0 (String.length s) addr
   with e ->
-      Printf.printf "Exception %s in udp_send" (Printexc2.to_string e);
-      print_newline () 
+      lprintf "Exception %s in udp_send" (Printexc2.to_string e);
+      lprint_newline () 
       *)
 
 let udp_handler f sock event =
@@ -206,8 +207,8 @@ let udp_handler f sock event =
 (*              M.print t; *)
               f t p
           with e ->
-              Printf.printf "Error %s in udp_handler"
-                (Printexc2.to_string e); print_newline () 
+              lprintf "Error %s in udp_handler"
+                (Printexc2.to_string e); lprint_newline () 
       ) ;
   | _ -> ()
       
@@ -275,8 +276,8 @@ let propagate_working_servers servers peers =
             let name, port = !!redirector in
             UdpSocket.write propagation_socket s (Ip.from_name name) port
           with e ->
-              Printf.printf "Exception %s in udp_sendonly" (Printexc2.to_string e);
-              print_newline () 
+              lprintf "Exception %s in udp_sendonly" (Printexc2.to_string e);
+              lprint_newline () 
         end      
     end
     
@@ -290,7 +291,7 @@ let udp_basic_handler f sock event =
             if len = 0 || 
               int_of_char pbuf.[0] <> DonkeyOpenProtocol.udp_magic then begin
                 if !verbose_unknown_messages then begin
-                    Printf.printf "Received unknown UDP packet"; print_newline ();
+                    lprintf "Received unknown UDP packet"; lprint_newline ();
                     dump pbuf;
                   end;
               end else begin
@@ -298,8 +299,8 @@ let udp_basic_handler f sock event =
                 f t p
               end
           with e ->
-              Printf.printf "Error %s in udp_basic_handler"
-                (Printexc2.to_string e); print_newline () 
+              lprintf "Error %s in udp_basic_handler"
+                (Printexc2.to_string e); lprint_newline () 
       ) ;
   | _ -> ()
 
@@ -327,7 +328,7 @@ let tag_file file =
           String.sub name 7 (String.length name - 7)
         else name in
       if !verbose then begin
-          Printf.printf "SHARING %s" name; print_newline ();
+          lprintf "SHARING %s" name; lprint_newline ();
         end;
       name
     ))::
@@ -337,10 +338,10 @@ let tag_file file =
         Unknown_format ->
           (try
               if !verbose then begin
-                  Printf.printf "%s: FIND FORMAT %s"
+                  lprintf "%s: FIND FORMAT %s"
                     (string_of_date (last_time ()))
                   (file_disk_name file); 
-                  print_newline ();
+                  lprint_newline ();
                 end;
               file.file_format <- 
                 CommonMultimedia.get_info 
@@ -380,12 +381,12 @@ let make_tagged sock files =
   
 let direct_server_send_share sock msg =
   
-(*  Printf.printf "SEND %d FILES TO SHARE" (List.length msg); print_newline ();*)
+(*  lprintf "SEND %d FILES TO SHARE" (List.length msg); lprint_newline ();*)
   
   let max_len = !!client_buffer_size - 100 - 
     TcpBufferedSocket.remaining_to_write sock in
   if !verbose then begin
-      Printf.printf "SENDING SHARES"; print_newline ();
+      lprintf "SENDING SHARES"; lprint_newline ();
     end;
 
   Buffer.clear buf;

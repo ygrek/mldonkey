@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-
+open Printf2
 open CommonInteractive
 open CommonClient
 open CommonComplexOptions
@@ -60,19 +60,19 @@ module Make(M: sig
       | Some sock ->
           close sock "";
           (try M.client_disconnected d with _ -> ());
-          Printf.printf "DISCONNECTED FROM SOURCE"; print_newline ();
+          lprintf "DISCONNECTED FROM SOURCE"; lprint_newline ();
           d.download_sock <- None
     
     let file_complete d =
 (*
-  Printf.printf "FILE %s DOWNLOADED" f.file_name;
-print_newline ();
+  lprintf "FILE %s DOWNLOADED" f.file_name;
+lprint_newline ();
   *)
       file_completed (M.file d.download_file);
       (try M.download_finished d with _ -> ())
     
     let download_reader d sock nread = 
-      print_char '.'; flush stdout;
+      lprint_string ".";
       if d.download_sock = None then  raise Exit;
       let file = M.file d.download_file in
       if nread >= d.download_min_read then
@@ -85,18 +85,18 @@ print_newline ();
           let fd = try
               Unix32.force_fd (file_fd file) 
             with e -> 
-                Printf.printf "In Unix32.force_fd"; print_newline ();
+                lprintf "In Unix32.force_fd"; lprint_newline ();
                 raise e
           in
           let final_pos = Unix32.seek64 (file_fd file) d.download_pos
               Unix.SEEK_SET in
           Unix2.really_write fd b.buf b.pos b.len;
         end;
-(*      Printf.printf "DIFF %d/%d" nread b.len; print_newline ();*)
+(*      lprintf "DIFF %d/%d" nread b.len; lprint_newline ();*)
         d.download_pos <- Int64.add d.download_pos (Int64.of_int b.len);
 (*
-      Printf.printf "NEW SOURCE POS %s" (Int64.to_string c.client_pos);
-print_newline ();
+      lprintf "NEW SOURCE POS %s" (Int64.to_string c.client_pos);
+lprint_newline ();
   *)
         TcpBufferedSocket.buf_used sock b.len;
         if d.download_pos > file_downloaded file then begin

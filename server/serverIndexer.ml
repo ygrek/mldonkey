@@ -67,7 +67,7 @@ let format_bit = 32 (* "format" *)
 let index_string doc s fields =
   let words = stem s in
   List.iter (fun s ->
-(*      Printf.printf "ADD [%s] in index" s; print_newline (); *)
+(*      lprintf "ADD [%s] in index" s; lprint_newline (); *)
       DocIndexer.add  index s doc fields
   ) words 
   
@@ -165,7 +165,7 @@ let add file =
 
     if file <> file2 then
       index_file doc file;
-    (*Printf.printf "Must check files with same md4"; print_newline ();*)
+    (*lprintf "Must check files with same md4"; lprint_newline ();*)
     ()
   with _ ->
       let doc = Store.add store file in

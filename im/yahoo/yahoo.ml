@@ -19,6 +19,7 @@
 
 (* Translated from sources of Gaim *)
 
+open Printf2
 open Options
 open Md4
 open BigEndian
@@ -484,8 +485,8 @@ type 'a packet = {
 let yahoo_header_len = 4 + 2 + 2 + 2 + 2 + 4 + 4
       
 let cut_messages parse f sock nread =
-  Printf.printf "server to client %d" nread; 
-  print_newline ();
+  lprintf "server to client %d" nread; 
+  lprint_newline ();
   let b = TcpBufferedSocket.buf sock in
   try
     while b.len >= yahoo_header_len do
@@ -494,22 +495,22 @@ let cut_messages parse f sock nread =
       if b.len >= yahoo_header_len + msg_len then
         let header = String.sub b.buf b.pos yahoo_header_len in
 (*        
-        Printf.printf "NEW MESSAGE: header:"; print_newline ();
+        lprintf "NEW MESSAGE: header:"; lprint_newline ();
         LittleEndian.dump header;
-        print_newline (); *)
+        lprint_newline (); *)
         let service = get_int16 b.buf (b.pos+10) in
         let status = get_int b.buf (b.pos+12) in
         let id = get_int32 b.buf (b.pos+16) in       
-        Printf.printf "server_to_client: one message"; 
-        print_newline ();
+        lprintf "server_to_client: one message"; 
+        lprint_newline ();
         let s = String.sub b.buf (b.pos + yahoo_header_len) msg_len in
         let service = service_of_int service in
-        Printf.printf "NEW MESSAGE: service %s status %x payload:" 
+        lprintf "NEW MESSAGE: service %s status %x payload:" 
           (string_of_service service) status;
-        print_newline ();
+        lprint_newline ();
         (*
         LittleEndian.dump s;
-        print_newline ();
+        lprint_newline ();
 *)
         
         let pkt = {
@@ -525,7 +526,7 @@ let cut_messages parse f sock nread =
     done
   with Not_found -> ()
   | e ->
-      Printf.printf "EXCEPTION: %s" (Printexc2.to_string e); print_newline ();
+      lprintf "EXCEPTION: %s" (Printexc2.to_string e); lprint_newline ();
       raise e
       
 let buf = Buffer.create 30000
@@ -545,8 +546,8 @@ let send_message sock pkt =
   Buffer.add_string buf pkt.payload;
   let s = Buffer.contents buf in
   Buffer.clear buf;
-  Printf.printf "SENDING MESSAGE:"; print_newline ();
-  LittleEndian.dump s; print_newline ();
+  lprintf "SENDING MESSAGE:"; lprint_newline ();
+  LittleEndian.dump s; lprint_newline ();
   write_string sock s;
   ()
   
@@ -575,7 +576,7 @@ let rec cut_in_pairs list =
   match list with
     [] -> []
   | key :: _ :: value :: _ :: tail ->
-      Printf.printf "[%s=%s]" key value; print_newline ();
+      lprintf "[%s=%s]" key value; lprint_newline ();
       (int_of_string key, value) :: (cut_in_pairs tail)
   | _ -> []
 
@@ -588,7 +589,7 @@ let cut_pairs s =
   let list = String2.split s c192 in
   (*
   List.iter (fun s ->
-      Printf.printf "item [%s]" s; print_newline ();
+      lprintf "item [%s]" s; lprint_newline ();
 ) list; 
   *)
   cut_in_pairs list
@@ -706,7 +707,7 @@ let get_sock account =
 let yahoo_handler account s event = 
   match event with
     BASIC_EVENT (CLOSED s) ->
-      Printf.printf "disconnected from yahoo"; print_newline ();
+      lprintf "disconnected from yahoo"; lprint_newline ();
       account.account_sock <- None;
       set_account_status (as_account account) Status_offline;
   | _ -> ()
@@ -714,7 +715,7 @@ let yahoo_handler account s event =
 (* NEW MESSAGE: service 2 status ffffffff payload: *)
 
 let yahoo_process_status account pkt = 
-  Printf.printf "NOT IMPLEMENTED: yahoo_process_status"; print_newline ();
+  lprintf "NOT IMPLEMENTED: yahoo_process_status"; lprint_newline ();
   List.iter (fun (key, value) ->
       match key with
       | 1 -> 
@@ -725,7 +726,7 @@ let yahoo_process_status account pkt =
   ) pkt.payload
   
 let yahoo_process_notify pkt = 
-  Printf.printf "NOT IMPLEMENTED: yahoo_process_notify"; print_newline ();
+  lprintf "NOT IMPLEMENTED: yahoo_process_notify"; lprint_newline ();
   ()
 
 let id_open_chat id =
@@ -771,7 +772,7 @@ let yahoo_process_message account pkt =
 
   *)
   
-  Printf.printf "MESSAGE FROM %s: %s" from msg; print_newline ();
+  lprintf "MESSAGE FROM %s: %s" from msg; lprint_newline ();
   begin
 (* Who sent the message *)
     let id = try
@@ -788,15 +789,15 @@ let yahoo_process_message account pkt =
   end
   
 let yahoo_process_mail pkt = 
-  Printf.printf "NOT IMPLEMENTED: yahoo_process_mail"; print_newline ();
+  lprintf "NOT IMPLEMENTED: yahoo_process_mail"; lprint_newline ();
   ()
   
 let yahoo_process_contact pkt = 
-  Printf.printf "NOT IMPLEMENTED: yahoo_process_contact"; print_newline ();
+  lprintf "NOT IMPLEMENTED: yahoo_process_contact"; lprint_newline ();
   ()
 
 let yahoo_add_friend_in_group account group name =
-  Printf.printf "group: [%s] [%s]" group name; print_newline ();
+  lprintf "group: [%s] [%s]" group name; lprint_newline ();
   let id =
     try
       Hashtbl.find account.account_friends name
@@ -823,7 +824,7 @@ let yahoo_process_list account  pkt =
   ()
       
 let yahoo_reader account pkt sock = 
-  Printf.printf "Message from Yahoo"; print_newline ();
+  lprintf "Message from Yahoo"; lprint_newline ();
   match pkt.service with
   | YAHOO_SERVICE_AUTH ->  
       let result6, result96 = yahoo_process_auth account
@@ -861,13 +862,13 @@ let yahoo_reader account pkt sock =
       yahoo_process_list account pkt
 
   | _ -> 
-      Printf.printf "UNUSED MESSAGE"; print_newline ()
+      lprintf "UNUSED MESSAGE"; lprint_newline ()
       
 let yahoo_login account =
   match account.account_sock with
     Some sock -> () (* already connected *)
   | None ->
-      Printf.printf "connecting to yahoo %s" account.account_login; print_newline ();
+      lprintf "connecting to yahoo %s" account.account_login; lprint_newline ();
       set_account_status (as_account account) Status_connecting;
       let ip = Ip.from_name yahoo_server in
       
@@ -883,7 +884,7 @@ let yahoo_login account =
           [
           1, account.account_login
         ]);
-      Printf.printf "connecting to yahoo %s" account.account_login; print_newline ()
+      lprintf "connecting to yahoo %s" account.account_login; lprint_newline ()
       
 let yahoo_remove_buddy account who group =
   let pkt = {
@@ -1132,7 +1133,7 @@ let yahoo_client_reader c pkt sock =
       ()
 
   | _ -> 
-      Printf.printf "UNUSED MESSAGE"; print_newline ()
+      lprintf "UNUSED MESSAGE"; lprint_newline ()
 
 
 let notify_status client friend =
@@ -1141,7 +1142,7 @@ let notify_status client friend =
 let client_connection_handler t event =
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
-      Printf.printf "CONNECTION From Yahoo CLient !!!"; print_newline ();
+      lprintf "CONNECTION From Yahoo CLient !!!"; lprint_newline ();
       let c = ref None in
       let sock = 
         TcpBufferedSocket.create "yahoo client connection" s 
@@ -1172,11 +1173,11 @@ let add_friend c1 c2 =
 let _ =
   try
     let _ = Sys.getenv "YAHOO_SERVER" in
-    Printf.printf "STARTING YAHOO SERVER"; print_newline ();
+    lprintf "STARTING YAHOO SERVER"; lprint_newline ();
     let sock = TcpServerSocket.create 
       "yahoo client server" Unix.inet_addr_any
         5050 client_connection_handler in
-    Printf.printf "Server binded on port 5050"; print_newline ();
+    lprintf "Server binded on port 5050"; lprint_newline ();
     ()
   with _ -> ()
       

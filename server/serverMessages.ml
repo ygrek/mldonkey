@@ -65,7 +65,7 @@ module ServerConnect = struct
       let md4 = get_md4 s 1 in
       let ip = get_ip s 17 in
       let port = get_port s 21 in
-(*      Printf.printf "port: %d" port; print_newline (); *)
+(*      lprintf "port: %d" port; lprint_newline (); *)
       let max_clients = get_int s 23 in
       let max_files = get_int s 27 in
       let ntags = get_int s 31 in
@@ -80,13 +80,13 @@ module ServerConnect = struct
       }
 
     let print t =
-      Printf.printf "SERVER CONNECT:\n";
-      Printf.printf "MD4: %s\n" (Md4.to_string t.md4);
-      Printf.printf "ip: %s\n" (Ip.to_string t.ip);
-      Printf.printf "port: %d\n" t.port;
-      Printf.printf "max_clients: %d\n" t.max_clients;
-      Printf.printf "max_files: %d\n" t.max_files;
-      Printf.printf "tags: ";
+      lprintf "SERVER CONNECT:\n";
+      lprintf "MD4: %s\n" (Md4.to_string t.md4);
+      lprintf "ip: %s\n" (Ip.to_string t.ip);
+      lprintf "port: %d\n" t.port;
+      lprintf "max_clients: %d\n" t.max_clients;
+      lprintf "max_files: %d\n" t.max_files;
+      lprintf "tags: ";
       print_tags t.tags
 
     let write buf t =
@@ -127,11 +127,11 @@ module ACKConnect = struct
       }
      
   let print t =
-    Printf.printf "SERVER ACCEPT IN GROUPE:\n";
-    Printf.printf "Group_id: %s\n" (Md4.to_string t.group_id);
-    Printf.printf "master_id: %d \n" t.server_master_id;
-    Printf.printf "ip: %d\n" t.server_id;
-    Printf.printf "tags: ";
+    lprintf "SERVER ACCEPT IN GROUPE:\n";
+    lprintf "Group_id: %s\n" (Md4.to_string t.group_id);
+    lprintf "master_id: %d \n" t.server_master_id;
+    lprintf "ip: %d\n" t.server_id;
+    lprintf "tags: ";
     print_tags t.tags
       
    
@@ -175,12 +175,12 @@ module ConnectRocky = struct
       }
      
   let print t =
-    Printf.printf "SERVER ACCEPT IN GROUPE:\n";
-    Printf.printf "Group_id: %s\n" (Md4.to_string t.group_id);
-    Printf.printf "id: %d\n" t.server_id;
-    Printf.printf "ip: %s\n" (Ip.to_string t.server_ip);
-    Printf.printf "port: %d\n" t.server_port;
-    Printf.printf "tags: ";
+    lprintf "SERVER ACCEPT IN GROUPE:\n";
+    lprintf "Group_id: %s\n" (Md4.to_string t.group_id);
+    lprintf "id: %d\n" t.server_id;
+    lprintf "ip: %s\n" (Ip.to_string t.server_ip);
+    lprintf "port: %d\n" t.server_port;
+    lprintf "tags: ";
     print_tags t.server_tags
       
    
@@ -217,11 +217,11 @@ module ConnectByGroup = struct
       }
      
   let print t =
-    Printf.printf "ConnectByGroup:\n";
-    Printf.printf "Group_id: %s\n" (Md4.to_string t.group_id);
-    Printf.printf "id: %d\n" t.server_id;
-    Printf.printf "ip: %s\n" (Ip.to_string t.server_ip);
-    Printf.printf "port: %d\n" t.server_port
+    lprintf "ConnectByGroup:\n";
+    lprintf "Group_id: %s\n" (Md4.to_string t.group_id);
+    lprintf "id: %d\n" t.server_id;
+    lprintf "ip: %s\n" (Ip.to_string t.server_ip);
+    lprintf "port: %d\n" t.server_port
    
       
    
@@ -258,11 +258,11 @@ module Recovery = struct
       }
      
   let print t =
-    Printf.printf "RECOVERY PROTOCOL NEED:\n";
-    Printf.printf "Group_id: %s\n" (Md4.to_string t.group_id);
-    Printf.printf "id: %d\n" t.server_id;
-    Printf.printf "ip: %s\n" (Ip.to_string t.server_ip);
-    Printf.printf "port: %d\n" t.server_port
+    lprintf "RECOVERY PROTOCOL NEED:\n";
+    lprintf "Group_id: %s\n" (Md4.to_string t.group_id);
+    lprintf "id: %d\n" t.server_id;
+    lprintf "ip: %s\n" (Ip.to_string t.server_ip);
+    lprintf "port: %d\n" t.server_port
    
       
    
@@ -299,11 +299,11 @@ module ServerNotification = struct
 
 
   let print t =  
-    Printf.printf "SERVER NOTIFICATION:\n";
-    Printf.printf "From groupe: %s\n" (Md4.to_string t.group_id);
-    Printf.printf "Server id: %d\n" t.server_id;
-    Printf.printf "Server ip: %s\n" (Ip.to_string t.server_ip);
-    Printf.printf "Server port: %d\n" t.server_port
+    lprintf "SERVER NOTIFICATION:\n";
+    lprintf "From groupe: %s\n" (Md4.to_string t.group_id);
+    lprintf "Server id: %d\n" t.server_id;
+    lprintf "Server ip: %s\n" (Ip.to_string t.server_ip);
+    lprintf "Server port: %d\n" t.server_port
 
 
    let write buf t = 
@@ -329,9 +329,9 @@ module ServerSupp = struct
       }
       
   let print t =  
-    Printf.printf "SERVER LEAVE THE GROUPE:\n";
-    Printf.printf "From groupe: %s\n" (Md4.to_string t.group_id);
-    Printf.printf "Server id: %d\n" t.server_id
+    lprintf "SERVER LEAVE THE GROUPE:\n";
+    lprintf "From groupe: %s\n" (Md4.to_string t.group_id);
+    lprintf "Server id: %d\n" t.server_id
 
   let write buf t = 
     buf_md4 buf t.group_id;
@@ -388,12 +388,12 @@ module LocalisationInit = struct
 	
   
   let print t =  
-    Printf.printf "Server Shared:\n";
+    lprintf "Server Shared:\n";
     List.iter ( fun y ->
-		  Printf.printf "File MD4: %s\n" (Md4.to_string y.md4);
+		  lprintf "File MD4: %s\n" (Md4.to_string y.md4);
 		  List.iter ( fun x ->
-				Printf.printf "Source ip: %s\n" (Ip.to_string x.source_ip);
-				Printf.printf "Source port: %d\n" x.source_port
+				lprintf "Source ip: %s\n" (Ip.to_string x.source_ip);
+				lprintf "Source port: %d\n" x.source_port
 			    ) y.sources
 	      ) t
 
@@ -463,12 +463,12 @@ module LocalisationNotif= struct
 	
   
   let print t =  
-    Printf.printf "Server Shared:\n";
+    lprintf "Server Shared:\n";
     List.iter ( fun y ->
-		  Printf.printf "File MD4: %s\n" (Md4.to_string y.md4);
+		  lprintf "File MD4: %s\n" (Md4.to_string y.md4);
 		  List.iter ( fun x ->
-				Printf.printf "Source ip: %s\n" (Ip.to_string x.source_ip);
-				Printf.printf "Source port: %d\n" x.source_port
+				lprintf "Source ip: %s\n" (Ip.to_string x.source_ip);
+				lprintf "Source port: %d\n" x.source_port
 			    ) y.sources
 	      ) t
 
@@ -506,12 +506,12 @@ module LocateNotif= struct
   let rec list_sources s pos nb_sources =
     if nb_sources = 0 then [],pos else
       let add,pos = get_bool s pos in
-	(*Printf.printf "add %s at pos %d \n" (string_of_bool add) pos;*)
+	(*lprintf "add %s at pos %d \n" (string_of_bool add) pos;*)
       let id = get_ip s pos in
       let ip = get_ip s (pos+4) in
-	(*Printf.printf "at  %s" (Ip.to_string ip);*)
+	(*lprintf "at  %s" (Ip.to_string ip);*)
       let port = get_port s (pos+8) in
-	(*Printf.printf "port  %d\n" port;*)
+	(*lprintf "port  %d\n" port;*)
       let source = {
 	add = add;
 	source_id = id;
@@ -519,7 +519,7 @@ module LocateNotif= struct
 	source_port = port;
       } in
       let sources,pos = list_sources s (pos+10) (nb_sources-1) in
-	(*Printf.printf "at pos %d \n" pos;*)
+	(*lprintf "at pos %d \n" pos;*)
 	(source :: sources),pos
 
 
@@ -528,9 +528,9 @@ module LocateNotif= struct
   let rec list_md4 htbl s pos nb_md4 =
       if nb_md4 = 0 then htbl else
 	let md4 = get_md4 s pos in
-	  (*Printf.printf "get %s\n" (Md4.to_string md4);*)
+	  (*lprintf "get %s\n" (Md4.to_string md4);*)
 	let nb_sources = get_int s (pos+16) in
-	  (*Printf.printf "nbsources %d\n"  nb_sources;*)
+	  (*lprintf "nbsources %d\n"  nb_sources;*)
 	let sources,pos = list_sources s (pos+20) nb_sources in
 	  Hashtbl.add htbl md4 sources;
 	  (list_md4 htbl s pos (nb_md4-1))
@@ -548,7 +548,7 @@ module LocateNotif= struct
 	Hashtbl.iter (fun md4 sources ->
 			count := !count + (List.length sources)
 		     ) notifs;
-	Printf.printf "During Parsing %d notifs\n" !count;*)
+	lprintf "During Parsing %d notifs\n" !count;*)
 	{
           message_id = message_id;
 	  nb_notifs = nb_md4;
@@ -556,22 +556,22 @@ module LocateNotif= struct
 	  notifs = notifs;
 	}
     with _ ->
-      Printf.printf "Parsing PB\n";
+      lprintf "Parsing PB\n";
       raise Not_found
 
   
   let print t =  
-    Printf.printf "SERVER SHARED NOTIFICATION %d : %d NOTIFS\n" t.message_id t.nb_notifs;
-     Printf.printf "Ack for : %d\n" t.ack;
+    lprintf "SERVER SHARED NOTIFICATION %d : %d NOTIFS\n" t.message_id t.nb_notifs;
+     lprintf "Ack for : %d\n" t.ack;
     Hashtbl.iter ( fun id notifs ->
-		     Printf.printf "File MD4: %s\n" (Md4.to_string id);
+		     lprintf "File MD4: %s\n" (Md4.to_string id);
 		     List.iter ( fun x ->
 				   if x.add then
-				     Printf.printf "ADD\n"
+				     lprintf "ADD\n"
 				   else
-				     Printf.printf "SUPP\n";
-				   Printf.printf "Source ip: %s\n" (Ip.to_string x.source_ip);
-				   Printf.printf "Source port: %d\n" x.source_port
+				     lprintf "SUPP\n";
+				   lprintf "Source ip: %s\n" (Ip.to_string x.source_ip);
+				   lprintf "Source port: %d\n" x.source_port
 			       ) notifs
 		 ) t.notifs
       
@@ -600,7 +600,7 @@ module AckNotif = struct
     (get_int s 1) 
 
   let print t =
-    Printf.printf "ACK %d NOTIF PACKET\n" t
+    lprintf "ACK %d NOTIF PACKET\n" t
   
   let write buf t =
     buf_int buf t
@@ -628,10 +628,10 @@ module AddSource = struct
       }
  
     let print t =  
-      Printf.printf "ADD A SOURCE:\n";
-      Printf.printf "File MD4: %s\n" (Md4.to_string t.md4);
-      Printf.printf "Source ip: %s\n" (Ip.to_string t.source_ip);
-      Printf.printf "Source port: %d\n" t.source_port
+      lprintf "ADD A SOURCE:\n";
+      lprintf "File MD4: %s\n" (Md4.to_string t.md4);
+      lprintf "Source ip: %s\n" (Ip.to_string t.source_ip);
+      lprintf "Source port: %d\n" t.source_port
 
 
     let write buf t =
@@ -659,10 +659,10 @@ module SuppSource = struct
       }
       
     let print t =  
-      Printf.printf "SUPP A SOURCE:\n";
-      Printf.printf "File MD4: %s\n" (Md4.to_string t.md4);
-      Printf.printf "Source ip: %s\n" (Ip.to_string t.source_ip);
-      Printf.printf "Source port: %d\n" t.source_port
+      lprintf "SUPP A SOURCE:\n";
+      lprintf "File MD4: %s\n" (Md4.to_string t.md4);
+      lprintf "Source ip: %s\n" (Ip.to_string t.source_ip);
+      lprintf "Source port: %d\n" t.source_port
 
     let write buf t = 
       buf_md4 buf t.md4; 
@@ -686,9 +686,9 @@ module QueryFileInfo = struct
       get_list_md4 nb_md4 s 5 
 
     let print t =
-    Printf.printf "List of Md4:";
+    lprintf "List of Md4:";
     List.iter (fun md4 ->
-        Printf.printf "%s\n" (Md4.to_string md4)
+        lprintf "%s\n" (Md4.to_string md4)
               ) t
 
      let write buf t =
@@ -737,9 +737,9 @@ module QueryFileInfoReply = struct
       get_list_info nb_md4 s 5 
 
     let print t =
-    Printf.printf "List of Md4:";
+    lprintf "List of Md4:";
     List.iter (fun i ->
-        Printf.printf "%s\n" (Md4.to_string i.md4);
+        lprintf "%s\n" (Md4.to_string i.md4);
         print_tags i.tags 
               ) t
 
@@ -773,10 +773,10 @@ module QueryUserConnect = struct
       }
       
     let print t =  
-      Printf.printf "CONNECT A REMOTE FIREWALLED CLIENT:\n";
-      Printf.printf "Local id: %s\n" (Ip.to_string t.local_client_id);
-      Printf.printf "Source ip: %s\n" (Ip.to_string t.client_ip);
-      Printf.printf "Source port: %d\n" t.client_port
+      lprintf "CONNECT A REMOTE FIREWALLED CLIENT:\n";
+      lprintf "Local id: %s\n" (Ip.to_string t.local_client_id);
+      lprintf "Source ip: %s\n" (Ip.to_string t.client_ip);
+      lprintf "Source port: %d\n" t.client_port
 
     let write buf t = 
       buf_ip buf t.local_client_id; 
@@ -794,8 +794,8 @@ module Message = struct
       v
     
     let print t = 
-      Printf.printf "MESSAGE:\n";
-      Printf.printf "message = \"%s\"" (String.escaped t)
+      lprintf "MESSAGE:\n";
+      lprintf "message = \"%s\"" (String.escaped t)
     
     let fprint oc t = 
       Printf.fprintf oc "MESSAGE:\n";
@@ -841,7 +841,7 @@ let parse magic s =
     let len = String.length s in
     if len = 0 then raise Not_found;
     let opcode = int_of_char (s.[0]) in
-(*    Printf.printf "opcode: %d" opcode; print_newline (); *)
+(*    lprintf "opcode: %d" opcode; lprint_newline (); *)
     match opcode with
     | 1 -> ServerConnectReq (ServerConnect.parse len s)
     | 2 -> QuitReq
@@ -863,7 +863,7 @@ let parse magic s =
     | 50 -> QueryUserConnectReq (QueryUserConnect.parse len s)
     | _ -> raise Not_found
   with e ->
-      Printf.printf "From server to server :"; print_newline ();
+      lprintf "From server to server :"; lprint_newline ();
       dump s;
       UnKnownReq s
 
@@ -872,7 +872,7 @@ let print t =
   begin
     match t with
     | ServerConnectReq t -> ServerConnect.print t
-    | QuitReq -> Printf.printf("Server Quit Relais Group\n");
+    | QuitReq -> lprintf("Server Quit Relais Group\n");
     | ACKConnectReq t -> ACKConnect.print t
     | ConnectByGroupReq t -> ConnectByGroup.print t
     | ServerSuppReq t -> ServerSupp.print t
@@ -891,7 +891,7 @@ let print t =
     | UnKnownReq t-> DonkeyProtoServer.print (DonkeyProtoServer.UnknownReq t)
     | MessageReq t -> Message.print t
   end;
-  print_newline()
+  lprint_newline()
 
 
 

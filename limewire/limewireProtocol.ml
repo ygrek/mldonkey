@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open CommonOptions
 open LimewireOptions
 open Options
@@ -102,10 +103,10 @@ grouped? (none = true) : connection speed : ultrapeer possible
     let print t = 
       match t with
         SimplePing -> 
-          Printf.printf "SIMPLE PING"; print_newline ();
+          lprintf "SIMPLE PING"; lprint_newline ();
       | ComplexPing t ->
-          Printf.printf "PING FROM %s:%d" (Ip.to_string t.ip) t.port;
-          print_newline () 
+          lprintf "PING FROM %s:%d" (Ip.to_string t.ip) t.port;
+          lprint_newline () 
     
     let write buf t =
       match t with
@@ -139,8 +140,8 @@ module Pong = struct (* PONG *)
       }
       
     let print t = 
-      Printf.printf "PONG FROM %s:%d" (Ip.to_string t.ip) t.port;
-      print_newline () 
+      lprintf "PONG FROM %s:%d" (Ip.to_string t.ip) t.port;
+      lprint_newline () 
       
     let write buf t =
       buf_int16 buf t.port;
@@ -171,9 +172,9 @@ module Push = struct (* PUSH *)
       }
       
     let print t = 
-      Printf.printf "PUSH TO %s:%d OF %d" 
+      lprintf "PUSH TO %s:%d OF %d" 
         (Ip.to_string t.ip) t.port t.index;
-      print_newline () 
+      lprint_newline () 
       
     let write buf t =
       buf_md4 buf t.guid;
@@ -214,8 +215,8 @@ f a r m e r   m y l e n e  (0) < ? x m l   v e r s i o n = " 1 . 0 " ? > < a u d
       }
       
     let print t = 
-      Printf.printf "QUERY FOR %s (%s)" t.keywords t.xml_query;
-      print_newline () 
+      lprintf "QUERY FOR %s (%s)" t.keywords t.xml_query;
+      lprint_newline () 
       
     let write buf t =
       buf_int16 buf t.min_speed;
@@ -347,12 +348,12 @@ E A 3 B 7 "   b i t r a t e = " 1 6 0 "   s e c o n d s = " 3 7 5 " i n d e x = 
       }
     
     let print t = 
-      Printf.printf "QUERY REPLY FROM %s:%d" (Ip.to_string t.ip) t.port;
-      print_newline ();
+      lprintf "QUERY REPLY FROM %s:%d" (Ip.to_string t.ip) t.port;
+      lprint_newline ();
       List.iter (fun f ->
-          Printf.printf "   FILE %s SIZE %s INDEX %d" f.name 
+          lprintf "   FILE %s SIZE %s INDEX %d" f.name 
             (Int64.to_string f.size) f.index;
-          print_newline ();
+          lprint_newline ();
       ) t.files
     
     let rec write_files buf files =
@@ -414,7 +415,7 @@ module QrtReset = struct
       }
       
     let print t = 
-      Printf.printf "QRT Reset %d %d" t.table_length t.infinity
+      lprintf "QRT Reset %d %d" t.table_length t.infinity
       
     let write buf t = 
       buf_int buf t.table_length;
@@ -450,7 +451,7 @@ struct gnutella_qrp_patch {
       }
       
     let print t = 
-      Printf.printf "QRT PATCH"
+      lprintf "QRT PATCH"
       
     let write buf t = 
       buf_int8 buf t.seq_no;
@@ -499,8 +500,8 @@ let parse pkt =
     | UNKNOWN i ->  { pkt with pkt_payload = UnknownReq 
           (UNKNOWN i,pkt.pkt_payload) }
   with e ->
-      Printf.printf "Exception in parse: %s" (Printexc2.to_string e);
-      print_newline ();
+      lprintf "Exception in parse: %s" (Printexc2.to_string e);
+      lprint_newline ();
       dump pkt.pkt_payload;
       { pkt with pkt_payload = UnknownReq (pkt.pkt_type,pkt.pkt_payload) }
         
@@ -529,7 +530,7 @@ let print p =
   | QueryReq t -> Query.print t
   | QueryReplyReq t -> QueryReply.print t
   | UnknownReq (i,s) -> 
-      Printf.printf "UNKNOWN message:"; print_newline ();
+      lprintf "UNKNOWN message:"; lprint_newline ();
       dump s
       
 let buf = Buffer.create 1000
@@ -555,7 +556,7 @@ let server_msg_to_string pkt =
   let s = Buffer.contents buf in
   let len = String.length s - 23 in
   str_int s 19 len;
-  Printf.printf "SENDING :"; print_newline ();
+  lprintf "SENDING :"; lprint_newline ();
   dump s;
   s 
 
@@ -585,7 +586,7 @@ let server_send sock t =
       
 let gnutella_handler parse f sock nread =
   let b = TcpBufferedSocket.buf sock in
-  Printf.printf "GNUTELLA HANDLER"; print_newline ();
+  lprintf "GNUTELLA HANDLER"; lprint_newline ();
   dump (String.sub b.buf b.pos b.len);
   try
     while b.len >= 23 do
@@ -638,8 +639,8 @@ let handler info header_handler body_handler =
                 let header = String.sub b.buf b.pos (i - b.pos) in
                 
                 if info then begin
-                    Printf.printf "HEADER : ";
-                    dump header; print_newline ();
+                    lprintf "HEADER : ";
+                    dump header; lprint_newline ();
                   end;
                 header_done := true;
                 
@@ -649,10 +650,10 @@ let handler info header_handler body_handler =
                     buf_used sock nused;              
                     if nread - nused > 20 then begin
 (*
-                  Printf.printf "BEGINNING OF BLOC (6 bytes from header)";
-                  print_newline ();
+                  lprintf "BEGINNING OF BLOC (6 bytes from header)";
+                  lprint_newline ();
                   dump (String.sub b.buf (b.pos-6) (min 20 (b.len - b.pos + 6)));
-Printf.printf "LEFT %d" (nread - nused); print_newline ();
+lprintf "LEFT %d" (nread - nused); lprint_newline ();
 *)
                         ()
                       end;
@@ -664,7 +665,7 @@ Printf.printf "LEFT %d" (nread - nused); print_newline ();
             iter (i+1) false
         else begin
             if info then (
-                Printf.printf "END OF HEADER WITHOUT END"; print_newline ();
+                lprintf "END OF HEADER WITHOUT END"; lprint_newline ();
                 let header = String.sub b.buf b.pos b.len in
                 LittleEndian.dump header;
               );
@@ -672,8 +673,8 @@ Printf.printf "LEFT %d" (nread - nused); print_newline ();
       in
       iter begin_pos false
     with e ->
-        Printf.printf "Exception %s in handler" (Printexc2.to_string e); 
-        print_newline ();
+        lprintf "Exception %s in handler" (Printexc2.to_string e); 
+        lprint_newline ();
         raise e
         
 let handlers header_handlers body_handler =
@@ -683,7 +684,7 @@ let handlers header_handlers body_handler =
     match !headers with
       [] -> body_handler sock nread
     | header_handler :: tail ->
-        Printf.printf "header handler"; print_newline ();
+        lprintf "header handler"; lprint_newline ();
         let end_pos = b.pos + b.len in
         let begin_pos = max b.pos (end_pos - nread - 3) in
         let rec iter i n_read =
@@ -695,8 +696,8 @@ let handlers header_handlers body_handler =
               if n_read then begin
                   let header = String.sub b.buf b.pos (i - b.pos) in
 (*
-                  Printf.printf "HEADER : ";
-                  dump header; print_newline ();
+                  lprintf "HEADER : ";
+                  dump header; lprint_newline ();
 *)
                   headers := tail;
                   header_handler sock header;

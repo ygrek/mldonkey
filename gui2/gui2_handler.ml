@@ -19,6 +19,7 @@
 
 open Md4
 
+open Printf2
 open CommonGlobals
 open CommonTypes
 open Options
@@ -139,16 +140,16 @@ exception NotConnectedToClient
 let gui_send t = 
   match !connection_sock with
     None -> 
-      Printf.printf "Message not sent since not connected";
-      print_newline ();
+      lprintf "Message not sent since not connected";
+      lprint_newline ();
   | Some sock ->
       GuiEncoding.gui_send (GuiEncoding.from_gui !gui_protocol_used) sock t
       
 let _ = 
   (try Options.load mldonkey_gui_ini with
       e ->
-        Printf.printf "Exception %s in load options" (Printexc2.to_string e);
-        print_newline ();
+        lprintf "Exception %s in load options" (Printexc2.to_string e);
+        lprint_newline ();
   );
   let args = Options.simple_args mldonkey_gui_ini in
   Arg.parse args (Arg.usage args)  "mldonkey_gui: the GUI to use with mldonkey"
@@ -468,7 +469,7 @@ let menu_save_file t =
         match file.file_format with
           MP3 (tag, _) ->
             let edit_mp3tag file () = 
-(*              Printf.printf "do it"; print_newline (); *)
+(*              lprintf "do it"; lprint_newline (); *)
               (
                 Mp3_ui.edit_tag_v1 Gui2_messages.mes_edit_mp3 tag ;
                 gui_send (GuiProto.ModifyMp3Tags (file.file_num, tag))
@@ -933,7 +934,7 @@ let array_memq v tab =
     
 let update_file f =
   try
-(*        Printf.printf "Download_file"; print_newline (); *)
+(*        lprintf "Download_file"; lprint_newline (); *)
     let clist = gui#tab_downloads#clist_downloads in
 (* GUI2 REMOVED
     begin
@@ -965,9 +966,9 @@ end;
               gui_send (GetFile_locations f.file_num)              
         )
   with e ->
-      Printf.printf "Exception %s in update file %s"
+      lprintf "Exception %s in update file %s"
         (Printexc2.to_string e) (Md4.to_string f.file_md4);
-      print_newline () 
+      lprint_newline () 
       
 let value_reader (gui: gui) t sock =
   try
@@ -983,13 +984,13 @@ let value_reader (gui: gui) t sock =
     
     | CoreProtocol v -> 
         gui_protocol_used := min v GuiEncoding.best_gui_version;
-        Printf.printf "Using protocol %d for communications" !gui_protocol_used;
-        print_newline ();
+        lprintf "Using protocol %d for communications" !gui_protocol_used;
+        lprint_newline ();
         gui#label_connect_status#set_text "Connected";
         gui_send (Password (!!password))
     
     | P.Search_result (s_num, r_num) -> 
-(*        Printf.printf "Search_result"; print_newline (); *)
+(*        lprintf "Search_result"; lprint_newline (); *)
         begin
           try
             let clist_search, label_query = 
@@ -1000,7 +1001,7 @@ let value_reader (gui: gui) t sock =
         end
     
     | P.Search_waiting (num,waiting) -> 
-(*        Printf.printf "Search_waiting"; print_newline (); *)
+(*        lprintf "Search_waiting"; lprint_newline (); *)
         begin
           try
             let (_, label_waiting) = Hashtbl.find searches num in
@@ -1047,7 +1048,7 @@ let value_reader (gui: gui) t sock =
         begin try update_file f with _ -> () end
     
     | P.Server_info s ->
-(*        Printf.printf "Server_info"; print_newline ();  *)
+(*        lprintf "Server_info"; lprint_newline ();  *)
         let key = server_key s in
         begin
           try
@@ -1102,7 +1103,7 @@ let value_reader (gui: gui) t sock =
         end
     
     | P.Client_info c -> 
-(*        Printf.printf "Client_info"; print_newline (); *)
+(*        lprintf "Client_info"; lprint_newline (); *)
         begin try ignore (canon_client c) with _ -> () end;
         begin
           match !current_file with
@@ -1228,5 +1229,5 @@ let value_reader (gui: gui) t sock =
     | File_update_availability (_, _, _)
       -> assert false
   with e ->
-      Printf.printf "EXception %s in reader" (Printexc2.to_string e);
-      print_newline ()
+      lprintf "EXception %s in reader" (Printexc2.to_string e);
+      lprint_newline ()

@@ -9,8 +9,8 @@ let _ =
   Multicast.send sock mgroup mport (Sys.argv.(1));
   while true do
     let len,_ = Multicast.recv sock buffer in
-    Printf.printf "RECEIVED: %s" (String.escaped (String.sub buffer 0 len));
-    print_newline ();
+    lprintf "RECEIVED: %s" (String.escaped (String.sub buffer 0 len));
+    lprint_newline ();
     sleep 1;
     Multicast.send sock mgroup mport (Sys.argv.(1));
   done

@@ -53,7 +53,15 @@ TARGETS= use_tags$(EXE) mlnet$(EXE)
 #######################################################################
 
 
-CDK_SRCS=\
+ifeq ("$(ZLIB)" , "yes")
+  LIBS_opt += -cclib -lz
+  LIBS_byte += -cclib -lz
+  CDK_SRCS +=  cdk/zlib.ml cdk/zlibstubs.c
+endif
+
+CDK_SRCS += lib/autoconf.ml
+
+CDK_SRCS+= lib/fifo.ml  cdk/printf2.ml \
    cdk/heap.ml cdk/dprintf.ml \
   cdk/printexc2.ml cdk/genlex2.ml cdk/sysenv.ml \
   cdk/netbase.ml cdk/filepath.ml cdk/string2.ml \
@@ -61,12 +69,6 @@ CDK_SRCS=\
   cdk/file.ml cdk/unix2.ml cdk/weak2.ml \
   cdk/heap_c.c cdk/array2.ml cdk/sort2.ml \
   cdk/xmllex.mll cdk/xmlyacc.mly cdk/xml.ml
-
-ifeq ("$(ZLIB)" , "yes")
-  LIBS_opt += -cclib -lz
-  LIBS_byte += -cclib -lz
-  CDK_SRCS +=  cdk/zlib.ml cdk/zlibstubs.c
-endif
 
 ifneq ("$(PTHREAD_CFLAGS)" , "")
   CFLAGS += $(PTHREAD_CFLAGS)
@@ -84,12 +86,12 @@ MP3TAG_SRCS=     mp3tagui/mp3_info.ml  mp3tagui/mp3_genres.ml \
   mp3tagui/mp3_tag.ml mp3tagui/mp3tag.ml
 
 
-LIB_SRCS=   lib/autoconf.ml \
+LIB_SRCS=   \
   config/$(OS_FILES)/mlUnix.ml \
   config/$(OS_FILES)/os_stubs_c.c \
   lib/intmap.ml lib/stringMap.ml \
   lib/int32ops.ml lib/options.ml4 lib/numset.ml  \
-  lib/fifo.ml lib/fifo2.ml lib/intset.ml \
+  lib/fifo2.ml lib/intset.ml \
   lib/hole_tab.ml lib/store.ml \
   lib/indexer.ml lib/indexer1.ml lib/indexer2.ml lib/host.ml  \
   lib/misc.ml lib/unix32.ml  lib/md4.ml \

@@ -19,6 +19,7 @@
 
 (** GUI labels. *)
 
+open Printf2
 open Options
 open Gettext
 
@@ -29,7 +30,7 @@ let message_file_name = try
 
       (*
 let _ =
-  Printf.printf "Using Message File %s" message_file_name; print_newline ()
+  lprintf "Using Message File %s" message_file_name; lprint_newline ()
   *)
 
 let message_file = Options.create_options_file message_file_name
@@ -474,11 +475,11 @@ let _ =
       Sys_error _ ->
         (try Options.save message_file with _ -> ())
     | e ->
-        Printf.printf "Error %s loading message file %s"
+        lprintf "Error %s loading message file %s"
           (Printexc2.to_string e) 
         (Options.options_file_name message_file);
-        print_newline ();
-        Printf.printf "Using default messages."; print_newline ();
+        lprint_newline ();
+        lprintf "Using default messages."; lprint_newline ();
   )
   
 (** {2 Help text, change log} *)

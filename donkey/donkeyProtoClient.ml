@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open Md4
 open CommonTypes
 open LittleEndian
@@ -84,7 +85,7 @@ ed 1d             ..<...Ôu çÝí.
       let md4 = get_md4 s 2 in
       let ip = get_ip s 18 in
       let port = get_port s 22 in
-(*      Printf.printf "port: %d" port; print_newline (); *)
+(*      lprintf "port: %d" port; lprint_newline (); *)
       let tags, pos = get_tags s 24 names_of_tag in
       let len = String.length s in
       let server_info = 
@@ -102,22 +103,22 @@ ed 1d             ..<...Ôu çÝí.
       }
     
     let print t = 
-      Printf.printf "CONNECT:\n";
-      Printf.printf "version: %d" t.version; print_newline ();
-      Printf.printf "MD4: %s\n" (Md4.to_string t.md4); 
-      Printf.printf "ip: %s\n" (Ip.to_string t.ip);
-      Printf.printf "port: %d\n" t.port;
-      Printf.printf "tags: ";
+      lprintf "CONNECT:\n";
+      lprintf "version: %d" t.version; lprint_newline ();
+      lprintf "MD4: %s\n" (Md4.to_string t.md4); 
+      lprintf "ip: %s\n" (Ip.to_string t.ip);
+      lprintf "port: %d\n" t.port;
+      lprintf "tags: ";
       print_tags t.tags;
-      print_newline ();
+      lprint_newline ();
       (match t.server_info with
           None -> ()
         | Some (ip, port) ->
-            Printf.printf "ip_server: %s\n" (Ip.to_string ip);
-            Printf.printf "port_server: %d\n" port);
-      String.iter (fun c -> Printf.printf "(%d)" (int_of_char c)) 
+            lprintf "ip_server: %s\n" (Ip.to_string ip);
+            lprintf "port_server: %d\n" port);
+      String.iter (fun c -> lprintf "(%d)" (int_of_char c)) 
       t.left_bytes;
-      Printf.printf "\n"
+      lprintf "\n"
     
     let write buf t =
       buf_int8 buf t.version;
@@ -159,7 +160,7 @@ module ConnectReply  = struct
       let md4 = get_md4 s 1 in
       let ip = get_ip s 17 in
       let port = get_port s 21 in
-(*      Printf.printf "port: %d" port; print_newline (); *)
+(*      lprintf "port: %d" port; lprint_newline (); *)
       let tags, pos = get_tags s 23 names_of_tag in
       let server_info =  Some (get_ip s pos, get_port s (pos+4)) in
       let left_bytes = String.sub s (pos+6) (String.length s - pos - 6) in
@@ -173,21 +174,21 @@ module ConnectReply  = struct
       }
     
     let print t = 
-      Printf.printf "CONNECT REPLY:\n";
-      Printf.printf "MD4: %s\n" (Md4.to_string t.md4); 
-      Printf.printf "ip: %s\n" (Ip.to_string t.ip);
-      Printf.printf "port: %d\n" t.port;
-      Printf.printf "tags: ";
+      lprintf "CONNECT REPLY:\n";
+      lprintf "MD4: %s\n" (Md4.to_string t.md4); 
+      lprintf "ip: %s\n" (Ip.to_string t.ip);
+      lprintf "port: %d\n" t.port;
+      lprintf "tags: ";
       print_tags t.tags;
-      print_newline ();
+      lprint_newline ();
       (match t.server_info with
           None -> ()
         | Some (ip, port) ->
-            Printf.printf "ip_server: %s\n" (Ip.to_string ip);
-            Printf.printf "port_server: %d\n" port);
-      String.iter (fun c -> Printf.printf "(%d)" (int_of_char c)) 
+            lprintf "ip_server: %s\n" (Ip.to_string ip);
+            lprintf "port_server: %d\n" port);
+      String.iter (fun c -> lprintf "(%d)" (int_of_char c)) 
       t.left_bytes;
-      Printf.printf "\n"
+      lprintf "\n"
       
     let write buf t =
       buf_md4 buf t.md4;
@@ -212,7 +213,7 @@ module Say = struct
       s
       
     let print t =
-      Printf.printf "SAY %s" t
+      lprintf "SAY %s" t
       
     let write buf t =
       buf_string buf t
@@ -225,7 +226,7 @@ module OneMd4 = functor(M: sig val m : string end) -> (struct
       get_md4 s 1
       
     let print t = 
-          Printf.printf "%s OF %s" M.m (Md4.to_string t)
+          lprintf "%s OF %s" M.m (Md4.to_string t)
           
     let write buf t = 
       buf_md4 buf t
@@ -259,7 +260,7 @@ module QueryChunksReply = struct (* Request 80 *)
     let parse len s = 
       let md4 = get_md4 s 1 in
       let nchunks = get_int16 s 17 in
-(*      Printf.printf "nchunks : %d" nchunks; print_newline ();*)
+(*      lprintf "nchunks : %d" nchunks; lprint_newline ();*)
       let chunks = 
         if nchunks = 0 then [||] else
         let chunks = Array.create nchunks false  in
@@ -279,12 +280,12 @@ module QueryChunksReply = struct (* Request 80 *)
       }
     
     let print t =
-      Printf.printf "CHUNKS for %s" (Md4.to_string t.md4);
-      print_newline ();
-      print_string "   ";
+      lprintf "CHUNKS for %s" (Md4.to_string t.md4);
+      lprint_newline ();
+      lprint_string "   ";
       Array.iter (fun b -> 
-          if b then Printf.printf "1" else Printf.printf "0") t.chunks;
-      print_newline ()
+          if b then lprintf "1" else lprintf "0") t.chunks;
+      lprint_newline ()
     
     let write buf t =
       buf_md4 buf t.md4;
@@ -329,7 +330,7 @@ module QueryChunkMd4Reply = struct (* Request 80 *)
     let parse len s = 
       let md4 = get_md4 s 1 in
       let nchunks = get_int16 s 17 in
-(*      Printf.printf "nchunks : %d" nchunks; print_newline (); *)
+(*      lprintf "nchunks : %d" nchunks; lprint_newline (); *)
       let chunks = Array.create nchunks md4  in
       for i = 0 to nchunks - 1 do
         chunks.(i) <- get_md4 s (19 + i * 16)        
@@ -340,13 +341,13 @@ module QueryChunkMd4Reply = struct (* Request 80 *)
       }
 
     let print t =
-      Printf.printf "CHUNKS for %s" (Md4.to_string t.md4);
-      print_newline ();
-      print_string "   ";
+      lprintf "CHUNKS for %s" (Md4.to_string t.md4);
+      lprint_newline ();
+      lprint_string "   ";
       Array.iter (fun b -> 
-          Printf.printf "  %s" (Md4.to_string b))
+          lprintf "  %s" (Md4.to_string b))
       t.chunks;
-      print_newline ()
+      lprint_newline ()
       
     let write buf t =
       buf_md4 buf t.md4;
@@ -371,8 +372,8 @@ module QueryFileReply  = struct
       }
       
     let print t = 
-      Printf.printf "QUERY FILE REPLY OF %s\n" (Md4.to_string t.md4);
-      Printf.printf "  name = \"%s\"\n" t.name
+      lprintf "QUERY FILE REPLY OF %s\n" (Md4.to_string t.md4);
+      lprintf "  name = \"%s\"\n" t.name
       
     let write buf t = 
       buf_md4 buf t.md4;
@@ -400,7 +401,7 @@ module Bloc  = struct
       }
       
     let print t = 
-      Printf.printf "BLOC OF %s [%s - %s]" (Md4.to_string t.md4)
+      lprintf "BLOC OF %s [%s - %s]" (Md4.to_string t.md4)
       (Int64.to_string t.start_pos)
       (Int64.to_string t.end_pos)
       
@@ -434,7 +435,7 @@ module QueryBloc  = struct
       }
       
     let print t = 
-      Printf.printf "QUERY BLOCS OF %s [%s - %s] [%s - %s] [%s - %s]"
+      lprintf "QUERY BLOCS OF %s [%s - %s] [%s - %s] [%s - %s]"
       (Md4.to_string t.md4)
       (Int64.to_string t.start_pos1) (Int64.to_string t.end_pos1)
       (Int64.to_string t.start_pos2) (Int64.to_string t.end_pos2)
@@ -459,7 +460,7 @@ module NoArg = functor(M: sig val m : string end) -> (struct
         let parse len s = ()
         
         let print t = 
-          Printf.printf "%s:\n" M.m
+          lprintf "%s:\n" M.m
         
         let write (buf: Buffer.t) (t: t) = unit
           
@@ -521,15 +522,15 @@ module ViewFilesReply = struct
       files
     
     let print t = 
-      Printf.printf "VIEW FILES REPLY:\n";
+      lprintf "VIEW FILES REPLY:\n";
       List.iter (fun t ->
-          Printf.printf "FILE:\n";
-          Printf.printf "  MD4: %s\n" (Md4.to_string t.f_md4);
-          Printf.printf "  ip: %s\n" (Ip.to_string t.f_ip);
-          Printf.printf "  port: %d\n" t.f_port;
-          Printf.printf "  tags: ";
+          lprintf "FILE:\n";
+          lprintf "  MD4: %s\n" (Md4.to_string t.f_md4);
+          lprintf "  ip: %s\n" (Ip.to_string t.f_ip);
+          lprintf "  port: %d\n" t.f_port;
+          lprintf "  tags: ";
           print_tags t.f_tags;
-          print_newline ();) t
+          lprint_newline ();) t
     
     let rec write_files buf files =
       match files with
@@ -573,10 +574,10 @@ module OtherLocations = struct
       !list
     
     let print t = 
-      Printf.printf "OTHER LOCATIONS:\n";
+      lprintf "OTHER LOCATIONS:\n";
       List.iter (fun ip ->
-          Printf.printf "  ip: %s\n" (Ip.to_string ip);
-          print_newline ();) t
+          lprintf "  ip: %s\n" (Ip.to_string ip);
+          lprint_newline ();) t
         
     let write buf t = 
       List.iter (buf_ip buf) t
@@ -590,7 +591,7 @@ module NewUserID = struct
       get_ip s 1, get_ip s 5
     
     let print (ip1,ip2) = 
-      Printf.printf "NEW USER ID: %s -> %s\n" (Ip.to_string ip1)
+      lprintf "NEW USER ID: %s -> %s\n" (Ip.to_string ip1)
       (Ip.to_string ip2)
         
     let write buf (ip1,ip2) = 
@@ -620,11 +621,11 @@ module Sources = struct
       }
     
     let print t = 
-      Printf.printf "SOURCES for %s:\n" (Md4.to_string t.md4);
-      print_newline ();
+      lprintf "SOURCES for %s:\n" (Md4.to_string t.md4);
+      lprint_newline ();
       List.iter (fun (ip1, port, ip2) ->
-          Printf.printf "  %s:%d:%s\n" (Ip.to_string ip1) port(Ip.to_string ip2);
-          print_newline ();) t.sources
+          lprintf "  %s:%d:%s\n" (Ip.to_string ip1) port(Ip.to_string ip2);
+          lprint_newline ();) t.sources
         
     let write buf t = 
       buf_int16 buf (List.length t.sources);
@@ -670,12 +671,12 @@ module EmuleClientInfo = struct
       }
       
     let print m t = 
-      Printf.printf "%s:\n" m;
-      Printf.printf "  version: %d\n" t.version;
-      Printf.printf "  protversion: %d\n" t.version;
-      Printf.printf "  tags: "; 
+      lprintf "%s:\n" m;
+      lprintf "  version: %d\n" t.version;
+      lprintf "  protversion: %d\n" t.version;
+      lprintf "  tags: "; 
       print_tags t.tags;
-	  print_newline ()
+	  lprint_newline ()
         
     let write buf t = 
       buf_int8 buf t.version;
@@ -690,7 +691,7 @@ module EmuleQueueRanking = struct
       
     let parse len s = get_int16 s 1      
     let print t = 
-      Printf.printf "QUEUE RANKING: %d" t; print_newline ()
+      lprintf "QUEUE RANKING: %d" t; lprint_newline ()
 
     let string_null10 = String.make 10 (char_of_int 0)
       
@@ -706,7 +707,7 @@ module QueueRanking = struct
       
     let parse len s = get_int s 1      
     let print t = 
-      Printf.printf "QUEUE RANKING: %d" t; print_newline ()
+      lprintf "QUEUE RANKING: %d" t; lprint_newline ()
 
     let write buf t = 
       buf_int buf t
@@ -721,8 +722,8 @@ module EmuleRequestSources = struct
       get_md4 s 1
       
     let print t = 
-      Printf.printf "EMULE REQUEST SOURCES: %s" (Md4.to_string t);
-      print_newline ()
+      lprintf "EMULE REQUEST SOURCES: %s" (Md4.to_string t);
+      lprint_newline ()
 
     let write buf t = 
       buf_md4 buf t 
@@ -787,17 +788,17 @@ module EmuleRequestSourcesReply = struct
       }
     
     let print t = 
-      Printf.printf "EMULE SOURCES REPLY: %d sources for %s" 
+      lprintf "EMULE SOURCES REPLY: %d sources for %s" 
         (Array.length t.sources)
       (Md4.to_string t.md4); 
-      print_newline ();
+      lprint_newline ();
       Array.iter (fun s ->
           if Ip.valid s.ip then
-            Printf.printf "  %s:%d" (Ip.to_string s.ip) s.port
+            lprintf "  %s:%d" (Ip.to_string s.ip) s.port
           else 
-            Printf.printf "  Indirect from %s:%d"
+            lprintf "  Indirect from %s:%d"
               (Ip.to_string s.server_ip) s.server_port;
-          print_newline ();
+          lprint_newline ();
       ) t.sources
 
     let write buf t = 
@@ -884,35 +885,35 @@ let print t =
         EmuleRequestSourcesReply.print t
     
     | EmuleFileDescReq t -> 
-        Printf.printf "EMULE FILE DESC %s" t
+        lprintf "EMULE FILE DESC %s" t
         
     | UnknownReq s ->  
         let len = String.length s in
-        Printf.printf "UnknownReq:\n";
-        Printf.printf "ascii: [";
+        lprintf "UnknownReq:\n";
+        lprintf "ascii: [";
         for i = 0 to len - 1 do
           let c = s.[i] in
           let n = int_of_char c in
           if n > 31 && n < 127 then
-            Printf.printf " %c" c
+            lprintf " %c" c
           else
-            Printf.printf "(%d)" n
+            lprintf "(%d)" n
         done;
-        Printf.printf "]\n";
-        Printf.printf "dec: [";
+        lprintf "]\n";
+        lprintf "dec: [";
         for i = 0 to len - 1 do
           let c = s.[i] in
           let n = int_of_char c in
-          Printf.printf "(%d)" n            
+          lprintf "(%d)" n            
         done;
-        Printf.printf "]\n"
+        lprintf "]\n"
   end
 
   
 let parse_emule_packet opcode len s =
 (*
-  Printf.printf "Emule magic: %d opcode %d:" magic opcode; print_newline ();
-          dump s; print_newline ();
+  lprintf "Emule magic: %d opcode %d:" magic opcode; lprint_newline ();
+          dump s; lprint_newline ();
   *)        
   let t = match opcode with
     | 1 -> EmuleClientInfoReq (EmuleClientInfo.parse len s)
@@ -937,9 +938,9 @@ let parse_emule_packet opcode len s =
     | _ -> raise Not_found
   in
 (*
-          Printf.printf "EMULE MESSAGE: "; print_newline ();
+          lprintf "EMULE MESSAGE: "; lprint_newline ();
           print t;
-          print_newline (); *)
+          lprint_newline (); *)
   t
   
   
@@ -948,7 +949,7 @@ let parse magic s =
     let len = String.length s in
     if len = 0 then raise Not_found;
     let opcode = int_of_char (s.[0]) in
-(*Printf.printf "opcode: %d" opcode; print_newline (); *)
+(*lprintf "opcode: %d" opcode; lprint_newline (); *)
     match magic with
       227 ->
         begin
@@ -995,29 +996,29 @@ let parse magic s =
         parse_emule_packet opcode (String.length s) s
         
         (*
-        Printf.printf "Compressed message decompressed with opcode %d" opcode; print_newline ();
+        lprintf "Compressed message decompressed with opcode %d" opcode; lprint_newline ();
         if !CommonOptions.verbose_unknown_messages then begin       
             let tmp_file = Filename.temp_file "comp" "unpak" in
             File.from_string tmp_file s;
-            Printf.printf "Saved compressed packet %s" tmp_file; print_newline ();
+            lprintf "Saved compressed packet %s" tmp_file; lprint_newline ();
           end;	   
         UnknownReq s        *)
     | _ -> 
         if !CommonOptions.verbose_unknown_messages then begin
-            Printf.printf "Strange magic: %d" magic; print_newline ();
+            lprintf "Strange magic: %d" magic; lprint_newline ();
           end;
         raise Not_found
   with
   | e -> 
       if !CommonOptions.verbose_unknown_messages then begin
-          Printf.printf "Unknown message From client: %s (magic %d)"
-              (Printexc2.to_string e) magic; print_newline ();
+          lprintf "Unknown message From client: %s (magic %d)"
+              (Printexc2.to_string e) magic; lprint_newline ();
 	      	     let tmp_file = Filename.temp_file "comp" "pak" in
 	     File.from_string tmp_file s;
-	     Printf.printf "Saved unknown packet %s" tmp_file; print_newline ();
+	     lprintf "Saved unknown packet %s" tmp_file; lprint_newline ();
 
           dump s;
-          print_newline ();
+          lprint_newline ();
         end;
       UnknownReq s
   

@@ -34,6 +34,7 @@ http://us.imdb.com/search
   
 *)
 
+open Printf2
 open Options
 open Gettext
 open CommonTypes
@@ -67,9 +68,9 @@ let wget_string r f progress =
 
       H.wget_string r (fun page ->
           (try File.from_string file page with _ -> 
-                Printf.printf "Could not be saved"; print_newline ();
+                lprintf "Could not be saved"; lprint_newline ();
                 ());
-          Printf.printf "DOWNLOAD FINISHED"; print_newline ();            
+          lprintf "DOWNLOAD FINISHED"; lprint_newline ();            
           f page) progress
 
       
@@ -80,7 +81,7 @@ let request_and_parse parser  url wtree =
         parser wtree page)
     (fun pos max ->
         counter := !counter + pos;
-        Printf.printf "pos: %d/%d" !counter max; print_newline (); 
+        lprintf "pos: %d/%d" !counter max; lprint_newline (); 
     )
 
 
@@ -209,10 +210,10 @@ type freedb_record = {
 let freedb_parse record page = 
   try
     let rec iter start =
-(*      Printf.printf "search %d/%d" start (String.length page); 
-      print_newline (); *)
+(*      lprintf "search %d/%d" start (String.length page); 
+      lprint_newline (); *)
       let found = Str.search_forward album_line page start in
-(*      Printf.printf "found %d" found; print_newline (); *)
+(*      lprintf "found %d" found; lprint_newline (); *)
       let url = Str.matched_group 1 page in
       let artist = Str.matched_group 2 page in
       let album = Str.matched_group 3 page in
@@ -280,7 +281,7 @@ let submit_freedb_search qe =
       let record = {
           freedb_nresults = 0;
           freedb_result = (fun url artist album ->
-              Printf.printf "Found %s : %s" artist album; print_newline ();
+              lprintf "Found %s : %s" artist album; lprint_newline ();
           );
         } in
 
@@ -295,13 +296,13 @@ type tree =
     *)      
 
 let freedb_parse_album wtree page =
-(*  Printf.printf "page: \n%s\n" page; print_newline (); *)
+(*  lprintf "page: \n%s\n" page; lprint_newline (); *)
   try
     let rec iter start =
-(*      Printf.printf "search %d/%d" start (String.length page);  
-      print_newline (); *)
+(*      lprintf "search %d/%d" start (String.length page);  
+      lprint_newline (); *)
       let found = Str.search_forward track_line page start in
-(*      Printf.printf "found %d" found; print_newline (); *)
+(*      lprintf "found %d" found; lprint_newline (); *)
       let num = Str.matched_group 1 page in
       let length = Str.matched_group 2 page in
       
@@ -332,7 +333,7 @@ let freedb_parse_album wtree page =
   with _ -> ()
       
 let freedb_parse_album wtree page =
-(*  Printf.printf "page: \n%s\n" page; print_newline (); *)
+(*  lprintf "page: \n%s\n" page; lprint_newline (); *)
   
   let item = GTree.tree_item () in
   wtree#append item;
@@ -347,10 +348,10 @@ let freedb_parse_album wtree page =
   in
   try
     let rec iter start =
-(*      Printf.printf "search %d/%d" start (String.length page);  
-      print_newline (); *)
+(*      lprintf "search %d/%d" start (String.length page);  
+      lprint_newline (); *)
       let found = Str.search_forward track_line page start in
-(*      Printf.printf "found %d" found; print_newline (); *)
+(*      lprintf "found %d" found; lprint_newline (); *)
       let num = Str.matched_group 1 page in
       let length = Str.matched_group 2 page in
       let name = Str.matched_group 3 page in      
@@ -366,12 +367,12 @@ let request_album url label wt_sub =
   let counter = ref 0 in
   wget_string url
     (fun page ->
-(*      Printf.printf "DOWNLOAD FINISHED"; print_newline (); *)
+(*      lprintf "DOWNLOAD FINISHED"; lprint_newline (); *)
       label#set_text (label#text ^ "(AVAILABLE)");
       freedb_parse_album wt_sub page)
   (fun pos max ->
       counter := !counter + pos;
-(*      Printf.printf "pos: %d/%d" !counter max; print_newline (); *)
+(*      lprintf "pos: %d/%d" !counter max; lprint_newline (); *)
   )
 
 
@@ -384,8 +385,8 @@ class results qe =
       val artist_table = Hashtbl.create 13
       
       method private insert url artist album =
-(*      Printf.printf "Insert %s : %s (%s)" artist album url; 
-print_newline (); *)
+(*      lprintf "Insert %s : %s (%s)" artist album url; 
+lprint_newline (); *)
         let wtree = try
             Hashtbl.find artist_table artist  
           with _ ->
@@ -534,10 +535,10 @@ let imdb_title_url title =
 let imdb_parse record page =
   try
     let rec iter start =
-      Printf.printf "search movie_line %d/%d" start (String.length page); 
-      print_newline ();  
+      lprintf "search movie_line %d/%d" start (String.length page); 
+      lprint_newline ();  
       let found = Str.search_forward movie_line page start in
-      Printf.printf "found %d" found; print_newline ();  
+      lprintf "found %d" found; lprint_newline ();  
       let url = Str.matched_group 1 page in
       let movie = Str.matched_group 2 page in
       record.imdb_result url movie;
@@ -547,7 +548,7 @@ let imdb_parse record page =
     in
     iter 0
   with _ -> 
-      Printf.printf "movie_line not found"; print_newline ()
+      lprintf "movie_line not found"; lprint_newline ()
       
 let submit_imdb_search qe = 
   match qe with
@@ -557,7 +558,7 @@ let submit_imdb_search qe =
       let record = {
           imdb_nresults = 0;
           imdb_result = (fun url movie ->
-              Printf.printf "Found %s: %s" movie url; print_newline ();
+              lprintf "Found %s: %s" movie url; lprint_newline ();
           );
         } in
       request_and_parse imdb_parse url record;
@@ -567,12 +568,12 @@ let submit_imdb_search qe =
 let imdb_parse_movie (wtree : unit tree) page = 
   
   let director = try
-      Printf.printf "Searching director_line"; print_newline ();      
+      lprintf "Searching director_line"; lprint_newline ();      
       let found = Str.search_forward director_line page 0 in
-      Printf.printf "director_line found"; print_newline ();
+      lprintf "director_line found"; lprint_newline ();
       Str.matched_group 1 page
     with _ -> 
-        Printf.printf "director_line not found"; print_newline ();        
+        lprintf "director_line not found"; lprint_newline ();        
         "<unknown>"
   in
 
@@ -585,21 +586,21 @@ let imdb_parse_movie (wtree : unit tree) page =
 *)
   
   let rating = try
-      Printf.printf "Searching rating_line"; print_newline ();
+      lprintf "Searching rating_line"; lprint_newline ();
       let found = Str.search_forward rating_line page 0 in
-      Printf.printf "rating_line found"; print_newline ();
+      lprintf "rating_line found"; lprint_newline ();
       let note = Str.matched_group 2 page in
       let votes = Str.matched_group 3 page in
       Printf.sprintf "%s (%s votes)" note votes
     with _ -> 
-        Printf.printf "rating_line not found"; print_newline ();
+        lprintf "rating_line not found"; lprint_newline ();
         "<unknown>"
   in
   
   let summary = try
-      Printf.printf "Searching summary_line"; print_newline ();
+      lprintf "Searching summary_line"; lprint_newline ();
       let found = Str.search_forward begin_summary_line page 0 in
-      Printf.printf "summary_line found"; print_newline ();
+      lprintf "summary_line found"; lprint_newline ();
       let abstract = Str.matched_group 1 page in
       
       let begin_pos = Str.match_end () in
@@ -609,7 +610,7 @@ let imdb_parse_movie (wtree : unit tree) page =
       Printf.sprintf "%s \n %s" abstract resume
     
     with _ ->  
-        Printf.printf "summary_line not found"; print_newline ();
+        lprintf "summary_line not found"; lprint_newline ();
         ""
   in
   
@@ -628,8 +629,8 @@ class results qe =
       val movies_table = Hashtbl.create 13
       
       method private insert url movie =
-(*      Printf.printf "Insert %s : %s (%s)" artist album url; 
-print_newline (); *)
+(*      lprintf "Insert %s : %s (%s)" artist album url; 
+lprint_newline (); *)
         if not(Hashtbl.mem movies_table movie) then
           let item = new tree selection wtree movie in
           Hashtbl.add movies_table movie item;
@@ -754,11 +755,11 @@ let sharereactor_parse_download ((wtree: string tree), name) page =
   let has_found = ref false in
   try
     let rec iter start =
-      Printf.printf "search %d/%d" start (String.length page);
-      print_newline ();  
+      lprintf "search %d/%d" start (String.length page);
+      lprint_newline ();  
       let found = Str.search_forward ed2k_line page start in
       has_found := true;
-      Printf.printf "found ed2k %d" found; print_newline ();  
+      lprintf "found ed2k %d" found; lprint_newline ();  
       let url = Str.matched_group 1 page in
       let title = Str.matched_group 2 page in
 
@@ -770,18 +771,18 @@ let sharereactor_parse_download ((wtree: string tree), name) page =
     iter 0
   with _ -> 
       if not !has_found then begin
-          Printf.printf "No ed2k link found !!!"; print_newline ();
+          lprintf "No ed2k link found !!!"; lprint_newline ();
         end
 
 let sharereactor_parse_release (wtree : string tree) page =
   let has_found = ref false in
   try
     let rec iter start =
-      Printf.printf "search %d/%d" start (String.length page);
-      print_newline ();  
+      lprintf "search %d/%d" start (String.length page);
+      lprint_newline ();  
       let found = Str.search_forward download_line page start in
       has_found := true;
-      Printf.printf "found download %d" found; print_newline ();  
+      lprintf "found download %d" found; lprint_newline ();  
       let url = Str.matched_group 1 page in
       let movie = Str.matched_group 2 page in
 
@@ -797,17 +798,17 @@ if record.shr_nresults > 1000 then raise End_of_file;
     iter 0
   with _ -> 
       if not !has_found then begin
-          Printf.printf "No ed2k link found !!!"; print_newline ();
+          lprintf "No ed2k link found !!!"; lprint_newline ();
         end
 
 
 let sharereactor_parse record page =
   try
     let rec iter start =
-(*      Printf.printf "search %d/%d" start (String.length page); 
-print_newline ();  *)
+(*      lprintf "search %d/%d" start (String.length page); 
+lprint_newline ();  *)
       let found = Str.search_forward release_line page start in
-(*      Printf.printf "found %d" found; print_newline ();  *)
+(*      lprintf "found %d" found; lprint_newline ();  *)
       let url = Str.matched_group 1 page in
       let movie = Str.matched_group 2 page in
       record.shr_result url movie;
@@ -824,7 +825,7 @@ let submit_sharereactor_search qe =
   let record = {
       shr_nresults = 0;
       shr_result = (fun url movie ->
-          Printf.printf "Found %s: %s" movie url; print_newline ();
+          lprintf "Found %s: %s" movie url; lprint_newline ();
       );
     } in
   request_and_parse sharereactor_parse url record;
@@ -840,14 +841,14 @@ class results qe =
       val movies_table = Hashtbl.create 13
       
       method private insert url movie =
-(*      Printf.printf "Insert %s : %s (%s)" artist album url; 
-print_newline (); *)
+(*      lprintf "Insert %s : %s (%s)" artist album url; 
+lprint_newline (); *)
         if not(Hashtbl.mem movies_table movie) then
           let item = new tree selection wtree movie in
           Hashtbl.add movies_table movie item;
           
           let url = Printf.sprintf "http://www.sharereactor.com/release.php?id=%s" url in
-          Printf.printf "URL expected: %s" url; print_newline ();
+          lprintf "URL expected: %s" url; lprint_newline ();
           
           cached_or_on_expand item sharereactor_parse_release referer url
       
@@ -960,11 +961,11 @@ let jigle_parse_download (wtree: string tree) page =
   let has_found = ref false in
   try
     let rec iter start =
-      Printf.printf "search %d/%d" start (String.length page);
-      print_newline ();  
+      lprintf "search %d/%d" start (String.length page);
+      lprint_newline ();  
       let found = Str.search_forward ed2k_line page start in
       has_found := true;
-      Printf.printf "found ed2k %d" found; print_newline ();  
+      lprintf "found ed2k %d" found; lprint_newline ();  
       let url = Str.matched_group 1 page in
       let ed2k = wtree#item url url in
 
@@ -973,17 +974,17 @@ let jigle_parse_download (wtree: string tree) page =
     iter 0
   with _ -> 
       if not !has_found then begin
-          Printf.printf "No ed2k link found !!!"; print_newline ();
+          lprintf "No ed2k link found !!!"; lprint_newline ();
         end
 
 let jigle_parse record page =
   try
     let rec iter start =
-(*      Printf.printf "search %d/%d" start (String.length page); 
-print_newline ();  *)
+(*      lprintf "search %d/%d" start (String.length page); 
+lprint_newline ();  *)
       let found = Str.search_forward release_line page start in
       let end_pos = Str.match_end () in
-(*      Printf.printf "found %d" found; print_newline ();  *)
+(*      lprintf "found %d" found; lprint_newline ();  *)
       let url = Str.matched_group 1 page in
       
       let found = Str.search_forward end_tag page end_pos in
@@ -1004,7 +1005,7 @@ let submit_jigle_search qe =
   let record = {
       jigle_nresults = 0;
       jigle_result = (fun url movie ->
-          Printf.printf "Found %s: %s" movie url; print_newline ();
+          lprintf "Found %s: %s" movie url; lprint_newline ();
       );
     } in
   request_and_parse jigle_parse url record;
@@ -1021,14 +1022,14 @@ class results qe =
       val movies_table = Hashtbl.create 13
       
       method private insert url movie =
-(*      Printf.printf "Insert %s : %s (%s)" artist album url; 
-print_newline (); *)
+(*      lprintf "Insert %s : %s (%s)" artist album url; 
+lprint_newline (); *)
         if not(Hashtbl.mem movies_table movie) then
           let item = new tree selection wtree movie in
           Hashtbl.add movies_table movie item;
           
           let url = Printf.sprintf "http://www.jigle.com/%s" url in
-          Printf.printf "URL expected: %s" url; print_newline ();
+          lprintf "URL expected: %s" url; lprint_newline ();
           
           cached_or_on_expand item jigle_parse_download  referer url
       

@@ -50,7 +50,7 @@ let fts_send file_id fts =
         })
 
 let client_close c sock =
-  Printf.printf "DISCONNECTED FROM CLIENT"; print_newline ();
+  lprintf "DISCONNECTED FROM CLIENT"; lprint_newline ();
   close sock "closed";
   match c.client_sock with
     Some ss when ss == sock ->
@@ -60,8 +60,8 @@ let client_close c sock =
 
     
 let file_complete file file_id =
-  Printf.printf "FILE %s DOWNLOADED" file.file_name;
-  print_newline ();
+  lprintf "FILE %s DOWNLOADED" file.file_name;
+  lprint_newline ();
   fts_send file_id FTS_DOWNLOAD_COMPLETE;
   file_completed (as_file file.file_file);
   current_files := List2.removeq file !current_files;
@@ -81,14 +81,14 @@ let file_complete file file_id =
   ()
     
 let file_writter c sock nread =
-(*  Printf.printf "RECEIVED %d bytes" nread; print_newline (); *)
+(*  lprintf "RECEIVED %d bytes" nread; lprint_newline (); *)
   let b = TcpBufferedSocket.buf sock in
   let file = c.client_file in
   begin
     let fd = try
         Unix32.force_fd (file_fd file) 
       with e -> 
-          Printf.printf "In Unix32.force_fd"; print_newline ();
+          lprintf "In Unix32.force_fd"; lprint_newline ();
           raise e
     in
     let final_pos = Unix32.seek32 (file_fd file) c.client_file_pos Unix.SEEK_SET in
@@ -111,7 +111,7 @@ let init_file_transfer t =
   let file = new_file t.FT.file_id t.FT.filename t.FT.size in
   
   if (file_downloaded file) = (file_size file) then begin
-      Printf.printf "FILE DOWNLOADED"; print_newline ();
+      lprintf "FILE DOWNLOADED"; lprint_newline ();
       fts_send t.FT.file_id FTS_DOWNLOAD_COMPLETE
     end else
   let module P = AP.PeerReq in
@@ -124,7 +124,7 @@ let init_file_transfer t =
   begin
     match file.file_client with
       Some c ->
-        Printf.printf "ALREADY A CLIENT FOR THAT FILE"; print_newline ();
+        lprintf "ALREADY A CLIENT FOR THAT FILE"; lprint_newline ();
         begin
           match c.client_sock with
             None -> ()
@@ -201,10 +201,10 @@ let init_file_transfer t =
                 TcpServerSocket.CONNECTION (s, 
                   Unix.ADDR_INET(from_ip, from_port)) ->
                   TcpServerSocket.close sock "CONNECTION RECEIVED";
-                  Printf.printf "CONNECTION RECEIVED FROM %s"
+                  lprintf "CONNECTION RECEIVED FROM %s"
                     (Ip.to_string (Ip.of_inet_addr from_ip))
                   ; 
-                  print_newline ();
+                  lprint_newline ();
                   
                   
                   let sock = TcpBufferedSocket.create "audiogalaxy client connection" s (fun _ _ -> ()) in
@@ -228,7 +228,7 @@ let init_file_transfer t =
                   ()
                   
               | TcpServerSocket.BASIC_EVENT BasicSocket.RTIMEOUT -> 
-                  Printf.printf "TIMEOURT"; print_newline ();
+                  lprintf "TIMEOURT"; lprint_newline ();
                   fts_send c.client_file_id FTS_TIMEOUT ;
 
               | _ -> ()

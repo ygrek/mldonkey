@@ -53,7 +53,7 @@ let normalize filename =
     | _ -> unsplit l '/'
   in
 (*  if file <> filename then begin
-      Printf.printf "[%s] normalized to [%s]" filename file; print_newline ();
+      lprintf "[%s] normalized to [%s]" filename file; lprint_newline ();
     end; *)
   file
 ;;

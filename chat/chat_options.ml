@@ -20,6 +20,9 @@
 (*                                                                        *)
 (**************************************************************************)
 
+
+open Printf2
+  
 (** Simple options:
   This will enable very simple configuration, by a mouse-based configurator.
   Options will be defined by a special function, which will also check
@@ -149,12 +152,12 @@ let
         opfile.file_rc) with
       Not_found -> default_value
     | e ->
-        Printf.printf "Options.define_option, for option %s: "
+        lprintf "Options.define_option, for option %s: "
           (match option_name with
              [] -> "???"
            | name :: _ -> name);
-        Printf.printf "%s" (Printexc2.to_string e);
-        print_newline ();
+        lprintf "%s" (Printexc2.to_string e);
+        lprint_newline ();
         default_value
     end;
   o
@@ -296,8 +299,8 @@ let really_load filename options =
       let list =
 	try parse_gwmlrc stream with
           e ->
-            Printf.printf "At pos %d/%d" (Stream.count s) (Stream.count stream);
-            print_newline ();
+            lprintf "At pos %d/%d" (Stream.count s) (Stream.count stream);
+            lprint_newline ();
             raise e
       in
       List.iter
@@ -309,27 +312,27 @@ let really_load filename options =
             exec_hooks o
           with
             e ->
-             Printf.printf "Exc %s" (Printexc2.to_string e); print_newline ())
+             lprintf "Exc %s" (Printexc2.to_string e); lprint_newline ())
 	options;
       list
     with
       e ->
-	Printf.printf "Error %s in %s" (Printexc2.to_string e) filename;
-	print_newline ();
+	lprintf "Error %s in %s" (Printexc2.to_string e) filename;
+	lprint_newline ();
 	[]
 ;;
       
 let load opfile =
   try opfile.file_rc <- really_load opfile.file_name opfile.file_options with
     Not_found -> 
-      Printf.printf "No %s found" opfile.file_name; print_newline ()
+      lprintf "No %s found" opfile.file_name; lprint_newline ()
 ;;
 
 let append opfile filename =
   try opfile.file_rc <-
     really_load filename opfile.file_options @ opfile.file_rc with
     Not_found -> 
-      Printf.printf "No %s found" filename; print_newline ()
+      lprintf "No %s found" filename; lprint_newline ()
 ;;
       
 let ( !! ) o = o.option_value;;
@@ -569,11 +572,11 @@ let save opfile =
             o.option_class.to_value o.option_value 
           with
             e ->
-              Printf.printf "Error while saving option \"%s\": %s"
+              lprintf "Error while saving option \"%s\": %s"
                 (try List.hd o.option_name with
                   _ -> "???")
               (Printexc2.to_string e);
-              print_newline ();
+              lprint_newline ();
               StringValue ""))
     (List.rev opfile.file_options));
   if not opfile.file_pruned then begin
@@ -653,8 +656,8 @@ let value_to_tuple2 (c1, c2) v =
     List [v1; v2] -> from_value c1 v1, from_value c2 v2
   | SmallList [v1; v2] -> from_value c1 v1, from_value c2 v2
   | List l | SmallList l ->
-      Printf.printf "list of %d" (List.length l);
-      print_newline ();
+      lprintf "list of %d" (List.length l);
+      lprint_newline ();
       failwith "Options: not a tuple2 list option"
   | _ -> failwith "Options: not a tuple2 option"
 ;;

@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open Options
 
 let debug = ref false
@@ -124,7 +125,7 @@ let sprint_socket s =
 let close t msg =
   if t.fd <> dummy_fd then begin
       if !debug then begin
-          Printf.printf "CLOSING: %s" (sprint_socket t); 
+          lprintf "CLOSING: %s" (sprint_socket t); 
         end;
       (try 
           Unix.close t.fd;
@@ -176,13 +177,13 @@ let create_blocking name fd handler =
 (*
   if fdnum >= Unix32.fds_size then begin
       Unix.close fd;
-      Printf.printf "**** File descriptor above limit %d!!" fdnum; print_newline ();
+      lprintf "**** File descriptor above limit %d!!" fdnum; lprint_newline ();
       failwith "File Descriptor removed";
     end;
 *)
   incr nb_sockets;
   Unix.set_nonblock fd;
-(*  Printf.printf "NEW FD %d" (Obj.magic fd); print_newline (); *)
+(*  lprintf "NEW FD %d" (Obj.magic fd); lprint_newline (); *)
   let _ = update_time () in
   let t = {
       fd = fd;
@@ -213,9 +214,9 @@ let create_blocking name fd handler =
       dump_info = dump_basic_socket;
       can_close = true;
     } in
-(*  Printf.printf "ADD ONE TASK"; print_newline (); *)
+(*  lprintf "ADD ONE TASK"; lprint_newline (); *)
   if !debug then begin
-      Printf.printf "OPENING: %s" ( sprint_socket t);
+      lprintf "OPENING: %s" ( sprint_socket t);
     end;
   fd_tasks := t :: !fd_tasks; 
   t
@@ -235,7 +236,7 @@ let rec iter_task old_tasks time =
   match old_tasks with
     [] -> ()
   | t :: old_tail ->
-(*      Printf.printf "NEXT TASK"; print_newline (); *)
+(*      lprintf "NEXT TASK"; lprint_newline (); *)
       if t.closed then iter_task old_tail time else
         begin
           fd_tasks := t :: !fd_tasks;
@@ -361,37 +362,37 @@ let loop () =
             (try t.event_handler t (CLOSED t.error) with _ -> ());
       done;
       
-(*      Printf.printf "before iter_timer"; print_newline (); *)
+(*      lprintf "before iter_timer"; lprint_newline (); *)
       let time = update_time () in
       timeout := infinite_timeout;
       timers := iter_timer !timers time;
-(*      Printf.printf "before iter_task"; print_newline ();*)
+(*      lprintf "before iter_task"; lprint_newline ();*)
       
       let old_tasks = !fd_tasks in
       fd_tasks := [];
       iter_task old_tasks time;
 
-(*      Printf.printf "timeout %f" !timeout; print_newline (); *)
+(*      lprintf "timeout %f" !timeout; lprint_newline (); *)
       
       if !timeout < 0.01 then timeout := 0.01;
 (*      
-      Printf.printf "TASKS: %d" (List.length !tasks); print_newline ();
-      Printf.printf "TIMEOUT: %f" !timeout; print_newline ();
+      lprintf "TASKS: %d" (List.length !tasks); lprint_newline ();
+      lprintf "TIMEOUT: %f" !timeout; lprint_newline ();
 timeout := 5.;
 *)
       exec_hooks !before_select_hooks;
-(*      Printf.printf "Tasks %d" (List.length !fd_tasks); print_newline ();*)
+(*      lprintf "Tasks %d" (List.length !fd_tasks); lprint_newline ();*)
       select !fd_tasks !timeout; 
     with e ->
-        Printf.printf "Exception %s in Select.loop" (Printexc2.to_string e);
-        print_newline ();
+        lprintf "Exception %s in Select.loop" (Printexc2.to_string e);
+        lprint_newline ();
   done
   
   
   
 let shutdown t s =
   if t.fd <> dummy_fd then begin
-(*      Printf.printf "SHUTDOWN"; print_newline (); *)
+(*      lprintf "SHUTDOWN"; lprint_newline (); *)
       (try Unix.shutdown t.fd Unix.SHUTDOWN_ALL with _ -> ());
       close t s
     end
@@ -408,7 +409,7 @@ let _ =
   )
   
 let stats buf t =
-  Printf.printf "Socket %d\n" (get_fd_num t.fd)
+  lprintf "Socket %d\n" (get_fd_num t.fd)
   
 let print_socket buf s =
   print_socket buf s;
@@ -434,8 +435,8 @@ let _ =
       if !debug then
         let buf = Buffer.create 100 in        
         print_sockets buf;
-        Printf.printf "%s" (Buffer.contents buf);
-        print_newline ();
+        lprintf "%s" (Buffer.contents buf);
+        lprint_newline ();
         )
   
 let set_printer s f =

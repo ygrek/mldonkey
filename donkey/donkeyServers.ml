@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open Md4
 open CommonUser
 open CommonSearch
@@ -63,8 +64,8 @@ let update_options () =
 
 let query_location file sock =
   if !verbose_location then begin
-      print_newline ();
-      Printf.printf "Server: Query Location of %s" (file_best_name file);
+      lprint_newline ();
+      lprintf "Server: Query Location of %s" (file_best_name file);
     end;
   direct_server_send sock (
     let module M = DonkeyProtoServer in
@@ -131,8 +132,8 @@ let disconnect_server s =
       decr nservers;
       TcpBufferedSocket.close sock "closed";
       (*
-            Printf.printf "%s:%d CLOSED received by server"
-(Ip.to_string s.server_ip) s.server_port; print_newline ();
+            lprintf "%s:%d CLOSED received by server"
+(Ip.to_string s.server_ip) s.server_port; lprint_newline ();
   *)
       connection_failed (s.server_connection_control);
       s.server_sock <- None;
@@ -158,8 +159,8 @@ let client_to_server s t sock =
   let module M = DonkeyProtoServer in
 
   if !verbose_msg_servers then begin
-      Printf.printf "Message from server:"; print_newline ();
-      DonkeyProtoServer.print t; print_newline ();
+      lprintf "Message from server:"; lprint_newline ();
+      DonkeyProtoServer.print t; lprint_newline ();
     end;
   
   match t with
@@ -302,10 +303,10 @@ connection from another client. In this case, we should immediatly connect.
 (* We MUST found a way to keep indirect friends even after a deconnexion.
 Add a connection num to server. Use Indirect_location (server_num, conn_num)
 and remove clients whose server is deconnected. *)
-(*          Printf.printf "QueryUsersReply"; print_newline (); *)
+(*          lprintf "QueryUsersReply"; lprint_newline (); *)
       List.iter (fun cl ->
 
-(*              Printf.printf "NEW ONE"; print_newline (); *)
+(*              lprintf "NEW ONE"; lprint_newline (); *)
           let rec user = {
               user_user = user_impl;
               user_md4 = cl.Q.md4;
@@ -332,7 +333,7 @@ and remove clients whose server is deconnected. *)
           if add_to_friend then DonkeyFiles.add_user_friend s user;
           
           s.server_users <- user :: s.server_users;
-(*              Printf.printf "SERVER NEW USER"; print_newline (); *)
+(*              lprintf "SERVER NEW USER"; lprint_newline (); *)
           server_new_user (as_server s.server_server) 
           (as_user user.user_user);
       ) t;
@@ -352,7 +353,7 @@ let connect_server s =
         Some _ -> printf_string "[e0]"
       | _ ->
           
-(*                Printf.printf "CONNECTING ONE SERVER"; print_newline (); *)
+(*                lprintf "CONNECTING ONE SERVER"; lprint_newline (); *)
       connection_try s.server_connection_control;
       incr nservers;
       printf_char 's'; 
@@ -386,14 +387,14 @@ let connect_server s =
       );
     with _ -> 
 (*
-      Printf.printf "%s:%d IMMEDIAT DISCONNECT "
-      (Ip.to_string s.server_ip) s.server_port; print_newline ();
+      lprintf "%s:%d IMMEDIAT DISCONNECT "
+      (Ip.to_string s.server_ip) s.server_port; lprint_newline ();
 *)
-(*      Printf.printf "DISCONNECTED IMMEDIATLY"; print_newline (); *)
+(*      lprintf "DISCONNECTED IMMEDIATLY"; lprint_newline (); *)
         disconnect_server s
         
 let rec connect_one_server () =
-(*  Printf.printf "connect_one_server"; print_newline (); *)
+(*  lprintf "connect_one_server"; lprint_newline (); *)
   if can_open_connection () then
     match !servers_list with
       [] ->
@@ -403,11 +404,11 @@ let rec connect_one_server () =
             servers_list := s :: !servers_list
         ) servers_by_key;
         if !servers_list = [] then begin
-            Printf.printf "Looks like you have no servers in your servers.ini";
-            print_newline ();
-            Printf.printf "You should either use the one provided with mldonkey";
-            print_newline ();
-            Printf.printf "or import one from the WEB"; print_newline ();
+            lprintf "Looks like you have no servers in your servers.ini";
+            lprint_newline ();
+            lprintf "You should either use the one provided with mldonkey";
+            lprint_newline ();
+            lprintf "or import one from the WEB"; lprint_newline ();
             
             raise Not_found;
           end;
@@ -421,7 +422,7 @@ let rec connect_one_server () =
               Some _ -> ()
             | None -> 
                 if s.server_score < 0 then begin
-(*                  Printf.printf "TOO BAD SCORE"; print_newline ();*)
+(*                  lprintf "TOO BAD SCORE"; lprint_newline ();*)
                     connect_one_server ()
                   end
                 else
@@ -431,7 +432,7 @@ let rec connect_one_server () =
           
 
 let force_check_server_connections user =
-(*  Printf.printf "force_check_server_connections"; print_newline (); *)
+(*  lprintf "force_check_server_connections"; lprint_newline (); *)
   if user || !nservers < max_allowed_connected_servers ()  then 
     let rec iter n =
       if n > 0 && can_open_connection () then begin
@@ -445,7 +446,7 @@ let rec check_server_connections () =
   force_check_server_connections false
 
 let remove_old_servers () =
-  Printf.printf "REMOVE OLD SERVERS";  print_newline ();
+  lprintf "REMOVE OLD SERVERS";  lprint_newline ();
   let t1 = Unix.gettimeofday () in
 (*
 The new tactic: we sort the servers (the more recently connected first,
@@ -463,7 +464,7 @@ position to the min_left_servers position.
         !to_keep
   ) servers_by_key;
   let t2 = Unix.gettimeofday () in
-  Printf.printf "Delay to detect black-listed servers: %2.2f" (t2 -. t1); print_newline ();
+  lprintf "Delay to detect black-listed servers: %2.2f" (t2 -. t1); lprint_newline ();
   
   let array = Array.of_list !to_keep in
   Array.sort (fun (ls1,_) (ls2,_) ->
@@ -473,8 +474,8 @@ position to the min_left_servers position.
   if !verbose then 
     for i = 0 to Array.length array - 1 do
       let ls, s = array.(i) in
-      Printf.printf "server %d last_conn %d" (server_num s) ls;
-      print_newline ()
+      lprintf "server %d last_conn %d" (server_num s) ls;
+      lprint_newline ()
     done;
 
   let min_last_conn =  last_time () - !!max_server_age * Date.day_in_secs in
@@ -483,16 +484,16 @@ position to the min_left_servers position.
     let ls, s = array.(i) in
     if ls < min_last_conn && s.server_sock = None then begin
         if !verbose then begin
-            Printf.printf "Server too old: %s:%d" 
+            lprintf "Server too old: %s:%d" 
               (Ip.to_string s.server_ip) s.server_port;
-            print_newline ();
+            lprint_newline ();
           end;
         to_remove := s :: !to_remove
       end
   done;
   let t3 = Unix.gettimeofday () in
-  Printf.printf "Delay to detect old servers: %2.2f" (t3 -. t2); 
-  print_newline ();
+  lprintf "Delay to detect old servers: %2.2f" (t3 -. t2); 
+  lprint_newline ();
 
   List.iter (fun s ->
       server_remove (as_server s.server_server);
@@ -500,8 +501,8 @@ position to the min_left_servers position.
   !to_remove;
 
   let t4 = Unix.gettimeofday () in
-  Printf.printf "Delay to finally remove servers: %2.2f" (t4 -. t3); 
-  print_newline ();
+  lprintf "Delay to finally remove servers: %2.2f" (t4 -. t3); 
+  lprint_newline ();
   
 (*
   let removed_servers = ref [] in
@@ -516,17 +517,17 @@ position to the min_left_servers position.
       List.iter (fun (key,s) ->
       ) !removed_servers
     end else begin
-      Printf.printf "Not enough remaining servers: %d" !servers_left;  
-      print_newline ()
+      lprintf "Not enough remaining servers: %d" !servers_left;  
+      lprint_newline ()
     end; *)
-  Printf.printf "REMOVE %d OLD SERVERS DONE" (List.length !to_remove);  
-  print_newline ()
+  lprintf "REMOVE %d OLD SERVERS DONE" (List.length !to_remove);  
+  lprint_newline ()
   
 (* Don't let more than max_allowed_connected_servers running for
 more than 5 minutes *)
     
 let update_master_servers _ =
-(*  Printf.printf "update_master_servers"; print_newline (); *)
+(*  lprintf "update_master_servers"; lprint_newline (); *)
   let nmasters = ref 0 in
   List.iter (fun s ->
       if s.server_master then
@@ -546,10 +547,10 @@ let update_master_servers _ =
         then begin
             match s.server_sock with
               None -> 
-              (*  Printf.printf "MASTER NOT CONNECTED"; print_newline ();  *)
+              (*  lprintf "MASTER NOT CONNECTED"; lprint_newline ();  *)
                 ()
             | Some sock ->                
-(*                Printf.printf "NEW MASTER SERVER"; print_newline (); *)
+(*                lprintf "NEW MASTER SERVER"; lprint_newline (); *)
                 s.server_master <- true;
                 incr nmasters;
                 direct_server_send_share sock (DonkeyShare.all_shared ())
@@ -559,19 +560,19 @@ let update_master_servers _ =
           !nconnected_servers > max_allowed_connected_servers ()  then begin
 (* remove one third of the servers every 5 minutes *)
             nconnected_servers := !nconnected_servers - 3;
-(*            Printf.printf "DISCONNECT FROM EXTRA SERVER %s:%d "
-(Ip.to_string s.server_ip) s.server_port; print_newline ();
+(*            lprintf "DISCONNECT FROM EXTRA SERVER %s:%d "
+(Ip.to_string s.server_ip) s.server_port; lprint_newline ();
   *)
             (match s.server_sock with
                 None ->                   
                   (*
-                  Printf.printf "Not connected !"; 
-print_newline ();
+                  lprintf "Not connected !"; 
+lprint_newline ();
 *)
                   ()
 
               | Some sock ->
-  (*                Printf.printf "shutdown"; print_newline (); *)
+  (*                lprintf "shutdown"; lprint_newline (); *)
                   (shutdown sock "max allowed"));
           end
   ) 
@@ -611,9 +612,9 @@ let walker_timer () =
             if connection_can_try s.server_connection_control then begin
                 
                 if !verbose then begin
-                    Printf.printf "WALKER: try connect %s" 
+                    lprintf "WALKER: try connect %s" 
                       (Ip.to_string s.server_ip);
-                    print_newline ();
+                    lprint_newline ();
                   end;
                 
                 connect_server s
@@ -621,9 +622,9 @@ let walker_timer () =
                 
                 delayed_list := s :: !delayed_list;
                 if !verbose then begin
-                    Printf.printf "WALKER: connect %s delayed"
+                    lprintf "WALKER: connect %s delayed"
                       (Ip.to_string s.server_ip);
-                    print_newline ();
+                    lprint_newline ();
                   end;
               
               end
@@ -689,8 +690,8 @@ let update_master_servers _ =
 
   if !verbose then begin
       
-      print_newline ();
-      print_newline ();
+      lprint_newline ();
+      lprint_newline ();
     end;
   
   let list = List.sort (fun s2 s1 ->
@@ -707,16 +708,16 @@ let update_master_servers _ =
           None -> s.server_master <- false
         | _ -> 
             if !verbose then begin
-                Printf.printf "MASTER: OLD MASTER %s" (Ip.to_string s.server_ip);
-                print_newline ();
+                lprintf "MASTER: OLD MASTER %s" (Ip.to_string s.server_ip);
+                lprint_newline ();
               end;
             masters := s :: !masters
   ) list;
   let nmasters = ref (List.length !masters) in
   
   if !verbose then begin
-      Printf.printf "MASTER: nmaster %d" !nmasters;
-      print_newline (); print_newline ();
+      lprintf "MASTER: nmaster %d" !nmasters;
+      lprint_newline (); lprint_newline ();
     end;
 (* The master servers are sorted in 'masters' so that the first ones have
 the fewer users. *)  
@@ -726,8 +727,8 @@ the fewer users. *)
       None -> assert false
     | Some sock ->                
         if !verbose then begin
-            Printf.printf "   MASTER: %s" (Ip.to_string s.server_ip); 
-            print_newline ();
+            lprintf "   MASTER: %s" (Ip.to_string s.server_ip); 
+            lprint_newline ();
           end;
         s.server_master <- true;
         incr nmasters;
@@ -743,8 +744,8 @@ connections *)
     if !nconnected_servers > max_allowed_connected_servers then begin
         
         if !verbose then begin
-            Printf.printf "MASTER:    DISCONNECT %s" (Ip.to_string s.server_ip);
-            print_newline ();
+            lprintf "MASTER:    DISCONNECT %s" (Ip.to_string s.server_ip);
+            lprint_newline ();
           end;
         
         nconnected_servers := !nconnected_servers - 3;
@@ -769,10 +770,10 @@ connections *)
           incr nconnected_servers;
           
           if !verbose then begin
-              Printf.printf "MASTER: EXAM %s %d" (Ip.to_string s.server_ip)
+              lprintf "MASTER: EXAM %s %d" (Ip.to_string s.server_ip)
               (last_time () -  connection_last_conn s.server_connection_control)
               ; 
-              print_newline ();
+              lprint_newline ();
             end;
           
           if connection_last_conn s.server_connection_control 
@@ -796,11 +797,11 @@ now if needed *)
                     < s.server_nusers then begin
                       
                       if !verbose then begin
-                          Printf.printf
+                          lprintf
                             "   MASTER: RAISING %s (%d) instead of %s (%d)" 
                             (Ip.to_string s.server_ip) s.server_nusers 
                             (Ip.to_string ss.server_ip) ss.server_nusers
-                          ; print_newline (); 
+                          ; lprint_newline (); 
                         end;
                       
                       ss.server_master <- false;
@@ -813,7 +814,7 @@ now if needed *)
   list;
   
   if !verbose then begin
-      Printf.printf "MASTER: clean %d connected %d masters" 
-        !nconnected_servers !nmasters; print_newline ();
+      lprintf "MASTER: clean %d connected %d masters" 
+        !nconnected_servers !nmasters; lprint_newline ();
     end;
       

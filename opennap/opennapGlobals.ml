@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open Md4
 
 open OpennapOptions
@@ -267,8 +268,8 @@ let new_file file_id file_name file_size =
       let current_size = try
           Unix32.getsize64 file_temp
         with e ->
-            Printf.printf "Exception %s in current_size" (Printexc2.to_string e); 
-            print_newline ();
+            lprintf "Exception %s in current_size" (Printexc2.to_string e); 
+            lprint_newline ();
             Int64.zero
       in
       
@@ -326,13 +327,13 @@ let new_user server name =
     None -> u
   | Some s ->
       if not (List.memq s u.user_servers) then begin
-          Printf.printf 
+          lprintf 
           "User %s(%d) is on %s(%d)" 
             u.user_nick
             u.user_user.impl_user_num 
             s.server_desc 
             s.server_server.impl_server_num;
-          print_newline ();
+          lprint_newline ();
           u.user_servers <- s :: u.user_servers;
         end;
       u
@@ -441,8 +442,8 @@ let add_shared full_name codedname size =
           } in
         Hashtbl.add shared_files codedname sh;
         add_shared_file shared_tree sh (String2.split codedname '/');
-        Printf.printf "Total shared : %s" (Int64.to_string !shared_counter);
-        print_newline () 
+        lprintf "Total shared : %s" (Int64.to_string !shared_counter);
+        lprint_newline () 
     | _ -> ()
   with _ -> ()
       

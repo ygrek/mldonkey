@@ -17,8 +17,9 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Printf;;
-
+open Printf2;;
+open Printf
+  
 let locfmt =
   Obj.magic (match Sys.os_type with
   | "MacOS" -> "File \"%s\"; line %d; characters %d to %d ### %s"
@@ -95,14 +96,14 @@ let register_exn f = printers := f :: !printers
 let catchexn s f =
   try f () with
     e -> 
-      Printf.printf "Uncaught exception in %s: %s" s (to_string e);
-      print_newline () 
+      lprintf "Uncaught exception in %s: %s" s (to_string e);
+      lprint_newline () 
   
 let vcatchexn s f =
   try Some (f ()) with
     e -> 
-      Printf.printf "Uncaught exception in %s: %s" s (to_string e);
-      print_newline ();
+      lprintf "Uncaught exception in %s: %s" s (to_string e);
+      lprint_newline ();
       None
 
 let _ =

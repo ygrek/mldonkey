@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open Md4
 open CommonTypes
 open LittleEndian
@@ -28,15 +29,15 @@ let dump_file filename =
   let ic = open_in filename in
   let s = String.create 20 in
   try
-    Printf.printf "file: %s" filename; print_newline ();
+    lprintf "file: %s" filename; lprint_newline ();
     let pos = ref 0 in
     while true do 
       let n = input ic s 0 20 in
-      Printf.printf "pos = %d" !pos; print_newline ();
+      lprintf "pos = %d" !pos; lprint_newline ();
       if n = 0 then raise Exit;
       dump (String.sub s 0 n);
       pos := !pos + n;
-      print_newline ();
+      lprint_newline ();
     done
   with _ ->
       close_in ic
@@ -79,8 +80,8 @@ module Server = struct
         with e -> 
             (*
             let len = String.length s - pos in
-            Printf.printf "Error while reading servers %s (left %d)"
-              (Printexc2.to_string e) len; print_newline ();
+            lprintf "Error while reading servers %s (left %d)"
+              (Printexc2.to_string e) len; lprint_newline ();
 dump (String.sub s pos len);      
   *)
             None
@@ -102,12 +103,12 @@ dump (String.sub s pos len);
       ) t
 
     let print t =
-      Printf.printf "SERVER.MET: %d servers" (List.length t); print_newline ();
+      lprintf "SERVER.MET: %d servers" (List.length t); lprint_newline ();
       List.iter (fun s ->
-          Printf.printf "  SERVER %s:%d" (Ip.to_string s.ip) s.port;
-          print_newline ();
+          lprintf "  SERVER %s:%d" (Ip.to_string s.ip) s.port;
+          lprint_newline ();
           print_tags s.tags;
-          print_newline ();
+          lprint_newline ();
       ) t;
       
   end
@@ -135,14 +136,14 @@ module Known = struct
     let rec read_files s pos n left =
       if n = 0 then List.rev left else
       let mtime = get_int64_32 s pos in
-(*      Printf.printf "file at pos %d" pos; print_newline (); *)
+(*      lprintf "file at pos %d" pos; lprint_newline (); *)
       let md4 = get_md4 s (pos+4) in
       let nblocks = get_int16 s (pos+20) in
-(*      Printf.printf "nblocks = %d" nblocks; print_newline ();  *)
+(*      lprintf "nblocks = %d" nblocks; lprint_newline ();  *)
       let blocks = Array.init nblocks (fun i ->
             let b = get_md4 s (pos+22+16*i) in
-(*            Printf.printf "b: [%s]" (String.escaped b);
-            print_newline (); *)
+(*            lprintf "b: [%s]" (String.escaped b);
+            lprint_newline (); *)
             b
         ) in
       let pos = pos + 22 + 16 * nblocks in
@@ -171,24 +172,24 @@ module Known = struct
     
     
     let print t =
-      Printf.printf "KNOWN.MET: %d files" (List.length t); print_newline ();
+      lprintf "KNOWN.MET: %d files" (List.length t); lprint_newline ();
       List.iter (fun f ->
           try
-            Printf.printf "  FILE %s" (Md4.to_string f.md4);
-            print_newline ();
-            Printf.printf "  mtime: %s" (Int64.to_string f.mtime);
-            print_newline ();
-            Printf.printf "  Blocks: %d" (Array.length f.blocks);
-            print_newline ();
+            lprintf "  FILE %s" (Md4.to_string f.md4);
+            lprint_newline ();
+            lprintf "  mtime: %s" (Int64.to_string f.mtime);
+            lprint_newline ();
+            lprintf "  Blocks: %d" (Array.length f.blocks);
+            lprint_newline ();
             Array.iter (fun m ->
-                Printf.printf "    %s" (Md4.to_string m);
-                print_newline ();
+                lprintf "    %s" (Md4.to_string m);
+                lprint_newline ();
             ) f.blocks;
             print_tags f.tags;
-            print_newline ();
-          with _ -> Printf.printf "EEEEE"; print_newline ();
+            lprint_newline ();
+          with _ -> lprintf "EEEEE"; lprint_newline ();
       ) t;
-      print_newline ();
+      lprint_newline ();
       
       
   end
@@ -216,14 +217,14 @@ module Part = struct
     
     
     let rec read_file s pos =
-(*      Printf.printf "file at pos %d" pos; print_newline (); *)
+(*      lprintf "file at pos %d" pos; lprint_newline (); *)
       let md4 = get_md4 s (pos) in
       let nblocks = get_int16 s (pos+16) in
-(*      Printf.printf "nblocks = %d" nblocks; print_newline ();  *)
+(*      lprintf "nblocks = %d" nblocks; lprint_newline ();  *)
       let blocks = Array.init nblocks (fun i ->
             let b = get_md4 s (pos+18+16*i) in
-(*            Printf.printf "b: [%s]" (String.escaped b);
-            print_newline (); *)
+(*            lprintf "b: [%s]" (String.escaped b);
+            lprint_newline (); *)
             b
         ) in
       let pos = pos + 18 + 16 * nblocks in
@@ -265,23 +266,23 @@ module Part = struct
     
     let print f =
       try
-        Printf.printf "  FILE %s" (Md4.to_string f.md4);
-        print_newline ();
-        Printf.printf "  Blocks: %d" (Array.length f.blocks);
-        print_newline ();
+        lprintf "  FILE %s" (Md4.to_string f.md4);
+        lprint_newline ();
+        lprintf "  Blocks: %d" (Array.length f.blocks);
+        lprint_newline ();
         Array.iter (fun m ->
-            Printf.printf "    %s" (Md4.to_string m);
-            print_newline ();
+            lprintf "    %s" (Md4.to_string m);
+            lprint_newline ();
         ) f.blocks;
-        print_newline ();
-        Printf.printf " Absent blocks:"; print_newline ();
+        lprint_newline ();
+        lprintf " Absent blocks:"; lprint_newline ();
         List.iter (fun (t1,n1) ->
-            Printf.printf "%10s - %10s" (Int64.to_string t1)
-            (Int64.to_string n1); print_newline ();
+            lprintf "%10s - %10s" (Int64.to_string t1)
+            (Int64.to_string n1); lprint_newline ();
         ) f.absents;
         print_tags f.tags;
-        print_newline ();
-      with _ -> Printf.printf "EEEEE"; print_newline ();
+        lprint_newline ();
+      with _ -> lprintf "EEEEE"; lprint_newline ();
           
     
   end
@@ -308,7 +309,7 @@ module Pref = struct
       assert (get_int s 5 = 0);
       let md4 = get_md4 s 9 in
       assert (get_int16 s 25 = 0);
-(*      Printf.printf "ntags : %d at pos %d" ntags 27; print_newline ();  *)
+(*      lprintf "ntags : %d at pos %d" ntags 27; lprint_newline ();  *)
       let client_tags, pos = get_tags s 27 names_of_client_tag in
       
       assert (get_int s pos = 0);
@@ -323,14 +324,14 @@ module Pref = struct
       }
       
     let print t = 
-      Printf.printf "PREF.MET %s" (Md4.to_string t.md4);
-      print_newline ();
+      lprintf "PREF.MET %s" (Md4.to_string t.md4);
+      lprint_newline ();
       
       print_tags t.client_tags;
-      print_newline ();
+      lprint_newline ();
       
       print_tags t.option_tags;
-      print_newline ()
+      lprint_newline ()
 (*
 (14)
 (2)(0)(0)(0)

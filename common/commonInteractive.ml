@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open CommonOptions
 open TcpBufferedSocket
 open BasicSocket
@@ -156,7 +157,7 @@ let send_custom_query buf s args =
     let q = List.assoc query !!CommonComplexOptions.customized_queries in
     let args = ref args in
     let get_arg arg_name = 
-(*      Printf.printf "Getting %s" arg_name; print_newline (); *)
+(*      lprintf "Getting %s" arg_name; lprint_newline (); *)
       match !args with
         (label, value) :: tail ->
           args := tail;
@@ -334,7 +335,7 @@ let all_simple_options_html () =
 
 let apply_on_fully_qualified_options name f =
   if !verbose then begin
-      Printf.printf "For option %s" name; print_newline ();
+      lprintf "For option %s" name; lprint_newline ();
     end;
   let rec iter prefix opfile =
     let args = simple_options opfile in
@@ -356,7 +357,7 @@ let apply_on_fully_qualified_options name f =
                   false
             with Exit -> true
         )) then begin
-        Printf.printf "Could not set option %s" name; print_newline ();
+        lprintf "Could not set option %s" name; lprint_newline ();
         raise Not_found
       end
   with Exit -> ()
@@ -432,7 +433,7 @@ let register_gui_options_panel name panel =
 let _ =
   add_infinite_option_timer filter_search_delay (fun _ ->
       if !!filter_search then begin
-(*          Printf.printf "Filter search results"; print_newline (); *)
+(*          lprintf "Filter search results"; lprint_newline (); *)
           List.iter  (fun s -> CommonSearch.Filter.find s) 
           !searches;
         end;
@@ -441,7 +442,7 @@ let _ =
   
 let search_add_result s r =
   if not !!filter_search then begin
-(*      Printf.printf "Adding result to filter"; print_newline (); *)
+(*      lprintf "Adding result to filter"; lprint_newline (); *)
       CommonSearch.search_add_result_in s r
     end
   else

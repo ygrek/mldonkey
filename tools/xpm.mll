@@ -240,7 +240,7 @@ let readBitmapDataFromFile filename =
   with
     e -> close_in ic; raise (BadFile ("readBitmapDataFromFile",0))
       
-let test f = try f () with e -> Printf.printf "-"; raise e  
+let test f = try f () with e -> lprintf "-"; raise e  
   
 let data_to_string data =
   let s = ref "\n[|" in

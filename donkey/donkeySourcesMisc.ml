@@ -25,6 +25,7 @@ have time to do it.
 
 *)
 
+open Printf2
 open Options
 open CommonOptions
 open DonkeyOptions
@@ -137,7 +138,7 @@ let set_request_result c file rs =
             (match r.request_result, rs with
               | _, (File_not_found | File_possible | File_expected ) -> ()
               | File_possible, _ ->
-                  Printf.printf "adding client to queue"; print_newline ();
+                  lprintf "adding client to queue"; lprint_newline ();
                   c.client_from_queues <- file :: c.client_from_queues
               | _, _ -> ()
             ); *)
@@ -154,7 +155,7 @@ let set_request_result c file rs =
     match rs with
     | File_not_found | File_possible | File_expected  -> ()
     |  _ ->
-        Printf.printf "adding client to queue"; print_newline ()
+        lprintf "adding client to queue"; lprint_newline ()
         (*
         c.client_from_queues <- file :: c.client_from_queues
 *)
@@ -182,12 +183,12 @@ let really_query_file c file r =
         | _ -> r.request_result <- File_expected
   else begin
 (*
-        Printf.printf "%d: Too Early for this request %s" 
+        lprintf "%d: Too Early for this request %s" 
           (client_num c) 
         (file_best_name file);
-        print_newline ();
-        Printf.printf "   Previous: %d seconds ago" (last_time () - r.request_time); 
-print_newline ();
+        lprint_newline ();
+        lprintf "   Previous: %d seconds ago" (last_time () - r.request_time); 
+lprint_newline ();
   *) ()
     end
     
@@ -252,47 +253,47 @@ Define some interesting queues:
 (* Connect to a client. Test before if the connection is really useful. *)
 let useful_client source_of_client reconnect_client c = 
   let v =
-(*  Printf.printf "Test %d: " (client_num c);  *)
+(*  lprintf "Test %d: " (client_num c);  *)
   if !verbose_sources then begin
-      Printf.printf "Testing source"; print_newline ();
+      lprintf "Testing source"; lprint_newline ();
     end;
   let (files, downloading) = purge_requests c.client_files in
   c.client_files <- files;
   try
 (*
-      if not downloading then (Printf.printf "Not downloading"; 
-        print_newline ()); *)
+      if not downloading then (lprintf "Not downloading"; 
+        lprint_newline ()); *)
     if downloading || 
       (client_type c <> NormalClient &&
         c.client_next_view_files < last_time ()) then
       (
         if !verbose_sources then begin
-            Printf.printf "************** Connect to source"; print_newline ();
+            lprintf "************** Connect to source"; lprint_newline ();
             (match c.client_kind with Indirect_location _ -> 
-                  Printf.printf "Indirect localtion ?"; print_newline ();
+                  lprintf "Indirect localtion ?"; lprint_newline ();
               | _ -> ());
           end;
-(*        Printf.printf "connect"; *)
+(*        lprintf "connect"; *)
         reconnect_client c; 
         match  client_state c with
         | NotConnected _ ->
-(*            Printf.printf " failed"; *)
+(*            lprintf " failed"; *)
             if !verbose_sources then begin
-                Printf.printf "--------- Connection to source failed"; print_newline ();
+                lprintf "--------- Connection to source failed"; lprint_newline ();
               end;
             source_of_client c; false
         | _ ->
-(*            Printf.printf " done"; *)
+(*            lprintf " done"; *)
             outside_queue := Intmap.add  (client_num c) c !outside_queue;
             true
       )
     else raise Not_found
     with _ ->
-(*         Printf.printf " exception"; *)
+(*         lprintf " exception"; *)
         source_of_client c;
         false
   in
-(*  print_newline ();  *)
+(*  lprint_newline ();  *)
   v
   
 let rank_level rank =
@@ -392,8 +393,8 @@ exception SourceTooOld
 let create_source new_score source_age addr = 
   let ip, port = addr in
   if !verbose_sources then begin
-      Printf.printf "queue_new_source %s:%d" (Ip.to_string ip) port; 
-      print_newline ();
+      lprintf "queue_new_source %s:%d" (Ip.to_string ip) port; 
+      lprint_newline ();
     end;
   try
     let finder =  { dummy_source with source_addr = addr } in
@@ -414,6 +415,6 @@ let create_source new_score source_age addr =
       H.add sources s;
       incr stats_sources;
       if !verbose_sources then begin
-          Printf.printf "Source %d added" s.source_num; print_newline ();
+          lprintf "Source %d added" s.source_num; lprint_newline ();
         end;
       s

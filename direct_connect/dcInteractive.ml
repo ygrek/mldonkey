@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open Md4
 open CommonOptions
 open CommonGlobals
@@ -83,8 +84,8 @@ let _ =
                     | "Audio" -> filetype := 2
                     | "Video" -> filetype := 7
                     | "Doc" -> filetype := 4
-                    | _ -> Printf.printf "Unknown document type [%s]" w;
-                        print_newline ();
+                    | _ -> lprintf "Unknown document type [%s]" w;
+                        lprint_newline ();
                   end
                   
               | _ -> words := w :: !words
@@ -250,8 +251,8 @@ let _ =
         
         P.user_server = (match user.user_servers with
             [] -> 
-              Printf.printf "%s(%d) is not on any server" user.user_nick user.user_user.impl_user_num;
-              print_newline ();
+              lprintf "%s(%d) is not on any server" user.user_nick user.user_user.impl_user_num;
+              lprint_newline ();
               0
           | s :: _ -> s.server_server.impl_server_num);
       });

@@ -16,6 +16,8 @@
     along with mldonkey; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
+
+open Printf2
 type t =  int * int * int * int
 
 external of_string : string -> t  = "ml_ints_of_string"
@@ -121,9 +123,9 @@ let resolve_name name =
     let (ip, time) = Hashtbl.find ip_cache name in
     if time < current_time then
       try
-        Printf.printf "Resolving %s ..." name; flush stdout;
+        lprintf "Resolving %s ..." name; 
         let ip = gethostbyname name in
-        Printf.printf "done"; print_newline ();
+        lprintf "done"; lprint_newline ();
         Hashtbl.remove ip_cache name;
         Hashtbl.add ip_cache name (ip, current_time +. 3600.);
         ip
@@ -240,13 +242,13 @@ let _ =
                       let list = Array.to_list job.entries in
                       get_non_local_ip list       
                     in
-                    Printf.printf "Ip found for %s: %s"
-                      job.name (to_string ip); print_newline ();
+                    lprintf "Ip found for %s: %s"
+                      job.name (to_string ip); lprint_newline ();
                     Hashtbl.add ip_cache job.name (ip, current_time +. 3600.);
                     job.handler ip
                   end else begin
-                    Printf.printf "Error: %s: address not found" job.name;
-                    print_newline ();
+                    lprintf "Error: %s: address not found" job.name;
+                    lprint_newline ();
                   end
               end else raise Exit
       done

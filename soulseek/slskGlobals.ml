@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open Md4
 open CommonOptions
 open CommonResult
@@ -348,8 +349,8 @@ let new_file file_id name file_size =
       let current_size = try
           Unix32.getsize64 file_temp
         with e ->
-            Printf.printf "Exception %s in current_size" (Printexc2.to_string e); 
-            print_newline ();
+            lprintf "Exception %s in current_size" (Printexc2.to_string e); 
+            lprint_newline ();
             Int64.zero
       in
       

@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open ImTypes
 
 type 'a protocol_impl = {
@@ -103,22 +104,22 @@ let new_protocol name v =
     }  in
   let p = as_protocol p in
   Hname.add protocols_by_name p;
-  Printf.printf "Registered protocol %s" name; print_newline ();
+  lprintf "Registered protocol %s" name; lprint_newline ();
   Hnum.add protocols_by_num p;
   p
   
 let ni protocol name _ =
-  Printf.printf "Method %s not implemented in %s" name 
+  lprintf "Method %s not implemented in %s" name 
     (protocol_name protocol);
-  print_newline ()
+  lprint_newline ()
   
 let fni protocol name x =
   ni protocol name x;
   raise Not_found
   
 let ni2 protocol name _ _ =
-  Printf.printf "Method %s not implemented in %s" name 
-    (protocol_name protocol); print_newline ()
+  lprintf "Method %s not implemented in %s" name 
+    (protocol_name protocol); lprint_newline ()
   
   
 let fni2 protocol name x y =

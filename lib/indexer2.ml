@@ -16,7 +16,9 @@
     along with mldonkey; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
-  
+
+open Printf2
+
 type 'a query =
   And of 'a query * 'a query
 | Or of 'a query * 'a query
@@ -76,7 +78,7 @@ module Make(Doc : sig
     let exit_exn = Exit
       
     let add_doc node doc fields = 
-(*      Printf.printf "add_doc"; print_newline ();  *)
+(*      lprintf "add_doc"; lprint_newline ();  *)
       let len = Array.length node.docs in
       let pos = node.next_doc in
       try
@@ -95,18 +97,18 @@ module Make(Doc : sig
             node.fields <- new_fields
           end;
         node.docs.(pos) <- doc;
-(*        Printf.printf "Adding doc with field %d" fields; print_newline (); *)
+(*        lprintf "Adding doc with field %d" fields; lprint_newline (); *)
         node.fields.(pos) <- fields;
         node.next_doc <- pos +1;
         node.ndocs <- node.ndocs + 1;
         true
       with e ->
-(*          Printf.printf "exn %s" (Printexc2.to_string e); print_newline (); *)
+(*          lprintf "exn %s" (Printexc2.to_string e); lprint_newline (); *)
           false
-(* ; Printf.printf "done"; print_newline () *)
+(* ; lprintf "done"; lprint_newline () *)
     
     let add_char node c = 
-(*      Printf.printf "add_char"; print_newline (); *)
+(*      lprintf "add_char"; lprint_newline (); *)
       let n = new_node () in
       let len = Array.length node.nodes in
       if len <= c then begin
@@ -114,18 +116,18 @@ module Make(Doc : sig
           Array.blit node.nodes 0 new_nodes 0 len;
           node.nodes <- new_nodes;
         end;
-(*      Printf.printf "set %d %d %d" c len (Array.length node.nodes); print_newline (); *)
+(*      lprintf "set %d %d %d" c len (Array.length node.nodes); lprint_newline (); *)
       node.nodes.(c) <- Some n;
-(*      Printf.printf "done"; print_newline (); *)
+(*      lprintf "done"; lprint_newline (); *)
       n
     
     let add index string doc fields = 
-(*      Printf.printf "add (%s)" string; print_newline ();  *)
+(*      lprintf "add (%s)" string; lprint_newline ();  *)
       try
-(*      Printf.printf "add"; print_newline (); *)
+(*      lprintf "add"; lprint_newline (); *)
         let len = String.length string in
         let rec iter pos node = 
-(*          Printf.printf "pos %d" pos; print_newline (); *)
+(*          lprintf "pos %d" pos; lprint_newline (); *)
           if pos = len then
             if add_doc node doc fields then begin
                 node.ndocs <- node.ndocs + 1;
@@ -141,7 +143,7 @@ module Make(Doc : sig
               | Some node -> node
               | Filtered _ -> 
                   Doc.filter doc true;
-                  Printf.printf "doc filtered"; print_newline (); 
+                  lprintf "doc filtered"; lprint_newline (); 
                   raise Not_found
             else
               add_char node c
@@ -150,23 +152,23 @@ module Make(Doc : sig
         in
         ignore (iter 0 index.node)
       with e -> 
-(*          Printf.printf "Exc %s" (Printexc2.to_string e);print_newline (); *)
+(*          lprintf "Exc %s" (Printexc2.to_string e);lprint_newline (); *)
           ()
-(* ; Printf.printf "done"; print_newline ()  *)
+(* ; lprintf "done"; lprint_newline ()  *)
     
     let clear index = index.node <- new_node () 
 
     let rec filter_node node bool =
-(*      Printf.printf "filter node"; print_newline (); *)
+(*      lprintf "filter node"; lprint_newline (); *)
       for i = 0 to node.next_doc - 1 do
-(*        Printf.printf "filter doc %s" (string_of_bool bool); print_newline (); *)
+(*        lprintf "filter doc %s" (string_of_bool bool); lprint_newline (); *)
         Doc.filter node.docs.(i) bool;
 (*        if Doc.filtered node.docs.(i) then
-          (Printf.printf "doc is filtered"; print_newline ()); *)
+          (lprintf "doc is filtered"; lprint_newline ()); *)
       done
 
     let rec filter_nodes node bool =
-(*      Printf.printf "filter_nodes"; print_newline (); *)
+(*      lprintf "filter_nodes"; lprint_newline (); *)
       filter_node node bool;
       let len = Array.length node.nodes in
       for i = 0 to len - 1 do
@@ -202,13 +204,13 @@ module Make(Doc : sig
           
       
     let filter_words index list = 
-(*      Printf.printf "FILTER ALL"; print_newline (); *)
+(*      lprintf "FILTER ALL"; lprint_newline (); *)
       List.iter (fun s -> 
-(*          Printf.printf "filter (%s)" s; print_newline (); *)
+(*          lprintf "filter (%s)" s; lprint_newline (); *)
           add_filter index s) list
 
     let clear_filter index = 
-(*      Printf.printf "CLEAR FILTER"; print_newline (); *)
+(*      lprintf "CLEAR FILTER"; lprint_newline (); *)
       let rec iter node =
         let len = Array.length node.nodes in
         for i = 0 to len - 1 do

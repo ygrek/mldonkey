@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open Md4
 open CommonClient
 open Options
@@ -119,7 +120,7 @@ let _ =
 let ni n m = 
   let s = Printf.sprintf "File.%s not implemented by %s" 
       m n.network_name in
-  print_string s; print_newline ();
+  lprint_string s; lprint_newline ();
   s
   
 let fni n m = failwith (ni n m)
@@ -255,39 +256,39 @@ let new_file_ops network =
   f
 
 let check_file_implementations () =
-  Printf.printf "\n---- Methods not implemented for CommonFile ----\n";
-  print_newline ();
+  lprintf "\n---- Methods not implemented for CommonFile ----\n";
+  lprint_newline ();
   List.iter (fun (c, cc) ->
       let n = c.op_file_network.network_name in
-      Printf.printf "\n  Network %s\n" n; print_newline ();
+      lprintf "\n  Network %s\n" n; lprint_newline ();
       if c.op_file_to_option == cc.op_file_to_option then 
-        Printf.printf "op_file_to_option\n";
+        lprintf "op_file_to_option\n";
       if c.op_file_info == cc.op_file_info then
-        Printf.printf "op_file_info\n";
+        lprintf "op_file_info\n";
       if c.op_file_commit == cc.op_file_commit then
-        Printf.printf "op_file_commit\n";
+        lprintf "op_file_commit\n";
       if c.op_file_save_as == cc.op_file_save_as then
-        Printf.printf "op_file_save_as\n";
+        lprintf "op_file_save_as\n";
       if c.op_file_cancel == cc.op_file_cancel then
-        Printf.printf "op_file_cancel\n";
+        lprintf "op_file_cancel\n";
       if c.op_file_pause == cc.op_file_pause then
-        Printf.printf "op_file_pause\n";
+        lprintf "op_file_pause\n";
       if c.op_file_resume == cc.op_file_resume then
-        Printf.printf "op_file_resume\n";
+        lprintf "op_file_resume\n";
 (*      if c.op_file_disk_name == cc.op_file_disk_name then
-        Printf.printf "op_file_disk_name\n"; *)
+        lprintf "op_file_disk_name\n"; *)
       if c.op_file_check == cc.op_file_check then
-        Printf.printf "op_file_check\n";
+        lprintf "op_file_check\n";
       if c.op_file_recover == cc.op_file_recover then
-        Printf.printf "op_file_recover\n";
+        lprintf "op_file_recover\n";
       if c.op_file_set_format == cc.op_file_set_format then
-        Printf.printf "op_file_set_format\n";
+        lprintf "op_file_set_format\n";
       if c.op_file_sources == cc.op_file_sources then
-        Printf.printf "op_file_sources\n";
+        lprintf "op_file_sources\n";
       if c.op_file_print_sources_html == cc.op_file_print_sources_html then
-        Printf.printf "op_file_print_sources_html\n";
+        lprintf "op_file_print_sources_html\n";
   ) !files_ops;
-  print_newline () 
+  lprint_newline () 
 
   
 let file_find num = 

@@ -127,18 +127,18 @@ let realloc t =
   t.size <- t.size * 2 + 1
   
 let put t e = 
-(*  Printf.printf "FIFO PUT"; print_newline (); *)
+(*  lprintf "FIFO PUT"; lprint_newline (); *)
   if t.inpos = t.outpos && not t.empty then realloc t;
   t.array.(t.inpos) <- e;
   t.inpos <- (t.inpos + 1) land t.size;
   t.empty <- false;
 (*
-Printf.printf "FIFO NOT EMPTY %s" (string_of_bool t.empty); print_newline ();
+lprintf "FIFO NOT EMPTY %s" (string_of_bool t.empty); lprint_newline ();
 *)
   ()
 
 let take t =
-(*  Printf.printf "FIFO TAKE"; print_newline (); *)
+(*  lprintf "FIFO TAKE"; lprint_newline (); *)
   if t.empty then raise Empty;
   let e = t.array.(t.outpos) in
   t.outpos <- (t.outpos + 1) land t.size;
@@ -146,7 +146,7 @@ let take t =
   e
   
 let clear t = 
-(*  Printf.printf "FIFO CLEAR"; print_newline (); *)
+(*  lprintf "FIFO CLEAR"; lprint_newline (); *)
   t.empty <- true;
   t.inpos <- 0;
   t.outpos <- 0
@@ -156,7 +156,7 @@ let head t =
   t.array.(t.outpos)
 
 let empty t = 
-(*  Printf.printf "FIFO EMPTY %s" (string_of_bool t.empty); print_newline (); *)
+(*  lprintf "FIFO EMPTY %s" (string_of_bool t.empty); lprint_newline (); *)
   t.empty
 
 let to_list t =
@@ -175,7 +175,7 @@ let to_list t =
   Array.to_list tab
 
 let length t = 
-(*  Printf.printf "FIFO LEN"; print_newline (); *)
+(*  lprintf "FIFO LEN"; lprint_newline (); *)
   if t.empty then 0 else
   if t.inpos > t.outpos then t.inpos - t.outpos else
   let s = Array.length t.array in

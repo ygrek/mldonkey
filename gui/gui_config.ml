@@ -19,6 +19,7 @@
 
 (** Configuration panel. *)
 
+open Printf2
 open Gettext
 open Gui_global
 module GO = Gui_options
@@ -317,7 +318,7 @@ let create_sections_params sections =
                     create_file_option message (Hashtbl.find options_values option)
               ) :: list
             with Not_found ->
-                Printf.printf "No option %s" option; print_newline ();
+                lprintf "No option %s" option; lprint_newline ();
                 list
         ) [] !options)
   ) sections
@@ -347,12 +348,12 @@ let save_options gui =
 );
   *)
   with _ ->
-    Printf.printf "ERROR SAVING OPTIONS (but port/password/host correctly set for GUI)"; print_newline ()
+    lprintf "ERROR SAVING OPTIONS (but port/password/host correctly set for GUI)"; lprint_newline ()
 
   
 let edit_options gui =
   try
-    Printf.printf "edit_options"; print_newline ();
+    lprintf "edit_options"; lprint_newline ();
     let gui_params = create_gui_params () in 
     let client_params = create_sections_params !client_sections in
     let plugins_params = create_sections_params !plugins_sections in
@@ -387,5 +388,5 @@ let edit_options gui =
     
     | Return_cancel -> ()
   with e ->
-      Printf.printf "Exception %s in edit_options" (Printexc2.to_string e);
-      print_newline ();
+      lprintf "Exception %s in edit_options" (Printexc2.to_string e);
+      lprint_newline ();

@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open Md4
 open CommonClient
 open CommonUser
@@ -251,8 +252,8 @@ let new_file file_id file_name file_size =
       let current_size = try
           Unix32.getsize64 file_temp
         with e ->
-            Printf.printf "Exception %s in current_size" (Printexc2.to_string e); 
-            print_newline ();
+            lprintf "Exception %s in current_size" (Printexc2.to_string e); 
+            lprint_newline ();
             Int64.zero
       in
       
@@ -277,11 +278,11 @@ let new_file file_id file_name file_size =
           FileDownloading in
       
       if state = FileDownloading then begin
-          Printf.printf "ADDING FILE %s" file_name; print_newline ();
+          lprintf "ADDING FILE %s" file_name; lprint_newline ();
           current_files := file :: !current_files
         end;
       file_add file_impl state;
-(*      Printf.printf "ADD FILE TO DOWNLOAD LIST"; print_newline (); *)
+(*      lprintf "ADD FILE TO DOWNLOAD LIST"; lprint_newline (); *)
       Hashtbl.add files_by_key key file;
       file
 
@@ -345,7 +346,7 @@ let add_source r s index =
 let add_download file c index =
 (*  let r = new_result file.file_name (file_size file) in *)
 (*  add_source r c.client_user index; *)
-  Printf.printf "Adding file to client"; print_newline ();
+  lprintf "Adding file to client"; lprint_newline ();
   if not (List.memq c file.file_clients) then begin
       c.client_downloads <- (file, index) :: c.client_downloads;
       file.file_clients <- c :: file.file_clients;

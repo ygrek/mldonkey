@@ -22,7 +22,7 @@
   GET, POST, HEAD, PUT, DELETE, TRACE, OPTIONS, CONNECT
 *)
 
-
+open Printf2
 open BasicSocket
 open Unix
 open Url
@@ -116,7 +116,7 @@ let make_full_request r =
   else
     Buffer.add_string res "\r\n";
   let s = Buffer.contents res in
-(*   Printf.printf "URL: %s" s; print_newline ();  *)
+(*   lprintf "URL: %s" s; lprint_newline ();  *)
   s
 
 let split_head s =
@@ -157,9 +157,9 @@ let read_header header_handler  sock nread =
   let new_pos = end_pos - nread in
   let new_pos = maxi 0 (new_pos - 1) in
   (*
-  Printf.printf "received [%s]" (String.escaped 
+  lprintf "received [%s]" (String.escaped 
       (String.sub b.buf new_pos nread));
-print_newline ();
+lprint_newline ();
   *)
   let rec iter i =
     let end_pos = b.pos + b.len in
@@ -230,18 +230,18 @@ let get_page r content_handler f =
   and default_headers_handler level sock ans_code headers =
     (*
     List.iter (fun (name, value) ->
-        Printf.printf "[%s]=[%s]" name value;
-        print_newline ();
+        lprintf "[%s]=[%s]" name value;
+        lprint_newline ();
     ) headers;
 *)
     match ans_code with
       200 ->
 (*
-  Printf.printf "ans_code: %d" ans_code;
-  print_newline ();
+  lprintf "ans_code: %d" ans_code;
+  lprint_newline ();
   List.iter (fun (name, content) ->
-      Printf.printf "HEADER %s:%s" name content;
-      print_newline ();) 
+      lprintf "HEADER %s:%s" name content;
+      lprint_newline ();) 
 headers;
 *)
         TcpBufferedSocket.set_closer sock (fun _ _ -> 
@@ -252,8 +252,8 @@ headers;
               try          
                 content_length := int_of_string content
               with _ -> 
-                  Printf.printf "bad content length [%s]" content;
-                  print_newline ();
+                  lprintf "bad content length [%s]" content;
+                  lprint_newline ();
         ) headers;
         
         let content_handler = content_handler !content_length headers in
@@ -263,32 +263,32 @@ headers;
           content_handler sock buf.len 
           
     | 302 ->
-        Printf.printf "Http_client 302: Redirect"; print_newline ();
+        lprintf "Http_client 302: Redirect"; lprint_newline ();
         if level < 10 then
           begin
             try
               let url = List.assoc "Location" headers in
-              Printf.printf "Redirected to %s" url; print_newline ();
+              lprintf "Redirected to %s" url; lprint_newline ();
               let r = { r with req_url = Url.of_string url } in
               get_url (level+1) r
             
             with e ->
                 List.iter (fun (name, value) ->
-                    Printf.printf "[%s]=[%s]" name value;
-                    print_newline ();
+                    lprintf "[%s]=[%s]" name value;
+                    lprint_newline ();
                 ) headers
                 
           end
           
     | 404 ->
-        Printf.printf "Http_client 404: Not found %s" (Url.to_string false r.req_url);
-        print_newline ();
+        lprintf "Http_client 404: Not found %s" (Url.to_string false r.req_url);
+        lprint_newline ();
         close sock "bad reply";
         raise Not_found
           
     | _ ->
-        Printf.printf "Http_client: bad reply %d" ans_code;
-        print_newline ();
+        lprintf "Http_client: bad reply %d" ans_code;
+        lprint_newline ();
         close sock "bad reply";
         raise Not_found
 
@@ -319,16 +319,16 @@ let wget r f =
   (fun _ ->  
       let s = Buffer.contents file_buf in
       if s = "" then begin  
-          Printf.printf "Empty content for url %s" 
+          lprintf "Empty content for url %s" 
             (Url.to_string false r.req_url);
-          print_newline ();
+          lprint_newline ();
         end;
       let filename = Filename.temp_file "http_" ".tmp" in
       File.from_string filename s;
       try
         (f filename : unit);
         Sys.remove filename 
-      with  e ->  Printf.printf
+      with  e ->  lprintf
             "Exception %s in loading downloaded file %s"
             (Printexc2.to_string e) filename;
           Sys.remove filename 
@@ -378,7 +378,7 @@ let cut_headers headers =
         String.lowercase (String.sub s 0 pos), String.sub s (pos+1) (len-pos-1)
   ) headers
   with e ->
-      Printf.printf "Exception in cut_headers: %s" (Printexc2.to_string e);
-      print_newline ();
+      lprintf "Exception in cut_headers: %s" (Printexc2.to_string e);
+      lprint_newline ();
       raise e
       

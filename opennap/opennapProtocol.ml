@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
+  
 (*
 
   Add redirection:
@@ -113,23 +115,23 @@ let buf_int16 buf i =
   
 let dump s =
   let len = String.length s in
-  Printf.printf "ascii: [";
+  lprintf "ascii: [";
   for i = 0 to len - 1 do
     let c = s.[i] in
     let n = int_of_char c in
     if n > 31 && n < 127 then
-      Printf.printf " %c" c
+      lprintf " %c" c
     else
-      Printf.printf "(%d)" n
+      lprintf "(%d)" n
   done;
-  Printf.printf "]\n";
-  Printf.printf "dec: [";
+  lprintf "]\n";
+  lprintf "dec: [";
   for i = 0 to len - 1 do
     let c = s.[i] in
     let n = int_of_char c in
-    Printf.printf "(%d)" n            
+    lprintf "(%d)" n            
   done;
-  Printf.printf "]\n"
+  lprintf "]\n"
 
 (************************************************************************)
   
@@ -258,7 +260,7 @@ module SimpleString = functor(M: sig val msg : string end) ->
       let parse s = s
       
       let print t =
-      Printf.printf "message %s: %s" M.msg t
+      lprintf "message %s: %s" M.msg t
       
     let write buf t = Buffer.add_string buf t
   end
@@ -269,7 +271,7 @@ module Empty = functor(M: sig val msg : string end) ->
       let parse s = ()
       
       let print t =
-        Printf.printf "message %s" M.msg
+        lprintf "message %s" M.msg
         
       let write buf t = ()
     end
@@ -306,7 +308,7 @@ module Login = struct (* Login: client --> server *)
       }
       
     let print t =
-      Printf.printf "LOGIN %s %s %d \"%s\" %s"
+      lprintf "LOGIN %s %s %d \"%s\" %s"
         t.nick t.password t.port t.client_info (string_of_link t.link_type)
       
     let write buf t =
@@ -344,7 +346,7 @@ module NewUserLogin = struct (* Login: client --> server *)
       }
       
     let print t =
-      Printf.printf "NEW USER LOGIN %s %s %d \"%s\" %s %s"
+      lprintf "NEW USER LOGIN %s %s %d \"%s\" %s %s"
         t.nick t.password t.port t.client_info (string_of_link t.link_type)
       t.email
       
@@ -409,7 +411,7 @@ module SearchReply = struct
 
       
     let print t = 
-      Printf.printf "SEARCH REPLY \"%s\" %s %s %d %d %d %s %s %s %d"
+      lprintf "SEARCH REPLY \"%s\" %s %s %d %d %d %s %s %s %d"
         t.filename t.md5 (Int64.to_string t.size) t.bitrate t.freq t.length
         t.nick (Ip.to_string t.ip) 
       (string_of_link t.link_type) t.weight
@@ -543,7 +545,7 @@ module DownloadRequest = struct
       | _ -> raise Not_found
       
     let print t = 
-      Printf.printf "DownloadRequest from %s of %s" t.nick t.filename
+      lprintf "DownloadRequest from %s of %s" t.nick t.filename
       
     let write buf t = 
       Printf.bprintf buf "%s \"%s\"" t.nick t.filename
@@ -560,12 +562,12 @@ module DownloadAck = struct
       }
       
     let parse s = 
-      Printf.printf "DOWNLOAD ACK [%s]" s; print_newline ();
+      lprintf "DOWNLOAD ACK [%s]" s; lprint_newline ();
       match get_strings s 0 with
         [ nick ; ip_s; port_s; filename; md5; linespeed_s ] -> 
           let ip = Ip.rev (Ip.of_int64 (Int64.of_string ip_s)) in
-          Printf.printf "IP %s = %s" ip_s (Ip.to_string ip);
-          print_newline ();
+          lprintf "IP %s = %s" ip_s (Ip.to_string ip);
+          lprint_newline ();
           { nick = nick; 
             ip = ip;
             port = int_of_string port_s;
@@ -576,7 +578,7 @@ module DownloadAck = struct
       | _ -> raise Not_found
       
     let print t = 
-      Printf.printf "DownloadAck from %s at %s:%d (%s) of %s %s" 
+      lprintf "DownloadAck from %s at %s:%d (%s) of %s %s" 
         t.nick (Ip.to_string t.ip) t.port (string_of_link t.linespeed)
       t.filename t.md5
       
@@ -598,7 +600,7 @@ module DownloadError = struct
       | _ -> raise Not_found
       
     let print t = 
-      Printf.printf "DownloadError from %s of %s" t.nick t.filename
+      lprintf "DownloadError from %s of %s" t.nick t.filename
       
     let write buf t = 
       Printf.bprintf buf "%s \"%s\"" t.nick t.filename
@@ -616,7 +618,7 @@ module PrivateMessage = struct
       | _ -> raise Not_found
       
     let print t = 
-      Printf.printf "PrivateMessage from %s : %s" t.nick t.message
+      lprintf "PrivateMessage from %s : %s" t.nick t.message
       
     let write buf t = 
       Printf.bprintf buf "%s %s" t.nick t.message
@@ -639,7 +641,7 @@ module ServerStats = struct
       | _ -> raise Not_found
       
     let print t = 
-      Printf.printf "ServerStats  %d users %d files %d GB" 
+      lprintf "ServerStats  %d users %d files %d GB" 
       t.users t.files t.size
       
     let write buf t = 
@@ -661,7 +663,7 @@ module Resume = struct
       | _ -> raise Not_found
       
     let print t = 
-      Printf.printf "RequestResume  %s %s" 
+      lprintf "RequestResume  %s %s" 
         t.md5 (Int64.to_string t.filesize)
       
     let write buf t = 
@@ -713,7 +715,7 @@ module BrowseUserReply = struct
 
       
     let print t = 
-      Printf.printf "BROWSE REPLY %s \"%s\" %s %s %d %d %d"
+      lprintf "BROWSE REPLY %s \"%s\" %s %s %d %d %d"
         t.nick t.filename t.md5 (Int64.to_string t.size) t.bitrate t.freq 
       t.length
         
@@ -759,7 +761,7 @@ module AddFile = struct
 
       
     let print t = 
-      Printf.printf "ADD FILE \"%s\" %s %s %d %d %d"
+      lprintf "ADD FILE \"%s\" %s %s %d %d %d"
       t.filename t.md5 (Int64.to_string t.size) t.bitrate t.freq t.length
         
     let write buf t =
@@ -857,7 +859,7 @@ let parse msg_type data msg_len =
     | 500 -> AlternateDownloadRequestReq (DownloadRequest.parse data)
     | _ -> raise Not_found
   with e -> 
-      Printf.printf "EXception %s in parse" (Printexc2.to_string e); print_newline ();
+      lprintf "EXception %s in parse" (Printexc2.to_string e); lprint_newline ();
       UnknownReq (msg_type,data)
       
 let print t =
@@ -891,18 +893,18 @@ let print t =
     | ServerStatsReq t -> ServerStats.print t
     | ResumeReq t -> Resume.print t
     | ResumeReplyReq t -> 
-        Printf.printf "RESUME "; DownloadAck.print t
+        lprintf "RESUME "; DownloadAck.print t
     | EndOfResumeReplyReq -> EndOfResumeReply.print t
     | MessageReq t -> Message.print t
     | GetServerStatsReq -> GetServerStats.print ()
     | AlternateDownloadRequestReq t -> 
-        Printf.printf "ALTERNATE "; DownloadRequest.print t
+        lprintf "ALTERNATE "; DownloadRequest.print t
     
     | UnknownReq (msg_type, s) -> 
-        Printf.printf "Unknown msg type: %d" msg_type; print_newline ();
+        lprintf "Unknown msg type: %d" msg_type; lprint_newline ();
         dump s
   end;
-  print_newline () 
+  lprint_newline () 
   
 let buf = Buffer.create 10000
 
@@ -1123,7 +1125,7 @@ let server_msg_to_string msg =
   let s = Buffer.contents buf in
   let len = String.length s - 4 in
   let n = get_int16 s 2 in
-  Printf.printf "SENDING %d [%s]" n (String.sub s 4 len) ; print_newline ();
+  lprintf "SENDING %d [%s]" n (String.sub s 4 len) ; lprint_newline ();
   str_int16 s 0 len;
   s
  

@@ -195,7 +195,7 @@ let supp_ack_notifs lst nbr =
       []
     else
       begin 
-	(*Printf.printf "I have to get %d element\n" (size-nbr);*)
+	(*lprintf "I have to get %d element\n" (size-nbr);*)
 	(get_begin_liste lst (size-nbr))
       end
 
@@ -205,16 +205,16 @@ let supp_ack_notifs lst nbr =
     for i = 0 to nbr do
       ignore(Queue.take lst);
     done
-  with _ -> Printf.printf "WARNING: SUPP NO ELEMENT FROM SERVER NOTIFICATION QUEUE\n"
+  with _ -> lprintf "WARNING: SUPP NO ELEMENT FROM SERVER NOTIFICATION QUEUE\n"
 *)
 
 let send_notification s sock =
  try
-  (*Printf.printf "BEGIN CONSTRUCTION OF NOTIF PACKET\n";*)
+  (*lprintf "BEGIN CONSTRUCTION OF NOTIF PACKET\n";*)
   let id_msg = ref 0 in
   let nb_notifs = ref 200 in
   let last_id_msg,last_nb_notifs = s.server_last_message_send in
-   (*Printf.printf "Last msg %d -> %d\n" last_id_msg last_nb_notifs;*)
+   (*lprintf "Last msg %d -> %d\n" last_id_msg last_nb_notifs;*)
    if last_nb_notifs = -1 then
       (if last_id_msg > 100 then
          id_msg := 0
@@ -225,9 +225,9 @@ let send_notification s sock =
         nb_notifs := last_nb_notifs;
         id_msg := last_id_msg;
       end;
-  (*Printf.printf "Liste of notif %d\n" (List.length s.server_noxstifications); *)           
+  (*lprintf "Liste of notif %d\n" (List.length s.server_noxstifications); *)           
   let notifs,nbr = get_notify_to_send s.server_notifications !nb_notifs in
-    (*Printf.printf "Send notification %d with %d notifs in real %d\n" !id_msg nbr (List.length notifs);*)
+    (*lprintf "Send notification %d with %d notifs in real %d\n" !id_msg nbr (List.length notifs);*)
 
   let nb_diff_md4 = ref 0 in
   let msg = Hashtbl.create nbr in
@@ -253,7 +253,7 @@ let send_notification s sock =
 			 LN.notifs= msg;
 		       });
     s.server_last_message_send <- (!id_msg,nbr);
- with _ -> Printf.printf "CAN'T MAKE NOTIF PACKET\n" 
+ with _ -> lprintf "CAN'T MAKE NOTIF PACKET\n" 
     
 
 let send_notif s =
@@ -351,20 +351,20 @@ let get_local_sources s =
 
 let reply_to_server_connection s =
   match s.server_sock with
-    None -> (*Printf.printf "Can't reply server connection\n";*)
+    None -> (*lprintf "Can't reply server connection\n";*)
       ()
             
   | Some sock ->
        try 
 	 let id = get_server_id () in
-	(*Printf.printf ("Nouvel identifiant %d") id;
-	  print_newline();*)
+	(*lprintf ("Nouvel identifiant %d") id;
+	  lprint_newline();*)
 	   s.server_id <- id;
 	   Hashtbl.add servers_by_id id s;
 
       (*print clients_by_id;*)
       
-      (*Printf.printf "SET ID"; print_newline ();*)
+      (*lprintf "SET ID"; lprint_newline ();*)
        (*Pervasives.flush Pervasives.stdout;*)
 (* send ID back to client *)
 	   direct_group_send sock  (M.ACKConnectReq (
@@ -385,7 +385,7 @@ let reply_to_server_connection s =
 	   send_notification s sock; 
 	   
 	   
-           (*Printf.printf "notif send, broadcast new server position\n";*)
+           (*lprintf "notif send, broadcast new server position\n";*)
 	   
 	   let module SN = M.ServerNotification in
 	     broadcast_to_group s.server_id (ServerNotificationReq {
@@ -398,7 +398,7 @@ let reply_to_server_connection s =
 	     
 	     
        with _ -> 
-             Printf.printf "Failure in reply connection server\n"
+             lprintf "Failure in reply connection server\n"
 (* send some messages 
       List.iter (fun msg ->
           direct_server_send sock (M.MessageReq msg)) !!welcome_messages*)
@@ -413,15 +413,15 @@ let check_handler s port ok sock event =
     | BASIC_EVENT CAN_WRITE ->
         ok := true;
         TcpBufferedSocket.close sock "connect ok";
-        (*Printf.printf "CAN WRITE\n";*)
+        (*lprintf "CAN WRITE\n";*)
         (*(match s.server_sock with
          None -> ()
-        | Some sock -> Printf.printf "Cool\n");*)
+        | Some sock -> lprintf "Cool\n");*)
         reply_to_server_connection s 
     | _ ->
         TcpBufferedSocket.close sock "can't connect";
         ok := false;
-        Printf.printf "ERROR IN CONNECT\n"
+        lprintf "ERROR IN CONNECT\n"
     
 let check_server s port =
   let try_sock = TcpBufferedSocket.connect "server to server"
@@ -431,17 +431,17 @@ let check_server s port =
     (*server_msg_to_string*)
   in
   BasicSocket.set_wtimeout (TcpBufferedSocket.sock try_sock) 5.;
-  (*Printf.printf "Checking sevrer ID\n";*)
+  (*lprintf "Checking sevrer ID\n";*)
   ()
 
 let server_handler s sock event = 
   match event with
     BASIC_EVENT (CLOSED _) ->
-    Printf.printf "%s:%d CLOSED received by server"
-(Ip.to_string s.server_ip) s.server_port; print_newline ();
+    lprintf "%s:%d CLOSED received by server"
+(Ip.to_string s.server_ip) s.server_port; lprint_newline ();
  
       (*connection_failed (s.server_connection_control);*)
-      Printf.printf "server_handler call for close\n";
+      lprintf "server_handler call for close\n";
       s.server_sock <- None
       (*set_server_state s NotConnected;*)
       (*!server_is_disconnected_hook s*)
@@ -503,35 +503,35 @@ let rec remove id lst =
       to_connect := List.filter (fun id ->
                     id<>s_id) !to_connect;
     decr nconnected_servers
-   with _ -> Printf.printf "Failure when remove a server of the group"
+   with _ -> lprintf "Failure when remove a server of the group"
  
 
  let print_servers () =
-   Printf.printf "Contenu de server_by_id:\n";
+   lprintf "Contenu de server_by_id:\n";
    Hashtbl.iter (fun id s -> 
-		   Printf.printf "server %d " id )
+		   lprintf "server %d " id )
      servers_by_id;
-   print_newline();
-   Printf.printf "Contenu de to_connect:\n";
+   lprint_newline();
+   lprintf "Contenu de to_connect:\n";
    List.iter (fun s_id -> 
-		Printf.printf "server %d " s_id )
+		lprintf "server %d " s_id )
      !to_connect;
-   print_newline()  
+   lprint_newline()  
 
 
    
 
 let server_disconnect_of_master s sock msg =
-  Printf.printf "DISCONNECT:server %d disconnect_of_master call for close\n" s.server_id;
+  lprintf "DISCONNECT:server %d disconnect_of_master call for close\n" s.server_id;
   s.server_sock <- None;
   close sock "connection dead";
 
   if (Unix.time() -. s.server_last_message_received_time) > !!server_dead_time_out then
     begin
-      Printf.printf "Server %d disconnected since %f so I remove it of the group\n" s.server_id (Unix.time() -. s.server_last_message_received_time);
+      lprintf "Server %d disconnected since %f so I remove it of the group\n" s.server_id (Unix.time() -. s.server_last_message_received_time);
       remove_server s.server_id;
       decr nconnected_servers;
-      Printf.printf "Server supprimer du groupe\n";
+      lprintf "Server supprimer du groupe\n";
 		       let module SS = ServerSupp in
 			 broadcast_to_group !server_id (ServerSuppReq 
 							  {
@@ -542,14 +542,14 @@ let server_disconnect_of_master s sock msg =
    end
   else
      begin
-      Printf.printf "Server %d add to_connect and not remove\n" s.server_id;
+      lprintf "Server %d add to_connect and not remove\n" s.server_id;
       to_connect := s.server_id :: !to_connect
   end
 
  
 
 let server_disconnect s sock msg =
-  Printf.printf "DISCONNECT:server %d disconnect call for close\n" s.server_id;
+  lprintf "DISCONNECT:server %d disconnect call for close\n" s.server_id;
   s.server_sock <- None;
   close sock "connection dead";
   to_connect := s.server_id :: !to_connect;    
@@ -583,7 +583,7 @@ let rec check_and_remove lst id =
  
 let direct_connect_server f s = 
   try
-    Printf.printf "CONNECTING TO ONE SERVER %s:%d\n" (Ip.to_string s.server_ip) (s.server_port+5) ; 
+    lprintf "CONNECTING TO ONE SERVER %s:%d\n" (Ip.to_string s.server_ip) (s.server_port+5) ; 
     (*connection_try s.server_connection_control;*)
     incr nconnected_servers; 
     let sock = TcpBufferedSocket.connect 
@@ -602,7 +602,7 @@ let direct_connect_server f s =
 	set_closer sock (server_disconnect s);
       set_rtimeout sock 60.;
       set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
-						 Printf.printf "Standart rtimeout";
+						 lprintf "Standart rtimeout";
 						 close s "timeout"  
 					      );
       
@@ -611,9 +611,9 @@ let direct_connect_server f s =
 
 
     with _ -> 
-      Printf.printf "%s:%d IMMEDIAT DISCONNECT\n"
+      lprintf "%s:%d IMMEDIAT DISCONNECT\n"
       (Ip.to_string s.server_ip) s.server_port;
-(*      Printf.printf "DISCONNECTED IMMEDIATLY"; print_newline (); *)
+(*      lprintf "DISCONNECTED IMMEDIATLY"; lprint_newline (); *)
         decr nconnected_servers;
         s.server_sock <- None;
 	raise CantConnect
@@ -623,7 +623,7 @@ let direct_connect_server f s =
 
 
 let rec server_to_server s t sock = 
-  (*Printf.printf "----------------\nMSG received in server_to_server from %d locate at %s:%d\n" s.server_id (Ip.to_string s.server_ip) s.server_port; 
+  (*lprintf "----------------\nMSG received in server_to_server from %d locate at %s:%d\n" s.server_id (Ip.to_string s.server_ip) s.server_port; 
   M.print t;*)
   s.server_last_message_received_time <- Unix.time();
 
@@ -670,7 +670,7 @@ let rec server_to_server s t sock =
 
 	  get_local_sources s;
 
-	  Printf.printf "Server connect to %s\n" (Md4.to_string t.A.group_id); 
+	  lprintf "Server connect to %s\n" (Md4.to_string t.A.group_id); 
 
 	  ()
 	  
@@ -711,7 +711,7 @@ let rec server_to_server s t sock =
 
 		get_local_sources new_server;
 	
-                Printf.printf "Server %s:%d join the group\n" (Ip.to_string new_server.server_ip) new_server.server_port;
+                lprintf "Server %s:%d join the group\n" (Ip.to_string new_server.server_ip) new_server.server_port;
 
 		let module CG = ConnectByGroup in
 		send_to new_server (ConnectByGroupReq 
@@ -728,13 +728,13 @@ let rec server_to_server s t sock =
 	let module CG = ConnectByGroup in
 	  if (List.exists (fun s_id -> s_id = t.CG.server_id) !to_connect) then
 	    begin
-	      Printf.printf "Reconnection from %d\n" t.CG.server_id;
+	      lprintf "Reconnection from %d\n" t.CG.server_id;
 	      try
 		decr nconnected_servers;
 		to_connect := check_and_remove !to_connect  t.CG.server_id;
-		Printf.printf "liste of connection is trediuce\n";
+		lprintf "liste of connection is trediuce\n";
 		List.iter (fun s_id -> 
-			     Printf.printf "add to connecte to %d\n" s_id
+			     lprintf "add to connecte to %d\n" s_id
 			  ) !to_connect;
 		let server = ref (Hashtbl.find servers_by_id  t.CG.server_id) in
 		  TcpBufferedSocket.set_reader sock (
@@ -746,12 +746,12 @@ let rec server_to_server s t sock =
 	            TcpBufferedSocket.set_closer sock 
 	              (server_disconnect !server);
 		  !server.server_sock <- Some sock;
-	      with _ -> Printf.printf "PB in Reconenction process\n"
+	      with _ -> lprintf "PB in Reconenction process\n"
 	      end
 
 	  else
 	    begin
-	      Printf.printf "Connection from %d server in %s group\n" t.CG.server_id (Md4.to_string t.CG.group_id);
+	      lprintf "Connection from %d server in %s group\n" t.CG.server_id (Md4.to_string t.CG.group_id);
 	      s.server_group_id <- t.CG.group_id;
 	      s.server_id <- t.CG.server_id;
 	      s.server_ip <- t.CG.server_ip;
@@ -784,11 +784,11 @@ let rec server_to_server s t sock =
 	let id_msg,nbr_notif = s.server_last_message_send in  
 	  if t = id_msg then
             begin
-              (*Printf.printf "ACK of %d , supp %d notifs\n" id_msg nbr_notif;*)
+              (*lprintf "ACK of %d , supp %d notifs\n" id_msg nbr_notif;*)
 	      s.server_last_message_send <- (id_msg,-1);
-	      (*Printf.printf "Added To send  %d\n" (List.length s.server_notifications);*)
+	      (*lprintf "Added To send  %d\n" (List.length s.server_notifications);*)
               s.server_notifications <- supp_ack_notifs s.server_notifications nbr_notif;
-	      (*Printf.printf "Have To send  %d\n" (List.length s.server_notifications);*)
+	      (*lprintf "Have To send  %d\n" (List.length s.server_notifications);*)
             end;
 	  if (200 < (List.length s.server_notifications)) then
 	    send_notification s sock 
@@ -802,22 +802,22 @@ let rec server_to_server s t sock =
 	  (*Piggybacking*)
           if (t.LN.ack = id_msg) then
            begin
-	     (*Printf.printf "Piggybacking  of %d , supp %d notifs\n" id_msg nbr_notif;*)
+	     (*lprintf "Piggybacking  of %d , supp %d notifs\n" id_msg nbr_notif;*)
 	     s.server_last_message_send <- (id_msg,-1);
-	     (*Printf.printf "Added To send  %d\n" (List.length s.server_notifications);*)
+	     (*lprintf "Added To send  %d\n" (List.length s.server_notifications);*)
              s.server_notifications <- supp_ack_notifs s.server_notifications nbr_notif;
-	     (*Printf.printf "Have To send  %d\n" (List.length s.server_notifications);*)
+	     (*lprintf "Have To send  %d\n" (List.length s.server_notifications);*)
            end;
 
 	  (*process the notifications*)
 	 if (t.LN.message_id <> s.server_last_message_received_id) then
            begin
-	     (*Printf.printf "->Received %d notif message\n" t.LN.message_id;*)
+	     (*lprintf "->Received %d notif message\n" t.LN.message_id;*)
              s.server_last_message_received_id <- t.LN.message_id; 
 	     let unkown_md4 = ref [] in
 	     let count = ref 0 in
 	       Hashtbl.iter ( fun md4 sources_list -> 
-                               (*Printf.printf "Add source for %s\n" (Md4.to_string md4);*)
+                               (*lprintf "Add source for %s\n" (Md4.to_string md4);*)
 			       (try
 				  let tags = ServerIndexer.get_def md4 in
 				    ()
@@ -831,7 +831,7 @@ let rec server_to_server s t sock =
 						  begin
 						    (*modify client's list of md4 shared*)
 						    let local_id = Hashtbl.find s.server_clients source.LN.source_id in
-						      (*Printf.printf "Remote Client %s existe here %s \n" (Ip.to_string source.LN.source_ip) (Ip.to_string local_id); *)  
+						      (*lprintf "Remote Client %s existe here %s \n" (Ip.to_string source.LN.source_ip) (Ip.to_string local_id); *)  
 						    let client = Hashtbl.find clients_by_id local_id in
 						      match client with
 							  RemoteClient client ->
@@ -851,7 +851,7 @@ let rec server_to_server s t sock =
 								(* if the notification is a supp*)
 								begin
 								  if not (List.mem md4 client.remote_client_files) then
-								    Printf.printf "WARNING: supp md4 on client fail\n";
+								    lprintf "WARNING: supp md4 on client fail\n";
 								  notifs := (false,{
 									       loc_ip = local_id;
 									       loc_port = source.LN.source_port;
@@ -868,19 +868,19 @@ let rec server_to_server s t sock =
 									Hashtbl.remove s.server_clients source.LN.source_id;
 									Hashtbl.remove clients_by_id local_id ;
 									decr nremote_clients;
-								      with _ -> Printf.printf "WARNING: Cant't remove remote clients\n"
+								      with _ -> lprintf "WARNING: Cant't remove remote clients\n"
 								    end
 								end)
-							| _ -> Printf.printf "ATTENTION: remote id coorespond to local client\n";
+							| _ -> lprintf "ATTENTION: remote id coorespond to local client\n";
 							    raise Not_found
 						  end
 						with _ -> 
 						  (*if remote client is not in server's client list*)
-						  (*Printf.printf "Remote Client %s dos'nt exist here\n" (Ip.to_string source.LN.source_ip);/*)
+						  (*lprintf "Remote Client %s dos'nt exist here\n" (Ip.to_string source.LN.source_ip);/*)
 						  if not source.LN.add then
-						    Printf.printf "WARNING: supp a new file\n";
+						    lprintf "WARNING: supp a new file\n";
 						  let new_id = get_client_id source.LN.source_ip in
-						    (*Printf.printf "New client Remote client %s\n" (Ip.to_string new_id);*)
+						    (*lprintf "New client Remote client %s\n" (Ip.to_string new_id);*)
 						    Hashtbl.add s.server_clients source.LN.source_id new_id;
 						    let c = {
 						      remote_client_local_id = new_id; 
@@ -902,7 +902,7 @@ let rec server_to_server s t sock =
 								   loc_expired = 0.0;
 								   loc_local = false;
 								 }) :: !notifs;
-						      (*Printf.printf "finish add\n" *)
+						      (*lprintf "finish add\n" *)
 					    ) sources_list;
 				  ServerLocate.notifications md4 !notifs
 			    ) t.LN.notifs;
@@ -910,7 +910,7 @@ let rec server_to_server s t sock =
 	       nb_notifs :=  !nb_notifs + t.LN.nb_notifs;
 	       nb_info := !nb_info + (List.length !unkown_md4);
 	       
-	       Printf.printf "Process and apply %d notif\n" !count; 
+	       lprintf "Process and apply %d notif\n" !count; 
 
 	       (*Ack for this notifications*)
 	       if (200 > (List.length s.server_notifications)) then
@@ -922,12 +922,11 @@ let rec server_to_server s t sock =
 		  | _ ->
 		      direct_group_send sock (QueryFileInfoReq !unkown_md4)
 		   );
-	       Pervasives.flush Pervasives.stdout
 	       
         (*ServerLocate.print()*)
           end
         else
-          Printf.printf "Message %d already received with %d notif\n" t.LN.message_id nbr_notif
+          lprintf "Message %d already received with %d notif\n" t.LN.message_id nbr_notif
 	
     | QueryFileInfoReq t ->
 	let module QI = QueryFileInfoReply in
@@ -967,15 +966,15 @@ let rec server_to_server s t sock =
 							QI.port = t.QU.client_port;
 						      }))
 		| _ -> raise Not_found
-	  with _ -> Printf.printf "WARNING: Fail in connect firewalled not implemented\n";
+	  with _ -> lprintf "WARNING: Fail in connect firewalled not implemented\n";
 	    ()
 	end
 	
     | MessageReq t ->
 	if s.server_master then
-	  Printf.printf "From Server Master:\n"
+	  lprintf "From Server Master:\n"
 	else
-	  Printf.printf "From Basic Server %d :\n" s.server_id;
+	  lprintf "From Basic Server %d :\n" s.server_id;
 	M.Message.print t
 
 
@@ -992,14 +991,14 @@ let rec server_to_server s t sock =
 			     )
 	  
 
-    | _ -> Printf.printf "Unknown TCP requete in server_group from %d\n" s.server_id;
+    | _ -> lprintf "Unknown TCP requete in server_group from %d\n" s.server_id;
            ();
-    print_newline() 
+    lprint_newline() 
    
      
 let connect_server s = 
   try
-    Printf.printf "CONNECTING TO ONE SERVER %s:%d\n" (Ip.to_string s.server_ip) (s.server_port+5) ; 
+    lprintf "CONNECTING TO ONE SERVER %s:%d\n" (Ip.to_string s.server_ip) (s.server_port+5) ; 
     (*connection_try s.server_connection_control;*)
     incr nconnected_servers; 
     let sock = TcpBufferedSocket.connect 
@@ -1018,7 +1017,7 @@ let connect_server s =
 	set_closer sock (server_disconnect s);
       set_rtimeout sock 3600.;
       set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
-						 Printf.printf "Standart rtimeout";
+						 lprintf "Standart rtimeout";
 						 close s "timeout"  
 					      );
       
@@ -1027,9 +1026,9 @@ let connect_server s =
 
 
     with _ -> 
-      Printf.printf "%s:%d IMMEDIAT DISCONNECT\n"
+      lprintf "%s:%d IMMEDIAT DISCONNECT\n"
       (Ip.to_string s.server_ip) s.server_port;
-(*      Printf.printf "DISCONNECTED IMMEDIATLY"; print_newline (); *)
+(*      lprintf "DISCONNECTED IMMEDIATLY"; lprint_newline (); *)
         decr nconnected_servers;
         s.server_sock <- None;
 	raise CantConnect
@@ -1074,7 +1073,7 @@ let join_a_group ip port =
 		     )
 	
     with _->
-      Printf.printf "Can't open socket to %s:%d\n" (Ip.to_string ip) port
+      lprintf "Can't open socket to %s:%d\n" (Ip.to_string ip) port
       (*Hashtbl.remove servers_by_id 0*)
 
 let connect_a_group () = 
@@ -1093,13 +1092,13 @@ let disconnect () =
 
   
 let handler t event =
-  Printf.printf "Server CONNECTION"; print_newline ();
+  lprintf "Server CONNECTION"; lprint_newline ();
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
 
       if !!max_servers <= !nconnected_servers then
       begin
-	  Printf.printf "too many servers\n";
+	  lprintf "too many servers\n";
           Unix.close s
       end
       else
@@ -1137,21 +1136,21 @@ let handler t event =
           (server_disconnect server);
       set_rtimeout sock 3600.;
       set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
-						 Printf.printf "Standart rtimeout";
+						 lprintf "Standart rtimeout";
 						 close s "timeout"  
 					      );
   | _ -> 
-      Printf.printf "???"; print_newline ();
+      lprintf "???"; lprint_newline ();
       ()  
 
 
 
 let action_notify_servers time =
-  (*Printf.printf "+++++++++++++++\nNotify Location Process\n";*)
+  (*lprintf "+++++++++++++++\nNotify Location Process\n";*)
   Hashtbl.iter (fun id s ->
-		  (*Printf.printf "Send Notif to %d\n" id; *)
+		  (*lprintf "Send Notif to %d\n" id; *)
 		  match s.server_sock with
-		      None -> Printf.printf "CAN'T NOTIF CAUSE NO SOCKET";
+		      None -> lprintf "CAN'T NOTIF CAUSE NO SOCKET";
 		    | Some sock -> 
 			if s.server_need_recovery then
 			  begin 
@@ -1168,19 +1167,19 @@ let action_notify_servers time =
 			  end
 			else 
 			  if ((List.length s.server_notifications) > 150) then
-                        (*Printf.printf "Server send notif to server %d \n" id;*)
+                        (*lprintf "Server send notif to server %d \n" id;*)
 			    send_notification s sock;
 	       ) servers_by_id
     
     
 let action_connect_servers time =
-  (*Printf.printf "+++++++++++++++\nConnection Process\n"; *)
+  (*lprintf "+++++++++++++++\nConnection Process\n"; *)
     List.iter (fun s_id ->
 		 try
                    let s = Hashtbl.find servers_by_id s_id in
-		   (*Printf.printf "->Try to connect to %d %s:%d\n" s.server_id (Ip.to_string s.server_ip) s.server_port; *)
+		   (*lprintf "->Try to connect to %d %s:%d\n" s.server_id (Ip.to_string s.server_ip) s.server_port; *)
 		   connect_server s; 
-                   (*Printf.printf "-> connection process\n";*)
+                   (*lprintf "-> connection process\n";*)
 		   let module CG = ConnectByGroup in
 		     send_to s (ConnectByGroupReq 
 				  {
@@ -1190,7 +1189,7 @@ let action_connect_servers time =
 				    CG.server_port = !!server_port; 
 				  });
 		 with _ ->
-                     Printf.printf "CAN't direct open a socket to server %d\n" s_id;
+                     lprintf "CAN't direct open a socket to server %d\n" s_id;
 	      ) !to_connect;
     to_connect := [];
     (*print_servers();*)

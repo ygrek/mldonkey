@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open DonkeyComplexOptions
 open Options
 open DonkeyGlobals
@@ -178,8 +179,8 @@ let load_stats () =
     
     close_in ic;
     
-    Printf.printf "LOADED STATS"; 
-    print_newline()
+    lprintf "LOADED STATS"; 
+    lprint_newline()
   
   with _ -> ()
 *)      
@@ -252,7 +253,7 @@ let print_stats buf =
   if stats_all.brand_banned = 0 then
     Printf.bprintf buf "You didn't ban any client yet\n"
   else begin
-    Printf.bprintf buf "                Total banneds: %18d\n" stats_all.brand_banned;
+      Printf.bprintf buf "              Total banneds: %18d\n" stats_all.brand_banned;
     for i=1 to brand_count-1 do
       Printf.bprintf buf "%27s: %18d (%5.1f %%)\n" 
 	(brand_to_string (brand_of_int i)) 
@@ -289,10 +290,10 @@ let new_print_stats buf o =
 \\<td title=\\\"File Requests Received Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>%%\\</td\\>
 \\<td title=\\\"Total Downloads\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>DL\\</td\\>
 \\<td title=\\\"Total Downloads Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar \\\"\\>%%\\</td\\>
-\\<td title=\\\"Total Downloads Average Kbps\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>kbs\\</td\\>
+\\<td title=\\\"Total Downloads Average KB/s\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>kbs\\</td\\>
 \\<td title=\\\"Total Uploads\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>UL\\</td\\>
 \\<td title=\\\"Total Uploads Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>%%\\</td\\>
-\\<td title=\\\"Total Uploads Average Kbps\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>kbs\\</td\\>
+\\<td title=\\\"Total Uploads Average KB/s\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>kbs\\</td\\>
 \\<td title=\\\"Total Bans\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>B\\</td\\>
 \\<td title=\\\"Total Bans Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>%%\\</td\\>
 \\</tr\\>";
@@ -425,10 +426,10 @@ let new_print_stats buf o =
 \\<td title=\\\"File Requests Received Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>%%\\</td\\>
 \\<td title=\\\"Total Downloads\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>DL\\</td\\>
 \\<td title=\\\"Total Downloads Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar \\\"\\>%%\\</td\\>
-\\<td title=\\\"Total Downloads Average Kbps\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>kbs\\</td\\>
+\\<td title=\\\"Total Downloads Average KB/s\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>kbs\\</td\\>
 \\<td title=\\\"Total Uploads\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>UL\\</td\\>
 \\<td title=\\\"Total Uploads Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>%%\\</td\\>
-\\<td title=\\\"Total Uploads Average Kbps\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>kbs\\</td\\>
+\\<td title=\\\"Total Uploads Average KB/s\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>kbs\\</td\\>
 \\<td title=\\\"Total Bans\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>B\\</td\\>
 \\<td title=\\\"Total Bans Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>%%\\</td\\>
 \\</tr\\>";
@@ -598,11 +599,11 @@ let _ =
             Sys_error _ ->
               (try Options.save message_file with _ -> ())
           | e ->
-              Printf.printf "Error %s loading message file %s"
+              lprintf "Error %s loading message file %s"
                 (Printexc2.to_string e)
               (Options.options_file_name message_file);
-              print_newline ();
-              Printf.printf "Using default messages."; print_newline ();
+              lprint_newline ();
+              lprintf "Using default messages."; lprint_newline ();
         
         end;
         ""

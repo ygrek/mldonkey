@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-
+open Printf2
 open CommonDownloads
 open CommonInteractive
 open SlskComplexOptions
@@ -53,13 +53,13 @@ let disconnect_peer c =
   match c.client_peer_sock with
     None -> ()
   | Some sock ->
-      Printf.printf "DISCONNECTED FROM PEER"; print_newline ();
+      lprintf "DISCONNECTED FROM PEER"; lprint_newline ();
       close sock "";
       c.client_peer_sock <- None;
       c.client_requests <- []
 
 let disconnect_result c sock =
-  Printf.printf "DISCONNECTED FROM RESULT"; print_newline ();
+  lprintf "DISCONNECTED FROM RESULT"; lprint_newline ();
   close sock "";
   c.client_result_socks <- List2.removeq sock c.client_result_socks
   
@@ -73,7 +73,7 @@ module Download = CommonDownloads.Make(struct
       let subdir_option = commit_in_subdir
         
       let client_disconnected d =
-        Printf.printf "DISCONNECTED FROM SOURCE"; print_newline ();
+        lprintf "DISCONNECTED FROM SOURCE"; lprint_newline ();
         let c = d.download_client in
         c.client_downloads <- List2.removeq d c.client_downloads
         
@@ -105,15 +105,15 @@ let connect_download c file req =
         d.download_pos;
   
   with e ->
-      Printf.printf "Exception %s while connecting to client" 
+      lprintf "Exception %s while connecting to client" 
         (Printexc2.to_string e);
-      print_newline ()
+      lprint_newline ()
 
 let client_to_client c t sock =
   if !verbose_msg_clients then begin
-      Printf.printf "MESSAGE FROM PEER"; print_newline ();
+      lprintf "MESSAGE FROM PEER"; lprint_newline ();
       C2C.print t;
-      print_newline ();
+      lprint_newline ();
     end;
   
   match t with
@@ -130,14 +130,14 @@ let client_to_client c t sock =
                 add_result_source r u file.C2C.file_name;
                 search_add_result q r.result_result
               with e ->
-                  Printf.printf "Exception %s for file %s" 
+                  lprintf "Exception %s for file %s" 
                     (Printexc2.to_string e) file.C2C.file_name;
-                  print_newline ();
+                  lprint_newline ();
             ) t.SR.files;
             ()
       with Not_found ->
-          Printf.printf "******* NO SEARCH ASSOCIATED WITH %d ******"
-            t.SR.id; print_newline ();
+          lprintf "******* NO SEARCH ASSOCIATED WITH %d ******"
+            t.SR.id; lprint_newline ();
       end
 
   | C2C.TransferRequestReq (false, req_id, file_name, size) ->
@@ -147,9 +147,9 @@ let client_to_client c t sock =
           let short_file_name = Filename2.basename file_name in
           let file = Hashtbl.find files_by_key (String.lowercase file_name) in
           
-          Printf.printf "File Found"; print_newline ();
+          lprintf "File Found"; lprint_newline ();
           if size <> file_size file then begin
-              Printf.printf "Bad file size"; print_newline ();
+              lprintf "Bad file size"; lprint_newline ();
               raise Exit
             end;
           if file_state file = FileDownloading then begin
@@ -164,8 +164,8 @@ let client_to_client c t sock =
             end
           
         with e ->
-            Printf.printf "Exception %s for TransferRequestReq Upload %s:%Ld"
-              (Printexc2.to_string e) file_name size; print_newline ();
+            lprintf "Exception %s for TransferRequestReq Upload %s:%Ld"
+              (Printexc2.to_string e) file_name size; lprint_newline ();
       end
       
   | C2C.SharedFileListReq files ->
@@ -186,7 +186,7 @@ let client_to_client c t sock =
           connect_download c file req
         with
           Not_found ->
-            Printf.printf "req %d not found !" req; print_newline ();
+            lprintf "req %d not found !" req; lprint_newline ();
       end      
 
   | C2C.TransferFailedReplyReq (req, reason) ->
@@ -201,17 +201,17 @@ let client_to_client c t sock =
             update_file_state (file.file_file) (FileAborted reason)
         with
           Not_found ->
-            Printf.printf "req %d not found !" req; print_newline ();
+            lprintf "req %d not found !" req; lprint_newline ();
       end      
       
   | _ -> 
-      Printf.printf "Unused message from client:"; print_newline ();
+      lprintf "Unused message from client:"; lprint_newline ();
       SlskProtocol.C2C.print t;
-      print_newline () 
+      lprint_newline () 
 
 let connect_peer c token msgs =
   if !verbose_msg_clients then begin
-      Printf.printf "CONNECT PEER"; print_newline ();
+      lprintf "CONNECT PEER"; lprint_newline ();
     end;
   match c.client_peer_sock with
     Some sock -> 
@@ -221,22 +221,22 @@ let connect_peer c token msgs =
         match c.client_addr with
           None -> 
             if !verbose_msg_clients then begin
-                Printf.printf "NO ADDRESS FOR CLIENT"; print_newline ();
+                lprintf "NO ADDRESS FOR CLIENT"; lprint_newline ();
               end;
             List.iter (fun s ->
                 match s.server_sock with
                   None -> ()
                 | Some sock ->
                     if !verbose_msg_servers then begin
-                        Printf.printf "ASKING FOR CLIENT IP: %s"  c.client_name;
-                        print_newline ();
+                        lprintf "ASKING FOR CLIENT IP: %s"  c.client_name;
+                        lprint_newline ();
                       end;
                     server_send sock (C2S.GetPeerAddressReq c.client_name);
             ) !connected_servers
             
         | Some (ip,port) ->
             if !verbose_msg_clients then begin
-                Printf.printf "CONNECTING"; print_newline ();
+                lprintf "CONNECTING"; lprint_newline ();
               end;
             connection_try c.client_connection_control;      
             let sock = connect "peer connect" 
@@ -253,9 +253,9 @@ let connect_peer c token msgs =
             init_peer_connection sock (login ()) token;
             List.iter (fun t -> client_send sock t) msgs
       with e ->
-          Printf.printf "Exception %s while connecting to client" 
+          lprintf "Exception %s while connecting to client" 
             (Printexc2.to_string e);
-          print_newline ();
+          lprint_newline ();
           disconnect_peer c
 
 let connect_result c token =
@@ -264,7 +264,7 @@ let connect_result c token =
       None -> ()
     | Some (ip,port) ->
         if !verbose_msg_clients then begin
-            Printf.printf "CONNECTING"; print_newline ();
+            lprintf "CONNECTING"; lprint_newline ();
           end;
         connection_try c.client_connection_control;      
         let sock = connect "peer connect" 
@@ -280,6 +280,6 @@ let connect_result c token =
         c.client_result_socks <- sock :: c.client_result_socks;
         init_result_connection sock token
       with e ->
-          Printf.printf "Exception %s while connecting to client" 
+          lprintf "Exception %s while connecting to client" 
             (Printexc2.to_string e);
-          print_newline ()
+          lprint_newline ()

@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open Md4
 open CommonSearch
 open CommonGlobals
@@ -63,8 +64,8 @@ let  _ =
   *)
             end
         | QHasField(field, value) ->
-            Printf.printf "******  HAS FIELD  %s %s ********" field value; 
-            print_newline ();
+            lprintf "******  HAS FIELD  %s %s ********" field value; 
+            lprint_newline ();
             begin
               match field with
                 "Album" | "Title" -> t
@@ -201,8 +202,8 @@ let _ =
         
         P.user_server = (match user.user_servers with
             [] -> 
-              Printf.printf "%s(%d) is not on any server" user.user_nick user.user_user.impl_user_num;
-              print_newline ();
+              lprintf "%s(%d) is not on any server" user.user_nick user.user_user.impl_user_num;
+              lprint_newline ();
               0
           | s :: _ -> s.server_server.impl_server_num);
       })

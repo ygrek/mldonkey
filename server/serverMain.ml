@@ -71,14 +71,14 @@ let enable () =
           Unix.inet_addr_any ((!!server_port)+5) ServerServer.handler);
       if !!relais_master then
         begin
-          Printf.printf "Your server create a new group bind on %d \n" (!!server_port+5);
+          lprintf "Your server create a new group bind on %d \n" (!!server_port+5);
           group_id := !!server_md4;
           incr server_counter
         end 
       else
         begin
           let (ip,port)= List.hd !!known_master in
-          Printf.printf "I connect to master %s:%d\n" (Ip.to_string ip) port;  
+          lprintf "I connect to master %s:%d\n" (Ip.to_string ip) port;  
           ServerServer.connect_a_group();
         end;
       add_infinite_option_timer notify_time_out action_notify_servers;
@@ -141,7 +141,7 @@ let enable () =
   ServerUdp.hello_world();
   
   
-  Printf.printf "server started at %d" !!server_port; print_newline ()
+  lprintf "server started at %d" !!server_port; lprint_newline ()
   
 let _ =
   register_commands [

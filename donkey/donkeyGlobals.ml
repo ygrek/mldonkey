@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open Md4
 open CommonResult
 open CommonFile
@@ -234,7 +235,7 @@ let update_best_name file =
   
   if file_best_name file = md4_name then
     try
-(*      Printf.printf "BEST NAME IS MD4 !!!"; print_newline (); *)
+(*      lprintf "BEST NAME IS MD4 !!!"; lprint_newline (); *)
       let rec good_name file list =
         match list with
           [] -> raise Not_found;
@@ -244,7 +245,7 @@ let update_best_name file =
       set_file_best_name (as_file file.file_file) 
       (good_name file file.file_filenames);
      
-(*      Printf.printf "BEST NAME now IS %s" (file_best_name file); *)
+(*      lprintf "BEST NAME now IS %s" (file_best_name file); *)
     with Not_found -> ()
   
 let new_file file_state file_name md4 file_size writable =
@@ -337,7 +338,7 @@ let remove_client_chunks file client_chunks =
   
 let is_black_address ip port =
   !!black_list && (
-(* Printf.printf "is black ="; *)
+(* lprintf "is black ="; *)
     not (Ip.reachable ip) || (Ip.matches ip !!server_black_list) ||
     (List.mem port !!port_black_list) )
       
@@ -453,6 +454,7 @@ let dummy_client =
 let create_client key num =  
   let rec c = {
 (*      dummy_client with *)
+      
       client_client = client_impl;
       client_connection_control =  new_connection_control_recent_ok ( ());
       client_next_view_files = last_time () - 1;
@@ -491,7 +493,7 @@ let create_client key num =
       client_requests_received = 0;
       client_requests_sent = 0;
       client_indirect_address = None;      
-      client_asked_for_slot = false;
+      client_asked_for_slot = false; 
     } and
     client_impl = {
       dummy_client_impl with            
@@ -761,15 +763,15 @@ let index = DocIndexer.create ()
 let check_result r tags =
   if r.result_names = [] || r.result_size = Int64.zero then begin
       if !verbose then begin
-          Printf.printf "BAD RESULT:";
-          print_newline ();
+          lprintf "BAD RESULT:";
+          lprint_newline ();
           List.iter (fun tag ->
-              Printf.printf "[%s] = [%s]" tag.tag_name
+              lprintf "[%s] = [%s]" tag.tag_name
                 (match tag.tag_value with
                   String s -> s
                 | Uint64 i | Fint64 i -> Int64.to_string i
                 | Addr _ -> "addr");
-              print_newline ();
+              lprint_newline ();
           ) tags;
         end;
       false
@@ -819,34 +821,34 @@ Define a function to be called when the "mem_stats" command
 let _ =
   Heap.add_memstat "DonkeyGlobals" (fun _ ->
 (* current_files *)
-      Printf.printf "Current files: %d" (List.length !current_files);
-      print_newline ();
+      lprintf "Current files: %d" (List.length !current_files);
+      lprint_newline ();
 (* clients_by_name *)
 (*      let list = Hashtbl2.to_list clients_by_name in
-      Printf.printf "Clients_by_name: %d" (List.length list);
-      print_newline ();
+      lprintf "Clients_by_name: %d" (List.length list);
+      lprint_newline ();
       List.iter (fun c ->
-          Printf.printf "[%d %s]" (client_num c)
+          lprintf "[%d %s]" (client_num c)
           (if Hashtbl.mem clients_by_kind c.client_kind then "K" else " ") ;
      ) list;
-      print_newline ();
+      lprint_newline ();
 *)
       
 (* clients_by_kind *)
       let list = H.to_list clients_by_kind in
-      Printf.printf "Clients_by_kind: %d" (List.length list);
-      print_newline ();
+      lprintf "Clients_by_kind: %d" (List.length list);
+      lprint_newline ();
       List.iter (fun c ->
-          Printf.printf "[%d ok: %s tried: %s next: %s state: %d rating: %d]" (client_num c)
+          lprintf "[%d ok: %s tried: %s next: %s state: %d rating: %d]" (client_num c)
           (string_of_date (c.client_connection_control.control_last_ok))
           (string_of_date (c.client_connection_control.control_last_try))
           (string_of_date (connection_next_try c.client_connection_control))
           c.client_connection_control.control_state
           c.client_rating
           ;
-          print_newline ();
+          lprint_newline ();
      ) list;
-      print_newline ();
+      lprint_newline ();
   );
       
   Heap.add_memstat "DonkeyGlobals" local_mem_stats

@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-
+open Printf2
 
 open Options
 open CommonTypes
@@ -138,7 +138,7 @@ let user_browse_files u =
 let ni n m = 
   let s = Printf.sprintf "User.%s not implemented by %s" 
       m n.network_name in
-  print_string s; print_newline ();
+  lprint_string s; lprint_newline ();
   s
   
 let fni n m =  failwith (ni n m)

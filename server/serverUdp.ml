@@ -87,7 +87,7 @@ let rec find_servers servers n left =
   if n = 0 then left else
   match servers with
     [] -> left
-  | s :: tail -> (*Printf.printf "Add to liste\n";*)
+  | s :: tail -> (*lprintf "Add to liste\n";*)
       find_servers tail (n-1) (
         let module Q = DonkeyProtoServer.QueryServersReply in
         { Q.ip = s.DonkeyTypes.server_ip; 
@@ -97,7 +97,7 @@ let rec find_servers servers n left =
 let rec print liste = 
         match liste with
         [] -> ()
-        | hd :: tail -> Printf.printf "%s:%d\n" (Ip.to_string hd.server_ip)
+        | hd :: tail -> lprintf "%s:%d\n" (Ip.to_string hd.server_ip)
         hd.server_port;
                         print tail;
                         ()
@@ -121,15 +121,15 @@ let udp_handler sock event =
             let len = String.length pbuf in
             if len = 0 || 
               int_of_char pbuf.[0] <> 227 then begin
-                (*Printf.printf "Received unknown UDP packet\n";
+                (*lprintf "Received unknown UDP packet\n";
                 LittleEndian.dump pbuf;
-                print_newline ();*)
+                lprint_newline ();*)
               end else 
 		begin	
 		  incr nb_udp_req_count;
                   let t = M.parse 227 (String.sub pbuf 1 (len-1)) in
 		    (*M.print t;
-		      print_newline ();*)
+		      lprint_newline ();*)
                     
 		    
 		    if (!!save_log) then
@@ -147,7 +147,7 @@ let udp_handler sock event =
 (*****************************************)                  
                   
                   M.QueryServersReplyUdpReq t -> 
-(*Printf.printf "-_-_-_-_-_-_-_-_-_-_-_-__-_-_-_-_-_-_-";*)
+(*lprintf "-_-_-_-_-_-_-_-_-_-_-_-__-_-_-_-_-_-_-";*)
 		    let to_addr = p.UdpSocket.addr in
                       begin
 			try
@@ -166,7 +166,7 @@ let udp_handler sock event =
 					   ignore (DonkeyGlobals.new_server s.Q.ip s.Q.port 0)
 					) t.Q.servers
 			with _ -> 
-                          (*Printf.printf "Server Reply for nothing\n";*)
+                          (*lprintf "Server Reply for nothing\n";*)
 			  let module Q = M.QueryServersReply in
 			    List.iter (fun s ->
 					 ignore (DonkeyGlobals.new_server s.Q.ip s.Q.port 0)
@@ -175,13 +175,13 @@ let udp_handler sock event =
 (*
 		  if (!time_out) then
 		    begin 
-		      (*Printf.printf "-_-_-_-_-YES TIME";*)
+		      (*lprintf "-_-_-_-_-YES TIME";*)
                       other_servers :=  add_new_servers 
 			!other_servers []
 		    end
 		  else
 		    begin
-		      (*Printf.printf "-_-_-_-_-NO TIME";*)
+		      (*lprintf "-_-_-_-_-NO TIME";*)
                         let bob = DonkeyGlobals.new_server t.Q.server_ip
 			  t.Q.server_port 0
                         in
@@ -234,7 +234,7 @@ let udp_handler sock event =
 (*****************************************)                  
 			
 		  | M.QueryServersUdpReq t -> 
-		      (*Printf.printf "SEND SERVER LISTE\n";*)
+		      (*lprintf "SEND SERVER LISTE\n";*)
 		      (*print !other_servers;*) 
                       let module Q = M.QueryServers in 
                       let bob =   DonkeyGlobals.new_server t.Q.ip  t.Q.port 0 in
@@ -319,7 +319,7 @@ let udp_handler sock event =
 			    let ip = Ip.of_inet_addr ip in
 			    if Ip.valid ip then
 			    let s = DonkeyGlobals.find_server ip (port-4) in
-			    Printf.printf "Server send ping too\n"
+			    lprintf "Server send ping too\n"
 			    else raise Not_found
 			    | _ -> raise Not_found
 			    with _ -> ());*)
@@ -333,7 +333,7 @@ let udp_handler sock event =
 		      
 		  | M.QueryUdpReq t ->
                       incr nb_udp_query_count;       
-                      (*Printf.printf "QUERYUDPREQ";*)
+                      (*lprintf "QUERYUDPREQ";*)
                       let module R = M.Query in
                       let q = ServerIndexer.query_to_query t in
                       let docs = ServerIndexer.find q in
@@ -353,7 +353,7 @@ let udp_handler sock event =
 			begin 
 			  try   
 			    incr nb_udp_loc_count;
-			    (*Printf.printf "QUERYLOCATIONUDPREQ";*)
+			    (*lprintf "QUERYLOCATIONUDPREQ";*)
 			    let module R = M.QueryLocationReply in
 			    let peer_list = ServerLocate.get t in
 			      if (!!save_log) then
@@ -388,7 +388,7 @@ let udp_handler sock event =
 									QI.port = t.CU.port;
 								      })
 					 | _ ->
-					     Printf.printf "QueryIDReq(udp) on local client can't return reply";
+					     lprintf "QueryIDReq(udp) on local client can't return reply";
 					     raise Not_found)
 				| RemoteClient cc ->
 				    ()
@@ -402,17 +402,17 @@ let udp_handler sock event =
 		      begin
 			match p.UdpSocket.addr with
 			  | ADDR_INET (ip,port) -> 
-                              Printf.printf "UNKNOWN UDP from %s:%d\n" (string_of_inet_addr ip) port;
+                              lprintf "UNKNOWN UDP from %s:%d\n" (string_of_inet_addr ip) port;
 			  | _ -> ()
 		      end;
 		      DonkeyProtoServer.print t;
-		      print_newline ();
+		      lprint_newline ();
 		end
           with e ->
-            (*Printf.printf "******* EXCEPTION %s in List.iter on UDP packets"
-            (Printexc2.to_string e); print_newline ();
-            Printf.printf "This could prevent discarding UDP messages ...";
-            print_newline ();*)
+            (*lprintf "******* EXCEPTION %s in List.iter on UDP packets"
+            (Printexc2.to_string e); lprint_newline ();
+            lprintf "This could prevent discarding UDP messages ...";
+            lprint_newline ();*)
 	    ()
 		) 
     | _ -> ()
@@ -484,7 +484,7 @@ let get_info_servers () =
   else
     begin 
       List.iter (fun serv ->
-(*Printf.printf "PING %s %d \n" (Ip.to_string serv.known_server_ip) serv.known_server_port;*)
+(*lprintf "PING %s %d \n" (Ip.to_string serv.known_server_ip) serv.known_server_port;*)
           send serv
       ) !alive_servers;
       if  (List.length !other_servers) > 100 then
@@ -496,7 +496,7 @@ let get_info_servers () =
         done
       else
         List.iter (fun serv ->
-(*Printf.printf "PING %s %d \n" (Ip.to_string serv.known_server_ip) serv.known_server_port;*)
+(*lprintf "PING %s %d \n" (Ip.to_string serv.known_server_ip) serv.known_server_port;*)
             send serv
         ) !other_servers;
       
@@ -537,7 +537,7 @@ let hello_world () =
   } in 
    
   Hashtbl.iter (fun _ serv ->
-(*Printf.printf "PING %s %d \n" (Ip.to_string serv.known_server_ip) serv.known_server_port;*)
+(*lprintf "PING %s %d \n" (Ip.to_string serv.known_server_ip) serv.known_server_port;*)
       server_udp_send serv  msg
   ) DonkeyGlobals.servers_by_key
 

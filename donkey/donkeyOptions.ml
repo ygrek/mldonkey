@@ -157,12 +157,12 @@ let log_clients_on_console = define_option downloads_ini
 
 let max_upload_slots = define_option downloads_ini ["max_upload_slots"]
     "How many slots can be used for upload"
-    int_option 10
+    int_option 5
   
 let _ =  
   option_hook max_upload_slots (fun _ ->
-      if !!max_upload_slots < 10 then
-        max_upload_slots =:= 10)
+      if !!max_upload_slots < 3 then
+        max_upload_slots =:= 3)
 
   
 let donkey_bind_addr = define_option downloads_ini ["donkey_bind_addr"]

@@ -29,6 +29,7 @@ A supernode acts as a server, but:
     partitioned into 16 regions). 16 should be configurable.
 *)
 
+open Printf2
 open Md4
 open Options
 
@@ -97,10 +98,10 @@ let supernode_browse_handler node msg sock =
   match msg with
 
   | M.ViewFilesReplyReq t ->
-      Printf.printf "****************************************";
-      print_newline ();
-      Printf.printf "       BROWSE FILES REPLY         ";
-      print_newline ();
+      lprintf "****************************************";
+      lprint_newline ();
+      lprintf "       BROWSE FILES REPLY         ";
+      lprint_newline ();
       let module Q = M.ViewFilesReply in
 
       begin
@@ -117,8 +118,8 @@ let supernode_browse_handler node msg sock =
 		  ()
           ) t;
         with e ->
-            Printf.printf "Exception in ViewFilesReply %s"
-              (Printexc2.to_string e); print_newline ();
+            lprintf "Exception in ViewFilesReply %s"
+              (Printexc2.to_string e); lprint_newline ();
       end;
       node.node_last_browse <- last_time ();
       close sock "browsed"
@@ -191,13 +192,13 @@ let client_connection_handler t event =
                   (DonkeyProtoCom.client_handler2 c read_first_message
                     (client_to_client []));
               
-              with e -> Printf.printf "Exception %s in init_connection"
+              with e -> lprintf "Exception %s in init_connection"
                     (Printexc2.to_string e);
-                  print_newline ());
+                  lprint_newline ());
           with e ->
-              Printf.printf "Exception %s in client_connection_handler"
+              lprintf "Exception %s in client_connection_handler"
                 (Printexc2.to_string e);
-              print_newline ();
+              lprint_newline ();
               Unix.close s
         end      
       else begin

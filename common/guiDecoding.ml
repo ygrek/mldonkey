@@ -16,7 +16,9 @@
     along with mldonkey; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
-open Md4
+
+open Printf2
+  open Md4
 
 open CommonGlobals
 open CommonTypes
@@ -761,16 +763,16 @@ let from_gui opcode s =
         SetFilePriority(get_int s 2, get_int s 6)      
     
     | _ -> 
-        Printf.printf "FROM GUI:Unknown message %d" opcode; print_newline ();
+        lprintf "FROM GUI:Unknown message %d" opcode; lprint_newline ();
         raise Not_found
   
   
   with e ->
-      Printf.printf "Exception %s while handling message with opcode %d"
+      lprintf "Exception %s while handling message with opcode %d"
         (Printexc2.to_string e) opcode;
-      print_newline ();
+      lprint_newline ();
       LittleEndian.dump s;
-      print_newline ();
+      lprint_newline ();
       raise e
       
 (***************
@@ -1109,14 +1111,14 @@ let to_gui proto opcode s =
         CleanTables (clients, servers)
         
     | _ -> 
-        Printf.printf "TO GUI:Unknown message %d" opcode; print_newline ();
+        lprintf "TO GUI:Unknown message %d" opcode; lprint_newline ();
         raise Not_found
 
 
   with e ->
-      Printf.printf "Exception %s while handling message with opcode %d"
+      lprintf "Exception %s while handling message with opcode %d"
         (Printexc2.to_string e) opcode;
-      print_newline ();
+      lprint_newline ();
       dump s;
-      print_newline ();
+      lprint_newline ();
       raise e

@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open Md4
 
 open CommonShared
@@ -55,8 +56,8 @@ let search_handler s t =
     
 let udp_query_locations file s =
   if !verbose then begin
-      Printf.printf "UDP: query location %s" (Ip.to_string s.server_ip);
-      print_newline ();
+      lprintf "UDP: query location %s" (Ip.to_string s.server_ip);
+      lprint_newline ();
     end;
   let module Udp = DonkeyProtoUdp in
   udp_server_send s (Udp.QueryLocationUdpReq file.file_md4)
@@ -154,8 +155,8 @@ let force_check_locations () =
       end;
 
   with e ->
-      Printf.printf "force_check_locations: %s" (Printexc2.to_string e);
-      print_newline ()
+      lprintf "force_check_locations: %s" (Printexc2.to_string e);
+      lprint_newline ()
 
 let add_user_friend s u = 
   let kind = 
@@ -196,11 +197,11 @@ let udp_client_handler t p =
   let module M = DonkeyProtoServer in
   match t with
     Udp.QueryLocationReplyUdpReq t ->
-(*      Printf.printf "Received location by UDP"; print_newline ();  *)
+(*      lprintf "Received location by UDP"; lprint_newline ();  *)
       query_locations_reply (udp_from_server p) t
       
   | Udp.QueryReplyUdpReq t ->
-(*      Printf.printf "Received file by UDP"; print_newline ();  *)
+(*      lprintf "Received file by UDP"; lprint_newline ();  *)
       if !xs_last_search >= 0 then
         let ss = search_find !xs_last_search in
         Hashtbl.add udp_servers_replies t.f_md4 (udp_from_server p);
@@ -259,10 +260,10 @@ module NewUpload = struct
       remaining_bandwidth := !remaining_bandwidth - len_int;
       try
         if !verbose then begin
-            Printf.printf "send_small_block(%s-%s) %Ld %d"
+            lprintf "send_small_block(%s-%s) %Ld %d"
               c.client_name (brand_to_string c.client_brand)
             (begin_pos) (len_int);
-            print_newline ();
+            lprint_newline ();
           end;
         
         let msg =  
@@ -302,8 +303,8 @@ module NewUpload = struct
         write_string sock upload_buffer;
         check_end_upload c sock
       with e -> 
-          Printf.printf "Exception %s in send_small_block" (Printexc2.to_string e);
-          print_newline () 
+          lprintf "Exception %s in send_small_block" (Printexc2.to_string e);
+          lprint_newline () 
     
     let rec send_client_block c sock per_client =
       if per_client > 0 && !remaining_bandwidth > 0 then
@@ -320,8 +321,8 @@ module NewUpload = struct
 (* last block from chunk *)
               begin
                 if verbose_upload then begin
-                    Printf.printf "END OF CHUNK (%d) %Ld" max_len up.up_end_chunk; 
-                    print_newline ();
+                    lprintf "END OF CHUNK (%d) %Ld" max_len up.up_end_chunk; 
+                    lprint_newline ();
                   end;
                 send_small_block c sock up.up_file up.up_pos max_len;
                 up.up_chunks <- chunks;
@@ -329,7 +330,7 @@ module NewUpload = struct
                 match chunks with
                   [] -> 
                     if verbose_upload then begin
-                        Printf.printf "NO CHUNKS"; print_newline ();
+                        lprintf "NO CHUNKS"; lprint_newline ();
                       end;
                     c.client_upload <- None;
                 | (begin_pos, end_pos) :: _ ->
@@ -402,7 +403,7 @@ Divide the bandwidth between the clients
     let next_uploads () = 
       sent_bytes.(!counter-1) <- sent_bytes.(!counter-1) - !remaining_bandwidth;
       if verbose_upload then begin
-          Printf.printf "Left %d" !remaining_bandwidth; print_newline ();
+          lprintf "Left %d" !remaining_bandwidth; lprint_newline ();
         end;
       complete_bandwidth := !complete_bandwidth + !remaining_bandwidth;
       incr counter;
@@ -413,7 +414,7 @@ Divide the bandwidth between the clients
             else (maxi (!!max_hard_upload_rate - 1) 1) * 1024 );
           complete_bandwidth := !total_bandwidth;
           if verbose_upload then begin
-              Printf.printf "Init to %d" !total_bandwidth; print_newline ();
+              lprintf "Init to %d" !total_bandwidth; lprint_newline ();
             end;
           remaining_bandwidth := 0          
         end;
@@ -424,9 +425,9 @@ Divide the bandwidth between the clients
       done;
       
       if verbose_upload then begin
-          Printf.printf "last sec: %d/%d (left %d)" !last_sec !total_bandwidth
+          lprintf "last sec: %d/%d (left %d)" !last_sec !total_bandwidth
             (!total_bandwidth - !last_sec);
-          print_newline ();
+          lprint_newline ();
         end;
       
       remaining_bandwidth := mini (mini (mini 
@@ -435,7 +436,7 @@ Divide the bandwidth between the clients
       (!total_bandwidth - !last_sec);
       complete_bandwidth := !complete_bandwidth - !remaining_bandwidth;
       if verbose_upload then begin
-          Printf.printf "Remaining %d[%d]" !remaining_bandwidth !complete_bandwidth; print_newline ();
+          lprintf "Remaining %d[%d]" !remaining_bandwidth !complete_bandwidth; lprint_newline ();
         end;
       sent_bytes.(!counter-1) <- !remaining_bandwidth;
       if !remaining_bandwidth > 0 then 
@@ -455,10 +456,10 @@ module OldUpload = struct
       remaining_bandwidth := !remaining_bandwidth - len_int / 1000;
       try
 
-        Printf.printf "OLD send_small_block(%s) %s %s"
+        lprintf "OLD send_small_block(%s) %s %s"
           (brand_to_string c.client_brand)
         (Int64.to_string begin_pos) (Int64.to_string len);
-print_newline ();
+lprint_newline ();
 
         
         
@@ -484,8 +485,8 @@ print_newline ();
         let fd = file_fd file in
         ignore (Unix32.seek64 fd begin_pos Unix.SEEK_SET);
         Unix2.really_read (Unix32.force_fd fd) upload_buffer slen len_int;
-(*    Printf.printf "slen %d len_int %d final %d" slen len_int (String.length upload_buffer); 
-print_newline (); *)
+(*    lprintf "slen %d len_int %d final %d" slen len_int (String.length upload_buffer); 
+lprint_newline (); *)
         let uploaded = Int64.of_int len_int in
 	count_upload c file uploaded;
         (match file.file_shared with None -> ()
@@ -493,7 +494,7 @@ print_newline (); *)
               shared_must_update_downloaded (as_shared impl);
               impl.impl_shared_uploaded <- 
                 Int64.add impl.impl_shared_uploaded uploaded);
-(*  Printf.printf "sending"; print_newline (); *)
+(*  lprintf "sending"; lprint_newline (); *)
         if c.client_connected then
           printf_string "U[OUT]"
         else
@@ -502,8 +503,8 @@ print_newline (); *)
         write_string sock upload_buffer;
 	check_end_upload c sock
       with e -> 
-          Printf.printf "Exception %s in send_small_block" (Printexc2.to_string e);
-          print_newline () 
+          lprintf "Exception %s in send_small_block" (Printexc2.to_string e);
+          lprint_newline () 
     
     
     let rec send_client_block c sock per_client =
@@ -577,7 +578,7 @@ print_newline (); *)
         else !!max_hard_upload_rate)
     
     let rec next_upload n =
-(*  Printf.printf "upload for %d" n; print_newline (); *)
+(*  lprintf "upload for %d" n; lprint_newline (); *)
       if n > 0 && !remaining_bandwidth > 0 then begin
           upload_to_one_client ();
           next_upload (n-1)
@@ -617,7 +618,7 @@ print_newline (); *)
     
     let rec next_uploads () =
       let len = Fifo.length upload_clients in
-(*  Printf.printf "uploads for %d" len; print_newline (); *)
+(*  lprintf "uploads for %d" len; lprint_newline (); *)
       let old = !remaining_bandwidth in
       next_upload len;
       if !remaining_bandwidth < old then next_uploads ()
@@ -629,17 +630,17 @@ end
   (* timer started every 1/10 seconds *)
 let upload_timer () =
   (try download_engine () with e -> 
-        Printf.printf "Exception %s in download_engine" 
-          (Printexc2.to_string e); print_newline (););
+        lprintf "Exception %s in download_engine" 
+          (Printexc2.to_string e); lprint_newline (););
   try
-(*    Printf.printf "upload ?"; print_newline (); *)
+(*    lprintf "upload ?"; lprint_newline (); *)
     if !!new_upload_system then
       NewUpload.next_uploads ()
     else
       OldUpload.next_uploads ()
   with e -> 
-      Printf.printf "exc %s in upload" (Printexc2.to_string e);
-      print_newline () 
+      lprintf "exc %s in upload" (Printexc2.to_string e);
+      lprint_newline () 
       
 let reset_upload_timer _ =
     if !!new_upload_system then

@@ -19,6 +19,7 @@
 
 (** GUI for the lists of files. *)
 
+open Printf2
 open Options
 open Gettext
 open CommonTypes
@@ -281,8 +282,8 @@ class pane_rooms () =
         messages#coerce#destroy ();
         Hashtbl.remove widgets room.room_num
       with e -> 
-          Printf.printf "Clear widget: %s" (Printexc2.to_string e);
-          print_newline ();
+          lprintf "Clear widget: %s" (Printexc2.to_string e);
+          lprint_newline ();
     
     method room_info room =
       begin
@@ -328,8 +329,8 @@ class pane_rooms () =
         with _ -> 
             room.room_messages <- msg :: room.room_messages;
       with e -> 
-          Printf.printf "ROOM %d Exception %s" room_num (Printexc2.to_string e);
-          print_newline ();
+          lprintf "ROOM %d Exception %s" room_num (Printexc2.to_string e);
+          lprint_newline ();
           ()
     
     
@@ -387,7 +388,7 @@ class pane_rooms () =
             messages#coerce#misc#hide ();
             current_widgets := (-1)
           with e -> 
-              Printf.printf "Normal exception %s in unmap old users/messages?"
+              lprintf "Normal exception %s in unmap old users/messages?"
                 (Printexc2.to_string e));
       in
       
@@ -435,8 +436,8 @@ class pane_rooms () =
                                 self#clear_widgets room;
                                 paused_rooms#add_room room
                               with e -> 
-                                  Printf.printf "Exception %s in close room"
-                                    (Printexc2.to_string e); print_newline ();
+                                  lprintf "Exception %s in close room"
+                                    (Printexc2.to_string e); lprint_newline ();
                       )
                     ();
 

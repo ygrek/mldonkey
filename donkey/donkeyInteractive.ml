@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open Md4
 
 open CommonShared
@@ -82,15 +83,15 @@ Unix2.safe_mkdir (Filename.dirname real_name);
   file_commit (as_file file.file_file);
   Unix32.close (file_fd file);
   let old_name = file_disk_name file in
-  Printf.printf "\nMoving %s to %s\n" old_name real_name;
-  print_newline ();
+  lprintf "\nMoving %s to %s\n" old_name real_name;
+  lprint_newline ();
   (try 
       let new_name = rename_to_incoming_dir old_name real_name in
       change_hardname file new_name
     with e -> 
         Printf.eprintf "Error in rename %s (src [%s] dst [%s])"
           (Printexc2.to_string e) old_name real_name; 
-        print_newline ();
+        lprint_newline ();
   )
   ;
   remove_file_clients file;
@@ -126,9 +127,9 @@ let load_server_met filename =
     ) ss;
     List.length ss
   with e ->
-      Printf.printf "Exception %s while loading %s" (Printexc2.to_string e)
+      lprintf "Exception %s while loading %s" (Printexc2.to_string e)
       filename;
-      print_newline ();
+      lprint_newline ();
       0
 
 let already_done = Failure "File already downloaded"
@@ -155,15 +156,15 @@ let really_query_download filenames size md4 location old_file absents =
             Sys.file_exists temp_file) then
           (try 
               if !verbose then begin
-                  Printf.printf "Renaming from %s to %s" filename
-                    temp_file; print_newline ();
+                  lprintf "Renaming from %s to %s" filename
+                    temp_file; lprint_newline ();
                 end;
               Unix2.rename filename temp_file;
               Unix.chmod temp_file 0o644;
               with e -> 
-                Printf.printf "Could not rename %s to %s: exception %s"
+                lprintf "Could not rename %s to %s: exception %s"
                   filename temp_file (Printexc2.to_string e);
-                print_newline () );        
+                lprint_newline () );        
   end;
   
   let file = new_file FileDownloading temp_file md4 size true in
@@ -278,9 +279,9 @@ let load_prefs filename =
     let t = P.read s in
     t.P.client_tags, t.P.option_tags
   with e ->
-      Printf.printf "Exception %s while loading %s" (Printexc2.to_string e)
+      lprintf "Exception %s while loading %s" (Printexc2.to_string e)
       filename;
-      print_newline ();
+      lprint_newline ();
       [], []
       
 let import_temp temp_dir =  
@@ -299,8 +300,8 @@ let import_temp temp_dir =
             List.iter (fun tag ->
                 match tag with
                   { tag_name = "filename"; tag_value = String s } ->
-                    Printf.printf "Import Donkey %s" s; 
-                    print_newline ();
+                    lprintf "Import Donkey %s" s; 
+                    lprint_newline ();
                     
                     filenames := s :: !filenames;
                 | { tag_name = "size"; tag_value = Uint64 v } ->
@@ -333,8 +334,8 @@ let import_config dirname =
       | { tag_name = "temp"; tag_value = String s } ->
           if Sys.file_exists s then (* be careful on that *)
             temp_dir := s
-          else (Printf.printf "Bad temp directory, using default";
-              print_newline ();)
+          else (lprintf "Bad temp directory, using default";
+              lprint_newline ();)
       | _ -> ()
   ) ot;
 
@@ -694,8 +695,8 @@ let commands = [
                     query_download names size md4 None None None true;
                     recover_md4s md4
               with e ->
-                  Printf.printf "exception %s in recover_temp"
-                    (Printexc2.to_string e); print_newline ();
+                  lprintf "exception %s in recover_temp"
+                    (Printexc2.to_string e); lprint_newline ();
         ) files;
         "done"
     ), ":\t\t\t\trecover lost files from temp directory";
@@ -731,13 +732,13 @@ let commands = [
                 
                 Printf.bprintf buf "\\<table class=\\\"uploaders\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
 \\<td title=\\\"Network\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Network\\</td\\>
-\\<td title=\\\"Connection type [I]ndirect [D]irect\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Ct\\</td\\>
+\\<td title=\\\"Connection type [I]ndirect [D]irect\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>CT\\</td\\>
 \\<td title=\\\"Client name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Client name\\</td\\>
-\\<td title=\\\"Ip address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Ip address\\</td\\>
-\\<td title=\\\"Connected time (minutes)\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Ct\\</td\\>
-\\<td title=\\\"Client brand\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Cb\\</td\\>
-\\<td title=\\\"Total Dl Kbytes from this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>DL\\</td\\>
-\\<td title=\\\"Total Ul Kbytes to this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>UL\\</td\\>
+\\<td title=\\\"IP address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>IP address\\</td\\>
+\\<td title=\\\"Connected time (minutes)\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>CT\\</td\\>
+\\<td title=\\\"Client brand\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>CB\\</td\\>
+\\<td title=\\\"Total DL Kbytes from this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>DL\\</td\\>
+\\<td title=\\\"Total UL Kbytes to this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>UL\\</td\\>
 \\<td title=\\\"Filename\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Filename\\</td\\>
 \\</TR\\>
 ";
@@ -797,9 +798,9 @@ let commands = [
                 class=\\\"uploaders\\\"\\>\\<table class=\\\"uploaders\\\"
                 cellspacing=0 cellpadding=0\\>\\<tr\\>
  \\<td title=\\\"Network\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Network\\</td\\>
- \\<td title=\\\"Connection type [I]ndirect [D]irect\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Ct\\</td\\>
+ \\<td title=\\\"Connection type [I]ndirect [D]irect\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>CT\\</td\\>
  \\<td title=\\\"Client name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Client name\\</td\\>
- \\<td title=\\\"Client brand\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Cb\\</td\\>
+ \\<td title=\\\"Client brand\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>CB\\</td\\>
  \\<td title=\\\"Total DL bytes from this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>DL\\</td\\>
  \\<td title=\\\"Total UL bytes to this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>UL\\</td\\>
  \\<td title=\\\"IP address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>IP address\\</td\\>
@@ -952,7 +953,7 @@ let _ =
   file_ops.op_file_commit <- (fun file new_name ->
       if not (List.mem file.file_md4 !!old_files) then
         old_files =:= file.file_md4 :: !!old_files;
-      Printf.printf "REMEMBER SHARE FILE INFO %s" new_name; print_newline (); 
+      lprintf "REMEMBER SHARE FILE INFO %s" new_name; lprint_newline (); 
       DonkeyShare.remember_shared_info file new_name
   );
   network.op_network_connected <- (fun _ ->
@@ -1033,8 +1034,8 @@ let _ =
           } in
         v
       with e ->
-          Printf.printf "Exception %s in op_file_info" (Printexc2.to_string e);
-          print_newline ();
+          lprintf "Exception %s in op_file_info" (Printexc2.to_string e);
+          lprint_newline ();
           raise e
           
   )
@@ -1156,9 +1157,9 @@ let _ =
       Hashtbl.remove files_by_md4 file.file_md4;
       current_files := List2.removeq file !current_files;
       (try  Sys.remove (file_disk_name file)  with e -> 
-            Printf.printf "Sys.remove %s exception %s" 
+            lprintf "Sys.remove %s exception %s" 
             (file_disk_name file)
-            (Printexc2.to_string e); print_newline ());
+            (Printexc2.to_string e); lprint_newline ());
       if !!keep_cancelled_in_old_files &&
         not (List.mem file.file_md4 !!old_files) then
         old_files =:= file.file_md4 :: !!old_files;
@@ -1202,24 +1203,24 @@ let _ =
       | Some files -> 
           List2.tail_map (fun r -> "", as_result r.result_result) files);
   client_ops.op_client_browse <- (fun c immediate ->
-      Printf.printf "*************** should browse  ***********"; print_newline (); 
+      lprintf "*************** should browse  ***********"; lprint_newline (); 
       match c.client_sock with
       | Some sock    ->
 (*
-      Printf.printf "****************************************";
-      print_newline ();
-      Printf.printf "       ASK VIEW FILES         ";
-print_newline ();
+      lprintf "****************************************";
+      lprint_newline ();
+      lprintf "       ASK VIEW FILES         ";
+lprint_newline ();
   *)
           direct_client_send c (
             let module M = DonkeyProtoClient in
             let module C = M.ViewFiles in
             M.ViewFilesReq C.t);          
       | _ -> 
-          Printf.printf "****************************************";
-          print_newline ();
-          Printf.printf "       TRY TO CONTACT FRIEND         ";
-          print_newline ();
+          lprintf "****************************************";
+          lprint_newline ();
+          lprintf "       TRY TO CONTACT FRIEND         ";
+          lprint_newline ();
           
           reconnect_client c
   );
@@ -1545,17 +1546,17 @@ let _ =
 
 let _ =
   add_web_kind "server.met" (fun filename ->
-      Printf.printf "FILE LOADED"; print_newline ();
+      lprintf "FILE LOADED"; lprint_newline ();
       let n = load_server_met filename in
-      Printf.printf "%d SERVERS ADDED" n; print_newline ();    
+      lprintf "%d SERVERS ADDED" n; lprint_newline ();    
   );
   add_web_kind "servers.met" (fun filename ->
-      Printf.printf "FILE LOADED"; print_newline ();
+      lprintf "FILE LOADED"; lprint_newline ();
       let n = load_server_met filename in
-      Printf.printf "%d SERVERS ADDED" n; print_newline ();    
+      lprintf "%d SERVERS ADDED" n; lprint_newline ();    
   );
   add_web_kind "comments.met" (fun filename ->
       DonkeyIndexer.load_comments filename;
-      Printf.printf "COMMENTS ADDED"; print_newline ();   
+      lprintf "COMMENTS ADDED"; lprint_newline ();   
   )
   

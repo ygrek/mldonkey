@@ -32,7 +32,7 @@ module AC = AgClients
 module DO = CommonOptions
   
 let client_to_server t sock =
-  Printf.printf "MESSAGE RECEIVED"; print_newline ();
+  lprintf "MESSAGE RECEIVED"; lprint_newline ();
   match t with
   | AP.SendSharesStandByReq ->  
       server_sock := Some sock;
@@ -45,13 +45,13 @@ let client_to_server t sock =
       checked_file_transfer := true;
       AC.init_file_transfer t
   | _ ->
-      Printf.printf "UNUSED MESSAGE:" ;print_newline ();
+      lprintf "UNUSED MESSAGE:" ;lprint_newline ();
       AP.print t;
-      print_newline () 
+      lprint_newline () 
       
 let redirect_to sock ip port =
-  Printf.printf "Redirected to %s:%d" (Ip.to_string ip) port;
-  print_newline ();
+  lprintf "Redirected to %s:%d" (Ip.to_string ip) port;
+  lprint_newline ();
   server_connection_state := Connecting_to_server;
   close sock "Redirecting";
   let sock = connect  "audio_galaxy to server"
@@ -65,7 +65,7 @@ let redirect_to sock ip port =
   TcpBufferedSocket.set_closer sock (fun _ s ->
       close sock "closed";
       
-      Printf.printf "DISCONNECTED FROM SERVER"; print_newline ();
+      lprintf "DISCONNECTED FROM SERVER"; lprint_newline ();
       server_connection_state := Not_connected;
       match !server_sock with
         None -> ()
@@ -89,8 +89,8 @@ let connect_server () =
     Not_connected ->
       begin
         try
-          Printf.printf "TRYING TO CONNECT TO audiogalaxy redirector";
-          print_newline ();
+          lprintf "TRYING TO CONNECT TO audiogalaxy redirector";
+          lprint_newline ();
           let sock = connect "audiogalaxy to redirectory"
               (Ip.to_inet_addr (if !!gold_account then
                   !!gold_redirection_server_ip
@@ -111,8 +111,8 @@ let connect_server () =
           
           BasicSocket.set_rtimeout (TcpBufferedSocket.sock sock) 30.;
         with e ->
-            Printf.printf "Exception %s while trying to connect !!"
+            lprintf "Exception %s while trying to connect !!"
               (Printexc2.to_string e);
-            print_newline () 
+            lprint_newline () 
       end
   | _ -> ()

@@ -73,14 +73,14 @@ let put_results l =
         !tmp.results <- l
       
 let print t  =
-        (*Printf.printf "*********ADD to log at %f\n" t.time;*)
+        (*lprintf "*********ADD to log at %f\n" t.time;*)
         Printf.fprintf !log.oc "<REQ>\n";
         Printf.fprintf !log.oc "%f\n" t.time;
         Printf.fprintf !log.oc "%s\n" (Ip.to_string t.ip);
         Printf.fprintf !log.oc "%s\n" (Md4.to_string t.md4);
         if (List.length t.req) >0 then
           DonkeyProtoServer.fprint !log.oc (List.hd t.req);
-       (* with _ -> Printf.printf "vraiment pas cool";*)
+       (* with _ -> lprintf "vraiment pas cool";*)
         if (List.length t.req) >1 then 
                 begin
                  Printf.fprintf !log.oc "<REP>\n";
@@ -99,8 +99,8 @@ let rec save liste =
 
                     
 let add_to_liste () =
-          (*Printf.printf "//////// Add to list \n";*)
-          (*Printf.printf " Already Cool new t %s\n" (Ip.to_string !tmp.ip);*) 
+          (*lprintf "//////// Add to list \n";*)
+          (*lprintf " Already Cool new t %s\n" (Ip.to_string !tmp.ip);*) 
           !log.liste <- !log.liste @ [!tmp]
        
 
@@ -118,7 +118,7 @@ let new_log_req ip md4 msg =
                 results = [];
                 note = "";
         }
-        (*Printf.printf "Cool new t %s at time %f\n" (Ip.to_string !tmp.ip) (!tmp.time)*) 
+        (*lprintf "Cool new t %s at time %f\n" (Ip.to_string !tmp.ip) (!tmp.time)*) 
    
 let something_append ip md4 what =
   tmp := {
@@ -132,13 +132,13 @@ let something_append ip md4 what =
 
 
 let initialized () =
-      Printf.printf "INITIALISATION DU LOG "; print_newline();
+      lprintf "INITIALISATION DU LOG "; lprint_newline();
       Printf.fprintf !log.oc "<LOGNUM>\n%d\n<SERVER STAT>\n%d\n%d\n%f\n" (!nlog) !nconnected_clients !nshared_md4 (Unix.time());
       add_infinite_option_timer log_time_out (fun timer ->
               save !log.liste;
               !log.liste <- [];
               flush !log.oc;
-              Printf.printf "LOGS SAVED ON DISQUE\n"
+              lprintf "LOGS SAVED ON DISQUE\n"
       );
       add_infinite_option_timer change_log_file (fun timer ->
               save !log.liste;

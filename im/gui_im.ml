@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open Options
 open ImOptions
 open ImAccount
@@ -108,7 +109,7 @@ class dialog (chat : chat) =
     method name =  name
 
     method send s =
-      Printf.printf "SEND MESSAGE %s" s; print_newline ();
+      lprintf "SEND MESSAGE %s" s; lprint_newline ();
       chat_send chat s
 
     method handle_message source_id mes =
@@ -223,8 +224,8 @@ let input_account account =
     add_event (Account_event account);
     Options.save_with_help accounts_ini
   with e ->
-      Printf.printf "Execption %s in input_account"
-        (Printexc2.to_string e); print_newline ()
+      lprintf "Execption %s in input_account"
+        (Printexc2.to_string e); lprint_newline ()
       
 let string_of_status status =
   match status with
@@ -271,7 +272,7 @@ class contacts_window_list () =
     
     method compare id1 id2 = identity_num id1 - identity_num id2
     method content id =
-      Printf.printf "content"; print_newline ();
+      lprintf "content"; lprint_newline ();
       ([ String (identity_name id); String "offline"; String "yes"] 
           , None)
       
@@ -281,9 +282,9 @@ class contacts_window_list () =
         let (row, _ ) = self#find (identity_num id) in
         self#update_row id row
       with _ -> 
-          Printf.printf "add_item"; print_newline ();
+          lprintf "add_item"; lprint_newline ();
           self#add_item id;
-          Printf.printf "add_item done"; print_newline ();
+          lprintf "add_item done"; lprint_newline ();
 
     method on_double_click id =
       identity_open_chat id
@@ -304,7 +305,7 @@ class identity_list () =
     
     method compare id1 id2 = identity_num id1 - identity_num id2
     method content id =
-      Printf.printf "content"; print_newline ();
+      lprintf "content"; lprint_newline ();
       ([ String (identity_name id) ], None)
       
     method update_contact id =
@@ -538,7 +539,7 @@ input_record (account_config_record account)));
               let account = protocol_new_account p in
               input_account account;
               ImEvent.add_event (Account_event account);
-              Printf.printf "NEW ACCOUNT"; print_newline ();
+              lprintf "NEW ACCOUNT"; lprint_newline ();
         ))
   
   );
@@ -575,7 +576,7 @@ class room_window (room: room) =
 *)
       
     method room_event (label: GMisc.label) event =
-      Printf.printf "room event"; print_newline ();
+      lprintf "room event"; lprint_newline ();
       match event with
       | Room_message (_, id, msg) ->
           let nick = identity_name id in
@@ -590,7 +591,7 @@ class room_window (room: room) =
           room_users#remove_identity identity
       
       | _ -> 
-          Printf.printf "unused room event"; print_newline ()
+          lprintf "unused room event"; lprint_newline ()
     
     method quit_this_room () = 
       room_quit room
@@ -642,7 +643,7 @@ class main_window account =
       try
         Hashtbl.find room_tabs (room_num room)
       with _ -> 
-          Printf.printf "New room %d" (room_num room); print_newline ();
+          lprintf "New room %d" (room_num room); lprint_newline ();
           let room_window = new room_window room in
           let label_text = Printf.sprintf "%s: Room %s"
               (protocol_name (room_protocol room))
@@ -702,7 +703,7 @@ let main_window =
               let account = protocol_new_account p in
               input_account account;
               ImEvent.add_event (Account_event account);
-              Printf.printf "NEW ACCOUNT"; print_newline ();
+              lprintf "NEW ACCOUNT"; lprint_newline ();
         ))
   
   );  
@@ -715,7 +716,7 @@ let _ =
   ImEvent.set_event_handler (fun event ->
       match event with
       | Account_event account ->
-          Printf.printf "Account event"; print_newline ();
+          lprintf "Account event"; lprint_newline ();
           main_window#update_account account;
           
           (*
@@ -727,11 +728,11 @@ let _ =
             | Status_connecting -> "Connecting ... "
             | _ -> "Connected"); *)
       | Account_friend_event id ->
-          Printf.printf "Account_friend_event"; print_newline ();
+          lprintf "Account_friend_event"; lprint_newline ();
           let account = identity_account id in
           begin  try
               let w = find_account_window account in
-              Printf.printf "Window available"; print_newline ();
+              lprintf "Window available"; lprint_newline ();
               w#update_contact id
             with _ -> ()  end
       | Chat_open_event chat ->
@@ -772,7 +773,7 @@ let _ =
           main_window#room_event room event
           
       | _ -> 
-          Printf.printf "Discarding event"; print_newline ();
+          lprintf "Discarding event"; lprint_newline ();
   );
   Gui_global.top_menus := ("IM", (fun menu ->
         

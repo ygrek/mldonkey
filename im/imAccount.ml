@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open ImTypes
 open ImProtocol
 open ImEvent
@@ -135,11 +136,11 @@ let account_status account =
   account.impl_account_status
 
 let set_account_status account status =
-  Printf.printf "set_account_status"; print_newline ();
+  lprintf "set_account_status"; lprint_newline ();
   let impl = as_account_impl account in
   if impl.impl_account_status <> status then begin
       impl.impl_account_status <- status;
-      Printf.printf "Add event account"; print_newline ();
+      lprintf "Add event account"; lprint_newline ();
       add_event (Account_event account);
     end
 

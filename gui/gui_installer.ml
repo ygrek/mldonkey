@@ -198,7 +198,7 @@ let create_downloads_ini () =
     in
   
   Options.save_with_help downloads_ini;
-  Printf.printf "%s created successfully" filename; print_newline () 
+  lprintf "%s created successfully" filename; lprint_newline () 
 
 let main () =
   let gui = new Gui_installer_base.window () in
@@ -235,7 +235,7 @@ let main () =
         Unix2.safe_mkdir !!mldonkey_directory;
         create_downloads_ini ();
         Options.save_with_help installer_ini;
-        Printf.printf "%s created successfully" installer_name; print_newline ();
+        lprintf "%s created successfully" installer_name; lprint_newline ();
         
         exit 0));
 

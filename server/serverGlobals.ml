@@ -79,7 +79,7 @@ let nconnected_clients = ref 0
 
 let nshared_md4 = ref 0
 
-let client_counter = ref 1 
+let client_counter = ref 0
 
 
 (*count messages to the server*)

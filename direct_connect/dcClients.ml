@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open CommonUploads
 open CommonInteractive
 
@@ -43,7 +44,7 @@ let disconnect_client c =
     None -> ()
   | Some sock ->
       connection_failed c.client_connection_control;      
-      Printf.printf "CLOSE SOCKET"; print_newline ();
+      lprintf "CLOSE SOCKET"; lprint_newline ();
       close sock "client close";
       set_client_disconnected c;
       if c.client_files = [] then
@@ -103,15 +104,15 @@ let init_connection nick_sent c sock =
 
       
 let read_first_message nick_sent t sock =
-  Printf.printf "FIRST MESSAGE"; print_newline ();
+  lprintf "FIRST MESSAGE"; lprint_newline ();
   print t;
-  print_newline ();
+  lprint_newline ();
   match t with 
     MyNickReq n ->
       begin
         let c = new_client n in
         match c.client_sock with
-          Some sock -> Printf.printf "Already connected"; print_newline ();
+          Some sock -> lprintf "Already connected"; lprint_newline ();
             close sock "already connected";
             raise Not_found
             
@@ -120,24 +121,24 @@ let read_first_message nick_sent t sock =
             Some c
       end
   | _ ->
-      Printf.printf "BAD MESSAGE"; 
-      print t; print_newline ();
+      lprintf "BAD MESSAGE"; 
+      print t; lprint_newline ();
       close sock "bad message";
       raise Not_found
   
 let client_reader c t sock =
   if !verbose_msg_clients then begin
-      Printf.printf "FROM CLIENT %s" c.client_name; print_newline ();
+      lprintf "FROM CLIENT %s" c.client_name; lprint_newline ();
       print t;
-      print_newline ();
+      lprint_newline ();
     end;
   
   match t with
     MyNickReq n ->
       connection_ok c.client_connection_control;
       if c.client_name != n then begin
-          Printf.printf "Bad nickname for client %s/%s" n c.client_name; 
-          print_newline ();
+          lprintf "Bad nickname for client %s/%s" n c.client_name; 
+          lprint_newline ();
           disconnect_client c;
           raise Not_found
         end;
@@ -152,7 +153,7 @@ let client_reader c t sock =
 (* So, we cannot downlaod anything else from a friend ??? *)
             
             
-            Printf.printf "TRY TO DOWNLOAD FILE LIST"; print_newline ();
+            lprintf "TRY TO DOWNLOAD FILE LIST"; lprint_newline ();
             server_send !verbose_msg_clients sock (GetReq {
                 Get.name = "MyList.DcLst";
                 Get.pos = Int64.one;
@@ -163,12 +164,12 @@ let client_reader c t sock =
         | _ ->
             let rec iter_files files =
               match files with
-              | [] -> Printf.printf "NO FILE TO UPLOAD"; print_newline ();
+              | [] -> lprintf "NO FILE TO UPLOAD"; lprint_newline ();
               
               | (file, filename) :: tail -> 
                   if file_state file = FileDownloading then begin
-                      Printf.printf "GET: file downloaded %Ld"  (file_downloaded file);
-                      print_newline ();
+                      lprintf "GET: file downloaded %Ld"  (file_downloaded file);
+                      lprint_newline ();
                       server_send !verbose_msg_clients sock (GetReq {
                           Get.name = filename;
                           Get.pos = Int64.add (file_downloaded file) Int64.one;
@@ -183,7 +184,7 @@ let client_reader c t sock =
       end
   
   | KeyReq _ ->
-      Printf.printf "DISCARD KEY ..."; print_newline ();
+      lprintf "DISCARD KEY ..."; lprint_newline ();
   
   | DirectionReq t ->
 (* HERE, we should check for upload slots ...*)
@@ -205,10 +206,10 @@ let client_reader c t sock =
             if t = (file_size file) then begin
                 c.client_receiving <- t;
               end else begin
-                Printf.printf "Bad file size: %Ld  <> %Ld"
+                lprintf "Bad file size: %Ld  <> %Ld"
                   t
                   (file_size file);
-                print_newline ();
+                lprint_newline ();
                 disconnect_client c;
                 raise Not_found
               end
@@ -217,7 +218,7 @@ let client_reader c t sock =
             c.client_receiving <- t;
         
         | _ ->
-            Printf.printf "Not downloading any thing"; print_newline ();
+            lprintf "Not downloading any thing"; lprint_newline ();
             disconnect_client c;
             raise Not_found
       end;
@@ -225,7 +226,7 @@ let client_reader c t sock =
   
   | GetReq t ->
 (* this client REALLY wants to download from us !! *)
-      Printf.printf "GET REQ"; print_newline ();
+      lprintf "GET REQ"; lprint_newline ();
       
       if t.Get.name = "MyList.DcLst" then begin
           c.client_pos <- Int64.zero;
@@ -249,18 +250,18 @@ let client_reader c t sock =
   | SendReq ->
       c.client_pos <- Int64.zero;
       let refill sock =
-        Printf.printf "FILL SOCKET"; print_newline ();
+        lprintf "FILL SOCKET"; lprint_newline ();
         let len = remaining_to_write sock in
         match c.client_download with
           DcUploadList list ->
-            Printf.printf "DcUploadList"; print_newline ();
+            lprintf "DcUploadList"; lprint_newline ();
             let slen = String.length list in
             let pos = Int64.to_int c.client_pos in
             if pos < slen then begin
                 let send_len = mini (slen - pos) (8192 - len) in
-                Printf.printf "Sending %d" send_len; print_newline ();
+                lprintf "Sending %d" send_len; lprint_newline ();
                 TcpBufferedSocket.write sock list pos send_len;
-                Printf.printf "sent"; print_newline ();
+                lprintf "sent"; lprint_newline ();
                 c.client_pos <- Int64.add c.client_pos (Int64.of_int send_len);
                 
                 if pos + len = slen then begin
@@ -273,7 +274,7 @@ close it after a long timeout. *)
               end 
         
         | DcUpload sh -> 
-            Printf.printf "DcUpload"; print_newline ();            
+            lprintf "DcUpload"; lprint_newline ();            
             let slen = sh.shared_size in
             let pos = c.client_pos in
             if pos < slen then
@@ -298,17 +299,17 @@ close it after a long timeout. *)
       in
       set_refill sock refill;
       set_handler sock WRITE_DONE (fun sock -> 
-          Printf.printf "CLOSE SOCK AFTER REFILL DONE"; print_newline ();
+          lprintf "CLOSE SOCK AFTER REFILL DONE"; lprint_newline ();
           close sock "write done")
         
   | _ ->
-      Printf.printf "###UNUSED CLIENT MESSAGE###########"; print_newline ();
+      lprintf "###UNUSED CLIENT MESSAGE###########"; lprint_newline ();
       DcProtocol.print t
 
 let file_complete file = 
 (*
-  Printf.printf "FILE %s DOWNLOADED" f.file_name;
-print_newline ();
+  lprintf "FILE %s DOWNLOADED" f.file_name;
+lprint_newline ();
   *)
   CommonComplexOptions.file_completed (as_file file.file_file);
   current_files := List2.removeq file !current_files;
@@ -317,7 +318,7 @@ print_newline ();
   ) file.file_clients
   
 let client_downloaded c sock nread = 
-  Printf.printf "."; flush stdout; 
+  lprintf ".";
   if nread > 0 then
     match c.client_download with
     | DcDownload file ->
@@ -327,17 +328,17 @@ let client_downloaded c sock nread =
           let fd = try
               Unix32.force_fd (file_fd file) 
             with e -> 
-                Printf.printf "In Unix32.force_fd"; print_newline ();
+                lprintf "In Unix32.force_fd"; lprint_newline ();
                 raise e
           in
           let final_pos = Unix32.seek64 (file_fd file) c.client_pos Unix.SEEK_SET in
           Unix2.really_write fd b.buf b.pos b.len;
         end;
-(*      Printf.printf "DIFF %d/%d" nread b.len; print_newline ();*)
+(*      lprintf "DIFF %d/%d" nread b.len; lprint_newline ();*)
         c.client_pos <- Int64.add c.client_pos (Int64.of_int b.len);
 (*
-      Printf.printf "NEW SOURCE POS %s" (Int64.to_string c.source_pos);
-print_newline ();
+      lprintf "NEW SOURCE POS %s" (Int64.to_string c.source_pos);
+lprint_newline ();
   *)
         TcpBufferedSocket.buf_used sock b.len;
         if c.client_pos > (file_downloaded file) then begin
@@ -350,37 +351,37 @@ print_newline ();
           end
           
     | DcDownloadList buf ->
-        Printf.printf "DcDownloadList"; print_newline ();
+        lprintf "DcDownloadList"; lprint_newline ();
         let b = TcpBufferedSocket.buf sock in        
         let len = b.len in
         Buffer.add_substring buf b.buf b.pos b.len;
         buf_used sock b.len;
         c.client_receiving <- Int64.sub c.client_receiving (Int64.of_int len);
-        Printf.printf "Received %d of List" len; print_newline ();
-        close sock "file list received"; print_newline ();
+        lprintf "Received %d of List" len; lprint_newline ();
+        close sock "file list received"; lprint_newline ();
         if c.client_receiving = Int64.zero then begin
-            Printf.printf "----------------------------------------"; print_newline ();
-            Printf.printf "RECEIVED COMPLETE FILE LIST "; print_newline ();
-            Printf.printf "----------------------------------------"; print_newline ();
+            lprintf "----------------------------------------"; lprint_newline ();
+            lprintf "RECEIVED COMPLETE FILE LIST "; lprint_newline ();
+            lprintf "----------------------------------------"; lprint_newline ();
             
             let s = Buffer.contents buf in
             let s = Che3.decompress s in
             try
-              Printf.printf "LIST: [%s]" (String.escaped s);
-              print_newline (); 
+              lprintf "LIST: [%s]" (String.escaped s);
+              lprint_newline (); 
               let files = parse_list c.client_user s in
-              Printf.printf "PARSED"; print_newline (); 
+              lprintf "PARSED"; lprint_newline (); 
               c.client_all_files <- Some files;
               List.iter (fun (dirname,r) ->
-                  Printf.printf "NEW FILE in %s" dirname; print_newline (); 
+                  lprintf "NEW FILE in %s" dirname; lprint_newline (); 
                   client_new_file (as_client c.client_client) dirname
                     (as_result r.result_result)
               ) files;
               ()
             with e ->
-                Printf.printf "Exception %s in parse client files"
+                lprintf "Exception %s in parse client files"
                   (Printexc2.to_string e);
-                ; print_newline ();
+                ; lprint_newline ();
           end
     | _ -> assert false
 
@@ -392,7 +393,7 @@ let init_anon_client init_sent sock =
   
   let c = ref None in
   TcpBufferedSocket.set_closer sock (fun _ s ->
-      Printf.printf "DISCONNECTED FROM CLIENT"; print_newline ();
+      lprintf "DISCONNECTED FROM CLIENT"; lprint_newline ();
       match !c with
         None -> ()
       | Some c ->  disconnect_client c
@@ -410,10 +411,10 @@ let listen () =
           match event with
             TcpServerSocket.CONNECTION (s, 
               Unix.ADDR_INET(from_ip, from_port)) ->
-              Printf.printf "CONNECTION RECEIVED FROM %s FOR PUSH"
+              lprintf "CONNECTION RECEIVED FROM %s FOR PUSH"
               (Ip.to_string (Ip.of_inet_addr from_ip))
               ; 
-              print_newline ();
+              lprint_newline ();
               
               
               let sock = TcpBufferedSocket.create
@@ -425,9 +426,9 @@ let listen () =
     listen_sock := Some sock;
     ()
   with e ->
-      Printf.printf "Exception %s while init DC server" 
+      lprintf "Exception %s while init DC server" 
         (Printexc2.to_string e);
-      print_newline ()
+      lprint_newline ()
 
 let connect_client c =
   try
@@ -456,13 +457,13 @@ let connect_client c =
         init_connection false c sock;
           
   with e ->
-      Printf.printf "Exception %s while connecting to client" 
+      lprintf "Exception %s while connecting to client" 
         (Printexc2.to_string e);
-      print_newline ();
+      lprint_newline ();
       disconnect_client c
 
 let connect_anon s ip port =
-  Printf.printf "CONNECT ANON"; print_newline ();
+  lprintf "CONNECT ANON"; lprint_newline ();
   try
     let sock = connect "client download" 
         (Ip.to_inet_addr ip) port
@@ -474,7 +475,7 @@ let connect_anon s ip port =
       create_key ());
           
   with e ->
-      Printf.printf "Exception %s while connecting to  anon client" 
+      lprintf "Exception %s while connecting to  anon client" 
         (Printexc2.to_string e);
-      print_newline ()
+      lprint_newline ()
       

@@ -20,6 +20,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
+open Printf2
 type modifier = Gdk.Tags.modifier
 
 type handler = {
@@ -48,7 +49,7 @@ let int_of_modifier = function
 let print_modifier l =
   List.iter
     (fun m -> 
-      print_string
+      lprint_string
 	(((function 
 	    `SHIFT -> "SHIFT"
 	  | `LOCK -> "LOCK"
@@ -66,7 +67,7 @@ let print_modifier l =
 	    m)^" ")
     )
     l;
-  print_newline ()
+  lprint_newline ()
   
 let int_of_modifiers l =
   List.fold_left (fun acc -> fun m -> acc + (int_of_modifier m)) 0 l

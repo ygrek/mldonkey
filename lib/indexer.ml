@@ -70,7 +70,7 @@ module QueryMake(Index: Index) = struct
     open Index
     
     let get_fields tree fields =
-(*  Printf.printf "get_fields"; print_newline (); *)
+(*  lprintf "get_fields"; lprint_newline (); *)
       let map = ref Intmap.empty in 
       or_get_fields map tree fields
 
@@ -79,7 +79,7 @@ module QueryMake(Index: Index) = struct
     let complex_request idx req = 
       try
         let  trees = List.map (fun (s,fields) ->
-(*          Printf.printf "FIND [%s]" s; print_newline (); *)
+(*          lprintf "FIND [%s]" s; lprint_newline (); *)
               s, find idx s, fields
           ) req in
         match trees with
@@ -87,17 +87,17 @@ module QueryMake(Index: Index) = struct
         | (s, tree, fields) :: tail -> 
             let hits = get_fields tree fields in
             let hits = List.fold_left (fun hits (s, tree, fields) ->
-(*              Printf.printf "AND GET FIELD on [%s]" s; print_newline (); *)
+(*              lprintf "AND GET FIELD on [%s]" s; lprint_newline (); *)
                   and_get_fields tree fields hits) hits tail in
             let list = ref [] in
             Intmap.iter (fun _ doc -> 
                 if not (Doc.filtered doc) then
                   list := doc :: !list) hits;
-(*        Printf.printf "FOUND %d documents" (List.length !list); 
-        print_newline (); *)
+(*        lprintf "FOUND %d documents" (List.length !list); 
+        lprint_newline (); *)
             !list
       with Not_found -> 
-(*      Printf.printf "Not found"; print_newline (); *)
+(*      lprintf "Not found"; lprint_newline (); *)
           []
 *)
     
@@ -131,7 +131,7 @@ module QueryMake(Index: Index) = struct
             let tree = find idx s in
             get_fields tree (-1) 
         | HasField (fields, s) -> 
-(*            Printf.printf "query_map %d %s" fields s; print_newline (); *)
+(*            lprintf "query_map %d %s" fields s; lprint_newline (); *)
             let tree = find idx s in
             get_fields tree fields
         | And ((Predicate _) as q2, q1) 
@@ -156,7 +156,7 @@ module QueryMake(Index: Index) = struct
             let tree = find idx s in
             and_get_fields tree (-1) map
         | HasField (fields, s) -> 
-(*            Printf.printf "and_query %d %s" fields s; print_newline (); *)
+(*            lprintf "and_query %d %s" fields s; lprint_newline (); *)
             let tree = find idx s in
             and_get_fields tree fields map
         | And (q1, q2) -> 

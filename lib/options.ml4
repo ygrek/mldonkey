@@ -147,12 +147,12 @@ let
         opfile.file_rc) with
       OptionNotFound -> default_value
     | e ->
-        Printf.printf "Options.define_option, for option %s: "
+        lprintf "Options.define_option, for option %s: "
           (match option_name with
              [] -> "???"
            | name :: _ -> name);
-        Printf.printf "%s" (Printexc2.to_string e);
-        print_newline ();
+        lprintf "%s" (Printexc2.to_string e);
+        lprint_newline ();
         default_value
     end;
   o
@@ -296,8 +296,8 @@ and parse_once_value i = parser
     [< 'Kwd "@" >] -> 
     begin
       try Hashtbl.find once_values i with Not_found ->
-          Printf.printf "Error in saved file: @%Ld@ not defined" i;
-          print_newline ();
+          lprintf "Error in saved file: @%Ld@ not defined" i;
+          lprint_newline ();
           exit 2
     end
 |  [< 'Kwd "="; v = parse_option >] ->
@@ -373,18 +373,18 @@ let really_load filename header_options options =
           SideEffectOption -> ()
         | OptionNotFound ->
             if !print_options_not_found then begin
-                Printf.printf "Option ";
-                List.iter (fun s -> Printf.printf "%s " s) o.option_name;
-                Printf.printf "not found in %s" filename;
-                print_newline ()
+                lprintf "Option ";
+                List.iter (fun s -> lprintf "%s " s) o.option_name;
+                lprintf "not found in %s" filename;
+                lprint_newline ()
               end
         | e ->
-            Printf.printf "Exception: %s while handling option:"
+            lprintf "Exception: %s while handling option:"
               (Printexc2.to_string e); 
-            List.iter (fun s -> Printf.printf "%s " s) o.option_name;
-            print_newline ();
-            Printf.printf "  in %s" filename; print_newline ();
-            Printf.printf "Aborting."; print_newline ();
+            List.iter (fun s -> lprintf "%s " s) o.option_name;
+            lprint_newline ();
+            lprintf "  in %s" filename; lprint_newline ();
+            lprintf "Aborting."; lprint_newline ();
             exit 2
       in            
       List.iter affect_option header_options;
@@ -393,8 +393,8 @@ let really_load filename header_options options =
       list
     with
       e ->
-        Printf.printf "Error %s in %s" (Printexc2.to_string e) filename;
-        print_newline ();
+        lprintf "Error %s in %s" (Printexc2.to_string e) filename;
+        lprint_newline ();
         []
   with e ->
       close_in ic; raise e
@@ -406,7 +406,7 @@ let load opfile =
   try opfile.file_rc <- really_load opfile.file_name
       opfile.file_header_options opfile.file_options with
     Not_found -> 
-      Printf.printf "No %s found" opfile.file_name; print_newline ()
+      lprintf "No %s found" opfile.file_name; lprint_newline ()
 ;;
 
 let append opfile filename =
@@ -414,7 +414,7 @@ let append opfile filename =
       really_load filename 
     opfile.file_header_options opfile.file_options @ opfile.file_rc with
     Not_found -> 
-      Printf.printf "No %s found" filename; print_newline ()
+      lprintf "No %s found" filename; lprint_newline ()
 ;;
       
 let ( !! ) o = o.option_value;;
@@ -574,9 +574,9 @@ let rec convert_list name c2v l res =
         try
           Some (c2v v)
         with e -> 
-            Printf.printf "Exception %s in Options.convert_list for %s" (
+            lprintf "Exception %s in Options.convert_list for %s" (
               Printexc2.to_string e) name;
-            print_newline ();
+            lprint_newline ();
             None
       with
         None ->
@@ -804,8 +804,8 @@ let rec save_module indent oc list =
             try List.assoc m !subm with
               e -> 
 (*
-                Printf.printf "Exception %s in Options.save_module" 
-		  (Printexc2.to_string e); print_newline ();
+                lprintf "Exception %s in Options.save_module" 
+		  (Printexc2.to_string e); lprint_newline ();
 *)
                 let p = ref [] in subm := (m, p) :: !subm; p
           in
@@ -866,7 +866,7 @@ and save_module_fields indent oc m =
   match m with
     [] -> ()
   | (name, v) :: tail ->
-(*      Printf.printf "Saving %s" name; print_newline (); *)
+(*      lprintf "Saving %s" name; lprint_newline (); *)
       Printf.fprintf oc "%s %s = " indent (safe_string name);
       save_value indent oc v;
       Printf.fprintf oc "\n";
@@ -889,11 +889,11 @@ let save opfile =
               o.option_class.to_value o.option_value 
             with
               e ->
-                Printf.printf "Error while saving option \"%s\": %s"
+                lprintf "Error while saving option \"%s\": %s"
                   (try List.hd o.option_name with
                     _ -> "???")
                 (Printexc2.to_string e);
-                print_newline ();
+                lprint_newline ();
                 StringValue ""))
       (opfile.file_header_options @ opfile.file_options));
     if not opfile.file_pruned then begin
@@ -916,8 +916,8 @@ let save opfile =
             with
               Exit -> ()
             | e -> 
-                Printf.printf "Exception %s in Options.save" (
-                  Printexc2.to_string e); print_newline ())
+                lprintf "Exception %s in Options.save" (
+                  Printexc2.to_string e); lprint_newline ())
         opfile.file_rc;
       end;
     Hashtbl.clear once_values_rev;
@@ -985,8 +985,8 @@ let rec value_to_tuple2 ((c1, c2) as cs) v =
   | SmallList [v1; v2] -> from_value c1 v1, from_value c2 v2
   | OnceValue v -> value_to_tuple2 cs v
   | List l | SmallList l ->
-      Printf.printf "list of %d" (List.length l);
-      print_newline ();
+      lprintf "list of %d" (List.length l);
+      lprint_newline ();
       failwith "Options: not a tuple2 list option"
   | _ -> failwith "Options: not a tuple2 option"
 ;;
@@ -1130,7 +1130,7 @@ let simple_args opfile =
   List.map (fun (name, v) ->
       ("-" ^ name), 
       Arg.String (fun s -> 
-          Printf.printf "Setting option %s" name; print_newline ();
+          lprintf "Setting option %s" name; lprint_newline ();
           set_simple_option opfile name s), 
       (Printf.sprintf "<string> : \t%s (current: %s)"
           (get_option opfile name).option_help

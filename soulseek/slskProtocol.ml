@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open CommonOptions
 open TcpBufferedSocket
 open LittleEndian
@@ -81,7 +82,7 @@ let get_user_status s pos = (* 4 * 7 = 28 *)
   }, pos + 28
   
 let unknown opcode s =
-  Printf.printf "Unknown: opcode %d" opcode; print_newline ();
+  lprintf "Unknown: opcode %d" opcode; lprint_newline ();
   LittleEndian.dump s
   
 module C2S = struct
@@ -100,9 +101,9 @@ module C2S = struct
           { login = login; password = password; version = version; }
         
         let print t =
-          Printf.printf "LOGIN login:%s password:%s version:%d" 
+          lprintf "LOGIN login:%s password:%s version:%d" 
             t.login t.password t.version;
-          print_newline () 
+          lprint_newline () 
         
         let write buf t =
           buf_string buf t.login;
@@ -117,8 +118,8 @@ module C2S = struct
         let parse s =  get_int s 0
         
         let print t =
-          Printf.printf "SETWAITPORT %d" t;
-          print_newline () 
+          lprintf "SETWAITPORT %d" t;
+          lprint_newline () 
         
         let write buf t =
           buf_int buf t
@@ -137,8 +138,8 @@ module C2S = struct
           { id = id; words = s }
         
         let print t =
-          Printf.printf "SEARCH %d FOR %s" t.id t.words;
-          print_newline () 
+          lprintf "SEARCH %d FOR %s" t.id t.words;
+          lprint_newline () 
         
         let write buf t =
           buf_int buf t.id;
@@ -231,7 +232,7 @@ module C2S = struct
         | _ -> raise Not_found
       with
         e -> 
-          Printf.printf "From client"; print_newline ();
+          lprintf "From client"; lprint_newline ();
           unknown opcode s;
           UnknownReq (opcode, s)
 
@@ -242,19 +243,19 @@ module C2S = struct
       | SetWaitPortReq t -> SetWaitPort.print t  
       | FileSearchReq t -> FileSearch.print t   
       | GetUserStatsReq t -> 
-          Printf.printf "GetUserStats %s" t; print_newline () 
+          lprintf "GetUserStats %s" t; lprint_newline () 
       | JoinRoomReq t -> 
-          Printf.printf "JoinRoomReq %s" t; print_newline () 
+          lprintf "JoinRoomReq %s" t; lprint_newline () 
       | LeaveRoomReq t -> 
-          Printf.printf "LeaveRoomReq %s" t; print_newline () 
+          lprintf "LeaveRoomReq %s" t; lprint_newline () 
       | AddUserReq t -> 
-          Printf.printf "AddUserReq %s" t; print_newline () 
+          lprintf "AddUserReq %s" t; lprint_newline () 
       | GetPeerAddressReq t -> 
-          Printf.printf "GetPeerAddressReq %s" t; print_newline () 
+          lprintf "GetPeerAddressReq %s" t; lprint_newline () 
       | CantConnectToPeerReq t -> 
-          Printf.printf "CantConnectToPeerReq %s" t; print_newline () 
+          lprintf "CantConnectToPeerReq %s" t; lprint_newline () 
       | SayChatroomReq (room, msg) -> 
-          Printf.printf "SayChatroomReq %s: %s" room msg; print_newline () 
+          lprintf "SayChatroomReq %s: %s" room msg; lprint_newline () 
       | UnknownReq (opcode, s) ->  unknown opcode s
           
     let write buf t =
@@ -296,13 +297,13 @@ module S2C = struct
         let print t =
           match t with
             Success (message, ip) ->
-              Printf.printf "LOGIN ACK: %s" message;
-              print_newline ();
-              Printf.printf "   IP: %s" (Ip.to_string ip);
-              print_newline ()
+              lprintf "LOGIN ACK: %s" message;
+              lprint_newline ();
+              lprintf "   IP: %s" (Ip.to_string ip);
+              lprint_newline ()
           | Failure reason ->
-              Printf.printf "LOGIN FAILURE %s" reason;
-              print_newline () 
+              lprintf "LOGIN FAILURE %s" reason;
+              lprint_newline () 
         
         let write buf t =
           match t with
@@ -337,8 +338,8 @@ module S2C = struct
           let pos = iter_names nrooms 4 in
           
           let nusers = get_int s pos in
-          Printf.printf "nusers = %d/ nrooms = %d" nrooms nusers; 
-          print_newline ();
+          lprintf "nusers = %d/ nrooms = %d" nrooms nusers; 
+          lprint_newline ();
           let rec iter_nusers nleft pos =
             if nleft = 0 then pos else
             let nusers = get_int s pos in
@@ -351,11 +352,11 @@ module S2C = struct
 *)
         
         let print t =
-          Printf.printf "Room list: %d rooms" (List.length t);
-          print_newline ();
+          lprintf "Room list: %d rooms" (List.length t);
+          lprint_newline ();
           List.iter (fun (name, nusers) ->
-              Printf.printf "    %50s  %-10d" name nusers;
-              print_newline () 
+              lprintf "    %50s  %-10d" name nusers;
+              lprint_newline () 
           ) t
         
         let write buf t =
@@ -372,9 +373,9 @@ module S2C = struct
           users
         
         let print t =
-          Printf.printf "PRIVILEDGED USERS:"; print_newline ();
-          List.iter (fun u -> Printf.printf "%s\n" u) t;
-          print_newline ()
+          lprintf "PRIVILEDGED USERS:"; lprint_newline ();
+          List.iter (fun u -> lprintf "%s\n" u) t;
+          lprint_newline ()
         
         let write buf t =
           buf_list buf_string buf t
@@ -405,9 +406,9 @@ module S2C = struct
           }
         
         let print t =
-          Printf.printf "CONNECT TO PEER %s (%s:%d) token %d"
+          lprintf "CONNECT TO PEER %s (%s:%d) token %d"
             t.name (Ip.to_string t.ip) t.port t.token;
-          print_newline ()
+          lprint_newline ()
         
         let write buf t =
           buf_string buf t.name;
@@ -445,14 +446,14 @@ module S2C = struct
             users stats; }
         
         let print t =
-          Printf.printf "JOIN ROOM %s:" t.room; print_newline ();
+          lprintf "JOIN ROOM %s:" t.room; lprint_newline ();
           List.iter (fun u ->
-              Printf.printf "   %s" u.name; print_newline ()) t.users;
-          print_newline ()
+              lprintf "   %s" u.name; lprint_newline ()) t.users;
+          lprint_newline ()
         
         let write buf t =
-          Printf.printf  "******* JoinRoomReply not implemented *****"; 
-          print_newline ();
+          lprintf  "******* JoinRoomReply not implemented *****"; 
+          lprint_newline ();
           exit 1
       
       end
@@ -618,8 +619,8 @@ ascii: [
         | _ -> raise Not_found
       with
         e -> 
-          Printf.printf "From server (exception %s):" (Printexc2.to_string e); 
-          print_newline ();
+          lprintf "From server (exception %s):" (Printexc2.to_string e); 
+          lprint_newline ();
           unknown opcode s;
           UnknownReq (opcode, s)
     
@@ -630,23 +631,23 @@ ascii: [
       | RoomListReq t -> RoomList.print t
       | PriviledgedUsersReq t -> PriviledgedUsers.print t
       | GetPeerAddressReplyReq (name, ip, port) ->
-          Printf.printf "GET PEER ADDRESS REPLY %s = %s:%d" name 
-            (Ip.to_string ip) port; print_newline ();
+          lprintf "GET PEER ADDRESS REPLY %s = %s:%d" name 
+            (Ip.to_string ip) port; lprint_newline ();
       | AddUserReplyReq (name, present) ->
-          Printf.printf "ADD USER REPLY %s %s" name (string_of_bool present);
-          print_newline ();
+          lprintf "ADD USER REPLY %s %s" name (string_of_bool present);
+          lprint_newline ();
       | UserStatusReq (user, status) ->
-          Printf.printf "USER STATUS %s %d" user status;
-          print_newline ();
+          lprintf "USER STATUS %s %d" user status;
+          lprint_newline ();
       | UserJoinedRoomReq (room, user, _) -> 
-          Printf.printf "USER JOIN ROOM: %s %s" room user; 
-          print_newline ()
+          lprintf "USER JOIN ROOM: %s %s" room user; 
+          lprint_newline ()
       | UserLeftRoomReq (room, user) ->
-          Printf.printf "USER LEFT ROOM %s : %s" room user; print_newline ()
+          lprintf "USER LEFT ROOM %s : %s" room user; lprint_newline ()
       | JoinRoomReplyReq t -> JoinRoomReply.print t
       | SayChatroomReq (room, user, message) ->
-          Printf.printf "SAID ON %s BY %s: %s" room user message;
-          print_newline ();
+          lprintf "SAID ON %s BY %s: %s" room user message;
+          lprint_newline ();
       | UnknownReq (opcode, s) ->  unknown opcode s
     
     let write buf t =
@@ -871,58 +872,58 @@ module C2C = struct
         | _ -> raise Not_found
       with
         e -> 
-          Printf.printf "From peer: %s" (Printexc2.to_string e); 
-          print_newline ();
+          lprintf "From peer: %s" (Printexc2.to_string e); 
+          lprint_newline ();
           unknown opcode s;
           UnknownReq (opcode, s)
     
     let print t =
       match t with
       | GetSharedFileListReq -> 
-          Printf.printf "GetSharedFileListReq"; print_newline () 
+          lprintf "GetSharedFileListReq"; lprint_newline () 
       | FolderContentsReq folder ->
-          Printf.printf "FolderContentsReq"; print_newline ();
+          lprintf "FolderContentsReq"; lprint_newline ();
       | FolderContentsReplyReq folders ->
-          Printf.printf "FolderContentsReplyReq"; print_newline ();
+          lprintf "FolderContentsReplyReq"; lprint_newline ();
           List.iter (fun (s, dirs) ->
-              Printf.printf "  Folder: %s" s; print_newline ();
+              lprintf "  Folder: %s" s; lprint_newline ();
               List.iter (fun (dir, files) ->
-                  Printf.printf "    Directory: %s" dir; print_newline ();
+                  lprintf "    Directory: %s" dir; lprint_newline ();
                   (*
                   List.iter (fun file ->
-                      Printf.printf "      %50s%Ld" 
-                        file.file_name file.file_size; print_newline ();
+                      lprintf "      %50s%Ld" 
+                        file.file_name file.file_size; lprint_newline ();
                   ) files; *)
               ) dirs
           ) folders
       | TransferRequestReq (download, req, file, size) ->
-          Printf.printf "TransferRequestReq %d for %s of %s %Ld" req
+          lprintf "TransferRequestReq %d for %s of %s %Ld" req
             (if download then "Download" else "Upload") file size;
-          print_newline ();
+          lprint_newline ();
       | TransferOKReplyReq (req, file_size) ->
-          Printf.printf "TransferOKReplyReq %d for %Ld" req file_size;
-          print_newline ();          
+          lprintf "TransferOKReplyReq %d for %Ld" req file_size;
+          lprint_newline ();          
       | TransferFailedReplyReq (req, reason) ->
-          Printf.printf "TransferFailedReq %d for %s" req reason;
-          print_newline ();          
+          lprintf "TransferFailedReq %d for %s" req reason;
+          lprint_newline ();          
       | FileSearchResultReq t ->
-          Printf.printf "FileSearchResultReq for %s token %d" 
+          lprintf "FileSearchResultReq for %s token %d" 
             t.FileSearchResult.user t.FileSearchResult.id; 
-          print_newline ();
+          lprint_newline ();
           (*
           List.iter (fun file ->
-              Printf.printf "  %50s%Ld" 
-                file.file_name file.file_size; print_newline ();
+              lprintf "  %50s%Ld" 
+                file.file_name file.file_size; lprint_newline ();
           ) t.FileSearchResult.files;
 *)          
       | SharedFileListReq dirs ->
-          Printf.printf "SharedFileListReq"; print_newline ();
+          lprintf "SharedFileListReq"; lprint_newline ();
           List.iter (fun (dir, files) ->
-              Printf.printf "    Directory: %s" dir; print_newline ();
+              lprintf "    Directory: %s" dir; lprint_newline ();
               (*
               List.iter (fun file ->
-                  Printf.printf "      %50s%Ld" 
-                  file.file_name file.file_size; print_newline ();
+                  lprintf "      %50s%Ld" 
+                  file.file_name file.file_size; lprint_newline ();
               ) files; *)
           ) dirs
 
@@ -1014,7 +1015,7 @@ let server_send sock t =
   let s = server_msg_to_string t in
 
   if !verbose_msg_servers then begin
-      Printf.printf "SENDING TO SERVER:"; print_newline ();
+      lprintf "SENDING TO SERVER:"; lprint_newline ();
       C2S.print t;
       LittleEndian.dump s;
     end;
@@ -1027,7 +1028,7 @@ let client_send sock t =
   let s = client_msg_to_string t in
 
   if !verbose_msg_clients then begin
-      Printf.printf "SENDING TO CLIENT:"; print_newline ();
+      lprintf "SENDING TO CLIENT:"; lprint_newline ();
       C2C.print t;
       LittleEndian.dump s;
     end;
@@ -1049,7 +1050,7 @@ let init_peer_connection sock login token =
   write_string sock s ;
   
   if !verbose_msg_clients then begin
-      Printf.printf "INIT PEER CONNECTION:"; print_newline ();
+      lprintf "INIT PEER CONNECTION:"; lprint_newline ();
       dump s
     end
 
@@ -1065,7 +1066,7 @@ let init_result_connection sock token =
   write_string sock s ;
 
   if !verbose_msg_clients then begin
-      Printf.printf "INIT RESULT CONNECTION:"; print_newline ();
+      lprintf "INIT RESULT CONNECTION:"; lprint_newline ();
       dump s
     end
     
@@ -1077,7 +1078,7 @@ let init_download_connection sock file login req pos =
   buf_string buf "F";
   buf_int buf 300;
   if !verbose_msg_clients then begin
-      Printf.printf "INIT DOWNLOAD CONNECTION:"; print_newline ();
+      lprintf "INIT DOWNLOAD CONNECTION:"; lprint_newline ();
     end;
 
   let s = Buffer.contents buf in
@@ -1096,7 +1097,7 @@ let init_download_connection sock file login req pos =
   
   if !verbose_msg_clients then begin
       dump s;
-      print_newline ()
+      lprint_newline ()
     end
 
 (*

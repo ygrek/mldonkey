@@ -17,15 +17,18 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open Options
 open CommonOptions
 open BasicSocket
 open CommonTypes
 
-
-let version = Printf.sprintf
-"MLDonkey %s: Objective-Caml Client/Server for the eDonkey2000 Network" 
-  Autoconf.current_version
+let networks_string = ref ""
+  
+let version () = 
+  Printf.sprintf "MLNet %s: Multi-Network p2p client (%s)"  
+    Autoconf.current_version !networks_string
+  
   
 (* Should we try to find another port when we cannot bind to the one set
 in an option, and then change the option accordingly. ?> *)
@@ -44,9 +47,9 @@ let find_port server_name bind_addr port_option handler =
       with e ->
           if !find_other_port then iter (port+1)
           else begin
-              Printf.printf "Exception %s while starting %s" server_name
+              lprintf "Exception %s while starting %s" server_name
                 (Printexc2.to_string e);
-              print_newline ();
+              lprint_newline ();
               None
             end
     in
@@ -63,11 +66,11 @@ let saved_download_tcp_rate = ref 0
 
 let printf_char c =
   if !verbose then 
-    (print_char c; Pervasives.flush Pervasives.stdout)
+    (lprint_char c)
     
 let printf_string c =
   if !verbose then 
-    (print_string c; Pervasives.flush Pervasives.stdout)
+    (lprint_string c)
 
 let minutes25 = 25 * 60
   
@@ -128,10 +131,10 @@ let can_open_connection () =
   let max = mini !!max_opened_connections MlUnix.max_sockets in
   (*
   if !!debug_net then begin
-      Printf.printf "CAN OPEN (conns: %d < %d && upload U/D: %d %d)" ns max 
+      lprintf "CAN OPEN (conns: %d < %d && upload U/D: %d %d)" ns max 
         (UdpSocket.remaining_bytes udp_write_controler)
         (UdpSocket.remaining_bytes udp_read_controler);
-      print_newline ();
+      lprint_newline ();
     end; *)
   ns < max
   
@@ -174,16 +177,16 @@ let do_at_exit f =
   exit_handlers := f :: !exit_handlers
       
 let exit_properly n =
-(*  Printf.printf "exit_properly handlers"; print_newline (); *)
+(*  lprintf "exit_properly handlers"; lprint_newline (); *)
   List.iter (fun f -> try 
-(*        Printf.printf "exit_properly handler ..."; print_newline (); *)
+(*        lprintf "exit_properly handler ..."; lprint_newline (); *)
         f () ;
-(*        Printf.printf "exit_properly done"; print_newline (); *)
+(*        lprintf "exit_properly done"; lprint_newline (); *)
       with e -> 
-          Printf.printf "exit_properly (exception %s)"
-            (Printexc2.to_string e); print_newline ();
+          lprintf "exit_properly (exception %s)"
+            (Printexc2.to_string e); lprint_newline ();
   ) !exit_handlers;
-(*  Printf.printf "exit_properly DONE"; print_newline (); *)
+(*  lprintf "exit_properly DONE"; lprint_newline (); *)
   Pervasives.exit n
 
 let user_socks = ref ([] : TcpBufferedSocket.t list)
@@ -336,13 +339,13 @@ let rec print_tags tags =
   match tags with
     [] -> ()
   | tag :: tags ->
-      Printf.printf "  \"%s\" = " (String.escaped tag.tag_name);
+      lprintf "  \"%s\" = " (String.escaped tag.tag_name);
       begin
         match tag.tag_value with
-        | Uint64 n -> Printf.printf "%s" (Int64.to_string n)
-        | Fint64 n -> Printf.printf "%s" (Int64.to_string n)
-        | Addr ip -> Printf.printf "%s" (Ip.to_string ip)
-        | String s -> Printf.printf "\"%s\"" 
+        | Uint64 n -> lprintf "%s" (Int64.to_string n)
+        | Fint64 n -> lprintf "%s" (Int64.to_string n)
+        | Addr ip -> lprintf "%s" (Ip.to_string ip)
+        | String s -> lprintf "\"%s\"" 
               (String.escaped s)
       end;
       print_tags tags
@@ -416,7 +419,7 @@ let mldonkey_wget url f =
   
   
 let load_url kind url =
-  Printf.printf "QUERY URL %s" url; print_newline ();
+  lprintf "QUERY URL %s" url; lprint_newline ();
   let f = 
     try 
       List.assoc kind !file_kinds 

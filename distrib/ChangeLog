@@ -1,6 +1,14 @@
 ChangeLog	
 =========
 
+2003/03/04: Simon (v 2.02-26)
+  - Applied patches #1219, #1220, #1221, #1222
+  - Redirection of output to a log:
+     * Only startup messages are sent to stdout
+     * New argument -stdout for all messages to be sent to stdout
+     * New commands: 'log' to see the last non-printed messages,
+       'stdout <true|false>' to enable/disable messages to stdout again.
+
 2003/03/03: Simon (v 2.02-25)
   - Source Management:
        * Query files every min_reask_delay even when already connected

@@ -1,3 +1,23 @@
+(* Copyright 2001, 2002 b8_bavard, b8_fee_carabine, INRIA *)
+(*
+    This file is part of mldonkey.
+
+    mldonkey is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    mldonkey is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with mldonkey; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*)
+
+open Printf2
 open Misc
 open Cddb_lexer
 open Mp3tag
@@ -99,8 +119,8 @@ let set_filename_tags filename =
   let tags = 
     try
       let tags = Tags.read filename in
-      Printf.printf "Filename %s is already tagged" filename; 
-      print_newline ();  
+      lprintf "Filename %s is already tagged" filename; 
+      lprint_newline ();  
       tags
     with _ -> 
         { 
@@ -123,41 +143,41 @@ let set_filename_tags filename =
                 None -> ()
               | Some i ->
                   tags.artist <- Str.matched_group i name;
-                  Printf.printf "Artist set to %s" tags.artist;
-                  print_newline ();
+                  lprintf "Artist set to %s" tags.artist;
+                  lprint_newline ();
             );
             (match !ptitle with
                 None -> ()
               | Some i ->
                   tags.title <- Str.matched_group i name;
-                  Printf.printf "Title set to %s" tags.title;
-                  print_newline ();
+                  lprintf "Title set to %s" tags.title;
+                  lprint_newline ();
             );
             (match !palbum with
                 None -> ()
               | Some i ->
                   tags.album <- Str.matched_group i name;
-                  Printf.printf "Album set to %s" tags.album;
-                  print_newline ();
+                  lprintf "Album set to %s" tags.album;
+                  lprint_newline ();
             );
             (match !ptrack with
                 None -> ()
               | Some i ->
                   tags.tracknum <- int_of_string (Str.matched_group i name);
-                  Printf.printf "Tracknum set to %d" tags.tracknum;
-                  print_newline ();
+                  lprintf "Tracknum set to %d" tags.tracknum;
+                  lprint_newline ();
             );
           end
         else
-          (Printf.printf "%s doesn't match regexp" filename;
-            print_newline () )
+          (lprintf "%s doesn't match regexp" filename;
+            lprint_newline () )
   end;
-  Printf.printf "TAGS:"; print_newline ();
-  Printf.printf "Title: %s" tags.title; print_newline ();
-  Printf.printf "Artist: %s" tags.artist; print_newline ();
-  Printf.printf "Album: %s" tags.album; print_newline ();
-  Printf.printf "Year: %s" tags.year; print_newline ();
-  Printf.printf "Track: %d" tags.tracknum; print_newline ();
+  lprintf "TAGS:"; lprint_newline ();
+  lprintf "Title: %s" tags.title; lprint_newline ();
+  lprintf "Artist: %s" tags.artist; lprint_newline ();
+  lprintf "Album: %s" tags.album; lprint_newline ();
+  lprintf "Year: %s" tags.year; lprint_newline ();
+  lprintf "Track: %d" tags.tracknum; lprint_newline ();
 
   if !set_tags then
     Tags.write tags filename;
@@ -179,7 +199,7 @@ let set_filename_tags filename =
   
   
   
-  Printf.printf "Proposed name: %s" new_name; print_newline ();
+  lprintf "Proposed name: %s" new_name; lprint_newline ();
   if !save then begin
       Unix2.safe_mkdir (Filename.dirname new_name);
       Unix2.rename filename new_name;
@@ -303,8 +323,8 @@ let index file =
   let disc_id = match !disc_id with None ->
         failwith "No DISC ID" | Some s -> s in
   if List.length !track_pos <> !ntracks then begin
-      Printf.printf "%s: track_pos %d <> ntracks %d" disc_id (List.length !track_pos) !ntracks; 
-      print_newline ();
+      lprintf "%s: track_pos %d <> ntracks %d" disc_id (List.length !track_pos) !ntracks; 
+      lprint_newline ();
     end;
   let titles = Array.create !ntracks "" in
   let info = Array.create !ntracks "" in
@@ -318,7 +338,7 @@ let index file =
   !track_info;
 
   convert_nl !disc_info;
-(*  Printf.printf "Disc info [%s] : %s" disc_id !disc_info; print_newline (); *)
+(*  lprintf "Disc info [%s] : %s" disc_id !disc_info; lprint_newline (); *)
   let file = 
     {
     disc_id = disc_id;
@@ -337,16 +357,16 @@ let index file =
 
 let print_file oc file =
   (*
-  Printf.printf "Disc %s: %s" file.disc_id file.disc_title; print_newline ();
-  Printf.printf "Year %d Length %d" file.disc_year file.disc_length;
-  print_newline ();
-  Printf.printf "Info: %s" file.disc_info; print_newline ();
+  lprintf "Disc %s: %s" file.disc_id file.disc_title; lprint_newline ();
+  lprintf "Year %d Length %d" file.disc_year file.disc_length;
+  lprint_newline ();
+  lprintf "Info: %s" file.disc_info; lprint_newline ();
   for i = 0 to Array.length file.track_title - 1 do
-    Printf.printf "Track %2d Pos:%9d Name: %s [%s]" 
+    lprintf "Track %2d Pos:%9d Name: %s [%s]" 
       (i+1) file.track_pos.(i) file.track_title.(i) file.track_info.(i);
-    print_newline ();
+    lprint_newline ();
   done;
-  Printf.printf "End Disc"; print_newline () 
+  lprintf "End Disc"; lprint_newline () 
 *)
   Printf.fprintf oc "DISCID=%s\n" file.disc_id; 
   Printf.fprintf oc "DTITLE=%s\n" (String.lowercase file.disc_title); 
@@ -497,8 +517,8 @@ let save_tree tree =
     put_int8 tree_oc tree_pos 0
     
   and save_range nodes first last = 
-(*    Printf.printf "range %d %d-%d not implemented" (List.length nodes) 
-    first last; print_newline ();*)
+(*    lprintf "range %d %d-%d not implemented" (List.length nodes) 
+    first last; lprint_newline ();*)
     save_assoc nodes (* use assocs ... *)
     
   in
@@ -567,7 +587,7 @@ let index_file filename =
           done;
           w :: ws
         with _ ->
-            Printf.printf "- [%s]" w; print_newline (); ws 
+            lprintf "- [%s]" w; lprint_newline (); ws 
   in
   
   let convert_chars w =
@@ -752,7 +772,7 @@ let index_file filename =
             let track_num = !tracks_pos in
             let track_words = index_string tracks_oc tracks_pos title in
             if track_words = [] then
-              (Printf.printf "track removed [%s]" title; print_newline ())
+              (lprintf "track removed [%s]" title; lprint_newline ())
             else begin
                 put_int tracks_oc tracks_pos album_num;
                 put_int8 tracks_oc tracks_pos i;
@@ -789,9 +809,9 @@ let convert_file oc filename =
     print_file oc file; 
 (*    Hashtbl.add files (Filename.basename filename) file *)
   with e ->
-      Printf.printf "%s : Exception %s" filename
+      lprintf "%s : Exception %s" filename
         (Printexc2.to_string e);
-      print_newline ();
+      lprint_newline ();
       exit 1
 
 let input_int ic pos =
@@ -799,14 +819,14 @@ let input_int ic pos =
     seek_in ic pos;
     really_input ic s4 0 4;
     get_int s4 0
-  with e -> Printf.printf "at pos %d" pos; print_newline (); raise e
+  with e -> lprintf "at pos %d" pos; lprint_newline (); raise e
 
 let input_int8 ic pos =
   try
     seek_in ic pos;
     really_input ic s1 0 1;
     int_of_char s1.[0]
-  with e -> Printf.printf "at pos %d" pos; print_newline (); raise e
+  with e -> lprintf "at pos %d" pos; lprint_newline (); raise e
       
 let input_string ic pos len =
   try
@@ -814,7 +834,7 @@ let input_string ic pos len =
     let s = String.create len in
     really_input ic s 0 len;
     s
-  with e -> Printf.printf "at pos %d" pos; print_newline (); raise e
+  with e -> lprintf "at pos %d" pos; lprint_newline (); raise e
       
 let s255 = String.create 255
 let input_word ic pos =
@@ -827,7 +847,7 @@ let input_word ic pos =
         iter (pos+1)
     in
     iter 0
-  with e -> Printf.printf "at pos %d" pos; print_newline (); raise e
+  with e -> lprintf "at pos %d" pos; lprint_newline (); raise e
       
 let rec merge_lists l1 l2 tail =
   match l1, l2 with
@@ -885,16 +905,16 @@ let find words =
   let iter_title f ic pos =
 (*
   let f w1 w2 =
-      Printf.printf "<"; print_newline ();
+      lprintf "<"; lprint_newline ();
       f w1 w2;
-      Printf.printf ">"; print_newline ();      
+      lprintf ">"; lprint_newline ();      
 in
   *)
     let nwords = input_int8 ic pos in
     let rec iter_words nwords pos =
       if nwords > 0 then
         let c = input_int8 ic pos in
-(*        Printf.printf "pos %d" pos; print_newline (); *)
+(*        lprintf "pos %d" pos; lprint_newline (); *)
         let w_num = input_int ic pos in
         match c with
           127 -> 
@@ -920,15 +940,15 @@ in
         pos
     in
     let pos = iter_words nwords (pos+1) in
-(*    Printf.printf "done iter_title %d" pos; print_newline (); *)
+(*    lprintf "done iter_title %d" pos; lprint_newline (); *)
     pos
   in
   
   let rec find_word w len pos node_pos =
-(*    Printf.printf "find_word pos %d for %s" pos w; print_newline (); *)
+(*    lprintf "find_word pos %d for %s" pos w; lprint_newline (); *)
     if len = pos then
       let w_num = input_int tree_ic node_pos in
-(*      Printf.printf "w_num: %d" w_num; print_newline (); *)
+(*      lprintf "w_num: %d" w_num; lprint_newline (); *)
       let w_array = if w_num = -1 then [||] else
         let array_pos = input_int tree_ic (node_pos+4) in
         let array_len = input_int tree_ic array_pos in
@@ -939,10 +959,10 @@ in
       (w_num, w_array)
     else
     let c = int_of_char w.[pos] in
-(*    Printf.printf "find %d[%c]" c (char_of_int c); print_newline (); *)
+(*    lprintf "find %d[%c]" c (char_of_int c); lprint_newline (); *)
     let rec iter_assoc char_pos =
       let cc = input_int8 tree_ic char_pos in
-(*  Printf.printf "try with %d[%c]" cc (char_of_int cc); print_newline (); *)
+(*  lprintf "try with %d[%c]" cc (char_of_int cc); lprint_newline (); *)
       if cc = 0 then (-1, [||]) else
       if cc = c then
         let node_pos = input_int tree_ic (char_pos+1) in
@@ -960,60 +980,60 @@ in
         let (w_num, w_array) = find_word w (String.length w) 0 initial_node_pos
         in
         if w_num = -1 then begin
-            Printf.printf "No hit for %s" w; print_newline ();
+            lprintf "No hit for %s" w; lprint_newline ();
           end;
         hits := merge_lists !hits (Array.to_list w_array) [];
-(*        Printf.printf "word %s ---> %d" w w_num; print_newline (); *)
+(*        lprintf "word %s ---> %d" w w_num; lprint_newline (); *)
         w_num
     ) words in
   
   let print_album cd_pos =
     let tracks_pos = input_int albums_ic cd_pos in
     let disc_id = input_string albums_ic (cd_pos+4) 4 in
-    Printf.printf "disc_id %s" (String.lowercase (
-        hexa_to_string disc_id)); print_newline (); 
+    lprintf "disc_id %s" (String.lowercase (
+        hexa_to_string disc_id)); lprint_newline (); 
     
     let album = decompress_title albums_ic (cd_pos+8) in
-    Printf.printf "Album: %s" album;
-    print_newline ();
+    lprintf "Album: %s" album;
+    lprint_newline ();
   in    
   
   let positions = Array.create nwords 0 in
-(*  Printf.printf "%d albums" (List.length !hits); print_newline (); *)
+(*  lprintf "%d albums" (List.length !hits); lprint_newline (); *)
   List.iter (fun cd_pos  ->
-(*      Printf.printf "album_pos %d" cd_pos; print_newline ();
+(*      lprintf "album_pos %d" cd_pos; lprint_newline ();
       print_album cd_pos; *)
       
       let album_score = ref 0 in
 (* compute the score of each album, and of each track of each album *) 
       let tracks_pos = input_int albums_ic cd_pos in
       let disc_id = input_string albums_ic (cd_pos+4) 4 in
-(*      Printf.printf "disc_id %s" (String.lowercase ( 
-          hexa_to_string disc_id)); print_newline (); *)
+(*      lprintf "disc_id %s" (String.lowercase ( 
+          hexa_to_string disc_id)); lprint_newline (); *)
       let disc_counted = ref [] in
       ignore (iter_title (fun w_num w ->
-(*            Printf.printf "word %s --> %d" w w_num; print_newline (); *)
+(*            lprintf "word %s --> %d" w w_num; lprint_newline (); *)
             if not (List.memq w_num !disc_counted) &&
               List.memq w_num word_nums then begin
                 disc_counted := w_num :: !disc_counted;
                 album_score := !album_score + nwords;
               end;
         ) albums_ic  (cd_pos+8));
-(*      Printf.printf "score : %d" !album_score; print_newline (); *)
+(*      lprintf "score : %d" !album_score; lprint_newline (); *)
       album_scores.(!album_score) <- cd_pos :: album_scores.(!album_score);
       let album_score = !album_score in
 
 (* for each track, computes the track score *)
       let rec iter_track track_pos =
-(*        Printf.printf "track_pos %d" track_pos; print_newline (); *)
+(*        lprintf "track_pos %d" track_pos; lprint_newline (); *)
         let disc_pos = input_int tracks_ic track_pos in
         if disc_pos = cd_pos then begin
-(*            Printf.printf "in track"; print_newline (); *)
+(*            lprintf "in track"; lprint_newline (); *)
             let track_score = ref album_score in
             let track_num  = input_int8 tracks_ic (track_pos+4) in
             let w_counted = ref [] in
             let next_track = iter_title (fun w_num w ->
-(*       Printf.printf "word %s --> %d" w w_num; print_newline (); *)
+(*       lprintf "word %s --> %d" w w_num; lprint_newline (); *)
                   if not (List.memq w_num !w_counted) &&
                     List.memq w_num word_nums then begin
                       w_counted := w_num :: !w_counted;
@@ -1024,19 +1044,19 @@ in
                     end;
               
               ) tracks_ic  (track_pos+5) in
-(*            Printf.printf "1"; print_newline (); *)
+(*            lprintf "1"; lprint_newline (); *)
             if !track_score > album_score then begin
-(*                Printf.printf "3 %d" !track_score; print_newline (); *)
+(*                lprintf "3 %d" !track_score; lprint_newline (); *)
                 track_scores.(!track_score) <- 
                   track_pos :: track_scores.(!track_score);
-(*                Printf.printf "Track %d : %s" track_num 
+(*                lprintf "Track %d : %s" track_num 
                   (decompress_title tracks_ic (track_pos+5));
-                print_newline (); 
-                Printf.printf "Track %d score: %d" track_num !track_score;
-                print_newline (); *)
+                lprint_newline (); 
+                lprintf "Track %d score: %d" track_num !track_score;
+                lprint_newline (); *)
               end;
-(*            Printf.printf "2"; print_newline ();
-            Printf.printf "next_track"; print_newline (); *)
+(*            lprintf "2"; lprint_newline ();
+            lprintf "next_track"; lprint_newline (); *)
             iter_track next_track
           end
       in
@@ -1051,17 +1071,17 @@ in
             let track_num  = input_int8 tracks_ic (track_pos+4) in            
             let track_title = decompress_title tracks_ic (track_pos+5) in
             let disc_title = decompress_title albums_ic (disc_pos + 8) in
-            Printf.printf "SCORE: %d keywords" score; print_newline ();
-            Printf.printf "TRACK %3d OF %s" track_num disc_title;
-            print_newline ();
-            Printf.printf "   %s" track_title; print_newline ();
+            lprintf "SCORE: %d keywords" score; lprint_newline ();
+            lprintf "TRACK %3d OF %s" track_num disc_title;
+            lprint_newline ();
+            lprintf "   %s" track_title; lprint_newline ();
         ) track_scores.(score);
         
         if score <= nwords * nwords then
           List.iter (fun disc_pos ->        
               let disc_title = decompress_title albums_ic (disc_pos + 8) in
-              Printf.printf "SCORE: %d keywords" score; print_newline ();
-              Printf.printf "ALBUM:   %s" disc_title; print_newline ();
+              lprintf "SCORE: %d keywords" score; lprint_newline ();
+              lprintf "ALBUM:   %s" disc_title; lprint_newline ();
           ) album_scores.(score);
         
         print (score-1);

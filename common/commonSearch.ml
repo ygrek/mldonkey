@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open CommonGlobals
 open CommonNetwork
 open CommonResult
@@ -885,7 +886,7 @@ module Filter = struct
     let index_string doc s fields =
       let words = String2.stem s in
       List.iter (fun s ->
-(*      Printf.printf "ADD [%s] in index" s; print_newline (); *)
+(*      lprintf "ADD [%s] in index" s; lprint_newline (); *)
           DocIndexer.add  index s doc fields
       ) words 
       
@@ -902,14 +903,14 @@ module Filter = struct
       let req = query_to_indexer doc_value ss in  
       
       let docs = DocIndexer.query index req in
-(*  Printf.printf "%d results" (List.length docs); print_newline (); *)
+(*  lprintf "%d results" (List.length docs); lprint_newline (); *)
       Array.iter (fun doc ->
           if DocIndexer.filtered doc then begin
-              Printf.printf "doc filtered"; print_newline ();
+              lprintf "doc filtered"; lprint_newline ();
             end else
           let r = doc_value doc in
 (*    merge_result s doc.num; *)
-(*      Printf.printf "search_add_result"; print_newline ();*)
+(*      lprintf "search_add_result"; lprint_newline ();*)
           search_add_result_in s (as_result_impl (result_find r.result_num))
       ) docs
 

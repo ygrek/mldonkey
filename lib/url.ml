@@ -123,7 +123,7 @@ let put_args s args =
         Buffer.add_string res (encode a); Buffer.add_char res '='; Buffer.add_string res 
           (encode b);
         Buffer.add_char res '&'; manage_args l in
-(*  Printf.printf "len args %d" (List.length args); print_newline ();*)
+(*  lprintf "len args %d" (List.length args); lprint_newline ();*)
   manage_args args;
   Buffer.contents res  
   

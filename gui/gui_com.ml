@@ -19,6 +19,7 @@
 
 (** Communicating with the mldonkey client. *)
 
+open Printf2
 open BasicSocket
 open TcpBufferedSocket
 open Options
@@ -59,8 +60,8 @@ let disconnect gui =
 let send t =
   match !connection with
     None -> 
-      Printf.printf "Message not sent since not connected";
-      print_newline ();
+      lprintf "Message not sent since not connected";
+      lprint_newline ();
   | Some sock ->
       GuiEncoding.gui_send (GuiEncoding.from_gui !gui_protocol_used) sock t
           
@@ -74,20 +75,20 @@ let reconnect gui value_reader =
         Ip.to_inet_addr h
       with 
         e -> 
-          Printf.printf "Exception %s in gethostbyname" (Printexc2.to_string e);
-          print_newline ();
+          lprintf "Exception %s in gethostbyname" (Printexc2.to_string e);
+          lprint_newline ();
           try 
             Unix.inet_addr_of_string !!O.hostname
           with e ->
-              Printf.printf "Exception %s in inet_addr_of_string" 
+              lprintf "Exception %s in inet_addr_of_string" 
                 (Printexc2.to_string e);
-              print_newline ();
-              print_newline ();
-              Printf.printf "mldonkey_gui was unable to find the IP address of the host [%s]" !!O.hostname; print_newline ();
-              print_newline ();
+              lprint_newline ();
+              lprint_newline ();
+              lprintf "mldonkey_gui was unable to find the IP address of the host [%s]" !!O.hostname; lprint_newline ();
+              lprint_newline ();
               
-              Printf.printf "Please, edit the $HOME/.mldonkey_gui.ini, and change the 'hostname' option"; print_newline ();
-              Printf.printf "to the correct IP address of the host running mldonkey."; print_newline ();
+              lprintf "Please, edit the $HOME/.mldonkey_gui.ini, and change the 'hostname' option"; lprint_newline ();
+              lprintf "to the correct IP address of the host running mldonkey."; lprint_newline ();
               
               raise Not_found
     )
@@ -117,7 +118,7 @@ let reconnect gui value_reader =
     TcpBufferedSocket.set_max_write_buffer sock !!O.interface_buffer;
     TcpBufferedSocket.set_handler sock TcpBufferedSocket.BUFFER_OVERFLOW
     (fun _ -> 
-        Printf.printf "BUFFER OVERFLOW"; print_newline ();
+        lprintf "BUFFER OVERFLOW"; lprint_newline ();
         TcpBufferedSocket.close sock "overflow");
     TcpBufferedSocket.set_reader sock (
       GuiDecoding.gui_cut_messages
@@ -126,15 +127,15 @@ let reconnect gui value_reader =
             let m = GuiDecoding.to_gui !gui_protocol_used opcode s in
             value_reader gui m;
           with e ->
-              Printf.printf "Exception %s in decode/exec" (Printexc2.to_string e); 
-              print_newline ();
+              lprintf "Exception %s in decode/exec" (Printexc2.to_string e); 
+              lprint_newline ();
               raise e
       ));
     gui#label_connect_status#set_text "Connecting";
     send (GuiProto.GuiProtocol GuiEncoding.best_gui_version)
   with e ->
-      Printf.printf "Exception %s in connecting" (Printexc2.to_string e);
-      print_newline ();
+      lprintf "Exception %s in connecting" (Printexc2.to_string e);
+      lprint_newline ();
       TcpBufferedSocket.close sock "error";
       connection := None
       
@@ -168,9 +169,9 @@ module UseFifo = struct
                 done
               with Fifo.Empty -> ()
               | e ->
-                  Printf.printf "Exception %s in handle core message"
+                  lprintf "Exception %s in handle core message"
                     (Printexc2.to_string e); 
-                  print_newline ();
+                  lprint_newline ();
           );
         end;      
       gui#label_connect_status#set_text "Connecting";
@@ -226,19 +227,19 @@ let scan_ports () =
                       opcode s in
                   match m with
                     CoreProtocol n -> 
-                      Printf.printf "GUI version %d on port %d" n i;
-                      print_newline ();
+                      lprintf "GUI version %d on port %d" n i;
+                      lprint_newline ();
                       proto := n
                   | Network_info n ->
                       nets := n.CommonTypes.network_netname :: !nets
                   | Console m ->
-                      Printf.printf "GUI:\n proto %d\nnets:\n" !proto; print_newline ();
+                      lprintf "GUI:\n proto %d\nnets:\n" !proto; lprint_newline ();
                       List.iter (fun n ->
-                          Printf.printf "%s " n
+                          lprintf "%s " n
                       ) !nets;
-                      print_newline ();
-                      Printf.printf " motd:\n%s" m;
-                      print_newline ();
+                      lprint_newline ();
+                      lprintf " motd:\n%s" m;
+                      lprint_newline ();
                       
                       if not (List.mem (hostname,i) !G.scanned_ports) then
                         begin

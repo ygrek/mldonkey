@@ -245,11 +245,11 @@ class box_friends box_files friend_tab =
     method on_select c =
       match c.client_files with
         None -> 
-(*          Printf.printf "No file for friend %d" c.client_num; print_newline (); *)
+(*          lprintf "No file for friend %d" c.client_num; lprint_newline (); *)
           Gui_com.send (GuiProto.GetClient_files c.client_num)
       |	Some tree -> 
-(*          Printf.printf "%d files for friend %d" (List.length l) c.client_num; 
-          print_newline (); *)
+(*          lprintf "%d files for friend %d" (List.length l) c.client_num; 
+          lprint_newline (); *)
           box_files#update_tree (Some tree)
     
     method on_deselect f =
@@ -400,8 +400,8 @@ class box_list (client_info_box : GPack.box) friend_tab =
         
         if c_new.client_state = RemovedHost then
           begin
-(*            Printf.printf "Removing client from locations panel"; 
-            print_newline (); *)
+(*            lprintf "Removing client from locations panel"; 
+            lprint_newline (); *)
             decr G.nlocations;
             self#update_locations_label;
             self#remove_item row c

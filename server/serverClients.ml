@@ -54,11 +54,11 @@ let null_ip = Ip.of_int32 (Int32.of_int 0)
 
 module P = DonkeyProtoServer
 
-let print_loc loc =  Printf.printf("localisation %s port %d valide to %f")
+let print_loc loc =  lprintf("localisation %s port %d valide to %f")
                      (Ip.to_string loc.loc_ip)
                      loc.loc_port
                      loc.loc_expired;
-                     print_newline()
+                     lprint_newline()
 
 let print_files_shared files = 
         List.iter (fun md4 -> 
@@ -66,13 +66,13 @@ let print_files_shared files =
 		       let tags = ServerIndexer.get_def md4 in
 			 print_tags tags.f_tags
 		     with _ ->
-		       Printf.printf " NO file def for %s\n" (Md4.to_string md4)
+		       lprintf " NO file def for %s\n" (Md4.to_string md4)
 				    
 		  ) files
 
 
 let rec print_client_stat c option =
-        Printf.printf("Client %s ") (Ip.to_string c.client_id);
+        lprintf("Client %s ") (Ip.to_string c.client_id);
         match option with 
             'a' ->  print_loc c.client_location;
 	      print_files_shared c.client_files
@@ -82,13 +82,13 @@ let rec print_client_stat c option =
 
 let print table =
         try
-           print_newline();
-           Printf.printf("Liste des clients");
-           print_newline();
+           lprint_newline();
+           lprintf("Liste des clients");
+           lprint_newline();
            Hashtbl.iter (fun md4 c -> print_client_stat c 'l') table;
-           Printf.printf("FIN liste des clients");
-           print_newline()
-        with _ -> Printf.printf " Liste des clients vide"; print_newline()
+           lprintf("FIN liste des clients");
+           lprint_newline()
+        with _ -> lprintf " Liste des clients vide"; lprint_newline()
 	  
 	  
 let bprint_loc buf loc =  
@@ -156,27 +156,23 @@ let bprint buf table arg=
    
 
 exception Already_use
+
+let get_client_num () =
+  incr client_counter;
+  try
+    while true do
+      if not (Hashtbl.mem clients_by_id (
+            Ip.of_int32 (Int32.of_int !client_counter))) then
+        if !client_counter > 200000 then client_counter := 1 else
+          incr client_counter
+    done
+  with _ -> !client_counter
         
 let get_client_id ip =
   if Hashtbl.mem clients_by_id ip then
-    begin
-      let find = ref true in
-	while !find do
-	  if Hashtbl.mem clients_by_id (Ip.of_int32 (Int32.of_int !client_counter)) then
-	    begin 
-	      incr client_counter;
-	      if (!client_counter > 2000) then
-		client_counter := 1
-	    end
-	  else
-	    find := false
-	   
-	done;
-	(Ip.of_int32 (Int32.of_int !client_counter))  
-    end
-  else
-    ip
-
+    get_client_num ()
+  else ip
+    
 
 let reply_to_client_connection c =
   (match c.client_sock with
@@ -189,13 +185,13 @@ let reply_to_client_connection c =
 		  if c.client_files = [] then
 		    begin
 		      Hashtbl.remove clients_by_id c.client_id;
-		      c.client_id <- (get_client_id Ip.null);
+		      c.client_id <- (get_client_num ());
 		      Hashtbl.add clients_by_id c.client_id (LocalClient c);
 		    end;
 		  c.client_location.loc_ip <- c.client_id;
 		  c.client_location.loc_port <- 0;
 		     
-		with _ -> Printf.printf "fuck nico\n"
+		with _ -> lprintf "fuck nico\n"
 	      end
           | KnownLocation (ip,port) ->
 	      begin
@@ -204,14 +200,14 @@ let reply_to_client_connection c =
 	      end);
 	direct_server_send sock  (M.SetIDReq c.client_id)
   )
-		(*Printf.printf ("Nouvel identifiant %s") (Ip.to_string id);
-		  print_newline()*)
+		(*lprintf ("Nouvel identifiant %s") (Ip.to_string id);
+		  lprint_newline()*)
 
       (*Hashtbl.add clients_by_id id (LocalClient c);*)
 
       (*print clients_by_id;*)
       
-      (*Printf.printf "SET ID"; print_newline ();*)
+      (*lprintf "SET ID"; lprint_newline ();*)
 (* send ID back to client *)
       
 
@@ -227,18 +223,18 @@ let check_handler c port ok sock event =
     | BASIC_EVENT CAN_WRITE ->
         ok := true;
         TcpBufferedSocket.close sock "connect ok";
-        (*Printf.printf "CAN WRITE"; print_newline ();*)
+        (*lprintf "CAN WRITE"; lprint_newline ();*)
         c.client_kind <- KnownLocation (c.client_conn_ip, port);
         reply_to_client_connection c 
     | BASIC_EVENT (CLOSED s) ->
         ok := true;
-        (*Printf.printf "CLOSED %s" s; print_newline ();*)
+        (*lprintf "CLOSED %s" s; lprint_newline ();*)
         c.client_kind <- Firewalled_client;
         reply_to_client_connection c 
     | _ ->
         TcpBufferedSocket.close sock "connect ok";
         ok := true;
-        (*Printf.printf "ERROR IN CONNECT"; print_newline ();*)
+        (*lprintf "ERROR IN CONNECT"; lprint_newline ();*)
         c.client_kind <- Firewalled_client;
         reply_to_client_connection c
     
@@ -250,7 +246,7 @@ let check_client c port =
     (*server_msg_to_string*)
   in
   BasicSocket.set_wtimeout (TcpBufferedSocket.sock try_sock) 5.;
-  (*Printf.printf "Checking client ID"; print_newline ();*)
+  (*lprintf "Checking client ID"; lprint_newline ();*)
   ()
 
 (*send 200 results*)
@@ -279,7 +275,7 @@ let remove_md4_source c =
                 ) c.client_files;
       c.client_files <- []
   with _->
-    Printf.printf "Exception during remove source\n"
+    lprintf "Exception during remove source\n"
   
 
 (* send the number of clients and the number of files on the server *)
@@ -309,13 +305,13 @@ let rec check_and_remove lst md4 =
 let rec print_liste lst = 
   match lst with 
       [] -> ()
-    | hd :: tl -> Printf.printf " el: %s\n" (Md4.to_string hd);
+    | hd :: tl -> lprintf " el: %s\n" (Md4.to_string hd);
 	print_liste tl
 	  
 let rec print_liste_2 lst = 
    match lst with 
     [] -> ()
-  | hd :: tl -> Printf.printf " el: %s\n" (Md4.to_string hd.f_md4);
+  | hd :: tl -> lprintf " el: %s\n" (Md4.to_string hd.f_md4);
       print_liste_2 tl
 
 let client_is_mldonkey2 c =
@@ -324,9 +320,9 @@ let client_is_mldonkey2 c =
 
 (*message comming from a client*)
 let server_to_client c t sock =
-  (*Printf.printf "server_to_client"; print_newline ();
+  (*lprintf "server_to_client"; lprint_newline ();
   M.print t;
-  print_newline ();*)
+  lprint_newline ();*)
   incr nb_tcp_req_count;
   if (!!save_log) then
     ServerLog.new_log_req c.client_location.loc_ip c.client_md4 t;
@@ -385,13 +381,13 @@ let server_to_client c t sock =
 			    added_files := file :: !added_files;
 		    ) list;
 	  (*
-	  Printf.printf "remove file\n";
+	  lprintf "remove file\n";
 	  print_liste !removed_files;
 
-	  Printf.printf "From %s\n" (Ip.to_string c.client_id);
-	  Printf.printf "\nadd file\n";
-	  List.iter (fun file -> Printf.printf " %s" (Md4.to_string file.f_md4)) !added_files;
-	  Printf.printf "\nlast file\n";
+	  lprintf "From %s\n" (Ip.to_string c.client_id);
+	  lprintf "\nadd file\n";
+	  List.iter (fun file -> lprintf " %s" (Md4.to_string file.f_md4)) !added_files;
+	  lprintf "\nlast file\n";
 	  print_liste c.client_files;
 
 	  List.iter (fun file ->
@@ -400,14 +396,14 @@ let server_to_client c t sock =
 				      if im.f_md4 = file.f_md4 then
 					incr count;
 				      if !count > 1 then
-					Printf.printf "Quel con!!\n";
+					lprintf "Quel con!!\n";
 				   ) !added_files
 		    ) !added_files;
 	  
 
-	  Printf.printf "\ncurrent file\n";
+	  lprintf "\ncurrent file\n";
 	  print_liste !current_files;
-	  Printf.printf "\n";*)
+	  lprintf "\n";*)
           
           c.client_files <- !removed_files;
           remove_md4_source c;           
@@ -427,11 +423,11 @@ let server_to_client c t sock =
 			 c.client_files <- tmp.f_md4 :: c.client_files;
 			 if !!relais_cooperation_protocol then
 			   begin
-			     (*Printf.printf "Notif add to list\n";*)
+			     (*lprintf "Notif add to list\n";*)
 			     ServerServer.add_source_to_notify c tmp.f_md4; 
 			   end
 			) !added_files;
-            with _ -> (*Printf.printf "Too Many Files Shared\n"*)
+            with _ -> (*lprintf "Too Many Files Shared\n"*)
 	      direct_server_send sock (M.MessageReq (String.concat "" ["Too many files index in my server, so I can index ";(string_of_int (List.length c.client_files));" of your files"]))
 	  end;
           
@@ -461,10 +457,10 @@ let server_to_client c t sock =
                                                        (M.Mldonkey_NotificationReq 
                                                           (num, [file]))
                                                    | None ->
-                                                       Printf.printf 
+                                                       lprintf 
                                                        "Client not connected\n")
                                             | RemoteClient _ -> ())
-                                     with Not_found -> Printf.printf "No client in ht\n"))
+                                     with Not_found -> lprintf "No client in ht\n"))
                          !subs_match;
 
                        (* Clean matching list *)
@@ -507,8 +503,8 @@ let server_to_client c t sock =
                           QI.port = port;
                         })
                   | _ ->
-                      Printf.printf "QueryIDReq on local client can't return reply"; 
-                      print_newline ();
+                      lprintf "QueryIDReq on local client can't return reply"; 
+                      lprint_newline ();
                       raise Not_found)
             | RemoteClient cc ->
 		(match cc.remote_client_kind, sock, c.client_kind with
@@ -529,7 +525,7 @@ let server_to_client c t sock =
 						    QU.client_port = port;
 						  })
                    | _ ->
-                       Printf.printf "QueryIDReq on remote client can't return reply"; 
+                       lprintf "QueryIDReq on remote client can't return reply"; 
                        raise Not_found)
             with Not_found ->
               direct_server_send sock (M.QueryIDFailedReq t)
@@ -624,17 +620,17 @@ let server_to_client c t sock =
           lifetime = float_of_int lifetime in
           if (lifetime <= !!max_subs_lifetime) then
             begin
-              Printf.printf "New subs (%s, %d) with %f seconds lifetime"
+              lprintf "New subs (%s, %d) with %f seconds lifetime"
                 (Md4.to_string c.client_md4) num lifetime;
-              print_newline ();
+              lprint_newline ();
               Subs.add_subscription (c.client_md4, num) lifetime q 
                 (fun _ -> subs_match := (num, c.client_id) :: !subs_match)
             end
           else
             begin
-              Printf.printf "%f seconds too long subs lifetime for me"
+              lprintf "%f seconds too long subs lifetime for me"
                 lifetime;
-              print_newline ()
+              lprint_newline ()
             end
     
 
@@ -651,7 +647,7 @@ let server_to_client c t sock =
         *)
         Subs.remove_subs_id (c.client_md4, num)
             
-    | _ -> (*Printf.printf "UNKNOWN TCP REQ\n";*) 
+    | _ -> (*lprintf "UNKNOWN TCP REQ\n";*) 
       ());
   if (!!save_log) then
      ServerLog.add_to_liste ();
@@ -660,9 +656,9 @@ let server_to_client c t sock =
 (* every minute, send a InfoReq message *)
 
 let remove_client c sock s = 
-(*  Printf.printf ("CLIENT DISCONNECTED %s")
+(*  lprintf ("CLIENT DISCONNECTED %s")
   (Ip.to_string c.client_id);
-  print_newline ();*)
+  lprint_newline ();*)
   try 
 
     decr nconnected_clients;
@@ -694,17 +690,17 @@ let remove_client c sock s =
       c.client_subscriptions <- [];
       
   with _ -> 
-    Printf.printf "Exception in remove client"
+    lprintf "Exception in remove client"
     
       
 let handler t event =
-  (*Printf.printf "Client CONNECTION"; print_newline ();*) 
+  (*lprintf "Client CONNECTION"; lprint_newline ();*) 
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
 
       if !!max_clients <= !nconnected_clients  then
 	begin
-	  (*Printf.printf "too many clients\n";*)
+	  (*lprintf "too many clients\n";*)
           Unix.close s
 	end
       else
@@ -743,7 +739,7 @@ let handler t event =
       Hashtbl.add clients_by_id client.client_id (LocalClient client)
 
   | _ -> 
-      Printf.printf "???"; print_newline ();
+      lprintf "???"; lprint_newline ();
       ()      
 
 (* Check every minute that no new results have been recorded for a given

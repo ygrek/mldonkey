@@ -199,6 +199,6 @@ let _ =
       save_with_help option_file
       
 let _ =
-  print_string (Printf.sprintf !! nshared 23 (Int32.one));
-  print_newline ();
+  lprint_string (Printf.sprintf !! nshared 23 (Int32.one));
+  lprint_newline ();
   *)

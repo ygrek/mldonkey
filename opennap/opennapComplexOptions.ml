@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open Md4
 
 open CommonServer
@@ -128,9 +129,9 @@ let value_to_file is_done assocs =
               | _ -> failwith "Bad source"
           )))
     with e -> 
-        Printf.printf "Exception %s while loading source"
+        lprintf "Exception %s while loading source"
           (Printexc2.to_string e); 
-        print_newline ();
+        lprint_newline ();
   );
   
   as_file file.file_file

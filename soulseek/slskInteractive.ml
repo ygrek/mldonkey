@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open Md4
 open CommonGlobals
 open BasicSocket
@@ -69,10 +70,10 @@ let _ =
       
       in
       iter query;
-      Printf.printf "SEARCH ADDED FOR %d" !!next_token; print_newline ();
+      lprintf "SEARCH ADDED FOR %d" !!next_token; lprint_newline ();
       SlskGlobals.searches := (!!next_token, q) :: !SlskGlobals.searches;
       let words = String2.unsplit !words ' ' in
-      Printf.printf "SEARCH COMPUTED"; print_newline ();
+      lprintf "SEARCH COMPUTED"; lprint_newline ();
       List.iter (fun s ->
           let msg = C2S.FileSearchReq {
               C2S.FileSearch.words = words;
@@ -81,7 +82,7 @@ let _ =
           match s.server_sock with
             None -> ()
           | Some sock ->
-              Printf.printf "SENDING SEARCH"; print_newline ();
+              lprintf "SENDING SEARCH"; lprint_newline ();
               server_send sock msg; 
               s.server_search <- Some q; 
               Printf.bprintf  buf "Sending search\n") !connected_servers
@@ -236,7 +237,7 @@ let _ =
       }
   );
   client_ops.op_client_browse <- (fun c immediate ->
-      Printf.printf "CLIENT BROWSE !!!!"; print_newline ();
+      lprintf "CLIENT BROWSE !!!!"; lprint_newline ();
       SlskClients.connect_peer c 300 [C2C.GetSharedFileListReq]
   )
 

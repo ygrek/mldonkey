@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open Md4
 
 open CommonFile
@@ -219,7 +220,7 @@ let new_user server name =
   | Some s ->
       if not (List.memq s u.user_servers) then begin
 
-          (*Printf.printf "%s(%d) is on %s" u.user_nick u.user_user.impl_user_num s.server_name; print_newline (); *)
+          (*lprintf "%s(%d) is on %s" u.user_nick u.user_user.impl_user_num s.server_name; lprint_newline (); *)
           u.user_servers <- s :: u.user_servers;
         end;
       u
@@ -254,8 +255,8 @@ let new_file file_id name file_size =
       let current_size = try
           Unix32.getsize64 file_temp
         with e ->
-            Printf.printf "Exception %s in current_size of %s" (Printexc2.to_string e) file_temp; 
-            print_newline ();
+            lprintf "Exception %s in current_size of %s" (Printexc2.to_string e) file_temp; 
+            lprint_newline ();
             Int64.zero
       in
       
@@ -275,11 +276,11 @@ let new_file file_id name file_size =
           impl_file_best_name = name;
         } in
       
-      Printf.printf "FILE %s: %Ld =? %Ld" name current_size file_size;
-      print_newline ();
+      lprintf "FILE %s: %Ld =? %Ld" name current_size file_size;
+      lprint_newline ();
       
       let state = if current_size = file_size then begin
-            Printf.printf "File %s downloaded " name; print_newline ();
+            lprintf "File %s downloaded " name; lprint_newline ();
             FileDownloaded
           end else begin
             current_files := file :: !current_files;

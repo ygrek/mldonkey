@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open BasicSocket
 open LittleEndian
 
@@ -120,11 +121,11 @@ let print_addr addr =
   begin
     match addr with
       Unix.ADDR_INET(ip, port) ->
-        Printf.printf "ADDR_INET (%s, %d)" (Unix.string_of_inet_addr ip) port
+        lprintf "ADDR_INET (%s, %d)" (Unix.string_of_inet_addr ip) port
     | Unix.ADDR_UNIX s ->
-        Printf.printf "ADDR_UNIX (%s)" s;
+        lprintf "ADDR_UNIX (%s)" s;
   end;
-  print_newline ()
+  lprint_newline ()
 
 let max_delayed_send = 30
   
@@ -156,8 +157,8 @@ let write t s ip port =
               udp_uploaded_bytes := Int64.add !udp_uploaded_bytes (Int64.of_int len);
               ()
 (*
-Printf.printf "UDP sent [%s]" (String.escaped
-(String.sub s pos len)); print_newline ();
+lprintf "UDP sent [%s]" (String.escaped
+(String.sub s pos len)); lprint_newline ();
 *)
             with
               Unix.Unix_error (Unix.EWOULDBLOCK, _, _) -> 
@@ -167,9 +168,9 @@ Printf.printf "UDP sent [%s]" (String.escaped
                   }) t.wlist;
                 must_write sock true;
             | e ->
-                Printf.printf "Exception %s in sendto"
+                lprintf "Exception %s in sendto"
                   (Printexc2.to_string e);
-                print_newline ();
+                lprint_newline ();
                 print_addr addr;
                 raise e
           end
@@ -204,9 +205,9 @@ let rec iter_write_no_bc t sock =
       with
         Unix.Unix_error (Unix.EWOULDBLOCK, _, _) as e -> raise e
       | e ->
-          Printf.printf "Exception %s in sendto next"
+          lprintf "Exception %s in sendto next"
             (Printexc2.to_string e);
-          print_newline ();
+          lprint_newline ();
     end;
     iter_write_no_bc t sock
     
@@ -224,7 +225,7 @@ let rec iter_write t sock bc =
     t.wlist <- PacketSet.remove (time,p) t.wlist;
     if time < bc.base_time then begin
         if !debug then begin
-            Printf.printf "[UDP DROPPED]"; flush stdout;
+            lprintf "[UDP DROPPED]"; 
           end;
       iter_write t sock bc
       end else
@@ -240,9 +241,9 @@ let rec iter_write t sock bc =
       with
         Unix.Unix_error (Unix.EWOULDBLOCK, _, _) as e -> raise e
       | e ->
-          Printf.printf "Exception %s in sendto next"
+          lprintf "Exception %s in sendto next"
             (Printexc2.to_string e);
-          print_newline ();
+          lprint_newline ();
     end;
     iter_write t sock bc
   else
@@ -343,7 +344,7 @@ let new_bandwidth_controler tcp_bc =
   let udp_user total n =
 (*
     if !BasicSocket.debug then  begin
-      Printf.printf "udp_user %d/%d" n total; print_newline ();
+      lprintf "udp_user %d/%d" n total; lprint_newline ();
       end; *)
     let n = if total = 0 then 100000 else n in
     udp_bc.base_time <- udp_bc.base_time + 1;
@@ -430,6 +431,6 @@ let set_socks_proxy t ss =
 
     Unix.set_nonblock fd;
   with e -> 
-    Printf.printf "[SOCKS] proxy error prevent creation of UDP socket: %s" 
-      (Printexc2.to_string e); print_newline ();
+    lprintf "[SOCKS] proxy error prevent creation of UDP socket: %s" 
+      (Printexc2.to_string e); lprint_newline ();
     close t "socks proxy error"; raise e

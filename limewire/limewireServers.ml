@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open Md4
 open CommonOptions
 open CommonSearch
@@ -67,7 +68,7 @@ let create_qrt_table words table_size =
   let array = Array.create table_length infinity in
   List.iter (fun w ->
       let pos = bloom_hash w table_size in
-      Printf.printf "Position %Ld" pos; print_newline ();
+      lprintf "Position %Ld" pos; lprint_newline ();
       array.(Int64.to_int pos) <- 1;
   ) words;
   let string_size = table_length/2 in
@@ -125,7 +126,7 @@ let send_query min_speed keywords xml_query =
       Q.xml_query  = "" } in
   let p = new_packet t in
   if !verbose_msg_servers then begin
-      Printf.printf "sending query for <%s>" words; print_newline ();
+      lprintf "sending query for <%s>" words; lprint_newline ();
     end;
   List.iter (fun s ->
       match s.server_sock with
@@ -164,8 +165,8 @@ let stem s =
 let get_name_keywords file_name =
   match stem file_name with 
     [] | [_] -> 
-      Printf.printf "Not enough keywords to recover %s" file_name;
-      print_newline ();
+      lprintf "Not enough keywords to recover %s" file_name;
+      lprint_newline ();
       [file_name]
   | l -> l
       
@@ -179,16 +180,16 @@ let recover_files () =
   
 let recover_files_from_server sock =
   if !verbose_msg_servers then begin
-      Printf.printf "trying to recover files from server"; print_newline ();
+      lprintf "trying to recover files from server"; lprint_newline ();
     end;
   List.iter (fun file ->
       if !verbose_msg_servers then begin
-          Printf.printf "FOR FILE %s" file.file_name; print_newline ();
+          lprintf "FOR FILE %s" file.file_name; lprint_newline ();
         end;
       let keywords = get_name_keywords file.file_name in
       let words = String2.unsplit keywords ' ' in
       if !verbose_msg_servers then begin
-          Printf.printf "sending query for <%s>" words; print_newline ();
+          lprintf "sending query for <%s>" words; lprint_newline ();
           end;
       let module Q = Query in
       let t = QueryReq {
@@ -202,18 +203,18 @@ let recover_files_from_server sock =
   
   
 let redirector_to_client p sock = 
-(*  Printf.printf "redirector_to_client"; print_newline (); *)
+(*  lprintf "redirector_to_client"; lprint_newline (); *)
   match p.pkt_payload with
     PongReq t ->
       let module P = Pong in
-(*      Printf.printf "ADDING PEER %s:%d" (Ip.to_string t.P.ip) t.P.port; *)
+(*      lprintf "ADDING PEER %s:%d" (Ip.to_string t.P.ip) t.P.port; *)
       Fifo.put peers_queue (t.P.ip, t.P.port);
   | _ -> ()
       
 let redirector_parse_header sock header = 
-(*  Printf.printf "redirector_parse_header"; print_newline ();*)
+(*  lprintf "redirector_parse_header"; lprint_newline ();*)
   if String2.starts_with header gnutella_ok then begin
-(*      Printf.printf "GOOD HEADER FROM REDIRECTOR:waiting for pongs";*)
+(*      lprintf "GOOD HEADER FROM REDIRECTOR:waiting for pongs";*)
       server_send_new sock (
         let module P = Ping in
         PingReq (P.ComplexPing {
@@ -225,7 +226,7 @@ let redirector_parse_header sock header =
         }))
     end else begin
       if !verbose_msg_servers then begin
-          Printf.printf "BAD HEADER FROM REDIRECTOR: "; print_newline (); 
+          lprintf "BAD HEADER FROM REDIRECTOR: "; lprint_newline (); 
           LittleEndian.dump header;
         end;
       close sock "bad header";
@@ -239,7 +240,7 @@ let connect_to_redirector () =
       redirectors_to_try := !!redirectors
   | name :: tail ->
       redirectors_to_try := tail;
-(*      Printf.printf "connect to redirector"; print_newline (); *)
+(*      lprintf "connect to redirector"; lprint_newline (); *)
       try
         let sock = connect  "limewire to redirector"
             (Ip.to_inet_addr (Ip.from_name name)) 6346
@@ -248,7 +249,7 @@ let connect_to_redirector () =
                 BASIC_EVENT (RTIMEOUT|LTIMEOUT) -> 
                   close sock "timeout";
                   redirector_connected := false;
-(*                  Printf.printf "TIMEOUT FROM REDIRECTOR"; print_newline ()*)
+(*                  lprintf "TIMEOUT FROM REDIRECTOR"; lprint_newline ()*)
               | _ -> ()
           ) in
         TcpBufferedSocket.set_read_controler sock download_control;
@@ -260,14 +261,14 @@ let connect_to_redirector () =
             (gnutella_handler parse redirector_to_client)
         );
         set_closer sock (fun _ _ -> 
-(*            Printf.printf "redirector disconnected"; print_newline (); *)
+(*            lprintf "redirector disconnected"; lprint_newline (); *)
             redirector_connected := false);
         set_rtimeout sock 10.;
         set_lifetime sock 120.;
         write_string sock "GNUTELLA CONNECT/0.4\n\n";
       with e ->
-          Printf.printf "Exception in connect_to_redirector: %s"
-            (Printexc2.to_string e); print_newline ();
+          lprintf "Exception in connect_to_redirector: %s"
+            (Printexc2.to_string e); lprint_newline ();
           redirector_connected := false
           
 let disconnect_from_server s =
@@ -275,9 +276,9 @@ let disconnect_from_server s =
     None -> ()
   | Some sock ->
 (*
-  Printf.printf "DISCONNECT FROM SERVER %s:%d" 
+  lprintf "DISCONNECT FROM SERVER %s:%d" 
         (Ip.to_string s.server_ip) s.server_port;
-print_newline ();
+lprint_newline ();
   *)
       close sock "timeout";
       s.server_sock <- None;
@@ -294,14 +295,14 @@ let add_peers headers =
       List.iter (fun s ->
           try
             let len = String.length s in
-(*            Printf.printf "NEW ULTRAPEER %s" s; print_newline ();*)
+(*            lprintf "NEW ULTRAPEER %s" s; lprint_newline ();*)
             let pos = String.index s ':' in
             let ip = String.sub s 0 pos in
             let port = String.sub s (pos+1) (len - pos - 1) in
             let ip = Ip.of_string ip in
             let port = int_of_string port in
-(*            Printf.printf "ADDING UP %s:%d" (Ip.to_string ip) port;
-            print_newline ();*)
+(*            lprintf "ADDING UP %s:%d" (Ip.to_string ip) port;
+            lprint_newline ();*)
             Fifo.put ultrapeers_queue (ip,port ) ;
             while Fifo.length ultrapeers_queue > !!max_known_ultrapeers do
               ignore (Fifo.take ultrapeers_queue)
@@ -310,21 +311,21 @@ let add_peers headers =
           with _ -> ()
       ) (String2.split up ',');    
     with e -> 
-        Printf.printf "add_ulta_peers : %s" (Printexc2.to_string e);
-        print_newline () );
+        lprintf "add_ulta_peers : %s" (Printexc2.to_string e);
+        lprint_newline () );
   (try
       let up = List.assoc "x-try" headers in
       List.iter (fun s ->
           try
             let len = String.length s in
-(*            Printf.printf "NEW PEER %s" s; print_newline (); *)
+(*            lprintf "NEW PEER %s" s; lprint_newline (); *)
             let pos = String.index s ':' in
             let ip = String.sub s 0 pos in
             let port = String.sub s (pos+1) (len - pos - 1) in
             let ip = Ip.of_string ip in
             let port = int_of_string port in
-(*            Printf.printf "ADDING PEER %s:%d" (Ip.to_string ip) port;
-            print_newline ();*)
+(*            lprintf "ADDING PEER %s:%d" (Ip.to_string ip) port;
+            lprint_newline ();*)
             Fifo.put peers_queue (ip,port);
             while Fifo.length peers_queue > !!max_known_peers do
               ignore (Fifo.take peers_queue)
@@ -368,18 +369,18 @@ let server_parse_header s sock header =
   if !verbose_msg_servers then  LittleEndian.dump_ascii header;  
   try
     if String2.starts_with header gnutella_200_ok then begin
-(*      Printf.printf "GOOD HEADER FROM ULTRAPEER";
-      print_newline (); *)
+(*      lprintf "GOOD HEADER FROM ULTRAPEER";
+      lprint_newline (); *)
         set_rtimeout sock DG.half_day;
-(*        Printf.printf "SPLIT HEADER..."; print_newline ();*)
+(*        lprintf "SPLIT HEADER..."; lprint_newline ();*)
         let lines = Http_client.split_header header in
         match lines with
           [] -> raise Not_found        
         | _ :: headers ->
-(*            Printf.printf "CUT HEADER"; print_newline ();*)
+(*            lprintf "CUT HEADER"; lprint_newline ();*)
             let headers = Http_client.cut_headers headers in
             let agent =  find_header "user-agent" headers "Unknown" in
-            Printf.printf "USER AGENT: %s" agent; print_newline ();
+            lprintf "USER AGENT: %s" agent; lprint_newline ();
 (*
 if String2.starts_with agent "LimeWire" ||
 String2.starts_with agent "Gnucleus" ||
@@ -390,22 +391,22 @@ begin
             
             s.server_agent <- agent;
             server_must_update (as_server s.server_server);
-(*                Printf.printf "LIMEWIRE Detected"; print_newline ();*)
+(*                lprintf "LIMEWIRE Detected"; lprint_newline ();*)
             add_peers headers;
             if (find_header "x-ultrapeer" headers "False") <> "True" then
               raise Not_found;
             connected_servers := s :: !connected_servers;
 
-(*                Printf.printf "******** ULTRA PEER %s:%d  *******"
+(*                lprintf "******** ULTRA PEER %s:%d  *******"
                   (Ip.to_string s.server_ip) s.server_port;
-                print_newline (); *)
+                lprint_newline (); *)
             write_string sock "GNUTELLA/0.6 200 OK\r\n\r\n";
             set_server_state s (Connected (-1));
             recover_files_from_server sock
       end else 
     if String2.starts_with header gnutella_503_shielded then begin
-(*      Printf.printf "GOOD HEADER FROM SIMPLE PEER";
-      print_newline ();*)
+(*      lprintf "GOOD HEADER FROM SIMPLE PEER";
+      lprint_newline ();*)
         let lines = Http_client.split_header header in
         match lines with
           [] -> raise Not_found        
@@ -417,29 +418,29 @@ begin
               String2.starts_with agent "BearShare"              
             then
               begin
-(*                Printf.printf "LIMEWIRE Detected"; print_newline ();*)
+(*                lprintf "LIMEWIRE Detected"; lprint_newline ();*)
                 add_peers headers;                
                 raise Not_found
               end
             else raise Not_found
       end else begin
-(*      Printf.printf "BAD HEADER FROM SERVER: [%s]" header; print_newline (); *)
+(*      lprintf "BAD HEADER FROM SERVER: [%s]" header; lprint_newline (); *)
         raise Not_found
       end
   with
   | Not_found -> 
-(*      Printf.printf "DISCONNECTION"; print_newline (); *)
+(*      lprintf "DISCONNECTION"; lprint_newline (); *)
       disconnect_from_server s
   | e -> 
 (*
-      Printf.printf "DISCONNECT WITH EXCEPTION %s" (Printexc2.to_string e);
-print_newline ();
+      lprintf "DISCONNECT WITH EXCEPTION %s" (Printexc2.to_string e);
+lprint_newline ();
   *)
       disconnect_from_server s
       
 let server_to_client s p sock =
   if !verbose_msg_servers then begin
-      Printf.printf "server_to_client"; print_newline ();
+      lprintf "server_to_client"; lprint_newline ();
       print p;
     end;
   match p.pkt_payload with
@@ -463,18 +464,18 @@ let server_to_client s p sock =
   | PongReq t ->
       
       let module P = Pong in
-(*      Printf.printf "FROM %s:%d" (Ip.to_string t.P.ip) t.P.port; *)
+(*      lprintf "FROM %s:%d" (Ip.to_string t.P.ip) t.P.port; *)
       if p.pkt_uid = s.server_ping_last then begin
           s.server_nfiles_last <- s.server_nfiles_last + t.P.nfiles;
           s.server_nkb_last <- s.server_nkb_last + t.P.nkb
         end
   
   | QueryReq _ ->
-(*      Printf.printf "REPLY TO QUERY NOT IMPLEMENTED YET :("; print_newline ();*)
+(*      lprintf "REPLY TO QUERY NOT IMPLEMENTED YET :("; lprint_newline ();*)
       ()
       
   | QueryReplyReq t ->
-(*      Printf.printf "REPLY TO QUERY"; print_newline ();*)
+(*      lprintf "REPLY TO QUERY"; lprint_newline ();*)
       let module Q = QueryReply in
       begin
         try
@@ -482,22 +483,22 @@ let server_to_client s p sock =
           
           let user = update_user t in
 
-(*          Printf.printf "ADDING RESULTS"; print_newline ();*)
+(*          lprintf "ADDING RESULTS"; lprint_newline ();*)
           List.iter (fun f ->
-(*              Printf.printf "NEW RESULT %s" f.Q.name; print_newline ();*)
+(*              lprintf "NEW RESULT %s" f.Q.name; lprint_newline ();*)
               let result = new_result f.Q.name f.Q.size in
               add_source result user f.Q.index;
               
               CommonInteractive.search_add_result s.search_search result.result_result;
           ) t.Q.files
         with Not_found ->            
-            Printf.printf "NO SUCH SEARCH !!!!"; print_newline (); 
+            lprintf "NO SUCH SEARCH !!!!"; lprint_newline (); 
             List.iter (fun ff ->
                 List.iter (fun file ->
                     if file.file_name = ff.Q.name && 
                       file_size file = ff.Q.size then 
                       begin
-                        Printf.printf "++++++++++++++ RECOVER FILE %s +++++++++++++" file.file_name; print_newline (); 
+                        lprintf "++++++++++++++ RECOVER FILE %s +++++++++++++" file.file_name; lprint_newline (); 
                         let c = update_client t in
                         add_download file c ff.Q.index;
                         end
@@ -526,8 +527,8 @@ let send_pings () =
       
 let connect_server (ip,port) =
   if !verbose_msg_servers then begin
-      Printf.printf "SHOULD CONNECT TO %s:%d" (Ip.to_string ip) port;
-      print_newline ();
+      lprintf "SHOULD CONNECT TO %s:%d" (Ip.to_string ip) port;
+      lprint_newline ();
     end;
   let s = new_server ip port in
   match s.server_sock with
@@ -539,7 +540,7 @@ let connect_server (ip,port) =
             (fun sock event -> 
               match event with
                 BASIC_EVENT (RTIMEOUT|LTIMEOUT) -> 
-(*                  Printf.printf "RTIMEOUT"; print_newline (); *)
+(*                  lprintf "RTIMEOUT"; lprint_newline (); *)
                   disconnect_from_server s
               | _ -> ()
           ) in
@@ -553,7 +554,7 @@ let connect_server (ip,port) =
           (gnutella_handler parse (server_to_client s))
         );
         set_closer sock (fun _ error -> 
-(*            Printf.printf "CLOSER %s" error; print_newline ();*)
+(*            lprintf "CLOSER %s" error; lprint_newline ();*)
             disconnect_from_server s);
         set_rtimeout sock !!server_connection_timeout;
         let s = add_header_fields 
@@ -562,7 +563,7 @@ let connect_server (ip,port) =
               (Ip.to_string s.server_ip))
         in
 (*
-        Printf.printf "SENDING"; print_newline ();
+        lprintf "SENDING"; lprint_newline ();
         AP.dump s;
   *)
         write_string sock s;
@@ -571,7 +572,7 @@ let connect_server (ip,port) =
           
   
 let try_connect_ultrapeer () =
-(*  Printf.printf "try_connect_ultrapeer"; print_newline ();*)
+(*  lprintf "try_connect_ultrapeer"; lprint_newline ();*)
   let s = try
       Fifo.take ultrapeers_queue
     with _ ->
@@ -587,8 +588,8 @@ let try_connect_ultrapeer () =
 
 let connect_servers () =
   (*
-  Printf.printf "connect_servers %d %d" !nservers !!max_ultrapeers; 
-print_newline ();
+  lprintf "connect_servers %d %d" !nservers !!max_ultrapeers; 
+lprint_newline ();
   *)
   if !nservers < !!max_ultrapeers then begin
       for i = !nservers to !!max_ultrapeers - 1 do
@@ -601,7 +602,7 @@ let get_file_from_source c file =
       connection_try c.client_connection_control;
       match c.client_user.user_kind with
         Indirect_location ("", uid) ->
-          Printf.printf "++++++ ASKING FOR PUSH +++++++++"; print_newline ();   
+          lprintf "++++++ ASKING FOR PUSH +++++++++"; lprint_newline ();   
 
 (* do as if connection failed. If it connects, connection will be set to OK *)
           connection_failed c.client_connection_control;
@@ -624,13 +625,13 @@ let get_file_from_source c file =
     
 let download_file (r : result) =
   let file = new_file (Md4.random ()) r.result_name r.result_size in
-  Printf.printf "DOWNLOAD FILE %s" file.file_name; print_newline ();
+  lprintf "DOWNLOAD FILE %s" file.file_name; lprint_newline ();
   if not (List.memq file !current_files) then begin
       current_files := file :: !current_files;
     end;
   List.iter (fun (user, index) ->
-      Printf.printf "Source %s %d" (Md4.to_string user.user_uid)
-      index; print_newline ();
+      lprintf "Source %s %d" (Md4.to_string user.user_uid)
+      index; lprint_newline ();
       let c = new_client user.user_uid user.user_kind in
       add_download file c index;
       get_file_from_source c file;

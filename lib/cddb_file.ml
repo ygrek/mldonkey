@@ -1,3 +1,4 @@
+open Printf2
 open Cddb_lexer
 
 let rec strncmp_aux s1 s2 pos len =
@@ -18,15 +19,15 @@ let read_lines filename =
         iter (value :: list)
     with
       e ->
-        Printf.printf "Exception %s at pos %d, file %s"
+        lprintf "Exception %s at pos %d, file %s"
           (Printexc2.to_string e) (Lexing.lexeme_start lexbuf)
-        filename; print_newline (); exit 0
+        filename; lprint_newline (); exit 0
   in
   let list = iter [] in
   let list = List.rev list in
   (*
   List.iter (fun (s,v) ->
-      Printf.printf "%s = %s" s v; print_newline ();
+      lprintf "%s = %s" s v; lprint_newline ();
 ) list;
   *)
   list
@@ -99,7 +100,7 @@ let read filename =
               if value = "" then t else { t with genre = Some value }
           | _ ->  
               let s = Marshal.to_string t [] in
-              Printf.printf "len %d" (String.length s); print_newline ();
+              lprintf "len %d" (String.length s); lprint_newline ();
               failwith (Printf.sprintf "Unknown key %s" name)
         )
   in

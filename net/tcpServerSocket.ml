@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open BasicSocket
 
 type event = 
@@ -71,7 +72,7 @@ let create name addr port handler =
     t.sock <- sock;
     t
   with e ->
-      Printf.printf "Exception: %s at port %d" (Printexc2.to_string e) port;
-      print_newline ();
+      lprintf "Exception: %s at port %d" (Printexc2.to_string e) port;
+      lprint_newline ();
       raise e
       

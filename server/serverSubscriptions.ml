@@ -345,10 +345,10 @@ module Subs = struct
     let ht = Hashtbl.create 1024 
     and ht2 = Hashtbl.create 10 in
       
-      Printf.printf "Removing subs (%s, %d)"
+      lprintf "Removing subs (%s, %d)"
         (Md4.to_string (fst id)) 
         (snd id);
-      print_newline ();
+      lprint_newline ();
 
       Hashtbl.iter (fun k field_list ->
                       Hashtbl.add ht k
@@ -469,7 +469,7 @@ end
   let query1 = (And (HasWord "coucou", And(HasField(1, "meuh meuh"),
   HasMaxVal(2, 100))))
 
-  let notif1 = (fun sub_tree -> Printf.printf "notif1\n")
+  let notif1 = (fun sub_tree -> lprintf "notif1\n")
 
   Subs.query_to_subs (0, 0) query1 Subs.Empty notif1
 
@@ -484,7 +484,7 @@ end
   let query2 = (Or (HasWord "boudin", AndNot(HasField(2, "coucou"), HasField(1,
   "meuh meuh"))))
 
-  let notif2 = (fun sub_tree -> Printf.printf "notif2\n")
+  let notif2 = (fun sub_tree -> lprintf "notif2\n")
 
   Subs.query_to_subs (0, 1) query2 Subs.Empty notif2
 

@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open CommonGlobals
 open BasicSocket
 open CommonClient
@@ -110,8 +111,8 @@ module ServerOption = struct
           in
           let network = 
             try network_find_by_name network with e ->
-                Printf.printf "Network %s not supported" network;
-                print_newline ();
+                lprintf "Network %s not supported" network;
+                lprint_newline ();
                 raise e
               in
           let server = network_add_server network assocs in
@@ -414,10 +415,10 @@ let file_commit file =
   if impl.impl_file_state = FileDownloaded then
     let new_name = file_commited_name file in
     try
-      Printf.printf "*******  RENAME %s to %s *******" (file_disk_name file) new_name; print_newline ();
+      lprintf "*******  RENAME %s to %s *******" (file_disk_name file) new_name; lprint_newline ();
       Unix2.rename (file_disk_name file) new_name;
         
-      Printf.printf "*******  RENAME %s to %s DONE *******" (file_disk_name file) new_name; print_newline ();
+      lprintf "*******  RENAME %s to %s DONE *******" (file_disk_name file) new_name; lprint_newline ();
       set_file_disk_name file new_name;
       let best_name = file_best_name file in  
       (* Commit the file first, and share it after... *)
@@ -426,8 +427,8 @@ let file_commit file =
       done_files =:= List2.removeq file !!done_files;
       update_file_state impl FileShared;
     with e ->
-      Printf.printf "Exception in file_commit: %s" (Printexc2.to_string e);
-      print_newline ()
+      lprintf "Exception in file_commit: %s" (Printexc2.to_string e);
+      lprint_newline ()
       
 let file_cancel file =
   try
@@ -439,8 +440,8 @@ let file_cancel file =
       files =:= List2.removeq file !!files;
     end
   with e ->
-      Printf.printf "Exception in file_cancel: %s" (Printexc2.to_string e);
-      print_newline ()
+      lprintf "Exception in file_cancel: %s" (Printexc2.to_string e);
+      lprint_newline ()
 
         
 let mail_for_completed_file file =
@@ -486,8 +487,8 @@ let file_completed (file : file) =
             file_best_name file )
           file_name);
         (try mail_for_completed_file file with e ->
-              Printf.printf "Exception %s in sendmail" (Printexc2.to_string e);
-              print_newline ());
+              lprintf "Exception %s in sendmail" (Printexc2.to_string e);
+              lprint_newline ());
         if !!CommonOptions.chat_warning_for_downloaded then
           chat_for_completed_file file;
         
@@ -505,8 +506,8 @@ MlUnix.fork_and_exec  !!file_completed_cmd
 
       end
   with e ->
-      Printf.printf "Exception in file_completed: %s" (Printexc2.to_string e);
-      print_newline ()
+      lprintf "Exception in file_completed: %s" (Printexc2.to_string e);
+      lprint_newline ()
       
 let file_add impl state = 
   try
@@ -526,8 +527,8 @@ let file_add impl state =
         update_file_state impl state
       end
   with e ->
-      Printf.printf "Exception in file_add: %s" (Printexc2.to_string e);
-      print_newline ()
+      lprintf "Exception in file_add: %s" (Printexc2.to_string e);
+      lprint_newline ()
       
 let server_remove server =
   try
@@ -539,8 +540,8 @@ let server_remove server =
         servers =:= Intmap.remove (server_num server) !!servers;
       end
   with e ->
-      Printf.printf "Exception in server_remove: %s" (Printexc2.to_string e);
-      print_newline ()
+      lprintf "Exception in server_remove: %s" (Printexc2.to_string e);
+      lprint_newline ()
   
 let server_add impl =
   let server = as_server impl in
@@ -583,8 +584,8 @@ let friend_remove c =
         
     | _ -> ()
   with e ->
-      Printf.printf "Exception in friend_remove: %s" (Printexc2.to_string e);
-      print_newline ()
+      lprintf "Exception in friend_remove: %s" (Printexc2.to_string e);
+      lprint_newline ()
   
 let contact_add c =
   let impl = as_client_impl c in
@@ -607,7 +608,7 @@ let contact_remove c =
         impl.impl_client_ops.op_client_clear_files impl.impl_client_val
     | _ -> ()
   with e ->
-      Printf.printf "Exception in contact_remove: %s" (Printexc2.to_string e);
-      print_newline ()
+      lprintf "Exception in contact_remove: %s" (Printexc2.to_string e);
+      lprint_newline ()
 
       
