@@ -362,6 +362,7 @@ and find_zone1 c b zones =
 	corrupted_block_detected b;
 	b.block_zones <- create_zones file b.block_begin b.block_end [];
 	b.block_unknown_origin <- false;
+	b.block_present <- false;
 	b.block_contributors <- [];
 	file.file_chunks.(b.block_pos) <- PartialVerified b;
 	c.client_block <- Some b

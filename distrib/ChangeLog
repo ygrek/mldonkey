@@ -1,6 +1,12 @@
 ChangeLog	
 =========
 
+2003/03/05: Simon (v 2.02-29 next release: monday)
+  - IMPORTANT Bug fixes (thx pango):
+     * Corrupted blocks are removed
+     * Re-order arguments when computing md4 with threads
+       -> all your shared files hashes will be recomputed :(
+
 2003/03/05: Simon (v 2.02-28)
   - Bug Fixes:
      * 'vr' should not raise Exception in String.sub, fix in

@@ -132,10 +132,10 @@ static void * hasher_thread(void * arg)
 /*      fprintf(stderr,"job started\n");  */
       
       if(job_method == METHOD_MD4)
-        md4_unsafe64_fd_direct(job_fd, job_len, job_begin_pos, job_result);
+        md4_unsafe64_fd_direct(job_fd, job_begin_pos, job_len, job_result);
       else
         if( job_method == METHOD_MD5)
-          md5_unsafe64_fd_direct(job_fd, job_len, job_begin_pos, job_result);
+          md5_unsafe64_fd_direct(job_fd, job_begin_pos, job_len, job_result);
         else {
           printf("commonHasher_c.c: method sha1 not implemented\n");
           exit(2);

@@ -33,8 +33,8 @@ open CommonGlobals
 open DonkeyGlobals
 
 let shared_files_ini = create_options_file (
-    Filename.concat file_basedir "shared_files.ini")
-  
+    Filename.concat file_basedir "shares.ini")
+
 let file_sources_ini = create_options_file (
     Filename.concat file_basedir "file_sources.ini")
   
