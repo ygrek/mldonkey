@@ -35,12 +35,12 @@ open CommonTypes
 open CommonGlobals
 
   
-open GnutellaTypes
-open GnutellaGlobals
-open GnutellaOptions
-open GnutellaProtocol
-open GnutellaComplexOptions
-open Gnutella2Proto
+open G2Types
+open G2Globals
+open G2Options
+open G2Protocol
+open G2ComplexOptions
+open G2Proto
 
 let update_client u =
   new_client u.user_kind
@@ -265,7 +265,7 @@ let g2_packet_handler s sock gconn p =
                   ] in
                 children := p :: !children
             | _ -> ()
-      ) !g2_connected_servers;
+      ) !connected_servers;
       server_send sock s (
         packet KHL [
           (packet (KHL_TS (int64_time ())) !children) 
@@ -508,7 +508,7 @@ XML ("audios",
           
 let udp_packet_handler ip port msg = 
   let h = new_host ip port true 2 in
-  host_queue_add g2_active_udp_queue h (last_time ());
+  host_queue_add active_udp_queue h (last_time ());
   h.host_connected <- last_time ();
 (*  if !verbose_udp then
     lprintf "Received UDP packet from %s:%d: \n%s\n" 
@@ -527,7 +527,7 @@ let udp_packet_handler ip port msg =
 *)      
 
 let init s sock gconn = 
-  g2_connected_servers := s :: !g2_connected_servers;
+  connected_servers := s :: !connected_servers;
   gconn.gconn_handler <- 
     Reader (g2_handler (g2_packet_handler s (Connection sock)));
   server_send_ping s.server_sock s;
@@ -539,7 +539,7 @@ let init s sock gconn =
   server_send (Connection sock) s (packet UPROC [])
 
   (*
-    Gnutella.recover_files_from_server s;    
+    G2.recover_files_from_server s;    
 *)
 
 (* A good session: PI, KHL, LNI *)

@@ -67,6 +67,7 @@ SRC_BITTORRENT=src/networks/bittorrent
 SRC_CYMES=src/networks/cymes
 SRC_OPENNAP=src/networks/opennap
 SRC_GNUTELLA=src/networks/gnutella
+SRC_GNUTELLA2=src/networks/gnutella2
 SRC_OPENFT=src/networks/openFT
 SRC_FASTTRACK=src/networks/fasttrack
 SRC_SOULSEEK=src/networks/soulseek
@@ -324,20 +325,29 @@ GNUTELLA_SRCS= \
   $(SRC_GNUTELLA)/gnutellaGlobals.ml \
   $(SRC_GNUTELLA)/gnutellaComplexOptions.ml \
   $(SRC_GNUTELLA)/gnutellaProtocol.ml \
-  $(SRC_GNUTELLA)/gnutella1Proto.ml \
-  $(SRC_GNUTELLA)/gnutella2Proto.ml \
+  $(SRC_GNUTELLA)/gnutellaProto.ml \
   $(SRC_GNUTELLA)/gnutellaClients.ml \
-  $(SRC_GNUTELLA)/gnutella1Handler.ml \
-  $(SRC_GNUTELLA)/gnutella2Handler.ml \
-  $(SRC_GNUTELLA)/gnutella1Redirector.ml \
-  $(SRC_GNUTELLA)/gnutella2Redirector.ml \
-  $(SRC_GNUTELLA)/gnutella1.ml \
-  $(SRC_GNUTELLA)/gnutella2.ml \
+  $(SRC_GNUTELLA)/gnutellaHandler.ml \
+  $(SRC_GNUTELLA)/gnutellaRedirector.ml \
+  $(SRC_GNUTELLA)/gnutella.ml \
   $(SRC_GNUTELLA)/gnutellaServers.ml \
   $(SRC_GNUTELLA)/gnutellaInteractive.ml \
   $(SRC_GNUTELLA)/gnutellaMain.ml
 
-#  $(SRC_GNUTELLA)/gnutella.ml 
+GNUTELLA2_SRCS= \
+  $(SRC_GNUTELLA2)/g2Types.ml \
+  $(SRC_GNUTELLA2)/g2Options.ml \
+  $(SRC_GNUTELLA2)/g2Globals.ml \
+  $(SRC_GNUTELLA2)/g2ComplexOptions.ml \
+  $(SRC_GNUTELLA2)/g2Protocol.ml \
+  $(SRC_GNUTELLA2)/g2Proto.ml \
+  $(SRC_GNUTELLA2)/g2Clients.ml \
+  $(SRC_GNUTELLA2)/g2Handler.ml \
+  $(SRC_GNUTELLA2)/g2Redirector.ml \
+  $(SRC_GNUTELLA2)/g2Scheduler.ml \
+  $(SRC_GNUTELLA2)/g2Servers.ml \
+  $(SRC_GNUTELLA2)/g2Interactive.ml \
+  $(SRC_GNUTELLA2)/g2Main.ml
 
 BITTORRENT_SRCS= \
   $(SRC_BITTORRENT)/bencode.ml \
@@ -948,6 +958,53 @@ mlgnut+gui_CMXA=cdk.cmxa \
    common.cmxa client.cmxa mlgnut.cmxa driver.cmxa \
    gmisc.cmxa icons.cmxa guibase.cmxa gui.cmxa
 mlgnut+gui_SRCS= $(MAIN_SRCS)
+
+
+
+
+ifeq ("$(GNUTELLA2)" , "yes")
+SUBDIRS += src/networks/gnutella2
+
+CORE_SRCS += $(GNUTELLA2_SRCS)
+
+## TARGETS += mlg2$(EXE)
+
+ifeq ("$(COMPILE_GUI)" , "yes")
+
+## BUNDLE_TARGETS += mlg2+gui$(EXE)
+
+endif
+endif
+
+
+mlg2_CMXA= cdk.cmxa common.cmxa client.cmxa mlg2.cmxa driver.cmxa
+mlg2_SRCS= $(MAIN_SRCS)
+
+
+GNUTELLA2_ZOG := $(filter %.zog, $(GNUTELLA2_SRCS)) 
+GNUTELLA2_MLL := $(filter %.mll, $(GNUTELLA2_SRCS)) 
+GNUTELLA2_MLY := $(filter %.mly, $(GNUTELLA2_SRCS)) 
+GNUTELLA2_ML4 := $(filter %.ml4, $(GNUTELLA2_SRCS)) 
+GNUTELLA2_ML := $(filter %.ml %.mll %.zog %.mly %.ml4, $(GNUTELLA2_SRCS)) 
+GNUTELLA2_C := $(filter %.c, $(GNUTELLA2_SRCS)) 
+GNUTELLA2_CMOS=$(foreach file, $(GNUTELLA2_ML),   $(basename $(file)).cmo) 
+GNUTELLA2_CMXS=$(foreach file, $(GNUTELLA2_ML),   $(basename $(file)).cmx) 
+GNUTELLA2_OBJS=$(foreach file, $(GNUTELLA2_C),   $(basename $(file)).o)    
+
+TMPSOURCES += $(GNUTELLA2_ML4:.ml4=.ml) $(GNUTELLA2_MLL:.mll=.ml) $(GNUTELLA2_MLY:.mly=.ml) $(GNUTELLA2_MLY:.mly=.mli) $(GNUTELLA2_ZOG:.zog=.ml) 
+ 
+build/mlg2.cmxa: $(GNUTELLA2_OBJS) $(GNUTELLA2_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(GNUTELLA2_OBJS) $(LIBS_flags) $(_LIBS_flags) $(GNUTELLA2_CMXS) 
+ 
+build/mlg2.cma: $(GNUTELLA2_OBJS) $(GNUTELLA2_CMOS) 
+	$(OCAMLC) -a -o $@  $(GNUTELLA2_OBJS) $(LIBS_flags) $(_LIBS_flags) $(GNUTELLA2_CMOS) 
+ 
+
+
+mlg2+gui_CMXA=cdk.cmxa \
+   common.cmxa client.cmxa mlg2.cmxa driver.cmxa \
+   gmisc.cmxa icons.cmxa guibase.cmxa gui.cmxa
+mlg2+gui_SRCS= $(MAIN_SRCS)
 
 
 

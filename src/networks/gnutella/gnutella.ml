@@ -38,7 +38,7 @@ open GnutellaOptions
 open GnutellaProtocol
 open GnutellaComplexOptions
 
-open Gnutella1Proto
+open GnutellaProto
   
 (* For Guess hosts ... to be done *)      
 let extend_query f = 
@@ -53,18 +53,18 @@ let extend_query f =
             | _ -> ()
     with _ -> ()
   in
-  Queue.iter send g1_active_udp_queue
+  Queue.iter send active_udp_queue
   
 let send_query uid words =
   let f s =
     server_send_query uid words s.server_sock s in
-  List.iter f !g1_connected_servers;
+  List.iter f !connected_servers;
   extend_query f
 
   
 let recover_file file =
   let f s = server_recover_file file s.server_sock s in
-  List.iter f !g1_connected_servers;
+  List.iter f !connected_servers;
   extend_query f
          
 let send_pings () =
@@ -78,11 +78,11 @@ let send_pings () =
       | _ -> 
           lprintf "Udp Support present\n";
           ()
-  ) !g1_connected_servers;
+  ) !connected_servers;
   Queue.iter (fun h ->
       match h.host_server with
       | None -> () | Some s -> ()
-  ) g1_active_udp_queue
+  ) active_udp_queue
 
 let rec find_ultrapeer queue =
   let (next,h) = Queue.head queue in
@@ -92,37 +92,29 @@ let rec find_ultrapeer queue =
     end;
   ignore (host_queue_take queue);    
   try
-    h,
-    
-    match h.host_kind with
-      1 -> if not !!g1_enabled then raise Not_found; false
-    | 2 -> if not !!g2_enabled then raise Not_found; true
-    | _ -> 
-        not !!g1_enabled
+    h, false
+
 with _ -> find_ultrapeer queue
 
       
 let try_connect_ultrapeer connect =
   let (h, with_accept) = 
     try
-      find_ultrapeer g1_ultrapeers_waiting_queue
+      find_ultrapeer ultrapeers_waiting_queue
     with _ ->
 (*        lprintf "not in waiting\n"; *)
-        try
-          find_ultrapeer g0_ultrapeers_waiting_queue
-        with _ ->
 (*                lprintf "not in old\n"; *)
-            Gnutella1Redirector.connect ();
-            find_ultrapeer g1_peers_waiting_queue
+            GnutellaRedirector.connect ();
+            find_ultrapeer peers_waiting_queue
   in
-  connect g1_nservers false false h []
+  connect nservers false false h []
   
 let connect_servers connect =
   (*
   lprintf "connect_servers %d %d\n" !nservers !!max_ultrapeers; 
 *)
-  if !!g1_max_ultrapeers > List.length !g1_connected_servers then
-    let to_connect = 3 * (!!g1_max_ultrapeers - !g1_nservers) in
+  if !!max_ultrapeers > List.length !connected_servers then
+    let to_connect = 3 * (!!max_ultrapeers - !nservers) in
     for i = 1 to to_connect do
       try_connect_ultrapeer connect
     done    

@@ -33,6 +33,12 @@ open TcpBufferedSocket
 open DonkeyTypes
 open DonkeyGlobals
 
+type hash_history = Ip.t * Md4.t * int
+
+(* index by client IP *)
+let (client_hashes : (Ip.t, hash_history ref) Hashtbl.t) = Hashtbl.create 1023
+
+(* index by client hash *)
 let hash_of_md4 md4 = Hashtbl.hash (Md4.direct_to_string md4)
 
 module Md4HashType =
@@ -43,58 +49,71 @@ end
 
 module Md4_hashtbl = Hashtbl.Make ( Md4HashType )
 
-let (client_hashes : (Ip.t, (Md4.t * int) ref) Hashtbl.t) = Hashtbl.create 16383
-let hashes_usage = Md4_hashtbl.create 16383
+let hashes_usage = Md4_hashtbl.create 1023
 
+(* *)
+;;
 let register_client_hash ip hash =
-  let usageref =
+  let find_by_ip ip =
+    try
+      Hashtbl.find client_hashes ip
+    with Not_found ->
+      let new_record = ref (ip, Md4.null, 0) in
+      Hashtbl.add client_hashes ip new_record;
+      new_record in
+
+  let find_by_hash hash =
     try
       Md4_hashtbl.find hashes_usage hash
     with Not_found ->
-      let newusage = ref (0, 0) in
-      Md4_hashtbl.add hashes_usage hash newusage;
-      newusage in
-  match !usageref with usage, _ ->
-  try
-    let hashref = Hashtbl.find client_hashes ip in
-    match !hashref with old_hash, _ ->
-    hashref := (hash, last_time ());
-    if Md4.equal hash old_hash then begin
-      (* No change, all is fine *)
-      (* just refresh timestamp *)
-      usageref := (usage, last_time ());
-      true 
-    end else begin
-      usageref := (usage + 1, last_time ());
-      lprintf "client hash change %s: %s -> %s" (Ip.to_string ip) (Md4.to_string old_hash) (Md4.to_string hash);
-      lprint_newline ();
-      if usage = 0 then 
-	(* The new hash is original, that's acceptable *)
-	true
-      else begin
-(*	lprintf "That hash was already used somewhere else, that's certainly a theft!";
-        lprint_newline (); *)
-	false
-      end
-    end
-  with Not_found ->
-    (* No hash was known for that IP, that's acceptable.
-       We do not check if the hash was already used elsewhere, because it
-       could just be a client reconnecting with a new address *)
-    Hashtbl.add client_hashes ip (ref (hash, last_time ()));
-    usageref := (usage + 1, last_time ());
-    true
+      let new_record = ref (Ip.null, hash, 0) in
+      Md4_hashtbl.add hashes_usage hash new_record;
+      new_record in
 
+  let by_ip = find_by_ip ip in
+  let by_hash = find_by_hash hash in
+  let new_record = (ip, hash, last_time ()) in
+  match !by_ip with
+    _, _, 0 ->
+      (* no hash was previously known for that IP. We do not check if the
+	 hash was previously used somewhere else, as it could be legitimate
+	 (client switching IP address). *)
+      by_ip := new_record;
+      by_hash := new_record;
+      true
+  | _, previous_hash, _ ->
+      if Md4.equal previous_hash hash then begin
+	(* no change, all is fine; just update timestamps *)
+	by_ip := new_record;
+	by_hash := new_record;
+	true
+      end else
+      (* peer changed in hash, what's happening ? *)
+      match !by_hash with
+	  _, _, 0 ->
+	    (* that hash is original, all is fine *)
+	    (* forget old hash *)
+	    Md4_hashtbl.remove hashes_usage previous_hash;
+	    by_ip := new_record;
+	    by_hash := new_record;
+	    true
+	| _, _, _ ->
+	    (* it switched to a hash that's used somewhere else, 
+	       that's certainly a theft. *)
+	    lprintf "That hash was already used somewhere else, that's certainly a theft!";
+            lprint_newline ();
+	    false
+;;
 let clean_thieves () =
   let timelimit = last_time () - 3 * 3600 in
   let obsolete_ips = Hashtbl.fold (fun ip r l ->
-				     match !r with _, time ->
+				     match !r with _, _, time ->
 				       if time < timelimit then
 				         ip :: l
 				       else l) client_hashes [] in
   List.iter (fun ip -> Hashtbl.remove client_hashes ip) obsolete_ips;
   let obsolete_hashes = Md4_hashtbl.fold (fun hash r l ->
-					    match !r with _, time ->
+					    match !r with _, _, time ->
 					      if time < timelimit then
 					        hash :: l
 					      else l) hashes_usage [] in
@@ -110,3 +129,41 @@ module Marshal = struct
       v
 
   end  
+
+(* test code *)
+(*
+let dump () =
+  lprintf "Hashes history by IP:\n";
+  Hashtbl.iter (fun ip r -> match !r with (ip, md4, time) -> lprintf "%s: %s (%d)\n" (Ip.to_string ip) (Md4.to_string md4) time) client_hashes;
+  lprintf "Hashes history by hash:\n";
+  Md4_hashtbl.iter (fun md4 r -> match !r with (ip, md4, time) -> lprintf "%s: %s (%d)\n" (Md4.to_string md4) (Ip.to_string ip) time) hashes_usage;
+  lprintf "\n"
+
+let testcode () =
+  let peer1 = Ip.of_string "1.2.3.4" in
+  let peer2 = Ip.of_string "5.6.7.8" in
+  let peer3 = Ip.of_string "9.10.11.12" in
+  lprintf "Add a peer...\n";
+  assert(register_client_hash peer1 (Md4.of_string "11111111111111111111111111111111"));
+  dump ();
+  lprintf "Another peer...\n";
+  assert(register_client_hash peer2 (Md4.of_string "22222222222222222222222222222222"));
+  dump ();
+  lprintf "First peer changes of hash, ok...\n";
+  assert(register_client_hash peer1 (Md4.of_string "33333333333333333333333333333333"));
+  dump ();
+  lprintf "A third peer appears with the same hash as the first, ok (could be in fact first one switching IP)...\n";
+  assert(register_client_hash peer3 (Md4.of_string "33333333333333333333333333333333"));
+  dump ();
+  lprintf "Second peer takes the hash of the first, wrong!...\n";
+  assert(not (register_client_hash peer2 (Md4.of_string "33333333333333333333333333333333")));
+  dump ();
+  lprintf "Third peer takes a hash that *was* first's hash, ok (?)...\n";
+  assert(register_client_hash peer3 (Md4.of_string "11111111111111111111111111111111"));
+  dump ();
+    
+  exit 2
+
+let _ =
+  testcode ()
+*)

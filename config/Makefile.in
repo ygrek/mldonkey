@@ -67,6 +67,7 @@ SRC_BITTORRENT=src/networks/bittorrent
 SRC_CYMES=src/networks/cymes
 SRC_OPENNAP=src/networks/opennap
 SRC_GNUTELLA=src/networks/gnutella
+SRC_GNUTELLA2=src/networks/gnutella2
 SRC_OPENFT=src/networks/openFT
 SRC_FASTTRACK=src/networks/fasttrack
 SRC_SOULSEEK=src/networks/soulseek
@@ -324,20 +325,29 @@ GNUTELLA_SRCS= \
   $(SRC_GNUTELLA)/gnutellaGlobals.ml \
   $(SRC_GNUTELLA)/gnutellaComplexOptions.ml \
   $(SRC_GNUTELLA)/gnutellaProtocol.ml \
-  $(SRC_GNUTELLA)/gnutella1Proto.ml \
-  $(SRC_GNUTELLA)/gnutella2Proto.ml \
+  $(SRC_GNUTELLA)/gnutellaProto.ml \
   $(SRC_GNUTELLA)/gnutellaClients.ml \
-  $(SRC_GNUTELLA)/gnutella1Handler.ml \
-  $(SRC_GNUTELLA)/gnutella2Handler.ml \
-  $(SRC_GNUTELLA)/gnutella1Redirector.ml \
-  $(SRC_GNUTELLA)/gnutella2Redirector.ml \
-  $(SRC_GNUTELLA)/gnutella1.ml \
-  $(SRC_GNUTELLA)/gnutella2.ml \
+  $(SRC_GNUTELLA)/gnutellaHandler.ml \
+  $(SRC_GNUTELLA)/gnutellaRedirector.ml \
+  $(SRC_GNUTELLA)/gnutella.ml \
   $(SRC_GNUTELLA)/gnutellaServers.ml \
   $(SRC_GNUTELLA)/gnutellaInteractive.ml \
   $(SRC_GNUTELLA)/gnutellaMain.ml
 
-#  $(SRC_GNUTELLA)/gnutella.ml 
+GNUTELLA2_SRCS= \
+  $(SRC_GNUTELLA2)/g2Types.ml \
+  $(SRC_GNUTELLA2)/g2Options.ml \
+  $(SRC_GNUTELLA2)/g2Globals.ml \
+  $(SRC_GNUTELLA2)/g2ComplexOptions.ml \
+  $(SRC_GNUTELLA2)/g2Protocol.ml \
+  $(SRC_GNUTELLA2)/g2Proto.ml \
+  $(SRC_GNUTELLA2)/g2Clients.ml \
+  $(SRC_GNUTELLA2)/g2Handler.ml \
+  $(SRC_GNUTELLA2)/g2Redirector.ml \
+  $(SRC_GNUTELLA2)/g2Scheduler.ml \
+  $(SRC_GNUTELLA2)/g2Servers.ml \
+  $(SRC_GNUTELLA2)/g2Interactive.ml \
+  $(SRC_GNUTELLA2)/g2Main.ml
 
 BITTORRENT_SRCS= \
   $(SRC_BITTORRENT)/bencode.ml \
@@ -858,6 +868,7 @@ $1+gui_SRCS= $(MAIN_SRCS)
 EXPAND_DRIVER(mldc,DIRECT_CONNECT,direct_connect)
 EXPAND_DRIVER(mlnap,OPENNAP,opennap)
 EXPAND_DRIVER(mlgnut,GNUTELLA,gnutella)
+EXPAND_DRIVER(mlg2,GNUTELLA2,gnutella2)
 EXPAND_DRIVER(mlfasttrack,FASTTRACK,fasttrack)
 EXPAND_DRIVER(mlbt,BITTORRENT,bittorrent)
 EXPAND_DRIVER(mldonkey,DONKEY,donkey)

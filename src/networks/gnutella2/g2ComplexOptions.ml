@@ -27,17 +27,17 @@ open CommonSwarming
 open CommonTypes
 open CommonFile
 
-open GnutellaTypes
-open GnutellaOptions
-open GnutellaGlobals
+open G2Types
+open G2Options
+open G2Globals
 
-let ultrapeers = define_option gnutella_section
-    ["cache"; "gnutella1"; "ultrapeers"]
+let ultrapeers = define_option gnutella2_section
+    ["cache"; "ultrapeers"]
     "Known ultrapeers" (list_option (tuple2_option (Ip.option, int_option)))
   []
 
-let peers = define_option gnutella_section
-    ["cache"; "gnutella1"; "peers"]
+let peers = define_option gnutella2_section
+    ["cache"; "peers"]
     "Known Peers" (list_option (tuple2_option (Ip.option, int_option)))
   []
 
@@ -164,7 +164,7 @@ let file_to_value file =
     "file_downloaded", int64_to_value (file_downloaded file);
     "file_id", string_to_value (Md4.to_string file.file_id);
     "file_sources", 
-    list_to_value "Gnutella Sources" (fun c ->
+    list_to_value "G2 Sources" (fun c ->
         match (find_download file c.client_downloads).download_uri with
           FileByIndex (i,n) -> 
             SmallList [ClientOption.client_to_value c; int_to_value i; 
@@ -185,7 +185,7 @@ let file_to_value file =
   ]
   
 let old_files = 
-  define_option gnutella_section ["old_files"]
+  define_option gnutella2_section ["old_files"]
     "" (list_option (tuple2_option (string_option, int64_option))) []
     
     
@@ -196,7 +196,7 @@ let save_config () =
   Queue.iter (fun h -> 
       if h.host_kind <> 0 then
         let o = match h.host_kind, h.host_ultrapeer with
-          | 1, true -> ultrapeers
+          | _, true -> ultrapeers
           | _ -> peers
         in
 (* Don't save hosts that are older than 1 hour, and not responding *)

@@ -32,15 +32,15 @@ open CommonComplexOptions
 open CommonFile
 open CommonInteractive
 open Options
-open GnutellaTypes
-open GnutellaOptions
-open GnutellaGlobals
-open GnutellaComplexOptions
+open G2Types
+open G2Options
+open G2Globals
+open G2ComplexOptions
 open BasicSocket
 
-open GnutellaProtocol
+open G2Protocol
 
-(* Don't share files greater than 10 MB on Gnutella and limit to 200 files. 
+(* Don't share files greater than 10 MB on G2 and limit to 200 files. 
  Why ? Because we don't store URNs currently, and we don't want mldonkey
  to compute hashes for hours at startup *)
 let max_shared_file_size = Int64.of_int 10000000
@@ -158,7 +158,7 @@ that we can reuse queries *)
           search_hosts = Intset.empty;
         } in
       
-      Gnutella.send_query uid words;
+      G2Scheduler.send_query uid words xml_query;
       
       Hashtbl.add searches_by_uid uid s;
       ());
@@ -175,7 +175,7 @@ that we can reuse queries *)
       if !shared_files_counter < max_shared_files &&
         size < max_shared_file_size then begin
         incr shared_files_counter;
-      GnutellaProtocol.new_shared_words := true;
+      G2Protocol.new_shared_words := true;
       let sh = CommonUploads.add_shared fullname codedname size in
       CommonUploads.ask_for_uid sh SHA1 (fun sh uid -> 
             lprintf "Could share urn\n";
@@ -185,7 +185,7 @@ that we can reuse queries *)
   
 let _ =
   result_ops.op_result_download <- (fun result _ force ->
-      GnutellaServers.download_file result)
+      G2Servers.download_file result)
 
 let file_num file =
   file.file_file.impl_file_num
@@ -198,9 +198,9 @@ let _ =
       ) file.file_clients
   );
   file_ops.op_file_recover <- (fun file ->
-      GnutellaServers.recover_file file;
+      G2Servers.recover_file file;
       List.iter (fun c ->
-          GnutellaServers.get_file_from_source c file
+          G2Servers.get_file_from_source c file
       ) file.file_clients
   )
 
@@ -261,12 +261,12 @@ let _ =
         raise Not_found
   );
   server_ops.op_server_connect <- (fun s ->
-      GnutellaServers.connect_server 
-        (nservers)
+      G2Servers.connect_server 
+        nservers
       s.server_gnutella2 
-      GnutellaServers.retry_and_fake s.server_host []);
+      G2Servers.retry_and_fake s.server_host []);
   server_ops.op_server_disconnect <-
-(fun s -> GnutellaServers.disconnect_server s BasicSocket.Closed_by_user);
+(fun s -> G2Servers.disconnect_server s BasicSocket.Closed_by_user);
   server_ops.op_server_to_option <- (fun _ -> raise Not_found)
 
 module C = CommonTypes
@@ -293,7 +293,7 @@ let _ =
   
 let _ =
   network.op_network_connected_servers <- (fun _ ->
-      List2.tail_map (fun s -> as_server s.server_server)
+        List2.tail_map (fun s -> as_server s.server_server)
       !connected_servers
   );
   network.op_network_parse_url <- (fun url ->
@@ -322,14 +322,14 @@ let _ =
           if uids <> [] then begin
 (* Start a download for this file *)
               let r = new_result name Int64.zero [] uids in
-              GnutellaServers.download_file r;
+              G2Servers.download_file r;
               true
             end
           else false
   )
   
 let browse_client c = 
-  lprintf "Gnutella: browse client not implemented\n";
+  lprintf "G2: browse client not implemented\n";
   ()
   
 let _ =
@@ -442,7 +442,7 @@ open Queues
 open GuiTypes
   
 let commands = [
-    "gstats", Arg_none (fun o ->
+    "g2stats", Arg_none (fun o ->
         let buf = o.conn_buf in
         Printf.bprintf buf "ultrapeers_waiting_queue: %d\n" 
           (Queue.length ultrapeers_waiting_queue);
@@ -453,7 +453,7 @@ let commands = [
         Printf.bprintf buf "waiting_udp_queue: %d\n" 
           (Queue.length waiting_udp_queue);
         ""
-    ), " :\t\t\t\tprint stats on Gnutella network";
+    ), " :\t\t\t\tprint stats on G2 network";
     
     ]
   

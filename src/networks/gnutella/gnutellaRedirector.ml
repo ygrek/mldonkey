@@ -37,7 +37,7 @@ open GnutellaOptions
 open GnutellaProtocol
 open GnutellaComplexOptions
 
-open Gnutella1Proto
+open GnutellaProto
 
 let redirectors_urlfiles = ref []
 let redirectors_hostfiles = ref []
@@ -55,7 +55,7 @@ let parse_urlfile file =
 let connect_urlfile () = 
   match !redirectors_urlfiles with
     [] ->
-      redirectors_urlfiles := !!g1_urlfiles
+      redirectors_urlfiles := !!urlfiles
   | url :: tail ->
       redirectors_urlfiles := tail;
       let module H = Http_client in
@@ -68,7 +68,7 @@ let connect_urlfile () =
           H.req_user_agent = 
           Printf.sprintf "MLdonkey %s" Autoconf.current_version;
         } in
-      lprintf "Connecting Gnutella1 %s\n" url;
+      lprintf "Connecting Gnutella %s\n" url;
       H.wget r parse_urlfile    
       
 let parse_hostfile file = 
@@ -106,10 +106,9 @@ let connect_hostfile _ =
           H.req_user_agent = 
           Printf.sprintf "MLdonkey %s" Autoconf.current_version;
         } in
-      lprintf "Connecting Gnutella1 %s\n" url;
+      lprintf "Connecting Gnutella %s\n" url;
       H.wget r parse_hostfile    
       
 let connect _ = 
-  if !!g1_enabled then 
-    connect_hostfile ()
+  connect_hostfile ()
     

@@ -32,13 +32,13 @@ open TcpBufferedSocket
 open CommonTypes
 open CommonGlobals
 open Options
-open GnutellaTypes
-open GnutellaGlobals
-open GnutellaOptions
-open GnutellaProtocol
-open GnutellaComplexOptions
+open G2Types
+open G2Globals
+open G2Options
+open G2Protocol
+open G2ComplexOptions
 
-open Gnutella2Proto
+open G2Proto
   
 (* For Guess hosts ... to be done *)      
 let extend_query f = 
@@ -53,17 +53,17 @@ let extend_query f =
             | _ -> ()
     with _ -> ()
   in
-  Queue.iter send g2_active_udp_queue
+  Queue.iter send active_udp_queue
   
 let send_query uid words xml_query =
   let f s =
     server_send_query uid words xml_query s.server_sock s in
-  List.iter f !g2_connected_servers;
+  List.iter f !connected_servers;
   extend_query f
 
 let recover_file file =
   let f s = server_recover_file file s.server_sock s in
-  List.iter f !g2_connected_servers;
+  List.iter f !connected_servers;
   extend_query f
          
 let send_pings () =
@@ -77,7 +77,7 @@ let send_pings () =
       | _ -> 
 (*          lprintf "Udp Support present\n"; *)
           ()
-  ) !g2_connected_servers
+  ) !connected_servers
   (*
   Queue.iter (fun h ->
       match h.host_server with
@@ -93,7 +93,7 @@ let send_pings () =
   
 let udp_handler ip port buf =
   try
-    Gnutella2Handler.udp_packet_handler ip port
+    G2Handler.udp_packet_handler ip port
       (parse_udp_packet ip port buf)
   with AckPacket | FragmentedPacket -> ()
       
@@ -106,38 +106,30 @@ let rec find_ultrapeer queue =
     end;
   ignore (host_queue_take queue);    
   try
-    h,
+    h, true
     
-    match h.host_kind with
-      1 -> if not !!g1_enabled then raise Not_found; false
-    | 2 -> if not !!g2_enabled then raise Not_found; true
-    | _ -> 
-        not !!g1_enabled
 with _ -> find_ultrapeer queue
       
 let try_connect_ultrapeer connect =
   let (h, with_accept) = 
     try
-      find_ultrapeer g2_ultrapeers_waiting_queue
+      find_ultrapeer ultrapeers_waiting_queue
     with _ ->
 (*        lprintf "not in g2_ultrapeers_waiting_queue\n"; *)
-        try
-          find_ultrapeer g0_ultrapeers_waiting_queue
-        with _ ->
 (*            lprintf "not in g0_ultrapeers_waiting_queue\n";  *)
-            Gnutella2Redirector.connect ();
-            find_ultrapeer g2_peers_waiting_queue
+            G2Redirector.connect ();
+            find_ultrapeer peers_waiting_queue
   in
 (*  lprintf "contacting..\n"; *)
-  connect g2_nservers true false h []
+  connect nservers true false h []
   
 let connect_servers connect =
 (*
   lprintf "connect_servers %d %d\n" !nservers !!max_ultrapeers; 
 *)
-  (if !!g2_max_ultrapeers > List.length !g2_connected_servers then
+  (if !!max_ultrapeers > List.length !connected_servers then
       try
-        let to_connect = 3 * (!!g2_max_ultrapeers - !g2_nservers) in
+        let to_connect = 3 * (!!max_ultrapeers - !nservers) in
         for i = 1 to to_connect do
 (*          lprintf "try_connect_ultrapeer...\n"; *)
           try_connect_ultrapeer connect
@@ -145,8 +137,8 @@ let connect_servers connect =
       with _ -> ());
   (try 
       for i = 0 to 3 do
-        let h = host_queue_take g2_waiting_udp_queue in
-(*        lprintf "g2_waiting_udp_queue\n"; *)
+        let h = host_queue_take waiting_udp_queue in
+(*        lprintf "waiting_udp_queue\n"; *)
         if (
             match h.host_server with
               None -> true

@@ -2,6 +2,10 @@ ChangeLog
 =========
 
 2003/12/02: Fabrice
+  * Applied patch #2399 (anti-thieves v2)
+  * Splitted Gnutella and Gnutella2 plugins
+
+2003/12/02: Fabrice
   * gui_messages.ini.dutch added
   * Suppressed UDP frames sent by a firewalled client, causing it to be
       black-listed.

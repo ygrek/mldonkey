@@ -31,11 +31,11 @@ open TcpBufferedSocket
 open CommonTypes
 open CommonGlobals
 open Options
-open GnutellaTypes
-open GnutellaGlobals
-open GnutellaOptions
-open GnutellaProtocol
-open GnutellaComplexOptions
+open G2Types
+open G2Globals
+open G2Options
+open G2Protocol
+open G2ComplexOptions
 
 let g2_parse_redirector_page f =
   let s = File.to_string f in
@@ -58,7 +58,7 @@ let g2_parse_redirector_page f =
 let next_redirector_access = ref 0
   
 let connect () =
-  if !!g2_enabled && !next_redirector_access < last_time () then begin
+  if !next_redirector_access < last_time () then begin
       next_redirector_access := last_time () + 3600;
       List.iter (fun url ->
           let module H = Http_client in
@@ -69,9 +69,9 @@ let connect () =
               H.req_user_agent = 
               Printf.sprintf "MLdonkey %s" Autoconf.current_version;
             } in
-          lprintf "Connecting Gnutella2 redirector\n";
+          lprintf "Connecting G22 redirector\n";
           H.wget r g2_parse_redirector_page    
-      ) !!g2_redirectors;
+      ) !!redirectors;
     end else begin
       lprintf "redirector recontacted in %d seconds \n"
         (!next_redirector_access - last_time ())

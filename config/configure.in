@@ -24,6 +24,7 @@ BATCH=no
 AUDIO_GALAXY=no
 OPEN_NAPSTER=yes
 GNUTELLA=yes
+GNUTELLA2=yes
 DIRECT_CONNECT=yes
 SOULSEEK=yes
 OPENFT=no
@@ -52,6 +53,7 @@ if test ! "$MULTINET" = "yes"; then
   AUDIO_GALAXY=no
   OPEN_NAPSTER=no
   GNUTELLA=no
+  GNUTELLA2=no
   DIRECT_CONNECT=no
   SOULSEEK=no
   OPENFT=no
@@ -68,6 +70,8 @@ AC_ARG_ENABLE(audiogalaxy, [--disable-audiogalaxy:       allows you to remove su
 AC_ARG_ENABLE(opennap, [--disable-opennap:       allows you to remove support for Open Napster], [OPEN_NAPSTER="$enableval"])
 
 AC_ARG_ENABLE(gnutella, [--disable-gnutella:       allows you to remove support for Gnutella], [GNUTELLA="$enableval"])
+
+AC_ARG_ENABLE(gnutella2, [--disable-gnutella2:       allows you to remove support for Gnutella2], [GNUTELLA2="$enableval"])
 
 AC_ARG_ENABLE(directconnect, [--disable-directconnect:       allows you to remove support for Direct Connect], [DIRECT_CONNECT="$enableval"])
 
@@ -462,6 +466,21 @@ fi
     BAD_TARGETS="$BAD_TARGETS gnutella"
   fi
 
+  if test "$GNUTELLA2" = "yes"; then
+    if test "$ZLIB" = "yes"; then
+       AC_CHECK_FILE(../src/networks/gnutella,GNUTELLA2=yes, [
+         GNUTELLA2=no
+         BAD_TARGETS="$BAD_TARGETS gnutella2"
+       ])
+    else
+       GNUTELLA2=no
+       BAD_TARGETS="$BAD_TARGETS gnutella2(no Zlib)"
+    fi
+  else
+    GNUTELLA2=no
+    BAD_TARGETS="$BAD_TARGETS gnutella2"
+  fi
+
   if test "$BITTORRENT" = "yes"; then
     AC_CHECK_FILE(../src/networks/bittorrent,BITTORRENT=yes, [
       BITTORRENT=no
@@ -759,6 +778,7 @@ AC_SUBST(AUDIO_GALAXY)
 AC_SUBST(OPEN_NAPSTER)
 AC_SUBST(DIRECT_CONNECT)
 AC_SUBST(GNUTELLA)
+AC_SUBST(GNUTELLA2)
 AC_SUBST(BITTORRENT)
 AC_SUBST(SOULSEEK)
 AC_SUBST(OPENFT)

@@ -36,8 +36,8 @@ open CommonGlobals
 open CommonSwarming  
 open CommonNetwork
   
-open GnutellaTypes
-open GnutellaOptions
+open G2Types
+open G2Options
 
                   
 let extension_list = [
@@ -75,7 +75,7 @@ let get_name_keywords file_name =
 
   
   
-let network = new_network "Gnutella"  
+let network = new_network "G2"  
       [ 
     NetworkHasSupernodes; 
     NetworkHasSearch;
@@ -110,7 +110,7 @@ let file_fd file = file.file_file.impl_file_fd
 let file_disk_name file = file_disk_name (as_file file.file_file)
 let set_file_disk_name file = set_file_disk_name (as_file file.file_file)
 
-let current_files = ref ([] : GnutellaTypes.file list)
+let current_files = ref ([] : G2Types.file list)
 
 let listen_sock = ref (None : TcpServerSocket.t option)
   

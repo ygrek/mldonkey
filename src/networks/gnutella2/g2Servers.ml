@@ -32,11 +32,11 @@ open TcpBufferedSocket
 open CommonTypes
 open CommonGlobals
 open Options
-open GnutellaTypes
-open GnutellaGlobals
-open GnutellaOptions
-open GnutellaProtocol
-open GnutellaComplexOptions
+open G2Types
+open G2Globals
+open G2Options
+open G2Protocol
+open G2ComplexOptions
 
 module DG = CommonGlobals
 module DO = CommonOptions
@@ -205,10 +205,10 @@ let rec server_parse_header nservers with_accept retry_fake s gconn sock header
         with _ -> ()
     ) headers;
     List.iter (fun (ip,port,ultrapeer) ->
-        if (not !gnutella2) then begin
-            lprintf "gnutella1: adding ultrapeer from %s\n" s.server_agent;
-            ignore (new_host ip port ultrapeer 1)
-          end
+        if !gnutella2 then begin
+            lprintf "gnutella2: adding ultrapeer from %s\n" s.server_agent;
+            ignore (new_host ip port ultrapeer 2)
+          end 
     ) !x_ultrapeers;    
     server_must_update (as_server s.server_server);
     s.server_gnutella2 <-  !gnutella2;
@@ -219,12 +219,12 @@ let rec server_parse_header nservers with_accept retry_fake s gconn sock header
       failwith (Printf.sprintf "Bad protocol [%s]" proto)
     else
     if not (!gnutella2) then
-      failwith "Protocol Gnutella2 not supported"
+      failwith "Protocol G2 not supported"
     else
     if code <> "200" then begin
         s.server_connected <- int32_time ();
         if retry_fake then begin
-            GnutellaGlobals.disconnect_from_server nservers s
+            G2Globals.disconnect_from_server nservers s
 (Closed_for_error "Bad HTTP code");
             connect_server nservers with_accept false s.server_host
             !keep_headers
@@ -260,7 +260,7 @@ let rec server_parse_header nservers with_accept retry_fake s gconn sock header
     set_rtimeout sock DG.half_day;
     set_server_state s (Connected (-1));
     s.server_connected <- int32_time ();    
-    GnutellaHandler.init s sock gconn;
+    G2Handler.init s sock gconn
         
   with
   | e -> 
@@ -324,7 +324,7 @@ end;  *)
                 
                 let s = 
                   let buf = Buffer.create 100 in
-(* Start by Gnutella2 headers *)
+(* Start by G2 headers *)
                   Buffer.add_string buf "GNUTELLA CONNECT/0.6\r\n";
                   Printf.bprintf buf "Listen-IP: %s:%d\r\n"
                     (Ip.to_string (client_ip (Connection sock))) !!client_port;
@@ -335,11 +335,12 @@ end;  *)
                       Printf.bprintf buf "User-Agent: %s\r\n" user_agent;
                       if with_accept then
                         Printf.bprintf buf "Accept: %s%s\r\n"
-                          ("application/x-gnutella-packets,")
-                        ("");
+                           ""
+                        "application/x-gnutella2";
+
 (* Contribute:  Packet compression is not yet supported...
 Printf.bprintf buf "Accept-Encoding: deflate\r\n"; *)
-(* Other Gnutella headers *)          
+(* Other G2 headers *)          
                       Printf.bprintf buf "X-Max-TTL: 4\r\n";
                       Printf.bprintf buf "Vendor-Message: 0.1\r\n";
                       Printf.bprintf buf "X-Query-Routing: 0.1\r\n";
@@ -396,11 +397,11 @@ let get_file_from_source c file =
           connection_failed c.client_connection_control;
 
           let uri = (find_download file c.client_downloads).download_uri in
-          List.iter (fun s ->
-              GnutellaProto.server_send_push s uid uri
-              ) !connected_servers;
+            List.iter (fun s ->
+                G2Proto.server_send_push s uid uri
+            ) !connected_servers;
       | _ ->
-          GnutellaClients.connect_client c
+          G2Clients.connect_client c
     end
 
 let exit = Exit
@@ -426,7 +427,7 @@ let recover_file file =
       with _ -> ()
   ) file.file_uids;
   
-  Gnutella.recover_file file;
+  G2Scheduler.recover_file file;
   ()
 
 let recover_files () =
@@ -523,7 +524,10 @@ let udp_handler p =
   in
   let buf = p.UdpSocket.content in
   let len = String.length buf in
-  lprintf "Unexpected UDP packet: \n%s\n" (String.escaped buf)
+  if len > 3 && String.sub buf 0 3 = "GND" then
+    G2Scheduler.udp_handler ip port buf
+  else
+    lprintf "Unexpected UDP packet: \n%s\n" (String.escaped buf)
       
 let _ =
   server_ops.op_server_disconnect <- (fun s -> disconnect_server s
@@ -543,18 +547,18 @@ let manage_host h =
         host_queue_add workflow h current_time;
 (* From here, we must dispatch to the different queues *)
             if h.host_udp_request + 600 < last_time () then begin
-(*              lprintf "g1_waiting_udp_queue\n"; *)
+(*              lprintf "g2_waiting_udp_queue\n"; *)
                 host_queue_add waiting_udp_queue h current_time;
               end;
-            if h.host_tcp_request + 600 < last_time () then begin
-                host_queue_add (if h.host_ultrapeer then begin
-(*                    lprintf "g1_ultrapeers_waiting_queue"; *)
-                      ultrapeers_waiting_queue
-                    end else begin
-(*                    lprintf "g1_peers_waiting_queue"; *)
-                      peers_waiting_queue
-                    end) h current_time;
-              end
+            if h.host_tcp_request + 600 < last_time () then
+              host_queue_add (if h.host_ultrapeer then begin
+(*                  lprintf "g2_ultrapeers_waiting_queue"; *)
+                    ultrapeers_waiting_queue
+                  end else begin
+(*                  lprintf "g2_peers_waiting_queue"; *)
+                    peers_waiting_queue
+                  
+                  end) h current_time;
       end    else 
     if max h.host_connected h.host_age > last_time () - 3 * 3600 then begin
         host_queue_add workflow h current_time;      

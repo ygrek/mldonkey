@@ -38,7 +38,7 @@ open GnutellaProtocol
 open GnutellaComplexOptions
 
   
-open Gnutella1Proto
+open GnutellaProto
 
 let update_user t =
   let module Q = QueryReply in
@@ -88,7 +88,7 @@ let server_to_client s p sock =
         };
       if s.server_need_qrt then begin
           s.server_need_qrt <- false;
-          Gnutella1Proto.send_qrt_sequence s false
+          GnutellaProto.send_qrt_sequence s false
         end
   
   
@@ -260,7 +260,7 @@ information. *)
   | _ -> ()
 
 let init s sock gconn =       
-  g1_connected_servers := s :: !g1_connected_servers;
+  connected_servers := s :: !connected_servers;
   server_send s 
   (new_packet (PingReq Ping.SimplePing));        
   server_send s 

@@ -28,10 +28,10 @@ open CommonGlobals
 open CommonTypes
 open CommonOptions
   
-open GnutellaOptions
-open GnutellaTypes
-open GnutellaProtocol
-open GnutellaGlobals
+open G2Options
+open G2Types
+open G2Protocol
+open G2Globals
   
 type addr = Ip.t * int
 
@@ -68,7 +68,7 @@ type g2_packet =
 | PUSH of addr
   
 | QHT_RESET
-| QHT_PATCH of GnutellaProtocol.QrtPatch.t
+| QHT_PATCH of G2Protocol.QrtPatch.t
   
 | QKR
 | QKR_RNA of addr
@@ -423,8 +423,8 @@ let g2_encode_payload msg =
     | PUSH addr -> M.buf_addr buf addr; "PUSH"
 
 (*  
-| QHT_reset of GnutellaProtocol.QrtReset.t
-| QHT_patch of GnutellaProtocol.QrtPatch.t
+| QHT_reset of G2Protocol.QrtReset.t
+| QHT_patch of G2Protocol.QrtPatch.t
 *)
     
     
