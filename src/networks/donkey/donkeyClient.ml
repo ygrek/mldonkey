@@ -256,7 +256,12 @@ end;
                 )) c.client_files;      
       lprint_newline (); *)
       set_client_disconnected c reason;
+      try
+	(*source_of_client raise an Exit exception for indirect 
+	  useless conenctions,
+	Not sure if i should catch here or not.*)
       DonkeySources.source_of_client c
+      with _ -> ()
   
 let client_send_if_possible c sock msg =
   if can_write_len sock (!!client_buffer_size/2) then
@@ -788,11 +793,11 @@ let client_to_client for_files c t sock =
       send_pending_messages c sock;
       
       set_client_state c (Connected (-1));      
-      
+      (* one is enough
       if not (register_client_hash (peer_ip sock) t.CR.md4) then
         if !!ban_identity_thieves then
           ban_client c sock "is probably using stolen client hashes";
-        
+      *)
         query_files c sock;
       query_view_files c;
       client_must_update c;      
@@ -1066,10 +1071,6 @@ other one for unlimited sockets.  *)
           if file_size file <= block_size then 
             client_has_chunks c file [| true |];
           
-          DonkeyProtoCom.direct_client_send c (
-            let module M = DonkeyProtoClient in
-            M.QueryChunksReq file.file_md4);      
-        
         with _ -> ()
       end  
   
@@ -1439,9 +1440,7 @@ is checked for the file.
               });
             DonkeySourcesMisc.query_file c file
           
-          with _ -> 
-              direct_client_send c (
-                M.NoSuchFileReq t)
+          with _ -> ()	    
         end
   
   
@@ -1572,6 +1571,9 @@ end else *)
           });
         DonkeySourcesMisc.query_file c file
       with 
+	| Not_found ->            
+	    direct_client_send c (
+              M.NoSuchFileReq t)
 	| _ -> ()
       end
   
@@ -1920,12 +1922,16 @@ let read_first_message overnet m sock =
       send_pending_messages c sock;
             
       set_client_state c (Connected (-1));      
+      DonkeySources.client_connected c;
       
+(* One is enough
       if not (register_client_hash (peer_ip sock) t.CR.md4) then
 	if !!ban_identity_thieves then
-          ban_client c sock "is probably using stolen client hashes";
+   ban_client c sock "is probably using stolen client hashes";*)
       
-      query_files c sock;  
+      (*  wait to know which files the other client have to request
+	  for files
+	  query_files c sock;  *)
       query_view_files c;
       client_must_update c;
       is_banned c sock;

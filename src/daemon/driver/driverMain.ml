@@ -132,7 +132,12 @@ let _ =
     | e -> lprintf (_b "Error while reading motd.conf(%s): %s\n") filename
 	(Printexc2.to_string e); 
 	close_in ic
-			   )
+			   );
+  add_web_kind "guarding.p2p" (fun filename ->
+      Ip_set.bl := Ip_set.load filename
+(*      Ip_set.bl := Ip_set.load_merge !Ip_set.bl filename *)
+  )
+
 
 
 let save_mlsubmit_reg () =

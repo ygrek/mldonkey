@@ -485,32 +485,30 @@ let web_infos = define_option current_section
     IMPORTANT: Put the URL and the kind between quotes.
     EXAMPLE:
  web_infos = [
-  ('server.met', 1, 'http://www.primusnet.ch/users/komintern/ed2k/min/server.met'
- )]
+  ('server.met', 1, 'http://www.primusnet.ch/users/komintern/ed2k/min/server.met');
+  ('guarding.p2p', 2, 'http://homepage.ntlworld.com/tim.leonard1/guarding.p2p')
+
+ ]
   "
     (list_option (
       tuple3_option (string_option, int_option, string_option)))
   [
     ("server.met", 1, "http://ocbmaurice.dyndns.org/pl/slist.pl/server.met?download/server-best.met");
     ("ocl",1, "http://members.lycos.co.uk/appbyhp2/FlockHelpApp/contact-files/contact.ocl" );
-
+    ("guarding.p2p", 1, "http://www.peerguardian.net/pgipdb/guarding.p2p");
   ]
   
 let ip_blocking = define_expert_option current_section ["ip_blocking"]
     "IP blocking list filename (peerguardian format)" string_option 
     (Filename.concat file_basedir "guarding.p2p")
 
-let load_blocking () =
-  try
-    Ip_set.bl := if !!ip_blocking <> "" then 
-                   Ip_set.load !!ip_blocking
-                 else Ip_set.bl_empty
-  with _ -> ()
-
 let _ =
-  load_blocking ();
   option_hook ip_blocking (fun _ ->
-        load_blocking ()
+    try
+      Ip_set.bl := if !!ip_blocking <> "" then 
+      	             Ip_set.load !!ip_blocking
+        	   else Ip_set.bl_empty
+    with _ -> ()
   )
   
 let tcpip_packet_size = define_expert_option current_section ["tcpip_packet_size"]

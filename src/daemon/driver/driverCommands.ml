@@ -34,6 +34,7 @@ open CommonComplexOptions
 open Options
 open BasicSocket
 open TcpBufferedSocket
+open Ip_set
 open DriverInteractive
 open CommonOptions
 open CommonInteractive
@@ -2355,4 +2356,15 @@ let _ =
         BasicSocket.print_sockets o.conn_buf;
         _s "done"), ":\t\t\t\tfor debugging only";
 
+    "block_list", Arg_none (fun o ->
+      Ip_set.print_list o.conn_buf !Ip_set.bl;
+      _s "done"), ":\t\t\tdisplay the list of blocked IP ranges that were hit";
+
+    "block_test", Arg_one (fun arg o ->
+      let ip = Ip.of_string arg in
+      _s (match match_ip_aux !Ip_set.bl ip with
+	  None -> "Not blocked"
+	| Some br ->
+	    Printf.sprintf "Blocked, %s\n" br.blocking_description)),
+      "<ip> :\t\t\tcheck whether an IP is blocked";
   ]

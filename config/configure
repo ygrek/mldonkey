@@ -1217,7 +1217,7 @@ MYCONFIG_ARGS_DEFINED=yes
 echo $MYCONFIG_ARGS
 
 CURRENT_VERSION=2.5
-CURRENT_RELEASE=15
+CURRENT_RELEASE=16
 
 REQUIRED_OCAML=3.07
 DOWNLOAD_OCAML=3.07pl2
@@ -8060,6 +8060,43 @@ fi
 if test -f $OCAMLLIB/lablgl.$OCAMLLIB_EXT; then
   LABLGL_CMXA=lablgl.$OCAMLLIB_EXT
 fi
+
+  if test "$DONKEY" = "yes"; then
+    if test "$ZLIB" = "yes"; then
+       echo "$as_me:$LINENO: checking for ../src/networks/donkey" >&5
+echo $ECHO_N "checking for ../src/networks/donkey... $ECHO_C" >&6
+if test "${ac_cv_file____src_networks_donkey+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  test "$cross_compiling" = yes &&
+  { { echo "$as_me:$LINENO: error: cannot check for file existence when cross compiling" >&5
+echo "$as_me: error: cannot check for file existence when cross compiling" >&2;}
+   { (exit 1); exit 1; }; }
+if test -r "../src/networks/donkey"; then
+  ac_cv_file____src_networks_donkey=yes
+else
+  ac_cv_file____src_networks_donkey=no
+fi
+fi
+echo "$as_me:$LINENO: result: $ac_cv_file____src_networks_donkey" >&5
+echo "${ECHO_T}$ac_cv_file____src_networks_donkey" >&6
+if test $ac_cv_file____src_networks_donkey = yes; then
+  DONKEY=yes
+else
+
+         DONKEY=no
+         BAD_TARGETS="$BAD_TARGETS donkey"
+
+fi
+
+    else
+       DONKEY=no
+       BAD_TARGETS="$BAD_TARGETS donkey(no Zlib)"
+    fi
+  else
+    DONKEY=no
+    BAD_TARGETS="$BAD_TARGETS donkey"
+  fi
 
   if test "$AUDIO_GALAXY" = "yes" ; then
     echo "$as_me:$LINENO: checking for ../src/networks/audio_galaxy" >&5

@@ -48,6 +48,7 @@ open CommonFile
 open Options
 open BasicSocket
 open TcpBufferedSocket
+open Ip_set
 
 open CommonGlobals
 open CommonSwarming  
@@ -963,14 +964,13 @@ let listen () =
 (*Reject this connection if we don't want
 		to bypass the max_connection parameter*)
               if can_open_connection connection_manager && 
-		(try
-		   Ip_set.match_ip !Ip_set.bl ip;
-		   true
-		 with Ip_set.MatchedIP s ->
-		   if !verbose_connect then
-		     lprintf "%s:%d blocked: %s\n"
-		       (Ip.to_string ip) from_port s;
-		   false)		
+		(match Ip_set.match_ip !Ip_set.bl ip with
+		     None -> true
+		   | Some br ->
+		       if !verbose_connect then
+			 lprintf "%s:%d blocked: %s\n"
+			   (Ip.to_string ip) from_port br.blocking_description;
+		       false)		
 	      then
                 begin
                   let token = create_token connection_manager in
@@ -1115,14 +1115,13 @@ for parsing the response*)
                         
                         if !peer_id != Sha1.null &&
                           !peer_ip != Ip.null && !port <> 0 && 
-				      (try
-					 Ip_set.match_ip !Ip_set.bl !peer_ip;
-					 true
-				       with Ip_set.MatchedIP s ->
-					 if !verbose_connect then
-					   lprintf "%s:%d blocked: %s\n"
-					     (Ip.to_string !peer_ip) !port s;
-					 false)
+			   (match match_ip !Ip_set.bl !peer_ip with
+				None -> true
+			      | Some br ->
+				  if !verbose_connect then
+				    lprintf "%s:%d blocked: %s\n"
+				      (Ip.to_string !peer_ip) !port br.blocking_description;
+				  false)
 			then
                           let c = new_client file !peer_id (!peer_ip,!port)
                           in

@@ -1,7 +1,14 @@
 ChangeLog	
 =========
 
-2004/03/06: Fabrice (version 2.5.15, tag release-2-5-15)
+2004/03/07: Fabrice (version 2.5.16, tag release-2-5-16)
+  - Applied patches:
+        #2750 (blocking_updated2), #2753 (bug 2586)
+        #2751 (get_range)          #2754 (depend_mingw)
+        #2752 (sourcesanitize)
+
+
+2004/03/07: Fabrice (version 2.5.15, tag release-2-5-15)
   - Applied patches #2755 (joinqueuemd4), #2866 (bttt), #2867 (buf_str)
 
 

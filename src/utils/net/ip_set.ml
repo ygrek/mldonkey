@@ -1,10 +1,13 @@
 
 open Printf2
 
-exception MatchedIP of string
-
 (* range name, ip min, ip max (inclusive) *)
-type blocking_range = string * Ip.t * Ip.t 
+type blocking_range = {
+  blocking_description: string;
+  blocking_begin: Ip.t;
+  blocking_end: Ip.t;
+  mutable blocking_hits: int
+}
 
 (* Red-Black tree *)
 type blocking_list =
@@ -20,17 +23,21 @@ let ip_maxi x y = if Ip.compare x y > 0 then x else y
 let rec add_range bl br =
   blacken_root (ins bl br)
 
-and ins bl ((s, ip_begin, ip_end) as br) =
+and ins bl br =
   match bl with
       BL_Empty -> BL_Range (true, BL_Empty, br, BL_Empty)
-    | BL_Range (red, left, ((s2, ip_begin2, ip_end2) as br2), right) ->
-	if Ip.compare ip_end ip_begin2 < 0 then
+    | BL_Range (red, left, br2, right) ->
+	if Ip.compare br.blocking_end br2.blocking_begin < 0 then
 	  fixup (BL_Range (red, (add_range left br), br2, right))
-	else if Ip.compare ip_begin ip_end2 > 0 then
+	else if Ip.compare br.blocking_begin br2.blocking_end > 0 then
 	  fixup (BL_Range (red, left, br2, (add_range right br)))
 	else (* ok, comments aren't preserved. Beat me. *)
              (* left and right aren't simplified either *)
-	  let newr = (s, ip_mini ip_begin ip_begin2, ip_maxi ip_end ip_end2) in
+	  let newr = {
+	    blocking_description = br.blocking_description;
+	    blocking_begin = ip_mini br.blocking_begin br2.blocking_begin;
+	    blocking_end = ip_maxi br.blocking_end br2.blocking_end;
+	    blocking_hits = 0 } in
 	  BL_Range (red, left, newr, right)
 
 and fixup bl =
@@ -47,35 +54,42 @@ and blacken_root bl =
       BL_Empty -> BL_Empty
     | BL_Range(_, left, v, right) -> BL_Range(false, left, v, right)
 
-let rec match_ip bl ip =
+let rec match_ip_aux bl ip =
   match bl with
-      BL_Empty -> ()
-    | BL_Range (red, left, (s, ip_begin, ip_end), right) ->
-	if Ip.compare ip ip_begin < 0 then
-	  match_ip left ip
-	else if Ip.compare ip ip_end > 0 then
-	  match_ip right ip
-	else raise (MatchedIP s)
+      BL_Empty -> None
+    | BL_Range (red, left, br, right) ->
+	if Ip.compare ip br.blocking_begin < 0 then
+	  match_ip_aux left ip
+	else if Ip.compare ip br.blocking_end > 0 then
+	  match_ip_aux right ip
+	else
+	  Some br
 
-(* Example: http://homepage.ntlworld.com/tim.leonard1/guarding.p2p
-   That module could be improved to declare a new resource kind, that
-   could be fetched periodically... *)
+let match_ip bl ip =
+  let m = match_ip_aux bl ip in
+  (match m with
+      Some br ->
+	br.blocking_hits <- br.blocking_hits + 1
+    | None -> ());
+  m
 
-let load filename =
+let load_merge bl filename =
   let guardian_regexp = Str.regexp "^\\(.*\\): *\\([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+\\)-\\([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+\\)" in
 
   let cin = open_in filename in
-  let bl = ref bl_empty in
+  let bl = ref bl in
   let nranges = ref 0 in
   try
     while true do
       let line = input_line cin in
 	try
 	  if Str.string_match guardian_regexp line 0 then begin
-	    let comment = Str.matched_group 1 line in
-	    let ip_begin = Ip.of_string (Str.matched_group 2 line) in
-	    let ip_end = Ip.of_string (Str.matched_group 3 line) in
-	    bl := add_range !bl (comment, ip_begin, ip_end);
+	    let br = {
+	      blocking_description = Str.matched_group 1 line;
+	      blocking_begin = Ip.of_string (Str.matched_group 2 line);
+	      blocking_end = Ip.of_string (Str.matched_group 3 line);
+	      blocking_hits = 0 } in
+	    bl := add_range !bl br;
 	    incr nranges
 	  end else 
 	    raise Not_found
@@ -90,6 +104,9 @@ let load filename =
     lprint_newline ();
     !bl
 
+let load filename =
+  load_merge bl_empty filename
+
 let of_list l =
   let rec of_list_aux l bl =
     match l with
@@ -97,13 +114,52 @@ let of_list l =
       | h :: q ->
 	  let range = match Ip.to_ints h with
 (* only the most standard usages of the old syntax are supported *)
-	      255, 255, 255, 255 -> ("", Ip.of_ints (0, 0, 0, 0), Ip.of_ints (255, 255, 255, 255))
-	    | a, 255, 255, 255 -> ("", Ip.of_ints (a, 0, 0, 0), Ip.of_ints (a, 255, 255, 255))
-	    | a, b, 255, 255 -> ("", Ip.of_ints (a, b, 0, 0), Ip.of_ints (a, b, 255,255))
-	    | a, b, c, 255 -> ("", Ip.of_ints (a, b, c, 0), Ip.of_ints (a, b, c, 255))
-	    | _ -> ("", h, h) in
+	      255, 255, 255, 255 -> 
+		{ blocking_description = "";
+		  blocking_begin = Ip.of_ints (0, 0, 0, 0);
+		  blocking_end = Ip.of_ints (255, 255, 255, 255);
+		  blocking_hits = 0 }
+	    | a, 255, 255, 255 -> 
+		{ blocking_description = "";
+		  blocking_begin = Ip.of_ints (a, 0, 0, 0);
+		  blocking_end = Ip.of_ints (a, 255, 255, 255);
+		  blocking_hits = 0 }
+	    | a, b, 255, 255 -> 
+		{ blocking_description = "";
+		  blocking_begin = Ip.of_ints (a, b, 0, 0);
+		  blocking_end = Ip.of_ints (a, b, 255,255);
+		  blocking_hits = 0 }
+	    | a, b, c, 255 -> 
+		{ blocking_description = "";
+		  blocking_begin = Ip.of_ints (a, b, c, 0);
+		  blocking_end = Ip.of_ints (a, b, c, 255);
+		  blocking_hits = 0 }
+	    | _ -> 
+		{ blocking_description = "";
+		  blocking_begin = h;
+		  blocking_end = h;
+		  blocking_hits = 0 } in
 	  of_list_aux q (add_range bl range) in
   of_list_aux l BL_Empty
+
+let print_list buf bl =
+
+  let rec print_list_aux bl =
+    match bl with
+	BL_Empty -> 0
+      | BL_Range (red, left, br, right) ->
+	  let nleft = print_list_aux left in
+	  if br.blocking_hits > 0 then
+	    Printf.bprintf buf "%s (%d hits): %s - %s\n" 
+	      br.blocking_description
+	      br.blocking_hits
+	      (Ip.to_string br.blocking_begin)
+	      (Ip.to_string br.blocking_end);
+	  let nright = print_list_aux right in
+	    nleft + 1 + nright in
+
+  let count = print_list_aux bl in
+  Printf.bprintf buf "%d ranges\n" count
 
 let bl = ref BL_Empty
 

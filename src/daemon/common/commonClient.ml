@@ -329,6 +329,7 @@ let new_client (client : 'a client_impl) =
   new_client_with_num client (book_client_num ())
   
 let client_remove c =
+  H.remove clients_by_num c;
   set_client_state c RemovedHost
   
 let client_type c =

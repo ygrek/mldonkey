@@ -18,7 +18,7 @@
 *)
 
 open Sys
-open Int32ops
+open Int64ops
 open Gettext
 open Md4
 open LittleEndian

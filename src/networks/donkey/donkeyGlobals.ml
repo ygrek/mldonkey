@@ -31,6 +31,7 @@ open Options
 open CommonTypes
 open DonkeyTypes
 open BasicSocket
+open Ip_set
 open CommonOptions
 open DonkeyOptions
 open CommonOptions
@@ -365,14 +366,12 @@ let is_black_address ip port =
 (* lprintf "is black ="; *)
     not (ip_reachable ip) || (Ip.matches ip !!server_black_list) ||
     (List.mem port !!port_black_list) ||
-    (try
-       Ip_set.match_ip !Ip_set.bl ip;
-       false
-     with Ip_set.MatchedIP s ->
-       if !verbose_connect then begin
-	 lprintf "%s:%d blocked: %s\n" (Ip.to_string ip) port s
-       end;
-       true))
+    (match match_ip !Ip_set.bl ip with
+	 None -> false
+       | Some br ->
+	   if !verbose_connect then
+	     lprintf "%s:%d blocked: %s\n" (Ip.to_string ip) port br.blocking_description;
+	   true))
       
 let new_server ip port score = 
   let key = (ip, port) in
@@ -705,6 +704,7 @@ let server_num c = server_num (as_server c.server_server)
   
 let remove_client c =
   client_remove (as_client c.client_client);
+  H.remove clients_by_kind c; 
 (*  hashtbl_remove clients_by_kind c.client_kind c; *)
 (*  hashtbl_remove clients_by_name c.client_name c *)
   ()
@@ -756,7 +756,9 @@ let string_of_file_state s =
   | FileAborted s -> Printf.sprintf "Aborted: %s" s
   | FileQueued -> "File Queued"
       
-let left_bytes = "MLDK"
+
+(* First patch for removing MLDK by devein(?) *)
+let left_bytes = ""
 
 let overnet_server_ip = ref Ip.null
 let overnet_server_port = ref 0
