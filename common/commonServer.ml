@@ -44,6 +44,7 @@ and 'a server_ops = {
     mutable op_server_users : ('a -> user list);
     mutable op_server_query_users : ('a -> unit);
     mutable op_server_find_user : ('a -> string -> unit);
+    mutable op_server_cid : ('a -> Ip.t);
   }
 
 let ni n m = 
@@ -153,6 +154,9 @@ let server_users s =
   let s = as_server_impl s in
   s.impl_server_ops.op_server_users s.impl_server_val
 
+let server_cid s =
+  let s = as_server_impl s in
+  s.impl_server_ops.op_server_cid s.impl_server_val
   
 let servers_ops = ref []
 let new_server_ops network =
@@ -168,6 +172,7 @@ let new_server_ops network =
       op_server_find_user = (fun _ -> fni network "find_user");
       op_server_query_users = (fun _ -> ni_ok network "query_users");
       op_server_users = (fun _ -> fni network "users");
+      op_server_cid = (fun _ -> fni network "cid");
     } in
   let ss = (Obj.magic s : int server_ops) in
   servers_ops := (ss, { ss with op_server_network = s.op_server_network })
@@ -199,6 +204,8 @@ let check_server_implementations () =
         Printf.printf "op_server_query_users\n";
       if c.op_server_users == cc.op_server_users then
         Printf.printf "op_server_users\n";
+      if c.op_server_cid == cc.op_server_cid then
+        Printf.printf "op_server_cid\n";
   ) !servers_ops;
   print_newline () 
 
@@ -307,6 +314,7 @@ let server_print s o =
     Printf.bprintf buf "
     \\<td class=\\\"srb\\\" %s \\>%d\\</td\\>
     %s
+    \\<td class=\\\"sr\\\" %s\\</td\\>
     \\<td class=\\\"sr\\\"\\>%s\\</td\\>
     \\<td class=\\\"sr\\\"\\>%s\\</td\\>
     \\<td class=\\\"sr br\\\"\\>%s:%d\\</td\\>
@@ -337,7 +345,21 @@ let server_print s o =
         NotConnected _ -> "Connect"
       | _ -> "Disconnect")
       )
+      
+      (if n.network_name = "Donkey" then 
+        begin
+            match impl.impl_server_state with
+            Connected _ -> begin 
+                        let cid = (server_cid s) in
+                        if !!set_client_ip = cid then Printf.sprintf 
+                        "title=\\\"HighID: %s\\\" \\>%s" (Ip.to_string cid) "Hi"
+                        else Printf.sprintf "title=\\\"LowID: %s\\\" \\>%s" 
+                        (Int64.to_string (Ip.to_int64 (Ip.rev cid))) "Lo"
+                        end
+        | _ -> "\\>"
 
+       end else "\\>" )
+      
       n.network_name
    (string_of_connection_state impl.impl_server_state)
       (string_of_addr info.G.server_addr) 

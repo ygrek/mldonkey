@@ -199,14 +199,18 @@ let load_config () =
 (* Here, we try to update options when a new version of mldonkey is
 used. For example, we can add new web_infos... *)
   if !!options_version < 1 then begin
-      Printf.printf "Updating options"; print_newline ();
+      Printf.printf "Updating options to level 1"; print_newline ();
       web_infos =:= 
         (
         ("server.met", 1, "http://savannah.nongnu.org/download/mldonkey/network/servers.met");        
         ):: 
       !!web_infos;
     end;
-  options_version =:= 1;
+  if !!options_version < 2 then begin
+      Printf.printf "Updating options to level 2"; print_newline ();
+      if !!min_reask_delay = 720 then min_reask_delay =:= 600
+    end;
+  options_version =:= 2;
   
 (**** PARSE ARGUMENTS ***)    
 

@@ -301,6 +301,7 @@ let value_to_file is_done assocs =
   
   let md4s = get_value_nil "file_md4s" (value_to_list value_to_md4) in
   file.file_md4s <- (if md4s = [] then file.file_md4s else md4s);
+  register_md4s md4s file file_size;
   as_file file.file_file
   
   
@@ -503,6 +504,7 @@ module ClientOption = struct
           if r.request_result > File_not_found then begin
               files := once_value (Md4.hash_to_value r.request_file.file_md4)
               :: !files;
+              (*
               score := !score + (match r.request_result with
                 | File_possible
                 | File_not_found -> 0
@@ -510,7 +512,8 @@ module ClientOption = struct
                 | File_new_source -> 1
                 | File_found -> 20
                 | File_chunk -> 40
-                | File_upload -> 60)
+| File_upload -> 60)
+  *)
             end
       ) s.source_files;
       
@@ -617,7 +620,7 @@ let diff_time = ref 0
 let save _ =
   Printf.printf "SAVING SHARED FILES AND SOURCES"; print_newline ();
   Options.save_with_help shared_files_ini;
-  guptime =:= !!guptime + (last_time () - start_time);
+  guptime =:= !!guptime + (last_time () - start_time) - !diff_time;
   diff_time := (last_time () - start_time);
   Options.save_with_help stats_ini;
   sources =:= [];

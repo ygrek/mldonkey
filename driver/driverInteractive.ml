@@ -36,11 +36,6 @@ open CommonOptions
 open CommonTypes
 
    
-let saved_upload_udp_rate = ref 0
-let saved_upload_tcp_rate = ref 0
-let saved_download_udp_rate = ref 0
-let saved_download_tcp_rate = ref 0
-
 (* ripped from gui_downloads *)
 
 let time_to_string time =
@@ -72,7 +67,7 @@ let calc_file_eta f =
     else rate
   in
   let eta = 
-    if rate < 0.1
+    if rate < 11.
     then 1000.0 *. 60.0 *. 60.0 *. 24.0
     else missing /. rate
   in
@@ -726,7 +721,14 @@ let display_file_list buf o =
         match o.conn_sortvd with
         
         | BySize -> (fun f1 f2 -> f1.file_size >= f2.file_size)
-        | ByRate -> (fun f1 f2 -> f1.file_download_rate >= f2.file_download_rate)
+        | ByRate -> (fun f1 f2 -> 
+                        (match f1.file_state with
+                        FilePaused -> false
+                      | _ -> match f2.file_state with
+                              FilePaused -> true
+                            | _ -> f1.file_download_rate >= f2.file_download_rate
+                        )
+                    )
         | ByName -> (fun f1 f2 -> f1.file_name <= f2.file_name)
         | ByDone -> (fun f1 f2 -> f1.file_downloaded >= f2.file_downloaded)
         | ByPercent -> (fun f1 f2 -> percent f1 >= percent f2)

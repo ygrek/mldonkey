@@ -1155,3 +1155,12 @@ let strings_of_option o =
       match o.string_wrappers with
         None -> value_to_string (o.option_class.to_value o.option_value)
       | Some (to_string, _) -> to_string o.option_value
+
+let strings_of_option_html o = 
+  match o.option_name with
+  | [] | _ :: _ :: _ -> failwith "Complex option"
+  | [name] -> 
+      match o.string_wrappers with
+      | None -> name, value_to_string (o.option_class.to_value o.option_value), value_to_string (o.option_class.to_value o.option_default), o.option_help
+      | Some (to_string, _) -> name, to_string o.option_value, value_to_string (o.option_class.to_value o.option_default), o.option_help
+

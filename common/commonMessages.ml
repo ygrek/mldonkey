@@ -44,6 +44,7 @@ let html_header_mods2 = define_option message_file ["html_header_mods2"]
 <!--
 
 pre {color: #000; font-family: Courier, Arial, Helvetica, sans-serif; font-size: 12px;}
+p {color: #000; font-family: Verdana, Courier, Arial, Helvetica, sans-serif; font-size: 12px;}
 body {
 font-family: Verdana, sans-serif;
 font-size: 12px;
@@ -168,6 +169,13 @@ table.vo {
     border: #000 solid 1px;
 }
 table.downloaders {
+	margin-right: auto;
+	margin-left: auto;
+	border: 1; 
+	border: #000 solid 1px;
+	border-collapse: collapse;
+}
+table.scan_temp {
 	margin-right: auto;
 	margin-left: auto;
 	border: 1; 

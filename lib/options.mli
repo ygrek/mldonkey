@@ -162,4 +162,5 @@ val prefixed_args :
 
 val once_value : option_value -> option_value
 val strings_of_option : 'a option_record -> string * string
+val strings_of_option_html : 'a option_record  -> string * string * string * string
   

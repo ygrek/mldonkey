@@ -609,15 +609,49 @@ let commands = [
     "scan_temp", Arg_none (fun o ->
         let buf = o.conn_buf in
         let list = Unix2.list_directory !!temp_directory in
+
+
+        let counter = ref 0 in
+        let tr = ref "dl-1" in
+        
+        if o.conn_output = HTML && !!html_mods then
+                
+                Printf.bprintf buf "\\<table class=\\\"scan_temp\\\"\\>\\<tr\\>
+\\<td title=\\\"Filename\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Filename\\</td\\>
+\\<td title=\\\"Status\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Status\\</td\\>
+\\<td title=\\\"MD4\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>MD4\\</td\\>
+\\</TR\\>
+";
         List.iter (fun filename ->
+            incr counter;
+            if (!counter mod 2 == 0) then tr := "dl-1"
+                                     else tr := "dl-2";
             try
               let md4 = Md4.of_string filename in
               try
                 let file = find_file md4 in
+                if o.conn_output = HTML && !!html_mods then
+                Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+                \\<td class=\\\"sr \\\"\\>%s\\</td\\> 
+                \\<td class=\\\"sr \\\"\\>%s\\</td\\>\\</tr\\>" 
+                 !tr (file_best_name file) "Downloading" filename
+                else
                 Printf.bprintf buf "%s is %s %s\n" filename
                   (file_best_name file)
                 "(downloading)" 
               with _ ->
+                if o.conn_output = HTML && !!html_mods then
+                Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+                \\<td class=\\\"sr \\\"\\>%s\\</td\\> 
+                \\<td class=\\\"sr \\\"\\>%s\\</td\\>\\</tr\\>" !tr 
+                  (try
+                      let names = DonkeyIndexer.find_names md4 in
+                      List.hd names
+                    with _ -> "Never Seen") 
+                    (if List.mem md4 !!old_files then
+                      "Old file" else "Unknown")
+                      filename
+                else
                   Printf.bprintf buf "%s %s %s\n"
                     filename
                     (if List.mem md4 !!old_files then
@@ -628,9 +662,17 @@ let commands = [
                     with _ -> "and never seen")
             
             with _ -> 
+                if o.conn_output = HTML && !!html_mods then
+                Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>\\<td class=\\\"sr\\\"\\>Unknown\\</td\\>
+                \\<td class=\\\"sr \\\"\\>\\</td\\> 
+                \\<td class=\\\"sr \\\"\\>%s\\</td\\>\\</tr\\>" !tr filename 
+                else
                 Printf.bprintf buf "%s unknown\n" filename
         
         ) list;
+
+        if o.conn_output = HTML && !!html_mods then Printf.bprintf buf "\\</table\\>";
+                
         "done";
     ), ":\t\t\t\tprint temp directory content";
     
@@ -1077,6 +1119,9 @@ let _ =
   );
   server_ops.op_server_users <- (fun s ->
       List2.tail_map (fun u -> as_user u.user_user) s.server_users)    ;
+  server_ops.op_server_cid <- (fun s -> 
+            s.server_cid);
+
   ()
 
 let _ =

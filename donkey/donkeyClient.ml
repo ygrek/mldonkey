@@ -171,6 +171,37 @@ and find_pending_slot () =
     iter ()
   with _ -> ()
 
+let not_saturated_count = ref 0
+
+(* The estimation is based on the bandwidth computed in update_gui_info,
+which is only executed every update_gui_delay seconds, while this 
+function has to be called often, here every second. *)
+  
+let refill_upload_slots () =
+  if !!dynamic_slots then begin
+      let slot_bw = 2560 in
+      let min_upload_slots = 3 in
+(*  let estimated_capacity = !!max_hard_upload_rate * 1024 in *)
+      let estimated_capacity = Array.fold_left maxi 0 upload_history in
+      let len = Fifo.length upload_clients in
+      if len < !!max_upload_slots then begin
+
+(* enough free bw for another slot *)
+          if upload_usage () + slot_bw < estimated_capacity then
+            incr not_saturated_count
+          else
+            not_saturated_count := 0;
+          
+          if len < min_upload_slots ||
+            !not_saturated_count = 2 then begin
+              find_pending_slot ();
+              not_saturated_count := 0
+            end
+        end
+    end else 
+  let len = Fifo.length upload_clients in
+  if len < !!max_upload_slots then find_pending_slot ()
+    
 let log_client_info c sock = 
   let buf = Buffer.create 100 in
   let date = BasicSocket.date_of_int (last_time ()) in
@@ -245,7 +276,7 @@ let disconnect_client c =
 end;
   *)
 (*        c.client_file_queue <- [];  *)
-          if c.client_upload != None then find_pending_slot ();
+          if c.client_upload != None then refill_upload_slots ();
           DonkeyOneFile.clean_client_zones c;
           
         with e -> Printf.printf "Exception %s in disconnect_client"
@@ -535,102 +566,6 @@ let client_has_chunks c file chunks =
               Printf.printf "client_has_chunks: EXCEPTION"; print_newline ()
             end
     end
-      
-(*      
-let add_new_location sock file c =
-  
-  let module M = DonkeyProtoClient in
-  
-  if !!propagate_sources &&
-    (match c.client_brand with
-	 Brand_mldonkey1 | Brand_overnet -> false
-       | _ -> true) &&
-    last_time () -. connection_last_conn c.client_connection_control < 300.
-  then begin
-(* Send the known sources to the client. *)
-      
-      if client_can_receive c then begin
-          match c.client_kind with 
-            Indirect_location _ -> ()
-          | Known_location(ip, port) ->
-
-(* send at most 10 sources connected in the last quarter to this new location *)
-              let sources = ref [] in
-              let send_locations = ref 10 in
-              let time = last_time () -. 900. in
-              try
-                Intmap.iter (fun _ cc ->
-                    if cc.client_checked &&
-                      connection_last_conn cc.client_connection_control > time
-                    then
-                      match cc.client_kind with
-                      | Known_location (ip, port) -> 
-                          sources := (ip, port, ip) :: !sources;
-                          decr send_locations;
-                          if !send_locations = 0 then
-                            raise Exit;
-                      | _ -> ()
-                ) file.file_sources;
-              with _ -> ();
-                  
-                  if !sources <> [] then
-                    client_send_if_possible sock ( (
-                        let module Q = M.Sources in
-                        M.SourcesReq {
-                          Q.md4 = file.file_md4;
-                          Q.sources = !sources;
-                        }));
-        end;
-      
-      match c.client_kind with
-            Indirect_location _ -> ()
-          | Known_location (ip, port) ->
-              try
-(* send this location to at most 10 other locations, 
-		 connected in the last quarter *)
-                let counter = ref 10 in
-
-(* send this location to  all connected locations *)
-                let msg = 
-                  let module Q = M.Sources in
-                  M.SourcesReq {
-                    Q.md4 = file.file_md4;
-                    Q.sources = [(ip, port, ip)];
-                  }
-                in
-                let time = last_time () -. 900. in
-                Intmap.iter (fun _ uc ->
-                    if uc.client_checked &&
-                      (client_can_receive uc) &&
-                      connection_last_conn uc.client_connection_control  
-                        > time then
-                      match uc.client_kind with
-                        Known_location (src_ip, src_port) -> 
-                          
-                          client_udp_send src_ip src_port (
-                            let module Q = DonkeyProtoServer.QueryLocationReply in
-                            DonkeyProtoServer.QueryLocationReplyUdpReq {
-                              Q.md4 = file.file_md4;
-                              Q.locs = [{ 
-                                  Q.ip = ip;
-                                  Q.port = port;
-                                }];
-                            });
-                          decr counter;
-                          if !counter = 0 then raise Exit;
-                          
-                          | _ -> 
-                          match uc.client_sock with 
-                            None -> ()
-                              | Some sock -> 
-                              client_send_if_possible sock msg;
-                              decr counter;
-                              if !counter = 0 then raise Exit;
-                
-                ) file.file_sources;
-              with _ -> ();
-    end
-      *)
 
 
 (* Nice to see some emule devels here... It's always possible to 
@@ -919,7 +854,9 @@ print_newline ();
                   raise Exit;
           end;
           
-          give_a_slot c
+(*	  set_rtimeout sock !!upload_timeout; *)
+	  set_lifetime sock one_day;
+	  add_pending_slot c
         
         with _ ->
             add_pending_slot c;
@@ -1071,8 +1008,10 @@ is checked for the file.
             if md4 <> file.file_md4 then begin
                 Printf.printf "[ERROR]: Bad list of MD4s, discarding"; 
                 print_newline ();
-              end else
-              file.file_md4s <- md4s
+              end else begin
+                register_md4s md4s file (file_size file);
+                file.file_md4s <- md4s
+              end
           
           
           end

@@ -145,7 +145,8 @@ let password = define_option downloads_ini ["password"]
 
   
 let allowed_ips = define_option downloads_ini ["allowed_ips"]
-    "list of IP address allowed to control the client via telnet/GUI/WEB"
+  "list of IP address allowed to connect to the core via telnet/GUI/WEB
+list separated by spaces, wildcard=255 ie: use 192.168.0.255 for 192.168.0.* "
     (list_option Ip.option) [Ip.of_string "127.0.0.1"]
   
 let enable_server = define_option downloads_ini
@@ -221,7 +222,13 @@ let mail = define_option downloads_ini ["mail"]
   "Your e-mail if you want to receive mails when downloads are completed"
     string_option ""
 
+let add_mail_brackets = define_option downloads_ini ["add_mail_brackets"]
+  "Does your mail-server need <...> around addresses"
+  bool_option false
   
+let filename_in_subject = define_option downloads_ini ["filename_in_subject"]
+    "Send filename in mail subject" bool_option true
+
 let web_infos = define_option downloads_ini
     ["web_infos"] "A list of lines to download on the WEB: each line has 
     the format: (kind, period, url), where kind is either
@@ -502,7 +509,7 @@ let _ =
 
 let min_reask_delay = define_option expert_ini ["min_reask_delay"]
   "The minimal delay between two connections to the same client (in seconds)" 
-    int_option 720
+    int_option 600
   
 let max_reask_delay = define_option expert_ini ["max_reask_delay"]
     "The maximal delay between two connections to the same client" 
@@ -592,6 +599,7 @@ let verbosity = define_option expert_ini ["verbosity"]
   unk : unknown messages
   ov : overnet
   share: debug sharing
+  md4 : md4 computation
 "
     string_option ""
 
@@ -605,6 +613,7 @@ let verbose_unknown_messages = ref false
 let verbose_overnet = ref false
 let verbose_location = ref false
 let verbose_share = ref false
+let verbose_md4 = ref false
   
 let _ = 
   option_hook verbosity (fun _ ->
@@ -620,6 +629,7 @@ let _ =
       verbose_overnet := false;
       verbose_location := false;
       verbose_share := false;
+      verbose_md4 := false;
       
       List.iter (fun s ->
           match s with
@@ -634,6 +644,7 @@ let _ =
           | "ov" -> verbose_overnet := true
           | "loc" -> verbose_location := true
           | "share" -> verbose_share := true
+          | "md4" -> verbose_md4 := true
               
           | "all" ->
               
@@ -646,7 +657,8 @@ let _ =
               verbose_download := true;
               verbose_unknown_messages := true;
               verbose_overnet := true;
-              verbose_share := true
+              verbose_share := true;
+              verbose_md4 := true;
               
           | _ -> ()
               

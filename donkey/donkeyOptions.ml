@@ -313,6 +313,11 @@ let ban_period = define_option donkey_ini
     ["ban_period"] "Set the number of hours you want client to remain banned"
     int_option 6
 
+let good_client_rank = define_option donkey_ini
+    ["good_client_rank"]
+  "Set the maximal rank of a client to be kept as a client"
+  int_option 500
+
 let max_emule_slots = define_option donkey_ini
     ["max_emule_slots"] "Part of the queue that Emule clients are limited to
     (default is 33 (%) of the slots, set to 100 (%) for no limitation)"
@@ -334,6 +339,9 @@ let sources_per_chunk =
   define_option donkey_ini ["sources_per_chunk"]
     "How many sources to use to download each chunk"
     int_option 1
+
+let dynamic_slots = define_option downloads_ini ["dynamic_slots"] 
+  "Set this to true if you want to have dynamic upload slot allocation (experimental)" bool_option false
   
 let _ = 
 (* Clients should never send more than 5 localisations queries
@@ -365,5 +373,6 @@ let gui_donkey_options_panel =
     "Download Chunks in Random order", shortname random_order_download, "B";    
     "Sources Per Chunk", shortname sources_per_chunk, "T";
     "Prevent Re-download of Cancelled Files", shortname keep_cancelled_in_old_files, "B";
+    "Dynamic Slot Allocation", shortname dynamic_slots, "B";
   ]
 

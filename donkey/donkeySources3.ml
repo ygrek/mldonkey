@@ -66,36 +66,43 @@ let add_new_source new_score source_age addr =
 
 
 let new_sources_queue = 0
-let good_saved_sources_queue = 1
-let old_saved_sources_queue = 2
-let old_sources1_queue = 3
-let old_sources2_queue = 4
-let old_sources3_queue = 5
-let old_sources4_queue = 6
-let nqueues = 7
+let good_sources_queue = 1
+let good_saved_sources_queue = 2
+let old_saved_sources_queue = 3
+let old_sources1_queue = 4
+let old_sources2_queue = 5
+let old_sources3_queue = 6
+let old_sources4_queue = 7
+let old_sources5_queue = 8
 
 let indirect_fifo = Fifo.create ()
   
 let queue_name = [|
     "new_sources";
+    "good_sources";
     "good_saved_sources";
     "old_saved_sources";
     "old_sources1";
     "old_sources2";
     "old_sources3";
     "old_sources4";
+    "bad sources";
   |]
   
 let queue_period = [|
     0;
-    720;
+    600;
+    600;
     0;
-    720;
-    720;
+    600;
+    600;
     1200;
-    2400
+    3600;
+    3600 * 6;
   |]
-  
+
+let nqueues = Array.length queue_name
+
 let need_new_sources file = 
   Fifo.length file.file_clients + 
   SourcesQueue.length file.file_sources.(new_sources_queue) < 200
@@ -279,6 +286,12 @@ let source_of_client c =
                     else
                     if c.client_score >= -40 then
                       old_sources3_queue                    
+                    else 
+                    if c.client_score >= -60 then
+                      old_sources4_queue                    
+                    else 
+                    if c.client_score >= -90 then
+                      old_sources5_queue                    
                     else begin
 (*                       c.client_files <- List2.removeq r c.client_files; *)
                         remove_file_location file c;
@@ -291,7 +304,23 @@ let source_of_client c =
                       s.source_in_queues <- file :: s.source_in_queues
                     end
               
-              | File_chunk | File_found ->
+              | File_found ->
+                  if not (List.memq file s.source_in_queues) then begin
+                      SourcesQueue.put 
+                        file.file_sources.(good_sources_queue)
+                      (last_time() , s);
+                      s.source_in_queues <- file :: s.source_in_queues
+                    end
+                                  
+              | File_chunk when c.client_rank > !!good_client_rank ->
+                  if not (List.memq file s.source_in_queues) then begin
+                      SourcesQueue.put 
+                        file.file_sources.(good_sources_queue)
+                      (last_time() , s);
+                      s.source_in_queues <- file :: s.source_in_queues
+                    end
+                    
+              | File_chunk ->
                   keep_client := true;
                   if !verbose_sources then begin
                       Printf.printf "%d --> kept (source)" (client_num c); print_newline ();
@@ -373,9 +402,9 @@ let clean_file_sources file nsources =
       while !nsources > !!max_sources_per_file do
         let _,s = SourcesQueue.take file.file_sources.(i) in
         s.source_in_queues <- List2.removeq file s.source_in_queues;
+        decr nsources;
         match s.source_in_queues, s.source_client with
-          [] , SourceLastConnection _ -> 
-            H.remove sources s
+          [] , SourceLastConnection _ -> H.remove sources s
         | _ -> ()
       done
     with _ -> ()

@@ -490,8 +490,6 @@ and find_zone1 c b zones =
       file.file_chunks.(b.block_pos) <- PresentTemp;
       let state = verify_chunk file b.block_pos in
       file.file_chunks.(b.block_pos) <- state;
-(*      (file.file_all_chunks).[b.block_pos] <- (if state = PresentVerified 
-then '1' else '0'); *)
       
       file.file_absent_chunks <- List.rev (find_absents file);
       c.client_block <- None;

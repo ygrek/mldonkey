@@ -163,8 +163,8 @@ let list_options o list =
     Printf.bprintf  buf "\\</table\\>"
   
 let commands = [
-    
-    (*
+
+(*
     "dump_heap", Arg_none (fun o ->
         Heap.print_memstats ();
         "heap dumped"
@@ -213,12 +213,12 @@ let commands = [
             DriverInteractive.display_file_list buf o;
             ""    
     ), "<num> :\t\t\t\tview file info";
-
+    
     "downloaders", Arg_none (fun o ->
         let buf = o.conn_buf in
-
-      if o.conn_output = HTML && !!html_mods then 
-        Printf.bprintf buf "\\<div class=\\\"downloaders\\\"\\>\\<table id=\\\"downloaders\\\" name=\\\"downloaders\\\" 
+        
+        if o.conn_output = HTML && !!html_mods then 
+          Printf.bprintf buf "\\<div class=\\\"downloaders\\\"\\>\\<table id=\\\"downloaders\\\" name=\\\"downloaders\\\" 
 							class=\\\"downloaders\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
 \\<td title=\\\"Client Number (Click to Add as Friend)\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ac\\\"\\>Num\\</td\\>
 \\<td title=\\\"Client State\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C.S\\</td\\>
@@ -232,16 +232,16 @@ let commands = [
 \\<td title=\\\"Total DL Bytes from this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>DL\\</td\\>
 \\<td title=\\\"Filename\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Filename\\</td\\>
 \\</tr\\>";
-
-			let counter = ref 0 in
-
-            List.iter 
-              (fun file -> 
-					if (CommonFile.file_downloaders file o !counter) then counter := 0 else counter := 1;
-			  ) !!files;
-
-    if o.conn_output = HTML && !!html_mods then Printf.bprintf buf "\\</table\\>\\</div\\>";
-
+        
+        let counter = ref 0 in
+        
+        List.iter 
+          (fun file -> 
+            if (CommonFile.file_downloaders file o !counter) then counter := 0 else counter := 1;
+        ) !!files;
+        
+        if o.conn_output = HTML && !!html_mods then Printf.bprintf buf "\\</table\\>\\</div\\>";
+        
         ""
     ) , ":\t\t\t\tdisplay downloaders list";
     
@@ -287,6 +287,20 @@ let commands = [
     
     "vo", Arg_none (fun o ->
         let buf = o.conn_buf in
+        if o.conn_output = HTML && !!html_mods then 
+        list_options_html o  (
+          [
+            strings_of_option_html  max_hard_upload_rate; 
+            strings_of_option_html max_hard_download_rate;
+            strings_of_option_html telnet_port; 
+            strings_of_option_html gui_port; 
+            strings_of_option_html http_port;
+            strings_of_option_html client_name;
+            strings_of_option_html allowed_ips;
+            strings_of_option_html set_client_ip; 
+            strings_of_option_html force_client_ip; 
+          ] )
+        else
         list_options o  (
           [
             strings_of_option  max_hard_upload_rate; 
@@ -619,6 +633,39 @@ let commands = [
         ""
     ), "<num> :\t\t\t\tcancel download (use arg 'all' for all files)";
     
+    "shares", Arg_none (fun o ->
+        
+        let buf = o.conn_buf in
+        Printf.bprintf buf "Shared directories:\n";
+        Printf.bprintf buf "  %s\n" !!incoming_directory;
+        List.iter (fun dir -> Printf.bprintf buf "  %s\n" dir)
+        !!shared_directories;
+        ""
+    ), ":\t\t\t\tprint shared directories";
+    
+    "share", Arg_one (fun arg o ->
+        
+        if Unix2.is_directory arg then
+          if not (List.mem arg !!shared_directories) then begin
+              shared_directories =:= arg :: !!shared_directories;
+              shared_add_directory arg;
+              "directory added"
+            end else
+            "directory already shared"
+        else
+          "no such directory"
+    ), "<dir> :\t\t\t\tshare directory <dir>";
+    
+    "unshare", Arg_one (fun arg o ->
+        if List.mem arg !!shared_directories then begin
+            shared_directories =:= List2.remove arg !!shared_directories;
+            CommonShared.shared_check_files ();
+            "directory removed"
+          end else
+          "directory already unshared"
+          
+    ), "<dir> :\t\t\t\tshare directory <dir>";
+    
     "pause", Arg_multiple (fun args o ->
         if args = ["all"] then
           List.iter (fun file ->
@@ -705,15 +752,16 @@ let commands = [
         
         if o.conn_output = HTML && !!html_mods then 
           Printf.bprintf buf "\\<table class=\\\"servers\\\"\\>\\<tr\\>
-\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>#\\</td\\>
-\\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Button\\</td\\>
-\\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Network\\</td\\>
-\\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Status\\</td\\>
-\\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh br\\\"\\>IP\\</td\\>
-\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Users\\</td\\>
-\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>Files\\</td\\>
-\\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Name\\</td\\>
-\\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Details\\</td\\>
+\\<td title=\\\"Server Number\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>#\\</td\\>
+\\<td title=\\\"Button\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Button\\</td\\>
+\\<td title=\\\"Hi or Lo ID\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>ID\\</td\\>
+\\<td title=\\\"Network Name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Network\\</td\\>
+\\<td title=\\\"Connection Status\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Status\\</td\\>
+\\<td title=\\\"IP Address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh br\\\"\\>IP\\</td\\>
+\\<td title=\\\"Number of Users\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Users\\</td\\>
+\\<td title=\\\"Number of Files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>Files\\</td\\>
+\\<td title=\\\"Server Name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Name\\</td\\>
+\\<td title=\\\"Server Details\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Details\\</td\\>
 ";
         
         Intmap.iter (fun _ s ->
@@ -763,7 +811,8 @@ let commands = [
     ), "<priority> <files numbers> :\tchange file priorities";
     
     "version", Arg_none (fun o ->
-        CommonGlobals.version
+      if o.conn_output = HTML && !!html_mods then Printf.sprintf "\\<P\\>" ^ 
+        CommonGlobals.version else CommonGlobals.version
     ), ":\t\t\t\tprint mldonkey version";
     
     "forget", Arg_one (fun num o ->

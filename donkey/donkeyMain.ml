@@ -58,12 +58,14 @@ let fivemin_timer timer =
   DonkeyShare.send_new_shared ()
 
 let second_timer timer =
+  (try DonkeyClient.refill_upload_slots () with _ -> ());
   (try
 (*
       if !verbose_src_manager then begin
           Printf.printf "Check sources"; print_newline ();
         end; *)
       DonkeySources.check_sources DonkeyClient.reconnect_client;
+
 (*      if !verbose_src_manager then begin
           Printf.printf "Check sources done"; print_newline ();
         end; *)

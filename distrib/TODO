@@ -23,6 +23,8 @@ Before 2.03:
 * Add Offline status for bad connection
 * Temp files could be saved with other names
 * I have more clients than in the sources
+* try to ensure that clients that have a pending slot are correctly
+   added/removed.
 
 Some fields are not necessary anymore:
   - zone_file

@@ -56,6 +56,11 @@ let find_port server_name bind_addr port_option handler =
 let one_day = 3600. *. 24.
 let half_day = one_day /. 2.
 
+let saved_upload_udp_rate = ref 0
+let saved_upload_tcp_rate = ref 0
+let saved_download_udp_rate = ref 0
+let saved_download_tcp_rate = ref 0
+
 let printf_char c =
   if !verbose then 
     (print_char c; Pervasives.flush Pervasives.stdout)
@@ -421,3 +426,15 @@ let load_url kind url =
     mldonkey_wget url f
   with e -> failwith (Printf.sprintf "Exception %s while loading %s"
           (Printexc2.to_string e) url)
+
+let history_size = 6
+let upload_history = Array.create history_size 0
+let history_index = ref (-1)
+  
+let update_upload_history usage =
+  incr history_index;
+  if !history_index = history_size then history_index := 0;
+  upload_history.(!history_index) <- usage
+  
+let upload_usage () = upload_history.(!history_index)
+  

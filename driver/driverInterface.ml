@@ -1004,9 +1004,6 @@ let update_gui_info () =
         let clients = CommonClient.clients_get_all () in
         let servers = CommonServer.servers_get_all () in
         with_guis (fun gui ->
-            
-            
-            
             gui_send gui (CleanTables (clients, servers))  
         );
       end;
@@ -1035,10 +1032,12 @@ let update_gui_info () =
   networks_iter (fun n -> if network_connected n then 
         nets := n.network_num :: !nets);
      
-  DriverInteractive.saved_upload_udp_rate := udp_upload_rate;
-  DriverInteractive.saved_upload_tcp_rate := control_upload_rate;
-  DriverInteractive.saved_download_udp_rate := udp_download_rate;
-  DriverInteractive.saved_download_tcp_rate := control_download_rate;
+  saved_upload_udp_rate := udp_upload_rate;
+  saved_upload_tcp_rate := control_upload_rate;
+  saved_download_udp_rate := udp_download_rate;
+  saved_download_tcp_rate := control_download_rate;
+  
+  update_upload_history (udp_upload_rate + control_upload_rate);
 
   let msg = (Client_stats {
         upload_counter = !upload_counter;

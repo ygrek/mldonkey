@@ -410,8 +410,10 @@ let new_file file_state file_name md4 file_size writable =
           file_clients = Fifo.create ();
           file_sources = [| 
             SourcesQueueCreate.lifo ();
+            SourcesQueueCreate.fifo ();
             SourcesQueueCreate.oldest_first ();
             SourcesQueueCreate.oldest_last ();
+            SourcesQueueCreate.fifo ();
             SourcesQueueCreate.fifo ();
             SourcesQueueCreate.fifo ();
             SourcesQueueCreate.fifo ();
@@ -785,84 +787,11 @@ let remove_client c =
 (*  hashtbl_remove clients_by_name c.client_name c *)
   ()
 
-  
-  (*
-let check_useful_client c = 
-  let useful = c.client_is_friend in
-  if not useful then begin
-      List.iter (fun file ->
-          file.file_sources <- Intmap.remove (client_num c) file.file_sources;
-          file.file_nlocations <- file.file_nlocations - 1;
-      ) c.client_source_for;
-      c.client_source_for <- [];
-      remove_client c
-    end
-      *)
 
 let friend_remove c = 
   friend_remove  (as_client c.client_client)
 
-  (*
-let remove_file_clients file =
-  let locs = file.file_sources in
-  file.file_sources <- Intmap.empty;
-  file.file_nlocations <- 0;
-  Intmap.iter (fun _ c ->
-      if List.memq file c.client_source_for then 
-        c.client_source_for <- List2.removeq file c.client_source_for;
-      check_useful_client c
-  ) locs  
-    *)
-
 let last_search = ref (Intmap.empty : int Intmap.t)
-  
-  (*
-let remove_source file c =
-  if List.memq file c.client_source_for then begin  
-      file.file_sources <- Intmap.remove (client_num c) file.file_sources;
-      file.file_nlocations <- file.file_nlocations - 1;
-(*      Printf.printf "removed source %d" file.file_nlocations; print_newline (); *)
-      c.client_source_for <- List2.removeq file c.client_source_for;
-      check_useful_client c
-    end
-  
-let new_source file c =
-  if not (List.memq file c.client_source_for) then begin
-(*      Printf.printf "New source (on %d)" file.file_nlocations;
-      print_newline (); *)
-      if file.file_nlocations >= !!max_sources_per_file then begin
-(* find the oldest location, and remove it *)
-(*          Printf.printf "Remove old loc"; print_newline (); *)
-          let oldest_time = ref (last_time ()) in
-          let oldest_client = ref None in
-          let locs = file.file_sources in
-          Intmap.iter (fun num c ->
-              match c.client_sock with 
-                Some _ -> ()
-              | None ->
-                  let last_conn = connection_last_conn 
-                      c.client_connection_control in
-                  if last_conn < !oldest_time then begin
-                      oldest_time := last_conn;
-                      oldest_client := Some c;
-                    end
-          ) locs;
-          match !oldest_client with
-(* We couldn't choose which client should be removed since
-no sources have been connected yet. *)
-            None -> 
-              (* Printf.printf "couldnot remove"; print_newline (); *) ()
-          | Some c ->
-(*              Printf.printf "loc removed"; print_newline (); *)
-              remove_source file c
-        end;
-      file.file_nlocations <- file.file_nlocations + 1;
-      file.file_sources <- Intmap.add (client_num c) c file.file_sources;
-      file_new_source (as_file file.file_file) (as_client c.client_client);
-      c.client_source_for <- file :: c.client_source_for;
-(*      Printf.printf "New source added %d" file.file_nlocations; *)
-    end    
-      *)
   
 (* indexation *)
 let comments = (Hashtbl.create 127 : (Md4.t,string) Hashtbl.t)
@@ -1030,3 +959,33 @@ let _ =
       
   Heap.add_memstat "DonkeyGlobals" local_mem_stats
 
+let md4_table = Hashtbl.create 112
+  
+let register_md4 i md4 (begin_pos : int64) (len : int64) file = 
+  try
+    let files = Hashtbl.find md4_table (md4, i, begin_pos, len) in
+    if not (List.memq file !files) then begin
+        files := file :: !files;
+        Printf.printf "Files";
+        List.iter (fun file -> Printf.printf " %d" (file_num file)) !files;
+        Printf.printf "share block %s" (Md4.to_string md4);
+        print_newline ();
+      end
+  with _ ->
+      Hashtbl.add md4_table (md4, i, begin_pos, len) (ref [file])
+      
+let register_md4s md4s file_num file_size = 
+  
+  let len = List.length md4s in
+  let rec iter md4s i chunk_pos =
+    match md4s with
+      [] -> ()
+    | md4 :: tail ->
+        let chunk_end = Int64.add chunk_pos block_size in
+        let chunk_size = if chunk_end > file_size then
+            Int64.sub file_size chunk_pos else block_size in
+        register_md4 i md4 chunk_pos chunk_size file_num;
+        iter tail (i+1) chunk_end
+  in
+  iter md4s 0 Int64.zero
+  

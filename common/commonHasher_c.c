@@ -124,12 +124,12 @@ static void * hasher_thread(void * arg)
     timeout.tv_sec = now.tv_sec + 10;
     timeout.tv_nsec = now.tv_usec * 1000;
 
-/*    printf("waiting for next job\n"); */
+/*    fprintf(stderr,"waiting for next job\n");  */
     pthread_cond_timedwait(&cond, &mutex, &timeout);
     
     if(!job_done){
 
-/*      printf("job started\n"); */
+/*      fprintf(stderr,"job started\n");  */
       
       if(job_method == METHOD_MD4)
         md4_unsafe64_fd_direct(job_fd, job_len, job_begin_pos, job_result);
@@ -141,6 +141,7 @@ static void * hasher_thread(void * arg)
           exit(2);
         
         }    
+/*        fprintf(stderr,"job finished\n");  */
         job_done = 1;
     }
   }
@@ -154,6 +155,8 @@ value ml_job_start(value job_v, value fd_v)
   job_begin_pos = Int64_val(Field(job_v, JOB_BEGIN_POS));
   job_len = Int64_val(Field(job_v, JOB_LEN));
   job_method = Field(job_v, JOB_METHOD);
+
+/*  fprintf(stderr,"ml_job_start\n"); */
 
   if(!thread_started){
     int retcode;

@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonOptions
+
 type hash_method = MD4 | MD5 | SHA1
 
 type job = {
@@ -36,7 +38,10 @@ external job_done : job -> bool = "ml_job_done"
 external job_start : job -> Unix.file_descr -> unit = "ml_job_start"
   
 let _ =
-  BasicSocket.add_infinite_timer 1.0 (fun _ ->
+  if BasicSocket.has_threads () then begin
+      Printf.printf "Using threads"; print_newline ();
+    end;
+  BasicSocket.add_infinite_timer 0.1 (fun _ ->
 (*      Printf.printf "test job"; print_newline ();  *)
       try
         match !current_job with
@@ -44,7 +49,9 @@ let _ =
         | Some (job, fd) ->
 (*            Printf.printf "job done "; print_newline (); *)
             if job_done job then begin
-(*                Printf.printf "job finished"; print_newline (); *)
+                if !verbose_md4 then begin
+                    Printf.printf "Job finished"; print_newline (); 
+                  end;
                 current_job := None;
                 Unix.close fd;
                 (try job.job_handler job with e -> 
@@ -54,7 +61,7 @@ let _ =
                 raise Not_found
               end
       with _ ->
-          
+
           let job = try Fifo.take fifo 
               
             with e -> 
@@ -65,9 +72,14 @@ let _ =
           try
             let fd = Unix.openfile job.job_name [Unix.O_RDONLY] 0o444 in
             current_job := Some (job, fd);
-(*            Printf.printf "Starting job %s %Ld %Ld" job.job_name
-              job.job_begin job.job_len; print_newline (); *)
-            job_start job fd
+            if !verbose_md4 then begin
+                Printf.printf "Starting job %s %Ld %Ld" job.job_name
+                  job.job_begin job.job_len; print_newline (); 
+              end;
+            job_start job fd;
+            if !verbose_md4 then begin
+                Printf.printf "Job started"; print_newline ();
+              end
           with e ->
               Printf.printf "Exception %s in starting job" 
                 (Printexc2.to_string e); print_newline ();

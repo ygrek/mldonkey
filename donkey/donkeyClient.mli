@@ -30,6 +30,8 @@ val reconnect_client : DonkeyTypes.client -> unit
 val client_connection_handler : bool -> 'a -> TcpServerSocket.event -> unit
 
 val query_files : DonkeyTypes.client -> TcpBufferedSocket.t -> unit
+
+val refill_upload_slots : unit -> unit
   
 val client_wants_file : DonkeyTypes.client -> Md4.t -> unit
   

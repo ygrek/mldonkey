@@ -454,13 +454,20 @@ let mail_for_completed_file file =
       (file_comment file)
     in
     
+    let subject = if !!filename_in_subject then
+        Printf.sprintf "[mldonkey] file received - %s"
+        (file_best_name file)
+      else
+        Printf.sprintf "mldonkey, file received";        
+    in
+    
     let mail = {
         M.mail_to = !!mail;
         M.mail_from = Printf.sprintf "mldonkey <%s>" !!mail;
-        M.mail_subject = Printf.sprintf "mldonkey, file received";
+        M.mail_subject = subject;
         M.mail_body = line1 ^ line2;
       } in
-    M.sendmail !!smtp_server !!smtp_port mail
+    M.sendmail !!smtp_server !!smtp_port !!add_mail_brackets mail
 
 let chat_for_completed_file file =
   CommonChat.send_warning_for_downloaded_file (file_best_name file)

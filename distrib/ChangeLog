@@ -1,6 +1,24 @@
 ChangeLog	
 =========
 
+2002/03/02: Simon (v 2.02-24)
+  - New commands 'share <dir>' and 'unshare <dir>' to manipulate
+      shared_directories
+  - Applied pango's patch 71_upload_slots_dynamic_allocation, controlled
+      by option 'dynamic_slots' (false by default)
+  - Applied patch #1199
+  - Bug Fixes:
+       * Computation of guptime
+       * Dropping all sources of files when too many sources
+       * Mailer that don't accept the <..> addresses (new option
+          'add_mail_brackets')
+  - Added detection of similar chunks between files, not used yet
+  - Applied patch #1200, with option 'filename_in_subject'
+  - Source Management:
+       * Changed default for min_reask_delay to 600 seconds
+       * Two new queues, one for good clients (every 10 minutes), one for
+           bad clients (every 6 hours)
+
 2002/03/01: Simon (v 2.02-23)
   - Bug fixes:
     * stats should be correctly saved
@@ -95,7 +113,6 @@ ChangeLog
        * eDonkey: added message 92
        * Try to print the IP:port for unknown packets
   - Net: mtu changed to 1500
-
 
 2002/02/19: Simon (v 2.02-15)
   - Applied patch #1136: better mail output
