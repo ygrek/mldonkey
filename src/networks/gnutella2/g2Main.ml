@@ -48,7 +48,7 @@ let disable enabler () =
         | Some sock -> 
             listen_sock := None;
             TcpServerSocket.close sock Closed_by_user);
-      if !!enable_gnutella then enable_gnutella =:= false;
+      if !!enable_gnutella2 then enable_gnutella2 =:= false;
       match !udp_sock with
         None -> ()
       | Some sock -> 
@@ -62,7 +62,7 @@ let enable () =
     is_enabled := true;
   network.op_network_disable <- disable enabler;
   
-  if not !!enable_gnutella then enable_gnutella =:= true;
+  if not !!enable_gnutella2 then enable_gnutella2 =:= true;
 
   List.iter (fun (ip,port) -> 
       ignore (new_host ip port true 2)) !!ultrapeers;
@@ -98,10 +98,10 @@ let enable () =
   ()
   
 let _ =
-  network.op_network_is_enabled <- (fun _ -> !!CommonOptions.enable_gnutella);
-  option_hook enable_gnutella (fun _ ->
+  network.op_network_is_enabled <- (fun _ -> !!CommonOptions.enable_gnutella2);
+  option_hook enable_gnutella2 (fun _ ->
       if !CommonOptions.start_running_plugins then
-        if !!enable_gnutella then network_enable network
+        if !!enable_gnutella2 then network_enable network
       else network_disable network);
   network.op_network_save_complex_options <- G2ComplexOptions.save_config;
   (*

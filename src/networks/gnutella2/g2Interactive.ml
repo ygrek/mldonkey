@@ -242,7 +242,7 @@ let _ =
   
 let _ =
   server_ops.op_server_info <- (fun s ->
-      if !!enable_gnutella then
+      if !!enable_gnutella2 then
         {
           P.server_num = (server_num s);
           P.server_network = network.network_num;
