@@ -35,7 +35,10 @@ open CommonSwarming
 open CommonTypes
 open CommonGlobals
 open CommonHosts
-open CommonDownloads.SharedDownload
+    
+open MultinetTypes
+open MultinetFunctions
+open MultinetComplexOptions
   
 open FasttrackTypes
 open FasttrackGlobals
@@ -301,16 +304,16 @@ let _ =
   
 let download_file (r : result) =
   ignore (new_download None
-      r.result_name r.result_size None
+      [r.result_name] r.result_size None
       [uid_of_uid (Md5Ext("", r.result_hash))]);
   let file = Hashtbl.find files_by_uid r.result_hash in
-  lprintf "DOWNLOAD FILE %s\n" file.file_shared.file_name; 
+  lprintf "DOWNLOAD FILE %s\n" (file_best_name file.file_shared); 
   if not (List.memq file !current_files) then begin
       current_files := file :: !current_files;
     end;
-  List.iter (fun (user, index) ->
+  List.iter (fun (user) ->
       let c = new_client user.user_kind in
-      add_download file c index;
+      add_download file c ;
       get_file_from_source c file;
   ) r.result_sources;
   recover_file file
@@ -332,7 +335,7 @@ let ask_for_files () = (* called every minute *)
         let ss = Fifo.take s.server_searches in
         match ss.search_search with
           FileSearch file ->
-            if file_state file.file_shared = FileDownloading then
+            if file_state file = FileDownloading then
               server_send_query s ss
         | _ -> server_send_query s ss
       with _ -> ()
@@ -368,7 +371,7 @@ let manage_hosts () =
 *)
   H.manage_hosts ();
   List.iter (fun file ->
-      if file_state file.file_shared = FileDownloading then
+      if file_state file = FileDownloading then
         try
 (* For each file, we allow only (nranges+5) simultaneous communications, 
   to prevent too many clients from saturing the line for only one file. *)

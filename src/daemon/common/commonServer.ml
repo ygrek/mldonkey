@@ -299,8 +299,8 @@ let server_banner s o =
   Printf.bprintf buf "%s" 
       info.G.server_banner
 
-let server_print_html_header buf =
-    html_mods_table_header buf "serversTable" "servers" [ 
+let server_print_html_header buf ext =
+    html_mods_table_header buf "serversTable" (Printf.sprintf "servers%s" ext) [ 
 		( "1", "srh", "Server number", "#" ) ; 
 		( "0", "srh", "Connect|Disconnect", "C/D" ) ; 
 		( "0", "srh", "Remove", "Rem" ) ; 
@@ -334,7 +334,7 @@ let server_print s o =
     \\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
     \\<td class=\\\"sr ar br\\\"\\>%d\\</td\\>
     \\<td class=\\\"sr\\\"\\>%s\\</td\\>
-    \\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>\n"
+    \\<td width=\\\"100%%\\\" class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>\n"
 	  (
         Printf.sprintf "%s"
         (match impl.impl_server_state with

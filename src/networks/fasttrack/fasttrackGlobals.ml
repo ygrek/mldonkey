@@ -36,8 +36,11 @@ open CommonFile
 open CommonGlobals
 open CommonSwarming  
 open CommonNetwork
-open CommonDownloads.SharedDownload
   
+open MultinetTypes
+open MultinetFunctions
+open MultinetComplexOptions
+
 open FasttrackTypes
 open FasttrackOptions
 
@@ -79,6 +82,12 @@ let get_name_keywords file_name =
   
   
 let network = new_network "Fasttrack"  
+       [ 
+    NetworkHasSupernodes; 
+    NetworkHasRooms;
+    NetworkHasChat;
+    NetworkHasSearch;
+  ]
     (fun _ -> !!network_options_prefix)
   (fun _ -> !!commit_in_subdir)
       
@@ -214,8 +223,8 @@ let new_server ip port =
       h.host_server <- Some s;
       s
 
-let add_source r s index =
-  let key = (s, index) in
+let add_source r s =
+  let key = s in
   if not (List.mem key r.result_sources) then begin
       r.result_sources <- key :: r.result_sources
     end
@@ -250,7 +259,7 @@ let megabyte = Int64.of_int (1024 * 1024)
 let _ =
   register_network network_file_ops;
   network_file_ops.op_download_start <- 
-  (fun file ->
+    (fun file ->
       
       List.iter (fun uid ->
           
@@ -259,17 +268,32 @@ let _ =
               if not (Hashtbl.mem files_by_uid file_hash) then
                 
                 let swarmer = file.file_swarmer in
-                let partition = fixed_partition swarmer "fasttrack" megabyte in
-                let keywords = get_name_keywords file.file_name in
+                let partition = fixed_partition swarmer network.network_num megabyte in
+                let keywords = get_name_keywords (file_best_name file) in
                 let words = String2.unsplit keywords ' ' in
                 let rec f = {
                     file_shared = file;
-                    file_clients = [];
                     file_partition = partition;
                     file_search = search;
                     file_hash = file_hash;
                     file_clients_queue = Queues.workflow (fun _ -> false);
                     file_nconnected_clients = 0;
+                    
+                    file_clients = []; 
+                    
+                    (*
+                    file_locations = Intmap.empty;
+                    file_clients = Fifo.create ();
+                    file_sources = [| 
+                      SourcesQueueCreate.lifo ();
+                      SourcesQueueCreate.fifo ();
+                      SourcesQueueCreate.oldest_first ();
+                      SourcesQueueCreate.oldest_last ();
+                      SourcesQueueCreate.fifo ();
+                      SourcesQueueCreate.fifo ();
+                      SourcesQueueCreate.fifo ();
+                    |]; 
+*)                    
                   } 
                 and search = {
                     search_search = FileSearch f;
@@ -325,6 +349,14 @@ let new_client kind =
       let user = new_user kind in
       let rec c = {
           client_client = impl;
+          
+(*          client_source = None;
+          client_score = 0;
+          client_files = [];
+          client_next_queue = 0; 
+          client_requests_sent = 0;
+*)
+          
           client_sock = NoConnection;
 (*          client_name = name; 
           client_kind = None; *)
@@ -351,8 +383,8 @@ client_error = false;
       new_client impl;
       Hashtbl.add clients_by_uid kind c;
       c
-    
-let add_download file c index =
+
+let add_download file c =
 (*  let r = new_result file.file_name (file_size file) in *)
 (*  add_source r c.client_user index; *)
   if not (List.memq c file.file_clients) then begin
@@ -360,7 +392,6 @@ let add_download file c index =
       let bs = Int64Swarmer.register_uploader file.file_partition chunks in
       c.client_downloads <- c.client_downloads @ [{
           download_file = file;
-          download_uri = index;
           download_chunks = chunks;
           download_blocks = bs;
           download_ranges = [];
@@ -373,47 +404,7 @@ let add_download file c index =
           c.client_in_queues <- file :: c.client_in_queues
         end;
     end
-    
-let rec find_download file list = 
-  match list with
-    [] -> raise Not_found
-  | d :: tail ->
-      if d.download_file == file then d else find_download file tail
-    
-let rec find_download_by_index index list = 
-  match list with
-    [] -> raise Not_found
-  | d :: tail ->
-      match d.download_uri with
-        FileByIndex (i,_) when i = index -> d
-      | _ -> find_download_by_index index tail
-
-let remove_download file list =
-  let rec iter file list rev =
-    match list with
-      [] -> List.rev rev
-    | d :: tail ->
-        if d.download_file == file then
-          iter file tail rev else
-          iter file tail (d :: rev)
-  in
-  iter file list []
-
-let server_num s =
-  server_num (as_server s.server_server)
       
-let server_state s =
-  server_state (as_server s.server_server)
-      
-let set_server_state s state =
-  set_server_state (as_server s.server_server) state
-
-  (*
-let server_remove s =
-  connected_servers := List2.removeq s !connected_servers;    
-(*  Hashtbl.remove servers_by_key (s.server_ip, s.server_port)*)
-  ()
-  *)
 
 let client_type c = client_type (as_client c.client_client)
 

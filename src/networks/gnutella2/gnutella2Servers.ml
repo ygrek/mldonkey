@@ -33,7 +33,10 @@ open CommonFile
 open CommonTypes
 open CommonGlobals
 open CommonHosts
-open CommonDownloads.SharedDownload  
+  
+open MultinetTypes
+open MultinetFunctions
+open MultinetComplexOptions
   
 open Gnutella2Types
 open Gnutella2Globals
@@ -435,8 +438,8 @@ let recover_files () =
   ()
     
 let download_file (r : result) =
-  let file_shared = CommonDownloads.SharedDownload.new_download None
-      r.result_name r.result_size None r.result_uids in
+  let file_shared = MultinetFunctions.new_download None
+      [r.result_name] r.result_size None r.result_uids in
   let new_download = ref None in
   Hashtbl.iter (fun _ file ->
       if file.file_shared = file_shared then
@@ -446,7 +449,7 @@ let download_file (r : result) =
     None -> () (* The file was probably already downloading *)
   | Some file ->
       let file_shared = file.file_shared in
-      lprintf "DOWNLOAD FILE %s\n" file_shared.file_name; 
+      lprintf "DOWNLOAD FILE %s\n" (file_best_name file_shared); 
       if not (List.memq file !current_files) then begin
           current_files := file :: !current_files;
         end;

@@ -47,7 +47,7 @@ let _ =
         if !!enable_donkey then network_enable network
         else network_disable network);
   network.network_config_file <- [
-    donkey_ini; donkey_expert_ini]
+    donkey_ini]
 
 let hourly_timer timer =
   DonkeyClient.clean_groups ();
@@ -56,7 +56,8 @@ let hourly_timer timer =
     (List.map (fun s -> s.server_ip, s.server_port) (connected_servers()))
     (DonkeyOvernet.connected_peers ())
     ;
-  Hashtbl.clear udp_servers_replies
+  Hashtbl.clear udp_servers_replies;
+  DonkeyReliability.clean_thieves ()
     
 let quarter_timer timer =
   DonkeyServers.remove_old_servers ();
@@ -64,7 +65,8 @@ let quarter_timer timer =
 
 let fivemin_timer timer =
   DonkeyShare.send_new_shared ();
-  DonkeyChunks.duplicate_chunks ()
+(*  DonkeyChunks.duplicate_chunks ()*)
+  ()
 
 let second_timer timer =
   (try
@@ -144,7 +146,8 @@ let enable () =
                 indexer := None;
               end)
 *)
-    
+
+(*[BROKEN]
     Hashtbl.iter (fun _ file ->
         try
           if file_state file <> FileDownloaded then begin
@@ -179,20 +182,8 @@ let enable () =
             lprintf "Exception %s while recovering download %s"
               (Printexc2.to_string e) (file_disk_name file); lprint_newline ();
     ) files_by_md4;
-
-    let list = ref [] in
-(* Normally, we should check that downloaded files are still there.
+*)
   
-  *)    
-    let list = ref [] in
-    List.iter (fun file ->
-        if Unix32.file_exists file.sh_name then begin
-            Hashtbl.add shared_files_info file.sh_name file;
-            list := file :: !list
-          end
-    ) !!known_shared_files;
-    known_shared_files =:= !list;
-
 (**** CREATE WAITING SOCKETS ****)
     let rec find_port new_port =
       try
@@ -229,7 +220,9 @@ let enable () =
       match Unix.getsockname (BasicSocket.fd (TcpServerSocket.sock sock)) with
         Unix.ADDR_INET (ip, port) ->
           client_port :=  port
-      | _ -> failwith "Bad socket address"
+        | _ -> 
+            lprintf "********** CAN NOT BIND TCP PORT **********\n";
+            failwith "Bad socket address"
     end;
     
     let port = !client_port in
@@ -266,7 +259,8 @@ let enable () =
     
     add_session_option_timer enabler check_connections_delay 
       DonkeyServers.check_server_connections;
-    add_session_option_timer enabler compute_md4_delay DonkeyOneFile.check_files_md4s;  
+(*      add_session_option_timer enabler compute_md4_delay 
+      DonkeyOneFile.check_files_md4s;   *)
     add_session_timer enabler 5.0 DonkeyServers.walker_timer;
     add_session_timer enabler 1.0 DonkeyServers.udp_walker_timer;
     
@@ -308,9 +302,11 @@ let _ =
         network_config_filename = (match network.network_config_file with
             [] -> "" | opfile :: _ -> options_file_name opfile);
         network_netname = network.network_name;
+        network_netflags = network.network_flags;
         network_enabled = network.op_network_is_enabled ();
         network_uploaded = Int64.zero;
         network_downloaded = Int64.zero;
+        network_connected = List.length (connected_servers ());
       });
   CommonInteractive.register_gui_options_panel "eDonkey" 
     gui_donkey_options_panel;

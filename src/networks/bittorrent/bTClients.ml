@@ -35,7 +35,12 @@ open CommonTypes
 open CommonFile
 open CommonGlobals
 open CommonSwarming  
-open CommonDownloads.SharedDownload
+
+      
+open MultinetTypes
+open MultinetFunctions
+open MultinetComplexOptions
+
   
 open BTTypes
 open BTOptions
@@ -98,6 +103,9 @@ let bits = [| 128; 64; 32;16;8;4;2;1 |]
 
 let max_range_requests = 10
 let max_range_len = 1 lsl 15
+let max_uploaders = 5
+let next_uploaders = ref ([] : BTTypes.client list)
+let current_uploaders = ref ([] : BTTypes.client list)
 
     
   
@@ -347,6 +355,7 @@ and client_to_client c sock msg =
               Int64Swarmer.downloaded file_shared.file_swarmer in
             
             c.client_downloaded <- c.client_downloaded ++ (Int64.of_int len);
+            c.client_downloaded_rate <- c.client_downloaded_rate ++ (Int64.of_int len);
             
             if !verbose_msg_clients then 
               (match c.client_ranges with
@@ -403,12 +412,13 @@ and client_to_client c sock msg =
         for i = 1 to max_range_requests - List.length c.client_ranges do
           (try get_from_client sock c with _ -> ())
         done
-
+    
     | Have n ->
         let n = Int64.to_int n in
         if c.client_bitmap.[n] <> '1' then
           let verified = Int64Swarmer.verified_bitmap file.file_partition in
           if verified.[n] <> '3' then begin
+              send_client c Interested;  
               c.client_new_chunks <- n :: c.client_new_chunks;
               if c.client_block = None then begin
                   update_client_bitmap c;
@@ -418,39 +428,46 @@ and client_to_client c sock msg =
                   done
                 end
             end
-            
+    
     | Interested ->
         c.client_interested <- true;
-        send_client c Unchoke
     
     | Choke ->
-        set_client_state c (Connected 0)
-    | NotInterested -> ()
-
-    | Unchoke ->
-        List.iter (fun r ->
-            let (x, y) = Int64Swarmer.range_range r in
-            let num = Int64.to_int (x // file_info.file_info_piece_size) in
-            let b_begin = file_info.file_info_piece_size **  num in
-            send_client c (Request (num, x -- b_begin, y -- x))
-        ) c.client_ranges
+        c.client_optimist_time <- last_time () + 30; 
+(*remote peer will clear the list of range we send*)
+        c.client_ranges <- [];
+        c.client_choked <- true;
         
+    | NotInterested -> 
+        c.client_interested <- false;
+    
+    | Unchoke ->
+        c.client_choked <- false;
+(*remote peer cleared our request : re-request*)
+        for i = 1 to max_range_requests - 
+          List.length c.client_ranges do
+          (try get_from_client sock c with _ -> ())
+        done
+        
+         
     | Request (n, pos, len) ->
-        begin
-          match c.client_upload_requests with
-            [] ->
-              if client_has_a_slot (as_client c) then
-                CommonUploads.ready_for_upload (as_client c)
-              else
-              if c.client_downloaded > Int64.zero then
-                CommonUploads.give_a_slot (as_client c)
-              else
-                CommonUploads.add_pending_slot (as_client c)
-          | _ -> ()        
-        end;
-(*        lprintf "client is waiting for piece\n"; *)
-        c.client_upload_requests <- 
-          c.client_upload_requests @ [n,pos,len];
+          begin
+            match c.client_upload_requests with
+              [] ->
+                if client_has_a_slot (as_client c) then
+                   begin
+                     CommonUploads.ready_for_upload (as_client c);
+                     c.client_upload_requests <- 
+                     c.client_upload_requests @ [n,pos,len];                 
+                   end
+                else
+                   begin
+                     send_client c Choke;
+                     c.client_upload_requests <- [];                 
+                   end
+            | _ -> ()        
+          end;
+ 
         
     | Ping -> ()
     
@@ -603,6 +620,80 @@ let send_pings () =
       ) file.file_clients
   ) !current_files
 
+
+let recompute_uploaders () =
+  let max_list = ref ([] : BTTypes.client list) in
+  let possible_uploaders = ref ([] :  BTTypes.client list) in
+    (*choose best potential uploaders*)
+  let rec move_list c l alrd = 
+    if (c.client_interested == true && (c.client_sock != NoConnection)
+	&& not (c.client_choked == true &&  ( c.client_optimist_time < last_time() ))) then
+      begin
+	match l with 
+	  | [] -> 
+	      begin	
+		if  ( (List.length alrd) < (max_uploaders) ) then		  
+		  alrd@[c]		 
+		else
+		  (List.tl alrd)@[c]
+	      end
+	  | p::r -> if (c.client_downloaded_rate >= p.client_downloaded_rate) then
+	      begin
+		if ((List.mem c !possible_uploaders)==false) then
+		  possible_uploaders := (c::!possible_uploaders);
+		move_list c r (alrd@[p]);
+	      end
+	    else
+	      match alrd with 
+		| [] ->  l
+		| _ -> begin
+		    if (((List.length alrd) + (List.length l)) < (max_uploaders)) then
+		      (alrd@[c])@l
+		    else 
+		      ((List.tl alrd)@[c])@l
+		  end
+      end
+    else 
+      begin
+	l;
+      end
+  in
+    begin
+      List.iter (fun f ->
+		   Hashtbl.iter (fun _ c -> 
+				   begin
+				     max_list:= move_list c !max_list [];
+				     c.client_downloaded_rate <- zero; 
+				end )  f.file_clients;
+		)
+	!current_files;
+      
+      
+	(*TODO : Choose optimistic every 30 sec*)
+      
+      (*don't send Choke if new client is already a current client *)      
+      (*send choke to others*)
+      (*i hope that == will work between two clients*)
+      
+      List.iter ( fun c -> if ((List.mem c !next_uploaders)==false) then
+		    begin
+		      set_client_has_a_slot (as_client c) false;
+		      (*we will let him finish is download and choke him on next_request*)
+		    end
+		) !current_uploaders;
+      
+      List.iter ( fun c -> if ((List.mem c !current_uploaders)==false) then
+		    begin
+		      send_client c Unchoke;
+		      set_client_has_a_slot (as_client c) true;
+		      client_enter_upload_queue (as_client c);
+		    end
+		) !next_uploaders;
+      current_uploaders := !next_uploaders;
+      next_uploaders := !max_list;
+    end
+    
+
 open Bencode
 
 let resume_clients file = 
@@ -688,6 +779,7 @@ let connect_tracker file url =
   let r = {
       H.basic_request with
       H.req_url = Url.of_string ~args: args url;
+      H.req_proxy = !CommonOptions.http_proxy;
       H.req_user_agent = 
       Printf.sprintf "MLdonkey %s" Autoconf.current_version;
     } in

@@ -19,8 +19,11 @@
 
 open Queues
 open Md4
+  
 open CommonTypes
-
+open CommonSwarming
+open CommonDownloads
+  
 type request_record = {
   mutable last_request : int;
   mutable nwarnings : int;
@@ -139,8 +142,6 @@ and server_change_kind =
 | ServerInfoChange
 | ServerBusyChange
 
-and availability = bool array
-
 and challenge = {
     mutable challenge_md4 : Md4.t;
     mutable challenge_solved : Md4.t;
@@ -152,22 +153,21 @@ and client = {
     mutable client_kind : location_kind;
     mutable client_source : source option;
     mutable client_md4 : Md4.t;
-    mutable client_chunks : availability;
     mutable client_sock : TcpBufferedSocket.t option;
     mutable client_ip : Ip.t;
     mutable client_power : int ;
-    mutable client_block : block option;
-    mutable client_zones : zone list;
+    mutable client_block : Int64Swarmer.block option;
+    mutable client_blocks : Int64Swarmer.block list;
+    mutable client_ranges : (int64 * int64 * Int64Swarmer.range) list;
     mutable client_connection_control : connection_control;
     mutable client_file_queue : (
       file * (* has displayed when connected *)
-      availability
+      string 
       ) list;
     mutable client_next_view_files :  int;
     mutable client_all_files : result list option;
     mutable client_tags: CommonTypes.tag list;
     mutable client_name : string;
-    mutable client_all_chunks : string;
     mutable client_rating : int ;
     mutable client_upload : upload_info option;
     mutable client_checked : bool;
@@ -200,37 +200,13 @@ and slot_status =
 | SlotReceived
   
 and upload_info = {
-    mutable up_file : file;
+    mutable up_md4 : Md4.t;
+    mutable up_shared : CommonTypes.shared;
+    mutable up_fd : Unix32.t;
     mutable up_pos : int64;
     mutable up_end_chunk : int64;
     mutable up_chunks : (int64 * int64) list;
     mutable up_waiting : bool;
-  }
-  
-and chunk = 
-  PresentTemp
-| AbsentTemp
-| PartialTemp of block
-| PresentVerified
-| AbsentVerified
-| PartialVerified of block
-  
-and block = {
-    mutable block_present: bool;
-    block_begin : int64;
-    block_end : int64;
-    mutable block_zones : zone list;
-    mutable block_nclients : int;
-    mutable block_contributors : Ip.t list;
-    mutable block_legacy : bool;
-    mutable block_pos : int;
-    block_file : file;
-  }
-  
-and zone = {
-    mutable zone_begin : int64;
-    mutable zone_end : int64;
-    mutable zone_nclients : int;
   }
   
 and source = {
@@ -270,36 +246,27 @@ and client_kind =
   int   (* booked client num *)
   
 and file = {
-    file_file : file CommonFile.file_impl;
+    file_multinet : MultinetTypes.file;
+    file_shared : file CommonShared.shared_impl;
+    
+    mutable file_partition : CommonSwarming.Int64Swarmer.partition;
+    
     file_md4 : Md4.t;
     file_exists : bool;
-    mutable file_nchunks : int;
-    mutable file_chunks : chunk array;
-    mutable file_chunks_order : int array;
-    mutable file_chunks_age : int array;
-(*    mutable file_all_chunks : string; *)
-    mutable file_absent_chunks : (int64 * int64) list;
-    mutable file_filenames : string list;
+
+    mutable file_partially_shared : bool;
     mutable file_nsources : int;
-    mutable file_md4s : Md4.t list;
+    mutable file_md4s : Md4.t array;
     mutable file_format : format;
     mutable file_available_chunks : int array;
-    mutable file_shared : file CommonShared.shared_impl option;
-    mutable file_locations : client Intmap.t; 
+(*    mutable file_shared : file CommonShared.shared_impl option; *)
+
     mutable file_mtime : float;
     mutable file_initialized : bool;
 (* Source management number 3 !! *)
+    mutable file_locations : client Intmap.t; 
     mutable file_clients : (client * int) Fifo.t;
     mutable file_sources : source Queue.t array;
-  }
-
-and file_to_share = {
-    shared_name : string;
-    shared_size : int64;
-    mutable shared_list : Md4.t list;
-    mutable shared_pos : int64;
-    mutable shared_fd : Unix32.t;
-    shared_shared : file_to_share CommonShared.shared_impl;
   }
   
 module UdpClientMap = Map.Make(struct
@@ -324,13 +291,6 @@ type old_result = result
 exception NoSpecifiedFile
 exception Already_done
 
-type shared_file_info = {
-    sh_name : string;
-    sh_md4s : Md4.t list;
-    sh_mtime : float;
-    sh_size : int64;
-  }
-
   
 open CommonFile
 open CommonClient
@@ -350,14 +310,6 @@ let set_server_state s state =
   if server_state ss <> state then begin
       set_server_state ss state;
     end
-  
-let file_state file =
-  CommonFile.file_state (as_file file.file_file)
-  
-let file_last_seen file = file.file_file.impl_file_last_seen
-  
-let file_must_update file =
-  file_must_update (as_file file.file_file)
     
 let client_state client =
   CommonClient.client_state (as_client client.client_client)

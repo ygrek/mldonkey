@@ -181,7 +181,7 @@ let value_reader gui t =
         lprintf "MESSAGE RECEIVED: %s" 
           (string_of_to_gui t);
         lprint_newline ();
-        
+      
       end;
     
     
@@ -236,24 +236,28 @@ let value_reader gui t =
             s.nshared_files 
             (Gui_misc.size_of_int64 s.upload_counter)
           (s.tcp_upload_rate + s.udp_upload_rate) s.udp_upload_rate
-          (s.tcp_download_rate + s.udp_download_rate) s.udp_download_rate
+            (s.tcp_download_rate + s.udp_download_rate) s.udp_download_rate
         )
     
     | CoreProtocol v -> 
         
-        Gui_com.gui_protocol_used := min v GuiEncoding.best_gui_version;
-        lprintf "Using protocol %d for communications" !Gui_com.gui_protocol_used;
-        lprint_newline ();
+        let version = min v GuiEncoding.best_gui_version in
+        for i = 0 to GuiDecoding.to_gui_last_opcode do
+          Gui_com.to_gui_protocol_used.(i) <- version;
+        done;
+        for i = 0 to GuiDecoding.from_gui_last_opcode do
+          Gui_com.from_gui_protocol_used.(i) <- version;
+        done;
+        lprintf "Using protocol %d for communications\n" version;
         gui#label_connect_status#set_text (gettext M.connected);
         Com.send (Password (!!O.login, !!O.password))
     
-    | Search_result (num,r) -> 
+    | Search_result (num,r,_) -> 
         begin try
             let r = Hashtbl.find G.results r in
             gui#tab_queries#h_search_result num r
           with _ -> 
-              lprintf "Exception in Search_result %d %d" num r;
-              lprint_newline ();
+              lprintf "Exception in Search_result %d %d\n" num r;
         end
     
     | Search_waiting (num,waiting) -> 
@@ -333,36 +337,45 @@ let value_reader gui t =
     
     | Options_info list ->
 (*        lprintf "Options_info"; lprint_newline ();*)
+        let module M = Options in
         let rec iter list =
           match list with
             [] -> ()
-          | (name, value) :: tail ->
+          | o :: tail ->
               (
                 try
                   let reference = 
-                    List.assoc name Gui_options.client_options_assocs 
+                    List.assoc o.M.option_name Gui_options.client_options_assocs 
                   in                  
-                  reference := value;
-                  Gui_config.add_option_value name reference
+                  reference := o.M.option_value;
+                  Gui_config.add_option_value o.M.option_name reference
                 with _ -> 
-                    Gui_config.add_option_value name (ref value)
+                    Gui_config.add_option_value o.M.option_name (ref o.M.option_value)
               );
               iter tail
         in
         iter list
     
-    | Add_section_option (section, message, option, optype) ->
-        let line = message, optype, option in
+    | Add_section_option (section, o) ->
+        let optype = match o.option_type with
+            "Bool" -> BoolEntry
+          | "Filename" -> FileEntry
+          | _ -> StringEntry in
+        let line = o.option_desc, optype, o.option_name in
         (try
             let options = List.assoc section !client_sections in
             if not (List.mem line !options) then
               options := !options @ [line]
-        with _ ->
-            client_sections := !client_sections  @[section, ref [line]]
+          with _ ->
+              client_sections := !client_sections  @[section, ref [line]]
         )          
     
-    | Add_plugin_option (section, message, option, optype) ->
-        let line = message, optype, option in
+    | Add_plugin_option (section, o) ->
+        let optype = match o.option_type with
+            "Bool" -> BoolEntry
+          | "Filename" -> FileEntry
+          | _ -> StringEntry in
+        let line = o.option_desc, optype, o.option_name in
         (try
             let options = List.assoc section !plugins_sections in
             if not (List.mem line !options) then
@@ -502,9 +515,10 @@ fichier selectionne. Si ca marche toujours dans ton interface, pas de
         GToolbox.message_box ~title: "Bad Password" 
         "Authorization Failed\nPlease, open the File->Settings menu and
           enter a valid password"
+    | GiftServerAttach _
+    | GiftServerStats _ -> assert false
   with e ->
-      lprintf "Exception %s in reader" (Printexc2.to_string e);
-      lprint_newline ()
+      lprintf "Exception %s in reader\n" (Printexc2.to_string e)
 
       
 let generate_connect_menu gui =

@@ -25,8 +25,9 @@ let cmd_basedir = Autoconf.current_dir (* will not work on Windows *)
 
 let gnutella_ini = create_options_file (
     Filename.concat file_basedir "gnutella2.ini")
-  
-let g2_max_ultrapeers = define_option gnutella_ini
+let gnutella_section = file_section gnutella_ini [] ""  
+
+let g2_max_ultrapeers = define_option gnutella_section
     [ "max_ultrapeers"]
   "Maximal number of ultrapeers connected"
     int_option 5
@@ -36,16 +37,16 @@ let _ =
     (fun _ ->
       if !!g2_max_ultrapeers > 10 then g2_max_ultrapeers =:= 10)
   
-let client_port = define_option gnutella_ini ["client_port"]
+let client_port = define_option gnutella_section ["client_port"]
     "The port to bind the client to"
     int_option 6346
   
-let g2_redirectors = define_option gnutella_ini
+let g2_redirectors = define_option gnutella_section
     ["redirectors"]
     "The URLs where hosts on gnutella2 can be downloaded"
     (list_option string_option)
   [
-    "http://cache.shareaza.com/cache.aspx";
+(*    "http://cache.shareaza.com/cache.aspx"; *)
     "http://g2cache.theg2.net/gwcache/lynnx.asp";
     "http://user1.7host.com/dgwc2/lynnx.asp";
     "http://www20.brinkster.com/dgc2/lynnx.asp";
@@ -57,31 +58,31 @@ let g2_redirectors = define_option gnutella_ini
   ]
   
   
-let commit_in_subdir = define_option gnutella_ini ["commit_in_subdir"]
+let commit_in_subdir = define_option gnutella_section ["commit_in_subdir"]
   "The subdirectory of temp/ where files should be moved to"
     string_option "Gnutella2"
   
   
-let deflate_connections = define_option gnutella_ini ["deflate_connections"]
+let deflate_connections = define_option gnutella_section ["deflate_connections"]
     "(only for development tests)"  
     bool_option true
 
 let user_agent = Printf.sprintf "MLDonkey %s" Autoconf.current_version
 
-let max_known_ultrapeers = define_option gnutella_ini ["max_known_ultrapeers"]
+let max_known_ultrapeers = define_option gnutella_section ["max_known_ultrapeers"]
   "Maximal number of ultrapeers remembered"
     int_option 100
 
-let max_known_peers = define_option gnutella_ini ["max_known_peers"]
+let max_known_peers = define_option gnutella_section ["max_known_peers"]
   "Maximal number of peers remembered"
   int_option 20
 
     
 let server_connection_timeout = 
-  define_option gnutella_ini ["server_connection_timeout"] 
+  define_option gnutella_section ["server_connection_timeout"] 
   "timeout when connecting to a server" float_option 10.
 
-let client_uid = define_option gnutella_ini ["client_uid"]
+let client_uid = define_option gnutella_section ["client_uid"]
     "The UID of this client" Md4.option (Md4.random ())
   
   let _	 =
@@ -93,21 +94,21 @@ let client_uid = define_option gnutella_ini ["client_uid"]
   
   (*
 let verbose_clients = 
-  define_option gnutella_ini ["verbose_clients"] 
+  define_option gnutella_section ["verbose_clients"] 
   "level of verbosity when communicating with clients" 
     int_option 0
     
 let verbose_servers = 
-  define_option gnutella_ini ["verbose_servers"] 
+  define_option gnutella_section ["verbose_servers"] 
     "level of verbosity when communicating with servers" int_option 0
     *)
 
-let network_options_prefix = define_option gnutella_ini
+let network_options_prefix = define_option gnutella_section
     ["options_prefix"] "The prefix which is appended to options names
     when they are used in the telnet/WEB interfaces"
-    string_option "GNUT-"
+    string_option "G2-"
   
-let max_available_slots = define_option gnutella_ini
+let max_available_slots = define_option gnutella_section
     ["max_available_slots"] "The maximal number of slots for upload by Gnutella clients"
     int_option 5
   
@@ -116,7 +117,7 @@ let shortname o =
   
 let gui_gnutella_options_panel = 
   (*
-  define_option gnutella_ini ["gui_gnutella_options_panel"]
+  define_option gnutella_section ["gui_gnutella_options_panel"]
     "Which options are configurable in the GUI option panel, and in the
   gnutella section. Last entry indicates the kind of widget used (B=Boolean,T=Text)"
 (list_option (tuple3_option (string_option, string_option, string_option)))

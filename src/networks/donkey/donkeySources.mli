@@ -31,3 +31,11 @@ val client_connected : DonkeyTypes.client -> unit
 val add_source_request : DonkeyTypes.source ->
   DonkeyTypes.file -> int -> DonkeyTypes.request_result -> unit
 val init : unit -> unit  
+
+val query_file : DonkeyTypes.client -> DonkeyTypes.file -> unit
+val add_file_location : DonkeyTypes.file -> DonkeyTypes.client -> unit
+val set_request_result :
+  DonkeyTypes.client ->
+  DonkeyTypes.file -> DonkeyTypes.request_result -> unit
+val indirect_connections : int ref
+val create_source : int -> int -> Ip.t * int -> DonkeyTypes.source

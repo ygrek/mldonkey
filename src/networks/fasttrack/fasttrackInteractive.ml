@@ -17,9 +17,11 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Xml
+open BasicSocket
 open Printf2
 open Md4
+open Options
+
 open CommonSearch
 open CommonGlobals
 open CommonUser
@@ -31,15 +33,20 @@ open CommonTypes
 open CommonComplexOptions
 open CommonFile
 open CommonInteractive
-open Options
+open CommonHosts
+    
+open MultinetTypes
+open MultinetFunctions
+open MultinetComplexOptions
+
+  
 open FasttrackTypes
 open FasttrackOptions
 open FasttrackGlobals
 open FasttrackComplexOptions
-open BasicSocket
-
 open FasttrackProtocol
 
+  
 (* Don't share files greater than 10 MB on Fasttrack and limit to 200 files. 
  Why ? Because we don't store URNs currently, and we don't want mldonkey
  to compute hashes for hours at startup *)
@@ -134,6 +141,9 @@ let parse_query q =
       
 let _ =
   network.op_network_search <- (fun search buf ->
+      match search.search_type with
+        LocalSearch -> ()
+      | _ ->
       let query = search.search_query in
       let words, realm, tags = parse_query query in
       let words = String2.unsplit words ' ' in
@@ -143,7 +153,7 @@ that we can reuse queries *)
       let uid = Md4.random () in
       
       let ss = {
-          (* no exclude, no realm *)
+(* no exclude, no realm *)
           search_search = UserSearch (search, words, realm, tags);
           search_id = !search_num;
         } in
@@ -162,77 +172,45 @@ that we can reuse queries *)
       !connected_servers <> []
   );
   network.op_network_share <- (fun fullname codedname size ->
-      (*
       if !shared_files_counter < max_shared_files &&
         size < max_shared_file_size then begin
-        incr shared_files_counter;
-      FasttrackProtocol.new_shared_words := true;
-      let sh = CommonUploads.add_shared fullname codedname size in
-      CommonUploads.ask_for_uid sh SHA1 (fun sh uid -> 
-            lprintf "Could share urn\n";
-            ())
-end
-*)
-      ()
+          incr shared_files_counter;
+          FasttrackProtocol.new_shared_words := true;
+          let sh = CommonUploads.add_shared fullname codedname size in
+          CommonUploads.ask_for_uid sh MD5EXT (fun sh uid -> 
+              lprintf "Could share file on Fasttrack\n";
+              ())
+        end
   )
   
 let _ =
   result_ops.op_result_download <- (fun result _ force ->
       FasttrackServers.download_file result)
 
-let file_num file =
-  file.file_file.impl_file_num
-
 let _ =
-  file_ops.op_file_sources <- (fun file ->
+  file_ops.op_download_sources <- (fun file ->
       lprintf "file_sources\n"; 
       List2.tail_map (fun c ->
           as_client c.client_client
       ) file.file_clients
   );
-  file_ops.op_file_recover <- (fun file ->
+  file_ops.op_download_recover <- (fun file ->
       FasttrackServers.recover_file file;
       List.iter (fun c ->
           FasttrackServers.get_file_from_source c file
       ) file.file_clients
+  );
+  file_ops.op_download_finish <- (fun file ->
+      remove_file file;
+      Hashtbl.remove searches_by_uid file.file_search.search_id;
   )
+
 
   
 module P = GuiTypes
   
 let _ =
-  file_ops.op_file_cancel <- (fun file ->
-      remove_file file;
-      file_cancel (as_file file.file_file);
-          Hashtbl.remove searches_by_uid  file.file_search.search_id
-  );
-  file_ops.op_file_info <- (fun file ->
-      {
-        P.file_name = file.file_name;
-        P.file_num = (file_num file);
-        P.file_network = network.network_num;
-        P.file_names = file.file_filenames;
-        P.file_md4 = Md4.null;
-        P.file_size = file_size file;
-        P.file_downloaded = file_downloaded file;
-        P.file_nlocations = 0;
-        P.file_nclients = 0;
-        P.file_state = file_state file;
-        P.file_sources = None;
-        P.file_download_rate = file_download_rate file.file_file;
-        P.file_chunks = "0";
-        P.file_availability = "0";
-        P.file_format = FormatNotComputed 0;
-        P.file_chunks_age = [|0|];
-        P.file_age = file_age file;
-        P.file_last_seen = BasicSocket.last_time ();
-        P.file_priority = file_priority (as_file file.file_file);
-      }    
-  )
-  
-let _ =
   server_ops.op_server_info <- (fun s ->
-      if !!enable_fasttrack then
         {
           P.server_num = (server_num s);
           P.server_network = network.network_num;
@@ -248,7 +226,6 @@ let _ =
           P.server_users = None;
           P.server_banner = "";
         } 
-        else raise Not_found
   );
   server_ops.op_server_connect <- (fun s ->
       FasttrackServers.connect_server s.server_host);
@@ -270,72 +247,13 @@ let _ =
         C.result_format = result_format_of_name r.result_name;
         C.result_type = result_media_of_name r.result_name;
         C.result_tags =  (
-              string_tag "FTH" (Md5Ext.to_string_case false r.result_hash)
+              string_tag "FTH" (Md5Ext.to_hexa_case false r.result_hash)
         ) :: r.result_tags;
         C.result_comment = "";
         C.result_done = false;
       }   
   )
             
-
-let base64tbl = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-  
-let _ = assert (String.length base64tbl = 64)
-
-let bin20tobase6427 hashbin =
-  let hash64 = String.create 30 in
-  let hashbin n = int_of_char hashbin.[n] in
-  hash64.[0] <- '=';
-  let j = ref 1 in
-  for i = 0 to 6 do
-    let tmp = if i < 6 then
-        ((hashbin (3*i)) lsl 16) lor ((hashbin(3*i+1)) lsl 8) 
-        lor (hashbin (3*i+2))
-      else
-        ((hashbin(3*i)) lsl 16) lor ((hashbin(3*i+1)) lsl 8)
-    in
-    for k = 0 to 3 do
-      hash64.[!j] <- base64tbl.[(tmp lsr ((3- k)*6)) land 0x3f];
-      incr j
-    done
-  done;
-  hash64.[!j-1] <- '=';
-  String.sub hash64 0 !j
-
-let base64tbl_inv = String.create 126
-let _ = 
-  for i = 0 to 63 do
-    base64tbl_inv.[int_of_char base64tbl.[i]] <- char_of_int i
-  done
-  
-let base6427tobin20 hash64 =
-  let hashbin = String.make 20 '\000' in
-  let hash64 n = 
-    let c = hash64.[n] in
-    int_of_char base64tbl_inv.[int_of_char c]
-  in
-  let j = ref 0 in
-  for i = 0 to 6 do
-    if i < 6 then
-      let tmp = ref 0 in
-      for k = 0 to 3 do
-        tmp := (!tmp lsl 6) lor (hash64 (i*4+k+1))
-      done;
-      hashbin.[!j] <- char_of_int ((!tmp lsr 16) land 0xff);
-      hashbin.[!j+1] <- char_of_int ((!tmp lsr  8) land 0xff);
-      hashbin.[!j+2] <- char_of_int ((!tmp lsr  0) land 0xff);
-      j := !j + 3;
-    else
-    let tmp = ref 0 in
-    for k = 0 to 2 do
-      tmp := (!tmp lsl 6) lor (hash64 (i*4+k+1))
-    done;
-    tmp := (!tmp lsl 6);
-    hashbin.[!j] <- char_of_int ((!tmp lsr 16) land 0xff);
-    hashbin.[!j+1] <- char_of_int ((!tmp lsr  8) land 0xff);
-    j := !j + 2;
-  done;
-  hashbin
   
   
 let _ =
@@ -403,8 +321,7 @@ let _ =
           
           lprintf "sig2dat: [%s] [%s] [%s]\n" filename size hash;
           let size = Int64.of_string size in
-          let hash = base6427tobin20 hash in
-          let hash = Md5Ext.direct_of_string hash in
+          let hash = Md5Ext.of_string hash in
           
           let r = new_result filename size [] hash in
           FasttrackServers.download_file r;
@@ -439,7 +356,7 @@ let _ =
       {
         P.client_network = network.network_num;
         P.client_kind = c.client_user.user_kind;
-        P.client_state = client_state (as_client c.client_client);
+        P.client_state = client_state c;
         P.client_type = client_type c;
         P.client_tags = [];
         P.client_name = (match c.client_user.user_kind with
@@ -449,7 +366,7 @@ let _ =
               Printf.sprintf "UID[%s...]" (String.sub (Md4.to_string id) 0 12)
         );
         P.client_files = None;
-        P.client_num = (client_num (as_client c.client_client));
+        P.client_num = (client_num ( c));
         P.client_rating = 0;
         P.client_chat_port = 0 ;
         P.client_connect_time = BasicSocket.last_time ();
@@ -477,7 +394,7 @@ let _ =
         let cinfo = client_info cc in
 
         html_mods_td buf [
-          ("", "sr br ar", Printf.sprintf "%d" (client_num cc));
+          ("", "sr br ar", Printf.sprintf "%d" (client_num c));
           ("", "sr br", cinfo.GuiTypes.client_name);
           ("", "sr", cinfo.GuiTypes.client_sock_addr);
           ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_uploaded));
@@ -504,9 +421,9 @@ let _ =
     onMouseOut=\\\"mOut(this);\\\" class=\\\"%s\\\"\\>" str;
         
         html_mods_td buf [ 
-          ("", "srb ar", Printf.sprintf "%d" (client_num cc));
-          ((string_of_connection_state (client_state cc)), "sr",
-            (short_string_of_connection_state (client_state cc)));
+          ("", "srb ar", Printf.sprintf "%d" (client_num c));
+          ((string_of_connection_state (client_state c)), "sr",
+            (short_string_of_connection_state (client_state c)));
           ("", "sr", cinfo.GuiTypes.client_name);
           ("", "sr", "fT"); (* cinfo.GuiTypes.client_software *)
           ("", "sr", "F");

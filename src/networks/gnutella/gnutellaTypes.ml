@@ -117,7 +117,7 @@ and result = {
   }
 
 and file = {
-    file_shared : SharedDownload.file;
+    file_shared : MultinetTypes.file;
 
     file_partition : CommonSwarming.Int64Swarmer.partition;
     mutable file_clients : client list;

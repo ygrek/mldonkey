@@ -31,12 +31,16 @@ open CommonResult
 open CommonFile
 open CommonSwarming  
 open CommonNetwork
-open CommonDownloads.SharedDownload  
 open CommonGlobals
-  
+      
+open MultinetTypes
+open MultinetFunctions
+open MultinetComplexOptions
+
 open BTTypes
 open BTOptions
-
+open BTProtocol
+  
     (*
 let file_size file = file.file_file.impl_file_size
 let file_downloaded file = file_downloaded (as_file file.file_file)
@@ -52,22 +56,14 @@ let file_num file =
   file_num (as_file file.file_file)
   
   *)
-  
-let client_type c = client_type (as_client c.client_client)
-
-let set_client_state client state =
-  CommonClient.set_client_state (as_client client.client_client) state
-  
-let set_client_disconnected client =
-  CommonClient.set_client_disconnected (as_client client.client_client) 
-  
-  
-  
-let as_client c = as_client c.client_client
-let client_num c = client_num (as_client c)
 
   
 let network = new_network "BitTorrent"  
+  [ 
+    NetworkHasMultinet; 
+    NetworkHasUpload;
+  ]
+
     (fun _ -> !!network_options_prefix)
   (fun _ -> !!commit_in_subdir)
 (*  network_options_prefix commit_in_subdir *)
@@ -108,7 +104,7 @@ let files_by_uid = Hashtbl.create 13
 let new_file file_shared file_id =
   
   let file_info = Hashtbl.find infos_by_uid file_id in
-  let partition = fixed_partition file_shared.file_swarmer "bittorrent"
+  let partition = fixed_partition file_shared.file_swarmer network.network_num
       file_info.file_info_piece_size in
   let rec file = {
       file_shared = file_shared;
@@ -123,29 +119,40 @@ let new_file file_shared file_id =
   in
 (*  file_shared.file_verified_partition <- Some partition; *)
   Int64Swarmer.set_verifier partition (fun b ->
-      if file_info.file_info_chunks = [||] then 
-        raise Int64Swarmer.VerifierNotReady;
-      let num, begin_pos, end_pos = Int64Swarmer.block_block b in
-      lprintf "Sha1 to compute: %d %Ld-%Ld\n" num begin_pos end_pos;
-      Unix32.flush_fd (file_fd file_shared);
-      let sha1 = Sha1.digest_subfile (file_fd file_shared) 
-        begin_pos (end_pos -- begin_pos) in
-      let result = sha1 = file_info.file_info_chunks.(num) in
-      lprintf "Sha1 computed: %s against %s = %s\n"
-        (Sha1.to_string sha1) 
-      (Sha1.to_string file_info.file_info_chunks.(num))
-      (if result then "VERIFIED" else "CORRUPTED");
-      if result then begin
-          file.file_blocks_downloaded <- b :: file.file_blocks_downloaded;
-          file_must_update file_shared;
-        end;
-      result
+      if file_info.file_info_chunks <> [||] then 
+        let num, begin_pos, end_pos = Int64Swarmer.block_block b in
+        lprintf "Sha1 to compute: %d %Ld-%Ld\n" num begin_pos end_pos;
+        Unix32.flush_fd (file_fd file_shared);
+        let sha1 = Sha1.digest_subfile (file_fd file_shared) 
+          begin_pos (end_pos -- begin_pos) in
+        let result = sha1 = file_info.file_info_chunks.(num) in
+        lprintf "Sha1 computed: %s against %s = %s\n"
+          (Sha1.to_string sha1) 
+        (Sha1.to_string file_info.file_info_chunks.(num))
+        (if result then "VERIFIED" else "CORRUPTED");
+        if result then 
+          Int64Swarmer.loaded_block b
+        else 
+          Int64Swarmer.reload_block b;
+        
+        if result then begin
+            file.file_blocks_downloaded <- b :: file.file_blocks_downloaded;
+            file_must_update file_shared;
+(*Automatically send Have to ALL clients once a piece is verified
+             NB : will probably have to check if client can be interested*)
+            Hashtbl.iter (fun _ c ->
+                match c.client_sock with
+                | Connection sock -> 
+                    send_client c (Have (Int64.of_int num));
+                | _ -> ()
+            ) file.file_clients
+          end;
   );
   file_shared.file_files <- file_info.file_info_files;
   current_files := file :: !current_files;
   Hashtbl.add files_by_uid file_id file;
   file
-                  
+  
 let _ = 
   register_network network_file_ops;
   network_file_ops.op_download_start <- 
@@ -173,7 +180,7 @@ let new_client file peer_id kind =
           client_connection_control = new_connection_control (());
           client_file = file;
           client_host = kind;
-          client_chocked = true;
+          client_choked = true;
           client_interested = false;
           client_blocks = [];
           client_chunks = [];
@@ -185,6 +192,8 @@ let new_client file peer_id kind =
           client_allowed_to_write = zero;
           client_uploaded = zero;
           client_downloaded = zero;
+	  client_downloaded_rate = zero;
+          client_optimist_time=0;
           client_blocks_sent = [];
           client_new_chunks = [];
           client_good = false;

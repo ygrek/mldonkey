@@ -68,7 +68,7 @@ type file_info = {
 
     mutable file_state : file_state;
     mutable file_chunks : string;
-    mutable file_availability : string; (* MANY CHANGES *)
+    mutable file_availability : (int * string) list; (* MANY CHANGES *)
     mutable file_sources : int list option;
     mutable file_download_rate : float; (* LOT OF CHANGES *)
     mutable file_format : format;
@@ -157,7 +157,7 @@ type client_stats = {
     mutable tcp_download_rate : int; (* bytes/second *)
     mutable udp_upload_rate : int; (* bytes/second *)
     mutable udp_download_rate : int; (* bytes/second *)
-    mutable connected_networks : int list;
+    mutable connected_networks : (int * int) list; (* network/connected servers *)
     mutable ndownloaded_files : int;
     mutable ndownloading_files : int;
   }
@@ -252,7 +252,7 @@ let file_info_test =
     file_sources = None;
     file_download_rate = 2.2;
     file_chunks = "1010100";
-    file_availability = "";
+    file_availability = [0,""];
     file_format = FormatUnknown;
     file_chunks_age = [| 2 |];
     file_age = 3;

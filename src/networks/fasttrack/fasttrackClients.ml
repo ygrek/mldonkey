@@ -67,7 +67,10 @@ open CommonTypes
 open CommonFile
 open CommonGlobals
 open CommonSwarming  
-open CommonDownloads.SharedDownload
+    
+open MultinetTypes
+open MultinetFunctions
+open MultinetComplexOptions
   
 open FasttrackTypes
 open FasttrackOptions
@@ -276,7 +279,7 @@ let rec client_parse_header c gconn sock header =
         (try get_from_client sock c with _ -> ());
     done; 
     gconn.gconn_handler <- Reader (fun gconn sock ->
-        if file_state file.file_shared <> FileDownloading then begin
+        if file_state file <> FileDownloading then begin
             disconnect_client c Closed_by_user;
             raise Exit;
           end;
@@ -363,7 +366,7 @@ and get_from_client sock (c: client) =
           lprintf "No other download to start\n";
         raise Not_found
     | d :: tail ->
-        if file_state d.download_file.file_shared <> FileDownloading 
+        if file_state d.download_file <> FileDownloading 
           then iter tail
         else begin
             if !verbose_msg_clients then begin
@@ -425,11 +428,15 @@ and get_from_client sock (c: client) =
                   raise Not_found
             in
             let buf = Buffer.create 100 in
-            (match d.download_uri with
+            (*match d.download_uri with
                 FileByUrl url -> Printf.bprintf buf "GET %s HTTP/1.0\r\n" url
               | FileByIndex (index, name) -> 
                   Printf.bprintf buf "GET /get/%d/%s HTTP/1.1\r\n" index
-                    name);
+name *)
+            let url = Printf.sprintf 
+              "/.hash=%s" (Md5Ext.to_hexa_case false file.file_hash) in 
+
+            Printf.bprintf buf "GET %s HTTP/1.0\r\n" url;
             (match c.client_host with
                 None -> ()
               | Some (ip, port) ->
@@ -470,7 +477,7 @@ that the connection will not be aborted (otherwise, disconnect_client
   should clearly be called). *)
       (try List.iter (fun d ->
               let file = d.download_file in
-              if file_state file.file_shared = FileDownloading then
+              if file_state file = FileDownloading then
                 begin
                   c.client_connected_for <- Some file;
                   file.file_nconnected_clients <- 
@@ -491,7 +498,7 @@ that the connection will not be aborted (otherwise, disconnect_client
             | _ ->
                 if List.exists (fun d ->
                       let file = d.download_file in
-                      file_state file.file_shared = FileDownloading 
+                      file_state file = FileDownloading 
                   ) c.client_downloads 
                 then
                   try

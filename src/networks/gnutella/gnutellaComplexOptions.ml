@@ -22,23 +22,27 @@ open Printf2
 open Md4
 open Options
 open BasicSocket
-  
+
+open CommonOptions
 open CommonSwarming
 open CommonTypes
 open CommonFile
 open CommonHosts
-open CommonDownloads.SharedDownload
+
+open MultinetTypes
+open MultinetFunctions
+open MultinetComplexOptions
   
 open GnutellaTypes
 open GnutellaOptions
 open GnutellaGlobals
 
-let g1_ultrapeers = define_option gnutella_ini
+let g1_ultrapeers = define_option gnutella_section
     ["cache"; "gnutella1"; "ultrapeers"]
     "Known ultrapeers" (list_option (tuple2_option (Ip.option, int_option)))
   []
 
-let g1_peers = define_option gnutella_ini
+let g1_peers = define_option gnutella_section
     ["cache"; "gnutella1"; "peers"]
     "Known Peers" (list_option (tuple2_option (Ip.option, int_option)))
   []
@@ -138,7 +142,7 @@ let file_to_value file =
   ]
   
 let old_files = 
-  define_option gnutella_ini ["old_files"]
+  define_option gnutella_section ["old_files"]
     "" (list_option (tuple2_option (string_option, int64_option))) []
     
 let exit = Exit
@@ -161,8 +165,78 @@ let save_config () =
   
   ()
 
+let old_value_to_file is_done assocs =
+  let get_value name conv = conv (List.assoc name assocs) in
+  let get_value_nil name conv = 
+    try conv (List.assoc name assocs) with _ -> []
+  in
+  
+  let file_name = get_value "file_name" value_to_string in
+  let file_id = 
+    try
+      Md4.of_string (get_value "file_id" value_to_string)
+    with _ -> failwith "Bad file_id"
+  in
+  let file_size = try
+      value_to_int64 (List.assoc "file_size" assocs) 
+    with _ -> failwith "Bad file size"
+  in
+  
+  let file_uids = ref [] in
+  let uids_option = try
+      value_to_list value_to_string (List.assoc "file_uids" assocs) 
+    with _ -> []
+  in
+  List.iter (fun v ->
+      file_uids := uid_of_string v :: !file_uids) uids_option;
+  
+  let old_file = Filename.concat !!temp_directory (
+      Printf.sprintf "GNUT-%s" (Md4.to_string file_id)) in
+  
+  let file_shared = new_download None [file_name] file_size (Some old_file)
+    !file_uids in
+
+  (try 
+      Int64Swarmer.set_present file_shared.file_swarmer 
+        (get_value "file_present_chunks" 
+          (value_to_list value_to_int32pair));
+      add_file_downloaded file_shared.file_file
+        (Int64Swarmer.downloaded file_shared.file_swarmer)      
+    with _ -> ()                
+  );
+
+  let file = 
+    let file = ref None in
+    Hashtbl.iter (fun _ f ->
+        if f.file_shared == file_shared then 
+          file := Some f
+    ) files_by_uid;
+    match !file with
+      None -> raise Not_found
+    | Some file -> file
+  in
+  
+  (try
+      ignore (get_value "file_sources" (value_to_list (fun v ->
+              match v with
+              | SmallList [c; index; name] | List [c;index; name] ->
+                  let s = ClientOption.value_to_client c in
+                  add_download file s (
+                    FileByIndex (value_to_int index, value_to_string name))
+    
+              | SmallList [c; index] | List [c;index] ->
+                  let s = ClientOption.value_to_client c in
+                  add_download file s (
+                    FileByUrl (value_to_string index))
+              | _ -> failwith "Bad source"
+          )))
+    with e -> 
+        lprintf "Exception %s while loading source\n"
+          (Printexc2.to_string e); 
+  );
+  as_file file_shared
+
 let _ =
   network_file_ops.op_download_of_value <- value_to_file;
   file_ops.op_download_to_value <- file_to_value;
-  network.op_network_file_of_option <- 
-    CommonDownloads.SharedDownload.value_to_file
+  network.op_network_file_of_option <- old_value_to_file

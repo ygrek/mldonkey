@@ -541,13 +541,29 @@ let html_page = ref true
 
 open Http_server
 
+let get_theme_page page =
+	let theme = Filename.concat html_themes_dir !!html_mods_theme in
+	let fname = Filename.concat theme page in fname
+
+let theme_page_exists page = 
+	if Sys.file_exists (get_theme_page page) then true else false 
+
+(* if files are small really_input should be okay *)
+let read_theme_page page =
+	let theme_page = get_theme_page page in
+	let file = open_in theme_page in
+	let size = (Unix.stat theme_page).Unix.st_size in
+	let s = String.make size ' ' in
+	let ok = really_input file s 0 size in
+	close_in file; s
+  
 let add_simple_commands buf =
-  Buffer.add_string buf (if !!html_mods then 
-       (match !!html_mods_style with 
-	   1 -> !!CommonMessages.web_common_header_mods1
-	 | _ -> !!CommonMessages.web_common_header_mods0)
-	else
-      !!CommonMessages.web_common_header_old)
+	let this_page = "commands.html" in
+  Buffer.add_string buf (
+		if !!html_mods_theme != "" && theme_page_exists this_page then
+			read_theme_page this_page else
+			if !!html_mods then !!CommonMessages.web_common_header_mods0
+			else !!CommonMessages.web_common_header_old)
 
 let http_add_gen_header buf =
   Buffer.add_string  buf "HTTP/1.0 200 OK\r\n";
@@ -584,20 +600,22 @@ let html_open_page buf t r open_body =
     else Buffer.add_string buf "<html>\n<head>\n";
   
   if !CommonInteractive.display_vd then begin
+	let this_page = "dheader.html" in 
       Buffer.add_string buf 
-        (if !!html_mods then 
-        (match !!html_mods_style with 
-		  1 -> !!CommonMessages.download_html_header_mods1
-		| _ -> !!CommonMessages.download_html_header_mods0)
-		else !!CommonMessages.download_html_header_old);
+        (
+		if !!html_mods_theme != "" && theme_page_exists this_page then
+			read_theme_page this_page else
+			if !!html_mods then !!CommonMessages.download_html_header_mods0 
+			else !!CommonMessages.download_html_header_old);
       Printf.bprintf buf "<meta http-equiv=Refresh
           content=\"%d\">" !!vd_reload_delay;
     end else 
-    Buffer.add_string buf !!(if !!html_mods then 
-   		(match !!html_mods_style with 
-		1 -> CommonMessages.html_header_mods1 
-	  |	_ -> CommonMessages.html_header_mods0)
-	else CommonMessages.html_header_old);
+	let this_page = "header.html" in
+    Buffer.add_string buf (
+		if !!html_mods_theme != "" && theme_page_exists this_page then
+			read_theme_page this_page else
+			if !!html_mods then !!CommonMessages.html_header_mods0
+			else !!CommonMessages.html_header_old);
   
   Buffer.add_string buf "</head>\n";
   if open_body then Buffer.add_string buf "<body>\n";    
@@ -608,7 +626,6 @@ let html_close_page buf =
   Buffer.add_string buf "</body>\n";  
   Buffer.add_string buf "</html>\n";
   ()
-  
   
 let http_handler o t r =
   CommonInteractive.display_vd := false;
@@ -631,15 +648,18 @@ let http_handler o t r =
         match r.get_url.Url.file with
         | "/commands.html" ->
             html_open_page buf t r true;
-            Buffer.add_string buf !!(if !!html_mods then
-				(match !!html_mods_style with
-	            1 -> CommonMessages.web_common_header_mods1
-              | _ -> CommonMessages.web_common_header_mods0)
-              else
-                CommonMessages.web_common_header_old)
+			let this_page = "commands.html" in 
+            Buffer.add_string buf (
+				if !!html_mods_theme != "" && theme_page_exists this_page then
+					read_theme_page this_page else
+				if !!html_mods then !!CommonMessages.web_common_header_mods0
+              	else !!CommonMessages.web_common_header_old)
         | "/" | "/index.html" -> 
             if !!use_html_frames then begin
                 html_open_page buf t r false;
+				let this_page = "frames.html" in 
+				if !!html_mods_theme != "" && theme_page_exists this_page then
+					Buffer.add_string buf (read_theme_page this_page) else
                 if !!html_mods then
                   Printf.bprintf buf "
 			 <frameset src=\"index\" rows=\"%d,25,*\">
@@ -824,10 +844,10 @@ let http_handler o t r =
 					 rawcmd := String.sub cmd 0 (String.index cmd ' ');
 				  
 				  (match !rawcmd with 
-					| "vm" | "vma" | "view_custom_queries"  | "xs" | "vr"
-					| "c" | "commit" | "bw_stats" | "ovweb" | "friends" | "message_log"
-					| "downloaders" | "uploaders" | "scan_temp" | "cs" | "version"
-					| "vo" | "voo" | "upstats" -> drop_pre := true;
+					| "vm" | "vma" | "view_custom_queries"  | "xs" | "vr" | "afr" | "friend_remove" | "reshare" | "recover_temp"
+					| "c" | "commit" | "bw_stats" | "ovweb" | "friends" | "message_log" | "friend_add" | "remove_old_servers"
+					| "downloaders" | "uploaders" | "scan_temp" | "cs" | "version" | "rename" | "force_download" | "close_fds"
+					| "vd" | "vo" | "voo" | "upstats" | "shares" | "share" | "unshare" -> drop_pre := true;
 					| _ -> ());
 
                   Printf.bprintf buf "%s\n" 
@@ -858,40 +878,45 @@ end
             Buffer.clear buf;
             html_page := false; 
             http_add_css_header buf;
-            Buffer.add_string buf (if !!html_mods then
-			   !CommonMessages.html_css_mods
-               else !!CommonMessages.html_css_old)
+			let this_page = "h.css" in
+            Buffer.add_string buf (
+				if !!html_mods_theme != "" && theme_page_exists this_page then
+					read_theme_page this_page else
+						if !!html_mods then !CommonMessages.html_css_mods
+               			else !!CommonMessages.html_css_old)
 
         | "/dh.css" ->          
             Buffer.clear buf;
             html_page := false; 
             http_add_css_header buf;
-            Buffer.add_string buf (if !!html_mods then 
-			   !CommonMessages.download_html_css_mods
-               else !!CommonMessages.download_html_css_old)
+			let this_page = "dh.css" in
+            Buffer.add_string buf (
+				if !!html_mods_theme != "" && theme_page_exists this_page then
+					read_theme_page this_page else
+						if !!html_mods then !CommonMessages.download_html_css_mods
+               			else !!CommonMessages.download_html_css_old)
 
         | "/i.js" ->
             Buffer.clear buf;
             html_page := false; 
             http_add_js_header buf;
-            Buffer.add_string buf !!(if !!html_mods then
-				(match !!html_mods_style with 
-				 1 -> CommonMessages.html_js_mods1
-			   | _ -> CommonMessages.html_js_mods0)
-               else
-                CommonMessages.html_js_old)
+			let this_page = "i.js" in
+            Buffer.add_string buf (
+				if !!html_mods_theme != "" && theme_page_exists this_page then
+					read_theme_page this_page else
+						if !!html_mods then !!CommonMessages.html_js_mods0
+               			else !!CommonMessages.html_js_old)
 
         | "/di.js" ->          
             Buffer.clear buf;
             html_page := false; 
             http_add_js_header buf;
-            Buffer.add_string buf !!(if !!html_mods then 
-                (match !!html_mods_style with 
-				1 -> CommonMessages.download_html_js_mods1
-			  | _ -> CommonMessages.download_html_js_mods0)
-               else
-                CommonMessages.download_html_js_old)
-
+			let this_page = "di.js" in
+            Buffer.add_string buf (
+				if !!html_mods_theme != "" && theme_page_exists this_page then
+					read_theme_page this_page else
+						if !!html_mods then !!CommonMessages.download_html_js_mods0
+             			else !!CommonMessages.download_html_js_old)
         | cmd ->
             html_open_page buf t r true;
             Printf.bprintf buf "No page named %s" cmd

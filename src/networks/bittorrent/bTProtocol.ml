@@ -17,221 +17,21 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open CommonTypes
-  (*
-
-1. Download the .torrent file
-*****************************
- {
- "announce" = "http://sucs.org:6969/announce";
- "info" =  {
-    "files" =  [
-    {
-    "length" =  682164224;
-    "path" =  [ "Mandrake91-cd1-inst.i586.iso";  ]
-    }
-    ;
-     {
-     "length" =  681279488;
-     "path" =  [
-     "Mandrake91-cd2-ext.i586.iso";
-      ]
-      ;
-       }
-       ;
-        {
-        "length" =  681574400;
-        "path" =  [
-        "Mandrake91-cd3-i18n.i586.iso";
-         ]
-         ;
-          }
-          ;
-           ]
-           ;
-           "name" = "mandrake9.1";
-           "piece length" =  262144;
-           "pieces" =  "[EAd\155ã´gÛ ÓþËf\134Ê«\025\016ôÍµ,1U\150À
-\132\147îª\n%ù\\é,\012ÿC\008GÈÓd!æ¾öuL!\134Ô\016\152&\017¾\008³¢d\029Ë3\031Ï\134
-#»×\025\137¡=¢.®\019§´\138î.ñ\151O\137Ùÿ,£ç&\019ÀÛ¢Ã§\156.ù\150<Eªª\153\018\145\
-149d\147[+J=º\155l\139Î\028¡dVÉ\000-\017°Å¤\013\154¼>A¹Ã5ïIt\007\020©ãÚÀÈÈ\014O®
-ô1\152UÄ\026K\021^ãúì5Í¿ü \026\149\131q\024\015¸]Òþ£\027&\148\\ã-©\028WMÂ5...";
- }
- ;
-  }
-
-2. Extract BitTorrent information needed:
-*****************************************
-  
-Metainfo files are bencoded dictionaries with the following keys -
-
-'announce'
-    The url of the tracker.
-
-'info'
-    This maps to a dictionary, with keys described below.
-
-    The 'name' key maps to a string which is the suggested name to save
-    the file (or directory) as. It is purely advisory.
-
-    'piece length' maps to the number of bytes in each piece the file is
-    split into. For the purposes of transfer, files are split into
-    fixed-size pieces which are all the same length except for possibly
-    the last one which may be truncated. Piece length is almost always a
-    power of two, most commonly 2^20 .
-
-    'pieces' maps to a string whose length is a multiple of 20. It is to
-    be subdivided into strings of length 20, each of which is the sha1
-    hash of the piece at the corresponding index.
-
-    There is also a key 'length' or a key 'files', but not both or
-    neither. If 'length' is present then the download represents a
-    single file, otherwise it represents a set of files which go in a
-    directory structure.
-
-    In the single file case, 'length' maps to the length of the file in
-    bytes.
-
-    For the purposes of the other keys, the multi-file case is treated
-    as only having a single file by concatenating the files in the order
-    they appear in the files list. The files list is the value 'files'
-    maps to, and is a list of dictionaries containing the following keys -
-
-'length'
-The length of the file, in bytes. 'path'
-    A list of strings corresponding to subdirectory names, the last of
-which is the actual file name (a zero length list is an error case).
-
-In the single file case, the 'name' key is the name of a file, in the
-muliple file case, it's the name of a directory.
-
-
-3. Contact the tracker regularly to update file information
-***********************************************************
-  
-Tracker GET requests have the following keys by HTTP:
-
-'info_hash'
-    The 20 byte sha1 hash of the bencoded form of the 'info' value from
-    the metainfo file. Note that this is a substring of the metainfo
-    file. This value will almost certainly have to be escaped.
-
-'peer_id'
-    A string of length 20 which this downloader uses as its id. Each
-    downloader generates its own id at random at the start of a new
-    download. This value will also almost certainly have to be escaped.
-
-'ip'
-    An optional parameter giving the ip (or dns name) which this peer is
-    at. Generally used for the origin if it's on the same machine as the
-    tracker.
-
-'port'
-    The port number this peer is listening on. Common behavior is for a
-    downloader to try to listen on port 6881 and if that port is taken
-    try 6882, then 6883, etc. and give up after 6889.
-
-'uploaded'
-    The total amount uploaded so far, encoded in base ten ascii.
-
-'downloaded'
-    The total amount downloaded so far, encoded in base ten ascii.
-
-'left'
-    The number of bytes this peer still has to download, encoded in base
-    ten ascii. Note that this can't be computed from downloaded and the
-    file length since it might be a resume, and there's a chance that
-    some of the downloaded data failed an integrity check and had to be
-    re-downloaded.
-
-'event'
-    This is an optional key which maps to 'started', 'completed', or
-    'stopped' (or '', which is the same as not being present). 
-  
----> bencoded replu:
-  { 'failure reason' = ... }
-or
-{
- 'interval' = ....; (* before next request to tracker *)
- 'peers' =  [ 
-   {
-    'peer id' = ....;
-    'ip' - ....;
-    'port' = ....;
-   };
-   ....
-  ] 
-}
-
-4. Contact every peer regularly
-*******************************
-
-Handshake:
-
-type int = BigEndian.int32
-  
---->
-string8 (prefixed by length): "BitTorrent protocol" 
-int8[8]: reserved(zeros)
-int8[20 bytes]: Sha1.string (Bencode.encode file.file_info)
-int8[20 bytes]: peer id
-  
-<---
-string8 (prefixed by length): "BitTorrent protocol" 
-int8[8]: reserved(zeros)
-int8[20 bytes]: Sha1.string (Bencode.encode file.file_info)
-int8[20 bytes]: peer id
-
-----> disconnect if sha1 don't match, or if peer id is unexpected
-
-msg: 
-        int: len of message (byte+payload) 0 -> keepalive sent every 2 minutes
-        byte8: opcode of message
-        int8[..]: payload
-        
-opcodes:        
-Connections start out choked and not interested.
-
-No payload:
-    * 0 - choke: you have been blocked
-    * 1 - unchoke: you have been unblocked
-    * 2 - interested: I'm interested in downloading this file now
-    * 3 - not interested: I'm not interested in downloading this file now
-With bencoded payload:
-    * 4 - have
-          int : index of new completed chunk          
-    * 5 - bitfield: 
-          string: a bitfield of bit 1 for downloaded chunks
-          byte: bits are inverted 0....7 ---> 7 .... 0      
-    * 6 - request
-          int: index
-          int: begin
-          int: length (power of 2, 2 ^ 15)
-    * 7 - piece
-          int: index
-          int: begin
-          string: piece
-    * 8 - cancel: cancel a requesu
-          int: index
-          int: begin
-          int: length (power of 2, 2 ^ 15)
-
-Chock/unchock every 10 seconds        
-*)
-
-
-
 open Printf2
-open CommonOptions
-open BTOptions
 open Options
 open Md4
-open CommonGlobals
+
 open BigEndian
 open TcpBufferedSocket
 open AnyEndian
+  
+open CommonTypes
+open CommonOptions
+open CommonGlobals
+open CommonClient
+  
 open BTTypes
-open BTGlobals
+open BTOptions
   
 type ghandler =
   BTHeader of (gconn -> TcpBufferedSocket.t -> 
@@ -433,8 +233,7 @@ let send_client c msg =
         let s = Buffer.contents buf in
         str_int s 0 (String.length s - 4);
         if !verbose_msg_clients then begin
-            lprintf "CLIENT %d: Sending "
-              (client_num c);
+            lprintf "CLIENT %d: Sending " (client_num c);
             bt_print msg;
           end;
 (*        dump s; *)
@@ -442,10 +241,11 @@ let send_client c msg =
     | CompressedConnection (comp, rbuf, wbuf, sock) -> 
         lprintf "CompressedConnection not implemented\n";
         assert false
-        
+  
   with e ->
-      lprintf "CLIENT %d: Error %s in send_client\n" (client_num c)
+      lprintf "CLIENT %d: Error %s in send_client\n"  (client_num c)
         (Printexc2.to_string e)
+      
       
 let zero8 = String.make 8 '\000'
   

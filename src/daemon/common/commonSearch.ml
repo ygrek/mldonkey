@@ -706,6 +706,8 @@ let search_forget user s =
 
 let search_close s =
   networks_iter (fun n -> network_close_search n s)
+
+let search_num = ()
   
 let search_media_list = 
   [ "Program", "Pro";

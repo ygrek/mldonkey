@@ -34,7 +34,8 @@ let _ =
   *)
 
 let message_file = Options.create_options_file message_file_name
-let message name t x = define_option message_file [name] "" t x
+let message_section = file_section message_file [] ""
+let message name t x = define_option message_section [name] "" t x
   
 let ok = message "ok" (T.option T.format) "Ok"
 let cancel = message "cancel" (T.option T.format) "Cancel"

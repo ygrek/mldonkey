@@ -76,6 +76,9 @@ let enable () =
       BTClients.recover_files ();
       BTClients.send_pings ());
   
+  add_session_timer enabler 10.0 (fun timer ->
+      BTClients.recompute_uploaders());
+
   BTClients.listen ();
   ()
   
@@ -103,9 +106,11 @@ let _ =
         network_config_filename = (match network.network_config_file with
             [] -> "" | opfile :: _ -> options_file_name opfile);
         network_netname = network.network_name;
+        network_netflags = network.network_flags;
         network_enabled = network.op_network_is_enabled ();
         network_uploaded = Int64.zero;
         network_downloaded = Int64.zero;
+        network_connected = 0;
       });
   CommonInteractive.register_gui_options_panel "BitTorrent" 
   gui_bittorrent_options_panel

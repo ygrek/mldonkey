@@ -34,7 +34,10 @@ open CommonFile
 open CommonTypes
 open CommonGlobals
 open CommonHosts
-open CommonDownloads.SharedDownload
+  
+open MultinetTypes
+open MultinetFunctions
+open MultinetComplexOptions
 
 open Gnutella2Types
 open Gnutella2Globals
@@ -161,7 +164,7 @@ let g2_packet_handler s sock gconn p =
 (*                server_send_query ss.search_uid words NoConnection s *)
             | FileUidSearch (file, uid) ->
                 server_ask_uid NoConnection s ss.search_uid uid 
-                file.file_shared.file_name
+                (file_best_name file.file_shared)
       ) searches_by_uid;
   
   | Q2 md4 ->
@@ -481,7 +484,7 @@ XML ("audios",
                   let file = Hashtbl.find files_by_uid uid in
                   let file_shared = file.file_shared in
                   lprintf "++++++++++++ RECOVER FILE BY UID %s +++++++++++\n" 
-                    file.file_shared.file_name; 
+                    (file_best_name file.file_shared); 
                   
                   (match size with
                       None -> ()

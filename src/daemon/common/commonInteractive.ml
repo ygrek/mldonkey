@@ -29,6 +29,14 @@ open CommonResult
 open CommonServer
 open CommonTypes
 
+let time_of_sec sec = 
+  let hours = sec / 60 / 60 in
+  let rest = sec - hours * 60 * 60 in
+  let minutes = rest / 60 in
+  let seconds = rest - minutes * 60 in
+    if hours > 0 then Printf.sprintf "%d:%02d:%02d" hours minutes seconds
+	else if minutes > 0 then Printf.sprintf "%d:%02d" minutes seconds
+    	else Printf.sprintf "00:%02d" seconds
   
 (* ripped from gui_misc *)
 
@@ -165,6 +173,13 @@ let download_file o arg =
       match user.ui_last_search with
         None -> "no last search"
       | Some s ->
+          if arg = "all" then begin
+            List.iter (fun (n,result) ->
+              try CommonResult.result_download result [] false with e ->
+                Printf.bprintf buf "Exception %s for result %d\n" (Printexc2.to_string e) n;
+            ) user.ui_last_results;
+            "all started"
+          end else
           let result = List.assoc (int_of_string arg) user.ui_last_results  in
           CommonResult.result_download result [] false; 
           "download started"
@@ -193,7 +208,7 @@ let print_connected_servers o =
          (List.length list) r.network_name;
        if use_html_mods o then Printf.bprintf buf "\\</div\\>";
 		end;
-       if use_html_mods o && List.length list > 0 then server_print_html_header buf;
+       if use_html_mods o && List.length list > 0 then server_print_html_header buf "C";
 
       let counter = ref 0 in  
        List.iter (fun s ->
@@ -371,10 +386,13 @@ let send_custom_query user buf query args =
       Printf.bprintf buf "Error %s while parsing request"
         (Printexc2.to_string e)
 
+let sort_options l =
+  List.sort (fun o1 o2 ->
+      String.compare o1.option_name o2.option_name) l
+  
 let all_simple_options () =
-  let options = ref (
+  let options = ref (sort_options
       (simple_options downloads_ini) 
-      @ (simple_options downloads_expert_ini)
     )
   in
   networks_iter_all (fun r ->
@@ -383,8 +401,9 @@ let all_simple_options () =
           let prefix = r.network_prefix () in
           let args = 
             if prefix = "" then args else 
-              List2.tail_map (fun (arg, value) ->
-                (Printf.sprintf "%s%s" prefix arg, value)) 
+              List2.tail_map (fun o ->
+                  { o with option_name = 
+                    (Printf.sprintf "%s%s" prefix o.option_name) })
             args
           in
           options := !options @ args)
@@ -392,10 +411,10 @@ let all_simple_options () =
   );
   !options
 
+  (*
 let all_simple_options_html () =
   let options = ref (
-      (simple_options_html downloads_ini) @
-      (simple_options_html downloads_expert_ini)) in
+      (simple_options_html downloads_ini)) in
   networks_iter_all (fun r ->
       List.iter (fun opfile ->
           let args = simple_options_html opfile in
@@ -411,6 +430,7 @@ let all_simple_options_html () =
       r.network_config_file 
   );
   !options
+    *)
 
 let apply_on_fully_qualified_options name f =
   if !verbose then begin
@@ -418,15 +438,14 @@ let apply_on_fully_qualified_options name f =
     end;
   let rec iter prefix opfile =
     let args = simple_options opfile in
-    List.iter (fun (old_name, old_value) ->
-        let new_name = Printf.sprintf "%s%s" prefix old_name in
+    List.iter (fun o ->
+        let new_name = Printf.sprintf "%s%s" prefix o.option_name in
         if new_name = name then
-          (f opfile old_name old_value; raise Exit))
+          (f opfile o.option_name o.option_value; raise Exit))
     args
   in
   try
     iter "" downloads_ini;
-    iter "" downloads_expert_ini;
     if not (networks_iter_all_until_true (fun r ->
             try
               List.iter (fun opfile ->

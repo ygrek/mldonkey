@@ -19,24 +19,32 @@
 
 open Printf2
 open Md4
+open Options
+open BasicSocket
+open TcpBufferedSocket
+  
 open CommonUser
 open CommonSearch
 open CommonComplexOptions
 open CommonServer
 open CommonOptions
 open CommonTypes
-open Options
-open BasicSocket
-open TcpBufferedSocket
+open CommonGlobals
+open CommonOptions
+open CommonSwarming
+      
+open MultinetTypes
+open MultinetFunctions
+open MultinetComplexOptions
+
+  
 open DonkeyMftp
 open DonkeyImport
 open DonkeyProtoCom
 open DonkeyTypes
 open DonkeyOptions
-open CommonOptions
 open DonkeyComplexOptions
 open DonkeyGlobals
-open CommonGlobals
 
 let udp_send_if_possible sock addr msg =
   udp_send sock addr msg
@@ -60,6 +68,16 @@ let update_options () =
         > (connection_last_conn s2.server_connection_control))
   ) !!known_servers
     *)
+
+let make_master s =
+  match s.server_sock with
+    None -> assert false
+  | Some sock ->                
+      if !verbose then begin
+          lprintf "   MASTER: %s\n" (Ip.to_string s.server_ip); 
+        end;
+      s.server_master <- true;
+      direct_server_send_share sock (DonkeyShare.all_shared ())        
 
 
 let query_location file sock =
@@ -183,17 +201,10 @@ let client_to_server s t sock =
 	if Ip.valid t && !!use_server_id then
 	  last_high_id := t;
 
-(*
-      server_send sock (M.ShareReq (make_tagged (
-            if !nservers <=  max_allowed_connected_servers () then
-              begin
-                s.server_master <- true;
-                let shared_files = all_shared () in
-                shared_files
-              end else
-              []
-          )));
-*)
+          add_timer 10. (fun _ ->
+              if !!immediate_master &&
+                List.length (connected_servers ()) <= max_allowed_connected_servers () then
+                make_master s);
         end
         
   | M.MessageReq msg ->
@@ -255,12 +266,13 @@ connection from another client. In this case, we should immediatly connect.
 *)
       
       let module Q = M.QueryIDReply in
-      if Ip.valid t.Q.ip && Ip.reachable t.Q.ip then begin
-          match Fifo.take s.server_id_requests with
+      if Ip.valid t.Q.ip && ((not !!black_list) || Ip.reachable t.Q.ip) then
+        begin
+          match try Fifo.take s.server_id_requests with _ -> None with
             None -> 
               let c = new_client (Known_location (t.Q.ip, t.Q.port)) in
               DonkeyClient.reconnect_client c;
-              friend_add c
+(*              friend_add c *)
 
           | Some file ->
               ignore (DonkeySources.new_source (t.Q.ip, t.Q.port) file)
@@ -551,33 +563,24 @@ let update_master_servers _ =
           s.server_nusers >= !!master_server_min_users
         then begin
             match s.server_sock with
-              None -> 
-              (*  lprintf "MASTER NOT CONNECTED"; lprint_newline ();  *)
-                ()
+              None ->  ()
             | Some sock ->                
-(*                lprintf "NEW MASTER SERVER"; lprint_newline (); *)
                 s.server_master <- true;
                 incr nmasters;
                 direct_server_send_share sock (DonkeyShare.all_shared ())
           end else
         if connection_last_conn s.server_connection_control 
-            + 120 < last_time () &&
-          !nconnected_servers > max_allowed_connected_servers ()  then begin
+            + !!become_master_delay < last_time () &&
+          (!nconnected_servers > max_allowed_connected_servers ()
+            || s.server_nusers < !!master_server_min_users)
+            then begin
 (* remove one third of the servers every 5 minutes *)
             nconnected_servers := !nconnected_servers - 3;
-(*            lprintf "DISCONNECT FROM EXTRA SERVER %s:%d "
-(Ip.to_string s.server_ip) s.server_port; lprint_newline ();
-  *)
+(*            lprintf "DISCONNECT FROM EXTRA SERVER %s:%d \n"
+               (Ip.to_string s.server_ip) s.server_port;  *)
             (match s.server_sock with
-                None ->                   
-                  (*
-                  lprintf "Not connected !"; 
-lprint_newline ();
-*)
-                  ()
-
+                None ->  ()
               | Some sock ->
-  (*                lprintf "shutdown"; lprint_newline (); *)
                   (shutdown sock (Closed_for_error "No more slots")));
           end
   ) 
@@ -693,7 +696,7 @@ let udp_walker_timer () =
       
       
 let update_master_servers _ =
-
+  
   if !verbose then begin
       
       lprint_newline ();
@@ -728,19 +731,6 @@ let update_master_servers _ =
 (* The master servers are sorted in 'masters' so that the first ones have
 the fewer users. *)  
   
-  let make_master s =
-    match s.server_sock with
-      None -> assert false
-    | Some sock ->                
-        if !verbose then begin
-            lprintf "   MASTER: %s" (Ip.to_string s.server_ip); 
-            lprint_newline ();
-          end;
-        s.server_master <- true;
-        incr nmasters;
-        direct_server_send_share sock (DonkeyShare.all_shared ())        
-  in
-
   let max_allowed_connected_servers = max_allowed_connected_servers () in
   let nconnected_servers = ref 0 in
   
@@ -750,23 +740,20 @@ connections *)
     if !nconnected_servers > max_allowed_connected_servers then begin
         
         if !verbose then begin
-            lprintf "MASTER:    DISCONNECT %s" (Ip.to_string s.server_ip);
-            lprint_newline ();
+            lprintf "MASTER:    DISCONNECT %s\n" (Ip.to_string s.server_ip);
           end;
         
         nconnected_servers := !nconnected_servers - 3;
         (match s.server_sock with
             None -> assert false
           | Some sock ->
-              
+
 (* We will disconnect from this server. Send the last queries and
   wait for 60 seconds to disconnect. *)
               
               List.iter (fun file ->
                   query_location file sock 
-              ) s.server_waiting_queries;
-              
-              
+              ) s.server_waiting_queries;              
               set_lifetime sock 60.);
       end
   in
@@ -776,10 +763,9 @@ connections *)
           incr nconnected_servers;
           
           if !verbose then begin
-              lprintf "MASTER: EXAM %s %d" (Ip.to_string s.server_ip)
+              lprintf "MASTER: EXAM %s %d\n" (Ip.to_string s.server_ip)
               (last_time () -  connection_last_conn s.server_connection_control)
               ; 
-              lprint_newline ();
             end;
           
           if connection_last_conn s.server_connection_control 
@@ -791,8 +777,10 @@ now if needed *)
 (* I Should clearly remove this option now  
   &&
                 s.server_nusers >= !!master_server_min_users *)
-              then 
-                make_master s
+              then  begin
+                  make_master s;
+                  incr nmasters;
+                end
               else
                 
               match !masters with 
@@ -804,14 +792,14 @@ now if needed *)
                       
                       if !verbose then begin
                           lprintf
-                            "   MASTER: RAISING %s (%d) instead of %s (%d)" 
+                            "   MASTER: RAISING %s (%d) instead of %s (%d)\n" 
                             (Ip.to_string s.server_ip) s.server_nusers 
                             (Ip.to_string ss.server_ip) ss.server_nusers
-                          ; lprint_newline (); 
                         end;
                       
                       ss.server_master <- false;
                       masters := tail;
+                      incr nmasters;
                       make_master s
                     end else
                     disconnect_old_server s

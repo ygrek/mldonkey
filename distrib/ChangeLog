@@ -2,12 +2,91 @@ ChangeLog
 =========
 
 Current state: only for beta testing
- * All previous downloads are lost (will be fixed in a future release)
  * All hash-based networks (edonkey, fasttrack, gnutella1/2, bittorrent) 
     can download together the same file
  * Some functions don't work anymore: recover_temp, dup, ...
  * Downloaded chunks are not displayed correctly
  * many other problems, but download and upload do work 
+
+2003/08/21: Simon  (release-2-5-devel-6)
+   * Direct-Connect: 
+      * Upload bug fixed: replace '\' in filenames by '/' before searching in
+         the list of shared files. Upload TESTED and VERIFIED using dcgui-qt.
+
+2003/08/19: Simon
+   * Global availability is computed for network Multinet
+
+2003/08/18: Simon
+   * MLdonkey can now be controlled using giFT GUIs. In particular, there
+      is a nice console GUI called giFTcurs. Working functionalities:
+       * start a search, start a download from results
+       * pause, resume, cancel downloads
+      +++ no password, we should probably disable it by default, but you can
+       do it yourself using the option gift_port set to 0
+   * SearchWaiting(search, 0) is always sent after 60 seconds
+
+2003/08/17: Simon
+   * Multinet:
+      * Updates sent to the GUI when chunks are downloaded
+      * Shared_info are sent to the GUI (what about completed files ?)
+
+2003/08/14: Simon
+   * Gui protocol: message Network_info changed to include network properties
+
+2003/08/06: Simon
+   * Applied patch #1801 for HTTP complete proxying
+
+2003/08/04: Simon
+   * Log is now directed to stderr by default, use -stdout to redirect
+     to stdout, use -stderr to keep logging to stderr after startup.
+   * Changing log_file in the middle of execution is working now.
+
+2003/08/01: Simon
+   * GUI protocol: network_info messages are sent after Password is received
+
+2003/07/31: Simon
+  * GUI protocol: 
+    * New message MessageVersions to select a different protocol
+      version for some messages only (allow to progressively move from one
+      protocol to another). Contains a list of (opcode, from_guip, version),
+      saying that, for message with opcode 'opcode', from the GUI if
+      'from_guip' is true, or from the core otherwise, the format to use
+      is the one of version 'version'.
+    * Changed messages Network_info and Client_stats in protocol 18
+  * Bug fixes:
+    * enable/disable of gnutella1/2 works
+    * send ServerInfo messages even for disabled networks
+
+2003/07/29: Simon
+   * Multinet: better choice of file name
+
+2003/07/20: Simon  (release-2-5-devel-5)
+   * New GUI protocol 17 (opcodes 36 and 38 modified)
+
+2003/07/19: Simon
+   * Applied patches #1608 (thieves), #1669 (spam filter),  
+       #1695 (html style 6), #1710 (voo regexp), #1711 (voo sorted),
+       #1714 (priority), #1715 (FT), #1732 (mldonkey_submit), 
+       #1733 (view files), #1734 (friends view files), 
+       #1743 (bittorrent), #1748 (bug #3776)
+   * Patch #1692 (min_users_on_server) replaced by 'better' using
+       master_server_min_users (disconnection after 2 minutes from too
+       small servers).
+
+2003/07/14: Simon
+   * Options are now sorted by sections, and advanced toggle. These sections
+      can be used in the GUI (later).
+
+2003/07/08: Simon
+   * Local Searches are limited
+
+2003/06/27: Simon
+   * Added option 'commit_unverified_files' in downloads.ini
+   * Downloads on networks without verification terminate
+   * TigerHashes: can verify files with any tiger tree level
+
+2003/06/26: Simon
+   * Parse old format of 'files.ini' for all networks. No lost downloads.
 
 2003/06/21: Simon  (release-2-5-devel-4)
    * Edonkey2000:

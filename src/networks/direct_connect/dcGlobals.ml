@@ -64,6 +64,13 @@ OK   op_network_parse_url
 *)
   
 let network = new_network "Direct Connect"  
+    [ 
+    NetworkHasServers; 
+    NetworkHasRooms;
+    NetworkHasChat;
+    NetworkHasSearch;
+    NetworkHasUpload;
+    ]
     (fun _ -> !!network_options_prefix)
   (fun _ -> !!commit_in_subdir)
   

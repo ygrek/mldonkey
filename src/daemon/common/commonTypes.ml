@@ -200,13 +200,26 @@ type search_type =
 | LocalSearch
 | SubscribeSearch
 
+type network_flag =
+  NetworkHasServers
+| NetworkHasRooms
+| NetworkHasMultinet
+| NetworkHasSearch
+| VirtualNetwork
+| UnknownNetworkFlag
+| NetworkHasChat
+| NetworkHasSupernodes
+| NetworkHasUpload
+  
 type network_info = {
     network_netname : string;
     network_netnum : int;
     network_config_filename : string;
+    network_netflags : network_flag list;
     mutable network_enabled : bool;
     mutable network_uploaded : int64;
     mutable network_downloaded : int64;
+    mutable network_connected : int; (* number of connected servers *)
   }
 
 type extend_search =
@@ -216,6 +229,7 @@ type extend_search =
 type network = {
     network_name : string;
     network_num : int;
+    mutable network_flags : network_flag list;
     mutable network_config_file : Options.options_file list;
     mutable network_incoming_subdir: (unit -> string);
     mutable network_prefix: (unit -> string);
@@ -343,23 +357,16 @@ type numevents = {
     mutable num_list : int list;
   }
 
-  
-type gui_record = {
-    mutable gui_num : int;
-    mutable gui_search_nums : int list;
-    mutable gui_searches : (int * search) list;
-    mutable gui_sock : TcpBufferedSocket.t option;
-    mutable gui_version : int;
-    mutable gui_auth : bool;
-    mutable gui_poll : bool;
+
+type gui_events = {
 
 (* Some kind of FIFO for one time events. These events are uniq for a given
 GUI, and are always sent after all other pending events. Thus, if they use
 arguments, the events defining the arguments have already been sent *)
     mutable gui_new_events : event list;
     mutable gui_old_events : event list;
-  
-    
+
+
 (* Queues of pending events for particular objects: objects updates
 are kept here before being sent, so that we can easily check if a
 particular update is already pending for a given GUI to avoid
@@ -371,10 +378,11 @@ sending it twice. *)
     mutable gui_rooms : numevents;
     mutable gui_results : numevents;
     mutable gui_shared_files : numevents;
-    
-    gui_conn : ui_conn;
+  
   }
   
+and gui_result_handler = int -> result -> unit
+
 and event = 
 | Room_add_user_event of room * user
 | Room_remove_user_event of room * user
@@ -393,7 +401,7 @@ and event =
 | File_update_availability of file * client * string
 | File_remove_source_event of file * client
 | Server_new_user_event of server * user
-| Search_new_result_event of gui_record * int * result
+| Search_new_result_event of gui_result_handler * gui_events * int * result
 
 | Console_message_event of string
   

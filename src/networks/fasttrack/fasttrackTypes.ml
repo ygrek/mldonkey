@@ -22,7 +22,9 @@ open Md4
 
 open CommonTypes
 open CommonSwarming
-
+open CommonHosts
+open CommonDownloads
+  
 (* any = 0 *)
 let name_of_tag = 
   [
@@ -61,20 +63,8 @@ type ciphers = {
     mutable in_xinu : int64;
     mutable out_xinu : int64;
   }
-  
-type host = {
-    host_num : int;
-    mutable host_server : server option;
-    host_addr : Ip.addr;
-    host_port : int;
-    mutable host_age : int;
-    mutable host_udp_request : int;
-    mutable host_tcp_request : int;
-    mutable host_connected : int;
-    mutable host_kind : host_kind;
-    
-    mutable host_queues : host Queue.t list;
-  }
+
+type host = (server, host_kind, unit, Ip.addr) CommonHosts.host
 
 and server = {
     server_server : server CommonServer.server_impl;
@@ -83,7 +73,7 @@ and server = {
     mutable server_ciphers : ciphers option;
     mutable server_nfiles : int;
     mutable server_nkb : int;
-
+    
     mutable server_need_qrt : bool;
     mutable server_ping_last : Md4.t;
     mutable server_nfiles_last : int;
@@ -96,28 +86,6 @@ and server = {
     mutable server_searches : local_search Fifo.t;
   }
 
-(*
-typedef enum
-{	QUERY_REALM_EVERYTHING	= 0x3f,
-	QUERY_REALM_AUDIO		= 0x21,
-	QUERY_REALM_VIDEO		= 0x22,
-	QUERY_REALM_IMAGES		= 0x23,
-	QUERY_REALM_DOCUMENTS	= 0x24,
-	QUERY_REALM_SOFTWARE	= 0x25
-} FSTQueryRealm;
-
-typedef enum
-{
-	QUERY_CMP_EQUALS=0x00,
-	QUERY_CMP_ATMOST=0x02,
-	QUERY_CMP_APPROX=0x03,
-	QUERY_CMP_ATLEAST=0x04,
-	QUERY_CMP_SUBSTRING=0x05
-} FSTQueryCmp;
-
-/*****************************************************************************/
-  *)
-
 and query_term =
   AtMost of string * int64
 | AtLeast of string * int64
@@ -127,7 +95,7 @@ and local_search = {
     search_search : search_type;
     search_id : int;
   }
-  
+
 and search_type =
   UserSearch of search * string * string * query_term list
 | FileSearch of file
@@ -160,12 +128,51 @@ and client = {
     mutable client_host : (Ip.t * int) option;
     mutable client_reconnect : bool;
     mutable client_connected_for : file option;
+(* FOR SOURCES 
+    mutable client_source : source option;
+    mutable client_score : int;
+    mutable client_files : file_request list;
+    mutable client_next_queue : int;
+mutable client_requests_sent: int;    
+  *)
   }
 
-and file_uri =
-  FileByIndex of int * string
-| FileByUrl of string
-  
+and source = {
+    source_num : int;
+    source_addr : Ip.t * int;
+    mutable source_client: client_kind;     
+(* This field is not kept up-to-date when source_client = SourceClient c,
+  change c.client_source_for *)
+    mutable source_files : file_request list;
+    mutable source_overnet : bool;
+    mutable source_score : int;
+    mutable source_age : int;
+    mutable source_in_queues : file list;
+  }
+
+
+and file_request = {
+    request_file : file;
+    mutable request_time : int;
+    mutable  request_result : request_result;
+  }
+
+and request_result = 
+| File_possible (* we asked, but didn't know *)
+| File_not_found (* we asked, the file is not there *)
+| File_expected (* we asked, because it was announced *)
+| File_new_source (* we never asked *)
+| File_found    (* the file was found *)
+| File_chunk    (* the file has chunks we want *)
+| File_upload   (* we uploaded from this client *)
+
+and client_kind = 
+  SourceClient of client
+| SourceLastConnection of 
+  int *
+  int * (* last connection attempt *)
+  int   (* booked client num *)
+
 and upload_client = {
     uc_sock : TcpBufferedSocket.t;
     uc_file : CommonUploads.shared_file;
@@ -173,33 +180,36 @@ and upload_client = {
     uc_chunk_len : int64;
     uc_chunk_end : int64;
   }
-  
+
 and result = {
     result_result : result CommonResult.result_impl;
     result_name : string;
     result_size : int64;
     mutable result_tags : tag list;
-    mutable result_sources : (user * file_uri) list;
+    mutable result_sources : user list;
     mutable result_hash : Md5Ext.t;
   }
 
 and file = {
-    file_file : file CommonFile.file_impl;
-    file_id : Md4.t;
-    mutable file_name : string;
-    file_swarmer : Int64Swarmer.t;
+(* The part of the file structure which is used for all networks *)
+    file_shared : MultinetTypes.file;
+
+(* The part of the file structure which is only needed for this network *)
     file_partition : CommonSwarming.Int64Swarmer.partition;
-    mutable file_clients : client list;
+    mutable file_clients : client list;  
     mutable file_search : local_search;
     mutable file_hash : Md5Ext.t;
-    mutable file_filenames : string list;
     mutable file_clients_queue : client Queues.Queue.t;
     mutable file_nconnected_clients : int;
+(*    
+    mutable file_locations : client Intmap.t; 
+    mutable file_clients : (client * int) Fifo.t;
+    mutable file_sources : source Queue.t array;
+*)    
   }
 
 and download = {
     download_file : file;
-    download_uri : file_uri;
     mutable download_chunks : (int64 * int64) list;
     mutable download_blocks : Int64Swarmer.block list;
     mutable download_ranges : (int64 * int64 * Int64Swarmer.range) list;
@@ -224,3 +234,126 @@ Since pointers are placed in integers, it might be dangerous to call this
 function on 64-bits computers ?
 
 *)
+
+open CommonFile
+open CommonClient
+open CommonServer
+open CommonResult 
+
+  
+let set_client_state c s =
+  let cc = as_client c.client_client in
+  set_client_state cc s
+        
+let set_client_disconnected c =
+  let cc = as_client c.client_client in
+  set_client_disconnected cc
+   
+let client_state client =
+  CommonClient.client_state (as_client client.client_client)
+    
+let client_new_file client r =
+  client_new_file (as_client client.client_client) ""
+  (as_result r.result_result)
+    
+
+module SourcesQueueCreate = struct  
+
+    let lifo = lifo 
+    let fifo = fifo
+    
+    module SourcesSet = Set.Make (
+        struct
+          type t = int * source
+          let compare (t1,s1) (t2,s2) = 
+            if s1.source_addr = s2.source_addr then begin
+                0 end else              
+            let x = compare t1 t2 in
+            if x = 0 then compare s1.source_addr s2.source_addr else x
+        end
+      )
+
+    let oldest_first () = 
+      let t = ref SourcesSet.empty in
+      of_impl {
+        head = (fun _ -> try SourcesSet.min_elt !t with _ -> raise Fifo.Empty);
+        put = (fun x ->  t := SourcesSet.add x !t);
+        length = (fun _ -> SourcesSet.cardinal !t);
+        take = (fun _ ->
+            try 
+              let x = SourcesSet.min_elt !t in
+              t := SourcesSet.remove x !t;
+              x
+            with _ -> raise Fifo.Empty);
+        iter = (fun f ->
+            SourcesSet.iter (fun (_,x) -> f x) !t);
+        put_back = (fun e -> t := SourcesSet.add e !t);
+      }
+
+    let oldest_last () = 
+      let t = ref SourcesSet.empty in
+      of_impl {
+        head = (fun _ ->
+            try SourcesSet.max_elt !t with _ -> raise Fifo.Empty);
+        put = (fun x ->  t := SourcesSet.add x !t);
+        length = (fun _ -> SourcesSet.cardinal !t);
+        take = (fun _ ->
+            try
+              let x = SourcesSet.max_elt !t in
+              t := SourcesSet.remove x !t;
+              x
+            with _ -> raise Fifo.Empty);
+        iter = (fun f ->
+            SourcesSet.iter (fun (_,x) -> f x) !t);
+        put_back = (fun e -> t := SourcesSet.add e !t);
+      }
+
+      (*
+    let max_first compare =
+      let module SourceSet = Set.Make(struct
+            type t = source
+            let compare = compare
+          end) in
+      let t = ref SourcesSet.empty in
+      {
+        head = (fun _ -> SourcesSet.max_elt !t);
+        put = (fun x ->  t := SourcesSet.add x !t);
+        length = (fun _ -> SourcesSet.cardinal !t);
+        take = (fun _ ->
+            let x = SourcesSet.max_elt !t in
+            t := SourcesSet.remove x !t;
+            x);
+        iter = (fun f ->
+            SourcesSet.iter f !t);
+        put_back = (fun e -> t := SourcesSet.add e !t);
+        }
+
+    let min_first compare =
+      let module SourceSet = Set.Make(struct
+            type t = source
+            let compare = compare
+          end) in
+      let t = ref SourcesSet.empty in
+      of_impl {
+        head = (fun _ -> SourcesSet.min_elt !t);
+        put = (fun x ->  t := SourcesSet.add x !t);
+        length = (fun _ -> SourcesSet.cardinal !t);
+        take = (fun _ ->
+            let x = SourcesSet.min_elt !t in
+            t := SourcesSet.remove x !t;
+            x);
+        iter = (fun f ->
+            SourcesSet.iter f !t);
+        put_back = (fun e -> t := SourcesSet.add e !t);
+        }
+*)
+  end
+  
+
+  
+let file_state file = MultinetTypes.file_state file.file_shared
+let client_num c = client_num (as_client c.client_client)
+let server_state s = server_state (as_server s.server_server)
+let server_num s = server_num (as_server s.server_server)
+let set_server_state s t = set_server_state (as_server s.server_server) t
+  

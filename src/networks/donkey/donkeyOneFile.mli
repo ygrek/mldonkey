@@ -19,20 +19,25 @@
 
 open Md4
 
+  (*
 val find_client_zone : DonkeyTypes.client -> unit
 val update_zone : DonkeyTypes.file -> 
   int64 -> int64 -> DonkeyTypes.zone -> unit
-val client_file : DonkeyTypes.client -> DonkeyTypes.file
-val find_client_block : DonkeyTypes.client -> unit
-val set_file_size : DonkeyTypes.file -> int64 -> unit
-val start_download : DonkeyTypes.client -> unit
-val restart_download : DonkeyTypes.client -> unit
-val next_file : DonkeyTypes.client -> unit
-  
-val remove_file : Md4.t -> unit
+
+
+
+ val remove_file : Md4.t -> unit 
 
 val check_files_md4s : unit -> unit
+  t*)
+
 val clean_client_zones : DonkeyTypes.client -> unit
+val start_download : DonkeyTypes.client -> unit
+val restart_download : DonkeyTypes.client -> unit
+val find_client_block : DonkeyTypes.client -> unit
+val client_file : DonkeyTypes.client -> DonkeyTypes.file
+val set_file_size : DonkeyTypes.file -> int64 -> unit
+val next_file : DonkeyTypes.client -> unit
   
 val search_found : bool -> 
   CommonTypes.search -> Md4.t -> CommonTypes.tag list -> unit

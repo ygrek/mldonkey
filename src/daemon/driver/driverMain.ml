@@ -42,13 +42,15 @@ let minute_timer () =
     List.iter (fun file ->
         CommonComplexOptions.file_commit file
     ) !!CommonComplexOptions.done_files;
-  CommonDownloads.SharedDownload.Bitzi.minute_timer ()
+  MultinetMain.minute_timer ();
+  ()
   
 let hourly_timer timer =
   incr hours;
   if !hours mod 24 = 0 then do_daily ();
   CommonShared.shared_check_files ();
   if !hours mod !!compaction_delay = 0 then Gc.compact ();
+  MultinetMain.hourly_timer ();
   DriverControlers.check_calendar ()
 
 let second_timer timer =
@@ -63,8 +65,7 @@ let second_timer timer =
   CommonGlobals.schedule_connections ();
   CommonUploads.reset_upload_timer ();
   CommonUploads.shared_files_timer ();
-  CommonDownloads.SharedDownload.check_finished_timer ()
-  
+  MultinetMain.second_timer ()  
   
   
 let start_interfaces () =
@@ -79,7 +80,6 @@ let start_interfaces () =
   
   ignore (find_port  "telnet server" !!telnet_bind_addr
       telnet_port DriverControlers.telnet_handler);  
-  lprintf "2\n"; 
   
   if !!chat_port <> 0 then begin
       ignore (find_port "chat server" !!chat_bind_addr
@@ -91,6 +91,9 @@ let start_interfaces () =
 
   gui_server_sock := find_port "gui server"  !!gui_bind_addr
     gui_port gui_handler;  
+  if !!gift_port <> 0 then
+    ignore (find_port "gift server"  !!gui_bind_addr
+        gift_port gift_handler);
 
   add_infinite_option_timer update_gui_delay DriverInterface.update_gui_info;
   add_infinite_timer 1. second_timer
@@ -199,8 +202,8 @@ while (my $uri = shift @ARGV) {
     (Ip.to_string (client_ip None)) !!http_port
     "admin" ""
   in
-  File.from_string "mldonkey_submit" file;
-  Unix.chmod  "mldonkey_submit" 0o755
+  File.from_string (Filename.concat file_basedir "mldonkey_submit") file;
+  Unix.chmod  (Filename.concat file_basedir "mldonkey_submit") 0o755
     
 let load_config () =
   
@@ -216,9 +219,10 @@ let load_config () =
       let oc = open_out (options_file_name downloads_ini) in
       close_out oc; 
     end;
-  let exists_expert_ini = Sys.file_exists 
+(*  let exists_expert_ini = Sys.file_exists 
       (options_file_name downloads_expert_ini) in
-  if not exists_expert_ini then begin
+
+  if exists_expert_ini then begin
       if exists_downloads_ini then begin
           lprintf "Using old config file\n";
           (try Unix2.copy "downloads.ini" "downloads_expert.ini" with _ -> ());
@@ -229,17 +233,23 @@ let load_config () =
           let oc = open_out (options_file_name downloads_expert_ini) in
           close_out oc; 
         end
-    end;
+    end; *)
   (try 
       Options.load downloads_ini;
-      (try Options.load downloads_expert_ini with _ -> ());      
+      (try
+          Options.append downloads_ini "downloads_expert.ini";
+          Sys.remove "downloads_expert.ini"
+          with _ -> ());
     with e -> 
         lprintf "Exception %s during options load\n" (Printexc2.to_string e); 
         exit 2;
         ());  
   CommonMessages.load_message_file ();
-  if !!html_mods then CommonMessages.colour_changer ();
-  
+  if !!html_mods then begin
+		if !!html_mods_style > 0 && !!html_mods_style < (Array.length !html_mods_styles) then
+		commands_frame_height =:= (snd !html_mods_styles.(!!html_mods_style));
+		CommonMessages.colour_changer ();
+  end;
   networks_iter_all (fun r -> 
       List.iter (fun opfile ->
           try
@@ -271,8 +281,7 @@ used. For example, we can add new web_infos... *)
   
   
   more_args := !more_args
-    @ (Options.simple_args downloads_ini)
-    @ (Options.simple_args downloads_expert_ini);
+    @ (Options.simple_args downloads_ini);
   
   networks_iter_all (fun r ->
       List.iter (fun opfile ->
@@ -305,8 +314,16 @@ used. For example, we can add new web_infos... *)
           lprint_newline ();
           exit 0), 
       " : display information on the implementations";
-      "-stdout", Arg.Set keep_console_output, 
-      ": keep output to console after startup";
+      "-stdout", Arg.Unit (fun _ ->
+          keep_console_output := true;
+          lprintf_output := Some stdout
+      ), 
+      ": keep output to stdout after startup";
+      "-stderr", Arg.Unit (fun _ ->
+          keep_console_output := true;
+          lprintf_output := Some stderr;
+      ), 
+      ": keep output to stderr after startup";
       "-daemon", Arg.Set daemon,
       ": start as a daemon (detach from console and run in background";
       "-find_port", Arg.Set find_other_port, " : find another port when one
@@ -406,13 +423,15 @@ let _ =
       DriverInteractive.browse_friends ());
   
   Options.prune_file downloads_ini;
-  Options.prune_file downloads_expert_ini;
   (try load_web_infos () with _ -> ());
   lprintf "Welcome to MLdonkey client\n"; 
   lprintf "Check http://www.mldonkey.net/ for updates\n"; 
-  lprintf "To command: telnet 127.0.0.1 %d\n" !!telnet_port; 
-  lprintf "Or with browser: http://127.0.0.1:%d\n" !!http_port; 
-  
+  lprintf "To command: telnet %s %d\n" 
+	(if !!telnet_bind_addr = Ip.any then "127.0.0.1" 
+		else Ip.to_string !!telnet_bind_addr)  !!telnet_port; 
+   lprintf "Or with browser: http://%s:%d/\n" 
+ 	(if !!http_bind_addr = Ip.any then "127.0.0.1" 
+ 		else Ip.to_string !!http_bind_addr)  !!http_port;   
   lprintf "%s\n" (DriverControlers.text_of_html !!motd_html);
   
 
@@ -464,27 +483,10 @@ let _ =
   core_included := true;
   
   if not !keep_console_output then begin
-      lprintf "Disabling output to console, to enable: stdout true\n";
-      
-      if !!log_file <> "" then begin
-          try
-            let oc = open_out !!log_file in
-            lprintf "Logging in %s\n" !!log_file;
-            
-            (* Don't close stdout !!!
-            (match !lprintf_output with
-               None -> () | Some oc -> close_out oc);
-             *)
-            lprintf_output := Some oc;
-          with e ->
-              lprintf "Exception %s while opening log file: %s\n"
-                (Printexc2.to_string e) !!log_file
-        end else
-              lprintf_to_stdout := false;
-            
-      
+      if !!log_file = "" then lprintf_to_stdout := false;
+
+
 (* Question: is-it not to late to go in background ? Is-it possible that
 we have started some threads already ? What happens then ? *)
       if !daemon then MlUnix.detach_daemon ()
-    end
-       
+    end    

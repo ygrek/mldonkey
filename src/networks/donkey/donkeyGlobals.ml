@@ -20,20 +20,28 @@
 open Queues
 open Printf2
 open Md4
+open Options
+open BasicSocket
+
+open CommonShared
 open CommonResult
 open CommonFile
 open CommonServer
 open CommonComplexOptions
 open CommonClient
-open Options
 open CommonTypes
-open DonkeyTypes
-open BasicSocket
 open CommonOptions
-open DonkeyOptions
 open CommonOptions
 open CommonGlobals
+open CommonSwarming;; open Int64Swarmer
+      
+open MultinetTypes
+open MultinetFunctions
+open MultinetComplexOptions
 
+open DonkeyTypes
+open DonkeyOptions
+  
       
 (*************************************************************
 
@@ -46,12 +54,17 @@ plugin.
 open CommonNetwork
   
 let network = CommonNetwork.new_network "Donkey"
+       [ 
+    NetworkHasServers; 
+    NetworkHasSearch;
+    NetworkHasUpload;
+    NetworkHasMultinet;
+    NetworkHasChat;
+  ]
+
     (fun _ -> !!network_options_prefix)
   (fun _ -> !!commit_in_subdir)
 (*    network_options_prefix commit_in_subdir *)
-  
-let (shared_ops : file CommonShared.shared_ops) = 
-  CommonShared.new_shared_ops network
       
 let (result_ops : result CommonResult.result_ops) = 
   CommonResult.new_result_ops network
@@ -63,20 +76,28 @@ let (room_ops : server CommonRoom.room_ops) =
   CommonRoom.new_room_ops network
   
 let (user_ops : user CommonUser.user_ops) = 
-  CommonUser.new_user_ops network
+  CommonUser.new_user_ops network  
   
+let (network_file_ops: file_network) = new_file_network "Donkey"
+let (file_ops: file network_file) = new_network_file network_file_ops
+
+  (*
 let (file_ops : file CommonFile.file_ops) = 
   CommonFile.new_file_ops network
+    *)
 
 let (client_ops : client CommonClient.client_ops) = 
   CommonClient.new_client_ops network
 
+  (*
 let (pre_shared_ops : file_to_share CommonShared.shared_ops) = 
   CommonShared.new_shared_ops network
-    
-let (shared_ops : file CommonShared.shared_ops) = 
+    *)
+
+
+(* Files which are partially shared only *)
+let (pre_shared_ops : file CommonShared.shared_ops) = 
   CommonShared.new_shared_ops network
-  
 
 let client_must_update c =
   client_must_update (as_client c.client_client)
@@ -85,16 +106,21 @@ let server_must_update s =
   server_must_update (as_server s.server_server)
 
     
-let file_priority file = file.file_file.impl_file_priority
-let file_size file = file.file_file.impl_file_size
-let file_downloaded file = file_downloaded (as_file file.file_file)
-let file_age file = file.file_file.impl_file_age
-let file_fd file = file.file_file.impl_file_fd
-let file_disk_name file = file_disk_name (as_file file.file_file)
-let file_best_name file = file_best_name (as_file file.file_file)
-let set_file_disk_name file = set_file_disk_name (as_file file.file_file)
-
-        
+let file_priority file = file_priority file.file_multinet
+let file_size file = file_size file.file_multinet
+let file_state file = file_state file.file_multinet
+let file_num file = file_num file.file_multinet
+let file_downloaded file = file_downloaded file.file_multinet
+let file_age file = file_age file.file_multinet
+let file_fd file = file_fd file.file_multinet
+let file_disk_name file = file_disk_name file.file_multinet
+let file_best_name file = file_best_name file.file_multinet
+let set_file_disk_name file = set_file_disk_name file.file_multinet
+let file_last_seen file = file_last_seen file.file_multinet
+let set_file_last_seen file = set_file_last_seen file.file_multinet
+let file_must_update_downloaded file = file_must_update_downloaded file.file_multinet
+let as_file file = as_file file.file_multinet
+  
 (*************************************************************
 
     General useful structures and functions
@@ -212,19 +238,26 @@ let interesting_clients = ref ([] : client list)
   
 (* 'NEW' FUNCTIONS *)  
 let files_by_md4 = Hashtbl.create 127
-
+let (shared_by_md4 : (Md4.t, CommonUploads.shared_file) Hashtbl.t)
+  = Hashtbl.create 127
+  
 let find_file md4 = Hashtbl.find files_by_md4 md4
-
+let find_shared md4 =
+  try
+    let file = Hashtbl.find files_by_md4 md4 in
+    as_shared file.file_shared, file_fd file
+  with _ ->
+      let sh = Hashtbl.find shared_by_md4 md4 in
+      as_shared sh.CommonUploads.shared_impl, sh.CommonUploads.shared_fd
     
 let servers_ini_changed = ref true
 
-let shared_files_info = (Hashtbl.create 127 : (string, shared_file_info) Hashtbl.t)
-let new_shared = ref ([] : file list)
-let shared_files = ref ([] : file_to_share list)
+let new_shared_files = ref false
 
   
 (* compute the name used to save the file *)
-  
+
+  (*
 let update_best_name file =
   
   let md4_name = Md4.to_string file.file_md4 in
@@ -238,102 +271,165 @@ let update_best_name file =
         | t :: q -> if t <> md4_name then
               (String2.replace t '/' "::") else good_name file q in
       
-      set_file_best_name (as_file file.file_file) 
+      set_file_best_name file.file_multinet 
       (good_name file file.file_filenames);
      
 (*      lprintf "BEST NAME now IS %s" (file_best_name file); *)
     with Not_found -> ()
+        *)
+
+let new_file file_shared file_id = 
+  let file_size = MultinetTypes.file_size file_shared in
+  let nchunks = Int64.to_int (Int64.div 
+        (Int64.sub file_size Int64.one) block_size) + 1 in
+  let md4s = if file_size <= block_size then
+      [file_id] 
+    else [] in
   
-let new_file file_state file_name md4 file_size writable =
-  try
-    find_file md4 
-  with _ ->
+  let file_swarmer = file_shared.file_swarmer in
+  let file_partition = fixed_partition file_swarmer network.network_num block_size in
+  
+  
+  let rec file = {
+      file_shared = shared_impl;
+      file_multinet = file_shared;
+      file_exists = true;
+      file_md4 = file_id;
       
-      let t = Unix32.create file_name (if writable then
-            [Unix.O_RDWR; Unix.O_CREAT] else [Unix.O_RDONLY]) 0o666
-      in
-      let file_size =
-        if file_size = Int64.zero then
-          try
-            Unix32.getsize64 file_name
-          with _ ->
-              failwith "Zero length file ?"
-        else file_size
-      in
-      let nchunks = Int64.to_int (Int64.div 
-          (Int64.sub file_size Int64.one) block_size) + 1 in
-      let file_exists = Unix32.file_exists file_name in
-      let md4s = if file_size <= block_size then
-            [md4] 
-          else [] in
-      let rec file = {
-          file_file = file_impl;
-          file_shared = None;
-          file_exists = file_exists;
-          file_md4 = md4;
+      file_partially_shared = false;
+      file_partition = file_partition;
+
+(*
           file_nchunks = nchunks;
           file_chunks = [||];
           file_chunks_order = [||];
-          file_chunks_age = [||];
 (*          file_all_chunks = String.make nchunks '0'; *)
-          file_absent_chunks =   [Int64.zero, file_size];
-          file_filenames = [Filename.basename file_name];
-          file_nsources = 0;
-          file_md4s = md4s;
-          file_available_chunks = Array.create nchunks 0;
-          file_format = FormatNotComputed 0;
-          file_locations = Intmap.empty;
-          file_mtime = 0.0;
-          file_initialized = false;
-          
-          file_clients = Fifo.create ();
-          file_sources = [| 
-            SourcesQueueCreate.lifo ();
-            SourcesQueueCreate.fifo ();
-            SourcesQueueCreate.oldest_first ();
-            SourcesQueueCreate.oldest_last ();
-            SourcesQueueCreate.fifo ();
-            SourcesQueueCreate.fifo ();
-            SourcesQueueCreate.fifo ();
-          |];
-        }
-      and file_impl = {
-          dummy_file_impl with
-          impl_file_val = file;
-          impl_file_ops = file_ops;
-          impl_file_age = last_time ();          
-          impl_file_size = file_size;
-          impl_file_fd = t;
-          impl_file_best_name = Filename.basename file_name;
-          impl_file_last_seen = last_time () - 100 * 24 * 3600;
-        }
-      in
-      update_best_name file;
-      file_add file_impl file_state;
-      Heap.set_tag file tag_file;
-      Hashtbl.add files_by_md4 md4 file;
-      file
+file_absent_chunks =   [Int64.zero, file_size];
+  *)
+      file_nsources = 0;
+      file_md4s = Array.of_list md4s;
+      file_available_chunks = Array.create nchunks 0;
+      file_format = FormatNotComputed 0;
+      file_mtime = 0.0;
+      file_initialized = false;
+      
+      file_locations = Intmap.empty;
+      file_clients = Fifo.create ();
+      file_sources = [| 
+        SourcesQueueCreate.lifo ();
+        SourcesQueueCreate.fifo ();
+        SourcesQueueCreate.oldest_first ();
+        SourcesQueueCreate.oldest_last ();
+        SourcesQueueCreate.fifo ();
+        SourcesQueueCreate.fifo ();
+        SourcesQueueCreate.fifo ();
+      |];
+    } and
+    
+    shared_impl = {
+      impl_shared_update = 1;
+      impl_shared_fullname = MultinetTypes.file_disk_name file_shared;
+      impl_shared_codedname = Filename.concat "temp" 
+      (MultinetTypes.file_best_name file_shared);
+      impl_shared_size = file_size;
+      impl_shared_id = file_id;
+      impl_shared_num = 0;
+      impl_shared_uploaded = Int64.zero;
+      impl_shared_ops = pre_shared_ops;
+      impl_shared_val = file;
+      impl_shared_requests = 0;
+    } 
+  in
+  update_shared_num shared_impl;
 
+  
+  let md4_name = Md4.to_string file_id in
+  if file_best_name file = md4_name then begin
+      try
+        lprintf "File name MD4 %s\n" md4_name;
+        List.iter (fun name ->
+            if name <> md4_name then begin
+                lprintf "Different name %s\n" name;
+                update_best_file_name file_shared name;
+                raise Exit
+              end
+        ) file_shared.file_filenames
+      with _ -> ()
+    end;
+
+  
+  
+  let waiting_blocks = ref [] in
+  
+  Int64Swarmer.set_verifier file.file_partition (fun b ->
+      lprintf "Donkey file verifier called\n";
+      if file.file_md4s <> [||] then         
+        let num, begin_pos, end_pos = Int64Swarmer.block_block b in
+        lprintf "Donkey file verifier starting: waiting";
+        List.iter (fun i -> lprintf "%d " i) !waiting_blocks; 
+        lprintf "\n";
+        if not (List.mem num !waiting_blocks) then
+          let module M = CommonHasher in
+          lprintf "Donkey file verifier Md4 to compute: %d %Ld-%Ld\n" num begin_pos end_pos;
+          Unix32.flush_fd (file_fd file);
+          waiting_blocks := num :: !waiting_blocks;        
+          M.compute_md4 (Unix32.filename (file_fd file)) begin_pos
+            (end_pos -- begin_pos) (fun job ->
+
+
+(*
+        let md4 = Md4.digest_subfile (file_fd file) 
+        begin_pos (end_pos -- begin_pos) in
+*)
+              lprintf "Donkey file verifier: removing computed block %d\n" num;
+              waiting_blocks := List2.remove num !waiting_blocks;
+              let md4 = job.M.job_result in
+              
+              let result = md4 = file.file_md4s.(num) in
+              lprintf "Md4 computed: %s against %s = %s\n"
+                (Md4.to_string md4) 
+              (Md4.to_string file.file_md4s.(num))
+              (if result then "VERIFIED" else "CORRUPTED");
+              if result then 
+                Int64Swarmer.loaded_block b
+              else 
+                Int64Swarmer.reload_block b;
+              
+              if result && first_verified_block file.file_partition then begin
+(* Add this file to the shared list *)
+                  lprintf "Donkey: can share partial file\n";
+                  new_shared_files := true;
+                  file_must_update file_shared;
+                end
+          )
+  );
+  Heap.set_tag file tag_file;
+  Hashtbl.add files_by_md4 file_id file;
+  add_file_impl file_shared file_ops file;
+(*  file_shared.file_verified_partition <- Some file.file_partition; *)
+  current_files := file :: !current_files;
+  file
+  
+let _ = 
+  register_network network_file_ops;
+  network_file_ops.op_download_start <- 
+    (fun file_shared ->      
+      List.iter (fun uid ->          
+          match uid with
+          | Ed2k (_, file_id) ->
+              if not (Hashtbl.mem files_by_md4 file_id) then
+                ignore (new_file file_shared file_id)
+              
+          | _ ->()
+      ) file_shared.file_uids
+  ) 
+  
 let change_hardname file file_name =
   let fd = file.file_file.impl_file_fd in
   Unix32.rename fd file_name
-          
-let add_client_chunks file client_chunks =
-  for i = 0 to file.file_nchunks - 1 do
-    if client_chunks.(i) then 
-      let new_n = file.file_available_chunks.(i) + 1 in
-      if new_n  < 11 then  file_must_update file;
-      file.file_available_chunks.(i) <- new_n;
-  done
-      
-let remove_client_chunks file client_chunks = 
-  for i = 0 to file.file_nchunks - 1 do
-    if client_chunks.(i) then
-      let new_n = file.file_available_chunks.(i) - 1 in
-      if new_n < 11 then file_must_update file;
-      file.file_available_chunks.(i) <- new_n;
-      client_chunks.(i) <- false  
-  done
+
+let file_nchunks file =
+  String.length (Int64Swarmer.verified_bitmap file.file_partition)
   
 let is_black_address ip port =
   !!black_list && (
@@ -412,16 +508,15 @@ let dummy_client =
       client_ip = Ip.null;
       client_md4 = Md4.null;
       client_last_filereqs = 0;
-      client_chunks = [||];
       client_block = None;
-      client_zones = [];
+      client_blocks = [];
+      client_ranges = [];
       client_connection_control =  new_connection_control_recent_ok ( ());
       client_file_queue = [];
       client_tags = [];
       client_name = "";
       client_all_files = None;
       client_next_view_files = last_time () - 1;
-      client_all_chunks = "";
       client_rating = 0;
       client_brand = Brand_unknown;
       client_checked = false;
@@ -471,14 +566,13 @@ let create_client key num =
       client_ip = Ip.null;
       client_md4 = Md4.null;
       client_last_filereqs = 0;
-      client_chunks = [||];
       client_block = None;
-      client_zones = [];
+      client_ranges = [];
+      client_blocks = [];
       client_file_queue = [];
       client_tags = [];
       client_name = "";
       client_all_files = None;
-      client_all_chunks = "";
       client_rating = 0;
       client_brand = Brand_unknown;
       client_checked = false;
@@ -658,7 +752,6 @@ end;
   ()
   
 let client_num c = client_num (as_client c.client_client)  
-let file_num c = file_num (as_file c.file_file)  
 let server_num c = server_num (as_server c.server_server)  
   
 let remove_client c =
@@ -801,6 +894,7 @@ let result_of_file md4 tags =
           r.result_names <- s :: r.result_names
       | { tag_name = "size"; tag_value = Uint64 v } ->
           r.result_size <- v;
+          
       | { tag_name = "format"; tag_value = String s } ->
           r.result_tags <- tag :: r.result_tags;
           r.result_format <- s
@@ -879,7 +973,7 @@ let client_id c =
 let save_join_queue c =
   if c.client_file_queue <> [] then
     let files = List.map (fun (file, chunks) ->
-          file, Array.copy chunks
+          file, String.copy chunks
       ) c.client_file_queue in
     begin
       if c.client_debug then 
@@ -910,4 +1004,9 @@ let clean_join_queue_tables () =
         Hashtbl.add join_queue_by_id key e
   ) list
   
+  
+
+let remove_file file =
+  (try Hashtbl.remove files_by_md4 file.file_md4 with _ -> ());
+  current_files := List2.removeq file !current_files
   

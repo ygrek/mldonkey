@@ -36,7 +36,8 @@ open DonkeyTypes
 open DonkeyOptions
 open CommonOptions
 open DonkeyGlobals          
-  
+
+  (*
 let chunk_pos i =
   Int64.mul (Int64.of_int i)  block_size
 
@@ -74,8 +75,6 @@ lprintf "%s\n%s\n" (Md4.to_string md4) (Md4.to_string new_md4);
 *)
       AbsentVerified
     end      
-
-
 
 let chunk_present file i =
   
@@ -228,6 +227,7 @@ let verify_chunks file =
   lprintf "Done verifying\n";
   file.file_absent_chunks <- List.rev (find_absents file);
   compute_size file
+    *)
 
 (*************************************************************
 
@@ -238,7 +238,8 @@ duplicate_chunks is called with the 'dup' command, and should
    probably be called every 5 minutes
   
 **************************************************************)  
-  
+
+(*
 let md4_table = Hashtbl.create 112
   
 let register_md4 i md4 (begin_pos : int64) (len : int64) file = 
@@ -254,51 +255,15 @@ let register_md4 i md4 (begin_pos : int64) (len : int64) file =
       Hashtbl.add md4_table (md4, i, begin_pos, len) (ref [file])
       
 let register_md4s md4s file_num file_size = 
-  
-  let len = List.length md4s in
-  let rec iter md4s i chunk_pos =
-    match md4s with
-      [] -> ()
-    | md4 :: tail ->
-        let chunk_end = Int64.add chunk_pos block_size in
-        let chunk_size = if chunk_end > file_size then
-            Int64.sub file_size chunk_pos else block_size in
-        register_md4 i md4 chunk_pos chunk_size file_num;
-        iter tail (i+1) chunk_end
-  in
-  iter md4s 0 Int64.zero
 
-  (*
-let copy_chunk other_file file chunk_pos chunk_size =
-  lprintf "Copying chunk\n";
-  let file_in = 
-    Unix.openfile (file_disk_name other_file)
-    [Unix.O_RDONLY] 0o666 in
-  try
-    let file_out = 
-      Unix.openfile (file_disk_name file)
-      [Unix.O_RDWR; Unix.O_CREAT] 0x666
-    in
-    try
-      ignore (Unix2.c_seek64 file_in chunk_pos Unix.SEEK_SET);
-      ignore (Unix2.c_seek64 file_out chunk_pos Unix.SEEK_SET);
-      let buffer_len = 32768 in
-      let len = Int64.to_int chunk_size in
-      let buffer = String.create buffer_len in
-      let rec iter file_in file_out len =
-        if len > 0 then
-          let can_read = mini buffer_len len in
-          let nread = Unix.read file_in buffer 0 buffer_len in
-          Unix2.really_write file_out buffer 0 nread;
-          iter file_in file_out (len-nread)
-      in
-      iter file_in file_out len;
-      lprintf "Chunk copied\n"
-      
-    with _ -> Unix.close file_out; raise Exit
-  
-  with _ -> Unix.close file_in; raise Exit
-        *)
+  for i = 0 to Array.length md4s - 1 do
+    let md4 = md4s.(i) in
+    let chunk_pos = block_size ** i in
+    let chunk_end = Int64.add chunk_pos block_size in
+    let chunk_size = if chunk_end > file_size then
+        Int64.sub file_size chunk_pos else block_size in
+    register_md4 i md4 chunk_pos chunk_size file_num;
+  done
 
 let duplicate_chunks () =
     
@@ -336,7 +301,8 @@ let duplicate_chunks () =
                         match other_file.file_chunks.(i) with
                           PresentVerified ->
                             lprintf "Should copy chunk %d [%Ld:%Ld] from %s to %s\n" i chunk_pos chunk_size
-                              (file_best_name other_file) (file_best_name file);
+                              (file_best_name other_file)
+                            (file_best_name file);
 
                             if not (List.memq file !modified_files) then
                               modified_files := file :: !modified_files;
@@ -366,3 +332,4 @@ let duplicate_chunks () =
       compute_size file      
   ) !modified_files
   
+*)

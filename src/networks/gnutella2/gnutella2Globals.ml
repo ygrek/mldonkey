@@ -36,7 +36,10 @@ open CommonGlobals
 open CommonSwarming  
 open CommonNetwork
 open CommonHosts
-open CommonDownloads.SharedDownload  
+  
+open MultinetTypes
+open MultinetFunctions
+open MultinetComplexOptions
   
 open Gnutella2Types
 open Gnutella2Options
@@ -45,7 +48,9 @@ open Gnutella2Options
 let extension_list = [
     "mp3" ; "avi" ; "jpg" ; "jpeg" ; "txt" ; "mov" ; "mpg" 
 ]
-      
+
+let new_shared_files = ref false
+  
 let rec remove_short list list2 =
   match list with
     [] -> List.rev list2
@@ -78,6 +83,12 @@ let get_name_keywords file_name =
   
   
 let network = new_network "Gnutella2"  
+     [ 
+    NetworkHasSupernodes; 
+    NetworkHasSearch;
+    NetworkHasUpload;
+    NetworkHasMultinet;
+  ]
     (fun _ -> !!network_options_prefix)
   (fun _ -> !!commit_in_subdir)
       
@@ -263,22 +274,135 @@ let new_result file_name file_size tags uids =
   | Some r -> r
 
 let megabyte = Int64.of_int (1024 * 1024)
+
+let set_tiger_tiger_hashes file chunk_size array =
+  file.file_tiger <- Some (chunk_size, array);
+  
+  let file_shared = file.file_shared in
+  let rec verifier b =
+    match file.file_tiger with 
+      None ->  ()
+    | Some (block_size, array) ->
+        Unix32.flush_fd (file_fd file_shared);
+        let num, begin_pos, end_pos = Int64Swarmer.block_block b in
+        
+        if block_size = megabyte then begin
+            
+            lprintf "Md4 to compute: %d %Ld-%Ld\n" num begin_pos end_pos;
+            let tiger = TigerTree.digest_subfile (file_fd file_shared) 
+              begin_pos (end_pos -- begin_pos) in
+            let result = tiger = array.(num) in
+            lprintf "Tiger computed: %s against %s = %s\n"
+              (TigerTree.to_string tiger) 
+            (TigerTree.to_string array.(num))
+            (if result then "VERIFIED" else "CORRUPTED");
+            if result then 
+              Int64Swarmer.loaded_block b
+            else 
+              Int64Swarmer.reload_block b;
+            
+            if result then begin
+                let bitmap = Int64Swarmer.verified_bitmap file.file_partition in
+                try ignore (String.index bitmap '3')
+                with _ -> 
+(* Add this file to the shared list *)
+                    new_shared_files := true;
+                    file_must_update file_shared;
+              end;
+          end else  
+        if block_size < megabyte then begin
+(* We can be more accurate *)
+            let nsubblocks = Int64.to_int (megabyte // block_size) in
+            let block_result = ref true in
+            for i = 0 to nsubblocks - 1 do
+              let begin_pos = begin_pos ++ block_size ** i in
+              let end_pos = begin_pos ++ block_size in
+              lprintf "Md4 to compute: %d %Ld-%Ld\n" num begin_pos end_pos;
+              let tiger = TigerTree.digest_subfile (file_fd file_shared) 
+                begin_pos block_size in
+              let num = num * nsubblocks + i in
+              let result = tiger = array.(num) in
+              lprintf "Tiger computed: %s against %s = %s\n"
+                (TigerTree.to_string tiger) 
+              (TigerTree.to_string array.(num))
+              (if result then "VERIFIED" else "CORRUPTED");
+              block_result := !block_result && result;
+              (if result then
+                  Int64Swarmer.loaded_ranges
+                else
+                  Int64Swarmer.reload_ranges) 
+              b begin_pos end_pos
+            done;
+            let result = !block_result in
+            if result then 
+              Int64Swarmer.loaded_block b
+            else 
+              Int64Swarmer.reload_block b;
+            
+            if result && first_verified_block file.file_partition then begin
+(* Add this file to the shared list *)
+                lprintf "gnutella2: can share partial file\n";
+                new_shared_files := true;
+                file_must_update file_shared;
+              end;
+          
+          end else begin
+(* If we succeed, we can validate more blocks, otherwise, we must invalidate
+all the completely downloaded blocks *)
+            let num = Int64.to_int (begin_pos // block_size) in
+            let begin_pos = block_size ** num in
+            let end_pos = begin_pos ++ block_size in
+            lprintf "Md4 to compute: %d %Ld-%Ld\n" num begin_pos end_pos;
+            let tiger = TigerTree.digest_subfile (file_fd file_shared) 
+              begin_pos block_size in
+            let result = tiger = array.(num) in
+            lprintf "Tiger computed: %s against %s = %s\n"
+              (TigerTree.to_string tiger) 
+            (TigerTree.to_string array.(num))
+            (if result then "VERIFIED" else "CORRUPTED");
+            
+            if result then begin
+                let bitmap = Int64Swarmer.verified_bitmap file.file_partition in
+                try
+                  ignore (String.index bitmap '3')
+                with _ -> 
+(* Add this file to the shared list *)
+                    lprintf "gnutella2: can share partial file\n";
+                    new_shared_files := true;
+                    file_must_update file_shared;
+              end;
+            
+            (if result then 
+              Int64Swarmer.loaded_blocks
+            else 
+                Int64Swarmer.reload_blocks) file.file_partition
+              begin_pos end_pos
+            
+          end
+          
+          
+  in
+  
+  Int64Swarmer.set_verifier file.file_partition verifier;
+    ()
   
 let new_file file_shared = 
-  let partition = fixed_partition file_shared.file_swarmer "gnutella2" megabyte in
-  let keywords = get_name_keywords file_shared.file_name in
+  let partition = fixed_partition file_shared.file_swarmer network.network_num megabyte in
+  let keywords = get_name_keywords (file_best_name file_shared) in
   let words = String2.unsplit keywords ' ' in
   let rec file = {
       file_shared = file_shared;
       file_clients = [];
       file_partition = partition;
       file_searches = [search];
+      file_tiger = None;
     } and search = {
       search_search = FileWordSearch (file, words);
       search_hosts = Intset.empty;
       search_uid = Md4.random ();
     } 
   in
+  
   Hashtbl.add searches_by_uid search.search_uid search;
   lprintf "SET SIZE : %Ld\n" (file_size file_shared);
   current_files := file :: !current_files;
@@ -288,7 +412,7 @@ let new_file file_shared =
 exception FileFound of file
   
 let new_file file_shared =
-  let file_name = file_shared.file_name in
+  let file_name = file_best_name file_shared in
   let file_size = file_size file_shared in
   let file_uids = file_shared.file_uids in
   let file = ref None in

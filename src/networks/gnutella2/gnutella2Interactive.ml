@@ -35,7 +35,12 @@ open CommonComplexOptions
 open CommonFile
 open CommonInteractive
 open CommonHosts
-open CommonDownloads.SharedDownload
+
+    
+open MultinetTypes
+open MultinetFunctions
+open MultinetComplexOptions
+
 
 open Gnutella2Types
 open Gnutella2Options
@@ -149,6 +154,10 @@ let xml_query_of_query q =
       
 let _ =
   network.op_network_search <- (fun search buf ->
+      match search.search_type with
+        LocalSearch -> ()
+      | _ ->
+          
       let query = search.search_query in
       let words, xml_query = xml_query_of_query query in
       let words = String2.unsplit words ' ' in
@@ -227,7 +236,6 @@ module P = GuiTypes
   
 let _ =
   server_ops.op_server_info <- (fun s ->
-      if !!enable_gnutella2 then
         {
           P.server_num = (server_num s);
           P.server_network = network.network_num;
@@ -242,8 +250,7 @@ let _ =
           P.server_description = "";
           P.server_users = None;
           P.server_banner = "";
-          } else
-        raise Not_found
+          }
   );
   server_ops.op_server_connect <- (fun s ->
       Gnutella2Servers.connect_server s.server_host []);

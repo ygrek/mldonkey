@@ -167,7 +167,7 @@ let done_files =
     *)
 
 let old_files = 
-  define_option opennap_ini ["old_files"]
+  define_option opennap_section ["old_files"]
     "" (list_option (tuple2_option (string_option, int64_option))) []  
       
 let _ =

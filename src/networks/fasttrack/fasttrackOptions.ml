@@ -26,8 +26,9 @@ let cmd_basedir = Autoconf.current_dir (* will not work on Windows *)
 let fasttrack_ini = create_options_file (
     Filename.concat file_basedir "fasttrack.ini")
 
+let fasttrack_section = file_section fasttrack_ini [] ""  
   
-let max_ultrapeers = define_option fasttrack_ini
+let max_ultrapeers = define_option fasttrack_section
     [ "max_ultrapeers"]
   "Maximal number of ultrapeers connected on Fasttrack2"
     int_option 5
@@ -37,36 +38,36 @@ let _ =
     (fun _ ->
       if !!max_ultrapeers > 10 then max_ultrapeers =:= 10)
   
-let client_port = define_option fasttrack_ini ["client_port"]
+let client_port = define_option fasttrack_section ["client_port"]
     "The port to bind the client to"
     int_option 1214
     
-let enabled = define_option fasttrack_ini
+let enabled = define_option fasttrack_section
     ["fasttrack2_enabled"]
     "Do you want to support Fasttrack2 protocol (not yet supported)"
     bool_option true
   
   
-let commit_in_subdir = define_option fasttrack_ini ["commit_in_subdir"]
+let commit_in_subdir = define_option fasttrack_section ["commit_in_subdir"]
   "The subdirectory of temp/ where files should be moved to"
     string_option "Fasttrack"
 
 let user_agent = Printf.sprintf "MLDonkey %s" Autoconf.current_version
 
-let max_known_ultrapeers = define_option fasttrack_ini ["max_known_ultrapeers"]
+let max_known_ultrapeers = define_option fasttrack_section ["max_known_ultrapeers"]
   "Maximal number of ultrapeers remembered"
     int_option 100
 
-let max_known_peers = define_option fasttrack_ini ["max_known_peers"]
+let max_known_peers = define_option fasttrack_section ["max_known_peers"]
   "Maximal number of peers remembered"
   int_option 20
 
     
 let server_connection_timeout = 
-  define_option fasttrack_ini ["server_connection_timeout"] 
+  define_option fasttrack_section ["server_connection_timeout"] 
   "timeout when connecting to a server" float_option 10.
 
-let client_uid = define_option fasttrack_ini ["client_uid"]
+let client_uid = define_option fasttrack_section ["client_uid"]
     "The UID of this client" Md4.option (Md4.random ())
   
   let _	 =
@@ -78,21 +79,21 @@ let client_uid = define_option fasttrack_ini ["client_uid"]
   
   (*
 let verbose_clients = 
-  define_option fasttrack_ini ["verbose_clients"] 
+  define_option fasttrack_section ["verbose_clients"] 
   "level of verbosity when communicating with clients" 
     int_option 0
     
 let verbose_servers = 
-  define_option fasttrack_ini ["verbose_servers"] 
+  define_option fasttrack_section ["verbose_servers"] 
     "level of verbosity when communicating with servers" int_option 0
     *)
 
-let network_options_prefix = define_option fasttrack_ini
+let network_options_prefix = define_option fasttrack_section
     ["options_prefix"] "The prefix which is appended to options names
     when they are used in the telnet/WEB interfaces"
     string_option "FT-"
   
-let max_available_slots = define_option fasttrack_ini
+let max_available_slots = define_option fasttrack_section
     ["max_available_slots"] "The maximal number of slots for upload by Fasttrack clients"
     int_option 5
   
@@ -101,7 +102,7 @@ let shortname o =
   
 let gui_fasttrack_options_panel = 
   (*
-  define_option fasttrack_ini ["gui_fasttrack_options_panel"]
+  define_option fasttrack_section ["gui_fasttrack_options_panel"]
     "Which options are configurable in the GUI option panel, and in the
   fasttrack section. Last entry indicates the kind of widget used (B=Boolean,T=Text)"
 (list_option (tuple3_option (string_option, string_option, string_option)))

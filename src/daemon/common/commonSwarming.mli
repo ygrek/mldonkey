@@ -40,16 +40,14 @@ module type Swarmer =
     and partition
     and multirange
     
-    exception VerifierNotReady      
-      
     val create : unit -> t
     val set_writer : t -> (pos -> string -> int -> int -> unit) -> unit
     val set_size : t -> pos -> unit
     val set_present : t -> (pos * pos) list -> unit
     val set_absent : t -> (pos * pos) list -> unit
     
-    val partition : t -> string -> (pos -> pos) -> partition
-    val set_verifier : partition -> (block -> bool) -> unit
+    val partition : t -> int -> (pos -> pos) -> partition
+    val set_verifier : partition -> (block -> unit) -> unit
     val verified_bitmap : partition -> string
     val set_verified_bitmap : partition -> string -> unit
     val register_uploader : partition -> (pos * pos) list -> block list
@@ -73,7 +71,17 @@ module type Swarmer =
     val range_range : range -> pos * pos
     val multirange_range : multirange -> pos * pos
     val block_block : block -> int * pos * pos
-    val availability : partition -> string
+    val availability : t -> (int * string) list
+      
+    val loaded_block : block -> unit
+    val reload_block : block -> unit
+
+    val loaded_blocks : partition -> pos -> pos -> unit
+    val reload_blocks : partition -> pos -> pos -> unit
+
+    val loaded_ranges : block -> pos -> pos -> unit
+    val reload_ranges : block -> pos -> pos -> unit
+
     val downloaded : t -> pos
     val present_chunks : t -> (pos * pos) list
     val partition_size : partition -> int
@@ -94,6 +102,7 @@ module type Swarmer =
       
     val dirty : t -> bool
     val verify_file : t -> unit
+    val is_file_verifiable : t -> bool
     val recheck_partition : partition -> bool -> unit
   end
   
@@ -101,6 +110,6 @@ module Make(I: Integer) : Swarmer with type pos = I.t
 
 module Int64Swarmer : Swarmer with type pos = int64
   
-val fixed_partition : Int64Swarmer.t -> string ->
+val fixed_partition : Int64Swarmer.t -> int ->
   int64 -> Int64Swarmer.partition
   

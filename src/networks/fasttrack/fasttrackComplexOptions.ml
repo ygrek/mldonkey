@@ -22,25 +22,29 @@ open Printf2
 open Md4
 open Options
 open BasicSocket
-  
+
+open CommonOptions
 open CommonSwarming
 open CommonTypes
 open CommonFile
 open CommonHosts
 open CommonGlobals
-open CommonDownloads.SharedDownload
+  
+open MultinetTypes
+open MultinetFunctions
+open MultinetComplexOptions
   
 open FasttrackTypes
 open FasttrackOptions
 open FasttrackGlobals
 
-let ultrapeers = define_option fasttrack_ini
+let ultrapeers = define_option fasttrack_section
     ["ultrapeers"]
     "Known ultrapeers" (list_option (tuple2_option
       (Ip.addr_option, int_option)))
   []
 
-let peers = define_option fasttrack_ini
+let peers = define_option fasttrack_section
     ["peers"]
     "Known Peers" (list_option (tuple2_option (Ip.addr_option, int_option)))
   []
@@ -122,13 +126,16 @@ let value_to_file file assocs =
               match v with
               | SmallList [c; index; name] | List [c;index; name] ->
                   let s = ClientOption.value_to_client c in
-                  add_download file s (
-                    FileByIndex (value_to_int index, value_to_string name))
+                  add_download file s (*
+                    FileByIndex (value_to_int index, value_to_string name) *)
     
               | SmallList [c; index] | List [c;index] ->
                   let s = ClientOption.value_to_client c in
-                  add_download file s (
-                    FileByUrl (value_to_string index))
+                  add_download file s (*
+                  FileByUrl (value_to_string index)*)
+              | SmallList [c] | List [c] ->
+                  let s = ClientOption.value_to_client c in
+                  add_download file s
               | _ -> failwith "Bad source"
           )))
     with e -> 
@@ -141,18 +148,19 @@ let file_to_value file =
     "file_hash", string_to_value (Md5Ext.to_hexa_case false file.file_hash);
     "file_sources", 
     list_to_value "Fasttrack Sources" (fun c ->
-        match (find_download file c.client_downloads).download_uri with
+(*        match (find_download file c.client_downloads).download_uri with
           FileByIndex (i,n) -> 
             SmallList [ClientOption.client_to_value c; int_to_value i; 
               string_to_value n]
         | FileByUrl s -> 
             SmallList [ClientOption.client_to_value c; 
-              string_to_value s]
+string_to_value s] *)
+        SmallList [ClientOption.client_to_value c]
     ) file.file_clients;
   ]
 
 let old_files = 
-  define_option fasttrack_ini ["old_files"]
+  define_option fasttrack_section ["old_files"]
     "" (list_option (tuple2_option (string_option, int64_option))) []
     
     
@@ -178,8 +186,75 @@ let save_config () =
   
   ()
 
+let old_value_to_file is_done assocs =
+  let get_value name conv = conv (List.assoc name assocs) in
+  let get_value_nil name conv = 
+    try conv (List.assoc name assocs) with _ -> []
+  in
+  
+  let file_name = get_value "file_name" value_to_string in
+  let file_id = 
+    try
+      Md4.of_string (get_value "file_id" value_to_string)
+    with _ -> failwith "Bad file_id"
+  in
+  let file_hash = 
+    try
+      Md5Ext.of_string (get_value "file_hash" value_to_string)
+    with _ -> failwith "Bad file_hash"
+  in
+  let file_size = try
+      value_to_int64 (List.assoc "file_size" assocs) 
+    with _ -> failwith "Bad file size"
+  in
+    
+  let old_file = Filename.concat !!temp_directory (
+      Printf.sprintf "FT-%s" (Md4.to_string file_id)) in
+
+  let file_shared = new_download None [file_name] file_size 
+      (Some old_file) [uid_of_uid (Md5Ext ("",file_hash))] in
+  
+  (try 
+      Int64Swarmer.set_present file_shared.file_swarmer 
+        (get_value "file_present_chunks" 
+          (value_to_list value_to_int32pair));
+      add_file_downloaded file_shared.file_file
+        (Int64Swarmer.downloaded file_shared.file_swarmer)      
+    with _ -> ()                
+  );
+
+  let file = 
+    let file = ref None in
+    Hashtbl.iter (fun _ f ->
+        if f.file_shared == file_shared then 
+          file := Some f
+    ) files_by_uid;
+    match !file with
+      None -> raise Not_found
+    | Some file -> file
+  in
+  
+  (try
+      ignore (get_value "file_sources" (value_to_list (fun v ->
+              match v with
+              | SmallList [c; index; name] | List [c;index; name] ->
+                  let s = ClientOption.value_to_client c in
+                  add_download file s (*
+                    FileByIndex (value_to_int index, value_to_string name)*)
+    
+              | SmallList [c; index] | List [c;index] ->
+                  let s = ClientOption.value_to_client c in
+                  add_download file s (*
+                    FileByUrl (value_to_string index)*)
+              | _ -> failwith "Bad source"
+          )))
+    with e -> 
+        lprintf "Exception %s while loading source\n"
+          (Printexc2.to_string e); 
+  );
+  as_file file_shared
+
 let _ =
   network_file_ops.op_download_of_value <- value_to_file;
   file_ops.op_download_to_value <- file_to_value;
-  network.op_network_file_of_option <- 
-    CommonDownloads.SharedDownload.value_to_file
+  network.op_network_file_of_option <- old_value_to_file

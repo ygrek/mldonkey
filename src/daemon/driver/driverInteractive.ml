@@ -82,37 +82,55 @@ let calc_file_eta f =
   )
 
 let file_availability f =
-  let rec loop i p n =
-    if i < 0
-    then 
-      if n < 0.0001
-      then 0.0
-      else (p /. n *. 100.0)
-    else
-      if partial_chunk f.file_chunks.[i]
-      then
-    if f.file_availability.[i] <> (char_of_int 0)
-    then loop (i - 1) (p +. 1.0) (n +. 1.0)
-    else loop (i - 1) p (n +. 1.0)
-      else loop (i - 1) p n
-  in  
-    loop ((String.length f.file_availability) - 1) 0.0 0.0
-
-let string_availability s =
-  let len = String.length s in
-  let p = ref 0 in
-  for i = 0 to len - 1 do
-    if int_of_char s.[i] <> 0 then begin
-        incr p
-      end
-  done;
-  if len = 0 then 0.0 else 
-    (float_of_int !p /. float_of_int len *. 100.)
+  
+  let rec iter maxi list =
+    match list with
+      [] -> maxi
+    | (_, avail) :: tail ->
+        let rec loop i p n =
+          if i < 0
+          then 
+            if n < 0.0001
+            then 0.0
+            else (p /. n *. 100.0)
+          else
+          if partial_chunk f.file_chunks.[i]
+          then
+            if avail.[i] <> (char_of_int 0)
+            then loop (i - 1) (p +. 1.0) (n +. 1.0)
+            else loop (i - 1) p (n +. 1.0)
+          else loop (i - 1) p n
+        in  
+        let maxi = max maxi 
+            (loop ((String.length avail) - 1) 0.0 0.0)
+        in
+        iter maxi tail
+  in
+  iter 0. f.file_availability
+  
+let string_availability f =
+  let rec iter maxi list =
+    match list with
+      [] -> maxi
+    | (_, s) :: tail ->
+        let len = String.length s in
+        let p = ref 0 in
+        for i = 0 to len - 1 do
+          if int_of_char s.[i] <> 0 then begin
+              incr p
+            end
+        done;
+        let maxi = max maxi (if len = 0 then 0.0 else 
+              (float_of_int !p /. float_of_int len *. 100.))
+        in
+        iter maxi tail
+  in
+  iter 0. f.file_availability
 
 let get_file_availability f = 
 if !!html_mods_use_relative_availability
 	then file_availability f 
-	else string_availability f.file_availability
+	else string_availability f
 
 let number_of_sources gf = List.length (file_sources (file_find gf.file_num))
     
@@ -157,9 +175,8 @@ let save_config () =
         Printf2.lprintf "Exception %s while flushing\n" (Printexc2.to_string e)
   );
   Options.save_with_help downloads_ini;
-  Options.save_with_help downloads_expert_ini;
   CommonInteractive.save ();
-  networks_iter (fun r -> 
+  networks_iter_all (fun r -> 
       List.iter (fun opfile ->
           Options.save_with_help opfile          
       ) r.network_config_file);
@@ -493,7 +510,7 @@ function submitPriority(num,cp,sel) {
 \\</td\\>\\</tr\\>
 \\<tr\\>\\<td\\>
 
-\\<table class=downloaders cellspacing=0 cellpadding=0\\>\\<tr\\>
+\\<table width=\\\"100%%\\\" class=\\\"downloaders\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
 
 \\<td title=\\\"Pause/Resume/Cancel\\\" class=\\\"dlheader\\\"\\>P/R/C\\</td\\>"
 (if !qnum > 0 then begin
@@ -852,7 +869,12 @@ let display_file_list buf o =
     end
 
 
-
+let get_tag_value tv =
+	match tv with 
+ | Uint64 i -> String.escaped (Int64.to_string i)
+ | Fint64 i -> String.escaped (Int64.to_string i)
+ | String s -> String.escaped s
+ | _ -> "???"
 
 let old_print_search buf o results = 
   let user = o.conn_user in
@@ -894,12 +916,7 @@ let old_print_search buf o results =
 					| "FTH" | "urn" -> ()  
 					| _ -> 
 						Buffer.add_string buf ((if !nl then "\n" else begin nl := true;"" end) ^ 
-						"|| (" ^ t.tag_name ^ "): " ^	
-						(match t.tag_value with 
-                  		| Uint64 i -> Int64.to_string i
-                  		| Fint64 i -> Int64.to_string i
-						| String s -> s   
-                  		| _ -> "???"));
+						"|| (" ^ t.tag_name ^ "): " ^ get_tag_value t.tag_value);
           ) r.result_tags;
 
 			Printf.bprintf buf "\\\" class=\\\"sr\\\"\\>\\<a href=results\\?d=%d target=\\\"$S\\\"\\>" r.result_num
@@ -969,12 +986,7 @@ let old_print_search buf o results =
 					| "availability" | "urn" | "FTH"  -> () 
 					| _ -> 
 					Buffer.add_string buf ("\\<span title=\\\"" ^ 
-                  (match t.tag_value with
-                    String s -> s
-                  | Uint64 i -> Int64.to_string i
-                  | Fint64 i -> Int64.to_string i
-                  | _ -> "???")
-				  ^ "\\\"\\>(" ^ t.tag_name ^ ") \\</span\\>");
+					get_tag_value t.tag_value ^ "\\\"\\>(" ^ t.tag_name ^ ") \\</span\\>");
                 )
           ) r.result_tags;
           Printf.bprintf buf "\\</td\\>\\</tr\\>";
@@ -983,13 +995,7 @@ let old_print_search buf o results =
       		List.iter (fun t ->
               Buffer.add_string buf (Printf.sprintf "%-3s "
                   (if t.tag_name = "availability" then string_of_int avail else
-
-                  match t.tag_value with
-                    String s -> s
-                  | Uint64 i -> Int64.to_string i
-                  | Fint64 i -> Int64.to_string i
-                  | _ -> "???"
-                ))
+					get_tag_value t.tag_value))
           ) r.result_tags;
           Buffer.add_char buf '\n';
       ) results;

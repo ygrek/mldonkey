@@ -1,5 +1,5 @@
 val search_string : CommonTypes.query -> string
-val search_num : int ref
+val search_num : unit
 val searches_by_num : (int, CommonTypes.search) Hashtbl.t
 val new_search :
   CommonTypes.ui_user ->

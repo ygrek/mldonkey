@@ -227,23 +227,38 @@ let client_reader c t sock =
   | GetReq t ->
 (* this client REALLY wants to download from us !! *)
       lprintf "GET REQ"; lprint_newline ();
+      let list = make_shared_list () in
+      lprintf "Shared list = [%s]\n" list;
       
       if t.Get.name = "MyList.DcLst" then begin
           c.client_pos <- Int64.zero;
-          let list = make_shared_list () in
           let list = Che3.compress list in
           c.client_download <- DcUploadList list;
           server_send !verbose_msg_clients sock (FileLengthReq (
               Int64.of_int (String.length list)))
         end else begin 
 (* Upload not yet implemented *)
+          let filename = String2.replace t.Get.name '\\' "/"  in
           try
-            let sh = CommonUploads.find_by_name t.Get.name in
+            lprintf "Wants to upload [%s]\n" filename;
+            let sh = CommonUploads.find_by_name filename in
+            
             c.client_pos <- Int64.sub t.Get.pos Int64.one;
+            lprintf "from pos %Ld\n" c.client_pos;
             let rem = Int64.sub sh.shared_size c.client_pos in
+            lprintf "remaining %Ld\n" rem;
             server_send !verbose_msg_clients sock (FileLengthReq rem);
             c.client_download <- DcUpload sh
-          with _ ->
+          with e ->
+              lprintf "Exception %s in GetReq\n" (Printexc2.to_string e);
+              
+              lprintf "List of shared files:\n";
+              Hashtbl.iter (fun name sh ->
+                  lprintf "   [%s]\n" name;
+                  lprintf "   [%s]\n" filename;
+              ) CommonUploads.shared_files;
+              lprintf "done\n";
+              
               ()
         end
   

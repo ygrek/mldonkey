@@ -1,1 +1,4 @@
 *.cm*
+giftParser.mli
+giftParser.ml
+giftLexer.ml

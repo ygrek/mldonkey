@@ -52,15 +52,16 @@ module AccountOption = struct
 
 let accounts_ini = create_options_file
     (Filename.concat  CommonOptions.home_basedir ".mldonkey_im.ini")
-    
+let accounts_section = file_section accounts_ini [] ""
+  
 let accounts = 
-  define_option accounts_ini ["accounts"] 
+  define_option accounts_section ["accounts"] 
   "The different accounts" (listiter_option AccountOption.t) []
 
     
 open Gettext
     
-let browse_url_command = define_option accounts_ini
+let browse_url_command = define_option accounts_section
     ["browse_url_command"] "The command to be called for browsing an url"
   (T.option (T.string T.format)) "opera -newwindow '%s'" 
   

@@ -105,9 +105,40 @@ struct gnutella_qrp_patch {
         table = String.sub s 4 (String.length s - 4);
       }
     
-    let print t = 
-      lprintf "QRT PATCH"
+    let patches = ref ""
     
+    let print buf t = 
+      Printf.bprintf buf "QRT PATCH:\n";
+      Printf.bprintf buf "  seq_no: %d/%d\n" t.seq_no t.seq_size;
+      Printf.bprintf buf "  compressor: %d\n" t.compressor;
+      Printf.bprintf buf "  entry bits: %d\n" t.entry_bits;
+      Printf.bprintf buf "  table: ";
+      if t.seq_no = 1 then patches := t.table
+      else patches := !patches ^ t.table;
+      if t.seq_no = t.seq_size then begin
+          if t.compressor < 2 then
+            let table = 
+              if t.compressor = 1 then
+                Autoconf.zlib__uncompress_string2 !patches
+              else
+                !patches
+            in
+            let nbits = ref 0 in
+            for i = 0 to String.length table - 1 do
+              let c = int_of_char table.[i] in
+              for j = 0 to 7 do
+                if (1 lsl j) land c <> 0 then begin
+                    incr nbits;
+                    Printf.bprintf buf "(%d)" (i*8+j);
+                  end
+              done
+            done;
+            Printf.bprintf buf "  = %d bits\n" !nbits               
+          else
+            Printf.bprintf buf " (compressed) \n"
+        end else
+        Printf.bprintf buf " (partial) \n"            
+        
     let write buf t = 
       buf_int8 buf t.seq_no;
       buf_int8 buf t.seq_size;

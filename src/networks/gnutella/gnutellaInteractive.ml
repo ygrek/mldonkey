@@ -35,7 +35,10 @@ open CommonComplexOptions
 open CommonFile
 open CommonInteractive
 open CommonHosts
-open CommonDownloads.SharedDownload
+    
+open MultinetTypes
+open MultinetFunctions
+open MultinetComplexOptions
 
 open GnutellaTypes
 open GnutellaOptions
@@ -149,6 +152,10 @@ let xml_query_of_query q =
       
 let _ =
   network.op_network_search <- (fun search buf ->
+      match search.search_type with
+        LocalSearch -> ()
+      | _ ->
+          
       let query = search.search_query in
       let words, xml_query = xml_query_of_query query in
       let words = String2.unsplit words ' ' in
@@ -222,23 +229,21 @@ module P = GuiTypes
   
 let _ =
   server_ops.op_server_info <- (fun s ->
-      if !!enable_gnutella then
-        {
-          P.server_num = (server_num s);
-          P.server_network = network.network_num;
-          P.server_addr = Ip.addr_of_ip s.server_host.host_addr;
-          P.server_port = s.server_host.host_port;
-          P.server_score = 0;
-          P.server_tags = [];
-          P.server_nusers = s.server_nusers;
-          P.server_nfiles = s.server_nfiles;
-          P.server_state = server_state s;
-          P.server_name = s.server_agent;
-          P.server_description = "";
-          P.server_users = None;
-          P.server_banner = "";
-          } else
-        raise Not_found
+      {
+        P.server_num = (server_num s);
+        P.server_network = network.network_num;
+        P.server_addr = Ip.addr_of_ip s.server_host.host_addr;
+        P.server_port = s.server_host.host_port;
+        P.server_score = 0;
+        P.server_tags = [];
+        P.server_nusers = s.server_nusers;
+        P.server_nfiles = s.server_nfiles;
+        P.server_state = server_state s;
+        P.server_name = s.server_agent;
+        P.server_description = "";
+        P.server_users = None;
+        P.server_banner = "";
+      }
   );
   server_ops.op_server_connect <- (fun s ->
       GnutellaServers.connect_server GnutellaServers.retry_and_fake s.server_host []);

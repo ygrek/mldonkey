@@ -44,7 +44,10 @@ open TcpBufferedSocket
 
 open CommonGlobals
 open CommonSwarming  
-open CommonDownloads.SharedDownload  
+
+open MultinetTypes
+open MultinetFunctions
+open MultinetComplexOptions
   
 open GnutellaTypes
 open GnutellaOptions

@@ -28,7 +28,11 @@ open CommonGlobals
 open CommonTypes
 open CommonOptions
 open CommonHosts
-open CommonDownloads.SharedDownload
+    
+open MultinetTypes
+open MultinetFunctions
+open MultinetComplexOptions
+
   
 open Gnutella2Options
 open Gnutella2Types
@@ -333,8 +337,7 @@ module Print = struct
         | QH2_H_ID i32 -> M.buf_int32 buf i32; "ID"
         | QH2_H_CSC i16 -> M.buf_int16 buf i16; "CSC"
         | QH2_H_PART i32 -> M.buf_int32 buf i32; "PART"
-        | QHT_PATCH p -> 
-            "QHT_PATCH"
+        | QHT_PATCH p ->  QrtPatch.print buf p; ""
         | QHT_RESET -> "QHT_RESET"
         
         | UPROC -> "UPROC"
@@ -709,6 +712,7 @@ lprintf "\n";
               QrtPatch.entry_bits = get_int8 s 4; 
               QrtPatch.table = String.sub s 5 (String.length s - 5);
             } in 
+          (*
           if p.QrtPatch.compressor = 1 then
             (try
 (*                lprintf "Decompressing\n"; *)
@@ -720,7 +724,7 @@ lprintf "\n";
                   lprintf "Exception in uncompress %s\n"
                     (Printexc2.to_string e)
                   
-            );
+            ); *)
           QHT_PATCH p
         else begin
 (*            lprintf "RESET %d\n" (M.get_int s 1);
@@ -1374,7 +1378,7 @@ let server_recover_file file sock s =
           ()
       | FileUidSearch (file, uid) ->
           server_ask_uid NoConnection s ss.search_uid uid 
-          file.file_shared.file_name        
+          (file_best_name file.file_shared)
   ) file.file_searches
   
 let server_send_ping sock s = 
@@ -1588,36 +1592,40 @@ module Pandora = struct
       let rec iter pos =
 (*          lprintf "iter %d\n" pos; *)
         if pos < String.length s then
-          let p, decoded, pos = parse s pos in
+          try
+            let p, decoded, pos = parse s pos in
 
 (*
           lprintf "decoded:\n";
           dump decoded;
 *)
-          
-          (try
-              let encoded = g2_encode p in
+            
+            (try
+                let encoded = g2_encode p in
 (*
               lprintf "encoded:\n";
 dump encoded;
   *)
-              let pp, _, _ = parse encoded 0 in
-              
-              if encoded <> decoded then begin
-                  lprintf "ENCODER / DECODER ERROR:\n";
-                  lprintf "CORRECT:\n";
-                  dump decoded;
-                  lprintf "INCORRECT:\n";
-                  dump encoded;
-                  lprintf "______________________\n";
-                end;
-              assert (pp = p)
-            with e ->
-                lprintf "Exception %s in Encoding\n" 
-                  (Printexc2.to_string e));
-          
-          lprintf "Packet: \n%s\n" (Print.print p);
-          iter pos
+                let pp, _, _ = parse encoded 0 in
+                
+                if encoded <> decoded then begin
+                    lprintf "ENCODER / DECODER ERROR:\n";
+                    lprintf "CORRECT:\n";
+                    dump decoded;
+                    lprintf "INCORRECT:\n";
+                    dump encoded;
+                    lprintf "______________________\n";
+                  end;
+                assert (pp = p)
+              with e ->
+                  lprintf "Exception %s in Encoding\n" 
+                    (Printexc2.to_string e));
+            
+            lprintf "Packet: \n%s\n" (Print.print p);
+            iter pos
+          with Not_found -> 
+              String.sub s pos (String.length s - pos)
+        else ""
       in
       iter 0
     
@@ -1647,18 +1655,18 @@ dump encoded;
                       0 1000000 f in
                   String.sub s2 0 used_out
                 in
-                parse_string s;
+                ignore (parse_string s);
 (*                lprintf "...PARSE ONE END\n"; *)
               with e ->
                   lprintf "Exception %s in deflate1\n" (Printexc2.to_string e)
             end;
             let z = Zlib.inflate_init true in
-            let rec iter list offset rem =
+            let rec iter list offset rem buf =
               match list with
                 [] -> ()
               | m :: tail ->
                   let len = String.length m in
-                  if len <= offset then iter tail (offset - len) rem else
+                  if len <= offset then iter tail (offset - len) rem buf else
                   let m = if offset > 0 then String.sub m offset (len - offset) else m in
                   let rem = rem ^ m in
                   let len = String.length rem in
@@ -1667,23 +1675,27 @@ dump encoded;
 (*                  lprintf "deflating %d bytes\n" len; *)
                   let (_,used_in, used_out) = Zlib.inflate z rem 0 len s2 0 100000 f in
 (*                  lprintf "decompressed %d/%d[%d]\n" used_out len used_in; *)
-                  let m = String.sub s2 0 used_out in
+                  let m = buf ^ (String.sub s2 0 used_out) in
                   
-                  (try parse_string m with
+                  let buf =
+                    try
+                      parse_string m
+                    with
                       e ->
-                        lprintf "Execption %s while parse_string\n"
-                          (Printexc2.to_string e));
-                  
+                        lprintf "Exception %s while parse_string\n"
+                          (Printexc2.to_string e);
+                        ""
+                  in
                   
                   let rem = 
                     if used_in < len then String.sub rem used_in len else "" in
-                  iter tail 0 rem
+                  iter tail 0 rem buf
             in
-            iter msgs h ""
+            iter msgs h "" ""
           else
-            parse_string s1
+            ignore (parse_string s1)
       with e ->
-          lprintf "Execption %s while deflating \n O\nCUT:%s\n"
+          lprintf "Exception %s while deflating \n O\nCUT:%s\n"
             (Printexc2.to_string e) (String.escaped s1)
     
     let commit () =  

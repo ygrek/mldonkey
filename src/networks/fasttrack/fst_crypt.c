@@ -1,5 +1,9 @@
 /*
- * Copyright (C) 2003 Markus Kern (mkern@users.berlios.de)
+ * $Id$
+ *
+ * Copyright (C) 2003 giFT-FastTrack project
+ * Portions Copyright (C) 2001 Shtirlitz <shtirlitz@unixwarez.net>
+ * http://developer.berlios.de/projects/gift-fasttrack
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -12,58 +16,63 @@
  * General Public License for more details.
  */
 
-
 #include "../../utils/lib/md5.h"
 #include "fst_crypt.h"
 
 /*****************************************************************************/
 
-// crypt functions
+/* crypt functions */
 void enc_type_1 (unsigned char *out_key, unsigned char *in_key);
 void enc_type_2 (unsigned int *key, unsigned int seed);
 void enc_type_20 (unsigned int *key, unsigned int seed);
+void enc_type_80 (unsigned int *key, unsigned int seed);
 
 /*****************************************************************************/
 
-static void pad_init(unsigned int *pseed, unsigned int enc_type, unsigned char* pad, unsigned int pad_size);
-static unsigned char clock_cipher(FSTCipher *cipher);
-static unsigned int calculate_num_xor(unsigned int seed);
-static int calculate_num(unsigned int *num, int val);
-static unsigned int seed_step(unsigned int seed);
-static int qsort_cmp_func(const void *ap, const void *bp);
+static int pad_init (unsigned int *pseed, unsigned int enc_type, unsigned char* pad, unsigned int pad_size);
+static unsigned char clock_cipher (FSTCipher *cipher);
+static unsigned int calculate_num_xor (unsigned int seed);
+static int calculate_num (unsigned int *num, int val);
+static unsigned int seed_step (unsigned int seed);
+static int qsort_cmp_func (const void *ap, const void *bp);
 static void reverse_bytes (unsigned int *buf, unsigned int longs);
 
 /*****************************************************************************/
 
-// allocate and init cipher
+/* allocate and init cipher */
+
 FSTCipher *fst_cipher_create()
 {
 	FSTCipher *cipher;
 
-	cipher = malloc(sizeof(FSTCipher));
-	memset(cipher, 0, sizeof(FSTCipher));
+	cipher = malloc (sizeof(FSTCipher));
+	memset (cipher, 0, sizeof(FSTCipher));
 
 	return cipher;
 }
 
-// free cipher
-void fst_cipher_free(FSTCipher *cipher)
+/* free cipher */
+
+void fst_cipher_free (FSTCipher *cipher)
 {
-	if(cipher)
-		free(cipher);
+	if (cipher)
+		free (cipher);
 }
 
-// encrypt / decrypt a block of data with cipher
-void fst_cipher_crypt(FSTCipher *cipher, unsigned char *data, int len)
+/* encrypt / decrypt a block of data with cipher */
+
+void fst_cipher_crypt (FSTCipher *cipher, unsigned char *data, int len)
 {
-	for(; len>0; len--, data++)
+	for ( ; len > 0; len--, data++)
 	{
-		*data ^= clock_cipher(cipher); 
-    }
+		*data ^= clock_cipher (cipher); 
+	}
 }
 
-// initialize cipher state
-void fst_cipher_init(FSTCipher *cipher, unsigned int seed, unsigned int enc_type)
+/* initialize cipher state */
+/* returns FALSE if enc_type is not supported, TRUE otherwise */
+
+int fst_cipher_init (FSTCipher *cipher, unsigned int seed, unsigned int enc_type)
 {
 	int i,j;
 	unsigned int temp;
@@ -75,44 +84,45 @@ void fst_cipher_init(FSTCipher *cipher, unsigned int seed, unsigned int enc_type
 	cipher->add_to_lookup = 0;
 	cipher->seed = seed;
 
-	FST_DBG_2 ("init_cipher: seed = 0x%08x, enc_type = 0x%02x", seed, enc_type);
+	FST_HEAVY_DBG_2 ("init_cipher: seed = 0x%08x, enc_type = 0x%02x", seed, enc_type);
 
-	pad_init(&seed, enc_type, cipher->pad, sizeof(cipher->pad));
+	if (!pad_init (&seed, enc_type, cipher->pad, sizeof (cipher->pad)))
+		return FALSE;
 
-	// adjust pad
+	/* adjust pad */
 	c = 0;
-	for(i=0; i<sizeof(cipher->pad); i++)
+	for (i = 0; i < sizeof (cipher->pad); i++)
 		c = c | cipher->pad[i];
-	if(!(c & 1))
+	if (!(c & 1))
 		cipher->pad[0] = cipher->pad[0] | 0x71;
 
-	// init cipher->pos
-	temp = seed_step(seed);
+	/* init cipher->pos */
+	temp = seed_step (seed);
 	temp = temp >> 16;
-	cipher->pos = ((temp << 6) - temp) >> 16;
+	cipher->pos = ( (temp << 6) - temp) >> 16;
 
-	// init cipher->lookup
-	for(i=0; i<sizeof(cipher->lookup); i++)
+	/* init cipher->lookup */
+	for(i = 0; i <sizeof (cipher->lookup); i++)
 		cipher->lookup[i] = (unsigned char)i;
 
-	if(enc_type & 0x08)
+	if (enc_type & 0x08)
 	{
 		MD5Context ctx;
 		unsigned char md5[MD5_HASH_LEN];
 
 		FST_HEAVY_DBG ("init_cipher: enc_type & 0x08");
 
-		MD5Init(&ctx);
-		MD5Update(&ctx, cipher->pad, sizeof(cipher->pad));
-		MD5Final(md5, &ctx);
+		MD5Init (&ctx);
+		MD5Update (&ctx, cipher->pad, sizeof(cipher->pad));
+		MD5Final (md5, &ctx);
 
-		// correct md5 byte order on big-endian since it's converted to (unsigned int*) below
-		reverse_bytes ((unsigned int*)&md5, 4);
+		/* correct md5 byte order on big-endian since it's converted to (unsigned int*) below */
+		reverse_bytes ( (unsigned int*)&md5, 4);
 
-		// modify cipher->lookup
-		for(i=0; i<sizeof(cipher->lookup); i++)
+		/* modify cipher->lookup */
+		for (i = 0; i < sizeof (cipher->lookup); i++)
 		{
-			if( (j = calculate_num((unsigned int*) &md5, 0x100 - i) + i) != i)
+			if ( (j = calculate_num( (unsigned int*) &md5, 0x100 - i) + i) != i)
 			{
 				unsigned char a = cipher->lookup[j];
 				unsigned char b = cipher->lookup[i];
@@ -125,16 +135,27 @@ void fst_cipher_init(FSTCipher *cipher, unsigned int seed, unsigned int enc_type
 
 	if(enc_type & 0x10)
 	{
-		FST_DBG ("init_cipher: enc_type & 0x10, WARNING: not implemented");
+		FST_HEAVY_DBG ("init_cipher: enc_type & 0x10");
+
+		for (seed = cipher->pos, i=0; i < 20; i++)
+		{
+			seed = seed_step (seed);
+			cipher->pad16[i] = seed;
+		}		
+		
+		seed = seed_step (seed);
+
+		/* CHECKME: endianess? */
+		enc_type_2 (cipher->pad16, seed);
 	}
 
 
-	// sort cipher->pad
-	sortpos = ((cipher->pos * cipher->pos) + 2) % (sizeof(cipher->pad)-4);
-	qsort(cipher->pad + sortpos, 5, 1, qsort_cmp_func);
+	/* sort cipher->pad */
+	sortpos = ( (cipher->pos * cipher->pos) + 2) % (sizeof(cipher->pad)-4);
+	qsort (cipher->pad + sortpos, 5, 1, qsort_cmp_func);
 
-	// modify every third byte of cipher->pad
-	for(i=5; i<sizeof(cipher->pad); i+=3) 
+	/* modify every third byte of cipher->pad */
+	for (i = 5; i < sizeof (cipher->pad); i += 3) 
 	{
 		c = cipher->pad[i];
 		c = ~c + i;
@@ -143,155 +164,166 @@ void fst_cipher_init(FSTCipher *cipher, unsigned int seed, unsigned int enc_type
 
 //	print_bin_data(cipher->pad, sizeof(cipher->pad));
 //	print_bin_data(cipher->lookup, sizeof(cipher->lookup));
+
+	return TRUE;
 }
 
 /*****************************************************************************/
 
-// returns encrypted enc_type
-unsigned int fst_cipher_encode_enc_type(unsigned int seed, unsigned int enc_type)
+/* returns encrypted enc_type */
+unsigned int fst_cipher_encode_enc_type (unsigned int seed, unsigned int enc_type)
 {
-	return enc_type ^ calculate_num_xor(seed);
+	return enc_type ^ calculate_num_xor (seed);
 }
 
-// returns decrypted enc_type
-unsigned int fst_cipher_decode_enc_type(unsigned int seed, unsigned int crypted_enc_type)
+/* returns decrypted enc_type */
+unsigned int fst_cipher_decode_enc_type (unsigned int seed, unsigned int crypted_enc_type)
 {
-	return crypted_enc_type ^ calculate_num_xor(seed);
+	return crypted_enc_type ^ calculate_num_xor (seed);
 }
 
 /*****************************************************************************/
 
-static void pad_init(unsigned int *pseed, unsigned int enc_type, unsigned char* pad, unsigned int pad_size)
+static int pad_init (unsigned int *pseed, unsigned int enc_type, unsigned char* pad, unsigned int pad_size)
 {
 	int i;
 	unsigned int temp;
 	unsigned int seed = *pseed;
 	
-	memset(pad, 0, pad_size);
+	memset (pad, 0, pad_size);
 
-	if((enc_type & 1) || !(enc_type & 0x1E7))
+	if ( (enc_type & 1) || !(enc_type & 0x1E7))
 	{
 		unsigned char key_256_in[256];
 		unsigned char key_256_out[256];
 
 		FST_HEAVY_DBG ("pad_init: enc_type & 1");
 
-		for(i=0; i<0xFF; i++)
+		for (i = 0; i < 0xFF; i++)
 		{
-			seed = seed_step(seed);
+			seed = seed_step (seed);
 			temp = seed >> 0x11;
 			key_256_in[i] = (unsigned char) (temp % 0xE0);
 		}
 
 		enc_type_1 (key_256_out, key_256_in);
 
-		// merge with pad
-		for(i=0; i<pad_size; i++)
+		/* merge with pad */
+		for (i = 0; i < pad_size; i++)
 			pad[i] ^= key_256_out[i];
 
 	}
 
-	if(enc_type & 0x1E6)
+	if (enc_type & 0x1E6)
 	{
 		unsigned int key_80[20];
 
 		FST_HEAVY_DBG ("pad_init: enc_type & 0x1E6");
 
-		for(i=0; i<20; i++)
+		for(i = 0; i < 20; i++)
 		{
-			seed = seed_step(seed);
+			seed = seed_step (seed);
 			key_80[i] = seed;
 		}
 
-		if(enc_type & 0x02)
+		if (enc_type & 0x02)
 		{
 			FST_HEAVY_DBG ("pad_init: enc_type & 0x02");
-			seed = seed_step(seed);
 
+			seed = seed_step (seed);
 			enc_type_2 (key_80, seed);
 		}
 
-		if(enc_type & 0x04)
+		if (enc_type & 0x04)
 		{
-			FST_DBG ("pad_init: enc_type & 0x04, WARNING: not implemented");
-			seed = seed_step(seed);
+//			FST_WARN ("pad_init: enc_type & 0x04 not implemented");
+
+			seed = seed_step (seed);
+			return FALSE;
 		}
 
-		if(enc_type & 0x20)
+		if (enc_type & 0x20)
 		{
 			FST_HEAVY_DBG ("pad_init: enc_type & 0x20");
-			seed = seed_step(seed);
 
+			seed = seed_step (seed);
 			enc_type_20 (key_80, seed);
 		}
 
-		if(enc_type & 0x80)
+		if (enc_type & 0x80)
 		{
-			FST_DBG ("pad_init: enc_type & 0x80, WARNING: not implemented");
-			seed = seed_step(seed);
+			FST_HEAVY_DBG ("pad_init: enc_type & 0x80");
+
+			seed = seed_step (seed);
+			enc_type_80 (key_80, seed);
 		}
 
-		if(enc_type & 0x100)
+		if (enc_type & 0x100)
 		{
-			FST_DBG ("pad_init: enc_type & 0x100, WARNING: not implemented");
-			seed = seed_step(seed);
+//			FST_WARN ("pad_init: enc_type & 0x100 not implemented");
+
+			seed = seed_step (seed);
+			return FALSE;
 		}
 
-		// correct byte order on big-endian before merging
+		/* correct byte order on big-endian before merging */
 		reverse_bytes (key_80, 20);
 
-		// merge with pad
-		for(i=0; i<pad_size; i++)
-			pad[i] ^= ((unsigned char*)key_80)[i];
+		/* merge with pad */
+		for (i = 0; i < pad_size; i++)
+			pad[i] ^= ( (unsigned char*)key_80)[i];
 	}
+
 	*pseed = seed;
+
+	return TRUE;
 }
 
-/**
+/*
  * Update the state of the cipher, and output the keystream byte which
  * will be XOR'ed with the plaintext to produce the ciphertext, or with
  * the ciphertext to produce the plaintext.
  */
-static unsigned char clock_cipher(FSTCipher *cipher)
+static unsigned char clock_cipher (FSTCipher *cipher)
 {
-    unsigned char xor;
-    unsigned char temp;
-	
-    /* Get the previous position of the state, wrapping around if
-	* necessary. */
-    unsigned char lastpos = (cipher->pos > 0 ? cipher->pos-1 : sizeof(cipher->pad)-1);
-	
-    /* Add the value at the previous position to the one at the current
-	* position.  This creates a "running total". */
-    cipher->pad[cipher->pos] += cipher->pad[lastpos];
-	
-    /* We're going to output the current value of the "running total". */
-    xor = cipher->pad[cipher->pos];
-	
-    /* But before we output it, see if we should mangle the internal
-	* state a bit.  We do this with probability 1/8 (the high three
-	* bits of the xor byte are all 0), every PADSIZE output bytes.
-	* The mangling involves two steps:
-	* - Sort a particular 5 bytes of the state according to the above
-	*   rekey_cmp comparison function.
-	* - Modify the value of every third entry (starting with entry 5)
-	*/
-    if (cipher->pos == 7 && ((xor & 0x70) == 0))
+	unsigned char xor;
+	unsigned char temp;
+
+	/* Get the previous position of the state, wrapping around if
+	 * necessary. */
+	unsigned char lastpos = (cipher->pos > 0 ? cipher->pos-1 : sizeof(cipher->pad)-1);
+
+	/* Add the value at the previous position to the one at the current
+	 * position.  This creates a "running total". */
+	cipher->pad[cipher->pos] += cipher->pad[lastpos];
+
+	/* We're going to output the current value of the "running total". */
+	xor = cipher->pad[cipher->pos];
+
+	/* But before we output it, see if we should mangle the internal
+	 * state a bit.  We do this with probability 1/8 (the high three
+	 * bits of the xor byte are all 0), every PADSIZE output bytes.
+	 * The mangling involves two steps:
+	 * - Sort a particular 5 bytes of the state according to the above
+	 *   rekey_cmp comparison function.
+	 * - Modify the value of every third entry (starting with entry 5)
+	 */
+	if (cipher->pos == 7 && ((xor & 0x70) == 0))
 	{
 		int i;
 		/* Which 5 elements should we sort?  We calculate this in a
-		* pretty odd manner. */
+		 * pretty odd manner. */
 		int sortpos = xor + cipher->pad[2];
-		sortpos = ((sortpos * sortpos) + 2) % (sizeof(cipher->pad)-4);
+		sortpos = ( (sortpos * sortpos) + 2) % (sizeof (cipher->pad) - 4);
 
 		FST_HEAVY_DBG ("clock_cipher: sorting pad");
 		
 		/* Sort those 5 elements according to the qsort_cmp_func comparison
 		* function. */
-		qsort(cipher->pad + sortpos, 5, 1, qsort_cmp_func);
+		qsort (cipher->pad + sortpos, 5, 1, qsort_cmp_func);
 		
 		/* Now modify every third byte of the state in a simple way. */
-		for(i=5; i<sizeof(cipher->pad); i+=3) 
+		for (i = 5; i < sizeof (cipher->pad); i += 3) 
 		{
 			unsigned char val = cipher->pad[i];
 			val = ~val + i;
@@ -302,7 +334,7 @@ static unsigned char clock_cipher(FSTCipher *cipher)
 	cipher->pos++;
 
 	/* Increment the current position of the state, wrapping around if
-	* necessary. */
+	 * necessary. */
 	if (cipher->pos == 0x3f) 
 	{
 		cipher->pos = 0;
@@ -313,152 +345,120 @@ static unsigned char clock_cipher(FSTCipher *cipher)
 			cipher->add_to_lookup++;
 		}
 
-/*
 		if (cipher->enc_type & 0x10)
 		{
+			int i;
 			unsigned int val;
-			char i;
-			unsigned char temp2;
-			char pointer = cipher->pad[0x20] & 0x1f;
-			temp = cipher->pad[0x1f] & 0x0f;
-
-			FST_DBG ("clock_cipher: check me 1");
+			unsigned char shift_factor = cipher->pad[0x18] & 0x0f;
+			unsigned char pad_offset = cipher->pad[0x19] & 0x1f;
 
 			for (i = 0; i < 6; i++)
 			{
-				val = ((unsigned int *)(cipher->buf))[i];
-				val = val >> temp;
-				temp2 = cipher->pad[i + pointer];
-				temp2 = temp2 ^ (unsigned char)val;
-				cipher->pad[i+pointer] = temp2;
+				val = cipher->pad16[i] >> shift_factor;
+				cipher->pad[pad_offset + i] ^= (unsigned char)val;
 			}
-			temp = cipher->pad[0x0A] & 7;
-			temp2 = cipher->pad[pointer + 4];
-			temp = 1 << temp;
-			temp2 = temp2 | temp;
-			cipher->pad[pointer + 4] = temp2;
 
-			if (!(cipher->wrapcount & 15))
+			cipher->pad[pad_offset + 4] |= (unsigned char)1 << (cipher->pad[0x0A] & 7);
+
+			if ( (cipher->wrapcount & 15) == 0)
 			{
 				unsigned int seed = cipher->wrapcount;
-				unsigned char *p_key = cipher->buf;
 
-				FST_DBG ("clock_cipher: improve me 2");
-				for(i=0; i<20; i++)
+				for (i = 0; i < 20; i++)
 				{
-					seed = seed_step(seed);
-					((unsigned int *)cipher->buf)[i] = seed;
-				}
-				
-				seed = seed_step(seed);
-
-				enc_type_2 (p_key, seed);
+					seed = seed_step (seed);
+					cipher->pad16[i] = seed;
+				}			
+				seed = seed_step (seed);
+				/* CHECKME: endianess? */
+				enc_type_2 (cipher->pad16, seed);
 			}
-			// recalculate
 		}
-*/
 	}
+
 	temp = cipher->add_to_lookup + xor;
 	xor = cipher->lookup[temp];
 	return xor;
 }
 
-static unsigned int calculate_num_xor(unsigned int seed)
+static unsigned int calculate_num_xor (unsigned int seed)
 {
 	unsigned int key_80[20];
 	int i;
 
-	for(i=0; i<20; i++)
+	for (i = 0; i < 20; i++)
 	{
-		seed = seed_step(seed);
+		seed = seed_step (seed);
 		key_80[i] = seed;
 	}
 
-	seed = seed_step(seed);
+	seed = seed_step (seed);
 	enc_type_2 (key_80, seed);
 
 	return key_80[7];
 }
 
 
-static int calculate_num(unsigned int *num, int val)
+static int calculate_num (unsigned int *num, int val)
 {
-	unsigned int temp = *num;
-	int	temp2;
-
 	if (!(val > 0x10001))
 	{
-		temp = temp * 5;
-		temp = temp << 8;
-		temp = temp - (*num);
-		temp = temp * 9;
-		temp = (*num) + temp * 2;
-		temp = temp * 3 + 0x4271;
-		*num = temp;
-		temp = temp >> 16;
-		temp2 = (int) temp;
-		temp2 = temp2 * val;
-		temp2 = temp2 >> 16;
-		return temp2;
+		*num = seed_step(*num);
+
+		return ((int) (*num >> 16) * val) >> 16;
 	}
 	else
 	{
-		FST_DBG ("calculate_num: (val <= 0x10001), WARNING: not implemented");
+		FST_WARN ("calculate_num: (val <= 0x10001) not implemented");
 	}
 
 	if (val > 0xff)
 	{
-		FST_DBG ("calculate_num: (val > 0xff), WARNING: not implemented");
+		FST_WARN ("calculate_num: (val > 0xff) not implemented");
 	}
 	return val;
 }
 
 
-static unsigned int seed_step(unsigned int seed)
+static unsigned int seed_step (unsigned int seed)
 {
-	unsigned int temp;
-
-	temp = seed * 5;
-	temp = temp << 8;
-	temp = temp - seed;
-	temp = temp * 9;
-	seed = seed + temp * 2;
-	seed = seed * 3 + 0x4271;
-	
-	return seed;
+	return 0x10dcd * seed + 0x4271;
 }
 
 
-/**
+/*
  * The comparison routine used in the "sort" portion of the state update
  * function (see below).  It's pretty much just an unsigned comparison
  * of bytes, except that bit 5 of each byte is inverted before
  * comparison for some reason.
  */
-static int qsort_cmp_func(const void *ap, const void *bp)
+
+static int qsort_cmp_func (const void *ap, const void *bp)
 {
     int a = (int)*(unsigned char *)ap;
     int b = (int)*(unsigned char *)bp;
 
-    return ((a^0x20)-(b^0x20));
+    return ( (a^0x20) - (b^0x20));
 /*
-	int a = ((int)*(unsigned char*)ap) << 1;
-	int b = ((int)*(unsigned char*)bp) << 1;
+	int a = ( (int)*(unsigned char*)ap) << 1;
+	int b = ( (int)*(unsigned char*)bp) << 1;
 
 	return (a^0x41) - (b^0x41);
 */
 }
 
-
-/* simple byte reversal function for endianess correction
+/*
+ * simple byte reversal function for endianess correction
  * this is a noop on little-endian
  */
+
 static void reverse_bytes (unsigned int *buf, unsigned int longs)
 {
 	unsigned char *cbuf = (unsigned char*)buf;
 
-	for(; longs; longs--, buf++, cbuf+=4) {
-		*buf = ((unsigned int) cbuf[3] << 8 | cbuf[2]) << 16 |
-			   ((unsigned int) cbuf[1] << 8 | cbuf[0]);
+	for ( ; longs; longs--, buf++, cbuf += 4)
+	{
+		*buf = ( (unsigned int) cbuf[3] << 8 | cbuf[2]) << 16 |
+			   ( (unsigned int) cbuf[1] << 8 | cbuf[0]);
 	}
 }

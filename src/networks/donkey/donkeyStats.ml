@@ -123,7 +123,7 @@ let count_download c f v =
       !!gstats_by_brand.(brand_to_int b).brand_download <-
         Int64.add !!gstats_by_brand.(brand_to_int b).brand_download v
 
-let count_upload c f v =
+let count_upload c up v =
   upload_counter := Int64.add !upload_counter v;
   c.client_uploaded <- Int64.add c.client_uploaded v;
   stats_all.brand_upload <- Int64.add stats_all.brand_upload v;

@@ -18,13 +18,21 @@
 *)
 
 
-
-open CommonSwarming
+open Options
 open Printf2
 open Md4
+
+open CommonOptions
 open CommonTypes
 open CommonFile
-open Options
+open CommonSwarming
+
+      
+open MultinetTypes
+open MultinetFunctions
+open MultinetComplexOptions
+
+
 open BTTypes
 open BTOptions
 open BTGlobals
@@ -69,7 +77,78 @@ let value_to_int32pair v =
   | _ -> 
       failwith "Options: Not an int32 pair"
 
-let value_to_file is_done assocs =
+let value_to_file file_shared assocs =
+  let get_value name conv = conv (List.assoc name assocs) in
+  let get_value_nil name conv = 
+    try conv (List.assoc name assocs) with _ -> []
+  in
+  
+  let file_id = 
+    try
+      Sha1.of_string (get_value "file_id" value_to_string)
+    with _ -> failwith "Bad file_id"
+  in
+
+  let file_piece_size = try
+      value_to_int64 (List.assoc "file_piece_size" assocs) 
+    with _ -> failwith "Bad file size"
+  in
+  
+  let file_tracker = 
+    try
+      get_value "file_tracker" value_to_string
+    with _ -> failwith "Bad file_tracker"
+  in
+  let file_chunks = get_value "file_hashes" (value_to_array
+        (from_value Sha1.option)) in
+
+  let file_info = {
+      file_info_name = file_best_name file_shared;
+      file_info_id = file_id;
+      file_info_piece_size = file_piece_size;
+      file_info_tracker = file_tracker;
+      file_info_size = file_size file_shared;
+      file_info_chunks = file_chunks;
+      file_info_files = file_shared.file_files;
+    } in
+
+  Hashtbl.add infos_by_uid file_id file_info;
+  
+  let file = new_file file_shared file_id in
+  
+  (try
+      Int64Swarmer.set_verified_bitmap file.file_partition
+        (get_value  "file_chunks" value_to_string)
+    with e -> 
+        lprintf "Exception %s while loading bitmap\n"
+          (Printexc2.to_string e); 
+  );
+  
+  (try
+      ignore
+        (get_value  "file_sources" (
+          value_to_list (ClientOption.of_value file)))
+    with e -> 
+        lprintf "Exception %s while loading sources\n"
+          (Printexc2.to_string e); 
+  )
+  
+let file_to_value file =
+  let sources = Hashtbl2.to_list file.file_clients in
+  let info = file.file_info in  
+  [
+    "file_piece_size", int64_to_value (info.file_info_piece_size);
+    "file_id", string_to_value (Sha1.to_string info.file_info_id);
+    "file_tracker", string_to_value info.file_info_tracker;
+    "file_chunks", string_to_value 
+      (Int64Swarmer.verified_bitmap file.file_partition);
+    "file_sources", 
+    list_to_value "BT Sources" (fun c -> ClientOption.to_value c) sources;
+    "file_hashes", array_to_value (to_value Sha1.option) info.file_info_chunks;
+  ]
+
+
+let old_value_to_file is_done assocs =
   let get_value name conv = conv (List.assoc name assocs) in
   let get_value_nil name conv = 
     try conv (List.assoc name assocs) with _ -> []
@@ -96,14 +175,8 @@ let value_to_file is_done assocs =
     with _ -> failwith "Bad file_tracker"
   in
   
-  let file = new_file file_id file_name file_size file_tracker 
-      file_piece_size in
-  
-  let _ = 
+  let file_files = 
     try
-      List.iter (fun v ->
-          file.file_files <- v :: file.file_files
-          )
       (get_value "file_files" 
         (value_to_list (fun v ->
               match v with
@@ -112,30 +185,57 @@ let value_to_file is_done assocs =
                   value_to_string name, value_to_int64 p1, value_to_int64 p2
               | _ -> assert false
           )))
-    with _ -> ()
+    with _ -> []
+  in
+  
+  let file_chunks = get_value "file_hashes" (value_to_array
+        (from_value Sha1.option)) in
+
+  
+  let file_info = {
+      file_info_name = file_name;
+      file_info_id = file_id;
+      file_info_piece_size = file_piece_size;
+      file_info_tracker = file_tracker;
+      file_info_size = file_size;
+      file_info_chunks = file_chunks;
+      file_info_files = file_files;
+    } in
+
+  Hashtbl.add infos_by_uid file_id file_info;
+  
+  let old_file = Filename.concat !!temp_directory (
+      Printf.sprintf "BT-%s" (Sha1.to_string file_id)) in
+  
+  let file_uid = BTUrl ("",file_id) in
+  
+  let file_shared = new_download None [file_name] file_size (Some old_file)
+    [file_uid] in
+
+  let file = 
+    let file = ref None in
+    Hashtbl.iter (fun _ f ->
+        if f.file_shared == file_shared then 
+          file := Some f
+    ) files_by_uid;
+    match !file with
+      None -> raise Not_found
+    | Some file -> file
   in
 
   (try 
-      Int64Swarmer.set_present file.file_swarmer 
+      Int64Swarmer.set_present file_shared.file_swarmer 
         (get_value "file_present_chunks" 
           (value_to_list value_to_int32pair));
-      lprintf "add_file_downloaded %Ld\n" (Int64Swarmer.downloaded file.file_swarmer);
-      add_file_downloaded file.file_file
-        (Int64Swarmer.downloaded file.file_swarmer)
+      lprintf "add_file_downloaded %Ld\n" (Int64Swarmer.downloaded file_shared.file_swarmer);
+      add_file_downloaded file_shared.file_file
+        (Int64Swarmer.downloaded file_shared.file_swarmer)
     with e ->
         lprintf "Exception %s while set present\n"
           (Printexc2.to_string e); 
     
         );
   
-  
-  (try
-      file.file_chunks <- get_value "file_hashes" (value_to_array
-          (from_value Sha1.option))
-    with e -> 
-        lprintf "Exception %s while loading chunks\n"
-          (Printexc2.to_string e); 
-  );
   
   (try
       Int64Swarmer.set_verified_bitmap file.file_partition
@@ -153,45 +253,20 @@ let value_to_file is_done assocs =
         lprintf "Exception %s while loading sources\n"
           (Printexc2.to_string e); 
   );
-  as_file file.file_file
+  as_file file_shared
+
   
-let file_to_value file =
-  let sources = Hashtbl2.to_list file.file_clients in
-  
-  [
-    "file_size", int64_to_value (file_size file);
-    "file_piece_size", int64_to_value (file.file_piece_size);
-    "file_name", string_to_value file.file_name;
-    "file_downloaded", int64_to_value (file_downloaded file);
-    "file_id", string_to_value (Sha1.to_string file.file_id);
-    "file_tracker", string_to_value file.file_tracker;
-    "file_chunks", string_to_value 
-      (Int64Swarmer.verified_bitmap file.file_partition);
-    "file_sources", 
-    list_to_value "BT Sources" (fun c ->
-        ClientOption.to_value c) sources
-    ;
-    "file_present_chunks", List
-      (List.map (fun (i1,i2) -> 
-          SmallList [int64_to_value i1; int64_to_value i2])
-      (Int64Swarmer.present_chunks file.file_swarmer));
-    "file_hashes", array_to_value 
-      (to_value Sha1.option) file.file_chunks;
-    "file_files", list_to_value ""
-      (fun (name, p1,p2) ->
-        SmallList [string_to_value name; int64_to_value p1; int64_to_value p2])
-    file.file_files;
-  ]
-  
+let _ =
+  network_file_ops.op_download_of_value <- value_to_file;
+  file_ops.op_download_to_value <- file_to_value;
+  network.op_network_file_of_option <- old_value_to_file; 
+  ()
+
 let old_files = 
-  define_option bittorrent_ini ["old_files"]
+  define_option bittorrent_section ["old_files"]
     "" (list_option (tuple2_option (string_option, int64_option))) []
     
     
 let save_config () =
   Options.save_with_help bittorrent_ini
 
-  
-let _ =
-  network.op_network_file_of_option <- value_to_file;
-  file_ops.op_file_to_option <- file_to_value

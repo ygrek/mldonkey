@@ -39,6 +39,7 @@ let is_enabled = ref false
    
 let disable enabler () =
   if !enabler then begin
+      is_enabled := false;
       enabler := false;
       Hashtbl2.safe_iter (fun h -> 
           match h.host_server with
@@ -62,43 +63,43 @@ let enable () =
   if not !is_enabled then
     let enabler = ref true in
     is_enabled := true;
-  network.op_network_disable <- disable enabler;
-  
-  if not !!enable_gnutella2 then enable_gnutella2 =:= true;
-
-  List.iter (fun (ip,port) -> 
-      ignore (H.new_host ip port (true))) !!g2_ultrapeers;
-
-  List.iter (fun (ip,port) -> 
-      ignore (H.new_host ip port (false))) !!g2_peers;
-  
-  add_session_timer enabler 1.0 (fun timer ->
-      H.manage_hosts ();
-      Gnutella2Proto.resend_udp_packets ();
+    network.op_network_disable <- disable enabler;
+    
+    if not !!enable_gnutella2 then enable_gnutella2 =:= true;
+    
+    List.iter (fun (ip,port) -> 
+        ignore (H.new_host ip port (true))) !!g2_ultrapeers;
+    
+    List.iter (fun (ip,port) -> 
+        ignore (H.new_host ip port (false))) !!g2_peers;
+    
+    add_session_timer enabler 1.0 (fun timer ->
+        H.manage_hosts ();
+        Gnutella2Proto.resend_udp_packets ();
         Gnutella2.connect_servers Gnutella2Servers.connect_server;      
-      );
-
-  Gnutella2Servers.ask_for_files ();
-  
-  add_session_timer enabler 60.0 (fun timer ->
-      Gnutella2Servers.ask_for_files ();
-      Gnutella2.send_pings ();
-  );
-
-  Gnutella2Servers.recover_files ();
-  add_session_timer enabler 3600.0 (fun timer ->
-      Gnutella2Servers.recover_files ();
-  );
-
-  Gnutella2Clients.listen ();
-  let sock = (UdpSocket.create Unix.inet_addr_any
-        !!client_port (Gnutella2Protocol.udp_handler 
-        Gnutella2Servers.udp_handler)) in
-  udp_sock := Some sock;
-  
-  UdpSocket.set_write_controler sock CommonGlobals.udp_write_controler;
-  ()
-  
+    );
+    
+    Gnutella2Servers.ask_for_files ();
+    
+    add_session_timer enabler 60.0 (fun timer ->
+        Gnutella2Servers.ask_for_files ();
+        Gnutella2.send_pings ();
+    );
+    
+    Gnutella2Servers.recover_files ();
+    add_session_timer enabler 3600.0 (fun timer ->
+        Gnutella2Servers.recover_files ();
+    );
+    
+    Gnutella2Clients.listen ();
+    let sock = (UdpSocket.create Unix.inet_addr_any
+          !!client_port (Gnutella2Protocol.udp_handler 
+            Gnutella2Servers.udp_handler)) in
+    udp_sock := Some sock;
+    
+    UdpSocket.set_write_controler sock CommonGlobals.udp_write_controler;
+    ()
+    
 let _ =
   network.op_network_is_enabled <- (fun _ -> !!CommonOptions.enable_gnutella2);
   option_hook enable_gnutella2 (fun _ ->
@@ -123,9 +124,11 @@ let _ =
         network_config_filename = (match network.network_config_file with
             [] -> "" | opfile :: _ -> options_file_name opfile);
         network_netname = network.network_name;
+        network_netflags = network.network_flags;
         network_enabled = network.op_network_is_enabled ();
         network_uploaded = Int64.zero;
         network_downloaded = Int64.zero;
+        network_connected = List.length !g2_connected_servers;
       });
   CommonInteractive.register_gui_options_panel "Gnutella2" 
   gui_gnutella_options_panel

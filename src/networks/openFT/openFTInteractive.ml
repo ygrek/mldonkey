@@ -134,7 +134,6 @@ let _ =
   
 let _ =
   server_ops.op_server_info <- (fun s ->
-      if !!enable_openft then
         {
           P.server_num = (server_num s);
           P.server_network = network.network_num;
@@ -148,8 +147,7 @@ let _ =
           P.server_name = s.server_agent;
           P.server_description = "";
           P.server_users = None;
-        } else
-        raise Not_found
+        } 
   )
 
 module C = CommonTypes

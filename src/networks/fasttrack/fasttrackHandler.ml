@@ -34,7 +34,11 @@ open CommonFile
 open CommonTypes
 open CommonGlobals
 open CommonHosts
-open CommonDownloads.SharedDownload
+open CommonInteractive
+  
+open MultinetTypes
+open MultinetFunctions
+open MultinetComplexOptions
   
 open FasttrackTypes
 open FasttrackGlobals
@@ -143,7 +147,23 @@ let server_msg_handler sock s msg_type m =
               let tag = Int64.to_int tag in
               let tag_len, pos = get_dynint m pos in
               let tag_len = Int64.to_int tag_len in
-              let tagdata = String.sub m pos tag_len in
+              let tagdata =
+                let dynint, npos = get_dynint m pos in
+                match tag with 
+                | 5 -> time_of_sec (Int64.to_int dynint); 
+                | 21 -> Printf.sprintf "%Ld kbs" dynint; 
+                | 13 -> let dynint2, _ = get_dynint m npos in
+                    Printf.sprintf "%Ldx%Ld" dynint dynint2; 
+                | 1 | 17 -> Printf.sprintf "%Ld" dynint; 
+                | 29 -> (match (Int64.to_int dynint) with
+                      | 0 -> "Very Poor"
+                      | 1 -> "Poor"
+                      | 2 -> "OK"
+                      | 3 -> "Good"
+                      | 4 -> "Excellent"
+                      | _ -> "Unknown rating")
+                | _ -> String.sub m pos tag_len 
+              in
               let name = if tag = 2 then tagdata else name in
               let tag = try
                   List2.assoc_inv tag name_of_tag
@@ -165,19 +185,17 @@ let server_msg_handler sock s msg_type m =
           let url = Printf.sprintf 
             "FastTrack://%s:%d/.hash=%s" (Ip.to_string user_ip)
             user_port (Md5Ext.to_string_case false result_hash) in *)
-          let url = Printf.sprintf 
-              "/.hash=%s" (Md5Ext.to_hexa_case false result_hash) in 
           begin
             match s.search_search with
               UserSearch (sss, _,_,_) ->
                 
                 let r = new_result result_name result_size tags result_hash in
-                add_source r user (FileByUrl url);
+                add_source r user;
                 CommonInteractive.search_add_result false sss r.result_result
             
             | FileSearch file ->
                 let c = new_client user.user_kind in
-                add_download file c (FileByUrl url);
+                add_download file c;
                 
                 if not (List.mem result_name file.file_shared.file_filenames) then 
                   file.file_shared.file_filenames <- 

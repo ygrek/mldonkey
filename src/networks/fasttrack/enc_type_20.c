@@ -1,5 +1,8 @@
 /*
- * Copyright (C) 2003 Markus Kern (mkern@users.berlios.de)
+ * $Id$
+ *
+ * Copyright (C) 2003 giFT-FastTrack project
+ * http://developer.berlios.de/projects/gift-fasttrack
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -17,4321 +20,3259 @@
  * Used for encryption version 0x20
  */
 
-#include <math.h>	// for floating point stuff
+typedef unsigned int u32;
 
 /* our crude SEH replacement */
 
-typedef int THROWS_RET;
-#define THROW return -1;
-#define TRY(x) { if((x) == -1) return 0; }
-#define RETURN return 0;
+#define TRY(x) if((x) & 1) return;
 
-/* a macro for easier access to the key */
+/* some helper funcs */
 
-#define KEY(x) (*((unsigned int*)(key+x)))
+#ifndef __GNUC__
+#define __attribute__(x)
+#endif
 
-/* some constants and helper funcs */ 
-
-double math_const_1 = 0.001;
-double math_const_2 = 0;
-
-static unsigned int ROR(unsigned int value, unsigned int count)
+/* my_cos() and my_sin() are equal to cos()<0 and sin()<0. */
+static int __attribute__ ((const)) my_cos (unsigned char i)
 {
-  count = (count & 0xff) % 32;
-  return (value >> count) | (value << (32 - count));
+	return (i * 39 + 61) % 245 > 122;
 }
 
-static unsigned int ROL(unsigned int value, unsigned int count)
+static int __attribute__ ((const)) my_sin (unsigned char i)
 {
-  count = (count & 0xff) % 32;
-  return (value << count) | (value >> (32 - count));
+	return (i * 46) % 289 > 144;
 }
 
-static unsigned int my_ftol (double var)
+/* this is (unsigned int) floor(sqrt(((double)(((unsigned char)(i))))+1) + 0.001). */
+static int __attribute__ ((const)) my_sqrt (unsigned char i)
 {
-	return (unsigned int)var;
+	int j, k;
+
+	for (j = 0, k = 0; j++ <= i; j += ++k << 1);
+	return k;
 }
+
+#define ROR(value, count) ((value) >> ((count) & 0x1f) | ((value) << (32 - (((count) & 0x1f)))))
+#define ROL(value, count) ((value) << ((count) & 0x1f) | ((value) >> (32 - (((count) & 0x1f)))))
+
+#define ROREQ(value, count) value = ROR(value, count)
+#define ROLEQ(value, count) value = ROL(value, count)
 
 /* the entry point of this mess */
 /* this all works on unsigned ints so endianess is not an issue */
 
-THROWS_RET enc_20_mix (unsigned char *key, unsigned int seed);
+void mix (u32 *pad, u32 seed);
 
-void enc_type_20 (unsigned int *key, unsigned int seed)
+void enc_type_20 (u32 *pad, u32 seed)
 {
-	enc_20_mix ((unsigned char*)key, seed);
+	mix (pad, seed);
 }
 
 /* major functions which make calls to other funcs */
 
-static THROWS_RET enc_20_major_4EECA0 (unsigned char *key, unsigned int seed);
-static THROWS_RET enc_20_major_4F2B40 (unsigned char *key, unsigned int seed);
-static THROWS_RET enc_20_major_49ADF0 (unsigned char *key, unsigned int seed);
-static THROWS_RET enc_20_major_4A16B0 (unsigned char *key, unsigned int seed);
-static THROWS_RET enc_20_major_4ABC60 (unsigned char *key, unsigned int seed);
-static THROWS_RET enc_20_major_4B19A0 (unsigned char *key, unsigned int seed);
-static THROWS_RET enc_20_major_4BAC60 (unsigned char *key, unsigned int seed);
-static THROWS_RET enc_20_major_4C1240 (unsigned char *key, unsigned int seed);
-static THROWS_RET enc_20_major_4C4AC0 (unsigned char *key, unsigned int seed);
-static THROWS_RET enc_20_major_4CF650 (unsigned char *key, unsigned int seed);
-static THROWS_RET enc_20_major_4D1E70 (unsigned char *key, unsigned int seed);
-static THROWS_RET enc_20_major_4D4910 (unsigned char *key, unsigned int seed);
-static THROWS_RET enc_20_major_4D4FB0 (unsigned char *key, unsigned int seed);
-static THROWS_RET enc_20_major_4DA520 (unsigned char *key, unsigned int seed);
-static THROWS_RET enc_20_major_4DF3C0 (unsigned char *key, unsigned int seed);
-static THROWS_RET enc_20_major_4E01F0 (unsigned char *key, unsigned int seed);
-static THROWS_RET enc_20_major_4E55C0 (unsigned char *key, unsigned int seed);
-static THROWS_RET enc_20_major_4E5960 (unsigned char *key, unsigned int seed);
-static THROWS_RET enc_20_major_4E7CE0 (unsigned char *key, unsigned int seed);
-static THROWS_RET enc_20_major_4E7FD0 (unsigned char *key, unsigned int seed);
-static THROWS_RET enc_20_major_4EB610 (unsigned char *key, unsigned int seed);
-static THROWS_RET enc_20_major_4AE190 (unsigned char *key, unsigned int seed);
-static THROWS_RET enc_20_major_4AE490 (unsigned char *key, unsigned int seed);
-static THROWS_RET enc_20_major_4B24B0 (unsigned char *key, unsigned int seed);
-
-/* functions which throw exceptions */
-
-static THROWS_RET enc_20_4AE420 (unsigned char *key, unsigned int seed);
-static THROWS_RET enc_20_4BAC10 (unsigned char *key, unsigned int seed);
-static THROWS_RET enc_20_4D56B0 (unsigned char *key, unsigned int seed);
-static THROWS_RET enc_20_4D7900 (unsigned char *key, unsigned int seed);
-static THROWS_RET enc_20_4DA120 (unsigned char *key, unsigned int seed);
-static THROWS_RET enc_20_4DA200 (unsigned char *key, unsigned int seed);
-static THROWS_RET enc_20_4DA4D0 (unsigned char *key, unsigned int seed);
-static THROWS_RET enc_20_4EEC50 (unsigned char *key, unsigned int seed);
-static THROWS_RET enc_20_49AA90 (unsigned char *key, unsigned int seed);
-static THROWS_RET enc_20_4D76F0 (unsigned char *key, unsigned int seed);
-static THROWS_RET enc_20_49B1F0 (unsigned char *key, unsigned int seed);
-static THROWS_RET enc_20_4A1640 (unsigned char *key, unsigned int seed);
-static THROWS_RET enc_20_4E7C50 (unsigned char *key, unsigned int seed);
-
-/* simple key manipulation functions */
-
-static void enc_20_4EE700 (unsigned char *key, unsigned int seed);
-static void enc_20_49AAE0 (unsigned char *key, unsigned int seed);
-static void enc_20_49AB20 (unsigned char *key, unsigned int seed);
-static void enc_20_49ADD0 (unsigned char *key, unsigned int seed);
-static void enc_20_49B240 (unsigned char *key, unsigned int seed);
-static void enc_20_49B260 (unsigned char *key, unsigned int seed);
-static void enc_20_49CF30 (unsigned char *key, unsigned int seed);
-static void enc_20_4A1AC0 (unsigned char *key, unsigned int seed);
-static void enc_20_4A1AE0 (unsigned char *key, unsigned int seed);
-static void enc_20_4A1B00 (unsigned char *key, unsigned int seed);
-static void enc_20_4AB3B0 (unsigned char *key, unsigned int seed);
-static void enc_20_4ABC20 (unsigned char *key, unsigned int seed);
-static void enc_20_4ABC40 (unsigned char *key, unsigned int seed);
-static void enc_20_4ADBC0 (unsigned char *key, unsigned int seed);
-static void enc_20_4AE170 (unsigned char *key, unsigned int seed);
-static void enc_20_4D70D0 (unsigned char *key, unsigned int seed);
-static void enc_20_4D7050 (unsigned char *key, unsigned int seed);
-static void enc_20_4D7660 (unsigned char *key, unsigned int seed);
-static void enc_20_4D7680 (unsigned char *key, unsigned int seed);
-static void enc_20_4F2B20 (unsigned char *key, unsigned int seed);
-static void enc_20_4E7CC0 (unsigned char *key, unsigned int seed);
-static void enc_20_4DA1E0 (unsigned char *key, unsigned int seed);
-static void enc_20_4E4F80 (unsigned char *key, unsigned int seed);
-static void enc_20_4E7FB0 (unsigned char *key, unsigned int seed);
-static void enc_20_4EB2A0 (unsigned char *key, unsigned int seed);
-static void enc_20_4D9AD0 (unsigned char *key, unsigned int seed);
-static void enc_20_4F2AF0 (unsigned char *key, unsigned int seed);
-static void enc_20_4B0380 (unsigned char *key, unsigned int seed);
-static void enc_20_4BABE0 (unsigned char *key, unsigned int seed);
-static void enc_20_4C47B0 (unsigned char *key, unsigned int seed);
-static void enc_20_4C47D0 (unsigned char *key, unsigned int seed);
-static void enc_20_4C4A60 (unsigned char *key, unsigned int seed);
-static void enc_20_4C5040 (unsigned char *key, unsigned int seed);
-static void enc_20_4CE2E0 (unsigned char *key, unsigned int seed);
-static void enc_20_4CE300 (unsigned char *key, unsigned int seed);
-static void enc_20_4D1E50 (unsigned char *key, unsigned int seed);
-static void enc_20_4D4150 (unsigned char *key, unsigned int seed);
-static void enc_20_4D4170 (unsigned char *key, unsigned int seed);
-static void enc_20_4D5720 (unsigned char *key, unsigned int seed);
-
-static void enc_20_4C0780 (unsigned char *key, unsigned int seed);
-static void enc_20_4C07D0 (unsigned char *key, unsigned int seed);
-static void enc_20_4D4100 (unsigned char *key, unsigned int seed);
-static void enc_20_4A12B0 (unsigned char *key, unsigned int seed);
-static void enc_20_4D6FB0 (unsigned char *key, unsigned int seed);
-static void enc_20_4D7000 (unsigned char *key, unsigned int seed);
-static void enc_20_4D7080 (unsigned char *key, unsigned int seed);
-static void enc_20_4D76A0 (unsigned char *key, unsigned int seed);
-static void enc_20_4D7740 (unsigned char *key, unsigned int seed);
-static void enc_20_4E4F30 (unsigned char *key, unsigned int seed);
-static void enc_20_4E7460 (unsigned char *key, unsigned int seed);
-static void enc_20_4F2AA0 (unsigned char *key, unsigned int seed);
-static void enc_20_4EB2C0 (unsigned char *key, unsigned int seed);
-static void enc_20_4AE3C0 (unsigned char *key, unsigned int seed);
-static void enc_20_4F2A40 (unsigned char *key, unsigned int seed);
-static void enc_20_49CED0 (unsigned char *key, unsigned int seed);
-static void enc_20_4D56F0 (unsigned char *key, unsigned int seed);
-static void enc_20_4D5740 (unsigned char *key, unsigned int seed);
-static void enc_20_4D7790 (unsigned char *key, unsigned int seed);
-static void enc_20_4EB310 (unsigned char *key, unsigned int seed);
+static void major_1 (u32 *pad, u32 seed);
+static void major_2 (u32 *pad, u32 seed);
+static void major_3 (u32 *pad, u32 seed);
+static void major_4 (u32 *pad, u32 seed);
+static void major_5 (u32 *pad, u32 seed);
+static void major_6 (u32 *pad, u32 seed);
+static void major_7 (u32 *pad, u32 seed);
+static void major_8 (u32 *pad, u32 seed);
+static void major_9 (u32 *pad, u32 seed);
+static void major_10 (u32 *pad, u32 seed);
+static void major_11 (u32 *pad, u32 seed);
+static void major_12 (u32 *pad, u32 seed);
+static void major_13 (u32 *pad, u32 seed);
+static void major_14 (u32 *pad, u32 seed);
+static void major_15 (u32 *pad, u32 seed);
+static void major_16 (u32 *pad, u32 seed);
+static void major_17 (u32 *pad, u32 seed);
+static void major_18 (u32 *pad, u32 seed);
+static void major_19 (u32 *pad, u32 seed);
+static void major_21 (u32 *pad, u32 seed);
+static void major_22 (u32 *pad, u32 seed);
+static void major_23 (u32 *pad, u32 seed);
+static void major_24 (u32 *pad, u32 seed);
+static void major_25 (u32 *pad, u32 seed);
+
+/* simple pad manipulation functions */
+
+static void minor_36 (u32 *pad);
+static void minor_37 (u32 *pad);
+
+
+/* minor_ implementation details below this line ;) */
+
+#define minor_1(x) pad[8] += my_sin(x&255) ? 0x4f0cf8d : x
+#define minor_2(x) pad[2] += pad[2] < 0x36def3e1 ? pad[2] : x
+#define minor_3 pad[10] ^= ROL(pad[1], 20)
+#define minor_4 pad[16] -= pad[6]
+#define minor_5 pad[10] -= pad[9] * 0x55
+#define minor_6 ROLEQ(pad[0], pad[19] ^ 0xc)
+#define minor_7 pad[17] += pad[8] * 0xf6084c92
+#define minor_8 pad[12] ^= pad[10] & 0x28acec82
+#define minor_9(x) pad[12] *= pad[12] < 0x12d7bed ? pad[12] : x
+#define minor_10(x) pad[18] += pad[5] < 0xfd0aa3f ? pad[5] : x
+#define minor_12(x) pad[11] &= my_cos(pad[18]) ? 0x146a49cc : x
+#define minor_13 pad[2] &= my_cos(pad[2]) ? 0x7ebbfde : pad[11]
+#define minor_17 pad[19] ^= pad[7] * 0x3a
+#define minor_19 ROLEQ(pad[6], ROR(pad[8], 14))
+#define minor_20 pad[0] &= ROR(pad[18], 31)
+#define minor_22 ROREQ(pad[3], pad[11] ^ 0x7)
+#define minor_26 pad[0] |= my_cos(pad[1]) ? 0x56e0e99 : pad[8]
+#define minor_27 pad[18] += my_cos(pad[15]) ? 0x10d11d00 : pad[9]
+#define minor_28 pad[10] -= my_cos(pad[15]) ? 0x268cca84 : pad[9]
+#define minor_29 pad[3] -= my_cos(pad[6]) ? 0x2031618a : pad[8]
+#define minor_30 ROLEQ(pad[1], my_sin(pad[5]) ? 4 : pad[6])
+#define minor_31(x) ROREQ(pad[17], my_sin(pad[6]) ? 29 : x)
+#define minor_32(x) pad[15] ^= my_sin(pad[14]) ? 0x40a33fd4 : x
+#define minor_34 pad[7] ^= my_sqrt(pad[11])
+#define minor_35 pad[5] += my_sqrt(pad[7])
 
-
-/* minor implementation details below this line ;) */
-
-void enc_20_4EE700 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x48) -=  KEY(0x34) ^ 0x154ABCDF;
-}
-
-void enc_20_49AAE0 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x1C) |= seed + 0x013DADA0;
-}
-
-void enc_20_49AB20 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x0C) -= KEY(0x00) ^ 0x185F3B0D;
-}
-
-void enc_20_49ADD0 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x28) *= KEY(0x28) - 0x05EAE6BF;
-}
-
-void enc_20_49B240 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x24) |= KEY(0x1C) ^ 0x2A19119F;
-}
-
-void enc_20_49B260 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x10) = ROR(KEY(0x10), (unsigned char)((seed << 5) - seed));
-}
-
-void enc_20_49CF30 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x08) *= KEY(0x0C) + 0x0D6863A6;
-}
-
-void enc_20_4A1AC0 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x10) ^= ROR(seed, 0x85);
-}
-
-void enc_20_4A1AE0 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x18) += KEY(0x4C) - 0x3F5675D6;
-}
-
-void enc_20_4A1B00 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x40) += seed + 0x0D2C3EBC;
-}
-
-void enc_20_4AB3B0 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x34) *= seed + 0x0601F603;
-}
-
-void enc_20_4ABC20 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x30) += KEY(0x18) + 0x21D7BF61;
-}
-
-void enc_20_4ABC40 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x40) += seed * 73;
-}
-
-void enc_20_4ADBC0 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x10) -= KEY(0x44) ^ 0x2217CF47;
-}
-
-void enc_20_4AE170 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x38) |= KEY(0x0C) ^ 0x04345732;
-}
-
-void enc_20_4D70D0 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x4C) ^= (((KEY(0x1C) * 8) - KEY(0x1C)) * 4 + KEY(0x1C)) << 1;
-}
-
-void enc_20_4D7050 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x4C) += 0x12B9E29D - KEY(0x30);
-}
-
-void enc_20_4D7660 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x24) ^= seed ^ 0x334EC044;
-}
-
-void enc_20_4D7680 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x34) *= ROR(KEY(0x0C), 0xA5);
-}
-
-void enc_20_4F2B20 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x00) += (KEY(0x18) * 15) << 2;
-}
-
-void enc_20_4E7CC0 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x18) = ROL(KEY(0x18), (unsigned char)ROR(KEY(0x20), 0xCE));
-}
-
-void enc_20_4DA1E0 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x00) += KEY(0x48) ^ 0x4AC16B8D;
-}
-
-void enc_20_4E4F80 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x08) ^= KEY(0x3C) << 5;
-}
-
-void enc_20_4E7FB0 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x00) &= ROR(KEY(0x48), 0xDF);
-}
-
-void enc_20_4EB2A0 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x24) &= seed - 0x2507B6E9;
-}
-
-void enc_20_4D9AD0 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x30) ^= KEY(0x3C) - 0x0F5CFDE0;
-}
-
-void enc_20_4F2AF0 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x0C) = ROR(KEY(0x0C), (unsigned char)(KEY(0x2C) ^ 0x0BBEA527));
-}
-
-void enc_20_4B0380 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x1C) &= KEY(0x34) ^ 0x21AAF758;
-}
-
-void enc_20_4BABE0 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x1C) &= (seed * 8 - seed) * 15;
-}
-
-void enc_20_4C47B0 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x4C) ^= KEY(0x3C) ^ 0x03574ED3;
-}
-
-void enc_20_4C47D0 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x14) += KEY(0x00) ^ 0x3E17ADD3;
-}
-
-void enc_20_4C4A60 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x30) += seed - 0x075D8F4F;
-}
-
-void enc_20_4C5040 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x24) += ROL(KEY(0x10), 0xE9);
-}
-
-void enc_20_4CE2E0 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x30) += KEY(0x18) ^ 0x211F5E40;
-}
-
-void enc_20_4CE300 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x24) ^= ((KEY(0x1C) << 4) + KEY(0x1C)) << 2;
-}
-
-void enc_20_4D1E50 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x48) *= KEY(0x28) + 0x466E09CF;
-}
-
-void enc_20_4D4150 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x14) -= KEY(0x3C);
-}
-
-void enc_20_4D4170 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x18) += 0xFE07AF0E - KEY(0x0C);
-}
-
-void enc_20_4D5720 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x18) ^= seed + 0x25283A4A;
-}
-
-
-THROWS_RET enc_20_4AE420 (unsigned char *key, unsigned int seed)
-{
-	double var = sin((double)((unsigned char)seed));
-
-	if(var < math_const_2)
-		KEY(0x20) += 0x04F0CF8D;
-	else
-		KEY(0x20) += seed;
-
-	if(KEY(0x20) & 1)
-		THROW;
-
-	RETURN;
-}
-
-THROWS_RET enc_20_4BAC10 (unsigned char *key, unsigned int seed)
-{
-	if(KEY(0x08) < 0x36DEF3E1)
-		KEY(0x08) += KEY(0x08);
-	else
-		KEY(0x08) += seed;
-
-	if(KEY(0x08) & 1)
-		THROW;
-
-	RETURN;
-}
-
-THROWS_RET enc_20_4D56B0 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x28) ^= ROL(KEY(0x04), 0x34);
-
-	if(KEY(0x28) & 1)
-		THROW;
-
-	RETURN;
-}
-
-THROWS_RET enc_20_4D7900 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x40) -= KEY(0x18);
-
-	if(KEY(0x40) & 1)
-		THROW;
-
-	RETURN;
-}
-
-THROWS_RET enc_20_4DA120 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x28) += (((0-KEY(0x24)) << 4) - KEY(0x24)) * 5;
-
-	if(KEY(0x28) & 1)
-		THROW;
-
-	RETURN;
-}
-
-THROWS_RET enc_20_4DA200 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x00) = ROL(KEY(0x00), (unsigned char)(KEY(0x4C) ^ 0x0290626C));
-
-	if(KEY(0x00) & 1)
-		THROW;
-
-	RETURN;
-}
-
-THROWS_RET enc_20_4DA4D0 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x44) += KEY(0x20) * 0xF6084C92;
-
-	if(KEY(0x44) & 1)
-		THROW;
-
-	RETURN;
-}
-
-THROWS_RET enc_20_4EEC50 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x30) ^= KEY(0x28) & 0x28ACEC82;
-
-	if(KEY(0x30) & 1)
-		THROW;
-
-	RETURN;
-}
-
-THROWS_RET enc_20_49AA90 (unsigned char *key, unsigned int seed)
-{
-	if(KEY(0x30) < 0x012D7BED)
-		KEY(0x30) *=	KEY(0x30);
-	else
-		KEY(0x30) *= seed;
-
-	if(KEY(0x30) & 1)
-		THROW;
-
-	RETURN;
-}
-
-THROWS_RET enc_20_4D76F0 (unsigned char *key, unsigned int seed)
-{
-	if(KEY(0x14) < 0x0FD0AA3F)
-		KEY(0x48) += KEY(0x14);
-	else
-		KEY(0x48) += seed;
-
-	if(KEY(0x48) & 1)
-		THROW;
-
-	RETURN;
-}
-
-THROWS_RET enc_20_49B1F0 (unsigned char *key, unsigned int seed)
-{
-	KEY(0x04) = ROR(KEY(0x04), (unsigned char)(seed * 0x1592D04));
-
-	if(KEY(0x04) & 1)
-		THROW;
-
-	RETURN;
-}
-
-THROWS_RET enc_20_4A1640 (unsigned char *key, unsigned int seed)
-{
-	double var = cos((double)((unsigned char)KEY(0x48)));
-
-	if(var < math_const_2)
-		KEY(0x2C) &= 0x146A49CC;
-	else
-		KEY(0x2C) &= seed;
-
-	if(KEY(0x2C) & 1)
-		THROW;
-
-	RETURN;
-}
-
-THROWS_RET enc_20_4E7C50 (unsigned char *key, unsigned int seed)
-{
-	double var = cos((double)((unsigned char)KEY(0x08)));
-
-	if(var < math_const_2)
-		KEY(0x08) &= 0x07EBBFDE;
-	else
-		KEY(0x08) &= KEY(0x2C);
-
-	if(KEY(0x08) & 1)
-		THROW;
-
-	RETURN;
-}
-
-
-void enc_20_4C0780 (unsigned char *key, unsigned int seed)
-{
-	double var = cos((double)((unsigned char)seed));
-
-	if(var < math_const_2)
-		KEY(0x34) *= 0x0A02FE00;
-	else
-		KEY(0x34) *= seed;
-}
-
-void enc_20_4C07D0 (unsigned char *key, unsigned int seed)
-{
-	double var = cos((double)((unsigned char)KEY(0x04)));
-
-	if(var < math_const_2)
-		KEY(0x00) |= 0x056E0E99;
-	else
-		KEY(0x00) |= KEY(0x20);
-}
-
-void enc_20_4D4100 (unsigned char *key, unsigned int seed)
-{
-	double var = cos((double)((unsigned char)KEY(0x3C)));
-
-	if(var < math_const_2)
-		KEY(0x48) += 0x10D11D00;
-	else
-		KEY(0x48) += KEY(0x24);
-}
-
-void enc_20_4A12B0 (unsigned char *key, unsigned int seed)
-{
-	double var = sin((double)((unsigned char)KEY(0x34)));
-
-	if(var < math_const_2)
-		KEY(0x08) ^= 0x0FD08092;
-	else
-		KEY(0x08) ^= KEY(0x28);
-}
-
-void enc_20_4D6FB0 (unsigned char *key, unsigned int seed)
-{
-	double var = cos((double)((unsigned char)KEY(0x3C)));
-
-	if(var < math_const_2)
-		KEY(0x28) -= 0x268CCA84;
-	else
-		KEY(0x28) -= KEY(0x24);
-}
-
-void enc_20_4D7000 (unsigned char *key, unsigned int seed)
-{
-	double var = cos((double)((unsigned char)KEY(0x18)));
-
-	if(var < math_const_2)
-		KEY(0x0C) -= 0x2031618A;
-	else
-		KEY(0x0C) -= KEY(0x20);
-}
-
-void enc_20_4D7080 (unsigned char *key, unsigned int seed)
-{
-	double var = sin((double)((unsigned char)KEY(0x14)));
-
-	if(var < math_const_2)
-		KEY(0x04) = ROL(KEY(0x04), (unsigned char)0x1D726264);
-	else
-		KEY(0x04) = ROL(KEY(0x04), (unsigned char)KEY(0x18));
-}
-
-void enc_20_4D76A0 (unsigned char *key, unsigned int seed)
-{
-	double var = cos((double)((unsigned char)seed));
-
-	if(var < math_const_2)
-		KEY(0x30) *= 0x0F44CB55;
-	else
-		KEY(0x30) *= KEY(0x30);
-}
-
-void enc_20_4D7740 (unsigned char *key, unsigned int seed)
-{
-	double var = cos((double)((unsigned char)seed));
-
-	if(var < math_const_2)
-		KEY(0x28) += 0x08958821;
-	else
-		KEY(0x28) += seed;
-}
-
-void enc_20_4E4F30 (unsigned char *key, unsigned int seed)
-{
-	double var = sin((double)((unsigned char)KEY(0x18)));
-
-	if(var < math_const_2)
-		KEY(0x44) = ROR(KEY(0x44), (unsigned char)0x16267C1D);
-	else
-		KEY(0x44) = ROR(KEY(0x44), (unsigned char)seed);
-}
-
-void enc_20_4E7460 (unsigned char *key, unsigned int seed)
-{
-	double var = cos((double)((unsigned char)KEY(0x24)));
-
-	if(var < math_const_2)
-		KEY(0x4C) ^= 0x057337B8;
-	else
-		KEY(0x4C) ^= KEY(0x38);
-}
-
-void enc_20_4F2AA0 (unsigned char *key, unsigned int seed)
-{
-	double var = cos((double)((unsigned char)seed));
-
-	if(var < math_const_2)
-		KEY(0x1C) ^= 0x414517EA;
-	else
-		KEY(0x1C) ^= seed;
-}
-
-void enc_20_4EB2C0 (unsigned char *key, unsigned int seed)
-{
-	double var = sin((double)((unsigned char)KEY(0x38)));
-
-	if(var < math_const_2)
-		KEY(0x3C) ^= 0x40A33FD4;
-	else
-		KEY(0x3C) ^= seed;
-}
-
-void enc_20_4AE3C0 (unsigned char *key, unsigned int seed)
-{
-	double dvar = sqrt(((double)(((unsigned char)(seed))))+1) + math_const_1;
-
-	KEY(0x24) = ROR(KEY(0x24), (unsigned char)my_ftol(floor(dvar)));
-}
-
-void enc_20_4F2A40 (unsigned char *key, unsigned int seed)
-{
-	double dvar = sqrt(((double)(((unsigned char)(KEY(0x2C)))))+1) + math_const_1;
-
-	KEY(0x1C) ^= my_ftol(floor(dvar));
-}
-
-void enc_20_49CED0 (unsigned char *key, unsigned int seed)
-{
-	double dvar = sqrt((double)(((unsigned char)(KEY(0x1C))))+1) + math_const_1;
-
-	KEY(0x14) += my_ftol(floor(dvar));
-}
-
-void enc_20_4D56F0 (unsigned char *key, unsigned int seed)
-{
-	if(KEY(0x3C) < 0x137BFFEB)
-		KEY(0x34) +=	KEY(0x3C);
-	else
-		KEY(0x34) += KEY(0x2C);
-}
-
-void enc_20_4D5740 (unsigned char *key, unsigned int seed)
+void minor_36 (u32 *pad)
 {
-	if(seed < 0x1515FEBD)
-		KEY(0x34) -=	seed;
-	else
-		KEY(0x34) -= KEY(0x04);
-}
-
-
-void enc_20_4D7790 (unsigned char *key, unsigned int seed)
-{
-	unsigned int edi = 0;
-
-	seed = 0xAE850DE;
-	seed += 0x51CE37 - 0x7BD8639;
-
-	KEY(0x40) = ROR(KEY(0x40), (unsigned char)(KEY(0x40) & 0x1BEEB131));
-
-	KEY(0x3C) *= KEY(0x04) ^ 0xD89B4A;
-
-	seed += 0x51CE37 - 0x14DBF2EE;
-
-	KEY(0x0C) ^= KEY(0x2C) * seed;
-
-	seed += 0x51CE37 - 0x6FB4E20;
-
-	if(KEY(0x14) < seed)
-		KEY(0x24) = ROL(KEY(0x24), (unsigned char)(KEY(0x14)));
-	else
-		KEY(0x24) = ROL(KEY(0x24), (unsigned char)(edi));
-
-	edi += KEY(0x24) - seed;
-
-	seed += 0x51CE37 - 0x47C201A4;
+	pad[3] ^= pad[11] * 0xeef27425;
+	pad[3] += my_sqrt (pad[0]);
+	pad[15] *= pad[1] ^ 0xd89b4a;
+	ROREQ (pad[16], pad[16] & 0x11);
+	pad[18] *= pad[19] + 0xa0d8c0cf;
+	pad[7] *= pad[0] < 0x6765080e ? pad[0] : pad[18];
 
-	KEY(0x48) *= KEY(0x4C) + seed;
+	if (pad[5] < 0xe848f43c)
+		ROLEQ (pad[9], pad[5]);
 
-	KEY(0x08) ^= KEY(0x14) < seed ? KEY(0x14) : edi;
-
-	seed += 0x51CE37 - 0x22C6287B;
-
-	KEY(0x0C) += my_ftol(floor(sqrt((double)(((unsigned char)KEY(0x00)))+1) + math_const_1));
-
-	KEY(0x30) = ROL(KEY(0x30), (unsigned char)(ROL(edi, (unsigned char)seed)));
-
-	seed += 0x51CE37 - 0x17512CB4;
-
-	KEY(0x1C) *=  KEY(0x00) < seed ? KEY(0x00) : KEY(0x48);
+	pad[2] ^= pad[5] < 0xa0d8c0cf ? pad[5] : pad[9] - 0xe848f43c;
+	ROLEQ (pad[12], ROL (pad[9] - 0xe848f43c, 11));
 }
 
-void enc_20_4EB310 (unsigned char *key, unsigned int seed)
+void minor_37 (u32 *pad)
 {
-	unsigned int edi;
-	
-	seed = 0x3396EF39;
-	seed += 0x51CE37 - 0x23940AC;
-
-	KEY(0x10) -= KEY(0x10) ^ 0x692C9EF9;
-	KEY(0x48) += KEY(0x00) ^ 0x3CF1856 ;
-
-	seed += 0x51CE37 - 0x30DBAD40;
-
-	KEY(0x44) ^= KEY(0x44) - seed;
-	KEY(0x08) = ROL(KEY(0x08), (unsigned char)(KEY(0x1C) + seed));
-
-	seed += 0x51CE37 - 0x3305F2B1;
-
-	KEY(0x08) ^= KEY(0x24) * 0x7941955;
-
-	edi = 0 - seed;
-	seed += 0x51CE37 - 0xA87986D;
-
-	KEY(0x28) += KEY(0x04) ^ seed;
-	KEY(0x30) *= KEY(0x1C) - seed;
-
-	seed += 0x51CE37 - 0x2D7466CD;
-
-	KEY(0x44) = ROR(KEY(0x44), (unsigned char)(edi - seed));
-	KEY(0x34) ^= my_ftol(floor(sqrt((double)(((unsigned char)edi))+1) + math_const_1));
-
-	seed += 0x51CE37 - 0x38C46529;
-
-	if(sin((double)((unsigned char)KEY(0x4C))) < math_const_2)
-		KEY(0x0C) *= seed;
-	else
-		KEY(0x0C) *= KEY(0x14);
-
-	KEY(0x08) -= edi ^ 0x48E12610;
+	ROLEQ (pad[2], pad[7] + 0x1b);
+	pad[2] ^= pad[9] * 0x7941955;
+	pad[2] -= 0x796fa0af;
+	pad[3] *= my_sin (pad[19]) ? 0x5ea67f83 : pad[5];
+	pad[4] -= pad[4] ^ 0x692c9ef9;
+	pad[10] += pad[1] ^ 0xc43baf0b;
+	pad[12] *= pad[7] - 0xc43baf0b;
+	pad[13] ^= 0xd;
+	pad[17] ^= pad[17] - 0x1259dbb;
+	ROREQ (pad[17], 10);
+	pad[18] += pad[0] ^ 0x3cf1856;
 }
 
-
-THROWS_RET enc_20_major_4EECA0 (unsigned char *key, unsigned int seed)
+void major_1 (u32 *pad, u32 seed)
 {
-	unsigned int type = (KEY(0x44) ^ KEY(0x10) ^ KEY(0x34)) % 0x0D;
-	unsigned int var_18 = 0x3DBD1F8E;
+	int branch = (pad[17] ^ pad[4] ^ pad[13]) % 13;
 
-	if(type == 0x09)
+	if (branch == 9)
 	{
-		enc_20_49AAE0 (key, 0x3D35976D);
-		enc_20_4E4F30 (key, 0x499C9229);
-		enc_20_4D7790 (key, KEY(0x4C));
+		pad[7] |= 0x3e73450d;
+		minor_31 (0x9);
+		minor_36 (pad);
 	}
 
-	var_18 += 0x51CE37 - 0x87DF00A;
-	KEY(0x2C) &= KEY(0x4C) & 0x170B54ED;
+	pad[11] &= pad[19] & 0x170b54ed;
 
-	if(type == 0x0A)
+	if (branch == 10)
 	{
-		enc_20_4D9AD0 (key, 0x698084AC);
-		enc_20_4D4100 (key, 0x3621E02B);
-		TRY(enc_20_major_4AE190 (key, KEY(0x20)));
+		pad[12] ^= pad[15] - 0xf5cfde0;
+		minor_27;
+		major_23 (pad, pad[8]);
 	}
 
-	if(KEY(0x38) < 0x164D8D96)
-		KEY(0x04) = ROR(KEY(0x04), (unsigned char)KEY(0x38));
-	else
-		KEY(0x04) = ROR(KEY(0x04), (unsigned char)KEY(0x10));
+	ROREQ (pad[1], pad[14] < 0x164d8d96 ? pad[14] : pad[4]);
 
-	if(type == 0x0C)
+	if (branch == 12)
 	{
-		TRY(enc_20_4AE420 (key, 0xC0948CF0));
-		enc_20_4D6FB0 (key, 0x62894845);
-		TRY(enc_20_major_4AE490 (key, KEY(0x48)));
+		TRY (minor_1 (0xc0948cf0));
+		minor_28;
+		major_24 (pad, pad[18]);
 	}
 
-	if(type == 0x00)
+	if (branch == 0)
 	{
-		enc_20_4D9AD0 (key, 0x36A70C0E);
-		enc_20_4E4F30 (key, 0x047FEEB5);
-		TRY(enc_20_major_4E7CE0 (key, KEY(0x30)));
+		pad[12] ^= pad[15] - 0xf5cfde0;
+		minor_31 (0x15);
+		major_19 (pad, pad[12]);
 	}
 
-	var_18 += 0x51CE37 - 0x2F310ECB;
-	KEY(0x18) = ROL(KEY(0x18), (unsigned char)(KEY(0x34) ^ 0x0B31DDE2));
+	ROLEQ (pad[6], pad[13] ^ 0x2);
 
-	if(type == 0x06)
+	if (branch == 6)
 	{
-		TRY(enc_20_49B1F0 (key, 0x0DA426A1));
-		enc_20_4CE300 (key, 0xB9533931);
-		TRY(enc_20_major_4B24B0 (key, seed));
+		TRY (ROREQ (pad[1], 0x4));
+		pad[9] ^= pad[7] * 0x44;
+		major_25 (pad, seed);
 	}
 
-	if(sin((double)((unsigned char)seed)) < math_const_2)
-		seed += 0x160DF35D;
-	else
-		seed += seed;
-
-	if(type == 0x03)
+	if (branch == 3)
 	{
-		enc_20_4A12B0 (key, 0x1CA7E3E4);
-		enc_20_4D7680 (key, 0xDB97EE80);
-		TRY(enc_20_major_4E55C0 (key, KEY(0x3C)));
+		pad[2] ^= my_sin (pad[13]) ? 0xfd08092 : pad[10];
+		pad[13] *= ROR (pad[3], 5);
+		major_17 (pad, pad[15]);
 	}
 
-	if(type == 0x00)
+	if (branch == 0)
 	{
-		enc_20_4E7CC0 (key, 0xEDEEC7A2);
-		enc_20_4D7680 (key, 0x520BD522);
-		TRY(enc_20_major_4A16B0 (key, KEY(0x20)));
+		minor_19;
+		pad[13] *= ROR (pad[3], 5);
+		major_4 (pad, pad[8]);
 	}
 
-	var_18 += 0x51CE37 - 0x26FD0898;
-	seed &= KEY(0x4C) | var_18;
+	seed += my_sin (seed) ? 0x160df35d : seed;
+	seed &= pad[19] | 0xe00682c6;
 
-	if(type == 0x01)
+	if (branch == 1)
 	{
-		enc_20_4B0380 (key, 0x40DB13FE);
-		enc_20_49B240 (key, 0x45B12337);
-		TRY(enc_20_major_4E5960 (key, KEY(0x30)));
+		pad[7] &= pad[13] ^ 0x21aaf758;
+		pad[9] |= pad[7] ^ 0x2a19119f;
+		major_18 (pad, pad[12]);
 	}
 
-	if(sin((double)((unsigned char)seed)) < math_const_2)
-		KEY(0x40) += var_18;
-	else
-		KEY(0x40) += KEY(0x1C);
+	pad[16] += my_sin (seed) ? 0xe00682c6 : pad[7];
 
-	if(type == 0x02)
+	if (branch == 2)
 	{
-		enc_20_4D56F0 (key, 0x445733FF);
-		enc_20_4E7460 (key, 0x2A138AD9);
-		TRY(enc_20_major_4DF3C0 (key, seed));
+		pad[13] += pad[15] < 0x137bffeb ? pad[15] : pad[11];
+		pad[19] ^= my_cos (pad[9]) ? 0x57337b8 : pad[14];
+		major_15 (pad, seed);
 	}
 
-	if(type == 0x07)
+	if (branch == 7)
 	{
-		enc_20_4ADBC0 (key, 0x8872E233);
-		enc_20_4D7680 (key, 0xE4ABFF42);
-		TRY(enc_20_major_49ADF0 (key, KEY(0x38)));
+		pad[4] -= pad[17] ^ 0x2217cf47;
+		pad[13] *= ROR (pad[3], 5);
+		major_3 (pad, pad[14]);
 	}
-
-	var_18 += 0x51CE37 - 0x86D479C;
-	seed += KEY(0x3C) ^ 0x1777BC26;
 
-	if(type == 0x04)
+	if (branch == 4)
 	{
-		enc_20_4E7460 (key, 0xF48F4DF1);
-		enc_20_4F2A40 (key, 0x76C2807B);
-		TRY(enc_20_major_4E7FD0 (key, KEY(0x48)));
+		pad[19] ^= my_cos (pad[9]) ? 0x57337b8 : pad[14];
+		minor_34;
+		major_21 (pad, pad[18]);
 	}
 
-	KEY(0x14) *= my_ftol(floor(sqrt((double)(((unsigned char)KEY(0x24)))+1) + math_const_1));
+	pad[5] *= my_sqrt (pad[9]);
 
-	if(type == 0x0B)
+	if (branch == 11)
 	{
-		enc_20_49B260 (key, 0xCFB45C3E);
-		enc_20_4EB2C0 (key, 0x8517AE30);
-		TRY(enc_20_major_4E01F0 (key, KEY(0x10)));
+		ROREQ (pad[4], 0x2);
+		minor_32 (0x8517ae30);
+		major_16 (pad, pad[4]);
 	}
 
-	var_18 += 0x51CE37 - 0x8BAD95B;
-	KEY(0x34) &= KEY(0x48) - 0x0EB6DEE4;
+	pad[13] &= pad[18] - 0xeb6dee4;
 
-	if(type == 0x05)
+	if (branch == 5)
 	{
-		enc_20_4D7080 (key, 0xDDCAFCBD);
-		TRY(enc_20_4D56B0 (key, 0x12F0BCA1));
-		enc_20_4D7790 (key, seed);
+		minor_30;
+		TRY (minor_3);
+		minor_36 (pad);
 	}
 
-	if(type == 0x08)
+	if (branch == 8)
 	{
-		enc_20_49AAE0 (key, 0x7CABB74D);
-		TRY(enc_20_4D7900 (key, 0xAA2C683C));
-		TRY(enc_20_major_4AE190 (key, KEY(0x0C)));
+		pad[7] |= 0x7de964ed;
+		TRY (minor_4);
+		major_23 (pad, pad[3]);
 	}
-
-	RETURN;
 }
 
-
-THROWS_RET enc_20_major_4F2B40 (unsigned char *key, unsigned int seed)
+void major_2 (u32 *pad, u32 seed)
 {
-	unsigned int type = KEY(0x28) & 0x0F;
-	unsigned int var_18 = 0x0B112A28;
+	int branch = pad[10] & 15;
 
-	if(type == 0x05)
+	if (branch == 5)
 	{
-		enc_20_4D4100 (key, 0x37339B96);
-		enc_20_4B0380 (key, 0x444DAE11);
-		TRY(enc_20_major_4B24B0 (key, KEY(0x00)));
+		minor_27;
+		pad[7] &= pad[13] ^ 0x21aaf758;
+		major_25 (pad, pad[0]);
 	}
 
-	var_18 += 0x51CE37 - 0x883B1A1;
-	KEY(0x00) += ((0 - (seed * 3)) * 9) << 1;
+	pad[0] -= seed * 0x36;
 
-	if(type == 0x0D)
+	if (branch == 13)
 	{
-		enc_20_49CF30 (key, 0xCA5E7D24);
-		enc_20_4D4170 (key, 0x4ACC2885);
-		TRY(enc_20_major_4E55C0 (key, seed));
+		pad[2] *= pad[3] + 0xd6863a6;
+		pad[6] += 0xfe07af0e - pad[3];
+		major_17 (pad, seed);
 	}
 
-	if(type == 0x0C)
+	if (branch == 12)
 	{
-		enc_20_4D5720 (key, 0x6E4C891E);
-		enc_20_4BABE0 (key, 0x8CD76CBE);
-		TRY(enc_20_major_4A16B0 (key, KEY(0x38)));
+		pad[6] ^= 0x9374c368;
+		pad[7] &= 0xc45b99ee;
+		major_4 (pad, pad[14]);
 	}
 
-	KEY(0x1C) -= KEY(0x20) | 0x1A1A9407;
+	pad[7] -= pad[8] | 0x1a1a9407;
 
-	if(type == 0x6)
+	if (branch == 6)
 	{
-		enc_20_4AE3C0 (key, 0x63EDE696);
-		enc_20_49AB20 (key, 0x5C73625D);
-		TRY(enc_20_major_4E5960 (key, KEY(0x38)));
+		ROREQ (pad[9], 12);
+		pad[3] -= pad[0] ^ 0x185f3b0d;
+		major_18 (pad, pad[14]);
 	}
 
-	var_18 += 0x51CE37 - 0x19EBB20;
-	KEY(0x08) += KEY(0x00) + var_18;
+	pad[2] += pad[0] + 0x19259d5;
 
-	if(type == 0x8)
+	if (branch == 8)
 	{
-		enc_20_4CE300 (key, 0x79943EEC);
-		enc_20_4E4F80 (key, 0x0C4E46709);
-		TRY(enc_20_major_4DF3C0 (key, seed));
+		pad[9] ^= pad[7] * 0x44;
+		pad[2] ^= pad[15] << 5;
+		major_15 (pad, seed);
 	}
 
-	if(type == 0x0B)
+	if (branch == 11)
 	{
-		enc_20_4F2A40 (key, 0x196CCF25);
-		enc_20_49AB20 (key, 0x2F105FA3);
-		TRY(enc_20_major_49ADF0 (key, KEY(0x3C)));
+		minor_34;
+		pad[3] -= pad[0] ^ 0x185f3b0d;
+		major_3 (pad, pad[15]);
 	}
 
-	KEY(0x40) &= seed -0x1BADCB5;
+	pad[16] &= seed - 0x1badcb5;
 
-	if(type == 0x0F)
+	if (branch == 15)
 	{
-		enc_20_4AE170 (key, 0x1B1F5B08);
-		enc_20_49B260 (key, 0x2A42F19F);
-		TRY(enc_20_major_4E7FD0 (key, KEY(0x0C)));
+		pad[14] |= pad[3] ^ 0x4345732;
+		ROREQ (pad[4], 0x1);
+		major_21 (pad, pad[3]);
 	}
-
-	var_18 += 0x51CE37 - 0x2166EDD;
 
-	if(cos((double)((unsigned char)KEY(0x10))) < math_const_2)
-		KEY(0x14) -= var_18;
-	else
-		KEY(0x14) -= KEY(0x38);
+	pad[5] -= my_cos (pad[4]) ? 0xffcdb92f : pad[14];
 
-	if(type == 0x1)
+	if (branch == 1)
 	{
-		enc_20_4D5740 (key, 0x92ED31DA);
-		enc_20_49AAE0 (key, 0x44A3D725);
-		TRY(enc_20_major_4E01F0 (key, KEY(0x24)));
-		TRY(enc_20_4AE420 (key, 0x149A97A0));
-		TRY(enc_20_4D76F0 (key, 0x0D87D888E));
-		TRY(enc_20_major_4EECA0 (key, KEY(0x24)));
+		pad[13] -= pad[1];
+		pad[7] |= 0x45e184c5;
+		major_16 (pad, pad[9]);
+		TRY (minor_1 (0x149a97a0));
+		TRY (minor_10 (0xd87d888e));
+		major_1 (pad, pad[9]);
 	}
 
-	KEY(0x14) *= KEY(0x20) + var_18;
+	pad[5] *= pad[8] + 0xffcdb92f;
 
-	if(type == 0x4)
+	if (branch == 4)
 	{
-		TRY(enc_20_4D76F0 (key, 0x130AA218));
-		enc_20_4D7680 (key, 0x0E019C2D2);
-		TRY(enc_20_major_4DA520 (key, KEY(0x18)));
+		TRY (minor_10 (0x130aa218));
+		pad[13] *= ROR (pad[3], 5);
+		major_14 (pad, pad[6]);
 	}
 
-	var_18 += 0x51CE37 - 0x425B930B;
+	ROLEQ (pad[1], pad[15] < 0xbdc3f45b ? pad[15] : pad[9]);
 
-	if(KEY(0x3C) < var_18)
-		KEY(0x04) = ROL(KEY(0x04), (unsigned char)KEY(0x3C));
-	else
-		KEY(0x04) = ROL(KEY(0x04), (unsigned char)KEY(0x24));
-
-	if(type == 0x0E)
+	if (branch == 14)
 	{
-		enc_20_4D7080 (key, 0x6E0C4FC0);
-		enc_20_4AB3B0 (key, 0x790B68AA);
-		TRY(enc_20_major_4B19A0 (key, KEY(0x14)));
+		minor_30;
+		pad[13] *= 0x7f0d5ead;
+		major_6 (pad, pad[5]);
 	}
 
-	if(type == 0x0)
+	if (branch == 0)
 	{
-		enc_20_4A1AE0 (key, 0x1897846A);
-		TRY(enc_20_4DA120 (key, 0x2C09E10B));
-		TRY(enc_20_major_4C4AC0 (key, seed));
+		pad[6] += pad[19] - 0x3f5675d6;
+		TRY (minor_5);
+		major_9 (pad, seed);
 	}
 
-	KEY(0x18) += KEY(0x0C) * 121;
+	pad[6] += pad[3] * 0x79;
 
-	if(type == 0x9)
+	if (branch == 9)
 	{
-		enc_20_4EB2A0 (key, 0x63BCA480);
-		enc_20_4D7080 (key, 0x0D093CCF3);
-		TRY(enc_20_major_4B24B0 (key, KEY(0x18)));
+		pad[9] &= 0x3eb4ed97;
+		minor_30;
+		major_25 (pad, pad[6]);
 	}
-
-	var_18 += 0x51CE37 - 0x52A4B65;
 
-	if(cos((double)((unsigned char)KEY(0x1C))) < math_const_2)
-		KEY(0x40) ^= 0x2D36F243;
-	else
-		KEY(0x40) ^= KEY(0x34);
+	pad[16] ^= my_cos (pad[7]) ? 0x2d36f243 : pad[13];
 
-	if(type == 0x0)
+	if (branch == 0)
 	{
-		enc_20_4DA1E0 (key, 0x19A85EB1);
-		enc_20_4D6FB0 (key, 0x6193F5BD);
-		TRY(enc_20_major_4E55C0 (key, KEY(0x8)));
+		pad[0] += pad[18] ^ 0x4ac16b8d;
+		minor_28;
+		major_17 (pad, pad[2]);
 	}
 
-	if(type == 0x7)
+	if (branch == 7)
 	{
-		enc_20_4D7740 (key, 0x63208F9F);
-		TRY(enc_20_4AE420 (key, 0x115E64D4));
-		TRY(enc_20_major_4A16B0 (key, KEY(0x4C)));
+		pad[10] += 0x8958821;
+		TRY (minor_1 (0x115e64d4));
+		major_4 (pad, pad[19]);
 	}
 
-	KEY(0x38) &= KEY(0x0C) ^ var_18;
+	pad[14] &= pad[3] ^ 0xb8eb772d;
 
-	if(type == 0x0A)
+	if (branch == 10)
 	{
-		enc_20_4D5740 (key, 0x5EE26DDE);
-		enc_20_4E4F80 (key, 0x282244A8);
-		TRY(enc_20_major_4E5960 (key, KEY(0x20)));
+		pad[13] -= pad[1];
+		pad[2] ^= pad[15] << 5;
+		major_18 (pad, pad[8]);
 	}
 
-	var_18 += 0x51CE37 - 0x22679FC0;
-	KEY(0x04) = ROR(KEY(0x04), (unsigned char)(KEY(0x30) * 101));
+	ROREQ (pad[1], pad[12] * 0x5);
 
-	if(type == 0x3)
+	if (branch == 3)
 	{
-		enc_20_4A12B0 (key, 0x1545E592);
-		enc_20_4A12B0 (key, 0x662CEFC1);
-		TRY(enc_20_major_4DF3C0 (key, KEY(0x3C)));
+		pad[2] ^= my_sin (pad[13]) ? 0xfd08092 : pad[10];
+		pad[2] ^= my_sin (pad[13]) ? 0xfd08092 : pad[10];
+		major_15 (pad, pad[15]);
 	}
 
-	if(type == 0x2)
+	if (branch == 2)
 	{
-		enc_20_4BABE0 (key, 0x785A1B8A);
-		enc_20_4C0780 (key, 0x0C0D70A49);
-		TRY(enc_20_major_49ADF0 (key, KEY(0x38)));
+		pad[7] &= 0x5cf54b9a;
+		pad[13] *= 0xa02fe00;
+		major_3 (pad, pad[14]);
 	}
 
-	if(sin((double)((unsigned char)KEY(0x00))) < math_const_2)
-		KEY(0x30) ^= var_18;
-	else
-		KEY(0x30) ^= KEY(0x14);
-
-	RETURN;
+	pad[12] ^= my_sin (pad[0]) ? 0x96d5a5a4 : pad[5];
 }
-
 
-THROWS_RET enc_20_major_49ADF0 (unsigned char *key, unsigned int seed)
+void major_3 (u32 *pad, u32 seed)
 {
-	unsigned int type = (KEY(0x14) ^ seed ^ KEY(0x30)) % 0x0A;
-	unsigned int var_14 = 0x3074A456;
-    
-	var_14 += 0x51CE37 - 0x18D0A343;
-	seed *= KEY(0x18) | 0x04723B25;
+	int branch = (pad[5] ^ seed ^ pad[12]) % 10;
 
-	if(type == 0x0)
+	seed *= pad[6] | 0x4723b25;
+
+	if (branch == 0)
 	{
-		enc_20_4F2AF0 (key, 0x46147EFF);
-		TRY(enc_20_4DA120 (key, 0x41F46707));
-		enc_20_4EB310 (key, KEY(0x18));
+		minor_22;
+		TRY (minor_5);
+		minor_37 (pad);
 	}
 
-	KEY(0x08) += 0 - (((KEY(0x10) * 8 - KEY(0x10)) << 1) - KEY(0x10));
+	pad[2] -= pad[4] * 0xd;
 
-	if(type == 0x5)
+	if (branch == 5)
 	{
-		enc_20_4F2AA0 (key, 0x18518B22);
-		enc_20_4D7000 (key, 0x0C664EC68);
-		enc_20_4D7790 (key, KEY(0x0C));
+		pad[7] ^= 0x414517ea;
+		minor_29;
+		minor_36 (pad);
 	}
 
-	var_14 += 0x51CE37 - 0x0C736D91;
-	seed = (KEY(0x30) * 5 + seed) + (KEY(0x30) * 20);
+	seed += pad[12] * 0x19;
 
-	if(type == 0x1)
+	if (branch == 1)
 	{
-		enc_20_4D56F0 (key, 0x5A606CDE);
-		enc_20_4E7CC0 (key, 0x0A9C4C3E2);
-		TRY(enc_20_major_4AE190 (key, seed));
+		pad[13] += pad[15] < 0x137bffeb ? pad[15] : pad[11];
+		minor_19;
+		major_23 (pad, seed);
 	}
 
-	seed += KEY(0x1C) + var_14;
+	seed += pad[7] + 0xbd42ff0;
 
-	if(type == 0x2)
+	if (branch == 2)
 	{
-		enc_20_4D7000 (key, 0x53DCBD4D);
-		enc_20_4A1B00 (key, 0x122ECD9D);
-		TRY(enc_20_major_4AE490 (key, seed));
+		minor_29;
+		pad[16] += 0x1f5b0c59;
+		major_24 (pad, seed);
 	}
 
-	var_14 += 0x51CE37 - 0x6C5479A8;
-	KEY(0x3C) -= KEY(0x00) ^ 0x16BEE8C4;
+	pad[15] -= pad[0] ^ 0x16bee8c4;
 
-	if(type == 0x4)
+	if (branch == 4)
 	{
-		TRY(enc_20_4DA4D0 (key, 0x8B6772));
-		enc_20_4D6FB0 (key, 0x56EE72CC);
-		TRY(enc_20_major_4E7CE0 (key, seed));
+		TRY (minor_7);
+		minor_28;
+		major_19 (pad, seed);
 	}
 
-	KEY(0x48) ^= KEY(0x2C) + var_14;
+	pad[18] ^= pad[11] + 0x9fd1847f;
 
-	if(type == 0x6)
+	if (branch == 6)
 	{
-		enc_20_4A1AE0 (key, 0x56945DD9);
-		enc_20_4A1AE0 (key, 0x67A46509);
-		TRY(enc_20_major_4B24B0 (key, seed));
+		pad[6] += pad[19] - 0x3f5675d6;
+		pad[6] += pad[19] - 0x3f5675d6;
+		major_25 (pad, seed);
 	}
 
-	var_14 += 0x51CE37 - 0x1BF2C739;
-	KEY(0x38) = ROL(KEY(0x38), (unsigned char)(KEY(0x4C)-0x8C1CE40));
+	ROLEQ (pad[14], pad[19]);
 
-	if(type == 0x8)
+	if (branch == 8)
 	{
-		enc_20_4D7080 (key, 0x0E07FD40E);
-		enc_20_4ABC20 (key, 0x0EA6B51A8);
-		TRY(enc_20_major_4E55C0 (key, seed));
+		minor_30;
+		pad[12] += pad[6] + 0x21d7bf61;
+		major_17 (pad, seed);
 	}
 
-	KEY(0x00) = ROR(KEY(0x00), (unsigned char)(KEY(0x34) * 83));
+	ROREQ (pad[0], pad[13] * 0x13);
 
-	if(type == 0x9)
+	if (branch == 9)
 	{
-		TRY(enc_20_4BAC10 (key, 0x70DA1D6F));
-		enc_20_4D7000 (key, 0x516D164);
-		TRY(enc_20_major_4A16B0 (key, seed));
+		TRY (minor_2 (0x70da1d6f));
+		minor_29;
+		major_4 (pad, seed);
 	}
-
-	var_14 += 0x51CE37 - 0x31D3FEFD;
-
-	if(KEY(0x40) < 0x33671DE9)
-		seed ^= KEY(0x40);
-	else
-		seed ^= KEY(0x44);
 
-	if(type == 0x7)
+	if (branch == 7)
 	{
-		enc_20_4F2AF0 (key, 0x70D19E4B);
-		TRY(enc_20_4D56B0 (key, 0x0ABF1EA65));
-		TRY(enc_20_major_4E5960 (key, KEY(0x14)));
+		minor_22;
+		TRY (minor_3);
+		major_18 (pad, pad[5]);
 	}
 
-	seed &= seed << 6;
-
-	if(type == 0x3)
+	if (branch == 3)
 	{
-		enc_20_4D70D0 (key, 0x80B6D40E);
-		enc_20_4E4F80 (key, 0x2CFE2CC2);
-		TRY(enc_20_major_4DF3C0 (key, KEY(0x4C)));
+		minor_17;
+		pad[2] ^= pad[15] << 5;
+		major_15 (pad, pad[19]);
 	}
-
-	RETURN;
 }
-
 
-THROWS_RET enc_20_major_4A16B0 (unsigned char *key, unsigned int seed)
+void major_4 (u32 *pad, u32 seed)
 {
-	unsigned int type = KEY(0x18) % 7;
-	unsigned int var_14 = 0x8A39523;
+	int branch = pad[6] % 7;
 
-	var_14 += 0x51CE37 - 0x17F6642;
-	seed ^= ROL(KEY(0x0C), 0x72);
+	seed ^= ROL (pad[3], 18);
 
-	if(type == 0x6)
+	if (branch == 6)
 	{
-		enc_20_4A1AE0 (key, 0x0A788E3DC);
-		TRY(enc_20_4DA120 (key, 0x2059B605));
-		enc_20_4EB310 (key, KEY(0x1C));
+		pad[6] += pad[19] - 0x3f5675d6;
+		TRY (minor_5);
+		minor_37 (pad);
 	}
 
-	KEY(0x3C) += (seed * 25) << 1;
+	pad[15] += seed * 0x32;
+	pad[5] += 0xc93495e4 - pad[14];
 
-	var_14 += 0x51CE37 - 0x12202C25;
-	KEY(0x14) += 0x0C93495E4 - KEY(0x38);
-
-	if(type == 0x2)
+	if (branch == 2)
 	{
-		TRY(enc_20_4D76F0 (key, 0x10DB4A9D));
-		enc_20_4D4170 (key, 0x3D54F7F4);
-		enc_20_4D7790 (key, KEY(0x00));
+		TRY (minor_10 (0x10db4a9d));
+		pad[6] += 0xfe07af0e - pad[3];
+		minor_36 (pad);
 	}
 
-	if(cos((double)((unsigned char)KEY(0x38))) < math_const_2)
-		KEY(0x30) *= var_14;
-	else
-		KEY(0x30) *= KEY(0x44);
+	pad[12] *= my_cos (pad[14]) ? 0xf5a79f2a : pad[17];
 
-	if(type == 0x0)
+	if (branch == 0)
 	{
-		enc_20_4D70D0 (key, 0x818E9FE0);
-		enc_20_49B240 (key, 0x31D0CADA);
-		TRY(enc_20_major_4AE190 (key, KEY(0x20)));
+		minor_17;
+		pad[9] |= pad[7] ^ 0x2a19119f;
+		major_23 (pad, pad[8]);
 	}
 
-	var_14 += 0x51CE37 - 0x15CE1247;
-	KEY(0x18) &= KEY(0x1C) | var_14;
+	pad[6] &= pad[7] | 0xe02b5b1a;
+	pad[11] ^= my_cos (pad[0]) ? 0x3a2c762b : seed;
 
-	if(cos((double)((unsigned char)KEY(0x00))) < math_const_2)
-		KEY(0x2C) ^= 0x3A2C762B;
-	else
-		KEY(0x2C) ^= seed;
-
-	if(type == 0x4)
+	if (branch == 4)
 	{
-		TRY(enc_20_4D56B0 (key, 0x1080EF45));
-		TRY(enc_20_49B1F0 (key, 0x44BF5D5F));
-		TRY(enc_20_major_4AE490 (key, seed));
+		TRY (minor_3);
+		TRY (ROREQ (pad[1], 0x1c));
+		major_24 (pad, seed);
 	}
 
-	var_14 += 0x51CE37 - 0x128DFD61;
-	KEY(0x0C) -= my_ftol(floor(sqrt((double)(((unsigned char)KEY(0x24)))+1) + math_const_1));
+	pad[3] -= my_sqrt (pad[9]);
 
-	if(type == 0x5)
+	if (branch == 5)
 	{
-		enc_20_4D5720 (key, 0x0DF523ED5);
-		enc_20_4DA1E0 (key, 0x1B51F3D0);
-		TRY(enc_20_major_4E7CE0 (key, KEY(0x48)));
+		pad[6] ^= 0x47a791f;
+		pad[0] += pad[18] ^ 0x4ac16b8d;
+		major_19 (pad, pad[18]);
 	}
-
-	if(cos((double)((unsigned char)KEY(0x1C))) < math_const_2)
-		seed &= var_14;
-	else
-		seed &= KEY(0x0C);
 
-	var_14 += 0x51CE37 - 0x3DE94AC6;
-	KEY(0x00) += 0 - ((((KEY(0x3C) << 4) + KEY(0x3C)) << 2) - KEY(0x3C));
+	seed &= my_cos (pad[7]) ? 0xcdef2bf0 : pad[3];
+	pad[0] -= pad[15] * 0x43;
 
-	if(type == 0x1)
+	if (branch == 1)
 	{
-		enc_20_4E7CC0 (key, 0x8F58F140);
-		enc_20_4D5720 (key, 0x1D251133);
-		TRY(enc_20_major_4B24B0 (key, KEY(0x0C)));
+		minor_19;
+		pad[6] ^= 0x424d4b7d;
+		major_25 (pad, pad[3]);
 	}
 
-	KEY(0x04) -=  ROR(KEY(0x48), 0x33);
-	var_14 += 0x51CE37 - 0x26BE8A9B;
+	pad[1] -= ROR (pad[18], 19);
+	pad[17] ^= my_sin (pad[14]) ? 0x69eaf2fd : pad[16];
 
-	if(sin((double)((unsigned char)KEY(0x38))) < math_const_2)
-		KEY(0x44) ^= var_14;
-	else
-		KEY(0x44) ^= KEY(0x40);
-
-	if(type == 0x0)
+	if (branch == 0)
 	{
-		enc_20_49AB20 (key, 0x209DDB7B);
-		enc_20_49CF30 (key, 0x217BBC5B);
-		TRY(enc_20_major_4E55C0 (key, KEY(0x38)));
+		pad[3] -= pad[0] ^ 0x185f3b0d;
+		pad[2] *= pad[3] + 0xd6863a6;
+		major_17 (pad, pad[14]);
 	}
-
-	RETURN;
 }
 
-
-THROWS_RET enc_20_major_4ABC60 (unsigned char *key, unsigned int seed)
+void major_5 (u32 *pad, u32 seed)
 {
-	unsigned int type = (KEY(0x34) ^ KEY(0x18) ^ KEY(0x40)) & 0x0F;
-	unsigned int var_18 = 0x0FE1D15;
+	int branch = (pad[13] ^ pad[6] ^ pad[16]) & 15;
 
-	if(type == 0x7)
+	if (branch == 7)
 	{
-		enc_20_4E7FB0 (key, 0x21B598E);
-		enc_20_4C5040 (key, 0x4AC1E03F);
-		TRY(enc_20_major_4E55C0 (key, KEY(0x3C)));
+		minor_20;
+		pad[9] += ROL (pad[4], 9);
+		major_17 (pad, pad[15]);
 	}
 
-	var_18 += 0x51CE37 - 0x20B0889D;
-	KEY(0x08) ^= KEY(0x3C) - var_18;
+	pad[2] ^= pad[15] - 0xe09f62af;
 
-	if(type == 0x0F)
+	if (branch == 15)
 	{
-		enc_20_4E4F30 (key, 0x0C7337307);
-		enc_20_49B240 (key, 0x8901D037);
-		TRY(enc_20_major_4A16B0 (key, KEY(0x28)));
+		minor_31 (0x7);
+		pad[9] |= pad[7] ^ 0x2a19119f;
+		major_4 (pad, pad[10]);
 	}
 
-	if(type == 0x0E)
+	if (branch == 14)
 	{
-		enc_20_4D7660 (key, 0x32D5440A);
-		enc_20_4D4150 (key, 0x754F1FBD);
-		TRY(enc_20_major_4E5960 (key, seed));
+		pad[9] ^= 0x19b844e;
+		pad[5] -= pad[15];
+		major_18 (pad, seed);
 	}
 
-	KEY(0x14) += KEY(0x20) * 73;
+	pad[5] += pad[8] * 0x49;
 
-	if(type == 0x4)
+	if (branch == 4)
 	{
-		enc_20_4AE170 (key, 0x92B46703);
-		TRY(enc_20_4EEC50 (key, 0x0F89E7111));
-		TRY(enc_20_major_4DF3C0 (key, KEY(0x4C)));
+		pad[14] |= pad[3] ^ 0x4345732;
+		TRY (minor_8);
+		major_15 (pad, pad[19]);
 	}
 
-	if(type == 0x1)
+	if (branch == 1)
 	{
-		enc_20_4D4100 (key, 0x10224DAA);
-		enc_20_4D70D0 (key, 0x817539A8);
-		TRY(enc_20_major_49ADF0 (key, KEY(0x10)));
+		minor_27;
+		minor_17;
+		major_3 (pad, pad[4]);
 	}
-
-	var_18 += 0x51CE37 - 0x0B2F7E4D;
 
-	if(KEY(0x40) < 0x4DFE57F8)
-		seed += KEY(0x40);
-	else
-		seed += KEY(0x44);
+	seed += pad[16] < 0x4dfe57f8 ? pad[16] : pad[17];
 
-	if(type == 0x2)
+	if (branch == 2)
 	{
-		enc_20_4AB3B0 (key, 0x74E11AD9);
-		enc_20_4D9AD0 (key, 0x74004C0A);
-		TRY(enc_20_major_4E7FD0 (key, KEY(0x2C)));
-		enc_20_4D7680 (key, 0x93B24D42);
-		enc_20_4E7FB0 (key, 0x1CBDFBFC);
-		TRY(enc_20_major_4E01F0 (key, KEY(0x28)));
+		pad[13] *= 0x7ae310dc;
+		pad[12] ^= pad[15] - 0xf5cfde0;
+		major_21 (pad, pad[11]);
+		pad[13] *= ROR (pad[3], 5);
+		minor_20;
+		major_16 (pad, pad[10]);
 	}
 
-	KEY(0x14) += KEY(0x18) + var_18;
+	pad[5] += pad[6] + 0xd5c1b299;
 
-	if(type == 0x0A)
+	if (branch == 10)
 	{
-		enc_20_4E7460 (key, 0x4147E424);
-		enc_20_49B240 (key, 0x2AE05891);
-		TRY(enc_20_major_4EECA0 (key, KEY(0x28)));
+		pad[19] ^= my_cos (pad[9]) ? 0x57337b8 : pad[14];
+		pad[9] |= pad[7] ^ 0x2a19119f;
+		major_1 (pad, pad[10]);
 	}
 
-	if(type == 0x0C)
+	if (branch == 12)
 	{
-		enc_20_4A1B00 (key, 0x1313A094);
-		enc_20_4E7FB0 (key, 0x7CBD66C);
-		TRY(enc_20_major_4DA520 (key, KEY(0x20)));
+		pad[16] += 0x203fdf50;
+		minor_20;
+		major_14 (pad, pad[8]);
 	}
 
-	var_18 += 0x51CE37 - 0x1B56493C;
+	pad[1] += my_sin (seed) ? 0xbabd3794 : seed;
 
-	if(sin((double)((unsigned char)seed)) < math_const_2)
-		KEY(0x04) += var_18;
-	else
-		KEY(0x04) += seed;
-
-	if(type == 0x6)
+	if (branch == 6)
 	{
-		enc_20_4A1AC0 (key, 0x51CF3579);
-		enc_20_4D5740 (key, 0x8E701496);
-		TRY(enc_20_major_4B19A0 (key, KEY(0x38)));
+		pad[4] ^= 0xca8e79ab;
+		pad[13] -= pad[1];
+		major_6 (pad, pad[14]);
 	}
 
-	if(type == 0x3)
+	if (branch == 3)
 	{
-		enc_20_4D56F0 (key, 0x4A27019E);
-		enc_20_4E4F80 (key, 0x0D32078E1);
-		TRY(enc_20_major_4C4AC0 (key, seed));
+		pad[13] += pad[15] < 0x137bffeb ? pad[15] : pad[11];
+		pad[2] ^= pad[15] << 5;
+		major_9 (pad, seed);
 	}
 
-	if(cos((double)((unsigned char)KEY(0x0C))) < math_const_2)
-		KEY(0x0C) |= var_18;
-	else
-		KEY(0x0C) |= KEY(0x44);
+	pad[3] |= my_cos (pad[3]) ? 0xbabd3794 : pad[17];
 
-	if(type == 0x9)
+	if (branch == 9)
 	{
-		enc_20_4D70D0 (key, 0x52922622);
-		enc_20_4D4150 (key, 0x0F6E01421);
-		TRY(enc_20_major_4F2B40 (key, seed));
+		minor_17;
+		pad[5] -= pad[15];
+		major_2 (pad, seed);
 	}
 
-	if(type == 0x0D)
+	if (branch == 13)
 	{
-		enc_20_49B260 (key, 0x78EBCA1E);
-		enc_20_4ADBC0 (key, 0x70AA0B53);
-		TRY(enc_20_major_4E55C0 (key, seed));
+		ROREQ (pad[4], 0x2);
+		pad[4] -= pad[17] ^ 0x2217cf47;
+		major_17 (pad, seed);
 	}
 
-	var_18 += 0x51CE37 - 0x8B3397E;
-	seed ^= KEY(0x08) * var_18;
+	seed ^= pad[2] * 0xb25bcc4d;
 
-	if(type == 0x0B)
+	if (branch == 11)
 	{
-		enc_20_4D7050 (key, 0x40FCBC29);
-		enc_20_4B0380 (key, 0x403D2702);
-		TRY(enc_20_major_4A16B0 (key, KEY(0x44)));
+		pad[19] += 0x12b9e29d - pad[12];
+		pad[7] &= pad[13] ^ 0x21aaf758;
+		major_4 (pad, pad[17]);
 	}
 
-	if(type == 0x0)
+	if (branch == 0)
 	{
-		enc_20_4D9AD0 (key, 0x29770C45);
-		enc_20_4E4F30 (key, 0x4FF6E927);
-		TRY(enc_20_major_4E5960 (key, seed));
+		pad[12] ^= pad[15] - 0xf5cfde0;
+		minor_31 (0x7);
+		major_18 (pad, seed);
 	}
 
-	KEY(0x20) += 0xF1030E9C - KEY(0x30);
+	pad[8] += 0xf1030e9c - pad[12];
 
-	if(type == 0x5)
+	if (branch == 5)
 	{
-		enc_20_4D5720 (key, 0x0C571A70B);
-		enc_20_4D7050 (key, 0x421EBAD1);
-		TRY(enc_20_major_4DF3C0 (key, seed));
+		pad[6] ^= 0xea99e155;
+		pad[19] += 0x12b9e29d - pad[12];
+		major_15 (pad, seed);
 	}
 
-	if(type == 0x8)
+	if (branch == 8)
 	{
-		enc_20_4BABE0 (key, 0x7D6B64A8);
-		enc_20_49CF30 (key, 0x0CBF6F6FA);
-		TRY(enc_20_major_49ADF0 (key, KEY(0x44)));
+		pad[7] &= 0x710c48e8;
+		pad[2] *= pad[3] + 0xd6863a6;
+		major_3 (pad, pad[17]);
 	}
 
-	var_18 += 0x51CE37 - 0x9BA58BD;
-	KEY(0x3C) += var_18 - KEY(0x04);
+	pad[15] += 0xa8f341c7 - pad[1];
 
-	if(type == 0x0)
+	if (branch == 0)
 	{
-		enc_20_49CF30 (key, 0x47A3A769);
-		enc_20_49AB20 (key, 0x57BC6749);
-		TRY(enc_20_major_4E7FD0 (key, seed));
+		pad[2] *= pad[3] + 0xd6863a6;
+		pad[3] -= pad[0] ^ 0x185f3b0d;
+		major_21 (pad, seed);
 	}
 
-	if(type == 0x1)
+	if (branch == 1)
 	{
-		TRY(enc_20_4D56B0 (key, 0x44A7AB9D));
-		enc_20_4D76A0 (key, 0x824340CE);
-		TRY(enc_20_major_4E01F0 (key, KEY(0x30)));
+		TRY (minor_3);
+		pad[12] *= pad[12];
+		major_16 (pad, pad[12]);
 	}
 
-	KEY(0x18) *= KEY(0x14) * 29;
-
-	RETURN;
+	pad[6] *= pad[5] * 0x1d;
 }
-
 
-THROWS_RET enc_20_major_4B19A0 (unsigned char *key, unsigned int seed)
+void major_6 (u32 *pad, u32 seed)
 {
-	unsigned int type = KEY(0x44) % 0x0F;
-	unsigned int var_18 = 0x10572198;
+	int branch = pad[17] % 15;
 
-	if(type == 0x00)
+	if (branch == 0)
 	{
-		enc_20_4D56F0 (key, 0x0A849904);
-		enc_20_4AB3B0 (key, 0x1CDB9F1C);
-		TRY(enc_20_major_4AE490 (key, KEY(0x20)));
+		pad[13] += pad[15] < 0x137bffeb ? pad[15] : pad[11];
+		pad[13] *= 0x22dd951f;
+		major_24 (pad, pad[8]);
 	}
 
-	var_18 += 0x51CE37 - 0x2EA3BDA3;
+	pad[11] -= my_sin (pad[9]) ? 0xe205322c : pad[7];
 
-	if(sin((double)((unsigned char)KEY(0x24))) < math_const_2)
-		KEY(0x2C) -= var_18;
-	else
-		KEY(0x2C) -= KEY(0x1C);
-
-	if(type == 0x0D)
+	if (branch == 13)
 	{
-		TRY(enc_20_49B1F0 (key, 0x422E82A9));
-		enc_20_4D9AD0 (key, 0x0C11A1416);
-		TRY(enc_20_major_4E7CE0 (key, KEY(0x00)));
+		TRY (ROREQ (pad[1], 0x4));
+		pad[12] ^= pad[15] - 0xf5cfde0;
+		major_19 (pad, pad[0]);
 	}
 
-	KEY(0x28) -= KEY(0x18) ^ 0x1289DE2;
+	pad[10] -= pad[6] ^ 0x1289de2;
 
-	if(type == 0x8)
+	if (branch == 8)
 	{
-		enc_20_4AE3C0 (key, 0x8FED4B73);
-		TRY(enc_20_4E7C50 (key, 0x692C266A));
-		TRY(enc_20_major_4B24B0 (key, KEY(0x10)));
+		ROREQ (pad[9], 10);
+		TRY (minor_13);
+		major_25 (pad, pad[4]);
 	}
 
-	if(type == 0x5)
+	if (branch == 5)
 	{
-		enc_20_4AB3B0 (key, 0x6492D146);
-		enc_20_4EE700 (key, 0x7C148C81);
-		TRY(enc_20_major_4E55C0 (key, seed));
+		pad[13] *= 0x6a94c749;
+		pad[18] -= pad[13] ^ 0x154abcdf;
+		major_17 (pad, seed);
 	}
 
-	var_18 += 0x51CE37 - 0x1A21C37A;
-	KEY(0x40) = ROL(KEY(0x40), (unsigned char)my_ftol(floor(sqrt((double)(((unsigned char)KEY(0x44)))+1) + math_const_1)));
+	ROLEQ (pad[16], my_sqrt (pad[17]));
 
-	if(type == 0x2)
+	if (branch == 2)
 	{
-		enc_20_4A1B00 (key, 0x1C73063B);
-		enc_20_4A1B00 (key, 0x848F08E);
-		TRY(enc_20_major_4A16B0 (key, KEY(0x40)));
+		pad[16] += 0x3f147441;
+		major_4 (pad, pad[16]);
 	}
 
-	KEY(0x24) += my_ftol(floor(sqrt((double)(((unsigned char)KEY(0x0C)))+1) + math_const_1));
+	pad[9] += my_sqrt (pad[3]);
 
-	if(type == 0x0E)
+	if (branch == 14)
 	{
-		enc_20_4AE3C0 (key, 0xA3D7A7FC);
-		enc_20_4D5740 (key, 0x27AA3A54);
-		TRY(enc_20_major_4E5960 (key, seed));
+		ROREQ (pad[9], 15);
+		pad[13] -= pad[1];
+		major_18 (pad, seed);
 	}
 
-	var_18 += 0x51CE37 - 0x5B8499EE;
-	seed = KEY(0x18) ^ seed ^ 0x202AB323;
+	seed = pad[6] ^ seed ^ 0x202ab323;
 
-	if(type == 0x9)
+	if (branch == 9)
 	{
-		enc_20_4C47D0 (key, 0x7C52976B);
-		enc_20_4ADBC0 (key, 0x9ECB80E1);
-		TRY(enc_20_major_4DF3C0 (key, KEY(0x20)));
+		pad[5] += pad[0] ^ 0x3e17add3;
+		pad[4] -= pad[17] ^ 0x2217cf47;
+		major_15 (pad, pad[8]);
 	}
 
-	if(type == 0x6)
+	if (branch == 6)
 	{
-		enc_20_49CF30 (key, 0x0C09FA75F);
-		enc_20_4A1AE0 (key, 0x75D1B938);
-		TRY(enc_20_major_49ADF0 (key, KEY(0x40)));
+		pad[2] *= pad[3] + 0xd6863a6;
+		pad[6] += pad[19] - 0x3f5675d6;
+		major_3 (pad, pad[16]);
 	}
 
-	KEY(0x3C) ^= my_ftol(floor(sqrt((double)(((unsigned char)KEY(0x28)))+1) + math_const_1));
+	pad[15] ^= my_sqrt (pad[10]);
 
-	if(type == 0x1)
+	if (branch == 1)
 	{
-		TRY(enc_20_4BAC10 (key, 0x0B30D40D0));
-		enc_20_49ADD0 (key, 0x74E6601F);
-		TRY(enc_20_major_4E7FD0 (key, KEY(0x34)));
+		TRY (minor_2 (0xb30d40d0));
+		pad[10] *= pad[10] - 0x5eae6bf;
+		major_21 (pad, pad[13]);
 	}
 
-	var_18 += 0x51CE37 - 0x1DDA929B;
-	KEY(0x00) -= KEY(0x2C) ^ 0x1284AF29;
+	pad[0] -= pad[11] ^ 0x1284af29;
 
-	if(type == 0x4)
+	if (branch == 4)
 	{
-		enc_20_4C47D0 (key, 0x0D16FD674);
-		enc_20_4D7000 (key, 0x48FFB1AB);
-		TRY(enc_20_major_4E01F0 (key, KEY(0x44)));
+		pad[5] += pad[0] ^ 0x3e17add3;
+		minor_29;
+		major_16 (pad, pad[17]);
 	}
 
-	seed = ROL(seed, (unsigned char)((KEY(0x2C) * 8 - KEY(0x2C)) << 4));
+	ROLEQ (seed, pad[11] * 0x10);
 
-	if(type == 0x0B)
+	if (branch == 11)
 	{
-		enc_20_4D7660 (key, 0x2EC1F3E2);
-		TRY(enc_20_49AA90 (key, 0x13EE15C3));
-		TRY(enc_20_major_4EECA0 (key, KEY(0x4C)));
+		pad[9] ^= 0x1d8f33a6;
+		TRY (minor_9 (0x13ee15c3));
+		major_1 (pad, pad[19]);
 	}
 
-	if(type == 0x0)
+	if (branch == 0)
 	{
-		TRY(enc_20_4D56B0 (key, 0x91A8A09D));
-		enc_20_4E7460 (key, 0x4817AA6D);
-		TRY(enc_20_major_4DA520 (key, KEY(0x40)));
+		TRY (minor_3);
+		pad[19] ^= my_cos (pad[9]) ? 0x57337b8 : pad[14];
+		major_14 (pad, pad[16]);
 	}
 
-	var_18 += 0x51CE37 - 0x5A8079C;
-	KEY(0x24) |= KEY(0x24) ^ 0x2AD7629;
+	pad[9] |= pad[9] ^ 0x2ad7629;
 
-	if(type == 0x0A)
+	if (branch == 10)
 	{
-		TRY(enc_20_49B1F0 (key, 0x4CDAADC3));
-		TRY(enc_20_49AA90 (key, 0x0E8869877));
-		TRY(enc_20_major_4AE490 (key, seed));
+		TRY (ROREQ (pad[1], 0xc));
+		TRY (minor_9 (0xe8869877));
+		major_24 (pad, seed);
 	}
 
-	KEY(0x10) *= KEY(0x30) * var_18;
+	pad[4] *= pad[12] * 0x4a237369;
 
-	if(type == 0x0C)
+	if (branch == 12)
 	{
-		enc_20_4C5040 (key, 0x13C4504A);
-		TRY(enc_20_4DA4D0 (key, 0x0A89CC1F8));
-		TRY(enc_20_major_4E7CE0 (key, KEY(0x14)));
+		pad[9] += ROL (pad[4], 9);
+		TRY (minor_7);
+		major_19 (pad, pad[5]);
 	}
 
-	if(type == 0x7)
+	if (branch == 7)
 	{
-		enc_20_4AE170 (key, 0x1B0B87FF);
-		TRY(enc_20_49AA90 (key, 0x0DD1CA541));
-		TRY(enc_20_major_4B24B0 (key, KEY(0x4)));
+		pad[14] |= pad[3] ^ 0x4345732;
+		TRY (minor_9 (0xdd1ca541));
+		major_25 (pad, pad[1]);
 	}
 
-	var_18 += 0x51CE37 - 0x2DE8F3D8;
-	seed *= KEY(0x10) + 0x76E5A087;
+	seed *= pad[4] + 0x76e5a087;
 
-	if(type == 0x3)
+	if (branch == 3)
 	{
-		TRY(enc_20_4DA120 (key, 0x330EDC53));
-		TRY(enc_20_4AE420 (key, 0x62F4D3C4));
-		TRY(enc_20_major_4E55C0 (key, seed));
+		TRY (minor_5);
+		TRY (minor_1 (0x62f4d3c4));
+		major_17 (pad, seed);
 	}
-
-	RETURN;
 }
-
 
-THROWS_RET enc_20_major_4BAC60 (unsigned char *key, unsigned int seed)
+void major_7 (u32 *pad, u32 seed)
 {
-	unsigned int type = (KEY(0x28) ^ KEY(0x2C) ^ KEY(0x48)) & 0x0F;
-	unsigned int var_18 = 0x29E4785;
+	int branch = (pad[10] ^ pad[11] ^ pad[18]) & 15;
 
-	if(type == 0x3)
+	if (branch == 3)
 	{
-		enc_20_4D4100 (key, 0x54251ED6);
-		TRY(enc_20_4BAC10 (key, 0x54BCDE17));
-		TRY(enc_20_major_4EECA0 (key, KEY(0x38)));
+		minor_27;
+		TRY (minor_2 (0x54bcde17));
+		major_1 (pad, pad[14]);
 	}
 
-	if(type == 0x9)
+	if (branch == 9)
 	{
-		enc_20_4B0380 (key, 0x6268FE39);
-		enc_20_4D5740 (key, 0x849633D3);
-		TRY(enc_20_major_4DA520 (key, KEY(0x30)));
+		pad[7] &= pad[13] ^ 0x21aaf758;
+		pad[13] -= pad[1];
+		major_14 (pad, pad[12]);
 	}
 
-	var_18 += 0x51CE37 - 0x3C00B73C;
-	KEY(0x20) |= var_18 + KEY(0x04);
+	pad[8] |= 0xc6ef5e80 + pad[1];
 
-	if(type == 0x2)
+	if (branch == 2)
 	{
-		enc_20_4A1AE0 (key, 0x72FA0344);
-		enc_20_4D4170 (key, 0x3875F5B9);
-		TRY(enc_20_major_4B19A0 (key, KEY(0x40)));
+		pad[6] += pad[19] - 0x3f5675d6;
+		pad[6] += 0xfe07af0e - pad[3];
+		major_6 (pad, pad[16]);
 	}
 
-	if(type == 0x5)
+	if (branch == 5)
 	{
-		enc_20_4D4150 (key, 0x0D553467F);
-		enc_20_4A1B00 (key, 0x32779D73);
-		TRY(enc_20_major_4C4AC0 (key, KEY(0x14)));
+		pad[5] -= pad[15];
+		pad[16] += 0x3fa3dc2f;
+		major_9 (pad, pad[5]);
 	}
 
-	if(type == 0x1)
+	if (branch == 1)
 	{
-		enc_20_4D56F0 (key, 0x4F92773B);
-		enc_20_4AE170 (key, 0x0EA665860);
-		TRY(enc_20_major_4F2B40 (key, KEY(0x0C)));
+		pad[13] += pad[15] < 0x137bffeb ? pad[15] : pad[11];
+		pad[14] |= pad[3] ^ 0x4345732;
+		major_2 (pad, pad[3]);
 	}
 
-	KEY(0x3C) -= var_18 + KEY(0x4C);
+	pad[15] -= 0xc6ef5e80 + pad[19];
 
-	if(type == 0x4)
+	if (branch == 4)
 	{
-		enc_20_4E4F80 (key, 0x703EED12);
-		enc_20_4D6FB0 (key, 0x68EE704A);
-		TRY(enc_20_major_4ABC60 (key, KEY(0x1C)));
+		pad[2] ^= pad[15] << 5;
+		minor_28;
+		major_5 (pad, pad[7]);
 	}
 
-	if(type == 0x1)
+	if (branch == 1)
 	{
-		enc_20_4F2B20 (key, 0x0F48B6D0F);
-		enc_20_4E4F30 (key, 0x0CA4795D5);
-		TRY(enc_20_major_4D4910 (key, KEY(0x40)));
+		pad[0] += pad[6] * 0x3c;
+		minor_31 (0x15);
+		major_12 (pad, pad[16]);
 	}
 
-	if(type == 0x9)
+	if (branch == 9)
 	{
-		enc_20_4C47D0 (key, 0x0B4225230);
-		enc_20_4EB2A0 (key, 0x70E051EB);
-		TRY(enc_20_major_4D1E70 (key, KEY(0x4C)));
+		pad[5] += pad[0] ^ 0x3e17add3;
+		pad[9] &= 0x4bd89b02;
+		major_11 (pad, pad[19]);
 	}
 
-	var_18 += 0x51CE37 - 0x28A8FE0;
-	seed -= KEY(0x00) ^ 0x3B61016B;
+	seed -= pad[0] ^ 0x3b61016b;
 
-	if(type == 0x4)
+	if (branch == 4)
 	{
-		enc_20_4D4150 (key, 0x0F72B306F);
-		TRY(enc_20_49AA90 (key, 0x1984A749));
-		TRY(enc_20_major_4D4FB0 (key, KEY(0x0C)));
+		pad[5] -= pad[15];
+		TRY (minor_9 (0x1984a749));
+		major_13 (pad, pad[3]);
 	}
 
-	if(type == 0x3)
+	if (branch == 3)
 	{
-		enc_20_4C5040 (key, 0x42129AEB);
-		enc_20_4D6FB0 (key, 0x7C864AA1);
-		TRY(enc_20_major_4EB610 (key, KEY(0x10)));
+		pad[9] += ROL (pad[4], 9);
+		minor_28;
+		major_22 (pad, pad[4]);
 	}
 
-	if(type == 0x7)
+	if (branch == 7)
 	{
-		TRY(enc_20_4D56B0 (key, 0x572869D1));
-		enc_20_4E4F30 (key, 0x1C91FACD);
-		TRY(enc_20_major_4C1240 (key, KEY(0x14)));
+		TRY (minor_3);
+		minor_31 (0xd);
+		major_8 (pad, pad[5]);
 	}
 
-	KEY(0x2C) = ROL(KEY(0x2C), (unsigned char)(KEY(0x28) ^ 0x469FB6FA));
+	ROLEQ (pad[11], pad[10] ^ 0x1a);
 
-	if(type == 0x8)
+	if (branch == 8)
 	{
-		enc_20_4EE700 (key, 0x0DB7F42BA);
-		enc_20_4D7050 (key, 0x2EEEE6EE);
-		TRY(enc_20_major_4CF650 (key, seed));
+		pad[18] -= pad[13] ^ 0x154abcdf;
+		pad[19] += 0x12b9e29d - pad[12];
+		major_10 (pad, seed);
 	}
 
-	if(type == 0x0E)
+	if (branch == 14)
 	{
-		enc_20_4D7050 (key, 0x3EEA9094);
-		enc_20_4AE3C0 (key, 0x0BFD9F90B);
-		TRY(enc_20_major_4EECA0 (key, seed));
+		pad[19] += 0x12b9e29d - pad[12];
+		ROREQ (pad[9], 3);
+		major_1 (pad, seed);
 	}
 
-	var_18 += 0x51CE37 - 0x4DA526F;
-	seed -= KEY(0x38) * var_18;
+	seed -= pad[14] * 0xc02e189f;
 
-	if(type == 0x0)
+	if (branch == 0)
 	{
-		enc_20_4D5720 (key, 0x6FC267C3);
-		enc_20_4D4100 (key, 0x1B511ED4);
-		TRY(enc_20_major_4DA520 (key, KEY(0x18)));
+		pad[6] ^= 0x94eaa20d;
+		minor_27;
+		major_14 (pad, pad[6]);
 	}
 
-	if(type == 0x0D)
+	if (branch == 13)
 	{
-		enc_20_4C4A60 (key, 0x32230D49);
-		enc_20_4E4F80 (key, 0x7D753B3A);
-		TRY(enc_20_major_4B19A0 (key, KEY(0x10)));
+		pad[12] += 0x2ac57dfa;
+		pad[2] ^= pad[15] << 5;
+		major_6 (pad, pad[4]);
 	}
 
-	if(type == 0x8)
+	if (branch == 8)
 	{
-		enc_20_4D1E50 (key, 0x0BA143EFE);
-		enc_20_4D5740 (key, 0x2F19769B);
-		TRY(enc_20_major_4C4AC0 (key, seed));
+		pad[18] *= pad[10] + 0x466e09cf;
+		pad[13] -= pad[1];
+		major_9 (pad, seed);
 	}
 
-	KEY(0x10) += 0xA207344D - seed;
+	pad[4] += 0xa207344d - seed;
 
-	if(type == 0x0C)
+	if (branch == 12)
 	{
-		TRY(enc_20_4BAC10 (key, 0x80A1DA17));
-		enc_20_4C0780 (key, 0x0E8630EDE);
-		TRY(enc_20_major_4F2B40 (key, KEY(0x0C)));
+		TRY (minor_2 (0x80a1da17));
+		pad[13] *= 0xa02fe00;
+		major_2 (pad, pad[3]);
 	}
 
-	if(type == 0x2)
+	if (branch == 2)
 	{
-		enc_20_4AB3B0 (key, 0x64A3D689);
-		enc_20_4D5720 (key, 0x0E5C778D8);
-		TRY(enc_20_major_4ABC60 (key, KEY(0x24)));
+		pad[13] *= 0x6aa5cc8c;
+		pad[6] ^= 0xaefb322;
+		major_5 (pad, pad[9]);
 	}
 
-	if(type == 0x0)
+	if (branch == 0)
 	{
-		enc_20_4E4F30 (key, 0x4A5DE3AB);
-		enc_20_4C47D0 (key, 0x1D5FBD04);
-		TRY(enc_20_major_4D4910 (key, KEY(0x14)));
+		minor_31 (0xb);
+		pad[5] += pad[0] ^ 0x3e17add3;
+		major_12 (pad, pad[5]);
 	}
 
-	var_18 += 0x51CE37 - 0x352F1985;
-	seed ^= KEY(0x48) ^ 0xE6830C9;
+	seed ^= pad[18] ^ 0xe6830c9;
 
-	if(type == 0x6)
+	if (branch == 6)
 	{
-		enc_20_49B240 (key, 0x0DCF14366);
-		enc_20_4B0380 (key, 0x590DA5F9);
-		TRY(enc_20_major_4D1E70 (key, seed));
+		pad[9] |= pad[7] ^ 0x2a19119f;
+		pad[7] &= pad[13] ^ 0x21aaf758;
+		major_11 (pad, seed);
 	}
 
-	if(type == 0x7)
+	if (branch == 7)
 	{
-		enc_20_49AB20 (key, 0x65C7C287);
-		TRY(enc_20_4BAC10 (key, 0x0B11DA063));
-		TRY(enc_20_major_4D4FB0 (key, KEY(0x0C)));
+		pad[3] -= pad[0] ^ 0x185f3b0d;
+		TRY (minor_2 (0xb11da063));
+		major_13 (pad, pad[3]);
 	}
 
-	if(type == 0x0F)
+	if (branch == 15)
 	{
-		enc_20_4F2A40 (key, 0x0AC8747EC);
-		enc_20_4A1AC0 (key, 0x3CC69EC8);
-		TRY(enc_20_major_4EB610 (key, KEY(0x44)));
+		minor_34;
+		pad[4] ^= 0x41e634f6;
+		major_22 (pad, pad[17]);
 	}
 
-	if(sin((double)((unsigned char)seed)) < math_const_2)
-		KEY(0x00) ^= var_18;
-	else
-		KEY(0x00) ^= KEY(0x20);
+	pad[0] ^= my_sin (seed) ? 0x8b50cd51 : pad[8];
 
-
-	if(type == 0x0B)
+	if (branch == 11)
 	{
-		enc_20_4D6FB0 (key, 0x72BA7A8C);
-		enc_20_4E4F80 (key, 0x1BB3C88C);
-		TRY(enc_20_major_4C1240 (key, seed));
+		minor_28;
+		pad[2] ^= pad[15] << 5;
+		major_8 (pad, seed);
 	}
 
-	if(type == 0x5)
+	if (branch == 5)
 	{
-		enc_20_4C5040 (key, 0x56D54F31);
-		enc_20_4B0380 (key, 0x5AF9BA99);
-		TRY(enc_20_major_4CF650 (key, KEY(0x40)));
+		pad[9] += ROL (pad[4], 9);
+		pad[7] &= pad[13] ^ 0x21aaf758;
+		major_10 (pad, pad[16]);
 	}
 
-	var_18 += 0x51CE37 - 0x50402411;
-	seed += ((KEY(0x04) << 5) - KEY(0x04)) * 2;
+	seed += pad[1] * 0x3e;
 
-	if(type == 0x6)
+	if (branch == 6)
 	{
-		enc_20_4F2A40 (key, 0x0DB8A89D8);
-		enc_20_49B260 (key, 0x39DB8DF7);
-		TRY(enc_20_major_4EECA0 (key, KEY(0x30)));
+		minor_34;
+		ROREQ (pad[4], 0x9);
+		major_1 (pad, pad[12]);
 	}
 
-	if(type == 0x0A)
+	if (branch == 10)
 	{
-		enc_20_4F2AF0 (key, 0x4C0E5D7F);
-		enc_20_4D9AD0 (key, 0x0F8184179);
-		TRY(enc_20_major_4DA520 (key, seed));
+		minor_22;
+		pad[12] ^= pad[15] - 0xf5cfde0;
+		major_14 (pad, seed);
 	}
 
-	KEY(0x04) ^= KEY(0x08) & var_18;
-
-	RETURN;
+	pad[1] ^= pad[2] & 0x3b627777;
 }
-
 
-THROWS_RET enc_20_major_4C1240 (unsigned char *key, unsigned int seed)
+void major_8 (u32 *pad, u32 seed)
 {
-	unsigned int type = (KEY(0x08) ^ seed ^ KEY(0x44)) & 0x0F;
-	unsigned int var_18 = 0x16332817;
+	int branch = (pad[2] ^ seed ^ pad[17]) & 15;
 
-	if(type == 0x7)
+	if (branch == 7)
 	{
-		enc_20_4D5740 (key, 0x0BBE903B1);
-		enc_20_4C07D0 (key, 0x0E9B6FDB);
-		TRY(enc_20_major_4E7FD0 (key, seed));
+		pad[13] -= pad[1];
+		minor_26;
+		major_21 (pad, seed);
 	}
 
-	if(type == 0x0)
+	if (branch == 0)
 	{
-		enc_20_49CED0 (key, 0x0D1F2733B);
-		TRY(enc_20_4BAC10 (key, 0x0E0B52E33));
-		TRY(enc_20_major_4E01F0 (key, KEY(0x3C)));
+		minor_35;
+		TRY (minor_2 (0xe0b52e33));
+		major_16 (pad, pad[15]);
 	}
 
-	var_18 += 0x51CE37 - 0x330C4928;
-	seed -= ROR(KEY(0x08), (unsigned char)var_18);
+	seed -= ROR (pad[2], 6);
 
-	if(type == 0x5)
+	if (branch == 5)
 	{
-		enc_20_4A1AC0 (key, 0x355281E1);
-		enc_20_4C47D0 (key, 0x0DE72F125);
-		TRY(enc_20_major_4EECA0 (key, KEY(0x30)));
+		pad[4] ^= 0x9aa940f;
+		pad[5] += pad[0] ^ 0x3e17add3;
+		major_1 (pad, pad[12]);
 	}
 
-	if(type == 0x1)
+	if (branch == 1)
 	{
-		enc_20_4F2AF0 (key, 0x40D80BF7);
-		enc_20_4D70D0 (key, 0x86A8CA76);
-		TRY(enc_20_major_4DA520 (key, KEY(0x4)));
+		minor_22;
+		minor_17;
+		major_14 (pad, pad[1]);
 	}
 
-	KEY(0x30) += (0 - (((KEY(0x44) * 15) << 1) - KEY(0x44))) << 2;
+	pad[12] -= pad[17] * 0x74;
 
-	if(type == 0x1)
+	if (branch == 1)
 	{
-		enc_20_4ABC20 (key, 0x20D3630);
-		enc_20_4D7680 (key, 0x2D8C0262);
-		TRY(enc_20_major_4B19A0 (key, KEY(0x14)));
+		pad[12] += pad[6] + 0x21d7bf61;
+		pad[13] *= ROR (pad[3], 5);
+		major_6 (pad, pad[5]);
 	}
 
-	if(type == 0x0E)
+	if (branch == 14)
 	{
-		enc_20_4A1AC0 (key, 0x35880FD2);
-		TRY(enc_20_4DA4D0 (key, 0x0C0074301));
-		TRY(enc_20_major_4C4AC0 (key, seed));
+		pad[4] ^= 0x91ac407e;
+		TRY (minor_7);
+		major_9 (pad, seed);
 	}
 
-	var_18 += 0x51CE37 - 0x1A275E87;
-	KEY(0x0C) ^= KEY(0x1C) + 0x137C9F7D;
+	pad[3] ^= pad[7] + 0x137c9f7d;
 
-	if(type == 0x0)
+	if (branch == 0)
 	{
-		enc_20_4B0380 (key, 0x542636C4);
-		enc_20_4E4F80 (key, 0x78B17F64);
-		TRY(enc_20_major_4F2B40 (key, KEY(0x14)));
+		pad[7] &= pad[13] ^ 0x21aaf758;
+		pad[2] ^= pad[15] << 5;
+		major_2 (pad, pad[5]);
 	}
 
-	if(type == 0x4)
+	if (branch == 4)
 	{
-		enc_20_4D7740 (key, 0x0AF2FBD41);
-		enc_20_4A1B00 (key, 0x2FFD0A28);
-		TRY(enc_20_major_4ABC60 (key, KEY(0x10)));
+		pad[10] += 0x8958821;
+		pad[16] += 0x3d2948e4;
+		major_5 (pad, pad[4]);
 	}
 
-	if(type == 0x3)
+	if (branch == 3)
 	{
-		enc_20_49AB20 (key, 0x2BF3386F);
-		enc_20_49B240 (key, 0x0BEF9A336);
-		TRY(enc_20_major_4D4910 (key, KEY(0x30)));
+		pad[3] -= pad[0] ^ 0x185f3b0d;
+		pad[9] |= pad[7] ^ 0x2a19119f;
+		major_12 (pad, pad[12]);
 	}
 
-	if(KEY(0x44) < var_18)
-		KEY(0x2C) += KEY(0x44);
-	else
-		KEY(0x2C) += KEY(0x10);
-		
-	if(type == 0x4)
+	pad[11] += pad[17] < 0xc9a31cd6 ? pad[17] : pad[4];
+
+	if (branch == 4)
 	{
-		enc_20_4D7660 (key, 0x2F26A2DC);
-		enc_20_4D9AD0 (key, 0x164AA05D);
-		TRY(enc_20_major_4D1E70 (key, KEY(0x24)));
+		pad[9] ^= 0x1c686298;
+		pad[12] ^= pad[15] - 0xf5cfde0;
+		major_11 (pad, pad[9]);
 	}
 
-	if(type == 0x0D)
+	if (branch == 13)
 	{
-		enc_20_49AAE0 (key, 0x364F8AC9);
-		TRY(enc_20_4E7C50 (key, 0x6D071F3));
-		TRY(enc_20_major_4D4FB0 (key, KEY(0x34)));
+		pad[7] |= 0x378d3869;
+		TRY (minor_13);
+		major_13 (pad, pad[13]);
 	}
 
-	var_18 += 0x51CE37 - 0xC5AF489;
-	seed *= KEY(0x30) + var_18;
+	seed *= pad[12] + 0xbd99f684;
 
-	if(type == 0x7)
+	if (branch == 7)
 	{
-		enc_20_4A1AE0 (key, 0x1B717676);
-		enc_20_4E7460 (key, 0x4807D3BA);
-		TRY(enc_20_major_4EB610 (key, seed));
+		pad[6] += pad[19] - 0x3f5675d6;
+		pad[19] ^= my_cos (pad[9]) ? 0x57337b8 : pad[14];
+		major_22 (pad, seed);
 	}
 
-	if(type == 0x8)
+	if (branch == 8)
 	{
-		enc_20_4AB3B0 (key, 0x17CCEE88);
-		enc_20_4D7080 (key, 0x0E0885C3);
-		TRY(enc_20_major_4E7FD0 (key, seed));
+		pad[13] *= 0x1dcee48b;
+		minor_30;
+		major_21 (pad, seed);
 	}
 
-	KEY(0x28) += 0xAA3373FC - KEY(0x18); 
+	pad[10] += 0xaa3373fc - pad[6];
 
-	if(type == 0x5)
+	if (branch == 5)
 	{
-		enc_20_4E4F30 (key, 0x0AE768CE);
-		TRY(enc_20_4AE420 (key, 0x0BC90D50));
-		TRY(enc_20_major_4E01F0 (key, seed));
+		minor_31 (0xe);
+		TRY (minor_1 (0xbc90d50));
+		major_16 (pad, seed);
 	}
 
-	if(type == 0x0F)
+	if (branch == 15)
 	{
-		enc_20_49B240 (key, 0x3808522D);
-		enc_20_4DA1E0 (key, 0x9E44B41);
-		TRY(enc_20_major_4EECA0 (key, seed));
+		pad[9] |= pad[7] ^ 0x2a19119f;
+		pad[0] += pad[18] ^ 0x4ac16b8d;
+		major_1 (pad, seed);
 	}
 
-	if(type == 0x6)
+	if (branch == 6)
 	{
-		enc_20_4F2A40 (key, 0x4904087);
-		enc_20_4A12B0 (key, 0x16B508FA);
-		TRY(enc_20_major_4DA520 (key, seed));
+		minor_34;
+		pad[2] ^= my_sin (pad[13]) ? 0xfd08092 : pad[10];
+		major_14 (pad, seed);
 	}
-
-	var_18 += 0x51CE37 - 0x190E1B61;
 
-	if(KEY(0x2C) < var_18)
-		seed ^= KEY(0x2C);
-	else
-		seed ^= KEY(0x08);
+	seed ^= pad[11] < 0xa4dda95a ? pad[11] : pad[2];
 
-	if(type == 0x6)
+	if (branch == 6)
 	{
-		enc_20_4A1B00 (key, 0x0D0A586F);
-		enc_20_4D70D0 (key, 0x0C615F9A3);
-		TRY(enc_20_major_4B19A0 (key, KEY(0x14)));
+		pad[16] += 0x1a36972b;
+		minor_17;
+		major_6 (pad, pad[5]);
 	}
 
-	if(type == 0x0C)
+	if (branch == 12)
 	{
-		TRY(enc_20_4A1640 (key, 0x0B6571D3F));
-		enc_20_4F2B20 (key, 0x797DB408);
-		TRY(enc_20_major_4C4AC0 (key, KEY(0x24)));
+		TRY (minor_12 (0xb6571d3f));
+		pad[0] += pad[6] * 0x3c;
+		major_9 (pad, pad[9]);
 	}
 
-	seed *= KEY(0x38) + 0x9BAA8DB;
+	seed *= pad[14] + 0x9baa8db;
 
-	if(type == 0x9)
+	if (branch == 9)
 	{
-		TRY(enc_20_49AA90 (key, 0x0E378A0ED));
-		enc_20_4C47D0 (key, 0x0BD2055E8);
-		TRY(enc_20_major_4F2B40 (key, KEY(0x20)));
+		TRY (minor_9 (0xe378a0ed));
+		pad[5] += pad[0] ^ 0x3e17add3;
+		major_2 (pad, pad[8]);
 	}
 
-	if(type == 0x0B)
+	if (branch == 11)
 	{
-		TRY(enc_20_4D76F0 (key, 0x0BD149BD9));
-		enc_20_4EB2C0 (key, 0x6476F303);
-		TRY(enc_20_major_4ABC60 (key, seed));
+		TRY (minor_10 (0xbd149bd9));
+		minor_32 (0x6476f303);
+		major_5 (pad, seed);
 	}
 
-	var_18 += 0x51CE37 - 0x11E8B829;
-	KEY(0x44) += my_ftol(floor(sqrt((double)(((unsigned char)KEY(0x30)))+1) + math_const_1));
+	pad[17] += my_sqrt (pad[12]);
 
-	if(type == 0x0A)
+	if (branch == 10)
 	{
-		enc_20_4C0780 (key, 0x5C95FB35);
-		enc_20_4ABC20 (key, 0x0D4EE8E0E);
-		TRY(enc_20_major_4D4910 (key, KEY(0x4C)));
+		pad[13] *= 0xa02fe00;
+		pad[12] += pad[6] + 0x21d7bf61;
+		major_12 (pad, pad[19]);
 	}
 
-	if(type == 0x3)
+	if (branch == 3)
 	{
-		enc_20_4AB3B0 (key, 0x0B198ECA);
-		enc_20_4D7080 (key, 0x7134D6C7);
-		TRY(enc_20_major_4D1E70 (key, KEY(0x8)));
+		pad[13] *= 0x111b84cd;
+		minor_30;
+		major_11 (pad, pad[2]);
 	}
 
-	KEY(0x1C) ^= KEY(0x24) * 0x27219096;
+	pad[7] ^= pad[9] * 0x27219096;
 
-	if(type == 0x2)
+	if (branch == 2)
 	{
-		enc_20_4A1AE0 (key, 0x724A25E9);
-		enc_20_4ABC40 (key, 0x88BE6100);
-		TRY(enc_20_major_4D4FB0 (key, KEY(0x3C)));
-		TRY(enc_20_4DA200 (key, 0x4F8F5B12));
-		enc_20_4E7460 (key, 0x4592496C);
-		TRY(enc_20_major_4EB610 (key, KEY(0x4C)));
+		pad[6] += pad[19] - 0x3f5675d6;
+		pad[16] += 0xfe49a900;
+		major_13 (pad, pad[15]);
+		TRY (minor_6);
+		pad[19] ^= my_cos (pad[9]) ? 0x57337b8 : pad[14];
+		major_22 (pad, pad[19]);
 	}
 
-	var_18 += 0x51CE37 - 0x2790F4EC;
-	KEY(0x08) = ROL(KEY(0x08), (unsigned char)(var_18 ^ seed));
-
-	RETURN;
+	ROLEQ (pad[2], 0x6c0798b3 ^ seed);
 }
-
 
-THROWS_RET enc_20_major_4C4AC0 (unsigned char *key, unsigned int seed)
+void major_9 (u32 *pad, u32 seed)
 {
-	unsigned int type = KEY(0x20) & 0x0F;
-	unsigned int var_18 = 0x3A6D8FF;
+	int branch = pad[8] & 15;
 
-	if(type == 0x0A)
+	if (branch == 10)
 	{
-		enc_20_4D7000 (key, 0x4E507E0);
-		enc_20_4B0380 (key, 0x6304BEAE);
-		TRY(enc_20_major_4E7CE0 (key, KEY(0x00)));
+		minor_29;
+		pad[7] &= pad[13] ^ 0x21aaf758;
+		major_19 (pad, pad[0]);
 	}
 
-	var_18 += 0x51CE37 - 0x20E20A59;
-	seed |= seed + 0x20029BC7;
-
-	if(type == 0x3)
+	if (branch == 3)
 	{
-		enc_20_4A1B00 (key, 0x38BC4AA5);
-		TRY(enc_20_4EEC50 (key, 0x21B5174));
-		TRY(enc_20_major_4B24B0 (key, KEY(0x3C)));
+		pad[16] += 0x45e88961;
+		TRY (minor_8);
+		major_25 (pad, pad[15]);
 	}
 
-	if(type == 0x8)
+	if (branch == 8)
 	{
-		TRY(enc_20_4DA200 (key, 0x37CD0534));
-		enc_20_4F2AF0 (key, 0x47183404);
-		TRY(enc_20_major_4E55C0 (key, KEY(0x8)));
+		TRY (minor_6);
+		minor_22;
+		major_17 (pad, pad[2]);
 	}
 
-	KEY(0x20) |= (((KEY(0x24) * 27) << 1) - KEY(0x24)) << 1;
+	pad[8] |= pad[9] * 0x6a;
 
-	if(type == 0x0)
+	if (branch == 0)
 	{
-		enc_20_4BABE0 (key, 0x7F3CF484);
-		enc_20_4CE300 (key, 0x9968EDD0);
-		TRY(enc_20_major_4A16B0 (key, KEY(0x2C)));
+		pad[7] &= 0x30004a24;
+		pad[9] ^= pad[7] * 0x44;
+		major_4 (pad, pad[11]);
 	}
 
-	if(type == 0x0E)
+	if (branch == 14)
 	{
-		enc_20_4D56F0 (key, 0x0B5DCD82);
-		TRY(enc_20_4DA4D0 (key, 0x86C6A2AB));
-		TRY(enc_20_major_4E5960 (key, KEY(0x34)));
+		pad[13] += pad[15] < 0x137bffeb ? pad[15] : pad[11];
+		TRY (minor_7);
+		major_18 (pad, pad[13]);
 	}
 
-	var_18 += 0x51CE37 - 0x10983F4F;
-	KEY(0x28) &= KEY(0x18) - 0x1286A10;
+	pad[10] &= pad[6] - 0x1286a10;
 
-	if(type == 0x0C)
+	if (branch == 12)
 	{
-		enc_20_4C5040 (key, 0x53865B91);
-		TRY(enc_20_4D7900 (key, 0x0B1EAF26C));
-		TRY(enc_20_major_4DF3C0 (key, KEY(0x44)));
+		pad[9] += ROL (pad[4], 9);
+		TRY (minor_4);
+		major_15 (pad, pad[17]);
 	}
 
-	if(type == 0x2)
+	if (branch == 2)
 	{
-		TRY(enc_20_4EEC50 (key, 0x0D8692E58));
-		enc_20_4E7FB0 (key, 0x6DCE7FF0);
-		TRY(enc_20_major_49ADF0 (key, KEY(0x34)));
+		TRY (minor_8);
+		minor_20;
+		major_3 (pad, pad[13]);
 	}
 
-	KEY(0x38) = ROR(KEY(0x38), (unsigned char)(ROL(seed, 0x48)));
+	seed |= seed + 0x20029bc7;
+	ROREQ (pad[14], ROL (seed, 8));
 
-	if(type == 0x9)
+	if (branch == 9)
 	{
-		enc_20_4B0380 (key, 0x41D6F740);
-		enc_20_4C07D0 (key, 0x75F056D9);
-		TRY(enc_20_major_4E7FD0 (key, KEY(0x14)));
+		pad[7] &= pad[13] ^ 0x21aaf758;
+		minor_26;
+		major_21 (pad, pad[5]);
 	}
 
-	var_18 += 0x51CE37 - 0x5CA8FE0;
-	seed += 0x176CF052 - KEY(0x30);
+	seed += 0x176cf052 - pad[12];
 
-	if(type == 0x0F)
+	if (branch == 15)
 	{
-		enc_20_4D9AD0 (key, 0x2B2612F);
-		enc_20_4C0780 (key, 0x48A7587B);
-		TRY(enc_20_major_4E01F0 (key, seed));
+		pad[12] ^= pad[15] - 0xf5cfde0;
+		pad[13] *= 0xa02fe00;
+		major_16 (pad, seed);
 	}
 
-	if(type == 0x1)
+	if (branch == 1)
 	{
-		enc_20_4D7680 (key, 0x4F288946);
-		enc_20_4E7460 (key, 0x36B40520);
-		TRY(enc_20_major_4EECA0 (key, KEY(0x44)));
+		pad[13] *= ROR (pad[3], 5);
+		pad[19] ^= my_cos (pad[9]) ? 0x57337b8 : pad[14];
+		major_1 (pad, pad[17]);
 	}
 
-	KEY(0x20) = ROL(KEY(0x20), (unsigned char)(KEY(0x10) | 0x702AAAF));
+	ROLEQ (pad[8], pad[4] | 0xf);
 
-	if(type == 0x5)
+	if (branch == 5)
 	{
-		enc_20_4CE300 (key, 0x4A8BADCA);
-		enc_20_4BABE0 (key, 0x77C07A82);
-		TRY(enc_20_major_4DA520 (key, KEY(0x18)));
+		pad[9] ^= pad[7] * 0x44;
+		pad[7] &= 0x1df23f52;
+		major_14 (pad, pad[6]);
 	}
 
-	if(type == 0x4)
+	if (branch == 4)
 	{
-		enc_20_4D4150 (key, 0x0F0C0009F);
-		enc_20_4D5720 (key, 0x5FEA0895);
-		TRY(enc_20_major_4B19A0 (key, seed));
+		pad[5] -= pad[15];
+		pad[6] ^= 0x851242df;
+		major_6 (pad, seed);
 	}
 
-	var_18 += 0x51CE37 - 0xECDFFDA;
-	KEY(0x34) *= KEY(0x08) * 101;
+	pad[13] *= pad[2] * 0x65;
 
-	if(type == 0x0)
+	if (branch == 0)
 	{
-		enc_20_4AE170 (key, 0x0CB6C5D03);
-		enc_20_4D56F0 (key, 0x8DAB903F);
-		TRY(enc_20_major_4E7CE0 (key, KEY(0x28)));
+		pad[14] |= pad[3] ^ 0x4345732;
+		pad[13] += pad[15] < 0x137bffeb ? pad[15] : pad[11];
+		major_19 (pad, pad[10]);
 	}
 
-	if(type == 0x6)
+	if (branch == 6)
 	{
-		enc_20_4D7000 (key, 0x44A4726A);
-		enc_20_4F2AF0 (key, 0x4942B0D3);
-		TRY(enc_20_major_4B24B0 (key, seed));
+		minor_29;
+		minor_22;
+		major_25 (pad, seed);
 	}
 
-	KEY(0x2C) |= ROR(KEY(0x44), 0xFD);
+	pad[11] |= ROR (pad[17], 29);
 
-	if(type == 0x0D)
+	if (branch == 13)
 	{
-		enc_20_49ADD0 (key, 0x3B05DFE2);
-		enc_20_4ABC40 (key, 0x981510F3);
-		TRY(enc_20_major_4E55C0 (key, KEY(0x48)));
+		pad[10] *= pad[10] - 0x5eae6bf;
+		pad[16] += 0x5e01d54b;
+		major_17 (pad, pad[18]);
 	}
 
-	var_18 += 0x51CE37 - 0x146D65D3;
-	KEY(0x44) &= (seed * 3) << 4;
+	pad[17] &= seed * 0x30;
 
-	if(type == 0x7)
+	if (branch == 7)
 	{
-		enc_20_4D4100 (key, 0x1EF961E0);
-		TRY(enc_20_4A1640 (key, 0x65EC261));
-		TRY(enc_20_major_4A16B0 (key, KEY(0x00)));
+		minor_27;
+		TRY (minor_12 (0x65ec261));
+		major_4 (pad, pad[0]);
 	}
 
-	if(type == 0x0B)
+	if (branch == 11)
 	{
-		enc_20_4AE170 (key, 0x0C337552D);
-		enc_20_4DA1E0 (key, 0x1563D4B7);
-		TRY(enc_20_major_4E5960 (key, KEY(0x40)));
+		pad[14] |= pad[3] ^ 0x4345732;
+		pad[0] += pad[18] ^ 0x4ac16b8d;
+		major_18 (pad, pad[16]);
 	}
 
-	KEY(0x34) |= ((KEY(0x0C) << 5) - KEY(0x0C)) << 1;
-
-	RETURN;
+	pad[13] |= pad[3] * 0x3e;
 }
-
 
-THROWS_RET enc_20_major_4CF650 (unsigned char *key, unsigned int seed)
+void major_10 (u32 *pad, u32 seed)
 {
-	unsigned int type = (KEY(0x10) ^ KEY(0x30) ^ KEY(0x44)) & 0x0F;
-	unsigned int var_18 = 0x7A66DF8;
+	int branch = (pad[4] ^ pad[12] ^ pad[17]) & 15;
 
-	if(type == 0x9)
+	if (branch == 9)
 	{
-		TRY(enc_20_4A1640 (key, 0x9FEBCD24));
-		enc_20_4BABE0 (key, 0x7CB379C8);
-		TRY(enc_20_major_4E01F0 (key, KEY(0x38)));
+		TRY (minor_12 (0x9febcd24));
+		pad[7] &= 0x259cf308;
+		major_16 (pad, pad[14]);
 	}
 
-	if(type == 0x4)
+	if (branch == 4)
 	{
-		enc_20_4D5720 (key, 0x82BEBF6F);
-		enc_20_49ADD0 (key, 0x459DEA1E);
-		TRY(enc_20_major_4EECA0 (key, KEY(0x8)));
+		pad[6] ^= 0xa7e6f9b9;
+		pad[10] *= pad[10] - 0x5eae6bf;
+		major_1 (pad, pad[2]);
 	}
 
-	var_18 += 0x51CE37 - 0x4204423;
-	KEY(0x24) += KEY(0x2C) < var_18 ? KEY(0x2C) : KEY(0x24);
+	pad[9] += pad[11] < 0x3d7f80c ? pad[11] : pad[9];
 
-	if(type == 0x6)
+	if (branch == 2)
 	{
-		TRY(enc_20_4D76F0 (key, 0x0ECE6BFA0));
-		enc_20_4AE170 (key, 0x0B30AC2F5);
-		TRY(enc_20_major_4DA520 (key, seed));
+		pad[12] += pad[6] + 0x21d7bf61;
+		pad[14] |= pad[3] ^ 0x4345732;
+		major_9 (pad, pad[1]);
 	}
 
-	if(type == 0x8)
+	if (branch == 6)
 	{
-		TRY(enc_20_4DA4D0 (key, 0x0E88A81AF));
-		enc_20_4D1E50 (key, 0x509C8E6);
-		TRY(enc_20_major_4B19A0 (key, KEY(0x30)));
+		TRY (minor_10 (0xece6bfa0));
+		pad[14] |= pad[3] ^ 0x4345732;
+		major_14 (pad, seed);
 	}
 
-	if(type == 0x2)
+	if (branch == 8)
 	{
-		enc_20_4ABC20 (key, 0x0CE236AA1);
-		enc_20_4AE170 (key, 0x0C293C411);
-		TRY(enc_20_major_4C4AC0 (key, KEY(0x4)));
+		TRY (minor_7);
+		pad[18] *= pad[10] + 0x466e09cf;
+		major_6 (pad, pad[12]);
 	}
 
-	if(cos((double)((unsigned char)seed)) < math_const_2)
-		KEY(0x28) *= 0x16B578EE;
-	else
-		KEY(0x28) *= KEY(0x08);
+	pad[10] *= my_cos (seed) ? 0x16b578ee : pad[2];
 
-	if(type == 0x6)
+	if (branch == 6)
 	{
-		enc_20_4E7CC0 (key, 0x0AC998661);
-		enc_20_4D7000 (key, 0x4076396);
-		TRY(enc_20_major_4F2B40 (key, KEY(0x28)));
+		minor_19;
+		minor_29;
+		major_2 (pad, pad[10]);
 	}
 
-	if(type == 0x0D)
+	if (branch == 13)
 	{
-		enc_20_4CE300 (key, 0x49B53039);
-		enc_20_49CED0 (key, 0x0BBE07CA0);
-		TRY(enc_20_major_4ABC60 (key, KEY(0x28)));
+		pad[9] ^= pad[7] * 0x44;
+		minor_35;
+		major_5 (pad, pad[10]);
 	}
 
-	var_18 += 0x51CE37 - 0x1472F876;
-	KEY(0x44) += seed * 77;
+	pad[17] += seed * 0x4d;
 
-	if(type == 0x1)
+	if (branch == 1)
 	{
-		enc_20_4C07D0 (key, 0x6509B7B6);
-		enc_20_4E7460 (key, 0x526BFFE9);
-		TRY(enc_20_major_4D4910 (key, seed));
+		minor_26;
+		pad[19] ^= my_cos (pad[9]) ? 0x57337b8 : pad[14];
+		major_12 (pad, seed);
+		pad[19] ^= pad[15] ^ 0x3574ed3;
+		pad[10] += 0x9f2550bd;
+		major_13 (pad, seed);
 	}
 
-	if(type == 0x0E)
+	if (branch == 14)
 	{
-		TRY(enc_20_4EEC50 (key, 0x0F4ECA545));
-		enc_20_4E4F30 (key, 0x9A35E7);
-		TRY(enc_20_major_4D1E70 (key, KEY(0x4C)));
+		TRY (minor_8);
+		minor_31 (0x7);
+		major_11 (pad, pad[19]);
 	}
 
-	if(type == 0x1)
-	{
-		enc_20_4C47B0 (key, 0x98420A17);
-		enc_20_4D7740 (key, 0x9F2550BD);
-		TRY(enc_20_major_4D4FB0 (key, seed));
-	}
+	ROLEQ (seed, pad[7] * 0xd);
 
-	seed = ROL(seed, (unsigned char)(KEY(0x1C) * 0xD46040D));
-
-	if(type == 0x0C)
+	if (branch == 12)
 	{
-		enc_20_4EB2A0 (key, 0x542B84AF);
-		enc_20_49ADD0 (key, 0x469B4D07);
-		TRY(enc_20_major_4EB610 (key, KEY(0x8)));
+		pad[9] &= 0x2f23cdc6;
+		pad[10] *= pad[10] - 0x5eae6bf;
+		major_22 (pad, pad[2]);
 	}
 
-	if(type == 0x3)
+	if (branch == 3)
 	{
-		enc_20_4D6FB0 (key, 0x49F3B340);
-		enc_20_4C07D0 (key, 0x4D1104E9);
-		TRY(enc_20_major_4C1240 (key, KEY(0x10)));
-		enc_20_4D76A0 (key, 0x6574F12);
-		TRY(enc_20_4DA200 (key, 0x45C39F73));
-		TRY(enc_20_major_4E01F0 (key, KEY(0x48)));
+		minor_28;
+		minor_26;
+		major_8 (pad, pad[4]);
+		pad[12] *= pad[12];
+		TRY (minor_6);
+		major_16 (pad, pad[18]);
 	}
-
-	var_18 += 0x51CE37 - 0xC2920FC;
 
-	if(sin((double)((unsigned char)KEY(0x00))) < math_const_2)
-		KEY(0x10) += 0x1873296;
-	else
-		KEY(0x10) += KEY(0x04);
+	pad[4] += my_sin (pad[0]) ? 0x1873296 : pad[1];
 
-	if(type == 0x0A)
+	if (branch == 10)
 	{
-		enc_20_4C07D0 (key, 0x458D9A1);
-		TRY(enc_20_4E7C50 (key, 0x0F12C4D71));
-		TRY(enc_20_major_4EECA0 (key, KEY(0x20)));
+		minor_26;
+		TRY (minor_13);
+		major_1 (pad, pad[8]);
 	}
 
-	if(type == 0x4)
+	if (branch == 4)
 	{
-		enc_20_4D76A0 (key, 0x9B5513C);
-		enc_20_4A1B00 (key, 0x687C2613);
-		TRY(enc_20_major_4DA520 (key, KEY(0x10)));
+		pad[12] *= 0xf44cb55;
+		pad[16] += 0x75a864cf;
+		major_14 (pad, pad[4]);
 	}
 
-	KEY(0x30) += 0x1C0BD6DB - KEY(0x2C);
+	pad[12] += 0x1c0bd6db - pad[11];
 
-	if(type == 0x7)
+	if (branch == 2)
 	{
-		TRY(enc_20_4DA4D0 (key, 0x0C067CB50));
-		enc_20_4C07D0 (key, 0x641A66D);
-		TRY(enc_20_major_4B19A0 (key, KEY(0x38)));
+		pad[13] *= 0x17b441db;
+		TRY (minor_12 (0x8951503f));
+		major_9 (pad, pad[19]);
 	}
 
-	if(type == 0x2)
+	if (branch == 7)
 	{
-		enc_20_4AB3B0 (key, 0x11B24BD8);
-		TRY(enc_20_4A1640 (key, 0x8951503F));
-		TRY(enc_20_major_4C4AC0 (key, KEY(0x4C)));
+		TRY (minor_7);
+		minor_26;
+		major_6 (pad, pad[14]);
 	}
 
-	if(type == 0x0B)
+	if (branch == 11)
 	{
-		enc_20_4F2B20 (key, 0x8B252905);
-		enc_20_4ADBC0 (key, 0x91BAB634);
-		TRY(enc_20_major_4F2B40 (key, KEY(0x20)));
+		pad[0] += pad[6] * 0x3c;
+		pad[4] -= pad[17] ^ 0x2217cf47;
+		major_2 (pad, pad[8]);
 	}
 
-	var_18 += 0x51CE37 - 0x64E3C4EE;
-	KEY(0x48) += (0 - (((KEY(0x18) * 3) << 2) - KEY(0x18))) << 2;
+	pad[18] -= pad[6] * 0x2c;
 
-	if(type == 0x7)
+	if (branch == 0)
 	{
-		enc_20_4D1E50 (key, 0x0B41BD474);
-		enc_20_4D7000 (key, 0x0D09F6E51);
-		TRY(enc_20_major_4ABC60 (key, KEY(0x3C)));
+		pad[13] *= 0x1855aabc;
+		TRY (minor_3);
+		major_12 (pad, seed);
 	}
 
-	if(type == 0x0)
+	if (branch == 5)
 	{
-		enc_20_4AB3B0 (key, 0x1253B4B9);
-		TRY(enc_20_4D56B0 (key, 0x2D54DA39));
-		TRY(enc_20_major_4D4910 (key, seed));
+		pad[18] *= pad[10] + 0x466e09cf;
+		pad[9] ^= pad[7] * 0x44;
+		major_11 (pad, pad[10]);
 	}
 
-	if(type == 0x5)
+	if (branch == 7)
 	{
-		enc_20_4D1E50 (key, 0x179C9602);
-		enc_20_4CE300 (key, 0x7B414571);
-		TRY(enc_20_major_4D1E70 (key, KEY(0x28)));
+		pad[18] *= pad[10] + 0x466e09cf;
+		minor_29;
+		major_5 (pad, pad[15]);
 	}
 
-	KEY(0x18) ^= KEY(0x40) ^ 0x354E354D;
+	pad[6] ^= pad[16] ^ 0x354e354d;
 
-	if(type == 0x0F)
+	if (branch == 0)
 	{
-		enc_20_49B240 (key, 0x4FE0409F);
-		enc_20_4D6FB0 (key, 0x0BBDFBB0E);
-		TRY(enc_20_major_4D4FB0 (key, seed));
+		TRY (minor_8);
+		minor_22;
+		major_8 (pad, pad[8]);
 	}
 
-	if(type == 0x8)
+	if (branch == 5)
 	{
-		enc_20_4AE170 (key, 0x0C974ACB8);
-		enc_20_4EB2C0 (key, 0x8A0E1AD7);
-		TRY(enc_20_major_4EB610 (key, KEY(0x20)));
+		pad[6] += 0xfe07af0e - pad[3];
+		pad[13] *= 0xa02fe00;
+		major_16 (pad, pad[10]);
 	}
 
-	var_18 += 0x51CE37 - 0x43F58A7F;
-	seed += var_18 ^ KEY(0x44);
-
-	if(type == 0x0)
+	if (branch == 8)
 	{
-		TRY(enc_20_4EEC50 (key, 0x0F8F4B821));
-		enc_20_4F2AF0 (key, 0x63F74ECA);
-		TRY(enc_20_major_4C1240 (key, KEY(0x20)));
+		pad[14] |= pad[3] ^ 0x4345732;
+		minor_32 (0x8a0e1ad7);
+		major_22 (pad, pad[8]);
 	}
 
-	if(type == 0x5)
+	if (branch == 15)
 	{
-		enc_20_4D4170 (key, 0x46B67ABA);
-		enc_20_4C0780 (key, 0x5CC0DB7A);
-		TRY(enc_20_major_4E01F0 (key, KEY(0x28)));
+		pad[9] |= pad[7] ^ 0x2a19119f;
+		minor_28;
+		major_13 (pad, seed);
 	}
 
-	KEY(0x0C) += KEY(0x34) + var_18;
-
-	RETURN;	  
+	pad[3] += pad[13] + 0x3ba9c809;
 }
-
 
-THROWS_RET enc_20_major_4D1E70 (unsigned char *key, unsigned int seed)
+void major_11 (u32 *pad, u32 seed)
 {
-	unsigned int type = (KEY(0x18) ^ seed ^ KEY(0x38)) & 0x0F;
-	unsigned int var_18 = 0x1E171745;
+	int branch = (pad[6] ^ seed ^ pad[14]) & 15;
 
-	if(type == 0x2)
+	if (branch == 2)
 	{
-		enc_20_4C47B0 (key, 0x0F24FFCB1);
-		enc_20_4D5740 (key, 0x2E753345);
-		TRY(enc_20_major_4E5960 (key, KEY(0x00)));
+		pad[19] ^= pad[15] ^ 0x3574ed3;
+		pad[13] -= pad[1];
+		major_18 (pad, pad[0]);
 	}
 
-	if(type == 0x0)
+	if (branch == 0)
 	{
-		enc_20_4F2AA0 (key, 0x4CB7C10);
-		TRY(enc_20_4D7900 (key, 0x6B6BD558));
-		TRY(enc_20_major_4DF3C0 (key, KEY(0x34)));
+		pad[7] ^= 0x414517ea;
+		TRY (minor_4);
+		major_15 (pad, pad[13]);
 	}
 
-	var_18 += 0x51CE37 - 0x1A8B0B2;
-	KEY(0x38) &= (seed << 6) - seed;
+	pad[14] &= seed * 0x3f;
 
-	if(type == 0x0A)
+	if (branch == 10)
 	{
-		enc_20_4E7CC0 (key, 0x7DB354E2);
-		enc_20_4EB2A0 (key, 0x5D0DEC41);
-		TRY(enc_20_major_49ADF0 (key, KEY(0x28)));
+		minor_19;
+		pad[9] &= 0x38063558;
+		major_3 (pad, pad[10]);
 	}
 
-	if(type == 0x0F)
+	if (branch == 15)
 	{
-		enc_20_4F2A40 (key, 0x43FE3FC4);
-		enc_20_4C4A60 (key, 0x6372112C);
-		TRY(enc_20_major_4E7FD0 (key, KEY(0x2C)));
+		minor_34;
+		pad[12] += 0x5c1481dd;
+		major_21 (pad, pad[11]);
 	}
 
-	KEY(0x28) = ROR(KEY(0x28), (unsigned char)(KEY(0x38) * 83));
+	ROREQ (pad[10], pad[14] * 0x13);
 
-	if(type == 0x8)
+	if (branch == 8)
 	{
-		enc_20_4E7460 (key, 0x39100F43);
-		enc_20_4D9AD0 (key, 0x3B3040D);
-		TRY(enc_20_major_4E01F0 (key, seed));
+		pad[19] ^= my_cos (pad[9]) ? 0x57337b8 : pad[14];
+		pad[12] ^= pad[15] - 0xf5cfde0;
+		major_16 (pad, seed);
 	}
 
-	if(type == 0x4)
+	if (branch == 4)
 	{
-		enc_20_49AB20 (key, 0x3ED2D98A);
-		enc_20_4D5720 (key, 0x82E916DD);
-		TRY(enc_20_major_4EECA0 (key, KEY(0x14)));
+		pad[3] -= pad[0] ^ 0x185f3b0d;
+		pad[6] ^= 0xa8115127;
+		major_1 (pad, pad[5]);
 	}
 
-	var_18 += 0x51CE37 - 0x141DA8E2;
-	KEY(0x2C) ^= seed - 0x3C17609C;
+	pad[11] ^= seed - 0x3c17609c;
 
-	if(type == 0x1)
+	if (branch == 1)
 	{
-		enc_20_4CE2E0 (key, 0x756125B2);
-		enc_20_4D7000 (key, 0x0A7D686B);
-		TRY(enc_20_major_4DA520 (key, seed));
+		pad[12] += pad[6] ^ 0x211f5e40;
+		minor_29;
+		major_14 (pad, seed);
 	}
 
-	if(type == 0x7)
+	if (branch == 7)
 	{
-		enc_20_4AE3C0 (key, 0x0B7D63681);
-		TRY(enc_20_4D56B0 (key, 0x401D08FD));
-		TRY(enc_20_major_4B19A0 (key, KEY(0x2C)));
+		ROREQ (pad[9], 11);
+		TRY (minor_3);
+		major_6 (pad, pad[11]);
 	}
 
-	if(sin((double)((unsigned char)KEY(0x24))) < math_const_2)
-		KEY(0x38) += 0x2D3F1771;
-	else
-		KEY(0x38) += KEY(0x2C);
+	pad[14] += my_sin (pad[9]) ? 0x2d3f1771 : pad[11];
 
-	if(type == 0x5)
+	if (branch == 5)
 	{
-		TRY(enc_20_4EEC50 (key, 0x0DAED7ED5));
-		enc_20_4DA1E0 (key, 0x0E20B1F2);
-		TRY(enc_20_major_4C4AC0 (key, KEY(0x24)));
+		TRY (minor_8);
+		pad[0] += pad[18] ^ 0x4ac16b8d;
+		major_9 (pad, pad[9]);
 	}
 
-	if(type == 0x2)
+	if (branch == 2)
 	{
-		enc_20_4D76A0 (key, 0x187F89F9);
-		enc_20_4E4F30 (key, 0x87959F1F);
-		TRY(enc_20_major_4F2B40 (key, KEY(0x34)));
+		pad[12] *= 0xf44cb55;
+		minor_31 (0x1f);
+		major_2 (pad, pad[13]);
 	}
 
-	if(type == 0x1)
+	if (branch == 1)
 	{
-		enc_20_4EB2A0 (key, 0x643C9851);
-		enc_20_4D1E50 (key, 0x0FCA5C817);
-		TRY(enc_20_major_4ABC60 (key, seed));
+		pad[9] &= 0x3f34e168;
+		pad[18] *= pad[10] + 0x466e09cf;
+		major_5 (pad, seed);
 	}
 
-	var_18 += 0x51CE37 - 0x287AE3DA;
-	KEY(0x48) &= KEY(0x44) + 0x21012257;
+	pad[18] &= pad[17] + 0x21012257;
 
-	if(type == 0x0E)
+	if (branch == 14)
 	{
-		enc_20_4D4170 (key, 0x1DA0662D);
-		TRY(enc_20_4BAC10 (key, 0x51F9A91A));
-		TRY(enc_20_major_4D4910 (key, KEY(0x38)));
+		pad[6] += 0xfe07af0e - pad[3];
+		TRY (minor_2 (0x51f9a91a));
+		major_12 (pad, pad[14]);
 	}
 
-	if(type == 0x0C)
+	if (branch == 12)
 	{
-		enc_20_4AE170 (key, 0x3B002118);
-		enc_20_4A1B00 (key, 0x3B304A6F);
-		TRY(enc_20_major_4E5960 (key, KEY(0x30)));
+		pad[14] |= pad[3] ^ 0x4345732;
+		pad[16] += 0x485c892b;
+		major_18 (pad, pad[12]);
 	}
 
-	KEY(0x4C) &= KEY(0x28) ^ 0x6FC516D5;
+	pad[19] &= pad[10] ^ 0x6fc516d5;
 
-	if(type == 0x6)
+	if (branch == 6)
 	{
-		TRY(enc_20_4DA120 (key, 0x49E40A75));
-		enc_20_4CE2E0 (key, 0x91C7C273);
-		TRY(enc_20_major_4DF3C0 (key, KEY(0x34)));
+		TRY (minor_5);
+		pad[12] += pad[6] ^ 0x211f5e40;
+		major_15 (pad, pad[13]);
 	}
 
-	if(type == 0x0B)
+	if (branch == 11)
 	{
-		TRY(enc_20_4DA200 (key, 0x1351FB6B));
-		enc_20_4D6FB0 (key, 0x76237FFD);
-		TRY(enc_20_major_49ADF0 (key, seed));
+		TRY (minor_6);
+		minor_28;
+		major_3 (pad, seed);
 	}
 
-	var_18 += 0x51CE37 - 0x5875981F;
-	KEY(0x20) ^= KEY(0x2C) * 41 * 3;
+	pad[8] ^= pad[11] * 0x7b;
 
-	if(type == 0x4)
+	if (branch == 4)
 	{
-		enc_20_49CF30 (key, 0x8A0D7D04);
-		enc_20_4C07D0 (key, 0x74F06A1);
-		TRY(enc_20_major_4E7FD0 (key, KEY(0x10)));
+		pad[2] *= pad[3] + 0xd6863a6;
+		minor_26;
+		major_21 (pad, pad[4]);
 	}
 
-	if(type == 0x3)
+	if (branch == 3)
 	{
-		enc_20_4C47B0 (key, 0x0C55FC12);
-		enc_20_4D70D0 (key, 0x51541025);
-		TRY(enc_20_major_4E01F0 (key, KEY(0x24)));
+		pad[19] ^= pad[15] ^ 0x3574ed3;
+		minor_17;
+		major_16 (pad, pad[9]);
 	}
 
-	KEY(0x00) += KEY(0x34) + var_18;
+	pad[0] += pad[13] + 0x88a77a94;
 
-	if(type == 0x0)
+	if (branch == 0)
 	{
-		TRY(enc_20_4BAC10 (key, 0x0F10F9D87));
-		enc_20_4D9AD0 (key, 0x0AFABF1ED);
-		TRY(enc_20_major_4EECA0 (key, KEY(0x3C)));
+		TRY (minor_2 (0xf10f9d87));
+		pad[12] ^= pad[15] - 0xf5cfde0;
+		major_1 (pad, pad[15]);
 	}
 
-	if(type == 0x9)
+	if (branch == 9)
 	{
-		enc_20_4D5740 (key, 0x0B01F2752);
-		enc_20_4A12B0 (key, 0x31784913);
-		TRY(enc_20_major_4DA520 (key, KEY(0x48)));
+		pad[13] -= pad[1];
+		pad[2] ^= my_sin (pad[13]) ? 0xfd08092 : pad[10];
+		major_14 (pad, pad[18]);
 	}
 
-	var_18 += 0x51CE37 - 0x3809EB5D;
-	seed *= KEY(0x20) - 0x44260E37;
+	seed *= pad[8] - 0x44260e37;
 
-	if(type == 0x3)
+	if (branch == 3)
 	{
-		enc_20_4C07D0 (key, 0x3842537E);
-		enc_20_4D7740 (key, 0x671C01B3);
-		TRY(enc_20_major_4B19A0 (key, KEY(0x20)));
+		minor_26;
+		pad[10] += 0x8958821;
+		major_6 (pad, pad[8]);
 	}
 
-	if(type == 0x0D)
+	if (branch == 13)
 	{
-		enc_20_4DA1E0 (key, 0x4E19BD3);
-		enc_20_4F2AA0 (key, 0x129D6C5E);
-		TRY(enc_20_major_4C4AC0 (key, seed));
+		pad[0] += pad[18] ^ 0x4ac16b8d;
+		pad[7] ^= 0x129d6c5e;
+		major_9 (pad, seed);
 	}
 
-	KEY(0x08) &= ROL(KEY(0x4C), (unsigned char)var_18);
-
-	RETURN;
+	pad[2] &= ROL (pad[19], 14);
 }
-
 
-THROWS_RET enc_20_major_4D4910 (unsigned char *key, unsigned int seed)
+void major_12 (u32 *pad, u32 seed)
 {
-	unsigned int type = (KEY(0x1C) ^ seed ^ KEY(0x48)) & 0x0F;
-	unsigned int var_18 = 0x9E24650;
+	int branch = (pad[7] ^ seed ^ pad[18]) & 15;
 
-	if(type == 0x0F)
+	if (branch == 15)
 	{
-		TRY(enc_20_4DA4D0 (key, 0x9BCA873C));
-		enc_20_4D56F0 (key, 0x8B90B1BB);
-		TRY(enc_20_major_4A16B0 (key, KEY(0x44)));
+		TRY (minor_7);
+		pad[13] += pad[15] < 0x137bffeb ? pad[15] : pad[11];
+		major_4 (pad, pad[17]);
 	}
 
-	var_18 += 0x51CE37 - 0x28E92C0D;
-	KEY(0x20) |= seed + 0xE43FC6B;
+	pad[8] |= seed + 0xe43fc6b;
 
-	if(type == 0x1)
+	if (branch == 1)
 	{
-		enc_20_4EB2C0 (key, 0x979304F6);
-		enc_20_4C07D0 (key, 0x156749AD);
-		TRY(enc_20_major_4E5960 (key, KEY(0x18)));
+		minor_32 (0x979304f6);
+		minor_26;
+		major_18 (pad, pad[6]);
 	}
 
-	if(type == 0x8)
+	if (branch == 8)
 	{
-		enc_20_4E7FB0 (key, 0x3965913E);
-		TRY(enc_20_4A1640 (key, 0x0F7131053));
-		TRY(enc_20_major_4DF3C0 (key, KEY(0x34)));
+		minor_20;
+		TRY (minor_12 (0xf7131053));
+		major_15 (pad, pad[13]);
 	}
 
-	KEY(0x4C) ^= seed * 75;
+	pad[19] ^= seed * 0x4b;
 
-	if(type == 0x1)
+	if (branch == 1)
 	{
-		enc_20_4AB3B0 (key, 0x7F675F82);
-		enc_20_4C0780 (key, 0x2C9514D7);
-		TRY(enc_20_major_49ADF0 (key, KEY(0x44)));
+		pad[13] *= 0x85695585;
+		pad[13] *= 0x2c9514d7;
+		major_3 (pad, pad[17]);
 	}
 
-	if(type == 0x0A)
+	if (branch == 10)
 	{
-		enc_20_49B240 (key, 0x0ADD8566C);
-		TRY(enc_20_4AE420 (key, 0x433A0094));
-		TRY(enc_20_major_4E7FD0 (key, KEY(0x20)));
+		pad[9] |= pad[7] ^ 0x2a19119f;
+		TRY (minor_1 (0x433a0094));
+		major_21 (pad, pad[8]);
 	}
 
-	var_18 += 0x51CE37 - 0x5763A27F;
-	KEY(0x04) ^= (KEY(0x38) * 11) << 1;
+	pad[1] ^= pad[14] * 0x16;
 
-	if(type == 0x0)
+	if (branch == 0)
 	{
-		enc_20_4AB3B0 (key, 0x0D644EBB);
-		TRY(enc_20_4DA200 (key, 0x67513FF1));
-		TRY(enc_20_major_4E01F0 (key, KEY(0x38)));
+		pad[13] *= 0x136644be;
+		TRY (minor_6);
+		major_16 (pad, pad[14]);
 	}
 
-	KEY(0x1C) |= seed ^ 0xE857063;
+	pad[7] |= seed ^ 0xe857063;
 
-	if(type == 0x4)
+	if (branch == 4)
 	{
-		enc_20_4EE700 (key, 0x0F3115E0);
-		enc_20_4C4A60 (key, 0x0FFF1F0B9);
-		TRY(enc_20_major_4EECA0 (key, KEY(0x18)));
+		pad[18] -= pad[13] ^ 0x154abcdf;
+		pad[12] += 0xf894616a;
+		major_1 (pad, pad[6]);
 	}
 
-	if(type == 0x9)
+	if (branch == 9)
 	{
-		TRY(enc_20_4D56B0 (key, 0x9C7B6BE9));
-		enc_20_4BABE0 (key, 0x6E480136);
-		TRY(enc_20_major_4DA520 (key, KEY(0x1C)));
+		TRY (minor_3);
+		pad[7] &= 0x3b887f26;
+		major_14 (pad, pad[7]);
 	}
 
-	var_18 += 0x51CE37 - 0x676F0B3;
-	KEY(0x18) = ROR(KEY(0x18), (unsigned char)(KEY(0x24) * var_18));
+	ROREQ (pad[6], pad[9] * 0x8413f1b6);
 
-	if(type == 0x3)
+	if (branch == 3)
 	{
-		TRY(enc_20_49AA90 (key, 0x0CD88EA76));
-		TRY(enc_20_4EEC50 (key, 0x0EEBE11BC));
-		TRY(enc_20_major_4B19A0 (key, KEY(0x4C)));
+		TRY (minor_9 (0xcd88ea76));
+		TRY (minor_8);
+		major_6 (pad, pad[19]);
 	}
 
-	if(type == 0x0D)
+	if (branch == 13)
 	{
-		enc_20_4AE3C0 (key, 0x6E062619);
-		TRY(enc_20_49B1F0 (key, 0x408B95D2));
-		TRY(enc_20_major_4C4AC0 (key, KEY(0x4)));
+		ROREQ (pad[9], 5);
+		TRY (ROREQ (pad[1], 0x8));
+		major_9 (pad, pad[1]);
 	}
 
-	KEY(0x18) -= KEY(0x44) < 0x417E2F7B ? KEY(0x44) : KEY(0x4C);
+	pad[6] -= pad[17] < 0x417e2f7b ? pad[17] : pad[19];
 
-	if(type == 0x5)
+	if (branch == 5)
 	{
-		enc_20_49B240 (key, 0x0EAE87E5C);
-		enc_20_4E7CC0 (key, 0x886005C3);
-		TRY(enc_20_major_4F2B40 (key, KEY(0x4)));
+		pad[9] |= pad[7] ^ 0x2a19119f;
+		minor_19;
+		major_2 (pad, pad[1]);
 	}
 
-	if(type == 0x0C)
+	if (branch == 12)
 	{
-		enc_20_4D5740 (key, 0x26A13171);
-		enc_20_4F2B20 (key, 0x0BF17C103);
-		TRY(enc_20_major_4ABC60 (key, KEY(0x1C)));
+		pad[13] -= pad[1];
+		pad[0] += pad[6] * 0x3c;
+		major_5 (pad, pad[7]);
 	}
 
-	var_18 += 0x51CE37 - 0x4496C1CE;
-	KEY(0x18) |= my_ftol(floor(sqrt((double)(((unsigned char)seed))+1) + math_const_1));
+	pad[6] |= my_sqrt (seed);
 
-	if(type == 0x2)
+	if (branch == 2)
 	{
-		enc_20_4E4F80 (key, 0x7E5651A5);
-		enc_20_4B0380 (key, 0x26142E52);
-		TRY(enc_20_major_4A16B0 (key, seed));
+		pad[2] ^= pad[15] << 5;
+		pad[7] &= pad[13] ^ 0x21aaf758;
+		major_4 (pad, seed);
 	}
 
-	KEY(0x08) ^= KEY(0x20) + 0x3E85747B;
+	pad[2] ^= pad[8] + 0x3e85747b;
 
-	if(type == 0x0)
+	if (branch == 0)
 	{
-		enc_20_4E7FB0 (key, 0x2715398E);
-		enc_20_4EB2A0 (key, 0x7F696176);
-		TRY(enc_20_major_4E5960 (key, KEY(0x38)));
+		minor_20;
+		pad[9] &= 0x5a61aa8d;
+		major_18 (pad, pad[14]);
 	}
 
-	if(type == 0x0B)
+	if (branch == 11)
 	{
-		enc_20_4D4170 (key, 0x463E7360);
-		enc_20_4EB2C0 (key, 0x0BF47F027);
-		TRY(enc_20_major_4DF3C0 (key, KEY(0x0C)));
+		pad[6] += 0xfe07af0e - pad[3];
+		minor_32 (0xbf47f027);
+		major_15 (pad, pad[3]);
 	}
 
-	var_18 += 0x51CE37 - 0x345F167D;
-	KEY(0x08) &= seed;
+	pad[2] &= seed;
 
-	if(type == 0x3)
+	if (branch == 3)
 	{
-		enc_20_4AB3B0 (key, 0x69AFA76);
-		enc_20_4EE700 (key, 0x0FB192798);
-		TRY(enc_20_major_49ADF0 (key, KEY(0x10)));
+		pad[13] *= 0xc9cf079;
+		pad[18] -= pad[13] ^ 0x154abcdf;
+		major_3 (pad, pad[4]);
 	}
 
-	if(type == 0x7)
+	if (branch == 7)
 	{
-		enc_20_4D9AD0 (key, 0x39F63C40);
-		TRY(enc_20_4D7900 (key, 0x0AA198808));
-		TRY(enc_20_major_4E7FD0 (key, KEY(0x38)));
+		pad[12] ^= pad[15] - 0xf5cfde0;
+		TRY (minor_4);
+		major_21 (pad, pad[14]);
 	}
 
-	seed += KEY(0x24) - var_18;
+	seed += pad[9] - 0xbc1b5d9;
 
-	if(type == 0x0E)
+	if (branch == 14)
 	{
-		TRY(enc_20_4EEC50 (key, 0x0E402CD4C));
-		enc_20_4CE300 (key, 0x0F97D5746);
-		TRY(enc_20_major_4E01F0 (key, seed));
+		TRY (minor_8);
+		pad[9] ^= pad[7] * 0x44;
+		major_16 (pad, seed);
 	}
 
-	var_18 += 0x51CE37 - 0x2393ADEE;
-	KEY(0x48) += KEY(0x2C) * 91;
+	pad[18] += pad[11] * 0x5b;
 
-	if(type == 0x2)
+	if (branch == 2)
 	{
-		enc_20_4B0380 (key, 0x4410A5B0);
-		enc_20_4D70D0 (key, 0x84BFCA8F);
-		TRY(enc_20_major_4EECA0 (key, KEY(0x4)));
+		pad[7] &= pad[13] ^ 0x21aaf758;
+		minor_17;
+		major_1 (pad, pad[1]);
 	}
 
-	if(type == 0x6)
+	if (branch == 6)
 	{
-		enc_20_4E4F80 (key, 0x7B9755F6);
-		enc_20_4EE700 (key, 0x8D62C7CD);
-		TRY(enc_20_major_4DA520 (key, seed));
+		pad[2] ^= pad[15] << 5;
+		pad[18] -= pad[13] ^ 0x154abcdf;
+		major_14 (pad, seed);
 	}
 
-	KEY(0x10) ^= KEY(0x10) - var_18;
-
-	RETURN;
+	pad[4] ^= pad[4] - 0xe87fd622;
 }
-
 
-THROWS_RET enc_20_major_4D4FB0 (unsigned char *key, unsigned int seed)
+void major_13 (u32 *pad, u32 seed)
 {
-	unsigned int type = (KEY(0x10) ^ seed ^ KEY(0x48)) & 0x0F;
-	unsigned int var_18 = 0x47631948;
+	int branch = (pad[4] ^ seed ^ pad[18]) & 15;
 
-	if(type == 0x0C)
+	if (branch == 12)
 	{
-		enc_20_4D7000 (key, 0x43DFEE1A);
-		enc_20_49B240 (key, 0x0D010B07F);
-		TRY(enc_20_major_4DF3C0 (key, KEY(0x2C)));
+		minor_29;
+		pad[9] |= pad[7] ^ 0x2a19119f;
+		major_15 (pad, pad[11]);
 	}
 
-	if(type == 0x4)
+	if (branch == 4)
 	{
-		enc_20_4AE3C0 (key, 0x0A095474);
-		enc_20_4D9AD0 (key, 0x0BED26946);
-		TRY(enc_20_major_49ADF0 (key, seed));
+		ROREQ (pad[9], 10);
+		pad[12] ^= pad[15] - 0xf5cfde0;
+		major_3 (pad, seed);
 	}
 
-	var_18 += 0x51CE37 - 0x21819C6E;
-	seed ^= (KEY(0x04) * 27) << 2;
+	seed ^= pad[1] * 0x6c;
 
-	if(type == 0x1)
+	if (branch == 1)
 	{
-		TRY(enc_20_4A1640 (key, 0x0AD86172C));
-		enc_20_4D9AD0 (key, 0x0E5D9856);
-		TRY(enc_20_major_4E7FD0 (key, KEY(0x1C)));
+		TRY (minor_12 (0xad86172c));
+		pad[12] ^= pad[15] - 0xf5cfde0;
+		major_21 (pad, pad[7]);
 	}
 
-	if(type == 0x9)
+	if (branch == 9)
 	{
-		enc_20_4F2B20 (key, 0x0FCB25212);
-		enc_20_4EB2A0 (key, 0x0C7D3C53A);
-		TRY(enc_20_major_4E01F0 (key, KEY(0x28)));
+		pad[0] += pad[6] * 0x3c;
+		pad[9] &= 0xa2cc0e51;
+		major_16 (pad, pad[10]);
 	}
 
-	KEY(0x2C) += KEY(0x20) - 0xEF3B680;
+	pad[11] += pad[8] - 0xef3b680;
 
-	if(type == 0x5)
+	if (branch == 5)
 	{
-		enc_20_4E7FB0 (key, 0x2ABFF9EA);
-		enc_20_4A12B0 (key, 0x13E5A61B);
-		TRY(enc_20_major_4EECA0 (key, seed));
+		minor_20;
+		pad[2] ^= my_sin (pad[13]) ? 0xfd08092 : pad[10];
+		major_1 (pad, seed);
 	}
 
-	if(type == 0x2)
+	if (branch == 2)
 	{
-		enc_20_4C4A60 (key, 0x26995743);
-		enc_20_4C5040 (key, 0x57DEA73C);
-		TRY(enc_20_major_4DA520 (key, KEY(0x0C)));
+		pad[12] += 0x1f3bc7f4;
+		pad[9] += ROL (pad[4], 9);
+		major_14 (pad, pad[3]);
 	}
 
-	var_18 += 0x51CE37 - 0x3B6D1B57;
-	KEY(0x4C) -= seed ^ 0x42B04005;
+	pad[19] -= seed ^ 0x42b04005;
 
-	if(type == 0x8)
+	if (branch == 8)
 	{
-		TRY(enc_20_4E7C50 (key, 0x8CF062FD));
-		enc_20_4DA1E0 (key, 0x0DC0FFA2);
-		TRY(enc_20_major_4B19A0 (key, KEY(0x8)));
+		TRY (minor_13);
+		pad[0] += pad[18] ^ 0x4ac16b8d;
+		major_6 (pad, pad[2]);
 	}
 
-	if(type == 0x3)
+	if (branch == 3)
 	{
-		TRY(enc_20_4E7C50 (key, 0x0B7169A5C));
-		enc_20_4D70D0 (key, 0x71BEF0);
-		TRY(enc_20_major_4C4AC0 (key, seed));
+		TRY (minor_13);
+		minor_17;
+		major_9 (pad, seed);
 	}
 
-	KEY(0x00) += my_ftol(floor(sqrt((double)(((unsigned char)KEY(0x40)))+1) + math_const_1));
+	pad[0] += my_sqrt (pad[16]);
 
-	if(type == 0x0B)
+	if (branch == 11)
 	{
-		enc_20_4D9AD0 (key, 0x46885C39);
-		enc_20_49B260 (key, 0x3D2FA7C7);
-		TRY(enc_20_major_4F2B40 (key, KEY(0x4C)));
+		pad[12] ^= pad[15] - 0xf5cfde0;
+		ROREQ (pad[4], 0x19);
+		major_2 (pad, pad[19]);
 	}
 
-	if(type == 0x0D)
+	if (branch == 13)
 	{
-		TRY(enc_20_4D7900 (key, 0x2FC054CA));
-		enc_20_4C07D0 (key, 0x7215ED91);
-		TRY(enc_20_major_4ABC60 (key, KEY(0x1C)));
+		TRY (minor_4);
+		minor_26;
+		major_5 (pad, pad[7]);
 	}
 
-	var_18 += 0x51CE37 - 0x921FDE;
-	seed += KEY(0x44) | var_18;
+	seed += pad[17] | 0xead7ac4a;
 
-	if(type == 0x1)
+	if (branch == 1)
 	{
-		TRY(enc_20_4AE420 (key, 0x0D3280A0));
-		enc_20_4F2AA0 (key, 0x3EB9D37);
-		TRY(enc_20_major_4D4910 (key, KEY(0x30)));
+		TRY (minor_1 (0xd3280a0));
+		pad[7] ^= 0x3eb9d37;
+		major_12 (pad, pad[12]);
 	}
 
-	if(type == 0x0E)
+	if (branch == 14)
 	{
-		enc_20_4D6FB0 (key, 0x5675456D);
-		enc_20_4E4F30 (key, 0x994A9D7F);
-		TRY(enc_20_major_4D1E70 (key, seed));
+		minor_28;
+		minor_31 (0x1f);
+		major_11 (pad, seed);
 	}
 
-	KEY(0x08) = ROR(KEY(0x08), (unsigned char)(KEY(0x3C) < 0x3F2998C ? KEY(0x3C) : seed));
+	ROREQ (pad[2], pad[15] < 0x3f2998c ? pad[15] : seed);
 
-	if(type == 0x5)
+	if (branch == 5)
 	{
-		TRY(enc_20_4A1640 (key, 0x2DD0E73));
-		enc_20_4C07D0 (key, 0x56566DA);
-		TRY(enc_20_major_4DF3C0 (key, seed));
+		TRY (minor_12 (0x2dd0e73));
+		minor_26;
+		major_15 (pad, seed);
 	}
 
-	if(type == 0x3)
+	if (branch == 3)
 	{
-		TRY(enc_20_49AA90 (key, 0x21602B81));
-		enc_20_4AB3B0 (key, 0x4CF85493);
-		TRY(enc_20_major_49ADF0 (key, seed));
+		TRY (minor_9 (0x21602b81));
+		pad[13] *= 0x52fa4a96;
+		major_3 (pad, seed);
 	}
 
-	var_18 += 0x51CE37 - 0x1979BCBA;
-	KEY(0x10) += KEY(0x08) ^ 0x1579499;
+	pad[4] += pad[2] ^ 0x1579499;
 
-	if(type == 0x0A)
+	if (branch == 10)
 	{
-		TRY(enc_20_4DA4D0 (key, 0x0C3082BA));
-		enc_20_4C47D0 (key, 0x256FD55F);
-		TRY(enc_20_major_4E7FD0 (key, KEY(0x14)));
+		TRY (minor_7);
+		pad[5] += pad[0] ^ 0x3e17add3;
+		major_21 (pad, pad[5]);
 	}
 
-	if(type == 0x0)
+	if (branch == 0)
 	{
-		TRY(enc_20_4DA120 (key, 0x0E755B1F1));
-		enc_20_4F2B20 (key, 0x0EEA23D2F);
-		TRY(enc_20_major_4E01F0 (key, KEY(0x20)));
+		TRY (minor_5);
+		pad[0] += pad[6] * 0x3c;
+		major_16 (pad, pad[8]);
 	}
-	
-	seed += (0 - (((KEY(0x08) * 15) << 1) - KEY(0x08))) * 4;
 
-	if(type == 0x0)
+	seed -= pad[2] * 0x74;
+
+	if (branch == 0)
 	{
-		enc_20_4D5740 (key, 0x99A730A6);
-		enc_20_4C47B0 (key, 0x0B6CA2013);
-		TRY(enc_20_major_4EECA0 (key, seed));
+		pad[13] -= pad[1];
+		pad[19] ^= pad[15] ^ 0x3574ed3;
+		major_1 (pad, seed);
 	}
 
-	if(type == 0x0F)
+	if (branch == 15)
 	{
-		enc_20_4EB2A0 (key, 0x58549EB8);
-		TRY(enc_20_4D76F0 (key, 0x0BCBC7BB));
-		TRY(enc_20_major_4DA520 (key, seed));
+		pad[9] &= 0x334ce7cf;
+		TRY (minor_10 (0xbcbc7bb));
+		major_14 (pad, seed);
 	}
 
-	var_18 += 0x51CE37 - 0x23629E3F;
-	KEY(0x28) -= KEY(0x28) | var_18;
+	pad[10] -= pad[10] | 0xae9eedbf;
 
-	if(type == 0x6)
+	if (branch == 6)
 	{
-		TRY(enc_20_4D56B0 (key, 0x0FAFD833D));
-		TRY(enc_20_4DA200 (key, 0x0CA0F21A3));
-		TRY(enc_20_major_4B19A0 (key, KEY(0x2C)));
+		TRY (minor_3);
+		TRY (minor_6);
+		major_6 (pad, pad[11]);
 	}
 
-	if(type == 0x4)
+	if (branch == 4)
 	{
-		enc_20_4A12B0 (key, 0x259D354C);
-		enc_20_4AB3B0 (key, 0x3F5EC9D);
-		TRY(enc_20_major_4C4AC0 (key, KEY(0x4C)));
+		pad[2] ^= my_sin (pad[13]) ? 0xfd08092 : pad[10];
+		pad[13] *= 0x9f7e2a0;
+		major_9 (pad, pad[19]);
 	}
 
-	seed += KEY(0x44) ^ var_18;
+	seed += pad[17] ^ 0xae9eedbf;
 
-	if(type == 0x7)
+	if (branch == 7)
 	{
-		TRY(enc_20_4EEC50 (key, 0x1EB4212));
-		enc_20_4D1E50 (key, 0x0ED2C157);
-		TRY(enc_20_major_4F2B40 (key, KEY(0x20)));
+		TRY (minor_8);
+		pad[18] *= pad[10] + 0x466e09cf;
+		major_2 (pad, pad[8]);
 	}
 
-	if(type == 0x2)
+	if (branch == 2)
 	{
-		TRY(enc_20_4D56B0 (key, 0x3CBDD354));
-		enc_20_49B240 (key, 0x24792F0C);
-		TRY(enc_20_major_4ABC60 (key, KEY(0x48)));
+		TRY (minor_3);
+		pad[9] |= pad[7] ^ 0x2a19119f;
+		major_5 (pad, pad[18]);
 	}
 
-	var_18 += 0x51CE37 - 0xB836399;
-	KEY(0x40) -= KEY(0x2C) < 0x1E7D86EE ? KEY(0x2C) : seed;
-
-	RETURN;
+	pad[16] -= pad[11] < 0x1e7d86ee ? pad[11] : seed;
 }
-
 
-THROWS_RET enc_20_major_4DA520 (unsigned char *key, unsigned int seed)
+void major_14 (u32 *pad, u32 seed)
 {
-	unsigned int type = (KEY(0x20) ^ seed ^ KEY(0x2C)) % 0x0E;
-	unsigned int var_18 = 0x13E63894;
+	int branch = (pad[8] ^ seed ^ pad[11]) % 14;
 
-	if(type == 0x0)
+	if (branch == 0)
 	{
-		TRY(enc_20_4AE420 (key, 0x0E32BDCA0));
-		enc_20_4D7080 (key, 0x253BAEBA);
-		TRY(enc_20_major_4AE190 (key, KEY(0x4C)));
+		TRY (minor_1 (0xe32bdca0));
+		minor_30;
+		major_23 (pad, pad[19]);
 	}
 
-	var_18 += 0x51CE37 - 0x1CF3B5CC;
-	seed -= seed ^ var_18;
-	
-	if(type == 0x1)
+	seed -= seed ^ 0xf74450ff;
+
+	if (branch == 1)
 	{
-		enc_20_4EB2C0 (key, 0x788C78A4);
-		enc_20_4D5740 (key, 0x0EAAD3709);
-		TRY(enc_20_major_4AE490 (key, seed));
+		minor_32 (0x788c78a4);
+		pad[13] -= pad[1];
+		major_24 (pad, seed);
 	}
 
-	if(cos((double)((unsigned char)KEY(0x0C))) < math_const_2)
-		KEY(0x34) -= var_18;
-	else
-		KEY(0x34) -= KEY(0x10);
+	pad[13] -= my_cos (pad[3]) ? 0xf74450ff : pad[4];
 
-	if(type == 0x9)
+	if (branch == 9)
 	{
-		enc_20_49B240 (key, 0x54F2C066);
-		enc_20_4AE3C0 (key, 0x79D06B80);
-		TRY(enc_20_major_4E7CE0 (key, seed));
+		pad[9] |= pad[7] ^ 0x2a19119f;
+		ROREQ (pad[9], 11);
+		major_19 (pad, seed);
 	}
 
-	var_18 += 0x51CE37 - 0x2E870A32;
-	KEY(0x24) ^= ((KEY(0x18) * 45) << 1) - KEY(0x18);
+	pad[9] ^= pad[6] * 0x59;
 
-	if(type == 0x7)
+	if (branch == 7)
 	{
-		enc_20_4C07D0 (key, 0x0FCE88D4);
-		enc_20_4D4170 (key, 0x7A7F43A);
-		TRY(enc_20_major_4B24B0 (key, KEY(0x2C)));
+		minor_26;
+		pad[6] += 0xfe07af0e - pad[3];
+		major_25 (pad, pad[11]);
 	}
 
-	if(type == 0x8)
+	if (branch == 8)
 	{
-		enc_20_4D5740 (key, 0x69881ABE);
-		enc_20_4A1AC0 (key, 0x292E3197);
-		TRY(enc_20_major_4E55C0 (key, KEY(0x1C)));
+		pad[13] -= pad[1];
+		pad[4] ^= 0xb949718c;
+		major_17 (pad, pad[7]);
 	}
 
-	if(sin((double)((unsigned char)seed)) < math_const_2)
-		KEY(0x04) ^= var_18;
-	else
-		KEY(0x04) ^= KEY(0x44);
+	pad[1] ^= my_sin (seed) ? 0xc90f1504 : pad[17];
 
-	if(type == 0x0D)
+	if (branch == 13)
 	{
-		enc_20_4EB2A0 (key, 0x7EDBE9A7);
-		enc_20_4EE700 (key, 0x9B35CDF7);
-		TRY(enc_20_major_4A16B0 (key, KEY(0x10)));
+		pad[9] &= 0x59d432be;
+		pad[18] -= pad[13] ^ 0x154abcdf;
+		major_4 (pad, pad[4]);
 	}
 
-	var_18 += 0x51CE37 - 0x2E50FA12;
-	KEY(0x44) += KEY(0x34) < 0xAC24EB8 ? KEY(0x34) : KEY(0x24);
+	pad[17] += pad[13] < 0xac24eb8 ? pad[13] : pad[9];
 
-	if(type == 0x5)
+	if (branch == 5)
 	{
-		enc_20_4A1AC0 (key, 0x798A34E7);
-		enc_20_4C4A60 (key, 0x56245E85);
-		TRY(enc_20_major_4E5960 (key, KEY(0x4)));
+		pad[4] ^= 0x3bcc51a7;
+		pad[12] += 0x4ec6cf36;
+		major_18 (pad, pad[1]);
 	}
 
-	seed |= ROR(KEY(0x48), 0xEB);
+	seed |= ROR (pad[18], 11);
 
-	if(type == 0x3)
+	if (branch == 3)
 	{
-		enc_20_4E7FB0 (key, 0x773BD5D0);
-		enc_20_4D4150 (key, 0x2D111A17);
-		TRY(enc_20_major_4DF3C0 (key, KEY(0x00)));
+		minor_20;
+		pad[5] -= pad[15];
+		major_15 (pad, pad[0]);
 	}
 
-	var_18 += 0x51CE37 - 0x14D04E2A;
-	KEY(0x10) += seed + 0xF65EFBD;
+	pad[4] += seed + 0xf65efbd;
 
-	if(type == 0x0A)
+	if (branch == 10)
 	{
-		TRY(enc_20_4DA120 (key, 0x174A71C6));
-		enc_20_49CF30 (key, 0x0A76E16F2);
-		TRY(enc_20_major_49ADF0 (key, KEY(0x14)));
+		TRY (minor_5);
+		pad[2] *= pad[3] + 0xd6863a6;
+		major_3 (pad, pad[5]);
 	}
 
-	if(type == 0x0B)
+	if (branch == 11)
 	{
-		enc_20_4BABE0 (key, 0x7E789968);
-		TRY(enc_20_4DA200 (key, 0x0A2CBDC3F));
-		TRY(enc_20_major_4E7FD0 (key, seed));
+		pad[7] &= 0xdf76eba8;
+		TRY (minor_6);
+		major_21 (pad, seed);
 	}
 
-	KEY(0x10) ^= ROL(KEY(0x20), (unsigned char)var_18);
+	pad[4] ^= ROL (pad[8], 22);
 
-	if(type == 0x6)
+	if (branch == 6)
 	{
-		TRY(enc_20_4D76F0 (key, 0x0EC30BD82));
-		enc_20_49CF30 (key, 0x0ACAA6688);
-		TRY(enc_20_major_4E01F0 (key, KEY(0x34)));
+		TRY (minor_10 (0xec30bd82));
+		pad[2] *= pad[3] + 0xd6863a6;
+		major_16 (pad, pad[13]);
 	}
 
-	var_18 += 0x51CE37 - 0x214227C5;
-	seed *= KEY(0x18) + 0x6BBEB974;
+	seed *= pad[6] + 0x6bbeb974;
 
-	if(type == 0x2)
+	if (branch == 2)
 	{
-		enc_20_4D1E50 (key, 0x0C61F202B);
-		enc_20_49CF30 (key, 0x0AB67DFFA);
-		TRY(enc_20_major_4EECA0 (key, KEY(0x18)));
+		pad[18] *= pad[10] + 0x466e09cf;
+		pad[2] *= pad[3] + 0xd6863a6;
+		major_1 (pad, pad[6]);
 	}
 
-	KEY(0x40) -= KEY(0x08) * var_18;
+	pad[16] -= pad[2] * 0x65a10fa8;
 
-	if(type == 0x0C)
+	if (branch == 12)
 	{
-		enc_20_4C47B0 (key, 0x8272E2B8);
-		enc_20_4AE3C0 (key, 0x7667AFED);
-		TRY(enc_20_major_4AE190 (key, KEY(0x38)));
+		pad[19] ^= pad[15] ^ 0x3574ed3;
+		ROREQ (pad[9], 15);
+		major_23 (pad, pad[14]);
 	}
 
-	var_18 += 0x51CE37 - 0xAE30053;
-	KEY(0x34) = ROR(KEY(0x34), (unsigned char)my_ftol(floor(sqrt((double)(((unsigned char)seed))+1) + math_const_1)));
+	ROREQ (pad[13], my_sqrt (seed));
 
-	if(type == 0x4)
+	if (branch == 4)
 	{
-		enc_20_4E7CC0 (key, 0x0DF62443F);
-		enc_20_4D70D0 (key, 0x455D721C);
-		TRY(enc_20_major_4AE490 (key, KEY(0x00)));
+		minor_19;
+		minor_17;
+		major_24 (pad, pad[0]);
 	}
 
-	if(type == 0x0)
+	if (branch == 0)
 	{
-		enc_20_4F2AA0 (key, 0x0C9D1F4A2);
-		enc_20_4C07D0 (key, 0x16931016);
-		TRY(enc_20_major_4E7CE0 (key, seed));
+		pad[7] ^= 0xc9d1f4a2;
+		minor_26;
+		major_19 (pad, seed);
 	}
 
-	if(sin((double)((unsigned char)KEY(0x28))) < math_const_2)
-		KEY(0x30) -= 0x2818AE3C;
-	else
-		KEY(0x30) -= seed;
-
-	RETURN;
+	pad[12] -= my_sin (pad[10]) ? 0x2818ae3c : seed;
 }
-
 
-THROWS_RET enc_20_major_4DF3C0 (unsigned char *key, unsigned int seed)
+void major_15 (u32 *pad, u32 seed)
 {
-	unsigned int type = (KEY(0x44) ^ seed ^ KEY(0x4C)) % 0x09;
-	unsigned int var_14 = 0x2341AE11;
+	int branch = (pad[17] ^ seed ^ pad[19]) % 9;
 
-	var_14 += 0x51CE37 - 0x29FC10F7;
-	KEY(0x4C) = ROR(KEY(0x4C), (unsigned char)(KEY(0x4C) + 0x222C438A));
+	ROREQ (pad[19], pad[19] + 0xa);
 
-	if(type == 0x4)
+	if (branch == 4)
 	{
-		enc_20_4E7CC0 (key, 0x1611042);
-		enc_20_4D5720 (key, 0x0CF99677E);
-		enc_20_4EB310 (key, KEY(0x34));
+		minor_19;
+		pad[6] ^= 0xf4c1a1c8;
+		minor_37 (pad);
 	}
-	
-	KEY(0x14) ^= seed + 0x1FF8749D;
 
-	if(type == 0x5)
+	pad[5] ^= seed + 0x1ff8749d;
+
+	if (branch == 5)
 	{
-		enc_20_49B260 (key, 0x95649C47);
-		enc_20_4C5040 (key, 0x1832D52);
-		enc_20_4D7790 (key, KEY(0x48));
+		ROREQ (pad[4], 0x19);
+		pad[9] += ROL (pad[4], 9);
+		minor_36 (pad);
 	}
 
-	var_14 += 0x51CE37 - 0x4E1FF97A;
-	KEY(0x34) ^= KEY(0x3C) + 0x19AD9D3;
+	pad[13] ^= pad[15] + 0x19ad9d3;
 
-	if(type == 0x0)
+	if (branch == 0)
 	{
-		enc_20_4AE170 (key, 0x0D2B1CE9E);
-		enc_20_4C07D0 (key, 0x715F7BB6);
-		TRY(enc_20_major_4AE190 (key, KEY(0x34)));
+		pad[14] |= pad[3] ^ 0x4345732;
+		minor_26;
+		major_23 (pad, pad[13]);
 	}
 
-	KEY(0x0C) = ROR(KEY(0x0C), (unsigned char)my_ftol(floor(sqrt((double)(((unsigned char)KEY(0x24)))+1) + math_const_1)));
+	ROREQ (pad[3], my_sqrt (pad[9]));
 
-	if(type == 0x1)
+	if (branch == 1)
 	{
-		enc_20_4A1B00 (key, 0x0B5EA8D3);
-		enc_20_4E4F80 (key, 0x7B4A5B73);
-		TRY(enc_20_major_4AE490 (key, KEY(0x30)));
+		pad[16] += 0x188ae78f;
+		pad[2] ^= pad[15] << 5;
+		major_24 (pad, pad[12]);
 	}
 
-	var_14 += 0x51CE37 - 0x29D1BF9E;
-	seed ^= KEY(0x30) ^ var_14;
+	seed ^= pad[12] ^ 0x82494ea7;
 
-	if(type == 0x0)
+	if (branch == 0)
 	{
-		enc_20_4AE170 (key, 0x0BB927A66);
-		enc_20_4BABE0 (key, 0x640D6589);
-		TRY(enc_20_major_4E7CE0 (key, KEY(0x18)));
+		pad[14] |= pad[3] ^ 0x4345732;
+		pad[7] &= 0x97ea531;
+		major_19 (pad, pad[6]);
 	}
 
-	KEY(0x00) = ROL(KEY(0x00), (unsigned char)(var_14 & seed));
+	ROLEQ (pad[0], 0x82494ea7 & seed);
 
-	if(type == 0x7)
+	if (branch == 7)
 	{
-		enc_20_4E7FB0 (key, 0x595B6DE2);
-		TRY(enc_20_49AA90 (key, 0x0D3D79CB4));
-		TRY(enc_20_major_4B24B0 (key, KEY(0x18)));
+		minor_20;
+		TRY (minor_9 (0xd3d79cb4));
+		major_25 (pad, pad[6]);
 	}
 
-	var_14 += 0x51CE37 - 0x43D4EFBB;
-	KEY(0x48) ^= KEY(0x24) - 0x5606038;
+	pad[18] ^= pad[9] - 0x5606038;
 
-	if(type == 0x3)
+	if (branch == 3)
 	{
-		enc_20_4D56F0 (key, 0x0C086F2C7);
-		enc_20_4A1B00 (key, 0x5CDB6514);
-		TRY(enc_20_major_4E55C0 (key, KEY(0x20)));
+		pad[13] += pad[15] < 0x137bffeb ? pad[15] : pad[11];
+		pad[16] += 0x6a07a3d0;
+		major_17 (pad, pad[8]);
 	}
 
-	if(sin((double)((unsigned char)KEY(0x1C))) < math_const_2)
-		KEY(0x24) |= var_14;
-	else
-		KEY(0x24) |= KEY(0x18);
+	pad[9] |= my_sin (pad[7]) ? 0x3ec62d23 : pad[6];
 
-	if(type == 0x2)
+	if (branch == 2)
 	{
-		enc_20_4D1E50 (key, 0x27F82E25);
-		TRY(enc_20_4DA200 (key, 0x0A3035B2F));
-		TRY(enc_20_major_4A16B0 (key, KEY(0x4)));
+		pad[18] *= pad[10] + 0x466e09cf;
+		TRY (minor_6);
+		major_4 (pad, pad[1]);
 	}
 
-	var_14 += 0x51CE37 - 0x13C98081;
-	seed -= my_ftol(floor(sqrt((double)(((unsigned char)seed))+1) + math_const_1));
-
-	if(type == 0x6)
+	if (branch == 6)
 	{
-		enc_20_4D4100 (key, 0x396122F5);
-		enc_20_4F2AF0 (key, 0x7AB135BA);
-		TRY(enc_20_major_4E5960 (key, KEY(0x00)));
+		minor_27;
+		minor_22;
+		major_18 (pad, pad[0]);
 	}
-
-	RETURN;
 }
 
-
-THROWS_RET enc_20_major_4E01F0 (unsigned char *key, unsigned int seed)
+void major_16 (u32 *pad, u32 seed)
 {
-	unsigned int type = (KEY(0x2C) ^ seed ^ KEY(0x14)) % 0x0C;
-	unsigned int var_18 = 0x16BFB62C;
+	int branch = (pad[11] ^ seed ^ pad[5]) % 12;
 
-	if(type == 0x5)
+	if (branch == 5)
 	{
-		enc_20_49CF30 (key, 0x0C7074230);
-		enc_20_4F2AF0 (key, 0x6FB6D5B3);
-		enc_20_4EB310 (key, seed);
+		pad[2] *= pad[3] + 0xd6863a6;
+		minor_22;
+		minor_37 (pad);
 	}
 
-	var_18 += 0x51CE37 - 0xC1435B7;
-	KEY(0x10) ^= seed - var_18;
+	pad[4] ^= seed - 0xafd4eac;
 
-	if(type == 0x2)
+	if (branch == 2)
 	{
-		TRY(enc_20_4DA120 (key, 0x37DB88AD));
-		enc_20_4DA1E0 (key, 0x15D9C7E8);
-		enc_20_4D7790 (key, seed);
+		TRY (minor_5);
+		pad[0] += pad[18] ^ 0x4ac16b8d;
+		minor_36 (pad);
 	}
 
-	KEY(0x3C) -= var_18 ^ seed;
+	pad[15] -= 0xafd4eac ^ seed;
 
-	if(type == 0x0)
+	if (branch == 0)
 	{
-		TRY(enc_20_4BAC10 (key, 0x80E3E69E));
-		enc_20_4AE3C0 (key, 0x8BD64F99);
-		TRY(enc_20_major_4AE190 (key, KEY(0x10)));
+		TRY (minor_2 (0x80e3e69e));
+		ROREQ (pad[9], 12);
+		major_23 (pad, pad[4]);
 	}
 
-	var_18 += 0x51CE37 - 0x3E87DD87;
-	KEY(0x20) ^= my_ftol(floor(sqrt((double)(((unsigned char)KEY(0x40)))+1) + math_const_1));
+	pad[8] ^= my_sqrt (pad[16]);
 
-	if(type == 0x3)
+	if (branch == 3)
 	{
-		enc_20_4D7660 (key, 0x3BA8DA0B);
-		enc_20_4D5740 (key, 0x8AF43903);
-		TRY(enc_20_major_4AE490 (key, seed));
+		pad[9] ^= 0x8e61a4f;
+		pad[13] -= pad[1];
+		major_24 (pad, seed);
 	}
 
-	if(type == 0x0A)
+	if (branch == 10)
 	{
-		enc_20_4A1AE0 (key, 0x6B7B7C8C);
-		enc_20_4C0780 (key, 0x0EC5DB78C);
-		TRY(enc_20_major_4E7CE0 (key, KEY(0x18)));
+		pad[6] += pad[19] - 0x3f5675d6;
+		pad[13] *= 0xa02fe00;
+		major_19 (pad, pad[6]);
 	}
-
-	seed -= seed & 0x179DA692;
 
-	if(type == 0x4)
+	if (branch == 4)
 	{
-		TRY(enc_20_4EEC50 (key, 0x13465A59));
-		TRY(enc_20_4DA120 (key, 0x37B9DF6E));
-		TRY(enc_20_major_4B24B0 (key, KEY(0x00)));
+		TRY (minor_8);
+		TRY (minor_5);
+		major_25 (pad, pad[0]);
 	}
 
-	var_18 += 0x51CE37 - 0xE35570;
-	KEY(0x20) ^= ((KEY(0x3C) * 3) << 5) - KEY(0x3C);
+	pad[8] ^= pad[15] * 0x5f;
 
-	if(type == 0x0)
+	if (branch == 0)
 	{
-		enc_20_4EB2C0 (key, 0x6191EFEC);
-		enc_20_4D56F0 (key, 0x0CB94A6AA);
-		TRY(enc_20_major_4E55C0 (key, KEY(0x24)));
+		minor_32 (0x6191efec);
+		pad[13] += pad[15] < 0x137bffeb ? pad[15] : pad[11];
+		major_17 (pad, pad[9]);
 	}
 
-	if(sin((double)((unsigned char)seed)) < math_const_2)
-		KEY(0x18) &= var_18;
-	else
-		KEY(0x18) &= KEY(0x38);
+	seed -= seed & 0x179da692;
+	pad[6] &= my_sin (seed) ? 0xcc35b823 : pad[14];
 
-	if(type == 0x9)
+	if (branch == 9)
 	{
-		enc_20_4D4170 (key, 0x4DD960F0);
-		enc_20_4DA1E0 (key, 0x1F79699C);
-		TRY(enc_20_major_4A16B0 (key, KEY(0x00)));
+		pad[6] += 0xfe07af0e - pad[3];
+		pad[0] += pad[18] ^ 0x4ac16b8d;
+		major_4 (pad, pad[0]);
 	}
 
-	if(type == 0x6)
+	if (branch == 6)
 	{
-		enc_20_49AAE0 (key, 0x94AA2F9);
-		enc_20_4D7660 (key, 0x3E9D8E2F);
-		TRY(enc_20_major_4E5960 (key, seed));
+		pad[7] |= 0xa885099;
+		pad[9] ^= 0xdd34e6b;
+		major_18 (pad, seed);
 	}
-
-	var_18 += 0x51CE37 - 0x390A1A2;
-
-	if(cos((double)((unsigned char)KEY(0x4C))) < math_const_2)
-		seed -= 0xC818C81;
-	else
-		seed -= KEY(0x4C);
 
-	if(type == 0x7)
+	if (branch == 7)
 	{
-		enc_20_4C4A60 (key, 0x65CCD7B0);
-		enc_20_4EE700 (key, 0x90FA8FD1);
-		TRY(enc_20_major_4DF3C0 (key, KEY(0x38)));
+		pad[12] += 0x5e6f4861;
+		pad[18] -= pad[13] ^ 0x154abcdf;
+		major_15 (pad, pad[14]);
 	}
 
-	KEY(0x28) += KEY(0x04) + 0x217F7A00;
+	pad[10] += pad[1] + 0x217f7a00;
 
-	if(type == 0x1)
+	if (branch == 1)
 	{
-		enc_20_4DA1E0 (key, 0x0F4FFD358);
-		enc_20_4D4100 (key, 0x6C60312C);
-		TRY(enc_20_major_49ADF0 (key, KEY(0x44)));
+		pad[0] += pad[18] ^ 0x4ac16b8d;
+		minor_27;
+		major_3 (pad, pad[17]);
 	}
 
-	var_18 += 0x51CE37 - 0x3B888541;
-	KEY(0x14) &= ROR(KEY(0x00), (unsigned char)var_18);
+	pad[5] &= ROR (pad[0], 14);
 
-	if(type == 0x8)
+	if (branch == 8)
 	{
-		enc_20_49CF30 (key, 0x67B2223D);
-		enc_20_4CE300 (key, 0x39289995);
-		TRY(enc_20_major_4E7FD0 (key, KEY(0x34)));
+		pad[2] *= pad[3] + 0xd6863a6;
+		pad[9] ^= pad[7] * 0x44;
+		major_21 (pad, pad[13]);
 	}
 
-	if(type == 0x0B)
+	if (branch == 11)
 	{
-		enc_20_4D7080 (key, 0x5C9A9ABA);
-		enc_20_4D56F0 (key, 0x0F05B039);
-		enc_20_4EB310 (key, KEY(0x00));
+		minor_30;
+		pad[13] += pad[15] < 0x137bffeb ? pad[15] : pad[11];
+		minor_37 (pad);
 	}
 
-	KEY(0x30) |= ROL(KEY(0x1C), (unsigned char)var_18);
-	
-	RETURN;
+	pad[12] |= ROL (pad[7], 14);
 }
 
-
-THROWS_RET enc_20_major_4E55C0 (unsigned char *key, unsigned int seed)
+void major_17 (u32 *pad, u32 seed)
 {
-	unsigned int type = (KEY(0x20) ^ KEY(0x1C) ^ KEY(0x30)) % 0x06;
-	unsigned int var_14 = 0x8622A6D;
+	int branch = (pad[8] ^ pad[7] ^ pad[12]) % 6;
 
-	var_14 += 0x51CE37 - 0x503595F9;
-	KEY(0x04) |= KEY(0x10) ^ 0x10104D4;
+	pad[1] |= pad[4] ^ 0x10104d4;
 
-	if(type == 0x3)
+	if (branch == 3)
 	{
-		enc_20_4E7FB0 (key, 0x0FC354AE9);
-		enc_20_4AE3C0 (key, 0x0A9EB159D);
-		enc_20_4EB310 (key, KEY(0x40));
+		minor_20;
+		ROREQ (pad[9], 12);
+		minor_37 (pad);
 	}
 
-	var_14 += 0x51CE37 - 0x3CB4EBF6;
-	seed = ((seed ^ 0x1EA9DA8) + seed) * KEY(0x48) * 13;
+	seed = ((seed ^ 0x1ea9da8) + seed) * pad[18] * 0xd;
 
-	if(type == 0x0)
+	if (branch == 0)
 	{
-		TRY(enc_20_4AE420 (key, 0x10381FF0));
-		enc_20_49CF30 (key, 0x83A6C91A);
-		enc_20_4D7790 (key, KEY(0x14));
+		TRY (minor_1 (0x10381ff0));
+		pad[2] *= pad[3] + 0xd6863a6;
+		minor_36 (pad);
 	}
-	
-	KEY(0x38) += KEY(0x30) * 25;
-	var_14 += 0x51CE37 - 0x14CF48EC;
-	KEY(0x08) -= my_ftol(floor(sqrt((double)(((unsigned char)KEY(0x14)))+1) + math_const_1));
 
-	if(type == 0x4)
+	pad[14] += pad[12] * 0x19;
+	pad[2] -= my_sqrt (pad[5]);
+
+	if (branch == 4)
 	{
-		enc_20_4ABC40 (key, 0x39E08612);
-		enc_20_4CE300 (key, 0x3A648AAD);
-		TRY(enc_20_major_4AE190 (key, seed));
+		pad[16] += 0x81063b22;
+		pad[9] ^= pad[7] * 0x44;
+		major_23 (pad, seed);
 	}
 
-	KEY(0x18) &= KEY(0x10) - var_14;
-	var_14 += 0x51CE37 - 0x2A19B6A4;
-	KEY(0x04) ^= KEY(0x40) + 0x988DB31;
+	pad[6] &= pad[4] - 0x679dca37;
+	pad[1] ^= pad[16] + 0x988db31;
 
-	if(type == 0x0)
+	if (branch == 0)
 	{
-		enc_20_4F2AA0 (key, 0x0A98896DD);
-		TRY(enc_20_4D56B0 (key, 0x55AF8F05));
-		TRY(enc_20_major_4AE490 (key, KEY(0x18)));
+		pad[7] ^= 0xa98896dd;
+		TRY (minor_3);
+		major_24 (pad, pad[6]);
 	}
 
-	KEY(0x18) += ROR(seed, (unsigned char)var_14);
-	var_14 += 0x51CE37 - 0x143D834B;
-	seed -= KEY(0x00) < var_14 ? KEY(0x00) : KEY(0x0C);
+	pad[6] += ROR (seed, 10);
+	seed -= pad[0] < 0x29ea2cb6 ? pad[0] : pad[3];
 
-	if(type == 0x2)
+	if (branch == 2)
 	{
-		enc_20_49CED0 (key, 0x0F1517841);
-		enc_20_4D9AD0 (key, 0x60D84C1E);
-		TRY(enc_20_major_4E7CE0 (key, seed));
+		minor_35;
+		pad[12] ^= pad[15] - 0xf5cfde0;
+		major_19 (pad, seed);
 	}
-
-	seed *= my_ftol(floor(sqrt((double)(((unsigned char)seed))+1) + math_const_1));
-	var_14 += 0x51CE37 - 0x9210725;
 
-	if(cos((double)((unsigned char)seed)) < math_const_2)
-		KEY(0x14) *= var_14;
-	else
-		KEY(0x14) *= KEY(0x4C);
+	seed *= my_sqrt (seed);
+	pad[5] *= my_cos (seed) ? 0x211af3c8 : pad[19];
 
-	if(type == 0x5)
+	if (branch == 5)
 	{
-		enc_20_4D6FB0 (key, 0x4CBA8E5C);
-		enc_20_4C0780 (key, 0x0A0982F6E);
-		TRY(enc_20_major_4B24B0 (key, KEY(0x34)));
+		minor_28;
+		pad[13] *= 0xa02fe00;
+		major_25 (pad, pad[13]);
 	}
-
-	RETURN;
 }
 
-
-THROWS_RET enc_20_major_4E5960 (unsigned char *key, unsigned int seed)
+void major_18 (u32 *pad, u32 seed)
 {
-	unsigned int type = (KEY(0x38) ^ KEY(0x2C) ^ KEY(0x44)) & 0x07;
-	unsigned int var_14 = 0x37690C43;
+	int branch = (pad[14] ^ pad[11] ^ pad[17]) & 7;
 
-	var_14 += 0x51CE37 - 0x252EAF05;
-	KEY(0x2C) ^= ROR(KEY(0x34), (unsigned char)var_14);
+	pad[11] ^= ROR (pad[13], 21);
 
-	if(type == 0x5)
+	if (branch == 5)
 	{
-		enc_20_4A1AE0 (key, 0x4A451DB4);
-		enc_20_4D7660 (key, 0x3A03C13B);
-		enc_20_4EB310 (key, KEY(0x28));
+		pad[6] += pad[19] - 0x3f5675d6;
+		pad[9] ^= 0x94d017f;
+		minor_37 (pad);
 	}
 
-	KEY(0x0C) = ROR(KEY(0x0C), (unsigned char)(KEY(0x40) * 37 * 3));
+	ROREQ (pad[3], pad[16] * 0xf);
 
-	if(type == 0x2)
+	if (branch == 2)
 	{
-		enc_20_4C47D0 (key, 0x4800158B);
-		enc_20_4F2A40 (key, 0x255DC48D);
-		enc_20_4D7790 (key, KEY(0x44));
+		pad[5] += pad[0] ^ 0x3e17add3;
+		minor_34;
+		minor_36 (pad);
 	}
 
-	var_14 += 0x51CE37 - 0x38937140;
-	KEY(0x2C) -= my_ftol(floor(sqrt((double)(((unsigned char)KEY(0x24)))+1) + math_const_1));
-	KEY(0x30) += 0x17267C5B - KEY(0x2C);
+	pad[11] -= my_sqrt (pad[9]);
+	pad[12] += 0x17267c5b - pad[11];
 
-	if(type == 0x3)
+	if (branch == 3)
 	{
-		enc_20_4E4F30 (key, 0x0CA8D3E2B);
-		enc_20_4B0380 (key, 0x68E48D67);
-		TRY(enc_20_major_4AE190 (key, KEY(0x00)));
+		minor_31 (0xb);
+		pad[7] &= pad[13] ^ 0x21aaf758;
+		major_23 (pad, pad[0]);
 	}
 
-	var_14 += 0x51CE37 - 0x390FD83B;
-	KEY(0x44) ^= seed ^ 0x35EDDEA4; 
+	pad[17] ^= seed ^ 0x35eddea4;
 
-	if(type == 0x0)
+	if (branch == 0)
 	{
-		enc_20_4D7740 (key, 0x3409139C);
-		enc_20_4E7460 (key, 0x21F88861);
-		TRY(enc_20_major_4AE490 (key, KEY(0x18)));
+		pad[10] += 0x3409139c;
+		pad[19] ^= my_cos (pad[9]) ? 0x57337b8 : pad[14];
+		major_24 (pad, pad[6]);
 	}
 
-	KEY(0x18) *= KEY(0x44) + 0xB89B51C;
+	pad[6] *= pad[17] + 0xb89b51c;
 
-	if(type == 0x1)
+	if (branch == 1)
 	{
-		enc_20_4D4170 (key, 0x4ADDC50D);
-		TRY(enc_20_4BAC10 (key, 0x90254266));
-		TRY(enc_20_major_4E7CE0 (key, KEY(0x18)));
+		pad[6] += 0xfe07af0e - pad[3];
+		TRY (minor_2 (0x90254266));
+		major_19 (pad, pad[6]);
 	}
 
-	var_14 += 0x51CE37 - 0x4A885C91;
-	KEY(0x4C) ^= KEY(0x0C) < var_14 ? KEY(0x0C) : KEY(0x04);
-	KEY(0x3C) ^= ((KEY(0x30) * 3) << 3) - KEY(0x30);
+	pad[19] ^= pad[3] < 0x5755f00e ? pad[3] : pad[1];
+	pad[15] ^= pad[12] * 0x17;
 
-	if(type == 0x7)
+	if (branch == 7)
 	{
-		enc_20_4D7680 (key, 0x4BDE6422);
-		enc_20_4D7680 (key, 0x0DE379800);
-		TRY(enc_20_major_4B24B0 (key, KEY(0x24)));
+		pad[13] *= ROR (pad[3], 5);
+		pad[13] *= ROR (pad[3], 5);
+		major_25 (pad, pad[9]);
 	}
 
-	var_14 += 0x51CE37 - 0x47CA3B11;
-	KEY(0x28) += 0x395F1D29 - seed;
+	pad[10] += 0x395f1d29 - seed;
 
-	if(type == 0x0)
+	if (branch == 0)
 	{
-		enc_20_4C4A60 (key, 0x29CFE0BE);
-		enc_20_4AB3B0 (key, 0x42E1F1A9);
-		TRY(enc_20_major_4E55C0 (key, KEY(0x40)));
+		pad[12] += 0x2272516f;
+		pad[13] *= 0x48e3e7ac;
+		major_17 (pad, pad[16]);
 	}
 
-	KEY(0x04) = ROL(KEY(0x04), (unsigned char)ROL(KEY(0x20),(unsigned char)var_14));
-	var_14 += 0x51CE37 - 0x466E93D6;
-	seed -= KEY(0x24) ^ var_14;
+	ROLEQ (pad[1], ROL (pad[8], 20));
+	seed -= pad[9] ^ 0xc9c0bd95;
 
-	if(type == 0x6)
+	if (branch == 6)
 	{
-		TRY(enc_20_4BAC10 (key, 0x10B4EAEF));
-		enc_20_4C4A60 (key, 0x298D7844);
-		TRY(enc_20_major_4A16B0 (key, seed));
+		TRY (minor_2 (0x10b4eaef));
+		pad[12] += 0x222fe8f5;
+		major_4 (pad, seed);
 	}
-
-	KEY(0x48) = ROL(KEY(0x48), (unsigned char)(KEY(0x1C) & 0x34490731));
 
-	RETURN;
+	ROLEQ (pad[18], pad[7] & 0x11);
 }
 
-
-THROWS_RET enc_20_major_4E7CE0 (unsigned char *key, unsigned int seed)
+void major_19 (u32 *pad, u32 seed)
 {
-	unsigned int type = (KEY(0x48) ^ KEY(0x18) ^ KEY(0x3C)) & 0x03;
-	unsigned int var_14 = 0x62369;
+	int branch = (pad[18] ^ pad[6] ^ pad[15]) & 3;
 
-	var_14 += 0x51CE37 - 0x1C2B7803;
-	{
-		unsigned int var = KEY(0x3C) * seed * 0x3C02927;
-		seed = ROR(var, (unsigned char)(((var * 9) << 3) - var));
-	}
+	seed *= pad[15] * 0x3c02927;
+	ROREQ (seed, seed * 0x7);
 
-	if(type == 0x0)
+	if (branch == 0)
 	{
-		enc_20_4CE2E0 (key, 0x45000889);
-		enc_20_4D7660 (key, 0x58053BA7);
-		enc_20_4EB310 (key, KEY(0x4));
+		pad[12] += pad[6] ^ 0x211f5e40;
+		pad[9] ^= 0x6b4bfbe3;
+		minor_37 (pad);
 	}
 
-	var_14 += 0x51CE37 - 0x2B57AC24;
-	seed ^= KEY(0x18) ^ 0xC1FCDA0;
+	seed ^= pad[6] ^ 0xc1fcda0;
+	pad[5] -= my_cos (pad[6]) ? 0xb9269bb0 : pad[10];
 
-	if(cos((double)((unsigned char)KEY(0x18))) < math_const_2)
-		KEY(0x14) -= var_14;
-	else
-		KEY(0x14) -= KEY(0x28);
-
-	if(type == 0x0)
+	if (branch == 0)
 	{
-		enc_20_4D7660 (key, 0x4370ACC2);
-		enc_20_4ABC40 (key, 0x56BB8205);
-		enc_20_4D7790 (key, KEY(0x38));
+		pad[9] ^= 0x703e6c86;
+		pad[16] += 0xbb78136d;
+		minor_36 (pad);
 	}
 
-	var_14 += 0x51CE37 - 0x4EADE9E0;
-	seed *= KEY(0x4C) + 0x11500E47;	
-	KEY(0x0C) ^= ROL(KEY(0x10), 0x34);
+	seed *= pad[19] + 0x11500e47;
+	pad[3] ^= ROL (pad[4], 20);
 
-	if(type == 0x3)
+	if (branch == 3)
 	{
-		enc_20_4E4F80 (key, 0x29F1EEB);
-		enc_20_4C47B0 (key, 0x5285FE67);
-		TRY(enc_20_major_4AE190 (key, KEY(0x3C)));
+		pad[2] ^= pad[15] << 5;
+		pad[19] ^= pad[15] ^ 0x3574ed3;
+		major_23 (pad, pad[15]);
 	}
-
-	var_14 += 0x51CE37 - 0x399B1DAD;
-	KEY(0x34) -= my_ftol(floor(sqrt((double)(((unsigned char)seed))+1) + math_const_1));
 
-	if(cos((double)((unsigned char)seed)) < math_const_2)
-		seed = ROR(seed, (unsigned char)0x3BAE8C7);
-	else
-		seed = ROR(seed, (unsigned char)KEY(0x28));
+	pad[13] -= my_sqrt (seed);
+	ROREQ (seed, my_cos (seed) ? 7 : pad[10]);
+	pad[16] = pad[15] * pad[16] * 0x4a;
 
-	var_14 += 0x51CE37 - 0x1453067E;
-	KEY(0x40) = (KEY(0x3C) * KEY(0x40) * 37) << 1;
-
-	if(type == 0x1)
+	if (branch == 1)
 	{
-		enc_20_4F2AA0 (key, 0x0B3BB63F);
-		enc_20_4ADBC0 (key, 0x0BD7F0241);
-		TRY(enc_20_major_4AE490 (key, seed));
+		pad[7] ^= 0xb3bb63f;
+		pad[4] -= pad[17] ^ 0x2217cf47;
+		major_24 (pad, seed);
 	}
-
-	RETURN;
 }
 
-
-THROWS_RET enc_20_major_4E7FD0 (unsigned char *key, unsigned int seed)
+void major_21 (u32 *pad, u32 seed)
 {
-	unsigned int type = (KEY(0x04) ^ KEY(0x00) ^ KEY(0x40)) % 0x0B;
-	unsigned int var_14 = 0x966CB19;
+	int branch = (pad[1] ^ pad[0] ^ pad[16]) % 11;
 
-	if(type == 0x2)
+	if (branch == 2)
 	{
-		enc_20_49CF30 (key, 0x2FA01766);
-		enc_20_4D9AD0 (key, 0x0B05CA012);
-		enc_20_4EB310 (key, KEY(0x18));
+		pad[2] *= pad[3] + 0xd6863a6;
+		pad[12] ^= pad[15] - 0xf5cfde0;
+		minor_37 (pad);
 	}
 
-	var_14 += 0x51CE37 - 0x3E9B48D4;
-	KEY(0x14) -= seed;
+	pad[5] -= seed;
 
-	if(type == 0x8)
+	if (branch == 8)
 	{
-		enc_20_4A1B00 (key, 0x1DD94C2C);
-		enc_20_4D4170 (key, 0x55CE8D08);
-		enc_20_4D7790 (key, KEY(0x4C));
+		pad[16] += 0x2b058ae8;
+		pad[6] += 0xfe07af0e - pad[3];
+		minor_36 (pad);
 	}
 
-	KEY(0x44) ^=  ROL(KEY(0x48), (unsigned char)var_14);
+	pad[17] ^= ROL (pad[18], 28);
 
-	if(type == 0x4)
+	if (branch == 4)
 	{
-		enc_20_49CF30 (key, 0x0EAD5B044);
-		enc_20_4EB2C0 (key, 0x79FB5201);
-		TRY(enc_20_major_4AE190 (key, KEY(0x1C)));
+		pad[2] *= pad[3] + 0xd6863a6;
+		minor_32 (0x79fb5201);
+		major_23 (pad, pad[7]);
 	}
 
-	var_14 += 0x51CE37 - 0x419B6D78;
-	KEY(0x00) ^= my_ftol(floor(sqrt((double)(((unsigned char)KEY(0x30)))+1) + math_const_1));
+	pad[0] ^= my_sqrt (pad[12]);
 
-	if(type == 0x0)
+	if (branch == 0)
 	{
-		enc_20_4C47B0 (key, 0x3C3D1DB0);
-		TRY(enc_20_4DA120 (key, 0x1798B6E0));
-		TRY(enc_20_major_4AE490 (key, KEY(0x8)));
+		pad[19] ^= pad[15] ^ 0x3574ed3;
+		TRY (minor_5);
+		major_24 (pad, pad[2]);
 	}
 
-	KEY(0x28) ^= (seed * 27) << 2;
+	pad[10] ^= seed * 0x6c;
 
-	if(type == 0x9)
+	if (branch == 9)
 	{
-		enc_20_4A12B0 (key, 0x1F50271D);
-		enc_20_4EB2C0 (key, 0x6DDF8C10);
-		TRY(enc_20_major_4E7CE0 (key, KEY(0x28)));
+		pad[2] ^= my_sin (pad[13]) ? 0xfd08092 : pad[10];
+		minor_32 (0x6ddf8c10);
+		major_19 (pad, pad[10]);
 	}
 
-	var_14 += 0x51CE37 - 0x2CBEEE4;
+	pad[8] -= my_cos (pad[12]) ? 0x8759908e : seed;
 
-	if(cos((double)((unsigned char)KEY(0x30))) < math_const_2)
-		KEY(0x20) -= var_14;
-	else
-		KEY(0x20) -= seed;
-
-	if(type == 0x7)
+	if (branch == 7)
 	{
-		enc_20_4E7CC0 (key, 0x0F2EC0B09);
-		enc_20_4D7000 (key, 0x68DA21A);
-		TRY(enc_20_major_4B24B0 (key, KEY(0x4)));
+		minor_19;
+		minor_29;
+		major_25 (pad, pad[1]);
 	}
 
-	if(sin((double)((unsigned char)seed)) < math_const_2)
-		seed ^= 0x2C99FADE;
-	else
-		seed ^= KEY(0x38);
+	seed ^= my_sin (seed) ? 0x2c99fade : pad[14];
 
-	if(type == 0x1)
+	if (branch == 1)
 	{
-		TRY(enc_20_4A1640 (key, 0x3FCF3163));
-		enc_20_4CE300 (key, 0x0B98E1E36);
-		TRY(enc_20_major_4E55C0 (key, seed));
+		TRY (minor_12 (0x3fcf3163));
+		pad[9] ^= pad[7] * 0x44;
+		major_17 (pad, seed);
 	}
-
-	var_14 += 0x51CE37 - 0x6D17119;
 
-	if(cos((double)((unsigned char)KEY(0x2C))) < math_const_2)
-		KEY(0x3C) += 0x1BEC01F;
-	else
-		KEY(0x3C) += seed;
+	pad[15] += my_cos (pad[11]) ? 0x1bec01f : seed;
 
-	if(type == 0x5)
+	if (branch == 5)
 	{
-		enc_20_4AB3B0 (key, 0x15D31F7C);
-		enc_20_4A1AE0 (key, 0x61034C9F);
-		TRY(enc_20_major_4A16B0 (key, KEY(0x3C)));
+		pad[13] *= 0x1bd5157f;
+		pad[6] += pad[19] - 0x3f5675d6;
+		major_4 (pad, pad[15]);
 	}
 
-	KEY(0x04) = ROR(KEY(0x04), (unsigned char)(var_14 * KEY(0x40)));
+	ROREQ (pad[1], 0x80d9edac * pad[16]);
 
-	if(type == 0x0)
+	if (branch == 0)
 	{
-		TRY(enc_20_4D76F0 (key, 0x0FDE30E03));
-		enc_20_49B240 (key, 0x58581DDE);
-		TRY(enc_20_major_4E5960 (key, seed));
+		TRY (minor_10 (0xfde30e03));
+		pad[9] |= pad[7] ^ 0x2a19119f;
+		major_18 (pad, seed);
 	}
 
-	var_14 += 0x51CE37 - 0x25D9C0CA;
-	KEY(0x1C) &= KEY(0x3C) * 0xA8F285;
+	pad[7] &= pad[15] * 0xa8f285;
 
-	if(type == 0x0A)
+	if (branch == 10)
 	{
-		enc_20_4F2AA0 (key, 0x0EF011757);
-		enc_20_4AE3C0 (key, 0x2412315A);
-		TRY(enc_20_major_4DF3C0 (key, KEY(0x34)));
+		pad[7] ^= 0xef011757;
+		ROREQ (pad[9], 9);
+		major_15 (pad, pad[13]);
 	}
 
-	if(type == 0x3)
+	if (branch == 3)
 	{
-		enc_20_4ABC20 (key, 0x8E08D3A3);
-		enc_20_4A1AE0 (key, 0x1B9DF7E0);
-		TRY(enc_20_major_49ADF0 (key, KEY(0x28)));
+		pad[12] += pad[6] + 0x21d7bf61;
+		pad[6] += pad[19] - 0x3f5675d6;
+		major_3 (pad, pad[10]);
 	}
 
-	if(sin((double)((unsigned char)KEY(0x20))) < math_const_2)
-		KEY(0x0C) *= var_14;
-	else
-		KEY(0x0C) *= KEY(0x08);
+	pad[3] *= my_sin (pad[8]) ? 0x5b51fb19 : pad[2];
 
-	if(type == 0x6)
+	if (branch == 6)
 	{
-		enc_20_4C5040 (key, 0x4120170D);
-		enc_20_4F2AF0 (key, 0x476980E4);
-		enc_20_4EB310 (key, KEY(0x4C));
+		pad[9] += ROL (pad[4], 9);
+		minor_22;
+		minor_37 (pad);
 	}
 
-	var_14 += 0x51CE37 - 0x39DB4818;
-	KEY(0x2C) ^= ((KEY(0x44) << 4) + KEY(0x44)) << 2;
-
-	RETURN;
+	pad[11] ^= pad[17] * 0x44;
 }
 
-
-THROWS_RET enc_20_major_4EB610 (unsigned char *key, unsigned int seed)
+void major_22 (u32 *pad, u32 seed)
 {
-	unsigned int type = (KEY(0x14) ^ KEY(0x00) ^ seed) & 0x0F;
-	unsigned int var_18 = 0x7C36F793;
+	int branch = (pad[5] ^ pad[0] ^ seed) & 15;
 
-	if(type == 0x3)
+	if (branch == 3)
 	{
-		TRY(enc_20_4DA200 (key, 0x2A8F3B7B));
-		enc_20_4E4F30 (key, 0x4BB6BBB3);
-		TRY(enc_20_major_49ADF0 (key, seed));
+		TRY (minor_6);
+		minor_31 (0x13);
+		major_3 (pad, seed);
 	}
 
-	if(type == 0x0)
+	if (branch == 0)
 	{
-		enc_20_4D5720 (key, 0x3B3E4742);
-		enc_20_4D5740 (key, 0x27A033A6);
-		TRY(enc_20_major_4E7FD0 (key, KEY(0x8)));
+		pad[6] ^= 0x6066818c;
+		pad[13] -= pad[1];
+		major_21 (pad, pad[2]);
 	}
 
-	var_18 += 0x51CE37 - 0x513E5C0;
-	KEY(0x38) ^= ROL(KEY(0x40), 0x76);
+	pad[14] ^= ROL (pad[16], 22);
 
-	if(type == 0x0C)
+	if (branch == 12)
 	{
-		enc_20_4D7740 (key, 0x830BA927);
-		enc_20_4EB2C0 (key, 0x6F3A3876);
-		TRY(enc_20_major_4E01F0 (key, KEY(0x20)));
+		pad[10] += 0x830ba927;
+		minor_32 (0x6f3a3876);
+		major_16 (pad, pad[8]);
 	}
 
-	if(type == 0x1)
+	if (branch == 1)
 	{
-		enc_20_4F2A40 (key, 0x5B53432E);
-		enc_20_4A1B00 (key, 0x0E9B79A5);
-		TRY(enc_20_major_4EECA0 (key, KEY(0x18)));
+		minor_34;
+		pad[16] += 0x1bc7b861;
+		major_1 (pad, pad[6]);
 	}
 
-	KEY(0x30) ^= KEY(0x2C) < 0x521B2180 ? KEY(0x2C) : KEY(0x24);
+	pad[12] ^= pad[11] < 0x521b2180 ? pad[11] : pad[9];
 
-	if(type == 0x1)
+	if (branch == 1)
 	{
-		enc_20_4E4F30 (key, 0x42261FF2);
-		enc_20_4F2B20 (key, 0x8E337807);
-		TRY(enc_20_major_4DA520 (key, KEY(0x3C)));
+		minor_31 (0x12);
+		pad[0] += pad[6] * 0x3c;
+		major_14 (pad, pad[15]);
 	}
 
-	if(type == 0x8)
+	if (branch == 8)
 	{
-		TRY(enc_20_4DA120 (key, 0x0EB358CDB));
-		enc_20_4D1E50 (key, 0x0B444924);
-		TRY(enc_20_major_4B19A0 (key, KEY(0x34)));
+		TRY (minor_5);
+		pad[18] *= pad[10] + 0x466e09cf;
+		major_6 (pad, pad[13]);
 	}
 
-	if(type == 0x4)
+	if (branch == 4)
 	{
-		enc_20_4C5040 (key, 0x4682FB69);
-		enc_20_49CF30 (key, 0x67CCBC61);
-		TRY(enc_20_major_4C4AC0 (key, KEY(0x40)));
+		pad[9] += ROL (pad[4], 9);
+		pad[2] *= pad[3] + 0xd6863a6;
+		major_9 (pad, pad[16]);
 	}
 
-	var_18 += 0x51CE37 - 0x10AD1B5;
-	KEY(0x48) &= my_ftol(floor(sqrt((double)(((unsigned char)KEY(0x24)))+1) + math_const_1));
+	pad[18] &= my_sqrt (pad[9]);
 
-	if(type == 0x5)
+	if (branch == 5)
 	{
-		TRY(enc_20_4D7900 (key, 0x893D3AC1));
-		enc_20_4E4F80 (key, 0x137579DF);
-		TRY(enc_20_major_4F2B40 (key, KEY(0x8)));
+		TRY (minor_4);
+		pad[2] ^= pad[15] << 5;
+		major_2 (pad, pad[2]);
 	}
 
-	if(type == 0x6)
+	if (branch == 6)
 	{
-		enc_20_49CF30 (key, 0x0A7A5C640);
-		enc_20_4D4170 (key, 0x51927A5A);
-		TRY(enc_20_major_4ABC60 (key, KEY(0x38)));
+		pad[2] *= pad[3] + 0xd6863a6;
+		pad[6] += 0xfe07af0e - pad[3];
+		major_5 (pad, pad[14]);
 	}
 
-	KEY(0x48) += 0 - (((KEY(0x40) * 15) << 3) - KEY(0x40));
+	pad[18] -= pad[16] * 0x77;
 
-	if(type == 0x9)
+	if (branch == 9)
 	{
-		enc_20_4A1AC0 (key, 0x12C33EF4);
-		enc_20_49B260 (key, 0x827C0747);
-		TRY(enc_20_major_4D4910 (key, KEY(0x28)));
+		pad[4] ^= 0xa09619f7;
+		ROREQ (pad[4], 0x19);
+		major_12 (pad, pad[10]);
 	}
 
-	if(type == 0x0A)
+	if (branch == 10)
 	{
-		enc_20_4D9AD0 (key, 0x92FD0C8C);
-		enc_20_4C0780 (key, 0x6CD0251E);
-		TRY(enc_20_major_4D1E70 (key, KEY(0x00)));
+		pad[12] ^= pad[15] - 0xf5cfde0;
+		pad[13] *= 0x6cd0251e;
+		major_11 (pad, pad[0]);
 	}
 
-	if(type == 0x6)
+	if (branch == 6)
 	{
-		enc_20_49CF30 (key, 0x0E0EF8B15);
-		enc_20_49B260 (key, 0x9CBCA826);
-		TRY(enc_20_major_4D4FB0 (key, seed));
+		pad[2] *= pad[3] + 0xd6863a6;
+		ROREQ (pad[4], 0x1a);
+		major_13 (pad, seed);
 	}
 
-	var_18 += 0x51CE37 - 0x2DDCCCC0;
-	KEY(0x34) ^= var_18 ^ seed;
+	pad[13] ^= 0x4930de03 ^ seed;
 
-	if(type == 0x2)
+	if (branch == 2)
 	{
-		enc_20_4D7740 (key, 0x6467451);
-		enc_20_4ADBC0 (key, 0x0B73CCFC5);
-		TRY(enc_20_major_49ADF0 (key, KEY(0x8)));
+		pad[10] += 0x6467451;
+		pad[4] -= pad[17] ^ 0x2217cf47;
+		major_3 (pad, pad[2]);
 	}
 
-	if(type == 0x7)
+	if (branch == 7)
 	{
-		enc_20_4ADBC0 (key, 0x0F636FBE1);
-		enc_20_4DA1E0 (key, 0x155B7182);
-		TRY(enc_20_major_4E7FD0 (key, KEY(0x00)));
+		pad[4] -= pad[17] ^ 0x2217cf47;
+		pad[0] += pad[18] ^ 0x4ac16b8d;
+		major_21 (pad, pad[0]);
 	}
 
-	KEY(0x18) -= my_ftol(floor(sqrt((double)(((unsigned char)KEY(0x28)))+1) + math_const_1));
+	pad[6] -= my_sqrt (pad[10]);
 
-	if(type == 0x3)
+	if (branch == 3)
 	{
-		TRY(enc_20_49AA90 (key, 0x5B9D1F9));
-		enc_20_4D7740 (key, 0x1119D06E);
-		TRY(enc_20_major_4E01F0 (key, KEY(0x20)));
+		TRY (minor_9 (0x5b9d1f9));
+		pad[10] += 0x8958821;
+		major_16 (pad, pad[8]);
 	}
 
-	if(type == 0x4)
+	if (branch == 4)
 	{
-		enc_20_4D5740 (key, 0x5E4B50C9);
-		enc_20_4AB3B0 (key, 0x6C475699);
-		TRY(enc_20_major_4EECA0 (key, seed));
+		pad[13] -= pad[1];
+		pad[13] *= 0x72494c9c;
+		major_1 (pad, seed);
 	}
 
-	if(type == 0x0D)
+	if (branch == 13)
 	{
-		enc_20_4ABC20 (key, 0x0F8366C3C);
-		enc_20_4D7680 (key, 0x1DCFE0A0);
-		TRY(enc_20_major_4DA520 (key, KEY(0x8)));
+		pad[12] += pad[6] + 0x21d7bf61;
+		pad[13] *= ROR (pad[3], 5);
+		major_14 (pad, pad[2]);
 	}
 
-	var_18 += 0x51CE37 - 0xE3C05FB;
-	seed -= ROR(KEY(0x20), 0x91);
+	seed -= ROR (pad[8], 17);
 
-	if(type == 0x0F)
+	if (branch == 15)
 	{
-		enc_20_4D7050 (key, 0x3DF6E9B8);
-		enc_20_4F2B20 (key, 0x26143568);
-		TRY(enc_20_major_4B19A0 (key, KEY(0x10)));
+		pad[19] += 0x12b9e29d - pad[12];
+		pad[0] += pad[6] * 0x3c;
+		major_6 (pad, pad[4]);
 	}
 
-	if(type == 0x2)
+	if (branch == 2)
 	{
-		enc_20_4E7460 (key, 0x51443CCD);
-		enc_20_4E7FB0 (key, 0x7620E46);
-		TRY(enc_20_major_4C4AC0 (key, KEY(0x40)));
+		pad[19] ^= my_cos (pad[9]) ? 0x57337b8 : pad[14];
+		minor_20;
+		major_9 (pad, pad[16]);
 	}
 
-	KEY(0x38) = ROR(KEY(0x38), (unsigned char)(seed - var_18));
+	ROREQ (pad[14], seed - 0x3b46a63f);
 
-	if(type == 0x0B)
+	if (branch == 11)
 	{
-		enc_20_4E7460 (key, 0x1D2252F);
-		enc_20_4C5040 (key, 0x46BFF386);
-		TRY(enc_20_major_4F2B40 (key, KEY(0x24)));
+		pad[19] ^= my_cos (pad[9]) ? 0x57337b8 : pad[14];
+		pad[9] += ROL (pad[4], 9);
+		major_2 (pad, pad[9]);
 	}
 
-	if(type == 0x5)
+	if (branch == 5)
 	{
-		enc_20_4D7050 (key, 0x2002C1F2);
-		TRY(enc_20_4D7900 (key, 0x37C6428B));
-		TRY(enc_20_major_4ABC60 (key, KEY(0x18)));
+		pad[19] += 0x12b9e29d - pad[12];
+		TRY (minor_4);
+		major_5 (pad, pad[6]);
 	}
 
-	if(type == 0x0)
+	if (branch == 0)
 	{
-		enc_20_4E7FB0 (key, 0x0F9B35E7B);
-		enc_20_4D5720 (key, 0x849F0F1F);
-		TRY(enc_20_major_4D4910 (key, KEY(0x38)));
+		minor_20;
+		pad[6] ^= 0xa9c74969;
+		major_12 (pad, pad[14]);
 	}
 
-	var_18 += 0x51CE37 - 0x31DBA030;
-	KEY(0x20) ^= ROR(seed, (unsigned char)var_18);
+	pad[8] ^= ROR (seed, 6);
 
-	if(type == 0x0E)
+	if (branch == 14)
 	{
-		enc_20_4C4A60 (key, 0x5159E8CF);
-		enc_20_49AB20 (key, 0x3DC64268);
-		TRY(enc_20_major_4D1E70 (key, seed));
+		pad[12] += 0x49fc5980;
+		pad[3] -= pad[0] ^ 0x185f3b0d;
+		major_11 (pad, seed);
 	}
-
-	if(sin((double)((unsigned char)KEY(0x00))) < math_const_2)
-		KEY(0x00) += var_18;
-	else
-		KEY(0x00) += KEY(0x38);
 
-	RETURN;
+	pad[0] += my_sin (pad[0]) ? 0x9bcd446 : pad[14];
 }
 
-
-THROWS_RET enc_20_major_4AE190 (unsigned char *key, unsigned int seed)
+void major_23 (u32 *pad, u32 seed)
 {
-	unsigned int type = seed & 0x01;
-	unsigned int var_14 = 0x7F15D67;
-
-	var_14 += 0x51CE37 - 0x533AFC9;
-	seed |= KEY(0x44) - 0x1E97AEB;
-
-	KEY(0x24) ^= KEY(0x08) * 11;
+	int branch = seed & 1;
 
-	var_14 += 0x51CE37 - 0xFAF6959;
-	KEY(0x10) += KEY(0x20) - 0x16F911E4;
+	pad[4] += pad[8] - 0x16f911e4;
+	pad[9] ^= pad[2] * 11;
+	pad[10] ^= pad[7] < 0x402226f ? pad[7] : pad[2];
+	seed |= pad[17] - 0x1e97aeb;
+	seed |= pad[14] < 0xf3b1e0b3 ? pad[14] : pad[5];
 
-	if(KEY(0x38) < var_14)
-		seed |= KEY(0x38);
-	else
-		seed |= KEY(0x14);
-
-	var_14 += 0x51CE37 - 0x33F6A23B;
-
-	if(KEY(0x1C) < 0x402226F)
-		KEY(0x28) ^= KEY(0x1C);
-	else
-		KEY(0x28) ^= KEY(0x08);
-
-	if(type == 0x00)
+	if (branch == 0)
 	{
-		enc_20_4B0380 (key, 0x731311BB);
-		enc_20_4EB2C0 (key, 0x640F077D);
-		enc_20_4EB310 (key, KEY(0x04));
+		pad[7] &= pad[13] ^ 0x21aaf758;
+		minor_32 (0x640f077d);
+		minor_37 (pad);
 	}
-
-	KEY(0x04) += ((((0 - KEY(0x4C)) << 2) - KEY(0x4C)) * 5) << 2;
-	var_14 += 0x51CE37 - 0x5F978BAB;
-	
-	KEY(0x44) += ROL(KEY(0x30), (unsigned char)var_14);
-	KEY(0x2C) ^=  ROL(KEY(0x08), 0xA9);
 
-	var_14 += 0x51CE37 - 0x1C3B041A;
+	pad[1] -= pad[19] * 0x64;
+	pad[1] += seed - 0x18d1b90;
+	pad[7] -= pad[3] ^ 0x44de1958;
+	pad[11] ^= ROL (pad[2], 9);
+	pad[17] += ROL (pad[12], 27);
 
-	KEY(0x04) += seed - 0x18D1B90;
-	KEY(0x1C) -= KEY(0x0C) ^ var_14;
-
-	if(type == 0)
+	if (branch == 0)
 	{
-		TRY(enc_20_49AA90 (key, 0xDC306F47));
-		enc_20_4CE300 (key, 0x9194790);
-		enc_20_4D7790 (key, KEY(0x14));
+		TRY (minor_9 (0xdc306f47));
+		pad[9] ^= pad[7] * 0x44;
+		minor_36 (pad);
 	}
 
-	var_14 += 0x51CE37 - 0x2F28976F;
-	KEY(0x1C) = ROR(KEY(0x1C), (unsigned char)(KEY(0x34) + var_14));
-
-	RETURN;
+	ROREQ (pad[7], pad[13]);
 }
-
 
-THROWS_RET enc_20_major_4AE490 (unsigned char *key, unsigned int seed)
+void major_24 (u32 *pad, u32 seed)
 {
-	unsigned int type = (KEY(0x08) ^ seed ^ KEY(0x1C)) % 0x03;
-	unsigned int var_14 = 0x47296061;
+	int branch = (pad[2] ^ seed ^ pad[7]) % 3;
 
-	var_14 += 0x51CE37 - 0x40BC9F04;
+	seed *= my_cos (seed) ? 0x6be8f94 : seed;
+	pad[2] ^= pad[2] + 0x3786364b;
+	ROLEQ (pad[17], seed - 0x10);
 
-	if(cos((double)((unsigned char)seed)) < math_const_2)
-		seed *= var_14;
-	else
-		seed *= seed;
-
-	KEY(0x08) ^= KEY(0x08) + 0x3786364B;
-	var_14 += 0x51CE37 - 0x7DC308F;
-	KEY(0x44) = ROL(KEY(0x44), (unsigned char)(seed - 0x2A2F6EB0));
-
-	if(type == 0)
+	if (branch == 0)
 	{
-		enc_20_49CED0 (key, 0x52332BED);
-		enc_20_4D4100 (key, 0x2515D847);
-		enc_20_4EB310 (key, KEY(0x1C));
+		minor_35;
+		minor_27;
+		minor_37 (pad);
 	}
-
-	seed += KEY(0x0C) ^ var_14;
-	var_14 += 0x51CE37 - 0x5E8B2C2;
-
-	if(sin((double)((unsigned char)KEY(0x2C))) < math_const_2)
-		seed = ROL(seed, (unsigned char)var_14);
-	else
-		seed = ROL(seed, (unsigned char)KEY(0x00));
 
+	pad[5] += my_sin (pad[16]) ? 0x3af2a8e2 : pad[16];
 
-	if(sin((double)((unsigned char)KEY(0x40))) < math_const_2)
-		KEY(0x14) += 0x3AF2A8E2;
-	else
-		KEY(0x14) += KEY(0x40);
-    
-	if(type == 0x00)
+	if (branch == 0)
 	{
-		TRY(enc_20_4DA120 (key, 0xE33083C7));
-		enc_20_49CF30 (key, 0x65D7A9B4);
-		enc_20_4D7790 (key, KEY(0x2C));
+		TRY (minor_5);
+		pad[2] *= pad[3] + 0xd6863a6;
+		minor_36 (pad);
 	}
 
-	var_14 += 0x51CE37 - 0x359F93E;
+	pad[13] ^= my_cos (pad[16]) ? 0xf6951daa : pad[1];
+	pad[18] |= pad[17] & 0x6361a322;
 
-	if(cos((double)((unsigned char)KEY(0x40))) < math_const_2)
-		KEY(0x34) ^= var_14;
-	else
-		KEY(0x34) ^= KEY(0x04);
-
-	seed += my_ftol(floor(sqrt((double)(((unsigned char)KEY(0x28)))+1) + math_const_1));
-
-	var_14 += 0x51CE37 - 0x13E1F046;
-	KEY(0x48) |= KEY(0x44) & 0x6361A322;
-
-	if(type == 0x01)
+	if (branch == 1)
 	{
-		enc_20_4D7680 (key, 0x3C017CE0);
-		enc_20_4AB3B0 (key, 0xAC5ABC0C);
-		TRY(enc_20_major_4AE190 (key, KEY(0x3C)));
+		pad[13] *= ROR (pad[3], 5) * 0xb25cb20f;
+		major_23 (pad, pad[15]);
 	}
-
-	RETURN;
 }
-
 
-THROWS_RET enc_20_major_4B24B0 (unsigned char *key, unsigned int seed)
+void major_25 (u32 *pad, u32 seed)
 {
-	unsigned int type = (KEY(0x1C) ^ KEY(0x08) ^ seed) % 0x05;
-	unsigned int var_14 = 0xEB2B07B;
+	int branch = (pad[7] ^ pad[2] ^ seed) % 5;
 
-	var_14 += 0x51CE37 - 0xBE8F461;
-	KEY(0x08) -= var_14 & seed;
+	pad[2] -= 0x31b8a51 & seed;
 
-	if(type == 0x03)
+	if (branch == 3)
 	{
-		enc_20_4A12B0 (key, 0x14C5815);
-		enc_20_4EB2A0 (key, 0x6EAF97B0);
-		enc_20_4EB310 (key, KEY(0x3C));
+		pad[2] ^= my_sin (pad[13]) ? 0xfd08092 : pad[10];
+		pad[9] &= 0x49a7e0c7;
+		minor_37 (pad);
 	}
 
-	KEY(0x04) &= ROR(seed, 0xBD);
-	var_14 += 0x51CE37 - 0x2489D1ED;
+	pad[1] &= ROR (seed, 29);
+	ROLEQ (pad[12], my_cos (pad[1]) ? 27 : pad[5]);
 
-	if(cos((double)((unsigned char)KEY(0x04))) < math_const_2)
-		KEY(0x30) = ROL(KEY(0x30), (unsigned char)var_14);
-	else
-		KEY(0x30) = ROL(KEY(0x30), (unsigned char)KEY(0x14));
-
-	if(type == 0x02)
+	if (branch == 2)
 	{
-		TRY(enc_20_4D7900 (key, 0x60A4946C));
-		enc_20_4A12B0 (key, 0x3D835004);
-		enc_20_4D7790 (key, seed);
+		TRY (minor_4);
+		pad[2] ^= my_sin (pad[13]) ? 0xfd08092 : pad[10];
+		minor_36 (pad);
 	}
-	
-	seed = ROR(seed, (unsigned char)my_ftol(floor(sqrt((double)(((unsigned char)seed))+1) + math_const_1)));
-	var_14 += 0x51CE37 - 0xC5F25EE;
-	KEY(0x44) += (KEY(0x4C) * 61) << 1;
+
+	ROREQ (seed, my_sqrt (seed));
+	seed ^= 0xc63d7671 * seed;
+	pad[17] += pad[19] * 0x7a;
 
-	if(type == 0x00)
+	if (branch == 0)
 	{
-		enc_20_4D7740 (key, 0x132FE180);
-		enc_20_4D1E50 (key, 0x1F0AAF01);
-		TRY(enc_20_major_4AE190 (key, KEY(0x28)));
+		pad[10] += 0x8958821;
+		pad[18] *= pad[10] + 0x466e09cf;
+		major_23 (pad, pad[10]);
 	}
 
-	if(cos((double)((unsigned char)KEY(0x18))) < math_const_2)
-		KEY(0x48) = ROR(KEY(0x48), (unsigned char)0x22210ED1);
-	else
-		KEY(0x48) = ROR(KEY(0x48), (unsigned char)KEY(0x04));
+	ROREQ (pad[18], my_cos (pad[6]) ? 0x11 : pad[1]);
 
-	var_14 += 0x51CE37 - 0xCEA86AA;
-	seed ^= var_14 * seed;
-
-	if(type == 0x04)
+	if (branch == 4)
 	{
-		TRY(enc_20_4DA4D0 (key, 0xDFEDAEC1));
-		enc_20_4D7660 (key, 0x3006CEAA);
-		TRY(enc_20_major_4AE490 (key, seed));
+		TRY (minor_7);
+		pad[9] ^= 0x3480eee;
+		major_24 (pad, seed);
 	}
 
-	KEY(0x28) -= my_ftol(floor(sqrt((double)(((unsigned char)seed))+1) + math_const_1));
-	var_14 += 0x51CE37 - 0xA964DAF;
-	KEY(0x2C) &= (seed << 6) - seed;
+	pad[10] -= my_sqrt (seed);
+	pad[11] &= seed * 0x3f;
 
-	if(type == 0x00)
+	if (branch == 0)
 	{
-		enc_20_4D1E50 (key, 0x99ED391);
-		enc_20_4AB3B0 (key, 0x69F5B967);
-		TRY(enc_20_major_4E7CE0 (key, KEY(0x44)));
+		pad[18] *= pad[10] + 0x466e09cf;
+		pad[13] *= 0x6ff7af6a;
+		major_19 (pad, pad[17]);
 	}
 
-	KEY(0x04) = ROL(KEY(0x04), (unsigned char)(KEY(0x3C) + var_14));
-
-	RETURN;
+	ROLEQ (pad[1], pad[15] + 0x19);
 }
-
 
-THROWS_RET enc_20_mix (unsigned char *key, unsigned int seed)
+void mix (u32 *pad, u32 seed)
 {
-	unsigned int type = (KEY(0x14) ^ KEY(0x24) ^ KEY(0x4C)) & 0x0F;
-	unsigned int var_18 = 0x283EF81D;
-
-	if(type == 0x9)
-	{
-		TRY(enc_20_4DA4D0 (key, 0x0A57E85CC));
-		TRY(enc_20_4E7C50 (key, 0x0CEB224F2));
-		TRY(enc_20_major_4DA520 (key, seed));
-	}
-
-	if(type == 0x5)
-	{
-		TRY(enc_20_4EEC50 (key, 0x0EA6A13F8));
-		enc_20_4C4A60 (key, 0x3B1AD72C);
-		TRY(enc_20_major_4B19A0 (key, KEY(0x24)));
-	}
-
-	var_18 += 0x51CE37 - 0x139AAE35;
-	seed = 0x45835EB3;
-
-	if(type == 0x8)
-	{
-		enc_20_4D6FB0 (key, 0x6A50F5DD);
-		enc_20_4A1AE0 (key, 0x158B51AA);
-		TRY(enc_20_major_4C4AC0 (key, KEY(0x28)));
-	}
-
-	if(type == 0x0A)
-	{
-		TRY(enc_20_4DA120 (key, 0x1C760834));
-		enc_20_4D5720 (key, 0x0E8D8F62);
-		TRY(enc_20_major_4F2B40 (key, KEY(0x00)));
-	}
-
-	if(type == 0x0)
-	{
-		enc_20_4A12B0 (key, 0x71E0BF51);
-		TRY(enc_20_4DA120 (key, 0x3A331670));
-		TRY(enc_20_major_4ABC60 (key, 0x45835EB3));
-	}
-
-	KEY(0x08) ^= KEY(0x18) + 0x1847DE17;
-
-	if(type == 0x1)
-	{
-		enc_20_4D7660 (key, 0x2EBE9EE6);
-		enc_20_4D7050 (key, 0x4783AEE5);
-		TRY(enc_20_major_4D4910 (key, 0x45835EB3));
-	}
-
-	if(type == 0x0A)
-	{
-		enc_20_4D6FB0 (key, 0x79378FA0);
-		enc_20_4D76A0 (key, 0x3AFC7FE8);
-		TRY(enc_20_major_4D1E70 (key, KEY(0x18)));
-	}
+	int branch = (pad[5] ^ pad[9] ^ pad[19]) & 15;
 
-	var_18 += 0x51CE37 - 0x36493B6F;
-	KEY(0x4C) += (KEY(0x30) * 13) << 3;
-
-	if(type == 0x2)
-	{
-		enc_20_4D6FB0 (key, 0x6F278A7C);
-		enc_20_4D9AD0 (key, 0x0AEC3F44A);
-		TRY(enc_20_major_4D4FB0 (key, KEY(0x4C)));
-		enc_20_4A1AE0 (key, 0x72B54F51);
-		enc_20_4C4A60 (key, 0x678012FE);
-		TRY(enc_20_major_4EB610 (key, KEY(0x00)));
-	}
-
-	if(type == 0x6)
-	{
-		TRY(enc_20_4AE420 (key, 0x706A6BC));
-		TRY(enc_20_4BAC10 (key, 0x82B598A1));
-		TRY(enc_20_major_4C1240 (key, 0x45835EB3));
-	}
-
-	KEY(0x1C) -= KEY(0x38) & 0x1ADA7FA;
-
-	if(type == 0x4)
-	{
-		enc_20_4E7FB0 (key, 0x7B44A5DE);
-		enc_20_4ABC20 (key, 0x0E4545CA5);
-		TRY(enc_20_major_4CF650 (key, KEY(0x40)));
-	}
-
-	if(type == 0x6)
+	switch (branch)
 	{
-		TRY(enc_20_4DA4D0 (key, 0x1DC5E29D));
-		TRY(enc_20_4BAC10 (key, 0x0D2950F8C));
-		TRY(enc_20_major_4BAC60 (key, 0x45835EB3));
+	case 0:
+		pad[2] ^= my_sin (pad[13]) ? 0xfd08092 : pad[10];
+		TRY (minor_5);
+		major_5 (pad, 0x45835eb3);
+		break;
+	case 5:
+		TRY (minor_8);
+		pad[12] += 0x33bd47dd;
+		major_6 (pad, pad[9]);
+		break;
+	case 8:
+		minor_28;
+		pad[6] += pad[19] - 0x3f5675d6;
+		major_9 (pad, pad[10]);
+		break;
+	case 9:
+		TRY (minor_7);
+		TRY (minor_13);
+		major_14 (pad, seed);
+		break;
+	case 10:
+		TRY (minor_5);
+		pad[6] ^= 0x33b5c9ac;
+		major_2 (pad, pad[0]);
+		break;
 	}
 
-	var_18 += 0x51CE37 - 0x0EBDA763;
-	seed = (KEY(0x00) + var_18) & 0x45835EB3;
+	pad[2] ^= pad[6] + 0x1847de17;
 
-	if(type == 0x4)
+	switch (branch)
 	{
-		enc_20_4D5740 (key, 0x0F80C2802);
-		enc_20_4D1E50 (key, 0x2973284);
-		TRY(enc_20_major_4DA520 (key, KEY(0x14)));
+	case 1:
+		pad[9] ^= 0x1df05ea2;
+		pad[19] += 0x12b9e29d - pad[12];
+		major_12 (pad, 0x45835eb3);
+		break;
+	case 10:
+		minor_28;
+		pad[12] *= pad[12];
+		major_11 (pad, pad[6]);
+		break;
 	}
 
-	if(type == 0x7)
-	{
-		TRY(enc_20_49AA90 (key, 0x6D32760));
-		enc_20_4CE300 (key, 0x0EBC3F62D);
-		TRY(enc_20_major_4B19A0 (key, KEY(0x20)));
-	}
+	pad[19] += pad[12] * 0x68;
 
-	if(type == 0x3)
+	switch (branch)
 	{
-		TRY(enc_20_4DA120 (key, 0x0D6E6F79E));
-		enc_20_4B0380 (key, 0x4DB66912);
-		TRY(enc_20_major_4C4AC0 (key, KEY(0x44)));
+	case 2:
+		minor_28;
+		pad[12] ^= pad[15] - 0xf5cfde0;
+		major_13 (pad, pad[19]);
+		pad[6] += pad[19] - 0x3f5675d6;
+		pad[12] += 0x602283af;
+		major_22 (pad, pad[0]);
+		break;
+	case 6:
+		TRY (minor_1 (0x706a6bc));
+		TRY (minor_2 (0x82b598a1));
+		major_8 (pad, 0x45835eb3);
+		break;
 	}
 
-	KEY(0x20) = ROL(KEY(0x20), (unsigned char)(KEY(0x0C) ^ 0x4437EB26));
+	pad[7] -= pad[14] & 0x1ada7fa;
 
-	if(type == 0x5)
+	switch (branch)
 	{
-		enc_20_4F2AF0 (key, 0x8589D96B);
-		enc_20_4D7000 (key, 0x8F7AF37A);
-		TRY(enc_20_major_4F2B40 (key, KEY(0x4)));
+	case 4:
+		minor_20;
+		pad[12] += pad[6] + 0x21d7bf61;
+		major_10 (pad, pad[16]);
+		break;
+	case 6:
+		TRY (minor_7);
+		TRY (minor_2 (0xd2950f8c));
+		major_7 (pad, 0x45835eb3);
+		break;
 	}
 
-	if(type == 0x9)
-	{
-		enc_20_4D5740 (key, 0x1E36028E);
-		TRY(enc_20_4DA4D0 (key, 0x5BD52248));
-		TRY(enc_20_major_4ABC60 (key, KEY(0x8)));
-	}
+	seed = (pad[0] + 0xd092d1bb) & 0x45835eb3;
 
-	if(type == 0x0)
+	switch (branch)
 	{
-		enc_20_4B0380 (key, 0x638D174F);
-		enc_20_4AE170 (key, 0x0A14D9558);
-		TRY(enc_20_major_4D4910 (key, KEY(0x24)));
+	case 3:
+		TRY (minor_5);
+		pad[7] &= pad[13] ^ 0x21aaf758;
+		major_9 (pad, pad[17]);
+		break;
+	case 4:
+		pad[13] -= pad[1];
+		pad[18] *= pad[10] + 0x466e09cf;
+		major_14 (pad, pad[5]);
+		break;
+	case 7:
+		TRY (minor_9 (0x6d32760));
+		pad[9] ^= pad[7] * 0x44;
+		major_6 (pad, pad[8]);
+		break;
 	}
-
-	var_18 += 0x51CE37 - 0x14F2A403;
-	KEY(0x24) *= KEY(0x38) | var_18;
 
-	if(type == 0x0F)
-	{
-		enc_20_4CE2E0 (key, 0x0C23DB3DC);
-		enc_20_4C47D0 (key, 0x0DBF1F593);
-		TRY(enc_20_major_4D1E70 (key, KEY(0x20)));
-	}
+	ROLEQ (pad[8], pad[3] ^ 0x6);
 
-	if(type == 0x0C)
+	switch (branch)
 	{
-		enc_20_4C47B0 (key, 0x402039DC);
-		enc_20_4D7080 (key, 0x273D6EBA);
-		TRY(enc_20_major_4D4FB0 (key, KEY(0x40)));
+	case 0:
+		pad[7] &= pad[13] ^ 0x21aaf758;
+		pad[14] |= pad[3] ^ 0x4345732;
+		major_12 (pad, pad[9]);
+		break;
+	case 5:
+		minor_22;
+		minor_29;
+		major_2 (pad, pad[1]);
+		break;
+	case 9:
+		pad[13] -= pad[1];
+		TRY (minor_7);
+		major_5 (pad, pad[2]);
+		break;
 	}
 
-	seed *= my_ftol(floor(sqrt((double)(((unsigned char)KEY(0x04)))+1) + math_const_1));
+	pad[9] *= pad[14] | 0xbbf1fbef;
 
-	if(type == 0x0B)
+	switch (branch)
 	{
-		enc_20_4EB2C0 (key, 0x678AAE2C);
-		enc_20_4F2AF0 (key, 0x806CB49B);
-		TRY(enc_20_major_4EB610 (key, KEY(0x2C)));
+	case 15:
+		pad[12] += pad[6] ^ 0x211f5e40;
+		pad[5] += pad[0] ^ 0x3e17add3;
+		major_11 (pad, pad[8]);
+		break;
+	case 12:
+		pad[19] ^= pad[15] ^ 0x3574ed3;
+		minor_30;
+		major_13 (pad, pad[16]);
+		break;
 	}
 
-	if(type == 0x0E)
-	{
-		enc_20_4D7680 (key, 0x0A94E6A91);
-		enc_20_49CED0 (key, 0x7CC192C9);
-		TRY(enc_20_major_4C1240 (key, KEY(0x48)));
-	}
+	seed *= my_sqrt (pad[1]);
 
-	if(type == 0x7)
+	switch (branch)
 	{
-		enc_20_49B260 (key, 0x0CDDA283E);
-		enc_20_4AE3C0 (key, 0x3A13B215);
-		TRY(enc_20_major_4CF650 (key, KEY(0x00)));
+	case 11:
+		minor_32 (0x678aae2c);
+		minor_22;
+		major_22 (pad, pad[11]);
+		break;
+	case 14:
+		pad[13] *= ROR (pad[3], 5);
+		minor_35;
+		major_8 (pad, pad[18]);
+		break;
+	case 7:
+		ROREQ (pad[4], 0x2);
+		ROREQ (pad[9], 4);
+		major_10 (pad, pad[0]);
+		break;
 	}
 
-	var_18 += 0x51CE37 - 0x0A85F4C6;
-	KEY(0x0C) -= KEY(0x1C) ^ 0x4E46F05D;
+	pad[3] -= pad[7] ^ 0x4e46f05d;
 
-	if(type == 0x3)
+	switch (branch)
 	{
-		enc_20_4F2AA0 (key, 0x0EDA01E71);
-		enc_20_4D5740 (key, 0x0D3803CED);
-		TRY(enc_20_major_4BAC60 (key, KEY(0x2C)));
+	case 3:
+		pad[7] ^= 0xeda01e71;
+		pad[13] -= pad[1];
+		major_7 (pad, pad[11]);
+		break;
+	case 8:
+		pad[2] ^= my_sin (pad[13]) ? 0xfd08092 : pad[10];
+		pad[9] += ROL (pad[4], 9);
+		major_14 (pad, pad[2]);
+		break;
 	}
 
-	if(type == 0x8)
-	{
-		enc_20_4A12B0 (key, 0x1F6DE4C2);
-		enc_20_4C5040 (key, 0x4F763BB2);
-		TRY(enc_20_major_4DA520 (key, KEY(0x8)));
-	}
-
-	KEY(0x4C) ^= var_18 ^ seed;
+	pad[19] ^= 0xb1bdd560 ^ seed;
 
-	if(type == 0x0D)
+	switch (branch)
 	{
-		enc_20_4D1E50 (key, 0x0F8C1BF93);
-		enc_20_4E4F80 (key, 0x7CEED01C);
-		TRY(enc_20_major_4B19A0 (key, KEY(0x3C)));
+	case 1:
+		pad[12] ^= pad[15] - 0xf5cfde0;
+		pad[12] *= pad[12];
+		major_9 (pad, pad[5]);
+		break;
+	case 13:
+		pad[18] *= pad[10] + 0x466e09cf;
+		pad[2] ^= pad[15] << 5;
+		major_6 (pad, pad[15]);
+		break;
 	}
-
-	if(type == 0x1)
-	{
-		enc_20_4D9AD0 (key, 0x0B68D8CDD);
-		enc_20_4D76A0 (key, 0x81A8EE7D);
-		TRY(enc_20_major_4C4AC0 (key, KEY(0x14)));
-	}
-
-	var_18 += 0x51CE37 - 0x14953064;
-	KEY(0x18) ^= my_ftol(floor(sqrt((double)(((unsigned char)KEY(0x14)))+1) + math_const_1));
 
-	return 0;
+	pad[6] ^= my_sqrt (pad[5]);
 }

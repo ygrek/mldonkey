@@ -208,9 +208,10 @@ let file_best_name (file : file) =
   file.impl_file_best_name
   
 let set_file_best_name file name = 
-  let file = as_file_impl file in
+  let impl = as_file_impl file in
   let name = String2.replace name '/' "::" in
-  file.impl_file_best_name <- name
+  impl.impl_file_best_name <- name;
+  file_must_update (file)
 
 let file_set_format (file : file) format =
   let file = as_file_impl file in
@@ -452,65 +453,128 @@ let file_print file o =
   let n = impl.impl_file_ops.op_file_network in
   let buf = o.conn_buf in
   
-  Printf.bprintf buf "[%-s %5d] %-50s %10s %10s\npriority %d\n" 
-    n.network_name (file_num file) (match info.G.file_names with
-      [] -> Md4.to_string info.G.file_md4
-    | name :: _ -> name)
-  (Int64.to_string info.G.file_size)
-  (Int64.to_string info.G.file_downloaded)
-  (file_priority file);
+  
+  
+  let srcs = file_sources file in
+
+
+(* TODO: make multinet aware *)
   
   if use_html_mods o then begin
+      
+      html_mods_table_header buf "sourcesInfo" "sourcesInfo" [ 
+        ( "0", "srh br", "File Info", "Info" ) ; 
+        ( "0", "srh", "Value", "Value" ) ]; 
+      
+      Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>";
+      html_mods_td buf [
+        ("File number/Network", "sr br", "[#] Network");
+        ("", "sr", Printf.sprintf "[%d] %s" (file_num file) n.network_name) ];
+      
+      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+      html_mods_td buf [
+        ("Downloaded/Total size", "sr br", "DLed/Size");
+        ("", "sr", Printf.sprintf "%s bytes of %s bytes" 
+            (Int64.to_string info.G.file_downloaded) (Int64.to_string info.G.file_size) ) ];
+      
+      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+      html_mods_td buf [
+        ("File priority", "sr br", "Priority");
+        ("", "sr", Printf.sprintf "%d" (file_priority file)) ];
+      
+      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+      html_mods_td buf [
+        ("Number of file sources", "sr br", "Sources");
+        ("", "sr", Printf.sprintf "%d" (List.length srcs)) ];
+      
+      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+      html_mods_td buf [
+        ("0=Missing, 1=Partial, 2=Complete, 3=Verified", "sr br", "Chunks");
+        ("0=Missing, 1=Partial, 2=Complete, 3=Verified", "sr", info.G.file_chunks) ];
+      
       (match n.network_name with 
-          "BitTorrent" ->  ();
+          "BitTorrent" -> (
+              Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+              html_mods_td buf [
+                ("Filename", "sr br", "Filename");
+                ("", "sr", (file_best_name file)) ]; )
+        
         | _ -> (
-              Printf.bprintf buf "ed2k: \\<a href=\\\"ed2k://|file|%s|%s|%s|/\\\"\\>ed2k://|file|%s|%s|%s|/\\</A\\>\n\n"
-                (info.G.file_name) 
-              (Int64.to_string info.G.file_size)
-              (Md4.to_string info.G.file_md4)
-              (info.G.file_name) 
-              (Int64.to_string info.G.file_size)
-              (Md4.to_string info.G.file_md4);
               
-              Printf.bprintf buf "\\<script language=javascript\\>
-\\<!-- 
-function submitRenameForm() {
-var formID = document.getElementById(\\\"renameForm\\\")
-var regExp = new RegExp (' ', 'gi') ;
-var renameTextOut = formID.newName.value.replace(regExp, '+');
-parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
-}
-//--\\>
-\\</script\\>" (file_num file);
+              Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+              html_mods_td buf [
+                ("Fake check links", "sr br", "Fakecheck");
+                ("", "sr", Printf.sprintf "\\<a href=\\\"http://edonkeyfakes.ath.cx/fakecheck/update/fakecheck.php\\?md4=%s\\\"\\>[Donkey-Fakes]\\</a\\>
+     				\\<a href=\\\"http://www.sharereactor.com/fakesearch.php\\?search=ed2k://|file|%s|%s|%s|/\\\"\\>[ShareReactor Fakecheck]\\</a\\>" 
+                    (Md4.to_string info.G.file_md4) 
+                  (info.G.file_name) (Int64.to_string info.G.file_size) (Md4.to_string info.G.file_md4)) ];
               
-              Printf.bprintf buf "\\<form name=\\\"renameForm\\\" id=\\\"renameForm\\\" action=\\\"javascript:submitRenameForm();\\\"\\>";
-              Printf.bprintf buf "\\<select name=\\\"newName\\\" id=\\\"newName\\\" onchange=\\\"this.form.submit()\\\"\\>";
-              Printf.bprintf buf "\\<option value=\\\"%s\\\" selected\\>%s\n" (file_best_name file) (file_best_name file);
+              
+              Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+              
+              html_mods_td buf [
+                ("ed2k link", "sr br", "ed2k link");
+                ("", "sr", Printf.sprintf "\\<a href=\\\"ed2k://|file|%s|%s|%s|/\\\"\\>ed2k://|file|%s|%s|%s|/\\</A\\>" 
+                    (info.G.file_name) (Int64.to_string info.G.file_size) (Md4.to_string info.G.file_md4)
+                  (info.G.file_name) (Int64.to_string info.G.file_size) (Md4.to_string info.G.file_md4)) ];
+              
+              Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+              let optionlist = ref "" in
               List.iter (fun name -> 
-                  Printf.bprintf buf "\\<option value=\\\"%s\\\"\\>%s\n" name name;
+                  optionlist := !optionlist ^ Printf.sprintf "\\<option value=\\\"%s\\\"\\>%s\n" name name;
               ) info.G.file_names;
               
-              Printf.bprintf buf "\\</select\\>\\</form\\>\n";
+              
+              let input_size = (Printf.sprintf "%d" ((String.length (file_best_name file))+3)) in
+              html_mods_td buf [
+                ("Rename file by selecting an alternate name", "sr br", "Filename");
+                ("Rename file", "sr", Printf.sprintf "\\<script language=javascript\\>
+  \\<!-- 
+ function submitRenameForm(i) {
+ var formID = document.getElementById(\\\"renameForm\\\" + i)
+  var regExp = new RegExp (' ', 'gi') ;
+ var renameTextOut = formID.newName.value.replace(regExp, '+'); 
+  parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
+  }
+  //--\\>
+ \\</script\\>" (file_num file) 
+                  
+                  ^ "\\<table border=0 cellspacing=0 cellpadding=0\\>\\<tr\\>\\<td\\>"
+                    ^ "\\<form name=\\\"renameForm1\\\" id=\\\"renameForm1\\\" action=\\\"javascript:submitRenameForm(1);\\\"\\>"
+                    ^ "\\<select name=\\\"newName\\\" id=\\\"newName\\\" onchange=\\\"this.form.submit()\\\"\\>"
+                    ^ Printf.sprintf "\\<option value=\\\"%s\\\" selected\\>%s\n" (file_best_name file) (file_best_name file)
+                  ^ !optionlist 
+                    ^ "\\</select\\>\\</td\\>\\</tr\\>\\</form\\>\\<tr\\>\\<td\\>\\<form name=\\\"renameForm2\\\" id=\\\"renameForm2\\\" action=\\\"javascript:submitRenameForm(2);\\\"\\>"
+                    ^ "\\<input name=\\\"newName\\\" type=text size=" ^ input_size ^ " value=\\\"" ^ (file_best_name file) ^ "\\\"\\>\\</input\\>\\</td\\>\\</tr\\>\\</form\\>\\</table\\>") ];
+            
             )
-      )
+      );
+      
+      Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>"; 
+      Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>\\</div\\>\\<br\\>";
     
-    end
-  else begin
+    end else
+    begin
+      Printf.bprintf buf "[%-s %5d] %-50s %10s %10s\npriority %d\n" 
+        n.network_name (file_num file) (match info.G.file_names with
+          [] -> Md4.to_string info.G.file_md4
+        | name :: _ -> name)
+      (Int64.to_string info.G.file_size)
+      (Int64.to_string info.G.file_downloaded)
+      (file_priority file);
       Printf.bprintf buf "Chunks: [%-s]\n" info.G.file_chunks;
-      List.iter (fun name -> 
-          Printf.bprintf buf "    (%s)\n" name) info.G.file_names
+      List.iter (fun name -> Printf.bprintf buf "    (%s)\n" name) info.G.file_names
     end;
-  
-  
   
   (try
       
       let bitTorrentHeader () = 
         
-        html_mods_table_header buf "sourcesTable" "sources" [ 
+        html_mods_table_header buf "sourcesTable" "sources al" [ 
           ( "1", "srh br ac", "Client number", "Num" ) ; 
-          ( "0", "srh br", "Client UID", "UID" ) ; 
-          ( "0", "srh", "IP address", "IP address" ) ; 
+            ( "0", "srh br", "Client UID", "UID" ) ; 
+            ( "0", "srh", "IP address", "IP address" ) ; 
+
           ( "0", "srh br ar", "Port", "Port" ) ; 
           ( "1", "srh ar", "Total UL bytes to this client for all files", "UL" ) ; 
           ( "1", "srh ar br", "Total DL bytes from this client for all files", "DL" ) ; 
@@ -529,7 +593,7 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
       
       let fastTrackHeader () = 
         
-        html_mods_table_header buf "sourcesTable" "sources" [ 
+        html_mods_table_header buf "sourcesTable" "sources al" [ 
           ( "1", "srh br ac", "Client number", "Num" ) ; 
           ( "0", "srh br", "Client Name", "Name" ) ; 
           ( "0", "srh", "IP address", "IP address" ) ; 
@@ -540,7 +604,7 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
       
 	let gnutellaHeader () = 
 
-		html_mods_table_header buf "sourcesTable" "sources" [ 
+		html_mods_table_header buf "sourcesTable" "sources al" [ 
 		( "1", "srh br ac", "Client number", "Num" ) ; 
 		( "0", "srh br", "Client Name", "Name" ) ; 
 		( "0", "srh", "IP address", "IP address" ) ; 
@@ -551,9 +615,9 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
 
       let defaultHeader () = 
         
-        html_mods_table_header buf "sourcesTable" "sources" [ 
+        html_mods_table_header buf "sourcesTable" "sources al" [ 
           ( "1", "srh ac", "Client number (click to add as friend)", "Num" ) ; 
-          ( "0", "srh", "[A] = Active downlaod from client", "A" ) ; 
+          ( "0", "srh", "[A] = Active download from client", "A" ) ; 
           ( "0", "srh", "Client state", "CS" ) ; 
           ( "0", "srh", "Client name", "Name" ) ; 
           ( "0", "srh", "Client brand", "CB" ) ; 
@@ -581,8 +645,7 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
       
       in
       
-      let srcs = file_sources file in
-      Printf.bprintf buf "%d sources:\n" (List.length srcs);
+      if use_html_mods o = false then Printf.bprintf buf "%d sources:\n" (List.length srcs);
       
       if use_html_mods o && srcs <> [] then begin
           
@@ -610,7 +673,7 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
       ) srcs;
 
       if use_html_mods o && srcs <> [] then begin
-        Printf.bprintf buf "\\</table\\>\\</div\\>";
+        Printf.bprintf buf "\\</table\\>\\</div\\>\\<br\\>";
         if !!html_mods_vd_queues then file_print_sources_html file buf;
       end
 

@@ -32,6 +32,7 @@ open GuiTypes
 open CommonGlobals
 open CommonOptions
 
+let shared_files = ()
   
     
 module M = struct    
@@ -109,7 +110,9 @@ module SharedFileOption = struct
     let t = define_option_class "SharedFile" value_to_shinfo shinfo_to_value
   end
   
-let known_shared_files = define_option shared_files_ini 
+  
+let shared_files_section = file_section shared_files_ini [] ""
+let known_shared_files = define_option shared_files_section
     ["shared_files"] "" 
     (list_option SharedFileOption.t) []
 
@@ -201,16 +204,40 @@ and shared_tree =
 
   
 let network = CommonNetwork.new_network "MultiNet"
+    [ VirtualNetwork ]
     (fun _ -> "")
     (fun _ -> "")
 
 let _ = 
   network.op_network_connected <- (fun _ -> false);
   network.op_network_is_enabled <- (fun _ -> raise IgnoreNetwork);
-  network.op_network_info <- (fun _ -> raise Not_found)
+  network.op_network_info <- (fun n ->
+      { 
+        network_netnum = network.network_num;
+        network_config_filename = (match network.network_config_file with
+            [] -> "" | opfile :: _ -> options_file_name opfile);
+        network_netname = network.network_name;
+        network_netflags = network.network_flags;
+        network_enabled = true;
+        network_uploaded = Int64.zero;
+        network_downloaded = Int64.zero;
+        network_connected = 0;
+      })
   
 let (shared_ops : shared_file CommonShared.shared_ops) = 
   CommonShared.new_shared_ops network
+  
+let _ =
+  shared_ops.op_shared_info <- (fun sh ->
+      
+      let module T = GuiTypes in
+      let impl = sh.shared_impl in
+      lprintf "Multinet:op_shared_info: sending partial file info\n";
+      { (impl_shared_info impl) with 
+        T.shared_network = network.network_num;
+      }
+  )
+
   
 (*******************************************************************
 

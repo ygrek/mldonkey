@@ -1,6 +1,37 @@
 TODO list for client
 ====================
 
+- BT: files > 2 Go
+
+
+- private_room_ops.op_room_send_message: use an event for the GUIs, and
+    send the user_info first.
+- send servers when network is enabled only
+- add a network id for Connect_more
+
+- Why availability information is not immediatly sent ?
+- Display availability of shared files on the downloaders first, and maybe
+    also on all clients.
+- Remove shareaza.com from g2 caches
+- Why the best name of the file is not correct ?
+
+- Split networks for overnet/edonkey
+- Send network info after enable/disable
+- Message with network Connected/Disconnected/Good Connected
+- Server friends
+- Access to pserver for GUI devs
+
+
+
+- Send network_info when enable/disable network over web interface
+- Retrieve Bitzi ticket too frequent ??
+
+FOR GUI G2:
+  * Option_info message with:
+      * bool flag for Advanced option (based on the files)
+      * description of option
+  * Maybe a flag for the above option in the poll extensions
+
 Implementation of CommonUploads and CommonDownloads:
  * Bugs:
     1) Availability is not displayed anymore
@@ -10,6 +41,7 @@ Implementation of CommonUploads and CommonDownloads:
     3) Problems of correctly rescheduling file downloads when pausing/resuming
         files
     5) Correctly updates chunks being downloaded
+    6) What happens when downloads cannot be verified (fasttrack only)
  
  * Schedule:
     1) Test Upload in edonkey
@@ -19,6 +51,15 @@ Implementation of CommonUploads and CommonDownloads:
       3.2) Better parse the download HTTP replies
       3.3) Put urn:sha1: in QRT, and publish it
     5) Avoid recomputation of hashes when a file is commmited
+
+* Priority is not used in DonkeySources
+* How to generalize source management for all plugins ???
+
+What about more file manipulation: a file could be detached from a network,
+the uids added or removed...
+
+ Verify that we can read and write everywhere in our directory (all temp and
+options files)
 
 Add a field in the network info structure to describe the network:
  * file-sharing ?

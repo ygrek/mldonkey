@@ -17,21 +17,26 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open CommonSwarming
+open Options
 open Printf2
 open Md4
+open BasicSocket
+open TcpBufferedSocket
+  
 open CommonOptions
 open CommonSearch
 open CommonServer
 open CommonComplexOptions
 open CommonFile
-open BasicSocket
-open TcpBufferedSocket
-
+open CommonSwarming
 open CommonTypes
 open CommonGlobals
-open Options
-open GnutellaTypes
+  
+open MultinetTypes
+open MultinetFunctions
+open MultinetComplexOptions
+
+  open GnutellaTypes
 open GnutellaGlobals
 open GnutellaOptions
 open GnutellaProtocol
@@ -143,7 +148,7 @@ QAnd (QHasMinVal (CommonUploads.filesize_field, n),q)
                     match uid with
                       Sha1 (s, _) -> infos := s :: !infos;
                     |  _ -> ()
-                ) sh.CommonUploads.shared_uids;
+                ) sh.CommonUploads.shared_info.sh_uids;
                 replies := {
                   M.index = sh.C.shared_id;
                   M.size = sh.C.shared_size;
@@ -206,37 +211,28 @@ QAnd (QHasMinVal (CommonUploads.filesize_field, n),q)
 information. *)
                   lprintf "xml of result: %s\n" (String.escaped s);
                 end else
-                uids := (extract_uids s) @ !uids
+                uids := expand_uids (uid_of_string s :: !uids)
           ) f.Q.info;
-          
-          (try
-              let file = Hashtbl.find files_by_key (f.Q.name, f.Q.size) in
-              if !verbose_msg_servers then
-                lprintf "++++++++++++ RECOVER FILE BY NAME %s +++++++++++\n" 
-                file.file_name; 
-              let c = update_client t in
-              add_download file c (FileByIndex (f.Q.index, f.Q.name))
-            with _ -> ());
-          
+                    
           List.iter (fun uid ->
               try
                 let file = Hashtbl.find files_by_uid uid in
+                let file_shared = file.file_shared in
                 if !verbose_msg_servers then
                   lprintf "++++++++++++ RECOVER FILE BY UID %s +++++++++++\n" 
-                  file.file_name; 
+                  (file_best_name file.file_shared); 
                 
-                if file_size file = Int64.zero then begin
+                if file_size file.file_shared = Int64.zero then begin
                     lprintf "Recover correct file size\n";
-                    file.file_file.impl_file_size <- f.Q.size;
-                    Int64Swarmer.set_size file.file_swarmer f.Q.size;
-                    file_must_update file;
+                    file.file_shared.file_file.impl_file_size <- f.Q.size;
+                    Int64Swarmer.set_size file.file_shared.file_swarmer f.Q.size;
+                    file_must_update file.file_shared;
                   end;
 
-                if file.file_name = "" then begin
+                if file_best_name file_shared = "" then begin
                     lprintf "Recover correct name\n";
-                    file.file_name <- f.Q.name;
-                    file.file_file.impl_file_best_name <- f.Q.name;
-                    file_must_update file;
+                    update_best_file_name file_shared f.Q.name;
+                    file_must_update file_shared;
                   end;
                 
                 let c = update_client t in

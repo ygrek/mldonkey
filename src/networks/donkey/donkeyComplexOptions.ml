@@ -20,30 +20,68 @@
 open Printf2
 open BasicSocket
 open Md4
+open Options
+  
 open CommonClient
 open CommonServer
 open CommonComplexOptions
 open CommonFile
-open Options
 open CommonTypes
-open DonkeyTypes
-open DonkeyOptions
 open CommonOptions
 open CommonGlobals
-open DonkeyGlobals
+open CommonSwarming
+    
+open MultinetTypes
+open MultinetFunctions
+open MultinetComplexOptions
 
-let shared_files_ini = create_options_file (
-    Filename.concat file_basedir "shared_files_new.ini")
+open DonkeyGlobals
+open DonkeyTypes
+open DonkeyOptions
   
 let file_sources_ini = create_options_file (
     Filename.concat file_basedir "file_sources.ini")
   
 let stats_ini = create_options_file (
-    Filename.concat file_basedir "stats.ini")
+    Filename.concat file_basedir "stats.ini")  
 
+(* emulate emule onlinesig.dat 
+ 
+ <connected (0|1)> | <server name> | <ip> | <port#>
+ <downloadrate %.1f> | <uploadrate %.1f>| <queuesize int>
+ 
+ I know this is stupid, but "give the people what they want"..
+ 
+ *)
 
+let create_online_sig () =
   
-    
+  let most_users = ref 0 in
+  let server_name= ref "" in
+  let server_ip = ref "" in
+  let server_port = ref 0 in
+  List.iter (fun s -> 
+      if s.server_nusers > !most_users then begin 
+          server_name := s.server_name;
+          server_ip := (Ip.to_string s.server_ip);
+          server_port := s.server_port;
+          most_users := s.server_nusers;
+        end
+  ) (connected_servers());
+  
+  let oc = open_out (Filename.concat file_basedir "onlinesig.dat") in
+  
+  if !most_users = 0 then
+    output_string oc ("0\n")
+  else 
+    output_string oc (Printf.sprintf "1|%s|%s|%d\n" !server_name !server_ip !server_port);
+  let dlkbs = (( (float_of_int !udp_download_rate) +. (float_of_int !control_download_rate)) /. 1024.0) in
+  let ulkbs = (( (float_of_int !udp_upload_rate) +. (float_of_int !control_upload_rate)) /. 1024.0) in
+  
+  output_string oc (Printf.sprintf "%.1f|%.1f|%d\n" dlkbs ulkbs 
+      (Intmap.length !CommonUploads.pending_slots_map));
+  close_out oc
+  
 (************ COMPLEX OPTIONS *****************)
   
 let value_to_addr v =
@@ -209,20 +247,7 @@ let value_to_int32pair v =
   | _ -> 
       failwith "Options: Not an int32 pair"
 
-let value_to_state v =
-  match v with
-  | StringValue "Paused" -> FilePaused
-  | StringValue "Downloading" -> FileDownloading
-  | StringValue "Downloaded" -> FileDownloaded
-  | _ -> raise Not_found
-
-let state_to_value s = 
-  match s with
-  | FilePaused | FileAborted _ -> StringValue "Paused"
-  | FileDownloaded -> StringValue "Downloaded"
-  | _ -> StringValue "Downloading"
-
-let value_to_file is_done assocs =
+let value_to_file file_shared assocs =
   let get_value name conv = conv (List.assoc name assocs) in
   let get_value_nil name conv = 
     try conv (List.assoc name assocs) with _ -> []
@@ -233,159 +258,44 @@ let value_to_file is_done assocs =
       get_value "file_md4" value_to_string
     with _ -> failwith "Bad file_md4"
   in
-  let file_size = try
-      value_to_int64 (List.assoc "file_size" assocs) 
-    with _ -> Int64.zero
+  
+  let file = Hashtbl.find files_by_md4  (Md4.of_string file_md4_name) 
   in
   
-  let file_state = get_value "file_state" value_to_state in
-  
-  let file = DonkeyGlobals.new_file file_state (
-      Filename.concat !!temp_directory file_md4_name)
-    (Md4.of_string file_md4_name) file_size true in
-  
   (try
-      file.file_file.impl_file_age <- normalize_time (get_value "file_age" value_to_int)
-    with _ -> ());
-  
-  (try 
-      if file.file_exists then begin
-(* only load absent chunks if file previously existed. *)
-          file.file_absent_chunks <- 
-            get_value "file_absent_chunks" 
-            (value_to_list value_to_int32pair);
-        end
-    with _ -> ()                );
-  
-  file.file_filenames <-
-    get_value_nil "file_filenames" (value_to_list value_to_string);
-  (try
-      set_file_best_name (as_file file.file_file)
-      (get_value "file_filename" value_to_string)
-    with _ -> update_best_name file);
-  
+      Int64Swarmer.set_verified_bitmap file.file_partition
+        (get_value  "file_all_chunks" value_to_string)
+    with e -> 
+        lprintf "Exception %s while loading bitmap\n"
+          (Printexc2.to_string e); 
+  );
+
+  (*
   (try
       let mtime = Unix32.mtime64 (file_disk_name file)  in
       let old_mtime = value_to_float (List.assoc "file_mtime" assocs) in
       file.file_mtime <- old_mtime;
       let file_chunks = get_value "file_all_chunks" value_to_string in
-      file.file_chunks <- Array.init file.file_nchunks 
-        (fun i ->
-          let c = file_chunks.[i] in
-          if c = '0' then AbsentVerified else
-          if c = '2' then PresentVerified
-          else PresentTemp
-      )
+      Int64Swarmer.set_verified_bitmap file.file_partition file_chunks
     with _ -> 
         lprintf "Could not load chunks states"; lprint_newline (););
-
-(*
-  List.iter (fun c ->
-      DonkeyGlobals.new_source file  c;
-  )
-   (get_value_nil "file_locations" (value_to_list value_to_donkey_client)); *)
-  
-  (try
-      file.file_chunks_age <-
-        get_value "file_chunks_age" 
-        (fun v -> 
-          let list = value_to_list (fun v -> normalize_time (value_to_int v)) v in
-          Array.of_list list)
-    with _ -> ());
-  
-  file.file_file.impl_file_last_seen <- (
-    if file.file_chunks_age = [||]
-    then 0
-    else Array2.min file.file_chunks_age);
-    
+  *)
   let md4s = get_value_nil "file_md4s" (value_to_list value_to_md4) in
-  file.file_md4s <- (if md4s = [] then file.file_md4s else md4s);
-  file_md4s_to_register := file :: !file_md4s_to_register;
-  as_file file.file_file
+  file.file_md4s <- (if md4s = [] then file.file_md4s else Array.of_list md4s);
+  file_md4s_to_register := file :: !file_md4s_to_register
   
-  
-let string_of_chunks file =
-  let nchunks = file.file_nchunks in
-  let s = String.make nchunks '0' in
-  for i = 0 to nchunks - 1 do
-    s.[i] <- (match file.file_chunks.(i) with
-      | PresentVerified -> '2'
-      | AbsentVerified 
-      | PartialVerified _ -> '0'
-      | _ -> '1' (* don't know ? *)
-    )
-  done;
-  s
 
 let file_to_value file =
+  lprintf "file_to_value\n";
   [
     "file_md4", string_to_value (Md4.to_string file.file_md4);
-    "file_size", int64_to_value file.file_file.impl_file_size;
-    "file_all_chunks", string_to_value (string_of_chunks file);  
-    "file_state", state_to_value (file_state file);
-    "file_absent_chunks", List
-      (List.map (fun (i1,i2) -> 
-          SmallList [int64_to_value i1; int64_to_value i2])
-      file.file_absent_chunks);
-    "file_filename", string_to_value (file_best_name file);
-    "file_filenames", List
-      (List.map (fun s -> string_to_value s) file.file_filenames);
-    "file_age", IntValue (Int64.of_int file.file_file.impl_file_age);
+    "file_all_chunks", string_to_value 
+      (Int64Swarmer.verified_bitmap file.file_partition);  
     "file_md4s", List
       (List.map (fun s -> string_to_value (Md4.to_string s)) 
-      file.file_md4s);
-    "file_downloaded", int64_to_value (file_downloaded file);
-    "file_chunks_age", List (Array.to_list 
-        (Array.map int_to_value file.file_chunks_age));
-    "file_mtime", float_to_value (
-      try Unix32.mtime64 (file_disk_name file) with _ -> 0.0)
+      (Array.to_list file.file_md4s));
   ]
   
-module SharedFileOption = struct
-    
-    let value_to_shinfo v =
-      match v with
-        Options.Module assocs ->
-          let get_value name conv = conv (List.assoc name assocs) in
-          let get_value_nil name conv = 
-            try conv (List.assoc name assocs) with _ -> []
-          in
-          
-          let sh_md4s = try
-              value_to_list (fun v ->
-                  Md4.of_string (value_to_string v)) (List.assoc "md4s" assocs)
-            with _ -> failwith "Bad shared file md4"
-          in
-          let sh_size = try
-              value_to_int64 (List.assoc "size" assocs) 
-            with _ -> failwith "Bad shared file size"
-          in
-          let sh_name = try
-              value_to_filename (List.assoc "name" assocs)
-            with _ -> failwith "Bad shared file name"
-          in
-          let sh_mtime = try
-              value_to_float (List.assoc "mtime" assocs)
-            with _ -> failwith "Bad shared file mtime"
-          in
-          { sh_name = sh_name; sh_mtime = sh_mtime;
-            sh_size = sh_size; sh_md4s = sh_md4s;
-          }
-          
-      | _ -> failwith "Options: not a shared file info option"
-          
-    let shinfo_to_value sh =
-      Options.Module [
-        "name", filename_to_value sh.sh_name;
-        "md4s", list_to_value "Shared Md4" (fun md4 ->
-            string_to_value (Md4.to_string md4)) sh.sh_md4s;
-        "mtime", float_to_value sh.sh_mtime;
-        "size", int64_to_value sh.sh_size;
-      ]
-    
-    
-    let t = define_option_class "SharedFile" value_to_shinfo shinfo_to_value
-  end
   
 module StatsOption = struct
     
@@ -545,7 +455,7 @@ let done_files =
     *)
 
 let old_files = 
-  define_option donkey_expert_ini ["old_files"] 
+  define_expert_option donkey_section ["old_files"] 
   "The files that were downloaded" (list_option Md4.option) []
 
   (*
@@ -558,10 +468,6 @@ let files =
 let known_servers = define_option servers_ini["known_servers"] "List of known servers"
     (list_option ServerOption.t) []
     *)
-
-let known_shared_files = define_option shared_files_ini 
-    ["shared_files"] "" 
-    (list_option SharedFileOption.t) []
   
 (************  UPDATE OPTIONS *************)  
   
@@ -594,7 +500,8 @@ let remove_server ip port =
   with _ -> ()
 
       
-let sources = define_option file_sources_ini 
+let file_sources_section = file_section file_sources_ini [] ""
+let sources = define_option file_sources_section
     ["sources"] "" 
     (listiter_option ClientOption.t) []
   
@@ -602,19 +509,19 @@ let sources = define_option file_sources_ini
 let load _ =
   lprintf "LOADING SHARED FILES AND SOURCES"; lprint_newline ();
   (try
-      Options.load shared_files_ini;
       Options.load stats_ini;
-    with Sys_error _ ->
-        Options.save_with_help shared_files_ini)
+    with Sys_error _ -> ())
   
-let guptime = define_option stats_ini ["guptime"] "" int_option 0
+let stats_section = file_section stats_ini [] ""
+  
+let guptime = define_option stats_section ["guptime"] "" int_option 0
   
 let new_stats_array () = 
   Array.init brand_count (fun _ ->
       { dummy_stats with brand_seen = 0 }
   )
   
-let gstats_by_brand = define_option stats_ini ["stats"] "" 
+let gstats_by_brand = define_option stats_section ["stats"] "" 
     (array_option StatsOption.t) (new_stats_array ())
 
 let _ =
@@ -633,7 +540,6 @@ let diff_time = ref 0
 
 let save _ =
   lprintf "SAVING SHARED FILES AND SOURCES"; lprint_newline ();
-  Options.save_with_help shared_files_ini;
   guptime =:= !!guptime + (last_time () - start_time) - !diff_time;
   diff_time := (last_time () - start_time);
   Options.save_with_help stats_ini;
@@ -648,7 +554,8 @@ let save _ =
   
   Options.save_with_help file_sources_ini;
   lprintf "SAVED"; lprint_newline ();
-  sources =:= []
+  sources =:= [];
+  create_online_sig ()
     
 let guptime () = !!guptime - !diff_time
 
@@ -659,10 +566,64 @@ let load_sources () =
     with _ -> ())
 
     
+
+let old_value_to_file is_done assocs =
+  let get_value name conv = conv (List.assoc name assocs) in
+  let get_value_nil name conv = 
+    try conv (List.assoc name assocs) with _ -> []
+  in
+  
+  let file_md4_name = 
+    try
+      get_value "file_md4" value_to_string
+    with _ -> failwith "Bad file_md4"
+  in
+  let filenames = get_value "file_filenames" (value_to_list value_to_string) in
+  let ed2k = Md4.of_string file_md4_name in
+  
+  let file_size = try
+      value_to_int64 (List.assoc "file_size" assocs) 
+    with _ -> Int64.zero
+  in
+  
+  let old_file = Filename.concat !!temp_directory file_md4_name in
+  
+  let file_shared = new_download None filenames
+      file_size (Some old_file)
+    [uid_of_uid (Ed2k ("", ed2k))] in
+  
+  let file_state = get_value "file_state" value_to_state in
+  set_file_state file_shared file_state;
+    
+  
+  (try 
+      Int64Swarmer.set_absent file_shared.file_swarmer 
+        (get_value "file_absent_chunks" 
+          (value_to_list value_to_int32pair));
+      add_file_downloaded file_shared.file_file
+        (Int64Swarmer.downloaded file_shared.file_swarmer)      
+    with _ -> ()                
+  );
+
+  let file = 
+    let file = ref None in
+    Hashtbl.iter (fun _ f ->
+        if f.file_multinet == file_shared then 
+          file := Some f
+    ) files_by_md4;
+    match !file with
+      None -> raise Not_found
+    | Some file -> file
+  in
+      
+  let md4s = get_value_nil "file_md4s" (value_to_list value_to_md4) in
+  file.file_md4s <- Array.of_list md4s;
+  MultinetTypes.as_file file_shared
   
 let _ =
-  network.op_network_file_of_option <- value_to_file;
-(*  file_ops.op_file_to_option <- file_to_value; *)
+  network_file_ops.op_download_of_value <- value_to_file; 
+  file_ops.op_download_to_value <- file_to_value;
+  network.op_network_file_of_option <- old_value_to_file;
   
   network.op_network_server_of_option <- value_to_server;
   server_ops.op_server_to_option <- server_to_value;

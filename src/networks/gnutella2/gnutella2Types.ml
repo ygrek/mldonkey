@@ -117,11 +117,12 @@ and result = {
   }
 
 and file = {
-    file_shared : SharedDownload.file;
+    file_shared : MultinetTypes.file;
 
     file_partition : CommonSwarming.Int64Swarmer.partition;
     mutable file_clients : client list;
     mutable file_searches : local_search list;
+    mutable file_tiger : (int64 * TigerTree.t array) option;
   }
 
 and download = {

@@ -42,6 +42,7 @@ of the object. Negative, it indicates that the modification is limited.
 *)
 
 open CommonTypes
+open GuiProto
   
 let events_list = ref ([] : event list)
 

@@ -17,11 +17,15 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+(*
 val must_share_file : DonkeyTypes.file -> unit
 val check_shared_files : unit -> unit
 (* val make_tagged : TcpBufferedSocket.t option -> 
   DonkeyTypes.file list -> CommonTypes.tagged_file list *)
-val all_shared : unit -> DonkeyTypes.file list
-val send_new_shared : unit -> unit
 val remember_shared_info : DonkeyTypes.file -> string -> unit
+*)
+
 val md4_of_list : Md4.Md4.t list -> Md4.Md4.t
+val send_new_shared : unit -> unit
+val all_shared : unit -> CommonTypes.tagged_file list
+val browsable_shared : unit -> CommonTypes.tagged_file list

@@ -36,7 +36,9 @@ open CommonGlobals
 open CommonSwarming  
 open CommonNetwork
 open CommonHosts
-open CommonDownloads.SharedDownload  
+  
+open MultinetTypes
+open MultinetFunctions
   
 open GnutellaTypes
 open GnutellaOptions
@@ -77,7 +79,13 @@ let get_name_keywords file_name =
 
   
   
-let network = new_network "Gnutella"  
+let network = new_network "Gnutella"   
+     [ 
+    NetworkHasSupernodes; 
+    NetworkHasSearch;
+    NetworkHasUpload;
+    NetworkHasMultinet;
+  ]
     (fun _ -> !!network_options_prefix)
   (fun _ -> !!commit_in_subdir)
       
@@ -261,12 +269,10 @@ let new_result file_name file_size tags uids =
   | Some r -> r
 
 let megabyte = Int64.of_int (1024 * 1024)
-
-let new_download = ref None
   
 let new_file file_shared = 
-  let partition = fixed_partition file_shared.file_swarmer "gnutella" megabyte in
-  let keywords = get_name_keywords file_shared.file_name in
+  let partition = fixed_partition file_shared.file_swarmer network.network_num megabyte in
+  let keywords = get_name_keywords (file_best_name file_shared) in
   let words = String2.unsplit keywords ' ' in
   let rec file = {
       file_shared = file_shared;
@@ -282,14 +288,13 @@ let new_file file_shared =
   Hashtbl.add searches_by_uid search.search_uid search;
   lprintf "SET SIZE : %Ld\n" (file_size file_shared);
   current_files := file :: !current_files;
-  new_download := Some file;
 (*      lprintf "ADD FILE TO DOWNLOAD LIST\n"; *)
   file
 
 exception FileFound of file
   
 let new_file file_shared =
-  let file_name = file_shared.file_name in
+  let file_name = file_best_name file_shared in
   let file_size = file_size file_shared in
   let file_uids = file_shared.file_uids in
   let file = ref None in

@@ -115,7 +115,7 @@ type overnet_search = {
     mutable search_nresults : int;
     mutable search_results : (Md4.t, tag list) Hashtbl.t;
     mutable search_hits : int;
-    mutable search_publish_files : file list;
+    mutable search_publish_files : tagged_file list;
     mutable search_publish_file : bool;
   }
 
@@ -175,53 +175,53 @@ module PeerOption = struct
     let t = define_option_class "Peer" value_to_peer peer_to_value
 end
 
-let overnet_expert_ini = donkey_expert_ini
+let overnet_section = file_section donkey_ini ["Overnet"] "Overnet options"
   
 let overnet_store_size = 
-  define_option overnet_expert_ini ["overnet_store_size"] "Size of the filename storage used to answer queries" 
+  define_expert_option overnet_section ["overnet_store_size"] "Size of the filename storage used to answer queries" 
     int_option 2000
   
 let overnet_protocol_connect_version = 
-  define_option overnet_expert_ini ["overnet_protocol_connect_version"] 
+  define_expert_option overnet_section ["overnet_protocol_connect_version"] 
     "The protocol version sent on Overnet connections"
     int_option 1044
   
 let overnet_protocol_connectreply_version = 
-  define_option overnet_expert_ini ["overnet_protocol_connectreply_version"] 
+  define_expert_option overnet_section ["overnet_protocol_connectreply_version"] 
     "The protocol version sent on Overnet connections replies"
     int_option 44
 
 let overnet_port = 
-  define_option overnet_expert_ini ["overnet_port"] "port for overnet" 
+  define_expert_option overnet_section ["overnet_port"] "port for overnet" 
     int_option (2000 + Random.int 20000)
 
 let overnet_max_known_peers = 
-  define_option overnet_expert_ini ["overnet_max_known_peers"] 
+  define_expert_option overnet_section ["overnet_max_known_peers"] 
   "maximal number of peers to keep overnet connected (should be >2048)" 
     int_option 8192
 
 let overnet_search_keyword = 
-  define_option overnet_expert_ini ["overnet_search_keyword"] 
+  define_expert_option overnet_section ["overnet_search_keyword"] 
   "allow extended search to search on overnet" bool_option false
 
 let overnet_search_timeout = 
-  define_option overnet_expert_ini ["overnet_search_timeout"] 
+  define_expert_option overnet_section ["overnet_search_timeout"] 
   "How long shoud a search on Overnet wait for the last answer before terminating"
     int_option 140
       
 let overnet_query_peer_period = 
-  define_option overnet_expert_ini ["overnet_query_peer_period"] 
+  define_expert_option overnet_section ["overnet_query_peer_period"] 
   "Period between two queries in the overnet tree (should not be set under 5)"
     float_option 5.
       
 let overnet_max_search_hits = 
-  define_option overnet_expert_ini ["overnet_max_search_hits"] 
+  define_expert_option overnet_section ["overnet_max_search_hits"] 
   "Max number of hits in a search on Overnet"
     int_option 200 
       
 let gui_overnet_options_panel = 
   (*
-  define_option overnet_expert_ini ["gui_overnet_options_panel"]
+  define_expert_option overnet_section ["gui_overnet_options_panel"]
   "Which options are configurable in the GUI option panel, and in the
   Overnet section. Last entry indicates the kind of widget used (B=Boolean,T=Text)"
 (list_option (tuple3_option (string_option, string_option, string_option)))
@@ -236,7 +236,7 @@ let gui_overnet_options_panel =
   ]
       
 let overnet_options_version = 
-  define_option overnet_expert_ini ["overnet_options_version"] 
+  define_expert_option overnet_section ["overnet_options_version"] 
     "(internal)"
     int_option 0
 
@@ -250,7 +250,8 @@ let overnet_options_version =
 *********************************************************************)
 
   
-let global_peers : (Md4.t, peer) Hashtbl.t array Options.option_record = define_option servers_ini 
+let global_peers : (Md4.t, peer) Hashtbl.t array Options.option_record = 
+  define_option servers_section 
     ["overnet_peers"] "List of overnet peers"
     (hasharray_option Md4.null PeerOption.t) 
     (Array.init 256 (fun _ -> Hashtbl.create 10))
@@ -717,6 +718,7 @@ let publish_file (file : DonkeyTypes.file) =
           files_to_be_published := s :: !files_to_be_published;
         end
   end;
+  (*[BROKEN] and probably explose in memory usage anyway...
   if !!overnet_search_keyword then 
     begin
       let index_string w =
@@ -727,7 +729,9 @@ let publish_file (file : DonkeyTypes.file) =
       List.iter (fun name -> List.iter index_string (String2.stem name) ) 
       file.file_filenames;
     end
-    
+*)
+  ()
+  
 let recover_all_files () =
   List.iter (fun file ->
       if file_state file = FileDownloading then
@@ -965,7 +969,8 @@ let udp_client_handler t p =
 				(*lprintf "FIXME: Received a BCP type 1 %s for MD4 %s" 
 				  bcp (Md4.to_string md4);
 				lprint_newline (); *)
-                                  if Ip.valid ip && Ip.reachable ip then
+                                  if Ip.valid ip && 
+                                    ((not !!black_list) || Ip.reachable ip) then
                                     let c = DonkeySources.new_source (ip, port) file in
                                     c.source_overnet <- true;
                               | _ ->
@@ -1075,8 +1080,8 @@ let query_min_peer s =
           List.iter 
             (fun file ->
               udp_send p.peer_ip p.peer_port 
-                (OvernetPublish (s.search_md4, file.file_md4, 
-                  DonkeyProtoCom.tag_file file))
+                (OvernetPublish (s.search_md4, file.f_md4, 
+                   file.f_tags))
           ) s.search_publish_files
       | FileSearch file ->
           if file_state file = FileDownloading then
@@ -1154,10 +1159,12 @@ let do_publish_shared_files () =
     end
     
 let publish_shared_files () = 
+  (*[BROKEN]
   match !files_to_be_published with 
     [] -> List.iter (fun file -> publish_file file) (DonkeyShare.all_shared ())
   | _ -> ()
-      
+*)
+  ()
 let check_curent_downloads () =
   List.iter (fun file ->
     if file_state file = FileDownloading           

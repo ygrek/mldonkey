@@ -171,13 +171,13 @@ let disconnect_server s reason =
       (try close sock reason with _ -> ());      
       decr nservers;
       if !verbose_msg_servers then begin
-          lprintf "%s:%d CLOSED received by server"
-            (server_addr s) s.server_port; lprint_newline ();
+          lprintf "%s:%d CLOSED received by server for reason %s\n"
+            (server_addr s) s.server_port (BasicSocket.string_of_reason reason); 
         end;
       connection_failed (s.server_connection_control);
       s.server_sock <- None;
       if !verbose_msg_servers then begin
-          lprintf "******** NOT CONNECTED *****"; lprint_newline ();
+          lprintf "******** NOT CONNECTED *****\n"; 
         end;
       set_server_state s (NotConnected (reason, -1));
       connected_servers := List2.removeq s !connected_servers;
@@ -521,7 +521,6 @@ module P = GuiTypes
   
 let _ =
   server_ops.op_server_info <- (fun s ->
-      if !!enable_directconnect then
         {
           P.server_num = (server_num s);
           P.server_network = network.network_num;
@@ -537,7 +536,7 @@ let _ =
           P.server_users = None;
           P.server_banner = "";
         }
-      else raise Not_found)
+)
 
 let recover_files_clients () = 
   List.iter (fun file ->

@@ -21,13 +21,16 @@ open CommonTypes
 open GuiTypes
     
 exception UnsupportedGuiMessage
+
+type gift_command = 
+  GiftCommand of string * string option * gift_command list
   
 type from_gui =
 (* These two messages are protocol independant: they MUST be sent to
   establish the connection. *)
 | GuiProtocol of int
 | Password of string * string
-  
+
 | ConnectMore_query
 | CleanOldServers
 | KillServer
@@ -69,7 +72,7 @@ type from_gui =
 | EnableNetwork of int * bool
 | BrowseUser of int
 | AddServer_query of int * Ip.t * int
-  
+
 (* New messages from protocol 3 *)
 | GuiExtensions of (int * bool) list
 | GetConnectedServers
@@ -77,24 +80,42 @@ type from_gui =
 | GetDownloadedFiles
 | MessageToClient of int * string
 | SetRoomState of int * room_state
-  
+
 (* New messages from protocol 4  *)
 | RefreshUploadStats
-  
-| SetFilePriority of int * int
 
+| SetFilePriority of int * int
+  
+(* This message must be sent only to increase or decrease the protocol version
+on some messages in the range accepted by the core, ie between 0 and the 
+version sent in the CoreProtocol message. For other messages, the core uses
+the mininum of the versions in the CoreProtocol and GuiProtocol messages.
+
+If a GUI expects to use a special version for a message, and the version is
+not supported by the core (greater than the CoreProtocol version), the GUI
+should disconnect as the core will not be able to correctly encode or decode
+the messages (it will use the version specified in CoreProtocol instead
+ of the one expected by the GUI).
+*)
+  
+| MessageVersions of (int * (* from gui ? *) bool * int) list
+
+  
+| GiftAttach of string * string * string
+| GiftStats  
+  
 let gui_extension_poll = 1
   
 type to_gui =
 (* This message is the first message sent by the core *)
 | CoreProtocol of int
   
-| Options_info of (string * string) list (*  options *)
+| Options_info of Options.option_info list (*  options *)
 | DefineSearches of (string * CommonTypes.query_entry) list
 
 | Result_info of result_info
   
-| Search_result of int * int
+| Search_result of int * int * (result_info option)
 | Search_waiting of int * int
   
 | File_info of file_info
@@ -137,22 +158,28 @@ type to_gui =
 | Shared_file_unshared of int
 
 (* New message for protocol 5 *)
-| Add_section_option of
-(* section *) string * 
+| Add_section_option of string * Options.option_info
+(*
+  (* section *) string * 
 (* message *) string *
 (* option_name *) string *
 (* option_type *) option_widget
-
+*)
+  
 (* New message for protocol 6 *)
-| Add_plugin_option of
+| Add_plugin_option of string * Options.option_info
+  (*
 (* section *) string * 
 (* message *) string *
 (* option_name *) string *
 (* option_type *) option_widget
-
+*)
+  
 | BadPassword
 | CleanTables of (* clients *) int list * (* servers *) int list
-  
+
+| GiftServerAttach of string * string
+| GiftServerStats of (string * string * string * string) list
   
 let from_gui_to_string t = 
   match t with
@@ -209,6 +236,11 @@ let from_gui_to_string t =
   | RefreshUploadStats -> "RefreshUploadStats"
   | SetFilePriority _ -> "SetFilePriority"      
   | AddServer_query _ -> "AddServer_query"
+  
+  | MessageVersions _ -> "MessageVersions"
+
+  | GiftAttach _ -> "GiftAttach"
+  | GiftStats -> "GiftStats"
       
 let string_of_to_gui t =
   match t with
@@ -271,3 +303,28 @@ let string_of_to_gui t =
   | BadPassword -> "BadPassword"
       
   | CleanTables _ -> "CleanTables"
+      
+  | GiftServerAttach _ -> "GiftServerAttach"
+  | GiftServerStats _ -> "GiftServerStats"
+      
+type gui_record = {
+    mutable gui_num : int;
+    mutable gui_search_nums : int list;
+    mutable gui_searches : (int * search) list;
+    mutable gui_sock : TcpBufferedSocket.t option;
+    mutable gui_proto_to_gui_version : int array;
+    mutable gui_proto_from_gui_version : int array;
+    mutable gui_auth : bool;
+    mutable gui_poll : bool;
+
+    mutable gui_send : (gui_record -> to_gui -> unit);
+    mutable gui_result_handler : (int -> result -> unit);
+
+    mutable gui_id_counter : int;
+    mutable gui_initialized : bool;
+    mutable gui_identifiers : (int * int, int) Hashtbl.t;
+    mutable gui_identifiers_rev : (int, int * int) Hashtbl.t;
+    
+    gui_events : gui_events;
+    gui_conn : ui_conn;
+  }

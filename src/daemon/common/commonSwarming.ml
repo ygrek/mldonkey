@@ -57,17 +57,14 @@ module type Swarmer = sig
     type partition
     type multirange
 
-      (* exception VerifierNotImplemented *)
-    exception VerifierNotReady
-      
     val create : unit -> t
     val set_writer : t -> (pos -> string -> int -> int -> unit) -> unit
     val set_size : t -> pos -> unit
     val set_present : t -> (pos * pos) list -> unit
     val set_absent : t -> (pos * pos) list -> unit
-    val partition : t -> string -> (pos -> pos) -> partition
+    val partition : t -> int -> (pos -> pos) -> partition
       
-    val set_verifier : partition -> (block -> bool) -> unit
+    val set_verifier : partition -> (block -> unit) -> unit
     val verified_bitmap : partition -> string
     val set_verified_bitmap : partition -> string -> unit
     
@@ -98,8 +95,17 @@ module type Swarmer = sig
     val range_range: range ->  pos * pos
     val multirange_range : multirange -> pos * pos
     val block_block: block -> int * pos * pos 
-    val availability : partition -> string
-    
+    val availability : t -> (int * string) list
+
+    val loaded_block : block -> unit
+    val reload_block : block -> unit
+
+    val loaded_blocks : partition -> pos -> pos -> unit
+    val reload_blocks : partition -> pos -> pos -> unit
+
+    val loaded_ranges : block -> pos -> pos -> unit
+    val reload_ranges : block -> pos -> pos -> unit
+      
     val downloaded : t -> pos
     val present_chunks : t -> (pos * pos) list
     val partition_size : partition -> int
@@ -119,6 +125,7 @@ module type Swarmer = sig
       
     val dirty : t -> bool
     val verify_file : t -> unit
+    val is_file_verifiable : t -> bool
     val recheck_partition : partition -> bool -> unit
   end
   
@@ -163,10 +170,10 @@ module Make(Integer: Integer) = (struct
       and partition = {
           part_t : t;
           part_splitter : (Integer.t -> Integer.t);
-          part_name : string;
+          part_network : int;
           mutable part_blocks : block;
           mutable part_nblocks : int;
-          mutable part_verifier : (block -> bool) option;
+          mutable part_verifier : (block -> unit) option;
 
 (* Only when bitmaps are used instead of ranges *)
           mutable part_bitmap : string;
@@ -261,6 +268,23 @@ module Make(Integer: Integer) = (struct
         if r.range_current_begin > b_end then
           r.range_current_begin <- b_end;
         rr
+      
+      let loaded_ranges b begin_pos end_pos =
+        let rec iter r =
+          if r.range_begin < end_pos then begin
+              if r.range_end > begin_pos then begin
+                  let t = b.block_partition.part_t in
+                  r.range_verified <- true;
+                  t.t_downloaded <- t.t_downloaded ++ (
+                    r.range_end -- r.range_current_begin);
+                  r.range_current_begin <- r.range_end;
+                end;
+              match r.range_next with
+                None -> ()
+              | Some rr -> iter rr
+            end
+        in
+        iter b.block_ranges
 
 (* Set the block as completely and verified *)
       let loaded_block b =
@@ -268,22 +292,25 @@ module Make(Integer: Integer) = (struct
         let p = b.block_partition in
         let t = p.part_t in        
         p.part_bitmap.[b.block_num] <- '3';        
-        let rec iter_ranges b r =
-          if r.range_begin < b.block_end then begin
-              let t = b.block_partition.part_t in
-              r.range_verified <- true;
-              t.t_downloaded <- t.t_downloaded ++ (
-                r.range_end -- r.range_current_begin);
-              r.range_current_begin <- r.range_end;
-              next_range b r
+        loaded_ranges b b.block_begin b.block_end
+      
+      let reload_ranges b begin_pos end_pos =
+        let t = b.block_partition.part_t in
+        let rec iter r =
+          if r.range_begin < end_pos then begin
+              if r.range_end > begin_pos &&
+                (not r.range_verified ) &&
+                r.range_current_begin = r.range_end then begin
+                  t.t_downloaded <- t.t_downloaded -- (
+                    r.range_current_begin -- r.range_begin);
+                  r.range_current_begin <- r.range_begin;                  
+                end;
+              match r.range_next with
+                None -> ()
+              | Some rr -> iter rr
             end
-        
-        and next_range b r =
-          match r.range_next with
-            None -> ()
-          | Some rr -> iter_ranges b rr 
         in
-        iter_ranges b b.block_ranges
+        iter b.block_ranges
 
 (* Set the block as completely empty, to be reloaded *)
       let reload_block b =
@@ -291,24 +318,67 @@ module Make(Integer: Integer) = (struct
         let p = b.block_partition in
         let t = p.part_t in
         p.part_bitmap.[b.block_num] <- '0';
-        let rec iter_ranges b r =
-          if r.range_begin < b.block_end then 
-            begin
-(* Don't reload a range that has already been verified *)
-              if not r.range_verified then begin
-                  t.t_downloaded <- t.t_downloaded -- (
-                    r.range_current_begin -- r.range_begin);
-                  r.range_current_begin <- r.range_begin;
-                end;
-              next_range b r
-            end
+        reload_ranges b b.block_begin b.block_end
+      
+      let reload_block b =
         
-        and next_range b r =
-          match r.range_next with
-            None -> ()
-          | Some rr -> iter_ranges b rr 
+        let state =
+          
+          let rec iter_ranges b r state =
+            if r.range_begin < b.block_end then begin
+                let state = 
+                  if r.range_current_begin = r.range_begin then
+(* empty range *)
+                    match state with
+                      '3' | '0' -> '0' 
+                    | _ -> '1'
+                  else
+                  if r.range_current_begin < r.range_end then
+(* not full range *)
+                    '1'
+                  else
+(* full range *)
+                  match state with
+                    '3' | '2' -> '2'
+                  | _ -> '1'
+                in
+                r.range_current_begin <- r.range_begin;
+                match r.range_next with
+                  None -> state
+                | Some rr -> iter_ranges b rr state
+              end else state
+          in
+          iter_ranges b b.block_ranges '3'
         in
-        iter_ranges b b.block_ranges
+        
+        match state with
+          '2' -> reload_block b
+        | _ -> 
+(* OK, we just need to wait for more data *)
+            let p = b.block_partition in
+            p.part_bitmap.[b.block_num] <- state
+      
+      let reload_blocks p begin_pos end_pos =
+        let rec iter b =
+          if b.block_begin < end_pos then begin
+              if b.block_end > begin_pos then reload_block b;
+              match b.block_next with
+                None -> ()
+              | Some bb -> iter bb
+            end
+        in
+        iter p.part_blocks 
+      
+      let loaded_blocks p begin_pos end_pos =
+        let rec iter b =
+          if b.block_begin < end_pos then begin
+              if b.block_end > begin_pos then loaded_block b;
+              match b.block_next with
+                None -> ()
+              | Some bb -> iter bb
+            end
+        in
+        iter p.part_blocks 
 
 (* Verify a block if possible *)
       let verify_one_block b = 
@@ -319,52 +389,11 @@ module Make(Integer: Integer) = (struct
             None -> ()
           | Some verifier ->
               lprintf "******* can verify block ******\n";
-              if verifier b then 
-                loaded_block b
-              else begin
-(* Currently, we set all the ranges to 0. In the future, it might be more
-interesting to do that only for ranges that are not correct for other
-partitions. *)
-                  
-                  let state =
-                    
-                    let rec iter_ranges b r state =
-                      if r.range_begin < b.block_end then begin
-                          let state = 
-                            if r.range_current_begin = r.range_begin then
-(* empty range *)
-                              match state with
-                                '3' | '0' -> '0' 
-                              | _ -> '1'
-                            else
-                            if r.range_current_begin < r.range_end then
-(* not full range *)
-                              '1'
-                            else
-(* full range *)
-                            match state with
-                              '3' | '2' -> '2'
-                            | _ -> '1'
-                          in
-                          r.range_current_begin <- r.range_begin;
-                          match r.range_next with
-                            None -> state
-                          | Some rr -> iter_ranges b rr state
-                        end else state
-                    in
-                    iter_ranges b b.block_ranges '3'
-                  in
-                  
-                  match state with
-                    '2' -> reload_block b
-                  | _ -> 
-(* OK, we just need to wait for more data *)
-                      p.part_bitmap.[b.block_num] <- state
-                end
+              verifier b;
         with 
         | VerifierNotReady -> ()
         | e -> 
-            lprintf "ERROR: Exception %s in verify_block %d\n"
+            lprintf "ERROR: Exception %s in verify_one_block %d\n"
               (Printexc2.to_string e) b.block_num
       
       let compute_bitmap p =
@@ -586,10 +615,10 @@ partitions. *)
         in
         set_present t list
       
-      let partition t name f =
+      let partition t network f =
         let rec p = {
             part_t = t;
-            part_name = name;
+            part_network = network;
             part_splitter = f;
             part_blocks = b;
             part_nblocks = 0;
@@ -1092,7 +1121,7 @@ start at the beginning of the range. *)
             p.part_bitmap.[i] <- '2'
         done;
         p.part_t.t_dirty <- true
-        
+      
       let verify_partition p =
 (* 1: find completed blocks *)
         let rec iter_blocks b =
@@ -1126,32 +1155,40 @@ start at the beginning of the range. *)
         | Some verifier ->
             let rec iter_blocks b =
               if p.part_bitmap.[b.block_num] = '2' then
-                  verify_one_block b;
+                verify_one_block b;
               match b.block_next with
                 None -> ()
               | Some bb -> iter_blocks bb
             in
             iter_blocks p.part_blocks
-            
+      
       let dirty t = t.t_dirty
-        
+      
       let verify_file t =
         lprintf "verify_file\n";
         t.t_dirty <- false;
         List.iter (fun p ->
-            verify_partition p
-        ) t.t_partitions
-        
+            try          
+              verify_partition p
+            with e ->
+                lprintf "Exception %s in verify_file\n" (Printexc2.to_string e);
+        ) t.t_partitions        
+
       
-    let availability p =
-      let rec iter_blocks b s =
-        s.[b.block_num] <- char_of_int (
-          if b.block_nuploaders > 200 then 200 else b.block_nuploaders);
-        match b.block_next with
-          None -> s
-        | Some bb -> iter_blocks bb s
-      in
-      iter_blocks p.part_blocks (String.make p.part_nblocks '\000')
+      let availability t =
+        List.fold_left (fun list p ->
+            if p.part_network = -1 then list else
+            (p.part_network, 
+            let rec iter_blocks b s =
+              s.[b.block_num] <- char_of_int (
+                if b.block_nuploaders > 200 then 200 else b.block_nuploaders);
+              match b.block_next with
+                None -> s
+              | Some bb -> iter_blocks bb s
+            in
+              iter_blocks p.part_blocks (String.make p.part_nblocks '\000'))
+            :: list) []
+        t.t_partitions 
     
     let rec debug_block_ranges buf b r =
       Printf.bprintf buf "(%s-%s%s) "
@@ -1240,6 +1277,9 @@ start at the beginning of the range. *)
           if !age > a && p.part_bitmap.[i] < '2' then age := a
         done;
         !age
+
+      let is_file_verifiable t =
+        List.exists (fun p -> p.part_verifier <> None) t.t_partitions
         
     end: Swarmer with type pos = Integer.t)
   
@@ -1266,7 +1306,7 @@ let _ =
   let present = M.sort_chunks present in
   M.set_present t present;
   M.print_t "set_present" t;
-  let p = M.partition t "" (fun x -> 
+  let p = M.partition t 0 (fun x -> 
         let next = x + 2 * 1024 * 1024 in
         lprintf "block: %d --> %d\n" x next;
         next

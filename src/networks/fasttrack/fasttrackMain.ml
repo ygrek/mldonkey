@@ -17,20 +17,23 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open BasicSocket
+open Options
 open Printf2
+  
 open CommonNetwork
-open FasttrackClients
 open CommonOptions
 open CommonFile
 open CommonComplexOptions
-open BasicSocket
-open Options
+open CommonTypes
+open CommonHosts
+  
 open FasttrackComplexOptions
 open FasttrackOptions
 open FasttrackGlobals
 open FasttrackTypes
-open CommonTypes
 open FasttrackServers
+open FasttrackClients
   
 let is_enabled = ref false
  
@@ -42,7 +45,7 @@ let disable enabler () =
           match h.host_server with
             None -> ()
           | Some s -> FasttrackServers.disconnect_server s Closed_by_user) 
-      hosts_by_key;
+      H.hosts_by_key;
       Hashtbl2.safe_iter (fun c -> disconnect_client c Closed_by_user) 
       clients_by_uid;
       (match !listen_sock with None -> ()
@@ -86,10 +89,10 @@ let enable () =
     if not !!enable_fasttrack then enable_fasttrack =:= true;
     
     List.iter (fun (ip,port) -> 
-        ignore (new_host ip port Ultrapeer)) !!ultrapeers;
+        ignore (H.new_host ip port Ultrapeer)) !!ultrapeers;
     
     List.iter (fun (ip,port) -> 
-        ignore (new_host ip port Peer)) !!peers;
+        ignore (H.new_host ip port Peer)) !!peers;
     
     add_session_timer enabler 1.0 (fun timer ->
         FasttrackServers.manage_hosts ();
@@ -132,9 +135,11 @@ let _ =
         network_config_filename = (match network.network_config_file with
             [] -> "" | opfile :: _ -> options_file_name opfile);
         network_netname = network.network_name;
+        network_netflags = network.network_flags;
         network_enabled = network.op_network_is_enabled ();
         network_uploaded = Int64.zero;
         network_downloaded = Int64.zero;
+        network_connected = List.length !connected_servers;
       });
   CommonInteractive.register_gui_options_panel "Fasttrack" 
   gui_fasttrack_options_panel

@@ -92,6 +92,7 @@ let make_url referer url args =
       H.basic_request with
       
       H.req_url = Url.of_string ~args: args   url;
+      H.req_proxy = !CommonOptions.http_proxy;
       H.req_user_agent = "Mozilla/5.0 (Linux 2.4.19-16mdk i686; U) Opera 6.11  [en]";
       H.req_referer = referer;
       H.req_request = H.GET;
@@ -417,6 +418,7 @@ lprint_newline (); *)
               let url = {
                   H.basic_request with
                   H.req_url = Url.of_string url;
+                  H.req_proxy = !CommonOptions.http_proxy;
                 } in
               
               let expanded = ref false in
@@ -524,6 +526,7 @@ let imdb_title_url title =
       H.basic_request with
       
       H.req_url = Url.of_string ~args: args  url;
+      H.req_proxy = !CommonOptions.http_proxy;
       H.req_user_agent = "Mozilla/5.0 (Linux 2.4.19-16mdk i686; U) Opera 6.11  [en]";
       H.req_referer = Some (Url.of_string "http://us.imdb.com/search");
       H.req_request = H.GET;

@@ -24,23 +24,25 @@ open Str (* global_replace *)
   
 let message_file_name = try
     Sys.getenv "MLDONKEY_MESSAGES"
-  with _ -> 
+  with _ ->
       Filename.concat CommonOptions.home_basedir ".mldonkey_messages.ini"
-
-      (*
+    
+      (* 
 let _ =
-  lprintf "Using Message File %s" message_file_name; lprint_newline ()
-  *)
+  lprintf "Using Message File %s\n" message_file_name; 
+  *)  
 
 let message_file = Options.create_options_file message_file_name
-let message name t x = define_option message_file [name] "" t x
-let string name x = define_option message_file [name] "" string_option x
+let message_section = file_section message_file [] ""
+    
+let message name t x = define_option message_section [name] "" t x
+let string name x = define_option message_section [name] "" string_option x
 
-(* Please do not modify *_mods0, add/modify your html_mods_style or colour array *)
+(* Please do not modify *_mods0, add/modify your own html_mods_theme *)
 
 (* Style 0 *)
 
-let html_css_mods0 = define_option message_file ["html_css_mods0"] 
+let html_css_mods0 = define_option message_section ["html_css_mods0"] 
   "Main CSS style 0" 
     string_option  
 "
@@ -57,12 +59,22 @@ table.topcommands {background: @C0@; border: #000 solid 1px; border-top: @C3@ so
 pre {color: #000; font-family: Courier, Arial, Helvetica, sans-serif; font-size: 12px;}
 p {color: #000; font-family: Verdana, Courier, Arial, Helvetica, sans-serif; font-size: 12px;}
 input.txt {background: @C6@}
+input.txt2 {background: @C11@;
+font: 12px courier; padding: 0px;
+width: 38px; height: 18px; line-height: 14px; color: #000;
+BORDER-RIGHT: #000 2px solid; BORDER-TOP: #fff 1px solid;
+BORDER-LEFT: #fff 1px solid; BORDER-BOTTOM: #000 2px solid;
+}
+input.but2 {background: @C14@;
+border: 0px; padding: 0px; font: bold 10px verdana; 
+width: 36px; height: 14px;}
 input.but {background: @C7@};
+
 a:link,a:active,a:visited { text-decoration: none; font-face: verdana;
 font-size: 10px; color: #000000; }
 a:hover { color: #000000; text-decoration: underline;}
 .bu {
-font-variant: small-caps; vertical-align: middle; white-space: nowrap;
+vertical-align: middle; white-space: nowrap;
 background: @C8@; color: @C9@;
 font-family: Verdana; font-size: 9px; line-height: 12px;
 margin-top: 0px; margin-bottom: 0px;
@@ -74,6 +86,12 @@ text-align: center; font-size: 10px; font-family: Verdana; font-weight: 500;
 border-top: @C3@ 1px solid; border-left: @C3@ 1px solid; border-bottom: #000 1px solid; border-right: #000 1px solid;
 padding-left: 4px; padding-right: 4px; padding-top: 1px; padding-bottom: 1px;
 color: #000; background: @C11@;
+}
+.bbigm {
+text-align: center; font: bold 10px verdana; 
+border-top: @C3@ 1px solid; border-left: @C3@ 1px solid; border-bottom: #000 1px solid; border-right: #000 1px solid;
+padding-left: 4px; padding-right: 4px; padding-top: 1px; padding-bottom: 1px;
+color: #000; background: @C14@;
 }
 .bsmall { background: @C12@; }
 .bsmall1 { background: @C11@; }
@@ -108,15 +126,17 @@ tr.dl-2, td.dl-2 { background: @C21@; }
 .mOvr3, tr.mOvr3 {background: @C19@; cursor: pointer; }
 table.uploaders, table.friends, table.bw_stats, table.vo, table.cs, table.servers,
 table.shares, table.downloaders, table.scan_temp, table.upstats, table.messages,
-table.sources, table.shares, table.vc, table.results {
+table.shares, table.vc, table.results {
  margin-right: auto;
  margin-left: auto;
  border: 1;
  border: #000 solid 1px;
  border-collapse: collapse;
 }
+table.sourcesInfo, table.serversC { width: 100%; margin-right: auto; margin-left: auto; border: 1; border: #000 solid 1px; border-collapse: collapse;}
+table.sources {border: 1; border: #000 solid 1px; border-collapse: collapse; }
 table.main { margin-right: auto; margin-left: auto; }
-div.main, div.uploaders, div.friends, div.cs, div.shares, div.upstats, div.servers, div.vo,
+div.main, div.uploaders, div.friends, div.cs, div.shares, div.upstats, div.servers, div.serversC, div.vo,
 div.downloaders, div.messages, div.vc, div.bw_stats, div.scan_temp, div.results { text-align: center; }
 td.srb { padding-top: 1px; padding-bottom: 1px; font-size: 10px; font-family: Verdana; white-space: nowrap; border-right: #000 solid 1px; border-bottom: #000 solid 1px;
 border-left: #000 solid 1px; border-top: #000 solid 0px; padding-left: 3px; padding-right: 3px;}
@@ -131,7 +151,7 @@ td.ac {text-align: center;}
 .chunk3 { background: @C8@}
 "
 
-let html_js_mods0 = define_option message_file ["html_js_mods0"] 
+let html_js_mods0 = define_option message_section ["html_js_mods0"] 
   "Main JS include style 0" 
     string_option  
 "
@@ -152,11 +172,17 @@ function mSub(target,cmd) {
      		top[target].location.href=\"submit?q=\" + cmd;
  	    }
  	} else {
-     top[target].location.href=\"submit?q=\" + cmd;
+        if (cmd.substring(0,6)==\"custom\") {top[target].location.href=\"submit?\" + cmd;}
+        else {top[target].location.href=\"submit?q=\" + cmd;
+     }
  	}
  } else {
  location.href=\"submit?q=\" + cmd;
  }               
+}
+function showTab(t){
+	for (i=1; i<=6; i++) document.getElementById(\"tab\" + i).style.display = \"none\";
+	document.getElementById(\"tab\" + t).style.display = \"block\";
 }
 var _tabLast=null;
 function _rObj (s,ar) {
@@ -243,7 +269,7 @@ top.fstatus.document.close();
 //-->
   "
 
-let html_header_mods0 = define_option message_file ["html_header_mods0"] 
+let html_header_mods0 = define_option message_section ["html_header_mods0"] 
   "Header - style 0" 
     string_option
   "
@@ -253,7 +279,7 @@ let html_header_mods0 = define_option message_file ["html_header_mods0"]
 </script>
 "
 
-let download_html_css_mods0 = define_option message_file ["download_html_css_mods0"] 
+let download_html_css_mods0 = define_option message_section ["download_html_css_mods0"] 
   "Download CSS - style 0" 
     string_option  
 "
@@ -293,7 +319,7 @@ a.extern:visited,a.extern:hover,a.extern:active { color: #000099; }
 .extern:hover { color: #000; }
 "
 
-let download_html_js_mods0 = define_option message_file ["download_html_js_mods0"] 
+let download_html_js_mods0 = define_option message_section ["download_html_js_mods0"] 
   "Download JS include style 0" 
     string_option  
 "
@@ -310,7 +336,7 @@ function mOut(src) {
 //-->
 "
   
-let download_html_header_mods0 = define_option message_file ["download_html_header_mods0"] 
+let download_html_header_mods0 = define_option message_section ["download_html_header_mods0"] 
   "Download header - style 0" 
     string_option
   "
@@ -319,622 +345,204 @@ let download_html_header_mods0 = define_option message_file ["download_html_head
 <script language=\"javascript\" src=\"di.js\"></script>
   "
   
-let web_common_header_mods0 = define_option message_file ["web_common_header_mods0"] 
+let web_common_header_mods0 = define_option message_section ["web_common_header_mods0"] 
   "Web header - style 0" 
     string_option 
 "
-<table width=100% border=0 cellspacing=0 cellpadding=0>
-<tr><td>
-<table class=\"topcommands\" cellspacing=0 cellpadding=0><tr>
-<td
-title=\"Help!\"
-class=\"bu bsmall b1\"
-onMouseOver=\"mOvr(this,'mOvr2');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$O','help')\">Help!
-</td>
-<td
-title=\"MLDonkey homepage\"
-class=\"bu bsmall1 b2\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"top.output.location.href='http://www.mldonkey.net/'\">Homepage
-</td>
-<td
-title=\"English/German support forums\"
-class=\"bu bsmall1 b2\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"top.output.location.href='http://www.mldonkeyworld.com/'\">Forums
-</td>
-<td
-title=\"Options\"
-class=\"bu bsmall2 b2\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$O','voo+1')\">Options
-</td>
-<td
-title=\"Memory statistics\"
-class=\"bu bsmall2 b2\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$O','mem_stats')\">Mem
-</td>
-<td
-title=\"Client statistics\"
-class=\"bu bsmall2 b2\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$O','client_stats')\">Client stats
-</td>
-<td
-title=\"Load OverNet peers\"
-class=\"bu bsmall3 b2\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$S','ovweb')\">Load ONet peers
-</td>
-<td
-title=\"Kill/Close the MLdonkey core\"
-class=\"bu bsmall3 b2\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$O','kill')\">Kill core
-</td>
-<tr>
-<td
-title=\"Show current version\"
-class=\"bu bsmall b3\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$S','version')\">Version
-</td>
-<td 
-title=\"View the CVS changeLog\"
-class=\"bu bsmall1 b4\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"top.output.location.href='http://savannah.nongnu.org/cgi-bin/viewcvs/*checkout*/mldonkey/mldonkey/distrib/ChangeLog?rev=HEAD&content-type=text/plain'\">ChangeLog
-</td>
-<td 
-title=\"Friends\"
-class=\"bu bsmall1 b4\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$O','friends')\">Friends
-</td>
-<td 
-title=\"Message window (20 second refresh)\"
-class=\"bu bsmall2 b4\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$O','message')\">Messages
-</td>
-<td 
-title=\"View sources statistics\"
-class=\"bu bsmall2 b4\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$O','sources')\">Srcs
-</td>
-<td 
-title=\"Client statistics in a table\"
-class=\"bu bsmall2 b4\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$O','cs')\">Stats table
-</td>
-<td 
-title=\"Overnet statistics\"
-class=\"bu bsmall3 b4\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$O','ovstats')\">Overnet stats
-</td>
-<td 
-title=\"Bandwidth stats (10 second refresh)\"
-class=\"bu bsmall3 b4\" 
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$S','bw_stats')\">Bw stats
-</td>
-</tr>
-</table>
-<td></td>
-<form action=\"submit\" target=\"$O\" name=\"cmdFormular\">
-<td nowrap valign=top align=right>
-    <input style=\" font-size: 10px; font-family: Verdana; width: 80px;
-    \" class=\"txt\" type=\"text\" name=\"q\" size=13 value=\"\"><br><input style=\"
-    color: #FFF; font-weight: 600; height: 18px; font-family: verdana; padding: 0px; font-size: 10px; height: 18px; width: 65px;
-    \" class=\"but\" type=\"submit\" value=\"Execute\"><input style=\"
-    color: #FFF; font-weight: 600; height: 18px; font-family: verdana; padding: 0px; font-size: 10px; height: 18px; width: 15px;
-    \" class=\"but\" onclick=\"_cmdLine();\" type=\"button\" value=\"!\">
-</td>
-</form>
+<!-- Main Table -->
+<TABLE BORDER=0 cellspacing=1 cellpadding=0 width=\"100%\"><TR>
+<TD width=85><TABLE class=commands cellSpacing=0 cellPadding=0 width=\"100%\">
+<TBODY><TR><TD class=\"bu bbigm\" title=\"Transfers Tab\"
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onclick=\"showTab(1);mSub('fstatus','bw_stats');mSub('output','vd');\">Transfers</TD></TR></TBODY></TABLE></TD>
+<TD width=85><TABLE class=commands cellSpacing=0 cellPadding=0 width=\"100%\">
+<TBODY><TR><TD class=\"bu bbigm\" title=\"Searches Tab\"
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onclick=\"showTab(2);mSub('fstatus','view_custom_queries');mSub('output','custom=Complex+Search');\">Search</TD></TR></TBODY></TABLE></TD>
+<TD width=85><TABLE class=commands cellSpacing=0 cellPadding=0 width=\"100%\">
+<TBODY><TR><TD class=\"bu bbigm\" title=\"Servers Tab\"
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onclick=\"showTab(3);mSub('output','vm');\">Servers</TD></TR></TBODY></TABLE></TD>
+<TD width=85><TABLE class=commands cellSpacing=0 cellPadding=0 width=\"100%\">
+<TBODY><TR><TD class=\"bu bbigm\" title=\"Statistics Tab\"
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onclick=\"showTab(4);mSub('output','cs');\">Statistics</TD></TR></TBODY></TABLE></TD>
+<TD width=85><TABLE class=commands cellSpacing=0 cellPadding=0 width=\"100%\">
+<TBODY><TR><TD class=\"bu bbigm\" title=\"Options Tab\"
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onclick=\"showTab(5);mSub('output','voo+1');\">Options</TD></TR></TBODY></TABLE></TD>
+<TD width=85><TABLE class=commands cellSpacing=0 cellPadding=0 width=\"100%\">
+<TBODY><TR><TD class=\"bu bbigm\" title=\"Help+Miscellaneous Tab\"
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onclick=\"showTab(6);mSub('fstatus','version');mSub('output','help');\">Help+</TD></TR></TBODY></TABLE></TD>
+<FORM name=cmdFormular action=submit target=output>
+<TD noWrap width=100% title=\\\"Input mldonkey commands here\\\"><TABLE cellSpacing=0 cellpadding=0 width=\"100%\"><TBODY><TR>
+<TD style=\"padding: 0px; border: 0px;\" title=\"Input mldonkey command here\">
+<INPUT class=\"txt2\" style=\"WIDTH: 99%;\" name=q>
+</TD></TR></TBODY></TABLE></TD><TD noWrap>
+<TABLE class=commands cellSpacing=0 cellPadding=0 width=\"100%\"><TBODY><TR>
+<TD class=\"bu bbigm\" style=\"padding-top: 0px; padding-bottom: 0px;\" title=\"Input Command\">
+<INPUT class=\"but2\" type=submit value=\"Input\">
+</TD></TR></TBODY></TABLE></TD></FORM></TR></TABLE>
+<!-- End Main Table -->
 
-</tr>
+<DIV ID=\"tab1\" style=\"display: none\">
+<TABLE class=commands cellSpacing=0 cellPadding=0 width=\"100%\">
+<TBODY><TR>
+<TD class=\"bu bbig\" title=\"Current downloads\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('output','vd')\">Downloads</TD>
+<TD class=\"bu bbig\" title=\"Current downloaders\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('output','downloaders')\">Downloaders</TD>
+<TD class=\"bu bbig\" title=\"Upload statistics\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('output','upstats')\">Uploads</TD>
+<TD class=\"bu bbig\" title=\"Uploaders\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('output','uploaders')\">Uploaders</TD>
+<TD class=\"bu bbig\" title=\"Commit downloaded files to incoming directory\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('fstatus','commit')\">Commit</TD>
+<TD class=\"bu bbig\" title=\"Check shared files for removal\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('fstatus','reshare')\">Reshare</TD>
+<TD class=\"bu bbig\" title=\"List contents of the temp directory\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('output','scan_temp')\">Scan temp</TD>
+<TD class=\"bu bbig\" title=\"Force download (click after trying to download the duplicate file)\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('fstatus','force_download')\">Force DL</TD>
+<TD class=\"bu bbig\" title=\"Bandwidth statistics (set html_mods_bw_refresh_delay)\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('fstatus','bw_stats')\">Bandwidth stats</TD>
+</TR></TBODY></TABLE></DIV>
 
-<tr height=3><td colspan=3></td></tr>
+<DIV ID=\"tab2\" style=\"display: none\">
+<TABLE class=commands cellSpacing=0 cellPadding=0 width=\"100%\">
+<TBODY><TR>
+<TD class=\"bu bbig\" title=\"Extend search to more servers and view results\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('fstatus','xs');mSub('output','vr');\">Extend search</TD>
+<TD class=\"bu bbig\" title=\"View search results\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('output','vr')\">Search results</TD>
+<TD class=\"bu bbig\" title=\"View searches\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('output','vs')\">View searches</TD>
+<TD class=\"bu bbig\" title=\"Complex search\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('output','custom=Complex+Search')\">Complex search</TD>
+<TD class=\"bu bbig\" title=\"MP3 search\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('output','custom=MP3+Search')\">MP3 search</TD>
+<TD class=\"bu bbig\" title=\"Movie search\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('output','custom=Movie+Search')\">Movie search</TD>
+<TD class=\"bu bbig\" title=\"Album search\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('output','custom=Album+Search')\">Album search</TD>
+</TR></TBODY></TABLE></DIV>
 
-<tr>
-<td colspan=3>
+<DIV ID=\"tab3\" style=\"display: none\">
+<TABLE class=commands cellSpacing=0 cellPadding=0 width=\"100%\">
+<TBODY><TR>
+<TD class=\"bu bbig\" title=\"List connected servers\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('output','vm')\">Connected servers</TD>
+<TD class=\"bu bbig\" title=\"List all servers\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('output','vma')\">All servers</TD>
+<TD class=\"bu bbig\" title=\"Connect to more servers\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('fstatus','c')\">Connect to more servers</TD>
+<TD class=\"bu bbig\" title=\"Remove old servers\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('fstatus','remove_old_servers')\">Remove old servers</TD>
+</TR></TBODY></TABLE></DIV>
 
-<table class=\"commands\" width=100% cellspacing=0 cellpadding=0><tr>
-<td
-title=\"List connected servers\"
-class=\"bu bbig\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$O','vm')\">Connected servers
-</td>
-<td
-title=\"Connect to more servers\"
-class=\"bu bbig\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$S','c')\">Connect more servers
-</td>
-<td
-title=\"Custom search\"
-class=\"bu bbig bbig2\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$S','view_custom_queries')\">Custom search
-</td>
-<td
-title=\"View searches\"
-class=\"bu bbig bbig2\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$O','vs')\">View searches
-</td>
-<td
-title=\"Recover files from temp directory\"
-class=\"bu bbig bbig3\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$O','recover_temp')\">Recover temp
-</td>
-<td
-title=\"Commit downloaded files to incoming directory\"
-class=\"bu bbig bbig3\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$S','commit')\">Commit</td>
-<td
-title=\"View current uploaders\"
-class=\"bu bbig bbig3\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$O','uploaders')\">Ulers
-</td>
-<td
-title=\"Upload statistics\"
-class=\"bu bbig bbig3 bb2\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$O','upstats')\">Uls
-</td>
-</tr>
-<!-- Row -->
-<tr>
-<td
-title=\"View the list of all servers\"
-class=\"bu bbig bb4\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$O','vma')\">View all servers
-</td>
-<td
-title=\"Remove old servers\"
-class=\"bu bbig bb4\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$O','remove_old_servers')\">Remove old Servers
-</td>
-<td
-title=\"Extend search to more servers\"
-class=\"bu bbig bbig2 bb4\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$S','xs')\">Extend search
-</td>
-<td
-title=\"View search results\"
-class=\"bu bbig bbig2 bb4\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$O','vr')\">Search results
-</td>
-<td
-title=\"Scan temp directory for files\"
-class=\"bu bbig bbig3 bb4\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$O','scan_temp')\">Scan temp
-</td>
-<td
-title=\"Rescan for shared files\"
-class=\"bu bbig bbig3 bb4\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$S','reshare')\">Reshare
-</td>
-<td
-title=\"View current downloaders\"
-class=\"bu bbig bbig3 bb4\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$O','downloaders')\">Dlers
-</td>
-<td
-title=\"View current downloads\"
-class=\"bu bbig bbig3 bb3\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$O','vd')\">Dls
-</td>
-</tr>
-</table>
+<DIV ID=\"tab4\" style=\"display: none\">
+<TABLE class=commands cellSpacing=0 cellPadding=0 width=\"100%\">
+<TBODY><TR>
+<TD class=\"bu bbig\" title=\"eDonkey statistics in a table\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('output','cs')\">eDonkey Table</TD>
+<TD class=\"bu bbig\" title=\"eDonkey statistics in a list\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('output','client_stats')\">eDonkey List</TD>
+<TD class=\"bu bbig\" title=\"Overnet statistics\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('output','ovstats')\">Overnet</TD>
+<TD class=\"bu bbig\" title=\"Gnutella statistics\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('output','gstats')\">Gnutella</TD>
+<TD class=\"bu bbig\" title=\"Memory statistics\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('output','mem_stats')\">Memory</TD>
+<TD class=\"bu bbig\" title=\"Sources statistics\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('output','sources')\">Sources</TD>
+</TR></TBODY></TABLE></DIV>
 
-</td>
-</tr></table>
+<DIV ID=\"tab5\" style=\"display: none\">
+<TABLE class=commands cellSpacing=0 cellPadding=0 width=\"100%\">
+<TBODY><TR>
+<TD class=\"bu bbig\" title=\"Settings\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('output','voo+1')\">Settings</TD>
+<TD class=\"bu bbig\" title=\"View/edit shared directories\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('output','shares')\">Shares</TD>
+<TD class=\"bu bbig\" title=\"Friends\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('output','friends')\">Friends</TD>
+<TD class=\"bu bbig\" title=\"View/send messages (20 second refresh)\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('output','message')\">Messages</TD>
+<TD class=\"bu bbig\" title=\"Recover files from temp directory\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('fstatus','recover_temp');mSub('output','scan_temp');\">Recover temp</TD>
+<TD class=\"bu bbig\" title=\"Close all files (use to free space on disk after remove)\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('fstatus','close_fds')\">Close files</TD>
+<TD class=\"bu bbig\" title=\"View all clients\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('output','vc+all')\">View clients</TD>
+</TR></TBODY></TABLE></DIV>
+
+<DIV ID=\"tab6\" style=\"display: none\">
+<TABLE class=commands cellSpacing=0 cellPadding=0 width=\"100%\">
+<TBODY><TR>
+<TD class=\"bu bbig\" title=\"Long help\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('output','longhelp')\">LongHelp</TD>
+<TD class=\"bu bbig\" title=\"Network listing\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('output','networks')\">Networks</TD>
+<TD class=\"bu bbig\" title=\"View ChangeLog\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"top.output.location.href='http://savannah.nongnu.org/cgi-bin/viewcvs/*checkout*/mldonkey/mldonkey/distrib/ChangeLog?rev=HEAD&content-type=text/plain'\">ChangeLog</TD>
+<TD class=\"bu bbig\" title=\"HomePage\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"top.output.location.href='http://www.mldonkey.net/'\">Homepage</TD>
+<TD class=\"bu bbig\" title=\"Wiki (User updated FAQ/documentation)\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"top.output.location.href='http://mldonkey.berlios.de/modules.php?name=Wiki'\">Wiki</TD>
+<TD class=\"bu bbig\" title=\"Support forums (english/german)\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"top.output.location.href='http://www.mldonkeyworld.com/'\">Support forums</TD>
+<TD class=\"bu bbig\" title=\"View core log\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('output','log')\">Log</TD>
+<TD class=\"bu bbig\" title=\"Kill core\" 
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('output','kill')\">Kill core</TD>
+</TR></TBODY></TABLE></DIV>
 "
-
-(* Style 1 *)
-
-let html_js_mods1 = define_option message_file ["html_js_mods1"] 
-  "Main JS include style 1" 
-    string_option
-"
-<!--
-var mOvrClass='';
-function mOvr(src,clrOver) {
- if (clrOver == undefined) {var clrOver='mOvr3'};
- mOvrClass = src.className;
- src.className = mOvrClass + ' ' + clrOver; 
-}
-function mOut(src) {
- src.className=mOvrClass;
-}
-function mSub(target,cmd) {
- if (target != \"\") {
- 	if (cmd==\"kill\") {
- 		if (confirm(\"Are you sure?\")) {
-     		top[target].location.href=\"submit?q=\" + cmd;
- 	    }
- 	} else {
-     top[target].location.href=\"submit?q=\" + cmd;
- 	}
- } else {
- location.href=\"submit?q=\" + cmd;
- }               
-}
-var _tabLast=null;
-function _rObj (s,ar) {
-    this.s = s;
-    this.ar = ar;
-}
-function _tabCreateArray(obj,st){
-	var tb=obj.parentNode.parentNode;
-	var rw=obj.parentNode.parentNode.rows;
-	var _nRows=rw.length;
-	var _tabS=new Array(_nRows-1);
-	var _nCells = rw.item(0).cells.length;
-	for(var i=1;i<_nRows;i++){
-		var _raw = rw.item(i).cells.item(obj.cellIndex).innerHTML;
-		if (st==1) {
-			_raw = _raw.replace((new RegExp('\\\\\\(','gi')), '');
-		   if (_raw.indexOf(\":\") != -1) { _raw = _raw.substring(2,99); }
-		 if (_raw.search(new RegExp(\"[TGMk]\",\"i\"))) {
-		  if (_raw.indexOf(\"T\") != -1) { _raw = parseFloat(_raw) * 1024 * 1024 * 1024 * 1024; } 
-		  else {
-			if (_raw.indexOf(\"G\") != -1) { _raw = parseFloat(_raw) * 1024 * 1024 * 1024; } 
-			else {
-				 if (_raw.indexOf(\"M\") != -1) { _raw = parseFloat(_raw) * 1024 * 1024; } 
-				 else {
-					if (_raw.indexOf(\"k\") != -1) { _raw = parseFloat(_raw) * 1024; }
-				 }
-			}
-	      }
-		}}
-			_tabS[i-1]= new _rObj(_raw,rw.item(i).cloneNode(true));
-	}
-	if (st==1) { _tabS.sort(_cmpFloat); }
-	else { _tabS.sort(_cmpTxt); }
-	if (!_tabMode) {_tabS.reverse()}			
-	for(var i=0;i<_nRows-1;i++){
-			var tr = _tabS[i].ar.cloneNode(true);
-			var oChild=tb.rows.item(i+1);
-			if (i % 2 == 0) { tr.className = 'dl-1'; } 
-		               else { tr.className = 'dl-2'; }
-			tb.replaceChild(tr,oChild);
-	}
-
-}
-function _cmpTxt(a,b) {
-	if (_tabMode) {
-		if (a.s==\"\") { if (b.s !=\"\") { return 1;} }
-		if (b.s==\"\") { if (a.s !=\"\") { return -1;} }
-	}
-	if (a.s.toUpperCase() < b.s.toUpperCase()) {return -1;}
-	if (a.s.toUpperCase() > b.s.toUpperCase()) {return 1;}
-	return 0;
-}
-function _cmpFloat(a,b) {
-	if (!_tabMode) {
-		if (a.s==\"\") { if (b.s !=\"\") { return -1;} }
-		if (b.s==\"\") { if (a.s !=\"\") { return 1;} }
-	}
-	if (isNaN(parseFloat(a.s))) {return 1;}
-	if (isNaN(parseFloat(b.s))) {return -1;}
-	return (parseFloat(b.s) - parseFloat(a.s));
-}
-function _tabSort(obj,st){
-	if (_tabLast==obj) {_tabMode=!(_tabMode);} 
-	else {_tabMode=true;}
-	_tabCreateArray(obj,st);
-	_tabLast=obj;
-	return _tabMode;
-}
-function _cmdLine(){
-top.fstatus.document.open();
-top.fstatus.document.clear();
-top.fstatus.document.writeln(\"<html><head>\");
-top.fstatus.document.writeln(\"<link href='h.css' rel='stylesheet' type='text/css'>\");
-top.fstatus.document.writeln(\"</head><body><center><table width=99% border=0 cellspacing=0 cellpadding=0>\");
-top.fstatus.document.writeln(\"<form action=submit target=$O name=cmdFormular> \" );
-top.fstatus.document.writeln(\"<tr><td width=100% nowrap>\");
-top.fstatus.document.writeln(\" <input class='txt' style='width: 99%; height: 20px; font-size: 12px;\'\"); 
-top.fstatus.document.writeln(\" type=text name=q value=''> </td><td width=1>\");
-top.fstatus.document.writeln(\"	<input class='but' style='color: #FFF; font-weight: 600; height: 20px; font-size: 10px;'\");
-top.fstatus.document.writeln(\"type=submit value=Execute></td></form>\");
-top.fstatus.document.writeln(\"</tr></table></body></html>\");
-top.fstatus.document.close();
-}
-function draw_middle_header() {
-top.fstatus.document.open();top.fstatus.document.clear();
-top.fstatus.document.writeln(\"<html><head>\");
-top.fstatus.document.writeln(\"<link href='h.css' rel='stylesheet' type='text/css'>\");
-top.fstatus.document.writeln('<script language=\"javascript\" src=\"i.js\">');
-top.fstatus.document.writeln(\"</script>\");
-top.fstatus.document.writeln(\"</head><body><center><table cellspacing=0 cellpadding=0 class='bw_stats'><tr>\");
-}
-function close_page() {
-top.fstatus.document.writeln(\"</tr></table></body></html>\");
-top.fstatus.document.close(); }
-
-function draw_td (tooltip,link,command,frame_name) {
-if (frame_name==\"\") { frame_name='fstatus'} else frame_name='output';
-top.fstatus.document.writeln(\"<td width=80 class='bu bbig' title='\" + tooltip + \"' onMouseOver=mOvr(this); onMouseOut=mOut(this); onClick=parent.\" + frame_name + \".location.href='\" + \"submit?q=\" + link + \"';>\" + command + \"</a></td>\"); }
-
-function draw_scan_opts() { draw_middle_header();
-draw_td('recover temp','recover_temp','recover temp','');close_page(); }
-
-function draw_server_opts() {
-draw_middle_header();
-draw_td('view all servers','vma','view all','o');
-draw_td('connect more servers','c','connect more','');
-draw_td('remove old servers','remove_old_servers', 'remove old','');
-draw_td('remove all servers','rem%20all', 'remove all','');
-close_page(); }
-
-function draw_xs_search() { draw_middle_header();
-draw_td('extend search','xs','extend search','');close_page(); }
-
-function draw_stats() { draw_middle_header();
-draw_td('overnet statistics','ovstats','overnet','o');
-draw_td('sources statistics','sources','sources','o');
-draw_td('memory statistics','mem_stats','memory','o');
-draw_td('old style statistics','client_stats','old style','o');
-close_page(); }
-
-function draw_options() {draw_middle_header();
-draw_td('client','voo+1','client','o');
-draw_td('ports','voo+2','ports','o');
-draw_td('display','voo+3','display','o');
-draw_td('delays','voo+4','delays','o');
-draw_td('files','voo+5','files','o');
-draw_td('mail','voo+6','mail','o');
-draw_td('net','voo+7','net','o');
-draw_td('all','voo','all','o');
-close_page(); }
-
-//-->
-"
-
-let html_header_mods1 = define_option message_file ["html_header_mods1"] 
-  "Header - style 1" 
-    string_option 
-  "
-<title>MLDonkey: Web Interface</title>
-<link href=\"h.css\" rel=\"stylesheet\" type=\"text/css\">
-<script language=\"javascript\" src=\"i.js\"></script>
-  "
-
-let download_html_js_mods1 = download_html_js_mods0
-
-let download_html_header_mods1 = define_option message_file ["download_html_header_mods1"] 
-  "Download header - style 1" 
-    string_option 
-  "
-<title>MLdonkey: Web Interface</title>
-<link href=\"dh.css\" rel=\"stylesheet\" type=\"text/css\">
-<script language=\"javascript\" src=\"di.js\"></script>
-"
-
-let web_common_header_mods1 = define_option message_file ["web_common_header_mods1"] 
-  "Web header - style 1" 
-    string_option 
-"
-<table width=100% border=0 cellspacing=0 cellpadding=0>
-<tr><td>
-<table class=\"topcommands\" cellspacing=0 cellpadding=0><tr>
-<td 
-title=\"Upload statistics\"
-class=\"bu bbig\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$O','upstats')\">Uploads
-</td>
-<td 
-title=\"View current uploaders\"
-class=\"bu bbig\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$O','uploaders')\">Ulers
-</td>
-<td 
-title=\"List connected servers\"
-class=\"bu bbig\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"draw_server_opts();mSub('$O','vm');\">Servers
-</td>
-<td 
-title=\"Options\"
-class=\"bu bbig\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"draw_options();mSub('$O','voo+1')\">Options
-</td>
-
-<td 
-title=\"Custom search\"
-class=\"bu bbig\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"top.output.location.href='submit?custom=Complex Search';mSub('$S','view_custom_queries')\">Search
-</td>
-<td 
-title=\"Scan temp directory for files\"
-class=\"bu bbig\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"draw_scan_opts();mSub('$O','scan_temp')\">Show temp
-</td>
-<td 
-title=\"Client statistics in a table\"
-class=\"bu bbig\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"draw_stats();mSub('$O','cs')\">Statistics
-</td>
-
-<td 
-title=\"MLDonkey homepage\"
-class=\"bu bbig bbig2\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"top.output.location.href='http://www.mldonkey.net/'\">Homepage
-</td>
-<td 
-title=\"English/German support forums\"
-class=\"bu bbig bbig2\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"top.output.location.href='http://www.mldonkeyworld.com/'\">Forums
-</td>
-<td 
-title=\"Kill/Close the MLdonkey core\"
-class=\"bu bbig bbig3 bb2\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$O','kill')\">Kill core
-</td>
-<tr>
-<td 
-title=\"View current downloads\"
-class=\"bu bbig bb4\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$O','vd');mSub('$S','bw_stats')\">Downloads
-</td>
-<td 
-title=\"View current downloaders\"
-class=\"bu bbig bb4\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$O','downloaders')\">Dlers
-</td>
-<td 
-title=\"Message window (20 second refresh)\"
-class=\"bu bbig bb4\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$O','message')\">Messages
-</td>
-<td 
-title=\"Friends\"
-class=\"bu bbig bb4\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$O','friends')\">Friends
-</td>
-<td 
-title=\"View searches\"
-class=\"bu bbig bb4\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"draw_xs_search();mSub('$O','vs')\">View searches
-</td>
-<td 
-title=\"Rescan for shared files\"
-class=\"bu bbig bb4\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$S','reshare')\">Reshare
-</td>
-<td 
-title=\"Bandwidth stats (10 second refresh)\"
-class=\"bu bbig bb4 \"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$S','bw_stats')\">Bw stats
-</td>
-<td 
-title=\"View the CVS changeLog\"
-class=\"bu bbig bbig2 bb4\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"top.output.location.href='http://savannah.nongnu.org/cgi-bin/viewcvs/*checkout*/mldonkey/mldonkey/distrib/ChangeLog?rev=HEAD&content-type=text/plain'\">ChangeLog
-</td>
-<td 
-title=\"Help!\"
-class=\"bu bbig bbig2 bb4\"
-onMouseOver=\"mOvr(this,'mOvr2');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$O','help')\">Help!
-</td>
-<td 
-title=\"Show current version\"
-class=\"bu bbig bbig3 bb3\"
-onMouseOver=\"mOvr(this,'mOvr1');\"
-onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$S','version')\">Version
-</td>
-
-</tr>
-</table>
-<td></td>
-<form action=\"submit\" target=\"$O\" name=\"cmdFormular\">
-<td nowrap valign=top align=right>
-	<input style=\" font-size: 10px; font-family: Verdana; width: 80px;
-	\" class=\"txt\" type=\"text\" name=\"q\" size=13 value=\"\"><br><input style=\"	
-	color: #FFF; font-weight: 600; height: 18px; font-family: verdana; padding: 0px; font-size: 10px; height: 18px; width: 65px;
-	\" class=\"but\" type=\"submit\" value=\"Execute\"><input style=\"	
-	color: #FFF; font-weight: 600; height: 18px; font-family: verdana; padding: 0px; font-size: 10px; height: 18px; width: 15px;
-	\" class=\"but\" onclick=\"_cmdLine();\" type=\"button\" value=\"!\">
-</td>
-</form>
-</tr></table>
-"
-
 
 (* Old *)
 
-let html_css_old = define_option message_file
+let html_css_old = define_option message_section
   ["html_css_old"]
   "The old css"
     string_option  
@@ -947,7 +555,7 @@ a.extern:visited,a.extern:active { color: #000099; }
 a.extern:hover { color: #000000; } 
   "
 
-let html_js_old = define_option message_file
+let html_js_old = define_option message_section
   ["html_js_old"]
   "The old js"
     string_option  
@@ -960,7 +568,7 @@ return true;
 //-->
   "
 
-let html_header_old = define_option message_file ["html_header_old"]
+let html_header_old = define_option message_section ["html_header_old"]
   "The header used in the WEB interface (modify to add your CSS)"
     string_option  
   "<title>MLDonkey: Web Interface</title>
@@ -968,7 +576,7 @@ let html_header_old = define_option message_file ["html_header_old"]
 <script language=\"javascript\" src=\"i.js\"></script>
     "
   
-let download_html_css_old = define_option message_file ["download_html_css_old"]
+let download_html_css_old = define_option message_section ["download_html_css_old"]
   "The small CSS)"
     string_option  
   "
@@ -986,7 +594,7 @@ a.extern:visited,a.extern:active { color: #000099; }
 a.extern:hover { color: #000000; }
   "
   
-let download_html_js_old = define_option message_file ["download_html_js_old"]
+let download_html_js_old = define_option message_section ["download_html_js_old"]
   "The old js"
     string_option  
 "
@@ -994,7 +602,7 @@ let download_html_js_old = define_option message_file ["download_html_js_old"]
 //-->
   "
   
-let download_html_header_old = define_option message_file ["download_html_header_old"]
+let download_html_header_old = define_option message_section ["download_html_header_old"]
   "The header used in the WEB interface for downloads (modify to add your CSS)"
     string_option  
   "
@@ -1003,7 +611,7 @@ let download_html_header_old = define_option message_file ["download_html_header
 <script language=\"javascript\" src=\"di.js\"></script>
 "
 
-let web_common_header_old = define_option message_file ["web_common_header_old"]
+let web_common_header_old = define_option message_section ["web_common_header_old"]
   "The header displayed in the WEB interface"
     string_option
   "
@@ -1090,7 +698,8 @@ let bad_number_of_args = string "bad_number_of_args"
 
 *)
 
-let carr = Array.create 6 [||]
+let ncarr = ref 6
+let carr = Array.create !ncarr [||]
 let _ = (
     (* Default green *)    
     carr.(0) <- [| "#CBE5CB"; "#94AE94";  "#33F"; "#E5FFE5"; "#B2CCB2";
@@ -1098,7 +707,12 @@ let _ = (
                     "#86BE86"; "#B2CCB2"; "#BCD6BC"; "#A8C2A8"; "#A3BDA3"; 
                     "#718B71"; "#90C890"; "#BADEBA"; "#F00"; "#94AE94"; 
                     "#FFF"; "#EEE"; "#F33"; "#1010DC" ; "#72AA72"; "#EEE" |];
-    carr.(1) <- carr.(0); 
+	(* Orange Tang *)
+    carr.(1) <- [| "#EEE"; "FF8800";  "FF8800"; "#FAD08F"; "F5F5F5";
+                    "#F2C074"; "#FF9900"; "#FF9900"; "#FF7700"; "#FFF"; 
+                    "#FF9D2D"; "#FF8800"; "#FF8800"; "#FF8800"; "#FF8800"; 
+                    "#FF9900"; "#FF8800"; "#FACF8E"; "#FACF8E"; "#FACF8E"; 
+                    "#FFF"; "#EEE"; "#DDD"; "#FACD88" ; "#FF9900"; "#EEE" |];
     (* Light blue *)
     carr.(2) <- [| "#B3E7FF"; "#7CB1CA";  "#6BE4FF"; "#E6F7FF"; "#9ED3EC";
                     "#E6F7FF"; "#9BDFFF"; "#8CBFD7"; "#7AF3FF"; "#000"; 
@@ -1131,32 +745,33 @@ let download_html_css_mods = ref ""
 let colour_changer () =
      html_css_mods := !!html_css_mods0;
      download_html_css_mods := !!download_html_css_mods0;
+	let mstyle = ref !!CommonOptions.html_mods_style in
+	if (!mstyle > !ncarr || !mstyle < 0) then mstyle := 0;
      Array.iteri (fun i c ->
       html_css_mods := global_replace (Str.regexp (Printf.sprintf "@C%d@" i))
-       carr.(!!CommonOptions.html_mods_style).(i) !html_css_mods;
+       carr.(!mstyle).(i) !html_css_mods;
       download_html_css_mods := global_replace (Str.regexp (Printf.sprintf "@C%d@" i))
-       carr.(!!CommonOptions.html_mods_style).(i) !download_html_css_mods 
-     ) carr.(!!CommonOptions.html_mods_style)
+       carr.(!mstyle).(i) !download_html_css_mods 
+     ) carr.(!mstyle)
   
 let load_message_file () =
   (
 
 (* Don't bother loading it for most users so their settings will always be current,
-   without having to delete message_file for each new version.
-   Users can set _load_message_file true if they want to modify and use their own. 
+   without having to delete message_section for each new version.
+   Users can set _load_message_section true if they want to modify and use their own. 
    (reload_messages command)
 *)
-	if !!CommonOptions.html_mods && !!CommonOptions.html_mods_load_message_file then begin
+	if (not !!CommonOptions.html_mods) || (!!CommonOptions.html_mods && !!CommonOptions.html_mods_load_message_file) then begin
     try
       Options.load message_file
     with
       Sys_error _ ->
         (try Options.save message_file with _ -> ())
     | e ->
-        lprintf "Error %s loading message file %s"
-          (Printexc2.to_string e) 
+        lprintf "Error %s loading message file %s\n"
+          (Printexc2.to_string e)
         (Options.options_file_name message_file);
-        lprint_newline ();
-        lprintf "Using default messages."; lprint_newline ();
-	end
+        lprintf "Using default messages.\n";
+  end
   )

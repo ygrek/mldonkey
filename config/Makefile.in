@@ -56,7 +56,7 @@ SRC_GUI2=src/gtk/gui2
 
 SRC_AUDIOGALAXY=src/networks/audio_galaxy
 SRC_DONKEY=src/networks/donkey
-SRC_OPEN_DONKEY=src/networks/donkey_devel
+SRC_OPEN_DONKEY=src/networks/donkey
 SRC_BITTORRENT=src/networks/bittorrent
 SRC_CYMES=src/networks/cymes
 SRC_OPENNAP=src/networks/opennap
@@ -66,10 +66,11 @@ SRC_OPENFT=src/networks/openFT
 SRC_FASTTRACK=src/networks/fasttrack
 SRC_SOULSEEK=src/networks/soulseek
 SRC_DIRECTCONNECT=src/networks/direct_connect
+SRC_MULTINET=src/networks/multinet
 
 IM=src/im
 
-SUBDIRS=$(CDK) $(CHAT) $(LIB) $(NET) tools \
+SUBDIRS=$(CDK) $(CHAT) $(LIB) $(NET) tools $(SRC_MULTINET) \
    $(COMMON) $(DRIVER) $(MP3) src/config/$(OS_FILES)
 
 INCLUDES += $(foreach file, $(SUBDIRS), -I $(file))
@@ -175,6 +176,10 @@ COMMON_SRCS=$(COMMON)/commonTypes.ml \
   $(COMMON)/commonGlobals.ml \
   $(COMMON)/guiDecoding.ml \
   $(COMMON)/guiEncoding.ml \
+  $(COMMON)/giftLexer.mll \
+  $(COMMON)/giftParser.mly \
+  $(COMMON)/giftEncoding.ml \
+  $(COMMON)/giftDecoding.ml \
   $(COMMON)/commonChat.ml \
   $(COMMON)/commonHasher.ml \
   $(COMMON)/commonHasher_c.c
@@ -243,10 +248,6 @@ DONKEY_SRCS= \
   \
   $(SRC_DONKEY)/donkeyGlobals.ml \
   $(SRC_DONKEY)/donkeyProtoCom.ml  \
-  $(SRC_DONKEY)/donkeySourcesMisc.ml \
-  $(SRC_DONKEY)/donkeySources1.ml  \
-  $(SRC_DONKEY)/donkeySources2.ml  \
-  $(SRC_DONKEY)/donkeySources3.ml  \
   $(SRC_DONKEY)/donkeySources.ml  \
  \
   $(SRC_DONKEY)/donkeyComplexOptions.ml \
@@ -279,10 +280,6 @@ OPEN_DONKEY_SRCS= \
   \
   $(SRC_OPEN_DONKEY)/donkeyGlobals.ml \
   $(SRC_OPEN_DONKEY)/donkeyProtoCom.ml  \
-  $(SRC_OPEN_DONKEY)/donkeySourcesMisc.ml \
-  $(SRC_OPEN_DONKEY)/donkeySources1.ml  \
-  $(SRC_OPEN_DONKEY)/donkeySources2.ml  \
-  $(SRC_OPEN_DONKEY)/donkeySources3.ml  \
   $(SRC_OPEN_DONKEY)/donkeySources.ml  \
  \
   $(SRC_OPEN_DONKEY)/donkeyComplexOptions.ml \
@@ -302,6 +299,18 @@ OPEN_DONKEY_SRCS= \
   $(SRC_OPEN_DONKEY)/donkeySearch.ml \
   $(SRC_OPEN_DONKEY)/donkeyInteractive.ml \
   $(SRC_OPEN_DONKEY)/donkeyMain.ml
+
+MULTINET_SRCS= \
+  $(SRC_MULTINET)/multinetTypes.ml \
+  $(SRC_MULTINET)/multinetGlobals.ml \
+  $(SRC_MULTINET)/multinetBitzi.ml \
+  $(SRC_MULTINET)/multinetOptions.ml \
+  $(SRC_MULTINET)/multinetFunctions.ml \
+  $(SRC_MULTINET)/multinetSources.ml \
+  $(SRC_MULTINET)/multinetComplexOptions.ml \
+  $(SRC_MULTINET)/multinetCommands.ml \
+  $(SRC_MULTINET)/multinetMethods.ml \
+  $(SRC_MULTINET)/multinetMain.ml \
 
 
 OBSERVER_SRCS = \
@@ -382,9 +391,9 @@ BITTORRENT_SRCS= \
   $(SRC_BITTORRENT)/bencode.ml \
   $(SRC_BITTORRENT)/bTTypes.ml \
   $(SRC_BITTORRENT)/bTOptions.ml \
+  $(SRC_BITTORRENT)/bTProtocol.ml \
   $(SRC_BITTORRENT)/bTGlobals.ml \
   $(SRC_BITTORRENT)/bTComplexOptions.ml \
-  $(SRC_BITTORRENT)/bTProtocol.ml \
   $(SRC_BITTORRENT)/bTClients.ml \
   $(SRC_BITTORRENT)/bTInteractive.ml \
   $(SRC_BITTORRENT)/bTMain.ml
@@ -404,6 +413,7 @@ FASTTRACK_SRCS= \
   $(SRC_FASTTRACK)/enc_type_1.c \
   $(SRC_FASTTRACK)/enc_type_2.c \
   $(SRC_FASTTRACK)/enc_type_20.c \
+  $(SRC_FASTTRACK)/enc_type_80.c \
   $(SRC_FASTTRACK)/fst_crypt.c \
   $(SRC_FASTTRACK)/fst_crypt_ml.c \
   $(SRC_FASTTRACK)/fasttrackTypes.ml \
@@ -701,14 +711,14 @@ define([[EXPAND_LIB]],[[
 $1_ZOG := $(filter %.zog, $($1_SRCS)) 
 $1_MLL := $(filter %.mll, $($1_SRCS)) 
 $1_MLY := $(filter %.mly, $($1_SRCS)) 
-$1_ML4 := $(filter %.ml4, $($1_SRCS)) 
+## $1_ML4 := $(filter %.ml4, $($1_SRCS)) 
 $1_ML := $(filter %.ml %.mll %.zog %.mly %.ml4, $($1_SRCS)) 
 $1_C := $(filter %.c, $($1_SRCS)) 
 $1_CMOS=$(foreach file, $($1_ML),   $(basename $(file)).cmo) 
 $1_CMXS=$(foreach file, $($1_ML),   $(basename $(file)).cmx) 
 $1_OBJS=$(foreach file, $($1_C),   $(basename $(file)).o)    
 
-TMPSOURCES += $($1_ML4:.ml4=.ml) $($1_MLL:.mll=.ml) $($1_MLY:.mly=.ml) $($1_MLY:.mly=.mli) $($1_ZOG:.zog=.ml) 
+TMPSOURCES += $($1_MLL:.mll=.ml) $($1_MLY:.mly=.ml) $($1_MLY:.mly=.mli) $($1_ZOG:.zog=.ml) 
  
 build/$2.cmxa: $($1_OBJS) $($1_CMXS) 
 	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $[[@]]  $($1_OBJS) $(LIBS_flags) $($3_LIBS_flags) $($1_CMXS) 
@@ -748,6 +758,9 @@ $1+gui_SRCS= $(MAIN_SRCS)
 
 ]])
 
+MULTINET=yes
+EXPAND_DRIVER(multinet,MULTINET,multinet)
+
 EXPAND_DRIVER(mldc,DIRECT_CONNECT,direct_connect)
 EXPAND_DRIVER(mlnap,OPENNAP,opennap)
 EXPAND_DRIVER(mlgnut,GNUTELLA,gnutella)
@@ -756,7 +769,7 @@ EXPAND_DRIVER(mlfasttrack,FASTTRACK,fasttrack)
 EXPAND_DRIVER(mlbt,BITTORRENT,bittorrent)
 
 ifeq ("$(OPEN_DONKEY)", "yes")
-  EXPAND_DRIVER(mldonkey,OPEN_DONKEY,donkey_devel)
+  EXPAND_DRIVER(mldonkey,OPEN_DONKEY,donkey)
 else
   EXPAND_DRIVER(mldonkey,DONKEY,donkey)
 endif
@@ -810,7 +823,6 @@ define([[EXPAND]],[[
 $1_ZOG := $(filter %.zog, $($1_SRCS)) 
 $1_MLL := $(filter %.mll, $($1_SRCS)) 
 $1_MLY := $(filter %.mly, $($1_SRCS)) 
-$1_ML4 := $(filter %.ml4, $($1_SRCS)) 
 $1_ML := $(filter %.ml %.mll %.zog %.mly %.ml4, $($1_SRCS)) 
 $1_C := $(filter %.c, $($1_SRCS)) 
 $1_CMOS=$(foreach file, $($1_ML),   $(basename $(file)).cmo) 
@@ -820,7 +832,7 @@ $1_OBJS=$(foreach file, $($1_C),   $(basename $(file)).o)
 $1_CMXAS := $(foreach file, $($1_CMXA),   build/$(basename $(file)).cmxa)
 $1_CMAS=$(foreach file, $($1_CMXA),   build/$(basename $(file)).cma)    
 
-TMPSOURCES += $($1_ML4:.ml4=.ml) $($1_MLL:.mll=.ml) $($1_MLY:.mly=.ml) $($1_MLY:.mly=.mli) $($1_ZOG:.zog=.ml) 
+TMPSOURCES += $($1_MLL:.mll=.ml) $($1_MLY:.mly=.ml) $($1_MLY:.mly=.mli) $($1_ZOG:.zog=.ml) 
  
 $2: $($1_OBJS) $($1_CMXS) $($1_CMXAS)
 	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $[[@]]  $($1_OBJS) $(LIBS_opt) $(LIBS_flags) $($3_LIBS_opt) $($3_LIBS_flags) -I build $($1_CMXAS) $($1_CMXS) 
@@ -853,6 +865,7 @@ EXPAND(STARTER,mlguistarter,GTK)
 EXPAND(MLCHAT,mlchat,GTK,MLCHAT)
 EXPAND(OBSERVER,observer)
 EXPAND(ED2K_HASH,hash_file)
+EXPAND(DUMP,dumper)
 EXPAND(COPYSOURCES,copysources)
 EXPAND(USE_TAGS,use_tags,NO,USE_TAGS)
 EXPAND(HASH_FILES,hash_files)
@@ -870,7 +883,6 @@ EXPAND(INSTALLER,mldonkey_installer,GTK,INSTALLER)
 TOP_ZOG := $(filter %.zog, $(TOP_SRCS)) 
 TOP_MLL := $(filter %.mll, $(TOP_SRCS)) 
 TOP_MLY := $(filter %.mly, $(TOP_SRCS)) 
-TOP_ML4 := $(filter %.ml4, $(TOP_SRCS)) 
 TOP_ML := $(filter %.ml %.mll %.zog %.mly %.ml4, $(TOP_SRCS)) 
 TOP_C := $(filter %.c, $(TOP_SRCS)) 
 TOP_CMOS=$(foreach file, $(TOP_ML),   $(basename $(file)).cmo) 
@@ -880,7 +892,7 @@ TOP_OBJS=$(foreach file, $(TOP_C),   $(basename $(file)).o)
 TOP_CMXAS :=$(foreach file, $(TOP_CMXA),   build/$(basename $(file)).cmxa)    
 TOP_CMAS=$(foreach file, $(TOP_CMXA),   build/$(basename $(file)).cma)    
 
-TMPSOURCES += $(TOP_ML4:.ml4=.ml) $(TOP_MLL:.mll=.ml) $(TOP_MLY:.mly=.ml) $(TOP_MLY:.mly=.mli) $(TOP_ZOG:.zog=.ml) 
+TMPSOURCES += $(TOP_MLL:.mll=.ml) $(TOP_MLY:.mly=.ml) $(TOP_MLY:.mly=.mli) $(TOP_ZOG:.zog=.ml) 
  
 mldonkeytop: $(TOP_OBJS) $(TOP_CMOS) $(TOP_CMAS)
 	ocamlmktop -linkall $(PLUGIN_FLAG) -o $@  $(TOP_OBJS) $(LIBS_byte) $(LIBS_flags) $(_LIBS_byte) $(_LIBS_flags) -I build $(TOP_CMAS) $(TOP_CMOS) 
@@ -1197,8 +1209,14 @@ rpm: sourcedist
 .ml.cmx :
 	$(OCAMLOPT) $(PLUGIN_FLAG) $(OFLAGS) $(INCLUDES) -c $<
 
+.ml4.cmx :
+	$(OCAMLOPT) $(OFLAGS) $(INCLUDES) -c -pp "$(CAMLP4) pa_o.cmo pa_op.cmo pr_dump.cmo -impl" -impl $<
+
 .ml.cmo :
 	$(OCAMLC) $(OFLAGS) $(INCLUDES) -c $<
+
+.ml4.cmo :
+	$(OCAMLC) $(OFLAGS) $(INCLUDES) -c -pp "$(CAMLP4) pa_o.cmo pa_op.cmo pr_dump.cmo -impl" -impl $<
 
 .mll.ml :
 	$(OCAMLLEX) $<
@@ -1212,8 +1230,8 @@ rpm: sourcedist
 .zog.ml:
 	$(CAMLP4) pa_o.cmo ./pa_zog.cma pr_o.cmo -impl $< > $@
 
-.ml4.ml:
-	$(CAMLP4) pa_o.cmo pa_op.cmo pr_o.cmo -impl $< > $@
+#.ml4.ml:
+#	$(CAMLP4) pa_o.cmo pa_op.cmo pr_o.cmo -impl $< > $@
 
 .c.o :
 	$(OCAMLC) -ccopt "-Wall -I $(OCAML_SRC)/byterun -o $*.o" -ccopt "$(CFLAGS)" -c $<
