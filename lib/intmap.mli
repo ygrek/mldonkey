@@ -75,3 +75,5 @@ val fold: (key -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
   
 val length : 'a t -> int
 
+val top : 'a t -> 'a
+  

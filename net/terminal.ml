@@ -512,17 +512,6 @@ external screen_height : unit -> int = "ml_screen_height"
 (* How do you get the size associated with a socket ? I have no book here,
 I think we have to associate a pseudo-tty with the socket, but I don't
 remember exactly... so, keep it simple. *)
-  
-let size fd =
-  if get_screen_size fd then begin
-      let w,h = screen_width (), screen_height () in
-      lprintf "Terminal size %d x %d\n" w h;
-      w,h
-    end
-  else begin
-      lprintf "Unable to get terminal size: using 80 x 0\n";
-      80, 0
-    end
     
     
 let gotoxy x y =  Printf.sprintf "\027[%d;%dH" (y+1) (x+1) 

@@ -136,7 +136,6 @@ let add_pending_slot c =
 	lprint_newline ()
       end else *)
       pending_slots_map := Intmap.add (client_num c) c !pending_slots_map;
-      Fifo.put pending_slots_fifo (client_num c)
     end
     
 let remove_pending_slot c =
@@ -169,11 +168,8 @@ let rec give_a_slot c =
 and find_pending_slot () =
   try
     let rec iter () =
-      let cnum = Fifo.take pending_slots_fifo in
-      try
-        let c = Intmap.find cnum !pending_slots_map in
-        give_a_slot c
-      with _ -> iter ()
+      let c = Intmap.top !pending_slots_map in
+      give_a_slot c
     in
     iter ()
   with _ -> ()
@@ -840,20 +836,26 @@ lprint_newline ();
             DonkeyOneFile.clean_client_zones c;
       end;
       begin
-        match c.client_files with
+        match c.client_file_queue with
           _ :: _ -> ()
         | [] ->
             if not c.client_asked_for_slot then
               try
                 let files, _ = try
-                    let id = client_id c in
-                    Hashtbl.find join_queue_by_id id
+                    let v = Hashtbl.find join_queue_by_md4 c.client_md4 in
+                    if c.client_debug then
+                      lprintf "Recovered file queue by md4\n";
+                    v
                   with _ ->
-                      Hashtbl.find join_queue_by_md4 c.client_md4
+                    let id = client_id c in
+                      let v = Hashtbl.find join_queue_by_id id in
+                      if c.client_debug then
+                        lprintf "Recovered file queue by md4\n";
+                      v
                 in
                 List.iter (fun (file, chunks) ->
                     add_client_chunks file chunks) files;
-                c.client_file_queue <- files
+                c.client_file_queue <- files @ c.client_file_queue
               with _ -> ()
       end;
       DonkeyOneFile.find_client_block c

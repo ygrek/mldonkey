@@ -164,7 +164,7 @@ let (old_requests : (int * int, request_record) Hashtbl.t) =
 
   
 let (pending_slots_map : client Intmap.t ref) = ref Intmap.empty
-let (pending_slots_fifo : int Fifo.t)  = Fifo.create ()
+(* let (pending_slots_fifo : int Fifo.t)  = Fifo.create () *)
 
   
 let max_file_groups = 1000
@@ -883,6 +883,9 @@ let save_join_queue c =
           file, Array.copy chunks
       ) c.client_file_queue in
     begin
+      if c.client_debug then 
+        lprintf "Saving %d files associated with %s\n"
+        (List.length files) (Md4.to_string c.client_md4);
       Hashtbl.add join_queue_by_md4 c.client_md4 (files, last_time ());
       try
         let id = client_id c in
@@ -897,7 +900,7 @@ let clean_join_queue_tables () =
   let list = Hashtbl2.to_list2 join_queue_by_md4 in
   Hashtbl.clear join_queue_by_md4;
   List.iter (fun (key, ((v,time) as e)) ->
-      if time + half_hour < current_time then
+      if time + half_hour > current_time then
         Hashtbl.add join_queue_by_md4 key e
   ) list;
     

@@ -336,7 +336,7 @@ let force_client_ip = define_option expert_ini ["force_client_ip"]
 let use_html_frames = define_option expert_ini ["use_html_frames"] 
     "This option controls whether the WEB interface should use frames or not" bool_option true
 
-let commands_frame_height = define_option expert_ini ["commands_frame_height"] "The height of the command frame in pixel (depends on your screen and browser sizes)" int_option 140
+let commands_frame_height = define_option expert_ini ["commands_frame_height"] "The height of the command frame in pixel (depends on your screen and browser sizes)" int_option 80
 
 let _ = 
   Options.set_string_wrappers allowed_ips 
@@ -561,6 +561,9 @@ let html_mods_vd_last = define_option expert_ini
 
 let html_mods_vd_queues = define_option expert_ini
     ["html_mods_vd_queues"] "Whether to display the Queues in vd # output" bool_option true
+
+let html_mods_show_pending = define_option expert_ini
+    ["html_mods_show_pending"] "Whether to display the pending slots in uploaders command" bool_option true
 
 let html_mods_max_messages = define_option expert_ini
     ["html_mods_max_messages"] "Maximum chat messages to log in memory" int_option 10

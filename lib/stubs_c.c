@@ -841,29 +841,3 @@ value ml_has_pthread(value unit)
 { return Val_true; }
 
 #endif
-
-#include <sys/ioctl.h>
-#include <termios.h>
-
-static int screen_height;
-static int screen_width;
-
-value ml_get_screen_size(value fd_v){
-  OS_FD fd = Fd_val(fd_v);
-
-  struct winsize ws;
-  if (ioctl(fd, TIOCGWINSZ, &ws) < 0 || !ws.ws_row || !ws.ws_col) {
-    fprintf(stderr, "fd = %d\n", fd);
-    perror("ioctl");
-    return Val_false;
-  }
-  screen_width=ws.ws_col;
-  screen_height=ws.ws_row;
-  return Val_true;
-}
-
-value ml_screen_width(value unit)
-{ return Val_int(screen_width); }
-
-value ml_screen_height(value unit)
-{ return Val_int(screen_height); }

@@ -1,7 +1,13 @@
 ChangeLog	
 =========
 
-2002/03/10: Release 2.03, 
+2003/03/10: Simon (release-2-04rc1)
+  - Changes in replies to Emule AvailableSlot
+  - Applied patches #1250, #1251
+  - Terminal mode: recognize Window size when possible (rfc 1073)
+  - Upload queue has been cleaned. Doesn't work as a fifo anymore.
+
+2003/03/10: Release 2.03, 
 
   We are forced to release a new stable version a bit earlier than expected,
 due to problems with old clients accessing savannah at startup.
@@ -13,7 +19,7 @@ due to problems with old clients accessing savannah at startup.
        * some colors in terminal (use term_ansi option to disable)
        * new external searches in the GUI
 
-2003/03/11: Simon
+2003/03/10: Simon
   - Fixed 0 upload bug :)
 
 2003/03/06: Simon

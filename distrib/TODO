@@ -191,3 +191,10 @@ GENERAL:
 WEB INTERFACE: 
 - Display free disk space in Web Interface so that you can check remotely how much space you still have, (good if you access mldonkey with remote windows). 
 - Any chance of adding a graph to the web interface to show download/upload for a set period of time? that would truley rock. 
+
+(21:36:13) pango: b8_bavard: first bug is that our pings lack an 0xe3 byte prefix
+(21:36:37) pango: b8_bavard: should be 0xe3 0x96 (4 random bytes)
+(21:37:06) pango: b8_bavard: second, the pings aren't sent at the right port; They're sent at server_port instead of server_port + 4
+(21:37:57) pango: b8_bavard: I also asked some informations about the "Lugdunum server ping extension"
+(21:39:03) pango: b8_bavard: if the last two random bytes are 0xaa 0x55, the server should reply with a longer packet; The 4 additionnal bytes return the maximum number of users allowed on the server
+(21:39:41) pango: b8_bavard: I don't know if we could have a use for that...

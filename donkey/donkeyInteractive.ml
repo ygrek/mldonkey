@@ -724,7 +724,7 @@ let commands = [
             
             let counter = ref 0 in
             
-            Printf.bprintf buf "\\<div class=\\\"uploaders\\\"\\>Total upload slots: %d | Pending slots: %d\n" (Fifo.length upload_clients) (Fifo.length pending_slots_fifo);
+            Printf.bprintf buf "\\<div class=\\\"uploaders\\\"\\>Total upload slots: %d | Pending slots: %d\n" (Fifo.length upload_clients) (Intmap.length !pending_slots_map);
             
             if Fifo.length upload_clients > 0 then
               
@@ -791,7 +791,7 @@ let commands = [
                 Printf.bprintf buf "\\</table\\>";
               end;
             
-            if Fifo.length pending_slots_fifo > 0 then
+            if !!html_mods_show_pending && Intmap.length !pending_slots_map > 0 then
               
               begin
                 
@@ -808,12 +808,10 @@ let commands = [
  \\</TR\\>
  ";
                 
-                Fifo.iter (fun cnum ->
+                Intmap.iter (fun cnum c ->
                     
                     try 
-                      
-                      let c = Intmap.find cnum !pending_slots_map in
-                      
+                                            
                       incr counter;
                       
                       Printf.bprintf buf "\\<tr class=\\\"%s\\\" 
@@ -850,7 +848,7 @@ let commands = [
                     
                     with _ -> ();
                 
-                ) pending_slots_fifo;
+                ) !pending_slots_map;
                 Printf.bprintf buf "\\</table\\>";
               
               end;

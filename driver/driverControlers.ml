@@ -211,16 +211,24 @@ let after_telnet_output o sock =
       Terminal.ANSI.ansi_REVERSE
       Terminal.ANSI.ansi_NORMAL)
   
-let user_reader o auth sock nread  = 
+(*  
+let user_reader o telnet sock nread  = 
   let b = TcpBufferedSocket.buf sock in
   let end_pos = b.pos + b.len in
   let new_pos = end_pos - nread in
   let rec iter i =
     let end_pos = b.pos + b.len in
+    for i = b.pos to b.pos + b.len - 1 do
+      let c = int_of_char b.buf.[i] in
+      if c <> 13 && c <> 10 && (c < 32 || c > 127) then
+        lprintf "term[%d] = %d\n" i c;
+    done;
+    
     if i < end_pos then
       let c = b.buf.[i] in
-      if c = '\n' || c = '\r' || c = '\000' then 
-        let len = i - b.pos in
+      let c = int_of_char c in
+      if c = 13 || c = 10 || c = 0 then
+        let len = i - b.pos  in
         let cmd = String.sub b.buf b.pos len in
         buf_used sock (len+1);
         if cmd <> "" then begin
@@ -228,7 +236,7 @@ let user_reader o auth sock nread  =
             let buf = o.conn_buf in
             Buffer.clear buf;
             if o.conn_output = ANSI then Printf.bprintf buf "> $b%s$>\n" cmd;
-            eval auth cmd o;
+            eval telnet.telnet_auth cmd o;
             Buffer.add_char buf '\n';
             if o.conn_output = ANSI then Buffer.add_string buf "$>";
             TcpBufferedSocket.write_string sock 
@@ -241,6 +249,128 @@ let user_reader o auth sock nread  =
   in
   try
     iter new_pos
+  with
+  | CommonTypes.CommandCloseSocket ->
+    (try
+       shutdown sock "user quit";
+     with _ -> ());
+  | e -> 
+      before_telnet_output o sock;
+      TcpBufferedSocket.write_string sock
+        (Printf.sprintf "exception [%s]\n" (Printexc2.to_string e));
+      after_telnet_output o sock
+        *)
+
+type telnet_state =
+  EMPTY
+| STRING
+| IAC
+| WILL
+| WONT
+| DO
+| DONT
+| NAWS
+| SB
+
+type telnet_conn = {
+    telnet_buffer : Buffer.t;
+    mutable telnet_iac : bool;
+    mutable telnet_wait : int;
+    telnet_auth : bool ref;
+  }
+
+
+let iac_will_naws = "\255\253\031"  
+  
+let user_reader o telnet sock nread  = 
+  let b = TcpBufferedSocket.buf sock in
+  let end_pos = b.pos + b.len in
+  let new_pos = end_pos - nread in
+  let rec iter () =
+    if b.len > 0 then
+      let c = b.buf.[b.pos] in
+      buf_used sock 1;
+(*      lprintf "char %d\n" (int_of_char c); *)
+      if c = '\255' && not telnet.telnet_iac then begin
+          telnet.telnet_iac <- true;
+          iter ()
+        end else
+      if c <> '\255' && telnet.telnet_iac then begin
+          telnet.telnet_iac <- false;
+          (match c with
+              '\250' | '\251' -> 
+                Buffer.add_char telnet.telnet_buffer c;                
+                telnet.telnet_wait <- 1
+            | _ -> 
+                Buffer.clear telnet.telnet_buffer
+          );
+          iter ()
+        end else
+      
+      let i = int_of_char c in
+      telnet.telnet_iac <- false;
+      let is_normal_char = i > 31 && i < 127 in
+      
+      if telnet.telnet_wait = 1 then begin
+          Buffer.add_char telnet.telnet_buffer c;
+          let cmd = Buffer.contents telnet.telnet_buffer in
+          telnet.telnet_wait <- 0;
+          let len = String.length cmd in
+          if len = 2 then
+            match cmd with
+              "\251\031" -> 
+                Buffer.clear telnet.telnet_buffer
+            | "\250\031" -> 
+                telnet.telnet_wait <- 4
+            | _ -> 
+                (*
+                lprintf "telnet server: Unknown control sequence %s\n"
+                  (String.escaped cmd);                *)
+                Buffer.clear telnet.telnet_buffer
+          else
+          let s = String.sub cmd 0 2 in
+          Buffer.clear telnet.telnet_buffer;
+          match s with
+          | "\250\031" -> 
+              let dx = BigEndian.get_int16 cmd 2 in
+              let dy = BigEndian.get_int16 cmd 4 in
+              o.conn_width <- dx;
+              o.conn_height <- dy;
+(*              lprintf "SIZE RECEIVED %d x %d\n" dx dy; *)
+          | _ -> 
+              (*
+              lprintf "telnet server: Unknown control sequence %s\n"
+              (String.escaped cmd); *)
+              ()
+        end else 
+      if telnet.telnet_wait > 1 then begin
+          Buffer.add_char telnet.telnet_buffer c;
+          telnet.telnet_wait <- telnet.telnet_wait - 1;
+        end else
+      if is_normal_char then 
+        Buffer.add_char telnet.telnet_buffer c
+      else begin
+(* evaluate the command *)
+          let cmd = Buffer.contents telnet.telnet_buffer in
+          Buffer.clear telnet.telnet_buffer;
+          if cmd <> "" then begin
+              before_telnet_output o sock;
+              let buf = o.conn_buf in
+              Buffer.clear buf;
+              if o.conn_output = ANSI then Printf.bprintf buf "> $b%s$>\n" cmd;
+              eval telnet.telnet_auth cmd o;
+              Buffer.add_char buf '\n';
+              if o.conn_output = ANSI then Buffer.add_string buf "$>";
+              TcpBufferedSocket.write_string sock 
+                (dollar_escape o false (Buffer.contents buf));
+              after_telnet_output o sock;
+            end;
+          if i = 255 then telnet.telnet_wait <- 2;
+        end;
+      iter ()
+  in
+  try
+    iter ()
   with
   | CommonTypes.CommandCloseSocket ->
     (try
@@ -278,20 +408,27 @@ let telnet_handler t event =
         let sock = TcpBufferedSocket.create_simple 
           "telnet connection"
           s in
-        let auth = ref (empty_password "admin") in
-        let (w,h) = Terminal.size s in
+        let telnet = {
+            telnet_auth = ref (empty_password "admin");
+            telnet_iac = false;
+            telnet_wait = 0;
+            telnet_buffer = Buffer.create 100;
+          } in
         let o = {
             conn_buf = Buffer.create 1000;
             conn_output = (if !!term_ansi then ANSI else TEXT);
             conn_sortvd = NotSorted;
             conn_filter = (fun _ -> ());
             conn_user = default_user;
-            conn_width = w; conn_height = h;
+            conn_width = 80; 
+            conn_height = 0;
           } in
         TcpBufferedSocket.set_max_write_buffer sock !!interface_buffer;
-        TcpBufferedSocket.set_reader sock (user_reader o auth);
+        TcpBufferedSocket.set_reader sock (user_reader o telnet);
         TcpBufferedSocket.set_closer sock user_closed;
         user_socks := sock :: !user_socks;
+
+        TcpBufferedSocket.write_string sock iac_will_naws;
 
         before_telnet_output o sock;
         TcpBufferedSocket.write_string sock (text_of_html !!motd_html);

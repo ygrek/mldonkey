@@ -76,5 +76,5 @@ module ANSI :
     val ansi_HIGH_BACKGROUND_WHITE : string
   end
 
-val size : Unix.file_descr -> int * int
 val gotoxy : int -> int -> string
+  
