@@ -1,0 +1,4 @@
+#change the following variables to your need
+HTTPURL=http://localhost:4080
+HTTPUSER=myusername
+HTTPPASS=mypassword

@@ -1,0 +1,46 @@
+README/FAQ for MLdonkeySubmit for Linux
+
+*What is does it do?
+
+This tool gives you an easy way to add a ed2k-link (like ed2k://|file|filename.exe|21352658|72b0b287cab7d875ccc1d89ebe910b9g|) with a single click to your mldonkey download queue.
+
+*Where do I get it?
+Right know you can download it from my homepage: http://www.scherthan.com
+I am not the author of this programm but was asked to publish it. And sure I will ;)
+
+*What do I need?
+-Perl
+-KDE2
+-a running mldonkey (somewhere)
+-MLdonkeySubmit
+-an ed2k-link to click on
+
+*So who wrote it?
+A genius...who else?
+You can contact the author via email: wusel@gmx.li
+
+*So who are you, writing this stupid README/FAQ and why?
+Taros.
+There was no document explaining how the programm worked, but I got a nice email in a strange foreign language from the author and I translated it...somehow.
+You can contact me via email: t.a.r.o.s@gmx.de
+or via the Linux/*nix-Forum: http://forums.edonkey2000.com/phpBB/viewforum.php?forum=21&1673 
+
+*How do I install and use it?
+-put the file mldonkey_submit into a directory in you $PATH variable, e.g. /usr/bin/mldonkey_submit
+
+-put the file ed2k.protocol in the directory $KDEDIR/share/services/ed2k.protocol
+
+-change the value for HTTPURL=http://localhost:4080, HTTPUSER=me, HTTPPASS=mypassword in the file mldonkey and put in to /etc/sysconfig/mldonkey
+
+now you can just click on a ed2k-link in konquerer and the file will be added to the mldonkey-downloadqueue. 
+
+You even yould invoke the the perlscript from the command-prompt of your shell:
+
+mldonkey_submit <ed2k-link>
+
+*Why is that much more complicated than the Windows version of MLdonkeySubbmit?
+Hey, you are using Linux! You are not such a moron, you can do that. Really!
+Installers are for wimps. You are a real man!
+
+Ok, that's it. Big cheers to WUSEL...
+(and small to me...)

@@ -1,0 +1,68 @@
+#!/usr/bin/perl
+
+# Submit an eDonkey download request to mldonkey
+#
+# Argument(s): An ed2k URI of the form:
+#
+# ed2k://|file|<filename>|<filesize>|<MD4-sum|
+#
+use LWP::UserAgent;
+
+($#ARGV >= 0) || die "Usage: mldonkey_submit <ed2kURI> ...\n";
+
+#
+# Get username and password for mldonkey's HTTP GUI from
+# /etc/sysconfig/donkey
+#
+# This file should read as follows:
+#
+#   HTTPURL=http://localhost:4080
+#   HTTPUSER=me
+#   HTTPPASS=mypassword
+#
+$vars{'HTTPURL'} = "http://localhost:4080";
+
+my $cfg = "/etc/sysconfig/mldonkey";
+open(I,"<$cfg") || die "Can't read $cfg: $!\n";
+chomp (my @lines = (<I>));
+close I;
+foreach (@lines) {
+	next if (/^#/);
+	if (/([^=\s]+)=([^=\s]+)/) {
+		$vars{$1}="$2";
+	}
+}
+#
+# If you don't like the above config file, you can hardcode
+# user an password here and comment-out the above code.
+# Do NOT comment out the default preset for $vars{'HTTPURL'}
+#
+#$vars{'HTTPURL'} = "http://localhost:4080";
+#$vars{'HTTPUSER'} = "me";
+#$vars{'HTTPPASS'} = "mypassword";
+#
+
+my $ua = LWP::UserAgent->new;
+
+while (my $uri = shift @ARGV) {
+	$_ = URI::Escape::uri_unescape($uri);
+	if (/^ed2k:\/\/\|file\|[^|]+\|(\d+)\|([\dabcdef]+)\|$/) {
+		my $size = $1;
+		my $md4 = $2;
+		my $req = HTTP::Request->new(
+			GET => "$vars{'HTTPURL'}/submit?q=d+$size+$md4"
+		);
+		if (($vars{'HTTPUSER'}) && ($vars{'HTTPPASS'})) {
+			$req->authorization_basic($vars{'HTTPUSER'},
+				$vars{'HTTPPASS'});
+		}
+		my $response = $ua->request($req);
+		if (!($response->is_success)) {
+			print $response->error_as_HTML;
+			exit 1;
+		}
+	} else {
+		print "Not an ed2k URI: $_\n";
+	}
+}
+
