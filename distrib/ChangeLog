@@ -4,6 +4,11 @@ ChangeLog
 2002/09/28: mldonkey
   - fix: incoming connections timeout are now correctly set, and
       connections should be correctly initialized.
+  - fix: 
+     * With select, you cannot use more than 1024 file descriptors
+       (otherwise, it segfaults)
+     * Added poll support, that allows to use more than 1024 fds and
+        is used by default.
 
 2002/09/27: mldonkey
   - fix: upload improvements

@@ -162,6 +162,12 @@ let default_before_select t = ()
 
   
 let create_blocking name fd handler =
+  
+  let (fdnum : int) = Obj.magic fd in
+  if fdnum >= Unix32.fds_size then begin
+      Unix.close fd;
+      failwith "File Descriptor removed";
+    end;
   incr nb_sockets;
   Unix.set_nonblock fd;
 (*  Printf.printf "NEW FD %d" (Obj.magic fd); print_newline (); *)

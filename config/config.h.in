@@ -1,0 +1,37 @@
+/* config.h.in.  Generated automatically from configure.in by autoheader.  */
+
+/* The number of bytes in a char.  */
+#undef SIZEOF_CHAR
+
+/* The number of bytes in a double.  */
+#undef SIZEOF_DOUBLE
+
+/* The number of bytes in a float.  */
+#undef SIZEOF_FLOAT
+
+/* The number of bytes in a int.  */
+#undef SIZEOF_INT
+
+/* The number of bytes in a long.  */
+#undef SIZEOF_LONG
+
+/* The number of bytes in a short.  */
+#undef SIZEOF_SHORT
+
+/* The number of bytes in a void *.  */
+#undef SIZEOF_VOID_P
+
+/* Define if you have the poll function.  */
+#undef HAVE_POLL
+
+/* Define if you have the <arpa/inet.h> header file.  */
+#undef HAVE_ARPA_INET_H
+
+/* Define if you have the <linux/limits.h> header file.  */
+#undef HAVE_LINUX_LIMITS_H
+
+/* Define if you have the <sys/poll.h> header file.  */
+#undef HAVE_SYS_POLL_H
+
+/* Define if you have the <zlib.h> header file.  */
+#undef HAVE_ZLIB_H

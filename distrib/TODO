@@ -43,6 +43,7 @@ For 2.00:
 - Option to completely replace the server list
 - SegFault when RetryConnect with more than 1024 sources.
 - Cancel and Redownload doesnot work
+- What happens when a shared file cannot be read ?
 
 *********
 

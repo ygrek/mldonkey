@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#include "../config/config.h"
+
 #include <errno.h>
 #include <stdio.h>
 #include <caml/mlvalues.h>
@@ -42,8 +44,6 @@ extern void uerror (char * cmdname, value arg) Noreturn;
 /* END unixsupport.h */
 
 
-#ifdef HAS_SELECT
-
 #include <sys/types.h>
 #include <sys/time.h>
 #ifdef HAS_SYS_SELECT_H
@@ -63,11 +63,91 @@ extern void uerror (char * cmdname, value arg) Noreturn;
 #define FD_TASK_READ_ALLOWED 6
 #define FD_TASK_WRITE_ALLOWED 7
 
-typedef fd_set file_descr_set;
+#if defined(HAVE_POLL) && defined(HAVE_SYS_POLL_H)
+
+#include <sys/poll.h>
+
+static value* pfds = NULL;
+static struct pollfd* ufds = NULL;
+static int ufds_size = 0;
+value ml_getdtablesize(value unit)
+{
+  ufds_size = getdtablesize();
+  return Val_int(ufds_size);
+}
 
 value ml_select(value fdlist, value timeout) /* ML */
 {
-  file_descr_set read, write, except;
+  int tm = (int)(1e3 * (double)Double_val(timeout));
+  int nfds = 0;
+  int retcode;
+  value res;
+  int notimeout;
+  value l;  
+  int must_read;
+  int must_write;
+  int pos;
+  
+  if(ufds == NULL){
+    ufds_size = getdtablesize();
+    printf("alloc for %d\n", ufds_size);
+    ufds = (struct pollfd*) malloc (sizeof(struct pollfd) * ufds_size);
+    pfds = (value*) malloc (sizeof(value) * ufds_size);
+  }
+  
+  
+  for (l = fdlist; l != Val_int(0); l = Field(l, 1)) {
+    value v = Field(l,0);
+    if(Field(v, FD_TASK_CLOSED) == Val_false){
+      
+      must_read = ((Field(v, FD_TASK_RLEN) != Val_int(0)) &&
+        (Field(Field(v, FD_TASK_READ_ALLOWED),0) == Val_true));
+      must_write = ( (Field(v, FD_TASK_WLEN) != Val_int(0)) &&
+        (Field(Field(v, FD_TASK_WRITE_ALLOWED),0) == Val_true));
+      if(must_read || must_write){
+        int fd = Int_val(Field(v,FD_TASK_FD));
+/*        fprintf(stderr, "FD in POLL added %d\n", fd);  */
+        ufds[nfds].fd = fd;
+        ufds[nfds].events = (must_read? POLLIN : 0) | (must_write ? POLLOUT:0);
+        ufds[nfds].revents = 0;
+/*        printf("SETTING %d TO %d\n", fd, nfds); */
+        pfds[nfds] = v;
+        nfds++;
+      } else
+        ;
+    }
+  }
+/*  printf("POLL: %d/%d\n", nfds, ufds_size); */
+  enter_blocking_section();
+  retcode = poll(ufds, nfds, tm);
+  leave_blocking_section();
+  if (retcode < 0) {
+    uerror("poll", Nothing);
+  }
+  if(retcode > 0){
+    for(pos=0; pos<nfds; pos++){
+      if (ufds[pos].revents){
+        value v = pfds[pos];
+        int fd = Int_val(Field(v,FD_TASK_FD));
+      /*  printf("TESTING %d AT %d\n", fd, pos); */
+      /*  fprintf(stderr, "FOR FD in POLL %d[%d]\n", fd, ufds[pos].revents); */
+        value flags = Val_int(0);
+        if (ufds[pos].revents & POLLIN)  flags |= 2;
+        if (ufds[pos].revents & POLLOUT) flags |= 4;
+        /*        if (ufds[pos].revents & POLLNVAL) */
+        /*        Field(v, FD_TASK_CLOSED) = Val_true; */
+        Field(v,FD_TASK_FLAGS) = flags;
+      }
+    }
+  }
+  return Val_unit;
+}
+
+#else
+
+value ml_select(value fdlist, value timeout) /* ML */
+{
+  fd_set read, write, except;
   double tm;
   struct timeval tv;
   struct timeval * tvp;
@@ -75,6 +155,7 @@ value ml_select(value fdlist, value timeout) /* ML */
   value res;
   int notimeout;
   value l;  
+  int maxfd = 0 ;
 
   restart_select:
 
@@ -88,10 +169,16 @@ value ml_select(value fdlist, value timeout) /* ML */
 /*      fprintf(stderr, "FD in SELECT %d\n", fd); */
       if( (Field(v, FD_TASK_RLEN) != Val_int(0)) &&
           (Field(Field(v, FD_TASK_READ_ALLOWED),0) == Val_true)
-        ) FD_SET(fd, &read);
+        ) {
+        maxfd = maxfd < fd ? fd : maxfd;
+        FD_SET(fd, &read);
+      }
       if( (Field(v, FD_TASK_WLEN) != Val_int(0)) &&
           (Field(Field(v, FD_TASK_WRITE_ALLOWED),0) == Val_true)
-        ) FD_SET(fd, &write);
+        ) {
+        maxfd = maxfd < fd ? fd : maxfd;
+        FD_SET(fd, &write);
+      }
     }
   }
   tm = Double_val(timeout);
@@ -103,7 +190,7 @@ value ml_select(value fdlist, value timeout) /* ML */
     tvp = &tv;
   }
   enter_blocking_section();
-  retcode = select(FD_SETSIZE, &read, &write, &except, tvp);
+  retcode = select(maxfd+1, &read, &write, &except, tvp);
   leave_blocking_section();
 
   if (retcode < 0) {
@@ -123,63 +210,21 @@ value ml_select(value fdlist, value timeout) /* ML */
   return Val_unit;
 }
 
-#else
-
-value unix_select(value readfds, value writefds, value exceptfds, value timeout)
-{ invalid_argument("select not implemented"); }
-
-#endif
-
-#if 0
-#include <sys/poll.h>
-
-value ml_select(value fdlist, value timeout) /* ML */
+value ml_getdtablesize(value unit)
 {
-  static struct pollfd ufds[1024];
-  int tm = (int)(1e6 * (double)Double_val(timeout));
-  int nfds = 0;
-  int retcode;
-  value res;
-  int notimeout;
-  value l;  
+  int dtablesize = getdtablesize();
+  int maxselectfds = FD_SETSIZE;
 
-  for (l = fdlist; l != Val_int(0); l = Field(l, 1)) {
-    value v = Field(l,0);
-    if(Field(v, FD_TASK_CLOSED) == Val_false){
-/*      fprintf(stderr, "FD in SELECT %d\n", fd); */
-      int must_read = (Field(v, FD_TASK_RLEN) != Val_int(0));
-      int must_write = (Field(v, FD_TASK_WLEN) != Val_int(0));
-      if(must_read || must_write){
-        int fd = Int_val(Field(v,FD_TASK_FD));
-        ufds[nfds].fd = fd;
-        ufds[nfds].events = (must_read?POLLIN:0) | (must_write? POLLOUT:0);
-        ufds[nfds].revents = 0;
-        Field(v, FD_TASK_POS) = Val_int(nfds);
-        nfds++;
-      } else
-        Field(v, FD_TASK_POS) = Val_int(-1);
-    }
+  int maxfd = dtablesize;
+
+  if (maxselectfds < maxfd) {
+    printf("Your shell allows %d file descriptors, but select only allows %d file descriptors\n", dtablesize, maxselectfds);
+    maxfd = maxselectfds;
+    printf("Limit has been set to %d\n", maxfd);
   }
-  enter_blocking_section();
-  retcode = poll(ufds, nfds, tm);
-  leave_blocking_section();
-  if (retcode < 0) {
-    uerror("poll", Nothing);
-  }
-  for (l = fdlist; l != Val_int(0) && retcode != 0; l = Field(l, 1)) {
-    value v = Field(l,0);
-    int pos = Field(v, FD_TASK_POS);
-    if(pos == Val_int(-1)){
-      int fd = Int_val(Field(v,FD_TASK_FD));
-      value flags = Val_int(0);
-      if (ufds[pos].revents & POLLIN) flags |= 2;
-      if (ufds[pos].revents & POLLOUT) flags |= 4;
-      if (ufds[pos].revents & POLLNVAL) 
-        Field(v, FD_TASK_CLOSED) = Val_true;
-      Field(v,FD_TASK_FLAGS) = flags;
-    }
-  }
-  return Val_unit;
+
+  return Val_int(maxfd);
 }
 
 #endif
+

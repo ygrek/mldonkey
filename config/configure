@@ -1,6 +1,6 @@
 #! /bin/sh
 
-# From configure.in Revision: 1.52 
+# From configure.in Revision: 1.53 
 
 # Guess values for system-dependent variables and create Makefiles.
 # Generated automatically using autoconf version 2.13 
@@ -2070,9 +2070,106 @@ fi
 done
 
 
+# poll if possible
+for ac_hdr in sys/poll.h
+do
+ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
+echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
+echo "configure:2079: checking for $ac_hdr" >&5
+if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  cat > conftest.$ac_ext <<EOF
+#line 2084 "configure"
+#include "confdefs.h"
+#include <$ac_hdr>
+EOF
+ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
+{ (eval echo configure:2089: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
+if test -z "$ac_err"; then
+  rm -rf conftest*
+  eval "ac_cv_header_$ac_safe=yes"
+else
+  echo "$ac_err" >&5
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -rf conftest*
+  eval "ac_cv_header_$ac_safe=no"
+fi
+rm -f conftest*
+fi
+if eval "test \"`echo '$ac_cv_header_'$ac_safe`\" = yes"; then
+  echo "$ac_t""yes" 1>&6
+    ac_tr_hdr=HAVE_`echo $ac_hdr | sed 'y%abcdefghijklmnopqrstuvwxyz./-%ABCDEFGHIJKLMNOPQRSTUVWXYZ___%'`
+  cat >> confdefs.h <<EOF
+#define $ac_tr_hdr 1
+EOF
+ 
+else
+  echo "$ac_t""no" 1>&6
+fi
+done
+
+for ac_func in poll
+do
+echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
+echo "configure:2118: checking for $ac_func" >&5
+if eval "test \"`echo '$''{'ac_cv_func_$ac_func'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  cat > conftest.$ac_ext <<EOF
+#line 2123 "configure"
+#include "confdefs.h"
+/* System header to define __stub macros and hopefully few prototypes,
+    which can conflict with char $ac_func(); below.  */
+#include <assert.h>
+/* Override any gcc2 internal prototype to avoid an error.  */
+/* We use char because int might match the return type of a gcc2
+    builtin and then its argument prototype would still apply.  */
+char $ac_func();
+
+int main() {
+
+/* The GNU C library defines this for functions which it implements
+    to always fail with ENOSYS.  Some functions are actually named
+    something starting with __ and the normal name is an alias.  */
+#if defined (__stub_$ac_func) || defined (__stub___$ac_func)
+choke me
+#else
+$ac_func();
+#endif
+
+; return 0; }
+EOF
+if { (eval echo configure:2146: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+  rm -rf conftest*
+  eval "ac_cv_func_$ac_func=yes"
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -rf conftest*
+  eval "ac_cv_func_$ac_func=no"
+fi
+rm -f conftest*
+fi
+
+if eval "test \"`echo '$ac_cv_func_'$ac_func`\" = yes"; then
+  echo "$ac_t""yes" 1>&6
+    ac_tr_func=HAVE_`echo $ac_func | tr 'abcdefghijklmnopqrstuvwxyz' 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'`
+  cat >> confdefs.h <<EOF
+#define $ac_tr_func 1
+EOF
+ 
+else
+  echo "$ac_t""no" 1>&6
+fi
+done
+
+
 ZLIB=no
 echo $ac_n "checking for inflate in -lz""... $ac_c" 1>&6
-echo "configure:2076: checking for inflate in -lz" >&5
+echo "configure:2173: checking for inflate in -lz" >&5
 ac_lib_var=`echo z'_'inflate | sed 'y%./+-%__p_%'`
 if eval "test \"`echo '$''{'ac_cv_lib_$ac_lib_var'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -2080,7 +2177,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lz  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 2084 "configure"
+#line 2181 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -2091,7 +2188,7 @@ int main() {
 inflate()
 ; return 0; }
 EOF
-if { (eval echo configure:2095: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:2192: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -2115,17 +2212,17 @@ for ac_hdr in zlib.h
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
-echo "configure:2119: checking for $ac_hdr" >&5
+echo "configure:2216: checking for $ac_hdr" >&5
 if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 2124 "configure"
+#line 2221 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:2129: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:2226: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -2161,17 +2258,17 @@ case $host in
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
-echo "configure:2165: checking for $ac_hdr" >&5
+echo "configure:2262: checking for $ac_hdr" >&5
 if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 2170 "configure"
+#line 2267 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:2175: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:2272: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -2198,17 +2295,17 @@ OLD_CPPFLAGS=$CPPFLAGS
              CPPFLAGS="-I /usr/src/linux/include"
              ac_safe=`echo "linux/types.h" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for linux/types.h""... $ac_c" 1>&6
-echo "configure:2202: checking for linux/types.h" >&5
+echo "configure:2299: checking for linux/types.h" >&5
 if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 2207 "configure"
+#line 2304 "configure"
 #include "confdefs.h"
 #include <linux/types.h>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:2212: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:2309: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -2247,7 +2344,7 @@ case $host in
 esac
 
 echo $ac_n "checking Additionnal includes""... $ac_c" 1>&6
-echo "configure:2251: checking Additionnal includes" >&5 
+echo "configure:2348: checking Additionnal includes" >&5 
 echo "$ac_t""$CONFIG_INCLUDES" 1>&6
 
 OCAMLLIB=`$OCAMLC -where`
@@ -2264,7 +2361,7 @@ fi
     
 ac_safe=`echo "../audio_galaxy" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ../audio_galaxy""... $ac_c" 1>&6
-echo "configure:2268: checking for ../audio_galaxy" >&5
+echo "configure:2365: checking for ../audio_galaxy" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2297,7 +2394,7 @@ fi
     
 ac_safe=`echo "../opennap" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ../opennap""... $ac_c" 1>&6
-echo "configure:2301: checking for ../opennap" >&5
+echo "configure:2398: checking for ../opennap" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2330,7 +2427,7 @@ fi
     
 ac_safe=`echo "../direct_connect" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ../direct_connect""... $ac_c" 1>&6
-echo "configure:2334: checking for ../direct_connect" >&5
+echo "configure:2431: checking for ../direct_connect" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2363,7 +2460,7 @@ fi
     
 ac_safe=`echo "../limewire" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ../limewire""... $ac_c" 1>&6
-echo "configure:2367: checking for ../limewire" >&5
+echo "configure:2464: checking for ../limewire" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2396,7 +2493,7 @@ fi
     
 ac_safe=`echo "../soulseek" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ../soulseek""... $ac_c" 1>&6
-echo "configure:2400: checking for ../soulseek" >&5
+echo "configure:2497: checking for ../soulseek" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2430,7 +2527,7 @@ fi
     
 ac_safe=`echo "../openFT" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ../openFT""... $ac_c" 1>&6
-echo "configure:2434: checking for ../openFT" >&5
+echo "configure:2531: checking for ../openFT" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2463,7 +2560,7 @@ fi
     
 ac_safe=`echo "../cymes" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ../cymes""... $ac_c" 1>&6
-echo "configure:2467: checking for ../cymes" >&5
+echo "configure:2564: checking for ../cymes" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2497,7 +2594,7 @@ if test "$DONKEY" = "yes" ; then
   
 ac_safe=`echo "../donkey" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ../donkey""... $ac_c" 1>&6
-echo "configure:2501: checking for ../donkey" >&5
+echo "configure:2598: checking for ../donkey" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2518,7 +2615,7 @@ if eval "test \"`echo '$ac_cv_file_'$ac_safe`\" = yes"; then
     
 ac_safe=`echo "../server" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for ../server""... $ac_c" 1>&6
-echo "configure:2522: checking for ../server" >&5
+echo "configure:2619: checking for ../server" >&5
 if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2561,7 +2658,7 @@ fi
 # Extract the first word of "gtk-config", so it can be a program name with args.
 set dummy gtk-config; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:2565: checking for $ac_word" >&5
+echo "configure:2662: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_GTK_CONFIG'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2592,7 +2689,7 @@ if test "$GTK_CONFIG" = "no"; then
      LABLGTK_CONFIG=no
 else
   echo $ac_n "checking Checking for native code lablgtk""... $ac_c" 1>&6
-echo "configure:2596: checking Checking for native code lablgtk" >&5
+echo "configure:2693: checking Checking for native code lablgtk" >&5
   if test -f `$OCAMLC -where`/lablgtk/lablgtk.cmxa; then
      echo "$ac_t""yes" 1>&6
      LABLGTK_CONFIG=yes
@@ -2650,7 +2747,7 @@ echo "configure:2596: checking Checking for native code lablgtk" >&5
 fi
 
 echo $ac_n "checking compile GTK GUI""... $ac_c" 1>&6
-echo "configure:2654: checking compile GTK GUI" >&5
+echo "configure:2751: checking compile GTK GUI" >&5
   if test "$LABLGTK_CONFIG" = "no"; then
         echo "$ac_t""no" 1>&6
         BAD_TARGETS="$BAD_TARGETS mldonkey_gui\$(EXE) mldonkey_gui2\$(EXE) mlchat\$(EXE)"
@@ -2707,7 +2804,7 @@ esac
 # Extract the first word of "bzip2", so it can be a program name with args.
 set dummy bzip2; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:2711: checking for $ac_word" >&5
+echo "configure:2808: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_COMPRESS'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -2736,7 +2833,7 @@ fi
 # Extract the first word of "gzip", so it can be a program name with args.
 set dummy gzip; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:2740: checking for $ac_word" >&5
+echo "configure:2837: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_COMPRESS'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -3212,5 +3309,11 @@ test "$no_create" = yes || ${CONFIG_SHELL-/bin/sh} $CONFIG_STATUS || exit 1
 
 diff $AUTOCONF.new $AUTOCONF 2> /dev/null > /dev/null || cp -f $AUTOCONF.new $AUTOCONF
 
-echo "The following modules will not be compiled: {" $BAD_TARGETS "}"
 
+
+cd ..
+echo "Building dependencies"
+$GNU_MAKE depend 2> /dev/null > /dev/null || echo "Building dependencies fails: try: 'make depend' or 'gmake depend'"
+
+
+echo "The following modules will not be compiled: {" $BAD_TARGETS "}"

@@ -241,6 +241,10 @@ AC_CHECK_SIZEOF(double)
 # various header files
 AC_CHECK_HEADERS(arpa/inet.h,,)
 
+# poll if possible
+AC_CHECK_HEADERS(sys/poll.h,,)
+AC_CHECK_FUNCS(poll,,)
+
 ZLIB=no
 AC_CHECK_LIB(z,inflate,[ZLIB=yes])
 AC_CHECK_HEADERS(zlib.h,,[ZLIB=no])
@@ -535,5 +539,11 @@ AUTOCONF=../lib/autoconf.ml
 AC_OUTPUT(Makefile.config $AUTOCONF.new)
 diff $AUTOCONF.new $AUTOCONF 2> /dev/null > /dev/null || cp -f $AUTOCONF.new $AUTOCONF
 
-echo "The following modules will not be compiled: {" $BAD_TARGETS "}"
 
+
+cd ..
+echo "Building dependencies"
+$GNU_MAKE depend 2> /dev/null > /dev/null || echo "Building dependencies fails: try: 'make depend' or 'gmake depend'"
+
+
+echo "The following modules will not be compiled: {" $BAD_TARGETS "}"
