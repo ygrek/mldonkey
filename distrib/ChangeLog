@@ -1,6 +1,9 @@
 ChangeLog	
 =========
 
+2003/03/24: Simon (v 2.04rc1-11)
+  - Fixed compilation problem of md4_c.c and md5_c.c
+
 2003/03/23: Simon (v 2.04rc1-10)
   - Gnutella/Limewire:
     * Upload tested successfully with gtk-gnutella

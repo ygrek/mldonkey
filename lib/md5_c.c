@@ -38,6 +38,7 @@
  */
 
 #include "md5.h"
+#include "os_stubs.h"
 #include <string.h>
 
 #ifdef TEST
