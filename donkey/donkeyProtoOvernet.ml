@@ -231,6 +231,12 @@ dec: [
 
 | OvernetGetMyIPDone
 
+| OvernetFirewallConnection of Md4.t*int
+
+| OvernetFirewallConnectionACK of Md4.t
+
+| OvernetFirewallConnectionNACK of Md4.t
+
 let names_of_tag =
   [
     1, "filename";
@@ -312,9 +318,23 @@ let write buf t =
   | OvernetGetMyIPDone ->
       buf_int8 buf 29
       
+  | OvernetFirewallConnection(md4,port) ->
+      buf_int8 buf 24;
+      buf_md4 buf md4;
+      buf_int16 buf port
+
+  | OvernetFirewallConnectionACK(md4) ->
+      buf_int8 buf 25;
+      buf_md4 buf md4
+
+  | OvernetFirewallConnectionNACK(md4) ->
+      buf_int8 buf 26;
+      buf_md4 buf md4
+
   | OvernetUnknown (opcode, s) ->
       buf_int8 buf opcode;
       Buffer.add_string buf s
+
     
 let parse opcode s =  
   try
@@ -350,8 +370,8 @@ let parse opcode s =
 	OvernetPublicized
     | 14 -> 
         if !!verbose_overnet then begin
-            Printf.printf "OK: SEARCH MESSAGE"; print_newline ();
-          end;
+          (*Printf.printf "OK: SEARCH MESSAGE"; print_newline ();*)
+        end;
         let kind = get_int8 s 0 in
         let md4 = get_md4 s 1 in
         OvernetSearch (kind, md4)
@@ -407,6 +427,28 @@ let parse opcode s =
           end;
         let md4 = get_md4 s 0 in
         OvernetPublished md4
+
+    | 24 ->
+        if !!verbose_overnet then begin
+            Printf.printf "OK: OVERNET FIREWALL CONNECTION"; print_newline ();
+          end;
+        let md4 = get_md4 s 0 in
+        let port = get_int16 s 16 in
+        OvernetFirewallConnection(md4,port)
+
+    | 25 ->
+        if !!verbose_overnet then begin
+            Printf.printf "OK: OVERNET FIREWALL CONNECTION ACK"; print_newline ();
+          end;
+        let md4 = get_md4 s 0 in
+        OvernetFirewallConnectionACK(md4)
+
+    | 26 ->
+        if !!verbose_overnet then begin
+            Printf.printf "OK: OVERNET FIREWALL CONNECTION NACK"; print_newline ();
+          end;
+        let md4 = get_md4 s 0 in
+        OvernetFirewallConnectionNACK(md4)
 
     | 27 ->
         let opcode1 = get_int8 s 0 in

@@ -6,3 +6,4 @@ Makefile.config
 *.cm?
 config.log
 wget
+Makefile.config.i?86
