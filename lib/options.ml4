@@ -31,6 +31,7 @@ both approaches in a latter release.
   
     *)
 
+open Printf2
 
 type option_value =
   Module of option_module
