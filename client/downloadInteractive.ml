@@ -238,14 +238,15 @@ let load_server_met filename =
     let s = File.to_string filename in
     let ss = S.read s in
     List.iter (fun r ->
-        let server = add_server r.S.ip r.S.port in
-        List.iter (fun tag ->
-            match tag with
-              { tag_name = "name"; tag_value = String s } -> 
-                server.server_name <- s;
-            |  { tag_name = "description" ; tag_value = String s } ->
-                server.server_description <- s
-            | _ -> ()
+        if Ip.valid r.S.ip then
+          let server = add_server r.S.ip r.S.port in
+          List.iter (fun tag ->
+              match tag with
+                { tag_name = "name"; tag_value = String s } -> 
+                  server.server_name <- s;
+                  |  { tag_name = "description" ; tag_value = String s } ->
+                  server.server_description <- s
+              | _ -> ()
         ) r.S.tags
     ) ss
   with e ->

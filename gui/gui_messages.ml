@@ -687,6 +687,8 @@ Release 1.15:
      the help.
   * Most problems with ed2k:// links should be fixed (/ at the end, and
      spaces in the middle).
+  * Fixed bugs:  
+   - #100662: only valid server IPs are accepted.
 
 Release 1.14:
   * Bandwidth is now controled by the 'max_hard_download_rate' and

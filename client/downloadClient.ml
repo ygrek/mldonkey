@@ -226,8 +226,9 @@ let client_to_client for_files c t sock =
               c.client_name <- s
           | _ -> ()
       ) c.client_tags;
-      
-      ignore (add_server t.CR.ip_server t.CR.port_server);
+ 
+      if Ip.valid t.CR.ip_server then
+        ignore (add_server t.CR.ip_server t.CR.port_server);
       
       set_client_state c Connected_idle;
       
@@ -370,7 +371,8 @@ We should probably check that here ... *)
           | _ -> ()
       ) c.client_tags;
       
-      ignore (add_server t.CR.ip_server t.CR.port_server);
+      if Ip.valid t.CR.ip_server then
+        ignore (add_server t.CR.ip_server t.CR.port_server);
       
       client_send sock (
         let module M = Mftp_client in

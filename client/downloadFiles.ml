@@ -336,13 +336,16 @@ let install_hooks () =
 let udp_from_server p =
   match p.UdpSocket.addr with
   | Unix.ADDR_INET(ip, port) ->
-      let s = add_server (Ip.of_inet_addr ip) (port-4) in
+      let ip = Ip.of_inet_addr ip in
+      if Ip.valid ip then
+        let s = add_server ip (port-4) in
 (* set last_conn, but add a 2 minutes offset to prevent staying connected
-  to this server *)
-      connection_set_last_conn s.server_connection_control (
-        last_time () -. 121.);
-      s.server_score <- s.server_score + 3;
-      s
+to this server *)
+        connection_set_last_conn s.server_connection_control (
+          last_time () -. 121.);
+        s.server_score <- s.server_score + 3;
+        s
+      else raise Not_found
   | _ -> raise Not_found
 
 let udp_client_handler t p =
