@@ -53,7 +53,22 @@ Later:
  + Imported files should have permission 644.[ Bug #420 ]
  * Change Shared message
 
+ * password for GUI
+ * protocol 4 for GUI
+ * send ShareReq only after 5 minutes when modified and too big (more than
+    20 files)
+ * add special IP addresses with no upload limit and no upload slots for
+    good friends.
+ * add a schedule for upload/download throttle during the day:
 
+    To limit the upload during working hours:
+   set_options
+    [
+      ([0;1;2;3;4], 9, 0, "max_hard_download_rate", 20);
+      ([0;1;2;3;4], 19, 0, "max_hard_download_rate", 100);
+    ]
+
+ 
 TODO list for server
 ====================
 * Send a ping to all clients every minute
@@ -62,8 +77,6 @@ TODO list for server
 * Implement the protocol for UDP servers
 * Implement indexation
 * Implement localisation
-
-
 
 KNOWN COMMENTS (from savannah and forum):
 ========================================

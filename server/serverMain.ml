@@ -78,22 +78,14 @@ let enable () =
 	      Printf.printf "I connect to master %s:%d\n" (Ip.to_string ip) port;  
               ServerServer.connect_a_group();
           end;
-        Printf.printf "Initialisation du notif time_out\n";
 	add_infinite_option_timer notify_time_out action_notify_servers;
 	add_infinite_option_timer connect_time_out action_connect_servers;
       end;
-    
-
-    (*known_master =:= [(Ip.of_string "128.93.52.112",5000)];
-    Options.save_with_help server_ini;*)
+   
 
     if !!save_log then ServerLog.initialized(); 
 
     add_infinite_option_timer send_server_stat_delay ServerClients.send_stat_to_clients;
-    
-
-    (*add_infinite_option_timer ping_known_servers ServerUdp.ping_servers;*)
-
    
 
     add_infinite_timer 60. (fun timer ->
@@ -117,11 +109,14 @@ let enable () =
 						    nb_udp_ping_server_count := 0 
 						 );
 					      
+    (*ServerUdp.test();*)
 
-
-  add_infinite_timer 60. ServerClients.check_notifications;
+    add_infinite_timer 60. ServerClients.check_notifications;
   
-    (*ServerUdp.hello_world();*)
+
+    add_infinite_option_timer ping_known_servers ServerUdp.ping_servers;
+     
+    ServerUdp.hello_world();
 
 
     Printf.printf "server started at %d" !!server_port; print_newline ()
@@ -148,23 +143,49 @@ let _ =
                             Printf.printf "Messages received during the last min\n";
 			    Printf.bprintf buf "nb tcp requets:%f\n" (!nb_tcp_req_sec /. 60.);
 			    Printf.bprintf buf "nb udp requets/second :%f\n" (!nb_udp_req_sec /. 60.);
-			    Printf.bprintf buf "nb udp Location/second:%f\n nb udp Query/second:%f\n " (!nb_udp_loc_sec /. 60.) (!nb_udp_query_sec /. 60.);
+			    Printf.bprintf buf "nb udp Location/second:%f\n nb udp Query/second:%f\n" (!nb_udp_loc_sec /. 60.) (!nb_udp_query_sec /. 60.);
 			    Printf.bprintf buf "nb udp rely send/second : %f\n" (!nb_udp_reply_sec /. 60.);
-			    Printf.bprintf buf "nb udp ping server during %f\n :
-                                    %f\n" !!ping_known_servers (!nb_udp_ping_server_sec);
 			    ""
 		       ), "Print number of udp and tcp packet rec";
     "clients", Arg_one (fun arg o -> 
 			  let buf = o.conn_buf in
-			    ServerClients.bprint buf clients_by_id;
+			    ServerClients.bprint buf clients_by_id arg;
 			    ""
 		       ),"Print clients general info";
-			   
+
+    "sources", Arg_none (fun o ->
+			   let buf =  o.conn_buf in
+			   let lst = ServerLocate.get_liste_of_md4() in
+			     List.iter (fun (md4,nb_source) -> 
+					  try
+					    let tags = ServerIndexer.get_def md4 in
+					      DonkeyMftp.bprint_tags buf tags.DonkeyMftp.f_tags;
+					      Printf.bprintf buf "-->Actualy %d sources\n" nb_source 
+					  with _ ->
+					    Printf.bprintf buf "NO file def for %s\n" (Md4.to_string md4);
+					    Printf.bprintf buf "-->Actualy %d sources\n" nb_source 
+				       ) lst;
+			     ""
+			),"Print files shared on the server";
+			
     "server_group_info", Arg_none (fun o ->
         let buf = o.conn_buf in
         bprint_server_info buf "";
         ""
     ),"Print info about servers in the group";
+    "jg", Arg_two (fun ip port o -> 
+                               let buf = o.conn_buf in
+                                  Printf.bprintf buf "try to connect %s %s\n" ip port;
+                               ServerServer.join_a_group (Ip.of_string ip) (int_of_string port);
+                               ""
+                  ),"Try to join a server master";
+    "qg",Arg_none (fun o ->
+                           let buf = o.conn_buf in
+                                  Printf.bprintf buf "diconnect of the group %s\n" (Md4.to_string !group_id);
+                          ServerServer.disconnect();
+                          ""
+                   ),"Diconnect of the group";
+
   
   ];
   

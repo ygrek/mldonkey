@@ -27,24 +27,45 @@ open CommonFile
 open BasicSocket
 open CommonGlobals
 open Options
-open LimewireTypes
+open OpenFTTypes
 
   
 let file_size file = file.file_file.impl_file_size
 let file_downloaded file = file.file_file.impl_file_downloaded
 let file_age file = file.file_file.impl_file_age
 let file_fd file = file.file_file.impl_file_fd
+
     
+let file_state file =
+  file_state (as_file file.file_file)
+  
+let file_num file =
+  file_num (as_file file.file_file)
+  
+let file_must_update file =
+  file_must_update (as_file file.file_file)
+
+let server_num s =
+  server_num (as_server s.server_server)
+      
+let server_state s =
+  server_state (as_server s.server_server)
+      
+let set_server_state s state =
+  set_server_state (as_server s.server_server) state
+
+let client_type c = client_type (as_client c.client_client)
+
 module DO = CommonOptions
 
-let current_files = ref ([] : LimewireTypes.file list)
+let current_files = ref ([] : OpenFTTypes.file list)
 
 let listen_sock = ref (None : TcpServerSocket.t option)
   
 let connected_servers = ref ([] : server list)
 let servers_by_key = Hashtbl.create 103
 
-let (searches_by_uid : (Md4.t, local_search) Hashtbl.t) = Hashtbl.create 11
+let (searches_by_uid : (int, local_search) Hashtbl.t) = Hashtbl.create 11
 let (ultrapeers_queue : (Ip.t * int) Fifo.t) = Fifo.create ()
 let (peers_queue : (Ip.t * int) Fifo.t) = Fifo.create ()
 let nservers = ref 0
@@ -53,12 +74,14 @@ let redirector_connected = ref false
 let redirectors_ips = ref ( [] : Ip.t list)
 let redirectors_to_try = ref ( [] : Ip.t list)
   
-let files_by_key = Hashtbl.create 13
+let files_by_md5 = Hashtbl.create 13
 
-let (users_by_uid : (Md4.t, user) Hashtbl.t) = Hashtbl.create 127
-let (clients_by_uid : (Md4.t, client) Hashtbl.t) = Hashtbl.create 127
+let (users_by_num : (int, user) Hashtbl.t) = Hashtbl.create 127
+let (clients_by_num : (int, client) Hashtbl.t) = Hashtbl.create 127
 let results_by_key = Hashtbl.create 127
 
+let nsearches = ref 0
+  
 let new_server ip port =
   let key = (ip,port) in
   try
@@ -72,7 +95,12 @@ let new_server ip port =
           server_agent = "<unknown>";
           server_nfiles = 0;
           server_nkb = 0;
-          
+          server_http_port = 0;
+          server_caps = [];
+          server_version = "";
+          server_type = Index_node; (* we don't know *)
+          server_connection_control = new_connection_control (last_time ());
+      
           server_ping_last = Md4.random ();
           server_nfiles_last = 0;
           server_nkb_last = 0;
@@ -86,13 +114,13 @@ let new_server ip port =
       Hashtbl.add servers_by_key key s;
       s
 
-let new_result file_name file_size =
-  let key = (file_name, file_size) in
+let new_result file_md5 file_name file_size =
   try
-    Hashtbl.find results_by_key key
+    Hashtbl.find results_by_key file_md5
   with _ ->
       let rec result = {
           result_result = result_impl;
+          result_md5 = file_md5;
           result_name = file_name;
           result_size = file_size;
           result_sources = [];
@@ -103,15 +131,14 @@ let new_result file_name file_size =
           impl_result_ops = result_ops;
         } in
       CommonResult.new_result result_impl;
-      Hashtbl.add results_by_key key result;
+      Hashtbl.add results_by_key file_md5 result;
       result
       
   
   
 let new_file file_id file_name file_size =
-  let key = (file_name, file_size) in
   try
-    Hashtbl.find files_by_key key  
+    Hashtbl.find files_by_md5 file_id
   with _ ->
       let file_temp = Filename.concat !!DO.temp_directory 
           (Printf.sprintf "LW-%s" (Md4.to_string file_id)) in
@@ -125,7 +152,7 @@ let new_file file_id file_name file_size =
       
       let rec file = {
           file_file = file_impl;
-          file_id = file_id;
+          file_md5 = file_id;
           file_name = file_name;
           file_temp = file_temp;
           file_clients = [];
@@ -149,36 +176,34 @@ let new_file file_id file_name file_size =
         end;
       file_add file_impl state;
 (*      Printf.printf "ADD FILE TO DOWNLOAD LIST"; print_newline (); *)
-      Hashtbl.add files_by_key key file;
+      Hashtbl.add files_by_md5 file_id file;
       file
 
 
-let new_user uid kind =
+let new_user ip port http_port =
+  let s = new_server ip port in
+  s.server_http_port <- http_port;
   try
-    let s = Hashtbl.find users_by_uid uid in
-    s.user_kind <- kind;
-    s
+    let u = Hashtbl.find users_by_num (server_num s) in
+    u
   with _ ->
       let rec user = {
           user_user = user_impl;
-          user_uid = uid;
-          user_kind = kind;
-(*          user_files = []; *)
-          user_speed = 0;
+          user_server = s;
         }  and user_impl = {
           dummy_user_impl with
             impl_user_ops = user_ops;
             impl_user_val = user;
           } in
       user_add user_impl;
-      Hashtbl.add users_by_uid uid user;
+      Hashtbl.add users_by_num (server_num s) user;
       user
   
-let new_client uid kind =
+let new_client ip port http_port =
+  let u = new_user ip port http_port in
   try
-    Hashtbl.find clients_by_uid uid 
+    Hashtbl.find clients_by_num (server_num u.user_server)
   with _ ->
-      let user = new_user uid kind in
       let rec c = {
           client_client = impl;
           client_sock = None;
@@ -187,8 +212,7 @@ let new_client uid kind =
           client_file = None;
           client_pos = Int32.zero;
           client_all_files = None;
-          client_user = user;
-          client_error = false;
+          client_user = u;
           client_connection_control = new_connection_control (last_time());
           client_downloads = [];
         } and impl = {
@@ -197,7 +221,7 @@ let new_client uid kind =
           impl_client_ops = client_ops;
         } in
       new_client impl;
-      Hashtbl.add clients_by_uid uid c;
+      Hashtbl.add clients_by_num (server_num u.user_server) c;
       c
 
 let add_source r s index =
@@ -207,7 +231,7 @@ let add_source r s index =
     end
     
 let add_download file c index =
-(*  let r = new_result file.file_name (file_size file) in *)
+(*  let r = new_result file.file_md5 file.file_name (file_size file) in *)
 (*  add_source r c.client_user index; *)
   Printf.printf "Adding file to client"; print_newline ();
   if not (List.memq c file.file_clients) then begin
@@ -217,27 +241,3 @@ let add_download file c index =
     end
     
       
-  
-let file_state file =
-  file_state (as_file file.file_file)
-  
-let file_num file =
-  file_num (as_file file.file_file)
-  
-let file_must_update file =
-  file_must_update (as_file file.file_file)
-
-let server_num s =
-  server_num (as_server s.server_server)
-      
-let server_state s =
-  server_state (as_server s.server_server)
-      
-let set_server_state s state =
-  set_server_state (as_server s.server_server) state
-  
-let server_remove s =
-  connected_servers := List2.removeq s !connected_servers;    
-  Hashtbl.remove servers_by_key (s.server_ip, s.server_port)
-
-let client_type c = client_type (as_client c.client_client)

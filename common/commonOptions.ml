@@ -532,6 +532,11 @@ let enable_directconnect = define_option downloads_ini
     ["enable_directconnect"]
   "Set to true if you also want mldonkey to run as a direct-connect node (experimental)"
     bool_option false
+
+let enable_openft = define_option downloads_ini
+    ["enable_openft"]
+  "Set to true if you also want mldonkey to run as a OpenFT sub node (experimental)"
+    bool_option false
   
 (** {2 Chat} *)
 

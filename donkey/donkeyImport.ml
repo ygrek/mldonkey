@@ -18,7 +18,7 @@
 *)
 
 open CommonTypes
-open BigEndian
+open LittleEndian
 open CommonGlobals
 open DonkeyMftp
   

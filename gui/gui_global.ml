@@ -78,6 +78,8 @@ let clear () =
   nresults := 0;
   nlocations := 0;
   nclocations := 0;
+  ndownloads := 0;
+  ndownloaded := 0;
   Hashtbl.clear locations;
   Hashtbl.clear networks;
   Hashtbl.clear results;

@@ -320,8 +320,9 @@ let update_master_servers _ =
 (*                Printf.printf "NEW MASTER SERVER"; print_newline (); *)
                 s.server_master <- true;
                 incr nmasters;
-                direct_server_send sock (Mftp_server.ShareReq
-                  (DonkeyShare.make_tagged (Some sock) (DonkeyShare.all_shared ())));
+                let list = DonkeyShare.make_tagged (Some sock) (
+                    DonkeyShare.all_shared ()) in
+                direct_server_send sock (Mftp_server.ShareReq list)
           end else
         if connection_last_conn s.server_connection_control 
             +. 120. < last_time () &&

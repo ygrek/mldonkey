@@ -469,10 +469,16 @@ let friend_remove c =
     let impl = as_client_impl c in
     match  impl.impl_client_type with 
       FriendClient ->
-        impl.impl_client_type <- ContactClient;
+        impl.impl_client_type <- NormalClient;
         client_must_update c;
         friends =:= List2.removeq c !!friends;
-        contacts := c :: !contacts;
+        impl.impl_client_ops.op_client_clear_files impl.impl_client_val
+    | ContactClient ->
+        impl.impl_client_type <- NormalClient;
+        client_must_update c;
+        contacts := List2.removeq c !contacts;
+        impl.impl_client_ops.op_client_clear_files impl.impl_client_val
+        
     | _ -> ()
   with e ->
       Printf.printf "Exception in friend_remove: %s" (Printexc.to_string e);

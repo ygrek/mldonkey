@@ -18,7 +18,7 @@
 *)
 
 open CommonTypes
-open BigEndian
+open LittleEndian
 open Int32ops
 open TcpBufferedSocket
   

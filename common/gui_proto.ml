@@ -268,7 +268,7 @@ let from_gui_to_string t =
   | BrowseUser _ -> "BrowseUser"      
 
 
-open BigEndian
+open LittleEndian
 open TcpBufferedSocket
       
 let gui_cut_messages f sock nread =

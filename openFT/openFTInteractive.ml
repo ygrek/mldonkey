@@ -27,64 +27,64 @@ open CommonTypes
 open CommonComplexOptions
 open CommonFile
 open Options
-open LimewireTypes
-open LimewireOptions
-open LimewireGlobals
-open LimewireComplexOptions
+open OpenFTTypes
+open OpenFTOptions
+open OpenFTGlobals
+open OpenFTComplexOptions
 
-open LimewireProtocol
+open OpenFTProtocol
 
 let _ =
   network.op_network_search <- (fun search buf ->
       let query = search.search_query in
-  let keywords = ref [] in
-
-  let rec iter q = 
-    match q with
-    | QOr (q1,q2) 
-    | QAnd (q1, q2) -> iter q1; iter q2
-    | QAndNot (q1,q2) -> iter q1 
-    | QHasWord w -> keywords := String2.split_simplify w ' '
-    | QHasField(field, w) ->
-         begin
-          match field with
-            "Album"
-          | "Title"
-          | "Artist"
-          | _ -> keywords := String2.split_simplify w ' '
-        end
-    | QHasMinVal (field, value) ->
-        begin
-          match field with
-            "bitrate"
-          | "size"
-          | _ -> ()
-        end
-    | QHasMaxVal (field, value) ->
-        begin
-          match field with
-            "bitrate"
-          | "size"
-          | _ -> ()
-        end
-    | QNone ->
-	prerr_endline "LimewireInteractive.start_search: QNone in query";
-	()
-  in
-  iter query;
-
-  let p = LimewireServers.send_query 0 !keywords "" in
-    
-  let s = {
-      search_search = search;
-      search_uid = p.pkt_uid;
-    } in
-  Hashtbl.add searches_by_uid p.pkt_uid s;
-  ())
+      let keywords = ref [] in
+      
+      let rec iter q = 
+        match q with
+        | QOr (q1,q2) 
+        | QAnd (q1, q2) -> iter q1; iter q2
+        | QAndNot (q1,q2) -> iter q1 
+        | QHasWord w -> keywords := String2.split_simplify w ' '
+        | QHasField(field, w) ->
+            begin
+              match field with
+                "Album"
+              | "Title"
+              | "Artist"
+              | _ -> keywords := String2.split_simplify w ' '
+            end
+        | QHasMinVal (field, value) ->
+            begin
+              match field with
+                "bitrate"
+              | "size"
+              | _ -> ()
+            end
+        | QHasMaxVal (field, value) ->
+            begin
+              match field with
+                "bitrate"
+              | "size"
+              | _ -> ()
+            end
+        | QNone ->
+            prerr_endline "OpenFTInteractive.start_search: QNone in query";
+            ()
+      in
+      iter query;
+      
+      let id = OpenFTServers.send_query !keywords in
+      
+      let s = {
+          search_search = search;
+          search_id = id;
+        } in
+      Hashtbl.add searches_by_uid id s;
+      ())
 
 let _ =
   result_ops.op_result_download <- (fun result _ ->
-      LimewireServers.download_file result)
+      OpenFTServers.download_file result)
 
 let file_num file =
   file.file_file.impl_file_num
@@ -97,12 +97,11 @@ let _ =
   file_ops.op_file_disk_name <- (fun file ->
       file.file_temp;
   );
-    file_ops.op_file_sources <- (fun file ->
+  file_ops.op_file_sources <- (fun file ->
       List2.tail_map (fun c ->
           as_client c.client_client
       ) file.file_clients
   )
-
   
 module P = Gui_proto
   
@@ -135,7 +134,7 @@ let _ =
   
 let _ =
   server_ops.op_server_info <- (fun s ->
-      if !!enable_limewire then
+      if !!enable_openft then
         {
           P.server_num = (server_num s);
           P.server_network = network.network_num;
@@ -179,35 +178,31 @@ let _ =
   );
   network.op_network_parse_url <- (fun url ->
       match String2.split (String.escaped url) '|' with
-      | "lw://" :: "server" :: ip :: port :: _ ->  
+      | "ft://" :: "server" :: ip :: port :: _ ->  
           let ip = Ip.of_string ip in
           let port = int_of_string port in
           let s = new_server ip port in
           true
-      | "lw://" :: "friend" :: uid :: ip :: port :: _ ->  
+      | "ft://" :: "friend" :: ip :: port :: http_port :: _ ->  
           let ip = Ip.of_string ip in
           let port = int_of_string port in
-          let md4 = Md4.of_string uid in
-          let c = new_client md4 (Known_location (ip, port)) in
-          friend_add (as_client c.client_client);
-          true
-      | "lw://" :: "friend" :: uid :: _ ->
-          let md4 = Md4.of_string uid in
-          let c = new_client md4 (Indirect_location ("", md4)) in
+          let http_port = int_of_string http_port in
+          let c = new_client ip port http_port in
           friend_add (as_client c.client_client);
           true
       | _ -> false
   )
 
 let browse_client c = 
-  Printf.printf "Limewire: browse client not implemented"; print_newline ();
+  Printf.printf "OpenFT: browse client not implemented"; print_newline ();
   ()
   
 let _ =
   client_ops.op_client_info <- (fun c ->
+      let s = c.client_user.user_server in
       {
         P.client_network = network.network_num;
-        P.client_kind = Indirect_location ("", c.client_user.user_uid);
+        P.client_kind = Known_location (s.server_ip, s.server_port);
         P.client_state = client_state (as_client c.client_client);
         P.client_type = client_type c;
         P.client_tags = [];
@@ -227,7 +222,7 @@ let _ =
   user_ops.op_user_info <- (fun user ->
       {
         P.user_num = user.user_user.impl_user_num;
-        P.user_md4 = user.user_uid;
+        P.user_md4 = Md4.null;
         P.user_name = "";
         P.user_ip = Ip.null;
         P.user_port = 0;
@@ -235,3 +230,4 @@ let _ =
         
         P.user_server = 0;
       })
+

@@ -22,30 +22,36 @@ opcodes:
         FT_VERSION_REQUEST = 0,
 {
 }
-        FT_VERSION_RESPONSE,
+        FT_VERSION_RESPONSE = 1
 {
 int16 OPENFT_MAJOR
 int16 OPENFT_MINOR
 int16 OPENFT_MICRO
 }
-        FT_CLASS_REQUEST,
+        FT_CLASS_REQUEST =2 
 {
 }
-        FT_CLASS_RESPONSE,
+        FT_CLASS_RESPONSE = 3
 {
 int16 node_class; /* NODE_PARENT/NODE_CHILD/NODE_SEARCH */
+             NODE_NONE   = 0x00,
+             NODE_USER   = 0x01,
+             NODE_SEARCH = 0x02,
+             NODE_INDEX  = 0x04,
+             NODE_CHILD  = 0x08,        /* node is sharing files to 'self' */
+             NODE_PARENT = 0x10,        /* node has 'self' files shared */
 }
-        FT_NODEINFO_REQUEST,
+        FT_NODEINFO_REQUEST = 4
 {
 }
-        FT_NODEINFO_RESPONSE,
+        FT_NODEINFO_RESPONSE = 5
 {
 IP     0
 int16  port
 int16  http_port
 }
 
-        FT_NODELIST_REQUEST,
+        FT_NODELIST_REQUEST=6,
 {
 }
         FT_NODELIST_RESPONSE,
@@ -55,14 +61,14 @@ int16  http_port
                         response->ip, response->port, response->class);
 }
 
-        FT_NODECAP_REQUEST,
+        FT_NODECAP_REQUEST=8,
 {
 }
         FT_NODECAP_RESPONSE,
 {
 }
 
-        FT_PING_REQUEST,
+        FT_PING_REQUEST=10,
 {
 }
         FT_PING_RESPONSE,
@@ -80,7 +86,7 @@ int16   TRUE;
 int16 response (TRUE or FALSE suivant que le noeud est accepte comme fils)
 }
 
-        FT_SHARE_REQUEST,
+        FT_SHARE_REQUEST, 102
 {
         ft_packet_send (c, FT_STATS_REQUEST, "%hu+I%lu%lu",
                         2 /* submit digest */,
@@ -90,14 +96,14 @@ int16 response (TRUE or FALSE suivant que le noeud est accepte comme fils)
 {
 }
 
-        FT_MODSHARE_REQUEST,
+        FT_MODSHARE_REQUEST, 104
 {
 }
         FT_MODSHARE_RESPONSE,
 {
 }
 
-        FT_STATS_REQUEST,
+        FT_STATS_REQUEST, 106
 {
 }
         FT_STATS_RESPONSE,
@@ -313,3 +319,97 @@ CONTACT INFORMATION
 -------------------
 
 OpenProjects IRC Network (irc.openprojects.net) #giFT
+
+(********  SHARING  ********)
+
+read_int: int32
+read_str:
+  int32 len
+  char[len] string
+
+share_record:
+  int32 : record_len
+  int32 : size
+  string : path/file
+  int32: path len
+  string : md5
+
+(* SEARCH *)
+
+int32 : id
+int16 : type SEARCH_HIDDEN | SEARCH_MD5 | SEARCH_HOST
+
+type: SEARCH_HIDDEN
+  query: get_array 4
+  exclude : ge_array 2
+  query_str : "*hidden*"
+  exclude_str : ""
+else
+  query : str
+  exclude : str
+fi
+
+realm : str
+size_min : int32
+size_max : int32
+kbps_min : int32
+kbps_max : int32
+
+dec:[
+(0)(31)
+(0)(200)
+(0)(0)(0)(6) id
+(0)(1)       type
+(106)(111)(104)(110)(110)(121)(0) johnny
+(0)          exclude
+(0)          realm
+(0)(0)(0)(0) size_min
+(0)(0)(0)(0) size_max
+(0)(0)(0)(0) kbps_min
+(0)(0)(0)(0) kbps_max
+]
+
+        SEARCH_FILENAME = 0x01,
+        SEARCH_MD5      = 0x02,
+        SEARCH_HOST     = 0x04,
+        SEARCH_LOCAL    = 0x08,
+        SEARCH_HIDDEN   = 0x10  /* the HIDDEN flag indicates that the human
+                                 * readable search string will be substituted
+                                 * by the hashed/tokenized query...this is up to
+                                 * the implementation how paranoid they wish to
+                                 * be ;) */
+               return;
+
+SEARCH REPLY:
+
+int32   id
+(* nothing = end of reply *)
+        /* packet->len == 4 when an EOF came in */
+
+                ip host (=0 local shares)
+                int16 port
+                int16 http_port
+                int32 avail
+                int32 size
+                string md5
+                string filename
+
+(0)(0)(0)(5) search id
+(0)(4)      IP
+(24)(-96)(124)(71)
+(0)(0)(0)(0)(0)(0)(0)(0)(0)(0)(0)(0)
+(4)(-65)   port 
+(4)(-64)   http_port
+(0)(0)(0)(5) avail
+(0)(0)(121)(35) size
+(102)(49)(55)(57)(48)(101)(102)(57)(48)(50)(48)(99)(53)(55)(99)(99)(48)(56)(55)(101)(56)(98)(51)(51)(52)(98)(102)(55)(49)(48)(56)(51)(0) md5(0)
+(47)(102)(117)(110)(47)(109)(105)(114)(99)(47)(100)(105)(103)(105)(116)(97)(108)(47)(115)(121)(115)(47)(114)(97)(119)(46)(105)(110)(105)(0) name(0)
+
+
+
+TELECHARGEMENT:
+
+G E T   / m e d i a / E n d e r % 2 7 s % 2 0 S a g a % 2 0 5 % 2 0 - % 2 0 E n d e r % 2 7 s % 2 0 S h a d o w . t x t   H T T P / 1 . 1 (13)(10)
+R a n g e :   b y t e s = 0 - 8 0 2 5 5 8 (13)(10)
+(13)(10)
+

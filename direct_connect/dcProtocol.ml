@@ -788,7 +788,7 @@ let print m =
     | ToReq t -> To.print t
     | MessageReq t -> Printf.printf "MESSAGE: %s" t
     | UnknownReq t -> Printf.printf "UNKNOWN:"; 
-        BigEndian.dump t
+        LittleEndian.dump t
   end;
   print_newline () 
   

@@ -18,8 +18,6 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-(*open Mftp_server*)
-open ServerClients
 open CommonGlobals
 open CommonTypes
 open BasicSocket
@@ -38,6 +36,7 @@ module M = ServerMessages
   
 let null_ip = Ip.of_int32 (Int32.of_int 0)
 
+exception CantConnect
 exception NoSocket
 
 let add_file s md4 ip port =
@@ -47,6 +46,16 @@ let add_file s md4 ip port =
     source_ip = ip;
     source_port = port;
   } :: s.server_notifications
+
+let add_source_to_notify c md4 =
+Printf.printf "SSSSSSSSSSSource_add\n";
+let ip, port = ( match c.client_kind with 
+                    Firewalled_client -> c.client_id, 0
+                  | KnownLocation (ip,port) -> ip, port) in
+Hashtbl.iter (fun id s ->
+        if not (s.server_need_recovery) then 
+        add_file s md4 ip port) servers_by_id
+
     
 let supp_file s md4 ip port =
   s.server_notifications <- {
@@ -55,6 +64,17 @@ let supp_file s md4 ip port =
     source_ip = ip;
     source_port = port;
   } :: s.server_notifications
+
+let supp_source_to_notify c md4 =
+(*Printf.printf "SSSSSSSSSSSource_supp\n";*)
+let ip, port = ( match c.client_kind with 
+                    Firewalled_client -> c.client_id, 0
+                  | KnownLocation (ip,port) -> ip, port) in
+Hashtbl.iter (fun id s -> 
+        if not (s.server_need_recovery) then
+        supp_file s md4 ip port) servers_by_id
+
+
 
 let rec get_end_liste lst size =
   match lst with
@@ -68,7 +88,7 @@ let rec get_begin_liste lst size =
   match lst with
       [] -> [] 
     | hd :: tail ->(if size = 0 then
-	               []
+	               [hd]
                      else 
 		       hd :: get_end_liste tail (size-1);)
 
@@ -106,8 +126,24 @@ let supp_ack_notifs lst nbr =
 
 let send_notification s sock =
  try
-  (*Printf.printf "BEGIN CONSTRUCTION OF NOTIF PACKET\n";*)
-  let notifs,nbr = get_notify_to_send s.server_notifications 200 in
+  Printf.printf "BEGIN CONSTRUCTION OF NOTIF PACKET\n";
+  let id_msg = ref 0 in
+  let nb_notifs = ref 200 in
+  let last_id_msg,last_nb_notifs = s.server_last_message_send in
+   Printf.printf "Last msg %d -> %d\n" last_id_msg last_nb_notifs;
+   if last_nb_notifs = -1 then
+      (if last_id_msg > 100 then
+         id_msg := 0
+      else  
+        id_msg := last_id_msg + 1)
+    else 
+      begin
+        nb_notifs := last_nb_notifs;
+        id_msg := last_id_msg;
+      end;
+  Printf.printf "Liste of notif %d\n" (List.length s.server_notifications);             
+  let notifs,nbr = get_notify_to_send s.server_notifications !nb_notifs in
+  Printf.printf "new msg %d -> %d\n" !id_msg nbr;
   let nb_diff_md4 = ref 0 in
   let msg = Hashtbl.create nbr in
     List.iter (fun notif ->
@@ -123,12 +159,14 @@ let send_notification s sock =
 		     LN.source_port = notif.source_port;
 		   }]
 	      ) notifs;
+   
     direct_group_send sock (LocateNotifReq {
+                         LN.message_id = !id_msg;
 			 LN.nb_notifs = !nb_diff_md4;
+                         LN.ack = s.server_last_message_received_id;
 			 LN.notifs= msg;
 		       });
-    (*TEMPORAIRE*)
-    s.server_notifications <- supp_ack_notifs s.server_notifications nbr
+    s.server_last_message_send <- (!id_msg,nbr);
  with _ -> Printf.printf "CAN'T MAKE NOTIF PACKET\n" 
     
 
@@ -154,9 +192,29 @@ let get_server_id ()=
     done;
     !server_counter
 
+let get_client_id ip =
+  if Hashtbl.mem clients_by_id ip then
+    begin
+      let find = ref true in
+	while !find do
+	  if Hashtbl.mem clients_by_id (Ip.of_int32 (Int32.of_int !client_counter)) then
+	      find := false
+	  else
+	    begin 
+	      incr client_counter;
+	      if (!client_counter > 2000) then
+		client_counter := 0
+	    end
+	done;
+	(Ip.of_int32 (Int32.of_int !client_counter))  
+    end
+  else
+    ip
+
+
 let send_to server t =
   match server.server_sock with
-      Some sock -> 
+      Some sock ->
 	direct_group_send sock t
     | None -> 
 	raise NoSocket
@@ -170,6 +228,32 @@ let broadcast_to_group id t =
 		    ()
 	       ) servers_by_id
 
+let get_local_sources s =
+  Hashtbl.iter ( fun id c ->
+                match c with 
+                LocalClient c ->
+		  (match c.client_kind with
+		      Firewalled_client ->
+			List.iter ( fun md4 ->
+				      s.server_notifications <- {
+					add = true;
+					md4 = md4;
+					source_ip = id; 
+					source_port = 0;
+				      } :: s.server_notifications
+				  ) c.client_files
+		    | KnownLocation (ip,port) ->
+			List.iter ( fun md4 ->
+				      s.server_notifications <- {
+					add = true;
+					md4 = md4;
+					source_ip = ip;
+					source_port = port;
+				      } :: s.server_notifications
+				  ) c.client_files)
+                  | _ -> ()
+	    ) clients_by_id
+
 
 
 let reply_to_server_connection s =
@@ -179,7 +263,6 @@ let reply_to_server_connection s =
             
   | Some sock ->
        try 
-       (*Printf.printf "Can reply server connection\n";*)
 	 let id = get_server_id () in
 	(*Printf.printf ("Nouvel identifiant %d") id;
 	  print_newline();*)
@@ -204,7 +287,7 @@ let reply_to_server_connection s =
 					}));
            
 	   
-	   ServerLocate.get_local_sources s; 
+	   get_local_sources s; 
 	   
 	   send_notification s sock; 
 	   
@@ -222,7 +305,7 @@ let reply_to_server_connection s =
 	     
 	     
        with _ -> 
-             Printf.printf "what about a pun\n"
+             Printf.printf "Failure in reply connection server\n"
 (* send some messages 
       List.iter (fun msg ->
           direct_server_send sock (M.MessageReq msg)) !!welcome_messages*)
@@ -312,10 +395,11 @@ let rec remove id lst =
 	     close sock "Removed of the group";
 	     s.server_sock <- None
 	 | _ -> ());
-      Hashtbl.remove servers_by_id  s_id
-  with _ -> 
-    to_connect := remove s_id !to_connect;
+      Hashtbl.remove servers_by_id  s_id; 
+      to_connect := List.filter (fun id ->
+                    id<>s_id) !to_connect;
     decr nconnected_servers
+   with _ -> Printf.printf "Failure when remove a server of the group"
  
 
  let print_servers () =
@@ -325,8 +409,8 @@ let rec remove id lst =
      servers_by_id;
    print_newline();
    Printf.printf "Contenu de to_connect:\n";
-   List.iter (fun s -> 
-		Printf.printf "server %d " s.server_id )
+   List.iter (fun s_id -> 
+		Printf.printf "server %d " s_id )
      !to_connect;
    print_newline()  
 
@@ -337,21 +421,32 @@ let server_disconnect_of_master s sock msg =
   Printf.printf "DISCONNECT:server %d disconnect_of_master call for close\n" s.server_id;
   s.server_sock <- None;
   close sock "connection dead";
-  try
-    let serv =  Hashtbl.find servers_by_id s.server_id in
-      Hashtbl.remove servers_by_id s.server_id;
-      to_connect := s :: !to_connect;
-      print_servers()
-  with _ -> Printf.printf "BIG PB IN DECONNECT\n";
-    print_servers()
+  if (Unix.time() -. s.server_last_message_received_time) > !!server_dead_time_out then
+    begin
+      Printf.printf "Server %d disconnected since %f so I remove it of the group\n" s.server_id (Unix.time() -. s.server_last_message_received_time);
+      remove_server s.server_id;
+      Printf.printf "Server supprimer du groupe\n";
+		       let module SS = ServerSupp in
+			 broadcast_to_group !server_id (ServerSuppReq 
+							  {
+							    SS.group_id = !group_id;
+							    SS.server_id = s.server_id
+							  }
+						       )
+   end
+  else
+     begin
+      Printf.printf "Server %d add to_connect and not remove\n" s.server_id;
+      to_connect := s.server_id :: !to_connect
+  end
+
  
 
 let server_disconnect s sock msg =
   Printf.printf "DISCONNECT:server %d disconnect call for close\n" s.server_id;
   s.server_sock <- None;
   close sock "connection dead";
-  Hashtbl.remove servers_by_id s.server_id;
-  to_connect := s :: !to_connect;    
+  to_connect := s.server_id :: !to_connect;    
   ()
  
 
@@ -372,9 +467,59 @@ let broadcast_to_group t =
 	       ) servers_by_id*)
 
 
-let server_to_server s t sock = 
+let rec check_and_remove lst id =
+   match lst with
+     [] -> []
+   | hd::tl -> (if hd = id then
+                  tl
+                else
+                  hd :: check_and_remove tl id;) 
+ 
+let direct_connect_server f s = 
+  try
+    Printf.printf "CONNECTING TO ONE SERVER %s:%d\n" (Ip.to_string s.server_ip) (s.server_port+5) ; 
+    (*connection_try s.server_connection_control;*)
+    incr nconnected_servers; 
+    let sock = TcpBufferedSocket.connect 
+          "server to server"
+        (Ip.to_inet_addr s.server_ip) (s.server_port+5) 
+          (server_handler s) (* Mftp_comm.server_msg_to_string*)  in
+      (*set_server_state s Connecting;*)
+      (*set_read_controler sock download_control;
+      set_write_controler sock upload_control;*)
+      
+      set_reader sock (Mftp_comm.cut_messages ServerMessages.parse
+          (f s));
+      if !!relais_master then
+        set_closer sock (server_disconnect_of_master s) 
+      else
+	set_closer sock (server_disconnect s);
+      set_rtimeout sock 60.;
+      set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
+						 Printf.printf "Standart rtimeout";
+						 close s "timeout"  
+					      );
+      
+      
+      s.server_sock <- Some sock;
+
+
+    with _ -> 
+      Printf.printf "%s:%d IMMEDIAT DISCONNECT\n"
+      (Ip.to_string s.server_ip) s.server_port;
+(*      Printf.printf "DISCONNECTED IMMEDIATLY"; print_newline (); *)
+        decr nconnected_servers;
+        s.server_sock <- None;
+	raise CantConnect
+        (*set_server_state s NotConnected;*)
+        (*connection_failed s.server_connection_control*)
+
+
+
+let rec server_to_server s t sock = 
   Printf.printf "----------------\nMSG received in server_to_server from %d locate at %s:%d\n" s.server_id (Ip.to_string s.server_ip) s.server_port; 
   M.print t;
+  s.server_last_message_received_time <- Unix.time();
   match t with
       M.ServerConnectReq t ->
 	if !!relais_master then
@@ -382,7 +527,7 @@ let server_to_server s t sock =
 	    if ((t.SC.max_clients + !ngroup_clients) > !!max_group_clients or (t.SC.max_files + !ngroup_files) > !!max_group_files) then
 	      begin 
 		(*new server allowed to much files or clients for the goupe*)
-		Hashtbl.remove  servers_by_id s.server_id;
+                direct_group_send sock (M.MessageReq ("too high clients and file bound\n"));
 		TcpBufferedSocket.close sock "CONNECTION REFUSED: to much file or client on your server";
 		decr nconnected_servers
 	      end
@@ -414,13 +559,11 @@ let server_to_server s t sock =
 	  group_id := t.A.group_id;
 	  server_id := t.A.server_id;
           
-	  (*Hashtbl.add servers_by_id s.server_id s;*)
+	  Hashtbl.add servers_by_id s.server_id s;
 
-	  ServerLocate.get_local_sources s;
+	  get_local_sources s;
 
-	  Printf.printf "Server connect to %s\n" (Md4.to_string t.A.group_id);
-
-          (*send_notification s sock;*) 
+	  Printf.printf "Server connect to %s\n" (Md4.to_string t.A.group_id); 
 
 	  ()
 	  
@@ -439,8 +582,11 @@ let server_to_server s t sock =
 		server_master = false ;
 		server_id = t.SN.server_id;
 		server_md4 = Md4.null;
-		server_ip =  t.SN.server_ip;
-		server_port =  t.SN.server_port;
+		server_ip = t.SN.server_ip;
+		server_port = t.SN.server_port;
+                server_last_message_send = (0,0);
+                server_last_message_received_id = -1; 
+                server_last_message_received_time = 0.;
 		server_sock = None;
 		server_need_recovery = false;
 		server_notifications = [];
@@ -448,31 +594,46 @@ let server_to_server s t sock =
 		server_tags = [];
 	      } in
 		
-		to_connect := new_server :: !to_connect;
+                
+
+		(*to_connect := new_server.server_id :: !to_connect;*)
 		
-		(*Hashtbl.add servers_by_id new_server.server_id new_server;*)
-		
-		(*connect to the new server*)
-		(*connect_server new_server;*)
-  
-		(*put all local information in the buffer*)
+		Hashtbl.add servers_by_id new_server.server_id new_server;
+
+                direct_connect_server server_to_server new_server;
 	
-                Printf.printf "Server %s:%d join the group\n" (Ip.to_string new_server.server_ip) new_server.server_port; 
+                Printf.printf "Server %s:%d join the group\n" (Ip.to_string new_server.server_ip) new_server.server_port;
+
+		let module CG = ConnectByGroup in
+		send_to new_server (ConnectByGroupReq 
+				  {
+				    CG.group_id = !group_id; 
+				    CG.server_id = !server_id;
+				    CG.server_ip = !!server_ip;
+				    CG.server_port = !!server_port; 
+				  });
 	
 	    end
 	
     | M.ConnectByGroupReq t ->
 	let module CG = ConnectByGroup in
-	  if (List.exists (fun s -> if s.server_id = t.CG.server_id then true else false) !to_connect) then
+	  if (List.exists (fun s_id -> s_id = t.CG.server_id) !to_connect) then
 	    begin
 	      Printf.printf "Reconnection from %d\n" t.CG.server_id;
-	    end
+              to_connect := check_and_remove !to_connect  t.CG.server_id; 
+              let server = Hashtbl.find servers_by_id  t.CG.server_id in
+	      s.server_sock <- Some sock;
+	      TcpBufferedSocket.set_reader sock (
+						 Mftp_comm.cut_messages ServerMessages.parse (server_to_server server));
+	      if !!relais_master then
+	         TcpBufferedSocket.set_closer sock 
+	                   (server_disconnect_of_master server)
+	      else
+	         TcpBufferedSocket.set_closer sock 
+	                  (server_disconnect server);
+	      end
 	  else
 	    begin
-	      if (Hashtbl.mem servers_by_id t.CG.server_id) then 
-		Printf.printf "ATTENTION PB in Reconnection %d\n" t.CG.server_id
-	      else
-	    
 	      Printf.printf "Connection from %d server in %s group\n" t.CG.server_id (Md4.to_string t.CG.group_id);
 	      s.server_group_id <- t.CG.group_id;
 	      s.server_id <- t.CG.server_id;
@@ -505,14 +666,27 @@ let server_to_server s t sock =
   
 
     | LocateNotifReq t ->
-	let module LN = M.LocateNotif in 
+	let module LN = M.LocateNotif in
+       
+        let id_msg,nbr_notif = s.server_last_message_send in  
+        if t.LN.ack = id_msg then
+           begin
+             Printf.printf "ACK, supp %d notifs\n" nbr_notif;  
+	     s.server_last_message_send <- (id_msg,-1); 
+             s.server_notifications <- supp_ack_notifs s.server_notifications nbr_notif;
+           end;
+	 if (t.LN.message_id <> s.server_last_message_received_id) then
+          begin
+          s.server_last_message_received_id <- t.LN.message_id;    
 	  Hashtbl.iter ( fun md4 sources_list -> 
 			   (*ServerLocate.notifications md4 sources_list;*)
+                            Printf.printf "Add source for %s\n" (Md4.to_string md4);
 			    List.iter ( fun source ->
 				       try
 					 begin
 					   (*modify client's list of md4 shared*)
-					   let local_id = Hashtbl.find s.server_clients source.LN.source_ip in 
+					   let local_id = Hashtbl.find s.server_clients source.LN.source_ip in
+                                           Printf.printf "Remote Client %s existe here %s \n" (Ip.to_string source.LN.source_ip) (Ip.to_string local_id);   
 					   let client = Hashtbl.find clients_by_id local_id in
                                            match client with
                                             RemoteClient client ->
@@ -539,7 +713,9 @@ let server_to_server s t sock =
 					 end
 				     with _ -> 
 				       (*if remote client is not in server's client list*)
+                                       Printf.printf "Remote Client %s dos'nt exist here\n" (Ip.to_string source.LN.source_ip);
 				       let new_id = get_client_id source.LN.source_ip in
+                                         Printf.printf "New client id %s\n" (Ip.to_string new_id);
 					 Hashtbl.add s.server_clients source.LN.source_ip new_id;
 					 let c = {
 					   remote_client_local_id = new_id; 
@@ -556,10 +732,15 @@ let server_to_server s t sock =
                                          match c.remote_client_kind with
                                                 Firewalled_client ->
                                                    source.LN.source_ip <- new_id
-                                             | _ -> ()
+                                             | _ -> ();
+                                         Printf.printf "finish add\n" 
 				      ) sources_list;
                              ServerLocate.notifications md4 sources_list
-		       ) t.LN.notifs
+		       ) t.LN.notifs;
+        ServerLocate.print()
+        end
+        else
+          Printf.printf "Message already received\n"
 	  
 	
     | MessageReq t ->
@@ -586,7 +767,6 @@ let server_to_server s t sock =
            ();
     print_newline() 
    
-exception CantConnect
      
 let connect_server s = 
   try
@@ -636,6 +816,9 @@ let join_a_group ip port =
     server_md4 = Md4.null;
     server_ip = ip;
     server_port =  port;
+    server_last_message_send = (0,0);
+    server_last_message_received_id = -1 ;
+    server_last_message_received_time = 0.;
     server_sock = None;
     server_need_recovery = false;
     server_notifications = [];
@@ -645,8 +828,6 @@ let join_a_group ip port =
     
     try
       connect_server server;
-    
-      Hashtbl.add servers_by_id server.server_id server;
       
       send_to server (ServerConnectReq 
 			(let module CS = M.ServerConnect in
@@ -664,25 +845,34 @@ let join_a_group ip port =
 		     )
 	
     with _->
-      Printf.printf "Can't open socket to %s:%d" (Ip.to_string ip) port
+      Printf.printf "Can't open socket to %s:%d\n" (Ip.to_string ip) port
       (*Hashtbl.remove servers_by_id 0*)
 
 let connect_a_group () = 
  List.iter (fun (ip,port) -> 
            join_a_group ip port
 )!!known_master
-   
-   
+
+let disconnect () = 
+  Hashtbl.iter (fun id s ->
+       if s.server_master then
+          send_to s (QuitReq);
+       remove_server id
+               ) servers_by_id;
+  group_id := Md4.null;
+  server_id := 0
 
   
 let handler t event =
-  (*Printf.printf "CONNECTION"; print_newline ();*)
+  Printf.printf "Server CONNECTION"; print_newline ();
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
 
       if !!max_servers <= !nconnected_servers then
-	  (*Printf.printf "too much clients\n";*)
+      begin
+	  Printf.printf "too much servers\n";
           Unix.close s
+      end
       else
       let sock = TcpBufferedSocket.create "server server connection" s (fun _ _ -> ()) 
         (*server_msg_to_string*)
@@ -697,6 +887,9 @@ let handler t event =
         server_ip = ip;
 	server_port = from_port;
 	server_need_recovery = false;
+        server_last_message_send = (0,0);
+        server_last_message_received_id = -1 ;
+        server_last_message_received_time = 0.;
         server_sock = Some sock;
 	server_notifications = [];
 	server_clients = Hashtbl.create 100; 
@@ -717,36 +910,7 @@ let handler t event =
       Printf.printf "???"; print_newline ();
       ()  
 
-(*****************TODO******)    
-let get_ride_of s =
-  false
 
-let get_local_sources s =
-  List.iter ( fun c_id ->
-		let c = Hashtbl.find clients_by_id c_id in
-                match c with 
-                LocalClient c ->
-		  (match c.client_kind with
-		      Firewalled_client ->
-			List.iter ( fun md4 ->
-				      s.server_notifications <- {
-					add = true;
-					md4 = md4;
-					source_ip = c_id; 
-					source_port = 0;
-				      } :: s.server_notifications
-				  ) c.client_files
-		    | KnownLocation (ip,port) ->
-			List.iter ( fun md4 ->
-				      s.server_notifications <- {
-					add = true;
-					md4 = md4;
-					source_ip =  ip;
-					source_port = port;
-				      } :: s.server_notifications
-				  ) c.client_files)
-                  | _ -> ()
-	    )!local_clients
 
 let action_notify_servers time =
   Printf.printf "+++++++++++++++\nNotify Location Process\n"; 
@@ -757,7 +921,7 @@ let action_notify_servers time =
 		    | Some sock -> 
 			if s.server_need_recovery then
 			  begin 
-			    ServerLocate.get_local_sources s;
+			    get_local_sources s;
 			    let module R = M.Recovery in
 			      send_to s (RecoveryReq 
 					   {
@@ -768,30 +932,19 @@ let action_notify_servers time =
 					   });
 			      s.server_need_recovery <- false;
 			  end;
-                        Printf.printf "Server send notif to server %d \n" id;
+                        (*Printf.printf "Server send notif to server %d \n" id;*)
 			send_notification s sock
 	       ) servers_by_id
     
     
 let action_connect_servers time =
   Printf.printf "+++++++++++++++\nConnection Process\n"; 
-  let unconnect = ref [] in
-    List.iter (fun s ->
+    List.iter (fun s_id ->
 		 try
+                   let s = Hashtbl.find servers_by_id s_id in
 		   Printf.printf "->Try to connect to %d %s:%d\n" s.server_id (Ip.to_string s.server_ip) s.server_port; 
-		   connect_server s;
-		   if !!relais_master then
-		   (match s.server_sock with 
-			Some sock ->
-			  Printf.printf "Wait for connection";
-			  let f =  (fun s sock ->
-				      Printf.printf "My Rtimeout work\n";
-				      close sock "timeout";
-				      Hashtbl.remove servers_by_id s.server_id
-			       ) in
-			    set_handler sock (BASIC_EVENT RTIMEOUT) (f s);
-			    set_rtimeout sock 0.;
-		      | None -> raise NoSocket); 
+		   connect_server s; 
+                   Printf.printf "-> connection process\n";
 		   let module CG = ConnectByGroup in
 		     send_to s (ConnectByGroupReq 
 				  {
@@ -800,28 +953,12 @@ let action_connect_servers time =
 				    CG.server_ip = !!server_ip;
 				    CG.server_port = !!server_port; 
 				  });
-		     Printf.printf "PB add to hash\n"; 
-		     Hashtbl.add servers_by_id s.server_id s;
 		 with _ ->
-		   Printf.printf "CAN'T RECONNECT TO SERVER %d %s:%d\n" s.server_id (Ip.to_string s.server_ip) s.server_port;
-		   if !!relais_master then
-		     begin
-		       Printf.printf "Server supprimer du groupe\n";
-		       let module SS = ServerSupp in
-			 broadcast_to_group !server_id (ServerSuppReq 
-							  {
-							    SS.group_id = !group_id;
-							    SS.server_id = s.server_id
-							  }
-						       )
-		     end
-		   else
-		     unconnect := s :: !unconnect;
+                     Printf.printf "CAN't direct open a socket to server %d\n" s_id;
 	      ) !to_connect;
-    Printf.printf "Fin du protocole de reconnection";
-    to_connect := !unconnect;
-    print_servers()
-
+    to_connect := [];
+    (*print_servers();*)
+    ()
       
       
 let bprint_clients_info buf option =

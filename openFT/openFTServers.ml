@@ -28,16 +28,121 @@ open TcpBufferedSocket
 open CommonTypes
 open CommonGlobals
 open Options
-open LimewireTypes
-open LimewireGlobals
-open LimewireOptions
-open LimewireProtocol
-open LimewireComplexOptions
+open OpenFTTypes
+open OpenFTGlobals
+open OpenFTOptions
+open OpenFTProtocol
+open OpenFTComplexOptions
   
 module DG = CommonGlobals
 module DO = CommonOptions
 
+let disconnect_from_server s =
+  match s.server_sock with
+    None -> ()
+  | Some sock ->
+(*
+  Printf.printf "DISCONNECT FROM SERVER %s:%d" 
+        (Ip.to_string s.server_ip) s.server_port;
+print_newline ();
+  *)
+      close sock "disconnect";
+      s.server_sock <- None;
+      set_server_state s NotConnected;
+      decr nservers;
+      connection_failed s.server_connection_control;
+      connected_servers := List2.removeq s !connected_servers;
+      if s.server_type = User_node then
+        Hashtbl.remove servers_by_key (s.server_ip, s.server_port)
 
+let ask_for_files _ = 
+  Printf.printf "OpenFTServers.ask_for_files not implemented"; print_newline ()
+  
+let send_pings  _ = 
+  Printf.printf "OpenFTServers.send_pings not implemented"; print_newline ()
+  
+let recover_files _ =   
+  Printf.printf "recover_files"; print_newline ();
+  let module Q = Search in
+  Hashtbl.iter (fun _ file ->  
+      if file_state file = FileDownloading then begin
+          incr nsearches;
+          let t = SearchReq {
+              Q.id = !nsearches;
+              Q.search_type = Q.Search_md5;
+              Q.words = (String.lowercase (Md4.to_string file.file_md5)) ;
+              Q.exclude = "";
+              Q.realm = "";
+              Q.size_min = Int32.zero;
+              Q.size_max = Int32.zero;
+              Q.kbps_min = Int32.zero;
+              Q.kbps_max = Int32.zero;
+            } in
+          List.iter (fun s ->
+              match s.server_sock with
+                None -> ()
+              | Some sock -> server_send sock t
+          ) !connected_servers
+        end
+  ) files_by_md5
+
+let recover_files_from_server sock =         
+  Printf.printf "recover_files_from_server"; print_newline ();
+  let module Q = Search in
+  Hashtbl.iter (fun _ file ->  
+      if file_state file = FileDownloading then begin
+          incr nsearches;
+          let t = SearchReq {
+              Q.id = !nsearches;
+              Q.search_type = Q.Search_md5;
+              Q.words = (String.lowercase (Md4.to_string file.file_md5)) ;
+              Q.exclude = "";
+              Q.realm = "";
+              Q.size_min = Int32.zero;
+              Q.size_max = Int32.zero;
+              Q.kbps_min = Int32.zero;
+              Q.kbps_max = Int32.zero;
+            } in
+          server_send sock t
+        end      
+  ) files_by_md5
+  
+
+
+let send_query keywords = 
+  let module Q = Search in
+  let words = String2.unsplit keywords ' ' in
+  incr nsearches;
+  let t = SearchReq {
+      Q.id = !nsearches;
+      Q.search_type = Q.Search_filename;
+      Q.words = words;
+      Q.exclude = "";
+      Q.realm = "";
+      Q.size_min = Int32.zero;
+      Q.size_max = Int32.zero;
+      Q.kbps_min = Int32.zero;
+      Q.kbps_max = Int32.zero;
+    } in
+  List.iter (fun s ->
+      match s.server_sock with
+        None -> ()
+      | Some sock -> server_send sock t
+  ) !connected_servers;
+  !nsearches
+  
+(*
+let update_user t =
+  let module Q = QueryReply in
+  let user = new_user t.Q.guid (match t.Q.dont_connect with
+        Some true ->  Indirect_location ("", t.Q.guid)
+      | _ -> Known_location(t.Q.ip, t.Q.port))
+  in
+  user.user_speed <- t.Q.speed;
+  user
+    *)
+
+(* NOT IMPLEMENTED YET
   
 let send_query min_speed keywords xml_query =
   let module Q = Query in
@@ -56,7 +161,6 @@ let send_query min_speed keywords xml_query =
       | Some sock -> server_send sock p
   ) !connected_servers;
   p
-
         
 let extension_list = [
     "mp3" ; "avi" ; "jpg" ; "jpeg" ; "txt" ; "mov" ; "mpg" 
@@ -164,7 +268,7 @@ let connect_to_redirector () =
       redirectors_to_try := tail;
 (*      Printf.printf "connect to redirector"; print_newline (); *)
       try
-        let sock = connect  "limewire to redirector"
+        let sock = connect  "openft to redirector"
             (Ip.to_inet_addr ip) 6346
             (fun sock event -> 
               match event with
@@ -186,31 +290,13 @@ let connect_to_redirector () =
 (*            Printf.printf "redirector disconnected"; print_newline (); *)
             redirector_connected := false);
         set_rtimeout sock 10.;
-        set_lifetime sock 120.;
+        set_lifetime (TcpBufferedSocket.sock sock) 120.;
         write_string sock "GNUTELLA CONNECT/0.4\n\n";
       with e ->
           Printf.printf "Exception in connect_to_redirector: %s"
             (Printexc.to_string e); print_newline ();
           redirector_connected := false
           
-let disconnect_from_server s =
-  match s.server_sock with
-    None -> ()
-  | Some sock ->
-(*
-  Printf.printf "DISCONNECT FROM SERVER %s:%d" 
-        (Ip.to_string s.server_ip) s.server_port;
-print_newline ();
-  *)
-      close sock "timeout";
-      s.server_sock <- None;
-      set_server_state s NotConnected;
-      decr nservers;
-      if List.memq s !connected_servers then begin
-          connected_servers := List2.removeq s !connected_servers;
-        end;
-      server_remove s
-
 let add_peers headers =
   (try
       let up = List.assoc "x-try-ultrapeers" headers in
@@ -310,13 +396,13 @@ let server_parse_header s sock header =
 (*                    Printf.printf "NOT AN ULTRAPEER ???"; print_newline (); *)
                     raise Not_found;
                   end;
-                connected_servers := s :: !connected_servers;
 
 (*                Printf.printf "******** ULTRA PEER %s:%d  *******"
                   (Ip.to_string s.server_ip) s.server_port;
                 print_newline (); *)
                 write_string sock "GNUTELLA/0.6 200 OK\r\n\r\n";
                 set_server_state s Connected_idle;
+                connected_servers := s :: !connected_servers;
                 recover_files_from_server sock
               end
             else raise Not_found
@@ -354,8 +440,223 @@ let server_parse_header s sock header =
 print_newline ();
   *)
       disconnect_from_server s
+
+        *)
+
+let get_file_from_source c file =
+  if connection_can_try c.client_connection_control then begin
+      connection_try c.client_connection_control;
+      let u = c.client_user in
+      let s = u.user_server in
+      Printf.printf "******* DOWNLOAD FROM %s %d %d *******"
+        (Ip.to_string s.server_ip) s.server_port s.server_http_port;
+      print_newline ();
+      if s.server_http_port <> 0 then
+      (*
+      match c.client_user.user_kind with
+        Indirect_location ("", uid) ->
+          Printf.printf "++++++ ASKING FOR PUSH +++++++++"; print_newline ();   
+
+(* do as if connection failed. If it connects, connection will be set to OK *)
+          connection_failed c.client_connection_control;
+          let module P = Push in
+          let t = PushReq {
+              P.guid = uid;
+              P.ip = DO.client_ip None;
+              P.port = !!client_port;
+              P.index = List.assq file c.client_downloads;
+            } in
+          let p = new_packet t in
+          List.iter (fun s ->
+              match s.server_sock with
+                None -> ()
+              | Some sock -> server_send sock p
+          ) !connected_servers
+| _ ->
+  *)
+          OpenFTClients.connect_client c
+    end
+    
+let download_file (r : result) =
+  let file = new_file r.result_md5 r.result_name r.result_size in
+  Printf.printf "DOWNLOAD FILE %s" file.file_name; print_newline ();
+  if not (List.memq file !current_files) then begin
+      current_files := file :: !current_files;
+    end;
+  List.iter (fun (user, index) ->
+      let s = user.user_server in
+      let c = new_client s.server_ip s.server_port s.server_http_port in
+      add_download file c index;
+      get_file_from_source c file;
+  ) r.result_sources;
+  ()
+
+(* these two functions are also in dcGlobals.ml *)          
+let exit_exn = Exit
+let basename filename =
+  let s =
+    let len = String.length filename in
+    try
+      let pos = String.rindex_from filename (len-1) '\\' in
+      String.sub filename (pos+1) (len-pos-1)
+    with _ ->      
+        try
+          if len > 2 then
+            let c1 = Char.lowercase filename.[0] in
+            let c2 = filename.[1] in
+            match c1,c2 with
+              'a'..'z', ':' ->
+                String.sub filename 2 (len -2 )
+            | _ -> raise exit_exn
+          else raise exit_exn
+        with _ -> Filename.basename filename
+  in
+  String.lowercase s
+
   
-let server_to_client s p sock =
+let server_to_client s t sock =
+ 
+  if !!verbose_servers> 200 then begin
+      Printf.printf "From server:"; print_newline ();
+      print t; 
+    end;
+  match t with
+    VersionReq ->
+      set_rtimeout sock 60.; 
+      server_send sock (
+        let module V = VersionReply in
+        VersionReplyReq {
+          V.major_num = 0;
+          V.minor_num = 0;
+          V.micro_num = 5;
+        })
+  
+  | VersionReplyReq t ->
+      let module V = VersionReply in
+      s.server_version <- Printf.sprintf "%d.%d.%d" 
+        t.V.major_num t.V.minor_num t.V.micro_num;
+      set_server_state s Connected_idle;
+      connection_ok s.server_connection_control;
+
+  
+  | NodeInfoReq -> 
+      server_send sock (let module N = NodeInfoReply in
+        NodeInfoReplyReq { N.ip = client_ip (Some sock); 
+          N.port = !!port; 
+          N.http_port = !!http_port;
+        })
+  
+  | NodeInfoReplyReq t ->
+      let module N = NodeInfoReply in
+      s.server_http_port <- t.N.http_port;
+      assert (s.server_port = t.N.port) 
+(* we should already have this information, no ? *)
+  
+  | ClassReq -> 
+      server_send sock (ClassReplyReq User_node)
+  
+  | ClassReplyReq t ->
+      s.server_type <- t;
+      begin
+        match s.server_type with
+          Search_node -> 
+            server_send sock (ChildReq None);
+            server_send sock (StatsReq Stats.Retrieve_info);
+        | _ ->
+(* don't stay connected more than one minute to a user node *)
+            set_lifetime sock 60.
+      end
+  
+  | NodeListReq -> 
+      List.iter (fun s ->
+          server_send sock (let module N = NodeListReply in
+            (NodeListReplyReq (Some  {
+                  N.ip = s.server_ip;
+                  N.port = s.server_port;
+                  N.node_type = s.server_type;
+                })))
+      ) !connected_servers;
+      server_send sock (NodeListReplyReq None)
+  
+  | NodeListReplyReq None -> ()
+  | NodeListReplyReq (Some t) -> 
+      begin
+        let module N = NodeListReply in
+        if t.N.port <> 0 then
+          let s = new_server t.N.ip t.N.port in
+          match s.server_type with
+            User_node ->  Fifo.put peers_queue  (t.N.ip, t.N.port)
+          | _ ->  s.server_type <- t.N.node_type
+      end
+  
+  | NodeCapReq -> 
+      server_send sock (NodeCapReplyReq ["MD5-FULL"]) (* not "ZLIB" yet *)
+  
+  | NodeCapReplyReq t ->
+      s.server_caps <- t
+  
+  | ChildReplyReq t ->
+      if t then begin
+          
+          Printf.printf "************ CONNECTED AND CHILD *************";
+          print_newline ();
+          set_rtimeout sock 3600.; 
+          server_send sock (ChildReq (Some true));
+          connected_servers := s :: !connected_servers;
+          recover_files_from_server sock
+          
+        end else
+        disconnect_from_server s
+
+  | PingReq -> server_send sock PingReplyReq
+
+            
+  | SearchReplyReq t ->
+      Printf.printf "REPLY TO QUERY"; print_newline ();
+      let module Q = SearchReply in
+      begin
+        try
+          let ss = Hashtbl.find searches_by_uid t.Q.id in
+
+          let ip = if t.Q.ip = Ip.null then s.server_ip else t.Q.ip in
+          let user = new_user ip t.Q.port t.Q.http_port in
+
+          Printf.printf "NEW RESULT %s" t.Q.filename; print_newline ();
+          let result = new_result t.Q.md5 (basename t.Q.filename) t.Q.size in
+          Printf.printf "ADDING SOURCE FOR RESULT NOT IMPLEMENTED"; 
+          print_newline ();
+          add_source result user t.Q.filename; 
+              
+          search_add_result ss.search_search result.result_result;
+        with Not_found ->            
+            Printf.printf "NO SUCH SEARCH !!!!"; print_newline (); 
+            
+            try
+              let file = Hashtbl.find files_by_md5 t.Q.md5 in
+              let ip = if t.Q.ip = Ip.null then s.server_ip else t.Q.ip in
+              let user = new_user ip t.Q.port t.Q.http_port in
+              
+              let result = new_result t.Q.md5 (basename t.Q.filename) t.Q.size in
+              Printf.printf "ADDING SOURCE FOR RESULT NOT IMPLEMENTED"; 
+              print_newline ();
+              add_source result user t.Q.filename; 
+
+              let s = user.user_server in
+              let c = new_client s.server_ip s.server_port s.server_http_port in
+              add_download file c t.Q.filename;
+              get_file_from_source c file;
+              ()
+            with _ ->
+                Printf.printf "NO SUCH SEARCH for no file !!!!"; 
+                print_newline (); 
+      end
+
+      
+  | _ ->
+      Printf.printf "UNUSED MESSAGE";
+      print t
+      
+(*
 (*
   Printf.printf "server_to_client"; print_newline ();
 print p;
@@ -439,7 +740,8 @@ let send_pings () =
           s.server_nkb_last <- 0;
           server_send sock p
   ) !connected_servers
-      
+    *)
+
 let connect_server (ip,port) =
   if !!verbose_servers > 5 then begin
       Printf.printf "SHOULD CONNECT TO %s:%d" (Ip.to_string ip) port;
@@ -450,7 +752,7 @@ let connect_server (ip,port) =
     Some _ -> ()
   | None -> 
       try
-        let sock = connect "limewire to server"
+        let sock = connect "openft to server"
           (Ip.to_inet_addr ip) port
             (fun sock event -> 
               match event with
@@ -462,97 +764,53 @@ let connect_server (ip,port) =
         TcpBufferedSocket.set_read_controler sock download_control;
         TcpBufferedSocket.set_write_controler sock upload_control;
 
+        connection_try s.server_connection_control;
         set_server_state s Connecting;
         s.server_sock <- Some sock;
         incr nservers;
-        set_reader sock (handler !!verbose_servers (server_parse_header s)
-          (gnutella_handler parse (server_to_client s))
+        set_reader sock (cut_messages OpenFTProtocol.parse 
+            (server_to_client s)
         );
         set_closer sock (fun _ error -> 
 (*            Printf.printf "CLOSER %s" error; print_newline ();*)
             disconnect_from_server s);
         set_rtimeout sock !!server_connection_timeout;
-        let s = Printf.sprintf 
-          "GNUTELLA CONNECT/0.6\r\nUser-Agent: LimeWire 2.4.4\r\nX-My-Address: %s:%d\r\nX-Ultrapeer: False\r\nX-Query-Routing: 0.1\r\nRemote-IP: %s\r\n\r\n"
-          (Ip.to_string (DO.client_ip (Some sock))) !!client_port
-            (Ip.to_string s.server_ip)
-        in
-(*
-        Printf.printf "SENDING"; print_newline ();
-        AP.dump s;
-  *)
-        write_string sock s;
+        server_send sock VersionReq;
+        server_send sock ClassReq;
+        server_send sock NodeInfoReq;
+        server_send sock NodeListReq;
+        server_send sock NodeCapReq
       with _ ->
           disconnect_from_server s
           
   
 let try_connect_ultrapeer () =
-(*  Printf.printf "try_connect_ultrapeer"; print_newline ();*)
+ (*   Printf.printf "try_connect_ultrapeer"; print_newline (); *)
   let s = try
       Fifo.take ultrapeers_queue
     with _ ->
         try 
           Fifo.take peers_queue 
         with _ ->
-            if not !redirector_connected then              
-              connect_to_redirector ();
+            Hashtbl.iter (fun key s ->
+                match s.server_type with
+                  User_node ->  ()
+                | _ ->  Fifo.put ultrapeers_queue key
+            ) servers_by_key;
             raise Not_found
   in
   connect_server s;
   ()
 
 let connect_servers () =
-  (*
-  Printf.printf "connect_servers %d %d" !nservers !!max_ultrapeers; 
-print_newline ();
-  *)
   if !nservers < !!max_ultrapeers then begin
       for i = !nservers to !!max_ultrapeers - 1 do
         try_connect_ultrapeer ()
       done
     end
 
-let get_file_from_source c file =
-  if connection_can_try c.client_connection_control then begin
-      connection_try c.client_connection_control;
-      match c.client_user.user_kind with
-        Indirect_location ("", uid) ->
-          Printf.printf "++++++ ASKING FOR PUSH +++++++++"; print_newline ();   
-
-(* do as if connection failed. If it connects, connection will be set to OK *)
-          connection_failed c.client_connection_control;
-          let module P = Push in
-          let t = PushReq {
-              P.guid = uid;
-              P.ip = DO.client_ip None;
-              P.port = !!client_port;
-              P.index = List.assq file c.client_downloads;
-            } in
-          let p = new_packet t in
-          List.iter (fun s ->
-              match s.server_sock with
-                None -> ()
-              | Some sock -> server_send sock p
-          ) !connected_servers
-      | _ ->
-          LimewireClients.connect_client c
-    end
-    
-let download_file (r : result) =
-  let file = new_file (Md4.random ()) r.result_name r.result_size in
-  Printf.printf "DOWNLOAD FILE %s" file.file_name; print_newline ();
-  if not (List.memq file !current_files) then begin
-      current_files := file :: !current_files;
-    end;
-  List.iter (fun (user, index) ->
-      Printf.printf "Source %s %d" (Md4.to_string user.user_uid)
-      index; print_newline ();
-      let c = new_client user.user_uid user.user_kind in
-      add_download file c index;
-      get_file_from_source c file;
-  ) r.result_sources;
-  ()
-
+  (*
+  
 let ask_for_files () =
   List.iter (fun file ->
       List.iter (fun c ->
@@ -563,16 +821,13 @@ let ask_for_files () =
   ()
   
   
+  *)
 
-  
-let disconnect_server s =
-      match s.server_sock with
-        None -> ()
-      | Some sock -> close sock "user disconnect"
     
 let _ =
-(*  server_ops.op_server_connect <- connect_server; *)
-  server_ops.op_server_disconnect <- disconnect_server;
+  server_ops.op_server_connect <- (fun s ->
+      connect_server (s.server_ip, s.server_port)); 
+  server_ops.op_server_disconnect <- disconnect_from_server;
 (*
 (*  server_ops.op_server_query_users <- (fun s -> *)
       match s.server_sock with
@@ -585,8 +840,11 @@ let _ =
 );
   *)
   server_ops.op_server_remove <- (fun s ->
-      disconnect_server s;
-      server_remove s
+      disconnect_from_server s;
+      Hashtbl.remove servers_by_key (s.server_ip, s.server_port);
+      server_remove (as_server s.server_server);
+  );
+    server_ops.op_server_sort <- (fun s ->
+      connection_last_conn s.server_connection_control
   )
-  
   

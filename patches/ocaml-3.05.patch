@@ -1,6 +1,6 @@
-diff -r -C 3 ocaml-3.05.orig/asmcomp/compilenv.ml ocaml-3.05.patched/asmcomp/compilenv.ml
+diff -r -C 3 ocaml-3.05.orig/asmcomp/compilenv.ml ocaml-3.05/asmcomp/compilenv.ml
 *** ocaml-3.05.orig/asmcomp/compilenv.ml	Fri Jun  7 09:35:25 2002
---- ocaml-3.05.patched/asmcomp/compilenv.ml	Wed Jul 31 07:02:39 2002
+--- ocaml-3.05/asmcomp/compilenv.ml	Wed Aug 14 16:04:47 2002
 ***************
 *** 151,158 ****
     Digest.output oc crc;
@@ -20,9 +20,9 @@ diff -r -C 3 ocaml-3.05.orig/asmcomp/compilenv.ml ocaml-3.05.patched/asmcomp/com
     write_unit_info current_unit filename
   
   (* Error report *)
-diff -r -C 3 ocaml-3.05.orig/asmcomp/compilenv.mli ocaml-3.05.patched/asmcomp/compilenv.mli
+diff -r -C 3 ocaml-3.05.orig/asmcomp/compilenv.mli ocaml-3.05/asmcomp/compilenv.mli
 *** ocaml-3.05.orig/asmcomp/compilenv.mli	Fri Feb  8 17:55:30 2002
---- ocaml-3.05.patched/asmcomp/compilenv.mli	Wed Jul 31 07:02:39 2002
+--- ocaml-3.05/asmcomp/compilenv.mli	Wed Aug 14 16:04:47 2002
 ***************
 *** 65,71 ****
           (* Read infos and CRC from a [.cmx] file. *)
@@ -40,9 +40,73 @@ diff -r -C 3 ocaml-3.05.orig/asmcomp/compilenv.mli ocaml-3.05.patched/asmcomp/co
           (* Save the infos for the current unit in the given file *)
   
   val cmx_not_found_crc: Digest.t
-diff -r -C 3 ocaml-3.05.orig/driver/optcompile.ml ocaml-3.05.patched/driver/optcompile.ml
+diff -r -C 3 ocaml-3.05.orig/byterun/major_gc.c ocaml-3.05/byterun/major_gc.c
+*** ocaml-3.05.orig/byterun/major_gc.c	Wed Jun  5 14:11:15 2002
+--- ocaml-3.05/byterun/major_gc.c	Wed Aug 14 16:06:27 2002
+***************
+*** 126,140 ****
+        if (Tag_hd (hd) < No_scan_tag){
+          for (i = 0; i < size; i++){
+            child = Field (v, i);
+-         mark_again:
+            if (Is_block (child) && Is_in_heap (child)) {
+              hd = Hd_val(child);
+              if (Tag_hd (hd) == Forward_tag){
+!               child = Forward_val (child);
+!               Field (v, i) = child;
+!               goto mark_again;
+              }
+!             if (Tag_hd(hd) == Infix_tag) {
+                child -= Infix_offset_val(child);
+                hd = Hd_val(child);
+              }
+--- 126,137 ----
+        if (Tag_hd (hd) < No_scan_tag){
+          for (i = 0; i < size; i++){
+            child = Field (v, i);
+            if (Is_block (child) && Is_in_heap (child)) {
+              hd = Hd_val(child);
+              if (Tag_hd (hd) == Forward_tag){
+!               Field (v, i) = Forward_val (child);
+              }
+!             else if (Tag_hd(hd) == Infix_tag) {
+                child -= Infix_offset_val(child);
+                hd = Hd_val(child);
+              }
+***************
+*** 192,206 ****
+            sz = Wosize_hd (hd);
+            for (i = 1; i < sz; i++){
+              curfield = Field (cur, i);
+!           weak_again:
+!             if (curfield != 0 && Is_block (curfield) && Is_in_heap (curfield)
+!                 && Is_white_val (curfield)){
+                if (Tag_val (curfield) == Forward_tag){
+!                 curfield = Forward_val (curfield);
+!                 Field (cur, i) = curfield;
+!                 goto weak_again;
+                }
+-               Field (cur, i) = 0;
+              }
+            }
+            weak_prev = &Field (cur, 0);
+--- 189,201 ----
+            sz = Wosize_hd (hd);
+            for (i = 1; i < sz; i++){
+              curfield = Field (cur, i);
+!             if (curfield != 0 && Is_block (curfield) && Is_in_heap (curfield)){
+                if (Tag_val (curfield) == Forward_tag){
+!                 Field (cur, i) = Forward_val (curfield);
+!               }
+!               else if (Is_white_val (curfield){
+!                 Field (cur, i) = 0;
+                }
+              }
+            }
+            weak_prev = &Field (cur, 0);
+diff -r -C 3 ocaml-3.05.orig/driver/optcompile.ml ocaml-3.05/driver/optcompile.ml
 *** ocaml-3.05.orig/driver/optcompile.ml	Thu Apr 18 09:27:39 2002
---- ocaml-3.05.patched/driver/optcompile.ml	Wed Jul 31 07:02:54 2002
+--- ocaml-3.05/driver/optcompile.ml	Wed Aug 14 16:04:47 2002
 ***************
 *** 47,52 ****
 --- 47,159 ----
@@ -202,7 +266,8 @@ diff -r -C 3 ocaml-3.05.orig/driver/optcompile.ml ocaml-3.05.patched/driver/optc
     let env = initial_env() in
     Compilenv.reset modulename;
 ***************
-*** 90,96 ****
+*** 89,96 ****
+      +++ print_if ppf Clflags.dump_rawlambda Printlambda.lambda
       +++ Simplif.simplify_lambda
       +++ print_if ppf Clflags.dump_lambda Printlambda.lambda
       ++ Asmgen.compile_implementation prefixname ppf;
@@ -210,7 +275,8 @@ diff -r -C 3 ocaml-3.05.orig/driver/optcompile.ml ocaml-3.05.patched/driver/optc
       Warnings.check_fatal ();
       Pparse.remove_preprocessed inputfile
     with x ->
---- 210,216 ----
+--- 209,217 ----
+      +++ print_if ppf Clflags.dump_rawlambda Printlambda.lambda
       +++ Simplif.simplify_lambda
       +++ print_if ppf Clflags.dump_lambda Printlambda.lambda
 +     ++ save_lambda prefixname
@@ -219,9 +285,9 @@ diff -r -C 3 ocaml-3.05.orig/driver/optcompile.ml ocaml-3.05.patched/driver/optc
       Warnings.check_fatal ();
       Pparse.remove_preprocessed inputfile
     with x ->
-diff -r -C 3 ocaml-3.05.orig/driver/optcompile.mli ocaml-3.05.patched/driver/optcompile.mli
+diff -r -C 3 ocaml-3.05.orig/driver/optcompile.mli ocaml-3.05/driver/optcompile.mli
 *** ocaml-3.05.orig/driver/optcompile.mli	Tue Mar  7 06:02:32 2000
---- ocaml-3.05.patched/driver/optcompile.mli	Wed Jul 31 07:02:39 2002
+--- ocaml-3.05/driver/optcompile.mli	Wed Aug 14 16:04:47 2002
 ***************
 *** 22,24 ****
 --- 22,27 ----
@@ -231,9 +297,9 @@ diff -r -C 3 ocaml-3.05.orig/driver/optcompile.mli ocaml-3.05.patched/driver/opt
 + val output_lambda : bool ref
 + val input_lambda : bool ref
 + 
-diff -r -C 3 ocaml-3.05.orig/driver/optmain.ml ocaml-3.05.patched/driver/optmain.ml
+diff -r -C 3 ocaml-3.05.orig/driver/optmain.ml ocaml-3.05/driver/optmain.ml
 *** ocaml-3.05.orig/driver/optmain.ml	Thu Jul 25 17:52:54 2002
---- ocaml-3.05.patched/driver/optmain.ml	Wed Jul 31 07:02:39 2002
+--- ocaml-3.05/driver/optmain.ml	Wed Aug 14 16:04:47 2002
 ***************
 *** 168,173 ****
 --- 168,175 ----

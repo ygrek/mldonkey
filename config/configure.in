@@ -128,7 +128,7 @@ else
   AC_CHECK_PROG(OCAMLLEX, ocamllex.opt, ocamllex.opt)
   AC_CHECK_PROG(OCAMLLEX, ocamllex, ocamllex)
   AC_CHECK_PROG(OCAMLYACC, ocamlyacc, ocamlyacc)
-  AC_CHECK_PROG(OCAMLYACC, camlp4, camlp4)
+  AC_CHECK_PROG(CAMLP4, camlp4, camlp4)
 fi
 
 OCAMLVERSION=`$OCAMLC -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `

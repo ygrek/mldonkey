@@ -1,6 +1,6 @@
 #! /bin/sh
 
-# From configure.in Revision: 1.23 
+# From configure.in Revision: 1.24 
 
 # Guess values for system-dependent variables and create Makefiles.
 # Generated automatically using autoconf version 2.13 
@@ -1461,27 +1461,27 @@ fi
 set dummy camlp4; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
 echo "configure:1464: checking for $ac_word" >&5
-if eval "test \"`echo '$''{'ac_cv_prog_OCAMLYACC'+set}'`\" = set"; then
+if eval "test \"`echo '$''{'ac_cv_prog_CAMLP4'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
-  if test -n "$OCAMLYACC"; then
-  ac_cv_prog_OCAMLYACC="$OCAMLYACC" # Let the user override the test.
+  if test -n "$CAMLP4"; then
+  ac_cv_prog_CAMLP4="$CAMLP4" # Let the user override the test.
 else
   IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS=":"
   ac_dummy="$PATH"
   for ac_dir in $ac_dummy; do
     test -z "$ac_dir" && ac_dir=.
     if test -f $ac_dir/$ac_word; then
-      ac_cv_prog_OCAMLYACC="camlp4"
+      ac_cv_prog_CAMLP4="camlp4"
       break
     fi
   done
   IFS="$ac_save_ifs"
 fi
 fi
-OCAMLYACC="$ac_cv_prog_OCAMLYACC"
-if test -n "$OCAMLYACC"; then
-  echo "$ac_t""$OCAMLYACC" 1>&6
+CAMLP4="$ac_cv_prog_CAMLP4"
+if test -n "$CAMLP4"; then
+  echo "$ac_t""$CAMLP4" 1>&6
 else
   echo "$ac_t""no" 1>&6
 fi
@@ -1920,7 +1920,7 @@ echo $ac_n "checking Additionnal includes""... $ac_c" 1>&6
 echo "configure:1921: checking Additionnal includes" >&5 
 echo "$ac_t""$CONFIG_INCLUDES" 1>&6
 
-OCAMLLIB=`ocamlc -where`
+OCAMLLIB=`$OCAMLC -where`
 
 if test -f $OCAMLLIB/lablgl.cma; then
   LABLGL_CMA=lablgl.cma
@@ -2590,8 +2590,8 @@ s%@OCAMLOPT@%$OCAMLOPT%g
 s%@OCAMLDEP@%$OCAMLDEP%g
 s%@OCAMLLEX@%$OCAMLLEX%g
 s%@OCAMLYACC@%$OCAMLYACC%g
-s%@GTK_CONFIG@%$GTK_CONFIG%g
 s%@CAMLP4@%$CAMLP4%g
+s%@GTK_CONFIG@%$GTK_CONFIG%g
 s%@MORE_TARGETS@%$MORE_TARGETS%g
 s%@MORE_SUBDIRS@%$MORE_SUBDIRS%g
 s%@LABLGL_CMA@%$LABLGL_CMA%g

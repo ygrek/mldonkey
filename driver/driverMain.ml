@@ -216,6 +216,14 @@ let _ =
   Sys.set_signal  Sys.sigchld (*Sys.Signal_ignore;*)
     (Sys.Signal_handle (fun _ ->
         Printf.printf "SIGCHLD"; print_newline ()));
+  Sys.set_signal  Sys.sighup
+    (Sys.Signal_handle (fun _ ->
+        Printf.printf "SIGUP"; print_newline ();
+        networks_iter (fun n ->
+            network_disable n;
+            network_enable n
+        ))
+    );
   Sys.set_signal  Sys.sigpipe (*Sys.Signal_ignore*)
     (Sys.Signal_handle (fun _ ->
         Printf.printf "SIGPIPE"; print_newline ()));

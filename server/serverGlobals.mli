@@ -50,7 +50,7 @@ val nb_udp_reply_count : int ref
 (*Group server values*)
 val servers_by_id : (int, ServerTypes.server) Hashtbl.t
 val local_clients : Ip.t list ref
-val to_connect : ServerTypes.server list ref
+val to_connect : int list ref
 
 val group_id : Md4.t ref 
 val server_id : int ref 

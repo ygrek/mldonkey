@@ -107,6 +107,9 @@ type server = {
     mutable server_ip : Ip.t;
     mutable server_port : int;
     mutable server_need_recovery : bool;
+    mutable server_last_message_send : int * int;
+    mutable server_last_message_received_id : int;
+    mutable server_last_message_received_time : float;
     mutable server_sock : TcpBufferedSocket.t option;
     mutable server_notifications : notification list;
     mutable server_clients : (Ip.t,Ip.t) Hashtbl.t;

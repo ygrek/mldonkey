@@ -90,6 +90,9 @@ float_option 20.
 let connect_time_out = define_option server_ini ["connect_time_out"] "connect deconnect servers"
 float_option 5.
 
+let server_dead_time_out = define_option server_ini ["server_dead_time_out"] "Consider a server as dead"
+float_option 500.
+
 let server_group_connection_timeout = define_option server_ini ["server_group_connection_timeout"] "time to wait before consider server dead"
 float_option 3. 
 

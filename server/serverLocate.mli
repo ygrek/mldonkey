@@ -29,11 +29,12 @@ val adds : Md4.t -> ServerMessages.LocalisationInit.localisation list -> unit
 (*notify add and supp in server groupe cooperation*)
 val notifications : Md4.t -> ServerMessages.LocateNotif.localisation list -> unit
 
-val get_local_sources : ServerTypes.server -> unit
 (*val find : Md4.t -> (ServerTypes.location -> unit) -> unit*)
 
 val supp : Md4.t -> ServerTypes.location -> unit
 (*val supp : Md4.t -> ServerTypes.where -> unit*)
 
 val get : Md4.t -> Mftp_server.QueryLocationReply.t
+
 val print : unit -> unit
+val get_liste_of_md4 : unit -> (Md4.t * int) list

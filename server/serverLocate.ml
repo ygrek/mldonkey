@@ -34,7 +34,7 @@ open Hashtbl
 
 let rec add_source_list liste loc= 
          match liste with
-          [] ->  (*Printf.printf("add liste"); print_newline();*) 
+          [] ->  Printf.printf("add liste"); print_newline(); 
                  [loc]
          | hd::tl -> (* Printf.printf("parcourage"); print_newline();*)
                      if hd.loc_ip = loc.loc_ip && hd.loc_port = loc.loc_port then
@@ -113,10 +113,17 @@ let notifications md4 sources =
       else
 	Hashtbl.replace files_by_md4 md4 !liste;
 	
-  with _ -> ()
+  with _ -> 
+     let loc_liste = List.map (fun source -> {
+                         loc_ip = source.LN.source_ip;
+		       loc_port = source.LN.source_port;
+		       loc_expired = 0.;
+		     }) sources in
+     Hashtbl.add files_by_md4 md4 loc_liste
 		     
 
 let supp md4 source_loc = 
+  try
         let liste = ref (Hashtbl.find files_by_md4 md4) in
           liste := supp_source_list !liste source_loc;
           if !liste=[] then
@@ -126,7 +133,9 @@ let supp md4 source_loc =
             end
           else
             Hashtbl.replace files_by_md4 md4 !liste
-               
+  with _ -> Printf.printf "You want to remove a file that doesn't existe in location table\n"; 
+    ()
+           
  
 let print () = 
          print_newline();
@@ -142,8 +151,15 @@ let print () =
                         ) files_by_md4;
          Printf.printf("FIN");print_newline();
          print_newline()
+
+let get_liste_of_md4 () =
+  let l = ref [] in
+    Hashtbl.iter( fun md4 sources ->
+		    l := (md4,(List.length sources)) :: !l 
+		) files_by_md4;
+    !l
      
-let get_local_sources c = ()                   
+                 
 
 module M = Mftp_server.QueryLocationReply
  

@@ -91,3 +91,5 @@ val set_write_power : t -> int -> unit
   
 val remaining_to_write : t -> int
   
+val set_lifetime : t -> float -> unit
+  

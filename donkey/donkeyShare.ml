@@ -142,10 +142,12 @@ let check_shared_files () =
             None -> ()
           | Some sock ->
               socks := sock :: !socks) (connected_servers ());
-      let msg = (Mftp_server.ShareReq
-            (make_tagged (match !socks with
-                [] -> None
-              | sock :: _ -> Some sock) (all_shared ()))) in
+      let list = 
+        make_tagged (match !socks with
+            [] -> None
+          | sock :: _ -> Some sock) (all_shared ()) 
+      in
+      let msg = (Mftp_server.ShareReq list) in
       direct_servers_send !socks msg;
     end;
   

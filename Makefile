@@ -1,8 +1,5 @@
 include config/Makefile.config
 
-OCAMLYACC=ocamlyacc
-OCAMLDEP=ocamlrun ocamldep
-
 #######################################################################
 
 #              Bytecode or Native ?
@@ -136,14 +133,15 @@ DONKEY_SERVER_SRCS=\
   server/serverLocate.ml \
   server/serverIndexer.ml \
   server/serverLog.ml \
+  server/serverSubscriptions.ml \
+  server/serverServer.ml \
   server/serverClients.ml \
   server/serverUdp.ml  \
-  server/serverServer.ml \
   server/serverMain.ml
 
 OPENNAP_SRCS=opennap/napigator.mll \
  opennap/opennapTypes.ml \
- opennap/opennapProtocol.mll \
+ opennap/opennapProtocol.ml \
  opennap/opennapOptions.ml \
  opennap/opennapGlobals.ml \
  opennap/opennapComplexOptions.ml \
@@ -162,6 +160,17 @@ LIMEWIRE_SRCS= \
   limewire/limewireServers.ml \
   limewire/limewireInteractive.ml \
   limewire/limewireMain.ml
+
+OPENFT_SRCS= \
+  openFT/openFTTypes.ml \
+  openFT/openFTOptions.ml \
+  openFT/openFTGlobals.ml \
+  openFT/openFTComplexOptions.ml \
+  openFT/openFTProtocol.ml \
+  openFT/openFTClients.ml \
+  openFT/openFTServers.ml \
+  openFT/openFTInteractive.ml \
+  openFT/openFTMain.ml
 
 SOULSEEK_SRCS= \
   soulseek/slskTypes.ml \
@@ -229,6 +238,13 @@ ifeq ("$(LIMEWIRE)" , "yes")
 SUBDIRS += limewire
 
 CORE_PLUGINS += $(LIMEWIRE_SRCS)
+
+endif
+
+ifeq ("$(OPENFT)" , "yes")
+SUBDIRS += openFT
+
+CORE_PLUGINS += $(OPENFT_SRCS)
 
 endif
 
@@ -530,7 +546,7 @@ mldonkey_gui2.static: $(MLDONKEYGUI2_CMXS) $(OBJS)
 
 zogml:
 	(for i in gui/gui*_base.zog ; do \
-		camlp4 pa_o.cmo pa_zog.cma pr_o.cmo -impl $$i > gui/`basename $$i zog`ml ;\
+		$(CAMLP4) pa_o.cmo pa_zog.cma pr_o.cmo -impl $$i > gui/`basename $$i zog`ml ;\
 	done)
 
 ######## MLDONKEY
@@ -556,7 +572,6 @@ open_mldonkey.static: mldonkey.state
 #######################################################################
 
 clean: 
-	rm -rf patches/ocamlopt-$(REQUIRED_OCAML)
 	rm -f *.cm? donkey_* *.byte *.cmi $(TARGETS) *~ *.o core *.static
 	rm -f *_plugin
 	rm -f mldonkey mldonkey_gui
@@ -569,6 +584,10 @@ distclean: clean
 	rm -f config/config.h config/Makefile.config
 	rm -f tools/zoggy/*.cm?
 	rm -f $(TMPSOURCES)
+	rm -rf ocamlopt-$(REQUIRED_OCAML)
+	rm -rf patches/ocaml-$(REQUIRED_OCAML)
+	rm -rf patches/lablgtk-$(REQUIRED_LABLGTK)
+	rm -rf patches/local
 
 maintainerclean: distclean
 	rm -f gui/gui.ml gui/gui_zog.ml 
@@ -576,7 +595,7 @@ maintainerclean: distclean
 PA_ZOG_FILES=tools/zoggy/zog_types.ml tools/zoggy/zog_messages.ml tools/zoggy/zog_misc.ml tools/zoggy/pa_zog.ml
 
 pa_zog.cma: $(PA_ZOG_FILES)
-	$(OCAMLC) -I tools/zoggy -I +camlp4 -pp "ocamlrun camlp4 pa_o.cmo pr_dump.cmo" -a -o pa_zog.cma  $(PA_ZOG_FILES)
+	$(OCAMLC) -I tools/zoggy -I +camlp4 -pp "$(CAMLP4) pa_o.cmo pr_dump.cmo" -a -o pa_zog.cma  $(PA_ZOG_FILES)
 
 $(TMPSOURCES): pa_zog.cma
 
@@ -720,7 +739,7 @@ auto-release: VERSION
 	$(OCAMLYACC) $<
 
 .zog.ml:
-	camlp4 pa_o.cmo ./pa_zog.cma pr_o.cmo -impl $< > $@
+	$(CAMLP4) pa_o.cmo ./pa_zog.cma pr_o.cmo -impl $< > $@
 
 .c.o :
 	$(OCAMLC) -ccopt "-I $(OCAML_SRC)/byterun -o $*.o" -ccopt "$(CFLAGS)" -c $<

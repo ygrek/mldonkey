@@ -62,7 +62,7 @@ string : NICK
   *)
 
 open TcpBufferedSocket
-open BigEndian
+open LittleEndian
 open SlskTypes
 open CommonTypes
 open CommonGlobals

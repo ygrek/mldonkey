@@ -713,7 +713,7 @@ let if_possible bc len =
 let set_rtimeout s t = set_rtimeout (sock s) t
 let set_wtimeout s t = set_wtimeout (sock s) t
 
-open BigEndian
+open LittleEndian
    
 let internal_buf = Buffer.create 17000
 
@@ -749,4 +749,6 @@ let value_handler f sock nread =
   with Not_found -> ()
 
 let set_write_power t p = t.write_power <- p
+  
+let set_lifetime s = set_lifetime (sock s)
   

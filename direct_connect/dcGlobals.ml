@@ -236,7 +236,8 @@ let add_file_client file user filename =
   let  c = new_client user.user_nick in
   if not (List.memq c file.file_clients) then begin
       file.file_clients <- c :: file.file_clients;
-      c.client_files <- (file, filename) :: c.client_files
+      c.client_files <- (file, filename) :: c.client_files;
+      file_new_source (as_file file.file_file) (as_client c.client_client)
     end;
   c
 

@@ -82,8 +82,9 @@ let disable enabler () =
     | Some sock -> 
         udp_sock := None;
         UdpSocket.close sock "");
+  clients_list := [];
+  servers_list := [];
   if !!enable_donkey then enable_donkey =:= false
-  
   
 let enable () =
 

@@ -18,7 +18,7 @@
 *)
 
 open CommonGlobals
-open BigEndian
+open LittleEndian
 open TcpBufferedSocket
 
   
@@ -562,7 +562,7 @@ Printf.printf "LEFT %d" (nread - nused); print_newline ();
             if info > 0 then (
                 Printf.printf "END OF HEADER WITHOUT END"; print_newline ();
                 let header = String.sub b.buf b.pos b.len in
-                BigEndian.dump header;
+                LittleEndian.dump header;
               );
           end
     in

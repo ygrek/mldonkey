@@ -1,7 +1,25 @@
 Compiling mldonkey:
 -------------------
 
-1) Installing required tools: Objective-Caml 3.05 and LablGTK 1.2.3
+You have now two options to compile mldonkey:
+- You install Objective-Caml 3.05 and LablGTK 1.2.3. Then, you can compile
+    mldonkey. The instructions are given below.
+- You don't want to install these softwares, you just want to install them
+    to compile mldonkey. You must have a good internet access (you want
+       mldonkey after all) and "wget" installed. Then, just run:
+ 
+       ./configure -enable-batch
+
+       The configure script will download ocaml and lablgtk, compile and
+       install them locally so that they can be used
+       to compile mldonkey. The 1) below is not for you now. Be patient. These
+       tools take a while to compile and install.
+
+       Note that you need at least 70 M of free disk space on the partition
+         where mldonkey is compiled.
+
+------------------------------------------------------------------------
+1) Installing required tools: Objective-Caml 3.05 and LablGTK 1.2.3 or 1.2.4
 
  1.1) Objective-Caml 3.05 (from   http://pauillac.inria.fr/caml)
 
@@ -33,15 +51,26 @@ Compiling mldonkey:
 
     ~/tmp/mldonkey> ./configure
     ~/tmp/mldonkey> make depend
-    ~/tmp/mldonkey> make byte
-    ~/tmp/mldonkey> make opt
+    ~/tmp/mldonkey> make
 
   You should now have 'mldonkey' (the daemon), 'mldonkey_gui' (the interface)
- and 'mlchat' (a chat program). No 'make install' is provided.
+ and 'mlchat' (a chat program to communicate with the friends). No 
+'make install' is provided. 
 
   You can disable all other p2p networks using the --disable-multinet option
    with ./configure. Only edonkey support will then be compiled.
 
 See the USAGE.txt file for information on how to use mldonkey.
-Note that you should execute mldonkey in the distrib/ directory, where a list
-of servers is present.
+
+ Note that you should execute mldonkey in the distrib/ directory, where a
+list of servers is present with other files. It will create other
+configuration files in this directory. mldonkey_gui has its own configuration
+file in the user directory (~/.mldonkey_gui.ini). I would advise you to move
+mldonkey, mldonkey_gui, mldonkey_gui2 and mlchat to distrib/, then move this
+directory where you want to put your downloads, and then remove mldonkey 
+sources.
+
+You must NOT run mldonkey as root.
+
+
+

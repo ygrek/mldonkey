@@ -4,7 +4,7 @@ open BasicSocket
 open TcpBufferedSocket
 
 open Gui_proto
-open BigEndian
+open LittleEndian
 open CommonTypes
 open CommonGlobals
 open DonkeyMftp
@@ -476,7 +476,9 @@ module LocateNotif= struct
 }  
 
   type t =  {
+    message_id : int;
     nb_notifs : int;
+    ack : int;
     notifs : (Md4.t, localisation list) Hashtbl.t;
   } 
       
@@ -507,18 +509,23 @@ module LocateNotif= struct
       
 
   let parse len s =
-    let nb_md4 = get_int s 1 in
+    let message_id = get_int s 1 in
+    let nb_md4 = get_int s 5 in
+    let ack = get_int s 9 in
     let notifs = Hashtbl.create nb_md4 in 
       {
+        message_id = message_id;
 	nb_notifs = nb_md4;
-	notifs = (list_md4 notifs s 5 nb_md4)
+        ack = ack;
+	notifs = (list_md4 notifs s 13 nb_md4)
       }
      
 	
 	
   
   let print t =  
-    Printf.printf "SERVER SHARED NOTIFICATION :%d\n" t.nb_notifs;
+    Printf.printf "SERVER SHARED NOTIFICATION %d : %d NOTIFS\n" t.message_id t.nb_notifs;
+     Printf.printf "Ack for : %d\n" t.ack;
     Hashtbl.iter ( fun id notifs ->
 		     Printf.printf "File MD4: %s\n" (Md4.to_string id);
 		     List.iter ( fun x ->
@@ -533,7 +540,9 @@ module LocateNotif= struct
       
       
   let write buf t =
+    buf_int buf t.message_id;
     buf_int buf t.nb_notifs;
+    buf_int buf t.ack;
     Hashtbl.iter ( fun id notif ->
 		    buf_md4 buf id;
 		    buf_int buf (List.length notif);
@@ -606,6 +615,89 @@ module SuppSource = struct
       buf_port buf t.source_port
 
     end
+
+module QueryFileInfo = struct
+   type t = Md4.t list
+
+   let rec get_list_md4 size s len =
+      if size = 0 then 
+        []
+      else 
+        (get_md4 s len) :: get_list_md4 (size-1) s (len+16) 
+      
+
+   let parse len s =
+      let nb_md4 = get_int s 1 in
+      get_list_md4 nb_md4 s 5 
+
+    let print t =
+    Printf.printf "List of Md4:";
+    List.iter (fun md4 ->
+        Printf.printf "%s\n" (Md4.to_string md4)
+              ) t
+
+     let write buf t =
+        buf_int buf (List.length t);
+        List.iter (fun md4 -> 
+                   buf_md4 buf md4
+                  ) t
+
+end
+
+
+module QueryFileInfoReply = struct
+
+   type info = {
+       md4 : Md4.t;
+       tags : tag list;
+        }
+
+   type t = info list
+
+   let names_of_tag =
+   [
+        1, "filename";
+        2, "size";
+        3, "type";
+        4, "format";
+      ]
+
+   let rec get_list_info size s pos =
+      if size = 0 then 
+        []
+      else 
+        begin
+           let md4 = get_md4 s pos in
+           let ntags = get_int s (pos+16) in
+           let tags, pos = get_tags s (pos+20) ntags names_of_tag in
+        { 
+          md4 = md4;
+          tags = tags;
+        } :: (get_list_info (size-1) s pos)
+        end 
+      
+
+   let parse len s =
+      let nb_md4 = get_int s 1 in
+      get_list_info nb_md4 s 5 
+
+    let print t =
+    Printf.printf "List of Md4:";
+    List.iter (fun i ->
+        Printf.printf "%s\n" (Md4.to_string i.md4);
+        print_tags i.tags 
+              ) t
+
+     let write buf t =
+        buf_int buf (List.length t);
+        List.iter (fun i -> 
+                   buf_md4 buf i.md4;
+                   buf_int buf (List.length i.tags);
+                   buf_tags buf i.tags names_of_tag;
+                  ) t
+
+end
+
 
 (*equals to QueryCallUDP*)
 module QueryUserConnect = struct 
