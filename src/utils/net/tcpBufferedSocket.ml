@@ -212,6 +212,10 @@ let used_token token = token.token_used
 let unlimited_connection_manager = create_connection_manager ()
 
 let reset_connection_scheduler _ =
+  (*
+  lprintf "Opened: %d\n" !opened_connections;
+lprintf "This second : %d\n" !opened_connections_this_second;
+  *)
   opened_connections_this_second := 0
 
 let use_token token fd =

@@ -4,7 +4,7 @@ ChangeLog
 Note: Due to the changes in CommonSwarming, this version is to be considered
  as EXPERIMENTAL on all networks, EXCEPT Edonkey & Overnet.
 
-2003/01/28: Fabrice
+2003/01/28: Fabrice (version 2.5.4+3)
   * CommonShared:
      Strategies of sharing can be defined in "searches.ini" (recursive or not,
       min file size, extensions). 
