@@ -32,14 +32,6 @@ let max_cache_size = ref 50
 let mini (x: int) (y: int) =
   if x > y then y else x
 
-let really_write fd s pos len =
-  try
-    Unix2.really_write fd s pos len
-  with e ->
-      lprintf "Exception in really_write: pos=%d len=%d, string length=%d\n"
-        pos len (String.length s);
-      raise e
-    
 module FDCache = struct
     
     type t = {
@@ -128,7 +120,7 @@ module FDCache = struct
       let fd = local_force_fd file in
       let final_pos = Unix2.c_seek64 fd file_pos Unix.SEEK_SET in
       if verbose then lprintf "really_write %d\n" len;
-      really_write fd string string_pos len
+      Unix2.really_write fd string string_pos len
     
     
     let copy_chunk t1 t2 pos1 pos2 len =
