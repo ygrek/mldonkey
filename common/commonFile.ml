@@ -57,6 +57,7 @@ it will happen soon. *)
     mutable op_file_check : ('a -> unit);
     mutable op_file_recover : ('a -> unit);
     mutable op_file_sources : ('a -> client list);
+    mutable op_file_comment : ('a -> string);
   }
 
   
@@ -156,6 +157,10 @@ let file_save_as (file : file) name =
   let file = as_file_impl file in
   file.impl_file_ops.op_file_save_as file.impl_file_val name
 
+let file_comment (file : file) =
+  let file = as_file_impl file in
+  file.impl_file_ops.op_file_comment file.impl_file_val
+
 let file_network (file : file) =
   let file = as_file_impl file in
   file.impl_file_ops.op_file_network
@@ -223,6 +228,7 @@ let new_file_ops network =
       op_file_recover = (fun _ -> ni_ok network "file_recover");
       op_file_set_format = (fun _ -> fni network "file_set_format");
       op_file_sources = (fun _ -> fni network "file_sources");
+      op_file_comment = (fun _ -> ni_ok network "file_comment"; "");
     }
   in
   let ff = (Obj.magic f : int file_ops) in

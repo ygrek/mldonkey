@@ -46,6 +46,7 @@ For 2.00:
 - What happens when a shared file cannot be read ?
 - We should close sockets when CONNECT failed
 - Shared files should signal whether they are partial or not ...
+- Shared file 22 not found in GUI
 
 *********
 

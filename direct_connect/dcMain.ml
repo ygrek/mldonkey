@@ -91,4 +91,5 @@ let _ =
         network_downloaded = Int64.zero;
       });
   network.op_network_share <- add_shared;
-  CommonInteractive.register_gui_options_panel "DC" !!gui_dc_options_panel;
+  CommonInteractive.register_gui_options_panel 
+  "DC" !!gui_dc_options_panel;

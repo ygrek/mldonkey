@@ -458,9 +458,10 @@ let mail_for_completed_file file =
 in
   *)
 
-    let line2 = Printf.sprintf "\r\n%s\r\n%ld\r\n" 
-        (file_best_name file)
+    let line2 = Printf.sprintf "\r\n%s\r\n%ld\r\n%s\r\n" 
+      (file_best_name file)
       (file_size file)
+      (file_comment file)
     in
 
     

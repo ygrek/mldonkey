@@ -181,9 +181,9 @@ let is_filtered c =
 class box_friends box_files () =
   object (self)
     inherit box !!O.friends_columns ()
-
+    
     val mutable filtered_data = []
-      
+    
     method filter_networks = 
       let data = data @ filtered_data in
       let rec iter filtered not_filtered data =
@@ -198,22 +198,22 @@ class box_friends box_files () =
       let (filtered, not_filtered) = iter [] [] data in
       filtered_data <- filtered;
       self#update_data not_filtered
-
+    
     method remove () = 
       List.iter
-	(fun c -> Gui_com.send (GuiProto.RemoveFriend c.client_num))
-	self#selection
-
+        (fun c -> Gui_com.send (GuiProto.RemoveFriend c.client_num))
+      self#selection
+    
     method remove_all_friends () = 
       self#update_data [];
       Gui_com.send GuiProto.RemoveAllFriends
-
+    
     method find_friend () =
       match GToolbox.input_string M.find_friend M.name with
-	None -> ()
+        None -> ()
       |	Some s ->
-	  Gui_com.send (GuiProto.FindFriend s)
-
+          Gui_com.send (GuiProto.FindFriend s)
+    
     method on_select c =
       match c.client_files with
         None -> 
@@ -223,23 +223,23 @@ class box_friends box_files () =
 (*          Printf.printf "%d files for friend %d" (List.length l) c.client_num; 
           print_newline (); *)
           box_files#update_data (Some tree)
-
+    
     method on_deselect f =
       box_files#update_data None
-
+    
     val mutable on_double_click = (fun _ -> ())
     method set_on_double_click f = on_double_click <- f
     method on_double_click f = on_double_click f
-
+    
     method menu =
       match self#selection with
-	[] -> [ `I (M.find_friend, self#find_friend) ;
-		`I (M.remove_all_friends, self#remove_all_friends)]
+        [] -> [ `I (M.find_friend, self#find_friend) ;
+            `I (M.remove_all_friends, self#remove_all_friends)]
       |	_ -> [ `I (M.find_friend, self#find_friend) ;
-	       `I (M.remove, self#remove) ;
-	       `I (M.remove_all_friends, self#remove_all_friends)]
-
-
+            `I (M.remove, self#remove) ;
+            `I (M.remove_all_friends, self#remove_all_friends)]
+    
+    
     method h_update_friend f_new =
       try
         let (row, f) = self#find_client f_new.client_num in
@@ -254,109 +254,119 @@ class box_friends box_files () =
         f.client_tags <- f_new.client_tags;
         self#update_row f row
       with
-	Not_found ->
-	  data <- data @ [f_new] ;
-	  self#insert ~row: self#wlist#rows f_new
-
+        Not_found ->
+          data <- data @ [f_new] ;
+          self#insert ~row: self#wlist#rows f_new
+    
     method h_remove_friend num =
       try
-	let (row, _) = self#find_client num in
-	self#wlist#remove row;
-	data <- List.filter (fun fi -> fi.client_num <> num) data ;
-	selection <- List.filter (fun fi -> fi.client_num <> num) selection
+        let (row, _) = self#find_client num in
+        self#wlist#remove row;
+        data <- List.filter (fun fi -> fi.client_num <> num) data ;
+        selection <- List.filter (fun fi -> fi.client_num <> num) selection
       with
-	Not_found -> ()
-
+        Not_found -> ()
+    
     initializer
       ignore
-	(wtool#insert_button 
-	   ~text: M.find_friend
-	   ~tooltip: M.find_friend
-	   ~icon: (Gui_icons.pixmap M.o_xpm_find_friend)#coerce
-	   ~callback: self#find_friend
-	   ()
-	);
+        (wtool#insert_button 
+          ~text: M.find_friend
+          ~tooltip: M.find_friend
+          ~icon: (Gui_icons.pixmap M.o_xpm_find_friend)#coerce
+          ~callback: self#find_friend
+          ()
+      );
       ignore
-	(wtool#insert_button 
-	   ~text: M.remove
-	   ~tooltip: M.remove
-	   ~icon: (Gui_icons.pixmap M.o_xpm_remove)#coerce
-	   ~callback: self#remove
-	   ()
-	);
+        (wtool#insert_button 
+          ~text: M.remove
+          ~tooltip: M.remove
+          ~icon: (Gui_icons.pixmap M.o_xpm_remove)#coerce
+          ~callback: self#remove
+          ()
+      );
       ignore
-	(wtool#insert_button 
-	   ~text: M.remove_all_friends
-	   ~tooltip: M.remove_all_friends
-	   ~icon: (Gui_icons.pixmap M.o_xpm_remove_all_friends)#coerce
-	   ~callback: self#remove_all_friends
-	   ()
-	);
-  end
+        (wtool#insert_button 
+          ~text: M.remove_all_friends
+          ~tooltip: M.remove_all_friends
+          ~icon: (Gui_icons.pixmap M.o_xpm_remove_all_friends)#coerce
+          ~callback: self#remove_all_friends
+          ()
+      );
+end
 
 class box_list () =
   let vbox_list = GPack.vbox () in
   let label_locs = GMisc.label () in
-
+  
   object (self)
     inherit box !!O.file_locations_columns () as prebox
-
+    
     method coerce = vbox_list#coerce
-
+    
     method add_to_friends () = 
       List.iter
         (fun c -> 
           if c.client_name <> "" then
             Gui_com.send (GuiProto.AddClientFriend c.client_num))
-	self#selection
-
+      self#selection
+    
     method menu =
       match self#selection with
-	[] -> []
+        [] -> []
       |	_ -> [ `I (M.add_to_friends, self#add_to_friends) ]
-
+    
     method update_data_by_file file_opt =
       G.nclocations := 0;
       G.nlocations := 0;
       let l = ref [] in
       (
-       match file_opt with
-       | None -> ()
+        match file_opt with
+        | None -> ()
         | Some file ->
             match file.file_sources with
               None -> 
-
+                
                 Gui_com.send (GuiProto.GetFile_locations file.file_num)
             | Some list ->
                 List.iter 
-		 (fun num ->
-		  try
-		    let c = Hashtbl.find G.locations num in
-		    if Mi.is_connected c.client_state then incr G.nclocations;
-		    l := c :: !l
+                  (fun num ->
+                    try
+                      let c = Hashtbl.find G.locations num in
+                      if Mi.is_connected c.client_state then incr G.nclocations;
+                      l := c :: !l
                     with _ -> 
                         Gui_com.send (GuiProto.GetClient_info num)
-		 )  list
-
+                )  list
+      
       );
       G.nlocations := List.length !l;
       self#update_data !l;
       self#update_locations_label
-		 
+    
     method h_update_location c_new =
       try
-	let (row, c) = self#find_client c_new.client_num in
-	(
-	 match Mi.is_connected c_new.client_state, Mi.is_connected c.client_state with
-           false , false
-	 | true, true -> ()
-	 | false , _ -> 
-             decr G.nclocations ;
-             self#update_locations_label
-	 | _, false -> 
-             incr G.nclocations ;
-             self#update_locations_label
-	);
+        let (row, c) = self#find_client c_new.client_num in
+        (
+          match Mi.is_connected c_new.client_state, Mi.is_connected c.client_state with
+            false , false
+          | true, true -> ()
+          | false , _ -> 
+              decr G.nclocations ;
+              self#update_locations_label
+          | _, false -> 
+              incr G.nclocations ;
+              self#update_locations_label
+        );
+        
+        if c_new.client_state = RemovedHost then
+          begin
+            Printf.printf "Removing client from locations panel"; 
+            print_newline ();
+            decr G.nlocations;
+            self#update_locations_label;
+            self#update_data (List.filter (fun c -> c_new.client_num <> c.client_num) data)
+          end else
+        let _ = () in          
         if c_new.client_files <> None then
           c.client_files <- c_new.client_files;
         c.client_state <- c_new.client_state;
@@ -365,7 +375,7 @@ class box_list () =
         
         c.client_kind <- c_new.client_kind;
         c.client_tags <- c_new.client_tags;
-        self#update_row c row
+          self#update_row c row
       with
 	Not_found ->
 	  ()

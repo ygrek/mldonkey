@@ -374,14 +374,7 @@ let add_file_client file user filename =
       c.client_files <- (file, filename) :: c.client_files
     end;
   c
-    
-let add_download file c filename =
-  let key = (file,filename) in
-  if not (List.mem key c.client_files) then begin
-      c.client_files <- key :: c.client_files;
-      file.file_clients <- c :: file.file_clients
-    end
-  
+      
 let file_state file =
   file_state (as_file file.file_file)
   

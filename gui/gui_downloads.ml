@@ -535,6 +535,20 @@ class box_downloads box_locs wl_status () =
 	  row
       with Not_found -> ()
 
+    method remove_client c =
+      List.iter (fun file ->
+          match file.file_sources with
+            None -> ()
+          | Some sources ->
+              if List.memq c sources then
+                let (row, file) = self#find_file file.file_num in
+                Printf.printf "Removing client from sources";
+                print_newline ();
+                self#update_file file { file with file_sources = Some (
+                    List.filter (fun cc -> cc != c) sources) } 
+                row
+      ) data
+          
     method h_file_location num src =
       try
 (*        Printf.printf "Source %d for %d" src num;  print_newline (); *)
@@ -659,6 +673,8 @@ class pane_downloads () =
     method h_update_location c_new =
       locs#h_update_location c_new
 
+    method h_remove_client c = dls#remove_client c
+      
     method on_entry_return () =
       match entry_ed2k_url#text with
         "" -> ()

@@ -1,26 +1,24 @@
 
-#include "caml/mlvalues.h"
 
-#ifdef DEBUG_MLDONKEY
+#ifdef HEAP_DUMP
 
-
-#include "caml/alloc.h"
-#include "caml/compact.h"
-#include "caml/custom.h"
-#include "caml/finalise.h"
-#include "caml/gc.h"
-#include "caml/gc_ctrl.h"
-#include "caml/major_gc.h"
-#include "caml/minor_gc.h"
-#include "caml/misc.h"
-#include "caml/stacks.h"
+#include "byterun/mlvalues.h"
+#include "byterun/alloc.h"
+#include "byterun/compact.h"
+#include "byterun/custom.h"
+#include "byterun/finalise.h"
+#include "byterun/gc.h"
+#include "byterun/gc_ctrl.h"
+#include "byterun/major_gc.h"
+#include "byterun/minor_gc.h"
+#include "byterun/misc.h"
+#include "byterun/stacks.h"
 #include <stdio.h>
 
 #define Next(hp) ((hp) + Bhsize_hp (hp))
 
 static void check_block (FILE *oc, char *hp)
 {
-#if 0
   mlsize_t nfields = Wosize_hp (hp);
   mlsize_t i;
   value v = Val_hp (hp);
@@ -46,7 +44,6 @@ static void check_block (FILE *oc, char *hp)
     }
   }
   fprintf(oc,"\n");
-#endif
 }
 
 /* Check the heap structure (if compiled in debug mode) and
@@ -59,9 +56,11 @@ value heap_dump (value unit)
   char *chunk = heap_start, *chunk_end;
   char *cur_hp, *prev_hp;
   header_t cur_hd;
-  minor_collection();
 
   FILE *oc = fopen("heap.dump", "w");  
+
+  minor_collection();
+
   while (chunk != NULL){
     chunk_end = chunk + Chunk_size (chunk);
     prev_hp = NULL;
@@ -92,16 +91,11 @@ value heap_dump (value unit)
   }
   fclose(oc);
 
-  return Val_unit;
-}
-#else
+  printf("HEAP DUMPED\n");
 
-value heap_dump(value unit)
-{
   return Val_unit;
 }
 
-#endif
 
 value heap_set_tag(value v, value tag)
 {
@@ -109,3 +103,18 @@ value heap_set_tag(value v, value tag)
   return Val_unit;
 }
 
+#else
+
+#include "caml/mlvalues.h"
+
+value heap_dump (value unit)
+{
+  return Val_unit;
+}
+
+value heap_set_tag(value v, value tag)
+{
+  return Val_unit;
+}
+
+#endif

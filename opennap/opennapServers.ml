@@ -187,8 +187,7 @@ let download_file (r : result) =
   List.iter (fun (user, filename) ->
       Printf.printf "Adding source %s (%d servers)" user.user_nick
         (List.length user.user_servers); print_newline ();
-      let c = new_client user.user_nick in
-      add_download file c filename;
+      let c = add_file_client file user  filename in
       get_file_from_source c file;
   ) r.result_sources;
   ()
@@ -313,12 +312,12 @@ print_newline (); *)
                 print_newline (); 
                 
 (*                Printf.printf "1"; print_newline (); *)
-                let c = new_client t.SR.nick in
                 let result = new_result (basename t.SR.filename) t.SR.size in
-                add_source result c.client_user t.SR.filename;
+                let user = new_user (Some s) t.SR.nick in
+                let c = add_file_client file user t.SR.filename in
+                add_source result user t.SR.filename;
 (*                Printf.printf "2"; print_newline (); *)
 (*                Printf.printf "3"; print_newline (); *)
-                add_download file c t.SR.filename;
 (*                Printf.printf "4"; print_newline (); *)
                 get_file_from_source c file;
 (*                Printf.printf "5"; print_newline (); *)

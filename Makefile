@@ -17,8 +17,6 @@ GTK_STATIC_LIBS_opt=-I +lablgtk lablgtk.cmxa
 LIBS_byte=-custom unix.cma
 LIBS_opt= unix.cmxa
 
-
-
 #######################################################################
 
 #              General options
@@ -75,8 +73,6 @@ NET_SRCS = \
   net/basicSocket.ml net/tcpBufferedSocket.ml \
   net/tcpClientSocket.ml net/tcpServerSocket.ml \
   net/udpSocket.ml net/http_server.ml net/http_client.ml
-
-OBJS=
 
 CHAT_SRCS = chat/chat_messages.ml\
 	chat/chat_misc.ml\
@@ -622,7 +618,10 @@ plugin: $(PLUGIN_CMXS)
 	$(OCAMLOPT) $(PLUGIN_FLAG) -o $(PLUGIN)_plugin -a $(PLUGIN_CMXS)
 
 lib/md4_cc.o: lib/md4.c
-	$(OCAMLC) -ccopt "$(CFLAGS) -O6 -I /byterun -o lib/md4_cc.o" -ccopt "" -c lib/md4.c
+	$(OCAMLC) -ccopt "$(CFLAGS) -O6 -o lib/md4_cc.o" -ccopt "" -c lib/md4.c
+
+cdk/heap_c.o: cdk/heap_c.c
+	$(OCAMLC) -ccopt "$(CFLAGS) $(MORECFLAGS) -o cdk/heap_c.o" -ccopt "" -c cdk/heap_c.c
 
 lib/md4_as.o: lib/md4_$(MD4ARCH).s
 	as -o lib/md4_as.o lib/md4_$(MD4ARCH).s
@@ -632,63 +631,66 @@ lib/md4_comp.o: lib/md4_$(MD4COMP).o
 
 ######## TAGS
 
-use_tags: $(USE_TAGS_CMXS) $(OBJS) $(USE_TAGS_OBJS)
-	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@ str.cmxa $(LIBS_opt) $(STR_LIBS_opt) $(USE_TAGS_CMXS) $(USE_TAGS_OBJS) $(OBJS)
+use_tags: $(USE_TAGS_CMXS) $(USE_TAGS_OBJS)
+	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@ str.cmxa $(USE_TAGS_OBJS) $(LIBS_opt) $(STR_LIBS_opt) $(USE_TAGS_CMXS)
 
-use_tags.static: $(USE_TAGS_CMXS) $(OBJS) $(USE_TAGS_OBJS)
-	$(OCAMLOPT) $(PLUGIN_FLAG) -cclib -static -o $@ str.cmxa $(LIBS_opt) $(STR_LIBS_opt) $(USE_TAGS_CMXS) $(USE_TAGS_OBJS) $(OBJS)
+use_tags.static: $(USE_TAGS_CMXS)  $(USE_TAGS_OBJS)
+	$(OCAMLOPT) $(PLUGIN_FLAG) -cclib -static -o $@  $(USE_TAGS_OBJS)  str.cmxa $(LIBS_opt) $(STR_LIBS_opt) $(USE_TAGS_CMXS)
 
-use_tags.byte: $(USE_TAGS_CMOS) $(OBJS)
-	$(OCAMLC) -o $@ str.cma $(LIBS_byte) $(STR_LIBS_byte) $(USE_TAGS_CMOS) $(OBJS)
+use_tags.byte: $(USE_TAGS_CMOS) 
+	$(OCAMLC) -o $@ str.cma $(USE_TAGS_OBJS)  $(LIBS_byte) $(STR_LIBS_byte) $(USE_TAGS_CMOS) 
 
 ######## MLCHAT
-mlchat: $(MLCHAT_CMXS) $(OBJS)  $(MLCHAT_OBJS)
-	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@ $(LIBS_opt) $(GTK_LIBS_opt) $(MLCHAT_CMXS) $(OBJS)   $(MLCHAT_OBJS)
+mlchat: $(MLCHAT_CMXS)   $(MLCHAT_OBJS)
+	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@   $(MLCHAT_OBJS) $(LIBS_opt) $(GTK_LIBS_opt) $(MLCHAT_CMXS)  
 
-mlchat.byte: $(MLCHAT_CMOS) $(OBJS)
-	$(OCAMLC) -o $@ $(LIBS_byte) $(GTK_LIBS_byte) $(MLCHAT_CMOS) $(OBJS)
+mlchat.byte: $(MLCHAT_CMOS) 
+	$(OCAMLC) -o $@   $(MLCHAT_OBJS) $(LIBS_byte) $(GTK_LIBS_byte) $(MLCHAT_CMOS) 
+
+mlchat.static: $(MLCHAT_CMXS)   $(MLCHAT_OBJS)
+	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@    $(MLCHAT_OBJS) $(LIBS_opt) $(GTK_LIBS_opt) $(MLCHAT_CMXS) 
 
 ######## MLDONKEYGUI
 
-mldonkey_gui: $(MLDONKEYGUI_CMXS) $(OBJS)  $(MLDONKEYGUI_OBJS)
-	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@ $(LIBS_opt) $(GTK_LIBS_opt) $(MLDONKEYGUI_CMXS) $(MLDONKEYGUI_OBJS) $(OBJS)
+mldonkey_gui: $(MLDONKEYGUI_CMXS)   $(MLDONKEYGUI_OBJS)
+	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@  $(MLDONKEYGUI_OBJS)  $(LIBS_opt) $(GTK_LIBS_opt) $(MLDONKEYGUI_CMXS)
 
-mldonkey_gui.byte: $(MLDONKEYGUI_CMOS) $(OBJS) 
-	$(OCAMLC) -o $@ $(LIBS_byte) $(GTK_LIBS_byte) $(MLDONKEYGUI_CMOS) $(OBJS)
+mldonkey_gui.byte: $(MLDONKEYGUI_CMOS)  
+	$(OCAMLC) -o $@  $(MLDONKEYGUI_OBJS) $(LIBS_byte) $(GTK_LIBS_byte) $(MLDONKEYGUI_CMOS) 
 
-mldonkey_gui.static: $(MLDONKEYGUI_CMXS) $(OBJS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(LIBS_opt) $(GTK_STATIC_LIBS_opt) $(MLDONKEYGUI_CMXS) $(OBJS)
+mldonkey_gui.static: $(MLDONKEYGUI_CMXS)  
+	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@  $(MLDONKEYGUI_OBJS) $(LIBS_opt) $(GTK_STATIC_LIBS_opt) $(MLDONKEYGUI_CMXS) 
 
 ######## STARTER
 
-mldonkey_guistarter: $(STARTER_CMXS) $(OBJS)  $(STARTER_OBJS)
-	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@ $(LIBS_opt) $(GTK_LIBS_opt) $(STARTER_CMXS) $(STARTER_OBJS) $(OBJS)
+mldonkey_guistarter: $(STARTER_CMXS)   $(STARTER_OBJS)
+	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@  $(STARTER_OBJS) $(LIBS_opt) $(GTK_LIBS_opt) $(STARTER_CMXS)
 
-mldonkey_guistarter.byte: $(STARTER_CMOS) $(OBJS) 
-	$(OCAMLC) -o $@ $(LIBS_byte) $(GTK_LIBS_byte) $(STARTER_CMOS) $(OBJS)
+mldonkey_guistarter.byte: $(STARTER_CMOS)  
+	$(OCAMLC) -o $@  $(STARTER_OBJS)  $(LIBS_byte) $(GTK_LIBS_byte) $(STARTER_CMOS) 
 
-mldonkey_guistarter.static: $(STARTER_CMXS) $(OBJS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(LIBS_opt) $(GTK_STATIC_LIBS_opt) $(STARTER_CMXS) $(OBJS)
+mldonkey_guistarter.static: $(STARTER_CMXS)  
+	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@  $(STARTER_OBJS)  $(LIBS_opt) $(GTK_STATIC_LIBS_opt) $(STARTER_CMXS) 
 
 ######## MLDONKEYGUI2
 
-mldonkey_gui2: $(MLDONKEYGUI2_CMXS) $(OBJS)  $(MLDONKEYGUI2_OBJS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@ $(LIBS_opt) $(GTK_LIBS_opt) $(MLDONKEYGUI2_CMXS) $(OBJS) $(MLDONKEYGUI2_OBJS) 
+mldonkey_gui2: $(MLDONKEYGUI2_CMXS)   $(MLDONKEYGUI2_OBJS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@   $(MLDONKEYGUI2_OBJS)  $(LIBS_opt) $(GTK_LIBS_opt) $(MLDONKEYGUI2_CMXS)
 
-mldonkey_gui2.byte: $(MLDONKEYGUI2_CMOS) $(OBJS) 
-	$(OCAMLC) -o $@ $(LIBS_byte) $(GTK_LIBS_byte) $(MLDONKEYGUI2_CMOS) $(OBJS)
+mldonkey_gui2.byte: $(MLDONKEYGUI2_CMOS)  
+	$(OCAMLC) -o $@   $(MLDONKEYGUI2_OBJS) $(LIBS_byte) $(GTK_LIBS_byte) $(MLDONKEYGUI2_CMOS) 
 
-mldonkey_gui2.static: $(MLDONKEYGUI2_CMXS) $(OBJS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(LIBS_opt) $(GTK_STATIC_LIBS_opt) $(MLDONKEYGUI2_CMXS) $(OBJS)
+mldonkey_gui2.static: $(MLDONKEYGUI2_CMXS)  
+	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@   $(MLDONKEYGUI2_OBJS) $(LIBS_opt) $(GTK_STATIC_LIBS_opt) $(MLDONKEYGUI2_CMXS) 
 
 
 ######## OBSERVER
 
-observer: $(OBSERVER_CMXS) $(OBJS) $(OBSERVER_OBJS)
-	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@ str.cmxa $(LIBS_opt) $(STR_LIBS_opt) $(OBSERVER_CMXS) $(OBSERVER_OBJS) $(OBJS)
+observer: $(OBSERVER_CMXS)  $(OBSERVER_OBJS)
+	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@ str.cmxa $(LIBS_opt) $(STR_LIBS_opt) $(OBSERVER_CMXS) $(OBSERVER_OBJS) 
 
-observer.byte: $(OBSERVER_CMOS) $(OBJS)
-	$(OCAMLC) -o $@ str.cma $(LIBS_byte) $(STR_LIBS_byte) $(OBSERVER_CMOS) $(OBJS)
+observer.byte: $(OBSERVER_CMOS) 
+	$(OCAMLC) -o $@ str.cma $(LIBS_byte) $(STR_LIBS_byte) $(OBSERVER_CMOS) 
 
 
 zogml:
@@ -699,18 +701,18 @@ zogml:
 ####### TOP
 
 mldonkeytop: $(TOP_CMOS) $(TOP_OBJS)
-	$(OCAMLMKTOP) -o $@ $(LIBS_byte) $(TOP_CMOS) $(TOP_OBJS) $(OBJS)
+	$(OCAMLMKTOP) -o $@ $(LIBS_byte) $(TOP_CMOS) $(TOP_OBJS) 
 
 ######## MLDONKEY
 
-mldonkey: $(MLDONKEY_OBJS) $(MLDONKEY_CMXS) $(OBJS)
-	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@ $(LIBS_opt)  $(MLDONKEY_OBJS) $(MLDONKEY_CMXS) $(OBJS)
+mldonkey: $(MLDONKEY_OBJS) $(MLDONKEY_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@  $(MLDONKEY_OBJS) $(LIBS_opt) $(MLDONKEY_CMXS) 
 
-mldonkey.byte: $(MLDONKEY_OBJS) $(MLDONKEY_CMOS) $(OBJS)
-	$(OCAMLC) -o $@ $(LIBS_byte)  $(MLDONKEY_OBJS) $(MLDONKEY_CMOS) $(OBJS)
+mldonkey.byte: $(MLDONKEY_OBJS) $(MLDONKEY_CMOS) 
+	$(OCAMLC) -o $@  $(MLDONKEY_OBJS) $(LIBS_byte) $(MLDONKEY_CMOS) 
 
-mldonkey.static:  $(MLDONKEY_OBJS) $(MLDONKEY_CMXS) $(OBJS)
-	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@  $(LIBS_opt)  $(MLDONKEY_OBJS) $(MLDONKEY_CMXS) $(OBJS)
+mldonkey.static:  $(MLDONKEY_OBJS) $(MLDONKEY_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(MLDONKEY_OBJS) $(LIBS_opt) $(MLDONKEY_CMXS) 
 
 open_mldonkey: mldonkey
 open_mldonkey.opt:  mldonkey
@@ -788,9 +790,22 @@ release: opt VERSION
 	done
 	mv $(DISDIR) $(DISDIR)-`cat VERSION`
 	tar cf $(DISDIR).tar $(DISDIR)-`cat VERSION`
-	mv $(DISDIR).tar mldonkey-`cat VERSION`.shared.$(ARCH)-`uname -s`.tar
-	$(COMPRESS) mldonkey-`cat VERSION`.shared.$(ARCH)-`uname -s`.tar
-	scp mldonkey-`cat VERSION`.shared.$(ARCH)-`uname -s`.tar.$(COMPRESS_EXT) lachesis:devel/mldonkey-release/
+	mv $(DISDIR).tar mldonkey-`cat VERSION`.shared.$(MD4ARCH)-`uname -s`.tar
+	$(COMPRESS) mldonkey-`cat VERSION`.shared.$(MD4ARCH)-`uname -s`.tar
+	scp mldonkey-`cat VERSION`.shared.$(MD4ARCH)-`uname -s`.tar.$(COMPRESS_EXT) lachesis:devel/mldonkey-release/
+
+release.static: static opt VERSION
+	rm -rf mldonkey-*
+	cp -R distrib $(DISDIR)
+	for i in $(TARGETS); do \
+	   cp $$i.static $(DISDIR)/$$i.static; \
+   	   strip  $(DISDIR)/$$i.static; \
+	done
+	mv $(DISDIR) $(DISDIR)-`cat VERSION`
+	tar cf $(DISDIR).tar $(DISDIR)-`cat VERSION`
+	mv $(DISDIR).tar mldonkey-`cat VERSION`.static.$(MD4ARCH)-`uname -s`.tar
+	$(COMPRESS) mldonkey-`cat VERSION`.static.$(MD4ARCH)-`uname -s`.tar
+	scp mldonkey-`cat VERSION`.static.$(MD4ARCH)-`uname -s`.tar.$(COMPRESS_EXT) lachesis:devel/mldonkey-release/
 
 release-sources: VERSION
 	rm -rf **/CVS

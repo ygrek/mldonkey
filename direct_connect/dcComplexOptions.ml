@@ -102,7 +102,8 @@ let value_to_file is_done assocs =
                           let addr = value_to_addr addr in
                           let port = value_to_int port in
                           let s = new_server addr port in
-                          user.user_servers <- s :: user.user_servers
+                          if not (List.memq s user.user_servers) then
+                            user.user_servers <- s :: user.user_servers
                       | _ -> ()
                   ) servers
               | _ -> failwith "Bad source"

@@ -874,6 +874,12 @@ let _ =
           c.client_file_queue <- List.remove_assoc file c.client_file_queue;
           check_useful_client c
       ) file.file_sources;
+  );
+  file_ops.op_file_comment <- (fun file ->
+      Printf.sprintf "ed2k://|file|%s|%ld|%s|" 
+        (file_best_name file)
+      (file_size file)
+      (Md4.to_string file.file_md4)
   )
   
 let _ =

@@ -106,6 +106,7 @@ open GuiProto
 let canon_client gui c =
   let box_file_locs = gui#tab_downloads#box_locations in 
   let box_friends = gui#tab_friends#box_friends in
+  let box_downloads = gui#tab_downloads in
   let c = 
     try
       let cc = Hashtbl.find G.locations c.client_num in
@@ -121,6 +122,13 @@ let canon_client gui c =
       
       if c.client_files <> None then  cc.client_files <- c.client_files;
       cc.client_state <- c.client_state;
+
+      if c.client_state = RemovedHost then begin
+          Printf.printf "Removing client %d" c.client_num; print_newline ();
+          Hashtbl.remove G.locations c.client_num;
+          gui#tab_downloads#box_downloads#remove_client cc.client_num
+        end;
+      
       begin
         if c.client_type <> cc.client_type then begin
             match c.client_type, cc.client_type with
@@ -145,7 +153,7 @@ let canon_client gui c =
       
       cc
     with _ ->
-(*        Printf.printf "Adding client %d" c.client_num; print_newline (); *)
+        Printf.printf "Adding client %d" c.client_num; print_newline (); 
         Hashtbl.add G.locations c.client_num c;
         begin
           match c.client_type with

@@ -263,14 +263,6 @@ case $host in
         *)         ;;
 esac
 
-MD4ARCH=`uname -m`
-case $host in
-  i486-pc-linux*) MD4COMP=as; MD4ARCH=i486;;
-  i586-pc-linux*) MD4COMP=as; MD4ARCH=i586;;
-  i686-pc-linux*) MD4COMP=as; MD4ARCH=i686;;
-  *) MD4COMP=cc;;
-esac
-
 AC_MSG_CHECKING(Additionnal includes) 
 AC_MSG_RESULT($CONFIG_INCLUDES)
 
@@ -491,6 +483,14 @@ else
 fi
 
 
+MD4ARCH=$arch
+case $host in
+  i486-pc-linux*) MD4COMP=as; MD4ARCH=i486;;
+  i586-pc-linux*) MD4COMP=as; MD4ARCH=i586;;
+  i686-pc-linux*) MD4COMP=as; MD4ARCH=i686;;
+  *) MD4COMP=cc;;
+esac
+
 ARCH=$arch
 
 AC_SUBST(OCAMLC)
@@ -532,7 +532,6 @@ AC_SUBST(PATCHED_OCAMLOPT)
 AC_SUBST(COMPRESS)
 AC_SUBST(COMPRESS_EXT)
 AC_SUBST(RELEASENAME)
-
 AC_SUBST(CHECKBOUNDS)
 
 AUTOCONF=../lib/autoconf.ml

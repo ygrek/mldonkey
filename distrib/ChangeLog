@@ -1,6 +1,17 @@
 ChangeLog	
 =========
 
+2002/09/29: mldonkey
+  - fix: bug #1252: servers were added several times in Opennap/DC to each user.
+  - fix: ed2k link should appear again in 'download' mail
+
+2002/09/28: mldonkey
+  - fix: sources are correctly removed from the GUI locations panel
+  - fix: Makefile should correctly compile targets 'static' and 'byte'
+  - fix: Add command
+       MORECFLAGS="-I patches/ocaml-3.06/ -DHEAP_DUMP" make cdk/heap_c.o
+      to compile with "dump_head" command.
+
 2002/09/28: mldonkey
   - fix: incoming connections timeout are now correctly set, and
       connections should be correctly initialized.

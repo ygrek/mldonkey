@@ -33,8 +33,13 @@ let client_port = define_option opennap_ini ["client_port"]
     int_option 9999
 
 let max_connected_servers = define_option opennap_ini ["max_connected_servers"] 
-    "The number of servers you want to stay connected to" int_option 10
+    "The number of servers you want to stay connected to" int_option 5
 
+let _ = 
+  option_hook max_connected_servers (fun _ ->
+      if !!max_connected_servers > 10 then
+        max_connected_servers =:= 10)
+  
 let client_password = define_option opennap_ini ["client_password"]
     "The password used to log on the napster server"
     string_option "nopass"
@@ -67,3 +72,20 @@ let network_options_prefix = define_option opennap_ini
     when they are used in the telnet/WEB interfaces"
     string_option "OpenNap-"
   
+let shortname o =
+  Printf.sprintf "%s%s" !!network_options_prefix (shortname o)
+    
+let gui_opennap_options_panel = 
+  define_option opennap_ini ["gui_opennap_options_panel"]
+  "Which options are configurable in the GUI option panel, and in the
+    dc section. Last entry indicates the kind of widget used (B=Boolean,T=Text)"
+    (list_option (tuple3_option (string_option, string_option, string_option)))
+  [
+    "Password", shortname client_password, "T";
+    "Description", shortname client_info, "T";
+    "Port", shortname client_port, "T";
+    "Max Connected Servers (<10)", shortname max_connected_servers, "T";
+    "Use Napigator", shortname use_napigator, "B";
+    "Napigator List URL", shortname servers_list_url, "T";
+    "Commit Downloads In Incoming Subdir", shortname commit_in_subdir, "T";
+  ]
