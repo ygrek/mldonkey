@@ -52,6 +52,10 @@ TARGETS= use_tags$(EXE) mlnet$(EXE)
 
 #######################################################################
 
+ifeq ("$(OS_FILES)", "mingw")
+  LIBS_opt += -cclib  -lws2_32
+  LIBS_byte += -cclib -lws2_32
+endif
 
 ifeq ("$(ZLIB)" , "yes")
   LIBS_opt += -cclib -lz
@@ -153,30 +157,7 @@ COMMON_CLIENT_SRCS= \
   common/commonDownloads.ml \
   common/commonUploads.ml
 
-all: Makefile config/Makefile.config $(TARGET_TYPE)
-
-config/configure: config/configure.in
-	cd config; autoconf
-
-ifeq ("$(CONFIG_ARGS_DEFINED)" , "yes")
-
-config/Makefile.config: Makefile config/configure config/Makefile.config.in lib/autoconf.ml.new.in
-	./configure $(CONFIG_ARGS)
-
-else
-
-config/Makefile.config: Makefile config/configure config/Makefile.config.in
-	@echo '******************************************'
-	@echo 
-	@echo 
-	@echo ' You should rerun ./configure now         '
-	@echo 
-	@echo 
-	@echo '******************************************'
-endif
-
-Makefile: config/Makefile.in
-	(cd config; m4 Makefile.in > ../Makefile)
+all: $(TARGET_TYPE)
 
 #######################################################################
 
