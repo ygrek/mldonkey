@@ -86,6 +86,7 @@ let client_handler2 c ff f =
     let b = TcpBufferedSocket.buf sock in
     try
       while b.len >= 5 do
+        let opcode = get_int8 b.buf b.pos in
         let msg_len = get_int b.buf (b.pos+1) in
         if b.len >= 5 + msg_len then
           begin
@@ -95,7 +96,7 @@ let client_handler2 c ff f =
               end;
             let s = String.sub b.buf (b.pos+5) msg_len in
             TcpBufferedSocket.buf_used sock  (msg_len + 5);
-            let t = M.parse s in
+            let t = M.parse opcode s in
 (*          M.print t;   
 print_newline (); *)
             incr msgs;
@@ -116,6 +117,7 @@ let cut_messages parse f sock nread =
   let b = TcpBufferedSocket.buf sock in
   try
     while b.len >= 5 do
+      let opcode = get_int8 b.buf b.pos in
       let msg_len = get_int b.buf (b.pos+1) in
       if b.len >= 5 + msg_len then
         begin
@@ -125,7 +127,7 @@ let cut_messages parse f sock nread =
             end;
           let s = String.sub b.buf (b.pos+5) msg_len in
           TcpBufferedSocket.buf_used sock  (msg_len + 5);
-          let t = parse s in
+          let t = parse opcode s in
           f t sock
         end
       else raise Not_found
@@ -170,7 +172,7 @@ let udp_handler f sock event =
                 Printf.printf "Received unknown UDP packet"; print_newline ();
                 dump pbuf;
               end else begin
-                let t = M.parse (String.sub pbuf 1 (len-1)) in
+                let t = M.parse 227 (String.sub pbuf 1 (len-1)) in
 (*              M.print t; *)
                 f t p
               end

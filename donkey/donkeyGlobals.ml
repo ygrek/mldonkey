@@ -727,14 +727,18 @@ let remove_source file c =
   if List.memq file c.client_source_for then begin  
       file.file_sources <- Intmap.remove (client_num c) file.file_sources;
       file.file_nlocations <- file.file_nlocations - 1;
+      Printf.printf "removed source %d" file.file_nlocations; print_newline ();
       c.client_source_for <- List2.removeq file c.client_source_for;
       check_useful_client c
     end
   
 let new_source file c =
   if not (List.memq file c.client_source_for) then begin
+      Printf.printf "New source (on %d)" file.file_nlocations;
+      print_newline ();
       if file.file_nlocations >= !!max_sources_per_file then begin
 (* find the oldest location, and remove it *)
+          Printf.printf "Remove old loc"; print_newline ();
           let oldest_time = ref (last_time ()) in
           let oldest_client = ref None in
           let locs = file.file_sources in
@@ -750,13 +754,18 @@ let new_source file c =
                     end
           ) locs;
           match !oldest_client with
-            None -> assert false
-          | Some c ->  remove_source file c
+(* We couldn't choose which client should be removed since
+no sources have been connected yet. *)
+            None -> Printf.printf "couldnot remove"; print_newline ();
+          | Some c ->
+              Printf.printf "lco removed"; print_newline ();
+              remove_source file c
         end;
       file.file_nlocations <- file.file_nlocations + 1;
       file.file_sources <- Intmap.add (client_num c) c file.file_sources;
       file_new_source (as_file file.file_file) (as_client c.client_client);
-      c.client_source_for <- file :: c.client_source_for
+      c.client_source_for <- file :: c.client_source_for;
+      Printf.printf "New source added %d" file.file_nlocations;
     end    
    
 let file_state file =
@@ -833,3 +842,42 @@ let all_servers () =
       s :: l
   ) servers_by_key []
 
+
+let _ =
+  Heap.register_dumper "DonkeyGlobals" (fun _ ->
+(* current_files *)
+      Printf.printf "Current files: %d" (List.length !current_files);
+      print_newline ();
+(* clients_by_name *)
+      let list = Hashtbl2.to_list clients_by_name in
+      Printf.printf "Clients_by_name: %d" (List.length list);
+      print_newline ();
+      List.iter (fun c ->
+          Printf.printf "[%d %s]" (client_num c)
+          (if Hashtbl.mem clients_by_kind c.client_kind then "K" else " ") ;
+     ) list;
+      print_newline ();
+      
+(* clients_by_kind *)
+      let list = Hashtbl2.to_list clients_by_kind in
+      Printf.printf "Clients_by_kind: %d" (List.length list);
+      print_newline ();
+      List.iter (fun c ->
+          Printf.printf "[%d %s]" (client_num c)
+          (if Hashtbl.mem clients_by_name c.client_name then "N" else " ") ;
+     ) list;
+      print_newline ();
+
+      (* clients_list *)
+      Printf.printf "Clients list: %d" (List.length !clients_list);
+      print_newline ();
+      List.iter (fun (c,files) ->
+          Printf.printf "[%d %s%s[" (client_num c)
+          (if Hashtbl.mem clients_by_name c.client_name then "N" else " ")
+          (if Hashtbl.mem clients_by_kind c.client_kind then "K" else " ") ;
+          List.iter (fun file -> Printf.printf "%d " (file_num file)) files;
+          Printf.printf "]";
+     ) !clients_list;
+      print_newline ();
+      
+  )

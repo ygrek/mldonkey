@@ -1,6 +1,11 @@
 ChangeLog	
 =========
 
+2002/09/30: mldonkey
+  - add: more debug output for 'dump_heap'
+  - donkeyClients.ml: SourceReq clients are not immediatly added to
+     clients_list
+
 2002/09/29: mldonkey
   - fix: bug #1252: servers were added several times in Opennap/DC to each user.
   - fix: ed2k link should appear again in 'download' mail

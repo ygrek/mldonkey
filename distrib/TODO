@@ -48,6 +48,8 @@ For 2.00:
 - Shared files should signal whether they are partial or not ...
 - Shared file 22 not found in GUI
 
+- Can a file be shared before being enough downloaded.
+
 *********
 
 For 2.1:

@@ -781,6 +781,12 @@ DISDIR=mldonkey-distrib
 distrib/Readme.txt: gui/gui_messages.ml
 	grep -A 1000 help_text gui/gui_messages.ml | grep -v '"' > distrib/Readme.txt
 
+
+debug:
+	rm -f cdk/heap_c.o
+	MORECFLAGS="-I patches/ocaml-3.06/ -DHEAP_DUMP" $(MAKE) cdk/heap_c.o
+	$(MAKE)
+
 release: opt VERSION
 	rm -rf mldonkey-*
 	cp -R distrib $(DISDIR)
@@ -798,8 +804,8 @@ release.static: static opt VERSION
 	rm -rf mldonkey-*
 	cp -R distrib $(DISDIR)
 	for i in $(TARGETS); do \
-	   cp $$i.static $(DISDIR)/$$i.static; \
-   	   strip  $(DISDIR)/$$i.static; \
+	   cp $$i.static $(DISDIR)/$$i; \
+   	   strip  $(DISDIR)/$$i; \
 	done
 	mv $(DISDIR) $(DISDIR)-`cat VERSION`
 	tar cf $(DISDIR).tar $(DISDIR)-`cat VERSION`

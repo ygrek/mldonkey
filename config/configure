@@ -1,6 +1,6 @@
 #! /bin/sh
 
-# From configure.in Revision: 1.55 
+# From configure.in Revision: 1.56 
 
 # Guess values for system-dependent variables and create Makefiles.
 # Generated automatically using autoconf version 2.13 
@@ -553,7 +553,7 @@ REQUIRED_LABLGTK=1.2.4
 touch install-sh
 
 BATCH=no
-AUDIO_GALAXY=yes
+AUDIO_GALAXY=no
 OPEN_NAPSTER=yes
 LIMEWIRE=yes
 DIRECT_CONNECT=yes

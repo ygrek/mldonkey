@@ -193,7 +193,7 @@ module EndOfDownload  = OneMd4(struct let m = "END OF DOWNLOAD MD4" end)
 module NoSuchFile  = OneMd4(struct let m = "NO SUCH FILE" end)
 
 module QueryChunksReply = struct (* Request 80 *)
-    
+        
     type t = {
         md4 : Md4.t;
         chunks: bool array;
@@ -202,16 +202,20 @@ module QueryChunksReply = struct (* Request 80 *)
     let parse len s = 
       let md4 = get_md4 s 1 in
       let nchunks = get_int16 s 17 in
-(*      Printf.printf "nchunks : %d" nchunks; print_newline ();*)
-      let chunks = Array.create nchunks false  in
-      for i = 0 to (nchunks-1) / 8 do
-        let m = get_int8 s (19+i) in
-        for j = 0 to 7 do
-          let n = i * 8 + j in
-          if n < nchunks then
-            chunks.(n) <- (m land (1 lsl j)) <> 0;
+      Printf.printf "nchunks : %d" nchunks; print_newline ();
+      let chunks = 
+        if nchunks = 0 then [||] else
+        let chunks = Array.create nchunks false  in
+        for i = 0 to (nchunks-1) / 8 do
+          let m = get_int8 s (19+i) in
+          for j = 0 to 7 do
+            let n = i * 8 + j in
+            if n < nchunks then
+              chunks.(n) <- (m land (1 lsl j)) <> 0;
+          done;
         done;
-      done;
+        chunks
+      in
       {
         md4 = md4;
         chunks = chunks;
@@ -249,6 +253,14 @@ module QueryChunksReply = struct (* Request 80 *)
           done
           
   end
+(*
+dec: [(96)(215)(1)(0)(0)(0)(0)(0)(0)(0)(0)(0)(0)]
+
+OP_QUEUERANKING: int16
+  
+  
+*)
+
 
 module QueryChunkMd4Reply = struct (* Request 80 *)
     
@@ -595,12 +607,15 @@ type t =
 | NewUserIDReq of NewUserID.t
 | NoSuchFileReq of NoSuchFile.t  
   
-let parse s =
+let parse magic s =
+  if magic <> 227 then begin
+      Printf.printf "Magic %d" magic; print_newline ();
+    end;
   try 
     let len = String.length s in
     if len = 0 then raise Not_found;
     let opcode = int_of_char (s.[0]) in
-    (*Printf.printf "opcode: %d" opcode; print_newline (); *)
+(*Printf.printf "opcode: %d" opcode; print_newline (); *)
     match opcode with 
     | 1 -> ConnectReq (Connect.parse len s)
     | 70 -> BlocReq (Bloc.parse len s)
@@ -615,13 +630,13 @@ let parse s =
     | 80 -> QueryChunksReplyReq (QueryChunksReply.parse len s)
     | 81 -> QueryChunkMd4Req (QueryChunkMd4.parse len s)
     | 82 -> QueryChunkMd4ReplyReq (QueryChunkMd4Reply.parse len s)
-        (* JoinQueue: the sender wants to join the upload queue *)
+(* JoinQueue: the sender wants to join the upload queue *)
     | 84 -> JoinQueueReq (JoinQueue.parse len s) 
-        (* AvailableSlot: there is an available slot in upload queue *)
+(* AvailableSlot: there is an available slot in upload queue *)
     | 85 -> AvailableSlotReq (AvailableSlot.parse len s)
-        (* ReleaseSlot: the upload is finished *)
+(* ReleaseSlot: the upload is finished *)
     | 86 -> ReleaseSlotReq (ReleaseSlot.parse len s)
-        (* CloseSlot: the upload slot is not available *)
+(* CloseSlot: the upload slot is not available *)
     | 87 -> CloseSlotReq (CloseSlot.parse len s)
     | 88 -> QueryFileReq (QueryFile.parse len s)
     | 89 -> QueryFileReplyReq (QueryFileReply.parse len s)
@@ -634,7 +649,7 @@ let parse s =
       dump s;
       print_newline ();
       UnknownReq s
-
+      
 let print t =
   begin
     match t with

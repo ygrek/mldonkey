@@ -1365,7 +1365,7 @@ let mldonkey_extensions len s =
       Mldonkey_CloseSubscribeReq num
   | _ -> raise Not_found
   
-let parse s =
+let parse magic s =
   try 
     let len = String.length s in
     if len = 0 then raise Not_found;

@@ -838,7 +838,7 @@ type t =
 | MessageReq of Message.t
 | QuitReq
 
-let parse s =
+let parse magic s =
   try
     let len = String.length s in
     if len = 0 then raise Not_found;

@@ -54,6 +54,7 @@ type t = {
 
     mutable name : unit -> string;
     born : float;
+    mutable dump_info : (unit -> unit);
 (*    mutable before_select : (t -> unit); *)
   }
 
@@ -160,6 +161,7 @@ let set_after_select_hook f =
   
 let default_before_select t = ()
 
+let dump_basic_socket () = ()
   
 let create_blocking name fd handler =
   
@@ -197,6 +199,8 @@ let create_blocking name fd handler =
 (*      before_select = default_before_select; *)
       name = (fun _ -> name);
       born = last_time();
+      
+      dump_info = dump_basic_socket;
     } in
 (*  Printf.printf "ADD ONE TASK"; print_newline (); *)
   if !debug then begin
@@ -394,23 +398,24 @@ let _ =
   
 let stats buf t =
   Printf.printf "Socket %d\n" (Obj.magic t.fd)
-    
+  
+let print_socket s =
+  print_socket s;
+  Printf.printf "  rtimeout %5.0f/%5.0f read %b & %b write %b & %b (born %f)" 
+    (s.next_rtimeout -. last_time ())
+  s.rtimeout
+    (s.want_to_read)
+  (!(s.read_allowed))
+  (s.want_to_write)
+  (!(s.write_allowed))
+  (last_time () -. s.born)
+  ;
+  print_newline ()
+  
 let print_sockets () =
   Printf.printf "PRINT SOCKETS: %d" (List.length !fd_tasks);
   print_newline ();
-  List.iter (fun s ->
-      print_socket s;
-      Printf.printf "  rtimeout %5.0f/%5.0f read %b & %b write %b & %b (born %f)" 
-        (s.next_rtimeout -. last_time ())
-      s.rtimeout
-      (s.want_to_read)
-      (!(s.read_allowed))
-      (s.want_to_write)
-      (!(s.write_allowed))
-      (last_time () -. s.born)
-      ;
-      print_newline ();
-  ) !fd_tasks;
+  List.iter print_socket !fd_tasks;
   ()
   
 let info t = t.name ()
@@ -424,3 +429,14 @@ let _ =
 let set_printer s f =
   s.name <- f
   
+let set_dump_info s f =
+  s.dump_info <- f
+  
+let _ =
+  Heap.register_dumper "BasicSocket" (fun _ ->
+      Printf.printf "  %d timers" (List.length !timers); print_newline ();
+      Printf.printf "  %d fd_tasks" (List.length !fd_tasks); print_newline ();
+      List.iter (fun t -> t.dump_info ()) !fd_tasks;
+      Printf.printf "  %d closed_tasks" (List.length !closed_tasks); print_newline ();
+      List.iter (fun t -> t.dump_info ()) !closed_tasks;
+  )

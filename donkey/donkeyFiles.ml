@@ -145,11 +145,16 @@ let remove_old_clients () =
             then
             new_source file c
       ) locs;
+      Printf.printf "After clean: sources %d" file.file_nlocations; 
+      print_newline ();
       if file.file_nlocations < !!min_left_sources then begin
+          Printf.printf "Not enough sources %d" file.file_nlocations; 
+          print_newline ();
           file.file_sources <- locs;
           file.file_nlocations <- nlocs
         end
   ) !current_files
+  
   
 let check_clients _ =
 (*  Printf.printf "check_clients"; print_newline (); *)

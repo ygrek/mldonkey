@@ -19,3 +19,4 @@ mlchat
 mlchat.byte
 test_*
 ocamlopt-*
+*.static

@@ -521,6 +521,11 @@ let set_write_controler t bc =
   bandwidth_controler t t.sock
   
 let max_buffer_size = ref 100000 
+
+let dump_socket t () = 
+  print_socket t.sock;
+  Printf.printf "rbuf: %d/%d wbuf: %d/%d" t.rbuf.len (String.length t.rbuf.buf) t.wbuf.len (String.length t.wbuf.buf);
+  print_newline ()
   
 let create name fd handler =
   if !debug then begin
@@ -547,6 +552,7 @@ let create name fd handler =
         ;
     ) in
   set_printer sock name;
+  set_dump_info sock (dump_socket t);
   t.sock <- sock;
   t
 
@@ -567,6 +573,7 @@ let create_blocking name fd handler =
     } in
   let sock = create_blocking name fd (tcp_handler t) in
   t.sock <- sock;
+  set_dump_info sock (dump_socket t);
   t
   
 let create_simple name fd =

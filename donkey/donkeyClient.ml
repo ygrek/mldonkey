@@ -772,8 +772,10 @@ is checked for the file.
                 let c = new_client (Known_location (ip1, port)) in
                 if not (Intmap.mem (client_num c) file.file_sources) then
                   new_source file c;
+                (* we should probably only add this client if it is not already there ... 
                 clients_list := (c, [file]) :: !clients_list;
-                incr clients_list_len;
+incr clients_list_len;
+  *)
           ) t.Q.sources
         with _ -> ()
       end
