@@ -76,7 +76,8 @@ let max_known_peers = define_option limewire_ini ["max_known_peers"]
 let server_connection_timeout = 
   define_option limewire_ini ["server_connection_timeout"] 
   "timeout when connecting to a server" float_option 10.
-    
+  
+  (*
 let verbose_clients = 
   define_option limewire_ini ["verbose_clients"] 
   "level of verbosity when communicating with clients" 
@@ -85,7 +86,8 @@ let verbose_clients =
 let verbose_servers = 
   define_option limewire_ini ["verbose_servers"] 
     "level of verbosity when communicating with servers" int_option 0
-  
+    *)
+
 let network_options_prefix = define_option limewire_ini
     ["options_prefix"] "The prefix which is appended to options names
     when they are used in the telnet/WEB interfaces"

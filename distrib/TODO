@@ -16,7 +16,8 @@ Before 2.03:
 * Identify shared chunks md4s, stats
 * nu= (download = 0) mld becomes stalled
 * Check the problem with clients disconnecting with 'n'
-
+* We should be careful with remove: can a client still be in a queue for
+   another file when removed ? Add a counter to the source !
 
 Some fields are not necessary anymore:
   - zone_file

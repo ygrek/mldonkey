@@ -32,7 +32,8 @@ let gnutella_503_shielded = "GNUTELLA/0.6 503 I am a shielded leaf node"
 
   
 type packet_type =
-  PING | PONG | PUSH | QUERY | QUERY_REPLY | UNKNOWN of int
+  PING | PONG | QRP | VENDOR | STANDARD | 
+  PUSH | QUERY | QUERY_REPLY | UNKNOWN of int
 
 type 'a packet = {
     pkt_uid : Md4.t;
@@ -199,11 +200,13 @@ f a r m e r   m y l e n e  (0) < ? x m l   v e r s i o n = " 1 . 0 " ? > < a u d
         keywords : string;
         xml_query : string;
       }
-    
+      
     let parse s =
       let min_speed = get_int16 s 0 in
       let keywords,pos = get_string s 2 in
-      let xml_query, pos = get_string s pos in
+      let xml_query, pos = 
+        if pos < String.length s then get_string s pos
+        else "", pos in
       { 
         min_speed = min_speed;
         keywords = keywords;
@@ -391,6 +394,72 @@ E A 3 B 7 "   b i t r a t e = " 1 6 0 "   s e c o n d s = " 3 7 5 " i n d e x = 
       buf_md4 buf t.guid
       
   end
+
+module QrtReset = struct
+    (*
+    struct gnutella_qrp_reset {
+        guchar table_length[4]; /* little endian */
+        guchar infinity;
+} __attribute__((__packed__));
+*)
+
+    type t = {
+        table_length : int;
+        infinity : int;
+      }
+      
+    let parse s = 
+      { table_length = get_int s 0;
+        infinity = get_int8 s 4;
+      }
+      
+    let print t = 
+      Printf.printf "QRT Reset %d %d" t.table_length t.infinity
+      
+    let write buf t = 
+      buf_int buf t.table_length;
+      buf_int8 buf t.infinity
+      
+  end
+
+module QrtPatch = struct
+    (*
+struct gnutella_qrp_patch {
+        guchar seq_no;
+        guchar seq_size;
+        guchar compressor;
+        guchar entry_bits;
+} __attribute__((__packed__));
+*)
+
+    type t = {
+        seq_no : int; (* char *)
+        seq_size : int; (* char *)
+        compressor : int; (* char *)
+        entry_bits : int; (* char *)
+        table : string;
+      }
+       
+    let parse s = 
+      {
+        seq_no = get_int8 s 0;
+        seq_size = get_int8 s 1;
+        compressor = get_int8 s 2;
+        entry_bits = get_int8 s 3;
+        table = String.sub s 4 (String.length s - 4);
+      }
+      
+    let print t = 
+      Printf.printf "QRT PATCH"
+      
+    let write buf t = 
+      buf_int8 buf t.seq_no;
+      buf_int8 buf t.seq_size;
+      buf_int8 buf t.compressor;
+      buf_int8 buf t.entry_bits;
+      Buffer.add_string buf t.table
+      
+  end
   
 type t = 
 | PingReq of Ping.t
@@ -398,6 +467,8 @@ type t =
 | PushReq of Push.t
 | QueryReq of Query.t
 | QueryReplyReq of QueryReply.t
+| QrtPatchReq of QrtPatch.t
+| QrtResetReq of QrtReset.t
 | UnknownReq of packet_type * string
   
 let parse pkt = 
@@ -414,6 +485,17 @@ let parse pkt =
     | QUERY_REPLY ->  
         { pkt with pkt_payload = QueryReplyReq
             (QueryReply.parse pkt.pkt_payload) }
+    | QRP -> 
+        { pkt with pkt_payload = 
+          (if int_of_char pkt.pkt_payload.[0] = 0 then
+              QrtResetReq (QrtReset.parse pkt.pkt_payload) 
+            else
+              QrtPatchReq (QrtPatch.parse pkt.pkt_payload))
+        }
+    | VENDOR ->  { pkt with pkt_payload = UnknownReq 
+            (UNKNOWN 49,pkt.pkt_payload) }
+    | STANDARD ->  { pkt with pkt_payload = UnknownReq 
+          (UNKNOWN 50,pkt.pkt_payload) }
     | UNKNOWN i ->  { pkt with pkt_payload = UnknownReq 
           (UNKNOWN i,pkt.pkt_payload) }
   with e ->
@@ -429,6 +511,12 @@ let write buf t =
   | PushReq t -> Push.write buf t
   | QueryReq t -> Query.write buf t
   | QueryReplyReq t -> QueryReply.write buf t
+  | QrtPatchReq t -> 
+      buf_int8 buf 1;
+      QrtPatch.write buf t
+  | QrtResetReq t -> 
+      buf_int8 buf 0;
+      QrtReset.write buf t
   | UnknownReq (i,s) -> Buffer.add_string buf s
         
 let print p =
@@ -436,6 +524,8 @@ let print p =
   | PingReq t -> Ping.print t
   | PongReq t -> Pong.print t
   | PushReq t -> Push.print t
+  | QrtResetReq t -> QrtReset.print t
+  | QrtPatchReq t -> QrtPatch.print t
   | QueryReq t -> Query.print t
   | QueryReplyReq t -> QueryReply.print t
   | UnknownReq (i,s) -> 
@@ -448,14 +538,18 @@ let server_msg_to_string pkt =
   Buffer.clear buf;
   buf_md4 buf pkt.pkt_uid;
   buf_int8 buf (match pkt.pkt_type with
-      PING -> 0
+    | PING -> 0
     | PONG -> 1
+    | QRP -> 48 (* 0x30 *)
+    | VENDOR -> 49 (* 0x31 *)
+    | STANDARD -> 50 
     | PUSH -> 64
     | QUERY -> 128
     | QUERY_REPLY -> 129
     | UNKNOWN i -> i);
   buf_int8 buf pkt.pkt_ttl;
-  buf_int8 buf pkt.pkt_hops;
+  buf_int8 buf 0 (* pkt.pkt_hops *); (* as a leaf node, we should always send
+  a hops = 0 *)
   buf_int buf 0;
   write buf pkt.pkt_payload;
   let s = Buffer.contents buf in
@@ -473,9 +567,12 @@ let new_packet t =
       | PongReq _ -> PONG
       | PushReq _ -> PUSH
       | QueryReq _ -> QUERY
+      | QrtResetReq _ | QrtPatchReq _ -> QRP
       | QueryReplyReq _ -> QUERY_REPLY
       | UnknownReq (i,_) -> i);
-    pkt_ttl = 7;
+    pkt_ttl = (match t with
+      | QrtPatchReq _ | QrtResetReq _ -> 1
+      | _ -> 7);
     pkt_hops = 0;
     pkt_payload  =t;
   }
@@ -540,7 +637,7 @@ let handler info header_handler body_handler =
             if n_read then begin
                 let header = String.sub b.buf b.pos (i - b.pos) in
                 
-                if info > 10 then begin
+                if info then begin
                     Printf.printf "HEADER : ";
                     dump header; print_newline ();
                   end;
@@ -566,7 +663,7 @@ Printf.printf "LEFT %d" (nread - nused); print_newline ();
           else
             iter (i+1) false
         else begin
-            if info > 0 then (
+            if info then (
                 Printf.printf "END OF HEADER WITHOUT END"; print_newline ();
                 let header = String.sub b.buf b.pos b.len in
                 LittleEndian.dump header;

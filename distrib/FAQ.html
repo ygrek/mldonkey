@@ -13,7 +13,8 @@
 
  <a href=faq.html> English </a>, 
  <a href=faq.html.de> Deutsch </a>, 
-ou <a href=faq.html.fr> Francais </a>
+ <a href=faq.html.fr> Francais </a>
+o&nbsp;<a href=faq.html.es>Español</a>
 
 </center>
 
@@ -38,8 +39,8 @@ ou <a href=faq.html.fr> Francais </a>
       <li> <strong> <a href=#run2> How can I control mldonkey ? </a> </strong>
       <li> <strong> <a href=#run3> Where/what are mldonkey configuration files ? </a> </strong>
       <li> <strong> <a href=#run4> How can I control the bandwidth used by mldonkey ? </a> </strong>
-      <li> <strong> <a href=#run5> When I modify an option in the config file, mldonkey overwrites it with its old value ? </strong>
-      <li> <strong> <a href=#run6> Where are the files I have downloaded with mldonkey ? </strong>
+      <li> <strong> <a href=#run5> When I modify an option in the config file, mldonkey overwrites it with its old value ? </a> </strong>
+      <li> <strong> <a href=#run6> Where are the files I have downloaded with mldonkey ? </a> </strong>
       <li> <strong> <a href=#run7> Why does MLdonkey automatically pause some of my downloads ? </a> </strong>
       <li> <strong> <a href=#run8> How can I reach mldonkey WEB interface 
 if my firewall only allows port 80 ? </a> </strong> 
@@ -115,8 +116,8 @@ mldonkey plugins ?  </a> </strong>
 <ol>
   <li> <h3> <a name=back1> What is mldonkey ? </a> </h3>
 
-Formerly, mldonkey was a Linux client for the eDonkey network, build from
-a reverse-engeneered version of the protocol. Now, it is also able to connect
+Formerly, mldonkey was a Linux client for the eDonkey network, built from
+a reverse-engineered version of the protocol. Now, it is also able to connect
 to multiple networks (gnutella, Direct-Connect, Soulseek, etc).
 
 <p> 
@@ -132,7 +133,7 @@ GUI. Other GUIs have also been created for mldonkey.
 
   <li> <h3> <a name=back2> Why use Objective-Caml to program mldonkey ?  </a> </h3>
 
-Most programmers associate functionnal languages with languages theory, 
+Most programmers associate functional languages with languages theory,
 lambda-calculus, recursivity, and non-mutable variables, ie the most 
 boring lectures at university.
 
@@ -177,12 +178,12 @@ Support system </a> where you can ask for support in running mldonkey.
 </ul>
 
 <p> You can also try to read/post in the 
-<a href="http://forums.edonkey2000.com/phpBB/viewforum.php?forum=21">
- Linux eDonkey Forums </a>
+<a href="http://www.mldonkeyworld.com/">
+ MLDonkey Forums </a> or on the IRC Channel #mldonkey on irc.freenode.net .
 
   <li> <h3> <a name=back4>   Where can I download mldonkey ?  </a> </h3>
 
-The latest stable binaries can be downloaded from the 
+The latest stable binaries can be downloaded from the
 <a href="http://savannah.nongnu.org/download/mldonkey/">
  Project Download page </a>.
 
@@ -387,7 +388,7 @@ directory are identified by their MD4 (for edonkey files) or by a random
 identifier. 
 
 <p> When the download of a  file is finished, the file is added to a list 
-of files that have to be "commited". These files are not renamed, so they 
+of files that have to be "committed". These files are not renamed, so they
 are still kept in the temp directory.
 
  <p> To move finished downloads into the <tt> incoming/ </tt> directory with
@@ -505,7 +506,7 @@ it.
   <li> <h3> <a name=build1>   How can I download the latest sources 
 of mldonkey ? </a> </h3>
 
- Chechout the sources of mldonkey from the 
+ Checkout the sources of mldonkey from the 
 <a href="http://savannah.nongnu.org/cvs/?group_id=1409"> CVS repository </a>.
 Here is the standard procedure:
 
@@ -777,9 +778,9 @@ startup, not as the number of servers he will remain connected to.
  <li> <h3> <a name=edonkey6> I'm behind a firewall, what should I do ? </a> </h3> 
 
 MLdonkey uses two ports for incoming connections, one on TCP (default is 
-4662) and the other one for UDP (4666). Thus, you should open these ports 
+4662) and the other one for UDP (4666). Thus, you should open these ports
 in your firewall, and forward them to the computer running mldonkey. More 
-generally, you can do that for all ports between 4660 and 4660.
+generally, you can do that for all ports between 4660 and 4670.
 
 <p> Allowing incoming connections is important as it is the only way for 
 you to connect other sources which are behind a firewall.
@@ -808,7 +809,7 @@ shared_directories = [ "/usr/share/documents"; "/usr/share/videos"]
 <li> <H3> <a name=slsk0> What is the Soulseek network ? </a> </H3>
 
 The <a href="http://www.soulseek.org"> Soulseek Network </a> is a network 
-closed to Napster. 
+similar to Napster.
 
  <p> You connect on a single server, and there, you can search for (mainly
 audio) files, you can join rooms to chat with other users, and you can browse
@@ -1124,7 +1125,7 @@ Galaxy </a> </td>
 
 <p>
 
-If you have any comment, if you want to add some questions, or improve 
+If you have any comments, if you want to add some questions, or improve
 this FAQ, send a mail to <a href="mailto:mldonkey@mldonkey.net"> 
 mldonkey@mldonkey.net </a>
 

@@ -104,7 +104,8 @@ Frequently Asked Questions
 
 You can reach us for a short time on 
 
-      mldonkey@monsieurcinema.com
+      mldonkey@mldonkey.net
+      mldonkey-users@non-gnu.org
 
 Please don't bother us too much with questions on how to use mldonkey. We
 prefer bug reports, containing USEFUL information to find the bug. You can
@@ -112,29 +113,17 @@ also submit bugs on the savannah WEB site:
 
   http://www.freesoftware.fsf.org/mldonkey/
 
-For advices on how to use mldonkey, you can check several forums.
-In particular, 
+For advices on how to use mldonkey, you can check several forums:
 
-  http://forums.edonkey2000.com/
-
-contains an interesting linux topics.
+  http://www.mldonkeyworld.com/
+  http://www.mldonkey.org/      (German forum)
 
 *) What about the sources ? What about the protocol ?
 -----------------------------------------------------
 
-Most sources are available on the savannah WEB site, except the protocol
-files:
+All sources are available on the savannah WEB site:
 
   http://www.freesoftware.fsf.org/mldonkey/
-
-However, the distribution contains enough information to port mldonkey
-on all systems where Objective-Caml has been ported. In the future, we will
-provide additionnal files with a pseudo-protocol, so that contributors can
-test their changes on a local network before sending them to us.
-
-We will not release the protocol, because we don't want to be accused of
-being the murderers of the eDonkey network. However, since our knowledge of
-the protocol is only partial, we are interested in any information on it.
 
 *) The GUI/telnet/WEB can't connect to the core.
 -----------------------------------------------

@@ -316,7 +316,9 @@ end
 
 
 let colorGreen = `NAME "green"
+let colorDGreen= `NAME "darkgreen"
 let colorRed   = `NAME "red"
+let colorDRed  = `NAME "darkred"
 let colorBlue  = `NAME "blue"
 let colorGray  = `NAME "gray"
 let colorWhite =`WHITE
@@ -467,49 +469,26 @@ class box_list (client_info_box : GPack.box) friend_tab =
                   ~justify:`LEFT ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0) ()
                 in
                 table#attach ~left:1 ~top:(2+2 *i) file_name_label#coerce; 
-                let avail_label =  GMisc.drawing_area ~width: 200 ~height:20 () in
-                table#attach ~left:1 ~top:(3+2 *i) avail_label#coerce; 
+                let avail_label =  GMisc.drawing_area ~height:20 () in
+                table#attach ~left:1 ~top:(3+2 *i) ~expand:`X avail_label#coerce; 
                 
                 ignore (avail_label#event#connect#expose ~callback:
                   (fun _ -> 
-                      
-                      
                       let w = avail_label#misc#window in
                       let d = new GDraw.drawable w in
                       avail_label#misc#show ();
                       
-                      let nchunks = String.length avail in
-                      
-                      let wx = 200 in
-                      let wy = 20 in
-                      
-                      let init = avail.[0] = '1' in
+                      let wx, wy = d#size in
                       let nchunks = String.length file.file_chunks in
-                      let dx = (float_of_int wx) /. (float_of_int nchunks) in
-                      
-                      let draw x0 x1 inside =
-                        d#set_foreground (
-                          if inside then colorGreen else colorRed
-                        );
-                        d#rectangle ~filled: true
-                        ~x:x0  ~y: 0 
-                          ~width: (x1 - x0) ~height:wy ()
-                        
-                      in
-                      
-                      let rec iter inside x0 i =
-                        if i = nchunks then
-                          draw x0 (int_of_float (float_of_int i *. dx) ) inside
+                      let dx = if wx < nchunks then 1 else min !!O.chunk_width (wx / nchunks) in
+                      let dx2 = if dx <= 2 then dx else dx - 1 in
+                      for j = 0 to nchunks - 1 do
+                        if avail.[j] = '1' then
+                          d#set_foreground (if file.file_chunks.[j] = '1' then colorDGreen else colorGreen)
                         else
-                        if inside = (avail.[i] = '1') then
-                          iter inside x0 (i+1)
-                        else 
-                        let x1 = int_of_float (float_of_int i *. dx) in
-                        draw x0 x1 inside;
-                        iter (not inside) x1 (i+1)
-                          
-                      in
-                      iter init 0 1;
+                          d#set_foreground (if file.file_chunks.[j] = '1' then colorDRed else colorRed);
+                        d#rectangle ~filled: true ~x:(j*dx) ~y: 0 ~width: dx2 ~height:wy ();
+                      done;
                       
                       false));
                 

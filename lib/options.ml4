@@ -83,7 +83,8 @@ let create_options_file name =
   }
   
 let set_options_file opfile name = opfile.file_name <- name
-  
+let print_options_not_found = ref false
+
 let
   define_option_class
     (class_name : string)
@@ -382,10 +383,12 @@ let really_load filename header_options options =
         with
           SideEffectOption -> ()
         | OptionNotFound ->
-            Printf.printf "Option ";
-            List.iter (fun s -> Printf.printf "%s " s) o.option_name;
-            Printf.printf "not found in %s" filename;
-            print_newline ();
+            if !print_options_not_found then begin
+                Printf.printf "Option ";
+                List.iter (fun s -> Printf.printf "%s " s) o.option_name;
+                Printf.printf "not found in %s" filename;
+                print_newline ()
+              end
         | e ->
             Printf.printf "Exception: %s while handling option:"
               (Printexc2.to_string e); 

@@ -47,7 +47,10 @@ let _ =
           search_uid = p.pkt_uid;
         } in
       Hashtbl.add searches_by_uid p.pkt_uid s;
-      ())
+      ());
+  network.op_network_connected <- (fun _ ->
+      !connected_servers <> []   
+  )
   
 let _ =
   result_ops.op_result_download <- (fun result _ force ->

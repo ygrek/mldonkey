@@ -60,6 +60,62 @@ let bloom_hash_full s pos len bits =
   
 let bloom_hash s bits = bloom_hash_full s 0 (String.length s) bits
   
+let create_qrt_table words table_size =
+  let infinity = 7 in
+  let table_length = 1 lsl table_size in
+  let old_array = Array.create table_length infinity in
+  let array = Array.create table_length infinity in
+  List.iter (fun w ->
+      let pos = bloom_hash w table_size in
+      Printf.printf "Position %Ld" pos; print_newline ();
+      array.(Int64.to_int pos) <- 1;
+  ) words;
+  let string_size = table_length/2 in
+  let table = String.create  string_size in
+  for i = 0 to string_size - 1 do
+    table.[i] <- char_of_int (
+      (
+        ((array.(i*2) - old_array.(i*2)) land 15) lsl 4) + 
+      ((array.(i*2+1) - old_array.(i*2+1)) land 15))
+  done;
+  table
+(*  
+   create_qrt_table ["qrp"] 3;;
+- : string = "\000\000\000\160"
+   create_qrt_table ["test"] 3;;
+
+
+*)
+
+let all_shared_words = ref []
+let cached_qrt_table = ref ""
+  
+let send_qrt_sequence s =
+  let table_size = 10 in
+  let infinity = 7 in
+  let table_length = 1 lsl table_size in
+  server_send_new s (QrtResetReq {
+      QrtReset.table_length = table_length;
+      QrtReset.infinity = infinity;
+    });
+  
+  if !cached_qrt_table = "" then 
+        cached_qrt_table := create_qrt_table !all_shared_words table_size;
+  let table = !cached_qrt_table in
+  
+  let compressor, table =
+    (* 0, table *)
+    1, Zlib.compress_string table
+  in
+  
+  server_send_new s (QrtPatchReq {
+      QrtPatch.seq_no = 1;
+      QrtPatch.seq_size = 1;
+      QrtPatch.compressor = compressor;
+      QrtPatch.entry_bits = 4;
+      QrtPatch.table = table;
+    })
+  
 let send_query min_speed keywords xml_query =
   let module Q = Query in
   let words = String2.unsplit keywords ' ' in
@@ -68,7 +124,7 @@ let send_query min_speed keywords xml_query =
       Q.keywords = words;
       Q.xml_query  = "" } in
   let p = new_packet t in
-  if !!verbose_servers > 0 then begin
+  if !verbose_msg_servers then begin
       Printf.printf "sending query for <%s>" words; print_newline ();
     end;
   List.iter (fun s ->
@@ -122,16 +178,16 @@ let recover_files () =
   ()
   
 let recover_files_from_server sock =
-  if !!verbose_servers > 0 then begin
+  if !verbose_msg_servers then begin
       Printf.printf "trying to recover files from server"; print_newline ();
     end;
   List.iter (fun file ->
-      if !!verbose_servers > 0 then begin
+      if !verbose_msg_servers then begin
           Printf.printf "FOR FILE %s" file.file_name; print_newline ();
         end;
       let keywords = get_name_keywords file.file_name in
       let words = String2.unsplit keywords ' ' in
-      if !!verbose_servers > 0 then begin
+      if !verbose_msg_servers then begin
           Printf.printf "sending query for <%s>" words; print_newline ();
           end;
       let module Q = Query in
@@ -168,7 +224,7 @@ let redirector_parse_header sock header =
           P.s = "none:128:false";
         }))
     end else begin
-      if !!verbose_servers>10 then begin
+      if !verbose_msg_servers then begin
           Printf.printf "BAD HEADER FROM REDIRECTOR: "; print_newline (); 
           LittleEndian.dump header;
         end;
@@ -200,7 +256,7 @@ let connect_to_redirector () =
 
         
         redirector_connected := true;
-        set_reader sock (handler !!verbose_servers redirector_parse_header
+        set_reader sock (handler !verbose_msg_servers redirector_parse_header
             (gnutella_handler parse redirector_to_client)
         );
         set_closer sock (fun _ _ -> 
@@ -309,7 +365,7 @@ let find_header header headers default =
   with Not_found -> default
   
 let server_parse_header s sock header =
-  if !!verbose_servers> 10 then  LittleEndian.dump_ascii header;  
+  if !verbose_msg_servers then  LittleEndian.dump_ascii header;  
   try
     if String2.starts_with header gnutella_200_ok then begin
 (*      Printf.printf "GOOD HEADER FROM ULTRAPEER";
@@ -382,7 +438,7 @@ print_newline ();
       disconnect_from_server s
       
 let server_to_client s p sock =
-  if !!verbose_servers > 100 then begin
+  if !verbose_msg_servers then begin
       Printf.printf "server_to_client"; print_newline ();
       print p;
     end;
@@ -391,7 +447,7 @@ let server_to_client s p sock =
       if p.pkt_hops <= 3 then
         server_send sock {
           p with 
-          pkt_hops = p.pkt_hops + 1;
+          pkt_hops = 0;
           pkt_type = PONG;
           pkt_payload = (
             let module P = Pong in
@@ -401,7 +457,9 @@ let server_to_client s p sock =
               P.nfiles = 10;
               P.nkb = 10;
             });
-        }
+        };
+      send_qrt_sequence sock
+        
   | PongReq t ->
       
       let module P = Pong in
@@ -467,7 +525,7 @@ let send_pings () =
   ) !connected_servers
       
 let connect_server (ip,port) =
-  if !!verbose_servers > 5 then begin
+  if !verbose_msg_servers then begin
       Printf.printf "SHOULD CONNECT TO %s:%d" (Ip.to_string ip) port;
       print_newline ();
     end;
@@ -491,7 +549,7 @@ let connect_server (ip,port) =
         set_server_state s Connecting;
         s.server_sock <- Some sock;
         incr nservers;
-        set_reader sock (handler !!verbose_servers (server_parse_header s)
+        set_reader sock (handler !verbose_msg_servers (server_parse_header s)
           (gnutella_handler parse (server_to_client s))
         );
         set_closer sock (fun _ error -> 

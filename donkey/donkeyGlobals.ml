@@ -560,7 +560,6 @@ let dummy_client =
       client_connect_time = 0;
       client_requests_sent = 0;
       client_requests_received = 0;
-      client_from_queues = [];
       client_indirect_address = None;
       } and
     client_impl = {
@@ -609,7 +608,6 @@ let create_client key num =
       client_connect_time = 0;
       client_requests_received = 0;
       client_requests_sent = 0;
-      client_from_queues = [];
       client_indirect_address = None;      
       } and
     client_impl = {

@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonOptions
 open CommonDownloads
 open Md4
 open CommonInteractive
@@ -53,7 +54,7 @@ module Download = CommonDownloads.Make(struct
       
       let client_disconnected d =
         let c = d.download_client in
-        if !!verbose_clients > 0 then begin
+        if !verbose_msg_clients then begin
             Printf.printf "Disconnected from source"; print_newline ();    
           end;
         connection_failed c.client_connection_control;
@@ -77,7 +78,7 @@ let disconnect_client c =
     None -> ()
   | Some sock -> 
       try
-        if !!verbose_clients > 0 then begin
+        if !verbose_msg_clients then begin
             Printf.printf "Disconnected from source"; print_newline ();    
           end;
         connection_failed c.client_connection_control;
@@ -96,7 +97,7 @@ let is_http_ok header =
   | _ -> false
   
 let client_parse_header c sock header = 
-  if !!verbose_clients > 20 then begin
+  if !verbose_msg_clients then begin
       Printf.printf "CLIENT PARSE HEADER"; print_newline ();
     end;
   try
@@ -105,14 +106,14 @@ let client_parse_header c sock header =
     | Some d ->
         connection_ok c.client_connection_control;
         set_client_state c Connected_initiating;    
-        if !!verbose_clients > 10 then begin
+        if !verbose_msg_clients then begin
             Printf.printf "HEADER FROM CLIENT:"; print_newline ();
             LittleEndian.dump_ascii header; 
           end;
         if is_http_ok header then
           begin
             
-            if !!verbose_clients > 5 then begin
+            if !verbose_msg_clients then begin
                 Printf.printf "GOOD HEADER FROM CONNECTED CLIENT"; print_newline ();
               end;
             
@@ -169,7 +170,7 @@ let client_parse_header c sock header =
                   end;
                 set_client_state c (Connected 0);    
           end else begin
-            if !!verbose_clients > 0 then begin
+            if !verbose_msg_clients then begin
                 Printf.printf "BAD HEADER FROM CONNECTED CLIENT:"; print_newline ();
                 LittleEndian.dump header;
               end;        
@@ -277,7 +278,7 @@ let friend_parse_header c sock header =
               begin
                 (* add_peers headers; *)
                 write_string sock "GNUTELLA/0.6 200 OK\r\n\r\n";
-                if !!verbose_clients > 1 then begin
+                if !verbose_msg_clients then begin
                     Printf.printf "********* READY TO BROWSE FILES *********";
                     print_newline ();
                   end;
@@ -291,11 +292,11 @@ let friend_parse_header c sock header =
       disconnect_client c
       
 let get_from_client sock (c: client) (file : file) =
-  if !!verbose_clients > 0 then begin
+  if !verbose_msg_clients then begin
       Printf.printf "FINDING ON CLIENT"; print_newline ();
     end;
   let index = List.assoc file c.client_downloads in
-  if !!verbose_clients > 0 then begin
+  if !verbose_msg_clients then begin
       Printf.printf "FILE FOUND, ASKING"; print_newline ();
       end;
 
@@ -319,14 +320,14 @@ let connect_client c =
   match c.client_sock with
   | Some sock -> ()
   |    None ->
-      if !!verbose_clients > 0 then begin
+      if !verbose_msg_clients then begin
           Printf.printf "connect_client"; print_newline ();
         end;
       try
         match c.client_user.user_kind with
           Indirect_location _ -> ()
         | Known_location (ip, port) ->
-            if !!verbose_clients > 0 then begin
+            if !verbose_msg_clients then begin
                 Printf.printf "connecting %s:%d" (Ip.to_string ip) port; 
                 print_newline ();
               end;
@@ -354,12 +355,12 @@ an upload request *)
                     disconnect_client c
                 );
                 set_rtimeout sock 30.;
-                if !!verbose_clients > 0 then begin
+                if !verbose_msg_clients then begin
                     Printf.printf "NOTHING TO DOWNLOAD FROM CLIENT"; print_newline ();
                   end;
                 if client_type c = NormalClient then                
                   disconnect_client c;
-                set_reader sock (handler !!verbose_clients (friend_parse_header c)
+                set_reader sock (handler !verbose_msg_clients (friend_parse_header c)
                   (gnutella_handler parse (client_to_client c))
                 );
                 let s = add_header_fields 
@@ -374,11 +375,11 @@ an upload request *)
             
             
             | (file, _) :: _ ->
-                if !!verbose_clients > 0 then begin
+                if !verbose_msg_clients then begin
                     Printf.printf "READY TO DOWNLOAD FILE"; print_newline ();
                   end;
                 let d = get_from_client sock c file in
-                set_reader sock (handler !!verbose_clients
+                set_reader sock (handler !verbose_msg_clients
                     (client_parse_header c) 
                   (Download.download_reader d));
                 
@@ -410,42 +411,42 @@ let find_file file_name file_size =
       raise e
       
 let push_handler cc sock header = 
-  if !!verbose_clients > 0 then begin
+  if !verbose_msg_clients then begin
       Printf.printf "PUSH HEADER: [%s]" (String.escaped header);
       print_newline (); 
     end;
   try
     if String2.starts_with header "GIV" then begin
-        if !!verbose_clients > 0 then begin    
+        if !verbose_msg_clients then begin    
             Printf.printf "PARSING GIV HEADER"; print_newline (); 
           end;
         let colon_pos = String.index header ':' in
         let slash_pos = String.index header '/' in
         let uid = Md4.of_string (String.sub header (colon_pos+1) 32) in
         let index = int_of_string (String.sub header 4 (colon_pos-4)) in
-        if !!verbose_clients > 0 then begin
+        if !verbose_msg_clients then begin
             Printf.printf "PARSED"; print_newline ();
           end;
         let c = new_client uid (Indirect_location ("", uid)) in
         match c.client_sock with
           Some _ -> 
-            if !!verbose_clients > 0 then begin
+            if !verbose_msg_clients then begin
                 Printf.printf "ALREADY CONNECTED"; print_newline (); 
               end;
             close sock "already connected"
         | None ->
-            if !!verbose_clients > 0 then begin
+            if !verbose_msg_clients then begin
                 Printf.printf "NEW CONNECTION"; print_newline ();
               end;
             cc := Some c;
             c.client_sock <- Some sock;
             connection_ok c.client_connection_control;
             try
-              if !!verbose_clients > 0 then begin
+              if !verbose_msg_clients then begin
                   Printf.printf "FINDING FILE %d" index; print_newline ();
                 end;
               let file = List2.assoc_inv index c.client_downloads in
-              if !!verbose_clients > 0 then begin
+              if !verbose_msg_clients then begin
                   Printf.printf "FILE FOUND"; print_newline ();
                 end;
               let d = get_from_client sock c file in

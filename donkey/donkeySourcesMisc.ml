@@ -58,6 +58,7 @@ let dummy_source = {
     source_overnet = false;
     source_score = 0;
     source_age = 0;
+    source_in_queues = [];
   }
 
 let string_of_result r =
@@ -130,15 +131,32 @@ let add_source_request s file time result =
 let set_request_result c file rs =
   try
     List.iter (fun r ->
-        if r.request_file == file then
-          (r.request_result <- rs; raise Exit)
+        if r.request_file == file then begin
+
+            (*
+            (match r.request_result, rs with
+              | _, (File_not_found | File_possible | File_expected ) -> ()
+              | File_possible, _ ->
+                  Printf.printf "adding client to queue"; print_newline ();
+                  c.client_from_queues <- file :: c.client_from_queues
+              | _, _ -> ()
+            ); *)
+            (r.request_result <- rs; raise Exit)
+          end
     ) c.client_files;
     let r = {
         request_file = file;
         request_time = last_time ();
         request_result = rs;
       } in
-    c.client_files <- r :: c.client_files
+    c.client_files <- r :: c.client_files;
+    match rs with
+    | File_not_found | File_possible | File_expected  -> ()
+    |  _ ->
+        Printf.printf "adding client to queue"; print_newline ()
+        (*
+        c.client_from_queues <- file :: c.client_from_queues
+*)
         
   with Exit -> ()
   
@@ -228,12 +246,17 @@ Define some interesting queues:
 
 (* Connect to a client. Test before if the connection is really useful. *)
 let useful_client source_of_client reconnect_client c = 
+  let v =
+(*  Printf.printf "Test %d: " (client_num c);  *)
   if !verbose_sources then begin
       Printf.printf "Testing source"; print_newline ();
     end;
   let (files, downloading) = purge_requests c.client_files in
   c.client_files <- files;
   try
+(*
+      if not downloading then (Printf.printf "Not downloading"; 
+        print_newline ()); *)
     if downloading || 
       (client_type c <> NormalClient &&
         c.client_next_view_files < last_time ()) then
@@ -244,22 +267,29 @@ let useful_client source_of_client reconnect_client c =
                   Printf.printf "Indirect localtion ?"; print_newline ();
               | _ -> ());
           end;
+(*        Printf.printf "connect"; *)
         reconnect_client c; 
         match  client_state c with
         | NotConnected _ ->
+(*            Printf.printf " failed"; *)
             if !verbose_sources then begin
                 Printf.printf "--------- Connection to source failed"; print_newline ();
               end;
             source_of_client c; false
         | _ ->
+(*            Printf.printf " done"; *)
             outside_queue := Intmap.add  (client_num c) c !outside_queue;
             true
       )
     else raise Not_found
-  with _ ->
-      source_of_client c;
-      false
-
+    with _ ->
+(*         Printf.printf " exception"; *)
+        source_of_client c;
+        false
+  in
+(*  print_newline ();  *)
+  v
+  
 let rank_level rank =
   if rank = 0 then 0 else
   if rank = 1 then 1 else

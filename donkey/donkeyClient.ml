@@ -160,9 +160,10 @@ and find_pending_slot () =
 let log_client_info c sock = 
   let buf = Buffer.create 100 in
   let date = BasicSocket.date_of_int (last_time ()) in
-  Printf.bprintf buf "%-12s(%d): %-30s[%-14s %-20s] connected for %5d secs %-10s bw %5d/%-5d %-6s %2d/%-2d reqs " 
+  Printf.bprintf buf "%-12s(%d):%d -> %-30s[%-14s %-20s] connected for %5d secs %-10s bw %5d/%-5d %-6s %2d/%-2d reqs " 
     (Date.simple date) 
   (nb_sockets ())
+  (client_num c)
   (
     let s = c.client_name in
     let len = String.length s in 
@@ -224,6 +225,19 @@ let disconnect_client c =
           DonkeyOneFile.clean_client_zones c;
         with e -> Printf.printf "Exception %s in disconnect_client"
               (Printexc2.to_string e); print_newline ());
+(*      Printf.printf "Client %d to source:" (client_num c);
+      List.iter (fun r ->
+                print_char (
+                  match r.request_result with
+                  | File_chunk ->      'C'
+                  | File_upload ->     'U'
+                  | File_not_found ->  '-'
+                  | File_found ->      '+'
+                  | File_possible ->   '?'
+                  | File_expected ->   '!'
+                  | File_new_source -> 'n'
+                )) c.client_files;      
+      print_newline (); *)
       DonkeySources.source_of_client c
   
 let client_send_if_possible c sock msg =

@@ -191,7 +191,6 @@ and client = {
     mutable client_connect_time : int;
     mutable client_requests_received : int;
     mutable client_requests_sent: int;
-    mutable client_from_queues : file list;
     mutable client_indirect_address : (Ip.t * Ip.t * int) option;
   }
   
@@ -237,6 +236,7 @@ and source = {
     mutable source_overnet : bool;
     mutable source_score : int;
     mutable source_age : int;
+    mutable source_in_queues : file list;
   }
 
   

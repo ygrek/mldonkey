@@ -478,7 +478,7 @@ let redraw_chunks draw_avail file =
   let dx = min !!O.chunk_width (wx / nchunks) in
   let offset = (wx - nchunks * dx) / 2 in
   let offset = if offset < 0 then 0 else offset in
-  let dx2 = if dx <= 3 then dx else dx - 1 in
+  let dx2 = if dx <= 2 then dx else dx - 1 in
   for i = 0 to nchunks - 1 do
     if !!Gui_options.use_availability_height
     then begin
