@@ -151,10 +151,10 @@ let value_reader gui t =
         
         
         let version = min v GuiEncoding.best_gui_version in
-        for i = 0 to GuiDecoding.to_gui_last_opcode do
+        for i = 0 to to_gui_last_opcode do
           Gui_com.to_gui_protocol_used.(i) <- version;
         done;
-        for i = 0 to GuiDecoding.from_gui_last_opcode do
+        for i = 0 to from_gui_last_opcode do
           Gui_com.from_gui_protocol_used.(i) <- version;
         done;
         lprintf "Using protocol %d for communications\n" version;
@@ -361,7 +361,7 @@ let value_reader gui t =
         gui#tab_friends#h_update_friend_state (num , state);
         gui#tab_uploads#h_update_client_state (num , state);
         gui#tab_downloads#h_update_client_state (num , state)
-    
+        
     | Client_friend (num, friend_kind) ->
         gui#tab_friends#h_update_friend_type (num , friend_kind);
         gui#tab_uploads#h_update_client_type (num , friend_kind);
@@ -432,6 +432,10 @@ let value_reader gui t =
     
     | GiftServerAttach _
     | GiftServerStats _ -> assert false
+
+    | Search s -> ()
+    | Pending _ -> ()
+    | Uploaders _ -> ()
         
   with e ->
       lprintf "Exception %s in reader\n" (Printexc2.to_string e)

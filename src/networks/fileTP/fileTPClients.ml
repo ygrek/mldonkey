@@ -75,7 +75,8 @@ let disconnect_client c r =
               match d.download_uploader with
                 None -> ()
               | Some up ->
-                  Int64Swarmer.disconnect_uploader up
+                  Int64Swarmer.disconnect_uploader up;
+                  d.download_ranges <- [];
             ) c.client_downloads;
           if c.client_reconnect then
             List.iter (fun d ->

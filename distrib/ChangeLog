@@ -1,8 +1,30 @@
 ChangeLog	
 =========
 
+2004/02/09: Fabrice (version 2.5.10, tag release-2-5-10)
+  * Applied patches sha1, #2597, #2603, #2604
+  * New GUI messages: 
+      Gui -> Core: GetUploaders, GetPending, 
+                   GetSearches, (GetSearch search_id),
+                   (ConnectClient cid), (DisconnectClient cid)
+      Core -> Gui: (Uploaders num_list), (Pending num_list), 
+                   (Search search_request)
+     GetSearches and GetSearch allow a GUI to query for former searches and
+      to receive the results corresponding to a particular former search.
+  * New console command "disconnect <client_id>"
+  * FileTP:
+     * New option 'remote_shells' to define, for each hostname, which 
+         remote shell to use and with which arguments (e.g. if you want
+         to use rsh or ssh with username@hostname or a particular port).
+         still no password allowed...
+     * New version of 'get_range' that accepts a 'rangex' argument to
+         send the data without base64 encoding (works for me, but I don't 
+         know for other shells). Set the 'get_range' option to set the
+         path of the remote get_range command, and 'range_arg' to use
+         either 'range' or 'rangex'.
+
 2004/02/07: Fabrice (version 2.5.9, tag release-2-5-9)
-  * Applied patch #2428, #2595, #2596
+  * Applied patches #2428, #2595, #2596
   * TcpBufferedSocket: 'exec_command' only creates one TcpBufferedSocket.t
      both for reading and writing.
   * FileTP:

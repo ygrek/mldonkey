@@ -559,7 +559,7 @@ value HASH_NAME##_unsafe_file (value digest_v, value filename_v, value file_size
 #include "md5.h"
 #include "sha1_c.h"
 
-ML_HASH(sha1,SHA1_CTX,sha1_init,sha1_append, sha1_finish)
+ML_HASH(sha1,SHA1_CTX,sha1_begin,sha1_hash, sha1_end)
 ML_HASH(md5,md5_state_t,md5_init,md5_append,md5_finish)
 ML_HASH(md4,MD4_CTX,MD4Init,MD4Update,md4_finish)
 

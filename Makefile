@@ -2521,6 +2521,7 @@ $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/ocamlopt: $(LOCAL)/ocamlopt-$(REQUIRED_OCAML
 
 utils: ed2k_hash make_torrent copysources get_range
 utils.byte: ed2k_hash.byte make_torrent.byte copysources.byte get_range.byte
+utils.static: ed2k_hash.static make_torrent.static copysources.static get_range.static
 
 #######################################################################
 

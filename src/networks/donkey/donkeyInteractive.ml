@@ -1068,6 +1068,9 @@ lprint_newline ();
         NoConnection ->  reconnect_client c
       | _ -> ()
   );
+  client_ops.op_client_disconnect <- (fun c ->
+      DonkeyClient.disconnect_client c Closed_by_user
+  );
   client_ops.op_client_clear_files <- (fun c ->
       c.client_all_files <- None;
   );

@@ -104,10 +104,10 @@ let value_reader gui t =
     | CoreProtocol v -> 
         
         let version = min v GuiEncoding.best_gui_version in
-        for i = 0 to GuiDecoding.to_gui_last_opcode do
+        for i = 0 to to_gui_last_opcode do
           Gui_com.to_gui_protocol_used.(i) <- version;
         done;
-        for i = 0 to GuiDecoding.from_gui_last_opcode do
+        for i = 0 to from_gui_last_opcode do
           Gui_com.from_gui_protocol_used.(i) <- version;
         done;
         lprintf "Using protocol %d for communications\n" version;

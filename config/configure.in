@@ -11,7 +11,7 @@ MYCONFIG_ARGS_DEFINED=yes
 echo $MYCONFIG_ARGS
 
 CURRENT_VERSION=2.5
-CURRENT_RELEASE=9
+CURRENT_RELEASE=10
 
 REQUIRED_OCAML=3.07
 DOWNLOAD_OCAML=3.07pl2
@@ -379,6 +379,40 @@ fi
 
 ICONV=no
 AC_CHECK_LIB(iconv,iconv_open,[ICONV=yes])
+
+
+AC_CHECK_HEADERS(endian.h,,[	
+	  echo "Do you want this script to install endian.h to /usr/include (y/n)?"
+	  read i
+	  case "$i" in
+	   y* | Y*)
+		echo "Will now try to copy endian.h to /usr/include/"
+		cp -i ../include/endian.h /usr/include
+		mkdir -vp /usr/include/bits
+		cp -i ../include/bits/endian.h /usr/include/bits/
+                  ;;
+	   *) 
+		exit 1
+                  ;;
+	  esac
+		])
+
+AC_CHECK_HEADERS(byteswap.h,,[	
+	  echo "Do you want this script to install byteswap.h to /usr/include (y/n)?"
+	  read i
+	  case "$i" in
+	   y* | Y*)
+		echo "Will now try to copy byteswap.h to /usr/include/"
+		cp -i ../include/byteswap.h /usr/include
+		mkdir -vp /usr/include/bits
+		cp -i ../include/bits/byteswap.h /usr/include/bits/
+                  ;;
+	   *) 
+		exit 1
+                  ;;
+	  esac
+		])
+
 
 # On linux plaforms, we will have to check that includes from kernel are
 # available.

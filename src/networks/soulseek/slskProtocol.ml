@@ -802,6 +802,7 @@ module C2C = struct
             files : file list;
             freeulslots : int;
             ulspeed : int;
+            inqueue : int;
           }
         
         let parse s = 
@@ -811,14 +812,18 @@ module C2C = struct
           let files, pos = get_list get_file s (pos+4) in
           let freeulslots = get_uint8 s pos in
           let ulspeed = get_int s (pos+1) in
-(*        let ???? = get_int s (pos+5) in *)
+          let inqueue = get_int s (pos+5) in 
           {
             user = user;
             id = id;
             files = files;
             freeulslots = freeulslots;
             ulspeed = ulspeed;
+            inqueue = inqueue;
           }
+
+          (* TODO: Add those results to the list if id = id of the FileSearch we sent --zcat *)
+
       end
     
     module FolderContentsReply = struct

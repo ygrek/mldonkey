@@ -243,6 +243,12 @@ let _ = (
 (*          P.client_sock_addr = (Ip.to_string ip); *)
         }
     );
+    client_ops.op_client_connect <- (fun c ->
+        BTClients.connect_client c   
+    );
+    client_ops.op_client_disconnect <- (fun c ->
+        BTClients.disconnect_client c Closed_by_user
+    );
     client_ops.op_client_bprint <- (fun c buf ->
         let cc = as_client c in
         let cinfo = client_info cc in

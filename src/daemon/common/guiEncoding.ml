@@ -391,7 +391,7 @@ let buf_search_type buf t =
     | RemoteSearch -> 1
     | SubscribeSearch -> 2)
     
-let buf_search proto buf s = 
+let buf_search buf_query proto buf s = 
   buf_int buf s.search_num;
   buf_query buf s.search_query;
   buf_int buf s.search_max_hits;
@@ -570,93 +570,101 @@ let rec to_gui (proto : int array) buf t =
               buf_int buf s.udp_upload_rate;
               buf_int buf s.udp_download_rate;
               
-            if proto > 9 then begin
-                buf_int buf s.ndownloading_files;
-                buf_int buf s.ndownloaded_files;
-                buf_list buf (fun buf (n,ns) ->
-                    buf_int buf n;
-                    if proto > 17 then 
+              if proto > 9 then begin
+                  buf_int buf s.ndownloading_files;
+                  buf_int buf s.ndownloaded_files;
+                  buf_list buf (fun buf (n,ns) ->
+                      buf_int buf n;
+                      if proto > 17 then 
                         buf_int buf ns
-                ) s.connected_networks;
-              end
-          end                
-  
-  | Room_remove_user (room, user) ->       buf_int16 buf 32;
-      buf_int buf room;
-      buf_int buf user
-  
-  | Shared_file_info  shared_info ->       
-      let proto = proto.(48) in
-      buf_int16 buf (if proto < 10 then 33 else 48);
-      buf_shared_info proto buf shared_info
-  
-  | Shared_file_upload (num, upload,requests) ->    buf_int16 buf 34;
-      buf_int buf num;
-      buf_int64 buf upload;
-      buf_int buf requests
-  | Shared_file_unshared num -> buf_int16 buf 35;
-      buf_int buf num
-  
-  | Add_section_option (section, o) -> buf_int16 buf 36;
-      let proto = proto.(36) in
-      let module M = Options in
-      buf_string buf section;
-      let desc = if o.M.option_desc = "" 
-        then o.M.option_name else o.M.option_desc in
-      buf_string buf desc;
-      buf_string buf o.M.option_name;
-      if proto > 16 then begin
-          buf_string buf o.M.option_type;
-          buf_string buf o.M.option_help;
-          buf_string buf o.M.option_value;
-          buf_string buf o.M.option_default;
-          buf_bool buf o.M.option_advanced;
-        end
-      else
-        buf_int8 buf (match o.M.option_type with
-            "Bool" -> 1
-          | "Filename" -> 2
-          | _ -> 0);
-  
-  | Add_plugin_option (section, o) -> buf_int16 buf 38;
-      let proto = proto.(38) in
-      let module M = Options in
-      buf_string buf section;
-      let desc = if o.M.option_desc = "" 
-        then o.M.option_name else o.M.option_desc in
-      buf_string buf desc;
-      buf_string buf o.M.option_name;
-      if proto > 16 then begin
-          buf_string buf o.M.option_type;
-          buf_string buf o.M.option_help;
-          buf_string buf o.M.option_value;
-          buf_string buf o.M.option_default;
-          buf_bool buf o.M.option_advanced;
-        end        
-      else
-        buf_int8 buf (match o.M.option_type with
-            "Bool" -> 1
-          | "Filename" -> 2
-          | _ -> 0);
-
-  | File_remove_source (n1,n2) -> buf_int16 buf 50;
-      buf_int buf n1; buf_int buf n2
-
-  | File_update_availability (file_num, client_num, avail) -> 
-      let proto = proto.(9) in
-      if proto < 11 then raise UnsupportedGuiMessage;
-      buf_int16 buf 9;
-      buf_int buf file_num; buf_int buf client_num; buf_string buf avail
-
-  | CleanTables (clients, servers) ->      
-      let proto = proto.(11) in
-      if proto < 11 then raise UnsupportedGuiMessage;
-      buf_int16 buf 51;
-      buf_list buf (fun buf i -> buf_int buf i) clients;
-      buf_list buf (fun buf i -> buf_int buf i) servers
-
-  | GiftServerAttach _ -> assert false
-  | GiftServerStats _ -> assert false
+                  ) s.connected_networks;
+                end
+            end                
+    
+    | Room_remove_user (room, user) ->       buf_int16 buf 32;
+        buf_int buf room;
+        buf_int buf user
+    
+    | Shared_file_info  shared_info ->       
+        let proto = proto.(48) in
+        buf_int16 buf (if proto < 10 then 33 else 48);
+        buf_shared_info proto buf shared_info
+    
+    | Shared_file_upload (num, upload,requests) ->    buf_int16 buf 34;
+        buf_int buf num;
+        buf_int64 buf upload;
+        buf_int buf requests
+    | Shared_file_unshared num -> buf_int16 buf 35;
+        buf_int buf num
+    
+    | Add_section_option (section, o) -> buf_int16 buf 36;
+        let proto = proto.(36) in
+        let module M = Options in
+        buf_string buf section;
+        let desc = if o.M.option_desc = "" 
+          then o.M.option_name else o.M.option_desc in
+        buf_string buf desc;
+        buf_string buf o.M.option_name;
+        if proto > 16 then begin
+            buf_string buf o.M.option_type;
+            buf_string buf o.M.option_help;
+            buf_string buf o.M.option_value;
+            buf_string buf o.M.option_default;
+            buf_bool buf o.M.option_advanced;
+          end
+        else
+          buf_int8 buf (match o.M.option_type with
+              "Bool" -> 1
+            | "Filename" -> 2
+            | _ -> 0);
+    
+    | Add_plugin_option (section, o) -> buf_int16 buf 38;
+        let proto = proto.(38) in
+        let module M = Options in
+        buf_string buf section;
+        let desc = if o.M.option_desc = "" 
+          then o.M.option_name else o.M.option_desc in
+        buf_string buf desc;
+        buf_string buf o.M.option_name;
+        if proto > 16 then begin
+            buf_string buf o.M.option_type;
+            buf_string buf o.M.option_help;
+            buf_string buf o.M.option_value;
+            buf_string buf o.M.option_default;
+            buf_bool buf o.M.option_advanced;
+          end        
+        else
+          buf_int8 buf (match o.M.option_type with
+              "Bool" -> 1
+            | "Filename" -> 2
+            | _ -> 0);
+    
+    | File_remove_source (n1,n2) -> buf_int16 buf 50;
+        buf_int buf n1; buf_int buf n2
+    
+    | File_update_availability (file_num, client_num, avail) -> 
+        let proto = proto.(9) in
+        if proto < 11 then raise UnsupportedGuiMessage;
+        buf_int16 buf 9;
+        buf_int buf file_num; buf_int buf client_num; buf_string buf avail
+    
+    | CleanTables (clients, servers) ->      
+        let proto = proto.(11) in
+        if proto < 11 then raise UnsupportedGuiMessage;
+        buf_int16 buf 51;
+        buf_list buf (fun buf i -> buf_int buf i) clients;
+        buf_list buf (fun buf i -> buf_int buf i) servers
+    
+    | Uploaders list -> buf_int16 buf 55; buf_list buf buf_int list
+    
+    | Pending list -> buf_int16 buf 56; buf_list buf buf_int list
+    
+    | Search s ->
+        let proto = proto.(57) in
+        buf_int16 buf 57; buf_search buf_string proto buf s
+    
+    | GiftServerAttach _ -> assert false
+    | GiftServerStats _ -> assert false
   with e ->
       lprintf "GuiEncoding.to_gui: Exception %s\n"
         (Printexc2.to_string e)
@@ -693,7 +701,7 @@ let rec from_gui (proto : int array) buf t =
           end else begin
             buf_int16 buf 42;          
           end;
-        buf_search proto buf search
+        buf_search buf_query proto buf search
     | Download_query (list, int, force) -> 
         let proto = proto.(50) in
         buf_int16 buf (if proto < 14 then 7 else 50);
@@ -841,6 +849,13 @@ protocol version. Do not send them ? *)
     
     | RenameFile (num, new_name) ->
         buf_int16 buf 56; buf_int buf num; buf_string buf new_name
+
+    | GetUploaders -> buf_int16 buf 57 
+    | GetPending -> buf_int16 buf 58
+    | GetSearches -> buf_int16 buf 59
+    | GetSearch search_id -> buf_int16 buf 60; buf_int buf search_id
+    | ConnectClient c -> buf_int16 buf 61; buf_int buf c
+    | DisconnectClient c -> buf_int16 buf 62; buf_int buf c
     
     | GiftAttach _ -> assert false
     | GiftStats -> assert false
@@ -849,7 +864,7 @@ protocol version. Do not send them ? *)
         (Printexc2.to_string e)
         
         
-let best_gui_version = 22
+let best_gui_version = 23
   
 (********** Some assertions *********)
   
@@ -900,7 +915,7 @@ let _ =
 (* and    server_info = {
       server_num = 1;
 } *)
-  let proto = Array.create (GuiDecoding.to_gui_last_opcode+1) best_gui_version in
+  let proto = Array.create (to_gui_last_opcode+1) best_gui_version in
   let to_gui = to_gui proto in
   let check_to_gui = 
     check to_gui (GuiDecoding.to_gui proto) in

@@ -168,7 +168,7 @@ let connect_server s =
                       C2S.LoginReq {
                         L.login = local_login ();
                         L.password = !!password;
-                        L.version = 200;
+                        L.version = 180; (* This is what pyslsk sends *)
                       });
                     server_send sock (C2S.SetWaitPortReq !!slsk_port)
                   with e -> 

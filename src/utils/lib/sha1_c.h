@@ -1,72 +1,106 @@
 /*
- *
- * This file comes from RFC 3174. Inclusion in gtk-gnutella is:
+ ---------------------------------------------------------------------------
+ Copyright (c) 2002, Dr Brian Gladman, Worcester, UK.   All rights reserved.
+
+ LICENSE TERMS
+
+ The free distribution and use of this software in both source and binary
+ form is allowed (with or without changes) provided that:
+
+   1. distributions of this source code include the above copyright
+      notice, this list of conditions and the following disclaimer;
+
+   2. distributions in binary form include the above copyright
+      notice, this list of conditions and the following disclaimer
+      in the documentation and/or other associated materials;
+
+   3. the copyright holder's name is not used to endorse products
+      built using this software without specific written permission.
+
+ ALTERNATIVELY, provided that this notice is retained in full, this product
+ may be distributed under the terms of the GNU General Public License (GPL),
+ in which case the provisions of the GPL apply INSTEAD OF those given above.
+
+ DISCLAIMER
+
+ This software is provided 'as is' with no explicit or implied warranties
+ in respect of its properties, including, but not limited to, correctness
+ and/or fitness for purpose.
+ ---------------------------------------------------------------------------
+ Issue Date: 26/08/2003
+*/
+
+/*
+    This file is part of mldonkey.
+
+    mldonkey is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    mldonkey is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with mldonkey; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef _SHA1_H_
-#define _SHA1_H_
+/*swap order of arguments in sha1_hash and sha1_end to 'fit' mldonkey*/
 
-#include "os_stubs.h"
+#ifndef _SHA1_H
+#define _SHA1_H
 
-#if __STDC_VERSION__ >= 199901L
-#include <stdint.h>
+#include <limits.h>
+
+#define SHA1_BLOCK_SIZE  64
+#define SHA1_DIGEST_SIZE 20
+
+#if defined(__cplusplus)
+extern "C"
+{
+#endif
+
+/* define an unsigned 32-bit type */
+
+#if defined(_MSC_VER)
+  typedef   unsigned long    sha1_32t;
+#elif defined(ULONG_MAX) && ULONG_MAX == 0xfffffffful
+  typedef   unsigned long    sha1_32t;
+#elif defined(UINT_MAX) && UINT_MAX == 0xffffffff
+  typedef   unsigned int     sha1_32t;
 #else
+#  error Please define sha1_32t as an unsigned 32 bit type in sha1.h
 #endif
 
-typedef unsigned char uint8;
+/* type to hold the SHA256 context  */
 
-/*
- * If you do not have the ISO standard stdint.h header file, then you
- * must typdef the following:
- *    name              meaning
- *  guint32         unsigned 32 bit integer
- *  guint8          unsigned 8 bit integer (i.e., unsigned char)
- *  gint    		integer of >= 16 bits
- *
- */
+typedef struct
+{   sha1_32t count[2];
+    sha1_32t hash[5];
+    sha1_32t wbuf[16];
+} sha1_ctx;
 
-#ifndef _SHA_enum_
-#define _SHA_enum_
-enum
-{
-    shaSuccess = 0,
-    shaNull,            /* Null pointer parameter */
-    shaInputTooLong,    /* input data too long */
-    shaStateError       /* called Input after Result */
-};
+#define SHA1_CTX sha1_ctx
+
+/* Note that these prototypes are the same for both bit and */
+/* byte oriented implementations. However the length fields */
+/* are in bytes or bits as appropriate for the version used */
+/* and bit sequences are input as arrays of bytes in which  */
+/* bit sequences run from the most to the least significant */
+/* end of each byte                                         */
+
+void sha1_compile(sha1_ctx ctx[1]);
+
+void sha1_begin(sha1_ctx ctx[1]);
+void sha1_hash(sha1_ctx ctx[1], const unsigned char data[], unsigned long len);
+void sha1_end(sha1_ctx ctx[1], unsigned char hval[]);
+void sha1(unsigned char hval[], const unsigned char data[], unsigned long len);
+
+#if defined(__cplusplus)
+}
 #endif
-#define SHA1HashSize 20
-
-/*
- *  This structure will hold context information for the SHA-1
- *  hashing operation
- */
-typedef struct SHA1Context
-{
-    uint32 Intermediate_Hash[SHA1HashSize/4]; /* Message Digest  */
-
-    uint32 Length_Low;            /* Message length in bits      */
-    uint32 Length_High;           /* Message length in bits      */
-
-                               /* Index into message block array   */
-    int Message_Block_Index;
-    uint8 Message_Block[64];      /* 512-bit message blocks      */
-
-    int Computed;               /* Is the digest computed?         */
-    int Corrupted;             /* Is the message digest corrupted? */
-} SHA1Context;
-
-/*
- *  Function Prototypes
- */
-
-#define SHA1_CTX SHA1Context
-
-int sha1_init(  SHA1Context *);
-int sha1_append(  SHA1Context *,
-                const uint8 *,
-                unsigned int);
-int sha1_finish( SHA1Context *,
-                uint8 Message_Digest[SHA1HashSize]);
 
 #endif

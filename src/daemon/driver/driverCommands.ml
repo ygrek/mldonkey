@@ -162,7 +162,7 @@ let list_options oo list =
   list;
   if oo.conn_output = HTML then
     Printf.bprintf  buf "\\</table\\>"
-
+    
 (*** Note: don't add _s to all command description as it is already done here *)
 
 let register_commands section list = 
@@ -221,6 +221,15 @@ let _ =
         );	
         _s "done"
     ), ":\t\t\t\trecover lost files from temp directory";
+
+    "disconnect", Arg_multiple (fun args o ->
+        List.iter (fun c ->
+            let c = int_of_string c in
+            let c = client_find c in
+            client_disconnect c
+        ) args;
+        _s "done"
+    ), " <client_num> : client to disconnect";
     
     "vc", Arg_multiple (fun args o ->
         if args = ["all"] then begin 

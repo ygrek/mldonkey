@@ -52,6 +52,22 @@ open FileTPClients
 (*                                                                       *)
 (*************************************************************************)
 
+let shell_command hostname =
+  try
+    match List.assoc hostname !!remote_shells with
+      (cmd :: tail) as args ->
+        cmd, Array.of_list args
+    | _ -> raise Not_found
+  with
+  | _ -> 
+      "ssh",  [|  "ssh"; hostname |]  
+      
+(*************************************************************************)
+(*                                                                       *)
+(*                         MAIN                                          *)
+(*                                                                       *)
+(*************************************************************************)
+
 let segment_received c num s pos = 
   if String.length s > 0 then
     let d =
@@ -134,7 +150,7 @@ lprintf "READ: buf_used %d\n" to_read_int;
 let ssh_send_range_request c (x,y) sock d =  
   let file = d.download_url in
   TcpBufferedSocket.write_string sock 
-    (Printf.sprintf "get_range range %Ld %Ld %d '.%s'\n"  x y
+    (Printf.sprintf "%s %s %Ld %Ld %d '.%s'\n"  !!get_range !!range_arg x y
     (file_num d.download_file) file);
   ()
   
@@ -155,11 +171,8 @@ let ssh_set_sock_handler c sock =
   
 let ssh_check_size u url start_download_file = 
   let token = create_token unlimited_connection_manager in
-  let sock, pid = exec_command token  "ssh"
-      [| 
-      "ssh";
-      u.Url.server;
-    |] (fun _ _ -> ());
+  let shell, args = shell_command u.Url.server in
+  let sock, pid = exec_command token  shell args (fun _ _ -> ());
   in
   
   set_rtimer sock (fun _ ->
@@ -197,7 +210,7 @@ let ssh_check_size u url start_download_file =
       iter 0
   );  
   TcpBufferedSocket.write_string sock 
-    (Printf.sprintf "get_range size '.%s' ; exit\n" u.Url.file);
+    (Printf.sprintf "%s size '.%s' ; exit\n" !!get_range u.Url.file);
   set_rtimeout sock 15.
 
 (*************************************************************************)
@@ -211,15 +224,14 @@ let ssh_check_size u url start_download_file =
 type segment =
   Nothing
 | SegmentPos of int * int64 * int * int
+| SegmentXPos of int * int64 * int * int
 | Segment of int * int64 * int * int * string
+| SegmentX of int * int64 * int * int * string
   
 let ssh_connect token c f =
   let ip = c.client_hostname in
-  let sock, pid = exec_command token  "ssh"
-      [| 
-      "ssh";
-      c.client_hostname;
-    |] (fun _ _ -> ());
+  let shell, args = shell_command c.client_hostname in
+  let sock, pid = exec_command token  shell args (fun _ _ -> ());
   in
   set_rtimer sock (fun _ ->
       (try Unix.kill Sys.sigkill pid with _ -> ());
@@ -230,7 +242,22 @@ let ssh_connect token c f =
   let segment = ref Nothing in
   TcpBufferedSocket.set_reader sock (fun sock nread ->
       let b = TcpBufferedSocket.buf sock in
-      let rec iter i =
+      let rec iter () =
+        
+        match !segment with
+          SegmentXPos (file_num, pos, len, elen) ->
+            
+            if b.len >= elen then begin
+                segment := SegmentX (file_num, pos, len, elen,
+                  String.sub b.buf b.pos elen);
+                buf_used b elen;
+                iter0 0
+              end
+            
+        | _ ->
+            iter0 0
+            
+      and iter0 i =
         if i < b.len then
           if b.buf.[b.pos + i] = '\n' then begin
               let slen = if i > 0 && b.buf.[b.pos + i - 1] = '\r' then
@@ -244,21 +271,31 @@ let ssh_connect token c f =
                 let line = String.sub line 9 (String.length line - 10) in
                 lprintf "segmented [%s]\n" line;
                 match String2.split_simplify line ' '  with
-                  [file_num; pos; len; elen] ->
+                | [file_num; pos; len; elen] ->
                     let file_num = int_of_string file_num in
                     let pos = Int64.of_string pos in
                     let len = int_of_string len in
                     let elen = int_of_string elen in
                     segment := SegmentPos (file_num, pos,len,elen);
                     lprintf "Waiting for segment...\n";
-                    iter 0
+                    iter0 0
+                    
+                | ["8bits"; file_num; pos; len; elen] ->
+                    let file_num = int_of_string file_num in
+                    let pos = Int64.of_string pos in
+                    let len = int_of_string len in
+                    let elen = int_of_string elen in
+                    segment := SegmentXPos (file_num, pos,len,elen);
+                    lprintf "Waiting for segment X...\n";
+                    iter ()
+                    
                 | _ ->
                     lprintf "SSH: unexpected segment\n";
                     disconnect_client c (Closed_for_error "unexpected reply")
               else
               if line  = "[/SEGMENT]" then
                 match !segment with
-                  Segment (file_num, pos, len, elen, s) ->
+                | Segment (file_num, pos, len, elen, s) ->
                     lprintf "******* SEGMENT RECEIVED *******\n";
 (*
                     lprintf "Received/expected: %d/%d\n" (String.length s) elen;
@@ -267,28 +304,35 @@ let ssh_connect token c f =
 (*
                     lprintf "Decoded/expected: %d/%d\n" (String.length ss) len;
 *)
-                    segment_received c file_num ss pos;                    
+                    segment_received c file_num ss pos;
                     segment := Nothing;
-                    iter 0
+                    iter0 0
+                    
+                | SegmentX (file_num, pos, len, elen, ss) ->
+                    lprintf "******* SEGMENT RECEIVED *******\n";
+                    segment_received c file_num ss pos;
+                    segment := Nothing;
+                    iter0 0
                 | _ ->
                     lprintf "SSH: unexpected end of segment\n";
                     disconnect_client c (Closed_for_error "unexpected reply")
                     
               else
               match !segment with
-                Nothing -> iter 0
+                Nothing -> iter0 0
               | SegmentPos (file_num, pos, len, elen) ->
                   segment := Segment (file_num, pos, len, elen, line);
                   lprintf "++++++++++++ SEGEMNT RECEIVED ++++++++++\n";
-                  iter 0
+                  iter0 0
               | _ -> begin
                     lprintf "SSH: unexpected line\n";
                     disconnect_client c (Closed_for_error "unexpected reply")
                   end
             end else
-            iter (i+1)
+            iter0 (i+1)
+            
       in
-      iter 0
+      iter ()
   );  
   f sock;
   sock

@@ -12,6 +12,7 @@ type 'a client_impl = {
 and 'a client_ops = {
     mutable op_client_network : CommonTypes.network;
     mutable op_client_connect : 'a -> unit;
+    mutable op_client_disconnect : 'a -> unit;
     mutable op_client_to_option : 'a -> (string * Options.option_value) list;
     mutable op_client_info : 'a -> GuiTypes.client_info;
     mutable op_client_say : 'a -> string -> unit;
@@ -44,6 +45,7 @@ val client_dprint_html :
   CommonTypes.client ->
   CommonTypes.ui_conn -> CommonTypes.file -> string -> bool
 val client_connect : CommonTypes.client -> unit
+val client_disconnect : CommonTypes.client -> unit
 val client_clear_files : CommonTypes.client -> unit
 val client_browse : CommonTypes.client -> bool -> unit
 val as_client : 'a client_impl -> CommonTypes.client

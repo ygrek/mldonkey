@@ -24,6 +24,10 @@ exception UnsupportedGuiMessage
 
 type gift_command = 
   GiftCommand of string * string option * gift_command list
+  
+let gui_extension_poll = 1
+let to_gui_last_opcode = 57
+let from_gui_last_opcode = 62
 
 type from_gui =
 (* These two messages are protocol independant: they MUST be sent to
@@ -72,6 +76,9 @@ type from_gui =
 | EnableNetwork of int * bool
 | BrowseUser of int
 | AddServer_query of int * Ip.t * int
+
+| ConnectClient of int
+| DisconnectClient of int
   
 (* New messages from protocol 3 *)
 | GuiExtensions of (int * bool) list
@@ -80,6 +87,7 @@ type from_gui =
 | GetDownloadedFiles
 | MessageToClient of int * string
 | SetRoomState of int * room_state
+
   
 (* New messages from protocol 4  *)
 | RefreshUploadStats
@@ -87,7 +95,10 @@ type from_gui =
 | SetFilePriority of int * int
 
 | RenameFile of int * string
-
+| GetUploaders
+| GetPending
+| GetSearches
+| GetSearch of int
 
 (* This message must be sent only to increase or decrease the protocol version
 on some messages in the range accepted by the core, ie between 0 and the 
@@ -106,8 +117,6 @@ the messages (it will use the version specified in CoreProtocol instead
   
 | GiftAttach of string * string * string
 | GiftStats  
-  
-let gui_extension_poll = 1
   
 type to_gui =
 (* This message is the first message sent by the core *)
@@ -168,6 +177,9 @@ type to_gui =
 
 | BadPassword
 | CleanTables of (* clients *) int list * (* servers *) int list
+| Uploaders of int list
+| Pending of int list
+| Search of string search_request
   
 | GiftServerAttach of string * string
 | GiftServerStats of (string * string * string * string) list
@@ -231,8 +243,15 @@ let from_gui_to_string t =
       
   | MessageVersions _ -> "MessageVersions"
 
-	| RenameFile _ -> "RenameFile"
+  | RenameFile _ -> "RenameFile"
+  | GetUploaders -> "GetUploaders"
+  | GetPending -> "GetPending"
+  | GetSearches -> "GetSearches"
+  | GetSearch _ -> "GetSearch"
 
+  | ConnectClient _ -> "ConnectClient"
+  | DisconnectClient _ -> "DisconnectClient"
+      
   | GiftAttach _ -> "GiftAttach"
   | GiftStats -> "GiftStats"
       
@@ -297,6 +316,10 @@ let string_of_to_gui t =
   | BadPassword -> "BadPassword"
       
   | CleanTables _ -> "CleanTables"
+  | Uploaders _ -> "Uploaders"
+  | Pending _ -> "Pending"
+  | Search _ -> "Search"
+      
   | GiftServerAttach _ -> "GiftServerAttach"
   | GiftServerStats _ -> "GiftServerStats"
       

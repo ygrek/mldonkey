@@ -495,9 +495,9 @@ let gui_reader (gui: gui_record) t _ =
     | GuiProtocol version ->
         let version = min GuiEncoding.best_gui_version version in
         gui.gui_proto_to_gui_version <- Array.create 
-          (GuiDecoding.to_gui_last_opcode + 1) version;
+          (to_gui_last_opcode + 1) version;
         gui.gui_proto_from_gui_version <- Array.create 
-          (GuiDecoding.from_gui_last_opcode + 1) version;
+          (from_gui_last_opcode + 1) version;
         lprintf "Using protocol %d for communications with the GUI\n" 
           version    
     
@@ -525,7 +525,7 @@ let gui_reader (gui: gui_record) t _ =
               
               if not gui.gui_initialized then 
                 gui_initialize gui;
-              
+        
         end
     | _ ->
         if gui.gui_auth then
@@ -549,13 +549,13 @@ let gui_reader (gui: gui_record) t _ =
           | P.MessageVersions list ->
               List.iter (fun (opcode, from_guip, proto) ->
                   if from_guip then
-                    (if opcode <= GuiDecoding.from_gui_last_opcode then
+                    (if opcode <= from_gui_last_opcode then
                         gui.gui_proto_from_gui_version.(opcode) <- proto)
                   else
-                    (if opcode <= GuiDecoding.to_gui_last_opcode then
+                    (if opcode <= to_gui_last_opcode then
                         gui.gui_proto_to_gui_version.(opcode) <- proto)
               ) list
-              
+          
           | P.SetOption (name, value) ->
               CommonInteractive.set_fully_qualified_options name value
           
@@ -601,7 +601,7 @@ let gui_reader (gui: gui_record) t _ =
                     r.network_num = s.search_network
                   then
                     network_extend_search r s e)
-              
+          
           | P.KillServer -> 
               exit_properly 0
           
@@ -664,6 +664,15 @@ search.op_search_end_reply_handlers;
                       ignore (networks_iter_until_true (fun n -> network_parse_url n line))
                   ) lines
                 end
+          | P.GetUploaders ->
+              gui_send gui (P.Uploaders
+                  (List2.tail_map (fun c -> client_num c) 
+                  (Intmap.to_list !uploaders)))
+          
+          | P.GetPending ->
+              gui_send gui (P.Pending (
+                  List2.tail_map (fun c -> client_num c)
+                  (Intmap.to_list !CommonUploads.pending_slots_map)))
           
           | P.RemoveServer_query num ->
               server_remove (server_find num)
@@ -689,7 +698,7 @@ search.op_search_end_reply_handlers;
               let file = file_find num in
               file_set_priority file prio;
               CommonInteractive.force_download_quotas ()
-              
+          
           | P.SaveFile (num, name) ->
               let file = file_find num in
               set_file_best_name file name;
@@ -702,7 +711,7 @@ search.op_search_end_reply_handlers;
           | P.Preview num ->
               begin
                 let file = file_find num in
-		file_preview file
+                file_preview file
               end
           
           | P.AddClientFriend num ->
@@ -746,15 +755,22 @@ search.op_search_end_reply_handlers;
           
           | P.GetFile_info num ->
               addevent gui.gui_events.gui_files num true
-
-					| P.RenameFile (num, new_name) ->
-							let file = file_find num in
-		          set_file_best_name file new_name;
-							addevent gui.gui_events.gui_files num true
           
-          | P.ConnectFriend num ->
+          | P.RenameFile (num, new_name) ->
+              let file = file_find num in
+              set_file_best_name file new_name;
+              addevent gui.gui_events.gui_files num true
+          
+          | P.ConnectFriend num 
+          | P.ConnectClient num
+            ->
               let c = client_find num in
               client_connect c
+          
+          | P.DisconnectClient num
+            ->
+              let c = client_find num in
+              client_disconnect c
           
           | P.ConnectServer num -> 
               server_connect (server_find num)
@@ -827,8 +843,7 @@ search.op_search_end_reply_handlers;
 (* version 3 *)
           
           | P.MessageToClient (num, mes) ->
-              lprintf "MessageToClient(%d,%s)" num mes;
-              lprint_newline ();
+              lprintf "MessageToClient(%d,%s)\n" num mes;
               let c = client_find num in
               client_say c mes
           
@@ -847,6 +862,59 @@ search.op_search_end_reply_handlers;
               gui_send gui (P.DownloadFiles
                   (List2.tail_map file_info !!files))              
           
+          | GetSearches ->
+              let user = gui.gui_conn.conn_user in
+              let searches = user.ui_user_searches in
+              List.iter (fun s ->
+                  let module P = GuiTypes in
+                  gui_send gui (Search {
+                      P.search_num = s.search_num;
+                      P.search_type = s.search_type;
+                      P.search_query = s.search_string;
+                      P.search_max_hits = s.search_max_hits;
+                      P.search_network = s.search_network;
+                    });                  
+              ) searches
+          
+          | GetSearch num ->
+              let user = gui.gui_conn.conn_user in
+              let searches = user.ui_user_searches in
+              (try
+                  List.iter (fun s ->
+                      if s.search_num = num then begin
+(* Send the search description *)
+                          let module P = GuiTypes in
+                          gui_send gui (Search {
+                              P.search_num = num;
+                              P.search_type = s.search_type;
+                              P.search_query = s.search_string;
+                              P.search_max_hits = s.search_max_hits;
+                              P.search_network = s.search_network;
+                            });
+                          
+(* Send the results corresponding to this search *)
+                          gui.gui_search_nums <- num ::  gui.gui_search_nums;
+                          gui.gui_searches <- (num, s) :: gui.gui_searches;
+                          s.op_search_new_result_handlers <- (fun r ->
+                              CommonEvent.add_event
+                                (Search_new_result_event (
+                                  gui.gui_result_handler, gui.gui_events, num, r))
+                          ) :: s.op_search_new_result_handlers;
+                          
+                          Intmap.iter (fun _ (_, r) ->
+                              CommonEvent.add_event
+                                (Search_new_result_event (
+                                  gui.gui_result_handler, gui.gui_events, 
+                                  num, r))                              
+                          ) s.search_results
+                          
+                        end
+                  ) searches                
+                with
+                | Exit -> ()
+                | Not_found ->
+                    failwith (Printf.sprintf "No such search %d" num)
+              )
           | SetRoomState (num, state) ->
               if num > 0 then begin
                   let room = room_find num in
@@ -911,8 +979,8 @@ let new_gui gui_send gui_auth sock  =
       gui_sock = sock;
       gui_search_nums = [];
       gui_events = gui_events ();
-      gui_proto_to_gui_version = Array.create (GuiDecoding.to_gui_last_opcode+1) 0;
-      gui_proto_from_gui_version = Array.create (GuiDecoding.from_gui_last_opcode+1) 0;
+      gui_proto_to_gui_version = Array.create (to_gui_last_opcode+1) 0;
+      gui_proto_from_gui_version = Array.create (from_gui_last_opcode+1) 0;
       gui_num = !gui_counter;
       gui_auth = gui_auth;
       gui_poll = false;

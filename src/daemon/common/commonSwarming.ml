@@ -594,6 +594,14 @@ module Int64Swarmer = (struct
 
 (*************************************************************************)
 (*                                                                       *)
+(*                         recompute_downloaded (internal)               *)
+(*                                                                       *)
+(*************************************************************************)
+
+      let recompute_downloaded t = ()
+
+(*************************************************************************)
+(*                                                                       *)
 (*                         set_present_block (internal)                  *)
 (*                                                                       *)
 (*************************************************************************)
@@ -624,6 +632,8 @@ module Int64Swarmer = (struct
                     t.t_verified_bitmap.[i] <- '2';
                     
                     t.t_ncomplete_blocks <- t.t_ncomplete_blocks + 1;
+                    t.t_downloaded <- 
+                      t.t_downloaded ++ (block_end -- block_begin)
                   end
                 else
                 let b = new_block t i in
@@ -631,7 +641,8 @@ module Int64Swarmer = (struct
             | PartialBlock b ->
                 set_present_block b chunk_begin chunk_end
             | _ -> ()
-        ) chunks
+        ) chunks;
+        recompute_downloaded ()
 
 (*************************************************************************)
 (*                                                                       *)
@@ -1348,7 +1359,7 @@ we thus might put a lot of clients on the same range !
               iter_range_in i block_end chunk_begin r.range_end rr list
         in
         iter_block_out 0 zero []
-
+        
 (*************************************************************************)
 (*                                                                       *)
 (*                         set_verified_bitmap                           *)
@@ -1373,7 +1384,8 @@ we thus might put a lot of clients on the same range !
               t.t_blocks.(i) <- CompleteBlock;
               verify_block t i
           | _ -> ()
-        done
+        done;
+        recompute_downloaded t
 
 (*************************************************************************)
 (*                                                                       *)

@@ -37,10 +37,13 @@ type 'a client_impl = {
   
 and 'a client_ops = {
     mutable op_client_network : network;
-    
+       
 (* force connection to the client. *)
     mutable op_client_connect : ('a -> unit);
     
+(* force connection to the client. *)
+    mutable op_client_disconnect : ('a -> unit);
+ 
 (* convert a client structure to be stored in the option file *)
     mutable op_client_to_option : ('a -> (string * option_value) list);
     
@@ -167,6 +170,10 @@ let client_connect client=
   let client = as_client_impl client in
   client.impl_client_ops.op_client_connect client.impl_client_val
 
+let client_disconnect client=
+  let client = as_client_impl client in
+  client.impl_client_ops.op_client_disconnect client.impl_client_val
+
 let client_clear_files client=
   let client = as_client_impl client in
   client.impl_client_ops.op_client_clear_files client.impl_client_val
@@ -199,6 +206,7 @@ let new_client_ops network =
       op_client_debug = (fun _ _ -> ni_ok network "client_debug");
       op_client_files = (fun _ -> fni network "client_files");
       op_client_connect  = (fun _ -> ni_ok network "client_connect");
+      op_client_disconnect  = (fun _ -> ni_ok network "client_disconnect");
       op_client_clear_files = (fun _ -> ni_ok network "client_clear_files");
       op_client_browse = (fun _ _ -> ni_ok network "client_browse");
       op_client_bprint = (fun _ _ -> ni_ok network "client_bprint");
@@ -226,6 +234,8 @@ let check_client_implementations () =
         lprintf "op_client_say\n";
       if c.op_client_files == cc.op_client_files then
         lprintf "op_client_files\n";
+      if c.op_client_disconnect == cc.op_client_disconnect then
+        lprintf "op_client_disconnect\n";
       if c.op_client_connect == cc.op_client_connect then
         lprintf "op_client_connect\n";
       if c.op_client_clear_files == cc.op_client_clear_files then

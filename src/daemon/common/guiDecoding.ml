@@ -145,7 +145,7 @@ let get_search_type s pos =
   | 2 -> SubscribeSearch
   | _ -> assert false
 
-let get_search proto s pos =
+let get_search get_query proto s pos =
   let num = get_int s pos in
   let q, pos = get_query s (pos+4) in
   let max = get_int s pos in
@@ -298,6 +298,9 @@ let get_int_float s pos =
   let s, pos = get_string s pos in
   BasicSocket.normalize_time (int_of_float (float_of_string s)), pos
 
+let get_int_pos s pos =
+  get_int s pos, pos + 4
+  
 let get_file proto s pos = 
   let num = get_int s pos in
   let net = get_int s (pos+4) in
@@ -391,7 +394,7 @@ let get_host_state proto s pos =
   | 7 -> RemovedHost
   | 8 -> BlackListedHost
   | 9 -> NotConnected (BasicSocket.Closed_by_user,0)
-  | 10 -> Connected (-2) 
+  | 10 -> Connected (-1) 
   | _ -> assert false), pos+1
   else
   match get_uint8 s pos with
@@ -409,7 +412,7 @@ let get_host_state proto s pos =
   | 8 -> BlackListedHost, pos+1
   | 9 -> NotConnected (BasicSocket.Closed_by_user,
      get_int s (pos+1)), pos+5
-  | 10 -> Connected (-2), pos+1
+  | 10 -> Connected (-1), pos+1
   | _ -> assert false
 
 
@@ -451,7 +454,7 @@ let get_server proto s pos =
     server_state = state;
     server_name = name;
     server_description = description;
-	server_banner = "";
+  server_banner = "";
     server_users = None;
   }, pos
 
@@ -679,9 +682,6 @@ let get_shared_info_version_10 s pos =
 
   
   
-let to_gui_last_opcode = 54  
-let from_gui_last_opcode = 55
-
 (***************
 
      Decoding of messages from the GUI to the Core 
@@ -710,7 +710,7 @@ let from_gui (proto : int array) opcode s =
         Password (login, pass)
     | 6 -> 
         let local = get_bool s 2 in
-        let search, pos = get_search proto s 3 in
+        let search, pos = get_search get_query proto s 3 in
         search.search_type <- if local then LocalSearch else RemoteSearch;
         Search_query search
     | 7 -> 
@@ -864,7 +864,7 @@ let from_gui (proto : int array) opcode s =
     | 41 ->
         let int = get_int s 2 in 
         BrowseUser  int
-    | 42 -> let s, pos = get_search proto s 2 in Search_query s
+    | 42 -> let s, pos = get_search get_query proto s 2 in Search_query s
     | 43 -> 
         let int = get_int s 2 in 
         let message, pos = get_string s 6 in
@@ -911,11 +911,29 @@ let from_gui (proto : int array) opcode s =
         MessageVersions list
 
 
-		| 56 ->
-				let num = get_int s 2 in
-				let new_name, pos = get_string s 6 in
-				RenameFile(num, new_name)
+    | 56 ->
+        let num = get_int s 2 in
+        let new_name, pos = get_string s 6 in
+        RenameFile(num, new_name)
 
+    | 57 ->
+        GetUploaders
+
+    | 58 ->
+        GetPending
+
+    | 59 ->
+        GetSearches
+        
+    | 60 ->
+        GetSearch (get_int s 2)
+
+    | 61 ->
+        ConnectClient (get_int s 2)
+        
+    | 62 ->
+        DisconnectClient (get_int s 2)
+        
     | _ -> 
         lprintf "FROM GUI:Unknown message %d\n" opcode; 
         raise Not_found
@@ -1347,6 +1365,17 @@ let to_gui (proto : int array) opcode s =
     | 54 -> 
         let list, pos = get_list (get_file proto) s 2 in
         DownloadedFiles list
+
+    | 55 ->
+        let list, pos = get_list get_int_pos s 2 in
+        Uploaders list
+    | 56 ->
+        let list, pos = get_list get_int_pos s 2 in
+        Pending list
+        
+    | 57 ->
+        let s, pos = get_search get_string proto s 2 in
+        Search s
         
     | _ -> 
         lprintf "TO GUI:Unknown message %d" opcode; lprint_newline ();

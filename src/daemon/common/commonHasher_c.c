@@ -19,7 +19,7 @@
 
 #include <stdio.h>
 #include "../../../config/config.h"
-/* #include "../lib/os_stubs.h" */
+#include "../../utils/lib/os_stubs.h"
 
 #include "caml/mlvalues.h"
 #include "caml/fail.h"
@@ -79,7 +79,7 @@ static void HASH_NAME##_unsafe64_fd_direct (OS_FD fd, long pos, long len, \
   HASH_FINISH (&context, digest); \
 }
 
-COMPLETE_HASH(sha1,SHA1_CTX,sha1_init,sha1_append, sha1_finish)
+COMPLETE_HASH(sha1,SHA1_CTX,sha1_begin,sha1_hash, sha1_end)
 COMPLETE_HASH(md5,md5_state_t,md5_init,md5_append,md5_finish)
 COMPLETE_HASH(md4,MD4_CTX,MD4Init,MD4Update,md4_finish)
 
@@ -178,7 +178,7 @@ value HASH_NAME##_step(value job_v) \
   return Val_false;   \
 }
 
-PARTIAL_HASH(sha1,SHA1_CTX,sha1_init,sha1_append, sha1_finish)
+PARTIAL_HASH(sha1,SHA1_CTX,sha1_begin,sha1_hash, sha1_end)
 PARTIAL_HASH(md5,md5_state_t,md5_init,md5_append,md5_finish)
 PARTIAL_HASH(md4,MD4_CTX,MD4Init,MD4Update,md4_finish)
 

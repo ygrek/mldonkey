@@ -55,6 +55,20 @@ let mirrors = define_option fileTP_section ["mirrors"]
 *)
 
   []
+
+let remote_shells = define_option fileTP_section ["remote_shells"]
+  "A list of (hostname, args). Example: [  ( \"mycomputer.mydomain.fr\", (ssh, \"mldonkey@mycomputer.mydomain.fr\") ) ]"
+    (list_option (tuple2_option (string_option, list_option string_option)))
+  []
+
+  
+let get_range = define_option fileTP_section ["get_range"]
+  "The command to call to get a range"
+    string_option "get_range"
+  
+let range_arg = define_option fileTP_section ["range_arg"]
+  "The argument to !!get_range to get a range"
+    string_option "range"
   
   (*
 let verbose_clients = 
