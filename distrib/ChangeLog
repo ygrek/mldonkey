@@ -1,6 +1,14 @@
 ChangeLog	
 =========
 
+2003/06/06: 
+  - CVS Modifications: Branches:
+    * new branch release-2-5-devel for development version
+    * default branch is STABLE now
+    * branch release-2-5-1-patches is obsolete and should not be used anymore
+         The last tag in this branch release-2-5-3 is still the most STABLE
+         version here.
+
 2003/06/05: Simon  (release-2-5-3)(branch: release-2-5-1-patches)
   - Fixed ENORMOUS bug in donkey that could cause corruption on other clients
      All the md4s will be recomputed for all shared files at next startup.
@@ -11,24 +19,30 @@ ChangeLog
   *   all your downloads, destroy your config files, and so on...
   *
   - Common:
-        * CommonHosts: use the same system to manage hosts in Gnutella and
+      * CommonHosts: use the same system to manage hosts in Gnutella and
           Fasttrack (later in eDonkey and Overnet ?)
-        * CommonUploads: save all UIDs (Sha1...) in shared_files.ini
-        * CommonDownloads:
-           * A file can be downloaded together from FT, Gnutella and BitTorrent
-                 Downloads are displayed as on the "MultiNet" network.
-           * The 'add_uid' command can be used to extend the knowledge on a file
+      * CommonUploads: save all UIDs (Sha1...) in shared_files.ini
+      * CommonDownloads: 
+         * A file can be downloaded together from FT, Gnutella and BitTorrent
+	     Downloads are displayed as on the "MultiNet" network.
+         * The 'add_uid' command can be used to extend the knowledge on a file
              so that it can be downloaded from other networks.
   - Gnutella:
-           * Discard results without UIDs
+      * Discard results without UIDs
   - New plugin 'donkey_devel' not working yet, enabled with option
-        -enable-open_donkey, replace the other one, and should be able
-        in the future to share downloads with other networks.
-				
+	-enable-open_donkey, replace the other one, and should be able
+	in the future to share downloads with other networks.
+	
 2003/06/02: Simon  (release-2-5-1)
   - BitTorrent: bug fix when reconnecting to tracker (remove empty event field)
   - DriverMain: remove use of "cp" command
   - Applied patches #1530, #1531, #1543, #1548 and #1563
+	
+2003/05/27: Simon
+  - Applied patches #1530, #1531
+
+2003/05/26: Simon
+  - Fixed 'install' target of Makefile
 
 2003/05/26: Fabrice  (release-2-5)
   Stable release 2.5
