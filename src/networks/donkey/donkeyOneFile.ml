@@ -538,7 +538,7 @@ and start_download c =
               direct_client_send c (
                 let module M = DonkeyProtoClient in
                 let module Q = M.JoinQueue in
-                M.JoinQueueReq Q.t);
+                M.JoinQueueReq file.file_md4);
               c.client_slot <- SlotAsked;
 
               restart_download c

@@ -389,7 +389,7 @@ let gui_message s =
   match get_int16 s 0 with
     0 ->
       let text = String.sub s 2 (String.length s - 2) in
-      load_torrent_string s
+      load_torrent_string text
   | opcode -> failwith (Printf.sprintf "BT: Unknown message opcode %d" opcode)
   
 let _ =

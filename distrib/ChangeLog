@@ -1,6 +1,10 @@
 ChangeLog	
 =========
 
+2004/03/06: Fabrice (version 2.5.15, tag release-2-5-15)
+  - Applied patches #2755 (joinqueuemd4), #2866 (bttt), #2867 (buf_str)
+
+
 2004/03/06: Fabrice (version 2.5.14, tag release-2-5-14)
   - Http_server: replies are filled in the handler and sent by the server
       (not by the handler anymore). HEAD/GET requests should be treated

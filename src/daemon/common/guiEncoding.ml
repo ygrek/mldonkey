@@ -68,9 +68,12 @@ let buf_array buf f list =
   buf_int16 buf (Array.length list);
   Array.iter (fun x -> f buf x) list
 
+(* this else block already destroys backwards compatibility *)
+(* if len <= 0xfffff, how would the gui know what to do when len == 0xffff? *)
+
 let buf_string buf s =
   let len = String.length s in
-  if len >= 0xffff then begin
+  if len < 0xffff then begin
       buf_int16 buf len;
       Buffer.add_string buf s
     end else  begin

@@ -265,6 +265,24 @@ module QueryChunkMd4  = OneMd4(struct let m = "QUERY CHUNKS MD4" end)
 module EndOfDownload  = OneMd4(struct let m = "END OF DOWNLOAD MD4" end)
 module NoSuchFile  = OneMd4(struct let m = "NO SUCH FILE" end)
 
+
+module JoinQueue = struct 
+    type t = Md4.t
+      
+    let parse len s = 
+      if len == 16 then
+	get_md4 s 1
+      else
+	Md4.null
+
+      
+    let print t = 
+          lprintf "JoinQueue Of %s"  (Md4.to_string t)
+          
+    let write buf t = 
+      buf_md4 buf t
+end
+
 module QueryChunksReply = struct (* Request 80 *)
         
     type t = {
@@ -489,7 +507,7 @@ module NoArg = functor(M: sig val m : string end) -> (struct
           end
       )
     
-module JoinQueue = NoArg(struct let m = "JoinQueue" end)
+(*module JoinQueue = NoArg(struct let m = "JoinQueue" end)*)
 module AvailableSlot = NoArg(struct let m = "AvailableSlot" end)
 module ReleaseSlot = NoArg(struct let m = "ReleaseSlot" end)
 module CloseSlot = NoArg(struct let m = "CloseSlot" end)
