@@ -44,9 +44,10 @@ module Kademlia :
   sig
     val overnet_search : CommonTypes.search -> unit
     val recover_file : DonkeyTypes.file -> unit
-    val enable : bool ref -> unit
+    val enable : unit -> unit
     val disable : unit -> unit
     val gui_overnet_options_panel : (string * string * string) list
     val bootstrap : Ip.t -> int -> unit
     val cancel_recover_file : DonkeyTypes.file -> unit
+    val forget_search : CommonTypes.search -> unit
   end

@@ -1,6 +1,19 @@
 ChangeLog	
 =========
 
+2004/08/05: Fabrice (version 2.5.24 = 2.6pre6, tag release-2-5-24)
+  - Bug fixes:
+      * CommonSwarming: remove "double the downloaded size" of downloads.
+      * DonkeyComplexOptions: prevents saving options before loading them,
+          which used to destroy the file_sources.ini and shared_files_new.ini
+          files.
+      * CommonSources: check_time discarded the real time.
+      * DonkeyOvernet: enabling Overnet at runtime wouldn't start it.
+      * DonkeyShare: downloaded files should be shared immediatly.
+  - Applied patches: #3264 (emule mods)
+  - Overnet/Kademlia: added prebuckets. Number of peers limited to 20 per
+      bucket and 100 per prebucket. Boot peers addresses from redirector.
+
 2004/08/04: Fabrice (version 2.5.23 = 2.6pre5, tag release-2-5-23)
   - ocaml-3.08 is required to compile now.
   - Overnet and Emule-Kademlia share the same (partial) implementation:

@@ -327,6 +327,37 @@ let print_record t ip_firewall s =
                       lprintf "            Kademlia peer %s:%d\n"
                         (Ip.to_string ip) port;
                   ) servers
+
+  
+              | "DKKO" -> 
+                let servers, pos = get_list (fun s pos ->
+                        let ip = get_ip s pos in
+                        let port = get_port s (pos+4) in
+                        (ip, port), pos+8
+                    ) s 0 in
+                  
+                  
+                  lprintf "    DKKO:\n";
+                  List.iter (fun (ip, port) ->
+                      T.add new_overnet_peers (ip, port);
+                      lprintf "            Overnet peer %s:%d\n"
+                        (Ip.to_string ip) port;
+                  ) servers
+                  
+              | "DKKA" -> 
+                let servers, pos = get_list (fun s pos ->
+                        let ip = get_ip s pos in
+                        let udp_port = get_port s (pos+4) in
+                        let tcp_port = get_port s (pos+6) in
+                        (ip, udp_port, tcp_port), pos+8
+                    ) s 0 in
+                  
+                  lprintf "    DKKA:\n";
+                  List.iter (fun (ip, udp_port, tcp_port) ->
+                      T.add new_kademlia_peers (ip, udp_port);
+                      lprintf "            Kademlia peer %s:%d %d\n"
+                        (Ip.to_string ip) udp_port tcp_port;
+                  ) servers
                   
               | "DKNB" ->  
                   

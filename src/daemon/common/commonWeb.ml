@@ -225,6 +225,7 @@ support the charge, at least, currently. *)
                   let servers_met_s, pos = L.get_string16 s pos in
                   let peers_ocl_s, pos = L.get_string16 s pos in
                   let motd_conf_s, pos = L.get_string16 s pos in
+                  let peers_kad_s, pos = L.get_string16 s pos in
                   
                   motd_html =:= motd_html_s;
                   
@@ -239,6 +240,11 @@ support the charge, at least, currently. *)
                   let motd_conf_file = Filename.temp_file "motd" ".conf" in
                   File.from_string motd_conf_file motd_conf_s;
                   load_file "motd.conf" motd_conf_file;              
+                  
+                  let peers_kad_file = Filename.temp_file "peers" ".kad" in
+                  File.from_string peers_kad_file peers_kad_s;
+                  load_file "kad" peers_kad_file;
+                  
                   pos
                 else
                 

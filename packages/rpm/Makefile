@@ -1,3 +1,4 @@
+# Generated automatically from Makefile.in by configure.
 
 ## cvs -d:pserver:anoncvs@subversions.gnu.org:/cvsroot/mldonkey login
 

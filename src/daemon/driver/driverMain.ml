@@ -279,6 +279,7 @@ let load_config () =
       CommonMessages.colour_changer ();
     end;
   networks_iter_all (fun r -> 
+(*      lprintf "(n) loading network config file\n"; *)
       List.iter (fun opfile ->
           try
             Options.load opfile
@@ -399,16 +400,19 @@ let _ =
   load_config ();
   
   add_infinite_option_timer download_sample_rate CommonFile.sample_timer;  
-  
+
+(*  lprintf "(1) CommonComplexOptions.load\n"; *)
   CommonComplexOptions.load ();
-  
+
+(*  lprintf "(2) CommonComplexOptions.load done\n"; *)
   begin
     let old_save_results = !!save_results in
     save_results =:= 0;
     CommonComplexOptions.save ();
     save_results =:= old_save_results;
   end;
-  
+
+(*  lprintf "(3) networks_iter load_complex_options\n"; *)
   networks_iter (fun r -> network_load_complex_options r);
   networks_iter_all (fun r -> 
       lprintf  (_b "Network %s %s\n") r.network_name
@@ -416,7 +420,8 @@ let _ =
           (_s "enabled") else (_s "disabled"));
       );  
   networks_iter (fun r -> 
-    network_enable r;
+(*      lprintf "(4) networks_iter enabling\n"; *)
+      network_enable r;
 (* are there drawbacks to start recover_temp unconditionally here ? *)
       if !!recover_temp_on_startup then
         network_recover_temp r;

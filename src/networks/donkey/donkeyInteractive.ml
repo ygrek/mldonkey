@@ -77,7 +77,9 @@ let forget_search s =
   if !xs_last_search = s.search_num then begin
       xs_last_search := (-1);
       xs_servers_list := [];
-    end
+    end;
+  DonkeyProtoKademlia.Kademlia.forget_search s;
+  DonkeyProtoOvernet.Overnet.forget_search s
   
   
 let load_server_met filename =
@@ -783,7 +785,7 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+renameTextOut+'\\\"';
     ), ":\t\t\t\tsend the list of connected servers to the redirector";
   
   ]
-  
+          
 let _ =
   register_commands commands;
   file_ops.op_file_resume <- (fun file ->
@@ -795,13 +797,15 @@ DonkeySources.recompute_ready_sources ()        *)
       ()
   );
   file_ops.op_file_pause <- (fun file -> ()  );
+  
+  
   file_ops.op_file_commit <- (fun file new_name ->
       
 (*      DonkeyStats.save_download_history file; *)
       
       if not (List.mem file.file_md4 !!old_files) then
         old_files =:= file.file_md4 :: !!old_files;
-      lprintf "REMEMBER SHARE FILE INFO %s\n" new_name; 
+      DonkeyShare.remember_shared_info file new_name;
       
 (**************************************************************
 
@@ -813,7 +817,7 @@ file.---------> to be done urgently
 
 ***************************************************************)
       
-      DonkeyShare.remember_shared_info file new_name
+      unshare_file file;
   );
   network.op_network_connected <- (fun _ ->
     !nservers > 0  
@@ -1318,17 +1322,14 @@ let _ =
       let s = u.user_server in
       DonkeyUdp.add_user_friend s u
   )
-
   
 let _ =
   shared_ops.op_shared_unshare <- (fun file ->
-      match file.file_shared with
-        None -> ()
-      | Some s -> 
-          file.file_shared <- None;
-          decr nshared_files;
-          (try Unix32.close  (file_fd file) with _ -> ());
-          try Hashtbl.remove files_by_md4 file.file_md4 with _ -> ()
+      unshare_file file;
+      
+(* Should we or not ??? *)
+      if file_state file = FileShared then
+        try Hashtbl.remove files_by_md4 file.file_md4 with _ -> ();
   );
   shared_ops.op_shared_info <- (fun file ->
    let module T = GuiTypes in

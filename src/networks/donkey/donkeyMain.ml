@@ -200,21 +200,9 @@ let enable () =
                   let file_disk_name = file_disk_name file in
                   if Unix32.file_exists file_disk_name &&
                     Unix32.getsize file_disk_name <> Int64.zero then begin
-                      lprintf "FILE DOWNLOADED"; lprint_newline ();
-                      DonkeyShare.remember_shared_info file file_disk_name;
-                      lprintf "REMEMBERED"; lprint_newline ();
-                      file_completed (as_file file);
-                      let file_id = Filename.basename file_disk_name in
-                      ignore (CommonShared.new_shared "completed" 0 (
-                          file_best_name file )
-                        file_disk_name);
+                      lprintf "FILE DOWNLOADED\n"; 
                       
-                      lprintf "COMPLETED"; lprint_newline ();
-                      (try
-                          let format = CommonMultimedia.get_info file_disk_name
-                          in
-                          file.file_format <- format
-                        with _ -> ());        
+                      DonkeyOneFile.declare_completed_file file;
                     end
                   else raise Not_found
                 with _ -> 
@@ -226,13 +214,18 @@ let enable () =
       ) files_by_md4;
       
       let list = ref [] in
-(* Normally, we should check that downloaded files are still there.
-  
-  *)    
+(* Normally, we should check that downloaded files are still there.  *)    
       let list = ref [] in
       List.iter (fun file ->
-          if Unix32.file_exists file.sh_name then begin
-              Hashtbl.add shared_files_info file.sh_name file;
+          
+(* Hum, maybe we should not remove all these descriptions, as they might
+be useful when users want to share files that they had already previously
+  shared *)
+          let key = (file.sh_name, file.sh_size, file.sh_mtime) in
+          if Unix32.file_exists file.sh_name &&
+            not (Hashtbl.mem shared_files_info key) 
+            then begin
+              Hashtbl.add shared_files_info key file;
               list := file :: !list
             end
       ) !!known_shared_files;
@@ -269,8 +262,8 @@ let enable () =
             else  raise e
       in
       let sock = find_port !!donkey_port in
-      DonkeyProtoOvernet.Overnet.enable enabler;
-      DonkeyProtoKademlia.Kademlia.enable enabler;
+      DonkeyProtoOvernet.Overnet.enable ();
+      DonkeyProtoKademlia.Kademlia.enable ();
       
       begin
         match Unix.getsockname (BasicSocket.fd (TcpServerSocket.sock sock)) with
@@ -327,10 +320,9 @@ let enable () =
       );
       add_session_option_timer enabler remove_old_servers_delay 
           DonkeyServers.remove_old_servers;
+
+      DonkeyComplexOptions.load_sources ();
       
-    
-    DonkeyComplexOptions.load_sources ();
-    
 (**** START PLAYING ****)  
     (try DonkeyUdp.force_check_locations () with _ -> ());
     (try force_check_server_connections true with _ -> ());

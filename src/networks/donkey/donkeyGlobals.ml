@@ -200,8 +200,10 @@ let interesting_clients = ref ([] : client list)
 let files_by_md4 = Hashtbl.create 127
 let find_file md4 = Hashtbl.find files_by_md4 md4
 
+(* changed 2.5.24: we store directly the size and the modification time
+in the shared_files_info *)
 let shared_files_info = (Hashtbl.create 127
-    : (string, shared_file_info) Hashtbl.t)
+    : (string * int64 * float, shared_file_info) Hashtbl.t)
 let shared_files = ref ([] : file_to_share list)
 let new_shared_files = ref [] 
   
@@ -875,6 +877,31 @@ let brand_mod_to_string b =
   | Brand_mod_morphxt -> "MorphXT"
   | Brand_mod_ngdonkey -> "ngdonkey"
   | Brand_mod_cyrex -> "Cyrex"
+  | Brand_mod_hawkstar -> "Hawkstar"
+  | Brand_mod_neomule -> "Neo Mule"
+  | Brand_mod_aldo -> "aldo"
+  | Brand_mod_emulede -> "emule.de"
+  | Brand_mod_zx -> "zx"
+  | Brand_mod_ibericaxt -> "ib\233ricaxt"
+  | Brand_mod_candymule -> "candy-mule"
+  | Brand_mod_ackronic -> "ackronic"
+  | Brand_mod_rappis -> "rappis"
+  | Brand_mod_overdose -> "overdose"
+  | Brand_mod_hebmule -> "hebmule"
+  | Brand_mod_senfei -> "senfei"
+  | Brand_mod_spoofmod -> "spoofmod"
+  | Brand_mod_fusspilz -> "fusspilz"
+  | Brand_mod_rocket -> "rocket"
+  | Brand_mod_warezfaw -> "warezfaw"
+  | Brand_mod_emusicmule -> "emusicmule"
+  | Brand_mod_aideadsl -> "aideadsl"
+  | Brand_mod_epo -> "epo"
+  | Brand_mod_kalitsch -> "kalitsch"
+  | Brand_mod_raynz -> "raynz"
+  | Brand_mod_serverclient -> "serverclient"
+  | Brand_mod_bl4ckbird -> "bl4ckbird"
+  | Brand_mod_bl4ckf0x -> "bl4ckf0x"
+  | Brand_mod_rt -> "rt"
     
 
 let check_result r tags =

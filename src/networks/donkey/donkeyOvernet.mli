@@ -110,20 +110,23 @@ module Make(Proto: sig
       val redirector_section : string
       val options_section_name : string
       val command_prefix : string
-      val source_kind : bool
+      val source_brand : bool
         
       val udp_send : UdpSocket.t -> Ip.t -> int -> t -> unit
       val udp_handler : (t -> UdpSocket.udp_packet -> unit) -> 
         UdpSocket.t -> UdpSocket.event -> unit
+        
+      val web_info : string
     end) : sig
     
     val overnet_search : CommonTypes.search -> unit
     val recover_file : DonkeyTypes.file -> unit
-    val enable : bool ref -> unit
+    val enable : unit -> unit
     val disable : unit -> unit
     val gui_overnet_options_panel : (string * string * string) list
     val bootstrap : Ip.t -> int -> unit
     val cancel_recover_file : DonkeyTypes.file -> unit
+    val forget_search : CommonTypes.search -> unit
   end
 
   

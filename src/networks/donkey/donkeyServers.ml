@@ -576,9 +576,10 @@ position to the min_left_servers position.
   
 (* Don't let more than max_allowed_connected_servers running for
 more than 5 minutes *)
-    
+  
+  (*
 let update_master_servers _ =
-(*  lprintf "update_master_servers\n";  *)
+  lprintf "update_master_servers\n"; 
   let nmasters = ref 0 in
   List.iter (fun s ->
       if s.server_master then
@@ -604,7 +605,7 @@ let update_master_servers _ =
             )
           end else
         if connection_last_conn s.server_connection_control 
-            + 120 < last_time () &&
+            + !!become_master_delay < last_time () &&
           !nconnected_servers > max_allowed_connected_servers ()  then begin
 (* remove one third of the servers every 5 minutes *)
             nconnected_servers := !nconnected_servers - 3;
@@ -618,7 +619,8 @@ let update_master_servers _ =
   ) 
   (* reverse the list, so that first servers to connect are kept ... *)
   list
-    
+    *)
+
 (* Keep connecting to servers in the background. Don't stay connected to 
   them , and don't send your shared files list *)
 let walker_list = ref []
@@ -718,7 +720,7 @@ let udp_walker_timer () =
       
       
 let update_master_servers _ =
-  
+
   let list = List.sort (fun s2 s1 ->
         s1.server_nusers - s2.server_nusers
     ) (connected_servers ()) in
@@ -795,7 +797,8 @@ connections *)
             end;
           
           if connection_last_conn s.server_connection_control 
-              + 120 < last_time () && not s.server_master then begin
+              + !!become_master_delay < last_time () && not s.server_master
+            then begin
 (* We have been connected for two minutes to this server, we can disconnect 
 now if needed *)
               

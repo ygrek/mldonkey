@@ -835,6 +835,7 @@ let finish_client_handshake c sock =
   client_must_update c;
   is_banned c sock
   
+  
 let client_to_client for_files c t sock = 
   let module M = DonkeyProtoClient in
   
@@ -848,7 +849,7 @@ let client_to_client for_files c t sock =
   match t with
     M.ConnectReplyReq t ->
       printf_string "******* [CCONN OK] ********"; 
-
+      
       if DonkeySources.source_brand c.client_source then
         !activity.activity_client_overnet_successful_connections <-
           !activity.activity_client_overnet_successful_connections +1 
@@ -901,12 +902,12 @@ let client_to_client for_files c t sock =
       identify_client_brand c;
       
       init_client_connection c sock;
-
+      
       if not (register_client_hash (peer_ip sock) t.CR.md4) then
         if !!ban_identity_thieves then
           ban_client c sock "is probably using stolen client hashes";
         
-      finish_client_handshake c sock
+        finish_client_handshake c sock
   
   | M.EmuleQueueRankingReq t 
   | M.QueueRankReq t ->
@@ -1027,7 +1028,7 @@ end; *)
         | Some (file,up) -> 
             if !verbose_download then begin
                 lprintf "DonkeyClient: Clear download\n";
-	    end;
+              end;
             Int64Swarmer.clear_uploader_ranges up;
             c.client_download <- None
         | None ->
@@ -1053,8 +1054,8 @@ end; *)
                         DonkeyOneFile.add_client_chunks c file chunks) files;
 (*                DonkeyOneFile.restart_download c *)
                   with _ -> 
-                        if c.client_debug then
-                      lprintf "AvailableSlot received, but not file to download !!\n";
+                      if c.client_debug then
+                        lprintf "AvailableSlot received, but not file to download !!\n";
 (* TODO: ask for the files now *)
       end;
 (* now, we can forget we have asked for a slot *)
@@ -1120,7 +1121,7 @@ other one for unlimited sockets.  *)
         | Some (file,up) ->
             if !verbose_download then begin
                 lprintf "Slot closed during download\n";
-	    end;
+              end;
             Int64Swarmer.clear_uploader_ranges up
       end;
 (*      DonkeyOneFile.clean_current_download c; *)
@@ -1138,13 +1139,8 @@ other one for unlimited sockets.  *)
       end
   
   | M.ReleaseSlotReq _ ->
-      set_client_has_a_slot (as_client c) false;
-      client_send c (
-        let module M = DonkeyProtoClient in
-        let module Q = M.CloseSlot in
-        M.CloseSlotReq Q.t);
-      if c.client_file_queue = [] then
-        set_rtimeout sock 120.;
+      DonkeyOneFile.remove_client_slot c;
+      if c.client_file_queue = [] then set_rtimeout sock 120.;
       CommonUploads.refill_upload_slots ()
   
   | M.QueryFileReplyReq t ->
@@ -1189,7 +1185,7 @@ other one for unlimited sockets.  *)
               List.iter (fun (f,_,_) ->
                   if f == file then know_file_chunks := true
               ) c.client_file_queue;
-                
+              
               if not !know_file_chunks then
                 DonkeyProtoCom.client_send c (
                   let module M = DonkeyProtoClient in
@@ -1209,7 +1205,7 @@ other one for unlimited sockets.  *)
       let module Q = M.QueryChunksReply in      
       
       received_client_bitmap c t.Q.md4 t.Q.chunks
-        
+  
   | M.QueryChunkMd4ReplyReq t ->
       begin
         let module Q = M.QueryChunkMd4Reply in
@@ -1296,9 +1292,9 @@ is checked for the file.
 
 (*            lprintf "Comp bloc: %d/%d\n" comp.comp_len comp.comp_total; *)
       if comp.comp_len = comp.comp_total then begin
-	if !verbose_download then begin
-          lprintf "Complete Compressed bloc received !!!!!!\n";
-	end;
+          if !verbose_download then begin
+              lprintf "Complete Compressed bloc received !!!!!!\n";
+            end;
           
           let s = String.create comp.comp_len in
           let rec iter list =
@@ -1314,9 +1310,9 @@ is checked for the file.
           assert (pos = comp.comp_len);
           if Autoconf.has_zlib then
             let s = Autoconf.zlib__uncompress_string2 s in
-	    if !verbose then begin
-            lprintf "Decompressed: %d/%d\n" (String.length s) comp.comp_len;
-	    end;
+            if !verbose then begin
+                lprintf "Decompressed: %d/%d\n" (String.length s) comp.comp_len;
+              end;
             
             DonkeyOneFile.block_received c comp.comp_md4
               comp.comp_pos s 0 (String.length s)
@@ -1354,7 +1350,7 @@ is checked for the file.
       
       DonkeyOneFile.block_received c t.Q.md4
         t.Q.start_pos t.Q.bloc_str t.Q.bloc_begin t.Q.bloc_len
-  
+
 (* Upload requests *)
   | M.ViewFilesReq t when !CommonUploads.has_upload = 0 && 
     (match !!allow_browse_share with
@@ -1443,14 +1439,14 @@ end else *)
             end;
           Array.iter (fun s ->
               try
-              let addr = 
+                let addr = 
                   if Ip.valid s.Q.src_ip then
                     if ip_reachable s.Q.src_ip then
                       Direct_address (s.Q.src_ip, s.Q.src_port)
                     else raise Not_found
                   else begin
 (*                      lprintf "RIA: Received indirect address\n"; *)
-                    Indirect_address (s.Q.src_server_ip, s.Q.src_server_port,
+                      Indirect_address (s.Q.src_server_ip, s.Q.src_server_port,
                         id_of_ip s.Q.src_ip)
                     end
                 in
@@ -1554,7 +1550,7 @@ end else *)
           with 
           | _ -> ()
         end
-        
+  
   | M.QueryBlocReq t when !CommonUploads.has_upload = 0 &&
     client_has_a_slot (as_client c) ->
       
@@ -1562,67 +1558,68 @@ end else *)
           lprintf "uploader %s(%s) ask for block\n" c.client_name
             (brand_to_string c.client_brand); 
         end;
-
+      
       let module Q = M.QueryBloc in
       let file = find_file  t.Q.md4 in
       let prio = (file_priority file) in
       let client_upload_lifetime = ref ((maxi 0 !!upload_lifetime) * 60) in
       begin
-
+        
         if !!dynamic_upload_lifetime
-           && c.client_uploaded > c.client_downloaded
-           && c.client_uploaded > Int64.mul (Int64.of_int !!dynamic_upload_threshold) zone_size
+            && c.client_uploaded > c.client_downloaded
+            && c.client_uploaded > Int64.mul (Int64.of_int !!dynamic_upload_threshold) zone_size
         then
           client_upload_lifetime :=
-              Int64.to_int 
-                (Int64.div
-                  (Int64.mul 
-                    (Int64.of_int !client_upload_lifetime)
-                    c.client_downloaded)
-                  c.client_uploaded);
+          Int64.to_int 
+            (Int64.div
+              (Int64.mul 
+                (Int64.of_int !client_upload_lifetime)
+              c.client_downloaded)
+            c.client_uploaded);
         if last_time() > c.client_connect_time + 
-          !client_upload_lifetime + 5 * prio then
+            !client_upload_lifetime + 5 * prio then
           begin
-            
+
 (* And what happens if we were downloading from this client also ? *)
             
-          disconnect_client c (Closed_for_error "Upload lifetime expired");
-          raise Not_found
-        end;
-
-      set_lifetime sock active_lifetime;
-      set_rtimeout sock !!upload_timeout;
+            disconnect_client c (Closed_for_error "Upload lifetime expired");
+            raise Not_found
+          end;
+        
+        set_lifetime sock active_lifetime;
+        set_rtimeout sock !!upload_timeout;
+        
+        let up, waiting = match c.client_upload with
+            Some ({ up_file = f } as up) when f == file ->  up, up.up_waiting
+          | Some old_up ->
+              {
+                up_file = file;
+                up_pos = Int64.zero;
+                up_end_chunk = Int64.zero;
+                up_chunks = [];
+                up_waiting = old_up.up_waiting;
+              }, old_up.up_waiting
+          | _ ->
+              {
+                up_file = file;
+                up_pos = Int64.zero;
+                up_end_chunk = Int64.zero;
+                up_chunks = [];
+                up_waiting = false;
+              }, false
+        in
+        new_chunk up t.Q.start_pos1 t.Q.end_pos1;
+        new_chunk up t.Q.start_pos2 t.Q.end_pos2;
+        new_chunk up t.Q.start_pos3 t.Q.end_pos3;
+        c.client_upload <- Some up;
+        set_client_upload (as_client c) (shared_of_file file);
+        if not waiting && !CommonUploads.has_upload = 0 then begin
+            CommonUploads.ready_for_upload (as_client c);
+            up.up_waiting <- true
+          end
+      end;
+      lprintf "QueryBloc treated\n"
       
-      let up, waiting = match c.client_upload with
-          Some ({ up_file = f } as up) when f == file ->  up, up.up_waiting
-        | Some old_up ->
-            {
-              up_file = file;
-              up_pos = Int64.zero;
-              up_end_chunk = Int64.zero;
-              up_chunks = [];
-              up_waiting = old_up.up_waiting;
-            }, old_up.up_waiting
-        | _ ->
-            {
-              up_file = file;
-              up_pos = Int64.zero;
-              up_end_chunk = Int64.zero;
-              up_chunks = [];
-              up_waiting = false;
-            }, false
-      in
-      new_chunk up t.Q.start_pos1 t.Q.end_pos1;
-      new_chunk up t.Q.start_pos2 t.Q.end_pos2;
-      new_chunk up t.Q.start_pos3 t.Q.end_pos3;
-      c.client_upload <- Some up;
-      set_client_upload (as_client c) (shared_of_file file);
-      if not waiting && !CommonUploads.has_upload = 0 then begin
-          CommonUploads.ready_for_upload (as_client c);
-          up.up_waiting <- true
-        end
-    end
-
   | M.NoSuchFileReq t ->
       begin
         try
@@ -1723,7 +1720,14 @@ let init_client sock c =
         
 let read_first_message overnet m sock =
   let module M = DonkeyProtoClient in
-  
+    
+  if !verbose_msg_clients then begin
+      lprintf "Message from incoming client";
+      CommonGlobals.print_localtime ();
+      M.print m;
+      lprintf "\n"
+    end;
+
   match m with
   
   | M.ConnectReq t ->
@@ -2090,12 +2094,13 @@ let can_open_indirect_connection () =
   !DonkeySources.indirect_connections < !!max_indirect_connections
 
 let client_connection_handler overnet t event =
-  printf_string "[REMOTE CONN]";
+(*  lprintf "[REMOTE CONN]\n"; *)
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
 
       if can_open_indirect_connection () then
         begin
+(*          lprintf "+++++++++++++++++++++++++++++++++++++++++++++++\n"; *)
           (try
               let c = ref None in
               incr DonkeySources.indirect_connections;

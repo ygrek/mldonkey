@@ -29,7 +29,9 @@ val check_files_downloaded : unit -> unit
 val add_client_chunks : DonkeyTypes.client ->
   DonkeyTypes.file -> bool array -> unit
 
-  
+val unshare_file : DonkeyTypes.file -> unit
+val declare_completed_file : DonkeyTypes.file -> unit
+val remove_client_slot : DonkeyTypes.client -> unit
   
 val search_found : bool -> 
   CommonTypes.search -> Md4.t -> CommonTypes.tag list -> unit

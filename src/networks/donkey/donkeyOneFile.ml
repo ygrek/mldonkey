@@ -99,20 +99,52 @@ done;
   *)
                 end
 
+let remove_client_slot c =
+  set_client_has_a_slot (as_client c) false;
+  client_send c (
+    let module M = DonkeyProtoClient in
+    let module Q = M.CloseSlot in
+    M.CloseSlotReq Q.t);
+  c.client_upload <- None
+
+let unshare_file file =
+  match file.file_shared with
+    None -> ()
+  | Some s -> 
+      file.file_shared <- None;
+      decr nshared_files;
+      (try Unix32.close  (file_fd file) with _ -> ());
+      
+      begin
+        H.iter (fun c ->
+            match c.client_upload with
+              Some { up_file = f } when f == file ->
+                remove_client_slot c
+            | _ -> ()
+        ) clients_by_kind
+      end
+
+let declare_completed_file file = 
+  DonkeyShare.remember_shared_info file (file_disk_name file);
+  file_completed (as_file file);
+  
+  unshare_file file;
+  ignore (CommonShared.new_shared "completed" 0 (
+      file_best_name file )
+    (file_disk_name file));
+  (try
+      let format = CommonMultimedia.get_info
+          (file_disk_name file) in
+      file.file_format <- format
+    with _ -> ())
+  
 (** What to do when a file is finished
   @param file the finished file
 *)         
 let download_finished file = 
   if List.memq file !current_files then begin      
       current_files := List2.removeq file !current_files;
-      DonkeyShare.remember_shared_info file (file_disk_name file);
-      file_completed (as_file file);
-(* TODO: disconnect from all sources *)
-      (try
-          let format = CommonMultimedia.get_info
-              (file_disk_name file) in
-          file.file_format <- format
-        with _ -> ());
+      declare_completed_file file
     end
 
 (** Check if a file is finished or not.

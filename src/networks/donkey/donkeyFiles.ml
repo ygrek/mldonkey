@@ -75,6 +75,7 @@ module NewUpload = struct
 *)
     
     let rec send_small_block c sock file begin_pos len_int = 
+(*      lprintf "send_small_block\n"; *)
 (*      let len_int = Int32.to_int len in *)
       CommonUploads.consume_bandwidth len_int;
       try
@@ -121,6 +122,7 @@ module NewUpload = struct
           lprintf "Exception %s in send_small_block\n" (Printexc2.to_string e)
     
     let rec send_client_block c sock per_client =
+(*      lprintf "send_client_block\n"; *)
       if per_client > 0 && CommonUploads.remaining_bandwidth () > 0 then
         match c.client_upload with
         | Some ({ up_chunks = _ :: chunks } as up)  ->
@@ -165,9 +167,14 @@ module NewUpload = struct
         | _ -> ()
     
     let upload_to_client c size = 
+(*      lprintf "upload_to_client %d\n" size; *)
       do_if_connected  c.client_source.DonkeySources.source_sock (fun sock ->
-          if CommonUploads.can_write_len sock (maxi max_msg_size size) then
-            send_client_block c sock size;
+(*    lprintf "upload_to_client %d connected\n"  (maxi max_msg_size size); *)
+          if CommonUploads.can_write_len sock (maxi max_msg_size size) then 
+            begin
+(*              lprintf "can_write_len %d\n"  (maxi max_msg_size size); *)
+              send_client_block c sock size;
+            end;
           (match c.client_upload with
               None -> ()
             | Some up ->

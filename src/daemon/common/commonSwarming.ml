@@ -1955,7 +1955,7 @@ let value_to_swarmer t assocs =
           
     with e -> ());
   
-  add_all_downloaded t zero;
+(*  add_all_downloaded t zero;   (* changed 2.5.24 *) *)
   
   ()      
 

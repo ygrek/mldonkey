@@ -414,7 +414,7 @@ module Proto = struct
           );
       | _ -> ()
     
-    let redirector_section = "DKOV"
+    let redirector_section = "DKKO"
     let options_section_name = overnet_options_section_name
     let overnet_section = overnet_section
     let overnet_port = overnet_port
@@ -462,8 +462,8 @@ module Proto = struct
           
     let enable_overnet = enable_overnet
     let command_prefix = "ov_"    
-    let source_kind = true
-      
+    let source_brand = true
+    let web_info = "ocl"    
   end
   
 module Overnet_initial = Make(Proto)
@@ -479,34 +479,6 @@ let overnet_protocol_connectreply_version =
   define_option overnet_section [Proto.options_section_name; "protocol_connectreply_version"] 
     "The protocol version sent on Overnet connections replies"
     int_option 44
-    
-let _ =    
-    CommonWeb.add_web_kind "ocl" (fun _ filename ->
-      let s = File.to_string filename in
-      let s = String2.replace s '"' "" in
-      let lines = String2.split_simplify s '\n' in
-      List.iter (fun s ->
-          try
-            match String2.split_simplify s ',' with
-              name :: port :: _ ->
-                let name = String2.replace name '"' "" in
-                let port = String2.replace port '"' "" in
-                Ip.async_ip name (fun ip ->
-                    let port = int_of_string port in
-                    if !verbose_overnet then begin
-                        lprintf "ADDING OVERNET PEER %s:%d" name port; 
-                        lprint_newline ();
-                      end;
-                    Overnet_initial.bootstrap ip port)
-            | _ -> 
-                lprintf "BAD LINE ocl: %s" s;
-                lprint_newline ();
-          with _ -> 
-              begin
-                lprintf "DNS failed"; lprint_newline ();
-              end
-      ) lines
-  )
   
   
 (* In Overnet case, the TCP protocol is changed, so we need to create a special

@@ -578,7 +578,7 @@ let remove_server ip port =
     DonkeyGlobals.remove_server ip port
   with _ -> ()
 
-  
+let config_files_loaded = ref false  
       
 let load _ =
   lprintf "LOADING SHARED FILES AND SOURCES\n"; 
@@ -587,7 +587,8 @@ let load _ =
       Options.load stats_ini;
       Options.load mod_stats_ini;
     with Sys_error _ ->
-        Options.save_with_help shared_files_ini)
+        Options.save_with_help shared_files_ini);
+  config_files_loaded := true
   
 let guptime = define_option stats_section ["guptime"] "" int_option 0
   
@@ -633,27 +634,37 @@ let _ =
 
 let diff_time = ref 0
 
+let sources_loaded = ref false  (* added 2.5.24 *)
+
 let save _ =
-  lprintf "SAVING SHARED FILES AND SOURCES\n";
-  Options.save_with_help shared_files_ini;
-  guptime =:= !!guptime + (last_time () - start_time) - !diff_time;
-  diff_time := (last_time () - start_time);
-  Options.save_with_help stats_ini;
-  Options.save_with_help mod_stats_ini;
-  
-  save_time =:= last_time ();
-  let cleaner = DonkeySources.attach_sources_to_file file_sources_section in
-  Options.save_with_help file_sources_ini;
-  cleaner ();
-  lprintf "SAVED\n"; 
-  create_online_sig ()
+  if !config_files_loaded then begin
+(*  lprintf "SAVING SHARED FILES AND SOURCES\n"; *)
+      Options.save_with_help shared_files_ini;
+      guptime =:= !!guptime + (last_time () - start_time) - !diff_time;
+      diff_time := (last_time () - start_time);
+      Options.save_with_help stats_ini;
+      Options.save_with_help mod_stats_ini;
+      create_online_sig ();
+    end;
+  if !sources_loaded then begin
+      save_time =:= last_time ();
+      let cleaner = DonkeySources.attach_sources_to_file file_sources_section in
+      Options.save_with_help file_sources_ini;
+      cleaner ()
+    end
+(*  lprintf "SAVED\n";  *)
     
 let guptime () = !!guptime - !diff_time
-
   
 let load_sources () = 
   (try 
+(*      lprintf "load_sources: loading sources\n"; *)
+      let cleaner = DonkeySources.attach_sources_to_file file_sources_section in
+      cleaner ();
       Options.load file_sources_ini;
+      cleaner ();
+      sources_loaded := true;
+(*      lprintf "load_sources: sources loaded\n"; *)
       List.iter (fun list ->
           let files = ref [] in
           List.iter (fun m ->

@@ -442,12 +442,13 @@ module P = struct
             (String.length s);
 (*dump s; lprint_newline ();*)
           end;
+        (*
         let len = String.length s in
         let t = parse_message ip port s in
         if t <> msg then begin
             lprintf "********** SENT MESSAGE DIFFERS FROM EXPECTED ******\n";
           end;
-        
+*)        
         
         UdpSocket.write sock s ip port
       with
@@ -477,11 +478,11 @@ module P = struct
           );
       | _ -> ()
     
-    let redirector_section = "DKKD"
+    let redirector_section = "DKKA"
     let options_section_name = "Kademlia"    
     
     let enable_overnet = enable_kademlia
-    let source_kind = false
+    let source_brand = false
         
     let overnet_section = file_section donkey_ini 
         [ options_section_name ]
@@ -494,6 +495,8 @@ module P = struct
       
     let overnet_tcpport = donkey_port
     let command_prefix = "kad_"
+      
+    let web_info = "kad"
   end
   
 module Kademlia = Make(P)

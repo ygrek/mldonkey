@@ -137,8 +137,8 @@ lprint_newline ());
         lprintf "Sharing %s\n" sh.sh_name;
     end;
   with e ->
-      lprintf "Exception %s while sharing %s" (Printexc2.to_string e)
-      sh.sh_name; lprint_newline () 
+      lprintf "Exception %s while sharing %s\n" (Printexc2.to_string e)
+      sh.sh_name
       
   
 let all_shared () =  
@@ -148,6 +148,7 @@ let all_shared () =
         None -> ()
       | Some _ ->  shared_files := file :: !shared_files
   ) files_by_md4;
+  lprintf "%d files shared\n" (List.length !shared_files);
   !shared_files
 
 (*  Check whether new files are shared, and send them to connected servers.
@@ -223,7 +224,8 @@ let check_shared_files () =
                         sh_mtime = Unix32.mtime sh.shared_name;
                       } in
                     lprintf "NEW SHARED FILE %s\n" sh.shared_name; 
-                    Hashtbl.add shared_files_info sh.shared_name s;
+                    Hashtbl.add shared_files_info 
+                      (s.sh_name, s.sh_size, s.sh_mtime) s;
                     known_shared_files =:= s :: !!known_shared_files;
                     new_file_to_share s sh.shared_shared.impl_shared_codedname (Some  sh.shared_shared);
                     shared_remove  sh.shared_shared;
@@ -231,9 +233,8 @@ let check_shared_files () =
                 else
                   job_creater ())
           with e ->
-              lprintf "Exception %s prevents sharing"
+              lprintf "Exception %s prevents sharing\n"
                 (Printexc2.to_string e);
-              lprint_newline ();
         in
         job_creater ()
         
@@ -242,31 +243,32 @@ let local_dirname = Sys.getcwd ()
 let _ =
   network.op_network_share <- (fun fullname codedname size ->
       if !verbose_share then begin
-          lprintf "FULLNAME %s" fullname; lprint_newline ();
+          lprintf "FULLNAME %s\n" fullname; 
         end;
 (*      let codedname = Filename.basename codedname in*)
       if !verbose_share then begin
-          lprintf "CODEDNAME %s" codedname; lprint_newline ();
+          lprintf "CODEDNAME %s\n" codedname; 
         end;
       try
 (*
 lprintf "Searching %s" fullname; lprint_newline ();
 *)
-        let s = Hashtbl.find shared_files_info fullname in
         let mtime = Unix32.mtime fullname in
-        if s.sh_mtime = mtime && s.sh_size = size then begin
-            if !verbose_share then begin
+        let s = Hashtbl.find shared_files_info 
+            (fullname, size, mtime) in
+        (* if s.sh_mtime = mtime && s.sh_size = size then begin *)
+            if !verbose_share then begin 
                 lprintf "USING OLD MD4s for %s\n" fullname;
               end;
             new_file_to_share s codedname None
-          end else begin
+(*          end else begin
             if !verbose_share then begin                
                 lprintf "Shared file %s has been modified\n" fullname;
               end;
             Hashtbl.remove shared_files_info fullname;
             known_shared_files =:= List2.removeq s !!known_shared_files;
             raise Not_found
-          end
+          end *)
       with Not_found ->
           if !verbose_share then begin
               lprintf "No info on %s\n" fullname; 
@@ -306,25 +308,37 @@ lprintf "Searching %s" fullname; lprint_newline ();
   )
   
 let remember_shared_info file new_name =
+(* changed 2.5.24: normalization of file names is done in 
+    CommonShared.new_shared, so it should be done here too. *)
+  let new_name = Filename2.normalize new_name in
+(*  lprintf "******  remember_shared_info for new file %s\n" new_name; *)
   if file.file_md4s <> [||] then
     try
-      let disk_name = file_disk_name file in
-      let mtime = Unix32.mtime disk_name in
+      let mtime = 
+        try
+          let disk_name = file_disk_name file in
+          Unix32.mtime disk_name 
+        with _ ->          
+            lprintf "Trying mtime on new name\n";
+            Unix32.mtime new_name
+      in
       
       if !verbose_share then begin
           lprintf "Remember %s\n" new_name; 
         end;
       
-      if not (Hashtbl.mem shared_files_info new_name) then
+      let size = file_size file in
+      if not (Hashtbl.mem shared_files_info 
+            (new_name, size, mtime) ) then
         let s = {
             sh_name = new_name;
-            sh_size = file_size file;
+            sh_size = size;
             sh_mtime = mtime;
             sh_md4s = file.file_md4s;
           } in
         
         known_shared_files =:= s :: !!known_shared_files;    
-        Hashtbl.add shared_files_info new_name s
+        Hashtbl.add shared_files_info (new_name, size, mtime) s
     with e ->
         lprintf "Exception %s in remember_shared_info\n"
           (Printexc2.to_string e)

@@ -25,6 +25,9 @@ A web-based interface to MLdonkey appears. Certain ports enabling inbound
 routing on your firewall/router need to be opened to fully use MLdonkey.
 The Options tab in the web interface shows the ports.
 
+Downloaded files will be found in the sub-directory incoming/, while
+files to be shared should be in a sub-directory called shared/.
+
 -You're done!-
 
 Some goodies (make_torrent, ed2k_hash) come with mldonkey, you can also

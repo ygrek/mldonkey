@@ -710,11 +710,21 @@ let upload_credit = ref 0
 
 
 let can_write_len sock len =
-  can_write_len sock len && 
-  (let upload_rate = 
-      (if !!max_hard_upload_rate = 0 then 10000 else !!max_hard_upload_rate)
-      * 1024 in
-    not_buffer_more sock (upload_rate * (Fifo.length upload_clients)))
+  let bool1 = can_write_len sock len in
+  let bool2 = 
+    (let upload_rate = 
+        (if !!max_hard_upload_rate = 0 then 10000 else !!max_hard_upload_rate)
+        * 1024 in
+(*      lprintf "upload_rate %d -> %d\n" upload_rate
+        (upload_rate * (Fifo.length upload_clients)); *)
+(* changed 2.5.24 
+Don't put in a socket more than 10 seconds of upload. 
+  *)
+    not_buffer_more sock (upload_rate * 10 
+      (* * (Fifo.length upload_clients) *) ))
+  in
+(*  lprintf "can_write_len %b %b\n" bool1 bool2; *)
+  bool1 && bool2
 
 let upload_to_one_client () =
   if !remaining_bandwidth < 10000 then begin

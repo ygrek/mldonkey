@@ -813,7 +813,7 @@ module Make(M:
         if time = 0 then
           last_time () - 650
         else
-          last_time ()
+          time (* changed 2.5.24 *)
       
       let add_request s file time =
         let r =
@@ -1004,6 +1004,7 @@ we will probably query for the other file almost immediatly. *)
 (*************************************************************************)
       
       let value_to_source assocs =
+(*        lprintf "(1) value_to_source\n"; *)
         let get_value name conv = conv (List.assoc name assocs) in    
         
         let addr = get_value "addr" M.value_to_source_uid in
@@ -1024,6 +1025,8 @@ we will probably query for the other file almost immediatly. *)
         s.source_score <- score;
         s.source_age <- last_conn;
         s.source_brand <- brand;
+
+(*        lprintf "(2) value_to_source \n"; *)
         
         let rec iter v =
           match v with
@@ -1033,6 +1036,8 @@ we will probably query for the other file almost immediatly. *)
                   let uid = value_to_string uid in
                   let score = value_to_int score in
                   let time = value_to_int time in
+(*                  lprintf "(3) value_to_source \n"; *)
+                  
                   add_saved_source_request s uid score time
                 
                 with e -> 
@@ -1044,6 +1049,8 @@ we will probably query for the other file almost immediatly. *)
           | (StringValue _) as uid ->
               (try
                   let uid = value_to_string uid in
+(*                  lprintf "(4) value_to_source \n"; *)
+                  
                   let score = 0 in
                   let time = 0 in
                   add_saved_source_request s uid score time
@@ -1057,8 +1064,11 @@ we will probably query for the other file almost immediatly. *)
           | _ -> assert false
         
         in
+(*        lprintf "(5) value_to_source \n"; *)
         
         List.iter iter files;
+(*        lprintf "(6) value_to_source \n"; *)
+        
         raise SideEffectOption
 
 (*************************************************************************)
@@ -1326,17 +1336,22 @@ the tail if the request could be sent. This seems thus safe. *)
         | _ -> failwith "Option should be a module"
       
       let option = define_option_class "Source"
-          (fun v -> value_to_module value_to_source v)
+          (fun v -> 
+(*            lprintf "(n) source !!\n"; *)
+            value_to_module value_to_source v)
         (fun s -> Module (source_to_value s []))
       
       let file_sources_option = ref None
       
       let attach_sources_to_file section =
+(*        lprintf "attach_sources_to_file\n"; *)
         let sources = match !file_sources_option with
             None -> 
+(*              lprintf "attaching sources this time\n"; *)
               let sources = define_option section 
                   ["sources"] ""  (listiter_option option) []
               in
+(*              lprintf "done\n"; *)
               file_sources_option := Some sources;
               sources
           | Some sources ->  sources
