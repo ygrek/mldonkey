@@ -410,7 +410,7 @@ let filter_table_threshold = define_option downloads_ini
 
 let client_buffer_size = define_option downloads_ini
     ["client_buffer_size"] "Maximal size of the buffers of a client"
-    int_option 100000
+    int_option 500000
   
 let new_print_search = define_option downloads_ini
     ["new_print_search"] "Use new display of search results (with tables,
@@ -477,4 +477,14 @@ let propagate_sources = define_option downloads_ini ["propagate_sources"]
 let max_sources_per_file = define_option downloads_ini ["max_sources_per_file"]
     "Maximal number of sources for each file"
     int_option 1000
+    
+let max_displayed_results = define_option downloads_ini
+    ["max_displayed_results"]
+    "Maximal number of results displayed for a search"
+    int_option 1000
+  
+let min_left_sources = define_option downloads_ini
+    ["min_left_sources"]
+    "Minimal number of sources for a file"
+    int_option 100
   

@@ -116,3 +116,5 @@ val propagate_sources : bool Options.option_record
   
 val max_sources_per_file : int Options.option_record
   
+val max_displayed_results : int Options.option_record
+  val min_left_sources : int Options.option_record

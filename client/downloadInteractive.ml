@@ -406,29 +406,30 @@ let print_file buf file =
     (first_name file)
   (Int32.to_string file.file_size)
   (Md4.to_string file.file_md4)
-    (if file.file_state = FileDownloaded then
+  (if file.file_state = FileDownloaded then
       "done" else
       Int32.to_string file.file_downloaded);
   Buffer.add_char buf '\n';
   Printf.bprintf buf "Connected clients:\n";
   let f _ c =
-    if c.client_state <> NotConnected then
-        match c.client_kind with
-          Known_location (ip, port) ->
-            Printf.bprintf  buf "[%-5d] %12s %-5d    %s\n"
-              c.client_num
-              (Ip.to_string ip)
-            port
-            (match c.client_sock with
-                None -> ""
-              | Some _ -> "Connected")
-        | _ ->
-            Printf.bprintf  buf "[%-5d] %12s            %s\n"
-              c.client_num
-              "indirect"
-              (match c.client_sock with
-                None -> ""
-            | Some _ -> "Connected")
+    match c.client_kind with
+      Known_location (ip, port) ->
+        Printf.bprintf  buf "[%-5d] %12s %-5d    %s\n"
+          c.client_num
+          (Ip.to_string ip)
+        port
+          (match c.client_sock with
+            None -> Date.to_string (DownloadGlobals.connection_last_conn
+                  c.client_connection_control)
+          | Some _ -> "Connected")
+    | _ ->
+        Printf.bprintf  buf "[%-5d] %12s            %s\n"
+          c.client_num
+          "indirect"
+          (match c.client_sock with
+            None -> Date.to_string (DownloadGlobals.connection_last_conn
+                  c.client_connection_control)
+          | Some _ -> "Connected")
   in
   Intmap.iter f file.file_known_locations;
   Intmap.iter f file.file_indirect_locations;
@@ -845,51 +846,54 @@ let old_print_search buf s output =
         let r2 = Store.get DownloadIndexer.store r2 in
         r1.result_size > r2.result_size
     ) !results in
-  List.iter (fun (doc,avail) ->
-      let r = Store.get DownloadIndexer.store doc in
-      incr counter;
-      Printf.bprintf  buf "[%5d]" !counter;
-      if output.conn_output = HTML then 
-        if !!use_html_frames then
-          Printf.bprintf buf "\<A HREF=/submit\?q=download\&md4=%s\&size=%s $S\>"
-            (Md4.to_string r.result_md4) (Int32.to_string r.result_size)
-        else
-          Printf.bprintf buf "\<A HREF=/submit\?q=download\&md4=%s\&size=%s\>"
-            (Md4.to_string r.result_md4) (Int32.to_string r.result_size);
-        last_search := Intmap.add !counter doc !last_search;
-      begin
-        match r.result_names with
-          [] -> ()
-        | name :: names ->
-            Printf.bprintf buf "%s\n" name;
-            List.iter (fun s -> Printf.bprintf buf "       %s\n" s) names;
-      end;
-      if r.result_done then Printf.bprintf buf " ALREADY DOWNLOADED\n ";
-
-      begin
-        match r.result_comment with
-          None -> ()
-        | Some comment ->
-            Printf.bprintf buf "COMMENT: %s\n" comment;
-      end;
-      if output.conn_output = HTML then 
-        Printf.bprintf buf "\</A HREF\>";
-      Printf.bprintf  buf "          %10s %10s " 
-        (Int32.to_string r.result_size)
-      (Md4.to_string r.result_md4);
-      List.iter (fun t ->
-          Buffer.add_string buf (Printf.sprintf "%-3s "
-              (if t.tag_name = "availability" then string_of_int !avail else
-              match t.tag_value with
-                String s -> s
-              | Uint32 i -> Int32.to_string i
-              | Fint32 i -> Int32.to_string i
-              | _ -> "???"
-            ))
-      ) r.result_tags;
-      
-      Buffer.add_char buf '\n';
-  ) results
+  
+  (try
+      List.iter (fun (doc,avail) ->
+          let r = Store.get DownloadIndexer.store doc in
+          if !counter >= !!max_displayed_results then raise Exit;          
+          incr counter;
+          Printf.bprintf  buf "[%5d]" !counter;
+          if output.conn_output = HTML then 
+            if !!use_html_frames then
+              Printf.bprintf buf "\<A HREF=/submit\?q=download\&md4=%s\&size=%s $S\>"
+                (Md4.to_string r.result_md4) (Int32.to_string r.result_size)
+            else
+              Printf.bprintf buf "\<A HREF=/submit\?q=download\&md4=%s\&size=%s\>"
+                (Md4.to_string r.result_md4) (Int32.to_string r.result_size);
+            last_search := Intmap.add !counter doc !last_search;
+          begin
+            match r.result_names with
+              [] -> ()
+            | name :: names ->
+                Printf.bprintf buf "%s\n" name;
+                List.iter (fun s -> Printf.bprintf buf "       %s\n" s) names;
+          end;
+          if r.result_done then Printf.bprintf buf " ALREADY DOWNLOADED\n ";
+          
+          begin
+            match r.result_comment with
+              None -> ()
+            | Some comment ->
+                Printf.bprintf buf "COMMENT: %s\n" comment;
+          end;
+          if output.conn_output = HTML then 
+            Printf.bprintf buf "\</A HREF\>";
+          Printf.bprintf  buf "          %10s %10s " 
+            (Int32.to_string r.result_size)
+          (Md4.to_string r.result_md4);
+          List.iter (fun t ->
+              Buffer.add_string buf (Printf.sprintf "%-3s "
+                  (if t.tag_name = "availability" then string_of_int !avail else
+                  match t.tag_value with
+                    String s -> s
+                  | Uint32 i -> Int32.to_string i
+                  | Fint32 i -> Int32.to_string i
+                  | _ -> "???"
+                ))
+          ) r.result_tags;
+          Buffer.add_char buf '\n';
+      ) results
+    with _ -> ())
 
   
 let add_filter_table buf search_num = 
@@ -949,63 +953,69 @@ let print_search_html buf results format search_num =
   
   let files = ref [] in
   
-  List.iter  (fun (doc,avail) ->
-      let r = Store.get DownloadIndexer.store doc in
-      try
-        format.conn_filter r;
-        if !!display_downloaded_results || not r.result_done  then 
-          let tags_string = 
-            let buf = Buffer.create 100 in
-            List.iter (fun t ->
-                Buffer.add_string buf (Printf.sprintf "%-3s "
-                    (if t.tag_name = "availability" then "" else
-                    match t.tag_value with
-                      String s -> s
-                    | Uint32 i -> Int32.to_string i
-                    | Fint32 i -> Int32.to_string i
-                    | _ -> "???"
-                  ))
-            ) r.result_tags;
-            Buffer.contents buf
-          in
-          incr counter;
-          last_search := Intmap.add !counter doc !last_search;
-          files := [|
-            (Printf.sprintf "[%5d]\<input name=d type=checkbox value=%d\>" !counter !counter);
-            
-            (
-              let names = r.result_names in
-              let names = if r.result_done then
-                  names @ ["ALREADY DOWNLOADED"] else names in
-              let names = match  r.result_comment with
-                  Some comment ->
-                    names @ ["COMMENT: " ^ comment] 
-                | _ -> names in
-              match names with
-                [name] -> name
-              | _ ->
-                  let buf = Buffer.create 100 in
-                  Buffer.add_string buf "\<TABLE\>\n";
-                  List.iter (fun s -> 
-                      Buffer.add_string buf "\<TR\>\<TD\>";
-                      Buffer.add_string buf s;
-                      Buffer.add_string buf "\</TD\>\</TR\>";
-                  ) names;
-                  Buffer.add_string buf "\</TABLE\>\n";
-                  
-                  Buffer.contents buf
-            );
-            
-            (Int32.to_string r.result_size);
-            
-            tags_string;
-            
-            (string_of_int !avail);
-            
-            (Md4.to_string r.result_md4);
-          |] :: !files
-      with _ -> ()
-  ) results;
+  (try
+      List.iter  (fun (doc,avail) ->
+
+          
+          
+          let r = Store.get DownloadIndexer.store doc in
+          try
+            format.conn_filter r;
+            if !!display_downloaded_results || not r.result_done  then 
+              let tags_string = 
+                let buf = Buffer.create 100 in
+                List.iter (fun t ->
+                    Buffer.add_string buf (Printf.sprintf "%-3s "
+                        (if t.tag_name = "availability" then "" else
+                        match t.tag_value with
+                          String s -> s
+                        | Uint32 i -> Int32.to_string i
+                        | Fint32 i -> Int32.to_string i
+                        | _ -> "???"
+                      ))
+                ) r.result_tags;
+                Buffer.contents buf
+              in
+              incr counter;
+              if !counter >= !!max_displayed_results then raise Exit;
+              last_search := Intmap.add !counter doc !last_search;
+              files := [|
+                (Printf.sprintf "[%5d]\<input name=d type=checkbox value=%d\>" !counter !counter);
+                
+                (
+                  let names = r.result_names in
+                  let names = if r.result_done then
+                      names @ ["ALREADY DOWNLOADED"] else names in
+                  let names = match  r.result_comment with
+                      Some comment ->
+                        names @ ["COMMENT: " ^ comment] 
+                    | _ -> names in
+                  match names with
+                    [name] -> name
+                  | _ ->
+                      let buf = Buffer.create 100 in
+                      Buffer.add_string buf "\<TABLE\>\n";
+                      List.iter (fun s -> 
+                          Buffer.add_string buf "\<TR\>\<TD\>";
+                          Buffer.add_string buf s;
+                          Buffer.add_string buf "\</TD\>\</TR\>";
+                      ) names;
+                      Buffer.add_string buf "\</TABLE\>\n";
+                      
+                      Buffer.contents buf
+                );
+                
+                (Int32.to_string r.result_size);
+                
+                tags_string;
+                
+                (string_of_int !avail);
+                
+                (Md4.to_string r.result_md4);
+              |] :: !files
+          with _ -> ()
+      ) results;
+    with _ -> ());
   
   if !counter > !!filter_table_threshold then
     add_filter_table buf search_num;
@@ -1050,11 +1060,12 @@ let print_search buf s format =
         else print_table_text in
       
       let files = ref [] in
-      
-      List.iter (fun (doc,avail) ->
+      (try
+          List.iter (fun (doc,avail) ->
           let r = Store.get DownloadIndexer.store doc in
           if !!display_downloaded_results || not r.result_done  then begin
               incr counter;
+              if !counter >= !!max_displayed_results then raise Exit;
               last_search := Intmap.add !counter doc !last_search;
               files := [|
                 (Printf.sprintf "[%5d]" !counter);
@@ -1110,6 +1121,7 @@ let print_search buf s format =
               |] :: !files;
             end
       ) results;
+        with _ -> ());
       
       print_table buf [||] 
         [|

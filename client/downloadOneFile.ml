@@ -119,18 +119,30 @@ let disconnected_from_client c c_alias msg =
   remove_useless_client c
 
 let rec create_zones file begin_pos end_pos list =
+(*  Printf.printf "create_zones for %s-%s"
+    (Int32.to_string begin_pos) (Int32.to_string end_pos);
+  print_newline (); *)
   if begin_pos = end_pos then list
   else
   let zone_end = Int32.add begin_pos zone_size in
-  let zone_end = if zone_end > end_pos then end_pos else zone_end in
-  create_zones file zone_end end_pos ({
+(*  Printf.printf "ZONE END %s" (Int32.to_string zone_end); print_newline ();*)
+  let zone_end2 = if zone_end > end_pos then begin
+(*        Printf.printf "%s > %s" (Int32.to_string zone_end)
+        (Int32.to_string end_pos)
+        
+        ; print_newline (); *)
+        end_pos
+        
+      end else zone_end in
+(*  Printf.printf "CORRECTED ZONE END %s" (Int32.to_string zone_end); print_newline (); *)
+  create_zones file zone_end2 end_pos ({
       zone_begin = begin_pos;
-      zone_end = zone_end;
+      zone_end = zone_end2;
       zone_nclients = 0;
       zone_present = false;
       zone_file = file;
     } :: list ) 
-
+  
 let client_file c =
   match c.client_file_queue with
     [] -> failwith "No file for this client"
@@ -379,6 +391,14 @@ let rec find_client_zone c =
   | Some b ->
 (* client_zones : les zones en cours de telechargement *)
 (* block_zones : les zones disponibles pour telechargement *)
+(*
+      Printf.printf "Current zones for client:";
+      List.iter (fun z -> 
+          Printf.printf "zone: %s-%s"
+            (Int32.to_string z.zone_begin) (Int32.to_string z.zone_end)
+      ) c.client_zones;
+print_newline ();
+  *)
       let z = match c.client_zones with
         | [z1] -> if z1.zone_present then [] else [z1]
         | [z1;z2] ->
@@ -392,6 +412,7 @@ let rec find_client_zone c =
       
       in
       let rem_zones = List.length b.block_zones in
+(*      Printf.printf "Remaining %d zones" rem_zones; print_newline (); *)
       match z with
         [z1;z2;z3] -> ()
       | [z1;z2] when rem_zones <= 2 -> ()
@@ -499,10 +520,10 @@ and check_file_block c file i max_clients =
           raise Not_found
       
       | PartialVerified b when b.block_nclients < max_clients ->
-          b.block_nclients <- 1;            
+          b.block_nclients <- b.block_nclients + 1;            
           c.client_block <- Some b;
           if !!verbose then begin
-              Printf.printf "\n%d: NEW BLOCK [%s - %s]" c.client_num
+              Printf.printf "\n%d: NEW CLIENT FOR BLOCK [%s - %s]" c.client_num
                 (Int32.to_string b.block_begin) (Int32.to_string b.block_end);
               print_newline ();
             end;
@@ -670,7 +691,7 @@ let set_file_size file sz =
       file.file_nchunks <- Int32.to_int (Int32.div  
           (Int32.sub sz Int32.one) block_size)+1;
       file.file_chunks <- Array.create file.file_nchunks AbsentTemp;
-      Unix32.ftruncate32 file.file_fd sz;
+      Unix32.ftruncate32 file.file_fd sz; (* at this point, file exists *)
       
       file.file_all_chunks <- String.make file.file_nchunks '0';
       
@@ -700,7 +721,7 @@ Printf.printf "%s <---> %s" (Int32.to_string p0) (Int32.to_string p1);
 
       
 let update_zone file begin_pos end_pos z =
-  if z.zone_begin <= begin_pos &&
+  if z.zone_begin <= begin_pos && 
     z.zone_end > begin_pos then 
     if z.zone_end <= end_pos then begin
         file.file_downloaded <- 
@@ -708,6 +729,11 @@ let update_zone file begin_pos end_pos z =
           (Int32.sub z.zone_end z.zone_begin);
         z.zone_present <- true;
         z.zone_begin <- z.zone_end;
+        if !!verbose && end_pos > z.zone_end then begin
+            Printf.printf "EXCEEDING: %s>%s" (Int32.to_string end_pos)
+            (Int32.to_string z.zone_end);
+            print_newline ();
+          end
       end 
     else begin
         file.file_downloaded <- 
@@ -715,11 +741,23 @@ let update_zone file begin_pos end_pos z =
           (Int32.sub end_pos z.zone_begin);
         z.zone_begin <- end_pos;
       end
-
-        
+(*  else begin
+      if !!verbose then begin
+          Printf.printf "CAN'T UPDATE ZONE %s-%s WITH %s-%s"
+            (Int32.to_string z.zone_begin)
+          (Int32.to_string z.zone_end)
+          (Int32.to_string begin_pos)
+          (Int32.to_string end_pos)
+          ; print_newline ();
+        end
+    end        
+*)
+      
 let download_engine () =
   if not (Fifo.empty download_fifo) then begin
-      download_credit := !download_credit + !!max_hard_download_rate;
+      let credit = !!max_hard_download_rate in
+      let credit = if credit = 0 then 10000 else credit in
+      download_credit := !download_credit + credit;
       let rec iter () =
         if !download_credit > 0 && not (Fifo.empty download_fifo) then  
           begin

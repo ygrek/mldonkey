@@ -134,7 +134,7 @@ diff -r -C 2 ocaml-3.04.orig/driver/optcompile.ml ocaml-3.04/driver/optcompile.m
 +     
 +     let make_id fvs id = 
 +       if not (Ident.persistent id) then
-+         let new_id = Ident.create "" in
++         let new_id = Ident.create "x" in
 +         fvs := (id, new_id) :: !fvs;
 +         new_id
 +       else

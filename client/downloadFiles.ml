@@ -184,13 +184,18 @@ let remove_old_clients () =
     float_of_int !!max_sources_age *. one_day in
   List.iter (fun file ->
       let locs = file.file_known_locations in
+      let nlocs = file.file_nlocations in
       file.file_known_locations <- Intmap.empty;
       file.file_nlocations <- 0;
       Intmap.iter (fun _ c ->
           if connection_last_conn c.client_connection_control >= min_last_conn 
             then
             new_known_location file c
-            ) locs
+      ) locs;
+      if file.file_nlocations < !!min_left_sources then begin
+          file.file_known_locations <- locs;
+          file.file_nlocations <- nlocs
+        end
   ) !!files
   
 let check_clients _ =

@@ -448,13 +448,10 @@ let download_control = TcpBufferedSocket.create_read_bandwidth_controler
   
 let _ =
   option_hook max_hard_upload_rate (fun _ -> 
-      let rate = (if !!max_hard_upload_rate = 0 then 10000
-          else !!max_hard_upload_rate) in
       TcpBufferedSocket.change_rate upload_control 
-        (rate * 1024));  
+        (!!max_hard_upload_rate * 1024));  
   option_hook max_hard_download_rate (fun _ ->
-      let rate = (if !!max_hard_download_rate = 0 then 10000
-          else !!max_hard_download_rate) in
+      let rate = !!max_hard_download_rate in
       TcpBufferedSocket.change_rate download_control 
         (rate * 1024))  
     
@@ -603,7 +600,6 @@ let remove_file_clients file =
   
 
 let last_search = ref Intmap.empty
-
   
 (* when purging location, what to do with the client. 
 Maybe it is still useful ? *)
@@ -611,11 +607,21 @@ Maybe it is still useful ? *)
 let new_known_location file c =
   if file.file_nlocations = !!max_sources_per_file then begin
 (* find the oldest location, and remove it *)
-      (*
-      Intmap.iter (fun _ c ->
-          if connection_last_conn c.client_connection_control >= min_last_conn then
-            new_known_location file c) locs
-*)
+      let oldest_time = ref (last_time ()) in
+      let oldest_num = ref (-1) in
+      let locs = file.file_known_locations in
+      Intmap.iter (fun num c ->
+          match c.client_sock with 
+            Some _ -> ()
+          | None ->
+              let last_conn = connection_last_conn 
+                c.client_connection_control in
+              if last_conn < !oldest_time then begin
+                  oldest_time := last_conn;
+                  oldest_num := num;
+                end
+      ) locs;
+      file.file_known_locations <- Intmap.remove !oldest_num locs;
       ()
     end else
     file.file_nlocations <- file.file_nlocations + 1;

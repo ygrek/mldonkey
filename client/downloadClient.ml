@@ -697,7 +697,7 @@ We should probably check that here ... *)
           t.Q.chunks in
       
       client_has_chunks c file chunks
-      
+  
   | M.QueryChunkMd4ReplyReq t ->
       begin
         let module Q = M.QueryChunkMd4Reply in
@@ -727,10 +727,8 @@ We should probably check that here ... *)
           raise Not_found
         end;
       
-      if file.file_state = FilePaused then begin
-          next_file c
-        end
-      else
+      if file.file_state = FilePaused then 
+        (next_file c; raise Not_found);
       
       let begin_pos = t.Q.start_pos in
       let end_pos = t.Q.end_pos in
@@ -741,88 +739,115 @@ We should probably check that here ... *)
       c.client_rating <- Int32.add c.client_rating len;      
       begin
         match c.client_block with
-          None -> ()
+          None -> 
+            Printf.printf "NO BLOCK EXPECTED FROM CLIENT"; print_newline ();
+            raise Not_found
         | Some b ->
+            (*
+            if !!verbose then begin
+                Printf.printf "WAINTING FOR %s-%s" 
+                  (Int32.to_string b.block_begin)
+                (Int32.to_string b.block_end);
+                print_newline ();                
+                              
+              Printf.printf "%s-%s (%s-%s)" 
+                (Int32.to_string begin_pos) (Int32.to_string end_pos)
+              (Int32.to_string b.block_begin) (Int32.to_string b.block_end)
+              ;
+              print_newline ();
+              
+              List.iter (fun z ->
+                  Printf.printf "zone: %s-%s"
+                    (Int32.to_string z.zone_begin) (Int32.to_string z.zone_end)
+              ) c.client_zones;
+                print_newline ();
+end;
+  *)
             let str_begin = Int32.of_int t.Q.bloc_begin in
             
             if begin_pos < b.block_begin
                 || begin_pos >= b.block_end || end_pos > b.block_end
-            then begin
-                Printf.printf "%d: Exceeding block boundaries" c.client_num;
-                print_newline ();
-                
-                Printf.printf "%s-%s (%s-%s)" 
-                  (Int32.to_string begin_pos) (Int32.to_string end_pos)
-                (Int32.to_string b.block_begin) (Int32.to_string b.block_end)
-                ;
-                print_newline ();
-                
-                List.iter (fun z ->
-                    Printf.printf "zone: %s-%s"
-                      (Int32.to_string z.zone_begin) (Int32.to_string z.zone_end)
-                ) c.client_zones;
-                
-                ( (* try to recover the corresponding block ... *)
-                  
-                  let chunk_num = Int32.to_int (Int32.div begin_pos block_size) 
-                  in
-                  match file.file_chunks.(chunk_num) with
-                    PresentTemp | PresentVerified -> 
-                      Printf.printf "ALREADY PRESENT"; print_newline ();
-                  | AbsentTemp | AbsentVerified ->
-                      Printf.printf "ABSENT (not implemented)"; 
-                      print_newline ();
-                  | PartialTemp b | PartialVerified b ->
-                      Printf.printf "PARTIAL"; print_newline ();
+            then 
+              let chunk_num = Int32.to_int (Int32.div begin_pos block_size) 
+              in
+              Printf.printf "%d: Exceeding block boundaries" c.client_num;
+              print_newline ();
+              
+              Printf.printf "%s-%s (%s-%s)" 
+                (Int32.to_string begin_pos) (Int32.to_string end_pos)
+              (Int32.to_string b.block_begin) (Int32.to_string b.block_end)
+              ;
+              print_newline ();
+              
+              List.iter (fun z ->
+                  Printf.printf "zone: %s-%s"
+                    (Int32.to_string z.zone_begin) (Int32.to_string z.zone_end)
+              ) c.client_zones;
+
+(* try to recover the corresponding block ... *)
+              
+              (match file.file_chunks.(chunk_num) with
+                  PresentTemp | PresentVerified -> 
+                    Printf.printf "ALREADY PRESENT"; print_newline ();
+                | AbsentTemp | AbsentVerified ->
+                    Printf.printf "ABSENT (not implemented)"; 
+                    print_newline ();
+                | PartialTemp b | PartialVerified b ->
+                    Printf.printf "PARTIAL"; print_newline ();
 
 (* try to find the corresponding zone *)
-                      List.iter (fun z ->
-                          if z.zone_begin >= begin_pos &&
-                            end_pos > z.zone_begin then begin
-                              Printf.printf "BEGIN ZONE MATCHES"; 
-                              print_newline ();
-                            end else
-                          if z.zone_begin < begin_pos &&
-                            begin_pos < z.zone_end &&
-                            z.zone_end < end_pos then begin
-                              Printf.printf "END ZONE MATCHES";
-                              print_newline ();
-                            end 
-                      
-                      ) b.block_zones
-                
-                );
-                
-                raise Not_found
-              end
+                    List.iter (fun z ->
+                        if z.zone_begin >= begin_pos &&
+                          end_pos > z.zone_begin then begin
+                            Printf.printf "BEGIN ZONE MATCHES"; 
+                            print_newline ();
+                          end else
+                        if z.zone_begin < begin_pos &&
+                          begin_pos < z.zone_end &&
+                          z.zone_end < end_pos then begin
+                            Printf.printf "END ZONE MATCHES";
+                            print_newline ();
+                          end 
+                    
+                    ) b.block_zones
+              );              
+              raise Not_found
             else
-              
-              begin
-                printf_char '#'; 
-                
-                ignore (Unix32.seek32 file.file_fd begin_pos Unix.SEEK_SET);
-                
-                begin
-                  
-                  try
-                    let fd = try
-                        Unix32.force_fd file.file_fd 
-                      with e -> 
-                          Printf.printf "In Unix32.force_fd"; print_newline ();
-                          raise e
-                        in
-                    really_write fd
-                      t.Q.bloc_str t.Q.bloc_begin t.Q.bloc_len
-                  with
-                    End_of_file ->
-                      Printf.printf "WITH CLIENT %s" c.client_name;
-                      print_newline ();
-                  | e ->
-                      Printf.printf "Error %s while writing block. Pausing download" (Printexc.to_string e);
-                      print_newline ();
-                      file.file_state <- FilePaused;
-                      info_change_file file
-                end;
+            
+            let final_pos = Unix32.seek32 file.file_fd 
+                begin_pos Unix.SEEK_SET in
+            if final_pos <> begin_pos then begin
+                Printf.printf "BAD LSEEK %s/%s"
+                  (Int32.to_string final_pos)
+                (Int32.to_string begin_pos); print_newline ();
+                raise Not_found
+              end;
+            printf_char '#';
+(*            if !!verbose then begin
+                Printf.printf "{%d-%d = %s-%s}" (t.Q.bloc_begin)
+                (t.Q.bloc_len) (Int32.to_string begin_pos) 
+                (Int32.to_string end_pos);
+                print_newline ();
+              end; *)
+            try
+              let fd = try
+                  Unix32.force_fd file.file_fd 
+                with e -> 
+                    Printf.printf "In Unix32.force_fd"; print_newline ();
+                    raise e
+              in
+              really_write fd t.Q.bloc_str t.Q.bloc_begin t.Q.bloc_len;
+              List.iter (update_zone file begin_pos end_pos) c.client_zones;
+              find_client_zone c;                    
+            with
+              End_of_file ->
+                Printf.printf "WITH CLIENT %s" c.client_name;
+                print_newline ();
+            | e ->
+                Printf.printf "Error %s while writing block. Pausing download" (Printexc.to_string e);
+                print_newline ();
+                file.file_state <- FilePaused;
+                info_change_file file
 (*
                 let mmap_pos = Int32.mul (
                     Int32.div begin_pos page_size) page_size
@@ -847,17 +872,8 @@ We should probably check that here ... *)
                   m begin_pos len;
 Mmap.munmap m;
                 *)
-              end;
       
       end;
-      
-      begin
-        
-        List.iter (update_zone file begin_pos end_pos) c.client_zones;
-        find_client_zone c;
-(*        !client_change_hook c *)
-      
-      end
 
 
 (* Upload requests *)

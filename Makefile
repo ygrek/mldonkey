@@ -70,7 +70,7 @@ LIB_CMOS= lib/autoconf.$(EXT) \
   lib/hole_tab.$(EXT) lib/store.$(EXT) lib/indexer.$(EXT) lib/indexer1.$(EXT) lib/indexer2.$(EXT) lib/host.$(EXT)  \
   lib/misc.$(EXT) lib/unix32.$(EXT)  lib/md4.$(EXT) \
   lib/avifile.$(EXT) lib/http_lexer.$(EXT) lib/url.$(EXT) \
-  lib/mailer.$(EXT)
+  lib/mailer.$(EXT) lib/date.$(EXT)
 
 NET_CMOS = \
   net/basicSocket.$(EXT) net/tcpBufferedSocket.$(EXT) \
@@ -142,7 +142,9 @@ SECRET_SERVER =   \
 
 USE_TAGS = \
   $(CDK_CMOS) $(LIB_CMOS) \
-  $(MP3TAG_CMOS) client/use_tags.$(EXT)
+  $(MP3TAG_CMOS) \
+  lib/cddb_lexer.$(EXT) lib/cddb_file.$(EXT) \
+  client/use_tags.$(EXT)
 
 CLIENT= $(OPEN_CLIENT) $(SECRET_CLIENT)
 SERVER= $(OPEN_CLIENT) $(SECRET_SERVER)

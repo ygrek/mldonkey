@@ -300,7 +300,7 @@ let write t msg =
       print_newline ()
       
 let dummy_sock = Obj.magic 0
-
+let exn_exit = Exit
 let can_read_handler t sock max_len =
   let b = t.rbuf in
   let curpos = b.pos + b.len in
@@ -311,7 +311,7 @@ let can_read_handler t sock max_len =
       end else
     if max_len - curpos < min_read_size then
       if b.len + min_read_size > b.max_buf_size then
-        (t.event_handler t BUFFER_OVERFLOW; 0)
+        (t.event_handler t BUFFER_OVERFLOW; close t "buffer_overflow"; raise exn_exit)
       else
       if b.len + min_read_size < max_len then
         ( String.blit b.buf b.pos b.buf 0 b.len;

@@ -271,6 +271,8 @@ let write_string t s = write t s 0 (String.length s)
       
 let dummy_sock = Obj.magic 0
 
+let exn_exit = Exit
+  
 let can_read_handler t sock max_len =
   let b = t.rbuf in
   let curpos = b.pos + b.len in
@@ -281,7 +283,7 @@ let can_read_handler t sock max_len =
       end else
     if max_len - curpos < min_read_size then
       if b.len + min_read_size > b.max_buf_size then
-        (t.event_handler t BUFFER_OVERFLOW; 0)
+        (t.event_handler t BUFFER_OVERFLOW; Printf.printf "[OVERFLOW]"; close t "buffer overflow"; raise exn_exit; 0)
       else
       if b.len + min_read_size < max_len then
         ( String.blit b.buf b.pos b.buf 0 b.len;
@@ -586,11 +588,13 @@ let _ =
       List.iter (fun bc ->
           bc.last_remaining <- bc.remaining_bytes;
           bc.remaining_bytes <- bc.total_bytes;
+          if bc.remaining_bytes > 0 then bc.allow_io := true
 (*            Printf.printf "READ remaining_bytes: %d" bc.remaining_bytes;  *)
       ) !read_bandwidth_controlers;
       List.iter (fun bc ->
           bc.last_remaining <- bc.remaining_bytes;
           bc.remaining_bytes <- bc.total_bytes;          
+          if bc.remaining_bytes > 0 then bc.allow_io := true
 (*          Printf.printf "WRITE remaining_bytes: %d" bc.remaining_bytes;  
           print_newline (); *)
       ) !write_bandwidth_controlers
@@ -609,7 +613,7 @@ let _ =
       List.iter (fun bc ->
           List.iter (fun t ->
               if bc.remaining_bytes > 0 then
-                let can_read = maxi 30 (bc.remaining_bytes / bc.nconnections) in
+                let can_read = maxi 1 (bc.remaining_bytes / bc.nconnections) in
                 let old_nread = t.nread in
                 (try
                     can_read_handler t t.sock (mini can_read 
@@ -619,6 +623,7 @@ let _ =
                 t.nread + old_nread;
                 bc.nconnections <- bc.nconnections - 1;
           ) bc.connections;
+          if bc.remaining_bytes = 0 then bc.allow_io := false;
           bc.connections <- [];
           bc.nconnections <- 0;
       ) !read_bandwidth_controlers;
@@ -626,7 +631,7 @@ let _ =
 (*          Printf.printf "Nconn: %d" bc.nconnections; print_newline (); *)
           List.iter (fun t ->
               if bc.remaining_bytes > 0 then
-                let can_write = maxi 30 (bc.remaining_bytes / bc.nconnections) in
+                let can_write = maxi 1 (bc.remaining_bytes / bc.nconnections) in
                 let old_nwrite = t.nwrite in
                 (try
 (*                    Printf.printf "WRITE"; print_newline (); *)
@@ -636,6 +641,7 @@ let _ =
                 t.nwrite + old_nwrite;
                 bc.nconnections <- bc.nconnections - 1;
           ) bc.connections;
+          if bc.remaining_bytes = 0 then bc.allow_io := false;
           bc.connections <- [];
           bc.nconnections <- 0;
       ) !write_bandwidth_controlers

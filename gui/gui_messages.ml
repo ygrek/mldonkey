@@ -741,10 +741,11 @@ TODO list for client
    - search and automatically download files
 Before 1.16:
  + remove unused sources (cleanly remove them at least once per hour)
- + set buffer size to 200k
  + don't compute md4 for files being downloaded if timestamps show they have
     not been modified.
  + commit page to select saved name
+ + display search results in different pages
+ + id of clients
 
 TODO list for server
 ====================
@@ -765,7 +766,8 @@ ChangeLog
 
 Release 1.16:
   * Compaction forced every 'compaction_delay' hours (default is 2).
-  * File age computed for files smaller than one chunk.
+  * File age computed for files smaller than one chunk. Better downloads for
+      these files.
   * Servers sending extended search results are remembered, and immediatly
      asked if their files are downloaded.
   * Predicates in Indexer should work in most cases.
@@ -779,6 +781,14 @@ Release 1.16:
      'web_common_header' and 'vd_reload_delay'
   * GUI buffer size increased. Can be set by 'interface_buffer' in 
      ~/.mldonkey_gui.ini
+  * Fixed bug making mldonkey use 100% CPU for long periods.
+  * Fixed option name for 'update_server_list'
+  * New options 'max_sources_per_file' to limit the number of sources for
+    a given file. One source is removed each time a new source is added 
+    above this number.
+  * New command 'id' to display ID numbers for connected servers.
+  * 'client_buffer_size' set to 500000 by default.
+  * Fixed bug in ocaml patch that made open_mldonkey never finish downloads.
 
 Release 1.15:
   * Started implementing mldonkey_s (eDonkey compatible server)

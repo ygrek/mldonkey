@@ -120,6 +120,7 @@ let _ =
     " <i> : position of track in regexp";
     "-palbum", Arg.Int (fun i -> palbum := Some i), 
     " <i> : position of album in regexp";
+    "-cddb", Arg.String Cddb_file.read, "";
   ] 
     set_filename_tags "usage"
   

@@ -255,8 +255,20 @@ let commands = [
             display_file_list buf format
     
     ), "<num>: view file info";
+
+    "id", Arg_none (fun buf _ ->
+        List.iter (fun s ->
+            Printf.bprintf buf "For %s:%d  --->   %s\n"
+              (Ip.to_string s.server_ip) s.server_port
+              (if Ip.valid s.server_cid then
+                Ip.to_string s.server_cid
+              else
+                Int32.to_string (Ip.to_int32 s.server_cid))
+        ) !connected_server_list;
+        ""
+    ), " : print ID on connected servers";
     
-    "add_url", Arg_two (fun kind url bud _ ->
+    "add_url", Arg_two (fun kind url buf _ ->
         let v = (kind, 1, url) in
         if not (List.mem v !!web_infos) then
           web_infos =:=  v :: !!web_infos;
