@@ -514,7 +514,6 @@ let connect_client c =
                                 disconnect_client c Closed_for_timeout
                             | BASIC_EVENT (CLOSED s) ->
                                 disconnect_client c s
-                            
                             | CONNECTED ->
                                 lprintf "CONNECTED !!! Asking for range...\n";
                                 get_from_client sock c
@@ -532,6 +531,7 @@ let connect_client c =
                       if !verbose_msg_clients then begin
                           lprintf "READY TO DOWNLOAD FILE\n";
                         end;
+                      get_from_client sock c;
                       set_fasttrack_sock sock !verbose_msg_clients
                         (HttpHeader (client_parse_header c))
                       
