@@ -1,11 +1,13 @@
 ChangeLog	
 =========
 
-2004/05/02: Fabrice  (version 2.5.19, tag release-2-5-19)
-  - Fixed bug causing lost of partially downloaded chunks.
-  - Fixed bug in recover_bytes, and added new Edonkey command 
-      'recover_bytes <file_num>' to recover files at a byte
-      level (i.e. partially downloaded chunks)
+2004/05/03: Fabrice (version 2.5.20 = 2.6pre2, tag release-2-5-20)
+  - Applied patches: disconnect (Spiralvoice)
+  - Applied Savannah patches: #3003, #2988
+  - Fixed bug preventing connections with Overnet clients.
+  - New command 'activity'
+
+2004/05/03: Fabrice (version 2.5.19 = 2.6pre1, tag release-2-5-19)
   - Applied patches from Savannah: #3002 (cs_total), #3001 (newgui_csources),
       #2993 (guiprio), #2988 (cs_html), #2983 (typo18),
       #2978 (shorten results), #2975 (title opfile), #2966 (telnet stats),
@@ -14,6 +16,12 @@ ChangeLog
     * #2952 is postponed until I understand if it is already included in the
        Emule better compatibility work done.
     * #2974 is postponed for verification of compatibility with other platforms
+
+2004/05/02: Fabrice
+  - Fixed bug causing lost of partially downloaded chunks.
+  - Fixed bug in recover_bytes, and added new Edonkey command 
+      'recover_bytes <file_num>' to recover files at a byte
+      level (i.e. partially downloaded chunks)
 
 2004/05/01: Fabrice
   - Improved Emule compatibility: 

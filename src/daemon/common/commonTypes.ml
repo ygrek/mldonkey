@@ -18,8 +18,22 @@
 *)
 
 
-open Md4
-  
+open Md4 
+
+type activity = {
+    activity_begin : int;
+    mutable activity_client_overnet_connections : int;
+    mutable activity_client_overnet_indirect_connections : int;
+    mutable activity_client_overnet_successful_connections : int;
+    
+    mutable activity_client_edonkey_connections : int;
+    mutable activity_client_edonkey_indirect_connections : int;
+    mutable activity_client_edonkey_successful_connections : int;
+
+    mutable activity_server_edonkey_connections : int;    
+    mutable activity_server_edonkey_successful_connections : int;
+  }
+ 
 type uid_type =
 | Bitprint of Sha1.t * TigerTree.t
 | Sha1 of Sha1.t
@@ -662,4 +676,3 @@ let  string_of_kind kind =
     | Known_location (ip,port) -> Ip.to_string ip
     | _ -> "firewalled"
   with _ -> ""
-      

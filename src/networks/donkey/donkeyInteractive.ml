@@ -1178,7 +1178,8 @@ lprint_newline ();
             ] @
             (if !!emule_mods_count then [(brand_mod_to_string c.client_mod_brand, "sr", gbrand_mod_to_string c.client_mod_brand)] else [])
             @ [
-            ("", "sr", (if c.client_overnet then "T" else "F"));
+              ("", "sr", (if DonkeySources.source_brand c.client_source
+                  then "T" else "F"));
             ("", "sr", (match c.client_kind with 
                   | Direct_address (ip,port) -> Printf.sprintf "D"
                   | _ -> Printf.sprintf "I"
@@ -1278,7 +1279,8 @@ lprint_newline ();
                       ] @
                       (if !!emule_mods_count then [("", "sr", gbrand_mod_to_string c.client_mod_brand)] else [])
                       @ [
-                      ("", "sr", (if c.client_overnet then "T" else "F"));
+                        ("", "sr", (if DonkeySources.source_brand c.client_source
+                               then "T" else "F"));
                       ("", "sr ar", Printf.sprintf "%d" (((last_time ()) - c.client_connect_time) / 60));
                       ("", "sr", (match c.client_kind with  
                             | Direct_address (ip,port) -> Printf.sprintf "D"

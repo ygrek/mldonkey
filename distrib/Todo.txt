@@ -10,7 +10,17 @@ URGENT:
     the downloaded size to decrease instead of increasing. We should not
     maybe allow verification during this phase to have a correct computation.
 
+BUGS:
 
+* "FT not respecting max sources per file settings"
+http://savannah.nongnu.org/bugs/index.php?func=detailitem&item_id=3761
+FT plugin AFAIK has no limits regarding the size of the serverlist
+
+* FT plugin is not able to get a list of working peers
+http://savannah.nongnu.org/bugs/index.php?func=detailitem&item_id=7776
+
+* "Search results appear in the wrong search"
+http://savannah.nongnu.org/bugs/index.php?func=detailitem&item_id=6956
 
 Flush buffers after do_at_exit (wait 5 secondes after exit ?).
 Share only on some networks.

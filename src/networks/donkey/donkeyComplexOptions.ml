@@ -154,12 +154,7 @@ let value_to_client is_friend assocs =
   CommonGlobals.connection_set_last_conn l.client_connection_control
     last_conn;
 *)  
-  
-  
-  (try
-      l.client_overnet <- get_value "client_overnet" value_to_bool
-    with _ -> ());
-  
+    
 (* Is it really useful ? I don't think so. It is only used when restarting
 the client several times, which is not that current... 
   
@@ -190,7 +185,6 @@ let client_to_value c =
         CommonGlobals.connection_last_conn 
         c.client_connection_control); *)
       "client_last_filereqs", int_to_value c.client_last_filereqs;
-      "client_overnet", bool_to_value c.client_overnet;
     ]
   in
   
@@ -643,7 +637,8 @@ let _ =
 let diff_time = ref 0
 
 let save _ =
-  lprintf "SAVING SHARED FILES AND SOURCES\n"; 
+  lprintf "SAVING SHARED FILES AND SOURCES";
+  CommonGlobals.print_localtime ();
   Options.save_with_help shared_files_ini;
   guptime =:= !!guptime + (last_time () - start_time) - !diff_time;
   diff_time := (last_time () - start_time);

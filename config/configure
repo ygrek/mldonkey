@@ -844,27 +844,27 @@ if test -n "$ac_init_help"; then
 Optional Features:
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
---disable-multinet:      allows you to only compile support for edonkey + Overnet
---disable-newgui:       allows you to compile the old-gui
---enable-checks:       force mldonkey to perform bound checks on array/string access
---enable-batch:       reply YES to all queries in this script
---disable-gui:           allows you to remove the GUI
---disable-donkey:        allows you to remove support for eDonkey
---disable-bittorrent:    allows you to remove support for Bittorent
---disable-filetp:        allows you to remove support for fileTP
+--disable-multinet:       allows you to only compile support for edonkey + Overnet
+--disable-newgui:         allows you to compile the old-gui
+--enable-checks:          force mldonkey to perform bound checks on array/string access
+--enable-batch:           reply YES to all queries in this script
+--disable-gui:            allows you to remove the GUI
+--disable-donkey:         allows you to remove support for eDonkey
+--disable-bittorrent:     allows you to remove support for Bittorent
+--disable-filetp:         allows you to remove support for fileTP
 --disable-gnutella:       allows you to remove support for Gnutella
---disable-gnutella2:       allows you to remove support for Gnutella2
+--disable-gnutella2:      allows you to remove support for Gnutella2
 --disable-soulseek:       allows you to remove support for SoulSeek
---disable-fasttrack:     allows you to remove support for FastTrack
---disable-opennap:       allows you to remove support for Open Napster
---disable-directconnect: allows you to remove support for Direct Connect
---disable-audiogalaxy:   allows you to remove support for Audio Galaxy
---disable-openft:        allows you to remove support for OpenFT
---disable-cymes:         allows you to remove support for Cymes
---enable-ocamlver=3.07:       allows you to change the required version of ocaml
---enable-pthread :       allows you to add pthread support in mldonkey
---enable-pthread-lib :  legacy option
---enable-devel:       (undocumented)
+--disable-fasttrack:      allows you to remove support for FastTrack
+--disable-opennap:        allows you to remove support for Open Napster
+--disable-directconnect:  allows you to remove support for Direct Connect
+--disable-audiogalaxy:    allows you to remove support for Audio Galaxy
+--disable-openft:         allows you to remove support for OpenFT
+--disable-cymes:          allows you to remove support for Cymes
+--enable-ocamlver=3.07:   allows you to change the required version of ocaml
+--enable-pthread :        allows you to add pthread support in mldonkey
+--enable-pthread-lib :    legacy option
+--enable-devel:           (undocumented)
   --disable-largefile     omit support for large files
 --enable-local-prefix=prefix:           allows you to specify where you want temporary tools to be installed (prefix must be absolute)
 
@@ -1293,7 +1293,7 @@ MYCONFIG_ARGS_DEFINED=yes
 echo $MYCONFIG_ARGS
 
 CURRENT_VERSION=2.5
-CURRENT_RELEASE=19
+CURRENT_RELEASE=20
 
 REQUIRED_OCAML=3.07
 DOWNLOAD_OCAML=3.07pl2
@@ -1304,11 +1304,11 @@ touch install-sh
 
 BATCH=no
 AUDIO_GALAXY=no
-OPEN_NAPSTER=yes
+OPEN_NAPSTER=no
 GNUTELLA=yes
 GNUTELLA2=yes
-DIRECT_CONNECT=yes
-SOULSEEK=yes
+DIRECT_CONNECT=no
+SOULSEEK=no
 OPENFT=no
 CYMES=no
 DONKEY=yes

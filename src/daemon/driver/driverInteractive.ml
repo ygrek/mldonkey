@@ -1023,7 +1023,7 @@ let old_print_search buf o results =
 				      String s -> cavail := s
 	 	    		    | Uint64 i -> cavail := Int64.to_string i
         	           	    | Fint64 i -> cavail := Int64.to_string i
-	        	       	    | _ -> cavail := "")
+	        	       	    | _ -> cavail := (string_of_int avail))
 				| _ -> ())) r.result_tags;
 
           if use_html_mods o then 

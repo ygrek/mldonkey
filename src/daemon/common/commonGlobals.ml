@@ -806,4 +806,33 @@ let do_if_connected tcp_connection f =
 let print_localtime () =
 let t = Unix.localtime (Unix.time ()) in
   let { Unix.tm_mon = tm_mon; Unix.tm_mday = tm_mday; Unix.tm_hour = tm_hour; Unix.tm_min = tm_min; Unix.tm_sec = tm_sec } = t in
-  lprintf " on localtime: %2d/%2d, %02d:%02d:%02d\n" tm_mday (tm_mon+1) tm_hour tm_min tm_sec;
+  lprintf " on localtime: %2d/%2d, %02d:%02d:%02d\n" tm_mday (tm_mon+1) tm_hour tm_min tm_sec
+
+      
+let new_activity () = {
+    activity_begin = BasicSocket.last_time ();
+    activity_client_overnet_connections = 0;
+    activity_client_overnet_indirect_connections = 0;
+    activity_client_overnet_successful_connections = 0;
+    activity_client_edonkey_connections = 0;
+    activity_client_edonkey_indirect_connections = 0;
+    activity_client_edonkey_successful_connections = 0;
+    activity_server_edonkey_connections = 0;
+    activity_server_edonkey_successful_connections = 0;
+    }
+
+let nactivities = ref 0
+let activities = Fifo.create ()
+let activity = ref (new_activity ())
+  
+let _ =
+  add_infinite_timer 60. (fun _ ->
+      Fifo.put activities !activity;
+      incr nactivities;
+      if !nactivities > 2000 then begin
+          ignore (Fifo.take activities);
+          decr nactivities
+        end;
+      activity := new_activity ()
+  )
+  

@@ -766,7 +766,7 @@ let udp_client_handler t p =
           let c = new_client (Direct_address (ip, port)) in
           c.client_ip <- ip;
           c.client_connect_time <- last_time ();
-          c.client_overnet <- true;
+          DonkeySources.set_source_brand c.client_source true;
           c.client_brand <- Brand_overnet;
           set_client_state c (Connected (-1)); 
           Hashtbl.add connected_clients md4 c;
@@ -989,7 +989,8 @@ PARE DI NO. FARE DELLE PROVE INTERROGANDO L'IP INDICATO RELATIVAMENTE AL MD4 IND
                                     let s = DonkeySources.find_source_by_uid 
                                       (Direct_address (ip, port))  in
                                     DonkeySources.set_request_result s 
-                                      file.file_sources File_new_source
+                                      file.file_sources File_new_source;
+                                    DonkeySources.set_source_brand s true
 (* TODO:
                                     c.source_overnet <- true; *)
                               | _ ->
@@ -1295,6 +1296,9 @@ let enable enabler =
         end
   );
 
+  add_timer 60. (fun _ ->
+      if !!enable_overnet then recover_all_files ());
+  
 (* every 15min for light operations *)
   add_session_timer enabler 900. (fun _ ->
       if !!enable_overnet then begin

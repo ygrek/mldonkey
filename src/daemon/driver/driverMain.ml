@@ -363,7 +363,7 @@ let _ =
     (Sys.Signal_handle (fun _ -> lprintf "SIGCHLD\n"));
   MlUnix.set_signal  Sys.sighup
     (Sys.Signal_handle (fun _ ->
-        lprintf "SIGHUP\n"; BasicSocket.close_all ();
+        lprintf "SIGHUP"; BasicSocket.close_all ();
         CommonGlobals.print_localtime ();
 (*        BasicSocket.print_sockets (); *)
     ));
@@ -495,9 +495,11 @@ let _ =
   Unix32.max_cache_size := MlUnix.max_filedescs
  
 let _ =
-  lprintf (_b "Core started\n"); 
+  lprintf (_b "Core started"); 
   core_included := true;
   CommonGlobals.print_localtime ();
+  CommonGlobals.do_at_exit (fun _ -> CommonGlobals.print_localtime ());
+  CommonGlobals.do_at_exit (fun _ -> lprintf "Core stopped");
 
   let security_space_filename = "config_files_space.tmp" in  
   begin

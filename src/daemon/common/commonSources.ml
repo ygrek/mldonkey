@@ -141,14 +141,18 @@ module Make(M:
 (*************************************************************************)
     
     sig
-      
-      type source_uid      
 
       val module_name : string
-        
+      
+      type source_uid              
       val dummy_source_uid : source_uid
       val source_uid_to_value: source_uid -> Options.option_value
       val value_to_source_uid: Options.option_value -> source_uid
+
+      type source_brand
+      val dummy_source_brand : source_brand
+      val source_brand_to_value: source_brand -> Options.option_value
+      val value_to_source_brand: Options.option_value -> source_brand
       
       val direct_source : source_uid -> bool    
     end) = 
@@ -189,6 +193,8 @@ module Make(M:
   process of being connected. *)
           mutable source_last_attempt : int;
           mutable source_sock : tcp_connection;
+          
+          mutable source_brand : M.source_brand;
         }
       
       and file_request = {
@@ -261,6 +267,8 @@ module Make(M:
           source_age = 0;
           source_last_attempt = 0;
           source_sock = NoConnection;
+          
+          source_brand = M.dummy_source_brand;
         }
       
       let last_refill = ref 0
@@ -478,6 +486,25 @@ module Make(M:
           Queue.iter (fun (_,s) -> f s)  q
         done
 
+
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         set_source_brand                              *)
+(*                                                                       *)
+(*************************************************************************)
+
+      let set_source_brand s brand = 
+        s.source_brand <- brand
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         source_brand                                  *)
+(*                                                                       *)
+(*************************************************************************)
+
+      let source_brand s = s.source_brand
+        
 (*************************************************************************)
 (*                                                                       *)
 (*                         remove_from_queue                             *)
@@ -863,6 +890,7 @@ we will probably query for the other file almost immediatly. *)
         (
           ("sscore", int_to_value s.source_score ) ::
           ("addr", M.source_uid_to_value s.source_uid ) ::
+          ("brand", M.source_brand_to_value s.source_brand ) ::
           ("files", smalllist_to_value "file list" 
               (fun s -> s)
             !requests) ::
@@ -955,12 +983,15 @@ we will probably query for the other file almost immediatly. *)
         in
         
         let score = try get_value "sscore" value_to_int with _ -> 0 in
+        let brand = try get_value "brand" M.value_to_source_brand with _ -> 
+              M.dummy_source_brand in
         
         if !verbose_sources then
           lprintf "New source from value\n";
         let s = find_source_by_uid addr in
         s.source_score <- score;
         s.source_age <- last_conn;
+        s.source_brand <- brand;
         
         let rec iter v =
           match v with

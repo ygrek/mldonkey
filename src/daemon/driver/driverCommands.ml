@@ -193,13 +193,13 @@ let register_commands section list =
     
 let _ = 
   register_commands "Driver/General"
-  [
-
+    [
+    
     "dump_heap", Arg_none (fun o ->
 (*        Gc.dump_heap (); *)
         "heap dumped"
     ), ":\t\t\t\tdump heap for debug";
-
+    
     "q", Arg_none (fun o ->
         raise CommonTypes.CommandCloseSocket
     ), ":\t\t\t\t\t$bclose telnet$n";
@@ -207,7 +207,7 @@ let _ =
     "kill", Arg_none (fun o ->
         CommonGlobals.exit_properly 0;
         _s "exit"), ":\t\t\t\t\t$bsave and kill the server$n";
-        
+    
     "add_url", Arg_two (fun kind url o ->
         let buf = o.conn_buf in
         let v = (kind, 1, url) in
@@ -217,7 +217,7 @@ let _ =
         "url added to web_infos. downloading now"
     ), "<kind> <url> :\t\t\tload this file from the web.
 \t\t\t\t\tkind is either server.met (if the downloaded file is a server.met)";
-            
+    
     "recover_temp", Arg_none (fun o ->
         networks_iter (fun r ->
             try
@@ -226,15 +226,6 @@ let _ =
         );	
         _s "done"
     ), ":\t\t\t\trecover lost files from temp directory";
-
-    "disconnect", Arg_multiple (fun args o ->
-        List.iter (fun c ->
-            let c = int_of_string c in
-            let c = client_find c in
-            client_disconnect c
-        ) args;
-        _s "done"
-    ), " <client_num> : client to disconnect";
     
     "vc", Arg_multiple (fun args o ->
         if args = ["all"] then begin 
@@ -271,11 +262,35 @@ let _ =
           ) args;
         ""
     ), "<num> :\t\t\t\tview client (use arg 'all' for all clients)";
-            
+    
     "version", Arg_none (fun o ->
         if use_html_mods o then Printf.sprintf "\\<P\\>" ^ 
             CommonGlobals.version () else CommonGlobals.version ()
     ), ":\t\t\t\tprint mldonkey version";
+    
+    
+    "activity", Arg_one (fun arg o ->
+        let arg = int_of_string arg in
+        let buf = o.conn_buf in
+        let activity_begin = last_time () - arg * 60 in
+        Fifo.iter (fun a ->
+            if a.activity_begin > activity_begin then begin
+                Printf.bprintf buf "%s: activity =\n" (BasicSocket.string_of_date a.activity_begin);
+                Printf.bprintf buf "   servers: edonkey %03d/%03d\n"
+                  a.activity_server_edonkey_successful_connections
+                  a.activity_server_edonkey_connections;
+                Printf.bprintf buf "   clients: overnet %03d/%03d edonkey %03d/%03d\n"
+                  a.activity_client_overnet_successful_connections
+                  a.activity_client_overnet_connections
+                  a.activity_client_edonkey_successful_connections
+                  a.activity_client_edonkey_connections;
+                Printf.bprintf buf "   indirect: overnet %03d edonkey %03d\n"
+                  a.activity_client_overnet_indirect_connections
+                  a.activity_client_edonkey_indirect_connections;
+              end
+        ) activities;
+        ""
+    ), " <minutes> : print activity in the last <minutes> minutes";
     
     "message_log", Arg_multiple (fun args o ->
         let buf = o.conn_buf in

@@ -192,8 +192,10 @@ let disconnect_client c reason =
   | Connection sock ->
       (try
           c.client_comp <- None;
-          if c.client_debug then 
-            lprintf "Client[%d]: disconnected\n" (client_num c);
+          if c.client_debug then begin
+            lprintf "Client[%d]: disconnected" (client_num c);
+           CommonGlobals.print_localtime ();
+          end;
           (try if c.client_checked then count_seen c with _ -> ());
           if !!log_clients_on_console && c.client_name <> "" then 
             log_client_info c sock;
@@ -400,7 +402,8 @@ let identify_client_brand c =
       else if md4.[5] = 'M' && md4.[14] = 'L' then
         Brand_mldonkey2
     else
-      if c.client_overnet then Brand_overnet else Brand_edonkey)
+      if DonkeySources.source_brand c.client_source then
+        Brand_overnet else Brand_edonkey)
 
 let mod_array =
   [|
@@ -673,7 +676,7 @@ let received_client_bitmap c md4 chunks =
         lprintf "Peer info: name=[%s] md4=[%s] overnet=[%s] brand=[%s]\n" 
           c.client_name
           (Md4.to_string c.client_md4)
-        (string_of_bool c.client_overnet)
+        (string_of_bool (DonkeySources.source_brand c.client_source))
         (brand_to_string c.client_brand)
         ;
         Array.create file.file_nchunks false
@@ -740,7 +743,13 @@ let client_to_client for_files c t sock =
   match t with
     M.ConnectReplyReq t ->
       printf_string "******* [CCONN OK] ********"; 
-      
+
+      if DonkeySources.source_brand c.client_source then
+        !activity.activity_client_overnet_successful_connections <-
+          !activity.activity_client_overnet_successful_connections +1 
+      else
+        !activity.activity_client_edonkey_successful_connections <-
+          !activity.activity_client_edonkey_successful_connections +1 ;
       
       c.client_ip <- peer_ip sock;
       init_client_after_first_message sock c;
@@ -1613,6 +1622,7 @@ let read_first_message overnet m sock =
           raise End_of_file
         end;
 
+
 (* Test if the client is already connected *)
       if Hashtbl.mem connected_clients t.CR.md4 then begin
 (*          lprintf "Client is already connected\n";  *)
@@ -1641,6 +1651,8 @@ let read_first_message overnet m sock =
       in
       
       let c = new_client kind in
+      
+      
       
       if c.client_debug || !verbose_msg_clients then begin  
           lprintf "First Message\n";
@@ -1722,7 +1734,7 @@ let read_first_message overnet m sock =
         | None -> 
             if overnet then begin
                 lprintf "incoming Overnet client\n"; 
-                c.client_overnet <- overnet;
+                DonkeySources.set_source_brand c.client_source overnet;
               end
         | _ -> ()
       end;
@@ -1739,14 +1751,13 @@ let read_first_message overnet m sock =
       client_send c (
         let module M = DonkeyProtoClient in
         let module C = M.Connect in
-        if c.client_overnet then
+        if DonkeySources.source_brand c.client_source then
           M.ConnectReplyReq {
             C.md4 = overnet_md4;
             C.ip = client_ip (Some sock);
             C.port = !overnet_client_port;
             C.tags = !overnet_connectreply_tags;
-            C.server_info = Some (!overnet_server_ip, 
-              !overnet_server_port);
+            C.server_info = Some (!overnet_server_ip, !overnet_server_port);
             C.left_bytes = left_bytes;
             C.version = -1;
           }
@@ -1775,6 +1786,16 @@ let read_first_message overnet m sock =
             }
           end;
       );
+      
+      
+      
+      
+      if DonkeySources.source_brand c.client_source then
+        !activity.activity_client_overnet_indirect_connections <-
+          !activity.activity_client_overnet_indirect_connections +1 
+      else
+        !activity.activity_client_edonkey_indirect_connections <-
+          !activity.activity_client_edonkey_indirect_connections +1 ;
       
       send_pending_messages c sock;
             
@@ -1813,71 +1834,81 @@ let reconnect_client c =
           else
           match c.client_source.DonkeySources.source_sock with
             ConnectionWaiting _ | Connection _ -> 
-              (* Already connected ! *)
+(* Already connected ! *)
               () 
           | NoConnection ->
-          let token =
-            add_pending_connection connection_manager (fun token ->
-                try
-                  set_client_state c Connecting;
+              let token =
+                add_pending_connection connection_manager (fun token ->
+                    try
+                      set_client_state c Connecting;
 (*                  connection_try c.client_connection_control; *)
-                  
-                  printf_string "?C";
-                  let sock = TcpBufferedSocket.connect token "donkey to client" 
-                      (Ip.to_inet_addr ip)
-                    port 
-                      (client_handler c) (*client_msg_to_string*) in
-                  c.client_connect_time <- last_time ();
-                  init_connection sock ip;
-                  init_client sock c;
+                      
+                      printf_string "?C";
+                      let sock = TcpBufferedSocket.connect token "donkey to client" 
+                          (Ip.to_inet_addr ip)
+                        port 
+                          (client_handler c) (*client_msg_to_string*) in
+                      
+                      
+                      if DonkeySources.source_brand c.client_source then
+                        !activity.activity_client_overnet_connections <-
+                          !activity.activity_client_overnet_connections +1 
+                      else
+                        !activity.activity_client_edonkey_connections <-
+                          !activity.activity_client_edonkey_connections +1 ;
+                      
+                      
+                      c.client_connect_time <- last_time ();
+                      init_connection sock ip;
+                      init_client sock c;
 (* The lifetime of the client socket is now half an hour, and
 can be increased by AvailableSlotReq, BlocReq, QueryBlocReq 
   messages *)
-                  set_lifetime sock active_lifetime;
-                  
-                  c.client_checked <- false;
-                  
-                  set_reader sock (
+                      set_lifetime sock active_lifetime;
+                      
+                      c.client_checked <- false;
+                      
+                      set_reader sock (
                         DonkeyProtoCom.cut_messages 
                           (DonkeyProtoClient.parse c.client_emule_proto)
-                      (client_to_client files c));
-                  
-                  c.client_source.DonkeySources.source_sock <- Connection sock;
-                  c.client_ip <- ip;
-                  c.client_connected <- true;
-                  let server_ip, server_port = 
-                    try
-                      let s = DonkeyGlobals.last_connected_server () in
-                      s.server_ip, s.server_port
-                    with _ -> Ip.localhost, 4665
-                  in
-                  
-                  client_send c (
-                    let module M = DonkeyProtoClient in
-                    let module C = M.Connect in
-                    if c.client_overnet then
-                      M.ConnectReq {
-                        C.md4 = overnet_md4;
-                        C.ip = client_ip None;
-                        C.port = !overnet_client_port;
-                        C.tags = !overnet_connect_tags;
-                        C.version = 16;
-                        C.server_info = Some (!overnet_server_ip, 
-                          !overnet_server_port);
-                        C.left_bytes = left_bytes;
-                      }
-                    else
-                      M.ConnectReq {
-                        C.md4 = !!client_md4;
-                        C.ip = client_ip None;
-                        C.port = !client_port;
-                        C.tags = !client_to_client_tags;
-                        C.version = 16;
-                        C.server_info = Some (server_ip, server_port);
-                        C.left_bytes = left_bytes;
-                      }
-                  )
-                
+                        (client_to_client files c));
+                      
+                      c.client_source.DonkeySources.source_sock <- Connection sock;
+                      c.client_ip <- ip;
+                      c.client_connected <- true;
+                      let server_ip, server_port = 
+                        try
+                          let s = DonkeyGlobals.last_connected_server () in
+                          s.server_ip, s.server_port
+                        with _ -> Ip.localhost, 4665
+                      in
+                      
+                      client_send c (
+                        let module M = DonkeyProtoClient in
+                        let module C = M.Connect in
+                        if DonkeySources.source_brand c.client_source then
+                          M.ConnectReq {
+                            C.md4 = overnet_md4;
+                            C.ip = client_ip None;
+                            C.port = !overnet_client_port;
+                            C.tags = !overnet_connect_tags;
+                            C.version = 16;
+                            C.server_info = Some (!overnet_server_ip, 
+                              !overnet_server_port);
+                            C.left_bytes = left_bytes;
+                          }
+                        else
+                          M.ConnectReq {
+                            C.md4 = !!client_md4;
+                            C.ip = client_ip None;
+                            C.port = !client_port;
+                            C.tags = !client_to_client_tags;
+                            C.version = 16;
+                            C.server_info = Some (server_ip, server_port);
+                            C.left_bytes = left_bytes;
+                          }
+                      )
+                      
                 with e -> 
                     lprintf "Exception %s in client connection\n"
                       (Printexc2.to_string e);

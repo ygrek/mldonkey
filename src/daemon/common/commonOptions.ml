@@ -1327,30 +1327,34 @@ let verbose_md4 = ref false
 let verbose_connect = ref false
 let verbose_udp = ref false
 let verbose_swarming = ref false
+let verbose_activity = ref false
 
+let set_all v =
+  
+  verbose_connect := v;
+  verbose_msg_clients := v;
+  verbose_msg_clienttags := v;
+  verbose_msg_servers := v;
+  BasicSocket.debug := v;
+  verbose_sources := v;
+  verbose := v;
+  verbose_download := v;
+  verbose_upload := v;
+  verbose_unknown_messages := v;
+  verbose_overnet := v;
+  verbose_location := v;
+  verbose_share := v;
+  verbose_md4 := v;
+  verbose_udp := v;
+  verbose_swarming := v;
+  Http_client.verbose := v;
+  Http_server.verbose := v;
+  verbose_activity := v
+  
 let _ = 
   option_hook verbosity (fun _ ->
-      
-      verbose_connect := false;
-      verbose_msg_clients := false;
-      verbose_msg_clienttags := false;
-      verbose_msg_servers := false;
-      BasicSocket.debug := false;
-      verbose_sources := false;
-      verbose := false;
-      verbose_download := false;
-      verbose_upload := false;
-      verbose_unknown_messages := false;
-      verbose_overnet := false;
-      verbose_location := false;
-      verbose_share := false;
-      verbose_md4 := false;
-      verbose_udp := false;
-      verbose_swarming := false;
-      Http_client.verbose := false;
-      Http_server.verbose := false;
       BasicSocket.verbose_bandwidth := 0;
-      
+      set_all false;      
       List.iter (fun s ->
           match s with
           | "mc" -> verbose_msg_clients := true;
@@ -1371,27 +1375,12 @@ let _ =
           | "swarming" -> verbose_swarming := true
           | "hc" -> Http_client.verbose := true
           | "hs" -> Http_server.verbose := true
-              
+          | "act" -> verbose_activity := true              
           | "bw" -> incr BasicSocket.verbose_bandwidth
               
           | "all" ->
               
-              verbose_connect := true;
-              verbose_msg_clients := true;
-              verbose_msg_servers := true;
-              BasicSocket.debug := true;
-              verbose_sources := true;
-              verbose := true;
-              verbose_download := true;
-              verbose_upload := true;
-              verbose_unknown_messages := true;
-              verbose_overnet := true;
-              verbose_share := true;
-              verbose_md4 := true;
-              verbose_udp := true;
-              verbose_swarming := true;
-              Http_client.verbose := true;
-              Http_server.verbose := true;
+              set_all true;
               
           | _ -> ()
       

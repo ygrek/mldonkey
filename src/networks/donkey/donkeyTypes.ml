@@ -21,7 +21,6 @@ open Queues
 open Md4
 open CommonDownloads
 open CommonTypes
-
   (*
   
 module MyList = struct
@@ -285,7 +284,12 @@ type source_uid =
 module DonkeySources = CommonSources.Make(struct
       
       open Options
-      
+
+      type source_brand = bool (* overnet or not *)
+      let value_to_source_brand = value_to_bool
+      let source_brand_to_value = bool_to_value
+      let dummy_source_brand = false
+        
       type t = source_uid
       type source_uid = t
 
@@ -466,7 +470,6 @@ and client = {
     mutable client_brand : brand;
     mutable client_mod_brand : brand_mod;
     mutable client_banned : bool;
-    mutable client_overnet : bool;
     mutable client_score : int;
     mutable client_next_queue : int;
     mutable client_rank : int;
@@ -888,3 +891,4 @@ let dummy_emule_proto = {
 
 let emule_proto () = 
   { dummy_emule_proto with emule_version = 0 }
+  

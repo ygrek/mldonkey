@@ -64,14 +64,18 @@ module Make(M:
 (*************************************************************************)
     
     sig
-      
-      type source_uid      
         
       val module_name : string
         
+      type source_uid
       val dummy_source_uid : source_uid
       val source_uid_to_value: source_uid -> Options.option_value
       val value_to_source_uid: Options.option_value -> source_uid
+
+      type source_brand
+      val dummy_source_brand : source_brand
+      val source_brand_to_value: source_brand -> Options.option_value
+      val value_to_source_brand: Options.option_value -> source_brand
       
       val direct_source : source_uid -> bool    
     end) : (
@@ -95,6 +99,7 @@ module Make(M:
           mutable source_age : int;
           mutable source_last_attempt : int;
           mutable source_sock : tcp_connection;
+          mutable source_brand : M.source_brand;
         }
       
       and file_request = {
@@ -169,5 +174,8 @@ module Make(M:
 
       val set_brothers : file_sources_manager list -> unit
       val get_brothers : file_sources_manager -> string list      
+        
+      val source_brand : source -> M.source_brand
+      val set_source_brand : source -> M.source_brand -> unit
     end)
   
