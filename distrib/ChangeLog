@@ -5,6 +5,8 @@ ChangeLog
   - Applied patch #1523, #1527
   - Fasttrack:
       * Limitation on the number of simultaneous sources for a file
+      * GNUT- prefix replaced by FT- ! It means that you must cancel or
+         finish all your fasttrack downloads before upgrading !
   - Fixed major file corruption bug when using 'buffer_writes' in bittorrent,
       fasttrack and gnutella.
 
