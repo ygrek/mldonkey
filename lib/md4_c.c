@@ -288,7 +288,7 @@ value md4_unsafe_file (value digest_v, value filename_v)
 
   else {
     MD4Init (&context);
-    while ((len = fread (buffer, 1, BUFFER_LEN, file)))
+    while ((len = fread (buffer, 0, BUFFER_LEN, file)))
       MD4Update (&context, buffer, len);
     MD4Final (digest, &context);
 
@@ -311,17 +311,17 @@ value md4_unsafe_fd (value digest_v, value fd_v, value pos_v, value len_v)
   long pos = Int32_val(pos_v);
   long len = Int32_val(len_v);
   unsigned char *digest = String_val(digest_v);
-  FILE *file;
   MD4_CTX context;
   int nread;
   unsigned char buffer[BUFFER_LEN];
 
   MD4Init (&context);
   if(pos != 0)     lseek(fd, pos, SEEK_SET);
-  while (len>0){
-    int max_read = BUFFER_LEN > len ? len : BUFFER_LEN;
 
-    nread = fread (buffer, 1, max_read, file);
+  while (len!=0){
+    int max_nread = BUFFER_LEN > len ? len : BUFFER_LEN;
+
+    nread = read (fd, buffer, max_nread);
 
     if(nread == 0){
       MD4Final (digest, &context);
@@ -330,6 +330,7 @@ value md4_unsafe_fd (value digest_v, value fd_v, value pos_v, value len_v)
     }
 
     MD4Update (&context, buffer, nread);
+    len -= nread;
   }
   MD4Final (digest, &context);
 

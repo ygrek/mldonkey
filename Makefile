@@ -3,8 +3,6 @@ include config/Makefile.config
 OCAMLYACC=ocamlyacc
 OCAMLDEP=ocamlrun ocamldep
 
-CFLAGS=-g
-
 TARGET=byte
 
 EXT_byte=cmo
@@ -44,7 +42,7 @@ INCLUDES +=-I +lablgtk $(foreach file, $(SUBDIRS), -I $(file))
 
 LIBS=$(CUSTOM) unix.$(LIBEXT)
 
-CFLAGS=$(CONFIG_INCLUDES)
+CFLAGS=-g $(CONFIG_INCLUDES)
 
 CDK_CMOS=cdk/printexc.$(EXT) cdk/genlex2.$(EXT) cdk/sysenv.$(EXT) \
   cdk/netbase.$(EXT) cdk/filepath.$(EXT) cdk/string2.$(EXT) \
@@ -123,8 +121,8 @@ gui/gui.ml: gui/gui_header.ml gui/gui_zog.ml gui/gui_trailer.ml
 	cat gui/gui_zog.ml >> gui/gui.ml
 	cat gui/gui_trailer.ml >> gui/gui.ml
 
-gui/md4_c.o: gui/md4_c.c
-	ocamlc.opt -ccopt "-O6 -I /byterun -o gui/md4_c.o" -ccopt "" -c gui/md4_c.c
+#gui/md4_c.o: gui/md4_c.c
+#	ocamlc.opt -ccopt "-O6 -I /byterun -o gui/md4_c.o" -ccopt "" -c gui/md4_c.c
 
 
 byte: $(TARGETS)
