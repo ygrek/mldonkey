@@ -1,8 +1,8 @@
 ChangeLog	
 =========
 
-  After a long while, a new commit, with many changes, so should be seen
-	 as UNSTABLE until well tested.
+A SERIOUS bug is in 2.5.29, don't use it, version 2.5.30 will appear soon !
+	(if you do a checkout/update , use tag 'release-2-5.28' instead)
 	
 2004/10/26: Fabrice (version 2.5.29 = 2.6pre11, tag release-2-5-29)
   - Bittorrent: files should be shared even after commit.
