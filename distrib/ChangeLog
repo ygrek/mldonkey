@@ -1,6 +1,13 @@
 ChangeLog	
 =========
 
+2002/12/09: Simon
+  - Fabrice should compile and release binaries for 2.01
+  - Fixed problem with stats
+  - Overnet: added an option for publish (false by default since still in dev)
+  - IM: Only Yahoo works
+  - A message is sent to old clients only randomly. 
+
 2002/12/08: Simon
   - Applied Overnet publish patch from Norbert LATAILLE
   - The Overnet patch is too aggressive (about 5 kB/s). It really needs to

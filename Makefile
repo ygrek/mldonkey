@@ -350,6 +350,8 @@ ifeq ("$(IM)", "yes")
 
   IM_GUI_CORE +=    im/gui_im_base.zog  im/gui_im.ml 
 
+  targets += mldonkey_im
+
 endif
 
 #######################################################################
@@ -365,7 +367,7 @@ ifeq ("$(COMPILE_GUI)" , "yes")
 
 #TARGETS += xpm2ml$(EXE)
 
-SUBDIRS += gui gui2 configwin okey gpattern 
+SUBDIRS += gui gui2 configwin okey gpattern icons/big
 
 CONFIGWIN_SRCS=configwin/configwin_types.ml \
   configwin/configwin_messages.ml \
@@ -377,12 +379,40 @@ GPATTERN_SRCS=  lib/gAutoconf.ml gpattern/gpattern.ml
 
 OKEY_SRCS= okey/okey.ml
 
-GUI_SRCS= gui/gui_messages.ml \
-  gui/gui_columns.ml \
-  gui/gui_global.ml \
+GUI_BASE_SRCS= \
+gui/gui_messages.ml   gui/gui_global.ml
+
+
+ICONS= \
+  icons/big/add_to_friends.xpm icons/big/cancel.xpm icons/big/connect_more.xpm \
+  icons/big/connect.xpm icons/big/disconnect.xpm icons/big/download.xpm \
+  icons/big/edit_mp3.xpm icons/big/extend_search.xpm icons/big/get_format.xpm \
+  icons/big/local_search.xpm icons/big/preview.xpm icons/big/refres.xpm \
+  icons/big/save_all.xpm icons/big/save_as.xpm icons/big/save.xpm \
+  icons/big/trash.xpm icons/big/verify_chunks.xpm icons/big/view_users.xpm \
+ 
+SMALL_ICONS= \
+  icons/small/add_to_friends_small.xpm icons/small/cancel_small.xpm \
+  icons/small/connect_more_small.xpm icons/small/connect_small.xpm \
+  icons/small/disconnect_small.xpm icons/small/download_small.xpm \
+  icons/small/edit_mp3_small.xpm icons/small/extend_search_small.xpm \
+  icons/small/get_format_small.xpm icons/small/local_search_small.xpm \
+  icons/small/preview_small.xpm icons/small/refres_small.xpm \
+  icons/small/save_all_small.xpm icons/small/save_as_small.xpm icons/small/save_small.xpm \
+  icons/small/trash_small.xpm icons/small/verify_chunks_small.xpm \
+  icons/small/view_users_small.xpm
+
+
+ALL_ICONS=$(foreach file, $(ICONS),   $(basename $(file)).ml_icon)
+ALL_ICONS_SRCS=$(foreach file, $(ICONS),   $(basename $(file))_xpm.ml)
+
+$(ALL_ICONS_SRCS): $(ALL_ICONS)
+
+GUI_SRCS=   gui/gui_columns.ml \
   gui/gui_keys.ml gui/gui_options.ml \
   gui/gui_com.ml gui/gui_misc.ml \
-  gui/gui_all_icons.ml gui/gui_icons.ml \
+  $(ALL_ICONS_SRCS) \
+  gui/gui_icons.ml \
   gui/gui_help_base.zog gui/gui_help.ml \
   gui/gui_console_base.zog gui/gui_console.ml \
   gui/gui_uploads_base.zog gui/gui_uploads.ml \
@@ -398,29 +428,6 @@ GUI_SRCS= gui/gui_messages.ml \
   gui/gui_config.ml \
   gui/gui_main.ml
 
-ICONS= \
-  icons/big/add_to_friends.xpm icons/big/cancel.xpm icons/big/connect_more.xpm \
-  icons/big/connect.xpm icons/big/disconnect.xpm icons/big/download.xpm \
-  icons/big/edit_mp3.xpm icons/big/extend_search.xpm icons/big/get_format.xpm \
-  icons/big/local_search.xpm icons/big/preview.xpm icons/big/refres.xpm \
-  icons/big/save_all.xpm icons/big/save_as.xpm icons/big/save.xpm \
-  icons/big/trash.xpm icons/big/verify_chunks.xpm icons/big/view_users.xpm \
- \
-  icons/small/add_to_friends_small.xpm icons/small/cancel_small.xpm \
-  icons/small/connect_more_small.xpm icons/small/connect_small.xpm \
-  icons/small/disconnect_small.xpm icons/small/download_small.xpm \
-  icons/small/edit_mp3_small.xpm icons/small/extend_search_small.xpm \
-  icons/small/get_format_small.xpm icons/small/local_search_small.xpm \
-  icons/small/preview_small.xpm icons/small/refres_small.xpm \
-  icons/small/save_all_small.xpm icons/small/save_as_small.xpm icons/small/save_small.xpm \
-  icons/small/trash_small.xpm icons/small/verify_chunks_small.xpm \
-  icons/small/view_users_small.xpm
-
-
-ALL_ICONS=$(foreach file, $(ICONS),   $(basename $(file)).ml_icon)
-gui/gui_all_icons.ml: $(ALL_ICONS) $(ICONS)
-	cat $(ALL_ICONS) > gui/gui_all_icons.ml
-
 GUI2_SRCS= gui2/gui2_messages.ml gui2/gui2_keys.ml \
   gui2/gui2_options.ml gui2/gui2_GList.ml gui2/gui2.zog \
   gui2/myCList.ml gui2/gui2_handler.ml \
@@ -432,7 +439,15 @@ MLDONKEYGUI_SRCS= \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
   $(MP3TAG_SRCS)  $(CONFIGWIN_SRCS) $(MP3TAGUI_SRCS) \
   $(OKEY_SRCS) $(GPATTERN_SRCS) \
-  $(CHAT_SRCS) $(COMMON_SRCS) $(IM_CORE) $(GUI_SRCS)
+  $(CHAT_SRCS) $(COMMON_SRCS) $(IM_CORE) $(GUI_BASE_SRCS) $(GUI_SRCS)
+
+MLDONKEY_IM_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  $(MP3TAG_SRCS)  $(CONFIGWIN_SRCS) $(MP3TAGUI_SRCS) \
+  $(OKEY_SRCS) $(GPATTERN_SRCS) \
+  $(CHAT_SRCS) $(COMMON_SRCS) $(IM_CORE) \
+  $(GUI_BASE_SRCS) $(IM_GUI_CORE) \
+  im/gui_im_main.ml
 
 STARTER_SRCS= gui/gui_starter.ml
 
@@ -528,6 +543,23 @@ MLDONKEYGUI_CMOS=$(foreach file, $(MLDONKEYGUI_ML),   $(basename $(file)).cmo)
 MLDONKEYGUI_CMXS=$(foreach file, $(MLDONKEYGUI_ML),   $(basename $(file)).cmx)
 
 TMPSOURCES += $(MLDONKEYGUI_MLL:.mll=.ml) $(MLDONKEYGUI_MLY:.mly=.ml) $(MLDONKEYGUI_MLY:.mly=.mli) $(MLDONKEYGUI_ZOG:.zog=.ml)
+
+
+
+
+
+MLDONKEY_IM_ZOG := $(filter %.zog, $(MLDONKEY_IM_SRCS))
+MLDONKEY_IM_MLL := $(filter %.mll, $(MLDONKEY_IM_SRCS))
+MLDONKEY_IM_MLY := $(filter %.mly, $(MLDONKEY_IM_SRCS))
+
+MLDONKEY_IM_ML := $(filter %.ml %.mll %.zog %.mly, $(MLDONKEY_IM_SRCS))
+MLDONKEY_IM_C := $(filter %.c, $(MLDONKEY_IM_SRCS))
+MLDONKEY_IM_OBJS=$(foreach file, $(MLDONKEY_IM_C),   $(basename $(file)).o)
+
+MLDONKEY_IM_CMOS=$(foreach file, $(MLDONKEY_IM_ML),   $(basename $(file)).cmo)
+MLDONKEY_IM_CMXS=$(foreach file, $(MLDONKEY_IM_ML),   $(basename $(file)).cmx)
+
+TMPSOURCES += $(MLDONKEY_IM_MLL:.mll=.ml) $(MLDONKEY_IM_MLY:.mly=.ml) $(MLDONKEY_IM_MLY:.mly=.mli) $(MLDONKEY_IM_ZOG:.zog=.ml)
 
 
 
@@ -754,6 +786,17 @@ mldonkey_gui.byte: $(MLDONKEYGUI_CMOS)
 
 mldonkey_gui.static: $(MLDONKEYGUI_CMXS)  
 	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@  $(MLDONKEYGUI_OBJS) $(LIBS_opt) $(GTK_STATIC_LIBS_opt) $(MLDONKEYGUI_CMXS) 
+
+######## MLDONKEY_IM
+
+mldonkey_im: $(MLDONKEY_IM_CMXS)   $(MLDONKEY_IM_OBJS)
+	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@  $(MLDONKEY_IM_OBJS)  $(LIBS_opt) $(GTK_LIBS_opt) $(MLDONKEY_IM_CMXS)
+
+mldonkey_im.byte: $(MLDONKEY_IM_CMOS)  
+	$(OCAMLC) -o $@  $(MLDONKEY_IM_OBJS) $(LIBS_byte) $(GTK_LIBS_byte) $(MLDONKEY_IM_CMOS) 
+
+mldonkey_im.static: $(MLDONKEY_IM_CMXS)  
+	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@  $(MLDONKEY_IM_OBJS) $(LIBS_opt) $(GTK_STATIC_LIBS_opt) $(MLDONKEY_IM_CMXS) 
 
 ######## STARTER
 
@@ -1023,7 +1066,7 @@ auto-release:
 
 -include .depend
 
-.SUFFIXES: .mli .ml .cmx .cmo .o .c .cmi .mll .mly .zog .plugindep .xpm .ml_icon .cc
+.SUFFIXES: .mli .ml .cmx .cmo .o .c .cmi .mll .mly .zog .plugindep .xpm .ml .cc .ml_icon
 .mli.cmi :
 	$(OCAMLC) $(OFLAGS) $(INCLUDES) -c $<
 
@@ -1031,9 +1074,10 @@ auto-release:
 	$(OCAMLC) $(OFLAGS) $(INCLUDES) -c $<
 
 .xpm.ml_icon :
-	echo "let " `basename $*` " = [|" > $@
+	echo "let t = [|" > $@
 	grep '"' $< | sed 's/",$$/";/' | sed 's/"};$$/"/' >> $@
 	echo "|]" >> $@
+	cp -f $@ $*_xpm.ml
 
 .ml.cmx :
 	$(OCAMLOPT) $(PLUGIN_FLAG) $(OFLAGS) $(INCLUDES) -c $<

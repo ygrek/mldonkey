@@ -1,4 +1,7 @@
 #!/bin/sh
 
+rm -f icons/big/*.ml_icon
+rm -f icons/small/*.ml_icon
+rm -f icons/*.ml_icon
 touch .depend
 cd config; ./configure $*

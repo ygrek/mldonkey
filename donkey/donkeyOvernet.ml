@@ -74,7 +74,9 @@ module XorSet = Set.Make (
   end
 )
 
-let publish_implemented = true
+let overnet_publish_files = 
+  define_option downloads_ini ["overnet_publish_files"] 
+  "should mldonkey try to publish on overnet (development)" bool_option false
 
 let global_peers_size = Array.make 256 0
 
@@ -172,6 +174,7 @@ let gui_overnet_options_panel =
     "Port", shortname overnet_port, "T";
     "Search for keywords", shortname overnet_search_keyword, "B";
     "Search for sources", shortname overnet_search_sources, "B";
+    "Publish files", shortname overnet_publish_files, "B";
 (*    "Max Connected Peers", shortname overnet_max_connected_peers, "T"; *)
     "Search Timeout", shortname overnet_search_timeout, "T";
     "Search Internal Period", shortname overnet_query_peer_period, "T";
@@ -469,7 +472,7 @@ let recover_file (file : DonkeyTypes.file) =
         ignore (create_search (FileSearch file) file.file_md4)
   
 let publish_file (file : DonkeyTypes.file) = 
-  if publish_implemented then begin
+  if !!overnet_publish_files then begin
       if !!overnet_search_sources then begin
           try
             let s = Hashtbl.find  overnet_searches file.file_md4 in

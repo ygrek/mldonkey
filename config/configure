@@ -1,6 +1,6 @@
 #! /bin/sh
 
-# From configure.in Revision: 1.65 
+# From configure.in Revision: 1.68 
 
 # Guess values for system-dependent variables and create Makefiles.
 # Generated automatically using autoconf version 2.13 
@@ -551,7 +551,7 @@ fi
 
 
 
-CURRENT_VERSION=2.00+3
+CURRENT_VERSION=2.01
 
 REQUIRED_OCAML=3.06
 REQUIRED_LABLGTK=1.2.4

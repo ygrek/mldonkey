@@ -802,10 +802,14 @@ is checked for the file.
       (try client_wants_file c t with _ -> ());
       if t = Md4.null && c.client_brand = Brand_edonkey then  begin
           c.client_brand <- Brand_mldonkey1;
-          direct_client_send sock (
-            M.SayReq "[WARNING] Please, Update Your MLdonkey client");
+          if Random.int 100 < 2 then
+            direct_client_send sock (
+              M.SayReq "[WARNING] Please, Update Your MLdonkey client to version 2.01");
         end;
-      
+      if not c.client_already_counted then begin
+          count_seen c;
+          c.client_already_counted <- true
+       end;
       begin try 	
           count_filerequest c;
           let file = find_file t in
