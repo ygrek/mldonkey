@@ -62,7 +62,10 @@ let update_options () =
 
 
 let query_location file sock =
-  printf_string "[QUERY LOC]";
+  if !verbose_location then begin
+      print_newline ();
+      Printf.printf "Server: Query Location of %s" (file_best_name file);
+    end;
   direct_server_send sock (
     let module M = DonkeyProtoServer in
     let module C = M.QueryLocation in

@@ -39,6 +39,7 @@ type 'a shared_impl = {
     mutable impl_shared_ops : 'a shared_ops;
     mutable impl_shared_uploaded : int64;
     mutable impl_shared_size : int64;
+    mutable impl_shared_id : Md4.t;
     mutable impl_shared_requests : int;
   }
   
@@ -168,6 +169,7 @@ let dummy_shared = {
     };
     impl_shared_uploaded = Int64.zero;
     impl_shared_size = Int64.zero;
+    impl_shared_id = Md4.null;
     impl_shared_requests = 0;
   }
   
@@ -195,6 +197,7 @@ let rec shared_add_directory dirname local_dir =
   in
   if can_share dirname then
     let full_dir = Filename.concat dirname local_dir in
+    Printf.printf "Sharing sub-directory %s" full_dir; print_newline ();
     let files = Unix2.list_directory full_dir in
     List.iter (fun file ->
         if file <> "" && file.[0] <> '.' then

@@ -59,10 +59,12 @@ let new_block file i =
     block_file = file;
   } 
 
+let zone_present z =
+  z.zone_begin >= z.zone_end
+
 let sort_zones b =
   let zones = List.fold_left (fun zones z ->
-        if z.zone_begin = z.zone_end then z.zone_present <- true;
-        if z.zone_present  then zones else z :: zones
+        if zone_present z then zones else z :: zones
     ) [] b.block_zones 
   in
   b.block_zones <- Sort.list (fun z1 z2 ->
@@ -93,7 +95,6 @@ let rec create_zones file begin_pos end_pos list =
       zone_begin = begin_pos;
       zone_end = zone_end2;
       zone_nclients = 0;
-      zone_present = false;
     } :: list ) 
   
 let client_file c =
@@ -407,14 +408,14 @@ let rec find_client_zone c =
 print_newline ();
   *)
       let z = match c.client_zones with
-        | [z1] -> if z1.zone_present then [] else [z1]
+        | [z1] -> if zone_present z1 then [] else [z1]
         | [z1;z2] ->
-            let z = if z2.zone_present then [] else [z2] in
-            if z1.zone_present then z else z1 :: z 
+            let z = if zone_present z2 then [] else [z2] in
+            if zone_present z1 then z else z1 :: z 
         | [z1;z2;z3] ->
-            let z = if z3.zone_present then [] else [z3] in
-            let z = if z2.zone_present then z else z2 :: z in
-            if z1.zone_present then z else z1 :: z 
+            let z = if zone_present z3 then [] else [z3] in
+            let z = if zone_present z2 then z else z2 :: z in
+            if zone_present z1 then z else z1 :: z 
         | _ -> []
       
       in
@@ -455,7 +456,7 @@ and find_zone3 c b z1 z2 zones =
       print_client_zones 1 b c;
       query_zones c b
   | z :: zones ->
-      if (not z.zone_present) && z != z1 && z != z2 then begin
+      if (not (zone_present z)) && z != z1 && z != z2 then begin
           c.client_zones <- [z1;z2;z];
           print_client_zones 2 b c;
           z.zone_nclients <- z.zone_nclients + 1;
@@ -470,7 +471,7 @@ and find_zone2 c b z1 zones =
       print_client_zones 3 b c;
       query_zones c b
   | z :: zones ->
-      if (not z.zone_present) && z != z1 then begin
+      if (not (zone_present z)) && z != z1 then begin
           z.zone_nclients <- z.zone_nclients + 1;
           find_zone3 c b z1 z zones
         end
@@ -496,7 +497,7 @@ then '1' else '0'); *)
       find_client_block c
   
   | z :: zones ->
-      if (not z.zone_present) then begin
+      if (not (zone_present z)) then begin
           z.zone_nclients <- z.zone_nclients + 1;
           find_zone2 c b z zones
         end else
@@ -1047,7 +1048,6 @@ let update_zone file begin_pos end_pos z =
         end;
       
       file_must_update file;
-      z.zone_present <- true;
       z.zone_begin <- z.zone_end;
       if !verbose && end_pos > z.zone_end then begin
           Printf.printf "EXCEEDING: %Ld>%Ld" (end_pos)

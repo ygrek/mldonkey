@@ -26,10 +26,12 @@ let message_file_name = try
     Sys.getenv "MLDONKEY_GUI_MESSAGES"
   with _ -> 
       Filename.concat CommonOptions.home_basedir ".mldonkey_gui_messages.ini"
-  
+
+      (*
 let _ =
   Printf.printf "Using Message File %s" message_file_name; print_newline ()
-      
+  *)
+
 let message_file = Options.create_options_file message_file_name
 let message name t x = define_option message_file [name] "" t x
   

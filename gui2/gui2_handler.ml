@@ -1224,6 +1224,8 @@ let value_reader (gui: gui) t sock =
       
     | Add_section_option _
     | Add_plugin_option _
+    | CleanTables (_, _)
+    | File_update_availability (_, _, _)
       -> assert false
   with e ->
       Printf.printf "EXception %s in reader" (Printexc2.to_string e);

@@ -22,6 +22,18 @@ open BasicSocket
 open Options
 open Unix
 
+let home_dir = (try Sys.getenv "HOME" with _ -> ".")
+  
+let installer_ini = create_options_file (Filename.concat home_dir 
+      ".mldonkey_installer.ini")
+  
+let mldonkey_directory = 
+  define_option installer_ini ["mldonkey_directory"] 
+    "The directory where mldonkey's option files are" string_option "."
+
+let _ =
+  (try Options.load installer_ini with _ -> ())
+  
 let (file_basedir, home_basedir) = 
   try
     if (String2.starts_with 
@@ -40,8 +52,9 @@ let (file_basedir, home_basedir) =
         print_newline ();
         exit 2
   with _ ->  
-      (try Sys.getenv "MLDONKEY_DIR" with _ -> Unix.getcwd ()),
-      (try Sys.getenv "HOME" with _ -> ".")
+      (try Sys.getenv "MLDONKEY_DIR" with _ -> 
+            !!mldonkey_directory),
+      home_dir
       
 let cmd_basedir = Autoconf.current_dir (* will not work on Windows *)
   
@@ -92,6 +105,9 @@ let _ =
   )
 
 
+let allow_browse_share = define_option downloads_ini ["allow_browse_share"]
+    "Allow others to browse our share list" bool_option true
+
 let shared_directories = 
   define_option downloads_ini ["shared_directories" ] 
     "Directories where files will be shared"
@@ -114,12 +130,12 @@ let http_password =
   define_option downloads_ini ["http_password"] "Your password when using a WEB browser" string_option ""
   
 let max_hard_upload_rate = define_option downloads_ini ["max_hard_upload_rate"] 
-  "The maximal upload rate you can tolerate on your link in kB/s (0 = no limit)
+  "The maximal upload rate you can tolerate on your link in kBytes/s (0 = no limit)
   The limit will apply on all your connections (clients and servers) and both
 control and data messages." int_option 0
   
 let max_hard_download_rate = define_option downloads_ini ["max_hard_download_rate"] 
-  "The maximal download rate you can tolerate on your link in kB/s (0 = no limit)
+  "The maximal download rate you can tolerate on your link in kBytes/s (0 = no limit)
   The limit will apply on all your connections (clients and servers) and both
 control and data messages." int_option 0
   
@@ -346,6 +362,15 @@ let _ =
       TcpBufferedSocket.ip_packet_size := !!tcpip_packet_size
   )
 
+let mtu_packet_size = define_option expert_ini ["mtu_packet_size"]
+  "The size of the MTU of a TCP/IP packet on your connection"
+    int_option 1500
+
+let _ =
+  option_hook mtu_packet_size (fun _ ->
+      TcpBufferedSocket.mtu_packet_size := !!mtu_packet_size
+  )
+
 let network_update_url = define_option expert_ini ["network_update_url"]
     "URL where mldonkey can download update information on the network"
     string_option "http://savannah.nongnu.org/download/mldonkey/network/"
@@ -560,6 +585,7 @@ let verbosity = define_option expert_ini ["verbosity"]
   ms : debug server messages
   net : debug net
   verb : debug other
+  loc : debug source research
   sp : debug source propagation 
   sm : debug source management
   do : some download warnings
@@ -576,6 +602,7 @@ let verbose = ref false
 let verbose_download = ref false
 let verbose_unknown_messages = ref false
 let verbose_overnet = ref false
+let verbose_location = ref false
   
 let _ = 
   option_hook verbosity (fun _ ->
@@ -589,6 +616,7 @@ let _ =
       verbose_download := false;
       verbose_unknown_messages := false;
       verbose_overnet := false;
+      verbose_location := false;
       
       List.iter (fun s ->
           match s with
@@ -601,6 +629,7 @@ let _ =
           | "do" -> verbose_download := true
           | "unk" -> verbose_unknown_messages := true
           | "ov" -> verbose_overnet := true
+          | "loc" -> verbose_location := true
               
           | "all" ->
               

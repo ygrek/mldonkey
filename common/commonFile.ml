@@ -429,17 +429,7 @@ let file_print file o =
 \\<td title=\\\"Chunks\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>
 ";
 	
-		Printf.bprintf buf "\\<table class=chunks cellspacing=0 cellpadding=0\\>\\<tr\\>";
-
-		String.iter (fun (b) ->  
-		Printf.bprintf buf "\\<TD class=\\\"%s\\\"\\>\\&nbsp;\\</td\\>" 
-                        (if b='1' then "chunk1"
-                                 else "chunk0")
-
-		) info.G.file_chunks;
-      
-
-		Printf.bprintf buf "\\</tr\\>\\</table\\>";
+		Printf.bprintf buf "\\<table class=chunks cellspacing=0 cellpadding=0\\>\\<tr\\>\\<script language=\\\"javascript\\\"\\>\\<!--\ncolored_chunks(\\\"%s\\\")\n//--\\>\n\\</script\\>\\</tr\\>\\</table\\>" info.G.file_chunks;
 
 Printf.bprintf buf "\\</td\\> \\</tr\\>";
 

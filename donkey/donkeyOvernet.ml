@@ -1326,7 +1326,7 @@ let _ =
     ), " <urls>:\t\t\t\tdownload .ocl URLS (no arg load default)";
 
     "ovmd4", Arg_none (fun o -> "MD4 is " ^ (Md4.to_string overnet_md4);
-     ), "\t\t\t\t\tget client MD4 address on the overnet network";
+     ), ":\t\t\t\t\tget client MD4 address on the overnet network";
 
     "ovstore", Arg_none (fun o -> 
         let buf = o.conn_buf in
@@ -1347,7 +1347,7 @@ let _ =
         ) published_keyword_table;
 
         ""
-     ), " dump the Overnet File Store";
+     ), ":\t\t\t\tdump the Overnet File Store";
 
 
     "ovtst", Arg_two (fun a b o ->
@@ -1359,14 +1359,14 @@ let _ =
             int_tag "size" (Random.int 200);
          ] 0;
         ""
-    ), "";
+    ), ":\t\t\t\t\t(not documented)";
 
     "ovtst2", Arg_two (fun a b o ->
 	let md4 = Md4.of_string a in
 	let size = int_of_string b in
         get_results_from_query (Ip.of_string "10.0.0.10") (4665) md4 0 size;
         ""
-    ), "";
+    ), ":\t\t\t\t\t(not documented)";
 
   ];
 

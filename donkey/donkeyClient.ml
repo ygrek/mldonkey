@@ -50,6 +50,8 @@ open DonkeyGlobals
 open DonkeyStats
 open DonkeyTypes  
 
+module Udp = DonkeyProtoUdp
+  
 let is_banned c sock = c.client_banned <- Hashtbl.mem banned_ips (peer_ip sock)
     
 let ban_client c sock msg = 
@@ -165,9 +167,9 @@ let log_client_info c sock =
     let s = c.client_name in
     let len = String.length s in 
     if len > 30 then String.sub s 0 30 else s)
-    
-    (brand_to_string c.client_brand)
-    (match c.client_kind with Indirect_location _ -> "LowID"
+  
+  (brand_to_string c.client_brand)
+  (match c.client_kind with Indirect_location _ -> "LowID"
     | Known_location (ip,port) -> Printf.sprintf "%s:%d"
           (Ip.to_string ip) port)
   (last_time () - c.client_connect_time)
@@ -177,18 +179,20 @@ let log_client_info c sock =
   (nwritten sock) (nread sock)
   (if c.client_banned then "banned" else "")
   c.client_requests_received
-  c.client_requests_sent
+    c.client_requests_sent
   ;
+  
   List.iter (fun r ->
-      match r.request_result with
-      | File_chunk -> Buffer.add_char buf 'C'
-      | File_upload -> Buffer.add_char buf 'U'
-      | File_not_found -> Buffer.add_char buf '-'
-      | File_found -> Buffer.add_char buf '+'
-      | File_possible -> ()
-      | File_expected -> ()
-      | File_new_source -> ()
-  ) c.client_files;
+      Buffer.add_char buf (
+        match r.request_result with
+        | File_chunk ->      'C'
+        | File_upload ->     'U'
+        | File_not_found ->  '-'
+        | File_found ->      '+'
+        | File_possible ->   '?'
+        | File_expected ->   '!'
+        | File_new_source -> 'n'
+      )) c.client_files;      
   Buffer.add_char buf '\n';
   let m = Buffer.contents buf in
   CommonEvent.add_event (Console_message_event m)
@@ -324,7 +328,7 @@ let find_sources_in_groups c md4 =
                           print_newline ());
                       udp_client_send uc (
                         let module M = DonkeyProtoServer in
-                        M.QueryLocationReplyUdpReq (
+                        Udp.QueryLocationReplyUdpReq (
                           let module Q = M.QueryLocationReply in
                           {
                             Q.md4 = md4;
@@ -730,11 +734,16 @@ print_newline ();
       if c.client_brand = Brand_newemule then  begin
           let module E = M.EmuleClientInfo in
           emule_send sock (M.EmuleClientInfoReplyReq {
-              E.version = 0x24; 
+              E.version = 0x26; 
               E.protversion = 0x1;
               E.tags = [
                 int_tag "compression" 0;
-                int_tag "udp_port" (!!port+4)
+                int_tag "udp_port" (!!port+4);
+                int_tag "source_exchange" 1;
+                int_tag "comments" 1;
+(*                int_tag "compatible" 0; *)
+                int_tag "extended_request" 1;
+                int_tag "udp_version" 1;
               ]
             })
         end
@@ -829,13 +838,11 @@ print_newline ();
           
           begin
             match c.client_brand with
-            | Brand_mldonkey2
             | Brand_mldonkey3 -> 
                 if Fifo.length upload_clients >= !!max_upload_slots then
                   Fifo.iter (fun c -> 
                       if c.client_sock <> None && 
-                        (c.client_brand = Brand_mldonkey2 ||
-                          c.client_brand = Brand_mldonkey3) then raise Exit)
+                        c.client_brand = Brand_mldonkey3 then raise Exit)
                   upload_clients
             | Brand_newemule ->
                 if Fifo.length upload_clients >= !!max_upload_slots then
@@ -1131,7 +1138,7 @@ is checked for the file.
 
 
 (* Upload requests *)
-  | M.ViewFilesReq t when !has_upload = 0 -> 
+  | M.ViewFilesReq t when !has_upload = 0 && !!allow_browse_share -> 
       let files = DonkeyShare.all_shared () in
       let published_files = ref [] in
       List.iter (fun f ->
@@ -1216,16 +1223,20 @@ is checked for the file.
           if file.file_enough_sources then begin
               Printf.printf "** Dropped %d sources for %s **" (List.length t.Q.sources) (file_best_name file);
               print_newline ()
-            end else *)
-          Array.iter (fun s ->
+end else *)
+          if !verbose_location then begin
+              print_newline ();
+              Printf.printf "Client: Received %d sources for %s" (Array.length t.Q.sources) (file_best_name file);
+            end;
+              Array.iter (fun s ->
               if Ip.valid s.Q.ip && Ip.reachable s.Q.ip then
                 ignore (DonkeySources.new_source (s.Q.ip, s.Q.port) file)
               else
                 begin
-                  let module C = DonkeyProtoServer.QueryCallUdp in
+                  let module C = Udp.QueryCallUdp in
                   DonkeyProtoCom.udp_send (get_udp_sock ())
                   s.Q.server_ip (s.Q.server_port+4)
-                  (DonkeyProtoServer.QueryCallUdpReq {
+                  (Udp.QueryCallUdpReq {
                       C.ip = client_ip None;
                       C.port = !client_port;
                       C.id = s.Q.ip;
@@ -1719,6 +1730,12 @@ let query_locations_reply s t =
   try
     let file = find_file t.Q.md4 in
     let nlocs = List.length t.Q.locs in
+
+    if !verbose_location then begin
+        print_newline ();
+        Printf.printf "Server: Received %d sources for %s" nlocs (file_best_name file);
+      end;
+        
     s.server_score <- s.server_score + 3;
 
 (* Is this a joke ? ok, when we have enough sources, don't ask for more.
@@ -1739,9 +1756,9 @@ But if we receive them, take them !
         else
         match s.server_sock with
           None ->
-            let module Q = M.QueryCallUdp in
+            let module Q = Udp.QueryCallUdp in
             udp_server_send s 
-              (M.QueryCallUdpReq {
+              (Udp.QueryCallUdpReq {
                 Q.ip = client_ip None;
                 Q.port = !client_port;
                 Q.id = ip;

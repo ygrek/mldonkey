@@ -158,9 +158,9 @@ let print_stats buf =
   if stats_all.brand_seen = 0 then
     Printf.bprintf buf "You haven't connected to any client yet\n"
   else begin
-    Printf.bprintf buf "                Successful Connections: %18d\n" stats_all.brand_seen;
+    Printf.bprintf buf "     Successful Connections: %18d\n" stats_all.brand_seen;
     for i=1 to brand_count-1 do
-      Printf.bprintf buf "%27s: %18d (%3.2f %%)\n" 
+      Printf.bprintf buf "%27s: %18d (%5.1f %%)\n" 
 	(brand_to_string (brand_of_int i)) 
 	stats_by_brand.(i).brand_seen 
 	(percent_of_ints stats_by_brand.(i).brand_seen stats_all.brand_seen)
@@ -172,7 +172,7 @@ let print_stats buf =
   else begin
     Printf.bprintf buf "Total filerequests received: %18d\n" stats_all.brand_filerequest;
     for i=1 to brand_count-1 do
-      Printf.bprintf buf "%27s: %18d (%3.2f %%)\n" 
+      Printf.bprintf buf "%27s: %18d (%5.1f %%)\n" 
 	(brand_to_string (brand_of_int i))
 	stats_by_brand.(i).brand_filerequest 
 	(percent_of_ints stats_by_brand.(i).brand_filerequest stats_all.brand_filerequest)
@@ -182,9 +182,11 @@ let print_stats buf =
   if stats_all.brand_download = Int64.zero then
     Printf.bprintf buf "You didn't download anything yet\n"
   else begin
-    Printf.bprintf buf "            Total downloads: %18s\n" (Int64.to_string stats_all.brand_download);
+      Printf.bprintf buf "            Total downloads: %18s (%5.1f KB/s)\n"
+      (Int64.to_string stats_all.brand_download) 
+      ((Int64.to_float stats_all.brand_download) /. (float_of_int uptime) /. 1024.0);
     for i=1 to brand_count-1 do
-      Printf.bprintf buf "%27s: %18s (%3.2f %%)\n" 
+      Printf.bprintf buf "%27s: %18s (%5.1f %%)\n" 
 	(brand_to_string (brand_of_int i))
 	(Int64.to_string stats_by_brand.(i).brand_download) 
 	(percent_of_int64s stats_by_brand.(i).brand_download stats_all.brand_download)
@@ -194,9 +196,11 @@ let print_stats buf =
   if stats_all.brand_upload = Int64.zero then
     Printf.bprintf buf "You didn't upload anything yet\n"
   else begin
-    Printf.bprintf buf "              Total uploads: %18s\n" (Int64.to_string stats_all.brand_upload);
+      Printf.bprintf buf "              Total uploads: %18s (%5.1f KB/s)\n"
+      (Int64.to_string stats_all.brand_upload)
+      ((Int64.to_float stats_all.brand_upload) /. (float_of_int uptime) /. 1024.0);
     for i=1 to brand_count-1 do
-      Printf.bprintf buf "%27s: %18s (%3.2f %%)\n" 
+      Printf.bprintf buf "%27s: %18s (%5.1f %%)\n" 
 	(brand_to_string (brand_of_int i))
 	(Int64.to_string stats_by_brand.(i).brand_upload) 
 	(percent_of_int64s stats_by_brand.(i).brand_upload stats_all.brand_upload)
@@ -208,7 +212,7 @@ let print_stats buf =
   else begin
     Printf.bprintf buf "                Total banneds: %18d\n" stats_all.brand_banned;
     for i=1 to brand_count-1 do
-      Printf.bprintf buf "%27s: %18d (%3.2f %%)\n" 
+      Printf.bprintf buf "%27s: %18d (%5.1f %%)\n" 
 	(brand_to_string (brand_of_int i)) 
 	stats_by_brand.(i).brand_banned 
 	(percent_of_ints stats_by_brand.(i).brand_banned stats_all.brand_banned)
@@ -401,7 +405,7 @@ let _ =
 	let buf = o.conn_buf in
 	  new_print_stats buf o;
 	  ""
-    ), ":\t\t\t\tshow table of download/upload by clients brand";
+    ), ":\t\t\t\t\tshow table of download/upload by clients brand";
     
    "reload_messages", Arg_none (fun o ->
 	begin
@@ -420,5 +424,5 @@ let _ =
 
 	end;
     ""
- ), ":\t\t\t\treload messages file";
+ ), ":\t\t\treload messages file";
   ]

@@ -326,46 +326,6 @@ module ServerList = struct
   end
 
   
-module DBServerList = struct 
-    type server = {
-        ip : Ip.t;
-        port : int;
-      }
-    
-    type t = server list
-      
-    let parse len s = 
-      let n = get_int16 s 1 in
-      let rec iter i  =
-        if i = n then [] else
-        let ip = get_ip s (3 + i * 6) in
-        let port = get_port s (7+ i * 6) in
-        { ip = ip; port = port; } :: (iter (i+1))
-      in
-      iter 0
-          
-    let print t = 
-      Printf.printf "SERVER LIST";
-      print_newline ();
-      List.iter (fun l -> 
-          Printf.printf "   %s : %d" (Ip.to_string l.ip) l.port;
-          print_newline ();
-      ) t
-
-    let fprint oc t = 
-      Printf.fprintf oc "SERVER LIST\n";
-      List.iter (fun l -> 
-          Printf.fprintf oc "%s:%d\n" (Ip.to_string l.ip) l.port;
-      ) t
-      
-    let write buf t = 
-      buf_int16 buf (List.length t);
-      List.iter (fun l ->
-          buf_ip buf l.ip;
-          buf_int16 buf l.port
-      ) t
-  end
-
 
 module ServerInfo = struct 
     type t = {
@@ -497,62 +457,6 @@ module QueryReply  = struct
       let write buf t = 
         write_replies buf t;
       buf_int8 buf 0
-
-  end
-
-module QueryUdpReply  = struct 
-    
-    type t = tagged_file
-    
-    let names_of_tag = [
-        1, "filename";
-        2, "size";
-        3, "type";
-        4, "format";
-        21, "availability";
-      ]        
-    
-    
-    let get_file  s pos =
-      let md4 = get_md4 s pos in
-      let ip = get_ip s (pos + 16) in
-      let port = get_port s (pos + 20) in
-      let tags, pos = get_tags s (pos+22) names_of_tag in
-      let file = {
-          f_md4 = md4;
-          f_ip = ip;
-          f_port = port;
-          f_tags = tags;
-        } in
-      file
-    
-    
-    let parse len s =
-      get_file s 1
-    
-    let print t = 
-      Printf.printf "FOUND:\n";
-      Printf.printf "  MD4: %s\n" (Md4.to_string t.f_md4);
-      Printf.printf "  ip: %s\n" (Ip.to_string t.f_ip);
-      Printf.printf "  port: %d\n" t.f_port;
-      Printf.printf "  tags: ";
-      print_tags t.f_tags;
-      print_newline ()
-
-    let fprint oc t = 
-      Printf.fprintf oc "FOUND:\n";
-      Printf.fprintf oc "%s\n" (Md4.to_string t.f_md4);
-      Printf.fprintf oc "%s\n" (Ip.to_string t.f_ip);
-      Printf.fprintf oc "%d\n" t.f_port;
-      Printf.fprintf oc "TAGS:\n";
-      fprint_tags oc t.f_tags;
-         Printf.fprintf oc "\n"
-    
-    let write buf file =
-      buf_md4 buf file.f_md4;
-      buf_ip buf file.f_ip;
-      buf_port buf file.f_port;
-      buf_tags buf file.f_tags names_of_tag
 
   end
 
@@ -998,35 +902,6 @@ module QueryIDReply  = struct
       
   end
 
-module QueryCallUdp  = struct 
-    type t = {
-        ip : Ip.t;
-        port : int;
-        id : Ip.t;
-      }
-          
-    let parse len s = 
-      let ip = get_ip s 1 in
-      let port = get_port s 5 in
-      let id = get_ip s 7 in
-      { ip = ip; port = port; id = id; }
-      
-    let print t = 
-      Printf.printf "QueryCall %s : %d --> %s" (Ip.to_string t.ip) t.port
-        (Ip.to_string t.id);
-      print_newline ()
-
-    let fprint oc t = 
-      Printf.fprintf oc "QueryCall %s : %d --> %s\n" (Ip.to_string t.ip) t.port
-        (Ip.to_string t.id)
-      
-    let write buf t = 
-      buf_ip buf t.ip;
-      buf_port buf t.port;
-      buf_ip buf t.id
-      
-  end
-
 module QueryServers  = struct 
     type t = {
         ip : Ip.t;
@@ -1118,157 +993,6 @@ module QueryServersReply  = struct
       
   end
 
-module PingServerUdp = struct (* client -> serveur pour identification ? *)
-    type t = int64
-      
-      
-    let parse len s =
-      try
-	get_int64_32 s 1(*, get_int8 s 2, get_int8 s 3*)
-      with _ ->
-	Int64.zero
-      
-    (*let print (t1,t2,t3) = 
-      Printf.printf "MESSAGE 150 UDP %d %d %d" t1 t2 t3;
-      print_newline ()*)
-
-    let print t =
-      Printf.printf "PING %s\n " (Int64.to_string t)
-            
-    let fprint oc t =
-      Printf.fprintf oc "PING %s\n" (Int64.to_string t)
-      
-    let write buf t =
-      buf_int64_32 buf t
-                 
-                   
-    (* let fprint oc (t1,t2,t3) = 
-      Printf.fprintf oc "MESSAGE 150 UDP %d %d %d\n" t1 t2 t3*)
-      
-    (*let write buf (t1,t2,t3) = 
-      buf_int8 buf t1;
-      buf_int8 buf t2;
-      buf_int8 buf t3;*)
-      
-  end
-
-module PingServerReplyUdp = struct (* reponse du serveur a 150 *)
-    type t = int64 *  int64 * int64
-      
-    (*let parse len s =
-      get_int8 s 1, get_int8 s 2, get_int8 s 3, get_int8 s 4,
-      get_int64_32 s 5, get_int64_32 s 9
-      
-    let print (t1,t2,t3,t4,t5,t6) = 
-      Printf.printf "MESSAGE 150 UDP %d %d %d %d %s %s" t1 t2 t3 t4
-        (Int64.to_string t5) (Int64.to_string t6);
-      print_newline ()
-
-    let fprint oc (t1,t2,t3,t4,t5,t6) = 
-      Printf.fprintf oc "MESSAGE 150 UDP %d %d %d %d %s %s" t1 t2 t3 t4
-        (Int64.to_string t5) (Int64.to_string t6)
-      
-    let write buf (t1,t2,t3,t4,t5,t6) = 
-      buf_int8 buf t1;
-      buf_int8 buf t2;
-      buf_int8 buf t3;
-      buf_int8 buf t4;
-      buf_int64_32 buf t5;
-      buf_int64_32 buf t6;*)
-      
-    let parse len s =
-        get_int64_32 s 1, get_int64_32 s 5, get_int64_32 s 9
-
-     let print (t1,t2,t3) =
-         Printf.printf "PING REPLY no:%s clients:%s files:%s\n" (Int64.to_string t1)
-                           (Int64.to_string t2) (Int64.to_string t3)
-      
-     let fprint oc (t1,t2,t3) =
-         Printf.fprintf oc "PING REPLY no:%s clients:%s files:%s\n" (Int64.to_string t1)
-                           (Int64.to_string t2) (Int64.to_string t3)
-
-      let write buf (t1,t2,t3) =
-          buf_int64_32 buf t1;
-          buf_int64_32 buf t2;
-          buf_int64_32 buf t3;
-                           
-  end
-  
-module ServerDescUdp = struct
-  type t = {
-    ip : Ip.t;
-  }
-
-  let parse len s =
-    try
-      let ip = get_ip s 1 in
-	{
-	  ip = ip
-	}
-    with _ ->
-      {
-	  ip = Ip.null
-      }
-      
-  let print t =
-    Printf.printf "ServerDescUdpReq %s\n" (Ip.to_string t.ip)
-
-  let write buf t =
-    buf_ip buf t.ip
-
-end
-
-module ServerDescReplyUdp = struct
-  type t = {
-    name : string;
-    desc : string;
-  }
-
-  let parse len s =
-    let name, pos = get_string s 1 in
-    let desc, pos = get_string s pos in
-     {
-       name = name;
-       desc = desc;
-     }
-      
-  let print t =
-    Printf.printf "ServerDescReplyUdpReq\n";
-    Printf.printf "name : %s\n" t.name;
-    Printf.printf "desc : %s\n" t.desc
-
-  let write buf t =
-    buf_string buf t.name;
-    buf_string buf t.desc
-
-end
-
-
-    
-module ServerListUdp = struct
-  type t = {
-    ip : Ip.t;
-  }
-
-  let parse len s =
-    try
-      let ip = get_ip s 1 in
-	{
-	  ip = ip;
-	}
-    with _ ->
-      {
-	ip = Ip.null
-      }
-	
-  let print t =
-    Printf.printf "ServerListUdp %s\n" (Ip.to_string t.ip)
-
-  let write buf t =
-    buf_ip buf t.ip
-
-end
-
 
 module Req  = struct 
     type t 
@@ -1298,22 +1022,6 @@ type t =
 | ChatRoomsReq of ChatRooms.t
 | QueryUsersReq of QueryUsers.t
 | QueryUsersReplyReq of QueryUsersReply.t
-| QueryServersUdpReq of QueryServers.t  
-| QueryServersReplyUdpReq of QueryServersReply.t  
-
-| PingServerUdpReq of PingServerUdp.t
-| PingServerReplyUdpReq of PingServerReplyUdp.t
-  
-| DBServerListReq of DBServerList.t
-| QueryLocationUdpReq of QueryLocation.t  
-| QueryLocationReplyUdpReq of QueryLocationReply.t  
-| QueryReplyUdpReq of QueryUdpReply.t
-| QueryUdpReq of CommonTypes.query
-| QueryCallUdpReq of QueryCallUdp.t
-| FileGroupInfoUdpReq of QueryLocationReply.t    
-| ServerDescUdpReq of ServerDescUdp.t
-| ServerDescReplyUdpReq of ServerDescReplyUdp.t   
-| ServerListUdpReq of ServerListUdp.t    
 | QueryMoreResultsReq
   
 (****************
@@ -1387,19 +1095,6 @@ let parse magic s =
     | 67 -> QueryUsersReplyReq (QueryUsersReply.parse len s)
 (* UDP *)
     
-    | 150 -> PingServerUdpReq (PingServerUdp.parse len s)
-    | 151 -> PingServerReplyUdpReq (PingServerReplyUdp.parse len s)
-    
-    | 152 -> QueryUdpReq (Query.parse len s)
-    | 153 -> QueryReplyUdpReq (QueryUdpReply.parse len s)
-    | 154 -> QueryLocationUdpReq (QueryLocation.parse len s)
-    | 155 -> QueryLocationReplyUdpReq (QueryLocationReply.parse len s)
-    | 156 -> QueryCallUdpReq (QueryCallUdp.parse len s)
-    | 160 -> QueryServersUdpReq (QueryServers.parse len s)
-    | 161 -> QueryServersReplyUdpReq (QueryServersReply.parse len s)
-    | 162 -> ServerDescUdpReq (ServerDescUdp.parse len s)
-    | 163 -> ServerDescReplyUdpReq (ServerDescReplyUdp.parse len s)
-    | 164 -> ServerListUdpReq (ServerListUdp.parse len s)
 
 (* MLDONKEY *)
     | 250 -> mldonkey_extensions len s
@@ -1421,35 +1116,20 @@ let print t =
     | ShareReq t -> Share.print t
     | InfoReq t -> Info.print t
     | ServerListReq t -> ServerList.print t
-    | DBServerListReq t -> DBServerList.print t
     | ServerInfoReq t -> ServerInfo.print t
-    | QueryReq t
-    | QueryUdpReq t -> Query.print t
+    | QueryReq t -> Query.print t
     | QueryReplyReq t -> QueryReply.print t
-    | QueryReplyUdpReq t -> QueryUdpReply.print t
     | QueryLocationReq t
-    | QueryLocationUdpReq t
       -> QueryLocation.print t
     | QueryLocationReplyReq t
-    | QueryLocationReplyUdpReq t
-    | FileGroupInfoUdpReq t
       -> 
         QueryLocationReply.print t
     | QueryIDReq t -> QueryID.print t
-    | QueryCallUdpReq t -> QueryCallUdp.print t
     | QueryIDFailedReq t -> QueryIDFailed.print t
     | QueryIDReplyReq t -> QueryIDReply.print t
     | QueryUsersReq t -> QueryUsers.print t
     | QueryUsersReplyReq t -> QueryUsersReply.print t
     | ChatRoomsReq t -> ChatRooms.print t
-    | QueryServersUdpReq t -> QueryServers.print t
-    | QueryServersReplyUdpReq t -> QueryServersReply.print t
-
-    | PingServerUdpReq t -> PingServerUdp.print t
-    | PingServerReplyUdpReq t -> PingServerReplyUdp.print t
-    | ServerDescUdpReq t -> ServerDescUdp.print t
-    | ServerDescReplyUdpReq t -> ServerDescReplyUdp.print t
-    | ServerListUdpReq t -> ServerListUdp.print t
 
     | QueryMoreResultsReq -> 
         Printf.printf "QUERY MORE RESULTS"; print_newline ()
@@ -1498,36 +1178,17 @@ let fprint oc t =
     | ShareReq t -> Share.fprint oc t
     | InfoReq t -> Info.fprint oc t
     | ServerListReq t -> ServerList.fprint oc t
-    | DBServerListReq t -> DBServerList.fprint oc t
     | ServerInfoReq t -> ServerInfo.fprint oc t
     | QueryReq t -> Query.fprint oc t
-    | QueryUdpReq t -> Query.fprint oc t
     | QueryReplyReq t -> QueryReply.fprint oc t
-    | QueryReplyUdpReq t -> QueryUdpReply.fprint oc t
     | QueryLocationReq t -> QueryLocation.fprint oc t
-    | QueryLocationUdpReq t
-      -> QueryLocation.fprint oc t
     | QueryLocationReplyReq t -> QueryLocationReply.fprint oc t
-    | QueryLocationReplyUdpReq t ->  QueryLocationReply.fprint oc t
-    | FileGroupInfoUdpReq t
-      -> 
-        QueryLocationReply.fprint oc t
     | QueryIDReq t -> QueryID.fprint oc t
-    | QueryCallUdpReq t -> QueryCallUdp.fprint oc t
     | QueryIDFailedReq t -> QueryIDFailed.fprint oc t
     | QueryIDReplyReq t -> QueryIDReply.fprint oc t
     | QueryUsersReq t -> QueryUsers.fprint oc t
     | QueryUsersReplyReq t -> QueryUsersReply.fprint oc t
     | ChatRoomsReq t -> ChatRooms.fprint oc t
-    | QueryServersUdpReq t -> QueryServers.fprint oc t
-    | QueryServersReplyUdpReq t -> QueryServersReply.fprint oc t
-
-    | PingServerUdpReq t -> PingServerUdp.fprint oc  t
-    | PingServerReplyUdpReq t -> PingServerReplyUdp.fprint oc  t
-
-    | ServerDescUdpReq t -> ()
-    | ServerDescReplyUdpReq t -> ()
-    | ServerListUdpReq t -> ()
 
     | QueryMoreResultsReq -> 
         Printf.fprintf oc "QUERY MORE RESULTS\n"
@@ -1568,7 +1229,7 @@ let fprint oc t =
 (* Why is this called udp_write ??? It is the normal function to encode messages
   both on UDP and TCP connections !!! *)
   
-let udp_write buf t =
+let write buf t =
   match t with
   | ConnectReq t -> 
       buf_int8 buf 1;
@@ -1591,9 +1252,6 @@ let udp_write buf t =
   | ServerListReq t -> 
       buf_int8 buf 50;
       ServerList.write buf  t
-  | DBServerListReq t -> 
-      buf_int8 buf 250;
-      DBServerList.write buf  t
   | ServerInfoReq t -> 
       buf_int8 buf 65;
       ServerInfo.write buf  t
@@ -1629,48 +1287,6 @@ let udp_write buf t =
   | QueryUsersReplyReq t -> 
       buf_int8 buf 67;
       QueryUsersReply.write buf t
-  | QueryServersUdpReq t -> 
-      buf_int8 buf 160;
-      QueryServers.write buf t
-  | QueryServersReplyUdpReq t -> 
-      buf_int8 buf 161;
-      QueryServersReply.write buf t
-
-  | ServerDescUdpReq t ->
-      buf_int8 buf 162;
-      ServerDescUdp.write buf t
-  | ServerDescReplyUdpReq t ->
-      buf_int8 buf 163;
-      ServerDescReplyUdp.write buf t
-  | ServerListUdpReq t ->
-      buf_int8 buf 164;
-      ServerListUdp.write buf t
-
-  | PingServerUdpReq t -> 
-      buf_int8 buf 150;
-      PingServerUdp.write buf t
-  | PingServerReplyUdpReq t -> 
-      buf_int8 buf 151;
-      PingServerReplyUdp.write buf t
-  
-  | QueryLocationUdpReq t ->
-      buf_int8 buf 154;
-      QueryLocation.write buf t
-  | QueryLocationReplyUdpReq t ->
-      buf_int8 buf 155;
-      QueryLocationReply.write buf t
-  | QueryUdpReq t -> 
-      buf_int8 buf 152;
-      Query.write buf t
-  | QueryReplyUdpReq t ->
-      buf_int8 buf 153;
-      QueryUdpReply.write buf t
-  | QueryCallUdpReq t -> 
-      buf_int8 buf 156;
-      QueryCallUdp.write buf t
-  | FileGroupInfoUdpReq t ->
-      buf_int8 buf 251;
-      QueryLocationReply.write buf t
   | QueryMoreResultsReq ->
       buf_int8 buf 33
       
@@ -1693,13 +1309,9 @@ mldonkey extensions to the protocol
       buf_int8 buf 250; (* MLdonkey extensions opcode *)
       buf_int8 buf 4;
       buf_int buf num;
-
             
   | Mldonkey_NotificationReq (num,t) ->
       buf_int8 buf 250; (* MLdonkey extensions opcode *)
       buf_int8 buf 3;
       buf_int buf num;
       QueryReply.write_replies buf t
-
-let write buf t =
-  udp_write buf t

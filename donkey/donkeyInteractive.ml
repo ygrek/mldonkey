@@ -197,7 +197,7 @@ let really_query_download filenames size md4 location old_file absents =
   (try
       let servers = Hashtbl.find_all udp_servers_replies file.file_md4 in
       List.iter (fun s ->
-          udp_server_send s (DonkeyProtoServer.QueryLocationUdpReq file.file_md4)
+          udp_server_send s (DonkeyProtoUdp.QueryLocationUdpReq file.file_md4)
       ) servers
     with _ -> ());
   
@@ -665,7 +665,7 @@ let commands = [
         let buf = o.conn_buf in
         DonkeySources.recompute_ready_sources ();
         "done"
-    ), ":\t\t\t\trecompute order of connections to sources(experimental)";
+    ), ":\t\t\trecompute order of connections to sources(experimental)";
     
     "uploaders", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -676,14 +676,16 @@ let commands = [
           
           begin
             
+            let counter = ref 0 in
+            
+            Printf.bprintf buf "\\<div class=\\\"uploaders\\\"\\>Total upload slots: %d | Pending slots: %d\n" (Fifo.length upload_clients) (Fifo.length pending_slots_fifo);
             
             if Fifo.length upload_clients > 0 then
               
               begin
                 
-                
-                Printf.bprintf buf "\\<div class=\\\"uploaders\\\"\\>\\<table class=\\\"uploaders\\\"\\>\\<tr\\>
-\\<td title=\\\"Network\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>Network\\</td\\>
+                Printf.bprintf buf "\\<table class=\\\"uploaders\\\"\\>\\<tr\\>
+\\<td title=\\\"Network\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Network\\</td\\>
 \\<td title=\\\"Connection [I]ndirect [D]irect\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C\\</td\\>
 \\<td title=\\\"Client Name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Client Name\\</td\\>
 \\<td title=\\\"IP Address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>IP Address\\</td\\>
@@ -694,65 +696,129 @@ let commands = [
 \\</TR\\>
 ";
                 
-                
-                let counter = ref 0 in
-                
                 Fifo.iter (fun c ->
-                    
-                    incr counter;
-                    
-
-					Printf.bprintf buf "\\<tr class=\\\"%s\\\" 
-					title=\\\"Add as Friend\\\"
-					onMouseOver=\\\"mOvr(this,'#94AE94');\\\"
-					onMouseOut=\\\"mOut(this,this.bgColor);\\\" 
-					onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>"
-					( if (!counter mod 2 == 0) then "dl-1" else "dl-2";)
-		    	    (client_num c);
-                    
-                    client_print (as_client c.client_client) o;
-                    
-                    begin
-                      match c.client_sock with
-                        Some sock -> Printf.bprintf buf "\\<td
+                    if c.client_sock <> None then begin
+                        incr counter;                        
+                        
+                        Printf.bprintf buf "\\<tr class=\\\"%s\\\" 
+                        title=\\\"Add as Friend\\\"
+                        onMouseOver=\\\"mOvr(this,'#94AE94');\\\"
+                        onMouseOut=\\\"mOut(this,this.bgColor);\\\" 
+                        onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>"
+                          ( if (!counter mod 2 == 0) then "dl-1" else "dl-2";)
+                        (client_num c);
+                        
+                        
+                        client_print (as_client c.client_client) o;
+                        
+                        begin
+                          match c.client_sock with
+                            Some sock -> Printf.bprintf buf "\\<td
                         class=\\\"sr\\\"\\>%s\\</td\\>\\<td
                         class=\\\"sr\\\"\\>%s\\</td\\>" 
-                            (Ip.to_string (peer_ip sock)) (gbrand_to_string c.client_brand) 
-                      | None -> Printf.bprintf buf "\\<td
+                                (Ip.to_string (peer_ip sock)) (gbrand_to_string c.client_brand) 
+                          | None -> Printf.bprintf buf "\\<td
                         class=\\\"sr\\\"\\>\\</td\\>
                         \\<td class=\\\"sr\\\"\\>\\</td\\>" 
-                    end;
-                    
-                    Printf.bprintf buf "\\<td
+                        end;
+                        
+                        Printf.bprintf buf "\\<td
                         class=\\\"sr ar\\\"\\>%s\\</td\\>\\<td
                         class=\\\"sr ar\\\"\\>%s\\</td\\>" 
-                      (size_of_int64 c.client_downloaded) 
-                    (size_of_int64 c.client_uploaded);
-                    
-                    (match c.client_upload with
-                        Some cu ->
-                          Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>\n" (file_best_name cu.up_file)
-                      | None -> ());
-                    
-                    Printf.bprintf buf "\\</tr\\>"
+                          (size_of_int64 c.client_downloaded) 
+                        (size_of_int64 c.client_uploaded);
+                        
+                        Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>\n" 
+                          (match c.client_upload with
+                            Some cu -> (file_best_name cu.up_file)
+                          | None -> "");
+                        
+                        Printf.bprintf buf "\\</tr\\>"
+                      end
                 ) upload_clients;
                 Printf.bprintf buf "\\</table\\>";
               end;
             
-            Printf.bprintf buf "\nTotal upload slots: %d" (Fifo.length upload_clients);
+            if Fifo.length pending_slots_fifo > 0 then
+              
+              begin
+                
+                Printf.bprintf buf "\\<br\\>\\<br\\>\\<div class=\\\"uploaders\\\"\\>\\<table class=\\\"uploaders\\\"\\>\\<tr\\>
+ \\<td title=\\\"Network\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Network\\</td\\>
+ \\<td title=\\\"Connection [I]ndirect [D]irect\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C\\</td\\>
+ \\<td title=\\\"Client Name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Client Name\\</td\\>
+ \\<td title=\\\"Client Brand\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C.B\\</td\\>
+ \\<td title=\\\"Total DL bytes from this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>DL\\</td\\>
+ \\<td title=\\\"Total UL bytes to this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>UL\\</td\\>
+ \\<td title=\\\"IP Address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>IP Address\\</td\\>
+ \\</TR\\>
+ ";
+                
+                Fifo.iter (fun cnum ->
+                    
+                    try 
+                      
+                      let c = Intmap.find cnum !pending_slots_map in
+                      
+                      incr counter;
+                      
+                      Printf.bprintf buf "\\<tr class=\\\"%s\\\" 
+ 					title=\\\"Add as Friend\\\"
+ 					onMouseOver=\\\"mOvr(this,'#94AE94');\\\"
+ 					onMouseOut=\\\"mOut(this,this.bgColor);\\\" 
+ 					onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>"
+                        ( if (!counter mod 2 == 0) then "dl-1" else "dl-2";)
+                      cnum;
+                      
+                      
+                      client_print (as_client c.client_client) o;
+                      
+                      Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>" 
+                        (gbrand_to_string c.client_brand);
+                      
+                      Printf.bprintf buf "\\<td
+                         class=\\\"sr ar\\\"\\>%s\\</td\\>\\<td
+                         class=\\\"sr ar\\\"\\>%s\\</td\\>" 
+                        (size_of_int64 c.client_downloaded) 
+                      (size_of_int64 c.client_uploaded);
+                      
+                      try 
+                        Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>"
+                          
+                          (  match c.client_sock with
+                            Some sock -> (Ip.to_string (peer_ip sock)) 
+                          | None -> "")
+                      
+                      with _ -> Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>\\</td\\>";
+                          
+                          Printf.bprintf buf "\\</tr\\>";
+                    
+                    
+                    with _ -> ();
+                
+                ) pending_slots_fifo;
+                Printf.bprintf buf "\\</table\\>";
+              
+              end;
+            
+            
+
             Printf.bprintf buf "\\</div\\>";
             ""
           end
         else
           begin
-            
-            Fifo.iter (fun c ->
-                Printf.bprintf buf "client: %s downloaded: %s uploaded: %s" (brand_to_string c.client_brand) (Int64.to_string c.client_downloaded) (Int64.to_string c.client_uploaded);
-                client_print (as_client c.client_client) o;
-            ) upload_clients;
-            
-            Printf.sprintf "\nTotal upload slots: %d" 
-              (Fifo.length upload_clients);        
+                     Fifo.iter (fun c ->
+             client_print (as_client c.client_client) o;
+             Printf.bprintf buf "client: %s downloaded: %s uploaded: %s" (brand_to_string c.client_brand) (Int64.to_string c.client_downloaded) (Int64.to_string c.client_uploaded);
+             match c.client_upload with
+               Some cu ->
+                 Printf.bprintf buf "\nfilename: %s\n\n" (file_best_name cu.up_file)
+             | None -> ()
+         ) upload_clients;
+         Printf.sprintf "Total number of uploaders : %d" 
+           (Fifo.length upload_clients);
+
           end
           
         
@@ -1090,7 +1156,7 @@ print_newline ();
           print_newline ();
           Printf.printf "       TRY TO CONTACT FRIEND         ";
           print_newline ();
-
+          
           reconnect_client c
   );
   client_ops.op_client_connect <- (fun c ->
@@ -1221,24 +1287,23 @@ onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>%d\\</T
           (
             let qfiles = c.client_file_queue in
             let found = ref 0 in
-
-			if List.length qfiles > 0 then Printf.bprintf buf  
-					"\\<table class=chunks cellspacing=0 cellpadding=0\\>\\<tr\\>";
-
-
+            
+            if List.length qfiles > 0 then Printf.bprintf buf  
+                "\\<table class=chunks cellspacing=0 cellpadding=0\\>\\<tr\\>\\<script language=\\\"javascript\\\"\\>\\<!--\n";
+            
+            
             List.iter (fun (qfile, qchunks) ->
                 if (qfile = (as_file_impl file).impl_file_val) && (!found = 0) then 
                   begin
                     incr found;
-                    Array.iter (fun b ->
-						Printf.bprintf buf "\\<TD class=\\\"%s\\\"\\>\\&nbsp;\\</td\\>"
-                        (if b then "chunk1" 
-                              else "chunk0") 
-					) qchunks
+                    Printf.bprintf buf "colored_chunks(\\\"%s\\\")"
+                      (Array.fold_left (fun s b ->
+                          (if b then s ^ "1" else s ^ "0") 
+                      ) "" qchunks)
                   end;
             ) qfiles;
-
-			if List.length qfiles > 0 then Printf.bprintf buf "\\</tr\\>\\</table\\>";
+            
+            if List.length qfiles > 0 then Printf.bprintf buf "\n//--\\>\n\\</script\\>\\</tr\\>\\</table\\>";
           
           );
           
@@ -1270,8 +1335,8 @@ onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>%d\\</T
       end;
   )
   
-
-
+  
+  
 let _ =
   user_ops.op_user_set_friend <- (fun u ->
       let s = u.user_server in

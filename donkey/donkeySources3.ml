@@ -32,6 +32,8 @@ open BasicSocket
 open DonkeyTypes
 open DonkeyGlobals
 open DonkeySourcesMisc
+
+let stats_remove_bad_sources_of_popular_file = ref 0
   
 let add_new_source new_score source_age addr = 
   let ip, port = addr in
@@ -101,12 +103,23 @@ let need_new_sources file =
 let add_source_request s file time result =
   try
     let r = find_source_request s file in
+(*
     r.request_result <- result;
-    r.request_time <- time;
+r.request_time <- time;
+*)
+    if !verbose_location then print_char 
+        (match r.request_result with
+          File_possible -> '?'
+        | File_not_found -> '-'
+        | File_expected -> '!'
+        | _ -> '_');
+    ()
   with _ ->
       add_request s file time result;
       SourcesQueue.put file.file_sources.(match result with
-        File_new_source -> new_sources_queue
+          File_new_source -> 
+            if !verbose_location then print_char '!';
+            new_sources_queue
         | _ -> 
             if last_time () - time < !!min_reask_delay then
               good_saved_sources_queue
@@ -124,6 +137,7 @@ let old_source old_source_score source_age addr file =
   s
 
 let new_source  addr file = 
+  if !verbose_location then print_char 'n'; 
   let last_conn = last_time () - !!min_reask_delay in
   let s = add_new_source 0 last_conn addr in
   add_source_request s file last_conn File_new_source;
@@ -212,6 +226,7 @@ let source_of_client c =
                       old_sources1_queue
                     else 
                     if popular_file file then begin
+                        incr stats_remove_bad_sources_of_popular_file;
                         remove_file_location file c;
                         raise Exit
                       end else
@@ -505,10 +520,12 @@ let print_sources buf =
   done;
   Printf.bprintf buf "\n";
   
-  Printf.bprintf buf "Removed Sources (on %d): useless %d/old %d/too old %d\n"
+  Printf.bprintf buf "Removed Sources (on %d): useless %d/old %d/too old %d/popular %d\n"
     !stats_sources
     !stats_remove_useless_sources !stats_remove_old_sources
-    !stats_remove_too_old_sources;
+    !stats_remove_too_old_sources
+    !stats_remove_bad_sources_of_popular_file
+  ;
   
   
   Printf.bprintf buf "  Connected last %d seconds[previous 10 minutes]: %d[%d]\n"
@@ -652,12 +669,12 @@ let check_sources reconnect_client =
                 );
           with _ ->
               
-              let module Q = DonkeyProtoServer.QueryCallUdp in
+              let module Q = DonkeyProtoUdp.QueryCallUdp in
               
               
               DonkeyProtoCom.udp_send (get_udp_sock ())
               ip (port+4)
-              (DonkeyProtoServer.QueryCallUdpReq {
+              (DonkeyProtoUdp.QueryCallUdpReq {
                   Q.ip = client_ip None;
                   Q.port = !client_port;
                   Q.id = id;

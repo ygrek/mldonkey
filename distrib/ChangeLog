@@ -1,8 +1,29 @@
 ChangeLog	
 =========
 
+2002/02/22: Simon (v 2.02-17)
+  - GUI: new application mldonkey_installer'. Guess its goal. Need
+      -enable-devel in ./configure . Not working yet.
+  - Applied patch #1165, #1164, #1161
+
+2002/02/21: Simon
+  - eDonkey: 
+     * Removed slot reserved for mldonkey2
+     * Added some UDP messages for Emule (not yet used)
+  - Applied patch toggle_browse_share by Martin
+  - Applied patch #1151, #1152 and #1156
+     pango's ones: 
+        59_fix_gui2_compile_warning
+        61_remove_zone_present_field,
+        62_telnet_use_interface_buffer
+        63_optimize_html_mods_chunks
+        64_html_mods_upstats_links
+  - Fix: 'uploaders' command only prints connected clients.
+  - ./configure: new option -enable-pthread, if you want to compute some
+      md4s in another thread. 
+
 2002/02/20: Simon (v 2.02-16)
-  - Applied patch #1409: new html_mods
+  - Applied patch #1137: new html_mods
   - Added some options in 'vo':
        client_name,allowed_ips,client_ip, force_client_ip
   - ./configure:
@@ -13,6 +34,7 @@ ChangeLog
        * eDonkey: added message 92
        * Try to print the IP:port for unknown packets
   - Net: mtu changed to 1500
+
 
 2002/02/19: Simon (v 2.02-15)
   - Applied patch #1136: better mail output

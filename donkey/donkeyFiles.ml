@@ -42,7 +42,9 @@ open CommonOptions
 open DonkeyClient  
 open CommonGlobals
 open DonkeyStats
-          
+
+module Udp = DonkeyProtoUdp 
+
 let search_handler s t =
   let waiting = s.search_waiting - 1 in
   s.search_waiting <- waiting;
@@ -56,8 +58,8 @@ let udp_query_locations file s =
       Printf.printf "UDP: query location %s" (Ip.to_string s.server_ip);
       print_newline ();
     end;
-  let module M = DonkeyProtoServer in
-  udp_server_send s (M.QueryLocationUdpReq file.file_md4)
+  let module Udp = DonkeyProtoUdp in
+  udp_server_send s (Udp.QueryLocationUdpReq file.file_md4)
 
   (*
 let rec find_search_rec num list =
@@ -101,7 +103,7 @@ let make_xs ss =
       | None ->
           let module M = DonkeyProtoServer in
           let module Q = M.Query in
-          udp_server_send s (M.QueryUdpReq ss.search_query);
+          udp_server_send s (Udp.QueryUdpReq ss.search_query);
   ) before;
   
   DonkeyOvernet.overnet_search ss
@@ -193,17 +195,18 @@ to this server *)
 let udp_client_handler t p =
   let module M = DonkeyProtoServer in
   match t with
-    M.QueryLocationReplyUdpReq t ->
+    Udp.QueryLocationReplyUdpReq t ->
 (*      Printf.printf "Received location by UDP"; print_newline ();  *)
       query_locations_reply (udp_from_server p) t
-  | M.QueryReplyUdpReq t ->
+      
+  | Udp.QueryReplyUdpReq t ->
 (*      Printf.printf "Received file by UDP"; print_newline ();  *)
       if !xs_last_search >= 0 then
         let ss = search_find !xs_last_search in
         Hashtbl.add udp_servers_replies t.f_md4 (udp_from_server p);
         search_handler ss [t]
 
-  | M.PingServerReplyUdpReq _ ->
+  | Udp.PingServerReplyUdpReq _ ->
       ignore (udp_from_server p)
         
   | _ -> ()

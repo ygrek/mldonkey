@@ -38,3 +38,6 @@
 
 /* Define if you have the <zlib.h> header file.  */
 #undef HAVE_ZLIB_H
+
+/* Define if you have the pthread library (-lpthread).  */
+#undef HAVE_LIBPTHREAD

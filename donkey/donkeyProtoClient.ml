@@ -198,20 +198,6 @@ module Say = struct
     let write buf t =
       buf_string buf t
   end
-
-module EmuleFileDesc = struct
-    type t = string
-      
-    let parse len s =
-      let (s, p) = get_string s 1 in
-      s
-      
-    let print t =
-      Printf.printf "EMULE FILE DESC %s" t
-      
-    let write buf t =
-      buf_string buf t
-  end
   
 module OneMd4 = functor(M: sig val m : string end) -> (struct 
     type t = Md4.t
@@ -642,8 +628,13 @@ module EmuleClientInfo = struct
       
     let names_of_tag =
       [
-        0x20, "compression"; (* ET_COMPRESSION *)
-        0x21, "udp_port"     (* ET_UDPPORT *)
+        0x20, "compression";      (* ET_COMPRESSION *)
+        0x21, "udp_port";         (* ET_UDPPORT *)
+        0x22, "udp_version";      (* ET_UDPVER *)
+        0x23, "source_exchange";  (* ET_SOURCEEXCHANGE *)
+        0x24, "comments";         (* ET_COMMENTS *)
+        0x25, "extended_request"; (* ET_EXTENDEDREQUEST *)
+        0x26, "compatible";       (* ET_COMPATABLECLIENT *)
       ]
       
     let parse len s =
@@ -739,7 +730,7 @@ module EmuleRequestSourcesReply = struct
       let md4 = get_md4 s 1 in
       let ncount = get_int16 s 17 in
       let sources =
-        if len = 1 + 16 + ncount * 6 then
+        if len = 19 + ncount * 6 then
           let nsources = 2 * ncount in
           let sources = Array.create nsources dummy_source in
           for i = 0 to nsources-1 do
@@ -826,7 +817,7 @@ type t =
 | EmuleQueueRankingReq of EmuleQueueRanking.t
 | EmuleRequestSourcesReq of EmuleRequestSources.t
 | EmuleRequestSourcesReplyReq of EmuleRequestSourcesReply.t
-| EmuleFileDescReq of EmuleFileDesc.t
+| EmuleFileDescReq of string
         
 let print t =
   begin
@@ -856,7 +847,7 @@ let print t =
     | NoSuchFileReq t -> NoSuchFile.print t
     | QueueRankingReq t -> 
         QueueRanking.print t
-        
+    
     | EmuleClientInfoReq t -> 
         EmuleClientInfo.print "EMULE CLIENT INFO"  t
     | EmuleClientInfoReplyReq t -> 
@@ -867,8 +858,9 @@ let print t =
         EmuleRequestSources.print  t
     | EmuleRequestSourcesReplyReq t -> 
         EmuleRequestSourcesReply.print t
-        
-    | EmuleFileDescReq t -> EmuleFileDesc.print t
+    
+    | EmuleFileDescReq t -> 
+        Printf.printf "EMULE FILE DESC %s" t
         
     | UnknownReq s ->  
         let len = String.length s in
@@ -892,6 +884,7 @@ let print t =
         Printf.printf "]\n"
   end
 
+  
 let parse_emule_packet opcode len s =
 (*
   Printf.printf "Emule magic: %d opcode %d:" magic opcode; print_newline ();
@@ -900,11 +893,13 @@ let parse_emule_packet opcode len s =
   let t = match opcode with
     | 1 -> EmuleClientInfoReq (EmuleClientInfo.parse len s)
     | 2 -> EmuleClientInfoReplyReq (EmuleClientInfo.parse len s)
-    | 0x60 -> EmuleQueueRankingReq (EmuleQueueRanking.parse len s)
-    | 0x81 -> EmuleRequestSourcesReq (EmuleRequestSources.parse len s)
-    | 0x82 -> EmuleRequestSourcesReplyReq (
+    | 0x60 (* 96 *) -> EmuleQueueRankingReq (EmuleQueueRanking.parse len s)
+    | 0x81 (* 129 *) -> EmuleRequestSourcesReq (EmuleRequestSources.parse len s)
+    | 0x82 (* 130 *) -> EmuleRequestSourcesReplyReq (
           EmuleRequestSourcesReply.parse len s)
-    | 0x61 -> EmuleFileDescReq (EmuleFileDesc.parse len s)
+    | 0x61 (* 97 *) -> 
+        let (comment,_) = get_string s 1 in
+        EmuleFileDescReq comment
 
 (*
 #define OP_COMPRESSEDPART       0x40
@@ -964,12 +959,12 @@ let parse magic s =
           | _ -> raise Not_found
         end 
 
-    | 0xc5  -> (* emule extended protocol *)
+    | 0xc5  -> (* 197: emule extended protocol *)
         parse_emule_packet opcode len s
 
 (* Compressed packet, probably sent by cDonkey ? *)
         
-    | 0xD4 ->
+    | 0xD4 -> (* 212 *)
         
         let s = Autoconf.zlib_uncompress (String.sub s 1 (len-1)) in
         let s = Printf.sprintf "%c%s" (char_of_int opcode) s in
@@ -1094,7 +1089,8 @@ let write buf t =
       EmuleRequestSourcesReply.write buf t
   | EmuleFileDescReq t ->
       buf_int8 buf 0x61;
-      EmuleFileDesc.write buf t
+      buf_int8 buf 1;
+      buf_string buf t
       
       
   | UnknownReq s ->

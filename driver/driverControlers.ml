@@ -231,6 +231,7 @@ let telnet_handler t event =
             conn_sortvd = NotSorted;
             conn_filter = (fun _ -> ());
           } in
+        TcpBufferedSocket.set_max_write_buffer sock !!interface_buffer;
         TcpBufferedSocket.set_reader sock (user_reader options auth);
         TcpBufferedSocket.set_closer sock user_closed;
         user_socks := sock :: !user_socks;

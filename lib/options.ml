@@ -66,6 +66,8 @@ and options_file =
     mutable file_rc : option_module;
     mutable file_pruned : bool }
 
+let print_options_not_found = ref false
+  
 let create_options_file name =
   {file_name = name; file_header_options = []; file_options = [];
    file_rc = []; file_pruned = false}
@@ -434,11 +436,13 @@ let really_load filename header_options options =
             exec_hooks o
           with
             SideEffectOption -> ()
-          | OptionNotFound ->
-              Printf.printf "Option ";
-              List.iter (fun s -> Printf.printf "%s " s) o.option_name;
-              Printf.printf "not found in %s" filename;
-              print_newline ()
+        | OptionNotFound ->
+            if !print_options_not_found then begin
+                Printf.printf "Option ";
+                List.iter (fun s -> Printf.printf "%s " s) o.option_name;
+                Printf.printf "not found in %s" filename;
+                print_newline ()
+              end
           | e ->
               Printf.printf "Exception: %s while handling option:"
                 (Printexc2.to_string e);

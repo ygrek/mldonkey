@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Md4
 open CommonMessages
 open CommonGlobals
 open CommonShared
@@ -34,6 +35,7 @@ open TcpBufferedSocket
 open DriverInteractive
 open CommonOptions
 open CommonInteractive
+open Md4
   
 let execute_command arg_list output cmd args =
   let buf = output.conn_buf in
@@ -227,7 +229,7 @@ let commands = [
             ""
         | _ -> ();
             "done"    
-    ), "<num> :\t\t\t\tverify chunks of file <num>";
+    ), "<num> :\t\t\tverify chunks of file <num>";
     
     
     "vm", Arg_none (fun o ->
@@ -253,7 +255,7 @@ let commands = [
     "vo", Arg_none (fun o ->
         let buf = o.conn_buf in
         list_options o  (
-            [
+          [
             strings_of_option  max_hard_upload_rate; 
             strings_of_option max_hard_download_rate;
             strings_of_option telnet_port; 
@@ -263,21 +265,42 @@ let commands = [
             strings_of_option allowed_ips;
             strings_of_option set_client_ip; 
             strings_of_option force_client_ip; 
-            ]
+          ]
         );        
-
-
+        
+        if o.conn_output = HTML then 
+          Printf.bprintf buf "\\<br\\>\\<a href=\\\"javascript:window.location.href='/submit?q=html_mods'\\\"\\>[ Toggle html_mods ]\\</a\\>\n\n";
+        
+        
         if o.conn_output = HTML && !!html_mods then 
-          	Printf.bprintf buf "\n\n\n\\<a href=\\\"javascript:window.location.href='/submit?q=voo'\\\"\\>Edit Full Options\\</a\\>\n\n";
-
+          Printf.bprintf buf "\\<br\\>\\<a href=\\\"javascript:window.location.href='/submit?q=voo'\\\"\\>[ Edit Full Options ]\\</a\\>\n\n";
+        
         "\nUse 'voo' for all options"    
     ), ":\t\t\t\t\tdisplay options";
+    
+    "html_mods", Arg_none (fun o ->
+        let buf = o.conn_buf in
+        
+        if !!html_mods then 
+          begin
+            Options.set_simple_option downloads_ini "html_mods" "false";
+            Options.set_simple_option downloads_ini "commands_frame_height" "140"
+          end
+        else
+          begin 
+            Options.set_simple_option downloads_ini "html_mods" "true";
+            Options.set_simple_option downloads_ini "commands_frame_height" "80"
+          
+          end;
+        
+        "\\<script language=Javascript\\>top.window.location.reload();\\</script\\>"
+    ), ":\t\t\t\t\ttoggle html_mods";
     
     "voo", Arg_none (fun o ->
         let buf = o.conn_buf in
         if !!html_mods && o.conn_output = HTML then list_options_html o (CommonInteractive.all_simple_options_html ())
-         			   else list_options o  (CommonInteractive.all_simple_options ());
-
+        else list_options o  (CommonInteractive.all_simple_options ());
+        
         ""
     ), ":\t\t\t\t\tprint options";
     
@@ -314,21 +337,49 @@ let commands = [
         
         
         
+List.iter (fun impl ->
+    if use_html_mods o then
+      begin
+        incr counter;
+        
+        let ed2k = Printf.sprintf "ed2k://|file|%s|%s|%s|/" 
+            impl.impl_shared_codedname 
+            (Int64.to_string impl.impl_shared_size)
+          (Md4.to_string impl.impl_shared_id) in
+        
+        Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>"
+          (if (!counter mod 2 == 0) then "dl-1" else "dl-2";);
+        
+        Printf.bprintf buf "\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>\\<td
+             	class=\\\"sr ar\\\"\\>%s\\</td\\>\\<td class=\\\"sr\\\"\\>\\<A HREF=\\\"%s\\\"\\>%s\\</A\\>
+ 				\\</td\\>\\</tr\\>\n"
+          impl.impl_shared_requests
+          (size_of_int64 impl.impl_shared_uploaded)
+        ed2k
+          impl.impl_shared_codedname;
+        
+                end
+              else
+(*
         List.iter (fun impl ->
             if use_html_mods o then
               begin
+                let info = impl_shared_info impl in
                 incr counter;
                 if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
                 else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
                 
                 Printf.bprintf buf "\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>\\<td
-            class=\\\"sr ar\\\"\\>%s\\</td\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>\n"
+            class=\\\"sr ar\\\"\\>%s\\</td\\>\\<td class=\\\"sr\\\"\\>\\<a href=\\\"ed2k://|file|%s|%s|%s|/\\\"\\>%s\\</a\\>\\</td\\>\\</tr\\>\n"
                   impl.impl_shared_requests
                   (size_of_int64 impl.impl_shared_uploaded)
+                (impl.impl_shared_codedname)
+                (Int64.to_string impl.impl_shared_size)
+                (Md4.to_string info.shared_id)
                 impl.impl_shared_codedname ;
               
-              end
-            else
+              end 
+              else *)
               Printf.bprintf buf "%-50s requests: %8d bytes: %10s\n"
                 impl.impl_shared_codedname impl.impl_shared_requests
                 (Int64.to_string impl.impl_shared_uploaded);
@@ -420,7 +471,7 @@ let commands = [
 \t-field <field> <fieldvalue>
 \t-not <word>
 \t-and <word> 
-\t-or <word> :
+\t-or <word>
 
 ";
     
@@ -449,7 +500,7 @@ let commands = [
 \t-field <field> <fieldvalue>
 \t-not <word>
 \t-and <word> 
-\t-or <word> :
+\t-or <word>
 
 ";
     
@@ -590,14 +641,14 @@ let commands = [
         List.iter (fun c ->
             client_print c o) !!friends;
         ""
-    ), ":\t\t\t\tview friends";
+    ), ":\t\t\t\t\tview friends";
     
     "gfr", Arg_one (fun num o ->
         let num = int_of_string num in
         let c = client_find num in
         client_browse c true;        
         "client browse"
-    ), " <num> : \t\t\task friend files";
+    ), " <num> : \t\t\t\task friend files";
     
     "x", Arg_one (fun num o ->
         let num = int_of_string num in
@@ -698,14 +749,14 @@ let commands = [
         let c = client_find num in
         friend_add c;
         "Added Friend"
-    ), "<num> :\t\t\t\tadd friend <client#>";
+    ), "<num> :\t\t\tadd friend <client#>";
     
     "friend_remove", Arg_one (fun num o ->
         let num = int_of_string num in
         let c = client_find num in
         friend_remove c;
         "Removed Friend"
-    ), "<num> :\t\t\t\tremove friend <client#>";
+    ), "<num> :\t\t\tremove friend <client#>";
     
     "friend_removeall", Arg_none (fun o ->
         List.iter (fun c ->
@@ -782,7 +833,7 @@ let commands = [
           Printf.bprintf buf "\\</tr\\>\\</table\\>\\<A onclick=\\\"javascript:parent.fstatus.location.href='/submit?q=friend_removeall';\\\"\\>Remove All Friends\\</A\\>\\</div\\>";
         
         ""
-    ), ":\t\t\tdisplay all friends";
+    ), ":\t\t\t\tdisplay all friends";
     
     "files", Arg_one (fun arg o ->
         let buf = o.conn_buf in
@@ -801,7 +852,7 @@ let commands = [
                 ()
               end
         ) !!friends;
-        ""), " <friend_num> :\tPrint friend files";
+        ""), " <friend_num> :\t\t\tprint friend files";
     
     
     "bw_stats", Arg_none (fun o -> 
@@ -852,7 +903,7 @@ let commands = [
             server_remove (server_find num)
         ) args;
         Printf.sprintf "%d servers removed" (List.length args)
-    ), "<serv1> ... <servx>\t\t\tremove servers";
+    ), "<serv1> ... <servx>\t\tremove servers";
     
     ]
 

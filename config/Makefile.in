@@ -68,6 +68,11 @@ ifeq ("$(ZLIB)" , "yes")
   CDK_SRCS +=  cdk/zlib.ml cdk/zlibstubs.c
 endif
 
+ifneq ("$(LIBPTHREAD)" , "")
+  LIBS_opt += -cclib -lpthread
+  LIBS_byte += -cclib -lpthread
+endif
+
 MP3TAG_SRCS=     mp3tagui/mp3_info.ml  mp3tagui/mp3_genres.ml \
   mp3tagui/mp3_misc.ml\
   mp3tagui/mp3_tag.ml mp3tagui/mp3tag.ml
@@ -115,7 +120,9 @@ COMMON_SRCS=common/commonTypes.ml \
   common/commonGlobals.ml \
   common/guiDecoding.ml \
   common/guiEncoding.ml \
-  common/commonChat.ml 
+  common/commonChat.ml \
+  common/commonHasher.ml \
+  common/commonHasher_c.c
 
 COMMON_CLIENT_SRCS= \
   common/commonUser.ml \
@@ -172,7 +179,9 @@ DONKEY_SRCS= \
   donkey/donkeyOptions.ml \
   donkey/donkeyMftp.ml donkey/donkeyImport.ml \
   donkey/donkeyOpenProtocol.ml \
-  donkey/donkeyProtoClient.ml donkey/donkeyProtoServer.ml  \
+  donkey/donkeyProtoClient.ml \
+  donkey/donkeyProtoServer.ml  \
+  donkey/donkeyProtoUdp.ml  \
   \
   donkey/donkeyGlobals.ml \
   donkey/donkeyProtoCom.ml  \
@@ -481,6 +490,13 @@ MLDONKEY_IM_SRCS= \
   im/gui_im_main.ml  $(MAIN_SRCS)
 
 STARTER_SRCS= gui/gui_starter.ml
+INSTALLER_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  $(MP3TAG_SRCS)  $(CONFIGWIN_SRCS) $(MP3TAGUI_SRCS) \
+  $(OKEY_SRCS) $(GPATTERN_SRCS) \
+  $(CHAT_SRCS) $(COMMON_SRCS) $(GUI_BASE_SRCS) \
+  gui/gui_installer_base.zog \
+  gui/gui_installer.ml
 
 MLDONKEYGUI2_SRCS= \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
@@ -513,7 +529,13 @@ MLCHAT_SRCS= \
   $(CDK_SRCS) $(CONFIGWIN_SRCS) $(OKEY_SRCS) $(CHAT_SRCS) $(CHAT_EXE_SRCS)
 
 
-TARGETS += mldonkey_gui$(EXE)   mldonkey_gui2$(EXE)  mlchat$(EXE) mldonkey_guistarter$(EXE)
+TARGETS += mldonkey_gui$(EXE)   mldonkey_gui2$(EXE)  mlchat$(EXE) mldonkey_guistarter$(EXE) 
+
+ifeq ("$(DEVEL)", "yes")
+
+TARGETS += mldonkey_installer$(EXE)
+
+endif
 
 
 #### IM stuff is now automatically included in the GUI
@@ -666,6 +688,9 @@ EXPAND(MLCHAT,mlchat,GTK)
 EXPAND(OBSERVER,observer)
 EXPAND(USE_TAGS,use_tags)
 EXPAND(HASH_FILES,hash_files)
+EXPAND(INSTALLER,mldonkey_installer,GTK)
+
+
 
 #######################################################################
 

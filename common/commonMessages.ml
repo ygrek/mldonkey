@@ -24,10 +24,12 @@ let message_file_name = try
     Sys.getenv "MLDONKEY_MESSAGES"
   with _ -> 
       Filename.concat CommonOptions.home_basedir ".mldonkey_messages.ini"
-  
+
+      (*
 let _ =
   Printf.printf "Using Message File %s" message_file_name; print_newline ()
-      
+  *)
+
 let message_file = Options.create_options_file message_file_name
 let message name t x = define_option message_file [name] "" t x
 let string name x = define_option message_file [name] "" string_option x
@@ -182,7 +184,7 @@ td.chunk1 { background: #33F;}
 -->
 </style>
 
-<script languge=\"javascript\">
+<script language=\"javascript\">
 <!--
 function mOvr(src,clrOver)
         {
@@ -325,7 +327,13 @@ var cmdValue = \"ovlink \" + document.cmdFormular.q.value;
 document.cmdFormular.q.value = cmdValue;
 document.cmdFormular.submit();
 }
--->
+
+function colored_chunks(c) {
+  for(var i=0;i<c.length;i++) {
+    document.write(\"<TD class='chunk\" + c.charAt(i) + \"'>&nbsp;</td>\")
+  }
+}
+//-->
 </script>
 "
 
@@ -428,7 +436,7 @@ function mOut(src,bg)
     src.bgColor = bg;
 
                              }
--->
+//-->
 </script>
     "
   
@@ -739,7 +747,7 @@ document.cmdFormular.q.value = cmdValue;
 }
 return true; 
 }
--->
+//-->
   </script>
 
 
@@ -780,7 +788,7 @@ var cmdValue = \"dllink \" + document.cmdFormular.q.value;
 document.cmdFormular.q.value = cmdValue;
 document.cmdFormular.submit(); 
 }
--->
+//-->
 </script>
     "
 
@@ -819,6 +827,7 @@ let web_common_header_old = define_option message_file
 <td><a href=\"/submit?q=vma\" onMouseOver=\"window.status='View a list of all known servers';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>View all Servers</a></td>
 <td><a href=\"/submit?q=client_stats\" onMouseOver=\"window.status='Gives stats about your transfers';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>Client Stats</a></td>
 <td><a href=\"/submit?q=reshare\" onMouseOver=\"window.status='Check shared files for removal';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $S>Reshare Files</a></td>
+<td><a href=\"/submit?q=html_mods\" onMouseOver=\"window.status='Toggle html_mods';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $S>Toggle html_mods</a></td>
 </tr>
 <tr>
 <td><a href=\"/submit?q=commit\" onMouseOver=\"window.status='Move finished downloads to incoming directory';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $S>Commit</a></td>

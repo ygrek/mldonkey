@@ -472,6 +472,38 @@ value md4_unsafe64_fd (value digest_v, value fd_v, value pos_v, value len_v)
   return Val_unit;
 }
 
+void md4_unsafe64_fd_direct (OS_FD fd, long pos, long len, 
+  unsigned char *digest)
+{
+  MD4_CTX context;
+  int nread;
+
+  MD4Init (&context);
+  os_lseek(fd, pos, SEEK_SET);
+
+  while (len!=0){
+    int max_nread = HASH_BUFFER_LEN > len ? len : HASH_BUFFER_LEN;
+
+    nread = os_read (fd, hash_buffer, max_nread);
+
+    if(nread < 0) {
+      unix_error(errno, "md4_safe_fd: Read", Nothing);
+    }
+
+    if(nread == 0){
+      MD4Final (digest, &context);
+
+      return;
+    }
+
+    MD4Update (&context, hash_buffer, nread);
+    len -= nread;
+  }
+  MD4Final (digest, &context);
+
+  return;
+}
+
 #include "md5.h"
 
 value md5_unsafe64_fd (value digest_v, value fd_v, value pos_v, value len_v)
@@ -509,6 +541,38 @@ value md5_unsafe64_fd (value digest_v, value fd_v, value pos_v, value len_v)
   return Val_unit;
 }
 
+
+void md5_unsafe64_fd_direct (OS_FD fd, long pos, long len, 
+  unsigned char *digest)
+{
+  md5_state_t context;
+  int nread;
+
+  md5_init (&context);
+  os_lseek(fd, pos, SEEK_SET);
+
+  while (len!=0){
+    int max_nread = HASH_BUFFER_LEN > len ? len : HASH_BUFFER_LEN;
+
+    nread = os_read (fd, hash_buffer, max_nread);
+
+    if(nread < 0) {
+      unix_error(errno, "md4_safe_fd: Read", Nothing);
+    }
+
+    if(nread == 0){
+      md5_finish (&context, digest);
+
+      return;
+    }
+
+    md5_append (&context, hash_buffer, nread);
+    len -= nread;
+  }
+  md5_finish (&context, digest);
+}
+
+
 #include <locale.h>
 
 value ml_setlcnumeric(value no)
@@ -516,3 +580,4 @@ value ml_setlcnumeric(value no)
    setlocale(LC_NUMERIC, "C");
   return Val_unit;
 }
+

@@ -761,12 +761,14 @@ let from_gui opcode s =
     
     | _ -> 
         Printf.printf "FROM GUI:Unknown message %d" opcode; print_newline ();
-        assert false
+        raise Not_found
   
   
   with e ->
       Printf.printf "Exception %s while handling message with opcode %d"
         (Printexc2.to_string e) opcode;
+      print_newline ();
+      LittleEndian.dump s;
       print_newline ();
       raise e
       
@@ -1107,11 +1109,13 @@ let to_gui proto opcode s =
         
     | _ -> 
         Printf.printf "TO GUI:Unknown message %d" opcode; print_newline ();
-        assert false
+        raise Not_found
 
 
   with e ->
       Printf.printf "Exception %s while handling message with opcode %d"
         (Printexc2.to_string e) opcode;
+      print_newline ();
+      dump s;
       print_newline ();
       raise e

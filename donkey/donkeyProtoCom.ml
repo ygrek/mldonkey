@@ -39,14 +39,6 @@ let client_msg_to_string magic msg =
   buf_int8 buf magic;
   buf_int buf 0;
   DonkeyProtoClient.write buf msg;
-
-  (*
-  if !verbose_msg_clients then begin
-      Printf.printf "MESSAGE TO CLIENT:";  print_newline (); 
-      DonkeyProtoClient.print msg; 
-      print_newline ();
-    end;
-*)  
   let s = Buffer.contents buf in
   let len = String.length s - 5 in
   str_int s 1 len;
@@ -177,8 +169,7 @@ let cut_messages parse f sock nread =
 let udp_send t ip port msg =
   try
   Buffer.clear buf;
-  buf_int8 buf 227;
-  DonkeyProtoServer.udp_write buf msg;
+  DonkeyProtoUdp.write buf msg;
   let s = Buffer.contents buf in
   UdpSocket.write t s ip port
   with e ->
@@ -202,30 +193,24 @@ let udp_send_if_possible t bc addr msg =
       *)
 
 let udp_handler f sock event =
-  let module M = DonkeyProtoServer in
+  let module M = DonkeyProtoUdp in
   match event with
     UdpSocket.READ_DONE ->
       UdpSocket.read_packets sock (fun p -> 
           try
             let pbuf = p.UdpSocket.content in
             let len = String.length pbuf in
-            if len = 0 || 
-              int_of_char pbuf.[0] <> 227 then begin
-                if !verbose_unknown_messages then begin
-                    Printf.printf "Received unknown UDP packet"; print_newline ();
-                    dump pbuf;
-                  end
-              end else begin
-                let t = M.parse 227 (String.sub pbuf 1 (len-1)) in
+            if len > 0 then
+              let t = M.parse (int_of_char pbuf.[0])
+                (String.sub pbuf 1 (len-1)) in
 (*              M.print t; *)
-                f t p
-              end
+              f t p
           with e ->
               Printf.printf "Error %s in udp_handler"
                 (Printexc2.to_string e); print_newline () 
       ) ;
   | _ -> ()
-
+      
 let propagation_socket = UdpSocket.create_sendonly ()
 
 let counter = ref 1

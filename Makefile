@@ -68,6 +68,11 @@ ifeq ("$(ZLIB)" , "yes")
   CDK_SRCS +=  cdk/zlib.ml cdk/zlibstubs.c
 endif
 
+ifneq ("$(LIBPTHREAD)" , "")
+  LIBS_opt += -cclib -lpthread
+  LIBS_byte += -cclib -lpthread
+endif
+
 MP3TAG_SRCS=     mp3tagui/mp3_info.ml  mp3tagui/mp3_genres.ml \
   mp3tagui/mp3_misc.ml\
   mp3tagui/mp3_tag.ml mp3tagui/mp3tag.ml
@@ -115,7 +120,9 @@ COMMON_SRCS=common/commonTypes.ml \
   common/commonGlobals.ml \
   common/guiDecoding.ml \
   common/guiEncoding.ml \
-  common/commonChat.ml 
+  common/commonChat.ml \
+  common/commonHasher.ml \
+  common/commonHasher_c.c
 
 COMMON_CLIENT_SRCS= \
   common/commonUser.ml \
@@ -172,7 +179,9 @@ DONKEY_SRCS= \
   donkey/donkeyOptions.ml \
   donkey/donkeyMftp.ml donkey/donkeyImport.ml \
   donkey/donkeyOpenProtocol.ml \
-  donkey/donkeyProtoClient.ml donkey/donkeyProtoServer.ml  \
+  donkey/donkeyProtoClient.ml \
+  donkey/donkeyProtoServer.ml  \
+  donkey/donkeyProtoUdp.ml  \
   \
   donkey/donkeyGlobals.ml \
   donkey/donkeyProtoCom.ml  \
@@ -463,6 +472,13 @@ MLDONKEY_IM_SRCS= \
   im/gui_im_main.ml  $(MAIN_SRCS)
 
 STARTER_SRCS= gui/gui_starter.ml
+INSTALLER_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  $(MP3TAG_SRCS)  $(CONFIGWIN_SRCS) $(MP3TAGUI_SRCS) \
+  $(OKEY_SRCS) $(GPATTERN_SRCS) \
+  $(CHAT_SRCS) $(COMMON_SRCS) $(GUI_BASE_SRCS) \
+  gui/gui_installer_base.zog \
+  gui/gui_installer.ml
 
 MLDONKEYGUI2_SRCS= \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
@@ -495,7 +511,13 @@ MLCHAT_SRCS= \
   $(CDK_SRCS) $(CONFIGWIN_SRCS) $(OKEY_SRCS) $(CHAT_SRCS) $(CHAT_EXE_SRCS)
 
 
-TARGETS += mldonkey_gui$(EXE)   mldonkey_gui2$(EXE)  mlchat$(EXE) mldonkey_guistarter$(EXE)
+TARGETS += mldonkey_gui$(EXE)   mldonkey_gui2$(EXE)  mlchat$(EXE) mldonkey_guistarter$(EXE) 
+
+ifeq ("$(DEVEL)", "yes")
+
+TARGETS += mldonkey_installer$(EXE)
+
+endif
 
 
 #### IM stuff is now automatically included in the GUI
@@ -1222,6 +1244,30 @@ hash_files.byte: $(HASH_FILES_OBJS) $(HASH_FILES_CMOS)
  
 hash_files.static:  $(HASH_FILES_OBJS) $(HASH_FILES_CMXS) 
 	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(HASH_FILES_OBJS) $(LIBS_opt)  $(_STATIC_LIBS_opt) $(HASH_FILES_CMXS) 
+
+
+INSTALLER_ZOG := $(filter %.zog, $(INSTALLER_SRCS)) 
+INSTALLER_MLL := $(filter %.mll, $(INSTALLER_SRCS)) 
+INSTALLER_MLY := $(filter %.mly, $(INSTALLER_SRCS)) 
+INSTALLER_ML4 := $(filter %.ml4, $(INSTALLER_SRCS)) 
+INSTALLER_ML := $(filter %.ml %.mll %.zog %.mly %.ml4, $(INSTALLER_SRCS)) 
+INSTALLER_C := $(filter %.c, $(INSTALLER_SRCS)) 
+INSTALLER_CMOS=$(foreach file, $(INSTALLER_ML),   $(basename $(file)).cmo) 
+INSTALLER_CMXS=$(foreach file, $(INSTALLER_ML),   $(basename $(file)).cmx) 
+INSTALLER_OBJS=$(foreach file, $(INSTALLER_C),   $(basename $(file)).o)    
+
+TMPSOURCES += $(INSTALLER_ML4:.ml4=.ml) $(INSTALLER_MLL:.mll=.ml) $(INSTALLER_MLY:.mly=.ml) $(INSTALLER_MLY:.mly=.mli) $(INSTALLER_ZOG:.zog=.ml) 
+ 
+mldonkey_installer: $(INSTALLER_OBJS) $(INSTALLER_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@  $(INSTALLER_OBJS) $(LIBS_opt) $(GTK_LIBS_opt) $(INSTALLER_CMXS) 
+ 
+mldonkey_installer.byte: $(INSTALLER_OBJS) $(INSTALLER_CMOS) 
+	$(OCAMLC) -o $@  $(INSTALLER_OBJS) $(LIBS_byte)  $(GTK_LIBS_byte) $(INSTALLER_CMOS) 
+ 
+mldonkey_installer.static:  $(INSTALLER_OBJS) $(INSTALLER_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(INSTALLER_OBJS) $(LIBS_opt)  $(GTK_STATIC_LIBS_opt) $(INSTALLER_CMXS) 
+
+
 
 
 #######################################################################

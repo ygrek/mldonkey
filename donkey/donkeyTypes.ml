@@ -225,7 +225,6 @@ and zone = {
     mutable zone_begin : int64;
     mutable zone_end : int64;
     mutable zone_nclients : int;
-    mutable zone_present : bool;
   }
   
 and source = {
@@ -367,7 +366,12 @@ let server_state server =
     
 module SourcesQueueCreate = struct  
     open SourcesQueue
-    
+
+    type 'a lifo = {
+        mutable lifo_size : int;
+        mutable lifo_list : 'a list;
+      }
+      
     let fifo () = 
       let t = Fifo.create () in
       {
@@ -380,17 +384,23 @@ module SourcesQueueCreate = struct
       }
 
     let lifo () = 
-      let t = ref [] in
+      let t = { lifo_size = 0; lifo_list = [] } in
       {
-        head = (fun _ -> match !t with 
+        head = (fun _ -> match t.lifo_list with 
               [] -> raise Fifo.Empty | x :: _ -> x);
-        put = (fun x -> t := x :: !t);
-        length = (fun _ -> List.length !t);
-        take = (fun _ -> match !t with 
+        put = (fun x -> 
+            t.lifo_list <- x :: t.lifo_list;
+            t.lifo_size <- t.lifo_size +1
+        );
+        length = (fun _ -> t.lifo_size);
+        take = (fun _ -> match t.lifo_list with 
               [] -> raise Fifo.Empty | x :: tail -> 
-                t:=tail; x);        
-        iter = (fun f -> List.iter (fun (_,x) -> f x) !t);
-        put_back = (fun e -> t := e :: !t);
+                t.lifo_list <- tail; t.lifo_size <- t.lifo_size - 1; x); 
+        iter = (fun f -> List.iter (fun (_,x) -> f x) t.lifo_list);
+        put_back = (fun e -> 
+            t.lifo_list <- e :: t.lifo_list;
+            t.lifo_size <- 1+ t.lifo_size
+            );
         }      
       
     module SourcesSet = Set.Make (
