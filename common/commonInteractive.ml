@@ -190,7 +190,8 @@ let print_connected_servers o =
          Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>"     
           (if (!counter mod 2 == 0) then "dl-1" else "dl-2");
         server_print s o;
-       ) list;
+       ) (List.sort (fun s1 s2 -> compare (server_num s1) (server_num s2)) list);
+
         if use_html_mods o && List.length list > 0 then 
            Printf.bprintf buf "\\</table\\>\\</div\\>";
        with e ->

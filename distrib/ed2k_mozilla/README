@@ -1,0 +1,88 @@
+MLdonkey ed2k Protocol Handler 1.0
+Copyright (C) 2003 Simon Peter <dn.tlp@gmx.net>
+
+Description:
+------------
+This is a protocol handler for Mozilla (see www.mozilla.org) that forwards
+"ed2k://" links to a running MLdonkey (see www.nongnu.org/mldonkey) client.
+
+The protocol handler is primarily designed to be used in a UNIX environment,
+but since it is implemented in JavaScript, it should be portable to any other
+platform as well.
+
+Usage:
+------
+After having installed the package, you need to set it up. Refer to the next
+section on this topic.
+
+After setup, restart Mozilla and everything should be in place. You can use
+"ed2k://" links now just like any other links.
+
+Configuration:
+--------------
+The protocol handler is configurable through Mozilla's preferences scheme. The
+preferences can be set in multiple ways, depending on your browser version.
+
+For Mozilla 1.3 and up, the preferences are accessible by visiting the URL
+"about:config" inside the browser. This opens a page containing a table of all
+available preference options. Right clicking on the table opens a menu to
+create, modify and reset the options.
+
+For Mozilla versions below 1.3, you can still set the preferences by creating
+a file 'user.js' in your profile directory (this is
+$HOME/.mozilla/default/<profile>/ on UNIX systems) and set the options there
+by adding lines of the form: user_pref("option", "value"); to it.
+
+The following preference options are available:
+
+Option:			Default:	Description:
+-------			--------	------------
+network.ed2k.server	localhost	hostname on which MLdonkey is running
+network.ed2k.user	admin		login with this username
+network.ed2k.pass			login with this password
+network.ed2k.port	4080		port of the MLdonkey WEB service
+
+Remember to restart Mozilla before any of these options can take effect!
+
+Bugs:
+-----
+Using ShareReactor's multi-add feature doesn't work. Only the first file will
+get added.
+
+Legal:
+------
+***** BEGIN LICENSE BLOCK *****
+Version: MPL 1.1/GPL 2.0/LGPL 2.1
+
+The contents of this file are subject to the Mozilla Public License Version 
+1.1 (the "License"); you may not use this file except in compliance with 
+the License. You may obtain a copy of the License at 
+http://www.mozilla.org/MPL/
+
+Software distributed under the License is distributed on an "AS IS" basis,
+WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+for the specific language governing rights and limitations under the
+License.
+
+The Original Code is the MLdonkey ed2k protocol handler.
+
+The Initial Developer of the Original Code is
+Simon Peter <dn.tlp@gmx.net>.
+Portions created by the Initial Developer are Copyright (C) 2003
+the Initial Developer. All Rights Reserved.
+
+Contributor(s):
+
+Alternatively, the contents of this file may be used under the terms of
+either the GNU General Public License Version 2 or later (the "GPL"), or
+the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+in which case the provisions of the GPL or the LGPL are applicable instead
+of those above. If you wish to allow use of your version of this file only
+under the terms of either the GPL or the LGPL, and not to allow others to
+use your version of this file under the terms of the MPL, indicate your
+decision by deleting the provisions above and replace them with the notice
+and other provisions required by the GPL or the LGPL. If you do not delete
+the provisions above, a recipient may use your version of this file under
+the terms of any one of the MPL, the GPL or the LGPL.
+
+***** END LICENSE BLOCK *****

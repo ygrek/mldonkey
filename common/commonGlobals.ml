@@ -499,6 +499,12 @@ let html_mods_table_header buf n c l =
      w x y z;
     ) l;
     Printf.bprintf buf "\\</tr\\>"
+
+let html_mods_td buf l =
+    List.iter (fun (t,c,d)  -> 
+     Printf.bprintf buf "\\<td class=\\\"%s\\\" %s\\>%s\\</td\\>" 
+     c (if t <> "" then "title=\\\"" ^ t ^ "\\\"" else "") d;
+    ) l
   
 let debug_clients = ref Intset.empty
 
@@ -661,5 +667,7 @@ let int32_tag s i =
 let string_tag s i = 
   { tag_name = s; tag_value = String i }
 
+(* Name,FrameHeight *)
 let html_mods_styles = ref
-  [| "Green" ; "Small"; "L.Blue"; "L.Purple"; "Monochrome"; "Corona" |]
+  [| ("Green",80) ; ("Small",42); ("L.Blue",80); 
+	 ("L.Purple",80); ("Monochrome",80); ("Corona",80) |]

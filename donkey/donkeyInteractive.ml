@@ -1040,106 +1040,54 @@ lprint_newline ();
       
       begin
         try 
+		let i = (client_info (as_client c.client_client)) in
           
-          Printf.bprintf buf "
-\\<td title=\\\"Add as Friend\\\" class=\\\"srb ar\\\"
-onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>%d\\</TD\\>
-\\<td class=\\\"sr\\\"\\>%s\\</td\\>
-\\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr\\\"\\>%s\\</td\\>   
-\\<td class=\\\"sr\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr br\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr ar br\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
-\\<td class=\\\"sr ar br\\\"\\>%d\\</td\\>
-\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr ar br\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr ar br\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
-\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
-\\<td class=\\\"sr ar br\\\"\\>%d\\</td\\>
-\\<td class=\\\"sr br\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr \\\"\\>" 
-            
-            (client_num c)
-          (client_num c)
-          
-          (match c.client_block with
+		Printf.bprintf buf "\\<td title=\\\"Add as Friend\\\" class=\\\"srb ar\\\"
+		onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>%d\\</TD\\>"
+		(client_num c) (client_num c);
+
+		html_mods_td buf [
+		("", "sr", (match c.client_block with 
               None -> Printf.sprintf "" 
             | Some b -> Printf.sprintf "%s" ( 
                   let qfiles = c.client_file_queue in
                   let (qfile, qchunks) =  List.hd qfiles in
-                  if (qfile = (as_file_impl file).impl_file_val) then 
-                    "A" else "";)
-          ) 
-          
-          (
-            string_of_connection_state (client_state c) )
-          
-          (
-            short_string_of_connection_state (client_state c) )
-          
-          
-          c.client_name 
-            (gbrand_to_string c.client_brand)
-          (if c.client_overnet then "T" else "F") 
-          (match c.client_kind with 
+                  if (qfile = (as_file_impl file).impl_file_val) then
+                    "A" else "";)) );
+		((string_of_connection_state (client_state c)), "sr", 
+			(short_string_of_connection_state (client_state c)) );
+		("", "sr", c.client_name);
+		(brand_to_string c.client_brand, "sr", gbrand_to_string c.client_brand);
+		("", "sr", (if c.client_overnet then "T" else "F"));
+		("", "sr", (match c.client_kind with 
               Indirect_location _ -> Printf.sprintf "I"
-            | Known_location (ip,port) -> Printf.sprintf "D")
-          
-          (
-            
-            try
-              
-              match c.client_sock with
-                Some sock -> Printf.sprintf "%s" (Ip.to_string (peer_ip sock))
-              | None -> (match c.client_kind with 
-                      Known_location (ip,port) -> Printf.sprintf "%s" (Ip.to_string ip)
-                    | Indirect_location _ -> Printf.sprintf "None"
-                  )
-            
-            with _ -> 
-                
-                try 
-                  match c.client_kind with 
+            | Known_location (ip,port) -> Printf.sprintf "D"));
+		("", "sr br", match c.client_kind with
                     Known_location (ip,port) -> Printf.sprintf "%s" (Ip.to_string ip)
-                  | Indirect_location _ -> Printf.sprintf "None"
-                with _ -> ""
-          ) 
-          
-          
-          (size_of_int64 c.client_uploaded) 
-          (size_of_int64 c.client_downloaded)
-          c.client_rank
-            c.client_score
-            (let last = c.client_connection_control.control_last_ok in
-            if last < 1 then "never" else (
-                string_of_int (((last_time ()) - last) / 60)
-              ) 
-          )
-          (let last = c.client_connection_control.control_last_try in
-            if last < 1 then "never" else (
-                string_of_int (((last_time ()) - last) / 60)
-              ) 
-          )
-          (let next = (connection_next_try c.client_connection_control) in
+                  | Indirect_location _ -> i.client_sock_addr);
+		("", "sr ar", (size_of_int64 c.client_uploaded));
+		("", "sr ar br", (size_of_int64 c.client_downloaded));
+		("", "sr ar", Printf.sprintf "%d" c.client_rank);
+		("", "sr ar br", Printf.sprintf "%d" c.client_score);
+		("", "sr ar", (let last = c.client_connection_control.control_last_ok in
+            if last < 1 then "never" else (string_of_int (((last_time ()) - last) / 60))
+          ));
+		("", "sr ar", (let last = c.client_connection_control.control_last_try in
+            if last < 1 then "never" else ( string_of_int (((last_time ()) - last) / 60))
+          ));
+		("", "sr ar br", (let next = (connection_next_try c.client_connection_control) in
             string_of_int ((next - (last_time ())) / 60)
-          )
+          ));
+		("", "sr ar", (if client_has_a_slot (as_client c.client_client) then "T" else "F"));
+		("", "sr ar br", (if c.client_banned then "T" else "F"));
+		("", "sr ar", Printf.sprintf "%d" c.client_requests_sent);
+		("", "sr ar", Printf.sprintf "%d" c.client_requests_received);
+		("", "sr ar br", Printf.sprintf "%d" (((last_time ()) - c.client_connect_time) / 60));
+		("", "sr br", (Md4.to_string c.client_md4)); ];
+
+		Printf.bprintf buf "\\<td class=\\\"sr \\\"\\>";
           
-          (if client_has_a_slot (as_client c.client_client)then "T" else "F")
-          (if c.client_banned then "T" else "F")
-          c.client_requests_sent
-            c.client_requests_received
-            (((last_time ()) - c.client_connect_time) / 60)
-          (Md4.to_string c.client_md4);
-          
-          (
-            let qfiles = c.client_file_queue in
+          ( let qfiles = c.client_file_queue in
             if qfiles <> [] then begin
                 try
                   let _, (qchunks) = List.find (fun (qfile, _) ->
@@ -1156,8 +1104,7 @@ onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>%d\\</T
             else
               Printf.bprintf buf "\\</td\\>\\<td class=\\\"sr ar\\\"\\>\\</td\\>" 
           );
-        
-        with _ -> ()
+       with _ -> ()
       end;
   );
   
@@ -1192,84 +1139,44 @@ onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>%d\\</T
   client_ops.op_client_dprint_html <- (fun c o file str ->
       let info = file_info file in
       let buf = o.conn_buf in
-      
       try
-        
         (match c.client_block with
             None -> false 
           | Some b ->  ( 
                 let qfiles = c.client_file_queue in
                 let (qfile, qchunks) =  List.hd qfiles in
                 if (qfile = (as_file_impl file).impl_file_val) then begin
+				let i = (client_info (as_client c.client_client)) in
                     
-                    Printf.bprintf buf "
-\\<tr onMouseOver=\\\"mOvr(this);\\\"
-onMouseOut=\\\"mOut(this);\\\" 
-class=\\\"%s\\\"\\>
-\\<td title=\\\"Add as friend\\\" class=\\\"srb ar\\\"
-onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>%d\\</TD\\>
-\\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>%s\\</td\\>
-\\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr\\\"\\>%s\\</td\\>   
-\\<td class=\\\"sr\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
-\\<td class=\\\"sr\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr\\\"\\>%s\\</td\\>
-\\</tr\\>"
-                      str
-                      (client_num c)
-                    (client_num c)
-                    ( string_of_connection_state (client_state c) )
-                    ( short_string_of_connection_state (client_state c) )
-                    (Md4.to_string c.client_md4)
-                    c.client_name 
-                      (gbrand_to_string c.client_brand)
-                    
-                    (if c.client_overnet then "T" else "F") 
-                    (((last_time ()) - c.client_connect_time) / 60)
-                    (match c.client_kind with 
+			Printf.bprintf buf " \\<tr onMouseOver=\\\"mOvr(this);\\\" onMouseOut=\\\"mOut(this);\\\" 
+			class=\\\"%s\\\"\\> \\<td title=\\\"Add as friend\\\" class=\\\"srb ar\\\"
+			onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>%d\\</TD\\>"
+			str (client_num c) (client_num c);
+
+			html_mods_td buf [
+			(string_of_connection_state (client_state c), "sr", 
+				short_string_of_connection_state (client_state c));
+			(Md4.to_string c.client_md4, "sr", c.client_name);
+			("", "sr", gbrand_to_string c.client_brand);
+			("", "sr", (if c.client_overnet then "T" else "F"));
+			("", "sr ar", Printf.sprintf "%d" (((last_time ()) - c.client_connect_time) / 60));
+			("", "sr", (match c.client_kind with  
                         Indirect_location _ -> Printf.sprintf "I"
-                      | Known_location (ip,port) -> Printf.sprintf "D")
-                    
-                    (
-                      
-                      try
-                        
-                        match c.client_sock with
-                          Some sock -> Printf.sprintf "%s" (Ip.to_string (peer_ip sock))
-                        | None -> (match c.client_kind with 
-                                Known_location (ip,port) -> Printf.sprintf "%s" (Ip.to_string ip)
-                              | Indirect_location _ -> Printf.sprintf "None"
-                            )
-                      
-                      with _ -> 
-                          
-                          try 
-                            match c.client_kind with 
-                              Known_location (ip,port) -> Printf.sprintf "%s" (Ip.to_string ip)
-                            | Indirect_location _ -> Printf.sprintf "None"
-                          with _ -> ""
-                    ) 
-                    
-                    (size_of_int64 c.client_uploaded) 
-                    (size_of_int64 c.client_downloaded)
-                    
-                    info.GuiTypes.file_name;
-                    
-                    true
-                  
-                  end
-                
-                else false;
+                      | Known_location (ip,port) -> Printf.sprintf "D"));
+			("", "sr", match c.client_kind with
+            	        Known_location (ip,port) -> Printf.sprintf "%s" (Ip.to_string ip)
+						| Indirect_location _ -> i.client_sock_addr);
+			("", "sr ar", (size_of_int64 c.client_uploaded));
+			("", "sr ar", (size_of_int64 c.client_downloaded));
+			("", "sr", info.GuiTypes.file_name) ];
+
+			Printf.bprintf buf "\\</tr\\>";
+            true
+            end
+            else false;
               )
-        
         )
-      
       with _ -> false;
-  
   )
   
 let _ =

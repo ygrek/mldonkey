@@ -484,6 +484,7 @@ let rec fifo_uploads n =
     end
 
 let rec next_uploads () =
+(*  lprintf "next_uploads %d\n" !remaining_bandwidth; *)
   let old_remaining_bandwidth = !remaining_bandwidth in
   let len = Fifo.length upload_clients in
   fifo_uploads len;
@@ -493,7 +494,7 @@ let rec next_uploads () =
 let next_uploads () = 
   sent_bytes.(!counter-1) <- sent_bytes.(!counter-1) - !remaining_bandwidth;
   if !verbose_upload then begin
-      lprintf "Left %d" !remaining_bandwidth; lprint_newline ();
+      lprintf "Left %d\n" !remaining_bandwidth; 
     end;
   complete_bandwidth := !complete_bandwidth + !remaining_bandwidth;
   incr counter;
@@ -504,7 +505,7 @@ let next_uploads () =
         else (maxi (!!max_hard_upload_rate - 1) 1) * 1024 );
       complete_bandwidth := !total_bandwidth;
       if !verbose_upload then begin
-          lprintf "Init to %d" !total_bandwidth; lprint_newline ();
+          lprintf "Init to %d\n" !total_bandwidth; 
         end;
       remaining_bandwidth := 0          
     end;
@@ -517,7 +518,11 @@ let next_uploads () =
   if !verbose_upload then begin
       lprintf "last sec: %d/%d (left %d)" !last_sec !total_bandwidth
         (!total_bandwidth - !last_sec);
-      lprint_newline ();
+      lprint_newline (); (*
+      for i = 0 to 9 do
+        lprintf "    last[%d] = %d\n" i  sent_bytes.(i)
+      done; *)
+      
     end;
   
   remaining_bandwidth := mini (mini (mini 
@@ -526,7 +531,7 @@ let next_uploads () =
   (!total_bandwidth - !last_sec);
   complete_bandwidth := !complete_bandwidth - !remaining_bandwidth;
   if !verbose_upload then begin
-      lprintf "Remaining %d[%d]" !remaining_bandwidth !complete_bandwidth; lprint_newline ();
+      lprintf "Remaining %d[%d]\n" !remaining_bandwidth !complete_bandwidth; 
     end;
   sent_bytes.(!counter-1) <- !remaining_bandwidth;
   if !remaining_bandwidth > 0 then 
@@ -709,7 +714,7 @@ let download_engine () =
     end
 
 let queue_download_request f len =  
-  if !!max_hard_download_rate <> 0 then 
+  if !!max_hard_download_rate = 0 then 
     f ()
   else
     Fifo.put download_fifo (f,len)    

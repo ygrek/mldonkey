@@ -564,8 +564,6 @@ endif
 TOP_CMXA=cdk.cmxa common.cmxa client.cmxa
 TOP_SRCS= 
 
-
-
 define([[EXPAND_LIB]],[[
 $1_ZOG := $(filter %.zog, $($1_SRCS)) 
 $1_MLL := $(filter %.mll, $($1_SRCS)) 
@@ -579,11 +577,11 @@ $1_OBJS=$(foreach file, $($1_C),   $(basename $(file)).o)
 
 TMPSOURCES += $($1_ML4:.ml4=.ml) $($1_MLL:.mll=.ml) $($1_MLY:.mly=.ml) $($1_MLY:.mly=.mli) $($1_ZOG:.zog=.ml) 
  
-$2.cmxa: $($1_OBJS) $($1_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o build/$[[@]]  $($1_OBJS) $(LIBS_flags) $($3_LIBS_flags) $($1_CMXS) 
+build/$2.cmxa: $($1_OBJS) $($1_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $[[@]]  $($1_OBJS) $(LIBS_flags) $($3_LIBS_flags) $($1_CMXS) 
  
-$2.cma: $($1_OBJS) $($1_CMOS) 
-	$(OCAMLC) -a -o build/$[[@]]  $($1_OBJS) $(LIBS_flags) $($3_LIBS_flags) $($1_CMOS) 
+build/$2.cma: $($1_OBJS) $($1_CMOS) 
+	$(OCAMLC) -a -o $[[@]]  $($1_OBJS) $(LIBS_flags) $($3_LIBS_flags) $($1_CMOS) 
  
 ]])
 
@@ -677,8 +675,8 @@ $1_CMOS=$(foreach file, $($1_ML),   $(basename $(file)).cmo)
 $1_CMXS=$(foreach file, $($1_ML),   $(basename $(file)).cmx) 
 $1_OBJS=$(foreach file, $($1_C),   $(basename $(file)).o)    
 
-$1_CMXAS := $($4_CMXA)
-$1_CMAS=$(foreach file, $($1_CMXAS),   $(basename $(file)).cma)    
+$1_CMXAS := $(foreach file, $($1_CMXA),   build/$(basename $(file)).cmxa)
+$1_CMAS=$(foreach file, $($1_CMXA),   build/$(basename $(file)).cma)    
 
 TMPSOURCES += $($1_ML4:.ml4=.ml) $($1_MLL:.mll=.ml) $($1_MLY:.mly=.ml) $($1_MLY:.mly=.mli) $($1_ZOG:.zog=.ml) 
  

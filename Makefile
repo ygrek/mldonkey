@@ -571,8 +571,6 @@ TOP_SRCS=
 
 
 
-
-
 ifeq ("$(DIRECT_CONNECT)" , "yes")
 SUBDIRS += direct_connect
 
@@ -604,11 +602,11 @@ DIRECT_CONNECT_OBJS=$(foreach file, $(DIRECT_CONNECT_C),   $(basename $(file)).o
 
 TMPSOURCES += $(DIRECT_CONNECT_ML4:.ml4=.ml) $(DIRECT_CONNECT_MLL:.mll=.ml) $(DIRECT_CONNECT_MLY:.mly=.ml) $(DIRECT_CONNECT_MLY:.mly=.mli) $(DIRECT_CONNECT_ZOG:.zog=.ml) 
  
-mldc.cmxa: $(DIRECT_CONNECT_OBJS) $(DIRECT_CONNECT_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o build/$@  $(DIRECT_CONNECT_OBJS) $(LIBS_flags) $(_LIBS_flags) $(DIRECT_CONNECT_CMXS) 
+build/mldc.cmxa: $(DIRECT_CONNECT_OBJS) $(DIRECT_CONNECT_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(DIRECT_CONNECT_OBJS) $(LIBS_flags) $(_LIBS_flags) $(DIRECT_CONNECT_CMXS) 
  
-mldc.cma: $(DIRECT_CONNECT_OBJS) $(DIRECT_CONNECT_CMOS) 
-	$(OCAMLC) -a -o build/$@  $(DIRECT_CONNECT_OBJS) $(LIBS_flags) $(_LIBS_flags) $(DIRECT_CONNECT_CMOS) 
+build/mldc.cma: $(DIRECT_CONNECT_OBJS) $(DIRECT_CONNECT_CMOS) 
+	$(OCAMLC) -a -o $@  $(DIRECT_CONNECT_OBJS) $(LIBS_flags) $(_LIBS_flags) $(DIRECT_CONNECT_CMOS) 
  
 
 
@@ -651,11 +649,11 @@ OPENNAP_OBJS=$(foreach file, $(OPENNAP_C),   $(basename $(file)).o)
 
 TMPSOURCES += $(OPENNAP_ML4:.ml4=.ml) $(OPENNAP_MLL:.mll=.ml) $(OPENNAP_MLY:.mly=.ml) $(OPENNAP_MLY:.mly=.mli) $(OPENNAP_ZOG:.zog=.ml) 
  
-mlnap.cmxa: $(OPENNAP_OBJS) $(OPENNAP_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o build/$@  $(OPENNAP_OBJS) $(LIBS_flags) $(_LIBS_flags) $(OPENNAP_CMXS) 
+build/mlnap.cmxa: $(OPENNAP_OBJS) $(OPENNAP_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(OPENNAP_OBJS) $(LIBS_flags) $(_LIBS_flags) $(OPENNAP_CMXS) 
  
-mlnap.cma: $(OPENNAP_OBJS) $(OPENNAP_CMOS) 
-	$(OCAMLC) -a -o build/$@  $(OPENNAP_OBJS) $(LIBS_flags) $(_LIBS_flags) $(OPENNAP_CMOS) 
+build/mlnap.cma: $(OPENNAP_OBJS) $(OPENNAP_CMOS) 
+	$(OCAMLC) -a -o $@  $(OPENNAP_OBJS) $(LIBS_flags) $(_LIBS_flags) $(OPENNAP_CMOS) 
  
 
 
@@ -698,11 +696,11 @@ GNUTELLA_OBJS=$(foreach file, $(GNUTELLA_C),   $(basename $(file)).o)
 
 TMPSOURCES += $(GNUTELLA_ML4:.ml4=.ml) $(GNUTELLA_MLL:.mll=.ml) $(GNUTELLA_MLY:.mly=.ml) $(GNUTELLA_MLY:.mly=.mli) $(GNUTELLA_ZOG:.zog=.ml) 
  
-mlgnut.cmxa: $(GNUTELLA_OBJS) $(GNUTELLA_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o build/$@  $(GNUTELLA_OBJS) $(LIBS_flags) $(_LIBS_flags) $(GNUTELLA_CMXS) 
+build/mlgnut.cmxa: $(GNUTELLA_OBJS) $(GNUTELLA_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(GNUTELLA_OBJS) $(LIBS_flags) $(_LIBS_flags) $(GNUTELLA_CMXS) 
  
-mlgnut.cma: $(GNUTELLA_OBJS) $(GNUTELLA_CMOS) 
-	$(OCAMLC) -a -o build/$@  $(GNUTELLA_OBJS) $(LIBS_flags) $(_LIBS_flags) $(GNUTELLA_CMOS) 
+build/mlgnut.cma: $(GNUTELLA_OBJS) $(GNUTELLA_CMOS) 
+	$(OCAMLC) -a -o $@  $(GNUTELLA_OBJS) $(LIBS_flags) $(_LIBS_flags) $(GNUTELLA_CMOS) 
  
 
 
@@ -745,11 +743,11 @@ BITTORRENT_OBJS=$(foreach file, $(BITTORRENT_C),   $(basename $(file)).o)
 
 TMPSOURCES += $(BITTORRENT_ML4:.ml4=.ml) $(BITTORRENT_MLL:.mll=.ml) $(BITTORRENT_MLY:.mly=.ml) $(BITTORRENT_MLY:.mly=.mli) $(BITTORRENT_ZOG:.zog=.ml) 
  
-mlbt.cmxa: $(BITTORRENT_OBJS) $(BITTORRENT_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o build/$@  $(BITTORRENT_OBJS) $(LIBS_flags) $(_LIBS_flags) $(BITTORRENT_CMXS) 
+build/mlbt.cmxa: $(BITTORRENT_OBJS) $(BITTORRENT_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(BITTORRENT_OBJS) $(LIBS_flags) $(_LIBS_flags) $(BITTORRENT_CMXS) 
  
-mlbt.cma: $(BITTORRENT_OBJS) $(BITTORRENT_CMOS) 
-	$(OCAMLC) -a -o build/$@  $(BITTORRENT_OBJS) $(LIBS_flags) $(_LIBS_flags) $(BITTORRENT_CMOS) 
+build/mlbt.cma: $(BITTORRENT_OBJS) $(BITTORRENT_CMOS) 
+	$(OCAMLC) -a -o $@  $(BITTORRENT_OBJS) $(LIBS_flags) $(_LIBS_flags) $(BITTORRENT_CMOS) 
  
 
 
@@ -792,11 +790,11 @@ DONKEY_OBJS=$(foreach file, $(DONKEY_C),   $(basename $(file)).o)
 
 TMPSOURCES += $(DONKEY_ML4:.ml4=.ml) $(DONKEY_MLL:.mll=.ml) $(DONKEY_MLY:.mly=.ml) $(DONKEY_MLY:.mly=.mli) $(DONKEY_ZOG:.zog=.ml) 
  
-mldonkey.cmxa: $(DONKEY_OBJS) $(DONKEY_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o build/$@  $(DONKEY_OBJS) $(LIBS_flags) $(_LIBS_flags) $(DONKEY_CMXS) 
+build/mldonkey.cmxa: $(DONKEY_OBJS) $(DONKEY_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(DONKEY_OBJS) $(LIBS_flags) $(_LIBS_flags) $(DONKEY_CMXS) 
  
-mldonkey.cma: $(DONKEY_OBJS) $(DONKEY_CMOS) 
-	$(OCAMLC) -a -o build/$@  $(DONKEY_OBJS) $(LIBS_flags) $(_LIBS_flags) $(DONKEY_CMOS) 
+build/mldonkey.cma: $(DONKEY_OBJS) $(DONKEY_CMOS) 
+	$(OCAMLC) -a -o $@  $(DONKEY_OBJS) $(LIBS_flags) $(_LIBS_flags) $(DONKEY_CMOS) 
  
 
 
@@ -839,11 +837,11 @@ SOULSEEK_OBJS=$(foreach file, $(SOULSEEK_C),   $(basename $(file)).o)
 
 TMPSOURCES += $(SOULSEEK_ML4:.ml4=.ml) $(SOULSEEK_MLL:.mll=.ml) $(SOULSEEK_MLY:.mly=.ml) $(SOULSEEK_MLY:.mly=.mli) $(SOULSEEK_ZOG:.zog=.ml) 
  
-mlslsk.cmxa: $(SOULSEEK_OBJS) $(SOULSEEK_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o build/$@  $(SOULSEEK_OBJS) $(LIBS_flags) $(_LIBS_flags) $(SOULSEEK_CMXS) 
+build/mlslsk.cmxa: $(SOULSEEK_OBJS) $(SOULSEEK_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(SOULSEEK_OBJS) $(LIBS_flags) $(_LIBS_flags) $(SOULSEEK_CMXS) 
  
-mlslsk.cma: $(SOULSEEK_OBJS) $(SOULSEEK_CMOS) 
-	$(OCAMLC) -a -o build/$@  $(SOULSEEK_OBJS) $(LIBS_flags) $(_LIBS_flags) $(SOULSEEK_CMOS) 
+build/mlslsk.cma: $(SOULSEEK_OBJS) $(SOULSEEK_CMOS) 
+	$(OCAMLC) -a -o $@  $(SOULSEEK_OBJS) $(LIBS_flags) $(_LIBS_flags) $(SOULSEEK_CMOS) 
  
 
 
@@ -875,11 +873,11 @@ libcdk_OBJS=$(foreach file, $(libcdk_C),   $(basename $(file)).o)
 
 TMPSOURCES += $(libcdk_ML4:.ml4=.ml) $(libcdk_MLL:.mll=.ml) $(libcdk_MLY:.mly=.ml) $(libcdk_MLY:.mly=.mli) $(libcdk_ZOG:.zog=.ml) 
  
-cdk.cmxa: $(libcdk_OBJS) $(libcdk_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o build/$@  $(libcdk_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libcdk_CMXS) 
+build/cdk.cmxa: $(libcdk_OBJS) $(libcdk_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(libcdk_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libcdk_CMXS) 
  
-cdk.cma: $(libcdk_OBJS) $(libcdk_CMOS) 
-	$(OCAMLC) -a -o build/$@  $(libcdk_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libcdk_CMOS) 
+build/cdk.cma: $(libcdk_OBJS) $(libcdk_CMOS) 
+	$(OCAMLC) -a -o $@  $(libcdk_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libcdk_CMOS) 
  
 
 
@@ -895,11 +893,11 @@ libcommon_OBJS=$(foreach file, $(libcommon_C),   $(basename $(file)).o)
 
 TMPSOURCES += $(libcommon_ML4:.ml4=.ml) $(libcommon_MLL:.mll=.ml) $(libcommon_MLY:.mly=.ml) $(libcommon_MLY:.mly=.mli) $(libcommon_ZOG:.zog=.ml) 
  
-common.cmxa: $(libcommon_OBJS) $(libcommon_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o build/$@  $(libcommon_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libcommon_CMXS) 
+build/common.cmxa: $(libcommon_OBJS) $(libcommon_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(libcommon_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libcommon_CMXS) 
  
-common.cma: $(libcommon_OBJS) $(libcommon_CMOS) 
-	$(OCAMLC) -a -o build/$@  $(libcommon_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libcommon_CMOS) 
+build/common.cma: $(libcommon_OBJS) $(libcommon_CMOS) 
+	$(OCAMLC) -a -o $@  $(libcommon_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libcommon_CMOS) 
  
 
 
@@ -915,11 +913,11 @@ libclient_OBJS=$(foreach file, $(libclient_C),   $(basename $(file)).o)
 
 TMPSOURCES += $(libclient_ML4:.ml4=.ml) $(libclient_MLL:.mll=.ml) $(libclient_MLY:.mly=.ml) $(libclient_MLY:.mly=.mli) $(libclient_ZOG:.zog=.ml) 
  
-client.cmxa: $(libclient_OBJS) $(libclient_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o build/$@  $(libclient_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libclient_CMXS) 
+build/client.cmxa: $(libclient_OBJS) $(libclient_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(libclient_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libclient_CMXS) 
  
-client.cma: $(libclient_OBJS) $(libclient_CMOS) 
-	$(OCAMLC) -a -o build/$@  $(libclient_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libclient_CMOS) 
+build/client.cma: $(libclient_OBJS) $(libclient_CMOS) 
+	$(OCAMLC) -a -o $@  $(libclient_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libclient_CMOS) 
  
 
 
@@ -935,11 +933,11 @@ DRIVER_OBJS=$(foreach file, $(DRIVER_C),   $(basename $(file)).o)
 
 TMPSOURCES += $(DRIVER_ML4:.ml4=.ml) $(DRIVER_MLL:.mll=.ml) $(DRIVER_MLY:.mly=.ml) $(DRIVER_MLY:.mly=.mli) $(DRIVER_ZOG:.zog=.ml) 
  
-driver.cmxa: $(DRIVER_OBJS) $(DRIVER_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o build/$@  $(DRIVER_OBJS) $(LIBS_flags) $(_LIBS_flags) $(DRIVER_CMXS) 
+build/driver.cmxa: $(DRIVER_OBJS) $(DRIVER_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(DRIVER_OBJS) $(LIBS_flags) $(_LIBS_flags) $(DRIVER_CMXS) 
  
-driver.cma: $(DRIVER_OBJS) $(DRIVER_CMOS) 
-	$(OCAMLC) -a -o build/$@  $(DRIVER_OBJS) $(LIBS_flags) $(_LIBS_flags) $(DRIVER_CMOS) 
+build/driver.cma: $(DRIVER_OBJS) $(DRIVER_CMOS) 
+	$(OCAMLC) -a -o $@  $(DRIVER_OBJS) $(LIBS_flags) $(_LIBS_flags) $(DRIVER_CMOS) 
  
 
 
@@ -955,11 +953,11 @@ CORE_OBJS=$(foreach file, $(CORE_C),   $(basename $(file)).o)
 
 TMPSOURCES += $(CORE_ML4:.ml4=.ml) $(CORE_MLL:.mll=.ml) $(CORE_MLY:.mly=.ml) $(CORE_MLY:.mly=.mli) $(CORE_ZOG:.zog=.ml) 
  
-core.cmxa: $(CORE_OBJS) $(CORE_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o build/$@  $(CORE_OBJS) $(LIBS_flags) $(_LIBS_flags) $(CORE_CMXS) 
+build/core.cmxa: $(CORE_OBJS) $(CORE_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(CORE_OBJS) $(LIBS_flags) $(_LIBS_flags) $(CORE_CMXS) 
  
-core.cma: $(CORE_OBJS) $(CORE_CMOS) 
-	$(OCAMLC) -a -o build/$@  $(CORE_OBJS) $(LIBS_flags) $(_LIBS_flags) $(CORE_CMOS) 
+build/core.cma: $(CORE_OBJS) $(CORE_CMOS) 
+	$(OCAMLC) -a -o $@  $(CORE_OBJS) $(LIBS_flags) $(_LIBS_flags) $(CORE_CMOS) 
  
 
 
@@ -975,11 +973,11 @@ libgmisc_OBJS=$(foreach file, $(libgmisc_C),   $(basename $(file)).o)
 
 TMPSOURCES += $(libgmisc_ML4:.ml4=.ml) $(libgmisc_MLL:.mll=.ml) $(libgmisc_MLY:.mly=.ml) $(libgmisc_MLY:.mly=.mli) $(libgmisc_ZOG:.zog=.ml) 
  
-gmisc.cmxa: $(libgmisc_OBJS) $(libgmisc_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o build/$@  $(libgmisc_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libgmisc_CMXS) 
+build/gmisc.cmxa: $(libgmisc_OBJS) $(libgmisc_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(libgmisc_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libgmisc_CMXS) 
  
-gmisc.cma: $(libgmisc_OBJS) $(libgmisc_CMOS) 
-	$(OCAMLC) -a -o build/$@  $(libgmisc_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libgmisc_CMOS) 
+build/gmisc.cma: $(libgmisc_OBJS) $(libgmisc_CMOS) 
+	$(OCAMLC) -a -o $@  $(libgmisc_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libgmisc_CMOS) 
  
 
 
@@ -995,11 +993,11 @@ libgui_OBJS=$(foreach file, $(libgui_C),   $(basename $(file)).o)
 
 TMPSOURCES += $(libgui_ML4:.ml4=.ml) $(libgui_MLL:.mll=.ml) $(libgui_MLY:.mly=.ml) $(libgui_MLY:.mly=.mli) $(libgui_ZOG:.zog=.ml) 
  
-gui.cmxa: $(libgui_OBJS) $(libgui_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o build/$@  $(libgui_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libgui_CMXS) 
+build/gui.cmxa: $(libgui_OBJS) $(libgui_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(libgui_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libgui_CMXS) 
  
-gui.cma: $(libgui_OBJS) $(libgui_CMOS) 
-	$(OCAMLC) -a -o build/$@  $(libgui_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libgui_CMOS) 
+build/gui.cma: $(libgui_OBJS) $(libgui_CMOS) 
+	$(OCAMLC) -a -o $@  $(libgui_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libgui_CMOS) 
  
 
 
@@ -1015,11 +1013,11 @@ libguibase_OBJS=$(foreach file, $(libguibase_C),   $(basename $(file)).o)
 
 TMPSOURCES += $(libguibase_ML4:.ml4=.ml) $(libguibase_MLL:.mll=.ml) $(libguibase_MLY:.mly=.ml) $(libguibase_MLY:.mly=.mli) $(libguibase_ZOG:.zog=.ml) 
  
-guibase.cmxa: $(libguibase_OBJS) $(libguibase_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o build/$@  $(libguibase_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libguibase_CMXS) 
+build/guibase.cmxa: $(libguibase_OBJS) $(libguibase_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(libguibase_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libguibase_CMXS) 
  
-guibase.cma: $(libguibase_OBJS) $(libguibase_CMOS) 
-	$(OCAMLC) -a -o build/$@  $(libguibase_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libguibase_CMOS) 
+build/guibase.cma: $(libguibase_OBJS) $(libguibase_CMOS) 
+	$(OCAMLC) -a -o $@  $(libguibase_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libguibase_CMOS) 
  
 
 
@@ -1061,8 +1059,8 @@ mldonkey_CMOS=$(foreach file, $(mldonkey_ML),   $(basename $(file)).cmo)
 mldonkey_CMXS=$(foreach file, $(mldonkey_ML),   $(basename $(file)).cmx) 
 mldonkey_OBJS=$(foreach file, $(mldonkey_C),   $(basename $(file)).o)    
 
-mldonkey_CMXAS := $(mldonkey_CMXA)
-mldonkey_CMAS=$(foreach file, $(mldonkey_CMXAS),   $(basename $(file)).cma)    
+mldonkey_CMXAS := $(foreach file, $(mldonkey_CMXA),   build/$(basename $(file)).cmxa)
+mldonkey_CMAS=$(foreach file, $(mldonkey_CMXA),   build/$(basename $(file)).cma)    
 
 TMPSOURCES += $(mldonkey_ML4:.ml4=.ml) $(mldonkey_MLL:.mll=.ml) $(mldonkey_MLY:.mly=.ml) $(mldonkey_MLY:.mly=.mli) $(mldonkey_ZOG:.zog=.ml) 
  
@@ -1086,8 +1084,8 @@ mldonkey+gui_CMOS=$(foreach file, $(mldonkey+gui_ML),   $(basename $(file)).cmo)
 mldonkey+gui_CMXS=$(foreach file, $(mldonkey+gui_ML),   $(basename $(file)).cmx) 
 mldonkey+gui_OBJS=$(foreach file, $(mldonkey+gui_C),   $(basename $(file)).o)    
 
-mldonkey+gui_CMXAS := $(mldonkey+gui_CMXA)
-mldonkey+gui_CMAS=$(foreach file, $(mldonkey+gui_CMXAS),   $(basename $(file)).cma)    
+mldonkey+gui_CMXAS := $(foreach file, $(mldonkey+gui_CMXA),   build/$(basename $(file)).cmxa)
+mldonkey+gui_CMAS=$(foreach file, $(mldonkey+gui_CMXA),   build/$(basename $(file)).cma)    
 
 TMPSOURCES += $(mldonkey+gui_ML4:.ml4=.ml) $(mldonkey+gui_MLL:.mll=.ml) $(mldonkey+gui_MLY:.mly=.ml) $(mldonkey+gui_MLY:.mly=.mli) $(mldonkey+gui_ZOG:.zog=.ml) 
  
@@ -1111,8 +1109,8 @@ MLDONKEYGUI_CMOS=$(foreach file, $(MLDONKEYGUI_ML),   $(basename $(file)).cmo)
 MLDONKEYGUI_CMXS=$(foreach file, $(MLDONKEYGUI_ML),   $(basename $(file)).cmx) 
 MLDONKEYGUI_OBJS=$(foreach file, $(MLDONKEYGUI_C),   $(basename $(file)).o)    
 
-MLDONKEYGUI_CMXAS := $(MLDONKEYGUI_CMXA)
-MLDONKEYGUI_CMAS=$(foreach file, $(MLDONKEYGUI_CMXAS),   $(basename $(file)).cma)    
+MLDONKEYGUI_CMXAS := $(foreach file, $(MLDONKEYGUI_CMXA),   build/$(basename $(file)).cmxa)
+MLDONKEYGUI_CMAS=$(foreach file, $(MLDONKEYGUI_CMXA),   build/$(basename $(file)).cma)    
 
 TMPSOURCES += $(MLDONKEYGUI_ML4:.ml4=.ml) $(MLDONKEYGUI_MLL:.mll=.ml) $(MLDONKEYGUI_MLY:.mly=.ml) $(MLDONKEYGUI_MLY:.mly=.mli) $(MLDONKEYGUI_ZOG:.zog=.ml) 
  
@@ -1136,8 +1134,8 @@ MLDONKEYGUI2_CMOS=$(foreach file, $(MLDONKEYGUI2_ML),   $(basename $(file)).cmo)
 MLDONKEYGUI2_CMXS=$(foreach file, $(MLDONKEYGUI2_ML),   $(basename $(file)).cmx) 
 MLDONKEYGUI2_OBJS=$(foreach file, $(MLDONKEYGUI2_C),   $(basename $(file)).o)    
 
-MLDONKEYGUI2_CMXAS := $(MLDONKEYGUI2_CMXA)
-MLDONKEYGUI2_CMAS=$(foreach file, $(MLDONKEYGUI2_CMXAS),   $(basename $(file)).cma)    
+MLDONKEYGUI2_CMXAS := $(foreach file, $(MLDONKEYGUI2_CMXA),   build/$(basename $(file)).cmxa)
+MLDONKEYGUI2_CMAS=$(foreach file, $(MLDONKEYGUI2_CMXA),   build/$(basename $(file)).cma)    
 
 TMPSOURCES += $(MLDONKEYGUI2_ML4:.ml4=.ml) $(MLDONKEYGUI2_MLL:.mll=.ml) $(MLDONKEYGUI2_MLY:.mly=.ml) $(MLDONKEYGUI2_MLY:.mly=.mli) $(MLDONKEYGUI2_ZOG:.zog=.ml) 
  
@@ -1161,8 +1159,8 @@ mldc_CMOS=$(foreach file, $(mldc_ML),   $(basename $(file)).cmo)
 mldc_CMXS=$(foreach file, $(mldc_ML),   $(basename $(file)).cmx) 
 mldc_OBJS=$(foreach file, $(mldc_C),   $(basename $(file)).o)    
 
-mldc_CMXAS := $(mldc_CMXA)
-mldc_CMAS=$(foreach file, $(mldc_CMXAS),   $(basename $(file)).cma)    
+mldc_CMXAS := $(foreach file, $(mldc_CMXA),   build/$(basename $(file)).cmxa)
+mldc_CMAS=$(foreach file, $(mldc_CMXA),   build/$(basename $(file)).cma)    
 
 TMPSOURCES += $(mldc_ML4:.ml4=.ml) $(mldc_MLL:.mll=.ml) $(mldc_MLY:.mly=.ml) $(mldc_MLY:.mly=.mli) $(mldc_ZOG:.zog=.ml) 
  
@@ -1186,8 +1184,8 @@ mldc+gui_CMOS=$(foreach file, $(mldc+gui_ML),   $(basename $(file)).cmo)
 mldc+gui_CMXS=$(foreach file, $(mldc+gui_ML),   $(basename $(file)).cmx) 
 mldc+gui_OBJS=$(foreach file, $(mldc+gui_C),   $(basename $(file)).o)    
 
-mldc+gui_CMXAS := $(mldc+gui_CMXA)
-mldc+gui_CMAS=$(foreach file, $(mldc+gui_CMXAS),   $(basename $(file)).cma)    
+mldc+gui_CMXAS := $(foreach file, $(mldc+gui_CMXA),   build/$(basename $(file)).cmxa)
+mldc+gui_CMAS=$(foreach file, $(mldc+gui_CMXA),   build/$(basename $(file)).cma)    
 
 TMPSOURCES += $(mldc+gui_ML4:.ml4=.ml) $(mldc+gui_MLL:.mll=.ml) $(mldc+gui_MLY:.mly=.ml) $(mldc+gui_MLY:.mly=.mli) $(mldc+gui_ZOG:.zog=.ml) 
  
@@ -1211,8 +1209,8 @@ mlnap_CMOS=$(foreach file, $(mlnap_ML),   $(basename $(file)).cmo)
 mlnap_CMXS=$(foreach file, $(mlnap_ML),   $(basename $(file)).cmx) 
 mlnap_OBJS=$(foreach file, $(mlnap_C),   $(basename $(file)).o)    
 
-mlnap_CMXAS := $(mlnap_CMXA)
-mlnap_CMAS=$(foreach file, $(mlnap_CMXAS),   $(basename $(file)).cma)    
+mlnap_CMXAS := $(foreach file, $(mlnap_CMXA),   build/$(basename $(file)).cmxa)
+mlnap_CMAS=$(foreach file, $(mlnap_CMXA),   build/$(basename $(file)).cma)    
 
 TMPSOURCES += $(mlnap_ML4:.ml4=.ml) $(mlnap_MLL:.mll=.ml) $(mlnap_MLY:.mly=.ml) $(mlnap_MLY:.mly=.mli) $(mlnap_ZOG:.zog=.ml) 
  
@@ -1236,8 +1234,8 @@ mlnap+gui_CMOS=$(foreach file, $(mlnap+gui_ML),   $(basename $(file)).cmo)
 mlnap+gui_CMXS=$(foreach file, $(mlnap+gui_ML),   $(basename $(file)).cmx) 
 mlnap+gui_OBJS=$(foreach file, $(mlnap+gui_C),   $(basename $(file)).o)    
 
-mlnap+gui_CMXAS := $(mlnap+gui_CMXA)
-mlnap+gui_CMAS=$(foreach file, $(mlnap+gui_CMXAS),   $(basename $(file)).cma)    
+mlnap+gui_CMXAS := $(foreach file, $(mlnap+gui_CMXA),   build/$(basename $(file)).cmxa)
+mlnap+gui_CMAS=$(foreach file, $(mlnap+gui_CMXA),   build/$(basename $(file)).cma)    
 
 TMPSOURCES += $(mlnap+gui_ML4:.ml4=.ml) $(mlnap+gui_MLL:.mll=.ml) $(mlnap+gui_MLY:.mly=.ml) $(mlnap+gui_MLY:.mly=.mli) $(mlnap+gui_ZOG:.zog=.ml) 
  
@@ -1261,8 +1259,8 @@ MLNET_CMOS=$(foreach file, $(MLNET_ML),   $(basename $(file)).cmo)
 MLNET_CMXS=$(foreach file, $(MLNET_ML),   $(basename $(file)).cmx) 
 MLNET_OBJS=$(foreach file, $(MLNET_C),   $(basename $(file)).o)    
 
-MLNET_CMXAS := $(MLNET_CMXA)
-MLNET_CMAS=$(foreach file, $(MLNET_CMXAS),   $(basename $(file)).cma)    
+MLNET_CMXAS := $(foreach file, $(MLNET_CMXA),   build/$(basename $(file)).cmxa)
+MLNET_CMAS=$(foreach file, $(MLNET_CMXA),   build/$(basename $(file)).cma)    
 
 TMPSOURCES += $(MLNET_ML4:.ml4=.ml) $(MLNET_MLL:.mll=.ml) $(MLNET_MLY:.mly=.ml) $(MLNET_MLY:.mly=.mli) $(MLNET_ZOG:.zog=.ml) 
  
@@ -1286,8 +1284,8 @@ mlnet+gui_CMOS=$(foreach file, $(mlnet+gui_ML),   $(basename $(file)).cmo)
 mlnet+gui_CMXS=$(foreach file, $(mlnet+gui_ML),   $(basename $(file)).cmx) 
 mlnet+gui_OBJS=$(foreach file, $(mlnet+gui_C),   $(basename $(file)).o)    
 
-mlnet+gui_CMXAS := $(mlnet+gui_CMXA)
-mlnet+gui_CMAS=$(foreach file, $(mlnet+gui_CMXAS),   $(basename $(file)).cma)    
+mlnet+gui_CMXAS := $(foreach file, $(mlnet+gui_CMXA),   build/$(basename $(file)).cmxa)
+mlnet+gui_CMAS=$(foreach file, $(mlnet+gui_CMXA),   build/$(basename $(file)).cma)    
 
 TMPSOURCES += $(mlnet+gui_ML4:.ml4=.ml) $(mlnet+gui_MLL:.mll=.ml) $(mlnet+gui_MLY:.mly=.ml) $(mlnet+gui_MLY:.mly=.mli) $(mlnet+gui_ZOG:.zog=.ml) 
  
@@ -1311,8 +1309,8 @@ mlgnut_CMOS=$(foreach file, $(mlgnut_ML),   $(basename $(file)).cmo)
 mlgnut_CMXS=$(foreach file, $(mlgnut_ML),   $(basename $(file)).cmx) 
 mlgnut_OBJS=$(foreach file, $(mlgnut_C),   $(basename $(file)).o)    
 
-mlgnut_CMXAS := $(mlgnut_CMXA)
-mlgnut_CMAS=$(foreach file, $(mlgnut_CMXAS),   $(basename $(file)).cma)    
+mlgnut_CMXAS := $(foreach file, $(mlgnut_CMXA),   build/$(basename $(file)).cmxa)
+mlgnut_CMAS=$(foreach file, $(mlgnut_CMXA),   build/$(basename $(file)).cma)    
 
 TMPSOURCES += $(mlgnut_ML4:.ml4=.ml) $(mlgnut_MLL:.mll=.ml) $(mlgnut_MLY:.mly=.ml) $(mlgnut_MLY:.mly=.mli) $(mlgnut_ZOG:.zog=.ml) 
  
@@ -1336,8 +1334,8 @@ mlbt_CMOS=$(foreach file, $(mlbt_ML),   $(basename $(file)).cmo)
 mlbt_CMXS=$(foreach file, $(mlbt_ML),   $(basename $(file)).cmx) 
 mlbt_OBJS=$(foreach file, $(mlbt_C),   $(basename $(file)).o)    
 
-mlbt_CMXAS := $(mlbt_CMXA)
-mlbt_CMAS=$(foreach file, $(mlbt_CMXAS),   $(basename $(file)).cma)    
+mlbt_CMXAS := $(foreach file, $(mlbt_CMXA),   build/$(basename $(file)).cmxa)
+mlbt_CMAS=$(foreach file, $(mlbt_CMXA),   build/$(basename $(file)).cma)    
 
 TMPSOURCES += $(mlbt_ML4:.ml4=.ml) $(mlbt_MLL:.mll=.ml) $(mlbt_MLY:.mly=.ml) $(mlbt_MLY:.mly=.mli) $(mlbt_ZOG:.zog=.ml) 
  
@@ -1361,8 +1359,8 @@ mlgnut+gui_CMOS=$(foreach file, $(mlgnut+gui_ML),   $(basename $(file)).cmo)
 mlgnut+gui_CMXS=$(foreach file, $(mlgnut+gui_ML),   $(basename $(file)).cmx) 
 mlgnut+gui_OBJS=$(foreach file, $(mlgnut+gui_C),   $(basename $(file)).o)    
 
-mlgnut+gui_CMXAS := $(mlgnut+gui_CMXA)
-mlgnut+gui_CMAS=$(foreach file, $(mlgnut+gui_CMXAS),   $(basename $(file)).cma)    
+mlgnut+gui_CMXAS := $(foreach file, $(mlgnut+gui_CMXA),   build/$(basename $(file)).cmxa)
+mlgnut+gui_CMAS=$(foreach file, $(mlgnut+gui_CMXA),   build/$(basename $(file)).cma)    
 
 TMPSOURCES += $(mlgnut+gui_ML4:.ml4=.ml) $(mlgnut+gui_MLL:.mll=.ml) $(mlgnut+gui_MLY:.mly=.ml) $(mlgnut+gui_MLY:.mly=.mli) $(mlgnut+gui_ZOG:.zog=.ml) 
  
@@ -1386,8 +1384,8 @@ mlbt+gui_CMOS=$(foreach file, $(mlbt+gui_ML),   $(basename $(file)).cmo)
 mlbt+gui_CMXS=$(foreach file, $(mlbt+gui_ML),   $(basename $(file)).cmx) 
 mlbt+gui_OBJS=$(foreach file, $(mlbt+gui_C),   $(basename $(file)).o)    
 
-mlbt+gui_CMXAS := $(mlbt+gui_CMXA)
-mlbt+gui_CMAS=$(foreach file, $(mlbt+gui_CMXAS),   $(basename $(file)).cma)    
+mlbt+gui_CMXAS := $(foreach file, $(mlbt+gui_CMXA),   build/$(basename $(file)).cmxa)
+mlbt+gui_CMAS=$(foreach file, $(mlbt+gui_CMXA),   build/$(basename $(file)).cma)    
 
 TMPSOURCES += $(mlbt+gui_ML4:.ml4=.ml) $(mlbt+gui_MLL:.mll=.ml) $(mlbt+gui_MLY:.mly=.ml) $(mlbt+gui_MLY:.mly=.mli) $(mlbt+gui_ZOG:.zog=.ml) 
  
@@ -1411,8 +1409,8 @@ mlslsk_CMOS=$(foreach file, $(mlslsk_ML),   $(basename $(file)).cmo)
 mlslsk_CMXS=$(foreach file, $(mlslsk_ML),   $(basename $(file)).cmx) 
 mlslsk_OBJS=$(foreach file, $(mlslsk_C),   $(basename $(file)).o)    
 
-mlslsk_CMXAS := $(mlslsk_CMXA)
-mlslsk_CMAS=$(foreach file, $(mlslsk_CMXAS),   $(basename $(file)).cma)    
+mlslsk_CMXAS := $(foreach file, $(mlslsk_CMXA),   build/$(basename $(file)).cmxa)
+mlslsk_CMAS=$(foreach file, $(mlslsk_CMXA),   build/$(basename $(file)).cma)    
 
 TMPSOURCES += $(mlslsk_ML4:.ml4=.ml) $(mlslsk_MLL:.mll=.ml) $(mlslsk_MLY:.mly=.ml) $(mlslsk_MLY:.mly=.mli) $(mlslsk_ZOG:.zog=.ml) 
  
@@ -1436,8 +1434,8 @@ mlslsk+gui_CMOS=$(foreach file, $(mlslsk+gui_ML),   $(basename $(file)).cmo)
 mlslsk+gui_CMXS=$(foreach file, $(mlslsk+gui_ML),   $(basename $(file)).cmx) 
 mlslsk+gui_OBJS=$(foreach file, $(mlslsk+gui_C),   $(basename $(file)).o)    
 
-mlslsk+gui_CMXAS := $(mlslsk+gui_CMXA)
-mlslsk+gui_CMAS=$(foreach file, $(mlslsk+gui_CMXAS),   $(basename $(file)).cma)    
+mlslsk+gui_CMXAS := $(foreach file, $(mlslsk+gui_CMXA),   build/$(basename $(file)).cmxa)
+mlslsk+gui_CMAS=$(foreach file, $(mlslsk+gui_CMXA),   build/$(basename $(file)).cma)    
 
 TMPSOURCES += $(mlslsk+gui_ML4:.ml4=.ml) $(mlslsk+gui_MLL:.mll=.ml) $(mlslsk+gui_MLY:.mly=.ml) $(mlslsk+gui_MLY:.mly=.mli) $(mlslsk+gui_ZOG:.zog=.ml) 
  
@@ -1461,8 +1459,8 @@ MLDONKEY_IM_CMOS=$(foreach file, $(MLDONKEY_IM_ML),   $(basename $(file)).cmo)
 MLDONKEY_IM_CMXS=$(foreach file, $(MLDONKEY_IM_ML),   $(basename $(file)).cmx) 
 MLDONKEY_IM_OBJS=$(foreach file, $(MLDONKEY_IM_C),   $(basename $(file)).o)    
 
-MLDONKEY_IM_CMXAS := $(MLDONKEY_IM_CMXA)
-MLDONKEY_IM_CMAS=$(foreach file, $(MLDONKEY_IM_CMXAS),   $(basename $(file)).cma)    
+MLDONKEY_IM_CMXAS := $(foreach file, $(MLDONKEY_IM_CMXA),   build/$(basename $(file)).cmxa)
+MLDONKEY_IM_CMAS=$(foreach file, $(MLDONKEY_IM_CMXA),   build/$(basename $(file)).cma)    
 
 TMPSOURCES += $(MLDONKEY_IM_ML4:.ml4=.ml) $(MLDONKEY_IM_MLL:.mll=.ml) $(MLDONKEY_IM_MLY:.mly=.ml) $(MLDONKEY_IM_MLY:.mly=.mli) $(MLDONKEY_IM_ZOG:.zog=.ml) 
  
@@ -1486,8 +1484,8 @@ STARTER_CMOS=$(foreach file, $(STARTER_ML),   $(basename $(file)).cmo)
 STARTER_CMXS=$(foreach file, $(STARTER_ML),   $(basename $(file)).cmx) 
 STARTER_OBJS=$(foreach file, $(STARTER_C),   $(basename $(file)).o)    
 
-STARTER_CMXAS := $(_CMXA)
-STARTER_CMAS=$(foreach file, $(STARTER_CMXAS),   $(basename $(file)).cma)    
+STARTER_CMXAS := $(foreach file, $(STARTER_CMXA),   build/$(basename $(file)).cmxa)
+STARTER_CMAS=$(foreach file, $(STARTER_CMXA),   build/$(basename $(file)).cma)    
 
 TMPSOURCES += $(STARTER_ML4:.ml4=.ml) $(STARTER_MLL:.mll=.ml) $(STARTER_MLY:.mly=.ml) $(STARTER_MLY:.mly=.mli) $(STARTER_ZOG:.zog=.ml) 
  
@@ -1511,8 +1509,8 @@ MLCHAT_CMOS=$(foreach file, $(MLCHAT_ML),   $(basename $(file)).cmo)
 MLCHAT_CMXS=$(foreach file, $(MLCHAT_ML),   $(basename $(file)).cmx) 
 MLCHAT_OBJS=$(foreach file, $(MLCHAT_C),   $(basename $(file)).o)    
 
-MLCHAT_CMXAS := $(MLCHAT_CMXA)
-MLCHAT_CMAS=$(foreach file, $(MLCHAT_CMXAS),   $(basename $(file)).cma)    
+MLCHAT_CMXAS := $(foreach file, $(MLCHAT_CMXA),   build/$(basename $(file)).cmxa)
+MLCHAT_CMAS=$(foreach file, $(MLCHAT_CMXA),   build/$(basename $(file)).cma)    
 
 TMPSOURCES += $(MLCHAT_ML4:.ml4=.ml) $(MLCHAT_MLL:.mll=.ml) $(MLCHAT_MLY:.mly=.ml) $(MLCHAT_MLY:.mly=.mli) $(MLCHAT_ZOG:.zog=.ml) 
  
@@ -1536,8 +1534,8 @@ OBSERVER_CMOS=$(foreach file, $(OBSERVER_ML),   $(basename $(file)).cmo)
 OBSERVER_CMXS=$(foreach file, $(OBSERVER_ML),   $(basename $(file)).cmx) 
 OBSERVER_OBJS=$(foreach file, $(OBSERVER_C),   $(basename $(file)).o)    
 
-OBSERVER_CMXAS := $(_CMXA)
-OBSERVER_CMAS=$(foreach file, $(OBSERVER_CMXAS),   $(basename $(file)).cma)    
+OBSERVER_CMXAS := $(foreach file, $(OBSERVER_CMXA),   build/$(basename $(file)).cmxa)
+OBSERVER_CMAS=$(foreach file, $(OBSERVER_CMXA),   build/$(basename $(file)).cma)    
 
 TMPSOURCES += $(OBSERVER_ML4:.ml4=.ml) $(OBSERVER_MLL:.mll=.ml) $(OBSERVER_MLY:.mly=.ml) $(OBSERVER_MLY:.mly=.mli) $(OBSERVER_ZOG:.zog=.ml) 
  
@@ -1561,8 +1559,8 @@ USE_TAGS_CMOS=$(foreach file, $(USE_TAGS_ML),   $(basename $(file)).cmo)
 USE_TAGS_CMXS=$(foreach file, $(USE_TAGS_ML),   $(basename $(file)).cmx) 
 USE_TAGS_OBJS=$(foreach file, $(USE_TAGS_C),   $(basename $(file)).o)    
 
-USE_TAGS_CMXAS := $(USE_TAGS_CMXA)
-USE_TAGS_CMAS=$(foreach file, $(USE_TAGS_CMXAS),   $(basename $(file)).cma)    
+USE_TAGS_CMXAS := $(foreach file, $(USE_TAGS_CMXA),   build/$(basename $(file)).cmxa)
+USE_TAGS_CMAS=$(foreach file, $(USE_TAGS_CMXA),   build/$(basename $(file)).cma)    
 
 TMPSOURCES += $(USE_TAGS_ML4:.ml4=.ml) $(USE_TAGS_MLL:.mll=.ml) $(USE_TAGS_MLY:.mly=.ml) $(USE_TAGS_MLY:.mly=.mli) $(USE_TAGS_ZOG:.zog=.ml) 
  
@@ -1586,8 +1584,8 @@ HASH_FILES_CMOS=$(foreach file, $(HASH_FILES_ML),   $(basename $(file)).cmo)
 HASH_FILES_CMXS=$(foreach file, $(HASH_FILES_ML),   $(basename $(file)).cmx) 
 HASH_FILES_OBJS=$(foreach file, $(HASH_FILES_C),   $(basename $(file)).o)    
 
-HASH_FILES_CMXAS := $(_CMXA)
-HASH_FILES_CMAS=$(foreach file, $(HASH_FILES_CMXAS),   $(basename $(file)).cma)    
+HASH_FILES_CMXAS := $(foreach file, $(HASH_FILES_CMXA),   build/$(basename $(file)).cmxa)
+HASH_FILES_CMAS=$(foreach file, $(HASH_FILES_CMXA),   build/$(basename $(file)).cma)    
 
 TMPSOURCES += $(HASH_FILES_ML4:.ml4=.ml) $(HASH_FILES_MLL:.mll=.ml) $(HASH_FILES_MLY:.mly=.ml) $(HASH_FILES_MLY:.mly=.mli) $(HASH_FILES_ZOG:.zog=.ml) 
  
@@ -1611,8 +1609,8 @@ INSTALLER_CMOS=$(foreach file, $(INSTALLER_ML),   $(basename $(file)).cmo)
 INSTALLER_CMXS=$(foreach file, $(INSTALLER_ML),   $(basename $(file)).cmx) 
 INSTALLER_OBJS=$(foreach file, $(INSTALLER_C),   $(basename $(file)).o)    
 
-INSTALLER_CMXAS := $(INSTALLER_CMXA)
-INSTALLER_CMAS=$(foreach file, $(INSTALLER_CMXAS),   $(basename $(file)).cma)    
+INSTALLER_CMXAS := $(foreach file, $(INSTALLER_CMXA),   build/$(basename $(file)).cmxa)
+INSTALLER_CMAS=$(foreach file, $(INSTALLER_CMXA),   build/$(basename $(file)).cma)    
 
 TMPSOURCES += $(INSTALLER_ML4:.ml4=.ml) $(INSTALLER_MLL:.mll=.ml) $(INSTALLER_MLY:.mly=.ml) $(INSTALLER_MLY:.mly=.mli) $(INSTALLER_ZOG:.zog=.ml) 
  

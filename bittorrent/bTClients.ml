@@ -420,9 +420,13 @@ and client_to_client c sock msg =
               if client_has_a_slot (as_client c) then
                 CommonUploads.ready_for_upload (as_client c)
               else
+              if c.client_downloaded > Int64.zero then
+                CommonUploads.give_a_slot (as_client c)
+              else
                 CommonUploads.add_pending_slot (as_client c)
           | _ -> ()        
         end;
+(*        lprintf "client is waiting for piece\n"; *)
         c.client_upload_requests <- 
           c.client_upload_requests @ [n,pos,len];
         
@@ -567,6 +571,17 @@ let send_pings () =
   ) !current_files
 
 open Bencode
+
+let resume_clients file = 
+  Hashtbl.iter (fun _ c ->
+      try
+        match c.client_sock with 
+          None ->
+            (try get_file_from_source c file with _ -> ())
+        | Some sock -> get_from_client sock c
+      with e -> ()
+(* lprintf "Exception %s in resume_clients\n"   (Printexc2.to_string e) *)
+  ) file.file_clients
   
 let connect_tracker file url = 
   if file.file_tracker_last_conn + file.file_tracker_interval 
@@ -614,7 +629,8 @@ let connect_tracker file url =
                   
                   ) list
               | _ -> ()
-          ) list
+          ) list;
+          resume_clients file
       
       | _ -> assert false
     
@@ -645,49 +661,54 @@ let connect_tracker file url =
     H.wget r f
     
 let file_resume file =
-  Hashtbl.iter (fun _ c ->
-      match c.client_sock with 
-        None ->
-          (try get_file_from_source c file with _ -> ())
-      | Some sock -> get_from_client sock c
-  ) file.file_clients;
+  resume_clients file;
   (try connect_tracker file file.file_tracker  with _ -> ())
 
 let recover_files () =
   List.iter (fun file ->
-      check_finished file;
+      (try check_finished file with e -> ());
       if file_state file = FileDownloading then 
         file_resume file
   ) !current_files
 
 let upload_buffer = String.create 100000
   
+let rec iter_upload sock c = 
+  match c.client_upload_requests with
+    [] -> ()
+  | (num, pos, len) :: tail ->
+      if c.client_allowed_to_write >= len then begin
+          c.client_upload_requests <- tail;
+          
+          let file = c.client_file in
+          let offset = pos ++ file.file_piece_size ** num in
+          c.client_allowed_to_write <- c.client_allowed_to_write -- len;
+          c.client_uploaded <- c.client_uploaded ++ len;
+          let len = Int64.to_int len in
+(*          CommonUploads.consume_bandwidth (len/2); *)
+          Unix32.read (file_fd file) offset upload_buffer 0 len;
+          
+(*          lprintf "sending piece\n"; *)
+          send_client c (Piece (num, pos, upload_buffer, 0, len));
+          iter_upload sock c
+        end else
+        begin
+(*          lprintf "client is waiting for another piece\n"; *)
+          ready_for_upload (as_client c)
+        end
+              
 let client_can_upload c allowed = 
+(*  lprintf "allowed to upload %d\n" allowed; *)
   match c.client_sock with
     None -> ()
   | Some sock ->
       match c.client_upload_requests with
         [] -> ()
-      | (num, pos, len) :: tail ->
-          CommonUploads.consume_bandwidth (allowed/2);
+      | _ :: tail ->
+          CommonUploads.consume_bandwidth allowed;
           c.client_allowed_to_write <- 
             c.client_allowed_to_write ++ (Int64.of_int allowed);
-          if c.client_allowed_to_write >= len then begin
-              c.client_upload_requests <- tail;
-              
-              let file = c.client_file in
-              let offset = pos ++ file.file_piece_size ** num in
-              c.client_allowed_to_write <- c.client_allowed_to_write -- len;
-              c.client_uploaded <- c.client_uploaded ++ len;
-              let len = Int64.to_int len in
-              CommonUploads.consume_bandwidth (len/2);              
-              Unix32.read (file_fd file) offset upload_buffer 0 len;
-              
-              send_client c (Piece (num, pos, upload_buffer, 0, len));
-            end;
-          if c.client_upload_requests <> [] then
-            ready_for_upload (as_client c)
-          
+          iter_upload sock c
   
 let _ =
   client_ops.op_client_can_upload <- client_can_upload;

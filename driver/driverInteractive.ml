@@ -403,10 +403,17 @@ function pauseAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j=
 function resumeAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j=document.selectForm.elements[i];if (j.name==\\\"resume\\\") {j.checked=x;}}}
 function cancelAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j=document.selectForm.elements[i];if (j.name==\\\"cancel\\\") {j.checked=x;}}}
 function clearAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j=document.selectForm.elements[i];if (j.type==\\\"checkbox\\\") {j.checked=x;}}}
+function submitPriority(num) {
+var selectID = document.getElementById(\\\"selectPriority\\\" + num);
+var params='';
+if (selectID.value.length \\> 0) {params = '+'+selectID.value+'+'+num;}
+parent.fstatus.location.href='/submit?q=priority' + params;
+setTimeout('window.location.reload()',500);
+}
 //--\\>\\</script\\>
 
 \\<div class=main\\>
-\\<form name=selectForm action=/files\\>
+\\<form id=\\\"selectForm\\\" name=\\\"selectForm\\\" action=/files\\>
 \\<table class=main cellspacing=0 cellpadding=0\\> 
 
 \\<tr\\>\\<td\\>
@@ -568,7 +575,18 @@ need CommonTypes.file  file.file_sources is ?  i dunno *)
 		  );
 
           (if !!html_mods_vd_prio then 
-	     Printf.sprintf "\\<td class=\\\"dl ar\\\"\\>\\<a href=\\\"/submit?q=priority+-5+%d\\\" target=\\\"$S\\\"\\><<\\</a\\> \\<a href=\\\"/submit?q=priority+-1+%d\\\" target=\\\"$S\\\"\\><\\</a\\> %3d \\<a href=\\\"/submit?q=priority+1+%d\\\" target=\\\"$S\\\"\\>>\\</a\\> \\<a href=\\\"/submit?q=priority+5+%d\\\" target=\\\"$S\\\"\\>>>\\</a\\>\\</td\\>" file.file_num file.file_num file.file_priority file.file_num file.file_num
+	     (Printf.sprintf "\\<td class=\\\"dl ar\\\"\\>\\<select id=\\\"selectPriority%d\\\" name=\\\"selectPriority%d\\\" 
+			style=\\\"font-size: 8px; font-family: verdana\\\" onchange=\\\"javascript:submitPriority(%d)\\\"\\>\n" file.file_num file.file_num file.file_num)
+			^ (match file.file_priority with 0 | -10 | 10 -> "" | _ ->
+			  Printf.sprintf "\\<option value=\\\"=%d\\\" SELECTED\\>%d\n" file.file_priority file.file_priority)
+			^ "\\<option value=\\\"=10\\\""  ^ (if file.file_priority = 10 then " SELECTED" else "") ^ "\\>High\n"
+			^ "\\<option value=\\\"=0\\\""  ^ (if file.file_priority = 0 then " SELECTED" else "") ^ "\\>Normal\n"
+			^ "\\<option value=\\\"=-10\\\""  ^ (if file.file_priority = -10 then " SELECTED" else "") ^ "\\>Low\n"
+			^ "\\<option value=\\\"10\\\"\\>+10\n"
+			^ "\\<option value=\\\"5\\\"\\>+5\n"
+			^ "\\<option value=\\\"-5\\\"\\>-5\n"
+			^ "\\<option value=\\\"-10\\\"\\>-10\n"
+			^ "\\</select\\>"
 	       else 
 		 Printf.sprintf "");
 

@@ -362,36 +362,28 @@ let commands = [
     "html_mods_style", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
         if args = [] then begin
-
 			Array.iteri (fun i h -> 
-             Printf.bprintf buf "%d: %s\n" i h;
+             Printf.bprintf buf "%d: %s\n" i (fst h);
 			) !html_mods_styles;
 			""
-
-          end
+        end
         else begin
             Options.set_simple_option expert_ini "html_mods" "true";
             Options.set_simple_option expert_ini "use_html_frames" "true";
             let num = int_of_string (List.hd args) in
-            (match num with
-                1 -> begin
-                    Options.set_simple_option expert_ini "commands_frame_height" "42";
-                    Options.set_simple_option expert_ini "html_mods_style" "1";
-                    CommonMessages.colour_changer ();
-                  end
-              | 0 | 2 | 3 | 4 | 5 -> begin
-                    Options.set_simple_option expert_ini "commands_frame_height" "80";
-                    Options.set_simple_option expert_ini "html_mods_style" (Printf.sprintf "%d" num);
-                    CommonMessages.colour_changer ();
-                  end
-              | _ -> begin
-                    Options.set_simple_option expert_ini "commands_frame_height" "80";
-                    Options.set_simple_option expert_ini "html_mods_style" "0";
-                    CommonMessages.colour_changer ();
-                  end
-            );
+
+			if num >= 0 && num < (Array.length !html_mods_styles) then begin
+				Options.set_simple_option expert_ini "commands_frame_height" (Printf.sprintf "%d" (snd !html_mods_styles.(num)));
+				Options.set_simple_option expert_ini "html_mods_style" (Printf.sprintf "%d" num);
+				CommonMessages.colour_changer ();
+			end
+			else begin
+				Options.set_simple_option expert_ini "commands_frame_height" (Printf.sprintf "%d" (snd !html_mods_styles.(0)));
+               Options.set_simple_option expert_ini "html_mods_style" "0";
+               CommonMessages.colour_changer ();
+            end;
             "\\<script language=Javascript\\>top.window.location.reload();\\</script\\>"
-          end
+        end
     
     ), ":\t\t\tselect html_mods_style <#>";
     
@@ -462,7 +454,6 @@ parent.fstatus.location.href='/submit?q=html_mods_style+'+formID.modsStyle.value
                       ] 
                   | 3 -> 
                       [
-                        strings_of_option_html html_mods; 
                         strings_of_option_html html_mods_use_relative_availability; 
                         strings_of_option_html html_mods_human_readable; 
                         strings_of_option_html html_mods_vd_age; 
@@ -544,7 +535,7 @@ style=\\\"font-size: 8px; font-family: verdana\\\" onchange=\\\"this.form.submit
 \\<option value=\\\"0\\\"\\>html style\n";
 
 			Array.iteri (fun i h -> 
-             Printf.bprintf buf "\\<option value=\\\"%d\\\"\\>%s\n" i h;
+             Printf.bprintf buf "\\<option value=\\\"%d\\\"\\>%s\n" i (fst h);
 			) !html_mods_styles;
 
 Printf.bprintf buf "
@@ -641,37 +632,15 @@ the name between []"
                 
                 Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>"
                   (if (!counter mod 2 == 0) then "dl-1" else "dl-2";);
-                
-                Printf.bprintf buf "\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>\\<td
-             	class=\\\"sr ar\\\"\\>%s\\</td\\>\\<td class=\\\"sr\\\"\\>\\<A HREF=\\\"%s\\\"\\>%s\\</A\\>
- 				\\</td\\>\\</tr\\>\n"
-                  impl.impl_shared_requests
-                  (size_of_int64 impl.impl_shared_uploaded)
-                ed2k
-                  impl.impl_shared_codedname;
-              
+
+				html_mods_td buf [
+				("", "sr ar", Printf.sprintf "%d" impl.impl_shared_requests);
+				("", "sr ar", size_of_int64 impl.impl_shared_uploaded);
+				("", "sr", Printf.sprintf "\\<a href=\\\"%s\\\"\\>%s\\</a\\>" 
+					ed2k impl.impl_shared_codedname) ];
+ 				Printf.bprintf buf "\\</tr\\>\n";
               end
             else
-(*
-        List.iter (fun impl ->
-            if use_html_mods o then
-              begin
-                let info = impl_shared_info impl in
-                incr counter;
-                if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
-                else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
-                
-                Printf.bprintf buf "\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>\\<td
-            class=\\\"sr ar\\\"\\>%s\\</td\\>\\<td class=\\\"sr\\\"\\>\\<a href=\\\"ed2k://|file|%s|%s|%s|/\\\"\\>%s\\</a\\>\\</td\\>\\</tr\\>\n"
-                  impl.impl_shared_requests
-                  (size_of_int64 impl.impl_shared_uploaded)
-                (impl.impl_shared_codedname)
-                (Int64.to_string impl.impl_shared_size)
-                (Md4.to_string info.shared_id)
-                impl.impl_shared_codedname ;
-              
-              end 
-              else *)
               Printf.bprintf buf "%-50s requests: %8d bytes: %10s\n"
                 impl.impl_shared_codedname impl.impl_shared_requests
                 (Int64.to_string impl.impl_shared_uploaded);
@@ -818,7 +787,7 @@ the name between []"
         List.iter (fun s ->
             Printf.bprintf buf "%s[%-5d]%s %s %s\n" 
               (if o.conn_output = HTML then 
-                Printf.sprintf "\\<a href=/submit\\?q=vr\\+%d\\>" s.search_num
+                Printf.sprintf "\\<a href=/submit\\?q=forget\\+%d\\>[Forget]\\</a\\> \\<a href=/submit\\?q=vr\\+%d\\>" s.search_num s.search_num
               else "")
             s.search_num 
               (if o.conn_output = HTML then "\\</a\\>" else "")
@@ -1081,11 +1050,8 @@ class=\\\"shares\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
         Intmap.iter (fun _ s ->
             try
               incr nb_servers;
-              if use_html_mods o then begin
-                  if (!nb_servers mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
-                  else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
-                end;
-              
+              if use_html_mods o then Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>"
+                  (if (!nb_servers mod 2 == 0) then "dl-1" else "dl-2");
               server_print s o
             with e ->
                 lprintf "Exception %s in server_print"
@@ -1180,16 +1146,17 @@ class=\\\"shares\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
                 ( "0", "srh", "Message text", "Message" ) ] ; 
             
             Fifo.iter (fun (t,i,num,n,s) ->
-                if use_html_mods o then
-                  Printf.bprintf buf "\\<tr class=\\\"%s\\\" \\>
-                      \\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-                      \\<td class=\\\"sr\\\"\\>%s\\</td\\> 
-                      \\<td class=\\\"sr\\\"\\>%d\\</td\\> 
-                      \\<td class=\\\"sr\\\"\\>%s\\</td\\> 
-                      \\<td class=\\\"srw\\\"\\>%s\\</td\\>
-                      \\</tr\\>" 
-                    ( if (!counter mod 2 == 0) then "dl-1" else "dl-2")
-                  (Date.simple (BasicSocket.date_of_int t)) i num n (String.escaped s)
+                if use_html_mods o then begin
+                  	Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>"
+                    (if (!counter mod 2 == 0) then "dl-1" else "dl-2");
+					html_mods_td buf [
+					("", "sr", Date.simple (BasicSocket.date_of_int t));
+					("", "sr",  i);
+					("", "sr", Printf.sprintf "%d" num);
+					("", "sr", n);
+					("", "srw", (String.escaped s)) ];
+                  	Printf.bprintf buf "\\</tr\\>" 
+					end
                 else
                   Printf.bprintf buf "\n%s [client #%d] %s(%s): %s\n"
                     (Date.simple (BasicSocket.date_of_int t)) num n i s;
@@ -1308,7 +1275,7 @@ formID.msgText.value=\\\"\\\";
     "friends", Arg_none (fun o ->
         let buf = o.conn_buf in
         
-        if use_html_mods o then 
+        if use_html_mods o then begin
           Printf.bprintf buf "\\<div class=\\\"friends\\\"\\>\\<table class=main cellspacing=0 cellpadding=0\\> 
 \\<tr\\>\\<td\\>
 \\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
@@ -1329,15 +1296,14 @@ formID.msgText.value=\\\"\\\";
 \\</td\\>
 \\</tr\\>\\</table\\>
 \\</td\\>\\</tr\\>
-\\<tr\\>\\<td\\>
-\\<table class=\\\"friends\\\" cellspacing=0 cellpadding=0\\>
-\\<td title=\\\"Client number\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Num\\</td\\>
-\\<td title=\\\"Remove\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Remove\\</td\\>
-\\<td title=\\\"Network\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Network\\</td\\>
-\\<td title=\\\"Name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Name\\</td\\>
-\\<td title=\\\"Files\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>State\\</td\\>
-\\</tr\\>";
-        
+\\<tr\\>\\<td\\>";
+		html_mods_table_header buf "friendsTable" "friends" [ 
+		( "1", "srh", "Client number", "Num" ) ; 
+		( "0", "srh", "Remove", "Remove" ) ; 
+		( "0", "srh", "Network", "Network" ) ; 
+		( "0", "srh", "Name", "Name" ) ; 
+		( "0", "srh", "State", "State" ) ] ; 
+        end;
         let counter = ref 0 in
         List.iter (fun c ->
             let i = client_info c in
@@ -1430,19 +1396,15 @@ formID.msgText.value=\\\"\\\";
             
             Printf.bprintf buf "\\<div class=\\\"bw_stats\\\"\\>";
             Printf.bprintf buf "\\<table class=\\\"bw_stats\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>";
-            Printf.bprintf buf "\\<td\\>\\<table border=0 cellspacing=0 cellpadding=0\\>\\<tr\\>
-\\<td title=\\\"Download KB/s (UDP|TCP)\\\" class=\\\"bu bbig bbig1 bb4\\\"\\>Down: %.1f KB/s (%d|%d)\\</td\\>
-\\<td title=\\\"Upload KB/s (UDP|TCP)\\\" class=\\\"bu bbig bbig1 bb4\\\"\\>Up: %.1f KB/s (%d|%d)\\</td\\>
-\\<td title=\\\"Total shared bytes (files)\\\" class=\\\"bu bbig bbig1 bb3\\\"\\>Shared: %s (%d files)\\</td\\>"
-              
-              dlkbs
-              !udp_download_rate
-              !control_download_rate
-              ulkbs
-              !udp_upload_rate
-              !control_upload_rate
-              (size_of_int64 !upload_counter)
-            !nshared_files;
+            Printf.bprintf buf "\\<td\\>\\<table border=0 cellspacing=0 cellpadding=0\\>\\<tr\\>";
+
+			html_mods_td buf [
+			("Download KB/s (UDP|TCP)", "bu bbig bbig1 bb4", Printf.sprintf "Down: %.1f KB/s (%d|%d)" 
+				dlkbs !udp_download_rate !control_download_rate);
+			("Upload KB/s (UDP|TCP)", "bu bbig bbig1 bb4", Printf.sprintf "Up: %.1f KB/s (%d|%d)"
+				ulkbs !udp_upload_rate !control_upload_rate);
+			("Total shared bytes (files)", "bu bbig bbig1 bb3", Printf.sprintf "Shared: %s (%d files)"
+				(size_of_int64 !upload_counter) !nshared_files) ];
             
             Printf.bprintf buf "\\</tr\\>\\</table\\>\\</td\\>\\</tr\\>\\</table\\>\\</div\\>";
             
@@ -1690,36 +1652,23 @@ formID.msgText.value=\\\"\\\";
                         onMouseOver=\\\"mOvr(this);\\\"
                         onMouseOut=\\\"mOut(this);\\\" 
                         onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>"
-                            ( if (!counter mod 2 == 0) then "dl-1" else "dl-2";)
-                          (client_num c)
-                          (client_num c);
+                        ( if (!counter mod 2 == 0) then "dl-1" else "dl-2";) (client_num c) (client_num c);
                           
-                          
-                          client_print_html c o;
-                          
-                      	Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>"
-                        (try 
-                          (match i.client_kind with
+                        client_print_html c o;
+						html_mods_td buf [
+						("", "sr", (try (match i.client_kind with
                               Known_location (ip,_) -> Ip.to_string ip
                             | _ -> i.client_sock_addr)
-                        with _ -> "");
+                        	with _ -> "") );
+						("", "sr", Printf.sprintf "%d" (((last_time ()) - i.client_connect_time) / 60));
+						("", "sr", i.client_software);
+						("", "sr ar", size_of_int64 i.client_downloaded);
+						("", "sr ar", size_of_int64 i.client_uploaded);
+						("", "sr", (match i.client_upload with
+                         		     Some cu -> cu
+                            		| None -> "") ) ];
                           
-                         Printf.bprintf buf "\\<td
-                        class=\\\"sr\\\"\\>%d\\</td\\>\\<td 
-						class=\\\"sr\\\"\\>%s\\</td\\>\\<td 
-						class=\\\"sr ar\\\"\\>%s\\</td\\>\\<td
-                        class=\\\"sr ar\\\"\\>%s\\</td\\>" 
-                          (((last_time ()) - i.client_connect_time) / 60)
-                          i.client_software
-                          (size_of_int64 i.client_downloaded) 
-                          (size_of_int64 i.client_uploaded);
-                          
-                          Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>\n" 
-                            (match i.client_upload with
-                              Some cu -> cu
-                            | None -> "");
-                          
-                          Printf.bprintf buf "\\</tr\\>"
+                        Printf.bprintf buf "\\</tr\\>"
                         end
                     with _ -> ()
                 ) (List.sort 
@@ -1747,40 +1696,24 @@ formID.msgText.value=\\\"\\\";
                       let i = client_info c in
                       incr counter;
                       
-                      Printf.bprintf buf "\\<tr class=\\\"%s\\\" 
- 					title=\\\"Add as Friend\\\"
- 					onMouseOver=\\\"mOvr(this);\\\"
- 					onMouseOut=\\\"mOut(this);\\\" 
- 					onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>"
-                        ( if (!counter mod 2 == 0) then "dl-1" else "dl-2";)
-                      cnum;
+					Printf.bprintf buf "\\<tr class=\\\"%s\\\" 
+					title=\\\"Add as Friend\\\" onMouseOver=\\\"mOvr(this);\\\" onMouseOut=\\\"mOut(this);\\\" 
+					onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>"
+					( if (!counter mod 2 == 0) then "dl-1" else "dl-2";) cnum;
                       
+					client_print_html c o;
+					
+					html_mods_td buf [
+					("", "sr", i.client_software);
+					("", "sr ar", size_of_int64 i.client_downloaded);
+					("", "sr ar", size_of_int64 i.client_uploaded);
+					("", "sr", (try (match i.client_kind with
+                          		Known_location (ip,_) -> Ip.to_string ip
+                          		| _ -> i.client_sock_addr)
+                       			with _ -> "") ) ];
                       
-                      client_print_html c o;
-                      
-                      Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>" 
-                        i.client_software;
-                      
-                      Printf.bprintf buf "\\<td
-                         class=\\\"sr ar\\\"\\>%s\\</td\\>\\<td
-                         class=\\\"sr ar\\\"\\>%s\\</td\\>" 
-                        (size_of_int64 i.client_downloaded) 
-                      (size_of_int64 i.client_uploaded);
-                      
-                      Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>"
-                        (try 
-                          
-                          (  match i.client_kind with
-                              Known_location (ip,_) -> Ip.to_string ip
-                            | _ -> i.client_sock_addr)
-                        
-                        with _ -> ""
-                      );
-                      
-                      Printf.bprintf buf "\\</tr\\>";
-                    
-                    
-                    with _ -> ();
+					Printf.bprintf buf "\\</tr\\>";
+					with _ -> ();
                 
                 ) !CommonUploads.pending_slots_map;
                 Printf.bprintf buf "\\</table\\>\\</div\\>";

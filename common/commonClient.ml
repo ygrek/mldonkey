@@ -22,6 +22,7 @@ open Printf2
 open CommonOptions
 open Options
 open CommonTypes
+open CommonGlobals
   
 type 'a client_impl = {
     mutable impl_client_type : client_type;
@@ -347,15 +348,12 @@ let client_print_html c o =
   let n = impl.impl_client_ops.op_client_network in
   let info = client_info c in
   let buf = o.conn_buf in
-      Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>
-    \\<td class=\\\"sr\\\"\\>%s\\</td\\>
-    \\<td class=\\\"sr\\\"\\>%s\\</td\\>"
-        n.network_name 
-        (match info.G.client_kind with
+	html_mods_td buf [
+	("", "sr", n.network_name);
+	("", "sr", (match info.G.client_kind with
           Indirect_location (name, _) -> Printf.sprintf "I"
-        | Known_location (ip, port) -> Printf.sprintf "D"
-      ) 
-      info.G.client_name      
+        | Known_location (ip, port) -> Printf.sprintf "D") );
+	("", "sr", info.G.client_name); ]
 
 let client_print c o =
   let impl = as_client_impl c in
@@ -364,19 +362,14 @@ let client_print c o =
   let info = client_info c in
   let buf = o.conn_buf in
   if use_html_mods o then begin
-      Printf.bprintf buf "\\<td class=sr\\>%d\\</td\\>
-      \\<td class=sr\\>%s\\</td\\>
-      \\<td class=sr\\>%s\\</td\\>
-      \\<td class=sr\\>%s\\</td\\>"
-        (client_num c)
-        n.network_name
-     	(try
-           match info.G.client_kind with
+	html_mods_td buf [
+	("", "sr", Printf.sprintf "%d" (client_num c));
+	("", "sr", n.network_name);
+	("", "sr", (try match info.G.client_kind with 
              Known_location (ip,port) -> Printf.sprintf "%s" (Ip.to_string ip)
            | Indirect_location _ -> Printf.sprintf "None"
-           with _ -> ""
-          )
-      info.G.client_name
+           with _ -> ""));
+	("", "sr", info.G.client_name); ];
     end
   else begin
       Printf.bprintf buf "[%s %-5d] %d %23s %-20s"

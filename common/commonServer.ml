@@ -348,7 +348,7 @@ let server_print s o =
       (
         Printf.sprintf
         "\\<TD class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
-        onMouseOut=\\\"mOut(this);\\\" title=\\\"Disconnect|Connect\\\"
+        onMouseOut=\\\"mOut(this);\\\" title=\\\"Connect|Disconnect\\\"
         onClick=\\\"parent.fstatus.location.href='/submit?q=%s+%d'\\\"\\>%s\\</TD\\>"
       (match impl.impl_server_state with
         NotConnected _ -> "c"

@@ -1,6 +1,15 @@
 ChangeLog	
 =========
 
+2003/04/15: Simon (v 2.04rc3)
+  - CommonUploads: changed a bad comparison in download_engine
+  - Applied patch #1385, #1387
+  - Bittorrent: 
+     * Fixed a bug that prevented the download from starting in some cases
+     * Any client from which some bytes were downloaded obtains immediatly 
+        an upload slot
+     * Can send several requests at once when enough bw is available
+
 2003/04/14: Simon (v 2.04rc2)
   - Donkey: more accurate when asking for slots
 

@@ -265,33 +265,23 @@ let _ = (
   );
   client_ops.op_client_bprint_html <- (fun c buf file ->
 
-          Printf.bprintf buf "
-\\<td class=\\\"sr br ar\\\"\\>%d\\</TD\\>
-\\<td class=\\\"sr br\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr br ar\\\"\\>%d\\</td\\>   
-\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr ar br\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr br ar\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>" 
-
-	(client_num c)
-	(Sha1.to_string c.client_uid)
-	(Ip.to_string (fst c.client_host))
-	(snd c.client_host)
-	(size_of_int64 c.client_uploaded)
-	(size_of_int64 c.client_downloaded)
-	(if c.client_interested then "T" else "F")
-	(if c.client_chocked then "T" else "F")
-	(Int64.to_string c.client_allowed_to_write)
-
+		html_mods_td buf [
+		("", "sr br ar", Printf.sprintf "%d" (client_num c));
+		("", "sr br", (Sha1.to_string c.client_uid));
+		("", "sr", (Ip.to_string (fst c.client_host)));
+		("", "sr br ar", Printf.sprintf "%d" (snd c.client_host));
+		("", "sr ar", (size_of_int64 c.client_uploaded));
+		("", "sr ar br", (size_of_int64 c.client_downloaded));
+		("", "sr", (if c.client_interested then "T" else "F"));
+		("", "sr", (if c.client_chocked then "T" else "F"));
+		("", "sr br ar", (Int64.to_string c.client_allowed_to_write));
 (* This is way too slow for 1000's of chunks on a page with 100's of sources 
-    (CommonFile.colored_chunks (Array.init (String.length c.client_bitmap)
-       (fun i -> (if c.client_bitmap.[i] = '1' then 2 else 0)) )) 
+		("", "sr", (CommonFile.colored_chunks (Array.init (String.length c.client_bitmap)
+       (fun i -> (if c.client_bitmap.[i] = '1' then 2 else 0)) )) );
 *)
-    (let fc = ref 0 in (String.iter (fun s -> if s = '1' then incr fc) c.client_bitmap );!fc ) 
+		("", "sr ar", (let fc = ref 0 in 
+			(String.iter (fun s -> if s = '1' then incr fc) c.client_bitmap );
+			(Printf.sprintf "%d" !fc) ) ) ];
   );
   client_ops.op_client_dprint <- (fun c o file ->
       let info = file_info file in
@@ -319,37 +309,24 @@ let _ = (
 	  try
         (match client_state cc  with
           Connected_downloading ->  begin
-                    Printf.bprintf buf "
-\\<tr onMouseOver=\\\"mOvr(this);\\\"
-onMouseOut=\\\"mOut(this);\\\" 
-class=\\\"%s\\\"\\>
-\\<td class=\\\"srb ar\\\"\\>%d\\</td\\>
-\\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>%s\\</td\\>
-\\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr\\\"\\>%s\\</td\\>   
-\\<td class=\\\"sr\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
-\\<td class=\\\"sr\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-\\<td class=\\\"sr\\\"\\>%s\\</td\\>
-\\</tr\\>"
-          str
-          (client_num c)
-          (string_of_connection_state (client_state cc))
-          (short_string_of_connection_state (client_state cc))
-		  (Sha1.to_string c.client_uid)
-		  cinfo.GuiTypes.client_name
-          "bT" (* cinfo.GuiTypes.client_software *)
-		  "F" 
-		  (((last_time ()) - cinfo.GuiTypes.client_connect_time) / 60) 
-		  "D"
-		  (Ip.to_string (fst c.client_host))
-          (size_of_int64 c.client_uploaded)
-          (size_of_int64 c.client_downloaded)
-          info.GuiTypes.file_name;
-          true
+			Printf.bprintf buf " \\<tr onMouseOver=\\\"mOvr(this);\\\"
+			onMouseOut=\\\"mOut(this);\\\" class=\\\"%s\\\"\\>" str;
+		
+			html_mods_td buf [
+			("", "srb ar", Printf.sprintf "%d" (client_num c));
+			((string_of_connection_state (client_state cc)), "sr", 
+				(short_string_of_connection_state (client_state cc)));
+			((Sha1.to_string c.client_uid), "sr", cinfo.GuiTypes.client_name);
+			("", "sr", "bT"); (* cinfo.GuiTypes.client_software *)
+			("", "sr", "F");
+			("", "sr ar", Printf.sprintf "%d" 
+				(((last_time ()) - cinfo.GuiTypes.client_connect_time) / 60));
+			("", "sr", "D");
+			("", "sr", (Ip.to_string (fst c.client_host)));
+			("", "sr ar", (size_of_int64 c.client_uploaded));
+			("", "sr ar", (size_of_int64 c.client_downloaded));
+			("", "sr", info.GuiTypes.file_name); ];
+          	true
           end
 		  | _ -> false)
       with _ -> false;

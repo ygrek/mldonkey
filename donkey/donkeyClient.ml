@@ -52,6 +52,7 @@ open DonkeyStats
 open DonkeyTypes  
 open DonkeyReliability
 
+
 module Udp = DonkeyProtoUdp
 
 (* Lifetime of a socket after sending interesting messages *)
@@ -824,7 +825,7 @@ lprint_newline ();
       c.client_slot <- SlotReceived;
       DonkeyOneFile.find_client_block c
   
-  | M.JoinQueueReq _ ->
+  | M.JoinQueueReq _ when not (!!ban_queue_jumpers && c.client_banned) ->
 (*
 (*
       if !!ban_queue_jumpers && c.client_banned then
