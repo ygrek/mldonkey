@@ -84,7 +84,8 @@ open CommonTypes
 let _ =
   network.op_network_is_enabled <- (fun _ -> !!CommonOptions.enable_opennap);
   option_hook enable_opennap (fun _ ->
-      if !!enable_opennap then network_enable network
+      if !CommonOptions.start_running_plugins then
+        if !!enable_opennap then network_enable network
       else network_disable network);
   network.op_network_enable <- enable;
   network.network_config_file <- [opennap_ini];

@@ -187,6 +187,8 @@ let allowed_ips = define_option downloads_ini ["allowed_ips"]
 list separated by spaces, wildcard=255 ie: use 192.168.0.255 for 192.168.0.* "
     (list_option Ip.option) [Ip.of_string "127.0.0.1"]  
   
+let start_running_plugins = ref false
+  
 let enable_server = define_option downloads_expert_ini
     ["enable_server"]
   "Set to true if you also want mldonkey to run as a server (experimental)"

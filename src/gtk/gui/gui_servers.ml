@@ -92,7 +92,8 @@ let filter_disconnected_servers = ref true
 
 let is_filtered s =
   (!filter_disconnected_servers && (match s.server_state with
-        NotConnected _ -> true | _ -> false)) ||
+        NotConnected _ 
+      | NewHost -> true | _ -> false)) ||
   List.memq s.server_network !G.networks_filtered
 
 class box columns users wl_status =

@@ -82,6 +82,7 @@ let enable () =
 let _ =
   network.op_network_is_enabled <- (fun _ -> !!CommonOptions.enable_bittorrent);
   option_hook enable_bittorrent (fun _ ->
+      if !CommonOptions.start_running_plugins then
       if !!enable_bittorrent then network_enable network
       else network_disable network);
 (*

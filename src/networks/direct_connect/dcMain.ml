@@ -79,7 +79,8 @@ let enable () =
 let _ =
   network.op_network_is_enabled <- (fun _ -> !!CommonOptions.enable_directconnect);
   option_hook enable_directconnect (fun _ ->
-      if !!enable_directconnect then network_enable network
+      if !CommonOptions.start_running_plugins then
+        if !!enable_directconnect then network_enable network
       else network_disable network);
 (*  
   network.op_network_save_simple_options <- DcComplexOptions.save_config;

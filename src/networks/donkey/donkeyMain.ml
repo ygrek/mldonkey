@@ -43,8 +43,9 @@ open CommonGlobals
 let _ =
   network.op_network_is_enabled <- (fun _ -> !!enable_donkey);
   option_hook enable_donkey (fun _ ->
-      if !!enable_donkey then network_enable network
-      else network_disable network);
+      if !CommonOptions.start_running_plugins then
+        if !!enable_donkey then network_enable network
+        else network_disable network);
   network.network_config_file <- [
     donkey_ini; donkey_expert_ini]
 

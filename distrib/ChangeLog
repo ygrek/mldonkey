@@ -1,6 +1,13 @@
 ChangeLog	
 =========
 
+2003/05/24: Simon  (release-2-4-6)
+  - Mac OS X:
+      * Fixed a compilation problem
+  - GUI:
+      * Fixed the problem with servers appearing as New Hosts
+  - PLugins initialized in the correct order (no downloads restarted at 0%)
+
 2003/05/23: Simon  (release-2-4-5)
   - Fasttrack:
       * Ask for a range only after the connection has succeeded

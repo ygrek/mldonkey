@@ -320,9 +320,9 @@ let find_sources_in_groups c md4 =
                   let list = ref [] in
                   UdpClientMap.iter (fun _ uc ->
                       match ip_reliability uc.udp_client_ip with
-			Reliability_reliable | Reliability_neutral ->
-			  list := (uc.udp_client_ip, uc.udp_client_port, uc.udp_client_ip) :: !list
-		      | Reliability_suspicious _ -> ()
+                        Reliability_reliable | Reliability_neutral ->
+                          list := (uc.udp_client_ip, uc.udp_client_port, uc.udp_client_ip) :: !list
+                      | Reliability_suspicious _ -> ()
                   ) group.group;
                   if !list <> [] then begin
                       if !verbose_src_prop then begin
@@ -948,10 +948,10 @@ lprint_newline ();
             else
             if Array.length t.Q.chunks <> file.file_nchunks then begin
                 lprintf "BAD BAD BAD: number of chunks is different %d/%d for %s:%Ld on peer\n" (Array.length t.Q.chunks) file.file_nchunks (Md4.to_string file.file_md4) (file_size file);
-                lprintf "Peer info: name=[%s] md4=[%s] overnet=[%b] brand=[%s]\n" 
+                lprintf "Peer info: name=[%s] md4=[%s] overnet=[%s] brand=[%s]\n" 
                   c.client_name
                   (Md4.to_string c.client_md4)
-                c.client_overnet
+                (string_of_bool c.client_overnet)
                 (brand_to_string c.client_brand)
                 ;
                 Array.create file.file_nchunks false

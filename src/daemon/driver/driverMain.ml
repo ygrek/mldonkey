@@ -373,6 +373,7 @@ let _ =
         (if network_is_enabled r then "enabled" else "disabled");
       );  
   networks_iter (fun r -> network_enable r);
+  CommonOptions.start_running_plugins := true;
   CommonInteractive.force_download_quotas ();
   
   add_infinite_option_timer save_options_delay (fun timer ->

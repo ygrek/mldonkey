@@ -121,7 +121,8 @@ let enable () =
 let _ =
   network.op_network_is_enabled <- (fun _ -> !!CommonOptions.enable_fasttrack);
   option_hook enable_fasttrack (fun _ ->
-      if !!enable_fasttrack then network_enable network
+      if !CommonOptions.start_running_plugins then
+        if !!enable_fasttrack then network_enable network
       else network_disable network);
   network.op_network_save_complex_options <- FasttrackComplexOptions.save_config;
   network.op_network_enable <- enable;

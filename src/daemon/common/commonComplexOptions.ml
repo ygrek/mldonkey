@@ -548,7 +548,7 @@ let server_add impl =
   if impl.impl_server_state = NewHost then begin
       server_update_num impl;
       servers =:= Intmap.add (server_num server) server !!servers;
-      impl.impl_server_state <- NewHost
+      impl.impl_server_state <- NotConnected (BasicSocket.Closed_by_user, -1);
     end
 
 let contacts = ref []

@@ -88,8 +88,9 @@ let _ =
   network.op_network_is_enabled <- (
     fun _ -> !!CommonOptions.enable_audiogalaxy);
   option_hook enable_audiogalaxy (fun _ ->
-      if !!enable_audiogalaxy then network_enable network
-      else network_disable network);
+      if !start_running_servers then
+        if !!enable_audiogalaxy then network_enable network
+        else network_disable network);
       
   (*
   network.op_network_save_simple_options <- AgOptions.save_config;

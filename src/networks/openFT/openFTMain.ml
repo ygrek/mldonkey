@@ -77,7 +77,8 @@ let enable () =
 let _ =
   network.op_network_is_enabled <- (fun _ -> !!CommonOptions.enable_openft);
   option_hook enable_ (fun _ ->
-      if !!enable_ then network_enable network
+      if !CommonOptions.start_running_servers then
+        if !!enable_ then network_enable network
       else network_disable network);
 (*
   network.op_network_save_simple_options <- OpenFTComplexOptions.save_config;
