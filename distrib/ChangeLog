@@ -1,6 +1,16 @@
 ChangeLog	
 =========
 
+2003/04/14: Simon (v 2.04rc1-16)
+  - Donkey: more accurate when asking for slots
+
+2003/04/13: Simon
+  - Applied patches #1377, #1379 and #1382 
+  - BitTorrent:
+     * File Pause/Resume
+     * More checks to detect download termination
+  - Limewire plugin renamed to Gnutella
+
 2003/04/08: Simon  (v 2.04rc1-15)
   - Applied patch #1372 (= #1373 I hope)
   - Tiger: try to prevent Bus Error bugs on Solaris by aligning the buffer
