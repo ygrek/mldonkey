@@ -88,6 +88,18 @@ let (++) = Int64.add
 let (--) = Int64.sub
       
 
+let check_finished file = 
+  if file_state file <> FileDownloaded then begin
+      let bitmap = Int64Swarmer.verified_bitmap file.file_partition in
+      for i = 0 to String.length bitmap - 1 do
+        if bitmap.[i] <> '3' then raise Not_found;
+      done;  
+      if (file_size file <> Int64Swarmer.downloaded file.file_swarmer)
+      then
+        lprintf "Downloaded size differs after complete verification\n";
+      download_finished file
+    end
+    
 let bits = [| 128; 64; 32;16;8;4;2;1 |]
 
 
@@ -188,27 +200,28 @@ let rec client_parse_header counter cc init_sent gconn sock
       raise e
 
 and get_from_client sock (c: client) =
-  if List.length c.client_ranges < max_range_requests then 
-    let file = c.client_file in
-    if !verbose_msg_clients then begin
-        lprintf "CLIENT %d: Finding new range to send\n" (client_num c);
-      end;
-    
-    if !verbose_swarming then begin
-        lprintf "Current download:\n  Current chunks: "; 
-        List.iter (fun (x,y) -> lprintf "%Ld-%Ld " x y) c.client_chunks;
-        lprintf "\n  Current ranges: ";
-        List.iter (fun r ->
-            let (x,y) = Int64Swarmer.range_range r 
-            in
-            lprintf "%Ld-%Ld " x y) c.client_ranges;
-        lprintf "\n  Current block: ";
-        (match c.client_block with
-            None -> lprintf "none\n"
-          | Some b -> Int64Swarmer.print_block b);
-        lprintf "\n\nFinding Range: \n";
-      end;
+  let file = c.client_file in
+  if List.length c.client_ranges < max_range_requests && 
+    file_state file = FileDownloading then 
     let num, x,y, r = 
+      if !verbose_msg_clients then begin
+          lprintf "CLIENT %d: Finding new range to send\n" (client_num c);
+        end;
+      
+      if !verbose_swarming then begin
+          lprintf "Current download:\n  Current chunks: "; 
+          List.iter (fun (x,y) -> lprintf "%Ld-%Ld " x y) c.client_chunks;
+          lprintf "\n  Current ranges: ";
+          List.iter (fun r ->
+              let (x,y) = Int64Swarmer.range_range r 
+              in
+              lprintf "%Ld-%Ld " x y) c.client_ranges;
+          lprintf "\n  Current block: ";
+          (match c.client_block with
+              None -> lprintf "none\n"
+            | Some b -> Int64Swarmer.print_block b);
+          lprintf "\n\nFinding Range: \n";
+        end;
       try
         let rec iter () =
           match c.client_block with
@@ -250,16 +263,8 @@ and get_from_client sock (c: client) =
       with Not_found -> 
           if !verbose_swarming then
             lprintf "Unable to get a block !!\n";
-          
-          let bitmap = Int64Swarmer.verified_bitmap file.file_partition in
-          for i = 0 to String.length bitmap - 1 do
-            if bitmap.[i] <> '3' then raise Not_found;
-          done;
-          
-          if (file_size file <> Int64Swarmer.downloaded file.file_swarmer)
-          then
-            lprintf "Downloaded size differs after complete verification\n";
-          download_finished file;
+          check_finished file
+          ;
           raise Not_found
     in
     send_client c (Request (num,x,y));
@@ -268,16 +273,16 @@ and get_from_client sock (c: client) =
         (client_num c)
       (Sha1.to_string c.client_uid) 
       x y
-      
+
 and client_to_client c sock msg = 
   if !verbose_msg_clients then begin
       let (timeout, next) = get_rtimeout sock in
       lprintf "CLIENT %d: (%d, %d,%d) Received " 
         (client_num c)
       (last_time ())
-        (int_of_float timeout)
+      (int_of_float timeout)
       (int_of_float next);
-        bt_print msg;
+      bt_print msg;
     end;
   
   let file = c.client_file in
@@ -300,54 +305,56 @@ and client_to_client c sock msg =
         
         set_lifetime sock 3600.;
         set_client_state c Connected_downloading;
-        let file = c.client_file in
-        let position = offset ++ file.file_piece_size ** num in
         
-        if !verbose_msg_clients then 
-          (match c.client_ranges with
-              [] -> lprintf "EMPTY Ranges !!!\n"
-            | r :: _ -> 
-                let (x,y) = Int64Swarmer.range_range r in
-                lprintf "Current range %Ld [%d] (%Ld-%Ld)\n"
-                  position len
-                  x y 
-          );
-        
-        let old_downloaded = 
-          Int64Swarmer.downloaded file.file_swarmer in
-        List.iter Int64Swarmer.free_range c.client_ranges;      
-        Int64Swarmer.received file.file_swarmer
-          position s pos len;
-        List.iter Int64Swarmer.alloc_range c.client_ranges;
-        let new_downloaded = 
-          Int64Swarmer.downloaded file.file_swarmer in
-        
-        c.client_downloaded <- c.client_downloaded ++ (Int64.of_int len);
-        
-        if !verbose_msg_clients then 
-          (match c.client_ranges with
-              [] -> lprintf "EMPTY Ranges !!!\n"
-            | r :: _ -> 
-                let (x,y) = Int64Swarmer.range_range r in
-                lprintf "Received %Ld [%d] (%Ld-%Ld) -> %Ld\n"
-                  position len
-                  x y 
-                  (new_downloaded -- old_downloaded)
-          );
-        
-        
-        if new_downloaded <> old_downloaded then
-          add_file_downloaded file.file_file 
-            (new_downloaded -- old_downloaded);
-        begin
-          match c.client_ranges with
-            [] -> ()
-          | r :: tail ->
-              Int64Swarmer.free_range r;
-              c.client_ranges <- tail;
-        end;
-        get_from_client sock c
-        
+        if file_state file = FileDownloading then
+          let file = c.client_file in
+          let position = offset ++ file.file_piece_size ** num in
+          
+          if !verbose_msg_clients then 
+            (match c.client_ranges with
+                [] -> lprintf "EMPTY Ranges !!!\n"
+              | r :: _ -> 
+                  let (x,y) = Int64Swarmer.range_range r in
+                  lprintf "Current range %Ld [%d] (%Ld-%Ld)\n"
+                    position len
+                    x y 
+            );
+          
+          let old_downloaded = 
+            Int64Swarmer.downloaded file.file_swarmer in
+          List.iter Int64Swarmer.free_range c.client_ranges;      
+          Int64Swarmer.received file.file_swarmer
+            position s pos len;
+          List.iter Int64Swarmer.alloc_range c.client_ranges;
+          let new_downloaded = 
+            Int64Swarmer.downloaded file.file_swarmer in
+          
+          c.client_downloaded <- c.client_downloaded ++ (Int64.of_int len);
+          
+          if !verbose_msg_clients then 
+            (match c.client_ranges with
+                [] -> lprintf "EMPTY Ranges !!!\n"
+              | r :: _ -> 
+                  let (x,y) = Int64Swarmer.range_range r in
+                  lprintf "Received %Ld [%d] (%Ld-%Ld) -> %Ld\n"
+                    position len
+                    x y 
+                    (new_downloaded -- old_downloaded)
+            );
+          
+          
+          if new_downloaded <> old_downloaded then
+            add_file_downloaded file.file_file 
+              (new_downloaded -- old_downloaded);
+          begin
+            match c.client_ranges with
+              [] -> ()
+            | r :: tail ->
+                Int64Swarmer.free_range r;
+                c.client_ranges <- tail;
+          end;
+          get_from_client sock c
+          
     | BitField p ->
         let file = c.client_file in
         let npieces = Int64Swarmer.partition_size file.file_partition in
@@ -547,14 +554,6 @@ let get_file_from_source c file =
       connection_try c.client_connection_control;
       connect_client c
     end
-
-let ask_for_files () =
-  List.iter (fun file ->
-      Hashtbl.iter (fun _ c ->
-          get_file_from_source c file
-      ) file.file_clients
-  ) !current_files;
-  ()
   
   
 let send_pings () =
@@ -645,9 +644,20 @@ let connect_tracker file url =
       } in
     H.wget r f
     
+let file_resume file =
+  Hashtbl.iter (fun _ c ->
+      match c.client_sock with 
+        None ->
+          (try get_file_from_source c file with _ -> ())
+      | Some sock -> get_from_client sock c
+  ) file.file_clients;
+  (try connect_tracker file file.file_tracker  with _ -> ())
+
 let recover_files () =
   List.iter (fun file ->
-      connect_tracker file file.file_tracker 
+      check_finished file;
+      if file_state file = FileDownloading then 
+        file_resume file
   ) !current_files
 
 let upload_buffer = String.create 100000
@@ -681,6 +691,8 @@ let client_can_upload c allowed =
   
 let _ =
   client_ops.op_client_can_upload <- client_can_upload;
+  file_ops.op_file_resume <- file_resume;
+  file_ops.op_file_pause <- (fun _ -> ());
   client_ops.op_client_enter_upload_queue <- (fun c ->
       if !verbose_msg_clients then
         lprintf "CLIENT %d: client_enter_upload_queue\n" (client_num c);

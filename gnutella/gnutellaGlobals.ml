@@ -530,4 +530,4 @@ let remove_file file =
     List.iter (fun uid ->
         Hashtbl.remove files_by_uid uid
     ) file.file_uids;
-  current_files := List2.removeq file !current_files
+  current_files := List2.removeq file !current_files  

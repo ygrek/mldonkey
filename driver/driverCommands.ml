@@ -379,7 +379,7 @@ let commands = [
                     Options.set_simple_option expert_ini "html_mods_style" "1";
                     CommonMessages.colour_changer ();
                   end
-              | 0 | 2 | 3 | 4 -> begin
+              | 0 | 2 | 3 | 4 | 5 -> begin
                     Options.set_simple_option expert_ini "commands_frame_height" "80";
                     Options.set_simple_option expert_ini "html_mods_style" (Printf.sprintf "%d" num);
                     CommonMessages.colour_changer ();
@@ -1623,7 +1623,14 @@ formID.msgText.value=\\\"\\\";
         let url = String2.unsplit args ' ' in
         
         if not (networks_iter_until_true
-              (fun n -> network_parse_url n url)) then
+              (fun n -> 
+                try 
+                  network_parse_url n url
+                with e ->
+                    Printf.bprintf buf "Exception %s for network %s\n"
+                      (Printexc2.to_string e) (n.network_name);
+                    false
+            )) then
           "Unable to match URL"
         else
           "Done"
@@ -1690,25 +1697,21 @@ formID.msgText.value=\\\"\\\";
                           
                           client_print_html c o;
                           
-                          begin
-                            match i.client_kind with
-                              Known_location (ip,_) -> Printf.bprintf buf "\\<td
-                        class=\\\"sr\\\"\\>%s\\</td\\>\\<td
-                        class=\\\"sr ar\\\"\\>%d\\</td\\>\\<td
-                        class=\\\"sr\\\"\\>%s\\</td\\>" 
-                                  (Ip.to_string ip)
-                                (((last_time ()) - i.client_connect_time) / 60)
-                                i.client_software
-                            | _ -> Printf.bprintf buf "\\<td
-                        class=\\\"sr\\\"\\>\\</td\\>
-                        \\<td class=\\\"sr\\\"\\>\\</td\\> 
-                        \\<td class=\\\"sr\\\"\\>\\</td\\>" 
-                          end;
+                      	Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>"
+                        (try 
+                          (match i.client_kind with
+                              Known_location (ip,_) -> Ip.to_string ip
+                            | _ -> i.client_sock_addr)
+                        with _ -> "");
                           
-                          Printf.bprintf buf "\\<td
-                        class=\\\"sr ar\\\"\\>%s\\</td\\>\\<td
+                         Printf.bprintf buf "\\<td
+                        class=\\\"sr\\\"\\>%d\\</td\\>\\<td 
+						class=\\\"sr\\\"\\>%s\\</td\\>\\<td 
+						class=\\\"sr ar\\\"\\>%s\\</td\\>\\<td
                         class=\\\"sr ar\\\"\\>%s\\</td\\>" 
-                            (size_of_int64 i.client_downloaded) 
+                          (((last_time ()) - i.client_connect_time) / 60)
+                          i.client_software
+                          (size_of_int64 i.client_downloaded) 
                           (size_of_int64 i.client_uploaded);
                           
                           Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>\n" 
@@ -1769,7 +1772,7 @@ formID.msgText.value=\\\"\\\";
                           
                           (  match i.client_kind with
                               Known_location (ip,_) -> Ip.to_string ip
-                            | _ -> "")
+                            | _ -> i.client_sock_addr)
                         
                         with _ -> ""
                       );

@@ -63,14 +63,10 @@ let enable () =
 *)
 
   
-  BTClients.ask_for_files ();
   BTClients.recover_files ();  
   add_session_timer enabler 60.0 (fun timer ->
-      BTClients.ask_for_files ();
+      BTClients.recover_files ();
       BTClients.send_pings ());
-  
-  add_session_timer enabler 60.0 (fun timer ->
-      BTClients.recover_files ());
   
   BTClients.listen ();
   ()

@@ -476,7 +476,7 @@ and check_file_block c file i max_clients force =
     end
     
 and start_download c =
-  if not c.client_asked_for_slot then begin
+  if c.client_slot = SlotNotAsked then begin
       if !verbose_download then begin
           lprintf "start_download...\n"; 
         end;
@@ -492,7 +492,7 @@ and start_download c =
                 let module M = DonkeyProtoClient in
                 let module Q = M.JoinQueue in
                 M.JoinQueueReq Q.t);                        
-              c.client_asked_for_slot <- true;
+              c.client_slot <- SlotAsked;
               
               restart_download c
     end

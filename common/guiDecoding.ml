@@ -477,6 +477,7 @@ let get_client proto s pos =
     client_uploaded = zero;
     client_downloaded = zero;
     client_upload = None;
+	client_sock_addr = "";
   }, pos
 
 let get_network s pos =

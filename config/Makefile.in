@@ -43,7 +43,8 @@ INCLUDES += $(foreach file, $(SUBDIRS), -I $(file))
 
 CFLAGS:=$(CFLAGS) $(CONFIG_INCLUDES)
 
-TARGETS= use_tags$(EXE) mlnet$(EXE) 
+# use_tags$(EXE) 
+TARGETS= mlnet$(EXE) 
 
 
 #######################################################################
@@ -262,17 +263,23 @@ OPENNAP_SRCS=opennap/napigator.mll \
  opennap/opennapInteractive.ml \
  opennap/opennapMain.ml 
 
-LIMEWIRE_SRCS= \
-  limewire/limewireTypes.ml \
-  limewire/limewireOptions.ml \
-  limewire/limewireGlobals.ml \
-  limewire/limewireComplexOptions.ml \
-  limewire/gnutella2.ml \
-  limewire/limewireProtocol.ml \
-  limewire/limewireClients.ml \
-  limewire/limewireServers.ml \
-  limewire/limewireInteractive.ml \
-  limewire/limewireMain.ml
+GNUTELLA_SRCS= \
+  gnutella/gnutellaTypes.ml \
+  gnutella/gnutellaOptions.ml \
+  gnutella/gnutellaGlobals.ml \
+  gnutella/gnutellaComplexOptions.ml \
+  gnutella/gnutellaProtocol.ml \
+  gnutella/gnutella1.ml \
+  gnutella/gnutella2.ml \
+  gnutella/gnutella.ml \
+  gnutella/gnutellaClients.ml \
+  gnutella/gnutella1Handler.ml \
+  gnutella/gnutella2Handler.ml \
+  gnutella/gnutella1Redirector.ml \
+  gnutella/gnutella2Redirector.ml \
+  gnutella/gnutellaServers.ml \
+  gnutella/gnutellaInteractive.ml \
+  gnutella/gnutellaMain.ml
 
 BITTORRENT_SRCS= \
   bittorrent/bencode.ml \
@@ -573,10 +580,10 @@ $1_OBJS=$(foreach file, $($1_C),   $(basename $(file)).o)
 TMPSOURCES += $($1_ML4:.ml4=.ml) $($1_MLL:.mll=.ml) $($1_MLY:.mly=.ml) $($1_MLY:.mly=.mli) $($1_ZOG:.zog=.ml) 
  
 $2.cmxa: $($1_OBJS) $($1_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $[[@]]  $($1_OBJS) $(LIBS_flags) $($3_LIBS_flags) $($1_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o build/$[[@]]  $($1_OBJS) $(LIBS_flags) $($3_LIBS_flags) $($1_CMXS) 
  
 $2.cma: $($1_OBJS) $($1_CMOS) 
-	$(OCAMLC) -a -o $[[@]]  $($1_OBJS) $(LIBS_flags) $($3_LIBS_flags) $($1_CMOS) 
+	$(OCAMLC) -a -o build/$[[@]]  $($1_OBJS) $(LIBS_flags) $($3_LIBS_flags) $($1_CMOS) 
  
 ]])
 
@@ -612,7 +619,7 @@ $1+gui_SRCS= $(MAIN_SRCS)
 
 EXPAND_DRIVER(mldc,DIRECT_CONNECT,direct_connect)
 EXPAND_DRIVER(mlnap,OPENNAP,opennap)
-EXPAND_DRIVER(mlgnut,LIMEWIRE,limewire)
+EXPAND_DRIVER(mlgnut,GNUTELLA,gnutella)
 EXPAND_DRIVER(mlbt,BITTORRENT,bittorrent)
 EXPAND_DRIVER(mldonkey,DONKEY,donkey)
 EXPAND_DRIVER(mlslsk,SOULSEEK,soulseek)
@@ -676,13 +683,13 @@ $1_CMAS=$(foreach file, $($1_CMXAS),   $(basename $(file)).cma)
 TMPSOURCES += $($1_ML4:.ml4=.ml) $($1_MLL:.mll=.ml) $($1_MLY:.mly=.ml) $($1_MLY:.mly=.mli) $($1_ZOG:.zog=.ml) 
  
 $2: $($1_OBJS) $($1_CMXS) $($1_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $[[@]]  $($1_OBJS) $(LIBS_opt) $(LIBS_flags) $($3_LIBS_opt) $($3_LIBS_flags) $($1_CMXAS) $($1_CMXS) 
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $[[@]]  $($1_OBJS) $(LIBS_opt) $(LIBS_flags) $($3_LIBS_opt) $($3_LIBS_flags) -I build $($1_CMXAS) $($1_CMXS) 
  
 $2.byte: $($1_OBJS) $($1_CMOS)  $($1_CMAS)
-	$(OCAMLC) -linkall -o $[[@]]  $($1_OBJS) $(LIBS_byte) $(LIBS_flags)  $($3_LIBS_byte) $($3_LIBS_flags) $($1_CMAS) $($1_CMOS) 
+	$(OCAMLC) -linkall -o $[[@]]  $($1_OBJS) $(LIBS_byte) $(LIBS_flags)  $($3_LIBS_byte) $($3_LIBS_flags) -I build $($1_CMAS) $($1_CMOS) 
  
 $2.static:  $($1_OBJS) $($1_CMXS)  $($1_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $[[@]] $($1_OBJS) $(LIBS_opt) $(LIBS_flags)  $($3_LIBS_flags)  $($3_STATIC_LIBS_opt) $($1_CMXAS) $($1_CMXS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $[[@]] $($1_OBJS) $(LIBS_opt) $(LIBS_flags)  $($3_LIBS_flags)  $($3_STATIC_LIBS_opt) -I build $($1_CMXAS) $($1_CMXS)
 ]])
 
 EXPAND(mldonkey,mldonkey,NO,mldonkey)
@@ -734,7 +741,7 @@ TOP_CMAS=$(foreach file, $(TOP_CMXAS),   $(basename $(file)).cma)
 TMPSOURCES += $(TOP_ML4:.ml4=.ml) $(TOP_MLL:.mll=.ml) $(TOP_MLY:.mly=.ml) $(TOP_MLY:.mly=.mli) $(TOP_ZOG:.zog=.ml) 
  
 mldonkeytop: $(TOP_OBJS) $(TOP_CMOS) $(TOP_CMAS)
-	ocamlmktop -linkall $(PLUGIN_FLAG) -o $@  $(TOP_OBJS) $(LIBS_byte) $(LIBS_flags) $(_LIBS_byte) $(_LIBS_flags) $(TOP_CMAS) $(TOP_CMOS) 
+	ocamlmktop -linkall $(PLUGIN_FLAG) -o $@  $(TOP_OBJS) $(LIBS_byte) $(LIBS_flags) $(_LIBS_byte) $(_LIBS_flags) -I build $(TOP_CMAS) $(TOP_CMOS) 
  
 
 
@@ -800,6 +807,7 @@ zogml:
 
 clean: 
 	rm -f *.cm? donkey_* *.byte *.cm?? $(TARGETS) *~ *.o core *.static *.a
+	rm -f build/*.a build/*.cma build/*.cmxa
 	rm -f *_plugin
 	rm -f mldonkey mldonkey_gui
 	(for i in $(SUBDIRS); do \

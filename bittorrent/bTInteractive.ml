@@ -30,11 +30,13 @@ open CommonTypes
 open CommonComplexOptions
 open CommonFile
 open CommonSwarming
+open CommonInteractive
 open Options
 open BTTypes
 open BTOptions
 open BTGlobals
 open BTComplexOptions
+open BasicSocket
 
 open BTProtocol
 
@@ -230,7 +232,7 @@ let _ =
         false
   )
   
-let _ =
+let _ = (
   client_ops.op_client_info <- (fun c ->
       let (ip,port) = c.client_host in
       let id = c.client_uid in
@@ -251,6 +253,105 @@ let _ =
         P.client_downloaded = c.client_downloaded;
         P.client_uploaded = c.client_uploaded;
         P.client_upload = None;
+	    P.client_sock_addr = (Ip.to_string ip);
       }
+  );
+  client_ops.op_client_bprint <- (fun c buf ->
+	  let cc = as_client c in
+	  let cinfo = client_info cc in
+		Printf.bprintf buf "%s (%s)\n" 
+			cinfo.GuiTypes.client_name
+			(Sha1.to_string c.client_uid)
+  );
+  client_ops.op_client_bprint_html <- (fun c buf file ->
+
+          Printf.bprintf buf "
+\\<td class=\\\"sr br ar\\\"\\>%d\\</TD\\>
+\\<td class=\\\"sr br\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr br ar\\\"\\>%d\\</td\\>   
+\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr ar br\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr br ar\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>" 
+
+	(client_num c)
+	(Sha1.to_string c.client_uid)
+	(Ip.to_string (fst c.client_host))
+	(snd c.client_host)
+	(size_of_int64 c.client_uploaded)
+	(size_of_int64 c.client_downloaded)
+	(if c.client_interested then "T" else "F")
+	(if c.client_chocked then "T" else "F")
+	(Int64.to_string c.client_allowed_to_write)
+
+(* This is way too slow for 1000's of chunks on a page with 100's of sources 
+    (CommonFile.colored_chunks (Array.init (String.length c.client_bitmap)
+       (fun i -> (if c.client_bitmap.[i] = '1' then 2 else 0)) )) 
+*)
+    (let fc = ref 0 in (String.iter (fun s -> if s = '1' then incr fc) c.client_bitmap );!fc ) 
+  );
+  client_ops.op_client_dprint <- (fun c o file ->
+      let info = file_info file in
+      let buf = o.conn_buf in
+	  let cc = as_client c in
+	  let cinfo = client_info cc in
+		try
+        (match client_state cc  with
+          Connected_downloading ->  begin
+            client_print cc o;
+            Printf.bprintf buf "client: %s downloaded: %s uploaded: %s"
+          	"bT" (* cinfo.GuiTypes.client_software *)
+            (Int64.to_string c.client_downloaded)
+            (Int64.to_string c.client_uploaded);
+            Printf.bprintf buf "\nfilename: %s\n\n" info.GuiTypes.file_name;
+                  end;
+		  | _ -> ())
+          with _ -> ()
+  );
+  client_ops.op_client_dprint_html <- (fun c o file str ->
+      let info = file_info file in
+      let buf = o.conn_buf in
+	  let cc = as_client c in
+	  let cinfo = client_info cc in
+	  try
+        (match client_state cc  with
+          Connected_downloading ->  begin
+                    Printf.bprintf buf "
+\\<tr onMouseOver=\\\"mOvr(this);\\\"
+onMouseOut=\\\"mOut(this);\\\" 
+class=\\\"%s\\\"\\>
+\\<td class=\\\"srb ar\\\"\\>%d\\</td\\>
+\\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>%s\\</td\\>
+\\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr\\\"\\>%s\\</td\\>   
+\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
+\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+\\</tr\\>"
+          str
+          (client_num c)
+          (string_of_connection_state (client_state cc))
+          (short_string_of_connection_state (client_state cc))
+		  (Sha1.to_string c.client_uid)
+		  cinfo.GuiTypes.client_name
+          "bT" (* cinfo.GuiTypes.client_software *)
+		  "F" 
+		  (((last_time ()) - cinfo.GuiTypes.client_connect_time) / 60) 
+		  "D"
+		  (Ip.to_string (fst c.client_host))
+          (size_of_int64 c.client_uploaded)
+          (size_of_int64 c.client_downloaded)
+          info.GuiTypes.file_name;
+          true
+          end
+		  | _ -> false)
+      with _ -> false;
   )
-  
+)

@@ -762,7 +762,7 @@ let display_file_list buf o =
                 if stalled f2 then true else
                   f1.file_download_rate >= f2.file_download_rate
             )
-        | ByName -> (fun f1 f2 -> f1.file_name <= f2.file_name)
+        | ByName -> (fun f1 f2 -> String.lowercase f1.file_name <= String.lowercase f2.file_name)
         | ByDone -> (fun f1 f2 -> f1.file_downloaded >= f2.file_downloaded)
 	| ByPriority -> (fun f1 f2 -> f1.file_priority >= f2.file_priority)
         | ByPercent -> (fun f1 f2 -> percent f1 >= percent f2)

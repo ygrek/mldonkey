@@ -402,7 +402,7 @@ let parse_donkey_url url =
   | "ed2k://" :: "file" :: name :: size :: md4 :: _
   | "file" :: name :: size :: md4 :: _ ->
       let md4 = if String.length md4 > 32 then
-        String.sub md4 0 32 else md4 in
+          String.sub md4 0 32 else md4 in
       query_download [name] (Int64.of_string size)
       (Md4.of_string md4) None None None false;
       true
@@ -419,9 +419,9 @@ let parse_donkey_url url =
       let c = new_client (Known_location (ip,port)) in
       friend_add c;
       true
-
-  | _ -> false
-
+  
+  | _ ->  false
+      
 let commands = [
     "n", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
@@ -864,6 +864,11 @@ let _ =
         P.client_software = gbrand_to_string c.client_brand;
         P.client_downloaded = c.client_downloaded;
         P.client_uploaded = c.client_uploaded;
+		P.client_sock_addr = 
+		(try match c.client_sock with
+          Some sock -> (Ip.to_string (peer_ip sock)) 
+        | None -> ""
+		with _ -> "");
         P.client_upload = 
         (match c.client_upload with
             Some cu -> Some (file_best_name cu.up_file)

@@ -346,6 +346,7 @@ let _ =
         P.client_downloaded = zero;
         P.client_uploaded = zero;
         P.client_upload = None;
+		P.client_sock_addr = "";
       }
   );
   client_ops.op_client_browse <- (fun c immediate ->

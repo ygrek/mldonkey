@@ -43,7 +43,8 @@ INCLUDES += $(foreach file, $(SUBDIRS), -I $(file))
 
 CFLAGS:=$(CFLAGS) $(CONFIG_INCLUDES)
 
-TARGETS= use_tags$(EXE) mlnet$(EXE) 
+# use_tags$(EXE) 
+TARGETS= mlnet$(EXE) 
 
 
 #######################################################################
@@ -262,17 +263,23 @@ OPENNAP_SRCS=opennap/napigator.mll \
  opennap/opennapInteractive.ml \
  opennap/opennapMain.ml 
 
-LIMEWIRE_SRCS= \
-  limewire/limewireTypes.ml \
-  limewire/limewireOptions.ml \
-  limewire/limewireGlobals.ml \
-  limewire/limewireComplexOptions.ml \
-  limewire/gnutella2.ml \
-  limewire/limewireProtocol.ml \
-  limewire/limewireClients.ml \
-  limewire/limewireServers.ml \
-  limewire/limewireInteractive.ml \
-  limewire/limewireMain.ml
+GNUTELLA_SRCS= \
+  gnutella/gnutellaTypes.ml \
+  gnutella/gnutellaOptions.ml \
+  gnutella/gnutellaGlobals.ml \
+  gnutella/gnutellaComplexOptions.ml \
+  gnutella/gnutellaProtocol.ml \
+  gnutella/gnutella1.ml \
+  gnutella/gnutella2.ml \
+  gnutella/gnutella.ml \
+  gnutella/gnutellaClients.ml \
+  gnutella/gnutella1Handler.ml \
+  gnutella/gnutella2Handler.ml \
+  gnutella/gnutella1Redirector.ml \
+  gnutella/gnutella2Redirector.ml \
+  gnutella/gnutellaServers.ml \
+  gnutella/gnutellaInteractive.ml \
+  gnutella/gnutellaMain.ml
 
 BITTORRENT_SRCS= \
   bittorrent/bencode.ml \
@@ -598,10 +605,10 @@ DIRECT_CONNECT_OBJS=$(foreach file, $(DIRECT_CONNECT_C),   $(basename $(file)).o
 TMPSOURCES += $(DIRECT_CONNECT_ML4:.ml4=.ml) $(DIRECT_CONNECT_MLL:.mll=.ml) $(DIRECT_CONNECT_MLY:.mly=.ml) $(DIRECT_CONNECT_MLY:.mly=.mli) $(DIRECT_CONNECT_ZOG:.zog=.ml) 
  
 mldc.cmxa: $(DIRECT_CONNECT_OBJS) $(DIRECT_CONNECT_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(DIRECT_CONNECT_OBJS) $(LIBS_flags) $(_LIBS_flags) $(DIRECT_CONNECT_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o build/$@  $(DIRECT_CONNECT_OBJS) $(LIBS_flags) $(_LIBS_flags) $(DIRECT_CONNECT_CMXS) 
  
 mldc.cma: $(DIRECT_CONNECT_OBJS) $(DIRECT_CONNECT_CMOS) 
-	$(OCAMLC) -a -o $@  $(DIRECT_CONNECT_OBJS) $(LIBS_flags) $(_LIBS_flags) $(DIRECT_CONNECT_CMOS) 
+	$(OCAMLC) -a -o build/$@  $(DIRECT_CONNECT_OBJS) $(LIBS_flags) $(_LIBS_flags) $(DIRECT_CONNECT_CMOS) 
  
 
 
@@ -645,10 +652,10 @@ OPENNAP_OBJS=$(foreach file, $(OPENNAP_C),   $(basename $(file)).o)
 TMPSOURCES += $(OPENNAP_ML4:.ml4=.ml) $(OPENNAP_MLL:.mll=.ml) $(OPENNAP_MLY:.mly=.ml) $(OPENNAP_MLY:.mly=.mli) $(OPENNAP_ZOG:.zog=.ml) 
  
 mlnap.cmxa: $(OPENNAP_OBJS) $(OPENNAP_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(OPENNAP_OBJS) $(LIBS_flags) $(_LIBS_flags) $(OPENNAP_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o build/$@  $(OPENNAP_OBJS) $(LIBS_flags) $(_LIBS_flags) $(OPENNAP_CMXS) 
  
 mlnap.cma: $(OPENNAP_OBJS) $(OPENNAP_CMOS) 
-	$(OCAMLC) -a -o $@  $(OPENNAP_OBJS) $(LIBS_flags) $(_LIBS_flags) $(OPENNAP_CMOS) 
+	$(OCAMLC) -a -o build/$@  $(OPENNAP_OBJS) $(LIBS_flags) $(_LIBS_flags) $(OPENNAP_CMOS) 
  
 
 
@@ -660,10 +667,10 @@ mlnap+gui_SRCS= $(MAIN_SRCS)
 
 
 
-ifeq ("$(LIMEWIRE)" , "yes")
-SUBDIRS += limewire
+ifeq ("$(GNUTELLA)" , "yes")
+SUBDIRS += gnutella
 
-CORE_SRCS += $(LIMEWIRE_SRCS)
+CORE_SRCS += $(GNUTELLA_SRCS)
 
 TARGETS += mlgnut$(EXE)
 
@@ -679,23 +686,23 @@ mlgnut_CMXA= cdk.cmxa common.cmxa client.cmxa mlgnut.cmxa driver.cmxa
 mlgnut_SRCS= $(MAIN_SRCS)
 
 
-LIMEWIRE_ZOG := $(filter %.zog, $(LIMEWIRE_SRCS)) 
-LIMEWIRE_MLL := $(filter %.mll, $(LIMEWIRE_SRCS)) 
-LIMEWIRE_MLY := $(filter %.mly, $(LIMEWIRE_SRCS)) 
-LIMEWIRE_ML4 := $(filter %.ml4, $(LIMEWIRE_SRCS)) 
-LIMEWIRE_ML := $(filter %.ml %.mll %.zog %.mly %.ml4, $(LIMEWIRE_SRCS)) 
-LIMEWIRE_C := $(filter %.c, $(LIMEWIRE_SRCS)) 
-LIMEWIRE_CMOS=$(foreach file, $(LIMEWIRE_ML),   $(basename $(file)).cmo) 
-LIMEWIRE_CMXS=$(foreach file, $(LIMEWIRE_ML),   $(basename $(file)).cmx) 
-LIMEWIRE_OBJS=$(foreach file, $(LIMEWIRE_C),   $(basename $(file)).o)    
+GNUTELLA_ZOG := $(filter %.zog, $(GNUTELLA_SRCS)) 
+GNUTELLA_MLL := $(filter %.mll, $(GNUTELLA_SRCS)) 
+GNUTELLA_MLY := $(filter %.mly, $(GNUTELLA_SRCS)) 
+GNUTELLA_ML4 := $(filter %.ml4, $(GNUTELLA_SRCS)) 
+GNUTELLA_ML := $(filter %.ml %.mll %.zog %.mly %.ml4, $(GNUTELLA_SRCS)) 
+GNUTELLA_C := $(filter %.c, $(GNUTELLA_SRCS)) 
+GNUTELLA_CMOS=$(foreach file, $(GNUTELLA_ML),   $(basename $(file)).cmo) 
+GNUTELLA_CMXS=$(foreach file, $(GNUTELLA_ML),   $(basename $(file)).cmx) 
+GNUTELLA_OBJS=$(foreach file, $(GNUTELLA_C),   $(basename $(file)).o)    
 
-TMPSOURCES += $(LIMEWIRE_ML4:.ml4=.ml) $(LIMEWIRE_MLL:.mll=.ml) $(LIMEWIRE_MLY:.mly=.ml) $(LIMEWIRE_MLY:.mly=.mli) $(LIMEWIRE_ZOG:.zog=.ml) 
+TMPSOURCES += $(GNUTELLA_ML4:.ml4=.ml) $(GNUTELLA_MLL:.mll=.ml) $(GNUTELLA_MLY:.mly=.ml) $(GNUTELLA_MLY:.mly=.mli) $(GNUTELLA_ZOG:.zog=.ml) 
  
-mlgnut.cmxa: $(LIMEWIRE_OBJS) $(LIMEWIRE_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(LIMEWIRE_OBJS) $(LIBS_flags) $(_LIBS_flags) $(LIMEWIRE_CMXS) 
+mlgnut.cmxa: $(GNUTELLA_OBJS) $(GNUTELLA_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o build/$@  $(GNUTELLA_OBJS) $(LIBS_flags) $(_LIBS_flags) $(GNUTELLA_CMXS) 
  
-mlgnut.cma: $(LIMEWIRE_OBJS) $(LIMEWIRE_CMOS) 
-	$(OCAMLC) -a -o $@  $(LIMEWIRE_OBJS) $(LIBS_flags) $(_LIBS_flags) $(LIMEWIRE_CMOS) 
+mlgnut.cma: $(GNUTELLA_OBJS) $(GNUTELLA_CMOS) 
+	$(OCAMLC) -a -o build/$@  $(GNUTELLA_OBJS) $(LIBS_flags) $(_LIBS_flags) $(GNUTELLA_CMOS) 
  
 
 
@@ -739,10 +746,10 @@ BITTORRENT_OBJS=$(foreach file, $(BITTORRENT_C),   $(basename $(file)).o)
 TMPSOURCES += $(BITTORRENT_ML4:.ml4=.ml) $(BITTORRENT_MLL:.mll=.ml) $(BITTORRENT_MLY:.mly=.ml) $(BITTORRENT_MLY:.mly=.mli) $(BITTORRENT_ZOG:.zog=.ml) 
  
 mlbt.cmxa: $(BITTORRENT_OBJS) $(BITTORRENT_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(BITTORRENT_OBJS) $(LIBS_flags) $(_LIBS_flags) $(BITTORRENT_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o build/$@  $(BITTORRENT_OBJS) $(LIBS_flags) $(_LIBS_flags) $(BITTORRENT_CMXS) 
  
 mlbt.cma: $(BITTORRENT_OBJS) $(BITTORRENT_CMOS) 
-	$(OCAMLC) -a -o $@  $(BITTORRENT_OBJS) $(LIBS_flags) $(_LIBS_flags) $(BITTORRENT_CMOS) 
+	$(OCAMLC) -a -o build/$@  $(BITTORRENT_OBJS) $(LIBS_flags) $(_LIBS_flags) $(BITTORRENT_CMOS) 
  
 
 
@@ -786,10 +793,10 @@ DONKEY_OBJS=$(foreach file, $(DONKEY_C),   $(basename $(file)).o)
 TMPSOURCES += $(DONKEY_ML4:.ml4=.ml) $(DONKEY_MLL:.mll=.ml) $(DONKEY_MLY:.mly=.ml) $(DONKEY_MLY:.mly=.mli) $(DONKEY_ZOG:.zog=.ml) 
  
 mldonkey.cmxa: $(DONKEY_OBJS) $(DONKEY_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(DONKEY_OBJS) $(LIBS_flags) $(_LIBS_flags) $(DONKEY_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o build/$@  $(DONKEY_OBJS) $(LIBS_flags) $(_LIBS_flags) $(DONKEY_CMXS) 
  
 mldonkey.cma: $(DONKEY_OBJS) $(DONKEY_CMOS) 
-	$(OCAMLC) -a -o $@  $(DONKEY_OBJS) $(LIBS_flags) $(_LIBS_flags) $(DONKEY_CMOS) 
+	$(OCAMLC) -a -o build/$@  $(DONKEY_OBJS) $(LIBS_flags) $(_LIBS_flags) $(DONKEY_CMOS) 
  
 
 
@@ -833,10 +840,10 @@ SOULSEEK_OBJS=$(foreach file, $(SOULSEEK_C),   $(basename $(file)).o)
 TMPSOURCES += $(SOULSEEK_ML4:.ml4=.ml) $(SOULSEEK_MLL:.mll=.ml) $(SOULSEEK_MLY:.mly=.ml) $(SOULSEEK_MLY:.mly=.mli) $(SOULSEEK_ZOG:.zog=.ml) 
  
 mlslsk.cmxa: $(SOULSEEK_OBJS) $(SOULSEEK_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(SOULSEEK_OBJS) $(LIBS_flags) $(_LIBS_flags) $(SOULSEEK_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o build/$@  $(SOULSEEK_OBJS) $(LIBS_flags) $(_LIBS_flags) $(SOULSEEK_CMXS) 
  
 mlslsk.cma: $(SOULSEEK_OBJS) $(SOULSEEK_CMOS) 
-	$(OCAMLC) -a -o $@  $(SOULSEEK_OBJS) $(LIBS_flags) $(_LIBS_flags) $(SOULSEEK_CMOS) 
+	$(OCAMLC) -a -o build/$@  $(SOULSEEK_OBJS) $(LIBS_flags) $(_LIBS_flags) $(SOULSEEK_CMOS) 
  
 
 
@@ -869,10 +876,10 @@ libcdk_OBJS=$(foreach file, $(libcdk_C),   $(basename $(file)).o)
 TMPSOURCES += $(libcdk_ML4:.ml4=.ml) $(libcdk_MLL:.mll=.ml) $(libcdk_MLY:.mly=.ml) $(libcdk_MLY:.mly=.mli) $(libcdk_ZOG:.zog=.ml) 
  
 cdk.cmxa: $(libcdk_OBJS) $(libcdk_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(libcdk_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libcdk_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o build/$@  $(libcdk_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libcdk_CMXS) 
  
 cdk.cma: $(libcdk_OBJS) $(libcdk_CMOS) 
-	$(OCAMLC) -a -o $@  $(libcdk_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libcdk_CMOS) 
+	$(OCAMLC) -a -o build/$@  $(libcdk_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libcdk_CMOS) 
  
 
 
@@ -889,10 +896,10 @@ libcommon_OBJS=$(foreach file, $(libcommon_C),   $(basename $(file)).o)
 TMPSOURCES += $(libcommon_ML4:.ml4=.ml) $(libcommon_MLL:.mll=.ml) $(libcommon_MLY:.mly=.ml) $(libcommon_MLY:.mly=.mli) $(libcommon_ZOG:.zog=.ml) 
  
 common.cmxa: $(libcommon_OBJS) $(libcommon_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(libcommon_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libcommon_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o build/$@  $(libcommon_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libcommon_CMXS) 
  
 common.cma: $(libcommon_OBJS) $(libcommon_CMOS) 
-	$(OCAMLC) -a -o $@  $(libcommon_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libcommon_CMOS) 
+	$(OCAMLC) -a -o build/$@  $(libcommon_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libcommon_CMOS) 
  
 
 
@@ -909,10 +916,10 @@ libclient_OBJS=$(foreach file, $(libclient_C),   $(basename $(file)).o)
 TMPSOURCES += $(libclient_ML4:.ml4=.ml) $(libclient_MLL:.mll=.ml) $(libclient_MLY:.mly=.ml) $(libclient_MLY:.mly=.mli) $(libclient_ZOG:.zog=.ml) 
  
 client.cmxa: $(libclient_OBJS) $(libclient_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(libclient_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libclient_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o build/$@  $(libclient_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libclient_CMXS) 
  
 client.cma: $(libclient_OBJS) $(libclient_CMOS) 
-	$(OCAMLC) -a -o $@  $(libclient_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libclient_CMOS) 
+	$(OCAMLC) -a -o build/$@  $(libclient_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libclient_CMOS) 
  
 
 
@@ -929,10 +936,10 @@ DRIVER_OBJS=$(foreach file, $(DRIVER_C),   $(basename $(file)).o)
 TMPSOURCES += $(DRIVER_ML4:.ml4=.ml) $(DRIVER_MLL:.mll=.ml) $(DRIVER_MLY:.mly=.ml) $(DRIVER_MLY:.mly=.mli) $(DRIVER_ZOG:.zog=.ml) 
  
 driver.cmxa: $(DRIVER_OBJS) $(DRIVER_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(DRIVER_OBJS) $(LIBS_flags) $(_LIBS_flags) $(DRIVER_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o build/$@  $(DRIVER_OBJS) $(LIBS_flags) $(_LIBS_flags) $(DRIVER_CMXS) 
  
 driver.cma: $(DRIVER_OBJS) $(DRIVER_CMOS) 
-	$(OCAMLC) -a -o $@  $(DRIVER_OBJS) $(LIBS_flags) $(_LIBS_flags) $(DRIVER_CMOS) 
+	$(OCAMLC) -a -o build/$@  $(DRIVER_OBJS) $(LIBS_flags) $(_LIBS_flags) $(DRIVER_CMOS) 
  
 
 
@@ -949,10 +956,10 @@ CORE_OBJS=$(foreach file, $(CORE_C),   $(basename $(file)).o)
 TMPSOURCES += $(CORE_ML4:.ml4=.ml) $(CORE_MLL:.mll=.ml) $(CORE_MLY:.mly=.ml) $(CORE_MLY:.mly=.mli) $(CORE_ZOG:.zog=.ml) 
  
 core.cmxa: $(CORE_OBJS) $(CORE_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(CORE_OBJS) $(LIBS_flags) $(_LIBS_flags) $(CORE_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o build/$@  $(CORE_OBJS) $(LIBS_flags) $(_LIBS_flags) $(CORE_CMXS) 
  
 core.cma: $(CORE_OBJS) $(CORE_CMOS) 
-	$(OCAMLC) -a -o $@  $(CORE_OBJS) $(LIBS_flags) $(_LIBS_flags) $(CORE_CMOS) 
+	$(OCAMLC) -a -o build/$@  $(CORE_OBJS) $(LIBS_flags) $(_LIBS_flags) $(CORE_CMOS) 
  
 
 
@@ -969,10 +976,10 @@ libgmisc_OBJS=$(foreach file, $(libgmisc_C),   $(basename $(file)).o)
 TMPSOURCES += $(libgmisc_ML4:.ml4=.ml) $(libgmisc_MLL:.mll=.ml) $(libgmisc_MLY:.mly=.ml) $(libgmisc_MLY:.mly=.mli) $(libgmisc_ZOG:.zog=.ml) 
  
 gmisc.cmxa: $(libgmisc_OBJS) $(libgmisc_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(libgmisc_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libgmisc_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o build/$@  $(libgmisc_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libgmisc_CMXS) 
  
 gmisc.cma: $(libgmisc_OBJS) $(libgmisc_CMOS) 
-	$(OCAMLC) -a -o $@  $(libgmisc_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libgmisc_CMOS) 
+	$(OCAMLC) -a -o build/$@  $(libgmisc_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libgmisc_CMOS) 
  
 
 
@@ -989,10 +996,10 @@ libgui_OBJS=$(foreach file, $(libgui_C),   $(basename $(file)).o)
 TMPSOURCES += $(libgui_ML4:.ml4=.ml) $(libgui_MLL:.mll=.ml) $(libgui_MLY:.mly=.ml) $(libgui_MLY:.mly=.mli) $(libgui_ZOG:.zog=.ml) 
  
 gui.cmxa: $(libgui_OBJS) $(libgui_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(libgui_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libgui_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o build/$@  $(libgui_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libgui_CMXS) 
  
 gui.cma: $(libgui_OBJS) $(libgui_CMOS) 
-	$(OCAMLC) -a -o $@  $(libgui_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libgui_CMOS) 
+	$(OCAMLC) -a -o build/$@  $(libgui_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libgui_CMOS) 
  
 
 
@@ -1009,10 +1016,10 @@ libguibase_OBJS=$(foreach file, $(libguibase_C),   $(basename $(file)).o)
 TMPSOURCES += $(libguibase_ML4:.ml4=.ml) $(libguibase_MLL:.mll=.ml) $(libguibase_MLY:.mly=.ml) $(libguibase_MLY:.mly=.mli) $(libguibase_ZOG:.zog=.ml) 
  
 guibase.cmxa: $(libguibase_OBJS) $(libguibase_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(libguibase_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libguibase_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o build/$@  $(libguibase_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libguibase_CMXS) 
  
 guibase.cma: $(libguibase_OBJS) $(libguibase_CMOS) 
-	$(OCAMLC) -a -o $@  $(libguibase_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libguibase_CMOS) 
+	$(OCAMLC) -a -o build/$@  $(libguibase_OBJS) $(LIBS_flags) $(_LIBS_flags) $(libguibase_CMOS) 
  
 
 
@@ -1060,13 +1067,13 @@ mldonkey_CMAS=$(foreach file, $(mldonkey_CMXAS),   $(basename $(file)).cma)
 TMPSOURCES += $(mldonkey_ML4:.ml4=.ml) $(mldonkey_MLL:.mll=.ml) $(mldonkey_MLY:.mly=.ml) $(mldonkey_MLY:.mly=.mli) $(mldonkey_ZOG:.zog=.ml) 
  
 mldonkey: $(mldonkey_OBJS) $(mldonkey_CMXS) $(mldonkey_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(mldonkey_OBJS) $(LIBS_opt) $(LIBS_flags) $(NO_LIBS_opt) $(NO_LIBS_flags) $(mldonkey_CMXAS) $(mldonkey_CMXS) 
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(mldonkey_OBJS) $(LIBS_opt) $(LIBS_flags) $(NO_LIBS_opt) $(NO_LIBS_flags) -I build $(mldonkey_CMXAS) $(mldonkey_CMXS) 
  
 mldonkey.byte: $(mldonkey_OBJS) $(mldonkey_CMOS)  $(mldonkey_CMAS)
-	$(OCAMLC) -linkall -o $@  $(mldonkey_OBJS) $(LIBS_byte) $(LIBS_flags)  $(NO_LIBS_byte) $(NO_LIBS_flags) $(mldonkey_CMAS) $(mldonkey_CMOS) 
+	$(OCAMLC) -linkall -o $@  $(mldonkey_OBJS) $(LIBS_byte) $(LIBS_flags)  $(NO_LIBS_byte) $(NO_LIBS_flags) -I build $(mldonkey_CMAS) $(mldonkey_CMOS) 
  
 mldonkey.static:  $(mldonkey_OBJS) $(mldonkey_CMXS)  $(mldonkey_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(mldonkey_OBJS) $(LIBS_opt) $(LIBS_flags)  $(NO_LIBS_flags)  $(NO_STATIC_LIBS_opt) $(mldonkey_CMXAS) $(mldonkey_CMXS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(mldonkey_OBJS) $(LIBS_opt) $(LIBS_flags)  $(NO_LIBS_flags)  $(NO_STATIC_LIBS_opt) -I build $(mldonkey_CMXAS) $(mldonkey_CMXS)
 
 
 mldonkey+gui_ZOG := $(filter %.zog, $(mldonkey+gui_SRCS)) 
@@ -1085,13 +1092,13 @@ mldonkey+gui_CMAS=$(foreach file, $(mldonkey+gui_CMXAS),   $(basename $(file)).c
 TMPSOURCES += $(mldonkey+gui_ML4:.ml4=.ml) $(mldonkey+gui_MLL:.mll=.ml) $(mldonkey+gui_MLY:.mly=.ml) $(mldonkey+gui_MLY:.mly=.mli) $(mldonkey+gui_ZOG:.zog=.ml) 
  
 mldonkey+gui: $(mldonkey+gui_OBJS) $(mldonkey+gui_CMXS) $(mldonkey+gui_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(mldonkey+gui_OBJS) $(LIBS_opt) $(LIBS_flags) $(GTK_LIBS_opt) $(GTK_LIBS_flags) $(mldonkey+gui_CMXAS) $(mldonkey+gui_CMXS) 
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(mldonkey+gui_OBJS) $(LIBS_opt) $(LIBS_flags) $(GTK_LIBS_opt) $(GTK_LIBS_flags) -I build $(mldonkey+gui_CMXAS) $(mldonkey+gui_CMXS) 
  
 mldonkey+gui.byte: $(mldonkey+gui_OBJS) $(mldonkey+gui_CMOS)  $(mldonkey+gui_CMAS)
-	$(OCAMLC) -linkall -o $@  $(mldonkey+gui_OBJS) $(LIBS_byte) $(LIBS_flags)  $(GTK_LIBS_byte) $(GTK_LIBS_flags) $(mldonkey+gui_CMAS) $(mldonkey+gui_CMOS) 
+	$(OCAMLC) -linkall -o $@  $(mldonkey+gui_OBJS) $(LIBS_byte) $(LIBS_flags)  $(GTK_LIBS_byte) $(GTK_LIBS_flags) -I build $(mldonkey+gui_CMAS) $(mldonkey+gui_CMOS) 
  
 mldonkey+gui.static:  $(mldonkey+gui_OBJS) $(mldonkey+gui_CMXS)  $(mldonkey+gui_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(mldonkey+gui_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) $(mldonkey+gui_CMXAS) $(mldonkey+gui_CMXS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(mldonkey+gui_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) -I build $(mldonkey+gui_CMXAS) $(mldonkey+gui_CMXS)
 
 
 MLDONKEYGUI_ZOG := $(filter %.zog, $(MLDONKEYGUI_SRCS)) 
@@ -1110,13 +1117,13 @@ MLDONKEYGUI_CMAS=$(foreach file, $(MLDONKEYGUI_CMXAS),   $(basename $(file)).cma
 TMPSOURCES += $(MLDONKEYGUI_ML4:.ml4=.ml) $(MLDONKEYGUI_MLL:.mll=.ml) $(MLDONKEYGUI_MLY:.mly=.ml) $(MLDONKEYGUI_MLY:.mly=.mli) $(MLDONKEYGUI_ZOG:.zog=.ml) 
  
 mldonkey_gui: $(MLDONKEYGUI_OBJS) $(MLDONKEYGUI_CMXS) $(MLDONKEYGUI_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(MLDONKEYGUI_OBJS) $(LIBS_opt) $(LIBS_flags) $(GTK_LIBS_opt) $(GTK_LIBS_flags) $(MLDONKEYGUI_CMXAS) $(MLDONKEYGUI_CMXS) 
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(MLDONKEYGUI_OBJS) $(LIBS_opt) $(LIBS_flags) $(GTK_LIBS_opt) $(GTK_LIBS_flags) -I build $(MLDONKEYGUI_CMXAS) $(MLDONKEYGUI_CMXS) 
  
 mldonkey_gui.byte: $(MLDONKEYGUI_OBJS) $(MLDONKEYGUI_CMOS)  $(MLDONKEYGUI_CMAS)
-	$(OCAMLC) -linkall -o $@  $(MLDONKEYGUI_OBJS) $(LIBS_byte) $(LIBS_flags)  $(GTK_LIBS_byte) $(GTK_LIBS_flags) $(MLDONKEYGUI_CMAS) $(MLDONKEYGUI_CMOS) 
+	$(OCAMLC) -linkall -o $@  $(MLDONKEYGUI_OBJS) $(LIBS_byte) $(LIBS_flags)  $(GTK_LIBS_byte) $(GTK_LIBS_flags) -I build $(MLDONKEYGUI_CMAS) $(MLDONKEYGUI_CMOS) 
  
 mldonkey_gui.static:  $(MLDONKEYGUI_OBJS) $(MLDONKEYGUI_CMXS)  $(MLDONKEYGUI_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(MLDONKEYGUI_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) $(MLDONKEYGUI_CMXAS) $(MLDONKEYGUI_CMXS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(MLDONKEYGUI_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) -I build $(MLDONKEYGUI_CMXAS) $(MLDONKEYGUI_CMXS)
 
 
 MLDONKEYGUI2_ZOG := $(filter %.zog, $(MLDONKEYGUI2_SRCS)) 
@@ -1135,13 +1142,13 @@ MLDONKEYGUI2_CMAS=$(foreach file, $(MLDONKEYGUI2_CMXAS),   $(basename $(file)).c
 TMPSOURCES += $(MLDONKEYGUI2_ML4:.ml4=.ml) $(MLDONKEYGUI2_MLL:.mll=.ml) $(MLDONKEYGUI2_MLY:.mly=.ml) $(MLDONKEYGUI2_MLY:.mly=.mli) $(MLDONKEYGUI2_ZOG:.zog=.ml) 
  
 mldonkey_gui2: $(MLDONKEYGUI2_OBJS) $(MLDONKEYGUI2_CMXS) $(MLDONKEYGUI2_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(MLDONKEYGUI2_OBJS) $(LIBS_opt) $(LIBS_flags) $(GTK_LIBS_opt) $(GTK_LIBS_flags) $(MLDONKEYGUI2_CMXAS) $(MLDONKEYGUI2_CMXS) 
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(MLDONKEYGUI2_OBJS) $(LIBS_opt) $(LIBS_flags) $(GTK_LIBS_opt) $(GTK_LIBS_flags) -I build $(MLDONKEYGUI2_CMXAS) $(MLDONKEYGUI2_CMXS) 
  
 mldonkey_gui2.byte: $(MLDONKEYGUI2_OBJS) $(MLDONKEYGUI2_CMOS)  $(MLDONKEYGUI2_CMAS)
-	$(OCAMLC) -linkall -o $@  $(MLDONKEYGUI2_OBJS) $(LIBS_byte) $(LIBS_flags)  $(GTK_LIBS_byte) $(GTK_LIBS_flags) $(MLDONKEYGUI2_CMAS) $(MLDONKEYGUI2_CMOS) 
+	$(OCAMLC) -linkall -o $@  $(MLDONKEYGUI2_OBJS) $(LIBS_byte) $(LIBS_flags)  $(GTK_LIBS_byte) $(GTK_LIBS_flags) -I build $(MLDONKEYGUI2_CMAS) $(MLDONKEYGUI2_CMOS) 
  
 mldonkey_gui2.static:  $(MLDONKEYGUI2_OBJS) $(MLDONKEYGUI2_CMXS)  $(MLDONKEYGUI2_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(MLDONKEYGUI2_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) $(MLDONKEYGUI2_CMXAS) $(MLDONKEYGUI2_CMXS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(MLDONKEYGUI2_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) -I build $(MLDONKEYGUI2_CMXAS) $(MLDONKEYGUI2_CMXS)
 
 
 mldc_ZOG := $(filter %.zog, $(mldc_SRCS)) 
@@ -1160,13 +1167,13 @@ mldc_CMAS=$(foreach file, $(mldc_CMXAS),   $(basename $(file)).cma)
 TMPSOURCES += $(mldc_ML4:.ml4=.ml) $(mldc_MLL:.mll=.ml) $(mldc_MLY:.mly=.ml) $(mldc_MLY:.mly=.mli) $(mldc_ZOG:.zog=.ml) 
  
 mldc: $(mldc_OBJS) $(mldc_CMXS) $(mldc_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(mldc_OBJS) $(LIBS_opt) $(LIBS_flags) $(NO_LIBS_opt) $(NO_LIBS_flags) $(mldc_CMXAS) $(mldc_CMXS) 
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(mldc_OBJS) $(LIBS_opt) $(LIBS_flags) $(NO_LIBS_opt) $(NO_LIBS_flags) -I build $(mldc_CMXAS) $(mldc_CMXS) 
  
 mldc.byte: $(mldc_OBJS) $(mldc_CMOS)  $(mldc_CMAS)
-	$(OCAMLC) -linkall -o $@  $(mldc_OBJS) $(LIBS_byte) $(LIBS_flags)  $(NO_LIBS_byte) $(NO_LIBS_flags) $(mldc_CMAS) $(mldc_CMOS) 
+	$(OCAMLC) -linkall -o $@  $(mldc_OBJS) $(LIBS_byte) $(LIBS_flags)  $(NO_LIBS_byte) $(NO_LIBS_flags) -I build $(mldc_CMAS) $(mldc_CMOS) 
  
 mldc.static:  $(mldc_OBJS) $(mldc_CMXS)  $(mldc_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(mldc_OBJS) $(LIBS_opt) $(LIBS_flags)  $(NO_LIBS_flags)  $(NO_STATIC_LIBS_opt) $(mldc_CMXAS) $(mldc_CMXS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(mldc_OBJS) $(LIBS_opt) $(LIBS_flags)  $(NO_LIBS_flags)  $(NO_STATIC_LIBS_opt) -I build $(mldc_CMXAS) $(mldc_CMXS)
 
 
 mldc+gui_ZOG := $(filter %.zog, $(mldc+gui_SRCS)) 
@@ -1185,13 +1192,13 @@ mldc+gui_CMAS=$(foreach file, $(mldc+gui_CMXAS),   $(basename $(file)).cma)
 TMPSOURCES += $(mldc+gui_ML4:.ml4=.ml) $(mldc+gui_MLL:.mll=.ml) $(mldc+gui_MLY:.mly=.ml) $(mldc+gui_MLY:.mly=.mli) $(mldc+gui_ZOG:.zog=.ml) 
  
 mldc+gui: $(mldc+gui_OBJS) $(mldc+gui_CMXS) $(mldc+gui_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(mldc+gui_OBJS) $(LIBS_opt) $(LIBS_flags) $(GTK_LIBS_opt) $(GTK_LIBS_flags) $(mldc+gui_CMXAS) $(mldc+gui_CMXS) 
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(mldc+gui_OBJS) $(LIBS_opt) $(LIBS_flags) $(GTK_LIBS_opt) $(GTK_LIBS_flags) -I build $(mldc+gui_CMXAS) $(mldc+gui_CMXS) 
  
 mldc+gui.byte: $(mldc+gui_OBJS) $(mldc+gui_CMOS)  $(mldc+gui_CMAS)
-	$(OCAMLC) -linkall -o $@  $(mldc+gui_OBJS) $(LIBS_byte) $(LIBS_flags)  $(GTK_LIBS_byte) $(GTK_LIBS_flags) $(mldc+gui_CMAS) $(mldc+gui_CMOS) 
+	$(OCAMLC) -linkall -o $@  $(mldc+gui_OBJS) $(LIBS_byte) $(LIBS_flags)  $(GTK_LIBS_byte) $(GTK_LIBS_flags) -I build $(mldc+gui_CMAS) $(mldc+gui_CMOS) 
  
 mldc+gui.static:  $(mldc+gui_OBJS) $(mldc+gui_CMXS)  $(mldc+gui_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(mldc+gui_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) $(mldc+gui_CMXAS) $(mldc+gui_CMXS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(mldc+gui_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) -I build $(mldc+gui_CMXAS) $(mldc+gui_CMXS)
 
 
 mlnap_ZOG := $(filter %.zog, $(mlnap_SRCS)) 
@@ -1210,13 +1217,13 @@ mlnap_CMAS=$(foreach file, $(mlnap_CMXAS),   $(basename $(file)).cma)
 TMPSOURCES += $(mlnap_ML4:.ml4=.ml) $(mlnap_MLL:.mll=.ml) $(mlnap_MLY:.mly=.ml) $(mlnap_MLY:.mly=.mli) $(mlnap_ZOG:.zog=.ml) 
  
 mlnap: $(mlnap_OBJS) $(mlnap_CMXS) $(mlnap_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(mlnap_OBJS) $(LIBS_opt) $(LIBS_flags) $(NO_LIBS_opt) $(NO_LIBS_flags) $(mlnap_CMXAS) $(mlnap_CMXS) 
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(mlnap_OBJS) $(LIBS_opt) $(LIBS_flags) $(NO_LIBS_opt) $(NO_LIBS_flags) -I build $(mlnap_CMXAS) $(mlnap_CMXS) 
  
 mlnap.byte: $(mlnap_OBJS) $(mlnap_CMOS)  $(mlnap_CMAS)
-	$(OCAMLC) -linkall -o $@  $(mlnap_OBJS) $(LIBS_byte) $(LIBS_flags)  $(NO_LIBS_byte) $(NO_LIBS_flags) $(mlnap_CMAS) $(mlnap_CMOS) 
+	$(OCAMLC) -linkall -o $@  $(mlnap_OBJS) $(LIBS_byte) $(LIBS_flags)  $(NO_LIBS_byte) $(NO_LIBS_flags) -I build $(mlnap_CMAS) $(mlnap_CMOS) 
  
 mlnap.static:  $(mlnap_OBJS) $(mlnap_CMXS)  $(mlnap_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(mlnap_OBJS) $(LIBS_opt) $(LIBS_flags)  $(NO_LIBS_flags)  $(NO_STATIC_LIBS_opt) $(mlnap_CMXAS) $(mlnap_CMXS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(mlnap_OBJS) $(LIBS_opt) $(LIBS_flags)  $(NO_LIBS_flags)  $(NO_STATIC_LIBS_opt) -I build $(mlnap_CMXAS) $(mlnap_CMXS)
 
 
 mlnap+gui_ZOG := $(filter %.zog, $(mlnap+gui_SRCS)) 
@@ -1235,13 +1242,13 @@ mlnap+gui_CMAS=$(foreach file, $(mlnap+gui_CMXAS),   $(basename $(file)).cma)
 TMPSOURCES += $(mlnap+gui_ML4:.ml4=.ml) $(mlnap+gui_MLL:.mll=.ml) $(mlnap+gui_MLY:.mly=.ml) $(mlnap+gui_MLY:.mly=.mli) $(mlnap+gui_ZOG:.zog=.ml) 
  
 mlnap+gui: $(mlnap+gui_OBJS) $(mlnap+gui_CMXS) $(mlnap+gui_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(mlnap+gui_OBJS) $(LIBS_opt) $(LIBS_flags) $(GTK_LIBS_opt) $(GTK_LIBS_flags) $(mlnap+gui_CMXAS) $(mlnap+gui_CMXS) 
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(mlnap+gui_OBJS) $(LIBS_opt) $(LIBS_flags) $(GTK_LIBS_opt) $(GTK_LIBS_flags) -I build $(mlnap+gui_CMXAS) $(mlnap+gui_CMXS) 
  
 mlnap+gui.byte: $(mlnap+gui_OBJS) $(mlnap+gui_CMOS)  $(mlnap+gui_CMAS)
-	$(OCAMLC) -linkall -o $@  $(mlnap+gui_OBJS) $(LIBS_byte) $(LIBS_flags)  $(GTK_LIBS_byte) $(GTK_LIBS_flags) $(mlnap+gui_CMAS) $(mlnap+gui_CMOS) 
+	$(OCAMLC) -linkall -o $@  $(mlnap+gui_OBJS) $(LIBS_byte) $(LIBS_flags)  $(GTK_LIBS_byte) $(GTK_LIBS_flags) -I build $(mlnap+gui_CMAS) $(mlnap+gui_CMOS) 
  
 mlnap+gui.static:  $(mlnap+gui_OBJS) $(mlnap+gui_CMXS)  $(mlnap+gui_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(mlnap+gui_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) $(mlnap+gui_CMXAS) $(mlnap+gui_CMXS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(mlnap+gui_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) -I build $(mlnap+gui_CMXAS) $(mlnap+gui_CMXS)
 
 
 MLNET_ZOG := $(filter %.zog, $(MLNET_SRCS)) 
@@ -1260,13 +1267,13 @@ MLNET_CMAS=$(foreach file, $(MLNET_CMXAS),   $(basename $(file)).cma)
 TMPSOURCES += $(MLNET_ML4:.ml4=.ml) $(MLNET_MLL:.mll=.ml) $(MLNET_MLY:.mly=.ml) $(MLNET_MLY:.mly=.mli) $(MLNET_ZOG:.zog=.ml) 
  
 mlnet: $(MLNET_OBJS) $(MLNET_CMXS) $(MLNET_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(MLNET_OBJS) $(LIBS_opt) $(LIBS_flags) $(NO_LIBS_opt) $(NO_LIBS_flags) $(MLNET_CMXAS) $(MLNET_CMXS) 
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(MLNET_OBJS) $(LIBS_opt) $(LIBS_flags) $(NO_LIBS_opt) $(NO_LIBS_flags) -I build $(MLNET_CMXAS) $(MLNET_CMXS) 
  
 mlnet.byte: $(MLNET_OBJS) $(MLNET_CMOS)  $(MLNET_CMAS)
-	$(OCAMLC) -linkall -o $@  $(MLNET_OBJS) $(LIBS_byte) $(LIBS_flags)  $(NO_LIBS_byte) $(NO_LIBS_flags) $(MLNET_CMAS) $(MLNET_CMOS) 
+	$(OCAMLC) -linkall -o $@  $(MLNET_OBJS) $(LIBS_byte) $(LIBS_flags)  $(NO_LIBS_byte) $(NO_LIBS_flags) -I build $(MLNET_CMAS) $(MLNET_CMOS) 
  
 mlnet.static:  $(MLNET_OBJS) $(MLNET_CMXS)  $(MLNET_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(MLNET_OBJS) $(LIBS_opt) $(LIBS_flags)  $(NO_LIBS_flags)  $(NO_STATIC_LIBS_opt) $(MLNET_CMXAS) $(MLNET_CMXS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(MLNET_OBJS) $(LIBS_opt) $(LIBS_flags)  $(NO_LIBS_flags)  $(NO_STATIC_LIBS_opt) -I build $(MLNET_CMXAS) $(MLNET_CMXS)
 
 
 mlnet+gui_ZOG := $(filter %.zog, $(mlnet+gui_SRCS)) 
@@ -1285,13 +1292,13 @@ mlnet+gui_CMAS=$(foreach file, $(mlnet+gui_CMXAS),   $(basename $(file)).cma)
 TMPSOURCES += $(mlnet+gui_ML4:.ml4=.ml) $(mlnet+gui_MLL:.mll=.ml) $(mlnet+gui_MLY:.mly=.ml) $(mlnet+gui_MLY:.mly=.mli) $(mlnet+gui_ZOG:.zog=.ml) 
  
 mlnet+gui: $(mlnet+gui_OBJS) $(mlnet+gui_CMXS) $(mlnet+gui_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(mlnet+gui_OBJS) $(LIBS_opt) $(LIBS_flags) $(GTK_LIBS_opt) $(GTK_LIBS_flags) $(mlnet+gui_CMXAS) $(mlnet+gui_CMXS) 
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(mlnet+gui_OBJS) $(LIBS_opt) $(LIBS_flags) $(GTK_LIBS_opt) $(GTK_LIBS_flags) -I build $(mlnet+gui_CMXAS) $(mlnet+gui_CMXS) 
  
 mlnet+gui.byte: $(mlnet+gui_OBJS) $(mlnet+gui_CMOS)  $(mlnet+gui_CMAS)
-	$(OCAMLC) -linkall -o $@  $(mlnet+gui_OBJS) $(LIBS_byte) $(LIBS_flags)  $(GTK_LIBS_byte) $(GTK_LIBS_flags) $(mlnet+gui_CMAS) $(mlnet+gui_CMOS) 
+	$(OCAMLC) -linkall -o $@  $(mlnet+gui_OBJS) $(LIBS_byte) $(LIBS_flags)  $(GTK_LIBS_byte) $(GTK_LIBS_flags) -I build $(mlnet+gui_CMAS) $(mlnet+gui_CMOS) 
  
 mlnet+gui.static:  $(mlnet+gui_OBJS) $(mlnet+gui_CMXS)  $(mlnet+gui_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(mlnet+gui_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) $(mlnet+gui_CMXAS) $(mlnet+gui_CMXS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(mlnet+gui_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) -I build $(mlnet+gui_CMXAS) $(mlnet+gui_CMXS)
 
 
 mlgnut_ZOG := $(filter %.zog, $(mlgnut_SRCS)) 
@@ -1310,13 +1317,13 @@ mlgnut_CMAS=$(foreach file, $(mlgnut_CMXAS),   $(basename $(file)).cma)
 TMPSOURCES += $(mlgnut_ML4:.ml4=.ml) $(mlgnut_MLL:.mll=.ml) $(mlgnut_MLY:.mly=.ml) $(mlgnut_MLY:.mly=.mli) $(mlgnut_ZOG:.zog=.ml) 
  
 mlgnut: $(mlgnut_OBJS) $(mlgnut_CMXS) $(mlgnut_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(mlgnut_OBJS) $(LIBS_opt) $(LIBS_flags) $(NO_LIBS_opt) $(NO_LIBS_flags) $(mlgnut_CMXAS) $(mlgnut_CMXS) 
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(mlgnut_OBJS) $(LIBS_opt) $(LIBS_flags) $(NO_LIBS_opt) $(NO_LIBS_flags) -I build $(mlgnut_CMXAS) $(mlgnut_CMXS) 
  
 mlgnut.byte: $(mlgnut_OBJS) $(mlgnut_CMOS)  $(mlgnut_CMAS)
-	$(OCAMLC) -linkall -o $@  $(mlgnut_OBJS) $(LIBS_byte) $(LIBS_flags)  $(NO_LIBS_byte) $(NO_LIBS_flags) $(mlgnut_CMAS) $(mlgnut_CMOS) 
+	$(OCAMLC) -linkall -o $@  $(mlgnut_OBJS) $(LIBS_byte) $(LIBS_flags)  $(NO_LIBS_byte) $(NO_LIBS_flags) -I build $(mlgnut_CMAS) $(mlgnut_CMOS) 
  
 mlgnut.static:  $(mlgnut_OBJS) $(mlgnut_CMXS)  $(mlgnut_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(mlgnut_OBJS) $(LIBS_opt) $(LIBS_flags)  $(NO_LIBS_flags)  $(NO_STATIC_LIBS_opt) $(mlgnut_CMXAS) $(mlgnut_CMXS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(mlgnut_OBJS) $(LIBS_opt) $(LIBS_flags)  $(NO_LIBS_flags)  $(NO_STATIC_LIBS_opt) -I build $(mlgnut_CMXAS) $(mlgnut_CMXS)
 
 
 mlbt_ZOG := $(filter %.zog, $(mlbt_SRCS)) 
@@ -1335,13 +1342,13 @@ mlbt_CMAS=$(foreach file, $(mlbt_CMXAS),   $(basename $(file)).cma)
 TMPSOURCES += $(mlbt_ML4:.ml4=.ml) $(mlbt_MLL:.mll=.ml) $(mlbt_MLY:.mly=.ml) $(mlbt_MLY:.mly=.mli) $(mlbt_ZOG:.zog=.ml) 
  
 mlbt: $(mlbt_OBJS) $(mlbt_CMXS) $(mlbt_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(mlbt_OBJS) $(LIBS_opt) $(LIBS_flags) $(NO_LIBS_opt) $(NO_LIBS_flags) $(mlbt_CMXAS) $(mlbt_CMXS) 
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(mlbt_OBJS) $(LIBS_opt) $(LIBS_flags) $(NO_LIBS_opt) $(NO_LIBS_flags) -I build $(mlbt_CMXAS) $(mlbt_CMXS) 
  
 mlbt.byte: $(mlbt_OBJS) $(mlbt_CMOS)  $(mlbt_CMAS)
-	$(OCAMLC) -linkall -o $@  $(mlbt_OBJS) $(LIBS_byte) $(LIBS_flags)  $(NO_LIBS_byte) $(NO_LIBS_flags) $(mlbt_CMAS) $(mlbt_CMOS) 
+	$(OCAMLC) -linkall -o $@  $(mlbt_OBJS) $(LIBS_byte) $(LIBS_flags)  $(NO_LIBS_byte) $(NO_LIBS_flags) -I build $(mlbt_CMAS) $(mlbt_CMOS) 
  
 mlbt.static:  $(mlbt_OBJS) $(mlbt_CMXS)  $(mlbt_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(mlbt_OBJS) $(LIBS_opt) $(LIBS_flags)  $(NO_LIBS_flags)  $(NO_STATIC_LIBS_opt) $(mlbt_CMXAS) $(mlbt_CMXS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(mlbt_OBJS) $(LIBS_opt) $(LIBS_flags)  $(NO_LIBS_flags)  $(NO_STATIC_LIBS_opt) -I build $(mlbt_CMXAS) $(mlbt_CMXS)
 
 
 mlgnut+gui_ZOG := $(filter %.zog, $(mlgnut+gui_SRCS)) 
@@ -1360,13 +1367,13 @@ mlgnut+gui_CMAS=$(foreach file, $(mlgnut+gui_CMXAS),   $(basename $(file)).cma)
 TMPSOURCES += $(mlgnut+gui_ML4:.ml4=.ml) $(mlgnut+gui_MLL:.mll=.ml) $(mlgnut+gui_MLY:.mly=.ml) $(mlgnut+gui_MLY:.mly=.mli) $(mlgnut+gui_ZOG:.zog=.ml) 
  
 mlgnut+gui: $(mlgnut+gui_OBJS) $(mlgnut+gui_CMXS) $(mlgnut+gui_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(mlgnut+gui_OBJS) $(LIBS_opt) $(LIBS_flags) $(GTK_LIBS_opt) $(GTK_LIBS_flags) $(mlgnut+gui_CMXAS) $(mlgnut+gui_CMXS) 
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(mlgnut+gui_OBJS) $(LIBS_opt) $(LIBS_flags) $(GTK_LIBS_opt) $(GTK_LIBS_flags) -I build $(mlgnut+gui_CMXAS) $(mlgnut+gui_CMXS) 
  
 mlgnut+gui.byte: $(mlgnut+gui_OBJS) $(mlgnut+gui_CMOS)  $(mlgnut+gui_CMAS)
-	$(OCAMLC) -linkall -o $@  $(mlgnut+gui_OBJS) $(LIBS_byte) $(LIBS_flags)  $(GTK_LIBS_byte) $(GTK_LIBS_flags) $(mlgnut+gui_CMAS) $(mlgnut+gui_CMOS) 
+	$(OCAMLC) -linkall -o $@  $(mlgnut+gui_OBJS) $(LIBS_byte) $(LIBS_flags)  $(GTK_LIBS_byte) $(GTK_LIBS_flags) -I build $(mlgnut+gui_CMAS) $(mlgnut+gui_CMOS) 
  
 mlgnut+gui.static:  $(mlgnut+gui_OBJS) $(mlgnut+gui_CMXS)  $(mlgnut+gui_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(mlgnut+gui_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) $(mlgnut+gui_CMXAS) $(mlgnut+gui_CMXS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(mlgnut+gui_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) -I build $(mlgnut+gui_CMXAS) $(mlgnut+gui_CMXS)
 
 
 mlbt+gui_ZOG := $(filter %.zog, $(mlbt+gui_SRCS)) 
@@ -1385,13 +1392,13 @@ mlbt+gui_CMAS=$(foreach file, $(mlbt+gui_CMXAS),   $(basename $(file)).cma)
 TMPSOURCES += $(mlbt+gui_ML4:.ml4=.ml) $(mlbt+gui_MLL:.mll=.ml) $(mlbt+gui_MLY:.mly=.ml) $(mlbt+gui_MLY:.mly=.mli) $(mlbt+gui_ZOG:.zog=.ml) 
  
 mlbt+gui: $(mlbt+gui_OBJS) $(mlbt+gui_CMXS) $(mlbt+gui_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(mlbt+gui_OBJS) $(LIBS_opt) $(LIBS_flags) $(GTK_LIBS_opt) $(GTK_LIBS_flags) $(mlbt+gui_CMXAS) $(mlbt+gui_CMXS) 
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(mlbt+gui_OBJS) $(LIBS_opt) $(LIBS_flags) $(GTK_LIBS_opt) $(GTK_LIBS_flags) -I build $(mlbt+gui_CMXAS) $(mlbt+gui_CMXS) 
  
 mlbt+gui.byte: $(mlbt+gui_OBJS) $(mlbt+gui_CMOS)  $(mlbt+gui_CMAS)
-	$(OCAMLC) -linkall -o $@  $(mlbt+gui_OBJS) $(LIBS_byte) $(LIBS_flags)  $(GTK_LIBS_byte) $(GTK_LIBS_flags) $(mlbt+gui_CMAS) $(mlbt+gui_CMOS) 
+	$(OCAMLC) -linkall -o $@  $(mlbt+gui_OBJS) $(LIBS_byte) $(LIBS_flags)  $(GTK_LIBS_byte) $(GTK_LIBS_flags) -I build $(mlbt+gui_CMAS) $(mlbt+gui_CMOS) 
  
 mlbt+gui.static:  $(mlbt+gui_OBJS) $(mlbt+gui_CMXS)  $(mlbt+gui_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(mlbt+gui_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) $(mlbt+gui_CMXAS) $(mlbt+gui_CMXS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(mlbt+gui_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) -I build $(mlbt+gui_CMXAS) $(mlbt+gui_CMXS)
 
 
 mlslsk_ZOG := $(filter %.zog, $(mlslsk_SRCS)) 
@@ -1410,13 +1417,13 @@ mlslsk_CMAS=$(foreach file, $(mlslsk_CMXAS),   $(basename $(file)).cma)
 TMPSOURCES += $(mlslsk_ML4:.ml4=.ml) $(mlslsk_MLL:.mll=.ml) $(mlslsk_MLY:.mly=.ml) $(mlslsk_MLY:.mly=.mli) $(mlslsk_ZOG:.zog=.ml) 
  
 mlslsk: $(mlslsk_OBJS) $(mlslsk_CMXS) $(mlslsk_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(mlslsk_OBJS) $(LIBS_opt) $(LIBS_flags) $(NO_LIBS_opt) $(NO_LIBS_flags) $(mlslsk_CMXAS) $(mlslsk_CMXS) 
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(mlslsk_OBJS) $(LIBS_opt) $(LIBS_flags) $(NO_LIBS_opt) $(NO_LIBS_flags) -I build $(mlslsk_CMXAS) $(mlslsk_CMXS) 
  
 mlslsk.byte: $(mlslsk_OBJS) $(mlslsk_CMOS)  $(mlslsk_CMAS)
-	$(OCAMLC) -linkall -o $@  $(mlslsk_OBJS) $(LIBS_byte) $(LIBS_flags)  $(NO_LIBS_byte) $(NO_LIBS_flags) $(mlslsk_CMAS) $(mlslsk_CMOS) 
+	$(OCAMLC) -linkall -o $@  $(mlslsk_OBJS) $(LIBS_byte) $(LIBS_flags)  $(NO_LIBS_byte) $(NO_LIBS_flags) -I build $(mlslsk_CMAS) $(mlslsk_CMOS) 
  
 mlslsk.static:  $(mlslsk_OBJS) $(mlslsk_CMXS)  $(mlslsk_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(mlslsk_OBJS) $(LIBS_opt) $(LIBS_flags)  $(NO_LIBS_flags)  $(NO_STATIC_LIBS_opt) $(mlslsk_CMXAS) $(mlslsk_CMXS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(mlslsk_OBJS) $(LIBS_opt) $(LIBS_flags)  $(NO_LIBS_flags)  $(NO_STATIC_LIBS_opt) -I build $(mlslsk_CMXAS) $(mlslsk_CMXS)
 
 
 mlslsk+gui_ZOG := $(filter %.zog, $(mlslsk+gui_SRCS)) 
@@ -1435,13 +1442,13 @@ mlslsk+gui_CMAS=$(foreach file, $(mlslsk+gui_CMXAS),   $(basename $(file)).cma)
 TMPSOURCES += $(mlslsk+gui_ML4:.ml4=.ml) $(mlslsk+gui_MLL:.mll=.ml) $(mlslsk+gui_MLY:.mly=.ml) $(mlslsk+gui_MLY:.mly=.mli) $(mlslsk+gui_ZOG:.zog=.ml) 
  
 mlslsk+gui: $(mlslsk+gui_OBJS) $(mlslsk+gui_CMXS) $(mlslsk+gui_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(mlslsk+gui_OBJS) $(LIBS_opt) $(LIBS_flags) $(GTK_LIBS_opt) $(GTK_LIBS_flags) $(mlslsk+gui_CMXAS) $(mlslsk+gui_CMXS) 
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(mlslsk+gui_OBJS) $(LIBS_opt) $(LIBS_flags) $(GTK_LIBS_opt) $(GTK_LIBS_flags) -I build $(mlslsk+gui_CMXAS) $(mlslsk+gui_CMXS) 
  
 mlslsk+gui.byte: $(mlslsk+gui_OBJS) $(mlslsk+gui_CMOS)  $(mlslsk+gui_CMAS)
-	$(OCAMLC) -linkall -o $@  $(mlslsk+gui_OBJS) $(LIBS_byte) $(LIBS_flags)  $(GTK_LIBS_byte) $(GTK_LIBS_flags) $(mlslsk+gui_CMAS) $(mlslsk+gui_CMOS) 
+	$(OCAMLC) -linkall -o $@  $(mlslsk+gui_OBJS) $(LIBS_byte) $(LIBS_flags)  $(GTK_LIBS_byte) $(GTK_LIBS_flags) -I build $(mlslsk+gui_CMAS) $(mlslsk+gui_CMOS) 
  
 mlslsk+gui.static:  $(mlslsk+gui_OBJS) $(mlslsk+gui_CMXS)  $(mlslsk+gui_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(mlslsk+gui_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) $(mlslsk+gui_CMXAS) $(mlslsk+gui_CMXS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(mlslsk+gui_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) -I build $(mlslsk+gui_CMXAS) $(mlslsk+gui_CMXS)
 
 
 MLDONKEY_IM_ZOG := $(filter %.zog, $(MLDONKEY_IM_SRCS)) 
@@ -1460,13 +1467,13 @@ MLDONKEY_IM_CMAS=$(foreach file, $(MLDONKEY_IM_CMXAS),   $(basename $(file)).cma
 TMPSOURCES += $(MLDONKEY_IM_ML4:.ml4=.ml) $(MLDONKEY_IM_MLL:.mll=.ml) $(MLDONKEY_IM_MLY:.mly=.ml) $(MLDONKEY_IM_MLY:.mly=.mli) $(MLDONKEY_IM_ZOG:.zog=.ml) 
  
 mlim: $(MLDONKEY_IM_OBJS) $(MLDONKEY_IM_CMXS) $(MLDONKEY_IM_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(MLDONKEY_IM_OBJS) $(LIBS_opt) $(LIBS_flags) $(GTK_LIBS_opt) $(GTK_LIBS_flags) $(MLDONKEY_IM_CMXAS) $(MLDONKEY_IM_CMXS) 
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(MLDONKEY_IM_OBJS) $(LIBS_opt) $(LIBS_flags) $(GTK_LIBS_opt) $(GTK_LIBS_flags) -I build $(MLDONKEY_IM_CMXAS) $(MLDONKEY_IM_CMXS) 
  
 mlim.byte: $(MLDONKEY_IM_OBJS) $(MLDONKEY_IM_CMOS)  $(MLDONKEY_IM_CMAS)
-	$(OCAMLC) -linkall -o $@  $(MLDONKEY_IM_OBJS) $(LIBS_byte) $(LIBS_flags)  $(GTK_LIBS_byte) $(GTK_LIBS_flags) $(MLDONKEY_IM_CMAS) $(MLDONKEY_IM_CMOS) 
+	$(OCAMLC) -linkall -o $@  $(MLDONKEY_IM_OBJS) $(LIBS_byte) $(LIBS_flags)  $(GTK_LIBS_byte) $(GTK_LIBS_flags) -I build $(MLDONKEY_IM_CMAS) $(MLDONKEY_IM_CMOS) 
  
 mlim.static:  $(MLDONKEY_IM_OBJS) $(MLDONKEY_IM_CMXS)  $(MLDONKEY_IM_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(MLDONKEY_IM_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) $(MLDONKEY_IM_CMXAS) $(MLDONKEY_IM_CMXS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(MLDONKEY_IM_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) -I build $(MLDONKEY_IM_CMXAS) $(MLDONKEY_IM_CMXS)
 
 
 STARTER_ZOG := $(filter %.zog, $(STARTER_SRCS)) 
@@ -1485,13 +1492,13 @@ STARTER_CMAS=$(foreach file, $(STARTER_CMXAS),   $(basename $(file)).cma)
 TMPSOURCES += $(STARTER_ML4:.ml4=.ml) $(STARTER_MLL:.mll=.ml) $(STARTER_MLY:.mly=.ml) $(STARTER_MLY:.mly=.mli) $(STARTER_ZOG:.zog=.ml) 
  
 mldonkey_guistarter: $(STARTER_OBJS) $(STARTER_CMXS) $(STARTER_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(STARTER_OBJS) $(LIBS_opt) $(LIBS_flags) $(GTK_LIBS_opt) $(GTK_LIBS_flags) $(STARTER_CMXAS) $(STARTER_CMXS) 
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(STARTER_OBJS) $(LIBS_opt) $(LIBS_flags) $(GTK_LIBS_opt) $(GTK_LIBS_flags) -I build $(STARTER_CMXAS) $(STARTER_CMXS) 
  
 mldonkey_guistarter.byte: $(STARTER_OBJS) $(STARTER_CMOS)  $(STARTER_CMAS)
-	$(OCAMLC) -linkall -o $@  $(STARTER_OBJS) $(LIBS_byte) $(LIBS_flags)  $(GTK_LIBS_byte) $(GTK_LIBS_flags) $(STARTER_CMAS) $(STARTER_CMOS) 
+	$(OCAMLC) -linkall -o $@  $(STARTER_OBJS) $(LIBS_byte) $(LIBS_flags)  $(GTK_LIBS_byte) $(GTK_LIBS_flags) -I build $(STARTER_CMAS) $(STARTER_CMOS) 
  
 mldonkey_guistarter.static:  $(STARTER_OBJS) $(STARTER_CMXS)  $(STARTER_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(STARTER_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) $(STARTER_CMXAS) $(STARTER_CMXS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(STARTER_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) -I build $(STARTER_CMXAS) $(STARTER_CMXS)
 
 
 MLCHAT_ZOG := $(filter %.zog, $(MLCHAT_SRCS)) 
@@ -1510,13 +1517,13 @@ MLCHAT_CMAS=$(foreach file, $(MLCHAT_CMXAS),   $(basename $(file)).cma)
 TMPSOURCES += $(MLCHAT_ML4:.ml4=.ml) $(MLCHAT_MLL:.mll=.ml) $(MLCHAT_MLY:.mly=.ml) $(MLCHAT_MLY:.mly=.mli) $(MLCHAT_ZOG:.zog=.ml) 
  
 mlchat: $(MLCHAT_OBJS) $(MLCHAT_CMXS) $(MLCHAT_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(MLCHAT_OBJS) $(LIBS_opt) $(LIBS_flags) $(GTK_LIBS_opt) $(GTK_LIBS_flags) $(MLCHAT_CMXAS) $(MLCHAT_CMXS) 
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(MLCHAT_OBJS) $(LIBS_opt) $(LIBS_flags) $(GTK_LIBS_opt) $(GTK_LIBS_flags) -I build $(MLCHAT_CMXAS) $(MLCHAT_CMXS) 
  
 mlchat.byte: $(MLCHAT_OBJS) $(MLCHAT_CMOS)  $(MLCHAT_CMAS)
-	$(OCAMLC) -linkall -o $@  $(MLCHAT_OBJS) $(LIBS_byte) $(LIBS_flags)  $(GTK_LIBS_byte) $(GTK_LIBS_flags) $(MLCHAT_CMAS) $(MLCHAT_CMOS) 
+	$(OCAMLC) -linkall -o $@  $(MLCHAT_OBJS) $(LIBS_byte) $(LIBS_flags)  $(GTK_LIBS_byte) $(GTK_LIBS_flags) -I build $(MLCHAT_CMAS) $(MLCHAT_CMOS) 
  
 mlchat.static:  $(MLCHAT_OBJS) $(MLCHAT_CMXS)  $(MLCHAT_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(MLCHAT_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) $(MLCHAT_CMXAS) $(MLCHAT_CMXS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(MLCHAT_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) -I build $(MLCHAT_CMXAS) $(MLCHAT_CMXS)
 
 
 OBSERVER_ZOG := $(filter %.zog, $(OBSERVER_SRCS)) 
@@ -1535,13 +1542,13 @@ OBSERVER_CMAS=$(foreach file, $(OBSERVER_CMXAS),   $(basename $(file)).cma)
 TMPSOURCES += $(OBSERVER_ML4:.ml4=.ml) $(OBSERVER_MLL:.mll=.ml) $(OBSERVER_MLY:.mly=.ml) $(OBSERVER_MLY:.mly=.mli) $(OBSERVER_ZOG:.zog=.ml) 
  
 observer: $(OBSERVER_OBJS) $(OBSERVER_CMXS) $(OBSERVER_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(OBSERVER_OBJS) $(LIBS_opt) $(LIBS_flags) $(_LIBS_opt) $(_LIBS_flags) $(OBSERVER_CMXAS) $(OBSERVER_CMXS) 
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(OBSERVER_OBJS) $(LIBS_opt) $(LIBS_flags) $(_LIBS_opt) $(_LIBS_flags) -I build $(OBSERVER_CMXAS) $(OBSERVER_CMXS) 
  
 observer.byte: $(OBSERVER_OBJS) $(OBSERVER_CMOS)  $(OBSERVER_CMAS)
-	$(OCAMLC) -linkall -o $@  $(OBSERVER_OBJS) $(LIBS_byte) $(LIBS_flags)  $(_LIBS_byte) $(_LIBS_flags) $(OBSERVER_CMAS) $(OBSERVER_CMOS) 
+	$(OCAMLC) -linkall -o $@  $(OBSERVER_OBJS) $(LIBS_byte) $(LIBS_flags)  $(_LIBS_byte) $(_LIBS_flags) -I build $(OBSERVER_CMAS) $(OBSERVER_CMOS) 
  
 observer.static:  $(OBSERVER_OBJS) $(OBSERVER_CMXS)  $(OBSERVER_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(OBSERVER_OBJS) $(LIBS_opt) $(LIBS_flags)  $(_LIBS_flags)  $(_STATIC_LIBS_opt) $(OBSERVER_CMXAS) $(OBSERVER_CMXS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(OBSERVER_OBJS) $(LIBS_opt) $(LIBS_flags)  $(_LIBS_flags)  $(_STATIC_LIBS_opt) -I build $(OBSERVER_CMXAS) $(OBSERVER_CMXS)
 
 
 USE_TAGS_ZOG := $(filter %.zog, $(USE_TAGS_SRCS)) 
@@ -1560,13 +1567,13 @@ USE_TAGS_CMAS=$(foreach file, $(USE_TAGS_CMXAS),   $(basename $(file)).cma)
 TMPSOURCES += $(USE_TAGS_ML4:.ml4=.ml) $(USE_TAGS_MLL:.mll=.ml) $(USE_TAGS_MLY:.mly=.ml) $(USE_TAGS_MLY:.mly=.mli) $(USE_TAGS_ZOG:.zog=.ml) 
  
 use_tags: $(USE_TAGS_OBJS) $(USE_TAGS_CMXS) $(USE_TAGS_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(USE_TAGS_OBJS) $(LIBS_opt) $(LIBS_flags) $(NO_LIBS_opt) $(NO_LIBS_flags) $(USE_TAGS_CMXAS) $(USE_TAGS_CMXS) 
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(USE_TAGS_OBJS) $(LIBS_opt) $(LIBS_flags) $(NO_LIBS_opt) $(NO_LIBS_flags) -I build $(USE_TAGS_CMXAS) $(USE_TAGS_CMXS) 
  
 use_tags.byte: $(USE_TAGS_OBJS) $(USE_TAGS_CMOS)  $(USE_TAGS_CMAS)
-	$(OCAMLC) -linkall -o $@  $(USE_TAGS_OBJS) $(LIBS_byte) $(LIBS_flags)  $(NO_LIBS_byte) $(NO_LIBS_flags) $(USE_TAGS_CMAS) $(USE_TAGS_CMOS) 
+	$(OCAMLC) -linkall -o $@  $(USE_TAGS_OBJS) $(LIBS_byte) $(LIBS_flags)  $(NO_LIBS_byte) $(NO_LIBS_flags) -I build $(USE_TAGS_CMAS) $(USE_TAGS_CMOS) 
  
 use_tags.static:  $(USE_TAGS_OBJS) $(USE_TAGS_CMXS)  $(USE_TAGS_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(USE_TAGS_OBJS) $(LIBS_opt) $(LIBS_flags)  $(NO_LIBS_flags)  $(NO_STATIC_LIBS_opt) $(USE_TAGS_CMXAS) $(USE_TAGS_CMXS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(USE_TAGS_OBJS) $(LIBS_opt) $(LIBS_flags)  $(NO_LIBS_flags)  $(NO_STATIC_LIBS_opt) -I build $(USE_TAGS_CMXAS) $(USE_TAGS_CMXS)
 
 
 HASH_FILES_ZOG := $(filter %.zog, $(HASH_FILES_SRCS)) 
@@ -1585,13 +1592,13 @@ HASH_FILES_CMAS=$(foreach file, $(HASH_FILES_CMXAS),   $(basename $(file)).cma)
 TMPSOURCES += $(HASH_FILES_ML4:.ml4=.ml) $(HASH_FILES_MLL:.mll=.ml) $(HASH_FILES_MLY:.mly=.ml) $(HASH_FILES_MLY:.mly=.mli) $(HASH_FILES_ZOG:.zog=.ml) 
  
 hash_files: $(HASH_FILES_OBJS) $(HASH_FILES_CMXS) $(HASH_FILES_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(HASH_FILES_OBJS) $(LIBS_opt) $(LIBS_flags) $(_LIBS_opt) $(_LIBS_flags) $(HASH_FILES_CMXAS) $(HASH_FILES_CMXS) 
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(HASH_FILES_OBJS) $(LIBS_opt) $(LIBS_flags) $(_LIBS_opt) $(_LIBS_flags) -I build $(HASH_FILES_CMXAS) $(HASH_FILES_CMXS) 
  
 hash_files.byte: $(HASH_FILES_OBJS) $(HASH_FILES_CMOS)  $(HASH_FILES_CMAS)
-	$(OCAMLC) -linkall -o $@  $(HASH_FILES_OBJS) $(LIBS_byte) $(LIBS_flags)  $(_LIBS_byte) $(_LIBS_flags) $(HASH_FILES_CMAS) $(HASH_FILES_CMOS) 
+	$(OCAMLC) -linkall -o $@  $(HASH_FILES_OBJS) $(LIBS_byte) $(LIBS_flags)  $(_LIBS_byte) $(_LIBS_flags) -I build $(HASH_FILES_CMAS) $(HASH_FILES_CMOS) 
  
 hash_files.static:  $(HASH_FILES_OBJS) $(HASH_FILES_CMXS)  $(HASH_FILES_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(HASH_FILES_OBJS) $(LIBS_opt) $(LIBS_flags)  $(_LIBS_flags)  $(_STATIC_LIBS_opt) $(HASH_FILES_CMXAS) $(HASH_FILES_CMXS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(HASH_FILES_OBJS) $(LIBS_opt) $(LIBS_flags)  $(_LIBS_flags)  $(_STATIC_LIBS_opt) -I build $(HASH_FILES_CMXAS) $(HASH_FILES_CMXS)
 
 
 INSTALLER_ZOG := $(filter %.zog, $(INSTALLER_SRCS)) 
@@ -1610,13 +1617,13 @@ INSTALLER_CMAS=$(foreach file, $(INSTALLER_CMXAS),   $(basename $(file)).cma)
 TMPSOURCES += $(INSTALLER_ML4:.ml4=.ml) $(INSTALLER_MLL:.mll=.ml) $(INSTALLER_MLY:.mly=.ml) $(INSTALLER_MLY:.mly=.mli) $(INSTALLER_ZOG:.zog=.ml) 
  
 mldonkey_installer: $(INSTALLER_OBJS) $(INSTALLER_CMXS) $(INSTALLER_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(INSTALLER_OBJS) $(LIBS_opt) $(LIBS_flags) $(GTK_LIBS_opt) $(GTK_LIBS_flags) $(INSTALLER_CMXAS) $(INSTALLER_CMXS) 
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(INSTALLER_OBJS) $(LIBS_opt) $(LIBS_flags) $(GTK_LIBS_opt) $(GTK_LIBS_flags) -I build $(INSTALLER_CMXAS) $(INSTALLER_CMXS) 
  
 mldonkey_installer.byte: $(INSTALLER_OBJS) $(INSTALLER_CMOS)  $(INSTALLER_CMAS)
-	$(OCAMLC) -linkall -o $@  $(INSTALLER_OBJS) $(LIBS_byte) $(LIBS_flags)  $(GTK_LIBS_byte) $(GTK_LIBS_flags) $(INSTALLER_CMAS) $(INSTALLER_CMOS) 
+	$(OCAMLC) -linkall -o $@  $(INSTALLER_OBJS) $(LIBS_byte) $(LIBS_flags)  $(GTK_LIBS_byte) $(GTK_LIBS_flags) -I build $(INSTALLER_CMAS) $(INSTALLER_CMOS) 
  
 mldonkey_installer.static:  $(INSTALLER_OBJS) $(INSTALLER_CMXS)  $(INSTALLER_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(INSTALLER_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) $(INSTALLER_CMXAS) $(INSTALLER_CMXS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(INSTALLER_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) -I build $(INSTALLER_CMXAS) $(INSTALLER_CMXS)
 
 
 
@@ -1644,7 +1651,7 @@ TOP_CMAS=$(foreach file, $(TOP_CMXAS),   $(basename $(file)).cma)
 TMPSOURCES += $(TOP_ML4:.ml4=.ml) $(TOP_MLL:.mll=.ml) $(TOP_MLY:.mly=.ml) $(TOP_MLY:.mly=.mli) $(TOP_ZOG:.zog=.ml) 
  
 mldonkeytop: $(TOP_OBJS) $(TOP_CMOS) $(TOP_CMAS)
-	ocamlmktop -linkall $(PLUGIN_FLAG) -o $@  $(TOP_OBJS) $(LIBS_byte) $(LIBS_flags) $(_LIBS_byte) $(_LIBS_flags) $(TOP_CMAS) $(TOP_CMOS) 
+	ocamlmktop -linkall $(PLUGIN_FLAG) -o $@  $(TOP_OBJS) $(LIBS_byte) $(LIBS_flags) $(_LIBS_byte) $(_LIBS_flags) -I build $(TOP_CMAS) $(TOP_CMOS) 
  
 
 
@@ -1710,6 +1717,7 @@ zogml:
 
 clean: 
 	rm -f *.cm? donkey_* *.byte *.cm?? $(TARGETS) *~ *.o core *.static *.a
+	rm -f build/*.a build/*.cma build/*.cmxa
 	rm -f *_plugin
 	rm -f mldonkey mldonkey_gui
 	(for i in $(SUBDIRS); do \

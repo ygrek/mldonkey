@@ -206,9 +206,14 @@ and client = {
     mutable client_requests_received : int;
     mutable client_requests_sent: int;
     mutable client_indirect_address : (Ip.t * Ip.t * int) option;
-    mutable client_asked_for_slot : bool;
+    mutable client_slot : slot_status;
     mutable client_debug : bool;
   }
+
+and slot_status = 
+  SlotNotAsked
+| SlotAsked
+| SlotReceived
   
 and upload_info = {
     mutable up_file : file;

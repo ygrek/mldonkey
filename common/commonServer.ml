@@ -302,7 +302,8 @@ let server_banner s o =
 let server_print_html_header buf =
     html_mods_table_header buf "serversTable" "servers" [ 
 		( "1", "srh", "Server number", "#" ) ; 
-		( "0", "srh", "Button", "Button" ) ; 
+		( "0", "srh", "Connect|Disconnect", "C/D" ) ; 
+		( "0", "srh", "Remove", "Rem" ) ; 
 		( "0", "srh", "[Hi]gh or [Lo]w ID", "ID" ) ; 
 		( "0", "srh", "Network name", "Network" ) ; 
 		( "0", "srh", "Connection status", "Status" ) ; 
@@ -325,6 +326,7 @@ let server_print s o =
     Printf.bprintf buf "
     \\<td class=\\\"srb\\\" %s \\>%d\\</td\\>
     %s
+    %s
     \\<td class=\\\"sr\\\" %s\\</td\\>
     \\<td class=\\\"sr\\\"\\>%s\\</td\\>
     \\<td class=\\\"sr\\\"\\>%s\\</td\\>
@@ -346,15 +348,22 @@ let server_print s o =
       (
         Printf.sprintf
         "\\<TD class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
-        onMouseOut=\\\"mOut(this);\\\"
+        onMouseOut=\\\"mOut(this);\\\" title=\\\"Disconnect|Connect\\\"
         onClick=\\\"parent.fstatus.location.href='/submit?q=%s+%d'\\\"\\>%s\\</TD\\>"
       (match impl.impl_server_state with
         NotConnected _ -> "c"
       | _ -> "x")
       snum
       (match impl.impl_server_state with
-        NotConnected _ -> "Connect"
-      | _ -> "Disconnect")
+        NotConnected _ -> "Conn"
+      | _ -> "Disc")
+      )
+      (
+        Printf.sprintf
+        "\\<TD class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
+        onMouseOut=\\\"mOut(this);\\\" title=\\\"Remove server\\\"
+        onClick=\\\"parent.fstatus.location.href='/submit?q=rem+%d'\\\"\\>Rem\\</TD\\>"
+      snum
       )
       
       (if n.network_name = "Donkey" then 

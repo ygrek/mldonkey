@@ -454,9 +454,10 @@ let file_print file o =
   (Int64.to_string info.G.file_downloaded)
   (file_priority file);
   
-  
   if use_html_mods o then begin
-      
+	  (match n.network_name with 
+	  	"BitTorrent" ->  ();
+       | _ -> (
       Printf.bprintf buf "ed2k: \\<a href=\\\"ed2k://|file|%s|%s|%s|/\\\"\\>ed2k://|file|%s|%s|%s|/\\</A\\>\n\n"
         (info.G.file_name) 
       (Int64.to_string info.G.file_size)
@@ -484,22 +485,43 @@ parent.fstatus.location.href='/submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
       ) info.G.file_names;
       
       Printf.bprintf buf "\\</select\\>\\</form\\>\n";
-    
-    end
-  else
-    begin
+	 )
+	)
+
+  end
+  else begin
       Printf.bprintf buf "Chunks: [%-s]\n" info.G.file_chunks;
       List.iter (fun name -> 
           Printf.bprintf buf "    (%s)\n" name) info.G.file_names
-    
-    end;
+  end;
+
+
   
   (try
-      
-      let srcs = file_sources file in
-      Printf.bprintf buf "%d sources:\n" (List.length srcs);
-      
-      if use_html_mods o && srcs <> [] then 
+
+	let bitTorrentHeader () = 
+
+		html_mods_table_header buf "sourcesTable" "sources" [ 
+		( "1", "srh br ac", "Client number", "Num" ) ; 
+		( "0", "srh br", "Client UID", "UID" ) ; 
+		( "0", "srh", "IP address", "IP address" ) ; 
+		( "0", "srh br ar", "Port", "Port" ) ; 
+		( "1", "srh ar", "Total UL bytes to this client for all files", "UL" ) ; 
+		( "1", "srh ar br", "Total DL bytes from this client for all files", "DL" ) ; 
+		( "1", "srh ar", "Interested [T]rue, [F]alse", "I" ) ; 
+		( "1", "srh ar", "Choked [T]rue, [F]alse", "C" ) ; 
+		( "1", "srh br ar", "Allowed to write", "A" ) ; 
+(* 
+		( "0", "srh", "Bitmap (absent|partial|present|verified)", (colored_chunks 
+        (Array.init (String.length info.G.file_chunks)
+        (fun i -> ((int_of_char info.G.file_chunks.[i])-48)))) ) ; 
+*)
+		( "1", "srh ar", "Number of full chunks", (Printf.sprintf "%d"
+		(String.length (String2.replace info.G.file_chunks '0' "")) )) ]
+
+	in
+
+	let defaultHeader () = 
 
 		html_mods_table_header buf "sourcesTable" "sources" [ 
 		( "1", "srh ac", "Client number (click to add as friend)", "Num" ) ; 
@@ -529,35 +551,40 @@ parent.fstatus.location.href='/submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
 		( "1", "srh ar", "Number of full chunks", (Printf.sprintf "%d"
         (let fc = ref 0 in (String.iter (fun s -> if s = '2' then incr fc) info.G.file_chunks );!fc ))) ];
 
+	  in
+      
+      let srcs = file_sources file in
+      Printf.bprintf buf "%d sources:\n" (List.length srcs);
+      
+      if use_html_mods o && srcs <> [] then begin
+
+	  (match n.network_name with 
+	  	"BitTorrent" ->  bitTorrentHeader ();
+       | _ -> defaultHeader ();)
+	
+	  end;
+
       let counter = ref 0 in
       List.iter (fun c ->
           incr counter;
           
           if use_html_mods o then begin
-              
-              Printf.bprintf buf "
-\\<tr  
-onMouseOver=\\\"mOvr(this);\\\" 
-onMouseOut=\\\"mOut(this);\\\" 
-class=";
-              
-              if (!counter mod 2 == 0) then Printf.bprintf buf "\\\"dl-1\\\"\\>"
-              else Printf.bprintf buf "\\\"dl-2\\\"\\>";
+              Printf.bprintf buf " \\<tr onMouseOver=\\\"mOvr(this);\\\" 
+				onMouseOut=\\\"mOut(this);\\\" class=\\\"%s\\\"\\>"
+              (if (!counter mod 2 == 0) then "dl-1" else "dl-2");
               client_bprint_html c buf file;
               Printf.bprintf buf "\\</tr\\>";
             end
           else
             client_bprint c buf;
-      
-      
       ) srcs;
-      if use_html_mods o && List.length srcs > 0 then begin
+
+      if use_html_mods o && srcs <> [] then begin
         Printf.bprintf buf "\\</table\\>\\</div\\>";
         if !!html_mods_vd_queues then file_print_sources_html file buf;
       end
-        
 
-with _ -> ())
+  with _ -> ())
 (*
 let file_size file = 
   (as_file_impl file).impl_file_size

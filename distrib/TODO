@@ -1,11 +1,27 @@
 TODO list for client
 ====================
 
+
 Short schedule:
 ---------------
 * Verify that sha1 hashes are correctly computed for big files
 * Propagate them to Query-Routing
 * Update Query-Routing tables as soon as possible
+
+Bittorrent:
+-----------
+* Content-Encoding: gzip
+* bt 3.2 ... a want= and have= parameter 
+* Check that after the commit, we don't call the tracker, except if we continue
+  to share the file
+* started and completed should only be sent once
+  * Pause/resume file
+  * Reserve upload slots
+  * Share downloaded files
+  * Commited or not
+
+Edonkey: changes with -11 ??
+ ask_for_slot ?
 
 Let's schedule our work:
 ------------------------
@@ -230,3 +246,22 @@ WEB INTERFACE:
 (21:37:57) pango: b8_bavard: I also asked some informations about the "Lugdunum server ping extension"
 (21:39:03) pango: b8_bavard: if the last two random bytes are 0xaa 0x55, the server should reply with a longer packet; The 4 additionnal bytes return the maximum number of users allowed on the server
 (21:39:41) pango: b8_bavard: I don't know if we could have a use for that...
+Post subject: MLDonkey Core <-> Gui communication Reply with quote
+Hi Core Developers, Simon, Pango and so on icon_wink.gif
+
+Since some versions the core sends many file update messages to the gui.
+
+thats a problem, because the core send many kb to the gui. (i thing about 25 MB / h)
+
+i normaly connect my core per LAN or per Internet. Per lan is ok, but per internet is very bad, because i have only 32 kbs upstream (20 kbs for donkey) the other 12 kbs needs the core <-> gui communication.
+
+so i think a good idea could be that the core don't poll the fileinfos so often, or that the gui could setup, polling off (new opcode, that when i connected with lan polling on, with inet off)..
+
+so the gui must request the fileinfos with an interval.
+
+i think don't polling the file infos should enough. i don't know how much needs the userinfos and user<>file mapping.
+
+ps. sorry for that silly text i'm a bit confused at the moment icon_wink.gif
+
+bye suxxx
+

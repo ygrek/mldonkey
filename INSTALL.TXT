@@ -47,9 +47,9 @@ You have now two options to compile mldonkey:
     ~/tmp/mldonkey> make depend
     ~/tmp/mldonkey> make
 
-  You should now have 'mldonkey' (the daemon), 'mldonkey_gui' (the interface)
- and 'mlchat' (a chat program to communicate with the friends). No 
-'make install' is provided. 
+  You should now have 'mldonkey' (the daemon with edonkey/overnet support), 
+'mlnet' (the daemon with all network support) and 'mldonkey_gui' (the
+interface) No 'make install' is provided. 
 
   You can disable all other p2p networks using the --disable-multinet option
    with ./configure. Only edonkey support will then be compiled.

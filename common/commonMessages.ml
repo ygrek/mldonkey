@@ -1080,9 +1080,8 @@ let bad_number_of_args = string "bad_number_of_args"
 
 *)
 
-let carr = Array.create 5 [||]
+let carr = Array.create 6 [||]
 let _ = (
-
     (* Default green *)    
     carr.(0) <- [| "#CBE5CB"; "#94AE94";  "#33F"; "#E5FFE5"; "#B2CCB2";
                     "#E5E5E5"; "#BADEBA"; "#A3BDA3"; "#00F"; "#3D3D3D"; 
@@ -1096,7 +1095,6 @@ let _ = (
                     "#4EBCEF"; "#9BCEE6"; "#A3D8F1"; "#91C4DC"; "#8CBFD7"; 
                     "#5B8EA6"; "#5CCBFF"; "#BFE5F7"; "#7FBCD9"; "#99D6F2"; 
                     "#FFF"; "#EEE"; "#4DBCF0"; "#48C1DC"; "#63C3F0"; "#EEE" |];
-
     (* Light purple *)                
     carr.(3) <- [| "#CAB2E4"; "#9982B3";  "#C29FE8"; "#E1D7ED"; "#BEA5DA";
                     "#E6E6E6"; "#BE9EE3"; "#A68FC0"; "#D9B6FF"; "#000"; 
@@ -1109,6 +1107,12 @@ let _ = (
                     "#686868"; "#AAA"; "#B6B6B6"; "#9F9F9F"; "#999"; 
                     "#5E5E5E"; "#7F7F7F"; "#C1C1C1"; "#DFBDBD"; "#A4A4A4"; 
                     "#FFF"; "#EEE"; "#989898"; "#6C6C6C"; "#424242"; "#EEE" |];
+    (* Corona *)
+    carr.(5) <- [| "#C1CADE"; "#8195D6";  "#BCCADC"; "#FFF"; "#B7C0D4";
+                    "#FFF"; "#FFF"; "#6B80BF"; "#B2C0D2"; "#000";
+                    "#778BCC"; "#95A9EA"; "#9AAEEF"; "#90A4E5"; "#869FE0";
+                    "#364A8B"; "#687CBD"; "#6578BB"; "#CF82C5"; "#8195D6";
+                    "#FFF"; "#EEE"; "#5668AB"; "#C1CFE1"; "#6476B9"; "#EEE" |];
 )
 
 let html_css_mods = ref ""

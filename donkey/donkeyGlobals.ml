@@ -440,7 +440,7 @@ let dummy_client =
       client_requests_sent = 0;
       client_requests_received = 0;
       client_indirect_address = None;
-      client_asked_for_slot = false;
+      client_slot = SlotNotAsked;
       client_debug = false;
       } and
     client_impl = {
@@ -494,7 +494,7 @@ let create_client key num =
       client_requests_received = 0;
       client_requests_sent = 0;
       client_indirect_address = None;      
-      client_asked_for_slot = false; 
+      client_slot = SlotNotAsked; 
       client_debug = Intset.mem num !debug_clients;
     } and
     client_impl = {

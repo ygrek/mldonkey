@@ -251,8 +251,7 @@ let _ =
                       let list = Array.to_list job.entries in
                       get_non_local_ip list       
                     in
-                    lprintf "Ip found for %s: %s"
-                      job.name (to_string ip); lprint_newline ();
+(*        lprintf "Ip found for %s: %s\n" job.name (to_string ip);  *)
                     Hashtbl.add ip_cache job.name (ip, current_time +. 3600.);
                     job.handler ip
                   end else begin

@@ -216,7 +216,7 @@ let disconnect_client c =
           c.client_chunks <- [||];
           c.client_sock <- None;
           save_join_queue c;
-          c.client_asked_for_slot <- false;
+          c.client_slot <- SlotNotAsked;
           set_client_disconnected c;
           let files = c.client_file_queue in
           List.iter (fun (file, chunks) -> 
@@ -796,7 +796,7 @@ lprint_newline ();
         match c.client_file_queue with
           _ :: _ -> ()
         | [] ->
-            if not c.client_asked_for_slot then
+            if c.client_slot = SlotNotAsked then
               try
                 let files, _ = try
                     let v = Hashtbl.find join_queue_by_md4 c.client_md4 in
@@ -821,7 +821,7 @@ lprint_newline ();
               with _ -> ()
       end;
 (* now, we can forget we have asked for a slot *)
-      c.client_asked_for_slot <- false;
+      c.client_slot <- SlotReceived;
       DonkeyOneFile.find_client_block c
   
   | M.JoinQueueReq _ ->
@@ -862,7 +862,7 @@ lprint_newline ();
   | M.CloseSlotReq _ ->
       printf_string "[DOWN]";
       DonkeyOneFile.clean_client_zones c;
-      c.client_asked_for_slot <- false;
+      c.client_slot <- SlotNotAsked;
 (* OK, the slot is closed, but what should we do now ????? *)
       begin
         match c.client_file_queue with
@@ -1540,7 +1540,7 @@ let init_client sock c =
   c.client_rank <- 0;
   c.client_requests_received <- 0;
   c.client_requests_sent <- 0;
-  c.client_asked_for_slot <- false
+  c.client_slot <- SlotNotAsked
         
 let read_first_message overnet challenge m sock =
   let module M = DonkeyProtoClient in
