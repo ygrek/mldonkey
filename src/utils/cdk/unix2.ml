@@ -62,14 +62,14 @@ let rec safe_mkdir dir =
   else begin
       let predir = Filename.dirname dir in
       if predir <> dir then safe_mkdir predir;
-      if dir <> "." then Unix.mkdir dir 0o775
+(*      if dir <> "." then *) Unix.mkdir dir 0o775
     end    
     
     
 (* same as in downloadClient.ml *)
 let rec really_write fd s pos len =
   if len = 0 then begin
-      lprintf "really_write 0 BYTES !!!!!!!!!"; lprint_newline ();
+      lprintf "really_write 0 BYTES !!!!!!!!!\n"; 
       raise End_of_file
     end else
   let nwrite = Unix.write fd s pos len in
@@ -101,7 +101,7 @@ let rename oldname newname =
   try Unix.rename oldname newname with
     Unix_error(EXDEV,_,_) as e ->
 (* renaming is not enough, we must COPY *)
-      lprintf "COPY %s TO %s" oldname newname; lprint_newline ();
+      lprintf "COPY %s TO %s\n" oldname newname; 
       let copied = ref false in
       try
         copy oldname newname; 

@@ -1,6 +1,9 @@
 ChangeLog	
 =========
 
+2003/11/29: Fabrice
+  * Unix32: fixed a bug preventing the creation of a correct directory in BT
+
 2003/11/28: Fabrice
   * Unix32: some bug fixes which may have caused bad Sha1 computation in BT at 
       inner file borders.

@@ -433,14 +433,14 @@ module MultiFile = struct
               tree = make_tree files;
             }
         | (filename, size) :: tail ->
-            Unix2.safe_mkdir (Filename.dirname filename);
+            let temp_filename = Filename.concat dirname filename in
+            Unix2.safe_mkdir (Filename.dirname temp_filename);
             iter tail (pos ++ size)
             ({ 
                 filename = filename;
                 pos = pos;
                 len = size;
-                fd = FDCache.create (Filename.concat dirname filename)
-                rights access;
+                fd = FDCache.create temp_filename rights access;
                 tail = [];
               } :: files2)
       
