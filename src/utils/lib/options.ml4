@@ -466,7 +466,12 @@ let string_to_value s = StringValue s
   
 let rec value_to_int64 v =
   match v with
-    StringValue s -> Int64.of_string s
+  | StringValue s -> 
+       let s = String.lowercase s in
+       (match s with
+         "true" -> Int64.one
+        | "false" -> Int64.zero
+        | _ -> Int64.of_string s)
   | IntValue i -> i
   | FloatValue i -> Int64.of_float i
   | OnceValue v -> value_to_int64 v
