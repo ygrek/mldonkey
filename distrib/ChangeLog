@@ -9,7 +9,7 @@ Current state: only for beta testing
  * Downloaded chunks are not displayed correctly
  * many other problems, but download and upload do work 
 
-2003/06/21: Simon
+2003/06/21: Simon  (release-2-5-devel-4)
    * Edonkey2000:
       * Download and Upload verified
 
@@ -37,7 +37,7 @@ Current state: only for beta testing
    * Bitprint computation uses old format for tiger tree (modify lines 
       791 and 792 of tiger.c)
 
-2003/06/08: Simon  (release-2-5-devel-4)
+2003/06/08: Simon
    * Edonkey plugin uses CommonSwarming
 
 2003/06/07: Simon
