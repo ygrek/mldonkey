@@ -221,18 +221,51 @@ let create_gui_params () =
       (fun c -> [Gui_columns.Result.string_of_column c])
       !!GO.results_columns
   in
+  let shared_cols = list
+      ~help: M.h_shared_files_up_columns
+      ~f: (fun l -> GO.shared_files_up_columns =:= l)
+      ~add: (sel 
+	       (List.map fst Gui_columns.shared_file_up_column_strings)
+	       Gui_columns.Shared_files_up.string_of_column)
+      M.o_shared_files_up_colums
+      (fun c -> [Gui_columns.Shared_files_up.string_of_column c])
+      !!GO.shared_files_up_columns
+  in
   let columns_options = Section
       (M.o_columns,
        [
 	 servers_cols ; 
 	 dls_cols ; dled_cols ; 
 	 results_cols ;
-	 friends_cols ; file_locs_cols ;
+	 friends_cols ; 
+	 file_locs_cols ;
+	 shared_cols ;
        ] 
       )
   in
 
-  [ server_options ; colors_options ; layout_options ; columns_options  ]
+  let files_auto_expand_depth = string
+      ~f: (safe_int_of_string GO.files_auto_expand_depth)
+      ~help: M.h_files_auto_expand_depth
+      M.o_files_auto_expand_depth
+      (string_of_int !!GO.files_auto_expand_depth)
+  in
+  let use_size_suffixes = bool
+      ~f: (fun b -> GO.use_size_suffixes =:= b)
+      ~help: M.h_use_size_suffixes
+      M.o_use_size_suffixes
+      !!GO.use_size_suffixes
+  in
+  let misc_options = Section
+      (M.o_misc,
+       [
+	 files_auto_expand_depth ;
+	 use_size_suffixes ;
+       ]
+      )
+  in
+
+  [ server_options ; colors_options ; layout_options ; columns_options ; misc_options ]
   
 let create_option ?help label ref = string ?help ~f: (fun s -> ref := s) label !ref
 
@@ -335,8 +368,10 @@ let edit_options gui =
 	!!GO.friends_columns;
       gui#tab_downloads#box_locations#set_columns
 	!!GO.file_locations_columns;
-      gui#tab_friends#box_results#set_columns
+      gui#tab_friends#box_files#box_results#set_columns
 	!!GO.results_columns;
+      gui#tab_uploads#upstats_box#set_columns
+	!!GO.shared_files_up_columns;
 
       update_toolbars_style gui
       

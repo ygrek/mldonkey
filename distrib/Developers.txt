@@ -92,7 +92,7 @@ The main loop of mldonkey is located in the net/ library, which is responsible
 for managing the connections and the timers around a select system call (there
 are no threads in mldonkey).
 
-mldonkey executes is modules in the following way:
+mldonkey executes its modules in the following way:
 
 1) The common/ part is executed: data structures are defined for all the
   types that are common to all networks. For each type, an _ops type

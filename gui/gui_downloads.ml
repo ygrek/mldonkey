@@ -28,6 +28,7 @@ open Gui_columns
 module M = Gui_messages
 module P = Gpattern
 module O = Gui_options
+module G = Gui_global
 
 let (!!) = Options.(!!)
 
@@ -205,10 +206,13 @@ class box columns sel_mode () =
 
   end
     
-class box_downloaded () =
+class box_downloaded wl_status () =
   object (self)
     inherit box !!O.downloaded_columns `SINGLE () as super
 
+    method update_wl_status : unit =
+      wl_status#set_text 
+	(Gui_messages.downloaded_files !G.ndownloaded !G.ndownloads)
 
     method content f = 
       (fst (super#content f), Some (`NAME !!O.color_downloaded))
@@ -290,6 +294,7 @@ class box_downloaded () =
       with
         Not_found ->
           incr ndownloaded;
+	  self#update_wl_status ;
 	  data <- data @ [f];
 	  self#insert ~row: self#wlist#rows f
 
@@ -297,6 +302,7 @@ class box_downloaded () =
       try
         let (row, _) = self#find_file f.file_num in
         decr ndownloaded;
+	self#update_wl_status ;
         self#remove_file f row
       with
 	Not_found ->
@@ -382,7 +388,7 @@ let redraw_chunks draw_avail file =
       ~width: dx ~height:wy ()
   done
     
-class box_downloads box_locs () =
+class box_downloads box_locs wl_status () =
   let draw_availability =
     GMisc.drawing_area ~height:20
       ()
@@ -390,6 +396,10 @@ class box_downloads box_locs () =
   let label_file_info = GMisc.label () in
   object (self)
     inherit box !!O.downloads_columns `EXTENDED ()
+
+    method update_wl_status : unit =
+      wl_status#set_text 
+	(Gui_messages.downloaded_files !G.ndownloaded !G.ndownloads)
 
     method cancel () =
       let s = Gui_messages.ask_cancel_download_files
@@ -498,6 +508,7 @@ class box_downloads box_locs () =
       with
         Not_found ->
           incr ndownloads;
+	  self#update_wl_status ;
           data <- data @ [f];
           self#insert ~row: self#wlist#rows f;
       
@@ -505,6 +516,7 @@ class box_downloads box_locs () =
       try
         let (row, fi) = self#find_file f.file_num in
         decr ndownloads;
+	self#update_wl_status ;
         self#remove_file fi row
       with
 	Not_found ->
@@ -536,9 +548,8 @@ class box_downloads box_locs () =
           row
       with Not_found -> 
           (* some sources are sent for shared files in eDonkey. have to fix that *)
-          
-(*          Printf.printf "No such file %d" num; *)
-          print_newline ()
+(*          Printf.printf "No such file %d" num; print_newline () *)
+	()
 
     initializer
       ignore
@@ -599,12 +610,14 @@ class box_downloads box_locs () =
   end
 
 class pane_downloads () =
+  let wl_status = GMisc.label ~text: "" ~show: true () in
   let locs = new Gui_friends.box_list () in
-  let dled = new box_downloaded () in
-  let dls = new box_downloads locs () in
+  let dled = new box_downloaded wl_status () in
+  let dls = new box_downloads locs wl_status () in
   object (self)
     inherit Gui_downloads_base.paned ()
 
+    method wl_status = wl_status
     method box_downloads = dls
     method box_downloaded = dled
     method box_locations = locs
@@ -615,6 +628,7 @@ class pane_downloads () =
       dls#set_tb_style st
 
     method clear =
+      wl_status#set_text "";
       locs#clear;
       dled#clear;
       dls#clear

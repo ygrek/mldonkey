@@ -176,6 +176,8 @@ let xpm_view_users = define_option mldonkey_gui_ini (xpm_label M.o_xpm_view_user
     "" filename_option ""
 let xpm_connect_more_servers = define_option mldonkey_gui_ini (xpm_label M.o_xpm_connect_more_servers)
     "" filename_option ""
+let xpm_toggle_display_all_servers = define_option mldonkey_gui_ini (xpm_label M.o_xpm_toggle_display_all_servers)
+    "" filename_option ""
 let xpm_remove_old_servers = define_option mldonkey_gui_ini (xpm_label M.o_xpm_remove_old_servers)
     "" filename_option ""
 let xpm_save = define_option mldonkey_gui_ini (xpm_label M.o_xpm_save)
@@ -211,6 +213,8 @@ let xpm_find_friend =  define_option mldonkey_gui_ini (xpm_label M.o_xpm_find_fr
 let xpm_remove_all_friends =  define_option mldonkey_gui_ini (xpm_label M.o_xpm_remove_all_friends)
     "" filename_option ""
 let xpm_close_room =  define_option mldonkey_gui_ini (xpm_label M.o_xpm_close_room)
+    "" filename_option ""
+let xpm_refresh =  define_option mldonkey_gui_ini (xpm_label M.o_xpm_refresh)
     "" filename_option ""
 
 (** {2 Toolbars style} *)
@@ -251,6 +255,11 @@ let servers_hpane_left = define_option mldonkey_gui_ini
     "Size in % of left part of the servers hpane"
     int_option 80
 
+let rooms_hpane_left = define_option mldonkey_gui_ini
+    ["layout"; "rooms_hpane_left"]
+    "Size in % of left part of the rooms hpane"
+    int_option 80
+
 let downloads_hpane_left = define_option mldonkey_gui_ini
     ["layout"; "downloads_hpane_left"]
   "Size in % of left part of the downloads hpane"
@@ -273,8 +282,13 @@ let downloads_vpane_up = define_option mldonkey_gui_ini
 
 let friends_vpane_up = define_option mldonkey_gui_ini
     ["layout"; "friends_vpane_up"]
-  "Size in % of up part of the friends vpane"
+    "Size in % of up part of the friends vpane"
     int_option 80
+
+let friends_hpane_dirs = define_option mldonkey_gui_ini
+    ["layout"; "friends_hpane_dirs"]
+    "Size in % of the directories part of the files box"
+    int_option 20
 
 let gui_width = define_option mldonkey_gui_ini
     ["layout"; "width"]
@@ -283,6 +297,8 @@ let gui_width = define_option mldonkey_gui_ini
 let gui_height = define_option mldonkey_gui_ini
     ["layout"; "height"]
   "Height of GUI window" int_option 400
+
+
 
 (** {2 List columns} *)
 
@@ -348,6 +364,15 @@ let results_columns = define_option mldonkey_gui_ini
       C.Col_result_props ; C.Col_result_comment ; ]
 
 
+(** {3 Upload info} *)
+
+let shared_files_up_columns = define_option mldonkey_gui_ini
+    ["shared_files_up_columns"] M.h_shared_files_up_columns
+    (list_option C.Shared_files_up.class_column)
+    [ C.Col_shared_file ; C.Col_shared_size; C.Col_shared_requests ; 
+      C.Col_shared_upsize ;
+    ] 
+
 (** {2 Others} *)
 
 let password = define_option mldonkey_gui_ini ["password"] 
@@ -357,6 +382,16 @@ let port = define_option mldonkey_gui_ini ["port"]
 let hostname = define_option mldonkey_gui_ini ["hostname"] 
     M.h_hostname string_option "localhost"
 
+(** Profondeur max pour l'auto expand des arborescences des fichiers
+   des friends. *)
+let files_auto_expand_depth = define_option mldonkey_gui_ini 
+    ["files_auto_expand_depth"]
+    M.h_files_auto_expand_depth int_option 3
+
+(** Whether we must print sizes in bytes or use G, M and k suffixes. *)
+let use_size_suffixes = define_option mldonkey_gui_ini
+    ["use_size_suffixes"]
+    M.h_use_size_suffixes bool_option true
 
 let max_client_name_len = define_option mldonkey_gui_ini
     ["max_client_name_len"] "Max length of a source name"

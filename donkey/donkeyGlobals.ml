@@ -26,7 +26,7 @@ open Options
 open CommonTypes
 open DonkeyTypes
 open Unix
-open Mftp_comm
+open DonkeyProtoCom
 open BasicSocket
 open CommonOptions
 open DonkeyOptions
@@ -45,7 +45,7 @@ let client_must_update c =
 let server_must_update s =
   server_must_update (as_server s.server_server)
   
-let say_hook = ref (fun (c:client) (s:string) -> ())
+(* let say_hook = ref (fun (c:client) (s:string) -> ())
 
   
 (* These 3 hooks are used to handle connections with a server. They are mainly
@@ -56,14 +56,15 @@ let server_is_connected_hook = ref (fun
 let received_from_server_hook = ref (fun 
       (s: server) 
       (sock: server_sock) 
-      (t: Mftp_server.t) -> ())
+      (t: DonkeyProtoServer.t) -> ())
 let server_is_disconnected_hook = ref (fun 
       (s: server) -> ())
-  
+
 (* hook called when something changed on a file. Currently, it is only called
   when a file is added or removed. *)
 let file_change_hook = ref (fun (file: file) -> ())
-  
+  *)
+
   (* CONSTANTS *)
 let page_size = Int32.of_int 4096    
 
@@ -186,7 +187,7 @@ let new_file file_state file_name md4 file_size writable =
           else [] in
       let rec file = {
           file_file = file_impl;
-          file_shared = false;
+          file_shared = None;
           file_exists = file_exists;
           file_md4 = md4;
 
@@ -203,8 +204,6 @@ let new_file file_state file_name md4 file_size writable =
           file_available_chunks = Array.create nchunks 0;
           file_changed = FileInfoChange;
           file_format = Unknown_format;
-          file_upload_kbs = 0;
-          file_upload_requests = 0;
           file_new_locations = true;
         }
       and file_impl = {
@@ -279,6 +278,8 @@ let new_server ip port score =
           server_master = false;
           server_mldonkey = false;
           server_last_message = 0.0;
+          server_queries_credit = 0;
+          server_waiting_queries = [];
         }
       and server_impl = 
         {
@@ -643,3 +644,21 @@ let file_downloaded file = file.file_file.impl_file_downloaded
 let file_age file = file.file_file.impl_file_age
 let file_fd file = file.file_file.impl_file_fd
   
+  
+let last_connected_server () =
+  match !servers_list with 
+  | s :: _ -> s
+  | [] -> 
+      servers_list := 
+      Hashtbl.fold (fun key s l ->
+          s :: l
+      ) servers_by_key [];
+      match !servers_list with
+        [] -> raise Not_found
+      | s :: _ -> s
+
+          
+let all_servers () =
+  Hashtbl.fold (fun key s l ->
+      s :: l
+  ) servers_by_key []

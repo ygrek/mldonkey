@@ -26,7 +26,7 @@ open Unix
 open TcpBufferedSocket
 open DonkeyMftp
 open Options
-open Mftp_comm
+open DonkeyProtoCom
 open ServerTypes  
 open ServerOptions        
 open ServerGlobals
@@ -483,12 +483,12 @@ let direct_connect_server f s =
     let sock = TcpBufferedSocket.connect 
           "server to server"
         (Ip.to_inet_addr s.server_ip) (s.server_port+5) 
-          (server_handler s) (* Mftp_comm.server_msg_to_string*)  in
+          (server_handler s) (* DonkeyProtoCom.server_msg_to_string*)  in
       (*set_server_state s Connecting;*)
       (*set_read_controler sock download_control;
       set_write_controler sock upload_control;*)
       
-      set_reader sock (Mftp_comm.cut_messages ServerMessages.parse
+      set_reader sock (DonkeyProtoCom.cut_messages ServerMessages.parse
           (f s));
       if !!relais_master then
         set_closer sock (server_disconnect_of_master s) 
@@ -624,7 +624,7 @@ let rec server_to_server s t sock =
               let server = Hashtbl.find servers_by_id  t.CG.server_id in
 	      s.server_sock <- Some sock;
 	      TcpBufferedSocket.set_reader sock (
-						 Mftp_comm.cut_messages ServerMessages.parse (server_to_server server));
+						 DonkeyProtoCom.cut_messages ServerMessages.parse (server_to_server server));
 	      if !!relais_master then
 	         TcpBufferedSocket.set_closer sock 
 	                   (server_disconnect_of_master server)
@@ -776,12 +776,12 @@ let connect_server s =
     let sock = TcpBufferedSocket.connect 
           "server to server"
         (Ip.to_inet_addr s.server_ip) (s.server_port+5) 
-          (server_handler s) (* Mftp_comm.server_msg_to_string*)  in
+          (server_handler s) (* DonkeyProtoCom.server_msg_to_string*)  in
       (*set_server_state s Connecting;*)
       (*set_read_controler sock download_control;
       set_write_controler sock upload_control;*)
       
-      set_reader sock (Mftp_comm.cut_messages ServerMessages.parse
+      set_reader sock (DonkeyProtoCom.cut_messages ServerMessages.parse
           (server_to_server s));
       if !!relais_master then
         set_closer sock (server_disconnect_of_master s) 
@@ -899,7 +899,7 @@ let handler t event =
       incr nconnected_servers;
 
       TcpBufferedSocket.set_reader sock (
-        Mftp_comm.cut_messages ServerMessages.parse (server_to_server server));
+        DonkeyProtoCom.cut_messages ServerMessages.parse (server_to_server server));
       if !!relais_master then
         TcpBufferedSocket.set_closer sock 
           (server_disconnect_of_master server)

@@ -66,8 +66,10 @@ BUILD_OCAML=no
 if test -z "$ac_cv_prog_OCAMLC"; then 
    BUILD_OCAML=yes
 else
+   echo "Testing ocaml version"
    OCAMLVERSION=`$OCAMLC -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
-   if ! test "$OCAMLVERSION" = "$REQUIRED_OCAML"; then
+   if test "$OCAMLVERSION" != "$REQUIRED_OCAML"; then
+     echo "Need build"
      BUILD_OCAML=yes
    fi
 fi
@@ -84,6 +86,14 @@ if test "$BUILD_OCAML" = "yes"; then
   ])
 fi
 
+AC_CHECK_PROG(WGET, wget, wget)
+if test -z "$ac_cv_prog_WGET"; then 
+  $CC -o wget wget.c || echo "Cannot compile wget.c"
+  AC_PATH_PROG(WGET, wget,,$SOURCE_DIR/config)  
+  ac_cv_prog_WGET="$ac_cv_path_WGET"
+fi
+WGET="$ac_cv_prog_WGET"
+
 if test "$BUILD_OCAML" = "yes"; then
 
   echo "********  Objective-Caml $REQUIRED_OCAML is required  *********" 1>&2; 
@@ -94,12 +104,12 @@ if test "$BUILD_OCAML" = "yes"; then
   case "$i" in
    y* | Y*) 
       cd $PATCH_DIR
-      if ! test -f ocaml-"$REQUIRED_OCAML".tar.gz; then
+      if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then
         echo Downloading ...
 
-        wget http://caml.inria.fr/distrib/ocaml-"$REQUIRED_OCAML"/ocaml-"$REQUIRED_OCAML".tar.gz
+        $WGET http://pauillac.inria.fr/caml/distrib/ocaml-"$REQUIRED_OCAML"/ocaml-"$REQUIRED_OCAML".tar.gz
       fi
-      if ! test -f ocaml-"$REQUIRED_OCAML".tar.gz; then exit 1; fi
+      if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then exit 1; fi
 
       echo Uncompressing ...
       mkdir -p $BUILD_DIR
@@ -117,6 +127,7 @@ if test "$BUILD_OCAML" = "yes"; then
       cp -f Makefile Makefile.old
       sed "s/OTHERLIBRARIES=.*/OTHERLIBRARIES=unix dynlink num str bigarray threads/" Makefile.old > Makefile
       cd ..
+      cp -f $PATCH_DIR/Makefile.ocamldoc ocamldoc/Makefile
       echo Compiling ...
       $GNU_MAKE world opt opt.opt
       echo Installing ...
@@ -130,7 +141,12 @@ if test "$BUILD_OCAML" = "yes"; then
          OCAMLC=$LOCAL_OCAML/ocamlc.opt
          ac_cv_prog_OCAMLC=$LOCAL_OCAML/ocamlc.opt
       else
+      if test -f "$LOCAL_OCAML"/ocamlc; then
+         OCAMLC=$LOCAL_OCAML/ocamlc
+         ac_cv_prog_OCAMLC=$LOCAL_OCAML/ocamlc
+      else
         echo "Ocaml installation failed"; exit 1
+      fi
       fi
       ;;
    *)  exit 1;;
@@ -140,17 +156,29 @@ fi
 if test "$OCAMLC" = "$LOCAL_OCAML"/ocamlc.opt ; then
   OCAML_PATH="$LOCAL_OCAML"/
   OCAMLOPT=$LOCAL_OCAML/ocamlopt.opt
+  OCAMLMKTOP=$LOCAL_OCAML/ocamlmktop
   OCAMLDEP=$LOCAL_OCAML/ocamldep
   OCAMLLEX=$LOCAL_OCAML/ocamllex.opt
   OCAMLYACC=$LOCAL_OCAML/ocamlyacc
   CAMLP4=$LOCAL_OCAML/camlp4
 else
+  if test "$OCAMLC" = "$LOCAL_OCAML"/ocamlc ; then
+  OCAML_PATH="$LOCAL_OCAML"/
+  OCAMLOPT=$LOCAL_OCAML/ocamlopt
+  OCAMLMKTOP=$LOCAL_OCAML/ocamlmktop
+  OCAMLDEP=$LOCAL_OCAML/ocamldep
+  OCAMLLEX=$LOCAL_OCAML/ocamllex
+  OCAMLYACC=$LOCAL_OCAML/ocamlyacc
+  CAMLP4=$LOCAL_OCAML/camlp4
+  else
   AC_CHECK_PROG(OCAMLOPT, ocamlopt.opt, ocamlopt.opt)
   AC_CHECK_PROG(OCAMLDEP, ocamldep, ocamldep)
   AC_CHECK_PROG(OCAMLLEX, ocamllex.opt, ocamllex.opt)
   AC_CHECK_PROG(OCAMLLEX, ocamllex, ocamllex)
   AC_CHECK_PROG(OCAMLYACC, ocamlyacc, ocamlyacc)
+  AC_CHECK_PROG(OCAMLMKTOP, ocamlmktop, ocamlmktop)
   AC_CHECK_PROG(CAMLP4, camlp4, camlp4)
+fi
 fi
 
 AC_PATH_PROG(PERL, perl, perl)
@@ -269,6 +297,7 @@ if test "$MULTINET" = "yes" ; then
       BAD_TARGETS="$BAD_TARGETS soulseek"
     ])
   else
+    SOULSEEK=no
     BAD_TARGETS="$BAD_TARGETS soulseek"
   fi
 
@@ -294,22 +323,6 @@ fi
 
 if test "$DONKEY" = "yes" ; then
 
-OCAMLOPT_DIL=no 
-AC_MSG_CHECKING($OCAMLOPT supports -dil option)
-($OCAMLOPT -help 2>&1 | grep -e -dil > /dev/null) && OCAMLOPT_DIL=yes
-AC_MSG_RESULT($OCAMLOPT_DIL)
-
-test "$OCAMLOPT_DIL" = "no" && {
-  PATCHED_OCAMLOPT=patches/build/ocamlopt-$REQUIRED_OCAML/ocamlopt
-  OCAMLOPT=patches/build/ocamlopt-$REQUIRED_OCAML/ocamlopt
-  OCAMLOPT_DIL=yes
-  echo "Need to build patched ocamlopt for eDonkey support"
-}
-
-DONKEY_LAM_URL="http://pauillac.inria.fr/~lefessan/src/edonkey"
-
-AC_CHECK_FILE(../secret, [
-
   AC_CHECK_FILE(../donkey,[
     DONKEY=yes
     AC_CHECK_FILE(../server,DONKEY_SERVER=yes, [
@@ -317,59 +330,14 @@ AC_CHECK_FILE(../secret, [
       BAD_TARGETS="$BAD_TARGETS donkey_server"
     ])
   ], [
-    DONKEY_SERVER=no
-    BAD_TARGETS="$BAD_TARGETS donkey_server donkey_client"
+      DONKEY=no
+      DONKEY_SERVER=no
+      BAD_TARGETS="$BAD_TARGETS donkey_server donkey_client"
   ])
- ],[
-  DONKEY=no
-  if test "$OCAMLOPT_DIL" = "yes"; then
 
-  echo "*********************************************************************"
-  echo "To include eDonkey support in mldonkey, you need to download a file"
-  echo "containing the non-free protocol. You will not be able to modify"
-  echo "this plugin."
-  echo "This Makefile can either download it automatically (you need wget"
-  echo "and an internet connection), or you can download it yourself"
-  echo "(stop this script now and restart it after the download), or
-  echo "you can disable edonkey support."
-  echo
-  echo "The URL is: $DONKEY_LAM_URL/donkey.lam.SOME_MD5"
-  echo
-  echo "where SOME_MD5 is contained in these sources in the file"
-  echo "donkey/donkey.lam.md5:"
-  echo "Currently, it is:"
-  echo
-  echo "$DONKEY_LAM_URL/donkey.lam.`cat ../donkey/donkey.lam.md5`"
-  echo
-  echo "which should be copied into donkey/"
-
-  if test -f ../donkey/donkey.lam.`cat ../donkey/donkey.lam.md5`; then
-    echo "You already have it !!!!!"
-
-    OPEN_DONKEY=yes
-  else
-    echo "Do you want mldonkey to automatically download this file ?"
-
-     if test "$BATCH" = "no"; then read i; else i=yes; fi
-     case "$i" in
-      y* | Y*) 
-         AC_CHECK_PROG(wget, wget, wget)
-         OPEN_DONKEY=yes
-        ;;
-      *) ;;
-     esac
-  fi
-  echo "*********************************************************************"
-
-  fi
-  if test "$OPEN_DONKEY" = "no"; then
-      BAD_TARGETS="$BAD_TARGETS open_donkey"
-  fi
-])
   else
       BAD_TARGETS="$BAD_TARGETS donkey_server closed_donkey open_donkey"
 fi
-
 
 AC_CHECK_PROG(GTK_CONFIG, gtk-config, gtk-config, no)
 if test "$GTK_CONFIG" = "no"; then
@@ -397,11 +365,11 @@ else
 
          cd $PATCH_DIR
          rm -rf lablgtk-"$REQUIRED_LABLGTK"
-         if ! test -f lablgtk-"$REQUIRED_LABLGTK".tar.gz; then
+         if test ! -f lablgtk-"$REQUIRED_LABLGTK".tar.gz; then
            echo Downloading ...
-           wget http://wwwfun.kurims.kyoto-u.ac.jp/soft/olabl/dist/lablgtk-"$REQUIRED_LABLGTK".tar.gz
+           $WGET http://wwwfun.kurims.kyoto-u.ac.jp/soft/olabl/dist/lablgtk-"$REQUIRED_LABLGTK".tar.gz
          fi
-         if ! test -f lablgtk-"$REQUIRED_LABLGTK".tar.gz; then exit 1; fi
+         if test ! -f lablgtk-"$REQUIRED_LABLGTK".tar.gz; then exit 1; fi
 
          mkdir -p $BUILD_DIR
          cd $BUILD_DIR
@@ -476,6 +444,16 @@ case "$host" in
   ia64-*-linux*)                arch=ia64; system=linux;;
 esac
 
+AC_CHECK_PROG(COMPRESS, bzip2, bzip2)
+AC_CHECK_PROG(COMPRESS, gzip, gzip)
+
+if test "$ac_cv_prog_COMPRESS" = "bzip2"; then
+   COMPRESS_EXT=bz2
+else 
+   COMPRESS_EXT=gz
+fi
+
+
 ARCH=$arch
 
 AC_SUBST(OCAMLC)
@@ -485,6 +463,7 @@ AC_SUBST(OCAMLYACC)
 AC_SUBST(OCAMLDEP)
 AC_SUBST(CAMLP4)
 AC_SUBST(PERL)
+AC_SUBST(OCAMLMKTOP)
 
 AC_SUBST(MORE_TARGETS)
 AC_SUBST(MORE_SUBDIRS)
@@ -512,6 +491,8 @@ AC_SUBST(REQUIRED_OCAML)
 AC_SUBST(REQUIRED_LABLGTK)
 AC_SUBST(ARCH)
 AC_SUBST(PATCHED_OCAMLOPT)
+AC_SUBST(COMPRESS)
+AC_SUBST(COMPRESS_EXT)
 
 AUTOCONF=../lib/autoconf.ml
 AC_OUTPUT(Makefile.config $AUTOCONF.new)

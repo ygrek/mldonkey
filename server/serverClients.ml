@@ -26,14 +26,14 @@ open TcpBufferedSocket
 open Unix
 open DonkeyMftp
 open Options
-open Mftp_comm
+open DonkeyProtoCom
 open ServerTypes  
 open ServerOptions        
 open ServerGlobals
 open ServerLog
 open ServerSubscriptions
 
-module M = Mftp_server
+module M = DonkeyProtoServer
   
 let null_ip = Ip.of_int32 (Int32.of_int 0)
 
@@ -49,7 +49,7 @@ let null_ip = Ip.of_int32 (Int32.of_int 0)
 
 *)
 
-module P = Mftp_server
+module P = DonkeyProtoServer
 
 let print_loc loc =  Printf.printf("localisation %s port %d valide to %f")
                      (Ip.to_string loc.loc_ip)
@@ -589,7 +589,7 @@ let handler t event =
 
       incr nconnected_clients;
       TcpBufferedSocket.set_reader sock (
-        Mftp_comm.cut_messages Mftp_server.parse (server_to_client client));
+        DonkeyProtoCom.cut_messages DonkeyProtoServer.parse (server_to_client client));
       TcpBufferedSocket.set_closer sock 
         (remove_client client)
   | _ -> 

@@ -34,7 +34,7 @@ val notifications : Md4.t -> ServerMessages.LocateNotif.localisation list -> uni
 val supp : Md4.t -> ServerTypes.location -> unit
 (*val supp : Md4.t -> ServerTypes.where -> unit*)
 
-val get : Md4.t -> Mftp_server.QueryLocationReply.t
+val get : Md4.t -> DonkeyProtoServer.QueryLocationReply.t
 
 val print : unit -> unit
 val get_liste_of_md4 : unit -> (Md4.t * int) list

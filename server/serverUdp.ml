@@ -24,7 +24,7 @@ open DonkeyMftp
 open BasicSocket
 open UdpSocket
 open Options
-open Mftp_comm
+open DonkeyProtoCom
 open ServerTypes
 open ServerGlobals  
 open ServerOptions
@@ -38,7 +38,7 @@ let udp_sock () =
   | Some sock -> sock
  
 let server_udp_send s t =
-  Mftp_comm.udp_send_if_possible (udp_sock ()) upload_control
+  DonkeyProtoCom.udp_send_if_possible (udp_sock ()) upload_control
     (Unix.ADDR_INET 
       (Ip.to_inet_addr s.DonkeyTypes.server_ip,
       s.DonkeyTypes.server_port+4))
@@ -57,7 +57,7 @@ let new_alive_servers = ref []
 let time_out = ref true
   
 let rec add_new_servers servers other_servers to_add =
-  let module Q = Mftp_server.QueryServersReply in
+  let module Q = DonkeyProtoServer.QueryServersReply in
   match servers with 
     [] -> other_servers @ to_add
   | s :: tail ->
@@ -73,7 +73,7 @@ let rec find_servers servers n left =
     [] -> left
   | s :: tail -> (*Printf.printf "Add to liste\n";*)
       find_servers tail (n-1) (
-        let module Q = Mftp_server.QueryServersReply in
+        let module Q = DonkeyProtoServer.QueryServersReply in
         { Q.ip = s.DonkeyTypes.server_ip; 
           Q.port = s.DonkeyTypes.server_port; } :: left)
           
@@ -89,7 +89,7 @@ let rec print liste =
 
         
 let udp_handler sock event =
-  let module M = Mftp_server in
+  let module M = DonkeyProtoServer in
   match event with
     UdpSocket.READ_DONE ->
       List.iter (fun p -> 
@@ -181,7 +181,7 @@ let udp_handler sock event =
                     bob.DonkeyTypes.server_last_message <- last_time ();
                     
                     server_udp_send bob
-                      (let module M = Mftp_server in
+                      (let module M = DonkeyProtoServer in
                       M.QueryServersReplyUdpReq (
                         let module Q = M.QueryServersReply in
                         {
@@ -228,7 +228,7 @@ let udp_handler sock event =
                     in
 		      bob.DonkeyTypes.server_last_message <- last_time ();
 		      server_udp_send bob
-			(let module M = Mftp_server in
+			(let module M = DonkeyProtoServer in
 			   M.QueryServersReplyUdpReq (
 			     let module Q = M.QueryServersReply in
 			       {
@@ -337,7 +337,7 @@ let udp_handler sock event =
 			  Printf.printf "UNKNOWN UDP from %s:%d\n" (string_of_inet_addr ip) port
 		      | _ ->  ()
 		  end;
-		  Mftp_server.print t;
+		  DonkeyProtoServer.print t;
 		  print_newline ();
             end
          with e ->
@@ -405,7 +405,7 @@ let rec ping_other_servers n list msg =
   else list
   
 let ping_servers () =
-  let module M = Mftp_server in 
+  let module M = DonkeyProtoServer in 
   let module Q = M.QueryServers in
   let msg = M.QueryServersUdpReq {
       Q.ip = !!server_ip;
@@ -452,7 +452,7 @@ let ping_servers () =
 *)
 
 let test() = 
-  let module M = Mftp_server in 
+  let module M = DonkeyProtoServer in 
   let x = Ip.of_string "21.42.0.1" in
   let t = M.ServerDescUdpReq {
     M.ServerDescUdp.ip = x;
@@ -466,19 +466,19 @@ let test() =
     Q.ip = !!server_ip;
     Q.port = !!server_port;
   } in 
-    Mftp_comm.udp_send_if_possible (udp_sock ()) upload_control
+    DonkeyProtoCom.udp_send_if_possible (udp_sock ()) upload_control
       (Unix.ADDR_INET 
 	 (Ip.to_inet_addr ip,
 	  5004))
       t;
-    Mftp_comm.udp_send_if_possible (udp_sock ()) upload_control
+    DonkeyProtoCom.udp_send_if_possible (udp_sock ()) upload_control
       (Unix.ADDR_INET 
 	 (Ip.to_inet_addr ip,
 	  5004))
       m
 
 let hello_world () =
-  let module M = Mftp_server in 
+  let module M = DonkeyProtoServer in 
   let module Q = M.QueryServers in
   let msg =  M.QueryServersUdpReq {
       Q.ip = !!server_ip;

@@ -40,6 +40,9 @@ type server = {
     mutable server_master : bool;
     mutable server_mldonkey : bool;
     mutable server_last_message : float; (* used only by mldonkey server *)
+    
+    mutable server_queries_credit : int;
+    mutable server_waiting_queries : file list;
   } 
 
 
@@ -185,10 +188,8 @@ and file = {
 (* the time the file state was last computed and sent to guis *)
     mutable file_changed : file_change_kind; 
     mutable file_new_locations : bool;
-    mutable file_shared : bool;
+    mutable file_shared : file CommonShared.shared_impl option;
 
-    mutable file_upload_requests : int;
-    mutable file_upload_kbs : int;
   }
 
 and file_to_share = {
@@ -197,6 +198,7 @@ and file_to_share = {
     mutable shared_list : Md4.t list;
     mutable shared_pos : int32;
     mutable shared_fd : Unix32.t;
+    shared_shared : file_to_share CommonShared.shared_impl;
   }
   
 module UdpClientMap = Map.Make(struct
@@ -362,4 +364,10 @@ let (file_ops : file CommonFile.file_ops) =
 let (client_ops : client CommonClient.client_ops) = 
   CommonClient.new_client_ops network
 
+  
+let (pre_shared_ops : file_to_share CommonShared.shared_ops) = 
+  CommonShared.new_shared_ops network
+    
+let (shared_ops : file CommonShared.shared_ops) = 
+  CommonShared.new_shared_ops network
   

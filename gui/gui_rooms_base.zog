@@ -10,7 +10,7 @@
 </entity>
 <entity name=box2>
   <vbox name=vbox width="0" height="0" border_width="0" homogeneous="false" spacing="0" tab_label="" expand="false" fill="true" padding="-1">
-    <hpaned name=_ width="-1" height="-1" border_width="-1" handle_size="-1" tab_label="" expand="true" fill="true" padding="-1">
+    <hpaned name=hpaned width="-1" height="-1" border_width="-1" handle_size="-1" tab_label="" expand="true" fill="true" padding="-1">
       <vpaned name=rooms_pane width="-1" height="-1" border_width="-1" handle_size="-1" tab_label="" expand="false" fill="true" padding="-1">
       </vpaned>
       <vbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">

@@ -249,8 +249,7 @@ let _ =
   file_ops.op_file_save_as <- (fun file new_name  ->
       match file_state file with
         FileDownloaded | FileShared ->
-          Unix2.rename file.file_temp new_name;
-          file.file_temp <- new_name
+          DcClients.save_file_as file new_name
       | _ -> ()
   );
   file_ops.op_file_commit <- (fun file ->

@@ -26,7 +26,7 @@ open Unix
 open TcpBufferedSocket
 open DonkeyMftp
 open Options
-open Mftp_comm
+open DonkeyProtoCom
 open ServerTypes
 open ServerOptions
 open ServerLog
@@ -52,7 +52,7 @@ let enable () =
     | Some ip ->
         udp_send udp_server_sock (Unix.ADDR_INET (Ip.to_inet_addr ip,
           !!seed_port + 4)) (
-          let module M = Mftp_server in
+          let module M = DonkeyProtoServer in
           M.QueryServersUdpReq (
             let module Q = M.QueryServers in
             {

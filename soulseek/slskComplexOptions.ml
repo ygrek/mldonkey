@@ -16,3 +16,10 @@
     along with mldonkey; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
+
+open Options
+open SlskOptions
+
+let old_files = 
+  define_option soulseek_ini ["old_files"]
+    "" (list_option (tuple2_option (string_option, int32_option))) []

@@ -23,11 +23,12 @@ open SlskTypes
 open CommonTypes
 open CommonGlobals
 
-let get_ip s pos = Ip.rev (get_ip s pos)
+let get_ip s pos =   Ip.rev (get_ip s pos)
 let buf_ip buf ip = buf_ip buf (Ip.rev ip)
   
 let get_string s pos =
   let len = get_int s pos in
+  if len = 0 then "", pos+4 else
   String.sub s (pos+4) len, pos+4+len
   
 let buf_string buf s =
@@ -475,10 +476,10 @@ ascii: [
         match opcode with
           1 -> LoginAckReq (LoginAck.parse s)
         | 3 -> 
-            let s, pos = get_string s 0 in
+            let name, pos = get_string s 0 in
             let ip = get_ip s pos in
             let port = get_int s (pos+4) in
-            GetPeerAddressReplyReq (s, ip, port)
+            GetPeerAddressReplyReq (name, ip, port)
         | 5 -> 
             let s, pos = get_string s 0 in
             let present = get_int8 s pos in
@@ -509,7 +510,8 @@ ascii: [
         | _ -> raise Not_found
       with
         e -> 
-          Printf.printf "From server:"; print_newline ();
+          Printf.printf "From server (exception %s):" (Printexc.to_string e); 
+          print_newline ();
           unknown opcode s;
           UnknownReq (opcode, s)
     
@@ -585,37 +587,37 @@ ascii: [
   
   
 module C2C = struct
-
-type file = {
-    file_code : int;
-    file_name : string;
-    file_size : int32;
-    file_format : string;
-    file_tags : (int * int) list;
-  }
-
-let get_file s pos =
-  let code = get_int8 s pos in
-  let name, pos = get_string s (pos+1) in
-  let size = get_int32 s pos in
-  let size2 = get_int32 s (pos+4) in
-  let format, pos = get_string s (pos+8) in
-  let tags, pos = get_list (fun s pos ->
-        (get_int s pos, get_int s (pos+4)), pos+8) s pos
-  in
-  {
-    file_code = code;
-    file_name = name;
-    file_size = size;
-    file_format = format;
-    file_tags = tags;
-  }, pos
-  
-
-let get_dir s pos =
-  let dir, pos = get_string s pos in
-  let files, pos = get_list get_file s pos in
-  (dir, files), pos
+    
+    type file = {
+        file_code : int;
+        file_name : string;
+        file_size : int32;
+        file_format : string;
+        file_tags : (int * int) list;
+      }
+    
+    let get_file s pos =
+      let code = get_int8 s pos in
+      let name, pos = get_string s (pos+1) in
+      let size = get_int32 s pos in
+      let size2 = get_int32 s (pos+4) in
+      let format, pos = get_string s (pos+8) in
+      let tags, pos = get_list (fun s pos ->
+            (get_int s pos, get_int s (pos+4)), pos+8) s pos
+      in
+      {
+        file_code = code;
+        file_name = name;
+        file_size = size;
+        file_format = format;
+        file_tags = tags;
+      }, pos
+    
+    
+    let get_dir s pos =
+      let dir, pos = get_string s pos in
+      let files, pos = get_list get_file s pos in
+      (dir, files), pos
     
     module  SharedFileList = struct
         
@@ -668,9 +670,9 @@ let get_dir s pos =
                 (folder, dirs), pos) s 0
           in
           folders
-          
-      end
       
+      end
+    
     type t = 
     | GetSharedFileListReq
     | SharedFileListReq of SharedFileList.t
@@ -681,13 +683,15 @@ let get_dir s pos =
 (* request id *) int *
 (* file name *)  string *
 (* file size *)  int32
-    | TransferReplyReq of 
+    | TransferOKReplyReq of 
 (* request id *) int *
-(* allowed *)    bool *
+(* filesize *) int32
+    | TransferFailedReplyReq of 
+(* request id *) int *
 (* reason *)     string
     | FolderContentsReq of string
     | UnknownReq of int * string
-      
+    
     let parse opcode s =
       try
         match opcode with          
@@ -704,11 +708,16 @@ let get_dir s pos =
             let file, pos = get_string s 8 in
             let size = get_int32 s pos in
             TransferRequestReq (download, req, file, size)
+        
         | 41 -> 
             let req = get_int s 0 in
             let allowed = get_int8 s 4 = 1 in
+            if allowed then
+              let filesize = get_int32 s 5 in
+              TransferOKReplyReq (req, filesize)
+            else
             let reason, pos = get_string s 5 in
-            TransferReplyReq (req, allowed, reason)
+            TransferFailedReplyReq (req, reason)
 (*
           | 15 -> UserInfoRequest
           | 16 -> UserInfoReply
@@ -717,7 +726,8 @@ let get_dir s pos =
         | _ -> raise Not_found
       with
         e -> 
-          Printf.printf "From peer:"; print_newline ();
+          Printf.printf "From peer: %s" (Printexc.to_string e); 
+          print_newline ();
           unknown opcode s;
           UnknownReq (opcode, s)
     
@@ -743,9 +753,11 @@ let get_dir s pos =
           Printf.printf "TransferRequestReq %d for %s of %s %ld" req
             (if download then "Download" else "Upload") file size;
           print_newline ();
-      | TransferReplyReq (req, allowed, reason) ->
-          Printf.printf "TransferReplyReq %d %s for %s" req
-            (if allowed then "Allowed" else "Rejected") reason;
+      | TransferOKReplyReq (req, file_size) ->
+          Printf.printf "TransferOKReplyReq %d for %ld" req file_size;
+          print_newline ();          
+      | TransferFailedReplyReq (req, reason) ->
+          Printf.printf "TransferFailedReq %d for %s" req reason;
           print_newline ();          
       | FileSearchResultReq t ->
           Printf.printf "FileSearchResultReq for %s token %d" 
@@ -753,7 +765,7 @@ let get_dir s pos =
           print_newline ();
           List.iter (fun file ->
               Printf.printf "  %50s%ld" 
-              file.file_name file.file_size; print_newline ();
+                file.file_name file.file_size; print_newline ();
           ) t.FileSearchResult.files;
           
       | SharedFileListReq dirs ->
@@ -783,10 +795,17 @@ let get_dir s pos =
           buf_string buf file;
           buf_int32 buf size
 
-      | TransferReplyReq (req, allowed, reason) ->
+      | TransferOKReplyReq (req, filesize) ->
           buf_int buf 41;
-          buf_int buf 0;
-          buf_int8 buf (if allowed then 1 else 0);
+          buf_int buf req;
+          buf_int8 buf 1;
+          buf_int32 buf filesize;
+          buf_int buf 0
+
+      | TransferFailedReplyReq (req, reason) ->
+          buf_int buf 41;
+          buf_int buf req;
+          buf_int8 buf 0;
           buf_string buf reason
 
       | FileSearchResultReq t ->
@@ -890,6 +909,80 @@ let init_result_connection sock token =
   Printf.printf "INIT RESULT CONNECTION:";
   dump s
 
+    
+let init_download_connection sock file login req pos =
+  Buffer.clear buf;
+  buf_int buf 0;
+  buf_int8 buf 1;
+  buf_string buf login;
+  buf_string buf "F";
+  buf_int buf 300;
+  Printf.printf "INIT PEER CONNECTION:";
 
+  let s = Buffer.contents buf in
+  let len = String.length s - 4 in
+  str_int s 0 len;
+  write_string sock s ;
+  dump s;  
+  
+  Buffer.clear buf;
+  buf_int buf req;
+  buf_int32 buf pos;
+  buf_int buf 0;
+  let s = Buffer.contents buf in
+  write_string sock s ;
+  
+  dump s
 
+(*
+  
+1029504088.822192.168.0.2:37764->80.11.74.111:47624oflen30
+ascii[ PEER
+(22)(0)(0)(0)
+(1)     CONNECTION TYPE
+(8)(0)(0)(0)mldonkey
+(1)(0)(0)(0)(70) "F"  looking for a file
+(44)(1)(0)(0)         300 ?
+] END OF THE FIRST MESSAGE
+
+NOW, SEND THIS:
+[
+(103)(0)(0)(0)   the previous request
+(0)(0)(0)(0)     ?
+(0)(0)(0)(0)     ?
+]
+SENDING TO CLIENT:
+TransferRequestReq 490 for Download of d:\documents and settings\administrator\my documents\incoming\mp3\kylie/Beth Orton - daybreaker - 10 - Thinking About Tomorrow.mp3 8014174
+ascii: [(150)(0)(0)(0) ((0)(0)(0)(0)(0)(0)(0)(234)(1)(0)(0)(130)(0)(0)(0) d : \ d o c u m e n t s   a n d   s e t t i n g s \ a d m i n i s t r a t o r \ m y   d o c u m e n t s \ i n c o m i n g \ m p 3 \ k y l i e / B e t h   O r t o n   -   d a y b r e a k e r   -   1 0   -   T h i n k i n g   A b o u t   T o m o r r o w . m p 3 ^ I z(0)]
+d
+dec: [(150)(0)(0)(0)(40)(0)(0)(0)(0)(0)(0)(0)(234)(1)(0)(0)(130)(0)(0)(0)(100)(58)(92)(100)(111)(99)(117)(109)(101)(110)(116)(115)(32)(97)(110)(100)(32)(115)(101)(116)(116)(105)(110)(103)(115)(92)(97)(100)(109)(105)(110)(105)(115)(116)(114)(97)(116)(111)(114)(92)(109)(121)(32)(100)(111)(99)(117)(109)(101)(110)(116)(115)(92)(105)(110)(99)(111)(109)(105)(110)(103)(92)(109)(112)(51)(92)(107)(121)(108)(105)(101)(47)(66)(101)(116)(104)(32)(79)(114)(116)(111)(110)(32)(45)(32)(100)(97)(121)(98)(114)(101)(97)(107)(101)(114)(32)(45)(32)(49)(48)(32)(45)(32)(84)(104)(105)(110)(107)(105)(110)(103)(32)(65)(98)(111)(117)(116)(32)(84)(111)(109)(111)(114)(114)(111)(119)(46)(109)(112)(51)(94)(73)(122)(0)]
+
+  From peer:
+Unknown: opcode 46
+ascii: [ v(0)(0)(0) d : \ d o c u m e n t s   a n d   s e t t i n g s \ a d m i n i s t r a t o r \ m y   d o c u m e n t s \ i n c o m i n g \ m p 3 \ k y l i e / B e t h   O r t o n   -   d a y b r e a k e r   -   0 9   -   T e d ' s   W a l t z . m p 3]
+dec: [(118)(0)(0)(0)(100)(58)(92)(100)(111)(99)(117)(109)(101)(110)(116)(115)(32)(97)(110)(100)(32)(115)(101)(116)(116)(105)(110)(103)(115)(92)(97)(100)(109)(105)(110)(105)(115)(116)(114)(97)(116)(111)(114)(92)(109)(121)(32)(100)(111)(99)(117)(109)(101)(110)(116)(115)(92)(105)(110)(99)(111)(109)(105)(110)(103)(92)(109)(112)(51)(92)(107)(121)(108)(105)(101)(47)(66)(101)(116)(104)(32)(79)(114)(116)(111)(110)(32)(45)(32)(100)(97)(121)(98)(114)(101)(97)(107)(101)(114)(32)(45)(32)(48)(57)(32)(45)(32)(84)(101)(100)(39)(115)(32)(87)(97)(108)(116)(122)(46)(109)(112)(51)]
+MESSAGE FROM PEER
+Unused message from client:
+Unknown: opcode 46
+ascii: [ v(0)(0)(0) d : \ d o c u m e n t s   a n d   s e t t i n g s \ a d m i n i s t r a t o r \ m y   d o c u m e n t s \ i n c o m i n g \ m p 3 \ k y l i e / B e t h   O r t o n   -   d a y b r e a k e r   -   0 9   -   T e d ' s   W a l t z . m p 3]
+dec: [(118)(0)(0)(0)(100)(58)(92)(100)(111)(99)(117)(109)(101)(110)(116)(115)(32)(97)(110)(100)(32)(115)(101)(116)(116)(105)(110)(103)(115)(92)(97)(100)(109)(105)(110)(105)(115)(116)(114)(97)(116)(111)(114)(92)(109)(121)(32)(100)(111)(99)(117)(109)(101)(110)(116)(115)(92)(105)(110)(99)(111)(109)(105)(110)(103)(92)(109)(112)(51)(92)(107)(121)(108)(105)(101)(47)(66)(101)(116)(104)(32)(79)(114)(116)(111)(110)(32)(45)(32)(100)(97)(121)(98)(114)(101)(97)(107)(101)(114)(32)(45)(32)(48)(57)(32)(45)(32)(84)(101)(100)(39)(115)(32)(87)(97)(108)(116)(122)(46)(109)(112)(51)]
+
+From peer: Invalid_argument("String.sub")
+Unknown: opcode 41
+ascii: [(1)(0)(0)(0)(1) `(224) n(0)(0)(0)(0)(0)]
+dec: [(1)(0)(0)(0)(1)(96)(224)(110)(0)(0)(0)(0)(0)]
+MESSAGE FROM PEER
+Unused message from client:
+Unknown: opcode 41
+ascii: [(1)(0)(0)(0)(1) `(224) n(0)(0)(0)(0)(0)]
+dec: [(1)(0)(0)(0)(1)(96)(224)(110)(0)(0)(0)(0)(0)]
+
+TransferRequestReq 1 for Download of c:\my music\tv/Hawaii_5-0[1].au 462217
+ascii: [ 3(0)(0)(0) ((0)(0)(0)(0)(0)(0)(0)(1)(0)(0)(0)(31)(0)(0)(0) c : \ m y   
+m u s i c \ t v / H a w a i i _ 5 - 0 [ 1 ] . a u(137)(13)(7)(0)]
+dec: [(51)(0)(0)(0)(40)(0)(0)(0)(0)(0)(0)(0)(1)(0)(0)(0)(31)(0)(0)(0)(99)(58)(92
+)(109)(121)(32)(109)(117)(115)(105)(99)(92)(116)(118)(47)(72)(97)(119)(97)(105)(
+105)(95)(53)(45)(48)(91)(49)(93)(46)(97)(117)(137)(13)(7)(0)]
+
+*)
   

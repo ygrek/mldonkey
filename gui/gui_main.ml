@@ -49,6 +49,8 @@ let _ =
      a "A-f" M.a_page_friends;
      a "A-q" M.a_page_queries;
      a "A-r" M.a_page_results;
+     a "A-m" M.a_page_rooms ;
+     a "A-u" M.a_page_uploads;
      a "A-o" M.a_page_options;
      a "A-c" M.a_page_console;
      a "A-h" M.a_page_help;
@@ -202,9 +204,11 @@ let value_reader gui t sock =
         end
     
     | Client_stats s ->
-        gui#label_upload_status#set_text 
+	gui#tab_uploads#wl_status#set_text
           (Printf.sprintf "Upload %d/%s" 
-            s.nshared_files (Int64.to_string s.upload_counter))
+             s.nshared_files 
+	     (Gui_misc.size_of_int64 s.upload_counter)
+	  )
     
     | CoreProtocol v -> 
         
@@ -238,45 +242,25 @@ let value_reader gui t sock =
     | File_info f ->
 (*        Printf.printf "FILE INFO"; print_newline (); *)
         gui#tab_downloads#h_file_info f;
-        gui#update_downloaded_label
-    
     
     | Server_info s ->
 (*        Printf.printf "server info"; print_newline (); *)
-
-(* From mldonkey: 
-  Why do you call gui#update_server_label after all updates ????? Is this
-really necessary ??? For me, the only reason I see is that the object
-architecture prevents you from accessing gui#update_server_label from
-inside gui#tab_servers. It's uggly. Since there is only one tab_servers, there
-is clearly no need for objects. I continue to think that the objects in
-the GUI make it slower, hard to understand and uggly to program. 
-There is the same problem with the update_downloaded_label ... 
-
-From Zoggy : This way it's clear, and updating the label has a really 
-small cost. If you want, you can add a hook on these labels in the
-sub boxes but THIS would be ugly :-)
-*)
-        
-        gui#tab_servers#h_server_info s;
-        gui#update_server_label
+        gui#tab_servers#h_server_info s
     
     | Server_state (key,state) ->
-        gui#tab_servers#h_server_state key state ;
-        gui#update_server_label 
+        gui#tab_servers#h_server_state key state
     
     | Server_busy (key,nusers, nfiles) ->
-        gui#tab_servers#h_server_busy key nusers nfiles ;
-        gui#update_server_label 
+        gui#tab_servers#h_server_busy key nusers nfiles
     
     | Server_user (key, user) ->
 (*        Printf.printf "server user %d %d" key user; print_newline (); *)
         if not (Hashtbl.mem G.users user) then begin
 (*            Printf.printf "Unknown user %d" user; print_newline ();*)
             Gui_com.send (GetUser_info user);
-          end else begin
-            gui#tab_servers#h_server_user key user;
-            gui#update_server_label 
+          end else 
+	  begin
+            gui#tab_servers#h_server_user key user
           end
     
     | Room_info room ->
@@ -294,13 +278,21 @@ sub boxes but THIS would be ugly :-)
         in
 (*        Printf.printf "user_info %s/%d" user.user_name user.user_server; print_newline (); *)
         gui#tab_servers#h_server_user user.user_server user.user_num;
-        Gui_rooms.user_info user;
-        gui#update_server_label
+        Gui_rooms.user_info user
     
-    | Room_user (num, user_num) -> 
+    | Room_add_user (num, user_num) -> 
         
         begin try
             gui#tab_rooms#add_room_user num user_num
+          with e ->
+              Printf.printf "Exception in Room_user %d %d" num user_num;
+              print_newline ();
+        end
+
+    | Room_remove_user (num, user_num) -> 
+        
+        begin try
+            gui#tab_rooms#remove_room_user num user_num
           with e ->
               Printf.printf "Exception in Room_user %d %d" num user_num;
               print_newline ();
@@ -350,6 +342,7 @@ sub boxes but THIS would be ugly :-)
         )
     
     | Result_info r ->
+        
         if not (Hashtbl.mem G.results r.result_num) then
           Hashtbl.add G.results r.result_num r
     
@@ -367,6 +360,7 @@ sub boxes but THIS would be ugly :-)
                     None -> { file_tree_list = []; file_tree_name = "" }
                   | Some tree -> { tree with file_tree_list = tree.file_tree_list }
                 in
+
                 add_file tree dirname file;
                 ignore (canon_client gui { c with client_files = Some tree })
                 
@@ -433,6 +427,13 @@ fichier selectionne. Si ca marche toujours dans ton interface, pas de
         end
 
     | (DownloadedFiles _|DownloadFiles _|ConnectedServers _) -> assert false
+
+    | Shared_file_info si ->
+	gui#tab_uploads#h_shared_file_info si
+    | Shared_file_upload (num,size,requests) ->
+        gui#tab_uploads#h_shared_file_upload num size requests
+    | Shared_file_unshared _ ->
+        ()
   with e ->
       Printf.printf "Exception %s in reader" (Printexc.to_string e);
       print_newline ()
@@ -462,9 +463,12 @@ let main () =
   ignore (gui#itemFriends#connect#activate (fun () -> gui#notebook#goto_page 2));
   ignore (gui#itemSearches#connect#activate (fun () -> gui#notebook#goto_page 3));
   ignore (gui#itemResults#connect#activate (fun () -> gui#notebook#goto_page 4));
+  ignore (gui#itemRooms#connect#activate (fun () -> gui#notebook#goto_page 5));
+  ignore (gui#itemUploads#connect#activate (fun () -> gui#notebook#goto_page 6));
+  ignore (gui#itemConsole#connect#activate (fun () -> gui#notebook#goto_page 7));
+  ignore (gui#itemHelp#connect#activate (fun () -> gui#notebook#goto_page 8));
+
   ignore (gui#itemOptions#connect#activate (fun () -> Gui_config.edit_options gui));
-  ignore (gui#itemConsole#connect#activate (fun () -> gui#notebook#goto_page 5));
-  ignore (gui#itemHelp#connect#activate (fun () -> gui#notebook#goto_page 6));
 
 
   (** connection with core *)

@@ -63,3 +63,18 @@ let max_known_servers = define_option soulseek_ini
 let commit_in_subdir = define_option soulseek_ini ["commit_in_subdir"]
   "The subdirectory of temp/ where files should be moved to"
     string_option "SoulSeek"
+
+  
+let verbose_clients = 
+  define_option soulseek_ini ["verbose_clients"] 
+  "level of verbosity when communicating with clients" 
+    int_option 0
+    
+let verbose_servers = 
+  define_option soulseek_ini ["verbose_servers"] 
+    "level of verbosity when communicating with servers" int_option 0
+
+let next_token = 
+  define_option soulseek_ini ["next_token"]
+    "the last token used for a query is saved here" int_option 1
+  

@@ -50,17 +50,6 @@ class window () =
 
     val mutable current_page = 0
 
-
-    method update_server_label =
-      label_servers_status#set_text
-	(Gui_messages.connected_to_servers !G.nconnected_servers !G.nservers)
-
-    method update_downloaded_label =
-      let text = 	(Gui_messages.downloaded_files !G.ndownloaded !G.ndownloads)
-      in
-      label_downloads_status#set_text text
-
-
     method clear =
       tab_servers#clear;
       tab_downloads#clear;
@@ -69,8 +58,6 @@ class window () =
       List.iter wnote_results#remove wnote_results#children;
       tab_rooms#clear;
       label_connect_status#set_text M.not_connected;
-      label_servers_status#set_text "";
-      label_upload_status#set_text "";
       List.iter menu_display#remove menu_display#children;
       List.iter menu_networks#remove menu_networks#children;
 
@@ -99,6 +86,13 @@ class window () =
       Mi.set_vpaned tab_friends#vpaned O.friends_vpane_up;
       Mi.get_vpaned self tab_friends#vpaned O.friends_vpane_up;
 
+      Mi.set_hpaned tab_friends#box_files#wpane !!O.friends_hpane_dirs;
+      Mi.get_hpaned self tab_friends#box_files#wpane O.friends_hpane_dirs;
+
+      notebook#goto_page 5;
+      Mi.set_hpaned tab_rooms#hpaned !!O.rooms_hpane_left;
+      Mi.get_hpaned self tab_rooms#hpaned O.rooms_hpane_left;
+      
 (*
       notebook#goto_page 3;
       Mi.set_hpaned tab_searches#hpaned O.searches_hpane_left;  
@@ -164,10 +158,10 @@ class window () =
 
       (* Friends shortcuts *)
       let bf = tab_friends#box_friends in
-      let br = tab_friends#box_results in
+      let bfiles = tab_friends#box_files in
       let friends_actions = global_actions @ 
 	[
-	  M.a_download_selection, br#download ;
+	  M.a_download_selection, bfiles#box_results#download ;
 	  M.a_remove_friend, bf#remove ;
 	  M.a_select_all, bf#wlist#select_all ;
 	]
@@ -175,5 +169,9 @@ class window () =
       List.iter
 	(add window ~cond: (fun () -> current_page = 2) friends_actions)
 	!!O.keymap_friends;
+
+      hbox_status#pack ~expand: true tab_servers#wl_status#coerce;
+      hbox_status#pack ~expand: true tab_downloads#wl_status#coerce;
+      hbox_status#pack ~expand: true tab_uploads#wl_status#coerce;
 
   end

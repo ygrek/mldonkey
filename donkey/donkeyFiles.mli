@@ -22,12 +22,11 @@ val search_found :
 *)
 val force_check_locations : unit -> unit
 val search_handler :
-  DonkeyTypes.local_search ->  Mftp_server.QueryReply.t -> unit
-val install_hooks : unit -> unit
+  DonkeyTypes.local_search ->  DonkeyProtoServer.QueryReply.t -> unit
 val reset_upload_timer : unit -> unit
 val upload_timer : unit -> unit
 val upload_credit_timer : unit -> unit
-val udp_client_handler: Mftp_server.t -> UdpSocket.udp_packet -> unit 
+val udp_client_handler: DonkeyProtoServer.t -> UdpSocket.udp_packet -> unit 
 val find_search : int -> DonkeyTypes.local_search
 val make_xs : DonkeyTypes.local_search -> unit
   
@@ -38,4 +37,5 @@ val new_friend : DonkeyTypes.client -> unit
 val add_user_friend : DonkeyTypes.server -> DonkeyTypes.user -> unit
   
 val browse_client : DonkeyTypes.client -> unit
-  
+val search_found : 
+  CommonTypes.search -> Md4.t -> CommonTypes.tag list -> unit

@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonOptions
 open CommonResult
 open BasicSocket
 open CommonGlobals
@@ -95,7 +96,6 @@ let new_server addr port=
       h
 
 let searches = ref ([] :  (int * CommonTypes.search) list)
-let nsearches = ref 0
 
 let clients_by_name = Hashtbl.create 113
 
@@ -129,7 +129,7 @@ let new_client name =
       let rec c = {
           client_client = impl;
           client_peer_sock = None;
-          client_download_sock = None;
+          client_downloads = [];
           client_result_socks = [];
           client_name = name;
           client_addr = None;
@@ -138,8 +138,8 @@ let new_client name =
           client_all_files = None;
           client_receiving = Int32.zero;
           client_connection_control = new_connection_control 0.0;
-          client_download = None;
           client_user = u;
+          client_requests = [];
         } and impl = {
           dummy_client_impl with
           impl_client_val = c;
@@ -200,3 +200,63 @@ let new_room name =
       room_add room_impl;
       Hashtbl.add rooms_by_name name room;
       room
+      
+      
+let files_by_key = Hashtbl.create 47
+
+let current_files = ref []
+
+    
+let new_file file_id name file_size =
+  let key = (name, file_size) in
+  try
+    Hashtbl.find files_by_key key
+  with _ ->
+      let file_temp = Filename.concat !!temp_directory 
+          (Printf.sprintf "SK-%s" (Md4.to_string file_id)) in
+      let current_size = try
+          Unix32.getsize32 file_temp
+        with e ->
+            Printf.printf "Exception %s in current_size" (Printexc.to_string e); 
+            print_newline ();
+            Int32.zero
+      in
+      
+      let rec file = {
+          file_file = impl;
+          file_name = name;
+          file_id = file_id;
+          file_temp = file_temp;
+          file_clients = [];
+        } and impl = {
+          dummy_file_impl with
+          impl_file_fd = Unix32.create file_temp [Unix.O_RDWR; Unix.O_CREAT] 0o666;
+          impl_file_size = file_size;
+          impl_file_downloaded = current_size;
+          impl_file_val = file;
+          impl_file_ops = file_ops;
+          impl_file_age = last_time ();          
+
+        } in
+      let state = if current_size = file_size then FileDownloaded else begin
+            current_files := file :: !current_files;
+            FileDownloading
+          end
+      in
+      file_add impl state;
+      Hashtbl.add files_by_key key file;
+      file
+
+let find_file file_name file_size =
+  Hashtbl.find files_by_key (file_name, file_size)
+
+  
+      
+let add_file_client file user filename = 
+  let  c = new_client user.user_nick in
+  if not (List.memq c file.file_clients) then begin
+      file.file_clients <- c :: file.file_clients;
+      c.client_files <- (file, filename) :: c.client_files;
+      file_new_source (as_file file.file_file) (as_client c.client_client)
+    end;
+  c

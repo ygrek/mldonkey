@@ -10,7 +10,7 @@ open CommonGlobals
 open DonkeyMftp
 
 
-module M = Mftp_server
+module M = DonkeyProtoServer
 
 let buf_bool buf bl =
   let str = string_of_bool bl in
@@ -830,7 +830,7 @@ let print t =
     | LocalisationNotifReq t -> LocalisationNotif.print t
     | LocateNotifReq t -> LocateNotif.print t
     | QueryUserConnectReq t -> QueryUserConnect.print t
-    | UnKnownReq t-> Mftp_server.print (Mftp_server.UnknownReq t)
+    | UnKnownReq t-> DonkeyProtoServer.print (DonkeyProtoServer.UnknownReq t)
     | MessageReq t -> Message.print t
   end;
   print_newline()

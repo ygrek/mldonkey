@@ -163,6 +163,7 @@ let tab_downloads = gui#tab_downloads
 let tab_friends = gui#tab_friends
 let tab_help = gui#tab_help
   
+
 let is_connected state =
   match state with
   | Connected_initiating
@@ -1235,11 +1236,14 @@ let value_reader (gui: gui) t sock =
             s.nshared_files (Int64.to_string s.upload_counter))
 
     | Room_info _
-    | Room_user (_, _)
+    | Room_add_user (_, _)
+    | Room_remove_user (_, _)
     | Room_message (_, _)
     | Network_info _
     | DefineSearches _ -> (* not supported *) ()
-    | (DownloadedFiles _|DownloadFiles _|ConnectedServers _) -> assert false
+    | (DownloadedFiles _|DownloadFiles _|ConnectedServers _)
+    | (Shared_file_unshared _|Shared_file_upload (_, _, _)|Shared_file_info _)
+      -> assert false
   with e ->
       Printf.printf "EXception %s in reader" (Printexc.to_string e);
       print_newline ()

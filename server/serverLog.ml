@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Mftp_server
+open DonkeyProtoServer
 open Ip
 open Md4
 open ServerGlobals
@@ -32,7 +32,7 @@ type stand_by_log = {
         mutable ip : Ip.t;
         mutable md4 : Md4.t;
         mutable time : float;
-        mutable req : Mftp_server.t list;
+        mutable req : DonkeyProtoServer.t list;
         mutable results : DonkeyMftp.tagged_file list;
         mutable note : string;
 }
@@ -79,15 +79,15 @@ let print t  =
         Printf.fprintf !log.oc "%s\n" (Ip.to_string t.ip);
         Printf.fprintf !log.oc "%s\n" (Md4.to_string t.md4);
         if (List.length t.req) >0 then
-          Mftp_server.fprint !log.oc (List.hd t.req);
+          DonkeyProtoServer.fprint !log.oc (List.hd t.req);
        (* with _ -> Printf.printf "vraiment pas cool";*)
         if (List.length t.req) >1 then 
                 begin
                  Printf.fprintf !log.oc "<REP>\n";
-                 Mftp_server.fprint !log.oc (List.nth t.req 2)
+                 DonkeyProtoServer.fprint !log.oc (List.nth t.req 2)
                 end;
         if (List.length t.results) <> 0 then
-                Mftp_server.QueryReply.fprint !log.oc t.results;
+                DonkeyProtoServer.QueryReply.fprint !log.oc t.results;
         if t.note <> "" then Printf.fprintf !log.oc "%s\n" t.note;
         ()
         

@@ -19,6 +19,8 @@
 (* The function handling the cooperation between two clients. Most used 
 functions are defined in downloadOneFile.ml *)
 
+open CommonRoom
+open CommonShared
 open CommonGlobals
 open CommonFile
 open CommonClient
@@ -29,7 +31,7 @@ open CommonTypes
 open Options
 open BasicSocket
 open DonkeyMftp
-open Mftp_comm
+open DonkeyProtoCom
 open TcpBufferedSocket
 open DonkeyTypes  
 open DonkeyOneFile
@@ -76,12 +78,12 @@ let udp_sock () =
   | Some sock -> sock
       
 let udp_client_send uc t =
-  Mftp_comm.udp_send_if_possible (udp_sock ()) upload_control 
+  DonkeyProtoCom.udp_send_if_possible (udp_sock ()) upload_control 
     (Unix.ADDR_INET (Ip.to_inet_addr uc.udp_client_ip,uc.udp_client_port+4))
   t
 
 let client_udp_send ip port t =
-  Mftp_comm.udp_send_if_possible (udp_sock ()) upload_control
+  DonkeyProtoCom.udp_send_if_possible (udp_sock ()) upload_control
   (Unix.ADDR_INET (Ip.to_inet_addr ip,port+4))
   t
 
@@ -109,8 +111,8 @@ let find_sources_in_groups c md4 =
                           Printf.printf "Send %d sources from file groups to mldonkey peer" (List.length !list); print_newline ();                  
                         end;
                       let msg = client_msg (
-                          let module Q = Mftp_client.Sources in
-                          Mftp_client.SourcesReq {
+                          let module Q = DonkeyProtoClient.Sources in
+                          DonkeyProtoClient.SourcesReq {
                             Q.md4 = md4;
                             Q.sources = !list;
                           }
@@ -127,8 +129,8 @@ let find_sources_in_groups c md4 =
                       (Printf.printf "Send source from file groups to UDP peer";
                         print_newline ());
                     client_udp_send ip port (
-                      let module Q = Mftp_server.QueryLocationReply in
-                      Mftp_server.QueryLocationReplyUdpReq {
+                      let module Q = DonkeyProtoServer.QueryLocationReply in
+                      DonkeyProtoServer.QueryLocationReplyUdpReq {
                         Q.md4 = md4;
                         Q.locs = [{ 
                             Q.ip = uc.udp_client_ip;
@@ -149,7 +151,7 @@ all mldonkey clients in the group. add client to group *)
                   (Printf.printf "Send new source to file groups UDP peers"; 
                     print_newline ());
                 udp_client_send uc (
-                  let module M = Mftp_server in
+                  let module M = DonkeyProtoServer in
                   M.QueryLocationReplyUdpReq (
                     let module Q = M.QueryLocationReply in
                     {
@@ -205,11 +207,11 @@ let rec really_write fd s pos len =
 
 let identify_as_mldonkey c sock =
   direct_client_send sock (
-    let module M = Mftp_client in
+    let module M = DonkeyProtoClient in
     let module C = M.QueryFile in
     M.QueryFileReq Md4.null);
   direct_client_send sock (
-    let module M = Mftp_client in
+    let module M = DonkeyProtoClient in
     let module C = M.QueryFile in
     M.QueryFileReq Md4.one)
   
@@ -217,7 +219,7 @@ let identify_as_mldonkey c sock =
 let query_files c sock for_files =  
   List.iter (fun file ->
       let msg = client_msg (
-          let module M = Mftp_client in
+          let module M = DonkeyProtoClient in
           let module C = M.QueryFile in
           M.QueryFileReq file.file_md4)
       in
@@ -225,7 +227,7 @@ let query_files c sock for_files =
   ) for_files;
   List.iter (fun file ->
       direct_client_send sock (
-        let module M = Mftp_client in
+        let module M = DonkeyProtoClient in
         let module C = M.QueryFile in
         M.QueryFileReq file.file_md4);          
   ) !current_files;
@@ -258,7 +260,7 @@ let client_has_chunks c file chunks =
 let add_new_location sock file c =
   
   let is_new = ref false in
-  let module M = Mftp_client in
+  let module M = DonkeyProtoClient in
   if not (Intmap.mem (client_num c) file.file_sources) then begin
       new_source file c; 
       is_new := true;
@@ -300,8 +302,8 @@ for mldonkey clients .*)
                           if !counter = 0 then raise Exit;
                           
                           client_udp_send src_ip src_port (
-                            let module Q = Mftp_server.QueryLocationReply in
-                            Mftp_server.QueryLocationReplyUdpReq {
+                            let module Q = DonkeyProtoServer.QueryLocationReply in
+                            DonkeyProtoServer.QueryLocationReplyUdpReq {
                               Q.md4 = file.file_md4;
                               Q.locs = [{ 
                                   Q.ip = ip;
@@ -357,8 +359,8 @@ for mldonkey clients .*)
               | Known_location (ip, port) ->
                   List.iter (fun (src_ip, src_port, _ ) ->
                       client_udp_send ip port (
-                        let module Q = Mftp_server.QueryLocationReply in
-                        Mftp_server.QueryLocationReplyUdpReq {
+                        let module Q = DonkeyProtoServer.QueryLocationReply in
+                        DonkeyProtoServer.QueryLocationReplyUdpReq {
                           Q.md4 = file.file_md4;
                           Q.locs = [{ 
                               Q.ip = src_ip;
@@ -372,7 +374,7 @@ for mldonkey clients .*)
 
       
 let read_first_message t sock =
-  let module M = Mftp_client in
+  let module M = DonkeyProtoClient in
   match t with
 
   | M.ConnectReq t ->
@@ -411,7 +413,7 @@ let read_first_message t sock =
         ignore (add_server t.CR.ip_server t.CR.port_server);
       
       direct_client_send sock (
-        let module M = Mftp_client in
+        let module M = DonkeyProtoClient in
         let module C = M.ConnectReply in
         M.ConnectReplyReq {
           C.md4 = !!client_md4;
@@ -436,7 +438,7 @@ let read_first_message t sock =
 *)
             
             direct_client_send sock (
-              let module M = Mftp_client in
+              let module M = DonkeyProtoClient in
               let module C = M.ViewFiles in
               M.ViewFilesReq C.t);          
             end;
@@ -454,7 +456,7 @@ let read_first_message t sock =
       raise Not_found
       
 let client_to_client for_files c t sock = 
-  let module M = Mftp_client in
+  let module M = DonkeyProtoClient in
   match t with
     M.ConnectReplyReq t ->
       printf_string "******* [CCONN OK] ********"; 
@@ -493,7 +495,7 @@ let client_to_client for_files c t sock =
 print_newline ();
   *)
               direct_client_send sock (
-                let module M = Mftp_client in
+                let module M = DonkeyProtoClient in
                 let module C = M.ViewFiles in
                 M.ViewFilesReq C.t);          
             end
@@ -505,8 +507,7 @@ print_newline ();
       print_newline ();
       Printf.printf "       VIEW FILES REPLY         ";
       print_newline ();
-*)
-      
+      *)
       let module Q = M.ViewFilesReply in
       begin
         try
@@ -573,7 +574,7 @@ print_newline ();
       
       set_client_state c Connected_queued;
       client_send sock (
-        let module M = Mftp_client in
+        let module M = DonkeyProtoClient in
         M.QueueReq t);              
 *)  
   
@@ -582,7 +583,7 @@ print_newline ();
           set_rtimeout sock !!upload_timeout;
           
           direct_client_send sock (
-            let module M = Mftp_client in
+            let module M = DonkeyProtoClient in
             let module Q = M.AvailableSlot in
             M.AvailableSlotReq Q.t);
         end
@@ -592,7 +593,7 @@ print_newline ();
   
   | M.ReleaseSlotReq _ ->
       direct_client_send sock (
-        let module M = Mftp_client in
+        let module M = DonkeyProtoClient in
         let module Q = M.CloseSlot in
         M.CloseSlotReq Q.t);
   
@@ -608,7 +609,7 @@ print_newline ();
             file.file_filenames <- file.file_filenames @ [t.Q.name] ;
           if file_size file > block_size then
             direct_client_send sock (
-              let module M = Mftp_client in
+              let module M = DonkeyProtoClient in
               let module C = M.QueryChunks in
               M.QueryChunksReq file.file_md4)
           else
@@ -765,9 +766,9 @@ print_newline ();
 (* Upload requests *)
   | M.ViewFilesReq t when !has_upload = 0 -> 
       let files = DonkeyShare.all_shared () in
-      
+      (*
       Printf.printf "ASK VIEW FILES"; print_newline ();
-      
+      *)
       direct_client_send sock (
         let module Q = M.ViewFilesReply in
         M.ViewFilesReplyReq (DonkeyShare.make_tagged (Some sock) files))
@@ -785,7 +786,11 @@ print_newline ();
       
       begin try
           let file = find_file t in
-          file.file_upload_requests <- file.file_upload_requests + 1;
+          (match file.file_shared with
+              None -> ()
+            | Some impl ->
+                shared_must_update_downloaded (as_shared impl);
+                impl.impl_shared_requests <- impl.impl_shared_requests + 1);
           direct_client_send sock (
             let module Q = M.QueryFileReply in
             M.QueryFileReplyReq {
@@ -829,7 +834,8 @@ print_newline ();
       |	Indirect_location _ -> None
       in
       (* A VOIR : historique à gérer *) 
-      !say_hook c s
+(*      !say_hook c s *)
+      private_message_from (as_client c.client_client)  s
       
   | M.QueryChunkMd4Req t when !has_upload = 0 -> 
 
@@ -947,18 +953,18 @@ let reconnect_client cid files c =
           init_connection sock;
           init_client sock c files;
           
-          set_reader sock (Mftp_comm.cut_messages Mftp_client.parse
+          set_reader sock (DonkeyProtoCom.cut_messages DonkeyProtoClient.parse
             (client_to_client files c));
           
           c.client_sock <- Some sock;
           let server_ip, server_port = 
             try
-              let s = DonkeyServers.last_connected_server () in
+              let s = DonkeyGlobals.last_connected_server () in
               s.server_ip, s.server_port
             with _ -> Ip.localhost, 4665
           in
           direct_client_send sock (
-            let module M = Mftp_client in
+            let module M = DonkeyProtoClient in
             let module C = M.Connect in
             M.ConnectReq {
               C.md4 = !!client_md4; (* we want a different id each conn *)
@@ -991,7 +997,7 @@ let connect_client cid files c =
       | _ -> ()
         
 let query_id_reply s t =
-  let module M = Mftp_server in
+  let module M = DonkeyProtoServer in
   let module Q = M.QueryIDReply in
   let c = new_client (Known_location (t.Q.ip, t.Q.port)) in
   connect_client s [] c
@@ -999,18 +1005,18 @@ let query_id_reply s t =
 let query_id s sock ip =
   printf_string "[QUERY ID]";
   direct_server_send sock (
-    let module M = Mftp_server in
+    let module M = DonkeyProtoServer in
     let module C = M.QueryID in
     M.QueryIDReq ip
   )
 
 let udp_server_send s t =
-  Mftp_comm.udp_send_if_possible (udp_sock ()) upload_control
+  DonkeyProtoCom.udp_send_if_possible (udp_sock ()) upload_control
   (Unix.ADDR_INET (Ip.to_inet_addr s.server_ip,s.server_port+4))
   t
   
 let query_locations_reply s t =
-  let module M = Mftp_server in
+  let module M = DonkeyProtoServer in
   let module Q = M.QueryLocationReply in
   
   let nlocs = List.length t.Q.locs in
@@ -1037,14 +1043,6 @@ let query_locations_reply s t =
       | Some sock ->
           query_id s sock ip
   ) t.Q.locs
-      
-let query_locations file s sock =
-  printf_string "[QUERY LOC]";
-  direct_server_send sock (
-    let module M = Mftp_server in
-    let module C = M.QueryLocation in
-    M.QueryLocationReq file.file_md4
-  )
   
 let client_connection_handler t event =
   printf_string "[REMOTE CONN]";
@@ -1061,7 +1059,7 @@ let client_connection_handler t event =
           set_write_power sock !!upload_power;
           (try
               set_reader sock 
-                (Mftp_comm.client_handler2 c read_first_message
+                (DonkeyProtoCom.client_handler2 c read_first_message
                 (client_to_client []));
               
             with e -> Printf.printf "Exception %s in init_connection"

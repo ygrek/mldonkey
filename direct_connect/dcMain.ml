@@ -90,8 +90,5 @@ let _ =
         network_enabled = network.op_network_is_enabled ();
         network_uploaded = Int64.zero;
         network_downloaded = Int64.zero;
-      })
-
-  
-
-  
+      });
+  network.op_network_share <- add_shared

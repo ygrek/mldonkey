@@ -78,6 +78,10 @@ type from_gui =
 | MessageToClient of int * string
 | SetRoomState of int * room_state
   
+(* New messages from protocol 4  *)
+| RefreshUploadStats
+
+  
 let gui_extension_poll = 1
   
 type to_gui =
@@ -114,7 +118,7 @@ type to_gui =
 
 | Room_info of room_info
 | Room_message of int * room_message
-| Room_user of int * int
+| Room_add_user of int * int
   
 | Client_stats of client_stats
 
@@ -124,7 +128,12 @@ type to_gui =
 | DownloadedFiles of file_info list
 | MessageFromClient of int * string
 
-
+(* New message for protocol 4  *)
+| Room_remove_user of int * int
+| Shared_file_info of shared_info
+| Shared_file_upload of int * (* upload *) int64 * (* requests *) int
+| Shared_file_unshared of int
+  
 let from_gui_to_string t = 
   match t with
   | GuiProtocol _ -> "GuiProtocol"
@@ -176,3 +185,6 @@ let from_gui_to_string t =
   | GetDownloadFiles -> "GetDownloadFiles"
   | GetDownloadedFiles -> "GetDownloadedFiles"
   | SetRoomState _ -> "CloseRoom"
+      
+  | RefreshUploadStats -> "RefreshUploadStats"
+      

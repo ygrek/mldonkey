@@ -32,6 +32,22 @@ open CommonTypes
 open CommonGlobals
 open CommonOptions
 open CommonTypes
+
+module Html = struct
+    let begin_td buf = Printf.bprintf buf "\\<td\\>"
+    let begin_td_option buf option= Printf.bprintf buf "\\<td %s\\>" option
+    let end_td buf = Printf.bprintf buf "\\</td\\>"
+    let begin_table buf = Printf.bprintf buf "\\<table\\>"
+    let begin_table_option buf option = Printf.bprintf buf "\\<table %s\\>" option
+    let end_table buf = Printf.bprintf buf "\\</table\\>"
+    let begin_tr buf =  Printf.bprintf buf "\\<tr\\>"
+    let end_tr buf =  Printf.bprintf buf "\\</tr\\>"
+      
+    let button buf value onclick =
+      Printf.bprintf buf "
+      \\<input type=\\\"button\\\" value=\\\"%s\\\" onclick=\\\"%s\\\"\\>"
+      value onclick
+  end
   
 let save_config () =
   Options.save_with_help downloads_ini;
@@ -117,16 +133,18 @@ let print_table_text buf alignments titles lines =
   ) lines
 
 let print_table_html spacing buf aligns titles lines =
-  Printf.bprintf buf "\\<TABLE\\>\n";
-  Printf.bprintf buf "\\<TR\\>";
+  Html.begin_table buf;
+  
+  Html.begin_tr buf;
   Array.iter (fun title ->
       Printf.bprintf buf "\\<TD ALIGN=CENTER\\>%s\\</TD\\>" title;
       Printf.bprintf buf "\\<TD WIDTH=%d\\> \\</TD\\>" spacing;
   ) titles;
   let naligns = Array.length aligns in
-  Printf.bprintf buf "\\</TR\\>\\n";
+  Html.end_tr buf;
+
   List.iter (fun line ->
-      Printf.bprintf buf "\\<TR\\>";
+      Html.begin_tr buf;
       Array.iteri (fun i title ->
           Printf.bprintf buf "\\<TD%s nowrap\\>%s\\</TD\\>" 
             (if i >= naligns then "" else
@@ -137,13 +155,51 @@ let print_table_html spacing buf aligns titles lines =
           title;
           Printf.bprintf buf "\\<TD WIDTH=%d\\> \\</TD\\>" spacing;
       ) line;
-      Printf.bprintf buf "\\</TR\\>\n";
+      Html.end_tr buf;
   ) lines;
-  Printf.bprintf buf "\\</TABLE\\>"
+  Html.end_table buf
   
 let print_file_html_form buf files =
-  Printf.bprintf buf "\\<form action=/files\\>";
+
+
+    Printf.bprintf buf "
+\\<script language=JavaScript\\>\\<!--
+function pauseAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j=document.selectForm.elements[i];if (j.name==\\\"pause\\\") {j.checked=x;}}}
+function resumeAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j=document.selectForm.elements[i];if (j.name==\\\"resume\\\") {j.checked=x;}}}
+function cancelAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j=document.selectForm.elements[i];if (j.name==\\\"cancel\\\") {j.checked=x;}}}
+  function clearAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j=document.selectForm.elements[i];if (j.type==\\\"checkbox\\\") {j.checked=x;}}}//--\\>\\</script\\>
+  ";
+  
+  Printf.bprintf buf "\\<form name=selectForm action=/files\\>";
+
+  
+  Html.begin_table_option  buf "width=100%";
+
+  Html.begin_td_option buf "width=50%";
   Printf.bprintf buf "\\<input type=submit value='Submit Changes'\\>";
+  Html.end_td buf;
+  
+  Html.begin_td_option buf "width=50%";
+  Html.end_td buf;
+  
+  Html.begin_td buf;
+  Html.button buf "Pause all" "pauseAll(true);";
+  Html.end_td buf;
+  
+  Html.begin_td buf;
+  Html.button buf "Resume all" "resumeAll(true);";
+  Html.end_td buf;
+  
+  Html.begin_td buf;
+  Html.button buf "Cancel all" "cancelAll(true);";
+  Html.end_td buf;
+  
+  Html.begin_td buf;
+  Html.button buf "Clear all" "clearAll(false);";
+  Html.end_td buf;
+    
+  Html.end_table buf;
+  
   print_table_html 10 buf 
     [| Align_Left; Align_Left; Align_Left; Align_Right; Align_Right; Align_Right; Align_Right|] 
     [|
@@ -341,12 +397,11 @@ let display_file_list buf format =
 
 let display_file_list buf o =
   display_file_list buf o;
-  Printf.bprintf  buf "\nDownloaded %d files\n" 
-    (List.length !!done_files);
+  Printf.bprintf  buf "\nDownloaded %d files\n" (List.length !!done_files);
   if !!done_files <> [] then begin
-      List.iter (fun file -> CommonFile.file_print file o) 
-      !!done_files;
-(*                simple_print_file_list true buf !!done_files format; *)
+(*      List.iter (fun file -> CommonFile.file_print file o)   !!done_files; *)
+      simple_print_file_list true buf 
+        (List2.tail_map file_info !!done_files) o; 
       Printf.bprintf buf
         "Use 'commit' to move downloaded files to the incoming directory"
     end

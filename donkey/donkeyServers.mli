@@ -17,8 +17,6 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-val last_connected_server : unit -> DonkeyTypes.server
-val all_servers : unit -> DonkeyTypes.server list
 val force_check_server_connections : bool -> unit
 val check_server_connections : unit -> unit
 val connect_server : DonkeyTypes.server -> unit
@@ -27,6 +25,9 @@ val remove_old_servers : unit -> unit
 val update_master_servers : unit-> unit  
 val walker_timer : unit -> unit
   
-val udp_send_if_possible : UdpSocket.t -> Unix.sockaddr -> Mftp_server.t -> unit
+val udp_send_if_possible : UdpSocket.t -> Unix.sockaddr -> DonkeyProtoServer.t -> unit
 val disconnect_server : DonkeyTypes.server -> unit
+  
+val query_locations_timer : unit -> unit
+val query_location : DonkeyTypes.file -> TcpBufferedSocket.t -> unit
   

@@ -351,19 +351,39 @@ let description_of_query q =
   | s1 :: s2 :: s3 :: _ -> s1^" "^s2^" "^s3
  
 
-(** To pretty-print a file size *)
+(** To pretty-print a file size (int32) *)
 let size_of_int32 size =
-  let f = Int32.to_float size in
-  if f > go then
-    Printf.sprintf "%.2fG" (f /. go)
-  else
-    if f > mo then
-      Printf.sprintf "%.1fM" (f /. mo)
+  if !!Gui_options.use_size_suffixes then
+    let f = Int32.to_float size in
+    if f > go then
+      Printf.sprintf "%.2fG" (f /. go)
     else
-      if f > ko then
-	Printf.sprintf "%.1fk" (f /. ko)
+      if f > mo then
+      Printf.sprintf "%.1fM" (f /. mo)
       else
-	Int32.to_string size
+	if f > ko then
+	  Printf.sprintf "%.1fk" (f /. ko)
+	else
+	  Int32.to_string size
+  else
+    Int32.to_string size
+
+(** To pretty-print a file size (int64) *)
+let size_of_int64 size =
+  if !!Gui_options.use_size_suffixes then
+    let f = Int64.to_float size in
+    if f > go then
+      Printf.sprintf "%.2fG" (f /. go)
+    else
+      if f > mo then
+      Printf.sprintf "%.1fM" (f /. mo)
+      else
+	if f > ko then
+	  Printf.sprintf "%.1fk" (f /. ko)
+	else
+	  Int64.to_string size
+  else
+    Int64.to_string size
 
 (** Return a color for a given name. *)
 let color_of_name name =

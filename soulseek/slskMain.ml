@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonInteractive
 open CommonGlobals
 open CommonOptions
 open CommonServer
@@ -34,12 +35,16 @@ let disable enabler () =
   servers_by_addr;
 (*  List.iter (fun file -> ()) !current_files; *)
   if !!enable_soulseek then enable_soulseek =:= false
-  
+
+let slsk_kind =  "slsk_server_list"
+    
 let enable () =
 
   let enabler = ref true in
   network.op_network_disable <- disable enabler;
 
+  load_url slsk_kind "http://www.slsk.org/slskinfo2";
+  
   let main_server = new_server (new_addr_name !!main_server_name)
     !!main_server_port in
   
@@ -61,6 +66,9 @@ let enable () =
 (*  network.command_vm <- SlskInteractive.print_connected_servers *)
     ()
 
+let _ =
+  add_web_kind slsk_kind SlskServers.load_server_list
+  
   
 let _ =
   network.op_network_is_enabled <- (fun _ -> !! CommonOptions.enable_soulseek);

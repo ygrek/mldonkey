@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonShared
 open CommonServer
 open CommonComplexOptions
 open GuiProto
@@ -24,13 +25,12 @@ open CommonClient
 open CommonUser
 open CommonSearch
 open CommonTypes
-open DonkeyServers
 open Options
 open BasicSocket
 open TcpBufferedSocket
 open DonkeyMftp
 open DonkeyOneFile
-open Mftp_comm
+open DonkeyProtoCom
 open DonkeyTypes
 open DonkeyGlobals
 open DonkeyComplexOptions
@@ -108,7 +108,7 @@ let search_handler search t =
   search.search_handler (Waiting s.search_waiting)
     
 let udp_query_locations file s =
-  let module M = Mftp_server in
+  let module M = DonkeyProtoServer in
   udp_server_send s (M.QueryLocationUdpReq file.file_md4)
 
 let rec find_search_rec num list =
@@ -128,7 +128,7 @@ let make_xs ss =
       match s.server_sock with
       | Some sock -> ()
       | None ->
-          let module M = Mftp_server in
+          let module M = DonkeyProtoServer in
           let module Q = M.Query in
           udp_server_send s (M.QueryUdpReq ss.search_search.search_query);
   ) servers
@@ -221,12 +221,14 @@ let force_check_locations () =
             file.file_known_locations;
 *)            
             
+            (*
             List.iter (fun s ->
                 match s.server_sock with
                   None -> () (* assert false !!! *)
                 | Some sock ->
-                    (try query_locations file s sock with _ -> ())
+                    (try query_location file sock with _ -> ())
             ) (connected_servers());
+*)
             
             let list = ref !udp_servers_list in
             for i = 1 to !!max_udp_sends do
@@ -294,12 +296,14 @@ let browse_client c =
     | Connected_queued
     | Connected_idle)
     ->
+      (*
       Printf.printf "****************************************";
       print_newline ();
       Printf.printf "       ASK VIEW FILES         ";
-      print_newline ();
+print_newline ();
+  *)
       direct_client_send sock (
-        let module M = Mftp_client in
+        let module M = DonkeyProtoClient in
         let module C = M.ViewFiles in
         M.ViewFilesReq C.t);          
   | _ -> ()
@@ -323,113 +327,7 @@ let add_user_friend s u =
   set_client_name c u.user_name u.user_md4;
   new_friend c
 
-let install_hooks () =
-  let old_hook = !server_is_connected_hook in
-  server_is_connected_hook := (fun s sock ->
-      old_hook s sock;
-      add_connected_server s;
-      List.iter (fun file ->
-          if file_state file = FileDownloading then
-            query_locations file s sock    
-      ) !current_files);
   
-  let old_hook = !server_is_disconnected_hook in
-  server_is_disconnected_hook := (fun s ->
-      try
-        remove_connected_server s
-      with _ -> 
-          Printf.printf "Exception in List2.remove";
-          print_newline ();
-  );
-  
-  let old_hook = !received_from_server_hook in
-  received_from_server_hook := (fun s sock t ->
-      old_hook s sock t;
-      let module M = Mftp_server in
-      match t with
-        M.QueryIDReplyReq t -> query_id_reply s.server_cid t
-          
-      | M.QueryReplyReq t ->
-          let rec iter () =
-            let query = try
-                Fifo.take s.server_search_queries
-              with _ -> failwith "No pending query"
-            in
-            let search = query.search in
-            try
-              let nres = List.length t in
-              query.nhits <- query.nhits + nres;
-              if !last_xs = search.search_search.search_num && nres = 201 &&
-                query.nhits < search.search_search.search_max_hits then
-                begin
-                  direct_server_send sock M.QueryMoreResultsReq;
-                  Fifo.put s.server_search_queries query      
-                end;
-              search_handler search t
-            with Already_done -> iter ()
-          in
-          iter ()          
-          
-          
-      | M.Mldonkey_NotificationReq (num, t) ->
-          let s = search_find num in
-          List.iter (fun f ->
-              search_found s f.f_md4 f.f_tags
-          ) t
-
-      | M.QueryUsersReplyReq t ->
-          let module M = Mftp_server in
-          let module Q = M.QueryUsersReply in
-          let add_to_friend = try
-              Fifo.take s.server_users_queries
-            with _ -> failwith "No pending query"
-          in
-
-(* We MUST found a way to keep indirect friends even after a deconnexion.
-Add a connection num to server. Use Indirect_location (server_num, conn_num)
-and remove clients whose server is deconnected. *)
-(*          Printf.printf "QueryUsersReply"; print_newline (); *)
-          List.iter (fun cl ->
-              
-(*              Printf.printf "NEW ONE"; print_newline (); *)
-              let rec user = {
-                  user_user = user_impl;
-                  user_md4 = cl.Q.md4;
-                  user_name = "";
-                  user_ip = cl.Q.ip;
-                  user_port = cl.Q.port;
-                  user_tags = cl.Q.tags;
-                  user_server = s;                  
-                } 
-              and  user_impl = {
-                  dummy_user_impl with
-                  impl_user_val = user;
-                  impl_user_ops = user_ops;
-                }
-              in
-              user_add user_impl;
-              List.iter (fun tag ->
-                  match tag with
-                    { tag_name = "name"; tag_value = String s } -> 
-                      user.user_name <- s
-                  | _ -> ()
-              ) user.user_tags;
-              
-              if add_to_friend then add_user_friend s user;
-              
-              s.server_users <- user :: s.server_users;
-(*              Printf.printf "SERVER NEW USER"; print_newline (); *)
-              server_new_user (as_server s.server_server) 
-              (as_user user.user_user);
-          ) t;
-          server_must_update s
-          
-      | M.QueryLocationReplyReq t -> query_locations_reply s t
-      | M.QueryIDFailedReq t -> ()
-          
-      | _ -> ()
-  )
-
 let udp_from_server p =
   match p.UdpSocket.addr with
   | Unix.ADDR_INET(ip, port) ->
@@ -446,7 +344,7 @@ to this server *)
   | _ -> raise Not_found
 
 let udp_client_handler t p =
-  let module M = Mftp_server in
+  let module M = DonkeyProtoServer in
   match t with
     M.QueryLocationReplyUdpReq t ->
 (*      Printf.printf "Received location by UDP"; print_newline (); *)
@@ -463,7 +361,7 @@ let udp_client_handler t p =
   
   | M.FileGroupInfoUdpReq t ->
 (*      Printf.printf "Received location by File Group"; print_newline (); *)
-      let module M = Mftp_server in
+      let module M = DonkeyProtoServer in
       let module Q = M.QueryLocationReply in
       let md4 = t.Q.md4 in
       begin try
@@ -518,7 +416,7 @@ print_newline ();
     
     let msg = client_msg 
       (
-        let module M = Mftp_client in
+        let module M = DonkeyProtoClient in
         let module B = M.Bloc in
         M.BlocReq {  
           B.md4 = file.file_md4;
@@ -533,15 +431,20 @@ print_newline ();
     let slen = String.length s in
     let upload_buffer = String.create (slen + len_int) in
     String.blit s 0 upload_buffer 0 slen;
-    Mftp_comm.new_string msg upload_buffer;
+    DonkeyProtoCom.new_string msg upload_buffer;
     
     let fd = file_fd file in
     ignore (Unix32.seek32 fd begin_pos Unix.SEEK_SET);
     really_read (Unix32.force_fd fd) upload_buffer slen len_int;
 (*    Printf.printf "slen %d len_int %d final %d" slen len_int (String.length upload_buffer); 
 print_newline (); *)
-    upload_counter := Int64.add !upload_counter (Int64.of_int len_int);
-    file.file_upload_kbs <- file.file_upload_kbs + len_int;
+    let uploaded = Int64.of_int len_int in
+    upload_counter := Int64.add !upload_counter uploaded;
+    (match file.file_shared with None -> ()
+      | Some impl ->
+          shared_must_update_downloaded (as_shared impl);
+          impl.impl_shared_uploaded <- 
+            Int64.add impl.impl_shared_uploaded uploaded);
     (*  Printf.printf "sending"; print_newline (); *)
     printf_char 'U';
     
@@ -557,7 +460,7 @@ let rec send_client_block c sock per_client =
   if per_client > 0 then
     match c.client_upload with
     | Some ({ up_chunks = _ :: chunks } as up)  ->
-        if not up.up_file.file_shared then begin
+        if up.up_file.file_shared = None then begin
 (* Is there a message to warn that a file is not shared anymore ? *)
             c.client_upload <- None;
           end else
@@ -590,7 +493,7 @@ let rec send_client_block_partial c sock per_client =
   let msg_block_size = Int32.of_int (per_client * 1000) in
   match c.client_upload with
   | Some ({ up_chunks = _ :: chunks } as up)  ->
-      if not up.up_file.file_shared then begin
+      if up.up_file.file_shared = None then begin
 (* Is there a message to warn that a file is not shared anymore ? *)
           c.client_upload <- None;
         end else

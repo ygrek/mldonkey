@@ -70,17 +70,25 @@ and client = {
     client_name : string;
     mutable client_addr : (Ip.t * int) option;
     mutable client_peer_sock : TcpBufferedSocket.t option;
-    mutable client_download_sock : TcpBufferedSocket.t option;
+    mutable client_downloads : download list;
     mutable client_result_socks : TcpBufferedSocket.t list;
     client_connection_control : CommonTypes.connection_control;
     mutable client_files : (file * string) list;
-    mutable client_download : file option;
     mutable client_pos : int32;
     mutable client_all_files : (string * result) list option;
     mutable client_receiving : int32;
     mutable client_user : user;
+    mutable client_requests : (int * file) list;
   }
 
+and download = {
+    download_client : client;
+    download_file : file;
+    mutable download_pos : int32;
+    download_sock : TcpBufferedSocket.t;
+    mutable download_ok : bool;
+  }
+  
 open CommonNetwork
 
 (*

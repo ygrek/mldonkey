@@ -74,6 +74,12 @@ let rec really_write fd s pos len =
   if nwrite = 0 then raise End_of_file else
   if nwrite < len then 
     really_write fd s (pos + nwrite) (len - nwrite)
+      
+let rec really_read fd s pos len =
+  let nread = Unix.read fd s pos len in
+  if nread = 0 then raise End_of_file else
+  if nread < len then
+    really_read fd s (pos + nread) (len - nread)
 
 let copy oldname newname =
   let ic = open_in oldname in
@@ -94,6 +100,7 @@ let rename oldname newname =
   with
     Unix_error(EXDEV,_,_) as e ->
 (* renaming is not enough, we must COPY *)
+      Printf.printf "COPY %s TO %s" oldname newname; print_newline ();
       let copied = ref false in
       try
         copy oldname newname; 

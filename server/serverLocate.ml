@@ -22,8 +22,8 @@ open Unix
 open TcpBufferedSocket
 open DonkeyMftp
 open Options
-open Mftp_comm
-open Mftp_server
+open DonkeyProtoCom
+open DonkeyProtoServer
 open ServerTypes
 open ServerOptions
 open ServerGlobals
@@ -161,7 +161,7 @@ let get_liste_of_md4 () =
      
                  
 
-module M = Mftp_server.QueryLocationReply
+module M = DonkeyProtoServer.QueryLocationReply
  
 let rec map_sized f size liste= 
   match liste with

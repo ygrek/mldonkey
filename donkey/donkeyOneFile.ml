@@ -29,7 +29,7 @@ open BasicSocket
 open TcpBufferedSocket
 open DonkeyMftp
 open DonkeyImport
-open Mftp_comm
+open DonkeyProtoCom
 open DonkeyTypes
 open DonkeyOptions
 open CommonOptions
@@ -149,7 +149,7 @@ let query_zones c b =
   | Some sock ->
       
       set_rtimeout sock !queue_timeout;
-        let module M = Mftp_client in
+        let module M = DonkeyProtoClient in
         let module Q = M.QueryBloc in
       let msg, len =           
         match c.client_zones with
@@ -552,12 +552,12 @@ and start_download c =
           done;          
           if file.file_md4s = [] && file_size file > block_size then begin
               direct_client_send sock (
-                let module M = Mftp_client in
+                let module M = DonkeyProtoClient in
                 let module C = M.QueryChunkMd4 in
                 M.QueryChunkMd4Req file.file_md4);
             end;                   
           direct_client_send sock (
-            let module M = Mftp_client in
+            let module M = DonkeyProtoClient in
             let module Q = M.JoinQueue in
             M.JoinQueueReq Q.t);                        
           set_rtimeout sock !!queued_timeout;
@@ -881,7 +881,6 @@ let remove_file md4 =
     let file = Hashtbl.find files_by_md4 md4 in
     file_cancel (as_file file.file_file);
     Unix32.close (file_fd file);
-    file.file_shared <- false;
     decr nshared_files;
     (try Sys.remove file.file_hardname with e -> 
           Printf.printf "Exception %s in remove %s"
@@ -889,8 +888,9 @@ let remove_file md4 =
           print_newline ());
     (try Hashtbl.remove files_by_md4 file.file_md4 with _ -> ());
     remove_file_clients file;
+    file.file_shared <- None;
     file.file_hardname <- "";
-    !file_change_hook file;
+(*    !file_change_hook file; *)
     current_files := List2.removeq file !current_files;
   with e -> 
       Printf.printf "remove_file NOT FOUND";
@@ -932,7 +932,7 @@ let check_file_downloaded file =
           file.file_format <- format
         with _ -> ());
       info_change_file file;
-      !file_change_hook file;
+(*      !file_change_hook file; *)
       move_file_to_done_files file.file_md4;
       
       if !!file_completed_cmd <> "" then begin

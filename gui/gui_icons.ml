@@ -2142,6 +2142,49 @@ let add_to_friends = [|
 "                        %%%.+++++.%%  ";
 "                                      "|]
 
+let toggle_display_all_servers = [|
+"32 32 7 1";
+" 	c None";
+".	c #000000";
+"+	c #FFFFFF";
+"@	c #C0C0C0";
+"#	c #404040";
+"$	c #0000FF";
+"%	c #FF0000";
+"                                ";
+"                 .............. ";
+"                 .++++++++++++. ";
+"     .............+@@@@@@@@@@#. ";
+"     .+++++++++++.+@.......+@#. ";
+"     .+@@@@@@@@@@.+@.$$$$@$+@#. ";
+"     .+@.......+@.+@.$$$$@$+@#. ";
+"     .+@.$$$$@$+@.+@.$$@@$$+@#. ";
+"     .+@.$..............$$$+@#. ";
+"     .+@.$.++++++++++++.$$$+@#. ";
+"     .+@.$.+@@@@@@@@@@#.$$$+@#. ";
+"     .+@.$.+@.......+@#.++++@#. ";
+"     .+@.$.+@.$$$$@$+@#.@@@@@#. ";
+"     .+@.+.+@.$$$$@$+@#.....@#. ";
+" ..........+@.$$@@$$+@#.@@@@@#. ";
+" .++++++++.+@.$$$$$$+@#.@@@@@#. ";
+" .+@@@@@@@.+@.$@$$$$+@#.######. ";
+" .+@.......+@.$$$$$$+@#........ ";
+" .+@.$$$$@.+@.+++++++@#.#.@@#.  ";
+" .+@.$$$$@.+@@@@@@@@@@#.#.@@#.  ";
+" .+@.$$@@$.+@%@@@....@#.#.###.  ";
+" .+@.$$$$$.+@@@@@@@@@@#.#.....  ";
+" .+@.$@$$$.+@@@@@@@@@@#.#.      ";
+" .+@.$$$$$.############.#.      ";
+" .+@.+++++..............#.      ";
+" .+@@@@@@@@@@#.%@@@....@#.      ";
+" .+@%@@@....@#.@@@@@@@@@#.      ";
+" .+@@@@@@@@@@#.@@@@@@@@@#.      ";
+" .+@@@@@@@@@@#.##########.      ";
+" .############............      ";
+" ..............                 ";
+"                                "|]
+
+
 let download = [|
 "38 38 95 2";
 "       c None";
@@ -3111,6 +3154,45 @@ let remove_all_friends = remove
 
 let close_room = remove
 
+let refresh = [|
+"32 32 4 1 26 23";
+"       s none  m none  c none";
+".      s iconColor1    m black c black";
+"X      c #7F7FFFFF0000";
+"o      c #45458B8B0000";
+"                                ";
+"           ............         ";
+"         .XXXXXXXX.oooXX.       ";
+"         XXXXXXXX.ooXXXXX.      ";
+"        .XXXXXXXX.ooXXXXXX  ..  ";
+"        .XXXXXXX..XXXXXXXX .o.  ";
+"       .XXXXXXXX  .XXXXXXXXX.   ";
+"       XXXXXXXX.   XXXXXXXX.    ";
+"      .XXXXXXXX.   XXXXXXXX     ";
+"        .XXXXX.    .XXXXXX.     ";
+"         ..XXX   ..XXXXXXX      ";
+" .........  ..            .XX   ";
+"  .XXXXXXX.             .XXXX.  ";
+"   .XXXXXX.           ..XXXXXX. ";
+"   .XXXXXXX.          XXXXXXXXX ";
+"   .XXXXXXX.          .XXXXXXXX ";
+"  .XXXXXXXXX.          .XXXXXXX.";
+"  .XXXXXXX..X.          XXXXXXX.";
+"  .XXXXXXX. ..      .   XXXXXXX.";
+"   .XXXXX.         .X   .XXXXXX ";
+"    XXXXX          .X    .XXXX. ";
+"    .XXX........   XX.........  ";
+"     .X.ooXXXXXX  .XXXXXXXXXo   ";
+"     .X.oXoXXXXX .XXXXXXXXXXo   ";
+"      XooXXXXXXX XXXXXXXXXXo.   ";
+"      .ooXXXXXXX XXXXXXXXXX.    ";
+"       ooXXXXXXX .XXXXXXXXo     ";
+"        .XXXXXXX  .XXXXXo.      ";
+"         .......   XX....       ";
+"                   .X           ";
+"                   .X           ";
+"                    .           "|]
+
 let table = [
   M.o_xpm_remove, (remove, O.xpm_remove) ;
   M.o_xpm_cancel, (cancel, O.xpm_cancel);
@@ -3119,6 +3201,7 @@ let table = [
   M.o_xpm_view_users, (view_users, O.xpm_view_users);
   M.o_xpm_connect_more_servers, (connect_more_servers, O.xpm_connect_more_servers);
   M.o_xpm_remove_old_servers, (remove_old_servers, O.xpm_remove_old_servers);
+  M.o_xpm_toggle_display_all_servers, (toggle_display_all_servers, O.xpm_toggle_display_all_servers);
   M.o_xpm_save, (save, O.xpm_save);
   M.o_xpm_save_all, (save_all, O.xpm_save_all);
   M.o_xpm_save_as, (save_as, O.xpm_save_as);
@@ -3136,6 +3219,7 @@ let table = [
   M.o_xpm_find_friend, (find_friend, O.xpm_find_friend) ;
   M.o_xpm_remove_all_friends, (remove_all_friends, O.xpm_remove_all_friends) ;
   M.o_xpm_close_room, (close_room, O.xpm_close_room) ;
+  M.o_xpm_refresh, (refresh, O.xpm_refresh) ;
 ] 
 
 let gdk_pix i =
@@ -3164,3 +3248,5 @@ let gdk_pix i =
 
 let pixmap i = 
   GMisc.pixmap (gdk_pix i) ()
+
+

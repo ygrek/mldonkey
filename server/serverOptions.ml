@@ -22,7 +22,7 @@ open Unix
 open TcpBufferedSocket
 open DonkeyMftp
 open Options
-open Mftp_comm
+open DonkeyProtoCom
 open ServerTypes
 open CommonComplexOptions
 open CommonNetwork

@@ -47,7 +47,7 @@ let string_color_of_client c =
     Some _ -> M.o_col_files_listed, Some !!O.color_downloading 
   | _ -> string_color_of_state c.client_state
 
-
+  
 
 class dialog friend =
   object (self)
@@ -59,8 +59,6 @@ class dialog friend =
     method num = friend.client_num
 
     method send s =
-      Printf.printf "MessageToClient(%d,%s)" friend.client_num s;
-      print_newline ();
       Gui_com.send (GuiProto.MessageToClient (friend.client_num, s))
 
     method handle_message mes =
@@ -180,7 +178,7 @@ let is_filtered c =
   List.memq c.client_network !Gui_global.networks_filtered
 
 
-class box_friends box_results () =
+class box_friends box_files () =
   object (self)
     inherit box !!O.friends_columns ()
 
@@ -224,10 +222,10 @@ class box_friends box_results () =
       |	Some tree -> 
 (*          Printf.printf "%d files for friend %d" (List.length l) c.client_num; 
           print_newline (); *)
-          box_results#update_data (list_files tree)
+          box_files#update_data (Some tree)
 
     method on_deselect f =
-      box_results#update_data []
+      box_files#update_data None
 
     val mutable on_double_click = (fun _ -> ())
     method set_on_double_click f = on_double_click <- f
@@ -390,8 +388,8 @@ class box_list () =
 
 
 class pane_friends () =
-  let results = new Gui_results.box false !!O.results_columns () in
-  let friends = new box_friends results () in
+  let files = new Gui_results.box_dir_files () in
+  let friends = new box_friends files () in
   let wnote_chat = GPack.notebook () in
   let wpane2 = GPack.paned `VERTICAL () in
   object (self)
@@ -435,16 +433,16 @@ class pane_friends () =
     inherit Gui_friends_base.paned ()
 
     method box_friends = friends
-    method box_results = results
+    method box_files = files
     method hpaned = wpane
     method vpaned = wpane2
 
     method set_tb_style st =
-      results#set_tb_style st ;
+      files#set_tb_style st ;
       friends#set_tb_style st 
 
     method clear =
-      results#clear ;
+      files#clear ;
       friends#clear
 
     initializer
@@ -454,5 +452,6 @@ class pane_friends () =
       wpane#add2 wpane2#coerce ;
 
       wpane2#add2 wnote_chat#coerce;
-      wpane2#add1 results#coerce;
+      wpane2#add1 files#coerce;
+
   end

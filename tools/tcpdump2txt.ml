@@ -77,7 +77,7 @@ let _ =
 Printf.printf "DISCARD [%s]" line; print_newline ();
   *)
             end else begin
-              left := 40;
+              left := 28;
               Buffer.clear buf;        
               header := line
             end

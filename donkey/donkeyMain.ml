@@ -23,7 +23,7 @@ open CommonComplexOptions
 open CommonTypes
 open Options
 open DonkeyMftp
-open Mftp_comm
+open DonkeyProtoCom
 open DonkeyServers
 open BasicSocket
 open DonkeyComplexOptions
@@ -45,7 +45,7 @@ let hourly_timer timer =
   DonkeyServers.remove_old_servers ();
   DonkeyFiles.remove_old_clients ();
   DonkeyClient.clean_groups ();
-  Mftp_comm.propagate_working_servers 
+  DonkeyProtoCom.propagate_working_servers 
     (List.map (fun s -> s.server_ip, s.server_port) (connected_servers()));
   Hashtbl.clear udp_servers_replies
     
@@ -228,6 +228,7 @@ let enable () =
     add_session_timer enabler 900. quarter_timer;
     add_session_timer enabler 1. second_timer;
     add_session_timer enabler 0.1 DonkeyFiles.upload_timer;
+    add_session_timer enabler 60. DonkeyServers.query_locations_timer;
 
 (**** START PLAYING ****)  
     (try force_check_locations () with _ -> ());
@@ -239,7 +240,7 @@ let enable () =
 
 let _ =
   
-  DonkeyFiles.install_hooks ();
+(*  DonkeyFiles.install_hooks (); *)
   DonkeyIndexer.init ();
   
   file_ops.op_file_commit <- (fun file ->

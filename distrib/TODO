@@ -17,9 +17,12 @@ For 2.00:
 - Server: server: seedIP unused and stats not sent
 - Number of messages in Soulseek per room
 
-The GUI protocol is not done to support removal of users from either
-  rooms or servers. Not also for removal of sources from files.
-  What should be done ?
+- Maybe the multi-server connection could be allowed only in some cases:
+  * at startup to connect fast
+  * if you share a lot of files (more than 50 Go for example)
+  * if you have no recent source for some file, or at least, no mldonkey
+     source.
+  * only for short periods
 
 *********
 

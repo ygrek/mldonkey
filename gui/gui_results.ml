@@ -22,6 +22,7 @@
 open Gui_global
 open CommonTypes
 open GuiProto
+open GuiTypes
 open Gui_columns
 
 module M = Gui_messages
@@ -186,5 +187,107 @@ class search_result_box () =
       
     initializer
       box#vbox#pack ~expand: false hbox_labels#coerce ;
+      
+  end
+
+
+class box_dir_files () =
+  let results = new box false !!O.results_columns () in
+  object (self)
+    inherit Gui_results_base.files ()
+
+    val mutable selected_dir = (None : GuiTypes.file_tree option)
+
+    method update_data file_tree_opt =
+      self#clear ;
+      selected_dir <- None;
+      results#clear ;
+      match file_tree_opt with
+	None -> ()
+      |	Some ft ->
+	  self#insert_dir wtree 0 ft;
+
+    method clear =
+      List.iter wtree#remove wtree#children;
+
+    method box_results = results
+
+    method set_tb_style st =
+      results#set_tb_style st;
+      wtool#set_style st
+
+    method separate_children ft =
+      let rec iter acc_dirs acc_files = function
+	  [] -> (List.rev acc_dirs, List.rev acc_files)
+	| (TreeDirectory child) :: q -> iter (child::acc_dirs) acc_files q
+	| (TreeFile r) :: q -> 
+	    iter acc_dirs (r::acc_files) q
+      in
+      iter [] [] ft.file_tree_list
+
+    method insert_dir wt depth ft =
+      let item = GTree.tree_item ~label: ft.file_tree_name () in
+      wt#append item;
+      let (subdirs, result_list) = self#separate_children ft in
+
+      ignore (item#connect#select
+		(fun () -> selected_dir <- Some ft; results#update_data result_list));
+      ignore (item#connect#deselect
+		(fun () -> selected_dir <- None; results#clear));
+      (
+       match subdirs with
+	 [] -> ()
+       | l ->
+           let wt_sub = GTree.tree () in
+           item#set_subtree wt_sub;
+           let expanded = ref false in
+           ignore (item#connect#expand
+                     (fun _ ->
+                       if !expanded then
+                       ()
+                       else
+			 (
+                          expanded := true;
+			  List.iter (self#insert_dir wt_sub (depth+1)) subdirs
+			 )
+                     )
+                  );
+           if depth <= !!O.files_auto_expand_depth then
+             item#expand ()
+      );
+      if depth = 0 then
+	wt#select_item ~pos: 0
+
+    method download_selected_dir () =
+      match selected_dir with
+	None -> ()
+      |	Some ft ->
+	  let files = GuiTypes.list_files ft in
+	  let len = List.length files in
+	  match GToolbox.question_box
+	      M.download_selected_dir
+	      [M.ok ; M.cancel]
+	      (M.confirm_download_dir ft.GuiTypes.file_tree_name len) 
+	  with
+	    1 ->
+	      List.iter
+		(fun r -> 
+		  Gui_com.send (Download_query (r.result_names, r.result_num)))
+		files
+	  | _ ->
+	      ()
+
+    initializer
+      wpane#add2 results#coerce;
+
+      ignore
+	(wtool#insert_button 
+	   ~text: M.download
+	   ~tooltip: M.download_selected_dir
+	   ~icon: (Gui_icons.pixmap M.o_xpm_download)#coerce
+	   ~callback: self#download_selected_dir
+	   ()
+	);
+
       
   end

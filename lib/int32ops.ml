@@ -22,9 +22,13 @@ let ( +. ) x y = Int32.add x y
 let ( -. ) x y = Int32.sub x y
 let left32 x y = Int32.shift_left x y
 let right32 x y = Int32.shift_right_logical x y
-
+let or32 x y = Int32.logor x y
+let and32 x y = Int32.logand x y
+  
 let ( *.. ) x y = Int64.mul x y
 let ( +.. ) x y = Int64.add x y
 let ( -.. ) x y = Int64.sub x y
 let left64 x y = Int64.shift_left x y
 let right64 x y = Int64.shift_right_logical x y
+let or64 x y = Int64.logor x y
+let and64 x y = Int64.logand x y

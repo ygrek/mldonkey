@@ -46,7 +46,7 @@ let connected_servers = ref ([]: server list)
 let servers_by_addr = Hashtbl.create 100
 let nknown_servers = ref 0  
   
-let shared_files = Hashtbl.create 13
+let shared_files = Hashtbl.create 13 
 
 let users_by_name = Hashtbl.create 113
     
@@ -75,7 +75,9 @@ let server_state s = server_state (as_server s.server_server)
 let file_state s = file_state (as_file s.file_file)
 let server_must_update s = server_must_update (as_server s.server_server)
 let file_must_update s = file_must_update (as_file s.file_file)
-    
+
+let shared_counter = ref (Int64.zero)
+  
 let new_shared_dir dirname = {
     shared_dirname = dirname;
     shared_files = [];
@@ -100,21 +102,17 @@ let rec add_shared_file node sh dir_list =
       in
       add_shared_file node sh dir_tail
   
-let add_shared s =
-  let full_name = shared_fullname s in
-  let codedname = shared_codedname s in
+let add_shared full_name codedname size =
   let sh = {
       shared_fullname = full_name;
       shared_codedname = codedname;
-      shared_size = (as_shared_impl s).impl_shared_size;
-      shared_fd=  Unix32.create full_name [Unix.O_RDONLY] 0o666;
+      shared_size = size;
+      shared_fd=  Unix32.create full_name [Unix.O_RDONLY] 0o444;
     } in
-  set_shared_ops s sh shared_ops;
   Hashtbl.add shared_files codedname sh;
   add_shared_file shared_tree sh (String2.split codedname '/');
   Printf.printf "Total shared : %s" (Int64.to_string !shared_counter);
   print_newline () 
-  
   
 exception Found of user  
 
@@ -157,7 +155,7 @@ let user_add server name =
     server.server_users;
     let user = new_user (Some server) name in
     server_new_user (as_server server.server_server) (as_user user.user_user);
-    room_new_user (as_room server.server_room) (as_user user.user_user);
+    room_add_user (as_room server.server_room) (as_user user.user_user);
     server.server_users <- user :: server.server_users;
     user
   with Found user -> user
@@ -337,9 +335,6 @@ let server_remove s =
   Hashtbl.remove servers_by_addr (s.server_addr, s.server_port);
   decr nknown_servers;
   servers_list := List2.removeq s !servers_list
-    
-let _ =
-  network.op_network_share <- add_shared
 
   
   

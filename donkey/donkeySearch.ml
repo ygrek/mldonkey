@@ -21,7 +21,7 @@ open CommonTypes
 
 open Options
 open DonkeyMftp
-open Mftp_comm
+open DonkeyProtoCom
 open DonkeyServers
 open BasicSocket
 open TcpBufferedSocket
@@ -153,7 +153,7 @@ let send_search search query =
       match s.server_sock with
         None -> ()
       | Some sock ->
-          let module M = Mftp_server in
+          let module M = DonkeyProtoServer in
           let module Q = M.Query in
           direct_server_send sock (M.QueryReq query);
           Fifo.put s.server_search_queries 
@@ -165,7 +165,7 @@ let send_search search query =
   
 let send_subscribe search query =
   last_xs := search.search_search.search_num;
-  let module M = Mftp_server in
+  let module M = DonkeyProtoServer in
   let module Q = M.Query in
   List.iter (fun s ->
       match s.server_sock with

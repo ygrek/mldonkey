@@ -33,7 +33,7 @@ let const_int64_255 = Int64.of_int 255
   
 let buf_int32_8 buf i =
   Buffer.add_char buf (char_of_int (Int32.to_int (
-        Int32.logand i const_int32_255)))
+        and32 i const_int32_255)))
   
 let buf_int64_8 buf i =
   Buffer.add_char buf (char_of_int (Int64.to_int (
@@ -64,7 +64,7 @@ let str_int16 s pos i =
 let get_int16 s pos =
   let c1 = int_of_char s.[pos] in
   let c2 = int_of_char s.[pos+1] in
-  c1 + c2 * 256
+  c1 lor (c2 lsl 8)
 
 (* int 32 bits *)
   
@@ -92,14 +92,17 @@ let get_int32_32 s pos =
   let c2 = get_int32_8 s (pos+1) in
   let c3 = get_int32_8 s (pos+2) in
   let c4 = get_int32_8 s (pos+3) in
-  c1 +. (left32 c2 8) +. (left32 c3 16) +. (left32 c4 24)           
+  or32 c1 
+    (or32 (left32 c2 8)
+    (or32 (left32 c3 16) 
+       (left32 c4 24)))
 
 let get_int32 =  get_int32_32
   
 let get_int64 s pos = 
   let i1 = get_int32 s pos in
   let i2 = get_int32 s (pos+4) in
-  (Int64.of_int32 i1) +.. (left64 (Int64.of_int32 i2) 32)
+  or64 (Int64.of_int32 i1) (left64 (Int64.of_int32 i2) 32)
   
 (* int 31 bits *)
   

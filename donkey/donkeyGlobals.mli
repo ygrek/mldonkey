@@ -17,20 +17,22 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Mftp_comm
+open DonkeyProtoCom
 
   (* hooks *)
   
 val server_must_update : DonkeyTypes.server -> unit
 val client_must_update : DonkeyTypes.client -> unit
   
+(*
 val say_hook : (DonkeyTypes.client -> string -> unit) ref
 val server_is_connected_hook :
   (DonkeyTypes.server -> server_sock -> unit) ref
 val received_from_server_hook :
-  (DonkeyTypes.server -> server_sock -> Mftp_server.t -> unit) ref
+  (DonkeyTypes.server -> server_sock -> DonkeyProtoServer.t -> unit) ref
 val server_is_disconnected_hook : (DonkeyTypes.server -> unit) ref
 val file_change_hook : (DonkeyTypes.file -> unit) ref
+*)
   
 (* constants *)
   
@@ -195,4 +197,7 @@ val file_size : DonkeyTypes.file -> int32
 val file_downloaded : DonkeyTypes.file -> int32
 val file_age : DonkeyTypes.file -> float
 val file_fd : DonkeyTypes.file -> Unix32.t
+  
+val last_connected_server : unit -> DonkeyTypes.server
+val all_servers : unit -> DonkeyTypes.server list
   

@@ -49,6 +49,7 @@ CDK_SRCS=cdk/printexc.ml cdk/genlex2.ml cdk/sysenv.ml \
   cdk/netbase.ml cdk/filepath.ml cdk/string2.ml \
   cdk/filename2.ml cdk/list2.ml cdk/hashtbl2.ml \
   cdk/file.ml cdk/unix2.ml cdk/heap.ml cdk/weak2.ml \
+  cdk/select_c.c cdk/heap_c.c
 
 ifeq ("$(ZLIB)" , "yes")
   LIBS_opt += -cclib -lz
@@ -66,7 +67,8 @@ LIB_SRCS= lib/autoconf.ml \
   lib/hole_tab.ml lib/store.ml lib/indexer.ml lib/indexer1.ml lib/indexer2.ml lib/host.ml  \
   lib/misc.ml lib/unix32.ml  lib/md4.ml \
   lib/avifile.ml lib/http_lexer.mll lib/url.ml \
-  lib/mailer.ml lib/date.ml
+  lib/mailer.ml lib/date.ml \
+  lib/md4_comp.c lib/md4_c.c lib/unix32_c.c lib/inet_c.c
 
 NET_SRCS = \
   net/bigEndian.ml net/littleEndian.ml \
@@ -74,7 +76,7 @@ NET_SRCS = \
   net/tcpClientSocket.ml net/tcpServerSocket.ml \
   net/udpSocket.ml net/http_server.ml net/http_client.ml
 
-OBJS=lib/md4_comp.o lib/md4_c.o lib/unix32_c.o lib/inet_c.o cdk/select_c.o cdk/heap_c.o
+OBJS=
 
 CHAT_SRCS = chat/chat_messages.ml\
 	chat/chat_misc.ml\
@@ -118,21 +120,29 @@ all: opt
 
 DONKEY_SRCS= \
   \
-  donkey/donkeyMftp.ml donkey/donkeyImport.ml \
-  donkey/donkeyOpenProtocol.ml \
-  secret/mftp_client.ml secret/mftp_server.ml  \
-  secret/mftp_comm.ml  \
-  \
   donkey/donkeyTypes.ml \
   donkey/donkeyOptions.ml \
+  donkey/donkeyMftp.ml donkey/donkeyImport.ml \
+  donkey/donkeyOpenProtocol.ml \
+  donkey/donkeyProtoClient.ml donkey/donkeyProtoServer.ml  \
+  donkey/donkeyProtoCom.ml  \
+  \
   donkey/donkeyGlobals.ml \
   donkey/donkeyComplexOptions.ml \
   donkey/donkeyIndexer.ml \
   donkey/donkeyShare.ml \
-  donkey/donkeyServers.ml donkey/donkeyOneFile.ml \
-  donkey/donkeyClient.ml donkey/donkeyFiles.ml  \
+  donkey/donkeyOneFile.ml \
+  donkey/donkeyClient.ml \
+  donkey/donkeyFiles.ml  \
+  donkey/donkeyServers.ml \
   donkey/donkeySearch.ml donkey/donkeyInteractive.ml \
   donkey/donkeyMain.ml
+
+
+OBSERVER_SRCS = \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS) \
+  $(CHAT_SRCS) $(COMMON_SRCS) $(COMMON_CLIENT_SRCS) $(DONKEY_SRCS) \
+  tools/observer.ml
 
 
 DONKEY_SERVER_SRCS=\
@@ -219,24 +229,16 @@ AUDIOGALAXY_SRCS=audio_galaxy/agTypes.ml \
   audio_galaxy/agMain.ml
 
 ifeq ("$(DONKEY)" , "yes")
-SUBDIRS += secret donkey
+SUBDIRS += donkey
 
 CORE_PLUGINS += $(DONKEY_SRCS)
 
-SECRET_DONKEY_ML= $(DONKEY_PROTO_SRCS) $(DONKEY_SRCS) $(DONKEY_SERVER_SRCS)
-
-  ifeq ("$(DONKEY_SERVER)" , "yes")
+ifeq ("$(DONKEY_SERVER)" , "yes")
   SUBDIRS += server
 
   CORE_PLUGINS += $(DONKEY_SERVER_SRCS)
   endif
 
-endif
-
-ifeq ("$(OPEN_DONKEY)" , "yes")
-SUBDIRS += donkey
-
-CORE_PLUGINS +=  donkey/donkey.lam
 endif
 
 ifeq ("$(OPEN_NAPSTER)" , "yes")
@@ -361,6 +363,9 @@ MLDONKEYGUI2_SRCS= \
   $(MIN_PROTO_SRCS) $(OKEY_SRCS) $(GPATTERN_SRCS) \
   $(CHAT_SRCS) $(COMMON_SRCS) $(GUI2_SRCS)
 
+TOP_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) 
+
 #######################################################################
 
 #              'Objects files for "mlchat"
@@ -469,6 +474,24 @@ TMPSOURCES += $(MLDONKEYGUI2_MLL:.mll=.ml) $(MLDONKEYGUI2_MLY:.mly=.ml) $(MLDONK
 
 
 
+TOP_ZOG := $(filter %.zog, $(TOP_SRCS))
+TOP_MLL := $(filter %.mll, $(TOP_SRCS))
+TOP_MLY := $(filter %.mly, $(TOP_SRCS))
+
+TOP_ML := $(filter %.ml %.mll %.zog %.mly, $(TOP_SRCS))
+TOP_C := $(filter %.c, $(TOP_SRCS))
+TOP_OBJS=$(foreach file, $(TOP_C),   $(basename $(file)).o)
+
+TOP_CMOS=$(foreach file, $(TOP_ML),   $(basename $(file)).cmo)
+TOP_CMXS=$(foreach file, $(TOP_ML),   $(basename $(file)).cmx)
+
+TMPSOURCES += $(TOP_MLL:.mll=.ml) $(TOP_MLY:.mly=.ml) $(TOP_MLY:.mly=.mli) $(TOP_ZOG:.zog=.ml)
+
+
+
+
+
+
 
 
 MLCHAT_ZOG := $(filter %.zog, $(MLCHAT_SRCS))
@@ -510,6 +533,25 @@ TMPSOURCES += $(USE_TAGS_MLL:.mll=.ml) $(USE_TAGS_MLY:.mly=.ml) $(USE_TAGS_MLY:.
 
 
 
+OBSERVER_ZOG := $(filter %.zog, $(OBSERVER_SRCS))
+OBSERVER_MLL := $(filter %.mll, $(OBSERVER_SRCS))
+OBSERVER_MLY := $(filter %.mly, $(OBSERVER_SRCS))
+
+
+OBSERVER_ML := $(filter %.ml %.mll %.zog %.mly, $(OBSERVER_SRCS))
+OBSERVER_C := $(filter %.c, $(OBSERVER_SRCS))
+OBSERVER_OBJS=$(foreach file, $(OBSERVER_C),   $(basename $(file)).o)
+
+OBSERVER_CMOS=$(foreach file, $(OBSERVER_ML),   $(basename $(file)).cmo)
+OBSERVER_CMXS=$(foreach file, $(OBSERVER_ML),   $(basename $(file)).cmx)
+
+TMPSOURCES += $(OBSERVER_MLL:.mll=.ml) $(OBSERVER_MLY:.mly=.ml) $(OBSERVER_MLY:.mly=.mli) $(OBSERVER_ZOG:.zog=.ml)
+
+
+
+
+
+
 PLUGIN_ZOG := $(filter %.zog, $($(PLUGIN_SRCS)))
 PLUGIN_MLL := $(filter %.mll, $($(PLUGIN_SRCS)))
 PLUGIN_MLY := $(filter %.mly, $($(PLUGIN_SRCS)))
@@ -538,28 +580,6 @@ plugins: $(PLUGINS_FILES)
 plugin: $(PLUGIN_CMXS)
 	$(OCAMLOPT) $(PLUGIN_FLAG) -o $(PLUGIN)_plugin -a $(PLUGIN_CMXS)
 
-lambda: $(MLDONKEY_CMXS) $(SECRET_DONKEY_ML) donkey/donkey.cmi
-	ocaml ./secret/make_client  $(SECRET_DONKEY_ML)
-	$(OCAMLOPT) $(PLUGIN_FLAG) $(INCLUDES) -c -dol donkey/donkey.ml
-	rm -f donkey/donkey.ml
-	md5sum donkey/donkey.lam | gawk '{ print $$1 }' > donkey/donkey.lam.md5
-	scp donkey/donkey.lam ~/hosts/public_html/src/edonkey/donkey.lam.`cat donkey/donkey.lam.md5`
-
-donkey/donkey.lam: donkey/donkey.lam.md5
-	if ! test -f donkey.lam.`cat donkey/donkey.lam.md5`; then \
-		cd donkey; \
-		wget http://pauillac.inria.fr/~lefessan/src/edonkey/donkey.lam.`cat donkey.lam.md5`; \
-	fi
-	rm -f donkey/donkey.lam
-	cp donkey/donkey.lam.`cat donkey/donkey.lam.md5` donkey/donkey.lam
-	touch donkey/donkey.lam
-
-donkey/donkey.cmo: donkey/donkey.lam donkey/donkey.cmi
-	$(OCAMLC)  $(INCLUDES)  -c -dil -impl donkey/donkey.lam
-
-donkey/donkey.cmx: donkey/donkey.lam donkey/donkey.cmi
-	$(OCAMLOPT) $(PLUGIN_FLAG)  $(INCLUDES) -c -dil -impl donkey/donkey.lam
-
 lib/md4_cc.o: lib/md4.c
 	$(OCAMLC) -ccopt "$(CFLAGS) -O6 -I /byterun -o lib/md4_cc.o" -ccopt "" -c lib/md4.c
 
@@ -573,6 +593,9 @@ lib/md4_comp.o: lib/md4_$(MD4COMP).o
 
 use_tags: $(USE_TAGS_CMXS) $(OBJS) $(USE_TAGS_OBJS)
 	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@ str.cmxa $(LIBS_opt) $(STR_LIBS_opt) $(USE_TAGS_CMXS) $(USE_TAGS_OBJS) $(OBJS)
+
+use_tags.static: $(USE_TAGS_CMXS) $(OBJS) $(USE_TAGS_OBJS)
+	$(OCAMLOPT) $(PLUGIN_FLAG) -cclib -static -o $@ str.cmxa $(LIBS_opt) $(STR_LIBS_opt) $(USE_TAGS_CMXS) $(USE_TAGS_OBJS) $(OBJS)
 
 use_tags.byte: $(USE_TAGS_CMOS) $(OBJS)
 	$(OCAMLC) -o $@ str.cma $(LIBS_byte) $(STR_LIBS_byte) $(USE_TAGS_CMOS) $(OBJS)
@@ -606,10 +629,25 @@ mldonkey_gui2.byte: $(MLDONKEYGUI2_CMOS) $(OBJS)
 mldonkey_gui2.static: $(MLDONKEYGUI2_CMXS) $(OBJS) 
 	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(LIBS_opt) $(GTK_STATIC_LIBS_opt) $(MLDONKEYGUI2_CMXS) $(OBJS)
 
+
+######## OBSERVER
+
+observer: $(OBSERVER_CMXS) $(OBJS) $(OBSERVER_OBJS)
+	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@ str.cmxa $(LIBS_opt) $(STR_LIBS_opt) $(OBSERVER_CMXS) $(OBSERVER_OBJS) $(OBJS)
+
+observer.byte: $(OBSERVER_CMOS) $(OBJS)
+	$(OCAMLC) -o $@ str.cma $(LIBS_byte) $(STR_LIBS_byte) $(OBSERVER_CMOS) $(OBJS)
+
+
 zogml:
 	(for i in gui/gui*_base.zog ; do \
 		$(CAMLP4) pa_o.cmo pa_zog.cma pr_o.cmo -impl $$i > gui/`basename $$i zog`ml ;\
 	done)
+
+####### TOP
+
+mldonkeytop: $(TOP_CMOS) $(TOP_OBJS)
+	$(OCAMLMKTOP) -o $@ $(LIBS_byte) $(TOP_CMOS) $(TOP_OBJS) $(OBJS)
 
 ######## MLDONKEY
 
@@ -641,12 +679,14 @@ clean:
 		rm -f  $$i/*.cm? $$i/*.o ; \
 	done)
 
-distclean: clean
+releaseclean: clean
 	rm -f config/config.cache config/config.log config/config.status
 	rm -f config/config.h config/Makefile.config
 	rm -f tools/zoggy/*.cm?
 	rm -f $(TMPSOURCES)
 	rm -rf patches/build
+
+distclean: releaseclean
 	rm -rf patches/local
 
 maintainerclean: distclean
@@ -686,6 +726,19 @@ $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/ocamlopt: $(LOCAL)/ocamlopt-$(REQUIRED_OCAML
 DISDIR=mldonkey-distrib
 distrib/Readme.txt: gui/gui_messages.ml
 	grep -A 1000 help_text gui/gui_messages.ml | grep -v '"' > distrib/Readme.txt
+
+release: opt distrib/Readme.txt VERSION
+	rm -rf mldonkey-*
+	cp -R distrib $(DISDIR)
+	for i in $(TARGETS); do \
+	   cp $$i $(DISDIR)/$$i; \
+   	   strip  $(DISDIR)/$$i; \
+	done
+	mv $(DISDIR) $(DISDIR)-`cat VERSION`
+	tar cf $(DISDIR).tar $(DISDIR)-`cat VERSION`
+	mv $(DISDIR).tar mldonkey-`cat VERSION`.shared.$(ARCH)-`uname -s`.tar
+	$(COMPRESS) mldonkey-`cat VERSION`.shared.$(ARCH)-`uname -s`.tar
+	scp mldonkey-`cat VERSION`.shared.$(ARCH)-`uname -s`.tar.$(COMPRESS_EXT) lachesis:devel/mldonkey-release/
 
 distrib: $(DISDIR)
 

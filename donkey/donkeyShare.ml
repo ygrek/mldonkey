@@ -26,7 +26,7 @@ open BasicSocket
 open TcpBufferedSocket
 open DonkeyMftp
 open DonkeyImport
-open Mftp_comm
+open DonkeyProtoCom
 open DonkeyTypes
 open DonkeyOptions
 open CommonOptions
@@ -34,10 +34,23 @@ open DonkeyComplexOptions
 open DonkeyGlobals
   
 let must_share_file file =
-  if not file.file_shared then begin
-      file.file_shared <- true;
-      new_shared := file :: !new_shared
-    end
+  match file.file_shared with
+  | Some _ -> ()
+  | None ->
+      new_shared := file :: !new_shared;
+      let impl = {
+          impl_shared_update = 1;
+          impl_shared_fullname = file.file_hardname;
+          impl_shared_codedname = first_name file;
+          impl_shared_size = file_size file;
+          impl_shared_num = 0;
+          impl_shared_uploaded = Int64.zero;
+          impl_shared_ops = shared_ops;
+          impl_shared_val = file;
+          impl_shared_requests = 0;
+        } in
+      update_shared_num impl;
+      file.file_shared <- Some impl
 
 let new_file_to_share sh =
   try
@@ -125,7 +138,9 @@ let make_tagged sock files =
 let all_shared () =  
   let shared_files = ref [] in
   Hashtbl.iter (fun md4 file ->
-      if file.file_shared then shared_files := file :: !shared_files
+      match  file.file_shared with
+        None -> ()
+      | Some _ ->  shared_files := file :: !shared_files
   ) files_by_md4;
   !shared_files
 
@@ -148,7 +163,7 @@ let send_new_shared () =
             [] -> None
           | sock :: _ -> Some sock) (all_shared ()) 
       in
-      let msg = (Mftp_server.ShareReq list) in
+      let msg = (DonkeyProtoServer.ShareReq list) in
       direct_servers_send !socks msg;
     end
 
@@ -207,21 +222,14 @@ let check_shared_files () =
 (*                Printf.printf "Saving shared files"; print_newline (); *)
                 save shared_files_ini
               end                
-              
-    
-    
 
 let file_size filename = Unix32.getsize32 filename
 let local_dirname = Sys.getcwd ()
   
         
-(* returns the list of all files which are currently shared 
-  (shared + downloading) *)
-
 let _ =
-  network.op_network_share <- (fun shared ->      
-      let real_name = shared_fullname shared in
-      let size = file_size real_name in
+  network.op_network_share <- (fun fullname codedname size ->       
+      let real_name = fullname in
       try
         let s = Hashtbl.find shared_files_info real_name in
         let mtime = (Unix.stat real_name).Unix.st_mtime in
@@ -237,12 +245,28 @@ let _ =
           end
       with Not_found ->
           Printf.printf "No info on %s" real_name; print_newline (); 
-          shared_files := {
-            shared_name = real_name;              
-            shared_size = size;
-            shared_list = [];
-            shared_pos = Int32.zero;
-            shared_fd = Unix32.create real_name [O_RDONLY] 0o444;
-          } :: !shared_files
-  )
+          
+          let rec impl = {
+              impl_shared_update = 1;
+              impl_shared_fullname = fullname;
+              impl_shared_codedname = codedname;
+              impl_shared_size = size;
+              impl_shared_num = 0;
+              impl_shared_uploaded = Int64.zero;
+              impl_shared_ops = pre_shared_ops;
+              impl_shared_val = pre_shared;
+              impl_shared_requests = 0;
+            } and
+            pre_shared = {
+              shared_shared = impl;
+              shared_name = real_name;              
+              shared_size = size;
+              shared_list = [];
+              shared_pos = Int32.zero;
+              shared_fd = Unix32.create real_name [O_RDONLY] 0o444;
+            } in
+          update_shared_num impl;  
+          shared_files := pre_shared :: !shared_files;
+          
+)
   

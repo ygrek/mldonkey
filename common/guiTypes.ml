@@ -128,8 +128,6 @@ type client_info = {
     mutable client_type : client_type;
     mutable client_tags: CommonTypes.tag list;
     mutable client_name : string;
-(* Currently, this is a list, but clearly, in the future, it has to become
-  a tree. Zoggy, could you implement that ? *)
     mutable client_files:  file_tree option;
     mutable client_rating : int32;
     mutable client_chat_port : int;
@@ -141,7 +139,16 @@ type client_stats = {
     mutable nshared_files : int;
     mutable shared_counter : int64;
   }
-    
+
+type shared_info = {
+    shared_num : int;
+    shared_network : int;
+    shared_filename : string;
+    shared_size : int32;
+    mutable shared_uploaded : int64;
+    mutable shared_requests : int;
+  }
+  
   
 let add_file tree dirname r =
   let path = Filename2.path_of_filename dirname in
@@ -171,12 +178,24 @@ let add_file tree dirname r =
   in
   iter path tree    
 
+let list_directory_files tree =
+  let rec iter list items =
+    match items with
+      [] -> list
+    | (TreeDirectory tree) :: items -> iter list items
+    | (TreeFile r) :: items -> iter (r :: list) items        
+  in
+  iter [] tree.file_tree_list
+
 let list_files tree =
   let rec iter list items =
     match items with
       [] -> list
-    | (TreeDirectory _) :: items -> iter list items
+    | (TreeDirectory tree) :: items -> 
+        iter (iter list tree.file_tree_list) items
     | (TreeFile r) :: items -> iter (r :: list) items
+
+
         
   in
   iter [] tree.file_tree_list

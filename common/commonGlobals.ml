@@ -117,8 +117,6 @@ val download_control : TcpBufferedSocket.bandwidth_controler
 
 *)
   
-let (guis : CommonTypes.gui_record list ref) = ref []
-
 let gui_server_sock = ref (None : TcpServerSocket.t option)
       
 let exit_handlers = ref []

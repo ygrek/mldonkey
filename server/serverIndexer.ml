@@ -24,7 +24,7 @@ open Unix
 open TcpBufferedSocket
 open DonkeyMftp
 open Options
-open Mftp_comm
+open DonkeyProtoCom
   
 (*
   

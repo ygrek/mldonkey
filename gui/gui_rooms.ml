@@ -343,8 +343,13 @@ end
 class opened_rooms_box on_select =
   object (self)
     
-    inherit box_rooms ()
+    inherit box_rooms () as box_rooms
     
+    method add_room room =
+      box_rooms#add_room room;
+      let w = box_rooms#wlist in
+      w#select (w#rows - 1) 0
+
     method rooms = data
     method on_select room = on_select room
 end
@@ -370,6 +375,8 @@ class pane_room () =
   
   object (self)
     inherit Gui_rooms_base.box2 ()
+
+    method hpaned = hpaned
     
     method clear = 
       box_room_users#clear;
@@ -526,6 +533,21 @@ class pane_rooms () =
       box_room_users#update_data !list
 *)
     
+    method  remove_room_user room_num user_num =
+      try
+        let (num, room) = try
+            opened_rooms#find_room room_num 
+          with _ -> paused_rooms#find_room room_num in
+        if List.memq user_num room.room_users then begin
+            room.room_users <- List2.removeq user_num room.room_users;
+            match !selected_room with
+            | Some r when r == room ->              
+                pane#update_users
+            | _ -> ()
+          end
+      with _ -> ()
+
+      
     method  add_room_user room_num user_num =
       try
         let (num, room) = try
@@ -592,7 +614,9 @@ class pane_rooms () =
       | _ -> () *)
         
     method coerce = pane#coerce
-              
+
+    method hpaned = pane#hpaned
+      
     initializer
       pane#rooms_pane#add1 opened_rooms#coerce;
       pane#rooms_pane#add2 paused_rooms#coerce;

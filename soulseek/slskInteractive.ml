@@ -35,9 +35,19 @@ open SlskGlobals
 open SlskProtocol
 
 
+let download r filenames =
+  let key = (r.result_name, r.result_size) in
+  if not (Hashtbl.mem files_by_key key) then begin
+      let file = new_file (Md4.random()) r.result_name r.result_size in
+      List.iter (fun (user, filename) ->
+          ignore (add_file_client file user filename)
+      ) r.result_sources;
+      SlskServers.ask_for_file file
+    end
+
 let _ =
   network.op_network_search <- (fun q buf ->
-      incr nsearches;
+      next_token =:= !!next_token + 1;
       let query = q.search_query in
       let words = ref [] in
       let rec iter q =
@@ -57,14 +67,14 @@ let _ =
       
       in
       iter query;
-      Printf.printf "SEARCH ADDED FOR %d" !nsearches; print_newline ();
-      SlskGlobals.searches := (!nsearches, q) :: !SlskGlobals.searches;
+      Printf.printf "SEARCH ADDED FOR %d" !!next_token; print_newline ();
+      SlskGlobals.searches := (!!next_token, q) :: !SlskGlobals.searches;
       let words = String2.unsplit !words ' ' in
       Printf.printf "SEARCH COMPUTED"; print_newline ();
       List.iter (fun s ->
           let msg = C2S.SearchReq {
               C2S.Search.words = words;
-              C2S.Search.id = !nsearches;
+              C2S.Search.id = !!next_token;
             } in
           match s.server_sock with
             None -> ()
@@ -148,6 +158,9 @@ let _ =
         C.result_comment = "";
         C.result_done = false;
       }
+  );
+  result_ops.op_result_download <- (fun r filenames ->
+      download r filenames   
   )
   
 let _ =
@@ -175,8 +188,8 @@ let _ =
   file_ops.op_file_save_as <- (fun file new_name  ->
       match file_state file with
         FileDownloaded | FileShared ->
-          Unix2.rename file.file_temp new_name;
-          file.file_temp <- new_name
+          SlskClients.save_file_as file new_name
+          
       | _ -> ()
   );
   file_ops.op_file_commit <- (fun file ->
@@ -221,6 +234,7 @@ let _ =
       }
   );
   client_ops.op_client_browse <- (fun c immediate ->
+      Printf.printf "CLIENT BROWSE !!!!"; print_newline ();
       SlskClients.connect_peer c 300 [C2C.GetSharedFileListReq]
   )
 

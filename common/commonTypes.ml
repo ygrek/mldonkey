@@ -171,7 +171,8 @@ type network = {
     mutable op_network_add_client : 
       bool -> ((string * Options.option_value) list -> client);
     mutable op_network_search : (search -> Buffer.t -> unit);
-    mutable op_network_share : (shared -> unit);
+    mutable op_network_share : (
+      string -> string -> int32 -> unit);
     mutable op_network_private_message : (string -> string -> unit);
     mutable op_network_parse_url : (string -> bool);
     mutable op_network_connect_servers : (unit -> unit);
@@ -260,6 +261,7 @@ type gui_record = {
     mutable gui_version : int;
     mutable gui_auth : bool;
     mutable gui_poll : bool;
+    mutable gui_connecting : bool;
   }
   
 exception Avifile_info of avi_info

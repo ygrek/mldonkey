@@ -429,13 +429,14 @@ let file_add impl state =
   
 let server_remove server =
   try
-   let impl = as_server_impl server in
-  if impl.impl_server_state <> RemovedHost then begin
-      set_server_state server RemovedHost;
-      (try impl.impl_server_ops.op_server_remove impl.impl_server_val
+    let impl = as_server_impl server in
+    if impl.impl_server_state <> RemovedHost then begin
+        Printf.printf "server_remove: removed"; print_newline ();
+        set_server_state server RemovedHost;
+        (try impl.impl_server_ops.op_server_remove impl.impl_server_val
           with _ -> ());
-      servers =:= List2.removeq server !!servers;
-    end
+        servers =:= List2.removeq server !!servers;
+      end
   with e ->
       Printf.printf "Exception in server_remove: %s" (Printexc.to_string e);
       print_newline ()

@@ -506,6 +506,22 @@ let get_room_version_3 s pos =
     room_nusers = nusers;
   }, pos + 5 
 
+let get_shared_info s pos =
+  let num = get_int s pos in
+  let network = get_int s (pos+4) in
+  let name, pos = get_string s (pos+8) in
+  let size = get_int32 s pos in
+  let uploaded = get_int64 s (pos+4) in
+  let requests = get_int s (pos+12) in
+  {
+    shared_num = num;
+    shared_network = network;
+    shared_filename = name;
+    shared_size = size;
+    shared_uploaded = uploaded;
+    shared_requests = requests;
+  }
+  
 (***************
 
      Decoding of messages from the GUI to the Core 
@@ -706,11 +722,17 @@ let from_gui_version_3 opcode s =
       SetRoomState (get_int s 2, get_room_state s 6)
   | _ -> from_gui_version_2 opcode s
 
+let from_gui_version_4 opcode s = 
+  match opcode with
+  | 49 -> RefreshUploadStats
+  | _ ->  from_gui_version_3 opcode s
+      
 let from_gui = [| 
     from_gui_version_0; 
     from_gui_version_1; 
     from_gui_version_2; 
     from_gui_version_3; 
+    from_gui_version_4; 
   |]
       
 (***************
@@ -838,7 +860,7 @@ let to_gui_version_0 opcode s =
   | 24 ->
       let n1 = get_int s 2 in
       let n2 = get_int s 6 in          
-      Room_user (n1,n2)
+      Room_add_user (n1,n2)
   
   | _ -> 
       Printf.printf "TO GUI:Unknown message %d" opcode; print_newline ();
@@ -889,11 +911,33 @@ let to_gui_version_3 opcode s =
 
   | _ -> to_gui_version_2 opcode s
 
+let to_gui_version_4 opcode s = 
+  match opcode with
+  | 32 -> 
+      let room = get_int s 2 in 
+      let user = get_int s 6 in
+      Room_remove_user (room, user)
+  | 33 ->
+      let s = get_shared_info s 2 in
+      Shared_file_info s
+  | 34 ->
+      let num = get_int s 2 in
+      let upload = get_int64 s 6 in
+      let requests = get_int s 14 in
+      Shared_file_upload (num, upload, requests)
+      
+  | 35 ->
+      let num = get_int s 2 in
+      Shared_file_unshared num
+      
+  | _ -> to_gui_version_3 opcode s
+      
 let to_gui = [| 
     to_gui_version_0; 
     to_gui_version_1; 
     to_gui_version_2; 
     to_gui_version_3;
+    to_gui_version_4;
   |]
 
 let _ =  assert (Array.length from_gui = Array.length to_gui);

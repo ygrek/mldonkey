@@ -23,7 +23,7 @@ open Unix
 open TcpBufferedSocket
 open DonkeyMftp
 open Options
-open Mftp_comm
+open DonkeyProtoCom
 
   
 let (store : tagged_file Store.t) = 
@@ -64,7 +64,7 @@ and client = {
     mutable client_conn_ip : Ip.t;
     mutable client_md4 : Md4.t;
     mutable client_mldonkey : int;
-    mutable client_sock: Mftp_comm.server_sock option;
+    mutable client_sock: DonkeyProtoCom.server_sock option;
     mutable client_kind : client_kind;
     mutable client_files : Md4.t list;
     mutable client_tags: CommonTypes.tag list;
@@ -148,8 +148,8 @@ type stand_by_log =
     client_md4 : Md4.t; 
     client_ip : Ip.t;
     time : float;
-    msg : Mftp_server.t;
-    reply : Mftp_server.t;
+    msg : DonkeyProtoServer.t;
+    reply : DonkeyProtoServer.t;
  } 
     *)
 

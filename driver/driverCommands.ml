@@ -55,7 +55,7 @@ let commands = [
         Heap.dump_heap ();
         "heap dumped"
     ), " : dump heap for debug";
- 
+    
     "close_fds", Arg_none (fun o ->
         Unix32.close_all ();
         "All files closed"
@@ -84,7 +84,7 @@ let commands = [
             ""
         | _ ->
             DriverInteractive.display_file_list buf o;
-            (*
+(*
             Printf.bprintf  buf "\nDownloading %d files\n" 
               (List.length !!files);
             
@@ -93,7 +93,7 @@ let commands = [
 *)              
             ""    
     ), "<num>: view file info";
-
+    
     "vm", Arg_none (fun o ->
         CommonInteractive.print_connected_servers o;
         ""), ": list connected servers";
@@ -109,7 +109,7 @@ let commands = [
         ) args;
         "done"
     ), " <ip1> <ip2> ... : add these IPs to the servers black list";
-
+    
     "debug_socks", Arg_none (fun o ->
         BasicSocket.print_sockets ();
         "done"), " : for debugging only";
@@ -121,7 +121,7 @@ let commands = [
     "save", Arg_none (fun o ->
         DriverInteractive.save_config ();
         "saved"), ": save";
-  
+    
     "port", Arg_one (fun arg o ->
         port =:= int_of_string arg;
         "new port will change at next restart"),
@@ -132,20 +132,22 @@ let commands = [
         if o.conn_output = HTML then
           Printf.bprintf  buf "\\<table border=0\\>";
         List.iter (fun (name, value) ->
+            if String.contains value '\n' then begin
+                if o.conn_output = HTML then
+                  Printf.bprintf buf "
+                  \\<tr\\>\\<td\\>\\<form action=/submit $S\\> 
+                  \\<input type=hidden name=setoption value=q\\>
+                  \\<input type=hidden name=option value=%s\\> %s \\</td\\>\\<td\\>
+                  \\<textarea name=value rows=10 cols=70 wrap=virtual\\> 
+                  %s
+                  \\</textarea\\>
+                  \\<input type=submit value=Modify\\>
+                  \\</td\\>\\</tr\\>
+                  \\</form\\>
+                  " name name value
+              end
+            else
             if o.conn_output = HTML then
-              if String.contains value '\n' then
-                Printf.bprintf buf "
-              \\<tr\\>\\<td\\>\\<form action=/submit $S\\> 
-\\<input type=hidden name=setoption value=q\\>
-\\<input type=hidden name=option value=%s\\> %s \\</td\\>\\<td\\>
-                \\<textarea name=value rows=10 cols=70 wrap=virtual\\> 
-                %s
-                \\</textarea\\>
-\\<input type=submit value=Modify\\>
-\\</td\\>\\</tr\\>
-\\</form\\>
-                " name name value
-              else
               Printf.bprintf buf "
               \\<tr\\>\\<td\\>\\<form action=/submit $S\\> 
 \\<input type=hidden name=setoption value=q\\>
@@ -153,7 +155,7 @@ let commands = [
               \\<input type=text name=value size=40 value=\\\"%s\\\"\\>
 \\</td\\>\\</tr\\>
 \\</form\\>
-" name name value
+              " name name value
             else
               Printf.bprintf buf "%s = %s\n" name value)
         (CommonInteractive.all_simple_options ());

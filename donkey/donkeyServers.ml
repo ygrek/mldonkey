@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonUser
+open CommonSearch
 open CommonComplexOptions
 open CommonServer
 open CommonOptions
@@ -27,7 +29,7 @@ open BasicSocket
 open TcpBufferedSocket
 open DonkeyMftp
 open DonkeyImport
-open Mftp_comm
+open DonkeyProtoCom
 open DonkeyTypes
 open DonkeyOptions
 open CommonOptions
@@ -43,23 +45,6 @@ let first_name file =
     [] -> Filename.basename file.file_hardname
   | name :: _ -> name
     
-let last_connected_server () =
-  match !servers_list with 
-  | s :: _ -> s
-  | [] -> 
-      servers_list := 
-      Hashtbl.fold (fun key s l ->
-          s :: l
-      ) servers_by_key [];
-      match !servers_list with
-        [] -> raise Not_found
-      | s :: _ -> s
-
-let all_servers () =
-  Hashtbl.fold (fun key s l ->
-      s :: l
-  ) servers_by_key []
-
 
 (****************************************************)
 
@@ -73,6 +58,53 @@ let update_options () =
         > (connection_last_conn s2.server_connection_control))
   ) !!known_servers
     *)
+
+
+let query_location file sock =
+  printf_string "[QUERY LOC]";
+  direct_server_send sock (
+    let module M = DonkeyProtoServer in
+    let module C = M.QueryLocation in
+    M.QueryLocationReq file.file_md4
+  )
+          
+let query_locations s n_per_round = 
+  match s.server_sock with
+    None -> ()
+  | Some sock ->
+      let rec iter n =
+        if n>0 then
+          match s.server_waiting_queries with
+            [] ->
+              begin
+                List.iter (fun file ->
+                    if file_state file = FileDownloading then
+                      s.server_waiting_queries <- 
+                        file :: s.server_waiting_queries
+                ) !current_files;
+                if s.server_waiting_queries <> [] then
+                  let nqueries = List.length s.server_waiting_queries in
+                  iter (min n (nqueries - (n_per_round - n)))
+            end
+          | file :: files ->
+              s.server_waiting_queries <- files;
+              if file_state file = FileDownloading then begin
+                  query_location file sock;
+                  iter (n-1)
+                end else
+                iter n
+      in
+      iter n_per_round
+
+let query_locations_timer () =
+  List.iter (fun s ->
+(* During the first 20 minutes, don't send any localisation query
+to the server *)
+      if s.server_queries_credit = 0 then
+        query_locations s !!files_queries_per_minute
+      else 
+        s.server_queries_credit <- s.server_queries_credit - 1
+  ) (connected_servers())
 
 let _ =
   server_ops.op_server_sort <- (fun s ->
@@ -95,7 +127,9 @@ let disconnect_server s =
       s.server_score <- s.server_score - 1;
       s.server_users <- [];
       set_server_state s NotConnected;
-      !server_is_disconnected_hook s
+      remove_connected_server s;
+(*      !server_is_disconnected_hook s *)
+      ()
       
 let server_handler s sock event = 
   match event with
@@ -106,29 +140,29 @@ let server_handler s sock event =
       
       
 let client_to_server s t sock =
-  let module M = Mftp_server in
+  let module M = DonkeyProtoServer in
 (*
   Printf.printf "Message from server:"; print_newline ();
-  Mftp_server.print t;
+  DonkeyProtoServer.print t;
 *)
   match t with
     M.SetIDReq t ->
       s.server_cid <- t;
       set_rtimeout sock 3600.; 
-      (* force deconnection after one hour if nothing  appends *)
+(* force deconnection after one hour if nothing  appends *)
       set_server_state s Connected_initiating;
       s.server_score <- s.server_score + 5;
       connection_ok (s.server_connection_control);
-
+      
       direct_server_send sock (
         let module A = M.AckID in
         M.AckIDReq A.t
       );
-    
+      
       direct_server_send sock (M.QueryLocationReq Md4.null);
       direct_server_send sock (M.QueryLocationReq Md4.one);
 
-      (*
+(*
       server_send sock (M.ShareReq (make_tagged (
             if !nservers <=  max_allowed_connected_servers () then
               begin
@@ -139,14 +173,14 @@ let client_to_server s t sock =
               []
           )));
 *)
-      
+  
   | M.ServerListReq l ->
       if !!update_server_list then
-      let module Q = M.ServerList in
-      List.iter (fun s ->
-          if Ip.valid s.Q.ip && not (List.mem s.Q.ip !!server_black_list) then
-            ignore (add_server s.Q.ip s.Q.port);
-      ) l
+        let module Q = M.ServerList in
+        List.iter (fun s ->
+            if Ip.valid s.Q.ip && not (List.mem s.Q.ip !!server_black_list) then
+              ignore (add_server s.Q.ip s.Q.port);
+        ) l
   
   | M.ServerInfoReq t ->
       
@@ -162,24 +196,119 @@ let client_to_server s t sock =
               s.server_description <- desc
           | _ -> ()
       ) s.server_tags;
+      printf_char 'S';
       set_server_state s Connected_idle;
-      !server_is_connected_hook s sock
+      add_connected_server s;
+      
+(* Send localisation queries to the server. We are limited by the maximalù
+number of queries that can be sent per minute (for lugdunum, it's one!).
+Once the first queries have been sent, we must wait 20 minutes before next
+queries. *)
+      query_locations s (20 * !!files_queries_per_minute);
+      s.server_queries_credit <- !!files_queries_initial_delay
+(*      !server_is_connected_hook s sock *)
   
   | M.InfoReq (users, files) ->
       s.server_nusers <- users;
       s.server_nfiles <- files;
       server_must_update s
-      
+  
   | M.Mldonkey_MldonkeyUserReplyReq ->
       s.server_mldonkey <- true;
-      Printf.printf "I'm connected to a mldonkey server\n"
+      printf_string "[MLDONKEY SERVER]"
+        
+  | M.QueryIDReplyReq t -> 
+      DonkeyClient.query_id_reply s.server_cid t
+  
+  | M.QueryReplyReq t ->
+      let rec iter () =
+        let query = try
+            Fifo.take s.server_search_queries
+          with _ -> failwith "No pending query"
+        in
+        let search = query.search in
+        try
+          let nres = List.length t in
+          query.nhits <- query.nhits + nres;
+          if !last_xs = search.search_search.search_num && nres = 201 &&
+            query.nhits < search.search_search.search_max_hits then
+            begin
+              direct_server_send sock M.QueryMoreResultsReq;
+              Fifo.put s.server_search_queries query      
+            end;
+          DonkeyFiles.search_handler search t
+        with Already_done -> iter ()
+      in
+      iter ()          
+  
+  
+  | M.Mldonkey_NotificationReq (num, t) ->
+      let s = search_find num in
+      List.iter (fun f ->
+          DonkeyFiles.search_found s f.f_md4 f.f_tags
+      ) t
+  
+  | M.QueryUsersReplyReq t ->
+      let module M = DonkeyProtoServer in
+      let module Q = M.QueryUsersReply in
+      let add_to_friend = try
+          Fifo.take s.server_users_queries
+        with _ -> failwith "No pending query"
+      in
+
+(* We MUST found a way to keep indirect friends even after a deconnexion.
+Add a connection num to server. Use Indirect_location (server_num, conn_num)
+and remove clients whose server is deconnected. *)
+(*          Printf.printf "QueryUsersReply"; print_newline (); *)
+      List.iter (fun cl ->
+
+(*              Printf.printf "NEW ONE"; print_newline (); *)
+          let rec user = {
+              user_user = user_impl;
+              user_md4 = cl.Q.md4;
+              user_name = "";
+              user_ip = cl.Q.ip;
+              user_port = cl.Q.port;
+              user_tags = cl.Q.tags;
+              user_server = s;                  
+            } 
+          and  user_impl = {
+              dummy_user_impl with
+              impl_user_val = user;
+              impl_user_ops = user_ops;
+            }
+          in
+          user_add user_impl;
+          List.iter (fun tag ->
+              match tag with
+                { tag_name = "name"; tag_value = String s } -> 
+                  user.user_name <- s
+              | _ -> ()
+          ) user.user_tags;
+          
+          if add_to_friend then DonkeyFiles.add_user_friend s user;
+          
+          s.server_users <- user :: s.server_users;
+(*              Printf.printf "SERVER NEW USER"; print_newline (); *)
+          server_new_user (as_server s.server_server) 
+          (as_user user.user_user);
+      ) t;
+      server_must_update s
+  
+  | M.QueryLocationReplyReq t -> DonkeyClient.query_locations_reply s t
+  | M.QueryIDFailedReq t -> ()
       
   | _ -> 
-      !received_from_server_hook s sock t
+(*      !received_from_server_hook s sock t *)
+      ()
       
 let connect_server s =
   if can_open_connection () then
     try
+      match s.server_sock with
+        Some _ -> printf_string "[e0]"
+      | _ ->
+          
 (*                Printf.printf "CONNECTING ONE SERVER"; print_newline (); *)
       connection_try s.server_connection_control;
       incr nservers;
@@ -188,22 +317,24 @@ let connect_server s =
           "donkey to server"
         (
           Ip.to_inet_addr s.server_ip) s.server_port 
-          (server_handler s) (* Mftp_comm.server_msg_to_string*)  in
+          (server_handler s) (* DonkeyProtoCom.server_msg_to_string*)  in
       s.server_cid <- client_ip (Some sock);
       set_server_state s Connecting;
       set_read_controler sock download_control;
       set_write_controler sock upload_control;
       
-      set_reader sock (Mftp_comm.cut_messages Mftp_server.parse
+      set_reader sock (DonkeyProtoCom.cut_messages DonkeyProtoServer.parse
           (client_to_server s));
       set_rtimeout sock !!server_connection_timeout;
       set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
           close s "timeout"  
       );
       
+      s.server_waiting_queries <- [];
+      s.server_queries_credit <- 0;
       s.server_sock <- Some sock;
       direct_server_send sock (
-        let module M = Mftp_server in
+        let module M = DonkeyProtoServer in
         let module C = M.Connect in
         M.ConnectReq {
           C.md4 = !!client_md4;
@@ -277,26 +408,34 @@ let rec check_server_connections () =
   force_check_server_connections false
 
 let remove_old_servers () =
+  Printf.printf "REMOVE OLD SERVERS";  print_newline ();
   let list = ref [] in
   let min_last_conn =  last_time () -. 
     float_of_int !!max_server_age *. one_day in
   
   let removed_servers = ref [] in
-  let nservers = ref 0 in
+  let servers_left = ref 0 in
   
   Hashtbl.iter (fun key s ->
       if connection_last_conn s.server_connection_control < min_last_conn ||
         List.mem s.server_ip !!server_black_list then 
         removed_servers := (key,s) :: !removed_servers
-      else incr nservers
+      else incr servers_left
   ) servers_by_key;
-  if !nservers < 200 then begin
+  if !servers_left > 200 then begin
       List.iter (fun (key,s) ->
+          Printf.printf "Server too old: %s:%d" 
+            (Ip.to_string s.server_ip) s.server_port;
+          print_newline ();
           server_remove (as_server s.server_server);
           Hashtbl.remove servers_by_key key
       ) !removed_servers
-    end
-
+    end else begin
+      Printf.printf "Not enough remaining servers: %d" !servers_left;  
+      print_newline ()
+    end;
+  Printf.printf "REMOVE OLD SERVERS DONE";  print_newline ()
+  
 (* Don't let more than max_allowed_connected_servers running for
 more than 5 minutes *)
     
@@ -326,7 +465,7 @@ let update_master_servers _ =
                 incr nmasters;
                 let list = DonkeyShare.make_tagged (Some sock) (
                     DonkeyShare.all_shared ()) in
-                direct_server_send sock (Mftp_server.ShareReq list)
+                direct_server_send sock (DonkeyProtoServer.ShareReq list)
           end else
         if connection_last_conn s.server_connection_control 
             +. 120. < last_time () &&

@@ -42,7 +42,7 @@ let is_filtered s =
   (!filter_disconnected_servers && s.server_state = NotConnected) ||
   List.memq s.server_network !G.networks_filtered
 
-class box columns users =
+class box columns users wl_status =
   let titles = List.map Gui_columns.Server.string_of_column columns in 
   object (self)
     inherit [server_info] Gpattern.plist `EXTENDED titles true as pl
@@ -77,6 +77,11 @@ class box columns users =
       let res = self#compare_by_col col s1 s2 in
       current_sort * res
     
+    method update_wl_status =
+      wl_status#set_text
+	(Gui_messages.connected_to_servers 
+	   !G.nconnected_servers !G.nservers)
+
     method content_by_col s col =
       match col with
         Col_server_address -> 
@@ -203,14 +208,17 @@ class box columns users =
       if s.server_state = RemovedHost then
         if row >= 0 then 
           (
-            data <- List.filter (fun s2 -> s2 <> s) data;
-            self#wlist#remove row;
-            decr G.nservers
+           data <- List.filter (fun s2 -> s2 <> s) data;
+           self#wlist#remove row;
+           decr G.nservers;
+	   self#update_wl_status
           )
-        else begin
-            filtered_data <- List.filter (fun s2 -> s2 <> s) filtered_data;
-            decr G.nservers
-          end
+        else
+	  (
+           filtered_data <- List.filter (fun s2 -> s2 <> s) filtered_data;
+           decr G.nservers;
+	   self#update_wl_status
+          )
       else 
       if row >= 0 then
         self#update_row s row;
@@ -245,8 +253,8 @@ class box columns users =
         let (row, serv) = self#find_server s.server_num in
         (
           match Mi.is_connected s.server_state, Mi.is_connected serv.server_state with
-            true, false -> incr G.nconnected_servers
-          | false, true -> decr G.nconnected_servers
+            true, false -> incr G.nconnected_servers ; self#update_wl_status
+          | false, true -> decr G.nconnected_servers ; self#update_wl_status
           | _ -> ()
         );
         let row = 
@@ -271,15 +279,20 @@ class box columns users =
         Not_found ->
           if s.server_state <> RemovedHost then
             (
-              if is_filtered s then begin
+              if is_filtered s then 
+		begin
                   filtered_data <- filtered_data @ [s];
-                  incr G.nservers
-                end else begin
+                  incr G.nservers ;       
+		  self#update_wl_status
+                end 
+	      else 
+		begin
                   data <- data @ [s];
                   incr G.nservers;
                   self#insert ~row: self#wlist#rows s;
                   if Mi.is_connected s.server_state then
-                    incr G.nconnected_servers
+                    incr G.nconnected_servers;
+		  self#update_wl_status
                 end
             )
           else
@@ -406,7 +419,7 @@ class box columns users =
 	(wtool#insert_button 
 	   ~text: M.toggle_display_all_servers
 	   ~tooltip: M.toggle_display_all_servers
-	   ~icon: (Gui_icons.pixmap M.o_xpm_preview)#coerce
+	   ~icon: (Gui_icons.pixmap M.o_xpm_toggle_display_all_servers)#coerce
 	   ~callback: self#toggle_display_all_servers
 	   ()
 	);
@@ -414,10 +427,12 @@ class box columns users =
 
 class pane_servers () =
   let users = new Gui_users.box_users () in
-  let servers = new box !!O.servers_columns users in
+  let wl_status = GMisc.label ~text: "" ~show: true () in
+  let servers = new box !!O.servers_columns users wl_status in
   object (self)
     inherit Gui_servers_base.paned ()
 
+    method wl_status = wl_status
     method box_servers = servers
     method box_users = users
     method hpaned = wpane
@@ -427,6 +442,7 @@ class pane_servers () =
       servers#set_tb_style st
 
     method clear =
+      wl_status#set_text "";
       servers#clear ;
       users#clear ;
 

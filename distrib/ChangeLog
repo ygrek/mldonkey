@@ -1,6 +1,66 @@
 ChangeLog	
 =========
 
+2002/09/08: mldonkey
+  - fix: prevent connecting several times to the same server
+  - fix: remove_old_servers should work again
+  - fix: 'vo' command only display one-line options
+
+2002/09/07: mldonkey
+  - Fix: Removed mldonkey_ suffix from names.
+  - Add: option 'files_queries_per_minute' and 'files_queries_initial_delay'
+      in downloads.ini to meet lugdunum master and Smurk UK requests.
+  - Fix: edonkey private messages should work again.
+
+2002/09/05: mldonkey
+  - fix: upload tab should work
+
+2002/09/04: zoggy
+  - add : upstats in the uploads tab
+	
+2002/09/04: mldonkey
+  - fix: shared files are not shared between all networks anymore (each 
+     network has its own shared file type).
+  - add: edonkey protocol files are not hidden anymore
+  - add: upload per shared file.
+  - add: new upload messages in GUI protocol 4
+
+2002/09/03: mldonkey
+  - Soulseek:
+      * Browse friend and simple downloads should work.
+
+2002/08/30: zoggy
+  - add : download a whole directory from a friend
+  - fix : the 'goto <page>' actions, because of the new rooms and uploads tabs
+  - add : an option to specify if we display sizes with G,M, and k suffixes
+  - code : moved the servers, downloads and uploads status label to
+    Gui_servers.pane_servers, Gui_downloads.pane_downloads and
+    Gui_uploads.box_upstats so they can be updated more accurately,
+    and not each time a message comes.
+	
+2002/08/29: zoggy
+  - add :Now display the tree of files instead of just the list of files
+    for the selected friend (with a new option files_auto_expand_depth)
+  - add : new added chat room automatically selected
+	
+2002/08/29: mldonkey
+  - CVS commit on Savannah:
+      * Ocaml 3.06 is now used to compile.
+      * donkey/donkey.lam is not distributed anymore with mldonkey.
+          It should be downloaded as:
+           http://pauillac.inria.fr/~lefessan/src/edonkey/donkey.lam.SOME_MD5
+          and copied in the donkey/ directory.
+
+          where SOME_MD5 is the contents of the file donkey/donkey.lam.md5
+
+          This can be automated by the configure script.
+  - GUI protocol version 4:
+      * new message Room_remove_user
+  - Updates to be sent to the GUI are now stored in common/commonEvent.ml
+  - Only one GUI can be connected to mldonkey at any given time.
+  - Soulseek: 
+      * Join/Leave room works with dialog and user updates.
+
 2002/08/23: mldonkey
   - update: ocaml 3.06 should now be used to compile mldonkey without secret/.
   - add: GUI protocol version 3 should work for poll.

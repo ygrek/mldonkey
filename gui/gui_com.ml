@@ -92,10 +92,10 @@ let reconnect gui value_reader =
             let m = GuiDecoding.to_gui.(!gui_protocol_used) opcode s in
             value_reader m sock
           with e ->
-              Printf.printf "Exception %s in decode/exec" 
-                (Printexc.to_string e); print_newline ();
-              raise e
-            ));
+            Printf.printf "Exception %s in decode/exec" (Printexc.to_string e); 
+	    print_newline ();
+            raise e
+        ));
     gui#label_connect_status#set_text "Connecting";
     send (GuiProto.GuiProtocol GuiEncoding.best_gui_version)
   with e ->

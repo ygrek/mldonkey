@@ -31,7 +31,7 @@ open CommonFile
 open DonkeySearch
 open Options
 open DonkeyMftp
-open Mftp_comm
+open DonkeyProtoCom
 open DonkeyServers
 open BasicSocket
 open TcpBufferedSocket
@@ -61,7 +61,7 @@ let reconnect_all file =
   List.iter (fun s ->
       match s.server_sock, server_state s with
       | Some sock, (Connected_idle | Connected_busy) ->
-          query_locations file s sock    
+          s.server_waiting_queries <- file :: s.server_waiting_queries
       | _ -> ()
   ) (connected_servers())
     
@@ -101,7 +101,8 @@ Unix2.safe_mkdir (Filename.dirname real_name);
   ;
   remove_file_clients file;
   file.file_changed <- FileInfoChange;
-  !file_change_hook file
+(*  !file_change_hook file *)
+  ()
   
 let save_file file name =
   let real_name = Filename.concat !!incoming_directory name in
@@ -178,19 +179,19 @@ let really_query_download filenames size md4 location old_file absents =
   file.file_filenames <- filenames @ file.file_filenames;
 
   current_files := file :: !current_files;
-  !file_change_hook file;
+(*  !file_change_hook file; *)
   set_file_size file (file_size file);
   List.iter (fun s ->
       match s.server_sock with
         None -> () (* assert false !!! *)
       | Some sock ->
-          query_locations file s sock
+          query_location file sock
   ) (connected_servers());
 
   (try
       let servers = Hashtbl.find_all udp_servers_replies file.file_md4 in
       List.iter (fun s ->
-          udp_server_send s (Mftp_server.QueryLocationUdpReq file.file_md4)
+          udp_server_send s (DonkeyProtoServer.QueryLocationUdpReq file.file_md4)
       ) servers
     with _ -> ());
   
@@ -557,17 +558,18 @@ let commands = [
           (Int64.to_string !upload_counter);
         let list = ref [] in
         Hashtbl.iter (fun _ file ->
-            if file.file_shared then 
-              list := file :: !list
+            match file.file_shared with
+              None -> ()
+            | Some file ->
+                list := file :: !list
         ) files_by_md4;
         let list = Sort.list (fun f1 f2 ->
-              f1.file_upload_requests >= f2.file_upload_requests)
-          
+              f1.impl_shared_requests >= f2.impl_shared_requests)
           !list in
-        List.iter (fun file ->
-            Printf.bprintf buf "%-50s requests: %8d blocs: %8d\n"
-              (first_name file) file.file_upload_requests
-              file.file_upload_kbs;
+        List.iter (fun impl ->
+            Printf.bprintf buf "%-50s requests: %8d bytes: %10s\n"
+              impl.impl_shared_codedname impl.impl_shared_requests
+              (Int64.to_string impl.impl_shared_uploaded);
         ) list;
         "done"
     ), " : statistics on upload";
@@ -674,11 +676,11 @@ let _ =
   file_ops.op_file_resume <- (fun file ->
       reconnect_all file;
       file.file_changed <- FileInfoChange;
-      !file_change_hook file
+(*      !file_change_hook file *)
   );
   file_ops.op_file_pause <- (fun file ->
       file.file_changed <- FileInfoChange;
-      !file_change_hook file
+(*      !file_change_hook file *)
   );
   network.op_network_private_message <- (fun iddest s ->      
       try
@@ -693,10 +695,10 @@ let _ =
                   CommonChat.send_text !!CommonOptions.chat_console_id None 
                     (Printf.sprintf "client %s : could not connect (client_sock=None)" iddest)
               | Some sock ->
-                  direct_client_send sock (Mftp_client.SayReq s)
+                  direct_client_send sock (DonkeyProtoClient.SayReq s)
             )
         | Some sock ->
-            direct_client_send sock (Mftp_client.SayReq s)
+            direct_client_send sock (DonkeyProtoClient.SayReq s)
       with
         Not_found ->
           CommonChat.send_text !!CommonOptions.chat_console_id None 
@@ -811,14 +813,14 @@ let _ =
   server_ops.op_server_query_users <- (fun s ->
       match s.server_sock, server_state s with
         Some sock, (Connected_idle | Connected_busy) ->
-          direct_server_send sock (Mftp_server.QueryUsersReq "");
+          direct_server_send sock (DonkeyProtoServer.QueryUsersReq "");
           Fifo.put s.server_users_queries false
       | _ -> ()
   );
   server_ops.op_server_find_user <- (fun s user ->
       match s.server_sock, server_state s with
         Some sock, (Connected_idle | Connected_busy) ->
-          direct_server_send sock (Mftp_server.QueryUsersReq user);
+          direct_server_send sock (DonkeyProtoServer.QueryUsersReq user);
           Fifo.put s.server_users_queries true
       | _ -> ()      
   );
@@ -880,7 +882,7 @@ let _ =
       match c.client_sock with
         None -> ()
       | Some sock ->
-          direct_client_send sock (Mftp_client.SayReq s)
+          direct_client_send sock (DonkeyProtoClient.SayReq s)
   );  
   client_ops.op_client_files <- (fun c ->
       match c.client_all_files with
@@ -910,12 +912,31 @@ let _ =
 
   
 let _ =
-  shared_ops.op_shared_unshare <- (fun s file ->
-      file.file_shared <- false;
-      decr nshared_files;
-      Unix32.close  (file_fd file);
-      file.file_hardname <- "";
-      try Hashtbl.remove files_by_md4 file.file_md4 with _ -> ()
+  shared_ops.op_shared_unshare <- (fun file ->
+      match file.file_shared with
+        None -> ()
+      | Some s -> 
+          file.file_shared <- None;
+          decr nshared_files;
+          (try Unix32.close  (file_fd file) with _ -> ());
+          file.file_hardname <- "";
+          try Hashtbl.remove files_by_md4 file.file_md4 with _ -> ()
+  );
+  shared_ops.op_shared_info <- (fun file ->
+   let module T = GuiTypes in
+     match file.file_shared with
+        None -> assert false
+      | Some impl ->
+          { (impl_shared_info impl) with 
+            T.shared_network = network.network_num;
+            T.shared_filename = first_name file;
+            }
+  );
+  pre_shared_ops.op_shared_info <- (fun s ->
+      let module T = GuiTypes in
+      let impl = s.shared_shared in
+      { (impl_shared_info impl) with 
+        T.shared_network = network.network_num }
   )
 
 let _ =

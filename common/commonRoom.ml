@@ -19,6 +19,7 @@
 
 open Options
 open CommonTypes
+open CommonEvent
   
 type 'a room_impl = {
     mutable impl_room_update : int;
@@ -77,16 +78,18 @@ let ni n m =
 let fni n m =   failwith (ni n m)
 let ni_ok n m = ignore (ni n m)
 
-  let rooms_update_list = ref []
-  
   
 let room_must_update room =
   let impl = as_room_impl room in
   if impl.impl_room_update > 0 then begin
-      rooms_update_list := room :: !rooms_update_list
+      events_list := Room_info_event room :: !events_list
     end;
   impl.impl_room_update <- 0
 
+let room_updated room = 
+  let impl = as_room_impl room in
+  impl.impl_room_update <- 1
+  
 let room_add (room : 'a room_impl) =
   incr room_counter;
   room.impl_room_num <- !room_counter;
@@ -175,17 +178,17 @@ let com_rooms_by_num = rooms_by_num
 let rooms_by_num = ()
 
   
-let room_new_users = ref []
-    
-let room_new_user room c =
-  room_new_users := ((room : room), (c : user)) :: !room_new_users  
+let room_add_user room c =
+  add_event (Room_add_user_event (room, c))
+
+let room_remove_user room c =
+  add_event (Room_remove_user_event (room, c))
 
 let message_counter = ref 0
-let room_new_messages = ref []
 let room_new_message room msg =
   incr message_counter;
-  room_new_messages := (!message_counter, 
-    (room : room), (msg : room_message)) :: !room_new_messages;
+  events_list := Room_message_event (!message_counter, 
+    (room : room), (msg : room_message)) :: !events_list;
   (!message_counter, msg)
 
 let extract_messages list age =
@@ -212,7 +215,7 @@ receiving a private message from this client in driver/driverInterface.ml.
     
     open CommonNetwork  
     let network = "Private"
-        
+    
     type private_room = {
         room_impl : private_room room_impl;
         mutable messages : (client * string) list; 
@@ -241,23 +244,29 @@ receiving a private message from this client in driver/driverInterface.ml.
         );
         op_room_send_message = (fun _ _ -> ni_ok network "room_message");
       }
-      
- let private_room = 
-  let rec room = {
+    
+    let private_room = 
+      let rec room = {
           messages = [];
           room_impl = room_impl;
-    } and
-    room_impl = {
-      dummy_room_impl with
-      impl_room_val = room;
-      impl_room_ops = private_room_ops;
-      impl_room_state = RoomOpened;
-    } in
-      room_add room_impl
+        } and
+        room_impl = {
+          dummy_room_impl with
+          impl_room_val = room;
+          impl_room_ops = private_room_ops;
+          impl_room_state = RoomOpened;
+        } in
+      room_add room_impl;
+      room
       
   end
   
 let private_room_ops = Private.private_room_ops
-let private_room = Private.private_room
-  
+let private_room = as_room Private.private_room.Private.room_impl
+let private_history = Private.private_room.Private.messages
+
+let private_message_from c s =
+  room_send_message private_room
+    (PrivateMessage (CommonClient.client_num c, s))
+
   

@@ -19,6 +19,8 @@
 
 (** GUI labels. *)
 
+let ok = "Ok"
+let cancel = "Cancel"
 let password = "Password"
 let address = "Address"
 let percent = "%"
@@ -91,6 +93,7 @@ let size = "Size"
 let properties = "Properties"
 let md4 = "MD4"
 let download_selected_files = "Download selected files"
+let download_selected_dir = "Download selected directory"
 let download = "Download"
 let subscribe = "Subscribe"
 let downloaded = "Downloaded"
@@ -169,8 +172,13 @@ let waiting_for_replies n = Printf.sprintf "Waiting for %d replies" n
 
 let uploads = "Uploads"
 let requests = "Requests"
-let blocks = "Blocks"
 let upstats = "Uploads stats"
+let uploaded = "Uploaded"
+let refresh = "Refresh"
+
+let confirm_download_dir dir n = 
+  Printf.sprintf "Do you want to download the  %d files in the directory %s ?"
+    n dir
 
 (** Menus labels. *)
 
@@ -189,6 +197,7 @@ let mConsole = "Console"
 let mQueries = "Queries"
 let mResults = "Results"
 let mRooms = "Rooms"
+let mUploads = "Uploads"
 
 (** Messages and string constants. *)
 
@@ -257,6 +266,14 @@ let o_colors = "Colors"
 let o_auto_resize = "Auto-resize"
 let h_auto_resize = "Auto-resize lists columns"
 
+let o_files_auto_expand_depth = "Files auto-expand depth"
+let h_files_auto_expand_depth = 
+  "The depth to which the directories of a friend are automatically expanded"
+
+let o_use_size_suffixes = "Use size suffixes (G, M, k)"
+let h_use_size_suffixes = 
+  "Whether sizes are printed using G(iga), M(ega) and k(ilo) suffixes."
+
 let h_toolbars_style = "What is displayed in toolbar buttons : text, icon or both"
 let o_toolbars_style = "Style of toolbars"
 
@@ -274,6 +291,10 @@ let o_file_locations_columns = "File locations"
 let h_file_locations_columns = "Columns for the locations of a file"
 let o_results_columns = "Results"
 let h_results_columns = "Columns for the results of searches and files of a friends"
+
+let o_shared_files_up_colums = "Shared files upload info"
+let h_shared_files_up_columns = 
+  "Columns for the list of shared files upload information"
 
 let o_columns = "Columns titles"
 
@@ -294,6 +315,7 @@ let o_xpm_preview = "preview"
 let o_xpm_verify_chunks = "verify_chunks"
 let o_xpm_retry_connect = "retry_connect"
 let o_xpm_add_to_friends = "add_to_friends"
+let o_xpm_toggle_display_all_servers = "toggle_display_all_servers"
 let o_xpm_download = "download"
 let o_xpm_submit_search = "submit_search"
 let o_xpm_extend_search = "extend_search"
@@ -301,7 +323,7 @@ let o_xpm_local_search = "local_search"
 let o_xpm_find_friend = "find_friend"
 let o_xpm_remove_all_friends = "remove_all_friends"
 let o_xpm_close_room = "close_room"
-
+let o_xpm_refresh = "refresh"
 
 let o_client_name = "Client name"
 let o_http_port = "HTTP Port" 
@@ -358,6 +380,8 @@ let a_page_downloads = "page_downloads"
 let a_page_friends = "page_friends"
 let a_page_queries = "page_queries"
 let a_page_results = "page_results"
+let a_page_rooms = "page_rooms"
+let a_page_uploads = "page_uploads"
 let a_page_options = "page_options"
 let a_page_console = "page_console"
 let a_page_help = "page_help"

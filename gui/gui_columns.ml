@@ -210,3 +210,26 @@ module Room = Make(struct
       let kind = "Room"
       let column_strings = room_column_strings
     end)
+
+(** The columns for the shared file upload info.*)
+type shared_file_up_column =
+  Col_shared_file
+| Col_shared_upsize
+| Col_shared_requests
+| Col_shared_size
+
+let shared_file_up_column_strings = [
+  Col_shared_file, M.filename ;
+  Col_shared_upsize, M.uploaded ;
+    Col_shared_requests, M.requests ;
+    Col_shared_size, M.size;
+] 
+
+module Shared_files_up = Make
+    (
+     struct
+       type column = shared_file_up_column
+       let kind = "shared_file_upload"
+       let column_strings = shared_file_up_column_strings
+     end
+    )

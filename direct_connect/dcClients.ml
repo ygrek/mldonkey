@@ -97,12 +97,6 @@ let init_connection nick_sent c sock =
           Direction.level = 31666;
         })      
 
-      
-let rec really_read fd s pos len =
-  let nread = Unix.read fd s pos len in
-  if nread = 0 then raise End_of_file else
-  if nread < len then
-    really_read fd s (pos + nread) (len - nread)
 
       
 let read_first_message nick_sent t sock =
@@ -250,7 +244,7 @@ let client_reader c t sock =
                   if rem > Int32.of_int can then can else Int32.to_int rem
                 in
                 let upload_buffer = String.create rlen in
-                really_read (Unix32.force_fd fd) upload_buffer 0 rlen;
+                Unix2.really_read (Unix32.force_fd fd) upload_buffer 0 rlen;
                 TcpBufferedSocket.write sock upload_buffer 0 rlen
           | _ -> assert false
       in
@@ -261,7 +255,28 @@ let client_reader c t sock =
       Printf.printf "###UNUSED CLIENT MESSAGE###########"; print_newline ();
       DcProtocol.print t
 
-      
+     
+let save_file_as file filename =
+
+(* finally move file *)
+  let incoming_dir =
+    if !!commit_in_subdir <> "" then
+      Filename.concat !!incoming_directory !!commit_in_subdir
+    else !!incoming_directory
+  in
+  (try Unix2.safe_mkdir incoming_dir with _ -> ());
+  let new_name = 
+    Filename.concat incoming_dir file.file_name
+  in
+  try
+    Printf.printf "*******  RENAME %s to %s *******" file.file_temp new_name; print_newline ();
+    Unix2.rename file.file_temp  new_name;
+    Printf.printf "*******  RENAME %s to %s DONE *******" file.file_temp new_name; print_newline ();
+    file.file_temp <- new_name
+  with e ->
+      Printf.printf "Exception %s in rename" (Printexc.to_string e);
+      print_newline () 
+       
 let file_complete file = 
 (*
   Printf.printf "FILE %s DOWNLOADED" f.file_name;
@@ -273,20 +288,8 @@ print_newline ();
   List.iter (fun c ->
       c.client_files <- List.remove_assoc file c.client_files
   ) file.file_clients;
-  
-(* finally move file *)
-  let incoming_dir =
-    if !!commit_in_subdir <> "" then
-      Filename.concat !!DO.incoming_directory !!commit_in_subdir
-    else !!DO.incoming_directory
-  in
-  (try Unix2.safe_mkdir incoming_dir with _ -> ());
-  let new_name = 
-    Filename.concat incoming_dir file.file_name
-  in
-(*  Printf.printf "RENAME to %s" new_name; print_newline ();*)
-  Unix2.rename file.file_temp  new_name;
-  file.file_temp <- new_name
+
+  save_file_as file file.file_name
   
 let client_downloaded c sock nread = 
   Printf.printf "."; flush stdout; 
