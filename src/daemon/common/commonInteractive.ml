@@ -43,16 +43,19 @@ open CommonComplexOptions
 (*************  ADD/REMOVE FUNCTIONS ************)
 
 let canonize_basename name =
-  let name = String.copy name in
+  let buf = Buffer.create 100 in
   for i = 0 to String.length name - 1 do
     match name.[i] with
-    | '/' | '\\' -> name.[i] <- '_'
+    | '/' | '\\' -> Buffer.add_char buf '_'
     | c -> 
 (* let remove all chars which are not in the basic ASCII set *)
         let nc = int_of_char c in
-        if nc > 127 || nc < 32 then name.[i] <- '?'
+        try
+          Buffer.add_string buf (List.assoc nc !!filename_conversions)
+        with _ ->
+            Buffer.add_char buf (if nc > 127 || nc < 32 then '?' else c)
   done;
-  name
+  Buffer.contents buf
   
 let file_commited_name file =   
   let network = file_network file in

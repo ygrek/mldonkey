@@ -1,6 +1,14 @@
 ChangeLog	
 =========
 
+2004/08/09: Fabrice (version 2.5.26 = 2.6pre8, tag release-2-5-26)
+  - Bug fixes:
+      * GuiDecoding: bug causing deconnection for protocol 28
+      * New Fasttrack files from giFT-Fasttrack
+      * New option filename_conversions in downloads.ini to translate chars
+          in names before saving files.
+      * DonkeyClient: fixed QueueRankReq handling
+
 2004/08/09: Fabrice (version 2.5.25 = 2.6pre7, tag release-2-5-25)
   - Bug fixes (to be tested):
       * CommonSwarming: removed downloaded counter, use the file's one.

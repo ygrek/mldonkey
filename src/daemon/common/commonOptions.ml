@@ -981,8 +981,20 @@ let password = define_option current_section ["password"]
     EXPERT OPTIONS
 
 *********************)
-  
-        
+
+let filename_conversions = define_expert_option current_section
+    ["filename_conversions"] 
+    "The conversions to apply on characters depending on their ASCII code"
+    (list_option (tuple2_option (int_option, string_option)))
+  [   
+    (228, "ae");
+    (246, "oe");
+    (252, "ue");
+    (223, "ss");
+    (196, "Ae");
+    (214, "Oe");
+    (220, "Ue"); 
+  ]        
 let client_timeout = define_expert_option current_section ["client_timeout"] 
   "Timeout on client connections when not queued" float_option 40.
 

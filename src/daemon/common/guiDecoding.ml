@@ -502,7 +502,7 @@ let get_server proto s pos =
   let tags, pos = get_list get_tag s (pos+6) in
   let nusers, pos = get_int64_28 proto s pos in
   let nfiles, pos = get_int64_28 proto s pos in
-  let state, pos = get_host_state proto s (pos+8) in
+  let state, pos = get_host_state proto s pos in
   let name, pos = get_string s pos in
   let description, pos = get_string s pos in
   {

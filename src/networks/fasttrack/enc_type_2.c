@@ -1,4 +1,5 @@
 /*
+ * $Id$
  *
  * Copyright (C) 2003 giFT-FastTrack project
  * http://developer.berlios.de/projects/gift-fasttrack
@@ -15,11 +16,7 @@
  */
 
 /*
- * This file was relayed to me and is originally from Raimar Falke.
- * I cleaned it up a bit to save bandwidth.
  * Used for encryption version 0x02
- * Then it was cleaned up a whole lot more...
- * And then Thingol cleaned it up even more, many thanks!
  */
 
 typedef unsigned char u8;

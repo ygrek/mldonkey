@@ -933,8 +933,12 @@ let client_to_client for_files c t sock =
       set_client_state c (Connected rank);
       if rank > !!good_client_rank then
         List.iter (fun (file, _, _) ->
-            DonkeySources.set_request_result c.client_source 
-              file.file_sources File_found;  
+            let s = c.client_source  in
+            let m = file.file_sources in
+            match DonkeySources.find_request_result s m with
+              File_chunk -> 
+                DonkeySources.set_request_result s m  File_found;  
+            | _ -> ()
         ) c.client_file_queue
   
   | M.EmuleClientInfoReq t ->      
