@@ -154,7 +154,7 @@ let help_text = "
                       MLDonkey
                       ========
 
-Release: 1.09
+Release: 1.08
 Authors: [b8]_bavard (Communication engine) and [b8]_FeeCarabine (GUI)
 
  MLDonkey is a door to the 'donkey' network, a decentralized network used to
