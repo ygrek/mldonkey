@@ -337,11 +337,19 @@ USE_TAGS = \
 MLDONKEY_ZOG := $(filter %.zog, $(MLDONKEY_SRCS))
 MLDONKEY_MLL := $(filter %.mll, $(MLDONKEY_SRCS))
 MLDONKEY_MLY := $(filter %.mly, $(MLDONKEY_SRCS))
-MLDONKEY_ML := $(filter %.ml %.mll %.zog %.mly %.lam, $(MLDONKEY_SRCS))
+
+ifeq  ("$(COMPILE_LAM)" , "yes")
+MLDONKEY_BYTE_ML := $(filter %.ml %.mll %.zog %.mly, $(MLDONKEY_SRCS))
+MLDONKEY_OPT_ML := $(filter %.ml %.mll %.zog %.mly %.lam, $(MLDONKEY_SRCS))
+else
+MLDONKEY_BYTE_ML := $(filter %.ml %.mll %.zog %.mly, $(MLDONKEY_SRCS))
+MLDONKEY_OPT_ML := $(filter %.ml %.mll %.zog %.mly, $(MLDONKEY_SRCS))
+endif
+
 MLDONKEY_C := $(filter %.c, $(MLDONKEY_SRCS))
 
-MLDONKEY_CMOS=$(foreach file, $(MLDONKEY_ML),   $(basename $(file)).cmo)
-MLDONKEY_CMXS=$(foreach file, $(MLDONKEY_ML),   $(basename $(file)).cmx)
+MLDONKEY_CMOS=$(foreach file, $(MLDONKEY_BYTE_ML),   $(basename $(file)).cmo)
+MLDONKEY_CMXS=$(foreach file, $(MLDONKEY_OPT_ML),   $(basename $(file)).cmx)
 MLDONKEY_OBJS=$(foreach file, $(MLDONKEY_C),   $(basename $(file)).o)
 
 TMPSOURCES += $(MLDONKEY_MLL:.mll=.ml) $(MLDONKEY_MLY:.mly=.ml) $(MLDONKEY_MLY:.mly=.mli) $(MLDONKEY_ZOG:.zog=.ml)
