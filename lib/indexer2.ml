@@ -161,10 +161,10 @@ module Make(Doc : sig
     let rec filter_node node bool =
 (*      lprintf "filter node"; lprint_newline (); *)
       for i = 0 to node.next_doc - 1 do
-        lprintf "filter doc %s" (string_of_bool bool); lprint_newline (); 
+(*        lprintf "filter doc %s\n" (string_of_bool bool); *)
         Doc.filter node.docs.(i) bool;
-        if Doc.filtered node.docs.(i) then
-          (lprintf "doc is filtered"; lprint_newline ()); 
+(*        if Doc.filtered node.docs.(i) then
+          (lprintf "doc is filtered\n");  *)
       done
 
     let rec filter_nodes node bool =

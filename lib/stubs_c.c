@@ -486,38 +486,6 @@ value md4_unsafe64_fd (value digest_v, value fd_v, value pos_v, value len_v)
   return Val_unit;
 }
 
-void md4_unsafe64_fd_direct (OS_FD fd, long pos, long len, 
-  unsigned char *digest)
-{
-  MD4_CTX context;
-  int nread;
-
-  MD4Init (&context);
-  os_lseek(fd, pos, SEEK_SET);
-
-  while (len!=0){
-    int max_nread = HASH_BUFFER_LEN > len ? len : HASH_BUFFER_LEN;
-
-    nread = os_read (fd, hash_buffer, max_nread);
-
-    if(nread < 0) {
-      unix_error(errno, "md4_safe_fd: Read", Nothing);
-    }
-
-    if(nread == 0){
-      MD4Final (digest, &context);
-
-      return;
-    }
-
-    MD4Update (&context, hash_buffer, nread);
-    len -= nread;
-  }
-  MD4Final (digest, &context);
-
-  return;
-}
-
 /*******************************************************************
 
 
@@ -562,36 +530,6 @@ value md5_unsafe64_fd (value digest_v, value fd_v, value pos_v, value len_v)
   return Val_unit;
 }
 
-
-void md5_unsafe64_fd_direct (OS_FD fd, long pos, long len, 
-  unsigned char *digest)
-{
-  md5_state_t context;
-  int nread;
-
-  md5_init (&context);
-  os_lseek(fd, pos, SEEK_SET);
-
-  while (len!=0){
-    int max_nread = HASH_BUFFER_LEN > len ? len : HASH_BUFFER_LEN;
-
-    nread = os_read (fd, hash_buffer, max_nread);
-
-    if(nread < 0) {
-      unix_error(errno, "md5_safe_fd: Read", Nothing);
-    }
-
-    if(nread == 0){
-      md5_finish (&context, digest);
-
-      return;
-    }
-
-    md5_append (&context, hash_buffer, nread);
-    len -= nread;
-  }
-  md5_finish (&context, digest);
-}
 
 
 /*******************************************************************
@@ -639,34 +577,65 @@ value sha1_unsafe64_fd (value digest_v, value fd_v, value pos_v, value len_v)
 }
 
 
-void sha1_unsafe64_fd_direct (OS_FD fd, long pos, long len, 
-  unsigned char *digest)
+/*******************************************************************
+
+
+                     tiger
+
+
+*******************************************************************/
+#include "tiger.h"
+
+
+static char tiger_buffer[BLOCK_SIZE+1];
+
+void tiger_tree_fd(OS_FD fd, int len, int pos, int block_size, char *digest)
 {
-  SHA1_CTX context;
+  if(block_size == BLOCK_SIZE){
+    int length = (len - pos > BLOCK_SIZE) ? BLOCK_SIZE : len - pos;
+    char *s = tiger_buffer+1;
+    int toread = length;
+    char *curs = s;
+      while (toread!=0){
+      int max_nread = toread;
+/* HASH_BUFFER_LEN > toread ? toread : HASH_BUFFER_LEN; */
+
+      int nread = os_read (fd, curs, max_nread);
+
+        if(nread <= 0) {
+        unix_error(errno, "tiger_safe_fd: Read", Nothing);
+      }
+      curs += nread;
+      toread -= nread;
+    }
+
+    tiger_hash(0, s, length, digest);
+  } else {    
+    if(pos+block_size/2 >=len){
+      tiger_tree_fd(fd, len, pos, block_size/2, digest);
+    } else {
+      char digests_prefixed[1+DIGEST_LEN * 2];
+      char *digests = digests_prefixed+1;
+      tiger_tree_fd(fd, len, pos, block_size/2, digests);
+      tiger_tree_fd(fd, len, pos+block_size/2, block_size/2, digests+DIGEST_LEN);
+      tiger_hash(1,digests, 2*DIGEST_LEN, digest);
+    }
+  }
+}
+
+value tiger_unsafe64_fd (value digest_v, value fd_v, value pos_v, value len_v)
+{
+  OS_FD fd = Fd_val(fd_v);
+  long pos = Int64_val(pos_v);
+  long len = Int64_val(len_v);
+  unsigned char *digest = String_val(digest_v);
   int nread;
 
-  sha1_init (&context);
   os_lseek(fd, pos, SEEK_SET);
 
-  while (len!=0){
-    int max_nread = HASH_BUFFER_LEN > len ? len : HASH_BUFFER_LEN;
+  tiger_tree_fd(fd, len, 0, tiger_block_size(len), digest);
 
-    nread = os_read (fd, hash_buffer, max_nread);
-
-    if(nread < 0) {
-      unix_error(errno, "sha1_safe_fd: Read", Nothing);
-    }
-
-    if(nread == 0){
-      sha1_finish (&context, digest);
-
-      return;
-    }
-
-    sha1_append (&context, hash_buffer, nread);
-    len -= nread;
-  }
-  sha1_finish (&context, digest);
+  return Val_unit;
 }
 
 /*******************************************************************

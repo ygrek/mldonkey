@@ -145,7 +145,7 @@ let enable () =
             end else begin
               try
                 let file_disk_name = file_disk_name file in
-                if Sys.file_exists file_disk_name &&
+                if Unix32.file_exists file_disk_name &&
                   Unix32.getsize64 file_disk_name <> Int64.zero then begin
                     lprintf "FILE DOWNLOADED"; lprint_newline ();
                     DonkeyShare.remember_shared_info file file_disk_name;
@@ -178,7 +178,7 @@ let enable () =
   *)    
     let list = ref [] in
     List.iter (fun file ->
-        if Sys.file_exists file.sh_name then begin
+        if Unix32.file_exists file.sh_name then begin
             Hashtbl.add shared_files_info file.sh_name file;
             list := file :: !list
           end

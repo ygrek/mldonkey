@@ -85,6 +85,7 @@ type file_column =
 | Col_file_age
 | Col_file_last_seen
 | Col_file_eta
+| Col_file_priority
   
 let file_column_strings = [
     Col_file_name, M.c_name ;
@@ -100,6 +101,7 @@ let file_column_strings = [
     Col_file_age, M.c_age;
     Col_file_last_seen, M.c_last_seen;
     Col_file_eta, M.c_eta;
+    Col_file_priority, M.c_priority;
 ] 
 
 

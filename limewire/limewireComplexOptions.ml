@@ -100,14 +100,26 @@ let value_to_file is_done assocs =
     with _ -> failwith "Bad file size"
   in
   
-  let file = new_file file_id file_name file_size in
+  let file_uids = ref [] in
+  let uids_option = try
+      value_to_list value_to_string (List.assoc "file_uids" assocs) 
+    with _ -> failwith "Bad file size"
+  in
+  List.iter (fun v ->
+      file_uids := extract_uids v @ !file_uids) uids_option;
+  
+  
+  let file = new_file file_id file_name file_size !file_uids in
   
   (try
       ignore (get_value "file_sources" (value_to_list (fun v ->
               match v with
                 SmallList [c; index] | List [c;index] ->
                   let s = ClientOption.value_to_client c in
-                  add_download file s (value_to_int index)
+                  add_download file s (
+                    try                       
+                      FileByIndex (value_to_int index)
+                    with _ -> FileByUrl (value_to_string index))
               | _ -> failwith "Bad source"
           )))
     with e -> 
@@ -125,7 +137,9 @@ let file_to_value file =
     "file_sources", 
     list_to_value "LimeWire Sources" (fun c ->
         SmallList [ClientOption.client_to_value c;
-          int_to_value (List.assq file c.client_downloads)]
+          match (List.assq file c.client_downloads) with
+            FileByIndex i -> int_to_value i
+          | FileByUrl s -> string_to_value s]
     ) file.file_clients
     ;
   ]

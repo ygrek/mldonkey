@@ -105,7 +105,7 @@ let clean_client_zones c =
   match c.client_block with None -> ()
   | Some b ->
       c.client_block <- None;
-      lprintf "client %d: clear block %d\n" (client_num c) b.block_pos;
+(*      lprintf "client %d: clear block %d\n" (client_num c) b.block_pos; *)
       b.block_nclients <- b.block_nclients - 1;
       List.iter (fun z ->
           z.zone_nclients <- z.zone_nclients - 1) c.client_zones;
@@ -353,7 +353,7 @@ and find_zone1 c b zones =
             valid_block_detected b;
             file.file_chunks.(b.block_pos) <- state;
             file.file_absent_chunks <- List.rev (find_absents file);
-            lprintf "client %d: block %d finished\n" (client_num c) b.block_pos;
+(*            lprintf "client %d: block %d finished\n" (client_num c) b.block_pos; *)
             c.client_block <- None;
           end else begin
             let message = Printf.sprintf "CORRUPTION DETECTED file %s chunk %d\n" (file_best_name file) b.block_pos in
@@ -450,8 +450,8 @@ and check_file_block c file i max_clients force =
           zero_block file i;
           b.block_legacy <- false;
           c.client_block <- Some b;
-          lprintf "client %d: downloading %d absent\n" 
-            (client_num c) b.block_pos;
+(*          lprintf "client %d: downloading %d absent\n" 
+            (client_num c) b.block_pos; *)
 
           file.file_chunks.(i) <- PartialVerified b;
           find_client_zone c;
@@ -463,8 +463,8 @@ and check_file_block c file i max_clients force =
               allowed_by_reliability b c >= force) then begin
               b.block_nclients <- b.block_nclients + 1;            
               c.client_block <- Some b;
-              lprintf "client %d: downloading partial block %d \n" 
-                (client_num c) b.block_pos;
+(*              lprintf "client %d: downloading partial block %d \n" 
+                (client_num c) b.block_pos; *)
 
               if !verbose then begin
                   lprintf "\n%d: NEW CLIENT FOR BLOCK [%Ld - %Ld]\n"
@@ -513,7 +513,7 @@ and restart_download c =
         [] -> ()
       | (file, (chunks)) :: _ ->
           
-          lprintf "client %d: restart download\n"  (client_num c) ;
+(*          lprintf "client %d: restart download\n"  (client_num c) ; *)
           
           c.client_block <- None;
           c.client_chunks <- chunks;
@@ -829,7 +829,7 @@ let set_file_size file sz =
       
       if file.file_chunks = [||] then 
         file.file_chunks <- Array.create file.file_nchunks (
-          if not (Sys.file_exists (file_disk_name file)) then begin
+          if not (Unix32.file_exists (file_disk_name file)) then begin
 (*            lprintf "Setting Absent Verified chunks\n"; *)
               
               AbsentVerified

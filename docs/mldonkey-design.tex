@@ -1,0 +1,115 @@
+\documentclass{article}
+
+\author{b8\_bavard}
+\title{Some MLdonkey design choices}
+
+\begin{document}
+
+\section{No credit-system}
+
+We have decided not to add a credit-system to MLdonkey for some reasons:
+
+ \begin{description}
+
+ \item[Unclear interests:] the interests of a credit system are unclear. The
+credit-system is supposed to incitate users to upload. However, most users
+already upload a lot. No-uploads patches for binary clients exist, and it is
+easy to modify open-sources clients to prevent upload. However, very few
+clients use these kinds of tricks, and anyway, there are enough good
+uploaders in the network to cope with a few no-uploaders.
+
+ \item[Cheating:] whereas the credit-system is supposed to prevent
+no-uploaders, it introduces some problems that did not exist before:
+formerly, cheaters could only do queue-jumping (now, they get banned by emule
+and mldonkey clients) and no-upload. With the credit system, it is now
+possible to cheat in other ways: you can try to get credits by uploading
+random data to interesting peers (the data is checked for corruption only
+after a long while), you can fake other clients hashes (either to make them
+lose their queue position, or to get their credits), etc...
+
+ \item[Popular files trend:] if you want credits to be able to download a
+lot, you have to share popular files. This trend causes a loss of value:
+interesting files, but not popular, are disappearing from the network,
+because they are no interests to upload them.
+
+ \item[Windows community:] most clients are using windows, and are downloading
+windows apps. Thus, if you don't share windows apps, you will lose a lot of 
+credits compared to these users. In particular, unix users don't benefit from 
+these credits, which are only moving inside the emule community.
+
+\end{description}
+
+\section{No long upload-queue}
+
+ The long upload queue sorts the clients requesting to enter the upload
+queue in a fifo order. This means that the oldest clients are always in the
+top of the queue (ie they have a lot of upload slots in other clients, even
+if they cannot use them at full speed), whereas new clients (for example
+newbies) have to wait for days to see their downloads start. Clearly, 
+to get as many users as possible, it is important for newbies that they 
+immediatly download something from the network, even if it is not a lot.
+Long upload-queues are good for long term users, those who are the most used
+to waiting long for files...
+
+\section{Banning system}
+
+Until now, a client is banned by MLdonkey in two cases:
+
+\begin{description}
+
+ \item[Queue-jumping:] if a client requests a file more often than other
+clients, it has a better probability to enter the upload queue (when the
+upload queue is short, which is the case in edonkey and mldonkey). To prevent
+such a behavior, mldonkey bans such users, when 3 queue-jumping attempts are
+detected in one hour. A queue-jumping attempt is the fact of asking a given file less than 9 minutes after the previous query for this file.
+
+ \itemp[Long upload-queue:] mldonkey does not use long-upload queues,
+meaning that all clients are equal when they request to enter its upload
+queue. On the contrary, long upload-queue clients are unfair: they benefit
+from the probabilistic queue of mldonkey, while preventing it from uploading.
+As a consequence, these clients are banned if they announce that your rank is
+greater than 1000, so that they won't upload until you get a better position
+in their unfair queue.
+
+\end{description}
+
+\section{Multiple servers connections}
+
+MLdonkey allows several connections to servers, which are classified in different connections:
+\begin{description}
+
+ \item[Master servers:] master servers are servers to which mldonkey sends
+its list of shared files. MLdonkey never connects to a master server for less
+than two minutes. Being connected to several servers allows to propagate
+shared files faster, and to find sources for rare files more easily.
+
+ \item[Walker servers:] UDP queries are bad for servers, since it is very
+hard to limit them. A client downloading 60 files will send 60 UDP packets to
+each alive server in its list. Some servers have even decided not to reply to
+UDP packets to prevent this. MLdonkey uses a walking mechanism instead: it
+connects every 6 hours to all the servers in its server list, and then ask
+for the 20 first files to download. This looks better since (1) the server
+controls how many users can be connected, so the connection will only be
+accepted if the server has free slots (2) the file queries will only be sent
+if the server has accepted the connection. Note that the connection is
+light-weigth: the list of shared files is not sent, contrarily to what
+happens with the bot, or with clients connecting and disconnecting from
+servers.
+
+\end{description}
+
+\section{The 'nu' command}
+
+\section{MLdonkey self upload slot bypassing}
+
+\section{Emule upload-slots limitation}
+
+ MLdonkey limits the number of slots used by emule clients to 1/3 of the
+slots, because the emule client is a bad uploader (it downloads much more
+than it uploads), compared to other clients. Consequently, it is always
+better to upload to an edonkey or mldonkey client, since the data uploaded
+will be better shared afterwards. This limitation however does not limit the
+bandwidth (they can use 100% of the maximal bandwidth with only 33% of the
+slots) that can be used by emule clients.
+
+\end{document}

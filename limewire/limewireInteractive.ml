@@ -41,7 +41,8 @@ let _ =
   network.op_network_search <- (fun search buf ->
       let query = search.search_query in
       let keywords = CommonInteractive.keywords_of_query query in
-      let p = LimewireServers.send_query 0 keywords "" in
+      let words = String2.unsplit keywords ' ' in
+      let p = LimewireServers.send_query !connected_servers words "urn:" in
       
       let s = {
           search_search = search;
@@ -72,10 +73,8 @@ let _ =
       ) file.file_clients
   );
   file_ops.op_file_recover <- (fun file ->
+      LimewireServers.gen_query file !connected_servers;          
       List.iter (fun c ->
-          let keywords = LimewireServers.get_name_keywords file.file_name 
-          in
-          ignore (LimewireServers.send_query 0 keywords "");          
           LimewireServers.get_file_from_source c file
       ) file.file_clients
   )
@@ -85,9 +84,7 @@ module P = GuiTypes
   
 let _ =
   file_ops.op_file_cancel <- (fun file ->
-      Hashtbl.remove files_by_key 
-      (file.file_name, file_size file);
-      current_files := List2.removeq file !current_files;
+      remove_file file;
       file_cancel (as_file file.file_file);
   );
   file_ops.op_file_info <- (fun file ->
@@ -178,9 +175,30 @@ let _ =
           let c = new_client md4 (Indirect_location ("", md4)) in
           friend_add (as_client c.client_client);
           true
-      | _ -> false
+          
+      | _ -> 
+          let url = Url.of_string url in
+          if url.Url.file = "magnet:" then begin
+              let uids = ref [] in
+              let name = ref "" in
+              List.iter (fun (value, arg) ->
+                  if String2.starts_with value "xt" then
+                    uids := (extract_uids arg) @ !uids
+                  else 
+                  if String2.starts_with value "dn" then
+                    name := Url.decode value
+              ) url.Url.args;
+              if !uids <> [] then begin
+(* Start a download for this file *)
+                  let r = new_result !name Int64.zero !uids in
+                  LimewireServers.download_file r;
+                  true
+                end
+              else false
+            end else
+            false
   )
-
+    
 let browse_client c = 
   lprintf "Limewire: browse client not implemented\n";
   ()

@@ -189,12 +189,14 @@ let redirector_connected = ref false
 (* let redirectors_ips = ref ( [] : Ip.t list) *)
 let redirectors_to_try = ref ( [] : string list)
   
+let files_by_uid = Hashtbl.create 13
 let files_by_key = Hashtbl.create 13
 
 let (users_by_uid : (Md4.t, user) Hashtbl.t) = Hashtbl.create 127
 let (clients_by_uid : (Md4.t, client) Hashtbl.t) = Hashtbl.create 127
 let results_by_key = Hashtbl.create 127
-
+let results_by_uid = Hashtbl.create 127
+  
 let new_server ip port =
   let key = (ip,port) in
   try
@@ -213,6 +215,8 @@ let new_server ip port =
           server_ping_last = Md4.random ();
           server_nfiles_last = 0;
           server_nkb_last = 0;
+          
+          server_gnutella2 = false;
         } and
         server_impl = {
           dummy_server_impl with
@@ -223,72 +227,152 @@ let new_server ip port =
       Hashtbl.add servers_by_key key s;
       s
 
-let new_result file_name file_size =
-  let key = (file_name, file_size) in
-  try
-    Hashtbl.find results_by_key key
-  with _ ->
-      let rec result = {
-          result_result = result_impl;
-          result_name = file_name;
-          result_size = file_size;
-          result_sources = [];
-        } and
-        result_impl = {
-          dummy_result_impl with
-          impl_result_val = result;
-          impl_result_ops = result_ops;
-        } in
-      new_result result_impl;
-      Hashtbl.add results_by_key key result;
-      result
-      
-  
-  
-let new_file file_id file_name file_size =
-  let key = (file_name, file_size) in
-  try
-    Hashtbl.find files_by_key key  
-  with _ ->
-      let file_temp = Filename.concat !!DO.temp_directory 
-          (Printf.sprintf "LW-%s" (Md4.to_string file_id)) in
-      let current_size = try
-          Unix32.getsize64 file_temp
-        with e ->
-            lprintf "Exception %s in current_size\n" (Printexc2.to_string e); 
-            Int64.zero
+let extract_uids arg = 
+  match String2.split (String.lowercase arg) ':' with
+  | "urn" :: "sha1" :: sha1_s :: _ ->
+      let sha1 = Sha1.of_string sha1_s in
+      let sha1_s = Sha1.to_string sha1 in
+      [Sha1 (Printf.sprintf "urn:sha1:%s" sha1_s, sha1) ]
+  | "urn" :: "bitprint" :: bitprint :: _ ->
+      let sha1_s = String.sub bitprint 0 32 in
+      let sha1 = Sha1.of_string sha1_s in
+      let sha1_s = Sha1.to_string sha1 in
+      let tiger_s = String.sub bitprint 33 39 in
+      let tiger = Tiger.of_string tiger_s in
+      let tiger_s = Tiger.to_string tiger in
+      [ Sha1 (Printf.sprintf "urn:sha1:%s" sha1_s, sha1);
+        Bitprint (
+          Printf.sprintf "urn:bitprint:%s.%s" sha1_s tiger_s,
+          sha1, tiger)]
+| _ -> []
+
+let add_source r s index =
+  let key = (s, index) in
+  if not (List.mem key r.result_sources) then begin
+      r.result_sources <- key :: r.result_sources
+    end
+
+let new_result file_name file_size uids =
+  match uids with
+    [] -> (
+        let key = (file_name, file_size) in
+        try
+          Hashtbl.find results_by_key key
+        with _ ->
+            let rec result = {
+                result_result = result_impl;
+                result_name = file_name;
+                result_size = file_size;
+                result_sources = [];
+                result_uids = [];
+              } and
+              result_impl = {
+                dummy_result_impl with
+                impl_result_val = result;
+                impl_result_ops = result_ops;
+              } in
+            new_result result_impl;
+            Hashtbl.add results_by_key key result;
+            result)
+  | uid :: other_uids ->
+      let r = 
+        try
+          Hashtbl.find results_by_uid uid
+        with _ -> 
+            let rec result = {
+                result_result = result_impl;
+                result_name = file_name;
+                result_size = file_size;
+                result_sources = [];
+                result_uids = [uid];
+              } and
+              result_impl = {
+                dummy_result_impl with
+                impl_result_val = result;
+                impl_result_ops = result_ops;
+              } in
+            new_result result_impl;
+            Hashtbl.add results_by_uid uid result;
+            result
       in
-      
-      let rec file = {
-          file_file = file_impl;
-          file_id = file_id;
-          file_name = file_name;
-          file_clients = [];
-        } and file_impl =  {
-          dummy_file_impl with
-          impl_file_fd = Unix32.create file_temp [Unix.O_RDWR; Unix.O_CREAT] 0o666;
-          impl_file_size = file_size;
-          impl_file_downloaded = current_size;
-          impl_file_val = file;
-          impl_file_ops = file_ops;
-          impl_file_age = last_time ();          
-          impl_file_best_name = file_name;
-          }
+      let rec iter_uid uid =
+        if not (List.mem uid r.result_uids) then begin
+            r.result_uids <- uid :: r.result_uids;
+            (try
+                let rr = Hashtbl.find results_by_uid uid in
+                if r != rr then 
+                  let result_uids = rr.result_uids in
+                  rr.result_uids <- [];
+                  List.iter (fun uid -> 
+                      Hashtbl.remove results_by_uid uid) result_uids;
+                  List.iter (fun uid -> iter_uid uid) result_uids;
+                  List.iter (fun (s, index) ->
+                      add_source r s index
+                  ) rr.result_sources;
+                  rr.result_sources <- [];
+              with _ -> ());
+            
+            Hashtbl.add results_by_uid uid r;
+          end
       in
+      List.iter iter_uid other_uids;
+      r
       
-      let state = if current_size = file_size then FileDownloaded else
-          FileDownloading in
-      
-      if state = FileDownloading then begin
-          lprintf "ADDING FILE %s\n" file_name; 
-          current_files := file :: !current_files
-        end;
-      file_add file_impl state;
+let new_file file_id file_name file_size = 
+  let file_temp = Filename.concat !!DO.temp_directory 
+      (Printf.sprintf "LW-%s" (Md4.to_string file_id)) in
+  let t = Unix32.create file_temp [Unix.O_RDWR; Unix.O_CREAT] 0o666 in
+  let rec file = {
+      file_file = file_impl;
+      file_id = file_id;
+      file_name = file_name;
+      file_clients = [];
+      file_uids = [];
+    } and file_impl =  {
+      dummy_file_impl with
+      impl_file_fd = t;
+      impl_file_size = file_size;
+      impl_file_downloaded = Int64.zero;
+      impl_file_val = file;
+      impl_file_ops = file_ops;
+      impl_file_age = last_time ();          
+      impl_file_best_name = file_name;
+    }
+  in
+  
+  current_files := file :: !current_files;
+  file_add file_impl FileDownloading;
 (*      lprintf "ADD FILE TO DOWNLOAD LIST\n"; *)
-      Hashtbl.add files_by_key key file;
+  file
+
+exception FileFound of file
+  
+let new_file file_id file_name file_size file_uids =
+  if file_uids = [] then 
+    try Hashtbl.find files_by_key (file_name, file_size) with
+      _ -> 
+        let file = new_file file_id file_name file_size in
+        Hashtbl.add files_by_key (file_name, file_size) file;
+        file
+  else
+  try
+    List.iter (fun uid ->
+        try  raise (FileFound (Hashtbl.find files_by_uid uid))
+        with Not_found -> ()
+    ) file_uids;
+    let file = new_file file_id file_name file_size in
+    file.file_uids <- file_uids;
+    List.iter (fun uid -> Hashtbl.add files_by_uid uid file) file_uids;
+    file    
+  with FileFound file ->
+      List.iter (fun uid ->
+          if not (List.mem uid file.file_uids) then begin
+              file.file_uids <- uid :: file.file_uids;
+              Hashtbl.add files_by_uid uid file;
+            end
+      ) file_uids;
       file
-
-
+              
 let new_user uid kind =
   try
     let s = Hashtbl.find users_by_uid uid in
@@ -339,12 +423,6 @@ client_error = false;
       new_client impl;
       Hashtbl.add clients_by_uid uid c;
       c
-
-let add_source r s index =
-  let key = (s, index) in
-  if not (List.mem key r.result_sources) then begin
-      r.result_sources <- key :: r.result_sources
-    end
     
 let add_download file c index =
 (*  let r = new_result file.file_name (file_size file) in *)
@@ -387,3 +465,13 @@ let set_client_state client state =
   
 let set_client_disconnected client =
   CommonClient.set_client_disconnected (as_client client.client_client) 
+  
+  
+let remove_file file = 
+  if file.file_uids = [] then
+    Hashtbl.remove files_by_key (file.file_name, file.file_file.impl_file_size)
+  else
+    List.iter (fun uid ->
+        Hashtbl.remove files_by_uid uid
+    ) file.file_uids;
+  current_files := List2.removeq file !current_files

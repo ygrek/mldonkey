@@ -614,7 +614,12 @@ let http_handler o t r =
     end
   else
     begin
-      let o = { o with conn_user = find_ui_user user } in
+      let user = find_ui_user user  in
+      let o = match user.ui_http_conn with
+        Some oo -> oo.conn_buf <- o.conn_buf; oo
+      | None -> let oo = { o with conn_user = user } in
+           user.ui_http_conn <- Some oo; oo
+      in
       try
         match r.get_url.Url.file with
         | "/commands.html" ->
@@ -763,6 +768,7 @@ let http_handler o t r =
                       | "Size" -> o.conn_sortvd <- BySize
                       | "Rate" -> o.conn_sortvd <- ByRate
                       | "ETA" -> o.conn_sortvd <- ByETA
+                      | "Priority" -> o.conn_sortvd <- ByPriority
                       | "Age" -> o.conn_sortvd <- ByAge
                       | "Last" -> o.conn_sortvd <- ByLast
                       | _ -> ()
@@ -788,6 +794,7 @@ let http_handler o t r =
                       | "sortby", "rate" -> o.conn_sortvd <- ByRate
                       | "sortby", "done" -> o.conn_sortvd <- ByDone
                       | "sortby", "percent" -> o.conn_sortvd <- ByPercent
+                      | "sortby", "priority" -> o.conn_sortvd <- ByPriority
                       | _ -> ()
                   ) other_args;
                   let s = 
@@ -831,23 +838,17 @@ end
             Buffer.clear buf;
             html_page := false; 
             http_add_css_header buf;
-            Buffer.add_string buf !!(if !!html_mods then
-				(match !!html_mods_style with 
-				 1 -> CommonMessages.html_css_mods1
-			   | _ -> CommonMessages.html_css_mods0)
-               else
-                CommonMessages.html_css_old)
+            Buffer.add_string buf (if !!html_mods then
+			   !CommonMessages.html_css_mods
+               else !!CommonMessages.html_css_old)
 
         | "/dh.css" ->          
             Buffer.clear buf;
             html_page := false; 
             http_add_css_header buf;
-            Buffer.add_string buf !!(if !!html_mods then 
-                (match !!html_mods_style with 
-				1 -> CommonMessages.download_html_css_mods1
-			  | _ -> CommonMessages.download_html_css_mods0)
-               else
-                CommonMessages.download_html_css_old)
+            Buffer.add_string buf (if !!html_mods then 
+			   !CommonMessages.download_html_css_mods
+               else !!CommonMessages.download_html_css_old)
 
         | "/i.js" ->
             Buffer.clear buf;

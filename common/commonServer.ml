@@ -298,6 +298,19 @@ let server_banner s o =
   let info = server_info s in
   Printf.bprintf buf "%s" 
       info.G.server_banner
+
+let server_print_html_header buf =
+    html_mods_table_header buf "serversTable" "servers" [ 
+		( "1", "srh", "Server number", "#" ) ; 
+		( "0", "srh", "Button", "Button" ) ; 
+		( "0", "srh", "[Hi]gh or [Lo]w ID", "ID" ) ; 
+		( "0", "srh", "Network name", "Network" ) ; 
+		( "0", "srh", "Connection status", "Status" ) ; 
+		( "0", "srh br", "IP address", "IP address" ) ; 
+		( "1", "srh ar", "Number of connected users", "Users" ) ; 
+		( "1", "srh ar br", "Number of files indexed on server", "Files" ) ; 
+		( "0", "srh", "Server name", "Name" ) ; 
+		( "0", "srh", "Server details", "Details" ) ]  
   
 let server_print s o =
   let impl = as_server_impl s in
@@ -306,11 +319,8 @@ let server_print s o =
     let info = server_info s in
     let buf = o.conn_buf in
 	
-	if o.conn_output = HTML && !!html_mods then
-
+	if use_html_mods o then begin
 	let snum = (server_num s) in
-	
-	begin
 
     Printf.bprintf buf "
     \\<td class=\\\"srb\\\" %s \\>%d\\</td\\>
@@ -328,7 +338,7 @@ let server_print s o =
         (match impl.impl_server_state with
         Connected _ -> Printf.sprintf "title=\\\"Server Banner\\\" 
 						onMouseOver=\\\"mOvr(this);\\\"
-						onMouseOut=\\\"mOut(this,this.bgColor);\\\"
+						onMouseOut=\\\"mOut(this);\\\"
 						onClick=\\\"location.href='/submit?q=server_banner+%d'\\\"" snum
         | _ -> "")
 	  )
@@ -336,7 +346,7 @@ let server_print s o =
       (
         Printf.sprintf
         "\\<TD class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
-        onMouseOut=\\\"mOut(this,this.bgColor);\\\"
+        onMouseOut=\\\"mOut(this);\\\"
         onClick=\\\"parent.fstatus.location.href='/submit?q=%s+%d'\\\"\\>%s\\</TD\\>"
       (match impl.impl_server_state with
         NotConnected _ -> "c"

@@ -1,6 +1,27 @@
 ChangeLog	
 =========
 
+2003/04/01: Simon  (v 2.04rc1-12)
+  - Fixed per user Column Sorting in HTTP interface
+  - Fixed bug #3003 :)
+  - Fixed Filepath.path_to_string so that "" becomes [], and not [""] that
+      makes mldonkey shares its own directory.
+  - Implementation of Tiger trees correct for files < 1 MB
+  - Lots of changes in Unix32
+  - Applied patch #1340
+  - Limewire Plugin: probably lots of bugs, many changes
+     * Gnutella2 support started:
+        * Handshakes
+        * Protocol Encoding/Decoding not tested
+        * UDP socket
+     * Support for Magnets and HUGE
+     * Different results if different UIDs, requests for files by UID
+  - Applied pango's patches: 85_ip_from_highids, 86_priority_patch
+
+2003/03/26: Simon
+  - CommonHasher: implemented asynchronous hashing of files using sha1.
+  - Applied patch #1324
+
 2003/03/24: Simon (v 2.04rc1-11)
   - Fixed compilation problem of md4_c.c and md5_c.c
 

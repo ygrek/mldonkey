@@ -892,7 +892,7 @@ lprint_newline ();
       end;
   
   | M.AvailableSlotReq _ ->
-      set_lifetime sock one_day;
+      set_lifetime sock 3600.;
       set_rtimeout sock !!queued_timeout; 
 (* how long should we wait for a block ? *)
       begin
@@ -925,12 +925,13 @@ lprint_newline ();
                 List.iter (fun (file, chunks) ->
                     add_client_chunks file chunks) files;
                 c.client_file_queue <- files @ c.client_file_queue;
-                c.client_asked_for_slot <- true;
                 DonkeyOneFile.restart_download c
               
               
               with _ -> ()
       end;
+(* now, we can forget we have asked for a slot *)
+      c.client_asked_for_slot <- false;
       DonkeyOneFile.find_client_block c
   
   | M.JoinQueueReq _ ->
@@ -1119,6 +1120,7 @@ is checked for the file.
       end
   
   | M.BlocReq t ->
+      set_lifetime sock 3600.;
       let module Q = M.Bloc in
       let file = client_file c in
       

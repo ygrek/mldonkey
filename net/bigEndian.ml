@@ -32,6 +32,11 @@ let buf_int8 buf i =
 let buf_int16 buf i =
   Buffer.add_char buf (char_of_int ((i land 65535) lsr 8));
   Buffer.add_char buf (char_of_int (i land 255))
+    
+let buf_int24 buf i =
+  Buffer.add_char buf (char_of_int ((i lsr 16) land 255));
+  Buffer.add_char buf (char_of_int ((i lsr 8) land 255));
+  Buffer.add_char buf (char_of_int (i land 255))
   
 let buf_int32_8 buf i =
   Buffer.add_char buf (char_of_int (Int32.to_int (
@@ -51,7 +56,19 @@ let get_int16 s pos =
   check_string s (pos+1);  
   let c1 = int_of_char s.[pos+1] in
   let c2 = int_of_char s.[pos] in
-  c1 + c2 * 256
+  c1 + c2 lsl 8
+
+let str_int24 s pos i =
+  s.[pos+2] <- char_of_int (i land 255);
+  s.[pos+1] <- char_of_int ((i lsr 8) land 255);
+  s.[pos] <- char_of_int ((i lsr 16) land 255)
+
+let get_int24 s pos =
+  check_string s (pos+1);  
+  let c0 = int_of_char s.[pos+2] in
+  let c1 = int_of_char s.[pos+1] in
+  let c2 = int_of_char s.[pos] in
+  c0 + c1 lsl 8 + c2 lsl 16
 
   
 let buf_int buf i = 

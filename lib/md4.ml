@@ -60,11 +60,39 @@ module Base16 = struct
 
 module Base32 = struct
 
-    let char_of_int n =
+    let char_of_int5 n =
       char_of_int (if n < 26 then 65+n else
           50+(n-26))
+
+    let int5_of_char n =
+      match n with
+        'A' .. 'Z' -> int_of_char n - 65
+      | 'a' .. 'z' -> int_of_char n - 97
+      | _ -> (int_of_char n+26)-50
+    
+    let of_string hash_length r =
+      let len = String.length r in
+      assert (len =  (hash_length * 8 + 4)/5);
+      let s = String.make hash_length '\000' in
+      for i = 0 to len - 1 do
+        let pos = i * 5 in
+        let byte = pos / 8 in
+        let bit = pos mod 8 in
+        let c = int5_of_char r.[i] in
+        if bit < 3 then 
+          let x = c lsl (3-bit) in
+          s.[byte] <- char_of_int (int_of_char s.[byte] lor x);
+        else
+        let x = (c lsr (bit - 3)) land 0xff in
+        s.[byte] <- char_of_int (int_of_char s.[byte] lor x);
+        if byte+1 < hash_length then
+          let y = (c lsl (11 - bit)) land 0xff in
+          s.[byte+1] <- char_of_int (int_of_char s.[byte+1] lor y);
+      done;
+      s    
     
     let to_string hash_length s =
+      assert (String.length s = hash_length);
       let len = (hash_length * 8 + 4)/5 in
       let r = String.create len in
       for i = 0 to len - 1 do
@@ -74,21 +102,17 @@ module Base32 = struct
         if bit < 3 then
           let x = int_of_char s.[byte] in
           let c = (x lsr (3 - bit)) land 0x1f in
-          r.[i] <- char_of_int c
+          r.[i] <- char_of_int5 c
         else
         let x = int_of_char s.[byte] in
         let y = if byte + 1 = hash_length then 0 else 
             int_of_char s.[byte+1] in
         let x = (x lsl 8) + y in
         let c = (x lsr (11 - bit)) land 0x1f in
-        r.[i] <- char_of_int c
+        r.[i] <- char_of_int5 c
       done;
       r
       
-    let of_string hash_length s =
-      Printf2.lprintf "Base32.of_string not implemented yet\n";
-      "not implemented yet"
-    
   end
   
 module type Digest = sig
@@ -237,4 +261,50 @@ module Sha1 = Make(struct
     
       module Base = Base32
     end)
+  
+  
+(* NOT YET IMPLEMENTED *)
+module Tiger = Make(struct
+      let hash_length = 24
+      let hash_name = "Tiger"        
+      
+      external unsafe_string : string -> string -> int -> unit = "tiger_unsafe_string"
+        
+      let unsafe_file digest filename = 
+        Printf2.lprintf "Tiger.unsafe_file not implemented\n";
+        exit 2
+        
+(*
+      external unsafe_file : string -> string -> unit = "sha1_unsafe_file"
+*)
+      external digest_subfile : string -> Unix.file_descr -> int64 -> int64 -> unit =
+        "tiger_unsafe64_fd"
+    
+      module Base = Base32
+    end)
+  
+let _ =
+  let sha1 = "ABCDEFGHGHIJKLMNOPQRSTUVWXYZ2ABC" in
+  assert (Sha1.to_string (Sha1.of_string sha1) = sha1)
+
+(* Use urn:tree:tiger: also ... *)
+let _ =
+  let s1 = "" in
+  let s2 = "\000" in
+  let s3 = String.make 1024 'A' in
+  let s4 = String.make 1025 'A' in
+  
+  assert (Sha1.to_string (Sha1.string s1) = "3I42H3S6NNFQ2MSVX7XZKYAYSCX5QBYJ");
+  assert (Sha1.to_string (Sha1.string s2) = "LOUTZHNQZ74T6UVVEHLUEDSD63W2E6CP");
+  assert (Sha1.to_string (Sha1.string s3) = "ORWD6TJINRJR4BS6RL3W4CWAQ2EDDRVU");
+  assert (Sha1.to_string (Sha1.string s4) = "UUHHSQPHQXN5X6EMYK6CD7IJ7BHZTE77");
+ 
+  assert (Tiger.to_string (Tiger.string s1) =
+    "LWPNACQDBZRYXW3VHJVCJ64QBZNGHOHHHZWCLNQ");  
+  assert (Tiger.to_string (Tiger.string s2) =
+    "VK54ZIEEVTWNAUI5D5RDFIL37LX2IQNSTAXFKSA");
+  assert (Tiger.to_string (Tiger.string s3) =
+    "L66Q4YVNAFWVS23X2HJIRA5ZJ7WXR3F26RSASFA");
+  assert (Tiger.to_string (Tiger.string s4) =
+    "PZMRYHGY6LTBEH63ZWAHDORHSYTLO4LEFUIKHWY");
   

@@ -254,6 +254,10 @@ let new_file file_state file_name md4 file_size writable =
   try
     find_file md4 
   with _ ->
+      
+      let t = Unix32.create file_name (if writable then
+            [Unix.O_RDWR; Unix.O_CREAT] else [Unix.O_RDONLY]) 0o666
+      in
       let file_size =
         if file_size = Int64.zero then
           try
@@ -264,7 +268,7 @@ let new_file file_state file_name md4 file_size writable =
       in
       let nchunks = Int64.to_int (Int64.div 
           (Int64.sub file_size Int64.one) block_size) + 1 in
-      let file_exists = Sys.file_exists file_name in
+      let file_exists = Unix32.file_exists file_name in
       let md4s = if file_size <= block_size then
             [md4] 
           else [] in
@@ -305,8 +309,7 @@ let new_file file_state file_name md4 file_size writable =
           impl_file_ops = file_ops;
           impl_file_age = last_time ();          
           impl_file_size = file_size;
-          impl_file_fd = Unix32.create file_name (if writable then
-              [Unix.O_RDWR; Unix.O_CREAT] else [Unix.O_RDONLY]) 0o666;
+          impl_file_fd = t;
           impl_file_best_name = Filename.basename file_name;
           impl_file_last_seen = last_time () - 100 * 24 * 3600;
         }
@@ -319,7 +322,7 @@ let new_file file_state file_name md4 file_size writable =
 
 let change_hardname file file_name =
   let fd = file.file_file.impl_file_fd in
-  Unix32.set_filename fd file_name
+  Unix32.rename fd file_name
           
 let add_client_chunks file client_chunks =
   for i = 0 to file.file_nchunks - 1 do
@@ -883,7 +886,7 @@ let client_id c =
       | Some addr -> addr
           
 let save_join_queue c =
-  if c.client_asked_for_slot && c.client_file_queue <> [] then
+  if c.client_file_queue <> [] then
     let files = List.map (fun (file, chunks) ->
           file, Array.copy chunks
       ) c.client_file_queue in

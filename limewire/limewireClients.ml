@@ -65,7 +65,7 @@ module Download = CommonDownloads.Make(struct
       
       let download_finished d = 
         let file = d.download_file in
-        current_files := List2.removeq file !current_files;
+        LimewireGlobals.remove_file file;
         old_files =:= (file.file_name, file_size file) :: !!old_files;
         List.iter (fun c ->
             c.client_downloads <- List.remove_assoc file c.client_downloads
@@ -229,7 +229,11 @@ let get_from_client sock (c: client) (file : file) =
   
   let new_pos = file_downloaded file in
   let buf = Buffer.create 100 in
-  Printf.bprintf buf "GET /get/%d/%s HTTP/1.0\r\n" index file.file_name;
+  (match index with
+      FileByUrl url -> Printf.bprintf buf "GET %s HTTP/1.0\r\n" url
+    | FileByIndex index -> 
+        Printf.bprintf buf "GET /get/%d/%s HTTP/1.0\r\n" index
+        (Url.encode file.file_name));
   Printf.bprintf buf "User-Agent: %s\r\n" user_agent;
   Printf.bprintf buf "Range: bytes=%Ld-\r\n" new_pos;
   Printf.bprintf buf "\r\n";
@@ -325,7 +329,7 @@ G I V   8 1 : 9 7 4 3 2 1 3 F B 4 8 6 2 3 D 0 F F D F A B B 3 8 0 E C 6 C 0 0 / 
 "GIV %d:%s/%s\n\n" file.file_number client.client_md4 file.file_name
 
 *)
-
+(*
 let find_file file_name file_size = 
   let key = (file_name, file_size) in
   try
@@ -333,7 +337,8 @@ let find_file file_name file_size =
   with e ->
       lprintf "NO SUCH DOWNLOAD\n";
       raise e
-      
+        *)
+
 let push_handler cc gconn sock header = 
   if !verbose_msg_clients then begin
       lprintf "PUSH HEADER: [%s]\n" (String.escaped header);
@@ -369,7 +374,7 @@ let push_handler cc gconn sock header =
               if !verbose_msg_clients then begin
                   lprintf "FINDING FILE %d\n" index; 
                 end;
-              let file = List2.assoc_inv index c.client_downloads in
+              let file = List2.assoc_inv (FileByIndex index) c.client_downloads in
               if !verbose_msg_clients then begin
                   lprintf "FILE FOUND\n";
                 end;

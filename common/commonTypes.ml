@@ -116,6 +116,7 @@ type sortvd_type =
 | ByRate
 | ByDone
 | ByPercent
+| ByPriority
 | ByAge
 | ByETA
 | ByLast
@@ -198,6 +199,7 @@ and   ui_user = {
     mutable ui_user_searches : search list;
     mutable ui_last_search : search option;
     mutable ui_last_results : (int * result) list;
+    mutable ui_http_conn : ui_conn option;
   }
       
 and ui_conn = {

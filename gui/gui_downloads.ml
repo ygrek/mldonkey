@@ -260,6 +260,7 @@ class box columns sel_mode () =
       |	Col_file_age -> compare f1.file_age f2.file_age
       |	Col_file_last_seen -> compare f1.file_last_seen f2.file_last_seen
       | Col_file_eta -> compare (calc_file_eta f1) (calc_file_eta f2)
+      |	Col_file_priority -> compare f1.file_priority f2.file_priority
     
     method compare f1 f2 =
       let abs = if current_sort >= 0 then current_sort else - current_sort in
@@ -309,6 +310,8 @@ class box columns sel_mode () =
           if eta >= 1000 * 60 * 60 * 24 then
             Printf.sprintf "---"
           else time_to_string eta
+      |	Col_file_priority ->
+          Printf.sprintf "%3d" f.file_priority
     
     method content f =
       let strings = List.map 

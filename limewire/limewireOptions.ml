@@ -38,6 +38,10 @@ let _ =
 let client_port = define_option limewire_ini ["client_port"]
     "The port to bind the client to"
     int_option 6346
+  
+let enable_gnutella1 = define_option limewire_ini ["enable_gnutella1"]
+    "Do you want to support Gnutella1 protocol"
+    bool_option true
 
 let redirectors = define_option limewire_ini ["redirectors"]
     "The hosts to connect to to get a list of peers"

@@ -955,7 +955,7 @@ module Filter = struct
 (*  lprintf "%d results" (List.length docs); lprint_newline (); *)
       Array.iter (fun doc ->
           if DocIndexer.filtered doc then begin
-              lprintf "doc filtered"; lprint_newline ();
+              lprintf "doc filtered\n"; 
             end else
           let r = doc_value doc in
 (*    merge_result s doc.num; *)

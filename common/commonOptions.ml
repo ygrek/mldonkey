@@ -302,12 +302,20 @@ let _ =
 *********************)
   
       
-let shared_extensions = define_option expert_ini ["shared_extensions"]
-  
-  "A list of extensions of files that should be shared. Files with extensions
-    not in the list will not be shared (except if the list is empty :)"
+let shared_extensions = define_option expert_ini ["shared_extensions"]  
+  "A list of extensions of files that should be shared (\".mp3\",\".avi\" for examples). 
+  Files with extensions not in the list will not be shared (except if the list 
+   is empty :)"
     (list_option string_option) []
 
+let _ =
+  option_hook shared_extensions (fun _ ->
+      let list = List.map (fun ext ->
+            if String.length ext > 0 && ext.[0] <> '.' then "." ^ ext else ext
+        ) !!shared_extensions in
+      if list <> !!shared_extensions then shared_extensions =:= list
+      
+  )
   
 let client_timeout = define_option expert_ini ["client_timeout"] 
   "Timeout on client connections when not queued" float_option 40.
@@ -589,6 +597,9 @@ let html_mods_vd_age = define_option expert_ini
 let html_mods_vd_last = define_option expert_ini
     ["html_mods_vd_last"] "Whether to display the Last column in vd output" bool_option true
 
+let html_mods_vd_prio = define_option expert_ini
+    ["html_mods_vd_prio"] "Whether to display the Priority column in vd output" bool_option false
+
 let html_mods_vd_queues = define_option expert_ini
     ["html_mods_vd_queues"] "Whether to display the Queues in vd # output" bool_option true
 
@@ -830,13 +841,21 @@ let gui_options_panel = define_option expert_ini ["gui_options_panel"]
     "Startup", "User MLdonkey should run as", shortname run_as_user, "T";
  ]  
   
+let last_high_id = ref Ip.null
+
 let client_ip sock =
   if !!force_client_ip then !!set_client_ip else
+  if !last_high_id <> Ip.null then begin
+    if !last_high_id <> Ip.localhost && !!set_client_ip <> !last_high_id then 
+      set_client_ip =:= !last_high_id;
+    !last_high_id 
+  end else
   match sock with
     None -> !!set_client_ip
   | Some sock ->
       let ip = TcpBufferedSocket.my_ip sock in
-      if ip <> Ip.localhost && !!set_client_ip <> ip then  set_client_ip =:= ip;
+      if ip <> Ip.localhost && !!set_client_ip <> ip then
+	set_client_ip =:= ip;
       ip
 
       

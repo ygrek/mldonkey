@@ -253,6 +253,7 @@ let new_file file_id name file_size =
   with _ ->
       let file_temp = Filename.concat !!DO.temp_directory 
           (Printf.sprintf "DC-%s" (Md4.to_string file_id)) in
+      let t = Unix32.create file_temp [Unix.O_RDWR; Unix.O_CREAT] 0o666 in
       let current_size = try
           Unix32.getsize64 file_temp
         with e ->
@@ -268,7 +269,7 @@ let new_file file_id name file_size =
           file_clients = [];
         } and impl = {
           dummy_file_impl with
-          impl_file_fd = Unix32.create file_temp [Unix.O_RDWR; Unix.O_CREAT] 0o666;
+          impl_file_fd = t;
           impl_file_size = file_size;
           impl_file_downloaded = current_size;
           impl_file_val = file;

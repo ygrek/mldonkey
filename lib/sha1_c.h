@@ -7,7 +7,11 @@
 #define _SHA1_H_
 
 #include "os_stubs.h"
+
+#if __STDC_VERSION__ >= 199901L
 #include <stdint.h>
+#else
+#endif
 
 typedef unsigned char uint8;
 

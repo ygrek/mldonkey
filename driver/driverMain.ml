@@ -202,6 +202,8 @@ let load_config () =
         exit 2;
         ());  
   
+  if !!html_mods then CommonMessages.colour_changer ();
+        
   networks_iter_all (fun r -> 
       match r.network_config_file with
         None -> ()

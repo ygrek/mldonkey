@@ -20,20 +20,269 @@
 open Printf2
 
 let verbose = false
+let max_cache_size = ref 50
+
+module FDCache = struct
+    
+    type t = {
+        mutable fd : Unix.file_descr option;
+        mutable access : int;
+        mutable rights : Unix.open_flag list;
+        mutable filename : string;
+      }
+    
+    let cache_size = ref 0
+    let cache = Fifo.create ()
+    
+    let create f r a = {
+        filename = f;
+        fd = None;
+        rights = r;
+        access = a;
+      }
+    
+    
+    let rec close_one () =
+      if not (Fifo.empty cache) then
+        let t = Fifo.take cache in
+        match t.fd with
+          None -> 
+            close_one ()
+        | Some fd -> 
+            (try Unix.close fd with _ -> ()); 
+            t.fd <- None
+    
+    
+    let local_force_fd t =
+      match t.fd with
+        None ->
+          if !cache_size >= !max_cache_size then
+            close_one ()
+          else incr cache_size;
+          let fd = Unix.openfile t.filename t.rights t.access in
+          Fifo.put cache t;
+          t.fd <- Some fd;
+          fd
+      | Some fd -> fd
+    
+    
+    let close t =
+      match t.fd with
+      | Some fd -> 
+          (try Unix.close fd with _ -> ());
+          t.fd <- None;
+          decr cache_size
+      | None -> ()
+    
+    
+    let close_all () =
+      while not (Fifo.empty cache) do
+        close_one ()
+      done
+    
+    let rename t f = 
+      close t;
+      Unix2.rename t.filename f;  
+      t.filename <- f
+    
+    let ftruncate64 t len =
+      Unix2.c_ftruncate64 (local_force_fd t) len
+    
+    let getsize64 t = Unix2.c_getsize64 t.filename
+    
+    
+    let mtime64 t =
+      let st = Unix.LargeFile.stat t.filename in
+      st.Unix.LargeFile.st_mtime
+
+    let exists t = Sys.file_exists t.filename
+      
+  end
   
+module SparseFile = struct
+
+(*
+
+type chunk = {
+  mutable pos : int64;
+  mutable len : int64;
+  mutable filename : string option;
+  mutable next : chunk option;
+}
+
 type t = {
-    mutable fd : Unix.file_descr option;
-    mutable access : int;
-    mutable rights : Unix.open_flag list;
-    mutable filename : string;
-    mutable error : exn option;
-    mutable buffers : (string * int * int * int64 * int64) list;
+  filename : string;
+  size : int64;
+  mutable chunks : chunk;
+}
+
+let create filename size = 
+  let dirname = Printf.sprintf "%s.chunks" filename in
+  Unix.mkdir dirname;
+  {
+    filename = filename;
+    size = size;
+    chunks = {
+        pos = Int64.zero; 
+        len = size; 
+        created = None;
+        next = None;
+       }; 
   }
 
+let (+) = Int64.add
+let (-) = Int64.sub
+
+let chunk_min_size = ref 65000
+
+let split_chunk c pos =
+  let cc = {
+    created = None;
+    pos = pos;
+    len = c.len - pos;
+   } in
+  c.next <- Some cc;
+  c.len <- (pos - c.pos)
+
+let rec extend_chunk c size = 
+  match c.next with
+    None -> 
+     lprintf "Cannot extend last chunk\n";
+     assert false
+  | Some cc ->
+     if cc.created <> None then
+       begin
+         append_chunk c cc;
+         remove_chunk cc;
+         c.next <- cc.next;
+         c.len <- (cc.pos + cc.len) - c.pos;
+       end
+     else
+     if cc.len >= size + !chunk_min_size then 
+       begin
+         split_chunk cc (cc.pos + size);
+         extend_chunk c size;
+       end 
+     else
+       begin
+         c.next <- cc.next;
+         c.len <- (cc.pos + cc.len) - c.pos;
+         ftruncate_chunk c (c.len + cc.len);
+       end
+
+let open_chunk c = ()
+let create_chunk c = () 
+
+let get_chunk t pos len = 
+  let c = t.chunks in
+  let rec iter c =
+
+    if c.created <> None && c.pos <= pos && c.pos + c.len >= pos + len then
+       (open_chunk c, pos - c.pos)
+    else
+    if c.created <> None && pos <= c.pos + c.len + !chunk_min_size then
+      begin
+        extend_chunk c (maxi !chunk_min_size (pos+len - c.pos -c.len + !chunk_min_size));
+        iter c
+      end
+    else
+    if c.pos + c.len <= pos then
+      match c.next with
+      | None -> 
+         lprintf "Invalid access in file pos %Ld is after last chunk\n" pos;
+         assert false
+      | Some c -> iter c
+    else
+    if c.pos + !chunk_min_size < pos then 
+      begin
+        split_chunk c pos;
+        iter c     
+      end
+    else
+    if c.pos + c.len > pos + (maxi len !chunk_min_size) + !chunk_min_size then
+      begin
+        split_chunk c (pos+(maxi len !chunk_min_size)+!chunk_min_size);
+        iter c
+      end
+    else 
+      begin
+        create_chunk c;
+        iter c
+      end
+  in
+  iter c
+
+let build t =
+  if t.chunks.created = None then create_chunk c;
+  while t.chunks.next <> None do
+    extend_chunk c t.size
+  done;
+  
+
+*)
+
+    
+    
+  end
+  
+module DiskFile = struct
+    
+    type t = FDCache.t 
+    
+    let create = FDCache.create
+    
+    let fd_of_chunk t pos_s len_s =
+      let fd = FDCache.local_force_fd t in
+      fd, pos_s
+    
+    let close = FDCache.close
+
+    let rename = FDCache.rename
+      
+    let ftruncate64 = FDCache.ftruncate64
+
+    let getsize64 = FDCache.getsize64
+    let mtime64 = FDCache.mtime64
+    let exists = FDCache.exists
+  end
+  
+type file_kind = 
+(*  SparseFile of SparseFile.t *)
+| DiskFile of DiskFile.t  
+  
+type t = {
+    file_kind : file_kind;
+    mutable filename : string;
+    mutable error : exn option;
+    mutable buffers : (string * int * int * int64 * int64) list;    
+  }
+  
+let create f r a = {
+    file_kind = DiskFile (DiskFile.create f r a);
+    filename = f;
+    error = None;
+    buffers = [];
+  }
+
+let fd_of_chunk t pos len = 
+  match t.file_kind with
+  | DiskFile t -> DiskFile.fd_of_chunk t pos len
+
+let ftruncate64 t len =
+  match t.file_kind with
+  | DiskFile t -> DiskFile.ftruncate64 t len
+
+let mtime64 t =
+  match t.file_kind with
+  | DiskFile t -> DiskFile.mtime64 t 
+
+let getsize64 t =
+  match t.file_kind with
+  | DiskFile t -> DiskFile.getsize64 t 
+      
 (*
 For chunked files, we should read read the meta-file instead of the file.
 *)
-let getsize64 = Unix2.c_getsize64
   
 let fds_size = Unix2.c_getdtablesize ()
 
@@ -45,70 +294,23 @@ let _ =
   lprint_newline () 
 
 (* at most 50 files can be opened simultaneously *)
-  
-let max_cache_size = ref 50
-let cache_size = ref 0
-let cache = Fifo.create ()
-  
-let create f r a = {
-    filename = f;
-    fd = None;
-    rights = r;
-    access = a;
-    error = None;
-    buffers = [];
-  }
 
-let rec close_one () =
-  if not (Fifo.empty cache) then
-    let t = Fifo.take cache in
-    match t.fd with
-      None -> 
-        close_one ()
-    | Some fd -> 
-        (try Unix.close fd with _ -> ()); 
-        t.fd <- None
-        
-let force_fd t =
-  match t.fd with
-    None ->
-      if !cache_size >= !max_cache_size then
-        close_one ()
-      else incr cache_size;
-      let fd = Unix.openfile t.filename t.rights t.access in
-      Fifo.put cache t;
-      t.fd <- Some fd;
-      fd
-  | Some fd -> fd
-  
+      (*
 let seek64 t pos com =
   Unix2.c_seek64 (force_fd t) pos com
   
-let ftruncate64 t len =
-  Unix2.c_ftruncate64 (force_fd t) len
   
-let close t =
-  match t.fd with
-  | Some fd -> 
-      (try Unix.close fd with _ -> ());
-      t.fd <- None;
-      decr cache_size
-  | None -> ()
-      
-let close_all () =
-  while not (Fifo.empty cache) do
-    close_one ()
-  done
+*)
+  
   
 let filename t = t.filename
-      
-let set_filename t f = 
-  t.filename <- f;
-  close t
 
-let mtime64 filename =
-  let st = Unix.LargeFile.stat filename in
-  st.Unix.LargeFile.st_mtime
+let rename t f = 
+  t.filename <- f;
+  match t.file_kind with
+  | DiskFile t -> DiskFile.rename t f
+      
+
 
 let buffer = Buffer.create 65000
 
@@ -122,8 +324,8 @@ let flush_buffer t offset =
   let len = String.length s in
   try
     if verbose then lprintf "seek64 %Ld\n" offset;
-    let final_pos = seek64 t offset Unix.SEEK_SET in
-    let fd =  force_fd t in
+    let fd, offset =  fd_of_chunk t offset len in
+    let final_pos = Unix2.c_seek64 fd offset Unix.SEEK_SET in
     if verbose then lprintf "really_write %d\n" len;
     Unix2.really_write fd s 0 len;
     buffered_bytes := !buffered_bytes -- (Int64.of_int len);
@@ -221,7 +423,8 @@ let buffered_write t offset s pos_s len_s =
       raise e
 
 let write t offset s pos_s len_s =  
-  let final_pos = seek64 t offset Unix.SEEK_SET in
+  let fd, offset = fd_of_chunk t offset len_s in
+  let final_pos = Unix2.c_seek64 fd offset Unix.SEEK_SET in
   if final_pos <> offset then begin
       lprintf "BAD LSEEK in Unix32.write %Ld/%Ld\n" final_pos offset;
       raise Not_found
@@ -232,19 +435,12 @@ let write t offset s pos_s len_s =
       (t.Q.bloc_len) (begin_pos) 
       (end_pos);
     end; *)
-  let fd = try force_fd t with e -> 
-        lprintf "In force_fd\n"; 
-        raise e
-  in
   Unix2.really_write fd s pos_s len_s
   
-let fd_of_chunk t pos_s len_s =
-  let fd = force_fd t in
-  fd, pos_s
-  
 let read t offset s pos_s len_s =
+  flush_fd t;
   let fd, offset = fd_of_chunk t offset (Int64.of_int len_s) in
-  let final_pos = seek64 t offset Unix.SEEK_SET in
+  let final_pos = Unix2.c_seek64 fd offset Unix.SEEK_SET in
   
   if final_pos <> offset then begin
       lprintf "BAD LSEEK in Unix32.read %Ld/%Ld\n" final_pos offset;
@@ -261,7 +457,7 @@ let mini (x: int) (y: int) =
 let allocate_chunk t offset len64 =
   let len = Int64.to_int len64 in
   let fd, offset = fd_of_chunk t offset len64 in
-  let final_pos = seek64 t offset Unix.SEEK_SET in
+  let final_pos = Unix2.c_seek64 fd offset Unix.SEEK_SET in
   if final_pos <> offset then begin
       lprintf "BAD LSEEK in Unix32.zero_chunk %Ld/%Ld\n"
         final_pos offset; 
@@ -279,13 +475,15 @@ let allocate_chunk t offset len64 =
 let copy_chunk t1 t2 pos1 pos2 len =
 (* Close two file descriptors *)
   assert (!max_cache_size > 2);
-  close_one ();
-  close_one ();
+  flush_fd t1;
+  flush_fd t2;
+  FDCache.close_one ();
+  FDCache.close_one ();
   lprintf "Copying chunk\n";
   let file_in,pos1 = fd_of_chunk t1 pos1 len in
   let file_out,pos2 = fd_of_chunk t2 pos2 len in
-  ignore (seek64 t1 pos1 Unix.SEEK_SET);
-  ignore (seek64 t2 pos2 Unix.SEEK_SET);
+  ignore (Unix2.c_seek64 file_in pos1 Unix.SEEK_SET);
+  ignore (Unix2.c_seek64 file_out pos2 Unix.SEEK_SET);
   let buffer_len = 32768 in
   let len = Int64.to_int len in
   let buffer = String.create buffer_len in
@@ -298,5 +496,19 @@ let copy_chunk t1 t2 pos1 pos2 len =
   in
   iter file_in file_out len;
   lprintf "Chunk copied\n"
-  
 
+let close_all = FDCache.close_all
+let close t = 
+  match t.file_kind with
+  | DiskFile t -> DiskFile.close t
+
+let create_ro filename = create filename [Unix.O_RDONLY] 0o666
+  
+let exists t = 
+  match t.file_kind with
+  | DiskFile t -> DiskFile.exists t
+
+let getsize64 s =  getsize64 (create_ro s)
+let mtime64 s =  mtime64 (create_ro s)
+  
+let file_exists s = exists (create_ro s)

@@ -312,7 +312,7 @@ function cancelAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j
   Html.end_table buf;
   
   print_table_html 10 buf 
-    [| Align_Left; Align_Left; Align_Left; Align_Right; Align_Right; Align_Right; Align_Right|] 
+    [| Align_Left; Align_Left; Align_Left; Align_Right; Align_Right; Align_Right; Align_Right; Align_Right|] 
     [|
     "[ Num ]"; 
     "P/R/C";
@@ -322,6 +322,7 @@ function cancelAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j
     "\\<input type=radio value=Size name=sortby\\> Size"; 
     "Old"; 
     "\\<input type=radio value=Rate name=sortby\\> Rate"; 
+    "\\<input type=radio value=Priority name=sortby\\> Priority"; 
   |] 
     (List.map (fun file ->
         [|
@@ -386,6 +387,7 @@ function cancelAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j
               "-"
             else
               Printf.sprintf "%5.1f" (file.file_download_rate /. 1024.));
+	  (Printf.sprintf "%3d" file.file_priority);
         |]
     ) files);
   Printf.bprintf buf "\\</form\\>"
@@ -446,7 +448,12 @@ if !!html_mods_vd_last then Printf.bprintf buf "
 Printf.bprintf buf "
 \\<td title=\\\"Sort by rate\\\" class=dlheader\\>\\<input style=\\\"padding-left: 0px; padding-right: 0px;\\\" class=headbutton type=submit value=Rate name=sortby\\>\\</td\\>
 \\<td title=\\\"Sort by estimated time of arrival\\\" class=dlheader\\>\\<input style=\\\"padding-left: 0px; padding-right: 0px;\\\" class=headbutton type=submit value=ETA name=sortby\\>\\</td\\>
-\\</tr\\>";
+";
+
+if !!html_mods_vd_prio then Printf.bprintf buf "\\<td title=\\\"Sort by priority\\\" class=dlheader\\>\\<input style=\\\"padding-left: 0px; padding-right: 0px;\\\" class=headbutton type=submit value=Priority name=sortby\\>\\</td\\>
+";
+
+Printf.bprintf buf "\\</tr\\>";
 
   print_table_html_mods buf 
     (List.map (fun file ->
@@ -455,14 +462,14 @@ Printf.bprintf buf "
 
           (if downloading file then
               Printf.sprintf "
-				onMouseOver=\\\"mOvr(this);return true;\\\" onMouseOut=\\\"mOut(this,this.bgColor);\\\"\\>
+				onMouseOver=\\\"mOvr(this);return true;\\\" onMouseOut=\\\"mOut(this);\\\"\\>
                 \\<td class=\\\"dl al\\\"\\>\\<input class=checkbox name=pause type=checkbox value=%d\\> R
                 \\<input class=checkbox name=cancel type=checkbox value=%d\\>\\</td\\>"
                 file.file_num
                 file.file_num
             else 
               Printf.sprintf "
-				onMouseOver=\\\"mOvr(this);return true;\\\" onMouseOut=\\\"mOut(this,this.bgColor);\\\"\\>
+				onMouseOver=\\\"mOvr(this);return true;\\\" onMouseOut=\\\"mOut(this);\\\"\\>
                 \\<td class=\\\"dl al\\\"\\>P
                 \\<input class=checkbox name=resume type=checkbox value=%d\\>
                 \\<input class=checkbox name=cancel type=checkbox value=%d\\>\\</td\\>"
@@ -560,6 +567,10 @@ need CommonTypes.file  file.file_sources is ?  i dunno *)
 			^ "\\</td\\>"
 		  );
 
+          (if !!html_mods_vd_prio then 
+	     Printf.sprintf "\\<td class=\\\"dl ar\\\"\\>\\<a href=\\\"/submit?q=priority+-5+%d\\\" target=\\\"$S\\\"\\><<\\</a\\> \\<a href=\\\"/submit?q=priority+-1+%d\\\" target=\\\"$S\\\"\\><\\</a\\> %3d \\<a href=\\\"/submit?q=priority+1+%d\\\" target=\\\"$S\\\"\\>>\\</a\\> \\<a href=\\\"/submit?q=priority+5+%d\\\" target=\\\"$S\\\"\\>>>\\</a\\>\\</td\\>" file.file_num file.file_num file.file_priority file.file_num file.file_num
+	       else 
+		 Printf.sprintf "");
 
         |]
     ) guifiles);
@@ -630,7 +641,7 @@ let simple_print_file_list finished buf files format =
       print_table buf 
         [| 
         Align_Left; Align_Left; Align_Right; Align_Right; 
-        Align_Right; Align_Right |] 
+        Align_Right; Align_Right; Align_Right |] 
         (if format.conn_output = HTML then
           [|
             "[ Num ]"; 
@@ -640,6 +651,7 @@ let simple_print_file_list finished buf files format =
             "\\<a href=/submit\\?q\\=vd\\&sortby\\=size\\> Size \\</a\\>"; 
             "Old";
             "\\<a href=/submit\\?q\\=vd\\&sortby\\=rate\\> Rate \\</a\\>"; 
+            "\\<a href=/submit\\?q\\=vd\\&sortby\\=priority\\> Priority \\</a\\>"; 
           |] else
           [|
             "[ Num ]"; 
@@ -649,6 +661,7 @@ let simple_print_file_list finished buf files format =
             "Size";
             "Old";
             "Rate";
+	    "Priority";
           |]     
       )
       (List.map (fun file ->
@@ -693,6 +706,7 @@ let simple_print_file_list finished buf files format =
                   if !min = 0 then "-" else
                     string_of_int (age_to_day !min)));
               rate ^ "$n";
+	      string_of_int file.file_priority;
             |]
         ) files)
   else
@@ -750,6 +764,7 @@ let display_file_list buf o =
             )
         | ByName -> (fun f1 f2 -> f1.file_name <= f2.file_name)
         | ByDone -> (fun f1 f2 -> f1.file_downloaded >= f2.file_downloaded)
+	| ByPriority -> (fun f1 f2 -> f1.file_priority >= f2.file_priority)
         | ByPercent -> (fun f1 f2 -> percent f1 >= percent f2)
         | ByETA -> (fun f1 f2 -> calc_file_eta f1 <= calc_file_eta f2)
         | ByAge -> (fun f1 f2 -> f1.file_age >= f2.file_age)
@@ -779,29 +794,27 @@ let display_file_list buf o =
 let old_print_search buf o results = 
   let user = o.conn_user in
   let counter = ref 0 in
-  if o.conn_output = HTML && !!html_mods then Printf.bprintf buf "\\<table
-  id=\\\"resultsTable\\\" name=\\\"resultsTable\\\" class=\\\"sources\\\"
-  cellspacing=0 cellpadding=0\\>\\<tr\\>
-\\<td title=\\\"Network\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Network\\</td\\>
-\\<td title=\\\"Filename\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Filename\\</td\\>
-\\<td title=\\\"Size\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Size\\</td\\>
-\\<td title=\\\"MD4\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>MD4\\</td\\>
-\\<td title=\\\"Tag\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Tag\\</td\\>
-\\</tr\\>";
+  if use_html_mods o then 
+       html_mods_table_header buf "resultsTable" "results" [ 
+		( "0", "srh", "Network", "Network" ) ; 
+		( "0", "srh", "Filename", "Filename" ) ; 
+		( "1", "srh ar", "Size", "Size" ) ; 
+		( "0", "srh", "MD4", "MD4" ) ; 
+		( "0", "srh", "Tag", "Tag" ) ] ; 
   
   (try
       List.iter (fun (rs,r,avail) ->
           incr counter;
           if !counter >= !!max_displayed_results then raise Exit;          
           
-          if o.conn_output = HTML && !!html_mods then
+          if use_html_mods o then
             begin
               if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
               else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
             end;
           
           user.ui_last_results <- (!counter, rs) :: user.ui_last_results;
-          if !!html_mods && o.conn_output = HTML then Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>"
+          if use_html_mods o then Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>"
               (let n = network_find_by_num r.result_network in
               n.network_name)
           else Printf.bprintf  buf "[%5d] %s " 
@@ -817,20 +830,20 @@ let old_print_search buf o results =
               | name :: names ->
                   Printf.bprintf buf "%s\n" name;
                   List.iter (fun s -> 
-                      if !!html_mods && o.conn_output = HTML then Printf.bprintf buf "\\<BR\\>";
+                      if use_html_mods o then Printf.bprintf buf "\\<BR\\>";
                       Printf.bprintf buf "       %s\n" s
                   ) names;
             end;
           if r.result_done then 
             begin
-              if !!html_mods && o.conn_output = HTML then Printf.bprintf buf "\\<BR\\>";
+              if use_html_mods o then Printf.bprintf buf "\\<BR\\>";
               Printf.bprintf buf " ALREADY DOWNLOADED\n "
             end;
           begin
             match r.result_comment with
               "" -> ()
             | comment -> begin
-                  if !!html_mods && o.conn_output = HTML then Printf.bprintf buf "\\<BR\\>";
+                  if use_html_mods o then Printf.bprintf buf "\\<BR\\>";
                   Printf.bprintf buf "COMMENT: %s\n" comment
                 end;
           end;
@@ -839,7 +852,7 @@ let old_print_search buf o results =
               if !!html_mods then Printf.bprintf buf "\\</a\\>\\</td\\>"
               else Printf.bprintf buf "\\</a href\\>";
             end;
-          if !!html_mods && o.conn_output = HTML then 
+          if use_html_mods o then 
             Printf.bprintf buf "\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>"
               (size_of_int64 r.result_size)
             (Md4.to_string r.result_md4)
@@ -847,7 +860,7 @@ let old_print_search buf o results =
               (Int64.to_string r.result_size)
             (Md4.to_string r.result_md4);
           
-          if !!html_mods && o.conn_output = HTML then Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>";
+          if use_html_mods o then Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>";
           List.iter (fun t ->
               Buffer.add_string buf (Printf.sprintf "%-3s "
                   (if t.tag_name = "availability" then string_of_int avail else
@@ -859,10 +872,10 @@ let old_print_search buf o results =
                   | _ -> "???"
                 ))
           ) r.result_tags;
-          if !!html_mods && o.conn_output = HTML then Printf.bprintf buf "\\</td\\>\\</tr\\>";
+          if use_html_mods o then Printf.bprintf buf "\\</td\\>\\</tr\\>";
           Buffer.add_char buf '\n';
       ) results;
-      if !!html_mods && o.conn_output = HTML then Printf.bprintf buf "\\</table\\>"
+      if use_html_mods o then Printf.bprintf buf "\\</table\\>"
     with _ -> ())
   
   
@@ -1021,7 +1034,7 @@ let print_results buf o results =
               user.ui_last_results <- (!counter, rs) :: user.ui_last_results;
               files := [|
                 
-                (if o.conn_output = HTML && !!html_mods then
+                (if use_html_mods o then
                     Printf.sprintf "\\>\\<td class=\\\"sr\\\"\\>%d\\</td\\>\\<td class=\\\"sr\\\"\\>" !counter
                   else Printf.sprintf "[%5d]" !counter);
                 
@@ -1065,15 +1078,15 @@ let print_results buf o results =
                 );
                 
                 
-                (if o.conn_output = HTML && !!html_mods then 
-                    "\\<td class=\\\"sr\\\"\\>" ^  size_of_int64 r.result_size ^ "\\</td\\>"
+                (if use_html_mods o then 
+                    "\\<td class=\\\"sr ar\\\"\\>" ^  size_of_int64 r.result_size ^ "\\</td\\>"
                   else Int64.to_string r.result_size
                 );
                 
                 
                 (let buf = Buffer.create 100 in
                   
-                  if o.conn_output = HTML && !!html_mods then Buffer.add_string buf "\\<td class=\\\"sr\\\"\\>";
+                  if use_html_mods o then Buffer.add_string buf "\\<td class=\\\"sr\\\"\\>";
                   
                   List.iter (fun t ->
                       Buffer.add_string buf (Printf.sprintf "%-3s "
@@ -1087,12 +1100,12 @@ let print_results buf o results =
                   ) r.result_tags;
                   Buffer.contents buf);
                 
-                (if o.conn_output = HTML && !!html_mods then 
-                    "\\<td class=\\\"sr\\\"\\>" ^  (string_of_int avail) ^ "\\</td\\>"
+                (if use_html_mods o then 
+                    "\\<td class=\\\"sr ar\\\"\\>" ^  (string_of_int avail) ^ "\\</td\\>"
                   else (string_of_int avail)
                 );
                 
-                (if o.conn_output = HTML && !!html_mods then 
+                (if use_html_mods o then 
                     "\\<td class=\\\"sr\\\"\\>" ^  (Md4.to_string r.result_md4) ^ "\\</td\\>"
                   else (Md4.to_string r.result_md4)
                 );
@@ -1101,23 +1114,19 @@ let print_results buf o results =
             end
       ) results;
     with _ -> ());
-  if !!html_mods && o.conn_output = HTML then
+  if use_html_mods o then
     begin
-      
-      Printf.bprintf buf "
-\\<table class=sources cellspacing=0 cellpadding=0\\>\\<tr\\>
-\\<td title=\\\"Number\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>#\\</td\\>
-\\<td title=\\\"Filename\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Name\\</td\\>
-\\<td title=\\\"Size\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>Size\\</td\\>
-\\<td title=\\\"Tag\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Tag\\</td\\>
-\\<td title=\\\"Availability\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>A\\</td\\>
-\\<td title=\\\"MD4\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>MD4\\</td\\>
-\\</tr\\>
-";
+
+      html_mods_table_header buf "resultsTable" "results" [ 
+		( "1", "srh", "Number", "#" ) ; 
+		( "0", "srh", "Filename", "Name" ) ; 
+		( "1", "srh ar", "Size", "Size" ) ; 
+		( "0", "srh", "Tag", "Tag" ) ; 
+		( "0", "srh ar", "Availability", "A" )  ; 
+		( "0", "srh", "MD4", "MD4" ) ]; 
       
       print_table_html_mods buf
-        
-        (List.rev !files)
+       (List.rev !files)
     
     end
   

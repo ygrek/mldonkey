@@ -180,6 +180,9 @@ let client_to_server s t sock =
           M.AckIDReq A.t
 	);
 
+	if Ip.valid t then
+	  last_high_id := t;
+
 (*
       server_send sock (M.ShareReq (make_tagged (
             if !nservers <=  max_allowed_connected_servers () then

@@ -45,9 +45,14 @@ type 'a packet = {
   }
 
 let get_string s pos =
-  let end_pos = String.index_from s pos '\000' in
-  String.sub s pos (end_pos - pos), end_pos+1
-
+  let len = String.length s in
+  try
+    if pos <= len then raise Exit;
+    let end_pos = String.index_from s pos '\000' in
+    String.sub s pos (end_pos - pos), end_pos+1
+  with _ -> 
+      String.sub s pos (len - pos), len
+      
 let buf_string buf s =
   Buffer.add_string buf s;
   Buffer.add_char buf '\000'
@@ -182,82 +187,35 @@ module Push = struct (* PUSH *)
   
 module Query = struct (* QUERY *)
 
-(*    
-(17)(119)(46)(2)(0)(156)(202)(71)(255)(123)(244)(89)(248)(200)(172)(0)          UID
-(128)                                                                           RECHERCHE
-(7)                                                                             TTL
-(0)                                                                             HOPS
-(168)(0)(0)(0)                                                                  PAYLOAD
-(0)(0)
-f a r m e r   m y l e n e  (0) < ? x m l   v e r s i o n = " 1 . 0 " ? > < a u d i o s   x s i : n o N a m e s p a c e S c h e m a L o c a t i o n = " h t t p : / / w w w . l i m e w i r e . c o m / s c h e m a s / a u d i o . x s d " > < a u d i o   a r t i s t = " f a r m e r   m y l e n e " > < / a u d i o > < / a u d i o s >(0)
-
-    *)
-
     type t = {
         min_speed : int;  (* kb/s *)
         keywords : string;
-        xml_query : string;
+        xml_query : string list;
       }
       
     let parse s =
       let min_speed = get_int16 s 0 in
       let keywords,pos = get_string s 2 in
-      let xml_query, pos = 
-        if pos < String.length s then get_string s pos
-        else "", pos in
+      let xml_query, pos =  get_string s pos in
       { 
         min_speed = min_speed;
         keywords = keywords;
-        xml_query = xml_query;
+        xml_query = String2.split xml_query '\028'; (* 0x1c *)
       }
       
     let print t = 
-      lprintf "QUERY FOR %s (%s)\n" t.keywords t.xml_query
+      lprintf "QUERY FOR %s (%d exts)\n" t.keywords 
+        (List.length t.xml_query)
       
     let write buf t =
       buf_int16 buf t.min_speed;
       Buffer.add_string buf t.keywords;
-      Buffer.add_string buf t.xml_query
-    
+      Buffer.add_char buf '\000';
+      Buffer.add_string buf (String2.unsplit t.xml_query '\028');
+      Buffer.add_char buf '\000'
   end
   
 module QueryReply = struct (* QUERY_REPLY *)
-
-(*
-(17)(119)(46)(2)(0)(156)(202)(71)(255)(123)(244)(89)(248)(200)(172)(0)
-(129)
-(0)
-(7)
-(199)(1)(0)(0)
-(2)              NFILES
-(202)(24)        PORT
-(192)(168)(0)(3) IP
-(64)(5)(0)(0)    SPEED
-  
-(154)(1)(0)(0)     INDEX
-(124)(26)(60)(0)   SIZE
-M y l e n e   F a r m e r   -   M a m a n   a   T o 1 . m p 3(0)
-(0)
-
-(155)(1)(0)(0)
-(206)(181)(114)(0)
-M y l e n e   F a r m e r   -   M a m a n   A   T o r . m p 3
-(0)(0)
-
-  
-L I M E
-(4)
-(28)
-(25)
-(80)(1) # XML SIZE
-(0)     # SUPPORT CHAT
-{ p l a i n t e x t } < ? x m l   v e r s i o n = " 1 . 0 " ? > < a u d i o s   n o N a m e s p a c e S c h e m a L o c a t i o n = " h t t
- p : / / w w w . l i m e w i r e . c o m / s c h e m a s / a u d i o . x s d " > < a u d i o       b i t r a t e = " 1 2 8 "   s e c o n d
-s = " 2 4 6 "   i n d e x = " 0 "   / > < a u d i o       t i t l e = " M a m a n   A   T o r t "   a r t i s t = " M y l e n e   F a r m e
-r "   a l b u m = " D a n c e   R e m i x e s   2 "   g e n r e = " P o p "   y e a r = " 2 0 0 0 "   c o m m e n t s = " ,   A G #   8 5 1
-E A 3 B 7 "   b i t r a t e = " 1 6 0 "   s e c o n d s = " 3 7 5 " i n d e x = " 1 "   / > < / a u d i o s >(0) 
-(122)(93)(63)(134)(108)(83)(239)(129)(255)(75)(235)(24)(150)(226)(201)(0)
-*)
     
     type t = {
         ip : Ip.t;
@@ -278,7 +236,7 @@ E A 3 B 7 "   b i t r a t e = " 1 6 0 "   s e c o n d s = " 3 7 5 " i n d e x = 
         index: int;
         size : int64;
         name : string;
-        info : string;
+        info : string list;
       }
     
     let rec iter_files nfiles s pos list =
@@ -292,7 +250,7 @@ E A 3 B 7 "   b i t r a t e = " 1 6 0 "   s e c o n d s = " 3 7 5 " i n d e x = 
           index = index;
           size = size;
           name = name;
-          info = info;
+          info = String2.split info '\028';
         } :: list)
     
     
@@ -357,7 +315,7 @@ E A 3 B 7 "   b i t r a t e = " 1 6 0 "   s e c o n d s = " 3 7 5 " i n d e x = 
           buf_int buf t.index;
           buf_int64_32 buf t.size;
           buf_string buf t.name;
-          buf_string buf t.info;
+          buf_string buf (String2.unsplit t.info '\028');
           write_files buf list
     
     let write buf t =
@@ -799,6 +757,7 @@ let add_header_fields header sock trailer =
       (Ip.to_string (client_ip (Some sock))) !!client_port;
   Printf.bprintf buf "X-Ultrapeer: False\r\n";
   Printf.bprintf buf "X-Query-Routing: 0.1\r\n";
+  Printf.bprintf buf "GGEP: 0.5\r\n";
   Printf.bprintf buf "%s" trailer;
   Buffer.contents buf
   

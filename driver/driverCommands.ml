@@ -66,14 +66,10 @@ let execute_command arg_list output cmd args =
 
 let list_options_html o list = 
   let buf = o.conn_buf in
-  if o.conn_output = HTML then
-    Printf.bprintf  buf "\\<div class=\\\"vo\\\"\\>\\<table class=vo cellspacing=0 cellpadding=0\\>
-\\<tr\\>
-\\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Name (Mouseover=Help)\\</td\\>
-\\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Value\\</td\\>
-\\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Default\\</td\\>
-\\</tr\\>
-";
+     html_mods_table_header buf "voTable" "vo" [ 
+		( "0", "srh", "Option name", "Name (Help=mouseOver)" ) ; 
+		( "0", "srh", "Option value", "Value" ) ; 
+		( "0", "srh", "Option default", "Default" ) ] ; 
   
   let counter = ref 0 in
   
@@ -125,7 +121,6 @@ let list_options_html o list =
       
       
   )list;
-  if o.conn_output = HTML then
     Printf.bprintf  buf "\\</table\\>\\</div\\>"
 
 
@@ -219,21 +214,19 @@ let commands = [
     "downloaders", Arg_none (fun o ->
         let buf = o.conn_buf in
         
-        if o.conn_output = HTML && !!html_mods then 
-          Printf.bprintf buf "\\<div class=\\\"downloaders\\\"\\>\\<table id=\\\"downloaders\\\" name=\\\"downloaders\\\" 
-							class=\\\"downloaders\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
-\\<td title=\\\"Client number (click to add as friend)\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ac\\\"\\>Num\\</td\\>
-\\<td title=\\\"Client state\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>CS\\</td\\>
-\\<td title=\\\"Client name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Name\\</td\\>
-\\<td title=\\\"Client brand\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>CB\\</td\\>
-\\<td title=\\\"Overnet [T]rue, [F]alse\\\"onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>O\\</td\\>
-\\<td title=\\\"Connected time (minutes)\\\"onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>CT\\</td\\>
-\\<td title=\\\"Connection [I]nDirect, [D]irect\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C\\</td\\>
-\\<td title=\\\"IP address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>IP\\</td\\>
-\\<td title=\\\"Total UL Kbytes to this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>UL\\</td\\>
-\\<td title=\\\"Total DL Kbytes from this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>DL\\</td\\>
-\\<td title=\\\"Filename\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Filename\\</td\\>
-\\</tr\\>";
+        if use_html_mods o then
+          html_mods_table_header buf "downloadersTable" "downloaders" [ 
+            ( "1", "srh ac", "Client number (click to add as friend)", "Num" ) ; 
+            ( "0", "srh", "Client state", "CS" ) ; 
+            ( "0", "srh", "Client name", "Name" ) ; 
+            ( "0", "srh", "Client brand", "CB" ) ; 
+            ( "0", "srh", "Overnet [T]rue, [F]alse", "O" ) ; 
+            ( "1", "srh ar", "Connected time (minutes)", "CT" ) ; 
+            ( "0", "srh", "Connection [I]ndirect, [D]irect", "C" ) ; 
+            ( "0", "srh", "IP address", "IP address" ) ; 
+            ( "1", "srh ar", "Total UL bytes to this client for all files", "UL" ) ; 
+            ( "1", "srh ar", "Total DL bytes from this client for all files", "DL" ) ; 
+            ( "0", "srh", "Filename", "Filename" ) ]; 
         
         let counter = ref 0 in
         
@@ -242,7 +235,7 @@ let commands = [
             if (CommonFile.file_downloaders file o !counter) then counter := 0 else counter := 1;
         ) !!files;
         
-        if o.conn_output = HTML && !!html_mods then Printf.bprintf buf "\\</table\\>\\</div\\>";
+        if use_html_mods o then Printf.bprintf buf "\\</table\\>\\</div\\>";
         
         ""
     ) , ":\t\t\t\tdisplay downloaders list";
@@ -289,7 +282,7 @@ let commands = [
     
     "vo", Arg_none (fun o ->
         let buf = o.conn_buf in
-        if o.conn_output = HTML && !!html_mods then begin
+        if use_html_mods o then begin
             
             Printf.bprintf buf "\\<div class=\\\"friends\\\"\\>\\<table class=main cellspacing=0 cellpadding=0\\> 
 \\<tr\\>\\<td\\>
@@ -362,6 +355,9 @@ let commands = [
         if args = [] then begin
             Printf.bprintf buf "0: Default interface\n";
             Printf.bprintf buf "1: Small and simple interface\n";
+            Printf.bprintf buf "2: Light blue\n";
+            Printf.bprintf buf "3: Light purple\n";
+            Printf.bprintf buf "4: Monochrome\n";
             ""
           end
         else begin
@@ -372,10 +368,17 @@ let commands = [
                 1 -> begin
                     Options.set_simple_option expert_ini "commands_frame_height" "42";
                     Options.set_simple_option expert_ini "html_mods_style" "1";
+                    CommonMessages.colour_changer ();
+                  end
+              | 0 | 2 | 3 | 4 -> begin
+                    Options.set_simple_option expert_ini "commands_frame_height" "80";
+                    Options.set_simple_option expert_ini "html_mods_style" (Printf.sprintf "%d" num);
+                    CommonMessages.colour_changer ();
                   end
               | _ -> begin
                     Options.set_simple_option expert_ini "commands_frame_height" "80";
                     Options.set_simple_option expert_ini "html_mods_style" "0";
+                    CommonMessages.colour_changer ();
                   end
             );
             "\\<script language=Javascript\\>top.window.location.reload();\\</script\\>"
@@ -543,7 +546,7 @@ the name between []"
     "upstats", Arg_none (fun o ->
         let buf = o.conn_buf in
         
-        if o.conn_output = HTML && !!html_mods then Printf.bprintf buf "\\<div class=\\\"upstats\\\"\\>"
+        if use_html_mods o then Printf.bprintf buf "\\<div class=\\\"upstats\\\"\\>"
         else Printf.bprintf buf "Upload statistics:\n";
         Printf.bprintf buf "Total: %s uploaded\n" 
           (size_of_int64 !upload_counter);
@@ -554,24 +557,19 @@ the name between []"
             list := impl :: !list
         );
         
-        
-        if o.conn_output = HTML && !!html_mods then 
-          Printf.bprintf buf "\\<table class=\\\"upstats\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
-\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>Reqs\\</td\\>
-\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>Total\\</td\\>
-\\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>File\\</td\\>
-\\</tr\\>";
+        if use_html_mods o then 
+          html_mods_table_header buf "upstatsTable" "upstats" [ 
+            ( "1", "srh", "Total file requests", "Reqs" ) ; 
+            ( "1", "srh", "Total bytes sent", "Total" ) ; 
+            ( "0", "srh", "Filename", "Filename" ) ]; 
         
         let counter = ref 0 in 
-        
         
         let list = Sort.list (fun f1 f2 ->
               (f1.impl_shared_requests = f2.impl_shared_requests &&
                 f1.impl_shared_uploaded > f2.impl_shared_uploaded) ||
               (f1.impl_shared_requests > f2.impl_shared_requests )
           ) !list in
-        
-        
         
         List.iter (fun impl ->
             if use_html_mods o then
@@ -621,7 +619,7 @@ the name between []"
                 (Int64.to_string impl.impl_shared_uploaded);
         ) list;
         
-        if o.conn_output = HTML && !!html_mods then Printf.bprintf buf "\\</table\\>\\</div\\>";
+        if use_html_mods o then Printf.bprintf buf "\\</table\\>\\</div\\>\\</div\\>";
         
         
         "done"
@@ -780,9 +778,9 @@ the name between []"
             if o.conn_output = HTML then
               begin        
                 
-                if o.conn_output = HTML && !!html_mods then  
+                if use_html_mods o then  
                   Printf.bprintf buf 
-                    "\\<a href=/submit\\?custom=%s target=\\\"$O\\\"\\> %s \\</a\\>  " 
+                    "\\<a href=/submit\\?custom=%s target=\\\"$O\\\"\\>%s\\</a\\> " 
                     (Url.encode name) name
                 
                 else
@@ -795,13 +793,13 @@ the name between []"
               Printf.bprintf buf "[%s]\n" name
         ) !! customized_queries; 
         
-        if o.conn_output = HTML && !!html_mods then  
-          Printf.bprintf buf 
-            "\\<a href=\\\"http://www.jigle.com\\\" target=\\\"$O\\\"\\>Jigle\\</a\\>  \\<a 
+        if use_html_mods o then  
+          Printf.bprintf buf "\\<a 
+            href=\\\"http://www.jigle.com\\\" target=\\\"$O\\\"\\>Jigle\\</a\\> \\<a 
             href=\\\"http://www.sharereactor.com/search.php\\\" name=\\\"ShareReactor\\\" target=\\\"$O\\\"\\>SR\\</a\\> \\<a
             href=\\\"http://www.filenexus.com/\\\" name=\\\"FileNexus\\\" target=\\\"$O\\\"\\>FN\\</a\\> \\<a
             href=\\\"http://www.fileheaven.org/\\\" name=\\\"FileHeaven\\\" target=\\\"$O\\\"\\>FH\\</a\\> \\<a
-            href=\\\"http://www.filedonkey.com\\\" name=\\\"FileDonkey\\\" target=\\\"$O\\\"\\>FD\\</a\\>  ";
+            href=\\\"http://www.filedonkey.com\\\" name=\\\"FileDonkey\\\" target=\\\"$O\\\"\\>FD\\</a\\> ";
         
         ""
     ), ":\t\t\tview custom queries";
@@ -826,9 +824,9 @@ the name between []"
     "shares", Arg_none (fun o ->
         
         let buf = o.conn_buf in
-
-        if o.conn_output = HTML && !!html_mods then begin
-          Printf.bprintf buf "\\<div class=\\\"shares\\\"\\>\\<table class=main cellspacing=0 cellpadding=0\\> 
+        
+        if use_html_mods o then begin
+            Printf.bprintf buf "\\<div class=\\\"shares\\\"\\>\\<table class=main cellspacing=0 cellpadding=0\\> 
 \\<tr\\>\\<td\\>
 \\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
 \\<td class=downloaded width=100%%\\>\\</td\\>
@@ -848,40 +846,40 @@ class=\\\"shares\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
 \\<td title=\\\"Click to unshare directory)\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh ac\\\"\\>Unshare\\</td\\>
 \\<td title=\\\"Directory\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Directory\\</td\\>
 \\</tr\\>";
-        
-        let counter = ref 0 in
-
-        Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>\\<td title=\\\"Incoming directory is always shared\\\" class=\\\"srb\\\"\\>Incoming\\</td\\>
+            
+            let counter = ref 0 in
+            
+            Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>\\<td title=\\\"Incoming directory is always shared\\\" class=\\\"srb\\\"\\>Incoming\\</td\\>
 \\<td title=\\\"Incoming\\\" class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>" !!incoming_directory;
-
-        List.iter (fun dir -> 
-      	incr counter;
-        Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>
+            
+            List.iter (fun dir -> 
+                incr counter;
+                Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>
 		\\<td title=\\\"Click to unshare this directory\\\" 
         onMouseOver=\\\"mOvr(this);\\\" 
-        onMouseOut=\\\"mOut(this,this.bgColor);\\\"
+        onMouseOut=\\\"mOut(this);\\\"
 		onClick=\\\'javascript:{ 
 		parent.fstatus.location.href=\\\"/submit?q=unshare+\\\\\\\"%s\\\\\\\"\\\"; 
         setTimeout(\\\"window.location.reload()\\\",1000);}'
 		class=\\\"srb\\\"\\>Unshare\\</td\\>
 		\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>" 
-		(if !counter mod 2 == 0 then "dl-1" else "dl-2") dir dir;
-		)
-        !!shared_directories;
-
-        Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>";
-	
-
-		end
-		else 
-		begin
-
-        Printf.bprintf buf "Shared directories:\n";
-        Printf.bprintf buf "  %s\n" !!incoming_directory;
-        List.iter (fun dir -> Printf.bprintf buf "  %s\n" dir)
-        !!shared_directories;
-
-		end;
+                  (if !counter mod 2 == 0 then "dl-1" else "dl-2") dir dir;
+            )
+            !!shared_directories;
+            
+            Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>";
+          
+          
+          end
+        else 
+          begin
+            
+            Printf.bprintf buf "Shared directories:\n";
+            Printf.bprintf buf "  %s\n" !!incoming_directory;
+            List.iter (fun dir -> Printf.bprintf buf "  %s\n" dir)
+            !!shared_directories;
+          
+          end;
         ""
     ), ":\t\t\t\tprint shared directories";
     
@@ -955,37 +953,36 @@ class=\\\"shares\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
     
     "vc", Arg_multiple (fun args o ->
         if args = ["all"] then begin 
-          let buf = o.conn_buf in
-          Printf.bprintf buf "\\<div class=\\\"vc\\\"\\>\\<table id=\\\"vc\\\" name=\\\"vc\\\" 
-							class=\\\"vc\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
-\\<td title=\\\"Client number\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ac\\\"\\>Num\\</td\\>
-\\<td title=\\\"Network\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Network\\</td\\>
-\\<td title=\\\"IP address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>IP address\\</td\\>
-\\<td title=\\\"Client name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Client name\\</td\\>
-\\</tr\\>";
-        
-          let counter = ref 0 in
-		  let all_clients_list = clients_get_all () in
-          List.iter (fun num ->
-			let c = client_find num in
-            if use_html_mods o then Printf.bprintf buf "\\<tr class=\\\"%s\\\" 
+            let buf = o.conn_buf in
+            
+            html_mods_table_header buf "vcTable" "vc" [ 
+              ( "1", "srh ac", "Client number", "Num" ) ; 
+              ( "0", "srh", "Network", "Network" ) ; 
+              ( "0", "srh", "IP address", "IP address" ) ; 
+              ( "0", "srh", "Client name", "Client name" ) ]; 
+            
+            let counter = ref 0 in
+            let all_clients_list = clients_get_all () in
+            List.iter (fun num ->
+                let c = client_find num in
+                if use_html_mods o then Printf.bprintf buf "\\<tr class=\\\"%s\\\" 
 			 title=\\\"Add as friend\\\" 
 			 onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\" 
             onMouseOver=\\\"mOvr(this);\\\" 
-            onMouseOut=\\\"mOut(this,this.bgColor);\\\"\\>" 
-            (if (!counter mod 2 == 0) then "dl-1" else "dl-2") num;
-         	client_print c o;
-            if use_html_mods o then Printf.bprintf buf "\\</tr\\>"
-			   else Printf.bprintf buf "\n";
-			incr counter;
-		  ) all_clients_list;
-          if use_html_mods o then Printf.bprintf buf "\\</table\\>\\</div\\>";
-		end
+            onMouseOut=\\\"mOut(this);\\\"\\>" 
+                    (if (!counter mod 2 == 0) then "dl-1" else "dl-2") num;
+                client_print c o;
+                if use_html_mods o then Printf.bprintf buf "\\</tr\\>"
+                else Printf.bprintf buf "\n";
+                incr counter;
+            ) all_clients_list;
+            if use_html_mods o then Printf.bprintf buf "\\</table\\>\\</div\\>";
+          end
         else 
           List.iter (fun num ->
-            let num = int_of_string num in
-            let c = client_find num in
-            client_print c o;
+              let num = int_of_string num in
+              let c = client_find num in
+              client_print c o;
           ) args;
         ""
     ), "<num> :\t\t\t\tview client (use arg 'all' for all clients)";
@@ -1022,25 +1019,11 @@ class=\\\"shares\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
         let buf = o.conn_buf in       
         let nb_servers = ref 0 in
         
-        if o.conn_output = HTML && !!html_mods then 
-          Printf.bprintf buf "\\<div class=\\\"servers\\\"\\>\\<table class=\\\"servers\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
-\\<td title=\\\"Server Number\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>#\\</td\\>
-\\<td title=\\\"Button\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Button\\</td\\>
-\\<td title=\\\"High or Low ID\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>ID\\</td\\>
-\\<td title=\\\"Network Name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Network\\</td\\>
-\\<td title=\\\"Connection Status\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Status\\</td\\>
-\\<td title=\\\"IP Address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh br\\\"\\>IP\\</td\\>
-\\<td title=\\\"Number of Users\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Users\\</td\\>
-\\<td title=\\\"Number of Files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>Files\\</td\\>
-\\<td title=\\\"Server Name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Name\\</td\\>
-\\<td title=\\\"Server Details\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Details\\</td\\>
-";
-        
+        if use_html_mods o then server_print_html_header buf; 
         Intmap.iter (fun _ s ->
             try
               incr nb_servers;
-              if o.conn_output = HTML && !!html_mods then 
-                begin
+              if use_html_mods o then begin
                   if (!nb_servers mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
                   else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
                 end;
@@ -1050,7 +1033,6 @@ class=\\\"shares\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
                 lprintf "Exception %s in server_print"
                   (Printexc2.to_string e); lprint_newline ();
         ) !!servers;
-        
         if use_html_mods o then Printf.bprintf buf "\\</table\\>\\</div\\>";
         
         
@@ -1067,13 +1049,17 @@ class=\\\"shares\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
         let buf = o.conn_buf in
         match args with
           p :: files ->
-            let p = int_of_string p in
-            let p = if p < -100 then -100 else 
-                if p > 100 then 100 else p in
+            let absolute, p = if String2.check_prefix p "=" then
+                true, int_of_string (String2.after p 1)
+              else false, int_of_string p in
             List.iter (fun arg ->
                 try
                   let file = file_find (int_of_string arg) in
-                  file_set_priority file p;
+                  let priority = if absolute then p 
+                    else (file_priority file) + p in
+                  let priority = if priority < -100 then -100 else
+                    if priority > 100 then 100 else priority in
+                  file_set_priority file priority;
                   Printf.bprintf buf "Setting priority of %s to %d\n"
                     (file_best_name file) (file_priority file);
                 with _ -> failwith (Printf.sprintf "No file number %s" arg)
@@ -1081,11 +1067,11 @@ class=\\\"shares\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
             force_download_quotas ();
             "Done"
         | [] -> "Bad number of args"
-    
+            
     ), "<priority> <files numbers> :\tchange file priorities";
     
     "version", Arg_none (fun o ->
-        if o.conn_output = HTML && !!html_mods then Printf.sprintf "\\<P\\>" ^ 
+        if use_html_mods o then Printf.sprintf "\\<P\\>" ^ 
             CommonGlobals.version () else CommonGlobals.version ()
     ), ":\t\t\t\tprint mldonkey version";
     
@@ -1101,64 +1087,61 @@ class=\\\"shares\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
         BasicSocket.close_all ();
         "All sockets closed"
     ), ":\t\t\tclose all opened sockets";
-
+    
     "message_log", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
         let counter = ref 0 in
-
+        
         (match args with
-          [arg] ->
-            let refresh_delay = int_of_string arg in
-            if o.conn_output = HTML && !!html_mods && refresh_delay > 1 then
-              Printf.bprintf buf "\\<meta http-equiv=\\\"refresh\\\" content=\\\"%d\\\"\\>" 
-					refresh_delay;
+            [arg] ->
+              let refresh_delay = int_of_string arg in
+              if use_html_mods o && refresh_delay > 1 then
+                Printf.bprintf buf "\\<meta http-equiv=\\\"refresh\\\" content=\\\"%d\\\"\\>" 
+                  refresh_delay;
           | _ -> ());
-            
-        (* rely on GC? *)
-              
-        while (Fifo.length chat_message_fifo) > !!html_mods_max_messages  do
-         let foo = Fifo.take chat_message_fifo in ()
-        done;
 
-        if o.conn_output = HTML && !!html_mods then Printf.bprintf buf "\\<div class=\\\"messages\\\"\\>";
+(* rely on GC? *)
+        
+        while (Fifo.length chat_message_fifo) > !!html_mods_max_messages  do
+          let foo = Fifo.take chat_message_fifo in ()
+        done;
+        
+        if use_html_mods o then Printf.bprintf buf "\\<div class=\\\"messages\\\"\\>";
         
         Printf.bprintf buf "%d logged messages\n" (Fifo.length chat_message_fifo);
         
         if Fifo.length chat_message_fifo > 0 then
-        begin
-
-        if o.conn_output = HTML && !!html_mods then
-                
-            Printf.bprintf buf "\\<table class=\\\"messages\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
-\\<td title=\\\"Timestamp\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Time\\</td\\>
-\\<td title=\\\"IP address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>IP address\\</td\\>
-\\<td title=\\\"Client number\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>Num\\</td\\>
-\\<td title=\\\"Client name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Client name\\</td\\>
-\\<td title=\\\"Message text\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Message\\</td\\>
-\\</TR\\>
-";
-
-        Fifo.iter (fun (t,i,num,n,s) ->
-        if o.conn_output = HTML && !!html_mods then
-               Printf.bprintf buf "\\<tr class=\\\"%s\\\" \\>
+          begin
+            
+            if use_html_mods o then
+              html_mods_table_header buf "serversTable" "servers" [ 
+                ( "0", "srh", "Timestamp", "Time" ) ; 
+                ( "0", "srh", "IP address", "IP address" ) ; 
+                ( "1", "srh", "Client number", "Num" ) ; 
+                ( "0", "srh", "Client name", "Client name" ) ; 
+                ( "0", "srh", "Message text", "Message" ) ] ; 
+            
+            Fifo.iter (fun (t,i,num,n,s) ->
+                if use_html_mods o then
+                  Printf.bprintf buf "\\<tr class=\\\"%s\\\" \\>
                       \\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
                       \\<td class=\\\"sr\\\"\\>%s\\</td\\> 
                       \\<td class=\\\"sr\\\"\\>%d\\</td\\> 
                       \\<td class=\\\"sr\\\"\\>%s\\</td\\> 
                       \\<td class=\\\"srw\\\"\\>%s\\</td\\>
                       \\</tr\\>" 
-                ( if (!counter mod 2 == 0) then "dl-1" else "dl-2")
-                (Date.simple (BasicSocket.date_of_int t)) i num n (String.escaped s)
-        else
-               Printf.bprintf buf "\n%s [client #%d] %s(%s): %s\n"
-                (Date.simple (BasicSocket.date_of_int t)) num n i s;
-        incr counter;
-        ) chat_message_fifo;
-        if o.conn_output = HTML && !!html_mods then Printf.bprintf buf
-        "\\</table\\>\\</div\\>";
+                    ( if (!counter mod 2 == 0) then "dl-1" else "dl-2")
+                  (Date.simple (BasicSocket.date_of_int t)) i num n (String.escaped s)
+                else
+                  Printf.bprintf buf "\n%s [client #%d] %s(%s): %s\n"
+                    (Date.simple (BasicSocket.date_of_int t)) num n i s;
+                incr counter;
+            ) chat_message_fifo;
+            if use_html_mods o then Printf.bprintf buf
+                "\\</table\\>\\</div\\>\\</div\\>";
+          
+          end;
         
-        end;
-
         ""
     ), ":\t\t\t\tmessage_log [refresh delay in seconds]";
     
@@ -1167,15 +1150,15 @@ class=\\\"shares\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
         match args with
           n :: msglist -> 
             let msg = List.fold_left (fun a1 a2 ->
-                        a1 ^ a2 ^ " "
-            ) "" msglist in
+                  a1 ^ a2 ^ " "
+              ) "" msglist in
             let cnum = int_of_string n in
             client_say (client_find cnum) msg;
             Printf.sprintf "Sending msg to client #%d: %s" cnum msg;
-         | _ ->  
-            if o.conn_output = HTML && !!html_mods then begin
-                    
-            Printf.bprintf buf "\\<script language=javascript\\>
+        | _ ->  
+            if use_html_mods o then begin
+                
+                Printf.bprintf buf "\\<script language=javascript\\>
 \\<!-- 
 function submitMessageForm() {
 var formID = document.getElementById(\\\"msgForm\\\")
@@ -1186,61 +1169,61 @@ formID.msgText.value=\\\"\\\";
 }
 //--\\>
 \\</script\\>";
-
-            Printf.bprintf buf "\\<iframe id=\\\"msgWindow\\\" name=\\\"msgWindow\\\" height=\\\"80%%\\\"
+                
+                Printf.bprintf buf "\\<iframe id=\\\"msgWindow\\\" name=\\\"msgWindow\\\" height=\\\"80%%\\\"
             width=\\\"100%%\\\" scrolling=yes src=\\\"/submit?q=message_log+20\\\"\\>\\</iframe\\>";
-
-            Printf.bprintf buf "\\<form style=\\\"margin: 0px;\\\" name=\\\"msgForm\\\" id=\\\"msgForm\\\" action=\\\"javascript:submitMessageForm();\\\"\\>";
-            Printf.bprintf buf "\\<table width=100%% cellspacing=0 cellpadding=0 border=0\\>\\<tr\\>\\<td\\>";
-            Printf.bprintf buf "\\<select style=\\\"font-family: verdana;
+                
+                Printf.bprintf buf "\\<form style=\\\"margin: 0px;\\\" name=\\\"msgForm\\\" id=\\\"msgForm\\\" action=\\\"javascript:submitMessageForm();\\\"\\>";
+                Printf.bprintf buf "\\<table width=100%% cellspacing=0 cellpadding=0 border=0\\>\\<tr\\>\\<td\\>";
+                Printf.bprintf buf "\\<select style=\\\"font-family: verdana;
             font-size: 12px; width: 150px;\\\" id=\\\"clientNum\\\" name=\\\"clientNum\\\" \\>"; 
-
-            Printf.bprintf buf "\\<option value=\\\"1\\\"\\>Client/Friend list\n";
-            
-            let found_nums = ref [] in
-            let fifo_list = Fifo.to_list chat_message_fifo in
-            let fifo_list = List.rev fifo_list in 
-            let found_select = ref 0 in
-            List.iter (fun (t,i,num,n,s) ->
+                
+                Printf.bprintf buf "\\<option value=\\\"1\\\"\\>Client/Friend list\n";
+                
+                let found_nums = ref [] in
+                let fifo_list = Fifo.to_list chat_message_fifo in
+                let fifo_list = List.rev fifo_list in 
+                let found_select = ref 0 in
+                List.iter (fun (t,i,num,n,s) ->
                     if not (List.mem num !found_nums) then begin
-                            
-                         found_nums := num :: !found_nums;
-                         Printf.bprintf buf "\\<option value=\\\"%d\\\" %s\\>%d:%s\n"
-                         num 
-                         (if !found_select=0 then "selected" else "";)
-                         num (try
-                              let c = client_find num in
-                              let g = client_info c in 
-                              g.client_name
-                             with _ -> "unknown/expired");
-                         found_select := 1;
-                    end
-            ) fifo_list;
-            List.iter (fun c ->
-                let g = client_info c in 
+                        
+                        found_nums := num :: !found_nums;
+                        Printf.bprintf buf "\\<option value=\\\"%d\\\" %s\\>%d:%s\n"
+                          num 
+                          (if !found_select=0 then "selected" else "";)
+                        num (try
+                            let c = client_find num in
+                            let g = client_info c in 
+                            g.client_name
+                          with _ -> "unknown/expired");
+                        found_select := 1;
+                      end
+                ) fifo_list;
+                List.iter (fun c ->
+                    let g = client_info c in 
                     if not (List.mem g.client_num !found_nums) then begin
-                    found_nums := g.client_num :: !found_nums;
-                Printf.bprintf buf "\\<option value=\\\"%d\\\"\\>%d:%s\n"
-                g.client_num g.client_num g.client_name;
-				end
-            ) !!friends;
-
-            Printf.bprintf buf "\\</select\\>\\</td\\>";
-            Printf.bprintf buf "\\<td width=100%%\\>\\<input style=\\\"width: 99%%; font-family: verdana; font-size: 12px;\\\" 
+                        found_nums := g.client_num :: !found_nums;
+                        Printf.bprintf buf "\\<option value=\\\"%d\\\"\\>%d:%s\n"
+                          g.client_num g.client_num g.client_name;
+                      end
+                ) !!friends;
+                
+                Printf.bprintf buf "\\</select\\>\\</td\\>";
+                Printf.bprintf buf "\\<td width=100%%\\>\\<input style=\\\"width: 99%%; font-family: verdana; font-size: 12px;\\\" 
                 type=text id=\\\"msgText\\\" name=\\\"msgText\\\" size=50 \\>\\</td\\>";
-            Printf.bprintf buf "\\<td\\>\\<input style=\\\"font-family: verdana;
+                Printf.bprintf buf "\\<td\\>\\<input style=\\\"font-family: verdana;
             font-size: 12px;\\\" type=submit value=\\\"Send\\\"\\>\\</td\\>\\</form\\>";
-            Printf.bprintf buf "\\<form style=\\\"margin: 0px;\\\" id=\\\"refresh\\\" name=\\\"refresh\\\"
+                Printf.bprintf buf "\\<form style=\\\"margin: 0px;\\\" id=\\\"refresh\\\" name=\\\"refresh\\\"
             action=\\\"javascript:msgWindow.location.reload();\\\"\\>
             \\<td\\>\\<input style=\\\"font-family: verdana; font-size: 12px;\\\" type=submit
             Value=\\\"Refresh\\\"\\>\\</td\\>\\</form\\>\\</tr\\>\\</table\\>";
-            ""
-          end
-        else
-            Printf.sprintf "Usage: message <client num> <msg>\n";
-          
+                ""
+              end
+            else
+              Printf.sprintf "Usage: message <client num> <msg>\n";
+    
     ), ":\t\t\t\tmessage [<client num> <msg>]";
-
+    
     "friend_add", Arg_one (fun num o ->
         let num = int_of_string num in
         let c = client_find num in
@@ -1267,7 +1250,7 @@ formID.msgText.value=\\\"\\\";
     "friends", Arg_none (fun o ->
         let buf = o.conn_buf in
         
-        if o.conn_output = HTML && !!html_mods then 
+        if use_html_mods o then 
           Printf.bprintf buf "\\<div class=\\\"friends\\\"\\>\\<table class=main cellspacing=0 cellpadding=0\\> 
 \\<tr\\>\\<td\\>
 \\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
@@ -1301,13 +1284,13 @@ formID.msgText.value=\\\"\\\";
         List.iter (fun c ->
             let i = client_info c in
             let n = network_find_by_num i.client_network in
-            if o.conn_output = HTML && !!html_mods then 
+            if use_html_mods o then 
               begin
-                    
+                
                 Printf.bprintf buf "\\<tr class=\\\"%s\\\" 
                 onMouseOver=\\\"mOvr(this);\\\" 
-                onMouseOut=\\\"mOut(this,this.bgColor);\\\"\\>" 
-                (if (!counter mod 2 == 0) then "dl-1" else "dl-2");
+                onMouseOut=\\\"mOut(this);\\\"\\>" 
+                  (if (!counter mod 2 == 0) then "dl-1" else "dl-2");
                 
                 incr counter;
                 Printf.bprintf buf "
@@ -1344,9 +1327,9 @@ formID.msgText.value=\\\"\\\";
                 i.client_num i.client_name
         ) !!friends;
         
-        if o.conn_output = HTML && !!html_mods then 
+        if use_html_mods o then 
           Printf.bprintf buf " \\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>";
-          
+        
         ""
     ), ":\t\t\t\tdisplay all friends";
     
@@ -1370,18 +1353,23 @@ formID.msgText.value=\\\"\\\";
         ""), "<client num> :\t\t\tprint files from friend <client num>";
     
     
-    "bw_stats", Arg_none (fun o -> 
+    "bw_stats", Arg_multiple (fun args o -> 
         let buf = o.conn_buf in
-        if o.conn_output = HTML && !!html_mods then 
+        if use_html_mods o then 
           begin
+            
+            let refresh_delay = ref 11 in
+            if args <> [] then begin 
+                let newrd = int_of_string (List.hd args) in
+                if newrd > 1 then refresh_delay := newrd;
+              end; 
+            Printf.bprintf buf "\\<meta http-equiv=\\\"refresh\\\" content=\\\"%d\\\"\\>" !refresh_delay;
             
             let dlkbs = 
               (( (float_of_int !udp_download_rate) +. (float_of_int !control_download_rate)) /. 1024.0) in
             let ulkbs =
               (( (float_of_int !udp_upload_rate) +. (float_of_int !control_upload_rate)) /. 1024.0) in
             
-            
-            Printf.bprintf buf "\\<meta http-equiv=\\\"refresh\\\" content=\\\"11\\\"\\>";
             Printf.bprintf buf "\\<div class=\\\"bw_stats\\\"\\>";
             Printf.bprintf buf "\\<table class=\\\"bw_stats\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>";
             Printf.bprintf buf "\\<td\\>\\<table border=0 cellspacing=0 cellpadding=0\\>\\<tr\\>
@@ -1396,23 +1384,20 @@ formID.msgText.value=\\\"\\\";
               !udp_upload_rate
               !control_upload_rate
               (size_of_int64 !upload_counter)
-              !nshared_files;
+            !nshared_files;
             
             Printf.bprintf buf "\\</tr\\>\\</table\\>\\</td\\>\\</tr\\>\\</table\\>\\</div\\>";
             
             Printf.bprintf buf "\\<script language=\\\"JavaScript\\\"\\>window.parent.document.title='(D:%.1f) (U:%.1f) | %s'\\</script\\>"
               dlkbs ulkbs (CommonGlobals.version ())
-          
-          
           end
-        
         else 
           Printf.bprintf buf "Down: %.1f KB/s ( %d + %d ) | Up: %.1f KB/s ( %d + %d ) | Shared: %d/%s"
             (( (float_of_int !udp_download_rate) +. (float_of_int !control_download_rate)) /. 1024.0)
-            !udp_download_rate
+          !udp_download_rate
             !control_download_rate
             (( (float_of_int !udp_upload_rate) +. (float_of_int !control_upload_rate)) /. 1024.0)
-            !udp_upload_rate
+          !udp_upload_rate
             !control_upload_rate
             !nshared_files
             (size_of_int64 !upload_counter);
@@ -1470,7 +1455,7 @@ formID.msgText.value=\\\"\\\";
           o.conn_output <- TEXT;        
         "$rdone$n"
     ), ":\t\t\t\t\ttoggle ansi terminal (devel)";
-
+    
     "term", Arg_two (fun w h o ->
         let w = int_of_string w in
         let h = int_of_string h in
@@ -1532,7 +1517,7 @@ formID.msgText.value=\\\"\\\";
         lprintf_to_stdout := false;
         "log stopped"
     ), ":\t\t\t\tclose logging to file";
-
+    
     "!", Arg_one (fun arg o ->
         let cmd = List.assoc arg !!allowed_commands in
         let tmp = Filename.temp_file "com" ".out" in
@@ -1542,13 +1527,13 @@ formID.msgText.value=\\\"\\\";
         Sys.remove tmp;
         Printf.sprintf "%s\n---------------- Exited with code %d" output ret 
     ), "<cmd> :\t\t\t\tstart command <cmd> (must be allowed in 'allowed_commands' option";
-
+    
     "add_user", Arg_two (fun user pass o ->
         if o.conn_user = default_user then
           try
             let p = List.assoc user !!users in
             let pass = Md4.string pass in
-            (* In place replacement....heurk *)
+(* In place replacement....heurk *)
             String.blit (Md4.direct_to_string pass) 0 
               (Md4.direct_to_string p) 0 16;
             "Password changed"
@@ -1558,13 +1543,13 @@ formID.msgText.value=\\\"\\\";
         else
           "Only 'admin' is allowed to do that"
     ), "<user> <passwd> :\t\tadd a new mldonkey user";
-
+    
     "calendar_add", Arg_two (fun hour action o ->
         calendar =:= ([0;1;2;3;4;5;6;7], [int_of_string hour], action)
         :: !!calendar;
         "action added"
     ), "<hour> \"<command>\" :\tadd a command to be executed every day";
-
+    
     "rename", Arg_two (fun arg new_name o ->
         let num = int_of_string arg in
         try
@@ -1573,8 +1558,31 @@ formID.msgText.value=\\\"\\\";
           Printf.sprintf "Download %d renamed to %s" num new_name
         with _ -> Printf.sprintf "No file number %d" num
     ), "<num> \"<new name>\" :\t\tchange name of download <num> to <new name>";
-
- 
+    
+    
+    "dllink", Arg_multiple (fun args o ->        
+        let buf = o.conn_buf in
+        let url = String2.unsplit args ' ' in
+        
+        if not (networks_iter_until_true
+              (fun n -> network_parse_url n url)) then
+          "Unable to match URL"
+        else
+          "Done"
+    ), "<ed2klink> :\t\t\tdownload ed2k:// link";
+    
+    "dllinks", Arg_one (fun arg o ->        
+        let buf = o.conn_buf in
+        
+        let file = File.to_string arg in
+        let lines = String2.split_simplify file '\n' in
+        List.iter (fun line ->
+            ignore (networks_iter_until_true (fun n -> 
+                  network_parse_url n line))
+        ) lines;
+        "done"
+    ), "<file> :\t\t\tdownload all the links contained in the file";
+    
     ]
 
 let _ =

@@ -360,7 +360,7 @@ assert (priority = file_info.file_priority);
   }, pos
 
 let get_host_state proto s pos =
-  if proto <= 12 then
+  if proto < 12 then
   (match get_int8 s pos with
   | 0 -> NotConnected (-1)
   | 1 -> Connecting

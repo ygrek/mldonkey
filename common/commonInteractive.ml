@@ -180,38 +180,22 @@ let print_connected_servers o =
   networks_iter (fun r ->
       try
        let list = network_connected_servers r in
+       if use_html_mods o then Printf.bprintf buf "\\<div class=servers\\>";
        Printf.bprintf buf "--- Connected to %d servers on the %s network ---\n"
          (List.length list) r.network_name;
+       if use_html_mods o then Printf.bprintf buf "\\</div\\>";
+       if use_html_mods o && List.length list > 0 then server_print_html_header buf;
 
-        if o.conn_output = HTML && !!html_mods && List.length list > 0 then 
-		Printf.bprintf buf "\\<div class=\\\"servers\\\"\\>\\<table class=\\\"servers\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
-\\<td title=\\\"Server Number\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>#\\</td\\>
-\\<td title=\\\"Button\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Button\\</td\\>
-\\<td title=\\\"Hi or Lo ID\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>ID\\</td\\>
-\\<td title=\\\"Network Name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Network\\</td\\>
-\\<td title=\\\"Connection Status\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Status\\</td\\>
-\\<td title=\\\"IP Address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh br\\\"\\>IP\\</td\\>
-\\<td title=\\\"Number of Users\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Users\\</td\\>
-\\<td title=\\\"Number of Files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>Files\\</td\\>
-\\<td title=\\\"Server Name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Name\\</td\\>
-\\<td title=\\\"Server Details\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Details\\</td\\>
-";
-      
       let counter = ref 0 in  
        List.iter (fun s ->
-      incr counter;
-
-		if o.conn_output = HTML && !!html_mods then 
-			begin
-        		if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
-            	else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
-
-			end;
-
-           server_print s o;
+        incr counter;
+		if use_html_mods o then 
+         Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>"     
+          (if (!counter mod 2 == 0) then "dl-1" else "dl-2");
+        server_print s o;
        ) list;
-        if o.conn_output = HTML && !!html_mods && List.length list > 0 then Printf.bprintf buf
-        "\\</table\\>\\</div\\>";
+        if use_html_mods o && List.length list > 0 then 
+           Printf.bprintf buf "\\</table\\>\\</div\\>";
        with e ->
            Printf.bprintf  buf "Exception %s in print_connected_servers"
              (Printexc2.to_string e);

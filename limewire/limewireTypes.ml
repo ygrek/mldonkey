@@ -35,6 +35,8 @@ type server = {
     mutable server_ping_last : Md4.t;
     mutable server_nfiles_last : int;
     mutable server_nkb_last : int;
+    
+    mutable server_gnutella2 : bool;
   }
     
 type local_search = {
@@ -56,7 +58,7 @@ want both upload and download from the same client. We could maybe use
 two different tables to look up for clients ? *)
 and client = {
     client_client : client CommonClient.client_impl;
-    mutable client_downloads : (file * int) list;
+    mutable client_downloads : (file * file_uri) list;
     mutable client_connection_control : connection_control;
     mutable client_sock : TcpBufferedSocket.t option;
     mutable client_user : user;
@@ -65,6 +67,10 @@ and client = {
     mutable client_pos : int64;
   }
 
+and file_uri =
+  FileByIndex of int
+| FileByUrl of string
+  
 and upload_client = {
     uc_sock : TcpBufferedSocket.t;
     uc_file : CommonUploads.shared_file;
@@ -77,7 +83,8 @@ and result = {
     result_result : result CommonResult.result_impl;
     result_name : string;
     result_size : int64;
-    mutable result_sources : (user * int) list;
+    mutable result_sources : (user * file_uri) list;
+    mutable result_uids : file_uid list;
   }
 
 and file = {
@@ -85,4 +92,12 @@ and file = {
     file_id : Md4.t;
     file_name : string;
     mutable file_clients : client list;
+    mutable file_uids : file_uid list; 
   }
+
+and file_uid =
+| Bitprint of string * Sha1.t * Tiger.t
+| Sha1 of string * Sha1.t
+| Md4 of string * Md4.t
+| Md5 of string * Md5.t
+  

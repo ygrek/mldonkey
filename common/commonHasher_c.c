@@ -19,7 +19,7 @@
 
 #include <stdio.h>
 #include "../config/config.h"
-#include "../lib/os_stubs.h"
+/* #include "../lib/os_stubs.h" */
 
 #include "caml/mlvalues.h"
 #include "caml/fail.h"
@@ -35,32 +35,143 @@
 #define JOB_RESULT      4
 #define JOB_HANDLER     5
 
-extern void md4_unsafe64_fd_direct (OS_FD fd, long pos, long len, 
-  unsigned char *digest);
+#include "../lib/md4.h"
+#include "../lib/md5.h"
+#include "../lib/sha1_c.h"
 
-extern void md5_unsafe64_fd_direct (OS_FD fd, long pos, long len, 
-  unsigned char *digest);
 
-extern void sha1_unsafe64_fd_direct (OS_FD fd, long pos, long len, 
-  unsigned char *digest);
+/* Use a different buffer to avoid sharing it between the two threads !! */
+static unsigned char local_hash_buffer[HASH_BUFFER_LEN];
+
+static void md4_unsafe64_fd_direct (OS_FD fd, long pos, long len, 
+  unsigned char *digest)
+{
+  MD4_CTX context;
+  int nread;
+
+  MD4Init (&context);
+  os_lseek(fd, pos, SEEK_SET);
+
+  while (len!=0){
+    int max_nread = HASH_BUFFER_LEN > len ? len : HASH_BUFFER_LEN;
+
+    nread = os_read (fd, local_hash_buffer, max_nread);
+
+    if(nread < 0) {
+      unix_error(errno, "md4_safe_fd: Read", Nothing);
+    }
+
+    if(nread == 0){
+      MD4Final (digest, &context);
+
+      return;
+    }
+
+    MD4Update (&context, local_hash_buffer, nread);
+    len -= nread;
+  }
+  MD4Final (digest, &context);
+
+  return;
+}
+
+static void md5_unsafe64_fd_direct (OS_FD fd, long pos, long len, 
+  unsigned char *digest)
+{
+  md5_state_t context;
+  int nread;
+
+  md5_init (&context);
+  os_lseek(fd, pos, SEEK_SET);
+
+  while (len!=0){
+    int max_nread = HASH_BUFFER_LEN > len ? len : HASH_BUFFER_LEN;
+
+    nread = os_read (fd, local_hash_buffer, max_nread);
+
+    if(nread < 0) {
+      unix_error(errno, "md5_safe_fd: Read", Nothing);
+    }
+
+    if(nread == 0){
+      md5_finish (&context, digest);
+
+      return;
+    }
+
+    md5_append (&context, local_hash_buffer, nread);
+    len -= nread;
+  }
+  md5_finish (&context, digest);
+}
+
+
+static void sha1_unsafe64_fd_direct (OS_FD fd, long pos, long len, 
+  unsigned char *digest)
+{
+  SHA1_CTX context;
+  int nread;
+
+  sha1_init (&context);
+  os_lseek(fd, pos, SEEK_SET);
+
+  while (len!=0){
+    int max_nread = HASH_BUFFER_LEN > len ? len : HASH_BUFFER_LEN;
+
+    nread = os_read (fd, local_hash_buffer, max_nread);
+
+    if(nread < 0) {
+      unix_error(errno, "sha1_safe_fd: Read", Nothing);
+    }
+
+    if(nread == 0){
+      sha1_finish (&context, digest);
+
+      return;
+    }
+
+    sha1_append (&context, local_hash_buffer, nread);
+    len -= nread;
+  }
+  sha1_finish (&context, digest);
+}
 
 #ifndef HAVE_LIBPTHREAD
 
+#define MAX_CHUNK_SIZE 1000000
+static  SHA1_CTX sha1_context;
+static OS_FD job_fd;
+static long job_pos;
+static long job_len;
+static value job_finished = 1;
+
 value ml_job_start(value job_v, value fd_v)
 {
-  OS_FD fd = Fd_val(fd_v);
-  long pos = Int64_val(Field(job_v, JOB_BEGIN_POS));
-  long len = Int64_val(Field(job_v, JOB_LEN));
   unsigned char *digest = String_val(Field(job_v, JOB_RESULT));
   
+  job_fd = Fd_val(fd_v);
+  job_pos = Int64_val(Field(job_v, JOB_BEGIN_POS));
+  job_len = Int64_val(Field(job_v, JOB_LEN));
+
   if(Field(job_v, JOB_METHOD) == METHOD_MD4)
-  { md4_unsafe64_fd_direct(fd, pos, len, digest); return Val_unit; }
+  { md4_unsafe64_fd_direct(job_fd, job_pos, job_len, digest); 
+    return Val_unit; }
   
   if(Field(job_v, JOB_METHOD) == METHOD_MD5)
-  { md5_unsafe64_fd_direct(fd, pos, len, digest); return Val_unit; }
+  { md5_unsafe64_fd_direct(job_fd, job_pos, job_len, digest); 
+    return Val_unit; }
   
   if(Field(job_v, JOB_METHOD) == METHOD_SHA1)
-  { sha1_unsafe64_fd_direct(fd, pos, len, digest); return Val_unit; }
+  {
+    if(job_len < MAX_CHUNK_SIZE){
+      sha1_unsafe64_fd_direct(job_fd, job_pos, job_len, digest); 
+    } else {
+      job_finished = 0;
+      sha1_init (&sha1_context);
+      os_lseek(job_fd, job_pos, SEEK_SET);
+    }
+    return Val_unit; 
+  }
   
   printf("commonHasher_c.c: method sha1 not implemented\n");
   exit(2);
@@ -70,7 +181,43 @@ value ml_job_start(value job_v, value fd_v)
 
 value ml_job_done(value job_v)
 {
-  return Val_true;
+  int nread;
+  int ndone = 0;
+  if(job_finished) return Val_true;
+  
+  if(Field(job_v, JOB_METHOD) == METHOD_SHA1){
+    while (job_len>0 && ndone< MAX_CHUNK_SIZE){
+      int max_nread = HASH_BUFFER_LEN > job_len ? job_len : HASH_BUFFER_LEN;
+      
+      nread = os_read (job_fd, local_hash_buffer, max_nread);
+      
+      if(nread <= 0) {
+        unix_error(errno, "sha1_safe_fd: Read", Nothing);
+      }
+      
+      if(nread == 0){
+        unsigned char *digest = String_val(Field(job_v, JOB_RESULT));
+        sha1_finish (&sha1_context, digest);
+        job_finished = 1;
+        return Val_true;
+      }
+      
+      sha1_append (&context, local_hash_buffer, nread);
+      job_len -= nread;
+      ndone += nread;
+    }
+    
+    if(job_len <= 0){
+      unsigned char *digest = String_val(Field(job_v, JOB_RESULT));      
+      sha1_finish (&sha1_context, digest);
+      job_finished = 1;
+      return Val_true;
+    }
+    return Val_false;  
+  }
+  printf("commonHasher_c: spliting of computation not available for md4/md5\n");
+  exit(2);
+  return Val_false;
 }
 
 #else

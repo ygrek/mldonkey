@@ -132,7 +132,7 @@ let new_shared dirname filename fullname =
         name in
   let codedname = Filename.concat dirname filename in
 (*  lprintf "\ndirname %s \nfilename %s \nfullname %s\ncodedname %s"
-    dirname filename fullname codedname; lprint_newline (); *)
+dirname filename fullname codedname; lprint_newline (); *)
   let size = Unix32.getsize64 fullname in
   incr files_scanned;
   files_scanned_size := Int64.add !files_scanned_size size;
@@ -183,7 +183,8 @@ let shared_find num =
 let shared_iter f =
   H.iter f shareds_by_num
 
-let file_size filename = Unix32.getsize64 filename
+let file_size filename = 
+  Unix32.getsize64 filename
 let local_dirname = Sys.getcwd ()
   
 (* Prevent sharing of temp directory to avoid sending incomplete files *)
@@ -244,8 +245,10 @@ let _ =
   )
     
 let shared_add_directory dirname =
-  lprintf "SHARING %s" dirname; lprint_newline ();
-  shared_add_directory dirname ""
+  if dirname <> "" then begin
+      lprintf "SHARING %s" dirname; lprint_newline ();
+      shared_add_directory dirname ""
+    end
 
 (* TODO: We need to be able to unshare whole directories that still exist ! *)
   
@@ -253,10 +256,12 @@ let shared_check_files () =
   let list = ref [] in
   H.iter (fun s ->
       let name = shared_fullname s in
-      if not (Sys.file_exists name) then list := s :: !list
+      if not (Unix32.file_exists name) then list := s :: !list
   ) shareds_by_num;
   List.iter (fun s -> shared_unshare s) !list;
-  List.iter shared_add_directory !!shared_directories
+  List.iter (fun s ->
+      if s <> "" then  shared_add_directory s)
+  !!shared_directories
   
 let impl_shared_info impl =
   let module T = GuiTypes in

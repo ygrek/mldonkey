@@ -72,39 +72,6 @@ let forget_search s =
       xs_last_search := (-1);
       xs_servers_list := [];
     end
-
-  
-(*  
-let save_as file real_name =
-(*
-Source of bug ...
-Unix2.safe_mkdir (Filename.dirname real_name);
-*)
-  file_commit (as_file file.file_file);
-  Unix32.close (file_fd file);
-  let old_name = file_disk_name file in
-  lprintf "\nMoving %s to %s\n" old_name real_name;
-  lprint_newline ();
-  (try 
-      let new_name = rename_to_incoming_dir old_name real_name in
-      change_hardname file new_name
-    with e -> 
-        Printf.eprintf "Error in rename %s (src [%s] dst [%s])"
-          (Printexc2.to_string e) old_name real_name; 
-        lprint_newline ();
-  )
-  ;
-  remove_file_clients file;
-  file.file_changed <- FileInfoChange;
-(*  !file_change_hook file *)
-  ()
-  
-let save_file file name =
-  let real_name = Filename.concat !!incoming_directory (canonize_basename name)
-    in
-  save_as file real_name;
-  file_commit (as_file file.file_file)
-*)
   
   
 let load_server_met filename =
@@ -153,7 +120,7 @@ let really_query_download filenames size md4 location old_file absents =
       None -> ()
     | Some filename ->
         if Sys.file_exists filename && not (
-            Sys.file_exists temp_file) then
+            Unix32.file_exists temp_file) then
           (try 
               if !verbose then begin
                   lprintf "Renaming from %s to %s" filename
@@ -618,13 +585,13 @@ let commands = [
         let tr = ref "dl-1" in
         
         if use_html_mods o then
-                
-                Printf.bprintf buf "\\<div class=\\\"scan_temp\\\"\\>\\<table class=\\\"scan_temp\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
-\\<td title=\\\"Filename\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Filename\\</td\\>
-\\<td title=\\\"Status\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Status\\</td\\>
-\\<td title=\\\"MD4\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>MD4\\</td\\>
-\\</tr\\>
-";
+
+		html_mods_table_header buf "scan_tempTable" "scan_temp" [ 
+		( "0", "srh", "Filename", "Filename" ) ; 
+		( "0", "srh", "Status", "Status" ) ;
+		( "0", "srh", "MD4", "MD4" ) ];
+
+
         List.iter (fun filename ->
             incr counter;
             if (!counter mod 2 == 0) then tr := "dl-1"
@@ -732,18 +699,16 @@ let commands = [
               
               begin
                 
-                Printf.bprintf buf "\\<table class=\\\"uploaders\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
-\\<td title=\\\"Network\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Network\\</td\\>
-\\<td title=\\\"Connection type [I]ndirect [D]irect\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C\\</td\\>
-\\<td title=\\\"Client name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Client name\\</td\\>
-\\<td title=\\\"IP address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>IP address\\</td\\>
-\\<td title=\\\"Connected time (minutes)\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>CT\\</td\\>
-\\<td title=\\\"Client brand\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>CB\\</td\\>
-\\<td title=\\\"Total DL Kbytes from this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>DL\\</td\\>
-\\<td title=\\\"Total UL Kbytes to this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>UL\\</td\\>
-\\<td title=\\\"Filename\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Filename\\</td\\>
-\\</TR\\>
-";
+		        html_mods_table_header buf "uploadersTable" "uploaders" [ 
+		        ( "0", "srh", "Network", "Network" ) ; 
+		        ( "0", "srh", "Connection type [I]ndirect [D]irect", "C" ) ;
+		        ( "0", "srh", "Client name", "Client name" ) ;
+		        ( "0", "srh", "IP address", "IP address" ) ;
+		        ( "0", "srh", "Connected time (minutes)", "CT" ) ;
+		        ( "0", "srh", "Client brand", "CB" ) ;
+		        ( "0", "srh", "Total DL bytes from this client for all files", "DL" ) ;
+		        ( "0", "srh", "Total UL bytes to this client for all files", "UL" ) ;
+		        ( "0", "srh", "Filename", "Filename" ) ];
                 
                 List.iter (fun c ->
                     if c.client_sock <> None then begin
@@ -752,7 +717,7 @@ let commands = [
                         Printf.bprintf buf "\\<tr class=\\\"%s\\\" 
                         title=\\\"[%d] Add as friend\\\"
                         onMouseOver=\\\"mOvr(this);\\\"
-                        onMouseOut=\\\"mOut(this,this.bgColor);\\\" 
+                        onMouseOut=\\\"mOut(this);\\\" 
                         onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>"
                           ( if (!counter mod 2 == 0) then "dl-1" else "dl-2";)
                         (client_num c)
@@ -792,25 +757,22 @@ let commands = [
                 ) (List.sort 
 		     (fun c1 c2 -> compare (client_num c1) (client_num c2))
 		     (Fifo.to_list upload_clients));
-                Printf.bprintf buf "\\</table\\>";
+                Printf.bprintf buf "\\</table\\>\\</div\\>";
               end;
             
             if !!html_mods_show_pending && Intmap.length !pending_slots_map > 0 then
               
               begin
                 
-                Printf.bprintf buf "\\<br\\>\\<br\\>\\<div
-                class=\\\"uploaders\\\"\\>\\<table class=\\\"uploaders\\\"
-                cellspacing=0 cellpadding=0\\>\\<tr\\>
- \\<td title=\\\"Network\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Network\\</td\\>
- \\<td title=\\\"Connection type [I]ndirect [D]irect\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C\\</td\\>
- \\<td title=\\\"Client name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Client name\\</td\\>
- \\<td title=\\\"Client brand\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>CB\\</td\\>
- \\<td title=\\\"Total DL bytes from this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>DL\\</td\\>
- \\<td title=\\\"Total UL bytes to this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>UL\\</td\\>
- \\<td title=\\\"IP address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>IP address\\</td\\>
- \\</TR\\>
- ";
+                Printf.bprintf buf "\\<br\\>\\<br\\>"; 
+		        html_mods_table_header buf "uploadersTable" "uploaders" [ 
+		        ( "0", "srh", "Network", "Network" ) ; 
+		        ( "0", "srh", "Connection type [I]ndirect [D]irect", "C" ) ;
+		        ( "0", "srh", "Client name", "Client name" ) ;
+		        ( "0", "srh", "Client brand", "CB" ) ;
+		        ( "0", "srh", "Total DL bytes from this client for all files", "DL" ) ;
+		        ( "0", "srh", "Total UL bytes to this client for all files", "UL" ) ;
+		        ( "0", "srh", "IP address", "IP address" ) ];
                 
                 Intmap.iter (fun cnum c ->
                     
@@ -821,7 +783,7 @@ let commands = [
                       Printf.bprintf buf "\\<tr class=\\\"%s\\\" 
  					title=\\\"Add as Friend\\\"
  					onMouseOver=\\\"mOvr(this);\\\"
- 					onMouseOut=\\\"mOut(this,this.bgColor);\\\" 
+ 					onMouseOut=\\\"mOut(this);\\\" 
  					onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>"
                         ( if (!counter mod 2 == 0) then "dl-1" else "dl-2";)
                       cnum;
@@ -837,7 +799,6 @@ let commands = [
                          class=\\\"sr ar\\\"\\>%s\\</td\\>" 
                         (size_of_int64 c.client_downloaded) 
                       (size_of_int64 c.client_uploaded);
-                      
 			
                       Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>"
                       (try 
@@ -855,11 +816,9 @@ let commands = [
                     with _ -> ();
                 
                 ) !pending_slots_map;
-                Printf.bprintf buf "\\</table\\>";
+                Printf.bprintf buf "\\</table\\>\\</div\\>";
               
               end;
-            
-            
 
             Printf.bprintf buf "\\</div\\>";
             ""
@@ -897,14 +856,6 @@ let commands = [
         DonkeyIndexer.clear ();
         "local history cleared"
     ), ":\t\t\t\t\tclear local history";
-    
-    "dllink", Arg_multiple (fun args o ->        
-        let buf = o.conn_buf in
-        let url = String2.unsplit args ' ' in
-        if parse_donkey_url url then
-          "download started"
-        else "bad syntax"
-    ), "<ed2klink> :\t\t\tdownload ed2k:// link";
     
     "dd", Arg_two(fun size md4 o ->
         let buf = o.conn_buf in
@@ -1258,14 +1209,10 @@ lprint_newline ();
   client_ops.op_client_bprint_html <- (fun c buf file ->
       
       begin
-        
-        let tchunks = ref 0 in      
         try 
           
           Printf.bprintf buf "
 \\<td title=\\\"Add as Friend\\\" class=\\\"srb ar\\\"
-onMouseOver=\\\"mOvr(this);\\\"
-onMouseOut=\\\"mOut(this,this.bgColor);\\\" 
 onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>%d\\</TD\\>
 \\<td class=\\\"sr\\\"\\>%s\\</td\\>
 \\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>%s\\</td\\>
@@ -1361,18 +1308,16 @@ onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>%d\\</T
             (((last_time ()) - c.client_connect_time) / 60)
           (Md4.to_string c.client_md4);
 
-(* why can duplicates exist in c.client_file_queue? i dunno, but they do *)
-(* find a better way to empty an array... *)
-          
           (
             let qfiles = c.client_file_queue in
-            
             if qfiles <> [] then begin
 	      try
-		let _, (qchunks) = List.find (fun (qfile, _) ->
+		  let _, (qchunks) = List.find (fun (qfile, _) ->
 		  qfile = (as_file_impl file).impl_file_val) qfiles in
-		        let tchunks = (CommonFile.colored_chunks buf qchunks) in
-                Printf.bprintf buf "\\</td\\>\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>" tchunks
+                let tc = ref 0 in
+                Printf.bprintf buf "%s\\</td\\>\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>" 
+                    (CommonFile.colored_chunks qchunks) 
+                    (Array.iter (fun b -> if b then incr tc) qchunks;!tc);
 	      with Not_found -> (
                 Printf.bprintf buf "\\</td\\>\\<td class=\\\"sr ar\\\"\\>\\</td\\>" 
 			);
@@ -1381,29 +1326,7 @@ onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>%d\\</T
                 Printf.bprintf buf "\\</td\\>\\<td class=\\\"sr ar\\\"\\>\\</td\\>" 
           );
         
-        with _ -> 
-            Printf.bprintf buf "'\\\"\\>\\</td\\>
-        \\<td class=\\\"sr\\\"\\>\\</td\\>
-        \\<td class=\\\"sr\\\"\\>\\</td\\>
-        \\<td class=\\\"sr\\\"\\>\\</td\\>
-        \\<td class=\\\"sr\\\"\\>\\</td\\>
-        \\<td class=\\\"sr\\\"\\>\\</td\\>
-        \\<td class=\\\"sr\\\"\\>\\</td\\>
-        \\<td class=\\\"sr\\\"\\>\\</td\\>
-        \\<td class=\\\"sr\\\"\\>\\</td\\>
-        \\<td class=\\\"sr ar\\\"\\>\\</td\\>
-        \\<td class=\\\"sr ar\\\"\\>\\</td\\>
-        \\<td class=\\\"sr ar\\\"\\>\\</td\\>
-        \\<td class=\\\"sr ar\\\"\\>\\</td\\>
-        \\<td class=\\\"sr ar\\\"\\>\\</td\\>
-        \\<td class=\\\"sr ar\\\"\\>\\</td\\>
-        \\<td class=\\\"sr ar\\\"\\>\\</td\\>
-        \\<td class=\\\"sr ar\\\"\\>\\</td\\>
-        \\<td class=\\\"sr ar\\\"\\>\\</td\\>
-        \\<td class=\\\"sr ar\\\"\\>\\</td\\>
-        \\<td class=\\\"sr ar\\\"\\>\\</td\\>
-        \\<td class=\\\"sr ar\\\"\\>\\</td\\>
-        \\<td class=\\\"sr\\\"\\>\\</td\\>"
+        with _ -> ()
       end;
   );
 
@@ -1450,11 +1373,9 @@ onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>%d\\</T
 
           Printf.bprintf buf "
 \\<tr onMouseOver=\\\"mOvr(this);\\\"
-onMouseOut=\\\"mOut(this,this.bgColor);\\\" 
+onMouseOut=\\\"mOut(this);\\\" 
 class=\\\"%s\\\"\\>
 \\<td title=\\\"Add as friend\\\" class=\\\"srb ar\\\"
-onMouseOver=\\\"mOvr(this);\\\"
-onMouseOut=\\\"mOut(this,this.bgColor);\\\" 
 onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>%d\\</TD\\>
 \\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>%s\\</td\\>
 \\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>%s\\</td\\>
