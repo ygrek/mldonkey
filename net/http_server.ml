@@ -631,7 +631,7 @@ let give_doc buf request =
 *)      
 
 let need_auth buf name = 
-  Printf.bprintf buf  "HTTP/1.0 401 Unauthorized\nWWW-Authenticate: Basic realm=\"%s\"\n\n" name
+  Printf.bprintf buf  "HTTP/1.0 401 Unauthorized\r\nConnection: close\r\nWWW-Authenticate: Basic realm=\"%s\"\r\n\r\n" name
 
 (*
 let simple_give_auth psread pswrite request  =

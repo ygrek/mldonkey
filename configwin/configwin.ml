@@ -1,21 +1,3 @@
-(* Copyright 2001, Maxence Guesdon, INRIA Rocquencourt, FRANCE *)
-(*
-    This file is part of mldonkey.
-
-    mldonkey is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    mldonkey is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with mldonkey; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-*)
 
 type string_param =
     Configwin_types.string_param = {
@@ -69,6 +51,15 @@ type filenames_param =
     files_editable : bool;
     files_f_apply : string list -> unit;
   } 
+type date_param = 
+    Configwin_types.date_param = {
+    date_label : string ;
+    mutable date_value : int * int * int ;
+    date_editable : bool ;
+    date_f_string : (int * int * int) -> string ;
+    date_f_apply : (int * int * int) -> unit ;
+  }
+
 type parameter_kind =
     Configwin_types.parameter_kind =
     String_param of string_param
@@ -80,16 +71,31 @@ type parameter_kind =
   | Custom_param of custom_param
   | Color_param of color_param
   | Filenames_param of filenames_param
+  | Date_param of date_param
+
 type configuration_structure =
     Configwin_types.configuration_structure =
     Section of string * parameter_kind list
   | Section_list of string * configuration_structure list
+
 type return_button =
     Configwin_types.return_button =
     Return_apply
   | Return_ok
   | Return_cancel
-      
+
+
+let string = Configwin_ihm.string
+let text = Configwin_ihm.text
+let strings = Configwin_ihm.strings
+let bool = Configwin_ihm.bool
+let filename = Configwin_ihm.filename
+let filenames = Configwin_ihm.filenames
+let color = Configwin_ihm.color
+let combo = Configwin_ihm.combo
+let custom = Configwin_ihm.custom
+let date = Configwin_ihm.date
+
 let edit = Configwin_ihm.edit 
 
 let get = Configwin_ihm.edit ~with_apply: false

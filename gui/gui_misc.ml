@@ -288,20 +288,19 @@ let get_vpaned (hpaned: GPack.paned) prop =
         save_gui_options ()
     ))
   
-let save_options (gui: gui) () =
+let save_options () =
   let module P = Gui_proto in
-  let options = tab_options in
 
-    port =:= int_of_string options#entry_options_gui_port#text;
-    password =:= options#entry_options_password#text;
-    hostname =:= tab_options#entry_server_hostname#text;
-    try
-      gui_send (P.SaveOptions_query (List.map (fun 
-              (name, widget) -> name, widget#text   
-          ) options_assocs ));
-      save_gui_options ()
-    with _ ->
-        Printf.printf "ERROR SAVING OPTIONS (but port/password/host correctly set for GUI)"; print_newline ()
+  try
+    gui_send (P.SaveOptions_query
+		  (List.map
+		     (fun (name, r) -> (name, !r))
+		     Gui_options.client_options_assocs
+		  )
+	     );
+    save_gui_options ()
+  with _ ->
+    Printf.printf "ERROR SAVING OPTIONS (but port/password/host correctly set for GUI)"; print_newline ()
       
 let servers_remove (gui : gui) () = 
   let module P = Gui_proto in

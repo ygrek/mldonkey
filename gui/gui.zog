@@ -547,8 +547,6 @@
       </custom>
       <custom name=tab_searches width="-1" height="-1" border_width="-1" function="new+box_searches" tab_label="%22Queries%22" expand="false" fill="true" padding="-1">
       </custom>
-      <custom name=tab_options width="-1" height="-1" border_width="-1" function="new+box_options" tab_label="Mes.options" expand="false" fill="true" padding="-1">
-      </custom>
       <custom name=tab_console width="-1" height="-1" border_width="-1" function="new+box_console" tab_label="Mes.console" expand="false" fill="true" padding="-1">
       </custom>
       <custom name=tab_help width="-1" height="-1" border_width="-1" function="new+box_help" tab_label="Mes.help" expand="false" fill="true" padding="-1">

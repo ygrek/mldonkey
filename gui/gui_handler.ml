@@ -77,11 +77,6 @@ let _ =
      let a = O.add_binding O.keymap_queries in
      ()
     );
-  if !!O.keymap_options = [] then
-    (
-     let a = O.add_binding O.keymap_options in
-     ()
-    );
   if !!O.keymap_console = [] then
     (
      let a = O.add_binding O.keymap_console in
@@ -140,7 +135,6 @@ let window = GWindow.window
 let tab_searches = gui#tab_searches
 let tab_servers = gui#tab_servers
 let tab_downloads = gui#tab_downloads
-let tab_options = gui#tab_options
 let tab_friends = gui#tab_friends
 let tab_help = gui#tab_help
   
@@ -915,30 +909,6 @@ let canon_client c =
   end;
   c
   
-let (options_assocs : 
-    (string * GEdit.entry) list) = 
-  let options = gui#tab_options in
-  [
-    "port",        options#entry_options_conn_port;
-    "telnet_port", options#entry_options_rmt_port;
-    "gui_port",    options#entry_options_gui_port;
-    "save_options_delay", options#entry_options_save_delay;
-    "check_client_connections_delay", options#entry_options_check_clients_delay;
-    "check_connections_delay", options#entry_options_check_servers_delay;
-    "small_retry_delay", options#entry_options_small_retry_delay;
-    "medium_retry_delay", options#entry_options_medium_retry_delay;
-    "long_retry_delay", options#entry_options_long_retry_delay;
-    "client_name",   options#entry_options_name;
-    "password",  options#entry_options_password;
-    "max_connected_servers", options#entry_options_maxconn_servers;
-    "max_upload_rate", options#entry_options_upload_limit;
-    "server_connection_timeout", options#entry_options_server_timeout;
-    "client_timeout", options#entry_options_client_timeout;
-    "max_server_age", options#entry_max_server_age;    
-    "update_gui_delay", options#entry_refresh_delay;
-  ]
-
-  
 let update_server key s os =
   begin
     match is_connected s.server_state, is_connected os.server_state with
@@ -989,10 +959,6 @@ let update_file f =
         (Printexc.to_string e) (Md4.to_string f.file_md4);
       print_newline () 
 
-let options_assocs_rev = List.map (fun (name,widget) ->
-      widget, name) options_assocs
-  
-  
 let value_reader (gui: gui) t sock =
   try
     let module P = Gui_proto in
@@ -1170,16 +1136,16 @@ let value_reader (gui: gui) t sock =
         
     | P.Options_info list ->
 (*        Printf.printf "Options_info"; print_newline ();  *)
-        let options = gui#tab_options in
-        
         let rec iter list =
           match list with
             [] -> ()
           | (name, value) :: tail ->
               (
                 try
-                  let widget = List.assoc name options_assocs in
-                  widget#set_text value
+                  let reference = 
+		    List.assoc name Gui_options.client_options_assocs 
+		  in
+                  reference := value
                 with _ -> 
 (* 
   Printf.printf "No widget for %s" name; 

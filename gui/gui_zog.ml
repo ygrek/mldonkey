@@ -11,7 +11,8 @@ class box_servers () =
       ()
   in
   let _ =
-    GMisc.label ~text:(Mes.ip) ~justify:`LEFT ~line_wrap:true
+    GMisc.label ~text:(Mes.ip) ~justify:`LEFT ~line_wrap:true ~xalign:(-1.0)
+      ~yalign:(-1.0)
       ~packing:(
         _anonymous_container_2#pack ~expand:false ~fill:true ~padding:3)
       ()
@@ -21,7 +22,8 @@ class box_servers () =
       ~packing:(_anonymous_container_2#pack ~expand:false ~fill:true) ()
   in
   let _ =
-    GMisc.label ~text:(Mes.port) ~justify:`LEFT ~line_wrap:true
+    GMisc.label ~text:(Mes.port) ~justify:`LEFT ~line_wrap:true ~xalign:(-1.0)
+      ~yalign:(-1.0)
       ~packing:(
         _anonymous_container_2#pack ~expand:false ~fill:true ~padding:3)
       ()
@@ -38,7 +40,7 @@ class box_servers () =
   in
   let _ =
     GMisc.label ~text:(Mes.add_server) ~justify:`LEFT ~line_wrap:true
-      ~packing:button_servers_add#add ()
+      ~xalign:(-1.0) ~yalign:(-1.0) ~packing:button_servers_add#add ()
   in
   let _ =
     GMisc.separator `VERTICAL
@@ -54,7 +56,8 @@ class box_servers () =
   in
   let _ =
     GMisc.label ~text:(Mes.connect_more_servers) ~justify:`LEFT
-      ~line_wrap:true ~packing:button_servers_connect_more#add ()
+      ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0)
+      ~packing:button_servers_connect_more#add ()
   in
   let button_remove_old_servers =
     GButton.button
@@ -62,7 +65,7 @@ class box_servers () =
   in
   let _ =
     GMisc.label ~text:(Mes.remove_old_servers) ~justify:`LEFT ~line_wrap:true
-      ~packing:button_remove_old_servers#add ()
+      ~xalign:(-1.0) ~yalign:(-1.0) ~packing:button_remove_old_servers#add ()
   in
   let hpaned =
     GPack.paned `HORIZONTAL
@@ -94,7 +97,7 @@ class box_servers () =
   in
   let _ =
     GMisc.label ~text:(Mes.remove) ~justify:`LEFT ~line_wrap:true
-      ~packing:button_servers_remove#add ()
+      ~xalign:(-1.0) ~yalign:(-1.0) ~packing:button_servers_remove#add ()
   in
   let button_servers_connect =
     GButton.button
@@ -102,7 +105,7 @@ class box_servers () =
   in
   let _ =
     GMisc.label ~text:(Mes.connect) ~justify:`LEFT ~line_wrap:true
-      ~packing:button_servers_connect#add ()
+      ~xalign:(-1.0) ~yalign:(-1.0) ~packing:button_servers_connect#add ()
   in
   let button_servers_disconnect =
     GButton.button
@@ -110,7 +113,7 @@ class box_servers () =
   in
   let _ =
     GMisc.label ~text:(Mes.disconnect) ~justify:`LEFT ~line_wrap:true
-      ~packing:button_servers_disconnect#add ()
+      ~xalign:(-1.0) ~yalign:(-1.0) ~packing:button_servers_disconnect#add ()
   in
   let button_servers_view_users =
     GButton.button
@@ -118,7 +121,7 @@ class box_servers () =
   in
   let _ =
     GMisc.label ~text:(Mes.view_users) ~justify:`LEFT ~line_wrap:true
-      ~packing:button_servers_view_users#add ()
+      ~xalign:(-1.0) ~yalign:(-1.0) ~packing:button_servers_view_users#add ()
   in
   let _anonymous_container_5 =
     GPack.vbox ~width:180 ~homogeneous:false ~packing:hpaned#add2 ()
@@ -143,7 +146,7 @@ class box_servers () =
   in
   let _ =
     GMisc.label ~text:(Mes.add_to_friends) ~justify:`LEFT ~line_wrap:true
-      ~packing:button_add_to_friends#add ()
+      ~xalign:(-1.0) ~yalign:(-1.0) ~packing:button_add_to_friends#add ()
   in
   object
     val box = box
@@ -185,12 +188,12 @@ class box_search () =
       ()
   in
   let label_query =
-    GMisc.label ~text:"" ~justify:`LEFT ~line_wrap:true
-      ~packing:(hbox_501#pack ~expand:true ~fill:true) ()
+    GMisc.label ~text:"" ~justify:`LEFT ~line_wrap:true ~xalign:(-1.0)
+      ~yalign:(-1.0) ~packing:(hbox_501#pack ~expand:true ~fill:true) ()
   in
   let label_waiting =
-    GMisc.label ~text:"" ~justify:`LEFT ~line_wrap:true
-      ~packing:(hbox_501#pack ~expand:true ~fill:true) ()
+    GMisc.label ~text:"" ~justify:`LEFT ~line_wrap:true ~xalign:(-1.0)
+      ~yalign:(-1.0) ~packing:(hbox_501#pack ~expand:true ~fill:true) ()
   in
   let _anonymous_container_8 =
     GBin.scrolled_window ~hpolicy:`ALWAYS ~vpolicy:`ALWAYS
@@ -212,7 +215,8 @@ class box_search () =
   in
   let _ =
     GMisc.label ~text:(Mes.download_selected_files) ~justify:`LEFT
-      ~line_wrap:true ~packing:button_search_download#add ()
+      ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0)
+      ~packing:button_search_download#add ()
   in
   let button_stop =
     GButton.button
@@ -220,7 +224,7 @@ class box_search () =
   in
   let _ =
     GMisc.label ~text:(Mes.stop_search) ~justify:`LEFT ~line_wrap:true
-      ~packing:button_stop#add ()
+      ~xalign:(-1.0) ~yalign:(-1.0) ~packing:button_stop#add ()
   in
   let button_close =
     GButton.button
@@ -228,7 +232,7 @@ class box_search () =
   in
   let _ =
     GMisc.label ~text:(Mes.close_search) ~justify:`LEFT ~line_wrap:true
-      ~packing:button_close#add ()
+      ~xalign:(-1.0) ~yalign:(-1.0) ~packing:button_close#add ()
   in
   object
     val box = box
@@ -262,7 +266,8 @@ class box_downloads () =
       ()
   in
   let _ =
-    GMisc.label ~text:(Mes.ed2k) ~justify:`LEFT ~line_wrap:true
+    GMisc.label ~text:(Mes.ed2k) ~justify:`LEFT ~line_wrap:true ~xalign:(-1.0)
+      ~yalign:(-1.0)
       ~packing:(_anonymous_container_11#pack ~expand:false ~fill:true) ()
   in
   let entry_ed2k_url =
@@ -271,6 +276,7 @@ class box_downloads () =
   in
   let _ =
     GMisc.label ~text:(Mes.recover_md4) ~justify:`LEFT ~line_wrap:true
+      ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_11#pack ~expand:false ~fill:true) ()
   in
   let entry_md4 =
@@ -293,6 +299,7 @@ class box_downloads () =
   in
   let label_downloaded =
     GMisc.label ~text:(Mes.files_downloaded 0) ~justify:`LEFT ~line_wrap:true
+      ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_13#pack ~expand:false ~fill:true) ()
   in
   let _anonymous_container_14 =
@@ -317,13 +324,14 @@ class box_downloads () =
   in
   let _ =
     GMisc.label ~text:(Mes.downloaded_save) ~justify:`LEFT ~line_wrap:true
-      ~packing:button_downloaded_save#add ()
+      ~xalign:(-1.0) ~yalign:(-1.0) ~packing:button_downloaded_save#add ()
   in
   let _anonymous_container_16 =
     GPack.vbox ~height:180 ~homogeneous:false ~packing:vpaned#add2 ()
   in
   let label_downloading =
     GMisc.label ~text:(Mes.downloading_files 0) ~justify:`LEFT ~line_wrap:true
+      ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_16#pack ~expand:false ~fill:true) ()
   in
   let _anonymous_container_17 =
@@ -340,7 +348,8 @@ class box_downloads () =
       ~packing:_anonymous_container_17#add ()
   in
   let label_file_info =
-    GMisc.label ~text:"" ~justify:`CENTER ~line_wrap:true
+    GMisc.label ~text:"" ~justify:`CENTER ~line_wrap:true ~xalign:(-1.0)
+      ~yalign:(-1.0)
       ~packing:(_anonymous_container_16#pack ~expand:false ~fill:true) ()
   in
   let _anonymous_container_18 =
@@ -361,7 +370,7 @@ class box_downloads () =
   in
   let _ =
     GMisc.label ~text:(Mes.cancel) ~justify:`LEFT ~line_wrap:true
-      ~packing:button_download_cancel#add ()
+      ~xalign:(-1.0) ~yalign:(-1.0) ~packing:button_download_cancel#add ()
   in
   let button_download_retry_connect =
     GButton.button
@@ -369,7 +378,8 @@ class box_downloads () =
   in
   let _ =
     GMisc.label ~text:(Mes.retry_connect) ~justify:`LEFT ~line_wrap:true
-      ~packing:button_download_retry_connect#add ()
+      ~xalign:(-1.0) ~yalign:(-1.0) ~packing:button_download_retry_connect#add
+      ()
   in
   let _anonymous_container_20 =
     GPack.vbox ~width:180 ~homogeneous:false ~packing:hpaned#add2 ()
@@ -386,7 +396,7 @@ class box_downloads () =
   in
   let label_locations_status =
     GMisc.label ~text:(Mes.connected_to_locations 0 0) ~justify:`LEFT
-      ~line_wrap:true
+      ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_20#pack ~expand:false ~fill:true) ()
   in
   let button_download_add_friend =
@@ -395,7 +405,7 @@ class box_downloads () =
   in
   let _ =
     GMisc.label ~text:(Mes.add_to_friends) ~justify:`LEFT ~line_wrap:true
-      ~packing:button_download_add_friend#add ()
+      ~xalign:(-1.0) ~yalign:(-1.0) ~packing:button_download_add_friend#add ()
   in
   object
     val box = box
@@ -441,7 +451,8 @@ class box_friends () =
   in
   let _anonymous_container_22 =
     GBin.frame ~width:180 ~height:180 ~border_width:1 ~label:(Mes.friends)
-      ~shadow_type:`ETCHED_OUT ~packing:hpaned#add1 ()
+      ~label_xalign:(-1.0) ~label_yalign:(-1.0) ~shadow_type:`ETCHED_OUT
+      ~packing:hpaned#add1 ()
   in
   let _anonymous_container_23 =
     GPack.vbox ~width:180 ~height:100 ~homogeneous:false ~spacing:10
@@ -468,7 +479,7 @@ class box_friends () =
   in
   let _ =
     GMisc.label ~text:(Mes.remove) ~justify:`LEFT ~line_wrap:true
-      ~packing:button_friends_remove#add ()
+      ~xalign:(-1.0) ~yalign:(-1.0) ~packing:button_friends_remove#add ()
   in
   let _anonymous_container_26 =
     GPack.hbox ~homogeneous:false
@@ -476,6 +487,7 @@ class box_friends () =
   in
   let _ =
     GMisc.label ~text:(Mes.find_friend) ~justify:`LEFT ~line_wrap:true
+      ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_26#pack ~expand:false ~fill:true) ()
   in
   let entry_find_friend =
@@ -485,7 +497,8 @@ class box_friends () =
   let vpaned = GPack.paned `VERTICAL ~packing:hpaned#add2 () in
   let _anonymous_container_27 =
     GBin.frame ~width:600 ~height:180 ~border_width:1 ~label:(Mes.files)
-      ~shadow_type:`ETCHED_OUT ~packing:vpaned#add1 ()
+      ~label_xalign:(-1.00) ~label_yalign:(-1.0) ~shadow_type:`ETCHED_OUT
+      ~packing:vpaned#add1 ()
   in
   let _anonymous_container_28 =
     GPack.vbox ~homogeneous:false ~packing:_anonymous_container_27#add ()
@@ -511,7 +524,8 @@ class box_friends () =
   in
   let _ =
     GMisc.label ~text:(Mes.download_selected_files) ~justify:`LEFT
-      ~line_wrap:true ~packing:button_friends_download#add ()
+      ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0)
+      ~packing:button_friends_download#add ()
   in
   let _anonymous_container_31 =
     GPack.hbox ~homogeneous:false
@@ -520,7 +534,8 @@ class box_friends () =
       ()
   in
   let _ =
-    GMisc.label ~text:(Mes.ip) ~justify:`LEFT ~line_wrap:true
+    GMisc.label ~text:(Mes.ip) ~justify:`LEFT ~line_wrap:true ~xalign:(-1.0)
+      ~yalign:(-1.0)
       ~packing:(
         _anonymous_container_31#pack ~expand:false ~fill:true ~padding:3)
       ()
@@ -530,7 +545,8 @@ class box_friends () =
       ~packing:(_anonymous_container_31#pack ~expand:false ~fill:true) ()
   in
   let _ =
-    GMisc.label ~text:(Mes.port) ~justify:`LEFT ~line_wrap:true
+    GMisc.label ~text:(Mes.port) ~justify:`LEFT ~line_wrap:true ~xalign:(-1.0)
+      ~yalign:(-1.0)
       ~packing:(
         _anonymous_container_31#pack ~expand:false ~fill:true ~padding:3)
       ()
@@ -547,11 +563,11 @@ class box_friends () =
   in
   let _ =
     GMisc.label ~text:(Mes.add_friend) ~justify:`LEFT ~line_wrap:true
-      ~packing:button_friends_add#add ()
+      ~xalign:(-1.0) ~yalign:(-1.0) ~packing:button_friends_add#add ()
   in
   let _anonymous_container_32 =
-    GBin.frame ~width:0 ~label:(Mes.dialog) ~shadow_type:`NONE
-      ~packing:vpaned#add2 ()
+    GBin.frame ~width:0 ~label:(Mes.dialog) ~label_xalign:(-1.0)
+      ~label_yalign:(-1.0) ~shadow_type:`NONE ~packing:vpaned#add2 ()
   in
   let _anonymous_container_33 =
     GPack.vbox ~homogeneous:false ~packing:_anonymous_container_32#add ()
@@ -602,7 +618,8 @@ class box_searches () =
   let hpaned = GPack.paned `HORIZONTAL () in
   let left_child =
     GBin.frame ~width:310 ~border_width:1 ~label:(Mes.query)
-      ~shadow_type:`ETCHED_OUT ~packing:hpaned#add1 ()
+      ~label_xalign:(-1.0) ~label_yalign:(-1.0) ~shadow_type:`ETCHED_OUT
+      ~packing:hpaned#add1 ()
   in
   let _anonymous_container_35 =
     GPack.vbox ~homogeneous:false ~spacing:10 ~packing:left_child#add ()
@@ -617,6 +634,7 @@ class box_searches () =
   in
   let _ =
     GMisc.label ~text:(Mes.search) ~justify:`LEFT ~line_wrap:true
+      ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_37#pack ~expand:false ~fill:true) ()
   in
   let entry_search_words =
@@ -629,6 +647,7 @@ class box_searches () =
   in
   let _ =
     GMisc.label ~text:(Mes.max_hits) ~justify:`LEFT ~line_wrap:true
+      ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(hbox_473#pack ~expand:false ~fill:true) ()
   in
   let combo_max_hits =
@@ -639,7 +658,8 @@ class box_searches () =
       ~ok_if_empty:true ~packing:(hbox_473#pack ~expand:false ~fill:true) ()
   in
   let _anonymous_container_38 =
-    GBin.frame ~label:(Mes.options) ~shadow_type:`NONE
+    GBin.frame ~label:(Mes.options) ~label_xalign:(-1.0) ~label_yalign:(-1.0)
+      ~shadow_type:`NONE
       ~packing:(_anonymous_container_35#pack ~expand:false ~fill:true) ()
   in
   let _anonymous_container_39 =
@@ -651,6 +671,7 @@ class box_searches () =
   in
   let _ =
     GMisc.label ~width:100 ~text:(Mes.min_size) ~justify:`LEFT ~line_wrap:true
+      ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_40#pack ~expand:false ~fill:true) ()
   in
   let entry_search_minsize =
@@ -669,6 +690,7 @@ class box_searches () =
   in
   let _ =
     GMisc.label ~width:100 ~text:(Mes.max_size) ~justify:`LEFT ~line_wrap:true
+      ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_41#pack ~expand:false ~fill:true) ()
   in
   let entry_search_maxsize =
@@ -687,6 +709,7 @@ class box_searches () =
   in
   let _ =
     GMisc.label ~width:100 ~text:(Mes.media) ~justify:`LEFT ~line_wrap:true
+      ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_42#pack ~expand:false ~fill:true) ()
   in
   let combo_search_media =
@@ -704,6 +727,7 @@ class box_searches () =
   in
   let _ =
     GMisc.label ~width:100 ~text:(Mes.format) ~justify:`LEFT ~line_wrap:true
+      ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_43#pack ~expand:false ~fill:true) ()
   in
   let combo_format =
@@ -712,7 +736,8 @@ class box_searches () =
       ~packing:(_anonymous_container_43#pack ~expand:true ~fill:true) ()
   in
   let _anonymous_container_44 =
-    GBin.frame ~label:(Mes.mp3_options) ~shadow_type:`NONE
+    GBin.frame ~label:(Mes.mp3_options) ~label_xalign:(-1.0)
+      ~label_yalign:(-1.0) ~shadow_type:`NONE
       ~packing:(_anonymous_container_35#pack ~expand:false ~fill:true) ()
   in
   let _anonymous_container_45 =
@@ -724,6 +749,7 @@ class box_searches () =
   in
   let _ =
     GMisc.label ~width:100 ~text:(Mes.album) ~justify:`LEFT ~line_wrap:true
+      ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_46#pack ~expand:false ~fill:true) ()
   in
   let entry_album =
@@ -736,6 +762,7 @@ class box_searches () =
   in
   let _ =
     GMisc.label ~width:100 ~text:(Mes.artist) ~justify:`LEFT ~line_wrap:true
+      ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_47#pack ~expand:false ~fill:true) ()
   in
   let entry_artist =
@@ -748,6 +775,7 @@ class box_searches () =
   in
   let _ =
     GMisc.label ~width:100 ~text:(Mes.title) ~justify:`LEFT ~line_wrap:true
+      ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_48#pack ~expand:false ~fill:true) ()
   in
   let entry_title =
@@ -760,7 +788,7 @@ class box_searches () =
   in
   let _ =
     GMisc.label ~width:100 ~text:(Mes.min_bitrate) ~justify:`LEFT
-      ~line_wrap:true
+      ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_49#pack ~expand:false ~fill:true) ()
   in
   let combo_min_bitrate =
@@ -777,7 +805,7 @@ class box_searches () =
   in
   let _ =
     GMisc.label ~text:(Mes.submit) ~justify:`LEFT ~line_wrap:true
-      ~packing:button_search_submit#add ()
+      ~xalign:(-1.0) ~yalign:(-1.0) ~packing:button_search_submit#add ()
   in
   let _anonymous_container_50 =
     GPack.hbox ~homogeneous:true
@@ -789,7 +817,7 @@ class box_searches () =
   in
   let _ =
     GMisc.label ~text:(Mes.extended_search) ~justify:`LEFT ~line_wrap:true
-      ~packing:button_extended_search#add ()
+      ~xalign:(-1.0) ~yalign:(-1.0) ~packing:button_extended_search#add ()
   in
   let button_local_search =
     GButton.button
@@ -797,15 +825,17 @@ class box_searches () =
   in
   let _ =
     GMisc.label ~text:(Mes.local_search) ~justify:`LEFT ~line_wrap:true
-      ~packing:button_local_search#add ()
+      ~xalign:(-1.0) ~yalign:(-1.0) ~packing:button_local_search#add ()
   in
   let label_file_comment =
-    GMisc.label ~text:"" ~justify:`CENTER ~line_wrap:true
+    GMisc.label ~text:"" ~justify:`CENTER ~line_wrap:true ~xalign:(-1.0)
+      ~yalign:(-1.0)
       ~packing:(_anonymous_container_35#pack ~expand:false ~fill:true) ()
   in
   let _anonymous_container_51 =
     GBin.frame ~width:600 ~border_width:1 ~label:(Mes.results)
-      ~shadow_type:`ETCHED_OUT ~packing:hpaned#add2 ()
+      ~label_xalign:(-1.00) ~label_yalign:(-1.0) ~shadow_type:`ETCHED_OUT
+      ~packing:hpaned#add2 ()
   in
   let notebook_results =
     GPack.notebook ~tab_pos:`TOP ~show_tabs:true ~homogeneous_tabs:true
@@ -870,7 +900,8 @@ class box_options () =
       ~packing:(_anonymous_container_53#pack ~expand:true ~fill:true) ()
   in
   let _frame_options_ports =
-    GBin.frame ~label:(Mes.ports) ~shadow_type:`ETCHED_OUT
+    GBin.frame ~label:(Mes.ports) ~label_xalign:(-1.0) ~label_yalign:(-1.0)
+      ~shadow_type:`ETCHED_OUT
       ~packing:(_anonymous_container_54#pack ~expand:true ~fill:true) ()
   in
   let _anonymous_container_55 =
@@ -882,7 +913,7 @@ class box_options () =
   in
   let _ =
     GMisc.label ~width:150 ~text:(Mes.connection_port) ~justify:`LEFT
-      ~line_wrap:true
+      ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_56#pack ~expand:false ~fill:true) ()
   in
   let entry_options_conn_port =
@@ -895,7 +926,7 @@ class box_options () =
   in
   let _ =
     GMisc.label ~width:150 ~text:(Mes.control_port) ~justify:`LEFT
-      ~line_wrap:true
+      ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_57#pack ~expand:false ~fill:true) ()
   in
   let entry_options_rmt_port =
@@ -903,7 +934,8 @@ class box_options () =
       ~packing:(_anonymous_container_57#pack ~expand:true ~fill:true) ()
   in
   let _frame_options_delays =
-    GBin.frame ~label:(Mes.delays) ~shadow_type:`ETCHED_OUT
+    GBin.frame ~label:(Mes.delays) ~label_xalign:(-1.0) ~label_yalign:(-1.0)
+      ~shadow_type:`ETCHED_OUT
       ~packing:(_anonymous_container_54#pack ~expand:true ~fill:true) ()
   in
   let _anonymous_container_58 =
@@ -915,7 +947,7 @@ class box_options () =
   in
   let _ =
     GMisc.label ~width:150 ~text:(Mes.save_options_delay) ~justify:`LEFT
-      ~line_wrap:true
+      ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_59#pack ~expand:false ~fill:true) ()
   in
   let entry_options_save_delay =
@@ -928,7 +960,7 @@ class box_options () =
   in
   let _ =
     GMisc.label ~width:150 ~text:(Mes.check_client_connections) ~justify:`LEFT
-      ~line_wrap:true
+      ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_60#pack ~expand:false ~fill:true) ()
   in
   let entry_options_check_clients_delay =
@@ -941,7 +973,7 @@ class box_options () =
   in
   let _ =
     GMisc.label ~width:150 ~text:(Mes.check_server_connection) ~justify:`LEFT
-      ~line_wrap:true
+      ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_61#pack ~expand:false ~fill:true) ()
   in
   let entry_options_check_servers_delay =
@@ -954,7 +986,7 @@ class box_options () =
   in
   let _ =
     GMisc.label ~width:150 ~text:(Mes.small_retry_delay) ~justify:`LEFT
-      ~line_wrap:true
+      ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_62#pack ~expand:false ~fill:true) ()
   in
   let entry_options_small_retry_delay =
@@ -967,7 +999,7 @@ class box_options () =
   in
   let _ =
     GMisc.label ~width:150 ~text:(Mes.medium_retry_delay) ~justify:`LEFT
-      ~line_wrap:true
+      ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_63#pack ~expand:false ~fill:true) ()
   in
   let entry_options_medium_retry_delay =
@@ -980,7 +1012,7 @@ class box_options () =
   in
   let _ =
     GMisc.label ~width:150 ~text:(Mes.long_retry_delay) ~justify:`LEFT
-      ~line_wrap:true
+      ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_64#pack ~expand:false ~fill:true) ()
   in
   let entry_options_long_retry_delay =
@@ -993,7 +1025,7 @@ class box_options () =
   in
   let _ =
     GMisc.label ~width:150 ~text:(Mes.gui_refresh_delay) ~justify:`LEFT
-      ~line_wrap:true
+      ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_65#pack ~expand:false ~fill:true) ()
   in
   let entry_refresh_delay =
@@ -1005,7 +1037,8 @@ class box_options () =
       ~packing:(_anonymous_container_53#pack ~expand:true ~fill:true) ()
   in
   let _frame_options_general =
-    GBin.frame ~label:(Mes.general) ~shadow_type:`ETCHED_OUT
+    GBin.frame ~label:(Mes.general) ~label_xalign:(-1.0) ~label_yalign:(-1.0)
+      ~shadow_type:`ETCHED_OUT
       ~packing:(_anonymous_container_66#pack ~expand:false ~fill:true) ()
   in
   let _anonymous_container_67 =
@@ -1017,6 +1050,7 @@ class box_options () =
   in
   let _ =
     GMisc.label ~width:100 ~text:(Mes.name) ~justify:`LEFT ~line_wrap:true
+      ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_68#pack ~expand:false ~fill:true) ()
   in
   let entry_options_name =
@@ -1029,7 +1063,7 @@ class box_options () =
   in
   let _ =
     GMisc.label ~width:150 ~text:(Mes.max_connected_servers) ~justify:`LEFT
-      ~line_wrap:true
+      ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_69#pack ~expand:false ~fill:true) ()
   in
   let entry_options_maxconn_servers =
@@ -1042,7 +1076,7 @@ class box_options () =
   in
   let _ =
     GMisc.label ~width:150 ~text:(Mes.upload_limit) ~justify:`LEFT
-      ~line_wrap:true
+      ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_70#pack ~expand:false ~fill:true) ()
   in
   let entry_options_upload_limit =
@@ -1050,7 +1084,8 @@ class box_options () =
       ~packing:(_anonymous_container_70#pack ~expand:true ~fill:true) ()
   in
   let _frame_options_timeouts =
-    GBin.frame ~label:(Mes.timeouts) ~shadow_type:`ETCHED_OUT
+    GBin.frame ~label:(Mes.timeouts) ~label_xalign:(-1.0) ~label_yalign:(-1.0)
+      ~shadow_type:`ETCHED_OUT
       ~packing:(_anonymous_container_66#pack ~expand:false ~fill:true) ()
   in
   let _anonymous_container_71 =
@@ -1062,7 +1097,7 @@ class box_options () =
   in
   let _ =
     GMisc.label ~width:150 ~text:(Mes.server_connection) ~justify:`LEFT
-      ~line_wrap:true
+      ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_72#pack ~expand:false ~fill:true) ()
   in
   let entry_options_server_timeout =
@@ -1075,7 +1110,7 @@ class box_options () =
   in
   let _ =
     GMisc.label ~width:150 ~text:(Mes.client_connection) ~justify:`LEFT
-      ~line_wrap:true
+      ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_73#pack ~expand:false ~fill:true) ()
   in
   let entry_options_client_timeout =
@@ -1088,7 +1123,7 @@ class box_options () =
   in
   let _ =
     GMisc.label ~width:150 ~text:(Mes.max_server_age) ~justify:`LEFT
-      ~line_wrap:true
+      ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_74#pack ~expand:false ~fill:true) ()
   in
   let entry_max_server_age =
@@ -1096,7 +1131,8 @@ class box_options () =
       ~packing:(_anonymous_container_74#pack ~expand:true ~fill:true) ()
   in
   let _frame_server =
-    GBin.frame ~label:"Server" ~shadow_type:`NONE
+    GBin.frame ~label:"Server" ~label_xalign:(-1.0) ~label_yalign:(-1.0)
+      ~shadow_type:`NONE
       ~packing:(_anonymous_container_66#pack ~expand:false ~fill:true) ()
   in
   let _anonymous_container_75 =
@@ -1108,6 +1144,7 @@ class box_options () =
   in
   let _ =
     GMisc.label ~width:150 ~text:(Mes.hostname) ~justify:`LEFT ~line_wrap:true
+      ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_76#pack ~expand:false ~fill:true) ()
   in
   let entry_server_hostname =
@@ -1120,6 +1157,7 @@ class box_options () =
   in
   let _ =
     GMisc.label ~width:150 ~text:(Mes.password) ~justify:`LEFT ~line_wrap:true
+      ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_77#pack ~expand:false ~fill:true) ()
   in
   let entry_options_password =
@@ -1132,6 +1170,7 @@ class box_options () =
   in
   let _ =
     GMisc.label ~width:150 ~text:(Mes.gui_port) ~justify:`LEFT ~line_wrap:true
+      ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_78#pack ~expand:false ~fill:true) ()
   in
   let entry_options_gui_port =
@@ -1148,7 +1187,8 @@ class box_options () =
   in
   let _ =
     GMisc.label ~text:(Mes.save_and_apply_options) ~justify:`LEFT
-      ~line_wrap:true ~packing:button_options_save#add ()
+      ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0)
+      ~packing:button_options_save#add ()
   in
   object
     val box = box
@@ -1217,6 +1257,7 @@ class box_console () =
   in
   let _ =
     GMisc.label ~width:180 ~text:(Mes.command) ~justify:`LEFT ~line_wrap:true
+      ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_82#pack ~expand:false ~fill:true) ()
   in
   let entry_command =
@@ -1238,7 +1279,7 @@ class box_console () =
   in
   let _ =
     GMisc.label ~text:(Mes.clear_console) ~justify:`LEFT ~line_wrap:true
-      ~packing:button_clear_console#add ()
+      ~xalign:(-1.0) ~yalign:(-1.0) ~packing:button_clear_console#add ()
   in
   object
     val entry_command = entry_command
@@ -1322,12 +1363,6 @@ class gui () =
     notebook#append_page ~tab_label:(GMisc.label ~text:"Queries" ())#coerce
       tab_searches#coerce
   in
-  let tab_options = new box_options () in
-  let _ =
-    notebook#append_page
-      ~tab_label:(GMisc.label ~text:(Mes.options) ())#coerce
-      tab_options#coerce
-  in
   let tab_console = new box_console () in
   let _ =
     notebook#append_page
@@ -1345,24 +1380,27 @@ class gui () =
   in
   let label_connect_status =
     GMisc.label ~text:(Mes.not_connected) ~justify:`LEFT ~line_wrap:true
+      ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_84#pack ~expand:true ~fill:true) ()
   in
   let label_servers_status =
     GMisc.label ~text:(Mes.connected_to_servers 0 0) ~justify:`LEFT
-      ~line_wrap:true
+      ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_84#pack ~expand:true ~fill:true) ()
   in
   let label_download_status =
     GMisc.label ~text:(Mes.downloaded_files 0 0) ~justify:`LEFT
-      ~line_wrap:true
+      ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_84#pack ~expand:true ~fill:true) ()
   in
   let label_searches_status =
     GMisc.label ~text:(Mes.no_current_search) ~justify:`LEFT ~line_wrap:true
+      ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(_anonymous_container_84#pack ~expand:true ~fill:true) ()
   in
   let label_upload_status =
-    GMisc.label ~text:"" ~justify:`LEFT ~line_wrap:true
+    GMisc.label ~text:"" ~justify:`LEFT ~line_wrap:true ~xalign:(-1.0)
+      ~yalign:(-1.0)
       ~packing:(_anonymous_container_84#pack ~expand:true ~fill:true) ()
   in
   object
@@ -1386,7 +1424,6 @@ class gui () =
     val tab_downloads = tab_downloads
     val tab_friends = tab_friends
     val tab_searches = tab_searches
-    val tab_options = tab_options
     val tab_console = tab_console
     val tab_help = tab_help
     val label_connect_status = label_connect_status
@@ -1414,7 +1451,6 @@ class gui () =
     method tab_downloads = tab_downloads
     method tab_friends = tab_friends
     method tab_searches = tab_searches
-    method tab_options = tab_options
     method tab_console = tab_console
     method tab_help = tab_help
     method label_connect_status = label_connect_status

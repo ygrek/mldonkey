@@ -29,8 +29,6 @@ val keymap_friends :
   ((Gdk.Tags.modifier list * int) * string) list Options.option_record
 val keymap_queries :
   ((Gdk.Tags.modifier list * int) * string) list Options.option_record
-val keymap_options :
-  ((Gdk.Tags.modifier list * int) * string) list Options.option_record
 val keymap_console :
   ((Gdk.Tags.modifier list * int) * string) list Options.option_record
 
@@ -65,3 +63,33 @@ val hostname : string Options.option_record
 val max_client_name_len : int Options.option_record
   
 val auto_resize : bool Options.option_record
+
+(** {2 Client options} *)
+
+val client_port : string ref
+val telnet_port : string ref
+val client_gui_port : string ref
+val save_options_delay : string ref
+val check_client_connections_delay : string ref
+val check_connections_delay : string ref
+val small_retry_delay : string ref
+val medium_retry_delay : string ref
+val long_retry_delay : string ref
+val client_name : string ref
+val client_password : string ref
+val max_connected_servers : string ref
+val max_upload_rate : string ref
+val server_connection_timeout : string ref
+val client_timeout : string ref
+val max_server_age : string ref
+val update_gui_delay : string ref
+
+val smtp_server : string ref
+val smtp_port : string ref
+val mail : string ref
+
+val temp_dir : string ref
+val incoming_dir : string ref
+
+val client_options_assocs : (string * string ref) list
+val client_options_assocs_rev : (string ref * string) list

@@ -87,7 +87,8 @@ MIN_GUI_CMOS= gui/gui_types.$(EXT) gui/gui_proto.$(EXT)
 GUI_CMOS= gui/gui_messages.$(EXT) gui/gui_keys.$(EXT) \
   gui/gui_options.$(EXT) gui/gui.$(EXT) \
   gui/myCList.$(EXT) gui/gui_handler.$(EXT) \
-  gui/gui_misc.$(EXT) gui/gui_main.$(EXT)
+  gui/gui_misc.$(EXT) gui/gui_config.$(EXT) \
+  gui/gui_main.$(EXT)
 
 CLIENT_CMOS=client/downloadTypes.$(EXT) \
   client/downloadOptions.$(EXT) \

@@ -52,7 +52,7 @@ let _ =
   ignore (gui#itemDownloads#connect#activate (fun _ -> gui#notebook#goto_page 1));
   ignore (gui#itemFriends#connect#activate (fun _ -> gui#notebook#goto_page 2));
   ignore (gui#itemSearches#connect#activate (fun _ -> gui#notebook#goto_page 3));
-  ignore (gui#itemOptions#connect#activate (fun _ -> gui#notebook#goto_page 4));
+  ignore (gui#itemOptions#connect#activate Gui_config.edit_options);
   ignore (gui#itemConsole#connect#activate (fun _ -> gui#notebook#goto_page 5));
   ignore (gui#itemHelp#connect#activate (fun _ -> gui#notebook#goto_page 6));
   ignore (tab_searches#button_search_submit#connect#clicked (submit_search gui false));
@@ -82,24 +82,11 @@ ignore (gui#clist_download#connect#unselect_row (download_unset_selection gui));
       servers_connect_more gui));
   ignore (tab_servers#button_servers_remove#connect#clicked (
       servers_remove gui));
-  ignore (tab_options#button_options_save#connect#clicked (save_options gui));
-  ignore (tab_options#entry_options_password#connect#activate (fun _ ->
-        password =:= tab_options#entry_options_password#text;
-    ));  
-  tab_options#entry_options_password#set_text !!password;
   ignore (gui#tab_console#entry_command#connect#activate (fun _ ->
         gui_send (Command gui#tab_console#entry_command#text);
         gui#tab_console#entry_command#set_text ""
     ));
   
-  ignore (tab_options#entry_options_gui_port#connect#activate (fun _ ->
-        port =:= int_of_string (tab_options#entry_options_gui_port#text);
-    ));
-  tab_options#entry_options_gui_port#set_text (string_of_int !!port);
-  ignore (tab_options#entry_server_hostname#connect#activate (fun _ ->
-        hostname =:= tab_options#entry_server_hostname#text
-    ));
-  tab_options#entry_server_hostname#set_text !!hostname;
   ignore (tab_friends#entry_dialog#connect#activate (fun _ ->
         let s = tab_friends#entry_dialog#text in
         gui_send (SayFriends (s, List.map (fun c -> c.client_num)
@@ -231,22 +218,13 @@ ignore (gui#clist_download#connect#unselect_row (download_unset_selection gui));
     (add window ~cond: (fun () -> !current_page = 3) queries_actions)
   !!O.keymap_queries;
 
-(* Options shortcuts *)
-  let options_actions = global_actions @ 
-      [
-    ]
-  in
-  List.iter
-    (add window ~cond: (fun () -> !current_page = 4) options_actions)
-  !!O.keymap_options;
-
 (* Console shortcuts *)
   let console_actions = global_actions @ 
       [
     ]
   in
   List.iter
-    (add window ~cond: (fun () -> !current_page = 5) console_actions)
+    (add window ~cond: (fun () -> !current_page = 4) console_actions)
   !!O.keymap_console;
 
 (* End of keyboard shortcuts *)

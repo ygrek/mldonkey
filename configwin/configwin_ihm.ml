@@ -1,21 +1,3 @@
-(* Copyright 2001, Maxence Guesdon, INRIA Rocquencourt, FRANCE *)
-(*
-    This file is part of mldonkey.
-
-    mldonkey is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    mldonkey is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with mldonkey; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-*)
 (***********************************************************************)
 (*                          Configwin                                  *)
 (*                                                                     *)
@@ -80,6 +62,33 @@ let select_files ?dir
       last_dir := Filename.dirname (List.hd l);
       l
 ;;
+
+(** Make the user select a date. *)
+let select_date title (day,mon,year) =
+  let v_opt = ref None in
+  let window = GWindow.dialog ~modal:true ~title () in
+  let hbox = GPack.hbox ~border_width:10 ~packing:window#vbox#add () in
+  let cal = GMisc.calendar ~packing: (hbox#pack ~expand: true) () in
+  cal#select_month ~month: mon ~year: year ;
+  cal#select_day day;
+  let bbox = window#action_area in
+
+  let bok = GButton.button ~label: Configwin_messages.mOk
+      ~packing:(bbox#pack ~expand:true ~padding:4) ()
+  in
+  let bcancel = GButton.button ~label: Configwin_messages.mCancel
+      ~packing:(bbox#pack ~expand:true ~padding:4) ()
+  in
+  ignore (bok#connect#clicked ~callback:
+	    (fun () -> v_opt := Some (cal#date); window#destroy ()));
+  ignore(bcancel#connect#clicked ~callback: window#destroy);
+
+  bok#grab_default ();
+  ignore(window#connect#destroy ~callback: GMain.Main.quit);
+  window#set_position `CENTER;
+  window#show ();
+  GMain.Main.main ();
+  !v_opt
 
 
 (** This class builds a frame with a clist and two buttons :
@@ -258,6 +267,15 @@ class color_param_box param =
       ~packing: (hbox#pack ~expand: true ~padding: 2)
       ()
   in
+  let set_wb_color s =
+    let style = wb#misc#style#copy in
+    (
+     try style#set_bg [ (`NORMAL, `NAME s) ; ]
+     with _ -> ()
+    );
+    wb#misc#set_style style
+  in
+  let _ = set_wb_color param.color_value in
   let _ = we#set_text param.color_value in
   let f_sel () =
     let dialog = GWindow.color_selection_dialog
@@ -282,6 +300,7 @@ class color_param_box param =
 	    done
 	  in
 	  we#set_text s ;
+	  set_wb_color s;
 	  dialog#destroy ()
 	)
     in
@@ -391,6 +410,47 @@ class filename_param_box param =
 	()
   end ;;
 
+(** This class is used to build a box for a date parameter.*)
+class date_param_box param =
+  let v = ref param.date_value in
+  let hbox = GPack.hbox () in
+  let wb = GButton.button ~label: param.date_label 
+      ~packing: (hbox#pack ~expand: false ~padding: 2) () 
+  in
+  let we = GEdit.entry
+      ~editable: false
+      ~packing: (hbox#pack ~expand: true ~padding: 2)
+      ()
+  in
+  let _ = we#set_text (param.date_f_string param.date_value) in
+
+  let f_click () =
+    match select_date param.date_label param.date_value with
+      None -> ()
+    | Some (y,m,d) -> 
+	v := (d,m,y) ;
+	we#set_text (param.date_f_string (d,m,y))
+  in
+  let _ = 
+    if param.date_editable then
+      let _ = wb#connect#clicked f_click in
+      ()
+    else
+      ()
+  in
+
+  object (self)
+    (** This method returns the main box ready to be packed. *)
+    method box = hbox#coerce
+    (** This method applies the new value of the parameter. *)
+    method apply =
+      if !v <> param.date_value then
+	let _ = param.date_f_apply !v in
+	param.date_value <- !v
+      else
+	()
+  end ;;
+
 (** This class is used to build a box for a parameter whose values are lists of strings.*)
 class strings_param_box param =
   let listref = ref param.strings_value in
@@ -476,6 +536,10 @@ class configuration_box conf_struct (notebook : GPack.notebook) =
 	      |	Filenames_param p ->
 		  let box = new filenames_param_box p in
 		  let _ = main_box#pack ~expand: true ~padding: 2 box#box in
+		  box
+	      |	Date_param p ->
+		  let box = new date_param_box p in
+		  let _ = main_box#pack ~expand: false ~padding: 2 box#box in
 		  box
 	in
 	let list_children_boxes = List.map f param_list in
@@ -631,6 +695,10 @@ let simple_edit ?(with_apply=true)
 	let box = new filenames_param_box p in
 	let _ = main_box#pack ~expand: true ~padding: 2 box#box in
 	box
+    | Date_param p ->
+	let box = new date_param_box p in
+	let _ = main_box#pack ~expand: false ~padding: 2 box#box in
+	box
   in
   let list_param_box = List.map f param_list in
 
@@ -672,3 +740,110 @@ let simple_edit ?(with_apply=true)
   !return
 
   
+(** Create a string param. *)
+let string ?(edit=true) ?(f=(fun _ -> ())) label v =
+  String_param
+    {
+      string_label = label ;
+      string_value = v ;
+      string_editable = edit ;
+      string_f_apply = f ;
+    } 
+
+(** Create a bool param. *)
+let bool ?(edit=true) ?(f=(fun _ -> ())) label v =
+  Bool_param
+    {
+      bool_label = label ;
+      bool_value = v ;
+      bool_editable = edit ;
+      bool_f_apply = f ;
+    }
+
+(** Create a strings param. *)
+let strings ?(edit=true) ?(f=(fun _ -> ())) ?(add=(fun () -> [])) label v =
+  Strings_param
+    {
+      strings_label = label ;
+      strings_value = v ;
+      strings_editable = edit ;
+      strings_f_add = add ;
+      strings_f_apply = f ;
+    } 
+  
+(** Create a color param. *)
+let color ?(edit=true) ?(f=(fun _ -> ())) label v =
+  Color_param
+    {
+      color_label = label ;
+      color_value = v ;
+      color_editable = edit ;
+      color_f_apply = f ;
+    }
+
+(** Create a combo param. *)
+let combo ?(edit=true) ?(f=(fun _ -> ())) 
+    ?(new_allowed=false) 
+    ?(blank_allowed=false) label choices v =
+  Combo_param
+    {
+      combo_label = label ;
+      combo_value = v ;
+      combo_editable = edit ;
+      combo_choices = choices ;
+      combo_new_allowed = new_allowed ;
+      combo_blank_allowed = blank_allowed ;
+      combo_f_apply = f ;
+    }
+
+(** Create a text param. *)
+let text ?(edit=true) ?(f=(fun _ -> ())) label v = 
+  Text_param
+    {
+      string_label = label ;
+      string_value = v ;
+      string_editable = edit ;
+      string_f_apply = f ;
+    } 
+
+(** Create a filename param. *)
+let filename ?(edit=true) ?(f=(fun _ -> ())) label v = 
+  Filename_param
+    {
+      string_label = label ;
+      string_value = v ;
+      string_editable = edit ;
+      string_f_apply = f ;
+    } 
+
+(** Create a filenames param.*)
+let filenames ?(edit=true) ?(f=(fun _ -> ())) label v =
+  Filenames_param
+    {
+      files_label = label ;
+      files_value = v ;
+      files_editable = edit ;
+      files_f_apply = f ;
+    } 
+
+(** Create a date param. *)
+let date  ?(edit=true) ?(f=(fun _ -> ())) 
+    ?(f_string=(fun(d,m,y)->Printf.sprintf "%d/%d/%d" y (m+1) d))
+    label v =
+  Date_param
+    {
+      date_label = label ;
+      date_value = v ;
+      date_editable = edit ;
+      date_f_string = f_string ;
+      date_f_apply = f ;
+    } 
+
+(** Create a custom param.*)
+let custom box f expand =
+  Custom_param
+    {
+      custom_box = box ;
+      custom_f_apply = f ;
+      custom_expand = expand ;
+    } 

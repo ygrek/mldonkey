@@ -125,10 +125,6 @@ let keymap_queries = define_option mldonkey_gui_ini ["keymaps"; "queries"]
   "Key bindings for queries tab" 
   (list_option (tuple2_option (KeyOption.t, string_option))) []
 
-let keymap_options = define_option mldonkey_gui_ini ["keymaps"; "options"]
-  "Key bindings for options tab" 
-  (list_option (tuple2_option (KeyOption.t, string_option))) []
-
 let keymap_console = define_option mldonkey_gui_ini ["keymaps"; "console"]
   "Key bindings for console tab" 
     (list_option (tuple2_option (KeyOption.t, string_option))) []
@@ -226,5 +222,62 @@ let _ =
       let gc_control = Gc.get () in
       Gc.set { gc_control with Gc.max_overhead = !!compaction_overhead };     
   )
+  
+(** {2 Options du client} *)
+
+let client_port = ref ""
+let telnet_port = ref ""
+let client_gui_port = ref ""
+let save_options_delay = ref ""
+let check_client_connections_delay = ref ""
+let check_connections_delay = ref ""
+let small_retry_delay = ref ""
+let medium_retry_delay = ref ""
+let long_retry_delay = ref ""
+let client_name = ref ""
+let client_password = ref ""
+let max_connected_servers = ref ""
+let max_upload_rate = ref ""
+let server_connection_timeout = ref ""
+let client_timeout = ref ""
+let max_server_age = ref ""
+let update_gui_delay = ref ""
+
+let smtp_server = ref ""
+let smtp_port = ref ""
+let mail = ref ""
+
+let temp_dir = ref ""
+let incoming_dir = ref ""
+
+let client_options_assocs = [
+  "port",        client_port;
+  "telnet_port", telnet_port;
+  "gui_port",    client_gui_port;
+  "save_options_delay", save_options_delay;
+  "check_client_connections_delay", check_client_connections_delay;
+  "check_connections_delay", check_connections_delay;
+  "small_retry_delay", small_retry_delay;
+  "medium_retry_delay", medium_retry_delay;
+  "long_retry_delay", long_retry_delay;
+  "client_name",   client_name;
+  "password",  client_password;
+  "max_connected_servers", max_connected_servers;
+  "max_upload_rate", max_upload_rate;
+  "server_connection_timeout", server_connection_timeout;
+  "client_timeout", client_timeout;
+  "max_server_age", max_server_age;    
+  "update_gui_delay", update_gui_delay;
+  "smtp_server", smtp_server ;
+  "smtp_port", smtp_port ;
+  "mail", mail ;
+  "temp_directory", temp_dir ;
+  "incoming_directory", incoming_dir ;
+  ]
+
+let client_options_assocs_rev = 
+  List.map 
+    (fun (name,reference) -> reference, name) 
+    client_options_assocs
   
   

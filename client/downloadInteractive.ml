@@ -38,7 +38,12 @@ let result_name r =
   match r.result_names with
     [] -> None
   | name :: _ -> Some name
-      
+
+
+let percent file = 
+  let downloaded = Int32.to_float file.file_downloaded in
+  let size = Int32.to_float file.file_size in
+  (downloaded *. 100.) /. size
       
 let reconnect_all file =
   List.iter (fun c ->
@@ -562,13 +567,69 @@ let simple_print_file buf name_len done_len size_len format file =
   if file.file_state = FileDownloaded then
     Buffer.add_string buf (Md4.to_string file.file_md4)
   else
+  if file.file_state = FilePaused then
+    Buffer.add_string buf "Paused"
+  else
   if file.file_last_rate < 10.24 then
     Buffer.add_string buf "-"
   else
     Printf.bprintf buf "%5.1f" (file.file_last_rate /. 1024.);
   Buffer.add_char buf '\n'
 
+  
+let simple_print_file_list_html finished buf files format =
+
+  Printf.bprintf buf "\<TABLE\>\<TR\>
+  \<TD\> [ Num ] \</TD\> 
+  \<TD\> \<a href=/submit\?q\=vd\&sortby\=name\> File \</a\> \</TD\>";
+  
+  if not finished then
+    Printf.bprintf buf 
+    "\<TD ALIGN\=RIGHT\> \<a href=/submit\?q\=vd\&sortby\=percent\> Percent \</a\> \</TD\> 
+\<TD ALIGN\=RIGHT\> \<a href=/submit\?q\=vd\&sortby\=done\> Downloaded \</a\> \</TD\> ";
+  
+  Printf.bprintf buf 
+    "\<TD ALIGN=RIGHT\> \<a href=/submit\?q\=vd\&sortby\=size\> Size \</a\> \</TD\> ";
+  
+  Printf.bprintf buf "\<TD\> \<a href=/submit\?q\=vd\&sortby\=rate\> %s \</a\> \</TD\> " (if finished then "MD4" else "Rate");
+  Printf.bprintf  buf "\</TR\>\n";
+  
+  List.iter (fun file ->
+      Printf.bprintf buf "\<TR\> \<TD ALIGN\=RIGHT\> [%-5d]"
+        file.file_num;
+      if file.file_state <> FileDownloaded then 
+        Printf.bprintf buf "[\<a href=/submit\?q\=cancel\+%d\>CANCEL\</a\>] " 
+          file.file_num;
+      Printf.bprintf  buf "\</TD\>";
+      Printf.bprintf buf " \<TD\> %s \</TD\> " (short_name file);
+
+      if file.file_state <> FileDownloaded then 
+        Printf.bprintf buf "\<TD ALIGN\=RIGHT\> %5.1f \</TD\> \<TD ALIGN\=RIGHT\> %s \</TD\> " (percent file) (Int32.to_string file.file_downloaded);
+
+      Printf.bprintf buf "\<TD ALIGN=RIGHT\> %s \</TD\> " (Int32.to_string file.file_size);
+
+      Printf.bprintf buf "\<TD ALIGN=RIGHT\> %s \</TD\>"
+        (if file.file_state = FileDownloaded then
+          Md4.to_string file.file_md4
+        else
+        if file.file_state = FilePaused then
+          "Paused"
+        else
+        if file.file_last_rate < 10.24 then
+          "-"
+        else
+          Printf.sprintf "%5.1f" (file.file_last_rate /. 1024.));
+      Buffer.add_string buf "\</TR\>"
+      
+  ) files;
+  
+  Printf.bprintf  buf "\</TABLE\>\n"
+
+  
 let simple_print_file_list finished buf files format =
+  if format.conn_output = HTML then
+    simple_print_file_list_html finished buf files format
+  else
   let size_len = ref 10 in
   let done_len = ref 10 in
   let name_len = ref 1 in
@@ -618,6 +679,7 @@ let simple_print_file_list finished buf files format =
   
   List.iter (simple_print_file buf !name_len !done_len !size_len format) files
 
+  
   
 let search_string s =
   let buf = Buffer.create 100 in
@@ -987,6 +1049,8 @@ let commands = [
                           | _ -> true)
                   | ByDone -> (fun f1 f2 -> 
                           f1.file_downloaded >= f2.file_downloaded)
+                  | ByPercent -> (fun f1 f2 ->
+                          percent f1 >= percent f2)
                   | _ -> raise Not_found
                       in
                 Sort.list sorter !!files
@@ -1669,6 +1733,7 @@ let http_handler options t r =
                       | "sortby", "name" -> options.conn_sortvd <- ByName
                       | "sortby", "rate" -> options.conn_sortvd <- ByRate
                       | "sortby", "done" -> options.conn_sortvd <- ByDone
+                      | "sortby", "percent" -> options.conn_sortvd <- ByPercent
                       | _ -> ()
                   ) other_args;
                   let s = 

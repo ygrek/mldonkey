@@ -681,6 +681,8 @@ Release 1.15:
        Web interface.
     - Generate correct HTML with HEAD and TITLE :)
     - Downloads can be sorted by name/downloaded/size/rate.
+    - Paused downloads are correctly displayed.
+    - Use tables instead of spaces (for non-fixed fonts).
   * Core:
     - New option 'file_completed_cmd' for a command which is called when 
      a file download is completed with as arguments: 
@@ -870,7 +872,7 @@ Release 1.00:
 KNOWN COMMENTS (from savannah and forum):
 ========================================
 Browser: Mozilla/4.75 [en] (X11; U; Linux 2.4.17 i686; Nav) On the help page, it still says you can't set uploads
-under 10K. 
+under 1K. 
 If a server IP along with a colon seperated port number
 is specified in the Server IP box, and enter hit, then
 it gets added. This would make copy/paste from a list
