@@ -225,6 +225,14 @@ let get_format s pos =
       MP3 (t, dummy_info), pos
   | _ -> assert false    
 
+let get_uint64_2 proto s pos = 
+  let i, pos =
+    if proto > 24 then
+      get_int64 s pos, pos + 8
+    else
+      get_uint64_32 s pos, pos + 4
+  in i, pos
+
 let get_tag s pos =
   let name, pos = get_string s pos in
   let value, pos =
@@ -240,13 +248,13 @@ let get_tag s pos =
   in
   { tag_name = name; tag_value = value }, pos
 
-let get_result s pos =
+let get_result proto s pos =
   let num  = get_int s pos in
   let net = get_int s (pos+4) in
   let names, pos = get_list get_string s (pos+8) in
   let md4 = get_md4 s pos in
-  let size = get_uint64_32 s (pos+16) in
-  let format, pos = get_string s (pos+20) in
+  let size, pos = get_uint64_2 proto s (pos+16) in
+  let format, pos = get_string s pos in
   let t, pos = get_string s pos in
   let tags, pos = get_list get_tag s pos in
   let comment, pos = get_string s pos in
@@ -314,6 +322,7 @@ let get_int_date proto s pos =
   else
   get_int s pos, pos + 4
 
+
 let get_int_pos s pos =
   get_int s pos, pos + 4
   
@@ -323,11 +332,11 @@ let get_file proto s pos =
   let names, pos = 
     get_list get_string s (pos+8) in
   let md4 = get_md4 s pos in
-  let size = get_uint64_32 s (pos+16) in
-  let downloaded = get_uint64_32 s (pos+20) in
-  let nlocations = get_int s (pos+24) in
-  let nclients = get_int s (pos+28) in
-  let state, pos = get_file_state s (pos+32) in
+  let size,pos = get_uint64_2 proto s (pos+16) in
+  let downloaded, pos = get_uint64_2 proto s pos in
+  let nlocations = get_int s pos in
+  let nclients = get_int s (pos+4) in
+  let state, pos = get_file_state s (pos+8) in
   let chunks, pos = get_string s pos in
   let availability, pos = 
     if proto > 17 then
@@ -663,13 +672,13 @@ let get_room proto s pos =
     room_nusers = nusers;
   }, pos + 1 
 
-let get_shared_info s pos =
+let get_shared_info proto s pos =
   let num = get_int s pos in
   let network = get_int s (pos+4) in
   let name, pos = get_string s (pos+8) in
-  let size = get_uint64_32 s pos in
-  let uploaded = get_int64 s (pos+4) in
-  let requests = get_int s (pos+12) in
+  let size,pos = get_uint64_2 proto s pos in
+  let uploaded = get_int64 s pos in
+  let requests = get_int s (pos+8) in
   {
     shared_num = num;
     shared_network = network;
@@ -680,14 +689,14 @@ let get_shared_info s pos =
     shared_id = Md4.null;
   }
 
-let get_shared_info_version_10 s pos =
+let get_shared_info_version_10 proto s pos =
   let num = get_int s pos in
   let network = get_int s (pos+4) in
   let name, pos = get_string s (pos+8) in
-  let size = get_uint64_32 s pos in
-  let uploaded = get_int64 s (pos+4) in
-  let requests = get_int s (pos+12) in
-  let md4 = get_md4 s (pos+16) in
+  let size,pos = get_uint64_2 proto s pos in
+  let uploaded = get_int64 s pos in
+  let requests = get_int s (pos+8) in
+  let md4 = get_md4 s (pos+12) in
   {
     shared_num = num;
     shared_network = network;
@@ -1011,7 +1020,7 @@ let to_gui (proto : int array) opcode s =
         DefineSearches list
     
     | 4 -> 
-        let r, pos = get_result s 2 in
+        let r, pos = get_result proto s 2 in
         Result_info r
     
     | 5 ->
@@ -1030,8 +1039,8 @@ let to_gui (proto : int array) opcode s =
     
     | 8 ->
         let n = get_int s 2 in
-        let size = get_uint64_32 s 6 in
-        let rate, pos = get_float s 10 in
+        let size,pos = get_uint64_2 proto s 6 in
+        let rate, pos = get_float s pos in
         File_downloaded (n, size, rate, BasicSocket.last_time ())
     
     | 9 ->
@@ -1157,7 +1166,7 @@ let to_gui (proto : int array) opcode s =
         let user = get_int s 6 in
         Room_remove_user (room, user)
     | 33 ->
-        let s = get_shared_info s 2 in
+        let s = get_shared_info proto s 2 in
         Shared_file_info s
     
     | 34 ->
@@ -1317,8 +1326,8 @@ let to_gui (proto : int array) opcode s =
     
     | 46 ->
         let n = get_int s 2 in
-        let size = get_uint64_32 s 6 in
-        let rate, pos = get_float s 10 in
+        let size,pos = get_uint64_2 proto s 6 in
+        let rate, pos = get_float s pos in
         let last_seen = get_int s pos in
         File_downloaded (n, size, rate, 
           BasicSocket.last_time () - last_seen)
@@ -1326,7 +1335,7 @@ let to_gui (proto : int array) opcode s =
     | 47 -> BadPassword
     
     | 48 ->
-        let s = get_shared_info_version_10 s 2 in
+        let s = get_shared_info_version_10 proto s 2 in
         Shared_file_info s      
     
     | 49 ->

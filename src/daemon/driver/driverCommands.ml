@@ -39,10 +39,21 @@ open CommonOptions
 open CommonInteractive
 open CommonEvent
 open Gettext
+open Autoconf
 
 let _s x = _s "DriverCommands" x
 let _b x = _b "DriverCommands" x  
-    
+
+let to_cancel = ref []
+  
+let files_to_cancel o =
+  let buf = o.conn_buf in
+  Printf.bprintf buf (_b "Files to be cancelled:\n");
+  List.iter (fun file ->
+      file_print file o
+  ) !to_cancel;
+  "Type 'confirm yes/no' to cancel them"
+  
 let execute_command arg_list output cmd args =
   let buf = output.conn_buf in
   try
@@ -1294,19 +1305,44 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                         strings_of_option filename_in_subject; 
                       ] 
                   | 7 -> 
-                      [
+                      ([
                         strings_of_option enable_server; 
-                        strings_of_option enable_overnet; 
-                        strings_of_option enable_donkey; 
-                        strings_of_option enable_bittorrent; 
-                        strings_of_option enable_fasttrack; 
-                        strings_of_option enable_opennap; 
-                        strings_of_option enable_soulseek; 
-                        strings_of_option enable_audiogalaxy; 
-                        strings_of_option enable_gnutella; 
-                        strings_of_option enable_gnutella2; 
-                        strings_of_option enable_directconnect; 
-                        strings_of_option enable_openft; 
+                        ] @
+			(if Autoconf.donkey = "yes" then [(strings_of_option enable_overnet)] else [])
+			@ [
+			] @
+			(if Autoconf.donkey = "yes" then [(strings_of_option enable_donkey)] else [])
+			@ [
+			] @
+			(if Autoconf.bittorrent = "yes" then [(strings_of_option enable_bittorrent)] else [])
+			@ [
+			] @
+			(if Autoconf.fasttrack = "yes" then [(strings_of_option enable_fasttrack)] else [])
+			@ [
+			] @
+			(if Autoconf.opennapster = "yes" then [(strings_of_option enable_opennap)] else [])
+			@ [
+			] @
+			(if Autoconf.soulseek = "yes" then [(strings_of_option enable_soulseek)] else [])
+			@ [
+			] @
+			(if Autoconf.audio_galaxy = "yes" then [(strings_of_option enable_audiogalaxy)] else [])
+			@ [
+			] @
+			(if Autoconf.gnutella = "yes" then [(strings_of_option enable_gnutella)] else [])
+			@ [
+			] @
+			(if Autoconf.gnutella2 = "yes" then [(strings_of_option enable_gnutella2)] else [])
+			@ [
+			] @
+			(if Autoconf.direct_connect = "yes" then [(strings_of_option enable_directconnect)] else [])
+			@ [
+			] @
+			(if Autoconf.openft = "yes" then [(strings_of_option enable_openft)] else [])
+			@ [
+			] @
+			(if Autoconf.filetp = "yes" then [(strings_of_option enable_fileTP)] else [])
+			@ [
                         strings_of_option tcpip_packet_size; 
                         strings_of_option mtu_packet_size; 
                         strings_of_option minimal_packet_size; 
@@ -1315,7 +1351,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                         strings_of_option http_proxy_tcp; 
                         strings_of_option http_proxy_server; 
                         strings_of_option http_proxy_port; 
-                      ] 
+                      ]) 
                   | 8 -> 
                       [
                         strings_of_option term_ansi; 
@@ -1901,7 +1937,32 @@ let _ =
     
     ), "<priority> <files numbers> :\tchange file priorities";
 
+    "confirm", Arg_one (fun arg o ->
+        match String.lowercase arg with
+          "yes" | "y" | "true" ->
+            List.iter (fun file ->
+                try
+                  file_cancel file
+                with e -> 
+                    lprintf "Exception %s in cancel file %d\n" 
+                      (Printexc2.to_string e) (file_num file)
+            ) !to_cancel;
+            to_cancel := [];
+            _s "Files cancelled"
+        | "no" | "n" | "false" ->
+            to_cancel := [];
+            _s "cancel aborted"
+        | "what" | "w" ->
+            files_to_cancel o
+        | _ -> failwith "Invalid argument"
+    ), " <yes|no|what>: confirm cancellation";
+    
     "cancel", Arg_multiple (fun args o ->
+        
+        let file_cancel num = 
+          if not (List.memq num !to_cancel) then
+            to_cancel := num :: !to_cancel
+        in
         if args = ["all"] then
           List.iter (fun file ->
               file_cancel file
@@ -1911,11 +1972,11 @@ let _ =
               let num = int_of_string num in
               List.iter (fun file ->
                   if (as_file_impl file).impl_file_num = num then begin
-                      lprintf "TRY TO CANCEL FILE"; lprint_newline ();
+                      lprintf "TRY TO CANCEL FILE\n";
                       file_cancel file
                     end
               ) !!files) args; 
-        ""
+        files_to_cancel o
     ), "<num> :\t\t\t\tcancel download (use arg 'all' for all files)";
     
     "downloaders", Arg_none (fun o ->

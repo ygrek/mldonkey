@@ -88,6 +88,12 @@ let buf_int_date proto buf date =
     buf_int buf (last_time () - date)
   else
     buf_int buf date
+
+let buf_int64_2 proto buf i =
+  if proto > 24 then
+    buf_int64 buf i
+  else
+    buf_int64_32 buf i
   
 let rec buf_query buf q =
   match q with
@@ -194,12 +200,12 @@ let buf_client_type buf t =
 let buf_bool buf b =
   buf_int8 buf (if b then 1 else 0)
       
-let buf_result buf r =
+let buf_result proto buf r =
   buf_int buf r.result_num;
   buf_int buf r.result_network;
   buf_list buf buf_string r.result_names;
   buf_md4 buf r.result_md4;
-  buf_int64_32 buf r.result_size;
+  buf_int64_2 proto buf r.result_size;
   buf_string buf r.result_format;
   buf_string buf r.result_type;
   buf_list buf buf_tag r.result_tags;
@@ -285,8 +291,8 @@ let buf_file proto buf f =
   buf_int buf f.file_network;  
   buf_list buf buf_string (List.map fst f.file_names);  
   buf_md4 buf f.file_md4;  
-  buf_int64_32 buf f.file_size;  
-  buf_int64_32 buf f.file_downloaded;  
+  buf_int64_2 proto buf f.file_size;  
+  buf_int64_2 proto buf f.file_downloaded;  
   buf_int buf f.file_nlocations;  
   buf_int buf f.file_nclients;  
   buf_file_state proto buf f.file_state;  
@@ -411,7 +417,7 @@ let buf_shared_info proto buf s =
   buf_int buf s.shared_num;
   buf_int buf s.shared_network;
   buf_string buf s.shared_filename;
-  buf_int64_32 buf s.shared_size;
+  buf_int64_2 proto buf s.shared_size;
   buf_int64 buf s.shared_uploaded;
   buf_int buf s.shared_requests;
   if proto >= 10 then
@@ -447,7 +453,8 @@ let rec to_gui (proto : int array) buf t =
             buf_string buf s; buf_query buf query) list
     
     | Result_info r -> buf_int16 buf 4;
-        buf_result buf r
+        let proto = proto.(4) in
+        buf_result proto buf r
     
     | Search_result (n1,n2, _) -> buf_int16 buf 5;
         buf_int buf n1; buf_int buf n2
@@ -466,7 +473,7 @@ let rec to_gui (proto : int array) buf t =
         let proto = proto.(46) in
         buf_int16 buf (if proto < 9 then 8 else 46);
         buf_int buf n; 
-        buf_int64_32 buf size; 
+        buf_int64_2 proto buf size; 
         buf_float buf rate; 
         if proto > 8 then
           buf_int buf (compute_last_seen last_seen)
@@ -871,7 +878,7 @@ protocol version. Do not send them ? *)
         (Printexc2.to_string e)
         
         
-let best_gui_version = 24
+let best_gui_version = 25
   
 (********** Some assertions *********)
   

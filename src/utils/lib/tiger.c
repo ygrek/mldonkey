@@ -176,7 +176,8 @@ void tiger_compress(word64 *str, word64 state[3])
 static void static_tiger(word64 *str, word64 length, word64 res[3])
 {
   register word64 i, j;
-  unsigned char temp[64];
+  word64 temp_[64 / 8];
+  unsigned char *temp = (unsigned char *) temp_;
 
   res[0]=0x0123456789ABCDEFLL;
   res[1]=0xFEDCBA9876543210LL;

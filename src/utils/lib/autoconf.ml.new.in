@@ -3,6 +3,18 @@ let perl_path = "@PERL@"
 let check_bounds = @CHECKBOUNDS@
 let current_version = "@CURRENT_VERSION@-@CURRENT_RELEASE@"
 let windows = @WINDOWS@  
+let audio_galaxy = "@AUDIO_GALAXY@"
+let opennapster = "@OPEN_NAPSTER@"
+let gnutella = "@GNUTELLA@"
+let gnutella2 = "@GNUTELLA2@"
+let direct_connect = "@DIRECT_CONNECT@"
+let soulseek = "@SOULSEEK@"
+let openft = "@OPENFT@"
+let cymes = "@CYMES@"
+let fasttrack = "@FASTTRACK@"
+let filetp = "@FILETP@"
+let bittorrent = "@BITTORRENT@"
+let donkey = "@DONKEY@"
   
 exception OutOfBoundsAccess
 let outofboundsaccess = OutOfBoundsAccess

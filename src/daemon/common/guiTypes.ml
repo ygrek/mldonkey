@@ -20,31 +20,6 @@
 open Md4
 open CommonTypes
 
-(*
-type options = {
-    mutable connection_port : int;
-    mutable control_port : int;
-    mutable gui_port : int;
-    
-    mutable save_options_delay : float;
-    mutable check_client_connections_delay : float;
-    mutable check_server_connections_delay : float;
-    mutable small_retry_delay : float;
-    mutable medium_retry_delay : float;
-    mutable long_retry_delay : float;
-    
-    mutable name : string;
-    mutable max_connected_servers : int;
-    mutable upload_limit : int;
-    mutable features : string;
-    
-    mutable server_timeout: float;
-    mutable client_timeout: float;
-    mutable max_server_age : int;
-    mutable password : string;
-  }
-    *)
-
 type ips_list = {
     mutable nips : int;
     mutable ips : Ip.t list;

@@ -364,7 +364,15 @@ let is_black_address ip port =
   !!black_list && (
 (* lprintf "is black ="; *)
     not (ip_reachable ip) || (Ip.matches ip !!server_black_list) ||
-    (List.mem port !!port_black_list) )
+    (List.mem port !!port_black_list) ||
+    (try
+       Ip_set.match_ip !Ip_set.bl ip;
+       false
+     with Ip_set.MatchedIP s ->
+       if !verbose_connect then begin
+	 lprintf "%s:%d blocked: %s\n" (Ip.to_string ip) port s
+       end;
+       true))
       
 let new_server ip port score = 
   let key = (ip, port) in

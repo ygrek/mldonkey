@@ -496,6 +496,23 @@ let web_infos = define_option current_section
 
   ]
   
+let ip_blocking = define_expert_option current_section ["ip_blocking"]
+    "IP blocking list filename (peerguardian format)" string_option 
+    (Filename.concat file_basedir "guarding.p2p")
+
+let load_blocking () =
+  try
+    Ip_set.bl := if !!ip_blocking <> "" then 
+                   Ip_set.load !!ip_blocking
+                 else Ip_set.bl_empty
+  with _ -> ()
+
+let _ =
+  load_blocking ();
+  option_hook ip_blocking (fun _ ->
+        load_blocking ()
+  )
+  
 let tcpip_packet_size = define_expert_option current_section ["tcpip_packet_size"]
   "The size of the header of a TCP/IP packet on your connection (ppp adds
     14 bytes sometimes, so modify to take that into account)"

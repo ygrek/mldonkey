@@ -1010,15 +1010,15 @@ let check_source_from_file reconnect_client file =
           match c.client_source with
             None -> lprintf "ERROR: Client source can not be NOne\n"
           | Some s ->
-              if not (List.memq file s.source_in_queues) then begin
-(*                  lprintf "ERROR: client should be in file queue (1)\n"; *)
+(*              if not (List.memq file s.source_in_queues) then begin
+                  lprintf "ERROR: client should be in file queue (1)\n";
                   match s.source_client with
-                    SourceLastConnection _ -> 
-(*                      lprintf "  ERROR: client source has last conn\n" *)
-                  | SourceClient cc ->
+                    SourceLastConnection _ -> ()
+                      lprintf "  ERROR: client source has last conn\n"
+                  | SourceClient cc -> ()
                       if c !=cc then
-(*                        lprintf "  ERROR: client source client is different\n" *)
-                end;
+                        lprintf "  ERROR: client source client is different\n"
+                end; *)
               
               s.source_in_queues <- List2.removeq file s.source_in_queues
         end;
@@ -1284,7 +1284,7 @@ let print_sources buf =
     per_queue.(i+1);
   done;
   
-  Printf.bprintf buf "\nTotal number of sources:%d\n" 
+  Printf.bprintf buf "\nTotal number of sources: %d\n" 
     (noutside_queue + !nsources)
 
 let print_sources_html file buf =
