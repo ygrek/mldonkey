@@ -84,8 +84,10 @@ MIN_GUI_CMOS= gui/gui_types.$(EXT) gui/gui_proto.$(EXT)
 
 GUI_CMOS= gui/gui_messages.$(EXT) gui/gui.$(EXT)
 
-CLIENT_CMOS=client/downloadTypes.$(EXT) client/downloadGlobals.$(EXT) \
+CLIENT_CMOS=client/downloadTypes.$(EXT) \
   client/downloadOptions.$(EXT) \
+  client/downloadGlobals.$(EXT) \
+  client/downloadComplexOptions.$(EXT) \
   client/downloadMultimedia.$(EXT) client/downloadIndexer.$(EXT) \
   client/downloadServers.$(EXT) client/downloadOneFile.$(EXT) \
   client/downloadClient.$(EXT) client/downloadFiles.$(EXT)  \

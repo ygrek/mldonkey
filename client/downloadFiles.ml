@@ -25,11 +25,14 @@ open DownloadOneFile
 open Mftp_comm
 open DownloadTypes
 open DownloadGlobals
+  open DownloadComplexOptions
+
 open DownloadOptions
 open DownloadClient  
 open Gui_types
   
 let make_query search =
+  let search = search.search_query in
   let module M = Mftp_server in
   let module Q = M.Query in
     (
@@ -142,9 +145,20 @@ let search_found search md4 tags =
           result_md4 = md4;
           result_names = [!file_name];
           result_size = !file_size;
+          result_format = "";
+          result_type = "";
           result_tags = List.rev !new_tags;
           result_filtered_out = 0;
         } in
+      List.iter (fun tag ->
+          match tag with
+            { tag_name = "format"; tag_value = String s } ->
+              new_result.result_format <- s
+          | { tag_name = "type"; tag_value = String s } ->
+              new_result.result_type <- s
+          | _ -> ()
+      ) new_result.result_tags;
+      
 (*      Printf.printf "new reply"; print_newline ();*)
       try
         let result =  DownloadIndexer.index_result new_result in      
@@ -172,6 +186,7 @@ let force_save_options () =
   Options.save_with_help files_ini;
   Options.save_with_help friends_ini;
   if !servers_ini_changed then begin
+      printf_string "[SAVE OPTIONS]\n";
       DownloadServers.update_options ();
       Options.save_with_help servers_ini
     end

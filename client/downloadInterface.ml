@@ -21,6 +21,7 @@ open Mftp
 open Mftp_comm
 open DownloadServers
 open BasicSocket
+open DownloadComplexOptions
 open TcpClientSocket
 open DownloadOneFile
 open DownloadFiles
@@ -31,29 +32,6 @@ open DownloadClient
 open Gui_types
   
 module P = Gui_proto
-
-let search_string s =
-  let buf = Buffer.create 100 in
-  (match s.search_minsize with
-      None -> ()
-    | Some i -> 
-        Printf.bprintf  buf "-minsize %s " (Int32.to_string i));
-  (match s.search_maxsize with
-      None -> ()
-    | Some i -> 
-        Printf.bprintf  buf "-maxsize %s " (Int32.to_string i));
-  (match s.search_media with
-      None -> ()
-    | Some i -> 
-        Printf.bprintf  buf "-media %s " i);
-  (match s.search_format with
-      None -> ()
-    | Some i -> 
-        Printf.bprintf  buf "-format %s " i);
-  List.iter (fun s ->
-      Printf.bprintf  buf "%s " s
-  ) s.search_words;
-  Buffer.contents buf
   
 let gui_send gui t = value_send gui.gui_sock (t : Gui_proto.to_gui)
 
@@ -397,22 +375,12 @@ let gui_reader (gui: gui_record) t sock =
         gui.gui_searches <- 
           (s.P.search_num, !search_counter) :: gui.gui_searches;
         let rec search = {
-            search_words = s.P.search_words;
-            search_maxsize = s.P.search_maxsize;
-            search_minsize = s.P.search_minsize;
-            search_format = s.P.search_format;
-            search_avail = s.P.search_avail;
-            search_media = s.P.search_media;
-            search_min_bitrate = s.P.search_min_bitrate;
-            search_artist = s.P.search_artist;
-            search_title = s.P.search_title;
-            search_album = s.P.search_album;
-            search_fields = s.P.search_fields;
+            search_query = s.P.search_query;
             search_files = Hashtbl.create 127;
             search_num = !search_counter;
             search_nresults = 0;
             search_waiting = List.length !connected_server_list;
-            search_string = "";
+            search_string = DownloadInteractive.search_string s.P.search_query;
             search_handler = (fun ev -> 
                 match ev with
                   Result r -> send_result gui s.P.search_num r
@@ -421,7 +389,6 @@ let gui_reader (gui: gui_record) t sock =
             search_xs_servers = !!known_servers;
           } 
         in            
-        search.search_string <- search_string search;
         searches := search :: !searches;
         if local then
           DownloadIndexer.find search
@@ -456,7 +423,7 @@ let gui_reader (gui: gui_record) t sock =
         !server_change_hook s
     
     | P.RemoveServer_query t ->
-        DownloadOptions.remove_server t.P.key_ip t.P.key_port 
+        DownloadComplexOptions.remove_server t.P.key_ip t.P.key_port 
     
     | P.SaveOptions_query list ->
         

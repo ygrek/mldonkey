@@ -5,3 +5,5 @@ mldonkey*
 downloads.ini
 VERSION
 *.cm?
+*.cm?
+client.ml

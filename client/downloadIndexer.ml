@@ -28,9 +28,19 @@ let input_result ic =
       result_names = hresult.hresult_names;
       result_md4 = hresult.hresult_md4;
       result_size = hresult.hresult_size;
+      result_format = "";
+      result_type = "";
       result_tags = hresult.hresult_tags;
       result_filtered_out = 0;
     }  in
+  List.iter (fun tag ->
+      match tag with
+        { tag_name = "format"; tag_value = String s } ->
+          file.result_format <- s
+      | { tag_name = "type"; tag_value = String s } ->
+          file.result_type <- s
+      | _ -> ()
+  ) file.result_tags;
   file
     
 let output_result oc result =
@@ -127,6 +137,7 @@ let index_result_no_filter r =
               index_string doc s title_bit
           | { tag_name = "Album"; tag_value = String s } -> 
               index_string doc s album_bit
+              (* we could directly use the fields of r *)
           | { tag_name = "format"; tag_value = String s } -> 
               index_string doc s format_bit
           | { tag_name = "type"; tag_value = String s } -> 
@@ -146,15 +157,17 @@ let find s =
 (*  Indexer.print index; *)
   let req = ref [] in
   let pred = ref (fun _ -> true) in
+
+  let ss = s.search_query in
   
   List.iter (fun s -> 
 (*      Printf.printf "search for [%s]" s; print_newline (); *)
       List.iter (fun s ->
           req := (s, 0xffffffff) :: !req) (stem s) 
-  )  s.search_words;
+  )  ss.search_words;
   
   begin
-    match s.search_minsize with
+    match ss.search_minsize with
       None -> ()
     | Some size -> 
         let old_pred = !pred in
@@ -164,7 +177,7 @@ let find s =
   end;
   
   begin
-    match s.search_maxsize with
+    match ss.search_maxsize with
       None -> ()
     | Some size -> 
         let old_pred = !pred in
@@ -174,7 +187,7 @@ let find s =
   end;
   
   begin
-    match s.search_media with
+    match ss.search_media with
       None -> ()
     | Some s -> 
         List.iter (fun s ->
@@ -183,7 +196,7 @@ let find s =
   end;
   
   begin
-    match s.search_media with
+    match ss.search_media with
       None -> ()
     | Some s -> 
         List.iter (fun s ->
@@ -192,7 +205,7 @@ let find s =
   end;
 
   begin
-    match s.search_format with
+    match ss.search_format with
       None -> ()
     | Some s -> 
         List.iter (fun s ->
@@ -201,7 +214,7 @@ let find s =
   end;
 
   begin
-    match s.search_title with
+    match ss.search_title with
       None -> ()
     | Some s -> 
         List.iter (fun s ->
@@ -210,7 +223,7 @@ let find s =
   end;
 
   begin
-    match s.search_artist with
+    match ss.search_artist with
       None -> ()
     | Some s -> 
         List.iter (fun s ->
@@ -219,7 +232,7 @@ let find s =
   end;
 
   begin
-    match s.search_album with
+    match ss.search_album with
       None -> ()
     | Some s -> 
         List.iter (fun s ->

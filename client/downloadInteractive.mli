@@ -28,3 +28,5 @@ val eval : bool ref -> Buffer.t -> string -> DownloadTypes.output_type -> unit
   
 val telnet_handler : TcpServerSocket.t -> TcpServerSocket.event -> unit
 val create_http_handler : unit -> TcpServerSocket.t
+  
+val search_string :  Gui_types.search_query -> string

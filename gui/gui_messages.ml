@@ -132,7 +132,7 @@ let dialog = "Chat"
 (** Menus labels. *)
 
 let mConnections = "Connections"
-let kill_server = "Kill server"
+let kill_server = "Kill core"
 let mFile = "File"
 let mReconnect = "Reconnect"
 let mDisconnect = "Disconnect"
@@ -172,7 +172,7 @@ let help_text = "
                       MLDonkey
                       ========
 
-Release: 1.10
+Release: 1.11
 Authors: [b8]_bavard (Communication engine) and [b8]_FeeCarabine (GUI)
 
  MLDonkey is a door to the 'donkey' network, a decentralized network used to
@@ -535,9 +535,42 @@ TODO list
   * Popup et historique des dialogues.
   * Admin open file descrs.
   * Keep (server_ip, server_port, id) for indirect connections.
+  * Manager of shared files/direcxtories.
+  * Disabling unwanted access ports.
+
+Known bugs:
+===========
+  * in queries and download lists: under properties you show the MD4 sum, 
+    under MD4 nothing??
+  * When clicking on the columns it sorts on that column, when
+   clicking again it should do a reverse sort on it
+  * the layout is not saved
 
 ChangeLog
 =========
+
+Release 1.11:
+  * Option 'shared_directories' to specify other directories where files to
+   share can be found.
+  * Setting 'telnet_port', 'http_port' or 'gui_port' to 0 disables the
+      corresponding access.
+  * Console: 
+   - Sort results by size in vr.
+   - When 'd' fails with Already_done, you can use 'force_download' to force
+      an already downloaded file to be restarted.
+   - New command 'dllink' taking an ed2k URL to download as argument.
+   - Command 'set' can be used to set the allowed_ips option:
+       set allowed_ips '127.0.0.1 128.91.255.255' 
+     255 is for networks.
+   - shorten names in 'vd' output (see 'max_name_len' option). 
+  * WEB:
+   - New Cancel links in 'vd' output.
+   - New 'Complex Search' link in interface.
+   - 'View Options' output can be edited to modify options.
+  * GUI:
+   - The GUI tries to connect to the core every second until it succeeds.
+  * Bug fixes:
+   - Don't add twice the incoming dir to shared file names.
 
 Release 1.10:
   * Default timeout for server connection set to 5 for faster connection.

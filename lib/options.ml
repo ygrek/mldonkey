@@ -55,6 +55,7 @@ and 'a option_record =
     mutable option_value : 'a;
     option_help : string;
     mutable option_hooks : (unit -> unit) list;
+    mutable string_wrappers : (('a -> string) * (string -> 'a)) option;
     option_file : options_file;
   }
   
@@ -82,7 +83,9 @@ let
     (from_value : option_value -> 'a)
     (to_value : 'a -> option_value) =
   let c =
-    {class_name = class_name; from_value = from_value; to_value = to_value;
+    {class_name = class_name; 
+      from_value = from_value; 
+      to_value = to_value;
      class_hooks = []}
   in
   c
@@ -121,9 +124,13 @@ let
     (option_class : 'a option_class)
     (default_value : 'a) =
   let o =
-    {option_name = option_name; option_help = option_help;
-     option_class = option_class; option_value = default_value;
-      option_hooks = []; option_file = opfile; }
+    {option_name = option_name; 
+      option_help = option_help;
+      option_class = option_class; 
+      option_value = default_value;
+      string_wrappers = None;
+      option_hooks = []; 
+      option_file = opfile; }
   in
   opfile.file_options <- (Obj.magic o : Obj.t option_record) ::
     opfile.file_options;
@@ -712,8 +719,15 @@ let simple_options opfile =
         [] | _ :: _ :: _ -> ()
       | [name] ->
           match o.option_class.to_value o.option_value with
-            Module _ | SmallList _ | List _ -> ()
-          | v -> list := (name, value_to_string v) :: !list
+            Module _ | SmallList _ | List _ -> 
+              begin
+                match o.string_wrappers with
+                  None -> ()
+                | Some (to_string, from_string) ->
+                    list := (name, to_string o.option_value) :: !list   
+              end
+          | v -> 
+              list := (name, value_to_string v) :: !list
   ) opfile.file_options;
   !list
 
@@ -730,14 +744,26 @@ let get_option opfile name =
   
 let set_simple_option opfile name v =
   let o = get_option opfile name in
-  o.option_value <- o.option_class.from_value (string_to_value v);
+  begin
+    match o.string_wrappers with
+      None ->
+        o.option_value <- o.option_class.from_value (string_to_value v);
+    | Some (_, from_string) -> 
+        o.option_value <- from_string v
+  end;
   exec_chooks o; exec_hooks o;;
     
 let get_simple_option opfile name =
   let o = get_option opfile name in
-  value_to_string (o.option_class.to_value o.option_value)
+  match o.string_wrappers with
+    None ->
+      value_to_string (o.option_class.to_value o.option_value)
+  | Some (to_string, _) -> 
+      to_string o.option_value
   
 let set_option_hook opfile name hook =
   let o = get_option opfile name in
   o.option_hooks <- hook :: o.option_hooks
   
+let set_string_wrappers o to_string from_string =
+  o.string_wrappers <- Some (to_string, from_string)

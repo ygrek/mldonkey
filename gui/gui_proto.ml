@@ -20,19 +20,9 @@
 open Mftp    
 open Gui_types
   
-type search_query = {
-    mutable search_words : string list; 
-    mutable search_minsize : int32 option;
-    mutable search_maxsize : int32 option;
-    mutable search_avail : int32 option;
-    mutable search_media : string option;
-    mutable search_format : string option;
-    mutable search_fields : (string * string) list;
+type search = {
     mutable search_num : int;
-    mutable search_min_bitrate : int32 option;
-    mutable search_title : string option;
-    mutable search_album : string option;
-    mutable search_artist : string option;
+    mutable search_query : search_query;
   }
 
 type options = {
@@ -67,7 +57,7 @@ type server_key = {
 
 type from_gui =
 | Password of int *  string
-| Search_query of bool (* local or not *) * search_query
+| Search_query of bool (* local or not *) * search
 | Download_query of string list * int32 * Md4.t * (int option)
 | ConnectMore_query
 | AddServer_query of server_key

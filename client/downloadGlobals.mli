@@ -110,3 +110,7 @@ val connection_must_try : DownloadTypes.connection_control -> unit
 val connection_set_last_conn : DownloadTypes.connection_control -> float -> unit
 val connection_last_conn :  DownloadTypes.connection_control -> float
 val connection_try : DownloadTypes.connection_control -> unit
+val connection_delay : DownloadTypes.connection_control -> unit
+  
+val printf_char : char -> unit
+val printf_string : string -> unit

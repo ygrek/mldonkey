@@ -114,7 +114,7 @@
               <label name=label_downloaded width="-1" height="-1" text="Mes.files_downloaded+0" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
               </label>
               <scrolled_window name=_ width="-1" height="-1" border_width="-1" hscrollbar_policy="`AUTOMATIC" vscrollbar_policy="`AUTOMATIC" placement="`TOP_LEFT" tab_label="" expand="true" fill="true" padding="-1">
-                <clist name=clist_downloaded width="-1" height="-1" border_width="-1" number_of_columns="6" columns_titles="[Mes.filename;+Mes.size;+Mes.downloaded;+Mes.availability;+Mes.properties;++Mes.md4]" shadow_type="`NONE" selection_mode="`SINGLE" show_titles="true" tab_label="" expand="true" fill="true" padding="-1">
+                <clist name=clist_downloaded width="-1" height="-1" border_width="-1" number_of_columns="5" columns_titles="[Mes.filename;+Mes.size;+Mes.downloaded;+Mes.availability;++Mes.md4]" shadow_type="`NONE" selection_mode="`SINGLE" show_titles="true" tab_label="" expand="true" fill="true" padding="-1">
                 </clist>
               </scrolled_window>
               <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="true" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
@@ -128,7 +128,7 @@
               <label name=label_downloading width="-1" height="-1" text="Mes.downloading_files+0" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
               </label>
               <scrolled_window name=_ width="-1" height="-1" border_width="-1" hscrollbar_policy="`AUTOMATIC" vscrollbar_policy="`AUTOMATIC" placement="`TOP_LEFT" tab_label="" expand="true" fill="true" padding="-1">
-                <clist name=clist_downloads width="-1" height="-1" border_width="-1" number_of_columns="8" columns_titles="[Mes.filename;+Mes.size;+Mes.downloaded;+Mes.percent;+Mes.rate;+Mes.state;Mes.availability;+Mes.properties;++Mes.md4]" shadow_type="`NONE" selection_mode="`MULTIPLE" show_titles="true" tab_label="" expand="true" fill="true" padding="-1">
+                <clist name=clist_downloads width="-1" height="-1" border_width="-1" number_of_columns="7" columns_titles="[Mes.filename;+Mes.size;+Mes.downloaded;+Mes.percent;+Mes.rate;+Mes.state;Mes.availability;+Mes.md4]" shadow_type="`NONE" selection_mode="`MULTIPLE" show_titles="true" tab_label="" expand="true" fill="true" padding="-1">
                 </clist>
               </scrolled_window>
               <label name=label_file_info width="-1" height="-1" text="%22%22" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">

@@ -25,6 +25,7 @@ open Files
 open Mftp_comm
 open DownloadTypes
 open DownloadOptions
+open DownloadComplexOptions
 open DownloadGlobals
 open Gui_types
   
@@ -87,7 +88,7 @@ let sort_zones b =
   ) zones
 
 let disconnected_from_client c msg =
-  printf_char ']'; 
+  printf_string "-c"; 
   c.client_chunks <- [||];
   c.client_sock <- None;
   let files = c.client_files in
@@ -121,10 +122,6 @@ let rec create_zones file begin_pos end_pos list =
   else
   let zone_end = Int32.add begin_pos zone_size in
   let zone_end = if zone_end > end_pos then end_pos else zone_end in
-  if !verbose then begin
-      Printf.printf "[%s-%s]" (Int32.to_string begin_pos) 
-      (Int32.to_string zone_end);
-    end;
   create_zones file zone_end end_pos ({
       zone_begin = begin_pos;
       zone_end = zone_end;
@@ -200,9 +197,7 @@ let query_zones c b =
 (* create a list with all absent intervals *)
 
 let put_absents file =
-  if !verbose then begin
-      Printf.printf "put_absents"; print_newline ();
-    end;
+
   for i = 0 to file.file_nchunks - 1 do
     file.file_chunks.(i) <- PresentTemp;
   done;
@@ -237,16 +232,12 @@ let put_absents file =
           end
         else
         if end_pos >= b.block_end then begin
-            if !verbose then Printf.printf "block %d :" i;
             b.block_zones <- create_zones file begin_pos b.block_end
               b.block_zones;
-            if !verbose then print_newline ();
             sort_zones b;
             iter_chunks_in (i+1) ((b.block_end, end_pos) :: tail)
           end else begin
-            if !verbose then Printf.printf "block %d :" i;
             b.block_zones <- create_zones file begin_pos end_pos b.block_zones;
-            if !verbose then print_newline ();
             iter_blocks_in i b tail
           end
     
@@ -420,15 +411,12 @@ let verify_file_md4 file i b =
   let state = verify_chunk file i in
   file.file_chunks.(i) <- (
     if state = PresentVerified then begin
-        printf_char 'V';
         PresentVerified
       end
     else
     match b with
       PartialTemp bloc -> PartialVerified bloc
-    | PresentTemp ->
-        printf_char 'E';
-        AbsentVerified
+    | PresentTemp -> AbsentVerified
     | _ -> AbsentVerified);
   file.file_all_chunks.[i] <- 
     (if state = PresentVerified then '1' else '0')
@@ -451,10 +439,6 @@ let rec find_client_zone c =
         | _ -> []
       
       in
-      if !verbose then begin
-          Printf.printf "REMAINING ZONES: %d" (List.length z);
-          print_newline ();
-        end;
       let rem_zones = List.length b.block_zones in
       match z with
         [z1;z2;z3] -> ()
@@ -491,10 +475,7 @@ and find_zone1 c b zones =
     [] -> 
 (* no block to download !! *)
       c.client_zones <- []; 
-      if !verbose then begin
-          Printf.printf "DOWNLOADED ONE BLOCK"; 
-          print_newline ();
-        end;
+      printf_string "[BLOCK]";
       b.block_present <- true;
       b.block_nclients <- b.block_nclients - 1;      
       file.file_chunks.(b.block_pos) <- PresentTemp;
@@ -502,14 +483,6 @@ and find_zone1 c b zones =
       file.file_chunks.(b.block_pos) <- state;
       (file.file_all_chunks).[b.block_pos] <- (if state = PresentVerified 
         then '1' else '0');
-      
-      begin
-        match state with
-          PresentVerified -> printf_char 'V'
-        | AbsentVerified -> printf_char 'E'
-        | _ -> printf_char 'D'
-      end;
-      printf_char '.';
       file.file_absent_chunks <- List.rev (find_absents file);
       find_client_block c
   
@@ -534,7 +507,6 @@ and check_file_block c file i max_clients =
       | AbsentVerified ->
           let b = new_block file i in
           b.block_zones <- create_zones file b.block_begin b.block_end [];
-          if !verbose then print_newline ();
           
           b.block_nclients <- 1;            
           c.client_block <- Some b;
@@ -595,15 +567,9 @@ and find_client_block c =
       begin
         match c.client_block with 
           None ->
-            if !verbose then begin
-                Printf.printf "CLIENT IS FREE"; 
-                print_newline ();
-              end;
+            printf_string "[FREE]";
         | Some _ ->
-            if !verbose then begin
-                Printf.printf "CLIENT IS ALREADY USED"; 
-                print_newline ();
-              end;
+            printf_string "[USED]";
       end;
       try  
         let last = file.file_nchunks - 1 in
@@ -626,19 +592,11 @@ and find_client_block c =
         for i = 0 to file.file_nchunks - 1 do
           check_file_block c file i 1
         done;
-(* TODO: send client on Partial block *)
-        if !verbose then begin
-            Printf.printf "NO ABSENT BLOCK FOUND"; 
-            print_newline ();
-          end;
         for i = 0 to file.file_nchunks - 1 do
           check_file_block c file i max_int
         done;
-        if !verbose then begin
-            Printf.printf "NO PARTIAL BLOCK FOUND"; 
-            print_newline (); 
-          end;
 (* THIS CLIENT CANNOT HELP ANYMORE: USELESS FOR THIS FILE *)
+        printf_string "[NEXT]";
         next_file c
       
       with _ -> ()
@@ -654,7 +612,7 @@ and next_file c =
       | Some sock ->
           match files with
             [] ->
-              connection_ok c.client_connection_control;
+              connection_delay c.client_connection_control;
               TcpClientSocket.close sock "useless client";            
               raise Not_found
           | _ ->
@@ -741,18 +699,9 @@ Printf.printf "%s <---> %s" (Int32.to_string p0) (Int32.to_string p1);
 
       
 let update_zone file begin_pos end_pos z =
-  if !verbose then begin
-      Printf.printf "CHECKING %s-%s" (Int32.to_string z.zone_begin)
-      (Int32.to_string z.zone_end); 
-      print_newline ();
-    end;
   if z.zone_begin <= begin_pos &&
     z.zone_end > begin_pos then 
     if z.zone_end <= end_pos then begin
-        if !verbose then begin
-            Printf.printf "END OF ZONE DOWNLOADED"; 
-            print_newline ();
-          end;
         file.file_downloaded <- 
           Int32.add file.file_downloaded 
           (Int32.sub z.zone_end z.zone_begin);
@@ -766,10 +715,6 @@ let update_zone file begin_pos end_pos z =
           (Int32.sub end_pos z.zone_begin);
         file.file_changed <- SmallChange;
         z.zone_begin <- end_pos;
-        if !verbose then begin
-            Printf.printf "ADVANCE TO %s" (Int32.to_string end_pos);
-            print_newline ();
-          end;
       end
 
 
@@ -821,7 +766,7 @@ let mail_for_completed_file file =
     
     let mail = {
         mail_to = !!mail;
-        mail_from = Printf.sprintf "Your mldonkey <%s>" !!mail;
+        mail_from = Printf.sprintf "%s" !!mail;
         mail_subject = Printf.sprintf "mldonkey completed download";
         mail_body = line1 ^ line2;
       } in
@@ -1026,7 +971,10 @@ let rec add_shared_files dirname =
         let size = file_size name in
         if size > Int32.zero then
           let real_name =  
-            Filename2.normalize (Filename.concat local_dirname name) in
+            Filename2.normalize (
+              if Filename.is_relative name then
+                Filename.concat local_dirname name
+              else name) in
           try
             let s = Hashtbl.find shared_files_info real_name in
             let mtime = (Unix.stat real_name).Unix.st_mtime in

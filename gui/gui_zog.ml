@@ -1,21 +1,3 @@
-(* Copyright 2001, 2002 b8_bavard, b8_fee_carabine, INRIA *)
-(*
-    This file is part of mldonkey.
-
-    mldonkey is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    mldonkey is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with mldonkey; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-*)
 class box_servers () =
   let box = GPack.hbox ~homogeneous:false () in
   let _anonymous_container_1 =
@@ -319,10 +301,9 @@ class box_downloads () =
       ~packing:(_anonymous_container_17#pack ~expand:true ~fill:true) ()
   in
   let clist_downloaded =
-    GList.clist ~columns:6
+    GList.clist ~columns:5
       ~titles:(
-        [Mes.filename; Mes.size; Mes.downloaded; Mes.availability;
-         Mes.properties; Mes.md4])
+        [Mes.filename; Mes.size; Mes.downloaded; Mes.availability; Mes.md4])
       ~shadow_type:`NONE ~selection_mode:`SINGLE ~titles_show:true
       ~packing:_anonymous_container_18#add ()
   in
@@ -352,10 +333,10 @@ class box_downloads () =
       ~packing:(_anonymous_container_20#pack ~expand:true ~fill:true) ()
   in
   let clist_downloads =
-    GList.clist ~columns:8
+    GList.clist ~columns:7
       ~titles:(
         [Mes.filename; Mes.size; Mes.downloaded; Mes.percent; Mes.rate;
-         Mes.state; Mes.availability; Mes.properties; Mes.md4])
+         Mes.state; Mes.availability; Mes.md4])
       ~shadow_type:`NONE ~selection_mode:`MULTIPLE ~titles_show:true
       ~packing:_anonymous_container_21#add ()
   in

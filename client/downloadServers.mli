@@ -16,8 +16,7 @@
     along with mldonkey; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
-val verbose : bool ref
-  
+
 val last_connected_server : unit -> DownloadTypes.server
 val all_servers : unit -> DownloadTypes.server list
 val connect_one_server : unit -> unit

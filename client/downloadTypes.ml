@@ -36,7 +36,7 @@ type server = {
     mutable server_num : int;
     mutable server_sock : TcpClientSocket.t option;
     mutable server_nqueries : int;
-    mutable server_search_queries : search_query Fifo.t;
+    mutable server_search_queries : search_query_handler Fifo.t;
     mutable server_users_queries : users_query Fifo.t;
     mutable server_connection_control : connection_control;
     mutable server_score : int;
@@ -61,7 +61,7 @@ and user = {
     user_tags : Mftp.tag list;
   }
     
-and search_query = (
+and search_query_handler = (
     server -> TcpClientSocket.t -> Mftp_server.QueryReply.t -> unit)
 
 and users_query = (
@@ -73,17 +73,7 @@ and search_event =
 | Waiting of int
   
 and search = {
-    mutable search_words : string list; 
-    mutable search_minsize : int32 option;
-    mutable search_maxsize : int32 option;
-    mutable search_avail : int32 option;
-    mutable search_media : string option;
-    mutable search_format : string option;
-    mutable search_fields : (string * string) list;
-    mutable search_min_bitrate : int32 option;
-    mutable search_title : string option;
-    mutable search_album : string option;
-    mutable search_artist : string option;
+    mutable search_query : search_query;
     mutable search_nresults : int;
     search_files : (Md4.t, result * (int ref)) Hashtbl.t;
     search_num : int;

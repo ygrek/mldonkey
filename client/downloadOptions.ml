@@ -19,7 +19,6 @@
 open Mftp
 open Options
 open DownloadTypes
-open DownloadGlobals
 open Unix
 open Gui_types
   
@@ -53,6 +52,10 @@ let interface_buffer = define_option downloads_ini ["interface_buffer"]
 to increase when the connection between them has a small bandwith" int_option
   1000000
 
+let max_name_len = define_option downloads_ini ["max_name_len"]
+    "The size long names will be shorten to in the interface"
+  int_option 50
+  
 let previewer = define_option downloads_ini ["previewer"]
   "Name of program used for preview (first arg is local filename, second arg
     is name of file as searched on eDonkey" string_option
@@ -72,6 +75,11 @@ let incoming_directory =
   define_option downloads_ini ["incoming_directory" ] 
     "The directory where downloaded files should be moved after commit" 
   string_option "incoming"
+
+let shared_directories = 
+  define_option downloads_ini ["shared_directories" ] 
+    "Directories where files will be shared"
+  (list_option string_option) []
 
 let http_port = 
   define_option downloads_ini ["http_port"] "The port used to connect to your client with a WEB browser" int_option 4080
@@ -114,12 +122,6 @@ let string_list_option = define_option_class "String"
 
   
 let features = define_option downloads_ini ["features"] "" string_list_option ""
-let set_features () =
-  List.iter (Mftp_client.set_features has_upload) (String2.tokens !!features)
-
-  
-let _ =
-  option_hook features set_features
   
 let password = define_option downloads_ini ["password"] 
   "The password to access your client from the GUI (setting it disables
@@ -182,383 +184,9 @@ let mail = define_option downloads_ini ["mail"]
   "Your e-mail if you want to receive mails when downloads are completed"
     string_option ""
 
-  
-(************ COMPLEX OPTIONS *****************)
-  
-let value_to_addr v =
-  match v with
-    List [v1;v2] | SmallList [v1;v2] ->
-      (Ip.of_string (value_to_string v1), value_to_int v2)
-  | _ -> failwith "Options: Not an int32 pair"
-
-let addr_to_value ip port =
-  SmallList [string_to_value (Ip.to_string ip); int_to_value port]
-  
-let value_to_md4 v =
-  Md4.of_string (value_to_string v)
-  
-module ClientOption = struct
-    let value_to_client v = 
-      match v with
-        List [ip;port] | SmallList [ip;port] ->
-          let ip = Ip.of_string (value_to_string ip) in
-          let port = value_to_int port in
-          new_client (Known_location (ip, port))
-      | Module assocs ->
-          let get_value name conv = conv (List.assoc name assocs) in
-          let get_value_nil name conv = 
-            try conv (List.assoc name assocs) with _ -> []
-          in
-          let kind = get_value "client_addr" (fun v ->
-                match v with
-                  List [ip;port] | SmallList [ip;port] ->
-                    let ip = Ip.of_string (value_to_string ip) in
-                    let port = value_to_int port in
-                    Known_location (ip, port)
-                | _ -> failwith  "Options: Not an client option"
-            ) in
-          let l = new_client kind in
-          
-          (try
-              l.client_md4 <- get_value "client_md4" value_to_md4 
-            with _ -> ());
-          (try
-              l.client_name <- get_value "client_name" value_to_string
-            with _ -> ());
-          l
-      | _ -> failwith "Options: Not a client"
-
-                  
-    let client_to_value c =
-      match c.client_kind with
-        Known_location (ip, port) ->
-          Options.Module [
-            "client_addr", addr_to_value ip  port;
-            "client_md4", string_to_value (Md4.to_string c.client_md4);
-            "client_name", string_to_value c.client_name;
-          ]
-      | _ -> failwith "client_to_value: bad client"
-
-    
-    let t =
-      define_option_class "Client" value_to_client client_to_value
-
-  end
-  
-
-
-module IpOption = struct
-    
-    let value_to_ip v = 
-      Ip.of_string (value_to_string v)
-      
-    let ip_to_value ip =
-      string_to_value (Ip.to_string ip)
-      
-    let t = define_option_class "Ip" value_to_ip ip_to_value      
-      
-  end
-    
-module ServerOption = struct
-    let value_to_server v = 
-      match v with
-        List [ip;port] | SmallList [ip;port] ->
-          let ip = Ip.of_string (value_to_string ip) in
-          let port = value_to_int port in
-          new_server ip port !!initial_score
-      | Module assocs ->
-          let get_value name conv = conv (List.assoc name assocs) in
-          let get_value_nil name conv = 
-            try conv (List.assoc name assocs) with _ -> []
-          in
-          let ip, port = get_value "server_addr" (fun v ->
-                match v with
-                  List [ip;port] | SmallList [ip;port] ->
-                    let ip = Ip.of_string (value_to_string ip) in
-                    let port = value_to_int port in
-                    ip, port
-                | _ -> failwith  "Options: Not an server option"
-            ) in
-          let l = new_server ip port !!initial_score in
-          
-          (try
-              l.server_description <- get_value "server_desc" value_to_string 
-            with _ -> ());
-          (try
-              l.server_name <- get_value "server_name" value_to_string
-            with _ -> ());
-          (try
-              connection_set_last_conn l.server_connection_control
-                (get_value "server_age" value_to_float);
-            with _ -> ());
-          l
-      | _ -> failwith "Options: Not a server"
-
-                  
-    let server_to_value c =
-      Options.Module [
-        "server_addr", addr_to_value c.server_ip  c.server_port;
-        "server_desc", string_to_value c.server_description;
-        "server_name", string_to_value c.server_name;
-        "server_age", float_to_value (
-          connection_last_conn c.server_connection_control);
-      ]
-
-    
-    let t =
-      define_option_class "Server" value_to_server server_to_value
-
-  end
-  
-
-  
-module FileOption = struct
-    
-    let value_to_int32pair v =
-      match v with
-        List [v1;v2] | SmallList [v1;v2] ->
-          (value_to_int32 v1, value_to_int32 v2)
-      | _ -> 
-          failwith "Options: Not an int32 pair"
-    
-    let value_to_file v =
-      match v with
-        Options.Module assocs ->
-          let get_value name conv = conv (List.assoc name assocs) in
-          let get_value_nil name conv = 
-            try conv (List.assoc name assocs) with _ -> []
-          in
-          
-          
-          let file_md4_name = 
-            try
-              get_value "file_md4" value_to_string
-            with _ -> failwith "Bad file_md4"
-          in
-          let file_size = try
-              value_to_int32 (List.assoc "file_size" assocs) 
-            with _ -> Int32.zero
-          in
-          
-          let file = new_file (
-              Filename.concat !!temp_directory file_md4_name)
-            (Md4.of_string file_md4_name) file_size in
-          
-          (try 
-              if file.file_exists then begin
-(* only load absent chunks if file previously existed. *)
-                  file.file_absent_chunks <- 
-                    get_value "file_absent_chunks" 
-                    (value_to_list value_to_int32pair);
-                end
-            with _ -> ()                );
-          
-          
-          file.file_filenames <-
-            get_value_nil "file_filenames" (value_to_list value_to_string);
-    
-          (try
-              file.file_all_chunks <- get_value "file_all_chunks"
-                value_to_string
-            with _ -> ());
-          
-          file.file_known_locations <- 
-            get_value_nil "file_locations" (value_to_list 
-              ClientOption.value_to_client);
-          let md4s = get_value_nil "file_md4s" (value_to_list value_to_md4) in
-          file.file_md4s <- (if md4s = [] then file.file_md4s else md4s);
-          file
-      
-      | _ -> failwith "Options: not a file option"
-    
-    let string_of_chunks file =
-      let s = String.create file.file_nchunks in
-      for i = 0 to file.file_nchunks - 1 do
-        s.[i] <- (
-          match file.file_chunks.(i) with
-            PresentVerified | PresentTemp -> '1'
-          | _ -> '0'
-        )
-      done;
-      s
-    
-    let file_to_value file =
-      Options.Module [
-        "file_md4", string_to_value (Md4.to_string file.file_md4);
-        "file_size", int32_to_value file.file_size;
-        "file_all_chunks", string_to_value file.file_all_chunks;
-        "file_absent_chunks", List
-          (List.map (fun (i1,i2) -> 
-              SmallList [int32_to_value i1; int32_to_value i2])
-          file.file_absent_chunks);
-        "file_filenames", List
-          (List.map (fun s -> string_to_value s) file.file_filenames);
-        "file_locations", list_to_value ClientOption.client_to_value
-          file.file_known_locations;
-        "file_md4s", List
-          (List.map (fun s -> string_to_value (Md4.to_string s)) 
-          file.file_md4s);
-        "file_downloaded", int32_to_value file.file_downloaded;      
-      ]
-    
-    let t =
-      define_option_class "File" value_to_file file_to_value
-    ;;
-  end
-
-  
-module SharedFileOption = struct
-    
-    let value_to_shinfo v =
-      match v with
-        Options.Module assocs ->
-          let get_value name conv = conv (List.assoc name assocs) in
-          let get_value_nil name conv = 
-            try conv (List.assoc name assocs) with _ -> []
-          in
-          
-          let sh_md4s = try
-              value_to_list (fun v ->
-                  Md4.of_string (value_to_string v)) (List.assoc "md4s" assocs)
-            with _ -> failwith "Bad shared file md4"
-          in
-          let sh_size = try
-              value_to_int32 (List.assoc "size" assocs) 
-            with _ -> failwith "Bad shared file size"
-          in
-          let sh_name = try
-              value_to_filename (List.assoc "name" assocs)
-            with _ -> failwith "Bad shared file name"
-          in
-          let sh_mtime = try
-              value_to_float (List.assoc "mtime" assocs)
-            with _ -> failwith "Bad shared file mtime"
-          in
-          { sh_name = sh_name; sh_mtime = sh_mtime;
-            sh_size = sh_size; sh_md4s = sh_md4s;
-          }
-          
-      | _ -> failwith "Options: not a shared file info option"
-          
-    let shinfo_to_value sh =
-      Options.Module [
-        "name", filename_to_value sh.sh_name;
-        "md4s", list_to_value (fun md4 ->
-            string_to_value (Md4.to_string md4)) sh.sh_md4s;
-        "mtime", float_to_value sh.sh_mtime;
-        "size", int32_to_value sh.sh_size;
-      ]
-    
-    
-    let t = define_option_class "SharedFile" value_to_shinfo shinfo_to_value
-  end
-    
-
-module Md4Option = struct
-    
-    let value_to_md4 v = 
-      match v with
-        Options.Module assocs ->
-          let get_value name conv = conv (List.assoc name assocs) in
-          let get_value_nil name conv = 
-            try conv (List.assoc name assocs) with _ -> []
-          in
-          
-          
-          let file_md4_name = 
-            try
-              get_value "file_md4" value_to_string
-            with _ -> failwith "Bad file_md4"
-          in
-          Md4.of_string file_md4_name
-          
-      | _ -> Md4.of_string (value_to_string v)
-    let md4_to_value v = string_to_value (Md4.to_string v)
-    
-    
-    let t =
-      define_option_class "Md4" value_to_md4 md4_to_value
-    ;;
-  end
-
-  
-let allowed_ips = define_option downloads_ini ["allowed_ips"]
-    "list of IP address allowed to control the client via telnet/GUI/WEB"
-    (list_option IpOption.t) [Ip.of_string "127.0.0.1"]
-
-let done_files = 
-  define_option files_ini ["done_files"] 
-  "The files whose download is finished" (list_option FileOption.t) []
-
-let old_files = 
-  define_option downloads_ini ["old_files"] 
-  "The files that were downloaded" (list_option Md4Option.t) []
-
-let known_friends = 
-  define_option friends_ini ["friends"] 
-  "The list of known friends" (list_option ClientOption.t) []
-
-let client_md4 = define_option downloads_ini ["client_md4"]
-    "The MD4 of this client" Md4Option.t (Md4.random ())
-  
-let files = 
-  define_option files_ini ["files"] 
-  "The files currently being downloaded" (list_option FileOption.t) []
-
-let known_servers = define_option servers_ini["known_servers"] "List of known servers"
-    (list_option ServerOption.t) []
-
-let known_shared_files = define_option shared_files_ini 
-    ["shared_files"] "" 
-    (list_option SharedFileOption.t) []
-  
-(************  UPDATE OPTIONS *************)  
-  
-let add_server ip port =
-  try
-    find_server ip port 
-  with _ ->
-      let s = new_server ip port !!initial_score in
-      servers_ini_changed := true;
-      known_servers =:= s :: !!known_servers;
-      s
-  
-let remove_server ip port =
-  try
-    let s = find_server ip port in
-    servers_ini_changed := true;
-    known_servers  =:= List2.removeq s  !!known_servers ;
-    DownloadGlobals.remove_server ip port
-  with _ -> ()
-
-      
-
-      
-  (*
-module FriendOption = struct
-    open Options
-      
-    let value_to_friend v =
-      match v with
-        List [v1;v2] | SmallList [v1;v2] ->
-          let ip = Ip.of_string (value_to_string v1) in
-          let port = value_to_int v2 in
-          new_friend ip port
-      | _ -> failwith "Options: Not an int32 pair"
-
-    let friend_to_value c =
-      SmallList [
-        string_to_value (Ip.to_string c.friend_ip);
-        int_to_value c.friend_port
-      ]
-      
-    let t =
-      define_option_class "Friend" value_to_friend friend_to_value
-    ;;
-  end
-*)  
-
-
 
 let max_allowed_connected_servers () =
   min 5 !!max_connected_servers
+
+let verbose = define_option downloads_ini ["verbose"] "Only for debug"
+    bool_option false

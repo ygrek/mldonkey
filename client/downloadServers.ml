@@ -25,10 +25,10 @@ open Files
 open Mftp_comm
 open DownloadTypes
 open DownloadOptions
+open DownloadComplexOptions
 open DownloadGlobals
 open Gui_types
   
-let verbose = ref false
   
 let first_name file =
   match file.file_filenames with
@@ -136,11 +136,6 @@ let server_handler s sock event =
   
 let client_to_server s t sock =
   let module M = Mftp_server in
-  if !verbose then begin
-      Printf.printf "FROM SERVER:"; print_newline ();
-      M.print t;  
-      print_newline ();
-    end;
   match t with
     M.SetIDReq t ->
       s.server_cid <- t;
@@ -168,7 +163,8 @@ let client_to_server s t sock =
   | M.ServerListReq l ->
       let module Q = M.ServerList in
       List.iter (fun s ->
-          ignore (add_server s.Q.ip s.Q.port);
+          if Ip.valid s.Q.ip then
+            ignore (add_server s.Q.ip s.Q.port);
       ) l
   
   | M.ServerInfoReq t ->
@@ -204,6 +200,7 @@ let connect_server s =
     connection_try s.server_connection_control;
     s.server_cid <- !client_ip;
     incr nservers;
+    printf_char 's'; 
     let sock = TcpClientSocket.connect (
         Ip.to_inet_addr s.server_ip) s.server_port 
         (server_handler s) in
@@ -238,6 +235,7 @@ let connect_server s =
       decr nservers;
       s.server_sock <- None;
       s.server_state <- NotConnected;
+      connection_failed s.server_connection_control;
       !server_change_hook s
       
 let rec connect_one_server () =
@@ -347,7 +345,9 @@ Printf.printf "Master Server is connected"; print_newline ();
                 server_send sock (Mftp_server.ShareReq
                   (make_tagged (all_shared ())));
           end else
-        if !nconnected_servers > max_allowed_connected_servers ()  then begin
+        if connection_last_conn s.server_connection_control 
+            +. 120. < last_time () &&
+          !nconnected_servers > max_allowed_connected_servers ()  then begin
 (* remove one third of the servers every 5 minutes *)
             nconnected_servers := !nconnected_servers - 3;
 (*            Printf.printf "DISCONNECT FROM EXTRA SERVER %s:%d "

@@ -1229,43 +1229,46 @@ let submit_search (gui: gui) local ()=
   nresults := 0;
   update_searches_label ();
   let s = gui#tab_searches in
-  gui_send (P.Search_query (local, {
-      P.search_words = [s#entry_search_words#text];
-      P.search_minsize = (let minsize = s#entry_search_minsize#text in
-        if minsize = "" then None else Some (
-            Int32.mul (Int32.of_string minsize)
-            (unit_of_string s#combo_search_minsize_unit#entry#text)
-          ));
-      P.search_maxsize = (let maxsize = s#entry_search_maxsize#text in
-        if maxsize = "" then None else Some (
-            Int32.mul (Int32.of_string maxsize)
-            (unit_of_string s#combo_search_minsize_unit#entry#text)
-          ));
-      P.search_avail = None;
-      P.search_media = (
-        let media = s#combo_search_media#entry#text in
-        try
-          Some (List.assoc media  search_media_list)
-        with _ -> 
-            if media = "" then None else Some media);
-      P.search_format = (
-        let format = s#combo_format#entry#text in
-        try
-          Some (List.assoc format search_format_list)
-        with _ -> 
-            if format = "" then None else Some format);
-      P.search_min_bitrate = ( 
-        let bitrate = s#combo_min_bitrate#entry#text in
-        if bitrate = "" then None else
-        try
-          Some (Int32.of_string bitrate)
-        with _ -> None);    
-      P.search_title = option_of_string s#entry_title#text;
-      P.search_artist = option_of_string s#entry_artist#text;
-      P.search_album = option_of_string s#entry_album#text;
-      P.search_fields = [];
-      P.search_num = !search_counter;
-    }));
+  gui_send (P.Search_query (local, 
+      { P.search_query =
+        {
+          search_words = String2.tokens s#entry_search_words#text;
+          search_minsize = (let minsize = s#entry_search_minsize#text in
+            if minsize = "" then None else Some (
+                Int32.mul (Int32.of_string minsize)
+                (unit_of_string s#combo_search_minsize_unit#entry#text)
+              ));
+          search_maxsize = (let maxsize = s#entry_search_maxsize#text in
+            if maxsize = "" then None else Some (
+                Int32.mul (Int32.of_string maxsize)
+                (unit_of_string s#combo_search_minsize_unit#entry#text)
+              ));
+          search_avail = None;
+          search_media = (
+            let media = s#combo_search_media#entry#text in
+            try
+              Some (List.assoc media  search_media_list)
+            with _ -> 
+                if media = "" then None else Some media);
+          search_format = (
+            let format = s#combo_format#entry#text in
+            try
+              Some (List.assoc format search_format_list)
+            with _ -> 
+                if format = "" then None else Some format);
+          search_min_bitrate = ( 
+            let bitrate = s#combo_min_bitrate#entry#text in
+            if bitrate = "" then None else
+            try
+              Some (Int32.of_string bitrate)
+            with _ -> None);    
+          search_title = option_of_string s#entry_title#text;
+          search_artist = option_of_string s#entry_artist#text;
+          search_album = option_of_string s#entry_album#text;
+          search_fields = [];
+        };
+        P.search_num = !search_counter;
+      }));
   let new_tab = new box_search () in
 
   let clist_search = MyCList.create gui new_tab#clist_search_results       
@@ -1274,6 +1277,8 @@ let submit_search (gui: gui) local ()=
       (fun r -> (Printf.sprintf "%10s" (Int32.to_string r.result_size)));
 (* NAME *)
       (fun r -> (*short_name*) (first_name r)) ;
+(* FORMAT *)      
+      (fun r -> r.result_format);
 (* TAGS *)
       (fun r -> string_of_tags r.result_tags);
 (* MD4 *)
@@ -1335,14 +1340,19 @@ let reconnect gui =
   (try disconnect gui with _ -> ());
   let sock = TcpClientSocket.connect !addr !port (fun _ _ -> 
         ()) in
-  connection_sock := Some sock;
-  TcpClientSocket.set_closer sock (fun _ _ -> 
-      clean_gui ();      
-      connection_sock := None;
-      );
-  TcpClientSocket.set_reader sock (value_handler (value_reader gui));
-  gui#label_connect_status#set_text "Connecting"
-
+  try
+    connection_sock := Some sock;
+    TcpClientSocket.set_closer sock (fun _ _ -> 
+        connection_sock := None;
+        clean_gui ();      
+    );
+    TcpClientSocket.set_reader sock (value_handler (value_reader gui));
+    gui#label_connect_status#set_text "Connecting"
+  with e ->
+      Printf.printf "Exception %s in connecting" (Printexc.to_string e);
+      print_newline ();
+      TcpClientSocket.close sock "error";
+      connection_sock := None
 
 let servers_connect_more (gui : gui) () =
   gui_send (Gui_proto.ConnectMore_query)
@@ -1545,4 +1555,14 @@ ignore (gui#clist_download#connect#unselect_row (download_unset_selection gui));
     
   add_timer 0.1 gtk_handler;
   add_timer 2.0 update_sizes;
+  let never_connected = ref true in
+  add_timer 1.0 (fun timer ->
+      if !never_connected then 
+        match !connection_sock with
+          None ->
+            reactivate_timer timer;
+            reconnect gui
+        | _ -> 
+            never_connected := false
+  );
   loop ()

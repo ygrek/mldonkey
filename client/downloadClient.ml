@@ -35,6 +35,7 @@ open TcpClientSocket
 open DownloadTypes  
 open DownloadOneFile
 open DownloadOptions
+open DownloadComplexOptions
 open DownloadGlobals
 open Gui_types
   
@@ -141,7 +142,6 @@ let rec really_write fd s pos len =
   if nwrite < len then 
     really_write fd s (pos + nwrite) (len - nwrite)
   
-let verbose = ref false
 
 let identify_as_mldonkey c sock =
   client_send sock (
@@ -182,13 +182,14 @@ let client_to_client for_files c t sock =
 (*  M.print t; print_newline (); *)
   match t with
     M.ConnectReplyReq t ->
+      printf_string "[CCONN OK]";
+      
       let module CR = M.ConnectReply in
       
       if t.CR.md4 = !!client_md4 then
         TcpClientSocket.close sock "connected to myself";
       
       c.client_md4 <- t.CR.md4;
-      printf_char '1'; 
       connection_ok c.client_connection_control;
       c.client_tags <- t.CR.tags;
       List.iter (fun tag ->
@@ -235,24 +236,31 @@ print_newline ();
           c.client_all_files <- Some (List.map (fun f ->
                 let tags =  f.f_tags in
                 let md4 = f.f_md4 in
-                let (file_name, file_size, tags) = List.fold_left (
-                    fun (file_name, file_size, tags)  tag ->
-                      match tag with
-                        { tag_name = "filename"; tag_value = String s } ->
-                          (s, file_size, tags)
-                      | { tag_name = "size"; tag_value = Uint32 v } ->
-                          (file_name, v, tags)
-                      | _ -> (file_name, file_size, tag :: tags)
-                  ) ("", Int32.zero, [])  tags
-                in
-                let result = { 
+                let r = { 
                     result_md4 = md4;
-                    result_names = [file_name];
-                    result_size = file_size;
-                    result_tags = List.rev tags;
+                    result_names = [];
+                    result_size = Int32.zero;
+                    result_tags = [];
+                    result_type = "";
+                    result_format = "";
                     result_filtered_out = 0;
                   } in
-                DownloadIndexer.index_result_no_filter result
+                List.iter (fun tag ->
+                    match tag with
+                      { tag_name = "filename"; tag_value = String s } ->
+                        r.result_names <- s :: r.result_names
+                    | { tag_name = "size"; tag_value = Uint32 v } ->
+                        r.result_size <- v;
+                    | { tag_name = "format"; tag_value = String s } ->
+                        r.result_tags <- tag :: r.result_tags;
+                        r.result_format <- s
+                    | { tag_name = "type"; tag_value = String s } ->
+                        r.result_tags <- tag :: r.result_tags;
+                        r.result_type <- s
+                    | _ ->
+                        r.result_tags <- tag :: r.result_tags
+                ) tags;
+                DownloadIndexer.index_result_no_filter r
             ) t);
           c.client_changed <- BigChange;
           !client_change_hook c
@@ -263,6 +271,8 @@ print_newline ();
       end;
   
   | M.ConnectReq t ->
+      printf_string "[CCONN OK]";
+      
       let module CR = M.Connect in
       
       let c =
@@ -318,7 +328,6 @@ We should probably check that here ... *)
               Hashtbl.add indirect_clients_by_md4 t.CR.md4 ()
       end;
       
-      printf_char 'c'; 
       connection_ok c.client_connection_control;
       c.client_tags <- t.CR.tags;
       List.iter (fun tag ->
@@ -368,6 +377,7 @@ We should probably check that here ... *)
       end
   
   | M.AvailableSlotReq _ ->
+      printf_string "[QUEUED]";
       find_client_block c
 
 (*
@@ -395,7 +405,7 @@ We should probably check that here ... *)
         M.AvailableSlotReq Q.t);              
   
   | M.CloseSlotReq _ ->
-      printf_char 'M'
+      printf_string "[DOWN]"
   
   | M.ReleaseSlotReq _ ->
       client_send sock (
@@ -419,10 +429,7 @@ We should probably check that here ... *)
         try
           let file = find_file t.Q.md4 in
           
-          if !verbose then begin
-              Printf.printf "FILE IS AVAILABLE UNDER %s" t.Q.name;
-              print_newline ();
-            end;
+          printf_string "[FOUND FILE]";
           if not (List.mem t.Q.name file.file_filenames) then 
             file.file_filenames <- file.file_filenames @ [t.Q.name] ;
           client_send sock (
@@ -477,7 +484,7 @@ We should probably check that here ... *)
         let file = find_file t.Q.md4 in
         
         let module Q = M.QueryChunkMd4Reply in
-        if !verbose then begin
+        if !!verbose then begin
             Printf.printf "MD4 FOR CHUNKS RECEIVED"; 
             print_newline ();
           end;
@@ -509,20 +516,9 @@ We should probably check that here ... *)
       let end_pos = t.Q.end_pos in
       
       set_client_state c Connected_busy;
-      if !verbose then begin
-(*          Printf.printf " FROM %s" (Ip.to_string c.client_ip);
-          print_newline ();*)
-          Printf.printf "RECEIVED %s-%s" 
-            (Int32.to_string begin_pos) (Int32.to_string end_pos);
-          print_newline ();
-        end;
       let len = Int32.sub end_pos begin_pos in
       download_counter := !download_counter + Int32.to_int len;
       c.client_rating <- Int32.add c.client_rating len;      
-      if !verbose then begin
-          Printf.printf "Blitting %d bytes" (Int32.to_int len); 
-          print_newline ();
-        end;
       begin
         match c.client_block with
           None -> ()
@@ -650,7 +646,7 @@ Mmap.munmap m;
       if t = Md4.null && c.client_is_mldonkey = 0 then 
         c.client_is_mldonkey <- 1;
       if t = Md4.one && c.client_is_mldonkey = 1 then  begin
-(*          Printf.printf "*** Identified mldonkey client ***"; print_newline (); *)
+          printf_string "[MLDONKEY]";
           c.client_is_mldonkey <- 2;
         end;
       
@@ -793,7 +789,9 @@ let client_handler c sock event =
   let c = real_client c in
   match event with
     BASIC_EVENT (CLOSED s) ->
-        disconnected_from_client c s
+      printf_string "-c";
+      connection_failed c.client_connection_control;
+      disconnected_from_client c s
   
   | _ -> ()
       
@@ -810,10 +808,8 @@ let init_connection c  sock files =
   );
   set_rtimeout (TcpClientSocket.sock sock) !!client_timeout;
   set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
-      if !verbose then begin
-          Printf.printf "************ TIMEOUT FOR CLIENT ***********"; 
-          print_newline ();
-        end;
+      printf_string "-!C";
+      connection_delay c.client_connection_control;
       close s "timeout"
   );
   set_reader sock (Mftp_comm.client_handler (client_to_client files c))  
@@ -824,17 +820,14 @@ let reconnect_client cid files c =
   | Known_location (ip, port) ->
       
       try
-        if !verbose then begin
-            Printf.printf "CONNECTING"; print_newline ();
-          end;
         set_client_state c Connecting;
         connection_try c.client_connection_control;
 
+        printf_string "?C";
         let sock = TcpClientSocket.connect (
             Ip.to_inet_addr ip) 
           port 
             (client_handler c) in
-        printf_char '['; 
         init_connection c sock files;
         c.client_sock <- Some sock;
         let s = DownloadServers.last_connected_server () in
@@ -854,6 +847,7 @@ let reconnect_client cid files c =
         )
       
       with _ -> 
+          connection_failed c.client_connection_control;
           c.client_state <- NotConnected
           
 let connect_client cid files c = 
@@ -875,10 +869,7 @@ let query_id_reply s t =
   connect_client s [] c
       
 let query_id s sock ip =
-  if !verbose then begin
-      Printf.printf "QUERYING MORE INFORMATION ON LOCATION";
-      print_newline ();
-    end;
+  printf_string "[QUERY ID]";
   server_send sock (
     let module M = Mftp_server in
     let module C = M.QueryID in
@@ -922,10 +913,7 @@ let query_locations_reply s t =
   ) t.Q.locs
       
 let query_locations file s sock =
-  if !verbose then begin
-      Printf.printf "QUERY LOCATION"; 
-      print_newline ();
-    end;
+  printf_string "[QUERY LOC]";
   server_send sock (
     let module M = Mftp_server in
     let module C = M.QueryLocation in
@@ -933,10 +921,7 @@ let query_locations file s sock =
   )
   
 let client_connection_handler t event =
-  if !verbose then begin
-      Printf.printf "CONNECTION FROM CLIENT"; 
-      print_newline ();
-    end;
+  printf_string "[REMOTE CONN]";
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
       
@@ -954,8 +939,5 @@ let client_connection_handler t event =
         end;      
       
   | _ -> 
-      if !verbose then begin
-          Printf.printf "???"; print_newline ();
-        end;
-      ()      
+        ()      
 

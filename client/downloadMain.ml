@@ -21,16 +21,17 @@ open Mftp
 open Mftp_comm
 open DownloadServers
 open BasicSocket
+open DownloadComplexOptions
 open TcpClientSocket
 open DownloadOneFile
 open DownloadFiles
 open DownloadInteractive
 open DownloadInterface  
 open DownloadTypes  
-open DownloadOptions
 open DownloadGlobals
 open DownloadClient
 open Gui_types
+open DownloadOptions
 
   
     
@@ -181,29 +182,34 @@ let _ =
     known_shared_files =:= !list;
     Options.save shared_files_ini;
     DownloadOneFile.add_shared_files !!incoming_directory;
+    List.iter (DownloadOneFile.add_shared_files) !!shared_directories;
     DownloadIndexer.init ();
     
 (**** CREATE WAITING SOCKETS ****)
     
-    ignore (create_http_handler ());
+    if !!http_port <> 0 then
+      ignore (create_http_handler ());
     
-    ignore(TcpServerSocket.create !!telnet_port telnet_handler);  
+    if !!telnet_port <> 0 then
+      ignore(TcpServerSocket.create !!telnet_port telnet_handler);  
+    
     udp_sock := Some (UdpSocket.create (!!port + 4) 
       (udp_handler DownloadFiles.udp_client_handler));
     
-    begin
-      restart_gui_server := (fun _ ->
-          begin
-            match !gui_server_sock with
-              None -> ()
-            | Some sock ->
-                TcpServerSocket.close sock "gui server restart"
-          end;
-          gui_server_sock := Some 
-            (TcpServerSocket.create !!gui_port gui_handler);  
-      );
-      !restart_gui_server ();
-    end;
+    if !!gui_port <> 0 then
+      begin
+        restart_gui_server := (fun _ ->
+            begin
+              match !gui_server_sock with
+                None -> ()
+              | Some sock ->
+                  TcpServerSocket.close sock "gui server restart"
+            end;
+            gui_server_sock := Some 
+              (TcpServerSocket.create !!gui_port gui_handler);  
+        );
+        !restart_gui_server ();
+      end;
     
     let sock = TcpServerSocket.create !!port client_connection_handler in
     
@@ -260,6 +266,10 @@ let _ =
     add_timer 1.0 DownloadFiles.reset_upload_timer;
     add_timer 0.1 DownloadFiles.upload_timer;
 
+    add_timer 60. (fun timer ->
+        reactivate_timer timer;
+        if !!verbose then print_newline () );
+    
 (**** START PLAYING ****)  
     (try force_check_locations () with _ -> ());
     (try force_check_server_connections true with _ -> ());

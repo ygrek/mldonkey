@@ -16,12 +16,23 @@
     along with mldonkey; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
+open Options
 open DownloadTypes
 open Unix
 open Mftp_comm
 open BasicSocket
 open Gui_types
+open DownloadOptions
   
+    
+let printf_char c =
+  if !!verbose then 
+    (print_char c; Pervasives.flush Pervasives.stdout)
+    
+let printf_string c =
+  if !!verbose then 
+    (print_string c; Pervasives.flush Pervasives.stdout)
+    
 (* HOOKS *)
   
 let new_server_hook = ref (fun s -> ())      
@@ -57,7 +68,7 @@ let page_size = Int32.of_int 4096
 
 (* GLOBAL STATE *)
 
-let min_retry_delay = ref 3600.
+let min_retry_delay = ref 900.
   
 let new_connection_control last_conn = {
     control_next_try = last_time () -. 1.;
@@ -68,7 +79,7 @@ let new_connection_control last_conn = {
 let connection_ok cc = 
   cc.control_next_delay <- !min_retry_delay;
   cc.control_last_conn <- last_time ();
-  cc.control_next_try <- last_time () 
+  cc.control_next_try <- last_time () +. !min_retry_delay
   
 let connection_try cc =
   cc.control_next_try <- last_time () +. cc.control_next_delay
@@ -89,8 +100,10 @@ let connection_set_last_conn cc lc =
 
 let connection_last_conn cc =
   cc.control_last_conn
-  
-  
+
+let connection_delay cc =
+  cc.control_next_try <- max cc.control_next_try
+    (last_time () +. !min_retry_delay)
   
 open Mftp
 

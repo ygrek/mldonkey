@@ -24,6 +24,7 @@ open BasicSocket
 open TcpClientSocket
 open DownloadOneFile
 open DownloadFiles
+open DownloadComplexOptions
 open DownloadTypes
 open DownloadOptions
 open DownloadGlobals
@@ -38,8 +39,7 @@ let result_name r =
   | name :: _ -> Some name
 
 let search_of_args args =
-  incr search_counter;
-  let search = {
+  let query = {
       search_words = [];
       search_maxsize = None;
       search_minsize = None;
@@ -51,55 +51,56 @@ let search_of_args args =
       search_album = None;
       search_artist = None;
       search_fields = [];
-      search_files = Hashtbl.create 127;
-      search_num = !search_counter;
-      search_nresults = 0;
-      search_waiting = List.length !connected_server_list;
-      search_string = String2.unsplit args ' ';
-      search_handler = (fun _ -> ());
-      search_xs_servers = !!known_servers;
-    } 
+    }
   in
   let rec iter args =
     match args with
       [] -> ()
     | "-minsize" :: minsize :: args ->
         let minsize = Int32.of_string minsize in
-        search.search_minsize <- Some minsize;
+        query.search_minsize <- Some minsize;
         iter args
     | "-maxsize"  :: maxsize :: args ->
         let maxsize = Int32.of_string maxsize in
-        search.search_maxsize <- Some maxsize;
+        query.search_maxsize <- Some maxsize;
         iter args
     | "-avail"  :: maxsize :: args ->
         let maxsize = Int32.of_string maxsize in
-        search.search_avail <- Some maxsize;
+        query.search_avail <- Some maxsize;
         iter args
     | "-media"  :: filetype :: args ->
-        search.search_media <- Some filetype;
+        query.search_media <- Some filetype;
         iter args
     | "-Video"  :: args ->
-        search.search_media <- Some "Video";
+        query.search_media <- Some "Video";
         iter args
     | "-Audio"  :: filetype :: args ->
-        search.search_media <- Some "Audio";
+        query.search_media <- Some "Audio";
         iter args
     | "-format"  :: format :: args ->
-        search.search_format <- Some format;
+        query.search_format <- Some format;
+        iter args
+    | "-artist"  :: format :: args ->
+        query.search_artist <- Some format;
+        iter args
+    | "-title"  :: format :: args ->
+        query.search_title <- Some format;
+        iter args
+    | "-album"  :: format :: args ->
+        query.search_album <- Some format;
         iter args
     | "-field"  :: field :: format :: args ->
-        search.search_fields <- 
-          (field, format) :: search.search_fields;
+        query.search_fields <- 
+          (field, format) :: query.search_fields;
         iter args
     | s :: args ->
-        search.search_words <-
-          s :: search.search_words;
+        query.search_words <-
+          s :: query.search_words;
         iter args
   in
   iter args;
-  
-  search
-  
+  query
+    
 let last_search = ref []
 
 let forget_search num =  
@@ -139,6 +140,7 @@ let save_file md4 name =
   done_files =:= List.rev !files
   
   
+  
 let print_search buf s output = 
   last_search := [];
   let counter = ref 0 in
@@ -147,7 +149,13 @@ let print_search buf s output =
   Printf.bprintf buf "%d results (%s)\n" s.search_nresults 
     (if s.search_waiting = 0 then "done" else
       (string_of_int s.search_waiting) ^ " waiting");
+  let results = ref [] in
   Hashtbl.iter (fun _ (r, avail) ->
+      results := (r, avail) :: !results) s.search_files;
+  let results = Sort.list (fun (r1,_) (r2,_) ->
+        r1.result_size > r2.result_size
+    ) !results in
+  List.iter (fun (r,avail) ->
       incr counter;
       Printf.bprintf  buf "[%5d]" !counter;
       if output = HTML then 
@@ -179,7 +187,7 @@ let print_search buf s output =
             ))
       ) r.result_tags;
       Buffer.add_char buf '\n';
-  ) s.search_files
+  ) results
   
 let check_shared_files () = 
   let list = ref [] in
@@ -228,11 +236,7 @@ let load_server_met filename =
       filename;
       print_newline () 
       
-let query_download filenames size md4 location old_file absents =
-  
-  List.iter (fun m -> 
-      if m = md4 then raise Already_done) 
-  !!old_files;
+let really_query_download filenames size md4 location old_file absents =
   
   List.iter (fun file -> 
       if file.file_md4 = md4 then raise Already_done) 
@@ -304,6 +308,20 @@ let query_download filenames size md4 location old_file absents =
           | _ -> ()
         with _ -> ())
 
+
+let aborted_download = ref None
+        
+let query_download filenames size md4 location old_file absents =
+  
+  List.iter (fun m -> 
+      if m = md4 then begin
+          aborted_download := Some (
+            filenames,size,md4,location,old_file,absents);
+          raise Already_done
+        end) 
+  !!old_files;
+  really_query_download filenames size md4 location old_file absents
+  
 let load_prefs filename = 
   try
     let module P = Files.Pref in
@@ -431,11 +449,23 @@ let print_file buf file =
               | Some _ -> "Connected")
   ) (file.file_known_locations @ file.file_indirect_locations)
 
-let simple_print_file buf name_len done_len size_len file =
+let short_name file =
+  let name = first_name file in
+  let len = String.length name in
+  let max_name_len = max !!max_name_len 10 in
+  if len > max_name_len then
+    let prefix = String.sub name 0 (max_name_len -7) in
+    let suffix = String.sub name (len-4) 4 in
+    Printf.sprintf "%s...%s" prefix suffix
+  else name
   
+let simple_print_file buf name_len done_len size_len format file =
   Printf.bprintf buf "[%-5d] "
+      file.file_num;
+  if format = HTML && file.file_state <> FileDownloaded then 
+    Printf.bprintf buf "[\<a href=/submit\?q\=cancel\+%d\>CANCEL\</a\>] " 
     file.file_num;
-  let s = first_name file in
+  let s = short_name file in
   Printf.bprintf buf "%s%s " s
     (String.make (name_len - (String.length s)) ' ');
 
@@ -452,22 +482,25 @@ let simple_print_file buf name_len done_len size_len file =
   if file.file_state = FileDownloaded then
     Buffer.add_string buf (Md4.to_string file.file_md4)
   else
+  if file.file_last_rate < 10.24 then
+    Buffer.add_string buf "-"
+  else
     Printf.bprintf buf "%5.1f" (file.file_last_rate /. 1024.);
-
   Buffer.add_char buf '\n'
 
-let simple_print_file_list finished buf files =
+let simple_print_file_list finished buf files format =
   let size_len = ref 10 in
   let done_len = ref 10 in
   let name_len = ref 1 in
   List.iter 
     (fun f ->
-      name_len := max !name_len (String.length (first_name f));
+      name_len := max !name_len (String.length (short_name f));
       size_len := max !size_len (String.length (Int32.to_string f.file_size));
       done_len := max !done_len (String.length (Int32.to_string f.file_downloaded));
   )
   files;
-  Printf.bprintf buf "[%-5s] " "Num";
+  Printf.bprintf buf "[ Num ] ";
+  if format = HTML then Printf.bprintf buf "         ";
 
   let s = "File" in
   Printf.bprintf buf "%s%s " s (String.make (max 0 (!name_len - (String.length s))) ' ');
@@ -483,9 +516,78 @@ let simple_print_file_list finished buf files =
   let s = if finished then "MD4" else "Rate" in
   Printf.bprintf buf "%s\n" s;
   
-  List.iter (simple_print_file buf !name_len !done_len !size_len) files
+  List.iter (simple_print_file buf !name_len !done_len !size_len format) files
 
+  
+let search_string s =
+  let buf = Buffer.create 100 in
+  (match s.search_minsize with
+      None -> ()
+    | Some i -> 
+        Printf.bprintf  buf "-minsize %s " (Int32.to_string i));
+  (match s.search_maxsize with
+      None -> ()
+    | Some i -> 
+        Printf.bprintf  buf "-maxsize %s " (Int32.to_string i));
+  (match s.search_media with
+      None -> ()
+    | Some i -> 
+        Printf.bprintf  buf "-media %s " i);
+  (match s.search_format with
+      None -> ()
+    | Some i -> 
+        Printf.bprintf  buf "-format %s " i);
+  (match s.search_album with
+      None -> ()
+    | Some i -> 
+        Printf.bprintf  buf "-album %s " i);
+  (match s.search_artist with
+      None -> ()
+    | Some i -> 
+        Printf.bprintf  buf "-artist %s " i);
+  (match s.search_title with
+      None -> ()
+    | Some i -> 
+        Printf.bprintf  buf "-title %s " i);
+  List.iter (fun s ->
+      Printf.bprintf  buf "%s " s
+  ) s.search_words;
+  Buffer.contents buf
 
+let new_search query =
+  incr search_counter;
+  {
+    search_query = query;
+    search_files = Hashtbl.create 127;
+    search_num = !search_counter;
+    search_nresults = 0;
+    search_waiting = List.length !connected_server_list;
+    search_string = search_string query;
+    search_handler = (fun _ -> ());
+    search_xs_servers = !!known_servers;
+  }
+  
+
+let start_search query buf =
+  let search = new_search query in
+  let query = make_query search in
+  last_xs := search.search_num;
+  searches := search :: !searches;
+  List.iter (fun s ->
+      match s.server_sock with
+        None -> ()
+      | Some sock ->
+          
+          let module M = Mftp_server in
+          let module Q = M.Query in
+          server_send sock (M.QueryReq query);
+          Fifo.put s.server_search_queries (
+            fun s  _ t -> search_handler search t)
+  ) !connected_server_list;
+  make_xs search;
+  Printf.bprintf buf "Query %d Sent to %d\n"
+    search.search_num (List.length !connected_server_list)  
+  
 let commands = [
     "n", Arg_multiple (fun args buf _ ->
         let ip, port =
@@ -561,28 +663,28 @@ let commands = [
         "commited"
     ) , ": move downloaded files to incoming directory";
     
-    "vd", Arg_multiple (fun args buf _ -> 
+    "vd", Arg_multiple (fun args buf format -> 
         match args with
           [arg] ->
             let num = int_of_string arg in
             List.iter 
-	      (fun file -> if file.file_num = num then print_file buf file)
-              !!files;
+              (fun file -> if file.file_num = num then print_file buf file)
+            !!files;
             List.iter
-	      (fun file -> if file.file_num = num then print_file buf file)
-	      !!done_files;
+              (fun file -> if file.file_num = num then print_file buf file)
+            !!done_files;
             ""
         | _ ->
             Printf.bprintf  buf "Downloading %d files\n" (List.length !!files);
-            simple_print_file_list false buf !!files;
+            simple_print_file_list false buf !!files format;
             Printf.bprintf  buf "\nDownloaded %d files\n" 
-	      (List.length !!done_files);
-            simple_print_file_list true buf !!done_files;
+              (List.length !!done_files);
+            simple_print_file_list true buf !!done_files format;
             if !!done_files = [] then "" else
               "Use 'commit' to move downloaded files to the incoming directory"
     
     ), "<num>: view file info";
-
+    
     "recover_temp", Arg_none (fun buf _ ->
         let files = Unix2.list_directory !!temp_directory in
         List.iter (fun filename ->
@@ -664,6 +766,24 @@ let commands = [
         force_save_options ();
         "saved"), ": save";
     
+    "dllink", Arg_one (fun url buf _ ->        
+        match String2.split (String.escaped url) '|' with
+          ["ed2k://"; "file"; name; size; md4; ""] 
+        | ["file"; name; size; md4; ""] ->
+            query_download [name] (Int32.of_string size)
+            (Md4.of_string md4) None None None;
+            "download started"
+        | _ -> "bad syntax"    
+    ), " <ed2klink> : download ed2k:// link";
+    
+    "force_download", Arg_none (fun buf _ ->
+        match !aborted_download with
+          None -> "No download to force"
+        | Some (filenames,size,md4,location,old_file,absents) ->
+            really_query_download filenames size md4 location old_file absents;
+            "download started"
+    ), " : force download of an already downloaded file";
+
     "d", Arg_multiple (fun args buf _ ->
         try
           let (size, md4, name) =
@@ -708,10 +828,25 @@ let commands = [
         "new port will change at next restart"),
     " <port> : change connection port";
     
-    "vo", Arg_none (fun buf _ ->
+    "vo", Arg_none (fun buf format ->
+        if format = HTML then
+          Printf.bprintf  buf "\<table border=0\>";
         List.iter (fun (name, value) ->
-            Printf.bprintf buf "%s = %s\n" name value)
+            if format = HTML then
+              Printf.bprintf buf "
+              \<tr\>\<td\>\<form action=/submit\> 
+\<input type=hidden name=setoption value=q\>
+\<input type=hidden name=option value=%s\> %s \</td\>\<td\>
+              \<input type=text name=value size=40 value=\\\"%s\\\"\>
+\</td\>\</tr\>
+\</form\>
+" name name value
+            else
+              Printf.bprintf buf "%s = %s\n" name value)
         (Options.simple_options downloads_ini);
+        if format = HTML then
+          Printf.bprintf  buf "\</table\>";
+
         ""
     ), " : print options";
     
@@ -748,36 +883,18 @@ let commands = [
     ), " <num> : forget search <num>";
     
     "ls", Arg_multiple (fun args buf _ ->
-        let search = search_of_args args in
+        let query = search_of_args args in
+        let search = new_search query in
         searches := search :: !searches;
         DownloadIndexer.find search;
         "local search started"
     ), " <query> : local search";
     
     "s", Arg_multiple (fun args buf _ ->
-        if !connected_server_list = [] then 
-          "not connected" else
-          begin
-            let search = search_of_args args in
-            let query = make_query search in
-            last_xs := search.search_num;
-            searches := search :: !searches;
-            List.iter (fun s ->
-                match s.server_sock with
-                  None -> ()
-                | Some sock ->
-                    
-                    let module M = Mftp_server in
-                    let module Q = M.Query in
-                    server_send sock (M.QueryReq query);
-                    Fifo.put s.server_search_queries (
-                      fun s  _ t -> search_handler search t)
-            ) !connected_server_list;
-            make_xs search;
-            Printf.bprintf buf "Query %d Sent to %d\n"
-              search.search_num (List.length !connected_server_list);
-            ""
-          end), " <query> : search for files\n
+        let query = search_of_args args in
+        start_search query buf;
+        ""
+    ), " <query> : search for files\n
 \tWith special args:
 \t-minsize <size>
 \t-maxsize <size>
@@ -785,13 +902,22 @@ let commands = [
 \t-Video
 \t-Audio
 \t-format <format>
+\t-title <word in title>
+\t-album <word in album>
+\t-artist <word in artist>
 \t-field <field> <fieldvalue> :
 ";
         
-    "vs", Arg_none (fun buf _ ->
+    "vs", Arg_none (fun buf format ->
       Printf.bprintf  buf "Searching %d queries\n" (List.length !searches);
       List.iter (fun s ->
-          Printf.bprintf buf "[%-5d] %s %s\n" s.search_num s.search_string
+            Printf.bprintf buf "%s[%-5d]%s %s %s\n" 
+              (if format = HTML then 
+                Printf.sprintf "\<a href=/submit\?q=vr\+%d\>" s.search_num
+              else "")
+            s.search_num 
+              (if format = HTML then "\</a\>" else "")
+            s.search_string
             (if s.search_waiting = 0 then "done" else
               string_of_int s.search_waiting)
         ) !searches; ""), ": view all queries";
@@ -927,7 +1053,7 @@ open Http_server
 let add_submit_entry buf =
   Buffer.add_string buf
     "<form action=\"submit\">
-<table width=\"100%\" border=0>
+<table border=0>
 <tr>
 <td width=\"1%\"><input type=text name=q size=40 value=\"\"></td>
 <td align=left><input type=submit value=\"Execute\"></td>
@@ -936,10 +1062,150 @@ let add_submit_entry buf =
 </form>
 "
 
+let complex_search buf =
+  Buffer.add_string  buf
+  "
+<center>
+<h2> Complex Search </h2>
+</center>
+
+<form action=/submit>
+<table border=0>
+<tr>
+<td width=\"1%\"><input type=text name=query size=40 value=\"\"></td>
+<td align=left><input type=submit value=Search></td>
+</tr>
+</table>
+
+<h3> Simple Options </h3>
+
+<table border=0>
+<tr>
+<td> Min size </td> 
+
+<td> 
+<input type=text name=minsize size=40 value=\"\">
+</td>
+
+<td> 
+<select name=minsize_unit>
+<option value=1> o </option>
+<option value=1024> ko </option>
+<option value=1048576> Mo </option>
+</select>
+</td>
+
+</tr>
+
+<tr>
+<td> Max size </td> 
+
+<td> 
+<input type=text name=maxsize size=40 value=\"\">
+</td>
+
+<td> 
+<select name=maxsize_unit>
+<option value=1> o </option>
+<option value=1024> ko </option>
+<option value=1048576> Mo </option>
+</select>
+</td>
+
+</tr>
+
+<tr>
+<td> Media </td> 
+
+<td> 
+<input type=text name=media size=40 value=\"\">
+</td>
+
+<td> 
+<select name=media_propose>
+<option value=\"\"> --- </option>
+<option value=Audio> Audio </option>
+<option value=Video> Video </option>
+<option value=Pro> Program </option>
+<option value=Doc> Document </option>
+<option value=Image> Image </option>
+<option value=Col> Collection </option>
+</select>
+</td>
+
+</tr>
+
+<tr>
+<td> Format </td> 
+
+<td> 
+<input type=text name=format size=40 value=\"\">
+</td>
+
+<td> 
+<select name=format_propose>
+<option value=\"\"> --- </option>
+<option value=avi> avi </option>
+<option value=mp3> mp3 </option>
+<option value=zip> zip </option>
+</select>
+</td>
+
+</tr>
+
+</table>
+
+<h3> Mp3 options </h3>
+
+<table border=0>
+
+<tr>
+<td> Album </td> 
+<td> 
+<input type=text name=album size=40 value=\"\">
+</td>
+</tr>
+
+<tr>
+<td> Artist </td> 
+<td> 
+<input type=text name=artist size=40 value=\"\">
+</td>
+</tr>
+
+<tr>
+<td> Title </td> 
+<td> 
+<input type=text name=title size=40 value=\"\">
+</td>
+</tr>
+
+<tr>
+<td>
+Min bitrate
+</td>
+
+
+<td> 
+<select name=bitrate>
+<option value=\"\"> --- </option>
+<option value=64> 64 </option>
+<option value=96> 96 </option>
+<option value=128> 128 </option>
+<option value=160> 160 </option>
+<option value=192> 192 </option>
+</select>
+</td>
+
+</tr>
+</table>
+</form>
+"
+  
 let add_simple_commands buf =
   Buffer.add_string buf
   "
-  <h2>Connected to <a href=http://go.to/mldonkey> MLdonkey </a> 
+  <h2>Connected to <a href=http://www.freesoftware.fsf.org/mldonkey/> MLdonkey </a> 
 WEB server</h2>
 <br>
 <table width=\"100%\" border=0>
@@ -947,11 +1213,10 @@ WEB server</h2>
   <td><a href=/submit?q=vm> View Connected Servers </a></td>
   <td><a href=/submit?q=vma> View All Servers </a></td>
   <td><a href=/submit?q=c> Connect More Servers </a></td>
+  <td><a href=/complex_search.html> Complex Search </a></td>
   <td><a href=/submit?q=xs> Extended Search </a></td>
   <td><a href=/submit?q=upstats> Upload Statistics </a></td>
   </tr>
-  </table>  
-<table width=\"100%\" border=0>
 <tr>
 <td><a href=/submit?q=vr> View Results </a></td>
 <td><a href=/submit?q=vd> View Downloads </a></td>
@@ -983,27 +1248,92 @@ let http_handler t r =
       
 
       add_simple_commands buf;
+      add_submit_entry buf;
       try
         match r.get_url.Url.file with
-          "/" -> 
-            add_submit_entry buf
+          "/" -> ()
+        | "/complex_search.html" ->
+            complex_search buf
         | "/submit" ->
             begin
               match r.get_url.Url.args with
                 ["q", cmd ] ->
-                  add_submit_entry buf;
                   let s = 
                     let b = Buffer.create 10000 in
                     eval (ref true) b cmd HTML;
                     html_escaped (Buffer.contents b)
                   in
                   Printf.bprintf buf  "\n<pre>\n%s\n</pre>\n" s;
-                  
               | [ "q", "download"; "md4", md4_string; "size", size_string ] ->
                   
                   query_download [] (Int32.of_string size_string)
                   (Md4.of_string md4_string) None None None;
                   Printf.bprintf buf  "\n<pre>\nDownload started\n</pre>\n";
+                  
+              | [
+                  "query", query;
+                  "minsize", minsize;
+                  "minsize_unit", minsize_unit;
+                  "maxsize", maxsize;
+                  "maxsize_unit", maxsize_unit;
+                  "media", media;
+                  "media_propose", media_propose;
+                  "format", format;
+                  "format_propose", format_propose;
+                  "album", album;
+                  "artist", artist;
+                  "title", title;
+                  "bitrate", bitrate
+                ] ->
+
+                  let option_of_string s =
+                    if s = "" then None else Some s
+                  in
+                  let query =
+                    {
+                      search_words = String2.tokens query;
+                      search_minsize = (
+                        if minsize = "" then None else Some (
+                            Int32.mul (Int32.of_string minsize)
+                            (Int32.of_string minsize_unit)
+                          ));
+                      search_maxsize = (
+                        if maxsize = "" then None else Some (
+                            Int32.mul (Int32.of_string maxsize)
+                            (Int32.of_string maxsize_unit)
+                          ));
+                      search_avail = None;
+                      search_media = (
+                        if media = "" then 
+                          if media_propose = "" then
+                            None 
+                          else Some media_propose
+                        else Some media);
+                      search_format = (
+                        if format = "" then 
+                          if format_propose = "" then
+                            None 
+                          else
+                            Some format_propose
+                        else Some format);
+                      search_min_bitrate = ( 
+                        if bitrate = "" then None else
+                        try
+                          Some (Int32.of_string bitrate)
+                        with _ -> None);    
+                      search_title = option_of_string title;
+                      search_artist = option_of_string artist;
+                      search_album = option_of_string album;
+                      search_fields = [];
+                    }
+                  in
+                    
+                  start_search query buf
+
+              | [ "setoption", _ ; "option", name; "value", value ] ->
+                  Options.set_simple_option downloads_ini name value;
+                  Buffer.add_string buf "Option value changed"
+                  
               | args -> 
                   List.iter (fun (s,v) ->
                       Printf.printf "[%s]=[%s]" (String.escaped s) (String.escaped v);
