@@ -18,6 +18,7 @@ type string_param = {
     string_editable : bool ; (** indicates if the value can be changed *)
     string_f_apply : (string -> unit) ; (** the function to call to apply the new value of the parameter *)
     string_help : string option ; (** optional help string *)
+    string_expand : bool ; (** expand or not *)
   } ;;
 
 (** This type represents a boolean parameter. *)
@@ -53,12 +54,14 @@ type combo_param = {
     combo_new_allowed : bool ;
     combo_f_apply : (string -> unit);
     combo_help : string option ; (** optional help string *)
+    combo_expand : bool ; (** expand the entry widget or not *)
   } ;;
 
 type custom_param = {
     custom_box : GPack.box ;
     custom_f_apply : (unit -> unit) ;
     custom_expand : bool ;
+    custom_framed : string option ; (** optional label for an optional frame *)
   } ;;
 
 type color_param = {
@@ -67,6 +70,7 @@ type color_param = {
     color_editable : bool ; (** indicates if the value can be changed *)
     color_f_apply : (string -> unit) ; (** the function to call to apply the new value of the parameter *)
     color_help : string option ; (** optional help string *)
+    color_expand : bool ; (** expand the entry widget or not *)
   } ;;
 
 type date_param = {
@@ -78,6 +82,7 @@ type date_param = {
     date_f_apply : ((int * int * int) -> unit) ;
       (** the function to call to apply the new value (day, month, year) of the parameter *)
     date_help : string option ; (** optional help string *)
+    date_expand : bool ; (** expand the entry widget or not *)
   } ;;
 
 type font_param = {
@@ -87,6 +92,7 @@ type font_param = {
     font_f_apply : (string -> unit) ;
       (** the function to call to apply the new value of the parameter *)
     font_help : string option ; (** optional help string *)
+    font_expand : bool ; (** expand the entry widget or not *)
   } ;;
 
 (** This type represents the different kinds of parameters. *)

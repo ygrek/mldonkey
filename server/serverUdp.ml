@@ -17,9 +17,10 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonGlobals
 open Unix
 open TcpBufferedSocket
-open Mftp
+open DonkeyMftp
 open Options
 open Mftp_comm
 open ServerTypes
@@ -68,7 +69,7 @@ let udp_handler sock event =
           if len = 0 || 
             int_of_char pbuf.[0] <> 227 then begin
               Printf.printf "Received unknown UDP packet"; print_newline ();
-              dump pbuf;
+              BigEndian.dump pbuf;
               print_newline ();
             end else begin
               let t = M.parse (String.sub pbuf 1 (len-1)) in

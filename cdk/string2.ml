@@ -76,6 +76,19 @@ let split s c =
   iter 0
 ;;
 
+let splitn s c n =
+  let len = String.length s in
+  let rec iter pos n =
+    try
+      if n = 0 then raise Not_found else
+      if pos = len then [""] else
+      let pos2 = String.index_from s pos c in
+      (String.sub s pos (pos2-pos)) :: (iter (pos2+1) (n-1))
+    with _ -> [String.sub s pos (len-pos)]
+  in
+  iter 0 n
+;;
+
 let rec remove_empty list list2 =
   match list with
     [] -> List.rev list2
@@ -236,3 +249,20 @@ let tokens s =
   iter_next 0 
 
 external contains : string -> string -> bool = "ml_strstr"  
+  
+  
+let starts_with s1 s2 =
+  let len1 = String.length s1 in
+  let len2 = String.length s2 in
+  len2 <= len1 && String.sub s1 0 len2 = s2
+
+let replace_char s c1 c2 =
+  for i = 0 to String.length s - 1 do
+    if s.[i] == c1 then s.[i] <- c2
+  done
+
+let shorten max s =
+  let len = String.length s in
+  if len > max then 
+    String.sub s 0 max
+  else s

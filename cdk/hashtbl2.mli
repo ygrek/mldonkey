@@ -84,6 +84,8 @@ val fold : ('a -> 'b -> 'c -> 'c) -> ('a, 'b) t -> 'c -> 'c
            [f] is unspecified. Each binding is presented exactly once
            to [f]. *)
 
+val to_list : ('a, 'b) t -> 'b list
+  
 (*** Functorial interface *)
 
 module type HashedType =

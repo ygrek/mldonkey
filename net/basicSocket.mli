@@ -38,8 +38,8 @@ val closed : t -> bool
 (* val set_before_select : t -> (t -> unit) -> unit *)
   
   
-val create : Unix.file_descr -> handler -> t
-val create_blocking : Unix.file_descr -> handler -> t
+val create : string -> Unix.file_descr -> handler -> t
+val create_blocking : string -> Unix.file_descr -> handler -> t
 val close : t -> string -> unit
 val shutdown : t -> string -> unit
 
@@ -64,4 +64,11 @@ val maxf : float -> float -> float
   
 val set_allow_write : t -> bool ref -> unit
 val set_allow_read : t -> bool ref -> unit
+  
+val print_sockets : unit -> unit
+  
+val info : t -> string
+  
+val debug : bool ref
+  
   

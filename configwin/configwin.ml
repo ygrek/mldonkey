@@ -43,3 +43,5 @@ let get = Configwin_ihm.edit ~with_apply: false
 let simple_edit = Configwin_ihm.simple_edit
 
 let simple_get = Configwin_ihm.simple_edit ~with_apply: false
+
+let box = Configwin_ihm.box

@@ -17,264 +17,366 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Options
-open Mftp
-open BasicSocket
-open TcpClientSocket
-open Unix
-open Gui_proto
-open Gui_types
-open Gui_options
 module O = Gui_options
 module M = Gui_messages
-open MyCList
-open Gui_handler  
-open Gui
-open Gui_misc
-    
-let _ =
-  
-  ignore (window#add gui#box#coerce) ;
-  ignore (gui#box#connect#destroy (fun _ ->
-        window#destroy ())) ;
-    ignore (window#connect#destroy (fun _ -> 
-        GMain.Main.quit ())) ;
+module Com = Gui_com
+module G = Gui_global
+module Mi = Gui_misc
 
-(* Connect buttons to actions *)
-  ignore (gui#itemQuit#connect#activate (fun _ -> 
-        save_gui_options ();
-        exit 0));
-  ignore (gui#itemKill#connect#activate (fun _ -> 
-        gui_send KillServer));
-  ignore (gui#itemReconnect#connect#activate (fun _ -> reconnect gui));
-  ignore (gui#itemDisconnect#connect#activate (fun _ -> disconnect gui));
-  ignore (gui#itemServers#connect#activate (fun _ -> gui#notebook#goto_page 0));
-  ignore (gui#itemDownloads#connect#activate (fun _ -> gui#notebook#goto_page 1));
-  ignore (gui#itemFriends#connect#activate (fun _ -> gui#notebook#goto_page 2));
-  ignore (gui#itemSearches#connect#activate (fun _ -> gui#notebook#goto_page 3));
-  ignore (gui#itemOptions#connect#activate Gui_config.edit_options);
-  ignore (gui#itemConsole#connect#activate (fun _ -> gui#notebook#goto_page 5));
-  ignore (gui#itemHelp#connect#activate (fun _ -> gui#notebook#goto_page 6));
-  ignore (tab_searches#button_search_submit#connect#clicked (submit_search gui false));
-  ignore (tab_searches#button_local_search#connect#clicked (submit_search gui true));  
-  
-  ignore (tab_searches#button_extended_search#connect#clicked 
-      (fun _ -> gui_send ExtendedSearch));
-  
-  ignore (tab_searches#entry_search_words#connect#activate (submit_search gui false));
-(*
-  ignore (tab_searches#clist_search_results#connect#select_row (search_set_selection gui));
-ignore (tab_searches#clist_search_results#connect#unselect_row (search_unset_selection gui));
-  *)
-(*
-  ignore (gui#clist_download#connect#select_row (download_set_selection gui));
-ignore (gui#clist_download#connect#unselect_row (download_unset_selection gui));
-*)
-  ignore (tab_downloads#button_download_cancel#connect#clicked
-      (download_cancel gui));
-  ignore (tab_servers#button_servers_add#connect#clicked
-      (servers_addserver gui));  
-  ignore (tab_servers#entry_servers_new_ip#connect#activate
-      (servers_addserver gui));
-  ignore (tab_friends#button_friends_add#connect#clicked 
-      (friends_addfriend gui));
-  ignore (tab_servers#button_servers_connect_more#connect#clicked (
-      servers_connect_more gui));
-  ignore (tab_servers#button_servers_remove#connect#clicked (
-      servers_remove gui));
-  ignore (gui#tab_console#entry_command#connect#activate (fun _ ->
-        gui_send (Command gui#tab_console#entry_command#text);
-        gui#tab_console#entry_command#set_text ""
-    ));
-  
-  ignore (tab_friends#entry_dialog#connect#activate (fun _ ->
-        let s = tab_friends#entry_dialog#text in
-        gui_send (SayFriends (s, List.map (fun c -> c.client_num)
-            (MyCList.selection clist_friends)
-          ));
-        tab_friends#entry_dialog#set_text "";
-    ));
-  
-  
-  ignore (tab_downloads#button_downloaded_save#connect#clicked 
-      save_all_files);
-  
-  ignore (tab_downloads#button_download_add_friend#connect#clicked
-      add_friend_location);
-  
-  ignore (tab_friends#button_friends_download#connect#clicked
-      download_friend_files);
-  ignore (tab_friends#button_friends_remove#connect#clicked
-      remove_friend);
-  ignore (tab_friends#entry_find_friend#connect#activate find_friend);
-  
-  ignore (tab_servers#button_remove_old_servers#connect#clicked
-      remove_old_servers);
-  ignore (tab_servers#button_servers_view_users#connect#clicked
-      view_users);
-  ignore (tab_downloads#button_download_retry_connect#connect#clicked
-      connect_all);
-  ignore (tab_servers#button_servers_connect#connect#clicked
-      connect_server);
-  ignore (tab_servers#button_servers_disconnect#connect#clicked
-      disconnect_server);
-  ignore (tab_servers#button_add_to_friends#connect#clicked 
-      add_user_to_friends);
-  
-  ignore (gui#tab_console#button_clear_console#connect#clicked
-      (fun _ ->
-        let text = gui#tab_console#text in
-        text#delete_text 0 (text#length)));
-  
-  ignore (tab_help#text#insert_text Gui_messages.help_text 0);
-  
-  ignore (tab_downloads#entry_ed2k_url#connect#activate
-      download_ed2k_url);
-  ignore (tab_downloads#entry_md4#connect#activate
-      download_md4);
-  
-  ignore (tab_downloads#draw_availability#event#connect#expose
-      ~callback:redraw_current);
-  
-  ignore (window#add_accel_group gui#accel_menubar);
-  ignore (window#show ()) ;
-  
-  
-  ignore (gui#notebook#connect#switch_page 
-      (fun n -> current_page := n));
+let (!!) = Options.(!!)
 
-(* Keyboard shortcuts *)
-  let add w ?(cond=(fun () -> true)) l ((mods, k), action) = 
+let _ = GMain.Main.init ()
+
+let _ = 
+  (try Options.load O.mldonkey_gui_ini with
+      e ->
+        Printf.printf "Exception %s in load options" (Printexc.to_string e);
+        print_newline ();
+  );
+  let args = Options.simple_args O.mldonkey_gui_ini in
+  Arg.parse args (Arg.usage args)  "mldonkey_gui: the GUI to use with mldonkey"
+
+(* Check bindings *)
+let _ = 
+  if !!O.keymap_global = [] then
+    (
+     let a = O.add_binding O.keymap_global in
+     a "A-s" M.a_page_servers;
+     a "A-d" M.a_page_downloads;
+     a "A-f" M.a_page_friends;
+     a "A-q" M.a_page_queries;
+     a "A-r" M.a_page_results;
+     a "A-o" M.a_page_options;
+     a "A-c" M.a_page_console;
+     a "A-h" M.a_page_help;
+     a "A-Left" M.a_previous_page;
+     a "A-Right" M.a_next_page;
+     a "C-r" M.a_reconnect;
+     a "C-e" M.a_exit ;
+    );
+  if !!O.keymap_servers = [] then
+    (
+     let a = O.add_binding O.keymap_servers in
+     a "C-c" M.a_connect;
+     a "C-m" M.a_connect_more;
+     a "C-a" M.a_select_all;
+    );
+  if !!O.keymap_downloads = [] then
+    (
+     let a = O.add_binding O.keymap_downloads in
+     a "C-c" M.a_cancel_download;
+     a "CS-s" M.a_save_all_files;
+     a "C-s" M.a_menu_save_file;
+     a "C-a" M.a_select_all;
+    );
+  if !!O.keymap_friends = [] then
+    (
+     let a = O.add_binding O.keymap_friends in
+     a "C-d" M.a_download_selection;
+     a "C-x" M.a_remove_friend;
+     a "C-a" M.a_select_all;
+    );
+  if !!O.keymap_queries = [] then
+    (
+     let a = O.add_binding O.keymap_queries in
+     ()
+    );
+  if !!O.keymap_results = [] then
+    (
+     let a = O.add_binding O.keymap_results in
+     ()
+    );
+  if !!O.keymap_console = [] then
+    (
+     let a = O.add_binding O.keymap_console in
+     ()
+    )
+
+(** {2 Handling core messages} *)
+
+open Gui_proto
+open CommonTypes
+  
+let canon_client gui c =
+  let box_file_locs = gui#tab_downloads#box_locations in 
+  let box_friends = gui#tab_friends#box_friends in
+  let c = 
     try
-      let f = List.assoc action l in
-      Okey.add ~cond w ~mods k f
-    with
-      Not_found ->
-        prerr_endline (Gui_messages.action_unknown action)
+      let cc = Hashtbl.find G.locations c.client_num in
+      
+      let is_in_locations =
+        try
+          ignore (box_file_locs#find_client c.client_num);
+          true
+        with _ -> false 
+      in
+      if is_in_locations then
+        gui#tab_downloads#h_update_location c;
+
+      if c.client_files <> None then cc.client_files <- c.client_files;
+      cc.client_state <- c.client_state;
+      begin
+        if c.client_type <> cc.client_type then
+          match c.client_type, cc.client_type with
+          | NormalClient, _ ->
+              box_friends#h_remove_friend c.client_num
+          | _  ->
+              box_friends#h_update_friend c
+      end;
+      cc.client_type <- c.client_type;
+      cc.client_rating <- c.client_rating;
+      cc.client_name <- c.client_name;
+
+      cc.client_kind <- c.client_kind;
+      cc.client_tags <- c.client_tags;
+      
+      cc
+    with _ ->
+        Hashtbl.add G.locations c.client_num c;
+        begin
+          match c.client_type with
+            NormalClient -> ()
+          | _ -> box_friends#h_update_friend c;
+        end;
+        c
   in
-
-(* Global shortcuts *)
-  let global_actions = [
-      M.a_page_servers, gui#itemServers#activate ;
-      M.a_page_downloads, gui#itemDownloads#activate;
-      M.a_page_friends, gui#itemFriends#activate;
-      M.a_page_queries, gui#itemSearches#activate;
-      M.a_page_options, gui#itemOptions#activate;
-      M.a_page_console, gui#itemConsole#activate;
-      M.a_page_help, gui#itemHelp#activate;
-      M.a_next_page, gui#notebook#next_page;
-      M.a_previous_page, gui#notebook#previous_page;
-      M.a_reconnect, gui#itemReconnect#activate;
-      M.a_exit, gui#itemQuit#activate;
-    ] 
-  in
-  List.iter (add window global_actions) !!O.keymap_global;
-
-(* Servers shortcuts *)
-  let servers_actions = global_actions @
-      [
-      M.a_connect, gui#tab_servers#button_servers_connect#clicked;
-      M.a_connect_more, gui#tab_servers#button_servers_connect_more#clicked;
-      M.a_select_all, (fun () -> ignore (MyCList.select_all clist_servers)) ;
-    ] 
-  in
-  List.iter
-    (add window ~cond: (fun () -> !current_page = 0) servers_actions)
-  !!O.keymap_servers;
-
-(* Downloads shortcuts *)
-  let downloads_actions = global_actions @ 
-      [
-      M.a_cancel_download, gui#tab_downloads#button_download_cancel#clicked ;
-      M.a_save_all_files, (fun () -> ignore (save_all_files ()));
-      M.a_menu_save_file, 
-      (fun () -> GToolbox.popup_menu ~x: 0 ~y: 0 
-            ~entries: (menu_save_file clist_downloaded)) ;
-      M.a_select_all, (fun () -> ignore (MyCList.select_all clist_downloads)) ;
-    ]
-  in
-  List.iter
-    (add window ~cond: (fun () -> !current_page = 1) downloads_actions)
-  !!O.keymap_downloads;
-
-(* Friends shortcuts *)
-  let friends_actions = global_actions @ 
-      [
-      M.a_download_selection, gui#tab_friends#button_friends_download#clicked ;
-      M.a_remove_friend, gui#tab_friends#button_friends_remove#clicked ;
-      M.a_select_all, (fun () -> ignore (MyCList.select_all clist_friends)) ;
-    ]
-  in
-  List.iter
-    (add window ~cond: (fun () -> !current_page = 2) friends_actions)
-  !!O.keymap_friends;
-
-(* Queries shortcuts *)
-  let queries_actions = global_actions @ 
-      [
-    ]
-  in
-  List.iter
-    (add window ~cond: (fun () -> !current_page = 3) queries_actions)
-  !!O.keymap_queries;
-
-(* Console shortcuts *)
-  let console_actions = global_actions @ 
-      [
-    ]
-  in
-  List.iter
-    (add window ~cond: (fun () -> !current_page = 4) console_actions)
-  !!O.keymap_console;
-
-(* End of keyboard shortcuts *)
-
-(* set layout *)
+  c
   
-  set_hpaned tab_servers#hpaned servers_hpane_left;
-  get_hpaned tab_servers#hpaned servers_hpane_left;
-  
-  gui#notebook#goto_page 1;
-  set_hpaned tab_downloads#hpaned downloads_hpane_left;
-  get_hpaned tab_downloads#hpaned downloads_hpane_left;  
-  set_vpaned tab_downloads#vpaned downloads_vpane_up;
-  get_vpaned tab_downloads#vpaned downloads_vpane_up;
-  
-  gui#notebook#goto_page 2;
-  set_hpaned tab_friends#hpaned friends_hpane_left;
-  get_hpaned tab_friends#hpaned friends_hpane_left;
-  set_vpaned tab_friends#vpaned friends_vpane_up;
-  get_vpaned tab_friends#vpaned friends_vpane_up;
-  
-  gui#notebook#goto_page 3;
-  set_hpaned tab_searches#hpaned searches_hpane_left;  
-  get_hpaned tab_searches#hpaned searches_hpane_left;  
-  gui#notebook#goto_page 0;
+let value_reader gui t sock =
+  try
+    match t with
+    | Console text ->
+	gui#tab_console#insert text
 
-  
-  save_gui_options ();
-  
-  reconnect gui; 
+    | Network_info n ->
+        Hashtbl.add Gui_global.networks n.Gui_proto.network_num n
+        
+    | LocalInfo l ->
+        gui#label_upload_status#set_text (
+          Printf.sprintf "%s %d/%d" M.upload l.upload_counter l.shared_files)
+        
+    | Connected v -> 
+        if v <> CommonTypes.version then 
+	  (
+           Printf.printf "Bad GUI version"; print_newline ();
+           TcpBufferedSocket.close sock "bad version";
+          )
+        else 
+	  (
+(*        Printf.printf "Connected"; print_newline (); *)
+           gui#label_connect_status#set_text M.connected;
+           Com.send (Password (CommonTypes.version,!!O.password))
+	  )
+ 
+    | Search_result (num,r) -> 
+        gui#tab_queries#h_search_result num r
+
+    | Search_waiting (num,waiting) -> 
+	gui#tab_queries#h_search_waiting num waiting
+
+    | File_source (num, src) -> 
+	gui#tab_downloads#h_file_location num src
+
+    | File_downloaded (num, downloaded, rate) ->
+	gui#tab_downloads#h_file_downloaded num downloaded rate
+      
+    | File_availability (num, chunks, avail) ->
+	gui#tab_downloads#h_file_availability num chunks avail;
+
+    | File_info f ->
+	gui#tab_downloads#h_file_info f;
+            
+    | Server_info s ->
+	gui#tab_servers#h_server_info s;
+        gui#update_server_label
+    
+    | Server_state (key,state) ->
+        gui#tab_servers#h_server_state key state ;
+        gui#update_server_label 
+   
+    | Server_busy (key,nusers, nfiles) ->
+	gui#tab_servers#h_server_busy key nusers nfiles ;
+        gui#update_server_label 
+    
+    | Server_user (key, user) ->
+        Printf.printf "Server_user"; print_newline ();
+        if not (Hashtbl.mem G.users user) then begin
+            Gui_com.send (GetUser_info user);
+          end else begin
+            gui#tab_servers#h_server_user key user;
+            gui#update_server_label 
+          end
+
+    | Room_info room ->
+        let wnote = (gui#wnote_rooms :> GPack.notebook) in
+        Gui_rooms.room_info  wnote room
+          
+    | User_info user ->
+        Printf.printf "USER INFO"; print_newline ();
+        let user = try 
+            let u = Hashtbl.find G.users user.user_num  in
+            u.user_state <- user.user_state;
+            u
+          with Not_found ->
+              Hashtbl.add G.users user.user_num user; 
+              user
+        in
+        gui#tab_servers#h_server_user user.user_server user.user_num;
+        Gui_rooms.user_info user;
+        gui#update_server_label
+
+    | Room_user (num, user_num) ->
+        Gui_rooms.add_room_user num user_num
+
+    | Room_message (num, msg) ->
+        Gui_rooms.add_room_message num msg
+        
+    | GuiConnected -> 
+	()
+
+    | Options_info list ->
+(*        Printf.printf "Options_info"; print_newline ();*)
+        let rec iter list =
+          match list with
+            [] -> ()
+          | (name, value) :: tail ->
+              (
+               try
+                 let reference = 
+		   List.assoc name Gui_options.client_options_assocs 
+		 in
+                 reference := value
+               with _ -> 
+                 ()
+	      );
+              iter tail
+        in
+        iter list
+
+    | DefineSearches l ->
+	gui#tab_queries#h_define_searches l
+        
+    | Client_state (num, state) ->
+(*
+	Printf.printf "Client_state" ; print_newline ();
+*)
+	(
+         try
+           let c = Hashtbl.find G.locations num in
+           ignore (canon_client gui { c with client_state = state })
+         with _ -> 
+           Com.send (GetClient_info num)
+	)
+
+    | Client_friend (num, friend_kind) ->
+        (
+	 try
+           let c = Hashtbl.find G.locations num in
+           ignore (canon_client gui { c with client_type = friend_kind });
+         with _ -> 
+           Com.send (GetClient_info num)
+	)
+
+    | Client_file (num, file) ->
+        (
+	 try
+            let c = Hashtbl.find G.locations num in
+            let files = match c.client_files with
+                None -> []
+              | Some files -> files in
+            ignore (canon_client gui { c with client_files = Some (file :: files) });
+         with _ -> 
+           Com.send (GetClient_info num);
+           Com.send (GetClient_files num)
+	)
+
+    | Client_info c -> 
+(*        Printf.printf "Client_info"; print_newline (); *)
+        (
+	 try
+	   ignore (canon_client gui c) ;
+	 with _ -> ()
+	)
+(* A VOIR : Ca sert à quoi le bouzin ci-dessous ?
+ben, ca sert a mettre a jour la liste des locations affichees pour un
+fichier selectionne. Si ca marche toujours dans ton interface, pas de
+  probleme ...
+        begin
+          match !current_file with
+            None -> ()
+          | Some file ->
+              let num = c.client_num in
+              match file.file_more_info with
+                None -> ()
+              | Some fmi ->
+                  if array_memq num fmi.file_known_locations ||
+                    array_memq num fmi.file_indirect_locations then
+                    let c = Hashtbl.find locations c.client_num in
+                    if is_connected c.client_state then incr nclocations;
+                    MyCList.update clist_file_locations c.client_num c
+        end
+*)
+
+
+  with e ->
+      Printf.printf "Exception %s in reader" (Printexc.to_string e);
+      print_newline ()
+
+
+let main () =
+  let gui = new Gui_window.window () in
+  let w = gui#window in
+  let quit () = 
+    (try
+        Gui_misc.save_gui_options gui;
+        Gui_com.disconnect ();
+      with _ -> ());
+    exit 0
+  in
+  Gui_config.update_toolbars_style gui;
+  ignore (w#connect#destroy quit);
+
+  (** menu actions *)
+  ignore (gui#itemQuit#connect#activate w#destroy) ;
+  ignore (gui#itemKill#connect#activate (fun () -> Com.send KillServer));
+  ignore (gui#itemReconnect#connect#activate 
+	    (fun () ->Com.reconnect gui (value_reader gui)));
+  ignore (gui#itemDisconnect#connect#activate 
+	    (fun () -> Com.disconnect ()));
+  ignore (gui#itemServers#connect#activate (fun () -> gui#notebook#goto_page 0));
+  ignore (gui#itemDownloads#connect#activate (fun () -> gui#notebook#goto_page 1));
+  ignore (gui#itemFriends#connect#activate (fun () -> gui#notebook#goto_page 2));
+  ignore (gui#itemSearches#connect#activate (fun () -> gui#notebook#goto_page 3));
+  ignore (gui#itemResults#connect#activate (fun () -> gui#notebook#goto_page 4));
+  ignore (gui#itemOptions#connect#activate (fun () -> Gui_config.edit_options gui));
+  ignore (gui#itemConsole#connect#activate (fun () -> gui#notebook#goto_page 5));
+  ignore (gui#itemHelp#connect#activate (fun () -> gui#notebook#goto_page 6));
+
+
+  (** connection with core *)
+  Com.reconnect gui (value_reader gui) ;
   
   let gtk_handler timer =
-    reactivate_timer timer;
+    BasicSocket.reactivate_timer timer;
     while Glib.Main.pending () do
       ignore (Glib.Main.iteration false)
     done;
   in
     
-  add_timer 0.1 gtk_handler;
-  add_timer 2.0 update_sizes;
+  BasicSocket.add_timer 0.1 gtk_handler;
+(*  BasicSocket.add_timer 2.0 update_sizes;*)
   let never_connected = ref true in
-  add_timer 1.0 (fun timer ->
+  BasicSocket.add_timer 1.0 (fun timer ->
       if !never_connected then 
-        match !connection_sock with
+        match !Com.connection with
           None ->
-            reactivate_timer timer;
-            reconnect gui
+            BasicSocket.reactivate_timer timer;
+            Com.reconnect gui (value_reader gui)
         | _ -> 
             never_connected := false
   );
 
-  loop ()
-  
+  BasicSocket.loop ()
+;;
+
+main ()

@@ -9,8 +9,6 @@
 (*                                                                     *)
 (***********************************************************************)
 
-let print_DEBUG s = print_string s ; print_newline ()
-
 type modifier = Gdk.Tags.modifier
 
 type handler = {
@@ -66,14 +64,12 @@ module H =
   struct
     type t = handler_spec * handler
     let equal (m,k) (mods, mask, key) =
-      print_DEBUG (Printf.sprintf "m=%d; mods=%d; mask=%d; land=%d;" m mods mask (m land mask));
       (k = key) && ((m land mask) = mods)
 
     let filter_with_mask mods mask key l =
       List.filter (fun a -> (fst a) <> (mods, mask, key)) l
 
     let find_handlers mods key l =
-      print_DEBUG (Printf.sprintf "filter_handlers mods=%d;" mods);
       List.map snd
         (List.filter
 	   (fun ((m,ma,k),_) -> equal (mods,key) (m,ma,k)) 
@@ -87,7 +83,6 @@ let (table : (int, H.t list ref) Hashtbl.t) = Hashtbl.create 13
 let key_press w ev =
   let key = GdkEvent.Key.keyval ev in
   let modifiers = GdkEvent.Key.state ev in
-  (*DEBUG*)print_modifier modifiers;
   try
     let (r : H.t list ref) = Hashtbl.find table w#get_id in
     let l = H.find_handlers (int_of_modifiers modifiers) key !r in

@@ -55,7 +55,7 @@ let tcp_handler t sock event =
       
 let dummy_sock = Obj.magic 0  
   
-let create addr port handler =
+let create name addr port handler =
   try
     let fd = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
     Unix.setsockopt fd Unix.SO_REUSEADDR true;
@@ -66,7 +66,7 @@ let create addr port handler =
         sock = dummy_sock;
         event_handler = handler;
       } in
-    let sock = create fd (tcp_handler t) in
+    let sock = create name fd (tcp_handler t) in
     t.sock <- sock;
     t
   with e ->

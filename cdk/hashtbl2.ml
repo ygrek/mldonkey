@@ -266,3 +266,10 @@ module Make(H: HashedType): (S with type key = H.t) =
     let iter = iter
     let fold = fold
   end
+
+let to_list h =
+  let list = ref [] in
+  iter (fun _ s -> list := s :: !list) h;
+  !list
+  
+ 

@@ -39,9 +39,9 @@ and handler = t -> event -> unit
 val max_buffer_size : int ref
 
 val sock: t -> BasicSocket.t
-val create : Unix.file_descr -> handler -> t
-val create_simple : Unix.file_descr -> t
-val create_blocking : Unix.file_descr -> handler -> t
+val create : string -> Unix.file_descr -> handler -> t
+val create_simple : string -> Unix.file_descr -> t
+val create_blocking : string -> Unix.file_descr -> handler -> t
 val buf : t -> buf
 val set_reader : t -> (t -> int -> unit) -> unit
 val buf_used : t -> int -> unit
@@ -49,7 +49,7 @@ val set_handler : t -> event -> (t -> unit) -> unit
 val set_refill : t -> (t -> unit) -> unit
 val write: t -> string -> int -> int -> unit
 val write_string: t -> string -> unit
-val connect: Unix.inet_addr -> int -> handler -> t
+val connect: string -> Unix.inet_addr -> int -> handler -> t
 val close : t -> string -> unit
 val shutdown : t -> string -> unit
 val error: t -> string
@@ -79,3 +79,10 @@ val buf_size : t -> int * int
 val can_fill : t -> bool
   
 val if_possible : bandwidth_controler -> int -> bool
+  
+val set_rtimeout : t -> float -> unit
+val set_wtimeout : t -> float -> unit
+
+val internal_buf : Buffer.t
+val value_send : t -> 'a -> unit
+val value_handler : ('a -> t -> unit) -> t -> int -> unit

@@ -19,17 +19,22 @@
 
 open Unix
 open TcpBufferedSocket
-open Mftp
+open DonkeyMftp
 open Options
 open Mftp_comm
   
+type replies =  {
+    mutable docs : Store.index array;
+    mutable next_doc : int;
+  }
 
 type location = {
     mutable loc_ip : Ip.t;
     mutable loc_port : int;
     mutable loc_expired : float;
   }
-  
+
+  (*
 type file = {
     mutable file_names : string list;
     file_md4 : Md4.t;
@@ -38,16 +43,18 @@ type file = {
     file_tags : tag list;
     mutable file_clients : client list;
   }
-  
+    *)
+
 and client = {
     mutable client_id : Ip.t; 
     mutable client_conn_ip : Ip.t;
     mutable client_md4 : Md4.t;
     mutable client_sock: Mftp_comm.server_sock option;
     mutable client_kind : client_kind;
-    mutable client_files : file list;
-    mutable client_tags: tag list;
+    mutable client_files : Md4.t list;
+    mutable client_tags: CommonTypes.tag list;
     mutable client_location : location;
+    mutable client_results : replies;
   }
 
 and client_kind =
@@ -58,3 +65,28 @@ type server = {
     server_ip : Ip.t;
     server_port : int;
   }
+
+  
+open CommonNetwork
+  
+let network = CommonNetwork.new_network "Donkey:server"
+
+type kLocation = {
+    mutable ip : Ip.t;
+    mutable port : int;
+}  
+ 
+type fLocation = {
+    mutable ip_s : Ip.t;
+    mutable port_s : int;
+    mutable id_client : Ip.t;
+    }
+  
+and global = 
+     Firewalled_location of fLocation 
+   | Knowed_location of kLocation
+
+type where = {
+        mutable loc : global;
+        mutable expired : float;
+}

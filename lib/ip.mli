@@ -42,3 +42,9 @@ val option : t Options.option_class
   
 val to_int32 : t -> int32
 val of_int32 : int32 -> t
+  
+val my : unit -> t
+val any : t
+val null : t
+  
+val rev:t -> t

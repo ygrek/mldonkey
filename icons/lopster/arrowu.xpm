@@ -1,0 +1,16 @@
+/* XPM */
+static char*arrowu[]={
+"15 8 5 1",
+"# c #c0c0ff",
+"b c #0000c0",
+"c c #303030",
+"a c #0000ff",
+". c None",
+".......#.......",
+"......#a#......",
+".....#aba#.....",
+"....#abbba#....",
+"...#abbbbba#...",
+"..#abbbbbbba#..",
+".#abbbbbbbbba#.",
+"#ccccccccccccc#"};

@@ -29,9 +29,45 @@ value ints_of_string(value s_v)
   char *s = String_val(s_v);
   uint a1,a2,a3,a4;
   value res;
+  char *curs = s;
+  char *first;
+  char c;
 
-  sscanf(s, "%d.%d.%d.%d", &a1, &a2, &a3, &a4);
+  first = curs;
+  while(isdigit(*curs)) curs++;
+  if(*curs != '.' || curs == first || curs - first > 3) goto error;
+  *curs = 0;
+  a1 = atoi(first);
+  *curs++ = '.';
 
+  first = curs;
+  while(isdigit(*curs)) curs++;
+  if(*curs != '.' || curs == first || curs - first > 3) goto error;
+  *curs = 0;
+  a2 = atoi(first);
+  *curs++ = '.';
+
+  first = curs;
+  while(isdigit(*curs)) curs++;
+  if(*curs != '.' || curs == first || curs - first > 3) goto error;
+  *curs = 0;
+  a3 = atoi(first);
+  *curs++ = '.';
+
+  first = curs;
+  while(isdigit(*curs)) curs++;
+  if(curs == first || curs - first > 3) goto error;
+  c = *curs;  *curs = 0;
+  a4 = atoi(first);
+  *curs++ = c;
+
+/*   sscanf(s, "%d.%d.%d.%d", &a1, &a2, &a3, &a4); */
+  goto ok;
+
+  error:
+  a1 = a2 = a3 = a4 = 0;
+
+  ok:
   res = alloc(4,0);
   Field(res, 0) = Val_int(a1);
   Field(res, 1) = Val_int(a2);

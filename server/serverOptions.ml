@@ -19,7 +19,7 @@
 
 open Unix
 open TcpBufferedSocket
-open Mftp
+open DonkeyMftp
 open Options
 open Mftp_comm
 open ServerTypes
@@ -45,7 +45,18 @@ let max_clients = define_option server_ini ["maxClients"]
   
 let server_ip = define_option server_ini ["server_ip"] 
     "The last IP used for this server" Ip.option  
-    (try
-      let name = Unix.gethostname () in
-      Ip.from_name name
-    with _ -> Ip.localhost)
+    (Ip.my ())
+
+
+let server_md4 = define_option server_ini ["server_md4"]
+  "The MD4 of this server" Md4.option (Md4.random ())
+
+let groupe_cooperation_protocol = define_option server_ini
+["server_cooperation_protocol"] "Whitch protocol of cooperation : 1=Relay"
+int_option 1 
+  
+
+
+let save_config () =
+  Options.save_with_help server_ini
+  

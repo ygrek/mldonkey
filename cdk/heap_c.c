@@ -20,6 +20,7 @@
 
 static void check_block (FILE *oc, char *hp)
 {
+#if 0
   mlsize_t nfields = Wosize_hp (hp);
   mlsize_t i;
   value v = Val_hp (hp);
@@ -45,6 +46,7 @@ static void check_block (FILE *oc, char *hp)
     }
   }
   fprintf(oc,"\n");
+#endif
 }
 
 /* Check the heap structure (if compiled in debug mode) and

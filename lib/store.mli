@@ -18,14 +18,18 @@
 *)
 
 type 'a t
-
-val create : unit -> 'a t
-val add : 'a t -> 'a -> int
-val get : 'a t -> int -> 'a
-val remove : 'a t -> int -> unit
-val close : 'a t -> unit
-val update : 'a t -> int -> 'a -> unit
+type index
   
-val set_attrib : 'a t -> int -> bool -> unit
-val get_attrib : 'a t -> int -> bool
+val create : string -> 'a t
+val add : 'a t -> 'a -> index
+val get : 'a t -> index -> 'a
+val remove : 'a t -> index -> unit
+val close : 'a t -> unit
+val update : 'a t -> index -> 'a -> unit
+  
+val set_attrib : 'a t -> index -> bool -> unit
+val get_attrib : 'a t -> index -> bool
+  
+val index : index -> int
+val dummy_index : index
   

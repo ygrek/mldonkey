@@ -1,0 +1,6 @@
+<entity name=box tb_style>
+  <vbox name=vbox width="" height="" border_width="" homogeneous="false" spacing="" tab_label="" expand="false" fill="true" padding="">
+    <toolbar name=wtool width="" height="" border_width="" orientation="`HORIZONTAL" style="tb_style" space_size="2" space_style="`LINE" tooltips="true" button_relief="`NONE" tab_label="" expand="false" fill="true" padding="2">
+    </toolbar>
+  </vbox>
+</entity>

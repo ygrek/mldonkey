@@ -1,0 +1,8 @@
+<entity name=box tb_style>
+  <vbox name=vbox width="" height="" border_width="" homogeneous="false" spacing="" tab_label="" expand="true" fill="true" padding="">
+    <text name=wt_10 width="-1" height="-1" editable="true" word_wrap="true" line_wrap="true" tab_label="" expand="true" fill="true" padding="-1">
+    </text>
+    <entry name=we_11 width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="false" fill="false" padding="-1">
+    </entry>
+  </vbox>
+</entity>

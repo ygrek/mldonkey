@@ -63,3 +63,9 @@ let cut n list =
   
 let tail_map f list = 
   List.rev (List.rev_map f list)
+
+  
+let rec assoc_inv x = function
+    [] -> raise Not_found
+  | (a,b)::l -> if b = x then a else assoc_inv x l
+        

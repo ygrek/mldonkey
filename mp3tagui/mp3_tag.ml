@@ -289,7 +289,7 @@ module Id3v2 = struct
     let origname =
       match srcname with
         None ->
-          Sys.rename filename (filename ^ ".bak"); filename ^ ".bak"
+          Unix2.rename filename (filename ^ ".bak"); filename ^ ".bak"
       | Some s -> s in
     try
       let oc = open_out_bin filename in
@@ -318,7 +318,7 @@ module Id3v2 = struct
       end
     with x ->
       begin match srcname with
-        None -> Sys.rename origname filename
+        None -> Unix2.rename origname filename
       | Some s -> ()
       end;
       raise x

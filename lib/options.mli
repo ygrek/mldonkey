@@ -141,3 +141,6 @@ val set_string_wrappers : 'a option_record ->
   ('a -> string) -> (string -> 'a) -> unit
   
 val simple_args : options_file -> (string * Arg.spec * string) list
+  
+val prefixed_args : 
+  string -> options_file -> (string * Arg.spec * string) list

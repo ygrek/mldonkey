@@ -47,6 +47,7 @@ type t = {
     
     mutable read_control : bandwidth_controler option;
     mutable write_control : bandwidth_controler option;
+    
   }
   
   
@@ -88,17 +89,24 @@ let delete_string s =
     end
 
 let close t s = 
-  (*
+(*
   if t.monitored then begin
       Printf.printf "close with %s %s" t.error s; print_newline ();
 end;
-  *)
-  delete_string t.rbuf.buf;
-  delete_string t.wbuf.buf;
-  t.rbuf.buf <- "";
-  t.wbuf.buf <- "";
-  close t.sock (Printf.sprintf "%s after %d/%d" s t.nread t.nwrite)
-
+*)
+  begin
+    try
+      delete_string t.rbuf.buf;
+      delete_string t.wbuf.buf;
+      t.rbuf.buf <- "";
+      t.wbuf.buf <- "";
+      close t.sock (Printf.sprintf "%s after %d/%d" s t.nread t.nwrite)
+    with e ->
+        Printf.printf "Exception %s in TcpBufferedSocket.close" 
+          (Printexc.to_string e); print_newline ();
+        raise e
+  end
+  
 let shutdown t s =
   (*
   if t.monitored then begin
@@ -278,63 +286,74 @@ let can_read_handler t sock max_len =
   let curpos = b.pos + b.len in
   let can_read =
     if b.buf = "" then begin
-        b.buf <- new_string ();
-        min_buffer_read
-      end else
-    if max_len - curpos < min_read_size then
-      if b.len + min_read_size > b.max_buf_size then
-        (t.event_handler t BUFFER_OVERFLOW; Printf.printf "[OVERFLOW]"; close t "buffer overflow"; raise exn_exit; 0)
-      else
-      if b.len + min_read_size < max_len then
-        ( String.blit b.buf b.pos b.buf 0 b.len;
-          b.pos <- 0;
-          max_len - b.len)
-      else
-      let new_len = mini (maxi 
-            (2 * max_len) (b.len + min_read_size)) b.max_buf_size  in
-      let new_buf = String.create new_len in
-      String.blit b.buf b.pos new_buf 0 b.len;
-      b.pos <- 0;
-      b.buf <- new_buf;
-      new_len - b.len
+      b.buf <- new_string ();
+      min_buffer_read
+    end 
     else
-      max_len - curpos
+      if max_len - curpos < min_read_size then
+	if b.len + min_read_size > b.max_buf_size then
+          (
+	   t.event_handler t BUFFER_OVERFLOW; 
+            Printf.printf "[OVERFLOW] in %s" (info sock); 
+	   close t "buffer overflow"; 
+	   raise exn_exit; 
+	   0
+	  )
+	else
+	  if b.len + min_read_size < max_len then
+            ( 
+	     String.blit b.buf b.pos b.buf 0 b.len;
+             b.pos <- 0;
+             max_len - b.len
+	    )
+	  else
+	    let new_len = mini 
+		(maxi 
+		   (2 * max_len) (b.len + min_read_size)) b.max_buf_size  
+	    in
+	    let new_buf = String.create new_len in
+	    String.blit b.buf b.pos new_buf 0 b.len;
+	    b.pos <- 0;
+	    b.buf <- new_buf;
+	    new_len - b.len
+      else
+	max_len - curpos
   in
   let can_read = mini max_len can_read in
   if can_read > 0 then
     let nread = try
 (*        Printf.printf "try read %d" can_read; print_newline ();*)
-        Unix.read (fd sock) b.buf (b.pos + b.len) can_read
-      with 
-        Unix.Unix_error((Unix.EWOULDBLOCK | Unix.EAGAIN), _,_) as e -> raise e
+      Unix.read (fd sock) b.buf (b.pos + b.len) can_read
+    with 
+      Unix.Unix_error((Unix.EWOULDBLOCK | Unix.EAGAIN), _,_) as e -> raise e
+    | e ->
+        t.error <- Printf.sprintf "Can Read Error: %s" (Printexc.to_string e);
+        close t t.error;
+
+(*      Printf.printf "exce %s in read" (Printexc.to_string e); print_newline (); *)
+        raise e
+	  
+    in
+    t.nread <- t.nread + nread;
+    if nread = 0 then begin
+      close t "closed on read";
+    end else begin
+      let curpos = b.pos in
+      b.len <- b.len + nread;
+      try
+(*              if t.monitored then 
+   (Printf.printf "event handler READ DONE"; print_newline ()); *)
+        t.event_handler t (READ_DONE nread);
+      with
       | e ->
-          t.error <- Printf.sprintf "Can Read Error: %s" (Printexc.to_string e);
+(*                if t.monitored then
+   (Printf.printf "Exception in READ DONE"; print_newline ()); *)
+          t.error <- Printf.sprintf "READ_DONE Error: %s" (Printexc.to_string e);
           close t t.error;
 
 (*      Printf.printf "exce %s in read" (Printexc.to_string e); print_newline (); *)
           raise e
-    
-    in
-    t.nread <- t.nread + nread;
-    if nread = 0 then begin
-        close t "closed on read";
-      end else begin
-        let curpos = b.pos in
-        b.len <- b.len + nread;
-        try
-(*              if t.monitored then 
-                (Printf.printf "event handler READ DONE"; print_newline ()); *)
-          t.event_handler t (READ_DONE nread);
-        with
-        | e ->
-(*                if t.monitored then
-                  (Printf.printf "Exception in READ DONE"; print_newline ()); *)
-            t.error <- Printf.sprintf "READ_DONE Error: %s" (Printexc.to_string e);
-            close t t.error;
-
-(*      Printf.printf "exce %s in read" (Printexc.to_string e); print_newline (); *)
-            raise e
-      end
+    end
 
 let can_write_handler t sock max_len =
 (*      if t.monitored then (
@@ -470,9 +489,9 @@ let set_write_controler t bc =
   set_allow_write t.sock bc.allow_io;
   bandwidth_controler t t.sock
   
-let max_buffer_size = ref 100000
+let max_buffer_size = ref 100000 
   
-let create fd handler =
+let create name fd handler =
   Unix.set_close_on_exec fd;
   let t = {
       sock = dummy_sock;
@@ -486,11 +505,11 @@ let create fd handler =
       read_control = None;
       write_control = None;
     } in
-  let sock = create fd (tcp_handler t) in
+  let sock = create name fd (tcp_handler t) in
   t.sock <- sock;
   t
 
-let create_blocking fd handler =
+let create_blocking name fd handler =
   Unix.set_close_on_exec fd;
   let t = {
       sock = dummy_sock;
@@ -504,23 +523,32 @@ let create_blocking fd handler =
       read_control = None;
       write_control = None;
     } in
-  let sock = create_blocking fd (tcp_handler t) in
+  let sock = create_blocking name fd (tcp_handler t) in
   t.sock <- sock;
   t
   
-let create_simple fd =
-  create fd (fun _ _ -> ())
+let create_simple name fd =
+  create name fd (fun _ _ -> ())
   
-let connect host port handler =
-(*   Printf.printf "CONNECT"; print_newline ();*)
-  let s = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
-  let t = create s handler in
-  must_write (sock t) true;
+let connect name host port handler =
   try
-    Unix.connect s (Unix.ADDR_INET(host,port));
-    t
-  with e -> t
-
+(*   Printf.printf "CONNECT"; print_newline ();*)
+    let s = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
+    let t = create name s handler in
+    must_write (sock t) true;
+    try
+      Unix.connect s (Unix.ADDR_INET(host,port));
+      t
+    with 
+      Unix.Unix_error((Unix.EINPROGRESS|Unix.EINTR),_,_) -> t
+    | e -> 
+        Printf.printf "+++ Exception while CONNECT %s" (Printexc.to_string e);
+        print_newline ();
+        t
+  with e -> 
+      Printf.printf "+++ Exception BEFORE CONNECT %s" (Printexc.to_string e);
+      print_newline ();
+      raise e
 
   
   
@@ -555,13 +583,14 @@ let exec_command cmd args handler =
       ignore (snd(Unix.waitpid [] id));
       Unix.close input;
       Unix.close output;
-      let t_in = create in_read handler in
-      let t_out = create out_write (fun _ _ -> ()) in
+      let t_in = create "pipe_int" in_read handler in
+      let t_out = create "pipe_out" out_write (fun _ _ -> ()) in
       must_read (sock t_out) false;
       (t_in, t_out)
   
 let set_max_write_buffer t len =
-  t.wbuf.max_buf_size <- len
+  t.wbuf.max_buf_size <- len;
+  t.rbuf.max_buf_size <- len
   
 let can_write t =
   t.wbuf.len = 0
@@ -674,3 +703,40 @@ let if_possible bc len =
       true;
     end else false
     
+let set_rtimeout s t = set_rtimeout (sock s) t
+let set_wtimeout s t = set_wtimeout (sock s) t
+
+open BigEndian
+   
+let internal_buf = Buffer.create 17000
+
+let simple_send_buf buf sock =
+  let s = Buffer.contents buf in
+  Buffer.clear buf;
+  buf_int8 buf 228;
+  let len = String.length s in
+  buf_int buf len;
+  write sock (Buffer.contents buf) 0 5;
+  write sock s 0 len
+
+let value_send sock m =
+  Buffer.clear internal_buf;
+  Buffer.add_string internal_buf (Marshal.to_string m []);
+  simple_send_buf internal_buf sock
+
+let value_handler f sock nread =
+  let b = buf sock in
+  try
+    while b.len >= 5 do
+      let msg_len = get_int b.buf (b.pos+1) in
+      if b.len >= 5 + msg_len then
+        begin
+          let s = String.sub b.buf (b.pos+5) msg_len in
+          let t = Marshal.from_string  s 0 in
+          buf_used sock  (msg_len + 5);
+          f t sock;
+          ()
+        end
+      else raise Not_found
+    done
+  with Not_found -> ()

@@ -1,0 +1,22 @@
+/* XPM */
+static char * hand_xpm[] = {
+"30 16 3 1",
+" 	c None",
+".	c black",
+"X	c white",
+"                ..............",
+"            .....XX..XX.XX.XX.",
+"           ..XXX..X..XXXX.....",
+"         ..XXXXX..........    ",
+"      ....XXXXX........       ",
+"  ......XXXXXX.....XXX.       ",
+"...XXXX.XXXXX.....XXXX.       ",
+".XXXXXX.XX.............       ",
+".XXXXXX.XXXXX.....XXX.        ",
+".XXXXXX.XXXXXX........        ",
+".XXXXXX.X.XXXXX..XX...        ",
+" .......X.XXXXX...X..         ",
+" .XX..X.......X.....          ",
+" .XX..XX...  .....            ",
+" .XXXXXXX..                   ",
+"  ........                    "};

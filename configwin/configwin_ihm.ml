@@ -311,7 +311,7 @@ class string_param_box param =
   let wl = GMisc.label ~text: param.string_label ~packing: wev#add () in
   let we = GEdit.entry
       ~editable: param.string_editable
-      ~packing: (hbox#pack ~expand: true ~padding: 2)
+      ~packing: (hbox#pack ~expand: param.string_expand ~padding: 2)
       ()
   in
   let _ = 
@@ -346,7 +346,7 @@ class combo_param_box param =
       ~popdown_strings: param.combo_choices
       ~value_in_list: (not param.combo_new_allowed)
       ~ok_if_empty: param.combo_blank_allowed
-      ~packing: (hbox#pack ~expand: true ~padding: 2)
+      ~packing: (hbox#pack ~expand: param.combo_expand ~padding: 2)
       ()
   in
   let _ = 
@@ -375,8 +375,16 @@ class combo_param_box param =
 
 (** Class used to pack a custom box. *)
 class custom_param_box param =
+  let top = 
+    match param.custom_framed with
+      None -> param.custom_box#coerce
+    | Some l ->
+	let wf = GBin.frame ~label: l () in
+	wf#add param.custom_box#coerce;
+	wf#coerce
+  in
   object (self)
-    method box = param.custom_box#coerce
+    method box = top
     method apply = param.custom_f_apply ()
   end
 
@@ -397,7 +405,7 @@ class color_param_box param =
   in
   let we = GEdit.entry
       ~editable: param.color_editable
-      ~packing: (hbox#pack ~expand: true ~padding: 2)
+      ~packing: (hbox#pack ~expand: param.color_expand ~padding: 2)
       ()
   in
   let _ = 
@@ -474,7 +482,7 @@ class font_param_box param =
   in
   let we = GEdit.entry
       ~editable: false
-      ~packing: (hbox#pack ~expand: true ~padding: 2)
+      ~packing: (hbox#pack ~expand: param.font_expand ~padding: 2)
       ()
   in
   let _ = 
@@ -608,7 +616,7 @@ class filename_param_box param =
   in
   let we = GEdit.entry
       ~editable: param.string_editable
-      ~packing: (hbox#pack ~expand: true ~padding: 2)
+      ~packing: (hbox#pack ~expand: param.string_expand ~padding: 2)
       ()
   in
   let _ = 
@@ -658,7 +666,7 @@ class date_param_box param =
   in
   let we = GEdit.entry
       ~editable: false
-      ~packing: (hbox#pack ~expand: true ~padding: 2)
+      ~packing: (hbox#pack ~expand: param.date_expand ~padding: 2)
       ()
   in
   let _ = 
@@ -744,7 +752,7 @@ class configuration_box conf_struct (notebook : GPack.notebook) =
 		  box
 	      |	Text_param p ->
 		  let box = new text_param_box p in
-		  let _ = main_box#pack ~expand: true ~padding: 2 box#box in
+		  let _ = main_box#pack ~expand: p.string_expand ~padding: 2 box#box in
 		  box
 	      | Bool_param p ->
 		  let box = new bool_param_box p in
@@ -875,21 +883,13 @@ let edit ?(with_apply=true)  title ?(width=400) ?(height=400) conf_struct_list =
   !return
 
 
-(** This function takes a list of parameter specifications and 
-   creates a window to configure the various parameters.*)
-let simple_edit ?(with_apply=true)  
-    title ?width ?height 
-    param_list =
-  let return = ref Return_cancel in
-  let window = GWindow.window ~modal: true ~title: title () in
-  let _ = match width, height with
-    None, None -> ()
-  | Some w, None -> window#misc#set_geometry ~width: w ()
-  | None, Some h -> window#misc#set_geometry ~height: h ()
-  | Some w, Some h -> window#misc#set_geometry ~width: w ~height: h ()
-  in
-  let _ = window#connect#destroy ~callback: GMain.Main.quit in
-  let main_box = GPack.vbox ~packing: window#add () in
+(** Create a vbox with the list of given parameters,
+   and the given list of buttons (defined by their label and callback).
+   Before calling the callback of a button, the [apply] function
+   of each parameter is called.
+*)
+let box param_list buttons =
+  let main_box = GPack.vbox  () in
   let f parameter =
     match parameter with
       String_param p ->
@@ -902,7 +902,7 @@ let simple_edit ?(with_apply=true)
 	box
     | Text_param p ->
 	let box = new text_param_box p in
-	let _ = main_box#pack ~expand: true ~padding: 2 box#box in
+	let _ = main_box#pack ~expand: p.string_expand ~padding: 2 box#box in
 	box
     | Bool_param p ->
 	let box = new bool_param_box p in
@@ -934,40 +934,55 @@ let simple_edit ?(with_apply=true)
 	box
   in
   let list_param_box = List.map f param_list in
-
-  let hbox_buttons = GPack.hbox ~packing: (main_box#pack ~expand: false ~padding: 4) () in
-  let bApply = GButton.button
-      ~label: Configwin_messages.mApply
-      ()
-  in
-  if with_apply then hbox_buttons#pack ~expand: true ~padding: 3 bApply#coerce;
-  let bOk = GButton.button
-      ~label: Configwin_messages.mOk
-      ~packing: (hbox_buttons#pack ~expand: true ~padding: 3)
-      ()
-  in
-  let bCancel = GButton.button
-      ~label: Configwin_messages.mCancel
-      ~packing: (hbox_buttons#pack ~expand: true ~padding: 3)
-      ()
-  in
-  (* we connect the click on the apply button *)
   let f_apply () = 
-    List.iter (fun param_box -> param_box#apply) list_param_box  ;
-    return := Return_apply
+    List.iter (fun param_box -> param_box#apply) list_param_box 
   in
-  let _ = bApply#connect#clicked f_apply in
-  (* we connect the click on the ok button : the same than apply but we then close the window *)
-  let f_ok () = 
-    f_apply () ; 
-    return := Return_ok ;
-    window#destroy () 
-  in
-  let _ = bOk#connect#clicked f_ok in
-  (* we connect the click on the cancel button : close the window *)
-  let f_cancel () = window#destroy () in
-  let _ = bCancel#connect#clicked f_cancel in
+  let hbox_buttons = GPack.hbox ~packing: (main_box#pack ~expand: false ~padding: 4) () in
+  let rec iter_buttons ?(grab=false) = function
+      [] ->
+        ()
+    | (label, callb) :: q ->    
+        let b = GButton.button ~label: label
+            ~packing:(hbox_buttons#pack ~expand:true ~padding:4) ()
+        in
+        ignore (b#connect#clicked ~callback:
+		  (fun () -> f_apply (); callb ()));
+        (* If it's the first button then give it the focus *)
+        if grab then b#grab_default ();
 
+        iter_buttons q
+  in
+  iter_buttons ~grab: true buttons;
+
+  main_box
+
+
+(** This function takes a list of parameter specifications and 
+   creates a window to configure the various parameters.*)
+let simple_edit ?(with_apply=true)  
+    title ?width ?height 
+    param_list =
+  let return = ref Return_cancel in
+  let window = GWindow.window ~modal: true ~title: title () in
+  let _ = match width, height with
+    None, None -> ()
+  | Some w, None -> window#misc#set_geometry ~width: w ()
+  | None, Some h -> window#misc#set_geometry ~height: h ()
+  | Some w, Some h -> window#misc#set_geometry ~width: w ~height: h ()
+  in
+  let _ = window#connect#destroy ~callback: GMain.Main.quit in
+  let buttons = 
+    (if with_apply then
+      [Configwin_messages.mApply, fun () -> return := Return_apply]
+    else
+      []
+    ) @ [
+	(Configwin_messages.mOk, fun () -> return := Return_ok ; window#destroy ()) ;
+	(Configwin_messages.mCancel, window#destroy) ;
+      ]	
+  in
+  let box = box param_list buttons in
+  window#add box#coerce;
   let _ = window#show () in
   GMain.Main.main () ;
   !return
@@ -978,7 +993,7 @@ let edit_string l s =
   | Some s2 -> s2
   
 (** Create a string param. *)
-let string ?(editable=true) ?help ?(f=(fun _ -> ())) label v =
+let string ?(editable=true) ?(expand=true) ?help ?(f=(fun _ -> ())) label v =
   String_param
     {
       string_label = label ;
@@ -986,6 +1001,7 @@ let string ?(editable=true) ?help ?(f=(fun _ -> ())) label v =
       string_value = v ;
       string_editable = editable ;
       string_f_apply = f ;
+      string_expand = expand ;
     } 
 
 (** Create a bool param. *)
@@ -1035,7 +1051,7 @@ let strings ?(editable=true) ?help
   list ~editable ?help ~f ~eq ~edit: (edit_string label) ~add label (fun s -> [s]) v
 
 (** Create a color param. *)
-let color ?(editable=true) ?help ?(f=(fun _ -> ())) label v =
+let color ?(editable=true) ?(expand=true) ?help ?(f=(fun _ -> ())) label v =
   Color_param
     {
       color_label = label ;
@@ -1043,10 +1059,11 @@ let color ?(editable=true) ?help ?(f=(fun _ -> ())) label v =
       color_value = v ;
       color_editable = editable ;
       color_f_apply = f ;
+      color_expand = expand ;
     }
 
 (** Create a font param. *)
-let font ?(editable=true) ?help ?(f=(fun _ -> ())) label v =
+let font ?(editable=true) ?(expand=true) ?help ?(f=(fun _ -> ())) label v =
   Font_param
     {
       font_label = label ;
@@ -1054,10 +1071,11 @@ let font ?(editable=true) ?help ?(f=(fun _ -> ())) label v =
       font_value = v ;
       font_editable = editable ;
       font_f_apply = f ;
+      font_expand = expand ;
     }
 
 (** Create a combo param. *)
-let combo ?(editable=true) ?help ?(f=(fun _ -> ())) 
+let combo ?(editable=true) ?(expand=true) ?help ?(f=(fun _ -> ())) 
     ?(new_allowed=false) 
     ?(blank_allowed=false) label choices v =
   Combo_param
@@ -1070,10 +1088,11 @@ let combo ?(editable=true) ?help ?(f=(fun _ -> ()))
       combo_new_allowed = new_allowed ;
       combo_blank_allowed = blank_allowed ;
       combo_f_apply = f ;
+      combo_expand = expand ;
     }
 
 (** Create a text param. *)
-let text ?(editable=true) ?help ?(f=(fun _ -> ())) label v = 
+let text ?(editable=true) ?(expand=true) ?help ?(f=(fun _ -> ())) label v = 
   Text_param
     {
       string_label = label ;
@@ -1081,10 +1100,11 @@ let text ?(editable=true) ?help ?(f=(fun _ -> ())) label v =
       string_value = v ;
       string_editable = editable ;
       string_f_apply = f ;
+      string_expand = expand ;
     } 
 
 (** Create a filename param. *)
-let filename ?(editable=true) ?help ?(f=(fun _ -> ())) label v = 
+let filename ?(editable=true) ?(expand=true)?help ?(f=(fun _ -> ())) label v = 
   Filename_param
     {
       string_label = label ;
@@ -1092,6 +1112,7 @@ let filename ?(editable=true) ?help ?(f=(fun _ -> ())) label v =
       string_value = v ;
       string_editable = editable ;
       string_f_apply = f ;
+      string_expand = expand ;
     } 
 
 (** Create a filenames param.*)
@@ -1102,7 +1123,7 @@ let filenames ?(editable=true) ?help ?(f=(fun _ -> ()))
   list ~editable ?help ~f ~eq ~add label (fun s -> [s]) v
 
 (** Create a date param. *)
-let date ?(editable=true) ?help ?(f=(fun _ -> ())) 
+let date ?(editable=true) ?(expand=true) ?help ?(f=(fun _ -> ())) 
     ?(f_string=(fun(d,m,y)-> Printf.sprintf "%d/%d/%d" y (m+1) d))
     label v =
   Date_param
@@ -1113,13 +1134,15 @@ let date ?(editable=true) ?help ?(f=(fun _ -> ()))
       date_editable = editable ;
       date_f_string = f_string ;
       date_f_apply = f ;
+      date_expand = expand ;
     } 
 
 (** Create a custom param.*)
-let custom box f expand =
+let custom ?label box f expand =
   Custom_param
     {
       custom_box = box ;
       custom_f_apply = f ;
       custom_expand = expand ;
+      custom_framed = label ;
     } 

@@ -1,0 +1,401 @@
+
+
+
+
+
+
+
+  This document explains how to write an interface for DCPlus 3.0. DCPlus version
+   3 has a seperate communications interface for server to client and client to
+   client communications and should act as a object oriented environment.
+  Objects are represented by a single character representing the object class and
+   the object identifier. If the hub supports DCPlus 3.0, it represents itself
+   as M:local or M:me. For backward compatibility purposes, it is recommended
+   that most clients use M:me.
+  Hubs with DCPlus 3.0 support MUST send this command when a user connects or
+
+   sends $GetNickList:
+    $Hello $DCPlus|
+  If a hub previously did NOT have DCPlus support and wishes to enable it, the
+   hub should send all clients the above command also.
+  If a hub previously had DCPlus 3.0 support and wishes to disable it, it must
+   send to all clients:
+    $Quit $DCPlus|
+  A hub may choose to disable DCPlus support for users who are not using DCPlus
+   3.0 compatible clients. In no case should a hub initialize a conversation with
+   a client which does not support DCPlus 3.0.
+
+
+  Clients which support DCPlus 3.0 are represented by U: plus the username that
+   the client is logged onto the current hub as. To enable DCPlus 3.0, a client
+   must set Bit 4 (1-based) in the connection flag byte. This can easilly be
+   accomplished by applying an OR 0x10 operation to the normal connection flag
+   byte. For informational purposes, the connection flag byte referred to here is
+   located at the * in the following command:
+    $MyINFO $ALL bakanick nothin$ $Magic Wire*$$0$|
+
+  For a hub to send a command to a client, it should format it as seen below:
+    $To: ClientsUsername From: $DCPlus $<$DCPlus> Command-And-Parameters|
+  For a client to send a command to the hub, it should format it as seen below:
+
+    $To: $DCPlus From: ClientsUsername $<ClientsUsername> Command-And-Parameters|
+  For a client to send a command to another client, it should send to the hub:
+    $To: OtherClientUsername From: ClientsUsername $<ClientsUsername> *Cmd&Params|
+  In the above line, the client MUST replace * with ASCII character code number 4.
+   If a user on the client wishes to PM a message starting with a real character
+   number 4 in a message, the client should escape it with a \ (only if dest
+   user is DCPlus 3). Therefore when a message starting with \* (*=asc chr 4) is
+   received from a DCPlus 3 client, it should remove the \ from the start of the
+   message.
+
+  For a DCPlus supporting client to send a command to ALL DCPlus users, they
+
+   should use the following command:
+    $Search 0:0 F*?F*?0*?9*?DCPlus/Command-And-Parameters|
+
+  For certain commands which can be sent via "SR UDP", they must be sent in the
+   following command:
+    $DCPlus Command-And-Parameters|
+
+  Parameters are a single word long. To include spaces in a parameter, the entire
+   parameter must be enclosed in double quotes ("). Double quote and backslash
+   characters within an enclosed parameter must be escaped by a backslash. For
+   example: \" or \\
+
+  Below, <A> to <Z> are required arguments, [A] to [Z] are optional arguments,
+   and [@] refers to whatever extra data is there.
+  *in the case of a $Search usage, the $Search command may specific values for
+   'maxsize', 'minsize', and 'filetype'.
+
+  Hub to Client commands are:
+    SetOption ReserveSlots <A> [B]
+      <A> is the number of slots to reserve for users on this hub. Reply via
+       OptionSet required. [B] is response code.
+    SetOption DisCloseDownload <A> [B]
+      If <A> is non-zero then the client should close all downloads from users
+
+       in the current hub when the user leaves that hub. For example, if UserA
+       downloads from UserB in HubB and then leaves HubB, UserA's download is
+       cut. If <A> is a non-negative number, the client may wait <A> minutes
+       before cutting the downloads. Reply via OptionSet required. [B] is
+       response code.
+    Error <A> [@]
+      <A> is the command that caused the error. If present, [@] has more
+       details.
+    UserIP <A> <B> [C]
+      Informs the client that <B> is the IP of <A>. [C] is a flag set by the
+       request command.
+
+    Success <A> [@]
+      <A> is the command that succeeded and [@] might have more details.
+    GotProp <A> <B> <C>
+      Optional backward compatibility for DCPlus 2.0. See 2.0 docs for details.
+    CmdOk [@] [@] [...]
+      Arguments are a list of supported (or unsupported) commands. Supported
+       commands should be prefixed with a + and unsupported by a -.
+    PageCount <A>
+      <A> is the number of pages waiting for the client's username
+    PageMsg <A> <@>
+      <A> is the user who the page is from and <@> is the page message.
+
+    HelpStart <A> <B>
+      <A> is the page id code and <B> is the response code.
+    HelpData <A> <B>
+      <A> is the response code and <B> is the line of data.
+    HelpEnd <A>
+      <A> is the response code.
+    Ping [A]
+      [A] is the response code. A reply should be sent back via Pong ASAP.
+    Pong [A]
+      [A] is the response code. This should be sent when a Ping is received.
+    Cmd [@] [@] [...]
+
+      Arguments are specific commands to check for. If none are present, a full
+       list of supported commands is returned. Reply is via CmdOk reply.
+    RegisterOk <A>
+      <A> is the response code. This is a reply to RegisterNick.
+    RegisterDenied <A>
+      <A> is the response code. This is similar to a permission denied for
+       RegisterNick.
+    OptionSet <A> [B] <C>
+      <A> is the option that was set. [B] is the new value. <C> is replycode
+    ListOptions [A] [@] [@] [...]
+      [A] is a reply code. The arguments are what commands to look for. If no
+
+       arguments (besides [A]), all commands will be returned.
+    OptionList [A] [@] [@] [...]
+      [A] is a reply code. The arguments are the options supported. If an
+       option is listed but not supported, it should appear in brackets ('[]')
+  Client to Hub Commands are:
+    GetIP [@] [@] [...]
+      Arguments are the usernames to get the IPs of. Result is sent back via
+       UserIP responses.
+    GetIP+ [A] [@] [@] [...]
+      Arguments are the usernames to get the IPs of. Result is sent back via
+       UserIP responses. [A] is the response code.
+
+    Boot [@] [@] [...]
+      Arguments are the usernames to boot. There is no reply.
+    BanMAC <A>
+      <A> is the MAC address to ban. There is no reply.
+    UnBanMAC [A] [@] [@] [...]
+      [A] is the response code. The arguments after it are MACs to unban. There
+       should be a 'Success/Error UnBanMAC [A]' reply.
+    BanIP <A>
+      <A> is the IP address to ban. There is no reply.
+    UnBanIP [A] [@] [@] [...]
+      [A] is the response code. The arguments after it are IPs to unban. There
+
+       should be a 'Success/Error UnBanIP [A]' reply.
+    Kick <A>
+      <A> is the user to kick. There is no reply.
+    TempBanIP <A>
+      <A> is the IP address to temp ban. There is no reply.
+    UnTempBanIP [A] [@] [@] [...]
+      [A] is the response code. The arguments after it are IPs to un temp ban.
+       There should be a 'Success/Error UnTempBanIP [A]' reply.
+    BanName [@] [@] [...]
+      Arguments are usernames to ban usage of. There is no reply.
+    UnBanName [A] [@] [@] [...]
+
+      [A] is the response code. The arguments after it are names to unban. There
+       should be a 'Success/Error UnBanName [A]' reply.
+    Ban <A>
+      <A> is the username of the user to ban (in any method). There is no reply
+    GetProp <A> <B>
+      Optional backward compatibility for DCPlus 2.0. See 2.0 docs for details.
+    PutProp <A> <B> <C>
+      Optional backward compatibility for DCPlus 2.0. See 2.0 docs for details.
+    AppProp <A> <B> <C>
+      Optional backward compatibility for DCPlus 2.0. See 2.0 docs for details.
+    RitProp <A> <B> <C>
+
+      Optional backward compatibility for DCPlus 2.0. See 2.0 docs for details.
+    Cmd [@] [@] [...]
+      Arguments are specific commands to check for. If none are present, a full
+       list of supported commands is returned. Reply is via CmdOk reply.
+    MassMsg [@]
+      [@] is the message to mass-announce. No reply.
+    SendPage <A> [@]
+      <A> is the user to send a page to. [@] is the message.
+    GetPage [A]
+      [A] is the message number to retrieve. If present, message is sent to
+       client via PageMsg reply and the message is deleted from the hub. If
+
+       not, number of messages is sent to client via PageCount reply.
+    PeekPage <A>
+      <A> is the message number to retrieve. Message should be sent via PageMsg
+       reply and the message SHOULD NOT BE DELETED FROM HUB.
+    HelpOn <A> [B]
+      <A> is the help id code. If present, [B] is the response code.
+    Ping [A]
+      [A] is the response code. A reply should be sent back via Pong ASAP.
+    Pong [A]
+      [A] is the response code. This should be sent when a Ping is received.
+    OptionSet <A> [B] <C>
+
+      <A> is the option which was set correctly. <B> is the new value. This is
+       a reply to the SetOption command.
+    CmdOk [@] [@] [...]
+      Arguments are a list of supported (or unsupported) commands. Supported
+       commands should be prefixed with a + and unsupported by a -.
+    RegisterNick <A> <B>
+      <A> is the password to register the nickname with. <B> is a response code
+    SetOption Topic <A> [B]
+      <A> is the new hub topic/name. [B] is response code.
+    SetOption Chat.<A> <B> [C]
+      <A> is the username of the client to affect. If <B> is zero, chat
+
+       messages should no longer be sent to the client. [C] is the response
+       code. 'SetOption Chat <B> [C]' affects the client sending the command
+    SetOption Userlist.<A> <B> [C]
+      <A> is the username of the client to affect. If <B> is zero, userlist
+       updates should no longer be sent to the client. [C] is the response
+       code. 'SetOption Userlist <B> [C]' affects the client sending command
+    SetOption Search.<A> <B> [C]
+      <A> is the username of the client to affect. If <B> is zero, searches
+       should no longer be sent to the client. [C] is the response code.
+       'SetOption Search <B> [C]' affects the client sending the command
+      Note: It is recommended that hubs put bot restrictions on this.
+
+    SetOption Visible.<A> <B> [C]
+      <A> is the username of the client to affect. If <B> is non-zero, then
+       user should be kept off the userlist. [C] is the response code.
+       'SetOption Visible <B> [C]' affects the client sending the command
+      Note: It is recommended that hubs put bot restrictions on this.
+    SetOption BlockConnects.<A> <B> [C]
+      <A> is the username of the client to affect. If <B> is non-zero, then
+       hub should prevent [Rev]ConnectToMe commands from reaching the client.
+       [C] is the response code. 'SetOption BlockConnects <B> [C]' affects
+       the client sending the command
+      Note: It is recommended that hubs put bot restrictions on this.
+
+    ListOptions [A] [@] [@] [...]
+      [A] is a reply code. The arguments are what commands to look for. If no
+       arguments (besides [A]), all commands will be returned.
+    OptionList [A] [@] [@] [...]
+      [A] is a reply code. The arguments are the options supported. If an
+       option is listed but not supported, it should appear in braces ('{}')
+  Client to Client commands are:
+    Ping [A]
+      [A] is the response code. A reply should be sent back via Pong ASAP.
+    Pong [A]
+      [A] is the response code. This should be sent when a Ping is received.
+
+    IsPassive [A]
+      [A] is the response code. The client should reply with MyModeIs.
+    MyModeIs <A> [B]
+      If <A> is non-zero, the user is passive. [B] is the response code.
+    SendFile <A> [B]
+      <A> is the URI of where the file can be received. [B] = replycode
+       Example: DC1C://bakausername:apassword@my.hostname.com/folder/file.exe
+    RefuseURI [B]
+      [B] is the reply code.
+    ProtocolOk <A> [B]
+      <A> is the protocol. [B] is the reply code. Reply via ICProtocol cmd.
+
+    ICProtocol <A> <B> [C]
+      <A> is the protocol. <B> is non-zero if it is supported. [C] is replycode
+    ProtocolsAre [A]
+      [A] is the reply code. Response is via ICProtocol command.
+    ExternChat <A> [B]
+      <A> is the URI to chat with. [B] is the response code.
+       Example of <A>: telnet://my.hostname.net:2222
+    NetGame <A> [B]
+      <A> is the URI of where to meet for a game. [B] is the response code.
+       Example of <A>: armagetron://games.secret.com.au/
+           snes9x://my.hostname.org:1998/
+
+    NetApp <A> [B]
+      <A> is the URI. [B] is the response code.
+    FindFile <A> <B> [@]/[@]/[...]
+      <A> is either host:port or "Hub:"+username. <B> is the response code.
+       [1] is the minimum file size. [2] is the file type (see DC1 protocol
+       specs for more info). [3] is the maximum file size. The [@] arguments
+       are sets of option=value. If a client does not recognize an option it
+       should ignore the FindFile command and NOT continue. If the unrecognized
+       option is enclosed in braces then the client should ignore the option
+       and do a Find without it. For example:
+       'FindFile Hub:baka 0 md5=9291047/{id3v2_title}=sing$filename' would
+
+       cause a client to search for a file with 'filename' in the actual
+       filename and MD5 of '9291047'. If the client understands the
+       id3v2_title option, it will only return results that match it. If not,
+       it returns results regardless of the id3v2_title option. If the client
+       doesn't understand the md5 option it will not search at all and will not
+       return any search results. See post-command info for standard options.
+       Note: option and value pairings can be o=v o>v o<v o>=v o<=v or o!=v
+       Note: option and value names with non-alphanumeric characters must be
+             escaped with % followed by 2 hex characters.
+       Note: This command may be sent via SR UDP.
+    FileFound <A> [B] [@]
+
+      <A> is the response code. [B] is detailed information about the file in
+       option=value format with / as a delimiter. [@] is the data for the SR
+       standard command. See DC1 protocol specs for more info.
+       Note: option and value pairings can be o=v o>v o<v o>=v o<=v or o!=v
+       Note: option and value names with non-alphanumeric characters must be
+             escaped with % followed by 2 hex characters.
+       Note: This command may be sent via SR UDP.
+    PrivMsg [A] <B> [@]
+      [A] is the host:port of a common hub. This field may be skipped. <B> is
+       the username who the PrivMsg is sent by. [@] is the actual message.
+       Note: This command may be sent via SR UDP
+
+    ConnectToMe <A> [B] [C]
+      <A> is host:port of the user. If [B] is present and non-zero, the
+       sender is the one who will upload. Otherwise, the sender downloads.
+       If present, [C] is the protocol identifier to use. If not present, the
+       DC1C protocol will be used. Note: this command may be sent via SR UDP
+    RevConnectToMe <A> [B]
+      <A> is the username. Send a ConnectToMe back with a non-zero 2nd argument
+       If present, [B] is the protocol to use for the connection.
+    Cmd [@] [@] [...]
+      Arguments are specific commands to check for. If none are present, a full
+       list of supported commands is returned. Reply is via CmdOk reply.
+
+       Note: this command may be sent via SR UDP
+    CmdOk [@] [@] [...]
+      Arguments are a list of supported (or unsupported) commands. Supported
+       commands should be prefixed with a + and unsupported by a -.
+       Note: this command may be sent via SR UDP
+    OptionSet <A> [B] <C>
+      <A> is the option that was set. [B] is the new value. <C> is replycode
+    ListOptions [A] [@] [@] [...]
+      [A] is a reply code. The arguments are what commands to look for. If no
+       arguments (besides [A]), all commands will be returned.
+    OptionList [A] [@] [@] [...]
+
+      [A] is a reply code. The arguments are the options supported. If an
+       option is listed but not supported, it should appear in brackets ('[]')
+    Finger <A> [B] [C]
+      <A> is a reply code. If present, [B] is the return path for the response.
+       If present, [C] is a specific FingerInfo name to get: No other fields
+       should be returned.
+       Note: this command may be sent via SR UDP
+    FingerInfo <A> [@]
+      <A> is a reply code. [@] is the finger data in the format of:
+       name=value/name=value/n=v/etc (similar to FindFile options)
+       See below for common FingerInfo names. Note: this command may be sent
+
+       via SR UDP   
+
+  Standard FindFile options:
+    md5
+      A MD5 hash of the file.
+    exactname
+      Specifies that the filename specified is exact (not within)
+    id3v2_title
+      The title of the ID3v2 file
+    id3v2_copyright
+      Non-Zero if the ID3v2 file is copyrighted
+
+    media_length
+      Length of WAV/MP3/Video
+    avi_fourcc
+      FOURCC code of the AVI video
+    video_width
+      Width of the video in pixels
+    video_height
+      Height of the video in pixels
+    video_pixels
+      Width*Height of the video in pixels
+    audio_bitrate
+
+      Bitrate of audio (kbit/s)
+    video_bitrate
+      Bitrate of video (kbit/s)
+    audio_channels
+      Number of audio channels (1=Mono; 2=Stereo)
+    audio_hz
+      Hz of audio
+    minsize
+      Minimum filesize (overrides everything else)
+    maxsize
+      Maximum filesize (overrides everything else)
+
+    filetype
+      'audio', 'video', etc (overrides all else)
+
+  Standard FingerInfo options:
+    EMail
+    IM-Jabber
+    IM-AIM
+    IM-ICQ
+    IM-.NET
+      Formerly known as MSN
+    IM-Yahoo
+
+      (USA)
+    IM-YahooJP
+      (Japan)
+    URI-Homepage
+    URI-Link
+    Birthdate
+    Comment
+      (usually the DC 'Content Info' field)
+    Code-Geek
+      GeekCode
+    Code-Moonie
+
+      MoonieCode

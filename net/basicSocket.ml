@@ -16,6 +16,8 @@
     along with mldonkey; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
+
+let debug = ref false
     
 type event = 
 | CLOSED of string (* called when a task has been closed *)
@@ -47,7 +49,9 @@ type t = {
     
     mutable event_handler : handler;
     mutable error : string;
-    
+
+    name : string;
+    born : float;
 (*    mutable before_select : (t -> unit); *)
   }
 
@@ -100,10 +104,21 @@ let must_read t b  = t.want_to_read <- b
 let dummy_fd = Obj.magic (-1)
 
 let closed_tasks = ref []
+
+let print_socket s =  
+  Printf.printf "FD %d: %20s Socket %s " 
+    (Obj.magic s.fd)
+  (Date.to_string s.born) s.name;
+  print_newline ()
   
 let close t msg =
   if t.fd <> dummy_fd then begin
-      (try Unix.close t.fd with _ -> ());
+      if !debug then begin
+          Printf.printf "CLOSING:"; print_socket t;
+        end;
+      (try 
+          Unix.close t.fd;
+          with _ -> ());
       t.fd <- dummy_fd;
       closed_tasks := t :: !closed_tasks;
       t.closed <- true;
@@ -142,8 +157,9 @@ let set_after_select_hook f =
   after_select_hooks := f :: !after_select_hooks
   
 let default_before_select t = ()
+
   
-let create_blocking fd handler =
+let create_blocking name fd handler =
   incr nb_sockets;
   Unix.set_nonblock fd;
 (*  Printf.printf "NEW FD %d" (Obj.magic fd); print_newline (); *)
@@ -171,15 +187,20 @@ let create_blocking fd handler =
       event_handler = handler;
       error = "";
 (*      before_select = default_before_select; *)
+      name = name;
+      born = last_time();
     } in
 (*  Printf.printf "ADD ONE TASK"; print_newline (); *)
+  if !debug then begin
+      Printf.printf "OPENING:" ; print_socket t;
+    end;
   fd_tasks := t :: !fd_tasks; 
   t
 
   
-let create fd handler =
+let create name fd handler =
   Unix.set_nonblock fd;
-  create_blocking fd handler
+  create_blocking name fd handler
   
 external select: t list -> float -> unit = "ml_select"
 
@@ -290,8 +311,7 @@ let loop () =
           [] -> ()
         | t :: tail ->
             closed_tasks := tail;
-            (try t.event_handler t
-                      (CLOSED t.error) with _ -> ());
+            (try t.event_handler t (CLOSED t.error) with _ -> ());
       done;
       
 (*      Printf.printf "before iter_timer"; print_newline (); *)
@@ -342,3 +362,21 @@ let _ =
   
 let stats buf t =
   Printf.printf "Socket %d\n" (Obj.magic t.fd)
+    
+let print_sockets () =
+  Printf.printf "PRINT SOCKETS: %d" (List.length !fd_tasks);
+  print_newline ();
+  List.iter (fun s ->
+      print_socket s;
+      Printf.printf "  rtimeout %5.0f read %s & %s write %s & %s" 
+        (s.next_rtimeout -. last_time ())
+      (string_of_bool s.want_to_read)
+      (string_of_bool !(s.read_allowed))
+      (string_of_bool s.want_to_write)
+      (string_of_bool !(s.write_allowed))
+      ;
+      print_newline ();
+  ) !fd_tasks;
+  ()
+  
+let info t = t.name

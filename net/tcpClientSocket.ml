@@ -526,11 +526,11 @@ let create fd handler to_string =
       write_fifo = Fifo.create ();
       to_string = to_string;
     } in
-  let sock = create fd (tcp_handler t) in
+  let sock = create "tcpClientSocket" fd (tcp_handler t) in
   t.sock <- sock;
   t
 
-let create_blocking fd handler to_string =
+let create_blocking  fd handler to_string =
   Unix.set_close_on_exec fd;
   let t = {
       sock = dummy_sock;
@@ -546,7 +546,7 @@ let create_blocking fd handler to_string =
       write_fifo = Fifo.create ();
       to_string = to_string;
     } in
-  let sock = create_blocking fd (tcp_handler t) in
+  let sock = create_blocking "tcpClientSocket" fd (tcp_handler t) in
   t.sock <- sock;
   t
   

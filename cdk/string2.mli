@@ -29,6 +29,7 @@ val replace : string -> char -> string -> string
    [doc] by the string [str] *)
 
 val split : string -> char -> string list
+val splitn : string -> char -> int -> string list
 (*d [split str c] split the string [str] in substrings separated by
 the character [c] *)
   
@@ -83,3 +84,10 @@ val init : int -> (int -> char) -> string
 val tokens: string -> string list
   
 external contains : string -> string -> bool = "ml_strstr"
+  
+val starts_with : (* string *) string -> (* start *) string -> bool
+  
+val replace_char : string -> char -> char -> unit
+
+val shorten : int -> string -> string
+  

@@ -53,3 +53,6 @@ conversion functions. *)
 val to_string : string -> string 
 (*d [to_string filename] converts [filename] to a string using registered
 conversion functions. *)
+  
+val shorten : int -> string -> string
+  

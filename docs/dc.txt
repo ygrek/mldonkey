@@ -1,0 +1,30 @@
+Telechargement dans DC:
+
+--- envoie -->
+$MyNick toto2002|
+$Lock O5SGVKT;U)>]aoK\a>2jTtv_RQk9J8bl0y+0B;gWV(;sNvAdlgf'Gvm8g4=a.-&@6Cp'GwaufkSKIX68i%>\, Pk=(iNeJXH>+1blGZ2.|
+
+<-- recoit --
+$MyNick.[BBB]WizardOne|
+$Lock EXTENDEDPROTOCOLABCABCABCABCABCABC Pk=DCPLUSPLUS0.1763kABCABC|
+$Direction Upload 666|
+$Key...fA......q6..Bq.........0.%7'....%.'.....1...sR.......U.5...0.fgW3u..aA1..........&.|
+
+--- envoie -->
+$Direction Download 9708|
+$Key.........A......0.0..0..0..0..0..0.|
+$Get.upload\-.=.Misc.=.-\WIN.XP.CODE.txt$1|
+
+<-- recoit --
+$FileLength.112|
+
+--- envoie -->
+$Send|
+
+<- recoit
+................. Le fichier .....................
+
+$Direction Upload/Download level|
+
+
+

@@ -37,3 +37,5 @@ val cut: int -> 'a list -> 'a list * 'a list
   
 val tail_map : ('a -> 'b) -> 'a list -> 'b list
   
+val assoc_inv : 'a -> ('b * 'a) list -> 'b
+  

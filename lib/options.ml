@@ -297,8 +297,13 @@ let really_load filename options =
              o.option_class.from_value (find_value o.option_name list);
            exec_chooks o;
            exec_hooks o
-         with
-           e ->
+        with
+          Not_found ->
+            Printf.printf "Option ";
+            List.iter (fun s -> Printf.printf "%s " s) o.option_name;
+            Printf.printf "not found in %s" filename;
+            print_newline ();
+        | e ->
              Printf.printf "Exc %s" (Printexc.to_string e); print_newline ())
       options;
     list
@@ -567,29 +572,31 @@ let rec save_module indent oc list =
   let subm = ref [] in
   List.iter
     (fun (name, help, value) ->
-       match name with
-         [] -> assert false
-       | [name] ->
-           if !with_help && help <> "" then
-             Printf.fprintf oc "(* %s *)\n" help;
-           Printf.fprintf oc "%s %s = " indent (safe_string name);
-           save_value indent oc value;
-           Printf.fprintf oc "\n"
-       | m :: tail ->
-           let p =
-             try List.assoc m !subm with
+      match name with
+        [] -> assert false
+      | [name] ->
+          if !with_help && help <> "" then
+            Printf.fprintf oc "(* %s *)\n" help;
+          Printf.fprintf oc "%s %s = " indent (safe_string name);
+          save_value indent oc value;
+          Printf.fprintf oc "\n"
+      | m :: tail ->
+          let p =
+            try List.assoc m !subm with
               e -> 
-                Printf.printf "Exception %s in Options.save_module" (
-                  Printexc.to_string e); print_newline ();
+(*
+                Printf.printf "Exception %s in Options.save_module" 
+		  (Printexc.to_string e); print_newline ();
+*)
                 let p = ref [] in subm := (m, p) :: !subm; p
-           in
-           p := (tail, help, value) :: !p)
+          in
+          p := (tail, help, value) :: !p)
     list;
   List.iter
     (fun (m, p) ->
-       Printf.fprintf oc "%s %s = {\n" indent (safe_string m);
-       save_module (indent ^ "  ") oc !p;
-       Printf.fprintf oc "%s}\n" indent)
+      Printf.fprintf oc "%s %s = {\n" indent (safe_string m);
+      save_module (indent ^ "  ") oc !p;
+      Printf.fprintf oc "%s}\n" indent)
     !subm
 and save_list indent oc list =
   match list with
@@ -623,7 +630,7 @@ and save_value indent oc v =
       Printf.fprintf oc "{";
       save_module_fields (indent ^ "  ") oc m;
       Printf.fprintf oc "}"
-      
+	
 and save_module_fields indent oc m =
   match m with
     [] -> ()
@@ -670,14 +677,15 @@ let save opfile =
             save_value "  " oc value;
             Printf.fprintf oc "\n"
           with
-            e -> 
+            Exit -> ()
+          | e -> 
               Printf.printf "Exception %s in Options.save" (
                 Printexc.to_string e); print_newline ())
       opfile.file_rc;
     end;
   close_out oc;
-  (try Sys.rename filename old_file with _ -> ());
-  (try Sys.rename temp_file filename with _ -> ())
+  (try Unix2.rename filename old_file with _ -> ());
+  (try Unix2.rename temp_file filename with _ -> ())
 ;;
 
 let save_with_help opfile =
@@ -801,7 +809,10 @@ let simple_options opfile =
 let get_option opfile name =
   let rec iter name list = 
     match list with 
-      [] -> raise Not_found
+      [] -> 
+	prerr_endline (Printf.sprintf "option [%s] not_found in %s" 
+			 (String.concat ";" name) opfile.file_name);
+	raise Not_found
     | o :: list ->
         if o.option_name = name then o
         else iter name list
@@ -838,9 +849,16 @@ let set_string_wrappers o to_string from_string =
 let simple_args opfile =
   List.map (fun (name, v) ->
       ("-" ^ name), 
-      Arg.String (set_simple_option opfile name), 
+      Arg.String (fun s -> 
+          Printf.printf "Settig option %s" name; print_newline ();
+          set_simple_option opfile name s), 
       (Printf.sprintf "<string> : \t%s (current: %s)"
           (get_option opfile name).option_help
           v)
   ) (simple_options opfile)
-  
+
+let prefixed_args prefix file =
+  List.map (fun (s,f,h) ->
+      let s = String.sub s 1 (String.length s - 1) in
+      (Printf.sprintf "-%s:%s" prefix s), f,h
+  ) (simple_args file)

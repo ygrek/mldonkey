@@ -1,0 +1,1276 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+
+<TABLE BORDER=1>
+<TR><TH COLSPAN=11>Direction Key</TH></TR>
+<TR></TR>
+<TR>
+<TD><IMG SRC=images/c2c.gif></TD>
+<TD>Client to Client</TD>
+<TD></TD>
+<TD><IMG SRC=images/s2c.gif></TD>
+<TD>Server to Client</TD>
+<TD></TD>
+<TD><IMG SRC=images/c2s.gif></TD>
+<TD>Client to Server</TD>
+<TD></TD>
+<TD><IMG SRC=images/s2s.gif></TD>
+<TD>Server to Server</TD>
+</TR>
+</TABLE>
+<BR>
+<TABLE BORDER=1>
+<TR>
+<TH>id</TH>
+<TH>Command Name</TH>
+<TH>cc</TH>
+<TH>sc</TH>
+<TH>cs</TH>
+<TH>ss</TH>
+<TH>Info</TH>
+</TR>
+
+
+<TR><TD></TD></TR>
+<TR><TH COLSPAN=7><FONT SIZE=+1>Communication Commands</FONT></TH></TR>
+
+
+<TR>
+<TD VALIGN=TOP><CODE>00</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Public&nbsp;Chat</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Username</TD></TR>
+<TR><TD>VarString16</TD><TD>- Said</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>01</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Private&nbsp;Message</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Username A</TD></TR>
+<TR><TD>[VarString8]</TD><TD>- Username B</TD></TR>
+<TR><TD>VarString16</TD><TD>- Message</TD></TR>
+</TABLE>
+<BR>
+If direction is client to server, Username A is the user to send PM to and Username B
+ is omitted.<BR>
+If direction is server to client, Username A is the user the PM is from and Username B
+ is omitted.<BR>
+If direction is client to client, Username A is the From username and Username B is
+ the To Username.
+</TD>
+</TR>
+
+
+<TR><TD></TD></TR>
+<TR><TH COLSPAN=7><FONT SIZE=+1>Authorization Commands</FONT></TH></TR>
+
+
+<TR>
+<TD VALIGN=TOP><CODE>10</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Lock</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2sf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Lock</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+
+<TR>
+<TD VALIGN=TOP><CODE>11</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Key</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Key</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>12</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Validate&nbsp;Nick</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Username</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>13</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Validate&nbsp;Denied</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2sf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>14</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Get&nbsp;Password</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2sf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>15</CODE></TD>
+<TD VALIGN=TOP>&nbsp;My&nbsp;Password</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Password</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>16</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Bad&nbsp;Password</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2sf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>17</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Logged&nbsp;In</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2sf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+</TD>
+</TR>
+
+
+<TR><TD></TD></TR>
+<TR><TH COLSPAN=7><FONT SIZE=+1>Protocol Control Commands</FONT></TH></TR>
+
+
+<TR>
+<TD VALIGN=TOP><CODE>20</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Get&nbsp;Client&nbsp;Info</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2sf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>21</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Client&nbsp;Info</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Client Name</TD></TR>
+<TR><TD>VarString8</TD><TD>- Client Version</TD></TR>
+<TR><TD>Int16</TD><TD>- Client Revision</TD></TR>
+<TR><TD>VarString8</TD><TD>- Client Website</TD></TR>
+<TR><TD>VarString16</TD><TD>- Client Info</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>22</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Get&nbsp;Hub&nbsp;Info</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2s.gif></TD>
+<TD>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>23</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Hub&nbsp;Info</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2sf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2s.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Hub Software Name</TD></TR>
+<TR><TD>VarString8</TD><TD>- Hub Software Version</TD></TR>
+<TR><TD>Int16</TD><TD>- Hub Software Revision</TD></TR>
+<TR><TD>VarString8</TD><TD>- Hub Software Website</TD></TR>
+<TR><TD>VarString16</TD><TD>- Hub Software Info</TD></TR>
+<TR><TD>VarString8</TD><TD>- Hub Name</TD></TR>
+<TR><TD>VarString8</TD><TD>- Hub Short Name</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>24</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Compatibility</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2sf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>TermString</TD><TD>- Terminated by "|"</TD></TR>
+</TABLE>
+<BR>
+The parameter MUST begin with "Lock ".<BR>
+A CDC1 supporting client should use the CDC1 Lock2Key function and send the result back
+ via the CDC1 Key command.<BR>
+If it only supports the DC1 protocol, it will send the result back as a DC1 protocol
+ command.
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>25</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Get&nbsp;Feature&nbsp;Info</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2s.gif></TD>
+<TD>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>26</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Feature&nbsp;Info</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2s.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>Int16</TD><TD>- Number of Features</TD></TR>
+<TR><TD COLSPAN=2>For each feature:</TD></TR>
+<TR><TD>&#8729;&nbsp;VarString8</TD><TD>- Feature Name</TD></TR>
+<TR><TD>&#8729;&nbsp;Int16</TD><TD>- Feature Revision</TD></TR>
+<TR><TD>&#8729;&nbsp;Boolean8</TD><TD>- Feature Enabled</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>27</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Feature&nbsp;Enable</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2s.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Feature Name</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>28</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Feature&nbsp;Disable</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2s.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Feature Name</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>28</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Feature&nbsp;Command</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2s.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Feature Name</TD></TR>
+<TR><TD>VarString16</TD><TD>- Data</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+
+<TR><TD></TD></TR>
+<TR><TH COLSPAN=7><FONT SIZE=+1>Userlist Management Commands</FONT></TH></TR>
+
+
+<TR>
+<TD VALIGN=TOP><CODE>30</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Clear&nbsp;Userlist</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2sf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2s.gif></TD>
+<TD>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>31</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Hello</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2sf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2s.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Username</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>32</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Quit</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2sf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2s.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Username</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>33</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Request&nbsp;Userlist&nbsp;Refresh</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2s.gif></TD>
+<TD>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>34</CODE></TD>
+<TD VALIGN=TOP>&nbsp;My&nbsp;Info</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Username</TD></TR>
+<TR><TD>VarString8</TD><TD>- Content Desc</TD></TR>
+<TR><TD>VarString8</TD><TD>- Connection</TD></TR>
+<TR><TD>Int8</TD><TD>- Icon Number</TD></TR>
+<TR><TD>VarString8</TD><TD>- E-Mail</TD></TR>
+<TR><TD>Currency8</TD><TD>- Bytes Shared</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>35</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Get&nbsp;Info</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2sf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>36</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Hub&nbsp;Name</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2sf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2s.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Hub Name</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>37</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Hub&nbsp;Short&nbsp;Name</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2sf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2s.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Hub Short Name</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+
+<TR><TD></TD></TR>
+<TR><TH COLSPAN=7><FONT SIZE=+1>File Sharing Commands</FONT></TH></TR>
+
+
+<TR>
+<TD VALIGN=TOP><CODE>40</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Connect&nbsp;To&nbsp;Me</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Username to make connection</TD></TR>
+<TR><TD>VarString8</TD><TD>- P2P Protocol to use</TD></TR>
+<TR><TD>IPAddress32</TD><TD>- IP Address to connect to</TD></TR>
+<TR><TD>Int16</TD><TD>- Port to connect to</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>41</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Reverse&nbsp;Connect&nbsp;To&nbsp;Me</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Username to send CTM to</TD></TR>
+<TR><TD>VarString8</TD><TD>- Username who sends the CTM</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>42</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Connect&nbsp;To&nbsp;Me&nbsp;(Active)</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Username to make connection</TD></TR>
+<TR><TD>VarString8</TD><TD>- P2P Protocol to use</TD></TR>
+<TR><TD>IPAddress32</TD><TD>- IP Address to connect to</TD></TR>
+<TR><TD>Int16</TD><TD>- Port to connect to</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>43</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Connect&nbsp;To&nbsp;Me&nbsp;(Passive)</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Username to make connection</TD></TR>
+<TR><TD>VarString8</TD><TD>- P2P Protocol to use</TD></TR>
+<TR><TD>IPAddress32</TD><TD>- IP Address to connect to</TD></TR>
+<TR><TD>Int16</TD><TD>- Port to connect to</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>47</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Search&nbsp;(Active)</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>IPAddress32</TD><TD>- IP to send results to</TD></TR>
+<TR><TD>Int16</TD><TD>- Port to send results to</TD></TR>
+<TR><TD>VarString8</TD><TD>- Search result Protocol</TD></TR>
+<TR><TD>Bit3</TD><TD>- Search Filter</TD></TR>
+<TR><TD>Bit1</TD><TD>- Min Size Limit Enabled</TD></TR>
+<TR><TD>Bit1</TD><TD>- Max Size Limit Enabled</TD></TR>
+<TR><TD>Bit1</TD><TD>- MultiHub Search (always 1)</TR></TR>
+<TR><TD>Bit2</TD><TD>- NULL</TD></TR>
+<TR><TD>[Currency8]</TD><TD>- Min File Size (omitted if not enabled)</tD></TR>
+<TR><TD>[Currency8]</TD><TD>- Max File Size (omitted if not enabled)</tD></TR>
+<TR><TD>VarString8</TD><TD>- Search Query</TD></TR>
+</TABLE>
+<BR>
+Search Filter Options (binary):<BR>
+&#8729; <CODE>000</CODE> - No Filter<BR>
+&#8729; <CODE>001</CODE> - Audio<BR>
+&#8729; <CODE>010</CODE> - Compressed<BR>
+&#8729; <CODE>011</cODE> - Document<BR>
+&#8729; <CODE>100</CODE> - Executable<BR>
+&#8729; <CODE>101</cODE> - Picture<BR>
+&#8729; <CODE>110</CODE> - Video<BR>
+&#8729; <CODE>111</CODE> - Folder<BR>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>48</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Search&nbsp;(Passive)</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Username to send results to</TD></TR>
+<TR><TD>Bit3</TD><TD>- Search Filter</TD></TR>
+<TR><TD>Bit1</TD><TD>- Min Size Limit Enabled</TD></TR>
+<TR><TD>Bit1</TD><TD>- Max Size Limit Enabled</TD></TR>
+<TR><TD>Bit1</TD><TD>- MultiHub Search (always 1)</TR></TR>
+<TR><TD>Bit2</TD><TD>- NULL</TD></TR>
+<TR><TD>[Currency8]</TD><TD>- Min File Size (omitted if not enabled)</tD></TR>
+<TR><TD>[Currency8]</TD><TD>- Max File Size (omitted if not enabled)</tD></TR>
+<TR><TD>VarString8</TD><TD>- Search Query</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>49</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Search&nbsp;(Passive)</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Username A</TD></TR>
+<TR><TD>[VarString8]</TD><TD>- Username B</TD></TR>
+<TR><TD>VarString16</TD><TD>- File Path+File Name</TD></TR>
+<TR><TD>Currency8</TD><TD>- File Size</TD></TR>
+<TR><TD>Int16</TD><TD>- Open Slots</TD></TR>
+<TR><TD>Int16</TD><TD>- Max Slots</TR></TR>
+<TR><TD>IPAddress32</TD><TD>- IP Address of hub User is on</TD></TR>
+<TR><TD>Int16</TD><TD>- Port of hub User is on</tD></TR>
+<TR><TD>VarString8</TD><TD>- Name of hub User is on</tD></TR>
+</TABLE>
+<BR>
+If direction is client to server, Username A is the user to send SR to and Username B
+ is omitted.<BR>
+If direction is server to client, Username A is the user the SR is from and Username B
+ is omitted.<BR>
+If direction is client to client, Username A is the From username and Username B is
+ the To Username.
+</TD>
+</TR>
+
+
+<TR><TD></TD></TR>
+<TR><TH COLSPAN=7><FONT SIZE=+1>Connection Management Commands</FONT></TH></TR>
+
+
+<TR>
+<TD VALIGN=TOP><CODE>50</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Ping</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2s.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Ping Data</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>51</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Pong</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2s.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Ping Data</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>52</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Redirect</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2sf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Hostname of dest hub</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>53</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Disconnect</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2sf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>54</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Reconnect</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2sf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>55</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Delayed&nbsp;Reconnect</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2sf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>Int16</TD><TD>- Number of Seconds to wait before reconnecting</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>56</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Delayed&nbsp;Redirect</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2sf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Hostname of dest hub</TD></TR>
+<TR><TD>Int16</TD><TD>- Number of Seconds to wait before reconnecting</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>57</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Request&nbsp;My&nbsp;IP</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2s.gif></TD>
+<TD>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>58</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Your&nbsp;IP&nbsp;is...</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2s.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>IPAddress32</TD><TD>- IP Address Response</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>59</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Get&nbsp;Your&nbsp;IP</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2s.gif></TD>
+<TD>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>5A</CODE></TD>
+<TD VALIGN=TOP>&nbsp;My&nbsp;IP&nbsp;is...</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2s.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>IPAddress32</TD><TD>- IP Address Response</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>5B</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Error</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2s.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>Int8</TD><TD>- Command Error</TD></TR>
+<TR><TD>Int16</TD><TD>- Error Number</TD></TR>
+<TR><TD>VarString16</TD><TD>- Error Data</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+
+<TR><TD></TD></TR>
+<TR><TH COLSPAN=7><FONT SIZE=+1>Operator Functions Commands</FONT></TH></TR>
+
+
+<TR>
+<TD VALIGN=TOP><CODE>60</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Get&nbsp;IP</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Username to get IP of</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>61</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Get&nbsp;IP&nbsp;Response</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2sf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Username</TD></TR>
+<TR><TD>IPAddress32</TD><TD>- IP Address of Username</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>62</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Get&nbsp;Version</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Username to get Version of</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>63</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Get&nbsp;Version&nbsp;Response</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2sf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Username</TD></TR>
+<TR><TD>VarString8</TD><TD>- Client Name</TD></TR>
+<TR><TD>VarString8</TD><TD>- Client Version</TD></TR>
+<TR><TD>Int16</TD><TD>- Client Revision</TD></TR>
+<TR><TD>VarString8</TD><TD>- Client Website</TD></TR>
+<TR><TD>VarString16</TD><TD>- Client Info</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>64</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Mute</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Username to Mute</TD></TR>
+<TR><TD>Int32</TD><TD>- How long to Mute for (null for infinate)</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>65</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Unmute</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Username to Unmute</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>66</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Boot</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Username to Boot</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>67</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Redirect</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Username to Redirect</TD></TR>
+<TR><TD>VarString8</TD><TD>- Hub hostname to redirect to</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>68</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Kick</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Username to Kick</TD></TR>
+<TR><TD>Int32</TD><TD>- How long the temp ban lasts</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>69</CODE></TD>
+<TD VALIGN=TOP>&nbsp;BanIP</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>IPAddress32</TD><TD>- IP to Ban</TD></TR>
+<TR><TD>Int32</TD><TD>- How long the ban lasts (null for infinate)</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>6A</CODE></TD>
+<TD VALIGN=TOP>&nbsp;UnBanIP</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>IPAddress32</TD><TD>- IP to UnBan</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>6B</CODE></TD>
+<TD VALIGN=TOP>&nbsp;BanUser</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- User who's IP to Ban</TD></TR>
+<TR><TD>Int32</TD><TD>- How long the ban lasts (null for infinate)</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>6C</CODE></TD>
+<TD VALIGN=TOP>&nbsp;BanMAC</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>MACAddress48</TD><TD>- MAC to Ban</TD></TR>
+<TR><TD>Int32</TD><TD>- How long the ban lasts (null for infinate)</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>6D</CODE></TD>
+<TD VALIGN=TOP>&nbsp;UnBanMAC</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>MACAddress48</TD><TD>- MAC to UnBan</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>6E</CODE></TD>
+<TD VALIGN=TOP>&nbsp;BanName</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Username to Ban usage of</TD></TR>
+<TR><TD>Int32</TD><TD>- How long the ban lasts (null for infinate)</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>6F</CODE></TD>
+<TD VALIGN=TOP>&nbsp;UnBanName</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Username to UnBan usage of</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>70</CODE></TD>
+<TD VALIGN=TOP>&nbsp;MassMsg</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString16</TD><TD>- Mass Message</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>71</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Request&nbsp;Telnet&nbsp;Admin</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>72</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Telnet&nbsp;Admin&nbsp;Info</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2sf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>IPAddress32</TD><TD>- IP to connect to</TD></TR>
+<TR><TD>Int16</TD><TD>- Port to connect to</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>73</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Get&nbsp;Property&nbsp;Value</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Object Name</TD></TR>
+<TR><TD>VarString8</TD><TD>- Property Name</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>74</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Property&nbsp;Value&nbsp;Is...</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2sf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Object Name</TD></TR>
+<TR><TD>VarString8</TD><TD>- Property Name</TD></TR>
+<TR><TD>Int8</TD><TD>- 	Property Value Type</tD></TR>
+<TR><TD>Variable</TD><TD>- Property Value</TD></TR>
+</TABLE>
+<BR>
+Property Value Types:<BR>
+&#8729; <CODE>00</CODE> - VarString8<BR>
+&#8729; <CODE>01</CODE> - VarString16<BR>
+&#8729; <CODE>10</CODE> - Int8<BR>
+&#8729; <CODE>11</CODE> - Int16<BR>
+&#8729; <CODE>12</CODE> - Int32<BR>
+&#8729; <CODE>13</CODE> - Int64<BR>
+&#8729; <CODE>20</CODE> - IPAddress32<BR>
+&#8729; <CODE>21</CODE> - MACAddress48<BR>
+&#8729; <CODE>30</CODE> - Currency8<BR>
+&#8729; <CODE>40</CODE> - Bit1<BR>
+&#8729; <CODE>41</CODE> - Bit2<BR>
+&#8729; <CODE>42</CODE> - Bit3<BR>
+&#8729; <CODE>43</CODE> - Bit4<BR>
+&#8729; <CODE>50</CODE> - Array8<BR>
+&#8729; <CODE>51</CODE> - Array16<BR>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>75</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Set&nbsp;Property&nbsp;Value</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Object Name</TD></TR>
+<TR><TD>VarString8</TD><TD>- Property Name</TD></TR>
+<TR><TD>Int8</TD><TD>- Property Value Type</tD></TR>
+<TR><TD>Variable</TD><TD>- Property Value</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>76</CODE></TD>
+<TD VALIGN=TOP>&nbsp;List&nbsp;Properties</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Object Name</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>77</CODE></TD>
+<TD VALIGN=TOP>&nbsp;List&nbsp;Properties&nbsp;Result</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2sf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Object Name</TD></TR>
+<TR><TD>Array16</TD><TD>- Property Names</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>78</CODE></TD>
+<TD VALIGN=TOP>&nbsp;List&nbsp;Objects</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Object Name</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>79</CODE></TD>
+<TD VALIGN=TOP>&nbsp;List&nbsp;Objects&nbsp;Result</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2c.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2sf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>Array16</TD><TD>- Object Names</TD></TR>
+</TABLE>
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>7C</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Append&nbsp;Property&nbsp;Value</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Object Name</TD></TR>
+<TR><TD>VarString8</TD><TD>- Property Name</TD></TR>
+<TR><TD>Int8</TD><TD>- Appended Value Type</tD></TR>
+<TR><TD>Variable</TD><TD>- Appended Value</TD></TR>
+</TABLE>
+<BR>
+This only works if the property is currently an array.
+</TD>
+</TR>
+
+<TR>
+<TD VALIGN=TOP><CODE>7D</CODE></TD>
+<TD VALIGN=TOP>&nbsp;Remote&nbsp;Property&nbsp;Item</TD>
+<TD VALIGN=TOP><IMG SRC=images/c2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2cf.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/c2s.gif></TD>
+<TD VALIGN=TOP><IMG SRC=images/s2sf.gif></TD>
+<TD>
+<TABLE BORDER=0>
+<TR><TH COLSPAN=2>Parameters</TH></TR>
+<TR><TD>VarString8</TD><TD>- Object Name</TD></TR>
+<TR><TD>VarString8</TD><TD>- Property Name</TD></TR>
+<TR><TD>Int8</TD><TD>- Removed Value Type</tD></TR>
+<TR><TD>Variable</TD><TD>- Removed Value</TD></TR>
+</TABLE>
+<BR>
+This only works if the property is currently an array.
+</TD>
+</TR>
+
+
+</TABLE>
+</CENTER>

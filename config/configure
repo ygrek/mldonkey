@@ -1,6 +1,6 @@
 #! /bin/sh
 
-# From configure.in Revision: 1.7 
+# From configure.in Revision: 1.16 
 
 # Guess values for system-dependent variables and create Makefiles.
 # Generated automatically using autoconf version 2.13 
@@ -1046,7 +1046,7 @@ else
   for ac_dir in $ac_dummy; do
     test -z "$ac_dir" && ac_dir=.
     if test -f $ac_dir/$ac_word; then
-      ac_cv_prog_OCAMLC="ocamlrun ocamlc "
+      ac_cv_prog_OCAMLC="ocamlrun ocamlc"
       break
     fi
   done
@@ -1060,10 +1060,15 @@ else
   echo "$ac_t""no" 1>&6
 fi
 
+
+test -z "$ac_cv_prog_OCAMLC" && { 
+  echo "********  Objective-Caml is required  *********" 1>&2; 
+  echo "*******  Check http://ocaml.inria.fr/  ********" 1>&2; 
+  exit 1; } 
 # Extract the first word of "ocamlopt.opt", so it can be a program name with args.
 set dummy ocamlopt.opt; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:1067: checking for $ac_word" >&5
+echo "configure:1072: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_OCAMLOPT'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1092,7 +1097,7 @@ fi
 # Extract the first word of "ocamlopt", so it can be a program name with args.
 set dummy ocamlopt; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:1096: checking for $ac_word" >&5
+echo "configure:1101: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_OCAMLOPT'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1121,7 +1126,7 @@ fi
 # Extract the first word of "ocamllex.opt", so it can be a program name with args.
 set dummy ocamllex.opt; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:1125: checking for $ac_word" >&5
+echo "configure:1130: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_OCAMLLEX'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1150,7 +1155,7 @@ fi
 # Extract the first word of "ocamllex", so it can be a program name with args.
 set dummy ocamllex; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:1154: checking for $ac_word" >&5
+echo "configure:1159: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_OCAMLLEX'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1179,7 +1184,7 @@ fi
 
 # Sizes of various common basic types
 echo $ac_n "checking size of int""... $ac_c" 1>&6
-echo "configure:1183: checking size of int" >&5
+echo "configure:1188: checking size of int" >&5
 if eval "test \"`echo '$''{'ac_cv_sizeof_int'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1187,7 +1192,7 @@ else
     { echo "configure: error: can not run test program while cross compiling" 1>&2; exit 1; }
 else
   cat > conftest.$ac_ext <<EOF
-#line 1191 "configure"
+#line 1196 "configure"
 #include "confdefs.h"
 #include <stdio.h>
 main()
@@ -1198,7 +1203,7 @@ main()
   exit(0);
 }
 EOF
-if { (eval echo configure:1202: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:1207: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ac_cv_sizeof_int=`cat conftestval`
 else
@@ -1218,7 +1223,7 @@ EOF
 
 
 echo $ac_n "checking size of long""... $ac_c" 1>&6
-echo "configure:1222: checking size of long" >&5
+echo "configure:1227: checking size of long" >&5
 if eval "test \"`echo '$''{'ac_cv_sizeof_long'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1226,7 +1231,7 @@ else
     { echo "configure: error: can not run test program while cross compiling" 1>&2; exit 1; }
 else
   cat > conftest.$ac_ext <<EOF
-#line 1230 "configure"
+#line 1235 "configure"
 #include "confdefs.h"
 #include <stdio.h>
 main()
@@ -1237,7 +1242,7 @@ main()
   exit(0);
 }
 EOF
-if { (eval echo configure:1241: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:1246: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ac_cv_sizeof_long=`cat conftestval`
 else
@@ -1257,7 +1262,7 @@ EOF
 
 
 echo $ac_n "checking size of void *""... $ac_c" 1>&6
-echo "configure:1261: checking size of void *" >&5
+echo "configure:1266: checking size of void *" >&5
 if eval "test \"`echo '$''{'ac_cv_sizeof_void_p'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1265,7 +1270,7 @@ else
     { echo "configure: error: can not run test program while cross compiling" 1>&2; exit 1; }
 else
   cat > conftest.$ac_ext <<EOF
-#line 1269 "configure"
+#line 1274 "configure"
 #include "confdefs.h"
 #include <stdio.h>
 main()
@@ -1276,7 +1281,7 @@ main()
   exit(0);
 }
 EOF
-if { (eval echo configure:1280: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:1285: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ac_cv_sizeof_void_p=`cat conftestval`
 else
@@ -1296,7 +1301,7 @@ EOF
 
 
 echo $ac_n "checking size of char""... $ac_c" 1>&6
-echo "configure:1300: checking size of char" >&5
+echo "configure:1305: checking size of char" >&5
 if eval "test \"`echo '$''{'ac_cv_sizeof_char'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1304,7 +1309,7 @@ else
     { echo "configure: error: can not run test program while cross compiling" 1>&2; exit 1; }
 else
   cat > conftest.$ac_ext <<EOF
-#line 1308 "configure"
+#line 1313 "configure"
 #include "confdefs.h"
 #include <stdio.h>
 main()
@@ -1315,7 +1320,7 @@ main()
   exit(0);
 }
 EOF
-if { (eval echo configure:1319: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:1324: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ac_cv_sizeof_char=`cat conftestval`
 else
@@ -1335,7 +1340,7 @@ EOF
 
 
 echo $ac_n "checking size of short""... $ac_c" 1>&6
-echo "configure:1339: checking size of short" >&5
+echo "configure:1344: checking size of short" >&5
 if eval "test \"`echo '$''{'ac_cv_sizeof_short'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1343,7 +1348,7 @@ else
     { echo "configure: error: can not run test program while cross compiling" 1>&2; exit 1; }
 else
   cat > conftest.$ac_ext <<EOF
-#line 1347 "configure"
+#line 1352 "configure"
 #include "confdefs.h"
 #include <stdio.h>
 main()
@@ -1354,7 +1359,7 @@ main()
   exit(0);
 }
 EOF
-if { (eval echo configure:1358: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:1363: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ac_cv_sizeof_short=`cat conftestval`
 else
@@ -1374,7 +1379,7 @@ EOF
 
 
 echo $ac_n "checking size of float""... $ac_c" 1>&6
-echo "configure:1378: checking size of float" >&5
+echo "configure:1383: checking size of float" >&5
 if eval "test \"`echo '$''{'ac_cv_sizeof_float'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1382,7 +1387,7 @@ else
     { echo "configure: error: can not run test program while cross compiling" 1>&2; exit 1; }
 else
   cat > conftest.$ac_ext <<EOF
-#line 1386 "configure"
+#line 1391 "configure"
 #include "confdefs.h"
 #include <stdio.h>
 main()
@@ -1393,7 +1398,7 @@ main()
   exit(0);
 }
 EOF
-if { (eval echo configure:1397: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:1402: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ac_cv_sizeof_float=`cat conftestval`
 else
@@ -1413,7 +1418,7 @@ EOF
 
 
 echo $ac_n "checking size of double""... $ac_c" 1>&6
-echo "configure:1417: checking size of double" >&5
+echo "configure:1422: checking size of double" >&5
 if eval "test \"`echo '$''{'ac_cv_sizeof_double'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -1421,7 +1426,7 @@ else
     { echo "configure: error: can not run test program while cross compiling" 1>&2; exit 1; }
 else
   cat > conftest.$ac_ext <<EOF
-#line 1425 "configure"
+#line 1430 "configure"
 #include "confdefs.h"
 #include <stdio.h>
 main()
@@ -1432,7 +1437,7 @@ main()
   exit(0);
 }
 EOF
-if { (eval echo configure:1436: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:1441: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ac_cv_sizeof_double=`cat conftestval`
 else
@@ -1457,17 +1462,17 @@ for ac_hdr in arpa/inet.h
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
-echo "configure:1461: checking for $ac_hdr" >&5
+echo "configure:1466: checking for $ac_hdr" >&5
 if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 1466 "configure"
+#line 1471 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:1471: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:1476: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -1502,17 +1507,17 @@ case $host in
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
-echo "configure:1506: checking for $ac_hdr" >&5
+echo "configure:1511: checking for $ac_hdr" >&5
 if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 1511 "configure"
+#line 1516 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:1516: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:1521: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -1539,17 +1544,17 @@ OLD_CPPFLAGS=$CPPFLAGS
              CPPFLAGS="-I /usr/src/linux/include"
              ac_safe=`echo "linux/types.h" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for linux/types.h""... $ac_c" 1>&6
-echo "configure:1543: checking for linux/types.h" >&5
+echo "configure:1548: checking for linux/types.h" >&5
 if eval "test \"`echo '$''{'ac_cv_header_$ac_safe'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 1548 "configure"
+#line 1553 "configure"
 #include "confdefs.h"
 #include <linux/types.h>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:1553: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:1558: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -1588,7 +1593,7 @@ case $host in
 esac
 
 echo $ac_n "checking Additionnal includes""... $ac_c" 1>&6
-echo "configure:1592: checking Additionnal includes" >&5 
+echo "configure:1597: checking Additionnal includes" >&5 
 echo "$ac_t""$CONFIG_INCLUDES" 1>&6
 
 OCAMLLIB=`ocamlc -where`
@@ -1601,15 +1606,338 @@ if test -f $OCAMLLIB/lablgl.cmxa; then
   LABLGL_CMXA=lablgl.cmxa
 fi
 
-if test -f ../secret/mftp_server.ml; then
-   MORE_TARGETS="mldonkey\$(EXE) mldonkey_s\$(EXE)"
-   MORE_SUBDIRS=secret
+
+ac_safe=`echo "../audio_galaxy" | sed 'y%./+-%__p_%'`
+echo $ac_n "checking for ../audio_galaxy""... $ac_c" 1>&6
+echo "configure:1613: checking for ../audio_galaxy" >&5
+if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  if test "$cross_compiling" = yes; then
+    { echo "configure: error: Cannot check for file existence when cross compiling" 1>&2; exit 1; }
+else
+  if test -r ../audio_galaxy; then
+    eval "ac_cv_file_$ac_safe=yes"
+  else
+    eval "ac_cv_file_$ac_safe=no"
+  fi
 fi
+fi
+if eval "test \"`echo '$ac_cv_file_'$ac_safe`\" = yes"; then
+  echo "$ac_t""yes" 1>&6
+  AUDIO_GALAXY=yes
+else
+  echo "$ac_t""no" 1>&6
+
+  AUDIO_GALAXY=no
+  BAD_TARGETS="$BAD_TARGETS audio_galaxy"
+
+fi
+
+
+
+ac_safe=`echo "../opennap" | sed 'y%./+-%__p_%'`
+echo $ac_n "checking for ../opennap""... $ac_c" 1>&6
+echo "configure:1642: checking for ../opennap" >&5
+if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  if test "$cross_compiling" = yes; then
+    { echo "configure: error: Cannot check for file existence when cross compiling" 1>&2; exit 1; }
+else
+  if test -r ../opennap; then
+    eval "ac_cv_file_$ac_safe=yes"
+  else
+    eval "ac_cv_file_$ac_safe=no"
+  fi
+fi
+fi
+if eval "test \"`echo '$ac_cv_file_'$ac_safe`\" = yes"; then
+  echo "$ac_t""yes" 1>&6
+  OPEN_NAPSTER=yes
+else
+  echo "$ac_t""no" 1>&6
+
+  OPEN_NAPSTER=no
+  BAD_TARGETS="$BAD_TARGETS open_napster"
+
+fi
+
+
+
+ac_safe=`echo "../direct_connect" | sed 'y%./+-%__p_%'`
+echo $ac_n "checking for ../direct_connect""... $ac_c" 1>&6
+echo "configure:1671: checking for ../direct_connect" >&5
+if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  if test "$cross_compiling" = yes; then
+    { echo "configure: error: Cannot check for file existence when cross compiling" 1>&2; exit 1; }
+else
+  if test -r ../direct_connect; then
+    eval "ac_cv_file_$ac_safe=yes"
+  else
+    eval "ac_cv_file_$ac_safe=no"
+  fi
+fi
+fi
+if eval "test \"`echo '$ac_cv_file_'$ac_safe`\" = yes"; then
+  echo "$ac_t""yes" 1>&6
+  DIRECT_CONNECT=yes
+else
+  echo "$ac_t""no" 1>&6
+
+  DIRECT_CONNECT=no
+  BAD_TARGETS="$BAD_TARGETS direct_connect"
+
+fi
+
+
+
+ac_safe=`echo "../limewire" | sed 'y%./+-%__p_%'`
+echo $ac_n "checking for ../limewire""... $ac_c" 1>&6
+echo "configure:1700: checking for ../limewire" >&5
+if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  if test "$cross_compiling" = yes; then
+    { echo "configure: error: Cannot check for file existence when cross compiling" 1>&2; exit 1; }
+else
+  if test -r ../limewire; then
+    eval "ac_cv_file_$ac_safe=yes"
+  else
+    eval "ac_cv_file_$ac_safe=no"
+  fi
+fi
+fi
+if eval "test \"`echo '$ac_cv_file_'$ac_safe`\" = yes"; then
+  echo "$ac_t""yes" 1>&6
+  LIMEWIRE=yes
+else
+  echo "$ac_t""no" 1>&6
+
+  LIMEWIRE=no
+  BAD_TARGETS="$BAD_TARGETS limewire"
+
+fi
+
+
+
+ac_safe=`echo "../soulseek" | sed 'y%./+-%__p_%'`
+echo $ac_n "checking for ../soulseek""... $ac_c" 1>&6
+echo "configure:1729: checking for ../soulseek" >&5
+if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  if test "$cross_compiling" = yes; then
+    { echo "configure: error: Cannot check for file existence when cross compiling" 1>&2; exit 1; }
+else
+  if test -r ../soulseek; then
+    eval "ac_cv_file_$ac_safe=yes"
+  else
+    eval "ac_cv_file_$ac_safe=no"
+  fi
+fi
+fi
+if eval "test \"`echo '$ac_cv_file_'$ac_safe`\" = yes"; then
+  echo "$ac_t""yes" 1>&6
+  SOULSEEK=yes
+else
+  echo "$ac_t""no" 1>&6
+
+  SOULSEEK=no
+  BAD_TARGETS="$BAD_TARGETS soulseek"
+
+fi
+
+
+
+ac_safe=`echo "../secret" | sed 'y%./+-%__p_%'`
+echo $ac_n "checking for ../secret""... $ac_c" 1>&6
+echo "configure:1758: checking for ../secret" >&5
+if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  if test "$cross_compiling" = yes; then
+    { echo "configure: error: Cannot check for file existence when cross compiling" 1>&2; exit 1; }
+else
+  if test -r ../secret; then
+    eval "ac_cv_file_$ac_safe=yes"
+  else
+    eval "ac_cv_file_$ac_safe=no"
+  fi
+fi
+fi
+if eval "test \"`echo '$ac_cv_file_'$ac_safe`\" = yes"; then
+  echo "$ac_t""yes" 1>&6
+  
+  
+ac_safe=`echo "../donkey" | sed 'y%./+-%__p_%'`
+echo $ac_n "checking for ../donkey""... $ac_c" 1>&6
+echo "configure:1778: checking for ../donkey" >&5
+if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  if test "$cross_compiling" = yes; then
+    { echo "configure: error: Cannot check for file existence when cross compiling" 1>&2; exit 1; }
+else
+  if test -r ../donkey; then
+    eval "ac_cv_file_$ac_safe=yes"
+  else
+    eval "ac_cv_file_$ac_safe=no"
+  fi
+fi
+fi
+if eval "test \"`echo '$ac_cv_file_'$ac_safe`\" = yes"; then
+  echo "$ac_t""yes" 1>&6
+  
+    DONKEY=yes
+    
+ac_safe=`echo "../server" | sed 'y%./+-%__p_%'`
+echo $ac_n "checking for ../server""... $ac_c" 1>&6
+echo "configure:1799: checking for ../server" >&5
+if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  if test "$cross_compiling" = yes; then
+    { echo "configure: error: Cannot check for file existence when cross compiling" 1>&2; exit 1; }
+else
+  if test -r ../server; then
+    eval "ac_cv_file_$ac_safe=yes"
+  else
+    eval "ac_cv_file_$ac_safe=no"
+  fi
+fi
+fi
+if eval "test \"`echo '$ac_cv_file_'$ac_safe`\" = yes"; then
+  echo "$ac_t""yes" 1>&6
+  DONKEY_SERVER=yes
+else
+  echo "$ac_t""no" 1>&6
+
+      DONKEY_SERVER=no
+      BAD_TARGETS="$BAD_TARGETS donkey_server"
+    
+fi
+
+  
+else
+  echo "$ac_t""no" 1>&6
+
+    DONKEY_SERVER=no
+    BAD_TARGETS="$BAD_TARGETS closed_donkey"
+  
+fi
+
+ 
+else
+  echo "$ac_t""no" 1>&6
+
+  DONKEY=no
+  BAD_TARGETS="$BAD_TARGETS closed_donkey"
+  
+ac_safe=`echo "../donkey/donkey.lam" | sed 'y%./+-%__p_%'`
+echo $ac_n "checking for ../donkey/donkey.lam""... $ac_c" 1>&6
+echo "configure:1842: checking for ../donkey/donkey.lam" >&5
+if eval "test \"`echo '$''{'ac_cv_file_$ac_safe'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  if test "$cross_compiling" = yes; then
+    { echo "configure: error: Cannot check for file existence when cross compiling" 1>&2; exit 1; }
+else
+  if test -r ../donkey/donkey.lam; then
+    eval "ac_cv_file_$ac_safe=yes"
+  else
+    eval "ac_cv_file_$ac_safe=no"
+  fi
+fi
+fi
+if eval "test \"`echo '$ac_cv_file_'$ac_safe`\" = yes"; then
+  echo "$ac_t""yes" 1>&6
+  CLOSED_DONKEY=yes
+else
+  echo "$ac_t""no" 1>&6
+
+    CLOSED_DONKEY=no
+    BAD_TARGETS="$BAD_TARGETS open_donkey"
+  
+fi
+
+
+fi
+
+
+
+# Extract the first word of "gtk-config", so it can be a program name with args.
+set dummy gtk-config; ac_word=$2
+echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
+echo "configure:1875: checking for $ac_word" >&5
+if eval "test \"`echo '$''{'ac_cv_prog_GTK_CONFIG'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  if test -n "$GTK_CONFIG"; then
+  ac_cv_prog_GTK_CONFIG="$GTK_CONFIG" # Let the user override the test.
+else
+  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS=":"
+  ac_dummy="$PATH"
+  for ac_dir in $ac_dummy; do
+    test -z "$ac_dir" && ac_dir=.
+    if test -f $ac_dir/$ac_word; then
+      ac_cv_prog_GTK_CONFIG="gtk-config"
+      break
+    fi
+  done
+  IFS="$ac_save_ifs"
+  test -z "$ac_cv_prog_GTK_CONFIG" && ac_cv_prog_GTK_CONFIG="no"
+fi
+fi
+GTK_CONFIG="$ac_cv_prog_GTK_CONFIG"
+if test -n "$GTK_CONFIG"; then
+  echo "$ac_t""$GTK_CONFIG" 1>&6
+else
+  echo "$ac_t""no" 1>&6
+fi
+
+if test "$GTK_CONFIG" = "no"; then
+     LABLGTK_CONFIG=no
+else
+  if test -f `$OCAMLC -where`/lablgtk/lablgtk.cmxa; then
+     LABLGTK_CONFIG=yes
+  else
+     LABLGTK_CONFIG=no
+  fi
+fi
+
+echo $ac_n "checking compile GTK GUI""... $ac_c" 1>&6
+echo "configure:1913: checking compile GTK GUI" >&5
+  if test "$LABLGTK_CONFIG" = "no"; then
+        echo "$ac_t""no" 1>&6
+        BAD_TARGETS="$BAD_TARGETS mldonkey_gui\$(EXE) mlchat\$(EXE)"
+        COMPILE_GUI=no
+  else
+        MORE_TARGETS="$MORE_TARGETS mldonkey_gui\$(EXE) mlchat\$(EXE)"
+        GTK_LIBS=`$GTK_CONFIG --libs`
+        GTK_CFLAGS=`$GTK_CONFIG --cflags`
+        GTK_VERSION=`$GTK_CONFIG --version`
+        COMPILE_GUI=yes
+        echo "$ac_t""yes" 1>&6
+  fi
 
 case "`uname -s`" in
   *win32* | *WIN32*) CURRENT_DIR="";;
   *) CURRENT_DIR="./";;
 esac
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1765,6 +2093,7 @@ s%@RANLIB@%$RANLIB%g
 s%@OCAMLC@%$OCAMLC%g
 s%@OCAMLOPT@%$OCAMLOPT%g
 s%@OCAMLLEX@%$OCAMLLEX%g
+s%@GTK_CONFIG@%$GTK_CONFIG%g
 s%@MORE_TARGETS@%$MORE_TARGETS%g
 s%@MORE_SUBDIRS@%$MORE_SUBDIRS%g
 s%@LABLGL_CMA@%$LABLGL_CMA%g
@@ -1773,6 +2102,15 @@ s%@CONFIG_INCLUDES@%$CONFIG_INCLUDES%g
 s%@CURRENT_DIR@%$CURRENT_DIR%g
 s%@MD4ARCH@%$MD4ARCH%g
 s%@MD4COMP@%$MD4COMP%g
+s%@AUDIO_GALAXY@%$AUDIO_GALAXY%g
+s%@OPEN_NAPSTER@%$OPEN_NAPSTER%g
+s%@DIRECT_CONNECT@%$DIRECT_CONNECT%g
+s%@LIMEWIRE@%$LIMEWIRE%g
+s%@SOULSEEK@%$SOULSEEK%g
+s%@DONKEY@%$DONKEY%g
+s%@CLOSED_DONKEY@%$CLOSED_DONKEY%g
+s%@DONKEY_SERVER@%$DONKEY_SERVER%g
+s%@COMPILE_GUI@%$COMPILE_GUI%g
 
 CEOF
 EOF
@@ -1986,4 +2324,8 @@ EOF
 chmod +x $CONFIG_STATUS
 rm -fr confdefs* $ac_clean_files
 test "$no_create" = yes || ${CONFIG_SHELL-/bin/sh} $CONFIG_STATUS || exit 1
+
+
+
+echo "Will not be compiled: {" $BAD_TARGETS "}"
 

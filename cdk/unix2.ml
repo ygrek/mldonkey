@@ -49,3 +49,45 @@ let rec safe_mkdir dir =
       if predir <> dir then safe_mkdir predir;
       Unix.mkdir dir 0o775
     end    
+
+    
+(* same as in downloadClient.ml *)
+let rec really_write fd s pos len =
+  if len = 0 then begin
+      Printf.printf "really_write 0 BYTES !!!!!!!!!"; print_newline ();
+      raise End_of_file
+    end else
+  let nwrite = Unix.write fd s pos len in
+  if nwrite = 0 then raise End_of_file else
+  if nwrite < len then 
+    really_write fd s (pos + nwrite) (len - nwrite)
+
+let copy oldname newname =
+  let ic = open_in oldname in
+  let oc = open_out newname in
+  let buffer_len = 8192 in
+  let buffer = String.create buffer_len in
+  let rec copy_file () =
+    let n = input ic buffer 0 buffer_len in
+    if n = 0 then () else begin output oc buffer 0 n; copy_file () end in
+  copy_file ();
+  close_in ic;
+  close_out oc
+  
+  
+let rename oldname newname =
+  try
+    Unix.rename oldname newname
+  with
+    Unix_error(EXDEV,_,_) as e ->
+(* renaming is not enough, we must COPY *)
+      let copied = ref false in
+      try
+        copy oldname newname; 
+        copied := true;
+        Sys.remove oldname 
+      with 
+        e -> 
+          if not !copied then
+            Sys.remove newname
+      

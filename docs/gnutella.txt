@@ -1,0 +1,886 @@
+(*
+
+AS PRESENTED BY GNUCLEUS (BUT WE ARE IMPLEMENTING LIMEWIRE CURRENTLY !!!)
+  
+Gnutella Protocol : Connections
+
+   Connection is what make the gnutella network work. All data through
+   the network flow through these connections. As a developer you strive
+   to have a connection process that holds on to nodes for a long period
+   of time and hence creating a stronger gnutella network as a whole.
+
+   Connecting Version 0.4
+   This is the most typical way connections are made over gnutella. It is
+   how all the clients have been connecting since the initial release of
+   the 0.56 client by Nullsoft. Who ever initiates the connection sends
+   this.
+                          GNUTELLA CONNECT/0.4\n\n
+   In response if the host accepts the connection it sends this. Right
+   after the statement normal gnutella packet flow begins.
+                          GNUTELLA OK\n\n
+
+   Connecting Version 0.6
+   The new connect process is supported by most clients now and is
+   backwards compatible with the old version 0.4 style. The main reason
+   for this was to get more information out of the connect string, for
+   debugging purposes and adding new features to the protocol. The client
+   that initiates the connection sends this.
+   GNUTELLA CONNECT/0.6\r\n
+   User-Agent: Gnucleus 1.4.5.0\r\n
+   \r\n
+       In response, if the host accepts the connection it sends this.
+   GNUTELLA/0.6 200 OK\r\n
+   User-Agent: Gnucleus 1.4.5.2\r\n
+   \r\n
+   At this point the host that initiated the connection determines if it
+   also accepts the connection based on the header information from the
+   server. If all is a go it sends this and normal packet flow begins.
+   GNUTELLA/0.6 200 OK\r\n
+   \r\n
+
+
+
+
+                        Gnutella Protocol : Packets
+
+   There are only five packet types that run over the network. Every
+   packet has a header and payload, the last four bytes of the header
+   describes the size of the payload in bytes.
+   Network Byte Order (NBO) means for some reason the bytes are reversed.
+   So before you use them in a variable reverse the order of the bytes.
+   Same when you are building a packet, make sure the bytes are switched
+   into NBO.
+
+   Packet Type
+   Byte Description Value
+
+                                   Header
+
+                                  Payload  
+
+   Size: Total packet size (bytes)
+   Flow: Direction to send packet
+
+               Ping - Used to discover other hosts on network
+               Byte    Description   Value
+               0 - 15  GUID          Random 16 bytes
+               16      Function      0x00 (hex), 0 (dec)
+               17      TTL           7
+               18      Hops          0
+               19 - 22 Payload (NBO) 0
+               Total Size: 23 bytes
+               Flow: Broadcasted
+
+      Pong - Reply to a ping, contains info on host
+      Byte    Description      Value
+      0 - 15  GUID             GUID of the Ping being replied to
+      16      Function         0x01 (hex), 1 (dec)
+      17      TTL              Hops value of the Ping being replied to
+      18      Hops             0
+      19 - 22 Payload (NBO)    14
+      23 - 24 Port             Port Client is listening on
+      25 - 28 Host             Four byte IP address of Client
+      29 - 32 File Count (NBO) Total number of files shared
+      33 - 36 File Size (NBO)  Total size of files shared (kilobytes)
+      Total Size: 37 bytes
+      Flow: Routed
+
+
+   Query - A file search
+   Byte Description Value
+   0 - 15 GUID Random 16 bytes
+   16 Function 0x80 (hex), 128 (dec)
+   17 TTL 7
+   18 Hops 0
+   19 - 22 Payload (NBO) Greater than 2 and less than 256
+   23 - 24 Minimum Speed Minimum Speed Client must be to respond
+   (kilobits)
+   25 + Query Keywords being Searched for
+   Total Size: 23 bytes + Payload
+   Flow: Broadcasted
+
+   Query Hit - Reply to a file search, contains set of results
+   Byte Description Value
+   0 - 15 GUID GUID of the Query being replied to
+   16 Function 0x81 (hex), 129 (dec)
+   17 TTL Hops value of the Query being replied to
+   18 Hops 0
+   19 - 22 Payload (NBO) Greater than 26 and less than 65536
+   23 Total Hits Number or results listed in packet
+   24 - 25 Port Port Client is listening on
+   26 - 29 Host Four byte IP address of Client
+   30 - 33 Speed (NBO) Speed of client (kilobits)
+   34 + Results Results one after the other, number of results should
+   match the value of Total Hits
+   Result
+   Byte Description Value
+   0 - 3 Index (NBO) Index of the file in the client
+   4 - 7 Size (NBO) Size of the file (bytes)
+   8 + Filename Name of the file, terminated by a NULL
+   NULL - NULL Extended Data Results always end with two NULLs, sometimes
+   there is extra data between them   
+   After Results QHD Query Hit Descriptor - Extended Client information
+   QHD
+   Byte Description Value
+   0 - 3 Vendor Identifier A unique four character code identifying the
+   vendor
+   4 Public Sector Length 2 - Length of Public Sector (bytes)   
+   5, bit 0 Push Behind a firewall, dont bother connecting
+   5, bit 1 Flag Bad A screw up, always set to 1
+   5, bit 2 Flag Busy Value tells if busy bit is set
+   5, bit 3 Flag Stable Value tells if stable bit is set
+   5, bit 4 Flag Speed Value tells if speed bit is set
+   5, bit 5 - 7 Unused Just set to all zeros
+   6, bit 0 Flag Push Value tells if push bit is set
+   6, bit 1 Bad A screw up, always set to 0
+   6, bit 2 Busy Client is currently busy
+   6, bit 3 Stable Client has successfully transmitted at least one
+   upload
+   6, bit 4 Speed Speed byte is set to maximum achieved speed during an
+   upload
+   6, bit 5 - 7 Unused Just set to all zeros
+   variable Private Sector Used on a per vendor basis to send proprietary
+   info
+   last 16 Client GUID A Static random 16 bytes unique to each Gnutella
+   Client
+   Total Size: 23 bytes + Payload
+   Flow: Routed
+
+   Push - Reply to a Query Hit from a client behind a firewall
+   Byte Description Value
+   0 - 15 GUID Random 16 bytes
+   16 Function 0x40 (hex), 64 (dec)
+   17 TTL Hops value of the Query Hit being replied to
+   18 Hops 0
+   19 - 22 Payload (NBO) 26
+   23 - 38 Client GUID Client GUID from Query Hit packet
+   39 - 42 Index (NBO) Index of file from Query Hit packet
+   43 - 46 Host Four byte IP address of Client
+   47 - 48 Port Port Client is listening on 
+   Total Size: 49 bytes
+   Flow: Routed
+
+
+                        Gnutella Protocol : Transfer
+
+   File transfers over Gnutella happen over a direct connection between
+   two nodes. The syntax of the code is similar to HTTP, but is not
+   actually to the standard. It has been modified slightly. Use the
+   examples on this page as a guide.
+   Gnutella also has a file transfer mechanism called 'push' to assist
+   nodes behind firewalls share files. If you are unable to connect to a
+   node to get a file, you can request the node to 'push' the file to you
+   be connecting to you instead. Push does not work if both nodes are
+   behind a firewall.
+
+   File Request
+   On connect to the host you want to download from, you send the file
+   request header. The first line is the GET statement, the number
+   between the slashes is the index of the file from the query hit
+   packet. Following that is the name of the file. The next line
+   describes what client is requesting the file. The range statement
+   tells the host what position in the file to start sending from in case
+   the client is resuming the download. A new download starts at the
+   postion of zero. Each line is terminated with a '\r\n' or in ASCII a
+   '13,10' pair.
+   GET /get/2975/How Towels Work.txt HTTP/1.0\r\n
+   User-Agent: LimeWire 1.8\r\n
+   Range: bytes=0-\r\n
+   \r\n
+
+   Server Reply
+   After the server receives the File Request it returns a HTTP 200 OK to
+   the client unless it is busy or the file isnt found. In that case use
+   HTTP specs to return the correct HTTP error code. To make things easy
+   always send files with a content type of application/binary. Following
+   that is the total length of the file in bytes. After sending the last
+   '\r\n' proceed in sending the actual file.
+   HTTP 200 OK\r\n
+   Server: Gnucleus 1.4.5.2\r\n
+   Content-type:application/binary\r\n
+   Content-length: 2894894\r\n
+   \r\n
+   Resuming
+   If a client sends a GET request with a byte range other than zero that
+   means the client is resuming the transfer. In that case the reply is
+   modified a bit. Instead of the Content-length: statement,
+   Accept-Ranges: and Content-range is used. Accept-Ranges: is always
+   bytes. Content-range: is followed by byte= and then the postion the
+   transfer is resuming from. After the dash is the positoin of the last
+   byte in the file, and after the slash is the total bytes in the file.
+   HTTP 200 OK\r\n
+   Server: Gnucleus 1.5.0.0\r\n
+   Content-type:application/binary\r\n
+   Accept-Ranges: bytes\r\n
+   Content-range: bytes=565768-1947689/1947690\r\n
+   \r\n
+
+   Pushing
+   Instead of connecting to a host to send a GET request you send a push
+   packet out over the gnutella network. The reason you do this is
+   because the host you want the file from has an unreachable IP address
+   such as 192.168.0.67. The push packet tells the host to connect to you
+   instead (you having a reachable IP address). On connect of the host to
+   you, that host sends you a GIV request. The GIV request is three
+   parts, the file index, the GUID of the server and the name of the
+   file. Take note the give request ends with \n\n and not \r\n.
+       GIV 446:72814A49E69D0F43FF288B3E6AAAB400/Paint Drying.mpg\n\n  
+   After the GIV, the client and server act normally as before and send
+   each other the proper headers in order the get the file transfer
+   moving.
+   GET /get/446/Paint Drying.mpg HTTP/1.0\r\n
+   User-Agent: Bearshare 2.3.0\r\n
+   Range: bytes=0-\r\n
+   \r\n
+   HTTP 200 OK\r\n
+   Server: Gnucleus 1.3.3.1\r\n
+   Content-type:application/binary\r\n
+   Content-length: 56763485\r\n
+   \r\n
+
+
+PROTOCOL
+  
+    public static final byte F_PING=(byte)0x0;
+    public static final byte F_PING_REPLY=(byte)0x1;
+    public static final byte F_PUSH=(byte)0x40;
+    public static final byte F_QUERY=(byte)0x80;
+    public static final byte F_QUERY_REPLY=(byte)0x81;
+    public static final byte F_ROUTE_TABLE_UPDATE=(byte)0x30;
+
+  The GnutellaNet protocol
+Last update: 2001 Nov 28
+Original version was by gene@wego.com.
+This verson is updated to correct the endian-ness errors, and clarify
+and update the situation with the network size and TTL values.
+Notes
+Everything is in network byte order unless otherwise noted. Byte order
+of the GUID is not important.
+Apparently, there is some confusion as to what "\r" and "\n" are.
+Well, \r is carriage return, or 0x0d, and \n is newline, or 0x0a. This
+is standard ASCII, but there it is, from "man ascii".
+Keep in mind that every message you send can be replied by multiple servers.
+Hence, PING is used to discover servers, as the PONG (Ping reply) contains
+server information.
+Throughout this document, the term server and client is interchangeable.
+Gnutella clients are Gnutella servers.
+Thanks to capnbry for his efforts in decoding the protocol and posting it.
+How GnutellaNet works
+General description
+GnutellaNet works by "viral propagation". I send a message to you, and
+you send it to all clients connected to you. That way, I only need to
+know about you to know about the entire rest of the network.
+A simple glance at this message delivery mechanism will tell you that
+it generates inordinate amounts of traffic. Take for example the
+defaults for Gnutella 0.54. It defaults to maintaining 25 active
+connections with a TTL (TTL means Time To Live, or the number of times
+a message can be passed on before it "dies"). In the worst of worlds,
+this means 25×24^6, or 4,777,574,400 messages resulting from just
+one message!
+Well, okay. In truth it isn't that bad. In reality, there are usually
+only a few thousand Gnutella clients on the GnutellaNet at any one
+time (and there have never been more than about 30,000). That means
+that long before the TTL expires on our hypothetical message, every
+client on the GnutellaNet will have seen our message.
+During 2000, many Gnutella clients used smaller defaults for the TTL
+and the number of active connections. Some went so far as to lower
+both to 4. However, this is much too low. Even if the network were
+"connected" in the most perfect manner, 4 links per node and a TTL of
+4 is only enough to connect 96 clients. Another popular combination is
+4 links per node and a TTL of 7, which can connect 1155 clients, but
+again only if the network is "wired" perfectly. If all the nodes hd 4
+links per node and the network connections changed purely at random,
+the TTL would have to be about 12 to 15 in order for most messages to
+be able to reach all nodes.
+However, some network structure has evolved. Smarter clients and
+higher-bandwidth clients have formed a "backbone", with older clients
+and low- bandwidth users pushed off to the edges. If the backbone
+clients maintain a higher number of connections, the GnutellaNet can
+work even with a TTL of 7 to 10 even when most of the clients only
+maintain 4 connections.
+GUIDs
+Obviously, once a client sees a message, it's unnecessary for it to
+process the message again. The original Gnutella designers, in
+recognition of this, engineered each message to contain a GUID
+(Globally Unique Identifier) which allows Gnutella clients to uniquely
+identify each message on the network.
+So how do Gnutella clients take advantage of the GUID? Each Gnutella
+client maintains a short memory of the GUIDs it has seen. For example,
+I will remember each message I have received. I forward each message I
+receive as appropriate, unless I have already seen the message. If I
+have seen the message, that means I have already forwarded it, so
+everyone I forwarded it to has already seen it, and so on. So I just
+forget about the duplicate and save everyone the trouble.
+Topology
+The GnutellaNet has no hierarchy. Every server is equal. Every server
+is also a client.
+Each Gnutella server only knows about the servers that it is directly
+connected to. All other servers are invisible, unless they announce
+themselves by answering to a PING or by replying to a QUERY. This
+provides amazing anonymity.
+Unfortunately, the combination of having no hierarchy and the lack of
+a definitive source for a server list means that the network is not
+easily described. It is not a tree (since there is no hierarchy) and
+it is cyclic. Being cyclic means that every message a client sends out will
+arrive back multiple times unless all (or at least most) of the
+clients are careful to use the GUIDs to drop the duplicates.
+Connecting to a server
+After making the initial connection to the server, you must handshake.
+Currently, the handshake is very simple.  The connecting client says:
+GNUTELLA CONNECT/0.4\n\n The accepting server responds:
+GNUTELLA OK\n\n After that, it's all data.
+Header
+bytes
+summary
+description
+0-15
+Message identifier
+16 bytes that will identify this
+message and distinguish it from all others sent on the network.
+Windows clients use a Windows GUID (which is 16 bytes). Other
+clients should generate 16 bytes based on something that will make it unique
+(like your local IP address, the current time, and some random numbers)
+16
+Payload descriptor
+(function identifier)
+Value Function
+ 
+ 
+0x00 PING
+ 
+ 
+0x01 PONG (Ping reply)
+ 
+ 
+0x40 PUSH request
+ 
+ 
+0x80 QUERY
+ 
+ 
+0x81 HITS (Query reply)
+17
+TTL
+Time to live.  Each time a message is forwarded its TTL is
+decremented by one.  If a message is received with TTL
+less than one (1), it should not be forwarded.
+18
+Hops
+Number of times this message has been forwarded.
+19- 22
+Payload length
+The length of the ensuing payload.
+Payload: PING (function 0x00)
+No payload
+Routing instructions for PING
+Forward PING packets to all connected clients. Most other documents
+state that you should not forward packets to their originators. I
+think that's a good optimization, but not a real requirement. A server
+should be smart enough to know not to forward a packet that it
+originated.
+A cursory analysis of GnutellaNet traffic shows that PING comprises
+roughly 50% of the network traffic. Clearly, this needs to be
+optimized. One of the problems with clients today is that they seem to
+PING the network periodically. That is indeed necessary, but the
+frequency of these "update" PINGs can be drastically reduced. Simply
+watching the PONG messages that your client routes is enough to
+capture lots of server addresses.
+One possible way to really reduce the number of PINGs is to alter the
+protocol to support PING messages which includes PONG data. That way
+you need only wait for servers to announce themselves, rather than
+discovering them yourself.
+Payload: PONG (query reply) (function 0x01)
+bytes
+summary
+description
+0-1
+Port
+IPv4 port number, using little-endian byte order:
+The low byte comes first. For example, if the port number is 6346, the
+first byte is 202 and the second byte is 24 (because 24×256+202=6346)
+2
+IP address
+IPv4 address, first byte
+3
+IP address
+IPv4 address, second byte
+4
+IP address
+IPv4 address, third byte
+5
+IP address
+IPv4 address, last byte. Please note
+this byte ordering not little-endian. For example, if the
+IP address is 10.23.45.67, byte 2 will be 10, byte 3 will be 23, etc.
+6-9
+Number of files
+Number of files the server is sharing.
+10- 13
+Number of kilobytes
+Number of kilobytes the server is sharing.
+Routing instructions for PONG
+Like all replies, PONG packets are "routed". In other words, you need
+to forward this packet only back down the path its PING came from. If
+you didn't see its PING, then you have an interesting situation that
+should never arise. Why? If you didn't see the PING that corresponds
+with this PONG, then the server sending this PONG routed it
+incorrectly.
+Payload: QUERY (function 0x80)
+bytes
+summary
+description
+0-1
+Minimum speed
+The minimum speed, in kilobytes/sec, of servers which should reply to
+this request.
+2+
+Search criteria
+Search keywords or other criteria.  NULL terminated.
+Routing instructions for QUERY
+Forward QUERY messages to all connected servers.
+Payload: HITS (query reply) (function 0x81)
+bytes
+summary
+description
+0
+Number of hits (N)
+The number of hits in this set.
+See "Result set" below.
+1-2
+Port
+IPv4 port number.
+3-6
+IP address
+IPv4 address. Same byte ordering as in PONG
+payload description above
+7-10
+Speed
+Speed, in kilobits/sec, of the responding server.
+11+
+Result set
+There are N of these (see "Number of hits" above).
+ 
+ 
+bytes summary, description
+ 
+ 
+0-3 Index: Index number of file.
+ 
+ 
+4-7 Size: Size of file in bytes.
+ 
+ 
+ 8+  File name: Name of file. Terminated by double-NULL.
+N bytes
+EQHD
+Extended QueryHit Descriptor (not always present).
+To determine if this data is present and to measure its size, you must
+count from the beginning through all the result sets to find the end
+of the last result set, and then compare that to the total payload length minus 16 (for the GUID). Any extra data between the last result
+and the GUID is EQHD.
+Last
+16 bytes
+Client identifier
+GUID of the responding server. Used in PUSH.
+Routing instructions for HITS
+HITS are routed, the same way PONGs are -- send these messages back on
+their inbound path. That means, send them only to the connection from which you recieved the corresponding QUERY. The corresponding QUERY is
+the one with the same message identifier (GUID) in its header as this reply.
+Extended QueryHit Descriptor
+This field is not always present. To determine if it is
+present and to measure its size, you must
+count from the beginning through all the result sets to find the end
+of the last result set, and then compare that to the total payload
+length minus 16 (for the GUID). Any extra data between the last result
+and the GUID is EQHD.
+A valie EQHD must contain at least 5 bytes of data:
+bytes
+summary
+description
+0-3
+Vendor Code
+A 4-byte code (probably 4 ASCII characters) representing
+the name of the program that originated this QueryHit. See table below.
+4
+Open Data Size
+Number of bytes of open-protocol (publicly
+documented) data. In practice, this is usually 2.
+N bytes
+Open Data
+Publicly-documented data. This is usually 2 bytes long,
+see below for description of format.
+M bytes
+Private Data
+Any additional data in the EQHD is of a
+format defined privately by the vendor. Use Vendor Code to determine
+whether this data is in a format you can understand (some vendors,
+notably Cultiv8r, have publicly-documented private data formats)
+Here is a table of known vendor codes. More are added from time to
+time as new clients are written.
+ 
+Code
+Who or what
+ 
+BEAR
+BearShare
+ 
+LIME
+LimeWire
+ 
+CULT
+Cultiv8r
+ 
+GNOT
+Gnotella
+ 
+GNUC
+Gnucleus
+ 
+GNUT
+gnut
+ 
+GTKG
+Gtk-Gnutella
+ 
+HSLG
+Hagelslag
+ 
+MACT
+Mactella
+ 
+NAPS
+NapShare
+ 
+OCFG
+OpenCola
+ 
+TOAD
+ToadNode
+The OpenData usually contains two bytes:
+bits:
+7
+6
+5
+      4
+      3
+     2
+1
+     0
+1st byte:
+r
+r
+r
+validUploadSpeed
+validHaveUploaded
+validBusy
+r
+flagPush
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+bits:
+7
+6
+5
+      4
+      3
+     2
+1
+     0
+2nd byte:
+r
+r
+r
+flagUploadSpeed
+flagHaveUploaded
+flagBusy
+r
+validPush
+r = reserved for future use.
+flagUploadSpeed = 1 if and only if the Speed field of this
+   QueryHit descriptor contains the highest average transfer rate (in
+   kbps) of the last 10 uploads.
+validUploadSpeed = 1 if and only if the flagUploadSpeed bit is
+   meaningful.
+flagHaveUploaded = 1 if and only if the servent has successfully
+   uploaded at least one file.
+validHaveUploaded = 1 if and only if the flagHaveUploaded bit is
+   meaningful.
+flagBusy = 1 if and only if all of the servent's upload slots are
+   full (at the time this QueryHit was generated)
+validBusy = 1 if and only if the flagBusy bit is meaningful.
+flagPush = 1 if and only if the servent is firewalled or has not yet
+   accepted an incoming connection.
+validPush = 1 if and only if the flagPush bit is meaningful.
+PLEASE NOTE: the first byte contains 3 valid bits and one flag
+bit, and vice-versa for the second byte. That is deliberate, it's
+actually implemented that way in BearShare. (The description in the
+Cultiv8r version of this document is wrong regarding the placement of
+flagPush and validPush.)
+Payload: PUSH request (function 0x40)
+bytes
+summary
+description
+0-15
+Client identifier
+GUID of the server which should push.
+16-19
+Index
+Index number of file (given in query hit).
+20-23
+IP address
+IPv4 address to push to.
+24-25
+Port
+IPv4 port number to push to.
+Routing instructions for PUSH
+Forward PUSH messages only along the path on which the query hit was
+delivered. If you missed the query hit then drop the packet, since you
+are not instrumental in the delivery of the PUSH request.
+Downloading from a server
+Downloading files from a server is extremely easy. It's HTTP. The
+downloading client makes a new connection (a TCP connection)
+directly to the IP address of the server with the file to be
+downloaded. It then requests the file by sending an HTTP header:
+GET /get/1234/strawberry-rhubarb-pies.rcp HTTP/1.0\r\n
+Connection: Keep-Alive\r\n
+Range: bytes=0-\r\n
+\r\n As you can see, Gnutella supports the range parameter for resuming
+partial downloads. The 1234 is the file index (from HITS packet
+described above), and "strawberry-rhubarb-pies.rcp" is the filename.
+The server will respond with normal HTTP headers.  For example:
+HTTP 200 OK\r\n
+Server: Gnutella\r\n
+Content-type:application/binary\r\n
+Content-length: 948\r\n
+\r\n
+ds*GKh:RkFk@)gjGLgK\Gh@+$L__^KVU-`D@:`/:#%KfTYJ^Y(BWDFL$#:rltyh... The important bit is the "Content-Length" header. That tells you how
+much data to expect. After you get your fill, close the socket. Also
+note the double \r\n before the beginning of the data. No special
+encoding is used -- if the file is bonary, the data will be binary.
+PUSH Downloads
+A PUSH download is initiated by a server that has received a PUSH
+request packet as described above. The server connects to the
+requesting server, that is, the server that sent the PUSH request (the
+requester's address is in the PUSH request packet) and writes a line
+of the following format:
+GIV 1234:1F340601AE6B60911956D022ECA8A045/strawberry-rhubarb-pies.rcp This line tells the requesting server that it is recieving a PUSH
+connection to download the file it wants. The format is:
+  "GIV"
+  " " (a blank space)
+  "1234": The file index
+  ":"
+  "1F3406..." the 16-byte GUID from the PUSH request as 32 hexadecimal digits
+  "/"
+  "strawberry..." the filename or pathname The requesting server will respond by sending back a GET header in the
+same format as described above, and from there on the transfer
+proceeds the same way it would have if the requester had established
+the connection.
+
+
+The gnut pages are hosted by
+gnutelliums.com and
+gnutelanews.com
+Permission is granted to copy, distribute and/or modify this text
+under the terms of the
+GNU Free Documentation License, Version 1.1
+or any later version published by the Free Software Foundation; with
+no Invariant Sections, with no Front-Cover Texts and with no
+Back-Cover Texts.
+Use of the gnut source code is subject to the terms and conditions
+of the
+GNU General Public License.
+gnut is provided in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License
+for more details.
+gnut is currently maintained by Robert Munafo, mrob at mrob com
+Back to main gnut page
+
+QUERY:
+
+
+(17)(119)(46)(2)(0)(156)(202)(71)(255)(123)(244)(89)(248)(200)(172)(0)          UID
+(128)                                                                           RECHERCHE
+(7)                                                                             TTL
+(0)                                                                             HOPS
+(168)(0)(0)(0)                                                                  PAYLOAD
+(0)(0)
+f a r m e r   m y l e n e  (0) < ? x m l   v e r s i o n = " 1 . 0 " ? > < a u d i o s   x s i : n o N a m e s p a c e S c h e m a L o c a t i o n = " h t t p : / / w w w . l i m e w i r e . c o m / s c h e m a s / a u d i o . x s d " > < a u d i o   a r t i s t = " f a r m e r   m y l e n e " > < / a u d i o > < / a u d i o s >(0)
+  
+
+  QUERY REPLY:
+
+(17)(119)(46)(2)(0)(156)(202)(71)(255)(123)(244)(89)(248)(200)(172)(0)
+(129)
+(0)
+(7)
+(199)(1)(0)(0)
+(2)(202)(24)(192)(168)(0)(3)(64)(5)(0)(0)(154)(1)(0)(0)(124)(26)(60)(0)
+M y l e n e   F a r m e r   -   M a m a n   a   T o 1 . m p 3
+(0)(0)(155)(1)(0)(0)(206)(181)(114)(0)
+M y l e n e   F a r m e r   -   M a m a n   A   T o r . m p 3
+(0)(0)
+L I M E
+(4)(28)(25)(80)(1)(0)
+{ p l a i n t e x t } < ? x m l   v e r s i o n = " 1 . 0 " ? > < a u d i o s   n o N a m e s p a c e S c h e m a L o c a t i o n = " h t t
+ p : / / w w w . l i m e w i r e . c o m / s c h e m a s / a u d i o . x s d " > < a u d i o       b i t r a t e = " 1 2 8 "   s e c o n d
+s = " 2 4 6 "   i n d e x = " 0 "   / > < a u d i o       t i t l e = " M a m a n   A   T o r t "   a r t i s t = " M y l e n e   F a r m e
+r "   a l b u m = " D a n c e   R e m i x e s   2 "   g e n r e = " P o p "   y e a r = " 2 0 0 0 "   c o m m e n t s = " ,   A G #   8 5 1
+E A 3 B 7 "   b i t r a t e = " 1 6 0 "   s e c o n d s = " 3 7 5 " i n d e x = " 1 "   / > < / a u d i o s >
+(0) 
+(122)(93)(63)(134)(108)(83)(239)(129)(255)(75)(235)(24)(150)(226)(201)(0)
+(54)(77)(175)(208)(60)(71)(78)(116)(255)(162)(94)(196)(115)(169)(160)(0)(1)(3)(4)(14)(0)(0)(0)]
+
+
+    private QueryReply(byte[] guid, byte ttl, 
+             int port, byte[] ip, long speed, Response[] responses,
+             byte[] clientGUID, byte[] xmlBytes,
+             boolean includeQHD, boolean needsPush, boolean isBusy,
+             boolean finishedUpload, boolean measuredSpeed,
+             boolean supportsChat) {
+        super(guid, Message.F_QUERY_REPLY, ttl, (byte)0,
+              11 +                             // 11 bytes of header
+              rLength(responses) +             // file records size
+              qhdLength(includeQHD, xmlBytes) + 
+                                               // conditional xml-style QHD len
+              16);                             // 16-byte footer
+        // you aren't going to send this.  it will throw an exception above in
+        // the appropriate constructor....
+        if (xmlBytes.length > XML_MAX_SIZE)
+            return;  
+
+        Assert.that((port&0xFFFF0000)==0);
+        Assert.that(ip.length==4);
+        Assert.that((speed&0xFFFFFFFF00000000l)==0);
+        final int n=responses.length;
+        Assert.that(n<256);
+
+        payload=new byte[getLength()];
+        //Write beginning of payload.
+        //Downcasts are ok, even if they go negative
+        payload[0]=(byte)n;
+        ByteOrder.short2leb((short)port,payload,1);
+        payload[3]=ip[0];
+        payload[4]=ip[1];
+        payload[5]=ip[2];
+        payload[6]=ip[3];
+        ByteOrder.int2leb((int)speed,payload,7);
+
+        //Write each response at index i
+        int i=11;
+        for (int left=n; left>0; left--) {
+            Response r=responses[n-left];
+            ByteOrder.int2leb((int)r.getIndex(),payload,i);
+            ByteOrder.int2leb((int)r.getSize(),payload,i+4);
+            i+=8;            
+            byte[] nameBytes = r.getNameBytes();
+            System.arraycopy(nameBytes, 0, payload, i, nameBytes.length);
+            i+=nameBytes.length;
+            //Write first null terminator.
+            payload[i++]=(byte)0;
+            //add the second null terminator
+            payload[i++]=(byte)0;
+        }
+
+        //Write QHD if desired
+        if (includeQHD) {
+            //a) vendor code.  This is hardcoded here for simplicity,
+            //efficiency, and to prevent character decoding problems.
+            payload[i++]=(byte)76; //'L'
+            payload[i++]=(byte)73; //'I'
+            payload[i++]=(byte)77; //'M'
+            payload[i++]=(byte)69; //'E'
+
+            //b) payload length
+            payload[i++]=(byte)COMMON_PAYLOAD_LEN;
+
+            //c) PART 1: common area flags and controls.  See format in
+            //parseResults2.
+            payload[i++]=(byte)((needsPush ? PUSH_MASK : 0) 
+                | BUSY_MASK 
+                | UPLOADED_MASK 
+                | SPEED_MASK);
+            payload[i++]=(byte)(PUSH_MASK
+                | (isBusy ? BUSY_MASK : 0) 
+                | (finishedUpload ? UPLOADED_MASK : 0)
+                | (measuredSpeed ? SPEED_MASK : 0));
+
+            //d) PART 2: size of xmlBytes + 1.
+            int xmlSize = xmlBytes.length + 1;
+            if (xmlSize > XML_MAX_SIZE)
+                xmlSize = XML_MAX_SIZE;  // yes, truncate!
+            ByteOrder.short2leb(((short) xmlSize), payload, i);
+            i += 2;
+
+            //e) private area: one flag that says whether we support chat
+            payload[i++]=(byte)(supportsChat ? 0x1 : 0);
+
+            //f) actual xml.
+            System.arraycopy(xmlBytes, 0, 
+                             payload, i, xmlSize-1);
+            // adjust i...
+            i += xmlSize-1;
+            // write null after xml, as specified
+            payload[i++] = (byte)0;
+        }
+
+        //Write footer at payload[i...i+16-1]
+        for (int j=0; j<16; j++) {
+            payload[i+j]=clientGUID[j];
+        }
+    }
+
+        
+        //2. Extract BearShare-style metainformation, if any.  Any exceptions
+        //are silently caught.  The definitive reference for this format is at
+        //http://www.clip2.com/GnutellaProtocol04.pdf.  Briefly, the format is 
+        //      vendor code           (4 bytes, case insensitive)
+        //      common payload length (4 byte, unsigned, always>0)
+        //      common payload        (length given above.  See below.)
+        //      vendor payload        (length until clientGUID)
+        //The normal 16 byte clientGUID follows, of course.
+        //
+        //The first byte of the common payload has a one in its 0'th bit* if we
+        //should try a push.  However, if there is a second byte, and if the
+        //0'th bit of this byte is zero, the 0'th bit of the first byte should
+        //actually be interpreted as MAYBE.  Unfortunately LimeWire 1.4 failed
+        //to set this bit in the second byte, so it should be ignored when 
+        //parsing, though set on writing.
+        //
+        //The remaining bits of the first byte of the common payload area tell
+        //whether the corresponding bits in the optional second byte is defined.
+        //The idea behind having two bits per flag is to distinguish between
+        //YES, NO, and MAYBE.  These bits are as followed:
+        //      bit 1*  undefined, for historical reasons
+        //      bit 2   1 iff server is busy
+        //      bit 3   1 iff server has successfully completed an upload
+        //      bit 4   1 iff server's reported speed was actually measured, not
+        //              simply set by the user.
+        //
+        //*Here, we use 0-(N-1) numbering.  So "0'th bit" refers to the least
+        //significant bit.
+        /* ----------------------------------------------------------------
+         * QHD UPDATE 8/17/01
+         * Here is an updated QHD spec.
+         * 
+         * Byte 0-3 : Vendor Code
+         * Byte 4   : Public area size (COMMON_PAYLOAD_LEN)
+         * Byte 5-6 : Public area (as described above)
+         * Byte 7-8 : Size of XML + 1 (for a null), you need to count backward
+         * from the client GUID.
+         * Byte 9-beginning of xml : (new) private area
+         * Byte (payload.length - 16 - xmlSize (above)) - 
+                (payload.length - 16 - 1) : XML!!
+         * Byte (payload.length - 16 - 1) : NULL
+         * Last 16 Bytes: client GUID.
+         */
+
+  
+  
+*)

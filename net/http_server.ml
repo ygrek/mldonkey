@@ -743,7 +743,7 @@ let handler config t event =
 (* check here if ip is OK *)
       let from_ip = Ip.of_inet_addr from_ip in
       if Ip.matches from_ip config.addrs then 
-        let sock = TcpBufferedSocket.create_simple s in
+        let sock = TcpBufferedSocket.create_simple "http connection" s in
         TcpBufferedSocket.set_reader sock (request_handler config);
         TcpBufferedSocket.set_closer sock request_closer;
         TcpBufferedSocket.set_handler sock TcpBufferedSocket.BUFFER_OVERFLOW
@@ -753,7 +753,7 @@ let handler config t event =
   | _ -> ()
 
 let create config =
-  let t = TcpServerSocket.create config.bind_addr 
+  let t = TcpServerSocket.create "http server" config.bind_addr 
     config.port (handler config) in
   t
   

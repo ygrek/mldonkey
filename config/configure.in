@@ -13,7 +13,12 @@ AC_PROG_CPP
 AC_PROG_RANLIB
 
 AC_CHECK_PROG(OCAMLC, ocamlc.opt, ocamlc.opt)
-AC_CHECK_PROG(OCAMLC, ocamlc, ocamlrun ocamlc )
+AC_CHECK_PROG(OCAMLC, ocamlc, ocamlrun ocamlc)
+
+test -z "$ac_cv_prog_OCAMLC" && { 
+  echo "********  Objective-Caml is required  *********" 1>&2; 
+  echo "*******  Check http://ocaml.inria.fr/  ********" 1>&2; 
+  exit 1; } 
 AC_CHECK_PROG(OCAMLOPT, ocamlopt.opt, ocamlopt.opt)
 AC_CHECK_PROG(OCAMLOPT, ocamlopt, ocamlrun ocamlopt )
 AC_CHECK_PROG(OCAMLLEX, ocamllex.opt, ocamllex.opt)
@@ -66,10 +71,76 @@ if test -f $OCAMLLIB/lablgl.cmxa; then
   LABLGL_CMXA=lablgl.cmxa
 fi
 
-if test -f ../secret/mftp_server.ml; then
-   MORE_TARGETS="mldonkey\$(EXE) mldonkey_s\$(EXE)"
-   MORE_SUBDIRS=secret
+AC_CHECK_FILE(../audio_galaxy,AUDIO_GALAXY=yes, [
+  AUDIO_GALAXY=no
+  BAD_TARGETS="$BAD_TARGETS audio_galaxy"
+])
+
+AC_CHECK_FILE(../opennap,OPEN_NAPSTER=yes, [
+  OPEN_NAPSTER=no
+  BAD_TARGETS="$BAD_TARGETS open_napster"
+])
+
+AC_CHECK_FILE(../direct_connect,DIRECT_CONNECT=yes, [
+  DIRECT_CONNECT=no
+  BAD_TARGETS="$BAD_TARGETS direct_connect"
+])
+
+AC_CHECK_FILE(../limewire,LIMEWIRE=yes, [
+  LIMEWIRE=no
+  BAD_TARGETS="$BAD_TARGETS limewire"
+])
+
+AC_CHECK_FILE(../soulseek,SOULSEEK=yes, [
+  SOULSEEK=no
+  BAD_TARGETS="$BAD_TARGETS soulseek"
+])
+
+AC_CHECK_FILE(../secret, [
+  AC_CHECK_FILE(../donkey,[
+    DONKEY=yes
+    AC_CHECK_FILE(../server,DONKEY_SERVER=yes, [
+      DONKEY_SERVER=no
+      BAD_TARGETS="$BAD_TARGETS donkey_server"
+    ])
+  ], [
+    DONKEY_SERVER=no
+    BAD_TARGETS="$BAD_TARGETS closed_donkey"
+  ])
+ ],[
+  DONKEY=no
+  BAD_TARGETS="$BAD_TARGETS closed_donkey"
+  AC_CHECK_FILE(../donkey/donkey.lam, CLOSED_DONKEY=yes, [
+    CLOSED_DONKEY=no
+    BAD_TARGETS="$BAD_TARGETS open_donkey"
+  ])
+])
+
+
+AC_CHECK_PROG(GTK_CONFIG, gtk-config, gtk-config, no)
+if test "$GTK_CONFIG" = "no"; then
+     LABLGTK_CONFIG=no
+else
+  if test -f `$OCAMLC -where`/lablgtk/lablgtk.cmxa; then
+     LABLGTK_CONFIG=yes
+  else
+     LABLGTK_CONFIG=no
+  fi
 fi
+
+AC_MSG_CHECKING(compile GTK GUI)
+  if test "$LABLGTK_CONFIG" = "no"; then
+        AC_MSG_RESULT(no)
+        BAD_TARGETS="$BAD_TARGETS mldonkey_gui\$(EXE) mlchat\$(EXE)"
+        COMPILE_GUI=no
+  else
+        MORE_TARGETS="$MORE_TARGETS mldonkey_gui\$(EXE) mlchat\$(EXE)"
+        GTK_LIBS=`$GTK_CONFIG --libs`
+        GTK_CFLAGS=`$GTK_CONFIG --cflags`
+        GTK_VERSION=`$GTK_CONFIG --version`
+        COMPILE_GUI=yes
+        AC_MSG_RESULT(yes)
+  fi
 
 case "`uname -s`" in
   *win32* | *WIN32*) CURRENT_DIR="";;
@@ -86,4 +157,19 @@ AC_SUBST(CURRENT_DIR)
 AC_SUBST(MD4ARCH)
 AC_SUBST(MD4COMP)
 
+AC_SUBST(AUDIO_GALAXY)
+AC_SUBST(OPEN_NAPSTER)
+AC_SUBST(DIRECT_CONNECT)
+AC_SUBST(LIMEWIRE)
+AC_SUBST(SOULSEEK)
+AC_SUBST(DONKEY)
+AC_SUBST(CLOSED_DONKEY)
+AC_SUBST(DONKEY_SERVER)
+
+AC_SUBST(COMPILE_GUI)
+
 AC_OUTPUT(Makefile.config ../lib/autoconf.ml)
+
+
+echo "Will not be compiled: {" $BAD_TARGETS "}"
+

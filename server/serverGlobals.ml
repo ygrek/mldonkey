@@ -19,7 +19,7 @@
 
 open Unix
 open TcpBufferedSocket
-open Mftp
+open DonkeyMftp
 open Options
 open Mftp_comm
 open ServerTypes

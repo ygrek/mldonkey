@@ -34,8 +34,10 @@ type 'a file = {
     file_chunk : string;
   }
 
+type index = int
   
 type 'a t = {
+    mutable store_name : string;
     mutable store_files  : (int * 'a file) list;
     mutable store_next_doc : int;
     mutable store_all_doc : int array;
@@ -77,11 +79,11 @@ let really_read fd pos s len =
 
 (********************* FILE FUNCTIONS *****************)
   
-let gen_file n =
-  Printf.sprintf "store_%d" n
+let gen_file t n =
+  Printf.sprintf "%s_%d" t.store_name n
     
-let create_file file file_entry_size = 
-  let name = gen_file file_entry_size in
+let create_file t file file_entry_size = 
+  let name = gen_file t file_entry_size in
   {
     file_name = name;
     file_entry_size = file_entry_size;
@@ -131,8 +133,9 @@ let file_remove file pos =
   
 let max_cache_size = 2000
   
-let create  () =
+let create name =
   {
+    store_name = name;
     store_files = [];
     store_all_doc = [||];
     store_next_doc = 0;
@@ -158,7 +161,7 @@ let save t doc v attr =
   let file = try
       List.assoc chunk_size t.store_files
     with Not_found ->
-        let file = create_file chunk_size (128 lsl chunk_size) in
+        let file = create_file t chunk_size (128 lsl chunk_size) in
         t.store_files <- t.store_files @ [chunk_size ,file];
         file
   in
@@ -255,3 +258,6 @@ let remove t doc =
   t.store_all_doc.(doc) <- t.store_next_doc;
   t.store_next_doc <- doc
   
+let index i = i
+  
+let dummy_index = -1

@@ -18,4 +18,12 @@
 *)
 
 val add : Md4.t -> ServerTypes.location -> unit
-val find : Md4.t -> (ServerTypes.location -> unit) -> unit
+(*val add : Md4.t -> ServerTypes.where -> unit*)
+
+(*val find : Md4.t -> (ServerTypes.location -> unit) -> unit*)
+
+val supp : Md4.t -> ServerTypes.location -> unit
+(*val supp : Md4.t -> ServerTypes.where -> unit*)
+
+val get : Md4.t -> Mftp_server.QueryLocationReply.t
+val print : unit -> unit

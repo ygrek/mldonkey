@@ -233,7 +233,7 @@ let get_page url get_args headers_handler =
     | None -> url.server, url.port
     | Some (s, p) -> s, p
   in
-  let sock = TcpBufferedSocket.connect (Ip.to_inet_addr (Ip.from_name server))
+  let sock = TcpBufferedSocket.connect "http client connecting" (Ip.to_inet_addr (Ip.from_name server))
     port (fun _ _ -> ())
   in
   TcpBufferedSocket.write_string sock request;
@@ -287,3 +287,25 @@ let get_page url get_args headers_handler =
     raise e
 *)
   
+  
+  
+let split_header header =     
+  for i = 0 to String.length header - 1 do
+    if header.[i] = '\r' then header.[i] <- '\n'
+  done;
+  String2.split_simplify header '\n'
+
+let cut_headers headers =
+  try
+  List.map (fun s ->
+      let pos = String.index s ':' in
+      let len = String.length s in
+      if pos+1 < len && s.[pos+1] = ' ' then
+        String.lowercase (String.sub s 0 pos), String.sub s (pos+2) (len-pos-2)
+      else
+        String.lowercase (String.sub s 0 pos), String.sub s (pos+1) (len-pos-1)
+  ) headers
+  with e ->
+      Printf.printf "Exception in cut_headers: %s" (Printexc.to_string e);
+      print_newline ();
+      raise e

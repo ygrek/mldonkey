@@ -17,12 +17,10 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-type replies
-
-val add : Mftp.tagged_file -> unit
+val add : DonkeyMftp.tagged_file -> unit
   
-val find : int Indexer.query -> replies
+val find : Store.index Indexer.query -> ServerTypes.replies
   
-val get : replies -> int -> Mftp.tagged_file list
+val get : ServerTypes.replies -> int -> DonkeyMftp.tagged_file list
   
-val query_to_query : Mftp.query -> 'a Indexer.query
+val query_to_query : CommonTypes.query -> 'a Indexer.query

@@ -1,0 +1,432 @@
+
+   direct connect messages
+   ========================
+
+   by suxxx@users.sourceforge.net
+   December 21, 2001
+
+   0. Foreward
+
+
+   This is a open spezification of the neo-modus.com direct connect protocol.
+   If you find here some errors, please write me a mail.
+   This direct connect protocol spezifcations describe the client<->server and the
+   server<->server commands. And a little bit the client<->client protocol.
+
+   1.  Client-Server protocol
+
+   direct connect uses TCP for client to server communication. The servers called "Hubs" runs
+   on port 411.
+
+   each message to/from the server is in the form of
+
+
+   <command>|
+
+   the | specifies the end of each command.
+   each command starts with a $.
+
+   if the packed starting without a $ then the packed is a public chat message.
+   each public chat message is in the form of
+
+   <<username>> <chattext>|
+
+
+   the | specifies the end of each public chat message.
+
+   2. Command Types (client to server)
+
+   The following section describes the format of the Commands
+   Each field is denoted with <>.  The fields in the command are separated
+   by a single space character (ASCII 32). And each Command ends with a | (pipe)
+   All Commands are casesensetiv
+
+   command    sended by description of the subcomands and the format
+   =============================================================================================
+
+
+   $Lock    SERVER    First message from server to client. thats a security check.
+            the client must send a $Key command as answer.
+
+            Format: $Lock <lockcode>
+
+   $Key     CLIENT    This is the Clients first message to the server.
+            the client sends a Key. this key will be calculated from the
+            <lockcode>.
+
+            Format: $Key <keycode>
+
+
+   $HubName   SERVER    The server sends his name to the client. Mostly with a welcome message.
+
+            Format: $HubName <hubname>
+
+   $ValidateNick  CLIENT   The Client sends his Username to the Server.
+            If the Username is already in use or wrong, the server sends a $ValidateDenide message.
+
+            Format: $ValidateNick <nickname>
+
+   $ValidateDenide    SERVER   If the Username already in use or wrong, the server sends this message.
+
+            the client must take another Username and send $ValidateNick again.
+
+            Format: $ValidateDenide <thebadnickname>
+
+   $GetPass   SERVER    Sends from server to the connected client, if the username is password protected.
+
+            Format: $GetPass
+
+   $MyPass    CLIENT    The client sends this message to the server to send the password.
+
+            Format: $MyPass <password>
+
+
+   $BadPass   SERVER    If the password is wrong, the server sends this message and closes the connection
+
+            Format: $BadPass
+
+   $Version   CLIENT    The client sends the version of the clientsoftware to the server
+
+            Format: $Version <versionnumber>
+
+   $Hello     SERVER    If a new client connected, the server sends to all clients this message.
+
+
+            Format: $Hello <nickname>
+
+   $LogedIn   SERVER    If a operator connected, the server sends this message to the connected
+            user. (to enable the admin menue eg.)
+
+            Format: $LogedIn <nickname>
+
+   $MyInfo    CLIENT    This message informs the server about the Userinfos.
+         SERVER   This message will send from server too as response to $GetINFO.
+
+            Format: $MyINFO $ALL <nickname> <description>$ $<speed>$<email>$<sharedsizeinbyte$
+
+            "" stands for (as ascii char):
+            1 = normal
+            2 = away
+            3 = away
+            4 = fileserver
+            5 = fileserver
+            6 = fileserver away
+            7 = fileserver away
+            8 = speeduser
+            9 = speeduser
+            10 = speeduser away
+
+            12 = speeduser away
+
+   $GetINFO   CLIENT    This message reqests the userinfos from a other user.
+
+            Format: $GetINFO <nickname> <ownnickname>
+
+   $GetNickList   CLIENT   This message sends the client to request the nicklist and the oplist.
+
+            Format: $GetNickList
+
+   $NickList  SERVER    This message sends the server to a client, when the client request the nicklist.
+
+
+            Format: $NickList <nickname1>$$<nickname2>$$
+
+   $OpList    SERVER    This message sends the server to a client, when the client request the nicklist.
+            This message will send too, when a new op connected. (to all connected users)
+
+            Format: $OpList <nickname1>$$<nickname2>$$
+
+   $To    CLIENT    This message sends the client to the server to send a private message to a spezific user
+         SERVER   The same message sends the server to the spezific user
+
+
+            Format: $To: <nickname> From: <ownnickname> $<ownnickname> <message>
+
+   $ConnectToMe   CLIENT   This message sends the client to the server to send a connection request to a spezific user
+         SERVER   The same message sends the server to the spezific user
+
+            Format: $ConnectToMe <nickname> <ownip>:<ownlistenport>
+
+   $MultiConnectToMe  CLIENT   The same message as $ConnectToMe. That message will send by client, when other user
+            is on a other Hub.
+
+   $RevConnectToMe    CLIENT   This message sends the client to the server to send a connection request to a spezific user
+
+         SERVER   The same message sends the server to the spezific user
+            The client sends this message, when he is behind a firewall.
+            When the other client received the message it must send a $ConnectToMe that the firewalld User.
+            could connect.
+
+            Format: $RevConnectToMe <ownnick> <nickname>
+
+   $Search    CLIENT    This message will send to search a file.
+         SERVER   The same message sends the server to the spezific user
+
+            Passive:
+
+            Format: $Search Hub:<ownnickname> <cmd1>?<cmd2>?cmd3>?<cmd4>?<cmd5>
+            Active:
+            Format: $Search <ownip>:<ownlistenport> <cmd1>?<cmd2>?cmd3>?<cmd4>?<cmd5>
+
+            <cmd1> sets search for sizelimit Yes or No (Yes = T and No = F)
+            <cmd2> search sizelimit "At Least" or "At Most" ("At Least" = F and "At Most" = T)
+            <cmd3> sizelimit. if <cmd1> is "F" then <cmd3> is 0 else the sizelimit in bytes
+            <cmd4> the filetype ("Any" is 1, "Audio" is 2 an so on)
+            <cmd5> is the search value. If you insert "mp3 techno" you must replace the " " with a "$"
+
+   $MultiSearch   CLIENT   The same message as $Search. That message will send by client, when the search on all hubs
+
+            checkbox is enabled.
+
+   $SR    CLIENT    This is the Searchrespond for passive searching. if a active user find some files that
+         SERVER   matches the searchrequest. it will send this message. the server will forward this message only
+            to the user that had start the searchrequest.
+
+            Format: $SR <ownname> <filenamewithpath)<filesizeinbytes> <current openslots>/<allopenslots><hubname> (<hubip>:<hubport>)
+            "" is ascii char 5
+
+   $Kick    CLIENT    This message could only sends an operator. This command will kick another user.
+
+
+            Format: $Kick <nickname>
+
+   $OpForceMove   CLIENT   This message could only sends an operator. This command will redirect another user.
+
+            Format: $OpForceMove $Who:<nickname>$Where:<iptoredirect><Msg:<a message>
+
+   $ForceMove   SERVER   This message will sends by the server to a client, that he must connect to another hub.
+            Server dont kick the user, the client must disconnect!
+
+            Format: $ForceMove <ipaddress>
+
+
+   $Quit    SERVER    This message will send to all clients, when a user disconnects
+
+            Format: $Quit <nickname>
+
+
+
+   3.  Server-Server protocol
+
+   direct connect uses UDP for server to server communication.
+
+   each message is in the form of
+
+
+   <command>|
+
+   the | specifies the end of each command.
+   each command starts with a $.
+
+   4. Command Types (server to server)
+
+   The following section describes the format of the Commands
+   Each field is denoted with <>.  The fields in the command are separated
+   by a single space character (ASCII 32). And each Command ends with a | (pipe)
+
+   All Commands are casesensetiv
+
+   command    description of the subcomands and the format
+   ============================================================================================
+
+   $Up    This message will send as heardbeat request to each linked server.
+
+         Format: $Up <linkedserverpassword> <ownip>
+
+   $UpToo     This message will send as heardbeat response to the requesting server
+
+
+         Format: $UpToo <linkedserverpassword> <ownip>
+
+   $Search    This message will send from a server to each linked server, when a user
+         searches with $MultiSearch
+
+         Format: $Search <ownip>:<ownlistenport> <cmd1>?<cmd2>?cmd3>?<cmd4>?<cmd5>
+
+         <cmd1> sets search for sizelimit Yes or No (Yes = T and No = F)
+         <cmd2> search sizelimit "At Least" or "At Most" ("At Least" = F and "At Most" = T)
+         <cmd3> sizelimit. if <cmd1> is "F" then <cmd3> is 0 else the sizelimit in bytes
+         <cmd4> the filetype ("Any" is 1, "Audio" is 2 an so on)
+
+         <cmd5> is the search value. If you insert "mp3 techno" you must replace the " " with a "$"
+
+
+   $ConnectToMe   This message sends the server to each linked server, when a user sends the $MultiConnectToMe
+         message.
+
+         Format: $ConnectToMe <nickname> <ownip>:<ownlistenport>
+
+
+   5.  client-client protocol
+
+
+   direct connect uses TCP for client to client communication.
+   normaly the client listen at port 412 for client connections.
+   but if the port already in use it uses 413,414 and so on..
+
+   After a $ConnectToMe over the Server a Client Connects the other one.
+
+   each message is in the form of
+
+   <command>|
+
+   the | specifies the end of each command.
+
+   each command starts with a $.
+
+   6. Command Types (client to client)
+
+   The following section describes the format of the Commands
+   Each field is denoted with <>.  The fields in the command are separated
+   by a single space character (ASCII 32). And each Command ends with a | (pipe)
+   All Commands are casesensetiv
+
+   Client number 1 is the user who connecting
+   Client number 2 is the use who listen
+
+
+   command  from client num    description of the subcomands and the format
+   ============================================================================================
+
+   $MyNick  CLIENT 2    The listen User sends his Name when a user connecting.
+       CLIENT 1   After the Lock/Key handshake the connected client sends MyNick too
+
+            Format: $MyNick <ownnickname>
+
+   $Lock  CLIENT 2    After the $MyNick command the listen user sends a $Lock command.
+       CLIENT 1   After the first handshake, the connecting client sends a $Lock code too.
+
+            Format: $Lock <lockcode>
+
+   $Key   CLIENT 1    This is the first message to the listen user.
+       CLIENT 2
+            the key will be calculated from the <lockcode>.
+
+            Format: $Key <keycode>
+
+   $Direction CLIENT 2   ???? for passive or active mode downloading???
+
+            Format: $Direction <direction> <anumber>
+
+
+    could be "Upload" or "Download"
+    ???
+
+   $GetListLenCLIENT 1   with this command the client requestes the filesize of the
+            sharelist.
+
+            Format: $GetListLen
+
+   $ListLen CLIENT 2    this is the answer to $GetListLen.
+
+
+            Format: $ListLen <sizeinbyte>
+
+   $MaxedOutCLIENT 2    this will send, when no freeslots available
+
+            Format: $MaxedOut
+
+   $Error   CLIENT 2    this will send when a error occures.. like file not found eg
+
+            Format: $Error <errormessage>
+
+   $Send  CLIENT 2    informs the other client, that the upload will start.
+
+       CLIENT 1   informa a client tha he could start with the upload
+
+            Format: $Send
+
+   $Get   CLIENT 1    requests a file from the other client.
+
+            Format: $Get <filenameandpath>$<resumecount>
+
+   $FileLengthCLIENT 2   after a $Get request, the other the other client sends
+            the filesize.
+
+
+            Format: $FileLength <sizeinbytes>
+
+   $CanceledCLIENT 1    Cancel a transfer
+       CLIENT 2
+
+            Format: $Canceled
+
+   Download Example:
+
+   Client 1 connects Client 2
+
+
+   //handshake
+   CL2: $MyNick <nickname>
+   CL2: $Lock <lockcode>
+   CL1: $Key <keycode>
+   CL1: $Lock <lockcode>
+   CL2: $Key <keycode>
+   CL1: $MyNick <nickname>
+   //handshake
+
+   //unknown
+   CL2: $Direction <direction> <anumber>
+
+   //unknown
+
+   //request shared listfilesize
+   CL1: $GetListLen
+   CL2: $ListLen <sizeinbyte>
+   //request shared listfilesize
+
+   //request the shared filelist
+   CL1: $Get MyList.DcLst$1
+   CL2: $FileLength <sizeinbytes>
+   //request the shared filelist
+
+
+   //starttransfer
+   CL1: $Send
+   //starttransfer
+
+   After the $Send command, the sharing client sending the file...
+
+
+   7. Copyright
+
+   direct connect is a trademark of neo-modus.com
+
+
+   this protocol specs writen and analyst by suxxx
+   without any help from neo-modus.com if you want
+   informations about the protocol or if you have
+   informations about some messages eg.write me a mail.
+
+Telechargement dans DC:
+
+--- envoie -->
+$MyNick toto2002|
+$Lock O5SGVKT;U)>]aoK\a>2jTtv_RQk9J8bl0y+0B;gWV(;sNvAdlgf'Gvm8g4=a.-&@6Cp'GwaufkSKIX68i%>\, Pk=(iNeJXH>+1blGZ2.|
+
+<-- recoit --
+$MyNick.[BBB]WizardOne|
+$Lock EXTENDEDPROTOCOLABCABCABCABCABCABC Pk=DCPLUSPLUS0.1763kABCABC|
+$Direction Upload 666|
+$Key...fA......q6..Bq.........0.%7'....%.'.....1...sR.......U.5...0.fgW3u..aA1..........&.|
+
+--- envoie -->
+$Direction Download 9708|
+$Key.........A......0.0..0..0..0..0..0.|
+$Get.upload\-.=.Misc.=.-\WIN.XP.CODE.txt$1|
+
+<-- recoit --
+$FileLength.112|
+
+--- envoie -->
+$Send|
+
+<- recoit
+................. Le fichier .....................
+
+$Direction Upload/Download level|
+
+
+
+
+

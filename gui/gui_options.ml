@@ -28,6 +28,7 @@
 open Options
 
 module M = Gui_messages
+module C = Gui_columns
 
 let mldonkey_gui_ini = create_options_file 
     (Filename.concat Sysenv.home ".mldonkey_gui.ini")
@@ -127,10 +128,14 @@ let keymap_queries = define_option mldonkey_gui_ini ["keymaps"; "queries"]
   "Key bindings for queries tab" 
   (list_option (tuple2_option (KeyOption.t, string_option))) []
 
+let keymap_results = define_option mldonkey_gui_ini ["keymaps"; "results"]
+  "Key bindings for results tab" 
+  (list_option (tuple2_option (KeyOption.t, string_option))) []
+
 let keymap_console = define_option mldonkey_gui_ini ["keymaps"; "console"]
   "Key bindings for console tab" 
     (list_option (tuple2_option (KeyOption.t, string_option))) []
-  
+
 let add_binding map binding action = 
   map =:= 
     (KeyOption.string_to_key binding, action) :: !!map
@@ -155,6 +160,87 @@ let color_connecting =  define_option mldonkey_gui_ini ["colors"; "connecting"]
     M.h_col_connecting string_option "Orange"
 let color_files_listed =  define_option mldonkey_gui_ini ["colors"; "files_listed"]
     M.h_col_files_listed string_option "Blue"
+
+(** {2 Icons} *)
+
+let xpm_label s = ["icons" ; s]
+let xpm_remove = define_option mldonkey_gui_ini (xpm_label M.o_xpm_remove)
+    "" filename_option ""
+let xpm_cancel = define_option mldonkey_gui_ini (xpm_label M.o_xpm_cancel)
+    "" filename_option ""
+let xpm_connect = define_option mldonkey_gui_ini (xpm_label M.o_xpm_connect)
+    "" filename_option ""
+let xpm_disconnect = define_option mldonkey_gui_ini (xpm_label M.o_xpm_disconnect)
+    "" filename_option ""
+let xpm_view_users = define_option mldonkey_gui_ini (xpm_label M.o_xpm_view_users)
+    "" filename_option ""
+let xpm_connect_more_servers = define_option mldonkey_gui_ini (xpm_label M.o_xpm_connect_more_servers)
+    "" filename_option ""
+let xpm_remove_old_servers = define_option mldonkey_gui_ini (xpm_label M.o_xpm_remove_old_servers)
+    "" filename_option ""
+let xpm_save = define_option mldonkey_gui_ini (xpm_label M.o_xpm_save)
+    "" filename_option ""
+let xpm_save_all = define_option mldonkey_gui_ini (xpm_label M.o_xpm_save_all)
+    "" filename_option ""
+let xpm_save_as = define_option mldonkey_gui_ini (xpm_label M.o_xpm_save_as)
+    "" filename_option ""
+let xpm_edit_mp3 = define_option mldonkey_gui_ini (xpm_label M.o_xpm_edit_mp3)
+    "" filename_option ""
+let xpm_pause_resume = define_option mldonkey_gui_ini (xpm_label M.o_xpm_pause_resume)
+    "" filename_option ""
+let xpm_get_format = define_option mldonkey_gui_ini (xpm_label M.o_xpm_get_format)
+    "" filename_option ""
+let xpm_preview = define_option mldonkey_gui_ini (xpm_label M.o_xpm_preview)
+    "" filename_option ""
+let xpm_verify_chunks = define_option mldonkey_gui_ini (xpm_label M.o_xpm_verify_chunks)
+    "" filename_option ""
+let xpm_retry_connect = define_option mldonkey_gui_ini (xpm_label M.o_xpm_retry_connect)
+    "" filename_option ""
+let xpm_add_to_friends = define_option mldonkey_gui_ini (xpm_label M.o_xpm_add_to_friends)
+    "" filename_option ""
+let xpm_download = define_option mldonkey_gui_ini (xpm_label M.o_xpm_download)
+    "" filename_option ""
+let xpm_submit_search = define_option mldonkey_gui_ini (xpm_label M.o_xpm_submit_search)
+    "" filename_option ""
+let xpm_extend_search = define_option mldonkey_gui_ini (xpm_label M.o_xpm_extend_search)
+    "" filename_option ""
+let xpm_local_search = define_option mldonkey_gui_ini (xpm_label M.o_xpm_local_search)
+    "" filename_option ""
+let xpm_find_friend =  define_option mldonkey_gui_ini (xpm_label M.o_xpm_find_friend)
+    "" filename_option ""
+let xpm_remove_all_friends =  define_option mldonkey_gui_ini (xpm_label M.o_xpm_remove_all_friends)
+    "" filename_option ""
+
+(** {2 Toolbars style} *)
+
+let tb_styles = [ "both", `BOTH ; 
+		  "text", `TEXT ;
+		  "icon", `ICONS ]
+
+let tb_styles_rev = List.map
+    (fun (a,b) -> (b,a)) tb_styles
+
+let string_to_tbstyle s =
+  try List.assoc (String.lowercase s) tb_styles
+  with Not_found -> `BOTH
+
+let tbstyle_to_string st = List.assoc st tb_styles_rev
+  
+let value_to_tbstyle v =
+  match v with
+    StringValue s -> string_to_tbstyle s
+  | _ -> raise Not_found
+    
+let tbstyle_to_value (st:Gtk.Tags.toolbar_style) =
+  StringValue (tbstyle_to_string st)
+
+let (class_tbstyle : Gtk.Tags.toolbar_style option_class) = 
+      define_option_class "toolbar_style" 
+    value_to_tbstyle tbstyle_to_value
+
+let toolbars_style = define_option mldonkey_gui_ini
+    ["toolbars_style"] M.h_toolbars_style
+    class_tbstyle `BOTH
 
 (** {2 Layout} *)
 
@@ -195,7 +281,107 @@ let gui_width = define_option mldonkey_gui_ini
 let gui_height = define_option mldonkey_gui_ini
     ["layout"; "height"]
   "Height of GUI window" int_option 400
-  
+
+(** {2 List columns} *)
+
+(** {3 Files} *)
+
+let value_to_file_column v =
+  match v with
+    StringValue s -> C.file_column_of_string s
+  | _ -> raise Not_found
+    
+let file_column_to_value k =
+  StringValue (C.string_of_file_column k)
+
+let (class_file_column : C.file_column option_class) = 
+      define_option_class "File_column" 
+    value_to_file_column file_column_to_value
+
+
+let downloads_columns = define_option mldonkey_gui_ini
+    ["downloads_columns"] M.h_downloads_columns
+    (list_option class_file_column)
+  [ C.Col_file_name ; C.Col_file_size ; C.Col_file_downloaded;
+    C.Col_file_percent ;
+      C.Col_file_rate ; C.Col_file_state ; 
+    C.Col_file_availability ]
+
+let downloaded_columns = define_option mldonkey_gui_ini
+    ["downloaded_columns"] M.h_downloaded_columns
+    (list_option class_file_column)
+    [ C.Col_file_name ; C.Col_file_size ; 
+      C.Col_file_format;]
+
+(** {3 Clients} *)
+
+let value_to_client_column v =
+  match v with
+    StringValue s -> C.client_column_of_string s
+  | _ -> raise Not_found
+    
+let client_column_to_value k =
+  StringValue (C.string_of_client_column k)
+
+let (class_client_column : C.client_column option_class) = 
+      define_option_class "Client_column" 
+    value_to_client_column client_column_to_value
+
+let friends_columns = define_option mldonkey_gui_ini
+    ["friends_columns"] M.h_friends_columns
+    (list_option class_client_column)
+    [ C.Col_client_name ; C.Col_client_kind ; 
+      C.Col_client_state; ]
+
+let file_locations_columns = define_option mldonkey_gui_ini
+    ["file_locations_columns"] M.h_file_locations_columns
+    (list_option class_client_column)
+    [ C.Col_client_name ; C.Col_client_kind ; 
+      C.Col_client_state; ]
+
+(** {3 Servers} *)
+
+let value_to_server_column v =
+  match v with
+    StringValue s -> C.server_column_of_string s
+  | _ -> raise Not_found
+    
+let server_column_to_value k =
+  StringValue (C.string_of_server_column k)
+
+let (class_server_column : C.server_column option_class) = 
+      define_option_class "Server_column" 
+    value_to_server_column server_column_to_value
+
+let servers_columns = define_option mldonkey_gui_ini
+    ["server_columns"] M.h_servers_columns
+    (list_option class_server_column)
+    [ C.Col_server_address ; C.Col_server_state ; 
+      C.Col_server_users ; C.Col_server_files ;
+      C.Col_server_desc ]
+
+(** {3 Results} *)
+
+let value_to_result_column v =
+  match v with
+    StringValue s -> C.result_column_of_string s
+  | _ -> raise Not_found
+    
+let result_column_to_value k =
+  StringValue (C.string_of_result_column k)
+
+let (class_result_column : C.result_column option_class) = 
+      define_option_class "Result_column" 
+    value_to_result_column result_column_to_value
+
+let results_columns = define_option mldonkey_gui_ini
+    ["results_columns"] M.h_results_columns
+    (list_option class_result_column)
+    [ C.Col_result_name ; 
+      C.Col_result_size ; C.Col_result_format ;
+      C.Col_result_props ; C.Col_result_comment ; ]
+
+
 (** {2 Others} *)
 
 let password = define_option mldonkey_gui_ini ["password"] 
@@ -205,24 +391,29 @@ let port = define_option mldonkey_gui_ini ["port"]
 let hostname = define_option mldonkey_gui_ini ["hostname"] 
     M.h_hostname string_option "localhost"
 
-  
-  
+
 let max_client_name_len = define_option mldonkey_gui_ini
-    ["max_client_name_len"] "Max len of a source name"
+    ["max_client_name_len"] "Max length of a source name"
     int_option 18
+
+let max_result_name_len = define_option mldonkey_gui_ini
+    ["max_result_name_len"] "Max length of a source name"
+    int_option 70
     
 let compaction_overhead = define_option mldonkey_gui_ini 
     ["compaction_overhead"] 
     "The percentage of free memory before a compaction is triggered"
     int_option 50
 
+(*
 let auto_resize = define_option mldonkey_gui_ini
     ["auto_resize"]
   "auto resize columns" bool_option true
+*)
 
 let interface_buffer = define_option mldonkey_gui_ini
     ["interface_buffer"] "The size of the buffer to the core"
-    int_option 1000000
+    int_option 10000000
 
   
 let _ =
@@ -257,8 +448,14 @@ let mail = ref ""
 let temp_dir = ref ""
 let incoming_dir = ref ""
 
+let chat_app_port = ref ""
+let chat_app_host = ref ""
+let chat_port = ref ""
+let chat_console_id = ref ""
+let chat_warning_for_downloaded = ref ""
+
 let client_options_assocs = [
-  "port",        client_port;
+  "http_port", client_port;
   "telnet_port", telnet_port;
   "gui_port",    client_gui_port;
   "save_options_delay", save_options_delay;
@@ -279,6 +476,11 @@ let client_options_assocs = [
   "mail", mail ;
   "temp_directory", temp_dir ;
   "incoming_directory", incoming_dir ;
+  "chat_app_host", chat_app_host ;
+  "chat_app_port", chat_app_port ;
+  "chat_port", chat_port ;
+  "chat_console_id", chat_console_id ;
+  "chat_warning_for_downloaded", chat_warning_for_downloaded ;
   ]
 
 let client_options_assocs_rev = 

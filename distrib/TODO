@@ -26,15 +26,15 @@ TODO list for client
   * efficient management of buffers
   * background searches: 
    - search and automatically download files
-Before 1.16:
+Before 1.17:
  + remove unused sources (cleanly remove them at least once per hour)
  + don't compute md4 for files being downloaded if timestamps show they have
     not been modified.
  + commit page to select saved name
  + display search results in different pages
- + id of clients
  + Rename with different names when a file already exists in incoming/ 
    directory.
+ + Imported files should have permission 644.[ Bug #420 ]
 
 TODO list for server
 ====================

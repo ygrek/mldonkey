@@ -46,3 +46,6 @@ val get_page : Url.url -> get_args list -> headers_handler  -> unit
 val default_headers_handler : (int -> TcpBufferedSocket.t -> int -> unit) ->
   headers_handler
   
+val split_header : string -> string list
+val cut_headers : string list -> (string * string) list
+  

@@ -1,7 +1,40 @@
-
 ChangeLog
 =========
 
+Release 1.99:
+  Complete change of the architecture. mldonkey should now support multiple
+   peer-to-peer networks. Currently, download is possible from:
+
+    * Audiogalaxy support: works great (oups, not useful anymore :(
+     1) Must set 'enable_audiogalaxy' to true in downloads.ini 
+     2) Start mldonkey. It should create 'audiogal.ini'. If you don't have any
+        audiogalaxy account, create an account: go on http://localhost:4081/
+        (if you are running mldonkey on localhost), and create it.
+     3) Stop mldonkey. Edit audiogal.ini. Set the 'login' and 'password' 
+         options from your account.
+     4) Restart mldonkey. Go on http://localhost:4081/ to choose files to
+         download. 
+
+   * LimeWire bridge. works great.
+     1) Must set 'enable_limewire' to true in downloads.ini
+     2) It should automatically connect to several ultra peers.
+     - Recover downloads works
+
+   * Open Napster support. Seems to work.
+     1) Must set 'enable_opennap' to true in downloads.ini
+
+   * Direct Connect support. Not working  yet.
+     1) Must set 'enable_directconnect' to true in downloads.ini
+     2) You can connect to some hubs and search for files. Download
+      is not yet working, nor sharing, so that you will probably be
+      kicked fast.
+  * Improved server implementation (enable_server option). Not working yet.
+  * Started implementing freedb bridge. Not working yet.
+  * replace Sys.rename with Unix2.rename (to allow cross-device moves)
+  * brand new GUI : choice of columns, icons, external chat utility, support
+	for custom searches. See file ~/.mldonkey_gui.ini for changing icons
+	and keyboard shortcuts. Searches skeletons are defined in the
+	searches.ini file in the directory where you launched the mldonkey core.
 Release 1.16:
   * Compaction forced every 'compaction_delay' hours (default is 2).
   * File age computed for files smaller than one chunk. Better downloads for

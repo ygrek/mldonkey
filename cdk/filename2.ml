@@ -99,3 +99,12 @@ let from_string filename =
   
 let to_string filename =
   List.fold_left (fun file f -> f file) filename !to_strings
+
+  
+let shorten max s =
+  let len = String.length s in
+  if len > max then 
+    Printf.sprintf "%s...%s" (String.sub s 0 (max - 7))
+    (String.sub s (len-4) 4)
+  else s
+    

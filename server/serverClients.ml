@@ -17,18 +17,22 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonTypes
 
 open BasicSocket
 open TcpBufferedSocket
 open Unix
 open TcpBufferedSocket
-open Mftp
+open DonkeyMftp
 open Options
 open Mftp_comm
 open ServerTypes  
 open ServerOptions        
 open ServerGlobals
 
+module M = Mftp_server
+
+  
 let null_ip = Ip.of_int32 (Int32.of_int 0)
 
 (*  
@@ -44,7 +48,29 @@ let null_ip = Ip.of_int32 (Int32.of_int 0)
 *)
 
 module P = Mftp_server
-  
+
+let print_loc loc =  Printf.printf("localisation %s port %d valide to %f")
+                     (Ip.to_string loc.loc_ip)
+                     loc.loc_port
+                     loc.loc_expired;
+                     print_newline()
+
+let print_files_shared files = 
+        List.iter (fun md4 -> 
+                Printf.printf(" file: %s") (Md4.to_string md4); 
+                print_newline())
+                files
+                     
+let rec print_client_stat c option =
+        Printf.printf("Client %s ") (Ip.to_string c.client_id);
+        match option with 
+        'a' -> Printf.printf("not implémenté")
+        | 'l' ->  print_loc c.client_location
+        | 'f' -> print_files_shared c.client_files
+        | _ -> print_client_stat c 'a'
+
+exception Already_use
+        
 let reply_to_client_connection c =
   let loc = c.client_location in
   match c.client_sock with
@@ -55,27 +81,42 @@ let reply_to_client_connection c =
           match c.client_kind with
             Firewalled_client -> raise Not_found
           | KnownLocation (ip,port) ->
-              if Hashtbl.mem clients_by_id ip then raise Not_found;
               loc.loc_ip <- ip;
                 loc.loc_port <- port;
-                  ip
-        with _ ->
+                  if Hashtbl.mem clients_by_id ip then raise Already_use;
+                    ip
+        with Already_use ->
+              (*Printf.printf ("IP deja utilisé comme identifiant");*)
+                 let id = Ip.of_int32 (Int32.of_int !client_counter) in 
+                     incr client_counter;
+                        id
+        |_ ->
             let id = Ip.of_int32 (Int32.of_int !client_counter) in
             loc.loc_ip <- id;
               loc.loc_port <- 0;
                 incr client_counter;
-            id
+                  id
       in
+      (*Printf.printf ("Nouvel identifiant %s") (Ip.to_string id);
+      print_newline();*)
       c.client_id <- id;
       Hashtbl.add clients_by_id id c;
+
+      print_newline();
+      Printf.printf("Liste des clients");
+      print_newline();
+      Hashtbl.iter (fun md4 c -> print_client_stat c 'l') clients_by_id;
+      Printf.printf("FIN liste des clients");
+      print_newline();
+      print_newline();
       
       Printf.printf "SET ID"; print_newline ();
 (* send ID back to client *)
-      direct_server_send sock  (P.SetIDReq c.client_id);
+      direct_server_send sock  (M.SetIDReq c.client_id);
 
 (* send some messages *)
       List.iter (fun msg ->
-          direct_server_send sock (P.MessageReq msg)) !!welcome_messages
+          direct_server_send sock (M.MessageReq msg)) !!welcome_messages
       
   
 let check_handler c port ok sock event = 
@@ -101,7 +142,7 @@ let check_handler c port ok sock event =
         reply_to_client_connection c
     
 let check_client c port =
-  let try_sock = TcpBufferedSocket.connect 
+  let try_sock = TcpBufferedSocket.connect "server to client"
       (Ip.to_inet_addr c.client_conn_ip)
     port 
       (check_handler c port (ref false))
@@ -110,43 +151,129 @@ let check_client c port =
   BasicSocket.set_wtimeout (TcpBufferedSocket.sock try_sock) 5.;
   Printf.printf "Checking client ID"; print_newline ();
   ()
+
+let send_query_reply sock c =
+  let list = ServerIndexer.get c.client_results 200 in
+  direct_server_send sock (M.QueryReplyReq list);
+  ()
+  
   
 let server_to_client c t sock =
-  let module P = Mftp_server in
   Printf.printf "server_to_client"; print_newline ();
-  P.print t;
+  M.print t;
   print_newline ();
   match t with
-    P.ConnectReq t ->
-      c.client_md4 <- t.P.Connect.md4;
-      c.client_tags <- t.P.Connect.tags;      
-      check_client c t.P.Connect.port;
+    M.ConnectReq t ->
+      c.client_md4 <- t.M.Connect.md4;
+      c.client_tags <- t.M.Connect.tags;      
+      check_client c t.M.Connect.port;
 
-  | P.AckIDReq _ -> ()
+  | M.AckIDReq _ -> 
+(* send messages to the client *)
+      List.iter (fun s -> direct_server_send sock (M.MessageReq s))
+      !!welcome_messages;
+(* send servers list *)
+      direct_server_send sock (M.ServerListReq []);
+(* send info to client *)
+      direct_server_send sock (M.ServerInfoReq 
+          (let module SI = M.ServerInfo in          
+          {
+            SI.md4 = !!server_md4;
+            SI.ip = !!server_ip;
+            SI.port = !!server_port;
+            SI.tags = [
+              { tag_name = "name"; tag_value = String !!server_name };
+              { tag_name = "description"; tag_value = String !!server_desc }
+              ];
+          }));
+      ()
   
-  | P.ShareReq list ->
-      List.iter (fun t -> 
-          ServerIndexer.add t;
-          ServerLocate.add t.f_md4 c.client_location ) list;
-  
-  | P.QueryReq t ->
-      let module R = P.Query in
-      let q = ServerIndexer.query_to_query t in      
-      
-      
+  | M.ShareReq list ->
+      List.iter (fun tmp ->
+          (*print_client_stat c 'l';*)
+          ServerIndexer.add tmp;
+         
+          ServerLocate.add tmp.f_md4
+          {loc_ip=c.client_id;loc_port=c.client_location.loc_port;loc_expired=c.client_location.loc_expired};
+          c.client_files <- tmp.f_md4::c.client_files 
+       ) list;
+         ServerLocate.print();
+     
+                             
+  | M.QueryReq t ->
+      let module R = M.Query in
+      let q = ServerIndexer.query_to_query t in            
       let docs = ServerIndexer.find q in
+(* send back QueryReplyReq *)
+      c.client_results <- docs;
+      Printf.printf "QueryReq partially implemented"; print_newline ();
+      send_query_reply sock c;
       ()      
       
-  | P.QueryLocationReq t ->
-      let module R = P.QueryLocation in
+  | M.QueryMoreResultsReq ->
+(* send back QueryReplyReq *)
+      Printf.printf "QueryMoreResultsReq partially implemented"; 
+      print_newline ();
+      send_query_reply sock c;
+      ()
+      
+  | M.QueryIDReq t ->
+(* send back
+  QueryIDFailedReq if disconnected
+  QueryIDReplyReq if connected
+*)
+      begin
+        try 
+          let cc = Hashtbl.find clients_by_id t in
+          match cc.client_kind, sock, c.client_kind, cc.client_sock with
+          | KnownLocation (ip, port), sock, _, _
+          | Firewalled_client, _, KnownLocation (ip, port), Some sock 
+            ->
+              let module QI = M.QueryIDReply in
+              direct_server_send sock (M.QueryIDReplyReq {
+                  QI.ip = ip;
+                  QI.port = port;
+                })
+          | _ ->
+              Printf.printf "QueryIDReq can't return reply"; 
+              print_newline ();
+              raise Not_found
+        with Not_found ->
+            direct_server_send sock (M.QueryIDFailedReq t)
+      end
+
+(***************************************************************** TODO ***)
+      
+  | M.QueryLocationReq t ->
+     begin
+       try
+      let module R = M.QueryLocationReply in
+      let peer_list = ServerLocate.get t in
+      M.QueryLocationReply.print peer_list;
+      direct_server_send sock (M.QueryLocationReplyReq peer_list);  
+      
+(* send back QueryLocationReplyReq *)
+      Printf.printf "QueryLocationReq not implemented"; print_newline ();
+      ()
+      with Not_found -> ()
+      end
+      
+  | M.QueryUsersReq t ->
+(* send back QueryUsersReplyReq *)
+      Printf.printf "QueryUsersReq not implemented"; print_newline ();
       ()
       
   | _ -> ()
-    
+
+      
+(* every minute, send a InfoReq message *)
 
 let remove_client c sock s = 
   Printf.printf "CLIENT DISCONNECTED"; print_newline ();
   Hashtbl.remove clients_by_id c.client_id;
+  let files_liste = c.client_files in
+  (*List.iter (fun md4 -> ServerLocate.supp md4 c.client_location)
+  files_liste;*)
   decr nconnected_clients
       
 let handler t event =
@@ -154,10 +281,10 @@ let handler t event =
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
 
-      if !!max_clients >= !nconnected_clients then
+      if !!max_clients <= !nconnected_clients then
         Unix.close s
       else
-      let sock = TcpBufferedSocket.create s (fun _ _ -> ()) 
+      let sock = TcpBufferedSocket.create "server client connection" s (fun _ _ -> ()) 
         (*server_msg_to_string*)
         in
       
@@ -174,12 +301,13 @@ let handler t event =
             loc_ip  = ip;
             loc_port = 0;
             loc_expired = 0.0;
-          }
+          };
+          client_results = { docs = [||]; next_doc = 0; };
         } in
 
       incr nconnected_clients;
       TcpBufferedSocket.set_reader sock (
-        Mftp_comm.server_handler (server_to_client client));
+        Mftp_comm.cut_messages Mftp_server.parse (server_to_client client));
       TcpBufferedSocket.set_closer sock 
         (remove_client client)
   | _ -> 

@@ -17,20 +17,14 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Options
-open Mftp
-open BasicSocket
-open TcpBufferedSocket
-open Unix
-open Gui_proto
-open Gui_types
-open Gui_options
+open CommonTypes
+(** Misc. functions. *)
 module O = Gui_options
-module M = Gui_messages
-open MyCList
-open Gui_handler  
-open Gui
-      
+module G = Gui_global
+
+
+open Gui_proto
+
 let ko = Int32.of_int 1024
   
 let unit_of_string s =
@@ -39,14 +33,8 @@ let unit_of_string s =
   | "ko" -> ko
   | _ -> Int32.one
 
-let search_media_list = 
-  [ "Program", "Pro";
-    "Documentation", "Doc";
-    "Collection", "Col";
-  ]
-  
-let search_format_list = []
 
+(*
 let option_of_string s =
   if s = "" then None else Some s
   
@@ -200,7 +188,7 @@ let disconnect gui =
 let reconnect gui =
   (try disconnect gui with _ -> ());
   clean_gui ();
-  let sock = TcpBufferedSocket.connect 
+  let sock = TcpBufferedSocket.connect "gui to client"
       (try
         let h = Unix.gethostbyname 
             (if !!hostname = "" then Unix.gethostname () else !!hostname) in
@@ -238,39 +226,42 @@ let reconnect gui =
       print_newline ();
       TcpBufferedSocket.close sock "error";
       connection_sock := None
+*)
 
-let servers_connect_more (gui : gui) () =
-  gui_send (Gui_proto.ConnectMore_query)
-  
-let servers_addserver (gui : gui) () = 
-  let module P = Gui_proto in
-  let (server_ip, server_port) =
-    let server = gui#tab_servers#entry_servers_new_ip#text in
-    try
-      let pos = String.index server ':' in
-      String.sub server 0 pos, String.sub server (pos+1) (
-        String.length server - pos - 1)
-    with _ ->
-        server, gui#tab_servers#entry_servers_new_port#text
-  in
-  gui_send (P.AddServer_query {
-      P.key_ip = Ip.of_string server_ip;
-      P.key_port = int_of_string server_port;
-    });
-  tab_servers#entry_servers_new_ip#set_text "";
-  tab_servers#entry_servers_new_port#set_text ""
+let (!!) = Options.(!!)
+let (=:=) = Options.(=:=)
 
-  
-let friends_addfriend (gui : gui) () = 
-  gui_send (AddNewFriend (Ip.of_string
-        gui#tab_friends#entry_friends_new_ip#text,
-      int_of_string gui#tab_friends#entry_friends_new_port#text));
-  tab_friends#entry_friends_new_ip#set_text "";
-  tab_friends#entry_friends_new_port#set_text ""
+let short_name n =
+  let len = String.length n in
+  if len > 35 then
+    Printf.sprintf "%s...%s" (String.sub n 0 27) (String.sub n (len-5) 5)
+  else n
+
+let is_connected state =
+  match state with
+  | Connected_initiating
+  | Connected_busy
+  | Connected_idle
+  | Connected_queued -> true
+  | NotConnected
+  | Connecting
+  | _ -> false
+
+let save_gui_options gui =
+  (* Compute layout *)
+  (
+   match gui#window#children with
+     [] -> ()
+   | w :: _ ->
+       let (w,h) = Gdk.Window.get_size w#misc#window in
+       O.gui_width =:= w;
+       O.gui_height =:= h
+  );
+  Options.save_with_help Gui_options.mldonkey_gui_ini
 
 let set_hpaned (hpaned : GPack.paned) prop =
   let (w1,_) = Gdk.Window.get_size hpaned#misc#window in
-  let ndx1 = (w1 * !!prop) / 100 in
+  let ndx1 = (w1 * prop) / 100 in
   hpaned#child1#misc#set_geometry ~width: ndx1 ();
   hpaned#child2#misc#set_geometry ~width: (w1 - ndx1 - hpaned#handle_size) ()
 
@@ -280,48 +271,76 @@ let set_vpaned (hpaned : GPack.paned) prop =
   hpaned#child1#misc#set_geometry ~height: ndy1 ();
   hpaned#child2#misc#set_geometry ~height: (h1 - ndy1 - hpaned#handle_size) ()
   
-let save_gui_options () =
-(* Compute layout *)
-  let (w,h) = Gdk.Window.get_size gui#coerce#misc#window in
-  gui_width =:= w;
-  gui_height =:= h;
-  
-  Options.save_with_help mldonkey_gui_ini  
 
-let get_hpaned (hpaned: GPack.paned) prop =
+let get_hpaned gui (hpaned: GPack.paned) prop =
   
   ignore (hpaned#child1#coerce#misc#connect#size_allocate
       ~callback: (fun r ->
         let (w1,_) = Gdk.Window.get_size hpaned#misc#window in
         prop =:= r.Gtk.width * 100 / (max 1 (w1 - hpaned#handle_size));
-        save_gui_options ()
+        save_gui_options gui
     ))
 
-let get_vpaned (hpaned: GPack.paned) prop =
+let get_vpaned gui (hpaned: GPack.paned) prop =
   
   ignore (hpaned#child1#coerce#misc#connect#size_allocate
       ~callback: (fun r ->
         let (_,h1) = Gdk.Window.get_size hpaned#misc#window in
         prop =:= r.Gtk.height * 100 / (max 1 (h1 - hpaned#handle_size));
-        save_gui_options ()
+        save_gui_options gui
     ))
   
-let save_options () =
+let save_options gui =
   let module P = Gui_proto in
 
   try
-    gui_send (P.SaveOptions_query
-		  (List.map
-		     (fun (name, r) -> (name, !r))
-		     Gui_options.client_options_assocs
-		  )
-	     );
-    save_gui_options ()
+    Gui_com.send (P.SaveOptions_query
+                    (List.map
+                       (fun (name, r) -> (name, !r))
+                       Gui_options.client_options_assocs
+                    )
+		 );
+    save_gui_options gui
   with _ ->
     Printf.printf "ERROR SAVING OPTIONS (but port/password/host correctly set for GUI)"; print_newline ()
-      
-let servers_remove (gui : gui) () = 
-  let module P = Gui_proto in
-  for_selection clist_servers (fun s ->
-      gui_send (P.RemoveServer_query (server_key s));
-  ) ()
+
+let create_search query_entry max_hits =
+  let s = {
+    Gui_proto.search_num = !Gui_global.search_counter ;
+    Gui_proto.search_query = query_entry ;
+    Gui_proto.search_max_hits = max_hits ;
+  } 
+  in
+  incr Gui_global.search_counter;
+  s
+
+let rec rec_description_of_query q = 
+  match q with
+  | Q_HIDDEN l
+  | Q_AND l
+  | Q_OR l -> List.flatten (List.map rec_description_of_query l)
+
+  | Q_ANDNOT (q1, q2) -> rec_description_of_query q1
+  | Q_MODULE (_,q) -> rec_description_of_query q
+	
+  | Q_KEYWORDS (_,s) -> [s]
+  | Q_MINSIZE _ 
+  | Q_MAXSIZE _ -> []
+  | Q_FORMAT (_,s)
+  | Q_MEDIA  (_,s)
+  | Q_MP3_ARTIST (_,s)
+  | Q_MP3_TITLE (_,s)
+  | Q_MP3_ALBUM (_,s) -> [s]
+
+  | Q_MP3_BITRATE _ -> []
+
+
+
+(** Retourne quelques mots pour résumer une requete *)
+let description_of_query q =
+  match rec_description_of_query q with 
+    [] -> "stupid query"
+  | [s] -> s
+  | [s1 ; s2] -> s1^" "^s2
+  | s1 :: s2 :: s3 :: _ -> s1^" "^s2^" "^s3
+  

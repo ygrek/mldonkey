@@ -71,21 +71,28 @@ module Make(Doc : sig
       | '0' .. '9' -> 26 + (int_of_char c - int_of_char '0')
       | _ -> assert false
     
+    let exit_exn = Exit
+      
     let add_doc node doc fields = 
 (*      Printf.printf "add_doc"; print_newline (); *)
       let len = Array.length node.docs in
-      let pos = node.next_doc  in
-      if pos = len then begin
-          let new_docs = Array.create (len + len/2 + 2) doc in
-          let new_fields = Array.create (len + len/2 + 2) 0 in
-          Array.blit node.docs 0 new_docs 0 len;
-          Array.blit node.fields 0 new_fields 0 len;
-          node.docs <- new_docs;
-          node.fields <- new_fields
-        end;
-      node.docs.(pos) <- doc;
-      node.fields.(pos) <- fields;
-      node.next_doc <- pos +1
+      let pos = node.next_doc in
+      try
+        for i = 0 to node.next_doc - 1 do
+          if node.docs.(i) == doc then raise exit_exn;
+        done;
+        if pos = len then begin
+            let new_docs = Array.create (len + len/2 + 2) doc in
+            let new_fields = Array.create (len + len/2 + 2) 0 in
+            Array.blit node.docs 0 new_docs 0 len;
+            Array.blit node.fields 0 new_fields 0 len;
+            node.docs <- new_docs;
+            node.fields <- new_fields
+          end;
+        node.docs.(pos) <- doc;
+        node.fields.(pos) <- fields;
+        node.next_doc <- pos +1
+      with _ -> ()
 (* ; Printf.printf "done"; print_newline () *)
     
     let add_char node c = 

@@ -1,0 +1,23 @@
+/* XPM */
+static char *enemy2_xpm[] = {
+/* width height num_colors chars_per_pixel */
+"    12    12        4            1",
+/* colors */
+". c #000000",
+"# c #803030",
+"a c #c03030",
+"b c None",
+/* pixels */
+"bb.bb..b.aab",
+"baa..aa.a.aa",
+"a.aaaa#aa.aa",
+"aaaa.aa.aa#a",
+".aaa.aa.aa#a",
+".aaa.aa.aa#a",
+".aaa.aa.aa#a",
+"a.a#.aa.aa#a",
+"a#a#..a.#a##",
+"a..aaa###..b",
+"a#aa.a...bbb",
+"b#aaa.bbbbbb"
+};

@@ -1,0 +1,57 @@
+Maybe you need some help to understand the code ?
+
+  1) Learn Objective-Caml (you won't be disappointed):
+  
+        http://ocaml.inria.fr/
+
+  2) mldonkey directory tree:
+
+Special directories:
+
+config/		contains the autoconf configure.in script and other files
+distrib/		files distributed with binaries in a release
+patches/		patches to external programs (e.g. ocaml)
+scripts/		nothing interesting here ...
+tools/		useful tools to compile mldonkey (e.g. pa_zog.cma)
+
+Useful general libraries:
+
+cdk/		these two directories contain general modules and
+lib/		data structures. diff is from history
+
+net/		socket manipulation library around a select call (mldonkey
+		is fortunately not multi-threaded, that's why it works)
+
+chat/		part of the mlchat program inside mldonkey:
+
+mp3tagui/	mp3 manipulation library
+
+Program header:
+
+common/		basic types and data structures common to all
+		p2p systems.
+
+Peer-to-peer modules (not necessary):
+
+audio_galaxy/	Audio-Galaxy (not useful anymore)
+direct_connect/	Direct-Connect (must work on that)
+limewire/	LimeWire (Gnutella client)
+opennap/		Open-Napster
+
+secret/		you should not have that :) the protocol must remain
+		hidden (too many discussions about that)
+donkey/		the client part of donkey
+server/		the server part of donkey
+
+Program end (main):
+
+driver/		communication with interfaces and main loop
+
+Graphical interface:
+
+configwin/	configuration windows for lablgtk
+gpattern/	tables and columns manipulation in lablgtk
+okey/		key manipulation in lablgtk
+gui/		the GTK interface
+
+icons/		some icons

@@ -17,9 +17,10 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonTypes
 open Unix
 open TcpBufferedSocket
-open Mftp
+open DonkeyMftp
 open Options
 open Mftp_comm
   
@@ -34,33 +35,93 @@ type tagged_file =  {
 
     *)
 
-let store = Store.create ()
+let store = Store.create "server_store"
   
 module Document = struct
-    type t = int
+    type t = Store.index
       
-    let num t = t
+    let num t = Store.index t
     let filtered t = Store.get_attrib store t
     let filter t bool = Store.set_attrib store t bool
   end
   
 module DocIndexer = Indexer2.FullMake(Document)
-
-type replies =  {
-    mutable docs : int array;
-    mutable next_doc : int;
-  }
   
 let index = DocIndexer.create ()
 let table = Hashtbl.create 1023
 
+  
+(****************************************************)  
+        
+let stem s =
+  let s = String.lowercase (String.copy s) in
+  for i = 0 to String.length s - 1 do
+    let c = s.[i] in
+    match c with
+      'a'..'z' | '0' .. '9' -> ()
+    | _ -> s.[i] <- ' ';
+  done;
+  String2.split_simplify s ' '
+
+let name_bit = 1
+(* "size" *)
+(* "bitrate" *)
+let artist_bit = 2 (* tag "Artiste" *)
+let title_bit = 4  (* tag "Title" *)
+let album_bit = 8 (* tag "Album" *)
+let media_bit = 16 (* "type" *)
+let format_bit = 32 (* "format" *)
+      
+let index_string doc s fields =
+  let words = stem s in
+  List.iter (fun s ->
+(*      Printf.printf "ADD [%s] in index" s; print_newline (); *)
+      DocIndexer.add  index s doc fields
+  ) words 
+  
+let index_name doc name = 
+  index_string doc name 1 (* general search have field 1 *)
+
+let index_file doc file = 
+  
+  List.iter (fun tag ->
+      match tag with
+      | { tag_name = "filename"; tag_value = String s } -> 
+          index_string doc s name_bit
+      | { tag_name = "Artist"; tag_value = String s } -> 
+          index_string doc s artist_bit
+      | { tag_name = "Title"; tag_value = String s } -> 
+          index_string doc s title_bit
+      | { tag_name = "Album"; tag_value = String s } -> 
+          index_string doc s album_bit
+      | { tag_name = "format"; tag_value = String s } -> 
+          index_string doc s format_bit
+      | { tag_name = "type"; tag_value = String s } -> 
+          index_string doc s media_bit
+      | _ -> ()
+  ) file.f_tags  
+
+(***********************************************)
+
+let bit_of_field field =
+  match field with
+  | "filename" -> name_bit
+  | "Artist" -> artist_bit
+  | "Title" -> title_bit
+  | "Album" -> album_bit
+  | "format" -> format_bit 
+  | "type" -> media_bit
+  | _ -> raise Not_found
         
 let rec query_to_query t = 
   match t with
   | QAnd (q1,q2) -> Indexer.And (query_to_query q1, query_to_query q2)
   | QOr (q1, q2) -> Indexer.Or (query_to_query q1, query_to_query q2)
   | QAndNot (q1,q2) -> Indexer.AndNot (query_to_query q1, query_to_query q2)
-  | _ -> failwith "Query not implemented by server"      
+  | QHasWord w -> Indexer.HasWord w
+  | QHasField (field, w) -> Indexer.HasField(bit_of_field field, w)
+  | _ -> failwith "Query not implemented by server"
+      
 (*
   
 type query =
@@ -81,17 +142,21 @@ type 'a query =
 | Predicate of ('a -> bool)
 
     *)
-
+open ServerTypes
   
 let add file = 
   try
     let doc = Hashtbl.find table file.f_md4 in
     let file2 = Store.get store doc in
+
+    if file <> file2 then
+      index_file doc file;
     Printf.printf "Must check files with same md4"; print_newline ();
     ()
   with _ ->
       let doc = Store.add store file in
       Hashtbl.add table file.f_md4 doc;
+      index_file doc file;
       ()      
         
 let find query = 

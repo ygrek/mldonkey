@@ -154,7 +154,7 @@ let create addr port handler =
       sock = dummy_sock;
       event_handler = handler;
     } in
-  let sock = BasicSocket.create fd (udp_handler t) in
+  let sock = BasicSocket.create "udp_socket" fd (udp_handler t) in
   t.sock <- sock;
   t
   
@@ -167,7 +167,7 @@ let create_sendonly () =
       sock = dummy_sock;
       event_handler = (fun _ _ -> ());
     } in
-  let sock = BasicSocket.create fd (udp_handler t) in
+  let sock = BasicSocket.create "udp_handler_sendonly" fd (udp_handler t) in
   t.sock <- sock;
   t
     

@@ -15,3 +15,6 @@ release-*
 contribs
 use_tags*
 .depend
+mlchat
+mlchat.byte
+test_*
