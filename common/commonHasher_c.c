@@ -139,6 +139,7 @@ static void sha1_unsafe64_fd_direct (OS_FD fd, long pos, long len,
 #ifndef HAVE_LIBPTHREAD
 
 #define MAX_CHUNK_SIZE 1000000
+#include "sha1_c.h"
 static  SHA1_CTX sha1_context;
 static OS_FD job_fd;
 static long job_pos;
