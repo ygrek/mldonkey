@@ -138,58 +138,62 @@ module PingServerUdp = struct (* client -> serveur pour identification ? *)
   end
 
 module PingServerReplyUdp = struct (* reponse du serveur a 150 *)
-
-  let multiple_getsources = 1
-  let multiple_replies = 2
-
+    
+    let multiple_getsources = 1
+    let multiple_replies = 2
+    
     type t = {
-	users : int;
-	files : int;
-	soft_limit : int  option;
-	hard_limit : int option;
-	max_users : int option;
-	flags : int option;
+        challenge : int32;
+        users : int;
+        files : int;
+        soft_limit : int  option;
+        hard_limit : int option;
+        max_users : int option;
+        flags : int option;
       }
 (*           <E3><97><users><files><softLimit><hardLimit><maxUsers><flags> *)
     let parse len s =
-      let users = get_int s 1 in
-      let files = get_int s 5 in
-      let soft_limit = if len > 9 then Some (get_int  s 9) else None in
-      let hard_limit = if len > 13 then Some (get_int  s 13) else None in
-      let max_users = if len > 17 then Some (get_int  s 17) else None in
-      let flags = if len > 21 then Some (get_int s 21) else None in
+      let challenge = get_int32 s 1 in
+      let users = get_int s 5 in
+      let files = get_int s 9 in
+      let soft_limit = if len > 13 then Some (get_int  s 9) else None in
+      let hard_limit = if len > 17 then Some (get_int  s 13) else None in
+      let max_users = if len > 21 then Some (get_int  s 17) else None in
+      let flags = if len > 25 then Some (get_int s 21) else None in
       {
-       users = users;
-       files = files;
-       soft_limit = soft_limit;
-       hard_limit = hard_limit;
-       max_users = max_users;
-       flags = flags;
-     }
-      
-     let bprint oc t =
-         Printf.bprintf oc "PING REPLY\n";
-         Printf.bprintf oc "   %d users %d files\n" t.users t.files;
-         (match t.soft_limit with Some x -> Printf.bprintf oc "   Soft limit: %d\n" x | None -> ());
-         (match t.hard_limit with Some x -> Printf.bprintf oc "   Hard limit: %d\n" x | None -> ());
-         (match t.max_users with Some x -> Printf.bprintf oc "   Max nusers: %d\n" x | None -> ());
-         (match t.flags with Some x -> Printf.bprintf oc "   Flags: %x\n" x | None -> ());
-         Printf.bprintf oc "\n"
-
-      let write buf t =
-          buf_int buf t.users;
-          buf_int buf t.files;
-         (match t.soft_limit, t.hard_limit, t.max_users, t.flags with
-	   None, None, None, None -> ()
-	 | _ ->
-	     buf_int buf (
-	       match t.soft_limit with Some x -> x | None -> 0);
-	     buf_int buf (
-	       match t.hard_limit with Some x -> x | None -> 0);
-	     buf_int buf (
-   	       match t.max_users with Some x -> x | None -> 0);
-	     match t.flags with Some x -> buf_int buf x | None -> ()
-	 )                           
+        challenge = challenge;
+        users = users;
+        files = files;
+        soft_limit = soft_limit;
+        hard_limit = hard_limit;
+        max_users = max_users;
+        flags = flags;
+      }
+    
+    let bprint oc t =
+      Printf.bprintf oc "PING REPLY\n";
+      Printf.bprintf oc "   %d users %d files\n" t.users t.files;
+      (match t.soft_limit with Some x -> Printf.bprintf oc "   Soft limit: %d\n" x | None -> ());
+      (match t.hard_limit with Some x -> Printf.bprintf oc "   Hard limit: %d\n" x | None -> ());
+      (match t.max_users with Some x -> Printf.bprintf oc "   Max nusers: %d\n" x | None -> ());
+      (match t.flags with Some x -> Printf.bprintf oc "   Flags: %x\n" x | None -> ());
+      Printf.bprintf oc "\n"
+    
+    let write buf t =
+      buf_int32 buf t.challenge;
+      buf_int buf t.users;
+      buf_int buf t.files;
+      (match t.soft_limit, t.hard_limit, t.max_users, t.flags with
+          None, None, None, None -> ()
+        | _ ->
+            buf_int buf (
+              match t.soft_limit with Some x -> x | None -> 0);
+            buf_int buf (
+              match t.hard_limit with Some x -> x | None -> 0);
+            buf_int buf (
+              match t.max_users with Some x -> x | None -> 0);
+            match t.flags with Some x -> buf_int buf x | None -> ()
+      )                           
   end
   
 module ServerDescUdp = struct
@@ -309,7 +313,8 @@ module QueryLocationReplyUdp = struct
             { ip = ip; port = port; } :: (iter (i+1))
           in
           let locs = iter 0 in
-          iter_len (pos+17+6*n) ({ locs =locs; md4 = md4 } :: list)
+          let pos = pos+17+6*n + 2 in
+          iter_len pos ({ locs =locs; md4 = md4 } :: list)
         else
           List.rev list
       in

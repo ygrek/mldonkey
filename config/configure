@@ -1214,7 +1214,7 @@ MYCONFIG_ARGS_DEFINED=yes
 echo $MYCONFIG_ARGS
 
 CURRENT_VERSION=2.5
-CURRENT_RELEASE=4+1
+CURRENT_RELEASE=4+2
 
 REQUIRED_OCAML=3.07
 DOWNLOAD_OCAML=3.07pl2
@@ -3835,7 +3835,7 @@ WGET="$ac_cv_prog_WGET"
 if test "$BUILD_OCAML" = "yes"; then
 
   echo "********  Objective-Caml $REQUIRED_OCAML is required  *********" 1>&2;
-  echo "*******  Check http://ocaml.inria.fr/  ********" 1>&2;
+  echo "*******  Check http://caml.inria.fr/  ********" 1>&2;
   echo "Do you want this script to try to download and install ocaml"
   echo "LOCALLY in mldonkey directory ?"
   if test "$BATCH" = "no"; then read i; else i=yes; fi
@@ -4255,7 +4255,7 @@ case "$OCAMLVERSION" in
  "$REQUIRED_OCAML"* | 3.06* ) ;;
  *)
   echo "********  Version $REQUIRED_OCAML of Objective-Caml is required  *********" 1>&2;
-  echo "*******  Check http://ocaml.inria.fr/  ********" 1>&2;
+  echo "*******  Check http://caml.inria.fr/  ********" 1>&2;
   exit 1;
  ;;
 esac
@@ -4273,7 +4273,7 @@ else
 
   test "$OCAMLOPTVERSION" = "$OCAMLVERSION" || {
     echo "********  Version $REQUIRED_OCAML of ocamlopt is required  *********" 1>&2;
-    echo "*******  Check http://ocaml.inria.fr/  ********" 1>&2;
+    echo "*******  Check http://caml.inria.fr/  ********" 1>&2;
     exit 1; }
 
 fi
@@ -10210,7 +10210,7 @@ cd ..
 
 if test "$OS_FILES" = "mingw"; then
    echo "compiling win32 resource file"
-   windres -o resfile.o config/mldonkey.rc.in
+   windres -o resfile.o config/mldonkey.rc
 fi
 
 echo "Building dependencies"

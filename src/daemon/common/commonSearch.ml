@@ -932,7 +932,7 @@ module Indexing = struct
                   | PassInvertQuery e2 -> raise (InvertQuery e2) *)
             )
             
-        | QHasWord s -> has_word s 0xffffffff
+        | QHasWord s -> has_word s 0x7fffffff
         | QHasField (f, s) ->
             has_word s (
               match f with
@@ -941,7 +941,7 @@ module Indexing = struct
               | Field_Title -> title_bit 
               | Field_Artist -> artist_bit 
               | Field_Album -> album_bit 
-              | _ -> 0xffffffff);
+              | _ -> 0x7fffffff);
         | QHasMinVal (f,size) ->
             Indexer.Predicate
               (if f = Field_Size then

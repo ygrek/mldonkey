@@ -424,8 +424,8 @@ let connect_server s =
       DG.connection_try s.server_connection_control;
       incr nservers;
       DG.printf_char 's'; 
-      let sock = TcpBufferedSocket.connect "opennap to server" (
-          Ip.to_inet_addr s.server_ip) s.server_port 
+      let sock = TcpBufferedSocket.connect "opennap to server" 
+          (Ip.to_inet_addr s.server_ip) s.server_port 
           (server_handler s) (* Mftp_comm.server_msg_to_string*)  in
       set_server_state s Connecting;
       set_read_controler sock DG.download_control;

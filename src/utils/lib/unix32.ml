@@ -737,15 +737,13 @@ let buffered_bytes = ref Int64.zero
 let modified_files = ref []
 
 let _ =
-  lprintf "Your system supports %d file descriptors" fds_size;
-  lprint_newline ();
-  lprintf "You can download files up to %s\n" 
+  lprintf "Your system supports %d file descriptors\n" fds_size;
+  lprintf "You can download files up to %s\n\n" 
     ( match Unix2.c_sizeofoff_t () with 
 	|  4 -> "2GB"
 	|  _ -> Printf.sprintf "2^%d-1 bits (do the maths ;-p)" 
 	     ((Unix2.c_sizeofoff_t () *8)-1)			
-    );
-  lprint_newline () 
+    )
 
 (* at most 50 files can be opened simultaneously *)
 
@@ -1042,12 +1040,12 @@ module SparseFile_Test = (SparseFile : File)
   (*
 let _ =
   
-  let t = create_multifile "toto" MultiFile.access MultiFile.rights
+  let t = create_multifile "/home/tyminouch/lefessan/devel/mldonkey-savannah-stable/toto" MultiFile.access MultiFile.rights
       [
-      "1", Int64.of_int 10;
-      "2", Int64.of_int 10;
-      "3", Int64.of_int 10;
-      "4", Int64.of_int 10;
+      "CD1/toto.1", Int64.of_int 10;
+      "CD1/toto.2", Int64.of_int 10;
+      "CD2/toto.3", Int64.of_int 10;
+      "CD2/toto.4", Int64.of_int 10;
     ]
   in
 
@@ -1073,4 +1071,4 @@ let _ =
     | Some f -> f);
   
   exit 2
-*)
+    *)

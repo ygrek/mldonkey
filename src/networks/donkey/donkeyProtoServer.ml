@@ -151,20 +151,22 @@ ascii [ 9(3)(4)(0) M a i n(0)(0)(2)(0)(5)(0) M u s i c(0)(0)(3)(0)(3)(0) A r t(0
   end
 
 module SetID = struct 
-    type t = Ip.t
+    type t = bool * Ip.t
       
     
-    let parse len s = get_ip s 1 
+    let parse len s = 
+      len = 9, get_ip s 1
     
-    let print t = 
-      lprintf "SET_ID:\n";
+    let print (zlib, t) = 
+      lprintf "SET_ID: %s\n" (if zlib then "Zlib" else "");
       lprintf "id: %s\n" (Ip.to_string t)
 
-    let bprint oc t = 
-      Printf.bprintf oc "SET_ID:\n";
+    let bprint oc (zlib, t) = 
+      Printf.bprintf oc "SET_ID: %s\n"  (if zlib then "Zlib" else "");
       Printf.bprintf oc "id: %s\n" (Ip.to_string t)
     
-    let write buf t =
+    let write buf (zlib, t) =
+      if zlib then buf_int buf 1;
       buf_ip buf t
   
   end
@@ -849,8 +851,8 @@ module QueryLocationReply  = struct
     let print t = 
       lprintf "LOCATION OF %s\n" (Md4.to_string t.md4);
       List.iter (fun l -> 
-          lprintf "   %s : %d" (Ip.to_string l.ip) l.port;
-          lprint_newline ();
+          lprintf "   %s : %d\n" (Ip.to_string l.ip) l.port;
+          
       ) t.locs
 
      let bprint oc t = 
@@ -1039,12 +1041,13 @@ type t =
 | QueryIDReq of QueryID.t
 | QueryIDFailedReq of QueryIDFailed.t
 | QueryIDReplyReq of QueryIDReply.t
-| UnknownReq of string
 | ChatRoomsReq of ChatRooms.t
 | QueryUsersReq of QueryUsers.t
 | QueryUsersReplyReq of QueryUsersReply.t
 | QueryMoreResultsReq
-  
+
+| UnknownReq of string
+
 (****************
                      MLdonkey extensions messages 
 ***************)
@@ -1085,66 +1088,66 @@ let rec parse magic s =
     let len = String.length s in
     if len = 0 then raise Not_found;
     let opcode = int_of_char (s.[0]) in
-      match magic with 
-	  227 -> begin
+    match magic with 
+      227 -> begin
 (*    lprintf "opcode: %d\n" opcode; *)
-    match opcode with 
-    | 1 -> ConnectReq (Connect.parse len s)
-    | 5 -> BadProtocolVersionReq 
-    | 20 -> AckIDReq (AckID.parse len s)
-    | 21 -> ShareReq (Share.parse len s)
-    | 22 -> QueryReq (Query.parse len s)
-    | 25 -> QueryLocationReq (QueryLocation.parse len s)
-    | 26 -> QueryUsersReq (QueryUsers.parse len s)
-    | 28 -> QueryIDReq (QueryID.parse len s)
+          match opcode with 
+          | 1 -> ConnectReq (Connect.parse len s)
+          | 5 -> BadProtocolVersionReq 
+          | 20 -> AckIDReq (AckID.parse len s)
+          | 21 -> ShareReq (Share.parse len s)
+          | 22 -> QueryReq (Query.parse len s)
+          | 25 -> QueryLocationReq (QueryLocation.parse len s)
+          | 26 -> QueryUsersReq (QueryUsers.parse len s)
+          | 28 -> QueryIDReq (QueryID.parse len s)
 (*    | 29 -> QueryChats (C->S) *)
 (*    | 30 -> ChatMessage (C->S) *)
 (*    | 31 -> JoinRoom (C->S) *)
-    | 33 -> QueryMoreResultsReq
-    | 50 -> ServerListReq (ServerList.parse len s)
-    | 51 -> QueryReplyReq (QueryReply.parse len s)
-    | 52 -> InfoReq (Info.parse len s)
-    | 53 -> QueryIDReplyReq (QueryIDReply.parse len s)
-    | 54 -> QueryIDFailedReq (QueryIDFailed.parse len s)
-    | 56 -> MessageReq (Message.parse len s)
-    | 57 -> ChatRoomsReq (ChatRooms.parse len s)
+          | 33 -> QueryMoreResultsReq
+          | 50 -> ServerListReq (ServerList.parse len s)
+          | 51 -> QueryReplyReq (QueryReply.parse len s)
+          | 52 -> InfoReq (Info.parse len s)
+          | 53 -> QueryIDReplyReq (QueryIDReply.parse len s)
+          | 54 -> QueryIDFailedReq (QueryIDFailed.parse len s)
+          | 56 -> MessageReq (Message.parse len s)
+          | 57 -> ChatRoomsReq (ChatRooms.parse len s)
 (*    | 58 -> ChatBroadcastMessage (S->C) *)
 (*    | 59 -> ChatUserJoin (S->C) *)
 (*    | 60 -> ChatUserLeave (S->C) *)
 (*    | 61 -> ChatUsers (S->C) *)
-    | 64 -> SetIDReq (SetID.parse len s)
-    | 65 -> ServerInfoReq (ServerInfo.parse len s)
-    | 66 -> QueryLocationReplyReq (QueryLocationReply.parse len s)
-    | 67 -> QueryUsersReplyReq (QueryUsersReply.parse len s)
+          | 64 -> SetIDReq (SetID.parse len s)
+          | 65 -> ServerInfoReq (ServerInfo.parse len s)
+          | 66 -> QueryLocationReplyReq (QueryLocationReply.parse len s)
+          | 67 -> QueryUsersReplyReq (QueryUsersReply.parse len s)
 (* UDP *)
-    
+
 
 (* MLDONKEY *)
-    | 250 -> mldonkey_extensions len s
-    | _ ->
-	raise Not_found
-	  end
-   | 0xD4 -> (* 212 *)
-
+          | 250 -> mldonkey_extensions len s
+          | _ ->
+              raise Not_found
+        end
+    | 0xD4 -> (* 212 *)
+        
         lprintf "Compressed Message...\n";
         
         if Autoconf.has_zlib then
           let s = Autoconf.zlib__uncompress_string2 (String.sub s 1 (len-1)) in
           let s = Printf.sprintf "%c%s" (char_of_int opcode) s in 
-            parse 227 s
+          parse 227 s
         else
           failwith "No Zlib to uncompress packet"
     | _ ->   
         failwith (Printf.sprintf "Unkown opcode %d from server\n" opcode)
   with
     e -> 
-       if !CommonOptions.verbose_unknown_messages then begin
+      if !CommonOptions.verbose_unknown_messages then begin
           lprintf "Unknown message From server: %s (magic %d)\n"
-              (Printexc2.to_string e) magic; 
-	      	     let tmp_file = Filename.temp_file "comp" "pak" in
-	     File.from_string tmp_file s;
-	     lprintf "Saved unknown packet %s\n" tmp_file; 
-
+            (Printexc2.to_string e) magic; 
+          let tmp_file = Filename.temp_file "comp" "pak" in
+          File.from_string tmp_file s;
+          lprintf "Saved unknown packet %s\n" tmp_file; 
+          
           dump s;
           lprint_newline ();
         end;
@@ -1177,18 +1180,18 @@ let print t =
     | ChatRoomsReq t -> ChatRooms.print t
 
     | QueryMoreResultsReq -> 
-        lprintf "QUERY MORE RESULTS"; lprint_newline ()
+        lprintf "QUERY MORE RESULTS\n"; 
     | Mldonkey_MldonkeyUserReplyReq ->
-        lprintf "MLDONKEY USER"; lprint_newline ()
+        lprintf "MLDONKEY USER\n"; 
     | Mldonkey_SubscribeReq (num, lifetime, t) -> 
-        lprintf "MLDONKEY SUBSCRIPTION %d FOR %d SECONDS" num lifetime; 
-        lprint_newline ();
+        lprintf "MLDONKEY SUBSCRIPTION %d FOR %d SECONDS\n" num lifetime; 
+        
         Query.print t
     | Mldonkey_NotificationReq (num,t) ->
-        lprintf "MLDONKEY NOTIFICATIONS TO %d" num; lprint_newline ();
+        lprintf "MLDONKEY NOTIFICATIONS TO %d\n" num; 
         QueryReply.print t
     | Mldonkey_CloseSubscribeReq num ->
-        lprintf "MLDONKEY CLOSE SUBSCRIPTION %d" num; lprint_newline ();
+        lprintf "MLDONKEY CLOSE SUBSCRIPTION %d\n" num; 
     | UnknownReq s -> 
         let len = String.length s in
         lprintf "UnknownReq:\n";
@@ -1209,9 +1212,9 @@ let print t =
           lprintf "(%d)" n            
         done;
         lprintf "]\n";
-        lprint_newline ()
   end;
   lprint_newline ()
+
 
 let bprint oc t =
   begin
@@ -1368,4 +1371,13 @@ let to_string m =
   let b = Buffer.create 100 in
   bprint b m;
   Buffer.contents b
-  
+
+  (*
+let _ =
+  let s = "abcdefghijklmnopqrstuvwxyz" in
+  let compressed = Autoconf.zlib__compress_string s in
+  let ss = Autoconf.zlib__uncompress_string2 compressed in
+  lprintf "[%s] <> [%s]\n" s (String.escaped ss);
+  assert (s = ss);
+  exit 2
+  *)

@@ -141,7 +141,8 @@ let send_new_shared () =
             match s.server_sock with
               None -> ()
             | Some sock ->
-                direct_server_send_share sock list) (connected_servers ());
+                direct_server_send_share s.server_has_zlib sock list)
+      (connected_servers ());
     end
           
 (*

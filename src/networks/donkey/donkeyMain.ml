@@ -238,7 +238,7 @@ let enable () =
       try
         let sock = TcpServerSocket.create 
             "donkey client server"
-            (Ip.to_inet_addr !!donkey_bind_addr)
+            (Ip.to_inet_addr !!client_bind_addr)
           !!port (client_connection_handler false) in
         
         listen_sock := Some sock;
@@ -246,7 +246,7 @@ let enable () =
         
         begin try
             let sock =
-              (UdpSocket.create (Ip.to_inet_addr !!donkey_bind_addr)
+              (UdpSocket.create (Ip.to_inet_addr !!client_bind_addr)
                 (!!port + 4) 
                 (udp_handler DonkeyUdp.udp_client_handler))
             in

@@ -99,7 +99,7 @@ let enable () =
   );
 
   GnutellaClients.listen ();
-  let sock = (UdpSocket.create Unix.inet_addr_any
+  let sock = (UdpSocket.create (Ip.to_inet_addr !!client_bind_addr)
         !!client_port (GnutellaProtocol.udp_handler 
         GnutellaServers.udp_handler)) in
   udp_sock := Some sock;

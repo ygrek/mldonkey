@@ -166,7 +166,8 @@ let client_to_server s t sock =
     end;
   
   match t with
-    M.SetIDReq t ->
+    M.SetIDReq (zlib, t) ->
+      s.server_has_zlib <- zlib;
       if not (Ip.valid t) && !!force_high_id then
 	disconnect_server s (Closed_for_error "Low ID")
       else begin
@@ -369,10 +370,8 @@ let connect_server s =
           connection_try s.server_connection_control;
           incr nservers;
           printf_char 's'; 
-          let sock = TcpBufferedSocket.connect 
-              "donkey to server"
-              (
-              Ip.to_inet_addr s.server_ip) s.server_port 
+          let sock = TcpBufferedSocket.connect "donkey to server"
+              (Ip.to_inet_addr s.server_ip) s.server_port 
               (server_handler s) (* DonkeyProtoCom.server_msg_to_string*)  in
           s.server_cid <- None (*client_ip (Some sock) *);
           set_server_state s Connecting;
@@ -569,7 +568,8 @@ let update_master_servers _ =
 (*                lprintf "NEW MASTER SERVER"; lprint_newline (); *)
                 s.server_master <- true;
                 incr nmasters;
-                direct_server_send_share sock (DonkeyShare.all_shared ())
+                direct_server_send_share s.server_has_zlib sock
+                (DonkeyShare.all_shared ())
           end else
         if connection_last_conn s.server_connection_control 
             + 120 < last_time () &&
@@ -744,12 +744,12 @@ the fewer users. *)
       None -> assert false
     | Some sock ->                
         if !verbose then begin
-            lprintf "   MASTER: %s" (Ip.to_string s.server_ip); 
-            lprint_newline ();
+            lprintf "   MASTER: %s\n" (Ip.to_string s.server_ip); 
           end;
         s.server_master <- true;
         incr nmasters;
-        direct_server_send_share sock (DonkeyShare.all_shared ())        
+        direct_server_send_share s.server_has_zlib sock
+        (DonkeyShare.all_shared ())        
   in
 
   let max_allowed_connected_servers = max_allowed_connected_servers () in
@@ -761,8 +761,7 @@ connections *)
     if !nconnected_servers > max_allowed_connected_servers then begin
         
         if !verbose then begin
-            lprintf "MASTER:    DISCONNECT %s" (Ip.to_string s.server_ip);
-            lprint_newline ();
+            lprintf "MASTER:    DISCONNECT %s\n" (Ip.to_string s.server_ip);
           end;
         
         nconnected_servers := !nconnected_servers - 3;
@@ -787,10 +786,9 @@ connections *)
           incr nconnected_servers;
           
           if !verbose then begin
-              lprintf "MASTER: EXAM %s %d" (Ip.to_string s.server_ip)
+              lprintf "MASTER: EXAM %s %d\n" (Ip.to_string s.server_ip)
               (last_time () -  connection_last_conn s.server_connection_control)
               ; 
-              lprint_newline ();
             end;
           
           if connection_last_conn s.server_connection_control 
@@ -815,10 +813,10 @@ now if needed *)
                       
                       if !verbose then begin
                           lprintf
-                            "   MASTER: RAISING %s (%d) instead of %s (%d)" 
+                            "   MASTER: RAISING %s (%d) instead of %s (%d)\n" 
                             (Ip.to_string s.server_ip) s.server_nusers 
                             (Ip.to_string ss.server_ip) ss.server_nusers
-                          ; lprint_newline (); 
+                          
                         end;
                       
                       ss.server_master <- false;

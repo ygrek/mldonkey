@@ -285,8 +285,8 @@ let connect_client c =
       c.client_file <- None;
 (*      lprintf "TRYING TO CONNECT CLIENT ON %s:%d" 
 (Ip.to_string ip) port; lprint_newline (); *)
-      let sock = TcpBufferedSocket.connect "opennap to client" (
-          Ip.to_inet_addr ip) port 
+      let sock = TcpBufferedSocket.connect "opennap to client" 
+	  (Ip.to_inet_addr ip) port 
           (client_handler c)  in
       c.client_sock <- Some sock;
       set_read_controler sock DG.download_control;

@@ -877,8 +877,6 @@ let client_to_client challenge for_files c t sock =
             c.client_name (brand_to_string c.client_brand);
           lprint_newline ()
         end;
-      if !!friend_slots && client_type c = FriendClient then
-        CommonUploads.give_a_slot (as_client c.client_client);
 (*      end *)
   
   | M.CloseSlotReq _ ->
@@ -1796,9 +1794,9 @@ let reconnect_client c =
               connection_try c.client_connection_control;
               
               printf_string "?C";
-              let sock = TcpBufferedSocket.connect "donkey to client" (
-                  Ip.to_inet_addr ip) 
-                port 
+              let sock = TcpBufferedSocket.connect "donkey to client" 
+		  (Ip.to_inet_addr ip)
+                  port 
                   (client_handler c) (*client_msg_to_string*) in
               TcpBufferedSocket.set_write_power sock c.client_power;
               TcpBufferedSocket.set_read_power sock c.client_power;

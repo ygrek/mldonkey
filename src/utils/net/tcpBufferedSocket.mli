@@ -130,6 +130,7 @@ val nwritten : t -> int
 val accept_connection_bandwidth :
   bandwidth_controler ->  bandwidth_controler -> unit 
   
+val bind_address : Unix.inet_addr ref
 val ip_packet_size : int ref
 val mtu_packet_size : int ref
 val minimal_packet_size : int ref

@@ -2188,6 +2188,15 @@ release.static: static opt
 	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar
 	$(COMPRESS) mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar
 
+release.mlnet.static: mlnet.static opt
+	rm -rf mldonkey-*
+	cp -R distrib $(DISDIR)
+	cp mlnet.static $(DISDIR)/mlnet && strip $(DISDIR)/mlnet
+	mv $(DISDIR) $(DISDIR)-$(CURRENT_VERSION)
+	tar cf $(DISDIR).tar $(DISDIR)-$(CURRENT_VERSION)
+	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar
+	$(COMPRESS) mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar
+
 upload.static: release.static
 	scp mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar.$(COMPRESS_EXT) lachesis:devel/mldonkey-release/
 

@@ -46,7 +46,7 @@ let enable () =
       Unix.inet_addr_any !!server_port ServerClients.handler);
   
   let udp_server_sock = 
-    UdpSocket.create Unix.inet_addr_any (!!server_port + 4) 
+    UdpSocket.create (Ip.to_inet_addr !!client_bind_addr) (!!server_port + 4) 
     ServerUdp.udp_handler in
   udp_sock := Some udp_server_sock;
   UdpSocket.set_write_controler udp_server_sock udp_write_controler;

@@ -1175,7 +1175,7 @@ let check_current_downloads () =
   
 let enable enabler = 
   
-  let sock = (UdpSocket.create (Ip.to_inet_addr !!donkey_bind_addr)
+  let sock = (UdpSocket.create (Ip.to_inet_addr !!client_bind_addr)
       (!!overnet_port) (udp_handler udp_client_handler)) in
   udp_sock := Some sock;
   
@@ -1185,7 +1185,7 @@ let enable enabler =
     try
       let sock = TcpServerSocket.create 
           "overnet client server"
-          (Ip.to_inet_addr !!donkey_bind_addr)
+          (Ip.to_inet_addr !!client_bind_addr)
         (!!overnet_port) (DonkeyClient.client_connection_handler true) in
       
       tcp_sock := Some sock;

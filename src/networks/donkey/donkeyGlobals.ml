@@ -382,7 +382,8 @@ let new_server ip port score =
         server_queries_credit = 0;
         server_waiting_queries = [];
         server_id_requests = Fifo.create ();
-	server_flags = 0;
+          server_flags = 0;
+          server_has_zlib = false;
       }
       and server_impl = 
         {

@@ -147,11 +147,6 @@ let log_clients_on_console = define_expert_option donkey_section
   ""
     bool_option false
 
-  
-let donkey_bind_addr = define_option donkey_section ["donkey_bind_addr"]
-    "The IP address used to bind the donkey client"
-    Ip.option (Ip.of_inet_addr Unix.inet_addr_any)
-    
 let propagate_sources = define_expert_option donkey_section ["propagate_sources"]
     "Allow mldonkey to propagate your sources to other donkey clients"
     bool_option true
@@ -362,6 +357,5 @@ let gui_donkey_options_panel =
     "Sources Per Chunk", shortname sources_per_chunk, "T";
     "Prevent Re-download of Cancelled Files", shortname keep_cancelled_in_old_files, "B";
     "Dynamic Slot Allocation", shortname dynamic_slots, "B";
-    "Friend Slots", shortname friend_slots, "B";
   ]
 

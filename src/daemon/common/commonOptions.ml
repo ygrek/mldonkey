@@ -283,11 +283,6 @@ let max_upload_slots = define_option current_section ["max_upload_slots"]
 let dynamic_slots = define_option current_section ["dynamic_slots"] 
     "Set this to true if you want to have dynamic upload slot allocation (experimental)" bool_option false
 
-
-let friend_slots = define_option current_section ["friend_slots"] 
-    "Reserve an upload slot for each friend client" bool_option false
-  
-  
 let max_connections_per_second = define_option current_section
     ["max_connections_per_second"] 
   "Maximal number of connections that can be opened per second
@@ -825,6 +820,17 @@ let compaction_delay = define_expert_option current_section ["compaction_delay"]
 let vd_reload_delay = define_expert_option current_section ["vd_reload_delay"]
     "The delay between reloads of the vd output in the WEB interface"
     int_option 120
+
+let client_bind_addr = define_option current_section ["client_bind_addr"]
+    "The IP address used to bind the p2p clients"
+    Ip.option (Ip.of_inet_addr Unix.inet_addr_any)
+
+let _ =
+  option_hook client_bind_addr (fun _ ->
+      TcpBufferedSocket.bind_address := Ip.to_inet_addr !!client_bind_addr
+  )
+
+
 
   (*
 let web_header = define_expert_option current_section

@@ -438,8 +438,8 @@ and connect_server s =
               incr nservers;
               printf_char 's'; 
               
-              let sock = TcpBufferedSocket.connect "directconnect to server" (
-                  Ip.to_inet_addr ip)
+              let sock = TcpBufferedSocket.connect "directconnect to server" 
+	        (Ip.to_inet_addr ip)
                 s.server_port (server_handler s)  in
               
               set_server_state s Connecting;

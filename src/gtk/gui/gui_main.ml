@@ -34,16 +34,16 @@ let _ =
       Sys_error _ ->
 	(try Options.save O.mldonkey_gui_ini with _ -> ())
      | e ->
-        lprintf "Exception %s in load options %s" 
+        lprintf "Exception %s in load options %s\n" 
 	 (Printexc2.to_string e)
 	 (Options.options_file_name O.mldonkey_gui_ini);
-        lprint_newline ();
+        
   );
   let args = 
     ("-dump_msg", Arg.Unit (fun _ ->
           Options.save Gui_messages.message_file
       ), ": update internationalisation message file")::
-    Options.simple_args O.mldonkey_gui_ini in
+    Options.simple_args "" O.mldonkey_gui_ini in
   Arg.parse args (Arg.usage args)  "mlgui: the GUI to use with mldonkey"
   
 (* Check bindings *)

@@ -142,8 +142,8 @@ let connect_server s =
           if can_open_connection () then
             try
               connection_try s.server_connection_control;
-              let sock = TcpBufferedSocket.connect "slsk to server" (
-                  Ip.to_inet_addr ip)
+              let sock = TcpBufferedSocket.connect "slsk to server" 
+		  (Ip.to_inet_addr ip)
                 s.server_port (fun _ _ -> ())  in
               
               set_reader sock (soulseek_handler S2C.parse 

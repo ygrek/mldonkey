@@ -54,7 +54,7 @@ let server_msg_to_string msg =
   
   
   if !verbose_msg_servers then begin
-      lprintf "MESSAGE TO SERVER:";  lprint_newline (); 
+      lprintf "MESSAGE TO SERVER:\n";  
       DonkeyProtoServer.print msg; 
       lprint_newline ();
     end;
@@ -368,8 +368,8 @@ let make_tagged sock files =
         }
     ) files)
   
-let direct_server_send_share sock msg =
-  
+let direct_server_send_share compressed sock msg =
+
 (*  lprintf "SEND %d FILES TO SHARE" (List.length msg); lprint_newline ();*)
   
   let max_len = !!client_buffer_size - 100 - 
@@ -377,21 +377,40 @@ let direct_server_send_share sock msg =
   if !verbose then begin
       lprintf "SENDING SHARES"; lprint_newline ();
     end;
-
+  
   Buffer.clear buf;
-  buf_int8 buf 227;
-  buf_int buf 0;
-  buf_int8 buf 21; (* ShareReq *)
-  buf_int buf 0;
-  let nfiles, prev_len = DonkeyProtoServer.Share.write_files_max buf (
-      make_tagged (Some sock) msg) 0 max_len in
-  let s = Buffer.contents buf in
-  let s = String.sub s 0 prev_len in
+  let s = 
+    if compressed && Autoconf.has_zlib then begin
+        buf_int buf 0;
+        let nfiles, prev_len = DonkeyProtoServer.Share.write_files_max buf (
+            make_tagged (Some sock) msg) 0 max_len in
+        let s = Buffer.contents buf in
+        str_int s 0 nfiles;
+        let s = String.sub s 0 prev_len in        
+        let s = Autoconf.zlib__compress_string s in
+        
+        Buffer.clear buf;        
+        buf_int8 buf 0xD4;
+        buf_int buf 0;
+        buf_int8 buf 21; (* ShareReq *)
+        Buffer.add_string buf s;
+        Buffer.contents buf
+      end else begin
+        buf_int8 buf 227;
+        buf_int buf 0;
+        buf_int8 buf 21; (* ShareReq *)
+        buf_int buf 0;
+        let nfiles, prev_len = DonkeyProtoServer.Share.write_files_max buf (
+            make_tagged (Some sock) msg) 0 max_len in
+        let s = Buffer.contents buf in
+        str_int s 6 nfiles;
+        String.sub s 0 prev_len 
+      end
+  in
   let len = String.length s - 5 in
   str_int s 1 len;
-  str_int s 6 nfiles;
   write_string sock s
-        
+  
 let direct_client_send_files sock msg =
   let max_len = !!client_buffer_size - 100 - 
     TcpBufferedSocket.remaining_to_write sock in

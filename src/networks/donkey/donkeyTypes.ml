@@ -137,7 +137,8 @@ type server = (*[]*){
     
     mutable server_queries_credit : int;
     mutable server_waiting_queries : file list;
-
+    mutable server_has_zlib : bool;
+    
     mutable server_flags : int;
   } 
 

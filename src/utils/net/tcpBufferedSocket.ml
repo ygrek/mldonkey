@@ -77,6 +77,7 @@ and bandwidth_controler = {
     mutable forecast_bytes : int;
   }
 
+let bind_address = ref Unix.inet_addr_any
 let ip_packet_size = ref 40
 let mtu_packet_size = ref 1500
 let minimal_packet_size = ref 600
@@ -745,6 +746,8 @@ let connect name host port handler =
   try
 (*    lprintf "CONNECT %s:%d\n" (Unix.string_of_inet_addr host) port; *)
     let s = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
+    if !bind_address <> Unix.inet_addr_any then
+      Unix.bind s (Unix.ADDR_INET (!bind_address, 0));
     let proxy_ip, proxy_port =
       match !http_proxy with
         None -> Ip.null, 0

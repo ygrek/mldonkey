@@ -211,7 +211,9 @@ let scan_ports () =
       let next = ref true in
       prev_next := false;
       try
-        let sock = TcpBufferedSocket.connect "" addr i (fun sock e -> 
+        let sock = TcpBufferedSocket.connect "" 
+              addr i 
+              (fun sock e -> 
               match e with
                 BASIC_EVENT (RTIMEOUT) -> close sock Closed_for_timeout
               | _ -> ()
