@@ -519,7 +519,7 @@ let print_table_html spacing buf aligns titles lines =
   List.iter (fun line ->
       Printf.bprintf buf "\<TR\>";
       Array.iteri (fun i title ->
-          Printf.bprintf buf "\<TD%s\>%s\</TD\>" 
+          Printf.bprintf buf "\<TD%s nowrap\>%s\</TD\>" 
             (if i >= naligns then "" else
             match aligns.(i) with
               Align_Center -> " ALIGN=CENTER"
@@ -588,8 +588,7 @@ let print_file_html_form buf files =
           (Printf.sprintf "[%-5d]" file.file_num);
           (if file.file_state = FileDownloading then
               Printf.sprintf 
-                "\<input name=pause type=checkbox value=%d\>
-              R
+                "\<input name=pause type=checkbox value=%d\> R
                 \<input name=cancel type=checkbox value=%d\>"
                 file.file_num
                 file.file_num

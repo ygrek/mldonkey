@@ -161,16 +161,15 @@ let html_open_page buf r =
   http_add_header buf;
   
   Buffer.add_string buf
-  "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Frameset//EN\"\n
-  \"http://www.w3.org/TR/html4/frameset.dtd\">\n
-  <HTML>\n<HEAD>\n";
+  "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Frameset//EN\" 
+  \"http://www.w3.org/TR/html4/frameset.dtd\"><HTML>\n<HEAD>\n";
   Buffer.add_string buf !!html_header;
   if !display_vd then
     Printf.bprintf buf "<meta http-equiv=Refresh
     content=\"%d; URL=%s\">" !!vd_reload_delay (Url.to_string true r.get_url);
-  Buffer.add_string buf "</HEAD>\n<BODY>\n";
+  Buffer.add_string buf "</HEAD>\n";
   if not !!use_html_frames then
-          add_simple_commands buf;
+    add_simple_commands buf;
   ()
   
 let html_close_page buf =
@@ -192,6 +191,7 @@ let http_handler options t r =
       try
         match r.get_url.Url.file with
         | "/commands.html" ->
+            Buffer.add_string buf "<BODY>\n";  
             Buffer.add_string buf !!web_common_header
         | "/" | "/index.html" -> 
             if !!use_html_frames then begin
@@ -206,11 +206,13 @@ let http_handler options t r =
               end
         
         | "/complex_search.html" ->
+            Buffer.add_string buf "<BODY>\n";  
             complex_search buf
         | "/noframe.html"
         | "/oneframe.html" -> ()
         
         | "/filter" ->
+            Buffer.add_string buf "<BODY>\n";  
             let b = Buffer.create 10000 in 
             let filter = ref (fun _ -> ()) in
             begin              
@@ -264,6 +266,7 @@ let http_handler options t r =
             end
             
         | "/results" ->
+            Buffer.add_string buf "<BODY>\n";  
             let b = Buffer.create 10000 in
             List.iter (fun (arg, value) ->
                 match arg with
@@ -289,6 +292,7 @@ let http_handler options t r =
             
             
         | "/files" ->
+            Buffer.add_string buf "<BODY>\n";  
             List.iter (fun (arg, value) ->
                 match arg with
                   "cancel" -> 
@@ -334,6 +338,7 @@ let http_handler options t r =
             Buffer.add_string buf (html_escaped (Buffer.contents b))
             
         | "/submit" ->
+            Buffer.add_string buf "<BODY>\n";  
             begin
               match r.get_url.Url.args with
               | [ "q", "download"; "md4", md4_string; "size", size_string ] ->
