@@ -7,7 +7,7 @@ ChangeLog
             labeled as UNSTABLE until further tested.
 
 This release shares the same code as Amorphous SVN release 2-5-30ab
-
+except the fact is needs Ocaml 3.08.3
 
 3792 : EDK/HTML: More readable uptime in cs
 3795 : Updated files for bugs building GTK2 GUI, GTK1 newgui and GTK1 oldgui
