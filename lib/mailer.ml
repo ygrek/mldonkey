@@ -1,7 +1,5 @@
-open DownloadOptions
 open Options
 open Unix
-open DownloadTypes
   
 type mail = {
     mail_to : string;
@@ -79,38 +77,3 @@ let sendmail smtp_server smtp_port mail =
   with e ->
       Printf.printf "Exception %s while sending mail" (Printexc.to_string e);
       print_newline ()
-  
-let smtp_server = define_option downloads_ini ["smtp_server"] 
-  "The mail server you want to use (must be SMTP). Use hostname or IP address"
-    string_option "127.0.0.1"
-
-let smtp_port = define_option downloads_ini ["smtp_port"] 
-  "The port to use on the mail server (default 25)"
-  int_option 25
-
-let mail = define_option downloads_ini ["mail"]
-  "Your e-mail if you want to receive mails when downloads are completed"
-    string_option ""
-
-let best_name file =
-  match file.file_filenames with
-    [] -> Md4.to_string file.file_md4
-  | name :: _ -> name
-  
-let completed_file file =
-  if !!mail <> "" then
-    let line1 = "\r\n mldonkey has completed the download of:\r\n\r\n" in
-    let line2 = Printf.sprintf "\r\ned2k://|file|%s|%s|%s|\r\n" 
-        (best_name file)
-      (Int32.to_string file.file_size)
-      (Md4.to_string file.file_md4)
-    in
-    
-    let mail = {
-        mail_to = !!mail;
-        mail_from = Printf.sprintf "Your mldonkey <%s>" !!mail;
-        mail_subject = Printf.sprintf "mldonkey completed download";
-        mail_body = line1 ^ line2;
-      } in
-    sendmail !!smtp_server !!smtp_port mail
-    

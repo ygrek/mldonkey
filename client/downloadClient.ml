@@ -368,7 +368,7 @@ We should probably check that here ... *)
         | _ -> ()
       end
   
-  | M.Message85Req _ ->
+  | M.AvailableSlotReq _ ->
 
 (*
       printf_char 'O';
@@ -395,21 +395,21 @@ We should probably check that here ... *)
         M.QueueReq t);              
   
   
-  | M.Message84Req _ ->
+  | M.JoinQueueReq _ ->
       
       client_send sock (
         let module M = Mftp_client in
-        let module Q = M.Message85 in
-        M.Message85Req Q.t);              
+        let module Q = M.AvailableSlot in
+        M.AvailableSlotReq Q.t);              
   
-  | M.Message87Req _ ->
+  | M.CloseSlotReq _ ->
       printf_char 'M'
   
-  | M.Message86Req _ ->
+  | M.ReleaseSlotReq _ ->
       client_send sock (
         let module M = Mftp_client in
-        let module Q = M.Message87 in
-        M.Message87Req Q.t);              
+        let module Q = M.CloseSlot in
+        M.CloseSlotReq Q.t);              
 
 (*
   | M.OtherLocationsReq t ->

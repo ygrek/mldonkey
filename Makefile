@@ -64,7 +64,8 @@ LIB_CMOS= \
   lib/fifo.$(EXT) \
   lib/hole_tab.$(EXT) lib/indexer.$(EXT) lib/host.$(EXT)  \
   lib/misc.$(EXT) lib/md4.$(EXT) lib/unix32.$(EXT) \
-  lib/avifile.$(EXT) lib/http_lexer.$(EXT) lib/url.$(EXT) 
+  lib/avifile.$(EXT) lib/http_lexer.$(EXT) lib/url.$(EXT) \
+  lib/mailer.$(EXT)
 
 NET_CMOS = \
   net/basicSocket.$(EXT) \
@@ -84,7 +85,7 @@ MIN_GUI_CMOS= gui/gui_types.$(EXT) gui/gui_proto.$(EXT)
 GUI_CMOS= gui/gui_messages.$(EXT) gui/gui.$(EXT)
 
 CLIENT_CMOS=client/downloadTypes.$(EXT) client/downloadGlobals.$(EXT) \
-  client/downloadOptions.$(EXT)  lib/mailer.$(EXT) \
+  client/downloadOptions.$(EXT) \
   client/downloadMultimedia.$(EXT) client/downloadIndexer.$(EXT) \
   client/downloadServers.$(EXT) client/downloadOneFile.$(EXT) \
   client/downloadClient.$(EXT) client/downloadFiles.$(EXT)  \
