@@ -34,12 +34,17 @@ let i_9 = int_of_char '9'
 
 module type Base = sig 
     val to_string : int -> string -> string
+    val to_string_case : bool -> int -> string -> string
     val of_string : int -> string -> string
   end
   
 module Base16 = struct 
     open Misc
     
+    let hexa_digit x =
+      if x >= 10 then Char.chr (Char.code 'A' + x - 10)
+      else Char.chr (Char.code '0' + x)
+        
     let to_string hash_length s =
       let p = String.create (hash_length * 2) in
       for i = 0 to hash_length - 1 do
@@ -49,6 +54,23 @@ module Base16 = struct
         let i1 = n land 15 in
         p.[2 * i] <- hexa_digit i0;
         p.[2 * i+1] <- hexa_digit i1;
+      done;
+      p
+    
+    let hexa_digit_case upper x =
+      if x >= 10 then Char.chr (Char.code (
+            if upper then 'A' else 'a')+ x - 10)
+      else Char.chr (Char.code '0' + x)
+
+    let to_string_case upper hash_length s =
+      let p = String.create (hash_length * 2) in
+      for i = 0 to hash_length - 1 do
+        let c = s.[i] in
+        let n = int_of_char c in
+        let i0 = (n/16) land 15 in
+        let i1 = n land 15 in
+        p.[2 * i] <- hexa_digit_case upper i0;
+        p.[2 * i+1] <- hexa_digit_case upper i1;
       done;
       p
     
@@ -125,6 +147,32 @@ module Base32 = struct
         r.[i] <- char_of_int5 c
       done;
       r
+
+    let char_of_int5 upper n =
+      char_of_int (if n < 26 then (if upper then 65 else 97)+n else
+          50+(n-26))
+    
+    let to_string_case upper hash_length s =
+      assert (String.length s = hash_length);
+      let len = (hash_length * 8 + 4)/5 in
+      let r = String.create len in
+      for i = 0 to len - 1 do
+        let pos = i * 5 in
+        let byte = pos / 8 in
+        let bit = pos mod 8 in
+        if bit < 3 then
+          let x = int_of_char s.[byte] in
+          let c = (x lsr (3 - bit)) land 0x1f in
+          r.[i] <- char_of_int5 upper c
+        else
+        let x = int_of_char s.[byte] in
+        let y = if byte + 1 = hash_length then 0 else 
+            int_of_char s.[byte+1] in
+        let x = (x lsl 8) + y in
+        let c = (x lsr (11 - bit)) land 0x1f in
+        r.[i] <- char_of_int5 upper c
+      done;
+      r
       
   end
   
@@ -135,6 +183,7 @@ module type Digest = sig
     val one : t
     val two : t
     val to_string : t -> string
+    val to_string_case : bool -> t -> string
     val of_string : string -> t
     
     val string : string -> t
@@ -219,6 +268,7 @@ module Make(M: sig
     
     let of_string = Base.of_string hash_length
     let to_string = Base.to_string hash_length
+    let to_string_case upper s = Base.to_string_case upper hash_length s
       
     open Options
     
@@ -353,3 +403,17 @@ module Tiger = struct
   
 (* Use urn:tree:tiger: also ... *)
         
+  
+module Md5Ext = Make(struct
+      let hash_length = 20
+      let hash_name = "Md5Ext"        
+
+      let unsafe_string _ _ _ = 
+        failwith "Md5Ext.unsafe_string not implemented"
+      let unsafe_file _ _ = 
+        failwith "Md5Ext.unsafe_file not implemented"
+      let digest_subfile _ _ _ _ = 
+        failwith "Md5Ext.digest_subfile not implemented"
+    
+      module Base = Base16
+    end)

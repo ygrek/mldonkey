@@ -51,7 +51,7 @@ let enable () =
   if not !!enable_soulseek then enable_soulseek =:= true;
 
   List.iter (fun (server_name, server_port) ->
-      ignore (new_server (new_addr_name server_name) server_port)
+      ignore (new_server (Ip.addr_of_string server_name) server_port)
   ) !!SlskComplexOptions.servers;
   
   add_session_timer enabler 5.0 (fun timer ->

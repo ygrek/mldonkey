@@ -60,6 +60,7 @@ SRC_CYMES=src/networks/cymes
 SRC_OPENNAP=src/networks/opennap
 SRC_GNUTELLA=src/networks/gnutella
 SRC_OPENFT=src/networks/openFT
+SRC_FASTTRACK=src/networks/fasttrack
 SRC_SOULSEEK=src/networks/soulseek
 SRC_DIRECTCONNECT=src/networks/direct_connect
 
@@ -344,6 +345,24 @@ OPENFT_SRCS= \
   $(SRC_OPENFT)/openFTInteractive.ml \
   $(SRC_OPENFT)/openFTMain.ml
 
+FASTTRACK_SRCS= \
+  $(SRC_FASTTRACK)/enc_type_1.c \
+  $(SRC_FASTTRACK)/enc_type_2.c \
+  $(SRC_FASTTRACK)/enc_type_20.c \
+  $(SRC_FASTTRACK)/fst_crypt.c \
+  $(SRC_FASTTRACK)/fasttrackTypes.ml \
+  $(SRC_FASTTRACK)/fasttrackOptions.ml \
+  $(SRC_FASTTRACK)/fasttrackGlobals.ml \
+  $(SRC_FASTTRACK)/fasttrackComplexOptions.ml \
+  $(SRC_FASTTRACK)/fasttrackProtocol.ml \
+  $(SRC_FASTTRACK)/fasttrackProto.ml \
+  $(SRC_FASTTRACK)/fasttrackClients.ml \
+  $(SRC_FASTTRACK)/fasttrackHandler.ml \
+  $(SRC_FASTTRACK)/fasttrack.ml \
+  $(SRC_FASTTRACK)/fasttrackServers.ml \
+  $(SRC_FASTTRACK)/fasttrackInteractive.ml \
+  $(SRC_FASTTRACK)/fasttrackMain.ml
+
 SOULSEEK_SRCS= \
   $(SRC_SOULSEEK)/slskTypes.ml \
   $(SRC_SOULSEEK)/slskOptions.ml \
@@ -388,7 +407,6 @@ ifeq ("$(OPENFT)" , "yes")
 SUBDIRS += $(SRC_OPENFT)
 
 CORE_SRCS += $(OPENFT_SRCS)
-
 endif
 
 ifeq ("$(AUDIO_GALAXY)" , "yes")
@@ -763,6 +781,53 @@ mlgnut+gui_CMXA=cdk.cmxa \
    common.cmxa client.cmxa mlgnut.cmxa driver.cmxa \
    gmisc.cmxa guibase.cmxa gui.cmxa
 mlgnut+gui_SRCS= $(MAIN_SRCS)
+
+
+
+
+ifeq ("$(FASTTRACK)" , "yes")
+SUBDIRS += src/networks/fasttrack
+
+CORE_SRCS += $(FASTTRACK_SRCS)
+
+## TARGETS += mlfasttrack$(EXE)
+
+ifeq ("$(COMPILE_GUI)" , "yes")
+
+## BUNDLE_TARGETS += mlfasttrack+gui$(EXE)
+
+endif
+endif
+
+
+mlfasttrack_CMXA= cdk.cmxa common.cmxa client.cmxa mlfasttrack.cmxa driver.cmxa
+mlfasttrack_SRCS= $(MAIN_SRCS)
+
+
+FASTTRACK_ZOG := $(filter %.zog, $(FASTTRACK_SRCS)) 
+FASTTRACK_MLL := $(filter %.mll, $(FASTTRACK_SRCS)) 
+FASTTRACK_MLY := $(filter %.mly, $(FASTTRACK_SRCS)) 
+FASTTRACK_ML4 := $(filter %.ml4, $(FASTTRACK_SRCS)) 
+FASTTRACK_ML := $(filter %.ml %.mll %.zog %.mly %.ml4, $(FASTTRACK_SRCS)) 
+FASTTRACK_C := $(filter %.c, $(FASTTRACK_SRCS)) 
+FASTTRACK_CMOS=$(foreach file, $(FASTTRACK_ML),   $(basename $(file)).cmo) 
+FASTTRACK_CMXS=$(foreach file, $(FASTTRACK_ML),   $(basename $(file)).cmx) 
+FASTTRACK_OBJS=$(foreach file, $(FASTTRACK_C),   $(basename $(file)).o)    
+
+TMPSOURCES += $(FASTTRACK_ML4:.ml4=.ml) $(FASTTRACK_MLL:.mll=.ml) $(FASTTRACK_MLY:.mly=.ml) $(FASTTRACK_MLY:.mly=.mli) $(FASTTRACK_ZOG:.zog=.ml) 
+ 
+build/mlfasttrack.cmxa: $(FASTTRACK_OBJS) $(FASTTRACK_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(FASTTRACK_OBJS) $(LIBS_flags) $(_LIBS_flags) $(FASTTRACK_CMXS) 
+ 
+build/mlfasttrack.cma: $(FASTTRACK_OBJS) $(FASTTRACK_CMOS) 
+	$(OCAMLC) -a -o $@  $(FASTTRACK_OBJS) $(LIBS_flags) $(_LIBS_flags) $(FASTTRACK_CMOS) 
+ 
+
+
+mlfasttrack+gui_CMXA=cdk.cmxa \
+   common.cmxa client.cmxa mlfasttrack.cmxa driver.cmxa \
+   gmisc.cmxa guibase.cmxa gui.cmxa
+mlfasttrack+gui_SRCS= $(MAIN_SRCS)
 
 
 

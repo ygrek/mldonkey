@@ -8,7 +8,7 @@ CONFIG_ARGS=$*
 echo $CONFIG_ARGS
 
 CURRENT_VERSION=2.4
-CURRENT_RELEASE=0
+CURRENT_RELEASE=1
 
 REQUIRED_OCAML=3.06
 REQUIRED_LABLGTK=1.2.4
@@ -25,6 +25,7 @@ OPENFT=no
 CYMES=no
 DONKEY=yes
 BITTORRENT=yes
+FASTTRACK=yes
 
 BUILD_GUI=yes
 
@@ -48,6 +49,7 @@ if test ! "$MULTINET" = "yes"; then
   OPENFT=no
   CYMES=no
   BITTORRENT=no
+  FASTTRACK=no
   RELEASENAME="$RELEASENAME-nomultinet"
 fi
 
@@ -66,6 +68,8 @@ AC_ARG_ENABLE(soulseek, [--disable-soulseek:       allows you to remove support 
 AC_ARG_ENABLE(openft, [--disable-openft:       allows you to remove support for OpenFT], [OPENFT="$enableval"])
 
 AC_ARG_ENABLE(cymes, [--disable-cymes:       allows you to remove support for Cymes], [CYMES="$enableval"])
+
+AC_ARG_ENABLE(fasttrack, [--disable-fasttrack:       allows you to remove support for FastTrack], [FASTTRACK="$enableval"])
 
 AC_ARG_ENABLE(bittorrent, [--disable-bittorrent:       allows you to remove support for Bittorent], [BITTORRENT="$enableval"])
 
@@ -467,6 +471,15 @@ fi
     BAD_TARGETS="$BAD_TARGETS openFT(obsolete)"
   fi
 
+  if test "$FASTTRACK" = "yes" ; then
+    AC_CHECK_FILE(../src/networks/fasttrack,FASTTRACK=yes, [
+      FASTTRACK=no
+      BAD_TARGETS="$BAD_TARGETS FastTrack(devel)"
+    ])
+  else
+    BAD_TARGETS="$BAD_TARGETS FastTrack(devel)"
+  fi
+
   if test "$CYMES" = "yes" ; then
     AC_CHECK_FILE(../src/networks/cymes,CYMES=yes, [
       CYMES=no
@@ -697,6 +710,7 @@ AC_SUBST(GNUTELLA)
 AC_SUBST(BITTORRENT)
 AC_SUBST(SOULSEEK)
 AC_SUBST(OPENFT)
+AC_SUBST(FASTTRACK)
 AC_SUBST(DONKEY)
 AC_SUBST(OPEN_DONKEY)
 AC_SUBST(DONKEY_SERVER)

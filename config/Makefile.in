@@ -60,6 +60,7 @@ SRC_CYMES=src/networks/cymes
 SRC_OPENNAP=src/networks/opennap
 SRC_GNUTELLA=src/networks/gnutella
 SRC_OPENFT=src/networks/openFT
+SRC_FASTTRACK=src/networks/fasttrack
 SRC_SOULSEEK=src/networks/soulseek
 SRC_DIRECTCONNECT=src/networks/direct_connect
 
@@ -344,6 +345,24 @@ OPENFT_SRCS= \
   $(SRC_OPENFT)/openFTInteractive.ml \
   $(SRC_OPENFT)/openFTMain.ml
 
+FASTTRACK_SRCS= \
+  $(SRC_FASTTRACK)/enc_type_1.c \
+  $(SRC_FASTTRACK)/enc_type_2.c \
+  $(SRC_FASTTRACK)/enc_type_20.c \
+  $(SRC_FASTTRACK)/fst_crypt.c \
+  $(SRC_FASTTRACK)/fasttrackTypes.ml \
+  $(SRC_FASTTRACK)/fasttrackOptions.ml \
+  $(SRC_FASTTRACK)/fasttrackGlobals.ml \
+  $(SRC_FASTTRACK)/fasttrackComplexOptions.ml \
+  $(SRC_FASTTRACK)/fasttrackProtocol.ml \
+  $(SRC_FASTTRACK)/fasttrackProto.ml \
+  $(SRC_FASTTRACK)/fasttrackClients.ml \
+  $(SRC_FASTTRACK)/fasttrackHandler.ml \
+  $(SRC_FASTTRACK)/fasttrack.ml \
+  $(SRC_FASTTRACK)/fasttrackServers.ml \
+  $(SRC_FASTTRACK)/fasttrackInteractive.ml \
+  $(SRC_FASTTRACK)/fasttrackMain.ml
+
 SOULSEEK_SRCS= \
   $(SRC_SOULSEEK)/slskTypes.ml \
   $(SRC_SOULSEEK)/slskOptions.ml \
@@ -388,7 +407,6 @@ ifeq ("$(OPENFT)" , "yes")
 SUBDIRS += $(SRC_OPENFT)
 
 CORE_SRCS += $(OPENFT_SRCS)
-
 endif
 
 ifeq ("$(AUDIO_GALAXY)" , "yes")
@@ -673,6 +691,7 @@ $1+gui_SRCS= $(MAIN_SRCS)
 EXPAND_DRIVER(mldc,DIRECT_CONNECT,direct_connect)
 EXPAND_DRIVER(mlnap,OPENNAP,opennap)
 EXPAND_DRIVER(mlgnut,GNUTELLA,gnutella)
+EXPAND_DRIVER(mlfasttrack,FASTTRACK,fasttrack)
 EXPAND_DRIVER(mlbt,BITTORRENT,bittorrent)
 EXPAND_DRIVER(mldonkey,DONKEY,donkey)
 EXPAND_DRIVER(mlcymes,CYMES,cymes)

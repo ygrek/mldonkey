@@ -1,6 +1,7 @@
 TODO list for client
 ====================
 
+ADD urn:sha1:<HASH> and urn:tree:tiger/:<HASH> to QRT
 
 URGENT:
 - Understand MD when no DN field is present

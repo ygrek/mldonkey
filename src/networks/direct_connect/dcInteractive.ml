@@ -144,7 +144,7 @@ let _ =
                 [ addr; port ] -> addr, int_of_string port
               | _ -> addr, 411
             in            
-            let addr = addr_of_string addr in
+            let addr = Ip.addr_of_string addr in
             addr, port
           in
           let s = new_server addr port in
@@ -363,6 +363,6 @@ let _ =
 let _ =
   network.op_network_save_complex_options <- (fun _ -> ());
   network.op_network_add_server <- (fun ip port ->
-      as_server (new_server (new_addr_ip ip) port).server_server
+      as_server (new_server ip port).server_server
   )
   

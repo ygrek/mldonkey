@@ -369,7 +369,7 @@ let client_type c =
     
 let new_server addr port=
   try
-    Hashtbl.find servers_by_addr (addr.addr_name, port) 
+    Hashtbl.find servers_by_addr (Ip.string_of_addr addr, port) 
   with _ ->
       incr nknown_servers;
       let rec h = { 
@@ -403,7 +403,7 @@ let new_server addr port=
       in
       server_add server_impl;
       room_add room_impl;
-      Hashtbl.add servers_by_addr (addr.addr_name, port) h;
+      Hashtbl.add servers_by_addr (Ip.string_of_addr addr, port) h;
       h
   
 let new_result filename filesize =
@@ -430,7 +430,7 @@ let new_result filename filesize =
       
 let server_remove s =
   server_remove (as_server s.server_server);
-  Hashtbl.remove servers_by_addr (s.server_addr.addr_name, s.server_port);
+  Hashtbl.remove servers_by_addr (Ip.string_of_addr s.server_addr, s.server_port);
   decr nknown_servers;
   servers_list := List2.removeq s !servers_list
 

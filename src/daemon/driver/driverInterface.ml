@@ -794,7 +794,10 @@ search.op_search_end_reply_handlers;
   
           | AddServer_query (num, ip, port) ->
               let n = network_find_by_num num in
-              let s = n.op_network_add_server ip port in
+(* [CONTRIBUTE:] change the GUI protocol to transfer an address (ip/name)
+  instead of just an ip. *)
+              
+              let s = n.op_network_add_server (Ip.addr_of_ip ip) port in
               server_connect s
           | RefreshUploadStats ->
               

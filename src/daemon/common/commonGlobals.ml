@@ -330,7 +330,8 @@ let string_of_tags tags =
   
   (* first GUI have gui_num = 2, since newly created objects have _update = 1 *)
 let gui_counter = ref 2
-  
+
+  (*
 let ip_of_addr addr f = 
   if addr.addr_name <> "" then
     if addr.addr_age + !!ip_cache_timeout < last_time () then begin
@@ -371,6 +372,7 @@ let addr_of_string s =
   if ip <> Ip.null then new_addr_ip ip else new_addr_name s
 
 let addr_is_ip addr = addr.addr_name = ""
+    *)
 
 let  upload_counter = ref Int64.zero
 let  download_counter = ref Int64.zero

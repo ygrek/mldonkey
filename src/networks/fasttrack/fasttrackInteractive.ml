@@ -31,14 +31,14 @@ open CommonTypes
 open CommonComplexOptions
 open CommonFile
 open Options
-open GnutellaTypes
-open GnutellaOptions
-open GnutellaGlobals
-open GnutellaComplexOptions
+open FasttrackTypes
+open FasttrackOptions
+open FasttrackGlobals
+open FasttrackComplexOptions
 
-open GnutellaProtocol
+open FasttrackProtocol
 
-(* Don't share files greater than 10 MB on Gnutella and limit to 200 files. 
+(* Don't share files greater than 10 MB on Fasttrack and limit to 200 files. 
  Why ? Because we don't store URNs currently, and we don't want mldonkey
  to compute hashes for hours at startup *)
 let max_shared_file_size = Int64.of_int 10000000
@@ -64,12 +64,13 @@ let find_search s =
   try
     Hashtbl.iter (fun _ ss ->
         match ss.search_search with
-          UserSearch (sss, _,_) when s == sss -> raise (M.Found ss)
+          UserSearch (sss, _,_,_) when s == sss -> raise (M.Found ss)
         | _ -> ()
     ) searches_by_uid;
     raise Not_found
   with M.Found s -> s
 
+      (*
 let xml_to_string xml = 
   "<?xml version=\"1.0\"?>" ^ (  Xml.to_string xml)
       
@@ -78,7 +79,7 @@ let audio_schema tags =
     [("xsi:nonamespaceschemalocation",
         "http://www.limewire.com/schemas/audio.xsd")],
     [XML ("audio", tags, [])])
-
+*)
 (*
 [
 ("artist", "Tom Jones");
@@ -97,7 +98,7 @@ let audio_schema tags =
 
 *)
   
-let xml_query_of_query q =
+let parse_query q =
 
   let keywords = ref [] in
   let add_words w =
@@ -138,12 +139,12 @@ let xml_query_of_query q =
     | QNone ->  ()
   in
   iter q;
-  !keywords, if !audio then xml_to_string (audio_schema !tags) else ""
+  !keywords, ""
       
 let _ =
   network.op_network_search <- (fun search buf ->
       let query = search.search_query in
-      let words, xml_query = xml_query_of_query query in
+      let words, realm = parse_query query in
       let words = String2.unsplit words ' ' in
 
 (* Maybe we could generate the id for the query from the query itself, so
@@ -151,30 +152,29 @@ that we can reuse queries *)
       let uid = Md4.random () in
       
       let s = {
-          search_search = UserSearch (search, words, xml_query);
-          search_uid = uid;
-          search_hosts = Intset.empty;
+          (* no exclude, no realm *)
+          search_search = UserSearch (search, words, "", "");
+          search_id = !search_num;
         } in
+      incr search_num;
+      Fasttrack.send_query s;
       
-      if !!g1_enabled then  Gnutella1.send_query uid words;
-      if !!g2_enabled then  Gnutella2.send_query uid words xml_query;
-      
-      Hashtbl.add searches_by_uid uid s;
+      Hashtbl.add searches_by_uid s.search_id s;
       ());
   network.op_network_close_search <- (fun s ->
-      Hashtbl.remove searches_by_uid (find_search s).search_uid  
+      Hashtbl.remove searches_by_uid (find_search s).search_id  
   );
   network.op_network_forget_search <- (fun s ->
-      Hashtbl.remove searches_by_uid (find_search s).search_uid  
+      Hashtbl.remove searches_by_uid (find_search s).search_id  
   );
   network.op_network_connected <- (fun _ ->
-      !g1_connected_servers <> [] || !g2_connected_servers <> [] 
+      !connected_servers <> []
   );
   network.op_network_share <- (fun fullname codedname size ->
       if !shared_files_counter < max_shared_files &&
         size < max_shared_file_size then begin
         incr shared_files_counter;
-      GnutellaProtocol.new_shared_words := true;
+      FasttrackProtocol.new_shared_words := true;
       let sh = CommonUploads.add_shared fullname codedname size in
       CommonUploads.ask_for_uid sh SHA1 (fun sh uid -> 
             lprintf "Could share urn\n";
@@ -184,7 +184,7 @@ that we can reuse queries *)
   
 let _ =
   result_ops.op_result_download <- (fun result _ force ->
-      GnutellaServers.download_file result)
+      FasttrackServers.download_file result)
 
 let file_num file =
   file.file_file.impl_file_num
@@ -197,9 +197,9 @@ let _ =
       ) file.file_clients
   );
   file_ops.op_file_recover <- (fun file ->
-      GnutellaServers.recover_file file;
+      FasttrackServers.recover_file file;
       List.iter (fun c ->
-          GnutellaServers.get_file_from_source c file
+          FasttrackServers.get_file_from_source c file
       ) file.file_clients
   )
 
@@ -210,9 +210,7 @@ let _ =
   file_ops.op_file_cancel <- (fun file ->
       remove_file file;
       file_cancel (as_file file.file_file);
-      List.iter (fun s ->
-          Hashtbl.remove searches_by_uid s.search_uid
-      ) file.file_searches
+          Hashtbl.remove searches_by_uid  file.file_search.search_id
   );
   file_ops.op_file_info <- (fun file ->
       {
@@ -240,11 +238,11 @@ let _ =
   
 let _ =
   server_ops.op_server_info <- (fun s ->
-      if !!enable_gnutella then
+      if !!enable_fasttrack then
         {
           P.server_num = (server_num s);
           P.server_network = network.network_num;
-          P.server_addr = Ip.addr_of_ip s.server_host.host_ip;
+          P.server_addr = s.server_host.host_addr;
           P.server_port = s.server_host.host_port;
           P.server_score = 0;
           P.server_tags = [];
@@ -255,15 +253,12 @@ let _ =
           P.server_description = "";
           P.server_users = None;
           P.server_banner = "";
-          } else
-        raise Not_found
+        } 
+        else raise Not_found
   );
   server_ops.op_server_connect <- (fun s ->
-      GnutellaServers.connect_server 
-        (if s.server_gnutella2 then g2_nservers else g1_nservers)
-      s.server_gnutella2 
-      GnutellaServers.retry_and_fake s.server_host []);
-  server_ops.op_server_disconnect <- GnutellaServers.disconnect_server;
+      FasttrackServers.connect_server s.server_host);
+  server_ops.op_server_disconnect <- FasttrackServers.disconnect_server;
   server_ops.op_server_to_option <- (fun _ -> raise Not_found)
 
 module C = CommonTypes
@@ -279,9 +274,9 @@ let _ =
         C.result_size = r.result_size;
         C.result_format = result_format_of_name r.result_name;
         C.result_type = result_media_of_name r.result_name;
-        C.result_tags = r.result_tags @ (List.map (fun uid ->
-            string_tag "urn" (string_of_uid uid)
-        ) r.result_uids);
+        C.result_tags =  (
+              string_tag "FTH" (Md5Ext.to_string_case false r.result_hash)
+        ) :: r.result_tags;
         C.result_comment = "";
         C.result_done = false;
       }   
@@ -291,19 +286,17 @@ let _ =
 let _ =
   network.op_network_connected_servers <- (fun _ ->
       List2.tail_map (fun s -> as_server s.server_server)
-      !g1_connected_servers
-        @
-        List2.tail_map (fun s -> as_server s.server_server)
-      !g2_connected_servers
+      !connected_servers
   );
+  (*
   network.op_network_parse_url <- (fun url ->
       match String2.split (String.escaped url) '|' with
-      | "gnut://" :: "server" :: ip :: port :: _ ->  
-          let ip = Ip.of_string ip in
+      | "ft://" :: "server" :: ip :: port :: _ ->  
+          let ip = Ip.addr_of_string ip in
           let port = int_of_string port in
           let s = new_server ip port in
           true
-      | "gnut://" :: "friend" :: uid :: ip :: port :: _ ->  
+      | "ft://" :: "friend" :: uid :: ip :: port :: _ ->  
           let ip = Ip.of_string ip in
           let port = int_of_string port in
           let md4 = Md4.of_string uid in
@@ -311,7 +304,7 @@ let _ =
           c.client_user.user_uid <- md4;
           friend_add (as_client c.client_client);
           true
-      | "gnut://" :: "friend" :: uid :: _ ->
+      | "ft://" :: "friend" :: uid :: _ ->
           let md4 = Md4.of_string uid in
           let c = new_client (Indirect_location ("", md4)) in
           friend_add (as_client c.client_client);
@@ -322,14 +315,16 @@ let _ =
           if uids <> [] then begin
 (* Start a download for this file *)
               let r = new_result name Int64.zero [] uids in
-              GnutellaServers.download_file r;
+              FasttrackServers.download_file r;
               true
             end
           else false
   )
+*)
+  ()
   
 let browse_client c = 
-  lprintf "Gnutella: browse client not implemented\n";
+  lprintf "Fasttrack: browse client not implemented\n";
   ()
   
 let _ =
@@ -378,7 +373,7 @@ let _ =
       });
   
   network.op_network_add_server <- (fun ip port ->
-      as_server (new_server (Ip.ip_of_addr ip) port).server_server
+      as_server (new_server ip port).server_server
   )
 
 open Queues
@@ -389,26 +384,18 @@ let commands = [
         let buf = o.conn_buf in
         Printf.bprintf buf "g0_ultrapeers_waiting_queue: %d\n" 
           (Queue.length g0_ultrapeers_waiting_queue);
-        Printf.bprintf buf "g1_ultrapeers_waiting_queue: %d\n" 
-          (Queue.length g1_ultrapeers_waiting_queue);
-        Printf.bprintf buf "g2_ultrapeers_waiting_queue: %d\n" 
-          (Queue.length g2_ultrapeers_waiting_queue);
+        Printf.bprintf buf "ultrapeers_waiting_queue: %d\n" 
+          (Queue.length ultrapeers_waiting_queue);
         Printf.bprintf buf "g0_peers_waiting_queue: %d\n" 
           (Queue.length g0_peers_waiting_queue);
-        Printf.bprintf buf "g1_peers_waiting_queue: %d\n" 
-          (Queue.length g1_peers_waiting_queue);
-        Printf.bprintf buf "g2_peers_waiting_queue: %d\n" 
-          (Queue.length g2_peers_waiting_queue);
-        Printf.bprintf buf "g1_active_udp_queue: %d\n" 
-          (Queue.length g1_active_udp_queue);
-        Printf.bprintf buf "g2_active_udp_queue: %d\n" 
-          (Queue.length g2_active_udp_queue);
-        Printf.bprintf buf "g1_waiting_udp_queue: %d\n" 
-          (Queue.length g1_waiting_udp_queue);
-        Printf.bprintf buf "g2_waiting_udp_queue: %d\n" 
-          (Queue.length g2_waiting_udp_queue);
+        Printf.bprintf buf "peers_waiting_queue: %d\n" 
+          (Queue.length peers_waiting_queue);
+        Printf.bprintf buf "active_udp_queue: %d\n" 
+          (Queue.length active_udp_queue);
+        Printf.bprintf buf "waiting_udp_queue: %d\n" 
+          (Queue.length waiting_udp_queue);
         ""
-    ), " :\t\t\t\tprint stats on Gnutella network";
+    ), " :\t\t\t\tprint stats on Fasttrack network";
     
     ]
   

@@ -178,7 +178,7 @@ class box columns users wl_status =
       match col with
         Col_server_address -> 
           Printf.sprintf "%16s : %-5d"
-            (string_of_addr s.server_addr) s.server_port
+            (Ip.string_of_addr s.server_addr) s.server_port
       |	Col_server_state -> fst (string_color_of_state s.server_state)
       |	Col_server_users ->
           if s.server_nusers = 0 then "" 

@@ -92,7 +92,7 @@ type server_info = {
     server_num : int;
     server_network : int;
     
-    mutable server_addr : addr;
+    mutable server_addr : Ip.addr;
     mutable server_port : int;
     mutable server_score : int;
     mutable server_tags : CommonTypes.tag list;

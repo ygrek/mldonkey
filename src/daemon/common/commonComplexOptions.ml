@@ -28,7 +28,8 @@ open CommonOptions
 open CommonTypes
 open CommonFile
 
-let addr_to_value addr =
+(*
+  let addr_to_value addr =
   if addr.addr_name = "" then
     to_value Ip.option addr.addr_ip
   else
@@ -59,7 +60,8 @@ let value_to_addr v =
         end;
       addr
   | _ -> assert false
-      
+        *)
+
 module FileOption = struct
     
     let value_to_file is_done v =

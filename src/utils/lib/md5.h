@@ -90,4 +90,10 @@ void md5_finish(md5_state_t *pms, md5_byte_t digest[16]);
 }  /* end extern "C" */
 #endif
 
+#define MD5Context md5_state_t
+#define MD5_HASH_LEN 16
+#define MD5Init md5_init
+#define MD5Update md5_append
+#define MD5Final(md5,ctx) md5_finish(ctx,md5)
+
 #endif /* md5_INCLUDED */

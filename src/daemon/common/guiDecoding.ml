@@ -393,17 +393,17 @@ let get_addr s pos =
   match get_int8 s pos with
     0 ->
       let ip = get_ip s (pos+1) in
-      new_addr_ip ip, pos+5
+      Ip.addr_of_ip ip, pos+5
   | 1 ->
       let name,pos = get_string s (pos+1) in
-      new_addr_name name, pos
+      Ip.addr_of_string name, pos
   | _ -> assert false
 
 let get_server proto s pos =
   let num = get_int s pos in
   let net = get_int s (pos+4) in
   let addr, pos = if proto < 2 then
-      new_addr_ip (get_ip s (pos+8)), pos+12
+      Ip.addr_of_ip (get_ip s (pos+8)), pos+12
     else 
       get_addr s (pos+8)      
   in

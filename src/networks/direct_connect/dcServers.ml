@@ -161,7 +161,7 @@ let recover_files_from_server s =
   ) !current_files;
   ()
   
-let server_addr s = string_of_addr s.server_addr
+let server_addr s = Ip.string_of_addr s.server_addr
 
   
 let disconnect_server s =
@@ -213,7 +213,7 @@ let rec client_to_server s m sock =
   
   | ForceMoveReq t ->
       
-      let new_s = new_server (new_addr_name t) 411 in
+      let new_s = new_server (Ip.addr_of_string t) 411 in
       close sock "force move";
       if s != new_s then connect_server s
   
@@ -305,7 +305,7 @@ lprint_newline ()
       
       if t.To.orig = "Hub" then
         let m = Printf.sprintf "\n+-- From server %s [%s:%d] ------\n%s\n"
-            s.server_name (string_of_addr s.server_addr) s.server_port 
+            s.server_name (Ip.string_of_addr s.server_addr) s.server_port 
             t.To.message in
         
         CommonEvent.add_event (Console_message_event m);
@@ -372,7 +372,7 @@ lprint_newline ()
                           S.open_slots = 1;
                           S.all_slots = 1;      (* TODO *)
                           S.server_name = s.server_name; (* BUG VERIFY TODO *)
-                          S.server_ip = Some (Printf.sprintf "%s:%d" (Ip.to_string s.server_addr.addr_ip) s.server_port);
+                          S.server_ip = Some (Printf.sprintf "%s:%d" (Ip.to_string (Ip.ip_of_addr s.server_addr)) s.server_port);
                           S.to_nick = Some nick;
                         }
                       ))
@@ -428,7 +428,7 @@ lprint_newline ()
 
 
 and connect_server s =
-  ip_of_addr s.server_addr (fun ip ->
+  Ip.async_ip_of_addr s.server_addr (fun ip ->
       match s.server_sock with
       | Some _ -> ()
       | None ->
@@ -459,7 +459,7 @@ and connect_server s =
             with e -> 
                 if !verbose_msg_servers then begin
                     lprintf "%s:%d IMMEDIAT DISCONNECT %s"
-                      (string_of_addr s.server_addr) s.server_port
+                      (Ip.string_of_addr s.server_addr) s.server_port
                       (Printexc2.to_string e); lprint_newline ();
                   end;
 (*      lprintf "DISCONNECTED IMMEDIATLY"; lprint_newline (); *)
@@ -501,7 +501,7 @@ let parse_servers_list s =
   List.iter (fun s ->
       match String2.split s '|' with
         server_name :: server_addr :: server_info :: server_nusers :: _ ->
-          let s = new_server (addr_of_string server_addr) 411 in
+          let s = new_server (Ip.addr_of_string server_addr) 411 in
           s.server_name <- server_name;
           s.server_info <- server_info;
           (try s.server_nusers <- int_of_string server_nusers with _ -> ());

@@ -415,9 +415,9 @@ value ml_ints_of_string(value s_v)
   goto ok;
 
   error:
-printf("Error while parsing[%s]\n",s);
+  /* printf("Error while parsing[%s]\n",s); */
   raise_not_found();
-/*  a1 = a2 = a3 = a4 = 0; */
+/*  a1 = a2 = a3 = a4 = 0; */
 
   ok:
   res = alloc(4,0);
@@ -587,7 +587,7 @@ void tiger_tree_fd(OS_FD fd, int len, int pos, int block_size, char *digest)
     char *curs = s;
       while (toread!=0){
       int max_nread = toread;
-/* HASH_BUFFER_LEN > toread ? toread : HASH_BUFFER_LEN; */
+/* HASH_BUFFER_LEN > toread ? toread : HASH_BUFFER_LEN; */
 
       int nread = os_read (fd, curs, max_nread);
 
@@ -902,3 +902,4 @@ value ml_has_pthread(value unit)
 { return Val_true; }
 
 #endif
+

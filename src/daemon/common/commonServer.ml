@@ -387,7 +387,7 @@ let server_print s o =
       
       n.network_name
    (string_of_connection_state impl.impl_server_state)
-      (string_of_addr info.G.server_addr) 
+      (Ip.string_of_addr info.G.server_addr) 
 	  info.G.server_port
 	  info.G.server_nusers
 	  info.G.server_nfiles
@@ -401,7 +401,7 @@ let server_print s o =
         Printf.bprintf buf "[%s %-5d] %s:%-5d %-20s %-20s"
           n.network_name
           (server_num s)
-        (string_of_addr info.G.server_addr) info.G.server_port
+        (Ip.string_of_addr info.G.server_addr) info.G.server_port
           info.G.server_name
           info.G.server_description
         ;

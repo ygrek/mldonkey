@@ -19,11 +19,6 @@
 
 
 open Md4
-type addr = {
-    mutable addr_ip: Ip.t;
-    mutable addr_name : string;
-    mutable addr_age : int;
-  }
 
 type field_name =
   Field_Size
@@ -226,7 +221,7 @@ type network = {
     mutable op_network_server_of_option : 
       ((string * Options.option_value) list -> server);
     mutable op_network_add_server : 
-      (Ip.t -> int -> server);
+      (Ip.addr -> int -> server);
     mutable op_network_file_of_option : 
       bool -> ((string * Options.option_value) list -> file);
     mutable op_network_client_of_option : 

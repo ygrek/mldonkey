@@ -125,3 +125,10 @@ let buf_int64_32 oc i =
   buf_int64_8 oc i
 
   
+let get_ip s pos =
+  check_string s (pos+3);
+  let c1 = int_of_char s.[pos] in
+  let c2 = int_of_char s.[pos+1] in
+  let c3 = int_of_char s.[pos+2] in
+  let c4 = int_of_char s.[pos+3] in
+  Ip.of_ints (c4, c3, c2, c1)

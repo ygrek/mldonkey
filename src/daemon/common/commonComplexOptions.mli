@@ -44,7 +44,7 @@ val contacts : CommonTypes.client list ref
 val customized_queries :     
   (string * CommonTypes.query_entry) list Options.option_record
   
-  
-val addr_to_value : CommonTypes.addr -> Options.option_value
-val value_to_addr : Options.option_value -> CommonTypes.addr
-  
+  (*
+val addr_to_value : Ip.addr -> Options.option_value
+val value_to_addr : Options.option_value -> Ip.addr
+  *)

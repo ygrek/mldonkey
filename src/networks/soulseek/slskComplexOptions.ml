@@ -35,10 +35,7 @@ let save_config () =
   servers =:= List.map (fun s ->
       let addr = s.server_addr in
       let port = s.server_port in
-      let name = if addr.addr_name = "" then
-          Ip.to_string addr.addr_ip
-        else addr.addr_name
-      in
+      let name = Ip.string_of_addr addr in
       (name, port)
   ) (Hashtbl2.to_list SlskGlobals.servers_by_addr)
   

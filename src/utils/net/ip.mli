@@ -56,3 +56,16 @@ val ip_to_value : t -> Options.option_value
   
 val async_ip : string -> (t -> unit) -> unit
   
+type addr =
+  AddrIp of t | AddrName of string
+  
+val ip_of_addr : addr -> t
+val async_ip_of_addr : addr -> (t -> unit) -> unit
+val string_of_addr : addr -> string
+val addr_of_ip : t -> addr
+val addr_of_string : string -> addr
+
+val value_to_addr : Options.option_value -> addr
+val addr_to_value : addr -> Options.option_value
+val addr_option : addr Options.option_class
+  

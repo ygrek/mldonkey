@@ -157,7 +157,7 @@ let _ =
       {
         P.server_num = (server_num s);
         P.server_network = network.network_num;
-        P.server_addr = new_addr_ip s.server_ip;
+        P.server_addr = Ip.addr_of_ip s.server_ip;
         P.server_port = s.server_port;
         P.server_score = 0;
         P.server_tags = [];
@@ -250,5 +250,5 @@ let _ =
   
   
   network.op_network_add_server <- (fun ip port ->
-      as_server (new_server ip port).server_server
+      as_server (new_server (Ip.ip_of_addr ip) port).server_server
   )

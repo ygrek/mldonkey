@@ -133,7 +133,7 @@ let server_to_client s m sock =
       lprint_newline () 
       
 let connect_server s = 
-  ip_of_addr s.server_addr (fun ip ->
+  Ip.async_ip_of_addr s.server_addr (fun ip ->
       
       match s.server_sock with
         Some _ -> ()
@@ -170,7 +170,7 @@ let connect_server s =
               server_send sock (C2S.SetWaitPortReq !!slsk_port)
             with e -> 
                 lprintf "%s:%d IMMEDIAT DISCONNECT %s"
-                  (string_of_addr s.server_addr) s.server_port
+                  (Ip.string_of_addr s.server_addr) s.server_port
                   (Printexc2.to_string e); lprint_newline ();
 (*      lprintf "DISCONNECTED IMMEDIATLY"; lprint_newline (); *)
                 s.server_sock <- None;
@@ -226,7 +226,7 @@ let load_server_list filename =
             main_server_name =:= server_name;
 main_server_port =:= port;
   *)
-            ignore (new_server (new_addr_name server_name) port);
+            ignore (new_server (Ip.addr_of_string server_name) port);
             
         | _ -> ()
     ) (String2.split_simplify s '\n')

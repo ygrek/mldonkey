@@ -216,9 +216,17 @@ let load_config () =
   let exists_expert_ini = Sys.file_exists 
       (options_file_name downloads_expert_ini) in
   if not exists_expert_ini then begin
-      lprintf "No config file found. Generating one.\n"; 
-      let oc = open_out (options_file_name downloads_expert_ini) in
-      close_out oc; 
+      if exists_downloads_ini then begin
+          lprintf "Using old config file\n";
+          ignore (Sys.command "cp -f downloads.ini downloads_expert.ini");
+          ignore (Sys.command "cp -f downloads.ini donkey.ini");
+          ignore (Sys.command "cp -f downloads.ini donkey_expert.ini");
+        end else begin
+          
+          lprintf "No config file found. Generating one.\n"; 
+          let oc = open_out (options_file_name downloads_expert_ini) in
+          close_out oc; 
+        end
     end;
   (try 
       Options.load downloads_ini;

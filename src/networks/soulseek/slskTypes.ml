@@ -25,7 +25,7 @@ open CommonTypes
 type server = {
     server_server: server CommonServer.server_impl;
     mutable server_name : string;
-    mutable server_addr : addr;
+    mutable server_addr : Ip.addr;
     mutable server_info : string;
     mutable server_nusers : int;
     server_connection_control : CommonTypes.connection_control;

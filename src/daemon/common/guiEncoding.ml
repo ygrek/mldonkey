@@ -295,19 +295,19 @@ let buf_file proto buf f =
     end
   
 let buf_addr buf addr =
-  if addr.addr_name = "" then begin
+  match addr with
+    Ip.AddrIp ip ->
       buf_int8 buf 0;
-      buf_ip buf addr.addr_ip;
-    end else begin
+      buf_ip buf ip
+  | Ip.AddrName s ->
       buf_int8 buf 1;
-      buf_string buf addr.addr_name
-    end
+      buf_string buf s
   
 let buf_server proto buf s =
   buf_int buf s.server_num;
   buf_int buf s.server_network;
   if proto < 2 then 
-    buf_ip buf s.server_addr.addr_ip
+    buf_ip buf (Ip.ip_of_addr s.server_addr)
   else
     buf_addr buf s.server_addr;    
   buf_int16 buf s.server_port;

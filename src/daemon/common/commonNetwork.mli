@@ -19,7 +19,7 @@ val network_disable : CommonTypes.network -> unit
 val network_share : CommonTypes.network -> string -> string -> int64 -> unit
 val network_add_server :
   CommonTypes.network ->
-  Ip.t -> int -> CommonTypes.server
+  Ip.addr -> int -> CommonTypes.server
 val network_server_of_option :
   CommonTypes.network ->
   (string * Options.option_value) list -> CommonTypes.server

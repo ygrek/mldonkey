@@ -274,3 +274,33 @@ let _ =
       done
   )
   
+  
+type addr =
+  AddrIp of t
+| AddrName of string
+  
+let string_of_addr ip =
+  match ip with
+    AddrIp ip -> to_string ip
+  | AddrName name -> name
+
+let addr_of_string s =
+  try AddrIp (of_string s) with _ -> AddrName s
+      
+let addr_of_ip ip = AddrIp ip
+let ip_of_addr addr =
+  match addr with
+    AddrIp ip -> ip
+  | AddrName name -> from_name name
+
+let async_ip_of_addr addr f =
+  match addr with
+    AddrIp ip -> f ip
+  | AddrName name -> async_ip name f
+      
+              
+let value_to_addr v = addr_of_string (value_to_string v)
+  
+let addr_to_value ip = string_to_value (string_of_addr ip)
+      
+let addr_option = define_option_class "Addr" value_to_addr addr_to_value      

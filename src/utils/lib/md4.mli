@@ -19,6 +19,7 @@
 
 module type Base = sig 
     val to_string : int -> string -> string
+    val to_string_case : bool -> int -> string -> string
     val of_string : int -> string -> string
   end
   
@@ -29,6 +30,8 @@ module type Digest = sig
     val one : t
     val two : t
     val to_string : t -> string
+(* [to_string_case upper hash] *)
+    val to_string_case : bool -> t -> string
     val of_string : string -> t
     
     val string : string -> t
@@ -58,6 +61,7 @@ module Md4 : Digest
 module Md5 : Digest
 module Sha1 : Digest
 module Tiger : Digest  
+module Md5Ext : Digest
   
 module Base16 : Base
 module Base32 : Base

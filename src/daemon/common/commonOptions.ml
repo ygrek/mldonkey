@@ -227,6 +227,11 @@ let enable_gnutella = define_option downloads_ini
   "Set to true if you also want mldonkey to run as a gnutella1/2 sub node (experimental)"
     bool_option false
   
+let enable_fasttrack = define_option downloads_ini
+    ["enable_fasttrack"]
+  "Set to true if you also want mldonkey to run as a Fasttrack sub node (experimental)"
+    bool_option false
+  
 let enable_directconnect = define_option downloads_ini
     ["enable_directconnect"]
   "Set to true if you also want mldonkey to run as a direct-connect node (experimental)"
