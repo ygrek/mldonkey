@@ -1,6 +1,14 @@
 ChangeLog	
 =========
 
+2002/12/20: Simon
+  - DonkeyOptions: new options:
+     ban_queue_jumper (true): if you want to ban clients reasking files too fast
+     ban_period (6): how long are they banned
+     send_warning_messages (false): send a message when a client is banned
+     max_emule_slots (33): percent of upload slots that emule clients can use
+       (cannot be set under 25%)
+
 2002/12/19: Simon
   - DonkeyClient: quota limitations:
      * Emule clients can not get more than 1/3 of the upload slots

@@ -392,12 +392,18 @@ let new_file file_state file_name md4 file_size writable =
           file_all_chunks = String.make nchunks '0';
           file_absent_chunks =   [Int32.zero, file_size];
           file_filenames = [Filename.basename file_name];
-          file_sources = Intmap.empty;
           file_nlocations = 0;
           file_md4s = md4s;
           file_available_chunks = Array.create nchunks 0;
           file_format = Unknown_format;
           file_enough_sources = false;
+          
+          file_sources = Intmap.empty;
+          file_emerging_sources = [];
+          file_old_sources = Fifo.create ();
+          file_concurrent_sources = Fifo.create ();
+          
+          file_all_sources = Hashtbl.create 1001;
         }
       and file_impl = {
           dummy_file_impl with
@@ -516,6 +522,7 @@ let dummy_client =
       client_client = client_impl;
       client_upload = None;
       client_kind = Indirect_location ("", Md4.null);   
+      client_source = None;
       client_sock = None;
       client_md4 = Md4.null;
       client_last_filereqs = 0.;
@@ -551,6 +558,19 @@ let dummy_client =
   in
   c  
 
+let sources = Hashtbl.create 13557
+let new_source ip port =
+  let addr = (ip, port) in
+  try
+    Hashtbl.find sources addr
+  with _ ->
+      let src = {
+          source_addr = addr;
+          source_client = SourceRecord 0.0;
+        }  in
+      Hashtbl.add sources addr src;
+      src
+      
 let new_client key =
   let c = 
     try
@@ -560,9 +580,10 @@ let new_client key =
             client_client = client_impl;
             client_upload = None;
             client_kind = key;   
+            client_source = None;
             client_sock = None;
             client_md4 = Md4.null;
-	    client_last_filereqs = 0.;
+            client_last_filereqs = 0.;
             client_chunks = [||];
             client_block = None;
             client_zones = [];
@@ -600,6 +621,30 @@ let new_client key =
   in
   c
   
+let client_from_source src =
+  match src.source_client with
+    SourceClient c -> c
+  | SourceRecord _ -> 
+      let (ip,port) = src.source_addr in
+      let c = new_client (Known_location (ip,port)) in
+      c.client_source <- Some src;
+      c
+
+let new_client key =
+  match key with
+    Known_location (ip,port) ->
+      begin
+        let src = new_source ip port in
+        match src.source_client with
+          SourceRecord _ ->
+            let c = new_client key in
+            c.client_source <- Some src;
+            src.source_client <- SourceClient c;
+            c
+        | SourceClient c -> c
+      end
+  | Indirect_location _ -> new_client key
+      
 let client_type c =
   client_type (as_client c.client_client)
 

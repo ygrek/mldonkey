@@ -113,6 +113,24 @@ let send_warning_messages = define_option donkey_ini
 upload bandwidth sending messages to clients which are banned :)"
     bool_option false
   
+let ban_queue_jumpers = define_option donkey_ini
+    ["ban_queue_jumpers"] "true if you want your client to ban
+    clients that try queue jumping (3 reconnections faster than 9 minutes)"
+    bool_option true
+  
+let ban_period = define_option donkey_ini
+    ["ban_period"] "Set the number of hours you want client to remain banned"
+    float_option 6.
+
+let max_emule_slots = define_option donkey_ini
+    ["max_emule_slots"] "Part of the queue that Emule clients are limited to
+    (default is 33 (%) of the slots, set to 100 (%) for no limitation)"
+  int_option 33
+  
+let _ =
+  option_hook max_emule_slots (fun _ ->
+      if !!max_emule_slots < 25 then max_emule_slots =:= 25)
+  
 let sources_per_chunk = 
   define_option donkey_ini ["sources_per_chunk"]
     "How many sources to use to download each chunk"

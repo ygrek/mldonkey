@@ -120,6 +120,7 @@ and brand =
 and client (*[]*) = {
     client_client : client CommonClient.client_impl;
     mutable client_kind : location_kind;
+    mutable client_source : source option;
     mutable client_md4 : Md4.t;
     mutable client_chunks : availability;
     mutable client_sock : TcpBufferedSocket.t option;
@@ -184,8 +185,7 @@ and zone = {
   }
   
 and source = {
-    source_ip : Ip.t;
-    source_port : int;
+    source_addr : Ip.t * int;
     mutable source_client: client_kind; 
   }
 
@@ -217,12 +217,10 @@ and file = {
 to connect them. *)
     mutable file_sources : client Intmap.t; 
     
-    (*
     mutable file_emerging_sources : source list;
     mutable file_concurrent_sources : source Fifo.t;
     mutable file_old_sources : source Fifo.t;
-*)    
-    
+    mutable file_all_sources : ((Ip.t * int), source) Hashtbl.t;
 (*
     mutable file_last_downloaded : (int32 * float) list;
     mutable file_last_time : float;

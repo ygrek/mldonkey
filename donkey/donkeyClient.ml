@@ -64,45 +64,50 @@ let ban_client c sock =
   count_banned c;
   c.client_banned <- true;
   Hashtbl.add banned_ips ip (last_time ())
-
+  
 let request_for c file sock =
-  try
-  let record = Hashtbl.find old_requests (client_num c, file_num file) in
-  if record.last_request +. 540. > last_time () then begin
-    record.nwarnings <- record.nwarnings+ 1;
-    record.last_request <- last_time ();
-    if record.nwarnings > 3 then raise Exit;
-    let module M = DonkeyProtoClient in
-    if record.nwarnings =3 then begin
-      Printf.printf "uploader %s(%s) has been banned" c.client_name (brand_to_string c.client_brand);
-      print_newline ();
-      ban_client c sock;
-      if !!send_warning_messages then
-        direct_client_send sock ( M.SayReq  (
- 				     "[ERROR] Your client is connecting too fast, it has been banned"));
-      raise Exit;
-    end;
-    Printf.printf "uploader %s(%s) has been warned" c.client_name (brand_to_string c.client_brand);
-    print_newline ();
-    if !!send_warning_messages then
-      direct_client_send sock ( M.SayReq  (
-				       "[WARNING] Your client is connecting too fast, it will get banned"))
-  end else
-      record.last_request <- last_time ();
-  with Not_found ->
-    Hashtbl.add old_requests (client_num c, file_num file) 
-       { last_request = last_time (); nwarnings = 0; }
-   
+  if !!ban_queue_jumpers then
+    try
+      let record = Hashtbl.find old_requests (client_num c, file_num file) in
+      if record.last_request +. 540. > last_time () then begin
+          record.nwarnings <- record.nwarnings+ 1;
+          record.last_request <- last_time ();
+          if record.nwarnings > 3 then raise Exit;
+          let module M = DonkeyProtoClient in
+          if record.nwarnings =3 then begin
+              Printf.printf "uploader %s(%s) has been banned" 
+                c.client_name (brand_to_string c.client_brand);
+              print_newline ();
+              
+              ban_client c sock;
+              if !!send_warning_messages then
+                direct_client_send sock ( M.SayReq  (
+                    "[ERROR] Your client is connecting too fast, it has been banned"));
+              raise Exit;
+            end;
+          Printf.printf "uploader %s(%s) has been warned" 
+            c.client_name (brand_to_string c.client_brand);
+          print_newline ();
+          if !!send_warning_messages then
+            direct_client_send sock ( M.SayReq  (
+                "[WARNING] Your client is connecting too fast, it will get banned"))
+        end else
+        record.last_request <- last_time ();
+    with Not_found ->
+        Hashtbl.add old_requests (client_num c, file_num file) 
+        { last_request = last_time (); nwarnings = 0; }
+        
 let clean_requests () = (* to be called every hour *)
   Hashtbl.clear old_requests;
   let remove_ips = ref [] in
-    Hashtbl.iter (fun ip time ->
-		  if time +. 3600. *. 6. < last_time () then remove_ips := ip :: !remove_ips
-		  ) banned_ips;
-List.iter (fun ip ->
-	   Hashtbl.remove banned_ips ip;
-	   ) !remove_ips
-
+  Hashtbl.iter (fun ip time ->
+      if time +. 3600. *. !!ban_period < last_time () then 
+        remove_ips := ip :: !remove_ips
+  ) banned_ips;
+  List.iter (fun ip ->
+      Hashtbl.remove banned_ips ip;
+  ) !remove_ips
+  
 let client_send_if_possible sock msg =
   if can_write_len sock (!!client_buffer_size/2) then
     client_send sock msg
@@ -438,8 +443,8 @@ let add_new_location sock file c =
     
 let client_to_client for_files c t sock = 
   let module M = DonkeyProtoClient in
-  
-  (*
+
+(*
   Printf.printf "Message from client:"; print_newline ();
   M.print t;
   print_newline ();
@@ -455,7 +460,7 @@ let client_to_client for_files c t sock =
       
       if t.CR.md4 = !!client_md4 then
         TcpBufferedSocket.close sock "connected to myself";
-            
+      
       c.client_tags <- t.CR.tags;
       List.iter (fun tag ->
           match tag with
@@ -530,25 +535,33 @@ print_newline ();
       end
   
   | M.JoinQueueReq _ ->
-     begin try
-
-Printf.printf "Upload queue:"; print_newline ();
-begin
- match c.client_brand with
-  Brand_mldonkey2 -> 
-     if Fifo.length upload_clients >= !!max_upload_slots then
-       Fifo.iter (fun c -> if c.client_sock <> None && c.client_brand = Brand_mldonkey2 then raise Exit)
-       upload_clients
-| Brand_oldemule
-| Brand_newemule ->
-     if Fifo.length upload_clients >= !!max_upload_slots then raise Exit;
-     let nemule = ref 0 in
-     Fifo.iter (fun c -> if c.client_sock <> None && (c.client_brand = Brand_oldemule || c.client_brand = Brand_newemule)
-     then incr nemule) upload_clients;
-     if !nemule > !!max_upload_slots / 3 then raise Exit
-| _ ->
-     if Fifo.length upload_clients >= !!max_upload_slots then raise Exit;
-end;
+      begin try
+          
+          Printf.printf "Upload queue:"; print_newline ();
+          begin
+            match c.client_brand with
+              Brand_mldonkey2 -> 
+                if Fifo.length upload_clients >= !!max_upload_slots then
+                  Fifo.iter (fun c -> 
+                      if c.client_sock <> None && 
+                        c.client_brand = Brand_mldonkey2 then raise Exit)
+                  upload_clients
+            | Brand_oldemule
+            | Brand_newemule ->
+                if Fifo.length upload_clients >= !!max_upload_slots then
+                  raise Exit;
+                let nemule = ref 0 in
+                Fifo.iter (fun c -> 
+                    if c.client_sock <> None && 
+                      ( c.client_brand = Brand_oldemule || 
+                        c.client_brand = Brand_newemule)
+                    then incr nemule) upload_clients;
+                if !nemule > (!!max_upload_slots * !!max_emule_slots) / 100
+                then raise Exit
+            | _ ->
+                if Fifo.length upload_clients >= !!max_upload_slots then
+                  raise Exit;
+          end;
           set_rtimeout sock !!upload_timeout;
           
           direct_client_send sock (
@@ -556,15 +569,17 @@ end;
             let module Q = M.AvailableSlot in
             M.AvailableSlotReq Q.t);
           
-          Printf.printf "New uploader %s: brand %s" c.client_name (brand_to_string c.client_brand);
+          Printf.printf "New uploader %s: brand %s" 
+            c.client_name (brand_to_string c.client_brand);
           print_newline ();
           set_write_power sock (c.client_power);
           set_read_power sock (c.client_power);
-        
-with _ ->
-          Printf.printf "(uploader %s: brand %s, couldn't get a slot)" c.client_name (brand_to_string c.client_brand);
-          print_newline ()
-        end
+          
+        with _ ->
+            Printf.printf "(uploader %s: brand %s, couldn't get a slot)" 
+              c.client_name (brand_to_string c.client_brand);
+            print_newline ()
+      end
   
   | M.CloseSlotReq _ ->
       printf_string "[DOWN]";
