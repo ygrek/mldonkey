@@ -230,6 +230,7 @@ let reconnect gui =
                 clean_gui ();      
               end
     );
+    TcpBufferedSocket.set_max_write_buffer sock !!interface_buffer;
     TcpBufferedSocket.set_reader sock (value_handler (value_reader gui));
     gui#label_connect_status#set_text "Connecting"
   with e ->

@@ -25,7 +25,8 @@ EXE_opt=
 GTK_LIBS_byte=-I +lablgtk $(LABLGL_CMA) lablgtk.cma
 GTK_LIBS_opt=-I +lablgtk  $(LABLGL_CMXA) lablgtk.cmxa
 GTK_STATIC_LIBS_opt=-I +lablgtk lablgtk.cmxa
-
+STR_LIBS_byte=str.cma
+STR_LIBS_opt=str.cmxa
 
 EXT=$(EXT_$(TARGET))
 LIBEXT=$(LIBEXT_$(TARGET))
@@ -34,6 +35,7 @@ CDK=$(CDK_$(TARGET))
 CUSTOM=$(CUSTOM_$(TARGET))
 COMP=$(COMP_$(TARGET))
 GTK_LIBS=$(GTK_LIBS_$(TARGET))
+STR_LIBS=$(STR_LIBS_$(TARGET))
 
 SUBDIRS=cdk configwin mp3tagui okey lib net proto \
   client server gui $(MORE_SUBDIRS)
@@ -96,10 +98,14 @@ CLIENT_CMOS=client/downloadTypes.$(EXT) \
   client/downloadGlobals.$(EXT) \
   client/downloadComplexOptions.$(EXT) \
   client/downloadMultimedia.$(EXT) client/downloadIndexer.$(EXT) \
+  client/downloadShare.$(EXT) \
   client/downloadServers.$(EXT) client/downloadOneFile.$(EXT) \
   client/downloadClient.$(EXT) client/downloadFiles.$(EXT)  \
   client/downloadSearch.$(EXT) \
-  client/downloadInteractive.$(EXT)  client/downloadInterface.$(EXT) \
+  client/downloadInteractive.$(EXT)  \
+  client/downloadCommands.$(EXT)  \
+  client/downloadControlers.$(EXT)  \
+  client/downloadInterface.$(EXT) \
   client/downloadMain.$(EXT)
 
 SERVER_CMOS=\
@@ -112,7 +118,7 @@ SERVER_CMOS=\
   server/serverUdp.$(EXT)  \
   server/serverMain.$(EXT)
 
-TARGETS= mldonkey_gui$(EXE) $(MORE_TARGETS)
+TARGETS= use_tags$(EXE) mldonkey_gui$(EXE) $(MORE_TARGETS)
 
 GUI= \
   $(CDK_CMOS) $(LIB_CMOS) $(NET_CMOS) \
@@ -134,6 +140,9 @@ SECRET_SERVER =   \
   $(MIN_GUI_CMOS) \
   $(SERVER_CMOS) 
 
+USE_TAGS = \
+  $(CDK_CMOS) $(LIB_CMOS) \
+  $(MP3TAG_CMOS) client/use_tags.$(EXT)
 
 CLIENT= $(OPEN_CLIENT) $(SECRET_CLIENT)
 SERVER= $(OPEN_CLIENT) $(SECRET_SERVER)
@@ -179,6 +188,11 @@ opt:
 
 static:
 	$(MAKE) TARGET=opt mldonkey_gui.static mldonkey.static
+
+######## TAGS
+
+use_tags$(EXE): $(USE_TAGS) $(OBJS)
+	$(COMP) -o use_tags$(EXE) $(LIBS) $(STR_LIBS) $(USE_TAGS) $(OBJS)
 
 ######## GUI
 
@@ -253,8 +267,8 @@ $(DISDIR):  static distrib/Readme.txt
 	strip $(DISDIR)/mldonkey_gui
 	tar cf $(DISDIR).tar $(DISDIR)
 	grep Release: gui/gui_messages.ml | awk -F : '{ print $$2 }' | awk '{ print $$1 }' > VERSION
-	mv $(DISDIR).tar mldonkey-`cat VERSION`.static.`uname -m`-`uname -s`.tar
-	bzip2 mldonkey-`cat VERSION`.static.`uname -m`-`uname -s`.tar
+	mv $(DISDIR).tar mldonkey-`cat VERSION`.static.$(MD4ARCH)-`uname -s`.tar
+	bzip2 mldonkey-`cat VERSION`.static.$(MD4ARCH)-`uname -s`.tar
 
 macosx:  opt distrib/Readme.txt
 	rm -rf mldonkey-*
@@ -283,7 +297,49 @@ $(SHADIR):  static distrib/Readme.txt
 	strip $(SHADIR)/mldonkey_gui
 	tar cf $(SHADIR).tar $(SHADIR)
 	grep Release: gui/gui_messages.ml | awk -F : '{ print $$2 }' | awk '{ print $$1 }' > VERSION
-	mv $(SHADIR).tar mldonkey-`cat VERSION`.shared.`uname -m`-`uname -s`.tar
-	bzip2 mldonkey-`cat VERSION`.shared.`uname -m`-`uname -s`.tar
+	mv $(SHADIR).tar mldonkey-`cat VERSION`.shared.$(MD4ARCH)-`uname -s`.tar
+	bzip2 mldonkey-`cat VERSION`.shared.$(MD4ARCH)-`uname -s`.tar
+
+VERSION: gui/gui_messages.ml
+	grep Release: gui/gui_messages.ml | awk -F : '{ print $$2 }' | awk '{ print $$1 }' > VERSION	
+
+auto-release: VERSION
+# i386
+	mkdir -p $(HOME)/release-`cat VERSION`
+	cp -f config/Makefile.config.i386 config/Makefile.config
+	rm -f mldonkey mldonkey.static lib/md4_comp.* lib/md4_as.*
+	$(MAKE) opt static
+	$(MAKE) distrib
+	cp mldonkey-`cat VERSION`.static.i386-Linux.tar.bz2 $(HOME)/release-`cat VERSION`/
+	$(MAKE) shared
+	cp mldonkey-`cat VERSION`.shared.i386-Linux.tar.bz2 $(HOME)/release-`cat VERSION`/
+# i686
+	mkdir -p $(HOME)/release-`cat VERSION`
+	cp -f config/Makefile.config.i686 config/Makefile.config
+	rm -f mldonkey mldonkey.static lib/md4_comp.* lib/md4_as.*
+	$(MAKE) opt static
+	$(MAKE) distrib
+	cp mldonkey-`cat VERSION`.static.i686-Linux.tar.bz2 $(HOME)/release-`cat VERSION`/
+	$(MAKE) shared
+	cp mldonkey-`cat VERSION`.shared.i686-Linux.tar.bz2 $(HOME)/release-`cat VERSION`/
+# i586
+	mkdir -p $(HOME)/release-`cat VERSION`
+	cp -f config/Makefile.config.i586 config/Makefile.config
+	rm -f mldonkey mldonkey.static lib/md4_comp.* lib/md4_as.*
+	$(MAKE) opt static
+	$(MAKE) distrib
+	cp mldonkey-`cat VERSION`.static.i586-Linux.tar.bz2 $(HOME)/release-`cat VERSION`/
+	$(MAKE) shared
+	cp mldonkey-`cat VERSION`.shared.i586-Linux.tar.bz2 $(HOME)/release-`cat VERSION`/
+# i486
+	mkdir -p $(HOME)/release-`cat VERSION`
+	cp -f config/Makefile.config.i486 config/Makefile.config
+	rm -f mldonkey mldonkey.static lib/md4_comp.* lib/md4_as.*
+	$(MAKE) opt static
+	$(MAKE) distrib
+	cp mldonkey-`cat VERSION`.static.i486-Linux.tar.bz2 $(HOME)/release-`cat VERSION`/
+	$(MAKE) shared
+	cp mldonkey-`cat VERSION`.shared.i486-Linux.tar.bz2 $(HOME)/release-`cat VERSION`/
 
 -include .depend
+

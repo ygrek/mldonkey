@@ -17,12 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-type replies
-
-val add : Mftp.tagged_file -> unit
-  
-val find : int Indexer.query -> replies
-  
-val get : replies -> int -> Mftp.tagged_file list
-  
-val query_to_query : Mftp.query -> 'a Indexer.query
+val add_shared_files : string -> unit
+val must_share_file : DownloadTypes.file -> unit
+val check_shared_files : unit -> unit
+val make_tagged : DownloadTypes.file list -> Mftp.tagged_file list
+val all_shared : unit -> DownloadTypes.file list

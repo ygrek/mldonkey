@@ -120,7 +120,8 @@ module QueryMake(Index: Index) = struct
         | HasField (fields, s) -> 
             let tree = find idx s in
             get_fields tree fields
-        | And (q1, q2) -> 
+        | And ((Predicate _) as q2, q1) 
+        | And (q1, q2) ->
             let map = query idx q1 in
             and_query idx q2 map
         | Or (q1, q2) -> 
@@ -132,37 +133,30 @@ module QueryMake(Index: Index) = struct
         | Predicate f -> 
             Intmap.empty
       with _ -> Intmap.empty          
-          (*
-          let map = query idx q in
-          purge_map f map
-*)
-          
+    
     and and_query idx q map =
       try
-      if map = Intmap.empty then map else
-      match q with
-      | HasWord s -> 
-          let tree = find idx s in
-          and_get_fields tree (-1) map
-      | HasField (fields, s) -> 
-          let tree = find idx s in
-          and_get_fields tree fields map
-      | And (q1, q2) -> 
-          let map = and_query idx q1 map in
-          and_query idx q2 map
-      | Or (q1, q2) -> 
-          let map1 = and_query idx q1 map in
-          let map2 = and_query idx q2 map in
-          merge_maps map1 map2
-      | AndNot (q1, q2) -> 
-          let map = and_query idx q1 map in
-          andnot_query idx q2 map
-      | Predicate f -> 
-          Intmap.empty
-          (*
-          let map = and_query idx q map in
-          purge_map f map
-*)
+        if map = Intmap.empty then map else
+        match q with
+        | HasWord s -> 
+            let tree = find idx s in
+            and_get_fields tree (-1) map
+        | HasField (fields, s) -> 
+            let tree = find idx s in
+            and_get_fields tree fields map
+        | And (q1, q2) -> 
+            let map = and_query idx q1 map in
+            and_query idx q2 map
+        | Or (q1, q2) -> 
+            let map1 = and_query idx q1 map in
+            let map2 = and_query idx q2 map in
+            merge_maps map1 map2
+        | AndNot (q1, q2) -> 
+            let map = and_query idx q1 map in
+            andnot_query idx q2 map
+        | Predicate f ->
+            purge_map f map
+            
       with _ -> Intmap.empty
           
     and  or_query idx q map =
@@ -174,6 +168,7 @@ module QueryMake(Index: Index) = struct
       | HasField (fields, s) -> 
           let tree = find idx s in
           or_get_fields (ref map) tree fields
+      | And (Predicate _ as q2, q1) 
       | And (q1, q2) -> 
           let map_and = query idx q1 in
           let map_and = and_query idx q2 map_and in
@@ -186,13 +181,10 @@ module QueryMake(Index: Index) = struct
           let map_andnot = andnot_query idx q2 map_andnot in
           merge_maps map map_andnot
       | Predicate f -> 
-          Intmap.empty
-(*
-  let map_f = query idx q in
-          let map_f = purge_map f map_f in
-          merge_maps map map_f
-*)
+            map
+
       with _ -> Intmap.empty
+          
     and andnot_query idx q map =
       match q with
       | HasWord s -> 
@@ -203,10 +195,15 @@ module QueryMake(Index: Index) = struct
           let tree = find idx s in
           let map_not = get_fields tree fields in
           substract_map map map_not
+      | And (Predicate _ as q2, q1)
       | And (q1, q2) -> 
           let map_not = query idx q1 in
           let map_not = and_query idx q2 map_not in
           substract_map map map_not
+      | Or(q, Predicate f)
+      | Or(Predicate f, q) ->
+          let map = purge_map f map in
+          andnot_query idx q map
       | Or (q1, q2) -> 
           let map_not = query idx q1 in
           let map = substract_map map map_not in
@@ -215,14 +212,10 @@ module QueryMake(Index: Index) = struct
       | AndNot (q1, q2) -> 
           let map_not = query idx q1 in
           let map_not = andnot_query idx q2 map_not in
-          substract_map map map_not
-      | Predicate f -> 
-          Intmap.empty
-(*
-          let map_not = query idx q in
-          let map_not = purge_map f map_not in
-          substract_map map map_not
-*)
+          substract_map map map_not          
+      | Predicate f ->          
+          purge_map (fun x -> not (f x)) map
+
           
     let query idx q =
       let map = query idx q in

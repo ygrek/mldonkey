@@ -45,6 +45,7 @@ case $host in
         *)         ;;
 esac
 
+MD4ARCH=`uname -m`
 case $host in
   i486-pc-linux*) MD4COMP=as; MD4ARCH=i486;;
   i586-pc-linux*) MD4COMP=as; MD4ARCH=i586;;

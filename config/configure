@@ -1,6 +1,6 @@
 #! /bin/sh
 
-# From configure.in Revision: 1.6 
+# From configure.in Revision: 1.7 
 
 # Guess values for system-dependent variables and create Makefiles.
 # Generated automatically using autoconf version 2.13 
@@ -1579,6 +1579,7 @@ done
         *)         ;;
 esac
 
+MD4ARCH=`uname -m`
 case $host in
   i486-pc-linux*) MD4COMP=as; MD4ARCH=i486;;
   i586-pc-linux*) MD4COMP=as; MD4ARCH=i586;;
@@ -1587,7 +1588,7 @@ case $host in
 esac
 
 echo $ac_n "checking Additionnal includes""... $ac_c" 1>&6
-echo "configure:1591: checking Additionnal includes" >&5 
+echo "configure:1592: checking Additionnal includes" >&5 
 echo "$ac_t""$CONFIG_INCLUDES" 1>&6
 
 OCAMLLIB=`ocamlc -where`

@@ -23,6 +23,14 @@ open Mftp_comm
 open BasicSocket
 open Gui_types
 open DownloadOptions
+
+let tag_client = 200
+let tag_server = 201
+let tag_file   = 202
+  
+  
+let one_day = 3600. *. 60.
+let half_day = one_day /. 2.
   
 let printf_char c =
   if !!verbose then 
@@ -68,24 +76,21 @@ let page_size = Int32.of_int 4096
 
 (* GLOBAL STATE *)
 
-let min_retry_delay = ref 900.
   
 let new_connection_control last_conn = {
     control_next_try = last_time () -. 1.;
     control_last_conn = last_conn;
-    control_next_delay = !min_retry_delay;
+    control_next_delay = !!min_retry_delay;
   }
   
 let connection_ok cc = 
-  cc.control_next_delay <- !min_retry_delay;
+  cc.control_next_delay <- !!min_retry_delay;
   cc.control_last_conn <- last_time ();
-  cc.control_next_try <- last_time () +. !min_retry_delay
+  cc.control_next_try <- last_time () +. !!min_retry_delay
   
 let connection_try cc =
   cc.control_next_try <- last_time () +. cc.control_next_delay
 
-let half_day = 12. *. 3600.
-  
 let connection_failed cc =
   cc.control_next_delay <- minf (cc.control_next_delay *. 2.) half_day
 
@@ -103,7 +108,7 @@ let connection_last_conn cc =
 
 let connection_delay cc =
   cc.control_next_try <- maxf cc.control_next_try
-    (last_time () +. !min_retry_delay)
+    (last_time () +. !!min_retry_delay)
   
 open Mftp
   
@@ -142,7 +147,7 @@ let zone_size = Int32.of_int (180 * 1024)
 let block_size = Int32.of_int 9728000
   
 let queue_timeout = ref (60. *. 10.) (* 10 minutes *)
-      
+    
 let nclients = ref 0
 let (files_by_anon_client: (Ip.t * int * Ip.t,file * bool ref) Hashtbl.t) = Hashtbl.create 127
   
@@ -239,6 +244,7 @@ let new_file file_name md4 file_size writable =
           file_new_locations = true;
         }
       in
+      Heap.set_tag file tag_file;
       Hashtbl.add files_by_md4 md4 file;
       file
 
@@ -302,6 +308,7 @@ let new_server ip port score =
           server_master = false;
         }
       in
+      Heap.set_tag s tag_server;
       Hashtbl2.add servers_by_key key s;
       Hashtbl.add servers_by_num !server_counter s;
       !server_change_hook s;
@@ -396,6 +403,7 @@ let new_client key =
           
   in
   Hashtbl.add clients_by_num c.client_num c;
+  Heap.set_tag c tag_client;
   c
   
 let remove_client c =
@@ -409,6 +417,8 @@ let first_name file =
     [] -> Filename.basename file.file_hardname
   | name :: _ -> name
 
+let udp_servers_replies = Hashtbl.create 127
+      
 let exit_handlers = ref []
 let do_at_exit f =
   exit_handlers := f :: !exit_handlers

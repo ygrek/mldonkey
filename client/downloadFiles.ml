@@ -142,7 +142,7 @@ let make_xs ss =
 
 let fill_clients_list _ =
 (* should we refill the queue ? *)
-  if !!max_clients_per_second * 900 > !clients_list_len then begin
+  if !!max_clients_per_second * 300 > !clients_list_len then begin
       List.iter (fun file -> 
           if file.file_state = FileDownloading then 
             let files = [file] in
@@ -154,7 +154,6 @@ let fill_clients_list _ =
           clients_list := (c, []) :: !clients_list
       ) !!known_friends;
       clients_list_len := List.length !clients_list;
-      remaining_time_for_clients := 60 * 15
     end  
   
 let rec connect_several_clients n =
@@ -181,9 +180,8 @@ let rec connect_several_clients n =
 
                 
 let remove_old_clients () =
-  let day = 3600. *. 24. in
   let min_last_conn =  last_time () -. 
-    float_of_int !!max_sources_age *. day in
+    float_of_int !!max_sources_age *. one_day in
   List.iter (fun file ->
       let locs = file.file_known_locations in
       file.file_known_locations <- Intmap.empty;
@@ -238,7 +236,7 @@ let force_check_locations () =
       match !udp_servers_list with
         [] -> udp_servers_list := !!known_servers
       | s :: tail ->
-          s.server_next_udp <- last_time () +. !!medium_retry_delay;
+          s.server_next_udp <- last_time () +. !!min_retry_delay;
           udp_servers_list := tail
     done;
 
@@ -355,6 +353,7 @@ let udp_client_handler t p =
 (*      Printf.printf "Received file by UDP"; print_newline (); *)
       if !last_xs >= 0 then
         let ss = find_search !last_xs in
+        Hashtbl.add udp_servers_replies t.f_md4 (udp_from_server p);
         search_handler ss [t]
   | M.FileGroupInfoUdpReq t ->
 (*      Printf.printf "Received location by File Group"; print_newline (); *)

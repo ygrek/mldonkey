@@ -2,7 +2,7 @@
                       MLDonkey
                       ========
 
-Release: 1.14
+Release: 1.15
 Authors: [b8]_bavard (Communication engine) and [b8]_Zoggy (GUI)
 
  MLDonkey is a door to the 'donkey' network, a decentralized network used to
@@ -236,6 +236,15 @@ a good server, use 'c 34' if 34 is for example the number of the server
 in the list 'vma'. You can also select some servers in the GUI, and use the
 connect button/menu.
 
+*) Which ports should I open on my firewall ?
+--------------------------------------------
+
+By default, mldonkey uses ports 4662 for tcp connections, and port 4666 for
+udp connections. If you change the tcp port, udp port will be tcp_port + 4.
+Therefore, you should allow your firewall to send incoming connections and
+messages on these ports to your local network.
+
+
 Help on the command-line interface
 ==================================
 
@@ -282,7 +291,10 @@ s  <query> : search for files
         -Video
         -Audio
         -format <format>
-        -field <field> <fieldvalue> :
+        -field <field> <fieldvalue>
+        -not <word>
+        -and <word> 
+        -or <word> :
 
 vs : view all queries
 cancel  <num> : cancel download
@@ -376,7 +388,7 @@ connected to. This is an old option, that was useful before UDP packets.
 1 is now enough, since all servers will eventually be searched by UDP.
 
 'Upload limit': default is 30 kB/s (good for ADSL/Cable). You can't set it
-  under 10kB/s. If you have a large bandwith, set it to 500 kB/s or +
+  under 1kB/s. If you have a large bandwith, set it to 500 kB/s or +
 
 'Client hostname': the name of the host were your client is running if not
   the same host as the graphical interface.
@@ -392,30 +404,150 @@ interfaces and graphical interfaces).
 
 In the console, you have access to the command-line commands.
 
-TODO list
-=========
-  * Chat.
+Using auxiliary programs for local indexation (in development)
+=============================================
+
+mldonkey now uses auxiliary programs to help find results to search.
+Currently, two types of programs are supported:
+
+- Finder (set by the 'local_index_find_cmd' option)
+ The finder receives a query on its standard input, and replies by
+ the results on its standard output.
+
+Query format: the query finishes with 'end_query' on one line. On each line 
+of the query, there is one keyword, a colon :, and a value. Keywords are:
+ words, minsize, maxsize, minrate, media, format, title, album, artist
+
+Result format: the result finishes with 'end result' on one line. On each line
+of the result, there is one keyword, a colon :, and a value.
+Keywords are:
+  Required: md4, size
+  Optional: name, format, type, string_tag, int_tag
+
+There can be several name, string_tag, int_tag lines. The value on the 
+string_tag line should be the name of the tag, a colon : and the value of
+the tag. Idem for int_tag, but the value should be an integer.
+
+- Indexer (set by the 'local_index_add_cmd' option)
+The indexer is called each time a new result is received by mldonkey,
+and the result is given on its standard input in the same format as specified
+above. It can be used to add the result to the index that is used by the
+Finder.
+
+TODO list for client
+====================
   * Plugins.
   * Correct display of availability.
-  * Add sleep and wakeup commands.
-  * More options in GUI
-  * Popup et historique des dialogues.
+  * Popup
   * Keep (server_ip, server_port, id) for indirect connections.
   * Manager of shared files/directories.
   * Add Friends in console and WEB. 
-  * Don't keep history in memory.
   * Allow hostname instead of IPs in servers and friends.
   * Queue uploads per chunk.
   * Add prefered servers.
   * Save options in a modular way (each server in a file ?).
+  * Recommandation for upload.
+  * Download priorities (what does it mean ?).
+  * Use source groups for local downloads.
+  * Use a cache of data to help diffusing files.
+  * Check that program exists before trying to execute.
+  * Correct boolean searches
+  * List of prefered servers
+  * Fix BUFFER OVERFLOW bug !!!!!
+  * Customized queries in GUI
+  * Clean the clients_by_num table from clients which are not useful anymore.
+  * verify that interesting_clients that can't connect are correctly removed.
+  * remove locations of downloaded files.
+  * check that 'cancelled' files cannot be shared also in incoming/
+  * don't add sources to files already downloaded.
+  * efficient management of buffers
+  * background searches: 
+   - search and automatically download files
+
+
+TODO list for server
+====================
+* Send a ping to all clients every minute
+* Implement the whole protocol for TCP clients
+* Implement the whole protocol for UDP clients
+* Implement the protocol for UDP servers
+* Implement indexation
+* Implement localisation
 
 Known bugs:
 ===========
   * When clicking on the columns it sorts on that column, when
-   clicking again it should do a reverse sort on it
+   clicking again it should do a reverse sort on it, but it doesn't.
 
 ChangeLog
 =========
+
+Release 1.15:
+  * Started implementing mldonkey_s (eDonkey compatible server)
+  * GUI:
+    - Should fit in 640x480 screens.
+    - Server can be specified by ip:port in Add Server entry.
+    - Removed some non-tailrecursive functions.
+  * Core acts now with all (direct) clients as a server to diffuse sources
+     for files. Indirect mldonkey clients can also receive information.
+  * WEB interface:
+    - New option 'customized_searches' that can be used to add new
+       queries in the WEB interface (see new option file searches.ini
+       for examples).
+    - Improved searches (work also in the GTK GUI): 
+       * In the keyword/artist/title/album fields, a '-' in front of
+        a word means 'without'. Words separated by
+        spaces must appear in the reply. 
+       * In the format field: you can specify several formats, separated by
+        spaces. A '-' in front of a format means you don't want that format.
+    - New options 'web_header' and 'web_header_frame' to customize the header
+       displayed by the Web interface.
+    - Generate correct HTML with HEAD and TITLE :)
+    - Downloads can be sorted by name/percent/downloaded/size/rate.
+    - Paused downloads are correctly displayed.
+    - Use tables instead of spaces (for non-fixed fonts).
+    - Added option 'use_html_frames'. When frames are enabled, clicking
+       on a result to download will only modify the second frame.
+    - Checklist of downloads and results can be activated/desactivated with
+      the option 'html_checkbox_file_list'.
+    - The number of days since the file was last seen complete is now displayed
+  * Core:
+    - New option 'file_completed_cmd' for a command which is called when 
+     a file download is completed with as arguments: 
+     <filename on disk> <md4> <size> <names on the edonkey networks>*
+    - Started moving local indexation from mldonkey to an auxiliary program,
+     controled by options 'local_index_find_cmd' and 'local_index_add_cmd'.
+     See the 'Using auxiliary programs for local indexation' section in
+     the help (in progress, doesn't work).
+    - New command line option -client_ip that can be used to force the
+     IP used by mldonkey (if you have a firewall). Be careful with
+     dynamic IPs.
+    - Delay between md4 computation can be set by 'compute_md4_delay' option.
+     Chunks downloaded improve to reduce long md4 computations.
+  * Most problems with ed2k:// links should be fixed (/ at the end, and
+     spaces in the middle). MLdonkeySubmit is distributed for Konqueror users.
+  * Improved implementation of indexation. Documents description are
+     stored on disk. Different choices of indexation.
+  * Server black list: 'bs <ip1> <ip2> ...' in console to add IPs to the
+    server blacklist. Servers on this black list are eventually removed,
+    and will never be added again.
+  * New option 'master_server_min_users' that prevent mldonkey from remaining
+     connected to a server with too few users.
+  * New option 'dont_update_server_list' to disable automatic update of
+     server lists.
+  * Telnet interface: 
+     - New command 'remove_old_servers'
+  * New (less-aggressive) management of sources:
+     - New option 'max_source_age' (in days) to remove old sources.
+     - New option 'max_clients_per_second' to prevent bursts of connections.
+  * Faster computation of md4s for i486/i586/i686 Linux systems.
+  * Fixed bugs:  
+   - #100662: only valid server IPs are accepted.
+   - Use IP returned by getsockname instead of the one from gethostbyname.
+   - #100761: new option 'update_server_list' to choose whether you want 
+     mldonkey to automatically add new servers to your server list.
+   - Fixed bug preventing sharing of in-download files after restart.
+   - Fixed bug making history.met always increase.
 
 Release 1.14:
   * Bandwidth is now controled by the 'max_hard_download_rate' and
@@ -586,5 +718,42 @@ Release 1.00:
   * Graphical interface works
   * Import old config works
 
+KNOWN COMMENTS (from savannah and forum):
+========================================
+Browser: Mozilla/4.75 [en] (X11; U; Linux 2.4.17 i686; Nav) On the help page, it still says you can't set uploads
+under 1K. 
+If a server IP along with a colon seperated port number
+is specified in the Server IP box, and enter hit, then
+it gets added. This would make copy/paste from a list
+of servers lots easier. Saving upstats would be nice, as well as some way of
+resetting it, to get a better idea of which files to
+keep shared. The downloads panel is a little busy, and not good for
+small screens (some people still have to use 640x480) Perhaps move the 'save files' to an incoming tab?
+(which can flash when it's got files in) On the same lines, why not show the filename/details
+(the one above the colour bar) in a line, with name in
+one box, size in the next (perhaps with bytes/Mb
+added), and the format in another, with the colour bar
+as the last item in the line, taking up the whole width
+of the client, with the 'connections' panel only
+popping up over the right-hand-side of the screen when
+a filename is double-clicked (or when show connections
+is picked from the menu)
+The MD4 recover might move to the incoming tab, and the
+ed2k file to below the filename/colourbar line, and
+automatically change when a new file is clicked,
+to show the ed2k: link.
+Maybe the cancel/retry-connect could move to the
+connections panel? On the search results tab, it would be nice to indicate
+number of results per file, to give at least an
+indication of availability.
 
+===========================================
+The only problem is that since I use it (.10) it eats lots of memory and cpu
+resources.. this is the 'top' line, using 90.3% of the cpu and 22.5% RAM 32294 runa      14   0 86612  84M   796 R    90.3 22.5 275:55 mldonkey
+============================================
+
+
+============================================
+
+============================================
 

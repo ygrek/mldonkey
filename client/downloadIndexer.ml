@@ -506,54 +506,6 @@ let find s =
   
   let ss = s.search_query in
   let req = query_to_indexer ss in  
-  (*
-  List.iter (fun s -> 
-      List.iter (fun s ->
-          req := (s, 0xffffffff) :: !req) (stem s) 
-  )  ss.search_words;
-  
-  let with_option o f =
-    match o with 
-      None -> ()
-    | Some v -> f v 
-  in
-  
-  let with_option_bit o bit =
-    match o with 
-      None -> ()
-    | Some s -> 
-        List.iter (fun s ->
-            req := (s, bit) :: !req) (stem s)
-  in
-  
-  with_option ss.search_minsize (fun size -> 
-      let old_pred = !pred in
-      pred := (fun doc ->
-          let r = doc_value doc in
-          r.result_size >= size && old_pred doc));
-  with_option ss.search_maxsize (fun  size -> 
-      let old_pred = !pred in
-      pred := (fun doc ->
-          let r = doc_value doc in
-          r.result_size <= size && old_pred doc));
-  with_option_bit ss.search_media media_bit;
-  with_option_bit ss.search_format format_bit;
-  with_option_bit ss.search_title title_bit;
-  with_option_bit ss.search_artist artist_bit;
-  with_option_bit ss.search_album album_bit;  
-  
-  let req = !req in
-  let pred = !pred in
-  
-  match req with
-    [] -> ()
-  | (word, fields) :: tail ->
-      let req = List.fold_left (fun q (word, fields) ->
-            Indexer.And (q, Indexer.HasField(fields, word)))
-        (Indexer.HasField(fields, word)) tail
-      in
-let req = Indexer.Predicate (pred, req) in
-*)
 
  let docs = DocIndexer.query index req in
 (*  Printf.printf "%d results" (List.length docs); print_newline (); *)

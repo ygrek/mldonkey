@@ -39,4 +39,13 @@ let is_directory filename =
 let is_link filename =
   try let s = Unix.lstat filename in s.st_kind = S_LNK with _ -> false
 
-      
+let rec safe_mkdir dir =  
+    if Sys.file_exists dir then begin
+      if not (is_directory dir) then 
+        failwith (Printf.sprintf "%s not a directory" dir)
+    end
+  else begin
+      let predir = Filename.dirname dir in
+      if predir <> dir then safe_mkdir predir;
+      Unix.mkdir dir 0o775
+    end    

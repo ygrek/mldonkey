@@ -1,0 +1,15 @@
+# Generated automatically from Makefile.config.in by configure.
+CONFIG_INCLUDES=
+
+OCAMLC=ocamlc.opt
+OCAMLOPT=ocamlopt.opt
+OCAMLLEX=ocamllex.opt
+LABLGL_CMA=
+LABLGL_CMXA=
+
+MORE_TARGETS=mldonkey$(EXE) mldonkey_s$(EXE)
+MORE_SUBDIRS=secret
+
+MD4ARCH=i386
+MD4COMP=cc
+

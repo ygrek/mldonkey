@@ -17,12 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-type replies
+val eval : bool ref -> Buffer.t -> string -> DownloadTypes.connection_options -> unit
 
-val add : Mftp.tagged_file -> unit
   
-val find : int Indexer.query -> replies
-  
-val get : replies -> int -> Mftp.tagged_file list
-  
-val query_to_query : Mftp.query -> 'a Indexer.query
+val telnet_handler : TcpServerSocket.t -> TcpServerSocket.event -> unit
+val create_http_handler : unit -> TcpServerSocket.t

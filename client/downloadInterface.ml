@@ -314,7 +314,7 @@ print_newline ();
         Printf.bprintf buf "Eval command: %s\n\n" cmd;
         let options = { conn_output = TEXT; conn_sortvd = BySize;
             conn_filter = (fun _ -> ()); } in
-        DownloadInteractive.eval (ref true) buf cmd 
+        DownloadControlers.eval (ref true) buf cmd 
         options;
         Buffer.add_string buf "\n\n";
         gui_send gui (P.Console (Buffer.contents buf))

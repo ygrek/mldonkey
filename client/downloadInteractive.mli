@@ -24,13 +24,28 @@ val check_shared_files : unit -> unit
 val load_server_met : string -> unit
 
 exception CommandCloseSocket
-
-val eval : bool ref -> Buffer.t -> string -> DownloadTypes.connection_options -> unit
-
-  
-val telnet_handler : TcpServerSocket.t -> TcpServerSocket.event -> unit
-val create_http_handler : unit -> TcpServerSocket.t
   
 val load_url : string -> string -> unit
   
 val reconnect_all : DownloadTypes.file -> unit
+  
+val import_config : string -> unit
+val saved_name : DownloadTypes.file -> string
+val print_file : Buffer.t -> DownloadTypes.file -> unit
+val display_vd : bool ref
+val display_file_list : 
+  Buffer.t -> DownloadTypes.connection_options -> string
+val aborted_download :
+    (string list * int32 * Md4.t * int option * string option *
+     (int32 * int32) list option)
+    option ref
+val really_query_download :
+    string list ->
+    int32 ->
+    Md4.t ->
+    int option -> string option -> (int32 * int32) list option -> unit
+val print_search :
+    Buffer.t ->
+    DownloadTypes.search -> DownloadTypes.connection_options -> unit
+
+  

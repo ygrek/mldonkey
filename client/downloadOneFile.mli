@@ -27,11 +27,11 @@ val find_client_block : DownloadTypes.client -> unit
 val verify_chunks : DownloadTypes.file -> unit 
 val set_file_size : DownloadTypes.file -> int32 -> unit
 val start_download : DownloadTypes.client -> unit
-val check_files_md4s : BasicSocket.timer -> unit
 val next_file : DownloadTypes.client -> unit
   
 val remove_file : Md4.t -> unit
 
 val update_options : DownloadTypes.file -> unit
-val add_shared_files : string -> unit
 val download_engine : unit -> unit
+val check_files_md4s : BasicSocket.timer -> unit
+  

@@ -1,17 +1,7 @@
-/***********************************************************************/
-/*                                                                     */
-/*                           Objective Caml                            */
-/*                                                                     */
-/*             Damien Doligez, projet Para, INRIA Rocquencourt         */
-/*                                                                     */
-/*  Copyright 1996 Institut National de Recherche en Informatique et   */
-/*  en Automatique.  All rights reserved.  This file is distributed    */
-/*  under the terms of the GNU Library General Public License, with    */
-/*  the special exception on linking described in file ../LICENSE.     */
-/*                                                                     */
-/***********************************************************************/
 
-/* $Id$ */
+#include "caml/mlvalues.h"
+
+#ifdef DEBUG_MLDONKEY
 
 
 #include "caml/alloc.h"
@@ -23,7 +13,6 @@
 #include "caml/major_gc.h"
 #include "caml/minor_gc.h"
 #include "caml/misc.h"
-#include "caml/mlvalues.h"
 #include "caml/stacks.h"
 #include <stdio.h>
 
@@ -62,8 +51,9 @@ static void check_block (FILE *oc, char *hp)
    gather statistics; return the stats if [returnstats] is true,
    otherwise return [Val_unit].
 */
-value dump_heap (value unit)
+value heap_dump (value unit)
 {
+
   char *chunk = heap_start, *chunk_end;
   char *cur_hp, *prev_hp;
   header_t cur_hd;
@@ -99,5 +89,21 @@ value dump_heap (value unit)
     chunk = Chunk_next (chunk);
   }
   fclose(oc);
+
   return Val_unit;
 }
+#else
+
+value heap_dump(value unit)
+{
+  return Val_unit;
+}
+
+#endif
+
+value heap_set_tag(value v, value tag)
+{
+  Tag_val(v) = Int_val(tag);
+  return Val_unit;
+}
+

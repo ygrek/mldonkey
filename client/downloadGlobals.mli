@@ -140,3 +140,8 @@ val remove_useless_client : DownloadTypes.client -> unit
 val remove_file_clients : DownloadTypes.file -> unit
 val last_search : int Intmap.t ref
   
+val one_day : float
+val half_day : float
+  
+val udp_servers_replies : (Md4.t, DownloadTypes.server) Hashtbl.t
+  

@@ -212,13 +212,9 @@ let o_gui_server_port = "GUI port"
 let o_save_options_delay = "Save options delay"
 let o_check_client_cons_delay = "Check client connections delay"
 let o_check_cons_delay = "Check connections delay"
-let o_small_delay = "Small retry delay"
-let o_medium_delay = "Medium retry delay"
-let h_medium_delay = "Minimal delay between two connection attempts to the same host"
-let o_long_delay = "Long retry delay"
-let h_long_delay = 
-  "Minimal delay between two connection attempts to the same host, "^
-  "when the first one failed"
+let o_min_delay = "Minimal retry delay"
+let h_min_delay = "Minimal delay between two connection attempts to the same host"
+
 let o_server_connection_timeout = "Server connection timeout"
 let o_client_timeout = "Client timeout"
 let o_update_gui_delay = "Update GUI delay"
@@ -283,7 +279,7 @@ let help_text = "
                       MLDonkey
                       ========
 
-Release: 1.15
+Release: 1.16
 Authors: [b8]_bavard (Communication engine) and [b8]_Zoggy (GUI)
 
  MLDonkey is a door to the 'donkey' network, a decentralized network used to
@@ -737,7 +733,6 @@ TODO list for client
   * Fix BUFFER OVERFLOW bug !!!!!
   * Customized queries in GUI
   * Clean the clients_by_num table from clients which are not useful anymore.
-  * verify that interesting_clients that can't connect are correctly removed.
   * remove locations of downloaded files.
   * check that 'cancelled' files cannot be shared also in incoming/
   * don't add sources to files already downloaded.
@@ -762,6 +757,19 @@ Known bugs:
 
 ChangeLog
 =========
+
+Release 1.16:
+  * Compaction forced every 'compaction_delay' hours (default is 6).
+  * File age computed for files smaller than one chunk.
+  * Servers sending extended search results are remembered, and immediatly
+     asked if their files are downloaded.
+  * Predicates in Indexer should work in most cases.
+  * WEB interface can be configured through 'html_header', 'web_common_header'
+     and 'vd_reload_delay'
+
+TODO before release:
+  * Option to enable/disable sources propagation between peers.
+  * use_mp3_tags should work correctly
 
 Release 1.15:
   * Started implementing mldonkey_s (eDonkey compatible server)

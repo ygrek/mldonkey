@@ -33,10 +33,9 @@ open DownloadGlobals
 open DownloadClient
 open Gui_types
 
-let day = 3600. *. 24.
   
 let age_to_day date =
-  int_of_float ((last_time () -. date) /. day)
+  int_of_float ((last_time () -. date) /. one_day)
   
 exception CommandCloseSocket
 
@@ -72,6 +71,7 @@ let forget_search num =
   
 let save_file md4 name =
   let real_name = Filename.concat !!incoming_directory name in
+  Unix2.safe_mkdir (Filename.dirname real_name);
   let files = ref [] in
   List.iter (fun file ->
       if file.file_md4 = md4 then begin
@@ -79,6 +79,8 @@ let save_file md4 name =
           file.file_state <- FileRemoved;
           Unix32.close file.file_fd;
           let old_name = file.file_hardname in
+          Printf.printf "\nMOVING %s TO %s\n" old_name real_name; 
+          print_newline ();
           (try 
               Sys.rename old_name real_name ;
               change_hardname file real_name;
@@ -238,6 +240,16 @@ let really_query_download filenames size md4 location old_file absents =
       | Some sock ->
           query_locations file s sock
   ) !connected_server_list;
+
+  (try
+      let servers = Hashtbl.find_all udp_servers_replies file.file_md4 in
+      List.iter (fun s ->
+          Printf.printf "ASKING EXTENDED SEARCH RESULT SENDER"; 
+          print_newline ();
+          udp_server_send s (Mftp_server.QueryLocationUdpReq file.file_md4)
+      ) servers
+    with _ -> ());
+  
   
   (match location with
       None -> ()
@@ -356,39 +368,27 @@ let broadcast msg =
   List.iter (fun sock ->
       TcpBufferedSocket.write sock s 0 len
   ) !user_socks
-  
-  
-type arg_handler =  Buffer.t -> connection_options -> string
-type arg_kind = 
-  Arg_none of arg_handler
-| Arg_multiple of (string list -> arg_handler)
-| Arg_one of (string -> arg_handler)
-| Arg_two of (string -> string -> arg_handler)
-  
-let execute_command arg_list buf output cmd args =
-  try
-    List.iter (fun (command, arg_kind, help) ->
-        if command = cmd then
-          Buffer.add_string buf (
-            match arg_kind, args with
-              Arg_none f, [] -> f buf output
-            | Arg_multiple f, _ -> f args buf output
-            | Arg_one f, [arg] -> f arg buf output
-            | Arg_two f, [a1;a2] -> f a1 a2 buf output
-            | _ -> "Bad number of arguments"
-          )
-    ) arg_list
-  with Not_found -> ()
+
+let longest_name file =
+  let max = ref "" in
+  let maxl = ref 0 in
+  List.iter (fun name ->
+      if String.length name > !maxl then begin
+          maxl := String.length name;
+          max := name
+        end
+  ) file.file_filenames;
+  !max
 
 let saved_name file =
-  let name = first_name file in
+  let name = longest_name file in
   if !!use_mp3_tags then
     match file.file_format with
       Mp3 tags ->
         let module T = Mp3tag in
         let name = match name.[0] with
             '0' .. '9' -> name
-          | _ -> Printf.sprintf "%20d-%s" tags.T.tracknum name
+          | _ -> Printf.sprintf "%02d-%s" tags.T.tracknum name
         in
         let name = if tags.T.album <> "" then
             Printf.sprintf "%s/%s" tags.T.album name
@@ -538,7 +538,7 @@ let simple_print_file buf name_len done_len size_len format file =
   Printf.bprintf buf "[%-5d] "
       file.file_num;
   if format.conn_output = HTML && file.file_state <> FileDownloaded then 
-    Printf.bprintf buf "[\<a href=/submit\?q\=cancel\+%d target\=status\>CANCEL\</a\>] " 
+    Printf.bprintf buf "[\<a href=/submit\?q\=cancel\+%d $S\>CANCEL\</a\>] " 
     file.file_num;
   let s = short_name file in
   Printf.bprintf buf "%s%s " s
@@ -663,7 +663,7 @@ let simple_print_file_list finished buf files format =
             (Printf.sprintf "[%-5d]%s"
                 file.file_num
                 (if format.conn_output = HTML then  
-                  Printf.sprintf "[\<a href=/submit\?q\=cancel\+%d target\=status\>CANCEL\</a\>][\<a href=/submit\?q\=%s\+%d target\=status\>%s\</a\>] " 
+                  Printf.sprintf "[\<a href=/submit\?q\=cancel\+%d $S\>CANCEL\</a\>][\<a href=/submit\?q\=%s\+%d $S\>%s\</a\>] " 
                   file.file_num
                     (match file.file_state with
                       FileDownloading -> "pause"
@@ -747,7 +747,7 @@ let simple_print_file_list finished buf files format =
       Printf.bprintf buf "\<TR\> \<TD ALIGN\=RIGHT\> [%-5d]"
         file.file_num;
       if file.file_state <> FileDownloaded then 
-        Printf.bprintf buf "[\<a href=/submit\?q\=cancel\+%d target\=status\>CANCEL\</a\>] " 
+        Printf.bprintf buf "[\<a href=/submit\?q\=cancel\+%d $S\>CANCEL\</a\>] " 
           file.file_num;
       Printf.bprintf  buf "\</TD\>";
       Printf.bprintf buf " \<TD\> %s \</TD\> " (short_name file);
@@ -852,7 +852,7 @@ let old_print_search buf s output =
       Printf.bprintf  buf "[%5d]" !counter;
       if output.conn_output = HTML then 
         if !!use_html_frames then
-          Printf.bprintf buf "\<A HREF=/submit\?q=download\&md4=%s\&size=%s target=status\>"
+          Printf.bprintf buf "\<A HREF=/submit\?q=download\&md4=%s\&size=%s $S\>"
             (Md4.to_string r.result_md4) (Int32.to_string r.result_size)
         else
           Printf.bprintf buf "\<A HREF=/submit\?q=download\&md4=%s\&size=%s\>"
@@ -1062,7 +1062,7 @@ let print_search buf s format =
                 
                 (Printf.sprintf "%s%s%s"
                     (if format.conn_output = HTML then 
-                      Printf.sprintf "\<A HREF=/submit\?q=download\&md4=%s\&size=%s target=status\>"
+                      Printf.sprintf "\<A HREF=/submit\?q=download\&md4=%s\&size=%s $S\>"
                         (Md4.to_string r.result_md4) (Int32.to_string r.result_size)
                     else "")
                   
@@ -1125,8 +1125,9 @@ let print_search buf s format =
         (List.rev !files)
     end  
   
-  
+let display_vd = ref false  
 let display_file_list buf format =
+  display_vd := true;
   Printf.bprintf  buf "Downloaded %d/%d files\n"           (List.length !!done_files) (List.length !!files);
   let list = 
     try
@@ -1157,954 +1158,3 @@ let display_file_list buf format =
       "Use 'commit' to move downloaded files to the incoming directory"
     end
     
-  
-let commands = [
-    "n", Arg_multiple (fun args buf _ ->
-        let ip, port =
-          match args with
-            [ip ; port] -> ip, port
-          | [ip] -> ip, "4661"
-          | _ -> failwith "n <ip> [<port>]: bad argument number"
-        in
-        let ip = Ip.of_string ip in
-        let port = int_of_string port in
-        
-        let s = add_server ip port in
-        Printf.bprintf buf "New server %s:%d\n" 
-          (Ip.to_string s.server_ip) 
-        s.server_port;
-        ""
-    ), " <ip> [<port>]: add a server";
-
-    "dump_heap", Arg_none (fun buf _ ->
-        Heap.dump_heap ();
-        "heap dumped"
-    ), " : dump heap for debug";
-    
-    "vu", Arg_none (fun buf _ ->
-        Printf.sprintf "Upload credits : %d minutes\nUpload disabled for %d minutes" !upload_credit !has_upload;
-    
-    ), " : view upload credits";
-    
-    "vc", Arg_one (fun num buf output ->
-        try
-          let num = int_of_string num in
-          let c = find_client num in
-          (match c.client_kind with
-              Indirect_location -> 
-                Printf.bprintf buf "Client [%5d] Indirect client\n" num
-            | Known_location (ip, port) ->
-                Printf.bprintf buf "Client [%5d] %s:%d\n" num
-                  (Ip.to_string ip) port);
-          Printf.bprintf buf "Name: %s\n" c.client_name;
-          (match c.client_all_files with
-              None -> ()
-            | Some results ->
-                Printf.bprintf buf "Files:\n";
-                List.iter (fun doc ->
-                    let r = Store.get DownloadIndexer.store doc in
-                    if output.conn_output = HTML then 
-                      Printf.bprintf buf "\<A HREF=/submit\?q=download\&md4=%s\&size=%s\>"
-                        (Md4.to_string r.result_md4) (Int32.to_string r.result_size);
-                    begin
-                      match r.result_names with
-                        [] -> ()
-                      | name :: names ->
-                          Printf.bprintf buf "%s\n" name;
-                          List.iter (fun s -> Printf.bprintf buf "       %s\n" s) names;
-                    end;
-                    begin
-                      match r.result_comment with
-                        None -> ()
-                      | Some comment ->
-                          Printf.bprintf buf "COMMENT: %s\n" comment;
-                    end;
-                    if output.conn_output = HTML then 
-                      Printf.bprintf buf "\</A HREF\>";
-                    Printf.bprintf  buf "          %10s %10s " 
-                      (Int32.to_string r.result_size)
-                    (Md4.to_string r.result_md4);
-                    List.iter (fun t ->
-                        Buffer.add_string buf (Printf.sprintf "%-3s "
-                            (match t.tag_value with
-                              String s -> s
-                            | Uint32 i -> Int32.to_string i
-                            | Fint32 i -> Int32.to_string i
-                            | _ -> "???"
-                          ))
-                    ) r.result_tags;
-                    Buffer.add_char buf '\n';
-                ) results
-          
-          );
-          
-          ""
-        with _ -> "No such client"
-    ), " <num> : view client";
-
-    "mem_stats", Arg_none (fun buf _ -> 
-        DownloadGlobals.mem_stats buf;
-        ""
-    ), " : print memory stats";
-    
-    "comments", Arg_one (fun filename buf _ ->
-        DownloadIndexer.load_comments filename;
-        DownloadIndexer.save_comments ();
-        "comments loaded and saved"
-    ), " <filename> : load comments from file";
-    
-    "comment", Arg_two (fun md4 comment buf _ ->
-        let md4 = Md4.of_string md4 in
-        DownloadIndexer.add_comment md4 comment;
-        "Comment added"
-    ), " <md4> \"<comment>\" : add comment on an md4";
-    
-    "nu", Arg_one (fun num buf _ ->
-        let num = int_of_string num in
-        if num <= !upload_credit then
-          begin
-            upload_credit := !upload_credit - num;
-            has_upload := !has_upload + num;
-            Printf.sprintf "upload disabled for %d minutes" num
-          end
-        else 
-          "not enough upload credits"
-    
-    
-    ), " <m> : disable upload during <m> minutes (multiple of 5)";
-    
-    "import", Arg_one (fun dirname buf _ ->
-        
-        try
-          import_config dirname;
-          "config loaded"
-        with e ->
-            Printf.sprintf "error %s while loading config" (
-              Printexc.to_string e)
-    ), " <dirname> : import the config from dirname";
-    
-    "load_old_history", Arg_none (fun buf _ ->
-        DownloadIndexer.load_old_history ();
-        "Old history loaded"
-    ), " : load history.dat file";
-    
-    "x", Arg_one (fun num buf _ ->
-        try
-          let num = int_of_string num in
-          let s = Hashtbl.find servers_by_num num in
-          match s.server_sock with
-            None -> "Not connected"
-          | Some sock ->
-              TcpBufferedSocket.shutdown sock "user disconnect";
-              "Disconnected"
-        with e ->
-            Printf.sprintf "Error: %s" (Printexc.to_string e)
-    ), " <num> : disconnect from server";
-    
-    "servers", Arg_one (fun filename buf _ ->
-        try
-          load_server_met filename;
-          "file loaded"
-        with e -> 
-            Printf.sprintf "error %s while loading file" (Printexc.to_string e)
-    ), " <filename> : add the servers from a server.met file";
-    
-    "close_fds", Arg_none (fun buf _ ->
-        Unix32.close_all ();
-        "All files closed"
-    ), " : close all files (use to free space on disk after remove)";
-    
-    "commit", Arg_none (fun buf _ ->
-        List.iter (fun file ->
-            save_file file.file_md4 (saved_name file)
-        ) !!done_files;
-        "commited"
-    ) , ": move downloaded files to incoming directory";
-    
-    "vd", Arg_multiple (fun args buf format -> 
-        match args with
-          [arg] ->
-            let num = int_of_string arg in
-            List.iter 
-              (fun file -> if file.file_num = num then print_file buf file)
-            !!files;
-            List.iter
-              (fun file -> if file.file_num = num then print_file buf file)
-            !!done_files;
-            ""
-        | _ ->
-            display_file_list buf format
-    
-    ), "<num>: view file info";
-    
-    "add_url", Arg_two (fun kind url bud _ ->
-        let v = (kind, 1, url) in
-        if not (List.mem v !!web_infos) then
-          web_infos =:=  v :: !!web_infos;
-        load_url kind url;
-        "url added to web_infos. downloading now"
-    ), " <kind> <url> : load this file from the web. 
-    kind is either server.met (if the downloaded file is a server.met)";
-    
-    "recover_temp", Arg_none (fun buf _ ->
-        let files = Unix2.list_directory !!temp_directory in
-        List.iter (fun filename ->
-            if String.length filename = 32 then
-              try
-                let md4 = Md4.of_string filename in
-                try
-                  ignore (Hashtbl.find files_by_md4 md4)
-                with Not_found ->
-                    let size = Unix32.getsize32 (Filename.concat 
-                          !!temp_directory filename) in
-                    query_download [] size md4 None None None
-              with e ->
-                  Printf.printf "exception %s in recover_temp"
-                    (Printexc.to_string e); print_newline ();
-        ) files;
-        "done"
-    ), " : recover lost files from temp directory";
-    
-    "reshare", Arg_none (fun buf _ ->
-        check_shared_files ();
-        "check done"
-    ), " : check shared files for removal";
-    
-    "vm", Arg_none (fun buf _ ->
-        Printf.bprintf  buf "Connected to %d servers\n" (List.length !connected_server_list);
-        List.iter (fun s ->
-            Printf.bprintf buf "[%-5d] %s:%-5d  "
-              s.server_num
-              (Ip.to_string s.server_ip) s.server_port;
-            List.iter (fun t ->
-                Printf.bprintf buf "%-3s "
-                  (match t.tag_value with
-                    String s -> s
-                  | Uint32 i -> Int32.to_string i
-                  | Fint32 i -> Int32.to_string i
-                  | _ -> "???"
-                )
-            ) s.server_tags;
-            Printf.bprintf buf " %6d %7d" s.server_nusers s.server_nfiles;
-            Buffer.add_char buf '\n'
-        ) !connected_server_list;
-        ""), ": list connected servers";
-    
-    "vma", Arg_none (fun buf _ ->
-        let list = DownloadServers.all_servers ()
-        
-        in        
-        Printf.bprintf  buf "Servers: %d known\n" (List.length list);
-        List.iter (fun s ->
-            Printf.bprintf buf "[%-5d] %s:%-5d  "
-              s.server_num
-              (Ip.to_string s.server_ip) s.server_port;
-            List.iter (fun t ->
-                Printf.bprintf buf "%-3s "
-                  (match t.tag_value with
-                    String s -> s
-                  | Uint32 i -> Int32.to_string i
-                  | Fint32 i -> Int32.to_string i
-                  | _ -> "???"
-                )
-            ) s.server_tags;
-            (match s.server_sock with
-                None -> ()
-              | Some _ ->
-                  Printf.bprintf buf " %6d %7d" s.server_nusers s.server_nfiles);
-            Buffer.add_char buf '\n'
-        ) list; ""), ": list all known servers";
-    
-    "q", Arg_none (fun buf _ ->
-        raise CommandCloseSocket
-    ), ": close telnet";
-    
-    "bs", Arg_multiple (fun args buf _ ->
-        List.iter (fun arg ->
-            let ip = Ip.of_string arg in
-            server_black_list =:=  ip :: !!server_black_list;
-        ) args;
-        "done"
-    ), " <ip1> <ip2> ... : add these IPs to the servers black list";
-
-    (*
-    "gen_bug", Arg_one (fun arg buf _ ->
-        let n = int_of_string arg in
-        match !!files with
-          [] -> "Couldn't create the bug (no file to download)"
-        | file :: _ ->
-            match file.file_known_locations with
-              [] -> "Couldn't create the bug (no source to add)"
-            | c :: _ ->
-                match c.client_kind with
-                  Known_location (ip, port) ->
-                    for i = 1 to n do
-                      let c = new_client (Known_location (ip, port+i)) in
-                      file.file_known_locations <- 
-                        c :: file.file_known_locations
-                    done;
-                    file.file_new_locations <- true;
-                    Printf.sprintf "%d sources added" n
-                | _ -> "Couldn't create the bug (source is indirect)"
-    ), " : create a bug by adding 10000 new sources to a file";
-*)
-    
-    "kill", Arg_none (fun buf _ ->
-        exit_properly ();
-        "exit"), ": save and kill the server";
-    
-    "save", Arg_none (fun buf _ ->
-        force_save_options ();
-        "saved"), ": save";
-    
-    "dllink", Arg_multiple (fun args buf _ ->        
-        let url = String2.unsplit args ' ' in
-        match String2.split (String.escaped url) '|' with
-          "ed2k://" :: "file" :: name :: size :: md4 :: _
-        |              "file" :: name :: size :: md4 :: _ ->
-            query_download [name] (Int32.of_string size)
-            (Md4.of_string md4) None None None;
-            "download started"
-        | _ -> "bad syntax"    
-    ), " <ed2klink> : download ed2k:// link";
-    
-    "force_download", Arg_none (fun buf _ ->
-        match !aborted_download with
-          None -> "No download to force"
-        | Some (filenames,size,md4,location,old_file,absents) ->
-            really_query_download filenames size md4 location old_file absents;
-            "download started"
-    ), " : force download of an already downloaded file";
-    
-    "d", Arg_multiple (fun args buf _ ->
-        try
-          let (size, md4, names) =
-            match args with
-            | [size; md4] -> (Int32.of_string size),(Md4.of_string md4), []
-            | [size; md4; name] -> 
-                (Int32.of_string size),(Md4.of_string md4), [name]
-            | [num] -> 
-                let doc = Intmap.find (int_of_string num) !last_search in
-                let r = Store.get DownloadIndexer.store doc in
-                r.result_size, r.result_md4, r.result_names
-            | _ -> failwith "Bad number of arguments"
-          in
-          query_download names size md4 None None None;
-          "download started"
-        with 
-          Already_done -> "already done"
-        | Not_found ->  "not found"
-        | Failure s -> s
-    ), "<size> <md4> : download this file";
-    
-    "upstats", Arg_none (fun buf _ ->
-        Printf.bprintf buf "Upload statistics:\n";
-        Printf.bprintf buf "Total: %d blocks uploaded\n" !upload_counter;
-        let list = ref [] in
-        Hashtbl.iter (fun _ file ->
-            if file.file_shared then 
-              list := file :: !list
-        ) files_by_md4;
-        let list = Sort.list (fun f1 f2 ->
-              f1.file_upload_requests >= f2.file_upload_requests)
-          
-          !list in
-        List.iter (fun file ->
-            Printf.bprintf buf "%-50s requests: %8d blocs: %8d\n"
-              (first_name file) file.file_upload_requests
-              file.file_upload_blocks;
-        ) list;
-        "done"
-    ), " : statistics on upload";
-    
-    "port", Arg_one (fun arg buf _ ->
-        port =:= int_of_string arg;
-        "new port will change at next restart"),
-    " <port> : change connection port";
-    
-    "vo", Arg_none (fun buf format ->
-        if format.conn_output = HTML then
-          Printf.bprintf  buf "\<table border=0\>";
-        List.iter (fun (name, value) ->
-            if format.conn_output = HTML then
-              if String.contains value '\n' then
-                Printf.bprintf buf "
-              \<tr\>\<td\>\<form action=/submit target=status\> 
-\<input type=hidden name=setoption value=q\>
-\<input type=hidden name=option value=%s\> %s \</td\>\<td\>
-                \<textarea name=value rows=10 cols=70 wrap=virtual\> 
-                %s
-                \</textarea\>
-\<input type=submit value=Modify\>
-\</td\>\</tr\>
-\</form\>
-                " name name value
-              else
-              Printf.bprintf buf "
-              \<tr\>\<td\>\<form action=/submit target=status\> 
-\<input type=hidden name=setoption value=q\>
-\<input type=hidden name=option value=%s\> %s \</td\>\<td\>
-              \<input type=text name=value size=40 value=\\\"%s\\\"\>
-\</td\>\</tr\>
-\</form\>
-" name name value
-            else
-              Printf.bprintf buf "%s = %s\n" name value)
-        (Options.simple_options downloads_ini);
-        if format.conn_output = HTML then
-          Printf.bprintf  buf "\</table\>";
-        
-        ""
-    ), " : print options";
-    
-    "set", Arg_two (fun name value buf _ ->
-        try
-          Options.set_simple_option downloads_ini name value;
-          Printf.sprintf "option %s value changed" name
-        with e ->
-            Printf.sprintf "Error %s" (Printexc.to_string e)
-    ), " <option_name> <option_value> : change option value";
-    
-    "vr", Arg_multiple (fun args buf output ->
-        match args with
-          num :: _ -> 
-            let num = int_of_string num in
-            List.iter (fun s ->
-                if s.search_num = num then
-                  print_search buf s output
-            ) !searches;
-            ""
-        | [] ->   
-            match !searches with 
-              s :: _ ->
-                print_search buf s output;
-                ""
-            | _ -> 
-                "no searches done\n"
-    ), "  [<num>]: view results of a search";
-    
-    "forget", Arg_one (fun num buf _ ->
-        let num = int_of_string num in
-        forget_search num;
-        ""  
-    ), " <num> : forget search <num>";
-    
-    "ls", Arg_multiple (fun args buf _ ->
-        let query = search_of_args args in
-        let search = new_search query in
-        searches := search :: !searches;
-        DownloadIndexer.find search;
-        "local search started"
-    ), " <query> : local search";
-    
-    "s", Arg_multiple (fun args buf _ ->
-        let query = search_of_args args in
-        start_search query buf;
-        ""
-    ), " <query> : search for files\n
-\tWith special args:
-\t-minsize <size>
-\t-maxsize <size>
-\t-media <Video|Audio|...>
-\t-Video
-\t-Audio
-\t-format <format>
-\t-title <word in title>
-\t-album <word in album>
-\t-artist <word in artist>
-\t-field <field> <fieldvalue>
-\t-not <word>
-\t-and <word> 
-\t-or <word> :
-
-";
-
-    "remove_old_servers", Arg_none (fun buf format ->
-        DownloadServers.remove_old_servers ();
-        "clean done"
-    ), ": remove servers that have not been connected for several days";
-    
-    "vs", Arg_none (fun buf format ->
-        Printf.bprintf  buf "Searching %d queries\n" (List.length !searches);
-        List.iter (fun s ->
-            Printf.bprintf buf "%s[%-5d]%s %s %s\n" 
-              (if format.conn_output = HTML then 
-                Printf.sprintf "\<a href=/submit\?q=vr\+%d\>" s.search_num
-              else "")
-            s.search_num 
-              (if format.conn_output = HTML then "\</a\>" else "")
-            s.search_string
-              (if s.search_waiting = 0 then "done" else
-                string_of_int s.search_waiting)
-        ) !searches; ""), ": view all queries";
-
-    "view_custom_queries", Arg_none (fun buf format ->
-        if format.conn_output <> HTML then
-          Printf.bprintf buf "%d custom queries defined\n" 
-            (List.length !!customized_queries);
-        List.iter (fun (name, q) ->
-            if format.conn_output = HTML then
-              Printf.bprintf buf 
-                "\<a href=/submit\?custom=%s target=output\> %s \</a\>\n" 
-              (Url.encode name) name
-            else
-              Printf.bprintf buf "[%s]\n" name
-        ) !! customized_queries; ""
-    ), ": view custom queries";
-    
-    "cancel", Arg_multiple (fun args buf _ ->
-        if args = ["all"] then
-          List.iter (fun file ->
-              remove_file file.file_md4
-          ) !!files
-        else
-          List.iter (fun num ->
-              let num = int_of_string num in
-              List.iter (fun file ->
-                  if file.file_num = num then remove_file file.file_md4
-              ) !!files) args; 
-        ""
-    ), " <num> : cancel download (use arg 'all' for all files)";
-    
-    "pause", Arg_multiple (fun args buf _ ->
-        if args = ["all"] then
-          List.iter (fun file ->
-              file.file_state <- FilePaused;
-              file.file_changed <- FileInfoChange;
-              !file_change_hook file
-          ) !!files
-        else
-          List.iter (fun num ->
-              let num = int_of_string num in
-              List.iter (fun file ->
-                  if file.file_num = num then begin
-                      file.file_state <- FilePaused;
-                      file.file_changed <- FileInfoChange;
-                      !file_change_hook file
-                    end
-              ) !!files) args; ""
-    ), " <num> : pause a download (use arg 'all' for all files)";
-    
-    "resume", Arg_multiple (fun args buf _ ->
-        if args = ["all"] then
-          List.iter (fun file ->
-              file.file_state <- FileDownloading;
-              reconnect_all file;
-              file.file_changed <- FileInfoChange;
-              !file_change_hook file            
-          ) !!files
-        else
-        List.iter (fun num ->
-            let num = int_of_string num in
-            List.iter (fun file ->
-                if file.file_num = num then begin
-                    file.file_state <- FileDownloading;
-                    reconnect_all file;
-                    file.file_changed <- FileInfoChange;
-                    !file_change_hook file
-                  end
-            ) !!files) args; ""
-    ), " <num> : resume a paused download (use arg 'all' for all files)";
-
-    "xs", Arg_none (fun buf _ ->
-        if !last_xs >= 0 then begin
-            try
-              let ss = DownloadFiles.find_search !last_xs in
-              make_xs ss;
-              "extended search done"
-            with e -> Printf.sprintf "Error %s" (Printexc.to_string e)
-          end else "No previous extended search"),
-    ": extended search";
-
-    "clh", Arg_none (fun buf _ ->
-        DownloadIndexer.clear ();
-        "local history cleared"
-    ), " : clear local history";
-    
-    "c", Arg_multiple (fun args buf _ ->
-        match args with
-          [] ->
-            force_check_server_connections true;
-            "connecting more servers"
-        | _ ->
-            List.iter (fun num ->
-                let num = int_of_string num in
-                let s = Hashtbl.find servers_by_num num in
-                connect_server s
-            ) args;
-            "connecting server"
-    ),
-    " [<num>]: connect to more servers (or to server <num>)";
-    
-      
-  ]
-
-let eval auth buf cmd options =
-  let l = String2.tokens cmd in
-  match l with
-    [] -> ()
-  | cmd :: args ->
-      if cmd = "help" || cmd = "?" then begin
-          Printf.bprintf  buf "Available commands are:\n";
-          List.iter (fun (cmd, _, help) ->
-              Printf.bprintf  buf "%s %s\n" cmd help) commands
-        end else
-      if cmd = "q" then
-        raise CommandCloseSocket
-      else
-      if cmd = "auth" then
-        let arg_password =
-          match args with
-            [] -> ""
-          | s1 :: _ -> s1
-        in
-        if !!password = arg_password then begin
-            auth := true;
-            Printf.bprintf buf "Full access enabled"
-          end else
-          Printf.bprintf buf "Bad login/password"
-      else
-      if !auth then
-        execute_command commands buf options cmd args      
-      else
-          Printf.bprintf buf "Command not authorized\n Use 'auth <password>' before."
-
-(* The telnet client *)
-        
-let buf = Buffer.create 1000
-
-let user_reader options auth sock nread  = 
-  let b = TcpBufferedSocket.buf sock in
-  let end_pos = b.pos + b.len in
-  let new_pos = end_pos - nread in
-  for i = new_pos to end_pos - 1 do
-    let c = b.buf.[i] in
-    if c = '\n' || c = '\r' || c = '\000' then 
-      let len = i - b.pos in
-      let cmd = String.sub b.buf b.pos len in
-      buf_used sock (len+1);
-      try
-        Buffer.clear buf;
-        eval auth buf cmd options;
-        Buffer.add_char buf '\n';
-        TcpBufferedSocket.write_string sock (Buffer.contents buf)
-      with
-        CommandCloseSocket ->
-          (try
-              shutdown sock "user quit";
-          with _ -> ());
-      | e ->
-          TcpBufferedSocket.write_string sock
-            (Printf.sprintf "exception [%s]\n" (Printexc.to_string e));
-          
-  done
-  
-let user_closed sock  msg =
-  user_socks := List2.removeq sock !user_socks;
-  ()
-  
-let telnet_handler t event = 
-  match event with
-    TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
-      let from_ip = Ip.of_inet_addr from_ip in
-      if Ip.matches from_ip !!allowed_ips then 
-        let sock = TcpBufferedSocket.create_simple s in
-        let auth = ref (!!password = "") in
-        let options = {
-            conn_output = TEXT;
-            conn_sortvd = NotSorted;
-            conn_filter = (fun _ -> ());
-          } in
-        TcpBufferedSocket.set_reader sock (user_reader options auth);
-        TcpBufferedSocket.set_closer sock user_closed;
-        user_socks := sock :: !user_socks;
-        TcpBufferedSocket.write_string sock "\nWelcome on mldonkey command-line\n";
-        TcpBufferedSocket.write_string sock "\nUse ? for help\n\n";
-      else 
-        Unix.close s
-
-  | _ -> ()
-
-(* The HTTP client *)
-
-let buf = Buffer.create 1000
-      
-open Http_server
-
-let add_submit_entry buf = ()
-  
-let add_simple_commands buf =
-  Buffer.add_string buf !!web_header
-  
-
-let html_open_page buf =
-  Buffer.add_string buf "<HTML>\n";
-  Buffer.add_string buf "<HEAD>\n";
-  Buffer.add_string buf "<TITLE>\n";
-  Buffer.add_string buf "MLdonkey WEB Interface\n";
-  Buffer.add_string buf "</TITLE>\n";
-  Buffer.add_string buf "</HEAD>\n";
-  Buffer.add_string buf "<BODY>\n";
-  ()
-  
-let html_close_page buf =
-  Buffer.add_string buf "</BODY>\n";  
-  Buffer.add_string buf "</HTML>\n";
-  ()
-  
-let http_handler options t r =
-  Buffer.clear buf;  
-  if (!!http_password <> "" || !!http_login <> "") &&
-    (r.options.passwd <> !!http_password || r.options.login <> !!http_login)
-  then begin
-      need_auth buf "MLdonkey"
-    end
-  else
-    begin
-      Buffer.add_string  buf "HTTP/1.0 200 OK\r\n";
-      Buffer.add_string  buf "Pragma: no-cache\r\n";
-      Buffer.add_string  buf "Server: MLdonkey\r\n";
-      Buffer.add_string  buf "Connection: close\r\n";
-      Buffer.add_string  buf "Content-Type: text/html; charset=iso-8859-1\r\n";
-      Buffer.add_string  buf "\r\n";
-      
-      html_open_page buf;
-      if not !!use_html_frames then begin
-          add_simple_commands buf;
-          add_submit_entry buf;
-        end;
-      try
-        match r.get_url.Url.file with
-        | "/commands.html" ->
-            Buffer.add_string buf !!web_commands_frame
-        | "/" | "/index.html" -> 
-            if !!use_html_frames then begin
-                Buffer.clear buf;
-                Printf.bprintf buf 
-                  "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Frameset//EN\"
-            \"http://www.w3.org/TR/html4/frameset.dtd\">";
-                
-                Buffer.add_string buf "<HTML>\n";
-                Buffer.add_string buf "<HEAD>\n";
-                Buffer.add_string buf "<TITLE>\n";
-                Buffer.add_string buf "MLdonkey WEB Interface\n";
-                Buffer.add_string buf "</TITLE>\n";
-                Buffer.add_string buf "</HEAD>\n";
-                Printf.bprintf buf "
-            <frameset src=\"index\" rows=\"%d,2*\">
-               <frameset src=\"index\" cols=\"5*,1*\">
-                  <frame name=\"commands\" src=\"/commands.html\">
-                  <frame name=\"status\" src=\"/noframe.html\">
-               </frameset>
-               <frame name=\"output\" src=\"/oneframe.html\">
-            </frameset>" !!commands_frame_height             
-              end
-        
-        | "/complex_search.html" ->
-            complex_search buf
-        | "/noframe.html" ->
-            Buffer.clear buf;
-            html_open_page buf;
-        
-        | "/oneframe.html" -> ()
-        
-        | "/filter" ->
-            let b = Buffer.create 10000 in 
-            let filter = ref (fun _ -> ()) in
-            begin              
-              match r.get_url.Url.args with
-                ("num", num) :: args ->
-                  List.iter (fun (arg, value) ->
-                      match arg with
-                      | "media" -> 
-                          let old_filter = !filter in
-                          filter := (fun r ->
-                              if r.result_type = value then raise Not_found;
-                              old_filter r
-                          )
-                      | "format" -> 
-                          let old_filter = !filter in
-                          filter := (fun r ->
-                              if r.result_format = value then raise Not_found;
-                              old_filter r
-                          )
-                      | "size" -> 
-                          let old_filter = !filter in
-                          let mega5 = Int32.of_int (5 * 1024 * 1024) in
-                          let mega20 = Int32.of_int (20 * 1024 * 1024) in
-                          let mega400 = Int32.of_int (400 * 1024 * 1024) in
-                          let min, max = match value with
-                              "0to5" -> Int32.zero, mega5
-                            | "5to20" -> mega5, mega20
-                            | "20to400" -> mega20, mega400
-                            | "400+" -> mega400, Int32.max_int
-                            | _ -> Int32.zero, Int32.max_int
-                          in
-                          filter := (fun r ->
-                              if r.result_size >= min && 
-                                r.result_size <= max then
-                                raise Not_found;
-                              old_filter r
-                          )
-                      | _ -> ()
-                  )  args;
-                  
-                  let num = int_of_string num in
-                  List.iter (fun s ->
-                      if s.search_num = num then
-                        print_search b s { options with conn_filter = !filter }
-                  ) !searches;
-                  
-                  
-                  Buffer.add_string buf (html_escaped (Buffer.contents b))
-              | _ -> 
-                  Buffer.add_string buf "Bad filter"
-            end
-            
-        | "/results" ->
-            let b = Buffer.create 10000 in
-            List.iter (fun (arg, value) ->
-                match arg with
-                  "d" -> begin
-                    try
-                        let num = int_of_string value in 
-                        let doc = Intmap.find num !last_search in
-                        let r = Store.get DownloadIndexer.store doc in
-
-                        let (size, md4, names) = 
-                          r.result_size, r.result_md4, r.result_names
-                        in
-                        query_download names size md4 None None None;
-                        Printf.bprintf buf "Download of file %s started\<br\>"
-                          (Md4.to_string md4)
-                        with  e -> 
-                        Printf.bprintf buf "Error %s with %s\<br\>" 
-                          (Printexc.to_string e) value
-                    end
-                | _ -> ()
-            ) r.get_url.Url.args;
-            Buffer.add_string buf (html_escaped (Buffer.contents b))
-            
-            
-        | "/files" ->
-            List.iter (fun (arg, value) ->
-                match arg with
-                  "cancel" -> 
-                    let num = int_of_string value in
-                    List.iter (fun file ->
-                        if file.file_num = num then remove_file file.file_md4
-                    ) !!files
-                | "pause" -> 
-                    let num = int_of_string value in
-                    List.iter (fun file ->
-                        if file.file_num = num then begin
-                            file.file_state <- FilePaused;
-                            file.file_changed <- FileInfoChange;
-                            !file_change_hook file
-                          end
-                    ) !!files
-                | "resume" -> 
-                    let num = int_of_string value in
-                    List.iter (fun file ->
-                        if file.file_num = num then begin
-                            file.file_state <- FileDownloading;
-                            reconnect_all file;
-                            file.file_changed <- FileInfoChange;
-                            !file_change_hook file
-                          end
-                    ) !!files
-                | "sortby" -> 
-                    begin
-                      match value with
-                      | "Percent" -> options.conn_sortvd <- ByPercent
-                      | "File" -> options.conn_sortvd <- ByName
-                      | "Downloaded" -> options.conn_sortvd <- ByDone
-                      | "Size" -> options.conn_sortvd <- BySize
-                      | "Rate" -> options.conn_sortvd <- ByRate
-                      | _ -> ()
-                    end
-                | _ -> 
-                    Printf.printf "FILE: Unbound argument %s/%s" arg value;
-                    print_newline ();
-            ) r.get_url.Url.args;
-            let b = Buffer.create 10000 in
-            Buffer.add_string b (display_file_list b options);
-            Buffer.add_string buf (html_escaped (Buffer.contents b))
-            
-        | "/submit" ->
-            begin
-              match r.get_url.Url.args with
-              | [ "q", "download"; "md4", md4_string; "size", size_string ] ->
-                  if !!use_html_frames then
-                    begin
-                      Buffer.clear buf;
-                      html_open_page buf;
-                    end;
-                  query_download [] (Int32.of_string size_string)
-                  (Md4.of_string md4_string) None None None;
-                  Printf.bprintf buf  "\n<pre>\nDownload started\n</pre>\n";
-                  
-              | ("q", cmd) :: other_args ->
-                  List.iter (fun arg ->
-                      match arg with
-                      | "sortby", "size" -> options.conn_sortvd <- BySize
-                      | "sortby", "name" -> options.conn_sortvd <- ByName
-                      | "sortby", "rate" -> options.conn_sortvd <- ByRate
-                      | "sortby", "done" -> options.conn_sortvd <- ByDone
-                      | "sortby", "percent" -> options.conn_sortvd <- ByPercent
-                      | _ -> ()
-                  ) other_args;
-                  let s = 
-                    let b = Buffer.create 10000 in
-                    eval (ref true) b cmd options;
-                    html_escaped (Buffer.contents b)
-                  in
-                  Printf.bprintf buf  "\n<pre>\n%s\n</pre>\n" s;
-
-              | [ ("custom", query) ] ->
-                  
-                  custom_query buf query
-                  
-              | ("custom", query) :: args ->
-                  send_custom_query buf query args
-  
-              | [ "setoption", _ ; "option", name; "value", value ] ->
-                  Options.set_simple_option downloads_ini name value;
-                  Buffer.add_string buf "Option value changed"
-                  
-              | args -> 
-                  List.iter (fun (s,v) ->
-                      Printf.printf "[%s]=[%s]" (String.escaped s) (String.escaped v);
-                      print_newline ()) args;
-                  
-                  raise Not_found
-            end
-        | cmd -> 
-            Printf.bprintf buf "No page named %s" cmd
-      with e ->
-          Printf.bprintf buf "\nException %s\n" (Printexc.to_string e);
-    end;
-  
-  html_close_page buf;
-  let s = Buffer.contents buf in
-  let len = String.length s in
-(*  TcpBufferedSocket.set_monitored t; *)
-  TcpBufferedSocket.set_max_write_buffer t (len + 100);
-  
-  TcpBufferedSocket.write t s 0 len;
-  TcpBufferedSocket.close_after_write t
-        
-let http_options = { 
-    conn_output = HTML;
-    conn_sortvd = NotSorted;
-    conn_filter = (fun _ -> ());
-  }      
-  
-let create_http_handler () = 
-  create {
-    port = !!http_port;
-    requests = [];
-    addrs = !!allowed_ips;
-    base_ref = "";
-    default = http_handler http_options;
-  }

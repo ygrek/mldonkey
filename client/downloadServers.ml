@@ -34,47 +34,6 @@ let first_name file =
   match file.file_filenames with
     [] -> Filename.basename file.file_hardname
   | name :: _ -> name
-
-let make_tagged files =
-    (List2.tail_map (fun file ->
-          { f_md4 = file.file_md4;
-            f_ip = !!client_ip;
-            f_port = !client_port;
-            f_tags = 
-            { tag_name = "filename";
-              tag_value = String (first_name file); } ::
-            { tag_name = "size";
-              tag_value = Uint32 file.file_size; } ::
-            (
-              (match file.file_format with
-                  Unknown_format ->
-                    (try
-                        file.file_format <- 
-                          DownloadMultimedia.get_info file.file_hardname
-                      with _ -> ())
-                | _ -> ()
-              );
-              
-              match file.file_format with
-                Unknown_format -> []
-              | AVI _ ->
-                  [
-                    { tag_name = "type"; tag_value = String "Video" };
-                    { tag_name = "format"; tag_value = String "avi" };
-                  ]
-              | Mp3 _ ->
-                  [
-                    { tag_name = "type"; tag_value = String "Audio" };
-                    { tag_name = "format"; tag_value = String "mp3" };
-                  ]
-              | FormatType (format, kind) ->
-                  [
-                    { tag_name = "type"; tag_value = String kind };
-                    { tag_name = "format"; tag_value = String format };
-                  ]
-            )
-          }
-      ) files)
     
 let last_connected_server () =
   match !servers_list with 
@@ -104,13 +63,6 @@ let update_options () =
             s1.server_connection_control) 
         > (connection_last_conn s2.server_connection_control))
   ) !!known_servers
-
-let all_shared () =  
-  let shared_files = ref [] in
-  Hashtbl.iter (fun md4 file ->
-      if file.file_shared then shared_files := file :: !shared_files
-  ) files_by_md4;
-  !shared_files
   
 let server_handler s sock event = 
   match event with
@@ -298,9 +250,8 @@ let rec check_server_connections timer =
 
 let remove_old_servers () =
   let list = ref [] in
-  let day = 3600. *. 24. in
   let min_last_conn =  last_time () -. 
-    float_of_int !!max_server_age *. day in
+    float_of_int !!max_server_age *. one_day in
   List.iter (fun s ->
       if connection_last_conn s.server_connection_control < min_last_conn ||
         List.mem s.server_ip !!server_black_list
@@ -349,7 +300,7 @@ let update_master_servers _ =
                 s.server_master <- true;
                 incr nmasters;
                 direct_server_send sock (Mftp_server.ShareReq
-                  (make_tagged (all_shared ())));
+                  (DownloadShare.make_tagged (DownloadShare.all_shared ())));
           end else
         if connection_last_conn s.server_connection_control 
             +. 120. < last_time () &&

@@ -22,9 +22,7 @@ val all_servers : unit -> DownloadTypes.server list
 val force_check_server_connections : bool -> unit
 val check_server_connections : BasicSocket.timer -> unit
 val connect_server : DownloadTypes.server -> unit
-val make_tagged : DownloadTypes.file list -> Mftp.tagged_file list
 val remove_old_servers : unit -> unit
-val all_shared : unit -> DownloadTypes.file list
   
 val remove_old_servers_timer : unit -> unit
   

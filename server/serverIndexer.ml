@@ -45,9 +45,43 @@ module Document = struct
   end
   
 module DocIndexer = Indexer2.FullMake(Document)
+
+type replies =  {
+    mutable docs : int array;
+    mutable next_doc : int;
+  }
   
 let index = DocIndexer.create ()
 let table = Hashtbl.create 1023
+
+        
+let rec query_to_query t = 
+  match t with
+  | QAnd (q1,q2) -> Indexer.And (query_to_query q1, query_to_query q2)
+  | QOr (q1, q2) -> Indexer.Or (query_to_query q1, query_to_query q2)
+  | QAndNot (q1,q2) -> Indexer.AndNot (query_to_query q1, query_to_query q2)
+  | _ -> failwith "Query not implemented by server"      
+(*
+  
+type query =
+  QAnd of query * query
+| QOr of query * query
+| QAndNot of query * query
+| QHasWord of string
+| QHasField of string * string
+| QHasMinVal of string * int32
+| QHasMaxVal of string * int32
+  
+type 'a query =
+  And of 'a query * 'a query
+| Or of 'a query * 'a query
+| AndNot of 'a query * 'a query
+| HasWord of string
+| HasField of int * string
+| Predicate of ('a -> bool)
+
+    *)
+
   
 let add file = 
   try
@@ -59,7 +93,26 @@ let add file =
       let doc = Store.add store file in
       Hashtbl.add table file.f_md4 doc;
       ()      
-      
+        
+let find query = 
+  let docs = DocIndexer.query index query in
+  { 
+    docs = docs;
+    next_doc = 0;
+  }
   
-let find query file_handler = ()
+let get docs num = 
+  let len = Array.length docs.docs in
+  let rec iter pos num list =
+    if num = 0 || pos >= len then
+      begin
+        docs.next_doc <- pos;
+        if pos >= len then
+          docs.docs <- [||];
+        list
+      end
+    else
+      iter (pos+1) (num-1) (Store.get store docs.docs.(pos) :: list)
+  in
+  iter docs.next_doc num []
   

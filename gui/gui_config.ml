@@ -150,15 +150,16 @@ let create_client_params () =
   let save_op_delay = create_option M.o_save_options_delay GO.save_options_delay in
   let check_cl_delay = create_option M.o_check_client_cons_delay GO.check_client_connections_delay in
   let check_delay = create_option M.o_check_cons_delay GO.check_connections_delay in
-  let small_retry = create_option M.o_small_delay GO.small_retry_delay in
-  let medium_retry = create_option
+  let min_retry = create_option M.o_min_delay GO.min_retry_delay in
+(*  let medium_retry = create_option
       ~help: M.h_medium_delay
       M.o_medium_delay GO.medium_retry_delay 
   in
   let long_retry = create_option
       ~help: M.h_long_delay
       M.o_long_delay GO.long_retry_delay 
-  in
+in
+  *)
   let server_timeout = create_option M.o_server_connection_timeout GO.server_connection_timeout in
   let client_timeout = create_option M.o_client_timeout GO.client_timeout in
   let update_gui_delay = create_option M.o_update_gui_delay GO.update_gui_delay in
@@ -184,8 +185,7 @@ let create_client_params () =
 	     [ port_param ; telnet_port ; gui_port]) ;
     Section (M.o_delays,
 	     [ save_op_delay ; check_cl_delay ; check_delay ;
-	       small_retry ; medium_retry ; long_retry ;
-	       server_timeout ; client_timeout ;
+                min_retry; server_timeout ; client_timeout ;
 	       update_gui_delay ; max_server_age ;]) ;
     Section (M.o_directories,
 	     [ temp_dir ; incom_dir]) ;

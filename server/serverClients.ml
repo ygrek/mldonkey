@@ -111,9 +111,9 @@ let check_client c port =
   Printf.printf "Checking client ID"; print_newline ();
   ()
   
-let client_to_server c t sock =
+let server_to_client c t sock =
   let module P = Mftp_server in
-  Printf.printf "client_to_server"; print_newline ();
+  Printf.printf "server_to_client"; print_newline ();
   P.print t;
   print_newline ();
   match t with
@@ -131,6 +131,10 @@ let client_to_server c t sock =
   
   | P.QueryReq t ->
       let module R = P.Query in
+      let q = ServerIndexer.query_to_query t in      
+      
+      
+      let docs = ServerIndexer.find q in
       ()      
       
   | P.QueryLocationReq t ->
@@ -175,7 +179,7 @@ let handler t event =
 
       incr nconnected_clients;
       TcpBufferedSocket.set_reader sock (
-        Mftp_comm.server_handler (client_to_server client));
+        Mftp_comm.server_handler (server_to_client client));
       TcpBufferedSocket.set_closer sock 
         (remove_client client)
   | _ -> 

@@ -45,44 +45,37 @@ let _ =
     (Sys.Signal_handle (fun _ ->
       Printf.printf "SIGPIPE"; print_newline ()))
 
-let is_directory filename =
-  try let s = Unix.stat filename in s.Unix.st_kind = Unix.S_DIR with _ -> false
-
-let rec safe_mkdir dir =  
-    if Sys.file_exists dir then begin
-      if not (is_directory dir) then 
-        failwith (Printf.sprintf "%s not a directory" dir)
-    end
-  else begin
-      let predir = Filename.dirname dir in
-      if predir <> dir then safe_mkdir predir;
-      Unix.mkdir dir 0o777
-    end    
-
+  
     
-    
+let hours = ref 0    
+let days = ref 0
+  
+let do_daily () =
+  List.iter (fun (kind, period, url) ->
+      if !days mod period = 0 then load_url kind url
+  ) !!web_infos;
+  incr days
+
 let hourly_timer timer =
   reactivate_timer timer;
+  incr hours;
   DownloadServers.remove_old_servers_timer ();
   DownloadInteractive.check_shared_files ();
   DownloadFiles.remove_old_clients ();
   DownloadClient.clean_groups ();
   Mftp_comm.propagate_working_servers 
-    (List.map (fun s -> s.server_ip, s.server_port) !connected_server_list)
-  
-let day = ref (-1)
-  
-let do_daily () =
-  incr day;
-  List.iter (fun (kind, period, url) ->
-      if !day mod period = 0 then load_url kind url
-  ) !!web_infos
-  
-let daily_timer timer =
-  reactivate_timer timer;
-  do_daily ()
+    (List.map (fun s -> s.server_ip, s.server_port) !connected_server_list);
+  Hashtbl.clear udp_servers_replies;
+  if !hours mod !!compaction_delay = 0 then (* 4 times per day *)
+    Gc.compact ();
+  if !hours mod 24 = 0 then (* every day *)
+    do_daily ()
 
 let quarter_timer timer =
+  reactivate_timer timer;
+  ()
+
+let fivemin_timer timer =
   reactivate_timer timer;
   DownloadFiles.fill_clients_list ()
 
@@ -175,8 +168,8 @@ let _ =
 
 (**** CREATE DIRS   ****)
     
-    safe_mkdir !!incoming_directory;
-    safe_mkdir !!temp_directory;    
+    Unix2.safe_mkdir !!incoming_directory;
+    Unix2.safe_mkdir !!temp_directory;    
 
 (**** LOAD OTHER OPTIONS ****)
     
@@ -235,14 +228,14 @@ let _ =
     ) !!known_shared_files;
     known_shared_files =:= !list;
     Options.save shared_files_ini;
-    DownloadOneFile.add_shared_files !!incoming_directory;
-    List.iter (DownloadOneFile.add_shared_files) !!shared_directories;
+    DownloadShare.add_shared_files !!incoming_directory;
+    List.iter (DownloadShare.add_shared_files) !!shared_directories;
     DownloadIndexer.init ();
 
 (**** CREATE WAITING SOCKETS ****)
     
     if !!http_port <> 0 then begin try
-          ignore (create_http_handler ());
+          ignore (DownloadControlers.create_http_handler ());
         with e ->
             Printf.printf "Exception %s while starting HTTP interface"
             (Printexc.to_string e);
@@ -250,7 +243,8 @@ let _ =
       end;
     
     if !!telnet_port <> 0 then begin try
-          ignore(TcpServerSocket.create !!telnet_port telnet_handler);  
+          ignore(TcpServerSocket.create !!telnet_port 
+            DownloadControlers.telnet_handler);  
         with e ->
             Printf.printf "Exception %s while starting telnet interface"
             (Printexc.to_string e);
@@ -336,8 +330,8 @@ let _ =
     add_timer 5.0 DownloadServers.walker_timer;
     
     add_timer 3600. hourly_timer;
-    add_timer (3600. *. 24.) daily_timer;    
     add_timer 30. halfmin_timer;
+    add_timer 300. fivemin_timer;
     add_timer 900. quarter_timer;
     add_timer 1. second_timer;
     add_timer 0.1 DownloadFiles.upload_timer;

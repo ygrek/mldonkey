@@ -72,9 +72,7 @@ val client_gui_port : string ref
 val save_options_delay : string ref
 val check_client_connections_delay : string ref
 val check_connections_delay : string ref
-val small_retry_delay : string ref
-val medium_retry_delay : string ref
-val long_retry_delay : string ref
+val min_retry_delay : string ref
 val client_name : string ref
 val client_password : string ref
 val max_connected_servers : string ref
@@ -94,3 +92,5 @@ val incoming_dir : string ref
 
 val client_options_assocs : (string * string ref) list
 val client_options_assocs_rev : (string ref * string) list
+
+val interface_buffer : int Options.option_record

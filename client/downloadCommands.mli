@@ -17,12 +17,16 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-type replies
-
-val add : Mftp.tagged_file -> unit
   
-val find : int Indexer.query -> replies
+type arg_handler =  Buffer.t -> DownloadTypes.connection_options -> string
+type arg_kind = 
+  Arg_none of arg_handler
+| Arg_multiple of (string list -> arg_handler)
+| Arg_one of (string -> arg_handler)
+| Arg_two of (string -> string -> arg_handler)
   
-val get : replies -> int -> Mftp.tagged_file list
-  
-val query_to_query : Mftp.query -> 'a Indexer.query
+val commands : (string * arg_kind * string) list
+val execute_command :
+    (string * arg_kind * string) list ->
+  Buffer.t -> DownloadTypes.connection_options -> string -> 
+  string list -> unit

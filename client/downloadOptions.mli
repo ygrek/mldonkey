@@ -26,9 +26,7 @@ val searches_ini : Options.options_file
 val temp_directory : string Options.option_record
 val incoming_directory : string Options.option_record
 val client_name : string Options.option_record
-val small_retry_delay : float Options.option_record
-val medium_retry_delay : float Options.option_record
-val long_retry_delay : float Options.option_record
+val min_retry_delay : float Options.option_record
 val client_timeout : float Options.option_record
 val gui_port : int Options.option_record
 val update_gui_delay : float Options.option_record
@@ -76,7 +74,7 @@ val verbose : bool Options.option_record
 val max_opened_connections : int Options.option_record
   
 val web_infos : (string * int * string) list Options.option_record
-val web_header : string Options.option_record
+val web_common_header : string Options.option_record
 val file_completed_cmd : string Options.option_record
 val local_index_find_cmd : string Options.option_record
 val local_index_add_cmd : string Options.option_record
@@ -87,7 +85,7 @@ val ip_verified : int ref
 val use_html_frames : bool Options.option_record
   
 val commands_frame_height : int Options.option_record
-val web_commands_frame : string Options.option_record
+val html_header : string Options.option_record
   
 val server_black_list : Ip.t list Options.option_record
 val master_server_min_users : int Options.option_record
@@ -106,3 +104,6 @@ val new_print_search : bool Options.option_record
   
 val use_mp3_tags :  bool Options.option_record
 val max_upload_slots : int Options.option_record
+val compaction_delay : int Options.option_record
+  
+val vd_reload_delay : int Options.option_record

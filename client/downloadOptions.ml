@@ -60,12 +60,9 @@ let _ =
         end
   )
   
-let small_retry_delay = define_option downloads_ini ["small_retry_delay"] 
-  "" float_option 30.
-let medium_retry_delay = define_option downloads_ini ["medium_retry_delay"] "Minimal delay between two connection attempts to the same host" float_option 600.
-let long_retry_delay = define_option downloads_ini ["long_retry_delay"] 
-    "Minimal delay between two connection attempts to the same host, 
-  when the first one failed" float_option 3600.
+let min_retry_delay = define_option downloads_ini ["min_retry_delay"] 
+  "" float_option 150.
+
 let client_timeout = define_option downloads_ini ["client_timeout"] 
   "Timeout on client connections when not queued" float_option 120.
 
@@ -242,6 +239,7 @@ let web_infos = define_option downloads_ini
       tuple3_option (string_option, int_option, string_option)))
   []
 
+  (*
 let web_header = define_option downloads_ini
     ["web_header"] "The header displayed in the WEB interface"
     string_option
@@ -252,25 +250,25 @@ WEB server</h2>
 </table>
 <table width=100% border=0>
 <tr>
-  <td><a href=/submit?q=vm target=output> View Connected Servers </a></td>
-  <td><a href=/submit?q=vma target=output> View All Servers </a></td>
-  <td><a href=/submit?q=c target=output> Connect More Servers </a></td>
-  <td><a href=/submit?q=view_custom_queries target=output> Custom Searches </a></td>
-  <td><a href=/submit?q=xs target=output> Extended Search </a></td>
-  <td><a href=/submit?q=upstats target=output> Upload Statistics </a></td>
+  <td><a href=/submit?q=vm $O> View Connected Servers </a></td>
+  <td><a href=/submit?q=vma $O> View All Servers </a></td>
+  <td><a href=/submit?q=c $O> Connect More Servers </a></td>
+  <td><a href=/submit?q=view_custom_queries $O> Custom Searches </a></td>
+  <td><a href=/submit?q=xs $O> Extended Search </a></td>
+  <td><a href=/submit?q=upstats $O> Upload Statistics </a></td>
   </tr>
 <tr>
-<td><a href=/submit?q=vr target=output> View Results </a></td>
-<td><a href=/submit?q=vd target=output> View Downloads </a></td>
-<td><a href=/submit?q=commit target=status> Commit Downloads </a></td>
-<td><a href=/submit?q=vs target=output> View Searches </a></td>
-<td><a href=/submit?q=vo target=output> View Options </a></td>
-<td><a href=/submit?q=help target=output> View Help </a></td>
+<td><a href=/submit?q=vr $O> View Results </a></td>
+<td><a href=/submit?q=vd $O> View Downloads </a></td>
+<td><a href=/submit?q=commit $S> Commit Downloads </a></td>
+<td><a href=/submit?q=vs $O> View Searches </a></td>
+<td><a href=/submit?q=vo $O> View Options </a></td>
+<td><a href=/submit?q=help $O> View Help </a></td>
   </tr>
   </table>
 <br>
 "
-
+*)
 
 let file_completed_cmd = define_option downloads_ini 
     ["file_completed_cmd"] "A command that is called when a file is completely
@@ -324,17 +322,17 @@ let compute_md4_delay = define_option downloads_ini ["compute_md4_delay"]
     "The delay between computations of the md4 of chunks"
   float_option 10.
   
-let web_commands_frame = define_option downloads_ini
-    ["web_header_frame"] "The header displayed in the WEB interface"
+let web_common_header = define_option downloads_ini
+    ["web_common_header"] "The header displayed in the WEB interface"
     string_option
   "
   <table width=100% border=0> <tr>
 <td>
-  <h2>Connected to <a href=http://www.freesoftware.fsf.org/mldonkey/> MLdonkey </a> 
+  <h2>Connected to <a href=http://www.freesoftware.fsf.org/mldonkey/ $P> MLdonkey </a> 
 WEB server</h2>
   </td>
 <td>
-<form action=\"submit\" target=output>
+<form action=\"submit\" $O>
 <table border=0>
 <tr>
 <td width=\"1%\"><input type=text name=q size=40 value=\"\"></td>
@@ -346,20 +344,20 @@ WEB server</h2>
 </table>
 <table width=100% border=0>
 <tr>
-  <td><a href=/submit?q=vm target=output> View Connected Servers </a></td>
-  <td><a href=/submit?q=vma target=output> View All Servers </a></td>
-  <td><a href=/submit?q=c target=output> Connect More Servers </a></td>
-  <td><a href=/submit?q=view_custom_queries target=status> Custom Searches </a></td>
-  <td><a href=/submit?q=xs target=output> Extended Search </a></td>
-  <td><a href=/submit?q=upstats target=output> Upload Statistics </a></td>
+  <td><a href=/submit?q=vm $O> View Connected Servers </a></td>
+  <td><a href=/submit?q=vma $O> View All Servers </a></td>
+  <td><a href=/submit?q=c $O> Connect More Servers </a></td>
+  <td><a href=/submit?q=view_custom_queries $S> Custom Searches </a></td>
+  <td><a href=/submit?q=xs $O> Extended Search </a></td>
+  <td><a href=/submit?q=upstats $O> Upload Statistics </a></td>
   </tr>
 <tr>
-<td><a href=/submit?q=vr target=output> View Results </a></td>
-<td><a href=/submit?q=vd target=output> View Downloads </a></td>
-<td><a href=/submit?q=commit target=status> Commit Downloads </a></td>
-<td><a href=/submit?q=vs target=output> View Searches </a></td>
-<td><a href=/submit?q=vo target=output> View Options </a></td>
-<td><a href=/submit?q=help target=output> View Help </a></td>
+<td><a href=/submit?q=vr $O> View Results </a></td>
+<td><a href=/submit?q=vd $O> View Downloads </a></td>
+<td><a href=/submit?q=commit $S> Commit Downloads </a></td>
+<td><a href=/submit?q=vs $O> View Searches </a></td>
+<td><a href=/submit?q=vo $O> View Options </a></td>
+<td><a href=/submit?q=help $O> View Help </a></td>
   </tr>
   </table>
 <br>
@@ -428,7 +426,6 @@ let use_mp3_tags = define_option downloads_ini ["use_mp3_tags"]
   "Use mp3 tag content to save mp3 files"
     bool_option false
   
-
 let max_upload_slots = define_option downloads_ini ["max_upload_slots"]
     "How many slots can be used for upload"
     int_option 20
@@ -437,3 +434,20 @@ let _ =
   option_hook max_upload_slots (fun _ ->
       if !!max_upload_slots < 20 then
         max_upload_slots =:= 20)
+
+  
+let compaction_delay = define_option downloads_ini ["compaction_delay"]
+    "Force compaction every <n> hours (in [1..24])"
+    int_option 6
+  
+let vd_reload_delay = define_option downloads_ini ["vd_reload_delay"]
+    "The delay between reloads of the vd output in the WEB interface"
+    int_option 120
+  
+let html_header = define_option downloads_ini ["html_header"]
+  "The header used in the WEB interface (modify to add your CSS)"
+    string_option  
+  "<TITLE>\n
+  MLdonkey WEB Interface\n
+  </TITLE>\n
+    "

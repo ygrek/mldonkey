@@ -219,6 +219,11 @@ let compaction_overhead = define_option mldonkey_gui_ini
 let auto_resize = define_option mldonkey_gui_ini
     ["auto_resize"]
   "auto resize columns" bool_option true
+
+let interface_buffer = define_option mldonkey_gui_ini
+    ["interface_buffer"] "The size of the buffer to the core"
+    int_option 1000000
+
   
 let _ =
   option_hook compaction_overhead (fun _ ->
@@ -234,9 +239,7 @@ let client_gui_port = ref ""
 let save_options_delay = ref ""
 let check_client_connections_delay = ref ""
 let check_connections_delay = ref ""
-let small_retry_delay = ref ""
-let medium_retry_delay = ref ""
-let long_retry_delay = ref ""
+let min_retry_delay = ref ""
 let client_name = ref ""
 let client_password = ref ""
 let max_connected_servers = ref ""
@@ -261,9 +264,7 @@ let client_options_assocs = [
   "save_options_delay", save_options_delay;
   "check_client_connections_delay", check_client_connections_delay;
   "check_connections_delay", check_connections_delay;
-  "small_retry_delay", small_retry_delay;
-  "medium_retry_delay", medium_retry_delay;
-  "long_retry_delay", long_retry_delay;
+  "min_retry_delay", min_retry_delay;
   "client_name",   client_name;
   "password",  client_password;
   "max_connected_servers", max_connected_servers;
