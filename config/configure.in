@@ -58,12 +58,8 @@ if test -f $OCAMLLIB/lablgl.cmxa; then
 fi
 
 if test -f ../secret/mftp_server.ml; then
-   MORE_TARGETS=mldonkey
+   MORE_TARGETS="lambda mldonkey"
    MORE_SUBDIRS=secret
-fi
-
-if test -f ../client.bin; then
-   MORE_TARGETS=open_mldonkey
 fi
 
 AC_SUBST(MORE_TARGETS)

@@ -91,7 +91,7 @@ CLIENT_CMOS=client/downloadTypes.$(EXT) client/downloadGlobals.$(EXT) \
   client/downloadInteractive.$(EXT)  client/downloadInterface.$(EXT) \
   client/downloadMain.$(EXT)
 
-TARGETS= mldonkey_gui$(EXE) $(MORE_TARGETS)$(EXE) open_mldonkey$(EXE)
+TARGETS= mldonkey_gui$(EXE) $(MORE_TARGETS)$(EXE)
 
 GUI= \
   $(CDK_CMOS) $(LIB_CMOS) $(NET_CMOS) \
