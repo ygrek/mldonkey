@@ -163,6 +163,8 @@ let time_to_string time =
     then Printf.sprintf " %d:%02d:%02d " hours minutes seconds
     else Printf.sprintf " %d:%02d " minutes seconds
 
+let max_eta = 1000.0 *. 60.0 *. 60.0 *. 24.0
+    
 let calc_file_eta f =
   let size = Int64.to_float f.file_size in
   let downloaded = Int64.to_float f.file_downloaded in
@@ -179,10 +181,12 @@ let calc_file_eta f =
     else rate
   in
   let eta = 
-    if rate = 0.0
-    then 1000.0 *. 60.0 *. 60.0 *. 24.0
-    else missing /. rate
+    if rate = 0.0 then max_eta else
+    let eta = missing /. rate in
+    if eta < 0. || eta > max_eta then max_eta else
+      eta
   in
+  
   int_of_float eta
 
 class box columns sel_mode () =

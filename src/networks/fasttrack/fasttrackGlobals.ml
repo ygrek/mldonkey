@@ -237,25 +237,6 @@ let new_server ip port =
       server_add server_impl;
       h.host_server <- Some s;
       s
-    
-let extract_uids arg = 
-  match String2.split (String.lowercase arg) ':' with
-  | "urn" :: "sha1" :: sha1_s :: _ ->
-      let sha1 = Sha1.of_string sha1_s in
-      let sha1_s = Sha1.to_string sha1 in
-      [Sha1 (Printf.sprintf "urn:sha1:%s" sha1_s, sha1) ]
-  | "urn" :: "bitprint" :: bitprint :: _ ->
-      let sha1_s = String.sub bitprint 0 32 in
-      let sha1 = Sha1.of_string sha1_s in
-      let sha1_s = Sha1.to_string sha1 in
-      let tiger_s = String.sub bitprint 33 39 in
-      let tiger = Tiger.of_string tiger_s in
-      let tiger_s = Tiger.to_string tiger in
-      [ Sha1 (Printf.sprintf "urn:sha1:%s" sha1_s, sha1);
-        Bitprint (
-          Printf.sprintf "urn:bitprint:%s.%s" sha1_s tiger_s,
-          sha1, tiger)]
-| _ -> []
 
 let add_source r s index =
   let key = (s, index) in
@@ -537,41 +518,22 @@ let disconnect_from_server nservers s reason =
       if List.memq s !connected_servers then
         connected_servers := List2.removeq s !connected_servers
   | _ -> ()
-  
-    
-let parse_magnet url =
-  let url = Url.of_string url in
-  if url.Url.file = "magnet:" then 
-    let uids = ref [] in
-    let name = ref "" in
-    List.iter (fun (value, arg) ->
-        if String2.starts_with value "xt" then
-          uids := (extract_uids arg) @ !uids
-        else 
-        if String2.starts_with value "dn" then
-          name := Url.decode arg
-        else 
-        if arg = "" then
-(* This is an error in the magnet, where a & has been kept instead of being
-  url-encoded *)
-          name := Printf.sprintf "%s&%s" !name value
-        else
-          lprintf "MAGNET: unused field %s = %s\n"
-            value arg
-    ) url.Url.args;
-    !name, !uids
-  else raise Not_found
 
 let old_client_name = ref ""
 let ft_client_name = ref ""
   
   
 let client_name () = 
-  if !!client_name != !old_client_name then begin
-      ft_client_name := String.copy !!client_name;
+  
+  let name = !!client_name in
+  if name != !old_client_name then  begin
+      let len = String.length name in
+      ft_client_name := String.sub name 0 (min 32 len);
       old_client_name := !!client_name;
       String2.replace_char !ft_client_name ' ' '_';
     end;
   !ft_client_name
   
 let file_chunk_size = 307200
+  
+  

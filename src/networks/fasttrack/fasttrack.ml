@@ -43,90 +43,16 @@ open FasttrackProtocol
 open FasttrackComplexOptions
 
 open FasttrackProto
+(*
   
 let send_query ss =
   let f s =
     server_send_query s ss in
   List.iter f !connected_servers
+    *)
 
-let recover_file file =
-  List.iter (fun s ->
-      let ss = file.file_search in
-      if not (Fifo.mem s.server_searches ss) then
-        Fifo.put s.server_searches ss        
-  ) !connected_servers
-         
-let send_pings () =
-  (*
-  List.iter (fun s ->
-      server_send_ping s;
-(*      lprintf "Sending ping\n"; *)
-      (*
-      match s.server_query_key with
-      | NoUdpSupport -> 
-(*          lprintf "NoUdpSupport\n"; *)
-          host_send_qkr s.server_host
-      | _ -> 
-(*          lprintf "Udp Support present\n"; *)
-          () *)
-  ) !connected_servers
-  (*
-  Queue.iter (fun h ->
-      match h.host_server with
-      | None -> () | Some s ->
-          match s.server_query_key with
-          | NoUdpSupport ->
-              lprintf "recent: NoUdpSupport\n";
-              server_send_qkr s 
-          | _ -> 
-              lprintf "recent: Already there\n";
-  ) active_udp_queue
-*)
-*)
-  ()
-  
   (*
 let udp_handler ip port buf =
   FasttrackHandler.udp_packet_handler ip port
   (FasttrackProto.parse_udp_packet  ip  port buf)
 *)      
-      
-let rec find_ultrapeer queue =
-  let (next,h) = Queue.head queue in
-  try
-    if next > last_time () then begin
-(*        lprintf "not ready: %d s\n" (next - last_time ());  *)
-        raise Not_found;
-      end;
-    ignore (host_queue_take queue);
-    h
-  with _ -> find_ultrapeer queue
-      
-let try_connect_ultrapeer connect =
-  let h = 
-    try
-      find_ultrapeer ultrapeers_waiting_queue
-    with _ ->
-(*        lprintf "not in ultrapeers_waiting_queue\n";  *)
-        try
-          find_ultrapeer g0_ultrapeers_waiting_queue
-        with _ ->
-(*            lprintf "not in g0_ultrapeers_waiting_queue\n";   *)
-            let (h : host) = 
-              new_host (Ip.addr_of_string "fm2.imesh.com") 1214 IndexServer in
-            find_ultrapeer peers_waiting_queue
-  in
-(*  lprintf "contacting..\n";  *)
-  connect h
-  
-let connect_servers connect =
-(*  lprintf "connect_servers %d %d\n" !nservers !!max_ultrapeers;  *)
-  (if !!max_ultrapeers > List.length !connected_servers then
-      try
-        let to_connect = 3 * (!!max_ultrapeers - !nservers) in
-        for i = 1 to to_connect do
-(*          lprintf "try_connect_ultrapeer...\n";  *)
-          try_connect_ultrapeer connect
-        done
-      with _ -> ())
-    

@@ -1,6 +1,11 @@
 ChangeLog	
 =========
 
+2003/05/26: Simon  (release-2-5-rc3)
+  - Fasttrack:
+      * Reduce client_name to 32 characters
+      * Stop computing useless SHA1 hashes (inherited from Gnutella copy/paste)
+
 2003/05/26: Simon  (release-2-5-rc2)
   - GUI:
       * Plugins sorted in config panel

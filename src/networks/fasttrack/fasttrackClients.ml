@@ -93,9 +93,11 @@ let disconnect_client c r =
             None -> ()
           | Some file -> 
               file.file_nconnected_clients <- file.file_nconnected_clients - 1;
+(*
               lprintf "For file %s, %d/%d clients connected (disconnected from %d)\n"
                 (file.file_name) file.file_nconnected_clients (nranges file)
-                (client_num (as_client c.client_client));
+(client_num (as_client c.client_client));
+  *)
               c.client_connected_for <- None
       with e -> 
           lprintf "Exception %s in disconnect_client\n"
@@ -111,7 +113,12 @@ let download_finished file =
           c.client_downloads <- remove_download file c.client_downloads
       ) file.file_clients
     end
-    
+
+let check_finished file =
+  if file_state file <> FileDownloaded &&
+    (file_size file = Int64Swarmer.downloaded file.file_swarmer) then
+    download_finished file
+   
 let rec client_parse_header c gconn sock header = 
   if !verbose_msg_clients then begin
       lprintf "CLIENT PARSE HEADER\n"; 
@@ -269,12 +276,18 @@ end_pos !counter_pos b.len to_read;
           Int64Swarmer.downloaded file.file_swarmer in
         List.iter (fun (_,_,r) -> Int64Swarmer.free_range r) 
         d.download_ranges;
-        
-        Int64Swarmer.received file.file_swarmer
-          !counter_pos b.buf b.pos to_read_int;
-        c.client_reconnect <- true;
-        List.iter (fun (_,_,r) ->
-            Int64Swarmer.alloc_range r) d.download_ranges;
+
+        begin
+          try
+            Int64Swarmer.received file.file_swarmer
+              !counter_pos b.buf b.pos to_read_int;
+          with e -> 
+              lprintf "FT: Exception %s in Int64Swarmer.received\n"
+                (Printexc2.to_string e)
+        end;
+          c.client_reconnect <- true;
+          List.iter (fun (_,_,r) ->
+              Int64Swarmer.alloc_range r) d.download_ranges;
         let new_downloaded = 
           Int64Swarmer.downloaded file.file_swarmer in
         
@@ -389,6 +402,7 @@ and get_from_client sock (c: client) =
                 iter ()
               with Not_found -> 
                   lprintf "Unable to get a block !!";
+                  check_finished file;
                   raise Not_found
             in
             let buf = Buffer.create 100 in
@@ -441,11 +455,12 @@ that the connection will not be aborted (otherwise, disconnect_client
                 begin
                   c.client_connected_for <- Some file;
                   file.file_nconnected_clients <- 
-                  file.file_nconnected_clients + 1;
+                    file.file_nconnected_clients + 1;
+                  (*
                   lprintf "For file %s, %d/%d clients connected (connecting %d)\n"
                     (file.file_name)
                   file.file_nconnected_clients (nranges file) 
-                    (client_num (as_client c.client_client));
+                    (client_num (as_client c.client_client)); *)
                   raise Exit;
                 end
           ) c.client_downloads with _ -> ());

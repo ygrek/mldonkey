@@ -63,8 +63,8 @@ let xml_profile () =
   Printf.sprintf 
   "<?xml version=\"1.0\"?><gProfile xmlns=\"http://www.shareaza.com/schemas/GProfile.xsd\"><gnutella guid=\"%s\"/><identity><handle primary=\"%s\"/><name last=\"\" first=\"%s\"/></identity><location><political city=\"\"/></location><avatar path=\"\"/></gProfile>"
     (gnutella_uid !!client_uid)
-  !!client_name
-  !!client_name
+  (client_name ())
+  (client_name ())
   
 let g2_packet_handler s sock gconn p = 
   let h = s.server_host in
@@ -228,7 +228,7 @@ let g2_packet_handler s sock gconn p =
             (packet (QH2_GU !!client_uid) []) ::
             (packet (QH2_NA (h.host_ip, h.host_port)) []) ::
             (packet (QH2_V "MLDK") []) ::
-            (packet QH2_UPRO [packet  (QH2_UPRO_NICK !!client_name) []]) ::
+            (packet QH2_UPRO [packet  (QH2_UPRO_NICK (client_name ())) []]) ::
             (List.map (fun sh ->
                   packet QH2_H (
                     (packet (QH2_H_DN (

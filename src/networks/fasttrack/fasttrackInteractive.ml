@@ -142,15 +142,15 @@ let _ =
 that we can reuse queries *)
       let uid = Md4.random () in
       
-      let s = {
+      let ss = {
           (* no exclude, no realm *)
           search_search = UserSearch (search, words, realm, tags);
           search_id = !search_num;
         } in
       incr search_num;
-      Fasttrack.send_query s;
+      List.iter (fun s -> FasttrackProto.server_send_query s ss) !connected_servers;
       
-      Hashtbl.add searches_by_uid s.search_id s;
+      Hashtbl.add searches_by_uid ss.search_id ss;
       ());
   network.op_network_close_search <- (fun s ->
       Hashtbl.remove searches_by_uid (find_search s).search_id  
@@ -162,6 +162,7 @@ that we can reuse queries *)
       !connected_servers <> []
   );
   network.op_network_share <- (fun fullname codedname size ->
+      (*
       if !shared_files_counter < max_shared_files &&
         size < max_shared_file_size then begin
         incr shared_files_counter;
@@ -170,7 +171,9 @@ that we can reuse queries *)
       CommonUploads.ask_for_uid sh SHA1 (fun sh uid -> 
             lprintf "Could share urn\n";
             ())
-      end
+end
+*)
+      ()
   )
   
 let _ =
@@ -188,7 +191,7 @@ let _ =
       ) file.file_clients
   );
   file_ops.op_file_recover <- (fun file ->
-      Fasttrack.recover_file file;
+      FasttrackServers.recover_file file;
       List.iter (fun c ->
           FasttrackServers.get_file_from_source c file
       ) file.file_clients
@@ -343,7 +346,8 @@ let _ =
 
   network.op_network_parse_url <- (fun url ->
       match String2.split (String.escaped url) '|' with
-      | "sig2dat://" :: file :: length :: uuhash :: _ ->
+      | "sig2dat://" :: file :: length :: uuhash :: _ 
+      | "sig2dat:///" :: file :: length :: uuhash :: _ ->
       
           let filename =
 	    let len = String.length file in

@@ -287,8 +287,7 @@ and get_from_client sock (c: client) =
           if !verbose_swarming then
             lprintf "Unable to get a block !!\n";
           Int64Swarmer.compute_bitmap file.file_partition;
-          check_finished file
-          ;
+          check_finished file;
           raise Not_found
     in
     send_client c (Request (num,x,y));
@@ -703,7 +702,7 @@ let recover_files () =
   List.iter (fun file ->
       (try check_finished file with e -> ());
       if file_state file = FileDownloading then begin
-          resume_clients file;
+          (try resume_clients file with _ -> ());
           if file.file_tracker_last_conn + file.file_tracker_interval 
               < last_time () then
             (try connect_tracker file file.file_tracker  with _ -> ())

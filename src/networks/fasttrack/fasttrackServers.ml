@@ -285,6 +285,15 @@ let disconnect_server s r =
       free_ciphers s
       
   | _ -> ()
+
+let recover_file file = 
+  FasttrackClients.check_finished file;
+  if file_state file = FileDownloading then
+    List.iter (fun s ->
+        let ss = file.file_search in
+        if not (Fifo.mem s.server_searches ss) then
+          Fifo.put s.server_searches ss        
+    ) !connected_servers
     
 let download_file (r : result) =
   let file = new_file (Md4.random ()) 
@@ -298,12 +307,12 @@ let download_file (r : result) =
       add_download file c index;
       get_file_from_source c file;
   ) r.result_sources;
-  Fasttrack.recover_file file;
+  recover_file file;
   ()
 
 let recover_files () = (* called every 10 minutes *)
   List.iter (fun file ->
-      Fasttrack.recover_file file 
+      try recover_file file  with _ -> ()
   ) !current_files;
   ()
     
@@ -399,3 +408,44 @@ let manage_hosts () =
           done
         with _ -> ()
   ) !current_files
+
+        
+let rec find_ultrapeer queue =
+  let (next,h) = Queue.head queue in
+  try
+    if next > last_time () then begin
+(*        lprintf "not ready: %d s\n" (next - last_time ());  *)
+        raise Not_found;
+      end;
+    ignore (host_queue_take queue);
+    h
+  with _ -> find_ultrapeer queue
+      
+let try_connect_ultrapeer connect =
+  let h = 
+    try
+      find_ultrapeer ultrapeers_waiting_queue
+    with _ ->
+(*        lprintf "not in ultrapeers_waiting_queue\n";  *)
+        try
+          find_ultrapeer g0_ultrapeers_waiting_queue
+        with _ ->
+(*            lprintf "not in g0_ultrapeers_waiting_queue\n";   *)
+            let (h : host) = 
+              new_host (Ip.addr_of_string "fm2.imesh.com") 1214 IndexServer in
+            find_ultrapeer peers_waiting_queue
+  in
+(*  lprintf "contacting..\n";  *)
+  connect h
+  
+let connect_servers connect =
+(*  lprintf "connect_servers %d %d\n" !nservers !!max_ultrapeers;  *)
+  (if !!max_ultrapeers > List.length !connected_servers then
+      try
+        let to_connect = 3 * (!!max_ultrapeers - !nservers) in
+        for i = 1 to to_connect do
+(*          lprintf "try_connect_ultrapeer...\n";  *)
+          try_connect_ultrapeer connect
+        done
+      with _ -> ())
+    

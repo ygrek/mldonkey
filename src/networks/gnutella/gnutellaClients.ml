@@ -81,6 +81,11 @@ let download_finished file =
       ) file.file_clients
     end
     
+let check_finished file =
+  if file_state file <> FileDownloaded &&
+    (file_size file = Int64Swarmer.downloaded file.file_swarmer) then
+    download_finished file
+   
 let (++) = Int64.add
 let (--) = Int64.sub
   
@@ -458,6 +463,7 @@ and get_from_client sock (c: client) =
           iter ()
         with Not_found -> 
             lprintf "Unable to get a block !!";
+            check_finished file;
             raise Not_found
       in
       let buf = Buffer.create 100 in

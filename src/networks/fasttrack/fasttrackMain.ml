@@ -93,14 +93,13 @@ let enable () =
     
     add_session_timer enabler 1.0 (fun timer ->
         FasttrackServers.manage_hosts ();
-        Fasttrack.connect_servers FasttrackServers.connect_server;      
+        FasttrackServers.connect_servers FasttrackServers.connect_server;      
     );
     
     FasttrackServers.ask_for_files ();
     
     add_session_timer enabler 60.0 (fun timer ->
         FasttrackServers.ask_for_files ();
-        Fasttrack.send_pings ();
     );
     
     FasttrackServers.recover_files ();

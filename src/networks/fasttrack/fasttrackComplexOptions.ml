@@ -58,13 +58,16 @@ module ClientOption = struct
           let client_uid = get_value "client_uid" (from_value Md4.option) in
           let c = new_client (Known_location(client_ip, client_port)) in
           
+          (*
           (try
               c.client_user.user_speed <- get_value "client_speed" value_to_int 
             with _ -> ());
+          
           (try
               if get_value "client_push" value_to_bool then
                 c.client_user.user_kind <- Indirect_location ("", client_uid)
-            with _ -> ());
+with _ -> ());
+  *)
           c
       | _ -> failwith "Options: Not a client"
     
@@ -77,16 +80,20 @@ module ClientOption = struct
             "client_uid", to_value Md4.option u.user_uid;
             "client_ip", to_value Ip.option ip;
             "client_port", int_to_value port;
+            (*
             "client_speed", int_to_value u.user_speed;
-            "client_push", bool_to_value false;
+"client_push", bool_to_value false;
+  *)
           ]
       | Indirect_location _ ->
           Options.Module [
             "client_uid", to_value Md4.option u.user_uid;
             "client_ip", to_value Ip.option Ip.null;
             "client_port", int_to_value 0;
+            (*
             "client_speed", int_to_value u.user_speed;
-            "client_push", bool_to_value true;
+"client_push", bool_to_value true;
+  *)
           ]
     
     let t =
@@ -196,6 +203,13 @@ let save_config () =
           max h.host_connected h.host_age > last_time () - 3600 then
         o =:= (h.host_addr, h.host_port) :: !!o) 
   workflow;
+  
+  let files = !!old_files in
+  old_files =:= [];
+  List.iter (fun file ->
+      if not (List.mem file !!old_files) then 
+        old_files =:= file :: !!old_files
+  ) files;
   
   ()
   
