@@ -410,9 +410,9 @@ let new_file file_state file_name md4 file_size writable =
           file_md4s = md4s;
           file_available_chunks = Array.create nchunks 0;
           file_format = Unknown_format;
-          file_paused_sources = Fifo.create ();
           file_locations = Intmap.empty;
           file_mtime = 0.0;
+          file_initialized = false;
         }
       and file_impl = {
           dummy_file_impl with
@@ -450,7 +450,7 @@ let remove_client_chunks file client_chunks =
       let new_n = file.file_available_chunks.(i) - 1 in
       if new_n < 11 then file_must_update file;
       file.file_available_chunks.(i) <- new_n;
-      client_chunks.(i) <- false
+      client_chunks.(i) <- false  
   done
   
 let is_black_address ip port =
@@ -975,3 +975,12 @@ let _ =
       
       Printf.bprintf buf "DonkeyGlobals:\n"
   )
+
+let string_of_file_state s =
+  match  s with
+  |  FileDownloading -> "FileDownloading"
+  | FilePaused -> "FilePaused"
+  | FileDownloaded -> "FileDownloaded"
+  | FileShared     -> "FileShared"
+  | FileCancelled -> "FileCancelled"
+  | FileNew -> "FileNew"

@@ -514,6 +514,8 @@ let verbosity = define_option expert_ini ["verbosity"]
   verb : debug other
   sp : debug source propagation 
   sm : debug source management
+  do : some download warnings
+  unk : unknown messages
 "
     string_option ""
 
@@ -522,6 +524,8 @@ let verbose_msg_clients = ref false
 let verbose_src_manager = ref false
 let verbose_src_prop = ref false
 let verbose = ref false
+let verbose_download = ref false
+let verbose_unknown_messages = ref false
   
 let _ = 
   option_hook verbosity (fun _ ->
@@ -532,6 +536,8 @@ let _ =
       verbose_src_prop := false;
       verbose_src_manager := false;
       verbose := false;
+      verbose_download := false;
+      verbose_unknown_messages := false;
       
       List.iter (fun s ->
           match s with
@@ -541,7 +547,8 @@ let _ =
           | "sm" -> verbose_src_manager := true;
           | "net" -> BasicSocket.debug := true
           | "sp" -> verbose_src_prop := true
-          
+          | "do" -> verbose_download := true
+          | "unk" -> verbose_unknown_messages := true
           | "all" ->
               
               verbose_msg_clients := true;
@@ -550,7 +557,8 @@ let _ =
               verbose_src_prop := true;
               verbose_src_manager := true;
               verbose := true;
-              
+              verbose_download := true;
+              verbose_unknown_messages := true;
               
           | _ -> ()
               

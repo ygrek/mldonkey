@@ -69,10 +69,11 @@ let buf_string buf s =
   Buffer.add_string buf s
 
 let buf_float buf f =
-  buf_string buf (Printf.sprintf "%2.2f" f)
+  let i = int_of_float f in
+  buf_string buf (Printf.sprintf "%d.%d" i (int_of_float ((f -. float_of_int i) *. 100.)))
 
 let buf_int_float buf f =
-  buf_float buf (float_of_int f +. 1000000000.)
+  buf_string buf (Printf.sprintf "%d" (int_of_float ((BasicSocket.date_of_int f))))
   
 let rec buf_query buf q =
   match q with
@@ -262,7 +263,7 @@ let buf_file proto buf f =
   if proto >= 8 then begin
       buf_string buf f.file_name;
       if proto >= 9 then 
-        buf_int_float buf (compute_last_seen f.file_last_seen)
+        buf_int buf (compute_last_seen f.file_last_seen)
     end
   
 let buf_addr buf addr =

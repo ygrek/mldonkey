@@ -985,11 +985,12 @@ source_score = / basic_score when source_client = SourceClient
           type t = source
           let compare s1 s2 = 
             if s1.source_addr = s2.source_addr then begin
-                if s1.source_num <> s2.source_num then begin
-                    Printf.printf "same addr for different sources!"; 
-                    print_newline ();
-                    exit 2
-                  end;
+                (if !verbose_sources then
+                    if s1.source_num <> s2.source_num then begin
+                        Printf.printf "same addr for different sources!"; 
+                        print_newline ();
+                        exit 2
+                      end);
                 0 end else
             let result = 
               if s1.source_score = s2.source_score then
@@ -997,7 +998,7 @@ source_score = / basic_score when source_client = SourceClient
               else
                 s1.source_score - s2.source_score
             in
-            if result = 0 then begin
+            if !verbose_sources && result = 0 then begin
                 Printf.printf "Two different sources are compared equally"; 
                 print_newline ();
                 exit 2
@@ -1016,18 +1017,39 @@ source_score = / basic_score when source_client = SourceClient
     
     let clients_queue = Fifo.create ()
     let ready_sources = ref SourcesSet.empty
-    let waiting_sources = Fifo.create  ()
-    
+      
+    let queues = [| (-20, 10); (-40, 30); (-1000, 60) |]
+    let waiting_sources = Array.init (Array.length queues) (fun _ ->
+          Fifo.create  ())
+
+    exception SourceTooOld
+      
+    let rec find_source_queue score pos len =
+      if pos = len then raise SourceTooOld;
+      let (min_score, period) = queues.(pos) in
+      if min_score <= score then pos else 
+        find_source_queue score (pos+1) len
+      
+    let source_queue s =
+      match s.source_client with 
+      | SourceClient _ -> raise Not_found
+      | SourceLastConnection (basic_score,_,_) ->
+          find_source_queue basic_score 0 (Array.length queues)
+          
     let score s = 
       begin
-        Printf.printf "score %d" s.source_num; print_newline ();
+        if !verbose_sources then begin
+            Printf.printf "score %d" s.source_num; print_newline ();
+          end;
         match s.source_client with
         | SourceClient _ -> assert false          
         | SourceLastConnection (basic_score, last_attempt, client_num) ->
             s.source_score <- basic_score 
               + (last_time () - last_attempt) / 60
             ;
-            Printf.printf "  initial score: %d" s.source_score; print_newline ();
+            if !verbose_sources then begin
+                Printf.printf "  initial score: %d" s.source_score; print_newline ();
+              end;
             List.iter (fun r ->
                 
                 s.source_score <- s.source_score + 
@@ -1040,17 +1062,23 @@ source_score = / basic_score when source_client = SourceClient
                   | File_upload -> 30
                   | File_new_source -> 15
                 );
-                Printf.printf "  request %s result %s" (Md4.Md4.to_string r.request_file.file_md4) (string_of_result r.request_result);
-                print_newline ();
+                if !verbose_sources then begin
+                    Printf.printf "  request %s result %s" (Md4.Md4.to_string r.request_file.file_md4) (string_of_result r.request_result);
+                    print_newline ();
+                  end;
             ) s.source_files;
             let (ip,port) = s.source_addr in
-            Printf.printf "Score for %d(%s:%d) = %d/%d" s.source_num (Ip.to_string ip) port 
-              s.source_score basic_score;
-            print_newline ();
+            if !verbose_sources then begin
+                Printf.printf "Score for %d(%s:%d) = %d/%d" s.source_num (Ip.to_string ip) port 
+                  s.source_score basic_score;
+                print_newline ();
+              end;
       end
     
     let reschedule_source s file =
-      Printf.printf "reschedule_source %d" s.source_num; print_newline ();
+      if !verbose_sources then begin
+          Printf.printf "reschedule_source %d" s.source_num; print_newline ();
+        end;
       if SourcesSet.mem s !ready_sources then begin
           ready_sources := SourcesSet.remove s !ready_sources ;
           score s;
@@ -1157,14 +1185,23 @@ source_score = / basic_score when source_client = SourceClient
                 Printf.printf "%d --> new score %d" (client_num c) basic_score; print_newline ();
               end;
             List.iter (fun r -> remove_file_location r.request_file c) c.client_files;
-            Printf.printf "Set SourceLastConnection for source %d" 
-              s.source_num; 
-            print_newline ();
+            if !verbose_sources then begin
+                Printf.printf "Set SourceLastConnection for source %d" 
+                  s.source_num; 
+                print_newline ();
+                end;
             s.source_client <- SourceLastConnection (
               basic_score, last_time (), client_num c);
             s.source_files <- c.client_files;
-            Fifo.put waiting_sources s;
-            score s
+            try
+              Fifo.put waiting_sources.(source_queue s) s;
+              score s
+            with SourceTooOld ->
+                if !verbose_sources then begin
+                    Printf.printf "Removed old source %d" s.source_num;
+                    print_newline ();
+                  end;
+                H.remove sources s
           
           with _ ->
               if !verbose_sources then begin
@@ -1174,9 +1211,11 @@ source_score = / basic_score when source_client = SourceClient
                   remove_file_location r.request_file c) c.client_files
     
     let reschedule_sources files = 
-      Printf.printf "reschedule_sources file not implemented";
-      print_newline () 
-
+      if !verbose_sources then begin      
+          Printf.printf "reschedule_sources file not implemented";
+          print_newline () 
+        end
+        
 (* Change a source structure into a client structure before attempting
   a connection. *)
     let client_of_source reconnect_client s basic_score client_num = 
@@ -1200,8 +1239,10 @@ source_score = / basic_score when source_client = SourceClient
                   end;
             |  _ -> ());
           c.client_source <- Some s;
-          Printf.printf "set SourceClient for source %d" s.source_num;
-          print_newline ();
+          if !verbose_sources then begin
+              Printf.printf "set SourceClient for source %d" s.source_num;
+              print_newline ();
+            end;
           
           s.source_client <- SourceClient c;
 
@@ -1216,34 +1257,40 @@ source_score = / basic_score when source_client = SourceClient
           
           useful_client source_of_client reconnect_client c
         else
-          (List.iter (fun r  ->
-                if !verbose_sources then begin
-                    Printf.printf "Adding paused source"; print_newline ();
-                  end;
-                Fifo.put r.request_file.file_paused_sources (s, r)
-            ) files; false)
+        try (* put back the sources in the waiting_queues. Not a good idea,
+        we should have another table for them, to wait until the file
+        is resumed, or another file can be downloaded from them. *)
+          Fifo.put waiting_sources.(source_queue s) s;
+          false
+        with SourceTooOld -> false
       )
 
     let recompute_ready_sources () =
-      Printf.printf "recompute_ready_sources"; print_newline ();
+      if !verbose_sources then begin
+          Printf.printf "recompute_ready_sources"; print_newline ();
+        end;
       let t1 = Unix.gettimeofday () in
       
 (* Very simple *)
       let previous_sources = !ready_sources in
       let list = ref [] in
-      let rec iter () =
-        let s = try Fifo.head waiting_sources with _ -> raise Not_found in
+      let rec iter i =
+        let s = try Fifo.head waiting_sources.(i) with _ -> raise Not_found in
         match s.source_client with
           SourceLastConnection (_,time,_) ->
             if time + 600 < last_time () then
-              let s = Fifo.take waiting_sources in
+              let s = Fifo.take waiting_sources.(i) in
               list := s :: !list;
-              iter ()
+              iter i
         | SourceClient c -> 
-            Printf.printf "ERROR: CLIENT %d" (client_num c); print_newline ();
-            assert false
+            if !verbose_sources then begin
+                Printf.printf "ERROR: CLIENT %d" (client_num c); print_newline ();
+                assert false
+              end
       in
-      (try iter ()   with Not_found -> ());
+      for i = 0 to Array.length queues - 1 do
+        (try iter i   with Not_found -> ());
+      done;
       ready_sources := SourcesSet.empty;
       SourcesSet.iter (fun s ->
           score s; 
@@ -1283,7 +1330,9 @@ source_score = / basic_score when source_client = SourceClient
           end
       
       and iter_sources nclients = 
-        Printf.printf "iter_sources %d" nclients; print_newline ();
+        if !verbose_sources then begin
+            Printf.printf "iter_sources %d" nclients; print_newline ();
+          end;
         
         if CommonGlobals.can_open_connection () && nclients > 0 then begin
             let s = SourcesSet.max_elt !ready_sources in
@@ -1299,13 +1348,15 @@ source_score = / basic_score when source_client = SourceClient
               end;
 
             
-            if SourcesSet.mem s !ready_sources then begin
-                Printf.printf "Source %d is still in ready_sources after remove" s.source_num; print_newline ();
-
-              end;
+            if !verbose_sources then begin
+                if SourcesSet.mem s !ready_sources then begin
+                    Printf.printf "Source %d is still in ready_sources after remove" s.source_num; print_newline ();
+                    end;
+                end;
             let ss = SourcesSet.max_elt !ready_sources in
-            Printf.printf "next max = %d" s.source_num; print_newline ();
-                
+            if !verbose_sources then begin
+                Printf.printf "next max = %d" s.source_num; print_newline ();
+              end;                
             match s.source_client with
             | SourceLastConnection (basic_score, time, client_num) ->
                 s.source_score <- basic_score;
@@ -1316,18 +1367,22 @@ source_score = / basic_score when source_client = SourceClient
                   iter_sources nclients                  
                   
             | SourceClient c -> 
-                Printf.printf "ERROR: CLIENT %d" (client_num c); 
-                print_newline ();
-                assert false
-
+                if !verbose_sources then begin                    
+                    Printf.printf "ERROR: CLIENT %d" (client_num c); 
+                    print_newline ();
+                    assert false
+                  end
+                    
           end
       in
       try
         iter_clients !!max_clients_per_second
       with Not_found -> ()
       | e ->
-          Printf.printf "Exception %s in check_sources" (Printexc2.to_string e);
-          print_newline ()
+          if !verbose_sources then begin
+              Printf.printf "Exception %s in check_sources" (Printexc2.to_string e);
+              print_newline ()
+            end
           
     let need_new_sources _ = 
       Fifo.length clients_queue < !!max_clients_per_second * 600
@@ -1342,7 +1397,7 @@ source_score = / basic_score when source_client = SourceClient
             None -> () | Some s -> f s
       ) clients_queue;
       SourcesSet.iter f !ready_sources;
-      Fifo.iter f waiting_sources
+      Array.iter (fun fifo -> Fifo.iter f fifo) waiting_sources
     
     let print_sources buf =
       let ngood_clients = Fifo.length clients_queue in  
@@ -1351,9 +1406,14 @@ source_score = / basic_score when source_client = SourceClient
       let nready_sources = SourcesSet.cardinal !ready_sources in
       Printf.bprintf buf "Queue[Ready Sources]: %d sources\n" 
         nready_sources;
-      let nwaiting_sources = Fifo.length waiting_sources in
-      Printf.bprintf buf "Queue[Waiting Sources]: %d sources\n" 
-        nwaiting_sources;
+
+      let total_nwaiting_sources = ref 0 in
+      for i = 0 to Array.length queues - 1 do
+        let nwaiting_sources = Fifo.length waiting_sources.(i) in
+        total_nwaiting_sources := !total_nwaiting_sources + nwaiting_sources;
+        Printf.bprintf buf "Queue[Waiting Sources %d]: %d sources\n" 
+          i nwaiting_sources;
+      done;
 
       let positive_sources = ref 0 in
       let negative_sources = ref 0 in
@@ -1379,7 +1439,7 @@ source_score = / basic_score when source_client = SourceClient
             incr negative_sources);
       
       Printf.bprintf buf "Positive/Negative: %d/%d\n" !positive_sources
-        !negative_sources; print_newline ();
+        !negative_sources; 
       Printf.bprintf buf "NotFound/Found/Chunk/Upload: %d/%d/%d/%d\n"
         !nnotfound !nfound !nchunks !nupload;
       
@@ -1387,7 +1447,8 @@ source_score = / basic_score when source_client = SourceClient
       Printf.bprintf buf "  Outside of queues: %d sources\n" noutside_queue;
       
       Printf.bprintf buf "\nTotal number of sources:%d\n" 
-        (noutside_queue + ngood_clients + nready_sources + nwaiting_sources)
+        (noutside_queue + ngood_clients + nready_sources + 
+        !total_nwaiting_sources)
       
   end
 

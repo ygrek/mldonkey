@@ -386,7 +386,10 @@ let client_has_chunks c file chunks =
   
   if !change_last_seen then begin
       try
-        Printf.printf "client_has_chunks: change_last_seen"; print_newline ();
+        if !verbose_download then begin
+            Printf.printf "client_has_chunks: change_last_seen"; print_newline ();
+          end;
+        
         let last_seen =  Array2.min file.file_chunks_age in
         if last_seen > file.file_file.impl_file_last_seen then
           begin
@@ -401,16 +404,22 @@ let client_has_chunks c file chunks =
         
         match c.client_file_queue with
           [] ->
-            Printf.printf "client_has_chunks: ADDING FILE TO QUEUE"; print_newline ();
+            if !verbose_download then begin
+                Printf.printf "client_has_chunks: ADDING FILE TO QUEUE"; print_newline ();
+              end;
             c.client_file_queue <- [file, chunks];
             start_download c
         
         | _ -> 
-            Printf.printf "client_file_queue: ADDING NEXT FILE TO QUEUE"; print_newline ();
+            if !verbose_download then begin
+                Printf.printf "client_file_queue: ADDING NEXT FILE TO QUEUE"; print_newline ();
+              end;
             c.client_file_queue <- c.client_file_queue @ [file, chunks]
             
       with _ -> 
-          Printf.printf "client_has_chunks: EXCEPTION"; print_newline ()
+          if !verbose_download then begin
+              Printf.printf "client_has_chunks: EXCEPTION"; print_newline ()
+            end
     end
       
 (*      
@@ -654,7 +663,7 @@ print_newline ();
   | M.EmuleQueueRankingReq t ->
       if t > 1000 then 
         ban_client c sock "has an infinite queue";
-
+      if t > 500 then c.client_score <- -20;
   
   | M.EmuleClientInfoReq t ->      
 (*      Printf.printf "Emule Extended Protocol asked"; print_newline (); *)
@@ -720,7 +729,7 @@ print_newline ();
       end
   
   | M.JoinQueueReq _ ->
-(*
+      (*
       if !!ban_queue_jumpers && c.client_banned then
         direct_client_send sock (M.EmuleQueueRankingReq 
           (900 + Random.int 100))
@@ -767,15 +776,13 @@ print_newline ();
   
   | M.CloseSlotReq _ ->
       printf_string "[DOWN]";
+      DonkeyOneFile.clean_client_zones c;
 (* OK, the slot is closed, but what should we do now ????? *)
       begin
         match c.client_file_queue with
           [] -> ()
         | _ -> 
-            direct_client_send sock (
-              let module M = DonkeyProtoClient in
-              let module Q = M.JoinQueue in
-              M.JoinQueueReq Q.t);                        
+            DonkeyOneFile.start_download c;
             set_rtimeout sock !!queued_timeout;
             set_client_state c Connected_queued
       end
@@ -1257,9 +1264,11 @@ is checked for the file.
       end
         
   | _ -> 
-      Printf.printf "Unused Client Message:"; print_newline ();
-      M.print t;
-      print_newline () 
+      if !verbose_unknown_messages then begin
+          Printf.printf "Unused Client Message:"; print_newline ();
+          M.print t;
+          print_newline () 
+        end
       
 let client_handler c sock event = 
   match event with
