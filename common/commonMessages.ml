@@ -126,6 +126,8 @@ td.al {text-align: left;}
 td.ac {text-align: center;}
 .chunk0 { background: @C22@}
 .chunk1 { background: @C23@}
+.chunk2 { background: @C2@}
+.chunk3 { background: @C8@}
 "
 
 let html_js_mods0 = define_option message_file ["html_js_mods0"] 
@@ -1062,13 +1064,13 @@ let bad_number_of_args = string "bad_number_of_args"
 
 0 - background                       13 - bsmall2 - (options, memstats)
 1 - scrollbar face                   14 - bsmall3 - (load onet peers)
-2 - not used                         15 - border color of top buttons
+2 - chunk2                           15 - border color of top buttons
 3 - scrollbar highlight color        16 - table header background
 4 - vd page background               17 - mOver1 back
 5 - big buttons, border highlight    18 - mOver2 back
 6 - input.txt                        19 - mOver3 back
 7 - input.but                        20 - dl-1 back
-8 - not used ?                       21 - dl-2 back
+8 - chunk3                           21 - dl-2 back
 9 - foreground text for top buttons  22 - chunk0
 10 - fbig background (tabs)          23 - chunk1
 11 - bbig background (vma button)    24 - vd downloaded
@@ -1080,31 +1082,31 @@ let carr = Array.create 5 [||]
 let _ = (
 
     (* Default green *)    
-    carr.(0) <- [| "#CBE5CB"; "#94AE94";  "#92CA92"; "#E5FFE5"; "#B2CCB2";
-                    "#E5E5E5"; "#BADEBA"; "#A3BDA3"; "#EAF4DE"; "#3D3D3D"; 
+    carr.(0) <- [| "#CBE5CB"; "#94AE94";  "#33F"; "#E5FFE5"; "#B2CCB2";
+                    "#E5E5E5"; "#BADEBA"; "#A3BDA3"; "#00F"; "#3D3D3D"; 
                     "#86BE86"; "#B2CCB2"; "#BCD6BC"; "#A8C2A8"; "#A3BDA3"; 
                     "#718B71"; "#90C890"; "#BADEBA"; "#F00"; "#94AE94"; 
-                    "#FFF"; "#EEE"; "#F33"; "#33F" ; "#72AA72"; "#EEE" |];
+                    "#FFF"; "#EEE"; "#F33"; "#1010DC" ; "#72AA72"; "#EEE" |];
     carr.(1) <- carr.(0); 
     (* Light blue *)
-    carr.(2) <- [| "#B3E7FF"; "#7CB1CA";  "#CDFFF7"; "#E6F7FF"; "#9ED3EC";
-                    "#E6F7FF"; "#9BDFFF"; "#8CBFD7"; "#EAF4DE"; "#000"; 
+    carr.(2) <- [| "#B3E7FF"; "#7CB1CA";  "#6BE4FF"; "#E6F7FF"; "#9ED3EC";
+                    "#E6F7FF"; "#9BDFFF"; "#8CBFD7"; "#7AF3FF"; "#000"; 
                     "#4EBCEF"; "#9BCEE6"; "#A3D8F1"; "#91C4DC"; "#8CBFD7"; 
                     "#5B8EA6"; "#5CCBFF"; "#BFE5F7"; "#7FBCD9"; "#99D6F2"; 
-                    "#FFF"; "#EEE"; "#4DBCF0"; "#6BE4FF"; "#63C3F0"; "#EEE" |];
+                    "#FFF"; "#EEE"; "#4DBCF0"; "#48C1DC"; "#63C3F0"; "#EEE" |];
 
     (* Light purple *)                
-    carr.(3) <- [| "#CAB2E4"; "#9982B3";  "#CDFFF7"; "#E1D7ED"; "#BEA5DA";
-                    "#E6E6E6"; "#BE9EE3"; "#A68FC0"; "#EAF4DE"; "#000"; 
+    carr.(3) <- [| "#CAB2E4"; "#9982B3";  "#C29FE8"; "#E1D7ED"; "#BEA5DA";
+                    "#E6E6E6"; "#BE9EE3"; "#A68FC0"; "#D9B6FF"; "#000"; 
                     "#9360CD"; "#B29DCC"; "#BDA5D7"; "#AB94C5"; "#A68FC0"; 
                     "#786392"; "#A06ED8"; "#BE9EE3"; "#D9C5F1"; "#C0A2E0"; 
-                    "#FFF"; "#EEE"; "#9A77C0"; "#C29FE8"; "#9054D1"; "#EEE" |];
+                    "#FFF"; "#EEE"; "#9A77C0"; "#AE8BD4"; "#9054D1"; "#EEE" |];
     (* Monochrome *)
-    carr.(4) <- [| "#C8C8C8"; "#878787";  "#CDFFF7"; "#E6E6E6"; "#A8A8A8";
-                    "#E6E6E6"; "#B3B3B3"; "#999"; "#EAF4DE"; "#000"; 
+    carr.(4) <- [| "#C8C8C8"; "#878787";  "#5D5D5D"; "#E6E6E6"; "#A8A8A8";
+                    "#E6E6E6"; "#B3B3B3"; "#999"; "#494949"; "#000"; 
                     "#686868"; "#AAA"; "#B6B6B6"; "#9F9F9F"; "#999"; 
                     "#5E5E5E"; "#7F7F7F"; "#C1C1C1"; "#DFBDBD"; "#A4A4A4"; 
-                    "#FFF"; "#EEE"; "#989898"; "#5D5D5D"; "#424242"; "#EEE" |];
+                    "#FFF"; "#EEE"; "#989898"; "#6C6C6C"; "#424242"; "#EEE" |];
 )
 
 let html_css_mods = ref ""
@@ -1120,8 +1122,15 @@ let colour_changer () =
        carr.(!!CommonOptions.html_mods_style).(i) !download_html_css_mods 
      ) carr.(!!CommonOptions.html_mods_style)
   
-let _ =
+let load_message_file () =
   (
+
+(* Don't bother loading it for most users so their settings will always be current,
+   without having to delete message_file for each new version.
+   Users can set _load_message_file true if they want to modify and use their own. 
+   (reload_messages command)
+*)
+	if !!CommonOptions.html_mods && !!CommonOptions.html_mods_load_message_file then begin
     try
       Options.load message_file
     with
@@ -1133,4 +1142,5 @@ let _ =
         (Options.options_file_name message_file);
         lprint_newline ();
         lprintf "Using default messages."; lprint_newline ();
+	end
   )

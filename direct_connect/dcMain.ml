@@ -95,6 +95,7 @@ let _ =
         network_uploaded = Int64.zero;
         network_downloaded = Int64.zero;
       });
-  network.op_network_share <- CommonUploads.add_shared;
+  network.op_network_share <- (fun a b c ->
+      ignore (CommonUploads.add_shared a b c));
   CommonInteractive.register_gui_options_panel 
   "DC" gui_dc_options_panel;

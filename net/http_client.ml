@@ -138,6 +138,7 @@ let parse_header headers_handler sock header =
   match headers with 
     [] -> failwith "Ill formed reply"
   | ans :: headers ->
+      lprintf "ANSWER %s\n" ans;
       let ans_code = int_of_string (String.sub ans 9 3) in
       let headers = List.map (fun s ->
             let sep = String.index s ':' in
@@ -364,7 +365,13 @@ let wget_string r f progress =
   
 let split_header header =     
   for i = 0 to String.length header - 1 do
-    if header.[i] = '\r' then header.[i] <- '\n'
+    if header.[i] = '\r' then header.[i] <- '\n';
+  done;
+  for i = String.length header - 1 downto 1 do
+    if header.[i-1] = '\n' then 
+      if header.[i] = ' ' then (header.[i] <- ','; header.[i-1] <- ',')
+      else
+      if header.[i] = ',' then header.[i-1] <- ',';
   done;
   String2.split_simplify header '\n'
 

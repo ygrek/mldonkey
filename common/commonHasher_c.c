@@ -250,7 +250,7 @@ value ml_job_done(value job_v)
     char *result = String_val(result_v);
     int result_len = string_length(result_v);
 
-/*    printf("job done\n");     */
+/*    printf("job len done: %d\n", result_len);     */
     memcpy(result, job_result, result_len);
     return Val_true;
   }

@@ -637,9 +637,7 @@ search.op_search_end_reply_handlers;
           | P.Preview num ->
               begin
                 let file = file_find num in
-                let cmd = Printf.sprintf "%s \"%s\" \"%s\"" !!previewer
-                    (file_disk_name file) (file_best_name file) in
-                ignore (Sys.command cmd)
+		file_preview file
               end
           
           | P.AddClientFriend num ->

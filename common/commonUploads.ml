@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Md4
 open CommonShared
 open Printf2
 open CommonInteractive
@@ -41,6 +42,8 @@ upload is done linearly. *)
 
   
 *******************************************************************)
+
+  
   
 type shared_file = {
     shared_fullname : string;
@@ -50,6 +53,9 @@ type shared_file = {
     shared_id : int;
     shared_format : CommonTypes.format;
     shared_impl : shared_file shared_impl;
+    mutable shared_uids : file_uid list;
+    mutable shared_uids_wanted : 
+    (file_uid_id * (shared_file -> file_uid -> unit)) list;
   }
 
 and shared_tree =
@@ -59,33 +65,92 @@ and shared_tree =
     mutable shared_dirs : (string * shared_tree) list;
   }
 
-  
-type upload = {
-    upload_file : file; (* the file being uploaded *)
-    upload_client : client;
-    mutable upload_pos : int64; (* the position in the file *)
-    mutable upload_end : int64; (* the last position in the file to upload *)
-    mutable upload_sock : TcpBufferedSocket.t option; (* the socket for upload (often shared in client structure) *)
-    mutable upload_on_close : (upload -> unit); (* function called when
-    the socket is closed (Unix.close is already done) *)
-    upload_subdir : string Options.option_record;
-(* The subdir option for the commit *)
-    upload_on_finish : (upload -> unit);
-(* A function to call when upload is finished ! *)    
-  }
-
-    
 let network = CommonNetwork.new_network "Global Shares"
     (fun _ -> "")
     (fun _ -> "")
 
 let _ = 
   network.op_network_connected <- (fun _ -> false);
-  network.op_network_is_enabled <- (fun _ -> false)
+  network.op_network_is_enabled <- (fun _ -> false);
+  network.op_network_info <- (fun _ -> raise Not_found)
   
 let (shared_ops : shared_file CommonShared.shared_ops) = 
   CommonShared.new_shared_ops network
+
+  
+  
+  
+  
+(*******************************************************************
+
+  
+                    HASHES COMPUTATION
+
+  
+*******************************************************************)
+  
+  
+let waiting_shared_files = ref []
+  
+let current_job = ref None
+
+let rec start_job_for sh (uid, handler) = 
+  try
+    List.iter (fun id ->
+        match uid,id with
+          BITPRINT, Bitprint _ 
+        | SHA1, Sha1 _
+        | MD4, Md4 _
+        | MD5, Md5 _ 
+          -> (try handler sh id with _ -> ()); raise Exit
+        | _ -> ()
+    ) sh.shared_uids;
     
+    match uid with
+      SHA1 -> 
+        CommonHasher.compute_sha1 (Unix32.filename sh.shared_fd)
+        zero sh.shared_size (fun job ->
+            if job.CommonHasher.job_error then begin
+                lprintf "Error during hashing of %s\n" sh.shared_fullname; 
+                current_job := None;
+              end else
+              begin
+                let sha1 = Sha1.direct_of_string job.CommonHasher.job_result
+                in
+                let urn = Printf.sprintf "urn:sha1:%s" (Sha1.to_string sha1)
+                in
+                lprintf "%s has uid %s (%s)\n" sh.shared_fullname urn
+                (Base16.to_string 20 job.CommonHasher.job_result)
+                ;
+                sh.shared_uids <- (Sha1 
+                    (urn,sha1)) :: sh.shared_uids;
+                start_job_for sh (uid, handler)  
+              end
+        );
+    | _ -> raise Exit
+    
+  with Exit -> 
+      current_job := None
+  
+  
+let shared_files_timer _ =
+  match !current_job with
+  | Some _ -> ()
+  | None ->
+      match !waiting_shared_files with
+        [] -> ()
+      | sh :: tail ->
+          match sh.shared_uids_wanted with
+            [] ->  waiting_shared_files := tail;
+          | uid :: tail ->
+              sh.shared_uids_wanted <- tail;
+              current_job := Some sh;
+              start_job_for sh uid
+
+let ask_for_uid sh uid f =
+  sh.shared_uids_wanted <- (uid,f) :: sh.shared_uids_wanted;
+  waiting_shared_files := sh :: !waiting_shared_files
+              
 (*******************************************************************
 
   
@@ -307,7 +372,9 @@ let rec add_shared_file node sh dir_list =
       add_shared_file node sh dir_tail
   
 let add_shared full_name codedname size =
-  if not( Hashtbl.mem shared_files codedname) then begin
+  try
+    Hashtbl.find shared_files codedname
+  with Not_found ->
       incr shareds_counter;
       
       let rec impl = {
@@ -315,7 +382,7 @@ let add_shared full_name codedname size =
           impl_shared_fullname = full_name;
           impl_shared_codedname = codedname;
           impl_shared_size = size;
-          impl_shared_id = Md4.Md4.random ();
+          impl_shared_id = Md4.random ();
           impl_shared_num = 0;
           impl_shared_uploaded = Int64.zero;
           impl_shared_ops = shared_ops;
@@ -330,6 +397,8 @@ let add_shared full_name codedname size =
           shared_fd=  Unix32.create full_name [Unix.O_RDONLY] 0o444;
           shared_format = CommonMultimedia.get_info full_name;
           shared_impl = impl;
+          shared_uids_wanted = [];
+          shared_uids = [];
         } in
       
       update_shared_num impl;
@@ -341,9 +410,9 @@ let add_shared full_name codedname size =
       add_shared_file shared_tree sh (String2.split codedname '/');
       shared_counter := Int64.add !shared_counter size;
       lprintf "Total shared : %s" (Int64.to_string !shared_counter);
-      lprint_newline () 
-    end
-    
+      lprint_newline () ;
+      sh
+      
 let query q = Indexer.find (Indexer.query_to_query q)
   
 let find_by_name name = Hashtbl.find shared_files name
@@ -659,3 +728,7 @@ let upload_download_timer () =
   );
   (try next_uploads ()
   with e ->  lprintf "exc %s in upload\n" (Printexc2.to_string e))
+              
+  
+  
+  

@@ -23,6 +23,11 @@ let i_f = int_of_char 'f'
 let i_F = int_of_char 'F'  
 let i_0 = int_of_char '0'
 let i_9 = int_of_char '9'
+
+module type Base = sig 
+    val to_string : int -> string -> string
+    val of_string : int -> string -> string
+  end
   
 module Base16 = struct 
     open Misc
@@ -155,10 +160,7 @@ module Make(M: sig
       val unsafe_file : string -> string -> unit
       val digest_subfile : string -> Unix.file_descr -> int64 -> int64 -> unit 
     
-      module Base : sig 
-          val to_string : int -> string -> string
-          val of_string : int -> string -> string
-        end
+      module Base : Base
     end) = struct
     open M
     

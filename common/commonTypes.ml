@@ -396,3 +396,14 @@ let short_string_of_connection_state s =
   | RemovedHost -> "Rem"
   | BlackListedHost -> "BL"
   | NewHost -> "New"
+
+open Md4
+  
+type file_uid =
+| Bitprint of string * Sha1.t * Tiger.t
+| Sha1 of string * Sha1.t
+| Md4 of string * Md4.t
+| Md5 of string * Md5.t
+    
+and file_uid_id = 
+  BITPRINT | SHA1 | MD4 | MD5

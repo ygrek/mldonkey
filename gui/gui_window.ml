@@ -124,7 +124,6 @@ class window () =
 	M.a_page_servers, itemServers#activate ;
 	M.a_page_downloads, itemDownloads#activate;
 	M.a_page_friends, itemFriends#activate;
-	M.a_page_queries, itemSearches#activate;
 	M.a_page_results, itemResults#activate;
 	M.a_page_options, itemOptions#activate;
 	M.a_page_console, itemConsole#activate;

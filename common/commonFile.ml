@@ -386,6 +386,11 @@ let file_set_priority file p =
       file_must_update file
     end
 
+let file_preview (file : file) =
+  let cmd = Printf.sprintf "%s \"%s\" \"%s\"" !!previewer
+	      (file_disk_name file) (file_best_name file) in
+  ignore (Sys.command cmd)
+
 let com_files_by_num = files_by_num
 let files_by_num = ()
 
@@ -413,15 +418,15 @@ let file_downloaders file o cnt =
 (* Use span for Opera DOM compatibility *)
 let colored_chunks chunks =
   let ostr = ref "" in
-  let previous = ref false in
+  let previous = ref 0 in
   let runlength = ref 0 in
   let nextbit b =
     if b = !previous then
       incr runlength
     else begin
       if !runlength > 0 then begin
-	ostr := !ostr ^ Printf.sprintf "\\<span class=%s\\>"
-          (if !previous then "chunk1" else "chunk0");
+	ostr := !ostr ^ Printf.sprintf 
+	"\\<span class=\\\"chunk%d\\\"\\>" !previous;
 	while !runlength > 0 do
           ostr := !ostr ^ "\\&nbsp;";
           decr runlength
@@ -432,7 +437,7 @@ let colored_chunks chunks =
       runlength := 1
     end in
   Array.iter (fun b -> nextbit b) chunks;
-  nextbit (not !previous);
+  nextbit 99;
   !ostr
 
 let file_print file o = 
@@ -513,16 +518,16 @@ parent.fstatus.location.href='/submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
 		( "1", "srh ar", "Last try (minutes)", "LT" ) ; 
 		( "1", "srh ar br", "Next try (minutes)", "NT" ) ; 
 		( "0", "srh", "Has a slot [T]rue, [F]alse", "H" ) ; 
-		( "0", "srh", "Banned [T]rue, [F]alse", "B" ) ; 
+		( "0", "srh br", "Banned [T]rue, [F]alse", "B" ) ; 
 		( "1", "srh ar", "Requests sent", "RS" ) ; 
 		( "1", "srh ar", "Requests received", "RR" ) ; 
 		( "1", "srh ar br", "Connected time (minutes)", "CT" ) ; 
 		( "0", "srh br", "Client MD4", "MD4" ) ; 
-		( "0", "srh", "Chunks (complete vs missing)", (colored_chunks 
+		( "0", "srh", "Chunks (absent|partial|present|verified)", (colored_chunks 
         (Array.init (String.length info.G.file_chunks)
-        (fun i -> info.G.file_chunks.[i] = '1'))) ) ; 
+        (fun i -> ((int_of_char info.G.file_chunks.[i])-48)))) ) ; 
 		( "1", "srh ar", "Number of full chunks", (Printf.sprintf "%d"
-        (String.length (String2.replace info.G.file_chunks '0' "")) ) ) ];
+        (let fc = ref 0 in (String.iter (fun s -> if s >= '2' then incr fc) info.G.file_chunks );!fc ))) ];
 
       let counter = ref 0 in
       List.iter (fun c ->

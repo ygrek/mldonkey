@@ -498,24 +498,5 @@ let _ =
         new_print_stats buf o;
         ""
     ), ":\t\t\t\t\tshow table of download/upload by clients brand";
-    
-    "reload_messages", Arg_none (fun o ->
-        begin
-          
-          try
-            Options.load message_file
-          with
-            Sys_error _ ->
-              (try Options.save message_file with _ -> ())
-          | e ->
-              lprintf "Error %s loading message file %s"
-                (Printexc2.to_string e)
-              (Options.options_file_name message_file);
-              lprint_newline ();
-              lprintf "Using default messages."; lprint_newline ();
-        
-        end;
-        ""
-    ), ":\t\t\treload messages file";
   ]
   

@@ -36,7 +36,7 @@ let commit_in_subdir = define_option bittorrent_ini ["commit_in_subdir"]
   "The subdirectory of temp/ where files should be moved to"
     string_option "BT"
   
-let client_uid = define_option downloads_ini ["client_uid"]
+let client_uid = define_option bittorrent_ini ["client_uid"]
     "The UID of this client" Sha1.option (Sha1.random ())
 
 let network_options_prefix = define_option bittorrent_ini

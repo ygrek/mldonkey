@@ -1,6 +1,20 @@
 ChangeLog	
 =========
 
+2003/04/07: Simon  (v 2.04rc1-14)
+  - Fixed bug with client_uid option in mlnet.
+  - Applied patch #1370
+  - BitTorrent: 
+      * fixed problems in URLs when contacting tracker '+' -> '%20'
+      * Update Downloaded chunks in interface
+      * Resent chunks queries on Unchoke (correct ?)
+  - Gnutella: Send urn:sha1: when available in QueryReplies
+
+2003/04/06: Simon
+  - Applied pango's patch 87_preview_from_all_interfaces
+  - Remove Queries page from GUI menu
+  - Applied patch #1366
+
 2003/04/06: Simon  (v 2.04rc1-13)
   - BitTorrent: almost complete implementation, still to test
       Current Restrictions:

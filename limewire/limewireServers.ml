@@ -436,11 +436,17 @@ QAnd (QHasMinVal (CommonUploads.filesize_field, n),q)
               let replies = ref [] in
               for i = 0 to mini (Array.length files - 1) 9 do
                 let sh = files.(i) in
+                let infos = ref [] in
+                List.iter (fun uid ->
+                    match uid with
+                      Sha1 (s, _) -> infos := s :: !infos;
+                    |  _ -> ()
+                ) sh.CommonUploads.shared_uids;
                 replies := {
                   M.index = sh.C.shared_id;
                   M.size = sh.C.shared_size;
                   M.name = sh.C.shared_codedname;
-                  M.info = [];
+                  M.info = !infos;
                 } :: !replies
               done;
               let module P = QueryReply in
@@ -599,7 +605,7 @@ let server_parse_header s gconn sock header =
                       ignore (Fifo.take ultrapeers_queue)
                     done
                   with _ -> ()
-              ) (String2.split value ',')
+              ) (String2.split_simplify value ',')
           
           | "x-try" ->
               List.iter (fun s ->
@@ -619,14 +625,14 @@ let server_parse_header s gconn sock header =
                     done
                   
                   with _ -> ()
-              ) (String2.split value ',')    
+              ) (String2.split_simplify value ',')    
           
           | "content-type" ->
               List.iter (fun s ->
                   match s with 
                     "application/x-gnutella2" -> gnutella2 := true
                   | _ -> ()
-              ) (String2.split value ',')
+              ) (String2.split_simplify value ',')
           
           | "x-ultrapeer" ->
               if String.lowercase value = "true" then ultra_peer := true
@@ -634,6 +640,36 @@ let server_parse_header s gconn sock header =
           | "content-encoding" -> 
               if value = "deflate" then deflate := true
 
+          | "x-query-routing" -> (* current 0.1 *) ()
+          | "listen-ip" -> (* value = ip:port *) ()
+          | "pong-caching" -> (* version = 0.1 *) ()
+          | "servent-id" -> (* servent in hexa *) ()
+          | "ggep" -> (* current is 0.5 *) ()
+          | "vendor-message" -> (* current is 0.1 *) ()
+          | "x-ultrapeer-needed" -> (* true/false *) ()
+          | "bye-packet" -> (* current is 0.1 *) ()
+              
+(* LimeWire *)
+          | "x-dynamic-querying" -> (* current is 0.1 *) ()
+          | "x-version" -> ()
+          | "x-max-ttl" -> (* often 4 *) ()
+          | "x-degree" -> (* often 15 *) () 
+          | "x-ext-probes" -> (* current is 0.1 *) ()
+          | "x-ultrapeer-query-routing" -> (* current is 0.1 *) ()
+(* BearShare *)
+          | "fp-auth-challenge" -> (* used by BearShare for auth *) ()
+          | "hops-flow" -> ()
+          | "bearchat" -> ()
+          | "machine" -> () (* unknown usage *)
+          | "x-guess" -> (* current is 0.1 *) ()
+(* Swapper *)
+          | "x-live-since" -> ()
+(* Gtk-gnutella : try and try-ultrapeer on several lines *)
+          | "x-token" -> ()
+(* Gnucleus/MorpheusOS/MyNapster *)
+          | "uptime" -> (*  0D 21H 01M *) ()
+          | "x-leaf-max" -> ()
+              
           | _ -> 
               lprintf "Unknown Option in HEADER:\n";
               List.iter (fun (h, v) ->
@@ -719,16 +755,17 @@ let send_pings () =
           server_send sock p
   ) !connected_servers
       
-let connect_server (ip,port) =
+let connect_server s =
   (*
   if !verbose_msg_servers then begin
       lprintf "SHOULD CONNECT TO %s:%d\n" (Ip.to_string ip) port;
     end; *)
-  let s = new_server ip port in
   match s.server_sock with
     Some _ -> ()
   | None -> 
       try
+        let ip = s.server_ip in
+        let port = s.server_port in
         let sock = connect "limewire to server"
             (Ip.to_inet_addr ip) port
             (fun sock event -> 
@@ -790,7 +827,7 @@ let connect_server (ip,port) =
   
 let try_connect_ultrapeer () =
 (*  lprintf "try_connect_ultrapeer\n";*)
-  let s = try
+  let (ip,port) = try
       Fifo.take ultrapeers_queue
     with _ ->
         try 
@@ -800,6 +837,7 @@ let try_connect_ultrapeer () =
               connect_to_redirector ();
             raise Not_found
   in
+  let s = new_server ip port in
   connect_server s;
   ()
 

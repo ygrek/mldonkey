@@ -58,6 +58,7 @@ val set_file_best_name : CommonTypes.file -> string -> unit
 val file_set_format : CommonTypes.file -> CommonTypes.format -> unit
 val file_check : CommonTypes.file -> unit
 val file_recover : CommonTypes.file -> unit
+val file_preview : CommonTypes.file -> unit
 val file_sources : CommonTypes.file -> CommonTypes.client list
 val file_print_sources_html : CommonTypes.file -> Buffer.t -> unit
 val files_ops : (int file_ops * int file_ops) list ref
@@ -73,7 +74,7 @@ val file_download_rate : 'a file_impl -> float
 val add_file_downloaded : 'a file_impl -> Int64.t -> unit
 val files_by_num : unit
 val file_downloaders : CommonTypes.file -> CommonTypes.ui_conn -> int -> bool
-val colored_chunks : bool array -> string
+val colored_chunks : int array -> string
 val file_print : CommonTypes.file -> CommonTypes.ui_conn -> unit
 val file_size : CommonTypes.file -> int64
 val file_disk_name : CommonTypes.file -> string

@@ -89,7 +89,7 @@ let server_connection_timeout =
   define_option limewire_ini ["server_connection_timeout"] 
   "timeout when connecting to a server" float_option 10.
 
-let client_uid = define_option downloads_ini ["client_uid"]
+let client_uid = define_option limewire_ini ["client_uid"]
     "The UID of this client" Md4.option (Md4.random ())
   
   let _	 =

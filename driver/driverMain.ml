@@ -59,7 +59,8 @@ let second_timer timer =
      CommonUploads.refill_upload_slots ()
    with e -> 
      lprintf "Exception %s" (Printexc2.to_string e); lprint_newline ());
-  CommonUploads.reset_upload_timer ()
+  CommonUploads.reset_upload_timer ();
+  CommonUploads.shared_files_timer ()
   
 let start_interfaces () =
   
@@ -208,6 +209,7 @@ let load_config () =
         exit 2;
         ());  
   
+  CommonMessages.load_message_file ();
   if !!html_mods then CommonMessages.colour_changer ();
         
   networks_iter_all (fun r -> 

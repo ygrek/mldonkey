@@ -583,12 +583,11 @@ let main () =
   ignore (gui#itemServers#connect#activate (fun () -> gui#notebook#goto_page 0));
   ignore (gui#itemDownloads#connect#activate (fun () -> gui#notebook#goto_page 1));
   ignore (gui#itemFriends#connect#activate (fun () -> gui#notebook#goto_page 2));
-  ignore (gui#itemSearches#connect#activate (fun () -> gui#notebook#goto_page 3));
-  ignore (gui#itemResults#connect#activate (fun () -> gui#notebook#goto_page 4));
-  ignore (gui#itemRooms#connect#activate (fun () -> gui#notebook#goto_page 5));
-  ignore (gui#itemUploads#connect#activate (fun () -> gui#notebook#goto_page 6));
-  ignore (gui#itemConsole#connect#activate (fun () -> gui#notebook#goto_page 7));
-  ignore (gui#itemHelp#connect#activate (fun () -> gui#notebook#goto_page 8));
+  ignore (gui#itemResults#connect#activate (fun () -> gui#notebook#goto_page 3));
+  ignore (gui#itemRooms#connect#activate (fun () -> gui#notebook#goto_page 4));
+  ignore (gui#itemUploads#connect#activate (fun () -> gui#notebook#goto_page 5));
+  ignore (gui#itemConsole#connect#activate (fun () -> gui#notebook#goto_page 6));
+  ignore (gui#itemHelp#connect#activate (fun () -> gui#notebook#goto_page 7));
 
   ignore (gui#itemOptions#connect#activate (fun () -> Gui_config.edit_options gui));
 

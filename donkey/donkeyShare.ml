@@ -141,52 +141,6 @@ let send_new_shared () =
             | Some sock ->
                 direct_server_send_share sock list) (connected_servers ());
     end
-(*
-(*   Compute (at most) one MD4 chunk if needed. *)
-let check_shared_files () =  
-  match !shared_files with
-    [] -> ()  
-  | sh :: files ->
-      try
-        if not (Sys.file_exists sh.shared_name) then begin
-            lprintf "Shared file doesn't exist"; lprint_newline ();
-            raise Not_found;
-          end;
-        if Unix32.getsize64 sh.shared_name <> sh.shared_size then begin
-            lprintf "Bad shared file size" ; lprint_newline ();
-            raise Not_found;
-          end;
-        let end_pos = Int64.add sh.shared_pos block_size in
-        let end_pos = if end_pos > sh.shared_size then sh.shared_size
-          else end_pos in
-        let len = Int64.sub end_pos sh.shared_pos in
-        
-        let new_md4 = Md4.digest_subfile (sh.shared_fd) sh.shared_pos len in
-        
-        sh.shared_list <- new_md4 :: sh.shared_list;
-        sh.shared_pos <- end_pos;
-        if end_pos = sh.shared_size then begin
-            shared_files := files;
-            let s = {
-                sh_name = sh.shared_name;
-                sh_size = sh.shared_size;
-                sh_md4s = sh.shared_list;
-                sh_mtime = Unix32.mtime64 sh.shared_name;
-              } in
-            lprintf "NEW SHARED FILE %s" sh.shared_name; 
-            lprint_newline ();
-            Hashtbl.add shared_files_info sh.shared_name s;
-            known_shared_files =:= s :: !!known_shared_files;
-            new_file_to_share s (Some  sh.shared_shared);
-            shared_remove  sh.shared_shared;
-          end
-      with e ->
-          lprintf "Exception %s prevents sharing"
-            (Printexc2.to_string e);
-          lprint_newline ();
-          shared_files := files
-*)
-          
           
 (*
 The problem: sh.shared_fd might be closed during the execution of the
@@ -223,8 +177,7 @@ let check_shared_files () =
           M.compute_md4 (Unix32.filename sh.shared_fd) sh.shared_pos len
             (fun job ->
               if job.M.job_error then begin
-                lprintf "Error prevent sharing %s"
-                  sh.shared_name ; lprint_newline ();
+                lprintf "Error prevent sharing %s\n" sh.shared_name
               end else 
               let _ = () in
 (*              lprintf "md4 computed"; lprint_newline (); *)

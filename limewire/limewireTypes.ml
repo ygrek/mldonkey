@@ -106,10 +106,3 @@ and download = {
     mutable download_ranges : Int64Swarmer.range list;
     mutable download_block : Int64Swarmer.block option;
   }
-  
-and file_uid =
-| Bitprint of string * Sha1.t * Tiger.t
-| Sha1 of string * Sha1.t
-| Md4 of string * Md4.t
-| Md5 of string * Md5.t
-  

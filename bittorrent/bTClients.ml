@@ -146,7 +146,7 @@ let rec client_parse_header counter cc init_sent gconn sock
       | Some _ -> ()
           );
     
-    set_client_state (c) (Connected 0);
+    set_client_state (c) (Connected (-1));
     if not init_sent then send_init file c sock;
     connection_ok c.client_connection_control;
     if !verbose_msg_clients then
@@ -169,6 +169,7 @@ let rec client_parse_header counter cc init_sent gconn sock
           done;
           s
         )); 
+    c.client_blocks_sent <- file.file_blocks_downloaded;
     send_client c Interested;
 (*    send_client c Unchoke;  *)
     
@@ -263,6 +264,21 @@ and client_to_client c sock msg =
       (int_of_float next);
         bt_print msg;
     end;
+  
+  let file = c.client_file in
+  if c.client_blocks_sent != file.file_blocks_downloaded then begin
+      let rec iter list =
+        match list with
+          [] -> ()
+        | b :: tail when tail == c.client_blocks_sent ->
+            c.client_blocks_sent <- list;
+            let (num,_,_) = Int64Swarmer.block_block b  in
+            send_client c (Have (Int64.of_int num))
+        | _ :: tail -> iter tail
+      in
+      iter file.file_blocks_downloaded
+    end;
+  
   try
     match msg with
       Piece (num, offset, s, pos, len) ->
@@ -365,10 +381,18 @@ and client_to_client c sock msg =
         c.client_interested <- true;
         send_client c Unchoke
     
-    | Choke 
-    | Unchoke 
+    | Choke ->
+        set_client_state c (Connected 0)
     | NotInterested -> ()
-    
+
+    | Unchoke ->
+        List.iter (fun r ->
+            let (x, y) = Int64Swarmer.range_range r in
+            let num = Int64.to_int (x // file.file_piece_size) in
+            let b_begin = file.file_piece_size **  num in
+            send_client c (Request (num, x -- b_begin, y -- x))
+        ) c.client_ranges
+        
     | Request (n, pos, len) ->
         begin
           match c.client_upload_requests with
@@ -536,6 +560,8 @@ let connect_tracker file url =
   if file.file_tracker_last_conn + file.file_tracker_interval 
       < last_time () then
     let f filename = 
+      file.file_tracker_connected <- true;
+
       let v = Bencode.decode (File.to_string filename) in
       file.file_tracker_connected <- true;
       file.file_tracker_last_conn <- last_time ();
@@ -589,15 +615,14 @@ let connect_tracker file url =
         ("port", string_of_int !!client_port) ; 
         ("uploaded", "0" ) ;
         ("downloaded", "0" ) ;
-        ("left", "0");
-(* Int64.to_string ((file_size file) -- 
-          (Int64Swarmer.downloaded file.file_swarmer)) ) ; *)
+        ("left", Int64.to_string ((file_size file) -- 
+          (Int64Swarmer.downloaded file.file_swarmer)) ) ; 
         ("event", 
 (*          "completed" *)
           if file.file_tracker_connected then "" else "started" ) ;
       ]
     in
-    
+
     let module H = Http_client in
     let r = {
         H.basic_request with

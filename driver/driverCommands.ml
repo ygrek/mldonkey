@@ -194,6 +194,7 @@ let commands = [
               begin
                 Printf.bprintf  buf "\\<a href=/files\\>Display all files\\</a\\>  ";
                 Printf.bprintf  buf "\\<a href=/submit?q=verify_chunks+%d\\>Verify chunks\\</a\\>  " num;
+		Printf.bprintf  buf "\\<a href=/submit?q=preview+%d\\>Preview\\</a\\>  " num;
                 if !!html_mods then
                   Printf.bprintf  buf "\\<a href=\\\"javascript:window.location.reload()\\\"\\>Reload\\</a\\>\\<br\\>\n";
               end;
@@ -260,6 +261,14 @@ let commands = [
     ), "<num> :\t\t\tverify chunks of file <num>";
     
     
+    "preview", Arg_one (fun arg o ->
+        
+        let num = int_of_string arg in
+	let file = file_find num in
+        file_preview file;
+        "done"
+    ), "<file number> :\t\t\t\tstart previewer for file <file number>";
+
     "vm", Arg_none (fun o ->
         CommonInteractive.print_connected_servers o;
         ""), ":\t\t\t\t\t$blist connected servers$n";
@@ -398,7 +407,7 @@ let commands = [
 \\<td class=downloaded width=100%%\\>\\</td\\>
 \\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=voo+1'\\\"\\>Client\\</a\\>\\</td\\>
 \\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=voo+2'\\\"\\>Ports\\</a\\>\\</td\\>
-\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=voo+3'\\\"\\>Bandwidth\\</a\\>\\</td\\>
+\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=voo+3'\\\"\\>html\\</a\\>\\</td\\>
 \\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=voo+4'\\\"\\>Delays\\</a\\>\\</td\\>
 \\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=voo+5'\\\"\\>Files\\</a\\>\\</td\\>
 \\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=voo+6'\\\"\\>Mail\\</a\\>\\</td\\>
@@ -421,6 +430,12 @@ let commands = [
                         strings_of_option_html force_client_ip; 
                         strings_of_option_html run_as_user; 
                         strings_of_option_html run_as_useruid; 
+                        strings_of_option_html max_upload_slots; 
+                        strings_of_option_html dynamic_slots; 
+                        strings_of_option_html max_hard_upload_rate; 
+                        strings_of_option_html max_hard_download_rate; 
+                        strings_of_option_html max_opened_connections; 
+                        strings_of_option_html max_concurrent_downloads; 
                       ] 
                   
                   | 2 -> 
@@ -438,10 +453,18 @@ let commands = [
                       ] 
                   | 3 -> 
                       [
-                        strings_of_option_html max_hard_upload_rate; 
-                        strings_of_option_html max_hard_download_rate; 
-                        strings_of_option_html max_opened_connections; 
-                        strings_of_option_html max_concurrent_downloads; 
+                        strings_of_option_html html_mods; 
+                        strings_of_option_html html_mods_use_relative_availability; 
+                        strings_of_option_html html_mods_human_readable; 
+                        strings_of_option_html html_mods_vd_age; 
+                        strings_of_option_html html_mods_vd_last; 
+                        strings_of_option_html html_mods_vd_prio; 
+                        strings_of_option_html html_mods_vd_queues; 
+                        strings_of_option_html html_mods_show_pending; 
+                        strings_of_option_html html_mods_load_message_file; 
+                        strings_of_option_html html_mods_max_messages; 
+                        strings_of_option_html display_downloaded_results; 
+                        strings_of_option_html vd_reload_delay; 
                       ] 
                   | 4 -> 
                       [
@@ -480,6 +503,7 @@ let commands = [
                         strings_of_option_html enable_server; 
                         strings_of_option_html enable_overnet; 
                         strings_of_option_html enable_donkey; 
+                        strings_of_option_html enable_bittorrent; 
                         strings_of_option_html enable_opennap; 
                         strings_of_option_html enable_soulseek; 
                         strings_of_option_html enable_audiogalaxy; 
@@ -488,6 +512,7 @@ let commands = [
                         strings_of_option_html enable_openft; 
                         strings_of_option_html tcpip_packet_size; 
                         strings_of_option_html mtu_packet_size; 
+                        strings_of_option_html minimal_packet_size; 
                       ] 
                   
                   | _ -> CommonInteractive.all_simple_options_html ()
@@ -1595,8 +1620,7 @@ formID.msgText.value=\\\"\\\";
             
             let counter = ref 0 in
             
-            Printf.bprintf buf "\\<div class=\\\"uploaders\\\"\\>Total
-            upload slots: %d (%d) | Pending slots: %d\n" nuploaders
+            Printf.bprintf buf "\\<div class=\\\"uploaders\\\"\\>Total upload slots: %d (%d) | Pending slots: %d\n" nuploaders
               (Fifo.length CommonUploads.upload_clients)
               (Intmap.length !CommonUploads.pending_slots_map);
             
@@ -1783,6 +1807,10 @@ formID.msgText.value=\\\"\\\";
         else ""
     ), "<m> :\t\t\t\tdisable upload during <m> minutes (multiple of 5)";
 
+    "reload_messages", Arg_none (fun o ->
+        CommonMessages.load_message_file ();
+        "\\<script language=Javascript\\>top.window.location.reload();\\</script\\>"
+    ), ":\t\t\treload messages file";
     
     ]
 

@@ -34,8 +34,6 @@
             </menu_item>
             <menu_item name=itemFriends width="-1" height="-1" border_width="-1" label="Gettext.gettext+Gui_messages.mFriends" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
             </menu_item>
-            <menu_item name=itemSearches width="-1" height="-1" border_width="-1" label="Gettext.gettext+Gui_messages.mQueries" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
-            </menu_item>
             <menu_item name=itemResults width="-1" height="-1" border_width="-1" label="Gettext.gettext+Gui_messages.mResults" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
             </menu_item>
             <menu_item name=itemRooms width="-1" height="-1" border_width="-1" label="Gettext.gettext+Gui_messages.mRooms" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">

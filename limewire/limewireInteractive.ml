@@ -55,7 +55,10 @@ let _ =
   );
   network.op_network_share <- (fun fullname codedname size ->
       LimewireServers.new_shared_words := true;
-      CommonUploads.add_shared fullname codedname size
+      let sh = CommonUploads.add_shared fullname codedname size in
+      CommonUploads.ask_for_uid sh SHA1 (fun sh uid -> 
+            lprintf "Could share urn\n";
+            ())
   )
   
 let _ =
@@ -130,7 +133,9 @@ let _ =
           P.server_banner = "";
           } else
         raise Not_found
-  )
+  );
+  server_ops.op_server_connect <- LimewireServers.connect_server;
+  server_ops.op_server_disconnect <- LimewireServers.disconnect_server
 
 module C = CommonTypes
   

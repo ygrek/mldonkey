@@ -16,7 +16,12 @@
     along with mldonkey; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
- 
+
+module type Base = sig 
+    val to_string : int -> string -> string
+    val of_string : int -> string -> string
+  end
+  
 module type Digest = sig
     type t
     
@@ -52,4 +57,7 @@ module Md4 : Digest
 module Md5 : Digest
 module Sha1 : Digest
 module Tiger : Digest  
+  
+module Base16 : Base
+module Base32 : Base
   

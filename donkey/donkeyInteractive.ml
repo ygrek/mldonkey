@@ -1141,7 +1141,8 @@ onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>%d\\</T
                         qfile = (as_file_impl file).impl_file_val) qfiles in
                   let tc = ref 0 in
                   Printf.bprintf buf "%s\\</td\\>\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>" 
-                    (CommonFile.colored_chunks qchunks) 
+                    (CommonFile.colored_chunks (Array.init (Array.length qchunks) 
+						(fun i -> (if qchunks.(i) then 2 else 0)) )) 
                   (Array.iter (fun b -> if b then incr tc) qchunks;!tc);
                 with Not_found -> (
                       Printf.bprintf buf "\\</td\\>\\<td class=\\\"sr ar\\\"\\>\\</td\\>" 

@@ -146,7 +146,7 @@ let rec client_parse_header c gconn sock header =
                   lprintf "  Location: %s\n" url; url
           ) locations in
         lprintf "\n";
-
+        
         let uids = extract_uids urn in
         List.iter (fun uid ->
             try
@@ -160,12 +160,12 @@ let rec client_parse_header c gconn sock header =
                     
                     let c = new_client (Known_location (ip,port)) in
                     add_download file c (FileByUrl uri)
-                    
+                  
                   with _ -> ()
               ) urls
             with _ -> ()
         ) uids
-
+      
       with _ -> ()
     
     end;
@@ -253,13 +253,15 @@ X-Metadata-Path: /gnutella/metadata/v1?urn:tree:tiger/:7EOOAH7YUP7USYTMOFVIWWPKX
         (match d.download_ranges with
             [] -> lprintf "EMPTY Ranges !!!\n"
           | r :: _ -> 
+(*
               let (x,y) = Int64Swarmer.range_range r in
               lprintf "Received %Ld [%Ld] (%Ld-%Ld) -> %Ld\n"
                 !counter_pos to_read
                 x y 
                 (new_downloaded -- old_downloaded)
+*)        
+              ()
         );
-        
         
         if new_downloaded = file_size file then
           download_finished file;

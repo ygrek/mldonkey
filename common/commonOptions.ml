@@ -589,7 +589,7 @@ let html_mods = define_option expert_ini
     ["html_mods"] "Whether to use the modified WEB interface" bool_option true
 
 let html_mods_style = define_option expert_ini
-    ["html_mods_style"] "Which html_mods style to use" int_option 0
+    ["html_mods_style"] "Which html_mods style to use (set with html_mods_style command)" int_option 0
 
 let html_mods_human_readable = define_option expert_ini
     ["html_mods_human_readable"] "Whether to use human readable GMk number format" bool_option true
@@ -611,6 +611,9 @@ let html_mods_vd_queues = define_option expert_ini
 
 let html_mods_show_pending = define_option expert_ini
     ["html_mods_show_pending"] "Whether to display the pending slots in uploaders command" bool_option true
+
+let html_mods_load_message_file = define_option expert_ini
+    ["html_mods_load_message_file"] "Whether to load the mldonkey_messages.ini file (false=use internal settings)" bool_option false
 
 let html_mods_max_messages = define_option expert_ini
     ["html_mods_max_messages"] "Maximum chat messages to log in memory" int_option 10

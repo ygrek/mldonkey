@@ -97,6 +97,7 @@ let new_file file_id file_name file_size file_tracker piece_size =
       file_tracker_last_conn = 0;
       file_tracker_interval = 600;
       file_files = [];
+      file_blocks_downloaded = [];
     } and file_impl =  {
       dummy_file_impl with
       impl_file_fd = t;
@@ -124,7 +125,11 @@ let new_file file_id file_name file_size file_tracker piece_size =
       lprintf "Sha1 computed: %s against %s = %s\n"
         (Sha1.to_string sha1) (Sha1.to_string file.file_chunks.(num))
       (if result then "VERIFIED" else "CORRUPTED");
-      true
+      if result then begin
+          file.file_blocks_downloaded <- b :: file.file_blocks_downloaded;
+          file_must_update (as_file file.file_file)
+        end;
+      result
   );
   current_files := file :: !current_files;
   Hashtbl.add files_by_uid file_id file;
@@ -163,6 +168,7 @@ let new_client file peer_id kind =
           client_allowed_to_write = zero;
           client_uploaded = zero;
           client_downloaded = zero;
+          client_blocks_sent = [];
         } and impl = {
           dummy_client_impl with
           impl_client_val = c;

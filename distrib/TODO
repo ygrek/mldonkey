@@ -1,33 +1,48 @@
 TODO list for client
 ====================
 
-1) Add verification in CommonSwarming at the partition level
+Short schedule:
+---------------
+* Verify that sha1 hashes are correctly computed for big files
+* Propagate them to Query-Routing
+* Update Query-Routing tables as soon as possible
 
-val set_verifier : partition -> (block -> bool) -> unit
-val present_bitmap : partition -> string (absent, partial, present, verified)
-val verified : partition -> bool
+Let's schedule our work:
+------------------------
 
-2) Add upload on BitTorrent
+For 2.04: nothing, feature freeze now
+For 2.05:
+  - Gnutella:
+      * Gnutella2 support
+      * Upload: use CommonUploads queues, and HTTP/1.1
+  - Bittorrent:
+      * Support for directory downloads
+  - Misc:
+      * Interactive downloads (popups for one file with progress bar)
 
-3) Multi-File support for BitTorrent
+For 2.06:
+  - Gnutella:
+      * THEX corruption detection
+      * deflate-style compression
+  - eDonkey:
+      * Source management should be shared by other plugins
+          DonkeySources3 --> CommonSources
+      * Use CommonSwarming to choose ranges to download
 
-Add interactive downloads: click on "Interactive Download", and a popup
-  ask for where to save the file, and a popup with a progress bar is displayed.
+For 2.07:
+  - Download one file on two networks
 
-Next big challenges:
---------------------
-* Upload on all networks
-* Cd_get and Collections
-* Sparse-files
-* export_temp
+For 2.08:
+  - Gnutella:
+      * Act as an ultra-peer
+  - eDonkey:
+      * export_temp so that they can be used from emule/edonkey
+      * Share eDonkey partial chunks on Gnutella
+  - Misc:
+      * Implementation of sparse-files
+      * CD get and Collections
 
-Gnutella:
- * Really test Swarming:
-    - Verify that several clients don't receive the same blocks to download
-    - Verify that received data is included in the range
-    - Connect to new sources as soon as possible
-    - Correctly read and save present chunks
- * Act as a Gnutella client, forward requests with TTL set to 2
+
 
 *******************
 Before 2.04 :)
@@ -56,21 +71,11 @@ Before 2.04 :)
   * lots of obsolete parameters in "08_better_default_parameters"
   * Remove "a la mldonkey" source propagation
   * have a look at reliable_sources
-* Add a "log_file" option or argument.
-* Check the NaS problem in client_name
-* Download chunks separately
-* Why are the files suddently paused ? at least, when forcing pause, send
-   a message in the log.
 
 Core:
 =====
-* Different login/password for different users.
 * One list of downloading files per user (downloaded common)
-* One list of searches per user
-* Waiting list of files to download: when a file is downloaded, take another
-   one from the fifo...
 * SIGSEGV in MD4Transform
-* Common functions for linear uploads and downloads
 
 Edonkey + Overnet:
 ==================
@@ -89,7 +94,6 @@ Edonkey + Overnet:
 
 GUI:
 ====
-* commonDownloads.ml: functor
 * GUI: strange bug: pausing on one file pause two of them...
 * In gpattern, if an item from the selection is removed, the selection is
      not updated
@@ -97,7 +101,6 @@ GUI:
 * Add an option tab similar to the one of mldonkeywatch
 * Send all the locations to the GUI with their chunks
 * Hide already downloaded files
-* Create ed2k links where possible
 
 Opennap:
 ========
@@ -128,10 +131,6 @@ Direct-Connects:
 GUI:
 ====
  * Change the color of tabs when things change
-
-limewire:
-=========
-* Chech the is_http_ok function: too wide ?
 
 net/:
 =====
@@ -223,7 +222,6 @@ GENERAL:
 - What ever happened to the 'collection' files from edonkey? I would like mldonkey to have that feature, so people can share collections of entire series. 
 
 WEB INTERFACE: 
-- Display free disk space in Web Interface so that you can check remotely how much space you still have, (good if you access mldonkey with remote windows). 
 - Any chance of adding a graph to the web interface to show download/upload for a set period of time? that would truley rock. 
 
 (21:36:13) pango: b8_bavard: first bug is that our pings lack an 0xe3 byte prefix

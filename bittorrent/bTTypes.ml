@@ -43,6 +43,8 @@ type client = {
     
     mutable client_downloaded : int64;
     mutable client_uploaded : int64;
+    
+    mutable client_blocks_sent : Int64Swarmer.block list;
   }
 
 and file = {
@@ -59,4 +61,5 @@ and file = {
     mutable file_tracker_interval : int;
     mutable file_tracker_last_conn : int;
     mutable file_files : (string * int64 * int64) list;
+    mutable file_blocks_downloaded : Int64Swarmer.block list;
   }

@@ -117,13 +117,13 @@ let value_to_file is_done assocs =
   
   
   let file = new_file file_id file_name file_size !file_uids in
-
-    (try 
+  
+  (try 
       Int64Swarmer.set_present file.file_swarmer 
         (get_value "file_present_chunks" 
-        (value_to_list value_to_int32pair))
-    with _ -> ()                );
-
+          (value_to_list value_to_int32pair));
+    with _ -> ()                
+  );
   
   (try
       ignore (get_value "file_sources" (value_to_list (fun v ->

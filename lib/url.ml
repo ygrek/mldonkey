@@ -43,7 +43,7 @@ let encode s =
     match s.[i] with
     | 'a'..'z' | 'A'..'Z' | '0'..'9' | '.' | '-' | '*' | '_' ->
         res.[!pos] <- s.[i]; incr pos
-    | ' ' -> res.[!pos] <- '+'; incr pos
+(*    | ' ' -> res.[!pos] <- '+'; incr pos *)
     | c ->
         res.[!pos] <- '%';
         res.[!pos+1] <- hexa_digit (Char.code c / 16);
@@ -51,7 +51,6 @@ let encode s =
         pos := !pos + 3
   done;
   String.sub res 0 !pos
-
 
 (* decode using x-www-form-urlencoded form *)
 let decode s =

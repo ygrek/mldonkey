@@ -491,10 +491,10 @@ class box_list (client_info_box : GPack.box) friend_tab =
                       let dx = if wx < nchunks then 1 else min !!O.chunk_width (wx / nchunks) in
                       let dx2 = if dx <= 2 then dx else dx - 1 in
                       for j = 0 to nchunks - 1 do
-                        if avail.[j] = '1' then
-                          d#set_foreground (if file.file_chunks.[j] = '1' then colorDGreen else colorGreen)
+                        if avail.[j] >= '1' then
+                          d#set_foreground (if file.file_chunks.[j] >= '2' then colorDGreen else colorGreen)
                         else
-                          d#set_foreground (if file.file_chunks.[j] = '1' then colorDRed else colorRed);
+                          d#set_foreground (if file.file_chunks.[j] >= '2' then colorDRed else colorRed);
                         d#rectangle ~filled: true ~x:(j*dx) ~y: 0 ~width: dx2 ~height:wy ();
                       done;
                       

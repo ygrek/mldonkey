@@ -188,6 +188,9 @@ let _ =
             assert (!file_name <> "");
             assert (!file_piece_size <> zero);
             assert (!file_pieces <> "");
+            
+            assert (!file_info = Bencode.decode (Bencode.encode !file_info));
+            
             let file_id = Sha1.string (Bencode.encode !file_info) in
             let npieces = Int64.to_int ((!length -- one) // !file_piece_size)
             in
