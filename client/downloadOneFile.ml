@@ -448,12 +448,35 @@ let rec find_client_zone c =
       | [z1]  -> find_zone2 c b z1 b.block_zones
       | _ -> find_zone1 c b b.block_zones
 
+and print_client_zones n b c =
+  (match c.client_block with
+      None -> Printf.printf "\n%d: CLIENT ZONES WITH NO BLOCK %d" c.client_num n;
+        print_newline ();
+    | Some bb ->
+        if b != bb then begin
+            Printf.printf "\n%d: CLIENT ZONES WITH BAD BLOCK %d" c.client_num n;
+            print_newline ();
+          end);          
+  if !!verbose then begin
+      Printf.printf "\n%d: ZONES IN %d" c.client_num n; 
+      List.iter (fun z ->
+          Printf.printf " [%s - %s] " (Int32.to_string z.zone_begin)
+          (Int32.to_string z.zone_end);
+          print_newline ();
+      ) c.client_zones;
+      print_newline ();
+    end;
+          
 and find_zone3 c b z1 z2 zones =
   match zones with
-    [] -> c.client_zones <- [z1;z2]; query_zones c b
+    [] -> 
+      c.client_zones <- [z1;z2]; 
+      print_client_zones 1 b c;
+      query_zones c b
   | z :: zones ->
       if (not z.zone_present) && z != z1 && z != z2 then begin
           c.client_zones <- [z1;z2;z];
+          print_client_zones 2 b c;
           z.zone_nclients <- z.zone_nclients + 1;
           query_zones c b
         end
@@ -461,7 +484,10 @@ and find_zone3 c b z1 z2 zones =
 
 and find_zone2 c b z1 zones =
   match zones with
-    [] -> c.client_zones <- [z1]; query_zones c b
+    [] -> 
+      c.client_zones <- [z1]; 
+      print_client_zones 3 b c;
+      query_zones c b
   | z :: zones ->
       if (not z.zone_present) && z != z1 then begin
           z.zone_nclients <- z.zone_nclients + 1;
@@ -484,6 +510,7 @@ and find_zone1 c b zones =
       (file.file_all_chunks).[b.block_pos] <- (if state = PresentVerified 
         then '1' else '0');
       file.file_absent_chunks <- List.rev (find_absents file);
+      c.client_block <- None;
       find_client_block c
   
   | z :: zones ->
@@ -509,6 +536,11 @@ and check_file_block c file i max_clients =
           b.block_zones <- create_zones file b.block_begin b.block_end [];
           
           b.block_nclients <- 1;            
+          if !!verbose then begin
+              Printf.printf "\n%d: NEW BLOCK [%s - %s]" c.client_num
+                (Int32.to_string b.block_begin) (Int32.to_string b.block_end);
+              print_newline ();
+            end;
           c.client_block <- Some b;
           file.file_chunks.(i) <- PartialVerified b;
           find_client_zone c;
@@ -517,6 +549,12 @@ and check_file_block c file i max_clients =
       | PartialVerified b when b.block_nclients < max_clients ->
           b.block_nclients <- 1;            
           c.client_block <- Some b;
+          if !!verbose then begin
+              Printf.printf "\n%d: NEW BLOCK [%s - %s]" c.client_num
+                (Int32.to_string b.block_begin) (Int32.to_string b.block_end);
+              print_newline ();
+            end;
+          
           file.file_chunks.(i) <- PartialVerified b;
           find_client_zone c;
           raise Not_found
@@ -761,7 +799,7 @@ let mail_for_completed_file file =
     
     let mail = {
         mail_to = !!mail;
-        mail_from = Printf.sprintf "%s" !!mail;
+        mail_from = Printf.sprintf "mldonkey <%s>" !!mail;
         mail_subject = Printf.sprintf "mldonkey completed download";
         mail_body = line1 ^ line2;
       } in

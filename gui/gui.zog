@@ -25,9 +25,9 @@
           </label>
         </button>
       </hbox>
-      <hpaned name=_ width="-1" height="-1" border_width="-1" handle_size="-1" tab_label="" expand="true" fill="true" padding="-1">
+      <hpaned name=hpaned width="-1" height="-1" border_width="-1" handle_size="-1" tab_label="" expand="true" fill="true" padding="-1">
         <vbox name=_ width="600" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
-          <scrolled_window name=_ width="-1" height="-1" border_width="-1" hscrollbar_policy="`ALWAYS" vscrollbar_policy="`ALWAYS" placement="`TOP_LEFT" tab_label="" expand="true" fill="true" padding="-1">
+          <scrolled_window name=left_child width="-1" height="-1" border_width="-1" hscrollbar_policy="`ALWAYS" vscrollbar_policy="`ALWAYS" placement="`TOP_LEFT" tab_label="" expand="true" fill="true" padding="-1">
             <clist name=clist_servers width="-1" height="-1" border_width="-1" number_of_columns="5" columns_titles="[Mes.address;+Mes.status;+Mes.server_nusers;+Mes.server_nfiles;Mes.server_desc]" shadow_type="`NONE" selection_mode="`MULTIPLE" show_titles="true" tab_label="" expand="true" fill="true" padding="-1">
             </clist>
           </scrolled_window>
@@ -107,9 +107,9 @@
         <entry name=entry_md4 width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="false" fill="true" padding="-1">
         </entry>
       </hbox>
-      <hpaned name=_ width="-1" height="-1" border_width="-1" handle_size="-1" tab_label="" expand="true" fill="true" padding="-1">
+      <hpaned name=hpaned width="-1" height="-1" border_width="-1" handle_size="-1" tab_label="" expand="true" fill="true" padding="-1">
         <vbox name=_ width="600" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="true" fill="true" padding="-1">
-          <vpaned name=_ width="-1" height="-1" border_width="-1" handle_size="-1" tab_label="" expand="true" fill="true" padding="-1">
+          <vpaned name=vpaned width="-1" height="-1" border_width="-1" handle_size="-1" tab_label="" expand="true" fill="true" padding="-1">
             <vbox name=_ width="-1" height="200" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
               <label name=label_downloaded width="-1" height="-1" text="Mes.files_downloaded+0" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
               </label>
@@ -168,7 +168,7 @@
 </entity>
 <entity name=box_friends>
   <hbox name=box width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="%22Friends%22" expand="false" fill="true" padding="-1">
-    <hpaned name=_ width="-1" height="-1" border_width="-1" handle_size="-1" tab_label="" expand="true" fill="true" padding="-1">
+    <hpaned name=hpaned width="-1" height="-1" border_width="-1" handle_size="-1" tab_label="" expand="true" fill="true" padding="-1">
       <frame name=_ width="180" height="200" border_width="1" label="Mes.friends" label_xalign="-1.0" label_yalign="-1.0" shadow_type="`ETCHED_OUT" tab_label="" expand="false" fill="true" padding="-1">
         <vbox name=_ width="200" height="100" border_width="-1" homogeneous="false" spacing="10" tab_label="" expand="false" fill="true" padding="-1">
           <scrolled_window name=_ width="-1" height="-1" border_width="-1" hscrollbar_policy="`ALWAYS" vscrollbar_policy="`ALWAYS" placement="`TOP_LEFT" tab_label="" expand="true" fill="true" padding="-1">
@@ -189,7 +189,7 @@
           </hbox>
         </vbox>
       </frame>
-      <vpaned name=wpane_522 width="-1" height="-1" border_width="-1" handle_size="-1" tab_label="" expand="false" fill="true" padding="-1">
+      <vpaned name=vpaned width="-1" height="-1" border_width="-1" handle_size="-1" tab_label="" expand="false" fill="true" padding="-1">
         <frame name=_ width="600" height="200" border_width="1" label="Mes.files" label_xalign="-1.00" label_yalign="-1.0" shadow_type="`ETCHED_OUT" tab_label="" expand="false" fill="true" padding="-1">
           <vbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
             <scrolled_window name=_ width="-1" height="-1" border_width="-1" hscrollbar_policy="`AUTOMATIC" vscrollbar_policy="`ALWAYS" placement="`TOP_LEFT" tab_label="" expand="true" fill="true" padding="-1">
@@ -218,7 +218,7 @@
             </hbox>
           </vbox>
         </frame>
-        <frame name=_ width="-1" height="-1" border_width="-1" label="Mes.dialog" label_xalign="-1.0" label_yalign="-1.0" shadow_type="`NONE" tab_label="" expand="false" fill="true" padding="-1">
+        <frame name=_ width="0" height="-1" border_width="-1" label="Mes.dialog" label_xalign="-1.0" label_yalign="-1.0" shadow_type="`NONE" tab_label="" expand="false" fill="true" padding="-1">
           <vbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
             <entry name=entry_dialog width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="false" fill="true" padding="-1">
             </entry>
@@ -233,8 +233,8 @@
   </hbox>
 </entity>
 <entity name=box_searches>
-  <hpaned name=_ width="-1" height="-1" border_width="-1" handle_size="-1" tab_label="" expand="false" fill="true" padding="-1">
-    <frame name=_ width="310" height="-1" border_width="1" label="Mes.query" label_xalign="-1.0" label_yalign="-1.0" shadow_type="`ETCHED_OUT" tab_label="" expand="false" fill="true" padding="-1">
+  <hpaned name=hpaned width="-1" height="-1" border_width="-1" handle_size="-1" tab_label="" expand="false" fill="true" padding="-1">
+    <frame name=left_child width="310" height="-1" border_width="1" label="Mes.query" label_xalign="-1.0" label_yalign="-1.0" shadow_type="`ETCHED_OUT" tab_label="" expand="false" fill="true" padding="-1">
       <vbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="10" tab_label="" expand="false" fill="true" padding="-1">
         <vbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
           <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="3" tab_label="" expand="false" fill="true" padding="-1">
@@ -519,17 +519,19 @@
       </menu_item>
       <menu_item name=_Menu_notebook width="-1" height="-1" border_width="-1" label="%22Pages%22" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
         <menu name=menu456 width="-1" height="-1" border_width="-1" tab_label="" expand="false" fill="true" padding="-1">
-          <menu_item name=itemServers width="-1" height="-1" border_width="-1" label="%22Servers%22" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="GdkKeysyms._S" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
+          <menu_item name=itemServers width="-1" height="-1" border_width="-1" label="%22Servers%22" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
           </menu_item>
-          <menu_item name=itemDownloads width="-1" height="-1" border_width="-1" label="%22Downloads%22" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="GdkKeysyms._D" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
+          <menu_item name=itemDownloads width="-1" height="-1" border_width="-1" label="%22Downloads%22" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
           </menu_item>
-          <menu_item name=itemFriends width="-1" height="-1" border_width="-1" label="%22Friends%22" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="GdkKeysyms._F" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
+          <menu_item name=itemFriends width="-1" height="-1" border_width="-1" label="%22Friends%22" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
           </menu_item>
-          <menu_item name=itemSearches width="-1" height="-1" border_width="-1" label="%22Queries%22" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="GdkKeysyms._Q" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
+          <menu_item name=itemSearches width="-1" height="-1" border_width="-1" label="%22Queries%22" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
           </menu_item>
-          <menu_item name=itemOptions width="-1" height="-1" border_width="-1" label="%22Options%22" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="GdkKeysyms._O" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
+          <menu_item name=itemOptions width="-1" height="-1" border_width="-1" label="%22Options%22" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
           </menu_item>
-          <menu_item name=itemHelp width="-1" height="-1" border_width="-1" label="%22Help%22" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="GdkKeysyms._H" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
+          <menu_item name=itemConsole width="-1" height="-1" border_width="-1" label="%22Console%22" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
+          </menu_item>
+          <menu_item name=itemHelp width="-1" height="-1" border_width="-1" label="%22Help%22" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
           </menu_item>
         </menu>
       </menu_item>

@@ -64,18 +64,17 @@ class box_servers () =
     GMisc.label ~text:(Mes.remove_old_servers) ~justify:`LEFT ~line_wrap:true
       ~packing:button_remove_old_servers#add ()
   in
-  let _anonymous_container_3 =
+  let hpaned =
     GPack.paned `HORIZONTAL
       ~packing:(_anonymous_container_1#pack ~expand:true ~fill:true) ()
   in
-  let _anonymous_container_4 =
-    GPack.vbox ~width:600 ~homogeneous:false
-      ~packing:_anonymous_container_3#add1 ()
+  let _anonymous_container_3 =
+    GPack.vbox ~width:600 ~homogeneous:false ~packing:hpaned#add1 ()
   in
-  let _anonymous_container_5 =
+  let left_child =
     GBin.scrolled_window ~hpolicy:`ALWAYS ~vpolicy:`ALWAYS
       ~placement:`TOP_LEFT
-      ~packing:(_anonymous_container_4#pack ~expand:true ~fill:true) ()
+      ~packing:(_anonymous_container_3#pack ~expand:true ~fill:true) ()
   in
   let clist_servers =
     GList.clist ~columns:5
@@ -83,15 +82,15 @@ class box_servers () =
         [Mes.address; Mes.status; Mes.server_nusers; Mes.server_nfiles;
          Mes.server_desc])
       ~shadow_type:`NONE ~selection_mode:`MULTIPLE ~titles_show:true
-      ~packing:_anonymous_container_5#add ()
+      ~packing:left_child#add ()
   in
-  let _anonymous_container_6 =
+  let _anonymous_container_4 =
     GPack.hbox ~homogeneous:true
-      ~packing:(_anonymous_container_4#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_3#pack ~expand:false ~fill:true) ()
   in
   let button_servers_remove =
     GButton.button
-      ~packing:(_anonymous_container_6#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_4#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~text:(Mes.remove) ~justify:`LEFT ~line_wrap:true
@@ -99,7 +98,7 @@ class box_servers () =
   in
   let button_servers_connect =
     GButton.button
-      ~packing:(_anonymous_container_6#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_4#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~text:(Mes.connect) ~justify:`LEFT ~line_wrap:true
@@ -107,7 +106,7 @@ class box_servers () =
   in
   let button_servers_disconnect =
     GButton.button
-      ~packing:(_anonymous_container_6#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_4#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~text:(Mes.disconnect) ~justify:`LEFT ~line_wrap:true
@@ -115,33 +114,32 @@ class box_servers () =
   in
   let button_servers_view_users =
     GButton.button
-      ~packing:(_anonymous_container_6#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_4#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~text:(Mes.view_users) ~justify:`LEFT ~line_wrap:true
       ~packing:button_servers_view_users#add ()
   in
-  let _anonymous_container_7 =
-    GPack.vbox ~width:200 ~homogeneous:false
-      ~packing:_anonymous_container_3#add2 ()
+  let _anonymous_container_5 =
+    GPack.vbox ~width:200 ~homogeneous:false ~packing:hpaned#add2 ()
   in
-  let _anonymous_container_8 =
+  let _anonymous_container_6 =
     GBin.scrolled_window ~width:200 ~hpolicy:`AUTOMATIC ~vpolicy:`ALWAYS
       ~placement:`TOP_LEFT
-      ~packing:(_anonymous_container_7#pack ~expand:true ~fill:true) ()
+      ~packing:(_anonymous_container_5#pack ~expand:true ~fill:true) ()
   in
   let clist_users =
     GList.clist ~width:180 ~columns:2 ~titles:(["Kind"; Mes.users])
       ~shadow_type:`NONE ~selection_mode:`MULTIPLE ~titles_show:true
-      ~packing:_anonymous_container_8#add ()
+      ~packing:_anonymous_container_6#add ()
   in
-  let _anonymous_container_9 =
+  let _anonymous_container_7 =
     GPack.hbox ~homogeneous:false
-      ~packing:(_anonymous_container_7#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_5#pack ~expand:false ~fill:true) ()
   in
   let button_add_to_friends =
     GButton.button
-      ~packing:(_anonymous_container_9#pack ~expand:true ~fill:true) ()
+      ~packing:(_anonymous_container_7#pack ~expand:true ~fill:true) ()
   in
   let _ =
     GMisc.label ~text:(Mes.add_to_friends) ~justify:`LEFT ~line_wrap:true
@@ -154,6 +152,8 @@ class box_servers () =
     val button_servers_add = button_servers_add
     val button_servers_connect_more = button_servers_connect_more
     val button_remove_old_servers = button_remove_old_servers
+    val hpaned = hpaned
+    val left_child = left_child
     val clist_servers = clist_servers
     val button_servers_remove = button_servers_remove
     val button_servers_connect = button_servers_connect
@@ -167,6 +167,8 @@ class box_servers () =
     method button_servers_add = button_servers_add
     method button_servers_connect_more = button_servers_connect_more
     method button_remove_old_servers = button_remove_old_servers
+    method hpaned = hpaned
+    method left_child = left_child
     method clist_servers = clist_servers
     method button_servers_remove = button_servers_remove
     method button_servers_connect = button_servers_connect
@@ -190,7 +192,7 @@ class box_search () =
     GMisc.label ~text:"" ~justify:`LEFT ~line_wrap:true
       ~packing:(hbox_501#pack ~expand:true ~fill:true) ()
   in
-  let _anonymous_container_10 =
+  let _anonymous_container_8 =
     GBin.scrolled_window ~hpolicy:`ALWAYS ~vpolicy:`ALWAYS
       ~placement:`TOP_LEFT ~packing:(box#pack ~expand:true ~fill:true) ()
   in
@@ -198,15 +200,15 @@ class box_search () =
     GList.clist ~columns:5
       ~titles:([Mes.size; Mes.filename; "Format"; Mes.properties; Mes.md4])
       ~shadow_type:`ETCHED_OUT ~selection_mode:`MULTIPLE ~titles_show:true
-      ~packing:_anonymous_container_10#add ()
+      ~packing:_anonymous_container_8#add ()
   in
-  let _anonymous_container_11 =
+  let _anonymous_container_9 =
     GPack.hbox ~homogeneous:true ~packing:(box#pack ~expand:false ~fill:true)
       ()
   in
   let button_search_download =
     GButton.button
-      ~packing:(_anonymous_container_11#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_9#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~text:(Mes.download_selected_files) ~justify:`LEFT
@@ -214,7 +216,7 @@ class box_search () =
   in
   let button_stop =
     GButton.button
-      ~packing:(_anonymous_container_11#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_9#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~text:(Mes.stop_search) ~justify:`LEFT ~line_wrap:true
@@ -222,7 +224,7 @@ class box_search () =
   in
   let button_close =
     GButton.button
-      ~packing:(_anonymous_container_11#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_9#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~text:(Mes.close_search) ~justify:`LEFT ~line_wrap:true
@@ -249,88 +251,85 @@ class box_search () =
   end;;
 class box_downloads () =
   let box = GPack.hbox ~homogeneous:false () in
-  let _anonymous_container_12 =
+  let _anonymous_container_10 =
     GPack.vbox ~homogeneous:false ~packing:(box#pack ~expand:true ~fill:true)
       ()
   in
-  let _anonymous_container_13 =
+  let _anonymous_container_11 =
     GPack.hbox ~homogeneous:false
       ~packing:(
-        _anonymous_container_12#pack ~expand:false ~fill:true ~padding:3)
+        _anonymous_container_10#pack ~expand:false ~fill:true ~padding:3)
       ()
   in
   let _ =
     GMisc.label ~text:(Mes.ed2k) ~justify:`LEFT ~line_wrap:true
-      ~packing:(_anonymous_container_13#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_11#pack ~expand:false ~fill:true) ()
   in
   let entry_ed2k_url =
     GEdit.entry ~width:500 ~visibility:true ~editable:true
-      ~packing:(_anonymous_container_13#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_11#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~text:(Mes.recover_md4) ~justify:`LEFT ~line_wrap:true
-      ~packing:(_anonymous_container_13#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_11#pack ~expand:false ~fill:true) ()
   in
   let entry_md4 =
     GEdit.entry ~visibility:true ~editable:true
-      ~packing:(_anonymous_container_13#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_11#pack ~expand:false ~fill:true) ()
   in
-  let _anonymous_container_14 =
+  let hpaned =
     GPack.paned `HORIZONTAL
+      ~packing:(_anonymous_container_10#pack ~expand:true ~fill:true) ()
+  in
+  let _anonymous_container_12 =
+    GPack.vbox ~width:600 ~homogeneous:false ~packing:hpaned#add1 ()
+  in
+  let vpaned =
+    GPack.paned `VERTICAL
       ~packing:(_anonymous_container_12#pack ~expand:true ~fill:true) ()
   in
-  let _anonymous_container_15 =
-    GPack.vbox ~width:600 ~homogeneous:false
-      ~packing:_anonymous_container_14#add1 ()
-  in
-  let _anonymous_container_16 =
-    GPack.paned `VERTICAL
-      ~packing:(_anonymous_container_15#pack ~expand:true ~fill:true) ()
-  in
-  let _anonymous_container_17 =
-    GPack.vbox ~height:200 ~homogeneous:false
-      ~packing:_anonymous_container_16#add1 ()
+  let _anonymous_container_13 =
+    GPack.vbox ~height:200 ~homogeneous:false ~packing:vpaned#add1 ()
   in
   let label_downloaded =
     GMisc.label ~text:(Mes.files_downloaded 0) ~justify:`LEFT ~line_wrap:true
-      ~packing:(_anonymous_container_17#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_13#pack ~expand:false ~fill:true) ()
   in
-  let _anonymous_container_18 =
+  let _anonymous_container_14 =
     GBin.scrolled_window ~hpolicy:`AUTOMATIC ~vpolicy:`AUTOMATIC
       ~placement:`TOP_LEFT
-      ~packing:(_anonymous_container_17#pack ~expand:true ~fill:true) ()
+      ~packing:(_anonymous_container_13#pack ~expand:true ~fill:true) ()
   in
   let clist_downloaded =
     GList.clist ~columns:5
       ~titles:(
         [Mes.filename; Mes.size; Mes.downloaded; Mes.availability; Mes.md4])
       ~shadow_type:`NONE ~selection_mode:`SINGLE ~titles_show:true
-      ~packing:_anonymous_container_18#add ()
+      ~packing:_anonymous_container_14#add ()
   in
-  let _anonymous_container_19 =
+  let _anonymous_container_15 =
     GPack.hbox ~homogeneous:true
-      ~packing:(_anonymous_container_17#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_13#pack ~expand:false ~fill:true) ()
   in
   let button_downloaded_save =
     GButton.button
-      ~packing:(_anonymous_container_19#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_15#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~text:(Mes.downloaded_save) ~justify:`LEFT ~line_wrap:true
       ~packing:button_downloaded_save#add ()
   in
-  let _anonymous_container_20 =
-    GPack.vbox ~height:200 ~homogeneous:false
-      ~packing:_anonymous_container_16#add2 ()
+  let _anonymous_container_16 =
+    GPack.vbox ~height:200 ~homogeneous:false ~packing:vpaned#add2 ()
   in
   let label_downloading =
     GMisc.label ~text:(Mes.downloading_files 0) ~justify:`LEFT ~line_wrap:true
-      ~packing:(_anonymous_container_20#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_16#pack ~expand:false ~fill:true) ()
   in
-  let _anonymous_container_21 =
+  let _anonymous_container_17 =
     GBin.scrolled_window ~hpolicy:`AUTOMATIC ~vpolicy:`AUTOMATIC
       ~placement:`TOP_LEFT
-      ~packing:(_anonymous_container_20#pack ~expand:true ~fill:true) ()
+      ~packing:(_anonymous_container_16#pack ~expand:true ~fill:true) ()
   in
   let clist_downloads =
     GList.clist ~columns:7
@@ -338,27 +337,27 @@ class box_downloads () =
         [Mes.filename; Mes.size; Mes.downloaded; Mes.percent; Mes.rate;
          Mes.state; Mes.availability; Mes.md4])
       ~shadow_type:`NONE ~selection_mode:`MULTIPLE ~titles_show:true
-      ~packing:_anonymous_container_21#add ()
+      ~packing:_anonymous_container_17#add ()
   in
   let label_file_info =
     GMisc.label ~text:"" ~justify:`LEFT ~line_wrap:true
-      ~packing:(_anonymous_container_20#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_16#pack ~expand:false ~fill:true) ()
   in
-  let _anonymous_container_22 =
+  let _anonymous_container_18 =
     GPack.hbox ~homogeneous:false
-      ~packing:(_anonymous_container_20#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_16#pack ~expand:false ~fill:true) ()
   in
   let draw_availability =
     GMisc.drawing_area ~height:20
-      ~packing:(_anonymous_container_22#pack ~expand:true ~fill:true) ()
+      ~packing:(_anonymous_container_18#pack ~expand:true ~fill:true) ()
   in
-  let _anonymous_container_23 =
+  let _anonymous_container_19 =
     GPack.hbox ~homogeneous:true
-      ~packing:(_anonymous_container_20#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_16#pack ~expand:false ~fill:true) ()
   in
   let button_download_cancel =
     GButton.button
-      ~packing:(_anonymous_container_23#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_19#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~text:(Mes.cancel) ~justify:`LEFT ~line_wrap:true
@@ -366,34 +365,33 @@ class box_downloads () =
   in
   let button_download_retry_connect =
     GButton.button
-      ~packing:(_anonymous_container_23#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_19#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~text:(Mes.retry_connect) ~justify:`LEFT ~line_wrap:true
       ~packing:button_download_retry_connect#add ()
   in
-  let _anonymous_container_24 =
-    GPack.vbox ~width:200 ~homogeneous:false
-      ~packing:_anonymous_container_14#add2 ()
+  let _anonymous_container_20 =
+    GPack.vbox ~width:200 ~homogeneous:false ~packing:hpaned#add2 ()
   in
-  let _anonymous_container_25 =
+  let _anonymous_container_21 =
     GBin.scrolled_window ~hpolicy:`AUTOMATIC ~vpolicy:`ALWAYS
       ~placement:`TOP_LEFT
-      ~packing:(_anonymous_container_24#pack ~expand:true ~fill:true) ()
+      ~packing:(_anonymous_container_20#pack ~expand:true ~fill:true) ()
   in
   let clist_locations =
     GList.clist ~columns:3 ~titles:(["Kind"; "Name"; "Status"])
       ~shadow_type:`NONE ~selection_mode:`MULTIPLE ~titles_show:true
-      ~packing:_anonymous_container_25#add ()
+      ~packing:_anonymous_container_21#add ()
   in
   let label_locations_status =
     GMisc.label ~text:(Mes.connected_to_locations 0 0) ~justify:`LEFT
       ~line_wrap:true
-      ~packing:(_anonymous_container_24#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_20#pack ~expand:false ~fill:true) ()
   in
   let button_download_add_friend =
     GButton.button
-      ~packing:(_anonymous_container_24#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_20#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~text:(Mes.add_to_friends) ~justify:`LEFT ~line_wrap:true
@@ -403,6 +401,8 @@ class box_downloads () =
     val box = box
     val entry_ed2k_url = entry_ed2k_url
     val entry_md4 = entry_md4
+    val hpaned = hpaned
+    val vpaned = vpaned
     val label_downloaded = label_downloaded
     val clist_downloaded = clist_downloaded
     val button_downloaded_save = button_downloaded_save
@@ -418,6 +418,8 @@ class box_downloads () =
     method box = box
     method entry_ed2k_url = entry_ed2k_url
     method entry_md4 = entry_md4
+    method hpaned = hpaned
+    method vpaned = vpaned
     method label_downloaded = label_downloaded
     method clist_downloaded = clist_downloaded
     method button_downloaded_save = button_downloaded_save
@@ -434,147 +436,146 @@ class box_downloads () =
   end;;
 class box_friends () =
   let box = GPack.hbox ~homogeneous:false () in
-  let _anonymous_container_26 =
+  let hpaned =
     GPack.paned `HORIZONTAL ~packing:(box#pack ~expand:true ~fill:true) ()
   in
-  let _anonymous_container_27 =
+  let _anonymous_container_22 =
     GBin.frame ~width:180 ~height:200 ~border_width:1 ~label:(Mes.friends)
-      ~shadow_type:`ETCHED_OUT ~packing:_anonymous_container_26#add1 ()
+      ~shadow_type:`ETCHED_OUT ~packing:hpaned#add1 ()
   in
-  let _anonymous_container_28 =
+  let _anonymous_container_23 =
     GPack.vbox ~width:200 ~height:100 ~homogeneous:false ~spacing:10
-      ~packing:_anonymous_container_27#add ()
+      ~packing:_anonymous_container_22#add ()
   in
-  let _anonymous_container_29 =
+  let _anonymous_container_24 =
     GBin.scrolled_window ~hpolicy:`ALWAYS ~vpolicy:`ALWAYS
       ~placement:`TOP_LEFT
-      ~packing:(_anonymous_container_28#pack ~expand:true ~fill:true) ()
+      ~packing:(_anonymous_container_23#pack ~expand:true ~fill:true) ()
   in
   let clist_friends =
     GList.clist ~columns:3
       ~titles:([Mes.friend_status; Mes.friend_name; Mes.friend_kind])
       ~shadow_type:`NONE ~selection_mode:`MULTIPLE ~titles_show:true
-      ~packing:_anonymous_container_29#add ()
+      ~packing:_anonymous_container_24#add ()
   in
-  let _anonymous_container_30 =
+  let _anonymous_container_25 =
     GPack.hbox ~homogeneous:true
-      ~packing:(_anonymous_container_28#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_23#pack ~expand:false ~fill:true) ()
   in
   let button_friends_remove =
     GButton.button
-      ~packing:(_anonymous_container_30#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_25#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~text:(Mes.remove) ~justify:`LEFT ~line_wrap:true
       ~packing:button_friends_remove#add ()
   in
-  let _anonymous_container_31 =
+  let _anonymous_container_26 =
     GPack.hbox ~homogeneous:false
-      ~packing:(_anonymous_container_28#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_23#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~text:(Mes.find_friend) ~justify:`LEFT ~line_wrap:true
-      ~packing:(_anonymous_container_31#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_26#pack ~expand:false ~fill:true) ()
   in
   let entry_find_friend =
     GEdit.entry ~visibility:true ~editable:true
-      ~packing:(_anonymous_container_31#pack ~expand:true ~fill:true) ()
+      ~packing:(_anonymous_container_26#pack ~expand:true ~fill:true) ()
   in
-  let wpane_522 =
-    GPack.paned `VERTICAL ~packing:_anonymous_container_26#add2 ()
-  in
-  let _anonymous_container_32 =
+  let vpaned = GPack.paned `VERTICAL ~packing:hpaned#add2 () in
+  let _anonymous_container_27 =
     GBin.frame ~width:600 ~height:200 ~border_width:1 ~label:(Mes.files)
-      ~shadow_type:`ETCHED_OUT ~packing:wpane_522#add1 ()
+      ~shadow_type:`ETCHED_OUT ~packing:vpaned#add1 ()
   in
-  let _anonymous_container_33 =
-    GPack.vbox ~homogeneous:false ~packing:_anonymous_container_32#add ()
+  let _anonymous_container_28 =
+    GPack.vbox ~homogeneous:false ~packing:_anonymous_container_27#add ()
   in
-  let _anonymous_container_34 =
+  let _anonymous_container_29 =
     GBin.scrolled_window ~hpolicy:`AUTOMATIC ~vpolicy:`ALWAYS
       ~placement:`TOP_LEFT
-      ~packing:(_anonymous_container_33#pack ~expand:true ~fill:true) ()
+      ~packing:(_anonymous_container_28#pack ~expand:true ~fill:true) ()
   in
   let clist_friends_files =
     GList.clist ~columns:4
       ~titles:([Mes.filename; Mes.size; Mes.properties; Mes.md4])
       ~shadow_type:`ETCHED_OUT ~selection_mode:`MULTIPLE ~titles_show:true
-      ~packing:_anonymous_container_34#add ()
+      ~packing:_anonymous_container_29#add ()
   in
-  let _anonymous_container_35 =
+  let _anonymous_container_30 =
     GPack.hbox ~border_width:5 ~homogeneous:false
-      ~packing:(_anonymous_container_33#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_28#pack ~expand:false ~fill:true) ()
   in
   let button_friends_download =
     GButton.button
-      ~packing:(_anonymous_container_35#pack ~expand:true ~fill:true) ()
+      ~packing:(_anonymous_container_30#pack ~expand:true ~fill:true) ()
   in
   let _ =
     GMisc.label ~text:(Mes.download_selected_files) ~justify:`LEFT
       ~line_wrap:true ~packing:button_friends_download#add ()
   in
-  let _anonymous_container_36 =
+  let _anonymous_container_31 =
     GPack.hbox ~homogeneous:false
       ~packing:(
-        _anonymous_container_35#pack ~expand:false ~fill:true ~padding:3)
+        _anonymous_container_30#pack ~expand:false ~fill:true ~padding:3)
       ()
   in
   let _ =
     GMisc.label ~text:(Mes.ip) ~justify:`LEFT ~line_wrap:true
       ~packing:(
-        _anonymous_container_36#pack ~expand:false ~fill:true ~padding:3)
+        _anonymous_container_31#pack ~expand:false ~fill:true ~padding:3)
       ()
   in
   let entry_friends_new_ip =
     GEdit.entry ~width:110 ~visibility:true ~editable:true
-      ~packing:(_anonymous_container_36#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_31#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~text:(Mes.port) ~justify:`LEFT ~line_wrap:true
       ~packing:(
-        _anonymous_container_36#pack ~expand:false ~fill:true ~padding:3)
+        _anonymous_container_31#pack ~expand:false ~fill:true ~padding:3)
       ()
   in
   let entry_friends_new_port =
     GEdit.entry ~width:60 ~visibility:true ~editable:true
-      ~packing:(_anonymous_container_36#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_31#pack ~expand:false ~fill:true) ()
   in
   let button_friends_add =
     GButton.button
       ~packing:(
-        _anonymous_container_36#pack ~expand:false ~fill:true ~padding:3)
+        _anonymous_container_31#pack ~expand:false ~fill:true ~padding:3)
       ()
   in
   let _ =
     GMisc.label ~text:(Mes.add_friend) ~justify:`LEFT ~line_wrap:true
       ~packing:button_friends_add#add ()
   in
-  let _anonymous_container_37 =
-    GBin.frame ~label:(Mes.dialog) ~shadow_type:`NONE ~packing:wpane_522#add2
-      ()
+  let _anonymous_container_32 =
+    GBin.frame ~width:0 ~label:(Mes.dialog) ~shadow_type:`NONE
+      ~packing:vpaned#add2 ()
   in
-  let _anonymous_container_38 =
-    GPack.vbox ~homogeneous:false ~packing:_anonymous_container_37#add ()
+  let _anonymous_container_33 =
+    GPack.vbox ~homogeneous:false ~packing:_anonymous_container_32#add ()
   in
   let entry_dialog =
     GEdit.entry ~visibility:true ~editable:true
-      ~packing:(_anonymous_container_38#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_33#pack ~expand:false ~fill:true) ()
   in
-  let _anonymous_container_39 =
+  let _anonymous_container_34 =
     GBin.scrolled_window ~hpolicy:`AUTOMATIC ~vpolicy:`AUTOMATIC
       ~placement:`TOP_LEFT
-      ~packing:(_anonymous_container_38#pack ~expand:true ~fill:true) ()
+      ~packing:(_anonymous_container_33#pack ~expand:true ~fill:true) ()
   in
   let text_dialog =
     GEdit.text ~editable:true ~word_wrap:true ~line_wrap:true
-      ~packing:_anonymous_container_39#add ()
+      ~packing:_anonymous_container_34#add ()
   in
   object
     val box = box
+    val hpaned = hpaned
     val clist_friends = clist_friends
     val button_friends_remove = button_friends_remove
     val entry_find_friend = entry_find_friend
-    val wpane_522 = wpane_522
+    val vpaned = vpaned
     val clist_friends_files = clist_friends_files
     val button_friends_download = button_friends_download
     val entry_friends_new_ip = entry_friends_new_ip
@@ -583,10 +584,11 @@ class box_friends () =
     val entry_dialog = entry_dialog
     val text_dialog = text_dialog
     method box = box
+    method hpaned = hpaned
     method clist_friends = clist_friends
     method button_friends_remove = button_friends_remove
     method entry_find_friend = entry_find_friend
-    method wpane_522 = wpane_522
+    method vpaned = vpaned
     method clist_friends_files = clist_friends_files
     method button_friends_download = button_friends_download
     method entry_friends_new_ip = entry_friends_new_ip
@@ -597,34 +599,33 @@ class box_friends () =
     method coerce = box#coerce
   end;;
 class box_searches () =
-  let _anonymous_container_40 = GPack.paned `HORIZONTAL () in
-  let _anonymous_container_41 =
+  let hpaned = GPack.paned `HORIZONTAL () in
+  let left_child =
     GBin.frame ~width:310 ~border_width:1 ~label:(Mes.query)
-      ~shadow_type:`ETCHED_OUT ~packing:_anonymous_container_40#add1 ()
+      ~shadow_type:`ETCHED_OUT ~packing:hpaned#add1 ()
   in
-  let _anonymous_container_42 =
-    GPack.vbox ~homogeneous:false ~spacing:10
-      ~packing:_anonymous_container_41#add ()
+  let _anonymous_container_35 =
+    GPack.vbox ~homogeneous:false ~spacing:10 ~packing:left_child#add ()
   in
-  let _anonymous_container_43 =
+  let _anonymous_container_36 =
     GPack.vbox ~homogeneous:false
-      ~packing:(_anonymous_container_42#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_35#pack ~expand:false ~fill:true) ()
   in
-  let _anonymous_container_44 =
+  let _anonymous_container_37 =
     GPack.hbox ~homogeneous:false ~spacing:3
-      ~packing:(_anonymous_container_43#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_36#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~text:(Mes.search) ~justify:`LEFT ~line_wrap:true
-      ~packing:(_anonymous_container_44#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_37#pack ~expand:false ~fill:true) ()
   in
   let entry_search_words =
     GEdit.entry ~visibility:true ~editable:true
-      ~packing:(_anonymous_container_44#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_37#pack ~expand:false ~fill:true) ()
   in
   let hbox_473 =
     GPack.hbox ~homogeneous:false
-      ~packing:(_anonymous_container_43#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_36#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~text:(Mes.max_hits) ~justify:`LEFT ~line_wrap:true
@@ -637,56 +638,56 @@ class box_searches () =
       ~use_arrows:`DEFAULT ~case_sensitive:true ~value_in_list:false
       ~ok_if_empty:true ~packing:(hbox_473#pack ~expand:false ~fill:true) ()
   in
-  let _anonymous_container_45 =
+  let _anonymous_container_38 =
     GBin.frame ~label:(Mes.options) ~shadow_type:`NONE
-      ~packing:(_anonymous_container_42#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_35#pack ~expand:false ~fill:true) ()
   in
-  let _anonymous_container_46 =
-    GPack.vbox ~homogeneous:false ~packing:_anonymous_container_45#add ()
+  let _anonymous_container_39 =
+    GPack.vbox ~homogeneous:false ~packing:_anonymous_container_38#add ()
   in
-  let _anonymous_container_47 =
+  let _anonymous_container_40 =
     GPack.hbox ~homogeneous:false
-      ~packing:(_anonymous_container_46#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_39#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~width:100 ~text:(Mes.min_size) ~justify:`LEFT ~line_wrap:true
-      ~packing:(_anonymous_container_47#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_40#pack ~expand:false ~fill:true) ()
   in
   let entry_search_minsize =
     GEdit.entry ~width:80 ~text:"" ~visibility:true ~editable:true
-      ~packing:(_anonymous_container_47#pack ~expand:false ~fill:false) ()
+      ~packing:(_anonymous_container_40#pack ~expand:false ~fill:false) ()
   in
   let combo_search_minsize_unit =
     GEdit.combo ~width:50 ~popdown_strings:(["Mo"; "ko"; ""])
       ~use_arrows:`DEFAULT ~case_sensitive:true ~value_in_list:true
       ~ok_if_empty:true
-      ~packing:(_anonymous_container_47#pack ~expand:false ~fill:false) ()
+      ~packing:(_anonymous_container_40#pack ~expand:false ~fill:false) ()
   in
-  let _anonymous_container_48 =
+  let _anonymous_container_41 =
     GPack.hbox ~homogeneous:false
-      ~packing:(_anonymous_container_46#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_39#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~width:100 ~text:(Mes.max_size) ~justify:`LEFT ~line_wrap:true
-      ~packing:(_anonymous_container_48#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_41#pack ~expand:false ~fill:true) ()
   in
   let entry_search_maxsize =
     GEdit.entry ~width:80 ~visibility:true ~editable:true
-      ~packing:(_anonymous_container_48#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_41#pack ~expand:false ~fill:true) ()
   in
   let combo_search_maxsize_unit =
     GEdit.combo ~width:50 ~popdown_strings:(["Mo"; "ko"; ""])
       ~use_arrows:`DEFAULT ~case_sensitive:true ~value_in_list:true
       ~ok_if_empty:true
-      ~packing:(_anonymous_container_48#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_41#pack ~expand:false ~fill:true) ()
   in
-  let _anonymous_container_49 =
+  let _anonymous_container_42 =
     GPack.hbox ~homogeneous:false
-      ~packing:(_anonymous_container_46#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_39#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~width:100 ~text:(Mes.media) ~justify:`LEFT ~line_wrap:true
-      ~packing:(_anonymous_container_49#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_42#pack ~expand:false ~fill:true) ()
   in
   let combo_search_media =
     GEdit.combo
@@ -695,96 +696,96 @@ class box_searches () =
          "Collection"])
       ~use_arrows:`DEFAULT ~case_sensitive:true ~value_in_list:true
       ~ok_if_empty:true
-      ~packing:(_anonymous_container_49#pack ~expand:true ~fill:true) ()
+      ~packing:(_anonymous_container_42#pack ~expand:true ~fill:true) ()
   in
-  let _anonymous_container_50 =
+  let _anonymous_container_43 =
     GPack.hbox ~homogeneous:false
-      ~packing:(_anonymous_container_46#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_39#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~width:100 ~text:(Mes.format) ~justify:`LEFT ~line_wrap:true
-      ~packing:(_anonymous_container_50#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_43#pack ~expand:false ~fill:true) ()
   in
   let combo_format =
     GEdit.combo ~popdown_strings:([""; "avi"; "mp3"]) ~use_arrows:`DEFAULT
       ~case_sensitive:true ~value_in_list:false ~ok_if_empty:true
-      ~packing:(_anonymous_container_50#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_43#pack ~expand:false ~fill:true) ()
   in
-  let _anonymous_container_51 =
+  let _anonymous_container_44 =
     GBin.frame ~label:(Mes.mp3_options) ~shadow_type:`NONE
-      ~packing:(_anonymous_container_42#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_35#pack ~expand:false ~fill:true) ()
   in
-  let _anonymous_container_52 =
-    GPack.vbox ~homogeneous:false ~packing:_anonymous_container_51#add ()
+  let _anonymous_container_45 =
+    GPack.vbox ~homogeneous:false ~packing:_anonymous_container_44#add ()
   in
-  let _anonymous_container_53 =
+  let _anonymous_container_46 =
     GPack.hbox ~homogeneous:false
-      ~packing:(_anonymous_container_52#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_45#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~width:100 ~text:(Mes.album) ~justify:`LEFT ~line_wrap:true
-      ~packing:(_anonymous_container_53#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_46#pack ~expand:false ~fill:true) ()
   in
   let entry_album =
     GEdit.entry ~visibility:true ~editable:true
-      ~packing:(_anonymous_container_53#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_46#pack ~expand:false ~fill:true) ()
   in
-  let _anonymous_container_54 =
+  let _anonymous_container_47 =
     GPack.hbox ~homogeneous:false
-      ~packing:(_anonymous_container_52#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_45#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~width:100 ~text:(Mes.artist) ~justify:`LEFT ~line_wrap:true
-      ~packing:(_anonymous_container_54#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_47#pack ~expand:false ~fill:true) ()
   in
   let entry_artist =
     GEdit.entry ~visibility:true ~editable:true
-      ~packing:(_anonymous_container_54#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_47#pack ~expand:false ~fill:true) ()
   in
-  let _anonymous_container_55 =
+  let _anonymous_container_48 =
     GPack.hbox ~homogeneous:false
-      ~packing:(_anonymous_container_52#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_45#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~width:100 ~text:(Mes.title) ~justify:`LEFT ~line_wrap:true
-      ~packing:(_anonymous_container_55#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_48#pack ~expand:false ~fill:true) ()
   in
   let entry_title =
     GEdit.entry ~visibility:true ~editable:true
-      ~packing:(_anonymous_container_55#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_48#pack ~expand:false ~fill:true) ()
   in
-  let _anonymous_container_56 =
+  let _anonymous_container_49 =
     GPack.hbox ~homogeneous:false
-      ~packing:(_anonymous_container_52#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_45#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~width:100 ~text:(Mes.min_bitrate) ~justify:`LEFT
       ~line_wrap:true
-      ~packing:(_anonymous_container_56#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_49#pack ~expand:false ~fill:true) ()
   in
   let combo_min_bitrate =
     GEdit.combo ~popdown_strings:([""; "64"; "96"; "128"; "160"; "192"])
       ~use_arrows:`DEFAULT ~case_sensitive:true ~value_in_list:true
       ~ok_if_empty:true
-      ~packing:(_anonymous_container_56#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_49#pack ~expand:false ~fill:true) ()
   in
   let button_search_submit =
     GButton.button
       ~packing:(
-        _anonymous_container_42#pack ~expand:false ~fill:true ~padding:5)
+        _anonymous_container_35#pack ~expand:false ~fill:true ~padding:5)
       ()
   in
   let _ =
     GMisc.label ~text:(Mes.submit) ~justify:`LEFT ~line_wrap:true
       ~packing:button_search_submit#add ()
   in
-  let _anonymous_container_57 =
+  let _anonymous_container_50 =
     GPack.hbox ~homogeneous:true
-      ~packing:(_anonymous_container_42#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_35#pack ~expand:false ~fill:true) ()
   in
   let button_extended_search =
     GButton.button
-      ~packing:(_anonymous_container_57#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_50#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~text:(Mes.extended_search) ~justify:`LEFT ~line_wrap:true
@@ -792,22 +793,24 @@ class box_searches () =
   in
   let button_local_search =
     GButton.button
-      ~packing:(_anonymous_container_57#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_50#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~text:(Mes.local_search) ~justify:`LEFT ~line_wrap:true
       ~packing:button_local_search#add ()
   in
-  let _anonymous_container_58 =
+  let _anonymous_container_51 =
     GBin.frame ~width:600 ~border_width:1 ~label:(Mes.results)
-      ~shadow_type:`ETCHED_OUT ~packing:_anonymous_container_40#add2 ()
+      ~shadow_type:`ETCHED_OUT ~packing:hpaned#add2 ()
   in
   let notebook_results =
     GPack.notebook ~tab_pos:`TOP ~show_tabs:true ~homogeneous_tabs:true
       ~show_border:true ~scrollable:true ~popup:true
-      ~packing:_anonymous_container_58#add ()
+      ~packing:_anonymous_container_51#add ()
   in
   object
+    val hpaned = hpaned
+    val left_child = left_child
     val entry_search_words = entry_search_words
     val hbox_473 = hbox_473
     val combo_max_hits = combo_max_hits
@@ -825,6 +828,8 @@ class box_searches () =
     val button_extended_search = button_extended_search
     val button_local_search = button_local_search
     val notebook_results = notebook_results
+    method hpaned = hpaned
+    method left_child = left_child
     method entry_search_words = entry_search_words
     method hbox_473 = hbox_473
     method combo_max_hits = combo_max_hits
@@ -842,298 +847,298 @@ class box_searches () =
     method button_extended_search = button_extended_search
     method button_local_search = button_local_search
     method notebook_results = notebook_results
-    method coerce = _anonymous_container_40#coerce
+    method coerce = hpaned#coerce
   end;;
 class box_options () =
   let box = GPack.hbox ~homogeneous:false () in
-  let _anonymous_container_59 =
+  let _anonymous_container_52 =
     GPack.vbox ~homogeneous:false ~packing:(box#pack ~expand:true ~fill:true)
       ()
   in
-  let _anonymous_container_60 =
+  let _anonymous_container_53 =
     GPack.hbox ~width:0 ~homogeneous:false ~spacing:3
-      ~packing:(_anonymous_container_59#pack ~expand:true ~fill:true) ()
+      ~packing:(_anonymous_container_52#pack ~expand:true ~fill:true) ()
   in
-  let _anonymous_container_61 =
+  let _anonymous_container_54 =
     GPack.vbox ~width:400 ~homogeneous:false
-      ~packing:(_anonymous_container_60#pack ~expand:true ~fill:true) ()
+      ~packing:(_anonymous_container_53#pack ~expand:true ~fill:true) ()
   in
   let _frame_options_ports =
     GBin.frame ~label:(Mes.ports) ~shadow_type:`ETCHED_OUT
-      ~packing:(_anonymous_container_61#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_54#pack ~expand:false ~fill:true) ()
   in
-  let _anonymous_container_62 =
+  let _anonymous_container_55 =
     GPack.vbox ~homogeneous:false ~packing:_frame_options_ports#add ()
   in
-  let _anonymous_container_63 =
+  let _anonymous_container_56 =
     GPack.hbox ~homogeneous:false
-      ~packing:(_anonymous_container_62#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_55#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~width:200 ~text:(Mes.connection_port) ~justify:`LEFT
       ~line_wrap:true
-      ~packing:(_anonymous_container_63#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_56#pack ~expand:false ~fill:true) ()
   in
   let entry_options_conn_port =
     GEdit.entry ~width:100 ~visibility:true ~editable:true
-      ~packing:(_anonymous_container_63#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_56#pack ~expand:false ~fill:true) ()
   in
-  let _anonymous_container_64 =
+  let _anonymous_container_57 =
     GPack.hbox ~homogeneous:false
-      ~packing:(_anonymous_container_62#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_55#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~width:200 ~text:(Mes.control_port) ~justify:`LEFT
       ~line_wrap:true
-      ~packing:(_anonymous_container_64#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_57#pack ~expand:false ~fill:true) ()
   in
   let entry_options_rmt_port =
     GEdit.entry ~width:100 ~visibility:true ~editable:true
-      ~packing:(_anonymous_container_64#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_57#pack ~expand:false ~fill:true) ()
   in
   let _frame_options_delays =
     GBin.frame ~label:(Mes.delays) ~shadow_type:`ETCHED_OUT
-      ~packing:(_anonymous_container_61#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_54#pack ~expand:false ~fill:true) ()
   in
-  let _anonymous_container_65 =
+  let _anonymous_container_58 =
     GPack.vbox ~homogeneous:false ~packing:_frame_options_delays#add ()
   in
-  let _anonymous_container_66 =
+  let _anonymous_container_59 =
     GPack.hbox ~homogeneous:false
-      ~packing:(_anonymous_container_65#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_58#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~width:200 ~text:(Mes.save_options_delay) ~justify:`LEFT
       ~line_wrap:true
-      ~packing:(_anonymous_container_66#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_59#pack ~expand:false ~fill:true) ()
   in
   let entry_options_save_delay =
     GEdit.entry ~visibility:true ~editable:true
-      ~packing:(_anonymous_container_66#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_59#pack ~expand:false ~fill:true) ()
   in
-  let _anonymous_container_67 =
+  let _anonymous_container_60 =
     GPack.hbox ~homogeneous:false
-      ~packing:(_anonymous_container_65#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_58#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~width:200 ~text:(Mes.check_client_connections) ~justify:`LEFT
       ~line_wrap:true
-      ~packing:(_anonymous_container_67#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_60#pack ~expand:false ~fill:true) ()
   in
   let entry_options_check_clients_delay =
     GEdit.entry ~visibility:true ~editable:true
-      ~packing:(_anonymous_container_67#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_60#pack ~expand:false ~fill:true) ()
   in
-  let _anonymous_container_68 =
+  let _anonymous_container_61 =
     GPack.hbox ~homogeneous:false
-      ~packing:(_anonymous_container_65#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_58#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~width:200 ~text:(Mes.check_server_connection) ~justify:`LEFT
       ~line_wrap:true
-      ~packing:(_anonymous_container_68#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_61#pack ~expand:false ~fill:true) ()
   in
   let entry_options_check_servers_delay =
     GEdit.entry ~visibility:true ~editable:true
-      ~packing:(_anonymous_container_68#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_61#pack ~expand:false ~fill:true) ()
   in
-  let _anonymous_container_69 =
+  let _anonymous_container_62 =
     GPack.hbox ~homogeneous:false
-      ~packing:(_anonymous_container_65#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_58#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~width:200 ~text:(Mes.small_retry_delay) ~justify:`LEFT
       ~line_wrap:true
-      ~packing:(_anonymous_container_69#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_62#pack ~expand:false ~fill:true) ()
   in
   let entry_options_small_retry_delay =
     GEdit.entry ~visibility:true ~editable:true
-      ~packing:(_anonymous_container_69#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_62#pack ~expand:false ~fill:true) ()
   in
-  let _anonymous_container_70 =
+  let _anonymous_container_63 =
     GPack.hbox ~width:200 ~homogeneous:false
-      ~packing:(_anonymous_container_65#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_58#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~width:200 ~text:(Mes.medium_retry_delay) ~justify:`LEFT
       ~line_wrap:true
-      ~packing:(_anonymous_container_70#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_63#pack ~expand:false ~fill:true) ()
   in
   let entry_options_medium_retry_delay =
     GEdit.entry ~visibility:true ~editable:true
-      ~packing:(_anonymous_container_70#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_63#pack ~expand:false ~fill:true) ()
   in
-  let _anonymous_container_71 =
+  let _anonymous_container_64 =
     GPack.hbox ~homogeneous:false
-      ~packing:(_anonymous_container_65#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_58#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~width:200 ~text:(Mes.long_retry_delay) ~justify:`LEFT
       ~line_wrap:true
-      ~packing:(_anonymous_container_71#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_64#pack ~expand:false ~fill:true) ()
   in
   let entry_options_long_retry_delay =
     GEdit.entry ~visibility:true ~editable:true
-      ~packing:(_anonymous_container_71#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_64#pack ~expand:false ~fill:true) ()
   in
-  let _anonymous_container_72 =
+  let _anonymous_container_65 =
     GPack.hbox ~homogeneous:false
-      ~packing:(_anonymous_container_65#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_58#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~width:200 ~text:(Mes.gui_refresh_delay) ~justify:`LEFT
       ~line_wrap:true
-      ~packing:(_anonymous_container_72#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_65#pack ~expand:false ~fill:true) ()
   in
   let entry_refresh_delay =
     GEdit.entry ~visibility:true ~editable:true
-      ~packing:(_anonymous_container_72#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_65#pack ~expand:false ~fill:true) ()
   in
-  let _anonymous_container_73 =
+  let _anonymous_container_66 =
     GPack.vbox ~width:400 ~homogeneous:false
-      ~packing:(_anonymous_container_60#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_53#pack ~expand:false ~fill:true) ()
   in
   let _frame_options_general =
     GBin.frame ~label:(Mes.general) ~shadow_type:`ETCHED_OUT
-      ~packing:(_anonymous_container_73#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_66#pack ~expand:false ~fill:true) ()
   in
-  let _anonymous_container_74 =
+  let _anonymous_container_67 =
     GPack.vbox ~homogeneous:false ~packing:_frame_options_general#add ()
   in
-  let _anonymous_container_75 =
+  let _anonymous_container_68 =
     GPack.hbox ~homogeneous:false
-      ~packing:(_anonymous_container_74#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_67#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~width:100 ~text:(Mes.name) ~justify:`LEFT ~line_wrap:true
-      ~packing:(_anonymous_container_75#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_68#pack ~expand:false ~fill:true) ()
   in
   let entry_options_name =
     GEdit.entry ~width:260 ~visibility:true ~editable:true
-      ~packing:(_anonymous_container_75#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_68#pack ~expand:false ~fill:true) ()
   in
-  let _anonymous_container_76 =
+  let _anonymous_container_69 =
     GPack.hbox ~homogeneous:false
-      ~packing:(_anonymous_container_74#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_67#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~width:200 ~text:(Mes.max_connected_servers) ~justify:`LEFT
       ~line_wrap:true
-      ~packing:(_anonymous_container_76#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_69#pack ~expand:false ~fill:true) ()
   in
   let entry_options_maxconn_servers =
     GEdit.entry ~width:100 ~visibility:true ~editable:true
-      ~packing:(_anonymous_container_76#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_69#pack ~expand:false ~fill:true) ()
   in
-  let _anonymous_container_77 =
+  let _anonymous_container_70 =
     GPack.hbox ~homogeneous:false
-      ~packing:(_anonymous_container_74#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_67#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~width:200 ~text:(Mes.upload_limit) ~justify:`LEFT
       ~line_wrap:true
-      ~packing:(_anonymous_container_77#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_70#pack ~expand:false ~fill:true) ()
   in
   let entry_options_upload_limit =
     GEdit.entry ~visibility:true ~editable:true
-      ~packing:(_anonymous_container_77#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_70#pack ~expand:false ~fill:true) ()
   in
   let _frame_options_timeouts =
     GBin.frame ~label:(Mes.timeouts) ~shadow_type:`ETCHED_OUT
-      ~packing:(_anonymous_container_73#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_66#pack ~expand:false ~fill:true) ()
   in
-  let _anonymous_container_78 =
+  let _anonymous_container_71 =
     GPack.vbox ~homogeneous:false ~packing:_frame_options_timeouts#add ()
   in
-  let _anonymous_container_79 =
+  let _anonymous_container_72 =
     GPack.hbox ~homogeneous:false
-      ~packing:(_anonymous_container_78#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_71#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~width:200 ~text:(Mes.server_connection) ~justify:`LEFT
       ~line_wrap:true
-      ~packing:(_anonymous_container_79#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_72#pack ~expand:false ~fill:true) ()
   in
   let entry_options_server_timeout =
     GEdit.entry ~visibility:true ~editable:true
-      ~packing:(_anonymous_container_79#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_72#pack ~expand:false ~fill:true) ()
   in
-  let _anonymous_container_80 =
+  let _anonymous_container_73 =
     GPack.hbox ~homogeneous:false
-      ~packing:(_anonymous_container_78#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_71#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~width:200 ~text:(Mes.client_connection) ~justify:`LEFT
       ~line_wrap:true
-      ~packing:(_anonymous_container_80#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_73#pack ~expand:false ~fill:true) ()
   in
   let entry_options_client_timeout =
     GEdit.entry ~visibility:true ~editable:true
-      ~packing:(_anonymous_container_80#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_73#pack ~expand:false ~fill:true) ()
   in
-  let _anonymous_container_81 =
+  let _anonymous_container_74 =
     GPack.hbox ~homogeneous:false
-      ~packing:(_anonymous_container_78#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_71#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~width:200 ~text:(Mes.max_server_age) ~justify:`LEFT
       ~line_wrap:true
-      ~packing:(_anonymous_container_81#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_74#pack ~expand:false ~fill:true) ()
   in
   let entry_max_server_age =
     GEdit.entry ~visibility:true ~editable:true
-      ~packing:(_anonymous_container_81#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_74#pack ~expand:false ~fill:true) ()
   in
   let _frame_server =
     GBin.frame ~label:"Server" ~shadow_type:`NONE
-      ~packing:(_anonymous_container_73#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_66#pack ~expand:false ~fill:true) ()
   in
-  let _anonymous_container_82 =
+  let _anonymous_container_75 =
     GPack.vbox ~homogeneous:false ~packing:_frame_server#add ()
   in
-  let _anonymous_container_83 =
+  let _anonymous_container_76 =
     GPack.hbox ~homogeneous:false
-      ~packing:(_anonymous_container_82#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_75#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~width:200 ~text:(Mes.hostname) ~justify:`LEFT ~line_wrap:true
-      ~packing:(_anonymous_container_83#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_76#pack ~expand:false ~fill:true) ()
   in
   let entry_server_hostname =
     GEdit.entry ~visibility:true ~editable:true
-      ~packing:(_anonymous_container_83#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_76#pack ~expand:false ~fill:true) ()
   in
-  let _anonymous_container_84 =
+  let _anonymous_container_77 =
     GPack.hbox ~homogeneous:false
-      ~packing:(_anonymous_container_82#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_75#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~width:200 ~text:(Mes.password) ~justify:`LEFT ~line_wrap:true
-      ~packing:(_anonymous_container_84#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_77#pack ~expand:false ~fill:true) ()
   in
   let entry_options_password =
     GEdit.entry ~visibility:true ~editable:true
-      ~packing:(_anonymous_container_84#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_77#pack ~expand:false ~fill:true) ()
   in
-  let _anonymous_container_85 =
+  let _anonymous_container_78 =
     GPack.hbox ~homogeneous:false
-      ~packing:(_anonymous_container_82#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_75#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~width:200 ~text:(Mes.gui_port) ~justify:`LEFT ~line_wrap:true
-      ~packing:(_anonymous_container_85#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_78#pack ~expand:false ~fill:true) ()
   in
   let entry_options_gui_port =
     GEdit.entry ~width:100 ~visibility:true ~editable:true
-      ~packing:(_anonymous_container_85#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_78#pack ~expand:false ~fill:true) ()
   in
-  let _anonymous_container_86 =
+  let _anonymous_container_79 =
     GPack.hbox ~homogeneous:true
-      ~packing:(_anonymous_container_59#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_52#pack ~expand:false ~fill:true) ()
   in
   let button_options_save =
     GButton.button
-      ~packing:(_anonymous_container_86#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_79#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~text:(Mes.save_and_apply_options) ~justify:`LEFT
@@ -1185,45 +1190,45 @@ class box_options () =
     method coerce = box#coerce
   end;;
 class box_help () =
-  let _anonymous_container_87 =
+  let _anonymous_container_80 =
     GBin.scrolled_window ~hpolicy:`AUTOMATIC ~vpolicy:`AUTOMATIC
       ~placement:`TOP_LEFT ()
   in
   let text =
     GEdit.text ~editable:false ~word_wrap:true ~line_wrap:true
-      ~packing:_anonymous_container_87#add ()
+      ~packing:_anonymous_container_80#add ()
   in
   object
     val text = text
     method text = text
-    method coerce = _anonymous_container_87#coerce
+    method coerce = _anonymous_container_80#coerce
   end;;
 class box_console () =
-  let _anonymous_container_88 = GPack.vbox ~homogeneous:false () in
-  let _anonymous_container_89 =
+  let _anonymous_container_81 = GPack.vbox ~homogeneous:false () in
+  let _anonymous_container_82 =
     GPack.hbox ~homogeneous:false
-      ~packing:(_anonymous_container_88#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_81#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~width:200 ~text:(Mes.command) ~justify:`LEFT ~line_wrap:true
-      ~packing:(_anonymous_container_89#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_82#pack ~expand:false ~fill:true) ()
   in
   let entry_command =
     GEdit.entry ~width:500 ~visibility:true ~editable:true
-      ~packing:(_anonymous_container_89#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_82#pack ~expand:false ~fill:true) ()
   in
-  let _anonymous_container_90 =
+  let _anonymous_container_83 =
     GBin.scrolled_window ~hpolicy:`AUTOMATIC ~vpolicy:`AUTOMATIC
       ~placement:`TOP_LEFT
-      ~packing:(_anonymous_container_88#pack ~expand:true ~fill:true) ()
+      ~packing:(_anonymous_container_81#pack ~expand:true ~fill:true) ()
   in
   let text =
     GEdit.text ~editable:false ~word_wrap:true ~line_wrap:true
-      ~packing:_anonymous_container_90#add ()
+      ~packing:_anonymous_container_83#add ()
   in
   let button_clear_console =
     GButton.button
-      ~packing:(_anonymous_container_88#pack ~expand:false ~fill:true) ()
+      ~packing:(_anonymous_container_81#pack ~expand:false ~fill:true) ()
   in
   let _ =
     GMisc.label ~text:(Mes.clear_console) ~justify:`LEFT ~line_wrap:true
@@ -1236,7 +1241,7 @@ class box_console () =
     method entry_command = entry_command
     method text = text
     method button_clear_console = button_clear_console
-    method coerce = _anonymous_container_88#coerce
+    method coerce = _anonymous_container_81#coerce
   end;;
 class gui () =
   let box = GPack.vbox ~width:800 ~height:400 ~homogeneous:false () in
@@ -1276,6 +1281,9 @@ class gui () =
   let itemOptions =
     GMenu.menu_item ~label:"Options" ~packing:menu456#add ()
   in
+  let itemConsole =
+    GMenu.menu_item ~label:"Console" ~packing:menu456#add ()
+  in
   let itemHelp = GMenu.menu_item ~label:"Help" ~packing:menu456#add () in
   let accel_menubar = GtkData.AccelGroup.create () in
   let _ = _FileMenu#set_accel_group accel_menubar in
@@ -1292,30 +1300,6 @@ class gui () =
       ~flags:([`VISIBLE; `LOCKED]) GdkKeysyms._E
   in
   let _ = menu456#set_accel_group accel_menubar in
-  let _ =
-    itemServers#add_accelerator ~group:accel_menubar ~modi:([`CONTROL])
-      ~flags:([`VISIBLE; `LOCKED]) GdkKeysyms._S
-  in
-  let _ =
-    itemDownloads#add_accelerator ~group:accel_menubar ~modi:([`CONTROL])
-      ~flags:([`VISIBLE; `LOCKED]) GdkKeysyms._D
-  in
-  let _ =
-    itemFriends#add_accelerator ~group:accel_menubar ~modi:([`CONTROL])
-      ~flags:([`VISIBLE; `LOCKED]) GdkKeysyms._F
-  in
-  let _ =
-    itemSearches#add_accelerator ~group:accel_menubar ~modi:([`CONTROL])
-      ~flags:([`VISIBLE; `LOCKED]) GdkKeysyms._Q
-  in
-  let _ =
-    itemOptions#add_accelerator ~group:accel_menubar ~modi:([`CONTROL])
-      ~flags:([`VISIBLE; `LOCKED]) GdkKeysyms._O
-  in
-  let _ =
-    itemHelp#add_accelerator ~group:accel_menubar ~modi:([`CONTROL])
-      ~flags:([`VISIBLE; `LOCKED]) GdkKeysyms._H
-  in
   let notebook =
     GPack.notebook ~width:800 ~tab_pos:`TOP ~show_tabs:true
       ~homogeneous_tabs:true ~show_border:true ~scrollable:true ~popup:true
@@ -1361,31 +1345,31 @@ class gui () =
     notebook#append_page ~tab_label:(GMisc.label ~text:(Mes.help) ())#coerce
       tab_help#coerce
   in
-  let _anonymous_container_91 =
+  let _anonymous_container_84 =
     GPack.hbox ~homogeneous:false ~spacing:10
       ~packing:(box#pack ~expand:false ~fill:true) ()
   in
   let label_connect_status =
     GMisc.label ~text:(Mes.not_connected) ~justify:`LEFT ~line_wrap:true
-      ~packing:(_anonymous_container_91#pack ~expand:true ~fill:true) ()
+      ~packing:(_anonymous_container_84#pack ~expand:true ~fill:true) ()
   in
   let label_servers_status =
     GMisc.label ~text:(Mes.connected_to_servers 0 0) ~justify:`LEFT
       ~line_wrap:true
-      ~packing:(_anonymous_container_91#pack ~expand:true ~fill:true) ()
+      ~packing:(_anonymous_container_84#pack ~expand:true ~fill:true) ()
   in
   let label_download_status =
     GMisc.label ~text:(Mes.downloaded_files 0 0) ~justify:`LEFT
       ~line_wrap:true
-      ~packing:(_anonymous_container_91#pack ~expand:true ~fill:true) ()
+      ~packing:(_anonymous_container_84#pack ~expand:true ~fill:true) ()
   in
   let label_searches_status =
     GMisc.label ~text:(Mes.no_current_search) ~justify:`LEFT ~line_wrap:true
-      ~packing:(_anonymous_container_91#pack ~expand:true ~fill:true) ()
+      ~packing:(_anonymous_container_84#pack ~expand:true ~fill:true) ()
   in
   let label_upload_status =
     GMisc.label ~text:"" ~justify:`LEFT ~line_wrap:true
-      ~packing:(_anonymous_container_91#pack ~expand:true ~fill:true) ()
+      ~packing:(_anonymous_container_84#pack ~expand:true ~fill:true) ()
   in
   object
     val box = box
@@ -1401,6 +1385,7 @@ class gui () =
     val itemFriends = itemFriends
     val itemSearches = itemSearches
     val itemOptions = itemOptions
+    val itemConsole = itemConsole
     val itemHelp = itemHelp
     val notebook = notebook
     val tab_servers = tab_servers
@@ -1428,6 +1413,7 @@ class gui () =
     method itemFriends = itemFriends
     method itemSearches = itemSearches
     method itemOptions = itemOptions
+    method itemConsole = itemConsole
     method itemHelp = itemHelp
     method notebook = notebook
     method tab_servers = tab_servers

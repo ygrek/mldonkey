@@ -24,7 +24,68 @@ open TcpClientSocket
 open Unix
 open Gui_proto
 open Gui_types
+open Gui_options
+module O = Gui_options
+module M = Gui_messages
+
+
+let locations = Hashtbl.create 103
   
+(* Check bindings *)
+let _ = 
+  if !!O.keymap_global = [] then
+    (
+     let a = O.add_binding O.keymap_global in
+     a "A-s" M.a_page_servers;
+     a "A-d" M.a_page_downloads;
+     a "A-f" M.a_page_friends;
+     a "A-q" M.a_page_queries;
+     a "A-o" M.a_page_options;
+     a "A-c" M.a_page_console;
+     a "A-h" M.a_page_help;
+     a "A-Left" M.a_previous_page;
+     a "A-Right" M.a_next_page
+    );
+  if !!O.keymap_servers = [] then
+    (
+     let a = O.add_binding O.keymap_servers in
+     a "C-c" M.a_connect;
+     a "C-m" M.a_connect_more;
+     a "C-a" M.a_select_all;
+    );
+  if !!O.keymap_downloads = [] then
+    (
+     let a = O.add_binding O.keymap_downloads in
+     a "C-c" M.a_cancel_download;
+     a "CS-s" M.a_save_all_files;
+     a "C-s" M.a_menu_save_file;
+     a "C-a" M.a_select_all;
+    );
+  if !!O.keymap_friends = [] then
+    (
+     let a = O.add_binding O.keymap_friends in
+     a "C-d" M.a_download_selection;
+     a "C-r" M.a_remove_friend;
+     a "C-a" M.a_select_all;
+    );
+  if !!O.keymap_queries = [] then
+    (
+     let a = O.add_binding O.keymap_queries in
+     ()
+    );
+  if !!O.keymap_options = [] then
+    (
+     let a = O.add_binding O.keymap_options in
+     ()
+    );
+  if !!O.keymap_console = [] then
+    (
+     let a = O.add_binding O.keymap_console in
+     ()
+    )
+
+let current_page = ref 0
+
 let short_name n =
   let len = String.length n in
   if len > 35 then
@@ -49,9 +110,28 @@ let gui_send t =
   | Some sock ->
       value_send sock (t : Gui_proto.from_gui)
   
+      
+let _ = 
+  (try Options.load mldonkey_gui_ini with
+      e ->
+        Printf.printf "Exception %s in load options" (Printexc.to_string e);
+        print_newline ();
+  );
+  match Sys.argv with 
+    [| _; host; p |] -> 
+      hostname =:= host;
+      port =:= int_of_string p
+  | [| _; host |] -> 
+      hostname =:= host
+  | [| _ |] -> ()
+  | _ -> 
+      Printf.printf "Too many arguments: [<host> [<port>]]";
+      print_newline ();
+      exit 0
+      
 let window = GWindow.window 
     ~title: "MLdonkey"
-    ~width: 800 ~height: 500
+    ~width: !!gui_width ~height: !!gui_height
     () 
 
 let tab_searches = gui#tab_searches
@@ -61,8 +141,8 @@ let tab_options = gui#tab_options
 let tab_friends = gui#tab_friends
 let tab_help = gui#tab_help
   
-let is_connected s =
-  match s.server_state with
+let is_connected state =
+  match state with
   | Connected_initiating
   | Connected_busy
   | Connected_idle
@@ -88,7 +168,7 @@ module MyCList: sig
     type ('a, 'b) t
     type ('a, 'b) node
     
-    val create : gui -> int GList.clist -> ('b -> string) list -> ('c, 'b) t
+    val create : gui -> int GList.clist -> ?color:('b -> string option) -> ('b -> string) list -> ('c, 'b) t
     
     val set_context_menu : 
       ('c, 'b)t -> (('c, 'b) t ->  GToolbox.menu_entry list) -> unit
@@ -106,6 +186,7 @@ module MyCList: sig
     val set_value : ('a, 'b) t -> 'a -> 'b -> unit
     val remove : ('a, 'b) t -> 'a -> unit
     val unselect_all : ('a,'b) t -> unit
+    val select_all : ('a,'b) t -> unit
     val find : ('a,'b) t -> 'a -> 'b
     val size : ('a,'b) t -> int
     val set_can_select_all: ('a,'b) t -> unit
@@ -122,6 +203,7 @@ module MyCList: sig
         clist: int GList.clist;
         ncols : int;
         cols : ('b -> string) list;
+	color : 'b -> string option;
         cols_array : ('b -> string) array;
         gui : gui;
         num_table : (int, ('a,'b) node) Hashtbl.t;
@@ -256,7 +338,14 @@ module MyCList: sig
                   print_newline ();
                   old_desc in
             if desc <> old_desc then
-              t.clist#set_cell ~text: desc (row t node) i;
+	      (
+	       let r = row t node in
+               t.clist#set_cell ~text: desc r i;
+	       match t.color value with
+		 None -> ()
+	       | Some c -> 
+		   ignore (t.clist#set_row ~foreground: (`NAME c) r)
+	      );
             desc :: (iter (i+1) cols descs)
         | [], [] -> 
             []
@@ -286,24 +375,25 @@ module MyCList: sig
 
     let set_size_callback t f = t.size_callback <- f
       
-    let create gui clist cols  =
+    let create gui clist ?(color=(fun _ -> None)) cols  =
       let t = { 
-          clist = clist; 
-          ncols = List.length cols;
-          cols = cols;
-          cols_array = Array.of_list cols;
-          gui  = gui;
-          num_table = Hashtbl.create 127;
-          table = Hashtbl.create 127;
-          num_counter = 1;
-          selection = [];
-          make_menu = default_make_menu;
-          selected_callback = (fun _ _ -> ());
-          replace_value = (fun _ x -> x);
-          size_callback = (fun _ -> ());
-          can_select_all = false;
-          multiple_select = true;
-          auto_resize = true;
+        clist = clist; 
+        ncols = List.length cols;
+        cols = cols;
+	color = color;
+        cols_array = Array.of_list cols;
+        gui  = gui;
+        num_table = Hashtbl.create 127;
+        table = Hashtbl.create 127;
+        num_counter = 1;
+        selection = [];
+        make_menu = default_make_menu;
+        selected_callback = (fun _ _ -> ());
+        replace_value = (fun _ x -> x);
+        size_callback = (fun _ -> ());
+        can_select_all = false;
+        multiple_select = true;
+        auto_resize = true;
       }
       in
       set_context_menu t default_make_menu;
@@ -333,6 +423,12 @@ module MyCList: sig
       if t.auto_resize then need_resize t.clist;
       let desc = List.map (fun f -> f value) t.cols in
       let row = t.clist#append desc  in
+      (
+       match t.color value with
+	 None -> ()
+       | Some c -> 
+	   ignore (t.clist#set_row ~foreground: (`NAME c) (t.clist#rows -1))
+      );
       t.num_counter <- t.num_counter + 1;
       let num = t.num_counter in
       let node = {
@@ -408,11 +504,24 @@ let string_of_state state =
   | Connected_queued -> "Queued"
   | Removed -> "Removed"
 
+let color_of_state state =
+  match state with
+  | Connected_busy
+  | Connected_idle -> Some !!color_connected 
+  | Connecting -> Some !!color_connecting
+  | NotConnected
+  | Connected_initiating
+  | Connected_queued
+  | Removed -> Some !!color_not_connected
+
+let color_of_server s = color_of_state s.server_state
+
 let nconnected_servers = ref 0
       
 let (clist_servers : 
     ((Ip.t * int), Gui_proto.server_info) MyCList.t) = 
   MyCList.create gui gui#tab_servers#clist_servers 
+    ~color: color_of_server
     [
 (* IP & PORT *)      
     (fun s -> Printf.sprintf "%16s : %-5d" (
@@ -511,10 +620,27 @@ let string_of_file_state state =
   | FilePaused -> "Paused"
   | FileDownloaded -> "Done"
   | FileRemoved -> "Removed"
-      
+
+let some_is_available f =
+  let b = ref false in
+  let len = String.length f.file_availability in
+  for i = 0 to len - 1 do
+    b := !b or f.file_availability.[i] <> '0'
+  done;
+  !b
+
+let color_opt_of_file f =
+  if f.file_download_rate > 0. then
+    Some !!color_downloading
+  else if some_is_available f then
+    Some !!color_available
+  else
+    Some !!color_not_available
+ 
 let (clist_downloads : 
-    (Md4.t, Gui_proto.file_info) MyCList.t) = 
+       (Md4.t, Gui_proto.file_info) MyCList.t) = 
   MyCList.create gui gui#tab_downloads#clist_downloads
+    ~color: color_opt_of_file
     [
 (* FILENAME *)
     (fun f -> match f.file_name with
@@ -554,9 +680,12 @@ let (clist_downloads :
     (fun f -> Md4.to_string f.file_md4);    
   ]
 
+let color_of_location l = color_of_state l.client_state
+
 let (clist_file_locations :
     (int, client_info) MyCList.t) =
   MyCList.create gui tab_downloads#clist_locations
+    ~color: color_of_location
     [
     (fun c -> match c.client_kind with
           Known_location _ -> "Direct"
@@ -640,6 +769,7 @@ let menu_downloads_file t =
 let (clist_downloaded : 
     (Md4.t, Gui_proto.file_info) MyCList.t) = 
   MyCList.create gui gui#tab_downloads#clist_downloaded
+    ~color: (fun _ -> Some !!color_downloaded)
     [
     (fun f -> match f.file_name with
           [] -> "<unknown>"
@@ -656,6 +786,9 @@ let clist_file_locations_current = ref (-1)
   
 let ndownloads = ref 0
 let ndownloaded = ref 0
+
+let nlocations = ref 0
+let nclocations = ref 0
   
 let set_clist_file_locations_file file =
   match file.file_more_info with
@@ -663,15 +796,22 @@ let set_clist_file_locations_file file =
   | Some mi ->
       if !clist_file_locations_current <> file.file_num then begin
           clist_file_locations_current := file.file_num;
+          nclocations := 0;
+          nlocations := 0;
           MyCList.clear clist_file_locations;
         end;
       List.iter (fun c -> 
+          if is_connected c.client_state then incr nclocations;
           MyCList.update clist_file_locations c.client_num c) 
       mi.file_known_locations;
       List.iter (fun c -> 
+          if is_connected c.client_state then incr nclocations;
           MyCList.update clist_file_locations c.client_num c) 
       mi.file_indirect_locations      
-
+      
+let update_locations_label () =
+  tab_downloads#label_locations_status#set_text (Mes.connected_to_locations !nclocations !nlocations)
+      
 let update_download_label () =
   gui#label_download_status#set_text (Mes.downloaded_files !ndownloaded !ndownloads);
   tab_downloads#label_downloading#set_text (Mes.downloading_files !ndownloads);
@@ -765,6 +905,24 @@ let _ =
       ndownloads := n;
       update_download_label ();
   );
+  MyCList.set_replace_value clist_file_locations (fun oc nc ->
+      begin
+        match is_connected oc.client_state, is_connected nc.client_state with
+          false , false
+        | true, true -> ()
+        | false , _ -> 
+            nclocations := !nclocations - 1;
+            update_locations_label ()
+        | _, false -> 
+            nclocations := !nclocations + 1;
+            update_locations_label ()
+      end;
+      nc
+  );
+  MyCList.set_size_callback clist_file_locations (fun n ->
+      nlocations := n;
+      update_locations_label ();
+  );
   MyCList.set_replace_value clist_downloads (fun old_file new_file ->
       begin
         match old_file.file_more_info, new_file.file_more_info with
@@ -789,7 +947,13 @@ let _ =
       MyCList.unselect_all clist_downloads;
       set_clist_file_locations_file file)
 
+let color_of_friend f = 
+  match f.client_more_info with
+    None -> Some !!color_default
+  | Some _ -> Some !!color_files_listed
+
 let clist_friends = MyCList.create gui tab_friends#clist_friends
+    ~color: color_of_friend
     [
     (fun c -> 
         match c.client_more_info with
@@ -927,34 +1091,6 @@ let remove_search_page v =
   Array.blit search_pages (n+1) search_pages n (!search_npages - n);
   n
       
-      (*
-let clist_searches = MyCList.create gui gui#tab_searches#clist_results
-    [
-    first_name ;
-    (fun r -> Int32.to_string r.result_size);
-    (fun r -> string_of_tags r.result_tags);
-    (fun r -> Md4.to_string r.result_md4);
-    ]
-    *)
-
-let addr, port = 
-  match Sys.argv with 
-    [| _; host; port |] -> 
-      let h = Unix.gethostbyname host in
-      h.h_addr_list.(0), int_of_string port
-  | [| _; host |] -> 
-      let h = Unix.gethostbyname host in
-      h.h_addr_list.(0), 4001
-  | [| _ |] ->
-      inet_addr_of_string "127.0.0.1", 4001
-  | _ -> 
-      Printf.printf "Too many arguments: [<host> [<port>]]";
-      print_newline ();
-      exit 0
-
-let addr = ref addr
-let port = ref port
-      
 let download_cancel (gui:gui) () =
   let module P = Gui_proto in
   for_selection clist_downloads (fun file ->
@@ -1002,6 +1138,28 @@ let download_friend_files =
   )   
 
   
+let canon_client c =
+  try
+    let cc = Hashtbl.find locations c.client_num in
+    cc.client_chunks <- c.client_chunks;
+    cc.client_files <- c.client_files;
+    cc.client_state <- c.client_state;
+    cc.client_is_friend <- c.client_is_friend;
+    cc.client_more_info <- c.client_more_info;
+    cc.client_rating <- c.client_rating;
+
+    begin
+      try
+        ignore (MyCList.find clist_file_locations c.client_num);
+        MyCList.set_value clist_file_locations c.client_num cc
+      with _ -> ()
+    end;
+    
+    cc
+  with _ ->
+      Hashtbl.add locations c.client_num c;
+      c
+  
 let (options_assocs : 
     (string * GEdit.entry) list) = 
   let options = gui#tab_options in
@@ -1029,8 +1187,6 @@ let (options_assocs :
 let options_assocs_rev = List.map (fun (name,widget) ->
       widget, name) options_assocs
   
-  
-let password = ref ""
   
 let value_reader (gui: gui) t sock =
   try
@@ -1063,7 +1219,7 @@ let value_reader (gui: gui) t sock =
 (*        Printf.printf "Connected"; print_newline (); *)
             
             gui#label_connect_status#set_text "Connected";
-            gui_send (Password (Gui_types.version,!password))
+            gui_send (Password (Gui_types.version,!!password))
           end
     
     | P.Search_result r -> 
@@ -1091,6 +1247,15 @@ let value_reader (gui: gui) t sock =
     | P.Download_file f ->
 (*        Printf.printf "Download_file"; print_newline (); *)
         let clist = gui#tab_downloads#clist_downloads in
+        begin
+          match f.file_more_info with
+            None -> ()
+          | Some mi ->
+              mi.file_known_locations <- 
+                List.map canon_client mi.file_known_locations;
+              mi.file_indirect_locations <- 
+                List.map canon_client mi.file_indirect_locations;
+        end;
         begin
           match f.file_state with
             FileCancelled ->
@@ -1122,7 +1287,7 @@ let value_reader (gui: gui) t sock =
           try
             let os = MyCList.find clist_servers key in
             begin
-              match is_connected s, is_connected os with
+              match is_connected s.server_state, is_connected os.server_state with
                 true, false -> incr nconnected_servers
               | false, true -> decr nconnected_servers
               | _ -> ()
@@ -1134,7 +1299,7 @@ let value_reader (gui: gui) t sock =
           with _ ->
               if s.server_state <> Removed then
                 begin
-                  if is_connected s then incr nconnected_servers;
+                  if is_connected s.server_state then incr nconnected_servers;
                   MyCList.add clist_servers key s;
                 end
         end;
@@ -1180,6 +1345,7 @@ print_newline ()
         
     | P.Client_info c -> 
 (*        Printf.printf "Client_info"; print_newline (); *)
+        let c = canon_client c in
         begin
           match c.client_is_friend with
             Friend ->
@@ -1340,7 +1506,23 @@ let disconnect gui =
 
 let reconnect gui =
   (try disconnect gui with _ -> ());
-  let sock = TcpClientSocket.connect !addr !port (fun _ _ -> 
+  let sock = TcpClientSocket.connect 
+      (try
+        let h = Unix.gethostbyname !!hostname in
+        h.Unix.h_addr_list.(0)
+      with 
+        e -> 
+          Printf.printf "Exception %s in gethostbyname" (Printexc.to_string e);
+          print_newline ();
+          try 
+            inet_addr_of_string !!hostname
+          with e ->
+              Printf.printf "Exception %s in inet_addr_of_string" 
+                (Printexc.to_string e);
+              print_newline ();
+              raise Not_found
+    )
+    !!port (fun _ _ -> 
         ()) in
   try
     connection_sock := Some sock;
@@ -1376,53 +1558,56 @@ let friends_addfriend (gui : gui) () =
   tab_friends#entry_friends_new_ip#set_text "";
   tab_friends#entry_friends_new_port#set_text ""
 
+let set_hpaned (hpaned : GPack.paned) prop =
+  let (w1,_) = Gdk.Window.get_size hpaned#misc#window in
+  let ndx1 = (w1 * !!prop) / 100 in
+  hpaned#child1#misc#set_geometry ~width: ndx1 ();
+  hpaned#child2#misc#set_geometry ~width: (w1 - ndx1 - hpaned#handle_size) ()
+
+let set_vpaned (hpaned : GPack.paned) prop =
+  let (_,h1) = Gdk.Window.get_size hpaned#misc#window in
+  let ndy1 = (h1 * !!prop) / 100 in
+  hpaned#child1#misc#set_geometry ~height: ndy1 ();
+  hpaned#child2#misc#set_geometry ~height: (h1 - ndy1 - hpaned#handle_size) ()
+  
+let save_gui_options () =
+(* Compute layout *)
+  let (w,h) = Gdk.Window.get_size gui#coerce#misc#window in
+  gui_width =:= w;
+  gui_height =:= h;
+  
+  Options.save_with_help mldonkey_gui_ini  
+
+let get_hpaned (hpaned: GPack.paned) prop =
+  
+  ignore (hpaned#child1#coerce#misc#connect#size_allocate
+      ~callback: (fun r ->
+        let (w1,_) = Gdk.Window.get_size hpaned#misc#window in
+        prop =:= r.Gtk.width * 100 / (max 1 (w1 - hpaned#handle_size));
+        save_gui_options ()
+    ))
+
+let get_vpaned (hpaned: GPack.paned) prop =
+  
+  ignore (hpaned#child1#coerce#misc#connect#size_allocate
+      ~callback: (fun r ->
+        let (_,h1) = Gdk.Window.get_size hpaned#misc#window in
+        prop =:= r.Gtk.height * 100 / (max 1 (h1 - hpaned#handle_size));
+        save_gui_options ()
+    ))
+  
 let save_options (gui: gui) () =
   try
   let module P = Gui_proto in
   let options = tab_options in
 
-    
-    (*
-  let o = {
-      connection_port = int_of_string options#entry_options_conn_port#text;
-      control_port = int_of_string options#entry_options_rmt_port#text;
-      gui_port = gui_port;
-        
-      save_options_delay = float_of_string options#entry_options_save_delay#text ;
-      check_client_connections_delay = float_of_string
-        options#entry_options_check_clients_delay#text;
-      check_server_connections_delay = float_of_string
-        options#entry_options_check_servers_delay#text;
-      small_retry_delay = float_of_string
-        options#entry_options_small_retry_delay#text;
-      medium_retry_delay = float_of_string 
-        options#entry_options_medium_retry_delay#text;
-      long_retry_delay = float_of_string
-        options#entry_options_long_retry_delay#text;
-        
-        name = options#entry_options_name#text;
-        password = 
-      max_connected_servers = int_of_string 
-        options#entry_options_maxconn_servers#text;
-      features =  options#entry_options_features#text;
-(*      download_limit = int_of_string
-        options#entry_options_download_limit#text; *)
-      upload_limit = int_of_string
-        options#entry_options_upload_limit#text;
-
-      server_timeout = float_of_string 
-        options#entry_options_server_timeout#text;
-      client_timeout = float_of_string 
-        options#entry_options_client_timeout#text ;
-      max_server_age = int_of_string
-        options#entry_max_server_age#text;
-} in
-  *)
-    port := int_of_string options#entry_options_gui_port#text;
-    password := options#entry_options_password#text;
+    port =:= int_of_string options#entry_options_gui_port#text;
+    password =:= options#entry_options_password#text;
+    hostname =:= tab_options#entry_server_hostname#text;
     gui_send (P.SaveOptions_query (List.map (fun 
          (name, widget) -> name, widget#text   
-        ) options_assocs ))
+        ) options_assocs ));
+    save_gui_options ()
   with _ ->
       Printf.printf "ERROR SAVING OPTIONS"; print_newline ()
       
@@ -1431,19 +1616,19 @@ let servers_remove (gui : gui) () =
   for_selection clist_servers (fun s ->
       gui_send (P.RemoveServer_query (server_key s));
   ) ()
-
-(*
-
-*)
   
 let _ =
   
   ignore (window#add gui#box#coerce) ;
-  ignore (gui#box#connect#destroy window#destroy) ;
-  ignore (window#connect#destroy GMain.Main.quit) ;
+  ignore (gui#box#connect#destroy (fun _ ->
+        window#destroy ())) ;
+    ignore (window#connect#destroy (fun _ -> 
+        GMain.Main.quit ())) ;
 
 (* Connect buttons to actions *)
-  ignore (gui#itemQuit#connect#activate (fun _ -> exit 0));
+  ignore (gui#itemQuit#connect#activate (fun _ -> 
+        save_gui_options ();
+        exit 0));
   ignore (gui#itemKill#connect#activate (fun _ -> 
         gui_send KillServer));
   ignore (gui#itemReconnect#connect#activate (fun _ -> reconnect gui));
@@ -1453,13 +1638,14 @@ let _ =
   ignore (gui#itemFriends#connect#activate (fun _ -> gui#notebook#goto_page 2));
   ignore (gui#itemSearches#connect#activate (fun _ -> gui#notebook#goto_page 3));
   ignore (gui#itemOptions#connect#activate (fun _ -> gui#notebook#goto_page 4));
-  ignore (gui#itemHelp#connect#activate (fun _ -> gui#notebook#goto_page 5));
+  ignore (gui#itemConsole#connect#activate (fun _ -> gui#notebook#goto_page 5));
+  ignore (gui#itemHelp#connect#activate (fun _ -> gui#notebook#goto_page 6));
   ignore (tab_searches#button_search_submit#connect#clicked (submit_search gui false));
   ignore (tab_searches#button_local_search#connect#clicked (submit_search gui true));  
   
   ignore (tab_searches#button_extended_search#connect#clicked 
-    (fun _ -> gui_send ExtendedSearch));
-
+      (fun _ -> gui_send ExtendedSearch));
+  
   ignore (tab_searches#entry_search_words#connect#activate (submit_search gui false));
 (*
   ignore (tab_searches#clist_search_results#connect#select_row (search_set_selection gui));
@@ -1468,7 +1654,7 @@ ignore (tab_searches#clist_search_results#connect#unselect_row (search_unset_sel
 (*
   ignore (gui#clist_download#connect#select_row (download_set_selection gui));
 ignore (gui#clist_download#connect#unselect_row (download_unset_selection gui));
-  *)
+*)
   ignore (tab_downloads#button_download_cancel#connect#clicked
       (download_cancel gui));
   ignore (tab_servers#button_servers_add#connect#clicked (servers_addserver gui));
@@ -1480,7 +1666,7 @@ ignore (gui#clist_download#connect#unselect_row (download_unset_selection gui));
       servers_remove gui));
   ignore (tab_options#button_options_save#connect#clicked (save_options gui));
   ignore (tab_options#entry_options_password#connect#activate (fun _ ->
-        password := tab_options#entry_options_password#text;
+        password =:= tab_options#entry_options_password#text;
     ));  
   ignore (gui#tab_console#entry_command#connect#activate (fun _ ->
         gui_send (Command gui#tab_console#entry_command#text);
@@ -1488,11 +1674,10 @@ ignore (gui#clist_download#connect#unselect_row (download_unset_selection gui));
     ));
   
   ignore (tab_options#entry_options_gui_port#connect#activate (fun _ ->
-        port := int_of_string (tab_options#entry_options_gui_port#text);
+        port =:= int_of_string (tab_options#entry_options_gui_port#text);
     ));
   ignore (tab_options#entry_server_hostname#connect#activate (fun _ ->
-        let h = Unix.gethostbyname (tab_options#entry_server_hostname#text) in
-        addr := h.h_addr_list.(0)
+        hostname =:= tab_options#entry_server_hostname#text
     ));
   ignore (tab_friends#entry_dialog#connect#activate (fun _ ->
         let s = tab_friends#entry_dialog#text in
@@ -1504,7 +1689,7 @@ ignore (gui#clist_download#connect#unselect_row (download_unset_selection gui));
   
   
   ignore (tab_downloads#button_downloaded_save#connect#clicked 
-    save_all_files);
+      save_all_files);
   
   ignore (tab_downloads#button_download_add_friend#connect#clicked
       add_friend_location);
@@ -1542,9 +1727,131 @@ ignore (gui#clist_download#connect#unselect_row (download_unset_selection gui));
   
   ignore (tab_downloads#draw_availability#event#connect#expose
       ~callback:redraw_current);
-
+  
   ignore (window#add_accel_group gui#accel_menubar);
   ignore (window#show ()) ;
+  
+  
+  ignore (gui#notebook#connect#switch_page 
+      (fun n -> current_page := n));
+
+(* Keyboard shortcuts *)
+  let add w ?(cond=(fun () -> true)) l ((mods, k), action) = 
+    try
+      let f = List.assoc action l in
+      Okey.add ~cond w ~mods k f
+    with
+      Not_found ->
+        prerr_endline (Gui_messages.action_unknown action)
+  in
+
+(* Global shortcuts *)
+  let global_actions = [
+      M.a_page_servers, gui#itemServers#activate ;
+      M.a_page_downloads, gui#itemDownloads#activate;
+      M.a_page_friends, gui#itemFriends#activate;
+      M.a_page_queries, gui#itemSearches#activate;
+      M.a_page_options, gui#itemOptions#activate;
+      M.a_page_console, gui#itemConsole#activate;
+      M.a_page_help, gui#itemHelp#activate;
+      M.a_next_page, gui#notebook#next_page;
+      M.a_previous_page, gui#notebook#previous_page;
+    ] 
+  in
+  List.iter (add window global_actions) !!O.keymap_global;
+
+(* Servers shortcuts *)
+  let servers_actions = global_actions @
+      [
+      M.a_connect, gui#tab_servers#button_servers_connect#clicked;
+      M.a_connect_more, gui#tab_servers#button_servers_connect_more#clicked;
+      M.a_select_all, (fun () -> ignore (MyCList.select_all clist_servers)) ;
+    ] 
+  in
+  List.iter
+    (add window ~cond: (fun () -> !current_page = 0) servers_actions)
+  !!O.keymap_servers;
+
+(* Downloads shortcuts *)
+  let downloads_actions = global_actions @ 
+      [
+      M.a_cancel_download, gui#tab_downloads#button_download_cancel#clicked ;
+      M.a_save_all_files, (fun () -> ignore (save_all_files ()));
+      M.a_menu_save_file, 
+      (fun () -> GToolbox.popup_menu ~x: 0 ~y: 0 
+            ~entries: (menu_save_file clist_downloaded)) ;
+      M.a_select_all, (fun () -> ignore (MyCList.select_all clist_downloads)) ;
+    ]
+  in
+  List.iter
+    (add window ~cond: (fun () -> !current_page = 1) downloads_actions)
+  !!O.keymap_downloads;
+
+(* Friends shortcuts *)
+  let friends_actions = global_actions @ 
+      [
+      M.a_download_selection, gui#tab_friends#button_friends_download#clicked ;
+      M.a_remove_friend, gui#tab_friends#button_friends_remove#clicked ;
+      M.a_select_all, (fun () -> ignore (MyCList.select_all clist_friends)) ;
+    ]
+  in
+  List.iter
+    (add window ~cond: (fun () -> !current_page = 2) friends_actions)
+  !!O.keymap_friends;
+
+(* Queries shortcuts *)
+  let queries_actions = global_actions @ 
+      [
+    ]
+  in
+  List.iter
+    (add window ~cond: (fun () -> !current_page = 3) queries_actions)
+  !!O.keymap_queries;
+
+(* Options shortcuts *)
+  let options_actions = global_actions @ 
+      [
+    ]
+  in
+  List.iter
+    (add window ~cond: (fun () -> !current_page = 4) options_actions)
+  !!O.keymap_options;
+
+(* Console shortcuts *)
+  let console_actions = global_actions @ 
+      [
+    ]
+  in
+  List.iter
+    (add window ~cond: (fun () -> !current_page = 5) console_actions)
+  !!O.keymap_console;
+
+(* End of keyboard shortcuts *)
+
+(* set layout *)
+  
+  set_hpaned tab_servers#hpaned servers_hpane_left;
+  get_hpaned tab_servers#hpaned servers_hpane_left;
+  
+  gui#notebook#goto_page 1;
+  set_hpaned tab_downloads#hpaned downloads_hpane_left;
+  get_hpaned tab_downloads#hpaned downloads_hpane_left;  
+  set_vpaned tab_downloads#vpaned downloads_vpane_up;
+  get_vpaned tab_downloads#vpaned downloads_vpane_up;
+  
+  gui#notebook#goto_page 2;
+  set_hpaned tab_friends#hpaned friends_hpane_left;
+  get_hpaned tab_friends#hpaned friends_hpane_left;
+  set_vpaned tab_friends#vpaned friends_vpane_up;
+  get_vpaned tab_friends#vpaned friends_vpane_up;
+  
+  gui#notebook#goto_page 3;
+  set_hpaned tab_searches#hpaned searches_hpane_left;  
+  get_hpaned tab_searches#hpaned searches_hpane_left;  
+  gui#notebook#goto_page 0;
+
+  
+  save_gui_options ();
   
   reconnect gui; 
   

@@ -7,6 +7,6 @@ MOVIE_PLAYER=mplayer
 
 case "$2" in
     *.avi | *.mpg | *.mpeg | *.divx  | *.AVI | *.MPG | *.MPEG | *.DIVX)
-   $MOVIE_PLAYER  $1;;
+   $MOVIE_PLAYER  $1 &;;
  *) echo No player for this file;;
 esac

@@ -166,14 +166,46 @@ let genre = "Genre"
 
 let local_search = "Local Search"
 let extended_search = "Extended Search"
+
+let action_unknown s = "Unknown action: "^s
+
+(** {2 Strings to specify colors} *)
+
+
+
+(** {2 Actions names for key bindings} *)
+
+let a_page_servers = "page_servers"
+let a_page_downloads = "page_downloads"
+let a_page_friends = "page_friends"
+let a_page_queries = "page_queries"
+let a_page_options = "page_options"
+let a_page_console = "page_console"
+let a_page_help = "page_help"
+let a_next_page = "next_page"
+let a_previous_page = "previous_page"
+
+let a_select_all = "select_all"
+let a_connect = "connect"
+let a_connect_more = "connect_more"
+
+
+let a_download_selection = "download_selection"
+let a_remove_friend = "remove_friend"
+
+let a_cancel_download = "cancel_download"
+let a_save_all_files = "save_all_files"
+let a_menu_save_file = "menu_save_file"
+
+(** {2 Help text, change log} *)
     
 let help_text = "
 
                       MLDonkey
                       ========
 
-Release: 1.11
-Authors: [b8]_bavard (Communication engine) and [b8]_FeeCarabine (GUI)
+Release: 1.13
+Authors: [b8]_bavard (Communication engine) and [b8]_Zoggy (GUI)
 
  MLDonkey is a door to the 'donkey' network, a decentralized network used to
 exchange big files on the Internet. It is written in a wonderful language,
@@ -527,7 +559,6 @@ In the console, you have access to the command-line commands.
 TODO list
 =========
   * Chat.
-  * Set 'Connected locations' label.
   * Plugins.
   * Correct display of availability.
   * Add sleep and wakeup commands.
@@ -536,15 +567,31 @@ TODO list
   * Admin open file descrs.
   * Keep (server_ip, server_port, id) for indirect connections.
   * Manager of shared files/direcxtories.
+  * Add Friends in console and WEB. 
+  * Search names for MD4 in history.
 
 Known bugs:
 ===========
   * When clicking on the columns it sorts on that column, when
    clicking again it should do a reverse sort on it
-  * the layout is not saved
 
 ChangeLog
 =========
+
+Release 1.13:
+  * GUI:
+     - New config file in $HOME/.mldonkey_gui.ini with GUI options
+     - colors added in lists (see .mldonkey_gui.ini)
+     - Layout is saved.
+     - File locations are updated.
+  * Mailer accept non-canonnical addresses
+  * Bug fixes:
+    - Remove block change causing 'exceeding block boundaries'
+
+Release 1.12:
+  * Bug fixes:
+    - Remove error 'bad file descriptor' when saving files.
+    - Remove possible infinite loop in upload function.
 
 Release 1.11:
   * Option 'shared_directories' to specify other directories where files to

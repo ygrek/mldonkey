@@ -398,31 +398,35 @@ let rec really_read fd s pos len =
     really_read fd s (pos + nread) (len - nread)
   
 let send_small_block sock file begin_pos len = 
-  (*
+  let len_int = Int32.to_int len in
+  remaining_bandwidth := !remaining_bandwidth - len_int / 1000;
+  try
+(*
   Printf.printf "send_small_block %s %s"
 (Int32.to_string begin_pos) (Int32.to_string len);
 print_newline ();
 *)
-  let fd = file.file_fd in
-  let len_int = Int32.to_int len in
-  ignore (Unix32.seek32 fd begin_pos Unix.SEEK_SET);
-  really_read (Unix32.force_fd fd) upload_buffer 0 len_int;
-  incr upload_counter;
-  file.file_upload_blocks <- file.file_upload_blocks + 1;
+    let fd = file.file_fd in
+    ignore (Unix32.seek32 fd begin_pos Unix.SEEK_SET);
+    really_read (Unix32.force_fd fd) upload_buffer 0 len_int;
+    incr upload_counter;
+    file.file_upload_blocks <- file.file_upload_blocks + 1;
 (*  Printf.printf "sending"; print_newline (); *)
-  client_send sock (
-    let module M = Mftp_client in
-    let module B = M.Bloc in
-    M.BlocReq {  
-      B.md4 = file.file_md4;
-      B.start_pos = begin_pos;
-      B.end_pos = Int32.add begin_pos len;
-      B.bloc_str = upload_buffer;
-      B.bloc_begin = 0;
-      B.bloc_len = len_int; 
-    }
-  );
-  remaining_bandwidth := !remaining_bandwidth - len_int / 1000
+    client_send sock (
+      let module M = Mftp_client in
+      let module B = M.Bloc in
+      M.BlocReq {  
+        B.md4 = file.file_md4;
+        B.start_pos = begin_pos;
+        B.end_pos = Int32.add begin_pos len;
+        B.bloc_str = upload_buffer;
+        B.bloc_begin = 0;
+        B.bloc_len = len_int; 
+      }
+    )
+  with e -> 
+      Printf.printf "Exception %s in send_small_block" (Printexc.to_string e);
+      print_newline () 
   
  
 let rec send_client_block c sock per_client =
@@ -437,8 +441,7 @@ let rec send_client_block c sock per_client =
         if max_len <= msg_block_size then
 (* last block from chunk *)
           begin
-            (try send_small_block  sock up.up_file up.up_pos max_len
-              with _ -> ());
+            send_small_block  sock up.up_file up.up_pos max_len;
             up.up_chunks <- chunks;
             match chunks with
               [] -> 
@@ -470,10 +473,7 @@ let rec send_client_block_partial c sock per_client =
       if max_len <= msg_block_size then
 (* last block from chunk *)
         begin
-          (try send_small_block  sock up.up_file up.up_pos max_len
-            with e -> 
-                Printf.printf "exc %s in send_small_block"
-                  (Printexc.to_string e) ; print_newline () );
+          send_small_block  sock up.up_file up.up_pos max_len;
           up.up_chunks <- chunks;
           match chunks with
             [] -> 
@@ -510,11 +510,7 @@ let upload_timer timer =
           let c = Fifo.take upload_clients in
           match c.client_sock with
           | Some sock ->
-              (try
-                  send_client_block_partial c sock !remaining_bandwidth
-                with e -> 
-                    Printf.printf "exc %s in send_client_block_partial"
-                      (Printexc.to_string e); print_newline () );
+              send_client_block_partial c sock !remaining_bandwidth;
               (match c.client_upload with
                   None -> ()
                 | Some up ->
@@ -534,7 +530,7 @@ let upload_timer timer =
       let c = Fifo.take upload_clients in
       match c.client_sock with
       | Some sock ->
-          (try send_client_block c sock per_client with _ -> ());
+          send_client_block c sock per_client;
           (match c.client_upload with
               None -> ()
             | Some up ->

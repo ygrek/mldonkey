@@ -1107,9 +1107,9 @@ let complex_search buf =
 
 <td> 
 <select name=minsize_unit>
-<option value=1> o </option>
-<option value=1024> ko </option>
-<option value=1048576> Mo </option>
+<option value=1048576> MBytes </option>
+<option value=1024> kBytes </option>
+<option value=1> Bytes </option>
 </select>
 </td>
 
@@ -1124,9 +1124,9 @@ let complex_search buf =
 
 <td> 
 <select name=maxsize_unit>
-<option value=1> o </option>
-<option value=1024> ko </option>
-<option value=1048576> Mo </option>
+<option value=1048576> Mbytes </option>
+<option value=1024> kBytes </option>
+<option value=1> Bytes </option>
 </select>
 </td>
 

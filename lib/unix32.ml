@@ -53,7 +53,9 @@ let rec close_one () =
     match t.fd with
       None -> 
         close_one ()
-    | Some fd -> Unix.close fd; t.fd <- None
+    | Some fd -> 
+        (try Unix.close fd with _ -> ()); 
+        t.fd <- None
         
 let force_fd t =
   match t.fd with
@@ -75,6 +77,9 @@ let ftruncate32 t len =
   
 let close t =
   match t.fd with
-  | Some fd -> Unix.close fd; decr cache_size
+  | Some fd -> 
+      (try Unix.close fd with _ -> ());
+      t.fd <- None;
+      decr cache_size
   | None -> ()
       

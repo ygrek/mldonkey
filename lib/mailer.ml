@@ -37,7 +37,22 @@ let make_mail mail =
   mail.mail_to
   mail.mail_subject
   mail.mail_body
-  
+
+let canon_addr s = 
+  let len = String.length s in
+  let rec iter_end s pos =
+    if pos = -1 then s else
+    if s.[pos] = ' ' then iter_end s (pos-1) else
+      iter_begin s (pos-1) pos
+      
+  and iter_begin s pos last =
+    if pos = -1 || s.[pos] = ' ' then
+      String.sub s (pos+1) (last - pos)
+    else iter_begin s (pos-1) last
+      
+  in
+  iter_end s (len - 1)
+      
 let sendmail smtp_server smtp_port mail =
 (* a completely synchronous function (BUG) *)
   try
@@ -51,10 +66,11 @@ let sendmail smtp_server smtp_port mail =
       Printf.fprintf oc "HELO %s\r\n" (gethostname ()); flush oc;
       if read_response ic <> 250 then bad_response ();
       
-      Printf.fprintf oc "MAIL FROM:%s\r\n" mail.mail_from; flush oc;
+      Printf.fprintf oc "MAIL FROM:%s\r\n" (canon_addr mail.mail_from); 
+      flush oc;
       if read_response ic <> 250 then bad_response ();
       
-      Printf.fprintf oc "RCPT TO:%s\r\n" mail.mail_to; flush oc;
+      Printf.fprintf oc "RCPT TO:%s\r\n" (canon_addr mail.mail_to); flush oc;
       if read_response ic <> 250 then bad_response ();
       
       Printf.fprintf oc "DATA\r\n"; flush oc;

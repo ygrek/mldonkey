@@ -2,8 +2,8 @@
                       MLDonkey
                       ========
 
-Release: 1.10
-Authors: [b8]_bavard (Communication engine) and [b8]_FeeCarabine (GUI)
+Release: 1.13
+Authors: [b8]_bavard (Communication engine) and [b8]_Zoggy (GUI)
 
  MLDonkey is a door to the 'donkey' network, a decentralized network used to
 exchange big files on the Internet. It is written in a wonderful language,
@@ -357,7 +357,6 @@ In the console, you have access to the command-line commands.
 TODO list
 =========
   * Chat.
-  * Set 'Connected locations' label.
   * Plugins.
   * Correct display of availability.
   * Add sleep and wakeup commands.
@@ -365,9 +364,64 @@ TODO list
   * Popup et historique des dialogues.
   * Admin open file descrs.
   * Keep (server_ip, server_port, id) for indirect connections.
+  * Manager of shared files/direcxtories.
+  * Add Friends in console and WEB. 
+  * Search names for MD4 in history.
+
+Known bugs:
+===========
+  * When clicking on the columns it sorts on that column, when
+   clicking again it should do a reverse sort on it
 
 ChangeLog
 =========
+
+Release 1.13:
+  * GUI:
+     - New config file in $HOME/.mldonkey_gui.ini with GUI options
+     - colors added in lists (see .mldonkey_gui.ini)
+     - Layout is saved.
+     - File locations are updated.
+  * Mailer accept non-canonnical addresses
+  * Bug fixes:
+    - Remove block change causing 'exceeding block boundaries'
+
+Release 1.12:
+  * Bug fixes:
+    - Remove error 'bad file descriptor' when saving files.
+    - Remove possible infinite loop in upload function.
+
+Release 1.11:
+  * Option 'shared_directories' to specify other directories where files to
+   share can be found.
+  * Setting 'telnet_port', 'http_port' or 'gui_port' to 0 disables the
+      corresponding access.
+  * Console: 
+   - Sort results by size in vr.
+   - When 'd' fails with Already_done, you can use 'force_download' to force
+      an already downloaded file to be restarted.
+   - New command 'dllink' taking an ed2k URL to download as argument.
+   - Command 'set' can be used to set the allowed_ips option:
+       set allowed_ips '127.0.0.1 128.91.255.255' 
+     255 is for networks.
+   - shorten names in 'vd' output (see 'max_name_len' option). 
+  * WEB:
+   - New Cancel links in 'vd' output.
+   - New 'Complex Search' link in interface.
+   - 'View Options' output can be edited to modify options.
+  * GUI:
+   - The GUI tries to connect to the core every second until it succeeds.
+   - Corrected MD4 columns
+   - In search panel, 'Max hits' combo set the maximal number of replies
+      per server.
+  * Bug fixes:
+   - Don't add twice the incoming dir to shared file names.
+   - Cross-partition moves fail, but filename is renamed in temp dir.
+   - Limited open fds for files to 50 (doesn't limit shared files
+       and downloaded files).
+   - Execute entry on WEB interface always displayed.
+   - Removed a timeout closing all client connection after 2 minutes.
+   - Shared files are opened in read-only mode.
 
 Release 1.10:
   * Default timeout for server connection set to 5 for faster connection.

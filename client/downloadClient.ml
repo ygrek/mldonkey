@@ -379,8 +379,13 @@ We should probably check that here ... *)
   | M.AvailableSlotReq _ ->
       printf_string "[QUEUED]";
       set_rtimeout (TcpClientSocket.sock sock) infinite_timeout;
-      find_client_block c
-
+      begin
+        match c.client_block with
+          None -> find_client_block c
+        | Some b ->
+            printf_string "[QUEUED WITH BLOCK]";
+            
+      end
 (*
   | M.QueueReq t ->
       
@@ -528,7 +533,7 @@ We should probably check that here ... *)
             if begin_pos < b.block_begin
                 || begin_pos >= b.block_end || end_pos > b.block_end
             then begin
-                Printf.printf "Exceeding block boundaries";
+                Printf.printf "%d: Exceeding block boundaries" c.client_num;
                 print_newline ();
                 
                 Printf.printf "%s-%s (%s-%s)" 
@@ -813,7 +818,11 @@ let init_connection c  sock files =
       connection_delay c.client_connection_control;
       close s "timeout"
   );
-  set_reader sock (Mftp_comm.client_handler (client_to_client files c))  
+  set_reader sock (Mftp_comm.client_handler (client_to_client files c));
+  c.client_block <- None;
+  c.client_zones <- [];
+  c.client_files <- [];
+  !client_change_hook c
       
 let reconnect_client cid files c =
   match c.client_kind with

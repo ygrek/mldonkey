@@ -17,7 +17,7 @@ CDK_byte=
 CDK_opt=-opt
 
 COMP_byte=$(OCAMLC)
-COMP_opt=$(OCAMLOPT)
+COMP_opt=$(OCAMLOPT) -S
 
 EXE_byte=.byte
 EXE_opt=
@@ -35,7 +35,7 @@ CUSTOM=$(CUSTOM_$(TARGET))
 COMP=$(COMP_$(TARGET))
 GTK_LIBS=$(GTK_LIBS_$(TARGET))
 
-SUBDIRS=cdk configwin mp3tagui lib net proto client gui $(MORE_SUBDIRS)
+SUBDIRS=cdk configwin mp3tagui okey lib net proto client gui $(MORE_SUBDIRS)
 
 INC_PACKAGES=lablgtk
 INCLUDES +=-I +lablgtk $(foreach file, $(SUBDIRS), -I $(file))
@@ -58,6 +58,8 @@ MP3TAG_CMOS=     mp3tagui/mp3_info.$(EXT)  mp3tagui/mp3_genres.$(EXT) \
   mp3tagui/mp3_tag.$(EXT) mp3tagui/mp3tag.$(EXT)
 
 MP3TAGUI_CMOS=  mp3tagui/mp3_messages.$(EXT) mp3tagui/mp3_ui.$(EXT)
+
+OKEY_CMOS= okey/okey.$(EXT)
 
 LIB_CMOS= \
   lib/int32ops.$(EXT) lib/ip.$(EXT) lib/options.$(EXT) lib/numset.$(EXT)  \
@@ -82,7 +84,8 @@ OBJS=lib/md4_c.o lib/unix32_c.o lib/inet_c.o cdk/select_c.o
 
 MIN_GUI_CMOS= gui/gui_types.$(EXT) gui/gui_proto.$(EXT)
 
-GUI_CMOS= gui/gui_messages.$(EXT) gui/gui.$(EXT)
+GUI_CMOS= gui/gui_messages.$(EXT) gui/gui_keys.$(EXT) \
+  gui/gui_options.$(EXT) gui/gui.$(EXT)
 
 CLIENT_CMOS=client/downloadTypes.$(EXT) \
   client/downloadOptions.$(EXT) \
@@ -99,7 +102,7 @@ TARGETS= mldonkey_gui$(EXE) $(MORE_TARGETS)$(EXE)
 GUI= \
   $(CDK_CMOS) $(LIB_CMOS) $(NET_CMOS) \
   $(MP3TAG_CMOS)  $(CONFIGWIN_CMOS) $(MP3TAGUI_CMOS) \
-  $(MIN_PROTO_CMOS) \
+  $(MIN_PROTO_CMOS) $(OKEY_CMOS) \
   $(MIN_GUI_CMOS) $(GUI_CMOS)
 
 OPEN_CLIENT=  $(CDK_CMOS) $(LIB_CMOS) $(NET_CMOS)  $(MP3TAG_CMOS) 
@@ -121,13 +124,13 @@ all: byte
 
 lambda:  $(SECRET_CLIENT:.$(EXT)=.ml)
 	ocaml ./secret/make_client  $(SECRET_CLIENT:.$(EXT)=.ml)
-	$(OCAMLOPT)  -I +lablgtk  -I cdk  -I configwin  -I mp3tagui  -I lib  -I net  -I proto  -I client  -I gui  -I secret -c -dol client.ml	
+	$(OCAMLOPT)  -I +lablgtk  -I cdk  -I configwin  -I mp3tagui -I okey -I lib  -I net  -I proto  -I client  -I gui  -I secret -c -dol client.ml	
 
 client.cmo: client.lam
-	$(OCAMLC)  -I +lablgtk  -I cdk  -I configwin  -I mp3tagui  -I lib  -I net  -I proto  -I client  -I gui  -I secret -c -dil -impl client.lam
+	$(OCAMLC)  -I +lablgtk  -I cdk  -I configwin  -I mp3tagui  -I okey -I lib  -I net  -I proto  -I client  -I gui  -I secret -c -dil -impl client.lam
 
 client.cmx: client.lam
-	$(OCAMLOPT)  -I +lablgtk  -I cdk  -I configwin  -I mp3tagui  -I lib  -I net  -I proto  -I client  -I gui  -I secret -c -dil -impl client.lam
+	$(OCAMLOPT)  -I +lablgtk  -I cdk  -I configwin  -I mp3tagui  -I okey -I lib  -I net  -I proto  -I client  -I gui  -I secret -c -dil -impl client.lam
 
 after_zoggy: gui/gui.zog
 	camlp4 pa_o.cmo -I `cdk_config -ocamllib` pa_zog.cma pr_o.cmo -impl gui/gui.zog > gui/gui_zog.ml
@@ -188,7 +191,10 @@ clean:
 distclean: clean
 	rm -f config/config.cache config/config.log config/config.status
 	rm -f config/config.h config/Makefile.config
-	rm -f gui/gui.ml gui/gui_zog.ml lib/http_lexer.ml
+	rm -f lib/http_lexer.ml
+
+maintainerclean: distclean
+	rm -f gui/gui.ml gui/gui_zog.ml 
 
 depend: lib/http_lexer.ml
 	$(OCAMLDEP) $(INCLUDES) *.ml *.mli > .depend

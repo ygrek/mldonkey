@@ -226,9 +226,10 @@ let new_file file_name md4 file_size writable =
 
 let change_hardname file file_name =
   file.file_hardname <- file_name;
-  Unix32.close file.file_fd;
-  file.file_fd <- Unix32.create file_name [O_RDWR; O_CREAT] 0o666
-      
+  let fd = file.file_fd in
+  file.file_fd <- Unix32.create file_name [O_RDWR; O_CREAT] 0o666;
+  Unix32.close fd
+  
 let big_change_file file =
   file.file_changed <- BigChange
           

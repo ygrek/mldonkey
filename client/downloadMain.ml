@@ -99,10 +99,6 @@ let _ =
     ] (fun file -> 
         Files.dump_file file; exit 0
     ) "";
-(**** CREATE DIRS   ****)
-    
-    safe_mkdir !!incoming_directory;
-    safe_mkdir !!temp_directory;
 
 (**** INSTALL HOOKS ****)
     
@@ -129,6 +125,14 @@ let _ =
           Printf.printf "exception during options load"; print_newline ();
           exit 2;
           ());  
+    
+(**** CREATE DIRS   ****)
+    
+    safe_mkdir !!incoming_directory;
+    safe_mkdir !!temp_directory;    
+    
+(**** LOAD OTHER OPTIONS ****)
+    
     (try Options.load shared_files_ini with _ -> ());
     (try Options.load servers_ini with _ -> ());
     (try Options.load files_ini with _ -> ());
