@@ -33,7 +33,7 @@ type client = {
     mutable client_blocks : Int64Swarmer.block list;
     mutable client_ranges : Int64Swarmer.range list;
     mutable client_block : Int64Swarmer.block option;
-    mutable client_chocked : bool;
+    mutable client_choked : bool;
     mutable client_interested : bool;
     mutable client_uid : Sha1.t;
     
@@ -43,8 +43,10 @@ type client = {
     mutable client_upload_requests : (int * int64 * int64) list;
     mutable client_allowed_to_write : int64;
     
+    mutable client_downloaded_rate : int64;
     mutable client_downloaded : int64;
     mutable client_uploaded : int64;
+    mutable client_optimist_time : int;
     
     mutable client_blocks_sent : Int64Swarmer.block list;
     mutable client_good : bool;

@@ -135,4 +135,5 @@ val remove_ip_packet : bandwidth_controler -> unit
 
 val get_rtimeout : t -> float * float
   
+val http_proxy : (string * int) option ref
   

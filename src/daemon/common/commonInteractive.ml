@@ -29,6 +29,14 @@ open CommonResult
 open CommonServer
 open CommonTypes
 
+let time_of_sec sec = 
+  let hours = sec / 60 / 60 in
+  let rest = sec - hours * 60 * 60 in
+  let minutes = rest / 60 in
+  let seconds = rest - minutes * 60 in
+    if hours > 0 then Printf.sprintf "%d:%02d:%02d" hours minutes seconds
+	else if minutes > 0 then Printf.sprintf "%d:%02d" minutes seconds
+    	else Printf.sprintf "00:%02d" seconds
   
 (* ripped from gui_misc *)
 
@@ -187,7 +195,7 @@ let print_connected_servers o =
          (List.length list) r.network_name;
        if use_html_mods o then Printf.bprintf buf "\\</div\\>";
 		end;
-       if use_html_mods o && List.length list > 0 then server_print_html_header buf;
+       if use_html_mods o && List.length list > 0 then server_print_html_header buf "C";
 
       let counter = ref 0 in  
        List.iter (fun s ->
@@ -365,10 +373,14 @@ let send_custom_query user buf query args =
       Printf.bprintf buf "Error %s while parsing request"
         (Printexc2.to_string e)
 
+let sort_options l =
+  List.sort (fun (option_name1, _) (option_name2, _) ->
+	       String.compare option_name1 option_name2) l
+
 let all_simple_options () =
   let options = ref (
-      (simple_options downloads_ini) 
-      @ (simple_options downloads_expert_ini)
+      sort_options ((simple_options downloads_ini) 
+		    @ (simple_options downloads_expert_ini))
     )
   in
   networks_iter_all (fun r ->

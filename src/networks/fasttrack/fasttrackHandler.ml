@@ -33,6 +33,7 @@ open CommonComplexOptions
 open CommonFile
 open CommonTypes
 open CommonGlobals
+open CommonInteractive
 
   
 open FasttrackTypes
@@ -141,7 +142,23 @@ let server_msg_handler sock s msg_type m =
               let tag = Int64.to_int tag in
               let tag_len, pos = get_dynint m pos in
               let tag_len = Int64.to_int tag_len in
-              let tagdata = String.sub m pos tag_len in
+              let tagdata =
+					let dynint, npos = get_dynint m pos in
+					match tag with 
+					| 5 -> time_of_sec (Int64.to_int dynint); 
+					| 21 -> Printf.sprintf "%Ld kbs" dynint; 
+					| 13 -> let dynint2, _ = get_dynint m npos in
+						  Printf.sprintf "%Ldx%Ld" dynint dynint2; 
+					| 1 | 17 -> Printf.sprintf "%Ld" dynint; 
+					| 29 -> (match (Int64.to_int dynint) with
+							| 0 -> "Very Poor"
+							| 1 -> "Poor"
+							| 2 -> "OK"
+							| 3 -> "Good"
+							| 4 -> "Excellent"
+							| _ -> "Unknown rating")
+ 				 	| _ -> String.sub m pos tag_len 
+				in
               let name = if tag = 2 then tagdata else name in
               let tag = try
                   List2.assoc_inv tag name_of_tag

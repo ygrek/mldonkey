@@ -42,7 +42,42 @@ let stats_ini = create_options_file (
     Filename.concat file_basedir "stats.ini")
 
 
-  
+(* emulate emule onlinesig.dat 
+
+<connected (0|1)> | <server name> | <ip> | <port#>
+<downloadrate %.1f> | <uploadrate %.1f>| <queuesize int>
+
+I know this is stupid, but "give the people what they want"..
+
+*)
+
+let create_online_sig () =
+
+	let most_users = ref 0 in
+	let server_name= ref "" in
+	let server_ip = ref "" in
+	let server_port = ref 0 in
+	List.iter (fun s -> 
+		if s.server_nusers > !most_users then begin 
+			server_name := s.server_name;
+			server_ip := (Ip.to_string s.server_ip);
+			server_port := s.server_port;
+			most_users := s.server_nusers;
+		end
+	) (connected_servers());
+
+	let oc = open_out (Filename.concat file_basedir "onlinesig.dat") in
+
+	if !most_users = 0 then
+		output_string oc ("0\n")
+	else 
+		output_string oc (Printf.sprintf "1|%s|%s|%d\n" !server_name !server_ip !server_port);
+	let dlkbs = (( (float_of_int !udp_download_rate) +. (float_of_int !control_download_rate)) /. 1024.0) in
+    let ulkbs = (( (float_of_int !udp_upload_rate) +. (float_of_int !control_upload_rate)) /. 1024.0) in
+	
+	output_string oc (Printf.sprintf "%.1f|%.1f|%d\n" dlkbs ulkbs 
+			(Intmap.length !CommonUploads.pending_slots_map));
+	close_out oc
     
 (************ COMPLEX OPTIONS *****************)
   
@@ -648,7 +683,8 @@ let save _ =
   
   Options.save_with_help file_sources_ini;
   lprintf "SAVED"; lprint_newline ();
-  sources =:= []
+  sources =:= [];
+  create_online_sig ()
     
 let guptime () = !!guptime - !diff_time
 

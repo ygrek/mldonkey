@@ -595,7 +595,7 @@ let create_simple name fd =
   
 let connect name host port handler =
   try
-(*   lprintf "CONNECT"; lprint_newline ();*)
+   lprintf "CONNECT tcpClientSocket"; lprint_newline ();
     let s = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
     let t = create name s handler in
     must_write (sock t) true;

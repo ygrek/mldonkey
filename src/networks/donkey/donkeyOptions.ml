@@ -69,6 +69,9 @@ let use_file_history = define_option donkey_expert_ini ["use_file_history"] "kee
 let reliable_sources = define_option donkey_ini ["reliable_sources"] 
   "Should mldonkey try to detect sources responsible for corruption and ban them" bool_option false
   
+let ban_identity_thieves = define_option donkey_ini ["ban_identity_thieves"] 
+  "Should mldonkey try to detect sources masquerading as others and ban them" bool_option false
+  
 let save_file_history = define_option donkey_expert_ini ["save_file_history"] "save the file history in a file and load it at startup" bool_option true
 
   
@@ -316,6 +319,7 @@ per minute. Greater values are bad for server ressources.  *)
   
 let gui_donkey_options_panel = 
   [
+    "Min Users per Server", shortname min_users_on_server, "T";
     "Maximal Source Age", shortname max_sources_age, "T";
     "Maximal Server Age", shortname max_server_age, "T";
     "Min Left Servers After Clean", shortname min_left_servers, "T";
@@ -333,5 +337,6 @@ let gui_donkey_options_panel =
     "Sources Per Chunk", shortname sources_per_chunk, "T";
     "Prevent Re-download of Cancelled Files", shortname keep_cancelled_in_old_files, "B";
     "Dynamic Slot Allocation", shortname dynamic_slots, "B";
+    "Friend Slots", shortname friend_slots, "B";
   ]
 

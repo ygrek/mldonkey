@@ -216,6 +216,27 @@ let _ =
       ), ":\t\t\tdisplay the reliability of sources";
     ]
 
+  
+open Md4
+(* TODO: add timers to remove old entries *)
+
+let (client_hashes : (Ip.t, Md4.t) Hashtbl.t) = Hashtbl.create 1023
+
+let register_client_hash ip hash =
+  try
+    let old_hash = Hashtbl.find client_hashes ip in
+    let hashes_match = (hash = old_hash) in
+    if not hashes_match then begin
+        lprintf "client hash clash %s: %s/%s\n"
+        (Ip.to_string ip) (Md4.to_string old_hash) (Md4.to_string hash);
+      Hashtbl.replace client_hashes ip hash;
+    end;
+    hashes_match
+  with Not_found ->
+    Hashtbl.add client_hashes ip hash;
+    true
+
+  
 module Marshal = struct
 
     let to_string v _ =

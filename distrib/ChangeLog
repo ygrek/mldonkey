@@ -1,6 +1,23 @@
 ChangeLog	
 =========
 
+2003/10/09: Simon
+   * Applied patches #1608 (anti-thieves), #1669 (anti-spam), 
+	#1692 (min-users-per-server), #1695 (html-mods),
+	#1710 (regexp in voo), #1711 (sorted voo), 
+	#1714 (gui priority bug fix), #1715 (fasttrack),
+	#1732 (mldonkey_submit), #1733 (viewfiles 6 hours),
+	#1734 (browse-friends), #1743 (bittorrent compliance),
+	#1748 (emule-bugfix), #1753 (max-conn-servers),
+	#1765 (limit-reqs DANGER), #1801 (http-proxy),
+	#1843 (message-file), #1862 (download-amount),
+	#2024 (filenames), #2025 (friends-slots)
+
+	DELAYED: #1911 (hidden-chunks)
+	
+2003/06/07: Simon (release-2-5-4)
+   * Applied patches #1582, #1594, #1598
+
 2003/06/06: 
   - CVS Modifications: Branches:
     * new branch release-2-5-devel for development version

@@ -68,7 +68,7 @@ let list_options_html o list =
   let buf = o.conn_buf in
   html_mods_table_header buf "voTable" "vo" [ 
     ( "0", "srh", "Option name", "Name (Help=mouseOver)" ) ; 
-    ( "0", "srh", "Option value", "Value" ) ; 
+    ( "0", "srh", "Option value", "Value (press ENTER to save)" ) ; 
     ( "0", "srh", "Option default", "Default" ) ] ; 
   
   let counter = ref 0 in
@@ -192,11 +192,23 @@ let commands = [
             let num = int_of_string arg in
             if o.conn_output = HTML then
               begin
+				if use_html_mods o then 
+        		Printf.bprintf buf "\\<div class=\\\"sourcesTable al\\\"\\>\\<table cellspacing=0 cellpadding=0\\> 
+				\\<tr\\>\\<td\\>
+				\\<table cellspacing=0 cellpadding=0 width=100%%\\>\\<tr\\>
+				\\<td nowrap class=\\\"fbig\\\"\\>\\<a href=\\\"files\\\"\\>Display all files\\</a\\>\\</td\\>
+				\\<td nowrap class=\\\"fbig\\\"\\>\\<a href=\\\"submit?q=verify_chunks+%d\\\"\\>Verify chunks\\</a\\>\\</td\\>
+				\\<td nowrap class=\\\"fbig\\\"\\>\\<a href=\\\"submit?q=preview+%d\\\"\\>Preview\\</a\\>\\</td\\>
+				\\<td nowrap class=\\\"fbig pr\\\"\\>\\<a href=\\\"javascript:window.location.reload()\\\"\\>Reload\\</a\\>\\</td\\>
+				\\<td class=downloaded width=100%%\\>\\</td\\>
+				\\</tr\\>\\</table\\>
+				\\</td\\>\\</tr\\>
+				\\<tr\\>\\<td\\>" num num
+				else begin	
                 Printf.bprintf  buf "\\<a href=\\\"files\\\"\\>Display all files\\</a\\>  ";
                 Printf.bprintf  buf "\\<a href=\\\"submit?q=verify_chunks+%d\\\"\\>Verify chunks\\</a\\>  " num;
-                Printf.bprintf  buf "\\<a href=\\\"submit?q=preview+%d\\\"\\>Preview\\</a\\>  " num;
-                if !!html_mods then
-                  Printf.bprintf  buf "\\<a href=\\\"javascript:window.location.reload()\\\"\\>Reload\\</a\\>\\<br\\>\n";
+                Printf.bprintf  buf "\\<a href=\\\"submit?q=preview+%d\\\"\\>Preview\\</a\\> \n " num;
+				end
               end;
             List.iter 
               (fun file -> if (as_file_impl file).impl_file_num = num then 
@@ -270,7 +282,11 @@ let commands = [
     ), "<file number> :\t\t\tstart previewer for file <file number>";
     
     "vm", Arg_none (fun o ->
+        let buf = o.conn_buf in
+		if use_html_mods o then Printf.bprintf buf 
+		"\\<div class=\\\"servers\\\"\\>\\<table align=center border=0 cellspacing=0 cellpadding=0\\>\\<tr\\>\\<td\\>";
         CommonInteractive.print_connected_servers o;
+		if use_html_mods o then Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>\\</div\\>";
         ""), ":\t\t\t\t\t$blist connected servers$n";
     
     "q", Arg_none (fun o ->
@@ -350,9 +366,10 @@ let commands = [
         else
           begin 
             html_mods =:= true;
-            commands_frame_height =:= 80;
             html_mods_style =:= 0;
-            use_html_frames =:= true
+            commands_frame_height =:= (snd !html_mods_styles.(!!html_mods_style));
+            use_html_frames =:= true;
+			CommonMessages.colour_changer() ;
           end;
         
         "\\<script language=Javascript\\>top.window.location.reload();\\</script\\>"
@@ -370,16 +387,17 @@ let commands = [
         else begin
             html_mods =:= true;
             use_html_frames =:= true;
+			html_mods_theme =:= "";
             let num = int_of_string (List.hd args) in
             
             if num >= 0 && num < (Array.length !html_mods_styles) then begin
-                commands_frame_height =:= (snd !html_mods_styles.(num));
                 html_mods_style =:= num;
+                commands_frame_height =:= (snd !html_mods_styles.(num));
                 CommonMessages.colour_changer ();
               end
             else begin
-                commands_frame_height =:= (snd !html_mods_styles.(0));
                 html_mods_style =:= 0;
+                commands_frame_height =:= (snd !html_mods_styles.(!!html_mods_style));
                 CommonMessages.colour_changer ();
               end;
             "\\<script language=Javascript\\>top.window.location.reload();\\</script\\>"
@@ -387,6 +405,32 @@ let commands = [
     
     ), ":\t\t\tselect html_mods_style <#>";
     
+    "html_theme", Arg_multiple (fun args o ->
+        let buf = o.conn_buf in
+        if args = [] then begin
+			Printf.bprintf buf "Usage: html_theme <theme name>\n";
+			Printf.bprintf buf "To use internal theme: html_theme \\\"\\\"\n";
+			Printf.bprintf buf "Current theme: %s\n\n" !!html_mods_theme;
+			Printf.bprintf buf "Available themes:\n";
+			if Sys.file_exists html_themes_dir then begin
+			let list = Unix2.list_directory html_themes_dir in
+			List.iter (fun d ->
+				if Unix2.is_directory (Filename.concat html_themes_dir d) then 
+					Printf.bprintf buf "%s\n" d;	
+			) (List.sort (fun d1 d2 -> compare d1 d2) list);
+			end;
+            ""
+          end
+        else begin
+            (* html_mods =:= true;
+            use_html_frames =:= true; *)
+            html_mods_theme =:= List.hd args;
+            "\\<script language=Javascript\\>top.window.location.reload();\\</script\\>"
+          end
+    
+    ), "<theme>:\t\t\tselect html_theme";
+	
+
     
     
     "voo", Arg_multiple (fun args o ->
@@ -396,8 +440,11 @@ let commands = [
             Printf.bprintf buf "\\<script language=javascript\\>
 \\<!-- 
 function submitHtmlModsStyle() {
-var formID = document.getElementById(\\\"htmlModsStyleForm\\\")
-parent.fstatus.location.href='submit?q=html_mods_style+'+formID.modsStyle.value;
+var formID = document.getElementById(\\\"htmlModsStyleForm\\\");
+var v = formID.modsStyle.value;
+if (\\\"0123456789.\\\".indexOf(v) == -1) 
+{ parent.fstatus.location.href='submit?q=html_theme+\\\"'+v+'\\\"';} else
+{ parent.fstatus.location.href='submit?q=html_mods_style+'+v;}
 }
 //--\\>
 \\</script\\>";
@@ -468,6 +515,7 @@ parent.fstatus.location.href='submit?q=html_mods_style+'+formID.modsStyle.value;
                         strings_of_option_html html_mods_show_pending; 
                         strings_of_option_html html_mods_load_message_file; 
                         strings_of_option_html html_mods_max_messages; 
+                        strings_of_option_html html_mods_bw_refresh_delay; 
                         strings_of_option_html commands_frame_height; 
                         strings_of_option_html display_downloaded_results; 
                         strings_of_option_html vd_reload_delay; 
@@ -541,12 +589,21 @@ parent.fstatus.location.href='submit?q=html_mods_style+'+formID.modsStyle.value;
 \\<form style=\\\"margin: 0px;\\\" name=\\\"htmlModsStyleForm\\\" id=\\\"htmlModsStyleForm\\\" 
 action=\\\"javascript:submitHtmlModsStyle();\\\"\\>
 \\<select id=\\\"modsStyle\\\" name=\\\"modsStyle\\\"
-style=\\\"font-size: 8px; font-family: verdana\\\" onchange=\\\"this.form.submit()\\\"\\>
-\\<option value=\\\"0\\\"\\>html style\n";
+style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"this.form.submit()\\\"\\>
+\\<option value=\\\"0\\\"\\>style/theme\n";
             
             Array.iteri (fun i h -> 
-                Printf.bprintf buf "\\<option value=\\\"%d\\\"\\>%s\n" i (fst h);
+                Printf.bprintf buf "\\<option value=\\\"%d\\\"\\>%s\\</option\\>\n" i (fst h);
             ) !html_mods_styles;
+
+			if Sys.file_exists html_themes_dir then
+			let list = Unix2.list_directory html_themes_dir in
+			List.iter (fun d ->
+				if Unix2.is_directory (Filename.concat html_themes_dir d) then 
+					let sd = (if String.length d > 11 then String.sub d 0 11 else d) in
+					Printf.bprintf buf "\\<option value=\\\"%s\\\"\\>%s\\</option\\>\n" d sd;
+			) (List.sort (fun d1 d2 -> compare d1 d2) list);
+			
             
             Printf.bprintf buf "
 \\</select\\>\\</td\\>
@@ -554,7 +611,21 @@ style=\\\"font-size: 8px; font-family: verdana\\\" onchange=\\\"this.form.submit
             Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>\\</div\\>";
           end
         else begin
-            list_options o  (CommonInteractive.all_simple_options ());
+            list_options o  (let v = CommonInteractive.all_simple_options () in
+			     match args with
+				 [] -> v
+			       | args ->
+				   let match_star = Str.regexp "\\*" in
+				   let options_filter = Str.regexp (
+				     "^\\(" ^ (List.fold_left (fun acc a ->
+				       acc ^
+				       (if acc <> "" then "\\|" else "") ^
+				       (Str.global_replace match_star ".*" a)
+				     ) "" args) ^ "\\)$") in
+				   List.filter (fun (option_name, _) ->
+				     Str.string_match options_filter option_name 0
+				   ) v
+			    );
           end;
         ""
     ), ":\t\t\t\t\tprint all options";
@@ -1009,7 +1080,7 @@ the name between []"
         if args = ["all"] then begin 
             let buf = o.conn_buf in
             
-            html_mods_table_header buf "vcTable" "vc" [ 
+            if use_html_mods o then html_mods_table_header buf "vcTable" "vc" [ 
               ( "1", "srh ac", "Client number", "Num" ) ; 
               ( "0", "srh", "Network", "Network" ) ; 
               ( "0", "srh", "IP address", "IP address" ) ; 
@@ -1073,7 +1144,7 @@ the name between []"
         let buf = o.conn_buf in       
         let nb_servers = ref 0 in
         
-        if use_html_mods o then server_print_html_header buf; 
+        if use_html_mods o then server_print_html_header buf ""; 
         Intmap.iter (fun _ s ->
             try
               incr nb_servers;
@@ -1410,7 +1481,7 @@ formID.msgText.value=\\\"\\\";
         if use_html_mods o then 
           begin
             
-            let refresh_delay = ref 11 in
+            let refresh_delay = ref !!html_mods_bw_refresh_delay in
             if args <> [] then begin 
                 let newrd = int_of_string (List.hd args) in
                 if newrd > 1 then refresh_delay := newrd;
@@ -1635,7 +1706,7 @@ formID.msgText.value=\\\"\\\";
           "Unable to match URL"
         else
           "Done"
-    ), "<ed2klink> :\t\t\tdownload ed2k:// link";
+    ), "<link> :\t\t\t\tdownload ed2k, sig2dat, torrent or other link";
     
     "dllinks", Arg_one (fun arg o ->        
         let buf = o.conn_buf in

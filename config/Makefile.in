@@ -249,6 +249,7 @@ DONKEY_SRCS= \
   $(SRC_DONKEY)/donkeyIndexer.ml \
   $(SRC_DONKEY)/donkeyShare.ml \
   $(SRC_DONKEY)/donkeyReliability.ml \
+  $(SRC_DONKEY)/donkeyThieves.ml \
   $(SRC_DONKEY)/donkeyChunks.ml \
   $(SRC_DONKEY)/donkeyOneFile.ml \
   $(SRC_DONKEY)/donkeyStats.ml \
@@ -329,9 +330,9 @@ BITTORRENT_SRCS= \
   $(SRC_BITTORRENT)/bencode.ml \
   $(SRC_BITTORRENT)/bTTypes.ml \
   $(SRC_BITTORRENT)/bTOptions.ml \
+  $(SRC_BITTORRENT)/bTProtocol.ml \
   $(SRC_BITTORRENT)/bTGlobals.ml \
   $(SRC_BITTORRENT)/bTComplexOptions.ml \
-  $(SRC_BITTORRENT)/bTProtocol.ml \
   $(SRC_BITTORRENT)/bTClients.ml \
   $(SRC_BITTORRENT)/bTInteractive.ml \
   $(SRC_BITTORRENT)/bTMain.ml

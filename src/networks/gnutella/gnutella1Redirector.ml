@@ -64,6 +64,7 @@ let connect_urlfile () =
       let r = {
           H.basic_request with
           H.req_url = Url.of_string url;
+          H.req_proxy = !CommonOptions.http_proxy;
           H.req_user_agent = 
           Printf.sprintf "MLdonkey %s" Autoconf.current_version;
         } in
@@ -101,6 +102,7 @@ let connect_hostfile _ =
       let r = {
           H.basic_request with
           H.req_url = Url.of_string url;
+          H.req_proxy = !CommonOptions.http_proxy;
           H.req_user_agent = 
           Printf.sprintf "MLdonkey %s" Autoconf.current_version;
         } in

@@ -493,7 +493,7 @@ function submitPriority(num,cp,sel) {
 \\</td\\>\\</tr\\>
 \\<tr\\>\\<td\\>
 
-\\<table class=downloaders cellspacing=0 cellpadding=0\\>\\<tr\\>
+\\<table width=\\\"100%%\\\" class=\\\"downloaders\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
 
 \\<td title=\\\"Pause/Resume/Cancel\\\" class=\\\"dlheader\\\"\\>P/R/C\\</td\\>"
 (if !qnum > 0 then begin
@@ -852,7 +852,12 @@ let display_file_list buf o =
     end
 
 
-
+let get_tag_value tv =
+	match tv with 
+ | Uint64 i -> String.escaped (Int64.to_string i)
+ | Fint64 i -> String.escaped (Int64.to_string i)
+ | String s -> String.escaped s
+ | _ -> "???"
 
 let old_print_search buf o results = 
   let user = o.conn_user in
@@ -894,17 +899,12 @@ let old_print_search buf o results =
 					| "FTH" | "urn" -> ()  
 					| _ -> 
 						Buffer.add_string buf ((if !nl then "\n" else begin nl := true;"" end) ^ 
-						"|| (" ^ t.tag_name ^ "): " ^	
-						(match t.tag_value with 
-                  		| Uint64 i -> Int64.to_string i
-                  		| Fint64 i -> Int64.to_string i
-						| String s -> s   
-                  		| _ -> "???"));
+						"|| (" ^ t.tag_name ^ "): " ^ get_tag_value t.tag_value);
           ) r.result_tags;
 
-			Printf.bprintf buf "\\\" class=\\\"sr\\\"\\>\\<a href=/results\\?d=%d target=\\\"$S\\\"\\>" r.result_num
+			Printf.bprintf buf "\\\" class=\\\"sr\\\"\\>\\<a href=results\\?d=%d target=\\\"$S\\\"\\>" r.result_num
 			end
-            else Printf.bprintf buf "\\<a href=/results\\?d=%d $S\\>" r.result_num;
+            else Printf.bprintf buf "\\<a href=results\\?d=%d $S\\>" r.result_num;
 			end;
             begin
               match r.result_names with
@@ -969,12 +969,7 @@ let old_print_search buf o results =
 					| "availability" | "urn" | "FTH"  -> () 
 					| _ -> 
 					Buffer.add_string buf ("\\<span title=\\\"" ^ 
-                  (match t.tag_value with
-                    String s -> s
-                  | Uint64 i -> Int64.to_string i
-                  | Fint64 i -> Int64.to_string i
-                  | _ -> "???")
-				  ^ "\\\"\\>(" ^ t.tag_name ^ ") \\</span\\>");
+					get_tag_value t.tag_value ^ "\\\"\\>(" ^ t.tag_name ^ ") \\</span\\>");
                 )
           ) r.result_tags;
           Printf.bprintf buf "\\</td\\>\\</tr\\>";
@@ -983,13 +978,7 @@ let old_print_search buf o results =
       		List.iter (fun t ->
               Buffer.add_string buf (Printf.sprintf "%-3s "
                   (if t.tag_name = "availability" then string_of_int avail else
-
-                  match t.tag_value with
-                    String s -> s
-                  | Uint64 i -> Int64.to_string i
-                  | Fint64 i -> Int64.to_string i
-                  | _ -> "???"
-                ))
+					get_tag_value t.tag_value))
           ) r.result_tags;
           Buffer.add_char buf '\n';
       ) results;
@@ -1120,7 +1109,7 @@ let print_search_html buf results o search_num =
   if !counter > !!filter_table_threshold then
     add_filter_table buf search_num;
   
-  Printf.bprintf buf "\\<form action=/results\\>";
+  Printf.bprintf buf "\\<form action=results\\>";
   Printf.bprintf buf "\\<input type=submit value='Submit Changes'\\>";
   print_table_html 10 buf [||] 
     [|
@@ -1158,8 +1147,8 @@ let print_results buf o results =
                 
                 (Printf.sprintf "%s%s%s"
                     (if o.conn_output = HTML then begin
-                        if !!html_mods then Printf.sprintf "\\<a href=/results\\?d=%d target=\\\"$S\\\"\\>" r.result_num
-                        else Printf.sprintf "\\<a href=/results\\?d=%d $S\\>" r.result_num;
+                        if !!html_mods then Printf.sprintf "\\<a href=results\\?d=%d target=\\\"$S\\\"\\>" r.result_num
+                        else Printf.sprintf "\\<a href=results\\?d=%d $S\\>" r.result_num;
                       end
                     else "")
                   

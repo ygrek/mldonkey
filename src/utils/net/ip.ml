@@ -136,9 +136,7 @@ let resolve_name name =
     let (ip, time) = Hashtbl.find ip_cache name in
     if time < current_time then
       try
-        lprintf "Resolving [%s] ..." name; 
         let ip = gethostbyname name in
-        lprintf "done\n"; 
         Hashtbl.remove ip_cache name;
         Hashtbl.add ip_cache name (ip, current_time +. 3600.);
         ip

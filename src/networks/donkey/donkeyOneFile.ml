@@ -360,7 +360,7 @@ and find_zone1 c b zones =
             b.block_legacy <- false;
             b.block_contributors <- [];
             add_file_downloaded file.file_file
-              (Int64.sub Int64.zero block_size);
+              (Int64.sub b.block_begin b.block_end); (* negative *)
             file.file_chunks.(b.block_pos) <- PartialVerified b;
             Hashtbl.iter (fun _ c ->
                 match c.client_block with

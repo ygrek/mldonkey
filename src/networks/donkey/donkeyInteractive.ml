@@ -145,7 +145,7 @@ let really_query_download filenames size md4 location old_file absents =
   
   let other_names = DonkeyIndexer.find_names md4 in
   let filenames = List.fold_left (fun names name ->
-        if List.mem name names then names else name :: names
+        if List.mem name names then names else names @ [name]
     ) filenames other_names in 
   file.file_filenames <- file.file_filenames @ filenames ;
   update_best_name file;
@@ -457,8 +457,9 @@ let commands = [
     
     "vu", Arg_none (fun o ->
         let buf = o.conn_buf in
-        Printf.sprintf "Upload credits : %d minutes\nUpload disabled for %d
-minutes" !CommonUploads.upload_credit !CommonUploads.has_upload;
+        Printf.sprintf 
+		"Upload credits : %d minutes\nUpload disabled for %d minutes" 
+		!CommonUploads.upload_credit !CommonUploads.has_upload;
     
     ), ":\t\t\t\t\tview upload credits";
     
@@ -559,13 +560,27 @@ minutes" !CommonUploads.upload_credit !CommonUploads.has_upload;
         let counter = ref 0 in
         let tr = ref "dl-1" in
         
-        if use_html_mods o then
+        if use_html_mods o then begin
+
+Printf.bprintf buf 
+"\\<script language=javascript\\>
+\\<!-- 
+function submitRenameForm(i) {
+var formID = document.getElementById(\\\"renameForm\\\" + i)
+var regExp = new RegExp (' ', 'gi') ;
+var renameTextOut = formID.newName.value.replace(regExp, '+'); 
+parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+renameTextOut+'\\\"';
+}
+//--\\>
+\\</script\\>";
           
           html_mods_table_header buf "scan_tempTable" "scan_temp" [ 
-            ( "0", "srh", "Filename", "Filename" ) ; 
+            ( "0", "srh", "Filename", "Filename (press ENTER to rename)" ) ; 
             ( "0", "srh", "Status", "Status" ) ;
-            ( "0", "srh", "MD4", "MD4" ) ];
+            ( "0", "srh", "MD4 (link=ed2k)", "MD4 (link=ed2k)" ); ];
         
+
+		end;
         
         List.iter (fun filename ->
             incr counter;
@@ -576,11 +591,14 @@ minutes" !CommonUploads.upload_credit !CommonUploads.has_upload;
               try
                 let file = find_file md4 in
                 if use_html_mods o then
-                  Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>\\<td
-                class=\\\"sr\\\"\\>\\<A HREF=\\\"%s\\\"\\>%s\\</A\\>\\</td\\>
+				  let fnum = (file_num file) in 
+                  Printf.bprintf buf "
+				\\<tr class=\\\"%s\\\"\\>\\<td class=\\\"sr\\\"\\>
+				\\<form name=\\\"renameForm%d\\\" id=\\\"renameForm%d\\\" action=\\\"javascript:submitRenameForm(%d);\\\"\\>
+				\\<input style=\\\"font: 8pt sans-serif\\\" name=\\\"newName\\\" type=text size=50 value=\\\"%s\\\"\\>\\</input\\>\\</td\\>\\</form\\>
                 \\<td class=\\\"sr \\\"\\>%s\\</td\\> 
-                \\<td class=\\\"sr \\\"\\>%s\\</td\\>\\</tr\\>" 
-                    !tr (file_comment (as_file file.file_file)) (file_best_name file) "Downloading" filename
+                \\<td class=\\\"sr \\\"\\>\\<A HREF=\\\"%s\\\"\\>%s\\</A\\>\\</td\\>\\</tr\\>"
+                    !tr fnum fnum fnum (file_best_name file) "Downloading" (file_comment (as_file file.file_file)) filename  
                 else
                   Printf.bprintf buf "%s is %s %s\n" filename
                     (file_best_name file)

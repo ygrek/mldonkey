@@ -805,6 +805,12 @@ module EmuleRequestSourcesReply = struct
     let write buf t = 
       buf_md4 buf t.md4;
       buf_int16 buf (Array.length t.sources);
+      Array.iter (fun s -> 
+		    buf_ip buf s.ip;
+		    buf_port buf s.port; 
+		    buf_ip buf s.server_ip;
+		    buf_port buf s.server_port; 
+		 ) t.sources;
       ()
             
   end

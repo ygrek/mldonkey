@@ -265,6 +265,7 @@ let _ =
             let r = {
                 H.basic_request with
                 H.req_url = Url.of_string url;
+                H.req_proxy = !CommonOptions.http_proxy;
                 H.req_user_agent = 
                 Printf.sprintf "MLdonkey %s" Autoconf.current_version;
               } in
@@ -318,7 +319,7 @@ let _ = (
           ("", "sr ar", (size_of_int64 c.client_uploaded));
           ("", "sr ar br", (size_of_int64 c.client_downloaded));
           ("", "sr", (if c.client_interested then "T" else "F"));
-          ("", "sr", (if c.client_chocked then "T" else "F"));
+          ("", "sr", (if c.client_choked then "T" else "F"));
           ("", "sr br ar", (Int64.to_string c.client_allowed_to_write));
 (* This is way too slow for 1000's of chunks on a page with 100's of sources 
 		("", "sr", (CommonFile.colored_chunks (Array.init (String.length c.client_bitmap)

@@ -20,6 +20,7 @@
 open Printf2
 open Md4
 open BasicSocket
+open TcpBufferedSocket
 open Options
 open Unix
 
@@ -62,6 +63,8 @@ let (file_basedir, home_basedir) =
       home_dir
       
 let cmd_basedir = Autoconf.current_dir (* will not work on Windows *)
+
+let html_themes_dir = Filename.concat file_basedir "html_themes"
   
 let downloads_ini = create_options_file (
     Filename.concat file_basedir "downloads.ini")
@@ -113,8 +116,52 @@ let _ =
   )
 
 
+(* Proxy options *)
+let http_proxy_server = define_option downloads_ini ["http_proxy_server"]
+    "Direct HTTP queries to HTTP proxy" string_option ""
+let http_proxy_port = define_option downloads_ini ["http_proxy_port"]
+    "Port of HTTP proxy" int_option 8080
+let http_proxy_tcp = define_option downloads_ini ["http_proxy_tcp"]
+    "Direct TCP connections to HTTP proxy (the proxy should support CONNECT)" bool_option false
+
+let http_proxy = ref (Some (!!http_proxy_server, !!http_proxy_port))
+
+let http_proxy_tcp_update _ =
+    if !!http_proxy_tcp then
+      TcpBufferedSocket.http_proxy := !http_proxy
+    else
+      TcpBufferedSocket.http_proxy := None
+
+let _ =
+  let proxy_update _ =
+    http_proxy := 
+      (match !!http_proxy_server with
+        "" -> None
+      | _  -> Some (!!http_proxy_server, !!http_proxy_port));
+    http_proxy_tcp_update ()
+  in
+  option_hook http_proxy_server proxy_update;
+  option_hook http_proxy_port proxy_update;
+  option_hook http_proxy_tcp http_proxy_tcp_update
+
+
 let allow_browse_share = define_option downloads_ini ["allow_browse_share"]
-    "Allow others to browse our share list" bool_option true
+    "Allow others to browse our share list (0: none, 1: friends only, 2: everyone" int_option 1
+
+let is_not_spam = ref (fun _ -> true)
+
+let messages_filter = define_option downloads_ini ["messages_filter"]
+    "Regexp of messages to filter out" string_option ""
+
+let _ =
+  option_hook messages_filter (fun _ ->
+    is_not_spam := if !!messages_filter <> "" then 
+                     let r = Str.regexp_case_fold !!messages_filter in
+                     (fun s -> try
+                                 ignore (Str.search_forward r s 0);
+                                 false
+                               with Not_found -> true)
+                   else (fun _ -> true))
 
 let buffer_writes = define_option downloads_ini ["buffer_writes"]
     "Buffer writes and flush after buffer_writes_delay seconds (experimental)"
@@ -407,7 +454,7 @@ let force_client_ip = define_option downloads_ini ["force_client_ip"]
 let use_html_frames = define_option downloads_expert_ini ["use_html_frames"] 
     "This option controls whether the WEB interface should use frames or not" bool_option true
 
-let commands_frame_height = define_option downloads_expert_ini ["commands_frame_height"] "The height of the command frame in pixel (depends on your screen and browser sizes)" int_option 80
+let commands_frame_height = define_option downloads_expert_ini ["commands_frame_height"] "The height of the command frame in pixel (depends on your screen and browser sizes)" int_option 42
 
 let _ = 
   Options.set_string_wrappers allowed_ips 
@@ -660,6 +707,13 @@ let html_mods_load_message_file = define_option downloads_expert_ini
 
 let html_mods_max_messages = define_option downloads_expert_ini
     ["html_mods_max_messages"] "Maximum chat messages to log in memory" int_option 10
+
+let html_mods_bw_refresh_delay = define_option downloads_expert_ini
+    ["html_mods_bw_refresh_delay"] "bw_stats refresh delay (seconds)" int_option 11
+
+let html_mods_theme = define_option downloads_expert_ini
+    ["html_mods_theme"] "html_mods_theme to use (located in relative html_themes/<theme_name> directory, leave blank to use internal theme" 
+	string_option ""
   
 let use_html_mods o =
   o.CommonTypes.conn_output = CommonTypes.HTML && !!html_mods
@@ -670,6 +724,8 @@ let html_checkbox_file_list = define_option downloads_expert_ini
 let display_downloaded_results = define_option downloads_expert_ini
     ["display_downloaded_results"] "Whether to display results already downloaded" bool_option true
 
+let min_users_on_server = define_option downloads_ini ["min_users_on_server"]
+     "min connected users for each server" int_option 0
     
 let filter_table_threshold = define_option downloads_expert_ini
     ["filter_table_threshold"] "Minimal number of results for filter form to appear"
@@ -960,7 +1016,9 @@ let _ =
 let dynamic_slots = define_option downloads_ini ["dynamic_slots"] 
   "Set this to true if you want to have dynamic upload slot allocation (experimental)" bool_option false
 
-    
+let friend_slots = define_option downloads_ini ["friend_slots"] 
+  "Reserve an upload slot for each friend client" bool_option false
+  
 let max_connections_per_second = define_option downloads_ini
     ["max_connections_per_second"] 
   "Maximal number of connections that can be opened per second

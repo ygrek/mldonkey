@@ -35,6 +35,7 @@ open DonkeyFiles
 open DonkeyTypes  
 open DonkeyGlobals
 open DonkeyClient
+open DonkeyThieves
 open DonkeyOptions
 open CommonOptions
 open CommonGlobals
@@ -56,7 +57,8 @@ let hourly_timer timer =
     (List.map (fun s -> s.server_ip, s.server_port) (connected_servers()))
     (DonkeyOvernet.connected_peers ())
     ;
-  Hashtbl.clear udp_servers_replies
+  Hashtbl.clear udp_servers_replies;
+  DonkeyThieves.clean_thieves ()
     
 let quarter_timer timer =
   DonkeyServers.remove_old_servers ();

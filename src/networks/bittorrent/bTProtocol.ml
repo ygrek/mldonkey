@@ -231,7 +231,6 @@ open BigEndian
 open TcpBufferedSocket
 open AnyEndian
 open BTTypes
-open BTGlobals
   
 type ghandler =
   BTHeader of (gconn -> TcpBufferedSocket.t -> 
@@ -433,14 +432,12 @@ let send_client c msg =
         let s = Buffer.contents buf in
         str_int s 0 (String.length s - 4);
         if !verbose_msg_clients then begin
-            lprintf "CLIENT %d: Sending "
-              (client_num c);
             bt_print msg;
           end;
 (*        dump s; *)
         write_string sock s
   with e ->
-      lprintf "CLIENT %d: Error %s in send_client\n" (client_num c)
+      lprintf "CLIENT : Error %s in send_client\n"
         (Printexc2.to_string e)
       
 let zero8 = String.make 8 '\000'

@@ -45,6 +45,7 @@ open DonkeyGlobals
 open DonkeyStats
 open DonkeyTypes  
 open DonkeyReliability
+open DonkeyThieves
 
 
 module Udp = DonkeyProtoUdp
@@ -63,24 +64,24 @@ let supports_eep cb =
   | _ -> false
 
 let ban_client c sock msg = 
-  let module M = DonkeyProtoClient in
-  
-  if !verbose then begin
-      lprintf "client %s(%s) %s, it has been banned" msg
-        c.client_name (brand_to_string c.client_brand);
-      lprint_newline ();
-    end;
-  
-  let ip = peer_ip sock in
-  count_banned c;
-  c.client_banned <- true;
-  Hashtbl.add banned_ips ip (last_time ());
-                
-  if !!send_warning_messages then
-    direct_client_send c ( M.SayReq  (
-        Printf.sprintf 
-        "[AUTOMATED ERROR] Your client %s, it has been banned" msg))
-  
+    let ip = peer_ip sock in
+  if not (Hashtbl.mem banned_ips ip) then
+    let module M = DonkeyProtoClient in
+    
+    if !verbose then begin
+        lprintf "client %s(%s) %s, it has been banned\n" msg
+          c.client_name (brand_to_string c.client_brand);
+      end;
+    
+    count_banned c;
+    c.client_banned <- true;
+    Hashtbl.add banned_ips ip (last_time ());
+    
+    if !!send_warning_messages then
+      direct_client_send c ( M.SayReq  (
+          Printf.sprintf 
+            "[AUTOMATED ERROR] Your client %s has been banned" msg))
+      
 let corruption_warning c =
   if !!send_warning_messages then
     let module M = DonkeyProtoClient in
@@ -576,6 +577,23 @@ let shared_of_file file =
     | None	-> None
     | Some sh	-> Some (as_shared sh)
 
+let query_view_files c =
+  if client_type c <> NormalClient then begin
+    if last_time () > c.client_next_view_files then begin
+(*
+            lprintf "****************************************";
+            lprint_newline ();
+            lprintf "       ASK VIEW FILES         ";
+lprint_newline ();
+  *)
+      c.client_next_view_files <- last_time () + 3600 * 6;
+      direct_client_send c (
+        let module M = DonkeyProtoClient in
+        let module C = M.ViewFiles in
+        M.ViewFilesReq C.t);          
+    end
+  end
+
 let init_client_connection c sock =
   let module M = DonkeyProtoClient in
   
@@ -630,7 +648,10 @@ let client_to_client challenge for_files c t sock =
         t.CR.md4 = overnet_md4 then
         TcpBufferedSocket.close sock (Closed_for_error "Connected to myself");
 
-
+      if not (register_client_hash (peer_ip sock) t.CR.md4) then
+	if !!ban_identity_thieves then
+          ban_client c sock "is probably using stolen client hashes";
+      
 (* Test if the client is already connected *)
       if Hashtbl.mem connected_clients t.CR.md4 then begin
 (*          lprintf "Client is already connected"; lprint_newline (); *)
@@ -662,6 +683,10 @@ let client_to_client challenge for_files c t sock =
       
       set_client_state c (Connected (-1));      
       
+      if not (register_client_hash (peer_ip sock) t.CR.md4) then
+	if !!ban_identity_thieves then
+          ban_client c sock "is probably using stolen client hashes";
+      
       challenge.challenge_md4 <- Md4.random ();
       direct_client_send c (
         let module M = DonkeyProtoClient in
@@ -669,21 +694,8 @@ let client_to_client challenge for_files c t sock =
       challenge.challenge_solved <- solve_challenge challenge.challenge_md4;
       
       query_files c sock;
+      query_view_files c;
       client_must_update c;      
-      if client_type c <> NormalClient then begin
-          if last_time () > c.client_next_view_files then begin
-(*
-            lprintf "****************************************";
-            lprint_newline ();
-            lprintf "       ASK VIEW FILES         ";
-lprint_newline ();
-  *)
-              direct_client_send c (
-                let module M = DonkeyProtoClient in
-                let module C = M.ViewFiles in
-                M.ViewFilesReq C.t);          
-            end
-        end;
       is_banned c sock
   
   | M.EmuleQueueRankingReq t 
@@ -748,7 +760,7 @@ lprint_newline ();
                     } :: !sources
       ) file.file_locations;
       if !sources <> [] then        
-        direct_client_send c (
+        emule_send sock (
           M.EmuleRequestSourcesReplyReq {
             E.md4 = t;
             E.sources = Array.of_list !sources;
@@ -766,7 +778,6 @@ lprint_newline ();
   
   
   | M.ViewFilesReplyReq t ->
-      c.client_next_view_files <- last_time () + 3600 * 6;
 (*
       lprintf "****************************************";
       lprint_newline ();
@@ -869,6 +880,8 @@ lprint_newline ();
             c.client_name (brand_to_string c.client_brand);
           lprint_newline ()
         end;
+      if !!friend_slots && client_type c = FriendClient then
+        CommonUploads.give_a_slot (as_client c.client_client);
 (*      end *)
   
   | M.CloseSlotReq _ ->
@@ -916,7 +929,11 @@ lprint_newline ();
             end;
           
           if file_size file <= block_size then 
-            client_has_chunks c file [| true |]
+            client_has_chunks c file [| true |];
+	  
+          DonkeyProtoCom.direct_client_send c (
+	    let module M = DonkeyProtoClient in
+              M.QueryChunksReq file.file_md4);      
         
         with _ -> ()
       end  
@@ -1220,7 +1237,11 @@ is checked for the file.
       end;      
 
 (* Upload requests *)
-  | M.ViewFilesReq t when !CommonUploads.has_upload = 0 && !!allow_browse_share -> 
+  | M.ViewFilesReq t when !CommonUploads.has_upload = 0 && 
+                          (match !!allow_browse_share with
+			     1 -> client_type c = FriendClient
+			   | 2 -> true
+			   | _ -> false) -> 
       let files = DonkeyShare.all_shared () in
       let published_files = ref [] in
       List.iter (fun f ->
@@ -1313,7 +1334,10 @@ end else *)
             end;
           Array.iter (fun s ->
               if Ip.valid s.Q.ip && Ip.reachable s.Q.ip then
-                ignore (DonkeySources.new_source (s.Q.ip, s.Q.port) file)
+                (
+		  let s = DonkeySources.new_source (s.Q.ip, s.Q.port) file in 
+		    DonkeySources.add_source_request s file 0 File_possible;
+		)
               else
                 begin
                   let module C = Udp.QueryCallUdp in
@@ -1345,12 +1369,15 @@ end else *)
             end else *)
           List.iter (fun (ip1, port, ip2) ->
               if Ip.valid ip1 && Ip.reachable ip1 then
-                ignore (DonkeySources.new_source (ip1, port) file)
+                (
+		  let s = DonkeySources.new_source (ip1, port) file in
+		    DonkeySources.add_source_request s file 0 File_possible;
+		)
           ) t.Q.sources
         with _ -> ()
       end
   
-  | M.SayReq s ->
+  | M.SayReq s when (!is_not_spam) s ->
       
       let ad_opt =
         match c.client_kind with
@@ -1649,6 +1676,20 @@ let read_first_message overnet challenge m sock =
       connection_ok c.client_connection_control;
       c.client_tags <- t.CR.tags;
       
+      if not (register_client_hash (peer_ip sock) t.CR.md4) &&
+        !!ban_identity_thieves then
+        ban_client c sock "is probably using stolen client hashes";
+      
+      List.iter (fun ban ->
+          if String2.subcontains c.client_name ban then begin
+              direct_client_send c (
+                M.SayReq "[AUTOMATED WARNING] Sorry, you have not understood P2P");
+              set_client_state c BlackListedHost;
+              lprintf "Client[%d]: banned (%s)\n" (client_num c) ban;
+              raise Not_found
+            end)
+      ["Mison"; "LSD"; "Sivka"; "MorTillo"; "eMule Plus"; "sivka"];
+      
       if  !!reliable_sources && 
         ip_reliability (peer_ip sock) = Reliability_suspicious 0 then begin
           set_client_state c BlackListedHost;
@@ -1703,29 +1744,19 @@ let read_first_message overnet challenge m sock =
             
       set_client_state c (Connected (-1));      
       
+      if not (register_client_hash (peer_ip sock) t.CR.md4) then
+	if !!ban_identity_thieves then
+          ban_client c sock "is probably using stolen client hashes";
+      
       challenge.challenge_md4 <-  Md4.random ();
       direct_client_send c (
         let module M = DonkeyProtoClient in
         M.QueryFileReq challenge.challenge_md4);
       challenge.challenge_solved <- solve_challenge challenge.challenge_md4;
       
-      query_files c sock; 
-      
-      if client_type c <> NormalClient then
-        if last_time () > c.client_next_view_files then begin
-(*
-            lprintf "****************************************";
-            lprint_newline ();
-            lprintf "       ASK VIEW FILES         ";
-            lprint_newline ();
-*)
-            
-            direct_client_send c (
-              let module M = DonkeyProtoClient in
-              let module C = M.ViewFiles in
-              M.ViewFilesReq C.t);          
-          end;
-        client_must_update c;
+      (* query_files c sock;  *)
+      query_view_files c;
+      client_must_update c;
       is_banned c sock;
       Some c
   

@@ -459,6 +459,7 @@ let mldonkey_wget url f =
   let r = {
       H.basic_request with
       H.req_url = Url.of_string url;
+      H.req_proxy = !CommonOptions.http_proxy;
       H.req_user_agent = 
       Printf.sprintf "MLdonkey %s" Autoconf.current_version;
     } in
@@ -673,8 +674,8 @@ let string_tag s i =
 
 (* Name,FrameHeight *)
 let html_mods_styles = ref
-  [| ("Green",80) ; ("Small",42); ("L.Blue",80); 
-	 ("L.Purple",80); ("Monochrome",80); ("Corona",80) |]
+  [| ("Green",45) ; ("Tang",45); ("L.Blue",45); 
+	 ("L.Purple",45); ("Monochrome",45); ("Corona",45); |]
 
 let partial_chunk c =
   match c with

@@ -243,6 +243,14 @@ queries. *)
   | M.InfoReq (users, files) ->
       s.server_nusers <- users;
       s.server_nfiles <- files;
+	  if (users < !!min_users_on_server) then
+	  begin
+        Printf.printf "%s:%d remove server min_users_on_server limit hit!"
+		(Ip.to_string s.server_ip) s.server_port; print_newline ();
+ 
+		disconnect_server s Closed_for_timeout;
+        server_remove (as_server s.server_server);
+	  end;
       server_must_update s
   
   | M.Mldonkey_MldonkeyUserReplyReq ->
@@ -445,7 +453,7 @@ let force_check_server_connections user =
           iter (n-1)
         end
     in
-    iter (!!max_connected_servers - !nservers)
+    iter ((if user then !!max_connected_servers else max_allowed_connected_servers ()) - !nservers)
     
 let rec check_server_connections () =
   force_check_server_connections false

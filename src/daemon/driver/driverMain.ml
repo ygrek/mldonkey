@@ -76,7 +76,7 @@ let start_interfaces () =
   
   ignore (find_port  "telnet server" !!telnet_bind_addr
       telnet_port DriverControlers.telnet_handler);  
-  lprintf "2"; lprint_newline ();
+  (*lprintf "2"; lprint_newline ();*)
   
   if !!chat_port <> 0 then begin
       ignore (find_port "chat server" !!chat_bind_addr
@@ -196,8 +196,8 @@ while (my $uri = shift @ARGV) {
     (Ip.to_string (client_ip None)) !!http_port
     "admin" ""
   in
-  File.from_string "mldonkey_submit" file;
-  Unix.chmod  "mldonkey_submit" 0o755
+  File.from_string (Filename.concat file_basedir "mldonkey_submit") file;
+  Unix.chmod  (Filename.concat file_basedir "mldonkey_submit") 0o755
     
 let load_config () =
   
@@ -238,8 +238,11 @@ let load_config () =
         ());  
   
   CommonMessages.load_message_file ();
-  if !!html_mods then CommonMessages.colour_changer ();
-  
+  if !!html_mods then begin
+		if !!html_mods_style > 0 && !!html_mods_style < (Array.length !html_mods_styles) then
+		commands_frame_height =:= (snd !html_mods_styles.(!!html_mods_style));
+		CommonMessages.colour_changer ();
+  end;
   networks_iter_all (fun r -> 
       List.iter (fun opfile ->
           try
@@ -397,9 +400,13 @@ let _ =
   lprintf "Welcome to MLdonkey client"; lprint_newline ();
   lprintf "Check http://www.mldonkey.net/ for updates"; 
   lprint_newline ();
-  lprintf "To command: telnet 127.0.0.1 %d" !!telnet_port; 
+  lprintf "To command: telnet %s %d" 
+	(if !!telnet_bind_addr = Ip.any then "127.0.0.1" 
+		else Ip.to_string !!telnet_bind_addr)  !!telnet_port; 
   lprint_newline ();
-  lprintf "Or with browser: http://127.0.0.1:%d" !!http_port; 
+  lprintf "Or with browser: http://%s:%d" 
+	(if !!http_bind_addr = Ip.any then "127.0.0.1" 
+		else Ip.to_string !!http_bind_addr)  !!http_port; 
   lprint_newline ();
   
   lprint_string (DriverControlers.text_of_html !!motd_html);

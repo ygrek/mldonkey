@@ -776,6 +776,7 @@ class box_downloads box_locs wl_status () =
       f.file_state <- f_new.file_state ;
       f.file_chunks <- f_new.file_chunks ;
       f.file_availability <- f_new.file_availability ;
+      f.file_priority <- f_new.file_priority;
       if f_new.file_sources <> None then
         f.file_sources <- f_new.file_sources ;
       f.file_download_rate <- f_new.file_download_rate ;

@@ -31,6 +31,7 @@ open CommonGlobals
 open Options
 open BTTypes
 open BTOptions
+open BTProtocol
 open CommonSwarming  
 open CommonNetwork
 
@@ -154,6 +155,16 @@ let new_file file_id file_name file_size file_tracker piece_size =
       if result then begin
           file.file_blocks_downloaded <- b :: file.file_blocks_downloaded;
           file_must_update file;
+	  (*Automatically send Have to ALL clients once a piece is verified
+            NB : will probably have to check if client can be interested*)
+          Hashtbl.iter (fun _ c ->
+                          match c.client_sock with
+                            | Connection sock -> 
+				if (c.client_bitmap.[num] <> '1') then
+                                  send_client c (Have (Int64.of_int num));
+				
+                            | _ -> ()
+                       ) file.file_clients
         end;
       result
   );
@@ -182,7 +193,7 @@ let new_client file peer_id kind =
           client_connection_control = new_connection_control (());
           client_file = file;
           client_host = kind;
-          client_chocked = true;
+          client_choked = true;
           client_interested = false;
           client_blocks = [];
           client_chunks = [];
@@ -194,6 +205,8 @@ let new_client file peer_id kind =
           client_allowed_to_write = zero;
           client_uploaded = zero;
           client_downloaded = zero;
+	  client_downloaded_rate = zero;
+          client_optimist_time=0;
           client_blocks_sent = [];
           client_new_chunks = [];
           client_good = false;
