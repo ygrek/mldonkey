@@ -351,7 +351,8 @@ print_newline ();
           Printf.printf "TEST %s" name; print_newline ();
         end; *)
       (* prevent it from using the md4 is another name is available *)
-      if name <> md4_name && String.length name > !maxl then begin
+      if name <> md4_name && String.length name > !maxl &&
+        not (String.contains name '/') then begin
           maxl := String.length name;
           max := name
         end
@@ -472,7 +473,7 @@ let new_server ip port score =
           server_nqueries = 0;
           server_search_queries = Fifo.create ();
           server_users_queries = Fifo.create ();
-          server_connection_control = new_connection_control (last_time ());
+          server_connection_control = new_connection_control ();
           server_score = score;
           server_tags = [];
           server_nfiles = 0;
@@ -525,7 +526,7 @@ let dummy_client =
       client_chunks = [||];
       client_block = None;
       client_zones = [];
-      client_connection_control =  new_connection_control (last_time ());
+      client_connection_control =  new_connection_control ( ());
       client_file_queue = [];
       client_source_for = [];
       client_tags = [];
@@ -564,7 +565,7 @@ let new_client key =
             client_chunks = [||];
             client_block = None;
             client_zones = [];
-            client_connection_control =  new_connection_control (last_time ());
+            client_connection_control =  new_connection_control ( ());
             client_file_queue = [];
             client_source_for = [];
             client_tags = [];

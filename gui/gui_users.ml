@@ -19,6 +19,7 @@
 
 (** GUI for the lists of files. *)
 
+open Gettext
 open CommonTypes
 open GuiTypes
 open Gui_columns
@@ -106,8 +107,8 @@ class box columns () =
       match self#selection with
 	[] -> []
       |	_ -> [ 
-            `I (M.add_to_friends, self#add_to_friends);
-            `I (M.browse_files, self#browse_files)
+            `I (gettext M.add_to_friends, self#add_to_friends);
+            `I (gettext M.browse_files, self#browse_files)
           ]
 
     method set_tb_style = wtool#set_style
@@ -128,8 +129,8 @@ class box columns () =
       box#vbox#pack ~expand: true pl#box ;
       ignore
 	(wtool#insert_button 
-	   ~text: M.add_to_friends
-	   ~tooltip: M.add_to_friends
+	   ~text: (gettext M.add_to_friends)
+	   ~tooltip: (gettext M.add_to_friends)
 	   ~icon: (Gui_icons.pixmap M.o_xpm_add_to_friends)#coerce
 	   ~callback: self#add_to_friends
 	   ()

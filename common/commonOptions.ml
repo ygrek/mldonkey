@@ -642,7 +642,11 @@ let filter_search = define_option downloads_ini ["filter_search"]
 let filter_search_delay = define_option downloads_ini ["filter_search_delay"]
   "(not implemented) Delay before two filtering on results (results
     are not displayed until filtered). Min is 1 second." float_option 20.
-  
+
+let tcpip_packet_size = define_option downloads_ini ["tcpip_packet_size"]
+  "The size of the header of a TCP/IP packet on your connection (ppp adds
+    14 bytes sometimes, so modify to take that into account)"
+  int_option 40
   
 let _ =
   option_hook debug_net (fun _ -> BasicSocket.debug := !!debug_net);

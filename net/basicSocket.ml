@@ -56,6 +56,7 @@ type t = {
     born : float;
     mutable dump_info : (unit -> unit);
 (*    mutable before_select : (t -> unit); *)
+    mutable can_close : bool;
   }
 
 and handler = t -> event -> unit
@@ -201,6 +202,7 @@ let create_blocking name fd handler =
       born = last_time();
       
       dump_info = dump_basic_socket;
+      can_close = true;
     } in
 (*  Printf.printf "ADD ONE TASK"; print_newline (); *)
   if !debug then begin
@@ -441,3 +443,11 @@ let _ =
       Printf.printf "  %d closed_tasks" (List.length !closed_tasks); print_newline ();
       List.iter (fun t -> t.dump_info ()) !closed_tasks;
   )
+
+let prevent_close s = s.can_close <- false
+let close_all () =
+  List.iter (fun s ->
+      if s.can_close then
+        close s "close all"
+  ) !fd_tasks
+  

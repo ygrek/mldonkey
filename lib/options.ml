@@ -42,7 +42,8 @@ and option_module = (string * option_value) list
 ;;
 
 exception SideEffectOption
-
+exception OptionNotFound
+  
 type 'a option_class =
   { class_name : string;
     from_value : option_value -> 'a;
@@ -113,6 +114,11 @@ let rec find_value list m =
       | _ -> raise Not_found
 ;;
 
+let find_value list m =
+  try
+    find_value list m
+  with _ -> raise OptionNotFound
+
 let prune_file file =
   file.file_pruned <- true
 
@@ -137,7 +143,7 @@ let
   o.option_value <-
     begin try o.option_class.from_value (find_value option_name 
         opfile.file_rc) with
-      Not_found -> default_value
+      OptionNotFound -> default_value
     | e ->
         Printf.printf "Options.define_option, for option %s: "
           (match option_name with
@@ -300,13 +306,20 @@ let really_load filename options =
            exec_hooks o
         with
           SideEffectOption -> ()
-        | Not_found ->
+        | OptionNotFound ->
             Printf.printf "Option ";
             List.iter (fun s -> Printf.printf "%s " s) o.option_name;
             Printf.printf "not found in %s" filename;
             print_newline ();
         | e ->
-             Printf.printf "Exc %s" (Printexc.to_string e); print_newline ())
+            Printf.printf "Exception: %s while handling option:"
+              (Printexc.to_string e); 
+            List.iter (fun s -> Printf.printf "%s " s) o.option_name;
+            print_newline ();
+            Printf.printf "  in %s" filename; print_newline ();
+            Printf.printf "Aborting."; print_newline ();
+            exit 2
+    )
       options;
     list
   with
@@ -397,6 +410,25 @@ let string2_to_value (s1, s2) = SmallList [StringValue s1; StringValue s2];;
 let value_to_list v2c v =
   match v with
     List l | SmallList l -> List.rev (List.rev_map v2c l)
+  | StringValue s -> failwith (Printf.sprintf 
+        "Options: not a list option (StringValue [%s])" s)
+  | FloatValue _ -> failwith "Options: not a list option (FloatValue)"
+  | IntValue _ -> failwith "Options: not a list option (IntValue)"
+  | Module _ -> failwith "Options: not a list option (Module)"
+;;
+
+let value_to_safelist v2c v =
+  match v with
+    List l | SmallList l -> 
+      let rec iter list left =
+        match left with
+          [] -> list
+        | x :: tail ->
+            let list = try (v2c x) :: list with _ -> list
+            in
+            iter list tail
+      in
+      List.rev (iter [] (List.rev l))
   | StringValue s -> failwith (Printf.sprintf 
         "Options: not a list option (StringValue [%s])" s)
   | FloatValue _ -> failwith "Options: not a list option (FloatValue)"
@@ -495,6 +527,12 @@ let option_option cl =
 let list_option cl =
   define_option_class (cl.class_name ^ " List") (value_to_list cl.from_value)
     (list_to_value cl.class_name cl.to_value)
+;;
+
+let safelist_option cl =
+  define_option_class (cl.class_name ^ " List") 
+  (value_to_safelist cl.from_value)
+  (list_to_value cl.class_name cl.to_value)
 ;;
 
 let listiter_option cl =

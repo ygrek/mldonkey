@@ -1,6 +1,32 @@
 ChangeLog	
 =========
 
+2002/10/14: mldonkey
+  - add: internationalisation
+      * envirronment variable MLDONKEY_GUI_MESSAGES
+  - fix: rewritten upload in edonkey. Old mode can be restaured with option
+     'new_upload_system' set to false
+
+2002/10/13: mldonkey
+  - add: internationalisation
+      * new module lib/gettext.ml for format options
+      * new GUI config file gui_messages.ini
+      * new directory i18n to store gui_messages.ini.?? files for
+         contributed languages
+
+2002/10/12: mldonkey
+  - fix: support for several GUIs at the same time
+      * Changes in how objects updates are monitored
+      * Lots of changes in DriverInterface        
+
+2002/10/11: mldonkey
+  - add: 'close_all_sockets' command to close all connection sockets.
+      Added to the SIGHUP signal handler.
+  - fix: SIGHUP doesn't call network_enable/disable anymore. Bug about
+      automatic disabling of edonkey plugin ?
+  - fix: new udp bandwidth management
+  - add: starting reimplementing multi-gui
+
 2002/10/09: mldonkey
   - add: catch SIGTERM and save the config before exiting
   - add: publication on Overnet has been implemented, but not tested yet.

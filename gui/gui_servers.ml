@@ -19,6 +19,7 @@
 
 (** GUI for the list of servers. *)
 
+open Gettext
 open CommonGlobals
 open CommonTypes
 open GuiTypes
@@ -79,7 +80,7 @@ class box columns users wl_status =
     
     method update_wl_status =
       wl_status#set_text
-	(Gui_messages.connected_to_servers 
+        (Printf.sprintf !!Gui_messages.connected_to_servers 
 	   !G.nconnected_servers !G.nservers)
 
     method content_by_col s col =
@@ -181,14 +182,14 @@ class box columns users wl_status =
       (match self#selection with
           [] -> []
         |	_ ->
-            [ `I (M.connect, self#connect) ;
-              `I (M.disconnect, self#disconnect) ;
-              `I (M.view_users, self#view_users) ;
-              `I (M.remove, self#remove) ;
+            [ `I ((gettext M.connect), self#connect) ;
+              `I ((gettext M.disconnect), self#disconnect) ;
+              `I ((gettext M.view_users), self#view_users) ;
+              `I ((gettext M.remove), self#remove) ;
               `S ]
       ) @
-        [ `I (M.connect_more_servers, self#connect_more_servers) ;
-        `I (M.remove_old_servers, self#remove_old_servers)
+        [ `I ((gettext M.connect_more_servers), self#connect_more_servers) ;
+        `I ((gettext M.remove_old_servers), self#remove_old_servers)
       ]	
     
     method set_tb_style = wtool#set_style
@@ -363,8 +364,8 @@ class box columns users wl_status =
 
       ignore
 	(wtool#insert_button 
-	   ~text: M.remove
-	   ~tooltip: M.remove
+	   ~text: (gettext M.remove)
+	   ~tooltip: (gettext M.remove)
 	   ~icon: (Gui_icons.pixmap M.o_xpm_remove)#coerce
 	   ~callback: self#remove
 	   ()
@@ -372,8 +373,8 @@ class box columns users wl_status =
 
       ignore
 	(wtool#insert_button 
-	   ~text: M.connect
-	   ~tooltip: M.connect
+	   ~text: (gettext M.connect)
+	   ~tooltip: (gettext M.connect)
 	   ~icon: (Gui_icons.pixmap M.o_xpm_connect)#coerce
 	   ~callback: self#connect
 	   ()
@@ -381,8 +382,8 @@ class box columns users wl_status =
 
       ignore
 	(wtool#insert_button 
-	   ~text: M.disconnect
-	   ~tooltip: M.disconnect
+	   ~text: (gettext M.disconnect)
+	   ~tooltip: (gettext M.disconnect)
 	   ~icon: (Gui_icons.pixmap M.o_xpm_disconnect)#coerce
 	   ~callback: self#disconnect
 	   ()
@@ -390,8 +391,8 @@ class box columns users wl_status =
 
       ignore
 	(wtool#insert_button 
-	   ~text: M.view_users
-	   ~tooltip: M.view_users
+	   ~text: (gettext M.view_users)
+	   ~tooltip: (gettext M.view_users)
 	   ~icon: (Gui_icons.pixmap M.o_xpm_view_users)#coerce
 	   ~callback: self#view_users
 	   ()
@@ -399,8 +400,8 @@ class box columns users wl_status =
 
       ignore
 	(wtool#insert_button 
-	   ~text: M.connect_more_servers
-	   ~tooltip: M.connect_more_servers
+	   ~text: (gettext M.connect_more_servers)
+	   ~tooltip: (gettext M.connect_more_servers)
 	   ~icon: (Gui_icons.pixmap M.o_xpm_connect_more_servers)#coerce
 	   ~callback: self#connect_more_servers
 	   ()
@@ -408,8 +409,8 @@ class box columns users wl_status =
 
       ignore
 	(wtool#insert_button 
-	   ~text: M.remove_old_servers
-	   ~tooltip: M.remove_old_servers
+	   ~text: (gettext M.remove_old_servers)
+	   ~tooltip: (gettext M.remove_old_servers)
 	   ~icon: (Gui_icons.pixmap M.o_xpm_remove_old_servers)#coerce
 	   ~callback: self#remove_old_servers
 	   ()
@@ -417,8 +418,8 @@ class box columns users wl_status =
 
       ignore
 	(wtool#insert_button 
-	   ~text: M.toggle_display_all_servers
-	   ~tooltip: M.toggle_display_all_servers
+	   ~text: (gettext M.toggle_display_all_servers)
+	   ~tooltip: (gettext M.toggle_display_all_servers)
 	   ~icon: (Gui_icons.pixmap M.o_xpm_toggle_display_all_servers)#coerce
 	   ~callback: self#toggle_display_all_servers
 	   ()

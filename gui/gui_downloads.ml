@@ -19,6 +19,7 @@
 
 (** GUI for the lists of files. *)
 
+open Gettext
 open Gui_global
 open CommonTypes
 open GuiTypes
@@ -36,11 +37,11 @@ let file_first_name f = f.file_name
 
 let string_of_file_state state =
   match state with
-    FileDownloading -> M.downloading
-  | FileCancelled -> M.cancelled
-  | FilePaused -> M.paused
+    FileDownloading -> (gettext M.downloading)
+  | FileCancelled -> (gettext M.cancelled)
+  | FilePaused -> (gettext M.paused)
   | FileDownloaded
-  | FileShared  -> M.dl_done
+  | FileShared  -> (gettext M.dl_done)
   | FileNew -> assert false
       
 let some_is_available f =
@@ -114,7 +115,7 @@ let string_of_format format =
       Printf.sprintf "MP3: %s - %s (%d): %s"
 	tag.Mp3tag.artist tag.Mp3tag.album 
 	tag.Mp3tag.tracknum tag.Mp3tag.title
-  | _ -> M.unknown
+  | _ -> (gettext M.unknown)
 
 let time_to_string time =
   let seconds = int_of_float time in
@@ -258,7 +259,7 @@ class box_downloaded wl_status () =
 
     method update_wl_status : unit =
       wl_status#set_text 
-	(Gui_messages.downloaded_files !G.ndownloaded !G.ndownloads)
+	(Printf.sprintf !!Gui_messages.downloaded_files !G.ndownloaded !G.ndownloads)
 
     method content f = 
       (fst (super#content f), Some (`NAME !!O.color_downloaded))
@@ -294,8 +295,8 @@ class box_downloaded wl_status () =
       match self#selection with
 	file :: _ ->
 	  (
-	   let file_opt = GToolbox.input_string ~title: M.save 
-               M.save in
+	   let file_opt = GToolbox.input_string ~title: (gettext M.save) 
+               (gettext M.save) in
            match file_opt with
              None -> ()
            | Some name -> 
@@ -310,7 +311,7 @@ class box_downloaded wl_status () =
 	  (
 	   match file.file_format with
              Mp3 tag ->
-               Mp3_ui.edit_tag_v1 M.edit_mp3 tag ;
+               Mp3_ui.edit_tag_v1 (gettext M.edit_mp3) tag ;
                Gui_com.send (GuiProto.ModifyMp3Tags (file.file_num, tag))
 	   | _ ->
 	       ()
@@ -320,16 +321,16 @@ class box_downloaded wl_status () =
 
     method menu =
       match self#selection with
-	[] -> [ `I (M.save_all, self#save_all) ]
+	[] -> [ `I ((gettext M.save_all), self#save_all) ]
       |	file :: _ ->
-	  [ `I (M.save_as, self#save_as) ;
-	    `M (M.save, self#save_menu_items file) ;
+	  [ `I ((gettext M.save_as), self#save_as) ;
+	    `M ((gettext M.save), self#save_menu_items file) ;
 	  ] @
 	  (match file.file_format with
-	    Mp3 _ -> [`I (M.edit_mp3, self#edit_mp3_tags)]
+	    Mp3 _ -> [`I ((gettext M.edit_mp3), self#edit_mp3_tags)]
 	  | _ -> []) @
 	  [ `S ;
-	    `I (M.save_all, self#save_all) 
+	    `I ((gettext M.save_all), self#save_all) 
 	  ]
 
     (** {2 Handling core messages} *)
@@ -357,8 +358,8 @@ class box_downloaded wl_status () =
     initializer
       ignore
 	(wtool#insert_button 
-	   ~text: M.save
-	   ~tooltip: M.save
+	   ~text: (gettext M.save)
+	   ~tooltip: (gettext M.save)
 	   ~icon: (Gui_icons.pixmap M.o_xpm_save)#coerce
 	   ~callback: self#save
 	   ()
@@ -366,8 +367,8 @@ class box_downloaded wl_status () =
 
       ignore
 	(wtool#insert_button 
-	   ~text: M.save_as
-	   ~tooltip: M.save_as
+	   ~text: (gettext M.save_as)
+	   ~tooltip: (gettext M.save_as)
 	   ~icon: (Gui_icons.pixmap M.o_xpm_save_as)#coerce
 	   ~callback: self#save_as
 	   ()
@@ -375,8 +376,8 @@ class box_downloaded wl_status () =
 
       ignore
 	(wtool#insert_button 
-	   ~text: M.save_all
-	   ~tooltip: M.save_all
+	   ~text: (gettext M.save_all)
+	   ~tooltip: (gettext M.save_all)
 	   ~icon: (Gui_icons.pixmap M.o_xpm_save_all)#coerce
 	   ~callback: self#save_all
 	   ()
@@ -384,8 +385,8 @@ class box_downloaded wl_status () =
 
       ignore
 	(wtool#insert_button 
-	   ~text: M.edit_mp3
-	   ~tooltip: M.edit_mp3
+	   ~text: (gettext M.edit_mp3)
+	   ~tooltip: (gettext M.edit_mp3)
 	   ~icon: (Gui_icons.pixmap M.o_xpm_edit_mp3)#coerce
 	   ~callback: self#edit_mp3_tags
 	   ()
@@ -479,14 +480,14 @@ class box_downloads box_locs wl_status () =
 
     method update_wl_status : unit =
       wl_status#set_text 
-	(Gui_messages.downloaded_files !G.ndownloaded !G.ndownloads)
+	(Printf.sprintf !!Gui_messages.downloaded_files !G.ndownloaded !G.ndownloads)
 
     method cancel () =
       let s = Gui_messages.ask_cancel_download_files
 	  (List.map (fun f -> file_first_name f) self#selection)
       in
-      match GToolbox.question_box Gui_messages.cancel 
-	  [ Gui_messages.yes ; Gui_messages.no] s 
+      match GToolbox.question_box (gettext Gui_messages.cancel)
+	  [ gettext Gui_messages.yes ; gettext Gui_messages.no] s 
       with
 	1 ->
 	  List.iter
@@ -528,12 +529,12 @@ class box_downloads box_locs wl_status () =
       match self#selection with
 	[] -> []
       |	_ ->
-	  [ `I (M.pause_resume_dl, self#pause_resume) ;
-	    `I (M.retry_connect, self#retry_connect) ;
-	    `I (M.cancel, self#cancel) ;
-	    `I (M.verify_chunks, self#verify_chunks) ;
-	    `I (M.preview, self#preview) ;
-	    `I (M.get_format, self#get_format) ;
+	  [ `I ((gettext M.pause_resume_dl), self#pause_resume) ;
+	    `I ((gettext M.retry_connect), self#retry_connect) ;
+	    `I ((gettext M.cancel), self#cancel) ;
+	    `I ((gettext M.verify_chunks), self#verify_chunks) ;
+	    `I ((gettext M.preview), self#preview) ;
+	    `I ((gettext M.get_format), self#get_format) ;
 	  ] 
 
     method on_select file =
@@ -667,24 +668,24 @@ class box_downloads box_locs wl_status () =
     initializer
       ignore
 	(wtool#insert_button 
-	   ~text: M.cancel
-	   ~tooltip: M.cancel
+	   ~text: (gettext M.cancel)
+	   ~tooltip: (gettext M.cancel)
 	   ~icon: (Gui_icons.pixmap M.o_xpm_cancel)#coerce
 	   ~callback: self#cancel
 	   ()
 	);
       ignore
 	(wtool#insert_button 
-	   ~text: M.retry_connect
-	   ~tooltip: M.retry_connect
+	   ~text: (gettext M.retry_connect)
+	   ~tooltip: (gettext M.retry_connect)
 	   ~icon: (Gui_icons.pixmap M.o_xpm_retry_connect)#coerce
 	   ~callback: self#retry_connect
 	   ()
 	);
       ignore
 	(wtool#insert_button 
-	   ~text: M.pause_resume_dl
-	   ~tooltip: M.pause_resume_dl
+	   ~text: (gettext M.pause_resume_dl)
+	   ~tooltip: (gettext M.pause_resume_dl)
 	   ~icon: (Gui_icons.pixmap M.o_xpm_pause_resume)#coerce
 	   ~callback: self#pause_resume
 	   ()
@@ -692,8 +693,8 @@ class box_downloads box_locs wl_status () =
 
       ignore
 	(wtool#insert_button 
-	   ~text: M.verify_chunks
-	   ~tooltip: M.verify_chunks
+	   ~text: (gettext M.verify_chunks)
+	   ~tooltip: (gettext M.verify_chunks)
 	   ~icon: (Gui_icons.pixmap M.o_xpm_verify_chunks)#coerce
 	   ~callback: self#verify_chunks
 	   ()
@@ -701,8 +702,8 @@ class box_downloads box_locs wl_status () =
 
       ignore
 	(wtool#insert_button 
-	   ~text: M.preview
-	   ~tooltip: M.preview
+	   ~text: (gettext M.preview)
+	   ~tooltip: (gettext M.preview)
 	   ~icon: (Gui_icons.pixmap M.o_xpm_preview)#coerce
 	   ~callback: self#preview
 	   ()
@@ -710,8 +711,8 @@ class box_downloads box_locs wl_status () =
 
       ignore
 	(wtool#insert_button 
-	   ~text: M.get_format
-	   ~tooltip: M.get_format
+	   ~text: (gettext M.get_format)
+	   ~tooltip: (gettext M.get_format)
 	   ~icon: (Gui_icons.pixmap M.o_xpm_get_format)#coerce
 	   ~callback: self#get_format
 	   ()

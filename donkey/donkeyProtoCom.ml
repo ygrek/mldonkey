@@ -144,7 +144,8 @@ let udp_send t addr msg =
   with e ->
       Printf.printf "Exception %s in udp_send" (Printexc.to_string e);
       print_newline () 
-  
+
+      (*
 let udp_send_if_possible t bc addr msg =
   try
     Buffer.clear buf;
@@ -158,12 +159,13 @@ let udp_send_if_possible t bc addr msg =
   with e ->
       Printf.printf "Exception %s in udp_send" (Printexc.to_string e);
       print_newline () 
-        
+      *)
+
 let udp_handler f sock event =
   let module M = DonkeyProtoServer in
   match event with
     UdpSocket.READ_DONE ->
-      List.iter (fun p -> 
+      UdpSocket.read_packets sock (fun p -> 
           try
             let pbuf = p.UdpSocket.content in
             let len = String.length pbuf in
@@ -179,8 +181,7 @@ let udp_handler f sock event =
           with e ->
               Printf.printf "Error %s in udp_handler"
                 (Printexc.to_string e); print_newline () 
-      ) sock.UdpSocket.rlist;
-      sock.UdpSocket.rlist <- []
+      ) ;
   | _ -> ()
 
 let propagation_socket = UdpSocket.create_sendonly ()
@@ -213,7 +214,7 @@ let propagate_working_servers servers =
 let udp_basic_handler f sock event =
   match event with
     UdpSocket.READ_DONE ->
-      List.iter (fun p -> 
+      UdpSocket.read_packets sock (fun p -> 
           try
             let pbuf = p.UdpSocket.content in
             let len = String.length pbuf in
@@ -228,8 +229,7 @@ let udp_basic_handler f sock event =
           with e ->
               Printf.printf "Error %s in udp_basic_handler"
                 (Printexc.to_string e); print_newline () 
-      ) sock.UdpSocket.rlist;
-      sock.UdpSocket.rlist <- []
+      ) ;
   | _ -> ()
 
 

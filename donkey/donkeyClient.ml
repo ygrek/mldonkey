@@ -84,12 +84,12 @@ let udp_sock () =
   | Some sock -> sock
       
 let udp_client_send uc t =
-  DonkeyProtoCom.udp_send_if_possible (udp_sock ()) upload_control 
+  DonkeyProtoCom.udp_send (udp_sock ())
     (Unix.ADDR_INET (Ip.to_inet_addr uc.udp_client_ip,uc.udp_client_port+4))
   t
 
 let client_udp_send ip port t =
-  DonkeyProtoCom.udp_send_if_possible (udp_sock ()) upload_control
+  DonkeyProtoCom.udp_send (udp_sock ()) 
   (Unix.ADDR_INET (Ip.to_inet_addr ip,port+4))
   t
 
@@ -848,8 +848,16 @@ incr clients_list_len;
       let module Q = M.QueryBloc in
       let file = find_file  t.Q.md4 in
 
-      let up = match c.client_upload with
-          Some ({ up_file = f } as up) when f == file ->  up
+      let up, waiting = match c.client_upload with
+          Some ({ up_file = f } as up) when f == file ->  up, up.up_waiting
+        | Some old_up ->
+            {
+              up_file = file;
+              up_pos = Int32.zero;
+              up_end_chunk = Int32.zero;
+              up_chunks = [];
+              up_waiting = old_up.up_waiting;
+            }, old_up.up_waiting
         | _ ->
             {
               up_file = file;
@@ -857,13 +865,13 @@ incr clients_list_len;
               up_end_chunk = Int32.zero;
               up_chunks = [];
               up_waiting = false;
-            }
+            }, false
       in
       new_chunk up t.Q.start_pos1 t.Q.end_pos1;
       new_chunk up t.Q.start_pos2 t.Q.end_pos2;
       new_chunk up t.Q.start_pos3 t.Q.end_pos3;
       c.client_upload <- Some up;
-      if not up.up_waiting && !has_upload = 0 then begin
+      if not waiting && !has_upload = 0 then begin
           Fifo.put upload_clients c;
           up.up_waiting <- true
         end
@@ -1064,6 +1072,13 @@ let schedule_client c =
             let next_try = connection_next_try c.client_connection_control in
             let delay = next_try -. last_time () in
             c.client_on_list <- delay < 240.;
+            (*
+            Printf.printf "NEXT TRY IN %f(last_try %s current %s)" delay 
+              (Date.to_string c.client_connection_control.control_last_try)
+            (Date.to_string (last_time ()))
+            
+; print_newline ();
+  *)
             if delay < 0. then 
               clients_lists.(0) <- c :: clients_lists.(0)
             else
@@ -1133,7 +1148,7 @@ let query_id s sock ip =
   )
 
 let udp_server_send s t =
-  DonkeyProtoCom.udp_send_if_possible (udp_sock ()) upload_control
+  DonkeyProtoCom.udp_send (udp_sock ())
   (Unix.ADDR_INET (Ip.to_inet_addr s.server_ip,s.server_port+4))
   t
   
@@ -1163,6 +1178,7 @@ let query_locations_reply s t =
             })
 
       | Some sock ->
+          Printf.printf "QUERY ID"; print_newline ();
           query_id s sock ip
   ) t.Q.locs
   

@@ -19,6 +19,7 @@
 
 (** GUI for the lists of files. *)
 
+open Gettext
 open CommonTypes
 open GuiProto
 open Gui_columns
@@ -288,16 +289,16 @@ class box submit_search query_entry =
 		(fun () -> hide_or_show wchk_show#active form));
       ignore
 	(wtool#insert_button 
-	   ~text: M.submit
-	   ~tooltip: M.submit
+	   ~text: (gettext M.submit)
+	   ~tooltip: (gettext M.submit)
 	   ~icon: (Gui_icons.pixmap M.o_xpm_submit_search)#coerce
 	   ~callback: self#submit
 	   ()
 	);
       ignore
 	(wtool#insert_button 
-	   ~text: M.local_search
-	   ~tooltip: M.local_search
+	   ~text: (gettext M.local_search)
+	   ~tooltip: (gettext M.local_search)
 	   ~icon: (Gui_icons.pixmap M.o_xpm_local_search)#coerce
 	   ~callback: self#local
 	   ()
@@ -306,8 +307,8 @@ class box submit_search query_entry =
       
       ignore
 	(wtool#insert_button 
-	   ~text: M.subscribe
-	   ~tooltip: M.subscribe
+	   ~text: (gettext M.subscribe)
+	   ~tooltip: (gettext M.subscribe)
 	   ~icon: (Gui_icons.pixmap M.o_xpm_download)#coerce
 	   ~callback: self#subscribe
 	   ()
@@ -353,7 +354,7 @@ class paned () =
       let vbox = GPack.vbox () in
       let box_res = new Gui_results.search_result_box s.GuiTypes.search_num () in
       vbox#pack ~expand: true box_res#coerce;
-      let wb_close = GButton.button ~label: M.close_search
+      let wb_close = GButton.button ~label: (gettext M.close_search)
 	  ~packing: (vbox#pack ~expand: false)
 	  ()
       in

@@ -19,7 +19,7 @@
 
 (** GUI for the lists of files. *)
 
-
+open Gettext
 open CommonTypes
 open GuiTypes
 open Gui_columns
@@ -326,8 +326,8 @@ class box_users selected_room =
       
       ignore
         (wtool#insert_button 
-          ~text: M.close_room
-          ~tooltip: M.close_room
+          ~text: (gettext M.close_room)
+          ~tooltip: (gettext M.close_room)
           ~icon: (Gui_icons.pixmap M.o_xpm_close_room)#coerce
           ~callback: (fun _ ->  
             match !selected_room with

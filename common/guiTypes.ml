@@ -20,7 +20,7 @@
 open CommonGlobals
 open CommonTypes
 
-
+(*
 type options = {
     mutable connection_port : int;
     mutable control_port : int;
@@ -43,7 +43,8 @@ type options = {
     mutable max_server_age : int;
     mutable password : string;
   }
-  
+    *)
+
 type 'a search_request = {
     mutable search_num : int;
     mutable search_type : search_type;

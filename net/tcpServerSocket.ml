@@ -67,6 +67,7 @@ let create name addr port handler =
         event_handler = handler;
       } in
     let sock = create name fd (tcp_handler t) in
+    prevent_close sock;
     t.sock <- sock;
     t
   with e ->

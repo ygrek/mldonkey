@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Gettext
 open Gui_global
 module O = Gui_options
 module M = Gui_messages
@@ -36,9 +37,13 @@ let _ =
         Printf.printf "Exception %s in load options" (Printexc.to_string e);
         print_newline ();
   );
-  let args = Options.simple_args O.mldonkey_gui_ini in
+  let args = 
+    ("-dump_msg", Arg.Unit (fun _ ->
+          Options.save Gui_messages.message_file
+      ), ": update internationalisation message file")::
+    Options.simple_args O.mldonkey_gui_ini in
   Arg.parse args (Arg.usage args)  "mldonkey_gui: the GUI to use with mldonkey"
-
+  
 (* Check bindings *)
 let _ = 
   if !!O.keymap_global = [] then
@@ -226,7 +231,7 @@ let value_reader gui t sock =
         Gui_com.gui_protocol_used := min v GuiEncoding.best_gui_version;
         Printf.printf "Using protocol %d for communications" !Gui_com.gui_protocol_used;
         print_newline ();
-        gui#label_connect_status#set_text M.connected;
+        gui#label_connect_status#set_text (gettext M.connected);
         Com.send (Password (!!O.password))
     
     | Search_result (num,r) -> 

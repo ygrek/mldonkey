@@ -373,7 +373,7 @@ let parse opcode s =
 let udp_handler f sock event =
   match event with
     UdpSocket.READ_DONE ->
-      List.iter (fun p -> 
+      UdpSocket.read_packets sock (fun p -> 
           try
             let pbuf = p.UdpSocket.content in
             let len = String.length pbuf in
@@ -390,7 +390,6 @@ let udp_handler f sock event =
           with e ->
               Printf.printf "Error %s in udp_handler"
                 (Printexc.to_string e); print_newline () 
-      ) sock.UdpSocket.rlist;
-      sock.UdpSocket.rlist <- []
+      );
   | _ -> ()
       

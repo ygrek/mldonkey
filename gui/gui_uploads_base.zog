@@ -1,5 +1,5 @@
 <entity name=box>
-  <frame name=wf_upstats width="" height="" border_width="" label="Gui_messages.upstats" label_xalign="" label_yalign="" shadow_type="`NONE" tab_label="" expand="true" fill="true" padding="2">
+  <frame name=wf_upstats width="" height="" border_width="" label="Gettext.gettext Gui_messages.upstats" label_xalign="" label_yalign="" shadow_type="`NONE" tab_label="" expand="true" fill="true" padding="2">
   </frame>
 </entity>
 <entity name=upstats_box>

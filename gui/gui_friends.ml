@@ -19,6 +19,7 @@
 
 (** GUI for the lists of files. *)
 
+open Gettext
 open CommonTypes
 open GuiTypes
 open Gui_columns
@@ -33,18 +34,18 @@ let (!!) = Options.(!!)
 
 let string_color_of_state state =
   match state with
-  | Connected_busy -> M.downloading, Some !!O.color_downloading 
-  | Connected_idle -> M.connected, Some !!O.color_connected 
-  | Connecting  -> M.connecting, Some !!O.color_connecting
+  | Connected_busy -> gettext M.downloading, Some !!O.color_downloading 
+  | Connected_idle -> gettext M.connected, Some !!O.color_connected 
+  | Connecting  -> gettext M.connecting, Some !!O.color_connecting
   | NotConnected
   | NewHost -> "", None
-  | Connected_initiating -> M.initiating, Some !!O.color_not_connected
-  | Connected_queued -> M.queued, Some !!O.color_not_connected
-  | RemovedHost -> M.removed, Some !!O.color_not_connected
+  | Connected_initiating -> gettext M.initiating, Some !!O.color_not_connected
+  | Connected_queued -> gettext M.queued, Some !!O.color_not_connected
+  | RemovedHost -> gettext M.removed, Some !!O.color_not_connected
   
 let string_color_of_client c =
   match c.client_files with
-    Some _ -> M.o_col_files_listed, Some !!O.color_downloading 
+    Some _ -> gettext M.o_col_files_listed, Some !!O.color_downloading 
   | _ -> string_color_of_state c.client_state
 
 let shorten maxlen s =
@@ -136,13 +137,13 @@ class box columns () =
         Col_client_name -> shorten !!O.max_client_name_len f.client_name
       | Col_client_state -> fst (string_color_of_client f)
       | Col_client_type -> (match f.client_type with
-              FriendClient -> M.friend
-            | ContactClient -> M.contact
+              FriendClient -> gettext M.friend
+            | ContactClient -> gettext M.contact
             | NormalClient -> "Y")
       | Col_client_network -> Gui_global.network_name f.client_network
       | Col_client_kind -> 
           match f.client_kind with
-            Known_location _ -> M.direct
+            Known_location _ -> gettext M.direct
           | _ -> ""
               
     method content f =
@@ -213,7 +214,7 @@ class box_friends box_files () =
       Gui_com.send GuiProto.RemoveAllFriends
     
     method find_friend () =
-      match GToolbox.input_string M.find_friend M.name with
+      match GToolbox.input_string (gettext M.find_friend) (gettext M.name) with
         None -> ()
       |	Some s ->
           Gui_com.send (GuiProto.FindFriend s)
@@ -237,11 +238,11 @@ class box_friends box_files () =
     
     method menu =
       match self#selection with
-        [] -> [ `I (M.find_friend, self#find_friend) ;
-            `I (M.remove_all_friends, self#remove_all_friends)]
-      |	_ -> [ `I (M.find_friend, self#find_friend) ;
-            `I (M.remove, self#remove) ;
-            `I (M.remove_all_friends, self#remove_all_friends)]
+        [] -> [ `I (gettext M.find_friend, self#find_friend) ;
+            `I (gettext M.remove_all_friends, self#remove_all_friends)]
+      |	_ -> [ `I (gettext M.find_friend, self#find_friend) ;
+            `I (gettext M.remove, self#remove) ;
+            `I (gettext M.remove_all_friends, self#remove_all_friends)]
     
     
     method h_update_friend f_new =
@@ -274,24 +275,24 @@ class box_friends box_files () =
     initializer
       ignore
         (wtool#insert_button 
-          ~text: M.find_friend
-          ~tooltip: M.find_friend
+          ~text: (gettext M.find_friend)
+          ~tooltip: (gettext M.find_friend)
           ~icon: (Gui_icons.pixmap M.o_xpm_find_friend)#coerce
           ~callback: self#find_friend
           ()
       );
       ignore
         (wtool#insert_button 
-          ~text: M.remove
-          ~tooltip: M.remove
+          ~text: (gettext M.remove)
+          ~tooltip: (gettext M.remove)
           ~icon: (Gui_icons.pixmap M.o_xpm_remove)#coerce
           ~callback: self#remove
           ()
       );
       ignore
         (wtool#insert_button 
-          ~text: M.remove_all_friends
-          ~tooltip: M.remove_all_friends
+          ~text: (gettext M.remove_all_friends)
+          ~tooltip: (gettext M.remove_all_friends)
           ~icon: (Gui_icons.pixmap M.o_xpm_remove_all_friends)#coerce
           ~callback: self#remove_all_friends
           ()
@@ -317,7 +318,7 @@ class box_list () =
     method menu =
       match self#selection with
         [] -> []
-      |	_ -> [ `I (M.add_to_friends, self#add_to_friends) ]
+      |	_ -> [ `I (gettext M.add_to_friends, self#add_to_friends) ]
     
     method update_data_by_file file_opt =
       G.nclocations := 0;
@@ -385,7 +386,8 @@ class box_list () =
 	  ()
 
     method update_locations_label =
-      label_locs#set_text (Gui_messages.connected_to_locations !G.nclocations !G.nlocations)
+      label_locs#set_text 
+        (Printf.sprintf !!Gui_messages.connected_to_locations !G.nclocations !G.nlocations)
 
     initializer
       vbox_list#pack ~expand: true prebox#coerce;
@@ -393,8 +395,8 @@ class box_list () =
 
       ignore
 	(wtool#insert_button 
-	   ~text: M.add_to_friends
-	   ~tooltip: M.add_to_friends
+	   ~text: (gettext M.add_to_friends)
+	   ~tooltip: (gettext M.add_to_friends)
 	   ~icon: (Gui_icons.pixmap M.o_xpm_add_to_friends)#coerce
 	   ~callback: self#add_to_friends
 	   ()

@@ -108,27 +108,32 @@ module ServerOption = struct
               get_value "server_network" value_to_string
             with _ -> "Donkey"
           in
-          let network = network_find_by_name network in
+          let network = 
+            try network_find_by_name network with e ->
+                Printf.printf "Network %s not supported" network;
+                print_newline ();
+                raise e
+              in
           let server = network_add_server network assocs in
           server
       | _ -> assert false
-          
+    
     let server_to_value server =
       Options.Module (
-        ("server_network", string_to_value (server_network server).network_name)
+        ("server_network", 
+          string_to_value (server_network server).network_name)
         ::
         (server_to_option server)
       )
       
     let t =
       define_option_class "Server" value_to_server server_to_value
-    ;;
   end
 
 
 let servers = define_option servers_ini
     ["known_servers"] "List of known servers"
-    (list_option ServerOption.t) []
+    (safelist_option ServerOption.t) []
 
 
 let rec string_of_option v =
@@ -449,21 +454,12 @@ let mail_for_completed_file file =
   if !!mail <> "" then
     let module M = Mailer in
     let line1 = "\r\n mldonkey has completed the download of:\r\n\r\n" in
-    
-    (*
-    let line2 = Printf.sprintf "\r\ned2k://|file|%s|%ld|%s|\r\n" 
-        (file_best_name file)
-      (file_size file)
-      (Md4.to_string file.file_md4)
-in
-  *)
 
     let line2 = Printf.sprintf "\r\n%s\r\n%ld\r\n%s\r\n" 
       (file_best_name file)
       (file_size file)
       (file_comment file)
     in
-
     
     let mail = {
         M.mail_to = !!mail;

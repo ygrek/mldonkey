@@ -911,7 +911,17 @@ let _ =
   );
   client_ops.op_client_clear_files <- (fun c ->
       c.client_all_files <- None;
-      check_useful_client c)
+      check_useful_client c);
+  client_ops.op_client_bprint <- (fun buf c ->
+      Printf.bprintf buf "\t\t%s (last_ok <%s> lasttry <%s> nexttry <%s> onlist %b)\n"
+        c.client_name 
+        (let last = c.client_connection_control.control_last_ok in
+        if last < 1. then "never" else Date.to_string last)
+        (let last = c.client_connection_control.control_last_try in
+        if last < 1. then "never" else Date.to_string last)
+      (Date.to_string (connection_next_try c.client_connection_control))
+      c.client_on_list
+  )
 
 let _ =
   user_ops.op_user_set_friend <- (fun u ->

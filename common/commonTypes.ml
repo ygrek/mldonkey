@@ -254,23 +254,52 @@ prevent sending the same information several times (for example,
 to avoid the Client_info and Result_info message before the Client_file 
 message.
 *)
+
+type numevents = {
+    mutable num_map : bool Intmap.t;
+    mutable num_list : int list;
+  }
+
   
 type gui_record = {
     mutable gui_num : int;
     mutable gui_search_nums : int list;
     mutable gui_searches : (int * search) list;
     mutable gui_sock : TcpBufferedSocket.t;
-    mutable gui_files : file list;
-    mutable gui_friends : client list;
-    mutable gui_servers : server list; 
-    mutable gui_sources : (client list * file) option;
-    mutable gui_rooms : room list;
     mutable gui_version : int;
     mutable gui_auth : bool;
     mutable gui_poll : bool;
-    mutable gui_connecting : bool;
+    
+    mutable gui_new_events : event list;
+    mutable gui_old_events : event list;
+  
+    mutable gui_files : numevents;
+    mutable gui_users : numevents;
+    mutable gui_clients : numevents;
+    mutable gui_servers : numevents; 
+    mutable gui_rooms : numevents;
+    mutable gui_results : numevents;
+    mutable gui_shared_files : numevents;
   }
   
+and event = 
+| Room_add_user_event of room * user
+| Room_remove_user_event of room * user
+| Room_message_event of int * room * room_message
+  
+| File_info_event of file
+| User_info_event of user
+| Client_info_event of client
+| Server_info_event of server
+| Room_info_event of room
+| Result_info_event of result
+| Shared_info_event of shared
+
+| Client_new_file_event of client * string * result
+| File_new_source_event of file * client
+| Server_new_user_event of server * user
+| Search_new_result_event of gui_record * int * result
+    
 exception Avifile_info of avi_info
 exception Mp3_info of Mp3tag.tag
 

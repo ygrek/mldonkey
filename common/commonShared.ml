@@ -77,16 +77,16 @@ let ni_ok n m = ignore (ni n m)
     
 let shared_must_update shared =
   let impl = as_shared_impl shared in
-  if impl.impl_shared_update > 0 then
+  if impl.impl_shared_update <> 0 then
     begin
       impl.impl_shared_update <- 0;
     end
 
 let shared_must_update_downloaded shared =
   let impl = as_shared_impl shared in
-  if impl.impl_shared_update > 0 then
+  if impl.impl_shared_update <> 0 then
     begin
-      impl.impl_shared_update <- -1;
+      impl.impl_shared_update <- - impl.impl_shared_update;
     end
 
 let update_shared_num impl =
@@ -142,8 +142,24 @@ let new_shared_ops network = {
     op_shared_info = (fun _ -> fni network "shared_info");
   }
 
+let dummy_shared = {
+    impl_shared_fullname = "";
+    impl_shared_codedname = "";
+    impl_shared_val = 0;
+    impl_shared_update = 0;
+    impl_shared_num = 0;
+    impl_shared_ops = {
+      op_shared_unshare = (fun _ -> raise Not_found);
+      op_shared_info = (fun _ -> raise Not_found);
+    };
+    impl_shared_uploaded = Int64.zero;
+    impl_shared_size = Int32.zero;
+    impl_shared_requests = 0;
+  }
+  
+  
 let shared_find num = 
-  H.find shareds_by_num num
+  H.find shareds_by_num (as_shared { dummy_shared with impl_shared_num = num })
   
 let shared_check_files () =
   let list = ref [] in

@@ -33,12 +33,30 @@ type udp_packet = {
        Unix.msg_flag MSG_DONTWAITlist -> Unix.sockaddr -> int
 *)
   }
+
+module PacketSet = Set.Make (struct
+      type t = int * udp_packet
+      let compare (t1,p1) (t2,p2) = 
+        compare (t1, String.length p1.content) (t2, String.length p2.content)
+    end)
+
+
   
 type t = {
     mutable sock : BasicSocket.t;
     mutable rlist : udp_packet list;
-    mutable wlist : udp_packet list;
+    mutable wlist : PacketSet.t;
     mutable event_handler : handler;
+    mutable write_controler : bandwidth_controler option;
+  }
+
+and bandwidth_controler = {
+    mutable sockets : t list;
+    mutable remaining_bytes : int;
+    mutable total_bytes : int;
+    mutable allow_io : bool ref;
+    mutable count : int;
+    mutable base_time : int;
   }
   
 and handler = t -> event -> unit
@@ -67,9 +85,8 @@ let set_handler t event handler =
 
 let set_refill t f =
   set_handler t CAN_REFILL f;
-  match t.wlist with
-    [] -> (try f t with _ -> ())
-  | _ -> ()
+  if PacketSet.is_empty t.wlist then
+   (try f t with _ -> ())
     
 let set_reader t f =
   set_handler t READ_DONE f;
@@ -79,7 +96,14 @@ let set_reader t f =
 
 let sock t = t.sock
 let closed t = closed t.sock
-let close t = close t.sock
+let close t = 
+  begin
+    match t.write_controler with
+      None -> ()
+    | Some bc ->
+        bc.sockets <- List2.removeq t bc.sockets
+  end;
+  close t.sock
 
 let print_addr addr =
   begin
@@ -92,45 +116,108 @@ let print_addr addr =
   print_newline ()
   
 let write t s pos len addr =
+(* An UDP packet must be sent in the next 10 seconds, or it has to be dropped *)
+  let max_time = last_time () +. 10. in
   if not (closed t) then 
-    match t.wlist with
-      [] ->
-        begin
-          let sock = sock t in
-          try
-          
-
-            let code = Unix.sendto (fd sock) s pos len [] addr in
-            udp_uploaded_bytes := Int64.add !udp_uploaded_bytes (Int64.of_int len);
-	    ()
-            (*
-            Printf.printf "UDP sent [%s]" (String.escaped
-              (String.sub s pos len)); print_newline ();
+    match t.write_controler with
+      None ->
+        if not (PacketSet.is_empty t.wlist) then
+          begin
+            let sock = sock t in
+            try
+              
+              let code = Unix.sendto (fd sock) s pos len [] addr in
+              udp_uploaded_bytes := Int64.add !udp_uploaded_bytes (Int64.of_int len);
+              ()
+(*
+Printf.printf "UDP sent [%s]" (String.escaped
+(String.sub s pos len)); print_newline ();
 *)
-          with
-            Unix.Unix_error (Unix.EWOULDBLOCK, _, _) -> 
-              t.wlist <- {
-                content = String.sub s  pos len;
-                addr = addr;
-              } :: t.wlist;
-              must_write sock true;
-          | e ->
-              Printf.printf "Exception %s in sendto"
-              (Printexc.to_string e);
-              print_newline ();
-              print_addr addr;
-              raise e
-        end
-    | _ -> 
-        t.wlist <- {
-          content = String.sub s  pos len;
-          addr = addr;
-        } :: t.wlist
-      
+            with
+              Unix.Unix_error (Unix.EWOULDBLOCK, _, _) -> 
+                t.wlist <- PacketSet.add  (0, {
+                    content = String.sub s  pos len;
+                    addr = addr;
+                  }) t.wlist;
+                Printf.printf "EWOULDBLOCK on UDP send..."; print_newline ();
+                must_write sock true;
+            | e ->
+                Printf.printf "Exception %s in sendto"
+                  (Printexc.to_string e);
+                print_newline ();
+                print_addr addr;
+                raise e
+          end
+        else
+          t.wlist <- PacketSet.add (0, {
+              content = String.sub s  pos len;
+              addr = addr;
+            })  t.wlist
+    | Some bc ->
+        t.wlist <- PacketSet.add (bc.base_time + 10, {
+            content = String.sub s  pos len;
+            addr = addr;
+          })  t.wlist
+    
 let dummy_sock = Obj.magic 0
 
 let buf = String.create 66000
-  
+
+let rec iter_write_no_bc t sock = 
+    let (time,p) = PacketSet.min_elt t.wlist in
+    t.wlist <- PacketSet.remove (time,p) t.wlist;
+    let len = String.length p.content in
+    begin try
+        ignore (
+          Unix.sendto (fd sock) p.content 0 len  [] p.addr);
+        udp_uploaded_bytes := Int64.add !udp_uploaded_bytes (Int64.of_int len);
+      with
+        Unix.Unix_error (Unix.EWOULDBLOCK, _, _) as e -> raise e
+      | e ->
+          Printf.printf "Exception %s in sendto next"
+            (Printexc.to_string e);
+          print_newline ();
+    end;
+    iter_write_no_bc t sock
+    
+let iter_write_no_bc t sock = 
+  try
+    iter_write_no_bc t sock 
+  with
+    Unix.Unix_error (Unix.EWOULDBLOCK, _, _) as e -> 
+      must_write sock true
+
+let rec iter_write t sock bc = 
+  if bc.total_bytes = 0 || bc.remaining_bytes > 0 then
+    let (time,p) = PacketSet.min_elt t.wlist in
+    t.wlist <- PacketSet.remove (time,p) t.wlist;
+    if time + 10 < bc.base_time then
+      iter_write t sock bc
+    else
+    let len = String.length p.content in
+    begin try
+        ignore (
+          Unix.sendto (fd sock) p.content 0 len  [] p.addr);
+        udp_uploaded_bytes := Int64.add !udp_uploaded_bytes (Int64.of_int len);
+        bc.remaining_bytes <- bc.remaining_bytes - len;
+      with
+        Unix.Unix_error (Unix.EWOULDBLOCK, _, _) as e -> raise e
+      | e ->
+          Printf.printf "Exception %s in sendto next"
+            (Printexc.to_string e);
+          print_newline ();
+    end;
+    iter_write t sock bc
+  else
+    bc.allow_io := false
+    
+let iter_write t sock bc = 
+  try
+    iter_write t sock bc    
+  with
+    Unix.Unix_error (Unix.EWOULDBLOCK, _, _) as e -> 
+      must_write sock true
+      
 let udp_handler t sock event = 
   match event with
   | CAN_READ ->
@@ -144,38 +231,21 @@ let udp_handler t sock event =
   
   | CAN_WRITE ->
       begin
-        match t.wlist with
-          [] -> ()
-        | p :: l ->
-            t.wlist <- l;
-            try
-              let len = String.length p.content in
-              ignore (
-                Unix.sendto (fd sock) p.content 0 len  [] p.addr);
-              udp_uploaded_bytes := Int64.add !udp_uploaded_bytes (Int64.of_int len);
-(*
-  Printf.printf "UDP sent after [%s]" (String.escaped
-p.content); print_newline ();
-  *)
-            with
-              Unix.Unix_error (Unix.EWOULDBLOCK, _, _) -> 
-                t.wlist <- p :: l
-            | e ->
-                Printf.printf "Exception %s in sendto next"
-                  (Printexc.to_string e);
-                print_newline ();
-                raise e
-
+        match t.write_controler with
+          None ->
+            iter_write_no_bc t sock
+        | Some bc ->
+            iter_write t sock bc
       end;
       if not (closed t) then begin
           t.event_handler t CAN_REFILL;
-          if t.wlist = [] then begin
+          if PacketSet.is_empty t.wlist then begin
               must_write t.sock false;
               t.event_handler t WRITE_DONE
             end
-        end      
+        end              
+              
   | _ -> t.event_handler t (BASIC_EVENT event)
-
       
 let create addr port handler =
   let fd = Unix.socket Unix.PF_INET Unix.SOCK_DGRAM 0 in
@@ -183,11 +253,13 @@ let create addr port handler =
   Unix.bind fd (Unix.ADDR_INET ((*Unix.inet_addr_any*) addr, port));
   let t = {
       rlist = [];
-      wlist = [];
+      wlist = PacketSet.empty;
       sock = dummy_sock;
       event_handler = handler;
+      write_controler = None;
     } in
   let sock = BasicSocket.create "udp_socket" fd (udp_handler t) in
+  prevent_close sock;
   t.sock <- sock;
   t
   
@@ -196,14 +268,62 @@ let create_sendonly () =
   Unix.setsockopt fd Unix.SO_REUSEADDR true;
   let t = {
       rlist = [];
-      wlist = [];
+      wlist = PacketSet.empty;
       sock = dummy_sock;
       event_handler = (fun _ _ -> ());
+      write_controler = None;      
     } in
   let sock = BasicSocket.create "udp_handler_sendonly" fd (udp_handler t) in
+  prevent_close sock;
   t.sock <- sock;
   t
     
 let can_write t =
-  t.wlist = []
+  PacketSet.is_empty t.wlist
+
+let read_packets t f =
+  List.iter (fun p ->
+      try f p with _ -> ()
+  ) t.rlist;
+  t.rlist <- []
+  
+let set_write_controler s c =  
+  s.write_controler <- Some c;
+  c.sockets <- s :: c.sockets;
+  set_allow_write s.sock c.allow_io
+
+let new_bandwidth_controler tcp_bc =
+  let udp_bc = {
+      sockets = [];
+      remaining_bytes = 0;
+      total_bytes = 0;
+      allow_io = ref false;
+      count = 0;
+      base_time = 0;
+    } in
+  let udp_user total n =
+    if !BasicSocket.debug then  begin
+      Printf.printf "udp_user %d" n; print_newline ();
+      end;
+    udp_bc.base_time <- udp_bc.base_time + 1;
+    if udp_bc.count = 0 then begin
+        udp_bc.count <- 10;
+        udp_bc.remaining_bytes <- 0;
+      end;
+    udp_bc.count <- udp_bc.count - 1;
+    udp_bc.total_bytes <- total;
+    udp_bc.remaining_bytes <- udp_bc.remaining_bytes + n;
+    if total <> 0 && udp_bc.remaining_bytes > total then
+      udp_bc.remaining_bytes <- total;
+    udp_bc.allow_io := udp_bc.remaining_bytes > 0;
+  in
+  TcpBufferedSocket.set_remaining_bytes_user tcp_bc udp_user;
+  udp_bc
+  
+let remaining_bytes bc = 
+  if bc.total_bytes = 0 then 1000000 else bc.remaining_bytes
+  
+let use_remaining_bytes bc n =
+  bc.remaining_bytes <- bc.remaining_bytes - n
+  
   

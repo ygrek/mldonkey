@@ -50,136 +50,97 @@ let gui_send gui t =
   
 let restart_gui_server = ref (fun _ -> ())
 
+let update_events gui update user_num addevent =
+  if not gui.gui_poll then
+    let gui_num = gui.gui_num in
+    if update = 0 then
+      addevent user_num true
+    else
+    if update > 0 then
+      (if update < gui_num then
+          addevent user_num true)
+    else
+      (if - update < gui_num then
+          addevent user_num true
+        else
+          addevent user_num false)      
   
-let send_server_info gui s =
-  gui_send gui (P.Server_info (CommonServer.server_info s))
-
-let send_client_info gui c =
-  let module P = GuiProto in  
-  gui_send gui (P.Client_info (CommonClient.client_info c))
-
-let send_file_info gui file =
-  let module P = GuiProto in  
-  gui_send gui (P.File_info (CommonFile.file_info file))
-  
-let send_result gui num r =
-  if List.mem num gui.gui_search_nums then begin
-    let module P = GuiProto in
-      gui_send gui (P.Result_info (result_info r));
-      gui_send gui (P.Search_result (num, result_num r))
-    end
-  
-let send_waiting gui num r =
-  if List.mem    num gui.gui_search_nums then 
-    let module P = GuiProto in
-    gui_send gui (P.Search_waiting (num,r))
-
-            
 let update_user_info user =
   let impl = as_user_impl user in
-  if impl.impl_user_update < !gui_counter then
-    let user_info = P.User_info (user_info user) in
-    with_gui (fun gui -> 
-        if impl.impl_user_update < gui.gui_num then
-          begin
-            gui_send gui user_info;
-            impl.impl_user_update <- gui.gui_num;                  
-          end);
-    impl.impl_user_update <- !gui_counter
+  let update = impl.impl_user_update in
+  let user_num = impl.impl_user_num in
+  if update < !gui_counter then begin
+      with_guis (fun gui -> 
+          update_events gui update user_num (addevent gui.gui_users)
+      );
+      impl.impl_user_update <- !gui_counter
+    end
   
 let update_client_info client =
   let impl = as_client_impl client in
-  if impl.impl_client_update < !gui_counter then
-    let client_info = 
-      match impl.impl_client_update with
-      | -1 -> P.Client_state (impl.impl_client_num, impl.impl_client_state) 
-      | _ ->  P.Client_info (client_info client) 
-    in
-    with_gui (fun gui -> 
-        if impl.impl_client_update < gui.gui_num then
-          begin
-            gui_send gui client_info;
-            impl.impl_client_update <- gui.gui_num;                  
-          end);
-    impl.impl_client_update <- !gui_counter
-
+  let update = impl.impl_client_update in
+  let client_num = impl.impl_client_num in
+  if update < !gui_counter then begin
+      with_guis (fun gui -> 
+          update_events gui update client_num (addevent gui.gui_clients)
+      );
+      impl.impl_client_update <- !gui_counter
+    end
+  
 let update_server_info server =
   let impl = as_server_impl server in
-  if impl.impl_server_update < !gui_counter then
-    let server_info = 
-      match impl.impl_server_update with
-      | -1 ->  P.Server_state (impl.impl_server_num, impl.impl_server_state)
-      | _ ->  P.Server_info (server_info server) 
-    in
-    with_gui (fun gui -> 
-        if impl.impl_server_update < gui.gui_num then
-          begin
-            gui_send gui server_info;
-            impl.impl_server_update <- gui.gui_num;                  
-            end);
+  let update = impl.impl_server_update in
+  let server_num = impl.impl_server_num in
+  if update < !gui_counter then begin
+      with_guis (fun gui -> 
+          update_events gui update server_num (addevent gui.gui_servers)
+      );
       impl.impl_server_update <- !gui_counter
-
+    end
+  
 let update_file_info file =
   let impl = as_file_impl file in
-  if impl.impl_file_update < !gui_counter then
-    let file_info = 
-      match impl.impl_file_update with
-        -1 -> P.File_downloaded (impl.impl_file_num,
-            impl.impl_file_downloaded,
-            file_download_rate impl,
-            impl.impl_file_last_seen)
-      | _ -> P.File_info (file_info file) in
-    with_gui (fun gui -> 
-        if impl.impl_file_update < gui.gui_num then
-          begin
-            impl.impl_file_update <- gui.gui_num;                  
-            gui_send gui file_info
-          end);
-    impl.impl_file_update <- !gui_counter
-
-
+  let update = impl.impl_file_update in
+  let file_num = impl.impl_file_num in
+  if update < !gui_counter then begin
+      with_guis (fun gui -> 
+          update_events gui update file_num (addevent gui.gui_files)
+      );
+      impl.impl_file_update <- !gui_counter
+    end
+  
 let update_room_info room =
   let impl = as_room_impl room in
-  if impl.impl_room_update < !gui_counter then
-    let room_info = P.Room_info (room_info room) in
-    with_gui (fun gui -> 
-        if impl.impl_room_update < gui.gui_num then
-          begin
-            gui_send gui room_info;
-            impl.impl_room_update <- gui.gui_num;                  
-          end);
-    impl.impl_room_update <- !gui_counter
-
-let update_shared_info shared =
-  let impl = as_shared_impl shared in
-  if impl.impl_shared_update < !gui_counter then
-    let msg = match impl.impl_shared_update with
-        -1 -> P.Shared_file_upload (impl.impl_shared_num,
-            impl.impl_shared_uploaded, impl.impl_shared_requests)
-      | _ -> P.Shared_file_info (shared_info shared) in
-    with_gui (fun gui -> 
-        if impl.impl_shared_update < gui.gui_num then
-          begin
-            gui_send gui msg;
-            impl.impl_shared_update <- gui.gui_num;                  
-          end);
-    impl.impl_shared_update <- !gui_counter
-
+  let update = impl.impl_room_update in
+  let room_num = impl.impl_room_num in
+  if update < !gui_counter then begin
+      with_guis (fun gui -> 
+          update_events gui update room_num (addevent gui.gui_rooms)
+      );
+      impl.impl_room_update <- !gui_counter
+    end
+  
 let update_result_info result =
   let impl = as_result_impl result in
-  if impl.impl_result_update < !gui_counter then
-    let result_info = P.Result_info (result_info result) in
-    with_gui (fun gui -> 
-        if impl.impl_result_update < gui.gui_num then
-          begin
-            gui_send gui result_info;
-            impl.impl_result_update <- gui.gui_num;                  
-          end);
-    impl.impl_result_update <- !gui_counter
-
-
-
-let search_results_list = ref []  
+  let update = impl.impl_result_update in
+  let result_num = impl.impl_result_num in
+  if update < !gui_counter then begin
+      with_guis (fun gui -> 
+          update_events gui update result_num (addevent gui.gui_results)
+      );
+      impl.impl_result_update <- !gui_counter
+    end
+  
+let update_shared_info shared =
+  let impl = as_shared_impl shared in
+  let update = impl.impl_shared_update in
+  let shared_num = impl.impl_shared_num in
+  if update < !gui_counter then begin
+      with_guis (fun gui -> 
+          update_events gui update shared_num (addevent gui.gui_shared_files)
+      );
+      impl.impl_shared_update <- !gui_counter
+    end
 
   
 let catch m f =
@@ -187,79 +148,143 @@ let catch m f =
       Printf.printf "Exception %s for message %s" (Printexc.to_string e) m;
       print_newline () 
 
+let send_event gui ev = 
+  match ev with
+  | Room_add_user_event (room, user) ->
+      gui_send gui (P.Room_add_user (room_num room, user_num user)) 
+      
+  | Room_remove_user_event (room, user) ->
+      gui_send gui (P.Room_remove_user (room_num room, user_num user))
+      
+  | Room_message_event (_, room, msg) ->            
+      gui_send gui (P.Room_message (room_num room, msg))
+      
+  | Client_new_file_event (c, dirname, r) ->
+      gui_send gui (P.Client_file (client_num c, dirname, 
+                    result_num r) )
+
+  | File_new_source_event (f,c) ->
+      gui_send gui (P.File_source (file_num f, client_num c));      
+      
+  | Server_new_user_event (s,u) ->
+      gui_send gui (P.Server_user (server_num s, user_num u))
+      
+  | Search_new_result_event (for_gui, int, r) ->      
+      gui_send gui (P.Search_result (int, result_num r))
+      
+  | _ ->  Printf.printf "Event not treated"; print_newline ()
+      
 let connecting_writer gui sock =
-  if gui.gui_connecting then
-    try
-      while TcpBufferedSocket.can_write sock do
-        match gui.gui_sources with
-          Some (c :: clients, file) ->
-            gui.gui_sources <- Some(clients, file);
-            (try 
-                send_client_info gui c;
-                gui_send gui
-                  (P.File_source (file_num file, client_num c))
-              with _ -> ());
+  try
+    while TcpBufferedSocket.can_write sock &&
+      getevents 
+        [
         
+        (gui.gui_files,
+          (fun file_num update ->
+              let file = file_find file_num in
+              let impl = as_file_impl file in
+              let file_info = if update then
+                  P.File_info (file_info file) 
+                else
+                  P.File_downloaded (impl.impl_file_num,
+                    impl.impl_file_downloaded,
+                    file_download_rate impl,
+                    impl.impl_file_last_seen)
+              in
+              gui_send gui file_info
+          ));
         
-        | _ -> 
-            gui.gui_sources <- None;
-            match gui.gui_files with
-              file :: files ->
-                gui.gui_files <- files;
-                
-                (try
-(*                    Printf.printf "send file info"; print_newline (); *)
-                    update_file_info file;
-                    gui.gui_sources <- Some (file_sources file, file)
-                  with _ -> ())
-            | _ -> 
-                gui.gui_files <- [];
-                match gui.gui_friends with
-                  c :: friends ->
-                    gui.gui_friends <- friends;
-                    (try 
-                        send_client_info gui c;
-                        
-                        List.iter (fun (dirname, r) ->
-                            gui_send gui
-                              (P.Result_info (result_info r));
-                            gui_send gui
-                              (P.Client_file (client_num c, 
-                                dirname,
-                                result_num r))
-                        ) (client_files c)
-                      with _ -> ());
-                
-                | [] ->
-                    match gui.gui_servers with
-                      s :: servers ->
-                        gui.gui_servers <- servers;
-                        (try send_server_info gui s with _ -> ())
-                    | [] -> 
-                        match gui.gui_rooms with
-                          r :: tail ->
-                            gui.gui_rooms <- tail;
-                            (try
-                                match room_state r with
-                                  RoomClosed -> ()
-                                | _ -> 
-                                    gui_send gui
-                                      (P.Room_info (room_info r));
-                                    List.iter (fun user ->
-                                        update_user_info user;
-                                        gui_send gui (P.Room_add_user (room_num r, user_num user))
-                                    ) (room_users r)
-                              with _ -> ())
-                        | [] ->  raise Not_found
-      done;
-    with _ -> 
-        gui.gui_connecting <- false
+        (gui.gui_users, 
+          (fun user_num update ->
+              let user = user_find user_num in
+              let user_info = P.User_info (user_info user) in
+              gui_send gui user_info
+          ));
         
+        (gui.gui_clients, 
+          (fun client_num update ->
+              let client = client_find client_num in
+              let impl = as_client_impl client in
+              let client_info = if update then
+                  P.Client_info (client_info client) 
+                else
+                  P.Client_state (
+                    impl.impl_client_num, 
+                    impl.impl_client_state) 
+              in
+              gui_send gui client_info;
+          ));
+        
+        (gui.gui_servers, 
+          (fun server_num update ->
+              let server = server_find server_num in
+              let impl = as_server_impl server in
+              let server_info = if update then
+                  P.Server_info (server_info server) 
+                else
+                  P.Server_state (impl.impl_server_num, impl.impl_server_state)
+              in
+              gui_send gui server_info;
+          ));
+        
+        (gui.gui_rooms, 
+          (fun room_num update ->
+              let room = room_find room_num in
+              let room_info = P.Room_info (room_info room) in
+              gui_send gui room_info
+          ));
+        
+        (gui.gui_results, 
+          (fun result_num update ->
+              let result = result_find result_num in
+              let impl = as_result_impl result in
+              let result_info = P.Result_info (result_info result) in
+              gui_send gui result_info;
+          ));
+        
+        (gui.gui_shared_files, 
+          (fun shfile_num update ->
+              let shared = CommonShared.shared_find shfile_num in
+              let impl = as_shared_impl shared in
+              let msg = if update then
+                  P.Shared_file_info (shared_info shared)
+                else
+                  P.Shared_file_upload (
+                    impl.impl_shared_num,
+                    impl.impl_shared_uploaded, 
+                    impl.impl_shared_requests)
+              in
+              gui_send gui msg
+          ));
+      
+      ]
+        
+        (fun _ ->        
+          match gui.gui_old_events with
+          | ev :: tail ->
+              gui.gui_old_events <- tail;
+              send_event gui ev;
+              true
+          | [] ->
+              match gui.gui_new_events with
+                [] -> false
+              | list ->
+                  gui.gui_old_events <- List.rev list;
+                  gui.gui_new_events <- [];
+                  true
+
+(*              gui_send gui (P.File_source (file_num, client_num)); *)
+       )
+    do 
+      ()
+    done
+  with _ -> ()
+      
 let gui_reader (gui: gui_record) t sock =
   let module P = GuiProto in  
   try
-    match t with
-    
+    match t with    
     
     | GuiProtocol version ->
         gui.gui_version <- min GuiEncoding.best_gui_version version;
@@ -277,13 +302,15 @@ let gui_reader (gui: gui_record) t sock =
         if s = !!password then begin
             BasicSocket.must_write (TcpBufferedSocket.sock sock) true;
             let connecting = ref true in
-            
+
+            (*
             begin
               match !gui_option with
                 None -> ()
               | Some gui -> close gui.gui_sock "new gui"
-            end;
-            gui_option := Some gui;
+end;
+  *)
+            guis := gui :: !guis;
             
             
             gui.gui_auth <- true;
@@ -366,11 +393,6 @@ Printf.printf "Sending for %s" prefix; print_newline ();
           
           | P.SetOption (name, value) ->
               CommonInteractive.set_fully_qualified_options name value
-
-(*
-          | ForceDownload r ->
-              result_download (result_find r) [] true
-*)
           
           | P.ForgetSearch num ->
               let s = List.assoc num gui.gui_searches in
@@ -428,7 +450,8 @@ Printf.printf "Sending for %s" prefix; print_newline ();
               gui.gui_search_nums <- num ::  gui.gui_search_nums;
               gui.gui_searches <- (num, search) :: gui.gui_searches;
               search.op_search_new_result_handlers <- (fun r ->
-                  search_results_list := (gui, num, r) :: !search_results_list;
+                  CommonEvent.add_event
+                    (Search_new_result_event (gui, num, r))
               ) :: search.op_search_new_result_handlers;
               networks_iter (fun r -> r.op_network_search search buf);
 
@@ -497,11 +520,10 @@ search.op_search_end_reply_handlers;
               ) (client_files c)
           
           | P.GetClient_info num ->
-              client_must_update (client_find num)
-          
-          
+              addevent gui.gui_clients num true
+                    
           | P.GetUser_info num ->
-              user_must_update (user_find num)
+              addevent gui.gui_users num true
           
           | P.GetServer_users num ->    
               let s = server_find num in
@@ -511,7 +533,7 @@ search.op_search_end_reply_handlers;
               ) users
           
           | P.GetServer_info num ->
-              server_must_update (server_find num);
+              addevent gui.gui_servers num true
           
           | P.GetFile_locations num ->
               let file = file_find num in
@@ -521,7 +543,7 @@ search.op_search_end_reply_handlers;
               ) clients
           
           | P.GetFile_info num ->
-              file_must_update  (file_find num)
+              addevent gui.gui_files num true
           
           | P.ConnectFriend num ->
               let c = client_find num in
@@ -544,7 +566,7 @@ search.op_search_end_reply_handlers;
                   let filename = file_disk_name file in
                   let format = CommonMultimedia.get_info filename in
                   file_set_format file format;
-                  with_gui (fun gui -> send_file_info gui file)
+                  file_must_update file;
                 with _ -> ()
               end
           
@@ -647,9 +669,7 @@ search.op_search_end_reply_handlers;
       
 let gui_closed gui sock  msg =
 (*  Printf.printf "DISCONNECTED FROM GUI"; print_newline (); *)
-  match !gui_option with
-    Some g when g == gui -> gui_option := None
-  | _ -> ()
+  guis := List2.removeq gui !guis
   
 let gui_handler t event = 
   match event with
@@ -667,24 +687,69 @@ let gui_handler t event =
             gui_sock = sock;
             gui_search_nums = [];
             
-            gui_sources = None;
-            gui_files = !!files @ !!CommonComplexOptions.done_files;
-            gui_friends = !!friends;
-            gui_servers = !!servers;
-            gui_rooms = [];
+            gui_new_events = [];
+            gui_old_events = [];
+            
+            gui_files = create_events ();            
+            gui_clients = create_events ();
+            gui_servers = create_events ();
+            gui_rooms = create_events ();
+            gui_users = create_events ();
+            gui_results = create_events ();
+            gui_shared_files = create_events ();
             gui_version = 0;
             gui_num = !gui_counter;
             gui_auth = false;
             gui_poll = false;
-            gui_connecting = true;
           } in
-        rooms_iter (fun room ->
-            if room_state room <> RoomClosed then
-              gui.gui_rooms <- room :: gui.gui_rooms;
-        ) ;
-        shared_iter (fun s ->
-            let impl = as_shared_impl s in
-            shared_must_update s);
+        
+        if not gui.gui_poll then begin
+            List.iter (fun c ->
+                addevent gui.gui_clients (client_num c) true
+            ) !!friends;
+            
+            List.iter (fun file ->
+                addevent gui.gui_files (file_num file) true;
+                List.iter (fun c ->
+                    addevent gui.gui_clients (client_num c) true;
+                    gui.gui_new_events <-
+                      (File_new_source_event (file,c))
+                    :: gui.gui_new_events
+                ) (file_sources file)
+            ) !!files;
+            
+            List.iter (fun file ->
+                addevent gui.gui_files (file_num file) true;
+            ) !!done_files;
+            
+            networks_iter (fun n ->
+                List.iter (fun s ->
+                    addevent gui.gui_servers (server_num s) true
+                ) (n.op_network_connected_servers ())
+            );
+            
+            server_iter (fun s ->
+                addevent gui.gui_servers (server_num s) true
+            );
+            
+            rooms_iter (fun room ->
+                if room_state room <> RoomClosed then begin
+                    addevent gui.gui_rooms (room_num room) true;
+                    List.iter (fun user ->
+                        addevent gui.gui_users (user_num user) true;
+                        gui.gui_new_events <-
+                          (Room_add_user_event (room,user))
+                        :: gui.gui_new_events
+                    ) (room_users room)
+                    
+                  end
+            );
+            
+            shared_iter (fun s ->
+                addevent gui.gui_shared_files (shared_num s) true
+            );
+          end;
+        
         TcpBufferedSocket.set_max_write_buffer sock !!interface_buffer;
         TcpBufferedSocket.set_reader sock (GuiDecoding.gui_cut_messages
             (fun opcode s ->
@@ -703,274 +768,89 @@ let gui_handler t event =
       else 
         Unix.close s
   | _ -> ()
+
+let add_gui_event ev =
+  with_guis (fun gui ->
+      gui.gui_new_events <- ev :: gui.gui_new_events
+  )
   
-(*******
-These functions are used to send new informations to the GUI:
-- The functions are only applied if there is still some space to write on the 
-    GUI buffer (to avoid buffer overfull)
-- The messages are only sent if the update timestamp of the structure is smaller
-    than the one of the GUI
 
-********)
-      
-      
-let must_wait () =
-  match !gui_option with
-    None -> false
-  | Some gui -> not (can_fill gui.gui_sock)
-
-let rec update old_list new_list sender =
-  if must_wait () then
-    old_list @ new_list
-  else
-  match old_list with
-    v :: tail ->
-      sender v;
-      update tail new_list sender
-  | [] ->
-      match new_list with
-        [] -> []
-      | v :: tail ->
-          sender v;
-          update [] tail sender
-
+let rec update_events list = 
+  match list with
+    [] -> ()
+  | event :: tail ->
+      (try
+          match event with
+            Room_info_event room -> 
+              Printf.printf "room info"; print_newline ();
+              update_room_info room
+              
+          | Room_add_user_event (room, user) ->
+              update_room_info room;
+              update_user_info user;
+              add_gui_event event
           
-let files_old_list = ref []
-let update_files () =
-  files_old_list := update !files_old_list !files_update_list 
-    (fun file ->
-      try
-        update_file_info file
-      with _ -> ()
-  );
-  files_update_list := []
+          | Room_remove_user_event (room, user) ->
+              update_room_info room;
+              update_user_info user;
+              add_gui_event event
+
+          | Room_message_event (_, room, msg) ->            
+              update_room_info room;
+              begin
+                match msg with
+                  ServerMessage _ -> ()
+                | PrivateMessage (user_num, _) 
+                | PublicMessage (user_num, _) ->
+                    try
+                      let user = user_find user_num  in
+                      update_user_info user
+                    with _ ->
+                        Printf.printf "USER NOT FOUND FOR MESSAGE"; 
+                        print_newline ();
+              end;
+              add_gui_event event
+              
+          | Shared_info_event sh ->
+              update_shared_info sh
+              
+          | Result_info_event r ->
+              update_result_info r
+              
+          | Client_info_event c ->
+              update_client_info c
+              
+          | Server_info_event s ->
+              update_server_info s
+              
+          | File_info_event f ->
+              update_file_info f
+              
+          | User_info_event u ->
+              update_user_info u
+
+          | Client_new_file_event (c,_,r) ->
+              update_client_info c;
+              update_result_info r;
+              add_gui_event event
+              
+          | File_new_source_event (f,c) ->
+              update_file_info f;
+              update_client_info c;
+              add_gui_event event
+              
+          | Server_new_user_event (s,u) ->
+              update_server_info s;
+              update_user_info u;
+              add_gui_event event
+
+          | Search_new_result_event (gui, int, r) ->
+              update_result_info r;
+              gui.gui_new_events <- event :: gui.gui_new_events
+              
+        with _ -> ());
+      update_events tail
       
-let users_old_list = ref []
-let update_users () =
-  users_old_list := update !users_old_list !users_update_list 
-      (fun user ->
-      try
-        update_user_info user
-        with _ -> ()
-  );
-  users_update_list := []
-          
-let servers_old_list = ref []
-let update_servers () =
-(*  Printf.printf "update_servers"; print_newline (); *)
-  servers_old_list := update !servers_old_list !servers_update_list 
-      (fun server ->
-      try
-        update_server_info server
-        with _ -> ()
-  );
-  servers_update_list := []
-
-let update_searches () =
-  let rec iter list = 
-    if must_wait () then list else
-    match list with
-      [] -> []
-    | (gui, num, r) :: tail ->
-        send_result gui num r; 
-        iter tail
-  in
-  search_results_list := iter !search_results_list
-
-let clients_old_list = ref []
-let update_clients () =
-  clients_old_list := update !clients_old_list !clients_update_list 
-      (fun client ->
-      try
-        update_client_info client
-      with _ -> ()
-  );
-  clients_update_list := []
-
-(*
-Three update cases:
-1) Room state is changed: room_update is < gui_num and room is in 
-     room_update_list
-2) Room users are added or removed
-3) Room messages are received
-*)
-
-let handle_event gui event =
-  try
-    match event with
-      Room_info_event room -> 
-        Printf.printf "room info"; print_newline ();
-        update_room_info room
-    | Room_add_user_event (room, user) ->
-        update_room_info room;
-        update_user_info user;
-        gui_send gui (P.Room_add_user (room_num room, user_num user))
-    
-    | Room_remove_user_event (room, user) ->
-        update_room_info room;
-        update_user_info user;
-        gui_send gui (P.Room_remove_user (room_num room, user_num user))
-    
-    | Room_message_event (_, room, msg) ->            
-        update_room_info room;
-        begin
-          match msg with
-            ServerMessage _ -> ()
-          | PrivateMessage (user_num, _) 
-          | PublicMessage (user_num, _) ->
-              try
-                let user = user_find user_num  in
-                update_user_info user
-              with _ ->
-                  Printf.printf "USER NOT FOUND FOR MESSAGE"; print_newline ();
-        end;
-        gui_send gui (P.Room_message (room_num room, msg))
-  with _ -> ()
-
-let discard_event event = 
-  match event with
-    Room_info_event room -> room_updated room
-  | Room_remove_user_event _
-  | Room_message_event _
-  | Room_add_user_event _ -> ()
-      
-let discard_events list =
-  List.iter discard_event list
-      
-let old_events = ref []
-let update_events () =
-  match !gui_option with
-    None -> 
-      if !old_events <> [] then 
-        begin discard_events !old_events; old_events := []; end;
-      if !events_list <> [] then
-        begin  discard_events !events_list; events_list := [] end;
-  | Some gui ->
-      let update_old_events () =
-        let rec iter events =
-          match events with
-            [] -> old_events := []
-          | event :: tail ->
-              if not (can_fill gui.gui_sock) then begin
-                  old_events := events;
-                  raise Exit;
-                end;
-              handle_event gui event;
-              iter tail            
-        in
-        iter !old_events
-      in
-      
-      try
-        update_old_events ();
-        old_events := List.rev !events_list;
-        events_list := [];
-        update_old_events ()
-      with Exit -> ()
-  
-  (*
-  rooms_update_list := [];
-  room_old_messages := update !room_old_messages 
-    (List.rev !room_new_messages)
-  (fun  );
-  room_new_messages := []
-  
-let update_room_users () =
-  let rec iter list =
-    if must_wait () then list else
-    match list with
-      [] -> []
-    | (room, user) :: tail ->
-        (try
-            match room_state room with
-              RoomOpened ->
-                send_user_info user;
-                send_room_info room;
-                let msg = Room_user (room_num room, user_num user) in
-                List.iter (fun gui -> gui_send gui msg) !guis;       
-            | _ -> ()
-          with _ -> ());
-        iter tail
-  in
-  room_new_users := iter !room_new_users
-*)
-    
-  
-let update_file_sources () =
-  let rec iter list =
-    match list with
-      [] -> []
-    | (file, client) :: tail ->
-        if must_wait () then list else begin
-            begin
-              try
-                update_client_info client;
-                update_file_info file;
-                let msg = File_source (file_num file, client_num client) in
-                with_gui (fun gui -> 
-                    gui_send gui msg) ;       
-              with _ -> ()
-            end;
-            iter tail
-          end
-  in
-  file_new_sources := iter !file_new_sources
-  
-let update_server_users () =
-  let rec iter list =
-    match list with
-      [] -> []
-    | (server, user) :: tail ->
-        if must_wait () then list else begin
-            begin
-              try
-                update_server_info server;
-                update_user_info user;
-                let msg = Server_user (server_num server, user_num user) in
-                with_gui (fun gui -> gui_send gui msg);       
-              with _ -> ()
-            end;
-            iter tail
-          end
-  in
-  server_new_users := iter !server_new_users
-  
-let update_client_files () =
-(*  Printf.printf "update_client_files"; print_newline (); *)
-  let rec iter list =
-    match list with
-      [] -> []
-    | (client, dirname, r) :: tail ->
-        if must_wait () then list else begin
-            begin
-              try
-(*                Printf.printf "send new client file"; print_newline (); *)
-                update_result_info r;
-                let msg = Client_file (client_num client, dirname, 
-                    result_num r) 
-                in
-                with_gui (
-                  fun gui -> gui_send gui msg
-                ) 
-                ;       
-              with _ -> ()
-            end;
-            iter tail
-          end
-  in
-  client_new_files := iter !client_new_files
-  
-let update_functions = [
-    "update_files", update_files;
-    "update_servers",update_servers;
-    "update_clients",update_clients;
-    "update_users",update_users;
-    "update_file_sources",update_file_sources;
-    "update_searches",update_searches;
-    "update_server_users",update_server_users;
-    "update_client_files",update_client_files;
-  ]
-  
 let rec last = function
     [x] -> x
   | _ :: l -> last l
@@ -1041,28 +921,18 @@ let update_gui_info () =
         udp_upload_rate = udp_upload_rate;
         udp_download_rate = udp_download_rate;
       }) in
-  update_events ();
-  with_gui(fun gui -> 
-      gui_send gui msg);       
-  let rec iter fs =
-    match fs with 
-      [] -> ()
-    | (name, f) :: fs ->
-        if  must_wait () then begin
-          end else begin
-(*            Printf.printf "APPLY %s" name; print_newline (); *)
-            (try f () with _ -> ());
-(*            Printf.printf "DONE"; print_newline ();  *)
-            iter fs
-          end
-  in
-  iter update_functions
-  
+  with_guis(fun gui -> gui_send gui msg);       
+  let events = List.rev !events_list in
+  events_list := [];
+  update_events events;
+  with_guis (fun gui ->
+      connecting_writer gui gui.gui_sock
+  )
   
 let install_hooks () = 
   List.iter (fun (name,_) ->
       set_option_hook downloads_ini name (fun _ ->
-          with_gui (fun gui ->
+          with_guis (fun gui ->
               gui_send gui (P.Options_info [name, 
                   get_simple_option downloads_ini name])
           )
@@ -1078,7 +948,7 @@ let install_hooks () =
           List.iter (fun (arg, value) ->
               let long_name = Printf.sprintf "%s%s" !!prefix arg in
               set_option_hook opfile arg (fun _ ->
-                  with_gui (fun gui ->
+                  with_guis (fun gui ->
                       gui_send gui (P.Options_info [long_name, 
                           get_simple_option opfile arg])
                   )
@@ -1089,11 +959,8 @@ let install_hooks () =
   private_room_ops.op_room_send_message <- (fun s msg ->
       match msg with
         PrivateMessage (c, s) ->
-          with_gui (fun gui -> gui_send gui 
+          with_guis (fun gui -> gui_send gui 
                 (P.MessageFromClient (c, s)))
-          
-      | _ -> assert false
-    )
       
-
-  
+      | _ -> assert false
+  )

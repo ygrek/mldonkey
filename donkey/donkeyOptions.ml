@@ -81,6 +81,9 @@ let network_options_prefix = define_option donkey_ini
     when they are used in the telnet/WEB interfaces"
     string_option ""
   
+let new_upload_system = define_option donkey_ini
+    ["new_upload_system"] "Should we use the new experimental upload system"
+  bool_option true
   
 let _ = 
 (* Clients should never send more than 5 localisations queries

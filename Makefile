@@ -59,14 +59,15 @@ MP3TAG_SRCS=     mp3tagui/mp3_info.ml  mp3tagui/mp3_genres.ml \
   mp3tagui/mp3_misc.ml\
   mp3tagui/mp3_tag.ml mp3tagui/mp3tag.ml
 
-LIB_SRCS= lib/autoconf.ml \
+LIB_SRCS= lib/autoconf.ml\
   lib/int32ops.ml lib/options.ml lib/ip.ml  lib/numset.ml  \
-  lib/fifo.ml lib/fifo2.ml lib/intmap.ml \
+  lib/fifo.ml lib/fifo2.ml lib/intmap.ml lib/intset.ml \
   lib/hole_tab.ml lib/store.ml lib/indexer.ml lib/indexer1.ml lib/indexer2.ml lib/host.ml  \
   lib/misc.ml lib/unix32.ml  lib/md4.ml \
   lib/avifile.ml lib/http_lexer.mll lib/url.ml \
   lib/mailer.ml lib/date.ml \
-  lib/md4_comp.c lib/md4_c.c lib/unix32_c.c lib/inet_c.c
+  lib/md4_comp.c lib/md4_c.c lib/unix32_c.c lib/inet_c.c \
+  lib/gettext.ml
 
 NET_SRCS = \
   net/bigEndian.ml net/littleEndian.ml \

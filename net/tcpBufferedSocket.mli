@@ -32,7 +32,7 @@ and buf = {
   
 type t
   
-type bandwidth_controler = {
+type bandwidth_controler (* = {
     mutable remaining_bytes : int;
     mutable total_bytes : int;
     mutable nconnections : int;
@@ -41,7 +41,8 @@ type bandwidth_controler = {
     mutable last_remaining : int;
     mutable moved_bytes : int64;
   }
-
+*)
+  
   
 and handler = t -> event -> unit
 
@@ -88,7 +89,7 @@ val stats :  Buffer.t -> t -> unit
 val buf_size : t -> int * int
 val can_fill : t -> bool
   
-val if_possible : bandwidth_controler -> int -> bool
+(* val if_possible : bandwidth_controler -> int -> bool *)
   
 val set_rtimeout : t -> float -> unit
 val set_wtimeout : t -> float -> unit
@@ -107,4 +108,8 @@ val set_lifetime : t -> float -> unit
 val tcp_uploaded_bytes : int64 ref
 val tcp_downloaded_bytes : int64 ref
 val moved_bytes : bandwidth_controler -> int64
+  
+val set_remaining_bytes_user : bandwidth_controler ->
+  (int -> int -> unit) -> unit
+  
   

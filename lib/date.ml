@@ -33,5 +33,10 @@ let string_of_date formats tm =
 
   
 let to_string date =
+  string_of_date [Hour;Colon;Minute;Space; Space; WeekDay; Space; Day; Space;Month;]
+    (Unix.localtime date)
+    
+let to_full_string date =
   string_of_date [Hour;Colon;Minute;Space; Space; WeekDay; Space; Day; Space;Month; Space;Year]
-  (Unix.localtime date)
+    (Unix.localtime date)
+  

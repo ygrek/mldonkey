@@ -42,8 +42,8 @@ let printf_string c =
     (print_string c; Pervasives.flush Pervasives.stdout)
 
   
-let new_connection_control last_conn = {
-    control_last_ok = last_conn;
+let new_connection_control () = {
+    control_last_ok = 0.0;
     control_state = 0.0;
     control_last_try = 0.0;
   }
@@ -78,22 +78,28 @@ let connection_delay cc =
   cc.control_last_try <- last_time ();
   cc.control_state <- 0.
   
-let can_open_connection () =
-  let ns = nb_sockets () in
-  let max = mini !!max_opened_connections 
-      (maxi (Unix32.fds_size - 100) (Unix32.fds_size / 2)) in
-  if !!debug_net then begin
-      Printf.printf "CAN OPEN (%d < %d)" ns max;
-      print_newline ();
-    end;
-  ns < max
-  
 let upload_control = TcpBufferedSocket.create_write_bandwidth_controler 
     (!!max_hard_upload_rate * 1024)
   
 let download_control = TcpBufferedSocket.create_read_bandwidth_controler 
     (!!max_hard_download_rate * 1024)
 
+let udp_write_controler = UdpSocket.new_bandwidth_controler upload_control
+
+let udp_read_controler = UdpSocket.new_bandwidth_controler download_control
+  
+let can_open_connection () =
+  let ns = nb_sockets () in
+  let max = mini !!max_opened_connections 
+      (maxi (Unix32.fds_size - 100) (Unix32.fds_size / 2)) in
+  if !!debug_net then begin
+      Printf.printf "CAN OPEN (conns: %d < %d && upload U/D: %d %d)" ns max 
+        (UdpSocket.remaining_bytes udp_write_controler)
+        (UdpSocket.remaining_bytes udp_read_controler);
+      print_newline ();
+    end;
+  ns < max
+  
 (*
   
     
@@ -254,7 +260,7 @@ let string_of_tags tags =
       
   
   (* first GUI have gui_num = 2, since newly created objects have _update = 1 *)
-let gui_counter = ref 1
+let gui_counter = ref 2
   
 let ip_of_addr addr = 
   if addr.addr_name <> "" then

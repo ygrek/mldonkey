@@ -19,6 +19,7 @@
 
 (** GUI for the lists of files. *)
 
+open Gettext
 open Gui_global
 open CommonTypes
 open GuiProto
@@ -33,7 +34,7 @@ let (!!) = Options.(!!)
 
 let first_name r = 
   match r.result_names with
-    [] -> M.unknown
+    [] -> gettext M.unknown
   | n :: _ -> n
 
 let shorten_name s = Filename2.shorten !!O.max_result_name_len s
@@ -68,8 +69,8 @@ class box s_num columns () =
       match self#selection with
 	[] -> []
       |	_ -> [
-            `I (M.download, self#download);
-            `I ("Force Download", self#force_download);
+            `I (gettext M.download, self#download);
+            `I (gettext M.force_download, self#force_download);
             ]
             
 
@@ -132,8 +133,8 @@ class box s_num columns () =
 
       ignore
 	(wtool#insert_button 
-	   ~text: M.download
-	   ~tooltip: M.download
+	   ~text: (gettext M.download)
+	   ~tooltip: (gettext M.download)
 	   ~icon: (Gui_icons.pixmap M.o_xpm_download)#coerce
 	   ~callback: self#download
 	   ()
@@ -142,8 +143,8 @@ class box s_num columns () =
       if s_num >= 0 then
 	wb_extend_search <- Some
 	    (wtool#insert_button 
-	       ~text: M.extended_search
-	       ~tooltip: M.extended_search
+	       ~text: (gettext M.extended_search)
+	       ~tooltip: (gettext M.extended_search)
 	       ~icon: (Gui_icons.pixmap M.o_xpm_extend_search)#coerce
 	       ~callback: self#extend_search
 	       ()
@@ -176,7 +177,7 @@ class search_result_box s_num () =
           data <- data @ [res];
           self#insert ~row: self#wlist#rows res;
           wl_count#set_text 
-            (Printf.sprintf "%d %s" (List.length data) M.results)
+            (gettext M.results (List.length data))
         end
 
     method set_waiting n =
@@ -277,8 +278,8 @@ class box_dir_files () =
 	  let files = GuiTypes.list_files ft in
 	  let len = List.length files in
 	  match GToolbox.question_box
-	      M.download_selected_dir
-	      [M.ok ; M.cancel]
+	      (gettext M.download_selected_dir)
+	      [gettext M.ok ; gettext M.cancel]
 	      (M.confirm_download_dir ft.GuiTypes.file_tree_name len) 
 	  with
 	    1 ->
@@ -295,8 +296,8 @@ class box_dir_files () =
 
       ignore
 	(wtool#insert_button 
-	   ~text: M.download
-	   ~tooltip: M.download_selected_dir
+	   ~text: (gettext M.download)
+	   ~tooltip: (gettext M.download_selected_dir)
 	   ~icon: (Gui_icons.pixmap M.o_xpm_download)#coerce
 	   ~callback: self#download_selected_dir
 	   ()

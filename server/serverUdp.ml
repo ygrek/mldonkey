@@ -42,7 +42,7 @@ let server_udp_send s t =
   if not (!stop_udp) then
     begin
       incr nb_udp_reply_count;
-      DonkeyProtoCom.udp_send_if_possible (udp_sock ()) upload_control
+      DonkeyProtoCom.udp_send (udp_sock ())
 	(Unix.ADDR_INET 
 	   (Ip.to_inet_addr s.DonkeyTypes.server_ip,
 	    s.DonkeyTypes.server_port+4))
@@ -108,7 +108,7 @@ let udp_handler sock event =
   let module M = DonkeyProtoServer in
   match event with
     UdpSocket.READ_DONE ->
-      List.iter (fun p -> 
+      read_packets sock (fun p -> 
           try
             let pbuf = p.UdpSocket.content in
             let len = String.length pbuf in
@@ -427,34 +427,8 @@ let udp_handler sock event =
             Printf.printf "This could prevent discarding UDP messages ...";
             print_newline ();*)
 	    ()
-		) sock.UdpSocket.rlist;
-      sock.UdpSocket.rlist <- []
+		) 
     | _ -> ()
-
-(* Olivier, il faut absolument que l'on revoit cette partie du code ensemble
-  (cause mail forwarde).
-En particulier, l'utilisation des timers est un peu poussee (tu crees un timer
-infini dans un autre timer infini) et les delais sont bizarres.
-Le wait ping ne dure que 3 secondes ??? Tu geres des listes de serveurs,
-mais verifies-tu toujours qu'un serveur n'est pas deja dans la liste avant
-de l'y rajouter ?
-
-Une autre remarque: dans serverOptions.ml, la chaine entre ["..."] est
-le  nom de l'option, pas l'aide,il ne faut pas d'espaces dans cette chaine.
-J'ai corrige une dizaine d'options, ca devrait etre ok maintenant.
-*)
-      
-
-      (*
-let wait_ping timer = 
-  (*Printf.printf "FIN PING\n";
-  print !new_alive_servers;
-  Printf.printf "///////////\n";*)
-  alive_servers := [];
-  alive_servers := !new_alive_servers;
-  time_out := true;
-()
-*)  
 
 let other_servers = ref []
 
@@ -560,12 +534,12 @@ let test() =
     Q.ip = !!server_ip;
     Q.port = !!server_port;
   } in 
-    DonkeyProtoCom.udp_send_if_possible (udp_sock ()) upload_control
+    DonkeyProtoCom.udp_send (udp_sock ()) 
       (Unix.ADDR_INET 
 	 (Ip.to_inet_addr ip,
 	  5004))
       t;
-    DonkeyProtoCom.udp_send_if_possible (udp_sock ()) upload_control
+    DonkeyProtoCom.udp_send (udp_sock ())
       (Unix.ADDR_INET 
 	 (Ip.to_inet_addr ip,
 	  5004))

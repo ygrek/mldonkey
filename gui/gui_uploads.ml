@@ -19,6 +19,7 @@
 
 (** The box with uploads info *)
 
+open Gettext
 open CommonTypes
 open GuiTypes
 open GuiProto
@@ -146,8 +147,8 @@ class upstats_box () =
 
       ignore
 	(wtool#insert_button 
-	   ~text: M.refresh
-	   ~tooltip: M.refresh
+	   ~text: (gettext M.refresh)
+	   ~tooltip: (gettext M.refresh)
 	   ~icon: (Gui_icons.pixmap M.o_xpm_refresh)#coerce
 	   ~callback: self#refresh
 	   ()

@@ -603,9 +603,11 @@ let enable enabler =
   overnet_peers =:= [];
   List.iter add_peer peers;
   
-  udp_sock := Some (UdpSocket.create (Ip.to_inet_addr !!donkey_bind_addr)
+  let sock =   (UdpSocket.create (Ip.to_inet_addr !!donkey_bind_addr)
     (!!overnet_port) 
-    (udp_handler udp_client_handler));
+      (udp_handler udp_client_handler)) in
+  udp_sock := Some sock;
+  UdpSocket.set_write_controler sock udp_write_controler;
   add_session_timer enabler 1. try_connect;
   add_session_option_timer enabler overnet_query_peer_period query_next_peers;
   add_session_timer enabler 1200. (fun _ ->

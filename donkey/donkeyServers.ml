@@ -37,7 +37,7 @@ open DonkeyGlobals
 open CommonGlobals
 
 let udp_send_if_possible sock addr msg =
-  udp_send_if_possible sock upload_control addr msg
+  udp_send sock addr msg
 
   (*
 let first_name file =
@@ -395,11 +395,13 @@ let force_check_server_connections user =
 (*  Printf.printf "force_check_server_connections"; print_newline (); *)
   if user || !nservers < max_allowed_connected_servers ()  then begin
       if !nservers < !!max_connected_servers then
-        begin
-          for i = !nservers to !!max_connected_servers-1 do
-            connect_one_server ();
-          done;
-        end
+        let rec iter n =
+          if n > 0 && can_open_connection () then begin
+              connect_one_server ();
+              iter (n-1)
+            end
+        in
+        iter (!!max_connected_servers - 1 - !nservers)
     end
     
 let rec check_server_connections () =

@@ -73,6 +73,7 @@ val filename_option : string option_class
   
   (* parameterized options *)
 val list_option : 'a option_class -> 'a list option_class
+val safelist_option : 'a option_class -> 'a list option_class
 val listiter_option : 'a option_class -> 'a list option_class
 val option_option : 'a option_class -> 'a option option_class
 val smalllist_option : 'a option_class -> 'a list option_class

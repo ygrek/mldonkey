@@ -324,7 +324,7 @@ client_error = false;
   
           client_all_files = None;
           client_user = user;
-          client_connection_control = new_connection_control (last_time());
+          client_connection_control = new_connection_control (());
           client_downloads = [];
         } and impl = {
           dummy_client_impl with

@@ -233,7 +233,7 @@ let new_server ip port =
           server_caps = [];
           server_version = "";
           server_type = Index_node; (* we don't know *)
-          server_connection_control = new_connection_control (last_time ());
+          server_connection_control = new_connection_control ( ());
       
           server_ping_last = Md4.random ();
           server_nfiles_last = 0;
@@ -347,7 +347,7 @@ let new_client ip port http_port =
 (*          client_pos = Int32.zero; *)
           client_all_files = None;
           client_user = u;
-          client_connection_control = new_connection_control (last_time());
+          client_connection_control = new_connection_control (());
           client_downloads = [];
         } and impl = {
           dummy_client_impl with

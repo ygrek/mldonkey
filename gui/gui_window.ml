@@ -19,6 +19,7 @@
 
 (** GUI main window. *)
 
+open Gettext
 open CommonTypes
 open GuiProto
 
@@ -57,7 +58,7 @@ class window () =
       tab_queries#clear;
       List.iter wnote_results#remove wnote_results#children;
       tab_rooms#clear;
-      label_connect_status#set_text M.not_connected;
+      label_connect_status#set_text (gettext M.not_connected);
       List.iter menu_display#remove menu_display#children;
       List.iter menu_networks#remove menu_networks#children;
 

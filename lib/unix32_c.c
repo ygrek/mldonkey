@@ -27,6 +27,8 @@
 #include <sys/mman.h>
 #include <string.h>
 
+#include <stdio.h>
+
 #ifdef HAS_UNISTD
 #include <unistd.h>
 #endif
@@ -96,9 +98,11 @@ value ml_truncate32(value fd_v, value len_v)
     lseek(fd, len-1, SEEK_SET);
     write(fd, &zero, 1);
   } else
-    if(ftruncate(fd, len) < 0) 
+    if((cursize != len) && (ftruncate(fd, len) < 0)) {
+      fprintf(stderr, "ftruncate(%d,%d)\n", fd, len);
       uerror("ml_truncate32: error in ftruncate",Nothing);
-      
+    }
+    
   return Val_unit;
 }
 

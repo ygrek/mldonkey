@@ -282,10 +282,9 @@ let _ =
         Printf.printf "SIGCHLD"; print_newline ()));
   Sys.set_signal  Sys.sighup
     (Sys.Signal_handle (fun _ ->
-        Printf.printf "SIGUP"; print_newline ();
-        networks_iter  network_disable;
+        Printf.printf "SIGHUP"; print_newline ();
+        BasicSocket.close_all ();
         BasicSocket.print_sockets ();
-        networks_iter  network_enable;
     ));
   Sys.set_signal  Sys.sigpipe (*Sys.Signal_ignore*)
     (Sys.Signal_handle (fun _ ->

@@ -48,6 +48,7 @@ let enable () =
     UdpSocket.create Unix.inet_addr_any (!!server_port + 4) 
     ServerUdp.udp_handler in
   udp_sock := Some udp_server_sock;
+  UdpSocket.set_write_controler udp_server_sock udp_write_controler;
   begin
     match !!seed_ip with
       None -> ()

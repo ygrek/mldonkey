@@ -81,7 +81,7 @@ let ni_ok n m = ignore (ni n m)
   
 let room_must_update room =
   let impl = as_room_impl room in
-  if impl.impl_room_update > 0 then begin
+  if impl.impl_room_update <> 0 then begin
       events_list := Room_info_event room :: !events_list
     end;
   impl.impl_room_update <- 0
@@ -152,7 +152,7 @@ let room_messages (room : room) =
   
 let room_users (room : room) =
   let impl = as_room_impl room in
-  impl.impl_room_ops.op_room_users impl.impl_room_val
+  try impl.impl_room_ops.op_room_users impl.impl_room_val with _ -> []
   
 let room_info (room : room) =
   let impl = as_room_impl room in

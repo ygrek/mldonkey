@@ -25,6 +25,7 @@
      |`BUTTON2|`BUTTON3|`BUTTON4|`BUTTON5 ]
 *)
 
+open Gettext
 open Options
 
 module M = Gui_messages
@@ -143,19 +144,19 @@ let add_binding map binding action =
 (** {2 Colors} *)
 
 let color_default = define_option mldonkey_gui_ini ["colors"; "default"]
-    M.h_col_default string_option "Black"
+    (gettext M.h_col_default) string_option "Black"
 let color_downloaded =  define_option mldonkey_gui_ini ["colors"; "downloaded"]
-    M.h_col_downloaded string_option "Blue"
+    (gettext M.h_col_downloaded) string_option "Blue"
 let color_downloading =  define_option mldonkey_gui_ini ["colors"; "downloading"]
-    M.h_col_downloading string_option "DarkGreen"
+    (gettext M.h_col_downloading) string_option "DarkGreen"
 let color_available =  define_option mldonkey_gui_ini ["colors"; "available"]
-    M.h_col_avail string_option "Orange"
+    (gettext M.h_col_avail) string_option "Orange"
 let color_not_available =  define_option mldonkey_gui_ini ["colors"; "not_available"]
-    M.h_col_not_avail string_option "Red"
+    (gettext M.h_col_not_avail) string_option "Red"
 let color_connected =  define_option mldonkey_gui_ini ["colors"; "connected"]
-    M.h_col_connected string_option "DarkGreen"
+    (gettext M.h_col_connected) string_option "DarkGreen"
 let color_not_connected =  define_option mldonkey_gui_ini ["colors"; "not_connected"]
-    M.h_col_not_connected string_option "Black"
+    (gettext M.h_col_not_connected) string_option "Black"
 let color_connecting =  define_option mldonkey_gui_ini ["colors"; "connecting"]
     M.h_col_connecting string_option "Orange"
 let color_files_listed =  define_option mldonkey_gui_ini ["colors"; "files_listed"]
@@ -245,7 +246,7 @@ let (class_tbstyle : Gtk.Tags.toolbar_style option_class) =
     value_to_tbstyle tbstyle_to_value
 
 let toolbars_style = define_option mldonkey_gui_ini
-    ["toolbars_style"] M.h_toolbars_style
+    ["toolbars_style"] (gettext M.h_toolbars_style)
     class_tbstyle `BOTH
 
 (** {2 Layout} *)
@@ -306,7 +307,7 @@ let gui_height = define_option mldonkey_gui_ini
 
 
 let downloads_columns = define_option mldonkey_gui_ini
-    ["downloads_columns"] M.h_downloads_columns
+    ["downloads_columns"] (gettext M.h_downloads_columns)
     (list_option C.File.class_column)
   [ C.Col_file_name ; C.Col_file_size ; C.Col_file_downloaded;
     C.Col_file_percent ;
@@ -314,7 +315,7 @@ let downloads_columns = define_option mldonkey_gui_ini
     C.Col_file_availability ]
 
 let downloaded_columns = define_option mldonkey_gui_ini
-    ["downloaded_columns"] M.h_downloaded_columns
+    ["downloaded_columns"] (gettext M.h_downloaded_columns)
     (list_option C.File.class_column)
     [ C.Col_file_name ; C.Col_file_size ; 
       C.Col_file_format;]
@@ -322,13 +323,13 @@ let downloaded_columns = define_option mldonkey_gui_ini
 (** {3 Clients} *)
 
 let friends_columns = define_option mldonkey_gui_ini
-    ["friends_columns"] M.h_friends_columns
+    ["friends_columns"] (gettext M.h_friends_columns)
     (list_option C.Client.class_column)
     [ C.Col_client_name ; C.Col_client_kind ; 
       C.Col_client_state; ]
 
 let file_locations_columns = define_option mldonkey_gui_ini
-    ["file_locations_columns"] M.h_file_locations_columns
+    ["file_locations_columns"] (gettext M.h_file_locations_columns)
     (list_option C.Client.class_column)
     [ C.Col_client_name ; C.Col_client_kind ; 
       C.Col_client_state; ]
@@ -348,7 +349,7 @@ let rooms_columns = define_option mldonkey_gui_ini
 (** {3 Servers} *)
 
 let servers_columns = define_option mldonkey_gui_ini
-    ["server_columns"] M.h_servers_columns
+    ["server_columns"] (gettext M.h_servers_columns)
     (list_option C.Server.class_column)
     [ C.Col_server_address ; C.Col_server_state ; 
       C.Col_server_users ; C.Col_server_files ;
@@ -357,7 +358,7 @@ let servers_columns = define_option mldonkey_gui_ini
 (** {3 Results} *)
 
 let results_columns = define_option mldonkey_gui_ini
-    ["results_columns"] M.h_results_columns
+    ["results_columns"] (gettext M.h_results_columns)
     (list_option C.Result.class_column)
     [ C.Col_result_name ; 
       C.Col_result_size ; C.Col_result_format ;
@@ -376,22 +377,22 @@ let shared_files_up_columns = define_option mldonkey_gui_ini
 (** {2 Others} *)
 
 let password = define_option mldonkey_gui_ini ["password"] 
-    M.h_gui_password string_option ""
+    (gettext M.h_gui_password) string_option ""
 let port = define_option mldonkey_gui_ini ["port"] 
-    M.h_gui_port int_option 4001
+    (gettext M.h_gui_port) int_option 4001
 let hostname = define_option mldonkey_gui_ini ["hostname"] 
-    M.h_hostname string_option "localhost"
+    (gettext M.h_hostname) string_option "localhost"
 
 (** Profondeur max pour l'auto expand des arborescences des fichiers
    des friends. *)
 let files_auto_expand_depth = define_option mldonkey_gui_ini 
     ["files_auto_expand_depth"]
-    M.h_files_auto_expand_depth int_option 3
+    (M.h_files_auto_expand_depth) int_option 3
 
 (** Whether we must print sizes in bytes or use G, M and k suffixes. *)
 let use_size_suffixes = define_option mldonkey_gui_ini
     ["use_size_suffixes"]
-    M.h_use_size_suffixes bool_option true
+    (M.h_use_size_suffixes) bool_option true
 
 let use_availability_height = define_option mldonkey_gui_ini ["availability_height"]
   "Display the availability of each chunk as the height of the colored bar"

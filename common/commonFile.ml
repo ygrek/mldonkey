@@ -119,20 +119,18 @@ let ni n m =
 let fni n m = failwith (ni n m)
 let ni_ok n m = ignore (ni n m)
 
-let files_update_list = ref []
-  
 let file_must_update file =
   let impl = as_file_impl file in
-  if impl.impl_file_update > 0 then
-      files_update_list := file :: !files_update_list;
+  if impl.impl_file_update <> 0 then
+    CommonEvent.add_event (File_info_event file);
   impl.impl_file_update <- 0
 
 let file_must_update_downloaded file =
   let impl = as_file_impl file in
   if impl.impl_file_update > 0 then
     begin
-      impl.impl_file_update <- -1;
-      files_update_list := file :: !files_update_list
+      impl.impl_file_update <- - impl.impl_file_update;
+      CommonEvent.add_event (File_info_event file);
     end
 
 let update_file_num impl =
@@ -212,7 +210,7 @@ let file_recover (file : file) =
 
 let file_sources file =
   let impl = as_file_impl file in
-  impl.impl_file_ops.op_file_sources impl.impl_file_val
+  try impl.impl_file_ops.op_file_sources impl.impl_file_val with _ -> []
 
 let files_ops = ref []
   
@@ -285,11 +283,9 @@ let file_state file =
   impl.impl_file_state  
   
   
-let file_new_sources = ref []
-    
 let file_new_source (file : file) c =
   client_must_update c;
-  file_new_sources := (file, c) :: !file_new_sources  
+  CommonEvent.add_event (File_new_source_event (file,c))
 
 let rec last = function
     [x] -> x
@@ -380,7 +376,15 @@ let file_print file o =
   (Int32.to_string info.G.file_size)
   (Int32.to_string info.G.file_downloaded);
   List.iter (fun name -> 
-      Printf.bprintf buf "    (%s)\n" name) info.G.file_names
+      Printf.bprintf buf "    (%s)\n" name) info.G.file_names;
+  (try
+      
+      let srcs = file_sources file in
+      Printf.bprintf buf "%d sources:\n" (List.length srcs);
+      List.iter (fun c ->
+          client_bprint buf c
+      ) srcs
+    with _ -> ())
 
 let file_size file = 
   (as_file_impl file).impl_file_size

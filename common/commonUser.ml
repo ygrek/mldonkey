@@ -69,14 +69,12 @@ let user_counter = ref 1
 let users_by_num = H.create 1027
 
     
-let users_update_list = ref []
-
 let user_must_update user =
   let impl = as_user_impl user in
-  if impl.impl_user_update > 0 then
+  if impl.impl_user_update <> 0 then
     begin
       impl.impl_user_update <- 0;
-      users_update_list := user :: !users_update_list
+      CommonEvent.add_event (User_info_event user)
     end
       
 let user_add (user : 'a user_impl) =

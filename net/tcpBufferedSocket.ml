@@ -59,7 +59,7 @@ and bandwidth_controler = {
     mutable nconnections : int;
     mutable connections : t list;
     allow_io : bool ref;
-    mutable last_remaining : int;
+    mutable remaining_bytes_user : ((* total *) int -> (* remaining *) int -> unit);
     mutable moved_bytes : int64;
   }
 
@@ -475,7 +475,7 @@ let create_read_bandwidth_controler rate =
       nconnections = 0;
       connections = [];
       allow_io = ref true;
-      last_remaining = 0;
+      remaining_bytes_user = (fun _ _ -> ());
       moved_bytes = Int64.zero;
     } in
   read_bandwidth_controlers := bc :: !read_bandwidth_controlers;
@@ -488,7 +488,7 @@ let create_write_bandwidth_controler rate =
       nconnections = 0;
       connections = [];
       allow_io = ref true;
-      last_remaining = 0;
+      remaining_bytes_user = (fun _ _ -> ());
       moved_bytes = Int64.zero;
     } in
   write_bandwidth_controlers := bc :: !write_bandwidth_controlers;
@@ -662,17 +662,16 @@ let close_after_write t =
 let set_monitored t =
   t.monitored <- true
   
-  
 let _ =
   add_infinite_timer 1.0 (fun timer ->
       List.iter (fun bc ->
-          bc.last_remaining <- bc.remaining_bytes;
+          bc.remaining_bytes_user bc.total_bytes bc.remaining_bytes;
           bc.remaining_bytes <- bc.total_bytes;
           if bc.remaining_bytes > 0 then bc.allow_io := true
 (*            Printf.printf "READ remaining_bytes: %d" bc.remaining_bytes;  *)
       ) !read_bandwidth_controlers;
       List.iter (fun bc ->
-          bc.last_remaining <- bc.remaining_bytes;
+          bc.remaining_bytes_user bc.total_bytes bc.remaining_bytes;
           bc.remaining_bytes <- bc.total_bytes;          
           if bc.remaining_bytes > 0 then bc.allow_io := true;
           (*
@@ -751,14 +750,16 @@ let buf_size  t =
   
 let can_fill t =
   t.wbuf.len < (t.wbuf.max_buf_size / 2)
-  
+
+  (*
 let if_possible bc len = 
   bc.total_bytes = 0 ||
   if bc.last_remaining >= len then begin
       bc.last_remaining <- bc.last_remaining - len;
       true;
     end else false
-    
+      *)
+
 let set_rtimeout s t = set_rtimeout (sock s) t
 let set_wtimeout s t = set_wtimeout (sock s) t
 
@@ -803,4 +804,7 @@ let set_read_power t p = t.read_power <- p
 let set_lifetime s = set_lifetime (sock s)
   
 let moved_bytes bc = bc.moved_bytes
+  
+let set_remaining_bytes_user bc f =
+  bc.remaining_bytes_user <- f
   

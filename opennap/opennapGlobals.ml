@@ -209,7 +209,7 @@ let new_server ip port =
           server_nusers = 0;
           server_nfiles = 0;
           server_size = 0;
-          server_connection_control = DG.new_connection_control (last_time ());
+          server_connection_control = DG.new_connection_control ( ());
           server_nick_num = -1;
           server_last_nick = "";
           server_searches = None;
@@ -351,7 +351,7 @@ let new_client name =
           client_all_files = None;
           client_user = user;
           client_error = false;
-          client_connection_control = new_connection_control (last_time());
+          client_connection_control = new_connection_control (());
         } and impl = {
           dummy_client_impl with
           impl_client_val = c;

@@ -19,6 +19,7 @@
 
 (** Communicating with the mldonkey client. *)
 
+open Gettext
 open GuiProto
 module M = Gui_messages
 module O = Gui_options
@@ -87,7 +88,7 @@ let reconnect gui value_reader =
         | Some s -> 
             if s == sock then begin
               connection := None;
-              gui#label_connect_status#set_text "Disconnected";
+              gui#label_connect_status#set_text (gettext M.not_connected);
 	      when_disconnected gui
             end
     );

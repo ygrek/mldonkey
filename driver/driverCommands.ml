@@ -491,6 +491,11 @@ let commands = [
         CommonSearch.search_forget (CommonSearch.search_find num);
         ""  
     ), " <num> : forget search <num>";
+
+    "close_all_sockets", Arg_none (fun o ->
+        BasicSocket.close_all ();
+        "All sockets closed"
+    ), " : close all opened sockets";
     
     ]
 

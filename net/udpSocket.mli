@@ -22,12 +22,16 @@ type event =
   | READ_DONE
   | BASIC_EVENT of BasicSocket.event
 type udp_packet = { content : string; addr : Unix.sockaddr; } 
-type t = {
+type t
+(*
+  type t = {
     mutable sock : BasicSocket.t;
     mutable rlist : udp_packet list;
-    mutable wlist : udp_packet list;
+    mutable wlist : (udp_packet * float) list;
+    mutable revwlist : (udp_packet * float) list;
     mutable event_handler : handler;
-  }  
+    mutable write_controler : TcpBufferedSocket.bandwidth_controler option;
+  } *)
 and handler = t -> event -> unit
 val read : t -> udp_packet
 val set_handler : t -> event -> (t -> unit) -> unit
@@ -44,4 +48,14 @@ val can_write : t -> bool
   
 val udp_uploaded_bytes : int64 ref
 val udp_downloaded_bytes : int64 ref
+val read_packets : t -> (udp_packet -> unit) -> unit
+  
+type bandwidth_controler
+val set_write_controler : t -> bandwidth_controler -> unit
+val new_bandwidth_controler : TcpBufferedSocket.bandwidth_controler ->
+  bandwidth_controler
+  
+val remaining_bytes : bandwidth_controler -> int
+val use_remaining_bytes : bandwidth_controler -> int -> unit
+  
   

@@ -129,6 +129,7 @@ let enable () =
     features =:= !!features;  
     
     Hashtbl.iter (fun _ file ->
+        try
         if file_state file <> FileDownloaded then begin
             current_files := file :: !current_files;
             set_file_size file (file_size file)
@@ -156,7 +157,10 @@ let enable () =
               else raise Not_found
             with _ -> 
                 file_commit (as_file file.file_file)
-          end
+            end
+        with e ->
+            Printf.printf "Exception %s while recovering download %s"
+              (Printexc.to_string e) (file_disk_name file); print_newline ();
     ) files_by_md4;
     let list = ref [] in
 (* Normally, we should check that downloaded files are still there.
@@ -172,12 +176,18 @@ let enable () =
     known_shared_files =:= !list;
     Options.save shared_files_ini;
 
+    
+    
 (**** CREATE WAITING SOCKETS ****)
     
     begin try
-        udp_sock := Some (UdpSocket.create (Ip.to_inet_addr !!donkey_bind_addr)
-          (!!port + 4) 
-          (udp_handler DonkeyFiles.udp_client_handler));
+        let sock =
+          (UdpSocket.create (Ip.to_inet_addr !!donkey_bind_addr)
+            (!!port + 4) 
+            (udp_handler DonkeyFiles.udp_client_handler))
+        in
+        udp_sock := Some sock;
+        UdpSocket.set_write_controler sock udp_write_controler
       with e ->
           Printf.printf "Exception %s while binding UDP socket"
             (Printexc.to_string e);

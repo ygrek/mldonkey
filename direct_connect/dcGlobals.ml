@@ -331,7 +331,7 @@ let new_client name =
           client_all_files = None;
           client_receiving = Int32.zero;
           client_user = user;
-          client_connection_control = new_connection_control 0.0;
+          client_connection_control = new_connection_control ();
         } and impl = {
           dummy_client_impl with
           impl_client_val = c;
@@ -394,7 +394,7 @@ let new_server addr port=
           server_addr = addr;
           server_nusers = 0;
           server_info = "";
-          server_connection_control = new_connection_control 0.0;
+          server_connection_control = new_connection_control ();
           server_sock = None;
           server_port = port;
           server_nick = 0;

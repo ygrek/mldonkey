@@ -55,6 +55,8 @@ decide whether to connect immediatly or not. *)
     
 (* used to clear the file list a client *)
     mutable op_client_clear_files : ('a -> unit);
+    
+    mutable op_client_bprint : (Buffer.t -> 'a -> unit);
   }
   
 let client_counter = CommonUser.user_counter
@@ -116,6 +118,10 @@ let client_files client=
   let client = as_client_impl client in
   client.impl_client_ops.op_client_files client.impl_client_val
 
+let client_bprint buf client =
+  let client = as_client_impl client in
+  client.impl_client_ops.op_client_bprint buf client.impl_client_val
+
 let client_connect client=
   let client = as_client_impl client in
   client.impl_client_ops.op_client_connect client.impl_client_val
@@ -149,6 +155,7 @@ let new_client_ops network =
       op_client_connect  = (fun _ -> ni_ok network "client_connect");
       op_client_clear_files = (fun _ -> ni_ok network "client_clear_files");
       op_client_browse = (fun _ _ -> ni_ok network "client_browse");
+      op_client_bprint = (fun _ _ -> ni_ok network "client_bprint");
     } in
   let cc = (Obj.magic c : int client_ops) in
   clients_ops := (cc, { cc with op_client_network = c.op_client_network })
@@ -182,20 +189,18 @@ let client_find num =
   H.find clients_by_num (as_client { dummy_client_impl with
       impl_client_num = num })
     
-let clients_update_list = ref []
-
 let client_must_update client =
   let impl = as_client_impl client in
-  if impl.impl_client_update > 0 then
-    clients_update_list := client :: !clients_update_list;
+  if impl.impl_client_update <> 0 then
+    CommonEvent.add_event (Client_info_event client);
   impl.impl_client_update <- 0
   
 let client_must_update_state client =
   let impl = as_client_impl client in
   if impl.impl_client_update > 0 then
     begin
-      impl.impl_client_update <- -1;
-      clients_update_list := client :: !clients_update_list
+      impl.impl_client_update <- - impl.impl_client_update;
+      CommonEvent.add_event (Client_info_event client);
     end
 
 let client_state c =
@@ -233,12 +238,9 @@ let set_client_type c t =
     
 let clients_by_num = ()
   
-let client_new_files = ref []
-    
 let client_new_file (client :client) (dirname:string) r =
-  let key = (client, dirname, (r : result)) in
-  if not (List.mem key !client_new_files) then  
-    client_new_files := key :: !client_new_files  
+  CommonEvent.add_event (Client_new_file_event 
+    (client, dirname, (r : result)))
 
 module G = GuiTypes
   
