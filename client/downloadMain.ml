@@ -24,7 +24,7 @@ open Mftp_comm
 open DownloadServers
 open BasicSocket
 open DownloadComplexOptions
-open TcpClientSocket
+open TcpBufferedSocket
 open DownloadOneFile
 open DownloadFiles
 open DownloadInteractive
@@ -35,7 +35,12 @@ open DownloadClient
 open Gui_types
 open DownloadOptions
 
+
   
+let _ =
+  Sys.set_signal  Sys.sigchld Sys.Signal_ignore;
+  Sys.set_signal  Sys.sigpipe Sys.Signal_ignore
+
 let is_directory filename =
   try let s = Unix.stat filename in s.Unix.st_kind = Unix.S_DIR with _ -> false
 
@@ -56,6 +61,8 @@ let hourly_timer timer =
   reactivate_timer timer;
   DownloadServers.remove_old_servers_timer ();
   DownloadInteractive.check_shared_files ();
+  DownloadFiles.remove_old_clients ();
+  DownloadClient.clean_groups ();
   Mftp_comm.propagate_working_servers 
     (List.map (fun s -> s.server_ip, s.server_port) !connected_server_list)
   
@@ -70,7 +77,21 @@ let do_daily () =
 let daily_timer timer =
   reactivate_timer timer;
   do_daily ()
-  
+
+let quarter_timer timer =
+  reactivate_timer timer;
+  DownloadFiles.fill_clients_list ()
+
+let second_timer timer =
+  reactivate_timer timer;
+  DownloadFiles.check_clients ();
+  DownloadFiles.reset_upload_timer ()
+
+let halfmin_timer timer =
+  reactivate_timer timer;
+  DownloadServers.update_master_servers ();
+  DownloadFiles.upload_credit_timer ();
+  DownloadIndexer.add_to_local_index_timer ()
   
 let _ = 
   try
@@ -299,6 +320,8 @@ let _ =
       { tag_name = "port"; tag_value =  Uint32 (Int32.of_int !client_port) };
     ];
 
+    DownloadFiles.fill_clients_list ();
+    
 
 (**** START TIMERS ****)
     add_timer !!update_gui_delay         DownloadInterface.update_gui_info;  
@@ -309,16 +332,12 @@ let _ =
     add_timer 5.0 DownloadServers.walker_timer;
     
     add_timer 3600. hourly_timer;
-    add_timer (3600. *. 24.) daily_timer;
-    
-    add_timer 30. DownloadFiles.upload_credit_timer;
-    
-    add_timer 30. DownloadServers.update_master_servers;
-    
-    add_timer 1.0 DownloadFiles.reset_upload_timer;
+    add_timer (3600. *. 24.) daily_timer;    
+    add_timer 30. halfmin_timer;
+    add_timer 900. quarter_timer;
+    add_timer 1. second_timer;
     add_timer 0.1 DownloadFiles.upload_timer;
 
-    add_timer 30. DownloadIndexer.add_to_local_index_timer;
     
 
 (**** START PLAYING ****)  

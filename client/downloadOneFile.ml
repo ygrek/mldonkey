@@ -19,7 +19,7 @@
 open Options
 open Unix
 open BasicSocket
-open TcpClientSocket
+open TcpBufferedSocket
 open Mftp
 open Files
 open Mftp_comm
@@ -82,23 +82,35 @@ let sort_zones b =
         z1.zone_begin < z2.zone_begin)
   ) zones
 
-let disconnected_from_client c msg =
+let disconnected_from_client c c_alias msg =
+  begin
+    if c_alias != c then begin
+(*        Printf.printf "Remove aliased client %d" c.client_num; print_newline (); *)
+        remove_client c_alias
+      end;
+  end;
   printf_string "-c"; 
   c.client_chunks <- [||];
   c.client_sock <- None;
-  let files = c.client_files in
+  let files = c.client_file_queue in
   List.iter (fun (file, chunks) -> remove_client_chunks file chunks)  files;    
-  c.client_files <- [];
+  c.client_file_queue <- [];
+  List.iter (fun num -> 
+(*        Printf.printf "Remove other aliased clients %d" num; print_newline ();  *)
+      try Hashtbl.remove clients_by_num num with _ -> ()) c.client_aliases;
+  c.client_aliases <- [];
   begin
     match c.client_kind with
       Known_location _ -> ()
+(* maybe we should check if we should really keep this client ??? *)
     | Indirect_location ->
         Hashtbl.remove indirect_clients_by_md4 c.client_md4;
         List.iter (fun (file,_) ->
             file.file_indirect_locations <- 
-              List2.removeq c file.file_indirect_locations
+              Intmap.remove c.client_num file.file_indirect_locations
         ) files;
-        remove_client c
+        remove_client c;
+        if c.client_aliases <> [] then (Printf.printf "(1) Remove useless but ALIASED client"; print_newline ());
   end;
   set_client_state c NotConnected;
   begin
@@ -109,8 +121,8 @@ let disconnected_from_client c msg =
         List.iter (fun z ->
             z.zone_nclients <- z.zone_nclients - 1) c.client_zones;
         sort_zones b
-  end
-  
+  end;
+  remove_useless_client c
 
 let rec create_zones file begin_pos end_pos list =
   if begin_pos = end_pos then list
@@ -126,7 +138,7 @@ let rec create_zones file begin_pos end_pos list =
     } :: list ) 
 
 let client_file c =
-  match c.client_files with
+  match c.client_file_queue with
     [] -> failwith "No file for this client"
   | (file, _) :: _ -> file
 
@@ -141,7 +153,7 @@ let query_zones c b =
     None -> assert false
   | Some sock ->
       
-      set_rtimeout (TcpClientSocket.sock sock) !queue_timeout;
+      set_rtimeout (TcpBufferedSocket.sock sock) !queue_timeout;
         let module M = Mftp_client in
         let module Q = M.QueryBloc in
       let msg, len =           
@@ -185,7 +197,7 @@ let query_zones c b =
       if !!max_hard_download_rate <> 0 then
         Fifo.put download_fifo (sock, msg, len)
       else
-        client_send sock msg
+        direct_client_send sock msg
         
 
         
@@ -512,7 +524,7 @@ and start_download c =
   match c.client_sock with
     None -> ()
   | Some sock ->
-      match c.client_files with
+      match c.client_file_queue with
         [] -> ()
       | (file, chunks) :: _ ->
           c.client_block <- None;
@@ -525,25 +537,25 @@ and start_download c =
               c.client_all_chunks.[i] <- '1';
           done;          
           if file.file_md4s = [] && file.file_size > block_size then begin
-              client_send sock (
+              direct_client_send sock (
                 let module M = Mftp_client in
                 let module C = M.QueryChunkMd4 in
                 M.QueryChunkMd4Req file.file_md4);
             
             end;
                    
-          client_send sock (
+          direct_client_send sock (
             let module M = Mftp_client in
             let module Q = M.JoinQueue in
             M.JoinQueueReq Q.t);              
           
-          set_rtimeout (TcpClientSocket.sock sock) infinite_timeout;
+          set_rtimeout (TcpBufferedSocket.sock sock) infinite_timeout;
           set_client_state c Connected_queued
 
 and find_client_block c =
 (* find an available block *)
   
-  match c.client_files with
+  match c.client_file_queue with
     [] -> assert false
   | (file, _) :: files -> 
       
@@ -600,7 +612,7 @@ and find_client_block c =
 
 and next_file c =
   
-  match c.client_files with
+  match c.client_file_queue with
     [] -> assert false
   | (file, chunks) :: files -> 
       remove_client_chunks file chunks;
@@ -610,10 +622,10 @@ and next_file c =
           match files with
             [] ->
               connection_delay c.client_connection_control;
-              TcpClientSocket.close sock "useless client";            
+              TcpBufferedSocket.close sock "useless client";            
               raise Not_found
           | _ ->
-              c.client_files <- files;
+              c.client_file_queue <- files;
               start_download c
               
       
@@ -732,6 +744,7 @@ let remove_file md4 =
             decr nshared_files;
             (try Sys.remove file.file_hardname with _ -> ());
             (try Hashtbl.remove files_by_md4 file.file_md4 with _ -> ());
+            remove_file_clients file;
             file.file_hardname <- "";
             !file_change_hook file;
             files end
@@ -885,7 +898,7 @@ let check_files_md4s timer =
             None -> ()
           | Some sock ->
               socks := sock :: !socks) !connected_server_list;
-      servers_send !socks msg;
+      direct_servers_send !socks msg;
     end;
   
   try
@@ -1018,7 +1031,7 @@ let download_engine () =
             (try
                 let (sock, msg, len) = Fifo.take download_fifo in
                 download_credit := !download_credit - (len / 1000 + 1);
-                client_send sock msg
+                direct_client_send sock msg
               with _ -> ());
             iter ()
           end

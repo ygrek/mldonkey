@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 open Unix
-open TcpClientSocket
+open TcpBufferedSocket
 open Mftp
 open Options
 open Mftp_comm
@@ -77,8 +77,8 @@ let send_buf buf sock =
   Mftp.buf_int8 buf 227;
   let len = String.length s in
   Mftp.buf_int32_32 buf (Int32.of_int len);
-  TcpClientSocket.write sock (Buffer.contents buf) 0 5;
-  TcpClientSocket.write sock s 0 len
+  TcpBufferedSocket.write sock (Buffer.contents buf) 0 5;
+  TcpBufferedSocket.write sock s 0 len
   
 let hexa_digit x =
   if x >= 10 then Char.chr (Char.code 'A' + x - 10)

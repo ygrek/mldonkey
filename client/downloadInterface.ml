@@ -23,7 +23,7 @@ open Mftp_comm
 open DownloadServers
 open BasicSocket
 open DownloadComplexOptions
-open TcpClientSocket
+open TcpBufferedSocket
 open DownloadOneFile
 open DownloadFiles
 open DownloadTypes
@@ -194,7 +194,7 @@ let new_friend c =
         | Connected_queued
         | Connected_idle)
         ->
-          client_send sock (
+          direct_client_send sock (
             let module M = Mftp_client in
             let module C = M.ViewFiles in
             M.ViewFilesReq C.t);          
@@ -249,10 +249,10 @@ let file_locations file =
   
   let ilocs = ref [] in
   let locs = ref [] in
-  List.iter (fun c ->
+  Intmap.iter (fun _ c ->
         ilocs := c.client_num :: !ilocs
   ) file.file_indirect_locations;
-  List.iter (fun c ->
+  Intmap.iter (fun _ c ->
         locs := c.client_num :: !locs
   ) file.file_known_locations;
   
@@ -298,12 +298,13 @@ let server_of_key t =
   
 let gui_reader (gui: gui_record) t sock =
 
+  (*
   if Obj.is_int (Obj.repr t) then
     Printf.printf "from gui: int %d" (Obj.magic t)
   else
     Printf.printf "from gui: %d" (Obj.tag (Obj.repr t)); 
 print_newline ();
-  
+*)  
   try
     let module P = Gui_proto in
     match t with
@@ -311,7 +312,8 @@ print_newline ();
         let buf = Buffer.create 1000 in
         Buffer.add_string buf "\n----------------------------------\n";
         Printf.bprintf buf "Eval command: %s\n\n" cmd;
-        let options = { conn_output = TEXT; conn_sortvd = BySize } in
+        let options = { conn_output = TEXT; conn_sortvd = BySize;
+            conn_filter = (fun _ -> ()); } in
         DownloadInteractive.eval (ref true) buf cmd 
         options;
         Buffer.add_string buf "\n\n";
@@ -339,10 +341,10 @@ print_newline ();
     | P.Password (v,s) ->
         if v <> Gui_types.version then begin
             Printf.printf "Bad GUI version"; print_newline ();
-            TcpClientSocket.close sock "bad version";
+            TcpBufferedSocket.close sock "bad version";
           end;
         if s = !!password then begin
-            BasicSocket.must_write (TcpClientSocket.sock sock) true;
+            BasicSocket.must_write (TcpBufferedSocket.sock sock) true;
             let connecting = ref true in
             
             gui_send gui (
@@ -351,7 +353,7 @@ print_newline ();
             set_handler sock WRITE_DONE (fun _ ->
                 if !connecting then
                   try
-                    while TcpClientSocket.can_write sock do
+                    while TcpBufferedSocket.can_write sock do
                       match gui.gui_files with
                         file :: files ->
                           gui.gui_files <- files;
@@ -387,7 +389,7 @@ print_newline ();
             );
           
           end else
-          TcpClientSocket.close gui.gui_sock "bad password"
+          TcpBufferedSocket.close gui.gui_sock "bad password"
     
     | P.KillServer -> 
         exit_properly ()
@@ -544,7 +546,7 @@ print_newline ();
           match s.server_sock with
             None -> ()
           | Some sock ->
-              shutdown sock "user disconnect"
+              TcpBufferedSocket.shutdown sock "user disconnect"
         end
     
     | P.ConnectAll md4 -> 
@@ -598,7 +600,7 @@ print_newline ();
           let s = server_of_key key in
           match s.server_sock, s.server_state with
             Some sock, (Connected_idle | Connected_busy) ->
-              server_send sock (Mftp_server.QueryUsersReq "");
+              direct_server_send sock (Mftp_server.QueryUsersReq "");
               Fifo.put s.server_users_queries view_users_handler              
           | _ -> ()
         end
@@ -608,7 +610,7 @@ print_newline ();
           List.iter (fun s ->
               match s.server_sock, s.server_state with
                 Some sock, (Connected_idle | Connected_busy) ->
-                  server_send sock (Mftp_server.QueryUsersReq user);
+                  direct_server_send sock (Mftp_server.QueryUsersReq user);
                   Fifo.put s.server_users_queries find_user_handler
               | _ -> ()
           ) !connected_server_list;
@@ -635,7 +637,7 @@ print_newline ();
               match c.client_sock with
                 None -> ()
               | Some sock ->
-                  client_send sock (Mftp_client.SayReq s)
+                  direct_client_send sock (Mftp_client.SayReq s)
             with _ -> ()) friend_list;
         !say_hook None s
         
@@ -666,8 +668,8 @@ print_newline ();
         List.iter (fun md4 ->
             try 
               let file = find_file md4 in
-              if file.file_known_locations != [] ||
-                file.file_indirect_locations != [] then
+              if file.file_known_locations != Intmap.empty ||
+                file.file_indirect_locations != Intmap.empty then
                 send_full_file_info gui file with _ -> ()) md4_list;
         List.iter (fun num ->
             let c = find_client num in
@@ -694,7 +696,7 @@ let gui_handler t event =
       if Ip.matches from_ip !!allowed_ips then 
         
         let module P = Gui_proto in
-        let sock = TcpClientSocket.create_simple s in
+        let sock = TcpBufferedSocket.create_simple s in
         let gui = {
             gui_searches = [];
             gui_sock = sock;
@@ -705,11 +707,11 @@ let gui_handler t event =
             gui_servers = !!known_servers;
 
           } in
-        TcpClientSocket.set_max_write_buffer sock !!interface_buffer;
-        TcpClientSocket.set_reader sock (Mftp.value_handler 
+        TcpBufferedSocket.set_max_write_buffer sock !!interface_buffer;
+        TcpBufferedSocket.set_reader sock (Mftp.value_handler 
             (gui_reader gui));
-        TcpClientSocket.set_closer sock (gui_closed gui);
-        TcpClientSocket.set_handler sock TcpClientSocket.BUFFER_OVERFLOW
+        TcpBufferedSocket.set_closer sock (gui_closed gui);
+        TcpBufferedSocket.set_handler sock TcpBufferedSocket.BUFFER_OVERFLOW
           (fun _ -> Printf.printf "BUFFER OVERFLOW"; print_newline () );
         guis := gui :: !guis;
         gui_send gui (P.Connected Gui_types.version);

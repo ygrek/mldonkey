@@ -96,3 +96,10 @@ val update_server_list : bool Options.option_record
 val compute_md4_delay : float Options.option_record
 
 val minor_heap_size : int Options.option_record
+val max_sources_age : int Options.option_record
+val max_clients_per_second : int Options.option_record
+val html_checkbox_file_list : bool Options.option_record
+val display_downloaded_results : bool Options.option_record
+val filter_table_threshold : int Options.option_record
+val client_buffer_size :  int Options.option_record
+val new_print_search : bool Options.option_record

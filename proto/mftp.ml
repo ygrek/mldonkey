@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 open Int32ops
-open TcpClientSocket
+open TcpBufferedSocket
   
 let ports = ref []
 
@@ -92,10 +92,24 @@ let buf_int16 buf i =
   let i = i land 65535 in
   Buffer.add_char buf (char_of_int (i mod 256));
   Buffer.add_char buf (char_of_int (i / 256))
+
+let buf_int buf i = 
+  buf_int8 buf i;
+  buf_int8 buf (i lsr 8);
+  buf_int8 buf (i lsr 16);
+  buf_int8 buf (i lsr 24)
+
+let str_int s pos i =
+  s.[pos] <- char_of_int (i land 255);
+  s.[pos+1] <- char_of_int ((i lsr 8) land 255);
+  s.[pos+2] <- char_of_int ((i lsr 16) land 255);
+  s.[pos+3] <- char_of_int ((i lsr 24) land 255)
   
+(*  
 let buf_int buf int =
   buf_int32_32 buf (Int32.of_int int)
-  
+  *)
+
 let buf_ip buf ip =
   let (ip0,ip1,ip2,ip3) = Ip.to_ints ip in
   buf_int8 buf ip0;

@@ -35,6 +35,6 @@ val add_comment : Md4.t -> string -> unit
   
 val load_old_history : unit -> unit
   
-val add_to_local_index_timer : BasicSocket.timer -> unit
+val add_to_local_index_timer : unit -> unit
   
 val store : Gui_types.result Store.t

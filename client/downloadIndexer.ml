@@ -53,7 +53,7 @@ module Document = struct
 
 let doc_value doc = Store.get store doc
   
-module DocIndexer = Indexer.Make(Document)
+module DocIndexer = Indexer2.FullMake(Document)
 
 open Document
   
@@ -306,7 +306,7 @@ let add_to_local_index r =
   
 let refill_add_to_local_index t_out =
   if !add_to_local_index_queue = [] then
-    TcpClientSocket.close t_out "finished"
+    TcpBufferedSocket.close t_out "finished"
   else
   let (before, after) = List2.cut 50 !add_to_local_index_queue in
   add_to_local_index_queue := after;
@@ -337,27 +337,26 @@ let refill_add_to_local_index t_out =
   ) before;
   
   let s = Buffer.contents buf in
-  TcpClientSocket.write_string t_out s   
+  TcpBufferedSocket.write_string t_out s   
   
-let add_to_local_index_timer timer =
-  reactivate_timer timer;
-  
+let add_to_local_index_timer _ =
+
   if !add_to_local_index_queue <> [] &&
     !indexer = None then begin
       try
         let t_out =
           match !indexer with
             None ->
-              let (t_in, t_out) = TcpClientSocket.exec_command !!local_index_add_cmd [||] 
+              let (t_in, t_out) = TcpBufferedSocket.exec_command !!local_index_add_cmd [||] 
                   (fun sock ev -> ()) in
               indexer := Some (t_in, t_out);
-              TcpClientSocket.set_closer t_in (fun _ _ ->
+              TcpBufferedSocket.set_closer t_in (fun _ _ ->
                   match !indexer with
                     None -> ()
                   | Some (t_in_old, t_out_old) ->
                       if t_out_old == t_out then
                         indexer := None);
-              TcpClientSocket.set_closer t_out (fun _ _ ->
+              TcpBufferedSocket.set_closer t_out (fun _ _ ->
                   match !indexer with
                     None -> ()
                   | Some (t_in_old, t_out_old) ->
@@ -366,7 +365,7 @@ let add_to_local_index_timer timer =
               t_out
           | Some (t_in, t_out) -> t_out
         in
-        TcpClientSocket.set_refill t_out refill_add_to_local_index        
+        TcpBufferedSocket.set_refill t_out refill_add_to_local_index        
 
       with e ->
           Printf.printf "Exception %s while starting local_index_add"
@@ -559,6 +558,9 @@ let req = Indexer.Predicate (pred, req) in
  let docs = DocIndexer.query index req in
 (*  Printf.printf "%d results" (List.length docs); print_newline (); *)
 Array.iter (fun doc ->
+    if DocIndexer.filtered doc then begin
+        Printf.printf "doc filtered"; print_newline ();
+      end else
     let r = doc_value doc in
     comment_result r doc;
     
@@ -676,7 +678,7 @@ let _ =
       match !indexer with
         None -> ()
       | Some (t_in, t_out) ->
-          if TcpClientSocket.can_write t_out then begin
-              TcpClientSocket.close t_out "timed";
+          if TcpBufferedSocket.can_write t_out then begin
+              TcpBufferedSocket.close t_out "timed";
               indexer := None;
             end)

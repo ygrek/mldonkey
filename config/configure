@@ -1,6 +1,6 @@
 #! /bin/sh
 
-# From configure.in Revision: 1.5 
+# From configure.in Revision: 1.6 
 
 # Guess values for system-dependent variables and create Makefiles.
 # Generated automatically using autoconf version 2.13 
@@ -1578,8 +1578,16 @@ done
         ;;
         *)         ;;
 esac
+
+case $host in
+  i486-pc-linux*) MD4COMP=as; MD4ARCH=i486;;
+  i586-pc-linux*) MD4COMP=as; MD4ARCH=i586;;
+  i686-pc-linux*) MD4COMP=as; MD4ARCH=i686;;
+  *) MD4COMP=cc;;
+esac
+
 echo $ac_n "checking Additionnal includes""... $ac_c" 1>&6
-echo "configure:1583: checking Additionnal includes" >&5 
+echo "configure:1591: checking Additionnal includes" >&5 
 echo "$ac_t""$CONFIG_INCLUDES" 1>&6
 
 OCAMLLIB=`ocamlc -where`
@@ -1601,6 +1609,8 @@ case "`uname -s`" in
   *win32* | *WIN32*) CURRENT_DIR="";;
   *) CURRENT_DIR="./";;
 esac
+
+
 
 
 
@@ -1760,6 +1770,8 @@ s%@LABLGL_CMA@%$LABLGL_CMA%g
 s%@LABLGL_CMXA@%$LABLGL_CMXA%g
 s%@CONFIG_INCLUDES@%$CONFIG_INCLUDES%g
 s%@CURRENT_DIR@%$CURRENT_DIR%g
+s%@MD4ARCH@%$MD4ARCH%g
+s%@MD4COMP@%$MD4COMP%g
 
 CEOF
 EOF

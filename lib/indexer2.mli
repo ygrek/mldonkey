@@ -17,27 +17,21 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-val query_id_reply : Ip.t -> Mftp_server.QueryIDReply.t -> unit
+open Indexer
   
-val query_id :
-  DownloadTypes.server -> Mftp_comm.server_sock -> Ip.t -> unit
-  
-val query_locations_reply : DownloadTypes.server ->
-  Mftp_server.QueryLocationReply.t -> unit
-  
-val query_locations :
-  DownloadTypes.file -> DownloadTypes.server -> Mftp_comm.server_sock -> unit
-
-val connect_client : 
-  Ip.t -> DownloadTypes.file list -> DownloadTypes.client -> unit
-val client_connection_handler : 'a -> TcpServerSocket.event -> unit
-
-val query_files : DownloadTypes.client ->
-  Mftp_comm.client_sock -> DownloadTypes.file list -> unit
-  
-val udp_server_send : DownloadTypes.server -> Mftp_server.t -> unit
-  
-val client_wants_file : DownloadTypes.client -> Md4.t -> unit
-  
-val clean_groups : unit -> unit
+    
+module FullMake (Doc : Doc) : sig
+    
+    type   index
+    val create : unit ->  index
+    
+    val add :  index -> string ->  Doc.t -> int -> unit
+    
+    val clear :  index -> unit
+    
+    val filter_words :  index -> string list -> unit
+    val clear_filter :  index -> unit
+    val filtered :  Doc.t -> bool
+    val query : index -> Doc.t query -> Doc.t array          
+  end
   

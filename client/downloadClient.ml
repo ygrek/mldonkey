@@ -19,19 +19,11 @@
 (* The function handling the cooperation between two clients. Most used 
 functions are defined in downloadOneFile.ml *)
 
-(*
- Quand un client se connecte, on mute les champs:
-   client_state
-   on met client_handler comme handler du socket
-   on appelle init_connection c sock
-   on modifie client_sock  
-*)
-
 open Options
 open BasicSocket
 open Mftp
 open Mftp_comm
-open TcpClientSocket
+open TcpBufferedSocket
 open DownloadTypes  
 open DownloadOneFile
 open DownloadOptions
@@ -45,9 +37,12 @@ let new_udp_client c group =
   | Known_location (ip, port) ->
       let uc =
         try
-          Hashtbl.find udp_clients c.client_kind
+          let uc = Hashtbl.find udp_clients c.client_kind in
+          uc.udp_client_last_conn <- last_time ();
+          uc
         with _ ->
             let uc = {
+                udp_client_last_conn = last_time ();
                 udp_client_ip = ip;
                 udp_client_port = port;
                 udp_client_is_mldonkey = c.client_is_mldonkey >= 2;
@@ -77,7 +72,8 @@ let find_sources_in_groups c md4 =
   try
     let group = Hashtbl.find file_groups md4 in
     try
-      ignore (UdpClientMap.find c.client_kind group.group);
+      let uc = UdpClientMap.find c.client_kind group.group in
+      uc.udp_client_last_conn <- last_time ()
 (* the client is already known *)
     with _ -> 
 (* a new client for this group *)
@@ -92,7 +88,7 @@ let find_sources_in_groups c md4 =
                 ) group.group;
                 if !list <> [] then begin
                     Printf.printf "Send %d sources from file groups to mldonkey peer" (List.length !list); print_newline ();                  
-                    client_send sock (
+                    direct_client_send sock (
                       let module Q = Mftp_client.Sources in
                       Mftp_client.SourcesReq {
                         Q.md4 = md4;
@@ -137,12 +133,22 @@ all mldonkey clients in the group. add client to group *)
                     }))
             ) group.group;
             new_udp_client c group
-  
   with _ ->
       let group = { group = UdpClientMap.empty } in
       Hashtbl.add file_groups md4 group;
       new_udp_client c group
-            
+
+let clean_groups () =
+  let one_day_before = last_time () -. 24. *. 3600. in
+  Hashtbl.iter (fun file group ->
+      let map = group.group in
+      group.group <- UdpClientMap.empty;
+      UdpClientMap.iter (fun v uc ->
+          if uc.udp_client_last_conn > one_day_before then
+            group.group <- UdpClientMap.add v uc group.group
+      ) map
+  ) file_groups
+      
 let client_wants_file c md4 =
   if md4 <> Md4.null && md4 <> Md4.one then begin
       find_sources_in_groups c md4;
@@ -169,11 +175,11 @@ let rec really_write fd s pos len =
   
 
 let identify_as_mldonkey c sock =
-  client_send sock (
+  direct_client_send sock (
     let module M = Mftp_client in
     let module C = M.QueryFile in
     M.QueryFileReq Md4.null);
-  client_send sock (
+  direct_client_send sock (
     let module M = Mftp_client in
     let module C = M.QueryFile in
     M.QueryFileReq Md4.one)
@@ -182,13 +188,15 @@ let identify_as_mldonkey c sock =
 let query_files c sock for_files =  
 (*  Printf.printf "QUERY FILES ........."; print_newline (); *)
   List.iter (fun file ->
-      client_send sock (
-        let module M = Mftp_client in
-        let module C = M.QueryFile in
-        M.QueryFileReq file.file_md4);
+      let msg = client_msg (
+          let module M = Mftp_client in
+          let module C = M.QueryFile in
+          M.QueryFileReq file.file_md4)
+      in
+      client_send sock msg;
   ) for_files;
   List.iter (fun file ->
-      client_send sock (
+      direct_client_send sock (
         let module M = Mftp_client in
         let module C = M.QueryFile in
         M.QueryFileReq file.file_md4);          
@@ -205,15 +213,17 @@ let client_to_client for_files c t sock =
   if !ip_verified < 10 then DownloadServers.verify_ip sock;
   let c = real_client c in
   let module M = Mftp_client in
-(*  M.print t; print_newline (); *)
+(*  Printf.printf "client say:"; M.print t; print_newline ();  *)
   match t with
     M.ConnectReplyReq t ->
       printf_string "[CCONN OK]";
       
+      c.client_checked <- true;
+      
       let module CR = M.ConnectReply in
       
       if t.CR.md4 = !!client_md4 then
-        TcpClientSocket.close sock "connected to myself";
+        TcpBufferedSocket.close sock "connected to myself";
       
       c.client_md4 <- t.CR.md4;
       connection_ok c.client_connection_control;
@@ -224,7 +234,7 @@ let client_to_client for_files c t sock =
               c.client_name <- s
           | _ -> ()
       ) c.client_tags;
- 
+      
       if Ip.valid t.CR.ip_server then
         ignore (add_server t.CR.ip_server t.CR.port_server);
       
@@ -245,7 +255,7 @@ let client_to_client for_files c t sock =
           Friend ->
 (*            Printf.printf "******* Asking for files ********"; print_newline (); *)            
             if last_time () > c.client_next_view_files then begin
-                client_send sock (
+                direct_client_send sock (
                   let module M = Mftp_client in
                   let module C = M.ViewFiles in
                   M.ViewFilesReq C.t);          
@@ -255,8 +265,7 @@ let client_to_client for_files c t sock =
   
   | M.ViewFilesReplyReq t ->
 (*
-      Printf.printf "******* ViewFilesReplyReq ******* %d" c.client_num; 
-print_newline (); 
+      Printf.printf "******* ViewFilesReplyReq ******* %d" c.client_num; print_newline (); 
   *)
       let module Q = M.ViewFilesReply in
       begin
@@ -313,23 +322,36 @@ print_newline ();
               try
                 let cc = Hashtbl.find clients_by_kind kind in
                 match cc.client_sock with
-                | Some _ -> c
+                | Some _ -> 
+                    Printf.printf "Already connected to client"; 
+                    print_newline ();
+                    TcpBufferedSocket.close sock "already connected";
+                    raise Exit;
+                    c
                 | None -> 
                     if cc.client_md4 = Md4.null || 
                       t.CR.md4 = cc.client_md4 then begin
 (*
                 Printf.printf "Aliasing indirect connection to known client";
                 print_newline ();
-*)
-                        
+*)                        
+(*Printf.printf "aliasing %d to %d" c.client_num cc.client_num;
+print_newline ();
+  *)
                         cc.client_sock <- c.client_sock;
                         c.client_alias <- Some cc;
+                        cc.client_aliases <- c.client_num :: cc.client_aliases;
                         c.client_kind <- kind;
+
+                        if c.client_aliases <> [] then (Printf.printf "(2) Remove useless but ALIASED client"; print_newline ());
+
                         Hashtbl.remove clients_by_num c.client_num;
                         Hashtbl.add clients_by_num c.client_num cc;
                         cc
                       end else c
-              with _ -> 
+              with 
+                Exit -> raise Exit
+              | _ -> 
 (* unknown location *)
                   c.client_kind <- kind;
                   Hashtbl.add clients_by_kind kind c;
@@ -344,7 +366,7 @@ We should probably check that here ... *)
       c.client_md4 <- t.CR.md4;
       
       if t.CR.md4 = !!client_md4 then begin
-          TcpClientSocket.close sock "connected to myself";
+          TcpBufferedSocket.close sock "connected to myself";
           raise End_of_file
         end;
       begin
@@ -373,7 +395,7 @@ We should probably check that here ... *)
       if Ip.valid t.CR.ip_server then
         ignore (add_server t.CR.ip_server t.CR.port_server);
       
-      client_send sock (
+      direct_client_send sock (
         let module M = Mftp_client in
         let module C = M.ConnectReply in
         M.ConnectReplyReq {
@@ -404,7 +426,7 @@ We should probably check that here ... *)
         match c.client_is_friend with
           Friend ->
             if last_time () > c.client_next_view_files then begin
-                client_send sock (
+                direct_client_send sock (
                   let module M = Mftp_client in
                   let module C = M.ViewFiles in
                   M.ViewFilesReq C.t);          
@@ -416,7 +438,7 @@ We should probably check that here ... *)
   
   | M.AvailableSlotReq _ ->
       printf_string "[QUEUED]";
-      set_rtimeout (TcpClientSocket.sock sock) infinite_timeout;
+      set_rtimeout (TcpBufferedSocket.sock sock) infinite_timeout;
       begin
         match c.client_block with
           None -> find_client_block c
@@ -441,9 +463,9 @@ We should probably check that here ... *)
 *)  
   
   | M.JoinQueueReq _ ->
-      set_rtimeout (TcpClientSocket.sock sock) infinite_timeout;
+      set_rtimeout (TcpBufferedSocket.sock sock) infinite_timeout;
       
-      client_send sock (
+      direct_client_send sock (
         let module M = Mftp_client in
         let module Q = M.AvailableSlot in
         M.AvailableSlotReq Q.t);              
@@ -452,7 +474,7 @@ We should probably check that here ... *)
       printf_string "[DOWN]"
   
   | M.ReleaseSlotReq _ ->
-      client_send sock (
+      direct_client_send sock (
         let module M = Mftp_client in
         let module Q = M.CloseSlot in
         M.CloseSlotReq Q.t);              
@@ -476,7 +498,7 @@ We should probably check that here ... *)
           printf_string "[FOUND FILE]";
           if not (List.mem t.Q.name file.file_filenames) then 
             file.file_filenames <- file.file_filenames @ [t.Q.name] ;
-          client_send sock (
+          direct_client_send sock (
             let module M = Mftp_client in
             let module C = M.QueryChunks in
             M.QueryChunksReq file.file_md4)
@@ -493,17 +515,21 @@ We should probably check that here ... *)
           begin
             match c.client_kind with
               Known_location _ ->
-                if not (List.memq c file.file_known_locations) then begin
-                    file.file_known_locations <- c :: file.file_known_locations;
+                if not (Intmap.mem c.client_num file.file_known_locations) then begin
+                    file.file_known_locations <- Intmap.add c.client_num c
+                      file.file_known_locations;
                     file.file_new_locations <- true
                   end
             | _ ->
-                if not (List.memq c file.file_indirect_locations) then begin
+                if not (Intmap.mem c.client_num file.file_indirect_locations) then begin
                     file.file_new_locations <- true;
-                    file.file_indirect_locations <- 
-                      c :: file.file_indirect_locations
+                    file.file_indirect_locations <- Intmap.add c.client_num c
+                      file.file_indirect_locations
                   end
           end;
+          
+          if not (List.memq file c.client_files) then
+            c.client_files <- file :: c.client_files;
           
           let chunks =
             if t.Q.chunks = [||] then
@@ -511,15 +537,22 @@ We should probably check that here ... *)
             else
               t.Q.chunks in
           
+          if file.file_chunks_age = [||] then
+            file.file_chunks_age <- Array.create file.file_nchunks 0.0;
+          for i = 0 to file.file_nchunks - 1 do
+            if t.Q.chunks.(i) then
+              file.file_chunks_age.(i) <- last_time ()
+          done;
+          
           add_client_chunks file chunks;
           
-          match c.client_files with
+          match c.client_file_queue with
             [] ->
-              c.client_files <- [file, chunks];
+              c.client_file_queue <- [file, chunks];
               start_download c
           
           | _ -> 
-              c.client_files <- c.client_files @ [file, chunks];
+              c.client_file_queue <- c.client_file_queue @ [file, chunks];
         with _ -> ()
       end;
   
@@ -680,7 +713,7 @@ Mmap.munmap m;
       let files = DownloadServers.all_shared () in
 (*      Printf.printf "VIEW %d FILES" (List.length files); print_newline (); *)
       
-      client_send sock (
+      direct_client_send sock (
         let module Q = M.ViewFilesReply in
         M.ViewFilesReplyReq (DownloadServers.make_tagged files))
   
@@ -697,9 +730,9 @@ Mmap.munmap m;
       
       begin try
           let file = find_file t in
-(*      Printf.printf "QUERY %s" file.file_name; print_newline (); *)
+(*          Printf.printf "QUERY %s" file.file_hardname; print_newline (); *)
           file.file_upload_requests <- file.file_upload_requests + 1;
-          client_send sock (
+          direct_client_send sock (
             let module Q = M.QueryFileReply in
             M.QueryFileReplyReq {
               Q.md4 = file.file_md4;
@@ -711,109 +744,115 @@ Mmap.munmap m;
           let send_locations = ref 10 in
           (match c.client_kind with
               Known_location (ip, port) ->
-                if not (List.memq c file.file_known_locations) then begin
-                    file.file_known_locations <- 
-                      c :: file.file_known_locations;
-                    send_locations := max_int;
-                    file.file_new_locations <- true
+                if not (Intmap.mem c.client_num file.file_known_locations) then begin
+                    file.file_known_locations <- Intmap.add c.client_num c 
+                      file.file_known_locations;
+                    file.file_new_locations <- true;
+                    
+                    (try
+(* send this location to at most 10 other locations, 
+  connected in the last hour *)
+                        let counter = ref 10 in
+                        let time = last_time () -. 3600. in
+                        Intmap.iter (fun _ cc ->
+                            if cc.client_checked &&
+                              connection_last_conn c.client_connection_control  
+                                > time then begin
+                                decr counter;
+                                if !counter = 0 then raise Exit;
+                                match cc.client_kind with
+                                  Known_location (src_ip, src_port) -> 
+                                    client_udp_send src_ip src_port (
+                                      let module Q = Mftp_server.QueryLocationReply in
+                                      Mftp_server.QueryLocationReplyUdpReq {
+                                        Q.md4 = file.file_md4;
+                                        Q.locs = [{ 
+                                            Q.ip = ip;
+                                            Q.port = port;
+                                          }];
+                                      });
+                                | _ -> ()
+                              end
+                        ) file.file_known_locations;
+                      with _ -> ());
+
+(* send this location to at all connected locations *)
+                    let msg = client_msg (
+                        let module Q = M.Sources in
+                        M.SourcesReq {
+                          Q.md4 = file.file_md4;
+                          Q.sources = [(ip, port, ip)];
+                        })                    
+                    in
+                    Intmap.iter (fun _ cc ->
+                        if cc.client_is_mldonkey > 1 then
+                          match cc.client_sock with 
+                            None -> ()
+                          | Some sock ->
+                              client_send sock msg
+                    ) file.file_indirect_locations;
+                  
                   end
             | Indirect_location -> 
-                if not (List.memq c file.file_indirect_locations) then begin
-                    file.file_indirect_locations <- 
-                      c :: file.file_indirect_locations;
-                    send_locations := max_int;
+                if not (Intmap.mem c.client_num file.file_indirect_locations) then begin
+                    file.file_indirect_locations <- Intmap.add c.client_num c
+                      file.file_indirect_locations;
                     file.file_new_locations <- true
                   end
           );
           
+          if not (List.memq file c.client_files) then
+            c.client_files <- file :: c.client_files;
+
 (* Send the known sources to the client. Use UDP for normal clients, TCP
 for mldonkey clients .*)
-          
-          let sources = ref [] in
           begin
-            try (* simply send the last found location *)
-              List.iter (fun c ->
-                  match c.client_kind with
-                    Known_location (ip, port) -> 
-                      sources := (ip, port, ip) :: !sources;
-                      decr send_locations;
-                      if !send_locations = 0 then
-                        raise Not_found
-                  | _ -> ()
-              ) file.file_known_locations;                  
-            with _ -> ()
-          end;
-          
-          if !sources <> [] then
-            if c.client_is_mldonkey = 2 then begin
-                Printf.printf "sending %d sources to new mldonkey peer" (List.length !sources); print_newline ();
-              client_send sock (
-                let module Q = M.Sources in
-                M.SourcesReq {
-                  Q.md4 = file.file_md4;
-                  Q.sources = !sources;
-                })
-              end else begin
-                match c.client_kind with
-                  Indirect_location -> ()
-                | Known_location (ip, port) ->
-                    let sources, _ =
-                      List2.cut 20 !sources in
-                    Printf.printf "sending %d sources to new UDP peer" (List.length sources); print_newline ();
-                    List.iter (fun (src_ip, src_port, _ ) ->
-                        client_udp_send ip port (
-                          let module Q = Mftp_server.QueryLocationReply in
-                          Mftp_server.QueryLocationReplyUdpReq {
-                            Q.md4 = file.file_md4;
-                            Q.locs = [{ 
-                                Q.ip = src_ip;
-                                Q.port = src_port;
-                              }];
-                          });                    
-                    ) sources;
-              end;
-
-(* If this source is new, send a message to all locations so that they can
-know about this new source. *)
-            
-            if !send_locations = max_int then
-              match c.client_kind with
-                Indirect_location -> ()
-              | Known_location (ip, port) ->
-                  List.iter (fun cc ->
-                      match cc.client_kind with
-                        Known_location (src_ip, src_port) -> 
-                          
-                          Printf.printf "sending new location to old UDP peer"; 
-                          print_newline (); 
-                          
-                          client_udp_send src_ip src_port (
-                            let module Q = Mftp_server.QueryLocationReply in
-                            Mftp_server.QueryLocationReplyUdpReq {
-                              Q.md4 = file.file_md4;
-                              Q.locs = [{ 
-                                  Q.ip = ip;
-                                  Q.port = port;
-                                }];
-                            });
-                      | _ -> ()
-                  ) file.file_known_locations;
-                  
-                  
-                  List.iter (fun cc ->
-                      if cc.client_is_mldonkey > 1 then
-                        match cc.client_sock with 
-                          None -> ()
-                        | Some sock ->
-                            Printf.printf "sending new location to old mldonkey peer"; print_newline ();
-                            client_send sock (
-                              let module Q = M.Sources in
-                              M.SourcesReq {
-                                Q.md4 = file.file_md4;
-                                Q.sources = [(ip, port, ip)];
-                              })
-                            
-                  ) file.file_known_locations;
+            match c.client_kind with
+              Indirect_location when c.client_is_mldonkey < 2 -> ()
+            | _ ->
+(* send at most 10 sources connected in the last hour to this new location *)
+                let sources = ref [] in
+                let time = last_time () -. 3600. in
+                (try (* simply send the last found location *)
+                    Intmap.iter (fun _ c ->
+                        if c.client_checked &&
+                          connection_last_conn c.client_connection_control > time
+                        then
+                          match c.client_kind with
+                            Known_location (ip, port) -> 
+                              sources := (ip, port, ip) :: !sources;
+                              decr send_locations;
+                              if !send_locations = 0 then
+                                raise Not_found
+                          | _ -> ()
+                    ) file.file_known_locations;                  
+                  with _ -> ());
+                
+                if !sources <> [] then
+                  if c.client_is_mldonkey = 2 then begin
+                      direct_client_send sock (
+                        let module Q = M.Sources in
+                        M.SourcesReq {
+                          Q.md4 = file.file_md4;
+                          Q.sources = !sources;
+                        })
+                    end else begin
+                      match c.client_kind with
+                        Indirect_location -> ()
+                      | Known_location (ip, port) ->
+                          List.iter (fun (src_ip, src_port, _ ) ->
+                              client_udp_send ip port (
+                                let module Q = Mftp_server.QueryLocationReply in
+                                Mftp_server.QueryLocationReplyUdpReq {
+                                  Q.md4 = file.file_md4;
+                                  Q.locs = [{ 
+                                      Q.ip = src_ip;
+                                      Q.port = src_port;
+                                    }];
+                                });                    
+                          ) !sources;
+                    end;
+          end                  
                   
         with _ -> () end    
       
@@ -826,10 +865,13 @@ know about this new source. *)
           List.iter (fun (ip1, port, ip2) ->
               if Ip.valid ip1 then
                 let c = new_client (Known_location (ip1, port)) in
-                if not (List.memq c file.file_known_locations) then
-                  file.file_known_locations <- c :: file.file_known_locations;
-                if not (List.memq c !interesting_clients) then
-                  interesting_clients := c :: !interesting_clients
+                if not (Intmap.mem c.client_num file.file_known_locations) then
+                  file.file_known_locations <- Intmap.add c.client_num c
+                    file.file_known_locations;
+                if not (List.memq file c.client_files) then
+                  c.client_files <- file :: c.client_files;
+                clients_list := (c, [file]) :: !clients_list;
+                incr clients_list_len;
           ) t.Q.sources
         with _ -> ()
       end
@@ -845,7 +887,7 @@ know about this new source. *)
         match file.file_md4s with
           [] -> () (* should not happen *)
         | md4s ->
-            client_send sock (
+            direct_client_send sock (
               let module Q = M.QueryChunkMd4Reply in
               M.QueryChunkMd4ReplyReq {
                 Q.md4 = file.file_md4;
@@ -858,7 +900,7 @@ know about this new source. *)
 
 (*      Printf.printf "QueryChunksReq"; print_newline (); *)
       let file = find_file t in
-      client_send sock (
+      direct_client_send sock (
         let module Q = M.QueryChunksReply in
         M.QueryChunksReplyReq {
           Q.md4 = file.file_md4;
@@ -871,10 +913,10 @@ know about this new source. *)
   
   | M.QueryBlocReq t when !has_upload = 0 -> 
 
-      set_rtimeout (TcpClientSocket.sock sock) infinite_timeout;
+      set_rtimeout (TcpBufferedSocket.sock sock) infinite_timeout;
       let module Q = M.QueryBloc in
       let file = find_file  t.Q.md4 in
-(* Printf.printf "QUERY BLOCS %s" file.file_hardname; print_newline ();*)
+(*      Printf.printf "QUERY BLOCS %s" file.file_hardname; print_newline ();*)
 
       let up = match c.client_upload with
           Some ({ up_file = f } as up) when f == file ->  up
@@ -898,8 +940,8 @@ know about this new source. *)
 
   | _ -> ()
 
-let client_handler c sock event = 
-  let c = real_client c in
+let client_handler c_alias sock event = 
+  let c = real_client c_alias in
   match event with
     BASIC_EVENT (CLOSED s) ->
       printf_string "-c";
@@ -910,7 +952,7 @@ let client_handler c sock event =
         end;
       *)
       connection_failed c.client_connection_control;
-      disconnected_from_client c s
+      disconnected_from_client c c_alias s
   
   | _ -> ()
       
@@ -925,7 +967,7 @@ let init_connection c  sock files =
               Fifo.put upload_clients c
             end
   );
-  set_rtimeout (TcpClientSocket.sock sock) !!client_timeout;
+  set_rtimeout (TcpBufferedSocket.sock sock) !!client_timeout;
   set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
       printf_string "-!C";
       connection_delay c.client_connection_control;
@@ -934,7 +976,7 @@ let init_connection c  sock files =
   set_reader sock (Mftp_comm.client_handler (client_to_client files c));
   c.client_block <- None;
   c.client_zones <- [];
-  c.client_files <- []
+  c.client_file_queue <- []
       
 let reconnect_client cid files c =
   if can_open_connection () then
@@ -946,18 +988,22 @@ let reconnect_client cid files c =
           connection_try c.client_connection_control;
           
           printf_string "?C";
-          let sock = TcpClientSocket.connect (
+          let sock = TcpBufferedSocket.connect (
               Ip.to_inet_addr ip) 
             port 
-              (client_handler c) in
-          TcpClientSocket.set_read_controler sock download_control;
-          TcpClientSocket.set_write_controler sock upload_control;
+              (client_handler c) (*client_msg_to_string*) in
+          TcpBufferedSocket.set_read_controler sock download_control;
+          TcpBufferedSocket.set_write_controler sock upload_control;
 
           init_connection c sock files;
           c.client_sock <- Some sock;
-          let s = DownloadServers.last_connected_server () in
-          
-          client_send sock (
+          let server_ip, server_port = 
+            try
+              let s = DownloadServers.last_connected_server () in
+              s.server_ip, s.server_port
+            with _ -> Ip.localhost, 4665
+          in
+          direct_client_send sock (
             let module M = Mftp_client in
             let module C = M.Connect in
             M.ConnectReq {
@@ -966,12 +1012,15 @@ let reconnect_client cid files c =
               C.port = !client_port;
               C.tags = !client_tags;
               C.version = 16;
-              C.ip_server = s.server_ip;
-              C.port_server = s.server_port;
+              C.ip_server = server_ip;
+              C.port_server = server_port;
             }
           )
         
-        with _ -> 
+        with e -> 
+            Printf.printf "Exception %s in client connection"
+              (Printexc.to_string e);
+            print_newline ();
             connection_failed c.client_connection_control;
             set_client_state c NotConnected
             
@@ -983,7 +1032,8 @@ let connect_client cid files c =
   | Some sock ->
       match c.client_state with
         Connected_idle -> 
-          query_files c sock files
+          if can_fill sock then
+            query_files c sock files
       | _ -> ()
         
 let query_id_reply s t =
@@ -995,7 +1045,7 @@ let query_id_reply s t =
       
 let query_id s sock ip =
   printf_string "[QUERY ID]";
-  server_send sock (
+  direct_server_send sock (
     let module M = Mftp_server in
     let module C = M.QueryID in
     M.QueryIDReq ip
@@ -1039,7 +1089,7 @@ let query_locations_reply s t =
       
 let query_locations file s sock =
   printf_string "[QUERY LOC]";
-  server_send sock (
+  direct_server_send sock (
     let module M = Mftp_server in
     let module C = M.QueryLocation in
     M.QueryLocationReq file.file_md4
@@ -1052,13 +1102,15 @@ let client_connection_handler t event =
       
       let c = new_client Indirect_location in
       set_client_state c Connected_initiating;
-      let sock = TcpClientSocket.create s (client_handler c) in
-      TcpClientSocket.set_read_controler sock download_control;
-      TcpClientSocket.set_write_controler sock upload_control;
+      let sock = TcpBufferedSocket.create s (client_handler c) 
+        (*client_msg_to_string*)
+      in
+      TcpBufferedSocket.set_read_controler sock download_control;
+      TcpBufferedSocket.set_write_controler sock upload_control;
       init_connection c sock [];      
       c.client_sock <- Some sock;
       
-      let sc = TcpClientSocket.sock sock in
+      let sc = TcpBufferedSocket.sock sock in
   
       (*
       if closed sc then begin

@@ -19,7 +19,7 @@
 open DownloadServers
 open Options
 open BasicSocket
-open TcpClientSocket
+open TcpBufferedSocket
 open Mftp
 open DownloadOneFile
 open Mftp_comm
@@ -139,16 +139,79 @@ let make_xs ss =
           let module Q = M.Query in
           udp_server_send s (M.QueryUdpReq ss.search_query);
   ) servers
+
+let fill_clients_list _ =
+(* should we refill the queue ? *)
+  if !!max_clients_per_second * 900 > !clients_list_len then begin
+      List.iter (fun file -> 
+          if file.file_state = FileDownloading then 
+            let files = [file] in
+            Intmap.iter (fun _ c ->
+                clients_list := (c, files) :: !clients_list)
+            file.file_known_locations;
+      ) !!files;
+      List.iter (fun c ->
+          clients_list := (c, []) :: !clients_list
+      ) !!known_friends;
+      clients_list_len := List.length !clients_list;
+      remaining_time_for_clients := 60 * 15
+    end  
   
-  
-  
+let rec connect_several_clients n =
+  if n > 0 && can_open_connection () then
+    match !clients_list with
+      [] -> ()
+    | (c, files) :: tail ->
+        clients_list := tail;
+        decr clients_list_len;
+       
+        match c.client_sock with
+          None -> 
+            if connection_can_try c.client_connection_control then begin
+                (try connect_client !!client_ip files c with _ -> ());
+                connect_several_clients (n-1)
+              end
+        | Some sock ->
+            match c.client_state with
+              Connected_idle -> 
+                (try query_files c sock files with _ -> ());
+                connect_several_clients (n-1)
+            | _ -> 
+                connect_several_clients n
+
+                
+let remove_old_clients () =
+  let day = 3600. *. 24. in
+  let min_last_conn =  last_time () -. 
+    float_of_int !!max_sources_age *. day in
+  List.iter (fun file ->
+      let locs = file.file_known_locations in
+      file.file_known_locations <- Intmap.empty;
+      Intmap.iter (fun _ c ->
+          if connection_last_conn c.client_connection_control < min_last_conn then
+            begin
+              set_client_state c Removed
+            end
+          else 
+            file.file_known_locations <- Intmap.add c.client_num c
+              file.file_known_locations) locs
+  ) !!files
+
+let check_clients _ =
+  (* how many clients we try to connect per second ? *)
+  let n = !!max_clients_per_second in
+  connect_several_clients n
+        
 let force_check_locations () =
   try
     List.iter (fun file -> 
         if file.file_state = FileDownloading then begin      
-            List.iter (fun c ->
+(*(* USELESS NOW *)
+            Intmap.iter (fun _ c ->
                 try connect_client !!client_ip [file] c with _ -> ()) 
             file.file_known_locations;
+*)            
+            
             List.iter (fun s ->
                 match s.server_sock with
                   None -> () (* assert false !!! *)
@@ -186,14 +249,20 @@ let force_check_locations () =
           make_xs ss
         with _ -> ()
       end;
-    
+
+    (*
+(* USELESS NOW *)
     List.iter (fun c -> 
         try connect_client !!client_ip [] c with _ -> ()) !interesting_clients;
     interesting_clients := [];
+*)
 
+    (*
+(* USELESS NOW *)
     List.iter (fun c ->
         try connect_client !!client_ip [] c with _ -> ()
     ) !!known_friends;
+*)
     
   with e ->
       Printf.printf "force_check_locations: %s" (Printexc.to_string e);
@@ -299,10 +368,13 @@ let udp_client_handler t p =
               let port = l.Q.port in
               
               let c = new_client (Known_location (ip, port)) in
-              if not (List.memq c file.file_known_locations) then begin
+              if not (Intmap.mem c.client_num file.file_known_locations) then begin
                   Printf.printf "New location by File Group !!"; print_newline ();
-                  file.file_known_locations <- c :: file.file_known_locations;
+                  file.file_known_locations <- Intmap.add c.client_num c 
+                    file.file_known_locations;
                 end;
+              if not (List.memq file c.client_files) then
+                c.client_files <- file :: c.client_files;
               connect_client !!client_ip [file] c
           ) t.Q.locs
         with _ -> ()
@@ -337,25 +409,36 @@ let send_small_block sock file begin_pos len =
 (Int32.to_string begin_pos) (Int32.to_string len);
 print_newline ();
 *)
+    
+    
+    let msg = client_msg 
+      (
+        let module M = Mftp_client in
+        let module B = M.Bloc in
+        M.BlocReq {  
+          B.md4 = file.file_md4;
+          B.start_pos = begin_pos;
+          B.end_pos = Int32.add begin_pos len;
+          B.bloc_str = "";
+          B.bloc_begin = 0;
+          B.bloc_len = 0; 
+        }
+      ) in
+    let s = client_msg_to_string msg in
+    let slen = String.length s in
+    let upload_buffer = String.create (slen + len_int) in
+    String.blit s 0 upload_buffer 0 slen;
+    Mftp_comm.new_string msg upload_buffer;
+    
     let fd = file.file_fd in
     ignore (Unix32.seek32 fd begin_pos Unix.SEEK_SET);
-    really_read (Unix32.force_fd fd) upload_buffer 0 len_int;
+    really_read (Unix32.force_fd fd) upload_buffer slen len_int;
     incr upload_counter;
     file.file_upload_blocks <- file.file_upload_blocks + 1;
 (*  Printf.printf "sending"; print_newline (); *)
     printf_char 'U';
-    client_send sock (
-      let module M = Mftp_client in
-      let module B = M.Bloc in
-      M.BlocReq {  
-        B.md4 = file.file_md4;
-        B.start_pos = begin_pos;
-        B.end_pos = Int32.add begin_pos len;
-        B.bloc_str = upload_buffer;
-        B.bloc_begin = 0;
-        B.bloc_len = len_int; 
-      }
-    )
+    
+    client_send sock msg
   with e -> 
       Printf.printf "Exception %s in send_small_block" (Printexc.to_string e);
       print_newline () 
@@ -425,8 +508,7 @@ let rec send_client_block_partial c sock per_client =
       
   (* timer started every 1/10 seconds *)
   
-let reset_upload_timer timer =
-  reactivate_timer timer;
+let reset_upload_timer _ =
   download_counter := 0;
   remaining_bandwidth := !!max_hard_upload_rate
   
@@ -457,7 +539,7 @@ let upload_timer timer =
       let per_client = 
         let len = Fifo.length upload_clients in
         if len * 10 < !remaining_bandwidth then
-          min 5 (max ((!remaining_bandwidth + 9)/ 10 / len ) 1) 
+          mini 5 (max ((!remaining_bandwidth + 9)/ 10 / len ) 1) 
         else 1 in
       let c = Fifo.take upload_clients in
       match c.client_sock with
@@ -478,8 +560,7 @@ let upload_timer timer =
       Printf.printf "exc %s in upload" (Printexc.to_string e);
       print_newline () 
 
-let upload_credit_timer timer =
-  reactivate_timer timer;
+let upload_credit_timer _ =
   if !has_upload = 0 then 
     (if !upload_credit < 300 then incr upload_credit)
   else

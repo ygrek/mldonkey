@@ -23,9 +23,10 @@
 *)
 
 
+open BasicSocket
 open Unix
 open Url
-open TcpClientSocket
+open TcpBufferedSocket
 
   
 type http_request =
@@ -43,7 +44,7 @@ type http_headers =
 | Referer of url
 
 type headers_handler = 
-  TcpClientSocket.t -> int -> (string * string) list -> unit
+  TcpBufferedSocket.t -> int -> (string * string) list -> unit
   
 let string_of_header = function
   | Generic (a, b) -> a ^ ": " ^ b ^ "\r\n"
@@ -146,7 +147,7 @@ headers;
   set_reader sock content_handler;
   set_closer sock (fun _ _ ->
       content_handler sock 0);
-  let buf = TcpClientSocket.buf sock in
+  let buf = TcpBufferedSocket.buf sock in
   if buf.len > 0 then
     content_handler sock buf.len 
 
@@ -167,13 +168,13 @@ let parse_header headers_handler sock header =
       try
         headers_handler sock ans_code headers;
       with _ -> 
-          TcpClientSocket.close sock "bad header"
+          TcpBufferedSocket.close sock "bad header"
   
 let read_header header_handler  sock nread =  
-  let b = TcpClientSocket.buf sock in
+  let b = TcpBufferedSocket.buf sock in
   let end_pos = b.pos + b.len in
   let new_pos = end_pos - nread in
-  let new_pos = max 0 (new_pos - 1) in
+  let new_pos = maxi 0 (new_pos - 1) in
   (*
   Printf.printf "received [%s]" (String.escaped 
       (String.sub b.buf new_pos nread));
@@ -232,11 +233,11 @@ let get_page url get_args headers_handler =
     | None -> url.server, url.port
     | Some (s, p) -> s, p
   in
-  let sock = TcpClientSocket.connect (Ip.to_inet_addr (Ip.from_name server))
+  let sock = TcpBufferedSocket.connect (Ip.to_inet_addr (Ip.from_name server))
     port (fun _ _ -> ())
   in
-  TcpClientSocket.write_string sock request;
-  TcpClientSocket.set_reader sock (http_reply_handler headers_handler)
+  TcpBufferedSocket.write_string sock request;
+  TcpBufferedSocket.set_reader sock (http_reply_handler headers_handler)
   (*
   let fds = socket PF_INET SOCK_STREAM 0 in
   try

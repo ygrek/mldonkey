@@ -9,4 +9,7 @@ VERSION
 client.ml
 observer
 
-*.ini
+ocaml-patched
+1st_contest
+release-*
+contribs

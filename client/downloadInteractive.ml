@@ -23,7 +23,7 @@ open Mftp
 open Mftp_comm
 open DownloadServers
 open BasicSocket
-open TcpClientSocket
+open TcpBufferedSocket
 open DownloadOneFile
 open DownloadFiles
 open DownloadComplexOptions
@@ -47,7 +47,7 @@ let percent file =
   (downloaded *. 100.) /. size
       
 let reconnect_all file =
-  List.iter (fun c ->
+  Intmap.iter (fun _ c ->
       connection_must_try c.client_connection_control;
       connect_client !!client_ip [file] c) file.file_known_locations;
   List.iter (fun s ->
@@ -57,8 +57,6 @@ let reconnect_all file =
       | _ -> ()
   ) !connected_server_list
     
-let last_search = ref []
-
 let forget_search num =  
   if !last_xs = num then last_xs := (-1);
   searches := List.rev (List.fold_left (fun list s ->
@@ -91,6 +89,7 @@ let save_file md4 name =
                 with _ -> ()
           )
           ;
+          remove_file_clients file;
           file.file_changed <- FileInfoChange;
           !file_change_hook file;
         end 
@@ -100,70 +99,6 @@ let save_file md4 name =
   done_files =:= List.rev !files
   
   
-  
-let print_search buf s output = 
-  last_search := [];
-  let counter = ref 0 in
-  Printf.bprintf buf "Result of search %d\n" s.search_num;
-  Printf.bprintf buf "Reinitialising download selectors\n";
-  Printf.bprintf buf "%d results (%s)\n" s.search_nresults 
-    (if s.search_waiting = 0 then "done" else
-      (string_of_int s.search_waiting) ^ " waiting");
-  let results = ref [] in
-  Hashtbl.iter (fun _ (r, avail) ->
-      results := (r, avail) :: !results) s.search_files;
-  let results = Sort.list (fun (r1,_) (r2,_) ->
-        let r1 = Store.get DownloadIndexer.store r1 in
-        let r2 = Store.get DownloadIndexer.store r2 in
-        r1.result_size > r2.result_size
-    ) !results in
-  List.iter (fun (doc,avail) ->
-      let r = Store.get DownloadIndexer.store doc in
-      incr counter;
-      Printf.bprintf  buf "[%5d]" !counter;
-      if output.conn_output = HTML then 
-        if !!use_html_frames then
-          Printf.bprintf buf "\<A HREF=/submit\?q=download\&md4=%s\&size=%s target=status\>"
-            (Md4.to_string r.result_md4) (Int32.to_string r.result_size)
-        else
-          Printf.bprintf buf "\<A HREF=/submit\?q=download\&md4=%s\&size=%s\>"
-            (Md4.to_string r.result_md4) (Int32.to_string r.result_size);
-      last_search := (!counter, 
-        (r.result_size, r.result_md4, result_name r)
-      ) :: !last_search;
-      begin
-        match r.result_names with
-          [] -> ()
-        | name :: names ->
-            Printf.bprintf buf "%s\n" name;
-            List.iter (fun s -> Printf.bprintf buf "       %s\n" s) names;
-      end;
-      if r.result_done then Printf.bprintf buf " ALREADY DOWNLOADED\n ";
-
-      begin
-        match r.result_comment with
-          None -> ()
-        | Some comment ->
-            Printf.bprintf buf "COMMENT: %s\n" comment;
-      end;
-      if output.conn_output = HTML then 
-        Printf.bprintf buf "\</A HREF\>";
-      Printf.bprintf  buf "          %10s %10s " 
-        (Int32.to_string r.result_size)
-      (Md4.to_string r.result_md4);
-      List.iter (fun t ->
-          Buffer.add_string buf (Printf.sprintf "%-3s "
-              (if t.tag_name = "availability" then string_of_int !avail else
-              match t.tag_value with
-                String s -> s
-              | Uint32 i -> Int32.to_string i
-              | Fint32 i -> Int32.to_string i
-              | _ -> "???"
-            ))
-      ) r.result_tags;
-      
-      Buffer.add_char buf '\n';
-  ) results
   
 let check_shared_files () = 
   let list = ref [] in
@@ -213,19 +148,19 @@ let load_url kind url =
   Http_client.get_page (Url.of_string url) []
     (Http_client.default_headers_handler 
       (fun maxlen sock nread ->
-        let buf = TcpClientSocket.buf sock in
+        let buf = TcpBufferedSocket.buf sock in
         
         if nread > 0 then begin
             let left = 
               if maxlen >= 0 then
-                min (maxlen - !file_size) nread
+                mini (maxlen - !file_size) nread
               else nread
             in
             output file_oc buf.buf buf.pos left;
             buf_used sock left;
             file_size := !file_size + left;
             if nread > left then
-              TcpClientSocket.close sock "end read"
+              TcpBufferedSocket.close sock "end read"
           end
         else
         if nread = 0 then begin
@@ -306,15 +241,17 @@ let really_query_download filenames size md4 location old_file absents =
           let c = find_client num in
           (match c.client_kind with
               Indirect_location -> 
-                if not (List.memq c file.file_indirect_locations) then
-                  file.file_known_locations <- c :: 
-                  file.file_indirect_locations
+                if not (Intmap.mem c.client_num file.file_indirect_locations) then
+                  file.file_indirect_locations <- Intmap.add c.client_num c
+                    file.file_indirect_locations
             
             | _ -> 
-                if not (List.memq c file.file_known_locations) then
-                  file.file_known_locations <- c :: 
-                  file.file_known_locations
+                if not (Intmap.mem c.client_num file.file_known_locations) then
+                  file.file_known_locations <- Intmap.add c.client_num c
+                    file.file_known_locations
           );
+          if not (List.memq file c.client_files) then
+            c.client_files <- file :: c.client_files;
           match c.client_state with
             NotConnected -> 
               connect_client !!client_ip [file] c
@@ -412,7 +349,7 @@ let broadcast msg =
   let s = msg ^ "\n" in
   let len = String.length s in
   List.iter (fun sock ->
-      TcpClientSocket.write sock s 0 len
+      TcpBufferedSocket.write sock s 0 len
   ) !user_socks
   
   
@@ -449,8 +386,8 @@ let print_file buf file =
       Int32.to_string file.file_downloaded);
   Buffer.add_char buf '\n';
   Printf.bprintf buf "Connected clients:\n";
-  List.iter (fun c ->
-      if c.client_state <> NotConnected then
+  let f _ c =
+    if c.client_state <> NotConnected then
         match c.client_kind with
           Known_location (ip, port) ->
             Printf.bprintf  buf "[%-5d] %12s %-5d    %s\n"
@@ -466,8 +403,10 @@ let print_file buf file =
               "indirect"
               (match c.client_sock with
                 None -> ""
-              | Some _ -> "Connected")
-  ) (file.file_known_locations @ file.file_indirect_locations);
+            | Some _ -> "Connected")
+  in
+  Intmap.iter f file.file_known_locations;
+  Intmap.iter f file.file_indirect_locations;
   Printf.bprintf buf "\nChunks: \n";
   Array.iteri (fun i c ->
       Buffer.add_char buf (
@@ -486,7 +425,7 @@ let print_file buf file =
 let short_name file =
   let name = first_name file in
   let len = String.length name in
-  let max_name_len = max !!max_name_len 10 in
+  let max_name_len = maxi !!max_name_len 10 in
   if len > max_name_len then
     let prefix = String.sub name 0 (max_name_len -7) in
     let suffix = String.sub name (len-4) 4 in
@@ -543,14 +482,15 @@ let print_table_text buf alignments titles lines =
       Buffer.add_char buf '\n';      
   ) lines
 
-let print_table_html buf aligns titles lines =
-  Printf.bprintf buf "\<TABLE\>";
+let print_table_html spacing buf aligns titles lines =
+  Printf.bprintf buf "\<TABLE\>\n";
   Printf.bprintf buf "\<TR\>";
   Array.iter (fun title ->
       Printf.bprintf buf "\<TD ALIGN=CENTER\>%s\</TD\>" title;
+      Printf.bprintf buf "\<TD WIDTH=%d\> \</TD\>" spacing;
   ) titles;
   let naligns = Array.length aligns in
-  Printf.bprintf buf "\</TR\>";
+  Printf.bprintf buf "\</TR\>\n";
   List.iter (fun line ->
       Printf.bprintf buf "\<TR\>";
       Array.iteri (fun i title ->
@@ -561,8 +501,9 @@ let print_table_html buf aligns titles lines =
             | Align_Left -> " ALIGN=LEFT"
             | Align_Right -> " ALIGN=RIGHT")
           title;
+          Printf.bprintf buf "\<TD WIDTH=%d\> \</TD\>" spacing;
       ) line;
-      Printf.bprintf buf "\</TR\>";
+      Printf.bprintf buf "\</TR\>\n";
   ) lines;
   Printf.bprintf buf "\</TABLE\>"
 
@@ -600,11 +541,76 @@ let simple_print_file buf name_len done_len size_len format file =
     Printf.bprintf buf "%5.1f" (file.file_last_rate /. 1024.);
   Buffer.add_char buf '\n'
 *)
+
+    
+let print_file_html_form buf files =
+  Printf.bprintf buf "\<form action=/files\>";
+  Printf.bprintf buf "\<input type=submit value='Submit Changes'\>";
+  print_table_html 10 buf 
+    [| Align_Left; Align_Left; Align_Left; Align_Right; Align_Right; Align_Right; Align_Right|] 
+    [|
+    "[ Num ]"; 
+    "P/R/C";
+    "\<input type=radio value=File name=sortby\> File"; 
+    "\<input type=radio value=Percent name=sortby\> Percent"; 
+    "\<input type=radio value=Downloaded name=sortby\> Downloaded"; 
+    "\<input type=radio value=Size name=sortby\> Size"; 
+    "Old"; 
+    "\<input type=radio value=Rate name=sortby\> Rate"; 
+  |] 
+    (List.map (fun file ->
+        [|
+          (Printf.sprintf "[%-5d]" file.file_num);
+          (if file.file_state = FileDownloading then
+              Printf.sprintf 
+              "\<input name=pause type=checkbox value=%d\>
+              R
+                \<input name=cancel type=checkbox value=%d\>"
+                file.file_num
+                file.file_num
+            else 
+              Printf.sprintf 
+              "P
+              \<input name=resume type=checkbox value=%d\>
+                \<input name=cancel type=checkbox value=%d\>"
+                file.file_num
+                file.file_num);
+
+          (short_name file);
+          (Printf.sprintf "%5.1f" (percent file));
+          (Int32.to_string file.file_downloaded);
+          (Int32.to_string file.file_size);
+
+              ( 
+                let len = Array.length file.file_chunks_age in
+                if len = 0 then "-" else 
+                let min = ref (last_time ()) in
+                for i = 0 to len - 1 do
+                  if file.file_chunks_age.(i) < !min then
+                    min := file.file_chunks_age.(i)
+                done;
+                if !min < 0.1 then "-" else
+                  string_of_int (int_of_float ((last_time () -. !min) /. (3600. *. 24.))));
+          
+          (if file.file_state = FilePaused then
+              "Paused"
+            else
+            if file.file_last_rate < 10.24 then
+              "-"
+            else
+              Printf.sprintf "%5.1f" (file.file_last_rate /. 1024.));
+        |]
+    ) files);
+  Printf.bprintf buf "\</form\>"
   
 let simple_print_file_list finished buf files format =
-  let print_table = if format.conn_output = HTML then print_table_html else print_table_text in
+  let print_table = if format.conn_output = HTML then print_table_html 2
+      else print_table_text in
   if not finished then
-    print_table buf 
+    if format.conn_output = HTML && !!html_checkbox_file_list then
+      print_file_html_form buf files
+    else
+      print_table buf 
       [| Align_Left; Align_Left; Align_Right; Align_Right; Align_Right; Align_Right |] 
       (if format.conn_output = HTML then
         [|
@@ -613,27 +619,52 @@ let simple_print_file_list finished buf files format =
           "\<a href=/submit\?q\=vd\&sortby\=percent\> Percent \</a\>"; 
           "\<a href=/submit\?q\=vd\&sortby\=done\> Downloaded \</a\>";
           "\<a href=/submit\?q\=vd\&sortby\=size\> Size \</a\>"; 
+            "Old";
           "\<a href=/submit\?q\=vd\&sortby\=rate\> Rate \</a\>"; 
         |] else
         [|
-          "[ Num ]"; 
-          "File";
-          "Percent"; 
-          "Downloaded";
-          "Size";
-          "Rate";
+            "[ Num ]"; 
+            "File";
+            "Percent"; 
+            "Downloaded";
+            "Size";
+            "Old";
+            "Rate";
         |]     
     )
       (List.map (fun file ->
           [|
             (Printf.sprintf "[%-5d]%s"
                 file.file_num
-                (if format.conn_output = HTML then  Printf.sprintf "[\<a href=/submit\?q\=cancel\+%d target\=status\>CANCEL\</a\>] " file.file_num else ""));
+                (if format.conn_output = HTML then  
+                  Printf.sprintf "[\<a href=/submit\?q\=cancel\+%d target\=status\>CANCEL\</a\>][\<a href=/submit\?q\=%s\+%d target\=status\>%s\</a\>] " 
+                  file.file_num
+                    (match file.file_state with
+                      FileDownloading -> "pause"
+                    | _ -> "resume"
+                  ) 
+                  file.file_num
+                    (match file.file_state with
+                      FileDownloading -> "PAUSE"
+                    | _ -> "RESUME"
+                  ) 
+                  else ""));
             (short_name file);
             (Printf.sprintf "%5.1f" (percent file));
             (Int32.to_string file.file_downloaded);
             (Int32.to_string file.file_size);
 
+              ( 
+                let len = Array.length file.file_chunks_age in
+                if len = 0 then "-" else 
+                let min = ref (last_time ()) in
+                for i = 0 to len - 1 do
+                  if file.file_chunks_age.(i) < !min then
+                    min := file.file_chunks_age.(i)
+                done;
+                if !min < 0.1 then "-" else
+                  string_of_int (int_of_float ((last_time () -. !min) /. (3600. *. 24.))));
+              
             (if file.file_state = FilePaused then
                 "Paused"
               else
@@ -669,7 +700,7 @@ let simple_print_file_list finished buf files format =
             (Md4.to_string file.file_md4)
         |]
     ) files)
-  
+    
   (*
   Printf.bprintf buf "\<TABLE\>\<TR\>
   \<TD\> [ Num ] \</TD\> 
@@ -720,7 +751,7 @@ let simple_print_file_list finished buf files format =
 (*  
 let simple_print_file_list finished buf files format =
 (*  if format.conn_output = HTML then *)
-    simple_print_file_list_html finished buf files format
+  simple_print_file_list_html finished buf files format
 (*  else
   let size_len = ref 10 in
   let done_len = ref 10 in
@@ -771,9 +802,335 @@ let simple_print_file_list finished buf files format =
   
   List.iter (simple_print_file buf !name_len !done_len !size_len format) files
 *)
-*)  
+    *)  
+  
+let old_print_search buf s output = 
+  last_search := Intmap.empty;
+  let counter = ref 0 in
+  Printf.bprintf buf "Result of search %d\n" s.search_num;
+  Printf.bprintf buf "Reinitialising download selectors\n";
+  Printf.bprintf buf "%d results (%s)\n" s.search_nresults 
+    (if s.search_waiting = 0 then "done" else
+      (string_of_int s.search_waiting) ^ " waiting");
+  let results = ref [] in
+  Hashtbl.iter (fun _ (r, avail) ->
+      results := (r, avail) :: !results) s.search_files;
+  let results = Sort.list (fun (r1,_) (r2,_) ->
+        let r1 = Store.get DownloadIndexer.store r1 in
+        let r2 = Store.get DownloadIndexer.store r2 in
+        r1.result_size > r2.result_size
+    ) !results in
+  List.iter (fun (doc,avail) ->
+      let r = Store.get DownloadIndexer.store doc in
+      incr counter;
+      Printf.bprintf  buf "[%5d]" !counter;
+      if output.conn_output = HTML then 
+        if !!use_html_frames then
+          Printf.bprintf buf "\<A HREF=/submit\?q=download\&md4=%s\&size=%s target=status\>"
+            (Md4.to_string r.result_md4) (Int32.to_string r.result_size)
+        else
+          Printf.bprintf buf "\<A HREF=/submit\?q=download\&md4=%s\&size=%s\>"
+            (Md4.to_string r.result_md4) (Int32.to_string r.result_size);
+        last_search := Intmap.add !counter doc !last_search;
+      begin
+        match r.result_names with
+          [] -> ()
+        | name :: names ->
+            Printf.bprintf buf "%s\n" name;
+            List.iter (fun s -> Printf.bprintf buf "       %s\n" s) names;
+      end;
+      if r.result_done then Printf.bprintf buf " ALREADY DOWNLOADED\n ";
 
-          
+      begin
+        match r.result_comment with
+          None -> ()
+        | Some comment ->
+            Printf.bprintf buf "COMMENT: %s\n" comment;
+      end;
+      if output.conn_output = HTML then 
+        Printf.bprintf buf "\</A HREF\>";
+      Printf.bprintf  buf "          %10s %10s " 
+        (Int32.to_string r.result_size)
+      (Md4.to_string r.result_md4);
+      List.iter (fun t ->
+          Buffer.add_string buf (Printf.sprintf "%-3s "
+              (if t.tag_name = "availability" then string_of_int !avail else
+              match t.tag_value with
+                String s -> s
+              | Uint32 i -> Int32.to_string i
+              | Fint32 i -> Int32.to_string i
+              | _ -> "???"
+            ))
+      ) r.result_tags;
+      
+      Buffer.add_char buf '\n';
+  ) results
+
+  
+let add_filter_table buf search_num = 
+
+  Printf.bprintf buf "\<form action=/filter\>";
+  Printf.bprintf buf "\<input type=hidden name=num value=%d\>" search_num;
+    
+  Printf.bprintf buf "\<table\>";
+  Printf.bprintf buf "\<tr\>";
+    
+  Printf.bprintf buf "\<td\>";
+  Printf.bprintf buf "\<input type=submit value='Filter Out'\>";
+  Printf.bprintf buf "\</td\>";
+
+  Printf.bprintf buf "\</tr\>\<tr\>";
+  
+  Printf.bprintf buf "\<td\>\<table\>\<tr\>";
+  
+  Printf.bprintf buf "\<table\>";
+  Printf.bprintf buf "\<td\> Media: \</td\>";
+  Printf.bprintf buf "\<td\>\<input name=media type=checkbox value=Audio\> Audio \</td\>";
+  Printf.bprintf buf "\<td\>\<input name=media type=checkbox value=Video\> Video \</td\>";
+  Printf.bprintf buf "\<td\>\<input name=media type=checkbox value=Pro\> Pro \</td\>";
+  Printf.bprintf buf "\<td\>\<input name=media type=checkbox value=Doc\> Doc \</td\>";
+  Printf.bprintf buf "\</table\>";
+
+  Printf.bprintf buf "\</tr\>\<tr\>";
+  
+  Printf.bprintf buf "\<table\>";
+  Printf.bprintf buf "\<td\> Formats: \</td\>";
+  Printf.bprintf buf "\<td\>\<input name=format type=checkbox value=mp3\> Mp3 \</td\>";
+  Printf.bprintf buf "\<td\>\<input name=format type=checkbox value=avi\> Avi \</td\>";
+  Printf.bprintf buf "\<td\>\<input name=format type=checkbox value=zip\> Zip \</td\>";
+  Printf.bprintf buf "\<td\>\<input name=format type=checkbox value=mpg\> Mpg \</td\>";
+  Printf.bprintf buf "\</table\>";
+
+  Printf.bprintf buf "\</tr\>\<tr\>";
+  
+  Printf.bprintf buf "\<table\>";
+  Printf.bprintf buf "\<td\> Sizes: \</td\>";
+  Printf.bprintf buf "\<td\>\<input name=size type=checkbox value=0to5\> 0/5 MB \</td\>";
+  Printf.bprintf buf "\<td\>\<input name=size type=checkbox value=5to20\> 5/20 MB \</td\>";
+  Printf.bprintf buf "\<td\>\<input name=size type=checkbox value=20to400\> 20/400 MB \</td\>";
+  Printf.bprintf buf "\<td\>\<input name=size type=checkbox value=400\> 400+ MB \</td\>";
+  Printf.bprintf buf "\</table\>";
+
+  Printf.bprintf buf "\</tr\>\</table\>\</td\>";
+  Printf.bprintf buf "\</tr\>";
+
+  Printf.bprintf buf "\</table\>";
+  
+  Printf.bprintf buf "\</form\>"
+  
+(* with checkboxes *)
+let print_search_html buf results format search_num = 
+  let counter = ref 0 in
+  
+  let files = ref [] in
+  
+  List.iter  (fun (doc,avail) ->
+      let r = Store.get DownloadIndexer.store doc in
+      try
+        format.conn_filter r;
+        if !!display_downloaded_results || not r.result_done  then 
+          let tags_string = 
+            let buf = Buffer.create 100 in
+            List.iter (fun t ->
+                Buffer.add_string buf (Printf.sprintf "%-3s "
+                    (if t.tag_name = "availability" then "" else
+                    match t.tag_value with
+                      String s -> s
+                    | Uint32 i -> Int32.to_string i
+                    | Fint32 i -> Int32.to_string i
+                    | _ -> "???"
+                  ))
+            ) r.result_tags;
+            Buffer.contents buf
+          in
+          incr counter;
+          last_search := Intmap.add !counter doc !last_search;
+          files := [|
+            (Printf.sprintf "[%5d]\<input name=d type=checkbox value=%d\>" !counter !counter);
+            
+            (
+              let names = r.result_names in
+              let names = if r.result_done then
+                  names @ ["ALREADY DOWNLOADED"] else names in
+              let names = match  r.result_comment with
+                  Some comment ->
+                    names @ ["COMMENT: " ^ comment] 
+                | _ -> names in
+              match names with
+                [name] -> name
+              | _ ->
+                  let buf = Buffer.create 100 in
+                  Buffer.add_string buf "\<TABLE\>\n";
+                  List.iter (fun s -> 
+                      Buffer.add_string buf "\<TR\>\<TD\>";
+                      Buffer.add_string buf s;
+                      Buffer.add_string buf "\</TD\>\</TR\>";
+                  ) names;
+                  Buffer.add_string buf "\</TABLE\>\n";
+                  
+                  Buffer.contents buf
+            );
+            
+            (Int32.to_string r.result_size);
+            
+            tags_string;
+            
+            (string_of_int !avail);
+            
+            (Md4.to_string r.result_md4);
+          |] :: !files
+      with _ -> ()
+  ) results;
+  
+  if !counter > !!filter_table_threshold then
+    add_filter_table buf search_num;
+  
+  Printf.bprintf buf "\<form action=/results\>";
+  Printf.bprintf buf "\<input type=submit value='Submit Changes'\>";
+  print_table_html 10 buf [||] 
+    [|
+    "[ Num ]";
+    "Names";
+    "Size";
+    "Tags";
+    "Avail";
+    "MD4";
+  |] 
+    (List.rev !files);
+  Printf.bprintf buf "\</form\>"      
+  
+let print_search buf s format = 
+  if not !!new_print_search then old_print_search buf s format else
+    begin
+      last_search := Intmap.empty;
+      let counter = ref 0 in
+      Printf.bprintf buf "Result of search %d\n" s.search_num;
+      Printf.bprintf buf "Reinitialising download selectors\n";
+      Printf.bprintf buf "%d results (%s)\n" s.search_nresults 
+        (if s.search_waiting = 0 then "done" else
+          (string_of_int s.search_waiting) ^ " waiting");
+      let results = ref [] in
+      Hashtbl.iter (fun _ (r, avail) ->
+          results := (r, avail) :: !results) s.search_files;
+      let results = Sort.list (fun (r1,_) (r2,_) ->
+            let r1 = Store.get DownloadIndexer.store r1 in
+            let r2 = Store.get DownloadIndexer.store r2 in
+            r1.result_size > r2.result_size
+        ) !results in
+      
+      if format.conn_output = HTML && !!html_checkbox_file_list then
+        print_search_html buf results format s.search_num
+      else
+      let print_table = if format.conn_output = HTML then print_table_html 2
+        else print_table_text in
+      
+      let files = ref [] in
+      
+      List.iter (fun (doc,avail) ->
+          let r = Store.get DownloadIndexer.store doc in
+          if !!display_downloaded_results || not r.result_done  then begin
+              incr counter;
+              last_search := Intmap.add !counter doc !last_search;
+              files := [|
+                (Printf.sprintf "[%5d]" !counter);
+                
+                (Printf.sprintf "%s%s%s"
+                    (if format.conn_output = HTML then 
+                      Printf.sprintf "\<A HREF=/submit\?q=download\&md4=%s\&size=%s target=status\>"
+                        (Md4.to_string r.result_md4) (Int32.to_string r.result_size)
+                    else "")
+                  
+                  (
+                    let names = r.result_names in
+                    let names = if r.result_done then
+                        names @ ["ALREADY DOWNLOADED"] else names in
+                    let names = match  r.result_comment with
+                        Some comment ->
+                          names @ ["COMMENT: " ^ comment] 
+                      | _ -> names in
+                    match names with
+                      [name] -> name
+                    | _ ->
+                        let buf = Buffer.create 100 in
+                        Buffer.add_string buf "\<TABLE\>\n";
+                        List.iter (fun s -> 
+                            Buffer.add_string buf "\<TR\>";
+                            Buffer.add_string buf s;
+                            Buffer.add_string buf "\</TR\>";
+                        ) names;
+                        Buffer.add_string buf "\</TABLE\>\n";
+                        
+                        Buffer.contents buf
+                  )
+                  (if format.conn_output = HTML then "\</A HREF\>" else ""));
+                
+                (Int32.to_string r.result_size);
+                
+                (let buf = Buffer.create 100 in
+                  List.iter (fun t ->
+                      Buffer.add_string buf (Printf.sprintf "%-3s "
+                          (if t.tag_name = "availability" then "" else
+                          match t.tag_value with
+                            String s -> s
+                          | Uint32 i -> Int32.to_string i
+                          | Fint32 i -> Int32.to_string i
+                          | _ -> "???"
+                        ))
+                  ) r.result_tags;
+                  Buffer.contents buf);
+                
+                (string_of_int !avail);
+                
+                (Md4.to_string r.result_md4);
+              |] :: !files;
+            end
+      ) results;
+      
+      print_table buf [||] 
+        [|
+        "[ Num ]";
+        "Names";
+        "Size";
+        "Tags";
+        "Avail";
+        "MD4";
+      |] 
+        
+        (List.rev !files)
+    end  
+  
+  
+let display_file_list buf format =
+  Printf.bprintf  buf "Downloaded %d/%d files\n"           (List.length !!done_files) (List.length !!files);
+  let list = 
+    try
+      let sorter =
+        match format.conn_sortvd with
+        
+        | BySize -> (fun f1 f2 -> f1.file_size >= f2.file_size)
+        | ByRate -> (fun f1 f2 -> 
+                f1.file_last_rate >= f2.file_last_rate)
+        | ByName -> (fun f1 f2 -> 
+                match f1.file_filenames, f2.file_filenames with
+                  n1 :: _ , n2 :: _ -> n1 <= n2
+                | _ -> true)
+        | ByDone -> (fun f1 f2 -> 
+                f1.file_downloaded >= f2.file_downloaded)
+        | ByPercent -> (fun f1 f2 ->
+                percent f1 >= percent f2)
+        | _ -> raise Not_found
+      in
+      Sort.list sorter !!files
+    with _ -> !!files
+  in
+  simple_print_file_list false buf list format;
+  Printf.bprintf  buf "\nDownloaded %d files\n" 
+    (List.length !!done_files);
+  if !!done_files = [] then "" else begin
+      simple_print_file_list true buf !!done_files format;
+      "Use 'commit' to move downloaded files to the incoming directory"
+    end
+    
   
 let commands = [
     "n", Arg_multiple (fun args buf _ ->
@@ -907,7 +1264,7 @@ let commands = [
           match s.server_sock with
             None -> "Not connected"
           | Some sock ->
-              shutdown sock "user disconnect";
+              TcpBufferedSocket.shutdown sock "user disconnect";
               "Disconnected"
         with e ->
             Printf.sprintf "Error: %s" (Printexc.to_string e)
@@ -945,35 +1302,7 @@ let commands = [
             !!done_files;
             ""
         | _ ->
-            Printf.bprintf  buf "Downloaded %d/%d files\n"           (List.length !!done_files) (List.length !!files);
-            let list = 
-              try
-                let sorter =
-                  match format.conn_sortvd with
-                  
-                  | BySize -> (fun f1 f2 -> f1.file_size >= f2.file_size)
-                  | ByRate -> (fun f1 f2 -> 
-                          f1.file_last_rate >= f2.file_last_rate)
-                  | ByName -> (fun f1 f2 -> 
-                          match f1.file_filenames, f2.file_filenames with
-                            n1 :: _ , n2 :: _ -> n1 <= n2
-                          | _ -> true)
-                  | ByDone -> (fun f1 f2 -> 
-                          f1.file_downloaded >= f2.file_downloaded)
-                  | ByPercent -> (fun f1 f2 ->
-                          percent f1 >= percent f2)
-                  | _ -> raise Not_found
-                in
-                Sort.list sorter !!files
-              with _ -> !!files
-            in
-            simple_print_file_list false buf list format;
-            Printf.bprintf  buf "\nDownloaded %d files\n" 
-              (List.length !!done_files);
-            if !!done_files = [] then "" else begin
-                simple_print_file_list true buf !!done_files format;
-                "Use 'commit' to move downloaded files to the incoming directory"
-              end
+            display_file_list buf format
     
     ), "<num>: view file info";
     
@@ -1066,7 +1395,8 @@ let commands = [
         ) args;
         "done"
     ), " <ip1> <ip2> ... : add these IPs to the servers black list";
-    
+
+    (*
     "gen_bug", Arg_one (fun arg buf _ ->
         let n = int_of_string arg in
         match !!files with
@@ -1086,6 +1416,7 @@ let commands = [
                     Printf.sprintf "%d sources added" n
                 | _ -> "Couldn't create the bug (source is indirect)"
     ), " : create a bug by adding 10000 new sources to a file";
+*)
     
     "kill", Arg_none (fun buf _ ->
         exit_properly ();
@@ -1116,16 +1447,18 @@ let commands = [
     
     "d", Arg_multiple (fun args buf _ ->
         try
-          let (size, md4, name) =
+          let (size, md4, names) =
             match args with
-            | [size; md4] -> (Int32.of_string size),(Md4.of_string md4), None
+            | [size; md4] -> (Int32.of_string size),(Md4.of_string md4), []
             | [size; md4; name] -> 
-                (Int32.of_string size),(Md4.of_string md4), Some name
+                (Int32.of_string size),(Md4.of_string md4), [name]
             | [num] -> 
-                List.assoc (int_of_string num) !last_search
+                let doc = Intmap.find (int_of_string num) !last_search in
+                let r = Store.get DownloadIndexer.store doc in
+                r.result_size, r.result_md4, r.result_names
             | _ -> failwith "Bad number of arguments"
           in
-          query_download [] size md4 None None None;
+          query_download names size md4 None None None;
           "download started"
         with 
           Already_done -> "already done"
@@ -1410,7 +1743,7 @@ let eval auth buf cmd options =
 let buf = Buffer.create 1000
 
 let user_reader options auth sock nread  = 
-  let b = TcpClientSocket.buf sock in
+  let b = TcpBufferedSocket.buf sock in
   let end_pos = b.pos + b.len in
   let new_pos = end_pos - nread in
   for i = new_pos to end_pos - 1 do
@@ -1423,14 +1756,14 @@ let user_reader options auth sock nread  =
         Buffer.clear buf;
         eval auth buf cmd options;
         Buffer.add_char buf '\n';
-        TcpClientSocket.write_string sock (Buffer.contents buf)
+        TcpBufferedSocket.write_string sock (Buffer.contents buf)
       with
         CommandCloseSocket ->
           (try
               shutdown sock "user quit";
           with _ -> ());
       | e ->
-          TcpClientSocket.write_string sock
+          TcpBufferedSocket.write_string sock
             (Printf.sprintf "exception [%s]\n" (Printexc.to_string e));
           
   done
@@ -1444,17 +1777,18 @@ let telnet_handler t event =
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
       let from_ip = Ip.of_inet_addr from_ip in
       if Ip.matches from_ip !!allowed_ips then 
-        let sock = TcpClientSocket.create_simple s in
+        let sock = TcpBufferedSocket.create_simple s in
         let auth = ref (!!password = "") in
         let options = {
             conn_output = TEXT;
             conn_sortvd = NotSorted;
+            conn_filter = (fun _ -> ());
           } in
-        TcpClientSocket.set_reader sock (user_reader options auth);
-        TcpClientSocket.set_closer sock user_closed;
+        TcpBufferedSocket.set_reader sock (user_reader options auth);
+        TcpBufferedSocket.set_closer sock user_closed;
         user_socks := sock :: !user_socks;
-        TcpClientSocket.write_string sock "\nWelcome on mldonkey command-line\n";
-        TcpClientSocket.write_string sock "\nUse ? for help\n\n";
+        TcpBufferedSocket.write_string sock "\nWelcome on mldonkey command-line\n";
+        TcpBufferedSocket.write_string sock "\nUse ? for help\n\n";
       else 
         Unix.close s
 
@@ -1534,15 +1868,138 @@ let http_handler options t r =
                <frame name=\"output\" src=\"/oneframe.html\">
             </frameset>" !!commands_frame_height             
               end
-              
+        
         | "/complex_search.html" ->
             complex_search buf
         | "/noframe.html" ->
             Buffer.clear buf;
             html_open_page buf;
-
+        
         | "/oneframe.html" -> ()
+        
+        | "/filter" ->
+            let b = Buffer.create 10000 in 
+            let filter = ref (fun _ -> ()) in
+            begin              
+              match r.get_url.Url.args with
+                ("num", num) :: args ->
+                  List.iter (fun (arg, value) ->
+                      match arg with
+                      | "media" -> 
+                          let old_filter = !filter in
+                          filter := (fun r ->
+                              if r.result_type = value then raise Not_found;
+                              old_filter r
+                          )
+                      | "format" -> 
+                          let old_filter = !filter in
+                          filter := (fun r ->
+                              if r.result_format = value then raise Not_found;
+                              old_filter r
+                          )
+                      | "size" -> 
+                          let old_filter = !filter in
+                          let mega5 = Int32.of_int (5 * 1024 * 1024) in
+                          let mega20 = Int32.of_int (20 * 1024 * 1024) in
+                          let mega400 = Int32.of_int (400 * 1024 * 1024) in
+                          let min, max = match value with
+                              "0to5" -> Int32.zero, mega5
+                            | "5to20" -> mega5, mega20
+                            | "20to400" -> mega20, mega400
+                            | "400+" -> mega400, Int32.max_int
+                            | _ -> Int32.zero, Int32.max_int
+                          in
+                          filter := (fun r ->
+                              if r.result_size >= min && 
+                                r.result_size <= max then
+                                raise Not_found;
+                              old_filter r
+                          )
+                      | _ -> ()
+                  )  args;
+                  
+                  let num = int_of_string num in
+                  List.iter (fun s ->
+                      if s.search_num = num then
+                        print_search b s { options with conn_filter = !filter }
+                  ) !searches;
+                  
+                  
+                  Buffer.add_string buf (html_escaped (Buffer.contents b))
+              | _ -> 
+                  Buffer.add_string buf "Bad filter"
+            end
+            
+        | "/results" ->
+            let b = Buffer.create 10000 in
+            List.iter (fun (arg, value) ->
+                match arg with
+                  "d" -> begin
+                    try
+                        let num = int_of_string value in 
+                        let doc = Intmap.find num !last_search in
+                        let r = Store.get DownloadIndexer.store doc in
 
+                        let (size, md4, names) = 
+                          r.result_size, r.result_md4, r.result_names
+                        in
+                        query_download names size md4 None None None;
+                        Printf.bprintf buf "Download of file %s started\<br\>"
+                          (Md4.to_string md4)
+                        with  e -> 
+                        Printf.bprintf buf "Error %s with %s\<br\>" 
+                          (Printexc.to_string e) value
+                    end
+                | _ -> ()
+            ) r.get_url.Url.args;
+            Buffer.add_string buf (html_escaped (Buffer.contents b))
+            
+            
+        | "/files" ->
+            List.iter (fun (arg, value) ->
+                match arg with
+                  "cancel" -> 
+                    let num = int_of_string value in
+                    List.iter (fun file ->
+                        if file.file_num = num then remove_file file.file_md4
+                    ) !!files
+                | "pause" -> 
+                    let num = int_of_string value in
+                    List.iter (fun file ->
+                        if file.file_num = num then begin
+                            file.file_state <- FilePaused;
+                            file.file_changed <- FileInfoChange;
+                            !file_change_hook file
+                          end
+                    ) !!files
+                | "resume" -> 
+                    let num = int_of_string value in
+                    List.iter (fun file ->
+                        if file.file_num = num then begin
+                            file.file_state <- FileDownloading;
+                            reconnect_all file;
+                            file.file_changed <- FileInfoChange;
+                            !file_change_hook file
+                          end
+                    ) !!files
+                | "sortby" -> 
+                    begin
+                      match value with
+                      | "Percent" -> options.conn_sortvd <- ByPercent
+                      | "File" -> options.conn_sortvd <- ByName
+                      | "Downloaded" -> options.conn_sortvd <- ByDone
+                      | "Size" -> options.conn_sortvd <- BySize
+                      | "Rate" -> options.conn_sortvd <- ByRate
+                      | _ -> ()
+                    end
+                | _ -> 
+                    Printf.printf "FILE: Unbound argument %s/%s" arg value;
+                    print_newline ();
+            ) r.get_url.Url.args;
+            let b = Buffer.create 10000 in
+            Buffer.add_string b (display_file_list b options);
+            Buffer.add_string buf (html_escaped (Buffer.contents b))
+            
         | "/submit" ->
             begin
               match r.get_url.Url.args with
@@ -1600,15 +2057,16 @@ let http_handler options t r =
   html_close_page buf;
   let s = Buffer.contents buf in
   let len = String.length s in
-(*  TcpClientSocket.set_monitored t; *)
-  TcpClientSocket.set_max_write_buffer t (len + 100);
+(*  TcpBufferedSocket.set_monitored t; *)
+  TcpBufferedSocket.set_max_write_buffer t (len + 100);
   
-  TcpClientSocket.write t s 0 len;
-  TcpClientSocket.close_after_write t
+  TcpBufferedSocket.write t s 0 len;
+  TcpBufferedSocket.close_after_write t
         
 let http_options = { 
     conn_output = HTML;
     conn_sortvd = NotSorted;
+    conn_filter = (fun _ -> ());
   }      
   
 let create_http_handler () = 

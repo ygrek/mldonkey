@@ -18,7 +18,7 @@
 *)
 
 open Unix
-open TcpClientSocket
+open TcpBufferedSocket
 open Mftp
 open Options
 open Mftp_comm

@@ -39,10 +39,10 @@ type get_args =
 | Proxy of string * int
 
 type headers_handler = 
-  TcpClientSocket.t -> int -> (string * string) list -> unit
+  TcpBufferedSocket.t -> int -> (string * string) list -> unit
   
 val get_page : Url.url -> get_args list -> headers_handler  -> unit
   
-val default_headers_handler : (int -> TcpClientSocket.t -> int -> unit) ->
+val default_headers_handler : (int -> TcpBufferedSocket.t -> int -> unit) ->
   headers_handler
   

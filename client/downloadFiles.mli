@@ -27,9 +27,14 @@ val search_handler :
   DownloadTypes.search ->  Mftp_server.QueryReply.t -> unit
 val force_save_options : unit -> unit
 val install_hooks : unit -> unit
-val reset_upload_timer : BasicSocket.timer -> unit
+val reset_upload_timer : unit -> unit
 val upload_timer : BasicSocket.timer -> unit
-val upload_credit_timer : BasicSocket.timer -> unit
+val upload_credit_timer : unit -> unit
 val udp_client_handler: Mftp_server.t -> UdpSocket.udp_packet -> unit 
 val find_search : int -> DownloadTypes.search
 val make_xs : DownloadTypes.search -> unit
+  
+val fill_clients_list : unit -> unit
+val check_clients : unit -> unit
+val remove_old_clients : unit -> unit
+  

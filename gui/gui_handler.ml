@@ -20,7 +20,7 @@
 open Options
 open Mftp
 open BasicSocket
-open TcpClientSocket
+open TcpBufferedSocket
 open Unix
 open Gui_proto
 open Gui_types
@@ -600,7 +600,7 @@ let redraw_current _ =
     None -> true
   | Some file ->
       let nchunks = String.length file.file_chunks in
-      let dx = min 3 (wx / nchunks) in
+      let dx = mini 3 (wx / nchunks) in
       let offset = (wx - nchunks * dx) / 2 in
       let offset = if offset < 0 then 0 else offset in
       for i = 0 to nchunks - 1 do
@@ -1004,7 +1004,7 @@ let value_reader (gui: gui) t sock =
     | Connected v -> 
         if v <> Gui_types.version then begin
             Printf.printf "Bad GUI version"; print_newline ();
-            TcpClientSocket.close sock "bad version";
+            TcpBufferedSocket.close sock "bad version";
           end
         else begin
 (*        Printf.printf "Connected"; print_newline (); *)

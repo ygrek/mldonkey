@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open BasicSocket
 
 let html_escaped s =
   String2.convert false (fun b escaped c ->
@@ -118,7 +119,7 @@ stream_out : Stream_out.t;
 
   }
 
-and handler = TcpClientSocket.t -> request -> unit
+and handler = TcpBufferedSocket.t -> request -> unit
 
 and config = {
     port : int;
@@ -683,7 +684,7 @@ Sys.set_signal Sys.sigchld (Sys.Signal_handle sigchild_handler);
   t
     *)
 
-open TcpClientSocket
+open TcpBufferedSocket
   
 let manage config sock head = 
   let request = parse_head head in
@@ -699,10 +700,10 @@ let manage config sock head =
 
   
 let request_handler config sock nread =  
-  let b = TcpClientSocket.buf sock in
+  let b = TcpBufferedSocket.buf sock in
   let end_pos = b.pos + b.len in
   let new_pos = end_pos - nread in
-  let new_pos = max 0 (new_pos - 1) in
+  let new_pos = maxi 0 (new_pos - 1) in
   (*
   Printf.printf "received [%s]" (String.escaped 
       (String.sub b.buf new_pos nread));
@@ -741,10 +742,10 @@ let handler config t event =
 (* check here if ip is OK *)
       let from_ip = Ip.of_inet_addr from_ip in
       if Ip.matches from_ip config.addrs then 
-        let sock = TcpClientSocket.create_simple s in
-        TcpClientSocket.set_reader sock (request_handler config);
-        TcpClientSocket.set_closer sock request_closer;
-        TcpClientSocket.set_handler sock TcpClientSocket.BUFFER_OVERFLOW
+        let sock = TcpBufferedSocket.create_simple s in
+        TcpBufferedSocket.set_reader sock (request_handler config);
+        TcpBufferedSocket.set_closer sock request_closer;
+        TcpBufferedSocket.set_handler sock TcpBufferedSocket.BUFFER_OVERFLOW
           (fun _ -> Printf.printf "BUFFER OVERFLOW"; print_newline () );  ()
       else
         Unix.close s

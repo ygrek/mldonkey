@@ -17,7 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 val find_client_zone : DownloadTypes.client -> unit
-val disconnected_from_client : DownloadTypes.client -> string -> unit
+val disconnected_from_client : 
+  DownloadTypes.client -> DownloadTypes.client -> string -> unit
 val update_zone : DownloadTypes.file -> 
   int32 -> int32 -> DownloadTypes.zone -> unit
 val client_state : Gui_types.connection_state -> string

@@ -28,8 +28,8 @@ val all_shared : unit -> DownloadTypes.file list
   
 val remove_old_servers_timer : unit -> unit
   
-val update_master_servers : BasicSocket.timer -> unit  
+val update_master_servers : unit-> unit  
 val update_options : unit -> unit
 val walker_timer : BasicSocket.timer -> unit
   
-val verify_ip : TcpClientSocket.t -> unit
+val verify_ip : TcpBufferedSocket.t -> unit

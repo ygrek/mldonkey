@@ -24,7 +24,6 @@ open BasicSocket
 open Gui_types
 open DownloadOptions
   
-    
 let printf_char c =
   if !!verbose then 
     (print_char c; Pervasives.flush Pervasives.stdout)
@@ -49,10 +48,10 @@ let say_hook = ref (fun (c:client option) (s:string) -> ())
   used in DownloadFiles *)
 let server_is_connected_hook = ref (fun
       (s: server) 
-      (sock: TcpClientSocket.t) -> ())
+      (sock: server_sock) -> ())
 let received_from_server_hook = ref (fun 
       (s: server) 
-      (sock: TcpClientSocket.t) 
+      (sock: server_sock) 
       (t: Mftp_server.t) -> ())
 let server_is_disconnected_hook = ref (fun 
       (s: server) -> ())
@@ -88,7 +87,7 @@ let connection_try cc =
 let half_day = 12. *. 3600.
   
 let connection_failed cc =
-  cc.control_next_delay <- min (cc.control_next_delay *. 2.) half_day
+  cc.control_next_delay <- minf (cc.control_next_delay *. 2.) half_day
 
 let connection_can_try cc =
   cc.control_next_try < last_time ()
@@ -103,7 +102,7 @@ let connection_last_conn cc =
   cc.control_last_conn
 
 let connection_delay cc =
-  cc.control_next_try <- max cc.control_next_try
+  cc.control_next_try <- maxf cc.control_next_try
     (last_time () +. !min_retry_delay)
   
 open Mftp
@@ -124,6 +123,9 @@ let servers_by_key = Hashtbl2.create 127
 let servers_by_num = Hashtbl.create 127
 let server_counter = ref 0
 let servers_list = ref []
+let clients_list = ref []
+let clients_list_len = ref 0
+let remaining_time_for_clients = ref (60 * 15)
 let location_counter = ref 0
 let upload_counter = ref 0
 let download_credit = ref 0 
@@ -146,9 +148,8 @@ let (files_by_anon_client: (Ip.t * int * Ip.t,file * bool ref) Hashtbl.t) = Hash
   
 let connected_server_list = ref ([]  : server list)
     
-let dbserver_sock = ref (None : TcpClientSocket.t option)
 
-let user_socks = ref ([] : TcpClientSocket.t list)
+let user_socks = ref ([] : TcpBufferedSocket.t list)
 
 let gui_server_sock = ref (None : TcpServerSocket.t option)
 let udp_sock = ref (None: UdpSocket.t option)
@@ -214,13 +215,14 @@ let new_file file_name md4 file_size writable =
           file_size = file_size;
           file_nchunks = nchunks;
           file_chunks = [||];
+          file_chunks_age = [||];
           file_fd = Unix32.create file_name (if writable then
               [O_RDWR; O_CREAT] else [O_RDONLY]) 0o666;
           file_all_chunks = String.make nchunks '0';
           file_absent_chunks =   [Int32.zero, file_size];
           file_filenames = [];
-          file_known_locations = [];
-          file_indirect_locations = [];
+          file_known_locations = Intmap.empty;
+          file_indirect_locations = Intmap.empty;
           file_md4s = md4s;
           file_downloaded = Int32.zero;
           file_num = !file_counter;
@@ -317,7 +319,7 @@ let remove_server ip port =
     servers_list := List2.removeq s !servers_list ;
     (match s.server_sock with
         None -> ()
-      | Some sock -> shutdown (TcpClientSocket.sock sock) "remove server");
+      | Some sock -> shutdown (TcpBufferedSocket.sock sock) "remove server");
     set_server_state s  Removed;
   with _ -> ()
   
@@ -340,6 +342,7 @@ let new_client key =
             client_connection_control =  new_connection_control (last_time ());
             client_state = NotConnected;
             client_num = !client_counter;
+            client_file_queue = [];
             client_files = [];
             client_is_friend = NotAFriend;
             client_tags = [];
@@ -351,13 +354,14 @@ let new_client key =
             client_rating = Int32.zero;
             client_is_mldonkey = 0;
             client_alias = None;
+            client_aliases = [];
+            client_checked = false;
           } in
         c
     | _ ->
         try
           Hashtbl.find clients_by_kind key
         with _ ->
-            incr client_counter;
             let l = {
                 client_upload = None;
                 client_kind = key;   
@@ -370,6 +374,7 @@ let new_client key =
                 client_connection_control =  new_connection_control (last_time ());
                 client_state = NotConnected;
                 client_num = !client_counter;
+                client_file_queue = [];
                 client_files = [];
                 client_is_friend = NotAFriend;
                 client_tags = [];
@@ -381,12 +386,15 @@ let new_client key =
                 client_rating = Int32.zero;
                 client_is_mldonkey = 0;
                 client_alias = None;
+                client_aliases = [];
+                client_checked = false;
               } in
+            
             Hashtbl.add clients_by_kind key l;
             l
           
   in
-  Hashtbl.add clients_by_num !client_counter c;
+  Hashtbl.add clients_by_num c.client_num c;
   c
   
 let remove_client c =
@@ -420,20 +428,19 @@ let exit_properly _ =
 let can_open_connection () =
   nb_sockets () < !!max_opened_connections 
   
-let upload_control = TcpClientSocket.create_write_bandwidth_controler 
+let upload_control = TcpBufferedSocket.create_write_bandwidth_controler 
     (!!max_hard_upload_rate * 1024)
   
-let download_control = TcpClientSocket.create_read_bandwidth_controler 
+let download_control = TcpBufferedSocket.create_read_bandwidth_controler 
     (!!max_hard_download_rate * 1024)
   
 let _ =
   option_hook max_hard_upload_rate (fun _ ->
-      TcpClientSocket.change_rate upload_control 
+      TcpBufferedSocket.change_rate upload_control 
         (!!max_hard_upload_rate * 1024));  
   option_hook max_hard_download_rate (fun _ ->
-      TcpClientSocket.change_rate download_control 
+      TcpBufferedSocket.change_rate download_control 
         (!!max_hard_download_rate * 1024))  
-  
     
 let file_groups = Hashtbl.create 1023
 let udp_clients = Hashtbl.create 1023
@@ -442,20 +449,141 @@ let mem_stats buf =
   Gc.compact ();
   let client_counter = ref 0 in
   let unconnected_unknown_clients = ref 0 in
+  let uninteresting_clients = ref 0 in
+  let aliased_clients = ref 0 in
+  let connected_clients = ref 0 in
+  let closed_connections = ref 0 in
+  let unlocated_client = ref 0 in
+  let bad_numbered_clients = ref 0 in
+  let disconnected_alias = ref 0 in
+  let dead_clients = ref 0 in
   let buffers = ref 0 in
+  let waiting_msgs = ref 0 in
+  let connected_clients_by_num = Hashtbl.create 100 in
   Hashtbl.iter (fun num c ->
+      if c.client_num <> num then begin
+          incr bad_numbered_clients;
+          try
+            let cc = Hashtbl.find clients_by_num c.client_num in
+            if cc.client_sock = None then incr disconnected_alias;
+          with _ -> incr dead_clients;
+        end;
       incr client_counter;
+      begin
+        match c.client_alias with
+          None -> ()
+        | Some _ -> incr aliased_clients;
+      end;
       match c.client_sock with
         None -> begin
+            if c.client_files = [] then incr uninteresting_clients
+            else begin
+                List.iter (fun file ->
+                    if not (Intmap.mem c.client_num file.file_known_locations) &&
+                      not (Intmap.mem c.client_num file.file_indirect_locations) then
+                      begin
+                        incr unlocated_client;
+                      end
+                ) c.client_files;
+              end;
             match c.client_kind with
               Indirect_location -> incr unconnected_unknown_clients
             | _ -> ()
           end
       | Some sock ->
-          buffers := !buffers + TcpClientSocket.buf_size sock
+          let buf_len, nmsgs = TcpBufferedSocket.buf_size sock in
+          (try
+              Hashtbl.find connected_clients_by_num c.client_num
+            with _ -> 
+                incr connected_clients;
+                waiting_msgs := !waiting_msgs + nmsgs;
+                buffers := !buffers + buf_len;
+                Hashtbl.add connected_clients_by_num c.client_num ();
+                Printf.bprintf buf "%d: %6d/%6d\n" c.client_num
+                  buf_len nmsgs
+          );
+          if BasicSocket.closed (TcpBufferedSocket.sock sock) then
+            incr closed_connections;
   ) clients_by_num;
   Printf.bprintf buf "Clients: %d\n" !client_counter;
   Printf.bprintf buf "   Bad Clients: %d\n" !unconnected_unknown_clients;
-  Printf.bprintf buf "   Buffers: %d\n" !buffers;
+  Printf.bprintf buf "   Read Buffers: %d\n" !buffers;
+  Printf.bprintf buf "   Write Messages: %d\n" !waiting_msgs;
+  Printf.bprintf buf "   Uninteresting clients: %d\n" !uninteresting_clients;
+  Printf.bprintf buf "   Connected clients: %d\n" !connected_clients;
+  Printf.bprintf buf "   Aliased clients: %d\n" !aliased_clients;
+  Printf.bprintf buf "   Closed clients: %d\n" !closed_connections;
+  Printf.bprintf buf "   Unlocated clients: %d\n" !unlocated_client;
+  Printf.bprintf buf "   Bad numbered clients: %d\n" !bad_numbered_clients;
+  Printf.bprintf buf "   Dead clients: %d\n" !dead_clients;
+  Printf.bprintf buf "   Disconnected aliases: %d\n" !disconnected_alias;
   
+  let direct_locs = ref 0 in
+  let indirect_locs = ref 0 in
+  let aliased_locations = ref 0 in
+  let loc_unaware = ref 0 in
+  let unregistered_locs = ref 0 in
+  Hashtbl.iter (fun md4 file ->
+      Printf.bprintf buf "FILE %s\n" file.file_hardname;
+      let len = Intmap.length file.file_known_locations in
+      Printf.bprintf buf "  known locs %d\n" len;
+      direct_locs := !direct_locs + len;
+      
+      let len = Intmap.length file.file_indirect_locations in
+      Printf.bprintf buf "  indirect locs %d\n" len;
+      indirect_locs := !indirect_locs + len;
+      Intmap.iter (fun _ c ->
+          try
+            let cc = Hashtbl.find clients_by_num c.client_num in
+            if not (List.memq file c.client_files) then 
+              incr loc_unaware;
+            if cc != c then incr aliased_locations;
+          with _ -> incr unregistered_locs;
+      ) file.file_indirect_locations;
+      Intmap.iter (fun _ c ->
+          try
+            let cc = Hashtbl.find clients_by_num c.client_num in
+            if not (List.memq file c.client_files) then 
+              incr loc_unaware;
+            if cc != c then incr aliased_locations;
+          with _ -> incr unregistered_locs;
+      ) file.file_known_locations;
+      
+  ) files_by_md4;
+  Printf.bprintf buf "Direct locs: %d\n" !direct_locs;
+  Printf.bprintf buf "Indirect locs: %d\n" !indirect_locs;
+  Printf.bprintf buf "Aliased locs: %d\n" !aliased_locations;
+  Printf.bprintf buf "Unregitered locs: %d\n" !unregistered_locs;
+  Printf.bprintf buf "Unaware locs: %d\n" !loc_unaware;
   ()
+
+let remove_useless_client c =
+  match c.client_sock with
+    Some _ -> ()
+  | None ->
+      if c.client_files = [] then
+        remove_client c
+  
+let remove_file_clients file =
+  let known_locs = file.file_known_locations in
+  let other_locs = file.file_indirect_locations in
+  file.file_indirect_locations <- Intmap.empty;
+  file.file_known_locations <- Intmap.empty;
+  Intmap.iter (fun _ c ->
+      if not (List.memq file c.client_files) then 
+        (Printf.printf "direct location wasn't known by client"; print_newline ())
+      else
+        c.client_files <- List2.removeq file c.client_files;
+      remove_useless_client c
+  ) known_locs;
+    Intmap.iter (fun _ c ->
+      if not (List.memq file c.client_files) then 
+        (Printf.printf "location wasn't known by client"; print_newline ())
+      else
+        c.client_files <- List2.removeq file c.client_files;
+      remove_useless_client c
+  ) other_locs
+  
+
+let last_search = ref Intmap.empty
+

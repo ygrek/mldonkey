@@ -35,7 +35,7 @@ val set_handler : t -> handler -> unit
 val handler : t -> handler
 val closed : t -> bool
 
-val set_before_select : t -> (t -> unit) -> unit
+(* val set_before_select : t -> (t -> unit) -> unit *)
   
   
 val create : Unix.file_descr -> handler -> t
@@ -56,4 +56,12 @@ val loop : unit -> unit
 val nb_sockets : unit -> int
   
 val stats : Buffer.t -> t -> unit
+  
+val mini : int -> int -> int
+val minf : float -> float -> float
+val maxi : int -> int -> int
+val maxf : float -> float -> float
+  
+val set_allow_write : t -> bool ref -> unit
+val set_allow_read : t -> bool ref -> unit
   

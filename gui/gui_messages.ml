@@ -719,13 +719,10 @@ TODO list for client
 ====================
   * Plugins.
   * Correct display of availability.
-  * Add sleep and wakeup commands.
-  * More options in GUI
   * Popup
   * Keep (server_ip, server_port, id) for indirect connections.
   * Manager of shared files/directories.
   * Add Friends in console and WEB. 
-  * Don't keep history in memory.
   * Allow hostname instead of IPs in servers and friends.
   * Queue uploads per chunk.
   * Add prefered servers.
@@ -735,17 +732,16 @@ TODO list for client
   * Use source groups for local downloads.
   * Use a cache of data to help diffusing files.
   * Check that program exists before trying to execute.
-  * Add customizable searches.
-  * Remove old clients.
   * Correct boolean searches
-  * Black_list of servers
   * List of prefered servers
-  * Fix too many sources bug !!!!!!
   * Fix BUFFER OVERFLOW bug !!!!!
   * Customized queries in GUI
-  * Add a 'last_connection_date' to sources. Only propagate young
-      verified sources. Remove old sources.
   * Clean the clients_by_num table from clients which are not useful anymore.
+  * verify that interesting_clients that can't connect are correctly removed.
+  * remove locations of downloaded files.
+  * check that 'cancelled' files cannot be shared also in incoming/
+  * don't add sources to files already downloaded.
+  * efficient management of buffers
 
 TODO list for server
 ====================
@@ -790,6 +786,9 @@ Release 1.15:
     - Use tables instead of spaces (for non-fixed fonts).
     - Added option 'use_html_frames'. When frames are enabled, clicking
        on a result to download will only modify the second frame.
+    - Checklist of downloads and results can be activated/desactivated with
+      the option 'html_checkbox_file_list'.
+    - The number of days since the file was last seen complete is now displayed
   * Core:
     - New option 'file_completed_cmd' for a command which is called when 
      a file download is completed with as arguments: 
@@ -805,15 +804,21 @@ Release 1.15:
      Chunks downloaded improve to reduce long md4 computations.
   * Most problems with ed2k:// links should be fixed (/ at the end, and
      spaces in the middle). MLdonkeySubmit is distributed for Konqueror users.
-  * Improved implementation of indexation. Documents description can be
-     stored on disk (in progress). 
+  * Improved implementation of indexation. Documents description are
+     stored on disk. Different choices of indexation.
   * Server black list: 'bs <ip1> <ip2> ...' in console to add IPs to the
     server blacklist. Servers on this black list are eventually removed,
     and will never be added again.
   * New option 'master_server_min_users' that prevent mldonkey from remaining
-    connected to a server with too few users.
+     connected to a server with too few users.
+  * New option 'dont_update_server_list' to disable automatic update of
+     server lists.
   * Telnet interface: 
      - New command 'remove_old_servers'
+  * New (less-aggressive) management of sources:
+     - New option 'max_source_age' (in days) to remove old sources.
+     - New option 'max_clients_per_second' to prevent bursts of connections.
+  * Faster computation of md4s for i486/i586/i686 Linux systems.
   * Fixed bugs:  
    - #100662: only valid server IPs are accepted.
    - Use IP returned by getsockname instead of the one from gethostbyname.

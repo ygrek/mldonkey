@@ -18,7 +18,7 @@
 *)
 
 open Unix
-open TcpClientSocket
+open TcpBufferedSocket
 open Mftp
 open Options
 open Mftp_comm
@@ -43,7 +43,7 @@ and client = {
     mutable client_id : Ip.t; 
     mutable client_conn_ip : Ip.t;
     mutable client_md4 : Md4.t;
-    mutable client_sock: TcpClientSocket.t option;
+    mutable client_sock: Mftp_comm.server_sock option;
     mutable client_kind : client_kind;
     mutable client_files : file list;
     mutable client_tags: tag list;

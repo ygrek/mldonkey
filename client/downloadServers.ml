@@ -19,7 +19,7 @@
 open Options
 open Unix
 open BasicSocket
-open TcpClientSocket
+open TcpBufferedSocket
 open Mftp
 open Files
 open Mftp_comm
@@ -85,7 +85,7 @@ let last_connected_server () =
           s :: l
       ) servers_by_key [];
       match !servers_list with
-        [] -> assert false
+        [] -> raise Not_found
       | s :: _ -> s
 
 let all_servers () =
@@ -130,9 +130,10 @@ let server_handler s sock event =
   | _ -> ()
 
 let verify_ip sock =
+(*  Printf.printf "VERIFY IP";  print_newline (); *)
   try
     incr ip_verified;
-    let ip = TcpClientSocket.my_ip sock in
+    let ip = TcpBufferedSocket.my_ip sock in
     if ip <> Ip.localhost  then begin
         Printf.printf "USING %s FOR CLIENT IP" (Ip.to_string ip);
         print_newline ();
@@ -150,12 +151,12 @@ let client_to_server s t sock =
   match t with
     M.SetIDReq t ->
       s.server_cid <- t;
-      set_rtimeout (TcpClientSocket.sock sock) infinite_timeout;
+      set_rtimeout (TcpBufferedSocket.sock sock) infinite_timeout;
       set_server_state s Connected_initiating;
       s.server_score <- s.server_score + 5;
       connection_ok (s.server_connection_control);
 
-      server_send sock (
+      direct_server_send sock (
         let module A = M.AckID in
         M.AckIDReq A.t
       );
@@ -213,22 +214,22 @@ let connect_server s =
       s.server_cid <- !!client_ip;
       incr nservers;
       printf_char 's'; 
-      let sock = TcpClientSocket.connect (
+      let sock = TcpBufferedSocket.connect (
           Ip.to_inet_addr s.server_ip) s.server_port 
-          (server_handler s) in
+          (server_handler s) (* Mftp_comm.server_msg_to_string*)  in
       set_server_state s Connecting;
-      TcpClientSocket.set_read_controler sock download_control;
-      TcpClientSocket.set_write_controler sock upload_control;
+      TcpBufferedSocket.set_read_controler sock download_control;
+      TcpBufferedSocket.set_write_controler sock upload_control;
       
       set_reader sock (Mftp_comm.server_handler
           (client_to_server s));
-      set_rtimeout (TcpClientSocket.sock sock) !!server_connection_timeout;
+      set_rtimeout (TcpBufferedSocket.sock sock) !!server_connection_timeout;
       set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
           close s "timeout"  
       );
       
       s.server_sock <- Some sock;
-      server_send sock (
+      direct_server_send sock (
         let module M = Mftp_server in
         let module C = M.Connect in
         M.ConnectReq {
@@ -323,9 +324,7 @@ let remove_old_servers_timer () =
 (* Don't let more than max_allowed_connected_servers running for
 more than 5 minutes *)
     
-let update_master_servers timer =
-(*  Printf.printf "UPDATE MASTER SERVERS"; print_newline ();*)
-  reactivate_timer timer;
+let update_master_servers _ =
 (*  Printf.printf "update_master_servers"; print_newline (); *)
   let nmasters = ref 0 in
   List.iter (fun s ->
@@ -349,7 +348,7 @@ let update_master_servers timer =
 (*                Printf.printf "NEW MASTER SERVER"; print_newline (); *)
                 s.server_master <- true;
                 incr nmasters;
-                server_send sock (Mftp_server.ShareReq
+                direct_server_send sock (Mftp_server.ShareReq
                   (make_tagged (all_shared ())));
           end else
         if connection_last_conn s.server_connection_control 

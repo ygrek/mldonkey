@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open BasicSocket
 open Mftp
 open Options
 open DownloadTypes
@@ -221,7 +222,7 @@ let mail = define_option downloads_ini ["mail"]
 
 
 let max_allowed_connected_servers () =
-  min 5 !!max_connected_servers
+  mini 5 !!max_connected_servers
 
 let verbose = define_option downloads_ini ["verbose"] "Only for debug"
     bool_option false
@@ -294,7 +295,7 @@ let local_index_add_cmd = define_option downloads_ini
 let compaction_overhead = define_option downloads_ini 
     ["compaction_overhead"] 
     "The percentage of free memory before a compaction is triggered"
-    int_option 50
+    int_option 25
 
 let _ =
   option_hook compaction_overhead (fun _ ->
@@ -387,10 +388,42 @@ let minor_heap_size = define_option downloads_ini
     ["minor_heap_size"] "Size of the minor heap in kB"
     int_option 32
   
+let max_sources_age = define_option downloads_ini
+    ["max_source_age"] "Sources that have not been connected for this number of days are removed"
+    int_option 3
   
+let max_clients_per_second = define_option downloads_ini
+    ["max_clients_per_second"] "Maximal number of connections to sources per second"
+    int_option 5
+    
 let _ =
   option_hook minor_heap_size (fun _ ->
       let gc_control = Gc.get () in
       Gc.set { gc_control with Gc.minor_heap_size = 
         (!!minor_heap_size * 1024) };     
+  )
+
+    
+let html_checkbox_file_list = define_option downloads_ini
+    ["html_checkbox_file_list"] "Whether to use checkboxes in the WEB interface" bool_option true
+    
+let display_downloaded_results = define_option downloads_ini
+    ["display_downloaded_results"] "Whether to display results already downloaded" bool_option true
+
+    
+let filter_table_threshold = define_option downloads_ini
+    ["filter_table_threshold"] "Minimal number of results for filter form to appear"
+    int_option 50
+
+let client_buffer_size = define_option downloads_ini
+    ["client_buffer_size"] "Maximal size of the buffers of a client"
+    int_option 100000
+  
+let new_print_search = define_option downloads_ini
+    ["new_print_search"] "Use new display of search results (with tables,
+    which might be slower for your browser to display)"
+    bool_option false 
+let _ =
+  option_hook client_buffer_size (fun _ ->
+      TcpBufferedSocket.max_buffer_size := maxi 50000 !!client_buffer_size
   )

@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#include <errno.h>
 #include <stdio.h>
 #include <caml/mlvalues.h>
 #include <caml/alloc.h>
@@ -59,6 +60,8 @@ extern void uerror (char * cmdname, value arg) Noreturn;
 #define FD_TASK_RLEN 3
 #define FD_TASK_CLOSED 4
 #define FD_TASK_POS 5
+#define FD_TASK_READ_ALLOWED 6
+#define FD_TASK_WRITE_ALLOWED 7
 
 typedef fd_set file_descr_set;
 
@@ -73,6 +76,8 @@ value ml_select(value fdlist, value timeout) /* ML */
   int notimeout;
   value l;  
 
+  restart_select:
+
   FD_ZERO(&read);
   FD_ZERO(&write);
   FD_ZERO(&except);
@@ -81,8 +86,13 @@ value ml_select(value fdlist, value timeout) /* ML */
     if(Field(v, FD_TASK_CLOSED) == Val_false){
       int fd = Int_val(Field(v,FD_TASK_FD));
 /*      fprintf(stderr, "FD in SELECT %d\n", fd); */
-      if(Field(v, FD_TASK_RLEN) != Val_int(0)) FD_SET(fd, &read);
-      if(Field(v, FD_TASK_WLEN) != Val_int(0)) FD_SET(fd, &write);
+      if( (Field(v, FD_TASK_RLEN) != Val_int(0)) &&
+          (Field(Field(v, FD_TASK_READ_ALLOWED),0) == Val_true)
+        ) FD_SET(fd, &read);
+      if( (Field(v, FD_TASK_WLEN) != Val_int(0)) &&
+          (Field(Field(v, FD_TASK_WRITE_ALLOWED),0) == Val_true)
+        ) FD_SET(fd, &write);
+
     }
   }
   tm = Double_val(timeout);
@@ -96,7 +106,9 @@ value ml_select(value fdlist, value timeout) /* ML */
   enter_blocking_section();
   retcode = select(FD_SETSIZE, &read, &write, &except, tvp);
   leave_blocking_section();
+
   if (retcode < 0) {
+    if(errno == EINTR) goto restart_select;
     uerror("select", Nothing);
   }
   for (l = fdlist; l != Val_int(0); l = Field(l, 1)) {

@@ -48,7 +48,7 @@ and request = {
   headers : full_header list;
   form_args : form_arg list;
 } 
-and handler = TcpClientSocket.t -> request -> unit
+and handler = TcpBufferedSocket.t -> request -> unit
 and config = {
   port : int;
   requests : (string * handler) list;

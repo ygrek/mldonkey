@@ -72,6 +72,14 @@ module ClientOption = struct
           (try
               l.client_name <- get_value "client_name" value_to_string
             with _ -> ());
+          (try
+              l.client_checked <- get_value "client_checked" value_to_bool
+            with _ -> ());
+          (try
+              DownloadGlobals.connection_set_last_conn l.client_connection_control
+                (min (get_value "client_age" value_to_float) 
+                (BasicSocket.last_time ()));
+            with _ -> ());
           l
       | _ -> failwith "Options: Not a client"
 
@@ -83,6 +91,10 @@ module ClientOption = struct
             "client_addr", addr_to_value ip  port;
             "client_md4", string_to_value (Md4.to_string c.client_md4);
             "client_name", string_to_value c.client_name;
+            "client_age", float_to_value (
+              DownloadGlobals.connection_last_conn 
+                c.client_connection_control);
+            "client_checked", bool_to_value c.client_checked;
           ]
       | _ -> failwith "client_to_value: bad client"
 
@@ -154,18 +166,18 @@ module FileOption = struct
           (value_to_int32 v1, value_to_int32 v2)
       | _ -> 
           failwith "Options: Not an int32 pair"
-
+    
     let value_to_state v =
       match v with
         StringValue "Paused" -> FilePaused
       | StringValue "Downloading" -> FileDownloading
       | _ -> raise Not_found
-
+    
     let state_to_value s = 
       match s with
         FilePaused -> StringValue "Paused"
       | _ -> StringValue "Downloading"
-          
+    
     let value_to_file v =
       match v with
         Options.Module assocs ->
@@ -197,7 +209,7 @@ module FileOption = struct
                     (value_to_list value_to_int32pair);
                 end
             with _ -> ()                );
-    
+          
           (try
               let file_state = get_value "file_state" value_to_state in
               file.file_state <- file_state;
@@ -205,15 +217,29 @@ module FileOption = struct
           
           file.file_filenames <-
             get_value_nil "file_filenames" (value_to_list value_to_string);
-    
+          
           (try
               file.file_all_chunks <- get_value "file_all_chunks"
                 value_to_string
             with _ -> ());
           
-          file.file_known_locations <- 
-            get_value_nil "file_locations" (value_to_list 
-              ClientOption.value_to_client);
+          List.iter (fun c ->
+              file.file_known_locations <- Intmap.add c.client_num  c
+                file.file_known_locations;
+              if not (List.memq file c.client_files) then
+                c.client_files <- file :: c.client_files;                  
+          )
+          (get_value_nil "file_locations" (value_to_list 
+                ClientOption.value_to_client));
+          
+          (try
+              file.file_chunks_age <-
+              get_value "file_chunks_age" 
+                (fun v -> 
+                  let list = value_to_list value_to_float v in
+                  Array.of_list list)
+            with _ -> ());
+          
           let md4s = get_value_nil "file_md4s" (value_to_list value_to_md4) in
           file.file_md4s <- (if md4s = [] then file.file_md4s else md4s);
           file
@@ -233,7 +259,7 @@ module FileOption = struct
     
     let file_to_value file =
       let locs = ref [] in
-      List.iter (fun c ->
+      Intmap.iter (fun _ c ->
           if c.client_md4 <> Md4.null then 
             locs := c :: !locs
       ) file.file_known_locations;
@@ -254,7 +280,9 @@ module FileOption = struct
         "file_md4s", List
           (List.map (fun s -> string_to_value (Md4.to_string s)) 
           file.file_md4s);
-        "file_downloaded", int32_to_value file.file_downloaded;      
+        "file_downloaded", int32_to_value file.file_downloaded;
+        "file_chunks_age", List (Array.to_list 
+            (Array.map float_to_value file.file_chunks_age));
       ]
     
     let t =

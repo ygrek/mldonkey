@@ -1,0 +1,25 @@
+#!/usr/bin/perl
+use LWP::UserAgent;
+#
+# Put Username and password into to /etc/sysconfig/donkey
+# like this:
+#
+# HTTPUSER=you
+# HTTPPASS=yourpassword
+#
+my $cfg = "/etc/sysconfig/donkey";
+open(I,"<$cfg") || die "Can't read $cfg: $!\n";
+chomp (my @lines = (<I>));
+close I;
+foreach (@lines) {
+next if (/^#/);
+if (/([^=\s]+)=([^=\s]+)/) {
+$vars{$1}="$2";
+}
+}
+my $ua = LWP::UserAgent->new;
+my $req = HTTP::Request->new(GET => 'http://localhost:4080/submit?q=kill');
+if (($vars{'HTTPUSER'}) && ($vars{'HTTPPASS'})) {
+$req->authorization_basic($vars{'HTTPUSER'}, $vars{'HTTPPASS'});
+}
+$ua->request($req);

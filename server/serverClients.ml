@@ -19,9 +19,9 @@
 
 
 open BasicSocket
-open TcpClientSocket
+open TcpBufferedSocket
 open Unix
-open TcpClientSocket
+open TcpBufferedSocket
 open Mftp
 open Options
 open Mftp_comm
@@ -71,11 +71,11 @@ let reply_to_client_connection c =
       
       Printf.printf "SET ID"; print_newline ();
 (* send ID back to client *)
-      server_send sock  (P.SetIDReq c.client_id);
+      direct_server_send sock  (P.SetIDReq c.client_id);
 
 (* send some messages *)
       List.iter (fun msg ->
-          server_send sock (P.MessageReq msg)) !!welcome_messages
+          direct_server_send sock (P.MessageReq msg)) !!welcome_messages
       
   
 let check_handler c port ok sock event = 
@@ -84,7 +84,7 @@ let check_handler c port ok sock event =
       CAN_REFILL 
     | BASIC_EVENT CAN_WRITE ->
         ok := true;
-        TcpClientSocket.close sock "connect ok";
+        TcpBufferedSocket.close sock "connect ok";
         Printf.printf "CAN WRITE"; print_newline ();
         c.client_kind <- KnownLocation (c.client_conn_ip, port);
         reply_to_client_connection c 
@@ -94,19 +94,20 @@ let check_handler c port ok sock event =
         c.client_kind <- Firewalled_client;
         reply_to_client_connection c 
     | _ ->
-        TcpClientSocket.close sock "connect ok";
+        TcpBufferedSocket.close sock "connect ok";
         ok := true;
         Printf.printf "ERROR IN CONNECT"; print_newline ();
         c.client_kind <- Firewalled_client;
         reply_to_client_connection c
     
 let check_client c port =
-  let try_sock = TcpClientSocket.connect 
+  let try_sock = TcpBufferedSocket.connect 
       (Ip.to_inet_addr c.client_conn_ip)
     port 
       (check_handler c port (ref false))
+    (*server_msg_to_string*)
   in
-  BasicSocket.set_wtimeout (TcpClientSocket.sock try_sock) 5.;
+  BasicSocket.set_wtimeout (TcpBufferedSocket.sock try_sock) 5.;
   Printf.printf "Checking client ID"; print_newline ();
   ()
   
@@ -152,7 +153,9 @@ let handler t event =
       if !!max_clients >= !nconnected_clients then
         Unix.close s
       else
-      let sock = TcpClientSocket.create s (fun _ _ -> ()) in
+      let sock = TcpBufferedSocket.create s (fun _ _ -> ()) 
+        (*server_msg_to_string*)
+        in
       
       let ip = Ip.of_inet_addr from_ip in
       let client = {
@@ -171,9 +174,9 @@ let handler t event =
         } in
 
       incr nconnected_clients;
-      TcpClientSocket.set_reader sock (
+      TcpBufferedSocket.set_reader sock (
         Mftp_comm.server_handler (client_to_server client));
-      TcpClientSocket.set_closer sock 
+      TcpBufferedSocket.set_closer sock 
         (remove_client client)
   | _ -> 
       Printf.printf "???"; print_newline ();

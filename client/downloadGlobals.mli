@@ -16,14 +16,17 @@
     along with mldonkey; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
+
+open Mftp_comm
+
 val new_server_hook : (DownloadTypes.server -> unit) ref
 val server_change_hook : (DownloadTypes.server -> unit) ref
 val client_change_hook : (DownloadTypes.client -> unit) ref
 val say_hook : (DownloadTypes.client option -> string -> unit) ref
 val server_is_connected_hook :
-  (DownloadTypes.server -> TcpClientSocket.t -> unit) ref
+  (DownloadTypes.server -> server_sock -> unit) ref
 val received_from_server_hook :
-  (DownloadTypes.server -> TcpClientSocket.t -> Mftp_server.t -> unit) ref
+  (DownloadTypes.server -> server_sock -> Mftp_server.t -> unit) ref
 val server_is_disconnected_hook : (DownloadTypes.server -> unit) ref
 val friend_change_hook : (DownloadTypes.client -> unit) ref
 val file_change_hook : (DownloadTypes.file -> unit) ref
@@ -40,8 +43,10 @@ val sleeping : bool ref
 val dialog_history : (string * string) list ref  
 val upload_credit : int ref
 val has_upload : int ref
-val interesting_clients : DownloadTypes.client list ref
 val servers_list : DownloadTypes.server list ref  
+val clients_list : (DownloadTypes.client * (DownloadTypes.file list)) list ref  
+val clients_list_len : int ref
+val remaining_time_for_clients : int ref
 val udp_servers_list : DownloadTypes.server list ref
 val searches : DownloadTypes.search list ref  
 val file_counter : int ref
@@ -58,8 +63,7 @@ val nclients : int ref
 val files_by_anon_client :
   (Ip.t * int * Ip.t, DownloadTypes.file * bool ref) Hashtbl.t
 val connected_server_list : DownloadTypes.server list ref
-val dbserver_sock : TcpClientSocket.t option ref
-val user_socks : TcpClientSocket.t list ref
+val user_socks : TcpBufferedSocket.t list ref
 val client_counter : int ref
 val gui_server_sock : TcpServerSocket.t option ref
 val indirect_friends : (string * Md4.t, unit) Hashtbl.t
@@ -123,11 +127,16 @@ val set_client_state :
 val set_server_state : 
   DownloadTypes.server -> Gui_types.connection_state -> unit
   
-val upload_control : TcpClientSocket.bandwidth_controler
-val download_control : TcpClientSocket.bandwidth_controler
+val upload_control : TcpBufferedSocket.bandwidth_controler
+val download_control : TcpBufferedSocket.bandwidth_controler
 
     
 val file_groups : (Md4.t,DownloadTypes.file_group) Hashtbl.t
 val udp_clients : (Gui_types.location_kind,DownloadTypes.udp_client) Hashtbl.t
 
 val mem_stats : Buffer.t -> unit
+  
+val remove_useless_client : DownloadTypes.client -> unit
+val remove_file_clients : DownloadTypes.file -> unit
+val last_search : int Intmap.t ref
+  

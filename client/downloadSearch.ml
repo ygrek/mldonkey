@@ -23,7 +23,7 @@ open Mftp
 open Mftp_comm
 open DownloadServers
 open BasicSocket
-open TcpClientSocket
+open TcpBufferedSocket
 open DownloadOneFile
 open DownloadFiles
 open DownloadComplexOptions
@@ -99,7 +99,7 @@ let local_search search =
           (fun sock ev -> ()) in
       let lines = ref [] in
       set_reader t_in (fun t_in nread ->
-          let buf = TcpClientSocket.buf t_in in
+          let buf = TcpBufferedSocket.buf t_in in
           let s = buf.buf in
           let rec iter () =
             let pos = buf.pos in
@@ -153,7 +153,7 @@ let local_search search =
                 
                 with e -> 
                     Printf.printf "result discarded for exn %s" 
-                      (Printexc.to_string e); print_newline ()
+`                      (Printexc.to_string e); print_newline ()
               else begin
                   try
                     let pos = String.index line ':' in
@@ -193,7 +193,7 @@ let local_search search =
     (match q.search_artist with None -> () | Some s ->
           Printf.bprintf buf "artist:%s\n" s);
     Buffer.add_string buf "end query\n";
-TcpClientSocket.write_string t_out (Buffer.contents buf)
+TcpBufferedSocket.write_string t_out (Buffer.contents buf)
   *)
     with e ->
         Printf.printf "Exception %s while starting local_index_find"
@@ -209,7 +209,7 @@ let send_search search query =
       | Some sock ->
           let module M = Mftp_server in
           let module Q = M.Query in
-          server_send sock (M.QueryReq query);
+          direct_server_send sock (M.QueryReq query);
           let nhits = ref 0 in
           let rec handler s _ t =
             let nres = List.length t in
@@ -220,7 +220,7 @@ let send_search search query =
                 match s.server_sock with
                   None -> ()
                 | Some sock ->
-                    server_send sock M.QueryMoreResultsReq;
+                    direct_server_send sock M.QueryMoreResultsReq;
                     Fifo.put s.server_search_queries handler      
               end;
             search_handler search t

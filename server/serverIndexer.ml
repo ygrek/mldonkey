@@ -18,7 +18,7 @@
 *)
 
 open Unix
-open TcpClientSocket
+open TcpBufferedSocket
 open Mftp
 open Options
 open Mftp_comm
@@ -44,7 +44,7 @@ module Document = struct
     let filter t bool = Store.set_attrib store t bool
   end
   
-module DocIndexer = Indexer.Make(Document)
+module DocIndexer = Indexer2.FullMake(Document)
   
 let index = DocIndexer.create ()
 let table = Hashtbl.create 1023

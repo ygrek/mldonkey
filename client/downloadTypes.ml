@@ -16,6 +16,7 @@
     along with mldonkey; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
+open Mftp_comm
 open Gui_types
 
 type output_type = TEXT | HTML
@@ -34,7 +35,7 @@ type server = {
     mutable server_cid : Ip.t;
     mutable server_port : int;
     mutable server_num : int;
-    mutable server_sock : TcpClientSocket.t option;
+    mutable server_sock : Mftp_comm.server_sock option;
     mutable server_nqueries : int;
     mutable server_search_queries : search_query_handler Fifo.t;
     mutable server_users_queries : users_query Fifo.t;
@@ -62,10 +63,10 @@ and user = {
   }
     
 and search_query_handler = (
-    server -> TcpClientSocket.t -> Mftp_server.QueryReply.t -> unit)
+    server -> server_sock -> Mftp_server.QueryReply.t -> unit)
 
 and users_query = (
-    server -> TcpClientSocket.t -> Mftp_server.QueryUsersReply.t -> unit)
+    server -> server_sock -> Mftp_server.QueryUsersReply.t -> unit)
 
 
 and search_event =
@@ -112,12 +113,13 @@ and client = {
     mutable client_md4 : Md4.t;
     mutable client_queries : client_query Fifo.t;
     mutable client_chunks : availability;
-    mutable client_sock : TcpClientSocket.t option;
+    mutable client_sock : client_sock option;
     mutable client_block : block option;
     mutable client_zones : zone list;
     mutable client_connection_control : connection_control;
     mutable client_state : connection_state;
-    mutable client_files : (file * availability) list;
+    mutable client_file_queue : (file * availability) list;
+    mutable client_files : file list;
     mutable client_num : int;
     mutable client_is_friend : friend_kind;
     mutable client_next_view_files :  float;
@@ -130,6 +132,8 @@ and client = {
     mutable client_upload : upload_info option;
     mutable client_is_mldonkey : int;
     mutable client_alias : client option;
+    mutable client_checked : bool;
+    mutable client_aliases : int list;
   }
   
 and upload_info = {
@@ -174,12 +178,13 @@ and file = {
     mutable file_size : int32;
     mutable file_nchunks : int;
     mutable file_chunks : chunk array;
+    mutable file_chunks_age : float array;
     mutable file_fd : Unix32.t;
     mutable file_all_chunks : string;
     mutable file_absent_chunks : (int32 * int32) list;
     mutable file_filenames : string list;
-    mutable file_known_locations : client list;
-    mutable file_indirect_locations : client list;
+    mutable file_known_locations : client Intmap.t;
+    mutable file_indirect_locations : client Intmap.t;
     mutable file_md4s : Md4.t list;
     mutable file_downloaded : int32;
     mutable file_state : file_state;
@@ -216,6 +221,7 @@ type udp_client = {
     udp_client_ip : Ip.t;
     udp_client_port : int;
     udp_client_is_mldonkey : bool;
+    mutable udp_client_last_conn : float;
   }
   
 and file_group = {
@@ -226,7 +232,7 @@ and file_group = {
 type gui_record = {
     mutable gui_search_nums : int list;
     mutable gui_searches : (int * int) list;
-    mutable gui_sock : TcpClientSocket.t;
+    mutable gui_sock : TcpBufferedSocket.t;
     mutable gui_files : file list;
     mutable gui_friends : client list;
     mutable gui_servers : server list; 
@@ -256,6 +262,7 @@ type sortvd_type =
 type connection_options = {
     mutable conn_output : output_type; 
     mutable conn_sortvd : sortvd_type;
+    mutable conn_filter : (Gui_types.result -> unit);
   }
 
 type query_entry = 

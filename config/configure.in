@@ -44,6 +44,14 @@ case $host in
         ;;
         *)         ;;
 esac
+
+case $host in
+  i486-pc-linux*) MD4COMP=as; MD4ARCH=i486;;
+  i586-pc-linux*) MD4COMP=as; MD4ARCH=i586;;
+  i686-pc-linux*) MD4COMP=as; MD4ARCH=i686;;
+  *) MD4COMP=cc;;
+esac
+
 AC_MSG_CHECKING(Additionnal includes) 
 AC_MSG_RESULT($CONFIG_INCLUDES)
 
@@ -74,5 +82,7 @@ AC_SUBST(LABLGL_CMA)
 AC_SUBST(LABLGL_CMXA)
 AC_SUBST(CONFIG_INCLUDES)
 AC_SUBST(CURRENT_DIR)
+AC_SUBST(MD4ARCH)
+AC_SUBST(MD4COMP)
 
 AC_OUTPUT(Makefile.config ../lib/autoconf.ml)

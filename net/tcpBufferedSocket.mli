@@ -30,47 +30,49 @@ and buf = {
   mutable max_buf_size : int;
   } 
   
-type 'a t
+type t
 
 type bandwidth_controler
   
-and 'a handler = 'a t -> event -> unit
+and handler = t -> event -> unit
 
 val max_buffer_size : int ref
 
-val sock: 'a t -> BasicSocket.t
-val create : Unix.file_descr -> 'a handler -> ('a -> string) -> 'a t
-val create_simple : Unix.file_descr -> ('a -> string) -> 'a t
-val create_blocking : Unix.file_descr -> 'a handler -> ('a -> string) -> 'a t
-val buf : 'a t -> buf
-val set_reader : 'a t -> ('a t -> int -> unit) -> unit
-val buf_used : 'a t -> int -> unit
-val set_handler : 'a t -> event -> ('a t -> unit) -> unit
-val set_refill : 'a t -> ('a t -> unit) -> unit
-val write: 'a t -> 'a -> unit
-val connect: Unix.inet_addr -> int -> 'a handler -> ('a -> string) -> 'a t
-val close : 'a t -> string -> unit
-val shutdown : 'a t -> string -> unit
-val error: 'a t -> string
-val tcp_handler: 'a t -> BasicSocket.t -> BasicSocket.event -> unit
-val set_closer : 'a t -> ('a t -> string -> unit) -> unit
-val nread : 'a t -> int
-val set_max_write_buffer : 'a t -> int -> unit  
-val can_write : 'a t -> bool  
-val set_monitored : 'a t -> unit
+val sock: t -> BasicSocket.t
+val create : Unix.file_descr -> handler -> t
+val create_simple : Unix.file_descr -> t
+val create_blocking : Unix.file_descr -> handler -> t
+val buf : t -> buf
+val set_reader : t -> (t -> int -> unit) -> unit
+val buf_used : t -> int -> unit
+val set_handler : t -> event -> (t -> unit) -> unit
+val set_refill : t -> (t -> unit) -> unit
+val write: t -> string -> int -> int -> unit
+val write_string: t -> string -> unit
+val connect: Unix.inet_addr -> int -> handler -> t
+val close : t -> string -> unit
+val shutdown : t -> string -> unit
+val error: t -> string
+val tcp_handler: t -> BasicSocket.t -> BasicSocket.event -> unit
+val set_closer : t -> (t -> string -> unit) -> unit
+val nread : t -> int
+val set_max_write_buffer : t -> int -> unit  
+val can_write : t -> bool  
+val set_monitored : t -> unit
   
-val close_after_write : 'a t -> unit
+val close_after_write : t -> unit
 
 val create_read_bandwidth_controler : int -> bandwidth_controler
 val create_write_bandwidth_controler : int -> bandwidth_controler
-val set_read_controler : 'a t -> bandwidth_controler -> unit
-val set_write_controler : 'a t -> bandwidth_controler -> unit
+val set_read_controler : t -> bandwidth_controler -> unit
+val set_write_controler : t -> bandwidth_controler -> unit
 val change_rate : bandwidth_controler -> int -> unit
   
-val my_ip : 'a t -> Ip.t
+val exec_command : string -> string array -> handler -> t * t
   
-val stats :  Buffer.t -> 'a t -> unit
-val buf_size : 'a t -> int * int
-
-val can_fill : 'a t -> bool
+val my_ip : t -> Ip.t
+  
+val stats :  Buffer.t -> t -> unit
+val buf_size : t -> int * int
+val can_fill : t -> bool
   

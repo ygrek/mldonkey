@@ -64,14 +64,14 @@ OKEY_CMOS= okey/okey.$(EXT)
 
 LIB_CMOS= lib/autoconf.$(EXT) \
   lib/int32ops.$(EXT) lib/options.$(EXT) lib/ip.$(EXT)  lib/numset.$(EXT)  \
-  lib/fifo.$(EXT) \
-  lib/hole_tab.$(EXT) lib/store.$(EXT) lib/indexer.$(EXT) lib/host.$(EXT)  \
+  lib/fifo.$(EXT) lib/intmap.$(EXT) \
+  lib/hole_tab.$(EXT) lib/store.$(EXT) lib/indexer.$(EXT) lib/indexer1.$(EXT) lib/indexer2.$(EXT) lib/host.$(EXT)  \
   lib/misc.$(EXT) lib/unix32.$(EXT)  lib/md4.$(EXT) \
   lib/avifile.$(EXT) lib/http_lexer.$(EXT) lib/url.$(EXT) \
   lib/mailer.$(EXT)
 
 NET_CMOS = \
-  net/basicSocket.$(EXT) \
+  net/basicSocket.$(EXT) net/tcpBufferedSocket.$(EXT) \
   net/tcpClientSocket.$(EXT) net/tcpServerSocket.$(EXT) \
   net/udpSocket.$(EXT) net/http_server.$(EXT) net/http_client.$(EXT)
 
@@ -81,7 +81,7 @@ PROTO_CMOS= \
   secret/mftp_client.$(EXT) secret/mftp_server.$(EXT)  \
   secret/mftp_comm.$(EXT)  
 
-OBJS=lib/md4_c.o lib/unix32_c.o lib/inet_c.o cdk/select_c.o
+OBJS=lib/md4_comp.o lib/md4_c.o lib/unix32_c.o lib/inet_c.o cdk/select_c.o
 
 MIN_GUI_CMOS= gui/gui_types.$(EXT) gui/gui_proto.$(EXT)
 
@@ -163,9 +163,15 @@ gui/gui.ml: gui/gui_header.ml gui/gui_zog.ml gui/gui_trailer.ml
 	cat gui/gui_zog.ml >> gui/gui.ml
 	cat gui/gui_trailer.ml >> gui/gui.ml
 
-lib/md4_c.o: lib/md4_c.c
-	ocamlc.opt -ccopt "$(CFLAGS) -O6 -I /byterun -o lib/md4_c.o" -ccopt "" -c lib/md4_c.c
 
+lib/md4_cc.o: lib/md4.c
+	ocamlc.opt -ccopt "$(CFLAGS) -O6 -I /byterun -o lib/md4_cc.o" -ccopt "" -c lib/md4.c
+
+lib/md4_as.o: lib/md4_$(MD4ARCH).s
+	as -o lib/md4_as.o lib/md4_$(MD4ARCH).s
+
+lib/md4_comp.o: lib/md4_$(MD4COMP).o
+	cp -f lib/md4_$(MD4COMP).o lib/md4_comp.o
 
 byte: $(TARGETS)
 opt:

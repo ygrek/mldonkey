@@ -20,7 +20,7 @@
 open Options
 open Mftp
 open BasicSocket
-open TcpClientSocket
+open TcpBufferedSocket
 open Unix
 open Gui_proto
 open Gui_types
@@ -194,13 +194,13 @@ let disconnect gui =
     None -> ()
   | Some sock ->
       clean_gui ();
-      TcpClientSocket.close sock "user close";
+      TcpBufferedSocket.close sock "user close";
       connection_sock := None
 
 let reconnect gui =
   (try disconnect gui with _ -> ());
   clean_gui ();
-  let sock = TcpClientSocket.connect 
+  let sock = TcpBufferedSocket.connect 
       (try
         let h = Unix.gethostbyname 
             (if !!hostname = "" then Unix.gethostname () else !!hostname) in
@@ -221,7 +221,7 @@ let reconnect gui =
         ()) in
   try
     connection_sock := Some sock;
-    TcpClientSocket.set_closer sock (fun _ _ -> 
+    TcpBufferedSocket.set_closer sock (fun _ _ -> 
         match !connection_sock with
           None -> ()
         | Some s -> 
@@ -230,12 +230,12 @@ let reconnect gui =
                 clean_gui ();      
               end
     );
-    TcpClientSocket.set_reader sock (value_handler (value_reader gui));
+    TcpBufferedSocket.set_reader sock (value_handler (value_reader gui));
     gui#label_connect_status#set_text "Connecting"
   with e ->
       Printf.printf "Exception %s in connecting" (Printexc.to_string e);
       print_newline ();
-      TcpClientSocket.close sock "error";
+      TcpBufferedSocket.close sock "error";
       connection_sock := None
 
 let servers_connect_more (gui : gui) () =
