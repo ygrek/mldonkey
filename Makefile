@@ -1,5 +1,9 @@
 include config/Makefile.config
 
+
+ICONS_CHOICE=kde
+
+
 #######################################################################
 
 #              Bytecode or Native ?
@@ -377,7 +381,7 @@ ifeq ("$(COMPILE_GUI)" , "yes")
 
 #TARGETS += xpm2ml$(EXE)
 
-SUBDIRS += gui gui2 configwin okey gpattern icons/big
+SUBDIRS += gui gui2 configwin okey gpattern icons/$(ICONS_CHOICE)
 
 CONFIGWIN_SRCS=configwin/configwin_types.ml \
   configwin/configwin_messages.ml \
@@ -392,8 +396,6 @@ OKEY_SRCS= okey/okey.ml
 GUI_BASE_SRCS= \
 gui/gui_messages.ml   gui/gui_global.ml
 
-
-ICONS_CHOICE=kde
 
 ICONS= \
   icons/$(ICONS_CHOICE)/add_to_friends.xpm \
