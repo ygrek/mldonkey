@@ -1680,8 +1680,8 @@ let read_first_message overnet challenge m sock =
               lprintf "Client[%d]: banned (%s)\n" (client_num c) ban;
               raise Not_found
             end)
-      ["Mison"; "LSD"; "Sivka"; "MorTillo"; "eMule Plus"; "sivka"];
-      
+      ["Mison"]; (* People who don't understand P2P themselves please leave this list alone *)
+
       if  !!reliable_sources && 
         ip_reliability (peer_ip sock) = Reliability_suspicious 0 then begin
           set_client_state c BlackListedHost;

@@ -3,7 +3,7 @@ ChangeLog
 
 2003/11/21: Fabrice
    * Applied patches on BT: #2135, #2158, #2247, #2254, #2256
-   * Applied patch #2299 (files > 2 GB)
+   * Applied patch #2299 (files > 2 GB), #2263
 
 2003/11/20: Fabrice
    * Modified to compile with ocaml-3.07
