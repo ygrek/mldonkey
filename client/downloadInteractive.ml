@@ -393,9 +393,8 @@ let execute_command arg_list buf output cmd args =
           )
     ) arg_list
   with Not_found -> ()
-      
+
 let print_file buf file =
-  
   Printf.bprintf buf "[%-5d] %s %10s %32s %s" 
     file.file_num
     (first_name file)
@@ -425,18 +424,52 @@ let print_file buf file =
                 None -> ""
               | Some _ -> "Connected")
   ) (file.file_known_locations @ file.file_indirect_locations)
-      
-let simple_print_file buf file =
+
+let simple_print_file buf n1 n2 n3 file =
   
-  Printf.bprintf buf "[%-5d] %s %10s %32s %s" 
-    file.file_num
-    (first_name file)
-  (Int32.to_string file.file_size)
-  (Md4.to_string file.file_md4)
+  Printf.bprintf buf "[%-5d] "
+    file.file_num;
+  let s = first_name file in
+  Printf.bprintf buf "%s%s " s (String.make (n1 - (String.length s)) ' ');
+
+  let s = Int32.to_string file.file_size in
+  Printf.bprintf buf "%s%s " s (String.make (n2 - (String.length s)) ' ');
+
+  let s = Md4.to_string file.file_md4 in
+  Printf.bprintf buf "%s%s " s (String.make (n3 - (String.length s)) ' ');
+
+  Printf.bprintf buf "%s"
     (if file.file_state = FileDownloaded then
       "done" else
       Int32.to_string file.file_downloaded);
+
   Buffer.add_char buf '\n'
+
+let simple_print_file_list buf files =
+  let n1 = ref 1 in
+  let n2 = ref 10 in
+  let n3 = ref 32 in
+  List.iter 
+    (fun f ->
+      n1 := max !n1 (String.length (first_name f));
+      n2 := max !n2 (String.length (Int32.to_string f.file_size));
+      n3 := max !n3 (String.length (Md4.to_string f.file_md4))
+    )
+    files;
+  Printf.bprintf buf "[%-5s] " "Num";
+
+  let s = "File" in
+  Printf.bprintf buf "%s%s " s (String.make (max 0 (!n1 - (String.length s))) ' ');
+
+  let s = "Size" in
+  Printf.bprintf buf "%s%s " s (String.make (max 0 (!n2 - (String.length s))) ' ');
+
+  let s = "MD4" in
+  Printf.bprintf buf "%s%s " s (String.make (max 0 (!n3 - (String.length s))) ' ');
+  
+  Buffer.add_string buf "Downloaded\n";
+  List.iter (simple_print_file buf !n1 !n2 !n3) files
+
 
 let commands = [
     "n", Arg_multiple (fun args buf _ ->
@@ -517,21 +550,19 @@ let commands = [
         match args with
           [arg] ->
             let num = int_of_string arg in
-            
-            List.iter (fun file ->
-                if file.file_num = num then print_file buf file
-            )  !!files;
-            List.iter (fun file ->
-                if file.file_num = num then print_file buf file
-            )  !!done_files;
+            List.iter 
+	      (fun file -> if file.file_num = num then print_file buf file)
+              !!files;
+            List.iter
+	      (fun file -> if file.file_num = num then print_file buf file)
+	      !!done_files;
             ""
         | _ ->
             Printf.bprintf  buf "Downloading %d files\n" (List.length !!files);
-            
-            List.iter (simple_print_file buf) !!files;
-            Printf.bprintf  buf "Downloaded %d files\n" (
-              List.length !!done_files);
-            List.iter (simple_print_file buf) !!done_files;
+            simple_print_file_list buf !!files;
+            Printf.bprintf  buf "\nDownloaded %d files\n" 
+	      (List.length !!done_files);
+            simple_print_file_list buf !!done_files;
             if !!done_files = [] then "" else
               "Use 'commit' to move downloaded files to the incoming directory"
     
