@@ -2,6 +2,9 @@
 #define _OCAMLFD_H
 
 #if defined(__MINGW32__)
+
+#define FD_SETSIZE 256
+
 #include <w32api/winsock.h>
 
 struct filedescr {
@@ -16,6 +19,7 @@ struct filedescr {
 #define Socket_val(v) (((struct filedescr *) Data_custom_val(v))->fd.socket)
 
 typedef HANDLE OS_FD;
+typedef SOCKET OS_SOCKET;
 typedef unsigned int uint;
 extern void win32_maperr(unsigned long errcode);
 
@@ -26,6 +30,7 @@ extern void win32_maperr(unsigned long errcode);
 #define Socket_val(v) Int_val(v)
 
 typedef int OS_FD;
+typedef int OS_SOCKET;
 
 #endif
 
@@ -90,8 +95,6 @@ extern void os_ftruncate(OS_FD fd, int len);
 extern int os_getdtablesize();
 extern int os_getfdsize(OS_FD fd);
 extern int os_getfilesize(char *path);
-
-
-
+extern void os_set_nonblock(OS_SOCKET fd);
 
 #endif

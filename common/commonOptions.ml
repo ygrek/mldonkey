@@ -47,7 +47,7 @@ let (file_basedir, home_basedir) =
       if not (Sys.file_exists new_passwd) then begin
           lprintf "No /etc/passwd in your chroot directory\n create one if you want to use 'run_as_user' option\n"
         end;
-      Unix.chroot chroot_dir;
+      MlUnix.chroot chroot_dir;
       lprintf "mldonkey is now running in %s\n"  chroot_dir;
         ".", "."
         
@@ -564,7 +564,10 @@ let max_reask_delay = define_option expert_ini ["max_reask_delay"]
 let html_mods = define_option expert_ini
     ["html_mods"] "Whether to use the modified WEB interface" bool_option true
 
-  let html_mods_human_readable = define_option expert_ini
+let html_mods_style = define_option expert_ini
+    ["html_mods_style"] "Which html_mods style to use" int_option 0
+
+let html_mods_human_readable = define_option expert_ini
     ["html_mods_human_readable"] "Whether to use human readable GMk number format" bool_option true
 
 let html_mods_use_relative_availability = define_option expert_ini

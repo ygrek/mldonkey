@@ -182,7 +182,7 @@ let create_blocking name fd handler =
     end;
 *)
   incr nb_sockets;
-  Unix.set_nonblock fd;
+  MlUnix.set_nonblock fd;
 (*  lprintf "NEW FD %d" (Obj.magic fd); lprint_newline (); *)
   let _ = update_time () in
   let t = {
@@ -223,7 +223,7 @@ let create_blocking name fd handler =
 
   
 let create name fd handler =
-  Unix.set_nonblock fd;
+  MlUnix.set_nonblock fd;
   create_blocking name fd handler
   
 external select: t list -> float -> unit = "ml_select" 

@@ -1,6 +1,13 @@
 ChangeLog	
 =========
 
+2003/03/19: Simon (v 2.04rc1-5)
+  - MinGW port:
+	* Support for non-blocking sockets
+         * New file .depend.mingw for dependencies under MinGW
+         * If an error appears compiling mlnet, try "make mldonkey"
+  - Applied patch #1294 
+
 2003/03/18: Simon (v 2.04rc1-4)
   - Applied patches #1271, #1272
   - New experimental options 'buffer_writes', 'buffer_writes_delay' and

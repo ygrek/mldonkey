@@ -91,3 +91,19 @@ int os_lseek(OS_FD fd, int ofs, int cmd)
   return ret;
 }
 
+#include <winsock2.h>
+
+void os_set_nonblock(OS_SOCKET fd)
+{
+  u_long optval = 1;
+
+  if( ioctlsocket(fd, FIONBIO, &optval) != 0){
+    long err = GetLastError();
+    if (err != NO_ERROR) {
+      win32_maperr(err);
+      uerror("os_set_nonblock", Nothing);
+    }
+  }
+}
+
+

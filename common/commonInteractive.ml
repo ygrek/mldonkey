@@ -184,7 +184,7 @@ let print_connected_servers o =
          (List.length list) r.network_name;
 
         if o.conn_output = HTML && !!html_mods && List.length list > 0 then 
-		Printf.bprintf buf "\\<table class=\\\"servers\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
+		Printf.bprintf buf "\\<div class=\\\"servers\\\"\\>\\<table class=\\\"servers\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
 \\<td title=\\\"Server Number\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>#\\</td\\>
 \\<td title=\\\"Button\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Button\\</td\\>
 \\<td title=\\\"Hi or Lo ID\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>ID\\</td\\>
@@ -211,7 +211,7 @@ let print_connected_servers o =
            server_print s o;
        ) list;
         if o.conn_output = HTML && !!html_mods && List.length list > 0 then Printf.bprintf buf
-        "\\</table\\>";
+        "\\</table\\>\\</div\\>";
        with e ->
            Printf.bprintf  buf "Exception %s in print_connected_servers"
              (Printexc2.to_string e);

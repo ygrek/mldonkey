@@ -53,6 +53,11 @@ TARGETS= use_tags$(EXE) mlnet$(EXE)
 #######################################################################
 
 
+ifeq ("$(OS_FILES)", "mingw")
+  LIBS_opt += -cclib  -lws2_32
+  LIBS_byte += -cclib -lws2_32
+endif
+
 ifeq ("$(ZLIB)" , "yes")
   LIBS_opt += -cclib -lz
   LIBS_byte += -cclib -lz

@@ -494,7 +494,7 @@ let file_print file o =
         (fun i -> info.G.file_chunks.[i] = '1'))) in
 
 Printf.bprintf buf "\\</td\\> 
-\\<td title=\\\"Number of full chunks\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>%d\\</td\\> 
+\\<td title=\\\"Number of full chunks\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>%d\\</td\\> 
 \\</tr\\>" tchunks
 
 		end;
@@ -508,7 +508,7 @@ Printf.bprintf buf "\\</td\\>
               
               Printf.bprintf buf "
 \\<tr  
-onMouseOver=\\\"mOvr(this,'#94AE94');\\\" 
+onMouseOver=\\\"mOvr(this);\\\" 
 onMouseOut=\\\"mOut(this,this.bgColor);\\\" 
 class=";
               

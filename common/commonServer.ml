@@ -327,7 +327,7 @@ let server_print s o =
         Printf.sprintf "%s"
         (match impl.impl_server_state with
         Connected _ -> Printf.sprintf "title=\\\"Server Banner\\\" 
-						onMouseOver=\\\"mOvr(this,'#94AE94');\\\"
+						onMouseOver=\\\"mOvr(this);\\\"
 						onMouseOut=\\\"mOut(this,this.bgColor);\\\"
 						onClick=\\\"location.href='/submit?q=server_banner+%d'\\\"" snum
         | _ -> "")
@@ -335,7 +335,7 @@ let server_print s o =
 	  snum
       (
         Printf.sprintf
-        "\\<TD class=\\\"srb\\\" onMouseOver=\\\"mOvr(this,'#94AE94');\\\"
+        "\\<TD class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
         onMouseOut=\\\"mOut(this,this.bgColor);\\\"
         onClick=\\\"parent.fstatus.location.href='/submit?q=%s+%d'\\\"\\>%s\\</TD\\>"
       (match impl.impl_server_state with

@@ -265,6 +265,13 @@ value ml_get_fd_num(value fd)
 #endif
 }
 
+value ml_set_nonblock(value fd_v)
+{
+  OS_SOCKET fd = Socket_val(fd_v);
+  os_set_nonblock(fd);
+  return Val_unit;
+}
+
 /*******************************************************************
 
 

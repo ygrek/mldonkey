@@ -420,6 +420,6 @@ let _ =
       
 (* Question: is-it not to late to go in background ? Is-it possible that
 we have started some threads already ? What happens then ? *)
-      if !daemon then DriverInteractive.detach_daemon ()
+      if !daemon then MlUnix.detach_daemon ()
     end
        

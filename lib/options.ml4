@@ -1037,6 +1037,6 @@ let strings_of_option_html o =
             safe_value_to_string (o.option_class.to_value o.option_value)
         | Some (to_string, _) ->
             to_string o.option_value),
-      value_to_string (o.option_class.to_value o.option_default),
+      safe_value_to_string (o.option_class.to_value o.option_default),
       o.option_help
 

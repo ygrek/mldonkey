@@ -618,9 +618,9 @@ let commands = [
         let counter = ref 0 in
         let tr = ref "dl-1" in
         
-        if o.conn_output = HTML && !!html_mods then
+        if use_html_mods o then
                 
-                Printf.bprintf buf "\\<table class=\\\"scan_temp\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
+                Printf.bprintf buf "\\<div class=\\\"scan_temp\\\"\\>\\<table class=\\\"scan_temp\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
 \\<td title=\\\"Filename\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Filename\\</td\\>
 \\<td title=\\\"Status\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Status\\</td\\>
 \\<td title=\\\"MD4\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>MD4\\</td\\>
@@ -634,7 +634,7 @@ let commands = [
               let md4 = Md4.of_string filename in
               try
                 let file = find_file md4 in
-                if o.conn_output = HTML && !!html_mods then
+                if use_html_mods o then
                 Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>\\<td
                 class=\\\"sr\\\"\\>\\<A HREF=\\\"%s\\\"\\>%s\\</A\\>\\</td\\>
                 \\<td class=\\\"sr \\\"\\>%s\\</td\\> 
@@ -645,7 +645,7 @@ let commands = [
                   (file_best_name file)
                 "(downloading)" 
               with _ ->
-                if o.conn_output = HTML && !!html_mods then
+                if use_html_mods o then
                 Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>
                 \\<td class=\\\"sr \\\"\\>%s\\</td\\> 
                 \\<td class=\\\"sr \\\"\\>%s\\</td\\>\\</tr\\>" !tr 
@@ -667,7 +667,7 @@ let commands = [
                     with _ -> "and never seen")
             
             with _ -> 
-                if o.conn_output = HTML && !!html_mods then
+                if use_html_mods o then
                 Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>\\<td class=\\\"sr\\\"\\>Unknown\\</td\\>
                 \\<td class=\\\"sr \\\"\\>\\</td\\> 
                 \\<td class=\\\"sr \\\"\\>%s\\</td\\>\\</tr\\>" !tr filename 
@@ -676,7 +676,7 @@ let commands = [
         
         ) list;
 
-        if o.conn_output = HTML && !!html_mods then Printf.bprintf buf "\\</table\\>";
+        if use_html_mods o then Printf.bprintf buf "\\</table\\>\\</div\\>";
                 
         "done";
     ), ":\t\t\t\tprint temp directory content";
@@ -721,7 +721,7 @@ let commands = [
         
         
         
-        if o.conn_output = HTML && !!html_mods then
+        if use_html_mods o then
           
           begin
             
@@ -752,7 +752,7 @@ let commands = [
                         
                         Printf.bprintf buf "\\<tr class=\\\"%s\\\" 
                         title=\\\"[%d] Add as friend\\\"
-                        onMouseOver=\\\"mOvr(this,'#94AE94');\\\"
+                        onMouseOver=\\\"mOvr(this);\\\"
                         onMouseOut=\\\"mOut(this,this.bgColor);\\\" 
                         onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>"
                           ( if (!counter mod 2 == 0) then "dl-1" else "dl-2";)
@@ -819,7 +819,7 @@ let commands = [
                       
                       Printf.bprintf buf "\\<tr class=\\\"%s\\\" 
  					title=\\\"Add as Friend\\\"
- 					onMouseOver=\\\"mOvr(this,'#94AE94');\\\"
+ 					onMouseOver=\\\"mOvr(this);\\\"
  					onMouseOut=\\\"mOut(this,this.bgColor);\\\" 
  					onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>"
                         ( if (!counter mod 2 == 0) then "dl-1" else "dl-2";)
@@ -1261,7 +1261,7 @@ lprint_newline ();
           
           Printf.bprintf buf "
 \\<td title=\\\"Add as Friend\\\" class=\\\"srb ar\\\"
-onMouseOver=\\\"mOvr(this,'#94AE94');\\\"
+onMouseOver=\\\"mOvr(this);\\\"
 onMouseOut=\\\"mOut(this,this.bgColor);\\\" 
 onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>%d\\</TD\\>
 \\<td class=\\\"sr\\\"\\>%s\\</td\\>
@@ -1446,11 +1446,11 @@ onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>%d\\</T
                   if (qfile = (as_file_impl file).impl_file_val) then begin
 
           Printf.bprintf buf "
-\\<tr onMouseOver=\\\"mOvr(this,'#94AE94');\\\"
+\\<tr onMouseOver=\\\"mOvr(this);\\\"
 onMouseOut=\\\"mOut(this,this.bgColor);\\\" 
 class=\\\"%s\\\"\\>
 \\<td title=\\\"Add as friend\\\" class=\\\"srb ar\\\"
-onMouseOver=\\\"mOvr(this,'#94AE94');\\\"
+onMouseOver=\\\"mOvr(this);\\\"
 onMouseOut=\\\"mOut(this,this.bgColor);\\\" 
 onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>%d\\</TD\\>
 \\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>%s\\</td\\>

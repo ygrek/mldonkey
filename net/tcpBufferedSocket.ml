@@ -675,7 +675,11 @@ let connect name host port handler =
       forecast_upload_ip_packet t;    (* The TCP ACK packet *)
       t
     with 
-      Unix.Unix_error((Unix.EINPROGRESS|Unix.EINTR),_,_) -> t
+      Unix.Unix_error((Unix.EINPROGRESS|Unix.EINTR|Unix.EWOULDBLOCK),_,_) -> 
+      upload_ip_packets t 1;             (* The TCP SYN packet *)
+      forecast_download_ip_packet t;  (* The TCP ACK packet *)
+      forecast_upload_ip_packet t;    (* The TCP ACK packet *)
+      t
     | e -> 
         lprintf "For host %s port %d" (Unix.string_of_inet_addr host)
         port; lprint_newline ();

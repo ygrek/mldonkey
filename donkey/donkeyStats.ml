@@ -310,7 +310,7 @@ let new_print_stats buf o =
       for i=1 to brand_count-1 do
         
         if brand_of_int i != Brand_server then (* dont print server stats *)
-          let brandstr = gbrand_to_string (brand_of_int i) in
+          let brandstr = brand_to_string (brand_of_int i) in
           
           incr counter;
           if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
@@ -400,7 +400,7 @@ let new_print_stats buf o =
 \\<td class=\\\"sr \\\"\\>1:%.2f\\</td\\>
 \\</tr\\>\\</table\\>\n"
         
-        "ALL"
+        "Total"
         stats_all.brand_seen
         100.0
         stats_all.brand_filerequest
@@ -473,7 +473,7 @@ let new_print_stats buf o =
       for i=1 to brand_count-1 do
         
         if brand_of_int i != Brand_server then (* dont print server stats *)
-          let brandstr = gbrand_to_string (brand_of_int i) in
+          let brandstr = brand_to_string (brand_of_int i) in
           
           incr counter;
           if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
@@ -566,7 +566,7 @@ let new_print_stats buf o =
 \\<td class=\\\"sr \\\"\\>1:%.2f\\</td\\>
 \\</tr\\>\\</table\\>\\</div\\>\n"
         
-        "ALL"
+        "Total"
         gstats_all.brand_seen
         100.0
         gstats_all.brand_filerequest

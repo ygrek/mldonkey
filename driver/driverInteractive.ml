@@ -692,7 +692,7 @@ let simple_print_file_list finished buf files format =
                   done;
                   if !min = 0 then "-" else
                     string_of_int (age_to_day !min)));
-              rate ^ "$>";
+              rate ^ "$n";
             |]
         ) files)
   else
@@ -1164,19 +1164,3 @@ let print_search buf s o =
 let browse_friends () =
   List.iter (fun c -> client_browse c false) !!friends;
   List.iter (fun c -> client_browse c false) !contacts
-  
-let detach_daemon () =
-  try
-    let pid =  Unix.fork () in
-    if pid < 0 then failwith "Error in fork";
-    if pid > 0 then exit 0;
-    let sid = Unix.setsid () in
-    Unix.close Unix.stdin;
-    Unix.close Unix.stdout;
-    Unix.close Unix.stderr;
-    Printf2.lprintf_output := None;
-        
-  with e ->
-      Printf.printf "Exception %s in detach_daemon"
-        (Printexc2.to_string e); print_newline ();
-      exit 2

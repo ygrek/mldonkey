@@ -159,7 +159,7 @@ let list_options o list =
 \\</form\\>
               " name name value
       else
-        Printf.bprintf buf "$b%s$> = $r%s$>\n" name value)
+        Printf.bprintf buf "$b%s$n = $r%s$n\n" name value)
   list;
   if o.conn_output = HTML then
     Printf.bprintf  buf "\\</table\\>"
@@ -188,7 +188,7 @@ let commands = [
             file_commit file
         ) !!done_files;
         "Commited"
-    ) , ":\t\t\t\t$bmove downloaded files to incoming directory$>";
+    ) , ":\t\t\t\t$bmove downloaded files to incoming directory$n";
     
     "vd", Arg_multiple (fun args o -> 
         let buf = o.conn_buf in
@@ -214,7 +214,7 @@ let commands = [
         | _ ->
             DriverInteractive.display_file_list buf o;
             ""    
-    ), "<num> :\t\t\t\t$bview file info$>";
+    ), "<num> :\t\t\t\t$bview file info$n";
     
     "downloaders", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -269,11 +269,11 @@ let commands = [
     
     "vm", Arg_none (fun o ->
         CommonInteractive.print_connected_servers o;
-        ""), ":\t\t\t\t\t$blist connected servers$>";
+        ""), ":\t\t\t\t\t$blist connected servers$n";
     
     "q", Arg_none (fun o ->
         raise CommonTypes.CommandCloseSocket
-    ), ":\t\t\t\t\t$bclose telnet$>";
+    ), ":\t\t\t\t\t$bclose telnet$n";
     
     "debug_socks", Arg_none (fun o ->
         BasicSocket.print_sockets o.conn_buf;
@@ -281,7 +281,7 @@ let commands = [
     
     "kill", Arg_none (fun o ->
         CommonGlobals.exit_properly 0;
-        "exit"), ":\t\t\t\t\t$bsave and kill the server$>";
+        "exit"), ":\t\t\t\t\t$bsave and kill the server$n";
     
     "save", Arg_none (fun o ->
         DriverInteractive.save_config ();
@@ -303,10 +303,9 @@ let commands = [
 \\</td\\>\\</tr\\>
 \\<tr\\>\\<td\\>";
 
-
           list_options_html o  (
             [
-              strings_of_option_html  max_hard_upload_rate; 
+              strings_of_option_html max_hard_upload_rate; 
               strings_of_option_html max_hard_download_rate;
               strings_of_option_html telnet_port; 
               strings_of_option_html gui_port; 
@@ -323,7 +322,7 @@ let commands = [
         else
           list_options o  (
             [
-              strings_of_option  max_hard_upload_rate; 
+              strings_of_option max_hard_upload_rate; 
               strings_of_option max_hard_download_rate;
               strings_of_option telnet_port; 
               strings_of_option gui_port; 
@@ -335,27 +334,56 @@ let commands = [
             ]
           );        
         
-        "\nUse '$rvoo$>' for all options"    
-    ), ":\t\t\t\t\t$bdisplay options$>";
+        "\nUse '$rvoo$n' for all options"    
+    ), ":\t\t\t\t\t$bdisplay options$n";
     
     "html_mods", Arg_none (fun o ->
         let buf = o.conn_buf in
         
         if !!html_mods then 
           begin
-            Options.set_simple_option downloads_ini "html_mods" "false";
-            Options.set_simple_option downloads_ini "commands_frame_height" "140"
+            Options.set_simple_option expert_ini "html_mods" "false";
+            Options.set_simple_option expert_ini "commands_frame_height" "140"
           end
         else
           begin 
-            Options.set_simple_option downloads_ini "html_mods" "true";
-            Options.set_simple_option downloads_ini "commands_frame_height" "80";
-            Options.set_simple_option downloads_ini "use_html_frames" "true"
-          
+            Options.set_simple_option expert_ini "html_mods" "true";
+            Options.set_simple_option expert_ini "commands_frame_height" "80";
+            Options.set_simple_option expert_ini "html_mods_style" "0";
+            Options.set_simple_option expert_ini "use_html_frames" "true"
           end;
         
         "\\<script language=Javascript\\>top.window.location.reload();\\</script\\>"
     ), ":\t\t\t\ttoggle html_mods";
+
+
+    "html_mods_style", Arg_multiple (fun args o ->
+        let buf = o.conn_buf in
+		if args = [] then begin
+		 Printf.bprintf buf "0: Default interface\n";
+		 Printf.bprintf buf "1: Small and simple interface\n";
+         ""
+		 end
+		else begin
+            Options.set_simple_option expert_ini "html_mods" "true";
+            Options.set_simple_option expert_ini "use_html_frames" "true";
+        let num = int_of_string (List.hd args) in
+		(match num with
+		1 -> begin
+            Options.set_simple_option expert_ini "commands_frame_height" "42";
+            Options.set_simple_option expert_ini "html_mods_style" "1";
+		    end
+		| _ -> begin
+            Options.set_simple_option expert_ini "commands_frame_height" "80";
+            Options.set_simple_option expert_ini "html_mods_style" "0";
+		    end
+		);
+        "\\<script language=Javascript\\>top.window.location.reload();\\</script\\>"
+		end
+
+    ), ":\t\t\t\tselect html_mods_style <#>";
+
+
     
     "voo", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -373,14 +401,14 @@ let commands = [
             Printf.bprintf buf "Available sections for options: \n";
             List.iter (fun  (section, message, option, optype) ->
                 if not (List.mem section !sections) then begin
-                    Printf.bprintf buf "  $b%s$>\n" section;
+                    Printf.bprintf buf "  $b%s$n\n" section;
                     sections := section :: !sections
                   end
             ) !! gui_options_panel;
             
             List.iter (fun (section, list) ->
                 if not (List.mem section !sections) then begin
-                    Printf.bprintf buf "  $b%s$>\n" section;
+                    Printf.bprintf buf "  $b%s$n\n" section;
                     sections := section :: !sections
                   end)
             ! CommonInteractive.gui_options_panels;
@@ -388,10 +416,10 @@ let commands = [
         
         | sections -> 
             List.iter (fun s ->
-                Printf.bprintf buf "Options in section $b%s$>:\n" s;
+                Printf.bprintf buf "Options in section $b%s$n:\n" s;
                 List.iter (fun (section, message, option, optype) ->
                     if s = section then
-                      Printf.bprintf buf "  %s [$r%s$>]= $b%s$>\n" 
+                      Printf.bprintf buf "  %s [$r%s$n]= $b%s$n\n" 
                         message option 
                         (get_fully_qualified_options option)
                 ) !! gui_options_panel;
@@ -399,15 +427,15 @@ let commands = [
                 List.iter (fun (section, list) ->
                     if s = section then                    
                       List.iter (fun (message, option, optype) ->
-                          Printf.bprintf buf "  %s [$b%s$>]= $b%s$>\n" 
+                          Printf.bprintf buf "  %s [$b%s$n]= $b%s$n\n" 
                             message option 
                             (get_fully_qualified_options option)
                       ) !!list)
                 ! CommonInteractive.gui_options_panels;
             ) sections;
-            "\nUse '$rset option \"value\"$>' to change a value where options is
+            "\nUse '$rset option \"value\"$n' to change a value where options is
 the name between []"
-    ), ":\t\t\t\t$bprint options values by section$>";
+    ), ":\t\t\t\t$bprint options values by section$n";
     
     "upstats", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -526,7 +554,7 @@ the name between []"
               Printf.sprintf "option %s value changed" name
         with e ->
             Printf.sprintf "Error %s" (Printexc2.to_string e)
-    ), "<option_name> <option_value> :\t$bchange option value$>";
+    ), "<option_name> <option_value> :\t$bchange option value$n";
     
     "vr", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
@@ -546,7 +574,7 @@ the name between []"
                   DriverInteractive.print_search buf s o;
                   ""
             end;
-    ), "[<num>] :\t\t\t\t$bview results of a search$>";
+    ), "[<num>] :\t\t\t\t$bview results of a search$n";
     
     "s", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
@@ -590,7 +618,7 @@ the name between []"
               G.search_type = LocalSearch;
             }) buf);
         ""
-    ), "<query> :\t\t\t\t$bsearch for files on all networks$>\n
+    ), "<query> :\t\t\t\t$bsearch for files on all networks$n\n
 \tWith special args:
 \t-minsize <size>
 \t-maxsize <size>
@@ -612,7 +640,7 @@ the name between []"
         List.iter (fun arg ->
             CommonInteractive.download_file o arg) args;
         ""),
-    "<num> :\t\t\t\t$bfile to download$>";
+    "<num> :\t\t\t\t$bfile to download$n";
     
     "force_download", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -727,7 +755,7 @@ class=\\\"shares\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
       	incr counter;
         Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>
 		\\<td title=\\\"Click to unshare this directory\\\" 
-        onMouseOver=\\\"mOvr(this,'#94AE94');\\\" 
+        onMouseOver=\\\"mOvr(this);\\\" 
         onMouseOut=\\\"mOut(this,this.bgColor);\\\"
 		onClick=\\\'javascript:{ 
 		parent.fstatus.location.href=\\\"/submit?q=unshare+\\\\\\\"%s\\\\\\\"\\\"; 
@@ -840,11 +868,12 @@ class=\\\"shares\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
             if use_html_mods o then Printf.bprintf buf "\\<tr class=\\\"%s\\\" 
 			 title=\\\"Add as friend\\\" 
 			 onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\" 
-            onMouseOver=\\\"mOvr(this,'#94AE94');\\\" 
+            onMouseOver=\\\"mOvr(this);\\\" 
             onMouseOut=\\\"mOut(this,this.bgColor);\\\"\\>" 
             (if (!counter mod 2 == 0) then "dl-1" else "dl-2") num;
          	client_print c o;
-            if use_html_mods o then Printf.bprintf buf "\\</tr\\>";
+            if use_html_mods o then Printf.bprintf buf "\\</tr\\>"
+			   else Printf.bprintf buf "\n";
 			incr counter;
 		  ) all_clients_list;
           if use_html_mods o then Printf.bprintf buf "\\</table\\>\\</div\\>";
@@ -856,7 +885,7 @@ class=\\\"shares\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
             client_print c o;
           ) args;
         ""
-    ), "<num> :\t\t\t\tview client";
+    ), "<num> :\t\t\t\tview client (use arg 'all' for all clients)";
     
     "vfr", Arg_none (fun o ->
         List.iter (fun c ->
@@ -891,7 +920,7 @@ class=\\\"shares\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
         let nb_servers = ref 0 in
         
         if o.conn_output = HTML && !!html_mods then 
-          Printf.bprintf buf "\\<table class=\\\"servers\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
+          Printf.bprintf buf "\\<div class=\\\"servers\\\"\\>\\<table class=\\\"servers\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
 \\<td title=\\\"Server Number\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>#\\</td\\>
 \\<td title=\\\"Button\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Button\\</td\\>
 \\<td title=\\\"High or Low ID\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>ID\\</td\\>
@@ -919,7 +948,7 @@ class=\\\"shares\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
                   (Printexc2.to_string e); lprint_newline ();
         ) !!servers;
         
-        if use_html_mods o then Printf.bprintf buf "\\</table\\>";
+        if use_html_mods o then Printf.bprintf buf "\\</table\\>\\</div\\>";
         
         
         Printf.sprintf "Servers: %d known\n" !nb_servers
@@ -1173,7 +1202,7 @@ formID.msgText.value=\\\"\\\";
               begin
                     
                 Printf.bprintf buf "\\<tr class=\\\"%s\\\" 
-                onMouseOver=\\\"mOvr(this,'#94AE94');\\\" 
+                onMouseOver=\\\"mOvr(this);\\\" 
                 onMouseOut=\\\"mOut(this,this.bgColor);\\\"\\>" 
                 (if (!counter mod 2 == 0) then "dl-1" else "dl-2");
                 
@@ -1255,7 +1284,7 @@ formID.msgText.value=\\\"\\\";
             Printf.bprintf buf "\\<td\\>\\<table border=0 cellspacing=0 cellpadding=0\\>\\<tr\\>
 \\<td title=\\\"Download KB/s (UDP|TCP)\\\" class=\\\"bu bbig bbig1 bb4\\\"\\>Down: %.1f KB/s (%d|%d)\\</td\\>
 \\<td title=\\\"Upload KB/s (UDP|TCP)\\\" class=\\\"bu bbig bbig1 bb4\\\"\\>Up: %.1f KB/s (%d|%d)\\</td\\>
-\\<td title=\\\"Total Shared Files/Bytes\\\" class=\\\"bu bbig bbig1 bb3\\\"\\>Shared: %d/%s\\</td\\>"
+\\<td title=\\\"Total shared bytes (files)\\\" class=\\\"bu bbig bbig1 bb3\\\"\\>Shared: %s (%d files)\\</td\\>"
               
               dlkbs
               !saved_download_udp_rate
@@ -1263,8 +1292,8 @@ formID.msgText.value=\\\"\\\";
               ulkbs
               !saved_upload_udp_rate
               !saved_upload_tcp_rate
-              !nshared_files
-              (size_of_int64 !upload_counter);
+              (size_of_int64 !upload_counter)
+              !nshared_files;
             
             Printf.bprintf buf "\\</tr\\>\\</table\\>\\</td\\>\\</tr\\>\\</table\\>\\</div\\>";
             
@@ -1336,7 +1365,7 @@ formID.msgText.value=\\\"\\\";
             o.conn_output <- ANSI;
           end else
           o.conn_output <- TEXT;        
-        "$rdone$>"
+        "$rdone$n"
     ), ":\t\t\t\t\ttoggle ansi terminal (devel)";
 
     "term", Arg_two (fun w h o ->
@@ -1378,7 +1407,7 @@ formID.msgText.value=\\\"\\\";
         if BasicSocket.has_threads () then
           "Cannot detach process after start, when running with threads"
         else begin
-            detach_daemon ();
+            MlUnix.detach_daemon ();
             "done"
           end
     ), ":\t\t\t\tdetach process from console and run in background";

@@ -99,3 +99,7 @@ int os_getfilesize(char *path)
   return buf.st_size;
 }
 
+void os_set_nonblock(OS_SOCKET fd)
+{
+
+}

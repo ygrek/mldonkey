@@ -429,7 +429,7 @@ let set_socks_proxy t ss =
     let port = get_int16 s 8 in
     t.socks_local <- Some (ip, port);
 
-    Unix.set_nonblock fd;
+    MlUnix.set_nonblock fd;
   with e -> 
     lprintf "[SOCKS] proxy error prevent creation of UDP socket: %s" 
       (Printexc2.to_string e); lprint_newline ();

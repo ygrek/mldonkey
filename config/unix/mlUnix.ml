@@ -82,4 +82,23 @@ let max_all_sockets = getdtablesize ()
 let max_sockets = max (max_all_sockets - 100) (max_all_sockets / 2)
 let max_filedescs = (max_all_sockets - max_sockets) / 2
 
+let chroot = Unix.chroot  
+
   
+let detach_daemon () =
+  try
+    let pid =  Unix.fork () in
+    if pid < 0 then failwith "Error in fork";
+    if pid > 0 then exit 0;
+    let sid = Unix.setsid () in
+    Unix.close Unix.stdin;
+    Unix.close Unix.stdout;
+    Unix.close Unix.stderr;
+    Printf2.lprintf_output := None;
+        
+  with e ->
+      Printf.printf "Exception %s in detach_daemon"
+        (Printexc2.to_string e); print_newline ();
+      exit 2
+
+let set_nonblock = Unix.set_nonblock

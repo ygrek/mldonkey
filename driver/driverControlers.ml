@@ -62,7 +62,7 @@ let rec dollar_escape o with_frames s =
               Buffer.add_string b Terminal.ANSI.ansi_BLUE;
             false
             
-        | '>' ->
+        | 'n' ->
             if o.conn_output = ANSI then 
               Buffer.add_string b Terminal.ANSI.ansi_NORMAL;
             false
@@ -90,7 +90,7 @@ let eval auth cmd o =
           let module M = CommonMessages in
           Buffer.add_string  buf !!M.available_commands_are;
           List.iter (fun (cmd, _, help) ->
-              Printf.bprintf  buf "$r%s$> %s\n" cmd help) 
+              Printf.bprintf  buf "$r%s$n %s\n" cmd help) 
           !CommonNetwork.network_commands
         end else 
       if cmd = "help" || cmd = "?" then begin
@@ -101,29 +101,29 @@ let eval auth cmd o =
             "
 Main commands are:
 
-$bServers:$>
-          $rvm$> : list connected servers
-          $rvma$> : list all servers
-          $rc/x <num>$> : connect/disconnect from a server
+$bServers:$n
+          $rvm$n : list connected servers
+          $rvma$n : list all servers
+          $rc/x <num>$n : connect/disconnect from a server
 
-$bDownloads:$>
-          $rvd$> : view current downloads
-          $rcancel/pause/resume <num>$> : cancel/pause/resume download <num>
+$bDownloads:$n
+          $rvd$n : view current downloads
+          $rcancel/pause/resume <num>$n : cancel/pause/resume download <num>
 
-$bSearches:$>
-          $rs  <keywords>$> : start a search for keywords <keywords> on the network
-          $rvr$> : view results of the last search
-          $rd <num>$> : download result number <num>
-          $rvs$> : view previous searches
-          $rvr <num>$> : view results of search <num>
+$bSearches:$n
+          $rs  <keywords>$n : start a search for keywords <keywords> on the network
+          $rvr$n : view results of the last search
+          $rd <num>$n : download result number <num>
+          $rvs$n : view previous searches
+          $rvr <num>$n : view results of search <num>
 
-$bGeneral:$>
-          $rsave$> : save configuration files
-          $rkill$> : kill mldonkey properly
-          $rq$> : quit this interface
+$bGeneral:$n
+          $rsave$n : save configuration files
+          $rkill$n : kill mldonkey properly
+          $rq$n : quit this interface
 
-Use '$rlonghelp$>' or '$r??$>' for all commands.
-Use '$rhelp command$>' or '$r? command$>' for help on a command.
+Use '$rlonghelp$n' or '$r??$n' for all commands.
+Use '$rhelp command$n' or '$r? command$n' for help on a command.
             ";
           List.iter (fun arg ->
               List.iter (fun (cmd, _, help) ->
@@ -235,10 +235,10 @@ let user_reader o telnet sock nread  =
             before_telnet_output o sock;
             let buf = o.conn_buf in
             Buffer.clear buf;
-            if o.conn_output = ANSI then Printf.bprintf buf "> $b%s$>\n" cmd;
+            if o.conn_output = ANSI then Printf.bprintf buf "> $b%s$n\n" cmd;
             eval telnet.telnet_auth cmd o;
             Buffer.add_char buf '\n';
-            if o.conn_output = ANSI then Buffer.add_string buf "$>";
+            if o.conn_output = ANSI then Buffer.add_string buf "$n";
             TcpBufferedSocket.write_string sock 
               (dollar_escape o false (Buffer.contents buf));
             after_telnet_output o sock;
@@ -357,10 +357,10 @@ let user_reader o telnet sock nread  =
               before_telnet_output o sock;
               let buf = o.conn_buf in
               Buffer.clear buf;
-              if o.conn_output = ANSI then Printf.bprintf buf "> $b%s$>\n" cmd;
+              if o.conn_output = ANSI then Printf.bprintf buf "> $b%s$n\n" cmd;
               eval telnet.telnet_auth cmd o;
               Buffer.add_char buf '\n';
-              if o.conn_output = ANSI then Buffer.add_string buf "$>";
+              if o.conn_output = ANSI then Buffer.add_string buf "$n";
               TcpBufferedSocket.write_string sock 
                 (dollar_escape o false (Buffer.contents buf));
               after_telnet_output o sock;
@@ -434,7 +434,7 @@ let telnet_handler t event =
         TcpBufferedSocket.write_string sock (text_of_html !!motd_html);
 
         TcpBufferedSocket.write_string sock (dollar_escape o false
-            "\n$bWelcome on mldonkey command-line$>\n\nUse $r?$> for help\n\n");
+            "\n$bWelcome on mldonkey command-line$n\n\nUse $r?$n for help\n\n");
         
         after_telnet_output o sock
       else 
@@ -531,9 +531,11 @@ let html_page = ref true
 open Http_server
 
 let add_simple_commands buf =
-  Buffer.add_string buf (if !!html_mods then
-      !!CommonMessages.web_common_header_mods2
-    else
+  Buffer.add_string buf (if !!html_mods then 
+       (match !!html_mods_style with 
+	   1 -> !!CommonMessages.web_common_header_mods1
+	 | _ -> !!CommonMessages.web_common_header_mods0)
+	else
       !!CommonMessages.web_common_header_old)
 
 let http_add_header buf = 
@@ -558,20 +560,26 @@ let html_open_page buf t r open_body =
   html_page := true;
   http_add_header buf;
   
-  if not !!html_mods  then 
+  if not !!html_mods then 
     Buffer.add_string buf
       "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Frameset//EN\" 
         \"http://www.w3.org/TR/html4/frameset.dtd\">\n<HTML>\n<HEAD>\n";
   
   if !CommonInteractive.display_vd then begin
       Buffer.add_string buf 
-        (if !!html_mods then !!CommonMessages.download_html_header_mods2
-        else !!CommonMessages.download_html_header_old);
+        (if !!html_mods then 
+        (match !!html_mods_style with 
+		  1 -> !!CommonMessages.download_html_header_mods1
+		| _ -> !!CommonMessages.download_html_header_mods0)
+		else !!CommonMessages.download_html_header_old);
       Printf.bprintf buf "<meta http-equiv=Refresh
           content=\"%d\">" !!vd_reload_delay;
     end else 
     Buffer.add_string buf !!(if !!html_mods then 
-        CommonMessages.html_header_mods2 else CommonMessages.html_header_old);
+   		(match !!html_mods_style with 
+		1 -> CommonMessages.html_header_mods1 
+	  |	_ -> CommonMessages.html_header_mods0)
+	else CommonMessages.html_header_old);
   
   Buffer.add_string buf "</HEAD>\n";
   if open_body then Buffer.add_string buf "<BODY>\n";    
@@ -600,25 +608,22 @@ let http_handler o t r =
         | "/commands.html" ->
             html_open_page buf t r true;
             Buffer.add_string buf !!(if !!html_mods then
-                CommonMessages.web_common_header_mods2
+				(match !!html_mods_style with
+	            1 -> CommonMessages.web_common_header_mods1
+              | _ -> CommonMessages.web_common_header_mods0)
               else
                 CommonMessages.web_common_header_old)
         | "/" | "/index.html" -> 
             if !!use_html_frames then begin
                 html_open_page buf t r false;
                 if !!html_mods then
-                  
                   Printf.bprintf buf "
 			 <frameset src=\"index\" rows=\"%d,25,*\">
                   <frame name=\"commands\" NORESIZE SCROLLING=\"NO\" NOSHADE marginwidth=0 marginheight=0 BORDER=0 FRAMESPACING=0 FRAMEBORDER=0 src=\"/commands.html\">
                   <frame name=\"fstatus\" NORESIZE SCROLLING=\"NO\" NOSHADE marginwidth=0 marginheight=0 BORDER=0 FRAMESPACING=0 FRAMEBORDER=0 src=\"/noframe.html\">
                <frame name=\"output\" NORESIZE NOSHADE marginwidth=0 marginheight=0 BORDER=0 FRAMESPACING=0 FRAMEBORDER=0 src=\"/oneframe.html\">
             </frameset>" !!commands_frame_height
-                  
                 else
-                  
-                  
-                  
                   Printf.bprintf buf "
             <frameset src=\"index\" rows=\"%d,2*\">
                <frameset src=\"index\" cols=\"5*,1*\">
@@ -810,20 +815,24 @@ let http_handler o t r =
                   raise Not_found
 end
 
-        | "/mld1.css" ->
+        | "/h.css" ->
             Buffer.clear buf;
             html_page := false; 
             http_add_css_header buf;
             Buffer.add_string buf !!(if !!html_mods then
-                CommonMessages.html_css_mods2
+				(match !!html_mods_style with 
+				 1 -> CommonMessages.html_css_mods1
+			   | _ -> CommonMessages.html_css_mods0)
                else
                 CommonMessages.html_css_old)
-        | "/mld2.css" ->          
+        | "/dh.css" ->          
             Buffer.clear buf;
             html_page := false; 
             http_add_css_header buf;
-            Buffer.add_string buf !!(if !!html_mods then
-                CommonMessages.download_html_css_mods2
+            Buffer.add_string buf !!(if !!html_mods then 
+                (match !!html_mods_style with 
+				1 -> CommonMessages.download_html_css_mods1
+			  | _ -> CommonMessages.download_html_css_mods0)
                else
                 CommonMessages.download_html_css_old)
 
