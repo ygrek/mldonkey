@@ -1,4 +1,3 @@
-{
 (* Copyright 2001, 2002 b8_bavard, b8_fee_carabine, INRIA *)
 (*
     This file is part of mldonkey.
@@ -90,13 +89,7 @@ ascii: [ g u i t o u 4 1   " G : \ M P 3   d e   A  (224)   M \ M y l(232) n e  
 open TcpBufferedSocket
   
 open OpennapTypes
-  
-}
 
-rule get_string = parse
-    ' ' + { get_string lexbuf }
-  
-  {
 
 
 (* These are little endian representation. Similar to Mftp. Maybe put them
@@ -1053,7 +1046,7 @@ section 4.1 for more detailed information).
 
 *)
 
-open BigEndian
+open LittleEndian
 
 let server_msg_to_string msg =
   Buffer.clear buf;
@@ -1082,7 +1075,6 @@ let server_msg_to_string msg =
     
 let debug_server_send sock m =
   write_string sock (server_msg_to_string m)
-}
 
 (*
 napster messages
