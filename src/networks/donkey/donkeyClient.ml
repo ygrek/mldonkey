@@ -931,11 +931,7 @@ let client_to_client challenge for_files c t sock =
             end;
           
           if file_size file <= block_size then 
-            client_has_chunks c file [| true |];
-	  
-          DonkeyProtoCom.direct_client_send c (
-	    let module M = DonkeyProtoClient in
-              M.QueryChunksReq file.file_md4);      
+            client_has_chunks c file [| true |]
         
         with _ -> ()
       end  
@@ -1336,10 +1332,7 @@ end else *)
             end;
           Array.iter (fun s ->
               if Ip.valid s.Q.ip && Ip.reachable s.Q.ip then
-                (
-		  let s = DonkeySources.new_source (s.Q.ip, s.Q.port) file in 
-		    DonkeySources.add_source_request s file 0 File_possible;
-		)
+                ignore (DonkeySources.new_source (s.Q.ip, s.Q.port) file)
               else
                 begin
                   let module C = Udp.QueryCallUdp in
@@ -1371,10 +1364,7 @@ end else *)
             end else *)
           List.iter (fun (ip1, port, ip2) ->
               if Ip.valid ip1 && Ip.reachable ip1 then
-                (
-		  let s = DonkeySources.new_source (ip1, port) file in
-		    DonkeySources.add_source_request s file 0 File_possible;
-		)
+                ignore (DonkeySources.new_source (ip1, port) file)
           ) t.Q.sources
         with _ -> ()
       end
@@ -1771,7 +1761,7 @@ let read_first_message overnet challenge m sock =
         M.QueryFileReq challenge.challenge_md4);
       challenge.challenge_solved <- solve_challenge challenge.challenge_md4;
       
-      (* query_files c sock;  *)
+      query_files c sock;  
       query_view_files c;
       client_must_update c;
       is_banned c sock;

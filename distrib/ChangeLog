@@ -1,6 +1,9 @@
 ChangeLog	
 =========
 
+2003/10/10: Simon
+   * Removed patch #1765
+	
 2003/10/09: Simon
    * Applied patches #1608 (anti-thieves), #1669 (anti-spam), 
 	#1692 (min-users-per-server), #1695 (html-mods),

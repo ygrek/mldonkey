@@ -173,6 +173,9 @@ let really_query_file c file r =
         DonkeyProtoCom.direct_client_send c (
           let module M = DonkeyProtoClient in
           M.QueryFileReq file.file_md4);      
+        DonkeyProtoCom.direct_client_send c (
+          let module M = DonkeyProtoClient in
+          M.QueryChunksReq file.file_md4);      
         
         r.request_time <- last_time ();
         match r.request_result with
