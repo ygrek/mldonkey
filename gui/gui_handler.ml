@@ -128,17 +128,8 @@ let _ =
         Printf.printf "Exception %s in load options" (Printexc.to_string e);
         print_newline ();
   );
-  match Sys.argv with 
-    [| _; host; p |] -> 
-      hostname =:= host;
-      port =:= int_of_string p
-  | [| _; host |] -> 
-      hostname =:= host
-  | [| _ |] -> ()
-  | _ -> 
-      Printf.printf "Too many arguments: [<host> [<port>]]";
-      print_newline ();
-      exit 0
+  let args = Options.simple_args mldonkey_gui_ini in
+  Arg.parse args (Arg.usage args)  "mldonkey_gui: the GUI to use with mldonkey"
       
 let window = GWindow.window 
     ~title: "MLdonkey"

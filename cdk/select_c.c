@@ -95,7 +95,7 @@ value ml_select(value fdlist, value timeout) /* ML */
   enter_blocking_section();
   retcode = select(FD_SETSIZE, &read, &write, &except, tvp);
   leave_blocking_section();
-  if (retcode == -1) {
+  if (retcode < 0) {
     uerror("select", Nothing);
   }
   for (l = fdlist; l != Val_int(0); l = Field(l, 1)) {

@@ -206,7 +206,7 @@ let help_text = "
                       MLDonkey
                       ========
 
-Release: 1.13
+Release: 1.14
 Authors: [b8]_bavard (Communication engine) and [b8]_Zoggy (GUI)
 
  MLDonkey is a door to the 'donkey' network, a decentralized network used to
@@ -620,6 +620,13 @@ Known bugs:
 
 ChangeLog
 =========
+
+Release 1.14:
+  * All simple options can now be set by arguments on the command line (use 
+     -help to show arguments).
+  * Bug fixes:
+    - Removed non-tailrecursive function in options.ml causing segfault when
+       loading files.ini.
 
 Release 1.13:
   * Annotations on files in file 'comments.met'. Commands 'comments <filename>'

@@ -223,9 +223,18 @@ let servers_connect_more (gui : gui) () =
   
 let servers_addserver (gui : gui) () = 
   let module P = Gui_proto in
+  let (server_ip, server_port) =
+    let server = gui#tab_servers#entry_servers_new_ip#text in
+    try
+      let pos = String.index server ':' in
+      String.sub server 0 pos, String.sub server (pos+1) (
+        String.length server - pos - 1)
+    with _ ->
+        server, gui#tab_servers#entry_servers_new_port#text
+  in
   gui_send (P.AddServer_query {
-      P.key_ip = Ip.of_string gui#tab_servers#entry_servers_new_ip#text;
-      P.key_port = int_of_string gui#tab_servers#entry_servers_new_port#text;
+      P.key_ip = Ip.of_string server_ip;
+      P.key_port = int_of_string server_port;
     });
   tab_servers#entry_servers_new_ip#set_text "";
   tab_servers#entry_servers_new_port#set_text ""

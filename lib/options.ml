@@ -763,3 +763,13 @@ let set_option_hook opfile name hook =
   
 let set_string_wrappers o to_string from_string =
   o.string_wrappers <- Some (to_string, from_string)
+  
+let simple_args opfile =
+  List.map (fun (name, v) ->
+      ("-" ^ name), 
+      Arg.String (set_simple_option opfile name), 
+      (Printf.sprintf "<string> : \t%s (current: %s)"
+          (get_option opfile name).option_help
+          v)
+  ) (simple_options opfile)
+  

@@ -137,3 +137,5 @@ val set_option_hook : options_file -> string -> (unit -> unit) -> unit
   
 val set_string_wrappers : 'a option_record -> 
   ('a -> string) -> (string -> 'a) -> unit
+  
+val simple_args : options_file -> (string * Arg.spec * string) list

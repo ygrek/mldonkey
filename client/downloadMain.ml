@@ -76,7 +76,7 @@ let daily_timer timer =
 let _ = 
   try
 (*  DownloadClient.verbose := true; *)
-    Arg.parse [
+    Arg.parse ([
       "-exit", Arg.Unit (fun _ -> exit 0), ": exit immediatly";
       "-dump", Arg.String (fun file -> 
           Files.dump_file file), " <filename> : dump file";
@@ -111,7 +111,7 @@ let _ =
       "-format", Arg.String (fun file ->
           let format = DownloadMultimedia.get_info file in
           ()), " <filename> : check file format";
-    ] (fun file -> 
+      ]@ (Options.simple_args downloads_ini) )(fun file -> 
         Files.dump_file file; exit 0
     ) "";
 
