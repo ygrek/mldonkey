@@ -219,7 +219,7 @@ diff -r -C 2 ocaml-3.04.orig/driver/optcompile.ml ocaml-3.04/driver/optcompile.m
 +   
 + let  save_lambda prefixname (n,l) =
 +   if !output_lambda then begin
-+       let oc = open_out (prefixname ^ ".lam") in
++       let oc = open_out_bin (prefixname ^ ".lam") in
 +       let l = ObscurLambda.shorten_lambda [] l in
 +       output_value oc (n,l, Env.imported_units());
 +       close_out oc
@@ -235,7 +235,7 @@ diff -r -C 2 ocaml-3.04.orig/driver/optcompile.ml ocaml-3.04/driver/optcompile.m
     let prefixname = Filename.chop_extension sourcefile in
     let modulename = String.capitalize(Filename.basename prefixname) in
 +   if !input_lambda then
-+     let ic = open_in (prefixname ^ ".lam") in
++     let ic = open_in_bin (prefixname ^ ".lam") in
 +     let (n,lam,units) = input_value ic in
 +     close_in ic;
 +     let env = initial_env() in
