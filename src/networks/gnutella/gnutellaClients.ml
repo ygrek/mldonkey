@@ -291,7 +291,7 @@ X-Metadata-Path: /gnutella/metadata/v1?urn:tree:tiger/:7EOOAH7YUP7USYTMOFVIWWPKX
       start_pos end_pos (end_pos -- start_pos)
     (String.escaped header)
     ;
-    set_client_state c (Connected_downloading);
+    set_client_state c (Connected_downloading (file_num file));
     let counter_pos = ref start_pos in
 (* Send the next request !!! *)
     for i = 0 to 6 do

@@ -34,7 +34,7 @@ module Mi = Gui_misc
 (*module Gui_rooms = Gui_rooms2*)
 let chmod_config () =
   let base_config = 
-    (Filename.concat CommonOptions.config_dir "mldonkey_gui.ini")
+    (Filename.concat CommonOptions.config_dir "mldonkey_newgui.ini")
   in
   let save_config =
     base_config^".old"
@@ -73,16 +73,15 @@ let _ =
   if !!O.keymap_global = [] then
     (
      let a = O.add_binding O.keymap_global in
+     a "A-n" M.a_page_networks;
      a "A-s" M.a_page_servers;
      a "A-d" M.a_page_downloads;
      a "A-f" M.a_page_friends;
-     a "A-q" M.a_page_queries;
-     a "A-r" M.a_page_results;
-     a "A-m" M.a_page_rooms ;
+     a "A-q" M.a_page_searches;
+     a "A-r" M.a_page_rooms ;
      a "A-u" M.a_page_uploads;
-     a "A-o" M.a_page_options;
      a "A-c" M.a_page_console;
-     a "A-h" M.a_page_help;
+     a "A-g" M.a_page_graph;
      a "A-Left" M.a_previous_page;
      a "A-Right" M.a_next_page;
      a "C-r" M.a_reconnect;
@@ -159,7 +158,7 @@ let value_reader gui t =
           Gui_com.from_gui_protocol_used.(i) <- version;
         done;
         lprintf "Using protocol %d for communications\n" version;
-        gui#label_connect_status#set_text (gettext M.connected);
+        gui#label_connect_status#set_text (gettext  M.mW_lb_connected);
         Com.send (Password (!!O.login, !!O.password))
 
     | Console text ->
@@ -174,8 +173,6 @@ let value_reader gui t =
               try
                 let nn = Hashtbl.find Gui_global.networks n.network_netnum in
                 nn.net_enabled <- n.network_enabled;
-(* Printf.printf "Gui_main net exist %d : %s : %b\n" nn.net_num nn.net_name nn.net_enabled;
-                flush stdout; *)
                 Gui_networks.fill_box box i nn.net_enabled nn.net_displayed true;
                 gui#tab_queries#update_wcombos
               with _ ->
@@ -185,14 +182,8 @@ let value_reader gui t =
                       net_enabled = n.network_enabled;
                       net_displayed = true;
                     } in
-(* Printf.printf "Gui_main net new %d : %s : %b\n" nn.net_num nn.net_name nn.net_enabled;
-                flush stdout;*)
                   Gui_networks.fill_box box i nn.net_enabled nn.net_displayed true;
                   ignore (box#wtog_net#connect#toggled ~callback:(fun _ ->
-(* nn.net_enabled <- not nn.net_enabled; *) (* Not necessary - wait for the core answer instead *)
-(* Printf.printf "Gui_main callback wtog %d : %s : %b - wtog state %b\n"
-                      nn.net_num nn.net_name nn.net_enabled box#wtog_net#active;
-                    flush stdout;*)
                         Com.send (EnableNetwork (nn.net_num,
                             box#wtog_net#active)
                         )));
@@ -201,8 +192,6 @@ let value_reader gui t =
                         networks_filtered := (if nn.net_displayed then
                             List2.removeq nn.net_num !networks_filtered
                           else nn.net_num :: !networks_filtered);
-(* Printf.printf "Gui_main callback wcheck %d : %s : %b\n" nn.net_num nn.net_name nn.net_displayed;
-                    flush stdout;*)
                         gui#tab_servers#h_server_filter_networks;
                         gui#tab_queries#h_search_filter_networks;
                         Gui_networks.fill_box box i nn.net_enabled nn.net_displayed true
@@ -217,12 +206,14 @@ let value_reader gui t =
         end
     
     | Client_stats s ->
-        gui#tab_uploads#wl_status#set_text
-          (Printf.sprintf "Shared: %5d/%-12s   U/D bytes/s: %7d[%5d]/%-7d[%5d]" 
-            s.nshared_files 
-            (Gui_misc.size_of_int64 s.upload_counter)
-          (s.tcp_upload_rate + s.udp_upload_rate) s.udp_upload_rate
-            (s.tcp_download_rate + s.udp_download_rate) s.udp_download_rate
+        gui#tab_uploads#wl_status#set_text  
+          (Printf.sprintf !!Gui_messages.mW_sb_files_shared 
+             s.nshared_files 
+             (Gui_misc.size_of_int64 s.upload_counter)
+             (s.tcp_upload_rate + s.udp_upload_rate) 
+             s.udp_upload_rate
+             (s.tcp_download_rate + s.udp_download_rate) 
+             s.udp_download_rate
         );
         gui#tab_graph#set_upload_rate (s.tcp_upload_rate + s.udp_upload_rate);
         gui#tab_graph#set_download_rate (s.tcp_download_rate + s.udp_download_rate)
@@ -239,16 +230,19 @@ let value_reader gui t =
         gui#tab_queries#h_search_waiting num waiting
     
     | File_add_source (num, src) -> 
+       (* Printf.printf "File_add_source\n"; flush stdout;*)
         gui#tab_downloads#h_file_location num src
     
-    | File_remove_source (num, src) -> 
+    | File_remove_source (num, src) ->
+       (* Printf.printf "File_remove_source\n"; flush stdout;*) 
         gui#tab_downloads#h_file_remove_location num src
     
     | File_downloaded (num, downloaded, rate, last_seen) ->
-        gui#tab_downloads#h_file_downloaded num downloaded rate;
-        gui#tab_downloads#h_file_last_seen num last_seen
-    
+        (* Printf.printf "File_downloaded\n"; flush stdout; *)
+        gui#tab_downloads#h_file_downloaded num downloaded rate last_seen
+
     | File_update_availability (file_num, client_num, avail) ->
+        (* Printf.printf "File_update_availability\n"; flush stdout; *)
         gui#tab_downloads#h_file_availability file_num client_num avail
     
     | File_info f ->
@@ -389,27 +383,6 @@ let value_reader gui t =
         gui#tab_uploads#h_update_client c;
         gui#tab_downloads#h_update_client c
 
-(* A VOIR : Ca sert Ã  quoi le bouzin ci-dessous ?
-ben, ca sert a mettre a jour la liste des locations affichees pour un
-fichier selectionne. Si ca marche toujours dans ton interface, pas de
-  probleme ...
-        begin
-          match !current_file with
-            None -> ()
-          | Some file ->
-              let num = c.client_num in
-              match file.file_more_info with
-                None -> ()
-              | Some fmi ->
-                  if array_memq num fmi.file_known_locations ||
-                    array_memq num fmi.file_indirect_locations then
-                    let c = Hashtbl.find locations c.client_num in
-                    if is_connected c.client_state then incr nclocations;
-                    MyCList.update clist_file_locations c.client_num c
-        end
-*)
-    
-    
     | Room_message (_, PrivateMessage(num, mes) )
     | Room_message (0, PublicMessage(num, mes) )
     | MessageFromClient (num, mes) ->
@@ -426,17 +399,17 @@ fichier selectionne. Si ca marche toujours dans ton interface, pas de
                   Room_message (num, msg) ->
                     gui#tab_rooms#add_room_message num msg                
                 | _ -> raise Not_found
-              with Not_found ->
-                  lprintf "Client %d not found in reader.MessageFromClient" num;
-                  lprint_newline ()
+              with Not_found -> ()
+                  (* lprintf "Client %d not found in reader.MessageFromClient" num;
+                  lprint_newline () *)
         )    
     
     | Room_message (num, msg) ->
         begin try
             gui#tab_rooms#add_room_message num msg
-          with e ->
-              lprintf "Exception in Room_message %d" num;
-              lprint_newline ();
+          with e -> ()
+              (* lprintf "Exception in Room_message %d" num;
+              lprint_newline ();*)
         end
     
     | (DownloadedFiles _|DownloadFiles _|ConnectedServers _) -> assert false
@@ -453,9 +426,9 @@ fichier selectionne. Si ca marche toujours dans ton interface, pas de
         gui#tab_uploads#h_shared_file_upload num size requests
     | Shared_file_unshared _ ->  ()
     | BadPassword -> 
-        GToolbox.message_box ~title: "Bad Password" 
-          "Authorization Failed\nPlease, open the File->Settings menu and
-          enter a valid password"
+        GToolbox.message_box 
+          ~title:(gettext M.pW_wt_bad_password)
+          (gettext M.pW_lb_bad_password)
     
     | GiftServerAttach _
     | GiftServerStats _ -> assert false
@@ -463,13 +436,13 @@ fichier selectionne. Si ca marche toujours dans ton interface, pas de
   with e ->
       lprintf "Exception %s in reader\n" (Printexc2.to_string e)
 
-      
-let generate_connect_menu gui =
+
+let generate_connect_menu gui menu =
   let add_item hostname port =
     let menu_item =
       let label = Printf.sprintf "%s:%d" hostname port in
-      GMenu.menu_item ~label: label
-      ~packing:gui#cores_menu#add ()
+      GMenu.menu_item ~label
+      ~packing:menu#add ()
       in
     ignore (menu_item#connect#activate ~callback:(fun _ ->
           O.hostname =:= hostname;
@@ -477,10 +450,39 @@ let generate_connect_menu gui =
           Com.reconnect (gui :> Com.gui) value_reader gui BasicSocket.Closed_by_user
       ));
   in
-  List.iter (fun child -> child#destroy ()) gui#cores_menu#children;
-  List.iter (fun (h,port) ->  add_item h port) !!O.history;
-  let _ = GMenu.menu_item ~packing:(gui#cores_menu#add) () in
- List.iter (fun (h,port) ->  add_item h port) !G.scanned_ports
+  List.iter (fun child -> child#destroy ()) menu#children;
+  List.iter (fun (h,port) -> add_item h port) !!O.history;
+  List.iter (fun (h,port) -> add_item h port) !G.scanned_ports
+
+let gui_menu gui =
+  let menu = GMenu.menu () in
+  let reconnect =
+    GMenu.menu_item ~label:(gettext M.mW_me_reconnect)
+      ~packing:(menu#add) ()
+  in
+  let disconnect =
+    GMenu.menu_item ~label:(gettext M.mW_me_disconnect)
+      ~packing:(menu#add) ()
+  in
+  let scanports =
+    GMenu.menu_item ~label:(gettext M.mW_me_scan_ports) 
+      ~packing:(menu#add) ()
+  in
+  let reconnect_to =
+    GMenu.menu_item ~label:(gettext M.mW_me_reconnect_to)
+      ~packing:(menu#add) ()
+  in
+  let reconnect_to_menu = GMenu.menu ~packing:(reconnect_to#set_submenu) () in
+  generate_connect_menu gui reconnect_to_menu; 
+  ignore (reconnect#connect#activate 
+      (fun () -> Com.reconnect (gui :> Com.gui) value_reader gui BasicSocket.Closed_by_user));
+  ignore (disconnect#connect#activate 
+      (fun () -> Com.disconnect (gui :> Com.gui) BasicSocket.Closed_by_user));
+  ignore (scanports#connect#activate
+      (fun _ -> Com.scan_ports ()));
+  menu
+      
+
 
 
 let window_about _ =
@@ -535,107 +537,53 @@ let main () =
   Gui_config.update_graphs gui;
   Gui_config.update_availability_column gui;
   Gui_config.update_icons gui;
+  gui#notebook#goto_page !!O.last_tab;
 
-  List.iter (fun (menu, init) ->
-      let _Menu = GMenu.menu_item ~label:menu  ~packing:(gui#menubar#add) ()
-      in
-      let im_menu = GMenu.menu ~packing:(_Menu#set_submenu) () in
-      init im_menu
-  ) !Gui_global.top_menus;
-  (* Here there is an error (see the message "exit_properly (exception %s)") in a console when you close directly the window)
-     #connect#destroy is too late : the window is already destroyed.
-     Call #event#connect#delete instead to make operations before destroying the window *)
-  (* ignore (w#connect#destroy quit); *)
   ignore (w#event#connect#delete (fun _ ->
                                      quit ();
                                      true)
   );
-  console_message := (fun s -> 
 
-(*
-      lprintf "to primary"; lprint_newline ();
-      let e = gui#tab_console#text in
-  
-      ignore (GtkBase.Selection.owner_set e#as_widget `PRIMARY 0);
-(*      ignore(e#misc#grab_selection `PRIMARY); *)
-(*      e#misc#add_selection_target ~target:"string" `PRIMARY; 
-      ignore (e#misc#connect#selection_get (fun sel ~info ~time ->
-            lprintf "request selection"; lprint_newline ();
-            sel#return s
-        )); *)
-      ignore (e#event#connect#selection_clear  (fun sel ->
-            lprintf "selection cleared"; lprint_newline ();
-            true
-        ));
-      ignore (e#event#connect#selection_request (fun sel ->
-            lprintf "Selection request"; lprint_newline ();
-            true
-        ));
-      ignore (e#event#connect#selection_notify (fun sel ->
-            lprintf "Selection notify"; lprint_newline ();
-            true
-));
-  *)
-      gui#tab_console#insert s);
+  console_message := (fun s -> gui#tab_console#insert s);
 
   CommonGlobals.do_at_exit (fun _ ->
       Gui_misc.save_gui_options gui;
       Gui_com.disconnect (gui :> Com.gui) BasicSocket.Closed_by_user);  
-(** menu actions *)
-(*
-  ignore (gui#itemQuit#connect#activate (fun () ->
-        CommonGlobals.exit_properly 0)) ;
-*)
-  ignore (gui#buttonQuit#connect#clicked (fun () ->
-        CommonGlobals.exit_properly 0)) ;
-(*
-  ignore (gui#itemKill#connect#activate (fun () -> Com.send KillServer));
-*)
-  ignore (gui#buttonKill#connect#clicked (fun () -> Com.send KillServer));
 
-  ignore (gui#itemReconnect#connect#activate 
-      (fun () ->Com.reconnect (gui :> Com.gui) value_reader gui BasicSocket.Closed_by_user));
-  ignore (gui#itemDisconnect#connect#activate 
-	    (fun () -> Com.disconnect (gui :> Com.gui) BasicSocket.Closed_by_user));
+(** button actions *)
 
-  ignore (gui#itemServers#connect#activate (fun () -> gui#notebook#goto_page 1));
-  ignore (gui#itemDownloads#connect#activate (fun () -> gui#notebook#goto_page 2));
-  ignore (gui#itemFriends#connect#activate (fun () -> gui#notebook#goto_page 3));
-  ignore (gui#itemResults#connect#activate (fun () -> gui#notebook#goto_page 4));
-  ignore (gui#itemRooms#connect#activate (fun () -> gui#notebook#goto_page 5));
-  ignore (gui#itemUploads#connect#activate (fun () -> gui#notebook#goto_page 6));
-  ignore (gui#itemConsole#connect#activate (fun () -> gui#notebook#goto_page 7));
-  ignore (gui#itemHelp#connect#activate (fun () -> gui#notebook#goto_page 8));
+  ignore (gui#buttonQuit#connect#clicked 
+      (fun () -> CommonGlobals.exit_properly 0)) ;
 
-(*
-  ignore (gui#itemOptions#connect#activate (fun () -> Gui_config.edit_options gui));
-*)
-  ignore (gui#buttonOptions#connect#clicked (fun () -> Gui_config.edit_options gui));
-  ignore (gui#buttonAbout#connect#clicked (fun () -> window_about ()));
+  ignore (gui#buttonKill#connect#clicked 
+      (fun () -> Com.send KillServer));
 
-  ignore (gui#itemScanPorts#connect#activate (fun _ ->
-        Com.scan_ports () 
-    ));
+  ignore (gui#buttonGui#connect#clicked 
+      (fun () -> 
+         let menu = gui_menu gui in
+         menu#popup ~button:1 ~time:0
+      ));
 
-  ignore (gui#buttonGui#connect#clicked (fun () -> gui#g_menu#popup ~button:1 ~time:0));
+  ignore (gui#buttonOptions#connect#clicked 
+      (fun () -> Gui_config.edit_options gui));
 
-  ignore (gui#buttonIm#connect#clicked (fun () ->
-    Gui_im.main_window#window#show ()));
+  ignore (gui#buttonAbout#connect#clicked 
+      (fun () -> window_about ()));
+
+  ignore (gui#buttonIm#connect#clicked 
+      (fun () -> Gui_im.main_window#window#show ()));
 
   (************ Some hooks ***************)
-  option_hook Gui_options.notebook_tab (fun _ ->
-      gui#notebook#set_tab_pos !!Gui_options.notebook_tab
-  );
+
+  option_hook Gui_options.notebook_tab 
+      (fun _ -> gui#notebook#set_tab_pos !!Gui_options.notebook_tab);
   
   (** connection with core *)
+
   Com.reconnect (gui :> Com.gui) value_reader gui BasicSocket.Closed_by_user ;
-(*  BasicSocket.add_timer 2.0 update_sizes;*)
+
   let never_connected = ref true in
   BasicSocket.add_timer 1.0 (fun timer ->
-      if !G.new_scanned_port then begin
-          generate_connect_menu gui
-        end;
-      
       if !never_connected && not (Com.connected ()) then  begin
           BasicSocket.reactivate_timer timer;
           Com.reconnect (gui :> Com.gui) value_reader gui BasicSocket.Closed_by_user

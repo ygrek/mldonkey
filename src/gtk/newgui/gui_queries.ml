@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-(** GUI for the lists of files. *)
+(* GUI for the lists of files. *)
 
 open Gettext
 open CommonTypes
@@ -29,58 +29,119 @@ open Gui_global
 module M = Gui_messages
 module P = Gpattern
 module O = Gui_options
+module G = Gui_global
 
 let (!!) = Options.(!!)
 
 (* This is a bad idea. Customed searches are defined in "searches.ini", and
-  so the labels are bad if a new search is added. *)
-let search_nbk_data =
-[ (Gui_messages.o_xpm_album_search, Gettext.gettext Gui_messages.album_searches);
-  (Gui_messages.o_xpm_movie_search, Gettext.gettext Gui_messages.movie_searches);
-  (Gui_messages.o_xpm_mp3_search, Gettext.gettext Gui_messages.mp3_searches);
-  (Gui_messages.o_xpm_complex_search, Gettext.gettext Gui_messages.complex_searches);
-  (Gui_messages.o_xpm_sharereactor_search, Gettext.gettext Gui_messages.sharereactor_searches);
-  (Gui_messages.o_xpm_jigle_search, Gettext.gettext Gui_messages.jigle_searches);
-  (Gui_messages.o_xpm_freedb_search, Gettext.gettext Gui_messages.freedb_searches);
-  (Gui_messages.o_xpm_imdb_search, Gettext.gettext Gui_messages.imdb_searches)
-]
+   so the labels are bad if a new search is added.
+   Indeed it is. I didn't know about this. So to improve internationalization,
+   keeping this in mind, that should work now ?
+   Most of the users will not touch this file and I guess if someone changes 
+   something in the "searches.ini" he can understand what he writes *)
+
+let label_to_text_list =
+  [
+   ("Complex Search", gettext M.qT_lb_complex_searches );
+   ("MP3 Search", gettext M.qT_lb_mp3_searches );
+   ("Movie Search", gettext M.qT_lb_movie_searches );
+   ("Album Search", gettext M.qT_lb_album_searches );
+   ("And Not", gettext M.qT_lb_and_not );
+   ("Audio", gettext M.qT_tx_audio );
+   ("Video", gettext M.qT_tx_video );
+   ("Program", gettext M.qT_tx_program );
+   ("Image", gettext M.qT_tx_image );
+   ("Documentation", gettext M.qT_tx_documentation );
+   ("Collection", gettext M.qT_tx_collection );
+   ("Keywords", gettext M.qT_lb_keywords );
+   ("Media", gettext M.qT_lb_media );
+   ("Format", gettext M.qT_lb_format );
+   ("Min size", gettext M.qT_lb_min_size );
+   ("Max size", gettext M.qT_lb_max_size );
+   ("Min Bitrate", gettext M.qT_lb_min_bitrate );
+   ("Title", gettext M.qT_lb_title );
+   ("Number of results", gettext M.qT_lb_number_of_results );
+   ("Sort by", gettext M.qT_lb_sort_by );
+   ("Album", gettext M.qT_lb_album );
+   ("Fields", gettext M.qT_lb_fields );
+   ("Artist", gettext M.qT_lb_artist );
+   ("Track/Title", gettext M.qT_lb_track_title );
+   ("Track", gettext M.qT_lb_track );
+   ("Rest", gettext M.qT_lb_rest );
+   ("Categories", gettext M.qT_lb_categories );
+   ("All", gettext M.qT_lb_all );
+   ("Blues", gettext M.qT_lb_blues );
+   ("Classical", gettext M.qT_lb_classical );
+   ("Data", gettext M.qT_lb_data );
+   ("Folk", gettext M.qT_lb_folk );
+   ("Rock", gettext M.qT_lb_rock );
+   ("Soundtrack", gettext M.qT_lb_soundtrack );
+   ("Availability", gettext M.qT_lb_availability );
+   ("Size", gettext M.qT_lb_size );
+   ("DVD Rips", gettext M.qT_lb_dvd_rips );
+   ("Screeners", gettext M.qT_lb_screeners );
+   ("PC Games", gettext M.qT_lb_pc_games );
+   ("Software", gettext M.qT_lb_software );
+   ("Anime", gettext M.qT_lb_anime );
+   ("Series", gettext M.qT_lb_series);
+   ("Funstuff", gettext M.qT_lb_funstuff );
+   ("Adult", gettext M.qT_lb_adult );
+   ("Consoles", gettext M.qT_lb_consoles );
+   ("Books", gettext M.qT_lb_books );
+   ("XBOX", gettext M.qT_lb_xbox );
+   ("Hentai", gettext M.qT_lb_hentai );
+   ("PS2", gettext M.qT_lb_ps2 );
+   ("Gay", gettext M.qT_lb_gay);
+ ]
+ 
+
+let text_to_label_list = List.map (fun (l, t) -> (t, l)) label_to_text_list
+
+let label_to_text label =
+  try
+    List.assoc label label_to_text_list
+  with Not_found -> label
+
+let text_to_label text = 
+  try
+    List.assoc text text_to_label_list
+  with Not_found -> text
 
 (* Add these regexps in gui_options.ini *)
 let album_reg = Str.regexp_case_fold ".*album.*"
 let mp3_reg = Str.regexp_case_fold ".*mp3.*"
 let movie_reg = Str.regexp_case_fold ".*movie.*"
+
+let string_to_icon s =
+  Printf2.lprintf "LABEL: [%s]\n" s;
+  let label = String.lowercase s in
+  if Str.string_match album_reg label 0 
+    then M.o_xpm_album_search 
+    else if Str.string_match movie_reg label 0 
+      then M.o_xpm_movie_search 
+      else if Str.string_match mp3_reg label 0 
+        then M.o_xpm_mp3_search 
+        else M.o_xpm_complex_search
   
-let get_num label =
-  Printf2.lprintf "LABEL: [%s]\n" label;
-  let label = String.lowercase label in
-  if Str.string_match album_reg label 0 then 0 else
-  if Str.string_match movie_reg label 0 then 1 else
-  if Str.string_match mp3_reg label 0 then 2 else
-   3
-    (*
-  match label with
-    "Album Search" -> 0
-  | "Movie Search" -> 1
-  | "MP3 Search" -> 2
-  | _ -> 3
-*)
-    
-let tab_box n data =
-  let (icon, wlabel) = List.nth data n in
-  let hbox = GPack.hbox ~homogeneous:false () in
+let tab_box icon wlabel =
+  let hbox = GPack.hbox ~homogeneous:false ~spacing:2 () in
   let main_pix = Gui_options.gdk_pix icon in
   ignore (GMisc.pixmap main_pix ~packing:hbox#add ());
   let label = GMisc.label ~text:wlabel ~packing:hbox#add () in
   hbox
 
-let menu_label_box n data =
+let menu_label_box icon menu_text =
   let hbox = GPack.hbox ~homogeneous:false ~spacing:2 () in
-  let (icon, menu_text) = List.nth data n in
   let menu_pix = Gui_options.gdk_pix icon in
   ignore (GMisc.pixmap menu_pix ~packing:hbox#pack ());
   ignore (GMisc.label ~text:menu_text ~justify:`LEFT ~packing:hbox#pack ());
   hbox
 
+let history = ref []
+
+let fill_history label =
+  if not (List.mem label !history) 
+    then history := List.sort (fun l1 l2 -> compare l1 l2) (label::!history)
 
 type ent = GEdit.entry
 
@@ -168,7 +229,7 @@ let rec form_of_entry f_submit qe =
       let (w2,e2,f2) = form_of_entry f_submit qe2 in
       vbox#pack ~padding: 2 ~expand: e1 w1;
       vbox#pack ~padding:2 ~expand:false (GMisc.label
-        ~text:(Gettext.gettext Gui_messages.and_not) ())#coerce;
+        ~text:(gettext M.qT_lb_and_not) ())#coerce;
       vbox#pack ~padding: 2 ~expand: e2 w2;
       (wf#coerce, false, QF_ANDNOT (f1, f2))
 
@@ -181,7 +242,8 @@ let rec form_of_entry f_submit qe =
   
   | Q_FORMAT (label, v) ->
       let hbox = GPack.hbox () in
-      let wl = GMisc.label ~text: (label^":")
+      let text = (label_to_text label) ^ " :" in
+      let wl = GMisc.label ~text
           ~justify:`LEFT
           ~xalign:0.0  ~xpad:1 ~width:100
 	  ~packing: (hbox#pack ~padding:2 ~expand:false ~fill:false) ()
@@ -197,20 +259,22 @@ let rec form_of_entry f_submit qe =
 
   | Q_MEDIA (label, v) ->
       let hbox = GPack.hbox () in
-      let wl = GMisc.label ~text: (label^":")
+      let text = (label_to_text label) ^ " :" in
+      let wl = GMisc.label ~text
           ~justify:`LEFT
           ~xalign:0.0  ~xpad:1 ~width:100
 	  ~packing: (hbox#pack ~padding:2) ()
       in
       let wcombo = GEdit.combo
 	  ~popdown_strings:
+          (List.map (fun label -> label_to_text label)
 	  ["";
-	   (Gettext.gettext Gui_messages.audio);
-	   (Gettext.gettext Gui_messages.video);
-	   (Gettext.gettext Gui_messages.program);
-	   (Gettext.gettext Gui_messages.image);
-	   (Gettext.gettext Gui_messages.documentation);
-	   (Gettext.gettext Gui_messages.collection)]
+	   "Audio";
+	   "Video";
+	   "Program";
+	   "Image";
+	   "Documentation";
+	   "Collection"])
 	  ~value_in_list: false
 	  ~ok_if_empty: true  
 	  ~packing: (hbox#pack ~padding: 2 ~expand: false) () 
@@ -220,13 +284,18 @@ let rec form_of_entry f_submit qe =
 
   | Q_COMBO (label, default, args) ->
       let hbox = GPack.hbox () in
-      let wl = GMisc.label ~text: (label^":")
+      let text = (label_to_text label) ^ " :" in
+      let popdown_strings = 
+        List.map (fun label -> 
+          label_to_text label) args
+      in
+      let wl = GMisc.label ~text
           ~justify:`LEFT
           ~xalign:0.0  ~xpad:1 ~width:100
 	  ~packing: (hbox#pack ~padding:2) ()
       in
       let wcombo = GEdit.combo
-	  ~popdown_strings: args
+	  ~popdown_strings
 	  ~value_in_list: true
 	  ~ok_if_empty: true  
 	  ~packing: (hbox#pack ~padding: 2 ~expand: false) () 
@@ -236,7 +305,8 @@ let rec form_of_entry f_submit qe =
 
   | Q_MP3_BITRATE (label, v) ->
       let hbox = GPack.hbox () in
-      let wl = GMisc.label ~text: (label^":")
+      let text = (label_to_text label) ^ " :" in
+      let wl = GMisc.label ~text
           ~justify:`LEFT
           ~xalign:0.0  ~xpad:1 ~width:100
 	  ~packing: (hbox#pack ~padding:2) ()
@@ -253,7 +323,8 @@ let rec form_of_entry f_submit qe =
 	
   | Q_MINSIZE (label, v) ->
       let hbox = GPack.hbox () in
-      let wl = GMisc.label ~text: (label^":")
+      let text = (label_to_text label) ^ " :" in
+      let wl = GMisc.label ~text
           ~justify:`LEFT
           ~xalign:0.0  ~xpad:1 ~width:100
 	  ~packing: (hbox#pack ~padding:2) ()
@@ -273,7 +344,8 @@ let rec form_of_entry f_submit qe =
 
   | Q_MAXSIZE (label, v) ->
       let hbox = GPack.hbox () in
-      let wl = GMisc.label ~text: (label^":")
+      let text = (label_to_text label) ^ " :" in
+      let wl = GMisc.label ~text
           ~justify:`LEFT
           ~xalign:0.0  ~xpad:1 ~width:100
 	  ~packing: (hbox#pack ~padding:2) ()
@@ -291,12 +363,35 @@ let rec form_of_entry f_submit qe =
       we#set_text v;
       (hbox#coerce, false, QF_MAXSIZE (we, wcombo#entry))
 
-  | Q_KEYWORDS (label, v)
+  | Q_KEYWORDS (label, v) ->
+      let hbox = GPack.hbox () in
+      let text = (label_to_text label) ^ " :" in
+      let wl = GMisc.label ~text
+          ~justify:`LEFT
+          ~xalign:0.0 ~xpad:1 ~width:100
+	  ~packing: (hbox#pack ~padding:2) ()
+      in
+      let wcombo = GEdit.combo
+	  ~popdown_strings:[]
+	  ~value_in_list:false
+	  ~ok_if_empty:true  
+	  ~packing: (hbox#pack ~padding: 2 ~expand: false) () 
+      in
+      let we = wcombo#entry in
+      Okey.add we ~mods: [] GdkKeysyms._Return 
+        (fun () ->
+           f_submit ();
+           fill_history we#text;
+           wcombo#set_popdown_strings !history);
+      we#set_text v;
+      (hbox#coerce, false, (form_leaf qe we))
+
   | Q_MP3_ARTIST (label, v)
   | Q_MP3_TITLE (label, v)
   | Q_MP3_ALBUM (label, v) ->
       let hbox = GPack.hbox () in
-      let wl = GMisc.label ~text: (label^":")
+      let text = (label_to_text label) ^ " :" in
+      let wl = GMisc.label ~text
           ~justify:`LEFT
           ~xalign:0.0  ~xpad:1 ~width:100
 	  ~packing: (hbox#pack ~padding:2) ()
@@ -371,10 +466,10 @@ let rec entry_of_form qf =
       in
       Q_MAXSIZE ("", size)
       
-  | QF_COMBO we -> Q_COMBO ("", we#text, [])
+  | QF_COMBO we -> Q_COMBO ("", text_to_label we#text, [])
       
   | QF_FORMAT we -> Q_FORMAT ("", we#text)
-  | QF_MEDIA we -> Q_MEDIA ("", we#text)
+  | QF_MEDIA we -> Q_MEDIA ("", text_to_label we#text)
   | QF_MP3_ARTIST we -> Q_MP3_ARTIST ("", we#text)
   | QF_MP3_TITLE we -> Q_MP3_TITLE ("", we#text)
   | QF_MP3_ALBUM we -> Q_MP3_ALBUM ("", we#text)
@@ -422,22 +517,22 @@ class box submit_search query_entry =
           (fun () -> hide_or_show wchk_show#active form));
 
       Gui_misc.insert_buttons wtool1 wtool2 
-        ~text: (gettext M.submit)
-      ~tooltip: (gettext M.submit)
-      ~icon: (M.o_xpm_submit_search)
-      ~callback: self#submit
+        ~text: (gettext M.qT_lb_submit)
+        ~tooltip: (gettext M.qT_ti_submit)
+        ~icon: (M.o_xpm_submit_search)
+        ~callback: self#submit
         ();
       Gui_misc.insert_buttons wtool1 wtool2
-        ~text: (gettext M.local_search)
-      ~tooltip: (gettext M.local_search)
-      ~icon: (M.o_xpm_local_search)
-          ~callback: self#local
+        ~text: (gettext M.qT_lb_local_search)
+        ~tooltip: (gettext M.qT_ti_local_search)
+        ~icon: (M.o_xpm_local_search)
+        ~callback: self#local
         ();
       Gui_misc.insert_buttons wtool1 wtool2
-          ~text: (gettext M.subscribe)
-        ~tooltip: (gettext M.subscribe)
+        ~text: (gettext M.qT_lb_subscribe)
+        ~tooltip: (gettext M.qT_ti_subscribe)
         ~icon: (M.o_xpm_subscribe_search)
-          ~callback: self#subscribe
+        ~callback: self#subscribe
         ();
 
 end
@@ -465,18 +560,21 @@ class url_box query_entry submit_search =
         (wtool2#misc#hide (); wtool1#misc#show ())
     
     initializer
+
       f_submit := (fun () -> self#submit ());
       box_fields#pack w;
       ignore (wchk_show#connect#clicked
           (fun () -> hide_or_show wchk_show#active form));
 
+      network_label#misc#hide ();
+      nets_wcombo#misc#hide ();
+
       Gui_misc.insert_buttons wtool1 wtool2
-          ~text: (gettext M.submit)
-        ~tooltip: (gettext M.submit)
-      ~icon: (M.o_xpm_submit_search)
-          ~callback: self#submit
-          ()
-      
+        ~text: (gettext M.qT_lb_submit)
+        ~tooltip: (gettext  M.qT_ti_submit)
+        ~icon: (M.o_xpm_submit_search)
+        ~callback: self#submit
+        ()
 
 end
 
@@ -486,41 +584,47 @@ class paned () =
   object(self)
     inherit Gui_queries_base.paned ()
 
-(** Associations (numéro de query de gui, boite affichant les résultats) *)
-    val mutable results = ([] : (int * 
-          (Gui_results.search_result_box * GPack.box)) list)
-    
+(* Associations (number of the gui query, box displaying results) *)
+    val mutable results = ([] : (int * Gui_results.search_result_box) list)
+
     val mutable queries_box = ([] : box list)
     val mutable static_queries_box = ([] : url_box list)
     val mutable static_results = ([] : Gui_cdget.url_results list)
       
     val mutable wnote_main = GPack.notebook () 
-(*    val mutable wnote_results = GPack.notebook ()   
-    method wnote_results = wnote_results  
 
+(*  val mutable wnote_results = GPack.notebook ()   
+    method wnote_results = wnote_results  
     method set_wnote_results w = wnote_results <- w *)
+
     method set_wnote_main w = wnote_main <- w
     
     method set_list_bg bg font =
-      List.iter (fun (_,(b,_)) -> b#set_list_bg bg font) results;
+      List.iter (fun (_, b) -> b#set_list_bg bg font) results;
       List.iter (fun b -> b#set_list_bg bg font) static_results
 
     method c_update_icons b =
-      List.iter (fun (_,((box : Gui_results.search_result_box),_)) ->
+      List.iter (fun (_,(box : Gui_results.search_result_box)) ->
         box#update_icons b
       ) results
 
     method clear = 
       List.iter (fun box -> box#coerce#destroy ()) queries_box;
       queries_box <- [];
-      results <- [] ;
-    
+      Hashtbl.clear G.results;
+      List.iter (fun (_, box_res) ->
+        box_res#clear;
+        box_res#coerce#destroy ()
+      ) results;
+      results <- []
     
     method close_query num forget () =
       try
         if forget then  begin
-            let (box_res, vb) = List.assoc num results in
-            vb#destroy ();
+            let box_res = List.assoc num results in
+            box_res#clear;
+            box_res#coerce#destroy ();
+            Hashtbl.remove G.results num;
             results <- List.filter (fun (n,_) -> n <> num) results;
           end;
         Gui_com.send (GuiProto.CloseSearch (num, forget))
@@ -532,22 +636,20 @@ class paned () =
       Gui_com.send (GuiProto.Search_query (s));
       let desc = Gui_misc.description_of_query s.GuiTypes.search_query in
       let wl = GMisc.label ~text: desc () in
-      let vbox = GPack.vbox () in
       let box_res = new Gui_results.search_result_box s.GuiTypes.search_num () in
-      vbox#pack ~expand: true box_res#coerce;
       ignore (Gui_misc.insert_buttons box_res#wtool1 box_res#wtool2
-          ~text: (gettext M.close_search)
-          ~tooltip: (gettext M.close_search)
+          ~text: (gettext  M.qT_lb_close_search)
+          ~tooltip: (gettext M.qT_ti_close_search)
           ~icon: (M.o_xpm_close_search)
           ~callback:(self#close_query s.GuiTypes.search_num true)
           ());
       ignore (Gui_misc.insert_buttons box_res#wtool1 box_res#wtool2
-          ~text: (gettext M.stop_search)
-          ~tooltip: (gettext M.stop_search)
+          ~text: (gettext M.qT_lb_stop_search)
+          ~tooltip: (gettext M.qT_ti_stop_search)
           ~icon: (M.o_xpm_stop_search)
           ~callback:(self#close_query s.GuiTypes.search_num false)
           ());
-      wnote_results#insert_page ~tab_label: wl#coerce ~pos: 0 vbox#coerce;
+      wnote_results#insert_page ~tab_label:wl#coerce ~pos:0 box_res#coerce;
       wnote_results#goto_page 0;
       wnote_main#goto_page 4;
       box_res#set_tb_style !!Gui_options.toolbars_style;
@@ -555,27 +657,24 @@ class paned () =
 
 (* only the last result box must have an "extended search" button *)
 (*      List.iter (fun (_,(b,_)) -> b#remove_extend_search_button) results; *)
-      
-      results <- (s.GuiTypes.search_num, (box_res, vbox)) :: results
-          
+
+      results <- (s.GuiTypes.search_num, box_res) :: results      
 
     method submit_url_search result_box qe =
       let desc = Gui_misc.description_of_query qe in
       let wl = GMisc.label ~text: desc () in
-      let vbox = GPack.vbox () in
       let box_res = result_box qe in
       static_results <- box_res :: static_results;
-      vbox#pack ~expand: true box_res#coerce;
       ignore (Gui_misc.insert_buttons box_res#wtool1 box_res#wtool2
-          ~text: (gettext M.close_search)
-          ~tooltip: (gettext M.close_search)
+          ~text: (gettext M.qT_lb_close_search)
+          ~tooltip: (gettext M.qT_ti_close_search)
           ~icon: (M.o_xpm_close_search)
           ~callback:(fun _ ->
             static_results <- List2.removeq box_res static_results;
-            vbox#destroy ()
+            box_res#coerce#destroy ()
             )
           ());
-      wnote_results#insert_page ~tab_label: wl#coerce ~pos: 0 vbox#coerce;
+      wnote_results#insert_page ~tab_label:wl#coerce ~pos:0 box_res#coerce;
       wnote_results#goto_page 0;
       wnote_main#goto_page 4
 
@@ -585,17 +684,17 @@ class paned () =
     method set_tb_style st = 
       List.iter (fun b -> b#set_tb_style st) queries_box;
       List.iter (fun b -> b#set_tb_style st) static_queries_box;
-      List.iter (fun (_,(b,_)) -> b#set_tb_style st) results;
+      List.iter (fun (_, b) -> b#set_tb_style st) results;
       List.iter (fun b -> b#set_tb_style st) static_results
 
-(** {2 Handling of core messages} *)
+(* {2 Handling of core messages} *)
     
     method h_search_filter_networks =
-      List.iter (fun (_, (srbox, _)) -> srbox#filter_networks) results
+      List.iter (fun (_, srbox) -> srbox#filter_networks) results
     
     method h_search_result num res =
       try
-        let (box_res, vb) = List.assoc num results in
+        let box_res = List.assoc num results in
         box_res#add_result res
       with
         Not_found ->
@@ -603,7 +702,7 @@ class paned () =
     
     method h_search_waiting num waiting =
       try
-        let (box_res, vb) = List.assoc num results in
+        let box_res = List.assoc num results in
         box_res#set_waiting waiting
       with
         Not_found ->
@@ -612,10 +711,11 @@ class paned () =
     method h_define_searches l =
       let f (label, qe) =
         let b = new box self#submit_search qe in
-        let num = get_num label in
+        let icon = string_to_icon label in
+        let text = label_to_text label in
         wnote_queries#insert_page ~pos: 0
-            ~tab_label:(tab_box num search_nbk_data)#coerce
-            ~menu_label:(menu_label_box num search_nbk_data)#coerce
+            ~tab_label:(tab_box icon text)#coerce
+            ~menu_label:(menu_label_box icon text)#coerce
             b#coerce;
         wnote_queries#goto_page 0;
         b#set_tb_style !!Gui_options.toolbars_style;
@@ -634,7 +734,7 @@ class paned () =
               if net.net_enabled then
                 nets := (net.net_name, num) :: !nets
             ) networks;
-            let nets = (gettext M.all_networks, 0) :: !nets in
+            let nets = (gettext  M.qT_tx_all_networks, 0) :: !nets in
             combo#set_popdown_strings (List.map fst nets);
             w#set_nets nets
           end
@@ -647,36 +747,56 @@ class paned () =
         (self#submit_url_search (new Gui_cdget.ShareReactor.results)) in
     static_queries_box <- b :: static_queries_box;
     wnote_queries#append_page
-            ~tab_label:(tab_box 4 search_nbk_data)#coerce
-            ~menu_label:(menu_label_box 4 search_nbk_data)#coerce
-            b#coerce;
-    self#set_list_bg (`NAME !!Gui_options.color_list_bg) (Gdk.Font.load_fontset !!O.font_list);
+      ~tab_label:
+        (tab_box M.o_xpm_sharereactor_search 
+        (gettext M.qT_lb_sharereactor_searches))#coerce
+      ~menu_label:
+        (menu_label_box M.o_xpm_sharereactor_search 
+        (gettext M.qT_lb_sharereactor_searches))#coerce
+      b#coerce;
+    self#set_list_bg (`NAME !!Gui_options.color_list_bg) 
+      (Gdk.Font.load_fontset !!O.font_list);
     
     let b = new url_box Gui_cdget.Jigle.query
         (self#submit_url_search (new Gui_cdget.Jigle.results)) in
     static_queries_box <- b :: static_queries_box;
     wnote_queries#append_page
-            ~tab_label:(tab_box 5 search_nbk_data)#coerce
-            ~menu_label:(menu_label_box 5 search_nbk_data)#coerce
-            b#coerce;
-    self#set_list_bg (`NAME !!Gui_options.color_list_bg) (Gdk.Font.load_fontset !!O.font_list);
+      ~tab_label:
+        (tab_box M.o_xpm_jigle_search 
+        (gettext M.qT_lb_jigle_searches))#coerce
+      ~menu_label:
+        (menu_label_box M.o_xpm_jigle_search 
+        (gettext M.qT_lb_jigle_searches))#coerce
+      b#coerce;
+    self#set_list_bg (`NAME !!Gui_options.color_list_bg) 
+      (Gdk.Font.load_fontset !!O.font_list);
     
     let b = new url_box Gui_cdget.FreeDB.query 
         (self#submit_url_search (new Gui_cdget.FreeDB.results)) in
     static_queries_box <- b :: static_queries_box;
     wnote_queries#append_page
-            ~tab_label:(tab_box 6 search_nbk_data)#coerce
-            ~menu_label:(menu_label_box 6 search_nbk_data)#coerce
-            b#coerce;
-    self#set_list_bg (`NAME !!Gui_options.color_list_bg) (Gdk.Font.load_fontset !!O.font_list);
+      ~tab_label:
+        (tab_box M.o_xpm_freedb_search 
+        (gettext M.qT_lb_freedb_searches))#coerce
+      ~menu_label:
+        (menu_label_box M.o_xpm_freedb_search 
+        (gettext M.qT_lb_freedb_searches))#coerce
+      b#coerce;
+    self#set_list_bg (`NAME !!Gui_options.color_list_bg) 
+      (Gdk.Font.load_fontset !!O.font_list);
     
-    let b = new url_box (Q_KEYWORDS ((Gettext.gettext Gui_messages.title), ""))
+    let b = new url_box (Q_KEYWORDS ((Gettext.gettext Gui_messages.qT_lb_title), ""))
         (self#submit_url_search (new Gui_cdget.IMDB.results)) in
     static_queries_box <- b :: static_queries_box;
     wnote_queries#append_page
-            ~tab_label:(tab_box 7 search_nbk_data)#coerce
-            ~menu_label:(menu_label_box 7 search_nbk_data)#coerce
-            b#coerce;
-    self#set_list_bg (`NAME !!Gui_options.color_list_bg) (Gdk.Font.load_fontset !!O.font_list);
+      ~tab_label:
+        (tab_box M.o_xpm_imdb_search 
+        (gettext M.qT_lb_imdb_searches))#coerce
+      ~menu_label:
+        (menu_label_box M.o_xpm_imdb_search 
+        (gettext M.qT_lb_imdb_searches))#coerce
+      b#coerce;
+    self#set_list_bg (`NAME !!Gui_options.color_list_bg) 
+      (Gdk.Font.load_fontset !!O.font_list);
 
   end

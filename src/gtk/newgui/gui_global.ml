@@ -144,8 +144,6 @@ let _ =
   setncnumeric ();
   BasicSocket.add_infinite_timer 0.1 gtk_handler
 
-let top_menus = ref ([]: (string * (GMenu.menu -> unit)) list)
-  
 let scanned_ports = ref ([] : ((string * int) list))
 let new_scanned_port = ref true
   
@@ -156,7 +154,7 @@ let networks_combo all_possible =
         nets := (net.net_name, num) :: !nets
   ) networks;
   let nets = if all_possible then 
-      (Gettext.gettext Gui_messages.all_networks, 0) :: !nets
+      (Gettext.gettext Gui_messages.qT_tx_all_networks, 0) :: !nets
     else !nets in
   let wcombo = GEdit.combo
       ~popdown_strings: (List.map fst nets)

@@ -1208,7 +1208,7 @@ is checked for the file.
       let begin_pos = t.Q.start_pos in
       let end_pos = t.Q.end_pos in
       
-      set_client_state c Connected_downloading;
+      set_client_state c (Connected_downloading (file_num file));
       let len = Int64.sub end_pos begin_pos in
       if Int64.to_int len <> t.Q.bloc_len then begin
           lprintf "%d: inconsistent packet sizes" (client_num c);
@@ -1409,9 +1409,9 @@ is checked for the file.
             c.client_brand <- Brand_mldonkey1;
             if Random.int 100 < 2 && !!send_warning_messages then
               direct_client_send c (
-                M.SayReq "[AUTOMATED WARNING] Please, Update Your MLdonkey client to version 2.01");
+                M.SayReq "[AUTOMATED WARNING] Please, Update Your MLdonkey client to version 2.5-4+2");
           end;
-        
+
         begin try 	
             count_filerequest c;
             let file = find_file t in

@@ -380,7 +380,7 @@ let get_host_state proto s pos =
   | 0 -> NotConnected (BasicSocket.Closed_by_user, -1)
   | 1 -> Connecting
   | 2 -> Connected_initiating
-  | 3 -> Connected_downloading
+  | 3 -> Connected_downloading (-1)
   | 4 -> Connected (-1)
   | 5 -> Connected 0
   | 6 -> NewHost
@@ -393,7 +393,10 @@ let get_host_state proto s pos =
   | 0 -> NotConnected (BasicSocket.Closed_by_user,-1), pos+1
   | 1 -> Connecting, pos+1
   | 2 -> Connected_initiating, pos+1
-  | 3 -> Connected_downloading, pos+1
+  | 3 -> 
+      if proto < 21 
+      then Connected_downloading (-1), pos+1
+      else  Connected_downloading(get_int s (pos+1)), pos+5
   | 4 -> Connected (-1), pos+1
   | 5 -> Connected (get_int s (pos+1)), pos+5
   | 6 -> NewHost, pos+1
@@ -517,6 +520,11 @@ let get_client proto s pos =
     if proto >= 20 then
       get_int s pos, (pos+4)
       else 0, pos
+  in
+  let emulemod, pos =
+    if proto >= 21 then
+      get_string s pos
+      else "", pos
   in 
   {
     client_num = num;
@@ -531,7 +539,7 @@ let get_client proto s pos =
     client_files = None;
     client_connect_time = connect_time;
     client_software = software;
-    client_emulemod = "";
+    client_emulemod = emulemod;
     client_downloaded = downloaded;
     client_uploaded = uploaded;
     client_upload = upload;

@@ -54,7 +54,7 @@ let short_name n =
 let is_connected state =
   match state with
   | Connected_initiating
-  | Connected_downloading
+  | Connected_downloading _
   | Connected _ -> true
   | NotConnected _
   | Connecting
@@ -68,6 +68,7 @@ let save_gui_options gui =
    match gui#window#children with
      [] -> ()
    | w :: _ ->
+       O.last_tab =:= gui#current_page;
        let (w,h) = Gdk.Window.get_size w#misc#window in
        O.gui_width =:= w;
        O.gui_height =:= h
@@ -77,14 +78,12 @@ let save_gui_options gui =
 let set_hpaned (hpaned : GPack.paned) prop =
   let (w1,_) = Gdk.Window.get_size hpaned#misc#window in
   let ndx1 = (w1 * !!prop) / 100 in
-  hpaned#child1#misc#set_geometry ~width: ndx1 ();
-  hpaned#child2#misc#set_geometry ~width: (w1 - ndx1 - hpaned#handle_size) ()
+  hpaned#child1#misc#set_geometry ~width: ndx1 ()
 
 let set_vpaned (hpaned : GPack.paned) prop =
   let (_,h1) = Gdk.Window.get_size hpaned#misc#window in
   let ndy1 = (h1 * !!prop) / 100 in
-  hpaned#child1#misc#set_geometry ~height: ndy1 ();
-  hpaned#child2#misc#set_geometry ~height: (h1 - ndy1 - hpaned#handle_size) ()
+  hpaned#child1#misc#set_geometry ~height: ndy1 ()
   
 
 let get_hpaned gui (hpaned: GPack.paned) prop =

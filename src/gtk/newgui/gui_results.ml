@@ -45,7 +45,7 @@ let color_opt_of_file f =
 
 let first_name names =
   match names with
-    [] -> gettext M.unknown
+    [] -> gettext M.qT_tx_unknown
   | n :: _ -> n
 
 let shorten_name s = Filename2.shorten !!O.max_result_name_len s
@@ -359,7 +359,7 @@ class box s_num columns () =
           )
         );
         `M (gettext M.mAdd_column_after, (
-            List.map (fun (c,s) ->
+            List.map (fun (c,s,_) ->
                 (`I (s, (fun _ -> 
                         let c1, c2 = List2.cut (i+1) !!columns in
                         columns =:= c1 @ [c] @ c2;
@@ -367,7 +367,7 @@ class box s_num columns () =
                     )))
             ) Gui_columns.Result.column_strings));
         `M (gettext M.mAdd_column_before, (
-            List.map (fun (c,s) ->
+            List.map (fun (c,s,_) ->
                 (`I (s, (fun _ -> 
                         let c1, c2 = List2.cut i !!columns in
                         columns =:= c1 @ [c] @ c2;
@@ -392,8 +392,8 @@ class box s_num columns () =
       match self#selection with
         [] -> []
       |	_ -> [
-            `I (gettext M.download, self#download);
-            `I (gettext M.force_download, self#force_download);
+            `I (gettext M.qT_tx_download, self#download);
+            `I (gettext M.qT_tx_force_download, self#force_download);
           ]
     
     
@@ -513,12 +513,12 @@ class box s_num columns () =
                     (Gui_global.network_name r.gresult_network));
           r.gresult_pixmap <-
             Some (result_mapping r.gresult_names)
-          ), gettext M.results_add_icons, 1)
+          ), gettext M.pW_lb_results_add_icons, 1)
           else
             ((fun r ->
             r.gresult_net_pixmap <- None;
             r.gresult_pixmap <- None;
-            ), gettext M.results_remove_icons, 100)
+            ), gettext M.pW_lb_results_remove_icons, 1)
       in
       Gui_options.generate_with_progress label self#get_all_items f step;
       self#update
@@ -542,10 +542,10 @@ class box s_num columns () =
       if s_num >= 0 then
 (*	wb_extend_search <- Some *)
         Gui_misc.insert_buttons  wtool1 wtool2
-          ~text: (gettext M.extended_search)
-        ~tooltip: (gettext M.extended_search)
-        ~icon: (M.o_xpm_extend_search)
-        ~callback: self#extend_search
+          ~text: (gettext M.qT_lb_extended_search)
+          ~tooltip: (gettext M.qT_ti_extended_search)
+          ~icon: (M.o_xpm_extend_search)
+          ~callback: self#extend_search
           ()
 
 
@@ -569,10 +569,10 @@ class search_result_box s_num () =
     method add_result (res : CommonTypes.result_info) =
       let r = self#core_to_gui_result res in
       self#add_item r;
-      wl_count#set_text  (gettext M.results self#size)
+      wl_count#set_text (Printf.sprintf !!Gui_messages.qT_lb_results self#size)
     
     method set_waiting n =
-      wl_wait#set_text (M.waiting_for_replies n)
+      wl_wait#set_text (Printf.sprintf !!Gui_messages.qT_lb_waiting_for_replies n)
     
     method filter_networks = self#refresh_filter
     
@@ -611,9 +611,6 @@ let rec color_tree w bg font =
           end
     ) w#children
 
-let timerID = ref (Timeout.add ~ms:500
-                              ~callback:(fun _ -> true))
-
 class box_dir_files () =
   let results = new box (-1) O.results_columns () in
   object (self)
@@ -632,74 +629,19 @@ class box_dir_files () =
       results#set_list_bg bg font;
       self#set_tree_bg bg font
 
-(* (w : gui_client_info GList.clist) *)
-
-    val mutable keep_this = ([] : file_tree option list)
-    val mutable gdk_window = ( None : Gdk.window option)
-    val mutable tree_is_built = (true : bool)
-
-    method tree_is_built = tree_is_built
-
-    method set_tree_state state =
-      tree_is_built <- state
-      (* Printf.printf "Gui_results set_tree_state tree_is_built %b\n" tree_is_built;
-      flush stdout*)
-
-    method update_gdk_window w =
-      gdk_window <- Some w
-
     method update_tree file_tree_opt =
-    (* here there is a segmentation fault when
-    clearing the wtree to build a new one while
-    the preceeding one is still building.
-    It appears when you browse the friends list very
-    fast and if one of the friends has a lot of dirs
-    & files : see with soulseek clients for example.
-    The fix is only a workaround. I can't find the right signal to catch. *)
-    if tree_is_built then
-      begin
-        self#set_tree_state false;
-        let curs = Gdk.Cursor.create `WATCH in
-        (match gdk_window with
-             Some w -> Gdk.Window.set_cursor w curs
-           | None -> ());
-        Gdk.Cursor.destroy curs;
-      selected_dir <- None;
-        keep_this <- [];
-        timerID := (Timeout.add ~ms:2000
-          ~callback:(fun _ ->
-            (self#build_tree file_tree_opt;
-             true)))
-      end
-      else
-        begin
-          keep_this <- file_tree_opt::keep_this;
-          (* Printf.printf "Gui_results fill keep_this %b\n" (not tree_is_built);
-          flush stdout *)
-        end
-
-    method build_tree file_tree_opt =
-        self#clear;
       match file_tree_opt with
-            None ->
-              (Timeout.remove (!timerID);
-              let curs = Gdk.Cursor.create `LEFT_PTR in
-              (match gdk_window with
-                  Some w -> Gdk.Window.set_cursor w curs
-                | None -> ());
-              Gdk.Cursor.destroy curs;
-              self#set_tree_state true;
-              (* Printf.printf "Gui_results file_tree_opt is None ? %b\n" tree_is_built;
-              flush stdout; *)
-              if keep_this <> [] then
-                self#update_tree (List.hd keep_this))
-      |	Some ft ->
-              self#insert_dir wtree 0 ft
-
+          None -> ()
+        | Some ft -> 
+            (
+             self#clear;
+             self#insert_dir wtree 0 ft
+            )
     
     method clear =
       List.iter wtree#remove wtree#children;
-      results#clear
+      results#clear;
+      selected_dir <- None
     
     method box_results = results
     
@@ -731,6 +673,7 @@ class box_dir_files () =
        with _ -> ());
       ignore (item#connect#select
         (fun () ->
+           results#clear;
            selected_dir <- Some ft;
            let l = ref [] in
            List.iter (fun r ->
@@ -738,10 +681,6 @@ class box_dir_files () =
              l := ri::!l;
            ) result_list;
         results#reset_data !l));
-      ignore (item#connect#deselect
-        (fun () ->
-           selected_dir <- None;
-        results#clear));
       (
         match subdirs with
           [] -> ()
@@ -780,10 +719,11 @@ class box_dir_files () =
       |	Some ft ->
           let files = GuiTypes.list_files ft in
           let len = List.length files in
-          match GToolbox.question_box
-              (gettext M.download_selected_dir)
-            [gettext M.ok ; gettext M.cancel]
-              (M.confirm_download_dir ft.GuiTypes.file_tree_name len) 
+          match (GToolbox.question_box
+              (gettext M.qT_wt_download_selected_dir)
+              [gettext M.pW_lb_ok ; gettext M.pW_lb_cancel]
+              (Printf.sprintf !!Gui_messages.qT_lb_confirm_download_dir 
+                 len ft.GuiTypes.file_tree_name)) 
           with
             1 ->
               List.iter
@@ -801,28 +741,12 @@ class box_dir_files () =
     initializer
       wpane#add2 results#coerce;
       
-
-      ignore (wtree#connect#select_child
-        ~callback:(fun _ ->
-                   (* Printf.printf "child selected\n";
-                   flush stdout; *)
-                   Timeout.remove (!timerID);
-                   let curs = Gdk.Cursor.create `LEFT_PTR in
-                   (match gdk_window with
-                       Some w -> Gdk.Window.set_cursor w curs
-                     | None -> ());
-                   Gdk.Cursor.destroy curs;
-                   self#set_tree_state true;
-                   if keep_this <> [] then
-                     self#update_tree (List.hd keep_this)));
-
-
       Gui_misc.insert_buttons wtool1 wtool2 
-        ~text: (gettext M.download)
-      ~tooltip: (gettext M.download_selected_dir)
-       ~icon: (M.o_xpm_download_directory)
-      ~callback: self#download_selected_dir
-       ();
+        ~text: (gettext M.qT_lb_download_selected_dir)
+        ~tooltip: (gettext M.qT_ti_download_selected_dir)
+        ~icon: (M.o_xpm_download_directory)
+        ~callback: self#download_selected_dir
+        ();
 
       let style = evbox#misc#style#copy in
       style#set_bg [ (`NORMAL, (`NAME "#494949"))];

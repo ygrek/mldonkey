@@ -36,7 +36,7 @@ let (!!) = Options.(!!)
 let is_connected state =
   match state with
   | Connected_initiating
-  | Connected_downloading
+  | Connected_downloading _
   | Connected _ -> true
   | NotConnected _
   | Connecting
@@ -59,6 +59,7 @@ class window () =
       label_connect_status#set_text s
       
     method clear =
+      tab_networks#clear;
       tab_servers#clear;
       tab_downloads#clear;
       tab_friends#clear;
@@ -66,26 +67,14 @@ class window () =
       tab_rooms#clear;
       tab_graph#clear;
       tab_uploads#clear;
-      label_connect_status#set_text (gettext M.not_connected);
-      List.iter menu_display#remove menu_display#children;
-      List.iter menu_networks#remove menu_networks#children
-      
+      label_connect_status#set_text (gettext M.mW_lb_not_connected)
+
     initializer
 
       window#show ();
       
 (*      tab_queries#set_wnote_results self#wnote_results; *)
       tab_queries#set_wnote_main notebook;
-
-      ignore (tab_downloads#box_downloads#ask_clients#connect#clicked
-        (fun () ->
-          (* Printf.printf "Gui_window Ask_clients clicked\n";
-          flush stdout; *)
-          let c_num_list = tab_downloads#box_downloads#clients_list in
-          let c_list = tab_uploads#retrieve_clients c_num_list in
-          tab_downloads#box_downloads#expand_file c_list
-        )
-      );
 
       ignore (notebook#connect#switch_page ~callback:
         begin fun p ->
@@ -114,25 +103,12 @@ class window () =
         end );
 
       (* set the size of panes as they were the last time. *)
-(*
-      Mi.set_hpaned tab_servers#hpaned_servers O.servers_hpane_left;
-      Mi.get_hpaned self tab_servers#hpaned_servers O.servers_hpane_left;
-*)
-        notebook#goto_page 1;
+
+      notebook#goto_page 1;
       Mi.set_vpaned tab_servers#vpaned_servers O.servers_vpane_up;
       Mi.get_vpaned self tab_servers#vpaned_servers O.servers_vpane_up;
-(*
-      notebook#goto_page 2;
-      Mi.set_hpaned tab_downloads#hpaned O.downloads_hpane_left;
-      Mi.get_hpaned self tab_downloads#hpaned O.downloads_hpane_left;  
-      Mi.set_vpaned tab_downloads#vpaned O.downloads_vpane_up;
-      Mi.get_vpaned self tab_downloads#vpaned O.downloads_vpane_up;
-*)
-(*
-      Mi.set_vpaned tab_downloads#clients_wpane O.downloads_wpane_up;
-      Mi.get_vpaned self tab_downloads#clients_wpane O.downloads_wpane_up;
-*)
-        notebook#goto_page 3;
+
+      notebook#goto_page 3;
       Mi.set_hpaned tab_friends#hpaned O.friends_hpane_left;
       Mi.get_hpaned self tab_friends#hpaned O.friends_hpane_left;
       Mi.set_vpaned tab_friends#vpaned O.friends_vpane_up;
@@ -140,24 +116,17 @@ class window () =
       Mi.set_hpaned tab_friends#box_files#wpane O.friends_hpane_dirs;
       Mi.get_hpaned self tab_friends#box_files#wpane O.friends_hpane_dirs;
 
-        notebook#goto_page 5;
+      notebook#goto_page 5;
       Mi.set_hpaned tab_rooms#hpaned O.rooms_hpane_left;
       Mi.get_hpaned self tab_rooms#hpaned O.rooms_hpane_left;
-        Mi.set_hpaned tab_rooms#room_pane O.rooms_hpane2_left;
-        Mi.get_hpaned self tab_rooms#room_pane O.rooms_hpane2_left;
-        Mi.set_vpaned tab_rooms#rooms_pane O.rooms_vpane_up;
-        Mi.get_vpaned self tab_rooms#rooms_pane O.rooms_vpane_up;
+      Mi.set_hpaned tab_rooms#room_pane O.rooms_hpane2_left;
+      Mi.get_hpaned self tab_rooms#room_pane O.rooms_hpane2_left;
+      Mi.set_vpaned tab_rooms#rooms_pane O.rooms_vpane_up;
+      Mi.get_vpaned self tab_rooms#rooms_pane O.rooms_vpane_up;
 
-        notebook#goto_page 6;
-        Mi.set_vpaned tab_uploads#vpaned O.uploads_vpane_up;
-        Mi.get_vpaned self tab_uploads#vpaned O.uploads_vpane_up;
-(*
-      notebook#goto_page 3;
-      Mi.set_hpaned tab_searches#hpaned O.searches_hpane_left;  
-      Mi.get_hpaned self tab_searches#hpaned O.searches_hpane_left;  
-*)
-      notebook#goto_page 0;
-
+      notebook#goto_page 6;
+      Mi.set_vpaned tab_uploads#vpaned O.uploads_vpane_up;
+      Mi.get_vpaned self tab_uploads#vpaned O.uploads_vpane_up;
 
       (* Keyboard shortcuts *)
       let add w ?(cond=(fun () -> true)) l ((mods, k), action) = 
@@ -166,22 +135,24 @@ class window () =
 	  Okey.add ~cond w ~mods k f
 	with
 	  Not_found ->
-            lprintf "%s\n" (Gui_messages.action_unknown action)
+            lprintf "%s %s\n" (gettext M.mW_tx_action_unknown) action
       in
 
       (* Global shortcuts *)
 
       let global_actions = [
-	M.a_page_servers, itemServers#activate ;
-	M.a_page_downloads, itemDownloads#activate;
-	M.a_page_friends, itemFriends#activate;
-	M.a_page_results, itemResults#activate;
-	M.a_page_options, buttonOptions#clicked;
-	M.a_page_console, itemConsole#activate;
-	M.a_page_help, itemHelp#activate;
+        M.a_page_networks, (fun () -> notebook#goto_page 0);
+	M.a_page_servers, (fun () -> notebook#goto_page 1);
+	M.a_page_downloads, (fun () -> notebook#goto_page 2);
+	M.a_page_friends, (fun () -> notebook#goto_page 3);
+	M.a_page_searches, (fun () -> notebook#goto_page 4);
+	M.a_page_rooms, (fun () -> notebook#goto_page 5);
+	M.a_page_uploads, (fun () -> notebook#goto_page 6);
+	M.a_page_console, (fun () -> notebook#goto_page 7);
+	M.a_page_graph, (fun () -> notebook#goto_page 8);
 	M.a_next_page, notebook#next_page;
 	M.a_previous_page, notebook#previous_page;
-	M.a_reconnect, itemReconnect#activate;
+	M.a_reconnect, buttonGui#clicked;
 	M.a_exit, buttonQuit#clicked;
       ] 
       in
@@ -197,7 +168,7 @@ class window () =
 	] 
       in
       List.iter
-	(add window ~cond: (fun () -> current_page = 0) servers_actions)
+	(add window ~cond: (fun () -> current_page = 1) servers_actions)
 	!!O.keymap_servers;
 
       (* Downloads shortcuts *)
@@ -206,20 +177,11 @@ class window () =
 	[
 	  M.a_cancel_download, bdls#cancel ;
 	  M.a_select_all, bdls#wlist#select_all;
+	  M.a_save_all_files, bdls#save_all ;
 	]
-      (*
-      let bdled = tab_downloads#box_downloaded in
-      let downloads_actions = global_actions @ 
-	[
-	  M.a_cancel_download, bdls#cancel ;
-	  M.a_save_all_files, bdled#save_all ;
-	  M.a_menu_save_file, bdled#save ;
-	  M.a_select_all, bdls#wlist#select_all;
-	]
-      *)
       in
       List.iter
-	(add window ~cond: (fun () -> current_page = 1) downloads_actions)
+	(add window ~cond: (fun () -> current_page = 2) downloads_actions)
 	!!O.keymap_downloads;
 
       (* Friends shortcuts *)
@@ -233,7 +195,7 @@ class window () =
 	]
       in
       List.iter
-	(add window ~cond: (fun () -> current_page = 2) friends_actions)
+	(add window ~cond: (fun () -> current_page = 3) friends_actions)
 	!!O.keymap_friends;
 
       hbox_status#pack ~expand: true tab_servers#wl_status#coerce;

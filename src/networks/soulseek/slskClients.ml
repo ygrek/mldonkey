@@ -107,6 +107,7 @@ let connect_download c file req =
               in
               let  d = Download.new_download sock c file 1 in
               set_reader sock (Download.download_reader d);
+              set_client_state c (Connected_downloading (file_num file));
               init_download_connection sock file (local_login()) req 
                 d.download_pos;
           )

@@ -27,8 +27,8 @@ class box () =
     GPack.hbox ~homogeneous:false
       ~packing:(common_frame#add) ()
   in
-  let _ =
-    GMisc.label ~text:(Gettext.gettext Gui_messages.network2)
+  let network_label =
+    GMisc.label ~text:(Gettext.gettext Gui_messages.qT_lb_network)
       ~justify:`LEFT ~line_wrap:true
       ~packing:(_anonymous_container_1#pack ~expand:false ~fill:true ~padding: 2) ()
   in
@@ -36,8 +36,8 @@ class box () =
   let _ =
     _anonymous_container_1#pack nets_wcombo#coerce ~padding: 5
   in
-  let _ =
-    GMisc.label ~text:(Gettext.gettext Gui_messages.max_hits ^ " : ")
+  let  max_hits_label =
+    GMisc.label ~text:(Gettext.gettext Gui_messages.qT_lb_max_hits)
       ~justify:`LEFT ~line_wrap:true
       ~packing:(_anonymous_container_1#pack ~expand:false ~fill:true) ()
   in
@@ -53,8 +53,8 @@ class box () =
     GButton.check_button ~active:false ~draw_indicator:true
       ~packing:(hbox_show#pack ~expand:false ~fill:true) ()
   in
-  let _ =
-    GMisc.label ~text:(Gettext.gettext Gui_messages.show_hidden_fields)
+  let show_hidden_fields_label =
+    GMisc.label ~text:(Gettext.gettext Gui_messages.qT_lb_show_hidden_fields)
       ~justify:`LEFT ~line_wrap:true ~xpad:2
       ~packing:(hbox_show#pack ~expand:false ~fill:true) ()
   in
@@ -78,6 +78,9 @@ class box () =
     (* nets becomes mutable to be able to update the combo box in the search tab *)
     val mutable nets = nets
     val nets_wcombo = nets_wcombo
+    val network_label = network_label
+    val max_hits_label = max_hits_label
+    val show_hidden_fields_label = show_hidden_fields_label
     method vbox = vbox
     method hbox = hbox
     method wtool1 = wtool1
@@ -87,6 +90,9 @@ class box () =
     method hbox_show = hbox_show
     method wchk_show = wchk_show
     method nets_wcombo = nets_wcombo
+    method network_label = network_label
+    method max_hits_label = max_hits_label
+    method show_hidden_fields_label = show_hidden_fields_label
     method coerce = vbox#coerce
   end
 

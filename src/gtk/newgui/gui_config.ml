@@ -51,9 +51,9 @@ let create_gui_params () =
       (gettext M.o_hostname) !!GO.hostname 
   in
   let gui_login = string
-      ~help: "Your login"
+      ~help: (gettext M.h_login)
       ~f: (fun s -> GO.login =:= s)
-      "Login:" !!GO.login
+      (gettext M.o_login) !!GO.login
   in
   let gui_password = password
       ~help: (gettext M.h_gui_password)
@@ -105,42 +105,42 @@ let create_gui_params () =
       (gettext M.o_col_not_connected) !!GO.color_not_connected
   in
   let color_connecting = color
-      ~help: M.h_col_connecting
+      ~help: (gettext M.h_col_connecting)
       ~f: (fun s -> GO.color_connecting =:= s)
       (gettext M.o_col_connecting) !!GO.color_connecting
   in
   let color_files_listed = color
-      ~help: (M.h_col_files_listed)
+      ~help: (gettext M.h_col_files_listed)
       ~f: (fun s -> GO.color_files_listed =:= s)
       (gettext M.o_col_files_listed) !!GO.color_files_listed
   in
   let color_files_result = color
-      ~help: (M.h_col_files_result)
+      ~help: (gettext M.h_col_files_result)
       ~f: (fun s -> GO.color_files_result =:= s)
       (gettext M.o_col_files_result) !!GO.color_files_result
   in
   let color_tab_selected = color
-      ~help: (M.h_col_tab_selected)
+      ~help: (gettext M.h_col_tab_selected)
       ~f: (fun s -> GO.color_tab_selected =:= s)
       (gettext M.o_col_tab_selected) !!GO.color_tab_selected
   in
   let color_tab_not_selected = color
-      ~help: (M.h_col_tab_not_selected)
+      ~help: (gettext M.h_col_tab_not_selected)
       ~f: (fun s -> GO.color_tab_not_selected =:= s)
       (gettext M.o_col_tab_not_selected) !!GO.color_tab_not_selected
   in
   let color_list_bg = color
-      ~help: (M.h_col_list_bg)
+      ~help: (gettext M.h_col_list_bg)
       ~f: (fun s -> GO.color_list_bg =:= s)
       (gettext M.o_col_list_bg) !!GO.color_list_bg
   in
   let color_network_enabled = color
-      ~help: (M.h_col_network_enabled)
+      ~help: (gettext M.h_col_network_enabled)
       ~f: (fun s -> GO.color_network_enabled =:= s)
       (gettext M.o_col_network_enabled) !!GO.color_network_enabled
   in
   let color_network_disabled = color
-      ~help: (M.h_col_network_disabled)
+      ~help: (gettext M.h_col_network_disabled)
       ~f: (fun s -> GO.color_network_disabled =:= s)
       (gettext M.o_col_network_disabled) !!GO.color_network_disabled
   in
@@ -171,17 +171,17 @@ let create_gui_params () =
       (GO.tbstyle_to_string !!GO.toolbars_style)
   in
   let tb_icons = bool
-      ~help: "Mini icons in toolbars:"
+      ~help: (gettext M.h_mini_toolbars)
       ~f: (fun b -> GO.mini_toolbars =:= b)
-      "Mini icons in toolbars:" !!GO.mini_toolbars
+      (gettext M.o_mini_toolbars) !!GO.mini_toolbars
   in
 
   let tab_pos = combo
       ~expand:false
-      ~help: "Position of main tab"
+      ~help: (gettext M.h_tab_position)
       ~f:(fun s -> GO.notebook_tab =:= GO.TabPosition.string_to_pos s)
       ~new_allowed:false ~blank_allowed:false
-      "Tab Position:"
+      (gettext M.o_tab_position)
       GO.TabPosition.values
       (GO.TabPosition.pos_to_string !!GO.notebook_tab)
   in
@@ -218,7 +218,7 @@ let create_gui_params () =
       ~help: (gettext M.h_servers_columns)
       ~f: (fun l -> GO.servers_columns =:= l)
       ~add: (sel 
-	       (List.map fst Gui_columns.server_column_strings)
+	       (List.map (fun (c,_,_) -> c ) Gui_columns.server_column_strings)
 	       Gui_columns.Server.string_of_column)
       ""
       (fun c -> [Gui_columns.Server.string_of_column c])
@@ -228,7 +228,7 @@ let create_gui_params () =
       ~help: (gettext M.h_downloads_columns)
       ~f: (fun l -> GO.downloads_columns =:= l)
       ~add: (sel 
-	       (List.map fst Gui_columns.file_column_strings)
+	       (List.map (fun (c,_,_) -> c ) Gui_columns.file_column_strings)
 	       Gui_columns.File.string_of_column)
       ""
       (fun c -> [Gui_columns.File.string_of_column c])
@@ -250,7 +250,7 @@ let create_gui_params () =
       ~help: (gettext M.h_friends_columns)
       ~f: (fun l -> GO.friends_columns =:= l)
       ~add: (sel 
-	       (List.map fst Gui_columns.client_column_strings)
+	       (List.map (fun (c,_,_) -> c ) Gui_columns.client_column_strings)
 	       Gui_columns.Client.string_of_column)
       ""
       (fun c -> [Gui_columns.Client.string_of_column c])
@@ -260,7 +260,7 @@ let create_gui_params () =
       ~help: (gettext M.h_file_locations_columns)
       ~f: (fun l -> GO.file_locations_columns =:= l)
       ~add: (sel 
-	       (List.map fst Gui_columns.client_column_strings)
+	       (List.map (fun (c,_,_) -> c ) Gui_columns.client_column_strings)
 	       Gui_columns.Client.string_of_column)
       ""
       (fun c -> [Gui_columns.Client.string_of_column c])
@@ -270,17 +270,17 @@ let create_gui_params () =
       ~help: (gettext M.h_results_columns)
       ~f: (fun l -> GO.results_columns =:= l)
       ~add: (sel 
-	       (List.map fst Gui_columns.result_column_strings)
+	       (List.map (fun (c,_,_) -> c ) Gui_columns.result_column_strings)
 	       Gui_columns.Result.string_of_column)
       ""
       (fun c -> [Gui_columns.Result.string_of_column c])
       !!GO.results_columns
   in
   let shared_cols = list
-      ~help: (M.h_shared_files_up_columns)
+      ~help: (gettext M.h_shared_files_up_columns)
       ~f: (fun l -> GO.shared_files_up_columns =:= l)
       ~add: (sel 
-	       (List.map fst Gui_columns.shared_file_up_column_strings)
+	       (List.map (fun (c,_,_) -> c ) Gui_columns.shared_file_up_column_strings)
 	       Gui_columns.Shared_files_up.string_of_column)
       ""
       (fun c -> [Gui_columns.Shared_files_up.string_of_column c])
@@ -315,13 +315,13 @@ let create_gui_params () =
 *)
   let files_auto_expand_depth = string
       ~f: (safe_int_of_string GO.files_auto_expand_depth)
-      ~help: (M.h_files_auto_expand_depth)
+      ~help: (gettext M.h_files_auto_expand_depth)
       (gettext M.o_files_auto_expand_depth)
       (string_of_int !!GO.files_auto_expand_depth)
   in
   let use_size_suffixes = bool
       ~f: (fun b -> GO.use_size_suffixes =:= b)
-      ~help: (M.h_use_size_suffixes)
+      ~help: (gettext M.h_use_size_suffixes)
       (gettext M.o_use_size_suffixes)
       !!GO.use_size_suffixes
   in
@@ -336,12 +336,6 @@ let create_gui_params () =
       ~help: (gettext M.h_use_relative_availability)
       (gettext M.o_use_relative_availability)
       !!GO.use_relative_availability
-  in
-  let chunk_width = string
-      ~f: (safe_int_of_string GO.chunk_width)
-      ~help: (gettext M.h_chunk_width)
-      (gettext M.o_chunk_width)
-      (string_of_int !!GO.chunk_width)
   in
   let use_icons = bool
       ~f: (fun b -> GO.use_icons =:= b)
@@ -380,7 +374,6 @@ let create_gui_params () =
 	 use_size_suffixes ;
 	 use_availability_height ;
 	 use_relative_availability ;
-	 chunk_width ;
          use_icons;
          use_graphical_availability;
          max_file_name_len;
@@ -639,10 +632,10 @@ let edit_options gui =
     let structure = [
         Section_list ((gettext M.o_gui), gui_params) ;
         Section_list ((gettext M.o_client), client_params) ;
-        Section_list ("Plugins", plugins_params) ;
+        Section_list ((gettext M.o_plugins), plugins_params) ;
       ] 
     in
-    match Configwin.get ~height: 600 ~width: 600
+    match Configwin.get ~height:600 ~width:400 
         (gettext M.o_options) structure 
     with
       Return_ok | Return_apply -> 

@@ -62,7 +62,7 @@ let reconnect_all file =
   DonkeySources.reschedule_sources file;
   List.iter (fun s ->
       match s.server_sock, server_state s with
-      | Connection sock, (Connected _ | Connected_downloading) ->
+      | Connection sock, (Connected _ | Connected_downloading _) ->
           s.server_waiting_queries <- file :: s.server_waiting_queries
       | _ -> ()
   ) (connected_servers())
@@ -907,14 +907,14 @@ let _ =
 
   server_ops.op_server_query_users <- (fun s ->
       match s.server_sock, server_state s with
-        Connection sock, (Connected _ | Connected_downloading) ->
+        Connection sock, (Connected _ | Connected_downloading _) ->
           direct_server_send sock (DonkeyProtoServer.QueryUsersReq "");
           Fifo.put s.server_users_queries false
       | _ -> ()
   );
   server_ops.op_server_find_user <- (fun s user ->
       match s.server_sock, server_state s with
-        Connection sock, (Connected _ | Connected_downloading) ->
+        Connection sock, (Connected _ | Connected_downloading _) ->
           direct_server_send sock (DonkeyProtoServer.QueryUsersReq user);
           Fifo.put s.server_users_queries true
       | _ -> ()      

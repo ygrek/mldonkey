@@ -37,20 +37,20 @@ let (!!) = Options.(!!)
 
 let data =
 [|
-  (M.o_xpm_bt_net_on, M.o_xpm_bt_net_off, gettext M.mDisplay_bt,
-    gettext M.mNet_bt);
-  (M.o_xpm_dc_net_on, M.o_xpm_dc_net_off, gettext M.mDisplay_dc,
-    gettext M.mNet_dc);
-  (M.o_xpm_ftt_net_on, M.o_xpm_ftt_net_off, gettext M.mDisplay_ftt,
-    gettext M.mNet_ftt);
-  (M.o_xpm_ed2k_net_on, M.o_xpm_ed2k_net_off, gettext M.mDisplay_ed2k,
-    gettext M.mNet_ed2k);
-  (M.o_xpm_gnut_net_on, M.o_xpm_gnut_net_off, gettext M.mDisplay_gnut,
-    gettext M.mNet_gnut);
-  (M.o_xpm_nap_net_on, M.o_xpm_nap_net_off, gettext M.mDisplay_nap,
-    gettext M.mNet_nap);
-  (M.o_xpm_slsk_net_on, M.o_xpm_slsk_net_off, gettext M.mDisplay_slsk,
-    gettext M.mNet_slsk);
+  (M.o_xpm_bt_net_on, M.o_xpm_bt_net_off, gettext M.nT_lb_display_bt,
+    gettext M.nT_lb_net_bt);
+  (M.o_xpm_dc_net_on, M.o_xpm_dc_net_off, gettext M.nT_lb_display_dc,
+    gettext M.nT_lb_net_dc);
+  (M.o_xpm_ftt_net_on, M.o_xpm_ftt_net_off, gettext M.nT_lb_display_ftt,
+    gettext M.nT_lb_net_ftt);
+  (M.o_xpm_ed2k_net_on, M.o_xpm_ed2k_net_off, gettext M.nT_lb_display_ed2k,
+    gettext M.nT_lb_net_ed2k);
+  (M.o_xpm_gnut_net_on, M.o_xpm_gnut_net_off, gettext M.nT_lb_display_gnut,
+    gettext M.nT_lb_net_gnut);
+  (M.o_xpm_nap_net_on, M.o_xpm_nap_net_off, gettext M.nT_lb_display_nap,
+    gettext M.nT_lb_net_nap);
+  (M.o_xpm_slsk_net_on, M.o_xpm_slsk_net_off, gettext M.nT_lb_display_slsk,
+    gettext M.nT_lb_net_slsk);
 |]
 
 
@@ -68,8 +68,8 @@ let fill_box box i net_enabled net_displayed net_exist =
   style#set_font (Gdk.Font.load_fontset (!!O.font_networks));
   let fg_col =
     if net_enabled then
-      [(`NORMAL, `NAME !!O.color_tab_selected)]
-      else [(`NORMAL, `NAME !!O.color_tab_not_selected)]
+      [(`NORMAL, `NAME !!O.color_network_enabled)]
+      else [(`NORMAL, `NAME !!O.color_network_disabled)]
   in
   style#set_fg fg_col;
   box#wl_net#misc#set_style style;
@@ -77,8 +77,8 @@ let fill_box box i net_enabled net_displayed net_exist =
   let style = box#wl_display#misc#style#copy in
   let fg_col =
     if net_displayed then
-      [(`NORMAL, `NAME !!O.color_tab_selected)]
-      else [(`NORMAL, `NAME !!O.color_tab_not_selected)]
+      [(`NORMAL, `NAME !!O.color_network_enabled)]
+      else [(`NORMAL, `NAME !!O.color_network_disabled)]
   in
   style#set_fg fg_col;
   box#wl_display#misc#set_style style;
@@ -663,6 +663,16 @@ class networks_box () =
         with _ -> ()
       ) G.networks
 
+
+    method clear =
+      fill_box bt_box 0 false false false;
+      fill_box dc_box 1 false false false;
+      fill_box ftt_box 2 false false false;
+      fill_box ed2k_box 3 false false false;
+      fill_box gnut_box 4 false false false;
+      fill_box nap_box 5 false false false;
+      fill_box slsk_box 6 false false false
+ 
     initializer
 
     box#vbox_left#pack ftt_box#coerce;

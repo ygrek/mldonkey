@@ -81,7 +81,7 @@ class box columns () =
           )
         );
         `M (gettext M.mAdd_column_after, (
-            List.map (fun (c,s) ->
+            List.map (fun (c,s,_) ->
                 (`I (s, (fun _ -> 
                         let c1, c2 = List2.cut (i+1) !!columns in
                         columns =:= c1 @ [c] @ c2;
@@ -89,7 +89,7 @@ class box columns () =
                     )))
             ) Gui_columns.Shared_files_up.column_strings));
         `M (gettext M.mAdd_column_before, (
-            List.map (fun (c,s) ->
+            List.map (fun (c,s,_) ->
                 (`I (s, (fun _ -> 
                         let c1, c2 = List2.cut i !!columns in
                         columns =:= c1 @ [c] @ c2;
@@ -172,7 +172,7 @@ console ???? *)
       match self#selection with
         [] -> []
       |	list ->
-          [ `I (("Copy ed2k link to console/clipboard"), copy_ed2k_links list) 
+          [ `I ((gettext M.uT_me_copy_ed2k), copy_ed2k_links list) 
           ] 
     
     method find_file num = self#find num
@@ -237,9 +237,6 @@ class upstats_box () =
     method clean_table clients =
       uploaders#clean_table clients
 
-    method retrieve_clients (c_num_list : int * (int list)) =
-      uploaders#retrieve_clients c_num_list
-    
     method refresh () =
       Gui_com.send GuiProto.RefreshUploadStats
     
@@ -290,28 +287,22 @@ class upstats_box () =
       let style = label_uploaders#misc#style#copy in
       style#set_fg [ (`NORMAL, `WHITE)];
       label_uploaders#misc#set_style style;
-(*
-      Gui_misc.insert_buttons wtool1 wtool2 
-        ~text: (gettext M.refresh)
-      ~tooltip: (gettext M.refresh)
-      ~icon: M.o_xpm_refresh
-        ~callback: self#refresh 
-        ();
-*)
 
       Gui_misc.insert_buttons wtool1 wtool2 
-        ~text: (gettext M.add_shared_directory)
-        ~tooltip: (gettext M.add_shared_directory)
+        ~text: (gettext M.uT_lb_add_shared_directory)
+        ~tooltip: (gettext M.uT_ti_add_shared_directory)
         ~icon: M.o_xpm_add_shared_directory
         ~callback: (fun _ -> 
           let module C = Configwin in
 	  let prio = ref 0 in
           let dir = ref "" in
           let params = [
-              C.string ~f: (fun p -> prio := int_of_string(p)) (gettext M.priority) "0";
-              C.filename ~f: (fun d -> dir := d) (gettext M.directory) ""] in
-          match C.simple_edit (gettext M.add_new_directory) ~with_apply: false
-            params with
+              C.string ~f: (fun p -> prio := int_of_string(p)) (gettext M.uT_lb_priority) "0";
+              C.filename ~f: (fun d -> dir := d) (gettext M.uT_lb_directory) ""] 
+          in
+          match C.simple_edit (gettext M.uT_wt_add_new_directory) 
+                   ~with_apply:false
+                   params with
             C.Return_apply -> 
               if !dir <> "" && !dir <> "/" then
                 Gui_com.send (Command (Printf.sprintf "share %d '%s'" !prio !dir))

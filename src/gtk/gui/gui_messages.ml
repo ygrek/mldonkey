@@ -514,4 +514,14 @@ Archives: http://mail.nongnu.org/mailman/listinfo/mldonkey-users
 In the console, use '?' for help on commands.
 " version
 
-  
+(** Im **)
+let iM_wt_software = "MLDonkey"
+let iM_me_file = 
+  message "iM_me_file" (T.option T.format) 
+  "File"
+let iM_me_settings = 
+  message "iM_me_settings" (T.option T.format) 
+  "Settings"
+let iM_me_quit = 
+  message "iM_me_quit" (T.option T.format) 
+  "Quit"  

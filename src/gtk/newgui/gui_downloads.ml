@@ -135,12 +135,14 @@ let save_menu_items file =
   ) 
   file.data.gfile_names
   
-let file_first_name f = f.data.gfile_name
+let file_first_name b f = 
+  if b then f.data.gfile_name
+    else String.sub f.data.gfile_name 5 ((String.length f.data.gfile_name) - 5)
 
-let save_as file () = 
-  let file_opt = GToolbox.input_string ~title:(gettext M.save_as)
-    ~text:(file_first_name file)
-    (gettext M.save_as) in
+let save_as file b () = 
+  let file_opt = GToolbox.input_string ~title:(gettext M.dT_wt_save_as)
+    ~text:(file_first_name b file)
+    (gettext M.dT_lb_save_as) in
   match file_opt with
     None -> ()
   | Some name -> 
@@ -164,9 +166,14 @@ let file_to_general_state state =
     | FileNew -> FNew
     | FileAborted s -> FAborted s
 
-let client_to_general_state state =
+let client_to_general_state state file_num =
   match state with
-    | Connected_downloading -> CConnected_downloading
+    | Connected_downloading n ->
+        if n = (-1) 
+          then CConnected_downloading
+          else if file_num = n 
+            then CConnected_downloading
+            else CConnected (-1)
     | Connected n -> CConnected n
     | Connecting  -> CConnecting
     | NewHost -> CNewHost
@@ -178,37 +185,37 @@ let client_to_general_state state =
 let string_of_file_state f =
   match f.data.gfile_state with
   | FDownloading -> if f.data.gfile_download_rate > 0.
-                      then (gettext M.downloading)
-                      else (gettext M.waiting)
-  | FCancelled -> (gettext M.cancelled)
-  | FQueued -> (gettext M.queued)
-  | FPaused -> (gettext M.paused)
-  | FDownloaded -> (gettext M.complete)
-  | FShared  -> (gettext M.dl_done)
+                        then gettext M.dT_tx_downloading
+                        else gettext M.dT_tx_waiting
+  | FCancelled -> gettext M.dT_tx_cancelled
+  | FQueued -> gettext M.dT_tx_queued
+  | FPaused -> gettext M.dT_tx_paused
+  | FDownloaded -> gettext M.dT_tx_complete
+  | FShared  -> gettext M.dT_tx_dl_done
   | FNew -> assert false
-  | FAborted s -> Printf.sprintf "Aborted: %s" s
-  | CConnected_downloading -> gettext M.downloading
-  | CConnected (-1) -> gettext M.connected
-  | CConnecting  -> gettext M.connecting
-  | CNewHost -> "NEW HOST"
-  | CConnected_initiating -> gettext M.initiating
-  | CConnected 0 -> gettext M.queued
-  | CConnected n -> Printf.sprintf "Ranked %d" n
+  | FAborted s -> Printf.sprintf !!Gui_messages.dT_tx_dl_aborted s
+  | CConnected_downloading -> gettext M.dT_tx_downloading
+  | CConnected (-1) -> gettext M.dT_tx_connected
+  | CConnecting  -> gettext M.dT_tx_connecting
+  | CNewHost -> gettext M.dT_tx_new_host
+  | CConnected_initiating -> gettext M.dT_tx_initiating
+  | CConnected 0 -> gettext M.dT_tx_queued
+  | CConnected n -> Printf.sprintf !!Gui_messages.dT_tx_ranked n
   | CNotConnected (_,n) ->
       if n = -1 then
         ""
       else
       if n = 0 then
-        "Queued out"
+        (gettext M.dT_tx_queued_out)
       else
       if n > 0 then
-        Printf.sprintf "Ranked %d Out" n
+         Printf.sprintf !!Gui_messages.dT_tx_ranked_out n
       else
-        Printf.sprintf "Failed %d" (- n - 1)
+         Printf.sprintf !!Gui_messages.dT_tx_failed (- n - 1)
+       
+  | CRemovedHost -> gettext M.dT_tx_removed
+  | CBlackListedHost -> gettext M.dT_tx_black_listed
 
-  | CRemovedHost -> gettext M.removed
-  | CBlackListedHost -> gettext M.black_listed
-      
       
 let some_is_available f =
   match f.data.gfile_availability with
@@ -296,7 +303,7 @@ let string_of_format format =
       Printf.sprintf "MP3: %s - %s (%d): %s"
 	tag.M.artist tag.M.album 
 	tag.M.tracknum tag.M.title
-  | _ -> (gettext M.unknown)
+  | _ -> (gettext M.dT_tx_unknown)
 
 let time_to_string time =
   let days = time / 60 / 60 / 24 in
@@ -385,7 +392,7 @@ class box columns sel_mode () =
           )
         );
         `M (gettext M.mAdd_column_after, (
-            List.map (fun (c,s) ->
+            List.map (fun (c,s,_) ->
                 (`I (s, (fun _ -> 
                         let c1, c2 = List2.cut (i+1) !!columns in
                         columns =:= c1 @ [c] @ c2;
@@ -393,7 +400,7 @@ class box columns sel_mode () =
                     )))
             ) Gui_columns.file_column_strings));
         `M (gettext M.mAdd_column_before, (
-            List.map (fun (c,s) ->
+            List.map (fun (c,s,_) ->
                 (`I (s, (fun _ -> 
                         let c1, c2 = List2.cut i !!columns in
                         columns =:= c1 @ [c] @ c2;
@@ -407,7 +414,7 @@ class box columns sel_mode () =
       (* Printf.printf "Gui_downloads has_changed_width\n";
       flush stdout;*)
       List.iter ( fun (col, width) ->
-        if ((self#wlist#column_title col) = M.c_avail) && (!the_col_width <> width)
+        if ((self#wlist#column_title col) = (gettext M.c_avail)) && (!the_col_width <> width)
           then begin
             (* Printf.printf "Column No %d Width %d Width_ref %d\n" col width !the_col_width;
             flush stdout;*)
@@ -461,9 +468,7 @@ class box columns sel_mode () =
     
     method content_by_col f col =
       match col with
-        Col_file_name -> 
-          let s_file = Gui_misc.short_name f.data.gfile_name in
-          s_file
+        Col_file_name -> Gui_misc.short_name f.data.gfile_name
       |	Col_file_size ->
           if (List.length f.data.gfile_num) = 1 then
             Gui_misc.size_of_int64 f.data.gfile_size ^ " ("
@@ -476,7 +481,7 @@ class box columns sel_mode () =
       |	Col_file_percent ->
           if (List.length f.data.gfile_num) = 1 then
             if Int64.to_float f.data.gfile_size <> 0. then
-          Printf.sprintf "%5.1f" 
+              Printf.sprintf "%5.1f" 
                  (Int64.to_float f.data.gfile_downloaded /. Int64.to_float f.data.gfile_size *. 100.)
               else ""
             else fst (List.hd f.data.gfile_names)
@@ -513,27 +518,27 @@ class box columns sel_mode () =
             if f.data.gfile_last_seen > 0 then
               let last = (BasicSocket.last_time ())
                 - f.data.gfile_last_seen in
-            time_to_string last
-          else Printf.sprintf "---"
+              time_to_string last
+              else Printf.sprintf "---"
             else ""
       | Col_file_eta ->
           if (List.length f.data.gfile_num) = 1 then
           let eta = calc_file_eta f in
           if eta >= 1000 * 60 * 60 * 24 then
-            Printf.sprintf "---"
-          else time_to_string eta
+              Printf.sprintf "---"
+              else time_to_string eta
             else ""
       |	Col_file_priority ->
           if (List.length f.data.gfile_num) = 1 then
             (match f.data.gfile_priority with
-                 -10 -> gettext M.set_priority_low
-               | 0 -> gettext M.set_priority_normal
-               | 10 -> gettext M.set_priority_high
+                 -10 -> gettext M.dT_tx_priority_low
+               | 0 -> gettext M.dT_tx_priority_normal
+               | 10 -> gettext M.dT_tx_priority_high
                | _ -> Printf.sprintf "%d" f.data.gfile_priority)
             else ""
     
     method content f =
-      let strings = List.map (*(fun col -> P.String (self#content_by_col f col))*)
+      let strings = List.map
           (fun col -> match col with
                Col_file_name ->
                  (match f.data.gfile_pixmap with
@@ -565,8 +570,7 @@ class box columns sel_mode () =
     method find_file num = self#find num
     
     method remove_file f row = 
-      self#remove_item row f;
-      selection <- List.filter (fun fi -> fi.data.gfile_num <> f.data.gfile_num) selection
+      self#remove_item row f
     
     method set_tb_style tb = 
       if Options.(!!) Gui_options.mini_toolbars then
@@ -582,18 +586,14 @@ class box columns sel_mode () =
 
 end
 
-    
 
-(* as the downloads list is often updated to optimize the CPU load
-we can update the downloads GUI list only when it is visible, included rows *)
-let toggle_update_clist = ref false
-
-(* lets make a simple function to give a 3D effect *)
+(* make a simple function to give a 3D effect *)
 let highlight range i =
   if i < 8
     then 256 * (2 * i * range / 16)
     else 256 * (range - (i * range / 2 / 16))
 
+(* define the colors we will use to display the availability *)
 let color_red = GDraw.pixmap ~width:1 ~height:16
                   ~colormap:(Gdk.Color.get_system_colormap ()) ()
 let _ =
@@ -728,28 +728,34 @@ let get_avail_pixmap avail chunks is_file =
         done;
         pixmap
       end
-      
+
+let refresh_timerID =
+  ref (Timeout.add ~ms:2000
+        ~callback:(fun _ -> true))
+     
 class box_downloads wl_status () =
 
   let label_file_info = GMisc.label () in
   object (self)
     inherit box O.downloads_columns `EXTENDED ()
     
-    val mutable clients_list = ((0,[]) : int * (int list ))
     val mutable use_avail_pixmap  = (!!O.use_graphical_availability : bool)
     val mutable icons_are_used = (!!O.use_icons : bool)
+    val mutable is_visible = (false : bool)
 
 
     method update_wl_status : unit =
       wl_status#set_text 
-        (Printf.sprintf !!Gui_messages.downloaded_files !G.ndownloaded !G.ndownloads)
+        (Printf.sprintf !!Gui_messages.mW_sb_downloaded_files 
+           !G.ndownloaded !G.ndownloads)
     
     method cancel () =
-      let s = Gui_messages.ask_cancel_download_files
-          (List.map (fun f -> file_first_name f) self#selection)
-      in
-      match GToolbox.question_box (gettext Gui_messages.cancel)
-        [ gettext Gui_messages.yes ; gettext Gui_messages.no] s 
+      let s = ref (gettext M.dT_lb_ask_cancel_download_files) in
+      List.iter (fun f -> 
+        s := !s ^ (file_first_name icons_are_used f) ^ "\n" 
+      ) self#selection;
+      match GToolbox.question_box (gettext M.dT_wt_cancel)
+        [ gettext M.pW_lb_ok ; gettext M.pW_lb_cancel] !s 
       with
         1 ->
           List.iter
@@ -793,35 +799,17 @@ class box_downloads wl_status () =
            Gui_com.send (SetFilePriority (List.hd f.data.gfile_num, prio)))
       self#selection
 
-    method clients_list = clients_list
-
     method show_hide_sources file =
       let check_first =
         List.mem_assoc file.data.gfile_num self#is_expanded
       in
       if check_first then
         self#collapse_file file
-        else begin
-          let file_num = List.hd file.data.gfile_num in
-          let l = ref [] in
-          List.iter (fun child ->
-            let num = List.hd (List.rev child.data.gfile_num) in
-            l := num::!l
-          ) file.children;
-          if !l <> [] then begin
-              clients_list <- (file_num, !l);
-              (* Printf.printf "Gui_downloads Asked Clients : %d\n" (List.length (snd clients_list));
-              flush stdout; *)
-              (ask_clients#clicked ())
-            end
-        end
+        else self#expand_file file
 
     method collapse_file file =
-      (* Printf.printf "Gui_downloads Collapse\n";
-      flush stdout; *)
-      toggle_update_clist := false;
-      toggle_update_clist := self#collapse file;
-      let (row, _) = self#find_file file.data.gfile_num in
+      ignore (self#collapse file);
+      let (row, fi) = self#find_file file.data.gfile_num in
       if icons_are_used then
         file.data.gfile_pixmap <- Some (tree_pixmap false)
         else
@@ -834,61 +822,38 @@ class box_downloads wl_status () =
       List.iter (fun child ->
         child.data.gfile_pixmap <- None;
         child.data.gfile_net_pixmap <- None;
-        child.data.gfile_avail_pixmap <- None;
-      ) file.children
+        child.data.gfile_priority_pixmap <- None;
+        child.data.gfile_avail_pixmap <- None
+      ) fi.children
 
-    method expand_file (c_list : int * (gui_client_info list)) =
-      (* Printf.printf "Gui_downloads Received Clients : %d\n" (List.length (snd c_list));
-      flush stdout; *)
-      let file_num = fst c_list in
-      let array_of_clients = Array.of_list (snd c_list) in
-      let (row, file) = self#find_file [file_num] in
-      let i = ref 0 in
-      List.iter (fun child ->
-        let c = array_of_clients.(!i) in
-        (* if I understood a client can be from a different
-           network than the file one ? *)
-        (* let's check if the order is good ;-) *)
-        (* Printf.printf "Child %d - Client %d\n" (List.hd (List.rev child.data.gfile_num)) c.gclient_num;
-        flush stdout;*)
-        child.data.gfile_network <- c.gclient_network;
-        child.data.gfile_names <- [c.gclient_software, noips()];
-        child.data.gfile_size <- c.gclient_uploaded;
-        child.data.gfile_downloaded <- c.gclient_downloaded;
-        child.data.gfile_state  <- client_to_general_state c.gclient_state;
-        child.data.gfile_chunks <- file.data.gfile_chunks;
-        if icons_are_used then
-          begin
-            child.data.gfile_name <- c.gclient_name;
-            child.data.gfile_pixmap <-
-                Some (get_source_pix c.gclient_type);
-            child.data.gfile_net_pixmap <-
-              Some (Gui_options.network_pix
-                     (Gui_global.network_name c.gclient_network));
-          end else
-            begin
-              child.data.gfile_name <- "   |-- " ^ c.gclient_name;
-              child.data.gfile_pixmap <- None;
-              child.data.gfile_net_pixmap <- None
-            end;
-        child.data.gfile_avail_pixmap <-
-          if use_avail_pixmap then
-            Some (get_avail_pixmap child.data.gfile_availability
-                                   child.data.gfile_chunks
-                                   false)
-            else None;
-        incr (i)
-      ) file.children;
+    method expand_file file =
+      let (row, fi) = self#find_file file.data.gfile_num in
       if icons_are_used then
-        file.data.gfile_pixmap <- Some (tree_pixmap true)
-        else
+        begin
+          file.data.gfile_pixmap <- Some (tree_pixmap true);
+          List.iter (fun child ->
+            child.data.gfile_pixmap <- 
+              Some (get_source_pix child.data.gfile_type);
+            child.data.gfile_net_pixmap <- 
+              Some (Gui_options.network_pix 
+                     (Gui_global.network_name child.data.gfile_network));
+            child.data.gfile_avail_pixmap <-
+              if use_avail_pixmap then
+                Some (get_avail_pixmap child.data.gfile_availability
+                                       fi.data.gfile_chunks
+                                       false)
+                else None;
+          ) fi.children
+        end else
           begin
-            let s = String.sub file.data.gfile_name 5 ((String.length file.data.gfile_name) - 5) in
+            let s = 
+              String.sub file.data.gfile_name 5 
+                ((String.length file.data.gfile_name) - 5) 
+            in
             file.data.gfile_name <- "(=)- " ^ s
           end;
       self#update_row file row;
-      toggle_update_clist := false;
-      toggle_update_clist := self#expand file
+      ignore (self#expand file)
 
     method add_to_friends () =
       List.iter
@@ -901,7 +866,7 @@ class box_downloads wl_status () =
       self#iter	(fun f ->
           match f.data.gfile_state with
               FDownloaded -> 
-                Gui_com.send (GuiProto.SaveFile (List.hd f.data.gfile_num, file_first_name f))
+                Gui_com.send (GuiProto.SaveFile (List.hd f.data.gfile_num, file_first_name icons_are_used f))
             | _ -> () 
       )
     
@@ -916,7 +881,7 @@ class box_downloads wl_status () =
           (
             match file.data.gfile_format with
               MP3 (tag,_) ->
-                Mp3_ui.edit_tag_v1 (gettext M.edit_mp3) tag ;
+                Mp3_ui.edit_tag_v1 (gettext M.dT_wt_edit_mp3) tag ;
                 Gui_com.send (GuiProto.ModifyMp3Tags (List.hd file.data.gfile_num, tag))
             | _ ->
                 ()
@@ -931,35 +896,35 @@ class box_downloads wl_status () =
           if List.length file.data.gfile_num = 1 then
             (if tail = [] then
                 [
-                  `I ((gettext M.view_sources), fun _ -> self#show_hide_sources file) ;
-                  `I ((gettext M.preview), preview file) ;
+                  `I ((gettext M.dT_me_view_sources), fun _ -> self#show_hide_sources file) ;
+                  `I ((gettext M.dT_me_preview), preview file) ;
                   `S ;
                 ]
               else  [])@
-          `I ((gettext M.pause_resume_dl), self#pause_resume) ::
-          `I ((gettext M.retry_connect), self#retry_connect) ::
-          `I ((gettext M.cancel), self#cancel) ::
+          `I ((gettext M.dT_me_pause_resume_dl), self#pause_resume) ::
+          `I ((gettext M.dT_me_retry_connect), self#retry_connect) ::
+          `I ((gettext M.dT_me_cancel), self#cancel) ::
             `S ::
-          `I ((gettext M.verify_chunks), self#verify_chunks) ::
-            `M ((gettext M.set_priority), [
-                `I ((gettext M.set_priority_high), self#set_priority 10);
-                `I ((gettext M.set_priority_normal), self#set_priority 0);
-                `I ((gettext M.set_priority_low), self#set_priority (-10));
+          `I ((gettext M.dT_me_verify_chunks), self#verify_chunks) ::
+            `M ((gettext M.dT_me_set_priority), [
+                `I ((gettext M.dT_me_set_priority_high), self#set_priority 10);
+                `I ((gettext M.dT_me_set_priority_normal), self#set_priority 0);
+                `I ((gettext M.dT_me_set_priority_low), self#set_priority (-10));
             ]) ::
-          `I ((gettext M.get_format), self#get_format) ::
+          `I ((gettext M.dT_me_get_format), self#get_format) ::
             `S ::
           (match (file.data.gfile_state, file.data.gfile_format) with
-               (FDownloaded, MP3 _) -> [`I ((gettext M.edit_mp3), self#edit_mp3_tags)]
+               (FDownloaded, MP3 _) -> [`I ((gettext M.dT_me_edit_mp3), self#edit_mp3_tags)]
              | _ -> []) @
-          `I ((gettext M.save_all), self#save_all) ::           
+          `I ((gettext M.dT_me_save_all), self#save_all) ::           
           (if tail = [] then
               [
-                `I ((gettext M.save_as), save_as file) ;
-                  `M ((gettext M.save), save_menu_items file) ;
+                `I ((gettext M.dT_me_save_as), save_as file icons_are_used) ;
+                  `M ((gettext M.dT_me_save), save_menu_items file) ;
               ]
             else  [])
             else
-            [ `I (gettext M.add_to_friends, self#add_to_friends) ]
+            [ `I (gettext M.dT_me_add_to_friends, self#add_to_friends) ]
 
     method resize_all_avail_pixmap =
       if use_avail_pixmap then
@@ -979,38 +944,20 @@ class box_downloads wl_status () =
                                      false));
             let (row, _) = self#find_file f.data.gfile_num in
             if row <> (-1) then self#update_row f row
-        ) self#get_all_items
+        ) (List.rev self#get_all_items)
     
     val mutable label_shown = false
       
-    method on_select file =
-    (* same comment than for the friends tab but without
-       consequence here. Just to be coherent ;-) *)
-      if file = List.hd (List.rev self#selection) then
-      if not label_shown then begin
-          label_shown <- true;
-          self#vbox#pack ~expand: false ~fill: true label_file_info#coerce
-          
-        end;
-      label_file_info#set_text 
-        (
-        Printf.sprintf "NAME: %s SIZE: %s FORMAT: %s" 
-          (file.data.gfile_name)
-        (Int64.to_string file.data.gfile_size)
-        (string_of_format file.data.gfile_format)
-        ;
-      )
-    
 (** {2 Handling core messages} *)
 
-     method update_file f f_new row switch =
+     method update_file f f_new =
       f.data.gfile_md4 <- f_new.file_md4 ;
       f.data.gfile_name <-
         if icons_are_used then
           f_new.file_name
           else begin
             let s = String.sub f.data.gfile_name 0 5 in
-            s ^ f_new.file_name
+            (s ^ f_new.file_name)
           end;
       f.data.gfile_names <- f_new.file_names ;
       f.data.gfile_size <- f_new.file_size ;
@@ -1024,9 +971,6 @@ class box_downloads wl_status () =
       f.data.gfile_last_seen <- f_new.file_last_seen;
       if f.data.gfile_priority <> f_new.file_priority then
            begin
-            (* Printf.printf "Priority changed : %b %b\n"
-               (f.gfile_priority <> f_new.file_priority) (f.gfile_priority_pixmap <> None);
-              flush stdout;*)
              f.data.gfile_priority <- f_new.file_priority;
              f.data.gfile_priority_pixmap <-
                if icons_are_used then
@@ -1036,51 +980,43 @@ class box_downloads wl_status () =
       if ((f.data.gfile_availability <> f_new.file_availability) ||
           f.data.gfile_chunks <> f_new.file_chunks ) then
            begin
-            (*Printf.printf "Availability changed : %b %b %b\n"
-               (f.gfile_availability <> f_new.file_availability) (f.gfile_chunks <> f_new.file_chunks)
-               (f.gfile_avail_pixmap <> None);
-              flush stdout;*)
-              f.data.gfile_availability <- f_new.file_availability ;
-              f.data.gfile_chunks <- f_new.file_chunks ;
-              f.data.gfile_avail_pixmap <-
-                if use_avail_pixmap then
-                  Some (get_avail_pixmap f.data.gfile_availability
-                                         f.data.gfile_chunks
-                                         true)
-                  else None
-           end;
-      if switch then
-      self#update_row f row
-      else
-        begin
-      let test_visibility = self#wlist#row_is_visible row in
-      match test_visibility with
-          `NONE -> ()
-        | _ -> if !toggle_update_clist then self#update_row f row
-        end
+             f.data.gfile_availability <- f_new.file_availability ;
+             f.data.gfile_chunks <- f_new.file_chunks ;
+             f.data.gfile_avail_pixmap <-
+               if use_avail_pixmap then
+                 Some (get_avail_pixmap f.data.gfile_availability
+                                        f.data.gfile_chunks
+                                        true)
+                 else None
+           end
 
-    (*
-    as now we do not update the GUI downloads list every time,
+    (* as now we do not update the GUI downloads list every time,
     we need to refresh it when it is visible, i.e. when the
     downloads tab is selected. In the mean time it is not necessary
     to update rows that are not visible *)
-    method is_visible b =
-      toggle_update_clist := b
 
-    
-    
-    method h_file_downloaded num dled rate =
-      try
-        let (row, f) = self#find_file [num] in
-        f.data.gfile_downloaded <- dled;
-        f.data.gfile_download_rate <- rate;
-        let test_visibility = self#wlist#row_is_visible row in
+    method refresh () =
+      let nrows = self#wlist#rows - 1 in
+      self#wlist#freeze ();
+      for r = 0 to nrows do
+        let test_visibility = self#wlist#row_is_visible r in
+        let f = self#get_data r in
         match test_visibility with
             `NONE -> ()
-          | _ -> if !toggle_update_clist then self#update_row f row
-      with
-        Not_found ->
-          ()
+          | _ -> self#update_row f r
+      done;
+      self#wlist#thaw ()
+        
+    method is_visible b =
+      if b then begin
+        self#refresh ();
+        refresh_timerID :=
+          (Timeout.add ~ms:2000
+             ~callback:(fun _ ->
+               self#refresh ();
+               true))
+        end else
+          Timeout.remove (!refresh_timerID)
     
     (* to convert a file_info into a gui_file_info *)
     method file_to_gui_file f =
@@ -1106,6 +1042,7 @@ class box_downloads wl_status () =
         gfile_age = f.file_age;
         gfile_last_seen = f.file_last_seen;
         gfile_priority = f.file_priority;
+        gfile_type = 0;
         gfile_pixmap =
           if icons_are_used then
             Some (tree_pixmap false)
@@ -1126,8 +1063,8 @@ class box_downloads wl_status () =
 
     method h_paused f =
       try
-        let (row, fi) = self#find_file [f.file_num] in
-        self#update_file fi f row false
+        let (_, fi) = self#find_file [f.file_num] in
+        self#update_file fi f
       with
         Not_found ->
           incr ndownloads;
@@ -1149,12 +1086,12 @@ class box_downloads wl_status () =
     
     method h_downloaded f =
       try
-        let (row, fi) = self#find_file [f.file_num] in
+        let (_, fi) = self#find_file [f.file_num] in
         match fi.data.gfile_state with
             FDownloaded -> ()
           | _ -> incr ndownloaded;
         self#update_wl_status ;
-        self#update_file fi f row true
+        self#update_file fi f
       with
         Not_found ->
           incr ndownloads;
@@ -1176,14 +1113,31 @@ class box_downloads wl_status () =
           ()
     
     method h_downloading f = self#h_paused f
+
+    method h_file_downloaded num dled rate last =
+      try
+        let (row, f) = self#find_file [num] in
+        f.data.gfile_downloaded <- dled;
+        f.data.gfile_download_rate <- rate;
+        f.data.gfile_last_seen <- last
+      with Not_found -> ()
     
+    method h_file_age num age =
+      try
+        let (_, f) = self#find_file [num] in
+        f.data.gfile_age <- age
+      with Not_found -> ()
+        
     method make_child file client_num avail =
       [{
         data =
           {
             gfile_num = [List.hd file.data.gfile_num; client_num];
             gfile_network = file.data.gfile_network;
-            gfile_name = Printf.sprintf "Client %d" client_num;
+            gfile_name =
+              if icons_are_used then
+                Printf.sprintf "Client %d" client_num
+                else "   |-- " ^ (Printf.sprintf "Client %d" client_num);
             gfile_names = ["", noips()];
             gfile_md4 = file.data.gfile_md4;
             gfile_size = Int64.of_string "0";
@@ -1198,10 +1152,11 @@ class box_downloads wl_status () =
             gfile_age = 0;
             gfile_last_seen = 0;
             gfile_priority = 1;
+            gfile_type = 0;
             gfile_pixmap = None;
             gfile_net_pixmap = None;
             gfile_priority_pixmap = None;
-            gfile_avail_pixmap = None
+            gfile_avail_pixmap = None;
           };
         children = []
       }]
@@ -1215,67 +1170,50 @@ class box_downloads wl_status () =
         fi.children <-
             (match fi.children with
                 [] ->
+                   Gui_com.send (GuiProto.GetClient_info client_num);
                    self#make_child fi client_num [0,avail]
               | l ->
                    let length = List.length l in
                    let rec iter i n =
                       if i = n then
-                        l@(self#make_child fi client_num [0,avail])
-                        else
+                        begin
+                          Gui_com.send (GuiProto.GetClient_info client_num);
+                          l@(self#make_child fi client_num [0,avail])
+                        end else
                           begin
                             let child = List.nth l i in
-                            let num = List.hd (List.rev child.data.gfile_num) in
-                            if num = client_num then
+                            let cnum = List.hd (List.rev child.data.gfile_num) in
+                            if cnum = client_num then
                               begin
-                                let c_array = Array.of_list l in
-                                Array.blit c_array (i + 1) c_array i (length - i - 1);
-                                let new_l = Array.to_list (Array.sub c_array 0 (length - 1)) in
-                                new_l@(self#make_child fi client_num [0,avail])
-                              end
-                              else iter (i + 1) n
+                                child.data.gfile_availability <- [0,avail];
+                                l
+                              end else iter (i + 1) n
                           end
                    in iter 0 length
              )
 
       with _ -> ()
     
-    method h_file_age num age =
-      try
-        let (row, f) = self#find_file [num] in
-        f.data.gfile_age <- age;
-       let test_visibility = self#wlist#row_is_visible row in
-        match test_visibility with
-            `NONE -> ()
-          | _ -> if !toggle_update_clist then self#update_row f row
-      with Not_found -> ()
-    
-    method h_file_last_seen num last =
-      try
-        let (row, f) = self#find_file [num] in
-        f.data.gfile_last_seen <- last;
-        let test_visibility = self#wlist#row_is_visible row in
-        match test_visibility with
-            `NONE -> ()
-          | _ -> if !toggle_update_clist then self#update_row f row
-      with Not_found -> ()
-    
+
     method h_file_location num src =
       try
         let (row, fi) = self#find_file [num] in
         fi.children <-
             (match fi.children with
                 [] ->
+                   Gui_com.send (GuiProto.GetClient_info src);
                    self#make_child fi src [0,""]
               | l ->
                    let length = List.length l in
                    let rec iter i n =
-                      if i = n then
+                      if i = n then begin
+                        Gui_com.send (GuiProto.GetClient_info src);
                         l@(self#make_child fi src [0,""])
-                        else
+                        end else
                           begin
                             let child = List.nth l i in
-                            let num = List.hd (List.rev child.data.gfile_num) in
-                            if num = src then
+                            let cnum = List.hd (List.rev child.data.gfile_num) in
+                            if cnum = src then
                               l
                               else iter (i + 1) n
                           end
@@ -1285,8 +1223,6 @@ class box_downloads wl_status () =
       with _ -> ()
     
     method h_file_remove_location (num:int) (src:int) = 
-      (* Printf.printf "Gui_downloads Remove Location\n";
-      flush stdout; *)
       try
 (*        lprintf "Source %d for %d" src num;  lprint_newline (); *)
         let (row , fi) = self#find_file [num] in
@@ -1302,8 +1238,8 @@ class box_downloads wl_status () =
                         else
                           begin
                             let child = List.nth l i in
-                            let num = List.hd (List.rev child.data.gfile_num) in
-                            if num = src then
+                            let cnum = List.hd (List.rev child.data.gfile_num) in
+                            if cnum = src then
                               begin
                                 let c_array = Array.of_list l in
                                 Array.blit c_array (i + 1) c_array i (length - i - 1);
@@ -1319,8 +1255,6 @@ class box_downloads wl_status () =
 (*          lprintf "No such file %d" num; lprint_newline () *)
           ()
     
-    (* it is possible like this because we do not use
-     the filter. Otherwise ... *)
     method clean_table clients =
       (* Printf.printf "Gui_downloads Clean Table\n";
       flush stdout; *)
@@ -1346,69 +1280,141 @@ class box_downloads wl_status () =
     
     (* to update sources in case a file is expanded *)
     method update_client_state (num , state) =
-      let nrows = self#wlist#rows in
-      for r = 0 to (nrows - 1) do
-        let f = self#get_data r in
-        match f.data.gfile_num with
-            [ _; n] ->
-              if n = num then
-                begin
-                  f.data.gfile_state <- client_to_general_state state;
-                  self#update_row f r
+      List.iter (fun f ->
+        let length = List.length f.children in
+        if (List.length f.data.gfile_num) = 1
+          then begin
+            let rec iter i n =
+              if i = n then begin
+                (* Printf.printf "Gui_downloads update_client_state Failed to find SOURCE\n";
+                 flush stdout; *)
+                end else begin
+                  let child = List.nth f.children i in
+                  let cnum = List.hd (List.rev child.data.gfile_num) in
+                  if cnum = num 
+                    then if state = RemovedHost 
+                      then begin
+                        let c_array = Array.of_list f.children in
+                        Array.blit c_array (i + 1) c_array i (length - i - 1);
+                        f.children <- Array.to_list (Array.sub c_array 0 (length - 1))
+                      end else child.data.gfile_state <- client_to_general_state state (List.hd f.data.gfile_num)
+                    else iter (i + 1) n
                 end
+            in iter 0 length
+
+          end else match f.data.gfile_num with
+            [file_num; n] ->
+              if n = num 
+                then f.data.gfile_state <- client_to_general_state state file_num
+
           | _ -> ()
 
-      done
+      ) self#get_all_items
 
     method update_client_type (num , friend_kind) =
-      let nrows = self#wlist#rows in
-      for r = 0 to (nrows - 1) do
-        let f = self#get_data r in
-        match f.data.gfile_num with
+      List.iter (fun f ->
+        let length = List.length f.children in
+        if (List.length f.data.gfile_num) = 1
+          then begin
+            let rec iter i n =
+              if i = n then begin
+                (* Printf.printf "Gui_downloads update_client_type Failed to find SOURCE\n";
+                 flush stdout; *)
+                end else begin
+                  let child = List.nth f.children i in
+                  let cnum = List.hd (List.rev child.data.gfile_num) in
+                  if cnum = num 
+                    then f.data.gfile_type <- friend_kind
+                    else iter (i + 1) n
+                end
+            in iter 0 length
+
+          end else match f.data.gfile_num with
             [ _; n] ->
               if n = num then
                 begin
+                  f.data.gfile_type <- friend_kind;
                   f.data.gfile_pixmap <-
                     if icons_are_used then
                       Some (get_source_pix friend_kind)
-                      else None;
-                  self#update_row f r
-end
+                      else None
+                end
+
           | _ -> ()
 
-      done
+      ) self#get_all_items
 
     method update_client c =
-      let nrows = self#wlist#rows in
-      for r = 0 to (nrows - 1) do
-        let f = self#get_data r in
-        match f.data.gfile_num with
-            [ _; n] ->
+      List.iter (fun f ->
+        let length = List.length f.children in
+        if (List.length f.data.gfile_num) = 1
+          then begin
+            let rec iter i n =
+              if i = n then begin
+                (* Printf.printf "Gui_downloads update_client Failed to find SOURCE\n";
+                 flush stdout; *)
+                end else begin
+                  let child = List.nth f.children i in
+                  let cnum = List.hd (List.rev child.data.gfile_num) in
+                  if cnum = c.client_num 
+                    then if c.client_state = RemovedHost 
+                      then begin
+                        let c_array = Array.of_list f.children in
+                        Array.blit c_array (i + 1) c_array i (length - i - 1);
+                        f.children <- Array.to_list (Array.sub c_array 0 (length - 1))
+                      end else begin
+                        child.data.gfile_names <- [(if c.client_emulemod = ""
+                                                     then c.client_software
+                                                     else (c.client_software ^ 
+                                                           " - " ^
+                                                           c.client_emulemod)),
+                                                   noips()];
+                        child.data.gfile_size <- c.client_uploaded;
+                        child.data.gfile_downloaded <- c.client_downloaded;
+                        child.data.gfile_state  <- client_to_general_state c.client_state (List.hd f.data.gfile_num);
+                        child.data.gfile_chunks <- f.data.gfile_chunks;
+                        child.data.gfile_name <- 
+                          if icons_are_used
+                            then c.client_name
+                            else "   |-- " ^ c.client_name;
+                        child.data.gfile_type <- c.client_type;
+                        child.data.gfile_network <- c.client_network;
+                      end
+                    else iter (i + 1) n
+                end
+            in iter 0 length
+
+          end else match f.data.gfile_num with
+            [file_num; n] ->
               if n = c.client_num then
                 begin
-                  f.data.gfile_state <- client_to_general_state c.client_state;
+                  f.data.gfile_names <- [c.client_software ^ 
+                                         " - " ^
+                                         c.client_emulemod,
+                                         noips()];
+                  f.data.gfile_state <- client_to_general_state c.client_state file_num;
                   f.data.gfile_size <- c.client_uploaded;
                   f.data.gfile_downloaded <- c.client_downloaded;
-                  f.data.gfile_pixmap <-
-                    if icons_are_used then
-                      Some (get_source_pix c.client_type)
-                      else None;
-                  self#update_row f r
+                  if f.data.gfile_type <> c.client_type then
+                    begin
+                      f.data.gfile_type <- c.client_type;                 
+                      f.data.gfile_pixmap <-
+                        if icons_are_used then
+                          Some (get_source_pix c.client_type)
+                          else None
+                    end
                 end
+
           | _ -> ()
 
-      done
+      ) self#get_all_items
 
     (* options for icons *)
     method update_availability_column b =
       use_avail_pixmap <- b;
       if b then begin
-        (* Printf.printf "Gui_downloads update_availability_column %b\n" b;
-        flush stdout; *)
         self#resize_all_avail_pixmap
         end else begin
-          (* Printf.printf "Gui_downloads update_availability_column %b\n" b;
-          flush stdout; *)
           List.iter (fun f ->
             f.data.gfile_avail_pixmap <- None
           ) self#get_all_items;
@@ -1420,26 +1426,40 @@ end
       List.iter (fun f ->
         let f_expanded =
           List.mem_assoc f.data.gfile_num self#is_expanded
-  in
+        in
         if f_expanded then self#collapse_file f
       ) self#get_all_items;
       icons_are_used <- b;
       let (f, label, step) =
         if b then
           ((fun f ->
-          f.data.gfile_name <- String.sub f.data.gfile_name 5 ((String.length f.data.gfile_name) - 5);
-          f.data.gfile_pixmap <- Some (tree_pixmap false);
-          f.data.gfile_net_pixmap <- Some (Gui_options.network_pix (Gui_global.network_name f.data.gfile_network));
-          f.data.gfile_priority_pixmap <- (get_priority_pixmap f.data.gfile_priority)
-          ), gettext M.downloads_add_icons, 1)
+          f.data.gfile_name <- 
+            String.sub f.data.gfile_name 5 
+             ((String.length f.data.gfile_name) - 5);
+          f.data.gfile_pixmap <- 
+            Some (tree_pixmap false);
+          f.data.gfile_net_pixmap <- 
+            Some (Gui_options.network_pix 
+             (Gui_global.network_name f.data.gfile_network));
+          f.data.gfile_priority_pixmap <- 
+            (get_priority_pixmap f.data.gfile_priority);
+          List.iter (fun child ->
+            child.data.gfile_name <- 
+              String.sub child.data.gfile_name 7 
+                ((String.length child.data.gfile_name) - 7);
+          ) f.children
+          ), gettext M.pW_lb_downloads_add_icons, 1)
           else
             ((fun f ->
             f.data.gfile_name <- "(+)- " ^ f.data.gfile_name;
             f.data.gfile_pixmap <- None;
             f.data.gfile_net_pixmap <- None;
-            f.data.gfile_priority_pixmap <- None
-            ), gettext M.downloads_remove_icons, 1)
-  in
+            f.data.gfile_priority_pixmap <- None;
+            List.iter (fun child ->
+              child.data.gfile_name <- "   |-- " ^ child.data.gfile_name;
+            ) f.children
+            ), gettext M.pW_lb_downloads_remove_icons, 1)
+      in
       Gui_options.generate_with_progress label self#get_all_items f step
   
 end
@@ -1484,7 +1504,6 @@ class pane_downloads () =
 
     method h_file_availability = dls#h_file_availability
     method h_file_age = dls#h_file_age
-    method h_file_last_seen = dls#h_file_last_seen
     method h_file_downloaded = dls#h_file_downloaded
 
     method h_file_location = dls#h_file_location
@@ -1507,10 +1526,6 @@ class pane_downloads () =
 
     method c_update_icons b =
       dls#update_icons b
-(*
-    method h_update_location c_new =
-      locs#h_update_location c_new
-*)
 
     method clean_table clients = dls#clean_table clients
       

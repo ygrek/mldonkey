@@ -782,7 +782,9 @@ let _ =
           
 (*      | _ -> 
           lprintf "Discarding event"; lprint_newline (); *)
-  );
+  )
+
+(*
   Gui_global.top_menus := ("IM", (fun menu ->
         
         let menu_item =
@@ -791,10 +793,9 @@ let _ =
         in
         ignore (menu_item#connect#activate ~callback:(fun _ ->              
               main_window#window#show ()));
-        (*
-        
-  *)
+
     )) :: !Gui_global.top_menus
+*)
 
   (*
   

@@ -400,6 +400,14 @@ let clean_file_sources file nsources =
         let _,s = Queue.take file.file_sources.(i) in
         s.source_in_queues <- List2.removeq file s.source_in_queues;
         decr nsources;
+        let client =
+          match s.source_client with
+              SourceClient c -> c
+            | SourceLastConnection (_, _, client_num) ->
+               (let (ip, port) = s.source_addr in
+               DonkeyGlobals.new_client_with_num (Known_location (ip,port)) client_num)
+        in
+        remove_file_location file client;
         match s.source_in_queues, s.source_client with
           [] , SourceLastConnection _ -> H.remove sources s
         | _ -> ()
@@ -425,7 +433,7 @@ let recompute_ready_sources f =
   Intmap.iter (fun _ c ->
       do_if_connected c.client_sock (fun sock ->
           match client_state c with
-            Connected _ | Connected_downloading ->
+            Connected _ | Connected_downloading _ ->
               List.iter (fun r ->
                   let file = r.request_file in
                   if file_state file = FileDownloading then

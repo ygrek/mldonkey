@@ -37,36 +37,33 @@ module G = Gui_global
 let (!!) = Options.(!!)
 
 
-let the_col_width = ref 70
-
 let string_color_of_state state =
   match state with
-  | Connected_downloading -> gettext M.downloading, Some !!O.color_downloading 
-  | Connected (-1) -> gettext M.connected, Some !!O.color_connected 
-  | Connecting  -> gettext M.connecting, Some !!O.color_connecting
-  | NewHost -> "NEW HOST", None
-  | Connected_initiating -> gettext M.initiating, Some !!O.color_not_connected
-  | Connected 0 -> gettext M.queued, Some !!O.color_connected
-  | Connected n -> Printf.sprintf "Ranked %d" n, Some !!O.color_connected
+  | Connected_downloading _ -> gettext M.fT_tx_downloading, Some !!O.color_downloading 
+  | Connected (-1) -> gettext M.fT_tx_connected, Some !!O.color_connected 
+  | Connecting  -> gettext M.fT_tx_connecting, Some !!O.color_connecting
+  | NewHost -> gettext M.fT_tx_new_host, None
+  | Connected_initiating -> gettext M.fT_tx_initiating, Some !!O.color_not_connected
+  | Connected 0 -> gettext M.fT_tx_queued, Some !!O.color_connected
+  | Connected n -> Printf.sprintf !!Gui_messages.fT_tx_ranked n, Some !!O.color_connected
   | NotConnected (_,n) -> 
       if n = -1 then
         "", None
       else
       if n = 0 then
-        "Queued out",  Some !!O.color_not_connected 
+        gettext M.fT_tx_queued_out,  Some !!O.color_not_connected 
       else
       if n > 0 then
-        Printf.sprintf "Ranked %d Out" n,  Some !!O.color_not_connected
+        Printf.sprintf !!Gui_messages.fT_tx_ranked_out n,  Some !!O.color_not_connected
       else
-        Printf.sprintf "Failed %d" (- n - 1), Some !!O.color_not_connected
-        
-  | RemovedHost -> gettext M.removed, Some !!O.color_not_connected
-  | BlackListedHost -> gettext M.black_listed, Some !!O.color_not_connected
+        Printf.sprintf !!Gui_messages.fT_tx_failed (- n - 1), Some !!O.color_not_connected
+  | RemovedHost -> gettext M.fT_tx_removed, Some !!O.color_not_connected
+  | BlackListedHost -> gettext M.fT_tx_black_listed, Some !!O.color_not_connected        
       
 let string_color_of_client friend_tab c =
   match c.gclient_files with
-    Some _ when friend_tab -> 
-      gettext M.o_col_files_listed, Some !!O.color_files_listed
+    Some _ when friend_tab ->
+      gettext M.fT_tx_files_listed, Some !!O.color_files_listed
   | _ -> string_color_of_state c.gclient_state
 
 let shorten maxlen s =
@@ -79,7 +76,7 @@ let shorten maxlen s =
 
 let state_pix state =
     match state with
-        Connected_downloading -> O.gdk_pix M.o_xpm_downloading
+        Connected_downloading _ -> O.gdk_pix M.o_xpm_downloading
       | Connected (-1) -> O.gdk_pix M.o_xpm_connect_y
       | Connecting  -> O.gdk_pix M.o_xpm_connect_m
       | NewHost -> O.gdk_pix M.o_xpm_connect_n
@@ -226,7 +223,7 @@ class box columns friend_tab =
       
     method column_menu  i = 
       [
-        `I (gettext M.mAutosize, fun _ -> GToolbox.autosize_clist self#wlist);
+        `I (gettext M.mAutosize, fun _ -> self#wlist#columns_autosize ());
         `I (gettext M.mSort, self#resort_column i);
         `I (gettext M.mRemove_column,
           (fun _ -> 
@@ -244,7 +241,7 @@ class box columns friend_tab =
           )
         );
         `M (gettext M.mAdd_column_after, (
-            List.map (fun (c,s) ->
+            List.map (fun (c,s,_) ->
                 (`I (s, (fun _ -> 
                         let c1, c2 = List2.cut (i+1) !!columns in
                         columns =:= c1 @ [c] @ c2;
@@ -252,7 +249,7 @@ class box columns friend_tab =
                     )))
             ) Gui_columns.Client.column_strings));
         `M (gettext M.mAdd_column_before, (
-            List.map (fun (c,s) ->
+            List.map (fun (c,s,_) ->
                 (`I (s, (fun _ -> 
                         let c1, c2 = List2.cut i !!columns in
                         columns =:= c1 @ [c] @ c2;
@@ -273,6 +270,7 @@ class box columns friend_tab =
       | Col_client_rating -> compare f1.gclient_rating f2.gclient_rating
       | Col_client_connect_time -> compare f1.gclient_connect_time f2.gclient_connect_time
       | Col_client_software -> compare f1.gclient_software f2.gclient_software
+      | Col_client_emulemod -> compare f1.gclient_emulemod f2.gclient_emulemod
       | Col_client_downloaded -> compare f1.gclient_downloaded f2.gclient_downloaded
       | Col_client_uploaded -> compare f1.gclient_uploaded f2.gclient_uploaded
       | Col_client_upload -> compare f1.gclient_upload f2.gclient_upload
@@ -292,24 +290,24 @@ class box columns friend_tab =
         Col_client_name -> shorten !!O.max_client_name_len f.gclient_name
       | Col_client_state -> fst (string_color_of_client friend_tab f)
       | Col_client_type -> (let t =  f.gclient_type in
-            if t land client_friend_tag <> 0 then gettext M.friend else
-            if t land client_contact_tag <> 0 then gettext M.contact else
-              "Y")
+            if t land client_friend_tag <> 0 then gettext M.fT_tx_friend else
+            if t land client_contact_tag <> 0 then gettext M.fT_tx_contact else
+              gettext M.fT_tx_normal)
       | Col_client_network -> Gui_global.network_name f.gclient_network
       | Col_client_kind -> (
           match f.gclient_kind with
-            Known_location _ -> gettext M.direct
+            Known_location _ -> gettext M.fT_tx_direct
           | _ -> "")
       | Col_client_rating -> string_of_int f.gclient_rating
       | Col_client_connect_time -> Gui_graph.time_to_string (BasicSocket.last_time () - f.gclient_connect_time)
       | Col_client_software -> f.gclient_software
+      | Col_client_emulemod -> f.gclient_emulemod
       | Col_client_downloaded -> Gui_misc.size_of_int64 f.gclient_downloaded
       | Col_client_uploaded -> Gui_misc.size_of_int64 f.gclient_uploaded
       | Col_client_upload -> (match f.gclient_upload with
                                  Some s -> s
                                | _ -> "")
       | Col_client_sock_addr -> f.gclient_sock_addr
-
               
     method content f =
       let strings = List.map 
@@ -372,21 +370,12 @@ class box_friends box_files friend_tab =
       Gui_com.send GuiProto.RemoveAllFriends
     
     method find_friend () =
-      match GToolbox.input_string (gettext M.find_friend) (gettext M.name) with
+      match GToolbox.input_string (gettext M.fT_wt_find_friend) (gettext M.fT_lb_name)with
         None -> ()
       |	Some s ->
           Gui_com.send (GuiProto.FindFriend s)
     
     method on_select c =
-(* in case we select several rows it is not necessary
-    to display the files of each client selected (10 clients selected = 10 updates of files list).
-    It is a non sens because the user do not select several rows
-    for that purpose, but instead would prefer to suppress them ...
-    We will display only the first one instead of the last one
-    (like this there is only display the first one and not display the
-    first one and then the last one).
-    Furthermore this loads the CPU with the pixmaps and can
-    block everything => see with Soulseek *)
       if c = List.hd (List.rev self#selection) then
         match c.gclient_files with
           None -> 
@@ -397,10 +386,6 @@ class box_friends box_files friend_tab =
 (*          lprintf "%d files for friend %d" (List.length l) c.client_num; 
           lprint_newline (); *)
             begin
-              let w = self#wlist#misc#window in
-              box_files#update_gdk_window w;
-(* Printf.printf "Gui_friends on_select %d\n" c.gclient_num;
-              flush stdout;*)
               let (row, fi) = self#find_client c.gclient_num in
               let f = self#to_core_client fi in
               fi.gclient_pixmap <-
@@ -424,11 +409,11 @@ class box_friends box_files friend_tab =
     
     method menu =
       match self#selection with
-        [] -> [ `I (gettext M.find_friend, self#find_friend) ;
-            `I (gettext M.remove_all_friends_text, self#remove_all_friends)]
-      |	_ -> [ `I (gettext M.find_friend, self#find_friend) ;
-            `I (gettext M.remove, self#remove) ;
-            `I (gettext M.remove_all_friends_text, self#remove_all_friends)]
+        [] -> [ `I (gettext M.fT_me_find_friend, self#find_friend) ;
+            `I (gettext M.fT_me_remove_all_friends, self#remove_all_friends)]
+      |	_ -> [ `I (gettext M.fT_me_find_friend, self#find_friend) ;
+            `I (gettext M.fT_me_remove, self#remove) ;
+            `I (gettext M.fT_me_remove_all_friends, self#remove_all_friends)]
     
     method to_core_client c =
       {
@@ -490,16 +475,17 @@ class box_friends box_files friend_tab =
           f.gclient_state <- f_new.client_state;
           f.gclient_type <- f_new.client_type;
           f.gclient_pixmap <-
-          if icons_are_used then
-            Some (get_friend_pix f_new)
-          else None;
+            if icons_are_used then
+              Some (get_friend_pix f_new)
+              else None;
           f.gclient_name <- f_new.client_name;
           f.gclient_kind <- f_new.client_kind;
-(* added *)
+          (* added *)
           f.gclient_tags <- f_new.client_tags;
           f.gclient_rating <- f_new.client_rating;
           f.gclient_connect_time <-  f_new.client_connect_time;
           f.gclient_software <- f_new.client_software;
+          f.gclient_emulemod <- f_new.client_emulemod;
           f.gclient_downloaded <- f_new.client_downloaded;
           f.gclient_uploaded <- f_new.client_uploaded;
           f.gclient_upload <- f_new.client_upload;
@@ -517,8 +503,7 @@ class box_friends box_files friend_tab =
     method h_remove_friend num =
       try
         let (row, i) = self#find_client num in
-        self#remove_item row i;
-        selection <- List.filter (fun fi -> fi.gclient_num <> num) selection
+        self#remove_item row i
       with
         Not_found -> ()
     
@@ -539,12 +524,12 @@ class box_friends box_files friend_tab =
         let (row, fi) = self#find_client num in
         if client_browsed_tag land friend_kind = 0 then
           self#h_remove_friend num
-        else begin
+          else begin
             fi.gclient_type <- friend_kind;
             fi.gclient_pixmap <-
             if icons_are_used then
               Some (get_friend_pix (self#to_core_client fi))
-            else None;
+              else None;
             if box_friends_is_visible then self#update_row fi row
           end
       with
@@ -584,24 +569,19 @@ class box_friends box_files friend_tab =
                      (Gui_global.network_name c.gclient_network));
             c.gclient_pixmap <-
               Some (get_friend_pix (self#to_core_client c));
-          ), gettext M.friends_add_icons, 1)
+          ), gettext M.pW_lb_friends_add_icons, 1)
           else
             ((fun c ->
               c.gclient_net_pixmap <- None;
               c.gclient_pixmap <- None;
-            ), gettext M.friends_remove_icons, 10)
+            ), gettext M.pW_lb_friends_remove_icons, 1)
       in
       Gui_options.generate_with_progress label self#get_all_items f step
 
 end
 
 let is_filtered2 c =
-  ((match c.gclient_upload with
-      None -> true
-    | _ -> false) ||
-  (List.memq c.gclient_network !G.networks_filtered))
-
-
+  List.memq c.gclient_network !G.networks_filtered
 
 class box_list friend_tab =
   let vbox_list = GPack.vbox () in
@@ -613,22 +593,6 @@ class box_list friend_tab =
     val mutable icons_are_used = (!!O.use_icons : bool)
 
     method filter = is_filtered2
-
-    method retrieve_clients (c_num_list : int * (int list)) =
-      (* Printf.printf "Gui_friends Received Clients : %d\n" (List.length (snd c_num_list));
-      flush stdout; *)
-      let l = ref [] in
-      let file_num = fst c_num_list in
-      let num_list = snd c_num_list in
-      List.iter ( fun num ->
-        try
-          let (_, c) = self#find num in
-          l := c::!l
-        with _ -> ()
-      ) num_list;
-      (* Printf.printf "Gui_friends Sent Clients : %d\n" (List.length !l);
-      flush stdout; *)
-      (file_num, !l)
 
     method coerce = vbox_list#coerce
     
@@ -642,7 +606,7 @@ class box_list friend_tab =
     method menu =
       match self#selection with
         [] -> []
-      |	_ -> [ `I (gettext M.add_to_friends, self#add_to_friends) ]
+      |	_ -> [ `I (gettext M.uT_me_add_to_friends, self#add_to_friends) ]
     
     method to_core_client c =
       {
@@ -683,99 +647,82 @@ class box_list friend_tab =
         gclient_uploaded = c.client_uploaded;
         gclient_upload = c.client_upload;
         gclient_sock_addr = string_of_kind c.client_kind;
-        gclient_net_pixmap = None;
-        gclient_pixmap = None;
+        gclient_net_pixmap = 
+          if icons_are_used then
+            Some (Gui_options.network_pix (Gui_global.network_name c.client_network))
+            else None;
+        gclient_pixmap =
+          if icons_are_used then
+            Some (type_pix c.client_type)
+            else None;
       }
 
     (* the core does not treat client_downloaded & client_uploaded changes as event
     As a consequence to display correctly these values we need to ask the core to
     send them again. We will fill a list of clients to be updated. This list will be
     sent every 6 seconds *)
-    method fill_c_to_update c =
-      if not (List.mem c.gclient_num c_to_update) then
-        match c.gclient_state, c.gclient_upload with
-            Connected_downloading, _ -> c_to_update <- c.gclient_num::c_to_update
-          | _, Some s ->  c_to_update <- c.gclient_num::c_to_update
-          | _ -> ()
-                          
+    method fill_c_to_update cnum =
+      if not (List.mem cnum c_to_update) then
+        c_to_update <- cnum::c_to_update
+
     method send_and_flush =
       List.iter (fun num ->
-                                  Gui_com.send (GuiProto.GetClient_info num)
+        Gui_com.send (GuiProto.GetClient_info num)
       ) c_to_update;
       c_to_update <- []
                 
     method update_client c_new =
-      try
-        let (row, c) = self#find_client c_new.client_num in
-        if c_new.client_state = RemovedHost then
-          begin
-(*            lprintf "Removing client from locations panel"; 
-            lprint_newline (); *)
-            self#remove_item row c
-          end
-          else begin
-            c.gclient_state <- c_new.client_state;
-            c.gclient_rating <- c_new.client_rating;
-            c.gclient_connect_time <- c_new.client_connect_time;
-            c.gclient_name <- c_new.client_name;
-            c.gclient_kind <- c_new.client_kind;
-            c.gclient_tags <- c_new.client_tags;
-            c.gclient_software <- c_new.client_software;
-            c.gclient_downloaded <- c_new.client_downloaded;
-            c.gclient_uploaded <- c_new.client_uploaded;
-            (* here it seems that client_upload is not set by the core
-            to None sometimes when the client leaves the uploads. Or maybe
-            the core just sends update_client_state. So we need to reset it here *)
-            (match c.gclient_state with
-                Connected _
-              | Connected_downloading -> c.gclient_upload <- c_new.client_upload
-              | _ -> c.gclient_upload <- None );
-            c.gclient_sock_addr <- string_of_kind c_new.client_kind;
-            if icons_are_used && (not (self#filter c)) && (c.gclient_net_pixmap = None) then
-              c.gclient_net_pixmap <-
-                Some (Gui_options.network_pix
-                        (Gui_global.network_name c_new.client_network));
-            if icons_are_used && (not (self#filter c)) && (c.gclient_pixmap = None) then
-              begin
-                c.gclient_type <- c_new.client_type;
-                c.gclient_pixmap <-
-                  Some (type_pix c_new.client_type)
-              end;
-            if c.gclient_type <> c_new.client_type then
-              begin
-                c.gclient_type <- c_new.client_type;
-                c.gclient_pixmap <-
-                  if icons_are_used && (not (self#filter c)) then
-                    Some (type_pix c_new.client_type)
-                    else None
-              end;
-            self#fill_c_to_update c;
-            self#refresh_item row c
-          end
-      with
-        Not_found ->
-          let ci = self#to_gui_client c_new in
-          self#add_item ci;
-          if icons_are_used && (not (self#filter ci)) then
-            Gui_com.send (GuiProto.GetClient_info ci.gclient_num)
-
+      if Mi.is_connected c_new.client_state
+        then begin
+           self#fill_c_to_update c_new.client_num;
+           match c_new.client_upload with
+               Some s ->
+                 (try
+                    let (row, c) = self#find_client c_new.client_num in
+                    c.gclient_state <- c_new.client_state;
+                    c.gclient_rating <- c_new.client_rating;
+                    c.gclient_connect_time <- c_new.client_connect_time;
+                    c.gclient_name <- c_new.client_name;
+                    c.gclient_kind <- c_new.client_kind;
+                    c.gclient_tags <- c_new.client_tags;
+                    c.gclient_software <- c_new.client_software;
+                    c.gclient_downloaded <- c_new.client_downloaded;
+                    c.gclient_emulemod <- c_new.client_emulemod;
+                    c.gclient_uploaded <- c_new.client_uploaded;
+                    c.gclient_upload <- c_new.client_upload;
+                    c.gclient_sock_addr <- string_of_kind c_new.client_kind;
+                    (if icons_are_used && (c.gclient_type <> c_new.client_type) then
+                       c.gclient_pixmap <- Some (type_pix c_new.client_type));
+                    c.gclient_type <- c_new.client_type;
+                    self#refresh_item row c;
+                  with Not_found -> (
+                    let ci = self#to_gui_client c_new in
+                    self#add_item ci)
+                   )
+               | _ -> ()
+        end else
+          (try
+             let (row, c) = self#find_client c_new.client_num in
+             self#remove_item row c
+            with _ -> ()
+          )
 
     method update_client_state (num, state) =
-      try
-        let (row, c) = self#find_client num in
-        (* here it seems that client_upload is not set by the core
-        to None sometimes when the client leaves the uploads. Or maybe
-        the core just sends update_client_state. So we need to reset it here *)
-        (match c.gclient_state with
-                Connected _
-              | Connected_downloading -> ()
-              | _ -> c.gclient_upload <- None );
-        c.gclient_state <- state;
-        self#fill_c_to_update c;
-        self#refresh_item row c
-      with
-        Not_found ->
-          Gui_com.send (GuiProto.GetClient_info num)
+      if Mi.is_connected state
+        then begin
+          (
+           try
+             let (row, c) = self#find_client num in
+             c.gclient_state <- state;
+             self#refresh_item row c
+           with _ -> ()
+          );
+          self#fill_c_to_update num
+        end else 
+          try
+            let (row, c) = self#find_client num in
+            self#remove_item row c
+          with _ -> ()
 
     method update_client_type (num, friend_kind) =
       try
@@ -786,10 +733,9 @@ class box_list friend_tab =
             Some (type_pix c.gclient_type)
             else None;
         self#refresh_item row c
-      with
-        Not_found ->
-          Gui_com.send (GuiProto.GetClient_info num)
-    
+
+      with Not_found -> ()
+
     method clean_table clients =
       (* Printf.printf "Gui_friends Clean Table\n";
       flush stdout; *)
@@ -816,12 +762,12 @@ class box_list friend_tab =
                 c.gclient_pixmap <-
                   Some (type_pix c.gclient_type)
               end
-          ), gettext M.uploads_add_icons, 20)
+          ), gettext M.pW_lb_uploads_add_icons, 1)
           else
             ((fun c ->
               c.gclient_net_pixmap <- None;
               c.gclient_pixmap <- None;
-            ), gettext M.uploads_remove_icons, 200)
+            ), gettext M.pW_lb_uploads_remove_icons, 1)
       in
       Gui_options.generate_with_progress label self#get_all_items f step
     
@@ -829,7 +775,7 @@ class box_list friend_tab =
       vbox_list#pack ~expand: true prebox#coerce;
       
       ignore(Timeout.add ~ms:6000 ~callback:
-        (fun _ -> self#send_and_flush;
+        (fun _ -> if c_to_update <> [] then self#send_and_flush;
                   true))
 (*
       Gui_misc.insert_buttons wtool1 wtool2

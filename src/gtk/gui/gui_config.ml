@@ -395,7 +395,7 @@ let edit_options gui =
         Section_list ("Plugins", plugins_params) ;
       ] 
     in
-    match Configwin.get ~height: 700 ~width: 500
+    match Configwin.get ~height: 600 ~width: 400
         (gettext M.o_options) structure 
     with
       Return_ok | Return_apply -> 

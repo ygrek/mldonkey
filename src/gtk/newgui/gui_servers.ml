@@ -73,10 +73,10 @@ let input_widget2 ~widget1 ~widget2 ~get_text ~bind_ok ~title message1 message2 
     ()
   in
   vbox_saisie#pack widget1 ~padding: 3;
-  let wb_ok = GButton.button ~label:(gettext M.ok)
+  let wb_ok = GButton.button ~label:(gettext M.pW_lb_ok)
       ~packing: (hbox_boutons#pack ~expand: true ~padding: 3) () in
   wb_ok#grab_default ();
-  let wb_cancel = GButton.button ~label:(gettext M.cancel)
+  let wb_cancel = GButton.button ~label:(gettext M.pW_lb_cancel)
       ~packing: (hbox_boutons#pack ~expand: true ~padding: 3) () in
   let f_ok () =
     retour := Some (get_text ()) ;
@@ -112,7 +112,7 @@ let is_filtered s =
 
 let state_pixmap state =
     match state with
-        Connected_downloading -> O.gdk_pix M.o_xpm_downloading
+        Connected_downloading _ -> O.gdk_pix M.o_xpm_downloading
       | Connected (-1) -> O.gdk_pix M.o_xpm_server_c
       | Connecting  -> O.gdk_pix M.o_xpm_server_ci
       | NewHost -> O.gdk_pix M.o_xpm_server_nc
@@ -175,7 +175,7 @@ class box columns users wl_status =
           )
         );
         `M (gettext M.mAdd_column_after, (
-            List.map (fun (c,s) ->
+            List.map (fun (c,s,_) ->
                 (`I (s, (fun _ -> 
                         let c1, c2 = List2.cut (i+1) !!columns in
                         columns =:= c1 @ [c] @ c2;
@@ -183,7 +183,7 @@ class box columns users wl_status =
                     )))
             ) Gui_columns.Server.column_strings));
         `M (gettext M.mAdd_column_before, (
-            List.map (fun (c,s) ->
+            List.map (fun (c,s,_) ->
                 (`I (s, (fun _ -> 
                         let c1, c2 = List2.cut i !!columns in
                         columns =:= c1 @ [c] @ c2;
@@ -216,9 +216,9 @@ class box columns users wl_status =
     
     method update_wl_status =
       wl_status#set_text
-        (Printf.sprintf !!Gui_messages.connected_to_servers 
+        (Printf.sprintf !!Gui_messages.mW_sb_connected_to_servers 
           !G.nconnected_servers !G.nservers)
-    
+
     method content_by_col s col =
       match col with
         Col_server_address -> 
@@ -281,11 +281,11 @@ class box columns users wl_status =
         (fun s -> Gui_com.send (GuiProto.ViewUsers s.gserver_num))
       self#selection
     
-    method add_server () = 
-      let text1 = gettext M.server_address_ip_port in
-      let text2 = gettext M.network2 in
-      let title = gettext M.add_server_by_address in
-      let nets,wcombo = networks_combo false in
+    method add_server () =
+      let text1 = gettext M.sT_lb_add_server in
+      let text2 = gettext M.sT_lb_network in
+      let title = gettext M.sT_wt_add_server in
+      let nets,wcombo = Gui_global.networks_combo false in
       let we_chaine = GEdit.entry ~width: 200 ~text:"" () in
       match
         input_widget2  ~widget1:we_chaine#coerce ~widget2:wcombo#coerce
@@ -345,14 +345,14 @@ class box columns users wl_status =
       (match self#selection with
           [] -> []
         |	_ ->
-            [ `I ((gettext M.connect), self#connect) ;
-              `I ((gettext M.disconnect), self#disconnect) ;
-              `I ((gettext M.view_users), self#view_users) ;
-              `I ((gettext M.remove), self#remove) ;
+            [ `I ((gettext M.sT_me_connect), self#connect) ;
+              `I ((gettext M.sT_me_disconnect), self#disconnect) ;
+              `I ((gettext M.sT_me_view_users), self#view_users) ;
+              `I ((gettext M.sT_me_remove), self#remove) ;
               `S ]
       ) @
-        [ `I ((gettext M.connect_more_servers_text), self#connect_more_servers) ;
-        `I ((gettext M.remove_old_servers_text), self#remove_old_servers)
+        [ `I ((gettext M.sT_me_connect_more_servers), self#connect_more_servers) ;
+        `I ((gettext M.sT_me_remove_old_servers), self#remove_old_servers)
       ]	
     
     method set_tb_style st = 
@@ -534,12 +534,12 @@ class box columns users wl_status =
             Some (Gui_options.network_pix
                     (Gui_global.network_name s.gserver_network));
           s.gserver_pixmap <- Some (get_pix s.gserver_state)
-          ), gettext M.servers_add_icons, 2)
+          ), gettext M.pW_lb_servers_add_icons, 1)
           else
             ((fun s ->
             s.gserver_net_pixmap <- None;
             s.gserver_pixmap <- None
-            ), gettext M.servers_remove_icons, 20)
+            ), gettext M.pW_lb_servers_remove_icons, 1)
       in
       Gui_options.generate_with_progress label self#get_all_items f step
 
@@ -598,17 +598,17 @@ class box columns users wl_status =
         ();
 *)
       Gui_misc.insert_buttons wtool1 wtool2 
-        ~text: (gettext M.toggle_display_all_servers_text)
-      ~tooltip: (gettext M.toggle_display_all_servers_tips)
-      ~icon: (M.o_xpm_toggle_display_all_servers)
-      ~callback: self#toggle_display_all_servers
+        ~text: (gettext M.sT_lb_display_all_servers)
+        ~tooltip: (gettext M.sT_ti_display_all_servers)
+        ~icon: (M.o_xpm_toggle_display_all_servers)
+        ~callback: self#toggle_display_all_servers
         ();
       
       Gui_misc.insert_buttons wtool1 wtool2
-        ~text: (gettext M.add_server)
-        ~tooltip: (gettext M.add_server_by_address)
+        ~text: (gettext M.sT_lb_add_server)
+        ~tooltip: (gettext M.sT_ti_add_server)
         ~icon: (M.o_xpm_add_server)
-      ~callback: self#add_server
+        ~callback: self#add_server
         ()
       
   end
@@ -666,7 +666,7 @@ class pane_servers () =
       vpaned_servers#add1 box_servers#coerce;
       vpaned_servers#add2 box_users#coerce;
       
-      box_users#label_users#set_text (Gettext.gettext Gui_messages.users);
+      box_users#label_users#set_text (Gettext.gettext  M.sT_lb_users);
 
 (*
       queries_frame#add box_queries#coerce;

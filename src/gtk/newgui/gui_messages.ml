@@ -26,7 +26,7 @@ open Gettext
 let message_file_name = try
     Sys.getenv "MLDONKEY_GUI_MESSAGES"
   with _ -> 
-      Filename.concat CommonOptions.config_dir "gui_messages.ini"
+      Filename.concat CommonOptions.config_dir "newgui_messages.ini"
 
       (*
 let _ =
@@ -36,289 +36,818 @@ let _ =
 let message_file = Options.create_options_file message_file_name
 let message_section = file_section message_file [] ""
 let message name t x = define_option message_section [name] "" t x
-let and_not = message "and_not" (T.option T.format) "And Not"
-let audio = message "audio" (T.option T.format) "Audio"
-let video = message "video" (T.option T.format) "Video"
-let program = message "program" (T.option T.format) "Program"
-let image = message "image" (T.option T.format) "Image"
-let documentation = message "documentation" (T.option T.format) "Documentation"
-let collection = message "collection" (T.option T.format) "Collection"
-let ok = message "ok" (T.option T.format) "Ok"
-let cancel = message "cancel" (T.option T.format) "Cancel"
-let password = message "password" (T.option T.format) "Password"
-let address = message "address" (T.option T.format) "Address"
-let percent = message "percent" (T.option T.format) "%%"
-let rate = message "rate" (T.option T.format) "Rate"
-let age = message "age" (T.option T.format) "Age"
-let last_seen = message "last_seen" (T.option T.format) "Last seen"
-let eta = message "eta" (T.option T.format) "ETA"
-let priority = message "priority" (T.option T.format) "Priority : "
-let state = message "state" (T.option T.format) "State"
-let servers = message "servers" (T.option T.format) "Servers"
-let downloads = message "downloads" (T.option T.format) "Downloads"
-let friends = message "friends" (T.option T.format) "Friends"
-let searches = message "searches" (T.option T.format) "Searches"
-let options = message "options" (T.option T.format) "Options"
-let not_connected = message "not_connected" (T.option T.format) "Not connected"
-let black_listed = message "black_listed" (T.option T.format) "Black Listed"
-let connected_to_servers = 
-  message "connected_to_servers" (T.option (T.int (T.int T.format)))
-  "Connected to %d/%d server(s)"
-let downloading_files = 
-  message "downloading_files" (T.option (T.int T.format))
-  "Downloading %d file(s)"
-let no_current_search = message "no_current_search" (T.option T.format) "No current search"
-let connection_port = message "connection_port" (T.option T.format) "Connection port"
-let control_port = message "control_port" (T.option T.format) "Control port"
-let gui_port = message "gui_port" (T.option T.format) "GUI port"
-let ports = message "ports" (T.option T.format) "Ports"
-let delays = message "delays" (T.option T.format) "Delays"
-let save_options_delay = message "save_options_delay" (T.option T.format) "Save options delay"
-let check_client_connections = message "check_client_connections" (T.option T.format) "Check client connections"
-let check_server_connection = message "check_server_connection" (T.option T.format) "Check server connection"
-let check_serverDB_connection = message "check_serverDB_connection" (T.option T.format) "Check serverDB connection"
-let small_retry_delay = message "small_retry_delay" (T.option T.format) "Small retry delay"
-let medium_retry_delay = message "medium_retry_delay" (T.option T.format) "Medium retry delay"
-let long_retry_delay = message "long_retry_delay" (T.option T.format) "Long retry delay"
-let gui_refresh_delay = message "gui_refresh_delay" (T.option T.format) "Gui refresh delay"
-let general = message "general" (T.option T.format) "General"
-let name = message "name" (T.option T.format) "Name"
-let max_connected_servers = message "max_connected_servers" (T.option T.format) "Max connected servers"
-let max_connected_clients = message "max_connected_clients" (T.option T.format) "Max connected clients"
-let disconnect = message "disconnect" (T.option T.format) "Disconnect"
-let download_limit = message "download_limit" (T.option T.format) "Download limit (kB/s)"
-let upload_limit = message "upload_limit" (T.option T.format) "Upload limit (kB/s)"
-let timeouts = message "timeouts" (T.option T.format) "Timeouts"
-let server_connection = message "server_connection" (T.option T.format) "Server connection"
-let client_connection = message "client_connection" (T.option T.format) "Client connection"
-let save_and_apply_options = message "save_and_apply_options" (T.option T.format) "Apply and save options"
-let query = message "query" (T.option T.format) "Query"
-let search = message "search" (T.option T.format) "Search"
-let min_size = message "min_size" (T.option T.format) "Min size"
-let max_size = message "max_size" (T.option T.format) "Max size"
-let media = message "media" (T.option T.format) "Media"
-let format = message "format" (T.option T.format) "Format"
-let network = message "network" (T.option T.format) "Network"
-let client_type = message "client_type" (T.option T.format) "Type"
-let album = message "album" (T.option T.format) "Album"
-let friend = message "friend" (T.option T.format) "Friend"
-let contact = message "contact" (T.option T.format) "Browse"
-let artist = message "artist" (T.option T.format) "Artist"
-let title = message "title" (T.option T.format) "Title"
-let min_bitrate = message "min_bitrate" (T.option T.format) "Min bitrate"
-let stop_search = message "stop_search" (T.option T.format) "Stop Search"
-let close_search = message "close_search" (T.option T.format) "Remove Search"
-let mp3_options = message "mp3_options" (T.option T.format) "Mp3 options"
-let submit = message "submit" (T.option T.format) "Submit"
-let results = message "results" (T.option (T.int T.format)) "%d Results"
-let friends = message "friends" (T.option T.format) "Friends"
-let ip = message "ip" (T.option T.format) "IP"
-let port = message "port" (T.option T.format) "Port"
-let remove = message "remove" (T.option T.format) "Remove"
-let close = message "close" (T.option T.format) "Close"
-let close_room = message "close_room" (T.option T.format) "Close room"
-let view_files = message "view_files" (T.option T.format) "View files"
-let view_users = message "view_users" (T.option T.format) "View users"
-let files = message "files" (T.option T.format) "Files"
-let network2 = message "network2" (T.option T.format) "Network : "
-let display = message "display" (T.option T.format) "Display"
-let filename = message "filename" (T.option T.format) "Filename"
-let size = message "size" (T.option T.format) "Size"
-let properties = message "properties" (T.option T.format) "Properties"
-let md4 = message "md4" (T.option T.format) "MD4"
-let download_selected_files = message "download_selected_files" (T.option T.format) "Download selected files"
-let download_selected_dir = message "download_selected_dir" (T.option T.format) "Download selected directory"
-let download = message "download" (T.option T.format) "Download"
-let force_download = message "force_download" (T.option T.format) 
+
+(******************************************************************************************
+
+For a new message convention :
+all message tags are labeled as follows :
+<loc>_<type>_<description> where :
+
+<loc> : 2-letter code with first letter lowercase and second letter uppercase
+* mW = main Window
+* nT = networks Tab
+* sT = servers Tab
+* dT = downloads Tab
+* fT = friends Tab
+* qT = queries Tab
+* uT = uploads Tab
+* rT = rooms Tab
+* cT = console Tab
+* gT = graph Tab
+* iM = Im window
+* pW = for a popup window
+
+<type>	: 2-letter code
+* lb = label
+* me = menu label
+* ti = tips
+* tx = simple text in a list
+* wt = window title
+
+<description> : as per your mood ;-)
+
+At the first glance it does not look cute (especially because the same text is repeated
+several times) but it can avoid a mess.
+
+*******************************************************************************************)
+
+(** Networks Tab **)
+let nT_lb_display_bt = 
+  message "nT_lb_display_bt" (T.option T.format) 
+  "Display BitTorrent"
+let nT_lb_net_bt = 
+  message "nT_lb_net_bt" (T.option T.format) 
+  "BITTORRENT"
+let nT_lb_display_dc = 
+  message "nT_lb_display_dc" (T.option T.format) 
+  "Display Direct Connect"
+let nT_lb_net_dc =
+  message "nT_lb_net_dc" (T.option T.format) 
+  "DIRECT CONNECT"
+let nT_lb_display_ed2k = 
+  message "nT_lb_display_ed2k" (T.option T.format) 
+  "Display Edonkey / Overnet"
+let nT_lb_net_ed2k = 
+  message "nT_lb_net_ed2k" (T.option T.format) 
+  "EDONKEY / OVERNET"
+let nT_lb_display_nap = 
+  message "nT_lb_display_nap" (T.option T.format) 
+  "Display Open Napster"
+let nT_lb_net_nap = 
+  message "nT_lb_net_nap" (T.option T.format) 
+  "OPEN NAPSTER"
+let nT_lb_display_gnut = 
+  message "nT_lb_display_gnut" (T.option T.format) 
+  "Display Gnutella"
+let nT_lb_net_gnut = 
+  message "nT_lb_net_gnut" (T.option T.format) 
+  "GNUTELLA"
+let nT_lb_display_ftt = 
+  message "nT_lb_display_ftt" (T.option T.format) 
+  "Display Fasttrack"
+let nT_lb_net_ftt = 
+  message "nT_lb_net_ftt" (T.option T.format) 
+  "FASTTRACK"
+let nT_lb_display_slsk = 
+  message "nT_lb_display_slsk" (T.option T.format) 
+  "Display Soulseek"
+let nT_lb_net_slsk = 
+  message "nT_lb_net_slsk" (T.option T.format) 
+  "SOULSEEK"
+
+(** Servers Tab **)
+let sT_wt_add_server = 
+  message "sT_wt_add_server" (T.option T.format) 
+  "Add server by Address"
+let sT_ti_add_server = 
+  message "sT_ti_add_server" (T.option T.format) 
+  "Add a server"
+let sT_lb_add_server = 
+  message "sT_lb_add_server" (T.option T.format) 
+  "Address ( ip : port ) : "
+let sT_lb_network = 
+  message "sT_lb_network" (T.option T.format) 
+  "Network : "
+let sT_ti_display_all_servers = 
+  message "sT_ti_display_all_servers" (T.option T.format) 
+  "View all servers (even not connected)"
+let sT_lb_display_all_servers = 
+  message "sT_lb_display_all_servers" (T.option T.format) 
+  "View all"
+let sT_lb_users = 
+  message "sT_lb_users" (T.option T.format) 
+  "Users"
+let sT_lb_servers = 
+  message "sT_lb_servers" (T.option T.format) 
+  "Servers"
+let sT_me_remove = 
+  message "sT_me_remove" (T.option T.format) 
+  "Remove"
+let sT_me_disconnect = 
+  message "sT_me_disconnect" (T.option T.format) 
+  "Disconnect"
+let sT_me_view_users = 
+  message "sT_me_view_users" (T.option T.format) 
+  "View users"
+let sT_me_connect = 
+  message "sT_me_connect" (T.option T.format) 
+  "Connect"
+let sT_me_connect_more_servers = 
+  message "sT_me_connect_more_servers" (T.option T.format) 
+  "More servers"
+let sT_me_remove_old_servers = 
+  message "sT_me_remove_old_servers" (T.option T.format) 
+  "Clear list"
+
+(** Downloads Tab **)
+let dT_wt_save_as = 
+  message "dT_wt_save_as" (T.option T.format) 
+  "Save file as" 
+let dT_lb_save_as = 
+  message "dT_lb_save_as" (T.option T.format) 
+  "Save file as : "
+let dT_tx_downloading = 
+  message "dT_tx_downloading" (T.option T.format) 
+  "Downloading"
+let dT_tx_waiting =
+  message "dT_tx_waiting" (T.option T.format) 
+  " Waiting..."
+let dT_tx_cancelled = 
+  message "dT_tx_cancelled" (T.option T.format) 
+  "Cancelled"
+let dT_tx_queued = 
+  message "dT_tx_queued" (T.option T.format) 
+  "Queued"
+let dT_tx_paused = 
+  message "dT_tx_paused" (T.option T.format) 
+  "Paused"
+let dT_tx_complete = 
+  message "dT_tx_complete" (T.option T.format) 
+  "Complete"
+let dT_tx_dl_done = 
+  message "dT_tx_dl_done" (T.option T.format) 
+  "Done"
+let dT_tx_dl_aborted =
+  message "dT_tx_dl_aborted" (T.option (T.string T.format)) 
+  "Aborted : %s"
+let dT_tx_connected = 
+  message "dT_tx_connected" (T.option T.format) 
+  "Connected"
+let dT_tx_connecting = 
+  message "dT_tx_connecting" (T.option T.format) 
+  "Connecting"
+let dT_tx_new_host = 
+  message "dT_tx_new_host" (T.option T.format) 
+  "New Host"
+let dT_tx_initiating = 
+  message "dT_tx_initiating" (T.option T.format) 
+  "Initiating"
+let dT_tx_ranked = 
+  message "dT_tx_ranked" (T.option (T.int T.format)) 
+  "Ranked %d"
+let dT_tx_queued_out = 
+  message "dT_tx_queued_out" (T.option T.format) 
+  "Queued Out"
+let dT_tx_ranked_out = 
+  message "dT_tx_ranked" (T.option (T.int T.format)) 
+  "Ranked %d out"
+let dT_tx_failed = 
+  message "dT_tx_failed" (T.option (T.int T.format)) 
+  "Failed %d"
+let dT_tx_removed = 
+  message "dT_tx_removed" (T.option T.format) 
+  "Removed"
+let dT_tx_black_listed = 
+  message "dT_tx_black_listed" (T.option T.format) 
+  "Black Listed"
+let dT_tx_unknown = 
+  message "dT_tx_unknown" (T.option T.format) 
+  "Unknown"
+let dT_tx_priority_high = 
+  message "dT_tx_priority_high" (T.option T.format) 
+  "High"
+let dT_tx_priority_normal = 
+  message "dT_tx_priority_normal" (T.option T.format) 
+  "Normal"
+let dT_tx_priority_low = 
+  message "dT_tx_priority_low" (T.option T.format) 
+  "Low"
+let dT_wt_cancel = 
+  message "dT_wt_cancel" (T.option T.format) 
+  "Cancel File(s)"
+let dT_lb_ask_cancel_download_files = 
+  message "dT_lb_ask_cancel_download_files" (T.option T.format) 
+  "Cancel the following file(s) ?\n"
+let dT_wt_edit_mp3 = 
+  message "dT_wt_edit_mp3" (T.option T.format) 
+  "MP3 tags Editor"
+let dT_me_view_sources = 
+  message "dT_me_view_sources" (T.option T.format) 
+  "Show/Hide Sources"
+let dT_me_preview = 
+  message "dT_me_preview" (T.option T.format) 
+  "Preview"
+let dT_me_pause_resume_dl = 
+  message "dT_me_pause_resume_dl" (T.option T.format) 
+  "Pause/Resume"
+let dT_me_retry_connect = 
+  message "dT_me_retry_connect" (T.option T.format) 
+  "Retry connect"
+let dT_me_cancel = 
+  message "dT_me_cancel" (T.option T.format) 
+  "Cancel"
+let dT_me_verify_chunks = 
+  message "dT_me_verify_chunks" (T.option T.format) 
+  "Verify chunks"
+let dT_me_set_priority = 
+  message "dT_me_set_priority" (T.option T.format) 
+  "Set priority"
+let dT_me_set_priority_high = 
+  message "dT_me_set_priority_high" (T.option T.format) 
+  "High"
+let dT_me_set_priority_normal = 
+  message "dT_me_set_priority_normal" (T.option T.format) 
+  "Normal"
+let dT_me_set_priority_low = 
+  message "dT_me_set_priority_low" (T.option T.format) 
+  "Low"
+let dT_me_get_format = 
+  message "dT_me_get_format" (T.option T.format) 
+  "Get format info"
+let dT_me_edit_mp3 = 
+  message "dT_me_edit_mp3" (T.option T.format) 
+  "Edit mp3 tags"
+let dT_me_save_all = 
+  message "dT_me_save_all" (T.option T.format) 
+  "Save all"
+let dT_me_save_as = 
+  message "dT_me_save_as" (T.option T.format) 
+  "Save file as"
+let dT_me_save = 
+  message "dT_me_save" (T.option T.format) 
+  "Save"
+let dT_me_add_to_friends = 
+  message "dT_me_add_to_friends" (T.option T.format) 
+  "Add to friends"
+let dT_lb_ed2k = 
+  message "dT_lb_ed2k" (T.option T.format) 
+  "ed2k link : "
+
+(** Friends Tab **)
+let fT_lb_messages = 
+  message "fT_lb_messages" (T.option T.format) 
+  "Messages"
+let fT_tx_downloading = 
+  message "fT_tx_downloading" (T.option T.format) 
+  "Downloading"
+let fT_tx_queued = 
+  message "fT_tx_queued" (T.option T.format) 
+  "Queued"
+let fT_tx_connected = 
+  message "fT_tx_connected" (T.option T.format) 
+  "Connected"
+let fT_tx_connecting = 
+  message "fT_tx_connecting" (T.option T.format) 
+  "Connecting"
+let fT_tx_new_host = 
+  message "dT_tx_new_host" (T.option T.format) 
+  "New Host"
+let fT_tx_initiating = 
+  message "fT_tx_initiating" (T.option T.format) 
+  "Initiating"
+let fT_tx_ranked = 
+  message "fT_tx_ranked" (T.option (T.int T.format)) 
+  "Ranked %d"
+let fT_tx_queued_out = 
+  message "fT_tx_queued_out" (T.option T.format) 
+  "Queued Out"
+let fT_tx_ranked_out = 
+  message "fT_tx_ranked" (T.option (T.int T.format)) 
+  "Ranked %d out"
+let fT_tx_failed = 
+  message "fT_tx_failed" (T.option (T.int T.format)) 
+  "Failed %d"
+let fT_tx_removed = 
+  message "fT_tx_removed" (T.option T.format) 
+  "Removed"
+let fT_tx_black_listed = 
+  message "fT_tx_black_listed" (T.option T.format) 
+  "Black Listed"
+let fT_tx_files_listed = 
+  message "fT_tx_files_listed" (T.option T.format) 
+  "Files Listed"
+let fT_tx_friend = 
+  message "fT_tx_friend" (T.option T.format) 
+  "Friend"
+let fT_tx_contact = 
+  message "fT_tx_contact" (T.option T.format) 
+  "Contact"
+let fT_tx_normal = 
+  message "fT_tx_normal" (T.option T.format) 
+  "Normal"
+let fT_tx_direct = 
+  message "fT_tx_direct" (T.option T.format) 
+  "Direct"
+let fT_wt_find_friend = 
+  message "fT_wt_find_friend" (T.option T.format) 
+  "Find friend"
+let fT_lb_name = 
+  message "fT_lb_name" (T.option T.format) 
+  "Name"
+let fT_me_find_friend = 
+  message "fT_me_find_friend" (T.option T.format) 
+  "Find friend"
+let fT_me_remove = 
+  message "fT_me_remove" (T.option T.format) 
+  "Remove friend"
+let fT_me_remove_all_friends = 
+  message "fT_me_remove_all_friends" (T.option T.format) 
+  "Clear list"
+
+(** Query Box **)
+let qT_lb_album_searches = 
+  message "qT_lb_album_searches" (T.option T.format) 
+  "Album"
+let qT_lb_movie_searches = 
+  message "qT_lb_movie_searches" (T.option T.format) 
+  "Movie"
+let qT_lb_mp3_searches = 
+  message "qT_lb_mp3_searches" (T.option T.format) 
+  "MP3"
+let qT_lb_complex_searches = 
+  message "qT_lb_complex_searches" (T.option T.format) 
+  "Complex"
+let qT_lb_sharereactor_searches = 
+  message "qT_lb_sharereactor_searches" (T.option T.format) 
+  "ShareReactor"
+let qT_lb_jigle_searches = 
+  message "qT_lb_jigle_searches" (T.option T.format) 
+  "Jigle"
+let qT_lb_freedb_searches = 
+  message "qT_lb_freedb_searches" (T.option T.format) 
+  "FreeDB"
+let qT_lb_imdb_searches = 
+  message "qT_lb_imdb_searches" (T.option T.format) 
+  "IMDB"
+let qT_lb_local_search = 
+  message "qT_lb_local_search" (T.option T.format) 
+  "Local Search"
+let qT_lb_submit = 
+  message "qT_lb_submit" (T.option T.format) 
+  "Submit"
+let qT_lb_subscribe = 
+  message "qT_lb_subscribe" (T.option T.format) 
+  "Subscribe"
+let qT_ti_local_search = 
+  message "qT_ti_local_search" (T.option T.format) 
+  "Local Search"
+let qT_ti_submit = 
+  message "qT_ti_submit" (T.option T.format) 
+  "Submit"
+let qT_ti_subscribe = 
+  message "qT_ti_subscribe" (T.option T.format) 
+  "Subscribe"
+let qT_lb_close_search = 
+  message "qT_lb_close_search" (T.option T.format) 
+  "Close Search"
+let qT_ti_close_search = 
+  message "qT_ti_close_search" (T.option T.format) 
+  "Close Search"
+let qT_lb_stop_search = 
+  message "qT_lb_stop_search" (T.option T.format) 
+  "Stop Search"
+let qT_ti_stop_search = 
+  message "qT_ti_stop_search" (T.option T.format) 
+  "Stop Search"
+
+let qT_tx_all_networks = 
+  message "qT_tx_all_networks" (T.option T.format) 
+  "All Networks"
+let qT_lb_show_hidden_fields = 
+  message "qT_lb_show_hidden_fields" (T.option T.format) 
+  "Show hidden fields"
+let qT_lb_network = 
+  message "qT_lb_network" (T.option T.format) 
+  "Network :"
+let qT_lb_max_hits = 
+  message "max_hits" (T.option T.format) 
+  "Max Hits"
+
+let qT_lb_and_not = 
+  message "qT_lb_and_not" (T.option T.format) 
+  "And Not"
+let qT_tx_audio = 
+  message "qT_tx_audio" (T.option T.format) 
+  "Audio"
+let qT_tx_video = 
+  message "qT_tx_video" (T.option T.format) 
+  "Video"
+let qT_tx_program = 
+  message "qT_tx_program" (T.option T.format) 
+  "Program"
+let qT_tx_image = 
+  message "qT_tx_image" (T.option T.format) 
+  "Image"
+let qT_tx_documentation = 
+  message "qT_tx_documentation" (T.option T.format) 
+  "Documentation"
+let qT_tx_collection = 
+  message "qT_tx_collection" (T.option T.format) 
+  "Collection"
+let qT_lb_keywords = 
+  message "qT_lb_keywords" (T.option T.format) 
+  "Keywords"
+let qT_lb_media = 
+  message "qT_lb_media" (T.option T.format) 
+  "Media"
+let qT_lb_format = 
+  message "qT_lb_format" (T.option T.format) 
+  "Format"
+let qT_lb_min_size = 
+  message "min_size" (T.option T.format) 
+  "Min size"
+let qT_lb_max_size = 
+  message "max_size" (T.option T.format) 
+  "Max size"
+let qT_lb_min_bitrate = 
+  message "qT_lb_min_bitrate" (T.option T.format) 
+  "Min Bitrate"
+let qT_lb_title = 
+  message "qT_lb_title" (T.option T.format) 
+  "Title"
+let qT_lb_number_of_results = 
+  message "qT_lb_number_of_results" (T.option T.format) 
+  "Number of results"
+let qT_lb_sort_by = 
+  message "qT_lb_sort_by" (T.option T.format) 
+  "Sort by"
+let qT_lb_album = 
+  message "qT_lb_album" (T.option T.format) 
+  "Album"
+let qT_lb_fields = 
+  message "qT_lb_fields" (T.option T.format) 
+  "Fields"
+let qT_lb_artist = 
+  message "qT_lb_artist" (T.option T.format) 
+  "Artist"
+let qT_lb_track_title = 
+  message "qT_lb_track_title" (T.option T.format) 
+  "Track/Title"
+let qT_lb_track = 
+  message "qT_lb_track" (T.option T.format) 
+  "Track"
+let qT_lb_rest = 
+  message "qT_lb_rest" (T.option T.format) 
+  "Rest"
+let qT_lb_categories = 
+  message "qT_lb_categories" (T.option T.format) 
+  "Categories"
+let qT_lb_all = 
+  message "qT_lb_all" (T.option T.format) 
+  "All"
+let qT_lb_blues = 
+  message "qT_lb_blues" (T.option T.format) 
+  "Blues"
+let qT_lb_classical = 
+  message "qT_lb_classical" (T.option T.format) 
+  "Classical"
+let qT_lb_data = 
+  message "qT_lb_data" (T.option T.format) 
+  "Data"
+let qT_lb_folk = 
+  message "qT_lb_folk" (T.option T.format) 
+  "Folk"
+let qT_lb_rock = 
+  message "qT_lb_rock" (T.option T.format) 
+  "Rock"
+let qT_lb_soundtrack = 
+  message "qT_lb_soundtrack" (T.option T.format) 
+  "Soundtrack"
+let qT_lb_availability = 
+  message "qT_lb_availability" (T.option T.format) 
+  "Availability"
+let qT_lb_size = 
+  message "qT_lb_size" (T.option T.format) 
+  "Size"
+let qT_lb_dvd_rips = 
+  message "qT_lb_dvd_rips" (T.option T.format) 
+  "DVD Rips"
+let qT_lb_screeners = 
+  message "qT_lb_screeners" (T.option T.format) 
+  "Screeners"
+let qT_lb_pc_games = 
+  message "qT_lb_pc_games" (T.option T.format) 
+  "PC Games"
+let qT_lb_software = 
+  message "qT_lb_software" (T.option T.format) 
+  "Software"
+let qT_lb_anime = 
+  message "qT_lb_anime" (T.option T.format) 
+  "Anime"
+let qT_lb_series = 
+  message "qT_lb_series" (T.option T.format) 
+  "Series"
+let qT_lb_funstuff =  
+  message "qT_lb_funstuff" (T.option T.format) 
+  "Funstuff"
+let qT_lb_adult = 
+  message "qT_lb_adult" (T.option T.format) 
+  "Adult"
+let qT_lb_consoles = 
+  message "qT_lb_consoles" (T.option T.format) 
+  "Consoles"
+let qT_lb_books = 
+  message "qT_lb_books" (T.option T.format) 
+  "Books"
+let qT_lb_xbox = 
+  message "qT_lb_xbox" (T.option T.format) 
+  "XBOX"
+let qT_lb_hentai = 
+  message "qT_lb_hentai" (T.option T.format) 
+  "Hentai"
+let qT_lb_ps2 = 
+  message "qT_lb_ps2" (T.option T.format) 
+  "PS2"
+let qT_lb_gay = 
+  message "qT_lb_gay" (T.option T.format) 
+  "Gay"
+
+let qT_tx_unknown = 
+  message "qT_tx_unknown" (T.option T.format) 
+  "Unknown"
+let qT_tx_download = 
+  message "download" (T.option T.format) 
+  "Download"
+let qT_tx_force_download = 
+  message "force_download" (T.option T.format) 
   "Force Download"
-let subscribe = message "subscribe" (T.option T.format) "Subscribe"
-let downloaded = message "downloaded" (T.option T.format) "Downloaded"
-let availability = message "availability" (T.option T.format) "Availability"
-let cancel = message "cancel" (T.option T.format) "Cancel"
-let retry_connect = message "retry_connect" (T.option T.format) "Retry connect"
-let disconnect_all = message "disconnect_all" (T.option T.format) "Disconnect all"
-let connected_to_locations = message "connected_to_locations"
-    (T.option (T.int (T.int T.format)))
-  "Connected to %d / %d locations"
-let add_to_friends = message "add_to_friends" (T.option T.format) "Add to friends"
-let add_server = message "add_server" (T.option T.format) "Add server"
-let add_server_by_address = message "add_server_by_address" (T.option T.format) "Add server by Address"
-let server_address_ip_port = message "server_address_ip_port" (T.option T.format) "Address ( ip : port ) : "
-let add_friend = message "add_friend" (T.option T.format) "Add friend"
-let connect_more_servers_text = message "connect_more_servers" (T.option T.format) "More servers"
-let connect_more_servers_tips = message "connect_more_servers_tips" (T.option T.format) "Connect to more servers"
-let users = message "users" (T.option T.format) "Users"
-let status = message "status" (T.option T.format) "Status"
-let connect = message "connect" (T.option T.format) "Connect"
-let disconnect = message "disconnect" (T.option T.format) "Disconnect"
-let files_to_download = message "files_to_download" (T.option T.format) "Downloading Files"
-let downloaded_files = message "downloaded_files"
-    (T.option (T.int (T.int T.format))) 
+let qT_lb_extended_search = 
+  message "qT_lb_extended_search" (T.option T.format) 
+  "Extended Search"
+let qT_ti_extended_search = 
+  message "qT_ti_extended_search" (T.option T.format) 
+  "Extended Search"
+let qT_lb_results = 
+  message "qT_lb_results" (T.option (T.int T.format)) 
+  "%d Results"
+let qT_lb_waiting_for_replies = 
+  message "qT_lb_waiting_for_replies" (T.option (T.int T.format)) 
+  "Waiting for %d replies"
+let qT_wt_download_selected_dir = 
+  message "qT_wt_download_selected_dir" (T.option T.format) 
+  "Download selected directory"
+let qT_lb_download_selected_dir = 
+  message "qT_lb_download_selected_dir" 
+  (T.option T.format) "Download"
+let qT_ti_download_selected_dir = 
+  message "qT_ti_download_selected_dir" (T.option T.format) 
+  "Download the selected directory"
+let qT_lb_confirm_download_dir = 
+  message "qT_lb_confirm_download_dir" (T.option (T.int (T.string T.format)))
+  "Do you want to download the %d files in the directory %s ?"
+
+(** Rooms Tab **)
+let rT_lb_close_room = 
+  message "rT_lb_close_room" (T.option T.format) 
+  "Close room"
+let rT_ti_close_room = 
+  message "rT_ti_close_room" (T.option T.format) 
+  "Close the current room"
+let rT_lb_available_rooms = 
+  message "rT_lb_available_rooms" (T.option T.format) 
+  "Available Rooms"
+let rT_lb_opened_rooms = 
+  message "rT_lb_opened_rooms" (T.option T.format) 
+  "Opened Rooms"
+let rT_lb_rooms_messages = 
+  message "rT_lb_rooms_messages" (T.option T.format) 
+  "Messages"
+let rT_lb_users = 
+  message "rT_lb_users" (T.option T.format) 
+  "Users"
+let rT_me_browse_files = 
+  message "rT_me_browse_files" (T.option T.format) 
+  "Browse files"
+let rT_me_add_to_friends = 
+  message "rT_me_add_to_friends" (T.option T.format) 
+  "Add to friends"
+let rT_tx_direct = 
+  message "rT_tx_direct" (T.option T.format) 
+  "Direct"
+
+(** Uploads **)
+let uT_lb_shared_files  = 
+  message "uT_lb_shared_files" (T.option T.format) 
+  "Shared files"
+let uT_lb_add_shared_directory = 
+  message "uT_lb_add_shared_directory" (T.option T.format) 
+  "Add Shared Directory"
+let uT_lb_priority = 
+  message "uT_lb_priority" (T.option T.format) 
+  "Priority :"
+let uT_ti_add_shared_directory = 
+  message "uT_ti_add_shared_directory" (T.option T.format) 
+  "Add a new shared directory"
+let uT_wt_add_new_directory = 
+  message "uT_wt_add_new_directory" (T.option T.format) 
+  "Add a Shared Directory"
+let uT_lb_uploaders  = 
+  message "uT_lb_uploaders" (T.option T.format) 
+  "Uploaders"
+let uT_lb_directory = 
+  message "uT_lb_directory" (T.option T.format) 
+  "Directory : "
+let uT_lb_add_new_directory = 
+  message "uT_lb_add_new_directory" (T.option T.format) 
+  "Add New Directory"
+let uT_me_add_to_friends = 
+  message "dT_me_add_to_friends" (T.option T.format) 
+  "Add to friends"
+let uT_me_copy_ed2k = 
+  message "uT_me_copy_ed2k" (T.option T.format) 
+  "Copy ed2k link to console/clipboard"
+
+(** Console **)
+let cT_lb_clear_console = 
+  message "cT_lb_clear_console" (T.option T.format) 
+  "Clear Console"
+let cT_lb_command = 
+  message "cT_lb_command" (T.option T.format) 
+  "Command"
+
+(** Graph **)
+let gT_lb_downloads = 
+  message "gT_lb_downloads" (T.option T.format) 
+  "Downloads"
+let gT_lb_uploads = 
+  message "gT_lb_uploads" (T.option T.format) 
+  "Uploads"
+
+(** Im **)
+let iM_wt_software = "MLDonkey"
+let iM_me_file = 
+  message "iM_me_file" (T.option T.format) 
+  "File"
+let iM_me_settings = 
+  message "iM_me_settings" (T.option T.format) 
+  "Settings"
+let iM_me_quit = 
+  message "iM_me_quit" (T.option T.format) 
+  "Quit"
+
+(** Popup Windows **)
+let pW_lb_servers_remove_icons = 
+  message "pW_lb_servers_remove_icons" (T.option T.format) 
+  "Please wait ... Removing Servers icons"
+let pW_lb_servers_add_icons = 
+  message "pW_lb_servers_add_icons" (T.option T.format) 
+  "Please wait ... Generating Servers icons"
+let pW_lb_downloads_remove_icons = 
+  message "pW_lb_downloads_remove_icons" (T.option T.format) 
+  "Please wait ... Removing Downloads icons"
+let pW_lb_downloads_add_icons = 
+  message "pW_lb_downloads_add_icons" (T.option T.format) 
+  "Please wait ... Generating Downloads icons"
+let pW_lb_friends_remove_icons = 
+  message "pW_lb_friends_remove_icons" (T.option T.format) 
+  "Please wait ... Removing Friends icons"
+let pW_lb_friends_add_icons = 
+  message "pW_lb_friends_add_icons" (T.option T.format) 
+  "Please wait ... Generating Friends icons"
+let pW_lb_results_remove_icons = 
+  message "pW_lb_results_remove_icons" (T.option T.format) 
+  "Please wait ... Removing Searches icons"
+let pW_lb_results_add_icons = 
+  message "pW_lb_results_add_icons" (T.option T.format) 
+  "Please wait ... Generating Searches icons"
+let pW_lb_rooms_remove_icons = 
+  message "pW_lb_rooms_remove_icons" (T.option T.format) 
+  "Please wait ... Removing Rooms icons"
+let pW_lb_rooms_add_icons = 
+  message "pW_lb_rooms_add_icons" (T.option T.format) 
+  "Please wait ... Generating Rooms icons"
+let pW_lb_uploads_remove_icons = 
+  message "pW_lb_uploads_remove_icons" (T.option T.format) 
+  "Please wait ... Removing Sources icons"
+let pW_lb_uploads_add_icons = 
+  message "pW_lb_uploads_add_icons" (T.option T.format) 
+  "Please wait ... Generating Sources icons"
+let pW_lb_ok = 
+  message "pW_lb_ok" (T.option T.format) 
+  "Ok"
+let pW_lb_cancel = 
+  message "pW_lb_cancel" (T.option T.format) 
+  "Cancel"
+let pW_wt_bad_password = 
+  message "pW_wt_bad_password" (T.option T.format) 
+  "Bad Password"
+let pW_lb_bad_password = 
+  message "pW_lb_bad_password" (T.option T.format) 
+  "Authorization Failed\nPlease, click the Settings button -> GUI -> GUI server and enter a valid password" 
+
+(** Main Window **)
+let mW_tx_action_unknown = 
+  message "mW_tx_action_unknown" (T.option T.format) 
+  "Unknown action: "
+let mW_sb_connected_to_servers = 
+  message "mW_sb_connected_to_servers" (T.option (T.int (T.int T.format))) 
+  "Connected to %d/%d server(s)"
+let mW_sb_downloaded_files = 
+  message "mW_sb_downloaded_files" (T.option (T.int (T.int T.format))) 
   "Downloaded Files: %d/%d"
-let files_downloaded = message "files_downloaded"
-    (T.option (T.int T.format))  "%d Downloaded Files"
-let save_all = message "save_all" (T.option T.format) "Save all"
-let save = message "save" (T.option T.format) "Save"
-let server_name = message "server_name" (T.option T.format) "Name"
-let server_desc = message "server_desc" (T.option T.format) "Description"
-let server_nusers = message "server_nusers" (T.option T.format) "Users"
-let server_nfiles = message "server_nfiles" (T.option T.format) "Files"
-let ed2k = message "ed2k" (T.option T.format) "ed2k link : "
-let recover_md4 = message "recover_md4" (T.option T.format) "Recover MD4:"
-let remove_old_servers_text = message "remove_old_servers" (T.option T.format) "Clean"
-let remove_old_servers_tips = message "remove_old_servers_tips" (T.option T.format) "Clean the server list"
-let max_server_age = message "max_server_age" (T.option T.format) "Max server age (days)"
-let max_hits = message "max_hits" (T.option T.format) "Max Hits"
-let features = message "features" (T.option T.format) "Features"
-let hostname = message "hostname" (T.option T.format) "Client hostname"
-let option_name = message "option_name" (T.option T.format) "Option:"
-let option_value = message "option_value" (T.option T.format) "Value:"
-let set_option = message "set_option" (T.option T.format) "Set Option"
-let command = message "command" (T.option T.format) "Command"
-let console = message "console" (T.option T.format) "Console"
-let clear_console = message "clear_console" (T.option T.format) "Clear Console"
-let friend_kind = message "friend_kind" (T.option T.format) "Kind"
-let friend_status = message "friend_status" (T.option T.format) "Status"
-let friend_name = message "friend_name" (T.option T.format) "Name"
-let dialog = message "dialog" (T.option T.format) "Chat"
-let yes = message "yes" (T.option T.format) "Yes"
-let no = message "no" (T.option T.format) "No"
-let connecting = message "connecting" (T.option T.format) "Connecting"
-let initiating = message "initiating" (T.option T.format) "Initiating"
-let connected = message "connected" (T.option T.format) "Connected"
-let removed = message "removed" (T.option T.format) "Removed"
-let queued = message "queued" (T.option T.format) "Queued"
-let downloading = message "downloading" (T.option T.format) "Downloading"
-let cancelled = message "cancelled" (T.option T.format) "Cancelled"
-let complete = message "complete" (T.option T.format) "Complete"
-let paused = message "paused" (T.option T.format) "Paused"
-let dl_done = message "dl_done" (T.option T.format) "Done"
-let unknown = message "unknown" (T.option T.format) "Unknown"
-let nusers = message "nusers" (T.option T.format) "Users"
-let waiting = message "waiting" (T.option T.format) " Waiting..."
-  
-let save_as = message "save_as" (T.option T.format) "Save file as" 
-let edit_mp3 = message "edit_mp3" (T.option T.format) "Edit mp3 tags" 
-let kind = message "kind" (T.option T.format) "Kind"
-let direct = message "direct" (T.option T.format) "Direct"
-let upload = message "upload" (T.option T.format) "Upload"
-let pause_resume_dl = message "pause_resume_dl" (T.option T.format) "Pause/Resume"
-let verify_chunks = message "verify_chunks" (T.option T.format) "Verify chunks"
-let preview = message "preview" (T.option T.format) "Preview"
-let get_format = message "get_format" (T.option T.format) "Get format info"
-let find_friend = message "find_friend" (T.option T.format) "Find friend"
-let remove_all_friends_text = message "remove_all_friends" (T.option T.format) "Clear"
-let remove_all_friends_tips = message "remove_all_friends_tips" (T.option T.format) "Remove all friends"
-let toggle_display_all_servers_text = message "toggle_display_all_servers" (T.option T.format) "View All"
-let toggle_display_all_servers_tips = message "toggle_display_all_servers_tips" (T.option T.format) "View all servers (even not connected)"
-  
-let browse_files = message "browse_files" (T.option T.format) "Browse files"
-  
-let show_hidden_fields = message "show_hidden_fields" (T.option T.format) "Show hidden fields"
+let mW_sb_files_shared = 
+  message "mW_sb_files_shared" (T.option (T.int (T.string (T.int (T.int (T.int (T.int T.format))))))) 
+  "Shared: %5d/%-12s   U/D bytes/s: %7d[%5d]/%-7d[%5d]"
+let mW_lb_connecting = 
+  message "mW_sb_connecting" (T.option T.format) 
+  "Connecting"
+let mW_lb_connected = 
+  message "mW_sb_connected" (T.option T.format) 
+  "Connected"
+let mW_lb_not_connected = 
+  message "mW_sb_not_connected" (T.option T.format) 
+  "Not Connected"
+let mW_ti_about = 
+  message "mW_ti_about" (T.option T.format) 
+  "About"
+let mW_ti_im = 
+  message "mW_ti_im" (T.option T.format) 
+  "Im"
+let mW_ti_settings = 
+  message "mW_ti_settings" (T.option T.format) 
+  "Settings"
+let mW_ti_exit = 
+  message "mW_ti_exit" (T.option T.format) 
+  "Exit"
+let mW_ti_gui = 
+  message "mW_ti_gui" (T.option T.format) 
+  "Gui"
+let mW_ti_kill_core = 
+  message "mW_ti_kill_core" (T.option T.format) 
+  "Kill core"
+let mW_me_reconnect = 
+  message "mW_me_reconnect" (T.option T.format) 
+  "Reconnect"
+let mW_me_disconnect = 
+  message "mW_me_disconnect" (T.option T.format) 
+  "Disconnect"
+let mW_me_scan_ports = 
+  message "mW_me_scan_ports" (T.option T.format) 
+  "Scan Ports"
+let mW_me_reconnect_to = 
+  message "mW_me_reconnect_to" (T.option T.format) 
+  "Reconnect To"
+let mW_me_Quit = 
+  message "mW_me_Quit" (T.option T.format) 
+  "Quit"
+let mW_lb_networks = 
+  message "mW_lb_networks" (T.option T.format) 
+  "Networks"
+let mW_lb_servers = 
+  message "mW_lb_servers" (T.option T.format) 
+  "Servers"
+let mW_lb_downloads = 
+  message "mW_lb_downloads" (T.option T.format) 
+  "Downloads"
+let mW_lb_friends = 
+  message "mW_lb_friends" (T.option T.format) 
+  "Friends"
+let mW_lb_search = 
+  message "mW_lb_search" (T.option T.format) 
+  "Search"
+let mW_lb_rooms = 
+  message "mW_lb_rooms" (T.option T.format) 
+  "Rooms"
+let mW_lb_uploads = 
+  message "mW_lb_uploads" (T.option T.format) 
+  "Uploads"
+let mW_lb_console = 
+  message "mW_lb_console" (T.option T.format) 
+  "Console"
+let mW_lb_graph = 
+  message "mW_lb_graph" (T.option T.format) 
+  "Graph"
+let mW_wt_software = 
+  "MLDonkey"
 
-let waiting_for_replies n = Printf.sprintf "Waiting for %d replies" n
-
-let uploads = message "uploads" (T.option T.format) "Uploads"
-let requests = message "requests" (T.option T.format) "Requests"
-let upstats = message "upstats" (T.option T.format) "Uploads stats"
-let uploaded = message "uploaded" (T.option T.format) "Uploaded"
-let refresh = message "refresh" (T.option T.format) "Refresh"
-
-let about = message "about" (T.option T.format) "About"
-let im = message "im" (T.option T.format) "Im"
-let networks = message "networks" (T.option T.format) "Networks"
-let settings = message "settings" (T.option T.format) "Settings"
-let exit = message "exit" (T.option T.format) "Exit"
-let gui = message "gui" (T.option T.format) "Gui"
-let kill_core = message "kill_core" (T.option T.format) "Kill core"
-
-let album_searches = message "album_searches" (T.option T.format) "Album Search"
-let movie_searches = message "movie_searches" (T.option T.format) "Movie Search"
-let mp3_searches = message "mp3_searches" (T.option T.format) "MP3 Search"
-let complex_searches = message "complex_searches" (T.option T.format) "Complex Search"
-let sharereactor_searches = message "sharereactor_searches" (T.option T.format) "ShareReactor Search"
-let jigle_searches = message "jigle_searches" (T.option T.format) "Jigle Search"
-let freedb_searches = message "freedb_searches" (T.option T.format) "FreeDB Search"
-let imdb_searches = message "imdb_searches" (T.option T.format) "IMDB Search"
-
-let set_priority = message "set_priority" (T.option T.format) "Set priority"
-let set_priority_high = message "set_priority_high" (T.option T.format) "High"
-let set_priority_normal = message "set_priority_normal" (T.option T.format) "Normal"
-let set_priority_low = message "set_priority_low" (T.option T.format) "Low"
-let view_sources = message "view_sources" (T.option T.format) "Show/Hide Sources"
-let shared_files  = message "shared_files" (T.option T.format) "Shared files"
-let add_shared_directory = message "add_shared_directory" (T.option T.format) "Add Shared Directory"
-let uploaders  = message "uploaders" (T.option T.format) "Uploaders"
-let directory = message "directory" (T.option T.format) "Directory : "
-let all_networks = message "all_networks" (T.option T.format) "All Networks"
-let add_new_directory = message "add_new_directory" (T.option T.format) "Add New Directory"
-
-let servers_remove_icons = message "servers_remove_icons" (T.option T.format) "Please wait ... Removing Servers icons"
-let servers_add_icons = message "servers_add_icons" (T.option T.format) "Please wait ... Generating Servers icons"
-let downloads_remove_icons = message "downloads_remove_icons" (T.option T.format) "Please wait ... Removing Downloads icons"
-let downloads_add_icons = message "downloads_add_icons" (T.option T.format) "Please wait ... Generating Downloads icons"
-let friends_remove_icons = message "friends_remove_icons" (T.option T.format) "Please wait ... Removing Friends icons"
-let friends_add_icons = message "friends_add_icons" (T.option T.format) "Please wait ... Generating Friends icons"
-let results_remove_icons = message "results_remove_icons" (T.option T.format) "Please wait ... Removing Searches icons"
-let results_add_icons = message "results_add_icons" (T.option T.format) "Please wait ... Generating Searches icons"
-let rooms_remove_icons = message "rooms_remove_icons" (T.option T.format) "Please wait ... Removing Rooms icons"
-let rooms_add_icons = message "rooms_add_icons" (T.option T.format) "Please wait ... Generating Rooms icons"
-let uploads_remove_icons = message "uploads_remove_icons" (T.option T.format) "Please wait ... Removing Sources icons"
-let uploads_add_icons = message "uploads_add_icons" (T.option T.format) "Please wait ... Generating Sources icons"
-
-let available_rooms = message "available_rooms" (T.option T.format) "Available Rooms"
-let opened_rooms = message "opened_rooms" (T.option T.format) "Opened Rooms"
-let rooms_messages = message "rooms_messages" (T.option T.format) "Messages"
-
-let confirm_download_dir dir n = 
-  Printf.sprintf "Do you want to download the  %d files in the directory %s ?"
-    n dir
-
-(** Menus labels. *)
-
-let mFile = message "mFile" (T.option T.format) "File"
-let mKill_server = message "mKill_server" (T.option T.format) "Kill core"
-let mFile = message "mFile" (T.option T.format) "File"
-let mReconnect = message "mReconnect" (T.option T.format) "Reconnect"
-let mDisconnect = message "mDisconnect" (T.option T.format) "Disconnect"
-let mQuit = message "mQuit" (T.option T.format) "Quit"
-let mGraph = message "mGraph" (T.option T.format) "Graph"
-let mSettings = message "mSettings" (T.option T.format) "Settings"
-let mNetworks = message "mNetworks" (T.option T.format) "Networks"
-let mServers = message "mServers" (T.option T.format) "Servers"
-let mDownloads = message "mDownloads" (T.option T.format) "Downloads"
-let mFriends = message "mFriends" (T.option T.format) "Friends"
-let mConsole = message "mConsole" (T.option T.format) "Console"
-let mQueries = message "mQueries" (T.option T.format) "Queries"
-let mSearch = message "mSearch" (T.option T.format) "Search"
-let mRooms = message "mRooms" (T.option T.format) "Rooms"
-let mUploads = message "mUploads" (T.option T.format) "Uploads"
-
-let mDisplay_bt = message "mDisplay_bt" (T.option T.format) "Display BitTorrent"
-let mNet_bt = message "mNet_bt" (T.option T.format) "BITTORRENT"
-let mDisplay_dc = message "mDisplay_dc" (T.option T.format) "Display Direct Connect"
-let mNet_dc = message "mNet_dc" (T.option T.format) "DIRECT CONNECT"
-let mDisplay_ed2k = message "mDisplay_ed2k" (T.option T.format) "Display Edonkey / Overnet"
-let mNet_ed2k = message "mNet_ed2k" (T.option T.format) "EDONKEY / OVERNET"
-let mDisplay_nap = message "mDisplay_nap" (T.option T.format) "Display Open Napster"
-let mNet_nap = message "mNet_nap" (T.option T.format) "OPEN NAPSTER"
-let mDisplay_gnut = message "mDisplay_gnut" (T.option T.format) "Display Gnutella"
-let mNet_gnut = message "mNet_gnut" (T.option T.format) "GNUTELLA"
-let mDisplay_ftt = message "mDisplay_ftt" (T.option T.format) "Display Fasttrack"
-let mNet_ftt = message "mNet_ftt" (T.option T.format) "FASTTRACK"
-let mDisplay_slsk = message "mDisplay_slsk" (T.option T.format) "Display Soulseek"
-let mNet_slsk = message "mNet_slsk" (T.option T.format) "SOULSEEK"
-
-let mAutosize = message "mAutosize" (T.option T.format) "Autosize"
-let mSort = message "mSort" (T.option T.format) "Sort"
-let mRemove_column = message "mRemove_column" (T.option T.format) "Remove Column"
-let mAdd_column_after = message "mAdd_column_after" (T.option T.format) "Add Column After"
-let mAdd_column_before = message "mAdd_column_before" (T.option T.format) "Add Column Before"
+(** Common Menus labels **)
+let mAutosize = 
+  message "mAutosize" (T.option T.format) 
+  "Autosize"
+let mSort = 
+  message "mSort" (T.option T.format) 
+  "Sort"
+let mRemove_column = 
+  message "mRemove_column" (T.option T.format) 
+  "Remove Column"
+let mAdd_column_after = 
+  message "mAdd_column_after" (T.option T.format) 
+  "Add Column After"
+let mAdd_column_before = 
+  message "mAdd_column_before" (T.option T.format) 
+  "Add Column Before"
 
 (** Messages and string constants. *)
-
-let software = "MLDonkey"
-let software_version = "1.0"
 
 let chat_config_file = 
   Filename.concat CommonOptions.config_dir "chat.ini"
@@ -328,196 +857,579 @@ let chat_config_file =
 let usage = Sys.argv.(0)^" [options] <files>\n"
 let options_are = "Options are :"
 
-
-(** {2 Messages} *)
-
-let title = message "title" (T.option T.format) "Title"
-let artist = message "artist" (T.option T.format) "Artist"
-let album = message "album" (T.option T.format) "Album"
-let year = message "year" (T.option T.format) "Year"
-let tracknum = message "tracknum" (T.option T.format) "Track number"
-let comment = message "comment" (T.option T.format) "Comment"
-let genre = message "genre" (T.option T.format) "Genre"
-
-let local_search = message "local_search" (T.option T.format) "Local Search"
-let extended_search = message "extended_search" (T.option T.format) "Extended Search"
-
-let action_unknown s = "Unknown action: "^s
-
-let ask_cancel_download_files files =
-  "Cancel the download of file(s) \n"^
-  (String.concat ",\n" files)^
-  " ?"
-
 (** {2 Config options labels and messages} *)
 
-let o_gui_port = message "o_gui_port" (T.option T.format) "GUI port"
-let h_gui_port = message "h_gui_port" (T.option T.format) "The server port to connect to"
-let o_hostname = message "o_hostname" (T.option T.format) "Hostname"
-let h_hostname = message "h_hostname" (T.option T.format) "The server hostname to connect to"
-let o_password = message "o_password" (T.option T.format) "Password"
-let h_gui_password = message "h_gui_password" (T.option T.format) "The password to use when connecting to the server"
-let o_gui_server = message "o_gui_server" (T.option T.format) "GUI server"
-let o_col_default = message "o_col_default" (T.option T.format) "Default"
-let h_col_default = message "h_col_default" (T.option T.format) "Default color in lists"
-let o_col_downloaded = message "o_col_downloaded" (T.option T.format) "Downloaded"
-let h_col_downloaded = message "h_col_downloaded" (T.option T.format) "Color for downloaded files"
-let o_col_downloading = message "o_col_downloading" (T.option T.format) "Downloading"
-let h_col_downloading = message "h_col_downloading" (T.option T.format) "Color for files being downloaded"
-let o_col_avail = message "o_col_avail" (T.option T.format) "Available"
-let h_col_avail = message "h_col_avail" (T.option T.format) "Color for available files, not downloading"
-let o_col_not_avail = message "o_col_not_avail" (T.option T.format) "Not available"
-let h_col_not_avail = message "h_col_not_avail" (T.option T.format) "Color for unavailable files"
-let o_col_connected = message "o_col_connected" (T.option T.format) "Connected"
-let h_col_connected = message "h_col_connected" (T.option T.format) "Color for connected servers or users"
-let o_col_not_connected = message "o_col_not_connected" (T.option T.format) "Not connected"
-let h_col_not_connected = message "h_col_not_connected" (T.option T.format) "Color for not connected servers or users"
-let o_col_connecting = message "o_col_connecting" (T.option T.format) "Connecting"
+(* options labels *)
+let o_gui_port = 
+  message "o_gui_port" (T.option T.format) 
+  "GUI port"
+let o_hostname = 
+  message "o_hostname" (T.option T.format) 
+  "Hostname"
+let o_password = 
+  message "o_password" (T.option T.format) 
+  "Password"
+let o_gui_server = 
+  message "o_gui_server" (T.option T.format) 
+  "GUI server"
+let o_lang = 
+  message "o_lang" (T.option T.format) 
+  "Language"
+let o_login = 
+  message "o_login" (T.option T.format) 
+  "Login"
+
+let o_gui = 
+  message "o_gui" (T.option T.format) 
+  "GUI"
+let o_options = 
+  message "o_options" (T.option T.format) 
+  "Options"
+let o_plugins = 
+  message "o_plugins" (T.option T.format) 
+  "Plugins"
+
+let o_colors = 
+  message "o_colors" (T.option T.format) 
+  "Colors"
+let o_fonts = 
+  message "o_fonts" (T.option T.format) 
+  "Fonts"
+let o_layout = 
+  message "o_layout" (T.option T.format) 
+  "Layout"
+let o_columns = 
+  message "o_columns" (T.option T.format) 
+  "Columns titles"
+let o_client = 
+  message "o_client" (T.option T.format) 
+  "Client"
+let o_misc = 
+  message "o_misc" (T.option T.format) 
+  "Misc"
+let o_graph = 
+  message "o_graph" (T.option T.format) 
+  "Graph"
+
+let o_col_default = 
+  message "o_col_default" (T.option T.format) 
+  "Default"
+let o_col_downloaded = 
+  message "o_col_downloaded" (T.option T.format) 
+  "Downloaded"
+let o_col_downloading = 
+  message "o_col_downloading" (T.option T.format) 
+  "Downloading"
+let o_col_avail = 
+  message "o_col_avail" (T.option T.format) 
+  "Available"
+let o_col_not_avail = 
+  message "o_col_not_avail" (T.option T.format) 
+  "Not available"
+let o_col_connected = 
+  message "o_col_connected" (T.option T.format) 
+  "Connected"
+let o_col_not_connected = 
+  message "o_col_not_connected" (T.option T.format) 
+  "Not connected"
+let o_col_connecting = 
+  message "o_col_connecting" (T.option T.format) 
+  "Connecting"
+let o_col_files_listed = 
+  message "o_col_files_listed" (T.option T.format) 
+  "Files listed"
+let o_col_files_result = 
+  message "o_col_files_result" (T.option T.format) 
+  "Files result"
+let o_col_tab_selected = 
+  message "o_col_tab_selected" (T.option T.format) 
+  "Tab selected"
+let o_col_tab_not_selected = 
+  message "o_col_tab_not_selected" (T.option T.format) 
+  "Tab not selected"
+let o_col_list_bg = 
+  message "o_col_list_bg" (T.option T.format) 
+  "Lists background"
+let o_col_network_enabled = 
+  message "o_col_network_enabled" (T.option T.format) 
+  "Network enabled"
+let o_col_network_disabled = 
+  message "o_col_network_disabled" (T.option T.format) 
+  "Network diabled"
+
+let o_font_list = 
+  message "o_font_list" (T.option T.format) 
+  "Lists & Trees"
+let o_font_main_tab = 
+  message "o_font_main_tab" (T.option T.format) 
+  "Main tabs labels"
+let o_font_networks = 
+  message "o_font_networks" (T.option T.format) 
+  "Networks labels"
+let o_font_graphic = 
+  message "o_font_graphic" (T.option T.format) 
+  "Graphic texts"
+
+let o_auto_resize = 
+  message "o_auto_resize" (T.option T.format) 
+  "Auto-resize"
+let o_files_auto_expand_depth = 
+  message "o_files_auto_expand_depth" (T.option T.format) 
+  "Files auto-expand depth"
+let o_use_size_suffixes = 
+  message "o_use_size_suffixes" (T.option T.format) 
+  "Use size suffixes (G, M, k)"
+let o_use_availability_height = 
+  message "o_use_availability_height" (T.option T.format) 
+  "Use height encoded availability"
+let o_use_relative_availability = 
+  message "o_use_relative_availability" (T.option T.format) 
+  "Use relative %% availability"
+let o_toolbars_style = 
+  message "o_toolbars_style" (T.option T.format) 
+  "Style of toolbars"
+let o_tab_position = 
+  message "o_tab_position" (T.option T.format) 
+  "Tab position"
+let o_mini_toolbars = 
+  message "o_mini_toolbars" (T.option T.format) 
+  "Mini icons in toolbars"
+let o_use_icons = 
+  message "o_use_icons" (T.option T.format) 
+  "Use icons in the lists"
+let o_use_graphical_availability = 
+  message "o_use_graphical_availability" (T.option T.format) 
+  "Use graphical represention for availability"
+let o_h_use_reliable_sources = 
+  message "o_h_use_reliable_sources" (T.option T.format) 
+  "Display only reliable sources"
+let o_max_file_name_len = 
+  message "o_max_file_name_len" (T.option T.format) 
+  "Maximum length of a file name"
+let o_max_result_name_len = 
+  message "o_max_result_name_len" (T.option T.format) 
+  "Maximum length of a result name"
+let o_max_client_name_len = 
+  message "o_max_client_name_len" (T.option T.format) 
+  "Maximum length of a client name"
+
+let o_servers_columns = 
+  message "o_servers_columns" (T.option T.format) 
+  "Servers"
+let o_downloads_columns = 
+  message "o_downloads_columns" (T.option T.format) 
+  "Downloads"
+let o_downloaded_columns = 
+  message "o_downloaded_columns" (T.option T.format) 
+  "Downloaded"
+let o_friends_columns = 
+  message "o_friends_columns" (T.option T.format) 
+  "Friends"
+let o_file_locations_columns = 
+  message "o_file_locations_columns" (T.option T.format) 
+  "File locations"
+let o_results_columns = 
+  message "o_results_columns" (T.option T.format) 
+  "Results"
+let o_shared_files_up_colums = 
+  message "o_shared_files_up_colums" (T.option T.format) 
+  "Shared files upload info"
+
+let o_max_download_rate = 
+  message "o_max_download_rate" (T.option T.format) 
+  "Max download rate (ko/s)"
+let o_max_upload_rate = 
+  message "o_max_upload_rate" (T.option T.format) 
+  "Max upload rate (ko/s)"
+let o_download_time_range = 
+  message "o_download_time_range" (T.option T.format) 
+  "Downloads time range +(s, mn, h, d, w)"
+let o_upload_time_range = 
+  message "o_upload_time_range" (T.option T.format) 
+  "Uploads time range +(s, mn, h, d, w)"
+let o_col_bg_download = 
+  message "o_col_bg_download" (T.option T.format) 
+  "Downloads background"
+let o_col_bg_upload = 
+  message "o_col_bg_upload" (T.option T.format) 
+  "Uploads background"
+let o_col_grid_download = 
+  message "o_col_grid_download" (T.option T.format) 
+  "Downloads grid"
+let o_col_grid_upload = 
+  message "o_col_grid_upload" (T.option T.format) 
+  "Uploads grid"
+let o_col_fg_download = 
+  message "o_col_fg_download"(T.option T.format) 
+  "Download rate"
+let o_col_fg_upload = 
+  message "o_col_fg_upload" (T.option T.format) 
+  "Uploads rate"
+let o_col_fg_download_av = 
+  message "o_col_fg_download_av" (T.option T.format) 
+  "Average download rate"
+let o_col_fg_upload_av = 
+  message "o_col_fg_upload_av" (T.option T.format) 
+  "Average uploads rate"
+
+(* help  messages *)
+
+let h_gui_port = 
+  message "h_gui_port" (T.option T.format) 
+  "The server port to connect to"
+let h_hostname = 
+  message "h_hostname" (T.option T.format) 
+  "The server hostname to connect to"
+let h_gui_password = 
+  message "h_gui_password" (T.option T.format) 
+  "The password to use when connecting to the server"
+let h_login = 
+  message "h_login" (T.option T.format) 
+  "Your login name (default is admin)"
+let h_history =
+  message "h_history" (T.option T.format) 
+  "History of connected cores"
+let h_lang = 
+  message "h_lang" (T.option T.format) 
+  "What is the language of your system"
+
+let h_col_default = 
+  message "h_col_default" (T.option T.format) 
+  "Default color in lists"
+let h_col_downloaded = 
+  message "h_col_downloaded" (T.option T.format) 
+  "Color for downloaded files"
+let h_col_downloading = 
+  message "h_col_downloading" (T.option T.format) 
+  "Color for files being downloaded"
+let h_col_avail = 
+  message "h_col_avail" (T.option T.format) 
+  "Color for available files, not downloading"
+let h_col_not_avail = 
+  message "h_col_not_avail" (T.option T.format) 
+  "Color for unavailable files"
+let h_col_connected = 
+  message "h_col_connected" (T.option T.format) 
+  "Color for connected servers or users"
+let h_col_not_connected = 
+  message "h_col_not_connected" (T.option T.format) 
+  "Color for not connected servers or users"
 let h_col_connecting = 
+  message "h_col_connecting" (T.option T.format) 
   "Color for servers or users with which a connection is being established"
-let o_col_files_listed = message "o_col_files_listed" (T.option T.format) "Files listed"
-let o_col_files_result = message "o_col_files_result" (T.option T.format) "Files result"
-let o_col_tab_selected = message "o_col_tab_selected" (T.option T.format) "Tab selected"
-let o_col_tab_not_selected = message "o_col_tab_not_selected" (T.option T.format) "Tab not selected"
-let o_col_list_bg = message "o_col_list_bg" (T.option T.format) "Lists background"
 let h_col_files_listed = 
+  message "h_col_files_listed" (T.option T.format) 
   "Color for users whose list of files has been retrieved"
-let h_col_files_result =
+let h_col_files_result = 
+  message "h_col_files_result" (T.option T.format) 
   "Color for the result list in the queries tab"
-let h_col_tab_selected =
+let h_col_tab_selected = 
+  message "h_col_tab_selected" (T.option T.format) 
   "Color for tab selected"
-let h_col_tab_not_selected =
+let h_col_tab_not_selected = 
+  message "h_col_tab_not_selected" (T.option T.format) 
   "Color for tab not selected"
-let h_col_list_bg =
+let h_col_network_enabled = 
+  message "h_col_network_enabled" (T.option T.format) 
+  "Color for the Network Name when enabled"
+let h_col_network_disabled = 
+  message "h_col_network_disabled" (T.option T.format) 
+  "Color for the Network Name when disabled"
+let h_col_list_bg = 
+  message "h_col_list_bg" (T.option T.format) 
   "Unified color background for lists"
 
-let o_colors = message "o_colors" (T.option T.format) "Colors"
-let o_fonts = message "o_fonts" (T.option T.format) "Fonts"
-
-let o_auto_resize = message "o_auto_resize" (T.option T.format) "Auto-resize"
-let h_auto_resize = message "h_auto_resize" (T.option T.format) "Auto-resize lists columns"
-
-let o_files_auto_expand_depth = message "o_files_auto_expand_depth" (T.option T.format) "Files auto-expand depth"
+let h_auto_resize = 
+  message "h_auto_resize" (T.option T.format) 
+  "Auto-resize lists columns"
 let h_files_auto_expand_depth = 
+  message "h_files_auto_expand_depth" (T.option T.format) 
   "The depth to which the directories of a friend are automatically expanded"
-
 let h_use_size_suffixes = 
+  message "h_use_size_suffixes" (T.option T.format) 
   "Whether sizes are printed using G(iga), M(ega) and k(ilo) suffixes."
-let o_use_size_suffixes = message "o_use_size_suffixes" (T.option T.format) "Use size suffixes (G, M, k)"
+let h_availability_max =  
+  message "h_availability_max" (T.option T.format) 
+  "If use_availability_height is true, which availability corresponds to a full bar ?"
+let h_use_availability_height = 
+  message "h_use_availability_height" (T.option T.format) 
+  "Display the availability of a chunk as height or color coded bar"
+let h_use_relative_availability =
+   message "h_use_relative_availability" (T.option T.format) 
+  "Calculate %% availability ignoring already present chunks"
+let h_toolbars_style = 
+  message "h_toolbars_style" (T.option T.format) 
+  "What is displayed in toolbar buttons : text, icon or both"
+let h_mini_toolbars = 
+  message "h_mini_toolbars" (T.option T.format) 
+  "What is displayed in toolbar buttons : small or big icons"
 
-let h_availability_max =  message "h_availability_max" (T.option T.format) "If use_availability_height is true, which availability corresponds to a full bar ?"
+let h_compaction_overhead =
+  message "h_compaction_overhead" (T.option T.format) 
+  "The percentage of free memory before a compaction is triggered"
+let h_interface_buffer =
+  message "h_interface_buffer" (T.option T.format) 
+  "The size of the buffer to the core"
+let h_copy_messages = 
+  message "h_copy_messages" (T.option T.format) 
+  "For bundle binaries, should we directly pass structures 
+   between the core and the GUI (faster), or copy them (fewer bugs)" 
 
-let h_use_availability_height = message "h_use_availability_height" (T.option T.format) "Display the availability of a chunk as height or color coded bar"
-let o_use_availability_height = message "o_use_availability_height" (T.option T.format) "Use height encoded availability"
+let h_servers_vpane_up = 
+  message "h_servers_vpane_up" (T.option T.format) 
+  "Size in %% of upper part of the servers hpane"
+let h_friends_hpane_left = 
+  message "h_friends_hpane_left" (T.option T.format) 
+  "Size in %% of left part of the friends hpane"
+let h_friends_vpane_up =  
+  message "h_friends_vpane_up" (T.option T.format) 
+  "Size in %% of up part of the friends vpane"
+let h_friends_hpane_dirs = 
+  message "h_friends_hpane_dirs" (T.option T.format) 
+  "Size in %% of the directories part of the files box"
+let h_rooms_hpane_left = 
+  message "h_rooms_hpane_left" (T.option T.format) 
+  "Size in %% of left part of the rooms hpane"
+let h_rooms_hpane2_left = 
+  message "h_rooms_hpane2_left" (T.option T.format) 
+  "Size in %% of left part of the second rooms hpane"
+let h_rooms_vpane_up = 
+  message "h_rooms_vpane_up" (T.option T.format) 
+  "Size in %% of upper part of the rooms vpane"
+let h_uploads_vpane_up = 
+  message "h_uploads_vpane_up" (T.option T.format) 
+  "Size in %% of up part of the uploads vpane"
+let h_gui_width = 
+  message "h_gui_width" (T.option T.format) 
+  "Width of GUI window"
+let h_gui_height = 
+  message "h_gui_height" (T.option T.format)
+  "Height of GUI window" 
+let h_last_tab =
+  message "h_last_tab" (T.option T.format)
+  "The last tab opened before closing the GUI"
 
-let h_use_relative_availability = message "h_use_relative_availability" (T.option T.format) "Calculate %% availability ignoring already present chunks"
-let o_use_relative_availability = message "o_use_relative_availability" (T.option T.format) "Use relative %% availability"
+let h_tab_position = 
+  message "h_tab_position" (T.option T.format) 
+  "How are displayed the Tabs : left, right, top, bottom"
+let h_use_icons = 
+  message "h_use_icons" (T.option T.format) 
+  "Display various icons in the lists"
+let h_use_graphical_availability = 
+  message "h_use_graphical_availability" (T.option T.format) 
+  "What is displayed in availability column : graphical or text"
+let h_use_reliable_sources = 
+  message "h_use_reliable_sources" (T.option T.format) 
+  "Filter the sources that have only a file availability"
+let h_max_file_name_len = 
+  message "h_max_file_name_len" (T.option T.format) 
+  "What is the maximum length of a file name displayed in the downloads list"
+let h_max_result_name_len = 
+  message "h_max_result_name_len" (T.option T.format) 
+  "What is the maximum length of a file name displayed in the results list"
+let h_max_client_name_len = 
+  message "h_max_client_name_len" (T.option T.format) 
+  "What is the maximum length of a client name displayed in the friends and uploads lists"
 
-let h_chunk_width = message "h_chunk_width" (T.option T.format) "Width of a chunk in availability bar"
-let o_chunk_width = message "o_chunk_width" (T.option T.format) "Chunk width"
-
-let h_toolbars_style = message "h_toolbars_style" (T.option T.format) "What is displayed in toolbar buttons : text, icon or both"
-let o_toolbars_style = message "o_toolbars_style" (T.option T.format) "Style of toolbars"
-
-let h_use_icons = message "h_use_icons" (T.option T.format) "Display various icons in the lists"
-let o_use_icons = message "o_use_icons" (T.option T.format) "Use icons in the lists"
-
-let h_use_graphical_availability = message "h_use_graphical_availability" (T.option T.format) "What is displayed in availability column : graphical or text"
-let o_use_graphical_availability = message "o_use_graphical_availability" (T.option T.format) "Use graphical represention for availability"
-
-let h_max_file_name_len = message "h_max_file_name_len" (T.option T.format) "What is the maximum length of a file name displayed in the downloads list"
-let o_max_file_name_len = message "o_max_file_name_len" (T.option T.format) "Maximum length of a file name"
-
-let  h_max_result_name_len = message "h_max_result_name_len" (T.option T.format) "What is the maximum length of a file name displayed in the results list"
-let o_max_result_name_len = message "o_max_result_name_len" (T.option T.format) "Maximum length of a result name"
-
-let h_max_client_name_len = message "h_max_client_name_len" (T.option T.format) "What is the maximum length of a client name displayed in the friends and uploads lists"
-let o_max_client_name_len = message "o_max_client_name_len" (T.option T.format) "Maximum length of a client name"
-
-
-let o_layout = message "o_layout" (T.option T.format) "Layout"
-
-let o_servers_columns = message "o_servers_columns" (T.option T.format) "Servers"
-let h_servers_columns = message "h_servers_columns" (T.option T.format) "Columns for the servers"
-let o_downloads_columns = message "o_downloads_columns" (T.option T.format) "Downloads"
-let h_downloads_columns = message "h_downloads_columns" (T.option T.format) "Columns for the files being downloaded"
-let o_downloaded_columns = message "o_downloaded_columns" (T.option T.format) "Downloaded"
-let h_downloaded_columns = message "h_downloaded_columns" (T.option T.format) "Columns for the downloaded files"
-let o_friends_columns = message "o_friends_columns" (T.option T.format) "Friends"
-let h_friends_columns = message "h_friends_columns" (T.option T.format) "Columns for the friends"
-let o_file_locations_columns = message "o_file_locations_columns" (T.option T.format) "File locations"
-let h_file_locations_columns = message "h_file_locations_columns" (T.option T.format) "Columns for the locations of a file"
-let o_results_columns = message "o_results_columns" (T.option T.format) "Results"
-let h_results_columns = message "h_results_columns" (T.option T.format) "Columns for the results of searches and files of a friends"
-
-let o_shared_files_up_colums = message "o_shared_files_up_colums" (T.option T.format) "Shared files upload info"
+let h_servers_columns = 
+  message "h_servers_columns" (T.option T.format) 
+  "Columns for the servers"
+let h_downloads_columns = 
+  message "h_downloads_columns" (T.option T.format) 
+  "Columns for the files being downloaded"
+let h_downloaded_columns = 
+  message "h_downloaded_columns" (T.option T.format) 
+  "Columns for the downloaded files"
+let h_friends_columns = 
+  message "h_friends_columns" (T.option T.format) 
+  "Columns for the friends"
+let h_file_locations_columns = 
+  message "h_file_locations_columns" (T.option T.format) 
+  "Columns for the locations of a file"
+let h_users_columns =
+  message "h_users_columns" (T.option T.format) 
+  "Columns of the users lists"
+let h_rooms_columns =
+  message "h_rooms_columns" (T.option T.format) 
+  "Columns of the room lists"
+let h_results_columns = 
+  message "h_results_columns" (T.option T.format) 
+  "Columns for the results of searches and files of a friends"
 let h_shared_files_up_columns = 
+  message "h_shared_files_up_columns" (T.option T.format) 
   "Columns for the list of shared files upload information"
 
-let o_columns = message "o_columns" (T.option T.format) "Columns titles"
+let h_max_download_rate = 
+  message "h_max_download_rate" (T.option T.format) 
+  "Max download bandwith capacity (ko/s)"
+let h_max_upload_rate = 
+  message "h_max_upload_rate" (T.option T.format) 
+  "Max upload bandwith capacity (ko/s)"
+let h_download_time_range = 
+  message "h_download_time_range" (T.option T.format) 
+  "Time range for the downloads graph"
+let h_upload_time_range = 
+  message "h_upload_time_range" (T.option T.format) 
+  "Time range for the uploads graph"
+let h_col_bg_download = 
+  message "h_col_bg_download" (T.option T.format) 
+  "Color for the downloads graph background"
+let h_col_bg_upload = 
+  message "h_col_bg_upload" (T.option T.format) 
+  "Color for the uploads graph background"
+let h_col_grid_download = 
+  message "h_col_grid_download" (T.option T.format)
+  "Color for the downloads graph grid"
+let h_col_grid_upload = 
+  message "h_col_grid_upload" (T.option T.format) 
+  "Color for the uploads graph grid"
+let h_col_fg_download = 
+  message "h_col_fg_download" (T.option T.format) 
+  "Color for the download rate"
+let h_col_fg_upload = 
+  message "h_col_fg_upload" (T.option T.format) 
+  "Color for the upload rate"
+let h_col_fg_download_av = 
+  message "h_col_fg_download_av" (T.option T.format) 
+  "Color for the average download rate"
+let h_col_fg_upload_av = 
+  message "h_col_fg_upload_av" (T.option T.format) 
+  "Color for the average upload rate"
 
-let o_gui = message "o_gui" (T.option T.format) "GUI"
-let o_client = message "o_client" (T.option T.format) "Client"
-let o_options = message "o_options" (T.option T.format) "Options"
-let o_misc = message "o_misc" (T.option T.format) "Misc"
+let h_font_list = 
+  message "h_font_list" (T.option T.format) 
+  "Font for the list & trees texts"
+let h_font_main_tab = 
+  message "h_font_main_tab" (T.option T.format) 
+  "Font for the main notebook tabs labels"
+let h_font_networks = 
+  message "h_font_networks" (T.option T.format) 
+  "Font for the networks labels in the Networks Tab"
+let h_font_graphic = 
+  message "h_font_graphic" (T.option T.format) 
+  "Font to display texts in the Graph tab"
 
-let o_graph = message "o_graph" (T.option T.format) "Graph"
-
-let h_col_network_enabled = "Color for the Network Name when enabled"
-let o_col_network_enabled = message "o_col_network_enabled" (T.option T.format) "Network enabled"
-let h_col_network_disabled = "Color for the Network Name when disabled"
-let o_col_network_disabled = message "o_col_network_disabled" (T.option T.format) "Network diabled"
-
-let h_max_download_rate = message "h_max_download_rate" (T.option T.format) "Max download bandwith capacity (ko/s)"
-let o_max_download_rate = message "o_max_download_rate" (T.option T.format) "Max download rate (ko/s)"
-let h_max_upload_rate = message "h_max_upload_rate" (T.option T.format) "Max upload bandwith capacity (ko/s)"
-let o_max_upload_rate = message "o_max_upload_rate" (T.option T.format) "Max upload rate (ko/s)"
-let h_download_time_range = message "h_download_time_range" (T.option T.format) "Time range for the downloads graph"
-let o_download_time_range = message "o_download_time_range" (T.option T.format) "Downloads time range +(s, mn, h, d, w)"
-let h_upload_time_range = message "h_upload_time_range" (T.option T.format) "Time range for the uploads graph"
-let o_upload_time_range = message "o_upload_time_range" (T.option T.format) "Uploads time range +(s, mn, h, d, w)"
-let h_col_bg_download = message "h_col_bg_download" (T.option T.format) "Color for the downloads graph background"
-let o_col_bg_download = message "o_col_bg_download" (T.option T.format) "Downloads background"
-let h_col_bg_upload = message "h_col_bg_upload" (T.option T.format) "Color for the uploads graph background"
-let o_col_bg_upload = message "o_col_bg_upload" (T.option T.format) "Uploads background"
-let h_col_grid_download = message "h_col_grid_download" (T.option T.format)"Color for the downloads graph grid"
-let o_col_grid_download = message "o_col_grid_download" (T.option T.format) "Downloads grid"
-let h_col_grid_upload = message "h_col_grid_upload" (T.option T.format) "Color for the uploads graph grid"
-let o_col_grid_upload = message "o_col_grid_upload" (T.option T.format) "Uploads grid"
-let h_col_fg_download = message "h_col_fg_download" (T.option T.format) "Color for the download rate"
-let o_col_fg_download = message "o_col_fg_download"(T.option T.format) "Download rate"
-let h_col_fg_upload = message "h_col_fg_upload" (T.option T.format) "Color for the upload rate"
-let o_col_fg_upload = message "o_col_fg_upload" (T.option T.format) "Uploads rate"
-let h_col_fg_download_av = message "h_col_fg_download_av" (T.option T.format) "Color for the average download rate"
-let o_col_fg_download_av = message "o_col_fg_download_av" (T.option T.format) "Average download rate"
-let h_col_fg_upload_av = message "h_col_fg_upload_av" (T.option T.format) "Color for the average upload rate"
-let o_col_fg_upload_av = message "o_col_fg_upload_av" (T.option T.format) "Average uploads rate"
-
-let h_font_list = message "h_font_list" (T.option T.format) "Font for the list & trees texts"
-let o_font_list = message "o_font_list" (T.option T.format) "Lists & Trees"
-let h_font_main_tab = message "h_font_main_tab" (T.option T.format) "Font for the main notebook tabs labels"
-let o_font_main_tab = message "o_font_main_tab" (T.option T.format) "Main tabs labels"
-let h_font_networks = message "h_font_networks" (T.option T.format) "Font for the networks labels in the Networks Tab"
-let o_font_networks = message "o_font_networks" (T.option T.format) "Networks labels"
-let h_font_graphic = message "h_font_graphic" (T.option T.format) "Font to display texts in the Graph tab"
-let o_font_graphic = message "o_font_graphic" (T.option T.format) "Graphic texts"
-
-(** {2 Strings to specify colors} *)
-
-
+(** Columns **)
+let c_name = 
+  message "c_name" (T.option T.format) 
+  "Name"
+let c_md4 = 
+  message "c_md4" (T.option T.format) 
+  "MD4"
+let c_size = 
+  message "c_size" (T.option T.format) 
+  "Size"
+let c_downloaded = 
+  message "c_downloaded" (T.option T.format) 
+  "Downloaded"
+let c_percent = 
+  message "c_percent" (T.option T.format) 
+  "%%"
+let c_state = 
+  message "c_state" (T.option T.format) 
+  "State"
+let c_avail = 
+  message "c_avail" (T.option T.format) 
+  "Availability"
+let c_rate = 
+  message "c_rate" (T.option T.format) 
+  "Rate"
+let c_format = 
+  message "c_format" (T.option T.format) 
+  "Format"
+let c_network = 
+  message "c_network" (T.option T.format) 
+  "Net"
+let c_age = 
+  message "c_age" (T.option T.format) 
+  "Age"
+let c_last_seen = 
+  message "c_last_seen" (T.option T.format) 
+  "Last seen"
+let c_eta = 
+  message "c_eta" (T.option T.format) 
+  "ETA"
+let c_priority = 
+  message "c_priority" (T.option T.format) 
+  "Priority"
+let c_kind = 
+  message "c_kind" (T.option T.format) 
+  "Kind"
+let c_client_type = 
+  message "c_client_type" (T.option T.format) 
+  "Type"
+let c_client_rating = 
+  message "c_client_rating" (T.option T.format) 
+  "Rating"
+let c_client_software = 
+  message "c_client_software" (T.option T.format) 
+  "Brand"
+let c_client_emulemod = 
+  message "c_client_emulemod" (T.option T.format) 
+  "Mod"
+let c_client_downloaded = 
+  message "c_client_downloaded" (T.option T.format) 
+  "Downloaded"
+let c_client_uploaded = 
+  message "c_client_uploaded" (T.option T.format) 
+  "Uploaded"
+let c_client_upload = 
+  message "c_client_upload" (T.option T.format) 
+  "File uploaded"
+let c_client_sock_addr = 
+  message "c_client_sock_addr" (T.option T.format) 
+  "IP Address"
+let c_client_connect_time = 
+  message "c_client_connect_time" (T.option T.format) 
+  "Connected Time"
+let c_address = 
+  message "c_address" (T.option T.format) 
+  "Address"
+let c_server_nusers = 
+  message "c_server_nusers" (T.option T.format) 
+  "Users"
+let c_server_nfiles = 
+  message "c_server_nfiles" (T.option T.format) 
+  "Files"
+let c_server_desc = 
+  message "c_server_desc" (T.option T.format) 
+  "Description"
+let c_duration = 
+  message "c_duration" (T.option T.format) 
+  "Duration"
+let c_codec = 
+  message "c_codec" (T.option T.format) 
+  "Codec"
+let c_bitrate  = 
+  message "c_bitrate" (T.option T.format) 
+  "Bitrate"
+let c_comment = 
+  message "c_comment" (T.option T.format) 
+  "Comment"
+let c_nusers = 
+  message "c_nusers" (T.option T.format) 
+  "Users"
+let c_filename = 
+  message "c_filename" (T.option T.format) 
+  "Filename"
+let c_uploaded = 
+  message "c_uploaded" (T.option T.format) 
+  "Uploaded"
+let c_requests = 
+  message "c_requests" (T.option T.format) 
+  "Requests"
 
 (** {2 Actions names for key bindings} *)
 
+let a_page_networks = "page_networks"
 let a_page_servers = "page_servers"
 let a_page_downloads = "page_downloads"
 let a_page_friends = "page_friends"
-let a_page_queries = "page_queries"
-let a_page_results = "page_results"
+let a_page_searches = "page_searches"
 let a_page_rooms = "page_rooms"
 let a_page_uploads = "page_uploads"
-let a_page_options = "page_options"
 let a_page_console = "page_console"
-let a_page_help = "page_help"
+let a_page_graph = "page_graph"
 let a_next_page = "next_page"
 let a_previous_page = "previous_page"
 let a_reconnect = "reconnect"
@@ -527,58 +1439,16 @@ let a_select_all = "select_all"
 let a_connect = "connect"
 let a_connect_more = "connect_more"
 
-
-let a_download_selection = "download_selection"
-let a_remove_friend = "remove_friend"
-
 let a_cancel_download = "cancel_download"
 let a_save_all_files = "save_all_files"
 let a_menu_save_file = "menu_save_file"
 
-(** {2 Dangerous Strings} *)
+let a_download_selection = "download_selection"
+let a_remove_friend = "remove_friend"
 
-(* Be careful, these strings may appear in configuration files...
-Changing them may make your config unparsable. *)
-  
-let c_name = "Name"
-let c_md4 = "MD4"
-let c_size = "Size"
-let c_downloaded = "Downloaded"
-let c_state = "State"
-let c_avail = "Availability"
-let c_rate = "Rate"
-let c_format = "Format"
-let c_network = ""
-let c_age = "Age"
-let c_last_seen = "Last seen"
-let c_eta = "ETA"
-let c_priority = "Priority"
-let c_kind = "Kind"
-let c_client_type = "Type"
 
-let c_client_rating = "Rating"
-let c_client_software = "Brand"
-let c_client_downloaded = "Downloaded"
-let c_client_uploaded = "Uploaded"
-let c_client_upload = "File uploaded"
-let c_client_sock_addr = "IP Address"
-let c_client_connect_time = "Connected Time"
+(** {2 Icons names} *)
 
-let c_address = "Address"
-let c_server_nusers = "Users"
-let c_server_nfiles = "Files"
-let c_server_desc = "Description"
-let c_properties = "Properties"
-let c_comment = "Comment"
-let c_nusers = "Users"
-let c_filename = "Filename"
-let c_uploaded = "Uploaded"
-let c_requests = "Requests"
-  
-let c_duration = "Duration"
-let c_codec = "Codec"
-let c_bitrate  = "Bitrate"
-  
 let o_xpm_toggle_display_all_servers = "toggle_display_all_servers"
 let o_xpm_add_server = "add_server"
 let o_xpm_submit_search = "submit_search"
@@ -763,3 +1633,5 @@ Archives: http://mail.nongnu.org/mailman/listinfo/mldonkey-users
 
 In the console, use '?' for help on commands.
 " version
+
+

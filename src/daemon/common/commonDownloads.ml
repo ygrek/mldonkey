@@ -79,7 +79,7 @@ module Make(M: sig
         d.download_min_read <- 1;
         set_rtimeout sock 120.;
         set_client_state (M.client d.download_client) 
-        (Connected_downloading);
+        (Connected_downloading (file_num file));
         (*
         begin
           let fd = try

@@ -408,15 +408,18 @@ let file_downloaders file o cnt =
 		
       let counter = ref cnt in
       List.iter (fun c ->
-		if client_state c = Connected_downloading then begin
-          if use_html_mods o then begin 
-              if (client_dprint_html c o file (if !counter mod 2 == 0 then "dl-1" else "dl-2";))
-					then incr counter;
+	match (client_state c) with
+            Connected_downloading _ -> 
+              (begin
+                if use_html_mods o then begin 
+                  if (client_dprint_html c o file (if !counter mod 2 == 0 then "dl-1" else "dl-2";))
+		    then incr counter;
 		  end
 		  else begin
 			client_dprint c o file;
 		  end;
-		end;
+	       end)
+          | _ -> ()
       ) srcs;
 
 	if !counter mod 2 = 0 then true else false

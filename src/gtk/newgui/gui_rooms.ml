@@ -100,7 +100,7 @@ class rooms_box columns () =
           )
         );
         `M (gettext M.mAdd_column_after, (
-            List.map (fun (c,s) ->
+            List.map (fun (c,s,_) ->
                 (`I (s, (fun _ -> 
                         let c1, c2 = List2.cut (i+1) !!columns in
                         columns =:= c1 @ [c] @ c2;
@@ -108,7 +108,7 @@ class rooms_box columns () =
                     )))
             ) Gui_columns.Room.column_strings));
         `M (gettext M.mAdd_column_before, (
-            List.map (fun (c,s) ->
+            List.map (fun (c,s,_) ->
                 (`I (s, (fun _ -> 
                         let c1, c2 = List2.cut i !!columns in
                         columns =:= c1 @ [c] @ c2;
@@ -146,7 +146,6 @@ class rooms_box columns () =
           
     method content f =
       let strings = List.map 
-          (* (fun col -> P.String (self#content_by_col f col)) *)
           (fun col -> match col with
                Col_room_network ->
                  (match f.groom_net_pixmap with
@@ -188,11 +187,11 @@ class rooms_box columns () =
           r.groom_net_pixmap <-
             Some (Gui_options.network_pix
                     (Gui_global.network_name r.groom_network))
-          ), gettext M.rooms_add_icons, 1)
+          ), gettext M.pW_lb_rooms_add_icons, 1)
           else
             ((fun r ->
             r.groom_net_pixmap <- None
-            ), gettext M.rooms_remove_icons, 10)
+            ), gettext M.pW_lb_rooms_remove_icons, 10)
       in
       Gui_options.generate_with_progress label self#get_all_items f step;
       self#update
@@ -205,6 +204,7 @@ class rooms_box columns () =
       wtool2#set_style tb
     
     initializer
+
       box#vbox#pack ~expand: true pl#box ;
 
 end
@@ -214,6 +214,10 @@ class box_users room =
   object (self)
     
     inherit Gui_users.box_users ()
+
+    initializer
+
+      label_users#set_text (gettext M.rT_lb_users)
 
 end
 
@@ -240,7 +244,7 @@ class opened_rooms_box on_select =
 
     initializer
 
-      label_users#set_text (Gettext.gettext Gui_messages.opened_rooms );
+      label_users#set_text (Gettext.gettext Gui_messages.rT_lb_opened_rooms);
       let style = evbox1#misc#style#copy in
       style#set_bg [ (`NORMAL, (`NAME "#494949"))];
       evbox1#misc#set_style style;
@@ -260,7 +264,7 @@ class paused_rooms_box () =
 
     initializer
 
-      label_users#set_text (Gettext.gettext Gui_messages.available_rooms );
+      label_users#set_text (Gettext.gettext Gui_messages.rT_lb_available_rooms);
       let style = evbox1#misc#style#copy in
       style#set_bg [ (`NORMAL, (`NAME "#494949"))];
       evbox1#misc#set_style style;
@@ -531,7 +535,8 @@ class pane_rooms () =
                             (GuiProto.SendMessage (room.groom_num,
                               PublicMessage (0,s)));
                           messages#we_11#set_text "";
-(*self#insert_text (Printf.sprintf "> %s\n" s) *)
+                          insert_text messages (Printf.sprintf "%s\n" s) 
+                            ~user:!Gui_options.client_name
                     in          
                     Okey.add messages#we_11 ~mods: [] GdkKeysyms._Return
                       on_entry_return;
@@ -539,10 +544,10 @@ class pane_rooms () =
                     
                     
                     Gui_misc.insert_buttons users#wtool1 users#wtool2
-                      ~text: (gettext M.close_room)
-                    ~tooltip: (gettext M.close_room)
-                    ~icon: (M.o_xpm_close_room)
-                    ~callback: (fun _ ->  
+                      ~text: (gettext M.rT_lb_close_room)
+                      ~tooltip: (gettext M.rT_ti_close_room)
+                      ~icon: (M.o_xpm_close_room)
+                      ~callback: (fun _ ->  
                           match room.groom_state with
                             RoomOpened ->
                               Gui_com.send (GuiProto.SetRoomState (

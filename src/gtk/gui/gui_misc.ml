@@ -50,7 +50,7 @@ let short_name n =
 let is_connected state =
   match state with
   | Connected_initiating
-  | Connected_downloading
+  | Connected_downloading _
   | Connected _ -> true
   | NotConnected _
   | Connecting

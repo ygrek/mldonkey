@@ -73,7 +73,7 @@ class box columns () =
           )
         );
         `M (gettext M.mAdd_column_after, (
-            List.map (fun (c,s) ->
+            List.map (fun (c,s,_) ->
                 (`I (s, (fun _ -> 
                         let c1, c2 = List2.cut (i+1) !!columns in
                         columns =:= c1 @ [c] @ c2;
@@ -81,7 +81,7 @@ class box columns () =
                     )))
             ) Gui_columns.User.column_strings));
         `M (gettext M.mAdd_column_before, (
-            List.map (fun (c,s) ->
+            List.map (fun (c,s,_) ->
                 (`I (s, (fun _ -> 
                         let c1, c2 = List2.cut i !!columns in
                         columns =:= c1 @ [c] @ c2;
@@ -111,7 +111,7 @@ class box columns () =
       match col with
         Col_user_name -> f.user_name
       | Col_user_kind -> 
-          if Ip.valid f.user_ip then "Direct" else ""
+          if Ip.valid f.user_ip then (gettext M.rT_tx_direct) else ""
       | Col_user_tags -> CommonGlobals.string_of_tags f.user_tags
 
     method content f =
@@ -136,8 +136,8 @@ class box columns () =
       match self#selection with
 	[] -> []
       |	_ -> [ 
-            `I (gettext M.add_to_friends, self#add_to_friends);
-            `I (gettext M.browse_files, self#browse_files)
+            `I (gettext M.rT_me_add_to_friends, self#add_to_friends);
+            `I (gettext M.rT_me_browse_files, self#browse_files)
           ]
 
     method set_tb_style tb = 
@@ -166,7 +166,6 @@ class box_users () =
 
     initializer
     
-      label_users#set_text (Gettext.gettext Gui_messages.users);
       let style = evbox1#misc#style#copy in
       style#set_bg [ (`NORMAL, (`NAME "#494949"))];
       evbox1#misc#set_style style;

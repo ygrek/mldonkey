@@ -150,7 +150,7 @@ let buf_host_state proto buf t =
       | NotConnected _ -> 0
       | Connecting -> 1
       | Connected_initiating -> 2
-      | Connected_downloading -> 3
+      | Connected_downloading _ -> 3
       | Connected (-1) -> 4
       | Connected _ -> 5
       | NewHost -> 6
@@ -161,7 +161,10 @@ let buf_host_state proto buf t =
   | NotConnected (_, -1) -> buf_int8 buf 0
   | Connecting -> buf_int8 buf  1
   | Connected_initiating -> buf_int8 buf 2
-  | Connected_downloading -> buf_int8 buf 3
+  | Connected_downloading n -> 
+      if proto < 21 
+      then buf_int8 buf 3
+      else (buf_int8 buf 3; buf_int buf n)
   | Connected (-1) -> buf_int8 buf 4
   | Connected n -> buf_int8 buf 5; buf_int buf n
   | NewHost -> buf_int8 buf 6
@@ -347,7 +350,9 @@ let buf_client proto buf c =
           Some s -> buf_string buf s
         | None -> buf_string buf "");
       if proto >= 20 then
-        buf_int buf c.client_connect_time
+        buf_int buf c.client_connect_time;
+      if proto >= 21 then
+        buf_string buf c.client_emulemod;
     end
     
 let buf_network proto buf n =
@@ -830,7 +835,7 @@ protocol version. Do not send them ? *)
   | GiftAttach _ -> assert false
   | GiftStats -> assert false
       
-let best_gui_version = 20
+let best_gui_version = 21
   
 (********** Some assertions *********)
   

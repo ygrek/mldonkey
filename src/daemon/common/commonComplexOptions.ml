@@ -483,7 +483,7 @@ module SharingOption = struct
 let sharing_only_directory = {
       sharing_extensions = [];
       sharing_recursive = false;
-      sharing_minsize = Int64.of_int 10240;
+      sharing_minsize = Int64.of_int 1;
       sharing_maxsize = Int64.max_int;
     }  
   
@@ -511,7 +511,7 @@ let sharing_strategies = define_option searches_section
     "all_files", {
       sharing_extensions = [];
       sharing_recursive = true;
-      sharing_minsize = Int64.of_int 10240;
+      sharing_minsize = Int64.of_int 1;
       sharing_maxsize = Int64.max_int;
     };
     

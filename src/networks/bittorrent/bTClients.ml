@@ -593,7 +593,7 @@ and client_to_client c sock msg =
     match msg with
       Piece (num, offset, s, pos, len) ->
 	(*A Piece message contains the data*)
-        set_client_state c Connected_downloading;
+        set_client_state c (Connected_downloading (file_num file));
 	(*?*)
         c.client_good <- true;
         if file_state file = FileDownloading then begin

@@ -338,7 +338,8 @@ let add_file_location file c =
     end
     
 let remove_file_location file c = 
-  file.file_locations <- Intmap.remove (client_num c) file.file_locations
+  file.file_locations <- Intmap.remove (client_num c) file.file_locations;
+  file_remove_source file c
 
 let purge_requests files =
   let rec iter downloading files all_files =

@@ -129,7 +129,7 @@ type host_state =
 | Connecting
 | Connected_initiating
 | Connected of int    (* >= 0 Queued *)
-| Connected_downloading
+| Connected_downloading of int
 (* | ConnectionWaiting of int  *)
   
 | NewHost
@@ -430,7 +430,7 @@ type tagged_file =  {
 let is_connected state =
   match state with
   | Connected_initiating
-  | Connected_downloading
+  | Connected_downloading _
   | Connected _ -> true
   | NotConnected _
   | Connecting
@@ -453,7 +453,7 @@ let string_of_connection_state s =
   | Connected  n -> Printf.sprintf "Ranked %d" n
   | Connecting -> "Connecting"
   | Connected_initiating -> "Initiating"
-  | Connected_downloading -> "Downloading"
+  | Connected_downloading n -> Printf.sprintf "Downloading file %d" n
       
   | RemovedHost -> "Removed"
   | BlackListedHost -> "Black"
@@ -469,7 +469,7 @@ let short_string_of_connection_state s =
   | Connected  n ->      "Rank" 
   | Connecting ->        "Cing"
   | Connected_initiating -> "Init"
-  | Connected_downloading -> "Down"
+  | Connected_downloading n -> "Down"
       
   | RemovedHost -> "Rem"
   | BlackListedHost -> "BL"

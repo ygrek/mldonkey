@@ -58,6 +58,7 @@ type gui_file_info = {
     mutable gfile_age : int;
     mutable gfile_last_seen : int;
     mutable gfile_priority : int;
+    mutable gfile_type : client_type;
     mutable gfile_pixmap : GDraw.pixmap option;
     mutable gfile_net_pixmap : GDraw.pixmap option;
     mutable gfile_priority_pixmap : GDraw.pixmap option;

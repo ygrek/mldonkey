@@ -1,24 +1,21 @@
+
+open Gettext
+
+module M = Gui_messages
+
 (* icon_on icon_off menu_icon wlabel *)
+
 let main_nbk_data =
 [
-  (Gui_messages.o_xpm_nbk_networks_on, Gui_messages.o_xpm_nbk_networks_off, Gui_messages.o_xpm_nbk_networks_menu,
-    Gettext.gettext Gui_messages.mNetworks);
-  (Gui_messages.o_xpm_nbk_servers_on, Gui_messages.o_xpm_nbk_servers_off, Gui_messages.o_xpm_nbk_servers_menu,
-    Gettext.gettext Gui_messages.mServers);
-  (Gui_messages.o_xpm_nbk_downloads_on, Gui_messages.o_xpm_nbk_downloads_off, Gui_messages.o_xpm_nbk_downloads_menu,
-    Gettext.gettext Gui_messages.mDownloads);
-  (Gui_messages.o_xpm_nbk_friends_on, Gui_messages.o_xpm_nbk_friends_off, Gui_messages.o_xpm_nbk_friends_menu,
-    Gettext.gettext Gui_messages.mFriends);
-  (Gui_messages.o_xpm_nbk_search_on, Gui_messages.o_xpm_nbk_search_off, Gui_messages.o_xpm_nbk_search_menu,
-    Gettext.gettext Gui_messages.mSearch);
-  (Gui_messages.o_xpm_nbk_rooms_on, Gui_messages.o_xpm_nbk_rooms_off, Gui_messages.o_xpm_nbk_rooms_menu,
-    Gettext.gettext Gui_messages.mRooms);
-  (Gui_messages.o_xpm_nbk_uploads_on, Gui_messages.o_xpm_nbk_uploads_off, Gui_messages.o_xpm_nbk_uploads_menu,
-    Gettext.gettext Gui_messages.uploads);
-  (Gui_messages.o_xpm_nbk_console_on, Gui_messages.o_xpm_nbk_console_off, Gui_messages.o_xpm_nbk_console_menu,
-    Gettext.gettext Gui_messages.mConsole);
-  (Gui_messages.o_xpm_nbk_graphs_on, Gui_messages.o_xpm_nbk_graphs_off, Gui_messages.o_xpm_nbk_graphs_menu,
-    Gettext.gettext Gui_messages.mGraph);
+ (M.o_xpm_nbk_networks_on, M.o_xpm_nbk_networks_off, M.o_xpm_nbk_networks_menu, gettext M.mW_lb_networks);
+ (M.o_xpm_nbk_servers_on, M.o_xpm_nbk_servers_off, M.o_xpm_nbk_servers_menu, gettext M.mW_lb_servers);
+ (M.o_xpm_nbk_downloads_on, M.o_xpm_nbk_downloads_off, M.o_xpm_nbk_downloads_menu, gettext M.mW_lb_downloads);
+ (M.o_xpm_nbk_friends_on, M.o_xpm_nbk_friends_off, M.o_xpm_nbk_friends_menu, gettext M.mW_lb_friends);
+ (M.o_xpm_nbk_search_on, M.o_xpm_nbk_search_off, M.o_xpm_nbk_search_menu, gettext M.mW_lb_search);
+ (M.o_xpm_nbk_rooms_on, M.o_xpm_nbk_rooms_off, M.o_xpm_nbk_rooms_menu, gettext M.mW_lb_rooms);
+ (M.o_xpm_nbk_uploads_on, M.o_xpm_nbk_uploads_off, M.o_xpm_nbk_uploads_menu, gettext M.mW_lb_uploads);
+ (M.o_xpm_nbk_console_on, M.o_xpm_nbk_console_off, M.o_xpm_nbk_console_menu, gettext M.mW_lb_console);
+ (M.o_xpm_nbk_graphs_on, M.o_xpm_nbk_graphs_off, M.o_xpm_nbk_graphs_menu, gettext M.mW_lb_graph);
 ]
 
 let tab_box n str data =
@@ -50,89 +47,11 @@ class window () =
   let window =
     GWindow.window ~width:(Options.( !! ) Gui_options.gui_width)
       ~height:(Options.( !! ) Gui_options.gui_height)
-      ~title:(Gui_messages.software) ~allow_shrink:true ~allow_grow:true
+      ~title:(Gui_messages.mW_wt_software) ~allow_shrink:true ~allow_grow:true
       ~auto_shrink:true ~modal:false ()
   in
   let box =
     GPack.vbox ~homogeneous:false ~packing:(window#add) () in
-  let menubar =
-    GMenu.menu_bar ~packing:(box#pack ~expand:false ~fill:false) ()
-  in
-  let g_menu =
-    GMenu.menu_item ~label:(Gettext.gettext Gui_messages.mFile)
-      ~packing:(menubar#add) ()
-  in
-  let g_menu = GMenu.menu ~packing:(g_menu#set_submenu) () in
-  let _ = GMenu.menu_item ~packing:(g_menu#add) () in
-  let itemReconnect =
-    GMenu.menu_item ~label:(Gettext.gettext Gui_messages.mReconnect)
-      ~packing:(g_menu#add) ()
-  in
-  let itemDisconnect =
-    GMenu.menu_item ~label:(Gettext.gettext Gui_messages.mDisconnect)
-      ~packing:(g_menu#add) ()
-  in
-  let itemScanPorts =
-    GMenu.menu_item ~label:"Scan ports" ~packing:(g_menu#add) ()
-  in
-  let cores =
-    GMenu.menu_item ~label:"Reconnect To" ~packing:(g_menu#add) ()
-  in
-  let cores_menu = GMenu.menu ~packing:(cores#set_submenu) () in
-  let _ = GMenu.menu_item ~packing:(g_menu#add) () in
-  let _Menu_notebook =
-    GMenu.menu_item ~label:"Pages" ~packing:(menubar#add) ()
-  in
-  let _menu456 = GMenu.menu ~packing:(_Menu_notebook#set_submenu) () in
-  let itemServers =
-    GMenu.menu_item ~label:(Gettext.gettext Gui_messages.mServers)
-      ~packing:(_menu456#add) ()
-  in
-  let itemDownloads =
-    GMenu.menu_item ~label:(Gettext.gettext Gui_messages.mDownloads)
-      ~packing:(_menu456#add) ()
-  in
-  let itemFriends =
-    GMenu.menu_item ~label:(Gettext.gettext Gui_messages.mFriends)
-      ~packing:(_menu456#add) ()
-  in
-  let itemResults =
-    GMenu.menu_item ~label:(Gettext.gettext Gui_messages.mSearch)
-      ~packing:(_menu456#add) ()
-  in
-  let itemRooms =
-    GMenu.menu_item ~label:(Gettext.gettext Gui_messages.mRooms)
-      ~packing:(_menu456#add) ()
-  in
-  let itemUploads =
-    GMenu.menu_item ~label:(Gettext.gettext Gui_messages.mUploads)
-      ~packing:(_menu456#add) ()
-  in
-  let itemConsole =
-    GMenu.menu_item ~label:(Gettext.gettext Gui_messages.mConsole)
-      ~packing:(_menu456#add) ()
-  in
-  let itemHelp =
-    GMenu.menu_item ~label:(Gettext.gettext Gui_messages.mGraph)
-      ~packing:(_menu456#add) ()
-  in
-  let _Menu_display =
-    GMenu.menu_item ~label:(Gettext.gettext Gui_messages.display)
-      ~packing:(menubar#add) ()
-  in
-  let menu_display = GMenu.menu ~packing:(_Menu_display#set_submenu) () in
-  let _Menu_networks =
-    GMenu.menu_item ~label:(Gettext.gettext Gui_messages.network)
-      ~packing:(menubar#add) ()
-  in
-  let menu_networks = GMenu.menu ~packing:(_Menu_networks#set_submenu) () in
-  let accel_menubar = GtkData.AccelGroup.create () in
-  let _ = window#add_accel_group accel_menubar in
-  let _ = g_menu#set_accel_group accel_menubar in
-  let _ = cores_menu#set_accel_group accel_menubar in
-  let _ = _menu456#set_accel_group accel_menubar in
-  let _ = menu_display#set_accel_group accel_menubar in
-  let _ = menu_networks#set_accel_group accel_menubar in
   let hbox_w = GPack.hbox ~packing:box#add () in
   let notebook =
     GPack.notebook ~tab_pos:(Options.( !! ) Gui_options.notebook_tab)
@@ -200,32 +119,32 @@ class window () =
       ~packing:(vbox#pack ~expand:true ~fill:true) ()
   in
   let buttonAbout = wtool1#insert_button
-		     ~tooltip:(Gettext.gettext Gui_messages.about)
+		     ~tooltip:(Gettext.gettext Gui_messages.mW_ti_about)
                      ~icon: (Gui_options.pixmap Gui_messages.o_xpm_about)#coerce
                    ();
   in
   let buttonIm = wtool1#insert_button
-                  ~tooltip:(Gettext.gettext Gui_messages.im)
+                  ~tooltip:(Gettext.gettext Gui_messages.mW_ti_im)
                   ~icon: (Gui_options.pixmap Gui_messages.o_xpm_im)#coerce
                  ();
   in
   let buttonOptions = wtool1#insert_button
-                       ~tooltip:(Gettext.gettext Gui_messages.settings)
+                       ~tooltip:(Gettext.gettext Gui_messages.mW_ti_settings)
                        ~icon: (Gui_options.pixmap Gui_messages.o_xpm_settings)#coerce
                        ();
   in
   let buttonQuit = wtool1#insert_button
-                    ~tooltip:(Gettext.gettext Gui_messages.exit)
+                    ~tooltip:(Gettext.gettext Gui_messages.mW_ti_exit)
                     ~icon: (Gui_options.pixmap Gui_messages.o_xpm_exit)#coerce
                     ();
   in
   let buttonGui = wtool1#insert_button
-                   ~tooltip:(Gettext.gettext Gui_messages.gui)
+                   ~tooltip:(Gettext.gettext Gui_messages.mW_ti_gui)
                    ~icon: (Gui_options.pixmap Gui_messages.o_xpm_gui)#coerce
                     ();
   in
   let buttonKill = wtool1#insert_button
-                    ~tooltip:(Gettext.gettext Gui_messages.kill_core)
+                    ~tooltip:(Gettext.gettext Gui_messages.mW_ti_kill_core)
                     ~icon: (Gui_options.pixmap Gui_messages.o_xpm_kill_core)#coerce
                     ();
   in
@@ -234,32 +153,13 @@ class window () =
       ~packing:(box#pack ~expand:false ~fill:true) ()
   in
   let label_connect_status =
-    GMisc.label ~text:(Gettext.gettext Gui_messages.not_connected)
+    GMisc.label ~text:(Gettext.gettext Gui_messages.mW_lb_not_connected)
       ~justify:`LEFT ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0)
       ~packing:(hbox_status#pack ~expand:true ~fill:true) ()
   in
-  let _ = menubar#misc#hide () in
   object
     val window = window
     val box = box
-    val menubar = menubar
-    val accel_menubar = accel_menubar
-    val itemReconnect = itemReconnect
-    val itemDisconnect = itemDisconnect
-    val itemScanPorts = itemScanPorts
-    val cores = cores
-    val cores_menu = cores_menu
-    val itemServers = itemServers
-    val itemDownloads = itemDownloads
-    val itemFriends = itemFriends
-    val itemResults = itemResults
-    val itemRooms = itemRooms
-    val itemUploads = itemUploads
-    val itemConsole = itemConsole
-    val itemHelp = itemHelp
-    val g_menu = g_menu
-    val menu_display = menu_display
-    val menu_networks = menu_networks
     val notebook = notebook
     val buttonAbout = buttonAbout
     val buttonIm = buttonIm
@@ -280,24 +180,7 @@ class window () =
     val label_connect_status = label_connect_status
     method window = window
     method box = box
-    method menubar = menubar
-    method accel_menubar = accel_menubar
-    method itemReconnect = itemReconnect
-    method itemDisconnect = itemDisconnect
-    method itemScanPorts = itemScanPorts
-    method cores = cores
-    method cores_menu = cores_menu
-    method itemServers = itemServers
-    method itemDownloads = itemDownloads
-    method itemFriends = itemFriends
-    method itemResults = itemResults
-    method itemRooms = itemRooms
-    method itemUploads = itemUploads
-    method itemConsole = itemConsole
-    method itemHelp = itemHelp
-    method g_menu = g_menu
-    method menu_display = menu_display
-    method menu_networks = menu_networks
+
     method notebook = notebook
     method buttonAbout = buttonAbout
     method buttonIm = buttonIm

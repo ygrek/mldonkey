@@ -127,8 +127,9 @@ let number_of_sources gf = List.length (file_sources (file_find gf.file_num))
 let number_of_active_sources gf =
   let nasrcs = ref 0 in
   List.iter (fun fsrc ->
-   if client_state fsrc = Connected_downloading then 
-    incr nasrcs;
+    match (client_state fsrc) with
+        Connected_downloading _ -> incr nasrcs
+      | _ -> ()
   ) (file_sources (file_find gf.file_num));
   !nasrcs
 

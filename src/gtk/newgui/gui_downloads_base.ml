@@ -34,7 +34,7 @@ class paned () =
       ~packing:(_anonymous_container_1#pack ~expand:false ~fill:false) ()
   in
   let label_entry_ed2k_url =
-    GMisc.label ~text:(Gettext.gettext Gui_messages.ed2k) ~justify:`LEFT
+    GMisc.label ~text:(Gettext.gettext Gui_messages.dT_lb_ed2k) ~justify:`LEFT
       ~line_wrap:true ~packing:(_anonymous_container_2#pack ~expand:false ~fill:false ~padding:5 ) ()
   in
   let entry_ed2k_url =
@@ -54,22 +54,4 @@ class paned () =
     method label_entry_ed2k_url = label_entry_ed2k_url
     method entry_ed2k_url = entry_ed2k_url
     method coerce = box#coerce
-  end
-class saved () =
-  let vbox_35 = GPack.vbox ~homogeneous:false () in
-  let _ =
-    GMisc.label ~text:(Gettext.gettext Gui_messages.recover_md4)
-      ~justify:`LEFT ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0)
-      ~packing:(vbox_35#pack ~expand:false ~fill:true) ()
-  in
-  let entry_md4 =
-    GEdit.entry ~visibility:true ~editable:true
-      ~packing:(vbox_35#pack ~expand:false ~fill:true) ()
-  in
-  object
-    val vbox_35 = vbox_35
-    val entry_md4 = entry_md4
-    method vbox_35 = vbox_35
-    method entry_md4 = entry_md4
-    method coerce = vbox_35#coerce
   end

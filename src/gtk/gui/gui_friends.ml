@@ -35,7 +35,7 @@ let (!!) = Options.(!!)
 
 let string_color_of_state state =
   match state with
-  | Connected_downloading -> gettext M.downloading, Some !!O.color_downloading 
+  | Connected_downloading _ -> gettext M.downloading, Some !!O.color_downloading 
   | Connected (-1) -> gettext M.connected, Some !!O.color_connected 
   | Connecting  -> gettext M.connecting, Some !!O.color_connecting
   | NewHost -> "NEW HOST", None
@@ -380,6 +380,13 @@ class box_list (client_info_box : GPack.box) friend_tab =
                               try
                                 let c = Hashtbl.find G.locations num in
                                 if Mi.is_connected c.client_state then incr G.nclocations;
+                                (c.client_state <- 
+                                   match c.client_state with
+                                       Connected_downloading n ->
+                                         if n = file.file_num 
+                                           then Connected_downloading n
+                                           else Connected (-1)
+                                     | _ -> c.client_state);    
                                 l := c :: !l
                               with _ -> 
                                   Gui_com.send (GuiProto.GetClient_info num)

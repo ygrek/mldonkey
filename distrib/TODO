@@ -3,6 +3,9 @@ TODO list for client
 
 Flush buffers after do_at_exit (wait 5 secondes after exit ?).
 Share only on some networks.
+Add information in the GIU protocol on who uploads what.
+Send relative times in the GUI protocol
+IP blocking in net/ : http://www.peerguardian.net/pgipdb/guarding.p2p
 
 ************************************************************************
 Edonkey:

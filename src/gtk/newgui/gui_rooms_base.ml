@@ -6,7 +6,7 @@ class box tb_style () =
   in
   let label_rooms_messages =
     GMisc.label
-      ~justify:`LEFT ~line_wrap:true ~text:(Gettext.gettext Gui_messages.rooms_messages)
+      ~justify:`LEFT ~line_wrap:true ~text:(Gettext.gettext Gui_messages.rT_lb_rooms_messages)
       ~packing:(_anonymous_container_1#pack ~expand:false ~fill:true ~padding:3) ()
   in
   let wscroll =

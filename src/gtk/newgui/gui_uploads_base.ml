@@ -1,14 +1,3 @@
-class box () =
-  let wf_upstats =
-    GBin.frame ~label:(Gettext.gettext Gui_messages.upstats)
-      ~shadow_type:`NONE ()
-  in
-  object
-    val wf_upstats = wf_upstats
-    method wf_upstats = wf_upstats
-    method coerce = wf_upstats#coerce
-  end
-
 class upstats_box () =
   let vbox = GPack.vbox ~spacing:3 ~homogeneous:false () in
   let evbox1 = GBin.event_box ~packing:(vbox#pack ~expand:false ~fill:false) () in
@@ -16,7 +5,7 @@ class upstats_box () =
     GPack.hbox ~border_width:2 ~spacing:5 ~homogeneous:false ~packing:(evbox1#add) ()
   in
   let label_shared_files =
-    GMisc.label ~text:(Gettext.gettext Gui_messages.shared_files)
+    GMisc.label ~text:(Gettext.gettext Gui_messages.uT_lb_shared_files)
       ~justify:`LEFT ~line_wrap:true
       ~packing:(_anonymous_container_1#pack ~expand:false ~fill:true ~padding:3) ()
   in
@@ -40,7 +29,7 @@ class upstats_box () =
     GPack.hbox ~border_width:2 ~homogeneous:false ~packing:(evbox2#add) ()
   in
   let label_uploaders =
-    GMisc.label ~text:(Gettext.gettext Gui_messages.uploaders)
+    GMisc.label ~text:(Gettext.gettext Gui_messages.uT_lb_uploaders)
       ~justify:`LEFT ~line_wrap:true
       ~packing:(_anonymous_container_2#pack ~expand:false ~fill:true ~padding:3) ()
   in

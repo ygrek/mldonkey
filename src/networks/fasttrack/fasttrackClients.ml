@@ -259,7 +259,7 @@ let rec client_parse_header c gconn sock header =
       start_pos end_pos (end_pos -- start_pos)
     (String.escaped header)
     ;
-    set_client_state c (Connected_downloading);
+    set_client_state c (Connected_downloading (file_num file));
     let counter_pos = ref start_pos in
 (* Send the next request *)
     for i = 1 to max_queued_ranges do

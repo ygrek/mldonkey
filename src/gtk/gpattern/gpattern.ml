@@ -161,7 +161,8 @@ class virtual ['a] filtered_plist
       nitems <- 0;
       items <- [||];
       contents <- [||];
-      filtered <- Intmap.empty
+      filtered <- Intmap.empty;
+      selection <- []
     
     method menu = ([] : GToolbox.menu_entry list)
     
@@ -291,7 +292,7 @@ class virtual ['a] filtered_plist
       iter 0 nitems
     
     method get_data n =
-      if n > nitems then
+      if (n > nitems) || (n < -1) then
         raise Not_found
         else items.(n)
 
@@ -344,6 +345,7 @@ class virtual ['a] filtered_plist
       wlist#freeze ();
       nitems <- 0;
       filtered <- Intmap.empty;
+      selection <- [];
       nfiltered <- 0;
       items <- [||];
       contents <- [||];
@@ -361,7 +363,6 @@ class virtual ['a] filtered_plist
             add_hidden_item i
       )  old_map;
       self#sort;
-      selection <- [];
       for i = 0 to nitems - 1 do
         self#insert items.(i);
       done;
@@ -378,6 +379,7 @@ class virtual ['a] filtered_plist
       wlist#freeze ();
       nitems <- 0;
       filtered <- Intmap.empty;
+      selection <- [];
       nfiltered <- 0;
       items <- [||];
       contents <- [||];
@@ -388,7 +390,6 @@ class virtual ['a] filtered_plist
             add_hidden_item i
       )  data;
       self#sort;
-      selection <- [];
       for i = 0 to nitems - 1 do
         self#insert items.(i);
       done;
@@ -411,7 +412,10 @@ class virtual ['a] filtered_plist
           Array.blit items (old_pos+1) items old_pos (nitems - old_pos - 1);
           Array.blit contents (old_pos+1) contents old_pos (nitems - old_pos - 1);
           nitems <- nitems - 1;
+          items  <- Array.sub items 0 nitems;
+          contents  <- Array.sub contents 0 nitems;
           self#wlist#remove old_pos;
+          selection <- List.filter (fun fi -> get_key fi <> get_key i) selection;
           self#add_filtered_item i          
       | false, _  -> 
           self#update_row i old_pos
@@ -423,8 +427,12 @@ class virtual ['a] filtered_plist
           nfiltered <- nfiltered - 1
       end else begin
           Array.blit items (pos+1) items pos (nitems - pos - 1);
+          Array.blit contents (pos+1) contents pos (nitems - pos - 1);
+          nitems <- nitems - 1;
+          items  <- Array.sub items 0 nitems;
+          contents  <- Array.sub contents 0 nitems;
           self#wlist#remove pos;
-          nitems <- nitems - 1
+          selection <- List.filter (fun fi -> get_key fi <> get_key i) selection
         end
     
     method iter (f : 'a -> unit) =
@@ -660,7 +668,8 @@ class virtual ['a] filtered_ptree
       nitems <- 0;
       items <- [||];
       contents <- [||];
-      filtered <- Intmap.empty
+      filtered <- Intmap.empty;
+      selection <- []
 
     method menu = ([] : GToolbox.menu_entry list)
 
@@ -787,7 +796,7 @@ class virtual ['a] filtered_ptree
       iter 0 nitems
 
     method get_data n =
-      if n > nitems then
+      if (n > nitems) || (n < -1) then
         raise Not_found
         else items.(n)
 
@@ -843,6 +852,7 @@ class virtual ['a] filtered_ptree
       wlist#freeze ();
       nitems <- 0;
       filtered <- Intmap.empty;
+      selection <- [];
       nfiltered <- 0;
       items <- [||];
       contents <- [||];
@@ -860,7 +870,6 @@ class virtual ['a] filtered_ptree
             add_hidden_item i
       )  old_map;
       self#sort;
-      selection <- [];
       for i = 0 to nitems - 1 do
         self#insert items.(i)
       done;
@@ -878,6 +887,7 @@ class virtual ['a] filtered_ptree
       nitems <- 0;
       filtered <- Intmap.empty;
       nfiltered <- 0;
+      selection <- [];
       items <- [||];
       contents <- [||];
       List.iter (fun i -> 
@@ -887,7 +897,6 @@ class virtual ['a] filtered_ptree
             add_hidden_item i
       )  data;
       self#sort;
-      selection <- [];
       for i = 0 to nitems - 1 do
         self#insert items.(i)
       done;
@@ -914,7 +923,10 @@ class virtual ['a] filtered_ptree
           Array.blit items (old_pos+1) items old_pos (nitems - old_pos - 1);
           Array.blit contents (old_pos+1) contents old_pos (nitems - old_pos - 1);
           nitems <- nitems - 1;
+          items  <- Array.sub items 0 nitems;
+          contents  <- Array.sub contents 0 nitems;
           self#wlist#remove old_pos;
+          selection <- List.filter (fun fi -> get_key fi <> get_key i) selection;
           if (List.length (get_key i)) = 1 then
             self#add_filtered_item i
       | false, _  ->
@@ -938,8 +950,11 @@ class virtual ['a] filtered_ptree
           in
           Array.blit items (pos+1) items pos (nitems - pos - 1);
           Array.blit contents (pos+1) contents pos (nitems - pos - 1);
+          nitems <- nitems - 1;
+          items  <- Array.sub items 0 nitems;
+          contents  <- Array.sub contents 0 nitems;
           self#wlist#remove pos;
-          nitems <- nitems - 1
+          selection <- List.filter (fun fi -> get_key fi <> get_key i) selection
         end
 
     method iter (f : 'a -> unit) =
