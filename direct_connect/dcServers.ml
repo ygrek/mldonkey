@@ -37,6 +37,9 @@ open DcGlobals
 
 module CO = CommonOptions
 
+let active_search_supported = false
+  
+
 
 let try_connect_client c =
   if connection_can_try c.client_connection_control then
@@ -145,7 +148,6 @@ let recover_files_from_server s =
           )                    
           file.file_clients;
           
-
 (* try to find new sources by queries *)
           let keywords = 
             match stem file.file_name with 
@@ -589,7 +591,7 @@ let recover_files_searches () =
               let module S = Search in
               let msg = SearchReq {
                   S.orig = 
-                  (if !!firewalled then
+                  (if (not active_search_supported) || !!firewalled then
                       Printf.sprintf "Hub:%s" s.server_last_nick
                     else
                       Printf.sprintf "%s:%d" (

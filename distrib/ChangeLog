@@ -3,7 +3,7 @@ ChangeLog
 
 2003/01/25: Simon
   - Direct-Connect:
-       * Active searches don't work, go back to passive
+       * FIX: Active searches don't work, go back to passive
 
 2003/01/25: Simon (tag unstable-2-02-7) 
   - Direct-Connect:

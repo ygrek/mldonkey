@@ -115,7 +115,7 @@ let _ =
               | Some sock ->
               let msg = SearchReq {
               S.orig = 
-              (if !!firewalled then
+              (if (not DcServers.active_search_supported) || !!firewalled then
                   Printf.sprintf "Hub:%s" s.server_last_nick
                 else
                   Printf.sprintf "%s:%d" (
