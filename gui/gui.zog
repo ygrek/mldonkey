@@ -26,7 +26,7 @@
         </button>
       </hbox>
       <hpaned name=hpaned width="-1" height="-1" border_width="-1" handle_size="-1" tab_label="" expand="true" fill="true" padding="-1">
-        <vbox name=_ width="600" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
+        <vbox name=_ width="400" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
           <scrolled_window name=left_child width="-1" height="-1" border_width="-1" hscrollbar_policy="`ALWAYS" vscrollbar_policy="`ALWAYS" placement="`TOP_LEFT" tab_label="" expand="true" fill="true" padding="-1">
             <clist name=clist_servers width="-1" height="-1" border_width="-1" number_of_columns="5" columns_titles="[Mes.address;+Mes.status;+Mes.server_nusers;+Mes.server_nfiles;Mes.server_desc]" shadow_type="`NONE" selection_mode="`MULTIPLE" show_titles="true" tab_label="" expand="true" fill="true" padding="-1">
             </clist>
@@ -50,8 +50,8 @@
             </button>
           </hbox>
         </vbox>
-        <vbox name=_ width="200" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
-          <scrolled_window name=_ width="200" height="-1" border_width="-1" hscrollbar_policy="`AUTOMATIC" vscrollbar_policy="`ALWAYS" placement="`TOP_LEFT" tab_label="" expand="true" fill="true" padding="-1">
+        <vbox name=_ width="180" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
+          <scrolled_window name=_ width="180" height="-1" border_width="-1" hscrollbar_policy="`AUTOMATIC" vscrollbar_policy="`ALWAYS" placement="`TOP_LEFT" tab_label="" expand="true" fill="true" padding="-1">
             <clist name=clist_users width="180" height="-1" border_width="-1" number_of_columns="2" columns_titles="[%22Kind%22;+Mes.users]" shadow_type="`NONE" selection_mode="`MULTIPLE" show_titles="true" tab_label="" expand="true" fill="true" padding="-1">
             </clist>
           </scrolled_window>
@@ -110,7 +110,7 @@
       <hpaned name=hpaned width="-1" height="-1" border_width="-1" handle_size="-1" tab_label="" expand="true" fill="true" padding="-1">
         <vbox name=_ width="600" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="true" fill="true" padding="-1">
           <vpaned name=vpaned width="-1" height="-1" border_width="-1" handle_size="-1" tab_label="" expand="true" fill="true" padding="-1">
-            <vbox name=_ width="-1" height="200" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
+            <vbox name=_ width="-1" height="180" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
               <label name=label_downloaded width="-1" height="-1" text="Mes.files_downloaded+0" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
               </label>
               <scrolled_window name=_ width="-1" height="-1" border_width="-1" hscrollbar_policy="`AUTOMATIC" vscrollbar_policy="`AUTOMATIC" placement="`TOP_LEFT" tab_label="" expand="true" fill="true" padding="-1">
@@ -124,7 +124,7 @@
                 </button>
               </hbox>
             </vbox>
-            <vbox name=_ width="-1" height="200" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
+            <vbox name=_ width="-1" height="180" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
               <label name=label_downloading width="-1" height="-1" text="Mes.downloading_files+0" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
               </label>
               <scrolled_window name=_ width="-1" height="-1" border_width="-1" hscrollbar_policy="`AUTOMATIC" vscrollbar_policy="`AUTOMATIC" placement="`TOP_LEFT" tab_label="" expand="true" fill="true" padding="-1">
@@ -150,7 +150,7 @@
             </vbox>
           </vpaned>
         </vbox>
-        <vbox name=_ width="200" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
+        <vbox name=_ width="180" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
           <scrolled_window name=_ width="-1" height="-1" border_width="-1" hscrollbar_policy="`AUTOMATIC" vscrollbar_policy="`ALWAYS" placement="`TOP_LEFT" tab_label="" expand="true" fill="true" padding="-1">
             <clist name=clist_locations width="-1" height="-1" border_width="-1" number_of_columns="3" columns_titles="[%22Kind%22;+%22Name%22;%22Status%22]" shadow_type="`NONE" selection_mode="`MULTIPLE" show_titles="true" tab_label="" expand="true" fill="true" padding="-1">
             </clist>
@@ -169,8 +169,8 @@
 <entity name=box_friends>
   <hbox name=box width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="%22Friends%22" expand="false" fill="true" padding="-1">
     <hpaned name=hpaned width="-1" height="-1" border_width="-1" handle_size="-1" tab_label="" expand="true" fill="true" padding="-1">
-      <frame name=_ width="180" height="200" border_width="1" label="Mes.friends" label_xalign="-1.0" label_yalign="-1.0" shadow_type="`ETCHED_OUT" tab_label="" expand="false" fill="true" padding="-1">
-        <vbox name=_ width="200" height="100" border_width="-1" homogeneous="false" spacing="10" tab_label="" expand="false" fill="true" padding="-1">
+      <frame name=_ width="180" height="180" border_width="1" label="Mes.friends" label_xalign="-1.0" label_yalign="-1.0" shadow_type="`ETCHED_OUT" tab_label="" expand="false" fill="true" padding="-1">
+        <vbox name=_ width="180" height="100" border_width="-1" homogeneous="false" spacing="10" tab_label="" expand="false" fill="true" padding="-1">
           <scrolled_window name=_ width="-1" height="-1" border_width="-1" hscrollbar_policy="`ALWAYS" vscrollbar_policy="`ALWAYS" placement="`TOP_LEFT" tab_label="" expand="true" fill="true" padding="-1">
             <clist name=clist_friends width="-1" height="-1" border_width="-1" number_of_columns="3" columns_titles="[Mes.friend_status;+Mes.friend_name;+Mes.friend_kind]" shadow_type="`NONE" selection_mode="`MULTIPLE" show_titles="true" tab_label="" expand="true" fill="true" padding="-1">
             </clist>
@@ -190,7 +190,7 @@
         </vbox>
       </frame>
       <vpaned name=vpaned width="-1" height="-1" border_width="-1" handle_size="-1" tab_label="" expand="false" fill="true" padding="-1">
-        <frame name=_ width="600" height="200" border_width="1" label="Mes.files" label_xalign="-1.00" label_yalign="-1.0" shadow_type="`ETCHED_OUT" tab_label="" expand="false" fill="true" padding="-1">
+        <frame name=_ width="600" height="180" border_width="1" label="Mes.files" label_xalign="-1.00" label_yalign="-1.0" shadow_type="`ETCHED_OUT" tab_label="" expand="false" fill="true" padding="-1">
           <vbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
             <scrolled_window name=_ width="-1" height="-1" border_width="-1" hscrollbar_policy="`AUTOMATIC" vscrollbar_policy="`ALWAYS" placement="`TOP_LEFT" tab_label="" expand="true" fill="true" padding="-1">
               <clist name=clist_friends_files width="-1" height="-1" border_width="-1" number_of_columns="4" columns_titles="[Mes.filename;+Mes.size;+Mes.properties;+Mes.md4]" shadow_type="`ETCHED_OUT" selection_mode="`MULTIPLE" show_titles="true" tab_label="" expand="true" fill="true" padding="-1">
@@ -246,7 +246,7 @@
           <hbox name=hbox_473 width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
             <label name=_ width="-1" height="-1" text="Mes.max_hits" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
             </label>
-            <combo name=combo_max_hits width="-1" height="-1" border_width="-1" popdown_strings="[%22200%22;%22400%22;%22800%22;%221600%22;%223200%22;%226400%22;%2212800%22]" use_arrows="`DEFAULT" case_sensitive="true" value_in_list="false" ok_if_empty="true" tab_label="" expand="false" fill="true" padding="-1">
+            <combo name=combo_max_hits width="-1" height="-1" border_width="-1" popdown_strings="[%22180%22;%22400%22;%22800%22;%221600%22;%223180%22;%226400%22;%2212800%22]" use_arrows="`DEFAULT" case_sensitive="true" value_in_list="false" ok_if_empty="true" tab_label="" expand="false" fill="true" padding="-1">
             </combo>
           </hbox>
         </vbox>
@@ -277,7 +277,7 @@
             <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
               <label name=_ width="100" height="-1" text="Mes.format" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
               </label>
-              <combo name=combo_format width="-1" height="-1" border_width="-1" popdown_strings="[%22%22;%22avi%22;%22mp3%22]" use_arrows="`DEFAULT" case_sensitive="true" value_in_list="false" ok_if_empty="true" tab_label="" expand="false" fill="true" padding="-1">
+              <combo name=combo_format width="-1" height="-1" border_width="-1" popdown_strings="[%22%22;%22avi%22;%22mp3%22]" use_arrows="`DEFAULT" case_sensitive="true" value_in_list="false" ok_if_empty="true" tab_label="" expand="true" fill="true" padding="-1">
               </combo>
             </hbox>
           </vbox>
@@ -287,25 +287,25 @@
             <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
               <label name=_ width="100" height="-1" text="Mes.album" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
               </label>
-              <entry name=entry_album width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="false" fill="true" padding="-1">
+              <entry name=entry_album width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="true" fill="true" padding="-1">
               </entry>
             </hbox>
             <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
               <label name=_ width="100" height="-1" text="Mes.artist" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
               </label>
-              <entry name=entry_artist width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="false" fill="true" padding="-1">
+              <entry name=entry_artist width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="true" fill="true" padding="-1">
               </entry>
             </hbox>
             <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
               <label name=_ width="100" height="-1" text="Mes.title" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
               </label>
-              <entry name=entry_title width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="false" fill="true" padding="-1">
+              <entry name=entry_title width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="true" fill="true" padding="-1">
               </entry>
             </hbox>
             <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
               <label name=_ width="100" height="-1" text="Mes.min_bitrate" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
               </label>
-              <combo name=combo_min_bitrate width="-1" height="-1" border_width="-1" popdown_strings="[%22%22;+%2264%22;+%2296%22;+%22128%22;+%22160%22;%22192%22]" use_arrows="`DEFAULT" case_sensitive="true" value_in_list="true" ok_if_empty="true" tab_label="" expand="false" fill="true" padding="-1">
+              <combo name=combo_min_bitrate width="-1" height="-1" border_width="-1" popdown_strings="[%22%22;+%2264%22;+%2296%22;+%22128%22;+%22160%22;%22192%22]" use_arrows="`DEFAULT" case_sensitive="true" value_in_list="true" ok_if_empty="true" tab_label="" expand="true" fill="true" padding="-1">
               </combo>
             </hbox>
           </vbox>
@@ -337,141 +337,141 @@
 <entity name=box_options>
   <hbox name=box width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="%22Options%22" expand="false" fill="true" padding="-1">
     <vbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="true" fill="true" padding="-1">
-      <hbox name=_ width="0" height="-1" border_width="-1" homogeneous="false" spacing="3" tab_label="" expand="true" fill="true" padding="-1">
-        <vbox name=_ width="400" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="true" fill="true" padding="-1">
-          <frame name=_frame_options_ports width="-1" height="-1" border_width="-1" label="Mes.ports" label_xalign="-1.0" label_yalign="-1.0" shadow_type="`ETCHED_OUT" tab_label="" expand="false" fill="true" padding="-1">
+      <hbox name=_ width="0" height="-1" border_width="-1" homogeneous="false" spacing="3" tab_label="" expand="false" fill="true" padding="-1">
+        <vbox name=_ width="200" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="true" fill="true" padding="-1">
+          <frame name=_frame_options_ports width="-1" height="-1" border_width="-1" label="Mes.ports" label_xalign="-1.0" label_yalign="-1.0" shadow_type="`ETCHED_OUT" tab_label="" expand="true" fill="true" padding="-1">
             <vbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
-              <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1" expanded="false">
-                <label name=_ width="200" height="-1" text="Mes.connection_port" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
+              <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="true" fill="true" padding="-1">
+                <label name=_ width="150" height="-1" text="Mes.connection_port" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
                 </label>
-                <entry name=entry_options_conn_port width="100" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="false" fill="true" padding="-1">
+                <entry name=entry_options_conn_port width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="true" fill="true" padding="-1">
                 </entry>
               </hbox>
-              <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1" expanded="false">
-                <label name=_ width="200" height="-1" text="Mes.control_port" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
+              <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="true" fill="true" padding="-1">
+                <label name=_ width="150" height="-1" text="Mes.control_port" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
                 </label>
-                <entry name=entry_options_rmt_port width="100" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="false" fill="true" padding="-1">
+                <entry name=entry_options_rmt_port width="100" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="true" fill="true" padding="-1">
                 </entry>
               </hbox>
             </vbox>
           </frame>
-          <frame name=_frame_options_delays width="-1" height="-1" border_width="-1" label="Mes.delays" label_xalign="-1.0" label_yalign="-1.0" shadow_type="`ETCHED_OUT" tab_label="" expand="false" fill="true" padding="-1">
+          <frame name=_frame_options_delays width="-1" height="-1" border_width="-1" label="Mes.delays" label_xalign="-1.0" label_yalign="-1.0" shadow_type="`ETCHED_OUT" tab_label="" expand="true" fill="true" padding="-1">
             <vbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
-              <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1" expanded="false">
-                <label name=_ width="200" height="-1" text="Mes.save_options_delay" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
+              <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="true" fill="true" padding="-1">
+                <label name=_ width="150" height="-1" text="Mes.save_options_delay" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
                 </label>
-                <entry name=entry_options_save_delay width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="false" fill="true" padding="-1">
+                <entry name=entry_options_save_delay width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="true" fill="true" padding="-1">
                 </entry>
               </hbox>
-              <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1" expanded="false">
-                <label name=_ width="200" height="-1" text="Mes.check_client_connections" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
+              <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="true" fill="true" padding="-1">
+                <label name=_ width="150" height="-1" text="Mes.check_client_connections" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
                 </label>
-                <entry name=entry_options_check_clients_delay width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="false" fill="true" padding="-1">
-                </entry>
-              </hbox>
-              <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1" expanded="false">
-                <label name=_ width="200" height="-1" text="Mes.check_server_connection" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
-                </label>
-                <entry name=entry_options_check_servers_delay width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="false" fill="true" padding="-1">
-                </entry>
-              </hbox>
-              <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1" expanded="false">
-                <label name=_ width="200" height="-1" text="Mes.small_retry_delay" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
-                </label>
-                <entry name=entry_options_small_retry_delay width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="false" fill="true" padding="-1">
-                </entry>
-              </hbox>
-              <hbox name=_ width="200" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1" expanded="false">
-                <label name=_ width="200" height="-1" text="Mes.medium_retry_delay" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
-                </label>
-                <entry name=entry_options_medium_retry_delay width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="false" fill="true" padding="-1">
-                </entry>
-              </hbox>
-              <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1" expanded="false">
-                <label name=_ width="200" height="-1" text="Mes.long_retry_delay" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
-                </label>
-                <entry name=entry_options_long_retry_delay width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="false" fill="true" padding="-1">
+                <entry name=entry_options_check_clients_delay width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="true" fill="true" padding="-1">
                 </entry>
               </hbox>
               <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
-                <label name=_ width="200" height="-1" text="Mes.gui_refresh_delay" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
+                <label name=_ width="150" height="-1" text="Mes.check_server_connection" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
                 </label>
-                <entry name=entry_refresh_delay width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="false" fill="true" padding="-1">
+                <entry name=entry_options_check_servers_delay width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="true" fill="true" padding="-1">
+                </entry>
+              </hbox>
+              <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
+                <label name=_ width="150" height="-1" text="Mes.small_retry_delay" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
+                </label>
+                <entry name=entry_options_small_retry_delay width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="true" fill="true" padding="-1">
+                </entry>
+              </hbox>
+              <hbox name=_ width="150" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
+                <label name=_ width="150" height="-1" text="Mes.medium_retry_delay" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
+                </label>
+                <entry name=entry_options_medium_retry_delay width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="true" fill="true" padding="-1">
+                </entry>
+              </hbox>
+              <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
+                <label name=_ width="150" height="-1" text="Mes.long_retry_delay" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
+                </label>
+                <entry name=entry_options_long_retry_delay width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="true" fill="true" padding="-1">
+                </entry>
+              </hbox>
+              <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
+                <label name=_ width="150" height="-1" text="Mes.gui_refresh_delay" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
+                </label>
+                <entry name=entry_refresh_delay width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="true" fill="true" padding="-1">
                 </entry>
               </hbox>
             </vbox>
           </frame>
         </vbox>
-        <vbox name=_ width="400" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
+        <vbox name=_ width="200" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="true" fill="true" padding="-1">
           <frame name=_frame_options_general width="-1" height="-1" border_width="-1" label="Mes.general" label_xalign="-1.0" label_yalign="-1.0" shadow_type="`ETCHED_OUT" tab_label="" expand="false" fill="true" padding="-1">
             <vbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
               <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
                 <label name=_ width="100" height="-1" text="Mes.name" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
                 </label>
-                <entry name=entry_options_name width="260" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="false" fill="true" padding="-1">
+                <entry name=entry_options_name width="260" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="true" fill="true" padding="-1">
                 </entry>
               </hbox>
               <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
-                <label name=_ width="200" height="-1" text="Mes.max_connected_servers" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
+                <label name=_ width="150" height="-1" text="Mes.max_connected_servers" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
                 </label>
-                <entry name=entry_options_maxconn_servers width="100" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="false" fill="true" padding="-1">
+                <entry name=entry_options_maxconn_servers width="100" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="true" fill="true" padding="-1">
                 </entry>
               </hbox>
               <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
-                <label name=_ width="200" height="-1" text="Mes.upload_limit" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
+                <label name=_ width="150" height="-1" text="Mes.upload_limit" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
                 </label>
-                <entry name=entry_options_upload_limit width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="false" fill="true" padding="-1">
+                <entry name=entry_options_upload_limit width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="true" fill="true" padding="-1">
                 </entry>
               </hbox>
             </vbox>
           </frame>
-          <frame name=_frame_options_timeouts width="-1" height="-1" border_width="-1" label="Mes.timeouts" label_xalign="-1.0" label_yalign="-1.0" shadow_type="`ETCHED_OUT" tab_label="" expand="false" fill="true" padding="-1" expanded="false">
+          <frame name=_frame_options_timeouts width="-1" height="-1" border_width="-1" label="Mes.timeouts" label_xalign="-1.0" label_yalign="-1.0" shadow_type="`ETCHED_OUT" tab_label="" expand="false" fill="true" padding="-1">
             <vbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
               <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
-                <label name=_ width="200" height="-1" text="Mes.server_connection" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
+                <label name=_ width="150" height="-1" text="Mes.server_connection" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
                 </label>
-                <entry name=entry_options_server_timeout width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="false" fill="true" padding="-1">
+                <entry name=entry_options_server_timeout width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="true" fill="true" padding="-1">
                 </entry>
               </hbox>
               <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
-                <label name=_ width="200" height="-1" text="Mes.client_connection" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
+                <label name=_ width="150" height="-1" text="Mes.client_connection" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
                 </label>
-                <entry name=entry_options_client_timeout width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="false" fill="true" padding="-1">
+                <entry name=entry_options_client_timeout width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="true" fill="true" padding="-1">
                 </entry>
               </hbox>
               <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
-                <label name=_ width="200" height="-1" text="Mes.max_server_age" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
+                <label name=_ width="150" height="-1" text="Mes.max_server_age" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
                 </label>
-                <entry name=entry_max_server_age width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="false" fill="true" padding="-1">
+                <entry name=entry_max_server_age width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="true" fill="true" padding="-1">
                 </entry>
               </hbox>
             </vbox>
           </frame>
-          <frame name=_frame_server width="-1" height="-1" border_width="-1" label="%22Server%22" label_xalign="-1.0" label_yalign="-1.0" shadow_type="`NONE" tab_label="" expand="false" fill="true" padding="-1" expanded="false">
+          <frame name=_frame_server width="-1" height="-1" border_width="-1" label="%22Server%22" label_xalign="-1.0" label_yalign="-1.0" shadow_type="`NONE" tab_label="" expand="false" fill="true" padding="-1">
             <vbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
               <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
-                <label name=_ width="200" height="-1" text="Mes.hostname" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
+                <label name=_ width="150" height="-1" text="Mes.hostname" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
                 </label>
-                <entry name=entry_server_hostname width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="false" fill="true" padding="-1">
+                <entry name=entry_server_hostname width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="true" fill="true" padding="-1">
                 </entry>
               </hbox>
               <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
-                <label name=_ width="200" height="-1" text="Mes.password" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
+                <label name=_ width="150" height="-1" text="Mes.password" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
                 </label>
-                <entry name=entry_options_password width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="false" fill="true" padding="-1">
+                <entry name=entry_options_password width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="true" fill="true" padding="-1">
                 </entry>
               </hbox>
-              <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1" expanded="false">
-                <label name=_ width="200" height="-1" text="Mes.gui_port" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
+              <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
+                <label name=_ width="150" height="-1" text="Mes.gui_port" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
                 </label>
-                <entry name=entry_options_gui_port width="100" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="false" fill="true" padding="-1">
+                <entry name=entry_options_gui_port width="100" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="true" fill="true" padding="-1">
                 </entry>
               </hbox>
             </vbox>
           </frame>
         </vbox>
       </hbox>
-      <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="true" spacing="-1" tab_label="" expand="false" fill="true" padding="-1" expanded="false">
+      <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="true" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
         <button name=button_options_save width="-1" height="-1" border_width="-1" tab_label="" expand="false" fill="true" padding="-1">
           <label name=_ width="-1" height="-1" text="Mes.save_and_apply_options" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
           </label>
@@ -489,7 +489,7 @@
 <entity name=box_console>
   <vbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
     <hbox name=_ width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
-      <label name=_ width="200" height="-1" text="Mes.command" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
+      <label name=_ width="180" height="-1" text="Mes.command" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
       </label>
       <entry name=entry_command width="500" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="false" fill="true" padding="-1">
       </entry>
@@ -505,8 +505,8 @@
   </vbox>
 </entity>
 <entity name=gui>
-  <vbox name=box width="800" height="400" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
-    <menubar name=menubar width="800" height="-1" border_width="-1" accel_group_name="" tab_label="" expand="false" fill="false" padding="-1">
+  <vbox name=box width="600" height="440" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
+    <menubar name=menubar width="-1" height="-1" border_width="-1" accel_group_name="" tab_label="" expand="false" fill="false" padding="-1">
       <menu_item name=_Menu width="-1" height="-1" border_width="-1" label="Mes.mConnections" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
         <menu name=_FileMenu width="-1" height="-1" border_width="-1" tab_label="" expand="false" fill="true" padding="-1">
           <menu_item name=itemReconnect width="-1" height="-1" border_width="-1" label="Mes.mReconnect" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
@@ -538,7 +538,7 @@
         </menu>
       </menu_item>
     </menubar>
-    <notebook name=notebook width="800" height="-1" border_width="-1" tab_position="`TOP" tab_border="-1" show_tabs="true" homogeneous_tabs="true" show_border="true" scrollable="true" popup_enable="true" tab_label="" expand="true" fill="true" padding="-1">
+    <notebook name=notebook width="-1" height="-1" border_width="-1" tab_position="`TOP" tab_border="-1" show_tabs="true" homogeneous_tabs="true" show_border="true" scrollable="true" popup_enable="true" tab_label="" expand="true" fill="true" padding="-1">
       <custom name=tab_servers width="-1" height="-1" border_width="-1" function="new+box_servers" tab_label="Mes.servers" expand="false" fill="true" padding="-1">
       </custom>
       <custom name=tab_downloads width="-1" height="-1" border_width="-1" function="new+box_downloads" tab_label="Mes.downloads" expand="false" fill="true" padding="-1">

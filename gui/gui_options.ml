@@ -193,11 +193,11 @@ let friends_vpane_up = define_option mldonkey_gui_ini
 
 let gui_width = define_option mldonkey_gui_ini
     ["layout"; "width"]
-    "Width of GUI window" int_option 800
+    "Width of GUI window" int_option 600
 
 let gui_height = define_option mldonkey_gui_ini
     ["layout"; "height"]
-  "Height of GUI window" int_option 600
+  "Height of GUI window" int_option 400
   
 (** {2 Others} *)
 

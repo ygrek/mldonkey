@@ -134,6 +134,7 @@ let _ =
 let window = GWindow.window 
     ~title: "MLdonkey"
     ~width: !!gui_width ~height: !!gui_height
+    ~allow_shrink: true
     () 
 
 let tab_searches = gui#tab_searches
@@ -485,9 +486,6 @@ let menu_downloads_file t =
   [ 
     "Pause/Resume file(s)", for_selection clist_downloads (fun file -> 
         gui_send (SwitchDownload file.file_md4));
-    "Cancel file(s)", 
-    for_selection clist_downloads (fun file -> 
-        gui_send (RemoveDownload_query file.file_md4));
     "Verify all chunks file(s)",
     for_selection clist_downloads
       (fun file -> 
@@ -500,6 +498,10 @@ let menu_downloads_file t =
     "Get Format Info",
     for_selection clist_downloads (fun file ->
         gui_send (QueryFormat file.file_md4));
+    "", (fun _ -> ());
+    "Cancel file(s)", 
+    for_selection clist_downloads (fun file -> 
+        gui_send (RemoveDownload_query file.file_md4));
   ]
       
 let (clist_downloaded : 
@@ -838,8 +840,8 @@ let search_download clist_search gui () =
 let download_ed2k_url _ =
   let url = tab_downloads#entry_ed2k_url#text in
   match String2.split (String.escaped url) '|' with
-    ["ed2k://"; "file"; name; size; md4; ""] 
-  | ["file"; name; size; md4; ""] ->
+    "ed2k://":: "file" :: name :: size :: md4 :: _ 
+  |             "file" :: name :: size :: md4 :: _ ->
       gui_send (Download_query 
           ([name], Int32.of_string size, Md4.of_string md4, None));
       tab_downloads#entry_ed2k_url#set_text ""

@@ -795,6 +795,8 @@ let mail_for_completed_file file =
         mail_body = line1 ^ line2;
       } in
     sendmail !!smtp_server !!smtp_port mail
+
+    
     
 let check_file_downloaded file =
   if file.file_absent_chunks = [] then
@@ -830,7 +832,30 @@ let check_file_downloaded file =
         with _ -> ());
       info_change_file file;
       !file_change_hook file;
-      move_file files done_files file.file_md4
+      move_file files done_files file.file_md4;
+      
+      if !!file_completed_cmd <> "" then
+      match Unix.fork() with
+        0 -> begin            
+            match Unix.fork() with
+              0 -> begin
+                  try
+                      Unix.execv !!file_completed_cmd 
+                        (Array.of_list
+                          
+                          (file.file_hardname ::
+                          (Md4.to_string file.file_md4) ::
+                          (Int32.to_string file.file_size) ::
+                          file.file_filenames));
+                      exit 0
+                    
+                  with _ ->
+                      exit 127
+                end
+            | id -> exit 0
+          end
+      | id -> ignore (snd(Unix.waitpid [] id))
+      
     with _ -> ()
         
 let update_options file =    

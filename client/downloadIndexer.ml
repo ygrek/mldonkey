@@ -31,7 +31,6 @@ let comments = Hashtbl.create 127
 
 let comment_filename = "comments.met"
 
-    
 let name_bit = 1
 (* "size" *)
 (* "bitrate" *)
@@ -292,6 +291,8 @@ let index_result_no_filter r =
     _ -> 
       let doc = Indexer.make_doc index r in
       Hashtbl.add results r.result_md4 doc;
+      
+(* SAVE HERE THE RESULT TO local_index_add *)
       output_result (history_file_oc ()) r;
       flush (history_file_oc ());
       List.iter (fun name ->
@@ -319,6 +320,44 @@ let index_result r =
     let doc = index_result_no_filter r in
     if Indexer.filtered doc then raise Not_found;
     Indexer.value doc
+
+let add_name r file_name =
+  if !!use_file_history then
+    try
+      let doc = Hashtbl.find results r.result_md4 in
+      let rr = Indexer.value doc in
+      if r != rr then raise Not_found;
+      if not (List.mem file_name r.result_names) then begin
+          r.result_names <- file_name :: r.result_names;
+          index_name doc file_name
+        end
+    with _ ->
+        r.result_names <- file_name :: r.result_names;
+        ignore (index_result_no_filter r)
+  else
+    r.result_names <- file_name :: r.result_names
+
+  
+let merge_result search r =
+  try
+    let result, old_avail = Hashtbl.find search.search_files r.result_md4
+    in
+    if result != r then
+      List.iter (fun name ->
+          if not (List.mem name result.result_names) then begin
+              add_name result name;
+              result.result_names <- name :: result.result_names
+            end
+      ) r.result_names
+  with _ ->
+      try
+        let result =  index_result r in      
+        Hashtbl.add search.search_files r.result_md4 (result, ref 0);
+        search.search_nresults <- search.search_nresults + 1;
+        search.search_handler (Result result);
+      with _ ->  (* the file was probably filtered *)
+          ()
+
   
 let find s = 
   if not !!use_file_history then () else
@@ -370,9 +409,7 @@ let find s =
   List.iter (fun doc ->
       let r = Indexer.value doc in
       comment_result r;
-      s.search_handler (Result r);
-      Hashtbl.add s.search_files r.result_md4 (r, ref 0);
-      s.search_nresults <- s.search_nresults + 1
+      merge_result s r
   ) docs
 
 
@@ -417,23 +454,7 @@ let init () =
                 print_newline () 
           end
     with _ -> ()
-        
-let add_name r file_name =
-  if !!use_file_history then
-    try
-      let doc = Hashtbl.find results r.result_md4 in
-      let rr = Indexer.value doc in
-      if r != rr then raise Not_found;
-      if not (List.mem file_name r.result_names) then begin
-          r.result_names <- file_name :: r.result_names;
-          index_name doc file_name
-        end
-    with _ ->
-        r.result_names <- file_name :: r.result_names;
-        ignore (index_result_no_filter r)
-  else
-    r.result_names <- file_name :: r.result_names
-    
+            
 let _ =
   Options.option_hook filters (fun _ ->
       try

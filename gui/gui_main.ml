@@ -72,7 +72,10 @@ ignore (gui#clist_download#connect#unselect_row (download_unset_selection gui));
 *)
   ignore (tab_downloads#button_download_cancel#connect#clicked
       (download_cancel gui));
-  ignore (tab_servers#button_servers_add#connect#clicked (servers_addserver gui));
+  ignore (tab_servers#button_servers_add#connect#clicked
+      (servers_addserver gui));  
+  ignore (tab_servers#entry_servers_new_ip#connect#activate
+      (servers_addserver gui));
   ignore (tab_friends#button_friends_add#connect#clicked 
       (friends_addfriend gui));
   ignore (tab_servers#button_servers_connect_more#connect#clicked (

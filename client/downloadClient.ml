@@ -69,59 +69,87 @@ let udp_client_send uc t =
   (Unix.ADDR_INET (Ip.to_inet_addr uc.udp_client_ip,uc.udp_client_port+4))
   t
 
-let client_wants_file c md4 =
-  if md4 <> Md4.null && md4 <> Md4.one then 
+let client_udp_send ip port t =
+  Mftp_comm.udp_send (match !udp_sock with
+      None -> failwith "No UDP socket"
+    | Some sock -> sock)  
+  (Unix.ADDR_INET (Ip.to_inet_addr ip,port+4))
+  t
+
+let find_sources_in_groups c md4 =
+  try
+    let group = Hashtbl.find file_groups md4 in
     try
-      let group = Hashtbl.find file_groups md4 in
-      try
-        ignore (UdpClientMap.find c.client_kind group.group);
+      ignore (UdpClientMap.find c.client_kind group.group);
 (* the client is already known *)
-      with _ -> 
+    with _ -> 
 (* a new client for this group *)
-          if c.client_is_mldonkey >= 2 then begin
-              match c.client_sock with
-                None -> ()
-              | Some sock ->
+        if c.client_is_mldonkey >= 2 then begin
+            match c.client_sock with
+              None -> ()
+            | Some sock ->
 (* send the list of members of the group to the client *)
-                  let list = ref [] in
-                  UdpClientMap.iter (fun _ uc ->
-                      list := (uc.udp_client_ip, uc.udp_client_port, uc.udp_client_ip) :: !list
-                  ) group.group;
-                  if !list <> [] then begin
-                      Printf.printf "Found sources in file groups"; print_newline ();                  
-                      client_send sock (
-                        let module Q = Mftp_client.Sources in
-                        Mftp_client.SourcesReq {
-                          Q.md4 = md4;
-                          Q.sources = !list;
-                        }
-                      )
-                    end
-            end;
-          match c.client_kind with 
-            Indirect_location -> ()
-          | Known_location (ip, port) ->
+                let list = ref [] in
+                UdpClientMap.iter (fun _ uc ->
+                    list := (uc.udp_client_ip, uc.udp_client_port, uc.udp_client_ip) :: !list
+                ) group.group;
+                if !list <> [] then begin
+                    Printf.printf "Send %d sources from file groups to mldonkey peer" (List.length !list); print_newline ();                  
+                    client_send sock (
+                      let module Q = Mftp_client.Sources in
+                      Mftp_client.SourcesReq {
+                        Q.md4 = md4;
+                        Q.sources = !list;
+                      }
+                    )
+                  end
+          end else
+          begin
+            match c.client_kind with 
+              Indirect_location -> ()
+            | Known_location (ip, port) ->
+                UdpClientMap.iter (fun _ uc ->
+                    Printf.printf "Send source from file groups to UDP peer"; print_newline ();                  
+                    client_udp_send ip port (
+                      let module Q = Mftp_server.QueryLocationReply in
+                      Mftp_server.QueryLocationReplyUdpReq {
+                        Q.md4 = md4;
+                        Q.locs = [{ 
+                            Q.ip = uc.udp_client_ip;
+                            Q.port = uc.udp_client_port;
+                          }];
+                      })
+                ) group.group;                  
+          end
+          ;
+        match c.client_kind with 
+          Indirect_location -> ()
+        | Known_location (ip, port) ->
 (* send this client as a source for the file to
 all mldonkey clients in the group. add client to group *)
-              
-              UdpClientMap.iter (fun _ uc ->
-                  if uc.udp_client_is_mldonkey then
-                    udp_client_send uc (
-                      let module M = Mftp_server in
-                      M.FileGroupInfoUdpReq (
-                        let module Q = M.QueryLocationReply in
-                        {
-                          Q.md4 = md4;
-                          Q.locs = [{ Q.ip = ip; Q.port = port }];
-                        }))
-              ) group.group;
-              new_udp_client c group
-          
-    with _ ->
-        let group = { group = UdpClientMap.empty } in
-        Hashtbl.add file_groups md4 group;
-        new_udp_client c group
             
+            UdpClientMap.iter (fun _ uc ->
+                Printf.printf "Send new source to file groups UDP peers"; print_newline ();                  
+                udp_client_send uc (
+                  let module M = Mftp_server in
+                  M.QueryLocationReplyUdpReq (
+                    let module Q = M.QueryLocationReply in
+                    {
+                      Q.md4 = md4;
+                      Q.locs = [{ Q.ip = ip; Q.port = port }];
+                    }))
+            ) group.group;
+            new_udp_client c group
+  
+  with _ ->
+      let group = { group = UdpClientMap.empty } in
+      Hashtbl.add file_groups md4 group;
+      new_udp_client c group
+            
+let client_wants_file c md4 =
+  if md4 <> Md4.null && md4 <> Md4.one then begin
+      find_sources_in_groups c md4;
+    end
         
   
 let new_chunk up begin_pos end_pos =
@@ -280,35 +308,35 @@ print_newline ();
         match c.client_kind with
           Known_location _ -> c
         | Indirect_location ->
-        if Ip.valid t.CR.ip then
-          let kind = Known_location (t.CR.ip, t.CR.port) in
-          try
-            let cc = Hashtbl.find clients_by_kind kind in
-            match cc.client_sock with
-            | Some _ -> c
-            | None -> 
-                if cc.client_md4 = Md4.null || 
-                  t.CR.md4 = cc.client_md4 then begin
+            if Ip.valid t.CR.ip then
+              let kind = Known_location (t.CR.ip, t.CR.port) in
+              try
+                let cc = Hashtbl.find clients_by_kind kind in
+                match cc.client_sock with
+                | Some _ -> c
+                | None -> 
+                    if cc.client_md4 = Md4.null || 
+                      t.CR.md4 = cc.client_md4 then begin
 (*
                 Printf.printf "Aliasing indirect connection to known client";
                 print_newline ();
 *)
-                    
-                    cc.client_sock <- c.client_sock;
-                    c.client_alias <- Some cc;
-                    c.client_kind <- kind;
-                    Hashtbl.remove clients_by_num c.client_num;
-                    Hashtbl.add clients_by_num c.client_num cc;
-                    cc
-                  end else c
-          with _ -> 
+                        
+                        cc.client_sock <- c.client_sock;
+                        c.client_alias <- Some cc;
+                        c.client_kind <- kind;
+                        Hashtbl.remove clients_by_num c.client_num;
+                        Hashtbl.add clients_by_num c.client_num cc;
+                        cc
+                      end else c
+              with _ -> 
 (* unknown location *)
-              c.client_kind <- kind;
-              Hashtbl.add clients_by_kind kind c;
-              if c.client_is_friend = Friend then
-                known_friends =:= c :: !!known_friends;
-              c
-        else c
+                  c.client_kind <- kind;
+                  Hashtbl.add clients_by_kind kind c;
+                  if c.client_is_friend = Friend then
+                    known_friends =:= c :: !!known_friends;
+                  c
+            else c
       in
 
 (* what about being connected several times to the same client ? 
@@ -323,14 +351,14 @@ We should probably check that here ... *)
         match c.client_kind with
           Known_location _ -> ()
         | Indirect_location ->
-          try
-            Hashtbl.find indirect_clients_by_md4 t.CR.md4;
-            Printf.printf "We are already connected to this client... disconnect"; print_newline ();
+            try
+              Hashtbl.find indirect_clients_by_md4 t.CR.md4;
+              Printf.printf "We are already connected to this client... disconnect"; print_newline ();
 (* WE ARE ALREADY CONNECTED TO THIS CLIENT !!! *)
-            shutdown sock "already connected to client";
-            raise End_of_file
-          with Not_found -> 
-              Hashtbl.add indirect_clients_by_md4 t.CR.md4 ()
+              shutdown sock "already connected to client";
+              raise End_of_file
+            with Not_found -> 
+                Hashtbl.add indirect_clients_by_md4 t.CR.md4 ()
       end;
       
       connection_ok c.client_connection_control;
@@ -368,7 +396,7 @@ We should probably check that here ... *)
           c.client_is_friend <- Friend;
           c.client_changed <- ClientFriendChange;
           !client_change_hook c;      
-          
+        
         with _ -> ()
       end;
       begin
@@ -393,7 +421,7 @@ We should probably check that here ... *)
           None -> find_client_block c
         | Some b ->
             printf_string "[QUEUED WITH BLOCK]";
-            
+      
       end
 (*
   | M.QueueReq t ->
@@ -413,7 +441,7 @@ We should probably check that here ... *)
   
   | M.JoinQueueReq _ ->
       set_rtimeout (TcpClientSocket.sock sock) infinite_timeout;
-
+      
       client_send sock (
         let module M = Mftp_client in
         let module Q = M.AvailableSlot in
@@ -471,7 +499,7 @@ We should probably check that here ... *)
             | _ ->
                 if not (List.memq c file.file_indirect_locations) then begin
                     file.file_new_locations <- true;
-                      file.file_indirect_locations <- 
+                    file.file_indirect_locations <- 
                       c :: file.file_indirect_locations
                   end
           end;
@@ -522,7 +550,7 @@ We should probably check that here ... *)
           print_newline ();
           raise Not_found
         end;
-
+      
       if file.file_state = FilePaused then begin
           next_file c
         end
@@ -654,7 +682,7 @@ Mmap.munmap m;
       client_send sock (
         let module Q = M.ViewFilesReply in
         M.ViewFilesReplyReq (DownloadServers.make_tagged files))
-            
+  
   
   | M.QueryFileReq t when !has_upload = 0 -> 
       
@@ -696,31 +724,96 @@ Mmap.munmap m;
                     file.file_new_locations <- true
                   end
           );
-          if c.client_is_mldonkey = 2 then 
-            let sources = ref [] in
-            begin
-              try (* simply send the last found location *)
-                List.iter (fun c ->
-                    match c.client_kind with
-                      Known_location (ip, port) -> 
-                        sources := (ip, port, ip) :: !sources;
-                        decr send_locations;
-                        if !send_locations = 0 then
-                          raise Not_found
-                    | _ -> ()
-                ) file.file_known_locations;                  
-              with _ -> ()
-            end;
-            
-            if !sources <> [] then
+          
+(* Send the known sources to the client. Use UDP for normal clients, TCP
+for mldonkey clients .*)
+          
+          let sources = ref [] in
+          begin
+            try (* simply send the last found location *)
+              List.iter (fun c ->
+                  match c.client_kind with
+                    Known_location (ip, port) -> 
+                      sources := (ip, port, ip) :: !sources;
+                      decr send_locations;
+                      if !send_locations = 0 then
+                        raise Not_found
+                  | _ -> ()
+              ) file.file_known_locations;                  
+            with _ -> ()
+          end;
+          
+          if !sources <> [] then
+            if c.client_is_mldonkey = 2 then begin
+                Printf.printf "sending %d sources to new mldonkey peer" (List.length !sources); print_newline ();
               client_send sock (
                 let module Q = M.Sources in
                 M.SourcesReq {
                   Q.md4 = file.file_md4;
                   Q.sources = !sources;
                 })
-        with _ -> () end    
+              end else begin
+                match c.client_kind with
+                  Indirect_location -> ()
+                | Known_location (ip, port) ->
+                    Printf.printf "sending %d sources to new UDP peer" (List.length !sources); print_newline ();
+                    List.iter (fun (src_ip, src_port, _ ) ->
+                        client_udp_send ip port (
+                          let module Q = Mftp_server.QueryLocationReply in
+                          Mftp_server.QueryLocationReplyUdpReq {
+                            Q.md4 = file.file_md4;
+                            Q.locs = [{ 
+                                Q.ip = src_ip;
+                                Q.port = src_port;
+                              }];
+                          });                    
+                    ) !sources;
+              end;
 
+(* If this source is new, send a message to all locations so that they can
+know about this new source. *)
+            
+            if !send_locations = max_int then
+              match c.client_kind with
+                Indirect_location -> ()
+              | Known_location (ip, port) ->
+                  List.iter (fun cc ->
+                      match cc.client_kind with
+                        Known_location (src_ip, src_port) -> 
+                          
+                          Printf.printf "sending new location to old UDP peer"; 
+                          print_newline (); 
+                          
+                          client_udp_send src_ip src_port (
+                            let module Q = Mftp_server.QueryLocationReply in
+                            Mftp_server.QueryLocationReplyUdpReq {
+                              Q.md4 = file.file_md4;
+                              Q.locs = [{ 
+                                  Q.ip = ip;
+                                  Q.port = port;
+                                }];
+                            });
+                      | _ -> ()
+                  ) file.file_known_locations;
+                  
+                  
+                  List.iter (fun cc ->
+                      if cc.client_is_mldonkey > 1 then
+                        match cc.client_sock with 
+                          None -> ()
+                        | Some sock ->
+                            Printf.printf "sending new location to old mldonkey peer"; print_newline ();
+                            client_send sock (
+                              let module Q = M.Sources in
+                              M.SourcesReq {
+                                Q.md4 = file.file_md4;
+                                Q.sources = [(ip, port, ip)];
+                              })
+                            
+                  ) file.file_known_locations;
+                  
+        with _ -> () end    
+      
   | M.SourcesReq t ->
       
       let module Q = M.Sources in

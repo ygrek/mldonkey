@@ -39,7 +39,7 @@ type format =
 
 and result = {
     mutable result_names : string list;
-    result_md4 : Md4.t;
+    mutable result_md4 : Md4.t;
     mutable result_size : int32;
     mutable result_format : string;
     mutable result_type : string;

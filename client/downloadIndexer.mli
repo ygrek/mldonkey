@@ -34,3 +34,5 @@ val save_comments : unit -> unit
 val add_comment : Md4.t -> string -> unit
   
 val load_old_history : unit -> unit
+  
+val merge_result: DownloadTypes.search -> Gui_types.result -> unit

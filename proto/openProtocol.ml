@@ -22,4 +22,15 @@
 let udp_magic = 212
 
 type udp_messages = 
-  ()
+  StoreRecommandation of Md4.t
+(* Send a recommandation for the client with that Md4 to a server, so that
+the client can ask the server for recommandation. *)
+| HasRecommandation of Ip.t * int
+(* The client must know that there is a new location to ask for 
+recommandation. *)
+| Recommandations of Md4.t * (Ip.t * int) list
+(* When the client wants to download, it can send a list of recommandations. *)
+| QueryRecommandation of Md4.t
+(* For each recommandation, the uploader can ask for credits. *)
+| Recommandation of Md4.t
+(* This message is sent to recommand the client *)

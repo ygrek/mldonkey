@@ -533,6 +533,7 @@ let set_write_controler t bc =
 let max_buffer_size = ref  1000000
   
 let create fd handler =
+  Unix.set_close_on_exec fd;
   let t = {
       sock = dummy_sock;
       rbuf = buf_create !max_buffer_size;
@@ -550,6 +551,7 @@ let create fd handler =
   t
 
 let create_blocking fd handler =
+  Unix.set_close_on_exec fd;
   let t = {
       sock = dummy_sock;
       rbuf = buf_create !max_buffer_size;
@@ -579,6 +581,33 @@ let connect host port handler =
     t
   with e -> t
 
+  
+let exec_command cmd args handler =
+  let (in_read, output) = Unix.pipe() in
+  let (input, out_write) = Unix.pipe() in
+  match Unix.fork() with
+    0 -> begin
+      match Unix.fork () with
+        0 ->
+            if input <> Unix.stdin then
+              begin Unix.dup2 input Unix.stdin; Unix.close input end;
+            if output <> Unix.stdout then
+              begin Unix.dup2 output Unix.stdout; Unix.close output end;
+            Unix.close in_read;
+            Unix.close out_write;
+            Unix.execv cmd args;
+            exit 127
+        | id -> exit 0
+      end
+  | id -> 
+      ignore (snd(Unix.waitpid [] id));
+      Unix.close input;
+      Unix.close output;
+      let t_in = create in_read handler in
+      let t_out = create out_write (fun _ _ -> ()) in
+      must_read (sock t_out) false;
+      (t_in, t_out)
+  
 let set_max_write_buffer t len =
   t.wbuf.max_buf_size <- len
   

@@ -77,3 +77,7 @@ val verbose : bool Options.option_record
 val max_opened_connections : int Options.option_record
   
 val web_infos : (string * int * string) list Options.option_record
+val web_header : string Options.option_record
+val file_completed_cmd : string Options.option_record
+val local_index_find_cmd : string Options.option_record
+val local_index_add_cmd : string Options.option_record

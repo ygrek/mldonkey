@@ -635,8 +635,110 @@ let new_search query =
     search_handler = (fun _ -> ());
     search_xs_servers = !!known_servers;
   }
-  
 
+          
+  
+let local_search search =
+  try
+    let (t_in, t_out) = exec_command !!local_index_find_cmd [||] 
+        (fun sock ev -> ()) in
+    let lines = ref [] in
+    set_reader t_in (fun t_in nread ->
+        let buf = TcpClientSocket.buf t_in in
+        let s = buf.buf in
+        let rec iter () =
+          let pos = buf.pos in
+          let len = buf.len in
+          try
+            let pos2 = String.index_from s pos '\n' in
+            let line = String.sub s pos (pos2 - pos) in
+            buf_used t_in (pos2 - pos + 1);
+            if line = "end result" then
+              let l = List.rev !lines in
+              lines := [];
+              
+              try
+                let r = { 
+                    result_names = [];
+                    result_md4 = Md4.null;
+                    result_size = Int32.zero;
+                    result_format = "";
+                    result_type = "";
+                    result_tags = [];
+                    result_comment = None;
+                  } in
+                List.iter (fun (name, value) ->
+                    match name with
+                      "name" -> r.result_names <- value :: r.result_names
+                    | "md4" -> r.result_md4 <- Md4.of_string value
+                    | "size" -> r.result_size <- Int32.of_string value
+                    | "format" -> r.result_format <- value
+                    | "type" -> r.result_type <- value
+                    | "string_tag" -> 
+                        let name, v = String2.cut_at value ':' in
+                        r.result_tags <- {
+                          tag_name = name;
+                          tag_value = String v;
+                        } :: r.result_tags
+                    | "int_tag" -> 
+                        let name, v = String2.cut_at value ':' in
+                        r.result_tags <- {
+                          tag_name = name;
+                          tag_value = Uint32 (Int32.of_string v);
+                        } :: r.result_tags
+                    | _ ->
+                        Printf.printf "discarding result line %s:%s" name value;
+                        print_newline ();
+                ) l;
+                if r.result_md4 = Md4.null || r.result_size = Int32.zero then
+                  failwith "Not enough information in result";
+                DownloadIndexer.merge_result search r
+              
+              with e -> 
+                  Printf.printf "result discarded for exn %s" 
+                    (Printexc.to_string e); print_newline ()
+            else begin
+                try
+                  let pos = String.index line ':' in
+                  let name = String.sub line 0 pos in
+                  let value = String.sub line (pos+1) 
+                    (String.length line - pos - 1)
+                  in
+                  lines := (name, value) :: !lines
+                with e ->
+                    Printf.printf "Discarding line %s" line; print_newline ();
+              end;
+            iter ()
+          with _ -> ()
+        in
+        iter ()
+    );
+    let buf = Buffer.create 100 in
+    let q = search.search_query in
+    if q.search_words <> [] then
+      Printf.bprintf buf "words:%s\n" (String2.unsplit q.search_words ' ');
+    (match q.search_minsize with None -> () | Some size ->
+          Printf.bprintf buf "minsize:%s\n" (Int32.to_string size));
+    (match q.search_maxsize with None -> () | Some size ->
+          Printf.bprintf buf "maxsize:%s\n" (Int32.to_string size));
+    (match q.search_min_bitrate with None -> () | Some size ->
+          Printf.bprintf buf "minrate:%s\n" (Int32.to_string size));
+    (match q.search_media with None -> () | Some s ->
+          Printf.bprintf buf "media:%s\n" s);
+    (match q.search_format with None -> () | Some s ->
+          Printf.bprintf buf "format:%s\n" s);
+    (match q.search_title with None -> () | Some s ->
+          Printf.bprintf buf "title:%s\n" s);
+    (match q.search_album with None -> () | Some s ->
+          Printf.bprintf buf "album:%s\n" s);
+    (match q.search_artist with None -> () | Some s ->
+          Printf.bprintf buf "artist:%s\n" s);
+    Buffer.add_string buf "end query\n";
+    TcpClientSocket.write_string t_out (Buffer.contents buf)
+  with e ->
+      Printf.printf "Exception %s while starting local_index_find"
+        (Printexc.to_string e); print_newline ()
+      
 let send_search search query =
   last_xs := search.search_num;
   List.iter (fun s ->
@@ -663,7 +765,8 @@ let send_search search query =
           in
           Fifo.put s.server_search_queries handler
   ) !connected_server_list;
-  make_xs search
+  make_xs search;
+  local_search search        
   
 let start_search query buf =
 
@@ -679,7 +782,7 @@ let commands = [
         let ip, port =
           match args with
             [ip ; port] -> ip, port
-          | [ip] -> ip, "4663"
+          | [ip] -> ip, "4661"
           | _ -> failwith "n <ip> [<port>]: bad argument number"
         in
         let ip = Ip.of_string ip in
@@ -883,10 +986,11 @@ let commands = [
         force_save_options ();
         "saved"), ": save";
     
-    "dllink", Arg_one (fun url buf _ ->        
+    "dllink", Arg_multiple (fun args buf _ ->        
+        let url = String2.unsplit args ' ' in
         match String2.split (String.escaped url) '|' with
-          ["ed2k://"; "file"; name; size; md4; ""] 
-        | ["file"; name; size; md4; ""] ->
+          "ed2k://" :: "file" :: name :: size :: md4 :: _
+        |              "file" :: name :: size :: md4 :: _ ->
             query_download [name] (Int32.of_string size)
             (Md4.of_string md4) None None None;
             "download started"
@@ -1366,32 +1470,23 @@ Min bitrate
 "
   
 let add_simple_commands buf =
-  Buffer.add_string buf
-  "
-  <h2>Connected to <a href=http://www.freesoftware.fsf.org/mldonkey/> MLdonkey </a> 
-WEB server</h2>
-<br>
-<table width=\"100%\" border=0>
-<tr>
-  <td><a href=/submit?q=vm> View Connected Servers </a></td>
-  <td><a href=/submit?q=vma> View All Servers </a></td>
-  <td><a href=/submit?q=c> Connect More Servers </a></td>
-  <td><a href=/complex_search.html> Complex Search </a></td>
-  <td><a href=/submit?q=xs> Extended Search </a></td>
-  <td><a href=/submit?q=upstats> Upload Statistics </a></td>
-  </tr>
-<tr>
-<td><a href=/submit?q=vr> View Results </a></td>
-<td><a href=/submit?q=vd> View Downloads </a></td>
-<td><a href=/submit?q=commit> Commit Downloads </a></td>
-<td><a href=/submit?q=vs> View Searches </a></td>
-<td><a href=/submit?q=vo> View Options </a></td>
-<td><a href=/submit?q=help> View Help </a></td>
-  </tr>
-  </table>
-<br>
-"
+  Buffer.add_string buf !!web_header
   
+
+let html_open_page buf =
+  Buffer.add_string buf "<HTML>\n";
+  Buffer.add_string buf "<HEAD>\n";
+  Buffer.add_string buf "<TITLE>\n";
+  Buffer.add_string buf "MLdonkey WEB Interface\n";
+  Buffer.add_string buf "</TITLE>\n";
+  Buffer.add_string buf "</HEAD>\n";
+  Buffer.add_string buf "<BODY>\n";
+  ()
+  
+let html_close_page buf =
+  Buffer.add_string buf "</BODY>\n";  
+  Buffer.add_string buf "</HTML>\n";
+  ()
   
 let http_handler t r =
   Buffer.clear buf;  
@@ -1409,7 +1504,7 @@ let http_handler t r =
       Buffer.add_string  buf "Content-Type: text/html; charset=iso-8859-1\r\n";
       Buffer.add_string  buf "\r\n";
       
-
+      html_open_page buf;
       add_simple_commands buf;
       add_submit_entry buf;
       try
@@ -1510,6 +1605,7 @@ let http_handler t r =
           Printf.bprintf buf "\nException %s\n" (Printexc.to_string e);
     end;
   
+  html_close_page buf;
   let s = Buffer.contents buf in
   let len = String.length s in
 (*  TcpClientSocket.set_monitored t; *)

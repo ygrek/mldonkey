@@ -206,7 +206,7 @@ let help_text = "
                       MLDonkey
                       ========
 
-Release: 1.14
+Release: 1.15
 Authors: [b8]_bavard (Communication engine) and [b8]_Zoggy (GUI)
 
  MLDonkey is a door to the 'donkey' network, a decentralized network used to
@@ -440,6 +440,15 @@ a good server, use 'c 34' if 34 is for example the number of the server
 in the list 'vma'. You can also select some servers in the GUI, and use the
 connect button/menu.
 
+*) Which ports should I open on my firewall ?
+--------------------------------------------
+
+By default, mldonkey uses ports 4662 for tcp connections, and port 4666 for
+udp connections. If you change the tcp port, udp port will be tcp_port + 4.
+Therefore, you should allow your firewall to send incoming connections and
+messages on these ports to your local network.
+
+
 Help on the command-line interface
 ==================================
 
@@ -580,7 +589,7 @@ connected to. This is an old option, that was useful before UDP packets.
 1 is now enough, since all servers will eventually be searched by UDP.
 
 'Upload limit': default is 30 kB/s (good for ADSL/Cable). You can't set it
-  under 10kB/s. If you have a large bandwith, set it to 500 kB/s or +
+  under 1kB/s. If you have a large bandwith, set it to 500 kB/s or +
 
 'Client hostname': the name of the host were your client is running if not
   the same host as the graphical interface.
@@ -595,6 +604,36 @@ interfaces and graphical interfaces).
 6. Console
 
 In the console, you have access to the command-line commands.
+
+Using auxiliary programs for local indexation (in development)
+=============================================
+
+mldonkey now uses auxiliary programs to help find results to search.
+Currently, two types of programs are supported:
+
+- Finder (set by the 'local_index_find_cmd' option)
+ The finder receives a query on its standard input, and replies by
+ the results on its standard output.
+
+Query format: the query finishes with 'end_query' on one line. On each line 
+of the query, there is one keyword, a colon :, and a value. Keywords are:
+ words, minsize, maxsize, minrate, media, format, title, album, artist
+
+Result format: the result finishes with 'end result' on one line. On each line
+of the result, there is one keyword, a colon :, and a value.
+Keywords are:
+  Required: md4, size
+  Optional: name, format, type, string_tag, int_tag
+
+There can be several name, string_tag, int_tag lines. The value on the 
+string_tag line should be the name of the tag, a colon : and the value of
+the tag. Idem for int_tag, but the value should be an integer.
+
+- Indexer (set by the 'local_index_add_cmd' option)
+The indexer is called each time a new result is received by mldonkey,
+and the result is given on its standard input in the same format as specified
+above. It can be used to add the result to the index that is used by the
+Finder.
 
 TODO list
 =========
@@ -612,6 +651,13 @@ TODO list
   * Queue uploads per chunk.
   * Add prefered servers.
   * Save options in a modular way (each server in a file ?).
+  * Recommandation for upload
+  * Alternative GUI and smaller minimal size
+  * Remove . for windows compatibility
+  * Allow setting the correct IP.
+  * Priorities on prefered servers.
+  * Download priorities (what does it mean ?)
+  * Use source groups for local downloads.
 
 Known bugs:
 ===========
@@ -620,6 +666,27 @@ Known bugs:
 
 ChangeLog
 =========
+
+Release 1.15:
+  * GUI:
+    - Should fit in 640x480 screens.
+    - Server can be specified by ip:port in Add Server entry.
+  * Core acts now with all (direct) clients as a server to diffuse sources
+     for files. Indirect mldonkey clients can also receive information.
+  * WEB interface:
+    - New option 'web_header' to customize the header displayed by the
+       Web interface.
+    - Correct HTML with HEAD and TITLE :)
+  * Core:
+    - New option 'file_completed_cmd' for a command which is called when 
+     a file download is completed with as arguments: 
+     <filename on disk> <md4> <size> <names on the edonkey networks>*
+    - Started moving local indexation from mldonkey to an auxiliary program,
+     controled by options 'local_index_find_cmd' and 'local_index_add_cmd'.
+     See the 'Using auxiliary programs for local indexation' section in
+     the help.
+  * Most problems with ed2k:// links should be fixed (/ at the end, and
+     spaces in the middle).
 
 Release 1.14:
   * Bandwidth is now controled by the 'max_hard_download_rate' and
@@ -790,6 +857,43 @@ Release 1.00:
   * Graphical interface works
   * Import old config works
 
+KNOWN COMMENTS (from savannah and forum):
+========================================
+Browser: Mozilla/4.75 [en] (X11; U; Linux 2.4.17 i686; Nav) On the help page, it still says you can't set uploads
+under 10K. 
+If a server IP along with a colon seperated port number
+is specified in the Server IP box, and enter hit, then
+it gets added. This would make copy/paste from a list
+of servers lots easier. Saving upstats would be nice, as well as some way of
+resetting it, to get a better idea of which files to
+keep shared. The downloads panel is a little busy, and not good for
+small screens (some people still have to use 640x480) Perhaps move the 'save files' to an incoming tab?
+(which can flash when it's got files in) On the same lines, why not show the filename/details
+(the one above the colour bar) in a line, with name in
+one box, size in the next (perhaps with bytes/Mb
+added), and the format in another, with the colour bar
+as the last item in the line, taking up the whole width
+of the client, with the 'connections' panel only
+popping up over the right-hand-side of the screen when
+a filename is double-clicked (or when show connections
+is picked from the menu)
+The MD4 recover might move to the incoming tab, and the
+ed2k file to below the filename/colourbar line, and
+automatically change when a new file is clicked,
+to show the ed2k: link.
+Maybe the cancel/retry-connect could move to the
+connections panel? On the search results tab, it would be nice to indicate
+number of results per file, to give at least an
+indication of availability.
 
+===========================================
+The only problem is that since I use it (.10) it eats lots of memory and cpu
+resources.. this is the 'top' line, using 90.3% of the cpu and 22.5% RAM 32294 runa      14   0 86612  84M   796 R    90.3 22.5 275:55 mldonkey
+============================================
+
+
+============================================
+
+============================================
 
 "   (* PUT NOTHING AFTER THIS LINE !!!!!!! *)

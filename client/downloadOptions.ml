@@ -237,6 +237,50 @@ let web_infos = define_option downloads_ini
     (list_option (
       tuple3_option (string_option, int_option, string_option)))
   []
+
+let web_header = define_option downloads_ini
+    ["web_header"] "The header displayed in the WEB interface"
+    string_option
+    "
+  <h2>Connected to <a href=http://www.freesoftware.fsf.org/mldonkey/> MLdonkey </a> 
+WEB server</h2>
+<br>
+<table width=100% border=0>
+<tr>
+  <td><a href=/submit?q=vm> View Connected Servers </a></td>
+  <td><a href=/submit?q=vma> View All Servers </a></td>
+  <td><a href=/submit?q=c> Connect More Servers </a></td>
+  <td><a href=/complex_search.html> Complex Search </a></td>
+  <td><a href=/submit?q=xs> Extended Search </a></td>
+  <td><a href=/submit?q=upstats> Upload Statistics </a></td>
+  </tr>
+<tr>
+<td><a href=/submit?q=vr> View Results </a></td>
+<td><a href=/submit?q=vd> View Downloads </a></td>
+<td><a href=/submit?q=commit> Commit Downloads </a></td>
+<td><a href=/submit?q=vs> View Searches </a></td>
+<td><a href=/submit?q=vo> View Options </a></td>
+<td><a href=/submit?q=help> View Help </a></td>
+  </tr>
+  </table>
+<br>
+"
+
+
+let file_completed_cmd = define_option downloads_ini 
+    ["file_completed_cmd"] "A command that is called when a file is completely
+    downloaded. Arguments are: <file_name on disk> <md4> <size>"
+    string_option "" 
+
+let local_index_find_cmd = define_option downloads_ini 
+    ["local_index_find_cmd"] "A command used locally to find more results
+    during a search"
+    string_option "./local_index_find" 
+
+let local_index_add_cmd = define_option downloads_ini 
+    ["local_index_add_cmd"] "A command used locally to add new results
+    to a local index after a search"
+    string_option "./local_index_add" 
   
 let compaction_overhead = define_option downloads_ini 
     ["compaction_overhead"] 
