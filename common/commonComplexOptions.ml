@@ -73,14 +73,15 @@ module FileOption = struct
           let file = network_add_file network is_done assocs in
           file
       | _ -> assert false
-          
+    
     let file_to_value file =
-      Options.Module (
-        ("file_network", string_to_value (file_network file).network_name)
-        ::
-        (file_to_option file)
-      )
-      
+        let netname = string_to_value (file_network file).network_name in
+        Options.Module (
+          ("file_network", netname)
+          ::
+          (file_to_option file)
+        )
+          
     let t is_done =
       define_option_class "File" (value_to_file is_done) file_to_value
     ;;

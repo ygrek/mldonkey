@@ -39,6 +39,50 @@ open DonkeyProtoOvernet
 let overnet_port = 
   define_option downloads_ini ["overnet_port"] "port for overnet" 
     int_option (2000 + Random.int 20000)
+
+let overnet_search_keyword = 
+  define_option downloads_ini ["overnet_search_keyword"] 
+  "allow extended search to search on overnet" bool_option false
+
+let overnet_search_sources = 
+  define_option downloads_ini ["overnet_search_sources"] 
+  "allow extended search to search on overnet" bool_option false
+
+let overnet_max_connected_peers = 
+  define_option downloads_ini ["overnet_max_connected_peers"] 
+  "maximal number of peers mldonkey should connect at beginning" 
+    int_option 50
+
+let overnet_peers = define_option servers_ini 
+    ["overnet_peers"] "List of overnet peers"
+    (list_option (tuple4_option (Md4.option, Ip.option, int_option, int_option)))
+  []
+      
+let overnet_search_timeout = 
+  define_option downloads_ini ["overnet_search_timeout"] 
+  "How long shoud a search on Overnet wait for the last reply before terminating"
+    float_option 120. 
+      
+let overnet_query_peer_period = 
+  define_option downloads_ini ["overnet_query_peer_period"] 
+  "Period between two queries in the overnet tree"
+    float_option 10. 
+
+      
+let gui_overnet_options_panel = 
+  define_option downloads_ini ["gui_overnet_options_panel"]
+  "Which options are configurable in the GUI option panel, and in the
+  Overnet section. Last entry indicates the kind of widget used (B=Boolean,T=Text)"
+    (list_option (tuple3_option (string_option, string_option, string_option)))
+  [
+    "Port", shortname overnet_port, "T";
+    "Search for keywords", shortname overnet_search_keyword, "B";
+    "Search for sources", shortname overnet_search_sources, "B";
+    "Max Connected Peers", shortname overnet_max_connected_peers, "T";
+    "Search Timeout", shortname overnet_search_timeout, "T";
+    "Search Internal Period", shortname overnet_query_peer_period, "T";
+  ]
+  
   
 let udp_sock = ref None  
 
@@ -63,12 +107,7 @@ let udp_send ip port msg =
       with e ->
           Printf.printf "Exception %s in udp_send" (Printexc.to_string e);
           print_newline () 
-          
-let overnet_peers = define_option servers_ini 
-    ["overnet_peers"] "List of overnet peers"
-    (list_option (tuple4_option (Md4.option, Ip.option, int_option, int_option)))
-  []
-  
+            
 let (peers_queue : (Ip.t * int) Fifo.t) = Fifo.create ()
   
 let peers_by_md4 = Hashtbl.create 1000
@@ -89,9 +128,15 @@ module XorSet = Set.Make (struct
       let compare (m1,p1) (m2,p2) = 
         compare (m1,p1.peer_md4, p1.peer_ip) (m2,p2.peer_md4, p2.peer_ip)
     end)
-      
+
+type search_for =
+  FileSearch of file
+| KeywordSearch of local_search
+  
 type overnet_search = {
+    mutable search_last_packet : float;
     search_md4 : Md4.t;
+    search_kind : search_for;
     search_known_peers : (Ip.t * int, peer) Hashtbl.t;
     mutable search_next_peers : XorSet.t;
   }
@@ -105,6 +150,46 @@ let add_search_peer s p =
       let distance = Md4.xor s.search_md4 p.peer_md4 in
       s.search_next_peers <- XorSet.add (distance, p) s.search_next_peers
     end
+
+    
+let try_connect () =
+  if (!!overnet_search_sources || !!overnet_search_keyword) &&
+    !nconnected_peers < !!overnet_max_connected_peers && 
+    not (Fifo.empty peers_queue) then begin
+      let (ip, port) = Fifo.take peers_queue in
+      udp_send ip port  (OvernetConnect (!!client_md4, Ip.null, 
+          !!overnet_port, 0))
+    end
+
+let create_simple_search kind md4 =   
+  let search = {
+      search_last_packet = last_time ();
+      search_md4 = md4;
+      search_known_peers = Hashtbl.create 13;
+      search_next_peers = XorSet.empty;
+      search_kind = kind;
+    } in
+  Printf.printf "STARTED SEARCH FOR %s" (Md4.to_string md4); print_newline ();
+  Hashtbl.add overnet_searches md4 search;
+  search
+
+let create_search kind md4 =   
+  let search = create_simple_search kind md4 in
+  List.iter (fun peer ->
+      add_search_peer search peer;
+  ) !connected_peers
+  
+let recover_file (file : DonkeyTypes.file) = 
+  if !!overnet_search_sources &&
+    not (Hashtbl.mem overnet_searches file.file_md4) then
+    create_search (FileSearch file) file.file_md4
+        
+let recover_all_files () =
+  if !!overnet_search_sources then
+    List.iter (fun file ->
+        if file_state file = FileDownloading then
+          recover_file file          
+    ) !DonkeyGlobals.current_files
     
 let udp_client_handler t p =
   match t with
@@ -115,10 +200,21 @@ let udp_client_handler t p =
           peer :: tail ->
             add_peer peer;
             connected_peers := peer :: !connected_peers;
-            Printf.printf "Connected to %s:%d" (Ip.to_string peer.peer_ip)
+            Printf.printf "Connected %d to %s:%d" !nconnected_peers(Ip.to_string peer.peer_ip)
             peer.peer_port; print_newline ();
             incr nconnected_peers;
-            List.iter add_peer tail
+            List.iter add_peer tail;
+            Hashtbl.iter (fun _ search ->
+                add_search_peer search peer) 
+            overnet_searches;
+            List.iter (fun file ->
+                if file_state file = FileDownloading           
+                  && !!overnet_search_sources &&
+                  not (Hashtbl.mem overnet_searches file.file_md4) then
+                  let search = create_simple_search 
+                      (FileSearch file) file.file_md4 in
+                  add_search_peer search peer;
+            )  !DonkeyGlobals.current_files
         | _ -> ()
       end
   
@@ -175,90 +271,77 @@ let udp_client_handler t p =
                 (Md4.to_string sender.peer_md4) (Ip.to_string s_ip) s_port;
               print_newline ();
               
-              List.iter (fun tag ->
-                  if tag.tag_name = "loc" then begin
-                      match tag.tag_value with
-                        String bcp ->
-                          if String2.starts_with bcp "bcp://" then
-                            let bcp2 = String.sub bcp 6 (String.length bcp - 6) 
-                            in
-                            match String2.split_simplify bcp2 ':' with
-                            | [_ ;ip;port]
-                            | [ip;port] ->
-                                let ip = Ip.of_string ip in
-                                let port = int_of_string port in
-                                Printf.printf "Creating client %s:%d"
-                                  (Ip.to_string ip) port;
-                                print_newline ();
-                                
-                                let c = new_client (Known_location (ip, port)) in
-                                DonkeyClient.connect_client (client_ip None) [] c
-                            | _ ->
-                                Printf.printf "Ill formed bcp: %s" bcp;
-                                print_newline ();
-                          else begin
-                              Printf.printf "Not a bcp!!!"; print_newline ();
-                            end
-                      | _ -> 
-                          Printf.printf "NOot a string location ??"; 
-                          print_newline ();
-                    end
-              ) r_tags;
+              match s.search_kind with
+                FileSearch file ->
+                  
+                  List.iter (fun tag ->
+                      if tag.tag_name = "loc" then begin
+                          match tag.tag_value with
+                            String bcp ->
+                              if String2.starts_with bcp "bcp://" then
+                                let bcp2 = String.sub bcp 6 (String.length bcp - 6) 
+                                in
+                                match String2.split_simplify bcp2 ':' with
+                                | [_ ;ip;port]
+                                | [ip;port] ->
+                                    let ip = Ip.of_string ip in
+                                    let port = int_of_string port in
+                                    Printf.printf "Creating client %s:%d"
+                                      (Ip.to_string ip) port;
+                                    print_newline ();
+                                    
+                                    let c = new_client (Known_location (ip, port)) in
+                                    if not (Intmap.mem (client_num c) file.file_sources) then
+                                      new_source file c;
+                                    
+                                    DonkeyClient.connect_client (client_ip None) [] c
+                                | _ ->
+                                    Printf.printf "Ill formed bcp: %s" bcp;
+                                    print_newline ();
+                              else begin
+                                  Printf.printf "Not a bcp!!!"; print_newline ();
+                                end
+                          | _ -> 
+                              Printf.printf "NOot a string location ??"; 
+                              print_newline ();
+                        end
+                  ) r_tags;
+              | KeywordSearch ss ->
+                  DonkeyOneFile.search_found ss.search_search r_md4 r_tags
             with _ -> 
                 Printf.printf "No info on sender"; print_newline ();
           end;
           
           Printf.printf "RESULT:"; print_newline ();
           print_tags r_tags; print_newline ();
-          
+        
         with _ ->
             Printf.printf "NO SUCH SEARCH ??"; print_newline ();
       end
       
       
   | _ -> Printf.printf "UNUSED MESSAGE"; print_newline ()
-
-let try_connect () =
-  if !nconnected_peers < 5 && not (Fifo.empty peers_queue) then begin
-      let (ip, port) = Fifo.take peers_queue in
-      udp_send ip port  (OvernetConnect (!!client_md4, Ip.null, 
-          !!overnet_port, 0))
-    end
-  
-let recover_file (file : DonkeyTypes.file) = 
-  if not (Hashtbl.mem overnet_searches file.file_md4) then
-    let search = {
-        search_md4 = file.file_md4;
-        search_known_peers = Hashtbl.create 13;
-        search_next_peers = XorSet.empty;
-      } in
-    List.iter (fun peer ->
-        add_search_peer search peer;
-    ) !connected_peers;
-    Hashtbl.add overnet_searches file.file_md4 search
     
-let recover_all_files () =
-  List.iter (fun file ->
-      if file_state file = FileDownloading then
-        recover_file file
-  ) !DonkeyGlobals.current_files
-
 let query_min_peer s =
   try
     let (_,p) as e = XorSet.min_elt s.search_next_peers in
     Printf.printf "Query New Peer"; print_newline ();
-
+    
     s.search_next_peers <- XorSet.remove e s.search_next_peers;
+    s.search_last_packet <- last_time ();
     udp_send p.peer_ip p.peer_port  (OvernetSearch (2, s.search_md4))     
-  with _ ->
-      Printf.printf "Search for %s finished" (Md4.to_string s.search_md4);
-      print_newline ();
-      Hashtbl.remove overnet_searches s.search_md4
-  
+  with _ -> ()
+        
 let query_next_peers () =
   Hashtbl2.safe_iter (fun s ->
       query_min_peer s;
       query_min_peer s;
+      if s.search_last_packet +. !!overnet_search_timeout < last_time () then
+        begin
+          Printf.printf "Search for %s finished" (Md4.to_string s.search_md4);
+          print_newline ();
+          Hashtbl.remove overnet_searches s.search_md4
+        end        
   ) overnet_searches
   
 let enable enabler = 
@@ -278,8 +361,14 @@ let enable enabler =
     (!!overnet_port) 
     (udp_handler udp_client_handler));
   add_session_timer enabler 1. try_connect;
-  add_session_timer enabler 10. query_next_peers
-    
+  add_session_option_timer enabler overnet_query_peer_period query_next_peers;
+  add_session_timer enabler 1200. recover_all_files
+
+let _ =
+  option_hook overnet_query_peer_period (fun _ ->
+      if !!overnet_query_peer_period < 5. then
+        overnet_query_peer_period =:= 5.)
+  
 let disable () = 
   match !udp_sock with
     None -> ()
@@ -291,19 +380,26 @@ let disable () =
       
 let _ =
   register_commands 
-  
     [
     "boot", Arg_two (fun ip port o ->
         Fifo.put peers_queue (Ip.of_string ip, int_of_string port);
         try_connect ();
         "peer added"
     ), " <ip> <port> : add an Overnet peer";
-    
-    "overnet", Arg_none (fun o ->
-        recover_all_files ();
-        "Overnet search started"
-    ), " : use Overnet to get more sources";
   ]
 
-      
+
+let search_keyword ss w =
+  let key = Md4.string w in
+  create_search (KeywordSearch ss) key
   
+let overnet_search (s : local_search) =
+  if !!overnet_search_keyword then
+    let ss = s.search_search in
+    let q = ss.search_query in
+    let ws = keywords_of_query q in
+    List.iter (fun w ->
+        search_keyword s w;
+    ) ws
+
+    

@@ -133,11 +133,11 @@ DONKEY_SRCS= \
   donkey/donkeyShare.ml \
   donkey/donkeyOneFile.ml \
   donkey/donkeyClient.ml \
+  donkey/donkeyProtoOvernet.ml \
+  donkey/donkeyOvernet.ml \
   donkey/donkeyFiles.ml  \
   donkey/donkeyServers.ml \
   donkey/donkeySearch.ml \
-  donkey/donkeyProtoOvernet.ml \
-  donkey/donkeyOvernet.ml \
   donkey/donkeyInteractive.ml \
   donkey/donkeyMain.ml
 
@@ -381,6 +381,7 @@ MLDONKEYGUI_SRCS= \
   $(MIN_PROTO_SRCS) $(OKEY_SRCS) $(GPATTERN_SRCS) \
   $(CHAT_SRCS) $(COMMON_SRCS) $(GUI_SRCS)
 
+STARTER_SRCS= gui/gui_starter.ml
 
 MLDONKEYGUI2_SRCS= \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
@@ -412,8 +413,7 @@ MLCHAT_SRCS= \
   $(CDK_SRCS) $(CONFIGWIN_SRCS) $(OKEY_SRCS) $(CHAT_SRCS) $(CHAT_EXE_SRCS)
 
 
-TARGETS += mldonkey_gui$(EXE)   mldonkey_gui2$(EXE)  mlchat$(EXE)
-
+TARGETS += mldonkey_gui$(EXE)   mldonkey_gui2$(EXE)  mlchat$(EXE) mldonkey_guistarter$(EXE)
 endif
 
 
@@ -475,6 +475,21 @@ MLDONKEYGUI_CMOS=$(foreach file, $(MLDONKEYGUI_ML),   $(basename $(file)).cmo)
 MLDONKEYGUI_CMXS=$(foreach file, $(MLDONKEYGUI_ML),   $(basename $(file)).cmx)
 
 TMPSOURCES += $(MLDONKEYGUI_MLL:.mll=.ml) $(MLDONKEYGUI_MLY:.mly=.ml) $(MLDONKEYGUI_MLY:.mly=.mli) $(MLDONKEYGUI_ZOG:.zog=.ml)
+
+
+
+STARTER_ZOG := $(filter %.zog, $(STARTER_SRCS))
+STARTER_MLL := $(filter %.mll, $(STARTER_SRCS))
+STARTER_MLY := $(filter %.mly, $(STARTER_SRCS))
+
+STARTER_ML := $(filter %.ml %.mll %.zog %.mly, $(STARTER_SRCS))
+STARTER_C := $(filter %.c, $(STARTER_SRCS))
+STARTER_OBJS=$(foreach file, $(STARTER_C),   $(basename $(file)).o)
+
+STARTER_CMOS=$(foreach file, $(STARTER_ML),   $(basename $(file)).cmo)
+STARTER_CMXS=$(foreach file, $(STARTER_ML),   $(basename $(file)).cmx)
+
+TMPSOURCES += $(STARTER_MLL:.mll=.ml) $(STARTER_MLY:.mly=.ml) $(STARTER_MLY:.mly=.mli) $(STARTER_ZOG:.zog=.ml)
 
 
 
@@ -642,6 +657,17 @@ mldonkey_gui.byte: $(MLDONKEYGUI_CMOS) $(OBJS)
 
 mldonkey_gui.static: $(MLDONKEYGUI_CMXS) $(OBJS) 
 	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(LIBS_opt) $(GTK_STATIC_LIBS_opt) $(MLDONKEYGUI_CMXS) $(OBJS)
+
+######## STARTER
+
+mldonkey_guistarter: $(STARTER_CMXS) $(OBJS)  $(STARTER_OBJS)
+	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@ $(LIBS_opt) $(GTK_LIBS_opt) $(STARTER_CMXS) $(STARTER_OBJS) $(OBJS)
+
+mldonkey_guistarter.byte: $(STARTER_CMOS) $(OBJS) 
+	$(OCAMLC) -o $@ $(LIBS_byte) $(GTK_LIBS_byte) $(STARTER_CMOS) $(OBJS)
+
+mldonkey_guistarter.static: $(STARTER_CMXS) $(OBJS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(LIBS_opt) $(GTK_STATIC_LIBS_opt) $(STARTER_CMXS) $(OBJS)
 
 ######## MLDONKEYGUI2
 

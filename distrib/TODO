@@ -25,6 +25,10 @@ For 2.00:
   * only for short periods
 - Do not share files starting with a dot.
 
+***********************************************************************
+- Verify that files downloaded but not commited are immediatly shared !
+***********************************************************************
+
 *********
 
 For 2.01:

@@ -192,6 +192,7 @@ let new_search search =
     search_search = search;
     search_handler = (fun _ -> ());
     search_xs_servers = Hashtbl2.to_list servers_by_key;
+    search_overnet = false
   }
 
             

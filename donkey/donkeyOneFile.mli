@@ -29,7 +29,8 @@ val next_file : DonkeyTypes.client -> unit
   
 val remove_file : Md4.t -> unit
 
-val update_options : DonkeyTypes.file -> unit
 val download_engine : unit -> unit
 val check_files_md4s : unit -> unit
 val disconnect_client : DonkeyTypes.client -> unit
+  
+val search_found : CommonTypes.search -> Md4.t -> CommonTypes.tag list -> unit

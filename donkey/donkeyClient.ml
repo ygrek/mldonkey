@@ -409,7 +409,7 @@ let read_first_message t sock =
       connection_ok c.client_connection_control;
       c.client_tags <- t.CR.tags;
       
-      if Ip.valid t.CR.ip_server then
+      if Ip.valid t.CR.ip_server && !!update_server_list then
         ignore (add_server t.CR.ip_server t.CR.port_server);
       
       direct_client_send sock (
@@ -478,7 +478,7 @@ let client_to_client for_files c t sock =
       
       connection_ok c.client_connection_control;
       
-      if Ip.valid t.CR.ip_server then
+      if Ip.valid t.CR.ip_server && !!update_server_list then
         ignore (add_server t.CR.ip_server t.CR.port_server);
       
       set_client_state c Connected_idle;
@@ -621,9 +621,15 @@ print_newline ();
       
       let module Q = M.QueryChunksReply in      
       let file = find_file t.Q.md4 in
-      if Array.length t.Q.chunks <> file.file_nchunks then begin
-          Printf.printf "BAD BAD BAD: number of chunks is different %d/%d for %s:%ld on peer" (Array.length t.Q.chunks) file.file_nchunks (Md4.to_string file.file_md4) (file_size file);
-          print_newline ();
+      
+      let chunks = 
+        if t.Q.chunks = [||] then
+          Array.create file.file_nchunks true
+        else
+        if Array.length t.Q.chunks <> file.file_nchunks then begin
+            Printf.printf "BAD BAD BAD: number of chunks is different %d/%d for %s:%ld on peer" (Array.length t.Q.chunks) file.file_nchunks (Md4.to_string file.file_md4) (file_size file);
+            print_newline ();
+            Array.create file.file_nchunks false
 (* What should we do ?
 
 1) Try to recover the correct size of the file: we can use 
@@ -632,12 +638,8 @@ the most widely used size for this file. Maybe create
 different instances of the file for each proposed size ?
 
 *)
-        
-        end else 
-      let chunks = 
-        if t.Q.chunks = [||] then
-          Array.create file.file_nchunks true
-        else
+          
+          end else 
           t.Q.chunks in
       
       client_has_chunks c file chunks
@@ -646,8 +648,19 @@ different instances of the file for each proposed size ?
       begin
         let module Q = M.QueryChunkMd4Reply in
         let file = find_file t.Q.md4 in
+        
+        let module Q = M.QueryChunkMd4Reply in
+        if !!verbose then begin
+            Printf.printf "MD4 FOR CHUNKS RECEIVED"; 
+            print_newline ();
+          end;
+        
+        
+        if t.Q.chunks = [||] then
+          file.file_md4s <- [file.file_md4]
+        else
         if Array.length t.Q.chunks <> file.file_nchunks then begin
-            Printf.printf "BAD BAD BAD (2): number of chunks is different on peer";
+            Printf.printf "BAD BAD BAD (2): number of chunks is different %d/%d for %s:%ld on peer" (Array.length t.Q.chunks) file.file_nchunks (Md4.to_string file.file_md4) (file_size file);
             print_newline ();
 (* What should we do ?
 
@@ -663,18 +676,8 @@ is checked for the file.
           
           end else 
           
-        let module Q = M.QueryChunkMd4Reply in
-        if !!verbose then begin
-            Printf.printf "MD4 FOR CHUNKS RECEIVED"; 
-            print_newline ();
-          end;
-        
-        
-        if t.Q.chunks = [||] then
-          file.file_md4s <- [file.file_md4]
-        else
           file.file_md4s <- Array.to_list (t.Q.chunks);
-
+        
 (*      if file.file_exists then verify_chunks file *)
       end
   

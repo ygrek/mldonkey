@@ -87,21 +87,25 @@ if test -z "$ac_cv_prog_OCAMLC"; then
 else
    echo "Testing ocaml version"
    OCAMLVERSION=`$OCAMLC -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
-   if test "$OCAMLVERSION" != "$REQUIRED_OCAML"; then
-     echo "Need build"
-     BUILD_OCAML=yes
-   fi
+   case "$OCAMLVERSION" in
+    "$REQUIRED_OCAML"*) ;;
+    *) echo "Need build"
+       BUILD_OCAML=yes;;
+   esac
 fi
 
 if test "$BUILD_OCAML" = "yes"; then
 
   AC_CHECK_FILE("$LOCAL_OCAML"/ocamlc.opt, [
     OCAMLVERSION=`$LOCAL_OCAML/ocamlc.opt -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
-   if test "$OCAMLVERSION" = "$REQUIRED_OCAML"; then
-    BUILD_OCAML=no
-    OCAMLC=$LOCAL_OCAML/ocamlc.opt
-    ac_cv_prog_OCAMLC=$LOCAL_OCAML/ocamlc.opt
-   fi
+   case "$OCAMLVERSION" in
+    "$REQUIRED_OCAML"*)
+       BUILD_OCAML=no
+       OCAMLC=$LOCAL_OCAML/ocamlc.opt
+       ac_cv_prog_OCAMLC=$LOCAL_OCAML/ocamlc.opt
+       ;;
+    *) echo "Need build"
+    esac
   ])
 fi
 
@@ -206,10 +210,14 @@ AC_PATH_PROG(PERL, perl, perl)
 OCAMLVERSION=`$OCAMLC -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
 echo "ocamlc version is $OCAMLVERSION"
 
-test "$OCAMLVERSION" = "$REQUIRED_OCAML" || {
+case "$OCAMLVERSION" in
+ "$REQUIRED_OCAML"*) ;;
+ *) 
   echo "********  Version $REQUIRED_OCAML of Objective-Caml is required  *********" 1>&2; 
   echo "*******  Check http://ocaml.inria.fr/  ********" 1>&2; 
-  exit 1; } 
+  exit 1;
+ ;;
+esac
 
 
 OCAMLOPTVERSION=`$OCAMLOPT -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `

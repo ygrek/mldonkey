@@ -245,7 +245,7 @@ queries. *)
   | M.Mldonkey_NotificationReq (num, t) ->
       let s = search_find num in
       List.iter (fun f ->
-          DonkeyFiles.search_found s f.f_md4 f.f_tags
+          DonkeyOneFile.search_found s f.f_md4 f.f_tags
       ) t
   
   | M.QueryUsersReplyReq t ->

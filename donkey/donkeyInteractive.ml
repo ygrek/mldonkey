@@ -52,6 +52,7 @@ let result_name r =
 
       
 let reconnect_all file =
+  DonkeyOvernet.recover_file file;
   Intmap.iter (fun _ c ->
       connection_must_try c.client_connection_control;
       match c.client_kind with
@@ -175,6 +176,8 @@ let really_query_download filenames size md4 location old_file absents =
     ) filenames other_names in 
   file.file_filenames <- filenames @ file.file_filenames;
 
+  DonkeyOvernet.recover_file file;
+  
   current_files := file :: !current_files;
 (*  !file_change_hook file; *)
   set_file_size file (file_size file);

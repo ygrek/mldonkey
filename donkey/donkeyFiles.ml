@@ -38,65 +38,6 @@ open DonkeyOptions
 open CommonOptions
 open DonkeyClient  
 open CommonGlobals
-
-let search_found search md4 tags = 
-  let file_name = ref "" in
-  let file_size = ref Int32.zero in
-  let availability = ref 0 in
-  let new_tags = ref [] in
-  List.iter (fun tag ->
-      match tag with
-        { tag_name = "filename"; tag_value = String s } -> file_name := s
-      | { tag_name = "size"; tag_value = Uint32 v } -> file_size := v
-      | { tag_name = "availability"; tag_value = (Uint32 v| Fint32 v) } ->
-          availability := Int32.to_int v;  new_tags := tag :: !new_tags
-      | _ -> new_tags := tag :: !new_tags
-  ) tags;
-  try
-    let rs = DonkeyIndexer.find_result md4 in
-(*    Printf.printf "search_add_result"; print_newline (); *)
-    search_add_result search rs.result_result; (* ADD AVAILABILITY *)
-(*    Printf.printf "search_add_result DONE"; print_newline (); *)
-    let doc = rs.result_index in
-    let result = Store.get store doc in
-(*    old_avail := !old_avail + !availability; *)
-    if not (List.mem !file_name result.result_names) then begin
-        DonkeyIndexer.add_name result !file_name;
-        result.result_names <- !file_name :: result.result_names
-      end
-  with _ ->
-      let new_result = { 
-          result_num = 0;
-          result_network = network.network_num;
-          result_md4 = md4;
-          result_names = [!file_name];
-          result_size = !file_size;
-          result_format = "";
-          result_type = "";
-          result_tags = List.rev !new_tags;
-          result_comment = "";
-          result_done = false;
-        } in
-      List.iter (fun tag ->
-          match tag with
-            { tag_name = "format"; tag_value = String s } ->
-              new_result.result_format <- s
-          | { tag_name = "type"; tag_value = String s } ->
-              new_result.result_type <- s
-          | _ -> ()
-      ) new_result.result_tags;
-
-(*      Printf.printf "new reply"; print_newline ();*)
-      try
-        let rs = DonkeyIndexer.index_result new_result in      
-        let doc = rs.result_index in
-(*        Printf.printf "search_add_result"; print_newline (); *)
-        search_add_result search rs.result_result;
-(*        Printf.printf "search_add_result DONE"; print_newline (); *)
-        let result = Store.get store doc in
-        ()
-      with _ ->  (* the file was probably filtered *)
-          ()
           
 let search_handler search t =
   let s = search.search_search in
@@ -131,7 +72,12 @@ let make_xs ss =
           let module M = DonkeyProtoServer in
           let module Q = M.Query in
           udp_server_send s (M.QueryUdpReq ss.search_search.search_query);
-  ) servers
+  ) servers;
+  
+  if not ss.search_overnet then begin
+      ss.search_overnet <- true;
+      DonkeyOvernet.overnet_search ss
+    end
 
 let fill_clients_list _ =
 (* should we refill the queue ? *)
@@ -332,7 +278,7 @@ let udp_from_server p =
   match p.UdpSocket.addr with
   | Unix.ADDR_INET(ip, port) ->
       let ip = Ip.of_inet_addr ip in
-      if Ip.valid ip then
+      if Ip.valid ip && !!update_server_list then
         let s = add_server ip (port-4) in
 (* set last_conn, but add a 2 minutes offset to prevent staying connected
 to this server *)

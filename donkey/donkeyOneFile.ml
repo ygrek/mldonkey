@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonSearch
 open CommonGlobals
 open CommonComplexOptions
 open CommonFile  
@@ -979,11 +980,14 @@ let check_downloaded_files () =
             ) file.file_chunks
       ) !current_files;
     with _ -> ())
-  
-let update_options file =    
-  file.file_absent_chunks <- List.rev (find_absents file);
-  check_file_downloaded file
 
+let _ = 
+  file_ops.op_file_to_option <- (fun file ->
+      if file.file_chunks <> [||] then begin
+          file.file_absent_chunks <- List.rev (find_absents file);
+          check_file_downloaded file;
+        end;
+      file_to_value file)
                     
 let check_files_md4s () =
   try
@@ -991,3 +995,63 @@ let check_files_md4s () =
     DonkeyShare.check_shared_files ();
     
   with _ -> ()
+
+      
+let search_found search md4 tags = 
+  let file_name = ref "" in
+  let file_size = ref Int32.zero in
+  let availability = ref 0 in
+  let new_tags = ref [] in
+  List.iter (fun tag ->
+      match tag with
+        { tag_name = "filename"; tag_value = String s } -> file_name := s
+      | { tag_name = "size"; tag_value = Uint32 v } -> file_size := v
+      | { tag_name = "availability"; tag_value = (Uint32 v| Fint32 v) } ->
+          availability := Int32.to_int v;  new_tags := tag :: !new_tags
+      | _ -> new_tags := tag :: !new_tags
+  ) tags;
+  try
+    let rs = DonkeyIndexer.find_result md4 in
+(*    Printf.printf "search_add_result"; print_newline (); *)
+    search_add_result search rs.result_result; (* ADD AVAILABILITY *)
+(*    Printf.printf "search_add_result DONE"; print_newline (); *)
+    let doc = rs.result_index in
+    let result = Store.get store doc in
+(*    old_avail := !old_avail + !availability; *)
+    if not (List.mem !file_name result.result_names) then begin
+        DonkeyIndexer.add_name result !file_name;
+        result.result_names <- !file_name :: result.result_names
+      end
+  with _ ->
+      let new_result = { 
+          result_num = 0;
+          result_network = network.network_num;
+          result_md4 = md4;
+          result_names = [!file_name];
+          result_size = !file_size;
+          result_format = "";
+          result_type = "";
+          result_tags = List.rev !new_tags;
+          result_comment = "";
+          result_done = false;
+        } in
+      List.iter (fun tag ->
+          match tag with
+            { tag_name = "format"; tag_value = String s } ->
+              new_result.result_format <- s
+          | { tag_name = "type"; tag_value = String s } ->
+              new_result.result_type <- s
+          | _ -> ()
+      ) new_result.result_tags;
+
+(*      Printf.printf "new reply"; print_newline ();*)
+      try
+        let rs = DonkeyIndexer.index_result new_result in      
+        let doc = rs.result_index in
+(*        Printf.printf "search_add_result"; print_newline (); *)
+        search_add_result search rs.result_result;
+(*        Printf.printf "search_add_result DONE"; print_newline (); *)
+        let result = Store.get store doc in
+        ()
+      with _ ->  (* the file was probably filtered *)
+          ()

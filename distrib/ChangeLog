@@ -1,6 +1,35 @@
 ChangeLog	
 =========
 
+2002/09/24: mldonkey
+  - fix: renewed my passport (6 hours)
+  - fix: prevent "BAD BAD BAD" lines from removing good sources. Very Important
+     Bug for your downloads.
+
+2002/09/23: mldonkey
+  - fix: mldonkey_gui prints a better error message when the hostname couldn't 
+      be resolved.
+  - fix: the configure script allows ocaml versions with +n extensions.
+  - add: new program mldonkey_guistarter to start the GUI immediatly at
+      mldonkey startup
+    * New options 'ask_for_gui', 'start_gui', 'mldonkey_bin' and 'mldonkey_gui'
+    * New option panel 'Startup'
+  - fix: get_int64 works correctly (no more negative upload counters)
+
+2002/09/22: mldonkey
+  - fix: udp packets added to bandwidth computation
+  - GUI:
+     - add: new option panel for plugins
+     - add: each plugin defines its own option for the GUI panel
+     - fix: when gui_poll, don't send options values
+  - Overnet: 
+     * No need for servers anymore :), searches and downloads are OK
+        (but no filter on search results)
+  - add: lots of debug messages for bandwidth control. 
+     * I should probably remove from remaining_bytes the size of the
+        TCP packet header, each time the write/read is OK.
+     * I should optionnally include the GUIs in the control !
+
 2002/09/21: mldonkey
   - fix: removal of out-of-bounds accesses, not supported by Ocaml on 
         OSX Jaguar
@@ -8,6 +37,9 @@ ChangeLog
      * added -inline 10 for checkbounds to be removed for other archs (5
         would be enough)
      * added Autoconf.check_string calls in littleEndian.ml and bigEndian.ml
+  - add: Overnet works for simple queries and sources
+     * two options disabled by default: overnet_search_keyword and
+           overnet_search_sources
 
 2002/09/20: mldonkey
   - add: OverNet should now be able to add sources to eDonkey downloads

@@ -280,93 +280,25 @@ let add_option_value option value =
   with _ ->
       Hashtbl.add options_values option value
   
-let create_client_params () =
-  (*
-  (** Name and authentification *)
-  let client_name = create_option M.o_client_name GO.client_name in
-  let client_password = create_option M.o_password GO.client_password in
-
-  (** ports *)
-  let port_param = create_option M.o_http_port GO.client_port in
-  let telnet_port = create_option M.o_telnet_port GO.telnet_port in
-  let gui_port = create_option M.o_gui_server_port GO.client_gui_port in
-
-  (** chat *)
-  let chat_app_port = create_option M.o_chat_app_port  GO.chat_app_port in
-  let chat_app_host = create_option M.o_chat_app_host  GO.chat_app_host in
-  let chat_port = create_option M.o_chat_port GO.chat_port in
-  let chat_console_id = create_option M.o_chat_console_id GO.chat_console_id in
-  let chat_warning_for_downloaded = create_option
-      M.o_chat_warning_for_downloaded GO.chat_warning_for_downloaded
-  in
-  (** delays *)
-  let save_op_delay = create_option M.o_save_options_delay GO.save_options_delay in
-  let check_cl_delay = create_option M.o_check_client_cons_delay GO.check_client_connections_delay in
-  let check_delay = create_option M.o_check_cons_delay GO.check_connections_delay in
-  let min_retry = create_option M.o_min_delay GO.min_retry_delay in
-(*  let medium_retry = create_option
-      ~help: M.h_medium_delay
-      M.o_medium_delay GO.medium_retry_delay 
-  in
-  let long_retry = create_option
-      ~help: M.h_long_delay
-      M.o_long_delay GO.long_retry_delay 
-in
-  *)
-  let server_timeout = create_option M.o_server_connection_timeout GO.server_connection_timeout in
-  let client_timeout = create_option M.o_client_timeout GO.client_timeout in
-  let update_gui_delay = create_option M.o_update_gui_delay GO.update_gui_delay in
-  let max_server_age = create_option M.o_max_server_age GO.max_server_age in
-
-  (** mail *)
-  let smtp_server = create_option M.o_smtp_server GO.smtp_server in
-  let smtp_port = create_option M.o_smtp_port GO.smtp_port in
-  let mail = create_option M.o_mail_address GO.mail in
-
-  (** directories *)
-  let temp_dir = create_option M.o_temp_dir GO.temp_dir in
-  let incom_dir = create_option M.o_incom_dir GO.incoming_dir in
-
-  (** misc *)
-  let max_up_rate = create_option M.o_max_upload_rate GO.max_upload_rate in
-  let max_dl_rate = create_option M.o_max_dl_rate GO.max_download_rate in
-  let max_con_servs = create_option M.o_max_connected_servers GO.max_connected_servers in
-
-  [ Section (M.o_name_auth,
-	     [ client_name;  client_password ]) ;
-    Section (M.o_ports, 
-	     [ port_param ; telnet_port ; gui_port]) ;
-    Section (M.o_chat,
-	     [ chat_app_port ; chat_app_host ; 
-	       chat_port ; chat_console_id ; chat_warning_for_downloaded] ) ;
-    Section (M.o_delays,
-	     [ save_op_delay ; check_cl_delay ; check_delay ;
-                min_retry; server_timeout ; client_timeout ;
-	       update_gui_delay ; max_server_age ;]) ;
-    Section (M.o_directories,
-	     [ temp_dir ; incom_dir]) ;
-    Section (M.o_mail,
-	     [ smtp_server ; smtp_port ; mail ]);
-    Section (M.o_misc,
-	     [max_up_rate ; max_con_servs ]) ;
-  ]  @
-  *)
-    (
-    List.map (fun (name, options) ->
-        Section (name,
-          List.map (fun (message, optype, option) ->
-              match optype with
-              | GuiTypes.StringEntry ->
-                  create_string_option message (Hashtbl.find options_values option)
-              | GuiTypes.BoolEntry ->                  
-                  create_bool_option message (Hashtbl.find options_values option)
-              | GuiTypes.FileEntry ->                  
-                  create_file_option message (Hashtbl.find options_values option)
-                  
-          ) !options)
-    ) !client_sections
-  )
-
+let create_sections_params sections =
+  List.map (fun (name, options) ->
+      Section (name,
+        List.fold_left (fun list (message, optype, option) ->
+            try
+              (match optype with
+                | GuiTypes.StringEntry ->
+                    create_string_option message (Hashtbl.find options_values option)
+                | GuiTypes.BoolEntry ->                  
+                    create_bool_option message (Hashtbl.find options_values option)
+                | GuiTypes.FileEntry ->                  
+                    create_file_option message (Hashtbl.find options_values option)
+              ) :: list
+            with Not_found ->
+                Printf.printf "No option %s" option; print_newline ();
+                list
+        ) [] !options)
+  ) sections
+  
 let update_toolbars_style gui =
   gui#tab_downloads#set_tb_style !!GO.toolbars_style;
   gui#tab_servers#set_tb_style !!GO.toolbars_style ;
@@ -395,34 +327,41 @@ let save_options gui =
 
   
 let edit_options gui =
-  let gui_params = create_gui_params () in 
-  let client_params = create_client_params () in
-  let structure = [
-    Section_list (M.o_gui, gui_params) ;
-    Section_list (M.o_client, client_params) ;
-  ] 
-  in
-  match Configwin.get ~height: 700 ~width: 500
-      M.o_options structure 
-  with
-    Return_ok | Return_apply -> 
-      Gui_misc.save_gui_options gui;      
-      save_options gui ;
-      gui#tab_servers#box_servers#set_columns
-	!!GO.servers_columns;
-      gui#tab_downloads#box_downloads#set_columns
-	!!GO.downloads_columns;
-      gui#tab_downloads#box_downloaded#set_columns
-	!!GO.downloaded_columns;
-      gui#tab_friends#box_friends#set_columns
-	!!GO.friends_columns;
-      gui#tab_downloads#box_locations#set_columns
-	!!GO.file_locations_columns;
-      gui#tab_friends#box_files#box_results#set_columns
-	!!GO.results_columns;
-      gui#tab_uploads#upstats_box#set_columns
-	!!GO.shared_files_up_columns;
-
-      update_toolbars_style gui
-      
-  | Return_cancel -> ()
+  try
+    Printf.printf "edit_options"; print_newline ();
+    let gui_params = create_gui_params () in 
+    let client_params = create_sections_params !client_sections in
+    let plugins_params = create_sections_params !plugins_sections in
+    let structure = [
+        Section_list (M.o_gui, gui_params) ;
+        Section_list (M.o_client, client_params) ;
+        Section_list ("Plugins", plugins_params) ;
+      ] 
+    in
+    match Configwin.get ~height: 700 ~width: 500
+        M.o_options structure 
+    with
+      Return_ok | Return_apply -> 
+        Gui_misc.save_gui_options gui;      
+        save_options gui ;
+        gui#tab_servers#box_servers#set_columns
+          !!GO.servers_columns;
+        gui#tab_downloads#box_downloads#set_columns
+          !!GO.downloads_columns;
+        gui#tab_downloads#box_downloaded#set_columns
+          !!GO.downloaded_columns;
+        gui#tab_friends#box_friends#set_columns
+          !!GO.friends_columns;
+        gui#tab_downloads#box_locations#set_columns
+          !!GO.file_locations_columns;
+        gui#tab_friends#box_files#box_results#set_columns
+          !!GO.results_columns;
+        gui#tab_uploads#upstats_box#set_columns
+          !!GO.shared_files_up_columns;
+        
+        update_toolbars_style gui
+    
+    | Return_cancel -> ()
+  with e ->
+      Printf.printf "Exception %s in edit_options" (Printexc.to_string e);
+      print_newline ();

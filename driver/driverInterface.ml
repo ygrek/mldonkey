@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open UdpSocket
 open CommonShared
 open CommonEvent
 open CommonRoom
@@ -270,7 +271,7 @@ let gui_reader (gui: gui_record) t sock =
             if ext = P.gui_extension_poll then
               gui.gui_poll <- bool
         ) list
-        
+    
     | P.Password s ->
         if s = !!password then begin
             BasicSocket.must_write (TcpBufferedSocket.sock sock) true;
@@ -285,28 +286,65 @@ let gui_reader (gui: gui_record) t sock =
             
             
             gui.gui_auth <- true;
-            gui_send gui (
-              P.Options_info (simple_options downloads_ini));
             
-            List.iter (fun (section, message, option, optype) ->
+            if not gui.gui_poll then begin
                 gui_send gui (
-                  P.Add_section_option (section, message, option,
-                    match optype with
-                    | "B" -> BoolEntry 
-                    | "F" -> FileEntry 
-                    | _ -> StringEntry
-                  )))
-            !! gui_options_panel;
-            
-            gui_send gui (P.DefineSearches !!CommonComplexOptions.customized_queries);
-            if not gui.gui_poll then
-              set_handler sock WRITE_DONE (connecting_writer gui);
-          
+                  P.Options_info (simple_options downloads_ini));
+                networks_iter_all (fun r ->
+                    match r.network_config_file with
+                      None -> ()
+                    | Some opfile ->
+(*
+Printf.printf "options for net %s" r.network_name; print_newline ();
+*)
+                        let args = simple_options opfile in
+                        List.iter (fun prefix ->
+(*
+Printf.printf "Sending for %s" prefix; print_newline ();
+ *)
+                            gui_send gui (P.Options_info (
+                                List.map (fun (arg, value) ->
+                                    let long_name = Printf.sprintf "%s-%s" prefix arg in
+                                    (long_name, value)
+                                )  args)
+                            );
+(*                            Printf.printf "sent for %s" prefix; print_newline (); *)
+                        ) r.network_prefixes
+                );
+
+(* Options panels defined in downloads.ini *)
+                List.iter (fun (section, message, option, optype) ->
+                    gui_send gui (
+                      P.Add_section_option (section, message, option,
+                        match optype with
+                        | "B" -> BoolEntry 
+                        | "F" -> FileEntry 
+                        | _ -> StringEntry
+                      )))
+                !! gui_options_panel;
+
+(* Options panels defined in each plugin *)
+                List.iter (fun (section, list) ->
+                    
+                    List.iter (fun (message, option, optype) ->
+                        gui_send gui (
+                          P.Add_plugin_option (section, message, option,
+                            match optype with
+                            | "B" -> BoolEntry 
+                            | "F" -> FileEntry 
+                            | _ -> StringEntry
+                          )))
+                    list)
+                ! CommonInteractive.gui_options_panels;
+                
+                gui_send gui (P.DefineSearches !!CommonComplexOptions.customized_queries);
+                set_handler sock WRITE_DONE (connecting_writer gui);
+              end
           end else begin
             Printf.printf "BAD PASSWORD"; print_newline ();
             TcpBufferedSocket.close gui.gui_sock "bad password"
           end
-    
+          
     | _ ->
         if gui.gui_auth then
           match t with
@@ -923,11 +961,11 @@ let trimto list =
   let (list, _) = List2.cut 20 list in
   list 
   
-let bandwidth_samples = ref []
-  
-(* We should probably only send "update" to the current state of
-the info already sent to *)
-let update_gui_info () =
+let tcp_bandwidth_samples = ref []
+let control_bandwidth_samples = ref []
+let udp_bandwidth_samples = ref []
+
+let compute_bandwidth uploaded_bytes downloaded_bytes bandwidth_samples =
 
   let time = last_time () in
   let last_count_time, last_uploaded_bytes, last_downloaded_bytes = 
@@ -935,8 +973,8 @@ let update_gui_info () =
   
   let delay = time -. last_count_time in
 
-  let uploaded_bytes = Int64.to_float !uploaded_bytes in
-  let downloaded_bytes = Int64.to_float !downloaded_bytes in
+  let uploaded_bytes = Int64.to_float uploaded_bytes in
+  let downloaded_bytes = Int64.to_float downloaded_bytes in
   
   let upload_rate = if delay > 0. then
       int_of_float ( (uploaded_bytes -. last_uploaded_bytes) /. delay )
@@ -948,14 +986,41 @@ let update_gui_info () =
 
   bandwidth_samples := trimto (
     (time, uploaded_bytes, downloaded_bytes) :: !bandwidth_samples);
+
+  upload_rate, download_rate
+  
+  
+(* We should probably only send "update" to the current state of
+the info already sent to *)
+let update_gui_info () =
+  
+  let tcp_upload_rate, tcp_download_rate = 
+    compute_bandwidth !tcp_uploaded_bytes !tcp_downloaded_bytes
+      tcp_bandwidth_samples in
+
+  let control_upload_rate, control_download_rate = 
+    compute_bandwidth (moved_bytes upload_control) 
+    (moved_bytes download_control) 
+      control_bandwidth_samples in
+(*
+  Printf.printf "BANDWIDTH %d/%d %d/%d" control_upload_rate tcp_upload_rate
+    control_download_rate tcp_download_rate ;
+  print_newline ();
+*)
+  
+  let udp_upload_rate, udp_download_rate = 
+    compute_bandwidth !udp_uploaded_bytes !udp_downloaded_bytes 
+      udp_bandwidth_samples in
   
   let msg = (Client_stats {
         upload_counter = !upload_counter;
         download_counter = !download_counter;
         shared_counter = !shared_counter;
         nshared_files = !nshared_files;
-        upload_rate = upload_rate;
-        download_rate = download_rate;
+        tcp_upload_rate = control_upload_rate;
+        tcp_download_rate = control_download_rate;
+        udp_upload_rate = udp_upload_rate;
+        udp_download_rate = udp_download_rate;
       }) in
   update_events ();
   with_gui(fun gui -> 
@@ -985,6 +1050,24 @@ let install_hooks () =
       )
   ) (simple_options downloads_ini)
   ;
+  networks_iter_all (fun r ->
+      match r.network_config_file with
+        None -> ()
+      | Some opfile ->
+          let args = simple_options opfile in
+          List.iter (fun prefix ->
+              List.iter (fun (arg, value) ->
+                  let long_name = Printf.sprintf "%s-%s" prefix arg in
+                  set_option_hook opfile arg (fun _ ->
+                      with_gui (fun gui ->
+                          gui_send gui (P.Options_info [long_name, 
+                              get_simple_option opfile arg])
+                      )
+                  )                  
+              )  args)
+          r.network_prefixes)
+  ;
+  
   private_room_ops.op_room_send_message <- (fun s msg ->
       match msg with
         PrivateMessage (c, s) ->

@@ -33,55 +33,20 @@ open LimewireGlobals
 open LimewireComplexOptions
 
 open LimewireProtocol
-
+  
 let _ =
   network.op_network_search <- (fun search buf ->
       let query = search.search_query in
-  let keywords = ref [] in
-
-  let rec iter q = 
-    match q with
-    | QOr (q1,q2) 
-    | QAnd (q1, q2) -> iter q1; iter q2
-    | QAndNot (q1,q2) -> iter q1 
-    | QHasWord w -> keywords := String2.split_simplify w ' '
-    | QHasField(field, w) ->
-         begin
-          match field with
-            "Album"
-          | "Title"
-          | "Artist"
-          | _ -> keywords := String2.split_simplify w ' '
-        end
-    | QHasMinVal (field, value) ->
-        begin
-          match field with
-            "bitrate"
-          | "size"
-          | _ -> ()
-        end
-    | QHasMaxVal (field, value) ->
-        begin
-          match field with
-            "bitrate"
-          | "size"
-          | _ -> ()
-        end
-    | QNone ->
-	prerr_endline "LimewireInteractive.start_search: QNone in query";
-	()
-  in
-  iter query;
-
-  let p = LimewireServers.send_query 0 !keywords "" in
-    
-  let s = {
-      search_search = search;
-      search_uid = p.pkt_uid;
-    } in
-  Hashtbl.add searches_by_uid p.pkt_uid s;
-  ())
-
+      let keywords = CommonInteractive.keywords_of_query query in
+      let p = LimewireServers.send_query 0 keywords "" in
+      
+      let s = {
+          search_search = search;
+          search_uid = p.pkt_uid;
+        } in
+      Hashtbl.add searches_by_uid p.pkt_uid s;
+      ())
+  
 let _ =
   result_ops.op_result_download <- (fun result _ ->
       LimewireServers.download_file result)

@@ -415,7 +415,7 @@ let value_to_listiter v2c v =
   | Module _ -> failwith "Options: not a list option (Module)"
 ;;
 
-let rec convert_list c2v l res =
+let rec convert_list name c2v l res =
   match l with
     [] -> List.rev res
   | v :: list -> 
@@ -423,14 +423,14 @@ let rec convert_list c2v l res =
         try
           Some (c2v v)
         with e -> 
-            Printf.printf "Exception %s in Options.convert_list" (
-              Printexc.to_string e);
+            Printf.printf "Exception %s in Options.convert_list for %s" (
+              Printexc.to_string e) name;
             print_newline ();
             None
       with
         None ->
-          convert_list c2v list res
-      | Some v -> convert_list c2v list (v :: res)
+          convert_list name c2v list res
+      | Some v -> convert_list name c2v list (v :: res)
 
 let option_to_value c2v o =
   match o with
@@ -442,11 +442,11 @@ let value_to_option v2c v =
     StringValue "" -> None
   | _ -> Some (v2c v)
       
-let list_to_value c2v l =
-  List (convert_list c2v l [])
+let list_to_value name c2v l =
+  List (convert_list name c2v l [])
   
-let smalllist_to_value c2v l =
-  SmallList (convert_list c2v l [])
+let smalllist_to_value name c2v l =
+  SmallList (convert_list name c2v l [])
 
 let value_to_path v =
   List.map Filename2.from_string
@@ -494,17 +494,17 @@ let option_option cl =
 
 let list_option cl =
   define_option_class (cl.class_name ^ " List") (value_to_list cl.from_value)
-    (list_to_value cl.to_value)
+    (list_to_value cl.class_name cl.to_value)
 ;;
 
 let listiter_option cl =
   define_option_class (cl.class_name ^ " List") (value_to_listiter cl.from_value)
-    (list_to_value cl.to_value)
+    (list_to_value cl.class_name cl.to_value)
 ;;
 
 let smalllist_option cl =
   define_option_class (cl.class_name ^ " List") (value_to_list cl.from_value)
-    (smalllist_to_value cl.to_value)
+    (smalllist_to_value cl.class_name cl.to_value)
 ;;
 
 let to_value cl = cl.to_value;;
@@ -658,6 +658,7 @@ and save_module_fields indent oc m =
   match m with
     [] -> ()
   | (name, v) :: tail ->
+(*      Printf.printf "Saving %s" name; print_newline (); *)
       Printf.fprintf oc "%s %s = " indent (safe_string name);
       save_value indent oc v;
       Printf.fprintf oc "\n";

@@ -131,8 +131,8 @@ val float_to_value : float -> option_value
 val value_to_string2 : option_value -> string * string
 val string2_to_value : string * string -> option_value
 val value_to_list : (option_value -> 'a) -> option_value -> 'a list
-val list_to_value : ('a -> option_value) -> 'a list -> option_value
-val smalllist_to_value : ('a -> option_value) -> 'a list -> option_value
+val list_to_value : string -> ('a -> option_value) -> 'a list -> option_value
+val smalllist_to_value : string -> ('a -> option_value) -> 'a list -> option_value
 val value_to_path : option_value -> string list
 val path_to_value : string list -> option_value
 

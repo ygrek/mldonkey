@@ -121,11 +121,11 @@ let file_to_value file =
     "file_downloaded", int32_to_value (file_downloaded file);
     "file_id", string_to_value (Md4.to_string file.file_id);
     "file_sources", 
-    list_to_value (fun c ->
+    list_to_value "DC Sources" (fun c ->
         let filename = List.assoc file c.client_files  in
         SmallList [string_to_value c.client_user.user_nick;
           string_to_value filename;
-          (list_to_value (fun s ->
+          (list_to_value "DC Sources" (fun s ->
                 SmallList [addr_to_value s.server_addr;
                   int_to_value s.server_port]
             ) c.client_user.user_servers)]

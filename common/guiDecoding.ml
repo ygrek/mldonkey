@@ -731,6 +731,10 @@ let from_gui_version_5 opcode s =
   match opcode with
   | _ ->  from_gui_version_4 opcode s
       
+let from_gui_version_6 opcode s = 
+  match opcode with
+  | _ ->  from_gui_version_5 opcode s
+      
 let from_gui = [| 
     from_gui_version_0; 
     from_gui_version_1; 
@@ -738,6 +742,7 @@ let from_gui = [|
     from_gui_version_3; 
     from_gui_version_4; 
     from_gui_version_5; 
+    from_gui_version_6; 
   |]
       
 (***************
@@ -883,8 +888,10 @@ let to_gui_version_1 opcode s =
         download_counter = download;
         shared_counter = shared;
         nshared_files = nshared;
-        upload_rate = 0;
-        download_rate = 0;
+        tcp_upload_rate = 0;
+        tcp_download_rate = 0;
+        udp_upload_rate = 0;
+        udp_download_rate = 0;
       }
   | _ -> to_gui_version_0 opcode s
 
@@ -958,19 +965,58 @@ let to_gui_version_5 opcode s =
       let download = get_int64 s 10 in
       let shared = get_int64 s 18 in
       let nshared = get_int s 26 in
-      let upload_rate = get_int s 30 in
-      let download_rate = get_int s 34 in
+      let tcp_upload_rate = get_int s 30 in
+      let tcp_download_rate = get_int s 34 in
       
       Client_stats {
         upload_counter = upload;
         download_counter = download;
         shared_counter = shared;
         nshared_files = nshared;
-        upload_rate = upload_rate;
-        download_rate = download_rate;
+        udp_upload_rate = 0;
+        udp_download_rate = 0;
+        tcp_upload_rate = tcp_upload_rate;
+        tcp_download_rate = tcp_download_rate;
       }
       
   | _ -> to_gui_version_4 opcode s
+
+let to_gui_version_6 opcode s = 
+  match opcode with
+  | 38 -> 
+      let section, pos = get_string s 2 in
+      let message, pos = get_string s pos in 
+      let option, pos = get_string s pos in
+      let optype = 
+        match get_int8 s pos with
+          0 -> StringEntry 
+        | 1 -> BoolEntry 
+        | 2 -> FileEntry
+        | _ -> assert false in
+      Add_plugin_option (section, message, option, optype)
+  
+  | 39 ->
+      let upload = get_int64 s 2 in
+      let download = get_int64 s 10 in
+      let shared = get_int64 s 18 in
+      let nshared = get_int s 26 in
+      let tcp_upload_rate = get_int s 30 in
+      let tcp_download_rate = get_int s 34 in
+      let udp_upload_rate = get_int s 38 in
+      let udp_download_rate = get_int s 42 in
+      
+      Client_stats {
+        upload_counter = upload;
+        download_counter = download;
+        shared_counter = shared;
+        nshared_files = nshared;
+        udp_upload_rate = udp_upload_rate;
+        udp_download_rate = udp_download_rate;
+        tcp_upload_rate = tcp_upload_rate;
+        tcp_download_rate = tcp_download_rate;
+      }
+        
+  | _ -> to_gui_version_5 opcode s
       
 let to_gui = [| 
     to_gui_version_0; 
@@ -979,6 +1025,7 @@ let to_gui = [|
     to_gui_version_3;
     to_gui_version_4;
     to_gui_version_5;
+    to_gui_version_6;
   |]
 
 let _ =  assert (Array.length from_gui = Array.length to_gui);

@@ -1245,6 +1245,7 @@ let value_reader (gui: gui) t sock =
     | (Shared_file_unshared _|Shared_file_upload (_, _, _)|Shared_file_info _)
       
     | Add_section_option _
+    | Add_plugin_option _
       -> assert false
   with e ->
       Printf.printf "EXception %s in reader" (Printexc.to_string e);

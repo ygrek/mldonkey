@@ -67,6 +67,13 @@ let reconnect gui value_reader =
               Printf.printf "Exception %s in inet_addr_of_string" 
                 (Printexc.to_string e);
               print_newline ();
+              print_newline ();
+              Printf.printf "mldonkey_gui was unable to find the IP address of the host [%s]" !!O.hostname; print_newline ();
+              print_newline ();
+              
+              Printf.printf "Please, edit the $HOME/.mldonkey_gui.ini, and change the 'hostname' option"; print_newline ();
+              Printf.printf "to the correct IP address of the host running mldonkey."; print_newline ();
+              
               raise Not_found
       )
       !!O.port

@@ -43,6 +43,11 @@ type t = {
   
 and handler = t -> event -> unit
 
+
+let udp_uploaded_bytes = ref Int64.zero
+let udp_downloaded_bytes = ref Int64.zero
+
+
 let read t = 
   match t.rlist with
     [] -> raise Not_found
@@ -86,6 +91,7 @@ let write t s pos len addr =
           
 
             let code = Unix.sendto (fd sock) s pos len [] addr in
+            udp_uploaded_bytes := Int64.add !udp_uploaded_bytes (Int64.of_int len);
 	    ()
             (*
             Printf.printf "UDP sent [%s]" (String.escaped
@@ -118,6 +124,7 @@ let udp_handler t sock event =
   match event with
   | CAN_READ ->
       let (len, addr) = Unix.recvfrom (fd sock) buf 0 66000 [] in
+      udp_downloaded_bytes := Int64.add !udp_downloaded_bytes (Int64.of_int len);
       t.rlist <- {
         content = String.sub buf 0 len;
         addr = addr;
@@ -131,9 +138,10 @@ let udp_handler t sock event =
         | p :: l ->
             t.wlist <- l;
             try
+              let len = String.length p.content in
               ignore (
-                Unix.sendto (fd sock) p.content 0 (String.length p.content)
-                [] p.addr);
+                Unix.sendto (fd sock) p.content 0 len  [] p.addr);
+              udp_uploaded_bytes := Int64.add !udp_uploaded_bytes (Int64.of_int len);
 (*
   Printf.printf "UDP sent after [%s]" (String.escaped
 p.content); print_newline ();

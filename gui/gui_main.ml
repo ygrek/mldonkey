@@ -205,11 +205,11 @@ let value_reader gui t sock =
     
     | Client_stats s ->
         gui#tab_uploads#wl_status#set_text
-          (Printf.sprintf "Shared: %5d/%-12s   U/D bytes/s: %7d/%-7d" 
+          (Printf.sprintf "Shared: %5d/%-12s   U/D bytes/s: %7d[%5d]/%-7d[%5d]" 
             s.nshared_files 
             (Gui_misc.size_of_int64 s.upload_counter)
-          s.upload_rate
-          s.download_rate
+          (s.tcp_upload_rate + s.udp_upload_rate) s.udp_upload_rate
+          (s.tcp_download_rate + s.udp_download_rate) s.udp_download_rate
         )
     
     | CoreProtocol v -> 
@@ -328,6 +328,16 @@ let value_reader gui t sock =
               options := !options @ [line]
         with _ ->
             client_sections := !client_sections  @[section, ref [line]]
+        )          
+    
+    | Add_plugin_option (section, message, option, optype) ->
+        let line = message, optype, option in
+        (try
+            let options = List.assoc section !plugins_sections in
+            if not (List.mem line !options) then
+              options := !options @ [line]
+        with _ ->
+            plugins_sections := !plugins_sections  @[section, ref [line]]
         )          
         
     | DefineSearches l ->

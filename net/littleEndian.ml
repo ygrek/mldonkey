@@ -113,11 +113,13 @@ let get_int32_32 s pos =
        (left32 c4 24)))
 
 let get_int32 =  get_int32_32
+
+let bits32_64 = Int64.of_string "0xffffffff"
   
 let get_int64 s pos = 
   let i1 = get_int32 s pos in
   let i2 = get_int32 s (pos+4) in
-  or64 (Int64.of_int32 i1) (left64 (Int64.of_int32 i2) 32)
+  or64 (and64 (Int64.of_int32 i1) bits32_64) (left64 (Int64.of_int32 i2) 32)
   
 (* int 31 bits *)
   

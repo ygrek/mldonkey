@@ -41,3 +41,7 @@ val create : Unix.inet_addr -> int -> handler -> t
 val create_sendonly : unit -> t
 val can_write : t -> bool
   
+  
+val udp_uploaded_bytes : int64 ref
+val udp_downloaded_bytes : int64 ref
+  

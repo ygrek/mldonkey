@@ -342,6 +342,14 @@ let _ =
   Printf.printf "Or with browser: http://127.0.0.1:%d" !!http_port; 
   print_newline ();
 
+  if !!start_gui then
+    ignore (Sys.command (Printf.sprintf "%s &" !!mldonkey_gui))
+  else
+  if !!ask_for_gui then
+    ignore (Sys.command
+      (Printf.sprintf "%s %s&" (Filename.concat !!mldonkey_bin 
+            "mldonkey_guistarter") !!mldonkey_gui));
+  
   save_mlsubmit_reg ();
   DriverInteractive.save_config ();
   

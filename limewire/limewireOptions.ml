@@ -29,6 +29,11 @@ let max_ultrapeers = define_option limewire_ini ["max_ultrapeers"]
     "Maximal number of ultrapeers connected"
   int_option 5
 
+let _ = 
+  option_hook max_ultrapeers 
+    (fun _ ->
+      if !!max_ultrapeers > 30 then max_ultrapeers =:= 30)
+  
 let client_port = define_option limewire_ini ["client_port"]
     "The port to bind the client to"
     int_option 6346
@@ -76,3 +81,20 @@ let verbose_clients =
 let verbose_servers = 
   define_option limewire_ini ["verbose_servers"] 
     "level of verbosity when communicating with servers" int_option 0
+
+let shortname o =
+  Printf.sprintf "LW-%s" (shortname o)
+  
+let gui_limewire_options_panel = 
+  define_option limewire_ini ["gui_limewire_options_panel"]
+    "Which options are configurable in the GUI option panel, and in the
+  limewire section. Last entry indicates the kind of widget used (B=Boolean,T=Text)"
+    (list_option (tuple3_option (string_option, string_option, string_option)))
+  [
+    "Port", shortname client_port, "T";
+    "Max Connected Ultrapeers", shortname max_ultrapeers, "T";
+    "Max Known Ultrapeers", shortname max_known_ultrapeers, "T";
+    "Max Known Peers", shortname max_known_peers, "T";    
+    "Commit Downloads In Incoming Subdir", shortname commit_in_subdir, "T";
+  ]
+  

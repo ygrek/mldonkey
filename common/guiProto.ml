@@ -140,6 +140,13 @@ type to_gui =
 (* message *) string *
 (* option_name *) string *
 (* option_type *) option_widget
+
+(* New message for protocol 6 *)
+| Add_plugin_option of
+(* section *) string * 
+(* message *) string *
+(* option_name *) string *
+(* option_type *) option_widget
   
 let from_gui_to_string t = 
   match t with

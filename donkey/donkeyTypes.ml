@@ -65,6 +65,7 @@ and local_search = {
     search_search : CommonTypes.search;
     mutable search_handler : (search_event -> unit);
     mutable search_xs_servers : server list;
+    mutable search_overnet : bool;
   }
 
   

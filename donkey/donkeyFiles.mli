@@ -37,5 +37,3 @@ val new_friend : DonkeyTypes.client -> unit
 val add_user_friend : DonkeyTypes.server -> DonkeyTypes.user -> unit
   
 val browse_client : DonkeyTypes.client -> unit
-val search_found : 
-  CommonTypes.search -> Md4.t -> CommonTypes.tag list -> unit

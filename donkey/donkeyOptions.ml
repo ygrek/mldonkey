@@ -1,3 +1,22 @@
+(* Copyright 2001, 2002 b8_bavard, b8_fee_carabine, INRIA *)
+(*
+    This file is part of mldonkey.
+
+    mldonkey is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    mldonkey is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with mldonkey; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*)
+
 open Options
 open CommonOptions
   
@@ -52,5 +71,18 @@ per minute. Greater values are bad for server ressources.  *)
   option_hook files_queries_per_minute (fun _ ->
       if !!files_queries_per_minute > 5 then 
         files_queries_per_minute =:= 5)
-      
   
+let gui_donkey_options_panel = 
+  define_option downloads_ini ["gui_donkey_options_panel"]
+  "Which options are configurable in the GUI option panel, and in the
+    eDonkey section. Last entry indicates the kind of widget used (B=Boolean,T=Text)"
+    (list_option (tuple3_option (string_option, string_option, string_option)))
+  [
+    "Maximal Source Age", shortname max_sources_age, "T";
+    "Maximal Server Age", shortname max_server_age, "T";
+    "Update Server List", shortname update_server_list, "B";
+    "Min Users on Master Servers", shortname master_server_min_users, "T";
+    "Max Upload Slots", shortname max_upload_slots, "T";
+    "Max Sources Per Download", shortname max_sources_per_file, "T";
+    "Protocol Version", shortname protocol_version, "T";
+  ]

@@ -200,8 +200,7 @@ let value_to_file is_done assocs =
       value_to_int32 (List.assoc "file_size" assocs) 
     with _ -> Int32.zero
   in
-  
-    
+
   let file_state = get_value "file_state" value_to_state in
   
   let file = DonkeyGlobals.new_file file_state (
@@ -211,7 +210,7 @@ let value_to_file is_done assocs =
   (try
       file.file_file.impl_file_age <- get_value "file_age" value_to_float
     with _ -> ());
-  
+
   (try 
       if file.file_exists then begin
 (* only load absent chunks if file previously existed. *)
@@ -287,7 +286,7 @@ let file_to_value file =
     "file_downloaded", int32_to_value file.file_file.impl_file_downloaded;
     "file_chunks_age", List (Array.to_list 
         (Array.map float_to_value file.file_chunks_age));
-    "file_locations", list_to_value donkey_client_to_value
+    "file_locations", list_to_value "Donkey Locations" donkey_client_to_value
       !locs;        
   ]
   
@@ -327,7 +326,7 @@ module SharedFileOption = struct
     let shinfo_to_value sh =
       Options.Module [
         "name", filename_to_value sh.sh_name;
-        "md4s", list_to_value (fun md4 ->
+        "md4s", list_to_value "Shared Md4" (fun md4 ->
             string_to_value (Md4.to_string md4)) sh.sh_md4s;
         "mtime", float_to_value sh.sh_mtime;
         "size", int32_to_value sh.sh_size;
@@ -392,7 +391,7 @@ let save _ =
   
 let _ =
   network.op_network_add_file <- value_to_file;
-  file_ops.op_file_to_option <- file_to_value;
+(*  file_ops.op_file_to_option <- file_to_value; *)
   
   network.op_network_add_server <- value_to_server;
   server_ops.op_server_to_option <- server_to_value;

@@ -263,7 +263,9 @@ let _ =
         network_enabled = network.op_network_is_enabled ();
         network_uploaded = Int64.zero;
         network_downloaded = Int64.zero;
-      })
+      });
+  CommonInteractive.register_gui_options_panel "eDonkey" !!gui_donkey_options_panel;
+  CommonInteractive.register_gui_options_panel "Overnet" !!DonkeyOvernet.gui_overnet_options_panel
   
   
   

@@ -122,7 +122,7 @@ let file_to_value file =
     "file_downloaded", int32_to_value (file_downloaded file);
     "file_id", string_to_value (Md4.to_string file.file_id);
     "file_sources", 
-    list_to_value (fun c ->
+    list_to_value "LimeWire Sources" (fun c ->
         SmallList [ClientOption.client_to_value c;
           int_to_value (List.assq file c.client_downloads)]
     ) file.file_clients

@@ -40,7 +40,7 @@ let load_serverlist = define_option soulseek_ini ["load_serverlist"]
     bool_option true
   
 let main_server_name = define_option soulseek_ini ["main_server_name"]
-    "The main server to connect to" string_option "sk.nikita.cx"
+    "The main server to connect to" string_option "mail.soulseek.org"
 
 let main_server_port = define_option soulseek_ini ["main_server_port"]
   "The main server to connect to" int_option 2242
@@ -78,3 +78,20 @@ let next_token =
   define_option soulseek_ini ["next_token"]
     "the last token used for a query is saved here" int_option 1
   
+
+let shortname o =
+  Printf.sprintf "slsk-%s" (shortname o)
+    
+let gui_soulseek_options_panel = 
+  define_option soulseek_ini ["gui_soulseek_options_panel"]
+  "Which options are configurable in the GUI option panel, and in the
+  soulseek section. Last entry indicates the kind of widget used (B=Boolean,T=Text)"
+    (list_option (tuple3_option (string_option, string_option, string_option)))
+  [
+    "Port", shortname slsk_port, "T";
+    "Main Server Name", shortname main_server_name, "T";
+    "Main Server Port", shortname main_server_port, "T";
+    "Login (nothing for global one)", shortname login, "T";
+    "Password", shortname password, "T";
+    "Commit Downloads In Incoming Subdir", shortname commit_in_subdir, "T";
+  ]

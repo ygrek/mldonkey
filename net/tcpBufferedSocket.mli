@@ -94,6 +94,7 @@ val remaining_to_write : t -> int
   
 val set_lifetime : t -> float -> unit
   
-val uploaded_bytes : int64 ref
-val downloaded_bytes : int64 ref
+val tcp_uploaded_bytes : int64 ref
+val tcp_downloaded_bytes : int64 ref
+val moved_bytes : bandwidth_controler -> int64
   

@@ -30,7 +30,7 @@ let directconnect_ini = create_options_file (
   
 let max_connected_servers = define_option directconnect_ini
   ["max_connected_servers"] 
-    "The number of servers you want to stay connected to" int_option 10
+    "The number of servers you want to stay connected to" int_option 5
 
 let login_messages = define_option directconnect_ini
     ["login_messages"]
@@ -98,4 +98,20 @@ let _ =
   option_hook network_prefix (fun _ ->
       network.network_prefixes <- [!!network_prefix]   
   )
-  
+
+let shortname o =
+  Printf.sprintf "DC-%s" (shortname o)
+    
+let gui_dc_options_panel = 
+  define_option directconnect_ini ["gui_dc_options_panel"]
+  "Which options are configurable in the GUI option panel, and in the
+  dc section. Last entry indicates the kind of widget used (B=Boolean,T=Text)"
+    (list_option (tuple3_option (string_option, string_option, string_option)))
+  [
+    "Login (nothing for global one)", shortname login, "T";
+    "Description", shortname client_description, "T";
+    "Port", shortname dc_port, "T";
+    "Hub List URL", shortname servers_list_url, "T";
+    "Commit Downloads In Incoming Subdir", shortname commit_in_subdir, "T";
+    "Search Timeout", shortname search_timeout, "T";
+  ]

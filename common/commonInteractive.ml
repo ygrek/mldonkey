@@ -298,6 +298,7 @@ let all_simple_options () =
   !options
 
 let set_fully_qualified_options name value =
+  Printf.printf "For option %s" name; print_newline ();
   let rec iter prefix opfile =
     let args = simple_options opfile in
     List.iter (fun (old_name, old_value) ->
@@ -308,13 +309,19 @@ let set_fully_qualified_options name value =
   in
   try
     iter "" downloads_ini;
-    networks_iter_all (fun r ->
-        match r.network_config_file with
-          None -> ()
-        | Some opfile ->
-            List.iter (fun prefix ->
-                iter (prefix^"-") opfile
-            ) r.network_prefixes);
+    if not (networks_iter_all_until_true (fun r ->
+            try
+              match r.network_config_file with
+                None -> false
+              | Some opfile ->
+                  List.iter (fun prefix ->
+                      iter (prefix^"-") opfile
+                  ) r.network_prefixes;
+                  false
+            with Exit -> true
+        )) then begin
+        Printf.printf "Could not set option %s" name; print_newline ();
+      end
   with Exit -> ()
       
 let canonize_basename name =
@@ -339,4 +346,48 @@ let rename_to_incoming_dir old_name new_name =
     else new_name in
   Unix2.rename old_name new_name;
   new_name
+
+let keywords_of_query query =
+  let keywords = ref [] in
   
+  let rec iter q = 
+    match q with
+    | QOr (q1,q2) 
+    | QAnd (q1, q2) -> iter q1; iter q2
+    | QAndNot (q1,q2) -> iter q1 
+    | QHasWord w -> keywords := String2.split_simplify w ' '
+    | QHasField(field, w) ->
+        begin
+          match field with
+            "Album"
+          | "Title"
+          | "Artist"
+          | _ -> keywords := String2.split_simplify w ' '
+        end
+    | QHasMinVal (field, value) ->
+        begin
+          match field with
+            "bitrate"
+          | "size"
+          | _ -> ()
+        end
+    | QHasMaxVal (field, value) ->
+        begin
+          match field with
+            "bitrate"
+          | "size"
+          | _ -> ()
+        end
+    | QNone ->
+        prerr_endline "LimewireInteractive.start_search: QNone in query";
+        ()
+  in
+  iter query;
+  !keywords
+
+let gui_options_panels = ref ([] : (string * (string * string * string) list) list)
+  
+let register_gui_options_panel name panel =
+  if not (List.mem_assoc name !gui_options_panels) then
+    gui_options_panels := (name, panel) :: !gui_options_panels
+    

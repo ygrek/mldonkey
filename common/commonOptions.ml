@@ -311,15 +311,6 @@ let force_client_ip = define_option downloads_ini ["force_client_ip"]
   "Use the IP specified by 'client_ip' instead of trying to determine it
     ourself. Don't set this option to true if you have dynamic IP."
     bool_option false
-
-let client_ip sock =
-  if !!force_client_ip then !!client_ip else
-  match sock with
-    None -> !!client_ip
-  | Some sock ->
-      let ip = TcpBufferedSocket.my_ip sock in
-      if ip <> Ip.localhost then client_ip =:= ip;
-      ip
   
 let use_html_frames = define_option downloads_ini ["use_html_frames"] 
     "This option controls whether the WEB interface should use frames or not" bool_option true
@@ -442,8 +433,8 @@ let max_upload_slots = define_option downloads_ini ["max_upload_slots"]
   
 let _ =  
   option_hook max_upload_slots (fun _ ->
-      if !!max_upload_slots < 20 then
-        max_upload_slots =:= 20)
+      if !!max_upload_slots < 10 then
+        max_upload_slots =:= 10)
 
   
 let compaction_delay = define_option downloads_ini ["compaction_delay"]
@@ -620,9 +611,26 @@ let debug_net = define_option downloads_ini ["debug_net"]
     "Set to true if you want some more information on low-level network layer"
     bool_option false
   
+let ask_for_gui = define_option downloads_ini ["ask_for_gui"]
+    "Ask for GUI start"    bool_option true
+  
+let start_gui = define_option downloads_ini ["start_gui"]
+    "Automatically Start the GUI" bool_option false
+
+let bin_dir = Filename.dirname Sys.argv.(0)
+  
+let mldonkey_bin = define_option downloads_ini ["mldonkey_bin"]
+    "Directory where mldonkey binaries are installed"
+    string_option bin_dir
+
+let mldonkey_gui = define_option downloads_ini ["mldonkey_gui"]
+    "Name of GUI to start" string_option 
+    (Filename.concat bin_dir "mldonkey_gui")
+  
 let _ =
   option_hook debug_net (fun _ -> BasicSocket.debug := !!debug_net)
-  
+
+
 let gui_options_panel = define_option downloads_ini ["gui_options_panel"]
   "Which options are configurable in the GUI option panel, and in which
     sections. Last entry indicates the kind of widget used (B=Boolean,T=Text)"
@@ -632,7 +640,10 @@ let gui_options_panel = define_option downloads_ini ["gui_options_panel"]
     "Identification", "Password", (shortname password), "T";
     "Identification", "HTTP login", (shortname http_login), "T";
     "Identification", "HTTP password", (shortname http_password), "T";
+    "Identification", "Allowed IPs", (shortname allowed_ips), "T";
     
+    "Ports", "Client IP", (shortname client_ip), "T";
+    "Ports", "Force Client IP", (shortname force_client_ip), "B";
     "Ports", "HTTP Port", (shortname http_port), "T";
     "Ports", "Telnet Port", (shortname telnet_port), "T";
     "Ports", "GUI Port", (shortname gui_port), "T";
@@ -643,13 +654,15 @@ let gui_options_panel = define_option downloads_ini ["gui_options_panel"]
     "Bandwidth", "Maximal Download Bandwidth in kB/s", shortname max_hard_download_rate, "T";
     "Bandwidth", "Maximal Upload Bandwidth in kB/s", shortname max_hard_upload_rate, "T";
     "Bandwidth", "Maximal Number of Connected Servers", shortname max_connected_servers, "T";
-
+    "Bandwidth", "Socket Buffer Size", shortname client_buffer_size, "T";
+    
     "Delays", "Save Options Delay", shortname save_options_delay, "T";
     "Delays", "Server Connection Timeout", shortname server_connection_timeout, "T";
 (*    "Delays", "Client Connection Timeout", shortname  *)
     "Delays", "Update GUI Delay", shortname update_gui_delay, "T";
-    "Delays", "Maximal Server Age", shortname max_server_age, "T";
-    
+    "Delays", "Download-rate Sample Period", shortname download_sample_rate, "T";
+    "Delays", "Download-rate Samples Size", shortname download_sample_size, "T";
+        
     "Chat", "External Chat Application Port", (shortname chat_app_port), "T";
     "Chat", "External Chat Application Address", (shortname chat_app_host), "T";
     "Chat", "Core Chat Port", (shortname chat_port), "T";
@@ -667,5 +680,18 @@ let gui_options_panel = define_option downloads_ini ["gui_options_panel"]
     "Debug", "Verbose Mode", shortname verbose, "B";
     "Debug", "Network Verbose Mode", shortname debug_net, "B";
     
-  ]
+    "Startup", "Start mldonkey_gui at beginning", shortname start_gui, "B"; 
+    "Startup", "Ask for mldonkey_gui start", shortname ask_for_gui, "B";
+    "Startup", "Path of mldonkey binaries", shortname mldonkey_bin, "F";
+    "Startup", "Name of MLdonkey GUI to start", shortname mldonkey_gui, "F";
+ ]  
+
   
+let client_ip sock =
+  if !!force_client_ip then !!client_ip else
+  match sock with
+    None -> !!client_ip
+  | Some sock ->
+      let ip = TcpBufferedSocket.my_ip sock in
+      if ip <> Ip.localhost then client_ip =:= ip;
+      ip

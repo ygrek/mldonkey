@@ -427,6 +427,7 @@ let rec to_gui_version_0 buf t =
       to_gui_version_0 buf (Room_message (0, PrivateMessage(num, msg)))
 
   | Add_section_option _
+  | Add_plugin_option _
   | DownloadedFiles _
   | DownloadFiles _
   | ConnectedServers _
@@ -512,10 +513,34 @@ let to_gui_version_5 buf t =
       buf_int64 buf s.download_counter;      
       buf_int64 buf s.shared_counter;
       buf_int buf s.nshared_files;
-      buf_int buf s.upload_rate;
-      buf_int buf s.download_rate;
+      buf_int buf (s.tcp_upload_rate + s.udp_upload_rate);
+      buf_int buf (s.tcp_download_rate + s.udp_download_rate);
       
   | _ -> to_gui_version_4 buf t
+      
+let to_gui_version_6 buf t =
+  match t with
+          
+  | Add_plugin_option (section, message, option, optype) -> buf_int16 buf 38;
+      buf_string buf section;
+      buf_string buf message;
+      buf_string buf option;
+      buf_int8 buf (match optype with
+          StringEntry -> 0
+        | BoolEntry -> 1
+        | FileEntry -> 2)
+
+  | Client_stats s -> buf_int16 buf 39;
+      buf_int64 buf s.upload_counter;
+      buf_int64 buf s.download_counter;      
+      buf_int64 buf s.shared_counter;
+      buf_int buf s.nshared_files;
+      buf_int buf s.tcp_upload_rate;
+      buf_int buf s.tcp_download_rate;
+      buf_int buf s.udp_upload_rate;
+      buf_int buf s.udp_download_rate;
+      
+  | _ -> to_gui_version_5 buf t
 
       
 let to_gui = [| 
@@ -525,6 +550,7 @@ let to_gui = [|
     to_gui_version_3;
     to_gui_version_4;
     to_gui_version_5;
+    to_gui_version_6;
   |]
   
 (***************
@@ -675,6 +701,10 @@ let from_gui_version_4 buf t  =
 let from_gui_version_5 buf t  = 
   match t with
   | _ -> from_gui_version_4 buf t
+
+let from_gui_version_6 buf t  = 
+  match t with
+  | _ -> from_gui_version_5 buf t
       
 let from_gui = [| 
     from_gui_version_0; 
@@ -683,6 +713,7 @@ let from_gui = [|
     from_gui_version_3; 
     from_gui_version_4; 
     from_gui_version_5; 
+    from_gui_version_6; 
     |]
   
   
@@ -739,25 +770,26 @@ let _ =
       server_num = 1;
 } *)
   in
-  let check_to_gui_version5 = 
-    check to_gui_version_5 GuiDecoding.to_gui_version_5 in
-  assert (check_to_gui_version5 (MessageFromClient (32, "Hello")));
-  assert (check_to_gui_version5 (DownloadFiles [file_info]));
-  assert (check_to_gui_version5 (DownloadedFiles [file_info]));
-  assert (check_to_gui_version5 (ConnectedServers []));    
-  assert (check_to_gui_version5 (Room_remove_user (5,6)));
-  assert (check_to_gui_version5 (Shared_file_upload (1, Int64.zero, 32)));
-  assert (check_to_gui_version5 (Shared_file_unshared 2));
+  let check_to_gui_version_6 = 
+    check to_gui_version_6 GuiDecoding.to_gui_version_6 in
+  assert (check_to_gui_version_6 (MessageFromClient (32, "Hello")));
+  assert (check_to_gui_version_6 (DownloadFiles [file_info]));
+  assert (check_to_gui_version_6 (DownloadedFiles [file_info]));
+  assert (check_to_gui_version_6 (ConnectedServers []));    
+  assert (check_to_gui_version_6 (Room_remove_user (5,6)));
+  assert (check_to_gui_version_6 (Shared_file_upload (1, Int64.zero, 32)));
+  assert (check_to_gui_version_6 (Shared_file_unshared 2));
   (* Shared_file_info ??? *)
-  assert (check_to_gui_version5 (Add_section_option ("section", "message", "option", StringEntry )));
+  assert (check_to_gui_version_6 (Add_section_option ("section", "message", "option", StringEntry )));
+  assert (check_to_gui_version_6 (Add_plugin_option ("section", "message", "option", StringEntry )));
   
-  let check_from_gui_version5 = 
-    check from_gui_version_4 GuiDecoding.from_gui_version_4 in
-  assert (check_from_gui_version5 (MessageToClient (33, "Bye")));
-  assert (check_from_gui_version5 (GuiExtensions [1, true; 2, false]));
-  assert (check_from_gui_version5 GetConnectedServers);
-  assert (check_from_gui_version5 GetDownloadFiles);
-  assert (check_from_gui_version5 GetDownloadedFiles);
-  assert (check_from_gui_version5 (SetRoomState (5, RoomPaused)));
-  assert (check_from_gui_version5 RefreshUploadStats)  
+  let check_from_gui_version_6 = 
+    check from_gui_version_6 GuiDecoding.from_gui_version_6 in
+  assert (check_from_gui_version_6 (MessageToClient (33, "Bye")));
+  assert (check_from_gui_version_6 (GuiExtensions [1, true; 2, false]));
+  assert (check_from_gui_version_6 GetConnectedServers);
+  assert (check_from_gui_version_6 GetDownloadFiles);
+  assert (check_from_gui_version_6 GetDownloadedFiles);
+  assert (check_from_gui_version_6 (SetRoomState (5, RoomPaused)));
+  assert (check_from_gui_version_6 RefreshUploadStats)  
   

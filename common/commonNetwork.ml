@@ -170,6 +170,15 @@ let networks_iter_all f =
             (Printexc.to_string e) r.network_name;
           print_newline ()
   ) !networks
+  
+let networks_iter_all_until_true f =
+  List.exists (fun r ->
+      try f r  with e ->
+          Printf.printf "Exception %s in Network.iter for %s"
+            (Printexc.to_string e) r.network_name;
+          print_newline ();
+          false
+  ) !networks
 
 let network_find_by_name name =
   Hashtbl.find networks_by_name name

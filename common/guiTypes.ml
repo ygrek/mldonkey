@@ -138,8 +138,10 @@ type client_stats = {
     mutable download_counter : int64;
     mutable nshared_files : int;
     mutable shared_counter : int64;
-    mutable upload_rate : int; (* bytes/second *)
-    mutable download_rate : int; (* bytes/second *)
+    mutable tcp_upload_rate : int; (* bytes/second *)
+    mutable tcp_download_rate : int; (* bytes/second *)
+    mutable udp_upload_rate : int; (* bytes/second *)
+    mutable udp_download_rate : int; (* bytes/second *)
   }
 
 type shared_info = {

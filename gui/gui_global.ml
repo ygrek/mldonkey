@@ -73,6 +73,7 @@ let (users : (int, GuiTypes.user_info) Hashtbl.t) = Hashtbl.create 1023
 
   
 let (client_sections :   (string * (string * GuiTypes.option_widget * string) list ref) list ref) = ref []
+let (plugins_sections :   (string * (string * GuiTypes.option_widget * string) list ref) list ref) = ref []
 let (options_values : (string, string ref) Hashtbl.t) = Hashtbl.create 100
 
 let clear () =
@@ -91,5 +92,6 @@ let clear () =
   search_counter := 0;
   Hashtbl.clear options_values;
   client_sections := [];
+  plugins_sections := [];
 
   
