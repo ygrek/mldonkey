@@ -698,25 +698,29 @@ let gui_handler t event =
 (*  Printf.printf "CONNECTION FROM REMOTE USER"; print_newline (); *)
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
+      let from_ip = Ip.of_inet_addr from_ip in
+      if Ip.matches from_ip !!allowed_ips then 
+        
+        let module P = Gui_proto in
+        let sock = TcpClientSocket.create_simple s in
+        let gui = {
+            gui_searches = [];
+            gui_sock = sock;
+            gui_search_nums = [];
+            gui_server_users = [];
+          } in
+        TcpClientSocket.set_max_write_buffer sock !!interface_buffer;
+        TcpClientSocket.set_reader sock (Mftp.value_handler 
+            (gui_reader gui));
+        TcpClientSocket.set_closer sock (gui_closed gui);
+        TcpClientSocket.set_handler sock TcpClientSocket.BUFFER_OVERFLOW
+          (fun _ -> Printf.printf "BUFFER OVERFLOW"; print_newline () );
+        guis := gui :: !guis;
+        gui_send gui (P.Connected Gui_types.version);
+      else 
+        Unix.close s
+  | _ -> ()
       
-      let module P = Gui_proto in
-      let sock = TcpClientSocket.create_simple s in
-      let gui = {
-          gui_searches = [];
-          gui_sock = sock;
-          gui_search_nums = [];
-          gui_server_users = [];
-        } in
-      TcpClientSocket.set_max_write_buffer sock !!interface_buffer;
-      TcpClientSocket.set_reader sock (Mftp.value_handler 
-          (gui_reader gui));
-      TcpClientSocket.set_closer sock (gui_closed gui);
-      TcpClientSocket.set_handler sock TcpClientSocket.BUFFER_OVERFLOW
-        (fun _ -> Printf.printf "BUFFER OVERFLOW"; print_newline () );
-      guis := gui :: !guis;
-      gui_send gui (P.Connected Gui_types.version);
-| _ -> ()
-    
   
 let gui_server_change_hook s gui = 
   match s.server_changed with

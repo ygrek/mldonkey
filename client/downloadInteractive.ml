@@ -897,17 +897,20 @@ let user_closed sock  msg =
   ()
   
 let telnet_handler t event = 
-  Printf.printf "CONNECTION FROM REMOTE USER"; print_newline ();
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
-      
-      let sock = TcpClientSocket.create_simple s in
-      let auth = ref (!!password = "") in
-      TcpClientSocket.set_reader sock (user_reader auth);
-      TcpClientSocket.set_closer sock user_closed;
-      user_socks := sock :: !user_socks;
-      TcpClientSocket.write_string sock "\nWelcome on mldonkey command-line\n";
-      TcpClientSocket.write_string sock "\nUse ? for help\n\n";
+      let from_ip = Ip.of_inet_addr from_ip in
+      if Ip.matches from_ip !!allowed_ips then 
+        let sock = TcpClientSocket.create_simple s in
+        let auth = ref (!!password = "") in
+        TcpClientSocket.set_reader sock (user_reader auth);
+        TcpClientSocket.set_closer sock user_closed;
+        user_socks := sock :: !user_socks;
+        TcpClientSocket.write_string sock "\nWelcome on mldonkey command-line\n";
+        TcpClientSocket.write_string sock "\nUse ? for help\n\n";
+      else 
+        Unix.close s
+
   | _ -> ()
 
 (* The HTTP client *)

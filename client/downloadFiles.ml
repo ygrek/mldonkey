@@ -166,15 +166,15 @@ let search_handler search t =
   
     
 let force_save_options () =  
-  DownloadServers.update_options ();
   List.iter DownloadOneFile.update_options !!files;
   Gc.compact ();
   Options.save_with_help downloads_ini;
   Options.save_with_help files_ini;
   Options.save_with_help friends_ini;
-  if !servers_ini_changed then
-    Options.save_with_help servers_ini
-
+  if !servers_ini_changed then begin
+      DownloadServers.update_options ();
+      Options.save_with_help servers_ini
+    end
     
 let udp_query_locations file s =
   let module M = Mftp_server in

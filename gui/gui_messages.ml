@@ -541,6 +541,7 @@ Release 1.10:
   * Options are now divided into four configuration files: downloads.ini,
       servers.ini, friends.ini and files.ini.
   * Better display of downloads.
+  * Verification of IP addresses for admin ('allowed_ips' option).
 
 Release 1.09:
   * Bug fixes: fixed bad md4 computation of the first chunk, preventing

@@ -76,7 +76,11 @@ let http_login =
   
 let http_password = 
   define_option downloads_ini ["http_password"] "Your password when using a WEB browser" string_option ""
-  
+
+let initialized = define_option downloads_ini ["initialized"] 
+  "(not used)"
+    bool_option false
+    
 let max_upload_rate = define_option downloads_ini ["max_upload_rate"] 
   "The maximal upload rate you can tolerate" int_option 30
   
@@ -224,6 +228,18 @@ module ClientOption = struct
   end
   
 
+
+module IpOption = struct
+    
+    let value_to_ip v = 
+      Ip.of_string (value_to_string v)
+      
+    let ip_to_value ip =
+      string_to_value (Ip.to_string ip)
+      
+    let t = define_option_class "Ip" value_to_ip ip_to_value      
+      
+  end
     
 module ServerOption = struct
     let value_to_server v = 
@@ -447,6 +463,11 @@ module Md4Option = struct
     ;;
   end
 
+  
+let allowed_ips = define_option downloads_ini ["allowed_ips"]
+    "list of IP address allowed to control the client via telnet/GUI/WEB"
+    (list_option IpOption.t) [Ip.of_string "127.0.0.1"]
+
 let done_files = 
   define_option files_ini ["done_files"] 
   "The files whose download is finished" (list_option FileOption.t) []
@@ -480,12 +501,14 @@ let add_server ip port =
     find_server ip port 
   with _ ->
       let s = new_server ip port !!initial_score in
+      servers_ini_changed := true;
       known_servers =:= s :: !!known_servers;
       s
   
 let remove_server ip port =
   try
     let s = find_server ip port in
+    servers_ini_changed := true;
     known_servers  =:= List2.removeq s  !!known_servers ;
     DownloadGlobals.remove_server ip port
   with _ -> ()

@@ -569,36 +569,38 @@ let save opfile =
   let oc = open_out temp_file in
   save_module "" oc
     (List.map
-       (fun o ->
-          o.option_name, o.option_help,
+      (fun o ->
+        o.option_name, o.option_help,
         (try 
             o.option_class.to_value o.option_value 
           with
-             e ->
-               Printf.printf "Error while saving option \"%s\": %s"
-                 (try List.hd o.option_name with
-                    _ -> "???")
-                 (Printexc.to_string e);
-               print_newline ();
-               StringValue ""))
+            e ->
+              Printf.printf "Error while saving option \"%s\": %s"
+                (try List.hd o.option_name with
+                  _ -> "???")
+              (Printexc.to_string e);
+              print_newline ();
+              StringValue ""))
     (List.rev opfile.file_options));
-  Printf.fprintf oc
-  "\n(*\n These options are not used (errors, obsolete, ...) \n*)\n";
-  List.iter
-    (fun (name, value) ->
-       try
-         List.iter
-           (fun o ->
-              match o.option_name with
-                n :: _ -> if n = name then raise Exit
-              | _ -> ())
-           opfile.file_options;
-         Printf.fprintf oc "%s = " (safe_string name);
-         save_value "  " oc value;
-         Printf.fprintf oc "\n"
-       with
-         _ -> ())
-    opfile.file_rc;
+  if not opfile.file_pruned then begin
+      Printf.fprintf oc
+        "\n(*\n These options are not used (errors, obsolete, ...) \n*)\n";
+      List.iter
+        (fun (name, value) ->
+          try
+            List.iter
+              (fun o ->
+                match o.option_name with
+                  n :: _ -> if n = name then raise Exit
+                | _ -> ())
+            opfile.file_options;
+            Printf.fprintf oc "%s = " (safe_string name);
+            save_value "  " oc value;
+            Printf.fprintf oc "\n"
+          with
+            _ -> ())
+      opfile.file_rc;
+    end;
   close_out oc;
   (try Sys.rename filename old_file with _ -> ());
   (try Sys.rename temp_file filename with _ -> ())

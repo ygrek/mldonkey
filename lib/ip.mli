@@ -31,4 +31,5 @@ val to_fixed_string : t -> string
 val valid : t -> bool
 
 val resolve_one : t -> string
+val matches : t -> t list -> bool
   

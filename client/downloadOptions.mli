@@ -76,3 +76,6 @@ val http_password : string Options.option_record
 val add_server : Ip.t -> int -> DownloadTypes.server
 val remove_server : Ip.t -> int -> unit
 
+val allowed_ips : Ip.t list Options.option_record
+val initialized : bool Options.option_record
+  

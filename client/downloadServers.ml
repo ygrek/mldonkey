@@ -301,9 +301,10 @@ let remove_old_servers () =
         end else
         list := s :: !list
   ) !!known_servers;
-  if List.length !list > 200 then
-    known_servers =:= List.rev !list
-  
+  if List.length !list > 200 then begin
+      servers_ini_changed := true;
+      known_servers =:= List.rev !list
+    end
   
 let remove_old_servers_timer () = 
   if List.length !!known_servers > 1000 then
