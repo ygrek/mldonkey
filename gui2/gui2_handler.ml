@@ -867,7 +867,7 @@ let search_close clist_search gui num () =
 let search_download clist_search gui () =
   let module P = GuiProto in
   for_selection  clist_search (fun r ->
-      gui_send (Download_query (r.result_names, r.result_num))
+      gui_send (Download_query (r.result_names, r.result_num, false))
   ) ()
 
 let download_ed2k_url _ =
@@ -883,7 +883,7 @@ let download_md4 _ =
 let download_friend_files =
   let module P = GuiProto in
   for_selection clist_friend_files (fun r ->
-      gui_send (Download_query (r.result_names, r.result_num))
+      gui_send (Download_query (r.result_names, r.result_num, false))
   )   
 
   

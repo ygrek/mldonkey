@@ -201,13 +201,11 @@ let load_config () =
         None -> ()
       | Some opfile ->
           let args = simple_args opfile in
-          List.iter (fun prefix ->
-              let args = List2.tail_map (fun (arg, spec, help) ->
-                    (Printf.sprintf "-%s%s" prefix arg, spec, help)) args
-              in
-              more_args := !more_args @ args)
-          r.network_prefixes;
-  );
+          let prefix = r.network_prefix in
+          let args = List2.tail_map (fun (arg, spec, help) ->
+                (Printf.sprintf "-%s%s" !!prefix arg, spec, help)) args
+            in
+          more_args := !more_args @ args);
   
   Arg.parse ([
       "-v", Arg.Unit (fun _ ->

@@ -30,4 +30,6 @@ val ftruncate32 : t -> int32 -> unit
 val close_all : unit -> unit
 
 val fds_size : int
+val filename : t -> string
+val set_filename : t -> string -> unit
   

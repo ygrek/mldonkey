@@ -159,7 +159,7 @@ let _ =
         C.result_done = false;
       }
   );
-  result_ops.op_result_download <- (fun r filenames ->
+  result_ops.op_result_download <- (fun r filenames force ->
       download r filenames   
   )
   
@@ -169,7 +169,7 @@ let _ =
        {
         P.file_num = (file_num file);
         P.file_network = network.network_num;
-        P.file_names = [file.file_name];
+        P.file_names = [file_best_name (as_file file.file_file)];
         P.file_md4 = file.file_id;
         P.file_size = file_size file;
         P.file_downloaded = file_downloaded file;
@@ -185,18 +185,14 @@ let _ =
         P.file_age = file_age file;
       }    
   );
+  (*
   file_ops.op_file_save_as <- (fun file new_name  ->
       match file_state file with
         FileDownloaded | FileShared ->
           SlskClients.save_file_as file new_name
-          
       | _ -> ()
-  );
-  file_ops.op_file_commit <- (fun file ->
-      () (* nothing to do *)   
-  );
-  file_ops.op_file_disk_name <- (fun file -> file.file_temp);
-  file_ops.op_file_best_name <- (fun file -> file.file_name);
+);
+  *)
   file_ops.op_file_sources <- (fun file ->
       List2.tail_map (fun c -> as_client c.client_client)
       file.file_clients

@@ -76,7 +76,6 @@ open CommonTypes
 let _ =
   network.op_network_is_enabled <- (fun _ -> !!CommonOptions.enable_opennap);
   network.op_network_enable <- enable;
-  network.network_prefixes <- [!!network_prefix];
   network.network_config_file <- Some opennap_ini;
   network.op_network_info <- (fun n ->
       { 

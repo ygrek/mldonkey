@@ -372,89 +372,8 @@ for mldonkey clients .*)
   end                  
   
 
-      
-let read_first_message t sock =
-  let module M = DonkeyProtoClient in
-  match t with
 
-  | M.ConnectReq t ->
-      printf_string "******* [PCONN OK] ********";
-      
-      let module CR = M.Connect in
-      
-      if t.CR.md4 = !!client_md4 then begin
-          TcpBufferedSocket.close sock "connected to myself";
-          raise End_of_file
-        end;
-      
-      let name = ref "" in
-      List.iter (fun tag ->
-          match tag with
-            { tag_name = "name"; tag_value = String s } -> name := s
-          | _ ->  ()
-      ) t.CR.tags;
 
-      let kind = Indirect_location (!name,t.CR.md4) in
-      let c = new_client kind in
-      
-      begin
-        match c.client_sock with
-          None -> 
-            c.client_sock <- Some sock;
-        | Some _ -> 
-            close sock "already connected"; raise Not_found
-      end;
-
-      set_client_name c !name t.CR.md4;
-      connection_ok c.client_connection_control;
-      c.client_tags <- t.CR.tags;
-      
-      if Ip.valid t.CR.ip_server && !!update_server_list then
-        ignore (add_server t.CR.ip_server t.CR.port_server);
-      
-      direct_client_send sock (
-        let module M = DonkeyProtoClient in
-        let module C = M.ConnectReply in
-        M.ConnectReplyReq {
-          C.md4 = !!client_md4;
-          C.ip = client_ip (Some sock);
-          C.port = !client_port;
-          C.tags = !client_tags;
-          C.ip_server = t.CR.ip_server;
-          C.port_server = t.CR.port_server;
-        }
-      );
-      
-      set_client_state c Connected_idle;      
-      identify_as_mldonkey c sock;
-      query_files c sock [];
-      if client_type c <> NormalClient then
-        if last_time () > c.client_next_view_files then begin
-            (*
-            Printf.printf "****************************************";
-            print_newline ();
-            Printf.printf "       ASK VIEW FILES         ";
-            print_newline ();
-*)
-            
-            direct_client_send sock (
-              let module M = DonkeyProtoClient in
-              let module C = M.ViewFiles in
-              M.ViewFilesReq C.t);          
-            end;
-      client_must_update c;
-      Some c
-      
-  | M.NewUserIDReq _ ->
-      M.print t; print_newline ();
-      None
-      
-  | _ -> 
-      Printf.printf "BAD MESSAGE FROM CONNECTING CLIENT"; print_newline ();
-      M.print t; print_newline ();
-      close sock "bad connecting message";
-      raise Not_found
-      
 let client_to_client for_files c t sock = 
   let module M = DonkeyProtoClient in
   match t with
@@ -603,17 +522,20 @@ print_newline ();
       begin
         try
           let file = find_file t.Q.md4 in
-          
-          printf_string "[FOUND FILE]";
-          if not (List.mem t.Q.name file.file_filenames) then 
-            file.file_filenames <- file.file_filenames @ [t.Q.name] ;
-          if file_size file > block_size then
-            direct_client_send sock (
-              let module M = DonkeyProtoClient in
-              let module C = M.QueryChunks in
-              M.QueryChunksReq file.file_md4)
-          else
-            client_has_chunks c file [| true |]
+          if file_state file = FileDownloading then begin
+              printf_string "[FOUND FILE]";
+              if not (List.mem t.Q.name file.file_filenames) then begin
+                  file.file_filenames <- file.file_filenames @ [t.Q.name] ;
+                  update_best_name file
+                end;
+              if file_size file > block_size then
+                direct_client_send sock (
+                  let module M = DonkeyProtoClient in
+                  let module C = M.QueryChunks in
+                  M.QueryChunksReq file.file_md4)
+              else
+                client_has_chunks c file [| true |]
+            end
         with _ -> ()
       end  
   
@@ -767,7 +689,11 @@ is checked for the file.
                 (begin_pos); print_newline ();
                 raise Not_found
               end;
-            printf_char '#';
+            if c.client_connected then
+              printf_string "#[OUT]"
+            else
+              printf_string "#[IN]";
+            
 (*            if !!verbose then begin
                 Printf.printf "{%d-%d = %ld-%ld}" (t.Q.bloc_begin)
                 (t.Q.bloc_len) (begin_pos) 
@@ -803,10 +729,7 @@ is checked for the file.
       (*
       Printf.printf "ASK VIEW FILES"; print_newline ();
       *)
-      direct_client_send_files sock (
-        DonkeyShare.make_tagged (Some sock) files)
-      (!!client_buffer_size * 10 /9)
-  
+      direct_client_send_files sock files
   
   | M.QueryFileReq t when !has_upload = 0 -> 
       
@@ -830,7 +753,7 @@ is checked for the file.
             M.QueryFileReplyReq {
               Q.md4 = file.file_md4;
               Q.name = match file.file_filenames with
-                [] -> file.file_hardname
+                [] -> file_disk_name file
               | name :: _ -> name
             });
 
@@ -928,7 +851,6 @@ is checked for the file.
         end
 
   | _ -> ()
-
       
 let client_handler c sock event = 
   match event with
@@ -948,7 +870,11 @@ let client_handler2 c sock event =
 let init_connection sock =
   TcpBufferedSocket.set_read_controler sock download_control;
   TcpBufferedSocket.set_write_controler sock upload_control;
-  set_rtimeout sock !!client_timeout
+  set_rtimeout sock !!client_timeout;
+  set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
+      printf_string "[TO?]";
+      close s "timeout"
+  )
 
 let init_client sock c file =
   set_handler sock WRITE_DONE (fun s ->
@@ -961,13 +887,100 @@ let init_client sock c file =
             end
   );
   set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
-      printf_string "-!C";
       connection_delay c.client_connection_control;
+      printf_string "-!C";
       close s "timeout"
   );
   c.client_block <- None;
   c.client_zones <- [];
   c.client_file_queue <- []
+
+  
+        
+let read_first_message t sock =
+  let module M = DonkeyProtoClient in
+  match t with
+
+  | M.ConnectReq t ->
+      printf_string "******* [PCONN OK] ********";
+      
+      let module CR = M.Connect in
+      
+      if t.CR.md4 = !!client_md4 then begin
+          TcpBufferedSocket.close sock "connected to myself";
+          raise End_of_file
+        end;
+      
+      let name = ref "" in
+      List.iter (fun tag ->
+          match tag with
+            { tag_name = "name"; tag_value = String s } -> name := s
+          | _ ->  ()
+      ) t.CR.tags;
+
+      let kind = Indirect_location (!name,t.CR.md4) in
+      let c = new_client kind in
+      
+      begin
+        match c.client_sock with
+          None -> 
+            c.client_sock <- Some sock;
+            c.client_connected <- false;
+            init_client sock c []
+        | Some _ -> 
+            close sock "already connected"; raise Not_found
+      end;
+
+      set_client_name c !name t.CR.md4;
+      connection_ok c.client_connection_control;
+      c.client_tags <- t.CR.tags;
+      
+      if Ip.valid t.CR.ip_server && !!update_server_list then
+        ignore (add_server t.CR.ip_server t.CR.port_server);
+      
+      direct_client_send sock (
+        let module M = DonkeyProtoClient in
+        let module C = M.ConnectReply in
+        M.ConnectReplyReq {
+          C.md4 = !!client_md4;
+          C.ip = client_ip (Some sock);
+          C.port = !client_port;
+          C.tags = !client_tags;
+          C.ip_server = t.CR.ip_server;
+          C.port_server = t.CR.port_server;
+        }
+      );
+      
+      set_client_state c Connected_idle;      
+      identify_as_mldonkey c sock;
+      query_files c sock [];
+      if client_type c <> NormalClient then
+        if last_time () > c.client_next_view_files then begin
+            (*
+            Printf.printf "****************************************";
+            print_newline ();
+            Printf.printf "       ASK VIEW FILES         ";
+            print_newline ();
+*)
+            
+            direct_client_send sock (
+              let module M = DonkeyProtoClient in
+              let module C = M.ViewFiles in
+              M.ViewFilesReq C.t);          
+            end;
+      client_must_update c;
+      Some c
+      
+  | M.NewUserIDReq _ ->
+      M.print t; print_newline ();
+      None
+      
+  | _ -> 
+      Printf.printf "BAD MESSAGE FROM CONNECTING CLIENT"; print_newline ();
+      M.print t; print_newline ();
+      close sock "bad connecting message";
+      raise Not_found
+
   
 let reconnect_client cid files c =
   if can_open_connection () then
@@ -991,6 +1004,7 @@ let reconnect_client cid files c =
             (client_to_client files c));
           
           c.client_sock <- Some sock;
+          c.client_connected <- true;
           let server_ip, server_port = 
             try
               let s = DonkeyGlobals.last_connected_server () in
@@ -1087,10 +1101,13 @@ let client_connection_handler t event =
         try
           let c = ref None in
           let sock = 
-            TcpBufferedSocket.create "donkey client connection" s (client_handler2 c) 
+            TcpBufferedSocket.create "donkey client connection" s 
+            (client_handler2 c) 
 (*client_msg_to_string*)
           in
+          init_connection sock;
           set_write_power sock !!upload_power;
+          
           (try
               set_reader sock 
                 (DonkeyProtoCom.client_handler2 c read_first_message

@@ -62,11 +62,3 @@ and client = {
     client_file_id : Md4.t;
   }
 
-  
-open CommonNetwork
-  
-let network = new_network "Audio Galaxy"
-  
-let (file_ops : file CommonFile.file_ops) = CommonFile.new_file_ops network
-let (client_ops : client CommonClient.client_ops) = 
-  CommonClient.new_client_ops network

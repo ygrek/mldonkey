@@ -42,7 +42,7 @@ let udp_send_if_possible sock addr msg =
   
 let first_name file =
   match file.file_filenames with
-    [] -> Filename.basename file.file_hardname
+    [] -> Filename.basename (file_disk_name file)
   | name :: _ -> name
     
 
@@ -127,6 +127,7 @@ let disconnect_server s =
       s.server_score <- s.server_score - 1;
       s.server_users <- [];
       set_server_state s NotConnected;
+      s.server_master <- false;
       remove_connected_server s;
 (*      !server_is_disconnected_hook s *)
       ()
@@ -463,9 +464,7 @@ let update_master_servers _ =
 (*                Printf.printf "NEW MASTER SERVER"; print_newline (); *)
                 s.server_master <- true;
                 incr nmasters;
-                let list = DonkeyShare.make_tagged (Some sock) (
-                    DonkeyShare.all_shared ()) in
-                direct_server_send sock (DonkeyProtoServer.ShareReq list)
+                direct_server_send_share sock (DonkeyShare.all_shared ())
           end else
         if connection_last_conn s.server_connection_control 
             +. 120. < last_time () &&

@@ -25,7 +25,8 @@ open Unix
 let file_basedir = 
   try
     Sys.getenv "MLDONKEY_DIR"
-  with _ -> ""
+  with _ -> 
+      Unix.getcwd ()
 
 let cmd_basedir = Autoconf.current_dir (* will not work on Windows *)
   

@@ -402,7 +402,7 @@ let http_handler options t r =
                       try
                         let num = int_of_string value in 
                         let r = result_find num in
-                        result_download r [];
+                        result_download r [] false;
 
                         Printf.bprintf buf "Download of file %d started<br>"
                           num

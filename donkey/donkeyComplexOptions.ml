@@ -222,6 +222,7 @@ let value_to_file is_done assocs =
   
   file.file_filenames <-
     get_value_nil "file_filenames" (value_to_list value_to_string);
+  update_best_name file;
   
   (try
       file.file_all_chunks <- get_value "file_all_chunks"

@@ -26,13 +26,154 @@ open Options
 open CommonTypes
 open DonkeyTypes
 open Unix
-open DonkeyProtoCom
 open BasicSocket
 open CommonOptions
 open DonkeyOptions
 open CommonOptions
 open CommonGlobals
 
+  
+open CommonNetwork
+
+(*
+    mutable op_network_connected_servers : (unit -> server list);
+    mutable op_network_config_file : (unit -> Options.options_file);
+    mutable op_network_is_enabled : (unit -> bool);
+    mutable op_network_save_simple_options : (unit -> unit);
+    mutable op_network_load_simple_options : (unit -> unit);
+    mutable op_network_save_complex_options : (unit -> unit);
+    mutable op_network_load_complex_options : (unit -> unit);
+    mutable op_network_enable : (unit -> unit);
+    mutable op_network_disable : (unit -> unit);    
+    mutable op_network_add_server : 
+      ((string * Options.option_value) list -> server);
+    mutable op_network_add_file : 
+      bool -> ((string * Options.option_value) list -> file);
+    mutable op_network_add_client : 
+      bool -> ((string * Options.option_value) list -> client);
+    mutable op_network_prefixed_args : 
+      (unit -> (string * Arg.spec * string) list);    
+    mutable op_network_search : (search -> Buffer.t -> unit);
+    mutable op_network_share : (shared -> unit);
+    mutable op_network_private_message : (string -> string -> unit);
+    mutable op_network_connect_servers : (unit -> unit);
+    mutable op_network_add_server_id : (Ip.t -> int -> unit);
+    mutable op_network_forget_search : (search -> unit);
+    mutable op_network_close_search : (search -> unit);
+    mutable op_network_extend_search : (unit -> unit);
+    mutable op_network_clean_servers : (unit -> unit);
+    mutable op_network_add_friend_id : (Ip.t -> int -> unit);
+
+*)
+  
+let network = CommonNetwork.new_network "Donkey"
+    network_options_prefix commit_in_subdir
+  
+let (shared_ops : file CommonShared.shared_ops) = 
+  CommonShared.new_shared_ops network
+
+  (*
+     op_result_network : network;
+     op_result_download : ('a -> string list -> unit);
+     op_result_info : ('a -> CommonTypes.result_info);
+  *)
+      
+let (result_ops : result CommonResult.result_ops) = 
+  CommonResult.new_result_ops network
+  
+(*
+     op_server_network : network;
+     op_server_to_option : ('a -> (string * option_value) list);
+     op_server_remove : ('a -> unit);
+     op_server_info : ('a -> GuiProto.server_info);
+     op_server_sort : ('a -> float);
+     op_server_connect : ('a -> unit);
+     op_server_disconnect : ('a -> unit);
+     op_server_users : ('a -> user list);
+     op_server_query_users : ('a -> unit);
+     op_server_find_user : ('a -> string -> unit);
+     op_server_new_messages : (unit -> (int * int * string) list);
+*)
+  
+let (server_ops : server CommonServer.server_ops) = 
+  CommonServer.new_server_ops network
+  
+(*
+  
+     op_room_close : ('a -> unit);
+     op_room_pause : ('a -> unit);
+     op_room_resume : ('a -> unit);
+     op_room_messages : ('a -> room_message list);
+     op_room_users : ('a -> user list);
+     op_room_name : ('a -> string);
+     op_room_info : ('a -> GuiProto.room_info);
+     op_room_send_message : ('a -> room_message -> unit);
+
+*)
+let (room_ops : server CommonRoom.room_ops) = 
+  CommonRoom.new_room_ops network
+  
+(*
+     op_user_network : network;
+     op_user_commit : ('a -> unit);
+     op_user_save_as : ('a -> string -> unit);
+     op_user_print : ('a -> CommonTypes.connection_options -> unit);
+     op_user_to_option : ('a -> (string * option_value) list);
+     op_user_remove : ('a -> unit);
+     op_user_info : ('a -> GuiProto.user_info);
+     op_user_set_friend : ('a -> unit);
+     op_user_browse_files : ('a -> unit);
+*)
+  
+let (user_ops : user CommonUser.user_ops) = 
+  CommonUser.new_user_ops network
+  
+(*
+     op_file_network : network;
+     op_file_commit : ('a -> unit);
+     op_file_save_as : ('a -> string -> unit);
+     op_file_to_option : ('a -> (string * option_value) list);
+     op_file_cancel : ('a -> unit);
+     op_file_pause : ('a -> unit);
+     op_file_resume : ('a -> unit);
+     op_file_info : ('a -> GuiProto.file_info);
+     op_file_disk_name : ('a -> string);
+     op_file_best_name : ('a -> string);
+     op_file_state : ('a -> CommonTypes.file_state);
+     op_file_set_format : ('a -> CommonTypes.format -> unit);
+     op_file_check : ('a -> unit);
+     op_file_recover : ('a -> unit);
+     op_file_sources : ('a -> client list);
+*)
+  
+let (file_ops : file CommonFile.file_ops) = 
+  CommonFile.new_file_ops network
+  
+(*
+     op_client_network : network;
+     op_client_commit : ('a -> unit);
+     op_client_connect : ('a -> unit);
+     op_client_save_as : ('a -> string -> unit);
+     op_client_to_option : ('a -> (string * option_value) list);
+     op_client_cancel : ('a -> unit);
+     op_client_info : ('a -> GuiProto.client_info);
+     op_client_say : ('a -> string -> unit);
+     op_client_files : ('a -> (string * result) list);
+     op_client_set_friend : ('a -> unit);
+     op_client_remove_friend : ('a -> unit);
+*)
+  
+let (client_ops : client CommonClient.client_ops) = 
+  CommonClient.new_client_ops network
+
+  
+let (pre_shared_ops : file_to_share CommonShared.shared_ops) = 
+  CommonShared.new_shared_ops network
+    
+let (shared_ops : file CommonShared.shared_ops) = 
+  CommonShared.new_shared_ops network
+  
+  
 let tag_client = 200
 let tag_server = 201
 let tag_file   = 202
@@ -44,7 +185,16 @@ let client_must_update c =
 
 let server_must_update s =
   server_must_update (as_server s.server_server)
-  
+
+    
+let file_size file = file.file_file.impl_file_size
+let file_downloaded file = file.file_file.impl_file_downloaded
+let file_age file = file.file_file.impl_file_age
+let file_fd file = file.file_file.impl_file_fd
+let file_disk_name file = file_disk_name (as_file file.file_file)
+let file_best_name file = file_best_name (as_file file.file_file)
+let set_file_disk_name file = set_file_disk_name (as_file file.file_file)
+
 (* let say_hook = ref (fun (c:client) (s:string) -> ())
 
   
@@ -82,14 +232,14 @@ let clients_by_name = Hashtbl.create 127
 let local_searches = ref ([] : local_search list)
 let nservers = ref 0
 let servers_by_key = Hashtbl.create 127
-let servers_list = ref []
-let clients_list = ref []
+let servers_list = ref ([] : server list)
+let clients_list = ref ([] : (client * file list) list)
 let clients_list_len = ref 0
 let remaining_time_for_clients = ref (60 * 15)
 let location_counter = ref 0
 let download_credit = ref 0 
 
-let current_files = ref []
+let current_files = ref ([] : file list)
   
 let sleeping = ref false
   
@@ -136,8 +286,8 @@ let reversed_sock = ref (None : TcpServerSocket.t option)
 
 
   
-let udp_servers_list = ref []
-let interesting_clients = ref []
+let udp_servers_list = ref ([] : server list)
+let interesting_clients = ref ([] : client list)
   
   
 (* 'NEW' FUNCTIONS *)  
@@ -162,11 +312,32 @@ let set_server_state s state =
     end
     
 let servers_ini_changed = ref true
-let upload_clients = Fifo.create ()
+let upload_clients = (Fifo.create () : client Fifo.t)
 
-let shared_files_info = Hashtbl.create 127
-let new_shared = ref []
-let shared_files = ref []
+let shared_files_info = (Hashtbl.create 127 : (string, shared_file_info) Hashtbl.t)
+let new_shared = ref ([] : file list)
+let shared_files = ref ([] : file_to_share list)
+
+  
+(* compute the name used to save the file *)
+  
+let longest_name file =
+  let md4_name = Md4.to_string file.file_md4 in
+  let max = ref md4_name in (* default is md4 *)
+  let maxl = ref 0 in
+  List.iter (fun name ->
+      Printf.printf "TEST %s" name; print_newline ();
+      (* prevent it from using the md4 is another name is available *)
+      if name <> md4_name && String.length name > !maxl then begin
+          maxl := String.length name;
+          max := name
+        end
+  ) file.file_filenames;
+  Printf.printf "LONGEST %s" !max; print_newline ();
+  !max
+          
+let update_best_name file =
+  set_file_best_name (as_file file.file_file) (longest_name file)
   
 let new_file file_state file_name md4 file_size writable =
   try
@@ -190,14 +361,12 @@ let new_file file_state file_name md4 file_size writable =
           file_shared = None;
           file_exists = file_exists;
           file_md4 = md4;
-
-          file_hardname = file_name;
           file_nchunks = nchunks;
           file_chunks = [||];
           file_chunks_age = [||];
           file_all_chunks = String.make nchunks '0';
           file_absent_chunks =   [Int32.zero, file_size];
-          file_filenames = [];
+          file_filenames = [Filename.basename file_name];
           file_sources = Intmap.empty;
           file_nlocations = 0;
           file_md4s = md4s;
@@ -214,18 +383,18 @@ let new_file file_state file_name md4 file_size writable =
           impl_file_size = file_size;
           impl_file_fd = Unix32.create file_name (if writable then
               [O_RDWR; O_CREAT] else [O_RDONLY]) 0o666;
+          impl_file_best_name = Filename.basename file_name;
         }
       in
+      update_best_name file;
       file_add file_impl file_state;
       Heap.set_tag file tag_file;
       Hashtbl.add files_by_md4 md4 file;
       file
 
 let change_hardname file file_name =
-  file.file_hardname <- file_name;
   let fd = file.file_file.impl_file_fd in
-  file.file_file.impl_file_fd <- Unix32.create file_name [O_RDWR] 0o666;
-  Unix32.close fd
+  Unix32.set_filename fd file_name
   
 let info_change_file file =
   file.file_changed <- FileInfoChange
@@ -313,31 +482,32 @@ let remove_server ip port =
 
 let new_client key =
   let c = 
-  try
-    Hashtbl.find clients_by_kind key
-  with _ ->
-      let rec c = {
-          client_client = client_impl;
-          client_upload = None;
-          client_kind = key;   
-          client_sock = None;
-          client_md4 = Md4.null;
-          client_chunks = [||];
-          client_block = None;
-          client_zones = [];
-          client_connection_control =  new_connection_control (last_time ());
-          client_file_queue = [];
-          client_source_for = [];
-          client_tags = [];
-          client_name = "";
-          client_all_files = None;
-          client_next_view_files = last_time () -. 1.;
-          client_all_chunks = "";
-          client_rating = Int32.zero;
-          client_is_mldonkey = 0;
-          client_checked = false;
-          client_chat_port = 0 ; (** A VOIR : où trouver le 
-					 port de chat du client ? *)
+    try
+      Hashtbl.find clients_by_kind key
+    with _ ->
+        let rec c = {
+            client_client = client_impl;
+            client_upload = None;
+            client_kind = key;   
+            client_sock = None;
+            client_md4 = Md4.null;
+            client_chunks = [||];
+            client_block = None;
+            client_zones = [];
+            client_connection_control =  new_connection_control (last_time ());
+            client_file_queue = [];
+            client_source_for = [];
+            client_tags = [];
+            client_name = "";
+            client_all_files = None;
+            client_next_view_files = last_time () -. 1.;
+            client_all_chunks = "";
+            client_rating = Int32.zero;
+            client_is_mldonkey = 0;
+            client_checked = false;
+            client_chat_port = 0 ; (** A VOIR : où trouver le 
+            port de chat du client ? *)
+            client_connected = false;
         } and
           client_impl = {
             dummy_client_impl with            
@@ -382,10 +552,10 @@ let find_client_by_name name =
 
 let first_name file =
   match file.file_filenames with
-    [] -> Filename.basename file.file_hardname
+    [] -> Filename.basename (file_disk_name file)
   | name :: _ -> name
 
-let udp_servers_replies = Hashtbl.create 127
+let udp_servers_replies = (Hashtbl.create 127 : (Md4.t, server) Hashtbl.t)
   
 let _ =
   option_hook max_hard_upload_rate (fun _ -> 
@@ -396,8 +566,8 @@ let _ =
       TcpBufferedSocket.change_rate download_control 
         (rate * 1024))  
     
-let file_groups = Hashtbl.create 1023
-let udp_clients = Hashtbl.create 1023
+let file_groups = (Hashtbl.create 1023 : (Md4.t, file_group) Hashtbl.t)
+let udp_clients = (Hashtbl.create 1023 : (location_kind, udp_client) Hashtbl.t)
 
 let mem_stats buf = 
   Gc.compact ();
@@ -474,7 +644,7 @@ end;
   let loc_unaware = ref 0 in
   let unregistered_locs = ref 0 in
   Hashtbl.iter (fun md4 file ->
-      Printf.bprintf buf "FILE %s\n" file.file_hardname;
+      Printf.bprintf buf "FILE %s\n" (file_disk_name file);
       let len = Intmap.length file.file_sources in
       Printf.bprintf buf "  locs %d\n" len;
       direct_locs := !direct_locs + len;
@@ -546,7 +716,7 @@ let remove_file_clients file =
       check_useful_client c
   ) locs  
   
-let last_search = ref Intmap.empty
+let last_search = ref (Intmap.empty : int Intmap.t)
       
 let remove_source file c =
   if List.memq file c.client_source_for then begin  
@@ -601,7 +771,7 @@ let server_state server =
   CommonServer.server_state (as_server server.server_server)
   
 (* indexation *)
-let comments = Hashtbl.create 127
+let comments = (Hashtbl.create 127 : (Md4.t,string) Hashtbl.t)
 
 let comment_filename = Filename.concat file_basedir "comments.met"
 
@@ -636,13 +806,8 @@ let index = DocIndexer.create ()
 let (results_by_md4 : (Md4.t, result) Hashtbl.t) = Hashtbl.create 1023
   
 let history_file = Filename.concat file_basedir "history.met"
-let history_file_oc = ref None
+let history_file_oc = ref (None : out_channel option)
 
-  
-let file_size file = file.file_file.impl_file_size
-let file_downloaded file = file.file_file.impl_file_downloaded
-let file_age file = file.file_file.impl_file_age
-let file_fd file = file.file_file.impl_file_fd
   
   
 let last_connected_server () =
@@ -662,3 +827,4 @@ let all_servers () =
   Hashtbl.fold (fun key s l ->
       s :: l
   ) servers_by_key []
+

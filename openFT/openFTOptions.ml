@@ -42,7 +42,12 @@ let commit_in_subdir = define_option openft_ini ["commit_in_subdir"]
   "The subdirectory of temp/ where files should be moved to"
     string_option "openFT"
   
-
+      
+let network_options_prefix = define_option openft_ini
+    ["options_prefix"] "The prefix which is appended to options names
+    when they are used in the telnet/WEB interfaces"
+    string_option "OpenFT-"
+  
 let max_known_ultrapeers = define_option openft_ini ["max_known_ultrapeers"]
   "Maximal number of ultrapeers remembered"
     int_option 100

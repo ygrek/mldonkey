@@ -119,8 +119,6 @@ type server = {
   }
   
 open CommonNetwork
-  
-let network = CommonNetwork.new_network "Donkey:server"
 
 type remote_client = {
   mutable remote_client_local_id : Ip.t; 

@@ -68,6 +68,7 @@ let file_complete file =
       c.client_files <- List.remove_assoc file c.client_files
   ) file.file_clients;
 
+  (*
 (* finally move file *)
   let incoming_dir =
     if !!commit_in_subdir <> "" then
@@ -79,9 +80,11 @@ let file_complete file =
     (canonize_basename file.file_name)
   in
 (*  Printf.printf "RENAME to %s" new_name; print_newline (); *)
-  let new_name = rename_to_incoming_dir file.file_temp  new_name in
-  file.file_temp <- new_name
-
+  let new_name = rename_to_incoming_dir 
+    (file_disk_name file)  new_name in
+  set_file_disk_name file new_name
+*)
+  ()
 (*
 
 5.2  Firwalled Downloading

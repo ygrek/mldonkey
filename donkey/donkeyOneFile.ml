@@ -343,6 +343,7 @@ let verify_chunk file i =
   let end_pos = chunk_end file i in
   let len = Int32.sub end_pos begin_pos in
   let md4 = file_md4s.(i) in
+  Printf.printf "verify_chunk"; print_newline ();
   let new_md4 = Md4.digest_subfile (file_fd file) begin_pos len in
   (*
   let mmap = Mmap.mmap file.file_name 
@@ -696,12 +697,19 @@ let verify_chunks file =
 let set_file_size file sz =
   
   if sz <> Int32.zero then begin
+      
       if file_size file = Int32.zero then 
           file.file_absent_chunks <- [Int32.zero, sz];
       file.file_file.impl_file_size <- sz;
       file.file_nchunks <- Int32.to_int (Int32.div  
           (Int32.sub sz Int32.one) block_size)+1;
-      file.file_chunks <- Array.create file.file_nchunks AbsentTemp;
+      Printf.printf "Setting Absent Temp chunks"; print_newline ();
+      file.file_chunks <- Array.create file.file_nchunks (
+        if not (Sys.file_exists (file_disk_name file)) then
+          AbsentVerified
+        else
+          AbsentTemp);
+
       Unix32.ftruncate32 (file_fd file) sz; (* at this point, file exists *)
       
       file.file_all_chunks <- String.make file.file_nchunks '0';
@@ -839,58 +847,36 @@ let download_engine () =
     end
 
   
-open Mailer
-  
 let best_name file =
   match file.file_filenames with
     [] -> Md4.to_string file.file_md4
   | name :: _ -> name
-  
-let mail_for_completed_file file =
-  if !!mail <> "" then
-    let line1 = "\r\n mldonkey has completed the download of:\r\n\r\n" in
-    let line2 = Printf.sprintf "\r\ned2k://|file|%s|%ld|%s|\r\n" 
-        (best_name file)
-      (file_size file)
-      (Md4.to_string file.file_md4)
-    in
-    
-    let mail = {
-        mail_to = !!mail;
-        mail_from = Printf.sprintf "mldonkey <%s>" !!mail;
-        mail_subject = Printf.sprintf "mldonkey completed download";
-        mail_body = line1 ^ line2;
-      } in
-    sendmail !!smtp_server !!smtp_port mail
 
-let chat_for_completed_file file =
-  CommonChat.send_warning_for_downloaded_file (best_name file)
-
+  (*
 let move_file_to_done_files md4 =
   try
     let file = Hashtbl.find files_by_md4 md4 in
     file_completed (as_file file.file_file);
-    current_files := List2.removeq file !current_files;
     
   with e -> 
       Printf.printf "move_file_to_done_files NOT FOUND";
       print_newline ();
       raise e 
-  
+        *)
+
 let remove_file md4 =
   try
     let file = Hashtbl.find files_by_md4 md4 in
     file_cancel (as_file file.file_file);
     Unix32.close (file_fd file);
     decr nshared_files;
-    (try Sys.remove file.file_hardname with e -> 
+    (try Sys.remove (file_disk_name file) with e -> 
           Printf.printf "Exception %s in remove %s"
-            (Printexc.to_string e) file.file_hardname;
+            (Printexc.to_string e) (file_disk_name file);
           print_newline ());
     (try Hashtbl.remove files_by_md4 file.file_md4 with _ -> ());
     remove_file_clients file;
     file.file_shared <- None;
-    file.file_hardname <- "";
 (*    !file_change_hook file; *)
     current_files := List2.removeq file !current_files;
   with e -> 
@@ -922,44 +908,16 @@ let check_file_downloaded file =
               raise Not_found
           | _ -> raise Not_found
       ) file.file_chunks;        
+      current_files := List2.removeq file !current_files;
+      DonkeyShare.remember_shared_info file (file_disk_name file);
       file_completed (as_file file.file_file);
-      (try mail_for_completed_file file with e ->
-            Printf.printf "Exception %s in sendmail" (Printexc.to_string e);
-            print_newline ());
-      if !!CommonOptions.chat_warning_for_downloaded then
-	chat_for_completed_file file;
       (try
-          let format = CommonMultimedia.get_info file.file_hardname in
+          let format = CommonMultimedia.get_info 
+              (file_disk_name file) in
           file.file_format <- format
         with _ -> ());
       info_change_file file;
-(*      !file_change_hook file; *)
-      move_file_to_done_files file.file_md4;
       
-      if !!file_completed_cmd <> "" then begin
-        match Unix.fork() with
-          0 -> begin
-              try
-                match Unix.fork() with
-                  0 -> begin
-                      try
-                        Unix.execv !!file_completed_cmd 
-                          (Array.of_list
-                          
-                            (file.file_hardname ::
-                            (Md4.to_string file.file_md4) ::
-                            (Int32.to_string (file_size file)) ::
-                            file.file_filenames));
-                        exit 0
-                      with e -> 
-                          Printf.printf "Exception %s while starting file_completed_cmd" (Printexc.to_string e); print_newline ();
-                          exit 127
-                    end
-                | id -> exit 0
-              with _ -> exit 0
-            end
-          | id -> ignore (snd(Unix.waitpid [] id))
-        end
     with _ -> ()
 
 let check_downloaded_files () =

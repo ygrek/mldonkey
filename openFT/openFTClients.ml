@@ -46,6 +46,10 @@ let disconnect_client c =
         close sock "closed";
       with _ -> ()
 
+let on_close c d =
+  connection_failed c.client_connection_control;
+  c.client_file <- None  
+  
 let listen _ = 
   Printf.printf "OpenFTClients.listen not implemented"; print_newline ()
 
@@ -80,7 +84,9 @@ let client_parse_header c sock header =
     end;
   try
     connection_ok c.client_connection_control;
-    
+    match c.client_file with
+      None -> close sock "no download !"; raise Exit
+    | Some d ->
     if !!verbose_clients > 10 then begin
         Printf.printf "HEADER FROM CLIENT:"; print_newline ();
         LittleEndian.dump_ascii header; 
@@ -119,10 +125,10 @@ let client_parse_header c sock header =
                     raise e
               with Not_found -> Int32.zero
             in                  
-            if c.client_pos <> start_pos then 
-              failwith (Printf.sprintf "Bad range %s for %s"
-                  (Int32.to_string start_pos)
-                (Int32.to_string c.client_pos));
+                if d.CommonDownloads.download_pos <> start_pos then 
+                  failwith (Printf.sprintf "Bad range %s for %s"
+                      (Int32.to_string start_pos)
+                    (Int32.to_string d.CommonDownloads.download_pos));
             ()
       end else begin
         if !!verbose_clients > 0 then begin
@@ -137,7 +143,15 @@ let client_parse_header c sock header =
       LittleEndian.dump header;      
       disconnect_client c
 
+let on_finished file d =
+  current_files := List2.removeq file !current_files;
+  old_files =:= (file.file_name, file_size file) :: !!old_files;
+  List.iter (fun c ->
+      c.client_downloads <- List.remove_assoc file c.client_downloads      
+  ) file.file_clients
+  
       
+(*      
 let file_complete file =
 (*
   Printf.printf "FILE %s DOWNLOADED" f.file_name;
@@ -161,13 +175,14 @@ print_newline ();
     Filename.concat incoming_dir (canonize_basename file.file_name)
   in
 (*  Printf.printf "RENAME to %s" new_name; print_newline ();*)
-  let new_name = rename_to_incoming_dir file.file_temp  new_name in
-  file.file_temp <- new_name
+  let new_name = rename_to_incoming_dir (file_disk_name file)  new_name in
+  set_file_disk_name file new_name
 
 let client_to_client s p sock =
   match p with
   | _ -> ()
-     
+
+
 let client_reader c sock nread = 
   if !!verbose_clients > 20 then begin
       Printf.printf "CLIENT READER"; print_newline ();
@@ -201,7 +216,7 @@ print_newline ();
           end;
         if file_downloaded file = file_size file then
           file_complete file 
-          
+*)          
           
 (*      
       
@@ -246,9 +261,15 @@ let get_from_client sock (c: client) (file : file) =
   
   write_string sock (Printf.sprintf 
       "GET %s HTTP/1.0\r\nRangeRange: bytes=%ld-%ld\r\n\r\n" file.file_name (file_downloaded file) (file_size file));
-  c.client_pos <- file_downloaded file;
-  c.client_file <- Some file;
-  set_rtimeout sock 30.
+  let d = CommonDownloads.new_download sock 
+      (as_client c.client_client)
+    (as_file file.file_file)
+    (on_close c) 
+    (on_finished file)
+    commit_in_subdir in
+  c.client_file <- Some d;
+  set_rtimeout sock 30.;
+  d
     
 let connect_client c =
   if !!verbose_clients > 0 then begin
@@ -299,9 +320,9 @@ an upload request *)
         if !!verbose_clients > 0 then begin
             Printf.printf "READY TO DOWNLOAD FILE"; print_newline ();
           end;
-        get_from_client sock c file;
+        let d = get_from_client sock c file in
         set_reader sock (handler !!verbose_clients (client_parse_header c) 
-          (client_reader c));
+          (CommonDownloads.download_reader d));
   
    
   with e ->
@@ -396,9 +417,13 @@ let client_parse_header2 c sock header =
 
 let client_reader2 c sock nread = 
   match !c with
-    Some c ->
-      client_reader c sock nread
-  | _ -> assert false
+    None -> assert false
+  | Some c ->
+      match c.client_file with
+        None -> assert false
+      | Some d ->
+          CommonDownloads.download_reader d sock nread
+
       
 let listen () =
   try

@@ -23,8 +23,19 @@ open CommonTypes
 open CommonFile
 open Options
 open AgTypes
-
+open AgOptions
+  
 module DO = CommonOptions
+  
+open CommonNetwork
+  
+let network = new_network "Audio Galaxy"
+    network_options_prefix commit_in_subdir
+  
+let (file_ops : file CommonFile.file_ops) = CommonFile.new_file_ops network
+  
+let (client_ops : client CommonClient.client_ops) = 
+  CommonClient.new_client_ops network
   
 let server_connection_state = ref Not_connected
 let server_sock = ref (None: TcpBufferedSocket.t option)
@@ -63,6 +74,7 @@ let new_file file_id file_name file_size =
           impl_file_val = file;
           impl_file_ops = file_ops;
           impl_file_age = BasicSocket.last_time ();          
+          impl_file_best_name = file_name;
           }
         in
       file_add file_impl FileDownloading;

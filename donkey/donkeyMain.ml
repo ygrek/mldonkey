@@ -127,11 +127,21 @@ let enable () =
             set_file_size file (file_size file)
           end else begin
             try
-              if Sys.file_exists file.file_hardname &&
-                Unix32.getsize32 file.file_hardname <> Int32.zero then begin
+              let file_disk_name = file_disk_name file in
+              if Sys.file_exists file_disk_name &&
+                Unix32.getsize32 file_disk_name <> Int32.zero then begin
+                  Printf.printf "FILE DOWNLOADED"; print_newline ();
+                  DonkeyShare.remember_shared_info file file_disk_name;
+                  Printf.printf "REMEMBERED"; print_newline ();
                   file_completed (as_file file.file_file);
+                  let file_id = Filename.basename file_disk_name in
+                  ignore (CommonShared.new_shared "completed" (
+                      file_best_name file )
+                    file_disk_name);
+
+                  Printf.printf "COMPLETED"; print_newline ();
                   (try
-                      let format = CommonMultimedia.get_info file.file_hardname
+                      let format = CommonMultimedia.get_info file_disk_name
                         in
                       file.file_format <- format
                       with _ -> ());        
@@ -246,13 +256,14 @@ let _ =
 (*  DonkeyFiles.install_hooks (); *)
   DonkeyIndexer.init ();
   
+  (*
   file_ops.op_file_commit <- (fun file ->
       DonkeyInteractive.save_file file 
         (DonkeyInteractive.saved_name file);
       Printf.printf "SAVED"; print_newline ();
-  );
+);
+  *)
   network.op_network_enable <- enable;
-  network.network_prefixes <- ["donkey"];
   network.network_config_file <- None;
   network.op_network_info <- (fun n ->
       { 

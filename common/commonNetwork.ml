@@ -41,12 +41,13 @@ let networks_by_name = Hashtbl.create 11
 let networks_by_num = Hashtbl.create 11
 
 let networks_ops = ref []
-let new_network name = 
+let new_network name prefix_option subdir_option = 
   let r =
     {
       network_name = name;
       network_num = network_uid ();
-      network_prefixes = [];
+      network_prefix = prefix_option;
+      network_incoming_subdir = subdir_option;
       network_config_file = None;
       op_network_connected_servers = (fun _ -> fni name "connected_servers");
       op_network_is_enabled =  (fun _ -> fni name "is_enabled");
@@ -85,8 +86,6 @@ let check_network_implementations () =
   List.iter (fun (c, cc) ->
       let n = c.network_name in
       Printf.printf "\n  Network %s\n" n; print_newline ();
-      if c.network_prefixes == cc.network_prefixes then 
-        Printf.printf "network_prefixes\n";
       if c.network_config_file == cc.network_config_file then 
         Printf.printf "network_config_file\n";
       if c.op_network_connected_servers == cc.op_network_connected_servers then 

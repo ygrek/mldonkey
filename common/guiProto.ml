@@ -34,7 +34,7 @@ type from_gui =
 | KillServer
 | ExtendedSearch
 | Search_query of query_entry search_request
-| Download_query of string list * int 
+| Download_query of string list * int * bool (* forced ? *)
 | Url of string
 | RemoveServer_query of int
 | SaveOptions_query of (string * string) list (* options *)
@@ -80,7 +80,6 @@ type from_gui =
   
 (* New messages from protocol 4  *)
 | RefreshUploadStats
-
   
 let gui_extension_poll = 1
   

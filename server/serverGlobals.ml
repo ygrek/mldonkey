@@ -24,16 +24,20 @@ open DonkeyMftp
 open Options
 open DonkeyProtoCom
 open ServerTypes
-
-
+  
+let network = CommonNetwork.new_network "Donkey:server"
+    network_options_prefix commit_in_subdir
 
 (*basic data structures*)
-let files_by_md4 = (if !!relais_cooperation_protocol then
+let (files_by_md4  :  (Md4.t, ServerTypes.location list) Hashtbl.t )
+  
+  = (if !!relais_cooperation_protocol then
 		     Hashtbl.create !!max_group_clients
 		     else
 		      Hashtbl.create !!max_clients;)
 
-let clients_by_id = (if !!relais_cooperation_protocol then
+let (clients_by_id :   (Ip.t, ServerTypes.global_client) Hashtbl.t)
+  = (if !!relais_cooperation_protocol then
 			Hashtbl.create !!max_group_files
 			else
 			Hashtbl.create !!max_files;)
@@ -53,7 +57,7 @@ let alive_servers = ref []
     *)
 
 (* The list of servers that should be sent in the ServerList message *)
-let serverList = ref []
+let serverList = ref ([] : DonkeyTypes.server list)
 (*
   (*
 (*get a part of the servers liste*)
@@ -98,14 +102,15 @@ let nb_udp_reply_count = ref 0
 (*/////////////////////////////////////////*)
 (*Group server variables*)
 
-let servers_by_id = (if !!relais_cooperation_protocol then
+let (servers_by_id :  (int, ServerTypes.server) Hashtbl.t)
+  = (if !!relais_cooperation_protocol then
 		      Hashtbl.create 5 
 		      else
 		      Hashtbl.create 0;)
 
-let to_connect = ref []
+let to_connect = ref ([] : int list)
 
-let local_clients = ref []
+let local_clients = ref ([] : Ip.t list)
 
 let group_id = ref Md4.null
 
@@ -166,8 +171,9 @@ let remove_client client sock msg =
 
 let udp_sock = ref (None: UdpSocket.t option)
 
-let notifications = Hashtbl.create 13
+let (notifications :  (Md4.t*int, ServerTypes.subscription) Hashtbl.t)
+  = Hashtbl.create 13
   
 (* List all tag name *)
-let tag_name_list = ref []
-let subs_match = ref []
+let tag_name_list = ref ([] : string list)
+let subs_match = ref ([] :  (int * Ip.t) list)

@@ -73,16 +73,15 @@ let forget_search num =
     [] !local_searches)
 
   
-  
+(*  
 let save_as file real_name =
 (*
 Source of bug ...
 Unix2.safe_mkdir (Filename.dirname real_name);
 *)
-  old_files =:= file.file_md4 :: !!old_files;
   file_commit (as_file file.file_file);
   Unix32.close (file_fd file);
-  let old_name = file.file_hardname in
+  let old_name = file_disk_name file in
   Printf.printf "\nMOVING %s TO %s\n" old_name real_name; 
   print_newline ();
   (try 
@@ -104,7 +103,9 @@ let save_file file name =
     in
   save_as file real_name;
   file_commit (as_file file.file_file)
-
+*)
+  
+  
 let load_server_met filename =
   try
     let module S = DonkeyImport.Server in
@@ -128,19 +129,19 @@ let load_server_met filename =
       print_newline ();
       0
 
-    
+let already_done = Failure "File already downloaded"
       
 let really_query_download filenames size md4 location old_file absents =
   begin
     try
       let file = Hashtbl.find files_by_md4 md4 in
       if file_state file = FileDownloaded then 
-        raise Already_done;
+        raise already_done;
     with Not_found -> ()
   end;
   
   List.iter (fun file -> 
-      if file.file_md4 = md4 then raise Already_done) 
+      if file.file_md4 = md4 then raise already_done) 
   !current_files;
 
   let temp_file = Filename.concat !!temp_directory (Md4.to_string md4) in
@@ -175,6 +176,7 @@ let really_query_download filenames size md4 location old_file absents =
         if List.mem name names then names else name :: names
     ) filenames other_names in 
   file.file_filenames <- filenames @ file.file_filenames;
+  update_best_name file;
 
   DonkeyOvernet.recover_file file;
   
@@ -229,20 +231,41 @@ let really_query_download filenames size md4 location old_file absents =
 with _ -> ()
 *)
   )
-
-
-let aborted_download = ref None
         
-let query_download filenames size md4 location old_file absents =
-  
-  List.iter (fun m -> 
-      if m = md4 then begin
-          aborted_download := Some (
-            filenames,size,md4,location,old_file,absents);
-          raise Already_done
-        end) 
-  !!old_files;
+let query_download filenames size md4 location old_file absents force =
+  if not force then
+    List.iter (fun m -> 
+        if m = md4 then begin
+            let r = try
+                DonkeyIndexer.find_result md4
+              with _ -> 
+(* OK, we temporary create a result corresponding to the
+file that should have been download, but has already been downloaded *)
+                  
+                  
+                  let r = { 
+                      result_num = 0;
+                      result_network = network.network_num;
+                      result_md4 = md4;
+                      result_names = filenames;
+                      result_size = size;
+                      result_tags = [];
+                      result_type = "";
+                      result_format = "";
+                      result_comment = "";
+                      result_done = false;
+                    } in
+                  DonkeyIndexer.index_result_no_filter r 
+            in
+            aborted_download := Some (result_num (as_result r.result_result));
+            raise already_done
+          end) 
+    !!old_files;
   really_query_download filenames size md4 location old_file absents
+
+let result_download rs filenames force =
+  let r = Store.get store rs.result_index in
+  query_download filenames r.result_size r.result_md4 None None None force
   
 let load_prefs filename = 
   try
@@ -281,7 +304,7 @@ let import_temp temp_dir =
                 | _ -> ()
             ) f.P.tags;
             query_download !filenames !size f.P.md4 None 
-              (Some filename) (Some (List.rev f.P.absents));
+              (Some filename) (Some (List.rev f.P.absents)) true;
       
       with _ -> ()
   ) list
@@ -320,22 +343,7 @@ let broadcast msg =
       TcpBufferedSocket.write sock s 0 len
   ) !user_socks
 
-  
-(* compute the name used to save the file *)
-  
-let longest_name file =
-  let md4_name = Md4.to_string file.file_md4 in
-  let max = ref md4_name in (* default is md4 *)
-  let maxl = ref 0 in
-  List.iter (fun name ->
-      (* prevent it from using the md4 is another name is available *)
-      if name <> md4_name && String.length name > !maxl then begin
-          maxl := String.length name;
-          max := name
-        end
-  ) file.file_filenames;
-  !max
-
+  (*
 let saved_name file =
   let name = longest_name file in
 (*  if !!use_mp3_tags then
@@ -356,7 +364,8 @@ let saved_name file =
     | _ -> name
 else *)
   name
-      
+    *)
+
 let print_file buf file =
   Printf.bprintf buf "[%-5d] %s %10ld %32s %s" 
     (file_num file)
@@ -407,7 +416,7 @@ let parse_donkey_url url =
   | "ed2k://" :: "file" :: name :: size :: md4 :: _
   | "file" :: name :: size :: md4 :: _ ->
       query_download [name] (Int32.of_string size)
-      (Md4.of_string md4) None None None;
+      (Md4.of_string md4) None None None false;
       true
   | "ed2k://" :: "server" :: ip :: port :: _
   | "server" :: ip :: port :: _ ->
@@ -555,7 +564,7 @@ let commands = [
                 with Not_found ->
                     let size = Unix32.getsize32 (Filename.concat 
                           !!temp_directory filename) in
-                    query_download [] size md4 None None None
+                    query_download [] size md4 None None None true
               with e ->
                   Printf.printf "exception %s in recover_temp"
                     (Printexc.to_string e); print_newline ();
@@ -645,20 +654,10 @@ let commands = [
     "dd", Arg_two(fun size md4 o ->
         let buf = o.conn_buf in
         query_download [] (Int32.of_string size)
-        (Md4.of_string md4) None None None;
+        (Md4.of_string md4) None None None false;
         "download started"
 
     ), "<size> <md4> : download from size and md4";
-    
-    "force_download", Arg_none (fun o ->
-        let buf = o.conn_buf in
-        match !aborted_download with
-          None -> "No download to force"
-        | Some (filenames,size,md4,location,old_file,absents) ->
-            really_query_download filenames
-            size md4 location old_file absents;
-            "download started"
-    ), " : force download of an already downloaded file";
 
         
     "forget", Arg_one (fun num o ->
@@ -685,7 +684,7 @@ let commands = [
     ), ": remove servers that have not been connected for several days";
 
   ]
-
+  
 let _ =
   register_commands commands;
   file_ops.op_file_resume <- (fun file ->
@@ -696,6 +695,11 @@ let _ =
   file_ops.op_file_pause <- (fun file ->
       file.file_changed <- FileInfoChange;
 (*      !file_change_hook file *)
+  );
+  file_ops.op_file_commit <- (fun file new_name ->
+      old_files =:= file.file_md4 :: !!old_files;
+      
+      DonkeyShare.remember_shared_info file new_name
   );
   network.op_network_private_message <- (fun iddest s ->      
       try
@@ -802,12 +806,11 @@ let _ =
       }
   )
 
+  
+  
 let _ =
-  result_ops.op_result_download <- (fun rs filenames ->
-      let r = Store.get store rs.result_index in
-      query_download filenames r.result_size r.result_md4 None None None;
-  )
-
+  result_ops.op_result_download <- result_download
+  
 let _ =
   network.op_network_connect_servers <- (fun _ ->
       force_check_server_connections true
@@ -845,18 +848,16 @@ let _ =
 
 let _ =
   file_ops.op_file_save_as <- (fun file name ->
-      file.file_filenames <- [name]
+      file.file_filenames <- [name];
+      set_file_best_name (as_file file.file_file) name
   );
-  file_ops.op_file_disk_name <- (fun file -> file.file_hardname);
-  file_ops.op_file_best_name <- (fun file -> first_name file);
   file_ops.op_file_set_format <- (fun file format ->
       file.file_format <- format);
   file_ops.op_file_check <- (fun file ->
       DonkeyOneFile.verify_chunks file);  
   file_ops.op_file_recover <- (fun file ->
       if file_state file = FileDownloading then 
-        reconnect_all file);
-  
+        reconnect_all file);  
   file_ops.op_file_sources <- (fun file ->
       let list = ref [] in
       Intmap.iter (fun _ c -> 
@@ -864,8 +865,9 @@ let _ =
       !list);
   file_ops.op_file_cancel <- (fun file ->
       Hashtbl.remove files_by_md4 file.file_md4;
-      (try  Sys.remove file.file_hardname  with e -> 
-            Printf.printf "Sys.remove %s exception %s" file.file_hardname
+      (try  Sys.remove (file_disk_name file)  with e -> 
+            Printf.printf "Sys.remove %s exception %s" 
+            (file_disk_name file)
               (Printexc.to_string e); print_newline ());
       Intmap.iter (fun _ c ->
           c.client_source_for <- List2.removeq file c.client_source_for;
@@ -934,7 +936,6 @@ let _ =
           file.file_shared <- None;
           decr nshared_files;
           (try Unix32.close  (file_fd file) with _ -> ());
-          file.file_hardname <- "";
           try Hashtbl.remove files_by_md4 file.file_md4 with _ -> ()
   );
   shared_ops.op_shared_info <- (fun file ->

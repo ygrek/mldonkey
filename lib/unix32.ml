@@ -21,7 +21,7 @@ type t = {
     mutable fd : Unix.file_descr option;
     mutable access : int;
     mutable rights : Unix.open_flag list;
-    filename : string;
+    mutable filename : string;
   }
 
 external seek32 : Unix.file_descr -> int32 -> Unix.seek_command -> int32 =
@@ -90,3 +90,8 @@ let close_all () =
     close_one ()
   done
   
+let filename t = t.filename
+      
+let set_filename t f = 
+  t.filename <- f;
+  close t

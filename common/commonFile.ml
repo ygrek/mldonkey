@@ -34,19 +34,25 @@ type 'a file_impl = {
     mutable impl_file_downloaded : int32;
     mutable impl_file_last_downloaded : (int32 * float) list;
     mutable impl_file_last_rate : float;
+    mutable impl_file_best_name : string;
   }
   
 and 'a file_ops = {
     mutable op_file_network : network;
-    mutable op_file_commit : ('a -> unit);
+    
+(* This method is called just before the file is moved to the incomming
+section, and thus, before it is shared. *)
+    mutable op_file_commit : ('a -> string -> unit);
+    
+(* This method is called when the name under which the file should be saved
+has been changed. The method should not perform the move, just know that
+it will happen soon. *)
     mutable op_file_save_as : ('a -> string -> unit);
     mutable op_file_to_option : ('a -> (string * option_value) list);
     mutable op_file_cancel : ('a -> unit);
     mutable op_file_pause : ('a -> unit);
     mutable op_file_resume : ('a -> unit);
     mutable op_file_info : ('a -> GuiTypes.file_info);
-    mutable op_file_disk_name : ('a -> string);
-    mutable op_file_best_name : ('a -> string);
     mutable op_file_set_format : ('a -> CommonTypes.format -> unit);
     mutable op_file_check : ('a -> unit);
     mutable op_file_recover : ('a -> unit);
@@ -82,6 +88,7 @@ let dummy_file_impl = {
     impl_file_downloaded = Int32.zero;
     impl_file_last_downloaded = [];
     impl_file_last_rate = 0.0;
+    impl_file_best_name = "<UNKNOWN>"
   }
   
 let dummy_file = as_file dummy_file_impl  
@@ -171,13 +178,13 @@ let file_resume (file : file) =
       file.impl_file_ops.op_file_resume file.impl_file_val
     end
 
-let file_disk_name (file : file) =
-  let file = as_file_impl file in
-  file.impl_file_ops.op_file_disk_name file.impl_file_val
-
 let file_best_name (file : file) =
   let file = as_file_impl file in
-  file.impl_file_ops.op_file_best_name file.impl_file_val
+  file.impl_file_best_name
+  
+let set_file_best_name file name = 
+  let file = as_file_impl file in
+  file.impl_file_best_name <- name
 
 let file_set_format (file : file) format =
   let file = as_file_impl file in
@@ -203,7 +210,7 @@ let new_file_ops network =
   let f = 
     {
       op_file_network =  network;
-      op_file_commit = (fun _ -> ni_ok network "file_commit");
+      op_file_commit = (fun _ _ -> ni_ok network "file_commit");
       op_file_save_as = (fun _ _ -> ni_ok network "file_save_as");
 (*    op_file_print = (fun _ _ -> ni_ok network "file_print"); *)
       op_file_to_option = (fun _ -> fni network "file_to_option");
@@ -211,8 +218,7 @@ let new_file_ops network =
       op_file_info = (fun _ -> fni network "file_info");
       op_file_pause = (fun _ -> ni_ok network "file_pause");
       op_file_resume = (fun _ -> ni_ok network "file_resume");
-      op_file_disk_name = (fun _ -> fni network "file_disk_name");
-      op_file_best_name = (fun _ -> fni network "file_best_name");
+(*      op_file_disk_name = (fun _ -> fni network "file_disk_name"); *)
       op_file_check = (fun _ -> ni_ok network "file_check");
       op_file_recover = (fun _ -> ni_ok network "file_recover");
       op_file_set_format = (fun _ -> fni network "file_set_format");
@@ -244,10 +250,8 @@ let check_file_implementations () =
         Printf.printf "op_file_pause\n";
       if c.op_file_resume == cc.op_file_resume then
         Printf.printf "op_file_resume\n";
-      if c.op_file_disk_name == cc.op_file_disk_name then
-        Printf.printf "op_file_disk_name\n";
-      if c.op_file_best_name == cc.op_file_best_name then
-        Printf.printf "op_file_best_name\n";
+(*      if c.op_file_disk_name == cc.op_file_disk_name then
+        Printf.printf "op_file_disk_name\n"; *)
       if c.op_file_check == cc.op_file_check then
         Printf.printf "op_file_check\n";
       if c.op_file_recover == cc.op_file_recover then
@@ -364,3 +368,21 @@ let file_print file o =
     | name :: _ -> name)
   (Int32.to_string info.G.file_size)
   (Int32.to_string info.G.file_downloaded)      
+
+let file_size file = 
+  (as_file_impl file).impl_file_size
+  
+let file_disk_name file =
+  Unix32.filename (as_file_impl file).impl_file_fd
+      
+let file_fd file =
+  (as_file_impl file).impl_file_fd
+
+let set_file_disk_name file filename=
+  Unix32.set_filename (file_fd file) filename
+  
+let file_downloaded file = 
+  (as_file_impl file).impl_file_downloaded  
+
+let file_network file =
+  (as_file_impl file).impl_file_ops.op_file_network

@@ -542,6 +542,11 @@ let to_gui_version_6 buf t =
       
   | _ -> to_gui_version_5 buf t
 
+let to_gui_version_7 buf t =
+  match t with
+      
+  | _ -> to_gui_version_6 buf t
+
       
 let to_gui = [| 
     to_gui_version_0; 
@@ -551,6 +556,7 @@ let to_gui = [|
     to_gui_version_4;
     to_gui_version_5;
     to_gui_version_6;
+    to_gui_version_7; 
   |]
   
 (***************
@@ -558,7 +564,7 @@ let to_gui = [|
      Encoding of messages from the GUI to the Core 
 
 ****************)
-      
+
 let rec from_gui_version_0 buf t =
   match t with
   | GuiProtocol int -> buf_int16 buf 0;
@@ -573,7 +579,7 @@ let rec from_gui_version_0 buf t =
   | Search_query search -> buf_int16 buf 6;
       buf_bool buf (search.search_type = LocalSearch); 
       buf_search_version_0 buf search
-  | Download_query (list, int) -> buf_int16 buf 7;
+  | Download_query (list, int, _) -> buf_int16 buf 7;
       buf_list buf buf_string list; buf_int buf int
   | Url string -> buf_int16 buf 8;
       buf_string buf string
@@ -694,8 +700,7 @@ let from_gui_version_3 buf t =
 
 let from_gui_version_4 buf t  = 
   match t with
-  | RefreshUploadStats ->
-      buf_int16 buf 49
+  | RefreshUploadStats ->      buf_int16 buf 49
   | _ -> from_gui_version_3 buf t
 
 let from_gui_version_5 buf t  = 
@@ -705,7 +710,16 @@ let from_gui_version_5 buf t  =
 let from_gui_version_6 buf t  = 
   match t with
   | _ -> from_gui_version_5 buf t
-      
+
+
+let from_gui_version_7 buf t  = 
+  match t with
+  | Download_query (list, int, force) -> buf_int16 buf 7;
+      buf_list buf buf_string list; buf_int buf int; buf_bool buf force
+
+  | _ -> from_gui_version_6 buf t
+        
+
 let from_gui = [| 
     from_gui_version_0; 
     from_gui_version_1;
@@ -714,6 +728,7 @@ let from_gui = [|
     from_gui_version_4; 
     from_gui_version_5; 
     from_gui_version_6; 
+    from_gui_version_7;  
     |]
   
   
@@ -770,26 +785,25 @@ let _ =
       server_num = 1;
 } *)
   in
-  let check_to_gui_version_6 = 
-    check to_gui_version_6 GuiDecoding.to_gui_version_6 in
-  assert (check_to_gui_version_6 (MessageFromClient (32, "Hello")));
-  assert (check_to_gui_version_6 (DownloadFiles [file_info]));
-  assert (check_to_gui_version_6 (DownloadedFiles [file_info]));
-  assert (check_to_gui_version_6 (ConnectedServers []));    
-  assert (check_to_gui_version_6 (Room_remove_user (5,6)));
-  assert (check_to_gui_version_6 (Shared_file_upload (1, Int64.zero, 32)));
-  assert (check_to_gui_version_6 (Shared_file_unshared 2));
+  let check_to_gui_version_7 = 
+    check to_gui_version_7 GuiDecoding.to_gui_version_7 in
+  assert (check_to_gui_version_7 (MessageFromClient (32, "Hello")));
+  assert (check_to_gui_version_7 (DownloadFiles [file_info]));
+  assert (check_to_gui_version_7 (DownloadedFiles [file_info]));
+  assert (check_to_gui_version_7 (ConnectedServers []));    
+  assert (check_to_gui_version_7 (Room_remove_user (5,6)));
+  assert (check_to_gui_version_7 (Shared_file_upload (1, Int64.zero, 32)));
+  assert (check_to_gui_version_7 (Shared_file_unshared 2));
   (* Shared_file_info ??? *)
-  assert (check_to_gui_version_6 (Add_section_option ("section", "message", "option", StringEntry )));
-  assert (check_to_gui_version_6 (Add_plugin_option ("section", "message", "option", StringEntry )));
+  assert (check_to_gui_version_7 (Add_section_option ("section", "message", "option", StringEntry )));
+  assert (check_to_gui_version_7 (Add_plugin_option ("section", "message", "option", StringEntry )));
   
-  let check_from_gui_version_6 = 
-    check from_gui_version_6 GuiDecoding.from_gui_version_6 in
-  assert (check_from_gui_version_6 (MessageToClient (33, "Bye")));
-  assert (check_from_gui_version_6 (GuiExtensions [1, true; 2, false]));
-  assert (check_from_gui_version_6 GetConnectedServers);
-  assert (check_from_gui_version_6 GetDownloadFiles);
-  assert (check_from_gui_version_6 GetDownloadedFiles);
-  assert (check_from_gui_version_6 (SetRoomState (5, RoomPaused)));
-  assert (check_from_gui_version_6 RefreshUploadStats)  
-  
+  let check_from_gui_version_7 = 
+    check from_gui_version_7 GuiDecoding.from_gui_version_7 in
+  assert (check_from_gui_version_7 (MessageToClient (33, "Bye")));
+  assert (check_from_gui_version_7 (GuiExtensions [1, true; 2, false]));
+  assert (check_from_gui_version_7 GetConnectedServers);
+  assert (check_from_gui_version_7 GetDownloadFiles);
+  assert (check_from_gui_version_7 GetDownloadedFiles);
+  assert (check_from_gui_version_7 (SetRoomState (5, RoomPaused)));
+  assert (check_from_gui_version_7 RefreshUploadStats) ; 

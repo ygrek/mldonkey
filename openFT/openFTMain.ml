@@ -81,7 +81,6 @@ let _ =
 );
   *)
   network.op_network_enable <- enable;
-  network.network_prefixes <- ["FT"];
   network.network_config_file <- Some openft_ini;
   network.op_network_info <- (fun n ->
       { 

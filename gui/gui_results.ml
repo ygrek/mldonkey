@@ -55,13 +55,23 @@ class box with_extended columns () =
     method download () = 
       List.iter
 	(fun r -> 
-	  Gui_com.send (Download_query (r.result_names, r.result_num)))
+	  Gui_com.send (Download_query (r.result_names, r.result_num, false)))
+	self#selection
+
+    method force_download () = 
+      List.iter
+	(fun r -> 
+	  Gui_com.send (Download_query (r.result_names, r.result_num, true)))
 	self#selection
 
     method menu = 
       match self#selection with
 	[] -> []
-      |	_ -> [ `I (M.download, self#download) ]
+      |	_ -> [
+            `I (M.download, self#download);
+            `I ("Force Download", self#force_download);
+            ]
+            
 
     method compare_by_col col r1 r2 =
       match col with
@@ -272,7 +282,8 @@ class box_dir_files () =
 	    1 ->
 	      List.iter
 		(fun r -> 
-		  Gui_com.send (Download_query (r.result_names, r.result_num)))
+                  Gui_com.send (
+                    Download_query (r.result_names, r.result_num, false)))
 		files
 	  | _ ->
 	      ()

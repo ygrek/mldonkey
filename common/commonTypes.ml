@@ -155,8 +155,9 @@ type network_info = {
 type network = {
     network_name : string;
     network_num : int;
-    mutable network_prefixes : string list;
     mutable network_config_file : Options.options_file option;
+    mutable network_incoming_subdir: string Options.option_record;
+    mutable network_prefix: string Options.option_record;
     mutable op_network_connected_servers : (unit -> server list);
     mutable op_network_is_enabled : (unit -> bool);
     mutable op_network_save_complex_options : (unit -> unit);

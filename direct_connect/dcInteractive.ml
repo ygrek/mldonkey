@@ -139,7 +139,7 @@ let _ =
   )
 
 let _ =
-  result_ops.op_result_download <- (fun r filenames ->
+  result_ops.op_result_download <- (fun r filenames force ->
       download r filenames   
   )
 
@@ -246,17 +246,14 @@ let _ =
         P.file_age = file_age file;
       }    
   );
+  (*
   file_ops.op_file_save_as <- (fun file new_name  ->
       match file_state file with
         FileDownloaded | FileShared ->
           DcClients.save_file_as file new_name
       | _ -> ()
-  );
-  file_ops.op_file_commit <- (fun file ->
-      () (* nothing to do *)   
-  );
-  file_ops.op_file_disk_name <- (fun file -> file.file_temp);
-  file_ops.op_file_best_name <- (fun file -> file.file_name);
+);
+  *)
   file_ops.op_file_sources <- (fun file ->
       List2.tail_map (fun c -> as_client c.client_client)
       file.file_clients

@@ -12,7 +12,7 @@
 (** Messages and string constants. *)
 
 let software = "MLChat"
-let software_version = "0.3"
+let software_version = "1.1"
 let software_author = "Maxence Guesdon"
 let software_author_mail = "Maxence.Guesdon@inria.fr"
 let software_copyright = 

@@ -165,7 +165,7 @@ let create_blocking name fd handler =
   incr nb_sockets;
   Unix.set_nonblock fd;
 (*  Printf.printf "NEW FD %d" (Obj.magic fd); print_newline (); *)
-  current_time := Unix.gettimeofday ();
+  let _ = update_time () in
   let t = {
       fd = fd;
       
@@ -394,8 +394,9 @@ let print_sockets () =
   print_newline ();
   List.iter (fun s ->
       print_socket s;
-      Printf.printf "  rtimeout %5.0f read %b & %b write %b & %b (born %f)" 
-      (s.next_rtimeout -. last_time ())
+      Printf.printf "  rtimeout %5.0f/%5.0f read %b & %b write %b & %b (born %f)" 
+        (s.next_rtimeout -. last_time ())
+      s.rtimeout
       (s.want_to_read)
       (!(s.read_allowed))
       (s.want_to_write)

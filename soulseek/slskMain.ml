@@ -80,7 +80,6 @@ let _ =
           SlskComplexOptions.save_config ()
 );
   *)
-  network.network_prefixes <- ["slsk"];
   network.network_config_file <- Some soulseek_ini;
   network.op_network_connected_servers <- (fun _ ->
       List2.tail_map (fun s -> as_server s.server_server) !connected_servers   

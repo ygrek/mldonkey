@@ -18,7 +18,6 @@
 *)
 
 (*
-
 For each file on disk that has to be shared, call
   network_share file_name codedname file_size
   
@@ -92,11 +91,16 @@ let shared_must_update_downloaded shared =
 
 let update_shared_num impl =
   if impl.impl_shared_num = 0 then begin
+      Printf.printf "NEW SHARED %s/%s" impl.impl_shared_codedname
+        impl.impl_shared_fullname; print_newline ();
       incr shared_counter;
       impl.impl_shared_num <- !shared_counter;
       H.add shareds_by_num (as_shared impl);
       shared_must_update (as_shared impl);
     end
+
+let shared_remove impl =
+  H.remove shareds_by_num (as_shared impl)
     
 let dirnames = Hashtbl.create 13
 let dirname_counter = ref 0
@@ -111,28 +115,7 @@ let new_shared dirname filename fullname =
         Hashtbl.add dirnames dirname name;
         name in
   let codedname = Filename.concat dirname filename in
-      let size = Unix32.getsize32 fullname in
-(*
-      incr shared_num;
-      let impl = {
-          impl_shared_update = 1;
-          impl_shared_fullname = fullname;
-          impl_shared_codedname = codedname;
-          impl_shared_size = size;
-          impl_shared_num = !shared_num;
-          impl_shared_uploaded = Int64.zero;
-          impl_shared_last_uploaded = Int64.zero;
-          impl_shared_ops = [];
-} in
-  
-      incr nshared_files;
-      shared_counter := Int64.add !shared_counter (Int64.of_int32 size);
-      let s = as_shared impl in
-      shared_must_update (as_shared impl);
-      Hashtbl.add shareds_by_num !shared_num s;
-      Hashtbl.add shareds_by_fullname fullname s;
-Hashtbl.add shareds_by_codedname codedname s;
-  *)
+  let size = Unix32.getsize32 fullname in
   CommonNetwork.networks_iter (fun n -> 
       CommonNetwork.network_share n fullname codedname size)
 
@@ -184,6 +167,11 @@ let can_share dirname =
   
   
 let rec shared_add_directory dirname local_dir =
+  let dirname = 
+    if Filename.is_relative dirname then
+      Filename.concat file_basedir dirname
+    else dirname 
+  in
   if can_share dirname then
     let full_dir = Filename.concat dirname local_dir in
     let files = Unix2.list_directory full_dir in
@@ -209,6 +197,7 @@ let rec shared_add_directory dirname local_dir =
     ) files
     
 let shared_add_directory dirname =
+  Printf.printf "SHARING %s" dirname; print_newline ();
   shared_add_directory dirname ""
   
 let impl_shared_info impl =

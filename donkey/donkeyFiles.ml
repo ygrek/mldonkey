@@ -349,7 +349,7 @@ let rec really_read fd s pos len =
   if nread < len then
     really_read fd s (pos + nread) (len - nread)
   
-let send_small_block sock file begin_pos len = 
+let send_small_block c sock file begin_pos len = 
   let len_int = Int32.to_int len in
   remaining_bandwidth := !remaining_bandwidth - len_int / 1000;
   try
@@ -392,7 +392,10 @@ print_newline (); *)
           impl.impl_shared_uploaded <- 
             Int64.add impl.impl_shared_uploaded uploaded);
     (*  Printf.printf "sending"; print_newline (); *)
-    printf_char 'U';
+    if c.client_connected then
+      printf_string "U[OUT]"
+    else
+      printf_string "U[IN]";
     
     write_string sock upload_buffer
   with e -> 
@@ -414,7 +417,7 @@ let rec send_client_block c sock per_client =
         if max_len <= msg_block_size then
 (* last block from chunk *)
           begin
-            send_small_block  sock up.up_file up.up_pos max_len;
+            send_small_block c sock up.up_file up.up_pos max_len;
             up.up_chunks <- chunks;
             match chunks with
               [] -> 
@@ -427,7 +430,7 @@ let rec send_client_block c sock per_client =
         else
 (* small block from chunk *)
           begin
-            send_small_block sock up.up_file up.up_pos msg_block_size;
+            send_small_block c sock up.up_file up.up_pos msg_block_size;
             up.up_pos <- Int32.add up.up_pos msg_block_size;
             if can_write_len sock max_msg_size then
               send_client_block c sock (per_client-1)
@@ -447,7 +450,7 @@ let rec send_client_block_partial c sock per_client =
       if max_len <= msg_block_size then
 (* last block from chunk *)
         begin
-          send_small_block  sock up.up_file up.up_pos max_len;
+          send_small_block c sock up.up_file up.up_pos max_len;
           up.up_chunks <- chunks;
           match chunks with
             [] -> 
@@ -459,7 +462,7 @@ let rec send_client_block_partial c sock per_client =
       else
 (* small block from chunk *)
         begin
-          send_small_block sock up.up_file up.up_pos msg_block_size;
+          send_small_block c sock up.up_file up.up_pos msg_block_size;
           up.up_pos <- Int32.add up.up_pos msg_block_size;
         end
   | _ -> 

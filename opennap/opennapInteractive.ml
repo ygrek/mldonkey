@@ -111,7 +111,7 @@ let string_of_length d =
 
 
 let _ = 
-  result_ops.CommonResult.op_result_download <- (fun r _ ->
+  result_ops.CommonResult.op_result_download <- (fun r _ force ->
       OpennapServers.download_file r)
 
 let file_num file =
@@ -145,8 +145,7 @@ let _ =
         P.file_chunks_age = [|0.0|];
         P.file_age = 0.0;
       }    
-  );
-  file_ops.op_file_disk_name <- (fun file -> file.file_temp)
+  )
   
 let _ =
   server_ops.op_server_info <- (fun s ->

@@ -257,7 +257,7 @@ let client_reader c t sock =
       Printf.printf "###UNUSED CLIENT MESSAGE###########"; print_newline ();
       DcProtocol.print t
 
-     
+     (*
 let save_file_as file filename =
 
 (* finally move file *)
@@ -271,14 +271,18 @@ let save_file_as file filename =
     Filename.concat incoming_dir (canonize_basename file.file_name)
   in
   try
-    Printf.printf "*******  RENAME %s to %s *******" file.file_temp new_name; print_newline ();
-    let new_name = rename_to_incoming_dir file.file_temp  new_name in
-    Printf.printf "*******  RENAME %s to %s DONE *******" file.file_temp new_name; print_newline ();
-    file.file_temp <- new_name
+    Printf.printf "*******  RENAME %s to %s *******" 
+      (file_disk_name file) new_name; print_newline ();
+    let new_name = rename_to_incoming_dir 
+      (file_disk_name file)  new_name in
+    Printf.printf "*******  RENAME %s to %s DONE *******" 
+      (file_disk_name file) new_name; print_newline ();
+    set_file_disk_name file new_name
   with e ->
       Printf.printf "Exception %s in rename" (Printexc.to_string e);
       print_newline () 
-       
+      *)
+
 let file_complete file = 
 (*
   Printf.printf "FILE %s DOWNLOADED" f.file_name;
@@ -289,9 +293,7 @@ print_newline ();
 (*  old_files =:= (f.file_name, f.file_size) :: !!old_files; *)
   List.iter (fun c ->
       c.client_files <- List.remove_assoc file c.client_files
-  ) file.file_clients;
-
-  save_file_as file file.file_name
+  ) file.file_clients
   
 let client_downloaded c sock nread = 
   Printf.printf "."; flush stdout; 

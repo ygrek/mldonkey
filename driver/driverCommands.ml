@@ -302,10 +302,23 @@ let commands = [
 
 ";
   
-    "d", Arg_one (fun arg o ->
-        CommonInteractive.download_file buf arg),
-    " <num> : file to download on OpenNap";
+    "d", Arg_multiple (fun args o ->
+        List.iter (fun arg ->
+            CommonInteractive.download_file o.conn_buf arg) args;
+        ""),
+    " <num> : file to download";
 
+        
+    "force_download", Arg_none (fun o ->
+        let buf = o.conn_buf in
+        match !CommonGlobals.aborted_download with
+          None -> "No download to force"
+        | Some r ->
+            CommonResult.result_download (CommonResult.result_find r) [] true;
+            "download forced"
+    ), " : force download of an already downloaded file";
+
+    
     "vs", Arg_none (fun o ->
         let buf = o.conn_buf in
         Printf.bprintf  buf "Searching %d queries\n" (

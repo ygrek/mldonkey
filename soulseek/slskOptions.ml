@@ -78,9 +78,14 @@ let next_token =
   define_option soulseek_ini ["next_token"]
     "the last token used for a query is saved here" int_option 1
   
-
+        
+let network_options_prefix = define_option soulseek_ini
+    ["options_prefix"] "The prefix which is appended to options names
+    when they are used in the telnet/WEB interfaces"
+    string_option "slsk-"
+  
 let shortname o =
-  Printf.sprintf "slsk-%s" (shortname o)
+  Printf.sprintf "%s%s" !!network_options_prefix (shortname o)
     
 let gui_soulseek_options_panel = 
   define_option soulseek_ini ["gui_soulseek_options_panel"]
@@ -95,3 +100,4 @@ let gui_soulseek_options_panel =
     "Password", shortname password, "T";
     "Commit Downloads In Incoming Subdir", shortname commit_in_subdir, "T";
   ]
+

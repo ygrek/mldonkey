@@ -17,8 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-val save_file : DonkeyTypes.file -> string -> unit
-val saved_name : DonkeyTypes.file -> string
+(* val save_file : DonkeyTypes.file -> string -> unit *)
 
 (*
 val query_download : string list -> int32 -> Md4.t -> int option

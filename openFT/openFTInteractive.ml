@@ -83,7 +83,7 @@ let _ =
       ())
 
 let _ =
-  result_ops.op_result_download <- (fun result _ ->
+  result_ops.op_result_download <- (fun result _ force ->
       OpenFTServers.download_file result)
 
 let file_num file =
@@ -93,9 +93,6 @@ let _ =
   file_ops.op_file_cancel <- (fun file ->
       current_files := List2.remove file !current_files;
       file_cancel (as_file file.file_file);
-  );
-  file_ops.op_file_disk_name <- (fun file ->
-      file.file_temp;
   );
   file_ops.op_file_sources <- (fun file ->
       List2.tail_map (fun c ->

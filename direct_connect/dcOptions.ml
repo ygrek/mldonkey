@@ -90,17 +90,13 @@ let client_keyinfo = define_option directconnect_ini
     ["client_keyinfo"] "The key info sent in the handshake message"
     string_option "Pk=mldonkey"
   
-let network_prefix = define_option directconnect_ini
-    ["network_prefix"] "The prefixes used before Direct-Connect options"
-    string_option "DC"
-  
-let _ =
-  option_hook network_prefix (fun _ ->
-      network.network_prefixes <- [!!network_prefix]   
-  )
+let network_options_prefix = define_option directconnect_ini
+    ["network_options_prefix"] 
+  "The prefixes used before Direct-Connect options"
+    string_option "DC-"
 
 let shortname o =
-  Printf.sprintf "DC-%s" (shortname o)
+  Printf.sprintf "%s%s" !!network_options_prefix (shortname o)
     
 let gui_dc_options_panel = 
   define_option directconnect_ini ["gui_dc_options_panel"]

@@ -48,20 +48,13 @@ let _ =
       ())
   
 let _ =
-  result_ops.op_result_download <- (fun result _ ->
+  result_ops.op_result_download <- (fun result _ force ->
       LimewireServers.download_file result)
 
 let file_num file =
   file.file_file.impl_file_num
 
 let _ =
-  file_ops.op_file_cancel <- (fun file ->
-      current_files := List2.remove file !current_files;
-      file_cancel (as_file file.file_file);
-  );
-  file_ops.op_file_disk_name <- (fun file ->
-      file.file_temp;
-  );
   file_ops.op_file_sources <- (fun file ->
       Printf.printf "file_sources"; print_newline ();
       List2.tail_map (fun c ->
@@ -84,7 +77,8 @@ let _ =
   file_ops.op_file_cancel <- (fun file ->
       Hashtbl.remove OpennapGlobals.files_by_key 
       (file.file_name, file_size file);
-      current_files := List2.removeq file !current_files      
+      current_files := List2.removeq file !current_files;
+      file_cancel (as_file file.file_file);
   );
   file_ops.op_file_info <- (fun file ->
        {

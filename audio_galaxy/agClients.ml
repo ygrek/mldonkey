@@ -66,6 +66,8 @@ let file_complete file file_id =
   file_completed (as_file file.file_file);
   current_files := List2.removeq file !current_files;
   old_files =:= (file.file_name, (file_size file)) :: !!old_files;
+  
+  (*
   let incoming_dir =
     if !!commit_in_subdir <> "" then
       Filename.concat !!DO.incoming_directory !!commit_in_subdir
@@ -75,7 +77,8 @@ let file_complete file file_id =
   let new_name = rename_to_incoming_dir file.file_temp
       (Filename.concat incoming_dir (canonize_basename file.file_name)) in
   CommonChat.send_warning_for_downloaded_file file.file_name
-
+*)
+  ()
     
 let file_writter c sock nread =
 (*  Printf.printf "RECEIVED %d bytes" nread; print_newline (); *)

@@ -104,17 +104,19 @@ let print_results o =
 
       
 let download_file buf arg =
-  try
-    match !last_search with
-      None -> "no last search"
-    | Some s ->
-        let result = List.assoc (int_of_string arg) !last_results  in
-        CommonResult.result_download result [];
-        "download started"
-  with _ ->
-      "no such file to download"
-      
-            
+  Printf.bprintf buf "%s\n" (
+    try
+      match !last_search with
+        None -> "no last search"
+      | Some s ->
+          let result = List.assoc (int_of_string arg) !last_results  in
+          CommonResult.result_download result [] false; 
+          "download started"
+    with
+    | Failure s -> s
+    | _ -> "could not start download"
+  )
+  
 let start_search query buf =
   let s = CommonSearch.new_search query in
   networks_iter (fun r -> r.op_network_search s buf);
@@ -288,13 +290,15 @@ let all_simple_options () =
         None -> ()
       | Some opfile ->
           let args = simple_options opfile in
-          List.iter (fun prefix ->
-              let args = List2.tail_map (fun (arg, value) ->
-                    (Printf.sprintf "%s-%s" prefix arg, value)) 
-                args
-              in
-              options := !options @ args)
-          r.network_prefixes);
+          let prefix = !!(r.network_prefix) in
+          let args = 
+            if prefix = "" then args else 
+              List2.tail_map (fun (arg, value) ->
+                (Printf.sprintf "%s%s" prefix arg, value)) 
+            args
+          in
+          options := !options @ args
+  );
   !options
 
 let set_fully_qualified_options name value =
@@ -314,9 +318,8 @@ let set_fully_qualified_options name value =
               match r.network_config_file with
                 None -> false
               | Some opfile ->
-                  List.iter (fun prefix ->
-                      iter (prefix^"-") opfile
-                  ) r.network_prefixes;
+                  let prefix = r.network_prefix in
+                  iter (if !!prefix = "" then "" else !!prefix^"-") opfile;
                   false
             with Exit -> true
         )) then begin
@@ -324,29 +327,6 @@ let set_fully_qualified_options name value =
       end
   with Exit -> ()
       
-let canonize_basename name =
-  let name = String.copy name in
-  for i = 0 to String.length name - 1 do
-    match name.[i] with
-    | '/' | '\\' -> name.[i] <- '_'
-    | _ -> ()
-  done;
-  name
-      
-let rename_to_incoming_dir old_name new_name = 
-  let new_name = 
-    if Sys.file_exists new_name then
-      let rec iter num =
-        let new_name = Printf.sprintf "%s.%d" new_name num in
-        if Sys.file_exists new_name then
-          iter (num+1)
-        else new_name
-      in
-      iter 1
-    else new_name in
-  Unix2.rename old_name new_name;
-  new_name
-
 let keywords_of_query query =
   let keywords = ref [] in
   
@@ -390,4 +370,6 @@ let gui_options_panels = ref ([] : (string * (string * string * string) list) li
 let register_gui_options_panel name panel =
   if not (List.mem_assoc name !gui_options_panels) then
     gui_options_panels := (name, panel) :: !gui_options_panels
+    
+    
     

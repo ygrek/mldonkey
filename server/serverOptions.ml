@@ -112,6 +112,15 @@ let known_master =  define_option server_ini ["known_master"]
   "Connect to a group already known." (list_option (tuple2_option (Ip.option, int_option)))
   []
 
+let commit_in_subdir = define_option server_ini ["commit_in_subdir"]
+  "The subdirectory of temp/ where files should be moved to"
+    string_option ""
+  
+let network_options_prefix = define_option server_ini
+    ["options_prefix"] "The prefix which is appended to options names
+    when they are used in the telnet/WEB interfaces"
+    string_option "server-"
+
 (* Subscription options *)
 let max_subs_lifetime = define_option server_ini ["max_subs_lifetime"] "Time (in seconds) for a maximum subscription lifetime" float_option 3600.
 

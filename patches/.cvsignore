@@ -1,6 +1,3 @@
 ocamlopt-*
 local
-lablgtk-*
-ocaml-*
-local
 build

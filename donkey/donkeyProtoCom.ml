@@ -17,13 +17,19 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonFile
+open CommonGlobals
+open DonkeyOptions
+open DonkeyGlobals
+open DonkeyTypes
+open CommonTypes
 open Options
 open CommonGlobals
 open LittleEndian
 open DonkeyMftp
 open BasicSocket
 open TcpBufferedSocket
-
+open CommonOptions
   
 let verbose = ref false
 
@@ -240,26 +246,86 @@ let direct_client_send s msg =
 let direct_server_send s msg =
   server_send s msg
   
+(* Computes tags for shared files *)
+let make_tagged sock files =
+  (List2.tail_map (fun file ->
+        { f_md4 = file.file_md4;
+          f_ip = client_ip sock;
+          f_port = !client_port;
+          f_tags = 
+          { tag_name = "filename";
+            tag_value = String (
+              
+              let name = file_best_name file in
+              Printf.printf "SHARING %s" name; print_newline ();
+              name
+              ); } ::
+          { tag_name = "size";
+            tag_value = Uint32 file.file_file.impl_file_size; } ::
+          (
+            (match file.file_format with
+                Unknown_format ->
+                  (try
+                      file.file_format <- 
+                        CommonMultimedia.get_info 
+                        (file_disk_name file)
+                    with _ -> ())
+              | _ -> ()
+            );
+            
+            match file.file_format with
+              Unknown_format -> []
+            | AVI _ ->
+                [
+                  { tag_name = "type"; tag_value = String "Video" };
+                  { tag_name = "format"; tag_value = String "avi" };
+                ]
+            | Mp3 _ ->
+                [
+                  { tag_name = "type"; tag_value = String "Audio" };
+                  { tag_name = "format"; tag_value = String "mp3" };
+                ]
+            | FormatType (format, kind) ->
+                [
+                  { tag_name = "type"; tag_value = String kind };
+                  { tag_name = "format"; tag_value = String format };
+                ]
+          )
+        }
+    ) files)
   
-let direct_servers_send_share socks msg max_len =
+let direct_server_send_share sock msg =
+  let max_len = !!client_buffer_size - 100 - 
+    TcpBufferedSocket.remaining_to_write sock in
+  Printf.printf "SENDING SHARES"; print_newline ();
   Buffer.clear buf;
   buf_int8 buf 227;
   buf_int buf 0;
   buf_int8 buf 21; (* ShareReq *)
-  DonkeyProtoServer.Share.write_max buf msg max_len;
+  buf_int buf 0;
+  let nfiles, prev_len = DonkeyProtoServer.Share.write_files_max buf (
+      make_tagged (Some sock) msg) 0 max_len in
   let s = Buffer.contents buf in
+  let s = String.sub s 0 prev_len in
   let len = String.length s - 5 in
   str_int s 1 len;
-  List.iter (fun sock -> write_string sock s) socks
-  
-    
-let direct_client_send_files sock msg max_len =
+  str_int s 6 nfiles;
+  write_string sock s
+        
+let direct_client_send_files sock msg =
+  let max_len = !!client_buffer_size - 100 - 
+    TcpBufferedSocket.remaining_to_write sock in
   Buffer.clear buf;
   buf_int8 buf 227;
   buf_int buf 0;
   buf_int8 buf 75; (* ViewFilesReply *)
-  DonkeyProtoClient.ViewFilesReply.write_max buf msg max_len;
+  buf_int buf 0;
+  let nfiles, prev_len = DonkeyProtoClient.ViewFilesReply.write_files_max buf (
+      make_tagged (Some sock) msg)
+    0 max_len in
   let s = Buffer.contents buf in
+  let s = String.sub s 0 prev_len in
   let len = String.length s - 5 in
   str_int s 1 len;
+  str_int s 6 nfiles;
   write_string sock s

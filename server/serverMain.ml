@@ -325,7 +325,6 @@ let _ =
   network.network_config_file <- Some server_ini;
   network.op_network_is_enabled <- (fun _ -> !!CommonOptions.enable_server);
   network.op_network_enable <- enable;
-  network.network_prefixes <- [ "server" ];  
   network.op_network_info <- (fun n ->
       { 
         network_netnum = network.network_num;

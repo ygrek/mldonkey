@@ -67,4 +67,11 @@ let http_port = define_option audiogal_ini ["http_port"]
 let commit_in_subdir = define_option audiogal_ini ["commit_in_subdir"]
   "The subdirectory of temp/ where files should be moved to"
     string_option "AudioGalaxy"
+
+    
+let network_options_prefix = define_option audiogal_ini
+    ["network_options_prefix"] 
+  "The prefixes used before these options in the console/WEB"
+    string_option "AG-"
+  
   

@@ -1,6 +1,40 @@
 ChangeLog	
 =========
 
+2002/09/28: mldonkey
+  - fix: incoming connections timeout are now correctly set, and
+      connections should be correctly initialized.
+
+2002/09/27: mldonkey
+  - fix: upload improvements
+     * names are correctly chosen, and sent to the server
+     * all BUFFER_OVERFLOW due to long file lists have been removed
+     * after restart, non commited files are still shared.
+     * bug fixed when shared file list is too long (shortened message)
+     * the size of the ShareReq message directly depends on the space
+        available in the server buffer.
+     * md4s for downloaded files are never recomputed after commit
+  - fix: force download:
+     * new contectual menu item "Force Download" in GUI result panel
+     * "force_download" should now work well
+  - add: core errors are displayed in the GUI console (maybe the last line
+     of the console should be displayed in the status bar ?)
+  - GUI protocol 7 for "force" argument to Download_query
+
+2002/09/27: zoggy
+   - add : web directory to manage source files of generated mldonkey pages
+   - change : chat protocol version (-> 1.1) to be able to communicate with
+	mlchat from Cameleon
+
+2002/09/25: mldonkey
+  - add: new module common/commonDownloads.ml to share the functions used
+      in all network where downloads are in one piece.
+  - fix: mail, chat and file_completed_cmd are used for all finished downloads
+       not only eDonkey (CommonInteractive.file_complete)
+  - fix: file_commit now moves the file to incoming/. All networks must now
+       use the "commit" function, not only edonkey.
+  - fix: try to save the md4 of each file before sharing it.
+
 2002/09/24: mldonkey
   - fix: renewed my passport (6 hours)
   - fix: prevent "BAD BAD BAD" lines from removing good sources. Very Important

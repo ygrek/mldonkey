@@ -89,7 +89,6 @@ let _ =
 );
   *)
   network.op_network_enable <- enable;
-  network.network_prefixes <- ["LW"];
   network.network_config_file <- Some limewire_ini;
   network.op_network_info <- (fun n ->
       { 

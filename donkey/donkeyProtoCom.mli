@@ -68,10 +68,10 @@ val client_msg_to_string : DonkeyProtoClient.t -> string
 val direct_server_send : TcpBufferedSocket.t -> DonkeyProtoServer.t -> unit
 val direct_client_send : TcpBufferedSocket.t -> DonkeyProtoClient.t -> unit
 val direct_servers_send : TcpBufferedSocket.t list -> DonkeyProtoServer.t -> unit
-val direct_servers_send_share : 
-  TcpBufferedSocket.t list -> CommonTypes.tagged_file list -> int -> unit
+val direct_server_send_share : 
+  TcpBufferedSocket.t  -> DonkeyTypes.file list -> unit
 val direct_client_send_files : 
-    TcpBufferedSocket.t -> CommonTypes.tagged_file list -> int -> unit
+    TcpBufferedSocket.t -> DonkeyTypes.file list -> unit
   
 val new_string :  DonkeyProtoClient.t -> string -> unit
   

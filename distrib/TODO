@@ -24,16 +24,29 @@ For 2.00:
      source.
   * only for short periods
 - Do not share files starting with a dot.
-
-***********************************************************************
+- Check that files are immediatly shared after download
+- Build a table of max_hard_up/download_rate in the FAQ, depending
+    on line and usage.
+- Better anticipation of TCP bandwidth
+- Web Server inside each server
+- GUI stub for multiple GUIs
 - Verify that files downloaded but not commited are immediatly shared !
-***********************************************************************
+- Send a message for password retry
+- Different users per mldonkey with their own private searches
+- Add preview for downloaded files
+- Add friend by IP:port (possible with link ?)
+
+-Check the upload computation, and the difference of rates between kb/s
+  for files and control.
+- Save the md4 of a downloaded file in the cache of file info between
+   calling new_shared.
+- Option to completely replace the server list
+- SegFault when RetryConnect with more than 1024 sources.
+- Cancel and Redownload doesnot work
 
 *********
 
-For 2.01:
-  - Allow enable/disable network at runtime
-  - Allow access to each network options in the GUI and telnet
+For 2.1:
   - What about having one result per file ?
   - Allow upload at least in Direct Connect... Maybe in gnutella too, even
      if it is probably a waste of bandwidth. Upload should probably be
@@ -45,9 +58,8 @@ For 2.01:
    - Add a "cp" function to change the temp directory without breaking
        the sparse file format (ie without increasing the size of copied files)
 
-*********
+and more:
 
-For 2.02:
    - Objects should be stored in Weak hash tables everywhere, except when they
       are roots (servers, downloaded files, searches).
    - Event list: the current mechanism for notifications to GUIs is
@@ -79,7 +91,6 @@ Later:
   * Use source groups for local downloads.
   * Use a cache of data to help diffusing files.
   * Check that program exists before trying to execute.
-  * Correct boolean searches
   * Clean the clients_by_num table from clients which are not useful anymore.
   * remove locations of downloaded files.
   * check that 'cancelled' files cannot be shared also in incoming/

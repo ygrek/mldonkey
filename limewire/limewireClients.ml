@@ -52,6 +52,22 @@ let disconnect_client c =
         c.client_sock <- None
       with _ -> ()
           
+let on_close c d =
+  if !!verbose_clients > 0 then begin
+      Printf.printf "Disconnected from source"; print_newline ();    
+    end;
+  connection_failed c.client_connection_control;
+  set_client_state c NotConnected;
+  c.client_sock <- None;
+  c.client_file <- None
+
+let on_finish file d =
+  current_files := List2.removeq file !current_files;
+  old_files =:= (file.file_name, file_size file) :: !!old_files;
+  List.iter (fun c ->
+      c.client_downloads <- List.remove_assoc file c.client_downloads      
+  ) file.file_clients
+
 let is_http_ok header = 
   let pos = String.index header '\n' in
   match String2.split (String.sub header 0 pos) ' ' with
@@ -66,84 +82,88 @@ let client_parse_header c sock header =
       Printf.printf "CLIENT PARSE HEADER"; print_newline ();
     end;
   try
-    connection_ok c.client_connection_control;
-    set_client_state c Connected_initiating;    
-    if !!verbose_clients > 10 then begin
-        Printf.printf "HEADER FROM CLIENT:"; print_newline ();
-        LittleEndian.dump_ascii header; 
-      end;
-    if is_http_ok header then
-      begin
-        
-        if !!verbose_clients > 5 then begin
-            Printf.printf "GOOD HEADER FROM CONNECTED CLIENT"; print_newline ();
+    match c.client_file with 
+      None -> close sock "no download !"; raise Exit
+    | Some d ->
+        connection_ok c.client_connection_control;
+        set_client_state c Connected_initiating;    
+        if !!verbose_clients > 10 then begin
+            Printf.printf "HEADER FROM CLIENT:"; print_newline ();
+            LittleEndian.dump_ascii header; 
           end;
-        
-        set_rtimeout sock 120.;
-(*              Printf.printf "SPLIT HEADER..."; print_newline (); *)
-        let lines = Http_client.split_header header in
-(*              Printf.printf "REMOVE HEADLINE..."; print_newline (); *)
-        match lines with
-          [] -> raise Not_found        
-        | _ :: headers ->
-(*                  Printf.printf "CUT HEADERS..."; print_newline (); *)
-            let headers = Http_client.cut_headers headers in
-(*                  Printf.printf "START POS..."; print_newline (); *)
-            let start_pos = 
-              try
-                let range = List.assoc "content-range" headers in
-                try
-                  let npos = (String.index range 'b')+6 in
-                  let dash_pos = try String.index range '-' with _ -> -10 in
-                  let slash_pos = try String.index range '/' with _ -> -20 in
-                  let star_pos = try String.index range '*' with _ -> -30 in
-                  if star_pos = slash_pos-1 then
-                    Int32.zero (* "bytes */X" *)
-                  else
-                  let x = Int32.of_string (
-                      String.sub range npos (dash_pos - npos) )
-                  in
-                  if slash_pos = star_pos - 1 then 
-                    x (* "bytes x-y/*" *)
-                  else
-                  let len = String.length range in
-                  let y = Int32.of_string (
-                      String.sub range (dash_pos+1) (slash_pos - dash_pos - 1))
-                  in
-                  let z = Int32.of_string (
-                      String.sub range (slash_pos+1) (len - slash_pos -1) )
-                  in
-                  if y = z then Int32.sub x Int32.one else x
-                with 
-                | e ->
-                    Printf.printf "Exception %s for range [%s]" 
-                      (Printexc.to_string e) range;
-                    print_newline ();
-                    raise e
-              with Not_found -> Int32.zero
-            in                  
-            if c.client_pos <> start_pos then  begin
-                Printf.printf "Asked %s Bad range %s for %s"
-                  (Md4.to_string c.client_user.user_uid)
-                (Int32.to_string start_pos)
-                (Int32.to_string c.client_pos);
-                print_newline ();
-                raise Exit
+        if is_http_ok header then
+          begin
+            
+            if !!verbose_clients > 5 then begin
+                Printf.printf "GOOD HEADER FROM CONNECTED CLIENT"; print_newline ();
               end;
-            set_client_state c Connected_queued;    
-      end else begin
-        if !!verbose_clients > 0 then begin
-            Printf.printf "BAD HEADER FROM CONNECTED CLIENT:"; print_newline ();
-LittleEndian.dump header;
-          end;        
-        disconnect_client c
-      end
+            
+            set_rtimeout sock 120.;
+(*              Printf.printf "SPLIT HEADER..."; print_newline (); *)
+            let lines = Http_client.split_header header in
+(*              Printf.printf "REMOVE HEADLINE..."; print_newline (); *)
+            match lines with
+              [] -> raise Not_found        
+            | _ :: headers ->
+(*                  Printf.printf "CUT HEADERS..."; print_newline (); *)
+                let headers = Http_client.cut_headers headers in
+(*                  Printf.printf "START POS..."; print_newline (); *)
+                let start_pos = 
+                  try
+                    let range = List.assoc "content-range" headers in
+                    try
+                      let npos = (String.index range 'b')+6 in
+                      let dash_pos = try String.index range '-' with _ -> -10 in
+                      let slash_pos = try String.index range '/' with _ -> -20 in
+                      let star_pos = try String.index range '*' with _ -> -30 in
+                      if star_pos = slash_pos-1 then
+                        Int32.zero (* "bytes */X" *)
+                      else
+                      let x = Int32.of_string (
+                          String.sub range npos (dash_pos - npos) )
+                      in
+                      if slash_pos = star_pos - 1 then 
+                        x (* "bytes x-y/*" *)
+                      else
+                      let len = String.length range in
+                      let y = Int32.of_string (
+                          String.sub range (dash_pos+1) (slash_pos - dash_pos - 1))
+                      in
+                      let z = Int32.of_string (
+                          String.sub range (slash_pos+1) (len - slash_pos -1) )
+                      in
+                      if y = z then Int32.sub x Int32.one else x
+                    with 
+                    | e ->
+                        Printf.printf "Exception %s for range [%s]" 
+                          (Printexc.to_string e) range;
+                        print_newline ();
+                        raise e
+                  with Not_found -> Int32.zero
+                in                  
+                if d.CommonDownloads.download_pos <> start_pos then  begin
+                    Printf.printf "Asked %s Bad range %s for %s"
+                      (Md4.to_string c.client_user.user_uid)
+                    (Int32.to_string start_pos)
+                    (Int32.to_string d.CommonDownloads.download_pos);
+                    print_newline ();
+                    raise Exit
+                  end;
+                set_client_state c Connected_queued;    
+          end else begin
+            if !!verbose_clients > 0 then begin
+                Printf.printf "BAD HEADER FROM CONNECTED CLIENT:"; print_newline ();
+                LittleEndian.dump header;
+              end;        
+            disconnect_client c
+          end
   with e ->
       Printf.printf "Exception %s in client_parse_header" (Printexc.to_string e);
       print_newline ();
       LittleEndian.dump header;      
       disconnect_client c
-    
+
+      (*
 let file_complete file =
 (*
   Printf.printf "FILE %s DOWNLOADED" f.file_name;
@@ -167,13 +187,15 @@ print_newline ();
     Filename.concat incoming_dir (canonize_basename file.file_name)
   in
 (*  Printf.printf "RENAME to %s" new_name; print_newline ();*)
-  let new_name = rename_to_incoming_dir file.file_temp  new_name in
-  file.file_temp <- new_name
+  let new_name = rename_to_incoming_dir (file_disk_name file)  new_name in
+  set_file_disk_name file new_name
+    *)
 
 let client_to_client s p sock =
   match p.pkt_payload with
   | _ -> ()
-     
+
+(*
 let client_reader c sock nread = 
   if nread > 0 then
     let b = TcpBufferedSocket.buf sock in
@@ -218,7 +240,8 @@ print_newline ();
       print_newline (); *)
         disconnect_client c
       end
-      
+        *)
+
 let friend_parse_header c sock header =
   try
     if String2.starts_with header gnutella_200_ok then begin
@@ -261,12 +284,14 @@ let get_from_client sock (c: client) (file : file) =
   let new_pos = file_downloaded file in
   write_string sock (Printf.sprintf 
       "GET /get/%d/%s HTTP/1.0\r\nUser-Agent: LimeWire 2.4\r\nRange: bytes=%ld-\r\n\r\n" index file.file_name new_pos);
-  c.client_pos <- new_pos;
+  let d = CommonDownloads.new_download sock (as_client c.client_client)
+    (as_file file.file_file) (on_close c)
+    (on_finish file) commit_in_subdir
+  in
+  c.client_file <- Some d;
   Printf.printf "Asking %s For Range %ld" (Md4.to_string c.client_user.user_uid) new_pos; print_newline ();
-  c.client_file <- Some file;
-  set_rtimeout sock 30.;
-  c.client_error <- false  
-    
+  d
+  
 let connect_client c =
   match c.client_sock with
   | Some sock -> ()
@@ -293,19 +318,19 @@ let connect_client c =
                   | _ -> ()
               )
             in
-            TcpBufferedSocket.set_read_controler sock download_control;
-            TcpBufferedSocket.set_write_controler sock upload_control;
-            
-            set_client_state c Connecting;
-            c.client_sock <- Some sock;
-            TcpBufferedSocket.set_closer sock (fun _ _ ->
-                disconnect_client c
-            );
-            set_rtimeout sock 30.;
             match c.client_downloads with
               [] -> 
 (* Here, we should probably browse the client or reply to
 an upload request *)
+                TcpBufferedSocket.set_read_controler sock download_control;
+                TcpBufferedSocket.set_write_controler sock upload_control;
+                
+                set_client_state c Connecting;
+                c.client_sock <- Some sock;
+                TcpBufferedSocket.set_closer sock (fun _ _ ->
+                    disconnect_client c
+                );
+                set_rtimeout sock 30.;
                 if !!verbose_clients > 0 then begin
                     Printf.printf "NOTHING TO DOWNLOAD FROM CLIENT"; print_newline ();
                   end;
@@ -330,10 +355,10 @@ an upload request *)
                 if !!verbose_clients > 0 then begin
                     Printf.printf "READY TO DOWNLOAD FILE"; print_newline ();
                   end;
-                get_from_client sock c file;
+                let d = get_from_client sock c file in
                 set_reader sock (handler !!verbose_clients
                     (client_parse_header c) 
-                  (client_reader c));
+                  (CommonDownloads.download_reader d));
                 
         
           
@@ -401,7 +426,8 @@ let push_handler cc sock header =
               if !!verbose_clients > 0 then begin
                   Printf.printf "FILE FOUND"; print_newline ();
                 end;
-              get_from_client sock c file
+              let d = get_from_client sock c file in
+              ()
             with e ->
                 Printf.printf "Exception %s during client connection"
                   (Printexc.to_string e);
@@ -425,9 +451,12 @@ let client_parse_header2 c sock header =
 
 let client_reader2 c sock nread = 
   match !c with
-    Some c ->
-      client_reader c sock nread
-  | _ -> assert false
+    None -> assert false
+  | Some c ->
+      match c.client_file with
+        None -> assert false
+      | Some d ->
+          CommonDownloads.download_reader d sock nread
       
 let listen () =
   try

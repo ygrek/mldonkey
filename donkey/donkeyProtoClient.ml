@@ -477,22 +477,22 @@ module ViewFilesReply = struct
     let write buf t = 
       buf_int buf (List.length t);
       write_files buf t
-    
-    let rec write_files_max buf files max_len =
-      if Buffer.length buf < max_len then
-        match files with
-          [] -> ()
-        | file :: files ->
-            buf_md4 buf file.f_md4;
-            buf_ip buf file.f_ip;
-            buf_port buf file.f_port;
-            buf_int buf (List.length file.f_tags);
-            buf_tags buf file.f_tags names_of_tag;
-            write_files_max buf files max_len
-            
-    let write_max buf t max_len = 
-      buf_int buf (List.length t);
-      write_files_max buf t max_len
+        
+    let rec write_files_max buf files nfiles max_len =
+      let prev_len = Buffer.length buf in
+      match files with
+        [] -> nfiles, prev_len
+      | file :: files ->
+          buf_md4 buf file.f_md4;
+          buf_ip buf file.f_ip;
+          buf_port buf file.f_port;
+          buf_int buf (List.length file.f_tags);
+          buf_tags buf file.f_tags names_of_tag;
+          if Buffer.length buf < max_len then
+            write_files_max buf files (nfiles+1) max_len
+          else
+            nfiles, prev_len
+
   end
   
 module OtherLocations = struct 

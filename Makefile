@@ -107,7 +107,8 @@ COMMON_CLIENT_SRCS= \
   common/commonComplexOptions.ml \
   common/commonSearch.ml \
   common/commonMultimedia.ml \
-  common/commonInteractive.ml
+  common/commonInteractive.ml \
+  common/commonDownloads.ml
 
 all: opt
 
@@ -125,9 +126,9 @@ DONKEY_SRCS= \
   donkey/donkeyMftp.ml donkey/donkeyImport.ml \
   donkey/donkeyOpenProtocol.ml \
   donkey/donkeyProtoClient.ml donkey/donkeyProtoServer.ml  \
-  donkey/donkeyProtoCom.ml  \
   \
   donkey/donkeyGlobals.ml \
+  donkey/donkeyProtoCom.ml  \
   donkey/donkeyComplexOptions.ml \
   donkey/donkeyIndexer.ml \
   donkey/donkeyShare.ml \

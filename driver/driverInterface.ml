@@ -298,18 +298,18 @@ let gui_reader (gui: gui_record) t sock =
 Printf.printf "options for net %s" r.network_name; print_newline ();
 *)
                         let args = simple_options opfile in
-                        List.iter (fun prefix ->
+                        let prefix = r.network_prefix in
 (*
 Printf.printf "Sending for %s" prefix; print_newline ();
  *)
-                            gui_send gui (P.Options_info (
-                                List.map (fun (arg, value) ->
-                                    let long_name = Printf.sprintf "%s-%s" prefix arg in
-                                    (long_name, value)
-                                )  args)
-                            );
+                        gui_send gui (P.Options_info (
+                            List.map (fun (arg, value) ->
+                                let long_name = Printf.sprintf "%s%s" !!prefix arg in
+                                (long_name, value)
+                            )  args)
+                        );
 (*                            Printf.printf "sent for %s" prefix; print_newline (); *)
-                        ) r.network_prefixes
+                
                 );
 
 (* Options panels defined in downloads.ini *)
@@ -344,7 +344,7 @@ Printf.printf "Sending for %s" prefix; print_newline ();
             Printf.printf "BAD PASSWORD"; print_newline ();
             TcpBufferedSocket.close gui.gui_sock "bad password"
           end
-          
+    
     | _ ->
         if gui.gui_auth then
           match t with
@@ -363,6 +363,11 @@ Printf.printf "Sending for %s" prefix; print_newline ();
           
           | P.SetOption (name, value) ->
               CommonInteractive.set_fully_qualified_options name value
+
+(*
+          | ForceDownload r ->
+              result_download (result_find r) [] true
+*)
           
           | P.ForgetSearch num ->
               let s = search_find num in
@@ -423,10 +428,10 @@ Printf.printf "Sending for %s" prefix; print_newline ();
 search.op_search_end_reply_handlers;
   *)
           
-          | P.Download_query (filenames, num) ->
+          | P.Download_query (filenames, num, force) ->
               begin
                 let r = result_find num in
-                result_download r filenames
+                result_download r filenames force
               end
           
           | P.ConnectMore_query ->
@@ -453,6 +458,7 @@ search.op_search_end_reply_handlers;
           
           | P.SaveFile (num, name) ->
               let file = file_find num in
+              set_file_best_name file name;
               file_save_as file name;
               file_commit file
           
@@ -584,28 +590,28 @@ search.op_search_end_reply_handlers;
               assert false
 
 (* version 3 *)
-              
+          
           | P.MessageToClient (num, mes) ->
               Printf.printf "MessageToClient(%d,%s)" num mes;
               print_newline ();
               let c = client_find num in
               client_say c mes
-
+          
           | P.GetConnectedServers ->
               let list = ref [] in
               networks_iter (fun n ->
                   list := network_connected_servers n @ !list);
               gui_send gui (P.ConnectedServers (List2.tail_map
                     server_info !list))
-              
+          
           | P.GetDownloadedFiles ->
               gui_send gui (P.DownloadedFiles
                   (List2.tail_map file_info !!done_files))
-              
+          
           | P.GetDownloadFiles -> 
               gui_send gui (P.DownloadFiles
                   (List2.tail_map file_info !!files))              
-
+          
           | SetRoomState (num, state) ->
               if num > 0 then begin
                   let room = room_find num in
@@ -614,17 +620,20 @@ search.op_search_end_reply_handlers;
                   | RoomClosed -> room_close room
                   | RoomPaused -> room_pause room
                 end
-
+          
           | RefreshUploadStats ->
               
               shared_iter (fun s ->
                   update_shared_info s;
               ) 
-                
-  with e ->
-      Printf.printf "from_gui: exception %s for message %s" (
-        Printexc.to_string e) (GuiProto.from_gui_to_string t);
-      print_newline ()
+  
+  with 
+    Failure s ->
+      gui_send gui (Console (Printf.sprintf "Failure: %s\n" s))
+  | e ->
+      gui_send gui (Console (    
+          Printf.sprintf "from_gui: exception %s for message %s\n" (
+            Printexc.to_string e) (GuiProto.from_gui_to_string t)))
       
 let gui_closed gui sock  msg =
 (*  Printf.printf "DISCONNECTED FROM GUI"; print_newline (); *)
@@ -1055,17 +1064,16 @@ let install_hooks () =
         None -> ()
       | Some opfile ->
           let args = simple_options opfile in
-          List.iter (fun prefix ->
-              List.iter (fun (arg, value) ->
-                  let long_name = Printf.sprintf "%s-%s" prefix arg in
-                  set_option_hook opfile arg (fun _ ->
-                      with_gui (fun gui ->
-                          gui_send gui (P.Options_info [long_name, 
-                              get_simple_option opfile arg])
-                      )
-                  )                  
-              )  args)
-          r.network_prefixes)
+          let prefix = r.network_prefix in
+          List.iter (fun (arg, value) ->
+              let long_name = Printf.sprintf "%s%s" !!prefix arg in
+              set_option_hook opfile arg (fun _ ->
+                  with_gui (fun gui ->
+                      gui_send gui (P.Options_info [long_name, 
+                          get_simple_option opfile arg])
+                  )
+              )                  
+          )  args)
   ;
   
   private_room_ops.op_room_send_message <- (fun s msg ->

@@ -49,10 +49,6 @@ let client_info = define_option opennap_ini ["client_info"]
 let use_napigator = define_option opennap_ini ["use_napigator"]
     "Download a list of servers from www.napigator.com"
     bool_option true
-    
-let commit_in_subdir = define_option opennap_ini ["commit_in_subdir"]
-  "The subdirectory of temp/ where files should be moved to"
-    string_option "Napster"
 
 let servers_list_url = define_option opennap_ini ["servers_list_url"]
     "The URL from which servers list is downloaded"
@@ -62,12 +58,12 @@ let server_connection_timeout =
   define_option opennap_ini ["server_connection_timeout"] 
   "timeout when connecting to a server" float_option 10.
     
-let network_prefix = define_option opennap_ini
-    ["network_prefix"] "The prefixes used before Open-Napster options"
-    string_option "ON"
-  
-let _ =
-  option_hook network_prefix (fun _ ->
-      network.network_prefixes <- [!!network_prefix]   
-  )
+let commit_in_subdir = define_option opennap_ini ["commit_in_subdir"]
+  "The subdirectory of temp/ where files should be moved to"
+    string_option "Napster"
+      
+let network_options_prefix = define_option opennap_ini
+    ["options_prefix"] "The prefix which is appended to options names
+    when they are used in the telnet/WEB interfaces"
+    string_option "OpenNap-"
   

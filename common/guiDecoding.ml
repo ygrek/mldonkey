@@ -545,7 +545,7 @@ let from_gui_version_0 opcode s =
   | 7 -> 
       let list, pos = get_list get_string s 2 in
       let result_num = get_int s pos in
-      Download_query (list, result_num)
+      Download_query (list, result_num, false)
   
   | 8 -> let string, pos = get_string s 2 in
       Url string
@@ -734,7 +734,16 @@ let from_gui_version_5 opcode s =
 let from_gui_version_6 opcode s = 
   match opcode with
   | _ ->  from_gui_version_5 opcode s
-      
+
+let from_gui_version_7 opcode s = 
+  match opcode with
+    50 ->
+      let list, pos = get_list get_string s 2 in
+      let result_num = get_int s pos in
+      let force = get_bool s (pos+4) in
+      Download_query (list, result_num, false)
+  | _ ->  from_gui_version_5 opcode s
+
 let from_gui = [| 
     from_gui_version_0; 
     from_gui_version_1; 
@@ -743,6 +752,7 @@ let from_gui = [|
     from_gui_version_4; 
     from_gui_version_5; 
     from_gui_version_6; 
+    from_gui_version_7;  
   |]
       
 (***************
@@ -1017,7 +1027,14 @@ let to_gui_version_6 opcode s =
       }
         
   | _ -> to_gui_version_5 opcode s
+
       
+let to_gui_version_7 opcode s = 
+  match opcode with
+        
+  | _ -> to_gui_version_6 opcode s
+        
+
 let to_gui = [| 
     to_gui_version_0; 
     to_gui_version_1; 
@@ -1026,6 +1043,7 @@ let to_gui = [|
     to_gui_version_4;
     to_gui_version_5;
     to_gui_version_6;
+    to_gui_version_7; 
   |]
 
 let _ =  assert (Array.length from_gui = Array.length to_gui);

@@ -75,7 +75,6 @@ let _ =
           DcComplexOptions.save_config ()
 );
   *)
-  network.network_prefixes <- [!!network_prefix];
   network.network_config_file <- Some directconnect_ini;
   network.op_network_connected_servers <- (fun _ ->
       List2.tail_map (fun s -> as_server s.server_server) !connected_servers   

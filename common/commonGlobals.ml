@@ -328,3 +328,7 @@ let rec bprint_tags buf tags =
               (String.escaped s)
       end;
       bprint_tags buf tags
+
+let aborted_download = ref (None : int option)
+
+  

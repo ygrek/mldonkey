@@ -361,6 +361,45 @@ let save () =
   Options.save_with_help servers_ini
 
 (*************  ADD/REMOVE FUNCTIONS ************)
+
+let canonize_basename name =
+  let name = String.copy name in
+  for i = 0 to String.length name - 1 do
+    match name.[i] with
+    | '/' | '\\' -> name.[i] <- '_'
+    | _ -> ()
+  done;
+  name
+  
+let file_commited_name file =   
+  let network = file_network file in
+  let best_name = file_best_name file in
+  let file_name = file_disk_name file in
+  let incoming_dir =
+    if (!!((network.network_incoming_subdir))) <> "" then
+      Filename.concat !!incoming_directory
+        !!(network.network_incoming_subdir)
+    else !!incoming_directory
+  in
+  (try Unix2.safe_mkdir incoming_dir with _ -> ());
+  let new_name = 
+    Filename.concat incoming_dir (canonize_basename 
+        (file_best_name file))
+  in
+  let new_name = 
+    if Sys.file_exists new_name then
+      let rec iter num =
+        let new_name = Printf.sprintf "%s.%d" new_name num in
+        if Sys.file_exists new_name then
+          iter (num+1)
+        else new_name
+      in
+      iter 1
+    else new_name in
+  new_name  
+  
+(* This function is called on each downloaded file when the "commit" command
+  is received. *)
   
 let file_commit file =
   try
@@ -368,11 +407,24 @@ let file_commit file =
     if impl.impl_file_state = FileDownloaded then begin
         update_file_state impl FileShared;
         done_files =:= List2.removeq file !!done_files;
-        impl.impl_file_ops.op_file_commit impl.impl_file_val;
-        let file_name = file_disk_name file in
-        ignore (CommonShared.new_shared "completed" (
-            Filename.basename file_name)
-          file_name)
+
+        
+        let new_name = file_commited_name file in
+        impl.impl_file_ops.op_file_commit impl.impl_file_val new_name;        
+        begin
+          try
+            Printf.printf "*******  RENAME %s to %s *******" (file_disk_name file) new_name; print_newline ();
+            Unix2.rename (file_disk_name file) new_name;
+            
+            Printf.printf "*******  RENAME %s to %s DONE *******" (file_disk_name file) new_name; print_newline ();
+            set_file_disk_name file new_name
+          with e ->
+              Printf.printf "Exception %s in rename" (Printexc.to_string e);
+              print_newline () 
+        end;            
+        let best_name = file_best_name file in  
+        
+        ignore (CommonShared.new_shared "completed" best_name new_name)
       
       end
   with e ->
@@ -391,7 +443,39 @@ let file_cancel file =
   with e ->
       Printf.printf "Exception in file_cancel: %s" (Printexc.to_string e);
       print_newline ()
-  
+
+        
+let mail_for_completed_file file =
+  if !!mail <> "" then
+    let module M = Mailer in
+    let line1 = "\r\n mldonkey has completed the download of:\r\n\r\n" in
+    
+    (*
+    let line2 = Printf.sprintf "\r\ned2k://|file|%s|%ld|%s|\r\n" 
+        (file_best_name file)
+      (file_size file)
+      (Md4.to_string file.file_md4)
+in
+  *)
+
+    let line2 = Printf.sprintf "\r\n%s\r\n%ld\r\n" 
+        (file_best_name file)
+      (file_size file)
+    in
+
+    
+    let mail = {
+        M.mail_to = !!mail;
+        M.mail_from = Printf.sprintf "mldonkey <%s>" !!mail;
+        M.mail_subject = Printf.sprintf "mldonkey completed download";
+        M.mail_body = line1 ^ line2;
+      } in
+    M.sendmail !!smtp_server !!smtp_port mail
+
+let chat_for_completed_file file =
+  CommonChat.send_warning_for_downloaded_file (file_best_name file)
+
+      
 let file_completed (file : file) =
   try
     let impl = as_file_impl file in
@@ -400,9 +484,42 @@ let file_completed (file : file) =
         done_files =:= file :: !!done_files;
         update_file_state impl FileDownloaded;  
         let file_name = file_disk_name file in
+        let file_id = Filename.basename file_name in
         ignore (CommonShared.new_shared "completed" (
-            Filename.basename file_name)
-          file_name)
+            file_best_name file )
+          file_name);
+        (try mail_for_completed_file file with e ->
+              Printf.printf "Exception %s in sendmail" (Printexc.to_string e);
+              print_newline ());
+        if !!CommonOptions.chat_warning_for_downloaded then
+          chat_for_completed_file file;
+        
+        if !!file_completed_cmd <> "" then begin
+            match Unix.fork() with
+              0 -> begin
+                  try
+                    match Unix.fork() with
+                      0 -> begin
+                          try
+                            Unix.execv !!file_completed_cmd 
+                              [|
+                              file_name;
+                              file_id;
+                              Int32.to_string (file_size file);
+                              file_best_name file
+                            |];
+                            exit 0
+                          with e -> 
+                              Printf.printf "Exception %s while starting file_completed_cmd" (Printexc.to_string e); print_newline ();
+                              exit 127
+                        end
+                    | id -> exit 0
+                  with _ -> exit 0
+                end
+            | id -> ignore (snd(Unix.waitpid [] id))
+          end
+          
+
       end
   with e ->
       Printf.printf "Exception in file_completed: %s" (Printexc.to_string e);
