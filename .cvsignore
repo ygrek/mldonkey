@@ -5,10 +5,8 @@ mldonkey*
 downloads.ini
 VERSION
 *.cm?
-*.cm?
 client.ml
 observer
-
 ocaml-patched
 1st_contest
 release-*
@@ -33,3 +31,5 @@ mlnap+gui
 mlgnut+gui
 mldc+gui
 *.byte
+*.cmxa
+*.a

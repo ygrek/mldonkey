@@ -669,7 +669,7 @@ let value_to_path v =
   List.map Filename2.from_string
     (let rec iter v =
        match v with
-         StringValue s -> Filepath.string_to_path s
+         StringValue s -> Filepath.string_to_colonpath s
        | OnceValue v -> iter v
        | List l ->
            List.map
@@ -683,7 +683,7 @@ let value_to_path v =
      iter v)
   
 let path_to_value list =
-  StringValue (Filepath.path_to_string (List.map Filename2.to_string list))
+  StringValue (Filepath.colonpath_to_string (List.map Filename2.to_string list))
 
 
 let string_option =

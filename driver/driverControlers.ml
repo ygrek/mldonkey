@@ -82,6 +82,10 @@ let rec dollar_escape o with_frames s =
 
 let eval auth cmd o =
   let buf = o.conn_buf in
+  let cmd =
+    if String2.check_prefix cmd "ed2k://" then "dllink " ^ cmd
+    else if String2.check_prefix cmd "fha://" then "ovlink " ^ cmd
+    else cmd in
   let l = String2.tokens cmd in
   match l with
     [] -> ()

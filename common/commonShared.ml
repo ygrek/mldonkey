@@ -95,10 +95,10 @@ let shared_must_update_downloaded shared =
 
 let update_shared_num impl =
   if impl.impl_shared_num = 0 then begin
-      if !verbose then begin
+(*      if !verbose then begin *)
           lprintf "NEW SHARED %s/%s" impl.impl_shared_codedname
             impl.impl_shared_fullname; lprint_newline ();
-        end;
+(*        end; *)
       incr shared_counter;
       impl.impl_shared_num <- !shared_counter;
       H.add shareds_by_num (as_shared impl);
@@ -246,6 +246,8 @@ let _ =
 let shared_add_directory dirname =
   lprintf "SHARING %s" dirname; lprint_newline ();
   shared_add_directory dirname ""
+
+(* TODO: We need to be able to unshare whole directories that still exist ! *)
   
 let shared_check_files () =
   let list = ref [] in
@@ -281,3 +283,13 @@ let _ =
   
 let com_shareds_by_num = shareds_by_num
 let shareds_by_num = ()
+
+(* This won't fit nicely with priorities on upload.
+  Maybe the pririties could be given in another option,
+  and the association would remain independantly of the fact
+  that the directories are currently shared or not. *)
+  
+let _ = 
+  Options.set_string_wrappers shared_directories
+    Filepath.semipath_to_string
+    Filepath.string_to_semipath

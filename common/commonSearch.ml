@@ -673,7 +673,8 @@ let andnot q1 q2 = QAndNot (q1,q2)
   
 let rec mftp_query_of_query_entry qe =
   match qe with
-    Q_AND ([]|[_]) -> QNone
+    Q_AND ([]) -> QNone
+  | Q_AND [_] -> lprintf "Q_AND [_]\n"; QNone
   | Q_COMBO _ -> assert false
   | Q_AND (h :: q) ->
       List.fold_left
@@ -681,7 +682,8 @@ let rec mftp_query_of_query_entry qe =
 	(mftp_query_of_query_entry h)
 	q
 
-  | Q_OR ([]|[_]) -> QNone
+  | Q_OR [_] -> lprintf "Q_OR [_]\n"; QNone
+  | Q_OR ([]) -> QNone
   | Q_OR (h :: q) ->
       List.fold_left
 	(fun acc -> fun q -> QOr (acc, mftp_query_of_query_entry q))
@@ -696,7 +698,7 @@ let rec mftp_query_of_query_entry qe =
 	
   | Q_KEYWORDS (_,s) ->
       (
-       try want_and_not andnot (fun w -> QHasWord w) s
+       try want_and_not andnot (fun w -> QHasWord w) QNone s
        with Not_found -> QNone
       )
 
@@ -713,8 +715,7 @@ let rec mftp_query_of_query_entry qe =
   | Q_FORMAT (_,s) ->
       (
        try
-	 want_comb_not andnot or_comb
-           (fun w -> QHasField("format", w)) s
+	 want_comb_not andnot or_comb (fun w -> QHasField("format", w)) QNone s
        with Not_found ->
 	 QNone
       )
@@ -731,7 +732,7 @@ let rec mftp_query_of_query_entry qe =
       (
        try 
 	 want_comb_not andnot and_comb 
-           (fun w -> QHasField("Artist", w)) s
+           (fun w -> QHasField("Artist", w)) QNone s
        with Not_found ->
 	 QNone
       )
@@ -740,7 +741,7 @@ let rec mftp_query_of_query_entry qe =
       (
        try 
 	 want_comb_not andnot and_comb 
-           (fun w -> QHasField("Title", w)) s
+           (fun w -> QHasField("Title", w)) QNone s
        with Not_found ->
 	 QNone
       ) 
@@ -748,7 +749,7 @@ let rec mftp_query_of_query_entry qe =
       (
        try 
 	 want_comb_not andnot and_comb 
-           (fun w -> QHasField("Album", w)) s
+           (fun w -> QHasField("Album", w)) QNone s
        with Not_found ->
 	 QNone
       )
@@ -813,25 +814,73 @@ module Indexing = struct
         index_string r.result_format format_bit;
       if r.result_type <> "" then
         index_string r.result_type media_bit
-
-                    
+    
+    
+    exception EmptyQuery
+(*
+      exception InvertQuery of CommonTypes.result_info Indexer.query
+    exception PassInvertQuery of CommonTypes.result_info Indexer.query
+*)
+    
     let has_word s bit =
       match String2.stem s with
-        [] -> assert false
+        [] -> raise EmptyQuery
       | s :: tail -> 
           List.fold_left (fun q s ->
               Indexer.And (q, (Indexer.HasField (bit, s)))
           ) (Indexer.HasField (bit, s)) tail
-          
+    
     let query_to_indexer doc_value q =
       let rec iter q =
         match q with
-          QAnd (q1, q2) ->
-            Indexer.And (iter q1, iter q2)  
+        | QAnd (q1, q2) ->
+            (try
+                let e1 = iter q1 in
+                try
+                  let e2 = iter q2 in
+                  Indexer.And (e1,e2)
+                with 
+                  EmptyQuery -> e1
+(*                | InvertQuery e2 -> Indexer.AndNot(e1, e2) *)
+              with 
+                EmptyQuery -> iter q2
+(*
+                  | InvertQuery e1 ->
+                  try
+                    let e2 = iter q2 in
+                    Indexer.AndNot (e2,e1)
+                  with 
+| InvertQuery e2 -> raise (InvertQuery (Indexer.And(e1, e2)))
+  *)
+            )
         | QOr  (q1, q2) ->
-            Indexer.Or (iter q1, iter q2)  
+            (try
+                let e1 = iter q1 in
+                try
+                  let e2 = iter q2 in
+                  Indexer.Or (e1,e2)
+                with _ -> e1
+              with _ -> iter q2
+            )
+
         | QAndNot (q1, q2) ->
-            Indexer.AndNot (iter q1, iter q2)  
+            (
+(*              try *)
+                let e1 = iter q1 in
+                try
+                  let e2 = iter q2 in
+                  Indexer.AndNot (e1,e2)
+                with 
+                  EmptyQuery -> e1
+(*                | InvertQuery e2 -> Indexer.And (e1,e2) 
+              with EmptyQuery -> 
+                  try
+                    let e2 = iter q2 in
+                    raise (PassInvertQuery e2)
+                  with InvertQuery e2 -> e2
+                  | PassInvertQuery e2 -> raise (InvertQuery e2) *)
+            )
+            
         | QHasWord s -> has_word s 0xffffffff
         | QHasField (f, s) ->
             has_word s (

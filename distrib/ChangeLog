@@ -1,6 +1,17 @@
 ChangeLog	
 =========
 
+2003/03/22: Simon (v 2.04rc1-9)
+  - Bug fixes:
+    * log_file with -daemon option
+    * pending slots should only contain connected clients
+  - Applied patches:
+    * pango:
+       71_upload_slots_dynamic_allocation
+       81_implicit_dllink_ovlink_commands
+       83_hide_upload_slots_round_robin
+    * Savannah: #1315, #1319
+
 2003/03/21: Simon (v 2.04rc1-8)
   - Fixed config/Makefile.in to compile static binaries
   - Bug fix: don't close stdout when a log_file is provided

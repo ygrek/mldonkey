@@ -18,5 +18,12 @@
 *)
 
 val find_in_path : string list -> string -> string
-val string_to_path : string -> string list
-val path_to_string : string list -> string
+
+val string_to_colonpath : string -> string list
+val colonpath_to_string : string list -> string
+
+val string_to_semipath : string -> string list
+val semipath_to_string : string list -> string
+
+val string_to_path : char -> string -> string list
+val path_to_string : char -> string list -> string

@@ -274,5 +274,29 @@ let allocate_chunk t offset len64 =
     let len = mini !remaining buffer_size in
     Unix2.really_write fd buffer 0 len;
     remaining := !remaining - len;
-  done;
+  done
   
+let copy_chunk t1 t2 pos1 pos2 len =
+(* Close two file descriptors *)
+  assert (!max_cache_size > 2);
+  close_one ();
+  close_one ();
+  lprintf "Copying chunk\n";
+  let file_in,pos1 = fd_of_chunk t1 pos1 len in
+  let file_out,pos2 = fd_of_chunk t2 pos2 len in
+  ignore (seek64 t1 pos1 Unix.SEEK_SET);
+  ignore (seek64 t2 pos2 Unix.SEEK_SET);
+  let buffer_len = 32768 in
+  let len = Int64.to_int len in
+  let buffer = String.create buffer_len in
+  let rec iter file_in file_out len =
+    if len > 0 then
+      let can_read = mini buffer_len len in
+      let nread = Unix.read file_in buffer 0 buffer_len in
+      Unix2.really_write file_out buffer 0 nread;
+      iter file_in file_out (len-nread)
+  in
+  iter file_in file_out len;
+  lprintf "Chunk copied\n"
+  
+

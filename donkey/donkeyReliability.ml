@@ -213,7 +213,7 @@ let _ =
 	let buf = o.conn_buf in
 	bprint_reliability_table buf;
 	""
-      ), ":\t\t\t\tdisplay the reliability of sources";
+      ), ":\t\t\tdisplay the reliability of sources";
     ]
 
 module Marshal = struct

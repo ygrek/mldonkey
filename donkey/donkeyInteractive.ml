@@ -745,7 +745,7 @@ let commands = [
 \\</TR\\>
 ";
                 
-                Fifo.iter (fun c ->
+                List.iter (fun c ->
                     if c.client_sock <> None then begin
                         incr counter;                        
                         
@@ -789,7 +789,9 @@ let commands = [
                         
                         Printf.bprintf buf "\\</tr\\>"
                       end
-                ) upload_clients;
+                ) (List.sort 
+		     (fun c1 c2 -> compare (client_num c1) (client_num c2))
+		     (Fifo.to_list upload_clients));
                 Printf.bprintf buf "\\</table\\>";
               end;
             

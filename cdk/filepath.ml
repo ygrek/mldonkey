@@ -29,23 +29,30 @@ let find_in_path path name =
     in try_dir path
   end
       
-let string_to_path str =
+let string_to_path sep str =
   let len = String.length str in
   let rec iter start pos =
     if pos >= len then
       [String.sub str start (len - start)]
     else
-      if str.[pos] = ' ' || str.[pos] = ':' then
+      if str.[pos] = sep then
         (String.sub str start (pos - start)) :: (iter (pos+1) (pos+1))
       else
         iter start (pos+1)
   in
   iter 0 0
 
-let path_to_string path =
-  let s =   List.fold_left (fun str dir -> str ^ ":" ^ dir) "" path in
+let path_to_string sep path =
+  let s =   List.fold_left (fun str dir -> 
+        Printf.sprintf "%s%c%s" str sep dir) "" path in
   if String.length s > 0 then 
     let len = String.length s in
     String.sub s 1 (len-1)
   else ""
+
+let colonpath_to_string = path_to_string ':'   
+let string_to_colonpath = string_to_path ':'
   
+let string_to_semipath = string_to_path ';'
+let semipath_to_string = path_to_string ';'
+    

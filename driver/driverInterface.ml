@@ -968,44 +968,7 @@ let rec update_events list =
         with _ -> ());
       update_events tail
       
-let rec last = function
-    [x] -> x
-  | _ :: l -> last l
-  | _ -> (last_time (), 0.0, 0.0)
-    
-let trimto list =
-  let (list, _) = List2.cut 20 list in
-  list 
-  
-let tcp_bandwidth_samples = ref []
-let control_bandwidth_samples = ref []
-let udp_bandwidth_samples = ref []
 
-let compute_bandwidth uploaded_bytes downloaded_bytes bandwidth_samples =
-
-  let time = last_time () in
-  let last_count_time, last_uploaded_bytes, last_downloaded_bytes = 
-    last !bandwidth_samples in
-  
-  let delay = float_of_int (time - last_count_time) in
-
-  let uploaded_bytes = Int64.to_float uploaded_bytes in
-  let downloaded_bytes = Int64.to_float downloaded_bytes in
-  
-  let upload_rate = if delay > 0.0001 then
-      int_of_float ( (uploaded_bytes -. last_uploaded_bytes) /. 
-        delay )
-    else 0 in
-  
-  let download_rate = if delay > 0.0001 then
-      int_of_float ( (downloaded_bytes -. last_downloaded_bytes) /. delay )
-    else 0 in
-
-  bandwidth_samples := trimto (
-    (time, uploaded_bytes, downloaded_bytes) :: !bandwidth_samples);
-
-  upload_rate, download_rate
-  
 (* We should probably only send "update" to the current state of
 the info already sent to *)
 let next_clean_table = ref (last_time () + 1800)
@@ -1023,44 +986,20 @@ let update_gui_info () =
   end;
   
   
-  let tcp_upload_rate, tcp_download_rate = 
-    compute_bandwidth !tcp_uploaded_bytes !tcp_downloaded_bytes
-      tcp_bandwidth_samples in
-
-  let control_upload_rate, control_download_rate = 
-    compute_bandwidth (moved_bytes upload_control) 
-    (moved_bytes download_control) 
-      control_bandwidth_samples in
-(*
-  lprintf "BANDWIDTH %d/%d %d/%d" control_upload_rate tcp_upload_rate
-    control_download_rate tcp_download_rate ;
-  lprint_newline ();
-*)
-  
-  let udp_upload_rate, udp_download_rate = 
-    compute_bandwidth !udp_uploaded_bytes !udp_downloaded_bytes 
-      udp_bandwidth_samples in
   
   let nets = ref [] in
   networks_iter (fun n -> if network_connected n then 
         nets := n.network_num :: !nets);
      
-  saved_upload_udp_rate := udp_upload_rate;
-  saved_upload_tcp_rate := control_upload_rate;
-  saved_download_udp_rate := udp_download_rate;
-  saved_download_tcp_rate := control_download_rate;
-  
-  update_upload_history (udp_upload_rate + control_upload_rate);
-
   let msg = (Client_stats {
         upload_counter = !upload_counter;
         download_counter = !download_counter;
         shared_counter = !shared_counter;
         nshared_files = !nshared_files;
-        tcp_upload_rate = control_upload_rate;
-        tcp_download_rate = control_download_rate;
-        udp_upload_rate = udp_upload_rate;
-        udp_download_rate = udp_download_rate;
+        tcp_upload_rate = !control_upload_rate;
+        tcp_download_rate = !control_download_rate;
+        udp_upload_rate = !udp_upload_rate;
+        udp_download_rate = !udp_download_rate;
         connected_networks = !nets;
         ndownloaded_files = List.length !!done_files;
         ndownloading_files = List.length !!files;

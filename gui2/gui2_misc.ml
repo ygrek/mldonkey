@@ -56,7 +56,8 @@ let option_of_string s =
 let andnot q1 q2 = Q_ANDNOT (q1,q2)
 let or_comb q1 q2 = Q_OR [q1;q2]
 let and_comb q1 q2 = Q_AND [q1;q2]
-    
+let none = Q_OR []
+  
 let submit_search (gui: gui) local ()=
   let module P = GuiTypes in
   incr search_counter;
@@ -67,7 +68,7 @@ let submit_search (gui: gui) local ()=
   let s = gui#tab_searches in
   let q = match s#entry_search_words#text with
       "" -> []
-    | s -> [want_and_not andnot (fun s -> Q_KEYWORDS ("",s)) s] in
+    | s -> [want_and_not andnot (fun s -> Q_KEYWORDS ("",s)) none s] in
   let q = match s#entry_search_minsize#text with
       "" -> q
     | v -> 
@@ -90,7 +91,7 @@ let submit_search (gui: gui) local ()=
     | v ->
         let v = try List.assoc v  search_format_list with _ -> v in
         (want_comb_not andnot or_comb
-            (fun w -> Q_FORMAT("", w)) v) :: q
+            (fun w -> Q_FORMAT("", w)) none v) :: q
 
   in
   let q = match s#combo_search_media#entry#text with
@@ -102,15 +103,15 @@ let submit_search (gui: gui) local ()=
   in
   let q = match s#entry_title#text with
       "" -> q
-    | v -> (want_comb_not andnot and_comb (fun v -> Q_MP3_TITLE("", v)) v):: q
+    | v -> (want_comb_not andnot and_comb (fun v -> Q_MP3_TITLE("", v)) none v):: q
   in
   let q = match s#entry_artist#text with
       "" -> q
-    | v -> (want_comb_not andnot and_comb (fun v -> Q_MP3_ARTIST("", v)) v):: q
+    | v -> (want_comb_not andnot and_comb (fun v -> Q_MP3_ARTIST("", v)) none v):: q
   in
   let q = match s#entry_album#text with
       "" -> q
-    | v -> (want_comb_not andnot and_comb (fun v -> Q_MP3_ALBUM("", v)) v) :: q
+    | v -> (want_comb_not andnot and_comb (fun v -> Q_MP3_ALBUM("", v)) none v) :: q
   in
   let q = match s#combo_min_bitrate#entry#text with
       "" -> q

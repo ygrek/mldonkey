@@ -239,7 +239,9 @@ let html_header_mods0 = define_option message_file ["html_header_mods0"]
 </script>
 "
 
-let download_html_css_mods0 = define_option message_file ["download_html_css_mods0"] "Download CSS - style 0" string_option  
+let download_html_css_mods0 = define_option message_file ["download_html_css_mods0"] 
+  "Download CSS - style 0" 
+    string_option  
 "
 body{background-color:#B2CCB2;color: #3F702E; font-family: Verdana, Arial, Helvetica, sans-serif;font-size: 13px; margin-top: 10px; margin: 2;}
 td,pre {color: #3F702E; font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 10px;}
@@ -746,7 +748,9 @@ let download_html_css_mods1 = download_html_css_mods0
 
 let download_html_js_mods1 = download_html_js_mods0
 
-let download_html_header_mods1 = define_option message_file ["download_html_header_mods1"] "Download header - style 1" string_option 
+let download_html_header_mods1 = define_option message_file ["download_html_header_mods1"] 
+  "Download header - style 1" 
+    string_option 
   "
 <title>MLdonkey: Web Interface</title>
 <link href=\"dh.css\" rel=\"stylesheet\" type=\"text/css\">
@@ -969,14 +973,6 @@ let html_js_old = define_option message_file
 <!--
 function CheckInput(){
 var cmdString = document.cmdFormular.q.value;
-if (cmdString.substr(0,7) == \"ed2k://\"){
-var cmdValue = \"dllink \" + document.cmdFormular.q.value;
-document.cmdFormular.q.value = cmdValue;
-
-}else if (cmdString.substr(0,6) == \"fha://\"){
-var cmdValue = \"ovlink \" + document.cmdFormular.q.value;
-document.cmdFormular.q.value = cmdValue;
-}
 return true; 
 }
 //-->
@@ -1013,18 +1009,6 @@ let download_html_js_old = define_option message_file ["download_html_js_old"]
     string_option  
 "
 <!--
-function ovlink(){
-var cmdValue = \"ovlink \" + document.cmdFormular.q.value;
-document.cmdFormular.q.value = cmdValue;
-document.cmdFormular.submit();
-}
-
-
-function ed2k(){
-var cmdValue = \"dllink \" + document.cmdFormular.q.value;
-document.cmdFormular.q.value = cmdValue;
-document.cmdFormular.submit(); 
-}
 //-->
   "
   
@@ -1037,9 +1021,8 @@ let download_html_header_old = define_option message_file ["download_html_header
 <script language=\"javascript\" src=\"di.js\"></script>
 "
 
-    
-let web_common_header_old = define_option message_file
-    ["web_common_header_old"] "The header displayed in the WEB interface"
+let web_common_header_old = define_option message_file ["web_common_header_old"]
+  "The header displayed in the WEB interface"
     string_option
   "
 <table width=\"100%\" border=\"0\">

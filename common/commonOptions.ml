@@ -370,7 +370,7 @@ let _ =
       let list = String2.tokens s in
       List.map (fun ip -> Ip.of_string ip) list
   )
-
+  
   
 let ask_for_gui = define_option expert_ini ["ask_for_gui"]
     "Ask for GUI start"    bool_option true
@@ -664,6 +664,7 @@ let verbosity = define_option expert_ini ["verbosity"]
   sp : debug source propagation 
   sm : debug source management
   do : some download warnings
+  up : some upload warnings
   unk : unknown messages
   ov : overnet
   share: debug sharing
@@ -677,6 +678,7 @@ let verbose_src_manager = ref false
 let verbose_src_prop = ref false
 let verbose = ref false
 let verbose_download = ref false
+let verbose_upload = ref false
 let verbose_unknown_messages = ref false
 let verbose_overnet = ref false
 let verbose_location = ref false
@@ -693,6 +695,7 @@ let _ =
       verbose_src_manager := false;
       verbose := false;
       verbose_download := false;
+      verbose_upload := false;
       verbose_unknown_messages := false;
       verbose_overnet := false;
       verbose_location := false;
@@ -708,6 +711,7 @@ let _ =
           | "net" -> BasicSocket.debug := true
           | "sp" -> verbose_src_prop := true
           | "do" -> verbose_download := true
+          | "up" -> verbose_upload := true
           | "unk" -> verbose_unknown_messages := true
           | "ov" -> verbose_overnet := true
           | "loc" -> verbose_location := true
@@ -723,6 +727,7 @@ let _ =
               verbose_src_manager := true;
               verbose := true;
               verbose_download := true;
+              verbose_upload := true;
               verbose_unknown_messages := true;
               verbose_overnet := true;
               verbose_share := true;

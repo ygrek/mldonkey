@@ -61,7 +61,14 @@ let fivemin_timer timer =
   DonkeyChunks.duplicate_chunks ()
 
 let second_timer timer =
-  (try DonkeyClient.refill_upload_slots () with _ -> ());
+  (try 
+     update_link_stats () 
+   with e -> 
+     lprintf "Exception %s" (Printexc2.to_string e); lprint_newline ());
+  (try 
+     DonkeyClient.refill_upload_slots ()
+   with e -> 
+     lprintf "Exception %s" (Printexc2.to_string e); lprint_newline ());
   (try
 (*
       if !verbose_src_manager then begin

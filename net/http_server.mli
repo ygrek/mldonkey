@@ -63,3 +63,4 @@ val need_auth : Buffer.t -> string -> unit
 val html_escaped : string -> string
   
 val handler : config -> 'a -> TcpServerSocket.event -> unit
+val parse_head : string -> request

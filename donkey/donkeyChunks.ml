@@ -268,6 +268,7 @@ let register_md4s md4s file_num file_size =
   in
   iter md4s 0 Int64.zero
 
+  (*
 let copy_chunk other_file file chunk_pos chunk_size =
   lprintf "Copying chunk\n";
   let file_in = 
@@ -297,7 +298,8 @@ let copy_chunk other_file file chunk_pos chunk_size =
     with _ -> Unix.close file_out; raise Exit
   
   with _ -> Unix.close file_in; raise Exit
-      
+        *)
+
 let duplicate_chunks () =
     
   List.iter (fun file ->
@@ -339,7 +341,10 @@ let duplicate_chunks () =
                             if not (List.memq file !modified_files) then
                               modified_files := file :: !modified_files;
                             
-                            copy_chunk other_file file chunk_pos chunk_size;
+                            Unix32.copy_chunk 
+                              (file_fd other_file) 
+                            (file_fd file) 
+                            chunk_pos chunk_pos chunk_size;
 
                             chunk_present file i;
                             file_must_update file;

@@ -206,10 +206,7 @@ let split_head s =
   
 let parse_head s =
   let h = split_head s in
-(*
-  List.iter (fun s ->
-lprintf "LINE: [%s]" (escaped s); lprint_newline (); ) h;
-  *)
+(*  List.iter (fun s -> lprintf "LINE: [%s]\n" (escaped s)) h; *)
   match h with 
     [] -> failwith "Http_server: Empty head"
   | ans :: headers ->
@@ -247,8 +244,8 @@ lprintf "LINE: [%s]" (escaped s); lprint_newline (); ) h;
               | _ -> options
             with e ->
                 if !debug then begin
-                    lprintf "Exception %s in header %s" (Printexc2.to_string e) name;
-                    lprint_newline ();
+                    lprintf "Exception %s in header %s\n"
+                      (Printexc2.to_string e) name;
                   end;
                 options
                 

@@ -18,9 +18,14 @@
 *)
 
 open String2
+
+  
+let win32 = Sys.os_type = "Win32"
+let slash = if win32 then '\\' else '/'
+let slash_s = String.make 1 slash
   
 let normalize filename =
-  let l = split filename '/' in
+  let l = split filename slash in
   let is_absolute = match l with
       "" :: _ -> true
     | _ -> false
@@ -48,9 +53,9 @@ let normalize filename =
     else l
   in
   let file = match l with
-    [] -> "."
-  | [""] -> "/"
-    | _ -> unsplit l '/'
+      [] -> "."
+    | [""] -> slash_s
+    | _ -> unsplit l slash
   in
 (*  if file <> filename then begin
       lprintf "[%s] normalized to [%s]" filename file; lprint_newline ();
@@ -61,8 +66,8 @@ let normalize filename =
 let rec dirname name =
   let name = normalize name in
   try
-    match String.rindex name '/' with
-      0 -> "/"
+    match String.rindex name slash with
+      0 -> slash_s
     | n -> String.sub name 0 n
   with Not_found -> "."
 
@@ -70,7 +75,7 @@ let rec dirname name =
 let last_extension file =
   try
     let pos = String.rindex file '.' in
-    let pos2 = try String.rindex file '/' with _ -> 0 in 
+    let pos2 = try String.rindex file slash with _ -> 0 in 
     if pos < pos2 then raise Not_found;
     let len = String.length file in
     String.sub file pos (len -pos)
@@ -78,7 +83,7 @@ let last_extension file =
 
 let extension file =
   try
-    let pos2 = try String.rindex file '/' with _ -> 0 in 
+    let pos2 = try String.rindex file slash with _ -> 0 in 
     let pos = String.index_from file pos2 '.' in
     let len = String.length file in
     String.sub file pos (len -pos)
@@ -117,7 +122,7 @@ let path_of_filename filename =
   let filename = String.copy filename in
   let len = String.length filename in
   for i = 0 to len - 1 do
-    if filename.[i] = '\\' then filename.[i] <- '/';
+    if filename.[i] = '\\' then filename.[i] <- slash;
   done;
   let filename = 
     if len > 2 && filename.[1]  = ':' &&

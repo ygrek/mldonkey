@@ -241,7 +241,7 @@ let send_custom_query user buf s args =
       | Q_COMBO _ -> assert false
       | Q_KEYWORDS _ -> 
           let value = get_arg "keywords" in
-          want_and_not andnot (fun w -> QHasWord w) value
+          want_and_not andnot (fun w -> QHasWord w) QNone value
           
       | Q_AND list ->
           begin
@@ -314,7 +314,7 @@ let send_custom_query user buf s args =
             else format in
           want_comb_not andnot
             or_comb
-            (fun w -> QHasField("format", w)) format
+            (fun w -> QHasField("format", w)) QNone format
           
       | Q_MEDIA _ ->
           let media = get_arg "media" in
@@ -329,19 +329,19 @@ let send_custom_query user buf s args =
           let artist = get_arg "artist" in
           if artist = "" then raise Not_found;
           want_comb_not andnot and_comb 
-            (fun w -> QHasField("Artist", w)) artist
+            (fun w -> QHasField("Artist", w)) QNone artist
           
       | Q_MP3_TITLE _ ->
           let title = get_arg "title" in
           if title = "" then raise Not_found;
           want_comb_not andnot and_comb 
-            (fun w -> QHasField("Title", w)) title
+            (fun w -> QHasField("Title", w)) QNone title
           
       | Q_MP3_ALBUM _ ->
           let album = get_arg "album" in
           if album = "" then raise Not_found;
           want_comb_not andnot and_comb 
-            (fun w -> QHasField("Album", w)) album
+            (fun w -> QHasField("Album", w)) QNone album
           
       | Q_MP3_BITRATE _ ->
           let bitrate = get_arg "bitrate" in
@@ -350,7 +350,7 @@ let send_custom_query user buf s args =
 
     in
     try
-      let request = iter q in
+      let request = CommonGlobals.simplify_query (iter q) in
       Printf.bprintf buf "Sending query !!!";
       ignore (start_search user {s with GuiTypes.search_query = request } buf)
     with

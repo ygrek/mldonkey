@@ -586,7 +586,7 @@ let server_send_new sock t =
 let server_send sock t =
   write_string sock (server_msg_to_string t)
       
-let gnutella_handler parse f sock nread =
+let gnutella_handler parse f handler sock nread =
   let b = TcpBufferedSocket.buf sock in
   lprintf "GNUTELLA HANDLER"; lprint_newline ();
   dump (String.sub b.buf b.pos b.len);
@@ -622,7 +622,8 @@ let gnutella_handler parse f sock nread =
     done
   with 
   | Not_found -> ()
-
+      
+      (*
 let handler info header_handler body_handler =
   let header_done = ref false in
   fun sock nread ->
@@ -678,15 +679,19 @@ lprintf "LEFT %d" (nread - nused); lprint_newline ();
         lprintf "Exception %s in handler" (Printexc2.to_string e); 
         lprint_newline ();
         raise e
-        
-let handlers header_handlers body_handler =
-  let headers = ref header_handlers in
+          *)
+
+type handler =
+  HttpHeader of ((handler ref) -> TcpBufferedSocket.t -> string -> unit)
+| Reader of ((handler ref) -> TcpBufferedSocket.t -> int -> unit)
+  
+let handlers info handler =
+  let handler = ref handler in
   let rec iter_read  sock nread =
     let b = TcpBufferedSocket.buf sock in
-    match !headers with
-      [] -> body_handler sock nread
-    | header_handler :: tail ->
-        lprintf "header handler"; lprint_newline ();
+    match !handler with
+    | HttpHeader h ->
+        lprintf "header handler\n"; 
         let end_pos = b.pos + b.len in
         let begin_pos = max b.pos (end_pos - nread - 3) in
         let rec iter i n_read =
@@ -697,12 +702,11 @@ let handlers header_handlers body_handler =
             if b.buf.[i] = '\n' then
               if n_read then begin
                   let header = String.sub b.buf b.pos (i - b.pos) in
-(*
-                  lprintf "HEADER : ";
-                  dump header; lprint_newline ();
-*)
-                  headers := tail;
-                  header_handler sock header;
+                  if info then begin
+                      lprintf "HEADER : ";
+                      dump header; lprint_newline ();
+                    end;
+                  h handler sock header;
                   if not (TcpBufferedSocket.closed sock) then begin
                       let nused = i - b.pos + 1 in
                       buf_used sock nused;
@@ -714,6 +718,7 @@ let handlers header_handlers body_handler =
               iter (i+1) false
         in
         iter begin_pos false
+    | Reader h -> h handler sock nread
   in
   iter_read
 
@@ -767,4 +772,19 @@ let add_simplified_header_fields header trailer =
     header
     user_agent
     trailer
+  
+(* A standard session with gtk-gnutella as ultrapeer:
+
+HEADER : ascii: [ G N U T E L L A / 0 . 6   2 0 0   O K(13)(10) U s e r - A g e n t :   g t k - g n u t e l l a / 0 . 9 2 u   ( 3 0 / 0 1 / 2 0 0 3 ;   X 1 1 ;   L i n u x   2 . 4 . 1 8 - 1 8 . 8 . 0   i 6 8 6 )(13)(10) P o n g - C a c h i n g :   0 . 1(13)(10) B y e - P a c k e t :   0 . 1(13)(10) G G E P :   0 . 5(13)(10) V e n d o r - M e s s a g e :   0 . 1(13)(10) R e m o t e - I P :   1 2 7 . 0 . 0 . 1(13)(10) A c c e p t - E n c o d i n g :   d e f l a t e(13)(10) X - U l t r a p e e r :   T r u e(13)(10) X - U l t r a p e e r - N e e d e d :   T r u e(13)(10) X - Q u e r y - R o u t i n g :   0 . 1(13)(10) X - L i v e - S i n c e :   S a t ,   2 2   M a r   2 0 0 3   0 8 : 2 1 : 3 5   + 0 0 0 0(13)(10)(13)]
+
+
+dec: [(18)(211)(144)(220)(91)(118)(100)(204)(255)(248)(177)(92)(197)(27)(109)(3)(0)(1)(0)(0)(0)(0)(0)]
+SIMPLE PING  
+
+dec: [(6)(93)(144)(220)(17)(35)(129)(160)(226)(78)(124)(120)(59)(147)(241)(78)(128)(7)(0)(13)(0)(0)(0)(0)(0)(97)(103)(112)(114)(111)(116)(111)(99)(111)(108)(0)]
+QUERY FOR agprotocol ()
+
+  download:
+PUSH HEADER: [GET /get/3/shared1/agProtocol.ml HTTP/1.1\013\nHost: 127.0.0.1:6550\013\nUser-Agent: gtk-gnutella/0.92u (30/01/2003; X11; Linux 2.4.18-18.8.0 i686)\013\n\013]
+*)
   

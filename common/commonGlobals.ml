@@ -22,6 +22,8 @@ open Options
 open CommonOptions
 open BasicSocket
 open CommonTypes
+open UdpSocket
+open TcpBufferedSocket
 
 let networks_string = ref ""
   
@@ -58,11 +60,6 @@ let find_port server_name bind_addr port_option handler =
   
 let one_day = 3600. *. 24.
 let half_day = one_day /. 2.
-
-let saved_upload_udp_rate = ref 0
-let saved_upload_tcp_rate = ref 0
-let saved_download_udp_rate = ref 0
-let saved_download_tcp_rate = ref 0
 
 let printf_char c =
   if !verbose then 
@@ -193,7 +190,8 @@ let user_socks = ref ([] : TcpBufferedSocket.t list)
 let dialog_history = ref ([] : (int * string * string) list )
   
   
-let want_and_not andnot f value =
+let want_and_not andnot f none value =
+  lprintf "want_and_not [%s]\n" value;
   let ws = String2.split_simplify value ' ' in
   if ws = [] then raise Not_found;
   let wanted = ref "" in
@@ -208,15 +206,12 @@ let want_and_not andnot f value =
       if !wanted = "" then wanted := w
       else wanted := !wanted ^ " " ^ w
   ) ws;
-  if !not_wanted = "" then
-    f !wanted
-  else
-  if !wanted = "" then
-    f !wanted
-  else
-    andnot (f !wanted)  (f !not_wanted)
+  let wanted = if !wanted <> "" then f !wanted else none in
+  if !not_wanted = "" then wanted else
+    andnot wanted  (f !not_wanted)
 
-let want_comb_not andnot comb f value =
+let want_comb_not andnot comb f none value =
+  lprintf "want_comb_not [%s]\n" value;
   let ws = String2.split_simplify value ' ' in
   let wanted = ref [] in
   let not_wanted = ref [] in
@@ -228,7 +223,7 @@ let want_comb_not andnot comb f value =
       else wanted := w :: !wanted
   ) ws;
   let wanted = match !wanted with
-      [] -> raise Not_found
+      [] -> none
     | w :: tail -> 
         List.fold_left (fun q w ->
             comb q  (f w)
@@ -248,7 +243,7 @@ let rec rec_simplify_query q =
     QAnd (q1, q2) ->
       (
        match (rec_simplify_query q1, rec_simplify_query q2) with
-	 QNone, QNone -> QNone
+	QNone, QNone -> QNone
        | QNone, q2' -> q2'
        | q1', QNone -> q1'
        | q1', q2' -> QAnd (q1',q2')
@@ -275,7 +270,27 @@ let rec rec_simplify_query q =
   | QHasMaxVal _
   | QNone -> q
 
+let rec canonize_query q =
+  let q1 = match q with
+    
+    | QAnd (q, QNone) | QAnd (QNone, q) -> q
+    | QOr (q, QNone) | QOr (QNone,q) -> q
+    | QAndNot (q, QNone) -> q
+    
+    | QAndNot ( QAndNot (q1,q2), q3 ) ->   QAndNot ( q1, QAnd(q2,q3))
+    | QAndNot (q1, QAndNot(q2,q3)) ->      QAndNot (QAnd(q1,q2), q3)          
+    | QAnd (q1, QAndNot (q2,q3)) ->        QAndNot (QAnd (q1,q2), q3)
+    | QAnd (QAndNot (q1, q2), q3) ->       QAndNot (QAnd (q1, q3), q2)
+    
+    | QAnd (q1, q2) -> QAnd (canonize_query q1, canonize_query q2)
+    | QOr (q1, q2) -> QOr (canonize_query q1, canonize_query q2)
+    | QAndNot (q1, q2) -> QAndNot (canonize_query q1, canonize_query q2)
+    | _ -> q
+  in
+  if q <> q1 then canonize_query q1 else q
+    
 let simplify_query q =
+  let q = canonize_query q in
   match rec_simplify_query q with
     QNone -> QHasWord " "
   | q' -> q'
@@ -448,15 +463,6 @@ let load_file kind file =
         (Printexc2.to_string e)
       kind
 
-let history_size = 6
-let upload_history = Array.create history_size 0
-let history_index = ref (-1)
-  
-let update_upload_history usage =
-  incr history_index;
-  if !history_index = history_size then history_index := 0;
-  upload_history.(!history_index) <- usage
-  
 let chat_message_fifo = (Fifo.create () : (int * string * int * string * string) Fifo.t) 
 
 let log_chat_message i num n s = 
@@ -469,8 +475,6 @@ let log_chat_message i num n s =
   done
   
 
-  
-let upload_usage () = upload_history.(!history_index)
   
 let debug_clients = ref Intset.empty
 
@@ -508,3 +512,109 @@ let valid_password user pass =
     let password = List.assoc user !!users in
     password = pass 
   with _ -> false
+
+let udp_upload_rate = ref 0
+let tcp_upload_rate = ref 0
+let control_upload_rate = ref 0
+let udp_download_rate = ref 0
+let tcp_download_rate = ref 0
+let control_download_rate = ref 0
+
+let sd_udp_upload_rate = ref 0
+let sd_tcp_upload_rate = ref 0
+let sd_control_upload_rate = ref 0
+
+let bandwidth_samples = Fifo2.create ()
+let short_delay_bandwidth_samples = Fifo2.create ()
+
+let nmeasures = 6
+let dummy_sample = Array.make nmeasures 0.
+
+let update_link_stats () =
+
+  let put time sample samples =
+    assert (Array.length sample = nmeasures);
+    Fifo2.put samples (time, sample) in
+
+  let trimto n samples =
+    let len = ref (Fifo2.length samples) in
+    while !len > n do
+      ignore (Fifo2.take samples);
+      decr len
+    done in
+
+  let last samples =
+    try
+      Fifo2.read samples
+    with _ ->
+      (last_time (), dummy_sample) in
+
+  let derive (t1, sample1) (t2, sample2) =
+    let dt = t2 - t1 in
+    if dt <> 0 then
+      let fdt = float_of_int dt in
+      (dt, Array.init nmeasures 
+             (fun i -> int_of_float ((sample2.(i) -. sample1.(i)) /. fdt)))
+    else
+      (0, Array.make nmeasures 0) in
+
+  let last_count_time, last_sample = 
+    last bandwidth_samples in
+  let time = last_time () in
+  let sample = [|Int64.to_float !tcp_uploaded_bytes;
+		 Int64.to_float !tcp_downloaded_bytes;
+		 Int64.to_float (moved_bytes upload_control);
+		 Int64.to_float (moved_bytes download_control);
+		 Int64.to_float !udp_uploaded_bytes;
+		 Int64.to_float !udp_downloaded_bytes;|] in
+    
+  (match derive (last_count_time, last_sample) (time, sample) with
+      _, [|tur; tdr; cur; cdr; uur; udr|] ->
+	tcp_upload_rate := tur;
+	tcp_download_rate := tdr;
+	control_upload_rate := cur;
+	control_download_rate := cdr;
+	udp_upload_rate := uur;
+	udp_download_rate := udr
+    | _ -> failwith "wrong number of measures");
+
+(*
+  lprintf "BANDWIDTH %d/%d %d/%d" !control_upload_rate !tcp_upload_rate
+    !control_download_rate !tcp_download_rate ;
+  lprint_newline ();
+*) 
+  put time sample bandwidth_samples;
+  trimto 20 bandwidth_samples;
+
+  let sd_last_count_time, sd_last_sample = 
+    last short_delay_bandwidth_samples in
+  (match derive (sd_last_count_time, sd_last_sample) (time, sample) with
+      _, [|tur; _; cur; _; uur; _|] ->
+	sd_tcp_upload_rate := tur;
+	sd_control_upload_rate := cur;
+	sd_udp_upload_rate := uur
+    | _ -> failwith "wrong number of measures");
+
+  put time sample short_delay_bandwidth_samples;
+  trimto 5 short_delay_bandwidth_samples
+
+let history_size = 6
+let upload_history = Fifo2.create ()
+  
+let upload_usage () = 
+  !udp_upload_rate + !control_upload_rate
+
+let short_delay_upload_usage () = 
+  !sd_udp_upload_rate + !sd_control_upload_rate
+
+let update_upload_history () =
+  Fifo2.put upload_history (upload_usage ());
+  let len = ref (Fifo2.length upload_history) in
+  while !len > history_size do
+    ignore (Fifo2.take upload_history);
+    decr len
+  done
+
+let detected_uplink_capacity () =
+  List.fold_left maxi 0 (Fifo2.to_list upload_history)
+

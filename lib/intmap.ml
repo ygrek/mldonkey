@@ -130,3 +130,20 @@ let length map =
 let top = function
     Empty -> raise Not_found
   | Node(l, v, d, r, _) -> d
+
+let rec infix_nth map res =
+  match res, map with
+    (count, Some _), _ -> res
+  | (count, None), Empty -> res
+  | (count, None), Node(l, v, d, r, _) ->
+      infix_nth r (match infix_nth l res with
+          (count, Some _) as res -> res
+        | (count, None) -> 
+            if count = 0 then (count, Some d)
+            else (count - 1, None)) 
+
+let nth map n =
+  match infix_nth map (n, None) with
+    (_, None) -> raise Not_found
+  | (_, Some node) -> node
+      

@@ -180,36 +180,90 @@ and find_pending_slot () =
     iter ()
   with _ -> ()
 
-let not_saturated_count = ref 0
-
-(* The estimation is based on the bandwidth computed in update_gui_info,
-which is only executed every update_gui_delay seconds, while this 
-function has to be called often, here every second. *)
-  
-let refill_upload_slots () =
-  if !!dynamic_slots then begin
-      let slot_bw = 2560 in
-      let min_upload_slots = 3 in
-(*  let estimated_capacity = !!max_hard_upload_rate * 1024 in *)
-      let estimated_capacity = Array.fold_left maxi 0 upload_history in
-      let len = Fifo.length upload_clients in
-      if len < !!max_upload_slots then begin
-
-(* enough free bw for another slot *)
-          if upload_usage () + slot_bw < estimated_capacity then
-            incr not_saturated_count
-          else
-            not_saturated_count := 0;
-          
-          if len < min_upload_slots ||
-            !not_saturated_count = 2 then begin
-              find_pending_slot ();
-              not_saturated_count := 0
-            end
-        end
-    end else 
+let static_refill_upload_slots () =
   let len = Fifo.length upload_clients in
   if len < !!max_upload_slots then find_pending_slot ()
+
+(* Since dynamic slots allocation is based on feedback, it should not 
+ * allocate new slots too fast, since connections need some time to reach 
+ * a stable state. 
+ * To compensate for that slow pace, slots are allocated quadratically
+ * as long as the link is not saturated. 
+ *)
+
+let not_saturated_count = ref 0
+let allocation_cluster = ref 1
+  
+let dynamic_refill_upload_slots () =
+  let reset_state () =
+    not_saturated_count := 0;
+    allocation_cluster := 1 in
+
+  let open_slots n =
+    let i = ref n in
+    if !verbose_upload then begin
+      lprintf "try to allocate %d more slots" n;
+      lprint_newline ()
+    end;
+    while !i > 0 do
+      find_pending_slot ();
+      decr i
+    done in
+
+  let slot_bw = 3072 in
+  let min_upload_slots = 3 in
+(*  let estimated_capacity = !!max_hard_upload_rate * 1024 in *)
+  let estimated_capacity = detected_uplink_capacity () in
+  if !verbose_upload then begin
+    lprintf "usage: %d(%d) capacity: %d "
+      (short_delay_upload_usage ()) 
+      (upload_usage ()) 
+      estimated_capacity;
+    lprint_newline ()
+  end;
+  let len = Fifo.length upload_clients in
+  if len < !!max_upload_slots then begin
+
+(* enough free bw for another slot *)
+    if short_delay_upload_usage () + slot_bw < estimated_capacity then begin
+      if !verbose_upload then begin
+	lprintf "uplink not fully used";
+	lprint_newline ()
+      end;
+      incr not_saturated_count
+    end else reset_state ();
+          
+    if len < min_upload_slots then begin
+      if !verbose_upload then begin
+	lprintf "too few upload slots";
+	lprint_newline ()
+      end;
+      open_slots (min_upload_slots - len);
+      reset_state ()
+    end else if !not_saturated_count >= 2 then begin
+      open_slots (min !allocation_cluster (!!max_upload_slots - len));
+      incr allocation_cluster
+    end
+  end
+
+let turn = ref (-1)
+
+let refill_upload_slots () =
+  incr turn;
+  if !turn = 5 then
+    turn := 0;
+  if !!dynamic_slots then begin
+    if !turn = 0 then
+      (* call every 5s *)
+      dynamic_refill_upload_slots ()
+  end else
+    (* call every 1s *)
+    static_refill_upload_slots ();
+
+  if !turn = 0 then
+    (* call every 5s *)
+    update_upload_history ()
+
     
 let log_client_info c sock = 
   let buf = Buffer.create 100 in
@@ -264,10 +318,7 @@ let disconnect_client c =
               log_client_info c sock
             ;
           (try Hashtbl.remove connected_clients c.client_md4 with _ -> ());
-(*        There is a bug with this pending slot queue, now, we don't remove
-          clients that disconnect, ok, it looks just like an Emule queue...
-          but it should at least fix the bug for this release.
-          remove_pending_slot c; *)
+          remove_pending_slot c; 
           connection_failed c.client_connection_control;
           TcpBufferedSocket.close sock "closed";
           printf_string "-c"; 

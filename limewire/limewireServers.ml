@@ -96,18 +96,46 @@ module WordSet = Set.Make(struct
 let new_shared_words = ref false
 let all_shared_words = ref []
 let cached_qrt_table = ref ""
+                
+let extension_list = [
+    "mp3" ; "avi" ; "jpg" ; "jpeg" ; "txt" ; "mov" ; "mpg" 
+]
+      
+let rec remove_short list list2 =
+  match list with
+    [] -> List.rev list2
+  | s :: list -> 
+      if List.mem s extension_list then 
+        remove_short list (s :: list2) else 
+      
+      if String.length s < 5 then (* keywords should had list be 5 bytes *)
+        remove_short list list2
+      else
+        remove_short list (s :: list2)
+
+let stem s =
+  let s = String.lowercase (String.copy s) in
+  for i = 0 to String.length s - 1 do
+    match s.[i] with
+      'a'..'z' | '0' .. '9' -> ()
+    | _ -> s.[i] <- ' '
+  done;
+  lprintf "STEM %s\n" s;
+  remove_short (String2.split s ' ') []
 
 let update_shared_words () = 
+  all_shared_words := [];
   let module M = CommonUploads in
   let words = ref WordSet.empty in
   let register_words s = 
-    let ws = String2.split_simplify s ' ' in
+    let ws = stem s in
     List.iter (fun w ->
-        words := WordSet.add s !words
+        words := WordSet.add w !words
     ) ws
   in
   let rec iter node =
     List.iter (fun sh ->
+        lprintf "CODED name: %s\n" sh.M.shared_codedname;
         register_words sh.M.shared_codedname;
     ) node.M.shared_files;
     List.iter (fun (_,node) ->
@@ -118,7 +146,12 @@ let update_shared_words () =
   iter M.shared_tree;
   WordSet.iter (fun s ->
       all_shared_words := s :: !all_shared_words
-  ) !words
+  ) !words;
+  lprintf "SHARED WORDS: ";
+  List.iter (fun s ->
+      lprintf "%s " s
+  ) !all_shared_words;
+  lprint_newline ()
   
   
 let send_qrt_sequence s =
@@ -173,33 +206,7 @@ let send_query min_speed keywords xml_query =
   ) !connected_servers;
   p
 
-        
-let extension_list = [
-    "mp3" ; "avi" ; "jpg" ; "jpeg" ; "txt" ; "mov" ; "mpg" 
-]
-      
-let rec remove_short list list2 =
-  match list with
-    [] -> List.rev list2
-  | s :: list -> 
-      if List.mem s extension_list then 
-        remove_short list (s :: list2) else 
-      
-      if String.length s < 5 then (* keywords should had list be 5 bytes *)
-        remove_short list list2
-      else
-        remove_short list (s :: list2)
-        
-let stem s =
-  let s = String.lowercase (String.copy s) in
-      for i = 0 to String.length s - 1 do
-        let c = s.[i] in
-        match c with
-          'a'..'z' | '0' .. '9' -> ()
-        | _ -> s.[i] <- ' ';
-      done;
-      remove_short (String2.split s ' ') []
-    
+  
 let get_name_keywords file_name =
   match stem file_name with 
     [] | [_] -> 
@@ -248,7 +255,7 @@ let redirector_to_client p sock =
       Fifo.put peers_queue (t.P.ip, t.P.port);
   | _ -> ()
       
-let redirector_parse_header sock header = 
+let redirector_parse_header handler sock header = 
 (*  lprintf "redirector_parse_header"; lprint_newline ();*)
   if String2.starts_with header gnutella_ok then begin
 (*      lprintf "GOOD HEADER FROM REDIRECTOR:waiting for pongs";*)
@@ -260,7 +267,8 @@ let redirector_parse_header sock header =
           P.nfiles = Int64.zero;
           P.nkb = Int64.zero;
           P.s = "none:128:false";
-        }))
+          }));
+      handler := Reader (gnutella_handler parse redirector_to_client)
     end else begin
       if !verbose_msg_servers then begin
           lprintf "BAD HEADER FROM REDIRECTOR: \n";
@@ -295,9 +303,8 @@ let connect_to_redirector () =
             
             
             redirector_connected := true;
-            set_reader sock (handler !verbose_msg_servers redirector_parse_header
-                (gnutella_handler parse redirector_to_client)
-            );
+            set_reader sock (handlers !verbose_msg_servers
+              (HttpHeader redirector_parse_header));
             set_closer sock (fun _ _ -> 
 (*            lprintf "redirector disconnected"; lprint_newline (); *)
                 redirector_connected := false);
@@ -404,79 +411,7 @@ let find_header header headers default =
   try
     List.assoc header headers
   with Not_found -> default
-  
-let server_parse_header s sock header =
-  if !verbose_msg_servers then  LittleEndian.dump_ascii header;  
-  try
-    if String2.starts_with header gnutella_200_ok then begin
-(*      lprintf "GOOD HEADER FROM ULTRAPEER";
-      lprint_newline (); *)
-        set_rtimeout sock DG.half_day;
-(*        lprintf "SPLIT HEADER..."; lprint_newline ();*)
-        let lines = Http_client.split_header header in
-        match lines with
-          [] -> raise Not_found        
-        | _ :: headers ->
-(*            lprintf "CUT HEADER"; lprint_newline ();*)
-            let headers = Http_client.cut_headers headers in
-            let agent =  find_header "user-agent" headers "Unknown" in
-            lprintf "USER AGENT: %s\n" agent;
-(*
-if String2.starts_with agent "LimeWire" ||
-String2.starts_with agent "Gnucleus" ||
-String2.starts_with agent "BearShare"              
-then
-begin
-*)
-            
-            s.server_agent <- agent;
-            server_must_update (as_server s.server_server);
-(*                lprintf "LIMEWIRE Detected"; lprint_newline ();*)
-            add_peers headers;
-            if (find_header "x-ultrapeer" headers "False") <> "True" then
-              raise Not_found;
-            connected_servers := s :: !connected_servers;
 
-(*                lprintf "******** ULTRA PEER %s:%d  *******"
-                  (Ip.to_string s.server_ip) s.server_port;
-                lprint_newline (); *)
-            write_string sock "GNUTELLA/0.6 200 OK\r\n\r\n";
-            set_server_state s (Connected (-1));
-            recover_files_from_server sock
-      end else 
-    if String2.starts_with header gnutella_503_shielded then begin
-(*      lprintf "GOOD HEADER FROM SIMPLE PEER";
-      lprint_newline ();*)
-        let lines = Http_client.split_header header in
-        match lines with
-          [] -> raise Not_found        
-        | _ :: headers ->
-            let headers = Http_client.cut_headers headers in
-            let agent = List.assoc "user-agent" headers in
-            if String2.starts_with agent "LimeWire" ||
-              String2.starts_with agent "Gnucleus" ||
-              String2.starts_with agent "BearShare"              
-            then
-              begin
-(*                lprintf "LIMEWIRE Detected\n";*)
-                add_peers headers;                
-                raise Not_found
-              end
-            else raise Not_found
-      end else begin
-(*      lprintf "BAD HEADER FROM SERVER: [%s]\n" header;  *)
-        raise Not_found
-      end
-  with
-  | Not_found -> 
-(*      lprintf "DISCONNECTION\n";  *)
-      disconnect_from_server s
-  | e -> 
-(*
-      lprintf "DISCONNECT WITH EXCEPTION %s\n" (Printexc2.to_string e);
-  *)
-      disconnect_from_server s
-      
 let server_to_client s p sock =
   if !verbose_msg_servers then begin
       lprintf "server_to_client\n";
@@ -613,7 +548,81 @@ QAnd (QHasMinVal (CommonUploads.filesize_field, n),q)
             ) t.Q.files
       end
   | _ -> ()
+  
+let server_parse_header s handler sock header =
+  if !verbose_msg_servers then  LittleEndian.dump_ascii header;  
+  try
+    if String2.starts_with header gnutella_200_ok then begin
+(*      lprintf "GOOD HEADER FROM ULTRAPEER";
+      lprint_newline (); *)
+        set_rtimeout sock DG.half_day;
+(*        lprintf "SPLIT HEADER..."; lprint_newline ();*)
+        let lines = Http_client.split_header header in
+        match lines with
+          [] -> raise Not_found        
+        | _ :: headers ->
+(*            lprintf "CUT HEADER"; lprint_newline ();*)
+            let headers = Http_client.cut_headers headers in
+            let agent =  find_header "user-agent" headers "Unknown" in
+            lprintf "USER AGENT: %s\n" agent;
+(*
+if String2.starts_with agent "LimeWire" ||
+String2.starts_with agent "Gnucleus" ||
+String2.starts_with agent "BearShare"              
+then
+begin
+*)
+            
+            s.server_agent <- agent;
+            server_must_update (as_server s.server_server);
+(*                lprintf "LIMEWIRE Detected"; lprint_newline ();*)
+            add_peers headers;
+            if (find_header "x-ultrapeer" headers "False") <> "True" then
+              raise Not_found;
+            connected_servers := s :: !connected_servers;
 
+(*                lprintf "******** ULTRA PEER %s:%d  *******"
+                  (Ip.to_string s.server_ip) s.server_port;
+                lprint_newline (); *)
+            write_string sock "GNUTELLA/0.6 200 OK\r\n\r\n";
+            set_server_state s (Connected (-1));
+            recover_files_from_server sock;
+            handler := Reader
+              (gnutella_handler parse (server_to_client s))
+      end else 
+    if String2.starts_with header gnutella_503_shielded then begin
+(*      lprintf "GOOD HEADER FROM SIMPLE PEER";
+      lprint_newline ();*)
+        let lines = Http_client.split_header header in
+        match lines with
+          [] -> raise Not_found        
+        | _ :: headers ->
+            let headers = Http_client.cut_headers headers in
+            let agent = List.assoc "user-agent" headers in
+            if String2.starts_with agent "LimeWire" ||
+              String2.starts_with agent "Gnucleus" ||
+              String2.starts_with agent "BearShare"              
+            then
+              begin
+(*                lprintf "LIMEWIRE Detected\n";*)
+                add_peers headers;                
+                raise Not_found
+              end
+            else raise Not_found
+      end else begin
+(*      lprintf "BAD HEADER FROM SERVER: [%s]\n" header;  *)
+        raise Not_found
+      end
+  with
+  | Not_found -> 
+(*      lprintf "DISCONNECTION\n";  *)
+      disconnect_from_server s
+  | e -> 
+(*
+      lprintf "DISCONNECT WITH EXCEPTION %s\n" (Printexc2.to_string e);
+  *)
+      disconnect_from_server s
+      
 let send_pings () =
   let pl =
     let module P = Ping in
@@ -657,8 +666,9 @@ let connect_server (ip,port) =
         set_server_state s Connecting;
         s.server_sock <- Some sock;
         incr nservers;
-        set_reader sock (handler !verbose_msg_servers (server_parse_header s)
-          (gnutella_handler parse (server_to_client s))
+        set_reader sock (
+          handlers !verbose_msg_servers (HttpHeader (server_parse_header s))
+
         );
         set_closer sock (fun _ error -> 
 (*            lprintf "CLOSER %s" error; lprint_newline ();*)

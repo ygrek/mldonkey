@@ -46,3 +46,5 @@ val fd_of_chunk : t -> int64 -> int64 -> (Unix.file_descr * int64)
 val read : t -> int64 -> string -> int -> int -> unit
 val allocate_chunk :  t -> int64 -> int64 -> unit
   
+val copy_chunk : t -> t -> int64 -> int64 -> int64 -> unit
+  
