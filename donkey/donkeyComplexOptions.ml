@@ -96,6 +96,12 @@ let value_to_client is_friend assocs =
       CommonGlobals.connection_set_last_conn l.client_connection_control
         last_conn;
     with _ -> ());
+  (try
+     let last_filereqs =
+       (min (get_value "client_last_filereqs" value_to_float)
+	  (BasicSocket.last_time ())) in
+       l.client_last_filereqs <- last_filereqs
+   with _ -> ());
   if is_friend then friend_add l;
   l
   
@@ -116,6 +122,7 @@ let client_to_value c =
       "client_age", float_to_value (
         CommonGlobals.connection_last_conn 
         c.client_connection_control);
+      "client_last_filereqs", float_to_value c.client_last_filereqs;
       "client_checked", bool_to_value c.client_checked;
     ]
   in

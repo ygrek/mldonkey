@@ -378,6 +378,9 @@ let file_print file o =
     | name :: _ -> name)
   (Int32.to_string info.G.file_size)
   (Int32.to_string info.G.file_downloaded);
+
+  Printf.bprintf buf "Chunks: [%-s]\n" info.G.file_chunks;
+  
   List.iter (fun name -> 
       Printf.bprintf buf "    (%s)\n" name) info.G.file_names;
   (try

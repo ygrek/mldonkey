@@ -1,8 +1,25 @@
 ChangeLog	
 =========
 
+2002/12/15: Simon
+  - Applying Pango's patches (20021213b):
+     05_save_client_last_filereqs: applied
+     07_keep_user_filenames: applied
+     20_vd_sharp_urls: applied
+     21_queue_new_sources
+     24_unbroke_random_order: applied
+     25_bolder_remove_old_sources
+     29_mrvn_eta: applied
+     32_xou_web_interface: applied
+     34_suxxx_display_chunks_in_telnet: applied
+     35_fix_console: applied
+
 2002/12/12: Simon
   - Rewritten remove_old_servers, scheduled every 15 min
+     * CommonComplexOptions.servers is an intmap, not a list anymore
+     * Delays are printed
+     * Black-listed servers are removed immediatly
+     * Last Connection is extracted immediatly
 
 2002/12/09: Simon
   - Fabrice should compile and release binaries for 2.01

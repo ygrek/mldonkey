@@ -140,7 +140,8 @@ let fill_clients_list _ =
   Printf.printf "2 minutes: %d" (List.length clients_lists.(1));  print_newline ();
   Printf.printf "3 minutes: %d" (List.length clients_lists.(2));  print_newline ();
   Printf.printf "4 minutes: %d" (List.length clients_lists.(3));  print_newline ();
-  Printf.printf "5 minutes: %d" (List.length clients_lists.(4));  print_newline ()
+  Printf.printf "5 minutes: %d" (List.length clients_lists.(4));  print_newline ();
+  Printf.printf "waiting for breaks: %d" (List.length !new_clients_list);  print_newline ()
 
 (* Every second, try to connect to some clients *)          
 let check_clients _ =
@@ -153,7 +154,8 @@ let check_clients _ =
       clients_lists.(3) <- clients_lists.(4);
       clients_lists.(4) <- []
     end;
-  let nwaiting = List.length clients_lists.(0) in
+  let nwaiting = List.length clients_lists.(0) +
+		 (List.length !new_clients_list) / 10 in
   try
     let nwaiting = ref (min
           (nwaiting / !remaining_seconds + 1)
@@ -161,10 +163,14 @@ let check_clients _ =
       ) in
     while !nwaiting > 0 do
       if not (can_open_connection ()) then raise Exit;
-      match clients_lists.(0) with
-        [] -> raise Exit
-      | c :: tail ->
-          clients_lists.(0) <- tail;
+      let c =
+	match clients_lists.(0) with
+	    c :: tail -> clients_lists.(0) <- tail;
+	      c
+          | [] -> match !new_clients_list with
+		c :: tail -> new_clients_list := tail;
+		  c
+	      | [] -> raise Exit in
           c.client_on_list <- false;
           try
             if connection_can_try c.client_connection_control then
@@ -173,7 +179,7 @@ let check_clients _ =
                   reconnect_client c;
                   if c.client_sock <> None then decr nwaiting
               | Some sock ->
-		  (try query_files c sock with _ -> ());
+		  query_files c sock;
 		  connection_try c.client_connection_control;
 		  connection_ok c.client_connection_control;
                   ()
@@ -233,7 +239,7 @@ We need some properties:
 * Good sources (connected in last 30 minutes) should not be removed.
 * Other sources should be sorted and removed if needed.
 *)
-  
+
 let remove_old_clients () =
   let min_last_conn =  last_time () -. 
     float_of_int !!max_sources_age *. one_day in
@@ -241,79 +247,95 @@ let remove_old_clients () =
 (* Good sources: connected in the last 45 minutes *)
 (* New sources:  fake-connection 25 minutes before added *)
   let good_last_conn = last_time () -. 45. *. 60. in
+
+(* How many good sources is enough ? *)
+  let good_threshold = !!max_sources_per_file * !!good_sources_threshold / 100 in
   List.iter (fun file ->
-      let locs = file.file_sources in
-      let nlocs = file.file_nlocations in
+        
+(* First, remove sources older than max_sources_age *)
+      let old_sources = ref [] in
+      let young_sources = ref [] in
+      let nkept_sources = ref 0 in
+
+      Intmap.iter (fun _ c ->
+        match c.client_sock with
+	    Some _ ->
+		incr nkept_sources
+          | None ->
+	      if connection_last_conn c.client_connection_control < min_last_conn then
+		old_sources := c :: !old_sources
+	      else begin
+		young_sources := c :: !young_sources;
+		incr nkept_sources
+	      end
+      ) file.file_sources;
+      if !nkept_sources >= !!min_left_sources then
+	List.iter (fun c ->
+	  remove_source file c
+	) !old_sources;
 
 (* Do it only if we have more sources than we want *)
-      if nlocs > !!max_sources_per_file then
-
-(* Put all sources that could be removed in a list *)
-        let nsources = ref 0 in
-        let sources = ref [] in
-        
-        Printf.printf "%d Sources before clean" nlocs;
-        print_newline ();
-        
-        Intmap.iter (fun _ c ->
-            match c.client_sock with
-              Some _ -> ()
-            | None -> 
-                if connection_last_conn c.client_connection_control < good_last_conn then begin
-                    sources := c :: !sources;
-                    incr nsources
-                  end
-        ) locs;
-        let must_remove = mini !nsources (nlocs - !!max_sources_per_file) in
-        
-        Printf.printf "%d Sources suspected, %d to remove" !nsources must_remove;
-        print_newline ();
-        
-        let remove =
-          if !nsources = must_remove then !sources
-          else
-(* We should not remove all sources *)
-          
-          let sources = List.sort (fun c1 c2 ->
+(* Since the list should not grow once the max_sources_per_file limit
+   is reached (see DonkeyGlobals.new_source), this can only happen 
+   in exceptional cases (user lowering max_sources_per_file ?) *)
+      if file.file_nlocations > !!max_sources_per_file then begin
+	let must_remove = mini (List.length !young_sources) 
+			    (file.file_nlocations - !!max_sources_per_file) in
+        let sources = List.sort (fun c1 c2 ->
 (* First criterium for sorting is last_connection *)
-                let l1 = connection_last_conn c1.client_connection_control in
-                let l2 = connection_last_conn c2.client_connection_control in
-                if l1 = l2 then 
-                  c1.client_rating - c2.client_rating
-                else
-                if l1 > l2 then 1 else -1
-            ) !sources in
+          let l1 = connection_last_conn c1.client_connection_control in
+          let l2 = connection_last_conn c2.client_connection_control in
+            if l1 = l2 then (* they're floats, it's never gonna happen! *)
+              c1.client_rating - c2.client_rating
+            else
+              if l1 > l2 then 1 else -1
+            ) !young_sources in
           
-          let to_remove, kept = List2.cut must_remove sources in
-          
-          begin
-            match to_remove, kept with
-            | c1 :: _ , c2 :: _ ->
-                let l1 = connection_last_conn c1.client_connection_control in
-                let l2 = connection_last_conn c2.client_connection_control in
-                Printf.printf "remove %d (%s:%d) keep %d (%s:%d)"
+        let to_remove, kept = List2.cut must_remove sources in
+        (match to_remove, kept with
+           | c1 :: _ , c2 :: _ ->
+               let l1 = connection_last_conn c1.client_connection_control in
+               let l2 = connection_last_conn c2.client_connection_control in
+                 Printf.printf "remove %d (%s:%d) keep %d (%s:%d)"
                   (client_num c1) (Date.to_string l1) c1.client_rating
                   (client_num c2)  (Date.to_string l2) c2.client_rating;
                 print_newline ();
              | _ -> 
-                Printf.printf "??????? no remove no kept ???????";
-                print_newline ();
-                assert false          
-          end;
-          to_remove
-        in
+                Printf.printf "no to_remove or no kept";
+                print_newline ());
         List.iter (fun c ->
-            file.file_nlocations <- file.file_nlocations - 1;
-            file.file_sources <- Intmap.remove (client_num c) 
-            file.file_sources
-        ) remove;
+          remove_source file c
+        ) to_remove;
         
         Printf.printf "After clean: sources %d" file.file_nlocations; 
         print_newline ();
+      end;
 
-        file.file_enough_sources <- (
-          file.file_nlocations > (!!max_sources_per_file * 11) / 10);
+      let ngood_sources = ref 0 in
+	Intmap.iter (fun _ c ->
+	  match c.client_sock with
+              Some _ -> incr ngood_sources
+            | None -> 
+		if connection_last_conn c.client_connection_control > good_last_conn then
+		  incr ngood_sources
+        ) file.file_sources;
 
+	Printf.printf "%s: %d good sources (%.2f %%)" (file_best_name file) !ngood_sources (100. *. (float_of_int !ngood_sources) /. (float_of_int !!max_sources_per_file));
+	print_newline ();
+
+	if !ngood_sources < good_threshold then begin
+	  if file.file_enough_sources then begin
+	    Printf.printf "Not enough good sources, restarting active search";
+	    print_newline ();
+	    file.file_enough_sources <- false
+	  end
+	end else begin
+	  if not file.file_enough_sources then begin
+	    Printf.printf "Enough good sources, stopping active search";
+	    print_newline ();
+	    file.file_enough_sources <- true
+	  end
+	end
   ) !current_files
           
 let force_check_locations () =
@@ -501,6 +523,13 @@ module NewUpload = struct
     let counter = ref 1    
     let sent_bytes = Array.create 10 0
     
+    let check_end_upload c sock =
+      if c.client_bucket = 0 then
+	direct_client_send sock (
+	  let module M = DonkeyProtoClient in
+	  let module Q = M.CloseSlot in
+	    M.CloseSlotReq Q.t)
+
     let rec send_small_block c sock file begin_pos len_int = 
 (*      let len_int = Int32.to_int len in *)
       remaining_bandwidth := !remaining_bandwidth - len_int;
@@ -545,7 +574,8 @@ module NewUpload = struct
         else
           printf_string "U[IN]";
         
-        write_string sock upload_buffer
+        write_string sock upload_buffer;
+	check_end_upload c sock
       with e -> 
           Printf.printf "Exception %s in send_small_block" (Printexc.to_string e);
           print_newline () 
@@ -726,6 +756,13 @@ module OldUpload = struct
     
     let remaining_bandwidth = ref 0
     
+    let check_end_upload c sock =
+      if c.client_bucket = 0 then
+	direct_client_send sock (
+	  let module M = DonkeyProtoClient in
+	  let module Q = M.CloseSlot in
+	    M.CloseSlotReq Q.t)
+
     let send_small_block c sock file begin_pos len = 
       let len_int = Int32.to_int len in
       remaining_bandwidth := !remaining_bandwidth - len_int / 1000;
@@ -774,7 +811,8 @@ print_newline (); *)
         else
           printf_string "U[IN]";
         
-        write_string sock upload_buffer
+        write_string sock upload_buffer;
+	check_end_upload c sock
       with e -> 
           Printf.printf "Exception %s in send_small_block" (Printexc.to_string e);
           print_newline () 

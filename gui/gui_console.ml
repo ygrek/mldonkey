@@ -34,7 +34,7 @@ class box () =
 
     method insert t =
       ignore (text#insert t (* ~pos:0 *) );
-(*      text#set_position 0; *)
+      text#set_position text#length;
 
     method on_entry_return () =
       match we_command#text with

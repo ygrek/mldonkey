@@ -784,8 +784,26 @@ let verify_chunks file =
   compute_size file
  
 let random_chunks_order nchunks =
-  
+
+  let n = ref 0 in
+  let nbegin = ref 0 in
+  let nend = ref (nchunks-1) in
   let order = Array.create nchunks 0 in
+
+  let from_the_beginning =
+    if !n < nchunks then begin
+      order.(!n) <- !nbegin;
+      incr n;
+      incr nbegin 
+    end in
+
+  let from_the_end =
+    if !n < nchunks then begin
+      order.(!n) <- !nend;
+      incr n;
+      decr nend
+    end in
+
 (* Fisher-Yates shuffle *)
   let shuffle a start len =
     for i = len-1 downto 1 do
@@ -795,17 +813,21 @@ let random_chunks_order nchunks =
         a.(i+start) <- a.(j+start);
         a.(j+start) <- temp
     done in
-  
 (* download the last chunk *)
-  order.(0) <- nchunks-1;
+    from_the_end;
+(* download the first chunk *)
+    from_the_beginning;
 (* download the second last chunk too *)
-  if nchunks > 1 then order.(1) <- nchunks -2; 
-  for i = 2 to nchunks-1 do
-    order.(i) <- i-1
-  done;
-  if nchunks >= 4 then
-    shuffle order 2 (nchunks-2);
-  order
+    from_the_end;
+(* download the remaining chunks at random *)
+    if !n < nchunks then begin
+      for i = !n to nchunks-1 do
+	order.(i) <- !nbegin;
+	incr nbegin
+      done;
+      shuffle order !n (nchunks - !n)
+    end;
+    order
   
 let set_file_size file sz =
   

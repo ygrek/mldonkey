@@ -274,7 +274,7 @@ WEB server</h2>
   </tr>
 <tr>
 <td><a href=/submit?q=vr $O> View Results </a></td>
-<td><a href=/submit?q=vd $O> View Downloads </a></td>
+<td><a href=/files $O> View Downloads </a></td>
 <td><a href=/submit?q=commit $S> Commit Downloads </a></td>
 <td><a href=/submit?q=vs $O> View Searches </a></td>
 <td><a href=/submit?q=vo $O> View Options </a></td>
@@ -444,6 +444,10 @@ let propagate_sources = define_option downloads_ini ["propagate_sources"]
 let max_sources_per_file = define_option downloads_ini ["max_sources_per_file"]
     "Maximal number of sources for each file"
     int_option 500
+    
+let good_sources_threshold = define_option downloads_ini ["good_sources_threshold"]
+    "What percentage of good sources is enough"
+    int_option 75
     
 let max_displayed_results = define_option downloads_ini
     ["max_displayed_results"]

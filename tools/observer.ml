@@ -216,7 +216,6 @@ let _ =
     (fun _ -> ()) ""
 
   
-  
 let time = ref 0
 let array = Array.create !servers_age []
 let dump_server_list _ = 
@@ -227,10 +226,16 @@ let dump_server_list _ =
   array.(!time mod !servers_age) <- !new_servers;
   new_servers := [];
   let servers = Hashtbl.create 97 in
+  let servers_ip = Hashtbl.create 97 in
   for i = 0 to !servers_age - 1 do
     List.iter (fun ((ip,port) as key) ->
-        if not (Hashtbl.mem servers key) then
-          Hashtbl.add servers key { S.ip = ip; S.port = port; S.tags = []; }
+        if port <> 4662 && Ip.valid ip && ip <> Ip.localhost then
+        try
+           let key = Hashtbl.find servers_ip ip in
+           Hashtbl.remove servers key
+        with _ ->
+           Hashtbl.add servers key { S.ip = ip; S.port = port; S.tags = []; };
+           Hashtbl.add servers_ip ip key
     ) array.(i)
   done;
   let list = Hashtbl2.to_list servers in
@@ -249,6 +254,15 @@ let _ =
   ignore (create_observer 4665)
   
 let _ =
+  begin
+  let module S = DonkeyImport.Server in
+    try
+      let file = File.to_string "servers.met" in
+      List.iter (fun s ->
+        array.(0) <- (s.S.ip , s.S.port) :: array.(0)
+        ) (S.read file)
+    with _ -> Printf.printf "Could not load old server list"; print_newline ();
+  end;
   BasicSocket.add_timer 30. dump_server_list;
   BasicSocket.add_infinite_timer 300. dump_server_list;
   Printf.printf "Observer started";

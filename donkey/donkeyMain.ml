@@ -87,11 +87,13 @@ let disable enabler () =
   Array.iter (fun list -> 
       List.iter (fun c -> c.client_on_list <- false) list) 
   clients_lists;
+  List.iter (fun c -> c.client_on_list <- false) !new_clients_list;
   clients_lists.(0) <- [];
   clients_lists.(1) <- [];
   clients_lists.(2) <- [];
   clients_lists.(3) <- [];
   clients_lists.(4) <- [];
+  new_clients_list := [];
   servers_list := [];
   if !!enable_donkey then enable_donkey =:= false;
   DonkeyOvernet.disable ()

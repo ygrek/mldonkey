@@ -94,6 +94,16 @@ let udp_client_send uc t =
       t
     end
   
+let schedule_new_client c =
+  if not c.client_on_list then
+    match c.client_sock with
+	Some _ -> ()
+      | None ->
+	  match c.client_kind with
+	      Known_location _ ->
+		new_clients_list := c :: !new_clients_list;
+		c.client_on_list <- true
+	    | _ -> ()
 
 let client_udp_send ip port t =
   if not ( is_black_address ip (port+4)) then
@@ -839,15 +849,16 @@ is checked for the file.
       begin
         try
           let file = find_file t.Q.md4 in
+          if file.file_enough_sources then begin
+	    Printf.printf "** Dropped %d sources for %s **" (List.length t.Q.sources) (file_best_name file);
+	    print_newline ()
+	  end else 
           List.iter (fun (ip1, port, ip2) ->
               if Ip.valid ip1 then
                 let c = new_client (Known_location (ip1, port)) in
                 if not (Intmap.mem (client_num c) file.file_sources) then
                   new_source file c;
-                (* we should probably only add this client if it is not already there ... 
-                clients_list := (c, [file]) :: !clients_list;
-incr clients_list_len;
-  *)
+		  schedule_new_client c
           ) t.Q.sources
         with _ -> ()
       end
@@ -1138,7 +1149,7 @@ let schedule_client c =
       Some _ -> ()
     | None ->
         match c.client_kind with
-          Known_location _ ->                      
+          | Known_location _ ->                      
             let next_try = connection_next_try c.client_connection_control in
             let delay = next_try -. last_time () in
             c.client_on_list <- delay < 240.;
@@ -1183,6 +1194,7 @@ let unschedule_client c =
       clients_lists.(2) <- List2.removeq c clients_lists.(2);
       clients_lists.(3) <- List2.removeq c clients_lists.(3);
       clients_lists.(4) <- List2.removeq c clients_lists.(4);
+      new_clients_list := List2.removeq c !new_clients_list;
       c.client_on_list <- false;
     end
             
@@ -1228,9 +1240,17 @@ let udp_server_send s t =
 let query_locations_reply s t =
   let module M = DonkeyProtoServer in
   let module Q = M.QueryLocationReply in
+
+    connection_ok s.server_connection_control;
   
-  let nlocs = List.length t.Q.locs in
-  s.server_score <- s.server_score + 3;
+    try
+      let file = find_file t.Q.md4 in
+      let nlocs = List.length t.Q.locs in
+      s.server_score <- s.server_score + 3;
+      if file.file_enough_sources then begin
+	Printf.printf "** Dropped %d sources for %s **" nlocs (file_best_name file);
+	print_newline ()
+      end else 
   
   List.iter (fun l ->
       let ip = l.Q.ip in
@@ -1239,8 +1259,11 @@ let query_locations_reply s t =
       if Ip.valid ip then
         begin
           let c = new_client (Known_location (ip, port)) in
-          connect_as_soon_as_possible c
-        end else
+	    if not (Intmap.mem (client_num c) file.file_sources) then begin
+	      new_source file c;
+	      schedule_new_client c
+	    end
+	end else
       match s.server_sock with
         None ->
           let module Q = M.QueryCallUdp in
@@ -1255,6 +1278,8 @@ let query_locations_reply s t =
           printf_string "QUERY ID";
           query_id s sock ip
   ) t.Q.locs
+
+    with Not_found -> ()
   
 let client_connection_handler t event =
   printf_string "[REMOTE CONN]";

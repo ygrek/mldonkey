@@ -40,24 +40,27 @@ let html_header = define_option message_file ["html_header"]
   "<title>MLdonkey: Web Interface</title>
 <style type=\"text/css\">
 <!--
-body,th,td {background-color:#EAE8CF;color: #3F702E; font-family: Verdana, Arial, Helvetica, sans-serif;font-size: 12px;}
-a{ text-decoration: none;}
-a:hover { text-decoration: underline; color : #660000; }
-a:link,a:active,a:visited { color : #660000; }
+body,th,td { background-color:#EAE8CF;color: #3F702E; font-family: Verdana, Arial, Helvetica, sans-serif;font-size: 12px; }
+a { text-decoration: none; }
+a:hover { text-decoration: underline; color: #660000; }
+a:link,a:active,a:visited { color: #660000; }
+a.extern:visited,a.extern:active { color: #000099; }
+a.extern:hover { color: #000000; } 
 -->
 </style>
 <script>
 <!--
-function ed2k(){
+function CheckInput(){
+var cmdString = document.cmdFormular.q.value;
+if (cmdString.substr(0,7) == \"ed2k://\"){
 var cmdValue = \"dllink \" + document.cmdFormular.q.value;
 document.cmdFormular.q.value = cmdValue;
-document.cmdFormular.submit();
-}
 
-function ovlink(){
+}else if (cmdString.substr(0,6) == \"fha://\"){
 var cmdValue = \"ovlink \" + document.cmdFormular.q.value;
 document.cmdFormular.q.value = cmdValue;
-document.cmdFormular.submit();
+}
+return true; 
 }
 -->
   </script>
@@ -72,21 +75,21 @@ let download_html_header = define_option message_file ["download_html_header"]
 <title>MLdonkey: Web Interface</title>
 <style type=\"text/css\">
 <!--
-body{background-color:#E5E5E5;color: #3F702E; font-family: Verdana, Arial, Helvetica, sans-serif;font-size: 13px; margin: 2;}
-td,pre {color: #3F702E; font-family: Verdana, Arial, Helvetica, sans-serif;font-size: 13px;}
+body { background-color: #EAE8CF; color: #3F702E; font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 12px; margin: 2; }
+td,pre {color: #3F702E; font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 12px; }
 
-td.loaded{background-color:#000077; font-size:3px;}
-td.remain{background-color:#770000; font-size:3px;}
+td.loaded { background-color: #6666cc; font-size: 2px; }
+td.remain { background-color: #cc6666; font-size: 2px; }
 
-a{ text-decoration: none; font-weight: bold;}
+a { text-decoration: none; font-weight: bold; }
 a:link,a:active,a:visited { color: #882222; }
 a:hover { color: #000000; text-decoration: underline;}
 
-a.extern:visited,a.extern:hover,a.extern:active { color: #000099; }
+a.extern:visited,a.extern:active { color: #000099; }
 a.extern:hover { color: #000000; }
 -->
 </style>
-<script>                  
+<script>
 <!--
 function ovlink(){
 var cmdValue = \"ovlink \" + document.cmdFormular.q.value;
@@ -94,10 +97,11 @@ document.cmdFormular.q.value = cmdValue;
 document.cmdFormular.submit();
 }
 
+
 function ed2k(){
 var cmdValue = \"dllink \" + document.cmdFormular.q.value;
 document.cmdFormular.q.value = cmdValue;
-document.cmdFormular.submit();
+document.cmdFormular.submit(); 
 }
 -->
 </script>
@@ -111,88 +115,44 @@ let web_common_header = define_option message_file
 <table width=\"100%\" border=\"0\">
 <tr>
 <td align=\"left\" valign=\"middle\" width=\"*\"><a href=\"http://www.freesoftware.fsf.org/mldonkey/\" $O><b>MLdonkey Home</b></a></td>
-<form action=\"submit\" $O name=\"cmdFormular\">
+<form action=\"submit\" $O name=\"cmdFormular\" onSubmit=\"return CheckInput();\">
 <td><input type=\"text\" name=\"q\" size=60 value=\"\"></td>
 <td><input type=\"submit\" value=\"Execute\"></td>
-<td><input type=\"button\" value=\"ed2k://\" onClick=\"ed2k()\"></td>
-<td><input type=\"button\" value=\"fha://\" onClick=\"ovlink()\"></td>
 </form>
 </tr>
 </table>
 <table width=\"100%\" border=\"0\">
 <tr>
-<td><a href=\"/submit?q=vd\" $O>Downloads</a></td>
-<td><a href=\"/submit?q=view_custom_queries\" $S>Custom Search</a></td>
-<td><a href=\"/submit?q=vm\" $O>Connected Servers</a></td>
-<td><a href=\"/submit?q=vo\" $O>Preferences</a></td>
-<td align=\"right\"><a href=\"/submit?q=help\" $O>Help</a></td>
+<td><a href=\"/files\" onMouseOver=\"window.status='View current downloads status';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>Downloads</a></td>
+<td><a href=\"/submit?q=view_custom_queries\" onMouseOver=\"window.status='Send a customized query';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $S>Custom Search</a></td>
+<td><a href=\"/submit?q=vm\" onMouseOver=\"window.status='View current connection status';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>Connected Servers</a></td>
+<td><a href=\"/submit?q=help\" onMouseOver=\"window.status='View a list of all available commands';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>Help</a></td>
+<td><a href=\"/submit?q=vo\" onMouseOver=\"window.status='View and change your preferences';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>Preferences</a></td>
 </tr>
 <tr>
-<td><a href=\"/submit?q=upstats\" $O>Uploads</a></td>
-<td><a href=\"/submit?q=xs\" $S>Extend Search</a></td>
-<td><a href=\"/submit?q=c\" $S>Connect more Servers</a></td>
-<td><a href=\"/submit?q=ovweb\" $S>Load Overnet peers</a></td>
-<td align=\"right\"><a class=\"extern\" href=\"http://forums.edonkey2000.com/phpBB/ \" $O>donkey Forum</a></td>
+<td><a href=\"/submit?q=upstats\" onMouseOver=\"window.status='View current upload status';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>Uploads</a></td>
+<td><a href=\"/submit?q=xs\" onMouseOver=\"window.status='Extend your search to more servers';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $S>Extend Search</a></td>
+<td><a href=\"/submit?q=c\" onMouseOver=\"window.status='Connect to more servers';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $S>Connect more Servers</a></td>
+<td><a href=\"/submit?q=version\" onMouseOver=\"window.status='Check version of mldonkey';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $S>Version</a></td>
+<td><a href=\"/submit?q=remove_old_servers\" onMouseOver=\"window.status='Remove servers that have not been connected for several days';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>Clean old Servers</a></td>
 </tr>
 <tr>
-<td><a href=\"/submit?q=commit\" $S>Commit</a></td>
-<td><a href=\"/submit?q=vs\" $O>View Searches</a></td>
-<td><a href=\"/submit?q=vma\" $O>View all Servers</a></td>
-<td><a href=\"/submit?q=ovstats\" $O>Overnet Stats</a></td>
-<td align=\"right\"><a class=\"extern\" href=\"http://www.mldonkey.net/\" $O>Project</a></td>
+<td><a href=\"/submit?q=uploaders\" onMouseOver=\"window.status='View a list of your upload slots';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>Upload Slots</a></td>
+<td><a href=\"/submit?q=vs\" onMouseOver=\"window.status='View a list of your sent queries';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>View Searches</a></td>
+<td><a href=\"/submit?q=vma\" onMouseOver=\"window.status='View a list of all known servers';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>View all Servers</a></td>
+<td><a href=\"/submit?q=client_stats\" onMouseOver=\"window.status='Gives stats about your transfers';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>Client Stats</a></td>
+<td><a href=\"/submit?q=reshare\" onMouseOver=\"window.status='Check shared files for removal';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $S>Reshare Files</a></td>
 </tr>
 <tr>
-<td><a href=\"/submit?q=reshare\" $S>Reshare Files</a></td>
-<td><a href=\"/submit?q=vr\" $O>Search Results</a></td>
-<td><a href=\"/submit?q=remove_old_servers\" $S>Remove old Server</a></td>
-<td><a href=\"/submit?q=version\" $S>Version</a></td>
-<td align=\"right\"><a href=\"/submit?q=kill\" $O>Kill MLdonkey</a></td>
-</tr>
-</table> 
+<td><a href=\"/submit?q=commit\" onMouseOver=\"window.status='Move finished downloads to incoming directory';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $S>Commit</a></td>
+<td><a href=\"/submit?q=vr\" onMouseOver=\"window.status='View results to your queries';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>Search Results</a></td>
+<td><a href=\"/submit?q=ovweb\" onMouseOver=\"window.status='Boot Overnet peers from http list';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $S>Load Overnet peers</a></td>
+<td><a class=\"extern\" href=\"http://www.mldonkeyworld.com/\" onMouseOver=\"window.status='MLdonkey World';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>MLdonkey World</a></td>
+<td><a href=\"/submit?q=kill\" onMouseOver=\"window.status='Save and quit mldonkey';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>Kill MLdonkey</a></td>
+  </tr>
+  </table>
 "
   
-  (*
-  "
-<table width=\"100%\" border=\"0\">
-<tr>
-<td align=\"left\" valign=\"middle\" width=\"*\"><a href=\"http://www.freesoftware.fsf.org/mldonkey/\" $O><b>MLdonkey Home</b></ a></td>
-<form action=\"submit\" $O name=\"cmdFormular\">
-<td align=\"right\" valign=\"middle\"><input type=\"text\" name=\"q\" size=60 value=\"\"></td>
-<td align=\"right\" valign=\"middle\"><input type=\"submit\" value=\"Execute\"></td>
-<td align=\"right\" valign=\"middle\"><input type=\"button\" value=\"Link\" onClick=\"ed2k()\"></td>
-</form>
-</tr>
-</table>
-<br>
-<table width=\"100%\" border=\"0\">
-<tr>
-<td width=\"20%\" align=\"left\"><a href=\"/submit?q=vd\" $O>Downloads</a></td>
-<td width=\"20%\" align=\"left\"><a href=\"/submit?q=view_custom_queries\" $S>Custom Search</a></td>
-<td width=\"20%\" align=\"left\"><a href=\"/submit?q=vm\" $O>Connected Servers</a></td>
-<td width=\"20%\" align=\"right\"><a href=\"/submit?q=help\" $O>Help</a></td>
-</tr>
-<tr>
-<td width=\"20%\" align=\"left\"><a href=\"/submit?q=upstats\" $O>Uploads</a></td>
-<td width=\"20%\" align=\"left\"><a href=\"/submit?q=xs\" $O>Extend Search</a></td>
-<td width=\"20%\" align=\"left\"><a href=\"/submit?q=c\" $S>Connect more Servers</a></td>
-<td width=\"20%\" align=\"right\"><a href=\"/submit?q=vo\" $O>Preferences</a></td>
-</tr>
-<tr>
-<td width=\"20%\" align=\"left\"><a href=\"/submit?q=ovstats\" $O>Overnet Stats</a></td>
-<td width=\"20%\" align=\"left\"><a href=\"/submit?q=vs\" $O>View Searches</a></td>
-<td width=\"20%\" align=\"left\"><a href=\"/submit?q=vma\" $O>View all Servers</a></td>
-<td width=\"20%\" align=\"right\"><a href=\"/submit?q=reshare\" $S>Reshare Files</a></td>
-</tr>
-<tr>
-<td width=\"20%\" align=\"left\"><a href=\"/submit?q=commit\" $S>Commit</a></td>
-<td width=\"20%\" align=\"left\"><a href=\"/submit?q=vr\" $O>Search Results</a></td>
-<td width=\"20%\" align=\"left\"><a href=\"/submit?q=ovweb\" $O>Load Overnet peers</a></td>
-<td width=\"20%\" align=\"right\"><a href=\"/submit?q=kill\" $O>Kill MLdonkey</a></td>
-</tr>
-</table> 
-"
-*)
-
 let available_commands_are = string "available_commands_are" 
   "Available commands are:\n"
   

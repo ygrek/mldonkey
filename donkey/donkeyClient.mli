@@ -45,5 +45,6 @@ val client_send_if_possible : TcpBufferedSocket.t ->
 val force_fast_connect_client  : DonkeyTypes.client -> unit
 val connect_as_soon_as_possible :  DonkeyTypes.client -> unit
 val unschedule_client :  DonkeyTypes.client -> unit
+val schedule_new_client : DonkeyTypes.client -> unit
 val schedule_client :  DonkeyTypes.client -> unit
   

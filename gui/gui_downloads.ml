@@ -120,18 +120,36 @@ let string_of_format format =
   | _ -> (gettext M.unknown)
 
 let time_to_string time =
-  let seconds = int_of_float time in
-  let minutes = seconds / 60 in
-  let seconds = seconds - minutes * 60 in
-  let hours = minutes / 60 in
-  let minutes = minutes - hours * 60 in
-  let days = hours / 24 in
-  let hours = hours - days * 24 in
-    if days > 0
-    then Printf.sprintf "%dd %2dh" days hours
+  let days = floor (time /. 60.0 /. 60.0 /. 24.0) in
+  let rest = int_of_float (time -. days *. 60.0 *. 60.0 *. 24.0) in
+  let hours = rest / 60 / 60 in
+  let rest = rest - hours * 60 * 60 in
+  let minutes = rest / 60 in
+  let seconds = rest - minutes * 60 in
+    if days > 0.0
+    then Printf.sprintf " %.2fd " (time /. 60.0 /. 60.0 /. 24.0)
     else if hours > 0
-    then Printf.sprintf "%dh %2dm" hours minutes
-    else Printf.sprintf "%dm" minutes
+    then Printf.sprintf " %d:%02d:%02d " hours minutes seconds
+    else Printf.sprintf " %d:%02d " minutes seconds
+
+let calc_file_eta f =
+  let size = Int32.to_float f.file_size in
+  let downloaded = Int32.to_float f.file_downloaded in
+  let missing = size -. downloaded in
+  let rate = f.file_download_rate in
+  let rate =
+    if rate = 0.0
+    then
+      let time = BasicSocket.last_time () in
+      let age = time -. f.file_age in
+	if age > 0.0
+	then downloaded /. age
+	else 0.0
+    else rate
+  in
+    if rate = 0.0
+    then 1000.0 *. 60.0 *. 60.0 *. 24.0
+    else missing /. rate
 
 class box columns sel_mode () =
   let titles = List.map Gui_columns.File.string_of_column columns in
@@ -169,8 +187,9 @@ class box columns sel_mode () =
       |	Col_file_md4 -> compare (Md4.to_string f1.file_md4) (Md4.to_string f2.file_md4)
       |	Col_file_format -> compare f1.file_format f2.file_format
       | Col_file_network -> compare f1.file_network f2.file_network
-      |	Col_file_age-> compare f1.file_age f2.file_age
-      |	Col_file_last_seen-> compare f1.file_last_seen f2.file_last_seen
+      |	Col_file_age -> compare f1.file_age f2.file_age
+      |	Col_file_last_seen -> compare f1.file_last_seen f2.file_last_seen
+      | Col_file_eta -> compare (calc_file_eta f1) (calc_file_eta f2)
           
     method compare f1 f2 =
       let abs = if current_sort >= 0 then current_sort else - current_sort in
@@ -215,6 +234,11 @@ class box columns sel_mode () =
 			  -. f.file_last_seen in
 	    time_to_string last
 	  else Printf.sprintf "---"
+      | Col_file_eta ->
+	  let eta = calc_file_eta f in
+	    if eta >= 1000.0 *. 60. *. 60. *. 24. then
+	      Printf.sprintf "---"
+	    else time_to_string eta
           
     method content f =
       let strings = List.map 

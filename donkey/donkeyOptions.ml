@@ -136,6 +136,7 @@ let gui_donkey_options_panel =
     "Max Upload Slots", shortname max_upload_slots, "T";
     "Upload Quantum", shortname upload_quantum, "T";
     "Max Sources Per Download", shortname max_sources_per_file, "T";
+    "Good Sources Threshold", shortname good_sources_threshold, "T";
     "Protocol Version", shortname protocol_version, "T";
     "Commit Downloads In Incoming Subdir", shortname commit_in_subdir, "T";
     "Port", shortname port, "T";

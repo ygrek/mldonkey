@@ -249,6 +249,7 @@ let servers_by_key = Hashtbl.create 127
 let servers_list = ref ([] : server list)
   
 let clients_lists = Array.create 5  ([] : client list)
+let new_clients_list = ref ([] : client list)
 let remaining_seconds = ref 60
   
 (* let remaining_time_for_clients = ref (60 * 15) *)
@@ -343,43 +344,24 @@ let shared_files = ref ([] : file_to_share list)
   
 (* compute the name used to save the file *)
   
-let longest_name file =
-(*
-  Printf.printf "LONGEST of %d" (List.length file.file_filenames); 
-print_newline ();
-  *)
-  let md4_name = Md4.to_string file.file_md4 in
-  let max = ref md4_name in (* default is md4 *)
-  let maxl = ref 0 in
-  List.iter (fun name ->
-(*
-      if !!verbose then  begin
-          Printf.printf "TEST %s" name; print_newline ();
-        end; *)
-      (* prevent it from using the md4 is another name is available *)
-      if name <> md4_name && String.length name > !maxl &&
-        not (String.contains name '/') then begin
-          maxl := String.length name;
-          max := name
-        end
-  ) file.file_filenames;
-  (*if !!verbose then begin
-      Printf.printf "LONGEST %s" !max; print_newline ();
-    end; *)
-  !max
-          
 let update_best_name file =
-  if file_best_name file = Md4.to_string file.file_md4 then begin
+  
+  let md4_name = Md4.to_string file.file_md4 in
+  
+  if file_best_name file = md4_name then
+    try
 (*      Printf.printf "BEST NAME IS MD4 !!!"; print_newline (); *)
-      set_file_best_name (as_file file.file_file) (longest_name file);
+      let rec good_name file list =
+        match list with
+          [] -> raise Not_found;
+        | t :: q -> if t <> md4_name then
+              (String2.replace t '/' "::") else good_name file q in
+      
+      set_file_best_name (as_file file.file_file) 
+      (good_name file file.file_filenames);
      
-(*      Printf.printf "BEST NAME now IS %s" (file_best_name file);
-      print_newline (); *)
-      end else begin
-(*      Printf.printf "BEST NAME IS %s" (file_best_name file);
-print_newline (); *)
-      ()
-    end
+(*      Printf.printf "BEST NAME now IS %s" (file_best_name file); *)
+    with Not_found -> ()
   
 let new_file file_state file_name md4 file_size writable =
   try
@@ -963,15 +945,17 @@ let _ =
       print_newline ();
 
 (* clients_list *)
-      Array.iter (fun list ->
-          Printf.printf "Clients list: %d" (List.length list);
-          print_newline ();
-          List.iter (fun (c) ->
-              Printf.printf "[%d %s]" (client_num c)
-              (if H.mem clients_by_kind c then "K" else " ") ;
-          ) list;
-          print_newline ();
-      ) clients_lists;
+      let print_client_list l =
+	Printf.printf "Clients list: %d" (List.length l);
+	print_newline ();
+	List.iter (fun c ->
+		     Printf.printf "[%d %s]" (client_num c)
+		     (if H.mem clients_by_kind c then "K" else " ") ;
+		  ) l;
+	print_newline () in
+
+	Array.iter (fun list -> print_client_list list) clients_lists;
+	print_client_list !new_clients_list
           
   )
   
