@@ -1,6 +1,9 @@
 ChangeLog	
 =========
 
+2002/02/19: Simon (v 2.02-14)
+  - Bug fix: vd <num> (patch #1135)
+
 2002/02/18: Simon (v 2.02-13)
   - Upgraded to lattest html_mods
   - GUI: 

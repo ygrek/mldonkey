@@ -62,7 +62,7 @@ let calc_file_eta f =
   let missing = size -. downloaded in
   let rate = f.file_download_rate in
   let rate =
-    if rate = 0.
+    if rate < 0.0001
     then
       let time = BasicSocket.last_time () in
       let age = time - f.file_age in
@@ -72,7 +72,7 @@ let calc_file_eta f =
     else rate
   in
   let eta = 
-    if rate = 0.0
+    if rate < 0.0001
     then 1000.0 *. 60.0 *. 60.0 *. 24.0
     else missing /. rate
   in
@@ -82,7 +82,7 @@ let file_availability f =
   let rec loop i p n =
     if i < 0
     then 
-      if n = 0.0
+      if n < 0.0001
       then "-"
       else Printf.sprintf "%5.1f" (p /. n *. 100.0)
     else

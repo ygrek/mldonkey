@@ -1,8 +1,17 @@
 TODO list for client
 ====================
 
-When an error occur during GUI encoding/decoding, dump the message and the
-protocol used.
+*******************
+Before 2.03:
+*******************
+
+* Force connect to friends from time to time to see the shared-file lists.
+   [ Bug #2504 ] 
+* When an error occur during GUI encoding/decoding, dump the message and the
+   protocol used.
+* Try to display more information on where the memory is used... in the GUI ?
+    with shared files ?
+* Force use of max_sources_per_file
 
 vd <num> jump to 100% of cpu
 
@@ -11,19 +20,10 @@ vd <num> jump to 100% of cpu
 
 -> remove exit
 
-fix /files page
-
-use the lattest patch !
-
-Downloads seem to work only from firewalled hosts...
-
 Some fields are not necessary anymore:
   - zone_file
   - zone_present (zone_begin >= zone_end)
   - client_on_list
-
-
-Overnet: add a lifetime to registered files
 
 New overnet proto:
 

@@ -56,9 +56,9 @@ decide whether to connect immediatly or not. *)
 (* used to clear the file list a client *)
     mutable op_client_clear_files : ('a -> unit);
     
-    mutable op_client_bprint : (Buffer.t -> 'a -> unit);
+    mutable op_client_bprint : ('a -> Buffer.t -> unit);
     
-    mutable op_client_bprint_html : (Buffer.t -> 'a -> 
+    mutable op_client_bprint_html : ('a -> Buffer.t -> 
     CommonTypes.file -> unit);
   }
   
@@ -121,11 +121,11 @@ let client_files client=
   let client = as_client_impl client in
   client.impl_client_ops.op_client_files client.impl_client_val
 
-let client_bprint buf client =
+let client_bprint (client: client) buf =
   let client = as_client_impl client in
   client.impl_client_ops.op_client_bprint client.impl_client_val buf
 
-let client_bprint_html buf client file =
+let client_bprint_html (client: client) buf file =
   let client = as_client_impl client in
   client.impl_client_ops.op_client_bprint_html client.impl_client_val buf file
   

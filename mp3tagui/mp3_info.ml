@@ -117,22 +117,23 @@ let for_channel ic =
     match (header lsr 6) land 3 with
       0 -> Stereo | 1 -> Joint_stereo | 2 -> Dual_channel_stereo | _ -> Mono in
   let tpf =
-    float mpg123_bs.(lay) /. float (sample_rate lsl lsf) in
+    float mpg123_bs.(lay) /. float (max 1 (sample_rate lsl lsf)) in
   let bpf =
     float tabsel_123.(lsf).(lay - 1).(bitrate_index) *.
     (if lay = 1 then 12000.0 *. 4.0 else 144000.0) /.
-    float (sample_rate lsl lsf) in
+    float (max 1 (sample_rate lsl lsf)) in
   let filesize = in_channel_length ic in
   let (enc, duration, bitrate) =
     try
       let (frames, bytes) = get_xing_header ic header in
       (VBR,
        tpf *. float frames,
-       truncate (float bytes *. 8.0 /. (tpf *. float frames *. 1000.0)))
+        truncate (float bytes *. 8.0 /. (
+            max 0.00001 (tpf *. float frames *. 1000.0))))
     with Not_found ->
       let len = filesize - pos_in ic in
       (CBR,
-       float len /. bpf *. tpf,
+       float len /. (max 0.00001 bpf) *. tpf,
        tabsel_123.(lsf).(lay - 1).(bitrate_index)) in
   { duration = truncate duration;
     samplerate = sample_rate / 1000;

@@ -444,11 +444,11 @@ class=";
               
               if (!counter mod 2 == 0) then Printf.bprintf buf "\\\"dl-1\\\"\\>"
               else Printf.bprintf buf "\\\"dl-2\\\"\\>";
-              client_bprint_html buf c file;
+              client_bprint_html c buf file;
               Printf.bprintf buf "\\</tr\\>";
             end
           else
-            client_bprint buf c;
+            client_bprint c buf;
       
       
       ) srcs;

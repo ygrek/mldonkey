@@ -225,3 +225,29 @@ Use the bandwidth control options to prevent mldonkey from killing your line.
      possible.
 
 [ Support #101301 ] 2 files download and 62MB files.ini
+
+
+*********************
+[ Bug #2020 ] Core eats up all memory when a gui is connected to it
+
+[ Bug #2049 ] mldonkey 2.02-0 ignores max_connected_servers setting
+  FIXED
+
+    Set the 'max_walker_servers' option to 0 to disable this behavior.
+[ Bug #2083 ] using with non-standard HTTP redirection
+[ Bug #2102 ] Floating point exception signal
+
+[ Bug #2148 ] ./configure -enable-batch on hppa fails
+
+   Need to change the ./configure to force bytecode compilation in such cases
+
+[ Bug #2154 ] Memory Leak
+
+[ Bug #2504 ] Mldonkey doesn't connect to friends
+
+[ Bug #2539] SegFault in MD4Transform: could someone use gdb and 'bt' when the
+     bug occurs ? That's why I don't like C...
+
+
+[ Bug #2563] Problems with 8-Bit Characters  
+     Don't know how to solve this bug.

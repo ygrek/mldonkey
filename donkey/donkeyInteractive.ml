@@ -1094,7 +1094,7 @@ print_newline ();
       c.client_all_files <- None;
   );
   
-  client_ops.op_client_bprint <- (fun buf c ->
+  client_ops.op_client_bprint <- (fun c buf ->
       Printf.bprintf buf "\t\t%s (last_ok <%s> lasttry <%s> nexttry <%s>)\n"
         c.client_name
         (let last = c.client_connection_control.control_last_ok in
@@ -1105,7 +1105,7 @@ print_newline ();
   );
   
   
-  client_ops.op_client_bprint_html <- (fun buf c file ->
+  client_ops.op_client_bprint_html <- (fun c buf file ->
       
       begin
         

@@ -137,6 +137,14 @@ let count_upload c f v =
 	    stats_by_brand.(brand_to_int b).brand_upload <-
 	    Int64.add stats_by_brand.(brand_to_int b).brand_upload v
 
+let percent_of_ints x y = 
+  if y <> 0 then 100. *. (float_of_int x /. float_of_int y)
+  else 0.
+
+let percent_of_int64s x y = 
+  if y <> Int64.zero then 100. *. (Int64.to_float x /. Int64.to_float y)
+  else 0.
+      
 let print_stats buf =
   let one_minute = 60 in
   let one_hour = 3600 in
@@ -158,7 +166,7 @@ let print_stats buf =
       Printf.bprintf buf "%27s: %18d (%3.2f %%)\n" 
 	(brand_to_string (brand_of_int i)) 
 	stats_by_brand.(i).brand_seen 
-	(100. *. (float_of_int stats_by_brand.(i).brand_seen) /. (float_of_int stats_all.brand_seen))
+	(percent_of_ints stats_by_brand.(i).brand_seen stats_all.brand_seen)
     done
   end;
 
@@ -170,7 +178,7 @@ let print_stats buf =
       Printf.bprintf buf "%27s: %18d (%3.2f %%)\n" 
 	(brand_to_string (brand_of_int i))
 	stats_by_brand.(i).brand_filerequest 
-	(100. *. (float_of_int stats_by_brand.(i).brand_filerequest) /. (float_of_int stats_all.brand_filerequest))
+	(percent_of_ints stats_by_brand.(i).brand_filerequest stats_all.brand_filerequest)
     done
   end;
 
@@ -182,7 +190,7 @@ let print_stats buf =
       Printf.bprintf buf "%27s: %18s (%3.2f %%)\n" 
 	(brand_to_string (brand_of_int i))
 	(Int64.to_string stats_by_brand.(i).brand_download) 
-	(100. *. (Int64.to_float stats_by_brand.(i).brand_download) /. (Int64.to_float stats_all.brand_download))
+	(percent_of_int64s stats_by_brand.(i).brand_download stats_all.brand_download)
     done
   end;
 
@@ -194,7 +202,7 @@ let print_stats buf =
       Printf.bprintf buf "%27s: %18s (%3.2f %%)\n" 
 	(brand_to_string (brand_of_int i))
 	(Int64.to_string stats_by_brand.(i).brand_upload) 
-	(100. *. (Int64.to_float stats_by_brand.(i).brand_upload) /. (Int64.to_float stats_all.brand_upload))
+	(percent_of_int64s stats_by_brand.(i).brand_upload stats_all.brand_upload)
     done
   end;
   
@@ -206,7 +214,7 @@ let print_stats buf =
       Printf.bprintf buf "%27s: %18d (%3.2f %%)\n" 
 	(brand_to_string (brand_of_int i)) 
 	stats_by_brand.(i).brand_banned 
-	(100. *. (float_of_int stats_by_brand.(i).brand_banned) /. (float_of_int stats_all.brand_banned))
+	(percent_of_ints stats_by_brand.(i).brand_banned stats_all.brand_banned)
     done
   end
   
@@ -218,7 +226,7 @@ let new_print_stats buf o =
   let one_day = 86400 in
   let uptime = last_time () - start_time in
   let days = uptime / one_day in
-  let rem = uptime - days * one_day in
+  let rem = maxi 1 (uptime - days * one_day) in
   
   let hours = rem / one_hour in
   let rem = rem - hours * one_hour in
@@ -281,22 +289,22 @@ let new_print_stats buf o =
             
             (brandstr)
           stats_by_brand.(i).brand_seen 
-            (100. *. (float_of_int stats_by_brand.(i).brand_seen) /. (float_of_int stats_all.brand_seen))
+            (percent_of_ints stats_by_brand.(i).brand_seen stats_all.brand_seen)
           
           stats_by_brand.(i).brand_filerequest 
-            (100. *. (float_of_int stats_by_brand.(i).brand_filerequest) /. (float_of_int stats_all.brand_filerequest))
+            (percent_of_ints stats_by_brand.(i).brand_filerequest stats_all.brand_filerequest)
           
           (size_of_int64 stats_by_brand.(i).brand_download)
-          (max 0.0 (100. *. (Int64.to_float stats_by_brand.(i).brand_download) /. (Int64.to_float stats_all.brand_download)))
+          (max 0.0 (percent_of_int64s stats_by_brand.(i).brand_download stats_all.brand_download))
           ((Int64.to_float stats_by_brand.(i).brand_download) /. (float_of_int uptime) /. 1024.0)
           
           (size_of_int64 stats_by_brand.(i).brand_upload) 
-          (max 0.0 (100. *. (Int64.to_float stats_by_brand.(i).brand_upload) /. (Int64.to_float stats_all.brand_upload)))
+          (max 0.0 (percent_of_int64s stats_by_brand.(i).brand_upload stats_all.brand_upload))
           ((Int64.to_float stats_by_brand.(i).brand_upload) /. (float_of_int uptime) /. 1024.0)
           
           
           stats_by_brand.(i).brand_banned 
-            (max 0.0 (100. *. (float_of_int stats_by_brand.(i).brand_banned) /. (float_of_int stats_all.brand_banned)) )
+            (max 0.0 (percent_of_ints stats_by_brand.(i).brand_banned stats_all.brand_banned)) 
       done;
       
       incr counter;
@@ -337,7 +345,7 @@ let new_print_stats buf o =
         ((Int64.to_float stats_all.brand_upload) /. (float_of_int uptime) /. 1024.0)
       
       stats_all.brand_banned 
-        (max 0.0 (100. *. (float_of_int stats_all.brand_banned) /. (float_of_int stats_all.brand_seen)));
+        (max 0.0 (percent_of_ints stats_all.brand_banned stats_all.brand_seen));
     
     end
   else
@@ -358,7 +366,7 @@ let new_print_stats buf o =
       ((Int64.to_float stats_all.brand_upload) /. 1024.0 /. 1024.0)
       ((Int64.to_float stats_all.brand_upload) /. (float_of_int uptime) /. 1024.0)
       stats_all.brand_banned 
-        (100. *. (float_of_int stats_all.brand_banned) /. (float_of_int stats_all.brand_seen));
+        (percent_of_ints stats_all.brand_banned stats_all.brand_seen);
       
       for i=1 to brand_count-1 do
         if brand_of_int i != Brand_server then (* dont print server stats *)
@@ -371,15 +379,15 @@ let new_print_stats buf o =
           Printf.bprintf buf "%-12s|%6d %3.f%%|%7.1f %5.1f %3.0f%%|%7.1f %5.1f %3.0f%%|%5d %3.0f%%\n"
             (brandstr)
           stats_by_brand.(i).brand_seen 
-            (100. *. (float_of_int stats_by_brand.(i).brand_seen) /. (float_of_int stats_all.brand_seen))
+            (percent_of_ints stats_by_brand.(i).brand_seen stats_all.brand_seen)
           ((Int64.to_float stats_by_brand.(i).brand_download) /. 1024.0 /. 1024.0)
           ((Int64.to_float stats_by_brand.(i).brand_download) /. (float_of_int uptime) /. 1024.0)
-          (100. *. (Int64.to_float stats_by_brand.(i).brand_download) /. (Int64.to_float stats_all.brand_download))
+          (percent_of_int64s stats_by_brand.(i).brand_download stats_all.brand_download)
           ((Int64.to_float stats_by_brand.(i).brand_upload) /. 1024.0 /. 1024.0)
           ((Int64.to_float stats_by_brand.(i).brand_upload) /. (float_of_int uptime) /. 1024.0)
-          (100. *. (Int64.to_float stats_by_brand.(i).brand_upload) /. (Int64.to_float stats_all.brand_upload))
+          (percent_of_int64s stats_by_brand.(i).brand_upload stats_all.brand_upload)
           stats_by_brand.(i).brand_banned 
-            (100. *. (float_of_int stats_by_brand.(i).brand_banned) /. (float_of_int stats_all.brand_banned))
+            (percent_of_ints stats_by_brand.(i).brand_banned stats_all.brand_banned)
       done
     end
     
