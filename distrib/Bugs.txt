@@ -1,0 +1,5 @@
+Before feeling a bug report form on 
+    http://savannah.gnu.org/bugs/?group=mldonkey
+please, check that the bug is not already registered (then, add a comment), and
+not in the following list of known bugs:
+
