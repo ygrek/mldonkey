@@ -271,11 +271,11 @@ let server_make_menu t =
     ([("Resolve IP", for_selection clist_servers
             (fun s -> 
               if addr_is_ip s.server_addr then
-                let name = Ip.resolve_one (ip_of_addr s.server_addr) in
+                let name = Ip.resolve_one (sync_ip_of_addr s.server_addr) in
                 s.server_addr.addr_name <- name;
                 MyCList.set_value clist_servers s.server_num s
               else
-              let ip = ip_of_addr s.server_addr in
+              let ip = sync_ip_of_addr s.server_addr in
               s.server_addr.addr_name <- "";
               MyCList.set_value clist_servers s.server_num s
           )

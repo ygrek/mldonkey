@@ -300,10 +300,22 @@ let string_of_tags tags =
   (* first GUI have gui_num = 2, since newly created objects have _update = 1 *)
 let gui_counter = ref 2
   
-let ip_of_addr addr = 
+let ip_of_addr addr f = 
   if addr.addr_name <> "" then
     if addr.addr_age + !!ip_cache_timeout < last_time () then begin
-        let ip = Ip.from_name addr.addr_name in
+        Ip.async_ip  addr.addr_name (fun ip ->
+            addr.addr_ip <- ip;
+            addr.addr_age <- last_time ();
+            f ip)
+      end else
+      f addr.addr_ip
+  else
+    f addr.addr_ip
+  
+let sync_ip_of_addr addr = 
+  if addr.addr_name <> "" then
+    if addr.addr_age + !!ip_cache_timeout < last_time () then begin
+        let ip = Ip.from_name  addr.addr_name in
         addr.addr_ip <- ip;
         addr.addr_age <- last_time ();
         ip

@@ -41,6 +41,7 @@ type option_value =
 | List of option_value list
 | SmallList of option_value list
 | OnceValue of option_value
+| DelayedValue of (out_channel -> string -> unit)
   
 and option_module = (string * option_value) list
 ;;
@@ -177,104 +178,6 @@ let once_values_counter = ref 0
 let once_values_rev = Hashtbl.create 13
 
 let lexer = make_lexer ["="; "{"; "}"; "["; "]"; ";"; "("; ")"; ","; "."; "@"];;
-
-(*
-let rec parse_gwmlrc (strm__ : _ Stream.t) =
-  match
-    try Some (parse_id strm__) with
-      Stream.Failure -> None
-  with
-    Some id ->
-      begin match Stream.peek strm__ with
-        Some (Kwd "=") ->
-          Stream.junk strm__;
-          let v =
-            try parse_option strm__ with
-              Stream.Failure -> raise (Stream.Error "")
-          in
-          let eof =
-            try parse_gwmlrc strm__ with
-              Stream.Failure -> raise (Stream.Error "")
-          in
-          (id, v) :: eof
-      | _ -> raise (Stream.Error "")
-      end
-  | _ -> []
-and parse_option (strm__ : _ Stream.t) =
-  match Stream.peek strm__ with
-    Some (Kwd "{") ->
-      Stream.junk strm__;
-      let v =
-        try parse_gwmlrc strm__ with
-          Stream.Failure -> raise (Stream.Error "")
-      in
-      begin match Stream.peek strm__ with
-        Some (Kwd "}") -> Stream.junk strm__; Module v
-      | _ -> raise (Stream.Error "")
-      end
-  | Some (Ident s) -> Stream.junk strm__; StringValue s
-  | Some (String s) -> Stream.junk strm__; StringValue s
-  | Some (Int i) -> Stream.junk strm__; IntValue i
-  | Some (Float f) -> Stream.junk strm__; FloatValue f
-  | Some (Char c) ->
-      Stream.junk strm__;
-      StringValue (let s = String.create 1 in s.[0] <- c; s)
-  | Some (Kwd "[") ->
-      Stream.junk strm__;
-      let v =
-        try parse_list strm__ with
-          Stream.Failure -> raise (Stream.Error "")
-      in
-      List v
-  | Some (Kwd "(") ->
-      Stream.junk strm__;
-      let v =
-        try parse_list strm__ with
-          Stream.Failure -> raise (Stream.Error "")
-      in
-      List v
-  | _ -> raise Stream.Failure
-and parse_id (strm__ : _ Stream.t) =
-  match Stream.peek strm__ with
-    Some (Ident s) -> Stream.junk strm__; s
-  | Some (String s) -> Stream.junk strm__; s
-  | _ -> raise Stream.Failure
-and parse_list (strm__ : _ Stream.t) =
-  match Stream.peek strm__ with
-    Some (Kwd ";") ->
-      Stream.junk strm__;
-      begin try parse_list strm__ with
-        Stream.Failure -> raise (Stream.Error "")
-      end
-  | Some (Kwd ",") ->
-      Stream.junk strm__;
-      begin try parse_list strm__ with
-        Stream.Failure -> raise (Stream.Error "")
-      end
-  | Some (Kwd ".") ->
-      Stream.junk strm__;
-      begin try parse_list strm__ with
-        Stream.Failure -> raise (Stream.Error "")
-      end
-  | _ ->
-      match
-        try Some (parse_option strm__) with
-          Stream.Failure -> None
-      with
-        Some v ->
-          let t =
-            try parse_list strm__ with
-              Stream.Failure -> raise (Stream.Error "")
-          in
-          v :: t
-      | _ ->
-          match Stream.peek strm__ with
-            Some (Kwd "]") -> Stream.junk strm__; []
-          | Some (Kwd ")") -> Stream.junk strm__; []
-          | _ -> raise Stream.Failure
-;;
-*)
-
   
 let rec parse_gwmlrc = parser
 | [< id = parse_id; 'Kwd "="; v = parse_option ; 
@@ -401,6 +304,168 @@ let really_load filename header_options options =
       close_in ic; raise e
 ;;
 
+
+let exit_exn = Exit;;
+
+
+let unsafe_get = String.unsafe_get
+external is_printable: char -> bool = "is_printable"
+let unsafe_set = String.unsafe_set
+  
+let escaped s =
+  let n = ref 0 in
+  for i = 0 to String.length  s - 1 do
+    n := !n +
+      (match unsafe_get s i with
+        '"' | '\\' -> 2
+      | '\n' | '\t' -> 1
+      | c -> if is_printable c then 1 else 4)
+  done;
+  if !n = String.length  s then s else begin
+      let s' = String.create !n in
+      n := 0;
+      for i = 0 to String.length  s - 1 do
+        begin
+          match unsafe_get s i with
+            ('"' | '\\') as c ->
+              unsafe_set s' !n '\\'; incr n; unsafe_set s' !n c
+          | ('\n' | '\t' ) as c -> 
+              unsafe_set s' !n c
+          | c ->
+              if is_printable c then
+                unsafe_set s' !n c
+              else begin
+                  let a = int_of_char c in
+                  unsafe_set s' !n '\\';
+                  incr n;
+                  unsafe_set s' !n (char_of_int (48 + a / 100));
+                  incr n;
+                  unsafe_set s' !n (char_of_int (48 + (a / 10) mod 10));
+                  incr n;
+                  unsafe_set s' !n (char_of_int (48 + a mod 10))
+                end
+        end;
+        incr n
+      done;
+      s'
+    end
+    
+let safe_string s =
+  if s = "" then "\"\""
+  else
+    try
+      match s.[0] with
+        'a'..'z' | 'A'..'Z' ->
+          for i = 1 to String.length s - 1 do
+            match s.[i] with
+              'a'..'z' | 'A'..'Z' | '_' | '0'..'9' -> ()
+            | _ -> raise exit_exn
+          done;
+        s
+    | _ ->
+        if Int64.to_string (Int64.of_string s) = s ||
+          string_of_float (float_of_string s) = s then
+          s
+        else raise exit_exn
+  with
+    _ -> Printf.sprintf "\"%s\"" (escaped s)
+;;
+
+let with_help = ref false;;
+
+let tabulate s = String2.replace s '\n' "\n\t"
+
+let rec save_module indent oc list =
+  let subm = ref [] in
+  List.iter
+    (fun (name, help, value) ->
+      match name with
+        [] -> assert false
+      | [name] ->
+          if !with_help && help <> "" then
+            Printf.fprintf oc "\n\t(* %s *)\n" (tabulate help);
+          Printf.fprintf oc "%s %s = " indent (safe_string name);
+          save_value indent oc value;
+          Printf.fprintf oc "\n"
+      | m :: tail ->
+          let p =
+            try List.assoc m !subm with
+              e -> 
+(*
+                lprintf "Exception %s in Options.save_module" 
+		  (Printexc2.to_string e); lprint_newline ();
+*)
+                let p = ref [] in subm := (m, p) :: !subm; p
+          in
+          p := (tail, help, value) :: !p)
+    list;
+  List.iter
+    (fun (m, p) ->
+      Printf.fprintf oc "%s %s = {\n" indent (safe_string m);
+      save_module (indent ^ "  ") oc !p;
+      Printf.fprintf oc "%s}\n" indent)
+  !subm
+  
+and save_list indent oc list =
+  match list with
+    [] -> ()
+  | [v] -> save_value indent oc v
+  | v :: tail ->
+      save_value indent oc v; Printf.fprintf oc ", "; save_list indent oc tail
+      
+and save_list_nl indent oc list =
+  match list with
+    [] -> ()
+  | [v] -> Printf.fprintf oc "\n%s" indent; save_value indent oc v
+  | v :: tail ->
+      Printf.fprintf oc "\n%s" indent;
+      save_value indent oc v;
+      Printf.fprintf oc ";";
+      save_list_nl indent oc tail
+      
+and save_value indent oc v =
+  match v with
+    StringValue s -> Printf.fprintf oc "%s" (safe_string s)
+  | IntValue i -> Printf.fprintf oc "%s" (Int64.to_string i)
+  | FloatValue f -> Printf.fprintf oc "%f" f
+  | List l ->
+      Printf.fprintf oc "[";
+      save_list_nl (indent ^ "  ") oc l;
+      Printf.fprintf oc "]"
+  | DelayedValue f -> f oc indent
+  | SmallList l ->
+      Printf.fprintf oc "(";
+      save_list (indent ^ "  ") oc l;
+      Printf.fprintf oc ")"
+  | Module m -> 
+      Printf.fprintf oc "{";
+      save_module_fields (indent ^ "  ") oc m;
+      Printf.fprintf oc "}"
+  | OnceValue v ->
+      begin
+        try 
+          let i = Hashtbl.find once_values_rev v in
+          Printf.fprintf oc "@%Ld@" i
+        with Not_found ->
+            incr once_values_counter;
+            let i = Int64.of_int !once_values_counter in
+            Hashtbl.add once_values_rev v i;
+            Printf.fprintf oc "@%Ld = " i;
+            save_value indent oc v   
+      end
+      
+and save_module_fields indent oc m =
+  match m with
+    [] -> ()
+  | (name, v) :: tail ->
+(*      lprintf "Saving %s" name; lprint_newline (); *)
+      Printf.fprintf oc "%s %s = " indent (safe_string name);
+      save_value indent oc v;
+      Printf.fprintf oc "\n";
+      save_module_fields indent oc tail
+;;
+
+
 let options_file_name f = f.file_name
 
 let load opfile =
@@ -496,7 +561,8 @@ let rec value_to_list v2c v =
   | FloatValue _ -> failwith "Options: not a list option (FloatValue)"
   | IntValue _ -> failwith "Options: not a list option (IntValue)"
   | Module _ -> failwith "Options: not a list option (Module)"
-;;
+  | DelayedValue _ -> failwith "Options: not a list option (Delayed)"
+      ;;
 
 let rec value_to_hasharray v2c v =
   match v with
@@ -529,7 +595,7 @@ let rec value_to_safelist v2c v =
   | FloatValue _ -> failwith "Options: not a list option (FloatValue)"
   | IntValue _ -> failwith "Options: not a list option (IntValue)"
   | Module _ -> failwith "Options: not a list option (Module)"
-;;
+  | DelayedValue _ -> failwith "Options: not a list option (Delayed)";;
 
 let rec value_to_intmap f v2c v =
   match v with
@@ -552,7 +618,7 @@ let rec value_to_intmap f v2c v =
   | FloatValue _ -> failwith "Options: not a list option (FloatValue)"
   | IntValue _ -> failwith "Options: not a list option (IntValue)"
   | Module _ -> failwith "Options: not a list option (Module)"
-;;
+  | DelayedValue _ -> failwith "Options: not a list option (Delayed)";;
 
 let rec value_to_listiter v2c v =
   match v with
@@ -565,7 +631,7 @@ let rec value_to_listiter v2c v =
   | FloatValue _ -> failwith "Options: not a list option (FloatValue)"
   | IntValue _ -> failwith "Options: not a list option (IntValue)"
   | Module _ -> failwith "Options: not a list option (Module)"
-;;
+  | DelayedValue _ -> failwith "Options: not a list option (Delayed)";;
 
 let rec convert_list name c2v l res =
   match l with
@@ -594,23 +660,39 @@ let rec value_to_option v2c v =
   | StringValue "" -> None
   | OnceValue v -> value_to_option v2c v
   | _ -> Some (v2c v)
-      
+
+let save_delayed_list_value oc indent c2v =
+  let indent = indent ^ "  " in
+  (fun v ->
+      Printf.fprintf oc "\n%s" indent;
+      save_value indent oc (c2v v);
+      Printf.fprintf oc ";";
+  )
+  
 let list_to_value name c2v l =
-  List (convert_list name c2v l [])
+  DelayedValue (fun oc indent ->
+      Printf.fprintf oc "[";
+      List.iter (save_delayed_list_value oc indent c2v) l;
+      Printf.fprintf oc "]"      
+  )
   
 let intmap_to_value name c2v map =
-  let list = ref [] in
-  Intmap.iter (fun _ v ->
-      list := v :: !list
-  ) map;
-  list_to_value name c2v !list
+  DelayedValue (fun oc indent ->
+      let save = save_delayed_list_value oc indent c2v in
+      Printf.fprintf oc "[";
+      Intmap.iter (fun _ v -> save v) map;
+      Printf.fprintf oc "]"      
+  )
   
 let hasharray_to_value x c2v l =
-  let res = ref [] in
-  for i=0 to 255 do   
-    Hashtbl.iter (fun a b -> res := (c2v (0,x,b) ) :: !res ) l.(i);
-  done;
-  List !res
+  DelayedValue (fun oc indent ->
+      Printf.fprintf oc "[";
+      let save = save_delayed_list_value oc indent c2v in
+      for i=0 to Array.length l - 1 do   
+        Hashtbl.iter (fun a b -> save (0,x,b)) l.(i);
+      done;
+      Printf.fprintf oc "]"      
+  )
 
 let smalllist_to_value name c2v l =
   SmallList (convert_list name c2v l [])
@@ -718,162 +800,19 @@ let sum_option l =
   define_option_class "Sum" (value_to_sum l) (sum_to_value ll)
 ;;
 
-let exit_exn = Exit;;
-
-
-let unsafe_get = String.unsafe_get
-external is_printable: char -> bool = "is_printable"
-let unsafe_set = String.unsafe_set
+let option_to_value o = 
+  o.option_name, o.option_help,
+  (try 
+      o.option_class.to_value o.option_value 
+    with
+      e ->
+        lprintf "Error while saving option \"%s\": %s"
+          (try List.hd o.option_name with
+            _ -> "???")
+        (Printexc2.to_string e);
+        lprint_newline ();
+        StringValue "")
   
-let escaped s =
-  let n = ref 0 in
-  for i = 0 to String.length  s - 1 do
-    n := !n +
-      (match unsafe_get s i with
-        '"' | '\\' -> 2
-      | '\n' | '\t' -> 1
-      | c -> if is_printable c then 1 else 4)
-  done;
-  if !n = String.length  s then s else begin
-      let s' = String.create !n in
-      n := 0;
-      for i = 0 to String.length  s - 1 do
-        begin
-          match unsafe_get s i with
-            ('"' | '\\') as c ->
-              unsafe_set s' !n '\\'; incr n; unsafe_set s' !n c
-          | ('\n' | '\t' ) as c -> 
-              unsafe_set s' !n c
-          | c ->
-              if is_printable c then
-                unsafe_set s' !n c
-              else begin
-                  let a = int_of_char c in
-                  unsafe_set s' !n '\\';
-                  incr n;
-                  unsafe_set s' !n (char_of_int (48 + a / 100));
-                  incr n;
-                  unsafe_set s' !n (char_of_int (48 + (a / 10) mod 10));
-                  incr n;
-                  unsafe_set s' !n (char_of_int (48 + a mod 10))
-                end
-        end;
-        incr n
-      done;
-      s'
-    end
-    
-let safe_string s =
-  if s = "" then "\"\""
-  else
-    try
-      match s.[0] with
-        'a'..'z' | 'A'..'Z' ->
-          for i = 1 to String.length s - 1 do
-            match s.[i] with
-              'a'..'z' | 'A'..'Z' | '_' | '0'..'9' -> ()
-            | _ -> raise exit_exn
-          done;
-        s
-    | _ ->
-        if Int64.to_string (Int64.of_string s) = s ||
-          string_of_float (float_of_string s) = s then
-          s
-        else raise exit_exn
-  with
-    _ -> Printf.sprintf "\"%s\"" (escaped s)
-;;
-
-let with_help = ref false;;
-
-let tabulate s = String2.replace s '\n' "\n\t"
-
-let rec save_module indent oc list =
-  let subm = ref [] in
-  List.iter
-    (fun (name, help, value) ->
-      match name with
-        [] -> assert false
-      | [name] ->
-          if !with_help && help <> "" then
-            Printf.fprintf oc "\n\t(* %s *)\n" (tabulate help);
-          Printf.fprintf oc "%s %s = " indent (safe_string name);
-          save_value indent oc value;
-          Printf.fprintf oc "\n"
-      | m :: tail ->
-          let p =
-            try List.assoc m !subm with
-              e -> 
-(*
-                lprintf "Exception %s in Options.save_module" 
-		  (Printexc2.to_string e); lprint_newline ();
-*)
-                let p = ref [] in subm := (m, p) :: !subm; p
-          in
-          p := (tail, help, value) :: !p)
-    list;
-  List.iter
-    (fun (m, p) ->
-      Printf.fprintf oc "%s %s = {\n" indent (safe_string m);
-      save_module (indent ^ "  ") oc !p;
-      Printf.fprintf oc "%s}\n" indent)
-    !subm
-and save_list indent oc list =
-  match list with
-    [] -> ()
-  | [v] -> save_value indent oc v
-  | v :: tail ->
-      save_value indent oc v; Printf.fprintf oc ", "; save_list indent oc tail
-and save_list_nl indent oc list =
-  match list with
-    [] -> ()
-  | [v] -> Printf.fprintf oc "\n%s" indent; save_value indent oc v
-  | v :: tail ->
-      Printf.fprintf oc "\n%s" indent;
-      save_value indent oc v;
-      Printf.fprintf oc ";";
-      save_list_nl indent oc tail
-and save_value indent oc v =
-  match v with
-    StringValue s -> Printf.fprintf oc "%s" (safe_string s)
-  | IntValue i -> Printf.fprintf oc "%s" (Int64.to_string i)
-  | FloatValue f -> Printf.fprintf oc "%f" f
-  | List l ->
-      Printf.fprintf oc "[";
-      save_list_nl (indent ^ "  ") oc l;
-      Printf.fprintf oc "]"
-  | SmallList l ->
-      Printf.fprintf oc "(";
-      save_list (indent ^ "  ") oc l;
-      Printf.fprintf oc ")"
-  | Module m -> 
-      Printf.fprintf oc "{";
-      save_module_fields (indent ^ "  ") oc m;
-      Printf.fprintf oc "}"
-  | OnceValue v ->
-      begin
-        try 
-          let i = Hashtbl.find once_values_rev v in
-          Printf.fprintf oc "@%Ld@" i
-        with Not_found ->
-            incr once_values_counter;
-            let i = Int64.of_int !once_values_counter in
-            Hashtbl.add once_values_rev v i;
-            Printf.fprintf oc "@%Ld = " i;
-            save_value indent oc v   
-      end
-      
-and save_module_fields indent oc m =
-  match m with
-    [] -> ()
-  | (name, v) :: tail ->
-(*      lprintf "Saving %s" name; lprint_newline (); *)
-      Printf.fprintf oc "%s %s = " indent (safe_string name);
-      save_value indent oc v;
-      Printf.fprintf oc "\n";
-      save_module_fields indent oc tail
-;;
-    
 let save opfile =
   let filename = opfile.file_name in
   let temp_file = filename ^ ".tmp" in
@@ -883,21 +822,10 @@ let save opfile =
     once_values_counter := 0;
     Hashtbl.clear once_values_rev;
     save_module "" oc
-      (List.map
-        (fun o ->
-          o.option_name, o.option_help,
-          (try 
-              o.option_class.to_value o.option_value 
-            with
-              e ->
-                lprintf "Error while saving option \"%s\": %s"
-                  (try List.hd o.option_name with
-                    _ -> "???")
-                (Printexc2.to_string e);
-                lprint_newline ();
-                StringValue ""))
+      (List.map option_to_value
       (opfile.file_header_options @ opfile.file_options));
     if not opfile.file_pruned then begin
+        let rem = ref [] in
         Printf.fprintf oc
           "\n(*\n The following options are not used (errors, obsolete, ...) \n*)\n";
         List.iter
@@ -911,6 +839,7 @@ let save opfile =
                       | _ -> ())
                   list)
               [opfile.file_header_options;  opfile.file_options];
+              rem := (name, value) :: !rem;
               Printf.fprintf oc "%s = " (safe_string name);
               save_value "  " oc value;
               Printf.fprintf oc "\n"
@@ -920,6 +849,7 @@ let save opfile =
                 lprintf "Exception %s in Options.save" (
                   Printexc2.to_string e); lprint_newline ())
         opfile.file_rc;
+        opfile.file_rc <- !rem;
       end;
     Hashtbl.clear once_values_rev;
     close_out oc;

@@ -188,11 +188,10 @@ let new_client_ops network =
   c
 
 let check_client_implementations () =
-  lprintf "\n---- Methods not implemented for CommonClient ----\n";
-  lprint_newline ();
+  lprintf "\n---- Methods not implemented for CommonClient ----\n\n";
   List.iter (fun (c, cc) ->
       let n = c.op_client_network.network_name in
-      lprintf "\n  Network %s\n" n; lprint_newline ();
+      lprintf "\n  Network %s\n\n" n; 
       if c.op_client_to_option == cc.op_client_to_option then 
         lprintf "op_client_to_option\n";
       if c.op_client_info == cc.op_client_info then

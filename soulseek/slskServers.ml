@@ -133,49 +133,51 @@ let server_to_client s m sock =
       lprint_newline () 
       
 let connect_server s = 
-  match s.server_sock with
-    Some _ -> ()
-  | None ->
-      if can_open_connection () then
-        try
-          connection_try s.server_connection_control;
-          let ip = ip_of_addr s.server_addr in
-          let sock = TcpBufferedSocket.connect "slsk to server" (
-              Ip.to_inet_addr ip)
-            s.server_port (fun _ _ -> ())  in
-          
-          set_reader sock (soulseek_handler S2C.parse 
-            (server_to_client s));
-          
-          set_server_state s Connecting;
-          set_read_controler sock download_control;
-          set_write_controler sock upload_control;
-          
-          set_rtimeout sock 20.;
-          set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
-              lprintf "Connection timeout"; lprint_newline ();
-              close s "timeout"  
-          );
-          set_closer sock (fun _ _ -> disconnect_server s);
-          s.server_nick <- 0;
-          s.server_sock <- Some sock;
-          server_send sock (
-            let module L = C2S.Login in
-            C2S.LoginReq {
-              L.login = login ();
-              L.password = !!password;
-              L.version = 200;
-            });
-          server_send sock (C2S.SetWaitPortReq !!slsk_port)
-        with e -> 
-            lprintf "%s:%d IMMEDIAT DISCONNECT %s"
-              (string_of_addr s.server_addr) s.server_port
-              (Printexc2.to_string e); lprint_newline ();
-(*      lprintf "DISCONNECTED IMMEDIATLY"; lprint_newline (); *)
-            s.server_sock <- None;
-            set_server_state s (NotConnected (-1));
-            connection_failed s.server_connection_control
+  ip_of_addr s.server_addr (fun ip ->
+      
+      match s.server_sock with
+        Some _ -> ()
+      | None ->
+          if can_open_connection () then
+            try
+              connection_try s.server_connection_control;
+              let sock = TcpBufferedSocket.connect "slsk to server" (
+                  Ip.to_inet_addr ip)
+                s.server_port (fun _ _ -> ())  in
               
+              set_reader sock (soulseek_handler S2C.parse 
+                  (server_to_client s));
+              
+              set_server_state s Connecting;
+              set_read_controler sock download_control;
+              set_write_controler sock upload_control;
+              
+              set_rtimeout sock 20.;
+              set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
+                  lprintf "Connection timeout"; lprint_newline ();
+                  close s "timeout"  
+              );
+              set_closer sock (fun _ _ -> disconnect_server s);
+              s.server_nick <- 0;
+              s.server_sock <- Some sock;
+              server_send sock (
+                let module L = C2S.Login in
+                C2S.LoginReq {
+                  L.login = login ();
+                  L.password = !!password;
+                  L.version = 200;
+                });
+              server_send sock (C2S.SetWaitPortReq !!slsk_port)
+            with e -> 
+                lprintf "%s:%d IMMEDIAT DISCONNECT %s"
+                  (string_of_addr s.server_addr) s.server_port
+                  (Printexc2.to_string e); lprint_newline ();
+(*      lprintf "DISCONNECTED IMMEDIATLY"; lprint_newline (); *)
+                s.server_sock <- None;
+                set_server_state s (NotConnected (-1));
+                connection_failed s.server_connection_control
+  )
+  
 let recover_files () = ()
  
 let ask_for_file file =

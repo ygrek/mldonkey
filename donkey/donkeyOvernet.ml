@@ -1273,21 +1273,21 @@ let _ =
         Printf.bprintf buf "Overnet statistics:\n"; 
         Printf.bprintf buf "  Search hits: %d\n" !search_hits;
         Printf.bprintf buf "  Source hits: %d\n" !source_hits;
-	Printf.bprintf buf "  peers blocks (max peer number per block = %d) :\n" (!!overnet_max_known_peers/256);
+        Printf.bprintf buf "  peers blocks (max peer number per block = %d) :\n" (!!overnet_max_known_peers/256);
         Printf.bprintf buf "    This is a list of known peers, sorted by the first byte of their md4 address ( 05FE15E90678... => block 05)\n";        
-	for i=0 to 15 do	  
-	  Printf.bprintf buf "    ";
-	  for j=0 to 15 do
-	    Printf.bprintf buf "%02X: %3d  " (i*16+j) global_peers_size.(i*16+j);
-	    sum := !sum + global_peers_size.(i*16+j);
-	  done;
-	  Printf.bprintf buf "\n";
-	done;
-	Printf.bprintf buf "  Number of known Overnet peers = %d\n" !sum;
-
+        for i=0 to 15 do	  
+          Printf.bprintf buf "    ";
+          for j=0 to 15 do
+            Printf.bprintf buf "%02X: %3d  " (i*16+j) global_peers_size.(i*16+j);
+            sum := !sum + global_peers_size.(i*16+j);
+          done;
+          Printf.bprintf buf "\n";
+        done;
+        Printf.bprintf buf "  Number of known Overnet peers = %d\n" !sum;
+        
         Hashtbl.iter (fun _ s ->
             Printf.bprintf buf 
-            "Search %s for %s (%d not_asked, %d asked, %d done, %d hits, %d results) %s%s\n"            
+              "Search %s for %s (%d not_asked, %d asked, %d done, %d hits, %d results) %s%s\n"            
               (match s.search_kind with
                 KeywordSearch _ -> "keyword"
               | FileSearch _ -> "file")
@@ -1296,8 +1296,8 @@ let _ =
             (XorSet.cardinal s.search_asked_peers)
             (XorSet.cardinal s.search_done_peers)
             s.search_hits
-            s.search_nresults
-            (match s.search_kind, s.search_publish_files with
+              s.search_nresults
+              (match s.search_kind, s.search_publish_files with
               | KeywordSearch [], _ :: _  -> "publish "
               | KeywordSearch (_ :: _) , []  -> "query "
               | KeywordSearch (_ :: _), _ :: _  -> "publish+query "
@@ -1325,18 +1325,18 @@ let _ =
             load_url "ocl" url) urls;
         "web boot started"
     ), " <urls>:\t\t\t\tdownload .ocl URLS (no arg load default)";
-
+    
     "ovmd4", Arg_none (fun o -> "MD4 is " ^ (Md4.to_string overnet_md4);
-     ), ":\t\t\t\t\tget client MD4 address on the overnet network";
-
+    ), ":\t\t\t\t\tget client MD4 address on the overnet network";
+    
     "ovstore", Arg_none (fun o -> 
         let buf = o.conn_buf in
-
+        
         Printf.bprintf buf "Overnet store:\n"; 
         Printf.bprintf buf "  size = %d, max_size = %d\n" 
           !published_keyword_size !!overnet_store_size; 
         Printf.bprintf buf "\n";        
-
+        
         Hashtbl.iter (fun kw_md4 (size, files) -> 
             Printf.bprintf buf "  md4=%s, files =\n" (Md4.to_string kw_md4);
             XorMd4Map.iter (fun file_md4 (file_tags,_) ->
@@ -1346,55 +1346,55 @@ let _ =
                 Printf.bprintf buf "\n";
             ) !files
         ) published_keyword_table;
-
+        
         ""
-     ), ":\t\t\t\tdump the Overnet File Store";
-
-
+    ), ":\t\t\t\tdump the Overnet File Store";
+    
+    
     "ovtst", Arg_two (fun a b o ->
-	let md41 = Md4.of_string a in
-	let md42 = Md4.of_string b in
+        let md41 = Md4.of_string a in
+        let md42 = Md4.of_string b in
         store_published_file md41 md42
-         [
-            string_tag "filename" "john" ;
-            int_tag "size" (Random.int 200);
-         ] 0;
+          [
+          string_tag "filename" "john" ;
+          int_tag "size" (Random.int 200);
+        ] 0;
         ""
     ), ":\t\t\t\t\t(not documented)";
-
+    
     "ovtst2", Arg_two (fun a b o ->
-	let md4 = Md4.of_string a in
-	let size = int_of_string b in
+        let md4 = Md4.of_string a in
+        let size = int_of_string b in
         get_results_from_query (Ip.of_string "10.0.0.10") (4665) md4 0 size;
         ""
     ), ":\t\t\t\t(not documented)";
-
+  
   ];
-
+  
   add_web_kind "ocl" (fun filename ->
       let s = File.to_string filename in
       let s = String2.replace s '"' "" in
       let lines = String2.split_simplify s '\n' in
       List.iter (fun s ->
-	try
-          match String2.split_simplify s ',' with
-            name :: port :: _ ->
-              let name = String2.replace name '"' "" in
-              let port = String2.replace port '"' "" in
-              let ip = Ip.from_name name in
-                let port = int_of_string port in
-                if !verbose_overnet then begin
-                    lprintf "ADDING OVERNET PEER %s:%d" name port; 
-                    lprint_newline ();
-                  end;
-                boot_peers := (ip, port) :: !boot_peers
-          | _ -> 
-              lprintf "BAD LINE ocl: %s" s;
-              lprint_newline ();
-	with _ -> 
-	  begin
-	    lprintf "DNS failed"; lprint_newline ();
-	  end
+          try
+            match String2.split_simplify s ',' with
+              name :: port :: _ ->
+                let name = String2.replace name '"' "" in
+                let port = String2.replace port '"' "" in
+                Ip.async_ip name (fun ip ->
+                    let port = int_of_string port in
+                    if !verbose_overnet then begin
+                        lprintf "ADDING OVERNET PEER %s:%d" name port; 
+                        lprint_newline ();
+                      end;
+                    boot_peers := (ip, port) :: !boot_peers)
+            | _ -> 
+                lprintf "BAD LINE ocl: %s" s;
+                lprint_newline ();
+          with _ -> 
+              begin
+                lprintf "DNS failed"; lprint_newline ();
+              end
       ) lines
   )
   

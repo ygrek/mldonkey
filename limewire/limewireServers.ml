@@ -241,36 +241,38 @@ let connect_to_redirector () =
   | name :: tail ->
       redirectors_to_try := tail;
 (*      lprintf "connect to redirector"; lprint_newline (); *)
-      try
-        let sock = connect  "limewire to redirector"
-            (Ip.to_inet_addr (Ip.from_name name)) 6346
-            (fun sock event -> 
-              match event with
-                BASIC_EVENT (RTIMEOUT|LTIMEOUT) -> 
-                  close sock "timeout";
-                  redirector_connected := false;
+      Ip.async_ip name (fun ip ->
+          try
+            let sock = connect  "limewire to redirector"
+                (Ip.to_inet_addr ip) 6346
+                (fun sock event -> 
+                  match event with
+                    BASIC_EVENT (RTIMEOUT|LTIMEOUT) -> 
+                      close sock "timeout";
+                      redirector_connected := false;
 (*                  lprintf "TIMEOUT FROM REDIRECTOR"; lprint_newline ()*)
-              | _ -> ()
-          ) in
-        TcpBufferedSocket.set_read_controler sock download_control;
-        TcpBufferedSocket.set_write_controler sock upload_control;
-
-        
-        redirector_connected := true;
-        set_reader sock (handler !verbose_msg_servers redirector_parse_header
-            (gnutella_handler parse redirector_to_client)
-        );
-        set_closer sock (fun _ _ -> 
+                  | _ -> ()
+              ) in
+            TcpBufferedSocket.set_read_controler sock download_control;
+            TcpBufferedSocket.set_write_controler sock upload_control;
+            
+            
+            redirector_connected := true;
+            set_reader sock (handler !verbose_msg_servers redirector_parse_header
+                (gnutella_handler parse redirector_to_client)
+            );
+            set_closer sock (fun _ _ -> 
 (*            lprintf "redirector disconnected"; lprint_newline (); *)
-            redirector_connected := false);
-        set_rtimeout sock 10.;
-        set_lifetime sock 120.;
-        write_string sock "GNUTELLA CONNECT/0.4\n\n";
-      with e ->
-          lprintf "Exception in connect_to_redirector: %s"
-            (Printexc2.to_string e); lprint_newline ();
-          redirector_connected := false
-          
+                redirector_connected := false);
+            set_rtimeout sock 10.;
+            set_lifetime sock 120.;
+            write_string sock "GNUTELLA CONNECT/0.4\n\n";
+          with e ->
+              lprintf "Exception in connect_to_redirector: %s"
+                (Printexc2.to_string e); lprint_newline ();
+              redirector_connected := false
+      )
+      
 let disconnect_from_server s =
   match s.server_sock with
     None -> ()

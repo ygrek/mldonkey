@@ -111,8 +111,7 @@ module ServerOption = struct
           in
           let network = 
             try network_find_by_name network with e ->
-                lprintf "Network %s not supported" network;
-                lprint_newline ();
+                lprintf "Network %s not supported\n" network;
                 raise e
               in
           let server = network_add_server network assocs in
@@ -415,10 +414,12 @@ let file_commit file =
   if impl.impl_file_state = FileDownloaded then
     let new_name = file_commited_name file in
     try
-      lprintf "*******  RENAME %s to %s *******" (file_disk_name file) new_name; lprint_newline ();
+      lprintf "*******  RENAME %s to %s *******\n"
+        (file_disk_name file) new_name; 
       Unix2.rename (file_disk_name file) new_name;
         
-      lprintf "*******  RENAME %s to %s DONE *******" (file_disk_name file) new_name; lprint_newline ();
+      lprintf "*******  RENAME %s to %s DONE *******\n" 
+        (file_disk_name file) new_name; 
       set_file_disk_name file new_name;
       let best_name = file_best_name file in  
       (* Commit the file first, and share it after... *)
@@ -427,8 +428,7 @@ let file_commit file =
       done_files =:= List2.removeq file !!done_files;
       update_file_state impl FileShared;
     with e ->
-      lprintf "Exception in file_commit: %s" (Printexc2.to_string e);
-      lprint_newline ()
+      lprintf "Exception in file_commit: %s\n" (Printexc2.to_string e)
       
 let file_cancel file =
   try

@@ -1,6 +1,15 @@
 ChangeLog	
 =========
 
+2003/03/05: Simon (v 2.02-28)
+  - Bug Fixes:
+     * 'vr' should not raise Exception in String.sub, fix in
+         result_format_of_name
+  - Direct-Connect: use async DNS by threads when available
+  - Applied patches #1226, #1227 from Savannah
+  - Options: some memory improvements (clear unused initial options,
+      avoid building intermediate data structures)
+
 2003/03/04: Simon (v 2.02-27)
   - Bug fixes: 
      * 'log' command correctly set the size of the log (otherwise, an 
@@ -28,7 +37,6 @@ ChangeLog
   - New option 'max_indirect_connections' to limit the number of incoming
       connections.
   - New command 'options' to print options by section
-
 
 2003/03/02: Simon (v 2.02-24)
   - New commands 'share <dir>' and 'unshare <dir>' to manipulate

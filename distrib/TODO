@@ -27,6 +27,8 @@ Before 2.03:
 * Replace network column by network icons, file state by icons too
 * Start as a daemon. -no-daemon option. 'log <file>' command for logging 
  in a file. 'console' command for logging in the current telnet socket.
+* Debug per client/server/source
+
 
 Some fields are not necessary anymore:
   - zone_file

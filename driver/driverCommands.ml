@@ -999,8 +999,8 @@ the name between []"
             Printf.bprintf buf "\\<div class=\\\"bw_stats\\\"\\>";
             Printf.bprintf buf "\\<table class=\\\"bw_stats\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>";
             Printf.bprintf buf "\\<td\\>\\<table border=0 cellspacing=0 cellpadding=0\\>\\<tr\\>
-\\<td title=\\\"DL kbs (TCP|UDP)\\\" class=\\\"bu bbig bbig1 bb4\\\"\\>DL: %.1f kbs (%d|%d)\\</td\\>
-\\<td title=\\\"UL kbs (TCP|UDP)\\\" class=\\\"bu bbig bbig1 bb4\\\"\\>UL: %.1f kbs (%d|%d)\\</td\\>
+\\<td title=\\\"Download KB/s (UDP|TCP)\\\" class=\\\"bu bbig bbig1 bb4\\\"\\>Down: %.1f KB/s (%d|%d)\\</td\\>
+\\<td title=\\\"Upload KB/s (UDP|TCP)\\\" class=\\\"bu bbig bbig1 bb4\\\"\\>Up: %.1f KB/s (%d|%d)\\</td\\>
 \\<td title=\\\"Total Shared Files/Bytes\\\" class=\\\"bu bbig bbig1 bb3\\\"\\>Shared: %d/%s\\</td\\>"
               
               dlkbs

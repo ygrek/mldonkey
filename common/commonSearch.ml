@@ -923,7 +923,10 @@ let result_format_of_name name =
   match String.lowercase (Filename2.last_extension name ) with
     ".mpeg" -> "mpg"
   | ".jpeg" -> "jpg"
-  | s -> String.sub s 1 (String.length s - 1)
+  | "" -> ""
+  | s -> 
+      let n = String.sub s 1 (String.length s - 1) in
+      n
     
 let result_media_of_name name = 
   match String.lowercase (Filename2.last_extension name ) with

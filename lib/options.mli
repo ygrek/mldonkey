@@ -114,6 +114,7 @@ type option_value =
 | List of option_value list
 | SmallList of option_value list
 | OnceValue of option_value 
+| DelayedValue of (out_channel -> string -> unit)
   
 and option_module =
   (string * option_value) list

@@ -53,25 +53,23 @@ let verify_chunk file i =
   let len = Int64.sub end_pos begin_pos in
   let md4 = file_md4s.(i) in
   if !verbose then begin
-      lprintf "verify_chunk %s[%d] %Ld[%Ld]" 
+      lprintf "verify_chunk %s[%d] %Ld[%Ld]\n"
         (file_disk_name file) i
-        begin_pos len; lprint_newline ();
+        begin_pos len;
     end;
   let t1 = Unix.gettimeofday () in
   let new_md4 = Md4.digest_subfile (file_fd file) begin_pos len in
   let t2 = Unix.gettimeofday () in
   if !verbose then begin
-      lprintf "Delay for MD4: %2.2f" (t2 -. t1); lprint_newline ();
+      lprintf "Delay for MD4: %2.2f\n" (t2 -. t1);
     end;
   if new_md4 = md4 then begin
       DonkeyShare.must_share_file file;
       PresentVerified
     end else begin
 (*
-lprint_newline ();
-lprintf "VERIFICATION FAILED";lprint_newline ();
-lprintf "%s\n%s" (Md4.to_string md4) (Md4.to_string new_md4);
-lprint_newline ();
+lprintf "\nVERIFICATION FAILED\n";
+lprintf "%s\n%s\n" (Md4.to_string md4) (Md4.to_string new_md4);
 *)
       AbsentVerified
     end      
@@ -177,11 +175,10 @@ let compute_size file =
     let current = Int64.sub (file_size file) !absents in
     file.file_file.impl_file_downloaded <- current;
     if file_downloaded file > file_size file then begin
-        lprintf "******* downloaded %Ld > %Ld size after compute_size ***** for %s"
+        lprintf "******* downloaded %Ld > %Ld size after compute_size ***** for %s\n"
           (file_downloaded file)
         (file_size file)
         (file_best_name file);
-        lprint_newline () 
       end;
     file_must_update file
   
@@ -197,8 +194,7 @@ let verify_chunks file =
           let state = verify_chunk file i in
           file.file_chunks.(i) <- (
             if state = PresentVerified then begin
-                lprintf "(PRESENT VERIFIED)";
-                lprint_newline ();
+                lprintf "(PRESENT VERIFIED)\n";
                 PresentVerified
               end
             else
@@ -209,14 +205,13 @@ let verify_chunks file =
                   Int64.sub (file_downloaded file) block_size;
                 
                 if file_downloaded file > file_size file then begin
-                    lprintf "******* downloaded %Ld > %Ld size after verify_chunks ***** for %s"
+                    lprintf "******* downloaded %Ld > %Ld size after verify_chunks ***** for %s\n"
                       (file_downloaded file)
                     (file_size file)
                     (file_best_name file);
-                    lprint_newline () 
                   end;
                 
-                lprintf "(CORRUPTION FOUND)"; lprint_newline ();
+                lprintf "(CORRUPTION FOUND)\n";
                 file_must_update file;
                 AbsentVerified
               | _ -> AbsentVerified);
@@ -247,8 +242,7 @@ let register_md4 i md4 (begin_pos : int64) (len : int64) file =
         files := file :: !files;
         lprintf "Files";
         List.iter (fun file -> lprintf " %d" (file_num file)) !files;
-        lprintf "share block %s" (Md4.to_string md4);
-        lprint_newline ();
+        lprintf " share block %s\n" (Md4.to_string md4);
       end
   with _ ->
       Hashtbl.add md4_table (md4, i, begin_pos, len) (ref [file])
@@ -269,7 +263,7 @@ let register_md4s md4s file_num file_size =
   iter md4s 0 Int64.zero
 
 let copy_chunk other_file file chunk_pos chunk_size =
-  lprintf "Copying chunk"; lprint_newline ();
+  lprintf "Copying chunk\n";
   let file_in = 
     Unix.openfile (file_disk_name other_file)
     [Unix.O_RDONLY] 0o666 in
@@ -292,7 +286,7 @@ let copy_chunk other_file file chunk_pos chunk_size =
           iter file_in file_out (len-nread)
       in
       iter file_in file_out len;
-      lprintf "Chunk copied"; lprint_newline ();
+      lprintf "Chunk copied\n"
       
     with _ -> Unix.close file_out; raise Exit
   
@@ -333,9 +327,8 @@ let duplicate_chunks () =
                     List.iter (fun other_file ->
                         match other_file.file_chunks.(i) with
                           PresentVerified ->
-                            lprintf "Should copy chunk %d [%Ld:%Ld] from %s to %s" i chunk_pos chunk_size 
+                            lprintf "Should copy chunk %d [%Ld:%Ld] from %s to %s\n" i chunk_pos chunk_size
                               (file_best_name other_file) (file_best_name file);
-                            lprint_newline ();
 
                             if not (List.memq file !modified_files) then
                               modified_files := file :: !modified_files;
