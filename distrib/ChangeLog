@@ -1,6 +1,11 @@
 ChangeLog	
 =========
 
+2002/02/28: Simon (v 2.02-22)
+  - eDonkey: respect max_sources_per_file
+  - Applied patch #1198, stats saved as options in 'stats.ini'
+  - Added link to French forum on main WEB page
+
 2002/02/26: Simon (v 2.02-21)
   - eDonkey: 
       * Save hashes of commited files in shared_files.ini to remove

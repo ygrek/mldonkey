@@ -36,6 +36,9 @@ let shared_files_ini = create_options_file (
   
 let file_sources_ini = create_options_file (
     Filename.concat file_basedir "file_sources.ini")
+  
+let stats_ini = create_options_file (
+    Filename.concat file_basedir "stats.ini")
 
 
   
@@ -383,6 +386,38 @@ module SharedFileOption = struct
     
     let t = define_option_class "SharedFile" value_to_shinfo shinfo_to_value
   end
+  
+module StatsOption = struct
+    
+    let value_to_stat v =
+      match v with
+        Options.Module assocs ->
+          let get_value name conv = conv (List.assoc name assocs) in
+          let get_value_nil name conv = 
+            try conv (List.assoc name assocs) with _ -> []
+          in
+          { 
+            brand_seen = value_to_int (List.assoc "seen" assocs);
+            brand_banned = value_to_int (List.assoc "banned" assocs);
+            brand_filerequest = value_to_int (List.assoc "filereqs" assocs);
+            brand_download = value_to_int64 (List.assoc "download" assocs);
+            brand_upload = value_to_int64 (List.assoc "upload" assocs);
+          }
+          
+      | _ -> failwith "Options: not a stat option"
+          
+    let stat_to_value b =
+      Options.Module [
+        "seen", int_to_value b.brand_seen;
+        "banned", int_to_value b.brand_banned;
+        "filereqs", int_to_value b.brand_filerequest;
+        "download", int64_to_value b.brand_download;
+        "upload", int64_to_value b.brand_upload;
+      ]
+    
+    
+    let t = define_option_class "Stat" value_to_stat stat_to_value
+  end
 
 let value_to_module f v =
   match v with
@@ -565,13 +600,26 @@ let sources = define_option file_sources_ini
 let load _ =
   Printf.printf "LOADING SHARED FILES AND SOURCES"; print_newline ();
   (try
-      Options.load shared_files_ini
+      Options.load shared_files_ini;
+      Options.load stats_ini;
     with Sys_error _ ->
         Options.save_with_help shared_files_ini)
+  
+let guptime = define_option stats_ini ["guptime"] "" int_option 0
+let gstats_by_brand = define_option stats_ini ["stats"] "" 
+  (array_option StatsOption.t)
+    (Array.init brand_count (fun _ ->
+        { dummy_stats with brand_seen = 0 }
+    ))
+
+let diff_time = ref 0
 
 let save _ =
   Printf.printf "SAVING SHARED FILES AND SOURCES"; print_newline ();
   Options.save_with_help shared_files_ini;
+  guptime =:= !!guptime + (last_time () - start_time);
+  diff_time := (last_time () - start_time);
+  Options.save_with_help stats_ini;
   sources =:= [];
   DonkeySources.iter (fun s -> 
       (match s.source_client with
@@ -584,7 +632,10 @@ let save _ =
   Options.save_with_help file_sources_ini;
   Printf.printf "SAVED"; print_newline ();
   sources =:= []
+    
+let guptime () = !!guptime - !diff_time
 
+  
 let load_sources () = 
   (try 
       Options.load file_sources_ini;

@@ -60,6 +60,12 @@ decide whether to connect immediatly or not. *)
     
     mutable op_client_bprint_html : ('a -> Buffer.t -> 
     CommonTypes.file -> unit);
+
+    mutable op_client_dprint : ('a -> CommonTypes.connection_options -> 
+	CommonTypes.file -> unit);
+
+    mutable op_client_dprint_html : ('a -> CommonTypes.connection_options ->
+    CommonTypes.file -> string -> bool);
   }
   
 let client_counter = CommonUser.user_counter
@@ -128,6 +134,14 @@ let client_bprint (client: client) buf =
 let client_bprint_html (client: client) buf file =
   let client = as_client_impl client in
   client.impl_client_ops.op_client_bprint_html client.impl_client_val buf file
+
+let client_dprint (client: client) o file =
+  let client = as_client_impl client in
+  client.impl_client_ops.op_client_dprint client.impl_client_val o file
+
+let client_dprint_html (client: client) o file str =
+  let client = as_client_impl client in
+  client.impl_client_ops.op_client_dprint_html client.impl_client_val o file str
   
 let client_connect client=
   let client = as_client_impl client in
@@ -164,6 +178,8 @@ let new_client_ops network =
       op_client_browse = (fun _ _ -> ni_ok network "client_browse");
       op_client_bprint = (fun _ _ -> ni_ok network "client_bprint");
       op_client_bprint_html = (fun _ _ _ -> ni_ok network "client_bprint_html");
+      op_client_dprint = (fun _ _ _ -> ni_ok network "client_dprint");
+      op_client_dprint_html = (fun _ _ _ _ -> fni network "client_dprint_html");
     } in
   let cc = (Obj.magic c : int client_ops) in
   clients_ops := (cc, { cc with op_client_network = c.op_client_network })
@@ -263,7 +279,7 @@ let set_client_type c t =
     end
 
 let _ = 
-  CommonGlobals.add_memstat "CommonClient" (fun buf ->
+  Heap.add_memstat "CommonClient" (fun buf ->
       let counter = ref 0 in
       H.iter (fun _ -> incr counter) clients_by_num;
       Printf.bprintf buf "  clients: %d\n" !counter;

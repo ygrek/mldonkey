@@ -365,10 +365,33 @@ let client_connected c =
   c.client_score <- 0;
   match c.client_source with None -> () | Some s ->
       s.source_age <- last_time ()
+
+let clean_file_sources file nsources =
+  
+  for i = Array.length file.file_sources -1 downto 0 do
+    try
+      while !nsources > !!max_sources_per_file do
+        let _ = SourcesQueue.take file.file_sources.(i) in
+        ()          
+        
+      done
+    with _ -> ()
+        
+  done
       
 let recompute_ready_sources f =
-(*  Printf.printf "recompute_ready_sources on sources not implemented"; print_newline () *) ()
 
+(* for each file, try to apply the max_sources_per_file option *)
+  List.iter (fun file ->
+      let nsources = ref (Fifo.length file.file_clients) in
+      Array.iter (fun q -> nsources := !nsources + SourcesQueue.length q)
+      file.file_sources;
+            
+      if !nsources > !!max_sources_per_file then 
+        clean_file_sources file nsources
+
+  ) !current_files
+  
 (* Change a source structure into a client structure before attempting
   a connection. *)
 let client_of_source reconnect_client s file basic_score client_num = 
@@ -725,7 +748,7 @@ let check_sources reconnect_client =
 *)
   
   let uptime = last_time () - start_time in
-  
+
   if uptime mod 60 = 0 then
     recompute_ready_sources ();
   

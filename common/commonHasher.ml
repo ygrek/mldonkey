@@ -26,6 +26,7 @@ type job = {
     job_method : hash_method;
     job_result : string;
     job_handler : (job -> unit);
+    job_error : bool;
   }
 
 let fifo = Fifo.create ()
@@ -36,23 +37,40 @@ external job_start : job -> Unix.file_descr -> unit = "ml_job_start"
   
 let _ =
   BasicSocket.add_infinite_timer 1.0 (fun _ ->
+(*      Printf.printf "test job"; print_newline ();  *)
       try
         match !current_job with
         | None -> raise Not_found
         | Some (job, fd) ->
+(*            Printf.printf "job done "; print_newline (); *)
             if job_done job then begin
+(*                Printf.printf "job finished"; print_newline (); *)
                 current_job := None;
                 Unix.close fd;
-                (try job.job_handler job with _ -> ());
+                (try job.job_handler job with e -> 
+                      Printf.printf "exception %s in job_handler"
+                        (Printexc2.to_string e); print_newline ();
+                      );
                 raise Not_found
               end
       with _ ->
-          let job = Fifo.take fifo in
-          let fd = Unix.openfile job.job_name [Unix.O_RDONLY] 0o444 in
-          current_job := Some (job, fd);
-          Printf.printf "Starting job %s %Ld %Ld" job.job_name
-            job.job_begin job.job_len; print_newline ();
-          job_start job fd
+          
+          let job = try Fifo.take fifo 
+              
+            with e -> 
+(*                Printf.printf "No waiting job"; print_newline (); *)
+                raise e
+          in
+(*          Printf.printf "Job ready"; print_newline (); *)
+          try
+            let fd = Unix.openfile job.job_name [Unix.O_RDONLY] 0o444 in
+            current_job := Some (job, fd);
+(*            Printf.printf "Starting job %s %Ld %Ld" job.job_name
+              job.job_begin job.job_len; print_newline (); *)
+            job_start job fd
+          with e ->
+              Printf.printf "Exception %s in starting job" 
+                (Printexc2.to_string e); print_newline ();
   )
   
 let compute_md4 name begin_pos len f =
@@ -63,6 +81,7 @@ let compute_md4 name begin_pos len f =
       job_method = MD4;
       job_result = String.create 16;
       job_handler = f;
+      job_error = false;
     } in
   Fifo.put fifo job
   

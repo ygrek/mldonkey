@@ -54,6 +54,10 @@ module Udp = DonkeyProtoUdp
   
 let is_banned c sock = c.client_banned <- Hashtbl.mem banned_ips (peer_ip sock)
     
+
+(* Supports Emule Extended Protocol *)
+let supports_eep cb = cb = Brand_newemule || cb = Brand_cdonkey
+
 let ban_client c sock msg = 
   let module M = DonkeyProtoClient in
   
@@ -421,6 +425,15 @@ let identify_client_brand c =
     else
       if c.client_overnet then Brand_overnet else Brand_edonkey)
 
+let identify_cdonkey c tags = 
+	List.iter (fun tag -> 
+		match tag.tag_name with
+	      "compatible" -> (match tag.tag_value with
+                  		  Uint64 i -> if i = Int64.of_int 1 then
+									c.client_brand <- Brand_cdonkey
+                  		| _ -> ())
+		  | _ -> ()
+	) tags
     
 let query_files c sock =  
   let nall_queries = ref 0 in
@@ -728,7 +741,7 @@ let client_to_client challenge for_files c t sock =
       
       identify_client_brand c;
       
-      if c.client_brand = Brand_newemule then  begin
+      if supports_eep c.client_brand then begin
 (*    Printf.printf "Emule Extended Protocol query"; print_newline ();*)
           let module E = M.EmuleClientInfo in
           emule_send sock (M.EmuleClientInfoReq {
@@ -777,7 +790,10 @@ print_newline ();
   
   | M.EmuleClientInfoReq t ->      
 (*      Printf.printf "Emule Extended Protocol asked"; print_newline (); *)
-      if c.client_brand = Brand_newemule then  begin
+	let module CI = M.EmuleClientInfo in
+	identify_cdonkey c t.CI.tags;
+
+      if supports_eep c.client_brand then  begin
           let module E = M.EmuleClientInfo in
           emule_send sock (M.EmuleClientInfoReplyReq {
               E.version = !!emule_protocol_version; 
@@ -831,8 +847,13 @@ print_newline ();
   
   
   | M.EmuleClientInfoReplyReq t -> 
+
+	let module CI = M.EmuleClientInfo in
+
+	identify_cdonkey c t.CI.tags
+	
+
 (*   Printf.printf "Emule Extended Protocol activated"; print_newline (); *)
-      ()
   
   
   | M.ViewFilesReplyReq t ->
@@ -977,7 +998,7 @@ print_newline ();
 (* ask for the file description *)
 
 (* ask for more sources *)
-          if c.client_brand = Brand_newemule &&
+          if supports_eep c.client_brand &&
             DonkeySources.need_new_sources file then begin
 
 (*              Printf.printf "Emule query sources"; print_newline (); *)
@@ -1633,7 +1654,7 @@ let read_first_message overnet challenge m sock =
           }
       );
 
-      if c.client_brand = Brand_newemule then  begin
+      if supports_eep c.client_brand then  begin
 (*          Printf.printf "Emule Extended Protocol query"; print_newline (); *)
           let module E = M.EmuleClientInfo in
           emule_send sock (M.EmuleClientInfoReq {

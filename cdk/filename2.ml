@@ -52,9 +52,9 @@ let normalize filename =
   | [""] -> "/"
     | _ -> unsplit l '/'
   in
-  if file <> filename then begin
+(*  if file <> filename then begin
       Printf.printf "[%s] normalized to [%s]" filename file; print_newline ();
-    end;
+    end; *)
   file
 ;;
 

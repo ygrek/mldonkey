@@ -379,18 +379,6 @@ let aborted_download = ref (None : int option)
     
 let searches = ref ([] : search list)
   
-
-let memstat_functions = ref []
-  
-let add_memstat m f = memstat_functions := (m,f) :: !memstat_functions
-  
-let print_memstats buf =  
-  Printf.bprintf buf "Memory Debug Stats:\n";
-  let list = List.rev !memstat_functions in
-  List.iter (fun (m,f) ->   
-      Printf.bprintf buf "Module %s:\n" m ;      
-      f buf) list
-
 let core_included = ref false
 let gui_included = ref false
 

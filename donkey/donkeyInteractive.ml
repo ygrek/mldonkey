@@ -691,6 +691,7 @@ let commands = [
 \\<td title=\\\"Connection [I]ndirect [D]irect\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C\\</td\\>
 \\<td title=\\\"Client Name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Client Name\\</td\\>
 \\<td title=\\\"IP Address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>IP Address\\</td\\>
+\\<td title=\\\"Connected Time (in minutes)\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>CT\\</td\\>
 \\<td title=\\\"Client Brand\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C.B\\</td\\>
 \\<td title=\\\"Total DL bytes from this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>DL\\</td\\>
 \\<td title=\\\"Total UL bytes to this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>UL\\</td\\>
@@ -717,10 +718,14 @@ let commands = [
                           match c.client_sock with
                             Some sock -> Printf.bprintf buf "\\<td
                         class=\\\"sr\\\"\\>%s\\</td\\>\\<td
+                        class=\\\"sr ar\\\"\\>%d\\</td\\>\\<td
                         class=\\\"sr\\\"\\>%s\\</td\\>" 
-                                (Ip.to_string (peer_ip sock)) (gbrand_to_string c.client_brand) 
+                                (Ip.to_string (peer_ip sock))
+          						(((last_time ()) - c.client_connect_time) / 60)
+								 (gbrand_to_string c.client_brand) 
                           | None -> Printf.bprintf buf "\\<td
                         class=\\\"sr\\\"\\>\\</td\\>
+                        \\<td class=\\\"sr\\\"\\>\\</td\\> 
                         \\<td class=\\\"sr\\\"\\>\\</td\\>" 
                         end;
                         
@@ -1327,10 +1332,120 @@ onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>%d\\</T
         \\<td class=\\\"sr ar\\\"\\>\\</td\\>
         \\<td class=\\\"sr\\\"\\>\\</td\\>"
       end;
+  );
+
+  client_ops.op_client_dprint <- (fun c o file ->
+	let info = file_info file in
+	let buf = o.conn_buf in
+
+		try
+
+          (match c.client_block with
+              None -> ()
+            | Some b ->  ( 
+                  let qfiles = c.client_file_queue in
+                  let (qfile, qchunks) =  List.hd qfiles in
+                  if (qfile = (as_file_impl file).impl_file_val) then begin
+             		client_print (as_client c.client_client) o;
+            		 Printf.bprintf buf "client: %s downloaded: %s uploaded: %s" 
+						(brand_to_string c.client_brand) 
+						(Int64.to_string c.client_downloaded) 
+						(Int64.to_string c.client_uploaded);
+             		Printf.bprintf buf "\nfilename: %s\n\n" info.GuiTypes.file_name;
+				  end;
+
+		 )
+
+		)
+
+		with _ -> ()
+
+  );
+  
+  client_ops.op_client_dprint_html <- (fun c o file str ->
+	let info = file_info file in
+	let buf = o.conn_buf in
+
+		try
+
+          (match c.client_block with
+              None -> false 
+            | Some b ->  ( 
+                  let qfiles = c.client_file_queue in
+                  let (qfile, qchunks) =  List.hd qfiles in
+                  if (qfile = (as_file_impl file).impl_file_val) then begin
+
+          Printf.bprintf buf "
+\\<TR onMouseOver=\\\"mOvr(this,'#94AE94');\\\" 
+onMouseOut=\\\"mOut(this,this.bgColor);\\\" 
+class=\\\"%s\\\"\\>
+\\<TD title=\\\"Add as Friend\\\" class=\\\"srb ar\\\" 
+onMouseOver=\\\"mOvr(this,'#94AE94');\\\"
+onMouseOut=\\\"mOut(this,this.bgColor);\\\" 
+onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>%d\\</TD\\>
+\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+\\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr\\\"\\>%s\\</td\\>   
+\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
+\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+\\</tr\\>"
+			str
+            (client_num c)
+            (client_num c)
+          ( short_string_of_connection_state (client_state c) )
+          (Md4.to_string c.client_md4)
+          c.client_name 
+           (gbrand_to_string c.client_brand)
+
+          (if c.client_overnet then "T" else "F") 
+          (((last_time ()) - c.client_connect_time) / 60)
+          (match c.client_kind with 
+              Indirect_location _ -> Printf.sprintf "I"
+            | Known_location (ip,port) -> Printf.sprintf "D")
+          
+          (
+            
+            try
+              
+              match c.client_sock with
+                Some sock -> Printf.sprintf "%s" (Ip.to_string (peer_ip sock))
+              | None -> (match c.client_kind with 
+                      Known_location (ip,port) -> Printf.sprintf "%s" (Ip.to_string ip)
+                    | Indirect_location _ -> Printf.sprintf "None"
+                  )
+            
+            with _ -> 
+                
+                try 
+                  match c.client_kind with 
+                    Known_location (ip,port) -> Printf.sprintf "%s" (Ip.to_string ip)
+                  | Indirect_location _ -> Printf.sprintf "None"
+                with _ -> ""
+          ) 
+
+          (size_of_int64 c.client_uploaded) 
+          (size_of_int64 c.client_downloaded)
+
+		info.GuiTypes.file_name;
+
+		true
+
+		end
+
+		else false;
+		)
+
+	)
+
+	with _ -> false;
+
   )
-  
-  
-  
+
 let _ =
   user_ops.op_user_set_friend <- (fun u ->
       let s = u.user_server in

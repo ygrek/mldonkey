@@ -164,8 +164,9 @@ let list_options o list =
   
 let commands = [
     
+    (*
     "dump_heap", Arg_none (fun o ->
-        Heap.dump_heap ();
+        Heap.print_memstats ();
         "heap dumped"
     ), ":\t\t\t\tdump heap for debug";
     
@@ -173,6 +174,7 @@ let commands = [
         Heap.dump_usage ();
         "usage dumped"
     ), ":\t\t\t\tdump main structures for debug";
+*)
     
     "close_fds", Arg_none (fun o ->
         Unix32.close_all ();
@@ -211,6 +213,37 @@ let commands = [
             DriverInteractive.display_file_list buf o;
             ""    
     ), "<num> :\t\t\t\tview file info";
+
+    "downloaders", Arg_none (fun o ->
+        let buf = o.conn_buf in
+
+      if o.conn_output = HTML && !!html_mods then 
+        Printf.bprintf buf "\\<div class=\\\"downloaders\\\"\\>\\<table id=\\\"downloaders\\\" name=\\\"downloaders\\\" 
+							class=\\\"downloaders\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
+\\<td title=\\\"Client Number (Click to Add as Friend)\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ac\\\"\\>Num\\</td\\>
+\\<td title=\\\"Client State\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C.S\\</td\\>
+\\<td title=\\\"Client Name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Name\\</td\\>
+\\<td title=\\\"Client Brand\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C.B\\</td\\>
+\\<td title=\\\"Overnet (T/F)\\\"onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>O\\</td\\>
+\\<td title=\\\"Connected Time (in minutes)\\\"onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>CT\\</td\\>
+\\<td title=\\\"Connection [I]nDirect, [D]irect\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C\\</td\\>
+\\<td title=\\\"IP Address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>IP\\</td\\>
+\\<td title=\\\"Total UL Bytes to this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>UL\\</td\\>
+\\<td title=\\\"Total DL Bytes from this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>DL\\</td\\>
+\\<td title=\\\"Filename\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Filename\\</td\\>
+\\</tr\\>";
+
+			let counter = ref 0 in
+
+            List.iter 
+              (fun file -> 
+					if (CommonFile.file_downloaders file o !counter) then counter := 0 else counter := 1;
+			  ) !!files;
+
+    if o.conn_output = HTML && !!html_mods then Printf.bprintf buf "\\</table\\>\\</div\\>";
+
+        ""
+    ) , ":\t\t\t\tdisplay downloaders list";
     
     "verify_chunks", Arg_multiple (fun args o -> 
         let buf = o.conn_buf in
@@ -241,7 +274,7 @@ let commands = [
     ), ":\t\t\t\t\tclose telnet";
     
     "debug_socks", Arg_none (fun o ->
-        BasicSocket.print_sockets ();
+        BasicSocket.print_sockets o.conn_buf;
         "done"), ":\t\t\t\tfor debugging only";
     
     "kill", Arg_none (fun o ->
@@ -289,7 +322,8 @@ let commands = [
         else
           begin 
             Options.set_simple_option downloads_ini "html_mods" "true";
-            Options.set_simple_option downloads_ini "commands_frame_height" "80"
+            Options.set_simple_option downloads_ini "commands_frame_height" "80";
+            Options.set_simple_option downloads_ini "use_html_frames" "true"
           
           end;
         
@@ -859,6 +893,12 @@ let commands = [
         let buf = o.conn_buf in
         if o.conn_output = HTML && !!html_mods then 
           begin
+
+			let dlkbs = 
+              (( (float_of_int !saved_download_udp_rate) +. (float_of_int !saved_download_tcp_rate)) /. 1024.0) in
+			let ulkbs =
+              (( (float_of_int !saved_upload_udp_rate) +. (float_of_int !saved_upload_tcp_rate)) /. 1024.0) in
+
             
             Printf.bprintf buf "\\<meta http-equiv=\\\"refresh\\\" content=\\\"11\\\"\\>";
             Printf.bprintf buf "\\<div class=\\\"bw_stats\\\"\\>";
@@ -868,16 +908,21 @@ let commands = [
 \\<td class=\\\"bu bbig bbig1 bb4\\\"\\>UL: %.1f kbs (%d|%d)\\</td\\>
 \\<td class=\\\"bu bbig bbig1 bb3\\\"\\>Shared: %d/%s\\</td\\>"
               
-              (( (float_of_int !saved_download_udp_rate) +. (float_of_int !saved_download_tcp_rate)) /. 1024.0)
+			dlkbs
             !saved_download_udp_rate
               !saved_download_tcp_rate
-              (( (float_of_int !saved_upload_udp_rate) +. (float_of_int !saved_upload_tcp_rate)) /. 1024.0)
+			ulkbs
             !saved_upload_udp_rate
               !saved_upload_tcp_rate
               !nshared_files
               (size_of_int64 !upload_counter);
             
             Printf.bprintf buf "\\</tr\\>\\</table\\>\\</td\\>\\</tr\\>\\</table\\>\\</div\\>";
+
+			Printf.bprintf buf "\\<script language=\\\"JavaScript\\\"\\>window.parent.document.title='(D:%.1f) (U:%.1f) | MLDonkey %s'\\</script\\>"
+			dlkbs ulkbs Autoconf.current_version
+
+
           end
         
         else 
@@ -893,7 +938,7 @@ let commands = [
     
     "mem_stats", Arg_none (fun o -> 
         let buf = o.conn_buf in
-        CommonGlobals.print_memstats buf;
+        Heap.print_memstats buf;
         ""
     ), ":\t\t\t\tprint memory stats";
     

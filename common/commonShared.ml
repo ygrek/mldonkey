@@ -67,13 +67,6 @@ module H = Weak2.Make(struct
 
 let shared_counter = ref 0
 let shareds_by_num = H.create 1027
-        
-let _ = 
-  CommonGlobals.add_memstat "CommonShared" (fun buf ->
-      let counter = ref 0 in
-      H.iter (fun _ -> incr counter) shareds_by_num;
-      Printf.bprintf buf "  shared: %d\n" !counter;
-  )
 
 let ni n m = 
   let s = Printf.sprintf "Shared.%s not implemented by %s" 
@@ -121,8 +114,13 @@ let shared_remove impl =
     
 let dirnames = Hashtbl.create 13
 let dirname_counter = ref 0
-    
+
+let files_scanned = ref 0
+let files_scanned_size = ref Int64.zero
+  
 let new_shared dirname filename fullname =
+(*  Printf.printf "XXXXXXX\ndirname %s \nfilename %s \nfullname %s"
+    dirname filename fullname; print_newline (); *)
   let fullname = Filename2.normalize fullname in
   let filename = Filename2.normalize filename in
   let dirname = try
@@ -132,7 +130,11 @@ let new_shared dirname filename fullname =
         Hashtbl.add dirnames dirname name;
         name in
   let codedname = Filename.concat dirname filename in
+(*  Printf.printf "\ndirname %s \nfilename %s \nfullname %s\ncodedname %s"
+    dirname filename fullname codedname; print_newline (); *)
   let size = Unix32.getsize64 fullname in
+  incr files_scanned;
+  files_scanned_size := Int64.add !files_scanned_size size;
   CommonNetwork.networks_iter (fun n -> 
       CommonNetwork.network_share n fullname codedname size)
 
@@ -188,8 +190,12 @@ let can_share dirname =
   Filename2.normalize dirname <> Filename2.normalize 
   !!CommonOptions.temp_directory
   
+let waiting_directories = ref []
   
-let rec shared_add_directory dirname local_dir =
+let shared_add_directory dirname local_dir =
+  waiting_directories := (dirname, local_dir) :: !waiting_directories
+  
+let shared_add_directory dirname local_dir =
   let dirname = 
     if Filename.is_relative dirname then
       Filename.concat file_basedir dirname
@@ -210,15 +216,28 @@ let rec shared_add_directory dirname local_dir =
             try
               let size = file_size full_name in
               if size > Int64.zero && ( !!shared_extensions = [] ||
-                  List.mem (String.lowercase (Filename2.last_extension full_name)) !!shared_extensions)
+                  List.mem (String.lowercase (
+                      Filename2.last_extension full_name)) !!shared_extensions)
               then
-                new_shared dirname local_name full_name
+                  new_shared dirname local_name full_name
             with e -> 
                 Printf.printf "%s will not be shared (exception %s)"
                   full_name (Printexc2.to_string e);
                 print_newline ();
           with _ -> ()
     ) files
+
+let _ = 
+  BasicSocket.add_infinite_timer 0.5 (fun _ ->
+      match !waiting_directories with
+        [] -> ()
+      | (dirname, local_dir) :: tail ->
+          waiting_directories := tail;
+          shared_add_directory dirname local_dir;
+          Printf.printf "Shared %d files %Ld bytes"
+            !files_scanned !files_scanned_size;
+          print_newline ();
+  )
     
 let shared_add_directory dirname =
   Printf.printf "SHARING %s" dirname; print_newline ();
@@ -248,7 +267,13 @@ let impl_shared_info impl =
 let shared_info s =
   let impl = as_shared_impl s in
   impl.impl_shared_ops.op_shared_info impl.impl_shared_val
+        
+let _ = 
+  Heap.add_memstat "CommonShared" (fun buf ->
+      let counter = ref 0 in
+      H.iter (fun _ -> incr counter) shareds_by_num;
+      Printf.bprintf buf "  shared: %d\n" !counter;
+  )
   
-    
 let com_shareds_by_num = shareds_by_num
 let shareds_by_num = ()

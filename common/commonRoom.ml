@@ -70,7 +70,7 @@ let room_counter = ref (-1)
 let rooms_by_num = H.create 1027
     
 let _ = 
-  CommonGlobals.add_memstat "CommonRoom" (fun buf ->
+  Heap.add_memstat "CommonRoom" (fun buf ->
       let counter = ref 0 in
       H.iter (fun _ -> incr counter) rooms_by_num;
       Printf.bprintf buf "  rooms: %d\n" !counter;

@@ -20,7 +20,9 @@ Before 2.03:
    another file when removed ? Add a counter to the source !
 * Comments propagation
 * Error Not_found in udp_handler
-* Interaction with Emules. What happens after the first chunk ?
+* Add Offline status for bad connection
+* Temp files could be saved with other names
+* I have more clients than in the sources
 
 Some fields are not necessary anymore:
   - zone_file

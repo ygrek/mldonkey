@@ -70,7 +70,7 @@ let users_by_num = H.create 1027
 
       
 let _ = 
-  CommonGlobals.add_memstat "CommonUser" (fun buf ->
+  Heap.add_memstat "CommonUser" (fun buf ->
       let counter = ref 0 in
       H.iter (fun _ -> incr counter) users_by_num;
       Printf.bprintf buf "  users: %d\n" !counter;

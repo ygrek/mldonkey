@@ -272,20 +272,20 @@ let _ =
     (Sys.Signal_handle (fun _ ->
         Printf.printf "SIGHUP"; print_newline ();
         BasicSocket.close_all ();
-        BasicSocket.print_sockets ();
+(*        BasicSocket.print_sockets (); *)
     ));
   MlUnix.set_signal  Sys.sigpipe (*Sys.Signal_ignore*)
     (Sys.Signal_handle (fun _ ->
         Printf.printf "SIGPIPE"; print_newline ()));
   MlUnix.set_signal  Sys.sigint (*Sys.Signal_ignore*)
     (Sys.Signal_handle (fun _ ->
-      if !CommonOptions.verbose then
-        BasicSocket.print_sockets ();
+(*      if !CommonOptions.verbose then
+           BasicSocket.print_sockets (); *)
         CommonGlobals.exit_properly 0));
   MlUnix.set_signal  Sys.sigterm (*Sys.Signal_ignore*)
     (Sys.Signal_handle (fun _ ->
-      if !CommonOptions.verbose then
-        BasicSocket.print_sockets ();
+(*      if !CommonOptions.verbose then
+           BasicSocket.print_sockets (); *)
         CommonGlobals.exit_properly 0))
 
 let _ =
@@ -335,7 +335,7 @@ let _ =
   print_string (DriverControlers.text_of_html !!motd_html);
   print_newline ();
   
-  
+
   add_init_hook (fun _ ->
       if not !gui_included then
       (try

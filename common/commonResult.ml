@@ -68,7 +68,7 @@ module H = Weak2.Make(struct
 let results_by_num = H.create 1027
     
 let _ = 
-  CommonGlobals.add_memstat "CommonResult" (fun buf ->
+  Heap.add_memstat "CommonResult" (fun buf ->
       let counter = ref 0 in
       H.iter (fun _ -> incr counter) results_by_num;
       Printf.bprintf buf "  results: %d\n" !counter;

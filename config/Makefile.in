@@ -54,11 +54,11 @@ TARGETS= use_tags$(EXE) mlnet$(EXE)
 
 
 CDK_SRCS=\
-  cdk/dprintf.ml \
+   cdk/heap.ml cdk/dprintf.ml \
   cdk/printexc2.ml cdk/genlex2.ml cdk/sysenv.ml \
   cdk/netbase.ml cdk/filepath.ml cdk/string2.ml \
   cdk/filename2.ml cdk/list2.ml cdk/hashtbl2.ml \
-  cdk/file.ml cdk/unix2.ml cdk/heap.ml cdk/weak2.ml \
+  cdk/file.ml cdk/unix2.ml cdk/weak2.ml \
   cdk/heap_c.c cdk/array2.ml cdk/sort2.ml \
   cdk/xmllex.mll cdk/xmlyacc.mly cdk/xml.ml
 

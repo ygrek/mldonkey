@@ -114,7 +114,7 @@ let files_by_num = H.create 1027
   
   
 let _ = 
-  CommonGlobals.add_memstat "CommonFile" (fun buf ->
+  Heap.add_memstat "CommonFile" (fun buf ->
       let counter = ref 0 in
       H.iter (fun _ -> incr counter) files_by_num;
       Printf.bprintf buf "  files: %d\n" !counter;
@@ -350,6 +350,25 @@ let com_files_by_num = files_by_num
 let files_by_num = ()
 
 module G = GuiTypes
+
+let file_downloaders file o cnt = 
+  let buf = o.conn_buf in
+
+      let srcs = file_sources file in
+		
+      let counter = ref cnt in
+      List.iter (fun c ->
+          if o.conn_output = HTML && !!html_mods then begin 
+              if (client_dprint_html c o file (if !counter mod 2 == 0 then "dl-1" else "dl-2";))
+					then incr counter;
+		  end
+		  else begin
+			client_dprint c o file;
+		  end;
+
+      ) srcs;
+
+	if !counter mod 2 = 0 then true else false
   
 let colored_chunks buf chunks =
   let previous = ref false in

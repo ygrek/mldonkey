@@ -34,24 +34,26 @@ open CommonTypes
 let ko = 1024.0 
 let mo = ko *. ko 
 let go = mo *. ko 
+let tob = go *. ko 
 
 let size_of_int64 size =
   if !!html_mods_human_readable then
     let f = Int64.to_float size in
-    if f > go then
+	if f > tob then
+      Printf.sprintf "%.2fT" (f /. tob)
+	else
+     if f > go then
       Printf.sprintf "%.2fG" (f /. go)
-    else
+     else
       if f > mo then
       Printf.sprintf "%.1fM" (f /. mo)
       else
-    if f > ko then
-      Printf.sprintf "%.1fk" (f /. ko)
-    else
-      Int64.to_string size
+     if f > ko then
+       Printf.sprintf "%.1fk" (f /. ko)
+     else
+       Int64.to_string size
   else
     Int64.to_string size
-
-
 
   
 let days = ref 0      

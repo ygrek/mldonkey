@@ -167,11 +167,19 @@ table.vo {
     border: 1;
     border: #000 solid 1px;
 }
+table.downloaders {
+	margin-right: auto;
+	margin-left: auto;
+	border: 1; 
+	border: #000 solid 1px;
+	border-collapse: collapse;
+}
 div.bw_stats { text-align: center; }
 div.friends { text-align: center; }
 div.cs { text-align: center; }
 div.uploaders { text-align: center; }
 div.upstats { text-align: center; }
+div.downloaders { text-align: center; }
 td.srb { padding-top: 1px; padding-bottom: 1px; font-size: 10px; font-family: Verdana; white-space: nowrap; border-right: #000 solid 1px; border-bottom: #000 solid 1px; border-left: #000 solid 1px; border-top: #000 solid 0px; padding-left: 3px; padding-right: 3px;}
 td.act { font-size: 10px; font-weight: 700; }
 td.br {border-right: #000 dotted 1px;}
@@ -237,8 +245,9 @@ function _tabCreateArray(obj,st){
 	
 	for(var i=1;i<_nRows;i++){
 		var _raw = rw.item(i).cells.item(obj.cellIndex).innerHTML;
-
-		if ( (st==1) && (_raw.search(new RegExp(\"[GMk]\",\"i\"))) ) {
+		if ( (st==1) && (_raw.search(new RegExp(\"[TGMk]\",\"i\"))) ) {
+		  if (_raw.indexOf(\"T\") != -1) { _raw = parseFloat(_raw) * 1024 * 1024 * 1024 * 1024; } 
+		  else {
 			if (_raw.indexOf(\"G\") != -1) { _raw = parseFloat(_raw) * 1024 * 1024 * 1024; } 
 			else {
 				 if (_raw.indexOf(\"M\") != -1) { _raw = parseFloat(_raw) * 1024 * 1024; } 
@@ -246,6 +255,7 @@ function _tabCreateArray(obj,st){
 					if (_raw.indexOf(\"k\") != -1) { _raw = parseFloat(_raw) * 1024; }
 				 }
 			}
+	      }
 		}
 			_tabS[i-1]= new _rObj(_raw,rw.item(i).cloneNode(true));
 	}
@@ -639,18 +649,18 @@ onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
 onClick=\"mSub('$S','commit')\">Commit</td>
 <td 
-title=\"Upload Statistics\"
+title=\"View Current Uploaders\"
 class=\"bu bbig bbig3\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$O','upstats')\">ULs
+onClick=\"mSub('$O','uploaders')\">ULers
 </td>
 <td 
-title=\"View Current Uploaders\"
+title=\"Upload Statistics\"
 class=\"bu bbig bbig3 bb2\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$O','uploaders')\">ULers
+onClick=\"mSub('$O','upstats')\">ULs
 </td>
 </tr>
 
@@ -699,12 +709,19 @@ onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
 onClick=\"mSub('$S','reshare')\">ReShare
 </td>
-<td colspan=2 
+<td 
+title=\"View Current Downloaders\"
+class=\"bu bbig bbig3 bb4\"
+onMouseOver=\"mOvr(this,'#BADEBA');\"
+onMouseOut=\"mOut(this,this.bgColor);\"
+onClick=\"mSub('$O','downloaders')\">DLers
+</td>
+<td 
 title=\"View Current Downloads\"
 class=\"bu bbig bbig3 bb3\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$O','vd')\">Downloads
+onClick=\"mSub('$O','vd')\">DLs
 </td>
 </tr>
 </table>

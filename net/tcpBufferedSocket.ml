@@ -596,10 +596,10 @@ let set_write_controler t bc =
   
 let max_buffer_size = ref 100000 
 
-let dump_socket t () = 
-  print_socket t.sock;
-  Printf.printf "rbuf: %d/%d wbuf: %d/%d" t.rbuf.len (String.length t.rbuf.buf) t.wbuf.len (String.length t.wbuf.buf);
-  print_newline ()
+let dump_socket t buf = 
+  print_socket buf t.sock;
+  Printf.bprintf buf "rbuf: %d/%d wbuf: %d/%d\n" t.rbuf.len
+    (String.length t.rbuf.buf) t.wbuf.len (String.length t.wbuf.buf)
   
 let create name fd handler =
   if !debug then begin

@@ -37,6 +37,7 @@ let must_share_file file has_old_impl =
   match file.file_shared with
   | Some _ -> ()
   | None ->
+      Printf.printf "must_share_file"; print_newline ();
       new_shared := file :: !new_shared;
       let impl = {
           impl_shared_update = 1;
@@ -199,6 +200,8 @@ let check_shared_files () =
     [] -> ()  
   | sh :: files ->
       shared_files := files;
+
+(*      Printf.printf "check_shared_files"; print_newline (); *)
       
       let rec job_creater _ =
         try
@@ -214,9 +217,16 @@ let check_shared_files () =
           let end_pos = if end_pos > sh.shared_size then sh.shared_size
             else end_pos in
           let len = Int64.sub end_pos sh.shared_pos in
+(*          Printf.printf "compute next md4"; print_newline (); *)
           
           M.compute_md4 (Unix32.filename sh.shared_fd) sh.shared_pos len
             (fun job ->
+              if job.M.job_error then begin
+                Printf.printf "Error prevent sharing %s"
+                  sh.shared_name ; print_newline ();
+              end else 
+              let _ = () in
+(*              Printf.printf "md4 computed"; print_newline (); *)
               let new_md4 = Md4.direct_of_string job.M.job_result in
               
               sh.shared_list <- new_md4 :: sh.shared_list;

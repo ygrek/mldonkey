@@ -75,6 +75,7 @@ val filename_option : string option_class
   
   (* parameterized options *)
 val list_option : 'a option_class -> 'a list option_class
+val array_option : 'a option_class -> 'a array option_class
 val hasharray_option : 'a -> (int * 'a * 'b) option_class -> ('a, 'b) Hashtbl.t array option_class
 val safelist_option : 'a option_class -> 'a list option_class
 val intmap_option : ('a -> int) -> 'a option_class -> 'a Intmap.t option_class

@@ -1,20 +1,20 @@
 external dump_heap_c: unit -> unit = "heap_dump"
 external set_tag : 'a -> int -> unit = "heap_set_tag"
+
   
-let dumpers = ref []
+let memstat_functions = ref []
   
-let register_dumper m f = 
-  dumpers := (m,f) :: !dumpers
-  
-let dump_usage () =
+let add_memstat m f = memstat_functions := (m,f) :: !memstat_functions
+
+let print_memstats buf =  
   Gc.compact ();
   Gc.compact ();
-  List.iter (fun (m,f) ->
-      Printf.printf "Module %s:" m; print_newline ();
-      f ()
-  ) !dumpers
-    
-let dump_heap () =
-  dump_usage ();
-  dump_heap_c ()
+
+  Printf.bprintf buf "Memory Debug Stats:\n";
+  let list = List.rev !memstat_functions in
+  List.iter (fun (m,f) ->   
+      Printf.bprintf buf "Module %s:\n" m ;      
+      f buf) list;
   
+    dump_heap_c ()
+

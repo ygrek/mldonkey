@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open DonkeyComplexOptions
 open Options
 open DonkeyGlobals
 open CommonOptions 
@@ -29,8 +30,6 @@ open CommonMessages
 open BasicSocket (* last_time *)
 open CommonInteractive
 
-  
-let brand_count = 8
 
 let brand_to_int b =
   match b with
@@ -42,6 +41,7 @@ let brand_to_int b =
   | Brand_newemule -> 5
   | Brand_server -> 6
   | Brand_mldonkey3 -> 7
+  | Brand_cdonkey -> 8
       
 let brand_of_int b =
   match b with
@@ -53,12 +53,14 @@ let brand_of_int b =
   | 5 -> Brand_newemule
   | 6 -> Brand_server
   | 7 -> Brand_mldonkey3
+  | 8 -> Brand_cdonkey
   | _ -> raise Not_found
       
 let gbrand_to_string b =
   match b with
     Brand_unknown -> "unk"
   | Brand_edonkey -> "eDK"
+  | Brand_cdonkey -> "cDK"
   | Brand_mldonkey1 -> "oML"
   | Brand_mldonkey2 -> "nML"
   | Brand_mldonkey3 -> "tML"
@@ -66,29 +68,11 @@ let gbrand_to_string b =
   | Brand_newemule -> "nEM"
   | Brand_server -> "SER"
 
-type brand_stat = {
-  mutable brand_seen : int;
-  mutable brand_banned : int;
-  mutable brand_filerequest : int;
-  mutable brand_download : Int64.t;
-  mutable brand_upload : Int64.t;
-}
-  
-let dummy_stats =
-  let stat = {
-    brand_seen = 0;
-    brand_banned = 0;
-    brand_filerequest = 0;
-    brand_download = Int64.zero;
-    brand_upload = Int64.zero
-  }
-  in stat
-
 let stats_all = dummy_stats 
 let stats_by_brand = Array.init brand_count (fun _ ->
   { dummy_stats with brand_seen = 0 }
-    )
-
+  )
+  
 let count_seen c =
   stats_all.brand_seen <- stats_all.brand_seen + 1;
   match c.client_brand with
@@ -141,6 +125,54 @@ let percent_of_ints x y =
 let percent_of_int64s x y = 
   if y <> Int64.zero then 100. *. (Int64.to_float x /. Int64.to_float y)
   else 0.
+
+(* Hack 
+let save_stats () = 
+  
+  try
+    
+    let oc = open_out (Filename.concat file_basedir "stats.dat") in
+    
+    output_string oc (Printf.sprintf "%d\n" ());
+    
+    for i=1 to brand_count-1 do
+      output_string oc (Printf.sprintf "%d\n" (gstats_by_brand.(i).brand_seen + stats_by_brand.(i).brand_seen));
+      output_string oc (Printf.sprintf "%d\n" (gstats_by_brand.(i).brand_filerequest + stats_by_brand.(i).brand_filerequest));
+      output_string oc ((Int64.to_string (Int64.add gstats_by_brand.(i).brand_download stats_by_brand.(i).brand_download)) ^ "\n");
+      output_string oc ((Int64.to_string (Int64.add gstats_by_brand.(i).brand_upload stats_by_brand.(i).brand_upload)) ^ "\n");
+      output_string oc (Printf.sprintf "%d\n" (gstats_by_brand.(i).brand_banned + stats_by_brand.(i).brand_banned));
+    done;
+    
+    close_out oc 
+  
+  with _ -> ()
+      
+
+let load_stats () =
+  
+  try 
+    
+    let ic = open_in (Filename.concat file_basedir "stats.dat") in
+    
+    guptime := int_of_string (input_line ic);	
+    
+    for i=1 to brand_count-1 do
+      try 
+        gstats_by_brand.(i).brand_seen <- int_of_string (input_line ic);	
+        gstats_by_brand.(i).brand_filerequest <- int_of_string (input_line ic);	
+        gstats_by_brand.(i).brand_download <- Int64.of_string (input_line ic);
+        gstats_by_brand.(i).brand_upload <- Int64.of_string (input_line ic);
+        gstats_by_brand.(i).brand_banned <- int_of_string (input_line ic);	
+      with _ -> ()
+    done;
+    
+    close_in ic;
+    
+    Printf.printf "LOADED STATS"; 
+    print_newline()
+  
+  with _ -> ()
+*)      
       
 let print_stats buf =
   let one_minute = 60 in
@@ -237,7 +269,7 @@ let new_print_stats buf o =
   if o.conn_output = HTML && !!html_mods then
     begin
       
-      Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>Uptime: %d seconds (%d+%02d:%02d)\n" uptime days hours mins;
+      Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>Session Uptime: %d seconds (%d+%02d:%02d)\n" uptime days hours mins;
       
       Printf.bprintf buf "\\<table class=\\\"cs\\\"\\>\\<tr\\>
 \\<td title=\\\"Client Brand\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C.B\\</td\\>
@@ -258,8 +290,6 @@ let new_print_stats buf o =
       let counter = ref 0 in
       
       for i=1 to brand_count-1 do
-        
-        
         
         if brand_of_int i != Brand_server then (* dont print server stats *)
           let brandstr = gbrand_to_string (brand_of_int i) in
@@ -329,7 +359,7 @@ let new_print_stats buf o =
 \\<td class=\\\"sr ar br\\\"\\>%.1f\\</td\\>
 
 \\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
-\\<td class=\\\"sr ar\\\"\\>%.0f\\</td\\>\\</tr\\>\\</table\\>\\</div\\>\n"
+\\<td class=\\\"sr ar\\\"\\>%.0f\\</td\\>\\</tr\\>\\</table\\>\n"
         
         "ALL"
         stats_all.brand_seen
@@ -347,6 +377,145 @@ let new_print_stats buf o =
       
       stats_all.brand_banned 
         (max 0.0 (percent_of_ints stats_all.brand_banned stats_all.brand_seen));
+
+
+	  let gstats_all = 
+		let stat = {
+    		brand_seen = 0;
+    		brand_banned = 0;
+    		brand_filerequest = 0;
+    		brand_download = Int64.zero;
+    		brand_upload = Int64.zero
+  		}
+  		in stat in
+
+      for i=0 to brand_count-1 do
+		
+		gstats_all.brand_seen <- gstats_all.brand_seen + !!gstats_by_brand.(i).brand_seen + stats_by_brand.(i).brand_seen;
+		gstats_all.brand_filerequest <- gstats_all.brand_filerequest + !!gstats_by_brand.(i).brand_filerequest + stats_by_brand.(i).brand_filerequest;
+		gstats_all.brand_download <- Int64.add (Int64.add gstats_all.brand_download !!gstats_by_brand.(i).brand_download) stats_by_brand.(i).brand_download;
+		gstats_all.brand_upload <- Int64.add (Int64.add gstats_all.brand_upload !!gstats_by_brand.(i).brand_upload) stats_by_brand.(i).brand_upload;
+		gstats_all.brand_banned <- gstats_all.brand_banned + !!gstats_by_brand.(i).brand_banned + stats_by_brand.(i).brand_banned;
+
+	  done; 
+  	  let gdays = (guptime () + uptime) / one_day in
+      let grem = maxi 1 ((guptime () + uptime) - gdays * one_day) in
+  
+      let ghours = grem / one_hour in
+      let grem = grem - ghours * one_hour in
+      let gmins = grem / one_minute in
+
+      Printf.bprintf buf "\\<br\\>\\<br\\>Total Uptime: %d seconds (%d+%02d:%02d)\n" (guptime() + uptime) gdays ghours gmins;
+
+      Printf.bprintf buf "\\<table class=\\\"cs\\\"\\>\\<tr\\>
+\\<td title=\\\"Client Brand\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C.B\\</td\\>
+\\<td title=\\\"Successful Connections\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Seen\\</td\\>
+\\<td title=\\\"Successful Connections Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>%%\\</td\\>
+\\<td title=\\\"File Requests Received\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Reqs\\</td\\>
+\\<td title=\\\"File Requests Received Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>%%\\</td\\>
+\\<td title=\\\"Total Downloads\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>DL\\</td\\>
+\\<td title=\\\"Total Downloads Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar \\\"\\>%%\\</td\\>
+\\<td title=\\\"Total Downloads Average Kbps\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>kbs\\</td\\>
+\\<td title=\\\"Total Uploads\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>UL\\</td\\>
+\\<td title=\\\"Total Uploads Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>%%\\</td\\>
+\\<td title=\\\"Total Uploads Average Kbps\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>kbs\\</td\\>
+\\<td title=\\\"Total Bans\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>B\\</td\\>
+\\<td title=\\\"Total Bans Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>%%\\</td\\>
+\\</tr\\>";
+
+      for i=1 to brand_count-1 do
+        
+        if brand_of_int i != Brand_server then (* dont print server stats *)
+          let brandstr = gbrand_to_string (brand_of_int i) in
+          
+          incr counter;
+          if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
+          else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
+          
+          
+          Printf.bprintf buf "
+\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
+\\<td class=\\\"sr ar br\\\"\\>%.f\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
+\\<td class=\\\"sr ar br\\\"\\>%.f\\</td\\>
+
+\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%.0f\\</td\\>
+\\<td class=\\\"sr ar br\\\"\\>%.1f\\</td\\>
+
+\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%.0f\\</td\\>
+\\<td class=\\\"sr ar br\\\"\\>%.1f\\</td\\>
+
+\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%.0f\\</td\\>\\</tr\\>\n"
+            
+            
+            (brandstr)
+          	(!!gstats_by_brand.(i).brand_seen + stats_by_brand.(i).brand_seen) 
+            (percent_of_ints (!!gstats_by_brand.(i).brand_seen + stats_by_brand.(i).brand_seen) gstats_all.brand_seen)
+          
+          	(!!gstats_by_brand.(i).brand_filerequest + stats_by_brand.(i).brand_filerequest)
+            (percent_of_ints (!!gstats_by_brand.(i).brand_filerequest + stats_by_brand.(i).brand_filerequest) gstats_all.brand_filerequest)
+          
+          (size_of_int64 (Int64.add !!gstats_by_brand.(i).brand_download stats_by_brand.(i).brand_download))
+          (max 0.0 (percent_of_int64s (Int64.add !!gstats_by_brand.(i).brand_download stats_by_brand.(i).brand_download) gstats_all.brand_download))
+          ((Int64.to_float (Int64.add !!gstats_by_brand.(i).brand_download stats_by_brand.(i).brand_download)) /. (float_of_int (guptime() + uptime)) /. 1024.0)
+
+          (size_of_int64 (Int64.add !!gstats_by_brand.(i).brand_upload stats_by_brand.(i).brand_upload))
+          (max 0.0 (percent_of_int64s (Int64.add !!gstats_by_brand.(i).brand_upload stats_by_brand.(i).brand_upload) gstats_all.brand_upload))
+          ((Int64.to_float (Int64.add !!gstats_by_brand.(i).brand_upload stats_by_brand.(i).brand_upload)) /. (float_of_int (guptime() + uptime)) /. 1024.0)
+          
+          (!!gstats_by_brand.(i).brand_banned + stats_by_brand.(i).brand_banned) 
+            (max 0.0 (percent_of_ints (!!gstats_by_brand.(i).brand_banned + stats_by_brand.(i).brand_banned) gstats_all.brand_banned)) 
+
+
+
+      done;
+
+      incr counter;
+      if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
+      else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
+      
+      
+      Printf.bprintf buf "
+\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
+\\<td class=\\\"sr ar br\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
+\\<td class=\\\"sr ar br\\\"\\>%s\\</td\\>
+
+\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr ar br\\\"\\>%.1f\\</td\\>
+
+\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+\\<td class=\\\"sr ar br\\\"\\>%.1f\\</td\\>
+
+\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
+\\<td class=\\\"sr ar\\\"\\>%.0f\\</td\\>\\</tr\\>\\</table\\>\\</div\\>\n"
+        
+        "ALL"
+        gstats_all.brand_seen
+        "100"
+        gstats_all.brand_filerequest
+        "100"
+        
+        (size_of_int64 gstats_all.brand_download) 
+      "100" 
+        ((Int64.to_float gstats_all.brand_download) /. (float_of_int (guptime() + uptime)) /. 1024.0)
+      
+      (size_of_int64 gstats_all.brand_upload) 
+      "100"
+        ((Int64.to_float gstats_all.brand_upload) /. (float_of_int (guptime() + uptime)) /. 1024.0)
+      
+      gstats_all.brand_banned 
+        (max 0.0 (percent_of_ints gstats_all.brand_banned gstats_all.brand_seen));
+		
+
+
     
     end
   else
@@ -391,7 +560,10 @@ let new_print_stats buf o =
             (percent_of_ints stats_by_brand.(i).brand_banned stats_all.brand_banned)
       done
     end
-    
+
+
+
+
 let _ =
   register_commands 
     [

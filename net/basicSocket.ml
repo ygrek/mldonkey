@@ -54,7 +54,7 @@ type t = {
 
     mutable name : unit -> string;
     born : float;
-    mutable dump_info : (unit -> unit);
+    mutable dump_info : (Buffer.t -> unit);
 (*    mutable before_select : (t -> unit); *)
     mutable can_close : bool;
   }
@@ -111,16 +111,20 @@ let closed_tasks = ref []
 
 external get_fd_num : Unix.file_descr -> int = "ml_get_fd_num" "noalloc"
 
-let print_socket s =  
-  Printf.printf "FD %d: %20s Socket %s " 
+let print_socket buf s =  
+  Printf.bprintf buf "FD %d: %20s Socket %s \n" 
     (get_fd_num s.fd)
-  (Date.to_string s.born) (s.name ());
-  print_newline ()
-  
+  (Date.to_string s.born) (s.name ())
+
+let sprint_socket s =  
+  let buf = Buffer.create 100 in
+  print_socket buf s; 
+  Buffer.contents buf
+
 let close t msg =
   if t.fd <> dummy_fd then begin
       if !debug then begin
-          Printf.printf "CLOSING:"; print_socket t;
+          Printf.printf "CLOSING: %s" (sprint_socket t); 
         end;
       (try 
           Unix.close t.fd;
@@ -164,7 +168,7 @@ let set_after_select_hook f =
   
 let default_before_select t = ()
 
-let dump_basic_socket () = ()
+let dump_basic_socket buf = ()
   
 let create_blocking name fd handler =
   
@@ -211,7 +215,7 @@ let create_blocking name fd handler =
     } in
 (*  Printf.printf "ADD ONE TASK"; print_newline (); *)
   if !debug then begin
-      Printf.printf "OPENING:" ; print_socket t;
+      Printf.printf "OPENING: %s" ( sprint_socket t);
     end;
   fd_tasks := t :: !fd_tasks; 
   t
@@ -406,9 +410,9 @@ let _ =
 let stats buf t =
   Printf.printf "Socket %d\n" (get_fd_num t.fd)
   
-let print_socket s =
-  print_socket s;
-  Printf.printf "  rtimeout %5.0f/%5.0f read %s & %s write %s & %s (born %f)" 
+let print_socket buf s =
+  print_socket buf s;
+  Printf.bprintf buf "  rtimeout %5.0f/%5.0f read %s & %s write %s & %s (born %f)\n" 
     (s.next_rtimeout -. last_time ())
   s.rtimeout
     (string_of_bool s.want_to_read)
@@ -416,13 +420,10 @@ let print_socket s =
   (string_of_bool s.want_to_write)
   (string_of_bool !(s.write_allowed))
   (last_time () -. s.born)
-  ;
-  print_newline ()
   
-let print_sockets () =
-  Printf.printf "PRINT SOCKETS: %d" (List.length !fd_tasks);
-  print_newline ();
-  List.iter print_socket !fd_tasks;
+let print_sockets buf =
+  Printf.bprintf buf "PRINT SOCKETS: %d\n" (List.length !fd_tasks);
+  List.iter (print_socket buf) !fd_tasks;
   ()
   
 let info t = t.name ()
@@ -431,7 +432,11 @@ let _ =
   add_timer 300. (fun t ->
       reactivate_timer t;
       if !debug then
-        print_sockets ())
+        let buf = Buffer.create 100 in        
+        print_sockets buf;
+        Printf.printf "%s" (Buffer.contents buf);
+        print_newline ();
+        )
   
 let set_printer s f =
   s.name <- f
@@ -440,12 +445,12 @@ let set_dump_info s f =
   s.dump_info <- f
   
 let _ =
-  Heap.register_dumper "BasicSocket" (fun _ ->
-      Printf.printf "  %d timers" (List.length !timers); print_newline ();
-      Printf.printf "  %d fd_tasks" (List.length !fd_tasks); print_newline ();
-      List.iter (fun t -> t.dump_info ()) !fd_tasks;
-      Printf.printf "  %d closed_tasks" (List.length !closed_tasks); print_newline ();
-      List.iter (fun t -> t.dump_info ()) !closed_tasks;
+  Heap.add_memstat "BasicSocket" (fun buf ->
+      Printf.bprintf buf "  %d timers\n" (List.length !timers); 
+      Printf.bprintf buf "  %d fd_tasks:\n" (List.length !fd_tasks); 
+      List.iter (fun t -> t.dump_info buf) !fd_tasks;
+      Printf.bprintf buf "  %d closed_tasks:\n" (List.length !closed_tasks); 
+      List.iter (fun t -> t.dump_info buf) !closed_tasks;
   )
 
 let prevent_close s = s.can_close <- false

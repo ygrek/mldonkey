@@ -133,6 +133,7 @@ let save_config () =
         None -> ()
       | Some opfile -> Options.save_with_help opfile);
   CommonComplexOptions.save ();
+
   ()
     
 let age_to_day date =
@@ -767,6 +768,7 @@ let old_print_search buf output results =
   (try
       List.iter (fun (rs,r,avail) ->
           incr counter;
+          if !counter >= !!max_displayed_results then raise Exit;          
           
           if output.conn_output = HTML && !!html_mods then
             begin
@@ -774,7 +776,6 @@ let old_print_search buf output results =
               else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
             end;
           
-          if !counter >= !!max_displayed_results then raise Exit;          
           last_results := (!counter, rs) :: !last_results;
           if !!html_mods && output.conn_output = HTML then Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>"
               (let n = network_find_by_num r.result_network in

@@ -71,14 +71,14 @@ val maxf : float -> float -> float
 val set_allow_write : t -> bool ref -> unit
 val set_allow_read : t -> bool ref -> unit
   
-val print_sockets : unit -> unit
-val print_socket : t -> unit
+val print_sockets : Buffer.t -> unit
+val print_socket : Buffer.t -> t -> unit
   
 val info : t -> string
   
 val debug : bool ref
   
-val set_dump_info : t -> (unit -> unit) -> unit
+val set_dump_info : t -> (Buffer.t -> unit) -> unit
   
 external use_poll : bool -> unit = "ml_use_poll"
   

@@ -93,7 +93,7 @@ let server_counter = ref 0
 let servers_by_num = H.create 1027
   
 let _ = 
-  CommonGlobals.add_memstat "CommonServer" (fun buf ->
+  Heap.add_memstat "CommonServer" (fun buf ->
       let counter = ref 0 in
       H.iter (fun _ -> incr counter) servers_by_num;
       Printf.bprintf buf "  servers: %d\n" !counter;

@@ -100,17 +100,6 @@ let
 ;;  
 
 
-(*
-let filename =
-  ref
-    (Filename.concat Sysenv.home
-       ("." ^ Filename.basename Sys.argv.(0) ^ "rc"))
-;;
-let gwmlrc = ref [];;
-
-let options = ref [];;
-*)
-
 let rec find_value list m =
   match list with
     [] -> raise Not_found
@@ -676,6 +665,13 @@ let list_option cl =
   define_option_class (cl.class_name ^ " List") (value_to_list cl.from_value)
     (list_to_value cl.class_name cl.to_value)
 ;;
+
+let array_option cl =
+  define_option_class (cl.class_name ^ " Array") 
+  (fun v ->
+      Array.of_list (value_to_list cl.from_value v))
+  (fun v ->
+      list_to_value cl.class_name cl.to_value (Array.to_list v))
 
 let hasharray_option x cl =
   define_option_class "Hashtable array" (value_to_hasharray cl.from_value) 

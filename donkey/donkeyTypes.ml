@@ -52,6 +52,19 @@ type client_score =
 | Client_has_priority_chunk
 | Client_has_upload
 | Client_has_priority_upload
+
+type brand = 
+  Brand_unknown
+| Brand_edonkey
+| Brand_cdonkey
+| Brand_mldonkey1
+| Brand_mldonkey2
+| Brand_mldonkey3
+| Brand_overnet
+| Brand_newemule
+| Brand_server
+  
+let brand_count = 9
   
 type server = (*[]*){
     mutable server_server : server CommonServer.server_impl;
@@ -138,16 +151,6 @@ and server_change_kind =
 | ServerBusyChange
 
 and availability = bool array
-
-and brand = 
-  Brand_unknown
-| Brand_edonkey
-| Brand_mldonkey1
-| Brand_mldonkey2
-| Brand_mldonkey3
-| Brand_overnet
-| Brand_newemule
-| Brand_server
 
 and challenge = {
     mutable challenge_md4 : Md4.t;
@@ -494,3 +497,21 @@ module SourcesQueueCreate = struct
         }
 *)
   end
+
+  
+type brand_stat = {
+  mutable brand_seen : int;
+  mutable brand_banned : int;
+  mutable brand_filerequest : int;
+  mutable brand_download : Int64.t;
+  mutable brand_upload : Int64.t;
+}
+  
+let dummy_stats =
+  {
+    brand_seen = 0;
+    brand_banned = 0;
+    brand_filerequest = 0;
+    brand_download = Int64.zero;
+    brand_upload = Int64.zero
+  }

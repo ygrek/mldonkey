@@ -892,39 +892,6 @@ let all_servers () =
       s :: l
   ) servers_by_key []
 
-
-let _ =
-  Heap.register_dumper "DonkeyGlobals" (fun _ ->
-(* current_files *)
-      Printf.printf "Current files: %d" (List.length !current_files);
-      print_newline ();
-(* clients_by_name *)
-(*      let list = Hashtbl2.to_list clients_by_name in
-      Printf.printf "Clients_by_name: %d" (List.length list);
-      print_newline ();
-      List.iter (fun c ->
-          Printf.printf "[%d %s]" (client_num c)
-          (if Hashtbl.mem clients_by_kind c.client_kind then "K" else " ") ;
-     ) list;
-      print_newline ();
-*)
-      
-(* clients_by_kind *)
-      let list = H.to_list clients_by_kind in
-      Printf.printf "Clients_by_kind: %d" (List.length list);
-      print_newline ();
-      List.iter (fun c ->
-          Printf.printf "[%d ok: %s tried: %s next: %s state: %d rating: %d]" (client_num c)
-          (string_of_date (c.client_connection_control.control_last_ok))
-          (string_of_date (c.client_connection_control.control_last_try))
-          (string_of_date (connection_next_try c.client_connection_control))
-          c.client_connection_control.control_state
-          c.client_rating
-          ;
-          print_newline ();
-     ) list;
-      print_newline ();
-  )
   
   
   
@@ -996,9 +963,6 @@ let result_of_file md4 tags =
           r.result_tags <- tag :: r.result_tags
   ) tags;
   if check_result r tags then Some r else None
-    
-let _ =
-  add_memstat "DonkeyGlobals" local_mem_stats
 
 let string_of_file_state s =
   match  s with
@@ -1020,9 +984,47 @@ let brand_to_string b =
   match b with
     Brand_unknown -> "unknown"
   | Brand_edonkey -> "eDonkey"
+  | Brand_cdonkey -> "cDonkey"
   | Brand_mldonkey1 -> "old mldonkey"
   | Brand_mldonkey2 -> "new mldonkey"
   | Brand_mldonkey3 -> "trusted mldonkey"
   | Brand_overnet -> "Overnet"
   | Brand_newemule -> "eMule"
   | Brand_server -> "server"
+
+      
+let _ =
+  Heap.add_memstat "DonkeyGlobals" (fun _ ->
+(* current_files *)
+      Printf.printf "Current files: %d" (List.length !current_files);
+      print_newline ();
+(* clients_by_name *)
+(*      let list = Hashtbl2.to_list clients_by_name in
+      Printf.printf "Clients_by_name: %d" (List.length list);
+      print_newline ();
+      List.iter (fun c ->
+          Printf.printf "[%d %s]" (client_num c)
+          (if Hashtbl.mem clients_by_kind c.client_kind then "K" else " ") ;
+     ) list;
+      print_newline ();
+*)
+      
+(* clients_by_kind *)
+      let list = H.to_list clients_by_kind in
+      Printf.printf "Clients_by_kind: %d" (List.length list);
+      print_newline ();
+      List.iter (fun c ->
+          Printf.printf "[%d ok: %s tried: %s next: %s state: %d rating: %d]" (client_num c)
+          (string_of_date (c.client_connection_control.control_last_ok))
+          (string_of_date (c.client_connection_control.control_last_try))
+          (string_of_date (connection_next_try c.client_connection_control))
+          c.client_connection_control.control_state
+          c.client_rating
+          ;
+          print_newline ();
+     ) list;
+      print_newline ();
+  );
+      
+  Heap.add_memstat "DonkeyGlobals" local_mem_stats
+

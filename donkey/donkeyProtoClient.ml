@@ -635,6 +635,9 @@ module EmuleClientInfo = struct
         0x24, "comments";         (* ET_COMMENTS *)
         0x25, "extended_request"; (* ET_EXTENDEDREQUEST *)
         0x26, "compatible";       (* ET_COMPATABLECLIENT *)
+        0x77, "tarod";       	  (* ET_TAROD *)
+        0x78, "tarod_version";    (* ET_TAROD_VERSION *)
+		0x99, "plus";			  (* ET_PLUS *)
       ]
       
     let parse len s =
@@ -651,7 +654,9 @@ module EmuleClientInfo = struct
       Printf.printf "%s:\n" m;
       Printf.printf "  version: %d\n" t.version;
       Printf.printf "  protversion: %d\n" t.version;
-      Printf.printf "  tags: ???"; print_newline ()
+      Printf.printf "  tags: "; 
+      print_tags t.tags;
+	  print_newline ()
         
     let write buf t = 
       buf_int8 buf t.version;
