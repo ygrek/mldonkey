@@ -161,9 +161,10 @@ mldonkey$(EXE): $(CMOS) $(CLIENT) $(OBJS)
 mldonkey.static: $(CMOS) $(CLIENT) $(OBJS)
 	$(COMP) -ccopt -static -o mldonkey.static  $(LIBS) $(CMOS) $(CLIENT) $(OBJS)
 
+open_mldonkey:
+	$(MAKE) TARGET=opt open_mldonkey.opt
 
-
-open_mldonkey: $(CMOS) $(OPEN_CLIENT) $(BIN_CLIENT) $(OBJS)
+open_mldonkey.opt: $(CMOS) $(OPEN_CLIENT) $(BIN_CLIENT) $(OBJS)
 	$(COMP) -o mldonkey$(EXE) $(LIBS) $(CMOS) $(OPEN_CLIENT) $(BIN_CLIENT) $(OBJS)
 
 open_mldonkey.byte:
