@@ -30,6 +30,7 @@ type peer =
     peer_ip : Ip.t;
     peer_port : int;
     peer_kind : int;
+    mutable peer_last_msg : float;
   }
   
 let buf_peer buf p =
@@ -51,6 +52,7 @@ let get_peer s pos =
     peer_ip = ip;
     peer_port = port;
     peer_kind = kind;
+    peer_last_msg = BasicSocket.last_time ();
   }, pos + 23
   
 type t =
@@ -65,7 +67,7 @@ type t =
   peer list
 
 | OvernetSearch of 
-(* ?? 2 is OK for most searches *) int * 
+(* ?? 2 is OK for most searches, number of replies ? *) int * 
 (* searched file or keyword *) Md4.t
 
 | OvernetSearchReply of 
@@ -159,6 +161,58 @@ dec: [
   ]
 *)
 
+(*
+  UNKNOWN: opcode 18
+ascii: [ x(128) F(249) `(246) L(157)(217)(146)(143)(127)(244)(190) g(233)(0)(0)(0)(0)]
+dec: [
+(227)
+(18)
+(120)(128)(70)(249)(96)(246)(76)(157)(217)(146)(143)(127)(244)(190)(103)(233)
+(0)(0)(0)(0)
+]
+*)
+
+(*
+UNKNOWN: opcode 19
+22:40:26.123479 192.168.0.3.8368 > 62.255.150.48.6411:  udp 66 (DF)
+MESSAGE SIZE: 66
+ascii: [(227)(19)(248)(237) * J A(180) A ] 7 O(137)(138)(151) > I(18)(29) @(212)(166)(227)(0) [(140)(236)(220) V(2) $(10)(130) y(2)(0)(0)(0)(2)(1)(0)(1)(14)(0) i n d e x . h t m l . o l d(3)(1)(0)(2)(191)(0)(0)(0)]
+dec: [
+(227)
+(19)
+(248)(237)(42)(74)(65)(180)(65)(93)(55)(79)(137)(138)(151)(62)(73)(18)  "html"
+(29)(64)(212)(166)(227)(0)(91)(140)(236)(220)(86)(2)(36)(10)(130)(121)   MD4
+(2)(0)(0)(0)
+(2)(1)(0)(1)
+(14)(0) index.html.old
+(3)(1)(0)(2)
+(191)(0)(0)(0)]
+
+
+  
+UNKNOWN: opcode 19
+22:41:36.040963 192.168.0.3.8368 > 128.8.51.16.9683:  udp 102 (DF)
+MESSAGE SIZE: 102
+ascii: [(227)(19)(29) @(212)(166)(227)(0) [(140)(236)(220) V(2) $(10)(130) y g(198) i s Q(255) J(236) )(205)(186)(171)(242)(251)(227) F(1)(0)(0)(0)(2)(3)(0) l o c 8(0) 
+dec: [
+(227)
+(19)
+(29)(64)(212)(166)(227)(0)(91)(140)(236)(220)(86)(2)(36)(10)(130)(121)
+(103)(198)(105)(115)(81)(255)(74)(236)(41)(205)(186)(171)(242)(251)(227)(70)
+(1)(0)(0)(0)
+(2)
+(3)(0) "loc"
+(56)(0) "bcp://67c6697351ff4aec29cdbaabf2fbe346:62.243.53.52:4665"
+
+*)
+  
+| OvernetPublish of 
+(* keyword or file md4 *) Md4.t *
+(* md4 of file or client md4 *) Md4.t *
+  tag list
+
+(* Published or not Published ??? *)
+| OvernetPublished of Md4.t
 
 | OvernetUnknown of int * string
 
@@ -204,6 +258,16 @@ let write buf t =
       buf_md4 buf md4;
       buf_md4 buf r_md4;
       buf_tags buf r_tags names_of_tag
+
+  | OvernetPublish (md4, r_md4, t_tags) ->
+      buf_int8 buf 19;
+      buf_md4 buf md4;
+      buf_md4 buf r_md4;
+      buf_tags buf r_tags names_of_tag
+      
+  | OvernetPublished md4 ->
+      buf_int8 buf 20;
+      buf_md4 buf md4
       
   | OvernetUnknown (opcode, s) ->
       buf_int8 buf opcode;
@@ -234,6 +298,7 @@ let parse opcode s =
         let kind = get_int8 s 0 in
         let md4 = get_md4 s 1 in
         OvernetSearch (kind, md4)
+    
     | 15 -> 
         if !!verbose_overnet then begin
             Printf.printf "OK: SEARCH REPLY"; print_newline ();
@@ -262,6 +327,24 @@ let parse opcode s =
         let ntags = get_int s 32 in
         let r_tags, pos = get_tags s 36 ntags names_of_tag in
         OvernetSearchResult (md4, r_md4, r_tags)
+    
+    | 19 ->
+        if !!verbose_overnet then begin
+            Printf.printf "OK: PUBLISH"; print_newline ();
+          end;
+        let md4 = get_md4 s 0 in
+        let r_md4 = get_md4 s 16 in
+        let ntags = get_int s 32 in
+        let r_tags, pos = get_tags s 36 ntags names_of_tag in
+        OvernetPublish (md4, r_md4, r_tags)
+        
+    | 20 ->
+        if !!verbose_overnet then begin
+            Printf.printf "OK: PUBLISHED"; print_newline ();
+          end;
+        let md4 = get_md4 s 0 in
+        OvernetPublished md4
+        
     | _ ->
         Printf.printf "UNKNOWN: opcode %d" opcode; print_newline ();
         dump s;
