@@ -49,7 +49,7 @@ let enable  () =
     with e ->
         Printf.printf "Could not get IP of %s (%s). Using last one." 
         !!redirection_server
-          (Printexc.to_string e);
+          (Printexc2.to_string e);
         print_newline ());
   
   Printf.printf "redirection_server_ip for %s: %s" 
@@ -60,7 +60,7 @@ let enable  () =
     with e ->
         Printf.printf "Could not get IP of %s (%s). Using last one." 
         !!gold_redirection_server
-          (Printexc.to_string e);
+          (Printexc2.to_string e);
         print_newline ());
   
   AgServers.connect_server ();

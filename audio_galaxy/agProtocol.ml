@@ -502,7 +502,7 @@ let parse msg_type data msg_len =
     | 5 -> ReadyForTransferReq
     | _ -> raise Not_found
   with e -> 
-      Printf.printf "EXception %s in parse" (Printexc.to_string e); print_newline ();
+      Printf.printf "EXception %s in parse" (Printexc2.to_string e); print_newline ();
       UnknownReq (msg_type,data)
       
 let print t =

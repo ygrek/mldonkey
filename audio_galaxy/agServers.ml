@@ -112,7 +112,7 @@ let connect_server () =
           BasicSocket.set_rtimeout (TcpBufferedSocket.sock sock) 30.;
         with e ->
             Printf.printf "Exception %s while trying to connect !!"
-              (Printexc.to_string e);
+              (Printexc2.to_string e);
             print_newline () 
       end
   | _ -> ()
