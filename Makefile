@@ -476,7 +476,7 @@ IM_CORE += im/imTypes.ml im/imEvent.ml \
 IM_CORE +=   im/yahoo/yahoo.ml
 
 IM_GUI_CORE += im/gui_im_base.zog   \
-    im/gui_im.ml 
+    im/gui_im.ml  im/gui_im_rooms.ml
 
 TARGETS += mlim
 
