@@ -18,6 +18,9 @@
 *)
 val downloads_ini : Options.options_file
 val shared_files_ini : Options.options_file
+val servers_ini : Options.options_file
+val files_ini : Options.options_file
+val friends_ini : Options.options_file
 
 val value_to_addr : Options.option_value -> Ip.t * int
 val value_to_md4 : Options.option_value -> Md4.t

@@ -35,7 +35,7 @@ type options_file
 
 val create_options_file : string -> options_file
 val set_options_file : options_file -> string -> unit
-  
+val prune_file : options_file -> unit  
 (*4 Operations on option files *)
   
 val load : options_file -> unit

@@ -165,12 +165,15 @@ let search_handler search t =
   search.search_handler (Waiting search.search_waiting)
   
     
-    
 let force_save_options () =  
   DownloadServers.update_options ();
   List.iter DownloadOneFile.update_options !!files;
   Gc.compact ();
-  Options.save_with_help downloads_ini
+  Options.save_with_help downloads_ini;
+  Options.save_with_help files_ini;
+  Options.save_with_help friends_ini;
+  if !servers_ini_changed then
+    Options.save_with_help servers_ini
 
     
 let udp_query_locations file s =

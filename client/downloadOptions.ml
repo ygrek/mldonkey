@@ -25,6 +25,9 @@ open Gui_types
   
 let downloads_ini = create_options_file "./downloads.ini"
 let shared_files_ini = create_options_file "./shared_files.ini"
+let servers_ini = create_options_file "./servers.ini"
+let files_ini = create_options_file "./files.ini"
+let friends_ini = create_options_file "./friends.ini"
   
 let initial_score = define_option downloads_ini ["initial_score"] "" int_option 5
       
@@ -445,7 +448,7 @@ module Md4Option = struct
   end
 
 let done_files = 
-  define_option downloads_ini ["done_files"] 
+  define_option files_ini ["done_files"] 
   "The files whose download is finished" (list_option FileOption.t) []
 
 let old_files = 
@@ -453,17 +456,17 @@ let old_files =
   "The files that were downloaded" (list_option Md4Option.t) []
 
 let known_friends = 
-  define_option downloads_ini ["friends"] 
+  define_option friends_ini ["friends"] 
   "The list of known friends" (list_option ClientOption.t) []
 
 let client_md4 = define_option downloads_ini ["client_md4"]
     "The MD4 of this client" Md4Option.t (Md4.random ())
   
 let files = 
-  define_option downloads_ini ["files"] 
+  define_option files_ini ["files"] 
   "The files currently being downloaded" (list_option FileOption.t) []
 
-let known_servers = define_option downloads_ini ["known_servers"] "List of known servers"
+let known_servers = define_option servers_ini["known_servers"] "List of known servers"
     (list_option ServerOption.t) []
 
 let known_shared_files = define_option shared_files_ini 

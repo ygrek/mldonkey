@@ -425,50 +425,60 @@ let print_file buf file =
               | Some _ -> "Connected")
   ) (file.file_known_locations @ file.file_indirect_locations)
 
-let simple_print_file buf n1 n2 n3 file =
+let simple_print_file buf name_len done_len size_len file =
   
   Printf.bprintf buf "[%-5d] "
     file.file_num;
   let s = first_name file in
-  Printf.bprintf buf "%s%s " s (String.make (n1 - (String.length s)) ' ');
+  Printf.bprintf buf "%s%s " s
+    (String.make (name_len - (String.length s)) ' ');
+
+  if file.file_state <> FileDownloaded then begin
+      let s = Int32.to_string file.file_downloaded in
+      Printf.bprintf buf "%s%s " s (String.make (
+          done_len - (String.length s)) ' ');
+    end;
 
   let s = Int32.to_string file.file_size in
-  Printf.bprintf buf "%s%s " s (String.make (n2 - (String.length s)) ' ');
+  Printf.bprintf buf "%s%s " s (String.make (
+      size_len - (String.length s)) ' ');
 
-  let s = Md4.to_string file.file_md4 in
-  Printf.bprintf buf "%s%s " s (String.make (n3 - (String.length s)) ' ');
-
-  Printf.bprintf buf "%s"
-    (if file.file_state = FileDownloaded then
-      "done" else
-      Int32.to_string file.file_downloaded);
+  if file.file_state = FileDownloaded then
+    Buffer.add_string buf (Md4.to_string file.file_md4)
+  else
+    Printf.bprintf buf "%5.1f" (file.file_last_rate /. 1024.);
 
   Buffer.add_char buf '\n'
 
-let simple_print_file_list buf files =
-  let n1 = ref 1 in
-  let n2 = ref 10 in
-  let n3 = ref 32 in
+let simple_print_file_list finished buf files =
+  let size_len = ref 10 in
+  let done_len = ref 10 in
+  let name_len = ref 1 in
   List.iter 
     (fun f ->
-      n1 := max !n1 (String.length (first_name f));
-      n2 := max !n2 (String.length (Int32.to_string f.file_size));
-      n3 := max !n3 (String.length (Md4.to_string f.file_md4))
-    )
-    files;
+      name_len := max !name_len (String.length (first_name f));
+      size_len := max !size_len (String.length (Int32.to_string f.file_size));
+      done_len := max !done_len (String.length (Int32.to_string f.file_downloaded));
+  )
+  files;
   Printf.bprintf buf "[%-5s] " "Num";
 
   let s = "File" in
-  Printf.bprintf buf "%s%s " s (String.make (max 0 (!n1 - (String.length s))) ' ');
+  Printf.bprintf buf "%s%s " s (String.make (max 0 (!name_len - (String.length s))) ' ');
+
+  
+  let s = "Downloaded" in
+  if not finished then
+    Printf.bprintf buf "%s%s " s (String.make (max 0 (!done_len - (String.length s))) ' ');
 
   let s = "Size" in
-  Printf.bprintf buf "%s%s " s (String.make (max 0 (!n2 - (String.length s))) ' ');
+  Printf.bprintf buf "%s%s " s (String.make (max 0 (!size_len - (String.length s))) ' ');
 
-  let s = "MD4" in
-  Printf.bprintf buf "%s%s " s (String.make (max 0 (!n3 - (String.length s))) ' ');
+  let s = if finished then "MD4" else "Rate" in
+  Printf.bprintf buf "%s " s;
   
   Buffer.add_string buf "Downloaded\n";
-  List.iter (simple_print_file buf !n1 !n2 !n3) files
+  List.iter (simple_print_file buf !name_len !done_len !size_len) files
 
 
 let commands = [
@@ -559,10 +569,10 @@ let commands = [
             ""
         | _ ->
             Printf.bprintf  buf "Downloading %d files\n" (List.length !!files);
-            simple_print_file_list buf !!files;
+            simple_print_file_list false buf !!files;
             Printf.bprintf  buf "\nDownloaded %d files\n" 
 	      (List.length !!done_files);
-            simple_print_file_list buf !!done_files;
+            simple_print_file_list true buf !!done_files;
             if !!done_files = [] then "" else
               "Use 'commit' to move downloaded files to the incoming directory"
     

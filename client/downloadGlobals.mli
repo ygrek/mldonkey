@@ -36,6 +36,7 @@ val client_tags  : Mftp.tag list ref
 
 val shared_files_info : (string, DownloadTypes.shared_file_info) Hashtbl.t
 
+val servers_ini_changed : bool ref
 val sleeping : bool ref
 val max_allowed_connected_servers : int
 val dialog_history : (string * string) list ref  

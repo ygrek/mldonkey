@@ -111,7 +111,11 @@ let _ =
 
 
 (**** LOAD OPTIONS ****)
-    
+
+    let exists_downloads_ini = Sys.file_exists "./downloads.ini" in
+    let exists_servers_ini = Sys.file_exists "./servers.ini" in
+    let exists_files_ini = Sys.file_exists "./files.ini" in
+    let exists_friends_ini = Sys.file_exists "./friends.ini" in
     Options.set_options_file downloads_ini 
     (try Filepath.find_in_path ["."] config_filename with
         _ -> 
@@ -125,6 +129,26 @@ let _ =
           exit 2;
           ());  
     (try Options.load shared_files_ini with _ -> ());
+    (try Options.load servers_ini with _ -> ());
+    (try Options.load files_ini with _ -> ());
+    (try Options.load friends_ini with _ -> ());
+    if exists_downloads_ini && not exists_files_ini then begin
+        Options.append files_ini "./downloads.ini";
+        Options.save_with_help files_ini;
+      end;
+    if exists_downloads_ini && not exists_servers_ini then begin
+        Options.append servers_ini "./downloads.ini";
+        Options.save_with_help servers_ini;
+      end;
+    if exists_downloads_ini && not exists_friends_ini then begin
+        Options.append servers_ini "./downloads.ini";
+        Options.save_with_help friends_ini;
+      end;
+    Options.prune_file servers_ini;
+    Options.prune_file files_ini;
+    Options.prune_file downloads_ini;
+    Options.prune_file friends_ini;
+    
     features =:= !!features;  
     List.iter (fun file ->
         set_file_size file file.file_size) !!files;

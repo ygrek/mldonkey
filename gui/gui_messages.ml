@@ -172,7 +172,7 @@ let help_text = "
                       MLDonkey
                       ========
 
-Release: 1.09
+Release: 1.10
 Authors: [b8]_bavard (Communication engine) and [b8]_FeeCarabine (GUI)
 
  MLDonkey is a door to the 'donkey' network, a decentralized network used to
@@ -533,11 +533,14 @@ TODO list
   * Add sleep and wakeup commands.
   * More options in GUI
   * Ask for passwords if they are not set. Check IP addresses too.
-  * Check if imported files are not completely downloaded.
-  * When a chunk is corrupted, try to detect bad source.
 
 ChangeLog
 =========
+
+Release 1.10:
+  * Options are now divided into four configuration files: downloads.ini,
+      servers.ini, friends.ini and files.ini.
+  * Better display of downloads.
 
 Release 1.09:
   * Bug fixes: fixed bad md4 computation of the first chunk, preventing

@@ -62,6 +62,7 @@ and options_file = {
     mutable file_name : string; 
     mutable file_options : Obj.t option_record list;
     mutable file_rc : option_module;
+    mutable file_pruned : bool;
   }
 ;;
 
@@ -70,6 +71,7 @@ let create_options_file name =
     file_name = name;
     file_options =[];
     file_rc = [];
+    file_pruned = false;
   }
   
 let set_options_file opfile name = opfile.file_name <- name
@@ -107,7 +109,10 @@ let rec find_value list m =
       | Module m, _ :: _ -> find_value tail m
       | _ -> raise Not_found
 ;;
-  
+
+let prune_file file =
+  file.file_pruned <- true
+
 let
   define_option
     (opfile : options_file)

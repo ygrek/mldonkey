@@ -153,6 +153,8 @@ let files_by_md4 = Hashtbl.create 127
 
 let find_file md4 = Hashtbl.find files_by_md4 md4
 
+  
+let servers_ini_changed = ref true
 let upload_clients = Fifo.create ()
 
 let shared_files_info = Hashtbl.create 127
