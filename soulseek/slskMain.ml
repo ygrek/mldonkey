@@ -62,8 +62,7 @@ let enable () =
 
   
 let _ =
-  network.op_network_is_enabled <- (fun _ -> !!
-        CommonOptions.enable_directconnect);
+  network.op_network_is_enabled <- (fun _ -> !! CommonOptions.enable_soulseek);
 (*
   network.op_network_save_simple_options <- SlskComplexOptions.save_config;
   network.op_network_load_simple_options <- (fun _ -> 

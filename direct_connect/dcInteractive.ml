@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonGlobals
 open BasicSocket
 open CommonComplexOptions
 open CommonClient
@@ -112,8 +113,7 @@ let _ =
                 [ addr; port ] -> addr, int_of_string port
               | _ -> addr, 411
             in            
-            let ip = Ip.of_string addr in
-            let addr = if ip = Ip.null then AddrName addr else AddrIp ip in
+            let addr = addr_of_string addr in
             addr, port
           in
           let s = new_server addr port in
@@ -233,18 +233,18 @@ let _ =
         P.file_network = network.network_num;
         P.file_names = [file.file_name];
         P.file_md4 = file.file_id;
-        P.file_size = file.file_size;
-        P.file_downloaded = file.file_downloaded;
+        P.file_size = file_size file;
+        P.file_downloaded = file_downloaded file;
         P.file_nlocations = 0;
         P.file_nclients = 0;
         P.file_state = file_state file;
         P.file_sources = None;
-        P.file_download_rate = 0.0;
+        P.file_download_rate = file_download_rate file.file_file;
         P.file_chunks = "0";
         P.file_availability = "0";
         P.file_format = Unknown_format;
         P.file_chunks_age = [|0.0|];
-        P.file_age = 0.0;
+        P.file_age = file_age file;
       }    
   );
   file_ops.op_file_save_as <- (fun file new_name  ->

@@ -48,21 +48,22 @@ let new_file file_id file_name file_size =
             Printf.printf "Exception %s in current_size" (Printexc.to_string e); 
             print_newline ();
             Int32.zero
-            in
+      in
       let rec file = {
           file_file = file_impl;
           file_hash = file_id;
           file_name = file_name;
-          file_size = file_size;
-          file_downloaded = current_size;
           file_temp = file_temp;
-          file_fd = Unix32.create file_temp [Unix.O_RDWR; Unix.O_CREAT] 0o666;
           file_client = None;
         } and file_impl = {
           dummy_file_impl with
+          impl_file_fd = Unix32.create file_temp [Unix.O_RDWR; Unix.O_CREAT] 0o666;
+          impl_file_size = file_size;
+          impl_file_downloaded = current_size;
           impl_file_val = file;
           impl_file_ops = file_ops;
-        }
+          impl_file_age = BasicSocket.last_time ();          
+          }
         in
       file_add file_impl FileDownloading;
       Hashtbl.add files_by_key  key file;
@@ -85,3 +86,8 @@ let server_num s =
 let server_state s =
   server_state (as_server s.server_server)
 *)  
+  
+let file_size file = file.file_file.impl_file_size
+let file_downloaded file = file.file_file.impl_file_downloaded
+let file_age file = file.file_file.impl_file_age
+let file_fd file = file.file_file.impl_file_fd

@@ -18,6 +18,12 @@
 *)
 
 
+type addr = {
+    mutable addr_ip: Ip.t;
+    mutable addr_name : string;
+    mutable addr_age : float;
+  }
+
 type query =
   QAnd of query * query
 | QOr of query * query

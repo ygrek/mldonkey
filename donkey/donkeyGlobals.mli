@@ -191,3 +191,8 @@ val media_bit : int
   
 val client_type : DonkeyTypes.client -> CommonTypes.client_type
   
+val file_size : DonkeyTypes.file -> int32
+val file_downloaded : DonkeyTypes.file -> int32
+val file_age : DonkeyTypes.file -> float
+val file_fd : DonkeyTypes.file -> Unix32.t
+  

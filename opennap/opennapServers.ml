@@ -37,20 +37,6 @@ module DG = CommonGlobals
 module DO = CommonOptions
 module OP = OpennapProtocol
 module OT = OpennapTypes
-  
-let send_search s ss msg =
-  if not (List.mem_assoc ss s.server_pending_searches) then
-    let f ss =
-      match s.server_sock with
-        None -> ()
-      | Some sock -> 
-          s.server_searches <- Some ss;
-          OP.debug_server_send sock (OP.SearchReq msg)
-    in
-    s.server_pending_searches <- s.server_pending_searches @ [ss, f];
-    match s.server_pending_searches with
-      [_] -> f ss
-    | _ -> ()
 
 let end_of_search s =
   match s.server_pending_searches with
@@ -60,6 +46,28 @@ let end_of_search s =
       match tail with
       | (ss, f) :: _ -> f ss
       | _ -> ()
+  
+let send_search fast s ss msg =
+  if not (List.mem_assoc ss s.server_pending_searches) then
+    let f ss =
+      match s.server_sock with
+        None -> ()
+      | Some sock -> 
+          Printf.printf "SENDING SEARCH TO %s" s.server_desc; print_newline ();
+          s.server_searches <- Some ss;
+          OP.debug_server_send sock (OP.SearchReq msg)
+    in
+    match s.server_pending_searches with
+      [] ->
+        s.server_pending_searches <- [ss, f];
+        f ss
+    | first :: tail ->
+        if fast then
+          s.server_pending_searches <- 
+          first :: (ss, f) :: s.server_pending_searches
+        else
+          s.server_pending_searches <- s.server_pending_searches @ [ss, f]
+
         
 let rec remove_short list list2 =
   match list with
@@ -85,7 +93,7 @@ let send_query ss words =
   let t = { S.dummy_search with 
       S.artist = Some (String2.unsplit words ' ') } in
   List.iter (fun s ->
-      send_search s ss t
+      send_search false s ss t
   ) !connected_servers
       
 let recover_files () =
@@ -118,7 +126,7 @@ let recover_files_from_server s =
           let module S = OP.Search in
           let t = { S.dummy_search with 
               S.artist = Some (String2.unsplit keywords ' ') } in
-          send_search s (Recover_file keywords) t
+          send_search false s (Recover_file keywords) t
       ) !current_files;
       ()
       
@@ -177,6 +185,8 @@ let download_file (r : result) =
       current_files := file :: !current_files;
     end;
   List.iter (fun (user, filename) ->
+      Printf.printf "Adding source %s (%d servers)" user.user_nick
+        (List.length user.user_servers); print_newline ();
       let c = new_client user.user_nick in
       add_download file c filename;
       get_file_from_source c file;
@@ -234,14 +244,18 @@ let server_handler s sock event =
 let client_to_server s t sock =
   if !DG.ip_verified < 10 then DG.verify_ip sock;
   match t with
-  | OP.ErrorReq error
-  | OP.MessageReq error -> 
+    
+  | OP.ErrorReq error ->
       Printf.printf "SERVER %s:%d %s" (Ip.to_string s.server_ip) 
       s.server_port s.server_net; print_newline ();
       Printf.printf "ERROR FROM SERVER: %s" error; print_newline () 
 (*      Printf.printf "SERVER %s:%d %s" (Ip.to_string s.server_ip) 
       s.server_port s.server_net; print_newline ();
-      Printf.printf "MESSAGE FROM SERVER: %s" error; print_newline ()  *)
+Printf.printf "MESSAGE FROM SERVER: %s" error; print_newline ()  *)
+
+  | OP.MessageReq error -> ()
+
+    
   | OP.NickAlreadyUsedReq ->
 (*      Printf.printf "NICK NAME ALREADY USED %d" s.server_nick; 
       print_newline (); *)
@@ -249,26 +263,33 @@ let client_to_server s t sock =
 (*
       s.server_nick <- s.server_nick + 1;
 try_nick s sock;
-  *)
+*)
+      
   | OP.NickInvalidReq ->
-(*      Printf.printf "NICK NAME IS INVALID %s" !!DO.client_name; *)
-      print_newline ();
+(*      Printf.printf "NICK NAME IS INVALID %s" !!DO.client_name; 
+print_newline (); *)
+      ()
+      
   | OP.NickUnusedReq ->
 (*      Printf.printf "NICK NAME ACCEPTED"; print_newline (); *)
       login_on_server s sock
+      
   | OP.LoginAckReq mail ->
       set_rtimeout sock DG.half_day;
 (*      Printf.printf "*****  CONNECTED %s  ******" mail; print_newline (); *)
       set_server_state s Connected_idle;
       connected_servers := s :: !connected_servers;
       recover_files_from_server s
+      
   | OP.ServerStatsReq t ->
       DG.connection_ok s.server_connection_control;
       let module SS = OP.ServerStats in
       s.server_nfiles <- t.SS.files;
       s.server_nusers <- t.SS.users;
       s.server_size <- t.SS.size;
+      
   | OP.SearchReplyReq t ->
+      Printf.printf "***  SearchReplyReq ***"; print_newline ();
       let module SR = OP.SearchReply in
       begin
         match s.server_searches with 
@@ -283,8 +304,9 @@ try_nick s sock;
             begin
               try
                 let file = find_file (basename t.SR.filename) t.SR.size in 
-(*                Printf.printf "++++++++++ RECOVER %s ++++++++" t.SR.filename;
-                print_newline (); *)
+                Printf.printf "++++++++++ RECOVER %s ++++++++" t.SR.filename;
+                print_newline (); 
+                
 (*                Printf.printf "1"; print_newline (); *)
                 let c = new_client t.SR.nick in
                 let result = new_result (basename t.SR.filename) t.SR.size in
@@ -321,6 +343,7 @@ try_nick s sock;
       end
           
   | OP.EndOfSearchReplyReq ->
+      Printf.printf "END OF SEARCH ON %s" s.server_desc; print_newline ();
       begin
         match s.server_searches with 
           None -> assert false
@@ -335,14 +358,14 @@ try_nick s sock;
   | OP.DownloadAckReq t ->
       
       let module DA = OP.DownloadAck in
-(*        Printf.printf "DownloadAckReq %s !!!!!!!!!!!!!!!!!!!!!!!!" t.DA.nick; 
+      Printf.printf "DownloadAckReq %s !!!!!!!!!!!!!!!!!!!!!!!!" t.DA.nick; 
       print_newline (); 
-       *)
+       
       let c = new_client t.DA.nick in
       
       if t.DA.port = 0 then (
-(*              Printf.printf "************** Must download indirectly  *************"; 
-              print_newline (); *)
+          Printf.printf "************** Must download indirectly  *************"; 
+          print_newline (); 
           OP.debug_server_send sock (OP.AlternateDownloadRequestReq (
               let module DR = OP.DownloadRequest in
               {
@@ -351,8 +374,8 @@ try_nick s sock;
               }
             ));
         ) else (
-(*              Printf.printf "************** Can download directly *************"; 
-              print_newline (); *)
+          Printf.printf "************** Can download directly *************"; 
+          print_newline ();
           let ip = t.DA.ip in
           let port = t.DA.port in
           c.client_addr <- Some (ip, port);
@@ -395,7 +418,7 @@ let connect_server s =
       set_write_controler sock DG.upload_control;
       
       set_reader sock (OpennapProtocol.opennap_handler (client_to_server s));
-      set_rtimeout sock 30.;
+      set_rtimeout sock !!server_connection_timeout;
       set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
           close s "timeout"  
       );

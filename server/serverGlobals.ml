@@ -23,32 +23,65 @@ open DonkeyMftp
 open Options
 open Mftp_comm
 open ServerTypes
-  
+
+
+
+(*basic data structures*)  
 let files_by_md4 = Hashtbl.create 1023
 let clients_by_id = Hashtbl.create 101
-let servers_by_md4 = Hashtbl.create 40
-  
-let client_counter = ref 0  
-  
+
+let get_client id = Hashtbl.find clients_by_id id
+
+
+(*strucure for servers addresse*) 
 let other_servers = ref []
 
 let alive_servers = ref []
   
-let get_client id = Hashtbl.find clients_by_id id
 
+(*counter for server stat*)
 let nconnected_clients = ref 0
 
-let nshared_files = ref 0
+let nshared_md4 = ref 0
 
-let nb_udp_loc = ref 0
-
-let nb_udp_req = ref 0
-
-let nb_udp_query = ref 0
-
-let nb_tcp_req = ref 0
+let client_counter = ref 0  
 
 
+(*count messages to the server*)
+let nb_udp_query_sec = ref 0
+let nb_udp_query_count = ref 0
+let nb_udp_loc_sec = ref 0
+let nb_udp_loc_count = ref 0
+let nb_udp_req_sec = ref 0
+let nb_udp_req_count = ref 0
+let nb_udp_ping_server_sec = ref 0 	 
+let nb_udp_ping_server_count = ref 0 
+
+let nb_tcp_req_sec = ref 0
+let nb_tcp_req_count = ref 0
+let nb_udp_reply_sec = ref 0
+let nb_udp_reply_count = ref 0
+
+(*/////////////////////////////////////////*)
+(*Group server variables*)
+
+let servers_by_id = Hashtbl.create 40
+
+let local_clients = []
+
+let group_id = ref Md4.null
+
+let server_id = ref 0
+
+let nconnected_servers = ref 0
+
+let nshared_remote_md4 = ref 0
+
+let server_counter = ref 0
+
+let ngroup_clients = ref 0
+
+let ngroup_files = ref 0
   (*
 let rec tag_find v tags =
   match tags with

@@ -3109,6 +3109,8 @@ let local_search = [|
 let find_friend = get_format
 let remove_all_friends = remove
 
+let close_room = remove
+
 let table = [
   M.o_xpm_remove, (remove, O.xpm_remove) ;
   M.o_xpm_cancel, (cancel, O.xpm_cancel);
@@ -3133,6 +3135,7 @@ let table = [
   M.o_xpm_local_search, (local_search, O.xpm_local_search);
   M.o_xpm_find_friend, (find_friend, O.xpm_find_friend) ;
   M.o_xpm_remove_all_friends, (remove_all_friends, O.xpm_remove_all_friends) ;
+  M.o_xpm_close_room, (close_room, O.xpm_close_room) ;
 ] 
 
 let gdk_pix i =

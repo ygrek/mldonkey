@@ -50,6 +50,7 @@ let rec add_new_servers servers other_servers to_add =
       let s = { 
           server_ip = s.Q.ip;
           server_port = s.Q.port;
+	  last_message = Unix.time();
         } in
       add_new_servers tail other_servers 
         (if List.mem s other_servers then to_add else (s :: to_add))
@@ -84,22 +85,22 @@ let udp_handler sock event =
           let len = String.length pbuf in
           if len = 0 || 
             int_of_char pbuf.[0] <> 227 then begin
-              Printf.printf "Received unknown UDP packet"; print_newline ();
+              Printf.printf "Received unknown UDP packet\n";
               BigEndian.dump pbuf;
               print_newline ();
             end else begin
               let t = M.parse (String.sub pbuf 1 (len-1)) in
-              (*M.print t;
-              print_newline ();*)
-		incr nb_udp_req;
-              if (!!save_log) then
-                begin 
-                  match p.UdpSocket.addr with
-                    | ADDR_INET (ip,port) ->
-			ServerLog.new_log_req (Ip.of_inet_addr ip) Md4.null t;
-			ServerLog.add_to_liste ()
-                    |_-> ()
-		end;
+		(*M.print t;
+		print_newline ();*)
+		incr nb_udp_req_count;
+		if (!!save_log) then
+                  begin 
+                    match p.UdpSocket.addr with
+                      | ADDR_INET (ip,port) ->
+			  ServerLog.new_log_req (Ip.of_inet_addr ip) Md4.null t;
+			  ServerLog.add_to_liste ()
+                      |_-> ()
+		  end;
               match t with
                 M.QueryServersReplyUdpReq t -> 
 		  (*Printf.printf "-_-_-_-_-_-_-_-_-_-_-_-__-_-_-_-_-_-_-";*)
@@ -113,7 +114,12 @@ let udp_handler sock event =
 		  else
 		    begin
 		      (*Printf.printf "-_-_-_-_-NO TIME";*)
-                      let bob =  {server_ip = t.Q.server_ip; server_port = t.Q.server_port} in
+                      let bob =  
+			{
+			  server_ip = t.Q.server_ip; 
+			  server_port = t.Q.server_port;
+			  last_message = Unix.time();
+			} in
 		      if not (List.mem bob !new_alive_servers) then 
 			new_alive_servers:= bob :: !new_alive_servers;
 			(*new_alive_servers:= add_new_servers t.Q.servers
@@ -121,11 +127,11 @@ let udp_handler sock event =
 		      other_servers :=  add_new_servers t.Q.servers
 		       !other_servers []
 		    end;
-            print !other_servers
                   
               | M.QueryServersUdpReq t -> 
-                  Printf.printf "SEND SERVER LISTE\n";
+                  (*Printf.printf "SEND SERVER LISTE\n";*)
                   (*print !other_servers;*) 
+		  incr nb_udp_reply_count;
                   let module Q = M.QueryServers in 
                   let to_addr = Unix.ADDR_INET((Ip.to_inet_addr t.Q.ip),t.Q.port+4) in
                   let servers = find_servers !alive_servers 50 [] in
@@ -138,7 +144,12 @@ let udp_handler sock event =
                         Q.server_port = !!server_port;
                         Q.servers = servers;
                       }));
-		    let bob =  {server_ip = t.Q.ip; server_port = t.Q.port} in
+		    let bob =  
+		      {
+			server_ip = t.Q.ip; 
+			server_port = t.Q.port;
+			last_message = Unix.time();
+		      } in
 		      if not (List.mem bob !alive_servers) then
 			begin
 			  alive_servers:= bob :: !alive_servers; 
@@ -157,41 +168,72 @@ let udp_handler sock event =
                   let to_addr = p.UdpSocket.addr in
                   udp_send sock to_addr (M.PingServerReplyUdpReq
                     (t,Int32.of_int !nconnected_clients, Int32.of_int
-                    !nshared_files))  
+                    !nshared_md4))  
 		    
 	      | M.QueryUdpReq t ->
-                 incr nb_udp_query;       
+                 incr nb_udp_query_count;       
                  (*Printf.printf "QUERYUDPREQ";*)
                  let module R = M.Query in
                  let q = ServerIndexer.query_to_query t in
                  let docs = ServerIndexer.find q in
                  (* send back QueryReplyReq *)
-                  let list = ServerIndexer.get docs 1 in
-                  if (!!save_log) then
-                  ServerLog.put_results list;
-                      
-                  let to_addr = p.UdpSocket.addr in 
-                  udp_send sock to_addr (M.QueryReplyUdpReq (List.hd list));
-                  ()   
+                 let list = ServerIndexer.get docs 1 in
+		   if (List.length list) <> 0 then
+		     begin
+		       if (!!save_log) then
+			 ServerLog.put_results list;
+		       let to_addr = p.UdpSocket.addr in 
+			 udp_send sock to_addr (M.QueryReplyUdpReq (List.hd list));
+		     end;
+		    ()   
                   
               | M.QueryLocationUdpReq t ->
                 begin 
                 try   
-		  incr nb_udp_loc;
+		  incr nb_udp_loc_count;
                     (*Printf.printf "QUERYLOCATIONUDPREQ";*)
                   let module R = M.QueryLocationReply in
                   let peer_list = ServerLocate.get t in
                   if (!!save_log) then
-                     ServerLog.add_note  ("Number of Location:\n"^(string_of_int (List.length peer_list.R.locs))^"\n");             
-                  let to_addr = p.UdpSocket.addr in
-                  udp_send sock to_addr (M.QueryLocationReplyUdpReq peer_list);
+                     ServerLog.add_note  ("Number of Location:\n"^(string_of_int (List.length peer_list.R.locs))^"\n");
+		  if ((List.length peer_list.R.locs) <> 0) then
+                    let to_addr = p.UdpSocket.addr in
+                      udp_send sock to_addr (M.QueryLocationReplyUdpReq peer_list);
                 with Not_found -> ()
-                end        
+                end  
+		  
+		| M.QueryCallUdpReq t ->
+		    (*begin
+		      try
+			let cc = Hashtbl.find clients_by_id t in
+			  match cc.client_kind, sock, c.client_kind, cc.client_sock with
+			    | KnownLocation (ip, port), sock, _, _
+				->  let to_addr = p.UdpSocket.addr in
+				  udp_send sock to_addr (M.QueryLocationReplyUdpReq {);
+			    | Firewalled_client, _, KnownLocation (ip, port), Some sock 
+				->
+				let module QI = M.QueryIDReply in
+				  direct_server_send sock (M.QueryIDReplyReq {
+							     QI.ip = ip;
+							     QI.port = port;
+							   })
+			    | _ ->
+				(*Printf.printf "QueryIDReq can't return reply";*)
+				raise Not_found
+			  with Not_found -> (); 
+		    end;*)()
                   
-              | _ -> 
-                  Printf.printf "UNKNOWN UDP"; print_newline ();
-              end
-          with e ->
+              | _ ->
+		  begin
+		    match p.UdpSocket.addr with
+		      | ADDR_INET (ip,port) -> 
+			  Printf.printf "UNKNOWN UDP from %s:%d\n" (string_of_inet_addr ip) port
+		      | _ ->  ()
+		  end;
+		  Mftp_server.print t;
+		  print_newline ();
+            end
+         with e ->
               Printf.printf "******* EXCEPTION %s in List.iter on UDP packets"
                 (Printexc.to_string e); print_newline ();
               Printf.printf "This could prevent discarding UDP messages ...";
@@ -260,6 +302,7 @@ let hello_world () =
     Q.ip = !!server_ip;
     Q.port = !!server_port;
   } in 
+   
   List.iter (fun serv ->
 	       (*Printf.printf "PING %s %d \n" (Ip.to_string serv.server_ip) serv.server_port;*)
 	       let to_addr = Unix.ADDR_INET((Ip.to_inet_addr serv.server_ip),serv.server_port+4) in 

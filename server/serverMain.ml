@@ -17,6 +17,9 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open ServerServer
+open Gui_proto
+open CommonNetwork
 open CommonOptions
 open CommonTypes
 open Unix
@@ -31,12 +34,14 @@ open BasicSocket
 open ServerClients
 open ServerGlobals
 
+
 let enable () =
   
   if not !!enable_server then enable_server =:= true;
   
   ignore(TcpServerSocket.create "server server"
     Unix.inet_addr_any !!server_port ServerClients.handler);
+
   let udp_sock = UdpSocket.create Unix.inet_addr_any (!!server_port + 4) 
     ServerUdp.udp_handler in
   begin
@@ -53,14 +58,25 @@ let enable () =
               Q.port = !!server_port;
             }));
     end;
+
+    if !!relais_cooperation_protocol then
+      begin
+	if !!relais_master then
+	  ignore(TcpServerSocket.create "server group"
+		   Unix.inet_addr_any (!!server_port+2) ServerServer.handler)
+	else
+	  (*join a group*)
+	  ();
+	add_infinite_option_timer notify_time_out notify_server;
+      end;
     
     if !!save_log then ServerLog.initialized(); 
 
     (*Printf.printf "COOOOOOOOOL %d\n" (List.length !!known_server); *)  
 
-   
+    (*let t = Unix.time() in*)
       other_servers := List.map (fun (ip,port) ->
-				   {server_ip = ip; server_port = port}) !!known_server;
+				   {server_ip = ip; server_port = port; last_message = Unix.time()}) !!known_server;
    
 	
 
@@ -93,7 +109,7 @@ let enable () =
 
     add_infinite_option_timer ping_knowed_servers ServerUdp.ping_servers;
 
-    add_infinite_timer 15. (fun timer ->
+    (*add_infinite_timer 15. (fun timer ->
 		      Printf.printf "SERVER STAT\n";
 		      Printf.printf "nb_client:%d\nnb_files:%d\n" !nconnected_clients !nshared_files;
 		      Printf.printf "nb_know_alive_server:%d\n" (List.length !alive_servers);
@@ -105,16 +121,70 @@ let enable () =
 		      (*ServerUdp.print !alive_servers;*)
 		      Pervasives.flush Pervasives.stdout
 		
-		   );
+		   );*)
+
+    add_infinite_timer 5. (fun timer ->
+			     nb_udp_query_sec := !nb_udp_query_count;
+			     nb_udp_query_count := 0;
+			     nb_udp_loc_sec := !nb_udp_loc_count;
+			     nb_udp_loc_count := 0;
+			     nb_udp_req_sec := !nb_udp_req_count;
+			     nb_udp_req_count := 0;
+			     nb_tcp_req_sec := !nb_tcp_req_count;
+			     nb_tcp_req_count := 0;
+			     
+			     
+			     nb_udp_reply_sec := !nb_udp_reply_count;
+			     nb_udp_reply_count := 0;
+			     
+				  );
+
+    add_infinite_option_timer ping_knowed_servers (fun timer -> 
+					      nb_udp_ping_server_sec := !nb_udp_ping_server_count;
+					      nb_udp_ping_server_count := 0 
+					   );
+					      
+
 
     ServerUdp.hello_world();
+
 
     Printf.printf "server started at %d" !!server_port; print_newline ()
 
 let _ =
+  register_commands [
+    "stat", Arg_none(fun o -> 
+			let buf = o.conn_buf in
+			  Printf.printf "SERVER STAT\n";
+			  Printf.bprintf buf "nb_client:%d\nnb_files:%d\n" !nconnected_clients !nshared_md4;
+			  Printf.bprintf buf "nb_know_alive_server:%d\n" (List.length !alive_servers);
+			  Printf.bprintf buf "nb_know_other_server:%d\n" (List.length !other_servers);
+			  Printf.bprintf buf "client_counter:%d\n" !client_counter;
+			  ""
+		     ),"Print server's stat";
+    "packets", Arg_none(fun o -> 
+			  let buf = o.conn_buf in
+			    Printf.bprintf buf "nb tcp requets:%d\n" (!nb_tcp_req_sec /5);
+			    Printf.bprintf buf "nb udp requets/second :%d\n" (!nb_udp_req_sec /5);
+			    Printf.bprintf buf "nb udp Location/second:%d\n nb udp Query/second:%d\n " (!nb_udp_loc_sec/5) (!nb_udp_query_sec/5);
+			    Printf.bprintf buf "nb udp rely send/second : %d\n" (!nb_udp_reply_sec/5);
+			    Printf.bprintf buf "nb udp ping server during %fs : %d\n" !!ping_knowed_servers (!nb_udp_ping_server_count);
+			    ""
+		       ), "Print number of udp and tcp packet rec";
+  ];
+
+  
   network.network_config_file <- Some server_ini;
   network.op_network_is_enabled <- (fun _ -> !!CommonOptions.enable_server);
   network.op_network_enable <- enable;
-  network.network_prefixes <- [ "server" ]  
-
-  
+  network.network_prefixes <- [ "server" ];  
+  network.op_network_info <- (fun n ->
+      { 
+        network_netnum = network.network_num;
+        network_config_filename = (match network.network_config_file with
+            None -> "" | Some opfile -> options_file_name opfile);
+        network_netname = network.network_name;
+        network_enabled = network.op_network_is_enabled ();
+        network_uploaded = Int64.zero;
+        network_downloaded = Int64.zero;
+      })

@@ -20,12 +20,6 @@ let upload_timeout =
   
   
   
-  
-let download_sample_rate = define_option downloads_ini ["download_sample_rate"]
-  "The delay between one glance at a file and another" float_option 1.
- 
-let download_sample_size = define_option downloads_ini ["download_sample_size"]
-    "How many samples go into an estimate of transfer rates" int_option 10
 
 let upload_power = define_option downloads_ini ["upload_power"]
   "The weight of upload on a donkey connection compared to upload on other

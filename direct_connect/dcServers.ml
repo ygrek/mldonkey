@@ -158,10 +158,7 @@ let recover_files_from_server s =
   ) !current_files;
   ()
   
-let server_addr s =
-  match s.server_addr with
-    AddrIp ip -> Ip.to_string ip
-  | AddrName s -> s
+let server_addr s = string_of_addr s.server_addr
 
 let server_handler s sock event = 
   match event with
@@ -199,7 +196,7 @@ let rec client_to_server s m sock =
   
   | ForceMoveReq t ->
       
-      let s = new_server (AddrName t) 411 in
+      let s = new_server (new_addr_name t) 411 in
       close sock "force move";
       connect_server s
   
@@ -328,21 +325,7 @@ and connect_server s =
       connection_try s.server_connection_control;
       incr nservers;
       printf_char 's'; 
-      let ip =
-        match s.server_addr with
-          AddrIp ip -> ip
-        | AddrName name -> 
-            try
-              match s.server_ip_cached with
-                None -> raise exit_exn
-              | Some (ip, date) ->
-                  if date +. !!ip_cache_timeout < last_time () then
-                    raise Not_found;
-                  ip
-            with _ ->
-                let ip = Ip.from_name name in
-                s.server_ip_cached <- Some (ip, last_time ());
-                ip
+      let ip = ip_of_addr s.server_addr
       in
       let sock = TcpBufferedSocket.connect "directconnect to server" (
           Ip.to_inet_addr ip)
@@ -362,9 +345,7 @@ and connect_server s =
       s.server_sock <- Some sock;
     with e -> 
         Printf.printf "%s:%d IMMEDIAT DISCONNECT %s"
-          (match s.server_addr with
-            AddrIp ip -> Ip.to_string ip
-          | AddrName s -> s) s.server_port
+          (string_of_addr s.server_addr) s.server_port
           (Printexc.to_string e); print_newline ();
 (*      Printf.printf "DISCONNECTED IMMEDIATLY"; print_newline (); *)
         decr nservers;
@@ -400,16 +381,12 @@ let connect_servers () =
       connect_one_server ()
     done
 
-let string_to_addr v =
-  let ip = try Ip.of_string v with _ -> Ip.null in
-  if ip <> Ip.null then AddrIp ip else AddrName v
-
 let parse_servers_list s =
   let lines = String2.split s '\n' in
   List.iter (fun s ->
       match String2.split s '|' with
         server_name :: server_addr :: server_info :: server_nusers :: _ ->
-          let s = new_server (string_to_addr server_addr) 411 in
+          let s = new_server (addr_of_string server_addr) 411 in
           s.server_name <- server_name;
           s.server_info <- server_info;
           (try s.server_nusers <- int_of_string server_nusers with _ -> ());
@@ -425,8 +402,7 @@ let load_servers_list url =
   let file_oc = open_out filename in
   let file_size = ref 0 in
   Http_client.get_page (Url.of_string url) []
-    (Http_client.default_headers_handler 
-      (fun maxlen sock nread ->
+  (fun maxlen headers sock nread ->
 (*        Printf.printf "..."; print_newline (); *)
         let buf = TcpBufferedSocket.buf sock in
         
@@ -454,7 +430,7 @@ let load_servers_list url =
                   (Printexc.to_string e) filename
           
           end
-    ))
+    )
 
 module P = Gui_proto
   
@@ -464,9 +440,7 @@ let _ =
       {
         P.server_num = (server_num s);
         P.server_network = network.network_num;
-        P.server_ip = (match s.server_addr with
-            AddrIp ip -> ip
-          | AddrName _ -> Ip.null);
+        P.server_addr = s.server_addr;
         P.server_port = s.server_port;
         P.server_score = 0;
         P.server_tags = [];

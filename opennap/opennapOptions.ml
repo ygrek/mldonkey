@@ -44,7 +44,7 @@ let client_port = define_option opennap_ini ["client_port"]
   
 let client_info = define_option opennap_ini ["client_info"]
   "The info on this client"
-    string_option "mldonkey v2.0"
+    string_option "mldonkey v1.99beta3"
 
 let use_napigator = define_option opennap_ini ["use_napigator"]
     "Download a list of servers from www.napigator.com"
@@ -58,6 +58,9 @@ let servers_list_url = define_option opennap_ini ["servers_list_url"]
     "The URL from which servers list is downloaded"
     string_option  "http://www.napigator.com/servers/"
   
+let server_connection_timeout = 
+  define_option opennap_ini ["server_connection_timeout"] 
+  "timeout when connecting to a server" float_option 10.
     
 let network_prefix = define_option opennap_ini
     ["network_prefix"] "The prefixes used before Open-Napster options"

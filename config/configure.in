@@ -3,6 +3,8 @@ AC_PREREQ(2.0)
 AC_INIT(Makefile.config.in)
 AC_CONFIG_HEADER(config.h)
 
+REQUIRED_OCAML=3.05
+
 touch install-sh
 
 MULTINET=yes
@@ -40,8 +42,29 @@ test -z "$ac_cv_prog_OCAMLC" && {
   echo "********  Objective-Caml is required  *********" 1>&2; 
   echo "*******  Check http://ocaml.inria.fr/  ********" 1>&2; 
   exit 1; } 
+
+OCAMLVERSION=`$OCAMLC -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
+echo "ocamlc version is $OCAMLVERSION"
+
+test "$OCAMLVERSION" = "$REQUIRED_OCAML" || {
+  echo "********  Version $REQUIRED_OCAML of Objective-Caml is required  *********" 1>&2; 
+  echo "*******  Check http://ocaml.inria.fr/  ********" 1>&2; 
+  exit 1; } 
+
+
 AC_CHECK_PROG(OCAMLOPT, ocamlopt.opt, ocamlopt.opt)
 AC_CHECK_PROG(OCAMLOPT, ocamlopt, ocamlrun ocamlopt )
+
+
+OCAMLOPTVERSION=`$OCAMLOPT -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
+echo "ocamlopt version is $OCAMLOPTVERSION"
+
+test "$OCAMLOPTVERSION" = "$OCAMLVERSION" || {
+  echo "********  Version $REQUIRED_OCAML of ocamlopt is required  *********" 1>&2; 
+  echo "*******  Check http://ocaml.inria.fr/  ********" 1>&2; 
+  exit 1; } 
+
+
 AC_CHECK_PROG(OCAMLLEX, ocamllex.opt, ocamllex.opt)
 AC_CHECK_PROG(OCAMLLEX, ocamllex, ocamlrun ocamllex )
 
@@ -152,15 +175,17 @@ fi
 
 if test "$DONKEY" = "yes" ; then
 
-OCAMLC_DIL=no 
-AC_MSG_CHECKING($OCAMLC supports -dil option)
-($OCAMLC -help 2>&1 | grep -e -dil > /dev/null) && OCAMLC_DIL=yes
-AC_MSG_RESULT($OCAMLC_DIL)
-
 OCAMLOPT_DIL=no 
 AC_MSG_CHECKING($OCAMLOPT supports -dil option)
 ($OCAMLOPT -help 2>&1 | grep -e -dil > /dev/null) && OCAMLOPT_DIL=yes
 AC_MSG_RESULT($OCAMLOPT_DIL)
+
+test "$OCAMLOPT_DIL" = "no" && {
+  PATCHED_OCAMLOPT=ocamlopt-$REQUIRED_OCAML/ocamlopt
+  OCAMLOPT=ocamlopt-$REQUIRED_OCAML/ocamlopt
+  OCAMLOPT_DIL=yes
+  echo "Need to build patched ocamlopt for eDonkey support"
+}
 
 AC_CHECK_FILE(../secret, [
   AC_CHECK_FILE(../donkey,[
@@ -202,10 +227,10 @@ fi
 AC_MSG_CHECKING(compile GTK GUI)
   if test "$LABLGTK_CONFIG" = "no"; then
         AC_MSG_RESULT(no)
-        BAD_TARGETS="$BAD_TARGETS mldonkey_gui\$(EXE) mlchat\$(EXE)"
+        BAD_TARGETS="$BAD_TARGETS mldonkey_gui\$(EXE) mldonkey_gui2\$(EXE) mlchat\$(EXE)"
         COMPILE_GUI=no
   else
-        MORE_TARGETS="$MORE_TARGETS mldonkey_gui\$(EXE) mlchat\$(EXE)"
+        MORE_TARGETS="$MORE_TARGETS mldonkey_gui\$(EXE) mldonkey_gui2\$(EXE) mlchat\$(EXE)"
         GTK_LIBS=`$GTK_CONFIG --libs`
         GTK_CFLAGS=`$GTK_CONFIG --cflags`
         GTK_VERSION=`$GTK_CONFIG --version`
@@ -218,6 +243,38 @@ case "`uname -s`" in
   *) CURRENT_DIR="./";;
 esac
 
+case "$host" in
+  alpha*-*-osf*)                arch=alpha; system=digital;;
+  alpha*-*-linux*)              arch=alpha; system=linux;;
+  alpha*-*-freebsd*)            arch=alpha; system=freebsd;;
+  alpha*-*-netbsd*)             arch=alpha; system=netbsd;;
+  alpha*-*-openbsd*)            arch=alpha; system=openbsd;;
+  sparc-*-sunos4.*)             arch=sparc; system=sunos;;
+  sparc-*-solaris2.*)           arch=sparc; system=solaris;;
+  sparc-*-*bsd*)                arch=sparc; system=bsd;;
+  sparc-*-linux*)               arch=sparc; system=linux;;
+  i?86-*-linux*)           arch=i386; system=linux;;
+  i?86-*-*bsd*)            arch=i386; system=bsd;;
+  i?86-*-nextstep*)        arch=i386; system=nextstep;;
+  i?86-*-solaris*)         arch=i386; system=solaris;;
+  i?86-*-beos*)            arch=i386; system=beos;;
+  i?86-*-cygwin*)          arch=i386; system=cygwin;;
+  mips-*-irix6*)                arch=mips; system=irix;;
+  hppa1.1-*-hpux*)              arch=hppa; system=hpux;;
+  hppa1.1-*-nextstep*)          arch=hppa; system=nextstep;;
+  rs6000-*-aix*)                arch=power; model=rs6000; system=aix;;
+  powerpc-*-aix*)               arch=power; model=ppc; system=aix;;
+  powerpc-*-linux*)             arch=power; model=ppc; system=elf;;
+  powerpc-*-rhapsody*)          arch=power; model=ppc; system=rhapsody;;
+  powerpc-*-darwin*)            arch=power; model=ppc; system=rhapsody;;
+  arm*-*-linux*)                arch=arm; system=linux;;
+  ia64-*-linux*)                arch=ia64; system=linux;;
+esac
+
+ARCH=$arch
+
+AC_SUBST(OCAMLC)
+AC_SUBST(OCAMLOPT)
 
 AC_SUBST(MORE_TARGETS)
 AC_SUBST(MORE_SUBDIRS)
@@ -238,8 +295,10 @@ AC_SUBST(OPEN_DONKEY)
 AC_SUBST(DONKEY_SERVER)
 
 AC_SUBST(OCAMLOPT_DIL)
-AC_SUBST(OCAMLC_DIL)
 AC_SUBST(COMPILE_GUI)
+AC_SUBST(REQUIRED_OCAML)
+AC_SUBST(ARCH)
+AC_SUBST(PATCHED_OCAMLOPT)
 
 AC_OUTPUT(Makefile.config ../lib/autoconf.ml)
 

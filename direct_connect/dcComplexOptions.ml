@@ -30,7 +30,7 @@ open DcOptions
 open CommonGlobals
 open DcGlobals
 
-      
+(*      
 let addr_to_value addr =
   match addr with
     AddrIp ip -> to_value Ip.option ip
@@ -39,7 +39,7 @@ let addr_to_value addr =
 let value_to_addr v =
   let ip = from_value Ip.option v in
   if ip <> Ip.null then AddrIp ip else AddrName (value_to_string v)
-
+*)
 
 let value_to_server  assocs =
   let get_value name conv = conv (List.assoc name assocs) in
@@ -52,11 +52,6 @@ let value_to_server  assocs =
   h.server_name <- get_value "server_name" value_to_string;
   h.server_info <- get_value "server_info" value_to_string;
   h.server_nusers <- get_value "server_nusers" value_to_int;
-  (try
-      let ip = get_value "server_ip" (from_value Ip.option) in
-      let date = get_value "server_ip_age" value_to_float in
-      h.server_ip_cached <- Some (ip, date)
-    with _ -> ());
   as_server h.server_server
 
 
@@ -68,12 +63,6 @@ let server_to_value h =
       "server_nusers", int_to_value h.server_nusers;
       "server_port", int_to_value h.server_port;
     ] in
-  let list = match h.server_ip_cached with 
-      None -> list
-    | Some (ip, date) -> 
-        ("server_ip", to_value Ip.option ip) ::
-        ("server_ip_age", float_to_value date) :: list
-  in
   list
   
 
@@ -127,9 +116,9 @@ let value_to_file is_done assocs =
   
 let file_to_value file =
   [
-    "file_size", int32_to_value file.file_size;
+    "file_size", int32_to_value (file_size file);
     "file_name", string_to_value file.file_name;
-    "file_downloaded", int32_to_value file.file_downloaded;
+    "file_downloaded", int32_to_value (file_downloaded file);
     "file_id", string_to_value (Md4.to_string file.file_id);
     "file_sources", 
     list_to_value (fun c ->

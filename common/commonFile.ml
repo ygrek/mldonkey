@@ -28,6 +28,12 @@ type 'a file_impl = {
     mutable impl_file_num : int;
     mutable impl_file_val : 'a;
     mutable impl_file_ops : 'a file_ops;
+    mutable impl_file_size : int32;
+    mutable impl_file_age : float;
+    mutable impl_file_fd : Unix32.t;
+    mutable impl_file_downloaded : int32;
+    mutable impl_file_last_downloaded : (int32 * float) list;
+    mutable impl_file_last_rate : float;
   }
   
 and 'a file_ops = {
@@ -70,6 +76,12 @@ let dummy_file_impl = {
     impl_file_num = 0;
     impl_file_val = 0;
     impl_file_ops = Obj.magic 0;
+    impl_file_size = Int32.zero;
+    impl_file_age = 0.0;
+    impl_file_fd = Unix32.create "" [Unix.O_RDONLY] 0o666;
+    impl_file_downloaded = Int32.zero;
+    impl_file_last_downloaded = [];
+    impl_file_last_rate = 0.0;
   }
   
 let dummy_file = as_file dummy_file_impl  
@@ -258,7 +270,49 @@ let file_new_source (file : file) c =
   client_must_update c;
   file_new_sources := (file, c) :: !file_new_sources  
 
+let rec last = function
+    [x] -> x
+  | _ :: l -> last l
+  | _ -> (Int32.zero, 0.0)
+    
+let sample_timer () =
+  let trimto list length =
+    let (list, _) = List2.cut length list in
+    list 
+  in
+  let time = BasicSocket.last_time () in
+  H.iter (fun file ->
+      let impl = as_file_impl file in
+      impl.impl_file_last_downloaded <-
+        trimto ((impl.impl_file_downloaded, time) :: 
+        impl.impl_file_last_downloaded) 
+      !!CommonOptions.download_sample_size;
+      match impl.impl_file_last_downloaded with
+        _ :: (last_downloaded, _) :: _ ->
+          if last_downloaded = impl.impl_file_downloaded &&
+            impl.impl_file_last_rate > 0. then
+            file_must_update file
+      | _ -> ()
+
+  ) files_by_num
+
+let file_download_rate impl =
+  let time = BasicSocket.last_time () in
+  let (last_downloaded, file_last_time) = last impl.impl_file_last_downloaded in
+  let time = time -. file_last_time in
+  let diff = Int32.sub impl.impl_file_downloaded last_downloaded in
+  let rate = if time > 0.0 && diff > Int32.zero then begin
+        (Int32.to_float diff) /. time;
+      end else 0.0
+  in
+  impl.impl_file_last_rate <- rate;
+  rate
   
+let add_file_downloaded impl n =
+  impl.impl_file_downloaded <- Int32.add impl.impl_file_downloaded n;
+  file_must_update (as_file impl)
+    
+
 let com_files_by_num = files_by_num
 let files_by_num = ()
 
@@ -304,6 +358,3 @@ let file_print file o =
     | name :: _ -> name)
   (Int32.to_string info.G.file_size)
   (Int32.to_string info.G.file_downloaded)      
-  
-  
-  

@@ -20,6 +20,12 @@
 
 (*
 
+  Add redirection:
+Unknown msg type: 821
+ascii: [ m u l t i s c a n . m y i p . o r g   6 6 6 6]
+
+  
+de
 ERVER 217.228.79.25:8888 kaenguru
 ERROR FROM SERVER: This server is full (900 connections)
 EXception Not_found in parse

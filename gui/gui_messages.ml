@@ -81,6 +81,8 @@ let friends = "Friends"
 let ip = "IP"
 let port = "Port"
 let remove = "Remove"
+let close = "Close"
+let close_room = "Close room"
 let view_files = "View files"
 let view_users = "View users"
 let files = "Files"
@@ -154,7 +156,8 @@ let preview = "Preview"
 let get_format = "Get format info"
 let find_friend = "Find friend"
 let remove_all_friends = "Remove all friends"
-
+let toggle_display_all_servers = "Display all servers"
+  
 let browse_files = "Browse files"
   
 let show_hidden_fields = "Show hidden fields"
@@ -284,6 +287,8 @@ let o_xpm_extend_search = "extend_search"
 let o_xpm_local_search = "local_search"
 let o_xpm_find_friend = "find_friend"
 let o_xpm_remove_all_friends = "remove_all_friends"
+let o_xpm_close_room = "close_room"
+
 
 let o_client_name = "Client name"
 let o_http_port = "HTTP Port" 

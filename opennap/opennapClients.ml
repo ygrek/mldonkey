@@ -34,65 +34,6 @@ module OG = OpennapGlobals
 module DO = CommonOptions  
 module DG = CommonGlobals
 
-  (*
-let client s =
-  match s.source_client with
-    None -> 
-      Printf.printf "NO SOURCE CLIENT"; print_newline ();
-      raise Not_found
-  | Some c -> c
-      
-let disconnect_from_source s =
-  try
-    let c = client s in
-    connection_failed s.source_connection_control;
-    begin
-      match c.source_sock with
-        None -> ()
-      | Some sock ->
-          c.source_sock <- None;
-          close sock "closed";
-          
-    end;
-    Printf.printf "Disconnected from source"; print_newline ();
-    s.source_client <- None
-  with _ -> ()
-      
-let new_client s sock =
-  disconnect_from_source s;
-  let c = {
-    source_sock = sock;
-    source_pos = Int32.zero;
-    source_error = false; 
-    source_file = None;
-    source = Some s;
-    } in
-  s.source_client <- Some c;
-  c
-
-let new_client_file s sock file =
-  disconnect_from_source s;
-  let c = {
-    source_sock = sock;
-    source_pos = file.file_downloaded;
-    source_error = false; 
-    source_file = Some file;
-    source = Some s;
-    } in
-  s.source_client <- Some c;
-  c
-
-let client_close c =
-  match c.source with
-    None -> begin
-        match c.source_sock with
-          None -> ()
-        | Some sock ->
-            close sock ""
-      end
-  | Some s -> disconnect_from_source s
-        *)
-
 let client_disconnected c =
   match c.client_sock with
     None -> ()
@@ -121,7 +62,7 @@ let file_complete file =
         (Printexc.to_string e)
         ; print_newline ());
   current_files := List2.removeq file !current_files;
-  old_files =:= (file.file_name, file.file_size) :: !!old_files;
+  old_files =:= (file.file_name, file_size file) :: !!old_files;
   List.iter (fun c ->
       c.client_files <- List.remove_assoc file c.client_files
   ) file.file_clients;
@@ -175,15 +116,16 @@ let index_sub s pos len c =
   find
   
 let read_stream c file sock b =
+  print_char '.'; flush stdout;
   begin
     begin
       let fd = try
-          Unix32.force_fd file.file_fd 
+          Unix32.force_fd (file_fd file) 
         with e -> 
             Printf.printf "In Unix32.force_fd"; print_newline ();
             raise e
       in
-      let final_pos = Unix32.seek32 file.file_fd c.client_pos Unix.SEEK_SET in
+      let final_pos = Unix32.seek32 (file_fd file) c.client_pos Unix.SEEK_SET in
       Unix2.really_write fd b.buf b.pos b.len;
     end;
 (*      Printf.printf "DIFF %d/%d" nread b.len; print_newline ();*)
@@ -193,11 +135,11 @@ let read_stream c file sock b =
 print_newline ();
   *)
     TcpBufferedSocket.buf_used sock b.len;
-    if c.client_pos > file.file_downloaded then begin
-        file.file_downloaded <- c.client_pos;
+    if c.client_pos > file_downloaded file then begin
+        file.file_file.impl_file_downloaded <- c.client_pos;
         file_must_update (as_file file.file_file)
       end;
-    if file.file_downloaded = file.file_size then
+    if file_downloaded file = file_size file then
       
       file_complete file             
   end
@@ -219,13 +161,13 @@ let client_reader c =
                 (file, filename) :: _ ->
                   c.client_file <- Some file;
                   connection_ok c.client_connection_control;
-                  let s =  (Printf.sprintf "%s \"%s\" %s"
+                  let s =  (Printf.sprintf "%s \"%s\" %ld"
                         (match c.client_user.user_servers with
                           [] -> !!CommonOptions.client_name
                         | s :: _ -> s.server_last_nick) filename 
-                        (Int32.to_string file.file_downloaded)) in
+                        (file_downloaded file)) in
                   write_string sock s;
-                  c.client_pos <- file.file_downloaded;
+                  c.client_pos <- file_downloaded file;
                   iter sock (nread - 1)
               | _ -> 
                   Printf.printf "No file or source"; print_newline ();
@@ -274,25 +216,24 @@ let client_reader2 c sock nread =
   match !c with
     None -> (* waiting for SENDnick "filename" size *) 
       begin
-(*          Printf.printf "RECEIVED [%s]" 
-(String.escaped (String.sub b.buf b.pos (min b.len 300)));
-print_newline ();
-*)        
+        Printf.printf "RECEIVED [%s]" 
+        (String.escaped (String.sub b.buf b.pos (min b.len 300)));
+        print_newline ();
         try
           let space = index_sub b.buf b.pos b.len ' ' in
-(*            Printf.printf "SPACE FOUND AT %d" space; print_newline (); *)
+            Printf.printf "SPACE FOUND AT %d" space; print_newline (); 
           let quote = index_sub b.buf space (b.len - space) '"' in
-(*            Printf.printf "QUOTE FOUND AT %d" quote; print_newline (); *)
+            Printf.printf "QUOTE FOUND AT %d" quote; print_newline (); 
           if space+1 <> quote then failwith "BAD SPACE"; 
           let quote2 = index_sub b.buf (quote+1) (b.len - quote - 1) '"' in
-(*            Printf.printf "QUOTE2 FOUND AT %d" quote2; print_newline (); *)
+            Printf.printf "QUOTE2 FOUND AT %d" quote2; print_newline (); 
           let nick = String.sub b.buf b.pos (space - b.pos) in
-(*            Printf.printf "nick ok"; print_newline (); *)
+            Printf.printf "nick ok"; print_newline (); 
           let file_name = String.sub b.buf (quote+1) (quote2 - quote - 1) in
-(*            Printf.printf "name ok"; print_newline (); *)
+            Printf.printf "name ok"; print_newline (); 
           let size = String.sub b.buf (quote2+2) (b.len - quote2 - 2) in
-(*            Printf.printf "FROM [%s] FILE [%s] SIZE [%s]" nick file_name size;
-            print_newline (); *)
+            Printf.printf "FROM [%s] FILE [%s] SIZE [%s]" nick file_name size;
+            print_newline (); 
           
           buf_used sock b.len;
           
@@ -305,7 +246,7 @@ print_newline ();
                 match cc.client_sock with
                   None ->
                     cc.client_file <- Some file;
-                    cc.client_pos <- file.file_downloaded;
+                    cc.client_pos <- file_downloaded file;
                     write_string sock (Int32.to_string cc.client_pos);
                     cc.client_sock <- Some sock;
                     c := Some cc
@@ -326,102 +267,6 @@ print_newline ();
       | Some file ->
           read_stream c file sock b
           
-          (*
-          begin
-            let fd = try
-                Unix32.force_fd file.file_fd 
-              with e -> 
-                  Printf.printf "In Unix32.force_fd"; print_newline ();
-                  raise e
-            in
-            let final_pos = Unix32.seek32 file.file_fd c.client_pos Unix.SEEK_SET in
-            Unix2.really_write fd b.buf b.pos b.len;
-          end;
-(*          Printf.printf "DIFF %d/%d" nread b.len; print_newline (); *)
-          c.client_pos <- Int32.add c.client_pos (Int32.of_int b.len);
-(*
-      Printf.printf "NEW SOURCE POS %s" (Int32.to_string c.source_pos);
-print_newline ();
-  *)
-          TcpBufferedSocket.buf_used sock b.len;
-          if c.source_pos > file.file_downloaded then begin
-              file.file_downloaded <- c.source_pos;
-            end;
-          if file.file_downloaded = f.file_size then
-            file_complete file 
-*)
-(*
-
-          if b.buf.[b.pos] = '1' then begin
-              
-              Printf.printf "1 RECEIVED"; print_newline ();
-              state := 1;
-              buf_used sock 1;            
-              write_string sock "GET";
-              match c.source, c.source_file with
-                Some s, Some file ->
-                  connection_ok s.source_connection_control;
-                  let r = file.file_result in
-                  let filename = List.assoc r s.source_files in
-                  let s =  (Printf.sprintf "%s \"%s\" %s"
-                        s.source_server.server_last_nick filename 
-                        (Int32.to_string file.file_downloaded)) in
-                  write_string sock s;
-                  c.source_pos <- file.file_downloaded;
-                  iter sock (nread - 1)
-              | _ -> 
-                  Printf.printf "No file or source"; print_newline ();
-                  client_close c
-            end
-          else begin
-              Printf.printf "bad non 1 reply"; print_newline ();
-              client_close c
-            end
-        end
-      else
-      if !state = 1 then (* waiting for length *) begin
-          let pos = b.pos + b.len - nread in
-          let rec find_end pos =
-            if pos - b.pos = b.len then -1 else
-            match b.buf.[pos] with
-              '0' .. '9' -> find_end (pos+1)
-            | _ -> pos
-          in
-          let pos_end = find_end pos in
-          if pos_end >= 0 then
-            let len = pos_end - b.pos in
-            let size = String.sub b.buf b.pos len in
-            buf_used sock len;            
-            Printf.printf "SIZE READ : [%s]" size; print_newline ();
-            let total_size = Int32.of_string size in
-            state := 2;
-            iter sock (nread - len)
-        end else begin
-          let f = file.file_result.result_file in
-          begin
-            let fd = try
-                Unix32.force_fd file.file_fd 
-              with e -> 
-                  Printf.printf "In Unix32.force_fd"; print_newline ();
-                  raise e
-            in
-            let final_pos = Unix32.seek32 file.file_fd c.source_pos Unix.SEEK_SET in
-            Unix2.really_write fd b.buf b.pos b.len;
-          end;
-(*      Printf.printf "DIFF %d/%d" nread b.len; print_newline ();*)
-          c.source_pos <- Int32.add c.source_pos (Int32.of_int b.len);
-(*
-      Printf.printf "NEW SOURCE POS %s" (Int32.to_string c.source_pos);
-print_newline ();
-  *)
-          TcpBufferedSocket.buf_used sock b.len;
-          if c.source_pos > file.file_downloaded then begin
-              file.file_downloaded <- c.source_pos;
-            end;
-          if file.file_downloaded = f.file_size then
-            file_complete file 
-*)            
-
 let connect_client c =
   match c.client_addr with
     None -> assert false

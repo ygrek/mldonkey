@@ -152,7 +152,7 @@ let add file =
 
     if file <> file2 then
       index_file doc file;
-    Printf.printf "Must check files with same md4"; print_newline ();
+    (*Printf.printf "Must check files with same md4"; print_newline ();*)
     ()
   with _ ->
       let doc = Store.add store file in

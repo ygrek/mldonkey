@@ -81,9 +81,9 @@ CHAT_SRCS = chat/chat_messages.ml\
         chat/chat_config.ml\
 
 COMMON_SRCS=common/commonTypes.ml \
-  common/gui_proto.ml \
   common/commonOptions.ml \
   common/commonGlobals.ml \
+  common/gui_proto.ml \
   common/commonChat.ml 
 
 COMMON_CLIENT_SRCS= \
@@ -132,9 +132,9 @@ DONKEY_SERVER_SRCS=\
   server/serverTypes.ml \
   server/serverOptions.ml \
   server/serverGlobals.ml \
+  server/serverMessages.ml \
   server/serverLocate.ml \
   server/serverIndexer.ml \
-  server/serverMessages.ml \
   server/serverLog.ml \
   server/serverClients.ml \
   server/serverUdp.ml  \
@@ -278,8 +278,11 @@ MLDONKEY_SRCS= \
 
 #######################################################################
 
+# gui2 is the old GUI which is not working anymore ... maybe some users
+# might want to keep it for a while. We don't want to force users to move
+
 ifeq ("$(COMPILE_GUI)" , "yes")
-SUBDIRS += gui configwin okey gpattern 
+SUBDIRS += gui gui2 configwin okey gpattern 
 
 CONFIGWIN_SRCS=configwin/configwin_types.ml \
   configwin/configwin_messages.ml \
@@ -311,11 +314,25 @@ GUI_SRCS= gui/gui_messages.ml \
   gui/gui_main.ml
 
 
+GUI2_SRCS= gui2/gui2_messages.ml gui2/gui2_keys.ml \
+  gui2/gui2_options.ml gui2/gui2_GList.ml gui2/gui2.zog \
+  gui2/myCList.ml gui2/gui2_handler.ml \
+  gui2/gui2_misc.ml gui2/gui2_config.ml \
+  gui2/gui2_main.ml
+
+
 MLDONKEYGUI_SRCS= \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
   $(MP3TAG_SRCS)  $(CONFIGWIN_SRCS) $(MP3TAGUI_SRCS) \
   $(MIN_PROTO_SRCS) $(OKEY_SRCS) $(GPATTERN_SRCS) \
   $(CHAT_SRCS) $(COMMON_SRCS) $(GUI_SRCS)
+
+
+MLDONKEYGUI2_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  $(MP3TAG_SRCS)  $(CONFIGWIN_SRCS) $(MP3TAGUI_SRCS) \
+  $(MIN_PROTO_SRCS) $(OKEY_SRCS) $(GPATTERN_SRCS) \
+  $(CHAT_SRCS) $(COMMON_SRCS) $(GUI2_SRCS)
 
 #######################################################################
 
@@ -337,7 +354,8 @@ CHAT_EXE_SRCS= \
 MLCHAT_SRCS= \
   $(CDK_SRCS) $(CONFIGWIN_SRCS) $(OKEY_SRCS) $(CHAT_SRCS) $(CHAT_EXE_SRCS)
 
-TARGETS += mldonkey_gui$(EXE) mlchat$(EXE)
+
+TARGETS += mldonkey_gui$(EXE)   mldonkey_gui2$(EXE)  mlchat$(EXE)
 
 endif
 
@@ -395,6 +413,18 @@ MLDONKEYGUI_CMXS=$(foreach file, $(MLDONKEYGUI_SRCS),   $(basename $(file)).cmx)
 TMPSOURCES += $(MLDONKEYGUI_MLL:.mll=.ml) $(MLDONKEYGUI_MLY:.mly=.ml) $(MLDONKEYGUI_MLY:.mly=.mli) $(MLDONKEYGUI_ZOG:.zog=.ml)
 
 
+
+MLDONKEYGUI2_ZOG := $(filter %.zog, $(MLDONKEYGUI2_SRCS))
+MLDONKEYGUI2_MLL := $(filter %.mll, $(MLDONKEYGUI2_SRCS))
+MLDONKEYGUI2_MLY := $(filter %.mly, $(MLDONKEYGUI2_SRCS))
+
+MLDONKEYGUI2_CMOS=$(foreach file, $(MLDONKEYGUI2_SRCS),   $(basename $(file)).cmo)
+MLDONKEYGUI2_CMXS=$(foreach file, $(MLDONKEYGUI2_SRCS),   $(basename $(file)).cmx)
+
+TMPSOURCES += $(MLDONKEYGUI2_MLL:.mll=.ml) $(MLDONKEYGUI2_MLY:.mly=.ml) $(MLDONKEYGUI2_MLY:.mly=.mli) $(MLDONKEYGUI2_ZOG:.zog=.ml)
+
+
+
 MLCHAT_ZOG := $(filter %.zog, $(MLCHAT_SRCS))
 MLCHAT_MLL := $(filter %.mll, $(MLCHAT_SRCS))
 MLCHAT_MLY := $(filter %.mly, $(MLCHAT_SRCS))
@@ -427,10 +457,10 @@ TMPSOURCES += $(PLUGIN_MLL:.mll=.ml) $(PLUGIN_MLY:.mly=.ml) $(PLUGIN_MLY:.mly=.m
 
 #######################################################################
 
-opt: $(TMPSOURCES) $(TARGETS)
+opt:  $(PATCHED_OCAMLOPT)  $(TMPSOURCES) $(TARGETS)
 
-byte: $(TMPSOURCES) $(foreach target, $(TARGETS), $(target).byte)
-static: $(foreach target, $(TARGETS), $(target).static)
+byte:  $(TMPSOURCES) $(foreach target, $(TARGETS), $(target).byte)
+static: $(PATCHED_OCAMLOPT) $(foreach target, $(TARGETS), $(target).static)
 
 
 PLUGINS_FILES:=$(foreach plugin, $(PLUGINS), $(plugin)_plugin)
@@ -487,6 +517,17 @@ mldonkey_gui.byte: $(MLDONKEYGUI_CMOS) $(OBJS)
 mldonkey_gui.static: $(MLDONKEYGUI_CMXS) $(OBJS) 
 	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(LIBS_opt) $(GTK_STATIC_LIBS_opt) $(MLDONKEYGUI_CMXS) $(OBJS)
 
+######## MLDONKEYGUI2
+
+mldonkey_gui2: $(MLDONKEYGUI2_CMXS) $(OBJS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@ $(LIBS_opt) $(GTK_LIBS_opt) $(MLDONKEYGUI2_CMXS) $(OBJS)
+
+mldonkey_gui2.byte: $(MLDONKEYGUI2_CMOS) $(OBJS) 
+	$(OCAMLC) -o $@ $(LIBS_byte) $(GTK_LIBS_byte) $(MLDONKEYGUI2_CMOS) $(OBJS)
+
+mldonkey_gui2.static: $(MLDONKEYGUI2_CMXS) $(OBJS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(LIBS_opt) $(GTK_STATIC_LIBS_opt) $(MLDONKEYGUI2_CMXS) $(OBJS)
+
 zogml:
 	(for i in gui/gui*_base.zog ; do \
 		camlp4 pa_o.cmo pa_zog.cma pr_o.cmo -impl $$i > gui/`basename $$i zog`ml ;\
@@ -523,6 +564,7 @@ clean:
 	done)
 
 distclean: clean
+	rm -rf ocamlopt-$(REQUIRED_OCAML)
 	rm -f config/config.cache config/config.log config/config.status
 	rm -f config/config.h config/Makefile.config
 	rm -f tools/zoggy/*.cm?
@@ -543,6 +585,15 @@ depend:  pa_zog.cma lib/http_lexer.ml $(TMPSOURCES) $(TMPFILES)
 	(for i in $(SUBDIRS); do \
 		$(OCAMLDEP) $(INCLUDES) $$i/*.ml $$i/*.mli  >> .depend; \
 	done)
+
+ocamlopt-$(REQUIRED_OCAML)/Makefile: patches/ocamlopt-$(REQUIRED_OCAML).tar.gz
+	rm -rf ocamlopt-$(REQUIRED_OCAML)
+	echo ocamlopt-$(REQUIRED_OCAML)/Makefile patches/ocamlopt-$(REQUIRED_OCAML).tar.gz
+	gzip -cd patches/ocamlopt-$(REQUIRED_OCAML).tar.gz | tar xf -
+	touch ocamlopt-$(REQUIRED_OCAML)/Makefile
+
+ocamlopt-$(REQUIRED_OCAML)/ocamlopt: ocamlopt-$(REQUIRED_OCAML)/Makefile
+	cd ocamlopt-$(REQUIRED_OCAML); $(MAKE)
 
 #######################################################################
 

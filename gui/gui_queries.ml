@@ -275,9 +275,6 @@ class box submit_search query_entry =
       let search = Gui_misc.create_search qe max_hits in
       submit_search local search
 
-    method extend () = 
-      Gui_com.send Gui_proto.ExtendedSearch
-
     method local () = self#submit ~local: true ()
 
     method set_tb_style st = 
@@ -294,14 +291,6 @@ class box submit_search query_entry =
 	   ~tooltip: M.submit
 	   ~icon: (Gui_icons.pixmap M.o_xpm_submit_search)#coerce
 	   ~callback: self#submit
-	   ()
-	);
-      ignore
-	(wtool#insert_button 
-	   ~text: M.extended_search
-	   ~tooltip: M.extended_search
-	   ~icon: (Gui_icons.pixmap M.o_xpm_extend_search)#coerce
-	   ~callback: self#extend
 	   ()
 	);
       ignore
@@ -340,7 +329,7 @@ class paned () =
 	Not_found ->
 	  ()
 
-    method submit_search local (s : Gui_proto.search) =
+    method submit_search local (s : search_request) =
       Gui_com.send (Gui_proto.Search_query (local, s));
       let desc = Gui_misc.description_of_query s.Gui_proto.search_query in
       let wl = GMisc.label ~text: desc () in
@@ -355,6 +344,10 @@ class paned () =
       wnote_results#insert_page ~tab_label: wl#coerce ~pos: 0 vbox#coerce;
       wnote_results#goto_page 0;
       wnote_main#goto_page 4;
+
+      (* only the last result box must have an "extended search" button *)
+      List.iter (fun (_,(b,_)) -> b#remove_extend_search_button) results;
+
       results <- (s.Gui_proto.search_num, (box_res, vbox)) :: results
 
     method set_tb_style st = 

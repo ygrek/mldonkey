@@ -41,7 +41,7 @@ type local_search = {
 and user = {
     user_user : user CommonUser.user_impl;
     mutable user_kind  : location_kind;
-    mutable user_files : (result * int) list;
+(*    mutable user_files : (result * int) list; *)
     mutable user_speed : int;
     mutable user_uid : Md4.t;
   }
@@ -62,21 +62,17 @@ and result = {
     result_result : result CommonResult.result_impl;
     result_name : string;
     result_size : int32;
-    mutable result_sources : user list;
+    mutable result_sources : (user * int) list;
   }
 
 and file = {
     file_file : file CommonFile.file_impl;
     file_id : Md4.t;
     file_name : string;
-    file_size : int32;
-    mutable file_downloaded : int32;
     mutable file_temp : string;
-    mutable file_fd : Unix32.t;
     mutable file_clients : client list;
   }
   
-
 open CommonNetwork
 
 (*

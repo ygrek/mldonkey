@@ -115,12 +115,13 @@ let client_to_value c =
       "client_checked", bool_to_value c.client_checked;
     ]
   in
+  
   match c.client_kind with
     Known_location (ip, port) ->        
       ("client_addr", addr_to_value ip  port) :: list
   | _ -> list
       
-let donkey_client_to_value c = 
+let donkey_client_to_value c =
   Options.Module (client_to_value c)  
 
 let client_option =
@@ -208,7 +209,7 @@ let value_to_file is_done assocs =
     (Md4.of_string file_md4_name) file_size true in
   
   (try
-      file.file_age <- get_value "file_age" value_to_float
+      file.file_file.impl_file_age <- get_value "file_age" value_to_float
     with _ -> ());
   
   (try 
@@ -261,14 +262,16 @@ let file_to_value file =
   let locs = ref [] in
   Intmap.iter (fun _ c ->
       match c.client_kind with
-        Indirect_location _ -> if c.client_md4 <> Md4.null then 
+        Indirect_location _ -> 
+          if c.client_md4 <> Md4.null then 
             locs := c :: !locs
-      | _ -> ()
+      | _ ->             
+          locs := c :: !locs
   ) file.file_sources;
   
   [
     "file_md4", string_to_value (Md4.to_string file.file_md4);
-    "file_size", int32_to_value file.file_size;
+    "file_size", int32_to_value file.file_file.impl_file_size;
     "file_all_chunks", string_to_value file.file_all_chunks;
     "file_state", state_to_value (file_state file);
     "file_absent_chunks", List
@@ -277,11 +280,11 @@ let file_to_value file =
       file.file_absent_chunks);
     "file_filenames", List
       (List.map (fun s -> string_to_value s) file.file_filenames);
-    "file_age", FloatValue file.file_age;
+    "file_age", FloatValue file.file_file.impl_file_age;
     "file_md4s", List
       (List.map (fun s -> string_to_value (Md4.to_string s)) 
       file.file_md4s);
-    "file_downloaded", int32_to_value file.file_downloaded;
+    "file_downloaded", int32_to_value file.file_file.impl_file_downloaded;
     "file_chunks_age", List (Array.to_list 
         (Array.map float_to_value file.file_chunks_age));
     "file_locations", list_to_value donkey_client_to_value

@@ -80,7 +80,7 @@ Unix2.safe_mkdir (Filename.dirname real_name);
 *)
   old_files =:= file.file_md4 :: !!old_files;
   file_commit (as_file file.file_file);
-  Unix32.close file.file_fd;
+  Unix32.close (file_fd file);
   let old_name = file.file_hardname in
   Printf.printf "\nMOVING %s TO %s\n" old_name real_name; 
   print_newline ();
@@ -123,58 +123,15 @@ let load_server_met filename =
                 server.server_description <- s
             | _ -> ()
         ) r.S.tags
-    ) ss
+    ) ss;
+    List.length ss
   with e ->
       Printf.printf "Exception %s while loading %s" (Printexc.to_string e)
       filename;
-      print_newline () 
+      print_newline ();
+      0
 
-        
-let load_url kind url =
-  Printf.printf "QUERY URL %s" url; print_newline ();
-  let filename = Filename.temp_file "http_" ".tmp" in
-  let file_oc = open_out filename in
-  let file_size = ref 0 in
-  Http_client.get_page (Url.of_string url) []
-    (Http_client.default_headers_handler 
-      (fun maxlen sock nread ->
-        let buf = TcpBufferedSocket.buf sock in
-        
-        if nread > 0 then begin
-            let left = 
-              if maxlen >= 0 then
-                mini (maxlen - !file_size) nread
-              else nread
-            in
-            output file_oc buf.buf buf.pos left;
-            buf_used sock left;
-            file_size := !file_size + left;
-            if nread > left then
-              TcpBufferedSocket.close sock "end read"
-          end
-        else
-        if nread = 0 then begin
-            close_out file_oc;
-            try
-              begin
-                match kind with
-                  "server.met" ->
-                    load_server_met filename;
-                    Printf.printf "SERVERS ADDED"; print_newline ();
-                | "comments.met" ->
-                    DonkeyIndexer.load_comments filename;
-                    Printf.printf "COMMENTS ADDED"; print_newline ();
-                | _ -> failwith (Printf.sprintf "Unknown kind [%s]" kind)
-              end;
-              Sys.remove filename
-              with e ->
-                  Printf.printf
-                    "Exception %s in loading downloaded file %s"
-                    (Printexc.to_string e) filename
-          
-          end
-    ))
-
+    
       
 let really_query_download filenames size md4 location old_file absents =
   begin
@@ -222,7 +179,7 @@ let really_query_download filenames size md4 location old_file absents =
 
   current_files := file :: !current_files;
   !file_change_hook file;
-  set_file_size file file.file_size;
+  set_file_size file (file_size file);
   List.iter (fun s ->
       match s.server_sock with
         None -> () (* assert false !!! *)
@@ -300,7 +257,7 @@ let load_prefs filename =
       
   
 let import_config dirname =
-  load_server_met (Filename.concat dirname "server.met");
+  ignore (load_server_met (Filename.concat dirname "server.met"));
   let ct, ot = load_prefs (Filename.concat dirname "pref.met") in
   let temp_dir = ref (Filename.concat dirname "temp") in
 
@@ -392,14 +349,14 @@ else *)
   name
       
 let print_file buf file =
-  Printf.bprintf buf "[%-5d] %s %10s %32s %s" 
+  Printf.bprintf buf "[%-5d] %s %10ld %32s %s" 
     (file_num file)
     (first_name file)
-  (Int32.to_string file.file_size)
+  (file_size file)
   (Md4.to_string file.file_md4)
   (if file_state file = FileDownloaded then
       "done" else
-      Int32.to_string file.file_downloaded);
+      Int32.to_string (file_downloaded file));
   Buffer.add_char buf '\n';
   Printf.bprintf buf "Connected clients:\n";
   let f _ c =
@@ -539,8 +496,8 @@ let commands = [
     "servers", Arg_one (fun filename o ->
         let buf = o.conn_buf in
         try
-          load_server_met filename;
-          "file loaded"
+          let n = load_server_met filename in
+          Printf.sprintf "%d servers loaded" n
         with e -> 
             Printf.sprintf "error %s while loading file" (Printexc.to_string e)
     ), " <filename> : add the servers from a server.met file";
@@ -742,35 +699,20 @@ let _ =
 
 module P = Gui_proto
 
-let rec last file = function
-    [x] -> x
-  | _ :: l -> last file l
-  | _ -> (Int32.zero, file.file_last_time)
-
 let _ =
   file_ops.op_file_info <- (fun file ->
-      
-      let (last_downloaded, file_last_time) = last file file.file_last_downloaded in
-      let time = last_time () -. file_last_time in
-      let diff = Int32.sub file.file_downloaded last_downloaded in
-      file.file_last_time <- last_time ();
-      let rate = if time > 0.0 && diff > Int32.zero then begin
-            (Int32.to_float diff) /. time;
-          end else 0.0
-      in
-      file.file_last_rate <- rate;
       {
         P.file_num = (file_num file);
         P.file_network = network.network_num;
         P.file_names = file.file_filenames;
         P.file_md4 = file.file_md4;
-        P.file_size = file.file_size;
-        P.file_downloaded = file.file_downloaded;
+        P.file_size = file_size file;
+        P.file_downloaded = file_downloaded file;
         P.file_nlocations = 0;
         P.file_nclients = 0;
         P.file_state = file_state file;
         P.file_sources = None;
-        P.file_download_rate = file.file_last_rate;
+        P.file_download_rate = file_download_rate file.file_file;
         P.file_chunks = file.file_all_chunks;
         P.file_availability = String2.init file.file_nchunks (fun i ->
             if file.file_available_chunks.(i) > 1 then '2' else
@@ -778,7 +720,7 @@ let _ =
               '0');
         P.file_format = file.file_format;
         P.file_chunks_age = file.file_chunks_age;
-        P.file_age = file.file_age;
+        P.file_age = file_age file;
       }
   )
 
@@ -787,7 +729,7 @@ let _ =
       {
         P.server_num = (server_num s);
         P.server_network = network.network_num;
-        P.server_ip = s.server_ip;
+        P.server_addr = new_addr_ip s.server_ip;
         P.server_port = s.server_port;
         P.server_score = s.server_score;
         P.server_tags = s.server_tags;
@@ -922,7 +864,9 @@ let _ =
       | Some files -> 
           List2.tail_map (fun r -> "", as_result r.result_result) files);
   client_ops.op_client_browse <- (fun c immediate ->
+(*      Printf.printf "should browse"; print_newline (); *)
       if immediate then browse_client c else begin
+(*          Printf.printf "Adding friend to clients_list"; print_newline (); *)
           clients_list := (c, []) :: !clients_list;
           incr clients_list_len
         end);
@@ -945,7 +889,18 @@ let _ =
   shared_ops.op_shared_unshare <- (fun s file ->
       file.file_shared <- false;
       decr nshared_files;
-      Unix32.close  file.file_fd;
+      Unix32.close  (file_fd file);
       file.file_hardname <- "";
       try Hashtbl.remove files_by_md4 file.file_md4 with _ -> ()
   )
+
+let _ =
+  add_web_kind "server.met" (fun filename ->
+      let n = load_server_met filename in
+      Printf.printf "%d SERVERS ADDED" n; print_newline ();    
+  );
+  add_web_kind "comments.met" (fun filename ->
+      DonkeyIndexer.load_comments filename;
+      Printf.printf "COMMENTS ADDED"; print_newline ();   
+  )
+  

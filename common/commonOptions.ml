@@ -223,7 +223,7 @@ let verbose = define_option downloads_ini ["verbose"] "Only for debug"
 
   
 let max_opened_connections = define_option downloads_ini
-    ["max_opened_connections"] "Maximal number of opened connections" int_option (Unix32.fds_size - 100)
+    ["max_opened_connections"] "Maximal number of opened connections" int_option (maxi (Unix32.fds_size - 100) (Unix32.fds_size / 2))
 
 let web_infos = define_option downloads_ini
     ["web_infos"] "A list of lines to download on the WEB: each line has 
@@ -239,7 +239,9 @@ let web_infos = define_option downloads_ini
   "
     (list_option (
       tuple3_option (string_option, int_option, string_option)))
-  []
+  [
+    ("server.met", 1, "http://ocbmaurice.dyns.net/pl/slist.pl?download");
+  ]
 
   (*
 let web_header = define_option downloads_ini
@@ -499,6 +501,12 @@ let enable_opennap = define_option downloads_ini
     ["enable_opennap"]
   "Set to true if you also want mldonkey to run as a napster client (experimental)"
     bool_option false
+  
+  
+let enable_soulseek = define_option downloads_ini
+    ["enable_soulseek"]
+  "Set to true if you also want mldonkey to run as a soulseek client (experimental)"
+    bool_option false
     
   
 let enable_audiogalaxy = define_option downloads_ini
@@ -567,3 +575,14 @@ let _ =
 let client_md4 = define_option downloads_ini ["client_md4"]
     "The MD4 of this client" Md4.option (Md4.random ())
 
+let ip_cache_timeout = define_option downloads_ini
+    ["ip_cache_timeout"]
+    "The time an ip address can be kept in the cache"
+    float_option 3600.
+
+    
+let download_sample_rate = define_option downloads_ini ["download_sample_rate"]
+  "The delay between one glance at a file and another" float_option 1.
+ 
+let download_sample_size = define_option downloads_ini ["download_sample_size"]
+    "How many samples go into an estimate of transfer rates" int_option 10

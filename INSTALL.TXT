@@ -1,16 +1,23 @@
 Compiling mldonkey:
 -------------------
 
-1) Installing required tools: Objective-Caml 1.04 (patched) and LablGTK 1.2.3
+1) Installing required tools: Objective-Caml 3.05 and LablGTK 1.2.3
 
- 1.1) Objective-Caml 1.04 (from   http://pauillac.inria.fr/caml)
+ 1.1) Objective-Caml 3.05 (from   http://pauillac.inria.fr/caml)
 
-    ~/tmp> tar zxf ocaml-1.04.tar.gz
-    ~/tmp> cd ocaml-1.04
-    ~/tmp/ocaml-3.04> patch -p1 < ~/tmp/mldonkey/patches/ocaml-3.04.patch
-    ~/tmp/ocaml-3.04> ./configure
-    ~/tmp/ocaml-3.04> make world opt opt.opt
-    ~/tmp/ocaml-3.04> make install
+  You don't need to patch it anymore for eDonkey support. It is done while
+  compiling mldonkey. If you still want to patch it, the patch is in
+  mldonkey/patches/ocaml-3.05.patch.
+
+    ~/tmp> tar zxf ocaml-3.05.tar.gz
+    ~/tmp> cd ocaml-3.05
+
+   If you REALLY want to patch it:
+    ~/tmp/ocaml-3.05> patch -p1 < ~/tmp/mldonkey/patches/ocaml-3.05.patch
+
+    ~/tmp/ocaml-3.05> ./configure
+    ~/tmp/ocaml-3.05> make world opt opt.opt
+    ~/tmp/ocaml-3.05> make install
 
  1.2) LablGTK 1.2.3 (from 
             http://wwwfun.kurims.kyoto-u.ac.jp/soft/olabl/lablgtk.html)

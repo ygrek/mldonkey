@@ -62,3 +62,17 @@ let max_known_ultrapeers = define_option limewire_ini ["max_known_ultrapeers"]
 let max_known_peers = define_option limewire_ini ["max_known_peers"]
   "Maximal number of peers remembered"
   int_option 20
+
+    
+let server_connection_timeout = 
+  define_option limewire_ini ["server_connection_timeout"] 
+  "timeout when connecting to a server" float_option 10.
+    
+let verbose_clients = 
+  define_option limewire_ini ["verbose_clients"] 
+  "level of verbosity when communicating with clients" 
+    int_option 0
+    
+let verbose_servers = 
+  define_option limewire_ini ["verbose_servers"] 
+    "level of verbosity when communicating with servers" int_option 0

@@ -78,7 +78,16 @@ server" bool_option false
 
 let relais_master = define_option server_ini ["relais_master"] "Your server will
 be a master of a group" bool_option false
+
+let max_servers = define_option server_ini ["max number of server in the groupe"] "Only use if you are a sever master" int_option 5
+
+let max_group_clients = define_option server_ini ["max number of clients in the groupe"] 
+"if you are a master then the group doesn't support more clients else you can't merge a groupe with a upper bound value" int_option 5000
+
+let max_group_files = define_option server_ini ["max number of file in the groupe"] "the group doesn't support more files" int_option 500
   
+let notify_time_out = define_option server_ini ["notify_time_out"] "notify other server about your location modification"
+float_option 20.
 
 let known_server = define_option server_ini ["known_server"]
   "Known server" (list_option (tuple2_option (Ip.option, int_option)))

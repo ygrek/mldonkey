@@ -17,9 +17,19 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-val add : Md4.t -> ServerTypes.location -> unit
-(*val add : Md4.t -> ServerTypes.where -> unit*)
+(*open LocalisationInit
+open LocalisationNotif*)
 
+(*add one location*)
+val add : Md4.t -> ServerTypes.location -> unit
+
+(*add a liste of notification*)
+val adds : Md4.t -> ServerMessages.LocalisationInit.localisation list -> unit
+
+(*notify add and supp in server groupe cooperation*)
+val notifications : Md4.t -> ServerMessages.LocalisationNotif.localisation list -> unit
+
+val get_local_sources : ServerTypes.peer -> unit
 (*val find : Md4.t -> (ServerTypes.location -> unit) -> unit*)
 
 val supp : Md4.t -> ServerTypes.location -> unit

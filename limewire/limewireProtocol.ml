@@ -518,46 +518,60 @@ dump (String.sub b.buf b.pos b.len);
   with 
   | Not_found -> ()
 
-let handler header_handler body_handler =
+let handler info header_handler body_handler =
   let header_done = ref false in
   fun sock nread ->
-    let b = TcpBufferedSocket.buf sock in
-    if !header_done then body_handler sock nread else
-    let end_pos = b.pos + b.len in
-    let begin_pos = max b.pos (end_pos - nread - 3) in
-    let rec iter i n_read =
-      if i < end_pos then
-        if b.buf.[i] = '\r' then
-          iter (i+1) n_read
-        else
-        if b.buf.[i] = '\n' then
-          if n_read then begin
-              let header = String.sub b.buf b.pos (i - b.pos) in
-              (*
-              Printf.printf "HEADER : ";
-dump header; print_newline ();
-  *)
-              header_done := true;
-              header_handler sock header;
-              let nused = i - b.pos + 1 in
-              buf_used sock nused;              
-              if nread - nused > 20 then begin
-                  (*
+    try
+      let b = TcpBufferedSocket.buf sock in
+      if !header_done then body_handler sock nread else
+      let end_pos = b.pos + b.len in
+      let begin_pos = max b.pos (end_pos - nread - 3) in
+      let rec iter i n_read =
+        if i < end_pos then
+          if b.buf.[i] = '\r' then
+            iter (i+1) n_read
+          else
+          if b.buf.[i] = '\n' then
+            if n_read then begin
+                let header = String.sub b.buf b.pos (i - b.pos) in
+                
+                if info > 10 then begin
+                    Printf.printf "HEADER : ";
+                    dump header; print_newline ();
+                  end;
+                header_done := true;
+                
+                header_handler sock header;
+                let nused = i - b.pos + 1 in
+                buf_used sock nused;              
+                if nread - nused > 20 then begin
+(*
                   Printf.printf "BEGINNING OF BLOC (6 bytes from header)";
                   print_newline ();
                   dump (String.sub b.buf (b.pos-6) (min 20 (b.len - b.pos + 6)));
 Printf.printf "LEFT %d" (nread - nused); print_newline ();
 *)
-                  ()
-                end;
-              body_handler sock (nread - nused)
-            end else
-            iter (i+1) true
-        else
-          iter (i+1) false
+                    ()
+                  end;
+                body_handler sock (nread - nused)
+              end else
+              iter (i+1) true
+          else
+            iter (i+1) false
+        else begin
+            if info > 0 then (
+                Printf.printf "END OF HEADER WITHOUT END"; print_newline ();
+                let header = String.sub b.buf b.pos b.len in
+                BigEndian.dump header;
+              );
+          end
     in
     iter begin_pos false
-
+    with e ->
+        Printf.printf "Exception %s in handler" (Printexc.to_string e); 
+        print_newline ();
+        raise e
+        
 let handlers header_handlers body_handler =
   let headers = ref header_handlers in
   let rec iter_read  sock nread =

@@ -54,7 +54,8 @@ let chunk_pos i =
 
 let chunk_end file i =
   let pos = Int32.mul (Int32.of_int (i+1))  block_size in
-  if pos > file.file_size then file.file_size else pos
+  if pos > file_size file then 
+    file_size file else pos
     
 let new_block file i =
   
@@ -102,22 +103,22 @@ let disconnected_from_client c msg =
   check_useful_client c
 
 let rec create_zones file begin_pos end_pos list =
-(*  Printf.printf "create_zones for %s-%s"
-    (Int32.to_string begin_pos) (Int32.to_string end_pos);
+(*  Printf.printf "create_zones for %ld-%ld"
+    begin_pos end_pos;
   print_newline (); *)
   if begin_pos = end_pos then list
   else
   let zone_end = Int32.add begin_pos zone_size in
-(*  Printf.printf "ZONE END %s" (Int32.to_string zone_end); print_newline ();*)
+(*  Printf.printf "ZONE END %ld" zone_end; print_newline ();*)
   let zone_end2 = if zone_end > end_pos then begin
-(*        Printf.printf "%s > %s" (Int32.to_string zone_end)
-        (Int32.to_string end_pos)
+(*        Printf.printf "%ld > %ld" zone_end
+         end_pos
         
         ; print_newline (); *)
         end_pos
         
       end else zone_end in
-(*  Printf.printf "CORRECTED ZONE END %s" (Int32.to_string zone_end); print_newline (); *)
+(*  Printf.printf "CORRECTED ZONE END %ld" zone_end; print_newline (); *)
   create_zones file zone_end2 end_pos ({
       zone_begin = begin_pos;
       zone_end = zone_end2;
@@ -258,7 +259,7 @@ let find_absents file =
         iter_blocks_out i zs prev
         
   and iter_chunks_in i begin_pos prev =
-    if i = file.file_nchunks then (begin_pos, file.file_size) :: prev else
+    if i = file.file_nchunks then (begin_pos, file_size file) :: prev else
     match file.file_chunks.(i) with
       AbsentTemp | AbsentVerified ->
         iter_chunks_in (i+1) begin_pos prev
@@ -295,7 +296,7 @@ let find_absents file =
   iter_chunks_out 0 []
     
 let compute_size file =
-  if file.file_size <> Int32.zero then
+  if file_size file <> Int32.zero then
     
     let absents = ref Int32.zero in
     for i = 0 to file.file_nchunks - 1 do
@@ -309,12 +310,12 @@ let compute_size file =
                 Int32.sub z.zone_end z.zone_begin)
           ) b.block_zones
     done;
-    let current = Int32.sub file.file_size !absents in
-    file.file_downloaded <- current;
-    if file.file_downloaded > file.file_size then begin
-        Printf.printf "******* downloaded %s > %s size after compute_size ***** for %s"
-          (Int32.to_string file.file_downloaded)
-        (Int32.to_string file.file_size)
+    let current = Int32.sub (file_size file) !absents in
+    file.file_file.impl_file_downloaded <- current;
+    if file_downloaded file > file_size file then begin
+        Printf.printf "******* downloaded %ld > %ld size after compute_size ***** for %s"
+          (file_downloaded file)
+        (file_size file)
         (match file.file_filenames with
             s :: _ -> s| _ -> Md4.to_string file.file_md4);
         print_newline () 
@@ -336,7 +337,7 @@ let verify_chunk file i =
   let end_pos = chunk_end file i in
   let len = Int32.sub end_pos begin_pos in
   let md4 = file_md4s.(i) in
-  let new_md4 = Md4.digest_subfile file.file_fd begin_pos len in
+  let new_md4 = Md4.digest_subfile (file_fd file) begin_pos len in
   (*
   let mmap = Mmap.mmap file.file_name 
     (file_fd file) begin_pos len in
@@ -386,8 +387,8 @@ let rec find_client_zone c =
 (*
       Printf.printf "Current zones for client:";
       List.iter (fun z -> 
-          Printf.printf "zone: %s-%s"
-            (Int32.to_string z.zone_begin) (Int32.to_string z.zone_end)
+          Printf.printf "zone: %ld-%ld"
+            (z.zone_begin) (z.zone_end)
       ) c.client_zones;
 print_newline ();
   *)
@@ -427,8 +428,7 @@ and print_client_zones n b c =
   if !!verbose then begin
       Printf.printf "\n%d: ZONES IN %d" (client_num c) n; 
       List.iter (fun z ->
-          Printf.printf " [%s - %s] " (Int32.to_string z.zone_begin)
-          (Int32.to_string z.zone_end);
+          Printf.printf " [%ld - %ld] " (z.zone_begin)(z.zone_end);
           print_newline ();
       ) c.client_zones;
       print_newline ();
@@ -504,8 +504,8 @@ and check_file_block c file i max_clients =
           
           b.block_nclients <- 1;            
           if !!verbose then begin
-              Printf.printf "\n%d: NEW BLOCK [%s - %s]" (client_num c)
-                (Int32.to_string b.block_begin) (Int32.to_string b.block_end);
+              Printf.printf "\n%d: NEW BLOCK [%ld - %ld]" (client_num c)
+                (b.block_begin) (b.block_end);
               print_newline ();
             end;
           c.client_block <- Some b;
@@ -517,8 +517,8 @@ and check_file_block c file i max_clients =
           b.block_nclients <- b.block_nclients + 1;            
           c.client_block <- Some b;
           if !!verbose then begin
-              Printf.printf "\n%d: NEW CLIENT FOR BLOCK [%s - %s]" (client_num c)
-                (Int32.to_string b.block_begin) (Int32.to_string b.block_end);
+              Printf.printf "\n%d: NEW CLIENT FOR BLOCK [%ld - %ld]" (client_num c)
+                (b.block_begin) (b.block_end);
               print_newline ();
             end;
           
@@ -545,7 +545,7 @@ and start_download c =
             if c.client_chunks.(i)  then 
               c.client_all_chunks.[i] <- '1';
           done;          
-          if file.file_md4s = [] && file.file_size > block_size then begin
+          if file.file_md4s = [] && file_size file > block_size then begin
               direct_client_send sock (
                 let module M = Mftp_client in
                 let module C = M.QueryChunkMd4 in
@@ -641,7 +641,7 @@ let disconnect_chunk ch =
       let file = b.block_file in
       b.block_present <- true;
       List.iter (fun z ->
-          z.zone_begin <- file.file_size;
+          z.zone_begin <- file_size file;
       ) b.block_zones;
       b.block_zones <- []            
   | AbsentTemp | AbsentVerified | PresentTemp  | PresentVerified -> ()
@@ -665,12 +665,12 @@ let verify_chunks file =
             match b with
               PartialTemp bloc -> PartialVerified bloc
             | PresentTemp ->
-                file.file_downloaded <- Int32.sub file.file_downloaded block_size;
+                file.file_file.impl_file_downloaded <- Int32.sub (file_downloaded file) block_size;
                 
-                if file.file_downloaded > file.file_size then begin
-                    Printf.printf "******* downloaded %s > %s size after verify_chunks ***** for %s"
-                      (Int32.to_string file.file_downloaded)
-                    (Int32.to_string file.file_size)
+                if file_downloaded file > file_size file then begin
+                    Printf.printf "******* downloaded %ld > %ld size after verify_chunks ***** for %s"
+                      (file_downloaded file)
+                    (file_size file)
                     (match file.file_filenames with
                         s :: _ -> s| _ -> Md4.to_string file.file_md4);
                     print_newline () 
@@ -690,13 +690,13 @@ let verify_chunks file =
 let set_file_size file sz =
   
   if sz <> Int32.zero then begin
-      if file.file_size = Int32.zero then 
+      if file_size file = Int32.zero then 
           file.file_absent_chunks <- [Int32.zero, sz];
-      file.file_size <- sz;
+      file.file_file.impl_file_size <- sz;
       file.file_nchunks <- Int32.to_int (Int32.div  
           (Int32.sub sz Int32.one) block_size)+1;
       file.file_chunks <- Array.create file.file_nchunks AbsentTemp;
-      Unix32.ftruncate32 file.file_fd sz; (* at this point, file exists *)
+      Unix32.ftruncate32 (file_fd file) sz; (* at this point, file exists *)
       
       file.file_all_chunks <- String.make file.file_nchunks '0';
       
@@ -716,7 +716,7 @@ let set_file_size file sz =
       
 (*
       List.iter (fun (p0,p1) ->
-Printf.printf "%s <---> %s" (Int32.to_string p0) (Int32.to_string p1);
+Printf.printf "%ld <---> %ld" (p0) (p1);
   print_newline ();
 ) file.file_absent_chunks;
   *)
@@ -742,13 +742,12 @@ let update_zone file begin_pos end_pos z =
   if z.zone_begin >= begin_pos && z.zone_end <= end_pos then begin
 (* the zone has completely been downloaded *)
       
-      file.file_downloaded <- Int32.add file.file_downloaded 
-        (Int32.sub z.zone_end z.zone_begin);
+      add_file_downloaded file.file_file (Int32.sub z.zone_end z.zone_begin);
       
-      if file.file_downloaded > file.file_size then begin
-          Printf.printf "******* downloaded %s > %s size after update_zone ***** for %s"
-            (Int32.to_string file.file_downloaded)
-          (Int32.to_string file.file_size)
+      if file_downloaded file > file_size file then begin
+          Printf.printf "******* downloaded %ld > %ld size after update_zone ***** for %s"
+            (file_downloaded file)
+          (file_size file)
           (match file.file_filenames with
               s :: _ -> s| _ -> Md4.to_string file.file_md4);
           print_newline () 
@@ -758,8 +757,8 @@ let update_zone file begin_pos end_pos z =
       z.zone_present <- true;
       z.zone_begin <- z.zone_end;
       if !!verbose && end_pos > z.zone_end then begin
-          Printf.printf "EXCEEDING: %s>%s" (Int32.to_string end_pos)
-          (Int32.to_string z.zone_end);
+          Printf.printf "EXCEEDING: %ld>%ld" (end_pos)
+          (z.zone_end);
           print_newline ();
         end
     
@@ -767,13 +766,11 @@ let update_zone file begin_pos end_pos z =
   if z.zone_begin >= begin_pos && z.zone_begin < end_pos then begin
 (* the block is at the beginning of the zone *)
       
-      file.file_downloaded <- 
-        Int32.add file.file_downloaded 
-        (Int32.sub end_pos z.zone_begin);
-      if file.file_downloaded > file.file_size then begin
-          Printf.printf "******* downloaded %s > %s size after update_zone (2) ***** for %s"
-            (Int32.to_string file.file_downloaded)
-          (Int32.to_string file.file_size)
+      add_file_downloaded file.file_file (Int32.sub end_pos z.zone_begin);
+      if file_downloaded file > file_size file then begin
+          Printf.printf "******* downloaded %ld > %ld size after update_zone (2) ***** for %s"
+            (file_downloaded file)
+          (file_size file)
           (match file.file_filenames with
               s :: _ -> s| _ -> Md4.to_string file.file_md4);
           print_newline () 
@@ -787,13 +784,11 @@ let update_zone file begin_pos end_pos z =
   if z.zone_end > begin_pos && z.zone_end <= end_pos then begin
 (* the block is at the end of the zone *)
       
-      file.file_downloaded <- 
-        Int32.add file.file_downloaded 
-        (Int32.sub z.zone_end begin_pos);
-      if file.file_downloaded > file.file_size then begin
-          Printf.printf "******* downloaded %s > %s size after update_zone (3) ***** for %s"
-            (Int32.to_string file.file_downloaded)
-          (Int32.to_string file.file_size)
+      add_file_downloaded file.file_file (Int32.sub z.zone_end begin_pos);
+      if file_downloaded file > file_size file then begin
+          Printf.printf "******* downloaded %ld > %ld size after update_zone (3) ***** for %s"
+            (file_downloaded file)
+          (file_size file)
           (match file.file_filenames with
               s :: _ -> s| _ -> Md4.to_string file.file_md4);
           print_newline () 
@@ -808,11 +803,11 @@ let update_zone file begin_pos end_pos z =
 
 (*  else begin 
       if !!verbose then begin
-          Printf.printf "CAN'T UPDATE ZONE %s-%s WITH %s-%s"
-            (Int32.to_string z.zone_begin)
-          (Int32.to_string z.zone_end)
-          (Int32.to_string begin_pos)
-          (Int32.to_string end_pos)
+          Printf.printf "CAN'T UPDATE ZONE %ld-%ld WITH %ld-%ld"
+            (z.zone_begin)
+          (z.zone_end)
+          (begin_pos)
+          (end_pos)
           ; print_newline ();
         end
     end        
@@ -848,9 +843,9 @@ let best_name file =
 let mail_for_completed_file file =
   if !!mail <> "" then
     let line1 = "\r\n mldonkey has completed the download of:\r\n\r\n" in
-    let line2 = Printf.sprintf "\r\ned2k://|file|%s|%s|%s|\r\n" 
+    let line2 = Printf.sprintf "\r\ned2k://|file|%s|%ld|%s|\r\n" 
         (best_name file)
-      (Int32.to_string file.file_size)
+      (file_size file)
       (Md4.to_string file.file_md4)
     in
     
@@ -880,7 +875,7 @@ let remove_file md4 =
   try
     let file = Hashtbl.find files_by_md4 md4 in
     file_cancel (as_file file.file_file);
-    Unix32.close file.file_fd;
+    Unix32.close (file_fd file);
     file.file_shared <- false;
     decr nshared_files;
     (try Sys.remove file.file_hardname with e -> 
@@ -947,7 +942,7 @@ let check_file_downloaded file =
                           
                             (file.file_hardname ::
                             (Md4.to_string file.file_md4) ::
-                            (Int32.to_string file.file_size) ::
+                            (Int32.to_string (file_size file)) ::
                             file.file_filenames));
                         exit 0
                       with e -> 

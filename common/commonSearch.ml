@@ -658,6 +658,11 @@ let search_media_list =
    en query. Les conversions pour Media sont faites
    au vol, pour donkey.*)
 
+  
+let or_comb q1 q2 = QOr (q1,q2)
+let and_comb q1 q2 = QAnd (q1,q2)
+let andnot q1 q2 = QAndNot (q1,q2)
+  
 let rec mftp_query_of_query_entry qe =
   match qe with
     Q_AND ([]|[_]) -> QNone
@@ -682,7 +687,7 @@ let rec mftp_query_of_query_entry qe =
 	
   | Q_KEYWORDS (_,s) ->
       (
-       try want_and_not (fun w -> QHasWord w) s
+       try want_and_not andnot (fun w -> QHasWord w) s
        with Not_found -> QNone
       )
 
@@ -699,7 +704,7 @@ let rec mftp_query_of_query_entry qe =
   | Q_FORMAT (_,s) ->
       (
        try
-	 want_comb_not or_comb
+	 want_comb_not andnot or_comb
            (fun w -> QHasField("format", w)) s
        with Not_found ->
 	 QNone
@@ -716,7 +721,7 @@ let rec mftp_query_of_query_entry qe =
   | Q_MP3_ARTIST (_,s) ->
       (
        try 
-	 want_comb_not and_comb 
+	 want_comb_not andnot and_comb 
            (fun w -> QHasField("Artist", w)) s
        with Not_found ->
 	 QNone
@@ -725,7 +730,7 @@ let rec mftp_query_of_query_entry qe =
   | Q_MP3_TITLE (_,s) ->
       (
        try 
-	 want_comb_not and_comb 
+	 want_comb_not andnot and_comb 
            (fun w -> QHasField("Title", w)) s
        with Not_found ->
 	 QNone
@@ -733,18 +738,20 @@ let rec mftp_query_of_query_entry qe =
   | Q_MP3_ALBUM (_,s) ->
       (
        try 
-	 want_comb_not and_comb 
+	 want_comb_not andnot and_comb 
            (fun w -> QHasField("Album", w)) s
        with Not_found ->
 	 QNone
       )
 
   | Q_MP3_BITRATE (_,s) ->
-      let bitrate = 
-	try Int32.of_string s
-	with _ -> Int32.of_int 1
-      in
-      QHasMinVal("bitrate", bitrate)
+      begin
+        try
+          let bitrate =  Int32.of_string s
+          in
+          QHasMinVal("bitrate", bitrate)
+        with _ -> QNone
+      end
 
   | Q_HIDDEN [q] ->
       mftp_query_of_query_entry q

@@ -45,6 +45,11 @@ let results_by_file = Hashtbl.create 127
 
 let (current_files : OpennapTypes.file list ref) = ref []
 
+  
+let client_type c =
+  client_type (as_client c.client_client)
+
+  
       
 let exit_exn = Exit
 let basename filename =
@@ -143,26 +148,28 @@ let new_file file_id file_name file_size =
             Int32.zero
       in
       
-      let rec download = {
+      let rec file = {
           file_file = file_impl;
           file_id = file_id;
           file_name = file_name;
-          file_size = file_size;
-          file_downloaded = current_size;
           file_temp = file_temp;
-          file_fd = Unix32.create file_temp [Unix.O_RDWR; Unix.O_CREAT] 0o666;
           file_clients = [];
-        } and file_impl = {
+        } 
+      and file_impl = {
           dummy_file_impl with
           impl_file_ops = file_ops;
-          impl_file_val = download; 
+          impl_file_val = file; 
+          impl_file_fd = Unix32.create file_temp [Unix.O_RDWR; Unix.O_CREAT] 0o666;
+          impl_file_size = file_size;
+          impl_file_downloaded = current_size;
+          impl_file_age = last_time ();          
         }
       in
       let state = if current_size = file_size then FileDownloaded else
           FileDownloading in
       file_add file_impl state;
-      Hashtbl.add files_by_key key download;
-      download
+      Hashtbl.add files_by_key key file;
+      file
   
 let find_file file_name file_size =
   let key = (file_name, file_size) in
@@ -181,7 +188,6 @@ let new_user server name =
             user_user = user_impl;
             user_link = LinkUnknown;
             user_addr = None;
-            user_files = [];
           } and user_impl = {
             dummy_user_impl with
             impl_user_ops = user_ops;
@@ -189,15 +195,23 @@ let new_user server name =
           }
         in
         user_add user_impl;
+        Hashtbl.add users_by_name name user;
         user      
   in
   match server with
     None -> u
   | Some s ->
-      if not (List.memq s u.user_servers) then
-        u.user_servers <- s :: u.user_servers;
+      if not (List.memq s u.user_servers) then begin
+          Printf.printf 
+          "User %s(%d) is on %s(%d)" 
+            u.user_nick
+            u.user_user.impl_user_num 
+            s.server_desc 
+            s.server_server.impl_server_num;
+          print_newline ();
+          u.user_servers <- s :: u.user_servers;
+        end;
       u
-
   
 let new_client name =
   try
@@ -228,9 +242,16 @@ let new_client name =
 let add_source r user filename =
   let key = (user,filename) in
   if not (List.mem key r.result_sources) then begin
-      user.user_files <- (r, filename) :: user.user_files;
       r.result_sources <- key :: r.result_sources
     end
+
+let add_file_client file user filename = 
+  let  c = new_client user.user_nick in
+  if not (List.memq c file.file_clients) then begin
+      file.file_clients <- c :: file.file_clients;
+      c.client_files <- (file, filename) :: c.client_files
+    end;
+  c
     
 let add_download file c filename =
   let key = (file,filename) in
@@ -254,3 +275,10 @@ let server_remove s =
   Hashtbl.remove servers_by_addr (s.server_ip, s.server_port);
   current_servers := List2.removeq s !current_servers;
   servers_list := List2.removeq s !servers_list
+  
+    
+let file_size file = file.file_file.impl_file_size
+let file_downloaded file = file.file_file.impl_file_downloaded
+let file_age file = file.file_file.impl_file_age
+let file_fd file = file.file_file.impl_file_fd
+  

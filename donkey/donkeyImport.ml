@@ -47,10 +47,10 @@ module Server = struct
         port : int;
         tags : tag list;
       }
-      
+    
     type t = server list
-      
-            
+    
+    
     let names_of_tag =
       [
         1, "name";
@@ -61,20 +61,34 @@ module Server = struct
         13, "history";
         11, "description";
       ]
-
-            
+    
+    
     let rec read_servers s pos left =
       if pos + 9 >= String.length s then List.rev left else
-      let ip = get_ip s pos in
-      let port = get_port s (pos+4) in
-      let ntags = get_int s (pos+6) in
-      let tags, pos = get_tags s (pos+10) ntags names_of_tag in
-      read_servers s pos ({
-          ip = ip;
-          port = port;
-          tags = tags;
-          } :: left)
-        
+      match
+        try
+          let ip = get_ip s pos in
+          let port = get_port s (pos+4) in
+          let ntags = get_int s (pos+6) in
+          let tags, pos = get_tags s (pos+10) ntags names_of_tag in
+          Some ({
+            ip = ip;
+            port = port;
+            tags = tags;
+            }, pos)
+        with e -> 
+            (*
+            let len = String.length s - pos in
+            Printf.printf "Error while reading servers %s (left %d)"
+              (Printexc.to_string e) len; print_newline ();
+dump (String.sub s pos len);      
+  *)
+            None
+      with
+        None -> List.rev left
+      | Some (server, pos) ->
+          read_servers s pos (server :: left)
+      
     let read s =
       read_servers s 5  []
       

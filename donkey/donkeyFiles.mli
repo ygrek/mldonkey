@@ -37,7 +37,5 @@ val remove_old_clients : unit -> unit
 val new_friend : DonkeyTypes.client -> unit
 val add_user_friend : DonkeyTypes.server -> DonkeyTypes.user -> unit
   
-val sample_timer : unit -> unit
-
 val browse_client : DonkeyTypes.client -> unit
   

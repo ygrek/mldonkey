@@ -113,7 +113,10 @@ let client_to_server s t sock =
         let module A = M.AckID in
         M.AckIDReq A.t
       );
-      
+    
+      direct_server_send sock (M.QueryLocationReq Md4.null);
+      direct_server_send sock (M.QueryLocationReq Md4.one);
+
       (*
       server_send sock (M.ShareReq (make_tagged (
             if !nservers <=  max_allowed_connected_servers () then
@@ -155,6 +158,9 @@ let client_to_server s t sock =
       s.server_nusers <- users;
       s.server_nfiles <- files;
       server_must_update s
+  | M.MldonkeyUserReplyReq ->
+      s.server_mldonkey <- true;
+      Printf.printf "I'm connected to a mldonkey server\n"
   | _ -> 
       !received_from_server_hook s sock t
       
@@ -206,6 +212,7 @@ let connect_server s =
         connection_failed s.server_connection_control
         
 let rec connect_one_server () =
+(*  Printf.printf "connect_one_server"; print_newline (); *)
   if can_open_connection () then
     match !servers_list with
       [] ->
@@ -214,7 +221,15 @@ let rec connect_one_server () =
         Hashtbl2.iter (fun _ s ->
             servers_list := s :: !servers_list
         ) servers_by_key;
-        if !servers_list = [] then raise Not_found;
+        if !servers_list = [] then begin
+            Printf.printf "Looks like you have no servers in your servers.ini";
+            print_newline ();
+            Printf.printf "You should either use the one provided with mldonkey";
+            print_newline ();
+            Printf.printf "or import one from the WEB"; print_newline ();
+            
+            raise Not_found;
+          end;
         connect_one_server ()
     | s :: list ->
         servers_list := list;
@@ -235,6 +250,7 @@ let rec connect_one_server () =
           
 
 let force_check_server_connections user =
+(*  Printf.printf "force_check_server_connections"; print_newline (); *)
   if user || !nservers <     max_allowed_connected_servers ()  then begin
       if !nservers < !!max_connected_servers then
         begin

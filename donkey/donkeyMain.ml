@@ -40,29 +40,15 @@ open CommonGlobals
 
 let _ =
   network.op_network_is_enabled <- (fun _ -> !!enable_donkey)
-    
-let hours = ref 0    
-let days = ref 0
-  
-let do_daily () =
-  List.iter (fun (kind, period, url) ->
-      if !days mod period = 0 then DonkeyInteractive.load_url kind url
-  ) !!web_infos;
-  incr days
 
 let hourly_timer timer =
-  incr hours;
   DonkeyServers.remove_old_servers ();
   DonkeyFiles.remove_old_clients ();
   DonkeyClient.clean_groups ();
   Mftp_comm.propagate_working_servers 
     (List.map (fun s -> s.server_ip, s.server_port) (connected_servers()));
-  Hashtbl.clear udp_servers_replies;
-  if !hours mod !!compaction_delay = 0 then (* 4 times per day *)
-    Gc.compact ();
-  if !hours mod 24 = 0 then (* every day *)
-    do_daily ()
-
+  Hashtbl.clear udp_servers_replies
+    
 let quarter_timer timer =
   ()
 
@@ -81,6 +67,7 @@ let halfmin_timer timer =
   
 let disable enabler () =
   enabler := false;
+  if !!enable_donkey then enable_donkey =:= false;
   List.iter (fun s -> DonkeyInteractive.disconnect_server s) 
   (connected_servers ());
   List.iter (fun file -> ()) !current_files
@@ -125,7 +112,7 @@ let enable () =
     Hashtbl.iter (fun _ file ->
         if file_state file <> FileDownloaded then begin
             current_files := file :: !current_files;
-            set_file_size file file.file_size
+            set_file_size file (file_size file)
           end else begin
             try
               if Sys.file_exists file.file_hardname &&
@@ -223,13 +210,10 @@ let enable () =
     add_session_timer enabler 900. quarter_timer;
     add_session_timer enabler 1. second_timer;
     add_session_timer enabler 0.1 DonkeyFiles.upload_timer;
-    add_session_option_timer enabler download_sample_rate DonkeyFiles.sample_timer;
-    
 
 (**** START PLAYING ****)  
     (try force_check_locations () with _ -> ());
     (try force_check_server_connections true with _ -> ());
-    (try do_daily () with _ -> ());
 
   with e ->
       Printf.printf "Error: Exception %s during startup"

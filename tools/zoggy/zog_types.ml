@@ -339,6 +339,7 @@ type ele_class =
   | Hseparator
   | Vseparator
   | Clist
+  | Gui2_Clist
   | Label
   | Statusbar
   | Notebook
@@ -413,6 +414,7 @@ let class_names_and_strings =
       Hseparator, "hseparator", "whsep", "GMisc.separator `HORIZONTAL" ;
       Vseparator, "vseparator", "wvsep", "GMisc.separator `VERTICAL" ;
       Clist, "clist", "wlist_", "GList.clist" ;
+      Gui2_Clist, "gui2_clist", "wlist_", "Gui2_GList.clist" ;
       Label, "label", "wl_", "GMisc.label" ;
       Statusbar, "statusbar", "wstat_", "GMisc.statusbar" ;
       Notebook, "notebook", "wnote_", "GPack.notebook" ;
@@ -492,6 +494,7 @@ let pack_method_of_ele parent ele =
   | Custom_box, _ -> No_pack
 
   | Clist, _
+  | Gui2_Clist, _
   | Label, _
   | Hseparator, _
   | Vseparator, _

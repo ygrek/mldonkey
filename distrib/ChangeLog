@@ -1,24 +1,64 @@
 ChangeLog
 =========
 
-2002/07/24:
+2002/08/02: mldonkey
+  - Fixed a bug in eDonkey saving sources for files in files.ini
+  - Fixed a bug in the parsing of server.met files downloaded from the WEB
+     (there was a "made by ..." at the end !!)
+  - load_url now supports HTTP 302 redirections
+  - Fixed a bug to connect to friends at startup
+
+2002/08/01: mldonkey
+  - Fixed a bug in the GUI protocol version 0
+  - More fields in commonFile.file_impl. Download rate is computed the same
+      way for all networks.
+  - LimeWire download bug fixed (3 mp3s loaded for test)
+
+2002/08/01: mldonkey
+  - Fixed bug with multiple files displayed in the GUI
+  - New GUI protocol 1 containing Client_stats
+
+2002/07/31: mldonkey
+  - Old gui2 compiles normally and works.
+  - SendMessage (-1, PrivateMessage (num, string)) is used to send a private
+     message outside any room.
+
+2002/07/30: mldonkey
+  ********* Ocaml 3.05 should now be used to compile mldonkey ********
+  - The patch to the ocamlopt compiler is not required anymore.
+
+2002/07/29: mldonkey
+ - Re-included old gui as gui2/ and mldonkey_gui2. Not yet working. 
+     Let the user choose until mldonkey_gui is working properly.
+
+2002/07/27: mldonkey
+ - GUI: 
+    o Only connected servers are normally displayed.
+    o New button to display all servers.
+
+2002/07/26: zoggy
+ - GUI: Extended search button only available in the result box of the 
+	last query
+ - GUI : fixed font for the console
+	
+2002/07/24: mldonkey
  - Added GUI counter for better protocol compression.
  - Removed user_remove function
 
-2002/07/23:
+2002/07/23: mldonkey
  - Bug fix in Ocaml weak hash tables
  - First file downloaded on DC (yeah !!)
 
-2002/07/21:
+2002/07/21: mldonkey
  - Fixed a bug in the GUI protocol
  - Improve timers behaviors
 
-2002/07/16:
+2002/07/16: mldonkey
  - Upload should be OK in Direct-Connect
  - CDDB: research is possible in index. building the index takes at least 
      600 Mo of RAM ... maybe some work to compress it.
 
-2002/07/15:
+2002/07/15: mldonkey
  - New structure network_info
  - Direct-Connect: allow other clients to browse our client
  - CDDB: use_tags is able to index a freedb database. take about 300 Mo for
@@ -26,20 +66,20 @@ ChangeLog
  - Donkey: fixed a buf in the protocol that removed shared files from shared
      list.
 
-2002/07/14:
+2002/07/14: mldonkey
  - New env variable MLDONKEY_DIR
 
-2002/07/13:
+2002/07/13: mldonkey
  - More options in alternative networks.
  - ./configure script accepts a --disable-multinet option.
  - New option -check_impl to display unimplemented methods.
  - New behavior for computing the downloaded size in donkey.
 
-2002/07/11:
+2002/07/11: mldonkey
  - Upload on edonkey is priviledged, thanks to the upload_power option.
     Done by giving more upload to some connections in TcpBufferedSocket.
 
-2002/07/10:
+2002/07/10: mldonkey
  - Protocol between GUI and Core completely rewritten. No more Ocaml specific.
      Other GUIs are encouraged to move to this new protocol.
  - network-specific URLs are supported:
@@ -50,15 +90,15 @@ ChangeLog
      dc://|friend|ip:port|
  - Client browsing in Opennap.
 
-2002/07/04:
+2002/07/04: mldonkey
  - Better types for result, client, user and file in LimeWire
 
-2002/07/03:
+2002/07/03: mldonkey
  - Better Opennap support
     - Should no more be 'too many pending searches'.
     - Better types for result, client, user and file.
 
-2002/07/02:
+2002/07/02: mldonkey
  - Per network options better supported (use "set" command with a prefix).
  - One step towards soulseek implementation.
  - Started implementing 'disable' methods.
@@ -66,25 +106,25 @@ ChangeLog
 
 *** 2002/07/01: in holidays :) no network access for two weeks ...
 
-2002/06/30:
+2002/06/30: mldonkey
  - HE3 compress/decompress code completely working for DirectConnect
  - Can download file list in DirectConnect (not display it)
  - Client IP correctly detected.
 
-2002/06/29:
+2002/06/29: mldonkey
  - Added columns configuration for users in GUI.
  - Added message BrowseUser from GUI to Core and user_ops.op_user_browse_files.
  - Communication between clients in Direct Connect started.
  - User information from Direct Connect displayed in GUI (admin/link/bytes)
 
-2002/06/28:
+2002/06/28: mldonkey
  - Fixed several problems in WEB/telnet interface
  - Added enable(disable) networks menu in GUI (disable not implemented):
      networks can be started from GUI. New message EnableNetwork from GUI.
  - Added display networks menu in GUI: servers and results from a network
      can be hidden.
 
-2002/06/27:
+2002/06/27: mldonkey
  - Started using Weak Hashtbl in common/ structures to avoid memory leaks.
  - The GUI displays correctly eDonkey, Open-Napster, LimeWire and DirectConnect.
  - Lots of debbugging messages have been removed.

@@ -133,7 +133,7 @@ let something_append ip md4 what =
 
 let initialized () =
       Printf.printf "INITIALISATION DU LOG "; print_newline();
-      Printf.fprintf !log.oc "<LOGNUM>\n%d\n<SERVER STAT>\n%d\n%d\n%f\n" (!nlog) !nconnected_clients !nshared_files (Unix.time());
+      Printf.fprintf !log.oc "<LOGNUM>\n%d\n<SERVER STAT>\n%d\n%d\n%f\n" (!nlog) !nconnected_clients !nshared_md4 (Unix.time());
       add_infinite_option_timer log_time_out (fun timer ->
               save !log.liste;
               !log.liste <- [];
@@ -142,11 +142,11 @@ let initialized () =
       );
       add_infinite_option_timer change_log_file (fun timer ->
               save !log.liste;
-              Printf.fprintf !log.oc "<SERVER STAT>\n%d\n%d\n%f\n <ENDOFFILE>" !nconnected_clients !nshared_files (Unix.time());
+              Printf.fprintf !log.oc "<SERVER STAT>\n%d\n%d\n%f\n <ENDOFFILE>" !nconnected_clients !nshared_md4 (Unix.time());
               close_out !log.oc;
 	      !log.liste <- [];
               !log.oc <- open_out ("log."^(string_of_int !nlog));
-              Printf.fprintf !log.oc "<LOGNUM>\n%d\n<SERVER STAT>\n%d\n%d\n%f\n" !nlog !nconnected_clients !nshared_files (Unix.time());
+              Printf.fprintf !log.oc "<LOGNUM>\n%d\n<SERVER STAT>\n%d\n%d\n%f\n" !nlog !nconnected_clients !nshared_md4 (Unix.time());
               incr nlog
 				  )
 

@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonFile
 open CommonShared
 open CommonTypes
 open Options
@@ -89,7 +90,7 @@ let make_tagged files =
           { tag_name = "filename";
             tag_value = String (first_name file); } ::
           { tag_name = "size";
-            tag_value = Uint32 file.file_size; } ::
+            tag_value = Uint32 file.file_file.impl_file_size; } ::
           (
             (match file.file_format with
                 Unknown_format ->

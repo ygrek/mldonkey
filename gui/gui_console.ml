@@ -44,6 +44,11 @@ class box () =
 	  we_command#set_text ""
 
     initializer
+      let font = Gdk.Font.load_fontset "fixed" in
+      let style = text#misc#style#copy in
+      style#set_font font;
+      text#misc#set_style style;
+
       Okey.add we_command
 	~mods: []
 	GdkKeysyms._Return

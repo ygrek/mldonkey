@@ -53,7 +53,7 @@ class box tb_style () =
 end
 
 
-class box_users remove =
+class box_users close =
   
   object (self)
     
@@ -63,10 +63,10 @@ class box_users remove =
       
       ignore
         (wtool#insert_button 
-          ~text: M.remove
-          ~tooltip: M.remove
-          ~icon: (Gui_icons.pixmap M.o_xpm_remove)#coerce
-          ~callback: (fun _ -> !remove ())
+          ~text: M.close_room
+          ~tooltip: M.close_room
+          ~icon: (Gui_icons.pixmap M.o_xpm_close_room)#coerce
+          ~callback: (fun _ -> !close ())
         ()
       );
 
@@ -74,8 +74,8 @@ end
 let rooms_by_num = Hashtbl.create 113
 
 class pane_room (room : room_info) =
-  let remove = ref (fun _ -> ()) in
-  let users = new box_users remove in
+  let close = ref (fun _ -> ()) in
+  let users = new box_users close in
   let messages = new box () () in
   object (self)
     inherit paned  ()
@@ -96,8 +96,9 @@ class pane_room (room : room_info) =
       match messages#we_11#text with
         "" -> ()
       |	s ->
-          Gui_com.send (Gui_proto.SendMessage (room.room_num, 
-              PublicMessage (0,s)));
+          Gui_com.send
+	    (Gui_proto.SendMessage (room.room_num, 
+				    PublicMessage (0,s)));
           messages#we_11#set_text "";
           (*self#insert_text (Printf.sprintf "> %s\n" s) *)
           
@@ -149,9 +150,10 @@ class pane_room (room : room_info) =
     initializer
       wpane#add1 users#coerce;
       wpane#add2 messages#coerce;
-      remove := (fun _ -> 
+      close := (fun _ -> 
           let vbox = Hashtbl.find rooms_by_num room.room_num in
-          vbox#coerce#destroy ()
+          vbox#coerce#destroy ();
+	  Hashtbl.remove rooms_by_num room.room_num
       )
 end
       
@@ -167,16 +169,18 @@ let room_info (wnote: GPack.notebook) room =
         Printf.printf "room paused"; print_newline ();
   with
     _ ->
-      if room.room_state = RoomOpened then begin
+      if room.room_state = RoomOpened then 
+	begin
           let wl = GMisc.label ~text: room.room_name () in
           let vbox = new pane_room room in
           let page = wnote#current_page in
           wnote#append_page ~tab_label: wl#coerce vbox#coerce ;
           Hashtbl.add rooms_by_num room.room_num vbox;
           vbox#update_users
-        end else
+	end 
+      else
         (Printf.printf "Can add room %d" room.room_num;
-          print_newline ())
+         print_newline ())
   
   
 let add_room_user num user_num =

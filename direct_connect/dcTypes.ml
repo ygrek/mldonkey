@@ -19,16 +19,11 @@
 
 open CommonTypes
 
-type addr =
-  AddrIp of Ip.t
-| AddrName of string
-
 type server = {
     server_server: server CommonServer.server_impl;
     server_room: server CommonChatRoom.room_impl;
     mutable server_name : string;
     mutable server_addr : addr;
-    mutable server_ip_cached : (Ip.t * float) option;
     mutable server_info : string;
     mutable server_nusers : int;
     server_connection_control : CommonTypes.connection_control;
@@ -61,11 +56,8 @@ and user = {
 and file = {
     file_file : file CommonFile.file_impl;
     file_name : string;
-    file_size : int32;  
     file_id : Md4.t;
-    mutable file_downloaded : int32;
     mutable file_temp : string;
-    mutable file_fd : Unix32.t;
     mutable file_clients : client list;
   }
 

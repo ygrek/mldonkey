@@ -185,26 +185,19 @@ let new_file file_state file_name md4 file_size writable =
           file_shared = false;
           file_exists = file_exists;
           file_md4 = md4;
-          file_age = last_time ();
+
           file_hardname = file_name;
-          file_size = file_size;
           file_nchunks = nchunks;
           file_chunks = [||];
           file_chunks_age = [||];
-          file_fd = Unix32.create file_name (if writable then
-              [O_RDWR; O_CREAT] else [O_RDONLY]) 0o666;
           file_all_chunks = String.make nchunks '0';
           file_absent_chunks =   [Int32.zero, file_size];
           file_filenames = [];
           file_sources = Intmap.empty;
           file_nlocations = 0;
           file_md4s = md4s;
-          file_downloaded = Int32.zero;
           file_available_chunks = Array.create nchunks 0;
           file_changed = FileInfoChange;
-          file_last_time = last_time ();
-          file_last_downloaded = [];
-          file_last_rate = 0.0;
           file_format = Unknown_format;
           file_upload_kbs = 0;
           file_upload_requests = 0;
@@ -212,8 +205,12 @@ let new_file file_state file_name md4 file_size writable =
         }
       and file_impl = {
           dummy_file_impl with
-          CommonFile.impl_file_val = file;
-          CommonFile.impl_file_ops = file_ops;
+          impl_file_val = file;
+          impl_file_ops = file_ops;
+          impl_file_age = last_time ();          
+          impl_file_size = file_size;
+          impl_file_fd = Unix32.create file_name (if writable then
+              [O_RDWR; O_CREAT] else [O_RDONLY]) 0o666;
         }
       in
       file_add file_impl file_state;
@@ -223,8 +220,8 @@ let new_file file_state file_name md4 file_size writable =
 
 let change_hardname file file_name =
   file.file_hardname <- file_name;
-  let fd = file.file_fd in
-  file.file_fd <- Unix32.create file_name [O_RDWR; O_CREAT] 0o666;
+  let fd = file.file_file.impl_file_fd in
+  file.file_file.impl_file_fd <- Unix32.create file_name [O_RDWR; O_CREAT] 0o666;
   Unix32.close fd
   
 let info_change_file file =
@@ -276,6 +273,7 @@ let new_server ip port score =
           server_description = "";
           server_users = [];
           server_master = false;
+	  server_mldonkey = false;
         }
       and server_impl = 
         {
@@ -343,7 +341,7 @@ let new_client key =
       in
       Heap.set_tag c tag_client;
       CommonClient.new_client client_impl;
-      Hashtbl.add clients_by_kind key c;
+        Hashtbl.add clients_by_kind key c;
       c
   in
   c
@@ -634,4 +632,9 @@ let (results_by_md4 : (Md4.t, result) Hashtbl.t) = Hashtbl.create 1023
 let history_file = Filename.concat file_basedir "history.met"
 let history_file_oc = ref None
 
+  
+let file_size file = file.file_file.impl_file_size
+let file_downloaded file = file.file_file.impl_file_downloaded
+let file_age file = file.file_file.impl_file_age
+let file_fd file = file.file_file.impl_file_fd
   

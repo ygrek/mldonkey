@@ -42,6 +42,7 @@ let rec dollar_escape with_frames s =
               Buffer.add_string b " target=status"; false
         | 'P' -> if with_frames then
               Buffer.add_string b " target=\"_parent\""; false
+        | 'G' -> false
         | _ -> 
             try
               Buffer.add_string b (dollar_escape with_frames

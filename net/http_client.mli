@@ -38,13 +38,15 @@ type get_args =
 | Post
 | Proxy of string * int
 
-type headers_handler = 
-  TcpBufferedSocket.t -> int -> (string * string) list -> unit
-  
-val get_page : Url.url -> get_args list -> headers_handler  -> unit
-  
+type content_handler = 
+  int -> (string * string) list -> TcpBufferedSocket.t -> int -> unit
+
+val get_page : Url.url -> get_args list -> content_handler  -> unit
+
+  (*
 val default_headers_handler : (int -> TcpBufferedSocket.t -> int -> unit) ->
   headers_handler
+*)
   
 val split_header : string -> string list
 val cut_headers : string list -> (string * string) list

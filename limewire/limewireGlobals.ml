@@ -30,6 +30,11 @@ open Options
 open LimewireTypes
 
   
+let file_size file = file.file_file.impl_file_size
+let file_downloaded file = file.file_file.impl_file_downloaded
+let file_age file = file.file_file.impl_file_age
+let file_fd file = file.file_file.impl_file_fd
+    
 module DO = CommonOptions
 
 let current_files = ref ([] : LimewireTypes.file list)
@@ -120,23 +125,27 @@ let new_file file_id file_name file_size =
           file_file = file_impl;
           file_id = file_id;
           file_name = file_name;
-          file_size = file_size;
-          file_downloaded = current_size;
           file_temp = file_temp;
-          file_fd = Unix32.create file_temp [Unix.O_RDWR; Unix.O_CREAT] 0o666;
           file_clients = [];
         } and file_impl =  {
           dummy_file_impl with
-
+          impl_file_fd = Unix32.create file_temp [Unix.O_RDWR; Unix.O_CREAT] 0o666;
+          impl_file_size = file_size;
+          impl_file_downloaded = current_size;
           impl_file_val = file;
           impl_file_ops = file_ops;
-        }
+          impl_file_age = last_time ();          
+          }
       in
       
       let state = if current_size = file_size then FileDownloaded else
           FileDownloading in
       
-      file_add file_impl FileDownloading;
+      if state = FileDownloading then begin
+          Printf.printf "ADDING FILE %s" file_name; print_newline ();
+          current_files := file :: !current_files
+        end;
+      file_add file_impl state;
 (*      Printf.printf "ADD FILE TO DOWNLOAD LIST"; print_newline (); *)
       Hashtbl.add files_by_key key file;
       file
@@ -152,7 +161,7 @@ let new_user uid kind =
           user_user = user_impl;
           user_uid = uid;
           user_kind = kind;
-          user_files = [];
+(*          user_files = []; *)
           user_speed = 0;
         }  and user_impl = {
           dummy_user_impl with
@@ -190,14 +199,15 @@ let new_client uid kind =
       c
 
 let add_source r s index =
-  if not (List.memq s r.result_sources) then begin
-      s.user_files <- (r,index) :: s.user_files;
-      r.result_sources <- s :: r.result_sources
+  let key = (s, index) in
+  if not (List.mem key r.result_sources) then begin
+      r.result_sources <- key :: r.result_sources
     end
     
 let add_download file c index =
-  let r = new_result file.file_name file.file_size in
+  let r = new_result file.file_name (file_size file) in
 (*  add_source r c.client_user index; *)
+  Printf.printf "Adding file to client"; print_newline ();
   if not (List.memq c file.file_clients) then begin
       c.client_downloads <- (file, index) :: c.client_downloads;
       file.file_clients <- c :: file.file_clients
@@ -228,4 +238,3 @@ let server_remove s =
   Hashtbl.remove servers_by_key (s.server_ip, s.server_port)
 
 let client_type c = client_type (as_client c.client_client)
-  

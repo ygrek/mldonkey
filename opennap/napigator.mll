@@ -160,8 +160,7 @@ let load_servers_list url f =
   let file_oc = open_out filename in
   let file_size = ref 0 in
   Http_client.get_page (Url.of_string url) []
-    (Http_client.default_headers_handler 
-      (fun maxlen sock nread ->
+    (fun maxlen headers sock nread ->
 (*        Printf.printf "..."; print_newline (); *)
         let buf = TcpBufferedSocket.buf sock in
         
@@ -189,7 +188,7 @@ let load_servers_list url f =
                     (Printexc.to_string e) filename
           
           end
-    ))
+    )
 
   
 }

@@ -141,35 +141,35 @@ let commands = [
     "vo", Arg_none (fun o ->
         let buf = o.conn_buf in
         if o.conn_output = HTML then
-          Printf.bprintf  buf "\<table border=0\>";
+          Printf.bprintf  buf "\\<table border=0\\>";
         List.iter (fun (name, value) ->
             if o.conn_output = HTML then
               if String.contains value '\n' then
                 Printf.bprintf buf "
-              \<tr\>\<td\>\<form action=/submit $S\> 
-\<input type=hidden name=setoption value=q\>
-\<input type=hidden name=option value=%s\> %s \</td\>\<td\>
-                \<textarea name=value rows=10 cols=70 wrap=virtual\> 
+              \\<tr\\>\\<td\\>\\<form action=/submit $S\\> 
+\\<input type=hidden name=setoption value=q\\>
+\\<input type=hidden name=option value=%s\\> %s \\</td\\>\\<td\\>
+                \\<textarea name=value rows=10 cols=70 wrap=virtual\\> 
                 %s
-                \</textarea\>
-\<input type=submit value=Modify\>
-\</td\>\</tr\>
-\</form\>
+                \\</textarea\\>
+\\<input type=submit value=Modify\\>
+\\</td\\>\\</tr\\>
+\\</form\\>
                 " name name value
               else
               Printf.bprintf buf "
-              \<tr\>\<td\>\<form action=/submit $S\> 
-\<input type=hidden name=setoption value=q\>
-\<input type=hidden name=option value=%s\> %s \</td\>\<td\>
-              \<input type=text name=value size=40 value=\\\"%s\\\"\>
-\</td\>\</tr\>
-\</form\>
+              \\<tr\\>\\<td\\>\\<form action=/submit $S\\> 
+\\<input type=hidden name=setoption value=q\\>
+\\<input type=hidden name=option value=%s\\> %s \\</td\\>\\<td\\>
+              \\<input type=text name=value size=40 value=\\\"%s\\\"\\>
+\\</td\\>\\</tr\\>
+\\</form\\>
 " name name value
             else
               Printf.bprintf buf "%s = %s\n" name value)
         (Options.simple_options downloads_ini);
         if o.conn_output = HTML then
-          Printf.bprintf  buf "\</table\>";
+          Printf.bprintf  buf "\\</table\\>";
         
         ""
     ), " : print options";
@@ -259,10 +259,10 @@ let commands = [
         List.iter (fun s ->
             Printf.bprintf buf "%s[%-5d]%s %s %s\n" 
               (if o.conn_output = HTML then 
-                Printf.sprintf "\<a href=/submit\?q=vr\+%d\>" s.search_num
+                Printf.sprintf "\\<a href=/submit\\?q=vr\\+%d\\>" s.search_num
               else "")
             s.search_num 
-              (if o.conn_output = HTML then "\</a\>" else "")
+              (if o.conn_output = HTML then "\\</a\\>" else "")
             s.search_string
               (if s.search_waiting = 0 then "done" else
                 string_of_int s.search_waiting)
@@ -276,7 +276,7 @@ let commands = [
         List.iter (fun (name, q) ->
             if o.conn_output = HTML then
               Printf.bprintf buf 
-                "\<a href=/submit\?custom=%s $O\> %s \</a\>\n" 
+                "\\<a href=/submit\\?custom=%s $O\\> %s \\</a\\>\n" 
               (Url.encode name) name
             else
               Printf.bprintf buf "[%s]\n" name

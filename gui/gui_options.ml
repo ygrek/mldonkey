@@ -210,6 +210,8 @@ let xpm_find_friend =  define_option mldonkey_gui_ini (xpm_label M.o_xpm_find_fr
     "" filename_option ""
 let xpm_remove_all_friends =  define_option mldonkey_gui_ini (xpm_label M.o_xpm_remove_all_friends)
     "" filename_option ""
+let xpm_close_room =  define_option mldonkey_gui_ini (xpm_label M.o_xpm_close_room)
+    "" filename_option ""
 
 (** {2 Toolbars style} *)
 

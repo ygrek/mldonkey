@@ -45,10 +45,7 @@ type file = {
     file_file : file CommonFile.file_impl;
     file_hash : Md4.t;
     file_name : string;
-    file_size : int32;
-    mutable file_downloaded : int32;
     file_temp : string;
-    mutable file_fd : Unix32.t;
     mutable file_client : client option;
   }
 

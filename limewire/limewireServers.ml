@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonOptions
 open CommonSearch
 open CommonServer
 open CommonComplexOptions
@@ -40,11 +41,15 @@ module DO = CommonOptions
   
 let send_query min_speed keywords xml_query =
   let module Q = Query in
+  let words = String2.unsplit keywords ' ' in
   let t = QueryReq {
       Q.min_speed = 0;
-      Q.keywords = String2.unsplit keywords ' ';
+      Q.keywords = words;
       Q.xml_query  = "" } in
   let p = new_packet t in
+  if !!verbose_servers > 0 then begin
+      Printf.printf "sending query for <%s>" words; print_newline ();
+    end;
   List.iter (fun s ->
       match s.server_sock with
         None -> ()
@@ -52,54 +57,66 @@ let send_query min_speed keywords xml_query =
   ) !connected_servers;
   p
 
+        
+let extension_list = [
+    "mp3" ; "avi" ; "jpg" ; "jpeg" ; "txt" ; "mov" ; "mpg" 
+]
       
 let rec remove_short list list2 =
   match list with
     [] -> List.rev list2
   | s :: list -> 
+      if List.mem s extension_list then 
+        remove_short list (s :: list2) else 
+      
       if String.length s < 5 then (* keywords should had list be 5 bytes *)
         remove_short list list2
       else
         remove_short list (s :: list2)
-          
+        
 let stem s =
   let s = String.lowercase (String.copy s) in
-  for i = 0 to String.length s - 1 do
-    let c = s.[i] in
-    match c with
-      'a'..'z' | '0' .. '9' -> ()
-    | _ -> s.[i] <- ' ';
-  done;
-  remove_short (String2.split s ' ') []
-
+      for i = 0 to String.length s - 1 do
+        let c = s.[i] in
+        match c with
+          'a'..'z' | '0' .. '9' -> ()
+        | _ -> s.[i] <- ' ';
+      done;
+      remove_short (String2.split s ' ') []
+    
+let get_name_keywords file_name =
+  match stem file_name with 
+    [] | [_] -> 
+      Printf.printf "Not enough keywords to recover %s" file_name;
+      print_newline ();
+      [file_name]
+  | l -> l
+      
 let recover_files () =
   List.iter (fun file ->
-      let keywords = 
-        match stem file.file_name with 
-          [] | [_] -> 
-            Printf.printf "Not enough keywords to recover %s" file.file_name;
-            print_newline ();
-            [file.file_name]
-        | l -> l
+      let keywords = get_name_keywords file.file_name 
       in
       ignore (send_query 0 keywords "")
   ) !current_files;
   ()
   
 let recover_files_from_server sock =
+  if !!verbose_servers > 0 then begin
+      Printf.printf "trying to recover files from server"; print_newline ();
+    end;
   List.iter (fun file ->
-      let keywords = 
-        match stem file.file_name with 
-          [] | [_] -> 
-            Printf.printf "Not enough keywords to recover %s" file.file_name;
-            print_newline ();
-            [file.file_name]
-        | l -> l
-      in
+      if !!verbose_servers > 0 then begin
+          Printf.printf "FOR FILE %s" file.file_name; print_newline ();
+        end;
+      let keywords = get_name_keywords file.file_name in
+      let words = String2.unsplit keywords ' ' in
+      if !!verbose_servers > 0 then begin
+          Printf.printf "sending query for <%s>" words; print_newline ();
+          end;
       let module Q = Query in
       let t = QueryReq {
           Q.min_speed = 0;
-          Q.keywords = String2.unsplit keywords ' ';
+          Q.keywords = words;
           Q.xml_query  = "" } in
       let p = new_packet t in
       server_send sock p
@@ -133,8 +150,10 @@ let redirector_parse_header sock header =
           P.s = "none:128:false";
         }))
     end else begin
-(*      Printf.printf "BAD HEADER FROM REDIRECTOR: "; print_newline (); *)
-      BigEndian.dump header;
+      if !!verbose_servers>10 then begin
+          Printf.printf "BAD HEADER FROM REDIRECTOR: "; print_newline (); 
+          BigEndian.dump header;
+        end;
       close sock "bad header";
       redirector_connected := false;
       raise Not_found
@@ -164,13 +183,14 @@ let connect_to_redirector () =
 
         
         redirector_connected := true;
-        set_reader sock (handler redirector_parse_header
+        set_reader sock (handler !!verbose_servers redirector_parse_header
             (gnutella_handler parse redirector_to_client)
         );
         set_closer sock (fun _ _ -> 
 (*            Printf.printf "redirector disconnected"; print_newline (); *)
             redirector_connected := false);
         set_rtimeout sock 10.;
+        set_lifetime (TcpBufferedSocket.sock sock) 120.;
         write_string sock "GNUTELLA CONNECT/0.4\n\n";
       with e ->
           Printf.printf "Exception in connect_to_redirector: %s"
@@ -267,7 +287,7 @@ let update_client t =
   c
   
 let server_parse_header s sock header =
-(*  AP.dump header; *)
+  if !!verbose_servers> 10 then  BigEndian.dump_ascii header;  
   try
   if String2.starts_with header gnutella_200_ok then begin
 (*      Printf.printf "GOOD HEADER FROM ULTRAPEER";
@@ -391,13 +411,13 @@ print p;
               search_add_result s.search_search result.result_result;
           ) t.Q.files
         with Not_found ->            
-(*            Printf.printf "NO SUCH SEARCH !!!!"; print_newline (); *)
+            Printf.printf "NO SUCH SEARCH !!!!"; print_newline (); 
             List.iter (fun ff ->
                 List.iter (fun file ->
                     if file.file_name = ff.Q.name && 
-                      file.file_size = ff.Q.size then 
+                      file_size file = ff.Q.size then 
                       begin
-(*                        Printf.printf "++++++++++++++ RECOVER FILE %s +++++++++++++" f.file_name; print_newline (); *)
+                        Printf.printf "++++++++++++++ RECOVER FILE %s +++++++++++++" file.file_name; print_newline (); 
                         let c = update_client t in
                         add_download file c ff.Q.index;
                         end
@@ -425,10 +445,10 @@ let send_pings () =
   ) !connected_servers
       
 let connect_server (ip,port) =
-(*
-  Printf.printf "SHOULD CONNECT TO %s:%d" (Ip.to_string ip) port;
-print_newline ();
-  *)
+  if !!verbose_servers > 5 then begin
+      Printf.printf "SHOULD CONNECT TO %s:%d" (Ip.to_string ip) port;
+      print_newline ();
+    end;
   let s = new_server ip port in
   match s.server_sock with
     Some _ -> ()
@@ -450,13 +470,13 @@ print_newline ();
         set_server_state s Connecting;
         s.server_sock <- Some sock;
         incr nservers;
-        set_reader sock (handler (server_parse_header s)
+        set_reader sock (handler !!verbose_servers (server_parse_header s)
           (gnutella_handler parse (server_to_client s))
         );
         set_closer sock (fun _ error -> 
 (*            Printf.printf "CLOSER %s" error; print_newline ();*)
             disconnect_from_server s);
-        set_rtimeout sock 5.;
+        set_rtimeout sock !!server_connection_timeout;
         let s = Printf.sprintf 
           "GNUTELLA CONNECT/0.6\r\nUser-Agent: LimeWire 2.4.4\r\nX-My-Address: %s:%d\r\nX-Ultrapeer: False\r\nX-Query-Routing: 0.1\r\nRemote-IP: %s\r\n\r\n"
           (Ip.to_string !!DO.client_ip) !!client_port
@@ -502,7 +522,7 @@ let get_file_from_source c file =
       connection_try c.client_connection_control;
       match c.client_user.user_kind with
         Indirect_location ("", uid) ->
-(*          Printf.printf "++++++ ASKING FOR PUSH +++++++++"; print_newline ();   *)
+          Printf.printf "++++++ ASKING FOR PUSH +++++++++"; print_newline ();   
 
 (* do as if connection failed. If it connects, connection will be set to OK *)
           connection_failed c.client_connection_control;
@@ -525,12 +545,13 @@ let get_file_from_source c file =
     
 let download_file (r : result) =
   let file = new_file (Md4.random ()) r.result_name r.result_size in
-(*  Printf.printf "DOWNLOAD FILE %s" f.file_name; print_newline (); *)
+  Printf.printf "DOWNLOAD FILE %s" file.file_name; print_newline ();
   if not (List.memq file !current_files) then begin
       current_files := file :: !current_files;
     end;
-  List.iter (fun user ->
-      let index = List.assoc r user.user_files in
+  List.iter (fun (user, index) ->
+      Printf.printf "Source %s %d" (Md4.to_string user.user_uid)
+      index; print_newline ();
       let c = new_client user.user_uid user.user_kind in
       add_download file c index;
       get_file_from_source c file;
@@ -540,6 +561,7 @@ let download_file (r : result) =
 let ask_for_files () =
   List.iter (fun file ->
       List.iter (fun c ->
+
           get_file_from_source c file
       ) file.file_clients
   ) !current_files;

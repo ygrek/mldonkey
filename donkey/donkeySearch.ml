@@ -177,6 +177,7 @@ let new_search search =
             
 let _ =
   network.op_network_search <- (fun search buf ->
+      Printf.printf "SEARCH ON DONKEY"; print_newline ();
       let search = new_search search in
       let query = search.search_search.search_query in
       local_searches := search :: !local_searches;  

@@ -127,6 +127,7 @@ let buf_ip buf ip =
   buf_int8 buf ip2;
   buf_int8 buf ip3
 
+
 (* md4 *)
   
 let buf_md4 buf s = Buffer.add_string buf (Md4.direct_to_string s)
@@ -136,6 +137,19 @@ let get_md4 s pos =
       Printf.printf "exception in get_md4 %d" pos; print_newline ();
       raise e
 
+      
+let dump_ascii s =
+  let len = String.length s in
+  Printf.printf "ascii: [";
+  for i = 0 to len - 1 do
+    let c = s.[i] in
+    let n = int_of_char c in
+    if n > 31 && n < 127 then
+      Printf.printf " %c" c
+    else
+      Printf.printf "(%d)" n
+  done;
+  Printf.printf "]\n"
       
 let dump s =
   let len = String.length s in

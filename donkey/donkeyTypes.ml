@@ -38,6 +38,7 @@ type server = {
     mutable server_users: user list;
     mutable server_next_udp : float;
     mutable server_master : bool;
+    mutable server_mldonkey : bool;
   } 
 
 
@@ -160,25 +161,27 @@ and file = {
     mutable file_hardname : string;
     file_md4 : Md4.t;
     file_exists : bool;
-    mutable file_size : int32;
+(*    mutable file_size : int32; *)
     mutable file_nchunks : int;
     mutable file_chunks : chunk array;
-    mutable file_age : float;
+(*    mutable file_age : float; *)
     mutable file_chunks_age : float array;
-    mutable file_fd : Unix32.t;
+(*    mutable file_fd : Unix32.t; *)
     mutable file_all_chunks : string;
     mutable file_absent_chunks : (int32 * int32) list;
     mutable file_filenames : string list;
     mutable file_sources : client Intmap.t;
     mutable file_nlocations : int;
     mutable file_md4s : Md4.t list;
-    mutable file_downloaded : int32;
     mutable file_format : format;
     mutable file_available_chunks : int array;
 
+(*
     mutable file_last_downloaded : (int32 * float) list;
     mutable file_last_time : float;
     mutable file_last_rate : float;
+*)
+    
 (* the time the file state was last computed and sent to guis *)
     mutable file_changed : file_change_kind; 
     mutable file_new_locations : bool;

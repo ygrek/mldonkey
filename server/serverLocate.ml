@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open ServerMessages
 open Unix
 open TcpBufferedSocket
 open DonkeyMftp
@@ -31,52 +32,99 @@ open Hashtbl
 
 
 
-let rec check liste lst loc md4= 
+let rec add_source_list liste loc= 
          match liste with
           [] ->  (*Printf.printf("add liste"); print_newline();*) 
-                 let lst = loc::lst in Hashtbl.replace files_by_md4 md4 lst
+                 [loc]
          | hd::tl -> (* Printf.printf("parcourage"); print_newline();*)
-                     if hd.loc_ip = loc.loc_ip && hd.loc_port = loc.loc_port
-                     then begin
-                          if hd.loc_expired<loc.loc_expired then
-                             hd.loc_expired <- loc.loc_expired
-                          end
-                      else check tl lst loc md4
+                     if hd.loc_ip = loc.loc_ip && hd.loc_port = loc.loc_port then
+                       tl
+                      else add_source_list tl loc
         
+let supp_source_list liste source =
+  let newliste = List.filter 
+		   (fun loc -> 
+		      source.loc_ip<>loc.loc_ip ||
+		      source.loc_port<>loc.loc_port) liste in
+    newliste
+
  
 exception ToMuchFiles
                       
 let add md4 new_source = 
    try
      let liste = Hashtbl.find files_by_md4 md4 in
-      check liste liste new_source md4    
+     let newliste = add_source_list liste new_source in
+       Hashtbl.replace files_by_md4 md4 newliste 
     with _ -> 
        (* Printf.printf("eXeption"); print_newline();*)
-       if (!!max_files <= !nshared_files) then
+       if (!!max_files <= !nshared_md4) then
            raise ToMuchFiles;
        Hashtbl.add files_by_md4 md4 [new_source];
-       incr nshared_files
+       incr nshared_md4
 
+let adds md4 new_sources =
+  try  
+    let liste = ref (Hashtbl.find files_by_md4 md4) in
+    let module LI = ServerMessages.LocalisationInit in
+      List.iter (fun new_loc -> 
+		   liste := add_source_list !liste 
+		   { 
+		     loc_ip = new_loc.LI.source_ip;
+		     loc_port = new_loc.LI.source_port;
+		     loc_expired = Unix.time();
+		   }
+		) new_sources;
+      Hashtbl.replace files_by_md4 md4 !liste 
+  with _ -> 
+    let module LI = ServerMessages.LocalisationInit in
+    Hashtbl.add files_by_md4 md4 (List.map (fun x -> 
+					      { 
+						loc_ip = x.LI.source_ip;
+						loc_port = x.LI.source_port;
+						loc_expired = Unix.time();
+					      }
+					   )new_sources);
+    incr nshared_remote_md4
+  
+  
 
-let supp file_md4 client_loc = 
-        let liste = Hashtbl.find files_by_md4 file_md4 in
-          let newliste = List.filter 
-                (fun loc -> 
-                (*Printf.printf(" test : %s et %s avec %d et %d") 
-                 (Ip.to_string client_loc.loc_ip)
-                 (Ip.to_string loc.loc_ip)
-                 client_loc.loc_port
-                 loc.loc_port;
-                 print_newline();*)
-                client_loc.loc_ip<>loc.loc_ip ||
-                client_loc.loc_port<>loc.loc_port) liste in
-                if newliste=[] then
-                   begin 
-                    Hashtbl.remove files_by_md4 file_md4;
-                    decr nshared_files
-                   end
-                else
-                   Hashtbl.replace files_by_md4 file_md4 newliste
+let notifications md4 sources = 
+  let module LN = ServerMessages.LocalisationNotif in
+    try
+      let liste = ref (Hashtbl.find files_by_md4 md4) in
+	List.iter (fun source -> 
+		     let tmp =  { 
+		       loc_ip = source.LN.source_ip;
+		       loc_port = source.LN.source_port;
+		       loc_expired = 0.;
+		     } in
+		       if source.LN.add then
+			 liste :=  add_source_list !liste tmp
+		       else
+			 liste := supp_source_list !liste tmp
+		) sources;
+      if (!liste=[]) then
+	begin 
+	  Hashtbl.remove files_by_md4 md4;
+	  decr nshared_remote_md4
+	end
+      else
+	Hashtbl.replace files_by_md4 md4 !liste;
+	
+  with _ -> ()
+		     
+
+let supp md4 source_loc = 
+        let liste = ref (Hashtbl.find files_by_md4 md4) in
+          liste := supp_source_list !liste source_loc;
+          if !liste=[] then
+	    begin
+              Hashtbl.remove files_by_md4 md4;
+              decr nshared_md4
+            end
+          else
+            Hashtbl.replace files_by_md4 md4 !liste
                
  
 let print () = 
@@ -93,7 +141,8 @@ let print () =
                         ) files_by_md4;
          Printf.printf("FIN");print_newline();
          print_newline()
-                        
+     
+let get_local_sources c = ()                   
 
 module M = Mftp_server.QueryLocationReply
  

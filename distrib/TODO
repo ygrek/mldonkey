@@ -35,17 +35,19 @@ Before 1.17:
 
  * Change Shared message
 
-Before 2.00:
+For 2.00: for friday !!!
+ - Fix download rate
+ - Fix cancelled files
+ - Fix removed friends
+ - Fix multiple times the same file in friends file lists
+
+ - Which message is now used when a private message is received from a friend ?
+
+For 2.01:
   - Allow enable/disable network at runtime
   - Allow access to each network options in the GUI and telnet
   - Detect disconnection to client in the GUI (zogzog, do it !!, it was done
       in 1.16 and before)
-  - Allow passing ed2k links in GUI
-  - Use weak hashtbl everywhere possible:
-    * Searches, Files, Done Files, Servers and Friends/Contacts should be
-      strong pointers
-    * Users, Results, Clients (but how with Contacts) should always be weak
-      pointers.
   - What about having one result per file ?
   - Allow upload at least in Direct Connect... Maybe in gnutella too, even
      if it is probably a waste of bandwidth. Upload should probably be
@@ -53,7 +55,10 @@ Before 2.00:
      don't want to be kicked from other network, it is better to allow them
      to download from us. Maybe we could use priorities, but how ? Each network
      would have a score, and the better score would be given bandwidth first ?
-  - Check if downloaded of mldonkey file is greater than 100%...
+ 
+Server:
+ - limit the number of UDP packets replied per second.
+
 
 From other P2P systems:
  

@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open TcpBufferedSocket
+open BasicSocket
 open CommonGlobals
 open CommonSearch
 open Options
@@ -24,8 +26,61 @@ open CommonNetwork
 open CommonResult
 open CommonServer
 open CommonTypes
+
+let file_kinds = ref []
+
+let add_web_kind kind f =
+  file_kinds := (kind,f) :: !file_kinds
   
-  
+let load_url kind url =
+  Printf.printf "QUERY URL %s" url; print_newline ();
+  let filename = Filename.temp_file "http_" ".tmp" in
+  let file_oc = open_out filename in
+  let file_size = ref 0 in
+
+  Http_client.get_page (Url.of_string url) []
+    (fun maxlen headers sock nread ->
+        let buf = TcpBufferedSocket.buf sock in
+        
+        if nread > 0 then begin
+            let left = 
+              if maxlen >= 0 then
+                mini (maxlen - !file_size) nread
+              else nread
+            in
+            output file_oc buf.buf buf.pos left;
+            buf_used sock left;
+            file_size := !file_size + left;
+            if nread > left then
+              TcpBufferedSocket.close sock "end read"
+          end
+        else
+        if nread = 0 then begin
+            close_out file_oc;
+            try
+              let f = 
+                try
+                  List.assoc kind !file_kinds 
+                with
+                  _ -> failwith (Printf.sprintf "Unknown kind [%s]" kind)
+              in
+              (f filename : unit);
+(*              Sys.remove filename *)
+            with e ->
+                Printf.printf
+                  "Exception %s in loading downloaded file %s"
+                  (Printexc.to_string e) filename
+                
+          end
+    )
+
+let days = ref 0      
+let hours = ref 0    
+
+let load_web_infos () =
+  List.iter (fun (kind, period, url) ->
+      if !days mod period = 0 then load_url kind url
+  ) !!CommonOptions.web_infos
 
 let display_vd = ref false
   
@@ -102,7 +157,7 @@ let send_custom_query buf query args =
       match q with
       | Q_KEYWORDS _ -> 
           let value = get_arg "keywords" in
-          want_and_not (fun w -> QHasWord w) value
+          want_and_not andnot (fun w -> QHasWord w) value
           
       | Q_AND list ->
           begin
@@ -173,7 +228,7 @@ let send_custom_query buf query args =
               if format_propose = "" then raise Not_found
               else format_propose
             else format in
-          want_comb_not 
+          want_comb_not andnot
             or_comb
             (fun w -> QHasField("format", w)) format
           
@@ -189,19 +244,19 @@ let send_custom_query buf query args =
       | Q_MP3_ARTIST _ ->
           let artist = get_arg "artist" in
           if artist = "" then raise Not_found;
-          want_comb_not and_comb 
+          want_comb_not andnot and_comb 
             (fun w -> QHasField("Artist", w)) artist
           
       | Q_MP3_TITLE _ ->
           let title = get_arg "title" in
           if title = "" then raise Not_found;
-          want_comb_not and_comb 
+          want_comb_not andnot and_comb 
             (fun w -> QHasField("Title", w)) title
           
       | Q_MP3_ALBUM _ ->
           let album = get_arg "album" in
           if album = "" then raise Not_found;
-          want_comb_not and_comb 
+          want_comb_not andnot and_comb 
             (fun w -> QHasField("Album", w)) album
           
       | Q_MP3_BITRATE _ ->

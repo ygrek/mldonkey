@@ -19,6 +19,7 @@
 
 (** GUI for the list of servers. *)
 
+open CommonGlobals
 open CommonTypes
 open Gui_proto
 open Gui_columns
@@ -35,8 +36,10 @@ let string_color_of_state = Gui_friends.string_color_of_state
 
 let server_key s = s.server_num
 
+let filter_disconnected_servers = ref true
 
 let is_filtered s =
+  (!filter_disconnected_servers && s.server_state = NotConnected) ||
   List.memq s.server_network !G.networks_filtered
 
 class box columns users =
@@ -57,7 +60,7 @@ class box columns users =
     
     method compare_by_col col s1 s2 =
       match col with
-        Col_server_address -> compare s1.server_ip s2.server_ip
+        Col_server_address -> compare s1.server_addr s2.server_addr
       |	Col_server_state -> compare s1.server_state s2.server_state
       |	Col_server_users -> compare s1.server_nusers s2.server_nusers
       |	Col_server_files -> compare s1.server_nfiles s2.server_nfiles
@@ -78,7 +81,7 @@ class box columns users =
       match col with
         Col_server_address -> 
           Printf.sprintf "%16s : %-5d"
-            (Ip.to_fixed_string s.server_ip) s.server_port
+            (string_of_addr s.server_addr) s.server_port
       |	Col_server_state -> fst (string_color_of_state s.server_state)
       |	Col_server_users ->
           if s.server_nusers = 0 then "" 
@@ -195,19 +198,20 @@ class box columns users =
       s.server_state <- s_new.server_state ;
       s.server_name <- s_new.server_name ;
       s.server_description <- s_new.server_description ;
-      if row >= 0 then 
-        if s.server_state = RemovedHost then
+      if s.server_state = RemovedHost then
+        if row >= 0 then 
           (
             data <- List.filter (fun s2 -> s2 <> s) data;
             self#wlist#remove row;
             decr G.nservers
           )
-        else
-          self#update_row s row
-      else begin
-          filtered_data <- List.filter (fun s2 -> s2 <> s) filtered_data;
-          decr G.nservers
-        end;
+        else begin
+            filtered_data <- List.filter (fun s2 -> s2 <> s) filtered_data;
+            decr G.nservers
+          end
+      else 
+      if row >= 0 then
+        self#update_row s row;
       
       (if s.server_users != s_new.server_users then begin
             s.server_users <- s_new.server_users ;
@@ -243,7 +247,24 @@ class box columns users =
           | false, true -> decr G.nconnected_servers
           | _ -> ()
         );
-        self#update_server serv s row
+        let row = 
+          if is_filtered s <> (row < 0) then 
+            if row < 0 then begin
+(* serv was filtered, but not s *)
+                data  <- data @ [serv];
+                filtered_data <- List2.removeq serv filtered_data;
+                let row = self#wlist#rows    in
+                self#insert ~row: row s;
+                row
+              end
+            else begin
+                filtered_data  <- filtered_data @ [serv];
+                data <- List2.removeq serv data;
+                self#wlist#remove row;
+                -1
+              end else row
+        in
+        self#update_server serv s row;
       with
         Not_found ->
           if s.server_state <> RemovedHost then
@@ -258,10 +279,10 @@ class box columns users =
                   if Mi.is_connected s.server_state then
                     incr G.nconnected_servers
                 end
-	    )
-	  else
-	    ()
-      
+            )
+          else
+            ()
+    
     method h_server_filter_networks =
       let data = data @ filtered_data in
       let rec iter filtered not_filtered data =
@@ -276,33 +297,37 @@ class box columns users =
       let (filtered, not_filtered) = iter [] [] data in
       filtered_data <- filtered;
       self#update_data not_filtered
-            
+    
+    method toggle_display_all_servers () =
+      filter_disconnected_servers := not !filter_disconnected_servers;
+      self#h_server_filter_networks
+    
     method h_server_state num state =
       try
-	let (row, serv) = self#find_server num in
-	(
-	 match Mi.is_connected state, Mi.is_connected serv.server_state with
-	   true, false -> incr G.nconnected_servers
-	 | false, true -> decr G.nconnected_servers
-	 | _ -> ()
-	);
-	self#update_server serv { serv with server_state = state } row;
+        let (row, serv) = self#find_server num in
+        (
+          match Mi.is_connected state, Mi.is_connected serv.server_state with
+            true, false -> incr G.nconnected_servers
+          | false, true -> decr G.nconnected_servers
+          | _ -> ()
+        );
+        self#update_server serv { serv with server_state = state } row;
       with
-	Not_found -> ()
-
+        Not_found -> ()
+    
     method h_server_busy num nusers nfiles =
       try
-	let (row, serv) = self#find_server num in
-	self#update_server
-	  serv 
-	  { serv with 
-	    server_nusers = nusers ;
-	    server_nfiles = nfiles ;
-	  } 
-	  row
+        let (row, serv) = self#find_server num in
+        self#update_server
+          serv 
+          { serv with 
+          server_nusers = nusers ;
+          server_nfiles = nfiles ;
+        } 
+          row
       with
-	Not_found -> ()
-
+        Not_found -> ()
+    
     method h_server_user num user_num =
       try
         let (row, serv) = self#find_server num in
@@ -311,13 +336,15 @@ class box columns users =
           | Some users -> users in
         
         if not (List.memq user_num users) then
-	self#update_server
-	  serv { serv with server_users = Some (user_num :: users) } row
+          self#update_server
+            serv { serv with server_users = Some (user_num :: users) } row
       with
-	Not_found ->
-          Gui_com.send (GetServer_info num);
-          Gui_com.send (GetServer_users num)
-
+        Not_found ->
+          if num <> 0 then begin
+              Gui_com.send (GetServer_info num);
+              Gui_com.send (GetServer_users num)
+            end
+            
     initializer
       box#vbox#pack ~expand: true pl#box ;
 
@@ -374,6 +401,15 @@ class box columns users =
 	   ~tooltip: M.remove_old_servers
 	   ~icon: (Gui_icons.pixmap M.o_xpm_remove_old_servers)#coerce
 	   ~callback: self#remove_old_servers
+	   ()
+	);
+
+      ignore
+	(wtool#insert_button 
+	   ~text: M.toggle_display_all_servers
+	   ~tooltip: M.toggle_display_all_servers
+	   ~icon: (Gui_icons.pixmap M.o_xpm_preview)#coerce
+	   ~callback: self#toggle_display_all_servers
 	   ()
 	);
   end

@@ -193,24 +193,16 @@ let value_reader gui t sock =
               ()
         end
         
-      (*  
-    | LocalInfo l ->
-        gui#label_upload_status#set_text (
-          Printf.sprintf "%s %d/%d" M.upload l.upload_counter l.shared_files)
-*)
+    | Client_stats s ->
+        gui#label_upload_status#set_text s
         
     | CoreProtocol v -> 
-        if v <> 0 then 
-	  (
-            Printf.printf "Bad GUI version"; print_newline ();
-            
-           TcpBufferedSocket.close sock "bad version";
-          )
-        else 
-	  (
-           gui#label_connect_status#set_text M.connected;
-           Com.send (Password (!!O.password))
-	  )
+        
+        Gui_com.gui_protocol_used := min v best_gui_version;
+        Printf.printf "Using protocol %d for communications" !Gui_com.gui_protocol_used;
+        print_newline ();
+        gui#label_connect_status#set_text M.connected;
+        Com.send (Password (!!O.password))
  
     | Search_result (num,r) -> 
         begin try
@@ -352,10 +344,13 @@ let value_reader gui t sock =
             try
               let c = Hashtbl.find G.locations num in
               let files = match c.client_files with
-                  None -> []
-                | Some files -> files in
+                  None -> [file]
+                | Some files -> 
+                    if List.memq file files then raise Exit;
+                    file :: files
+              in
               ignore (canon_client gui
-                  { c with client_files = Some (file :: files) });
+                  { c with client_files = Some files });
             with _ ->
                 Com.send (GetClient_info num);
           with _ ->  ()

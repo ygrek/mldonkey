@@ -43,14 +43,15 @@ type http_headers =
 | Generic of string * string
 | Referer of url
 
-type headers_handler = 
-  TcpBufferedSocket.t -> int -> (string * string) list -> unit
+type content_handler = 
+  int -> (string * string) list -> TcpBufferedSocket.t -> int -> unit
   
 let string_of_header = function
   | Generic (a, b) -> a ^ ": " ^ b ^ "\r\n"
   | Referer u -> "Referer: " ^ (Url.to_string false u) ^ "\r\n"
 
 let make_full_request url args headers ispost toproxy =
+  let args = url.args@args in
   let res = Buffer.create 80 in
   let is_real_post = ispost && args <> [] in
   if is_real_post
@@ -64,6 +65,8 @@ let make_full_request url args headers ispost toproxy =
     (Buffer.add_char res '?';
      let rec manage_args = function
       | [] -> assert false
+      | [a, ""] ->
+          Buffer.add_string res a
       | [a, b] ->
           Buffer.add_string res a; Buffer.add_char res '='; Buffer.add_string res b
       | (a,b)::l ->
@@ -77,6 +80,8 @@ let make_full_request url args headers ispost toproxy =
     | [] -> ()
     | a::l -> Buffer.add_string res (string_of_header a) in
   manage_headers headers;
+  Buffer.add_string res "User-Agent: Wget 1.4\r\n";
+  Buffer.add_string res "Accept: */*\r\n";
   if is_real_post
   then
     (let post = Buffer.create 80 in
@@ -95,7 +100,8 @@ let make_full_request url args headers ispost toproxy =
      Buffer.add_buffer res post)
   else
     Buffer.add_string res "\r\n";
-  Buffer.contents res
+  let s = Buffer.contents res in
+  s
 
 type get_args =
   Timeout of float
@@ -118,40 +124,6 @@ let split_head s =
   in
   iter 0 []
 
-let default_headers_handler content_handler sock ans_code headers =
-  if ans_code <> 200 then begin
-      Printf.printf "Http_client: bad reply %d" ans_code;
-      print_newline ();
-      close sock "bad reply";
-      raise Not_found
-    end;
-(*
-  Printf.printf "ans_code: %d" ans_code;
-  print_newline ();
-  List.iter (fun (name, content) ->
-      Printf.printf "HEADER %s:%s" name content;
-      print_newline ();) 
-headers;
-*)
-  let content_length = ref (-1) in
-  List.iter (fun (name, content) ->
-      if String.lowercase name = "content-length" then
-        try          
-          content_length := int_of_string content
-        with _ -> 
-            Printf.printf "bad content length [%s]" content;
-            print_newline ();
-  ) headers;
-  
-  let content_handler = content_handler !content_length in
-  set_reader sock content_handler;
-  set_closer sock (fun _ _ ->
-      content_handler sock 0);
-  let buf = TcpBufferedSocket.buf sock in
-  if buf.len > 0 then
-    content_handler sock buf.len 
-
-  
 let parse_header headers_handler sock header =
   let headers = split_head header in
   match headers with 
@@ -207,38 +179,40 @@ print_newline ();
 let http_reply_handler headers_handler =
   read_header (parse_header headers_handler)
   
-let get_page url get_args headers_handler =
-  let args = ref [] in
-  let headers = ref [] in
-  let ispost = ref false in
-  let timeout = ref 300.0 in
-  let proxy = ref None in
-  List.iter (function   
-      Timeout t -> timeout := t
-    | Args l -> args := l@ !args
-    | Headers l -> headers := l @ !headers;
-    | Post -> ispost := true
-    | Proxy (h,p) -> proxy := Some (h,p)
-  ) get_args;
-  let args = !args in
-  let headers = !headers in
-  let ispost = !ispost in
-  let timeout = !timeout in
-  let proxy = !proxy in
-  
-  let request = make_full_request url args headers ispost (proxy <> None) in
-
-  let server, port =
-    match proxy with
-    | None -> url.server, url.port
-    | Some (s, p) -> s, p
-  in
-  let sock = TcpBufferedSocket.connect "http client connecting" (Ip.to_inet_addr (Ip.from_name server))
-    port (fun _ _ -> ())
-  in
-  TcpBufferedSocket.write_string sock request;
-  TcpBufferedSocket.set_reader sock (http_reply_handler headers_handler)
-  (*
+let get_page url get_args content_handler =
+  let rec get_url level url =
+    let args = ref [] in
+    let headers = ref [] in
+    let ispost = ref false in
+    let timeout = ref 300.0 in
+    let proxy = ref None in
+    List.iter (function   
+        Timeout t -> timeout := t
+      | Args l -> args := l@ !args
+      | Headers l -> headers := l @ !headers;
+      | Post -> ispost := true
+      | Proxy (h,p) -> proxy := Some (h,p)
+    ) get_args;
+    let args = !args in
+    let headers = !headers in
+    let ispost = !ispost in
+    let timeout = !timeout in
+    let proxy = !proxy in
+    
+    let request = make_full_request url args headers ispost (proxy <> None) in
+    
+    let server, port =
+      match proxy with
+      | None -> url.server, url.port
+      | Some (s, p) -> s, p
+    in
+    let sock = TcpBufferedSocket.connect "http client connecting" (Ip.to_inet_addr (Ip.from_name server))
+      port (fun _ _ -> ())
+    in
+    TcpBufferedSocket.write_string sock request;
+    TcpBufferedSocket.set_reader sock (http_reply_handler 
+        (default_headers_handler level))
+(*
   let fds = socket PF_INET SOCK_STREAM 0 in
   try
     connect fds sock;
@@ -287,6 +261,64 @@ let get_page url get_args headers_handler =
     raise e
 *)
   
+  and default_headers_handler level sock ans_code headers =
+    (*
+    List.iter (fun (name, value) ->
+        Printf.printf "[%s]=[%s]" name value;
+        print_newline ();
+    ) headers;
+*)
+    
+    match ans_code with
+      200 ->
+(*
+  Printf.printf "ans_code: %d" ans_code;
+  print_newline ();
+  List.iter (fun (name, content) ->
+      Printf.printf "HEADER %s:%s" name content;
+      print_newline ();) 
+headers;
+*)
+        let content_length = ref (-1) in
+        List.iter (fun (name, content) ->
+            if String.lowercase name = "content-length" then
+              try          
+                content_length := int_of_string content
+              with _ -> 
+                  Printf.printf "bad content length [%s]" content;
+                  print_newline ();
+        ) headers;
+        
+        let content_handler = content_handler !content_length headers in
+        set_reader sock content_handler;
+        set_closer sock (fun _ _ ->
+            content_handler sock 0);
+        let buf = TcpBufferedSocket.buf sock in
+        if buf.len > 0 then
+          content_handler sock buf.len 
+    | 302 ->
+        Printf.printf "INDIRECTION"; print_newline ();
+        if level < 10 then
+          begin
+            try
+              let url = List.assoc "Location" headers in
+              Printf.printf "Indirection %s" url; print_newline ();
+              get_url (level+1) (Url.of_string url)
+            
+            with e ->
+                List.iter (fun (name, value) ->
+                    Printf.printf "[%s]=[%s]" name value;
+                    print_newline ();
+                ) headers
+                
+        end
+    | _ ->
+        Printf.printf "Http_client: bad reply %d" ans_code;
+        print_newline ();
+        close sock "bad reply";
+        raise Not_found
+
+  in get_url 0 url
   
   
 let split_header header =     

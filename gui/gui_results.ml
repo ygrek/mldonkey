@@ -43,6 +43,8 @@ class box columns () =
     inherit [CommonTypes.result_info] Gpattern.plist `EXTENDED titles true as pl
     inherit Gui_results_base.box !!O.toolbars_style () as box 
 
+    val mutable wb_extend_search = (None : GButton.button option)
+
     val mutable columns = columns
     method set_columns l =
       columns <- l;
@@ -100,6 +102,16 @@ class box columns () =
 
     method set_tb_style = wtool#set_style
 
+    method extend_search () =
+      Gui_com.send Gui_proto.ExtendedSearch
+
+    method remove_extend_search_button =
+      match wb_extend_search with
+	None -> ()
+      |	Some wb -> 
+	  wtool#remove wb#coerce;
+	  wb_extend_search <- None
+
     initializer
       box#vbox#pack ~expand: true pl#box ;
 
@@ -109,6 +121,15 @@ class box columns () =
 	   ~tooltip: M.download
 	   ~icon: (Gui_icons.pixmap M.o_xpm_download)#coerce
 	   ~callback: self#download
+	   ()
+	);
+
+      wb_extend_search <- Some
+	(wtool#insert_button 
+	   ~text: M.extended_search
+	   ~tooltip: M.extended_search
+	   ~icon: (Gui_icons.pixmap M.o_xpm_extend_search)#coerce
+	   ~callback: self#extend_search
 	   ()
 	);
   end

@@ -607,7 +607,7 @@ print_newline ();
           printf_string "[FOUND FILE]";
           if not (List.mem t.Q.name file.file_filenames) then 
             file.file_filenames <- file.file_filenames @ [t.Q.name] ;
-          if file.file_size > block_size then
+          if file_size file > block_size then
             direct_client_send sock (
               let module M = Mftp_client in
               let module C = M.QueryChunks in
@@ -684,15 +684,15 @@ print_newline ();
               Printf.printf "%d: Exceeding block boundaries" (client_num c);
               print_newline ();
               
-              Printf.printf "%s-%s (%s-%s)" 
-                (Int32.to_string begin_pos) (Int32.to_string end_pos)
-              (Int32.to_string b.block_begin) (Int32.to_string b.block_end)
+              Printf.printf "%ld-%ld (%ld-%ld)" 
+                (begin_pos) (end_pos)
+              (b.block_begin) (b.block_end)
               ;
               print_newline ();
               
               List.iter (fun z ->
-                  Printf.printf "zone: %s-%s"
-                    (Int32.to_string z.zone_begin) (Int32.to_string z.zone_end)
+                  Printf.printf "zone: %ld-%ld"
+                    (z.zone_begin) (z.zone_end)
               ) c.client_zones;
 
 (* try to recover the corresponding block ... *)
@@ -725,24 +725,24 @@ print_newline ();
               raise Not_found
             else
             
-            let final_pos = Unix32.seek32 file.file_fd 
+            let final_pos = Unix32.seek32 (file_fd file) 
                 begin_pos Unix.SEEK_SET in
             if final_pos <> begin_pos then begin
-                Printf.printf "BAD LSEEK %s/%s"
-                  (Int32.to_string final_pos)
-                (Int32.to_string begin_pos); print_newline ();
+                Printf.printf "BAD LSEEK %ld/%ld"
+                  (final_pos)
+                (begin_pos); print_newline ();
                 raise Not_found
               end;
             printf_char '#';
 (*            if !!verbose then begin
-                Printf.printf "{%d-%d = %s-%s}" (t.Q.bloc_begin)
-                (t.Q.bloc_len) (Int32.to_string begin_pos) 
-                (Int32.to_string end_pos);
+                Printf.printf "{%d-%d = %ld-%ld}" (t.Q.bloc_begin)
+                (t.Q.bloc_len) (begin_pos) 
+                (end_pos);
                 print_newline ();
               end; *)
             try
               let fd = try
-                  Unix32.force_fd file.file_fd 
+                  Unix32.force_fd (file_fd file) 
                 with e -> 
                     Printf.printf "In Unix32.force_fd"; print_newline ();
                     raise e
@@ -766,6 +766,8 @@ print_newline ();
 (* Upload requests *)
   | M.ViewFilesReq t when !has_upload = 0 -> 
       let files = DonkeyShare.all_shared () in
+      
+      Printf.printf "ASK VIEW FILES"; print_newline ();
       
       direct_client_send sock (
         let module Q = M.ViewFilesReply in

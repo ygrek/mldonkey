@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonTypes
 open Unix
 open TcpBufferedSocket
 open DonkeyMftp
@@ -49,6 +50,7 @@ and client = {
     mutable client_id : Ip.t; 
     mutable client_conn_ip : Ip.t;
     mutable client_md4 : Md4.t;
+    mutable client_mldonkey : int;
     mutable client_sock: Mftp_comm.server_sock option;
     mutable client_kind : client_kind;
     mutable client_files : Md4.t list;
@@ -64,13 +66,29 @@ and client_kind =
 type server = {
     server_ip : Ip.t;
     server_port : int;
+    last_message : float;
 }
 
+type notification = {
+  add : bool;
+  md4 : Md4.t;
+  source_ip : Ip.t;
+  source_port : int;
+}
+
+
 type peer = {
+    mutable group_id : Md4.t;
+    mutable peer_master : bool;
+    mutable peer_id : int;
+    mutable peer_md4 : Md4.t;
     mutable peer_ip : Ip.t;
     mutable peer_port : int;
+    mutable peer_need_recovery : bool;
     mutable peer_sock : TcpBufferedSocket.t option;
-    mutable peer_tags : CommonTypes.tag list; 
+    mutable peer_notifications : notification list;
+    mutable peer_clients : (Ip.t,Ip.t) Hashtbl.t;
+    mutable peer_tags : CommonTypes.tag list;
   }
   
 open CommonNetwork

@@ -19,16 +19,38 @@
 
 val clients_by_id :  (Ip.t, ServerTypes.client) Hashtbl.t
 val files_by_md4 : (Md4.t, ServerTypes.location list) Hashtbl.t 
-val servers_by_md4 : (Md4.t, ServerTypes.server) Hashtbl.t
+
 val client_counter : int ref
 val other_servers : ServerTypes.server list ref
 val alive_servers : ServerTypes.server list ref
 val nconnected_clients : int ref
-val nshared_files : int ref
+val nshared_md4 : int ref
 
-(*test values*)
-val nb_udp_loc : int ref
-val nb_udp_req : int ref
-val nb_udp_query : int ref
-val nb_tcp_req : int ref
-  
+(*messages counter*)
+val nb_udp_query_sec : int ref 
+val nb_udp_query_count : int ref 
+val nb_udp_loc_sec : int ref 
+val nb_udp_loc_count : int ref 
+val nb_udp_req_sec : int ref 
+val nb_udp_req_count : int ref 
+val nb_udp_ping_server_sec : int ref
+val nb_udp_ping_server_count : int ref
+
+val nb_tcp_req_sec : int ref 
+val nb_tcp_req_count : int ref 
+val nb_udp_reply_sec : int ref 
+val nb_udp_reply_count : int ref 
+
+
+
+(*Group server values*)
+val servers_by_id : (int, ServerTypes.peer) Hashtbl.t
+val local_clients : Ip.t list
+
+val group_id : Md4.t ref 
+val server_id : int ref 
+val nconnected_servers : int ref
+val nshared_remote_md4 : int ref
+val server_counter : int ref
+val ngroup_clients : int ref
+val ngroup_files : int ref

@@ -117,9 +117,9 @@ let value_to_file is_done assocs =
 
 let file_to_value file =
   [
-    "file_size", int32_to_value file.file_size;
+    "file_size", int32_to_value (file_size file);
     "file_name", string_to_value file.file_name;
-    "file_downloaded", int32_to_value file.file_downloaded;
+    "file_downloaded", int32_to_value (file_downloaded file);
     "file_id", string_to_value (Md4.to_string file.file_id);
     "file_sources", 
     list_to_value (fun c ->

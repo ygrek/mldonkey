@@ -18,7 +18,7 @@
 *)
 
 open CommonTypes
-
+open DonkeyMftp
 open BasicSocket
 open TcpBufferedSocket
 open Unix
@@ -81,6 +81,26 @@ let print table =
 
 exception Already_use
         
+let get_client_id ip =
+  if Hashtbl.mem clients_by_id ip then
+    begin
+      let find = ref true in
+	while !find do
+	  if Hashtbl.mem clients_by_id (Ip.of_int32 (Int32.of_int !client_counter)) then
+	      find := false
+	  else
+	    begin 
+	      incr client_counter;
+	      if (!client_counter > 2000) then
+		client_counter := 0
+	    end
+	done;
+	(Ip.of_int32 (Int32.of_int !client_counter))  
+    end
+  else
+    ip
+
+
 let reply_to_client_connection c =
   let loc = c.client_location in
   match c.client_sock with
@@ -153,7 +173,7 @@ let check_client c port =
     (*server_msg_to_string*)
   in
   BasicSocket.set_wtimeout (TcpBufferedSocket.sock try_sock) 5.;
-  Printf.printf "Checking client ID"; print_newline ();
+  (*Printf.printf "Checking client ID"; print_newline ();*)
   ()
 
 (*send 200 results*)
@@ -178,16 +198,16 @@ let remove_md4_source c =
   files_liste   
   
 
-(* send nb clients and nb files on the server *)
+(* send the number of clients and the number of files on the server *)
 let send_stat_to_clients timer =
         Hashtbl.iter ( fun k x ->
                  match x.client_sock with
                          None -> ()
                        | Some sock ->
                 direct_server_send  sock (M.InfoReq
-                (!nconnected_clients,!nshared_files))) clients_by_id
+                (!nconnected_clients,!nshared_md4))) clients_by_id
 
-(*get A part of a listeof servers*)
+(*get a part of the servers liste*)
 let rec get_serverlist servers nb_servers =
   match servers with 
     [] -> []
@@ -195,12 +215,21 @@ let rec get_serverlist servers nb_servers =
       else { M.ServerList.ip = hd.server_ip; M.ServerList.port = hd.server_port} :: get_serverlist tail (nb_servers-1)
 
 
+let rec check_and_remove lst file =
+  match lst with 
+      [] -> raise Not_found
+    | hd :: tl -> (if file.f_md4 = hd then
+		     tl 
+		   else
+		     hd :: check_and_remove tl file;)
+
+
 (*message comming from a client*)
 let server_to_client c t sock =
-(*  Printf.printf "server_to_client"; print_newline ();
+  Printf.printf "server_to_client"; print_newline ();
   M.print t;
-  print_newline ();*)
-  incr nb_tcp_req;
+  print_newline ();
+  incr nb_tcp_req_count;
   if (!!save_log) then
      ServerLog.new_log_req c.client_location.loc_ip c.client_md4 t;
   (match t with
@@ -230,17 +259,31 @@ let server_to_client c t sock =
           }))
   
   | M.ShareReq list ->
-      remove_md4_source c;                     
-      List.iter (fun tmp ->
-          ServerIndexer.add tmp;
-          try 
-           ServerLocate.add tmp.f_md4
-           {loc_ip=c.client_id;loc_port=c.client_location.loc_port;loc_expired=c.client_location.loc_expired};
-            c.client_files <- tmp.f_md4::c.client_files 
-          with _ -> Printf.printf "To Much Files Shared\n"
-                   
-       ) list
-       (*ServerLocate.print()*)
+      let tmp = c.client_files in
+      let removed_files = ref tmp in
+      let added_files = ref [] in
+      let current_files = ref [] in
+	List.iter ( fun file ->
+		      try
+			current_files := file.f_md4 :: !current_files;
+			removed_files := check_and_remove !removed_files file;
+		      with Not_found ->
+			added_files := file :: !added_files
+		  ) list;
+	c.client_files <- !removed_files;
+	remove_md4_source c;           
+        c.client_files <- !current_files;
+	List.iter (fun tmp ->
+		     ServerIndexer.add tmp;
+		     try 
+		       ServerLocate.add tmp.f_md4
+			 {loc_ip=c.client_id;loc_port=c.client_location.loc_port;loc_expired=c.client_location.loc_expired};
+		       c.client_files <- tmp.f_md4::c.client_files 
+		     with _ -> (*Printf.printf "To Much Files Shared\n"*)
+		       direct_server_send sock (M.MessageReq "Too much files index in my server, so I can't index yours");
+		       ()
+		  )  !added_files
+	  (*ServerLocate.print()*)
                            
   | M.QueryReq t ->
       let module R = M.Query in
@@ -280,11 +323,28 @@ let server_to_client c t sock =
             direct_server_send sock (M.QueryIDFailedReq t)
          
       end;
-
-(***************************************************************** TODO ***)
       
   | M.QueryLocationReq t ->
-     begin
+      begin
+	
+       (* c.client_mldonkey = 0 ==> First location query *)
+	if c.client_mldonkey = 0 then
+	  (if t = Md4.null then
+	     c.client_mldonkey <- 1 + c.client_mldonkey)
+	else
+	  (* c.client_mldonkey = 1 ==> Might be mldonkey client *)
+	  if c.client_mldonkey = 1 then 
+	    (if t = Md4.one then
+	       let mess = "MLDonkey rules" in
+		 c.client_mldonkey <- 1 + c.client_mldonkey;
+		 direct_server_send sock (M.MldonkeyUserReplyReq);
+		 (* direct_server_send sock (M.MessageReq mess); *))
+	  else
+	    (* It is a classical client *)
+	    let mess = "For best performance, you'd better use a mldonkey client (http://www.freesoftware.fsf.org/mldonkey)" in
+	      c.client_mldonkey <- (-1);
+	      (* direct_server_send sock (M.MessageReq mess); *)
+
        try
       let module R = M.QueryLocationReply in
       let peer_list = ServerLocate.get t in
@@ -309,6 +369,12 @@ let server_to_client c t sock =
       ) clients_by_id; 
       direct_server_send sock (M.QueryUsersReplyReq !clients_list)       
       
+  | M.SubscribeReq t ->
+      begin
+	Printf.printf "SUBSCRIPTION RECEIVED:";
+	print_newline ();
+	Printf.printf "%s\n" (CommonSearch.search_string t)
+      end
   | _ -> Printf.printf "UNKNOWN TCP REQ\n"; 
       ());
   if (!!save_log) then
@@ -337,9 +403,9 @@ let handler t event =
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
 
-      if !!max_clients <= !nconnected_clients then
+      if !!max_clients <= !nconnected_clients || (string_of_inet_addr from_ip) = "128.93.7.26"  then
 	begin
-	  Printf.printf "too much clients\n";
+	  (*Printf.printf "too much clients\n";*)
           Unix.close s
 	end
       else
@@ -351,6 +417,7 @@ let handler t event =
       let client = {
           client_id = null_ip;
           client_conn_ip = ip;
+	  client_mldonkey = 0;
           client_sock = Some sock;
           client_kind = Firewalled_client;
           client_files = [];

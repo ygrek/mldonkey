@@ -97,6 +97,7 @@ class virtual ['a] plist
       wlist#freeze ();
       wlist#clear ();
       data <- self#sort data;
+      selection <- [];
       List.iter self#insert data;
       GToolbox.autosize_clist wlist;
       wlist#thaw ()

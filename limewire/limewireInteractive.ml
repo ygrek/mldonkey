@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonGlobals
+open CommonUser
 open CommonClient
 open CommonOptions
 open CommonServer
@@ -101,7 +103,7 @@ module P = Gui_proto
 let _ =
   file_ops.op_file_cancel <- (fun file ->
       Hashtbl.remove OpennapGlobals.files_by_key 
-      (file.file_name, file.file_size);
+      (file.file_name, file_size file);
       current_files := List2.removeq file !current_files      
   );
   file_ops.op_file_info <- (fun file ->
@@ -110,18 +112,18 @@ let _ =
         P.file_network = network.network_num;
         P.file_names = [file.file_name];
         P.file_md4 = Md4.null;
-        P.file_size = file.file_size;
-        P.file_downloaded = file.file_downloaded;
+        P.file_size = file_size file;
+        P.file_downloaded = file_downloaded file;
         P.file_nlocations = 0;
         P.file_nclients = 0;
         P.file_state = file_state file;
         P.file_sources = None;
-        P.file_download_rate = 0.0;
+        P.file_download_rate = file_download_rate file.file_file;
         P.file_chunks = "0";
         P.file_availability = "0";
         P.file_format = Unknown_format;
         P.file_chunks_age = [|0.0|];
-        P.file_age = 0.0;
+        P.file_age = file_age file;
       }    
   )
   
@@ -131,7 +133,7 @@ let _ =
         {
           P.server_num = (server_num s);
           P.server_network = network.network_num;
-          P.server_ip = s.server_ip;
+          P.server_addr = new_addr_ip s.server_ip;
           P.server_port = s.server_port;
           P.server_score = 0;
           P.server_tags = [];
@@ -194,7 +196,34 @@ let _ =
 let browse_client c = ()
   
 let _ =
+  client_ops.op_client_info <- (fun c ->
+      {
+        P.client_network = network.network_num;
+        P.client_kind = Indirect_location ("", c.client_user.user_uid);
+        P.client_state = client_state (as_client c.client_client);
+        P.client_type = client_type c;
+        P.client_tags = [];
+        P.client_name = "";
+        P.client_files = None;
+        P.client_num = (client_num (as_client c.client_client));
+        P.client_rating = Int32.zero;
+        P.client_chat_port = 0 ;
+      }
+  );
   client_ops.op_client_browse <- (fun c immediate ->
       browse_client c
   )
   
+  
+let _ =  
+  user_ops.op_user_info <- (fun user ->
+      {
+        P.user_num = user.user_user.impl_user_num;
+        P.user_md4 = user.user_uid;
+        P.user_name = "";
+        P.user_ip = Ip.null;
+        P.user_port = 0;
+        P.user_tags = [];
+        
+        P.user_server = 0;
+      })

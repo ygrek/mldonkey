@@ -64,7 +64,7 @@ let file_complete file file_id =
   fts_send file_id FTS_DOWNLOAD_COMPLETE;
   file_completed (as_file file.file_file);
   current_files := List2.removeq file !current_files;
-  old_files =:= (file.file_name, file.file_size) :: !!old_files;
+  old_files =:= (file.file_name, (file_size file)) :: !!old_files;
   let incoming_dir =
     if !!commit_in_subdir <> "" then
       Filename.concat !!DO.incoming_directory !!commit_in_subdir
@@ -82,20 +82,20 @@ let file_writter c sock nread =
   let file = c.client_file in
   begin
     let fd = try
-        Unix32.force_fd file.file_fd 
+        Unix32.force_fd (file_fd file) 
       with e -> 
           Printf.printf "In Unix32.force_fd"; print_newline ();
           raise e
     in
-    let final_pos = Unix32.seek32 file.file_fd c.client_file_pos Unix.SEEK_SET in
+    let final_pos = Unix32.seek32 (file_fd file) c.client_file_pos Unix.SEEK_SET in
     Unix2.really_write fd b.buf b.pos b.len;
   end;
   c.client_file_pos <- Int32.add c.client_file_pos (Int32.of_int nread);
   TcpBufferedSocket.buf_used sock b.len;
-  if c.client_file_pos > file.file_downloaded then begin
-      file.file_downloaded <- c.client_file_pos;
+  if c.client_file_pos > (file_downloaded file) then begin
+      file.file_file.impl_file_downloaded <- c.client_file_pos;
     end;
-  if file.file_downloaded = file.file_size then begin
+  if (file_downloaded file) = (file_size file) then begin
       file_complete file c.client_file_id
     end
   
@@ -106,13 +106,13 @@ let init_file_transfer t =
   let module FT = AP.FileTransfer in
   let file = new_file t.FT.file_id t.FT.filename t.FT.size in
   
-  if file.file_downloaded = file.file_size then begin
+  if (file_downloaded file) = (file_size file) then begin
       Printf.printf "FILE DOWNLOADED"; print_newline ();
       fts_send t.FT.file_id FTS_DOWNLOAD_COMPLETE
     end else
   let module P = AP.PeerReq in
     
-  if file.file_downloaded < file.file_size &&
+  if (file_downloaded file) < (file_size file) &&
     not (List.memq file !current_files) then begin
       current_files := file :: !current_files;
     end;
@@ -143,7 +143,7 @@ let init_file_transfer t =
       client_ip = t.FT.ip;
       client_port = t.FT.port;
       client_file = file;
-      client_file_pos = file.file_downloaded;
+      client_file_pos = (file_downloaded file);
       client_direction = t.FT.direction;
       client_id = t.FT.local_id;
       client_file_id = t.FT.file_id;
@@ -183,7 +183,7 @@ let init_file_transfer t =
       
       P.peer_send sock {
         P.file_id = c.client_file_id;
-        P.file_size = file.file_size;
+        P.file_size = (file_size file);
         P.file_pos = c.client_file_pos;
       };
       fts_send c.client_file_id FTS_SETTING_UP; 
@@ -214,7 +214,7 @@ let init_file_transfer t =
                   let module P = AP.PeerReq in
                   P.peer_send sock {
                     P.file_id = c.client_file_id;
-                    P.file_size = file.file_size;
+                    P.file_size = (file_size file);
                     P.file_pos = c.client_file_pos;
                   };
                   

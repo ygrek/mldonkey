@@ -117,44 +117,44 @@ let print_table_text buf alignments titles lines =
   ) lines
 
 let print_table_html spacing buf aligns titles lines =
-  Printf.bprintf buf "\<TABLE\>\n";
-  Printf.bprintf buf "\<TR\>";
+  Printf.bprintf buf "\\<TABLE\\>\n";
+  Printf.bprintf buf "\\<TR\\>";
   Array.iter (fun title ->
-      Printf.bprintf buf "\<TD ALIGN=CENTER\>%s\</TD\>" title;
-      Printf.bprintf buf "\<TD WIDTH=%d\> \</TD\>" spacing;
+      Printf.bprintf buf "\\<TD ALIGN=CENTER\\>%s\\</TD\\>" title;
+      Printf.bprintf buf "\\<TD WIDTH=%d\\> \\</TD\\>" spacing;
   ) titles;
   let naligns = Array.length aligns in
-  Printf.bprintf buf "\</TR\>\n";
+  Printf.bprintf buf "\\</TR\\>\\n";
   List.iter (fun line ->
-      Printf.bprintf buf "\<TR\>";
+      Printf.bprintf buf "\\<TR\\>";
       Array.iteri (fun i title ->
-          Printf.bprintf buf "\<TD%s nowrap\>%s\</TD\>" 
+          Printf.bprintf buf "\\<TD%s nowrap\\>%s\\</TD\\>" 
             (if i >= naligns then "" else
             match aligns.(i) with
               Align_Center -> " ALIGN=CENTER"
             | Align_Left -> " ALIGN=LEFT"
             | Align_Right -> " ALIGN=RIGHT")
           title;
-          Printf.bprintf buf "\<TD WIDTH=%d\> \</TD\>" spacing;
+          Printf.bprintf buf "\\<TD WIDTH=%d\\> \\</TD\\>" spacing;
       ) line;
-      Printf.bprintf buf "\</TR\>\n";
+      Printf.bprintf buf "\\</TR\\>\n";
   ) lines;
-  Printf.bprintf buf "\</TABLE\>"
+  Printf.bprintf buf "\\</TABLE\\>"
   
 let print_file_html_form buf files =
-  Printf.bprintf buf "\<form action=/files\>";
-  Printf.bprintf buf "\<input type=submit value='Submit Changes'\>";
+  Printf.bprintf buf "\\<form action=/files\\>";
+  Printf.bprintf buf "\\<input type=submit value='Submit Changes'\\>";
   print_table_html 10 buf 
     [| Align_Left; Align_Left; Align_Left; Align_Right; Align_Right; Align_Right; Align_Right|] 
     [|
     "[ Num ]"; 
     "P/R/C";
-    "\<input type=radio value=File name=sortby\> File"; 
-    "\<input type=radio value=Percent name=sortby\> Percent"; 
-    "\<input type=radio value=Downloaded name=sortby\> Downloaded"; 
-    "\<input type=radio value=Size name=sortby\> Size"; 
+    "\\<input type=radio value=File name=sortby\\> File"; 
+    "\\<input type=radio value=Percent name=sortby\\> Percent"; 
+    "\\<input type=radio value=Downloaded name=sortby\\> Downloaded"; 
+    "\\<input type=radio value=Size name=sortby\\> Size"; 
     "Old"; 
-    "\<input type=radio value=Rate name=sortby\> Rate"; 
+    "\\<input type=radio value=Rate name=sortby\\> Rate"; 
   |] 
     (List.map (fun file ->
         [|
@@ -165,15 +165,15 @@ let print_file_html_form buf files =
             );
           (if file.file_state = FileDownloading then
               Printf.sprintf 
-                "\<input name=pause type=checkbox value=%d\> R
-                \<input name=cancel type=checkbox value=%d\>"
+                "\\<input name=pause type=checkbox value=%d\\> R
+                \\<input name=cancel type=checkbox value=%d\\>"
                 file.file_num
                 file.file_num
             else 
               Printf.sprintf 
                 "P
-              \<input name=resume type=checkbox value=%d\>
-                \<input name=cancel type=checkbox value=%d\>"
+              \\<input name=resume type=checkbox value=%d\\>
+                \\<input name=cancel type=checkbox value=%d\\>"
                 file.file_num
                 file.file_num);
           
@@ -203,7 +203,7 @@ let print_file_html_form buf files =
               Printf.sprintf "%5.1f" (file.file_download_rate /. 1024.));
         |]
     ) files);
-  Printf.bprintf buf "\</form\>"
+  Printf.bprintf buf "\\</form\\>"
   
 let simple_print_file_list finished buf files format =
   let print_table = if format.conn_output = HTML then print_table_html 2
@@ -217,12 +217,12 @@ let simple_print_file_list finished buf files format =
       (if format.conn_output = HTML then
         [|
           "[ Num ]"; 
-          "\<a href=/submit\?q\=vd\&sortby\=name\> File \</a\>"; 
-          "\<a href=/submit\?q\=vd\&sortby\=percent\> Percent \</a\>"; 
-          "\<a href=/submit\?q\=vd\&sortby\=done\> Downloaded \</a\>";
-          "\<a href=/submit\?q\=vd\&sortby\=size\> Size \</a\>"; 
+          "\\<a href=/submit\\?q\\=vd\\&sortby\\=name\\> File \\</a\\>"; 
+          "\\<a href=/submit\\?q\\=vd\\&sortby\\=percent\\> Percent \\</a\\>"; 
+          "\\<a href=/submit\\?q\\=vd\\&sortby\\=done\\> Downloaded \\</a\\>";
+          "\\<a href=/submit\\?q\\=vd\\&sortby\\=size\\> Size \\</a\\>"; 
             "Old";
-          "\<a href=/submit\?q\=vd\&sortby\=rate\> Rate \</a\>"; 
+          "\\<a href=/submit\\?q\\=vd\\&sortby\\=rate\\> Rate \\</a\\>"; 
         |] else
         [|
             "[ Num ]"; 
@@ -241,7 +241,7 @@ let simple_print_file_list finished buf files format =
                   n.network_name)
                 file.file_num
                 (if format.conn_output = HTML then  
-                  Printf.sprintf "[\<a href=/submit\?q\=cancel\+%d $S\>CANCEL\</a\>][\<a href=/submit\?q\=%s\+%d $S\>%s\</a\>] " 
+                  Printf.sprintf "[\\<a href=/submit\\?q\\=cancel\\+%d $S\\>CANCEL\\</a\\>][\\<a href=/submit\\?q\\=%s\\+%d $S\\>%s\\</a\\>] " 
                   file.file_num
                     (match file.file_state with
                       FileDownloading -> "pause"
@@ -284,8 +284,8 @@ let simple_print_file_list finished buf files format =
     (if format.conn_output = HTML then
     [|
       "[ Num ]"; 
-      "\<a href=/submit\?q\=vd\&sortby\=name\> File \</a\>"; 
-      "\<a href=/submit\?q\=vd\&sortby\=size\> Size \</a\>"; 
+      "\\<a href=/submit\\?q\\=vd\\&sortby\\=name\\> File \\</a\\>"; 
+      "\\<a href=/submit\\?q\\=vd\\&sortby\\=size\\> Size \\</a\\>"; 
       "MD4"; 
         |] 
       else
@@ -351,7 +351,7 @@ let old_print_search buf output results =
             (let n = network_find_by_num r.result_network in
             n.network_name);
           if output.conn_output = HTML then 
-            Printf.bprintf buf "\<A HREF=/results\?d=%d $S\>" r.result_num;
+            Printf.bprintf buf "\\<A HREF=/results\\?d=%d $S\\>" r.result_num;
           begin
             match r.result_names with
               [] -> ()
@@ -368,7 +368,7 @@ let old_print_search buf output results =
                 Printf.bprintf buf "COMMENT: %s\n" comment;
           end;
           if output.conn_output = HTML then 
-            Printf.bprintf buf "\</A HREF\>";
+            Printf.bprintf buf "\\</A HREF\\>";
           Printf.bprintf  buf "          %10s %10s " 
             (Int32.to_string r.result_size)
           (Md4.to_string r.result_md4);
@@ -389,54 +389,54 @@ let old_print_search buf output results =
   
 let add_filter_table buf search_num = 
 
-  Printf.bprintf buf "\<form action=/filter\>";
-  Printf.bprintf buf "\<input type=hidden name=num value=%d\>" search_num;
+  Printf.bprintf buf "\\<form action=/filter\\>";
+  Printf.bprintf buf "\\<input type=hidden name=num value=%d\\>" search_num;
     
-  Printf.bprintf buf "\<table\>";
-  Printf.bprintf buf "\<tr\>";
+  Printf.bprintf buf "\\<table\\>";
+  Printf.bprintf buf "\\<tr\\>";
     
-  Printf.bprintf buf "\<td\>";
-  Printf.bprintf buf "\<input type=submit value='Filter Out'\>";
-  Printf.bprintf buf "\</td\>";
+  Printf.bprintf buf "\\<td\\>";
+  Printf.bprintf buf "\\<input type=submit value='Filter Out'\\>";
+  Printf.bprintf buf "\\</td\\>";
 
-  Printf.bprintf buf "\</tr\>\<tr\>";
+  Printf.bprintf buf "\\</tr\\>\\<tr\\>";
   
-  Printf.bprintf buf "\<td\>\<table\>\<tr\>";
+  Printf.bprintf buf "\\<td\\>\\<table\\>\\<tr\\>";
   
-  Printf.bprintf buf "\<table\>";
-  Printf.bprintf buf "\<td\> Media: \</td\>";
-  Printf.bprintf buf "\<td\>\<input name=media type=checkbox value=Audio\> Audio \</td\>";
-  Printf.bprintf buf "\<td\>\<input name=media type=checkbox value=Video\> Video \</td\>";
-  Printf.bprintf buf "\<td\>\<input name=media type=checkbox value=Pro\> Pro \</td\>";
-  Printf.bprintf buf "\<td\>\<input name=media type=checkbox value=Doc\> Doc \</td\>";
-  Printf.bprintf buf "\</table\>";
+  Printf.bprintf buf "\\<table\\>";
+  Printf.bprintf buf "\\<td\\> Media: \\</td\\>";
+  Printf.bprintf buf "\\<td\\>\\<input name=media type=checkbox value=Audio\\> Audio \\</td\\>";
+  Printf.bprintf buf "\\<td\\>\\<input name=media type=checkbox value=Video\\> Video \\</td\\>";
+  Printf.bprintf buf "\\<td\\>\\<input name=media type=checkbox value=Pro\\> Pro \\</td\\>";
+  Printf.bprintf buf "\\<td\\>\\<input name=media type=checkbox value=Doc\\> Doc \\</td\\>";
+  Printf.bprintf buf "\\</table\\>";
 
-  Printf.bprintf buf "\</tr\>\<tr\>";
+  Printf.bprintf buf "\\</tr\\>\\<tr\\>";
   
-  Printf.bprintf buf "\<table\>";
-  Printf.bprintf buf "\<td\> Formats: \</td\>";
-  Printf.bprintf buf "\<td\>\<input name=format type=checkbox value=mp3\> Mp3 \</td\>";
-  Printf.bprintf buf "\<td\>\<input name=format type=checkbox value=avi\> Avi \</td\>";
-  Printf.bprintf buf "\<td\>\<input name=format type=checkbox value=zip\> Zip \</td\>";
-  Printf.bprintf buf "\<td\>\<input name=format type=checkbox value=mpg\> Mpg \</td\>";
-  Printf.bprintf buf "\</table\>";
+  Printf.bprintf buf "\\<table\\>";
+  Printf.bprintf buf "\\<td\\> Formats: \\</td\\>";
+  Printf.bprintf buf "\\<td\\>\\<input name=format type=checkbox value=mp3\\> Mp3 \\</td\\>";
+  Printf.bprintf buf "\\<td\\>\\<input name=format type=checkbox value=avi\\> Avi \\</td\\>";
+  Printf.bprintf buf "\\<td\\>\\<input name=format type=checkbox value=zip\\> Zip \\</td\\>";
+  Printf.bprintf buf "\\<td\\>\\<input name=format type=checkbox value=mpg\\> Mpg \\</td\\>";
+  Printf.bprintf buf "\\</table\\>";
 
-  Printf.bprintf buf "\</tr\>\<tr\>";
+  Printf.bprintf buf "\\</tr\\>\\<tr\\>";
   
-  Printf.bprintf buf "\<table\>";
-  Printf.bprintf buf "\<td\> Sizes: \</td\>";
-  Printf.bprintf buf "\<td\>\<input name=size type=checkbox value=0to5\> 0/5 MB \</td\>";
-  Printf.bprintf buf "\<td\>\<input name=size type=checkbox value=5to20\> 5/20 MB \</td\>";
-  Printf.bprintf buf "\<td\>\<input name=size type=checkbox value=20to400\> 20/400 MB \</td\>";
-  Printf.bprintf buf "\<td\>\<input name=size type=checkbox value=400\> 400+ MB \</td\>";
-  Printf.bprintf buf "\</table\>";
+  Printf.bprintf buf "\\<table\\>";
+  Printf.bprintf buf "\\<td\\> Sizes: \\</td\\>";
+  Printf.bprintf buf "\\<td\\>\\<input name=size type=checkbox value=0to5\\> 0/5 MB \\</td\\>";
+  Printf.bprintf buf "\\<td\\>\\<input name=size type=checkbox value=5to20\\> 5/20 MB \\</td\\>";
+  Printf.bprintf buf "\\<td\\>\\<input name=size type=checkbox value=20to400\\> 20/400 MB \\</td\\>";
+  Printf.bprintf buf "\\<td\\>\\<input name=size type=checkbox value=400\\> 400+ MB \\</td\\>";
+  Printf.bprintf buf "\\</table\\>";
 
-  Printf.bprintf buf "\</tr\>\</table\>\</td\>";
-  Printf.bprintf buf "\</tr\>";
+  Printf.bprintf buf "\\</tr\\>\\</table\\>\\</td\\>";
+  Printf.bprintf buf "\\</tr\\>";
 
-  Printf.bprintf buf "\</table\>";
+  Printf.bprintf buf "\\</table\\>";
   
-  Printf.bprintf buf "\</form\>"
+  Printf.bprintf buf "\\</form\\>"
   
 (* with checkboxes *)
 let print_search_html buf results format search_num = 
@@ -469,7 +469,7 @@ let print_search_html buf results format search_num =
               Printf.printf "Adding %d to last_results" !counter; print_newline ();
               last_results := (!counter, rs) :: !last_results;
               files := [|
-                (Printf.sprintf "[%5d]\<input name=d type=checkbox value=%d\>" !counter r.result_num);
+                (Printf.sprintf "[%5d]\\<input name=d type=checkbox value=%d\\>" !counter r.result_num);
                 
                 (
                   let names = r.result_names in
@@ -484,13 +484,13 @@ let print_search_html buf results format search_num =
                     [name] -> name
                   | _ ->
                       let buf = Buffer.create 100 in
-                      Buffer.add_string buf "\<TABLE\>\n";
+                      Buffer.add_string buf "\\<TABLE\\>\n";
                       List.iter (fun s -> 
-                          Buffer.add_string buf "\<TR\>\<TD\>";
+                          Buffer.add_string buf "\\<TR\\>\\<TD\\>";
                           Buffer.add_string buf s;
-                          Buffer.add_string buf "\</TD\>\</TR\>";
+                          Buffer.add_string buf "\\</TD\\>\\</TR\\>";
                       ) names;
-                      Buffer.add_string buf "\</TABLE\>\n";
+                      Buffer.add_string buf "\\</TABLE\\>\n";
                       
                       Buffer.contents buf
                 );
@@ -510,8 +510,8 @@ let print_search_html buf results format search_num =
   if !counter > !!filter_table_threshold then
     add_filter_table buf search_num;
   
-  Printf.bprintf buf "\<form action=/results\>";
-  Printf.bprintf buf "\<input type=submit value='Submit Changes'\>";
+  Printf.bprintf buf "\\<form action=/results\\>";
+  Printf.bprintf buf "\\<input type=submit value='Submit Changes'\\>";
   print_table_html 10 buf [||] 
     [|
     "[ Num ]";
@@ -522,7 +522,7 @@ let print_search_html buf results format search_num =
     "MD4";
   |] 
     (List.rev !files);
-  Printf.bprintf buf "\</form\>"      
+  Printf.bprintf buf "\\</form\\>"      
 
 let print_search buf s format = 
   
@@ -563,7 +563,7 @@ let print_search buf s format =
                 
                 (Printf.sprintf "%s%s%s"
                     (if format.conn_output = HTML then 
-                          Printf.sprintf "\<A HREF=/results\?d=%d $S\>"
+                          Printf.sprintf "\\<A HREF=/results\\?d=%d $S\\>"
                           r.result_num
                     else "")
                   
@@ -580,17 +580,17 @@ let print_search buf s format =
                       [name] -> name
                     | _ ->
                         let buf = Buffer.create 100 in
-                        Buffer.add_string buf "\<TABLE\>\n";
+                        Buffer.add_string buf "\\<TABLE\\>\n";
                         List.iter (fun s -> 
-                            Buffer.add_string buf "\<TR\>";
+                            Buffer.add_string buf "\\<TR\\>";
                             Buffer.add_string buf s;
-                            Buffer.add_string buf "\</TR\>";
+                            Buffer.add_string buf "\\</TR\\>";
                         ) names;
-                        Buffer.add_string buf "\</TABLE\>\n";
+                        Buffer.add_string buf "\\</TABLE\\>\n";
                         
                         Buffer.contents buf
                   )
-                  (if format.conn_output = HTML then "\</A HREF\>" else ""));
+                  (if format.conn_output = HTML then "\\</A HREF\\>" else ""));
                 
                 (Int32.to_string r.result_size);
                 

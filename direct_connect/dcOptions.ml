@@ -39,11 +39,6 @@ let login_messages = define_option directconnect_ini
   ["$Version 1,0091"; "$GetNickList"]
   
 
-let ip_cache_timeout = define_option directconnect_ini
-    ["ip_cache_timeout"]
-    "The time an ip address can be kept in the cache"
-    float_option 3600.
-
 let search_timeout = define_option directconnect_ini
     ["search_timeout"]
   "The time a search is active"

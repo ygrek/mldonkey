@@ -102,15 +102,53 @@ let value_to_file is_done assocs =
 
   if file_state file <> FileDownloaded then
     current_files := file :: !current_files;
+    
+  (try
+      ignore (get_value "file_sources" (value_to_list (fun v ->
+              match v with
+                SmallList [nick; filename; (SmallList servers | List servers) ] 
+              | List [nick; filename; (SmallList servers | List servers)] ->
+                  let nick = value_to_string nick in
+                  let filename = value_to_string filename in
+                  let user = new_user None nick in
+                  let c = add_file_client file user filename in
+                  List.iter (fun v ->
+                      match v with
+                        SmallList [ip; port]
+                      | List [ip; port] ->
+                          let addr = from_value Ip.option ip in
+                          let port = value_to_int port in
+                          let s = new_server addr port in
+                          user.user_servers <- s :: user.user_servers
+                      | _ -> ()
+                  ) servers
+              | _ -> failwith "Bad source"
+          )))
+    with e -> 
+        Printf.printf "Exception %s while loading source"
+          (Printexc.to_string e); 
+        print_newline ();
+  );
   
   as_file file.file_file
 
 let file_to_value file =
   [
-    "file_size", int32_to_value file.file_size;
+    "file_size", int32_to_value (file_size file);
     "file_name", string_to_value file.file_name;
-    "file_downloaded", int32_to_value file.file_downloaded;
+    "file_downloaded", int32_to_value (file_downloaded file);
     "file_id", string_to_value (Md4.to_string file.file_id);
+    "file_sources", 
+    list_to_value (fun c ->
+        let filename = List.assoc file c.client_files  in
+        SmallList [string_to_value c.client_user.user_nick;
+          string_to_value filename;
+          (list_to_value (fun s ->
+                SmallList [to_value Ip.option s.server_ip;
+                  int_to_value s.server_port]
+            ) c.client_user.user_servers)]
+    ) file.file_clients;
+
   ]
   
   (*

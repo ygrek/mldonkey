@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonGlobals
 open CommonTypes
 
 
@@ -43,7 +44,7 @@ type options = {
     mutable password : string;
   }
 
-type search = {
+type search_request = {
     mutable search_num : int;
     mutable search_query : query_entry;
     mutable search_max_hits : int;
@@ -85,7 +86,7 @@ type server_info = {
     server_num : int;
     server_network : int;
     
-    mutable server_ip : Ip.t;
+    mutable server_addr : addr;
     mutable server_port : int;
     mutable server_score : int;
     mutable server_tags : CommonTypes.tag list;
@@ -126,6 +127,8 @@ type local_info = {
     mutable shared_files : int;
   }
 
+exception UnsupportedGuiMessage
+  
 type from_gui =
 | GuiProtocol of int
   
@@ -134,7 +137,7 @@ type from_gui =
 | KillServer
 | ExtendedSearch
 | Password of string
-| Search_query of bool (* local or not *) * search
+| Search_query of bool (* local or not *) * search_request
 | Download_query of string list * int 
 | Url of string
 | RemoveServer_query of int
@@ -205,6 +208,8 @@ type to_gui =
 | Room_info of room_info
 | Room_message of int * room_message
 | Room_user of int * int
+
+| Client_stats of string
   
 type arg_handler =  connection_options -> string
 type arg_kind = 
@@ -495,10 +500,10 @@ let buf_file buf f =
 (* last, so that it can be safely discarded in partial implementations: *)
   buf_format buf f.file_format 
   
-let buf_server buf s =
+let buf_server_version_0 buf s =
   buf_int buf s.server_num;
   buf_int buf s.server_network;
-  buf_ip buf s.server_ip;
+  buf_ip buf s.server_addr.addr_ip;
   buf_int16 buf s.server_port;
   buf_int buf s.server_score;
   buf_list buf buf_tag s.server_tags;
@@ -581,7 +586,7 @@ let to_gui_version_0 buf t =
       buf_int buf int; buf_host_state buf host_state
       
   | Server_info server_info -> buf_int16 buf 14;
-      buf_server buf server_info
+      buf_server_version_0 buf server_info
   
   | Client_info client_info -> buf_int16 buf 15;
       buf_client buf client_info
@@ -613,6 +618,8 @@ let to_gui_version_0 buf t =
   | Room_user (n1,n2) -> buf_int16 buf 24;
       buf_int buf n1; buf_int buf n2
 
+  | _ -> raise UnsupportedGuiMessage
+      
 let from_gui_version_0 buf t =
   match t with
   | GuiProtocol int -> buf_int16 buf 0;
@@ -699,9 +706,20 @@ let from_gui_version_0 buf t =
       
   | BrowseUser  int -> buf_int16 buf 41;
       buf_int buf int
-  
-let to_gui = [| to_gui_version_0 |]
-let from_gui = [| from_gui_version_0 |]
+
+(*  | _ -> raise UnsupportedGuiMessage *)
+      
+let to_gui_version_1 buf t =
+  match t with
+    Client_stats s ->
+      buf_int16 buf 25;
+      buf_string buf s
+  | _ -> to_gui_version_0 buf t
+      
+let from_gui_version_1 = from_gui_version_0
+      
+let to_gui = [| to_gui_version_0; to_gui_version_1 |]
+let from_gui = [| from_gui_version_0; from_gui_version_1 |]
   
 end
 
@@ -902,11 +920,11 @@ module Decoding = struct
     
     let get_file_state s pos =
       match get_int8 s pos with
-        0 -> FileDownloading
+      | 0 -> FileDownloading
       | 1 -> FilePaused
       | 2 -> FileDownloaded
-      | 3 -> FileCancelled    
-      | 4 -> FileShared
+      | 3 -> FileShared    
+      | 4 -> FileCancelled
       | 5 -> FileNew
       | _ -> assert false
     
@@ -962,7 +980,7 @@ module Decoding = struct
       | _ -> assert false
     
     
-    let get_server s pos =
+    let get_server_version_0 s pos =
       let num = get_int s pos in
       let net = get_int s (pos+4) in
       let ip = get_ip s (pos+8) in
@@ -977,7 +995,7 @@ module Decoding = struct
       {
         server_num = num;
         server_network = net;
-        server_ip = ip;
+        server_addr = new_addr_ip ip;
         server_port = port;
         server_score = score;
         server_tags = tags;
@@ -1317,7 +1335,7 @@ module Decoding = struct
           Server_state (int,host_state)
       
       | 14 ->
-          let server_info, pos = get_server s 2 in
+          let server_info, pos = get_server_version_0 s 2 in
           Server_info server_info
           
       | 15 -> 
@@ -1367,12 +1385,27 @@ module Decoding = struct
           Room_user (n1,n2)
 
       | _ -> assert false
+
+    let from_gui_version_1 = from_gui_version_0
+    let to_gui_version_1 opcode s = 
+      match opcode with
+        25 ->
+          let s, pos = get_string s 2 in
+          Client_stats s
+      | _ -> to_gui_version_0 opcode s
           
-    let to_gui = [| to_gui_version_0 |]
-    let from_gui = [| from_gui_version_0 |]
+    let to_gui = [| to_gui_version_0; to_gui_version_1 |]
+    let from_gui = [| from_gui_version_0; from_gui_version_1 |]
   
   end
 
+let _ =
+  assert (Array.length Encoding.to_gui = Array.length Encoding.from_gui);
+  assert (Array.length Encoding.to_gui = Array.length Decoding.to_gui);
+  assert (Array.length Encoding.from_gui = Array.length Decoding.from_gui)
+
+let best_gui_version = Array.length Encoding.from_gui - 1
+  
 (*
     
     let gui_handler gui f =

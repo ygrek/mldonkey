@@ -54,7 +54,9 @@ let search_found search md4 tags =
   ) tags;
   try
     let rs = DonkeyIndexer.find_result md4 in
+(*    Printf.printf "search_add_result"; print_newline (); *)
     search_add_result search rs.result_result; (* ADD AVAILABILITY *)
+(*    Printf.printf "search_add_result DONE"; print_newline (); *)
     let doc = rs.result_index in
     let result = Store.get store doc in
 (*    old_avail := !old_avail + !availability; *)
@@ -88,7 +90,9 @@ let search_found search md4 tags =
       try
         let rs = DonkeyIndexer.index_result new_result in      
         let doc = rs.result_index in
+(*        Printf.printf "search_add_result"; print_newline (); *)
         search_add_result search rs.result_result;
+(*        Printf.printf "search_add_result DONE"; print_newline (); *)
         let result = Store.get store doc in
         ()
       with _ ->  (* the file was probably filtered *)
@@ -140,23 +144,36 @@ let fill_clients_list _ =
                   Known_location _ ->
                     clients_list := (c, files) :: !clients_list
                 | _ -> ()
-                    )
+            )
             file.file_sources;
       ) !current_files;
+      (*
+      List.iter (fun c ->
+          clients_list := (c, []) :: !clients_list
+      ) !!known_friends;
+*)      
       clients_list_len := List.length !clients_list;
     end  
   
+let add_interesting_client c files =
+  clients_list := (c, files) :: !clients_list;
+  incr clients_list_len
+    
 let rec connect_several_clients n =
+(*  Printf.printf "connect_several_clients %d" n; print_newline (); *)
   if n > 0 && can_open_connection () then
     match !clients_list with
       [] -> ()
     | (c, files) :: tail ->
+(*        Printf.printf "TRY TO CONNECT"; print_newline (); *)
+
         clients_list := tail;
         decr clients_list_len;
        
         match c.client_sock with
           None -> 
             if connection_can_try c.client_connection_control then begin
+(*                Printf.printf "CAN CONNECT"; print_newline (); *)
                 (try connect_client !!client_ip files c with _ -> ());
                 connect_several_clients (n-1)
               end
@@ -189,6 +206,7 @@ let remove_old_clients () =
   ) !current_files
   
 let check_clients _ =
+(*  Printf.printf "check_clients"; print_newline (); *)
   (* how many clients we try to connect per second ? *)
   let n = !!max_clients_per_second in
   connect_several_clients n
@@ -268,7 +286,8 @@ let browse_client c =
   | None, NotConnected ->
       connection_must_try c.client_connection_control;
       connect_client !!client_ip [] c
-  | None, _ -> ()
+  | None, _ -> 
+      add_interesting_client c []
   | Some sock, (
       Connected_initiating 
     | Connected_busy
@@ -360,10 +379,10 @@ let install_hooks () =
 (* We MUST found a way to keep indirect friends even after a deconnexion.
 Add a connection num to server. Use Indirect_location (server_num, conn_num)
 and remove clients whose server is deconnected. *)
-          Printf.printf "QueryUsersReply"; print_newline ();
+(*          Printf.printf "QueryUsersReply"; print_newline (); *)
           List.iter (fun cl ->
               
-              Printf.printf "NEW ONE"; print_newline ();
+(*              Printf.printf "NEW ONE"; print_newline (); *)
               let rec user = {
                   user_user = user_impl;
                   user_md4 = cl.Q.md4;
@@ -390,7 +409,7 @@ and remove clients whose server is deconnected. *)
               if add_to_friend then add_user_friend s user;
               
               s.server_users <- user :: s.server_users;
-              Printf.printf "SERVER NEW USER"; print_newline ();
+(*              Printf.printf "SERVER NEW USER"; print_newline (); *)
               server_new_user (as_server s.server_server) 
               (as_user user.user_user);
           ) t;
@@ -500,7 +519,7 @@ print_newline ();
     String.blit s 0 upload_buffer 0 slen;
     Mftp_comm.new_string msg upload_buffer;
     
-    let fd = file.file_fd in
+    let fd = file_fd file in
     ignore (Unix32.seek32 fd begin_pos Unix.SEEK_SET);
     really_read (Unix32.force_fd fd) upload_buffer slen len_int;
 (*    Printf.printf "slen %d len_int %d final %d" slen len_int (String.length upload_buffer); 
@@ -652,15 +671,3 @@ let upload_credit_timer _ =
     (if !upload_credit < 300 then incr upload_credit)
   else
     decr has_upload
-
-let sample_timer () =
-  let trimto list length =
-    let (list, _) = List2.cut length list in
-    list 
-  in
-  let time = last_time () in
-  List.iter (fun file ->
-      file.file_last_downloaded <-
-        trimto ((file.file_downloaded, time) :: file.file_last_downloaded) 
-      !!download_sample_size
-  ) !current_files

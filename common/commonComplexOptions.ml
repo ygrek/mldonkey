@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonGlobals
+open BasicSocket
 open CommonClient
 open CommonServer
 open CommonNetwork
@@ -24,7 +26,39 @@ open Options
 open CommonOptions
 open CommonTypes
 open CommonFile
-  
+
+let addr_to_value addr =
+  if addr.addr_name = "" then
+    to_value Ip.option addr.addr_ip
+  else
+  if addr.addr_ip = Ip.null then
+    string_to_value addr.addr_name
+  else
+    SmallList [
+      string_to_value addr.addr_name;
+      to_value Ip.option addr.addr_ip;
+      float_to_value addr.addr_age
+    ]
+    
+let value_to_addr v =
+  match v with
+    StringValue s ->
+      let ip = from_value Ip.option v in
+      if ip = Ip.null then
+        new_addr_name s
+      else
+        new_addr_ip ip
+  | SmallList [StringValue name; ip ; age]
+  | List [StringValue name; ip ; age] ->
+      let addr = new_addr_name name in
+      let age = value_to_float age in
+      if age +. !!ip_cache_timeout > last_time () then begin
+          addr.addr_age <- age;
+          addr.addr_ip <- from_value Ip.option ip
+        end;
+      addr
+  | _ -> assert false
+      
 module FileOption = struct
     
     let value_to_file is_done v =

@@ -162,8 +162,8 @@ let user_add server name =
     user
   with Found user -> user
   
-let new_file file_id name size =
-  let key = (name, size) in
+let new_file file_id name file_size =
+  let key = (name, file_size) in
   try
     Hashtbl.find files_by_key key
   with _ ->
@@ -180,18 +180,20 @@ let new_file file_id name size =
       let rec file = {
           file_file = impl;
           file_name = name;
-          file_size = size;
           file_id = file_id;
-          file_downloaded = current_size;
           file_temp = file_temp;
-          file_fd = Unix32.create file_temp [Unix.O_RDWR; Unix.O_CREAT] 0o666;
           file_clients = [];
         } and impl = {
           dummy_file_impl with
+          impl_file_fd = Unix32.create file_temp [Unix.O_RDWR; Unix.O_CREAT] 0o666;
+          impl_file_size = file_size;
+          impl_file_downloaded = current_size;
           impl_file_val = file;
           impl_file_ops = file_ops;
+          impl_file_age = last_time ();          
+
         } in
-      let state = if current_size = size then FileDownloaded else begin
+      let state = if current_size = file_size then FileDownloaded else begin
             current_files := file :: !current_files;
             FileDownloading
           end
@@ -281,7 +283,6 @@ let new_server addr port=
           server_addr = addr;
           server_nusers = 0;
           server_info = "";
-          server_ip_cached = None;
           server_connection_control = new_connection_control 0.0;
           server_sock = None;
           server_port = port;
@@ -360,3 +361,11 @@ let server_remove s =
     
 let _ =
   network.op_network_share <- add_shared
+
+  
+  
+let file_size file = file.file_file.impl_file_size
+let file_downloaded file = file.file_file.impl_file_downloaded
+let file_age file = file.file_file.impl_file_age
+let file_fd file = file.file_file.impl_file_fd
+  

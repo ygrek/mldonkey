@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonInteractive
 open CommonShared
 open CommonTypes
 open BasicSocket
@@ -25,7 +26,18 @@ open DriverInterface
 open CommonOptions
 open CommonGlobals
 open CommonNetwork
+
+  
+let do_daily () =
+  incr days;
+  load_web_infos ()
     
+let hourly_timer timer =
+  incr hours;
+  if !hours mod 24 = 0 then do_daily ();
+  CommonShared.shared_check_files ();
+  if !hours mod !!compaction_delay = 0 then Gc.compact ()
+
 let start_interfaces () =
   
   if !!http_port <> 0 then begin try
@@ -158,13 +170,14 @@ Files.dump_file file), " <filename> : dump file";
           let t = K.read s in
           K.print t;
           print_newline ();
-      ), " <filename> : print a .part.met file";
+), " <filename> : print a .part.met file";
       "-server", Arg.String (fun file ->
-          let module K = Files.Server in
+          let module K = DonkeyImport.Server in
           let s = File.to_string file in
           let t = K.read s in
           K.print t;
           print_newline ();
+          exit 0
       ), " <filename> : print a server.met file";
       "-pref", Arg.String (fun file ->
           let module K = Files.Pref in
@@ -219,6 +232,7 @@ let _ =
         exit 0));
   load_config ();
   
+  add_infinite_option_timer download_sample_rate CommonFile.sample_timer;  
   
   (try Options.load servers_ini with _ -> ());
   (try Options.load files_ini with _ -> ());
@@ -248,8 +262,7 @@ let _ =
       DriverInteractive.save_config ());  
   start_interfaces ();
 
-  add_infinite_timer 3600. (fun timer ->
-      CommonShared.shared_check_files ());
+  add_infinite_timer 3600. hourly_timer;
   shared_add_directory !!incoming_directory;
   List.iter shared_add_directory !!shared_directories;
 
@@ -257,6 +270,8 @@ let _ =
       DriverInteractive.browse_friends ());
   
   Options.prune_file downloads_ini;
+
+  load_web_infos ();
   
   Printf.printf "Welcome to MLdonkey client"; print_newline ();
   Printf.printf "Check http://go.to/mldonkey for updates"; 

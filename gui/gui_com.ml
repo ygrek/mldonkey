@@ -24,6 +24,8 @@ module M = Gui_messages
 module O = Gui_options
 module G = Gui_global
 
+let gui_protocol_used = ref 0
+  
 let (!!) = Options.(!!)
 
 let connection = ref None
@@ -41,7 +43,7 @@ let send t =
       Printf.printf "Message not sent since not connected";
       print_newline ();
   | Some sock ->
-      gui_send Encoding.from_gui.(0) sock t
+      gui_send Encoding.from_gui.(!gui_protocol_used) sock t
 
 let reconnect gui value_reader =
   (try disconnect () with _ -> ());
@@ -89,7 +91,7 @@ let reconnect gui value_reader =
               raise e
             ));
     gui#label_connect_status#set_text "Connecting";
-    send (Gui_proto.GuiProtocol 0)
+    send (Gui_proto.GuiProtocol best_gui_version)
   with e ->
       Printf.printf "Exception %s in connecting" (Printexc.to_string e);
       print_newline ();

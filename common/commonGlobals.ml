@@ -161,7 +161,7 @@ let dialog_history = ref ([] : (int * string * string) list )
 
   
   
-let want_and_not f value =
+let want_and_not andnot f value =
   let ws = String2.split_simplify value ' ' in
   if ws = [] then raise Not_found;
   let wanted = ref "" in
@@ -182,9 +182,9 @@ let want_and_not f value =
   if !wanted = "" then
     f !wanted
   else
-    QAndNot (f !wanted, f !not_wanted)
+    andnot (f !wanted)  (f !not_wanted)
 
-let want_comb_not comb f value =
+let want_comb_not andnot comb f value =
   let ws = String2.split_simplify value ' ' in
   let wanted = ref [] in
   let not_wanted = ref [] in
@@ -205,14 +205,12 @@ let want_comb_not comb f value =
   match !not_wanted with
     [] -> wanted
   | w :: tail ->
-      QAndNot (wanted, 
-        List.fold_left (fun q w ->
+      andnot wanted
+        (List.fold_left (fun q w ->
             comb q  (f w)
         ) (f w) tail)
 
-let or_comb q1 q2 = QOr(q1,q2)
-let and_comb q1 q2 = QAnd(q1,q2)
-
+      
 let rec rec_simplify_query q =
   match q with
     QAnd (q1, q2) ->
@@ -268,4 +266,33 @@ let string_of_tags tags =
   
   (* first GUI have gui_num = 2, since newly created objects have _update = 1 *)
 let gui_counter = ref 1
+  
+let ip_of_addr addr = 
+  if addr.addr_name <> "" then
+    if addr.addr_age +. !!ip_cache_timeout < last_time () then begin
+        let ip = Ip.from_name addr.addr_name in
+        addr.addr_ip <- ip;
+        addr.addr_age <- last_time ();
+        ip
+      end else
+      addr.addr_ip
+  else
+    addr.addr_ip
+    
+let new_addr_ip ip = {
+    addr_ip = ip; addr_name = ""; addr_age = 0.0;
+  }
+  
+let new_addr_name name = {
+    addr_ip = Ip.null; addr_name = name; addr_age = 0.0
+  }
+  
+let string_of_addr addr =
+  if addr.addr_name = "" then Ip.to_string addr.addr_ip else addr.addr_name
+    
+let addr_of_string s =
+  let ip = try Ip.of_string s with _ -> Ip.null in
+  if ip <> Ip.null then new_addr_ip ip else new_addr_name s
+
+let addr_is_ip addr = addr.addr_name = ""
   

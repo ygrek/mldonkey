@@ -38,7 +38,11 @@ open CommonGlobals
 module P = Gui_proto
 
 let gui_send gui t =
-  gui_send Encoding.to_gui.(gui.gui_version) gui.gui_sock t    
+  try
+    gui_send Encoding.to_gui.(gui.gui_version) gui.gui_sock t    
+  with UnsupportedGuiMessage -> 
+(* the message is probably not supported by this GUI *)
+      ()
   
 let restart_gui_server = ref (fun _ -> ())
   
@@ -94,7 +98,7 @@ let connecting_writer connecting gui sock =
                 gui.gui_files <- files;
                 
                 (try
-                    Printf.printf "send file info"; print_newline ();
+(*                    Printf.printf "send file info"; print_newline (); *)
                     (try send_file_info gui file with _ -> ());
                     gui.gui_sources <- Some (file_sources file, file)
                   with _ -> ())
@@ -156,7 +160,10 @@ let gui_reader (gui: gui_record) t sock =
         gui_send gui (P.Console (Buffer.contents buf))
     
     | GuiProtocol version ->
-        gui.gui_version <- version
+        gui.gui_version <- min best_gui_version version;
+        Printf.printf "Using protocol %d for communications with the GUI" 
+        gui.gui_version;
+        print_newline ();
         
     | P.SetOption (name, value) ->
         Options.set_simple_option downloads_ini name value
@@ -166,8 +173,16 @@ let gui_reader (gui: gui_record) t sock =
         search_forget s
     
     | P.SendMessage (num, msg) ->
-        let room = room_find num in
-        room_send_message room msg
+        begin
+          try
+            let room = room_find num in
+            room_send_message room msg
+          with _ ->
+              match msg with (* no room ... maybe a private message *)
+                PrivateMessage (num, s) -> 
+                  client_say (client_find num) s
+              | _ -> assert false
+        end
     
     | P.EnableNetwork (num, bool) ->
         let n = network_find_by_num num in
@@ -432,7 +447,7 @@ let gui_handler t event =
             close sock "overflow");
         (* sort GUIs in increasing order of their num *)
         guis := !guis @ [gui];
-        gui_send gui (P.CoreProtocol 0);
+        gui_send gui (P.CoreProtocol best_gui_version);
         networks_iter_all (fun n ->
             gui_send gui (Network_info (network_info n)));
         rooms_iter (fun room ->

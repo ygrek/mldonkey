@@ -59,11 +59,8 @@ and user = {
 and file = {
     file_file : file CommonFile.file_impl;
     file_name : string;
-    file_size : int32;  
     file_id : Md4.t;
-    mutable file_downloaded : int32;
     mutable file_temp : string;
-    mutable file_fd : Unix32.t;
     mutable file_clients : client list;
   }
 

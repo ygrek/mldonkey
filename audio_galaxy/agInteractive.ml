@@ -49,18 +49,18 @@ let _ =
         P.file_network = network.network_num;
         P.file_names = [file.file_name];
         P.file_md4 = Md4.null;
-        P.file_size = file.file_size;
-        P.file_downloaded = file.file_downloaded;
+        P.file_size = file_size file;
+        P.file_downloaded = file_downloaded file;
         P.file_nlocations = 0;
         P.file_nclients = 0;
         P.file_state = file_state file;
         P.file_sources = None;
-        P.file_download_rate = 0.0;
+        P.file_download_rate = file_download_rate file.file_file;
         P.file_chunks = "0";
         P.file_availability = "0";
         P.file_format = Unknown_format;
         P.file_chunks_age = [|0.0|];
-        P.file_age = 0.0;
+        P.file_age = file_age file;
       }    
   )
   

@@ -160,10 +160,10 @@ let client_reader c t sock =
             | (file, filename) :: _ -> 
                 debug_server_send sock (GetReq {
                     Get.name = filename;
-                    Get.pos = Int32.add file.file_downloaded Int32.one;
+                    Get.pos = Int32.add (file_downloaded file) Int32.one;
                   });
                 c.client_download <- DcDownload file;
-                c.client_pos <- file.file_downloaded;
+                c.client_pos <- (file_downloaded file);
       end
   
   | KeyReq _ ->
@@ -186,12 +186,12 @@ let client_reader c t sock =
       begin
         match c.client_download with
           DcDownload file ->
-            if t = file.file_size then begin
+            if t = (file_size file) then begin
                 c.client_receiving <- t;
               end else begin
                 Printf.printf "Bad file size: %ld  <> %ld"
                   t
-                   file.file_size;
+                   (file_size file);
                 print_newline ();
                 client_close c;
                 raise Not_found
@@ -297,12 +297,12 @@ let client_downloaded c sock nread =
         set_rtimeout sock half_day;
         begin
           let fd = try
-              Unix32.force_fd file.file_fd 
+              Unix32.force_fd (file_fd file) 
             with e -> 
                 Printf.printf "In Unix32.force_fd"; print_newline ();
                 raise e
           in
-          let final_pos = Unix32.seek32 file.file_fd c.client_pos Unix.SEEK_SET in
+          let final_pos = Unix32.seek32 (file_fd file) c.client_pos Unix.SEEK_SET in
           Unix2.really_write fd b.buf b.pos b.len;
         end;
 (*      Printf.printf "DIFF %d/%d" nread b.len; print_newline ();*)
@@ -312,11 +312,11 @@ let client_downloaded c sock nread =
 print_newline ();
   *)
         TcpBufferedSocket.buf_used sock b.len;
-        if c.client_pos > file.file_downloaded then begin
-            file.file_downloaded <- c.client_pos;
+        if c.client_pos > (file_downloaded file) then begin
+            file.file_file.impl_file_downloaded <- c.client_pos;
             file_must_update file;
           end;
-        if file.file_downloaded = file.file_size then
+        if (file_downloaded file) = (file_size file) then
           file_complete file 
           
     | DcDownloadList buf ->
