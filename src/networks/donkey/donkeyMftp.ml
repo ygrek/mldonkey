@@ -24,8 +24,6 @@ open CommonTypes
 open LittleEndian
 open Int32ops
 open TcpBufferedSocket
-  
-let ports = ref []
 
       
 let const_int32_255 = Int32.of_int 255
@@ -75,11 +73,13 @@ let rec buf_tags buf tags names_of_tag =
     match tags with
       [] -> ()
     | tag :: tags ->
-        let name = tag.tag_name in
-        let name = try
+        let name = try rev_assoc tag.tag_name names_of_tag 
+            with _ -> tag.tag_name
+        in
+(* try
             let i = rev_assoc name names_of_tag in
             String.make 1 (char_of_int i)
-          with _ -> name in
+          with _ -> name *) 
         begin
           match tag.tag_value with
           | Uint64 n -> 
@@ -133,60 +133,43 @@ lprint_newline ();
   *)
   output_int oc len;
   output_string oc s
-
-  
-let translate_port port =
-  try
-    List.assoc port !ports
-  with _ -> port
   
 let get_port s pos =
-  let port = get_int16 s pos in
-  translate_port port
+  get_int16 s pos
 
 let get_string = get_string16
   
-let get_tags s pos names_of_tag =
-  let rec iter_tags ntags pos =
-    if ntags = 0 then [], pos else
-    let t = get_int8 s pos in
-    let name, pos2 = get_string s (pos+1) in
+let get_tag s pos names_of_tag =
+  let t = get_int8 s pos in
+  let name, pos2 = get_string s (pos+1) in
 (*  lprintf "tag name = %s" (String.escaped name);   *)
-    let name = if String.length name = 1 then
-        try
-          List.assoc (get_int8 name 0) names_of_tag
-        with _ -> name 
-      else name in
-    let v, pos = match t with
-      | 2 -> let v, pos = get_string s pos2 in
-          String v, pos
-      | 1|3 -> let v = get_int64_32 s pos2 in
-          Uint64 
-            (if name = "port" then
-              let port = Int64.to_int v in
-              Int64.of_int (translate_port port)
-            else v
-          ), pos2+4
-      | 4 -> let v = get_int64_32 s pos2 in
-          Fint64 
-            (if name = "port" then
-              let port = Int64.to_int v in
-              Int64.of_int (translate_port port)
-            else v
-          ), pos2+4
-      | _ -> 
-          lprintf "get_tags: unknown tag %d at pos %d" t pos;
-          lprint_newline ();
-          raise Not_found
-    in
-    let tag = {
-        tag_name = name;
-        tag_value = v
-      } in
-    let tags, pos = iter_tags (ntags-1) pos in
-    (tag :: tags), pos
+  let v, pos = match t with
+    | 2 -> let v, pos = get_string s pos2 in
+        String v, pos
+    | 1|3 -> let v = get_int64_32 s pos2 in
+        Uint64 v, pos2+4
+    | 4 -> let v = get_int64_32 s pos2 in
+        Fint64 v, pos2+4
+    | _ -> 
+        lprintf "get_tags: unknown tag %d at pos %d\n" t pos;
+        raise Not_found
   in
-  iter_tags (get_int s pos) (pos+4)
+  {
+    tag_name = (try
+        List.assoc name names_of_tag
+      with Not_found ->
+          lprintf "Unknown tag \"%s\"\n" (String.escaped name);
+          name);
+    tag_value = v
+  }, pos
+  
+let get_tags s pos names_of_tag =
+  let rec iter_tags ntags pos tags =
+    if ntags = 0 then List.rev tags, pos else
+    let tag, pos = get_tag s pos names_of_tag in
+    iter_tags (ntags-1) pos (tag :: tags) 
+  in
+  iter_tags (get_int s pos) (pos+4) []
   
 let get_peer s pos =
   let ip = get_ip s pos in

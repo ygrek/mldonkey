@@ -24,19 +24,21 @@ open Autoconf
 open LittleEndian
 open CommonTypes
 open CommonGlobals
+  
+open DonkeyTypes
 open DonkeyMftp
 
   
 let field_of_tagname s =
-  match String.lowercase s with
-    "size" -> Field_Size
+  match s with
+  | "size" -> Field_Size
   | "filename" -> Field_Filename
-  | "artist" -> Field_Artist
-  | "album" -> Field_Album
-  | "title" -> Field_Title
+  | "Artist" -> Field_Artist
+  | "Album" -> Field_Album
+  | "Title" -> Field_Title
   | "format" -> Field_Format
   | "type" -> Field_Type
-  | _ -> Field_unknown s
+  | s -> Field_unknown s
       
   
 let tagname_of_field field =
@@ -56,15 +58,15 @@ module Connect = struct
         md4 : Md4.t;
         ip: Ip.t;
         port: int;
-        tags : tag list;
+        tags :  tag list;
       }
     
     let names_of_tag =
       [
-        1, "name";
-        17, "version";
-        15, "port";
-	32, "extended";
+       "\001", "name";
+       "\017", "version";
+       "\015", "port";
+       "\032", "extended";
       ]
     
     let parse len s =
@@ -149,7 +151,7 @@ ascii [ 9(3)(4)(0) M a i n(0)(0)(2)(0)(5)(0) M u s i c(0)(0)(3)(0)(3)(0) A r t(0
           buf_int buf c.number) t
       
   end
-  
+
 module SetID = struct 
     type t = Ip.t
       
@@ -212,10 +214,10 @@ module Share = struct
     
     let names_of_tag =
       [
-        1, "filename";
-        2, "size";
-        3, "type";
-        4, "format";
+        "\001", "filename";
+        "\002", "size";
+        "\003", "type";
+        "\004", "format";
       ]
     
     let rec get_files  s pos n =
@@ -360,13 +362,13 @@ module ServerInfo = struct
         md4 : Md4.t;
         ip: Ip.t;
         port: int;
-        tags : tag list;
+        tags :  tag list;
       }
     
     let names_of_tag =
       [
-        1, "name";
-        11, "description";
+        "\001", "name";
+        "\011", "description";
       ]
     
     let parse len s =
@@ -412,11 +414,11 @@ module QueryReply  = struct
     type t = tagged_file list
 
     let names_of_tag = [
-        1, "filename";
-        2, "size";
-        3, "type";
-        4, "format";
-        21, "availability";
+        "\001", "filename";
+        "\002", "size";
+        "\003", "type";
+        "\004", "format";
+        "\021", "availability";
       ]        
 
           
@@ -517,12 +519,12 @@ module Query  = struct (* request 22 *)
     
     let names_of_tag =
       [
-        2, "size";
-        3, "type";
-        4, "format";
-        21, "availability";
+        "\002", "size";
+        "\003", "type";
+        "\004", "format";
+        "\021", "availability";
       ]
-        
+    
     let rec parse_query s pos =
       let t = get_int8 s pos in
       match t with
@@ -548,12 +550,10 @@ module Query  = struct (* request 22 *)
       | 2 -> 
           let field, pos = get_string s (pos + 1) in
           let name, pos = get_string s pos in          
-          let name = 
-            if String.length name = 1 then
-              try
-                List.assoc (get_int8 name 0) names_of_tag
-              with _ -> name 
-            else name in
+          let name = try
+              List.assoc name names_of_tag
+            with _ -> name
+          in
           
           QHasField (field_of_tagname name, field), pos
       
@@ -561,12 +561,10 @@ module Query  = struct (* request 22 *)
           let field = get_int64_32 s (pos + 1) in
           let minmax = get_int8 s (pos + 5) in
           let name, pos = get_string s (pos + 6) in
-          let name = 
-            if String.length name = 1 then
-              try
-                List.assoc (get_int8 name 0) names_of_tag
-              with _ -> name 
-            else name in
+          let name = try
+              List.assoc name names_of_tag
+            with _ -> name
+          in
           begin
             match minmax with
               1 -> QHasMinVal (field_of_tagname name, field)
@@ -610,15 +608,15 @@ module Query  = struct (* request 22 *)
       | QHasMaxVal (name, field) ->
           lprintf "Field[%s] < [%s]" (string_of_field name) (Int64.to_string field)
       |	QNone ->
-	  lprintf "print_query: QNone in query\n";
-	  ()
+          lprintf "print_query: QNone in query\n";
+          ()
     
     let  print t = 
       lprintf "QUERY";
       print_query t
     
-
-     let rec bprint_query oc t =
+    
+    let rec bprint_query oc t =
       match t with
         QOr (q1, q2) -> 
           print_query q1; 
@@ -642,15 +640,15 @@ module Query  = struct (* request 22 *)
       | QHasMaxVal (name, field) ->
           Printf.bprintf oc "Field[%s] < [%s]" (string_of_field name) (Int64.to_string field)
       |	QNone ->
-	  lprintf "print_query: QNone in query\n";
-	  ()
-
-
+          lprintf "print_query: QNone in query\n";
+          ()
+    
+    
     let bprint oc t = 
       Printf.bprintf oc "QUERY:\n";
       bprint_query oc t;
       Printf.bprintf oc "\n"
-
+    
     let rec write buf t = 
       match t with
         QOr (q1, q2) -> 
@@ -675,21 +673,20 @@ module Query  = struct (* request 22 *)
           
           let name = tagname_of_field name in
           let name = try
-              let i = rev_assoc name names_of_tag in
-              String.make 1 (char_of_int i)            
+                rev_assoc name names_of_tag
             with _ -> name in
           
           buf_int8 buf 2;
           buf_string buf field;
           buf_string buf name
-          
+      
       | QHasMinVal (name, field) ->
           
           let name = tagname_of_field name in
-          let name = try
-              let i = rev_assoc name names_of_tag in
-              String.make 1 (char_of_int i)            
-            with _ -> name in
+          let name = try 
+              rev_assoc name names_of_tag
+            with _ -> name
+          in
           
           buf_int8 buf 3;
           buf_int64_32 buf field;
@@ -700,10 +697,9 @@ module Query  = struct (* request 22 *)
           
           let name = tagname_of_field name in
           let name = try
-              let i = rev_assoc name names_of_tag in
-              String.make 1 (char_of_int i)            
-            with _ -> name in
-          
+              rev_assoc name names_of_tag
+              with _ -> name in
+
           buf_int8 buf 3;
           buf_int64_32 buf field;
           buf_int8 buf 2;
@@ -761,9 +757,9 @@ module QueryUsersReply = struct (* request 67 *)
     
     let names_of_tag =
       [
-        1, "name";
-        17, "version";
-        15, "port";
+        "\001", "name";
+        "\017", "version";
+        "\015", "port";
       ]
     
     let rec parse_clients s pos nclients left =
@@ -800,7 +796,7 @@ module QueryUsersReply = struct (* request 67 *)
           Printf.bprintf oc "%s\n" (Ip.to_string t.ip);
           Printf.bprintf oc "%d\n" t.port;
           Printf.bprintf oc "TAGS:\n";
-          bprint_tags oc t.tags;
+          bprint_tags oc  t.tags;
 	  Printf.bprintf oc "\n"
           ) t
     
@@ -1037,6 +1033,7 @@ type t =
 | ConnectReq of Connect.t
 | SetIDReq of SetID.t
 | AckIDReq of AckID.t
+| BadProtocolVersionReq
 | MessageReq of Message.t
 | ShareReq of Share.t
 | InfoReq of Info.t
@@ -1100,7 +1097,7 @@ let rec parse magic s =
 (*    lprintf "opcode: %d" opcode; lprint_newline (); *)
     match opcode with 
     | 1 -> ConnectReq (Connect.parse len s)
-(*    | 5 -> BadProtocolVersion *)
+    | 5 -> BadProtocolVersionReq 
     | 20 -> AckIDReq (AckID.parse len s)
     | 21 -> ShareReq (Share.parse len s)
     | 22 -> QueryReq (Query.parse len s)
@@ -1148,8 +1145,16 @@ let rec parse magic s =
        UnknownReq s
   with
     e -> 
-      lprintf "From server:"; lprint_newline ();
-      dump s;
+       if !CommonOptions.verbose_unknown_messages then begin
+          lprintf "Unknown message From server: %s (magic %d)"
+              (Printexc2.to_string e) magic; lprint_newline ();
+	      	     let tmp_file = Filename.temp_file "comp" "pak" in
+	     File.from_string tmp_file s;
+	     lprintf "Saved unknown packet %s" tmp_file; lprint_newline ();
+
+          dump s;
+          lprint_newline ();
+        end;
       UnknownReq s
       
 let print t =
@@ -1159,6 +1164,7 @@ let print t =
     | SetIDReq t -> SetID.print t
     | AckIDReq t -> AckID.print t
     | MessageReq t -> Message.print t
+    | BadProtocolVersionReq -> lprintf "BAD PROTOCOL VERSION"
     | ShareReq t -> Share.print t
     | InfoReq t -> Info.print t
     | ServerListReq t -> ServerList.print t
@@ -1221,6 +1227,7 @@ let bprint oc t =
     | SetIDReq t -> SetID.bprint oc t
     | AckIDReq t -> AckID.bprint oc t
     | MessageReq t -> Message.bprint oc t
+    | BadProtocolVersionReq -> Printf.bprintf oc "BAD PROTOCOL VERSION\n"
     | ShareReq t -> Share.bprint oc t
     | InfoReq t -> Info.bprint oc t
     | ServerListReq t -> ServerList.bprint oc t
@@ -1280,6 +1287,8 @@ let write buf t =
   | ConnectReq t -> 
       buf_int8 buf 1;
       Connect.write buf t
+  | BadProtocolVersionReq ->
+      buf_int8 buf 5
   | SetIDReq t -> 
       buf_int8 buf 64;
       SetID.write buf  t

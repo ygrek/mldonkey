@@ -158,6 +158,8 @@ let last_message_sender = ref (-1)
 let client_to_server s t sock =
   let module M = DonkeyProtoServer in
 
+  s.server_last_message <- last_time ();
+
   if !verbose_msg_servers then begin
       lprintf "Message from server:"; lprint_newline ();
       DonkeyProtoServer.print t; lprint_newline ();
@@ -291,7 +293,7 @@ connection from another client. In this case, we should immediatly connect.
               direct_server_send sock M.QueryMoreResultsReq;
               Fifo.put s.server_search_queries search      
             end;
-          DonkeyFiles.search_handler search t
+          DonkeyUdp.search_handler search t
         with Already_done -> iter ()
       in
       iter ()          
@@ -340,7 +342,7 @@ and remove clients whose server is deconnected. *)
               | _ -> ()
           ) user.user_tags;
           
-          if add_to_friend then DonkeyFiles.add_user_friend s user;
+          if add_to_friend then DonkeyUdp.add_user_friend s user;
           
           s.server_users <- user :: s.server_users;
 (*              lprintf "SERVER NEW USER"; lprint_newline (); *)
@@ -389,10 +391,10 @@ let connect_server s =
             let module M = DonkeyProtoServer in
             let module C = M.Connect in
             M.ConnectReq {
-              C.md4 = !!server_client_md4;
+              C.md4 = !!client_md4;
               C.ip = client_ip (Some sock);
               C.port = !client_port;
-              C.tags = !client_tags;
+              C.tags = !client_to_server_tags;
             }
           );
     add_connected_server s;

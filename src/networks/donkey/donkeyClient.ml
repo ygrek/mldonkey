@@ -60,7 +60,8 @@ let is_banned c sock =
 (* Supports Emule Extended Protocol *)
 let supports_eep cb = 
   match cb with
-    Brand_lmule | Brand_newemule | Brand_cdonkey | Brand_mldonkey3 | Brand_shareaza -> true
+    Brand_lmule | Brand_newemule | Brand_cdonkey | 
+    Brand_mldonkey3 | Brand_shareaza -> true
   | _ -> false
 
 let ban_client c sock msg = 
@@ -86,7 +87,10 @@ let corruption_warning c =
   if !!send_warning_messages then
     let module M = DonkeyProtoClient in
     direct_client_send c (
-      M.SayReq "[AUTOMATED WARNING] It has been detected that your client is sending corrupted data. Please double-check your hardware (disk, memory, cpu) and software (latest version ?)")
+      M.SayReq "
+[AUTOMATED WARNING] It has been detected that your client
+is sending corrupted data. Please double-check your hardware
+(disk, memory, cpu) and software (latest version ?)")
 
 let request_for c file sock =
   if !!ban_queue_jumpers then
@@ -352,13 +356,12 @@ let find_sources_in_groups c md4 =
                         (lprintf "Send new source to file groups UDP peers"; 
                           lprint_newline ());
                       udp_client_send uc (
-                        let module M = DonkeyProtoServer in
                         Udp.QueryLocationReplyUdpReq (
-                          let module Q = M.QueryLocationReply in
-                          {
+                          let module Q = DonkeyProtoServer.QueryLocationReply in
+                          [{
                             Q.md4 = md4;
                             Q.locs = [{ Q.ip = ip; Q.port = port }];
-                          }))
+                          }]))
                     end
               ) group.group;
               new_udp_client c group
@@ -405,9 +408,9 @@ let identify_client_brand c =
   if c.client_brand = Brand_unknown then
     let md4 = Md4.direct_to_string c.client_md4 in
     c.client_brand <- (
-      if List.exists (fun s -> Ip.equal c.client_ip s.server_ip) (connected_servers ()) then
+     (* if List.exists (fun s -> Ip.equal c.client_ip s.server_ip) (connected_servers ()) then
        Brand_server
-      else if md4.[5] = Char.chr 14 && md4.[14] = Char.chr 111 then
+      else *) if md4.[5] = Char.chr 14 && md4.[14] = Char.chr 111 then
        Brand_newemule
       else if md4.[5] = 'M' && md4.[14] = 'L' then
         Brand_mldonkey2
@@ -417,7 +420,7 @@ let identify_client_brand c =
 let identify_emule_compatible c tags = 
   List.iter (fun tag -> 
       match tag.tag_name with
-        "compatible" -> (match tag.tag_value with
+        "compatableclient" -> (match tag.tag_value with
               Uint64 i -> begin 
                   let intof64 = (Int64.to_int i) in
                   match intof64 with 
@@ -605,18 +608,17 @@ let init_client_connection c sock =
       emule_send sock (M.EmuleClientInfoReq {
           E.version = !!emule_protocol_version; 
           E.protversion = 0x1;
-          E.tags = [
-(*           int_tag "compression" 0; *)
-            int_tag "udp_port" (!!port+4)
-          ]
+          E.tags = !emule_info_tags;
         })
-    end;
+    end
+
+let send_pending_messages c sock =
+  let module M = DonkeyProtoClient in
   
   List.iter (fun m ->
       direct_client_send c (M.SayReq m)
   ) c.client_pending_messages;
-  c.client_pending_messages <- [];
-  ()  
+  c.client_pending_messages <- []
       
 let client_to_client challenge for_files c t sock = 
   let module M = DonkeyProtoClient in
@@ -682,7 +684,8 @@ let client_to_client challenge for_files c t sock =
       identify_client_brand c;
 
       init_client_connection c sock;
-      
+      send_pending_messages c sock;
+
       set_client_state c (Connected (-1));      
       
       if not (register_client_hash (peer_ip sock) t.CR.md4) then
@@ -718,15 +721,7 @@ let client_to_client challenge for_files c t sock =
           emule_send sock (M.EmuleClientInfoReplyReq {
               E.version = !!emule_protocol_version; 
               E.protversion = 0x1;
-              E.tags = [
-                int_tag "compression" 0;
-                int_tag "udp_port" (!!port+4);
-                int_tag "source_exchange" 1;
-                int_tag "comments" 1;
-(*                int_tag "compatible" 0; *)
-                int_tag "extended_request" 1;
-                int_tag "udp_version" 1;
-              ]
+              E.tags = !emule_info_tags;
             })
         end
   
@@ -1715,7 +1710,8 @@ let read_first_message overnet challenge m sock =
 			 c.client_brand <- Brand_server
 ) (connected_servers ()) *)
       identify_client_brand c;
-      
+      init_client_connection c sock;
+
       direct_client_send c (
         let module M = DonkeyProtoClient in
         let module C = M.ConnectReply in
@@ -1731,7 +1727,7 @@ let read_first_message overnet challenge m sock =
           }
         else
 	begin
-	 if (c.client_brand == Brand_server) then begin
+(*	 if (c.client_brand == Brand_server) then begin
           M.ConnectReplyReq {
             C.md4 = !!server_client_md4;
             C.ip = client_ip (Some sock);
@@ -1742,20 +1738,19 @@ let read_first_message overnet challenge m sock =
           }
 	 end
 	 else
-	 begin
+	 begin *)
           M.ConnectReplyReq {
             C.md4 = !!client_md4;
             C.ip = client_ip (Some sock);
             C.port = !client_port;
-            C.tags = !client_tags;
+            C.tags = !client_to_client_tags;
             C.server_info = t.CR.server_info;
             C.left_bytes = left_bytes; 
           }
 	 end;
-	end;
       );
 
-      init_client_connection c sock;
+      send_pending_messages c sock;
             
       set_client_state c (Connected (-1));      
       
@@ -1855,7 +1850,7 @@ can be increased by AvailableSlotReq, BlocReq, QueryBlocReq
                     C.md4 = !!client_md4;
                     C.ip = client_ip None;
                     C.port = !client_port;
-                    C.tags = !client_tags;
+                    C.tags = !client_to_client_tags;
                     C.version = 16;
                     C.server_info = Some (server_ip, server_port);
                     C.left_bytes = left_bytes;

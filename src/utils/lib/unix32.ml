@@ -104,12 +104,25 @@ module FDCache = struct
     let exists t = Sys.file_exists t.filename
 
     let remove t = Sys.remove t.filename
+
+    let read file file_pos string string_pos len =
+      let fd = local_force_fd file in
+      let final_pos = Unix2.c_seek64 fd file_pos Unix.SEEK_SET in
+      if verbose then lprintf "really_read %d\n" len;
+      Unix2.really_read fd string string_pos len
+      
+  let write file file_pos string string_pos len =
+    let fd = local_force_fd file in
+    let final_pos = Unix2.c_seek64 fd file_pos Unix.SEEK_SET in
+    if verbose then lprintf "really_write %d\n" len;
+    Unix2.really_write fd string string_pos len
+
   end
 
 module type File =   sig
     type t
     val create : string -> Unix.open_flag list -> int -> t
-    val fd_of_chunk : t -> int64 -> int64 -> Unix.file_descr * int64
+    val fd_of_chunk : t -> int64 -> int64 -> Unix.file_descr * int64 
     val close : t -> unit
     val rename : t -> string -> unit
     val ftruncate64 : t -> int64 -> unit
@@ -117,6 +130,8 @@ module type File =   sig
     val mtime64 : t -> float
     val exists : t -> bool
     val remove : t -> unit
+    val read : t -> int64 -> string -> int -> int -> unit
+    val write : t -> int64 -> string -> int -> int -> unit
   end
 
   
@@ -140,6 +155,8 @@ module DiskFile : File = struct
     let mtime64 = FDCache.mtime64
     let exists = FDCache.exists
     let remove = FDCache.remove
+    let read = FDCache.read
+    let write = FDCache.write
   end
 
     
@@ -305,6 +322,10 @@ module SparseFile : File = struct
     let remove t = 
       failwith "SparseFile.remove not implemented"
   
+    let read file file_pos string string_pos len = ()
+
+    let write file file_pos string string_pos len = ()
+
   
   end
   
@@ -407,7 +428,15 @@ let _ =
 
 let filename t = t.filename
 
+let read file file_pos string string_pos len =
+  match file.file_kind with
+  | DiskFile t -> DiskFile.read t file_pos string string_pos len
+  | SparseFile t -> SparseFile.read t file_pos string string_pos len
 
+let write file file_pos string string_pos len =
+  match file.file_kind with
+  | DiskFile t -> DiskFile.write t file_pos string string_pos len
+  | SparseFile t -> SparseFile.write t file_pos string string_pos len
 
 let buffer = Buffer.create 65000
 
@@ -419,10 +448,13 @@ let flush_buffer t offset =
   let len = String.length s in
   try
     if verbose then lprintf "seek64 %Ld\n" offset;
+    write t offset s 0 len;
+(*
     let fd, offset =  fd_of_chunk t offset (Int64.of_int len) in
     let final_pos = Unix2.c_seek64 fd offset Unix.SEEK_SET in
     if verbose then lprintf "really_write %d\n" len;
     Unix2.really_write fd s 0 len;
+*)
     buffered_bytes := !buffered_bytes -- (Int64.of_int len);
     if verbose then lprintf "written %d bytes (%Ld)\n" len !buffered_bytes;
   with e ->
@@ -523,7 +555,8 @@ let buffered_write t offset s pos_s len_s =
 
 let buffered_write_copy t offset s pos_s len_s = 
   buffered_write t offset (String.sub s pos_s len_s) 0 len_s
-      
+
+(*      
 let write t offset s pos_s len_s =  
   let fd, offset = fd_of_chunk t offset (Int64.of_int len_s) in
   let final_pos = Unix2.c_seek64 fd offset Unix.SEEK_SET in
@@ -549,6 +582,7 @@ let read t offset s pos_s len_s =
       raise Not_found
     end;
   Unix2.really_read fd s pos_s len_s
+*)
 
 let mini (x: int) (y: int) =
   if x > y then y else x
@@ -557,6 +591,7 @@ let mini (x: int) (y: int) =
   for example *)
 
 let allocate_chunk t offset len64 =
+(*
   let len = Int64.to_int len64 in
   let fd, offset = fd_of_chunk t offset len64 in
   let final_pos = Unix2.c_seek64 fd offset Unix.SEEK_SET in
@@ -564,17 +599,33 @@ let allocate_chunk t offset len64 =
       lprintf "BAD LSEEK in Unix32.zero_chunk %Ld/%Ld\n"
         final_pos offset; 
       raise Not_found
-    end;
+    end; *)
   let buffer_size = 128 * 1024 in
   let buffer = String.make buffer_size '\001' in
-  let remaining = ref len in
-  while !remaining > 0 do
-    let len = mini !remaining buffer_size in
-    Unix2.really_write fd buffer 0 len;
-    remaining := !remaining - len;
-  done
+  let rec iter remaining offset =
+    let len = mini remaining buffer_size in
+    if len > 0 then begin
+      write t offset buffer 0 len;
+      iter (remaining - len) (offset ++ (Int64.of_int len))
+    end
+  in
+  iter len64 offset
 
 let copy_chunk t1 t2 pos1 pos2 len =
+  let buffer_size = 128 * 1024 in
+  let buffer = String.make buffer_size '\001' in
+  let rec iter remaining pos1 pos2 =
+    let len = mini remaining buffer_size in
+    if len > 0 then begin
+      read t1 pos1 buffer 0 len;
+      write t2 pos2 buffer 0 len;
+      let len64 = Int64.of_int len in
+      iter (remaining - len) (pos1 ++ len64) (pos2 ++ len64)
+    end
+  in
+  iter len pos1 pos2
+
+(*
 (* Close two file descriptors *)
   assert (!max_cache_size > 2);
   flush_fd t1;
@@ -601,7 +652,9 @@ let copy_chunk t1 t2 pos1 pos2 len =
   iter file_in file_out len;
 (*  lprintf "Chunk copied\n"; *)
   ()
+*)
 
+  
 let close_all = FDCache.close_all
 let close t = 
   flush_fd t;
@@ -618,6 +671,7 @@ let exists t =
   | SparseFile t -> SparseFile.exists t
 
 let remove t = 
+  flush_fd t;
   close t;
   match t.file_kind with
   | DiskFile t -> DiskFile.remove t
@@ -629,6 +683,7 @@ let mtime64 s =  mtime64 (create_ro s)
 let file_exists s = exists (create_ro s)
 
 let rename t f = 
+  flush_fd t;
   close t;
   match t.file_kind with
   | DiskFile t -> DiskFile.rename t f

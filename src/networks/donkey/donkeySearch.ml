@@ -157,7 +157,7 @@ let send_search search query =
           direct_server_send sock (M.QueryReq query);
           Fifo.put s.server_search_queries search
   ) (connected_servers());
-  make_xs search;
+  DonkeyUdp.make_xs search;
   local_search search        
 
   
@@ -177,7 +177,7 @@ let send_subscribe search query =
               Fifo.put s.server_search_queries search
             end
   ) (connected_servers());
-  make_xs search;
+  DonkeyUdp.make_xs search;
   local_search search        
 
 let new_search search =

@@ -172,8 +172,8 @@ let server_msg_handler sock s msg_type m =
           in
           let result_name, tags, pos = iter_tags "Unknown" pos ntags [] in
           List.iter (fun tag ->
-              lprintf "      Tag: %s --> %s\n" tag.tag_name (string_of_tag
-                  tag.tag_value);
+              lprintf "      Tag: %s --> %s\n" 
+              tag.tag_name (string_of_tag tag.tag_value);
           ) tags;
           let user = new_user (Known_location (user_ip, user_port)) in
 (*

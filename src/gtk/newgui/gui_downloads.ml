@@ -968,6 +968,7 @@ class box_downloads wl_status () =
 (** {2 Handling core messages} *)
 
      method update_file f f_new row =
+       let old_state = f.data.gfile_state in
       f.data.gfile_md4 <- f_new.file_md4 ;
       f.data.gfile_name <-
         if icons_are_used then

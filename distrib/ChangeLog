@@ -1,6 +1,21 @@
 ChangeLog	
 =========
 
+2003/11/24: Fabrice
+   * New UDP protocol implemented:
+	* Understand servers flags in UDP pongs
+	* Query for and understand multiple replies in one packet
+	* Query sources for multiple files, and understand multiple files sources 
+	     in one packet
+   * server_last_message updated correctly.
+
+2003/11/24: Fabrice
+   * Suppressed option client_server_md4 (to correcly connect to all servers)
+   * Copy Emule behavior for client-client connection
+   * Send ET_COMPATIBLE flag in EmuleClientInfo with number 10
+   * Send EmuleClientInfo as soon as Emule client is identified
+   * Set verbose = "unk" to save unknown packets in /tmp/ directory
+	
 2003/11/21: Fabrice
    * Applied patches: #2097, #2099, #2110 (mingw), 
        #2111, #2193 (telnet), #2248, #2255 (XSS bug), 

@@ -121,10 +121,12 @@ let page_size = Int64.of_int 4096
   
 open DonkeyMftp
   
-let client_tags = ref ([] : tag list)
+let client_to_client_tags = ref ([] : tag list)
+let client_to_server_tags = ref ([] : tag list)
+let emule_info_tags = ref ([] : tag list)
 let client_port = ref 0
-let overnet_connectreply_tags = ref ([] : tag list)
-let overnet_connect_tags = ref ([] : tag list)
+let overnet_connectreply_tags = ref ([] :  tag list)
+let overnet_connect_tags = ref ([] :  tag list)
 let overnet_client_port = ref 0
 
 (* overnet_md4 should be different from client_md4 for protocol safety reasons *)
@@ -355,31 +357,33 @@ let new_server ip port score =
     Hashtbl.find servers_by_key key
   with _ ->
       let rec s = { 
-          server_server = server_impl;
-          server_next_udp = last_time ();
-          server_ip = ip;     
-          server_cid = None (* client_ip None *);
-          server_port = port; 
-          server_sock = None; 
-          server_nqueries = 0;
-          server_search_queries = Fifo.create ();
-          server_users_queries = Fifo.create ();
-          server_connection_control = new_connection_control ();
-          server_score = score;
-          server_tags = [];
-          server_nfiles = 0;
-          server_nusers = 0;
-          server_name = "";
-          server_description = "";
-          server_banner = "";
-          server_users = [];
-          server_master = false;
-          server_mldonkey = false;
-          server_last_message = 0;
-          server_queries_credit = 0;
-          server_waiting_queries = [];
-          server_id_requests = Fifo.create ();
-        }
+        server_server = server_impl;
+        server_next_udp = last_time ();
+        server_ip = ip;     
+        server_cid = None (* client_ip None *);
+        server_port = port; 
+        server_sock = None; 
+        server_nqueries = 0;
+        server_search_queries = Fifo.create ();
+        server_users_queries = Fifo.create ();
+        server_connection_control = new_connection_control ();
+        server_score = score;
+        server_tags = [];
+        server_nfiles = 0;
+        server_nusers = 0;
+          server_max_users = 0;
+        server_name = "";
+        server_description = "";
+        server_banner = "";
+        server_users = [];
+        server_master = false;
+        server_mldonkey = false;
+        server_last_message = 0;
+        server_queries_credit = 0;
+        server_waiting_queries = [];
+        server_id_requests = Fifo.create ();
+	server_flags = 0;
+      }
       and server_impl = 
         {
           dummy_server_impl with          
@@ -462,7 +466,8 @@ let dummy_client =
     }
   in
   c  
-
+    
+  
 let create_client key num =  
   let rec c = {
 (*      dummy_client with *)
@@ -919,3 +924,9 @@ let clean_join_queue_tables () =
   ) list
   
   
+let server_accept_multiple_getsources s =
+  (s.server_flags land DonkeyProtoUdp.PingServerReplyUdp.multiple_getsources) <> 0
+
+let server_send_multiple_replies s =
+  (s.server_flags land DonkeyProtoUdp.PingServerReplyUdp.multiple_replies) <> 0
+

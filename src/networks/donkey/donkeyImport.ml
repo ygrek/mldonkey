@@ -19,11 +19,13 @@
 open AnyEndian
 open Printf2
 open Md4
-open CommonTypes
 open LittleEndian
-open CommonGlobals
-open DonkeyMftp
   
+open CommonTypes
+open CommonGlobals
+  
+open DonkeyTypes
+open DonkeyMftp
 
 let dump_file filename =
   let ic = open_in filename in
@@ -55,13 +57,13 @@ module Server = struct
     
     let names_of_tag =
       [
-        1, "name";
-        15, "port";
-        16, "ip";
-        12, "ping";
-        14, "pref";
-        13, "history";
-        11, "description";
+        "\001", "name";
+        "\015", "port";
+        "\016", "ip";
+        "\012", "ping";
+        "\014", "prof";
+        "\013", "history";
+        "\011", "description";
       ]
     
     
@@ -126,10 +128,10 @@ module Known = struct
     
     let names_of_tag =
       [
-        1, "filename";
-        2, "size";
-        3, "type";
-        4, "format";
+        "\001", "filename";
+        "\002", "size";
+        "\003", "type";
+        "\004", "format";
       ]
     
     
@@ -205,14 +207,13 @@ module Part = struct
     
     let names_of_tag =
       [
-        1, "filename";
-        2, "size";
-        3, "type";
-        4, "format";
-        8, "downloaded";
-        18, "local_name";
-        19, "priority";
-        20, "status";
+        "\001", "filename";
+        "\002", "size";
+        "\004", "format";
+        "\008", "downloaded";
+        "\018", "diskname";
+        "\019", "priority";
+        "\020", "status";
       ]
     
     
@@ -232,8 +233,9 @@ module Part = struct
       let start_pos = ref Int64.zero in
       let absents = ref [] in
       List.iter (fun tag ->
-          if tag.tag_name <> "" then
-            let c = tag.tag_name.[0] in
+          let s = tag.tag_name in
+          if String.length s > 0 then
+            let c = s.[0] in
             match c, tag.tag_value with
               '\t', Uint64 p -> start_pos := p;
             | '\n', Uint64 p -> 
@@ -249,7 +251,7 @@ module Part = struct
         tags = tags;
         absents = absents;
       }
-    
+      
     let read s =
       assert (get_int8 s 0 = 224);
       (* assert (get_int s 1 = 0); *)
@@ -297,9 +299,9 @@ module Pref = struct
     
     let names_of_client_tag =
       [
-        1, "name";
-        17, "version";
-        15, "port";
+        "\001", "name";
+        "\017", "version";
+        "\015", "port";
       ]
       
     let names_of_option_tag = []

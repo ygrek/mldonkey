@@ -86,7 +86,8 @@ let _ =
                 begin_pos (end_pos -- begin_pos);
               let fd = Unix32.create
                   filename [Unix.O_RDWR; Unix.O_CREAT] 0o666 in
-              Unix32.copy_chunk bt_fd fd begin_pos zero (end_pos -- begin_pos);
+              Unix32.copy_chunk bt_fd fd begin_pos zero 
+                (Int64.to_int (end_pos -- begin_pos));
               Unix32.close fd
           ) file.file_files;
           Unix32.close bt_fd;

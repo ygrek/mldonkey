@@ -122,7 +122,7 @@ type file_tree =
   
 and file_tree_item =
   TreeDirectory of file_tree
-| TreeFile of result_info
+| TreeFile of  result_info
   
 type client_info = {
     client_num : int;

@@ -23,6 +23,8 @@ open Md4
 open CommonTypes
 open LittleEndian
 open CommonGlobals
+  
+open DonkeyTypes
 open DonkeyMftp
 
 (*
@@ -56,10 +58,10 @@ module Connect  = struct
     
     let names_of_tag =
       [
-        1, "name";
-        17, "version";
-        15, "port";
-        31, "server_udp";
+        "\001", "name";
+        "\017", "version";
+        "\015", "port";
+        "\031", "udpport";
       ]
 (*
 e3
@@ -145,17 +147,16 @@ module ConnectReply  = struct
         md4 : Md4.t;
         ip: Ip.t;
         port: int;
-        tags : tag list;
+        tags :  tag list;
         server_info : (Ip.t * int) option;
         left_bytes : string;
       }
     
     let names_of_tag =
       [
-        1, "name";
-        17, "version";
-        15, "port";
-	32, "extended";
+        "\001", "name";
+        "\017", "version";
+        "\015", "port";
       ]
     
     let parse len s =
@@ -489,17 +490,17 @@ module ViewFilesReply = struct
         md4: Md4.t;
         ip: Ip.t;
         port: int;
-        tags: tag list;
+        tags:  tag list;
       }
     
     type t = tagged_file list
     
     let names_of_tag =
       [
-        1, "filename";
-        2, "size";
-        3, "type";
-        4, "format";
+        "\001", "filename";
+        "\002", "size";
+        "\003", "type";
+        "\004", "format";
       ]
     
     let rec get_files  s pos n =
@@ -650,16 +651,19 @@ module EmuleClientInfo = struct
       
     let names_of_tag =
       [
-        0x20, "compression";      (* ET_COMPRESSION *)
-        0x21, "udp_port";         (* ET_UDPPORT *)
-        0x22, "udp_version";      (* ET_UDPVER *)
-        0x23, "source_exchange";  (* ET_SOURCEEXCHANGE *)
-        0x24, "comments";         (* ET_COMMENTS *)
-        0x25, "extended_request"; (* ET_EXTENDEDREQUEST *)
-        0x26, "compatible";       (* ET_COMPATABLECLIENT *)
-        0x77, "tarod";       	  (* ET_TAROD *)
-        0x78, "tarod_version";    (* ET_TAROD_VERSION *)
-		0x99, "plus";			  (* ET_PLUS *)
+        "\032", "compression";
+        "\033", "udpport";
+        "\034", "udpver";
+        "\035", "sourceexchange";
+        "\036", "comments";
+        "\037", "extendedrequest";
+        "\038", "compatableclient";
+        "\084", "mod_featureset";
+        "\086", "mod_protocol";
+        "\085", "mod_version";
+        "\119", "mod_tarod";
+        "\120", "tarod_version";
+        "\153", "mod_plus";
       ]
       
     let parse len s =

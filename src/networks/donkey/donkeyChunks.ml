@@ -344,7 +344,8 @@ let duplicate_chunks () =
                             Unix32.copy_chunk 
                               (file_fd other_file) 
                             (file_fd file) 
-                            chunk_pos chunk_pos chunk_size;
+                            chunk_pos chunk_pos 
+                            (Int64.to_int chunk_size);
 
                             chunk_present file i;
                             file_must_update file;

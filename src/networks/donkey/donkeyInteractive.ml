@@ -164,7 +164,7 @@ let really_query_download filenames size md4 location old_file absents =
   (try
       let servers = Hashtbl.find_all udp_servers_replies file.file_md4 in
       List.iter (fun s ->
-          udp_server_send s (DonkeyProtoUdp.QueryLocationUdpReq file.file_md4)
+          udp_server_send s (DonkeyProtoUdp.QueryLocationUdpReq [file.file_md4])
       ) servers
     with _ -> ());
   
@@ -677,7 +677,7 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+renameTextOut+'\\\"';
         let buf = o.conn_buf in
         if !xs_last_search >= 0 then begin
             try
-              make_xs (CommonSearch.search_find !xs_last_search);
+              DonkeyUdp.make_xs (CommonSearch.search_find !xs_last_search);
               "extended search started"
             with e -> Printf.sprintf "Error %s" (Printexc2.to_string e)
           end else "No previous search to extend"),
@@ -832,7 +832,7 @@ let _ =
           P.server_addr = Ip.addr_of_ip s.server_ip;
           P.server_port = s.server_port;
           P.server_score = s.server_score;
-          P.server_tags = s.server_tags;
+          P.server_tags = []; (* s.server_tags; *)
           P.server_nusers = s.server_nusers;
           P.server_nfiles = s.server_nfiles;
           P.server_state = server_state s;
@@ -852,7 +852,7 @@ let _ =
         P.user_md4 = u.user_md4;
         P.user_ip = u.user_ip;
         P.user_port = u.user_port;
-        P.user_tags = u.user_tags;
+        P.user_tags = []; (* u.user_tags; *)
         P.user_name = u.user_name;
         P.user_server = u.user_server.server_server.impl_server_num;
       }
@@ -865,7 +865,7 @@ let _ =
         P.client_kind = c.client_kind;
         P.client_state = client_state c;
         P.client_type = client_type c;
-        P.client_tags = c.client_tags;
+        P.client_tags = []; (* c.client_tags; *)
         P.client_name = c.client_name;
         P.client_files = None;
         P.client_num = (client_num c);
@@ -979,7 +979,7 @@ let _ =
       | ExtendSearchLocally ->
           DonkeyIndexer.find s      
       | ExtendSearchRemotely ->
-          make_xs s
+          DonkeyUdp.make_xs s
   );
   
   network.op_network_clean_servers <- (fun _ ->
@@ -1194,7 +1194,7 @@ lprint_newline ();
 let _ =
   user_ops.op_user_set_friend <- (fun u ->
       let s = u.user_server in
-      add_user_friend s u
+      DonkeyUdp.add_user_friend s u
   )
 
   

@@ -270,6 +270,7 @@ DONKEY_SRCS= \
   $(SRC_DONKEY)/donkeyProtoOvernet.ml \
   \
   $(SRC_DONKEY)/donkeyOvernet.ml \
+  $(SRC_DONKEY)/donkeyUdp.ml \
   $(SRC_DONKEY)/donkeyFiles.ml  \
   $(SRC_DONKEY)/donkeyServers.ml \
   $(SRC_DONKEY)/donkeySearch.ml \

@@ -382,13 +382,15 @@ let  upload_counter = ref Int64.zero
 let  download_counter = ref Int64.zero
 let nshared_files = ref 0
 let shared_counter = ref Int64.zero
-  
-  
+
+let tag_name tag =
+  String.escaped tag.tag_name 
+        
 let rec print_tags tags =
   match tags with
     [] -> ()
   | tag :: tags ->
-      lprintf "  \"%s\" = " (String.escaped tag.tag_name);
+      lprintf "  \"%s\" = " (tag_name tag);
       begin
         match tag.tag_value with
         | Uint64 n -> lprintf "%s" (Int64.to_string n)
@@ -401,10 +403,9 @@ let rec print_tags tags =
 
 let rec fprint_tags oc tags =
   match tags with
-    [] -> Printf.fprintf oc "\n";
-          ()
+    [] -> Printf.fprintf oc "\n"
   | tag :: tags ->
-      Printf.fprintf oc "%s = " (String.escaped tag.tag_name);
+      Printf.fprintf oc "%s = " (tag_name tag);
       begin
         match tag.tag_value with
         | Uint64 n -> Printf.fprintf oc "%s" (Int64.to_string n)
@@ -417,10 +418,9 @@ let rec fprint_tags oc tags =
 
 let rec bprint_tags buf tags =
   match tags with
-    [] -> Printf.bprintf buf "\n";
-          ()
+    [] -> Printf.bprintf buf "\n"
   | tag :: tags ->
-      Printf.bprintf buf "%s = " (String.escaped tag.tag_name);
+      Printf.bprintf buf "%s = " (tag_name tag);
       begin
         match tag.tag_value with
         | Uint64 n -> Printf.bprintf buf "%s" (Int64.to_string n)

@@ -16,6 +16,8 @@
     along with mldonkey; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
+
+(*
 (*
 val search_found :
   DonkeyTypes.search -> 'a -> Md4.t -> Mftp.tag list -> unit
@@ -25,6 +27,7 @@ val search_handler :
   CommonTypes.search ->  DonkeyProtoServer.QueryReply.t -> unit
 val udp_client_handler: DonkeyProtoUdp.t -> UdpSocket.udp_packet -> unit 
 val make_xs : CommonTypes.search -> unit
-  
+
 val add_user_friend : DonkeyTypes.server -> DonkeyTypes.user -> unit
+  *)
   

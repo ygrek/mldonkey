@@ -284,7 +284,7 @@ let _ =
         C.result_format = result_format_of_name r.result_name;
         C.result_type = result_media_of_name r.result_name;
         C.result_tags = r.result_tags @ (List.map (fun uid ->
-            string_tag "urn" (string_of_uid uid)
+            string_tag ("urn") (string_of_uid uid)
         ) r.result_uids);
         C.result_comment = "";
         C.result_done = false;

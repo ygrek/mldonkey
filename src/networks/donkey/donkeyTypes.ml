@@ -21,6 +21,60 @@ open Queues
 open Md4
 open CommonTypes
 
+  (*
+type client_tag_name =
+  CT_CLIENT_NAME
+| CT_CLIENT_PORT
+| CT_CLIENT_VERSION
+| CT_CLIENT_EXTENDED
+| CT_CLIENT_UDPPORT
+  
+type server_tag_name =
+| ST_SERVER_NAME
+| ST_SERVER_DESCRIPTION
+| ST_SERVER_PORT
+| ST_SERVER_IP
+| ST_SERVER_PING
+| ST_SERVER_PROF
+| ST_SERVER_HISTORY
+  
+type file_tag_name =
+| FT_FILE_FILENAME
+| FT_FILE_SIZE
+| FT_FILE_TYPE
+| FT_FILE_FORMAT
+| FT_FILE_AVAILABILITY
+| FT_FILE_TITLE
+| FT_FILE_ARTIST
+| FT_FILE_ALBUM
+| FT_FILE_LOC
+| FT_FILE_DOWNLOADED
+| FT_FILE_DISKNAME
+| FT_FILE_PRIORITY
+| FT_FILE_STATUS
+  
+type emule_tag_name =
+| ET_COMPRESSION
+| ET_UDPPORT
+| ET_UDPVER
+| ET_SOURCEEXCHANGE
+| ET_COMMENTS
+| ET_EXTENDEDREQUEST
+| ET_COMPATABLECLIENT
+| ET_MOD_FEATURESET
+| ET_MOD_PROTOCOL
+| ET_MOD_VERSION
+| ET_MOD_TAROD
+| ET_TAROD_VERSION
+| ET_MOD_PLUS
+  
+type pref_tag_name =
+| PT_PREF_NAME
+| PT_PREF_PORT
+| PT_PREF_VERSION
+| PT_PREF_TEMP
+    *)
+
 type request_record = {
   mutable last_request : int;
   mutable nwarnings : int;
@@ -69,6 +123,7 @@ type server = (*[]*){
     mutable server_tags : CommonTypes.tag list;
     mutable server_nusers : int;
     mutable server_nfiles : int;
+    mutable server_max_users : int;
     mutable server_name : string;
     mutable server_description : string;
     mutable server_banner : string;
@@ -82,6 +137,8 @@ type server = (*[]*){
     
     mutable server_queries_credit : int;
     mutable server_waiting_queries : file list;
+
+    mutable server_flags : int;
   } 
 
 
@@ -479,3 +536,62 @@ let dummy_stats =
     brand_download = Int64.zero;
     brand_upload = Int64.zero
   }
+
+  (*
+let string_of_file_tag_name name = 
+  match name with
+  | FT_FILE_SIZE -> "size"
+  | FT_FILE_FILENAME -> "filename"
+  | FT_FILE_TYPE -> "type"
+  | FT_FILE_FORMAT -> "format"
+  | FT_FILE_AVAILABILITY -> "availability"
+  | FT_FILE_DOWNLOADED -> "downloaded"
+  | FT_FILE_DISKNAME -> "diskname"
+  | FT_FILE_PRIORITY -> "priority"
+  | FT_FILE_STATUS -> "status"
+  | FT_FILE_ARTIST -> "Artist"
+  | FT_FILE_TITLE -> "Title"
+  | FT_FILE_ALBUM -> "Album"
+  | FT_FILE_LOC -> "loc"
+
+let string_of_server_tag_name name =
+  match name with
+  | ST_SERVER_NAME -> "name"
+  | ST_SERVER_DESCRIPTION -> "description"
+  | ST_SERVER_PORT -> "port"
+  | ST_SERVER_IP -> "ip"
+  | ST_SERVER_PING -> "ping"
+  | ST_SERVER_PROF -> "prof"
+  | ST_SERVER_HISTORY -> "history"
+    
+let string_of_client_tag_name name =
+  match name with
+  | CT_CLIENT_NAME -> "name"
+  | CT_CLIENT_PORT -> "port"
+  | CT_CLIENT_VERSION -> "version"
+  | CT_CLIENT_EXTENDED -> "extended"
+  | CT_CLIENT_UDPPORT -> "udpport"
+
+let string_of_emule_tag_name name =
+  match name with
+  | ET_COMPRESSION -> "compression"
+  | ET_UDPPORT -> "udpport"
+  | ET_UDPVER -> "udpver"
+  | ET_SOURCEEXCHANGE -> "sourceexchange"
+  | ET_COMMENTS -> "comments"
+  | ET_EXTENDEDREQUEST -> "extendedrequest"
+  | ET_COMPATABLECLIENT -> "compatableclient"
+  | ET_MOD_FEATURESET -> "mod_featureset"
+  | ET_MOD_PROTOCOL -> "mod_protocol"
+  | ET_MOD_VERSION -> "mod_version"
+  | ET_MOD_TAROD -> "mod_tarod"
+  | ET_TAROD_VERSION -> "tarod_version"
+  | ET_MOD_PLUS -> "mod_plus"
+    
+let string_of_pref_tag_name name =
+  match name with
+  | PT_PREF_NAME -> ""
+  | PT_PREF_PORT -> ""
+  | PT_PREF_VERSION -> ""
+  | PT_PREF_TEMP -> ""
+      *)

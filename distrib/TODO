@@ -1,19 +1,33 @@
 TODO list for client
 ====================
 
-Soulseek: in case of 
-   Message from server
-   LOGIN FAILURE INVALIDPASS
-  prevent any new reconnection
+* Verify that make_xs is synchronized with sources searches always
 
-ADD urn:sha1:<HASH> and urn:tree:tiger/:<HASH> to QRT
+* Suppress all classes in newgui.
+* Use TAG values instead of names: 'a tag -> 
+  file_tag_name tag, server_tag_name tag, client_tag_name
+*  Contact Lugdunum to understand why there is a ID inside servers packets
+  supporting zlib.
+* Soulseek: in case of Message from server LOGIN FAILURE INVALIDPASS
+  prevent any new reconnection
+* ADD urn:sha1:<HASH> and urn:tree:tiger/:<HASH> to QRT
+* Download one file from multiple networks: 
+    1) A download must be started on a verified network (donkey, bittorrent
+        or gnutella)
+    2) Complementary downloads can be started from other networks:
+      2a) Start a download as attached to a main download
+      2b) The attached download does not create a main file, but a set of
+             chunks that are potentially downloaded
+      2c) If the download of the attached file is finished, and the file
+             can be verified, then the attchaed download can be permuted 
+             with the main download (the attached download becomes the main
+	     download, and reciprocally).
 
 Fasttrack:
 ==========
  * Add more headers to GET requests
  * Fifo to reconnect to clients PER FILE, limited by the number of currently
     downloading clients
-
  * Problem with files containing corruption. Clearly, there is a bug
     somewhere, either in mldonkey, or in kazaa (bad implementation of
     pipelining ?). Or buffer_writes ?

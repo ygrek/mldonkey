@@ -120,6 +120,41 @@ let disable enabler () =
       if !!enable_donkey then enable_donkey =:= false;
       DonkeyOvernet.disable ()
     end
+
+    let reset_tags () =
+      client_to_client_tags :=
+      [
+        string_tag "name" (local_login ());
+        int_tag "version" !!DonkeyOptions.protocol_version;
+        int_tag "port" !client_port;
+      ];      
+      client_to_server_tags :=
+      [
+        string_tag "name" (local_login ());
+        int_tag "version" !!DonkeyOptions.protocol_version;
+        int_tag "port" !client_port;
+      ];      
+      if Autoconf.has_zlib then
+	client_to_server_tags := (int_tag "extended" 1)::!client_to_server_tags;
+      emule_info_tags := [
+                int_tag "compression" 0;
+                int_tag "udpport" (!!port+4);
+                int_tag "sourceexchange" 1;
+                int_tag "comments" 1;
+                int_tag "compatableclient" 10; 
+                int_tag "extendedrequest" 1;
+                int_tag "udpver" 1;
+       ];
+      overnet_connect_tags :=
+      [
+        string_tag "name" (local_login ());
+        int_tag "version" !!DonkeyOvernet.overnet_protocol_connect_version; 
+      ];
+      overnet_connectreply_tags :=
+      [
+        string_tag "name" (local_login ());
+        int_tag "version" !!DonkeyOvernet.overnet_protocol_connectreply_version; 
+      ]
     
 let enable () =
   if not !is_enabled then 
@@ -213,7 +248,7 @@ let enable () =
             let sock =
               (UdpSocket.create (Ip.to_inet_addr !!donkey_bind_addr)
                 (!!port + 4) 
-                (udp_handler DonkeyFiles.udp_client_handler))
+                (udp_handler DonkeyUdp.udp_client_handler))
             in
             udp_sock := Some sock;
             UdpSocket.set_write_controler sock udp_write_controler;
@@ -239,26 +274,6 @@ let enable () =
     
     let port = !client_port in
 
-    let reset_tags () =
-      client_tags :=
-      [
-        string_tag "name" (local_login ());
-        int_tag "version" !!DonkeyOptions.protocol_version;
-        int_tag "port" !client_port;
-      ];      
-      if Autoconf.has_zlib then
-	client_tags := (int_tag "extended" 1)::!client_tags;
-      overnet_connect_tags :=
-      [
-        string_tag "name" (local_login ());
-        int_tag "version" !!DonkeyOvernet.overnet_protocol_connect_version; 
-      ];
-      overnet_connectreply_tags :=
-      [
-        string_tag "name" (local_login ());
-        int_tag "version" !!DonkeyOvernet.overnet_protocol_connectreply_version; 
-      ]
-    in
     reset_tags ();
 
     Options.option_hook DonkeyOptions.protocol_version reset_tags;
@@ -267,7 +282,7 @@ let enable () =
     
 (**** START TIMERS ****)
     add_session_option_timer enabler check_client_connections_delay 
-      DonkeyFiles.force_check_locations;
+      DonkeyUdp.force_check_locations;
 
     add_session_option_timer enabler buffer_writes_delay 
       (fun _ -> Unix32.flush ());
@@ -289,7 +304,7 @@ let enable () =
     DonkeyComplexOptions.load_sources ();
     
 (**** START PLAYING ****)  
-    (try force_check_locations () with _ -> ());
+    (try DonkeyUdp.force_check_locations () with _ -> ());
     (try force_check_server_connections true with _ -> ());
 
   with e ->

@@ -392,7 +392,7 @@ and zero_block file i =
         AbsentTemp | AbsentVerified ->
           let chunk_begin = chunk_pos i in
           Unix32.allocate_chunk (file_fd file) chunk_begin
-            (Int64.sub (chunk_end file i) chunk_begin)
+            (Int64.to_int ((chunk_end file i) -- chunk_begin))
           (*
 (*	   lprintf "Allocating disk space\n"; *)
           let final_pos = Unix32.seek64 (file_fd file) 
@@ -1150,7 +1150,8 @@ let search_found filter search md4 tags =
       match tag with
         { tag_name = "filename"; tag_value = String s } -> file_name := s
       | { tag_name = "size"; tag_value = Uint64 v } -> file_size := v
-      | { tag_name = "availability"; tag_value = (Uint64 v| Fint64 v) } ->
+      | { tag_name = "availability";
+	  tag_value = (Uint64 v| Fint64 v) } ->
           availability := Int64.to_int v;  new_tags := tag :: !new_tags
       | _ -> new_tags := tag :: !new_tags
   ) tags;

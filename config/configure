@@ -4205,6 +4205,8 @@ fi
 fi
 fi
 
+
+
 # Extract the first word of "perl", so it can be a program name with args.
 set dummy perl; ac_word=$2
 echo "$as_me:$LINENO: checking for $ac_word" >&5
@@ -8995,6 +8997,12 @@ case "$OCAMLVERSION" in
   *) TYPE_FORMAT="type ('a,'b,'c) ml_format = ('a,'b, 'c,'c) format  type ('a,'b,'c) format = ('a,'b, 'c) ml_format";;
 esac
 
+if test "$MINGW32" = yes; then
+   OCAMLDEP_OPTIONS="-slash"
+fi
+
+
+
 
 
 
@@ -9059,7 +9067,7 @@ esac
 
 AUTOCONF=../src/utils/lib/autoconf.ml
 GTK_AUTOCONF=../src/utils/lib/gAutoconf.ml
-ac_config_files="$ac_config_files Makefile.config Makefile.config.i386 Makefile.config.i486 Makefile.config.i586 Makefile.config.i686 $AUTOCONF.new $GTK_AUTOCONF.new ../packages/rpm/mldonkey.spec ../packages/rpm/Makefile ../packages/windows/mlnet.nsi"
+ac_config_files="$ac_config_files Makefile.config Makefile.config.i386 Makefile.config.i486 Makefile.config.i586 Makefile.config.i686 mldonkey.rc $AUTOCONF.new $GTK_AUTOCONF.new ../packages/rpm/mldonkey.spec ../packages/rpm/Makefile ../packages/windows/mlnet.nsi"
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
 # tests run on this system so they can be shared between configure
@@ -9535,6 +9543,7 @@ do
   "Makefile.config.i486" ) CONFIG_FILES="$CONFIG_FILES Makefile.config.i486" ;;
   "Makefile.config.i586" ) CONFIG_FILES="$CONFIG_FILES Makefile.config.i586" ;;
   "Makefile.config.i686" ) CONFIG_FILES="$CONFIG_FILES Makefile.config.i686" ;;
+  "mldonkey.rc" ) CONFIG_FILES="$CONFIG_FILES mldonkey.rc" ;;
   "$AUTOCONF.new" ) CONFIG_FILES="$CONFIG_FILES $AUTOCONF.new" ;;
   "$GTK_AUTOCONF.new" ) CONFIG_FILES="$CONFIG_FILES $GTK_AUTOCONF.new" ;;
   "../packages/rpm/mldonkey.spec" ) CONFIG_FILES="$CONFIG_FILES ../packages/rpm/mldonkey.spec" ;;
@@ -9657,6 +9666,7 @@ s,@PTHREAD_LIBS@,$PTHREAD_LIBS,;t t
 s,@PTHREAD_CFLAGS@,$PTHREAD_CFLAGS,;t t
 s,@COMPRESS@,$COMPRESS,;t t
 s,@TYPE_FORMAT@,$TYPE_FORMAT,;t t
+s,@OCAMLDEP_OPTIONS@,$OCAMLDEP_OPTIONS,;t t
 s,@MORE_TARGETS@,$MORE_TARGETS,;t t
 s,@MORE_SUBDIRS@,$MORE_SUBDIRS,;t t
 s,@LABLGL_CMA@,$LABLGL_CMA,;t t

@@ -246,10 +246,10 @@ dec: [
   
 let names_of_tag =
   [
-    1, "filename";
-    2, "size";
-    3, "type";
-    4, "format";
+   "\001", "filename";
+   "\002", "size";
+   "\003", "type";
+   "\004", "format";
   ]
   
 let write buf t =
@@ -354,7 +354,7 @@ let parse opcode s =
     match opcode with  
     | 10 -> 
         if !verbose_overnet then begin
-            lprintf "OK: CONNECT MESSAGE"; lprint_newline ();
+            lprintf "OK: CONNECT MESSAGE\n"; 
           end;
         let md4 = get_md4 s 0 in
         let ip = get_ip s 16 in
@@ -363,13 +363,13 @@ let parse opcode s =
         OvernetConnect (md4, ip, port, kind)
     | 11 -> 
         if !verbose_overnet then begin
-            lprintf "OK: CONNECT REPLY"; lprint_newline ();
+            lprintf "OK: CONNECT REPLY\n"; 
           end;
         let peers, pos = get_list16 get_peer s 0 in
         OvernetConnectReply peers
     | 12 -> 
         if !verbose_overnet then begin
-            lprintf "OK: PUBLICIZE"; lprint_newline ();
+            lprintf "OK: PUBLICIZE\n"; 
           end;
         let md4 = get_md4 s 0 in
         let ip = get_ip s 16 in
@@ -378,12 +378,12 @@ let parse opcode s =
         OvernetPublicize (md4,ip,port,kind)
     | 13 ->
         if !verbose_overnet then begin
-            lprintf "OK: PUBLICIZED"; lprint_newline ();
+            lprintf "OK: PUBLICIZED\n"; 
           end; 
 	OvernetPublicized
     | 14 -> 
         if !verbose_overnet then begin
-          (*lprintf "OK: SEARCH MESSAGE"; lprint_newline ();*)
+          (*lprintf "OK: SEARCH MESSAGE\n";*)
         end;
         let kind = get_int8 s 0 in
         let md4 = get_md4 s 1 in
@@ -391,7 +391,7 @@ let parse opcode s =
     
     | 15 -> 
         if !verbose_overnet then begin
-            lprintf "OK: SEARCH REPLY"; lprint_newline ();
+            lprintf "OK: SEARCH REPLY\n"; 
           end;
         let md4 = get_md4 s 0 in
         let peers, pos = get_list8 get_peer s 16 in
@@ -399,7 +399,7 @@ let parse opcode s =
     
     | 16 ->
         if !verbose_overnet then begin
-            lprintf "OK: SEARCH GET REPLIES"; lprint_newline ();
+            lprintf "OK: SEARCH GET REPLIES\n"; 
           end;
         let md4 = get_md4 s 0 in
         let kind = get_int8 s 16 in
@@ -409,7 +409,7 @@ let parse opcode s =
     
     | 17 ->
         if !verbose_overnet then begin
-            lprintf "OK: ONE REPLY"; lprint_newline ();
+            lprintf "OK: ONE REPLY\n"; 
           end;
         let md4 = get_md4 s 0 in
         let r_md4 = get_md4 s 16 in
@@ -418,14 +418,14 @@ let parse opcode s =
     
     | 18 ->
         if !verbose_overnet then begin
-            lprintf "OK: ONE REPLY"; lprint_newline ();
+            lprintf "OK: ONE REPLY\n"; 
           end;
         let md4 = get_md4 s 0 in
         OvernetNoResult md4
         
     | 19 ->
         if !verbose_overnet then begin
-            lprintf "OK: PUBLISH"; lprint_newline ();
+            lprintf "OK: PUBLISH\n"; 
           end;
         let md4 = get_md4 s 0 in
         let r_md4 = get_md4 s 16 in
@@ -434,7 +434,7 @@ let parse opcode s =
         
     | 20 ->
         if !verbose_overnet then begin
-            lprintf "OK: PUBLISHED"; lprint_newline ();
+            lprintf "OK: PUBLISHED\n"; 
           end;
         let md4 = get_md4 s 0 in
         OvernetPublished md4
@@ -446,7 +446,7 @@ let parse opcode s =
 
     | 24 ->
         if !verbose_overnet then begin
-            lprintf "OK: OVERNET FIREWALL CONNECTION"; lprint_newline ();
+            lprintf "OK: OVERNET FIREWALL CONNECTION\n"; 
           end;
         let md4 = get_md4 s 0 in
         let port = get_int16 s 16 in
@@ -454,14 +454,14 @@ let parse opcode s =
 
     | 25 ->
         if !verbose_overnet then begin
-            lprintf "OK: OVERNET FIREWALL CONNECTION ACK"; lprint_newline ();
+            lprintf "OK: OVERNET FIREWALL CONNECTION ACK\n"; 
           end;
         let md4 = get_md4 s 0 in
         OvernetFirewallConnectionACK(md4)
 
     | 26 ->
         if !verbose_overnet then begin
-            lprintf "OK: OVERNET FIREWALL CONNECTION NACK"; lprint_newline ();
+            lprintf "OK: OVERNET FIREWALL CONNECTION NACK\n"; 
           end;
         let md4 = get_md4 s 0 in
         OvernetFirewallConnectionNACK(md4)
@@ -470,13 +470,13 @@ let parse opcode s =
         OvernetGetMyIP (get_int16 s 0)
     | 28 -> 
 	if !verbose_overnet then begin
-            lprintf "OK: GETMYIPRESULT MESSAGE"; lprint_newline ();
+            lprintf "OK: GETMYIPRESULT MESSAGE\n"; 
           end;
         let ip = get_ip s 0 in
         OvernetGetMyIPResult (ip)
     | 29 -> 
 	if !verbose_overnet then begin
-            lprintf "OK: GETMYIPDONE MESSAGE"; lprint_newline ();
+            lprintf "OK: GETMYIPDONE MESSAGE\n"; 
           end;
         OvernetGetMyIPDone
         
@@ -485,13 +485,13 @@ let parse opcode s =
         OvernetUnknown33 peer
         
     | _ ->
-        lprintf "UNKNOWN: opcode %d" opcode; lprint_newline ();
+        lprintf "UNKNOWN: opcode %d\n" opcode; 
         dump s;
         lprint_newline ();
         OvernetUnknown (opcode, s)
   with e ->
-      lprintf "Error %s while parsing opcode %d" (Printexc2.to_string e)
-      opcode; lprint_newline ();
+      lprintf "Error %s while parsing opcode %d\n" (Printexc2.to_string e)
+      opcode; 
       dump s;
       lprint_newline ();
       OvernetUnknown (opcode, s)
@@ -507,7 +507,7 @@ let udp_handler f sock event =
               int_of_char pbuf.[0] <> 227 then 
               begin
                 if !CommonOptions.verbose_unknown_messages then begin
-                    lprintf "Received unknown UDP packet"; lprint_newline ();
+                    lprintf "Received unknown UDP packet\n"; 
                     dump pbuf;
                   end
               end 

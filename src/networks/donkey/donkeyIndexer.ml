@@ -405,16 +405,16 @@ let index_result_no_filter r =
       
       List.iter (fun tag ->
           match tag with
-          | { tag_name = "Artist"; tag_value = String s } -> 
+          | { tag_name = FT_FILE_ARTIST; tag_value = String s } -> 
               index_string rs.result_index s artist_bit
-          | { tag_name = "Title"; tag_value = String s } -> 
+          | { tag_name = FT_FILE_ARTIST tag_value = String s } -> 
               index_string rs.result_index s title_bit
-          | { tag_name = "Album"; tag_value = String s } -> 
+          | { tag_name = FT_FILE_ALBUM tag_value = String s } -> 
               index_string rs.result_index s album_bit
               (* we could directly use the fields of r *)
-          | { tag_name = "format"; tag_value = String s } -> 
+          | { tag_name = FT_FILE_FORMAT; tag_value = String s } -> 
               index_string rs.result_index s format_bit
-          | { tag_name = "type"; tag_value = String s } -> 
+          | { tag_name = FT_FILE_TYPE; tag_value = String s } -> 
               index_string rs.result_index s media_bit
           | { tag_value = String s } -> 
               index_name rs.result_index s

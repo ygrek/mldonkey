@@ -21,24 +21,26 @@ open Printf2
 open Md4
 open Autoconf
 open LittleEndian
-open CommonTypes
-open CommonGlobals
-open DonkeyMftp
 open AnyEndian
   
-module QueryUdpReply  = struct 
+open CommonTypes
+open CommonGlobals
+
+open DonkeyTypes
+open DonkeyMftp
+
+module QueryReplyUdp  = struct 
     
-    type t = tagged_file
+    type t = tagged_file list
     
     let names_of_tag = [
-        1, "filename";
-        2, "size";
-        3, "type";
-        4, "format";
-        21, "availability";
+        "\001", "filename";
+        "\002", "size";
+        "\003", "type";
+        "\004", "format";
+        "\021", "availability";
       ]        
-    
-    
+        
     let get_file  s pos =
       let md4 = get_md4 s pos in
       let ip = get_ip s (pos + 16) in
@@ -50,26 +52,35 @@ module QueryUdpReply  = struct
           f_port = port;
           f_tags = tags;
         } in
-      file
-    
+      file, pos    
     
     let parse len s =
-      get_file s 1
+      let rec iter pos list =
+	if pos < len then
+	  let file, pos = get_file s pos in
+	  iter pos (file :: list)
+	else List.rev list
+      in
+      iter 1 []
     
     let bprint oc t = 
       Printf.bprintf oc "FOUND:\n";
-      Printf.bprintf oc "%s\n" (Md4.to_string t.f_md4);
-      Printf.bprintf oc "%s\n" (Ip.to_string t.f_ip);
-      Printf.bprintf oc "%d\n" t.f_port;
-      Printf.bprintf oc "TAGS:\n";
-      bprint_tags oc t.f_tags;
+      List.iter (fun t ->
+	Printf.bprintf oc "%s\n" (Md4.to_string t.f_md4);
+	Printf.bprintf oc "%s\n" (Ip.to_string t.f_ip);
+	Printf.bprintf oc "%d\n" t.f_port;
+	Printf.bprintf oc "TAGS:\n";
+	bprint_tags oc t.f_tags;
          Printf.bprintf oc "\n"
+      ) t
     
-    let write buf file =
-      buf_md4 buf file.f_md4;
-      buf_ip buf file.f_ip;
-      buf_port buf file.f_port;
-      buf_tags buf file.f_tags names_of_tag
+    let write buf t =
+      List.iter (fun file ->
+	buf_md4 buf file.f_md4;
+	buf_ip buf file.f_ip;
+	buf_port buf file.f_port;
+	buf_tags buf file.f_tags names_of_tag
+      ) t
 
   end
   
@@ -126,20 +137,58 @@ module PingServerUdp = struct (* client -> serveur pour identification ? *)
   end
 
 module PingServerReplyUdp = struct (* reponse du serveur a 150 *)
-    type t = int64 *  int64 * int64
-      
-    let parse len s =
-        get_int64_32 s 1, get_int64_32 s 5, get_int64_32 s 9
-      
-     let bprint oc (t1,t2,t3) =
-         Printf.bprintf oc "PING REPLY no:%s clients:%s files:%s\n" (Int64.to_string t1)
-                           (Int64.to_string t2) (Int64.to_string t3)
 
-      let write buf (t1,t2,t3) =
-          buf_int64_32 buf t1;
-          buf_int64_32 buf t2;
-          buf_int64_32 buf t3;
-                           
+  let multiple_getsources = 1
+  let multiple_replies = 2
+
+    type t = {
+	users : int;
+	files : int;
+	soft_limit : int  option;
+	hard_limit : int option;
+	max_users : int option;
+	flags : int option;
+      }
+(*           <E3><97><users><files><softLimit><hardLimit><maxUsers><flags> *)
+    let parse len s =
+      let users = get_int s 1 in
+      let files = get_int s 5 in
+      let soft_limit = if len > 9 then Some (get_int  s 9) else None in
+      let hard_limit = if len > 13 then Some (get_int  s 13) else None in
+      let max_users = if len > 17 then Some (get_int  s 17) else None in
+      let flags = if len > 21 then Some (get_int s 21) else None in
+      {
+       users = users;
+       files = files;
+       soft_limit = soft_limit;
+       hard_limit = hard_limit;
+       max_users = max_users;
+       flags = flags;
+     }
+      
+     let bprint oc t =
+         Printf.bprintf oc "PING REPLY\n";
+         Printf.bprintf oc "   %d users %d files\n" t.users t.files;
+         (match t.soft_limit with Some x -> Printf.bprintf oc "   Soft limit: %d\n" x | None -> ());
+         (match t.hard_limit with Some x -> Printf.bprintf oc "   Hard limit: %d\n" x | None -> ());
+         (match t.max_users with Some x -> Printf.bprintf oc "   Max nusers: %d\n" x | None -> ());
+         (match t.flags with Some x -> Printf.bprintf oc "   Flags: %x\n" x | None -> ());
+         Printf.bprintf oc "\n"
+
+      let write buf t =
+          buf_int buf t.users;
+          buf_int buf t.files;
+         (match t.soft_limit, t.hard_limit, t.max_users, t.flags with
+	   None, None, None, None -> ()
+	 | _ ->
+	     buf_int buf (
+	       match t.soft_limit with Some x -> x | None -> 0);
+	     buf_int buf (
+	       match t.hard_limit with Some x -> x | None -> 0);
+	     buf_int buf (
+   	       match t.max_users with Some x -> x | None -> 0);
+	     match t.flags with Some x -> buf_int buf x | None -> ()
+	 )                           
   end
   
 module ServerDescUdp = struct
@@ -217,28 +266,116 @@ module ServerListUdp = struct
 
 end
 
-module QueryServers = DonkeyProtoServer.QueryServers
-module QueryServersReply = DonkeyProtoServer.QueryServersReply
-module QueryLocation = DonkeyProtoServer.QueryLocation  
-module QueryLocationReply = DonkeyProtoServer.QueryLocationReply  
-module Query = DonkeyProtoServer.Query
-module QueryIDReply = DonkeyProtoServer.QueryIDReply
+module QueryServersUdp = DonkeyProtoServer.QueryServers
+module QueryServersReplyUdp = DonkeyProtoServer.QueryServersReply
+module QueryLocationUdp = struct
+  open DonkeyProtoServer.QueryLocation  
+
+    type file = DonkeyProtoServer.QueryLocation.t
+    type t = file list
+    
+  let parse len s = 
+    let rec iter pos list =
+      if pos < len then
+	iter (pos+16) (get_md4 s pos :: list)
+      else
+	List.rev list
+    in
+    iter 1 []
+
+  let bprint b t = 
+    Printf.bprintf b "UDP QUERY LOCATIONS: ";
+    List.iter (fun md4 -> Printf.bprintf b "%s " (Md4.to_string md4)) t
+
+  let write buf t = 
+    List.iter (fun md4 -> buf_md4 buf md4) t
+end
+
+module QueryLocationReplyUdp = struct
+  open DonkeyProtoServer.QueryLocationReply  
+
+    type t = DonkeyProtoServer.QueryLocationReply.t list
+      
+    let parse len s = 
+      let rec iter_len pos list =
+        if pos < len then
+          let md4 = get_md4 s pos in
+          let n = get_int8 s (pos+16) in
+          let rec iter i  =
+            if i = n then [] else
+            let ip = get_ip s (pos+17 + i * 6) in
+            let port = get_port s (pos+21+ i * 6) in
+            { ip = ip; port = port; } :: (iter (i+1))
+          in
+          let locs = iter 0 in
+          iter_len (pos+17+6*n) ({ locs =locs; md4 = md4 } :: list)
+        else
+          List.rev list
+      in
+      iter_len 1 []
+          
+  let bprint b t = 
+    Printf.bprintf b "UDP LOCATION: %d\n" (List.length t);
+    List.iter (fun t ->
+      Printf.bprintf b "    of %s:\n" (Md4.to_string t.md4);
+      List.iter (fun l -> 
+          Printf.bprintf b "%s:%d " (Ip.to_string l.ip) l.port;
+      ) t.locs;
+      Printf.bprintf b "\n") t
+      
+  let write buf t = 
+    List.iter (fun t ->
+      buf_md4 buf t.md4;
+      buf_int8 buf (List.length t.locs);
+      List.iter (fun l ->
+        buf_ip buf l.ip;
+        buf_port buf l.port;
+      ) t.locs
+    ) t
+
+end
+
+
+module QueryUdp = DonkeyProtoServer.Query
+
+(*
+  let parse len s =
+    let rec iter list pos =
+      if len > pos then
+	let t, pos = parse_query s pos in
+	iter (t :: list) pos
+      else List.rev list
+    in
+    iter [] 1
+
+  let bprint b t =
+    Printf.bprintf b "UDP QUERY: %d\n" (List.length t);
+    List.iter (bprint_query b) t
+
+  let write buf t =
+    List.iter write t
+
+  end
+*)
+
+module QueryIDReplyUdp = DonkeyProtoServer.QueryIDReply
   
 type t =
-| QueryServersUdpReq of QueryServers.t  
-| QueryServersReplyUdpReq of QueryServersReply.t  
+| QueryServersUdpReq of QueryServersUdp.t  
+| QueryServersReplyUdpReq of QueryServersReplyUdp.t  
 
 | PingServerUdpReq of PingServerUdp.t
 | PingServerReplyUdpReq of PingServerReplyUdp.t
 
-| QueryLocationUdpReq of QueryLocation.t  
-| QueryLocationReplyUdpReq of QueryLocationReply.t  
+| QueryLocationUdpReq of QueryLocationUdp.t  
+| QueryLocationReplyUdpReq of QueryLocationReplyUdp.t  
 
-| QueryReplyUdpReq of QueryUdpReply.t
-| QueryUdpReq of CommonTypes.query
+| QueryReplyUdpReq of QueryReplyUdp.t
+| QueryUdpReq of CommonTypes.query 
+| QueryMultipleUdpReq of CommonTypes.query 
 | QueryCallUdpReq of QueryCallUdp.t
-| QueryIDReplyReq of QueryIDReply.t
-| FileGroupInfoUdpReq of QueryLocationReply.t    
+| QueryIDReplyUdpReq of QueryIDReplyUdp.t
+| FileGroupInfoUdpReq of QueryLocationReplyUdp.t    
 | ServerDescUdpReq of ServerDescUdp.t
 | ServerDescReplyUdpReq of ServerDescReplyUdp.t   
 | ServerListUdpReq of ServerListUdp.t    
@@ -260,21 +397,22 @@ let parse magic s =
     match opcode with 
     | 150 -> PingServerUdpReq (PingServerUdp.parse len s)
     | 151 -> PingServerReplyUdpReq (PingServerReplyUdp.parse len s)
-    
-    | 152 -> QueryUdpReq (Query.parse len s)
-    | 153 -> QueryReplyUdpReq (QueryUdpReply.parse len s)
-    | 154 -> QueryLocationUdpReq (QueryLocation.parse len s)
-    | 155 -> QueryLocationReplyUdpReq (QueryLocationReply.parse len s)
+     
+    | 146 -> QueryMultipleUdpReq (QueryUdp.parse len s)
+    | 152 -> QueryUdpReq (QueryUdp.parse len s)
+    | 153 -> QueryReplyUdpReq (QueryReplyUdp.parse len s)
+    | 154 -> QueryLocationUdpReq (QueryLocationUdp.parse len s)
+    | 155 -> QueryLocationReplyUdpReq (QueryLocationReplyUdp.parse len s)
     | 156 -> QueryCallUdpReq (QueryCallUdp.parse len s)
-    | 160 -> QueryServersUdpReq (QueryServers.parse len s)
-    | 161 -> QueryServersReplyUdpReq (QueryServersReply.parse len s)
+    | 160 -> QueryServersUdpReq (QueryServersUdp.parse len s)
+    | 161 -> QueryServersReplyUdpReq (QueryServersReplyUdp.parse len s)
     | 162 -> ServerDescUdpReq (ServerDescUdp.parse len s)
     | 163 -> ServerDescReplyUdpReq (ServerDescReplyUdp.parse len s)
     | 164 -> ServerListUdpReq (ServerListUdp.parse len s)
 
     | 144 -> EmuleReaskFilePingUdpReq (get_md4 s 1)
     | 145 -> EmuleReaskAckUdpReq (get_md4 s 1)
-    | 146 -> EmuleFileNotFoundUdpReq
+(*    | 146 -> EmuleFileNotFoundUdpReq *)
     | 147 -> EmuleQueueFullUdpReq
         
     | _ -> raise Exit  
@@ -290,16 +428,17 @@ let print t =
   begin
     match t with
     
-    | QueryUdpReq t -> Query.bprint b t
-    | QueryReplyUdpReq t -> QueryUdpReply.bprint b t
-    | QueryLocationUdpReq t -> QueryLocation.bprint b t
+    | QueryUdpReq t -> QueryUdp.bprint b t
+    | QueryMultipleUdpReq t -> QueryUdp.bprint b t
+    | QueryReplyUdpReq t -> QueryReplyUdp.bprint b t
+    | QueryLocationUdpReq t -> QueryLocationUdp.bprint b t
     | QueryLocationReplyUdpReq t
-    | FileGroupInfoUdpReq t      ->    QueryLocationReply.bprint b t
+    | FileGroupInfoUdpReq t -> QueryLocationReplyUdp.bprint b t
     | QueryCallUdpReq t -> QueryCallUdp.bprint b t
 
-        | QueryServersUdpReq t -> QueryServers.bprint b t
-    | QueryServersReplyUdpReq t -> QueryServersReply.bprint b t
-    | QueryIDReplyReq t -> QueryIDReply.bprint b t
+    | QueryServersUdpReq t -> QueryServersUdp.bprint b t
+    | QueryServersReplyUdpReq t -> QueryServersReplyUdp.bprint b t
+    | QueryIDReplyUdpReq t -> QueryIDReplyUdp.bprint b t
     
     | PingServerUdpReq t -> PingServerUdp.bprint b t
     | PingServerReplyUdpReq t -> PingServerReplyUdp.bprint b t
@@ -353,10 +492,10 @@ let write buf t =
       match t with
       | QueryServersUdpReq t -> 
           buf_int8 buf 160;
-          QueryServers.write buf t
+          QueryServersUdp.write buf t
       | QueryServersReplyUdpReq t -> 
           buf_int8 buf 161;
-          QueryServersReply.write buf t
+          QueryServersReplyUdp.write buf t
       
       | ServerDescUdpReq t ->
           buf_int8 buf 162;
@@ -377,26 +516,29 @@ let write buf t =
       
       | QueryLocationUdpReq t ->
           buf_int8 buf 154;
-          QueryLocation.write buf t
+          QueryLocationUdp.write buf t
       | QueryLocationReplyUdpReq t ->
           buf_int8 buf 155;
-          QueryLocationReply.write buf t
+          QueryLocationReplyUdp.write buf t
       | QueryUdpReq t -> 
           buf_int8 buf 152;
-          Query.write buf t
+          QueryUdp.write buf t
+      | QueryMultipleUdpReq t -> 
+          buf_int8 buf 146;
+          QueryUdp.write buf t
       | QueryReplyUdpReq t ->
           buf_int8 buf 153;
-          QueryUdpReply.write buf t
+          QueryReplyUdp.write buf t
       | QueryCallUdpReq t -> 
           buf_int8 buf 156;
           QueryCallUdp.write buf t
       | FileGroupInfoUdpReq t ->
           buf_int8 buf 251;
-          QueryLocationReply.write buf t
+          QueryLocationReplyUdp.write buf t
           
-      | QueryIDReplyReq t ->
+      | QueryIDReplyUdpReq t ->
           buf_int8 buf 53;
-          QueryIDReply.write buf t
+          QueryIDReplyUdp.write buf t
 
           
       | EmuleQueueFullUdpReq
