@@ -43,6 +43,7 @@ type t = {
     mutable error : string;
     mutable nread : int;
     mutable nwrite : int;
+    mutable monitored : bool;
   }
 and handler = t -> event -> unit
 
@@ -85,6 +86,11 @@ let delete_string s =
     end
 
 let close t s = 
+  (*
+  if t.monitored then begin
+      Printf.printf "close with %s %s" t.error s; print_newline ();
+end;
+  *)
   delete_string t.rbuf.buf;
   delete_string t.wbuf.buf;
   t.rbuf.buf <- "";
@@ -92,6 +98,11 @@ let close t s =
   close t.sock (Printf.sprintf "%s after %d/%d" s t.nread t.nwrite)
 
 let shutdown t s =
+  (*
+  if t.monitored then begin
+      Printf.printf "shutdown"; print_newline ();
+end;
+  *)
   (try BasicSocket.shutdown t.sock s with e -> 
         Printf.printf "exception %s in shutdown" (Printexc.to_string e);
         print_newline () );
@@ -145,7 +156,7 @@ let buf_reader t f =
       try Unix.read fd b.buf curpos left with 
         Unix.Unix_error((Unix.EWOULDBLOCK | Unix.EAGAIN), _,_) as e -> raise e
       | e ->
-          t.error <- Printf.sprintf "Error: %s" (Printexc.to_string e);
+          t.error <- Printf.sprintf "Read Error: %s" (Printexc.to_string e);
           close t t.error;
           
           (*      Printf.printf "exce %s in read" (Printexc.to_string e); print_newline (); *)
@@ -166,7 +177,7 @@ let buf_reader t f =
   with 
     Unix.Unix_error((Unix.EWOULDBLOCK | Unix.EAGAIN), _,_) as e -> raise e
   | e ->
-      t.error <- Printf.sprintf "Error: %s" (Printexc.to_string e);
+      t.error <- Printf.sprintf "Read Error: %s" (Printexc.to_string e);
       close t t.error;
       
 (*      Printf.printf "exce %s in read" (Printexc.to_string e); print_newline (); *)
@@ -175,6 +186,7 @@ let buf_reader t f =
 let set_reader t f =
   let old_handler = t.event_handler in
   let handler t ev =
+(*    if t.monitored then (Printf.printf "set_reader handler"; print_newline ()); *)
     match ev with
       READ_DONE nread ->
 (*        Printf.printf "READ_DONE %d" nread; print_newline (); *)
@@ -186,6 +198,7 @@ let set_reader t f =
 let set_closer t f =
   let old_handler = t.event_handler in
   let handler t ev =
+(*    if t.monitored then (Printf.printf "set_closer handler"; print_newline ()); *)
     match ev with
       BASIC_EVENT (CLOSED s) ->
 (*        Printf.printf "READ_DONE %d" nread; print_newline (); *)
@@ -209,6 +222,7 @@ let buf_used t nused =
 let set_handler t event handler =
   let old_handler = t.event_handler in
   let handler t ev =
+(*    if t.monitored then (Printf.printf "set_handler handler"; print_newline ()); *)
     if ev = event then
       handler t
     else
@@ -243,16 +257,24 @@ let buf_add t b s pos1 len =
         b.pos <- 0;
       end
     else
-    if curpos + len > b.max_buf_size then
-      t.event_handler t BUFFER_OVERFLOW
+    if curpos + len > b.max_buf_size then begin
+        Printf.printf "BUFFER OVERFLOW %d+%d> %d" curpos len b.max_buf_size ; 
+        print_newline ();
+        
+        t.event_handler t BUFFER_OVERFLOW;
+      end
     else
     let new_len = min (max (2 * max_len) (b.len + len)) b.max_buf_size  in
+(*    if t.monitored then
+      (Printf.printf "Allocate new for %d" len; print_newline ()); *)
     let new_buf = String.create new_len in
     String.blit b.buf b.pos new_buf 0 b.len;
     String.blit s pos1 new_buf b.len len;            
     b.len <- b.len + len;
     b.pos <- 0;
     if max_len = min_buffer_read then delete_string b.buf;
+(*    if t.monitored then
+      (Printf.printf "new buffer allocated"; print_newline ()); *)
     b.buf <- new_buf
   else begin
       String.blit s pos1 b.buf curpos len;
@@ -267,13 +289,16 @@ let write t s pos1 len =
       if b.len = 0 then 
         try
           let nw = Unix.write (fd t.sock) s pos1 len in
+(*          if t.monitored then begin
+              Printf.printf "write: direct written %d" nw; print_newline (); 
+            end; *)
           t.nwrite <- t.nwrite + nw;
           if nw = 0 then (close t "closed on write"; pos2) else
             pos1 + nw
         with
           Unix.Unix_error ((Unix.EWOULDBLOCK | Unix.EAGAIN | Unix.ENOTCONN), _, _) -> pos1
         | e ->
-            t.error <- Printf.sprintf "Error: %s" (Printexc.to_string e);
+            t.error <- Printf.sprintf "Write Error: %s" (Printexc.to_string e);
             close t t.error;
             
 (*      Printf.printf "exce %s in read" (Printexc.to_string e); print_newline (); *)
@@ -326,7 +351,7 @@ let tcp_handler t sock event =
           with 
             Unix.Unix_error((Unix.EWOULDBLOCK | Unix.EAGAIN), _,_) as e -> raise e
           | e ->
-              t.error <- Printf.sprintf "Error: %s" (Printexc.to_string e);
+              t.error <- Printf.sprintf "Can Read Error: %s" (Printexc.to_string e);
               close t t.error;
               
 (*      Printf.printf "exce %s in read" (Printexc.to_string e); print_newline (); *)
@@ -340,10 +365,14 @@ let tcp_handler t sock event =
             let curpos = b.pos in
             b.len <- b.len + nread;
             try
+(*              if t.monitored then 
+                (Printf.printf "event handler READ DONE"; print_newline ()); *)
               t.event_handler t (READ_DONE nread)
             with
-                | e ->
-                t.error <- Printf.sprintf "Error: %s" (Printexc.to_string e);
+            | e ->
+(*                if t.monitored then
+                  (Printf.printf "Exception in READ DONE"; print_newline ()); *)
+                t.error <- Printf.sprintf "READ_DONE Error: %s" (Printexc.to_string e);
                 close t t.error;
                 
 (*      Printf.printf "exce %s in read" (Printexc.to_string e); print_newline (); *)
@@ -352,11 +381,16 @@ let tcp_handler t sock event =
           end
   
   | CAN_WRITE ->
+(*      if t.monitored then (
+          Printf.printf "CAN_WRITE (%d)" t.wbuf.len; print_newline ();
+        ); *)
       let b = t.wbuf in
       if b.len > 0 then
         begin
           try
             let nw = Unix.write (fd sock) b.buf b.pos b.len in
+(*            if t.monitored then
+              (Printf.printf "written %d" nw; print_newline ()); *)
             t.nwrite <- t.nwrite + nw;
             b.len <- b.len - nw;
             b.pos <- b.pos + nw;
@@ -369,7 +403,7 @@ let tcp_handler t sock event =
           with 
             Unix.Unix_error((Unix.EWOULDBLOCK | Unix.EAGAIN), _,_) as e -> raise e
           | e ->
-              t.error <- Printf.sprintf "Error: %s" (Printexc.to_string e);
+              t.error <- Printf.sprintf "Can Write Error: %s" (Printexc.to_string e);
               close t t.error;
               
               (*      Printf.printf "exce %s in read" (Printexc.to_string e); print_newline (); *)
@@ -398,6 +432,7 @@ let create fd handler =
       error = "";
       nread = 0;
       nwrite = 0;
+      monitored = false;
     } in
   let sock = create fd (tcp_handler t) in
   t.sock <- sock;
@@ -412,6 +447,7 @@ let create_blocking fd handler =
       error = "";
       nread = 0;
       nwrite = 0;
+      monitored = false;
     } in
   let sock = create_blocking fd (tcp_handler t) in
   t.sock <- sock;
@@ -437,5 +473,12 @@ let can_write t =
   t.wbuf.len = 0
   
 let close_after_write t =
-  set_handler t WRITE_DONE (fun t -> 
-      close t "close after write")
+  if t.wbuf.len = 0 then begin
+      shutdown t "close after write"
+    end
+  else
+    set_handler t WRITE_DONE (fun t -> 
+        shutdown t "close after write")
+
+let set_monitored t =
+  t.monitored <- true

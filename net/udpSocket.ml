@@ -108,7 +108,6 @@ let dummy_sock = Obj.magic 0
 let buf = String.create 66000
   
 let udp_handler t sock event = 
-  Printf.printf "udp_handler EVENT"; print_newline ();
   match event with
   | CAN_READ ->
       let (len, addr) = Unix.recvfrom (fd sock) buf 0 66000 [] in

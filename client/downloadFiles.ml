@@ -338,15 +338,15 @@ let udp_client_handler t p =
   let module M = Mftp_server in
   match t with
     M.QueryLocationReplyUdpReq t ->
-      Printf.printf "Received location by UDP"; print_newline ();
+(*      Printf.printf "Received location by UDP"; print_newline (); *)
       query_locations_reply (udp_from_server p) t
   | M.QueryReplyUdpReq t ->
-      Printf.printf "Received file by UDP"; print_newline ();
+(*      Printf.printf "Received file by UDP"; print_newline (); *)
       if !last_xs >= 0 then
         let ss = find_search !last_xs in
         search_handler ss [t]
   | M.FileGroupInfoUdpReq t ->
-      Printf.printf "Received location by File Group"; print_newline ();
+(*      Printf.printf "Received location by File Group"; print_newline (); *)
       let module M = Mftp_server in
       let module Q = M.QueryLocationReply in
       let md4 = t.Q.md4 in
@@ -358,7 +358,7 @@ let udp_client_handler t p =
               
               let c = new_client (Known_location (ip, port)) in
               if not (List.memq c file.file_known_locations) then begin
-                  Printf.printf "Location was new !!"; print_newline ();
+                  Printf.printf "New location by File Group !!"; print_newline ();
                   file.file_known_locations <- c :: file.file_known_locations;
                 end;
               connect_client !client_ip [file] c

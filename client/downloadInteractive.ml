@@ -156,7 +156,13 @@ let print_search buf s output =
       last_search := (!counter, 
         (r.result_size, r.result_md4, result_name r)
       ) :: !last_search;
-      List.iter (fun s -> Printf.bprintf buf "%s\n" s) r.result_names;
+      begin
+        match r.result_names with
+          [] -> ()
+        | name :: names ->
+            Printf.bprintf buf "%s\n" name;
+            List.iter (fun s -> Printf.bprintf buf "       %s\n" s) names;
+      end;
       if output = HTML then 
         Printf.bprintf buf "\</A HREF\>";
       Printf.bprintf  buf "          %10s %10s " 
@@ -475,9 +481,8 @@ let simple_print_file_list finished buf files =
   Printf.bprintf buf "%s%s " s (String.make (max 0 (!size_len - (String.length s))) ' ');
 
   let s = if finished then "MD4" else "Rate" in
-  Printf.bprintf buf "%s " s;
+  Printf.bprintf buf "%s\n" s;
   
-  Buffer.add_string buf "Downloaded\n";
   List.iter (simple_print_file buf !name_len !done_len !size_len) files
 
 
@@ -970,6 +975,7 @@ let http_handler t r =
   else
     begin
       Buffer.add_string  buf "HTTP/1.0 200 OK\r\n";
+      Buffer.add_string  buf "Pragma: no-cache\r\n";
       Buffer.add_string  buf "Server: MLdonkey\r\n";
       Buffer.add_string  buf "Connection: close\r\n";
       Buffer.add_string  buf "Content-Type: text/html; charset=iso-8859-1\r\n";
@@ -1012,7 +1018,9 @@ let http_handler t r =
   
   let s = Buffer.contents buf in
   let len = String.length s in
+(*  TcpClientSocket.set_monitored t; *)
   TcpClientSocket.set_max_write_buffer t (len + 100);
+  
   TcpClientSocket.write t s 0 len;
   TcpClientSocket.close_after_write t
         

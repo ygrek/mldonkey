@@ -54,5 +54,6 @@ val set_closer : t -> (t -> string -> unit) -> unit
 val nread : t -> int
 val set_max_write_buffer : t -> int -> unit  
 val can_write : t -> bool  
+val set_monitored : t -> unit
   
 val close_after_write : t -> unit

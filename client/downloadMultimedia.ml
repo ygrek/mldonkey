@@ -129,7 +129,8 @@ print_newline ();
               let dwSuggestedBufferSize = input_int32 ic in              
               let dwWidth = input_int32 ic in
               let dwHeight = input_int32 ic in
-              
+
+              (*
               print_int32 "dwMicroSecPerFrame" dwMicroSecPerFrame ;
               print_int32 "dwMaxBytesPerSec" dwMaxBytesPerSec ;
               print_int32 "dwPaddingGranularity" dwPaddingGranularity ;
@@ -140,11 +141,12 @@ print_newline ();
               print_int32 "dwSuggestedBufferSize" dwSuggestedBufferSize ;
               print_int32 "dwWidth" dwWidth;
               print_int32 "dwHeight" dwHeight;
+              *)
               
               seek_in ic ((Int32.to_int pos) + main_header_len +20);
               let s = input_string4 ic in
-              print_string4 "LIST:" s;
-                        let pos_in = Int32.add pos (Int32.of_int (
+(*              print_string4 "LIST:" s; *)
+              let pos_in = Int32.add pos (Int32.of_int (
                     main_header_len +24)) in
               let last_pos = Int32.add pos_in size2 in
                   iter_list pos_in last_pos

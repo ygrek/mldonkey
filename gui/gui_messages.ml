@@ -540,8 +540,13 @@ ChangeLog
 Release 1.10:
   * Options are now divided into four configuration files: downloads.ini,
       servers.ini, friends.ini and files.ini.
-  * Better display of downloads.
+  * Console: better display of downloads.
   * Verification of IP addresses for admin ('allowed_ips' option).
+  * WEB interface: added pragma no-cache. 
+  * GUI: Auto-resize is now delayed. Default selection
+     mode is EXTENDED. Contextual menu items to switch between
+     auto-resize/manual resize and EXTENDED/MULTIPLE selection.
+  * Bug fixes: partial page in WEB interface fixed (often with vr).
 
 Release 1.09:
   * Bug fixes: fixed bad md4 computation of the first chunk, preventing

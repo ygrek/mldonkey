@@ -703,22 +703,34 @@ let request_handler config sock nread =
   let end_pos = b.pos + b.len in
   let new_pos = end_pos - nread in
   let new_pos = max 0 (new_pos - 1) in
-  for i = new_pos to end_pos - 1 do
-    if b.buf.[i] = '\n' && i <= end_pos - 2 then
-      let c = b.buf.[i+1] in
-      if c = '\n' then
-        let len = i + 2 - b.pos in
-        let header = String.sub b.buf b.pos len in
-        buf_used sock len;
-        manage config sock header        
+  (*
+  Printf.printf "received [%s]" (String.escaped 
+      (String.sub b.buf new_pos nread));
+print_newline ();
+  *)
+  let rec iter i =
+    if i < end_pos then
+      if b.buf.[i] = '\n' && i <= end_pos - 2 then
+        let c = b.buf.[i+1] in
+        if c = '\n' then
+          let len = i + 2 - b.pos in
+          let header = String.sub b.buf b.pos len in
+          buf_used sock len;
+          manage config sock header        
+        else
+        if c = '\r' && i <= end_pos - 3 && b.buf.[i+2] = '\n' then
+          let len = i + 3 - b.pos in
+          let header = String.sub b.buf b.pos len in
+          buf_used sock len;
+          manage config sock header
+        else 
+          iter (i+1)
       else
-      if c = '\r' && i <= end_pos - 3 && b.buf.[i+2] = '\n' then
-        let len = i + 3 - b.pos in
-        let header = String.sub b.buf b.pos len in
-        buf_used sock len;
-        manage config sock header
-          
-  done
+        iter (i+1)
+    else
+      ()
+  in
+  iter new_pos
 
 let request_closer sock msg = 
   ()

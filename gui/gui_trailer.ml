@@ -78,6 +78,11 @@ let default_make_menu _ =
     []
   )
 
+let clists_need_resize = ref []
+  
+let need_resize clist = 
+  if not (List.memq clist !clists_need_resize) then 
+    clists_need_resize := clist :: !clists_need_resize
 
 module MyCList: sig 
     type ('a, 'b) t
@@ -104,6 +109,11 @@ module MyCList: sig
     val find : ('a,'b) t -> 'a -> 'b
     val size : ('a,'b) t -> int
     val set_can_select_all: ('a,'b) t -> unit
+
+    val set_multiple_select :  ('a,'b) t -> bool -> unit
+    val get_multiple_select :  ('a,'b) t -> bool
+    val set_auto_resize :  ('a,'b) t -> bool -> unit
+    val get_auto_resize :  ('a,'b) t -> bool
       
     val iter :  ('a,'b) t -> ('a -> 'b -> unit) -> unit
   end = struct 
@@ -123,6 +133,8 @@ module MyCList: sig
         mutable replace_value : ('b -> 'b -> 'b);
         mutable size_callback : (int -> unit);
         mutable can_select_all : bool;
+        mutable multiple_select : bool;
+        mutable auto_resize : bool;
       }
     
     and ('a,'b) node = {
@@ -156,6 +168,21 @@ module MyCList: sig
 
     let select_all t = 
       t.clist#select_all ()
+
+    let set_multiple_select t b =
+      t.multiple_select <- b;
+      if b then begin
+          t.clist#set_selection_mode `EXTENDED;
+        end else begin
+          t.clist#set_selection_mode `MULTIPLE;
+        end
+        
+    let set_auto_resize t b =
+      t.auto_resize <- b;
+      if b then need_resize t.clist
+    let get_auto_resize t = 
+      t.auto_resize
+    let get_multiple_select t = t.multiple_select
       
     let set_context_menu t f =
       t.make_menu <- (fun t ->
@@ -171,11 +198,29 @@ module MyCList: sig
               (`I ("Select all", (fun _ -> select_all t)))  :: items
             else items 
           in
+          let items = 
+            items @
+              [
+              (if get_multiple_select t then
+                  (`I ("Multiple selection mode", (fun _ -> 
+                          set_multiple_select t false)))
+                  else
+                  (`I ("Extended selection mode", (fun _ -> 
+                          set_multiple_select t true))));
+              (if get_auto_resize t then  
+                  (`I ("No auto resize", (fun _ -> 
+                          set_auto_resize t false)))
+                else
+                  (`I ("Auto resize", (fun _ -> 
+                          set_auto_resize t true)))
+              )
+              ] 
+          in
           items)
     
     let set_replace_value t f = 
       t.replace_value <- f
-    
+      
     let find t a = (Hashtbl.find t.table a).value
     let size t = t.clist#rows
     let select_row t ~row ~column ~event = 
@@ -193,6 +238,7 @@ module MyCList: sig
     
     let get_value t row = row.value
     let set_value t key value =
+      if t.auto_resize then need_resize t.clist;
       let node = Hashtbl.find t.table key in
       node.value <- t.replace_value node.value value;
       begin
@@ -256,6 +302,8 @@ module MyCList: sig
           replace_value = (fun _ x -> x);
           size_callback = (fun _ -> ());
           can_select_all = false;
+          multiple_select = true;
+          auto_resize = true;
       }
       in
       set_context_menu t default_make_menu;
@@ -264,12 +312,13 @@ module MyCList: sig
       ignore (t.clist#event#connect#button_press ~callback:
         (contextual_menu t));
       for i = 0 to t.ncols do
-        t.clist#set_column ~auto_resize: true ~resizeable: true i;
+        t.clist#set_column (* ~auto_resize: true *) ~resizeable: true i;
       done;
       ignore (t.clist#connect#click_column ~callback:(fun i ->
           t.clist#set_sort ~column: i ~auto:false ~dir: `DESCENDING ();
           t.clist#sort ();
-          )) ;
+        )) ;
+      clist#set_selection_mode `EXTENDED;
       t
 
   
@@ -277,9 +326,11 @@ module MyCList: sig
       t.clist#clear ();
       Hashtbl.clear t.num_table;
       Hashtbl.clear t.table;
-      t.selection <- []
-      
+      t.selection <- [];
+      if t.auto_resize then need_resize t.clist
+
     let add t key value =
+      if t.auto_resize then need_resize t.clist;
       let desc = List.map (fun f -> f value) t.cols in
       let row = t.clist#append desc  in
       t.num_counter <- t.num_counter + 1;
@@ -307,6 +358,7 @@ module MyCList: sig
       Hashtbl.find t.num_table num
 
     let remove t key =
+      if t.auto_resize then need_resize t.clist;
       let node = Hashtbl.find t.table key in
       Hashtbl.remove t.table key;
       Hashtbl.remove t.num_table node.num;
@@ -315,6 +367,13 @@ module MyCList: sig
       
   end
 
+
+let update_sizes timer = 
+  reactivate_timer timer;
+  List.iter (fun clist -> 
+      try GToolbox.autosize_clist clist with _ -> ()) !clists_need_resize;
+  clists_need_resize := []
+  
   
 let for_selection list f () =
   List.iter (fun file ->
@@ -1485,4 +1544,5 @@ ignore (gui#clist_download#connect#unselect_row (download_unset_selection gui));
   in
     
   add_timer 0.1 gtk_handler;
+  add_timer 2.0 update_sizes;
   loop ()

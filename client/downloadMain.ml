@@ -141,7 +141,7 @@ let _ =
         Options.save_with_help servers_ini;
       end;
     if exists_downloads_ini && not exists_friends_ini then begin
-        Options.append servers_ini "./downloads.ini";
+        Options.append friends_ini "./downloads.ini";
         Options.save_with_help friends_ini;
       end;
     Options.prune_file servers_ini;
