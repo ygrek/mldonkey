@@ -1,10 +1,11 @@
-MYCONFIG_ARGS=$*
 
 AC_REVISION(norev)
 AC_PREREQ(2.5)
 AC_INIT(Makefile.config.in)
 AC_CONFIG_HEADER(config.h)
 
+MYCONFIG_ARGS=$*
+echo Arguments: $MYCONFIG_ARGS
 
 MYCONFIG_ARGS_DEFINED=yes
 echo $MYCONFIG_ARGS
@@ -690,8 +691,13 @@ AC_MSG_CHECKING(compile GTK GUI)
   fi
 
 case "`uname -s`" in
-  *win32* | *WIN32*) CURRENT_DIR="";;
-  *) CURRENT_DIR="./";;
+  *win32* | *WIN32*) 
+      CURRENT_DIR=""
+      WINDOWS="true"
+      ;;
+  *) CURRENT_DIR="./"
+     WINDOWS="false"
+     ;;
 esac
 
 AC_CHECK_PROG(COMPRESS, bzip2, bzip2)
@@ -735,6 +741,8 @@ AC_SUBST(OCAMLDEP_OPTIONS)
 AC_SUBST(CAMLP4)
 AC_SUBST(PERL)
 AC_SUBST(OCAMLMKTOP)
+AC_SUBST(WINDOWS)
+
 
 AC_SUBST(MORE_TARGETS)
 AC_SUBST(MORE_SUBDIRS)

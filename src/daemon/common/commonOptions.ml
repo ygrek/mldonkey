@@ -26,7 +26,10 @@ open Unix
 
 let home_dir = (try Sys.getenv "HOME" with _ -> ".")
 
-let config_dir = Filename.concat home_dir ".mldonkey"
+let config_dir_basename =
+  if Autoconf.windows then "mldonkey" else ".mldonkey"
+  
+let config_dir = Filename.concat home_dir config_dir_basename
   
 let installer_ini = create_options_file (Filename.concat config_dir
       "installer.ini")

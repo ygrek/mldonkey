@@ -2,7 +2,7 @@ let current_dir = "@CURRENT_DIR@"
 let perl_path = "@PERL@"
 let check_bounds = @CHECKBOUNDS@
 let current_version = "@CURRENT_VERSION@-@CURRENT_RELEASE@"
-  
+let windows = @WINDOWS@  
   
 exception OutOfBoundsAccess
 let outofboundsaccess = OutOfBoundsAccess

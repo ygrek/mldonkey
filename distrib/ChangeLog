@@ -1,6 +1,10 @@
 ChangeLog	
 =========
 
+2003/12/01: Fabrice
+  * Applied patch #2390
+  * Added Autoconf.windows boolean
+
 2003/11/29: Fabrice
   * Applied patch #2382 (mingw), #2380 (anti-thieves),
      #2384 (gui), #2386 (gui)
