@@ -629,7 +629,7 @@ let server_send s t =
             udp_send h.host_ip h.host_port t
         | _ -> ()
       end
-  | Connection sock ->
+  | Connection sock | CompressedConnection (_,_,_,sock) ->
       let m = server_msg_to_string t in
       write_string sock m
 
@@ -661,7 +661,7 @@ let gnutella_handler parse f handler sock =
           let pkt_ttl = get_int8 b.buf  (b.pos+17) in
           let pkt_hops = get_int8 b.buf  (b.pos+18) in
           let data = String.sub b.buf (b.pos+23) msg_len in
-          TcpBufferedSocket.buf_used sock (msg_len + 23);
+          buf_used b (msg_len + 23);
           let pkt = {
               pkt_uid = pkt_uid;
               pkt_type = pkt_type;

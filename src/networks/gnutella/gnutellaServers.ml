@@ -294,7 +294,7 @@ and connect_server nservers with_accept retry_fake h headers =
   match s.server_sock with
     ConnectionWaiting -> ()
   | ConnectionAborted -> s.server_sock <- ConnectionWaiting
-  | Connection _ -> ()
+  | Connection _ | CompressedConnection _ -> ()
   | NoConnection -> 
       incr nservers;
       s.server_sock <- ConnectionWaiting;
@@ -302,7 +302,7 @@ and connect_server nservers with_accept retry_fake h headers =
           decr nservers;
           match s.server_sock with
             ConnectionAborted -> s.server_sock <- NoConnection;
-          | Connection _ | NoConnection -> ()
+          | Connection _ | NoConnection | CompressedConnection _ -> ()
           | ConnectionWaiting ->
               try
                 if not (Ip.valid s.server_host.host_ip) then

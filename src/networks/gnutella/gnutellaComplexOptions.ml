@@ -31,22 +31,22 @@ open GnutellaTypes
 open GnutellaOptions
 open GnutellaGlobals
 
-let g1_ultrapeers = define_option gnutella_ini
+let g1_ultrapeers = define_option gnutella_section
     ["cache"; "gnutella1"; "ultrapeers"]
     "Known ultrapeers" (list_option (tuple2_option (Ip.option, int_option)))
   []
 
-let g1_peers = define_option gnutella_ini
+let g1_peers = define_option gnutella_section
     ["cache"; "gnutella1"; "peers"]
     "Known Peers" (list_option (tuple2_option (Ip.option, int_option)))
   []
 
-let g2_ultrapeers = define_option gnutella_ini
+let g2_ultrapeers = define_option gnutella2_section
     ["cache"; "gnutella2"; "ultrapeers"]
     "Known ultrapeers" (list_option (tuple2_option (Ip.option, int_option)))
   []
 
-let g2_peers = define_option gnutella_ini
+let g2_peers = define_option gnutella2_section
     ["cache"; "gnutella2"; "peers"]
     "Known Peers" (list_option (tuple2_option (Ip.option, int_option)))
   []
@@ -133,7 +133,7 @@ let value_to_file is_done assocs =
     with _ -> []
   in
   List.iter (fun v ->
-      file_uids := extract_uids v @ !file_uids) uids_option;
+      file_uids := (uid_of_string v) :: !file_uids) uids_option;
   
   
   let file = new_file file_id file_name file_size !file_uids in
@@ -195,7 +195,7 @@ let file_to_value file =
   ]
   
 let old_files = 
-  define_option gnutella_ini ["old_files"]
+  define_option gnutella_section ["old_files"]
     "" (list_option (tuple2_option (string_option, int64_option))) []
     
     

@@ -164,7 +164,7 @@ end; *)
                     if not (TcpBufferedSocket.closed sock) then begin
                         let nused = i - b.pos + 1 in
 (*                        lprintf "HEADER: buf_used %d\n" nused; *)
-                        buf_used sock nused;
+                        buf_used b nused;
                         iter_read sock 0
                       end
                   end else

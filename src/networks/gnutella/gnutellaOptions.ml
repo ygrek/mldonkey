@@ -26,12 +26,15 @@ let cmd_basedir = Autoconf.current_dir (* will not work on Windows *)
 let gnutella_ini = create_options_file (
     Filename.concat file_basedir "gnutella.ini")
 
-let g1_max_ultrapeers = define_option gnutella_ini
+let gnutella_section = file_section gnutella_ini [] "Gnutella"  
+let gnutella2_section = file_section gnutella_ini [] "Gnutella2"  
+
+let g1_max_ultrapeers = define_option gnutella_section
     ["g1_max_ultrapeers"]
   "Maximal number of ultrapeers connected on Gnutella1"
     int_option 5
   
-let g2_max_ultrapeers = define_option gnutella_ini
+let g2_max_ultrapeers = define_option gnutella2_section
     [ "g2_max_ultrapeers"]
   "Maximal number of ultrapeers connected on Gnutella2"
     int_option 5
@@ -44,21 +47,21 @@ let _ =
     (fun _ ->
       if !!g2_max_ultrapeers > 10 then g2_max_ultrapeers =:= 10)
   
-let client_port = define_option gnutella_ini ["client_port"]
+let client_port = define_option gnutella_section ["client_port"]
     "The port to bind the client to"
     int_option 6346
   
-let g1_enabled = define_option gnutella_ini
+let g1_enabled = define_option gnutella_section
     ["gnutella1_enabled"]
     "Do you want to support Gnutella1 protocol"
     bool_option true
   
-let g2_enabled = define_option gnutella_ini
+let g2_enabled = define_option gnutella2_section
     ["gnutella2_enabled"]
     "Do you want to support Gnutella2 protocol (not yet supported)"
     bool_option true
 
-let gnutella1_hostfiles = define_option gnutella_ini 
+let gnutella1_hostfiles = define_option gnutella_section 
     ["gnutella1"; "hostfiles"]
   "A list of GWCache urls"
     (list_option string_option)
@@ -66,7 +69,7 @@ let gnutella1_hostfiles = define_option gnutella_ini
     "http://gwebcache.bearshare.net/gcache.php"
   ]
 
-let g1_urlfiles = define_option gnutella_ini 
+let g1_urlfiles = define_option gnutella_section 
     ["gnutella1"; "urlfiles"]
   "A list of GWCache urls"
     (list_option string_option)
@@ -74,7 +77,7 @@ let g1_urlfiles = define_option gnutella_ini
     "http://gwebcache.bearshare.net/gcache.php"
   ]
   
-let g1_redirectors = define_option gnutella_ini 
+let g1_redirectors = define_option gnutella_section 
     ["gnutella1"; "redirectors"]
     "The hosts to connect to to get a list of peers"
     (list_option string_option)
@@ -91,40 +94,46 @@ let g1_redirectors = define_option gnutella_ini
   ]
 (* (Ip.of_string "64.61.25.171")   *)
 
-let g2_redirectors = define_option gnutella_ini
+let g2_redirectors = define_option gnutella2_section
     ["gnutella2"; "redirectors"]
-    "The URLs where hosts on gnutella2 can be downloaded"
+    "The URLs where hosts on gnutella2 can be downloaded, you can find a
+list here: http://gwebcache.jonatkins.com/?urlcache"
     (list_option string_option)
   [
-   "http://cache.shareaza.com/cache.aspx?get=1&hostfile=1&net=gnutella2" 
+    "http://dlaikar.de/cgi-bin/gcache2-cgi/gcache.cgi";
+    "http://fast.papajema.com/cgi-bin/gcache.cgi";
+    "http://gwc.fspn.cryptnet.net/gcache.cgi";
+    "http://gwc.gnewsgroups.com/cgi-bin/gcache.cgi";
+    "http://gwc.mamarazzi.net/";
+    "http://gwebcache.jonatkins.com/cgi-bin/gwebcache.cgi";
   ]
 
-let gnutella2_cache = define_option gnutella_ini ["gnutella2_cache"]
+let gnutella2_cache = define_option gnutella_section ["gnutella2_cache"]
     "The known gnutella2 hosts"
     (list_option (tuple2_option (Ip.option, int_option)))
   []
   
   
-let commit_in_subdir = define_option gnutella_ini ["commit_in_subdir"]
+let commit_in_subdir = define_option gnutella_section ["commit_in_subdir"]
   "The subdirectory of temp/ where files should be moved to"
     string_option "Gnutella"
 
 let user_agent = Printf.sprintf "MLDonkey %s" Autoconf.current_version
 
-let max_known_ultrapeers = define_option gnutella_ini ["max_known_ultrapeers"]
+let max_known_ultrapeers = define_option gnutella_section ["max_known_ultrapeers"]
   "Maximal number of ultrapeers remembered"
     int_option 100
 
-let max_known_peers = define_option gnutella_ini ["max_known_peers"]
+let max_known_peers = define_option gnutella_section ["max_known_peers"]
   "Maximal number of peers remembered"
   int_option 20
 
     
 let server_connection_timeout = 
-  define_option gnutella_ini ["server_connection_timeout"] 
+  define_option gnutella_section ["server_connection_timeout"] 
   "timeout when connecting to a server" float_option 10.
 
-let client_uid = define_option gnutella_ini ["client_uid"]
+let client_uid = define_option gnutella_section ["client_uid"]
     "The UID of this client" Md4.option (Md4.random ())
   
   let _	 =
@@ -136,21 +145,21 @@ let client_uid = define_option gnutella_ini ["client_uid"]
   
   (*
 let verbose_clients = 
-  define_option gnutella_ini ["verbose_clients"] 
+  define_option gnutella_section ["verbose_clients"] 
   "level of verbosity when communicating with clients" 
     int_option 0
     
 let verbose_servers = 
-  define_option gnutella_ini ["verbose_servers"] 
+  define_option gnutella_section ["verbose_servers"] 
     "level of verbosity when communicating with servers" int_option 0
     *)
 
-let network_options_prefix = define_option gnutella_ini
+let network_options_prefix = define_option gnutella_section
     ["options_prefix"] "The prefix which is appended to options names
     when they are used in the telnet/WEB interfaces"
     string_option "GNUT-"
   
-let max_available_slots = define_option gnutella_ini
+let max_available_slots = define_option gnutella_section
     ["max_available_slots"] "The maximal number of slots for upload by Gnutella clients"
     int_option 5
   
@@ -159,7 +168,7 @@ let shortname o =
   
 let gui_gnutella_options_panel = 
   (*
-  define_option gnutella_ini ["gui_gnutella_options_panel"]
+  define_option gnutella_section ["gui_gnutella_options_panel"]
     "Which options are configurable in the GUI option panel, and in the
   gnutella section. Last entry indicates the kind of widget used (B=Boolean,T=Text)"
 (list_option (tuple3_option (string_option, string_option, string_option)))

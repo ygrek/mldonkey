@@ -59,7 +59,7 @@ let next_redirector_access = ref 0
   
 let connect () =
   if !!g2_enabled && !next_redirector_access < last_time () then begin
-      next_redirector_access := last_time () + 60;
+      next_redirector_access := last_time () + 3600;
       List.iter (fun url ->
           let module H = Http_client in
           let r = {

@@ -170,7 +170,7 @@ let rec client_parse_header c gconn sock header =
             
             
             
-            let uids = extract_uids urn in
+            let uids = expand_uids [uid_of_string urn] in
             List.iter (fun uid ->
                 try
                   files := (Hashtbl.find files_by_uid uid) :: !files
@@ -346,7 +346,7 @@ end_pos !counter_pos b.len to_read;
 lprintf "READ %Ld\n" (new_downloaded -- old_downloaded);
 lprintf "READ: buf_used %d\n" to_read_int;
   *)
-        TcpBufferedSocket.buf_used sock to_read_int;
+        buf_used b to_read_int;
         counter_pos := !counter_pos ++ to_read;
         if !counter_pos = end_pos then begin
             match d.download_ranges with
@@ -491,7 +491,7 @@ and get_from_client sock (c: client) =
       
 let connect_client c =
   match c.client_sock with
-  | Connection sock -> ()
+  | Connection _ | CompressedConnection _ -> ()
   | ConnectionWaiting -> ()
   | ConnectionAborted -> c.client_sock <- ConnectionWaiting;
   | NoConnection ->

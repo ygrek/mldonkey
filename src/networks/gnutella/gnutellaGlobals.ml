@@ -76,7 +76,12 @@ let get_name_keywords file_name =
   
   
 let network = new_network "Gnutella"  
-    (fun _ -> !!network_options_prefix)
+      [ 
+    NetworkHasSupernodes; 
+    NetworkHasSearch;
+    NetworkHasUpload;
+    NetworkHasMultinet;
+  ] (fun _ -> !!network_options_prefix)
   (fun _ -> !!commit_in_subdir)
       
 let (result_ops : result CommonResult.result_ops) = 
@@ -245,26 +250,9 @@ let new_server ip port =
       server_add server_impl;
       h.host_server <- Some s;
       s
-      
-let extract_uids arg = 
-  match String2.split (String.lowercase arg) ':' with
-  | "urn" :: "sha1" :: sha1_s :: _ ->
-      let sha1 = Sha1.of_string sha1_s in
-      let sha1_s = Sha1.to_string sha1 in
-      [Sha1 (Printf.sprintf "urn:sha1:%s" sha1_s, sha1) ]
-  | "urn" :: "bitprint" :: bitprint :: _ ->
-      let sha1_s = String.sub bitprint 0 32 in
-      let sha1 = Sha1.of_string sha1_s in
-      let sha1_s = Sha1.to_string sha1 in
-      let tiger_s = String.sub bitprint 33 39 in
-      let tiger = Tiger.of_string tiger_s in
-      let tiger_s = Tiger.to_string tiger in
-      [ Sha1 (Printf.sprintf "urn:sha1:%s" sha1_s, sha1);
-        Bitprint (
-          Printf.sprintf "urn:bitprint:%s.%s" sha1_s tiger_s,
-          sha1, tiger)]
-| _ -> []
 
+let extract_uids arg = expand_uids [uid_of_string arg]
+  
 let add_source r s index =
   let key = (s, index) in
   if not (List.mem key r.result_sources) then begin
@@ -596,7 +584,8 @@ let disconnect_from_server nservers s r =
             g1_connected_servers := List2.removeq s !g1_connected_servers)
   | _ -> ()
 
-    
+
+      (*
 let parse_magnet url =
   let url = Url.of_string url in
   if url.Url.file = "magnet:" then 
@@ -619,7 +608,7 @@ let parse_magnet url =
     ) url.Url.args;
     !name, !uids
   else raise Not_found
-    
+*)    
     
 let clean_file s =
   String2.replace_char s '\r' '\n';

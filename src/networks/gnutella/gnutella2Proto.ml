@@ -165,10 +165,10 @@ module G2_LittleEndian = struct
           let sha1 = String.sub s pos 20 in
           let ttr = String.sub s (pos+20) 24 in
           let sha1 = Sha1.direct_of_string sha1 in
-          let ttr = Tiger.direct_of_string ttr in
+          let ttr = TigerTree.direct_of_string ttr in
           Bitprint (Printf.sprintf "urn:bitprint:%s.%s" 
               (Sha1.to_string sha1)
-            (Tiger.to_string ttr), sha1, ttr),
+            (TigerTree.to_string ttr), sha1, ttr),
           pos+44
       | "sha1" -> 
           let sha1 = String.sub s pos 20 in
@@ -178,9 +178,9 @@ module G2_LittleEndian = struct
           
       | "tree:tiger" | "ttr" -> 
           let ttr = String.sub s pos 24 in
-          let ttr = Tiger.direct_of_string ttr in
+          let ttr = TigerTree.direct_of_string ttr in
           TigerTree (Printf.sprintf "urn:ttr:%s" 
-              (Tiger.to_string ttr), ttr), pos + 24
+              (TigerTree.to_string ttr), ttr), pos + 24
       | "md5" -> 
           let ed2k = String.sub s pos 16 in
           let ed2k = Md5.direct_of_string ed2k in
@@ -371,7 +371,7 @@ let buf_uid buf s = match s with
   | Bitprint (_,sha1, ttr) ->
       Buffer.add_string buf "bp\000"; 
       Buffer.add_string buf (Sha1.direct_to_string sha1);
-      Buffer.add_string buf (Tiger.direct_to_string ttr);
+      Buffer.add_string buf (TigerTree.direct_to_string ttr);
   | Sha1 (_,sha1) ->
       Buffer.add_string buf "sha1\000"; 
       Buffer.add_string buf (Sha1.direct_to_string sha1)
@@ -383,7 +383,7 @@ let buf_uid buf s = match s with
       Buffer.add_string buf (Md5.direct_to_string md5)
   | TigerTree (_, ttr) ->
       Buffer.add_string buf "ttr\000"; 
-      Buffer.add_string buf (Tiger.direct_to_string ttr)
+      Buffer.add_string buf (TigerTree.direct_to_string ttr)
   | _ -> ()
       
 let g2_encode_payload msg = 
@@ -948,7 +948,7 @@ AnyEndian.dump (String.sub b.buf b.pos b.len);
       let name = String.sub b.buf (b.pos + pos) name_len in
       let packet = String.sub b.buf (b.pos + pos + name_len) len in
       let has_children = cb land 4 <> 0 in
-      TcpBufferedSocket.buf_used sock msg_len;
+      TcpBufferedSocket.buf_used b msg_len;
       f gconn (g2_parse [name] has_children be packet)
     done
   with 
