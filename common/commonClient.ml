@@ -246,12 +246,14 @@ module G = GuiTypes
   
 let client_print c o =
   let impl = as_client_impl c in
+  let i = client_info c in
   let n = impl.impl_client_ops.op_client_network in
   let info = client_info c in
   let buf = o.conn_buf in
-    Printf.bprintf buf "[%s %-5d] %23s %-20s"
+    Printf.bprintf buf "[%s %-5d] %d %23s %-20s"
     n.network_name
     (client_num c)
+  i.GuiTypes.client_rating
   (match info.G.client_kind with
       Indirect_location (name, _) -> name
     | Known_location (ip, port) ->

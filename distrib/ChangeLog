@@ -1,6 +1,9 @@
 ChangeLog	
 =========
 
+2002/10/23: mldonkey
+  - New implementation of 'remove_old_clients'
+
 2002/10/22: mldonkey
   - Patch #576 applied.
   - i18n: 

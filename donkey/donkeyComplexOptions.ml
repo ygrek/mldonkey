@@ -160,13 +160,25 @@ let value_to_server assocs =
       as_server l.server_server
 
 let server_to_value c =
- [
+  let fields = 
+    [
     "server_addr", addr_to_value c.server_ip  c.server_port;
-    "server_desc", string_to_value c.server_description;
-    "server_name", string_to_value c.server_name;
-    "server_age", float_to_value (
+      "server_age", float_to_value (
       connection_last_conn c.server_connection_control);
   ]
+  in
+  
+  let fields = 
+    if c.server_description <> "" then 
+      ("server_desc", string_to_value c.server_description) :: fields
+    else fields in
+  
+  let fields = 
+    if c.server_name <> "" then 
+      ("server_name", string_to_value c.server_name) :: fields
+    else fields in
+  
+  List.rev fields
 
 let value_to_int32pair v =
   match v with

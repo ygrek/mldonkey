@@ -197,28 +197,99 @@ let throttle_searches () =
     end
   ) !current_files
 
+(* We need to be smarter. This function should be called every 20 minutes for
+example. It should be used to remove sources when there are more sources
+than we want, and it should disable the 
+update_file_enough_sources flag if there are more than more 10% sources
+than we want.
+
+We need some properties:
+* Connected sources should not be removed.
+* New sources (added in the last 20 minutes) should not be removed.
+* Good sources (connected in last 30 minutes) should not be removed.
+* Other sources should be sorted and removed if needed.
+*)
+  
 let remove_old_clients () =
   let min_last_conn =  last_time () -. 
     float_of_int !!max_sources_age *. one_day in
+
+(* Good sources: connected in the last 45 minutes *)
+(* New sources:  fake-connection 25 minutes before added *)
+  let good_last_conn = last_time () -. 45. *. 60. in
   List.iter (fun file ->
       let locs = file.file_sources in
       let nlocs = file.file_nlocations in
-      file.file_sources <- Intmap.empty;
-      file.file_nlocations <- 0;
-      Intmap.iter (fun _ c ->
-          if c.client_sock <> None ||
-            connection_last_conn c.client_connection_control >= min_last_conn 
-          then
-            new_source file c
-      ) locs;
-      Printf.printf "After clean: sources %d" file.file_nlocations; 
-      print_newline ();
-      if file.file_nlocations < !!min_left_sources then begin
-          Printf.printf "Not enough sources %d" file.file_nlocations; 
-          print_newline ();
-          file.file_sources <- locs;
-          file.file_nlocations <- nlocs
-        end
+
+(* Do it only if we have more sources than we want *)
+      if nlocs > !!max_sources_per_file then
+
+(* Put all sources that could be removed in a list *)
+        let nsources = ref 0 in
+        let sources = ref [] in
+        
+        Printf.printf "%d Sources before clean" nlocs;
+        print_newline ();
+        
+        Intmap.iter (fun _ c ->
+            match c.client_sock with
+              Some _ -> ()
+            | None -> 
+                if connection_last_conn c.client_connection_control < good_last_conn then begin
+                    sources := c :: !sources;
+                    incr nsources
+                  end
+        ) locs;
+        let must_remove = mini !nsources (nlocs - !!max_sources_per_file) in
+        
+        Printf.printf "%d Sources suspected, %d to remove" !nsources must_remove;
+        print_newline ();
+        
+        let remove =
+          if !nsources = must_remove then !sources
+          else
+(* We should not remove all sources *)
+          
+          let sources = List.sort (fun c1 c2 ->
+(* First criterium for sorting is last_connection *)
+                let l1 = connection_last_conn c1.client_connection_control in
+                let l2 = connection_last_conn c2.client_connection_control in
+                if l1 = l2 then 
+                  c1.client_rating - c2.client_rating
+                else
+                if l1 > l2 then 1 else -1
+            ) !sources in
+          
+          let to_remove, kept = List2.cut must_remove sources in
+          
+          begin
+            match to_remove, kept with
+            | c1 :: _ , c2 :: _ ->
+                let l1 = connection_last_conn c1.client_connection_control in
+                let l2 = connection_last_conn c2.client_connection_control in
+                Printf.printf "remove %d (%s:%d) keep %d (%s:%d)"
+                  (client_num c1) (Date.to_string l1) c1.client_rating
+                  (client_num c2)  (Date.to_string l2) c2.client_rating;
+                print_newline ();
+             | _ -> 
+                Printf.printf "??????? no remove no kept ???????";
+                print_newline ();
+                assert false          
+          end;
+          to_remove
+        in
+        List.iter (fun c ->
+            file.file_nlocations <- file.file_nlocations - 1;
+            file.file_sources <- Intmap.remove (client_num c) 
+            file.file_sources
+        ) remove;
+        
+        Printf.printf "After clean: sources %d" file.file_nlocations; 
+        print_newline ();
+
+        file.file_enough_sources <- (
+          file.file_nlocations > !!max_sources_per_file);
+
   ) !current_files
           
 let force_check_locations () =

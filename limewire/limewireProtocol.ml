@@ -611,4 +611,41 @@ let handlers header_handlers body_handler =
         iter begin_pos false
   in
   iter_read
-    
+
+let vendors = [
+    "ACQX", "Acquisition" ;
+    "ARES", "Ares" ;
+    "ATOM", "AtomWire" ;
+    "BEAR", "BearShare" ;
+    "COCO", "CocoGnut" ;
+    "CULT", "Cultiv8r" ;
+    "EVIL", "Suicide" ;
+    "FIRE", "FireFly" ;
+    "FISH", "PEERahna" ;
+    "GNEW", "Gnewtellium" ;
+    "GNOT", "Gnotella" ;
+    "GNUC", "Gnucleus" ;
+    "GNUT", "Gnut" ;
+    "GTKG", "gtk-gnutella" ;
+    "HSLG", "Hagelslag" ;
+    "LIME", "Limewire" ;
+    "MACT", "Mactella" ;
+    "MMMM", "Morpheus-v2" ;
+    "MNAP", "MyNapster" ;
+    "MRPH", "Morpheus" ;
+    "MUTE", "Mutella" ;
+    "NAPS", "NapShare" ;
+    "OCFG", "OpenCola" ;
+    "OPRA", "Opera" ;
+    "PHEX", "Phex" ;
+    "QTEL", "Qtella" ;
+    "RAZA", "Shareaza" ;
+    "SNUT", "SwapNut" ;
+    "SWAP", "Swapper" ;
+    "SWFT", "Swift" ;
+    "TOAD", "ToadNode" ;
+    "XOLO", "Xolox" ;
+    "XTLA", "Xtella" ;
+    "ZIGA", "Ziga" 
+  ]
+  

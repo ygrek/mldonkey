@@ -50,7 +50,7 @@ extern void uerror (char * cmdname, value arg) Noreturn;
 #include <sys/select.h>
 #endif
 
-#ifdef __OpenBSD__
+#if defined(__OpenBSD__) || defined(__FreeBSD__)
 #include <string.h>
 #endif
 
@@ -258,6 +258,9 @@ value ml_select(value fd_list, value timeout)
 
 #if defined(HAVE_NETINET_IP_H)
 
+#include <sys/socket.h>
+#include <netinet/in_systm.h>
+#include <netinet/in.h>
 #include <netinet/ip.h>
 
 value setsock_iptos_throughput(value sock_v)

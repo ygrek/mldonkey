@@ -44,6 +44,12 @@ let printf_string c =
 let minutes25 = 25. *. 60.
   
 let new_connection_control () = {
+    control_last_ok = 0.0;
+    control_state = 0.0;
+    control_last_try = 0.0;
+  }
+
+let new_connection_control_recent_ok () = {
     control_last_ok = last_time () -. minutes25;
     control_state = 0.0;
     control_last_try = 0.0;
