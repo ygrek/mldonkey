@@ -156,7 +156,7 @@ let create_observer port =
   let sock = UdpSocket.create Unix.inet_addr_any port
     (DonkeyProtoCom.udp_basic_handler (fun s p ->
         if s.[0] <> '\000' then begin
-            dump s;
+            AnyEndian.dump s;
             failwith "Bad UDP packet"
           end;
         let ip_firewall = 

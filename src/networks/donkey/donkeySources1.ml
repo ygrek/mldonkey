@@ -25,6 +25,7 @@ have time to do it.
 
 *)
 
+open Queues
 open Printf2
 open Options
 open CommonOptions
@@ -139,7 +140,7 @@ let reschedule_source s file =
         s.source_files <- []; (* Invalidate the old one *)
         H.remove sources s;
         H.add sources ss;
-        SourcesQueue.put sources_queues.(new_queue) (time,s);
+        Queue.put sources_queues.(new_queue) (time,s);
         ss
       else
 (* The source is in a queue good for it *)
@@ -186,7 +187,7 @@ let queue_new_source new_queue last_conn addr file =
       if !verbose_sources then begin
           lprintf "Source added"; lprint_newline ();
         end;
-      SourcesQueue.put sources_queues.(new_queue) (last_conn, s);
+      Queue.put sources_queues.(new_queue) (last_conn, s);
       s
 
 let new_source addr file = 
@@ -204,12 +205,12 @@ let old_source _ last_conn addr file =
       
 let iter f =
   Array.iter (fun fifo ->
-      SourcesQueue.iter (fun c ->
+      Queue.iter (fun c ->
           match c.client_source with
             None -> () | Some s -> f s) fifo
   ) clients_queues;
   Array.iter (fun fifo ->
-      SourcesQueue.iter f fifo
+      Queue.iter f fifo
   ) sources_queues;
   Intmap.iter (fun _ c ->
       match c.client_source with
@@ -268,7 +269,7 @@ let source_of_client c =
             if !verbose_sources then begin
                 lprintf "--> client queue %d" new_queue; lprint_newline ();
               end;
-            SourcesQueue.put clients_queues.(new_queue) (last_time (),c)
+            Queue.put clients_queues.(new_queue) (last_time (),c)
           end else
           begin
             if !verbose_sources then begin
@@ -281,7 +282,7 @@ let source_of_client c =
             s.source_client <- SourceLastConnection (
               new_queue, last_conn, client_num c);
             s.source_files <- c.client_files;
-            SourcesQueue.put sources_queues.(new_queue) (last_conn, s)
+            Queue.put sources_queues.(new_queue) (last_conn, s)
           end
       with _ ->
           if !verbose_sources then begin
@@ -292,7 +293,7 @@ let source_of_client c =
         
 let reschedule_sources file =
   Array.iter (fun queue ->
-      SourcesQueue.iter (fun s ->
+      Queue.iter (fun s ->
           if has_source_request s file then
             ignore (reschedule_source s file)
       ) queue
@@ -301,8 +302,8 @@ let reschedule_sources file =
 (* This will be configurable later... how many clients can we ask
 in 10 minutes ? *)
 let need_new_sources file =
-  SourcesQueue.length sources_queues.(new_sources_queue) +
-    SourcesQueue.length clients_queues.(good_clients_queue) < 
+  Queue.length sources_queues.(new_sources_queue) +
+    Queue.length clients_queues.(good_clients_queue) < 
     600 * !!max_clients_per_second
   
   
@@ -382,9 +383,9 @@ and if we have not exceeded the max number of clients   *)
     if !verbose_sources then begin
         lprintf "queue[%s]: %d sources" sources_name.(i)
         (let n = if i <= last_clients_queue then
-              SourcesQueue.length clients_queues.(i)
+              Queue.length clients_queues.(i)
             else 
-              SourcesQueue.length sources_queues.(i) in
+              Queue.length sources_queues.(i) in
           nsources := !nsources + n; n);
         lprint_newline ();
       end;
@@ -434,9 +435,9 @@ and if we have not exceeded the max number of clients   *)
                 
                 if index <= last_clients_queue then
                   
-                  let (time, c) = SourcesQueue.head clients_queues.(index) in
+                  let (time, c) = Queue.head clients_queues.(index) in
                   if time + sources_periods.(index) <= last_time () then
-                    let _ = SourcesQueue.take clients_queues.(index) in
+                    let _ = Queue.take clients_queues.(index) in
                     
                     if useful_client source_of_client reconnect_client c then
                       next_slot nclients index slot
@@ -445,7 +446,7 @@ and if we have not exceeded the max number of clients   *)
                   else raise Not_found
                 else
                 
-                let _, s = SourcesQueue.head sources_queues.(index) in
+                let _, s = Queue.head sources_queues.(index) in
                 let ip, port = s.source_addr in
                 if !verbose_sources then begin
                     lprintf "One source %s:%d from queue[%s]" (Ip.to_string ip) port sources_name.(index); lprint_newline ();
@@ -455,7 +456,7 @@ and if we have not exceeded the max number of clients   *)
                     if !verbose_sources then begin
                         lprintf "Source invalidated"; lprint_newline ();
                       end;
-                    let s = SourcesQueue.take sources_queues.(index) in
+                    let s = Queue.take sources_queues.(index) in
                     (nclients, index, slot)
                   end else
                 match s.source_client with
@@ -463,7 +464,7 @@ and if we have not exceeded the max number of clients   *)
                     
                     if time + sources_periods.(index) <= last_time () then
 (* This source is good, connect to it !!! *)
-                      let _, s = SourcesQueue.take sources_queues.(index) in
+                      let _, s = Queue.take sources_queues.(index) in
                       if !verbose_sources then begin
                           lprintf "Source could be connected %d" time; lprint_newline ();
                         end;
@@ -486,7 +487,7 @@ and if we have not exceeded the max number of clients   *)
                 
                 | _ -> 
 (* This source is already connected, remove it immediatly, and retry *)
-                    let s = SourcesQueue.take sources_queues.(index) in
+                    let s = Queue.take sources_queues.(index) in
                     (nclients, index, slot)
               with _ -> 
 (* for some reason, we didn't find a good client in this queue, go to the
@@ -513,9 +514,9 @@ let check_sources2 reconnect_client =
     if !verbose_sources then begin
         lprintf "queue[%s]: %d sources" sources_name.(i)
         (let n = if i <= last_clients_queue then
-              SourcesQueue.length clients_queues.(i)
+              Queue.length clients_queues.(i)
             else 
-              SourcesQueue.length sources_queues.(i) in
+              Queue.length sources_queues.(i) in
           nsources := !nsources + n; n);
         lprint_newline ();
       end;
@@ -538,9 +539,9 @@ let check_sources2 reconnect_client =
           try
             if index <= last_clients_queue then
               
-              let (time, c) = SourcesQueue.head clients_queues.(index) in
+              let (time, c) = Queue.head clients_queues.(index) in
               if time + sources_periods.(index) <= last_time () then
-                let _ = SourcesQueue.take clients_queues.(index) in
+                let _ = Queue.take clients_queues.(index) in
                 
                 if useful_client source_of_client reconnect_client c then
                   (nclients-1, index)
@@ -549,7 +550,7 @@ let check_sources2 reconnect_client =
               else raise Not_found
             else
             
-            let _, s = SourcesQueue.head sources_queues.(index) in
+            let _, s = Queue.head sources_queues.(index) in
             let ip, port = s.source_addr in
             if !verbose_sources then begin
                 lprintf "One source %s:%d from queue[%s]" (Ip.to_string ip) port sources_name.(index); lprint_newline ();
@@ -559,7 +560,7 @@ let check_sources2 reconnect_client =
                 if !verbose_sources then begin
                     lprintf "Source invalidated"; lprint_newline ();
                   end;
-                let s = SourcesQueue.take sources_queues.(index) in
+                let s = Queue.take sources_queues.(index) in
                 (nclients, index)
               end else
             match s.source_client with
@@ -570,7 +571,7 @@ let check_sources2 reconnect_client =
                       sources_periods.(index)
                     else mini 720 sources_periods.(index) ) <= last_time () then
 (* This source is good, connect to it !!! *)
-                  let _, s = SourcesQueue.take sources_queues.(index) in
+                  let _, s = Queue.take sources_queues.(index) in
                   if !verbose_sources then begin
                       lprintf "Source could be connected %d" time; lprint_newline ();
                     end;
@@ -593,7 +594,7 @@ let check_sources2 reconnect_client =
             
             | _ -> 
 (* This source is already connected, remove it immediatly, and retry *)
-                let s = SourcesQueue.take sources_queues.(index) in
+                let s = Queue.take sources_queues.(index) in
                 (nclients, index)
           with _ -> 
               lprintf "Exception: go to next queue"; lprint_newline ();
@@ -612,9 +613,9 @@ let print_sources buf =
   for i = 0 to nqueues - 1 do 
     Printf.bprintf buf "Queue[%s]: %d sources\n" sources_name.(i)
     (let n = if i <= last_clients_queue then
-          SourcesQueue.length clients_queues.(i)
+          Queue.length clients_queues.(i)
         else 
-          SourcesQueue.length sources_queues.(i) in
+          Queue.length sources_queues.(i) in
       nsources := !nsources + n;
       n)
   done;

@@ -17,27 +17,9 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Queues
 open Md4
 open CommonTypes
-
-          
-module SourcesQueue = struct
-    type 'a t = {
-        head : (unit -> int * 'a);
-        put : (int * 'a -> unit);
-        length : (unit -> int);
-        take : (unit -> int * 'a);
-        iter : ( ('a -> unit) -> unit);
-        put_back : (int * 'a -> unit);
-      }
-      
-    let head t = t.head ()
-    let put t x = t.put x
-    let iter f t = t.iter f
-    let length t = t.length ()
-    let take t = t.take ()
-    let put_back t e = t.put_back e
-  end
 
 type request_record = {
   mutable last_request : int;
@@ -306,7 +288,7 @@ and file = {
     mutable file_initialized : bool;
 (* Source management number 3 !! *)
     mutable file_clients : (client * int) Fifo.t;
-    mutable file_sources : source SourcesQueue.t array;
+    mutable file_sources : source Queue.t array;
   }
 
 and file_to_share = {
@@ -387,44 +369,10 @@ let server_state server =
 
     
 module SourcesQueueCreate = struct  
-    open SourcesQueue
 
-    type 'a lifo = {
-        mutable lifo_size : int;
-        mutable lifo_list : 'a list;
-      }
-      
-    let fifo () = 
-      let t = Fifo.create () in
-      {
-        head = (fun _ -> Fifo.head t);
-        put = (fun x -> Fifo.put t x);
-        length = (fun _ -> Fifo.length t);
-        take = (fun _ -> Fifo.take t);
-        iter = (fun f -> Fifo.iter (fun (_,x) -> f x) t);
-        put_back = (fun e -> Fifo.put_back_ele t e);
-      }
-
-    let lifo () = 
-      let t = { lifo_size = 0; lifo_list = [] } in
-      {
-        head = (fun _ -> match t.lifo_list with 
-              [] -> raise Fifo.Empty | x :: _ -> x);
-        put = (fun x -> 
-            t.lifo_list <- x :: t.lifo_list;
-            t.lifo_size <- t.lifo_size +1
-        );
-        length = (fun _ -> t.lifo_size);
-        take = (fun _ -> match t.lifo_list with 
-              [] -> raise Fifo.Empty | x :: tail -> 
-                t.lifo_list <- tail; t.lifo_size <- t.lifo_size - 1; x); 
-        iter = (fun f -> List.iter (fun (_,x) -> f x) t.lifo_list);
-        put_back = (fun e -> 
-            t.lifo_list <- e :: t.lifo_list;
-            t.lifo_size <- 1+ t.lifo_size
-            );
-        }      
-      
+    let lifo = lifo 
+    let fifo = fifo
+    
     module SourcesSet = Set.Make (
         struct
           type t = int * source
@@ -438,7 +386,7 @@ module SourcesQueueCreate = struct
 
     let oldest_first () = 
       let t = ref SourcesSet.empty in
-      {
+      of_impl {
         head = (fun _ -> try SourcesSet.min_elt !t with _ -> raise Fifo.Empty);
         put = (fun x ->  t := SourcesSet.add x !t);
         length = (fun _ -> SourcesSet.cardinal !t);
@@ -455,7 +403,7 @@ module SourcesQueueCreate = struct
 
     let oldest_last () = 
       let t = ref SourcesSet.empty in
-      {
+      of_impl {
         head = (fun _ ->
             try SourcesSet.max_elt !t with _ -> raise Fifo.Empty);
         put = (fun x ->  t := SourcesSet.add x !t);
@@ -497,7 +445,7 @@ module SourcesQueueCreate = struct
             let compare = compare
           end) in
       let t = ref SourcesSet.empty in
-      {
+      of_impl {
         head = (fun _ -> SourcesSet.min_elt !t);
         put = (fun x ->  t := SourcesSet.add x !t);
         length = (fun _ -> SourcesSet.cardinal !t);

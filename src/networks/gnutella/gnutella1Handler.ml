@@ -38,7 +38,7 @@ open GnutellaProtocol
 open GnutellaComplexOptions
 
   
-open Gnutella1
+open Gnutella1Proto
 
 let update_user t =
   let module Q = QueryReply in
@@ -75,16 +75,20 @@ let server_to_client s p sock =
           pkt_payload = (
             let module P = Pong in
             PongReq {
-              P.ip = (DO.client_ip (Some sock));
+              P.ip = (client_ip (Connection sock));
               P.port = !!client_port;
               P.nfiles = 10;
               P.nkb = 10;
-              P.s = "";
+              P.ggep = [];
+              (*
+              [
+                Cobs.GGEP_GUE_guess 1; 
+                Cobs.GGEP_VC_vendor ("MLDK", 2,4)]; *)
             });
         };
       if s.server_need_qrt then begin
           s.server_need_qrt <- false;
-          Gnutella.send_qrt_sequence s
+          Gnutella1Proto.send_qrt_sequence s false
         end
   
   
@@ -94,7 +98,8 @@ let server_to_client s p sock =
 (*      lprintf "FROM %s:%d" (Ip.to_string t.P.ip) t.P.port; *)
       if p.pkt_uid = s.server_ping_last then begin
           s.server_nfiles_last <- s.server_nfiles_last + t.P.nfiles;
-          s.server_nkb_last <- s.server_nkb_last + t.P.nkb
+          s.server_nkb_last <- s.server_nkb_last + t.P.nkb;
+          server_must_update (as_server s.server_server)
         end
   
   | QueryReq t ->
@@ -149,7 +154,7 @@ QAnd (QHasMinVal (CommonUploads.filesize_field, n),q)
               let module P = QueryReply in
               let t = QueryReplyReq {
                   P.guid = !!client_uid;
-                  P.ip = DO.client_ip None;
+                  P.ip = client_ip NoConnection;
                   P.port = !!client_port;
                   P.speed = 1300; 
                   P.files = !replies; 
@@ -253,6 +258,7 @@ information. *)
   | _ -> ()
 
 let init s sock gconn =       
+  g1_connected_servers := s :: !g1_connected_servers;
   server_send s 
   (new_packet (PingReq Ping.SimplePing));        
   server_send s 
@@ -265,5 +271,7 @@ let init s sock gconn =
         ))) with pkt_ttl = 1; };
   gconn.gconn_handler <- Reader
     (gnutella_handler parse (server_to_client s))
-  
-    
+
+  (*
+    Gnutella.recover_files_from_server s;    
+*)

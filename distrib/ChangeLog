@@ -1,6 +1,27 @@
 ChangeLog	
 =========
 
+2003/06/02: Simon (release-2-4-rc9)
+  - eDonkey:
+     * Added ed2k_hash to the distribution (use 'make ed2k_hash' to compile)
+  - Options:
+     * List parsing should be tail recursive now
+  - Gnutella1/Gnutella2:
+     * Better management of hosts
+     * More aggressive with QKR queries
+  - DNS: correctly handle names starting with numbers (bittorrent URLs for
+      example)
+
+2003/05/02: Simon
+  - Gnutella2:
+     * Fixed defragmentation
+     * Fixed QH2_H_DN message
+
+2003/05/01: Simon (v release-2-4-rc9)
+  - Gnutella:
+     * Added GGEP extensions to PONG messages
+     * Added Bye-Packet support
+
 2003/04/30: Simon (v release-2-4-rc8)
   - Applied patch #1432
   - Gnutella:

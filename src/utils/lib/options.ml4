@@ -167,8 +167,8 @@ and parse_option = parser
 | [< 'Float f >] -> FloatValue  f
 | [< 'Kwd "@"; 'Int i; v = parse_once_value i >] -> OnceValue v
 | [< 'Char c >] -> StringValue (let s = String.create 1 in s.[0] <- c; s)    
-| [< 'Kwd "["; v = parse_list >] -> List v
-| [< 'Kwd "("; v = parse_list >] -> List v
+| [< 'Kwd "["; v = parse_list [] >] -> List v
+| [< 'Kwd "("; v = parse_list [] >] -> List v
 
 and parse_once_value i = parser
     [< 'Kwd "@" >] -> 
@@ -188,13 +188,13 @@ and parse_id = parser
     [< 'Ident s >] -> s
 |   [< 'String s >] -> s
 
-and parse_list = parser
-    [< 'Kwd ";"; v = parse_list >] -> v
-|   [< 'Kwd ","; v = parse_list >] -> v
-|   [< 'Kwd "."; v = parse_list >] -> v
-|   [< v = parse_option; t = parse_list >] -> v :: t
-|   [< 'Kwd "]" >] -> []
-|   [< 'Kwd ")" >] -> []
+and parse_list list = parser
+    [< 'Kwd ";" >] -> parse_list (list) strm__
+|   [< 'Kwd "," >] -> parse_list (list) strm__
+|   [< 'Kwd "." >] -> parse_list (list) strm__
+|   [< v = parse_option>] -> parse_list (v :: list) strm__
+|   [< 'Kwd "]" >] -> List.rev list
+|   [< 'Kwd ")" >] -> List.rev list
 
   
 let exec_hooks o =
@@ -232,8 +232,8 @@ let really_load filename header_options options =
         let list =
           try parse_gwmlrc stream with
             e ->
-              Printf.eprintf "Syntax error while parsing file %s at pos %d\n"
-                filename (Stream.count s);
+            Printf.eprintf "Syntax error while parsing file %s at pos %d:(%s)\n"
+                filename (Stream.count s) (Printexc2.to_string e);
               exit 2
         in
         Hashtbl.clear once_values;

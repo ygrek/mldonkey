@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-
+open Queues
 open Md4
 
 open CommonTypes
@@ -31,15 +31,21 @@ type query_key =
 | UdpQueryKey of int32
   
 type host = {
+    host_num : int;
     mutable host_server : server option;
     host_ip : Ip.t;
     host_port : int;
     mutable host_age : int;
+    mutable host_udp_request : int;
+    mutable host_tcp_request : int;
+    mutable host_connected : int;
 (* 0 -> gnutella1 or gnutella2, 1 -> gnutella1, 2 -> gnutella2 *)
     mutable host_kind : int;
-    mutable host_queues : (host * int) Fifo.t list;
+    mutable host_ultrapeer : bool;
+    
+    mutable host_queues : host Queue.t list;
   }
-  
+
 and server = {
     server_server : server CommonServer.server_impl;
     mutable server_agent : string;
@@ -62,6 +68,7 @@ and server = {
 type local_search = {
     search_search : search;
     search_uid : Md4.t;
+    search_words : string;
   }
 
 and user = {

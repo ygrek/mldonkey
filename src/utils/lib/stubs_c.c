@@ -395,7 +395,9 @@ value ml_ints_of_string(value s_v)
   goto ok;
 
   error:
-  a1 = a2 = a3 = a4 = 0;
+printf("Error while parsing[%s]\n",s);
+  raise_not_found();
+/*  a1 = a2 = a3 = a4 = 0; */
 
   ok:
   res = alloc(4,0);

@@ -141,7 +141,7 @@ LIB_SRCS=   \
   $(LIB)/md4_comp.c $(LIB)/md4_c.c \
   $(LIB)/gettext.ml $(LIB)/md5_c.c $(LIB)/sha1_c.c \
   $(LIB)/tiger.c \
-  $(LIB)/stubs_c.c
+  $(LIB)/stubs_c.c  $(LIB)/queues.ml
 
 NET_SRCS = \
   $(NET)/basicSocket.ml \
@@ -266,6 +266,11 @@ OBSERVER_SRCS = \
   $(CHAT_SRCS) $(COMMON_SRCS) $(COMMON_CLIENT_SRCS) $(DONKEY_SRCS) \
   tools/observer.ml
 
+ED2K_HASH_SRCS = \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS) \
+  $(CHAT_SRCS) \
+  tools/ed2k_hash.ml
+
 
 CYMES_SRCS=\
   $(SRC_CYMES)/serverTypes.ml \
@@ -300,17 +305,20 @@ GNUTELLA_SRCS= \
   $(SRC_GNUTELLA)/gnutellaGlobals.ml \
   $(SRC_GNUTELLA)/gnutellaComplexOptions.ml \
   $(SRC_GNUTELLA)/gnutellaProtocol.ml \
-  $(SRC_GNUTELLA)/gnutella1.ml \
-  $(SRC_GNUTELLA)/gnutella2.ml \
-  $(SRC_GNUTELLA)/gnutella.ml \
+  $(SRC_GNUTELLA)/gnutella1Proto.ml \
+  $(SRC_GNUTELLA)/gnutella2Proto.ml \
   $(SRC_GNUTELLA)/gnutellaClients.ml \
   $(SRC_GNUTELLA)/gnutella1Handler.ml \
   $(SRC_GNUTELLA)/gnutella2Handler.ml \
   $(SRC_GNUTELLA)/gnutella1Redirector.ml \
   $(SRC_GNUTELLA)/gnutella2Redirector.ml \
+  $(SRC_GNUTELLA)/gnutella1.ml \
+  $(SRC_GNUTELLA)/gnutella2.ml \
   $(SRC_GNUTELLA)/gnutellaServers.ml \
   $(SRC_GNUTELLA)/gnutellaInteractive.ml \
   $(SRC_GNUTELLA)/gnutellaMain.ml
+
+#  $(SRC_GNUTELLA)/gnutella.ml 
 
 BITTORRENT_SRCS= \
   $(SRC_BITTORRENT)/bencode.ml \
@@ -753,6 +761,7 @@ EXPAND(MLDONKEY_IM,mlim,GTK,MLDONKEY_IM)
 EXPAND(STARTER,mlguistarter,GTK)
 EXPAND(MLCHAT,mlchat,GTK,MLCHAT)
 EXPAND(OBSERVER,observer)
+EXPAND(ED2K_HASH,ed2k_hash)
 EXPAND(USE_TAGS,use_tags,NO,USE_TAGS)
 EXPAND(HASH_FILES,hash_files)
 EXPAND(INSTALLER,mldonkey_installer,GTK,INSTALLER)

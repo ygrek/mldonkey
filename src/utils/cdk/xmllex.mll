@@ -44,9 +44,10 @@ rule xml = parse
 	| '"'	{ reset(); STRING(dq_string lexbuf) }
 	| '\''	{ reset(); STRING(q_string lexbuf) }
 	| "<--" { com_string lexbuf; }
+	| "<?" { Printf.printf "begin comm"; print_newline (); quest_string lexbuf }
 	| "<%"	{ code_string lexbuf; }
 	| "<!"	{ doc_string lexbuf; }
-	| ident	{ update lexbuf; IDENT(String.lowercase (get lexbuf)) }
+	| ident	{ update lexbuf; IDENT(get lexbuf) }
 	| _		{ error lexbuf; }
 and
 	q_string = parse
@@ -65,7 +66,17 @@ and
 and
 	com_string = parse
 	| "-->"		{ xml lexbuf; }
+  | "?>"		{ 
+      Printf.printf "end of comment\n"; print_newline ();
+      xml lexbuf; }
 	| [^'-']+	{ com_string lexbuf; }
+	| _			{ error lexbuf; }
+and
+	quest_string = parse
+     | "?>"		{ 
+      Printf.printf "end of comment\n"; print_newline ();
+      xml lexbuf; }
+	| [^'?']+	{ quest_string lexbuf; }
 	| _			{ error lexbuf; }
 and
 	code_string = parse

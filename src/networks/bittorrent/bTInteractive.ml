@@ -262,6 +262,7 @@ let _ =
               } in
             
             H.wget r load_torrent_file;
+            lprintf "wget started\n";
             
             true
       else

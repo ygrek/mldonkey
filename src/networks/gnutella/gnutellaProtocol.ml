@@ -350,3 +350,12 @@ let udp_handler f sock event =
                 (Printexc2.to_string e); lprint_newline () 
       ) ;
   | _ -> ()
+
+      
+let get_name_keywords file_name =
+  match stem file_name with 
+    [] | [_] -> 
+      lprintf "Not enough keywords to recover %s\n" file_name;
+      [file_name]
+  | l -> l
+      

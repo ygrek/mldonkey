@@ -23,6 +23,7 @@ where tried ? We could reconnect more frequently to bad sources if we
 have time to do it.
 *)
 
+open Queues
 open Printf2
 open Md4
 open Options
@@ -100,7 +101,7 @@ let nqueues = Array.length queue_name
 
 let need_new_sources file = 
   Fifo.length file.file_clients + 
-  SourcesQueue.length file.file_sources.(new_sources_queue) < 200
+  Queue.length file.file_sources.(new_sources_queue) < 200
 
 let add_source_request s file time result =
   try
@@ -118,7 +119,7 @@ r.request_time <- time;
     ()
   with _ ->
       add_request s file time result;
-      SourcesQueue.put file.file_sources.(match result with
+      Queue.put file.file_sources.(match result with
           File_new_source -> 
             if !verbose_location then lprint_char '!';
             new_sources_queue
@@ -162,14 +163,14 @@ let iter f =
           match c.client_source with
             None -> () | Some s -> f s
       ) file.file_clients;
-      Array.iter (fun ss -> SourcesQueue.iter f ss) file.file_sources;
+      Array.iter (fun ss -> Queue.iter f ss) file.file_sources;
   ) !current_files
 
 (* If the file is popular, and we cannot connect, just drop the source ! *)
 let popular_file file =
   (Fifo.length file.file_clients) +
-  (SourcesQueue.length file.file_sources.(new_sources_queue)) +
-  (SourcesQueue.length file.file_sources.(old_sources1_queue)) 
+  (Queue.length file.file_sources.(new_sources_queue)) +
+  (Queue.length file.file_sources.(old_sources1_queue)) 
   > 1000
   
 
@@ -289,14 +290,14 @@ let source_of_client c =
                       end
                   in
                   if not (List.memq file s.source_in_queues) then begin
-                      SourcesQueue.put 
+                      Queue.put 
                         file.file_sources.(fifo) (last_time() , s);
                       s.source_in_queues <- file :: s.source_in_queues
                     end
               
               | File_found ->
                   if not (List.memq file s.source_in_queues) then begin
-                      SourcesQueue.put 
+                      Queue.put 
                         file.file_sources.(good_sources_queue)
                       (last_time() , s);
                       s.source_in_queues <- file :: s.source_in_queues
@@ -304,7 +305,7 @@ let source_of_client c =
                                   
               | File_chunk when c.client_rank > !!good_client_rank ->
                   if not (List.memq file s.source_in_queues) then begin
-                      SourcesQueue.put 
+                      Queue.put 
                         file.file_sources.(good_sources_queue)
                       (last_time() , s);
                       s.source_in_queues <- file :: s.source_in_queues
@@ -390,7 +391,7 @@ let clean_file_sources file nsources =
   for i = Array.length file.file_sources -1 downto 0 do
     try
       while !nsources > !!max_sources_per_file do
-        let _,s = SourcesQueue.take file.file_sources.(i) in
+        let _,s = Queue.take file.file_sources.(i) in
         s.source_in_queues <- List2.removeq file s.source_in_queues;
         decr nsources;
         match s.source_in_queues, s.source_client with
@@ -406,7 +407,7 @@ let recompute_ready_sources f =
 (* for each file, try to apply the max_sources_per_file option *)
   List.iter (fun file ->
       let nsources = ref (Fifo.length file.file_clients) in
-      Array.iter (fun q -> nsources := !nsources + SourcesQueue.length q)
+      Array.iter (fun q -> nsources := !nsources + Queue.length q)
       file.file_sources;
             
       if !nsources > !!max_sources_per_file then 
@@ -540,7 +541,7 @@ let check_source_from_file reconnect_client file =
         if i < nqueues then
           try
             
-            let _, s = SourcesQueue.head file.file_sources.(i) in
+            let _, s = Queue.head file.file_sources.(i) in
 (*
 lprintf "Checking source from queue[%s]" queue_name.(i); lprint_newline (); 
   *)
@@ -554,7 +555,7 @@ lprintf "Checking source from queue[%s]" queue_name.(i); lprint_newline ();
 (*                
 lprintf "ERROR: Source invalidated"; lprint_newline ();
 *)
-                let _,s = SourcesQueue.take file.file_sources.(i) in
+                let _,s = Queue.take file.file_sources.(i) in
                                 
                 if not (List.memq file s.source_in_queues) then begin
                     lprintf "ERROR: client should be in file queue (2)";
@@ -571,7 +572,7 @@ lprintf "ERROR: Source invalidated"; lprint_newline ();
                 let wait_for = time + queue_period.(i) - last_time () in
                 if wait_for < 0 then
 (* This source is good, connect to it !!! *)
-                  let _, s = SourcesQueue.take file.file_sources.(i) in
+                  let _, s = Queue.take file.file_sources.(i) in
                   
                   
                   if not (List.memq file s.source_in_queues) then begin
@@ -615,7 +616,7 @@ lprintf "ERROR: Source invalidated"; lprint_newline ();
             
             | SourceClient c -> 
 (* This source is already connected, remove it immediatly, and retry *)
-                let _, s = SourcesQueue.take file.file_sources.(i) in
+                let _, s = Queue.take file.file_sources.(i) in
                 if not (List.memq file s.source_in_queues) then begin
                     lprintf "ERROR: client should be in file queue (4)";
                     lprint_newline ();
@@ -739,13 +740,13 @@ let print_sources buf =
             with _ -> "none");
           
           Array.iteri (fun i q ->
-              let queue_size = SourcesQueue.length q in
+              let queue_size = Queue.length q in
               per_queue.(i+1) <- per_queue.(i+1) + queue_size;
               nsources := !nsources + queue_size;
               Printf.bprintf buf "     Queue[%s] : %d sources (next %s)\n" 
                 queue_name.(i) queue_size
               (try
-                  let _,s = SourcesQueue.head q in
+                  let _,s = Queue.head q in
                   match s.source_client with
                     SourceLastConnection (_, last_conn, _) ->
                       let wait =  (last_conn + queue_period.(i)) - last_time ()
@@ -840,7 +841,7 @@ let print_sources_html file buf =
 
           
           Array.iteri (fun i q ->
-              let queue_size = SourcesQueue.length q in
+              let queue_size = Queue.length q in
               per_queue.(i+1) <- per_queue.(i+1) + queue_size;
               nsources := !nsources + queue_size;
 
@@ -851,7 +852,7 @@ let print_sources_html file buf =
 \\<tr class=\\\"dl-2\\\"\\>\\<td class=\\\"dl-2\\\"\\>"
                 queue_name.(i) queue_size
               (try
-                  let _,s = SourcesQueue.head q in
+                  let _,s = Queue.head q in
                   match s.source_client with
                     SourceLastConnection (_, last_conn, _) ->
                       let wait =  (last_conn + queue_period.(i)) - last_time ()
@@ -873,7 +874,7 @@ let print_sources_html file buf =
               let lasttime = (last_time()) in
               let counter = ref 0 in
               let dlclass = ref "" in
-              SourcesQueue.iter (fun ss ->
+              Queue.iter (fun ss ->
 
                       if !counter mod 2 = 0 then dlclass := "dl-1" else dlclass := "dl-2";
                       incr counter;

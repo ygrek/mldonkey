@@ -36,22 +36,55 @@ open GnutellaGlobals
 open GnutellaComplexOptions
 
 open GnutellaProtocol
-  
+
+(*
+type query =
+  QAnd of query * query
+| QOr of query * query
+| QAndNot of query * query
+| QHasWord of string
+| QHasField of string * string
+| QHasMinVal of string * int64
+| QHasMaxVal of string * int64
+| QNone (** temporary, used when no value is available ;
+	   must be simplified before transforming into strings *)
+*)
+
+
+let find_search s =
+  let module M = struct exception Found of local_search end in
+  try
+    
+    Hashtbl.iter (fun _ ss ->
+        if s == ss.search_search then raise (M.Found ss)
+    ) searches_by_uid;
+    raise Not_found
+  with M.Found s -> s
 let _ =
   network.op_network_search <- (fun search buf ->
       let query = search.search_query in
       let keywords = CommonInteractive.keywords_of_query query in
       let words = String2.unsplit keywords ' ' in
-      let uid = Gnutella.ask_query !connected_servers words "urn:" in
+      
+      
+(* Maybe we could generate the id for the query from the query itself, so
+that we can reuse queries *)
+      let uid = Md4.random () in
+      if !!g1_enabled then  Gnutella1.send_query uid words;
+      if !!g2_enabled then  Gnutella2.send_query uid words;
       
       let s = {
           search_search = search;
           search_uid = uid;
+          search_words = words;
         } in
       Hashtbl.add searches_by_uid uid s;
       ());
+  network.op_network_close_search <- (fun s ->
+      Hashtbl.remove searches_by_uid (find_search s).search_uid  
+  );
   network.op_network_connected <- (fun _ ->
-      !connected_servers <> []   
+      !g1_connected_servers <> [] || !g2_connected_servers <> [] 
   );
   network.op_network_share <- (fun fullname codedname size ->
       GnutellaProtocol.new_shared_words := true;
@@ -76,7 +109,8 @@ let _ =
       ) file.file_clients
   );
   file_ops.op_file_recover <- (fun file ->
-      Gnutella.gen_query file !connected_servers;          
+      if !!g1_enabled then Gnutella1.recover_file file;          
+      if !!g2_enabled then Gnutella2.recover_file file;          
       List.iter (fun c ->
           GnutellaServers.get_file_from_source c file
       ) file.file_clients
@@ -135,8 +169,10 @@ let _ =
         raise Not_found
   );
   server_ops.op_server_connect <- (fun s ->
-      GnutellaServers.connect_server s.server_gnutella2 
-      GnutellaServers.retry_and_fake s []);
+      GnutellaServers.connect_server 
+        (if s.server_gnutella2 then g2_nservers else g1_nservers)
+      s.server_gnutella2 
+      GnutellaServers.retry_and_fake s.server_host []);
   server_ops.op_server_disconnect <- GnutellaServers.disconnect_server;
   server_ops.op_server_to_option <- (fun _ -> raise Not_found)
 
@@ -164,7 +200,11 @@ let _ =
   
 let _ =
   network.op_network_connected_servers <- (fun _ ->
-      List2.tail_map (fun s -> as_server s.server_server) !connected_servers
+      List2.tail_map (fun s -> as_server s.server_server)
+      !g1_connected_servers
+        @
+        List2.tail_map (fun s -> as_server s.server_server)
+      !g2_connected_servers
   );
   network.op_network_parse_url <- (fun url ->
       match String2.split (String.escaped url) '|' with

@@ -85,13 +85,13 @@ let ban_client c sock msg =
   if !!send_warning_messages then
     direct_client_send c ( M.SayReq  (
         Printf.sprintf 
-        "[ERROR] Your client %s, it has been banned" msg))
+        "[AUTOMATED ERROR] Your client %s, it has been banned" msg))
   
 let corruption_warning c =
   if !!send_warning_messages then
     let module M = DonkeyProtoClient in
     direct_client_send c (
-      M.SayReq "[WARNING] It has been detected that your client is sending corrupted data. Please double-check your hardware (disk, memory, cpu) and software (latest version ?)")
+      M.SayReq "[AUTOMATED WARNING] It has been detected that your client is sending corrupted data. Please double-check your hardware (disk, memory, cpu) and software (latest version ?)")
 
 let request_for c file sock =
   if !!ban_queue_jumpers then
@@ -113,7 +113,7 @@ let request_for c file sock =
             end;
           if !!send_warning_messages then
             direct_client_send c ( M.SayReq  (
-                "[WARNING] Your client is connecting too fast, it will get banned"))
+                "[AUTOMATED WARNING] Your client is connecting too fast, it will get banned"))
         end else
         record.last_request <- last_time ();
     with Not_found ->
@@ -1252,7 +1252,7 @@ is checked for the file.
             c.client_brand <- Brand_mldonkey1;
             if Random.int 100 < 2 && !!send_warning_messages then
               direct_client_send c (
-                M.SayReq "[WARNING] Please, Update Your MLdonkey client to version 2.01");
+                M.SayReq "[AUTOMATED WARNING] Please, Update Your MLdonkey client to version 2.01");
           end;
         
         begin try 	

@@ -57,7 +57,7 @@ let g2_parse_redirector_page f =
 let next_redirector_access = ref 0
   
 let connect () =
-  if !!enable_gnutella2 && !next_redirector_access < last_time () then begin
+  if !!g2_enabled && !next_redirector_access < last_time () then begin
       next_redirector_access := last_time () + 60;
       List.iter (fun url ->
           let module H = Http_client in
@@ -69,6 +69,9 @@ let connect () =
             } in
           lprintf "Connecting Gnutella2 redirector\n";
           H.wget r g2_parse_redirector_page    
-      ) !!gnutella2_redirectors;
-    end    
+      ) !!g2_redirectors;
+    end else begin
+      lprintf "redirector recontacted in %d seconds \n"
+        (!next_redirector_access - last_time ())
+    end
     

@@ -254,6 +254,7 @@ let _ =
   | "mlslsk" -> enable_soulseek =:= true
   | "mlbt" -> enable_bittorrent =:= true
   | "mlnap" -> enable_opennap =:= true
+  | "mlcymes" -> enable_server =:= true
   | _ -> 
 (* default *)
       enable_donkey =:= true;

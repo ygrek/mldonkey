@@ -24,7 +24,7 @@ let calcDecodedLength psrc srclen =
     if codepos < srclen then
       let code = psrc.[codepos] in
       let code = int_of_char code in
-      lprintf "code : %d\n" code;
+(*      lprintf "code : %d\n" code; *)
       iter (codepos+code) (len+code-
         (if code = 255 then 1 else 0))
     else
@@ -127,6 +127,9 @@ len: 1-3 bytes
 data: remaining
   
 *)
+open AnyEndian
+
+module GGEP = struct
   
 type ggep_block = 
   UnknownBlock of string
@@ -145,13 +148,13 @@ let rec iter_block s pos len list =
   let flags = int_of_char s.[pos] in
   let last = (flags land (1 lsl 7)) <> 0 in
   let cobs_encoded = (flags land (1 lsl 6)) <> 0 in
-  lprintf "cobs_encoded %b\n" cobs_encoded;
+(*  lprintf "cobs_encoded %b\n" cobs_encoded; *)
   let compressed = (flags land (1 lsl 5)) <> 0 in
-  lprintf "compressed %b\n" compressed;
+(*  lprintf "compressed %b\n" compressed; *)
   let id_len = flags land 7 in
   let id = String.sub s (pos+1) id_len in
   let data_len, pos = get_len s (pos+1+id_len) 0 in
-  lprintf "data_len %d,pos %d, len %d\n" data_len pos len;
+(*  lprintf "data_len %d,pos %d, len %d\n" data_len pos len; *)
   let data = String.sub s pos data_len in
   let data = 
     if cobs_encoded then decode data else data in
@@ -159,14 +162,16 @@ let rec iter_block s pos len list =
   
 let parse_block s list =
   let len = String.length s in
-  lprintf "Block len: %d\n" len;
-  try
-    if s.[0] <> '\195' then raise Not_found;
-    iter_block s 1 len list
-  with e ->
-      lprintf "Exception %s in parse_block\n" (Printexc2.to_string e);
-      (UnknownBlock s) :: list
-
+  if len > 0 then
+    try
+(*      lprintf "Block len: %d\n" len; *)
+      if s.[0] <> '\195' then raise Not_found;
+      iter_block s 1 len list
+    with e ->
+        lprintf "Exception %s in parse_block\n" (Printexc2.to_string e);
+        (UnknownBlock s) :: list
+  else list
+    
 (*
  "\195\002DUB\232\030\003GUEA\001\002UPC\001\000\000\130VCELIME'"
     GGEP Block:
@@ -176,9 +181,6 @@ let parse_block s list =
     VC: LIME'
 
 messages/GGEP.java:    GGEP_HEADER_BROWSE_HOST = "BH";
-messages/GGEP.java:    GGEP_HEADER_DAILY_AVERAGE_UPTIME = "DU";  bytes[???]
-messages/GGEP.java:    GGEP_HEADER_UNICAST_SUPPORT = "GUE";  byte[1] = 1
-messages/GGEP.java:    GGEP_HEADER_VENDOR_INFO = "VC";       VENDOR = "LIME" + version_major[4 bits] + version_minor[4 bits]  = 2.7
 messages/GGEP.java:    GGEP_HEADER_UP_SUPPORT = "UP";        Ultrapeer byte[1]=version(guess), byte[1] =free leaf slots, byte[1] = free non leaf 
 messages/GGEP.java:    GGEP_HEADER_QUERY_KEY_SUPPORT = "QK";
 messages/GGEP.java:    GGEP_HEADER_MULTICAST_RESPONSE = "MCAST";
@@ -203,7 +205,7 @@ let parse s =
   iter s 0 len []
     *)
 
-let parse s = parse_block s []
+let parse s = List.rev (parse_block s [])
   
 let print_block s = 
   lprintf "New block\n";
@@ -215,7 +217,8 @@ let print_block s =
       | GGEP (id,data) ->
           lprintf "GGEP Block:\n";
           lprintf "    %s: %s\n" id (String.escaped data)
-  ) list
+  ) list;
+  list
 
   (*
 let _ =
@@ -223,8 +226,7 @@ let _ =
     [
     "\195\002DUA\023\130VCELIME'";
     "\195\002DUB\232\030\003GUEA\001\002UPC\001\000\000\130VCELIME'";
-  ]
-  
+  ]  
     
 let _ =
   let s = "1234\0005677840438903985\123\1560\000\200" in
@@ -243,4 +245,143 @@ let _ =
   decodeData os buf blen;
   assert (os = s)
 
-*)
+  *)
+  
+let rec put_len buf last_byte len =
+  if len > 63 then put_len buf false (len lsr 6);
+  let len = len land 0x3f in
+  let len = len lor (if last_byte then 0x40 else 0x80) in
+  buf_int8 buf len    
+  
+let write_ggep buf put_magic last_block b =
+  match b with
+  | UnknownBlock s ->
+      Buffer.add_string buf s
+  | GGEP (id, data) ->
+      let id_len = String.length id in
+      if put_magic then Buffer.add_char buf '\195';
+      let cobs_encoded = String.contains data '\000' in
+      let data = if cobs_encoded then encode data else data in
+      let flags = id_len in
+      let flags  = if cobs_encoded then flags lor (1 lsl 6) else flags in
+      let flags  = if last_block then flags lor (1 lsl 7) else flags in
+      buf_int8 buf flags;
+      Buffer.add_string buf id;
+      let data_len = String.length data in
+      put_len buf true data_len;
+      Buffer.add_string buf data
+      
+let write_block buf list =
+  let rec iter put_magic list =
+    match list with
+      [] -> ()
+    | [b] -> write_ggep buf put_magic true b
+    | b :: tail ->
+        write_ggep buf put_magic false b;
+        iter (match b with GGEP _ -> false | _ -> true) tail
+  in
+  iter true list
+
+  (*
+let _ =
+  List.iter (fun s ->
+      let list = print_block s in
+      let b = Buffer.create 100 in
+      write_block b list;
+      let ss = Buffer.contents b in
+      lprintf "Encoding: \n%s\n%s\n" (String.escaped s) (String.escaped ss);
+      ignore (print_block ss)
+  )
+  
+  [
+    "\195\002DUA\023\130VCELIME'";
+    "\195\002DUB\232\030\003GUEA\001\002UPC\001\000\000\130VCELIME'";
+  ]  
+    *)
+
+end
+
+type ggep =
+  GGEP_block of string * string
+| GGEP_unknown of string
+| GGEP_GUE_guess of int 
+| GGEP_VC_vendor of string * int * int
+| GGEP_DU_uptime of int
+  
+let parse s =
+  List.map (fun x ->
+      try
+        match x with 
+          GGEP.UnknownBlock s -> GGEP_unknown s
+        | GGEP.GGEP ("GUE", s) -> GGEP_GUE_guess (get_int8 s 0)
+        | GGEP.GGEP ("VC", s) ->
+            let vendor = String.sub s 0 4 in
+            let version = get_int8 s 4 in
+            let version1 = (version lsr 4) land 0xf in
+            let version2 = version land 0xf in
+            GGEP_VC_vendor (vendor, version1, version2)
+        | GGEP.GGEP ("DU", s) ->
+            let du = match String.length s with
+                0 -> 0
+              | 1 -> get_int8 s 0 
+              | 2 -> LittleEndian.get_int16 s 0 
+              | 3 -> LittleEndian.get_int24 s 0 
+              | _ -> LittleEndian.get_int s 0 in
+            GGEP_DU_uptime du
+        | GGEP.GGEP (id,data) -> GGEP_block (id,data)
+      with e -> 
+          lprintf "Exception %s in GGEP parse\n" (Printexc2.to_string e);
+          GGEP_unknown "Bad GGEP Block"
+  ) (GGEP.parse s)
+  
+let write buf list =
+  let list = 
+    List.map (fun x ->
+        match x with
+          GGEP_unknown s -> GGEP.UnknownBlock s
+        | GGEP_block (id,data) -> GGEP.GGEP (id,data)
+        | GGEP_GUE_guess version -> 
+            GGEP.GGEP ("GUE", String.make 1 (char_of_int version))
+        | GGEP_VC_vendor (vendor, version1, version2) ->
+            let s = Printf.sprintf "MLDK%c" 
+                (char_of_int ((version1 lsl 4) lor version2)) in
+            GGEP.GGEP ("VC", s)
+        | GGEP_DU_uptime up ->
+            let s = 
+              if up land 0xff = up then
+                String.make 1 (char_of_int up)
+              else
+              if up land 0xffff = up then
+                let s = String.create 2 in
+                LittleEndian.str_int16 s 0 up;
+                s
+              else if up land 0xffffff = up then
+                let s = String.create 3 in
+                LittleEndian.str_int24 s 0 up;
+                s
+              else
+              let s = String.create 4 in
+              LittleEndian.str_int s 0 up;
+              s
+            in
+            GGEP.GGEP ("DU", s)
+    ) list
+  in
+  GGEP.write_block buf list
+  
+let print list =
+  lprintf "GGEP block:\n";
+  List.iter (fun x -> 
+      match x with
+        GGEP_block (id, data) ->
+          lprintf "   Block %s : %s\n" id (String.escaped data)
+      | GGEP_unknown s ->
+          lprintf "   Unknown : %s\n" (String.escaped s)
+      | GGEP_GUE_guess v ->
+          lprintf "   Guess version %d\n" v
+      | GGEP_VC_vendor (vendor, v1, v2) ->
+          lprintf "   Vendor %s %d.%d\n" vendor v1 v2
+      | GGEP_DU_uptime up ->
+          lprintf "   Uptime %d seconds\n" up
+  ) list
+  

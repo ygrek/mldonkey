@@ -116,7 +116,7 @@ let make_full_request r =
   else
     Buffer.add_string res "\r\n";
   let s = Buffer.contents res in
-(*   lprintf "URL: %s" s; lprint_newline ();  *)
+(*   lprintf "URL: %s\n" s;  *)
   s
 
 let split_head s =
@@ -160,7 +160,6 @@ let read_header header_handler  sock nread =
   (*
   lprintf "received [%s]" (String.escaped 
       (String.sub b.buf new_pos nread));
-lprint_newline ();
   *)
   let rec iter i =
     let end_pos = b.pos + b.len in
@@ -187,8 +186,10 @@ lprint_newline ();
   in
   iter new_pos
 
-let http_reply_handler headers_handler =
-  read_header (parse_header headers_handler)
+let http_reply_handler nr headers_handler sock nread =
+(*  lprintf "http_reply_handler\n"; *)
+  nr := true;
+  read_header (parse_header headers_handler) sock nread
   
 let get_page r content_handler f =
   let rec get_url level r =
@@ -213,40 +214,64 @@ let get_page r content_handler f =
 *)    
     let request = make_full_request r in
     
+   
     let server, port =
       match r.req_proxy with
       | None -> url.server, url.port
       | Some (s, p) -> s, p
     in
+(*    lprintf "async_ip ...\n"; *)
     Ip.async_ip server (fun ip ->
+        lprintf "IP done %s:%d\n" (Ip.to_string ip) port;
         let sock = TcpBufferedSocket.connect "http client connecting" 
           (Ip.to_inet_addr ip)
-          port (fun _ _ -> ())
+          port (fun _ e -> 
+              ()
+(*              lprintf "Event %s\n"
+                (match e with
+                  WRITE_DONE -> "WRITE_DONE"
+                | CAN_REFILL -> "CAN_REFILL"
+                | BUFFER_OVERFLOW -> "BUFFER_OVERFLOW"
+                | READ_DONE n -> Printf.sprintf "READ_DONE %d" n
+                | BASIC_EVENT e ->
+                    match e with
+                      (CLOSED s) -> Printf.sprintf "CLOSED %s" s
+                    | RTIMEOUT -> "RTIMEOUT"
+                    | LTIMEOUT -> "LTIMEOUT"
+                    | WTIMEOUT -> "WTIMEOUT"
+                    | CAN_READ -> "CAN_READ"
+                    | CAN_WRITE -> "CAN_WRITE"
+              ) *)
+          )
         in
+        let nread = ref false in
         lprintf "Request: %s\n" (String.escaped request);
         TcpBufferedSocket.write_string sock request;
-        TcpBufferedSocket.set_reader sock (http_reply_handler 
-            (default_headers_handler level))
+        TcpBufferedSocket.set_reader sock (http_reply_handler nread 
+            (default_headers_handler level));
+        set_rtimeout sock 5.;
+        TcpBufferedSocket.set_closer sock (fun _ _ -> ()
+    (*        lprintf "Connection closed nread:%b\n" !nread; *)
+        )
     )
     
   and default_headers_handler level sock ans_code headers =
     (*
     List.iter (fun (name, value) ->
         lprintf "[%s]=[%s]" name value;
-        lprint_newline ();
     ) headers;
 *)
     match ans_code with
       200 ->
 (*
-  lprintf "ans_code: %d" ans_code;
-  lprint_newline ();
+  lprintf "ans_code: %d\n" ans_code;
   List.iter (fun (name, content) ->
       lprintf "HEADER %s:%s" name content;
-      lprint_newline ();) 
+      ) 
 headers;
 *)
         TcpBufferedSocket.set_closer sock (fun _ _ -> 
+(*            lprintf "default_headers_handler closer\n"; *)
             f ());
         let content_length = ref (-1) in
         List.iter (fun (name, content) ->
@@ -254,8 +279,7 @@ headers;
               try          
                 content_length := int_of_string content
               with _ -> 
-                  lprintf "bad content length [%s]" content;
-                  lprint_newline ();
+                  lprintf "bad content length [%s]\n" content;
         ) headers;
         
         let content_handler = content_handler !content_length headers in
@@ -265,32 +289,29 @@ headers;
           content_handler sock buf.len 
           
     | 302 ->
-        lprintf "Http_client 302: Redirect"; lprint_newline ();
+        lprintf "Http_client 302: Redirect\n";
         if level < 10 then
           begin
             try
               let url = List.assoc "Location" headers in
-              lprintf "Redirected to %s" url; lprint_newline ();
+              lprintf "Redirected to %s\n" url; 
               let r = { r with req_url = Url.of_string url } in
               get_url (level+1) r
             
             with e ->
                 List.iter (fun (name, value) ->
-                    lprintf "[%s]=[%s]" name value;
-                    lprint_newline ();
+                    lprintf "[%s]=[%s]\n" name value;
                 ) headers
                 
           end
           
     | 404 ->
-        lprintf "Http_client 404: Not found %s" (Url.to_string false r.req_url);
-        lprint_newline ();
+        lprintf "Http_client 404: Not found %s\n" (Url.to_string false r.req_url);
         close sock "bad reply";
         raise Not_found
           
     | _ ->
-        lprintf "Http_client: bad reply %d" ans_code;
-        lprint_newline ();
+        lprintf "Http_client: bad reply %d\n" ans_code;
         close sock "bad reply";
         raise Not_found
 
@@ -304,6 +325,7 @@ let wget r f =
   
   get_page r
     (fun maxlen headers sock nread ->
+(*      lprintf "received %d\n" nread; *)
       let buf = TcpBufferedSocket.buf sock in
       
       if nread > 0 then begin
@@ -321,9 +343,8 @@ let wget r f =
   (fun _ ->  
       let s = Buffer.contents file_buf in
       if s = "" then begin  
-          lprintf "Empty content for url %s" 
+          lprintf "Empty content for url %s\n" 
             (Url.to_string false r.req_url);
-          lprint_newline ();
         end;
       let filename = Filename.temp_file "http_" ".tmp" in
       File.from_string filename s;
@@ -387,7 +408,6 @@ let cut_headers headers =
           String.sub s (pos+1) (len-pos-1), key
     ) headers
   with e ->
-      lprintf "Exception in cut_headers: %s" (Printexc2.to_string e);
-      lprint_newline ();
+      lprintf "Exception in cut_headers: %s\n" (Printexc2.to_string e);
       raise e
       

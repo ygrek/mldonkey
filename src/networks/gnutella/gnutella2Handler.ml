@@ -36,7 +36,7 @@ open GnutellaGlobals
 open GnutellaOptions
 open GnutellaProtocol
 open GnutellaComplexOptions
-open Gnutella2
+open Gnutella2Proto
 
 let update_client u =
   new_client u.user_kind
@@ -69,7 +69,7 @@ let g2_packet_handler s sock gconn p =
       if s.server_need_qrt && (match s.server_sock with
             Connection _ -> true | _ -> false) then begin
           s.server_need_qrt <- false;
-          Gnutella.send_qrt_sequence s
+          send_qrt_sequence s false
         end
 
   | PO -> ()
@@ -101,6 +101,13 @@ let g2_packet_handler s sock gconn p =
             QKA_QK key -> s.server_query_key <- UdpQueryKey key
           | _ -> ()
       ) p.g2_children;
+(* Now, we can extend our current searches on this host *)
+      Hashtbl.iter (fun _ ss ->
+          server_send_query ss.search_uid ss.search_words NoConnection s
+      ) searches_by_uid;
+      List.iter (fun file ->
+          server_recover_file file NoConnection s
+      ) !current_files
 
       
   | KHL ->
@@ -125,15 +132,62 @@ let g2_packet_handler s sock gconn p =
                     ] in
                 children := p :: !children
             | _ -> ()
-      ) !connected_servers;
+      ) !g2_connected_servers;
       server_send sock s (
         packet KHL [
           (packet (KHL_TS (int64_time ())) !children) 
         ]
       )
-  
-  | QH2 (_, suid) ->
+
+  | QA _ ->
+      List.iter (fun c ->
+          match c.g2_payload with
+            QA_D ((ip,port),_)
+          | QA_S ((ip,port),_) -> 
+              let h = new_host ip port true 2 in
+              h.host_connected <- last_time ();
+              
+          | _ -> ()
+      ) p.g2_children
       
+  | QH2 (_, suid) ->
+
+(*
+
+- : Xml.xml =
+XML ("audios",
+ [("xsi:nonamespaceschemalocation",
+  "http://www.limewire.com/schemas/audio.xsd")],
+ [XML ("audio", [], [])])
+
+  
+Xml.parse_string
+- : Xml.xml =
+XML ("audios",
+ [("xsi:nonamespaceschemalocation",
+  "http://www.limewire.com/schemas/audio.xsd")],
+ [XML ("audio",
+   [("samplerate", "44100"); ("seconds", "125"); ("index", "0");
+    ("bitrate", "128")],
+   []);
+  XML ("audio",
+   [("title", "It&apos;s Not Unusal"); ("samplerate", "44100");
+    ("track", "1"); ("seconds", "120"); ("artist", "Tom Jones");
+    ("description", "Tom Jones, hehe"); ("album", "Mars Attacks Soundtrack");
+    ("index", "1"); ("bitrate", "128"); ("genre", "Retro"); ("year", "1997")],
+   [])])
+
+- : Xml.xml =
+XML ("audios",
+ [("xsi:nonamespaceschemalocation",
+  "http://www.limewire.com/schemas/audio.xsd")],
+ [XML ("audio",
+   [("samplerate", "44100"); ("seconds", "239"); ("index", "0");
+    ("bitrate", "128")],
+   [])])
+
+*)
+            
       let user_nick = ref "" in
       let user_uid = ref Md4.null in
       let user_addr = ref None in
@@ -159,12 +213,11 @@ let g2_packet_handler s sock gconn p =
                   match c.g2_payload with
                     QH2_H_URN urn -> res_urn := Some urn
                   | QH2_H_URL url -> res_url := url
-                  | QH2_H_DN (sz, dn,s) ->
-                      let s =
+                  | QH2_H_DN s ->
+                      res_name := s
+                  | QH2_H_SZDN (sz, s) ->
                         if !res_size = None then 
-                          (res_size := Some sz; dn)
-                        else s
-                      in
+                          res_size := Some sz;
                       res_name := s
                   | QH2_H_SZ sz -> res_size := Some sz
                   | _ -> ()
@@ -173,6 +226,18 @@ let g2_packet_handler s sock gconn p =
               !user_files
           | _ -> ()              
       ) p.g2_children;
+      
+      lprintf "Results Received: \n";
+      List.iter (fun (urn, size, name, url) ->
+          lprintf "    %s [size %s] %s -- %s\n"
+            name (match size with
+              None -> "??" | Some sz -> Int64.to_string sz) 
+          (match urn with
+              None -> "no URN"
+            | Some urn -> string_of_uid urn)
+          url
+      ) !user_files;
+      
       
       let user = 
         let user = new_user (match !user_addr with
@@ -199,7 +264,7 @@ let g2_packet_handler s sock gconn p =
           let url = match urn with
               None -> url
             | Some uid ->
-                Printf.sprintf "/uri-res/N2R?%s" (string_of_uid uid)      
+                Printf.sprintf "/uri-res/N2R?%s" (string_of_uid uid)
           in
           
           (match size with
@@ -257,7 +322,8 @@ let g2_packet_handler s sock gconn p =
           
 let udp_packet_handler ip port msg = 
   let h = new_host ip port true 2 in
-  host_queue_add ultrapeers_recent_queue h (last_time ());
+  host_queue_add g2_active_udp_queue h (last_time ());
+  h.host_connected <- last_time ();
 (*  if !verbose_udp then
     lprintf "Received UDP packet from %s:%d: \n%s\n" 
       (Ip.to_string ip) port (Print.print msg);*)
@@ -275,12 +341,19 @@ let udp_packet_handler ip port msg =
 *)      
 
 let init s sock gconn = 
+  g2_connected_servers := s :: !g2_connected_servers;
   gconn.gconn_handler <- 
     Reader (g2_handler (g2_packet_handler s (Connection sock)));
   server_send_ping s.server_sock s;
   server_send_ping NoConnection s;
   server_send NoConnection s (packet PI []);
+  (match s.server_query_key with
+      UdpQueryKey _  -> ()
+    | _ -> host_send_qkr s.server_host);
   server_send (Connection sock) s (packet UPROC [])
 
+  (*
+    Gnutella.recover_files_from_server s;    
+*)
 
 (* A good session: PI, KHL, LNI *)

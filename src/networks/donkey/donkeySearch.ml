@@ -180,7 +180,6 @@ let send_subscribe search query =
   make_xs search;
   local_search search        
 
-  
 let new_search search =
   search.search_waiting <- search.search_waiting +
   List.length (connected_servers());

@@ -141,7 +141,7 @@ LIB_SRCS=   \
   $(LIB)/md4_comp.c $(LIB)/md4_c.c \
   $(LIB)/gettext.ml $(LIB)/md5_c.c $(LIB)/sha1_c.c \
   $(LIB)/tiger.c \
-  $(LIB)/stubs_c.c
+  $(LIB)/stubs_c.c  $(LIB)/queues.ml
 
 NET_SRCS = \
   $(NET)/basicSocket.ml \
@@ -266,6 +266,11 @@ OBSERVER_SRCS = \
   $(CHAT_SRCS) $(COMMON_SRCS) $(COMMON_CLIENT_SRCS) $(DONKEY_SRCS) \
   tools/observer.ml
 
+ED2K_HASH_SRCS = \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS) \
+  $(CHAT_SRCS) \
+  tools/ed2k_hash.ml
+
 
 CYMES_SRCS=\
   $(SRC_CYMES)/serverTypes.ml \
@@ -300,17 +305,20 @@ GNUTELLA_SRCS= \
   $(SRC_GNUTELLA)/gnutellaGlobals.ml \
   $(SRC_GNUTELLA)/gnutellaComplexOptions.ml \
   $(SRC_GNUTELLA)/gnutellaProtocol.ml \
-  $(SRC_GNUTELLA)/gnutella1.ml \
-  $(SRC_GNUTELLA)/gnutella2.ml \
-  $(SRC_GNUTELLA)/gnutella.ml \
+  $(SRC_GNUTELLA)/gnutella1Proto.ml \
+  $(SRC_GNUTELLA)/gnutella2Proto.ml \
   $(SRC_GNUTELLA)/gnutellaClients.ml \
   $(SRC_GNUTELLA)/gnutella1Handler.ml \
   $(SRC_GNUTELLA)/gnutella2Handler.ml \
   $(SRC_GNUTELLA)/gnutella1Redirector.ml \
   $(SRC_GNUTELLA)/gnutella2Redirector.ml \
+  $(SRC_GNUTELLA)/gnutella1.ml \
+  $(SRC_GNUTELLA)/gnutella2.ml \
   $(SRC_GNUTELLA)/gnutellaServers.ml \
   $(SRC_GNUTELLA)/gnutellaInteractive.ml \
   $(SRC_GNUTELLA)/gnutellaMain.ml
+
+#  $(SRC_GNUTELLA)/gnutella.ml 
 
 BITTORRENT_SRCS= \
   $(SRC_BITTORRENT)/bencode.ml \
@@ -1636,6 +1644,31 @@ observer.byte: $(OBSERVER_OBJS) $(OBSERVER_CMOS)  $(OBSERVER_CMAS)
  
 observer.static:  $(OBSERVER_OBJS) $(OBSERVER_CMXS)  $(OBSERVER_CMXAS)
 	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(OBSERVER_OBJS) $(LIBS_opt) $(LIBS_flags)  $(_LIBS_flags)  $(_STATIC_LIBS_opt) -I build $(OBSERVER_CMXAS) $(OBSERVER_CMXS)
+
+
+ED2K_HASH_ZOG := $(filter %.zog, $(ED2K_HASH_SRCS)) 
+ED2K_HASH_MLL := $(filter %.mll, $(ED2K_HASH_SRCS)) 
+ED2K_HASH_MLY := $(filter %.mly, $(ED2K_HASH_SRCS)) 
+ED2K_HASH_ML4 := $(filter %.ml4, $(ED2K_HASH_SRCS)) 
+ED2K_HASH_ML := $(filter %.ml %.mll %.zog %.mly %.ml4, $(ED2K_HASH_SRCS)) 
+ED2K_HASH_C := $(filter %.c, $(ED2K_HASH_SRCS)) 
+ED2K_HASH_CMOS=$(foreach file, $(ED2K_HASH_ML),   $(basename $(file)).cmo) 
+ED2K_HASH_CMXS=$(foreach file, $(ED2K_HASH_ML),   $(basename $(file)).cmx) 
+ED2K_HASH_OBJS=$(foreach file, $(ED2K_HASH_C),   $(basename $(file)).o)    
+
+ED2K_HASH_CMXAS := $(foreach file, $(ED2K_HASH_CMXA),   build/$(basename $(file)).cmxa)
+ED2K_HASH_CMAS=$(foreach file, $(ED2K_HASH_CMXA),   build/$(basename $(file)).cma)    
+
+TMPSOURCES += $(ED2K_HASH_ML4:.ml4=.ml) $(ED2K_HASH_MLL:.mll=.ml) $(ED2K_HASH_MLY:.mly=.ml) $(ED2K_HASH_MLY:.mly=.mli) $(ED2K_HASH_ZOG:.zog=.ml) 
+ 
+ed2k_hash: $(ED2K_HASH_OBJS) $(ED2K_HASH_CMXS) $(ED2K_HASH_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(ED2K_HASH_OBJS) $(LIBS_opt) $(LIBS_flags) $(_LIBS_opt) $(_LIBS_flags) -I build $(ED2K_HASH_CMXAS) $(ED2K_HASH_CMXS) 
+ 
+ed2k_hash.byte: $(ED2K_HASH_OBJS) $(ED2K_HASH_CMOS)  $(ED2K_HASH_CMAS)
+	$(OCAMLC) -linkall -o $@  $(ED2K_HASH_OBJS) $(LIBS_byte) $(LIBS_flags)  $(_LIBS_byte) $(_LIBS_flags) -I build $(ED2K_HASH_CMAS) $(ED2K_HASH_CMOS) 
+ 
+ed2k_hash.static:  $(ED2K_HASH_OBJS) $(ED2K_HASH_CMXS)  $(ED2K_HASH_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(ED2K_HASH_OBJS) $(LIBS_opt) $(LIBS_flags)  $(_LIBS_flags)  $(_STATIC_LIBS_opt) -I build $(ED2K_HASH_CMXAS) $(ED2K_HASH_CMXS)
 
 
 USE_TAGS_ZOG := $(filter %.zog, $(USE_TAGS_SRCS)) 

@@ -1,6 +1,11 @@
 TODO list for client
 ====================
 
+Gnutella2:
+  * Understand MD when no DN field is present
+  * Limit total number of hosts
+  * As soon as a new host is discovered, spread searches on it
+
 CommonConnections: a module to manage external connections
   * The number of connections is limited
   * When a connection is possible, we should try to find the most interesting one

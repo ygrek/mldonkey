@@ -17,18 +17,38 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open CommonSwarming
+open Queues
 open Printf2
 open Md4
+open Options
+open BasicSocket
+  
+open CommonSwarming
 open CommonTypes
 open CommonFile
-open Options
+
 open GnutellaTypes
 open GnutellaOptions
 open GnutellaGlobals
 
-let ultrapeers = define_option gnutella_ini ["ultrapeers"]
+let g1_ultrapeers = define_option gnutella_ini
+    ["cache"; "gnutella1"; "ultrapeers"]
     "Known ultrapeers" (list_option (tuple2_option (Ip.option, int_option)))
+  []
+
+let g1_peers = define_option gnutella_ini
+    ["cache"; "gnutella1"; "peers"]
+    "Known Peers" (list_option (tuple2_option (Ip.option, int_option)))
+  []
+
+let g2_ultrapeers = define_option gnutella_ini
+    ["cache"; "gnutella2"; "ultrapeers"]
+    "Known ultrapeers" (list_option (tuple2_option (Ip.option, int_option)))
+  []
+
+let g2_peers = define_option gnutella_ini
+    ["cache"; "gnutella2"; "peers"]
+    "Known Peers" (list_option (tuple2_option (Ip.option, int_option)))
   []
 
 module ClientOption = struct
@@ -180,10 +200,23 @@ let old_files =
     
     
 let save_config () =
-  let list = Hashtbl2.to_list hosts_by_key in
-  ultrapeers =:= 
-    (List.map (fun h -> (h.host_ip, h.host_port)) list);
-  lprintf "SAVE OPTIONS: %d ultrapeers\n" (List.length !!ultrapeers);
+  g1_ultrapeers =:= [];
+  g2_ultrapeers =:= [];
+  g1_peers =:= [];
+  g2_peers =:= [];
+  
+  Queue.iter (fun h -> 
+      if h.host_kind <> 0 then
+        let o = match h.host_kind, h.host_ultrapeer with
+          | 1, true -> g1_ultrapeers
+          | 1, _ -> g1_peers
+          | _, true -> g2_ultrapeers
+          | _ -> g2_peers
+        in
+(* Don't save hosts that are older than 1 hour, and not responding *)
+        if max h.host_connected h.host_age > last_time () - 3600 then
+          o =:= (h.host_ip, h.host_port) :: !!o) 
+  workflow;
   
   ()
   

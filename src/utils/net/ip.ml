@@ -24,6 +24,10 @@ external of_string : string -> t  = "ml_ints_of_string"
   
 let of_inet_addr t = 
   of_string (Unix.string_of_inet_addr t)
+  
+let any = of_inet_addr Unix.inet_addr_any
+  
+let null = (0,0,0,0)
 
 let of_ints t = t
 
@@ -132,29 +136,37 @@ let resolve_name name =
     let (ip, time) = Hashtbl.find ip_cache name in
     if time < current_time then
       try
-        lprintf "Resolving %s ..." name; 
+        lprintf "Resolving [%s] ..." name; 
         let ip = gethostbyname name in
-        lprintf "done"; lprint_newline ();
+        lprintf "done\n"; 
         Hashtbl.remove ip_cache name;
         Hashtbl.add ip_cache name (ip, current_time +. 3600.);
         ip
       with _ -> ip
     else ip
   with _ ->
+      lprintf "Resolving [%s] ..." name;
       let ip = gethostbyname name in
+      lprintf "done\n";
       Hashtbl.add ip_cache name (ip, current_time +. 3600.);
       ip
       
 
 let from_name name =
-  if String.length name > 0 && name.[0] >= '0' && name.[0] <= '9' then
-    of_string name 
-  else  try
-    let ip = resolve_name name in
-    ip
-  with _ -> 
+  try
+    if String.length name > 0 && name.[0] >= '0' && name.[0] <= '9' then 
+      of_string name 
+    else
       raise Not_found
-      
+  with _ ->
+      try
+(*        lprintf "resolve_name...%s\n" name; *)
+        let ip = resolve_name name in
+(*        lprintf "..name resolved\n";  *)
+        ip
+      with _ -> 
+          raise Not_found
+          
 let my () =
   try
     let name = Unix.gethostname () in
@@ -175,10 +187,6 @@ open Options
     let ip_to_value ip = string_to_value (to_string ip)
       
 let option = define_option_class "Ip" value_to_ip ip_to_value      
-  
-let any = of_inet_addr Unix.inet_addr_any
-  
-let null = of_string ""
   
 let rev (a1,a2,a3,a4) = (a4,a3,a2,a1)
 
@@ -202,7 +210,8 @@ let current_job = ref None
 let ip_fifo = Fifo.create ()
   
 let async_ip name f =
-    try
+  try
+(*    lprintf "async_ip [%s]\n" name; *)
       let current_time = Unix.gettimeofday () in
       let (ip, time) = Hashtbl.find ip_cache name in
       if time < current_time then begin
@@ -229,6 +238,7 @@ let _ =
                   end;
                 (try f ip with _ -> ())
               with _ ->
+(*                  lprintf "resolving name...\n"; *)
                   if !BasicSocket.use_threads && 
                     BasicSocket.has_threads () then    
                     let job = {
@@ -240,8 +250,11 @@ let _ =
                     in 
                     current_job := Some job;
                     job_start job
-                  else
-                    f (from_name name)
+                  else begin
+(*                      lprintf "from_name ...\n"; *)
+                      f (from_name name)
+                      
+                    end
             )
         | Some job ->
             if job_done job then begin
@@ -255,8 +268,7 @@ let _ =
                     Hashtbl.add ip_cache job.name (ip, current_time +. 3600.);
                     job.handler ip
                   end else begin
-                    lprintf "Error: %s: address not found" job.name;
-                    lprint_newline ();
+                    lprintf "Error: %s: address not found\n" job.name;
                   end
               end else raise Exit
       done

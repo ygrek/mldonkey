@@ -17,8 +17,14 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Queues
 open Printf2
 open Md4
+open BasicSocket
+open Options
+open TcpBufferedSocket
+  
+open CommonOptions
 open CommonClient
 open CommonUser
 open CommonTypes
@@ -26,139 +32,32 @@ open CommonComplexOptions
 open CommonServer
 open CommonResult
 open CommonFile
-open BasicSocket
 open CommonGlobals
-open Options
-open GnutellaTypes
-open GnutellaOptions
 open CommonSwarming  
 open CommonNetwork
+  
+open GnutellaTypes
+open GnutellaOptions
 
-(*
-    mutable op_network_connected_servers : (unit -> server list);
-    mutable op_network_config_file : (unit -> Options.options_file);
-    mutable op_network_is_enabled : (unit -> bool);
-    mutable op_network_save_simple_options : (unit -> unit);
-    mutable op_network_load_simple_options : (unit -> unit);
-    mutable op_network_save_complex_options : (unit -> unit);
-    mutable op_network_load_complex_options : (unit -> unit);
-    mutable op_network_enable : (unit -> unit);
-    mutable op_network_disable : (unit -> unit);    
-    mutable op_network_add_server : 
-      ((string * Options.option_value) list -> server);
-    mutable op_network_add_file : 
-      bool -> ((string * Options.option_value) list -> file);
-    mutable op_network_add_client : 
-      bool -> ((string * Options.option_value) list -> client);
-    mutable op_network_prefixed_args : 
-      (unit -> (string * Arg.spec * string) list);    
-    mutable op_network_search : (search -> Buffer.t -> unit);
-    mutable op_network_share : (shared -> unit);
-    mutable op_network_private_message : (string -> string -> unit);
-    mutable op_network_connect_servers : (unit -> unit);
-    mutable op_network_add_server_id : (Ip.t -> int -> unit);
-    mutable op_network_forget_search : (search -> unit);
-    mutable op_network_close_search : (search -> unit);
-    mutable op_network_extend_search : (unit -> unit);
-    mutable op_network_clean_servers : (unit -> unit);
-    mutable op_network_add_friend_id : (Ip.t -> int -> unit);
-
-*)
   
 let network = new_network "Gnutella"  
     (fun _ -> !!network_options_prefix)
   (fun _ -> !!commit_in_subdir)
-(*  network_options_prefix commit_in_subdir *)
-  (*
-     op_result_network : network;
-     op_result_download : ('a -> string list -> unit);
-     op_result_info : ('a -> CommonTypes.result_info);
-  *)
       
 let (result_ops : result CommonResult.result_ops) = 
   CommonResult.new_result_ops network
   
-(*
-     op_server_network : network;
-     op_server_to_option : ('a -> (string * option_value) list);
-     op_server_remove : ('a -> unit);
-     op_server_info : ('a -> GuiProto.server_info);
-     op_server_sort : ('a -> float);
-     op_server_connect : ('a -> unit);
-     op_server_disconnect : ('a -> unit);
-     op_server_users : ('a -> user list);
-     op_server_query_users : ('a -> unit);
-     op_server_find_user : ('a -> string -> unit);
-     op_server_new_messages : (unit -> (int * int * string) list);
-*)
-  
 let (server_ops : server CommonServer.server_ops) = 
   CommonServer.new_server_ops network
-  
-(*
-  
-     op_room_close : ('a -> unit);
-     op_room_pause : ('a -> unit);
-     op_room_resume : ('a -> unit);
-     op_room_messages : ('a -> room_message list);
-     op_room_users : ('a -> user list);
-     op_room_name : ('a -> string);
-     op_room_info : ('a -> GuiProto.room_info);
-     op_room_send_message : ('a -> room_message -> unit);
 
-*)
 let (room_ops : server CommonRoom.room_ops) = 
   CommonRoom.new_room_ops network
-  
-(*
-     op_user_network : network;
-     op_user_commit : ('a -> unit);
-     op_user_save_as : ('a -> string -> unit);
-     op_user_print : ('a -> CommonTypes.connection_options -> unit);
-     op_user_to_option : ('a -> (string * option_value) list);
-     op_user_remove : ('a -> unit);
-     op_user_info : ('a -> GuiProto.user_info);
-     op_user_set_friend : ('a -> unit);
-     op_user_browse_files : ('a -> unit);
-*)
   
 let (user_ops : user CommonUser.user_ops) = 
   CommonUser.new_user_ops network
   
-(*
-     op_file_network : network;
-     op_file_commit : ('a -> unit);
-     op_file_save_as : ('a -> string -> unit);
-     op_file_to_option : ('a -> (string * option_value) list);
-     op_file_cancel : ('a -> unit);
-     op_file_pause : ('a -> unit);
-     op_file_resume : ('a -> unit);
-     op_file_info : ('a -> GuiProto.file_info);
-     op_file_disk_name : ('a -> string);
-     op_file_best_name : ('a -> string);
-     op_file_state : ('a -> CommonTypes.file_state);
-     op_file_set_format : ('a -> CommonTypes.format -> unit);
-     op_file_check : ('a -> unit);
-     op_file_recover : ('a -> unit);
-     op_file_sources : ('a -> client list);
-*)
-  
 let (file_ops : file CommonFile.file_ops) = 
   CommonFile.new_file_ops network
-  
-(*
-     op_client_network : network;
-     op_client_commit : ('a -> unit);
-     op_client_connect : ('a -> unit);
-     op_client_save_as : ('a -> string -> unit);
-     op_client_to_option : ('a -> (string * option_value) list);
-     op_client_cancel : ('a -> unit);
-     op_client_info : ('a -> GuiProto.client_info);
-     op_client_say : ('a -> string -> unit);
-     op_client_files : ('a -> (string * result) list);
-     op_client_set_friend : ('a -> unit);
-     op_client_remove_friend : ('a -> unit);
-*)
   
 let (client_ops : client CommonClient.client_ops) = 
   CommonClient.new_client_ops network
@@ -170,27 +69,21 @@ let file_age file = file.file_file.impl_file_age
 let file_fd file = file.file_file.impl_file_fd
 let file_disk_name file = file_disk_name (as_file file.file_file)
 let set_file_disk_name file = set_file_disk_name (as_file file.file_file)
-    
-module DO = CommonOptions
 
 let current_files = ref ([] : GnutellaTypes.file list)
 
 let listen_sock = ref (None : TcpServerSocket.t option)
   
-let connected_servers = ref ([] : server list)
 let hosts_by_key = Hashtbl.create 103
 
 let (searches_by_uid : (Md4.t, local_search) Hashtbl.t) = Hashtbl.create 11
-let (peers_waiting_queue : (host * int) Fifo.t) = Fifo.create ()
-let (ultrapeers_waiting_queue : (host * int) Fifo.t) = Fifo.create ()
-let (ultrapeers_old_queue : (host * int) Fifo.t) = Fifo.create ()
-let (ultrapeers_recent_queue : (host * int) Fifo.t) = Fifo.create ()
-let nservers = ref 0
-let redirector_connected = ref false
 
+  (*
+let redirector_connected = ref false
 (* let redirectors_ips = ref ( [] : Ip.t list) *)
 let redirectors_to_try = ref ( [] : string list)
-  
+  *)
+
 let files_by_uid = Hashtbl.create 13
 let files_by_key = Hashtbl.create 13
 
@@ -198,19 +91,66 @@ let (users_by_uid ) = Hashtbl.create 127
 let (clients_by_uid ) = Hashtbl.create 127
 let results_by_key = Hashtbl.create 127
 let results_by_uid = Hashtbl.create 127
+  
+(***************************************************************
+
+
+             HOST SCHEDULER
+
+
+****************************************************************)
+  
+  
+  
+(* Hosts are first injected in workflow. The workflow ensures that any
+host object is inspected every two minutes. *)
+let (workflow : host Queue.t) = 
+  Queues.workflow (fun time -> time + 120 > last_time ())
+
+let ready _ = false
+  
+(* From the main workflow, hosts are moved to these workflows when they
+are ready to be connected. They will only be connected when connections
+will be available. We separate g1/g2, and g0 (unknown kind). *)
+let (g0_ultrapeers_waiting_queue : host Queue.t) = Queues.workflow ready
+let (g1_ultrapeers_waiting_queue : host Queue.t) = Queues.workflow ready
+let (g2_ultrapeers_waiting_queue : host Queue.t) = Queues.workflow ready
+  
+(* peers are only tested when no ultrapeers are available... *)
+let (g0_peers_waiting_queue : host Queue.t) = Queues.workflow ready
+let (g1_peers_waiting_queue : host Queue.t) = Queues.workflow ready
+let (g2_peers_waiting_queue : host Queue.t) = Queues.workflow ready
+  
+(* These are the peers that we should try to contact by UDP *)
+let (g1_waiting_udp_queue : host Queue.t) = Queues.workflow ready
+let (g2_waiting_udp_queue : host Queue.t) = Queues.workflow ready
+  
+(* These are the peers that have replied to our UDP requests *)
+let (g1_active_udp_queue : host Queue.t) = Queues.fifo ()
+let (g2_active_udp_queue : host Queue.t) = Queues.fifo ()
+
+let g1_nservers = ref 0
+let g2_nservers = ref 0
+
+let g1_connected_servers = ref ([] : server list)
+let g2_connected_servers = ref ([] : server list)
+  
+  
 
 let host_queue_add q h time =
   if not (List.memq q h.host_queues) then begin
-      Fifo.put q (h, time);
+      Queue.put q (time, h);
       h.host_queues <- q :: h.host_queues
     end
 
-let queue_take q =
-  let (h,time) = Fifo.take q in
+let host_queue_take q =
+  let (time,h) = Queue.take q in
   if List.memq q h.host_queues then begin
       h.host_queues <- List2.removeq q h.host_queues 
-    end
-    
+    end;
+  h
+
+let hosts_counter = ref 0
   
 let new_host ip port ultrapeer kind = 
   let key = (ip,port) in
@@ -219,28 +159,24 @@ let new_host ip port ultrapeer kind =
     h.host_age <- last_time ();
     h
   with _ ->
+      incr hosts_counter;
       let host = {
+          host_num = !hosts_counter;
           host_server = None;
           host_ip = ip;
           host_port = port;
+          
           host_age = last_time ();
+          host_tcp_request = 0;
+          host_udp_request = 0;
+          host_connected = 0;
+          
           host_kind = kind;
+          host_ultrapeer = ultrapeer;
           host_queues = [];
         } in
       Hashtbl.add hosts_by_key key host;
-      if ultrapeer then begin
-          host_queue_add ultrapeers_waiting_queue host 0;
-(*
-      while Fifo.length ultrapeers_waiting_queue > !!max_known_ultrapeers do
-        ignore (queue_take ultrapeers_waiting_queue)
-      done;
-*)
-        end else begin
-          host_queue_add peers_waiting_queue host 0;
-          while Fifo.length peers_waiting_queue > !!max_known_peers do
-            ignore (queue_take peers_waiting_queue)
-          done;        
-        end;
+      host_queue_add workflow host 0;
       host
       
 let new_server ip port =
@@ -371,7 +307,7 @@ let new_result file_name file_size uids =
 let megabyte = Int64.of_int (1024 * 1024)
       
 let new_file file_id file_name file_size = 
-  let file_temp = Filename.concat !!DO.temp_directory 
+  let file_temp = Filename.concat !!temp_directory 
       (Printf.sprintf "GNUT-%s" (Md4.to_string file_id)) in
   let t = Unix32.create file_temp [Unix.O_RDWR; Unix.O_CREAT] 0o666 in
   let swarmer = Int64Swarmer.create () in
@@ -554,11 +490,13 @@ let server_state s =
       
 let set_server_state s state =
   set_server_state (as_server s.server_server) state
-  
+
+  (*
 let server_remove s =
   connected_servers := List2.removeq s !connected_servers;    
 (*  Hashtbl.remove servers_by_key (s.server_ip, s.server_port)*)
   ()
+  *)
 
 let client_type c = client_type (as_client c.client_client)
 
@@ -585,5 +523,32 @@ let verbose_udp = ref true
 let client_ip sock =
   CommonOptions.client_ip
   (match sock with Connection sock -> Some sock | _ -> None)
-  
-  
+
+let disconnect_from_server nservers s =
+  match s.server_sock with
+  | Connection sock ->
+      let h = s.server_host in
+      (match server_state s with 
+          Connected _ ->
+            let connection_time = Int32.to_int (
+                Int32.sub (int32_time ()) s.server_connected) in
+            lprintf "DISCONNECT FROM SERVER %s:%d after %d seconds\n" 
+              (Ip.to_string h.host_ip) h.host_port
+              connection_time
+            ;
+        | _ -> ()
+      );
+      (try close sock "" with _ -> ());
+      s.server_sock <- NoConnection;
+      set_server_state s (NotConnected (-1));
+      s.server_need_qrt <- true;
+      decr nservers;
+      if s.server_gnutella2 then
+        (      
+          if List.memq s !g2_connected_servers then
+            g2_connected_servers := List2.removeq s !g2_connected_servers)
+      else
+        (
+          if List.memq s !g1_connected_servers then
+            g1_connected_servers := List2.removeq s !g1_connected_servers)
+  | _ -> ()
