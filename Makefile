@@ -17,7 +17,7 @@ CDK_byte=
 CDK_opt=-opt
 
 COMP_byte=$(OCAMLC)
-COMP_opt=$(OCAMLOPT) -S
+COMP_opt=$(OCAMLOPT)
 
 EXE_byte=.byte
 EXE_opt=
