@@ -634,10 +634,11 @@ minutes" !CommonUploads.upload_credit !CommonUploads.has_upload;
                 with Not_found ->
                     let size = Unix32.getsize64 (Filename.concat 
                           !!temp_directory filename) in
-                    let names = try DonkeyIndexer.find_names md4 
-                      with _ -> [] in
-                    query_download names size md4 None None None true;
-                    recover_md4s md4
+                    if size <> zero then
+                      let names = try DonkeyIndexer.find_names md4 
+                        with _ -> [] in
+                      query_download names size md4 None None None true;
+                      recover_md4s md4
               with e ->
                   lprintf "exception %s in recover_temp"
                     (Printexc2.to_string e); lprint_newline ();

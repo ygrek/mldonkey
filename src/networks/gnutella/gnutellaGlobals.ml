@@ -620,3 +620,7 @@ let parse_magnet url =
     !name, !uids
   else raise Not_found
     
+    
+let clean_file s =
+  String2.replace_char s '\r' '\n';
+  String2.replace_char s ' ' '\n'

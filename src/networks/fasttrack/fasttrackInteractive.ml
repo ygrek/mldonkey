@@ -282,16 +282,138 @@ let _ =
       }   
   )
             
+
+let base64tbl = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+  
+let _ = assert (String.length base64tbl = 64)
+
+let bin20tobase6427 hashbin =
+  let hash64 = String.create 30 in
+  let hashbin n = int_of_char hashbin.[n] in
+  hash64.[0] <- '=';
+  let j = ref 1 in
+  for i = 0 to 6 do
+    let tmp = if i < 6 then
+        ((hashbin (3*i)) lsl 16) lor ((hashbin(3*i+1)) lsl 8) 
+        lor (hashbin (3*i+2))
+      else
+        ((hashbin(3*i)) lsl 16) lor ((hashbin(3*i+1)) lsl 8)
+    in
+    for k = 0 to 3 do
+      hash64.[!j] <- base64tbl.[(tmp lsr ((3- k)*6)) land 0x3f];
+      incr j
+    done
+  done;
+  hash64.[!j-1] <- '=';
+  String.sub hash64 0 !j
+
+let base64tbl_inv = String.create 126
+let _ = 
+  for i = 0 to 63 do
+    base64tbl_inv.[int_of_char base64tbl.[i]] <- char_of_int i
+  done
+  
+let base6427tobin20 hash64 =
+  let hashbin = String.make 20 '\000' in
+  let hash64 n = 
+    let c = hash64.[n] in
+    int_of_char base64tbl_inv.[int_of_char c]
+  in
+  let j = ref 0 in
+  for i = 0 to 6 do
+    if i < 6 then
+      let tmp = ref 0 in
+      for k = 0 to 3 do
+        tmp := (!tmp lsl 6) lor (hash64 (i*4+k+1))
+      done;
+      hashbin.[!j] <- char_of_int ((!tmp lsr 16) land 0xff);
+      hashbin.[!j+1] <- char_of_int ((!tmp lsr  8) land 0xff);
+      hashbin.[!j+2] <- char_of_int ((!tmp lsr  0) land 0xff);
+      j := !j + 3;
+    else
+    let tmp = ref 0 in
+    for k = 0 to 2 do
+      tmp := (!tmp lsl 6) lor (hash64 (i*4+k+1))
+    done;
+    tmp := (!tmp lsl 6);
+    hashbin.[!j] <- char_of_int ((!tmp lsr 16) land 0xff);
+    hashbin.[!j+1] <- char_of_int ((!tmp lsr  8) land 0xff);
+    j := !j + 2;
+  done;
+  hashbin
+  
   
 let _ =
   network.op_network_connected_servers <- (fun _ ->
       List2.tail_map (fun s -> as_server s.server_server)
       !connected_servers
   );
-  (*
+
   network.op_network_parse_url <- (fun url ->
       match String2.split (String.escaped url) '|' with
-      | "ft://" :: "server" :: ip :: port :: _ ->  
+      | "sig2dat://" :: file :: length :: uuhash :: _ ->
+      
+          let filename =
+	    let len = String.length file in
+	    let rec iter1 pos =
+	      if pos = len then raise Exit;
+	      if file.[pos] = ':' then iter2 (pos+1)
+	      else iter1 (pos+1)
+            and  iter2 pos =
+	      if pos = len then raise Exit;
+	      if file.[pos] = ' ' then iter2 (pos+1)
+	      else String.sub file pos (len - pos)
+	    in
+	    iter1 0
+	  in
+      
+          let size =
+
+            let len = String.length length in
+            let rec iter1 pos =
+              if pos = len then raise Exit;
+              if length.[pos] = ':' then iter2 (pos+1)
+              else iter1 (pos+1)
+            and  iter2 pos =
+              if pos = len then raise Exit;
+              if length.[pos] = ' ' then iter2 (pos+1)
+              else iter3 pos (pos+1)
+            and iter3 begin_pos pos =
+              if pos = len then raise Exit;
+              if length.[pos] = 'B' || length.[pos] = ' ' then
+                String.sub length begin_pos (pos - begin_pos)
+              else iter3 begin_pos (pos+1)
+	    in
+	    iter1 0
+            
+          in
+          
+          let hash = 
+
+            let len = String.length uuhash in
+            let rec iter1 pos =
+              if pos = len then raise Exit;
+              if uuhash.[pos] = '=' then iter2 pos (pos+1)
+              else iter1 (pos+1)
+            and iter2 begin_pos pos =
+              if pos = len then raise Exit;
+              if uuhash.[pos] = '=' then
+                String.sub uuhash begin_pos (pos+1 - begin_pos)
+              else iter2 begin_pos (pos+1)
+	    in
+	    iter1 0
+            
+          in
+          
+          lprintf "sig2dat: [%s] [%s] [%s]\n" filename size hash;
+          let size = Int64.of_string size in
+          let hash = base6427tobin20 hash in
+          let hash = Md5Ext.direct_of_string hash in
+          
+          let r = new_result filename size [] hash in
+          FasttrackServers.download_file r;
+          true
+      | "ft://" :: "server"  :: ip :: port :: _ ->  
           let ip = Ip.addr_of_string ip in
           let port = int_of_string port in
           let s = new_server ip port in
@@ -309,18 +431,7 @@ let _ =
           let c = new_client (Indirect_location ("", md4)) in
           friend_add (as_client c.client_client);
           true
-      
-      | _ -> 
-          let (name, uids) = parse_magnet url in
-          if uids <> [] then begin
-(* Start a download for this file *)
-              let r = new_result name Int64.zero [] uids in
-              FasttrackServers.download_file r;
-              true
-            end
-          else false
-  )
-*)
+      | _ -> false);
   ()
   
 let browse_client c = 
@@ -379,25 +490,7 @@ let _ =
 open Queues
 open GuiTypes
   
-let commands = [
-    "gstats", Arg_none (fun o ->
-        let buf = o.conn_buf in
-        Printf.bprintf buf "g0_ultrapeers_waiting_queue: %d\n" 
-          (Queue.length g0_ultrapeers_waiting_queue);
-        Printf.bprintf buf "ultrapeers_waiting_queue: %d\n" 
-          (Queue.length ultrapeers_waiting_queue);
-        Printf.bprintf buf "g0_peers_waiting_queue: %d\n" 
-          (Queue.length g0_peers_waiting_queue);
-        Printf.bprintf buf "peers_waiting_queue: %d\n" 
-          (Queue.length peers_waiting_queue);
-        Printf.bprintf buf "active_udp_queue: %d\n" 
-          (Queue.length active_udp_queue);
-        Printf.bprintf buf "waiting_udp_queue: %d\n" 
-          (Queue.length waiting_udp_queue);
-        ""
-    ), " :\t\t\t\tprint stats on Fasttrack network";
-    
-    ]
+let commands = []
   
 let _ = 
   CommonNetwork.register_commands commands

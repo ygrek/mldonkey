@@ -733,6 +733,7 @@ the name between []"
         ""
     ), "<query> :\t\t\t\tsearch for files on all networks\n
 \tWith special args:
+\t-network <netname>
 \t-minsize <size>
 \t-maxsize <size>
 \t-media <Video|Audio|...>
@@ -764,6 +765,7 @@ the name between []"
         ""
     ), "<query> :\t\t\t\t$bsearch for files on all networks$n\n
 \tWith special args:
+\t-network <netname>
 \t-minsize <size>
 \t-maxsize <size>
 \t-media <Video|Audio|...>
@@ -777,7 +779,6 @@ the name between []"
 \t-not <word>
 \t-and <word> 
 \t-or <word>
-
 ";
     
     "d", Arg_multiple (fun args o ->

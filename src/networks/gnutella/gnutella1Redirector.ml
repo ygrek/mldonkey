@@ -41,9 +41,10 @@ open Gnutella1Proto
 
 let redirectors_urlfiles = ref []
 let redirectors_hostfiles = ref []
-      
+  
 let parse_urlfile file = 
   let s = File.to_string file in
+  clean_file s;
   let lines = String2.split_simplify s '\n' in
   List.iter (fun line ->
       if not (List.mem line !!gnutella1_hostfiles) then
@@ -71,6 +72,7 @@ let connect_urlfile () =
       
 let parse_hostfile file = 
   let s = File.to_string file in
+  clean_file s;
   let lines = String2.split_simplify s '\n' in
   List.iter (fun line ->
       try

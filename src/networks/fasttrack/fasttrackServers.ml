@@ -129,7 +129,7 @@ let greet_supernode s =
 (* 1 byte: dunno. *)
   buf_int8 b  0x00;
   
-  Buffer.add_string b !!client_name; (* no ending 0 *)
+  Buffer.add_string b (client_name ()); (* no ending 0 *)
   let m = Buffer.contents b in
   server_send s 0x02 m;
   server_send_ping s

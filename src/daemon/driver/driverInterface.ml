@@ -330,7 +330,7 @@ let gui_closed gui sock  msg =
   guis := List2.removeq gui !guis
 
 let gui_reader (gui: gui_record) t _ =
-    
+  
   let module P = GuiProto in  
   try
     match t with    
@@ -457,7 +457,7 @@ lprintf "Sending for %s" prefix; lprint_newline ();
                           gui_send gui (P.Options_info (
                               List.map (fun (arg, value) ->
                                   let long_name = Printf.sprintf "%s%s" 
-                                    prefix arg in
+                                      prefix arg in
                                   (long_name, value)
                               )  args)
                           );
@@ -554,8 +554,12 @@ lprintf "Sending for %s" prefix; lprint_newline ();
                   | s :: _ -> s
                 else
                   List.assoc num gui.gui_searches in
-              networks_iter (fun r -> network_extend_search r s e)
-          
+              networks_iter (fun r -> 
+                  if s.search_network = 0 ||
+                    r.network_num = s.search_network
+                  then
+                    network_extend_search r s e)
+              
           | P.KillServer -> 
               exit_properly 0
           
@@ -579,8 +583,13 @@ lprintf "Sending for %s" prefix; lprint_newline ();
                   CommonEvent.add_event
                     (Search_new_result_event (gui, num, r))
               ) :: search.op_search_new_result_handlers;
-              networks_iter (fun r -> r.op_network_search search buf);
-
+              networks_iter (fun r -> 
+                  if search.search_network = 0 ||
+                    r.network_num = search.search_network
+                  then
+                    
+                    r.op_network_search search buf);
+              
 (*
         search.op_search_end_reply_handlers <- 
           (fun _ -> send_waiting gui num search.search_waiting) ::

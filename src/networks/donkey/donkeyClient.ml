@@ -953,8 +953,13 @@ lprint_newline ();
               Array.create file.file_nchunks true
             else
             if Array.length t.Q.chunks <> file.file_nchunks then begin
-                lprintf "BAD BAD BAD: number of chunks is different %d/%d for %s:%Ld on peer" (Array.length t.Q.chunks) file.file_nchunks (Md4.to_string file.file_md4) (file_size file);
-                lprint_newline ();
+                lprintf "BAD BAD BAD: number of chunks is different %d/%d for %s:%Ld on peer\n" (Array.length t.Q.chunks) file.file_nchunks (Md4.to_string file.file_md4) (file_size file);
+                lprintf "Peer info: name=[%s] md4=[%s] overnet=[%b] brand=[%s]\n" 
+                  c.client_name
+                  (Md4.to_string c.client_md4)
+                c.client_overnet
+                (brand_to_string c.client_brand)
+                ;
                 Array.create file.file_nchunks false
 (* What should we do ?
 

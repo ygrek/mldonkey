@@ -39,6 +39,7 @@ open GnutellaComplexOptions
 
 let g2_parse_redirector_page f =
   let s = File.to_string f in
+  clean_file s;
   let lines = String2.split_simplify s '\n' in
   List.iter (fun line ->
       match String2.split_simplify line '|' with

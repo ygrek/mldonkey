@@ -275,6 +275,7 @@ and search = {
     mutable search_closed : bool; (* should we continue to ask/wait for results *)
     mutable op_search_new_result_handlers : (result -> unit) list;
     mutable op_search_end_reply_handlers : (unit -> unit) list;
+    mutable search_network : int;
   }
 
 exception CommandCloseSocket

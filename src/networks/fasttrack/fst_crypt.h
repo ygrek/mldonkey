@@ -19,9 +19,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define FST_HEAVY_DBG(x)
-#define FST_DBG(x)
-#define FST_DBG_2(x,y,z)
+#if 0
+#define FST_HEAVY_DBG(x) printf(x)
+#define FST_DBG(x)       printf(x)
+#define FST_DBG_2(x,y,z) printf(x,y,z)
+#endif
+
+#define FST_HEAVY_DBG(x) 
+#define FST_DBG(x)       
+#define FST_DBG_2(x,y,z) 
 
 /*****************************************************************************/
 

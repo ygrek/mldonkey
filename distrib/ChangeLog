@@ -1,6 +1,16 @@
 ChangeLog	
 =========
 
+2003/05/20: Simon (release-2-4-4)
+  - Bug fix: the bug causing too many open file descriptors and pausing
+      recovered files maybe fixed.
+  - Gnutella:
+     * Fixed problem with \r in GWebCache
+  - Fasttrack:
+     * sig2dat:// links added
+     * Automatically replace spaces in client name by _
+  - Searches can be limited to particular network (bug fix in GUI)
+
 2003/05/19: Simon (release-2-4-3)
   - Applied patch #1503
   - Fasttrack: working good now :)

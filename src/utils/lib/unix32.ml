@@ -54,7 +54,6 @@ module FDCache = struct
           decr cache_size
       | None -> ()
     
-    
     let rec close_one () =
       if not (Fifo.empty cache) then
         let t = Fifo.take cache in
@@ -69,11 +68,10 @@ module FDCache = struct
       let fd = 
         match t.fd with
           None ->
-            if !cache_size >= !max_cache_size then
-              close_one ()
-            else incr cache_size;
+            if !cache_size >= !max_cache_size then  close_one ();
             let fd = Unix.openfile t.filename t.rights t.access in
-(*            lprintf "local_force: opening %d\n" (Obj.magic fd); *)
+            incr cache_size;
+(*            lprintf "local_force: opening %d\n" (Obj.magic fd);  *)
             Fifo.put cache t;
             t.fd <- Some fd;
             fd
@@ -318,6 +316,7 @@ type file_kind =
   
 type t = {
     file_kind : file_kind;
+    file_rights : Unix.open_flag list;
     mutable filename : string;
     mutable error : exn option;
     mutable buffers : (string * int * int * int64 * int64) list;    
@@ -328,7 +327,8 @@ module H = Weak2.Make(struct
       type t = old_t
       let hash t = Hashtbl.hash t.filename
       
-      let equal x y  = x.filename = y.filename
+      let equal x y  = 
+        x.filename = y.filename && x.file_rights = y.file_rights
     end)
 
 let dummy =  {
@@ -336,19 +336,21 @@ let dummy =  {
     filename = "";
     error = None;
     buffers = [];
+    file_rights = [];
   } 
 
 let table = H.create 100
 
 let create f r a = 
   try
-    H.find table { dummy with filename = f }
+    H.find table { dummy with filename = f; file_rights = r }
   with _ ->
       let t =  {
           file_kind = DiskFile (DiskFile.create f r a);
           filename = f;
           error = None;
           buffers = [];
+          file_rights = r;
         } in
       H.add table t;
       t
@@ -618,7 +620,6 @@ let file_exists s = exists (create_ro s)
 
 let rename t f = 
   close t;
-  t.filename <- f;
   match t.file_kind with
   | DiskFile t -> DiskFile.rename t f
   | SparseFile t -> SparseFile.rename t f

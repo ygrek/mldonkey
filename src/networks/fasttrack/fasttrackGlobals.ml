@@ -549,3 +549,16 @@ let parse_magnet url =
     ) url.Url.args;
     !name, !uids
   else raise Not_found
+
+let old_client_name = ref ""
+let ft_client_name = ref ""
+  
+  
+let client_name () = 
+  if !!client_name != !old_client_name then begin
+      ft_client_name := String.copy !!client_name;
+      old_client_name := !!client_name;
+      String2.replace_char !ft_client_name ' ' '_';
+    end;
+  !ft_client_name
+      

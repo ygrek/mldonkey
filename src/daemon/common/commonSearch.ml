@@ -58,6 +58,7 @@ let new_search user s =
       search_closed = false;
       op_search_new_result_handlers = [];
       op_search_end_reply_handlers = [];
+      search_network = s.GuiTypes.search_network;
     } in
   Hashtbl.add searches_by_num !search_num s;
   user.ui_user_searches <- s :: user.ui_user_searches ;

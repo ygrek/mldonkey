@@ -206,4 +206,27 @@ external cipher_packet_get : string -> int -> cipher -> cipher -> unit
 external cipher_packet_set : cipher -> string -> int -> unit
   = "ml_cipher_packet_set"
 external cipher_free : cipher -> unit = "ml_cipher_free"
-  
+
+(*
+
+  This should be used to check whether the encryption is OK on your platform.
+
+*)
+
+  (*
+  open Printf2
+
+let _ =
+  let cipher = create_cipher () in
+  init_cipher cipher (Int32.of_int 123456789) 0x29;
+  let s = String.create 12 in
+  cipher_packet_set cipher s 0;
+  assert (s = "ú\000¶+\007[Í\021né\135»");
+  lprintf "cipher_packet_set s = \"%s\"\n" (String.escaped s);
+  let s = "123456789abcdefghijklm\233\234\235" in
+  apply_cipher cipher s 0 (String.length s);
+  assert (s = "\016Òõñ\144Ug\028ZåÀ8°§À\008\139\019\018ZÁ7âúi");
+  lprintf "apply_cipher s = \"%s\"\n" (String.escaped s);
+  cipher_free cipher;
+
+*)

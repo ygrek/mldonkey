@@ -39,7 +39,7 @@ let _ =
   
 let client_port = define_option fasttrack_ini ["client_port"]
     "The port to bind the client to"
-    int_option 6346
+    int_option 1214
     
 let enabled = define_option fasttrack_ini
     ["fasttrack2_enabled"]
