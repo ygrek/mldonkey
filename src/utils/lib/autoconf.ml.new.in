@@ -1,0 +1,22 @@
+let current_dir = "@CURRENT_DIR@"
+let perl_path = "@PERL@"
+let check_bounds = @CHECKBOUNDS@
+let current_version = "@CURRENT_VERSION@-@CURRENT_RELEASE@"
+  
+  
+exception OutOfBoundsAccess
+let outofboundsaccess = OutOfBoundsAccess
+  
+let check_string s pos =
+  if check_bounds && pos >= String.length s then
+    raise outofboundsaccess
+  
+let check_array s pos =
+  if check_bounds && pos >= Array.length s then
+    raise outofboundsaccess
+
+let has_zlib = @HAS_ZLIB@
+let zlib__uncompress_string2 s = @ZLIB__UNCOMPRESS_STRING2@
+let zlib__compress_string s = @ZLIB__COMPRESS_STRING@
+
+@TYPE_FORMAT@

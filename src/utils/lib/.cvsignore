@@ -1,0 +1,9 @@
+http_lexer.ml
+*.cm?
+autoconf.ml
+cddb_lexer.ml
+md4sum
+autoconf.ml.new
+gAutoconf.ml
+gAutoconf.ml.new
+options.ml
