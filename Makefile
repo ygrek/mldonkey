@@ -115,7 +115,7 @@ all: byte
 .opt:
 .static:
 
-gui/gui_zog.ml: gui/gui.zog
+after_zoggy: gui/gui.zog
 	camlp4 pa_o.cmo -I `cdk_config -ocamllib` pa_zog.cma pr_o.cmo -impl gui/gui.zog > gui/gui_zog.ml
 
 gui/gui.ml: gui/gui_header.ml gui/gui_zog.ml gui/gui_trailer.ml

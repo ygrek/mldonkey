@@ -18,38 +18,38 @@ cdk/string2.cmo: cdk/string2.cmi
 cdk/string2.cmx: cdk/string2.cmi 
 cdk/sysenv.cmo: cdk/sysenv.cmi 
 cdk/sysenv.cmx: cdk/sysenv.cmi 
-configwin/configwin_ihm.cmo: configwin/configwin_messages.cmo \
-    configwin/configwin_types.cmo 
-configwin/configwin_ihm.cmx: configwin/configwin_messages.cmx \
-    configwin/configwin_types.cmx 
 configwin/configwin.cmo: configwin/configwin_ihm.cmo \
     configwin/configwin_types.cmo 
 configwin/configwin.cmx: configwin/configwin_ihm.cmx \
     configwin/configwin_types.cmx 
+configwin/configwin_ihm.cmo: configwin/configwin_messages.cmo \
+    configwin/configwin_types.cmo 
+configwin/configwin_ihm.cmx: configwin/configwin_messages.cmx \
+    configwin/configwin_types.cmx 
+mp3tagui/mp3.cmo: mp3tagui/mp3_args.cmo mp3tagui/mp3tagui.cmi 
+mp3tagui/mp3.cmx: mp3tagui/mp3_args.cmx mp3tagui/mp3tagui.cmx 
 mp3tagui/mp3_args.cmo: mp3tagui/mp3_messages.cmo 
 mp3tagui/mp3_args.cmx: mp3tagui/mp3_messages.cmx 
 mp3tagui/mp3_info.cmo: mp3tagui/mp3_info.cmi 
 mp3tagui/mp3_info.cmx: mp3tagui/mp3_info.cmi 
 mp3tagui/mp3_misc.cmo: mp3tagui/mp3_genres.cmo 
 mp3tagui/mp3_misc.cmx: mp3tagui/mp3_genres.cmx 
-mp3tagui/mp3.cmo: mp3tagui/mp3_args.cmo mp3tagui/mp3tagui.cmi 
-mp3tagui/mp3.cmx: mp3tagui/mp3_args.cmx mp3tagui/mp3tagui.cmx 
 mp3tagui/mp3_tag.cmo: mp3tagui/mp3_misc.cmo 
 mp3tagui/mp3_tag.cmx: mp3tagui/mp3_misc.cmx 
-mp3tagui/mp3tag.cmo: mp3tagui/mp3_genres.cmo mp3tagui/mp3_info.cmi \
-    mp3tagui/mp3_misc.cmo mp3tagui/mp3_tag.cmo mp3tagui/mp3tag.cmi 
-mp3tagui/mp3tag.cmx: mp3tagui/mp3_genres.cmx mp3tagui/mp3_info.cmx \
-    mp3tagui/mp3_misc.cmx mp3tagui/mp3_tag.cmx mp3tagui/mp3tag.cmi 
-mp3tagui/mp3tagui.cmo: mp3tagui/mp3_ui.cmi mp3tagui/mp3tagui.cmi 
-mp3tagui/mp3tagui.cmx: mp3tagui/mp3_ui.cmx mp3tagui/mp3tagui.cmi 
 mp3tagui/mp3_ui.cmo: configwin/configwin.cmo mp3tagui/mp3_genres.cmo \
     mp3tagui/mp3_messages.cmo mp3tagui/mp3_misc.cmo mp3tagui/mp3tag.cmi \
     mp3tagui/mp3_ui.cmi 
 mp3tagui/mp3_ui.cmx: configwin/configwin.cmx mp3tagui/mp3_genres.cmx \
     mp3tagui/mp3_messages.cmx mp3tagui/mp3_misc.cmx mp3tagui/mp3tag.cmx \
     mp3tagui/mp3_ui.cmi 
-mp3tagui/mp3tagui.cmi: mp3tagui/mp3tag.cmi 
+mp3tagui/mp3tag.cmo: mp3tagui/mp3_genres.cmo mp3tagui/mp3_info.cmi \
+    mp3tagui/mp3_misc.cmo mp3tagui/mp3_tag.cmo mp3tagui/mp3tag.cmi 
+mp3tagui/mp3tag.cmx: mp3tagui/mp3_genres.cmx mp3tagui/mp3_info.cmx \
+    mp3tagui/mp3_misc.cmx mp3tagui/mp3_tag.cmx mp3tagui/mp3tag.cmi 
+mp3tagui/mp3tagui.cmo: mp3tagui/mp3_ui.cmi mp3tagui/mp3tagui.cmi 
+mp3tagui/mp3tagui.cmx: mp3tagui/mp3_ui.cmx mp3tagui/mp3tagui.cmi 
 mp3tagui/mp3_ui.cmi: mp3tagui/mp3tag.cmi 
+mp3tagui/mp3tagui.cmi: mp3tagui/mp3tag.cmi 
 lib/client.cmo: net/basicSocket.cmi lib/ip.cmi lib/md4.cmi proto/mftp.cmo \
     secret/mftp_client.cmo secret/mftp_comm.cmi lib/options.cmi \
     net/tcpClientSocket.cmi 
@@ -293,14 +293,6 @@ client/downloadServers.cmi: net/basicSocket.cmi client/downloadTypes.cmo \
     proto/mftp.cmo 
 gui/gui_header.cmo: gui/gui_messages.cmo lib/options.cmi 
 gui/gui_header.cmx: gui/gui_messages.cmx lib/options.cmx 
-gui/gui.cmo: net/basicSocket.cmi gui/gui_messages.cmo gui/gui_proto.cmo \
-    gui/gui_types.cmo lib/ip.cmi cdk/list2.cmi lib/md4.cmi proto/mftp.cmo \
-    mp3tagui/mp3_ui.cmi mp3tagui/mp3tag.cmi lib/options.cmi cdk/printexc.cmi \
-    cdk/string2.cmi net/tcpClientSocket.cmi 
-gui/gui.cmx: net/basicSocket.cmx gui/gui_messages.cmx gui/gui_proto.cmx \
-    gui/gui_types.cmx lib/ip.cmx cdk/list2.cmx lib/md4.cmx proto/mftp.cmx \
-    mp3tagui/mp3_ui.cmx mp3tagui/mp3tag.cmx lib/options.cmx cdk/printexc.cmx \
-    cdk/string2.cmx net/tcpClientSocket.cmx 
 gui/gui_proto.cmo: gui/gui_types.cmo lib/ip.cmi lib/md4.cmi proto/mftp.cmo \
     mp3tagui/mp3tag.cmi 
 gui/gui_proto.cmx: gui/gui_types.cmx lib/ip.cmx lib/md4.cmx proto/mftp.cmx \
