@@ -290,6 +290,8 @@ let xpm_add_shared_directory =  define_option mldonkey_gui_section (xpm_label M.
     "" filename_option ""
 let xpm_download_directory =  define_option mldonkey_gui_section (xpm_label M.o_xpm_download_directory)
     "" filename_option ""
+let xpm_view_pending_slots =  define_option mldonkey_gui_section (xpm_label M.o_xpm_view_pending_slots)
+    "" filename_option ""
 
 let xpm_mini_toggle_display_all_servers = define_option mldonkey_gui_section
     (xpm_mini_label M.o_xpm_mini_toggle_display_all_servers)
@@ -313,6 +315,8 @@ let xpm_mini_close_room =  define_option mldonkey_gui_section (xpm_mini_label M.
 let xpm_mini_add_shared_directory =  define_option mldonkey_gui_section (xpm_label M.o_xpm_mini_add_shared_directory)
     "" filename_option ""
 let xpm_mini_download_directory =  define_option mldonkey_gui_section (xpm_label M.o_xpm_mini_download_directory)
+    "" filename_option ""
+let xpm_mini_view_pending_slots =  define_option mldonkey_gui_section (xpm_label M.o_xpm_mini_view_pending_slots)
     "" filename_option ""
 
 let xpm_nbk_networks_on = define_option mldonkey_gui_section (xpm_label M.o_xpm_nbk_networks_on)
@@ -433,7 +437,9 @@ let xpm_blacklistedhost = define_option mldonkey_gui_section (xpm_label M.o_xpm_
     "" filename_option ""
 let xpm_files_listed = define_option mldonkey_gui_section (xpm_label M.o_xpm_files_listed)
     "" filename_option ""
-let xpm_server_c = define_option mldonkey_gui_section (xpm_label M.o_xpm_server_c)
+let xpm_server_c_low = define_option mldonkey_gui_section (xpm_label M.o_xpm_server_c_low)
+    "" filename_option ""
+let xpm_server_c_high = define_option mldonkey_gui_section (xpm_label M.o_xpm_server_c_high)
     "" filename_option ""
 let xpm_server_ci = define_option mldonkey_gui_section (xpm_label M.o_xpm_server_ci)
     "" filename_option ""
@@ -651,6 +657,7 @@ let downloads_columns = define_option mldonkey_gui_section
    C.Col_file_size ; C.Col_file_downloaded ;
    C.Col_file_percent ; C.Col_file_rate ;
    C.Col_file_state ; C.Col_file_eta;
+   C.Col_file_status;
   ]
 
 (** {3 Clients} *)
@@ -991,6 +998,7 @@ let table = [
   M.o_xpm_close_room, (Trash_xpm.t, xpm_close_room) ;
   M.o_xpm_add_shared_directory, (Add_shared_directory_xpm.t, xpm_add_shared_directory);
   M.o_xpm_download_directory, (Download_directory_xpm.t, xpm_download_directory);
+  M.o_xpm_view_pending_slots,(View_pending_slots_xpm.t, xpm_view_pending_slots); 
 
   M.o_xpm_mini_toggle_display_all_servers, (
       Toggle_display_all_servers_xpm.mini, xpm_mini_toggle_display_all_servers);
@@ -1004,6 +1012,7 @@ let table = [
   M.o_xpm_mini_close_room, (Trash_xpm.mini, xpm_mini_close_room) ;
   M.o_xpm_mini_add_shared_directory, (Add_shared_directory_xpm.mini, xpm_mini_add_shared_directory);
   M.o_xpm_mini_download_directory, (Download_directory_xpm.mini, xpm_mini_download_directory);
+  M.o_xpm_mini_view_pending_slots,(View_pending_slots_xpm.mini, xpm_mini_view_pending_slots); 
 
   M.o_xpm_nbk_networks_on, (Nbk_networks_on_xpm.t, xpm_nbk_networks_on);
   M.o_xpm_nbk_networks_off, (bw_of Nbk_networks_on_xpm.t, xpm_nbk_networks_off);
@@ -1067,7 +1076,8 @@ let table = [
   M.o_xpm_blacklistedhost, (Blacklistedhost_xpm.t, xpm_blacklistedhost);
   M.o_xpm_files_listed, (Files_listed_xpm.t, xpm_files_listed);
   
-  M.o_xpm_server_c, (Server_c_xpm.t, xpm_server_c);
+  M.o_xpm_server_c_low, (Server_c_low_xpm.t, xpm_server_c_low);
+  M.o_xpm_server_c_high, (Server_c_high_xpm.t, xpm_server_c_high);
   M.o_xpm_server_ci, (Server_ci_xpm.t, xpm_server_ci);
   M.o_xpm_server_nc, (Server_nc_xpm.t, xpm_server_nc);
 

@@ -36,7 +36,8 @@ let (!!) = Options.(!!)
 let string_color_of_state state =
   match state with
   | Connected_downloading _ -> gettext M.downloading, Some !!O.color_downloading 
-  | Connected (-1) -> gettext M.connected, Some !!O.color_connected 
+  | Connected (-1)
+  | Connected (-2) -> gettext M.connected, Some !!O.color_connected 
   | Connecting  -> gettext M.connecting, Some !!O.color_connecting
   | NewHost -> "NEW HOST", None
   | Connected_initiating -> gettext M.initiating, Some !!O.color_not_connected

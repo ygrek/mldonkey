@@ -11,7 +11,7 @@ MYCONFIG_ARGS_DEFINED=yes
 echo $MYCONFIG_ARGS
 
 CURRENT_VERSION=2.5
-CURRENT_RELEASE=10
+CURRENT_RELEASE=11
 
 REQUIRED_OCAML=3.07
 DOWNLOAD_OCAML=3.07pl2
@@ -60,6 +60,8 @@ if test ! "$MULTINET" = "yes"; then
   OPENFT=no
   CYMES=no
   FASTTRACK=no
+  FILETP=no
+  BITTORRENT=no
   RELEASENAME="$RELEASENAME-nomultinet"
 fi
 
@@ -380,39 +382,13 @@ fi
 ICONV=no
 AC_CHECK_LIB(iconv,iconv_open,[ICONV=yes])
 
-
-AC_CHECK_HEADERS(endian.h,,[	
-	  echo "Do you want this script to install endian.h to /usr/include (y/n)?"
-	  read i
-	  case "$i" in
-	   y* | Y*)
-		echo "Will now try to copy endian.h to /usr/include/"
-		cp -i ../include/endian.h /usr/include
-		mkdir -vp /usr/include/bits
-		cp -i ../include/bits/endian.h /usr/include/bits/
-                  ;;
-	   *) 
-		exit 1
-                  ;;
-	  esac
-		])
-
-AC_CHECK_HEADERS(byteswap.h,,[	
-	  echo "Do you want this script to install byteswap.h to /usr/include (y/n)?"
-	  read i
-	  case "$i" in
-	   y* | Y*)
-		echo "Will now try to copy byteswap.h to /usr/include/"
-		cp -i ../include/byteswap.h /usr/include
-		mkdir -vp /usr/include/bits
-		cp -i ../include/bits/byteswap.h /usr/include/bits/
-                  ;;
-	   *) 
-		exit 1
-                  ;;
-	  esac
-		])
-
+SHA1_VERSION=sha1new
+AC_CHECK_HEADERS(endian.h byteswap.h,,[
+    echo "You don't have endian.h and byteswap.h installed."
+    echo "this script will fallback on the old slower sha1 implementation"
+    echo "see 'here' for more informations about this issue"
+    SHA1_VERSION=sha1old
+    ])
 
 # On linux plaforms, we will have to check that includes from kernel are
 # available.
@@ -794,7 +770,7 @@ AC_SUBST(PERL)
 AC_SUBST(OCAMLMKTOP)
 AC_SUBST(WINDOWS)
 
-
+AC_SUBST(SHA1_VERSION)
 AC_SUBST(MORE_TARGETS)
 AC_SUBST(MORE_SUBDIRS)
 AC_SUBST(LABLGL_CMA)

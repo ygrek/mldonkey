@@ -912,7 +912,8 @@ let udp_client_handler t p =
             
             List.iter (fun p -> add_search_peer s p; add_global_peer p) peers
           end
-        with _ -> lprintf "NO SUCH SEARCH: %s\n" (Md4.to_string md4);
+        with _ -> ()
+	(* lprintf "NO SUCH SEARCH: %s\n" (Md4.to_string md4); *)
       end
   | OvernetNoResult(md4) -> 
       if !verbose_overnet && debug_client other_ip then
@@ -1029,8 +1030,8 @@ PARE DI NO. FARE DELLE PROVE INTERROGANDO L'IP INDICATO RELATIVAMENTE AL MD4 IND
                 
                 end;
         
-        with _ ->
-            lprintf "NO SUCH SEARCH..."; lprint_newline ();
+        with _ -> ()
+(*            lprintf "NO SUCH SEARCH..."; lprint_newline (); *)
       end
   
   | OvernetFirewallConnectionACK(md4) -> 

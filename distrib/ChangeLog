@@ -1,6 +1,13 @@
 ChangeLog	
 =========
 
+2004/02/10: Fabrice (version 2.5.11, tag release-2-5-11)
+  - New GUI protocol 24, all times in relative-time.
+  - Re-applied patch #2603
+  - ./config/configure.in: select former or new implementation of sha1
+      depending on the presence of byteswap.h and endian.h.
+  - Applied patches #2611, #2612, #2613, #2614 
+
 2004/02/09: Fabrice (version 2.5.10, tag release-2-5-10)
   * Applied patches sha1, #2597, #2603, #2604
   * New GUI messages: 

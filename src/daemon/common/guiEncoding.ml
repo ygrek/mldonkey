@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open BasicSocket
 open Printf2
 open CommonFile
 open Md4
@@ -58,7 +59,7 @@ let gui_send writer sock t =
 
 let buf = () (* lots of buf variables here. Be sure not to use a previously
   defined one *)
-
+    
 let buf_list buf f list =
   buf_int16 buf (List.length list);
   List.iter (fun x -> f buf x) list
@@ -75,8 +76,18 @@ let buf_float buf f =
   let i = int_of_float f in
   buf_string buf (Printf.sprintf "%d.%d" i (int_of_float ((f -. float_of_int i) *. 100.)))
 
-let buf_int_float buf f =
-  buf_string buf (Printf.sprintf "%.0f" (BasicSocket.date_of_int f))
+let buf_float_date proto buf date =
+(*  lprintf "buf_float_date(%d): %d\n" proto date; *)
+  if proto > 23 then
+    buf_int buf (last_time () - date)
+  else
+    buf_string buf (Printf.sprintf "%.0f" (BasicSocket.date_of_int date))
+
+let buf_int_date proto buf date =
+  if proto > 23 then
+    buf_int buf (last_time () - date)
+  else
+    buf_int buf date
   
 let rec buf_query buf q =
   match q with
@@ -290,8 +301,8 @@ let buf_file proto buf f =
         [] -> ""
       | (_, av) :: _ -> av);
   buf_float buf f.file_download_rate;  
-  buf_array buf buf_int_float f.file_chunks_age;  
-  buf_int_float buf f.file_age;
+  buf_array buf (buf_float_date proto) f.file_chunks_age;  
+  buf_float_date proto buf f.file_age;
 (* last, so that it can be safely discarded in partial implementations: *)
   buf_format buf f.file_format;
   if proto >= 8 then 
@@ -345,15 +356,11 @@ let buf_client proto buf c =
       buf_string buf c.client_software;
       buf_int64 buf c.client_downloaded;
       buf_int64 buf c.client_uploaded;
-(*      buf_string buf c.client_sock_addr; *)
       (match c.client_upload with
           Some s -> buf_string buf s
         | None -> buf_string buf "");
       if proto >= 20 then begin
-        if proto >= 22 then
-          buf_int buf (BasicSocket.last_time() - c.client_connect_time)
-        else
-          buf_int buf c.client_connect_time;
+          buf_int_date proto buf c.client_connect_time
       end;
       if proto >= 21 then
         buf_string buf c.client_emulemod;
@@ -864,7 +871,7 @@ protocol version. Do not send them ? *)
         (Printexc2.to_string e)
         
         
-let best_gui_version = 23
+let best_gui_version = 24
   
 (********** Some assertions *********)
   
@@ -884,63 +891,67 @@ let _ =
       let s = Buffer.contents buf in
       let opcode = get_int16 s 0 in
       let v = decoder opcode s in
-      if (decoder opcode s <> msg) then begin
+      if (v <> msg) then begin
           AnyEndian.dump s;
           let buf = Buffer.create 1000 in
           encoder buf msg;
           let s2 = Buffer.contents buf in
           AnyEndian.dump s2;
           if s = s2 then
-            (lprintf "s = s2"; lprint_newline (); false)
+            (lprintf "s = s2\n"; false)
           else
           let len = String.length s in
           let len2 = String.length s2 in
           if len <> len2 then
-            (lprintf "different lengths"; lprint_newline (); false)
+            (lprintf "different lengths\n"; false)
           else
             (for i = 0 to len-1 do
                 if s.[i] <> s2.[i] then
-                  lprintf "diff at pos %d(%d)" i
-                    (int_of_char s.[i]); lprint_newline ();
+                  lprintf "diff at pos %d(%d)\n" i
+                    (int_of_char s.[i]);
               done;
               false)
         end else
-      true
-        
+        true
+    
     with e ->
-        lprintf "Exception %s in check" (Printexc2.to_string e);
-        lprint_newline ();
+        lprintf "Exception %s in check\n" (Printexc2.to_string e);
+        
         false
   in
 (* and    server_info = {
       server_num = 1;
 } *)
-  let proto = Array.create (to_gui_last_opcode+1) best_gui_version in
-  let to_gui = to_gui proto in
-  let check_to_gui = 
-    check to_gui (GuiDecoding.to_gui proto) in
-  assert (check_to_gui (MessageFromClient (32, "Hello")));
+  
+  for best_gui_version = best_gui_version downto 20 do
+(*     lprintf "best_gui_version: %d\n" best_gui_version; *)
+    let proto = Array.create (to_gui_last_opcode+1) best_gui_version in
+    let to_gui = to_gui proto in
+    let check_to_gui = 
+      check to_gui (GuiDecoding.to_gui proto) in
+    assert (check_to_gui (MessageFromClient (32, "Hello")));
 (*  assert (check_to_gui (File_info file_info_test));  *)
-  assert (check_to_gui (DownloadFiles [file_info_test]));
-  assert (check_to_gui (DownloadedFiles [file_info_test]));  
-  assert (check_to_gui (ConnectedServers []));    
-  assert (check_to_gui (Room_remove_user (5,6)));
-  assert (check_to_gui (Shared_file_upload (1, Int64.zero, 32)));
-  assert (check_to_gui (Shared_file_unshared 2));
+    assert (check_to_gui (DownloadFiles [file_info_test]));
+    assert (check_to_gui (DownloadedFiles [file_info_test]));  
+    assert (check_to_gui (ConnectedServers []));    
+    assert (check_to_gui (Room_remove_user (5,6)));
+    assert (check_to_gui (Shared_file_upload (1, Int64.zero, 32)));
+    assert (check_to_gui (Shared_file_unshared 2));
 (* Shared_file_info ??? *)
-  (*
+(*
   assert (check_to_gui (Add_section_option ("section", "message", "option", StringEntry )));
   assert (check_to_gui (Add_plugin_option ("section", "message", "option", StringEntry )));
 *)  
-  let check_from_gui = 
-    check (from_gui proto)  (GuiDecoding.from_gui proto) in
-  assert (check_from_gui (MessageToClient (33, "Bye")));
-  assert (check_from_gui (GuiExtensions [1, true; 2, false]));
-  assert (check_from_gui GetConnectedServers);
-  assert (check_from_gui GetDownloadFiles);
-  assert (check_from_gui GetDownloadedFiles);
-  assert (check_from_gui (SetRoomState (5, RoomPaused)));
-  assert (check_from_gui RefreshUploadStats) ; 
-  assert (check_from_gui (SetFilePriority (5,6)));
-  assert (check_from_gui (Password ("mldonkey", "toto")));
+    let check_from_gui = 
+      check (from_gui proto)  (GuiDecoding.from_gui proto) in
+    assert (check_from_gui (MessageToClient (33, "Bye")));
+    assert (check_from_gui (GuiExtensions [1, true; 2, false]));
+    assert (check_from_gui GetConnectedServers);
+    assert (check_from_gui GetDownloadFiles);
+    assert (check_from_gui GetDownloadedFiles);
+    assert (check_from_gui (SetRoomState (5, RoomPaused)));
+    assert (check_from_gui RefreshUploadStats) ; 
+    assert (check_from_gui (SetFilePriority (5,6)));
+    assert (check_from_gui (Password ("mldonkey", "toto")));
+  done
   

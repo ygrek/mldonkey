@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open BasicSocket
 open Int32ops
 open Printf2
 open Md4
@@ -294,9 +295,24 @@ let get_float s pos =
   let s, pos = get_string s pos in
   float_of_string s, pos
 
-let get_int_float s pos = 
-  let s, pos = get_string s pos in
-  BasicSocket.normalize_time (int_of_float (float_of_string s)), pos
+let get_float_date proto s pos = 
+  let date, pos =
+    if proto > 23 then
+      let date = get_int s pos in
+      last_time () - date, pos + 4
+    else
+    let s, pos = get_string s pos in
+    BasicSocket.normalize_time (int_of_float (float_of_string s)), pos
+  in
+(*  lprintf "get_float_date(%d): %d\n" proto date; *)
+  date, pos
+  
+let get_int_date proto s pos = 
+  if proto > 23 then
+    let date = get_int s pos in
+    last_time () - date, pos + 4
+  else
+  get_int s pos, pos + 4
 
 let get_int_pos s pos =
   get_int s pos, pos + 4
@@ -324,8 +340,8 @@ let get_file proto s pos =
     let avail, pos = get_string s pos in
     [net, avail], pos in
   let rate, pos = get_float s pos in
-  let chunks_age, pos = get_array get_int_float s pos in
-  let age, pos = get_int_float s pos in
+  let chunks_age, pos = get_array (get_float_date proto) s pos in
+  let age, pos = get_float_date proto s pos in
   let format, pos = get_format s pos in
   let name, pos = if proto >= 8 then
       get_string s pos else List.hd names, pos in
@@ -336,26 +352,28 @@ let get_file proto s pos =
   let comment, pos = if proto > 21 then
       get_string s pos
     else "", pos in
-  (*
-  assert (num = file_info.file_num);
-  assert (net = file_info.file_network);
-  assert (names = file_info.file_names);
-  assert (md4 = file_info.file_md4);
-  assert (size = file_info.file_size);
-  assert (downloaded = file_info.file_downloaded);
-  assert (nlocations = file_info.file_nlocations);
-  assert (nclients = file_info.file_nclients);
-  assert (state = file_info.file_state);
-  assert (chunks = file_info.file_chunks);
-  assert (availability = file_info.file_availability);
-  assert (rate = file_info.file_download_rate);
-  assert (chunks_age = file_info.file_chunks_age);
-  assert (age = file_info.file_age);
-assert (last_seen = file_info.file_last_seen);
-  assert (name = file_info.file_name);
-assert (priority = file_info.file_priority);
-*)
   let names = List.map (fun name -> name, noips()) names in
+  let last_seen = BasicSocket.last_time () - last_seen in
+  
+  (*
+  assert (num = file_info_test.file_num);
+  assert (net = file_info_test.file_network);
+  assert (names = file_info_test.file_names);
+  assert (md4 = file_info_test.file_md4);
+  assert (size = file_info_test.file_size);
+  assert (downloaded = file_info_test.file_downloaded);
+  assert (nlocations = file_info_test.file_nlocations);
+  assert (nclients = file_info_test.file_nclients);
+  assert (state = file_info_test.file_state);
+  assert (chunks = file_info_test.file_chunks);
+  assert (availability = file_info_test.file_availability);
+  assert (rate = file_info_test.file_download_rate);
+  assert (chunks_age = file_info_test.file_chunks_age);
+  assert (age = file_info_test.file_age);
+  assert (last_seen = file_info_test.file_last_seen);
+  assert (name = file_info_test.file_name);
+  assert (priority = file_info_test.file_priority);
+*)
   
   {
     file_comment = comment;
@@ -376,7 +394,7 @@ assert (priority = file_info.file_priority);
     file_format = format;
     file_sources = None;
     file_name = name;
-    file_last_seen = BasicSocket.last_time () - last_seen;
+    file_last_seen = last_seen;
     file_priority = priority;
     file_uids = [];
   }, pos
@@ -394,7 +412,7 @@ let get_host_state proto s pos =
   | 7 -> RemovedHost
   | 8 -> BlackListedHost
   | 9 -> NotConnected (BasicSocket.Closed_by_user,0)
-  | 10 -> Connected (-1) 
+  | 10 -> Connected (-2) 
   | _ -> assert false), pos+1
   else
   match get_uint8 s pos with
@@ -412,7 +430,7 @@ let get_host_state proto s pos =
   | 8 -> BlackListedHost, pos+1
   | 9 -> NotConnected (BasicSocket.Closed_by_user,
      get_int s (pos+1)), pos+5
-  | 10 -> Connected (-1), pos+1
+  | 10 -> Connected (-2), pos+1
   | _ -> assert false
 
 
@@ -527,8 +545,8 @@ let get_client proto s pos =
   in
   let connect_time, pos = 
     if proto >= 20 then
-      get_int s pos, (pos+4)
-      else 0, pos
+      get_int_date proto s pos
+    else 0, pos
   in
   let emulemod, pos =
     if proto >= 21 then
@@ -1378,14 +1396,14 @@ let to_gui (proto : int array) opcode s =
         Search s
         
     | _ -> 
-        lprintf "TO GUI:Unknown message %d" opcode; lprint_newline ();
+        lprintf "TO GUI:Unknown message %d\n" opcode; 
         raise Not_found
 
 
   with e ->
-      lprintf "Decoding gui proto[%d]: exception %s, opcode %d" proto.(opcode)
+      lprintf "Decoding gui proto[%d]: exception %s, opcode %d\n" proto.(opcode)
         (Printexc2.to_string e) opcode;
-      lprint_newline ();
+      
       dump s;
       lprint_newline ();
       raise e

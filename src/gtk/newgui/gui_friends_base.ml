@@ -1,20 +1,33 @@
 class box () =
   let vbox = GPack.vbox ~homogeneous:false () in
+  let evbox = GBin.event_box ~packing:(vbox#pack ~expand:false ~fill:false) () in
+  let _anonymous_container_2 =
+    GPack.hbox ~border_width:2 ~homogeneous:false ~packing:(evbox#add) ()
+  in
+  let label =
+    GMisc.label ~text:(Gui_messages.uT_lb_uploaders)
+      ~justify:`LEFT ~line_wrap:true
+      ~packing:(_anonymous_container_2#pack ~expand:false ~fill:true ~padding:3) ()
+  in
   let wtool1 =
     GButton.toolbar ~orientation:`HORIZONTAL ~style:`BOTH ~space_size:2
       ~space_style:`LINE ~tooltips:true ~button_relief:`NONE
-      ~packing:(vbox#pack ~expand:false ~fill:true ~padding:2) ()
+      ~packing:(_anonymous_container_2#pack ~expand:false ~fill:true ~padding:2) ()
   in
   let wtool2 =
     GButton.toolbar ~orientation:`HORIZONTAL ~style:`BOTH ~space_size:2
       ~space_style:`LINE ~tooltips:true ~button_relief:`NONE
-      ~packing:(vbox#pack ~expand:false ~fill:true ~padding:2) ()
+      ~packing:(_anonymous_container_2#pack ~expand:false ~fill:true ~padding:2) ()
   in
   object
     val vbox = vbox
+    val evbox = evbox
+    val label = label
     val wtool1 = wtool1
     val wtool2 = wtool2
     method vbox = vbox
+    method evbox = evbox
+    method label = label
     method wtool1 = wtool1
     method wtool2 = wtool2
     method coerce = vbox#coerce

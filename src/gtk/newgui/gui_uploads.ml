@@ -237,6 +237,12 @@ class upstats_box () =
     method clean_table clients =
       uploaders#clean_table clients
 
+    method h_update_uploaders l =
+      uploaders#update_uploaders l
+
+    method h_update_pending_slots l =
+      uploaders#update_pending_slots l
+
     method refresh () =
       Gui_com.send GuiProto.RefreshUploadStats
     
@@ -250,6 +256,7 @@ class upstats_box () =
       uploaders#update_icons b
 
     method set_tb_style tb = 
+      uploaders#set_tb_style tb; 
       if Options.(!!) Gui_options.mini_toolbars then
         (wtool1#misc#hide (); wtool2#misc#show ()) else
         (wtool2#misc#hide (); wtool1#misc#show ());
@@ -281,12 +288,6 @@ class upstats_box () =
       let style = label_shared_files#misc#style#copy in
       style#set_fg [ (`NORMAL, `WHITE)];
       label_shared_files#misc#set_style style;
-      let style = evbox2#misc#style#copy in
-      style#set_bg [ (`NORMAL, (`NAME "#494949"))];
-      evbox2#misc#set_style style;
-      let style = label_uploaders#misc#style#copy in
-      style#set_fg [ (`NORMAL, `WHITE)];
-      label_uploaders#misc#set_style style;
 
       Gui_misc.insert_buttons wtool1 wtool2 
         ~text: (M.uT_lb_add_shared_directory)

@@ -78,7 +78,7 @@ extern "C"
 #define BRG_BIG_ENDIAN      4321 /* byte 0 is most significant (mc68k) */
 
 #if defined(__GNUC__) || defined(__GNU_LIBRARY__)
-#  if defined(__FreeBSD__) || defined(__OpenBSD__)
+#  if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
 #    include <sys/endian.h>
 #  elif defined( BSD ) && ( BSD >= 199103 )
 #      include <machine/endian.h>
@@ -230,7 +230,7 @@ extern "C"
     one_cycle(v, 2,3,4,0,1, f,k,hf(i+3));   \
     one_cycle(v, 1,2,3,4,0, f,k,hf(i+4))
 
-void sha1_compile(sha1_ctx ctx[1])
+void sha1_compile(sha1_context ctx[1])
 {   sha1_32t    *w = ctx->wbuf;
 
 #ifdef ARRAY
@@ -286,7 +286,7 @@ void sha1_compile(sha1_ctx ctx[1])
 #endif
 }
 
-void sha1_begin(sha1_ctx ctx[1])
+int sha1_begin(SHA1_CTX* ctx)
 {
     ctx->count[0] = ctx->count[1] = 0;
     ctx->hash[0] = 0x67452301;
@@ -294,12 +294,14 @@ void sha1_begin(sha1_ctx ctx[1])
     ctx->hash[2] = 0x98badcfe;
     ctx->hash[3] = 0x10325476;
     ctx->hash[4] = 0xc3d2e1f0;
+
+    return 0;
 }
 
 /* SHA1 hash data in an array of bytes into hash buffer and */
 /* call the hash_compile function as required.              */
 
-void sha1_hash(sha1_ctx ctx[1], const unsigned char data[], unsigned long len)
+int sha1_hash(SHA1_CTX* ctx, const unsigned char data[], unsigned long len)
 {   sha1_32t pos = (sha1_32t)(ctx->count[0] & SHA1_MASK),
             space = SHA1_BLOCK_SIZE - pos;
     const unsigned char *sp = data;
@@ -316,11 +318,12 @@ void sha1_hash(sha1_ctx ctx[1], const unsigned char data[], unsigned long len)
     }
 
     memcpy(((unsigned char*)ctx->wbuf) + pos, sp, len);
+    return 0;
 }
 
 /* SHA1 final padding and digest calculation  */
 
-void sha1_end(sha1_ctx ctx[1], unsigned char hval[])
+int sha1_end(SHA1_CTX* ctx, unsigned char hval[])
 {   sha1_32t    i = (sha1_32t)(ctx->count[0] & SHA1_MASK);
 
     /* put bytes in the buffer in an order in which references to   */
@@ -362,10 +365,12 @@ void sha1_end(sha1_ctx ctx[1], unsigned char hval[])
     /* misaligned for 32-bit words                                  */
     for(i = 0; i < SHA1_DIGEST_SIZE; ++i)
         hval[i] = (unsigned char)(ctx->hash[i >> 2] >> (8 * (~i & 3)));
+
+    return 0;
 }
 
 void sha1(unsigned char hval[], const unsigned char data[], unsigned long len)
-{   sha1_ctx    cx[1];
+{   sha1_context    cx[1];
 
     sha1_begin(cx); sha1_hash(cx, data, len); sha1_end( cx, hval);
     }

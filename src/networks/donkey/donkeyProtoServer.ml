@@ -1129,7 +1129,7 @@ let rec parse magic s =
         end
     | 0xD4 -> (* 212 *)
         
-        lprintf "Compressed Message...\n";
+(*        lprintf "Compressed Message...\n"; *)
         
         if Autoconf.has_zlib then
           let s = Autoconf.zlib__uncompress_string2 (String.sub s 1 (len-1)) in

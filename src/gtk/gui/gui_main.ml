@@ -514,6 +514,9 @@ fichier selectionne. Si ca marche toujours dans ton interface, pas de
           enter a valid password"
     | GiftServerAttach _
     | GiftServerStats _ -> assert false
+    | Uploaders l -> ()
+    | Pending l -> ()
+
   with e ->
       lprintf "Exception %s in reader\n" (Printexc2.to_string e)
 

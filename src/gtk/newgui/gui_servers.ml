@@ -113,12 +113,13 @@ let is_filtered s =
 let state_pixmap state =
     match state with
         Connected_downloading _ -> O.gdk_pix M.o_xpm_downloading
-      | Connected (-1) -> O.gdk_pix M.o_xpm_server_c
+      | Connected (-1) -> O.gdk_pix M.o_xpm_server_c_low
+      | Connected (-2) -> O.gdk_pix M.o_xpm_server_c_high
       | Connecting  -> O.gdk_pix M.o_xpm_server_ci
       | NewHost -> O.gdk_pix M.o_xpm_server_nc
       | Connected_initiating -> O.gdk_pix M.o_xpm_server_ci
-      | Connected 0 -> O.gdk_pix M.o_xpm_server_c
-      | Connected n -> O.gdk_pix M.o_xpm_server_c
+      | Connected 0 -> O.gdk_pix M.o_xpm_server_c_low
+      | Connected n -> O.gdk_pix M.o_xpm_server_c_low
       | NotConnected (_,n) -> O.gdk_pix M.o_xpm_server_nc
       | RemovedHost -> O.gdk_pix M.o_xpm_removedhost
       | BlackListedHost -> O.gdk_pix M.o_xpm_blacklistedhost

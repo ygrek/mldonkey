@@ -305,7 +305,12 @@ let string_of_format format =
 	tag.M.tracknum tag.M.title
   | _ -> (M.dT_tx_unknown)
 
+let max_last_seen = 100 * 24 * 3600
+
 let time_to_string time =
+  if time = max_last_seen 
+    then "--"
+    else begin
   let days = time / 60 / 60 / 24 in
   let rest = time - days * 60 * 60 * 24 in
   let hours = rest / 60 / 60 in
@@ -317,6 +322,7 @@ let time_to_string time =
     else if hours > 0
     then Printf.sprintf " %d:%02d:%02d " hours minutes seconds
     else Printf.sprintf " %d:%02d " minutes seconds
+    end
 
 let max_eta = 1000.0 *. 60.0 *. 60.0 *. 24.0
     
@@ -324,16 +330,11 @@ let calc_file_eta f =
   let size = Int64.to_float f.data.gfile_size in
   let downloaded = Int64.to_float f.data.gfile_downloaded in
   let missing = size -. downloaded in
-  let rate = f.data.gfile_download_rate in
   let rate =
-    if rate = 0.
-    then
-      let time = BasicSocket.last_time () in
-      let age = time - f.data.gfile_age in
+      let age = f.data.gfile_age in
       if age > 0
       then downloaded /. (float_of_int age)
       else 0.
-    else rate
   in
   let eta = 
     if rate = 0.0 then max_eta else
@@ -452,8 +453,7 @@ class box columns sel_mode () =
       | Col_file_md4 -> compare (Md4.to_string f1.data.gfile_md4) (Md4.to_string f2.data.gfile_md4)
       | Col_file_format -> compare f1.data.gfile_format f2.data.gfile_format
       | Col_file_network -> compare f1.data.gfile_network f2.data.gfile_network
-      | Col_file_age -> compare f1.data.gfile_age f2.data.gfile_age
-      | Col_file_last_seen -> compare f1.data.gfile_last_seen f2.data.gfile_last_seen
+      | Col_file_status -> compare f1.data.gfile_age f2.data.gfile_age
       | Col_file_eta -> compare (calc_file_eta f1) (calc_file_eta f2)
       | Col_file_priority -> compare f1.data.gfile_priority f2.data.gfile_priority
     
@@ -508,19 +508,17 @@ class box columns sel_mode () =
             string_of_format f.data.gfile_format
             else ""
       | Col_file_network -> Gui_global.network_name f.data.gfile_network
-      |	Col_file_age ->
-          if (List.length f.data.gfile_num) = 1 then
-            let age = (BasicSocket.last_time ()) - f.data.gfile_age in
-          time_to_string age
-            else ""
-      |	Col_file_last_seen ->
-          if (List.length f.data.gfile_num) = 1 then
-            if f.data.gfile_last_seen > 0 then
-              let last = (BasicSocket.last_time ())
-                - f.data.gfile_last_seen in
-              time_to_string last
-              else Printf.sprintf "---"
-            else ""
+      |	Col_file_status ->
+          if (List.length f.data.gfile_num) = 1 
+            then begin
+              let age = time_to_string f.data.gfile_age in
+              let last = 
+                if f.data.gfile_last_seen > 0
+                  then time_to_string f.data.gfile_last_seen
+                  else "--"
+              in
+              Printf.sprintf "%s / %s" last age
+            end else ""
       | Col_file_eta ->
           if (List.length f.data.gfile_num) = 1 then
           let eta = calc_file_eta f in
@@ -967,8 +965,8 @@ class box_downloads wl_status () =
       f.data.gfile_state <- (file_to_general_state f_new.file_state) ;
       f.data.gfile_download_rate <- f_new.file_download_rate ;
       f.data.gfile_format <- f_new.file_format;
-      f.data.gfile_age <- f_new.file_age;
-      f.data.gfile_last_seen <- f_new.file_last_seen;
+      f.data.gfile_age <- (BasicSocket.last_time () - f_new.file_age);
+      f.data.gfile_last_seen <- (BasicSocket.last_time () - f_new.file_last_seen);
       if f.data.gfile_priority <> f_new.file_priority then
            begin
              f.data.gfile_priority <- f_new.file_priority;
@@ -1039,8 +1037,8 @@ class box_downloads wl_status () =
         gfile_download_rate = f.file_download_rate;
         gfile_format = f.file_format;
         (* file_chunks_age is useless => ignored *)
-        gfile_age = f.file_age;
-        gfile_last_seen = f.file_last_seen;
+        gfile_age = (BasicSocket.last_time () - f.file_age);
+        gfile_last_seen = (BasicSocket.last_time () - f.file_last_seen);
         gfile_priority = f.file_priority;
         gfile_type = 0;
         gfile_pixmap =
@@ -1119,13 +1117,13 @@ class box_downloads wl_status () =
         let (row, f) = self#find_file [num] in
         f.data.gfile_downloaded <- dled;
         f.data.gfile_download_rate <- rate;
-        f.data.gfile_last_seen <- last
+        f.data.gfile_last_seen <- (BasicSocket.last_time () - last)
       with Not_found -> ()
     
     method h_file_age num age =
       try
         let (_, f) = self#find_file [num] in
-        f.data.gfile_age <- age
+        f.data.gfile_age <- (BasicSocket.last_time () - age)
       with Not_found -> ()
         
     method make_child file client_num avail =

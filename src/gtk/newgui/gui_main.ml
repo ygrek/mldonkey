@@ -430,12 +430,16 @@ let value_reader gui t =
           ~title:(M.pW_wt_bad_password)
           (M.pW_lb_bad_password)
     
+    | Uploaders l ->
+        gui#tab_uploads#h_update_uploaders l
+
+    | Pending l ->
+        gui#tab_uploads#h_update_pending_slots l
+
     | GiftServerAttach _
     | GiftServerStats _ -> assert false
 
     | Search s -> ()
-    | Pending _ -> ()
-    | Uploaders _ -> ()
         
   with e ->
       lprintf "Exception %s in reader\n" (Printexc2.to_string e)

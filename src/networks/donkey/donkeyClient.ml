@@ -223,7 +223,6 @@ let disconnect_client c reason =
           c.client_sock <- NoConnection;
           save_join_queue c;
           c.client_slot <- SlotNotAsked;
-          set_client_disconnected c reason;
           let files = c.client_file_queue in
           List.iter (fun (file, chunks) -> 
               remove_client_chunks file chunks)  
@@ -241,8 +240,8 @@ end;
           if c.client_upload != None then CommonUploads.refill_upload_slots ();
           DonkeyOneFile.clean_client_zones c;
         
-        with e -> lprintf "Exception %s in disconnect_client"
-              (Printexc2.to_string e); lprint_newline ());
+        with e -> lprintf "Exception %s in disconnect_client\n"
+              (Printexc2.to_string e));
 (*      lprintf "Client %d to source:" (client_num c);
       List.iter (fun r ->
                 lprint_char (
@@ -256,6 +255,7 @@ end;
                   | File_new_source -> 'n'
                 )) c.client_files;      
       lprint_newline (); *)
+      set_client_disconnected c reason;
       DonkeySources.source_of_client c
   
 let client_send_if_possible c sock msg =

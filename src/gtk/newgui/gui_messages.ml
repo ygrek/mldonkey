@@ -675,6 +675,12 @@ let uT_me_add_to_friends =
 let uT_me_copy_ed2k = 
   _s 
   "Copy ed2k link to console/clipboard"
+let uT_lb_show_pending_slots = 
+  _s 
+  "Hide/Show pending slots"
+let uT_ti_show_pending_slots = 
+  _s 
+  "Hide/Show pending slots"
 
 (** Console **)
 let cT_lb_clear_console = 
@@ -1349,12 +1355,9 @@ let c_format =
 let c_network = 
   _s 
   "Net"
-let c_age = 
+let c_status = 
   _s 
-  "Age"
-let c_last_seen = 
-  _s 
-  "Last seen"
+  "Status"
 let c_eta = 
   _s 
   "ETA"
@@ -1469,6 +1472,7 @@ let o_xpm_stop_search = "stop_search"
 let o_xpm_close_room = "close_room"
 let o_xpm_add_shared_directory = "add_shared_directory"
 let o_xpm_download_directory = "download_directory"
+let o_xpm_view_pending_slots = "view_pending_slots"
 
 let o_xpm_mini_toggle_display_all_servers = "toggle_display_all_servers_mini"
 let o_xpm_mini_add_server = "add_server_mini"
@@ -1481,6 +1485,7 @@ let o_xpm_mini_stop_search = "stop_search_mini"
 let o_xpm_mini_close_room = "close_room_mini"
 let o_xpm_mini_add_shared_directory = "add_shared_directory_mini"
 let o_xpm_mini_download_directory = "download_directory_mini"
+let o_xpm_mini_view_pending_slots = "view_pending_slots_mini"
 
 let o_xpm_nbk_networks_on = "nbk_networks_on"
 let o_xpm_nbk_networks_off = "nbk_networks_off"
@@ -1543,7 +1548,8 @@ let o_xpm_connect_n = "connect_n"
 let o_xpm_removedhost = "removedhost"
 let o_xpm_blacklistedhost = "blacklistedhost"
 let o_xpm_files_listed = "files_listed"
-let o_xpm_server_c = "server_c"
+let o_xpm_server_c_low = "server_c_low"
+let o_xpm_server_c_high = "server_c_high"
 let o_xpm_server_ci = "server_ci"
 let o_xpm_server_nc = "server_nc"
 

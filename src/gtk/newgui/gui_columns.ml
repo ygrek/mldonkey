@@ -101,8 +101,7 @@ type file_column =
 | Col_file_rate
 | Col_file_format
 | Col_file_network
-| Col_file_age
-| Col_file_last_seen
+| Col_file_status
 | Col_file_eta
 | Col_file_priority
   
@@ -117,10 +116,9 @@ let file_column_strings = [
     Col_file_rate,  M.c_rate, 7 ;
     Col_file_format,  M.c_format, 8 ;
     Col_file_network,  M.c_network, 9 ;
-    Col_file_age,  M.c_age, 10 ;
-    Col_file_last_seen,  M.c_last_seen, 11 ;
-    Col_file_eta,  M.c_eta, 12 ;
-    Col_file_priority,  M.c_priority, 13;
+    Col_file_status,  M.c_status, 10 ;
+    Col_file_eta,  M.c_eta, 11 ;
+    Col_file_priority,  M.c_priority, 12;
 ] 
 
 

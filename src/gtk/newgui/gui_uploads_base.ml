@@ -24,15 +24,6 @@ class upstats_box () =
       ~packing:(vbox#pack ~expand:true ~fill:true) ()
   in
   let vbox_uploaders = GPack.vbox ~spacing:3 ~homogeneous:false ~packing:(vpaned#add2) () in
-  let evbox2 = GBin.event_box ~packing:(vbox_uploaders#pack ~expand:false ~fill:false) () in
-  let _anonymous_container_2 =
-    GPack.hbox ~border_width:2 ~homogeneous:false ~packing:(evbox2#add) ()
-  in
-  let label_uploaders =
-    GMisc.label ~text:(Gui_messages.uT_lb_uploaders)
-      ~justify:`LEFT ~line_wrap:true
-      ~packing:(_anonymous_container_2#pack ~expand:false ~fill:true ~padding:3) ()
-  in
   let hbox_uploaders = GPack.hbox ~homogeneous:false ~packing:(vbox_uploaders#pack ~expand:true ~fill:true) ()
   in
   object
@@ -43,8 +34,6 @@ class upstats_box () =
     val label_shared_files = label_shared_files
     val vpaned = vpaned
     val vbox_uploaders = vbox_uploaders
-    val evbox2 = evbox2
-    val label_uploaders = label_uploaders
     val hbox_uploaders = hbox_uploaders
     method vbox = vbox
     method wtool1 = wtool1
@@ -54,7 +43,5 @@ class upstats_box () =
     method vpaned = vpaned
     method vbox_uploaders = vbox_uploaders
     method hbox_uploaders = hbox_uploaders
-    method evbox2 = evbox2
-    method label_uploaders = label_uploaders
     method coerce = vbox#coerce
   end

@@ -233,7 +233,8 @@ type option_widget =
 | BoolEntry
 | FileEntry
 
-
+open BasicSocket
+  
 let file_info_test = 
   {
     file_comment = "";
@@ -252,8 +253,8 @@ let file_info_test =
     file_downloaded = Int64.of_string "68758764";
     file_availability = [0,""];
     file_format = FormatUnknown;
-    file_chunks_age = [| 2 |];
-    file_age = 3;
+    file_chunks_age = [| last_time () - 2 |];
+    file_age = last_time () - 3;
     file_last_seen = BasicSocket.last_time ();
     file_priority = 0;
    file_uids = [];

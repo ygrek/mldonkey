@@ -518,13 +518,13 @@ let check_source_from_file reconnect_client file =
             None -> lprintf "ERROR: Client source can not be NOne\n"
           | Some s ->
               if not (List.memq file s.source_in_queues) then begin
-                  lprintf "ERROR: client should be in file queue (1)\n";
+(*                  lprintf "ERROR: client should be in file queue (1)\n"; *)
                   match s.source_client with
-                    SourceLastConnection _ -> 
-                      lprintf "  ERROR: client source has last conn\n"
-                  | SourceClient cc ->
-                      if c !=cc then
-                        lprintf "  ERROR: client source client is different\n"
+                    SourceLastConnection _ -> ()
+(*                      lprintf "  ERROR: client source has last conn\n" *)
+                  | SourceClient cc -> ()
+(*                      if c !=cc then
+                        lprintf "  ERROR: client source client is different\n" *)
                 end;
               
               s.source_in_queues <- List2.removeq file s.source_in_queues
@@ -570,8 +570,8 @@ lprintf "ERROR: Source invalidated"; lprint_newline ();
                 let _,s = Queue.take file.file_sources.(i) in
                                 
                 if not (List.memq file s.source_in_queues) then begin
-                    lprintf "ERROR: client should be in file queue (2)";
-                    lprint_newline ();
+(*                    lprintf "ERROR: client should be in file queue (2)";
+                    lprint_newline (); *)
                   end;
                 
                 s.source_in_queues <- List2.removeq file s.source_in_queues;
@@ -588,8 +588,8 @@ lprintf "ERROR: Source invalidated"; lprint_newline ();
                   
                   
                   if not (List.memq file s.source_in_queues) then begin
-                      lprintf "ERROR: client should be in file queue (3)";
-                      lprint_newline ();
+(*                      lprintf "ERROR: client should be in file queue (3)";
+                      lprint_newline (); *)
                     end;
                   
                   s.source_in_queues <- List2.removeq file s.source_in_queues;
@@ -630,8 +630,8 @@ lprintf "ERROR: Source invalidated"; lprint_newline ();
 (* This source is already connected, remove it immediatly, and retry *)
                 let _, s = Queue.take file.file_sources.(i) in
                 if not (List.memq file s.source_in_queues) then begin
-                    lprintf "ERROR: client should be in file queue (4)";
-                    lprint_newline ();
+(*                    lprintf "ERROR: client should be in file queue (4)";
+                    lprint_newline (); *)
                   end;
                 
                 s.source_in_queues <- List2.removeq file s.source_in_queues;

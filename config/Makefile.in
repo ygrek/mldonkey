@@ -150,7 +150,7 @@ LIB_SRCS=   \
   $(LIB)/avifile.ml $(LIB)/http_lexer.mll $(LIB)/url.ml \
   $(LIB)/date.ml  $(LIB)/fst_hash.c \
   $(LIB)/md4_comp.c $(LIB)/md4_c.c \
-  $(LIB)/gettext.ml4 $(LIB)/md5_c.c $(LIB)/sha1_c.c \
+  $(LIB)/gettext.ml4 $(LIB)/md5_c.c $(LIB)/$(SHA1_VERSION)_c.c \
   $(LIB)/tiger.c \
   $(LIB)/stubs_c.c  $(LIB)/queues.ml
 
@@ -582,7 +582,7 @@ install:: opt
          fi
 	if test -e mlgui; then \
              rm -f $(prefix)/bin/mlgui; cp -f mlgui $(prefix)/bin/mlgui; \
-             rm -f $(prefix)/bin/mldonkey_gui; cp -f mlgui $(prefix)/bin/mldonkey_gui; \
+             rm -f $(prefix)/bin/mldonkey_gui; ln -s mlgui $(prefix)/bin/mldonkey_gui; \
          fi
 	if test -e mlnet+gui; then \
              rm -f $(prefix)/bin/mlnet+gui; cp -f mlnet+gui $(prefix)/bin/mlnet+gui; \
@@ -672,10 +672,12 @@ NEWGUI_ICONS= \
   icons/$(ICONS_CHOICE)/removedhost.xpm \
   icons/$(ICONS_CHOICE)/blacklistedhost.xpm \
   icons/$(ICONS_CHOICE)/files_listed.xpm \
-  icons/$(ICONS_CHOICE)/server_c.xpm \
+  icons/$(ICONS_CHOICE)/server_c_high.xpm \
+  icons/$(ICONS_CHOICE)/server_c_low.xpm \
   icons/$(ICONS_CHOICE)/server_ci.xpm \
   icons/$(ICONS_CHOICE)/server_nc.xpm \
   icons/$(ICONS_CHOICE)/toggle_display_all_servers.xpm \
+  icons/$(ICONS_CHOICE)/view_pending_slots.xpm \
   icons/$(ICONS_CHOICE)/add_server.xpm \
   icons/$(ICONS_CHOICE)/add_shared_directory.xpm \
   icons/$(ICONS_CHOICE)/download_directory.xpm \
@@ -1486,3 +1488,13 @@ rpm: sourcedist
 
 .plugindep:
 	echo toto
+
+src/utils/lib/sha1old_c.o: src/utils/lib/sha1old_c.h \
+  src/utils/lib/sha1_c.h src/utils/lib/os_stubs.h
+
+
+src/utils/lib/sha1new_c.o: src/utils/lib/sha1new_c.h \
+  src/utils/lib/sha1_c.h src/utils/lib/os_stubs.h
+
+src/daemon/common/commonHasher_c.o: src/utils/lib/sha1_c.h
+src/utils/lib/stubs_c.o: src/utils/lib/sha1_c.h

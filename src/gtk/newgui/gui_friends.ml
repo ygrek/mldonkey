@@ -40,7 +40,8 @@ let (!!) = Options.(!!)
 let string_color_of_state state =
   match state with
   | Connected_downloading _ -> M.fT_tx_downloading, Some !!O.color_downloading 
-  | Connected (-1) -> M.fT_tx_connected, Some !!O.color_connected 
+  | Connected (-1)
+  | Connected (-2) -> M.fT_tx_connected, Some !!O.color_connected 
   | Connecting  -> M.fT_tx_connecting, Some !!O.color_connecting
   | NewHost -> M.fT_tx_new_host, None
   | Connected_initiating -> M.fT_tx_initiating, Some !!O.color_not_connected
@@ -77,11 +78,9 @@ let shorten maxlen s =
 let state_pix state =
     match state with
         Connected_downloading _ -> O.gdk_pix M.o_xpm_downloading
-      | Connected (-1) -> O.gdk_pix M.o_xpm_connect_y
       | Connecting  -> O.gdk_pix M.o_xpm_connect_m
       | NewHost -> O.gdk_pix M.o_xpm_connect_n
       | Connected_initiating -> O.gdk_pix M.o_xpm_connect_m
-      | Connected 0 -> O.gdk_pix M.o_xpm_connect_y
       | Connected n -> O.gdk_pix M.o_xpm_connect_y
       | NotConnected (_,n) -> O.gdk_pix M.o_xpm_connect_n
       | RemovedHost -> O.gdk_pix M.o_xpm_removedhost
@@ -299,7 +298,7 @@ class box columns friend_tab =
             Known_location _ -> M.fT_tx_direct
           | _ -> "")
       | Col_client_rating -> string_of_int f.gclient_rating
-      | Col_client_connect_time -> Gui_graph.time_to_string (BasicSocket.last_time () - f.gclient_connect_time)
+      | Col_client_connect_time -> Gui_graph.time_to_string (f.gclient_connect_time)
       | Col_client_software -> f.gclient_software
       | Col_client_emulemod -> f.gclient_emulemod
       | Col_client_downloaded -> Gui_misc.size_of_int64 f.gclient_downloaded
@@ -580,8 +579,14 @@ class box_friends box_files friend_tab =
 
 end
 
-let is_filtered2 c =
-  List.memq c.gclient_network !G.networks_filtered
+let is_filtered2 c l b =
+  if b 
+    then begin
+      (List.memq c.gclient_network !G.networks_filtered)
+    end else begin
+      (List.memq c.gclient_network !G.networks_filtered) ||
+      (List.memq c.gclient_num l)
+    end
 
 class box_list friend_tab =
   let vbox_list = GPack.vbox () in
@@ -590,9 +595,13 @@ class box_list friend_tab =
     inherit box O.file_locations_columns friend_tab as prebox
     
     val mutable c_to_update = ([] : int list)
+    val mutable current_uploaders = ([] : int list)
+    val mutable current_pending_slots = ([] : int list)
+    val mutable show_pending_slots = (false : bool)
+
     val mutable icons_are_used = (!!O.use_icons : bool)
 
-    method filter = is_filtered2
+    method filter c = is_filtered2 c current_pending_slots show_pending_slots
 
     method coerce = vbox_list#coerce
     
@@ -672,12 +681,15 @@ class box_list friend_tab =
       c_to_update <- []
                 
     method update_client c_new =
-      if Mi.is_connected c_new.client_state
+      let _ = 
+        match c_new.client_state with
+            Connected_downloading _ -> self#fill_c_to_update c_new.client_num
+          | _ -> ()
+      in
+      if (List.memq c_new.client_num current_uploaders) || 
+         (List.memq c_new.client_num current_pending_slots) 
         then begin
-           self#fill_c_to_update c_new.client_num;
-           match c_new.client_upload with
-               Some s ->
-                 (try
+          try
                     let (row, c) = self#find_client c_new.client_num in
                     c.gclient_state <- c_new.client_state;
                     c.gclient_rating <- c_new.client_rating;
@@ -691,33 +703,34 @@ class box_list friend_tab =
                     c.gclient_uploaded <- c_new.client_uploaded;
                     c.gclient_upload <- c_new.client_upload;
                     c.gclient_sock_addr <- string_of_kind c_new.client_kind;
-                    (if icons_are_used && (c.gclient_type <> c_new.client_type) then
-                       c.gclient_pixmap <- Some (type_pix c_new.client_type));
+            (if icons_are_used && (c.gclient_type <> c_new.client_type) 
+               then c.gclient_pixmap <- Some (type_pix c_new.client_type));
                     c.gclient_type <- c_new.client_type;
                     self#refresh_item row c;
                   with Not_found -> (
                     let ci = self#to_gui_client c_new in
                     self#add_item ci)
-                   )
-               | _ -> ()
-        end else
-          (try
+        end else begin
+          try
              let (row, c) = self#find_client c_new.client_num in
              self#remove_item row c
             with _ -> ()
-          )
+        end          
 
     method update_client_state (num, state) =
-      if Mi.is_connected state
+      let _ = 
+        match state with
+            Connected_downloading _ -> self#fill_c_to_update num
+          | _ -> ()
+      in
+      if (List.memq num current_uploaders) || 
+         (List.memq num current_pending_slots) 
         then begin
-          (
            try
              let (row, c) = self#find_client num in
              c.gclient_state <- state;
              self#refresh_item row c
-           with _ -> ()
-          );
-          self#fill_c_to_update num
+          with _ -> self#fill_c_to_update num
         end else 
           try
             let (row, c) = self#find_client num in
@@ -748,6 +761,22 @@ class box_list friend_tab =
       ) clients;
       self#reset_data !data
     
+    method update_uploaders l =
+      current_uploaders <- l;
+      List.iter (fun n ->
+        self#fill_c_to_update n
+      ) l
+
+    method update_pending_slots l =
+      current_pending_slots <- l;
+      List.iter (fun n ->
+        self#fill_c_to_update n
+      ) l
+
+    method show_pending_slots () =
+      show_pending_slots <- not show_pending_slots;
+      let l = self#get_all_items in
+      self#reset_data l
 
     method update_icons b =
       icons_are_used <- b;
@@ -772,19 +801,31 @@ class box_list friend_tab =
       Gui_options.generate_with_progress label self#get_all_items f step
     
     initializer
-      vbox_list#pack ~expand: true prebox#coerce;
       
-      ignore(Timeout.add ~ms:6000 ~callback:
-        (fun _ -> if c_to_update <> [] then self#send_and_flush;
-                  true))
-(*
+      label#set_text ( M.sT_lb_users);
+      let style = evbox#misc#style#copy in
+      style#set_bg [ (`NORMAL, (`NAME "#494949"))];
+      evbox#misc#set_style style;
+      let style = label#misc#style#copy in
+      style#set_fg [ (`NORMAL, `WHITE)];
+      label#misc#set_style style;
+
+      vbox_list#pack ~expand: true prebox#coerce;
+      Gui_com.send (GuiProto.GetUploaders);
+      Gui_com.send (GuiProto.GetPending); 
+     
+      ignore(Timeout.add ~ms:6000 ~callback:(fun _ -> 
+        Gui_com.send GuiProto.GetUploaders;
+        Gui_com.send GuiProto.GetPending;
+        if c_to_update <> [] then self#send_and_flush;
+        true));
+      
       Gui_misc.insert_buttons wtool1 wtool2
-        ~text: (M.add_to_friends)
-      ~tooltip: (M.add_to_friends)
-      ~icon: (M.o_xpm_add_to_friends)
-      ~callback: self#add_to_friends
+        ~text: (M.uT_lb_show_pending_slots)
+        ~tooltip: (M.uT_ti_show_pending_slots)
+        ~icon: (M.o_xpm_view_pending_slots)
+        ~callback: (self#show_pending_slots)
         ()
-  *)            
 
   end
 
