@@ -134,7 +134,7 @@ DONKEY_PROTO_SRCS= donkey/donkeyMftp.ml donkey/donkeyImport.ml \
   secret/mftp_comm.ml  
 
 else
-ifeq ("$(CLOSED_DONKEY)" , "yes")
+ifeq ("$(OPEN_DONKEY)" , "yes")
 SUBDIRS += donkey
 
 DONKEY_SRCS=  donkey/donkey.lam
