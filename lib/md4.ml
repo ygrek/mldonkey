@@ -69,6 +69,13 @@ let string s =
   let digest = String.create 16 in
   unsafe_string digest s len;
   digest
+
+external xor_c : t -> t -> t -> unit = "md4_xor" "noalloc"
+  
+let xor m1 m2 =
+  let m3 = String.create 16 in
+  xor_c m1 m2 m3;
+  m3
   
 let file s =
   let digest = String.create 16 in

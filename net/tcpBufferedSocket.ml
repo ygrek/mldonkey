@@ -63,6 +63,9 @@ and bandwidth_controler = {
   }
 
 
+let uploaded_bytes = ref Int64.zero
+let downloaded_bytes = ref Int64.zero
+  
 let nread t = t.nread
 
 let min_buffer_read = 500
@@ -255,7 +258,8 @@ let write t s pos1 len =
           let nw = Unix.write (fd t.sock) s pos1 len in
 (*          if t.monitored then begin
               Printf.printf "write: direct written %d" nw; print_newline (); 
-            end; *)
+end; *)
+          uploaded_bytes := Int64.add !uploaded_bytes (Int64.of_int nw);
           t.nwrite <- t.nwrite + nw;
           if nw = 0 then (close t "closed on write"; pos2) else
             pos1 + nw
@@ -334,6 +338,7 @@ let can_read_handler t sock max_len =
         raise e
 	  
     in
+    downloaded_bytes := Int64.add !downloaded_bytes (Int64.of_int nread);
     t.nread <- t.nread + nread;
     if nread = 0 then begin
       close t "closed on read";
@@ -366,7 +371,8 @@ let can_write_handler t sock max_len =
 (*     Printf.printf "try write %d/%d" max_len t.wbuf.len; print_newline (); *)
         let nw = Unix.write (fd sock) b.buf b.pos max_len in
 (*            if t.monitored then
-              (Printf.printf "written %d" nw; print_newline ()); *)
+(Printf.printf "written %d" nw; print_newline ()); *)
+        uploaded_bytes := Int64.add !uploaded_bytes (Int64.of_int nw);
         t.nwrite <- t.nwrite + nw;
         b.len <- b.len - nw;
         b.pos <- b.pos + nw;
@@ -496,6 +502,9 @@ let set_write_controler t bc =
 let max_buffer_size = ref 100000 
   
 let create name fd handler =
+  if !debug then begin
+      Printf.printf "[fd %d %s]" (Obj.magic fd) name; print_newline ();
+    end;
   Unix.set_close_on_exec fd;
   let t = {
       sock = dummy_sock;
@@ -510,7 +519,11 @@ let create name fd handler =
       write_control = None;
       write_power = 1;
     } in
-  let sock = create name fd (tcp_handler t) in
+  let sock = BasicSocket.create name fd (tcp_handler t) in
+  let name = (fun () ->
+        Printf.sprintf "%s (nread: %d nwritten: %d)" name t.nread t.nwrite
+    ) in
+  set_printer sock name;
   t.sock <- sock;
   t
 
@@ -751,4 +764,5 @@ let value_handler f sock nread =
 let set_write_power t p = t.write_power <- p
   
 let set_lifetime s = set_lifetime (sock s)
+  
   

@@ -40,6 +40,7 @@ val closed : t -> bool
   
 val create : string -> Unix.file_descr -> handler -> t
 val create_blocking : string -> Unix.file_descr -> handler -> t
+val set_printer : t -> (unit -> string) -> unit
 val close : t -> string -> unit
 val shutdown : t -> string -> unit
 

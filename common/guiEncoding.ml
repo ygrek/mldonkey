@@ -425,7 +425,8 @@ let rec to_gui_version_0 buf t =
   | MessageFromClient (num, msg) ->
 (* This message was previously send like that ... *)
       to_gui_version_0 buf (Room_message (0, PrivateMessage(num, msg)))
-      
+
+  | Add_section_option _
   | DownloadedFiles _
   | DownloadFiles _
   | ConnectedServers _
@@ -493,6 +494,28 @@ let to_gui_version_4 buf t =
       buf_int buf num
       
   | _ -> to_gui_version_3 buf t
+      
+let to_gui_version_5 buf t =
+  match t with
+          
+  | Add_section_option (section, message, option, optype) -> buf_int16 buf 36;
+      buf_string buf section;
+      buf_string buf message;
+      buf_string buf option;
+      buf_int8 buf (match optype with
+          StringEntry -> 0
+        | BoolEntry -> 1
+        | FileEntry -> 2)
+
+  | Client_stats s -> buf_int16 buf 37;
+      buf_int64 buf s.upload_counter;
+      buf_int64 buf s.download_counter;      
+      buf_int64 buf s.shared_counter;
+      buf_int buf s.nshared_files;
+      buf_int buf s.upload_rate;
+      buf_int buf s.download_rate;
+      
+  | _ -> to_gui_version_4 buf t
 
       
 let to_gui = [| 
@@ -501,6 +524,7 @@ let to_gui = [|
     to_gui_version_2;
     to_gui_version_3;
     to_gui_version_4;
+    to_gui_version_5;
   |]
   
 (***************
@@ -647,6 +671,10 @@ let from_gui_version_4 buf t  =
   | RefreshUploadStats ->
       buf_int16 buf 49
   | _ -> from_gui_version_3 buf t
+
+let from_gui_version_5 buf t  = 
+  match t with
+  | _ -> from_gui_version_4 buf t
       
 let from_gui = [| 
     from_gui_version_0; 
@@ -654,6 +682,7 @@ let from_gui = [|
     from_gui_version_2; 
     from_gui_version_3; 
     from_gui_version_4; 
+    from_gui_version_5; 
     |]
   
   
@@ -710,24 +739,25 @@ let _ =
       server_num = 1;
 } *)
   in
-  let check_to_gui_version4 = 
-    check to_gui_version_4 GuiDecoding.to_gui_version_4 in
-  assert (check_to_gui_version4 (MessageFromClient (32, "Hello")));
-  assert (check_to_gui_version4 (DownloadFiles [file_info]));
-  assert (check_to_gui_version4 (DownloadedFiles [file_info]));
-  assert (check_to_gui_version4 (ConnectedServers []));    
-  assert (check_to_gui_version4 (Room_remove_user (5,6)));
-  assert (check_to_gui_version4 (Shared_file_upload (1, Int64.zero, 32)));
-  assert (check_to_gui_version4 (Shared_file_unshared 2));
+  let check_to_gui_version5 = 
+    check to_gui_version_5 GuiDecoding.to_gui_version_5 in
+  assert (check_to_gui_version5 (MessageFromClient (32, "Hello")));
+  assert (check_to_gui_version5 (DownloadFiles [file_info]));
+  assert (check_to_gui_version5 (DownloadedFiles [file_info]));
+  assert (check_to_gui_version5 (ConnectedServers []));    
+  assert (check_to_gui_version5 (Room_remove_user (5,6)));
+  assert (check_to_gui_version5 (Shared_file_upload (1, Int64.zero, 32)));
+  assert (check_to_gui_version5 (Shared_file_unshared 2));
   (* Shared_file_info ??? *)
+  assert (check_to_gui_version5 (Add_section_option ("section", "message", "option", StringEntry )));
   
-  let check_from_gui_version4 = 
+  let check_from_gui_version5 = 
     check from_gui_version_4 GuiDecoding.from_gui_version_4 in
-  assert (check_from_gui_version4 (MessageToClient (33, "Bye")));
-  assert (check_from_gui_version4 (GuiExtensions [1, true; 2, false]));
-  assert (check_from_gui_version4 GetConnectedServers);
-  assert (check_from_gui_version4 GetDownloadFiles);
-  assert (check_from_gui_version4 GetDownloadedFiles);
-  assert (check_from_gui_version4 (SetRoomState (5, RoomPaused)));
-  assert (check_from_gui_version4 RefreshUploadStats)  
+  assert (check_from_gui_version5 (MessageToClient (33, "Bye")));
+  assert (check_from_gui_version5 (GuiExtensions [1, true; 2, false]));
+  assert (check_from_gui_version5 GetConnectedServers);
+  assert (check_from_gui_version5 GetDownloadFiles);
+  assert (check_from_gui_version5 GetDownloadedFiles);
+  assert (check_from_gui_version5 (SetRoomState (5, RoomPaused)));
+  assert (check_from_gui_version5 RefreshUploadStats)  
   

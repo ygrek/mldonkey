@@ -29,14 +29,14 @@ open ServerTypes
 
 (*basic data structures*)
 let files_by_md4 = (if !!relais_cooperation_protocol then
-		     Hashtbl.create 5000
+		     Hashtbl.create !!max_group_clients
 		     else
-		      Hashtbl.create 1000;)
+		      Hashtbl.create !!max_clients;)
 
 let clients_by_id = (if !!relais_cooperation_protocol then
-			Hashtbl.create 500
+			Hashtbl.create !!max_group_files
 			else
-			Hashtbl.create 100;)
+			Hashtbl.create !!max_files;)
 
 
 let get_client id = Hashtbl.find clients_by_id id
@@ -74,7 +74,7 @@ let nconnected_clients = ref 0
 
 let nshared_md4 = ref 0
 
-let client_counter = ref 0  
+let client_counter = ref 1 
 
 
 (*count messages to the server*)
@@ -82,6 +82,9 @@ let nb_udp_query_sec = ref 0.
 let nb_udp_query_count = ref 0
 let nb_udp_loc_sec = ref 0.
 let nb_udp_loc_count = ref 0
+let nb_udp_loc_reply_sec = ref 0.
+let nb_udp_loc_reply_count = ref 0
+
 let nb_udp_req_sec = ref 0.
 let nb_udp_req_count = ref 0
 let nb_udp_ping_server_sec = ref 0. 	 
@@ -110,6 +113,8 @@ let server_id = ref 0
 
 let nconnected_servers = ref 0
 
+let nremote_clients = ref 0
+
 let nshared_remote_md4 = ref 0
 
 let server_counter = ref 0
@@ -117,6 +122,16 @@ let server_counter = ref 0
 let ngroup_clients = ref 0
 
 let ngroup_files = ref 0
+
+let stop_udp = ref false
+
+(* group servers observation*)
+
+let nb_notifs = ref 0
+let nb_info = ref 0
+let info_percent = ref (0,0.)
+
+
   (*
 let rec tag_find v tags =
   match tags with
@@ -153,3 +168,6 @@ let udp_sock = ref (None: UdpSocket.t option)
 
 let notifications = Hashtbl.create 13
   
+(* List all tag name *)
+let tag_name_list = ref []
+let subs_match = ref []

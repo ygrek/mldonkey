@@ -17,14 +17,14 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-val add : DonkeyMftp.tagged_file -> unit
+val add : CommonTypes.tagged_file -> unit
   
 val find : Store.index Indexer.query -> ServerTypes.replies
 
 val find_map : Store.index Indexer.query -> ServerTypes.Document.t Intmap.t
   
-val get : ServerTypes.replies -> int -> DonkeyMftp.tagged_file list
+val get : ServerTypes.replies -> int -> CommonTypes.tagged_file list
   
 val query_to_query : CommonTypes.query -> Store.index Indexer.query
 
-val get_def : Md4.t -> DonkeyMftp.tagged_file
+val get_def : Md4.t -> CommonTypes.tagged_file

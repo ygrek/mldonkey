@@ -1,6 +1,64 @@
 ChangeLog	
 =========
 
+2002/09/21: mldonkey
+  - fix: removal of out-of-bounds accesses, not supported by Ocaml on 
+        OSX Jaguar
+     * added check in ./configure for MacOsX 6.0 to enable CheckBounds
+     * added -inline 10 for checkbounds to be removed for other archs (5
+        would be enough)
+     * added Autoconf.check_string calls in littleEndian.ml and bigEndian.ml
+
+2002/09/20: mldonkey
+  - add: OverNet should now be able to add sources to eDonkey downloads
+     (it is triggered using the "overnet" command). You need peers to
+     access OverNet: see the end of the distrib/servers.ini file.
+  - fix: started debugging mldonkey on Mac OS X 10.2
+     - fix : SIGBUS in telnet "q" command.
+     - need to check all possible array/string out-of-bounds accesses.
+
+2002/09/19: mldonkey
+  - add: OverNet support started in donkey/donkeyProtoOvernet.ml and
+      donkey/donkeyOvernet.ml. Can connect to OverNet peers and learn 
+      more peers.
+  - add: new donkey command "import_temp <dir>" to import old files
+     currently downloaded by edonkey in mldonkey.
+  - fix: Bug #1052 (buffer overflow warnings when MLdonkey is reading 
+      my shared files)
+
+2002/09/18: mldonkey
+  - fix: Bug #420 (Wrong permission on imported files)
+  - fix: Bugs #421 and #591 (vd: meta refresh use external ip)
+  - fix: Bug #842 (mldonkey overwrites the modified download.ini)
+  - fix: Bug #878 (Hidden files are shared)
+  - fix: Bug #1053 (no warning when overwriting files)
+      Note: / and \ in names are also replaced by _
+       Duplicated files get a .2 , .3, etc
+
+2002/09/16: mldonkey
+  - fix: Bug #432 (same packet is send with the same data)
+
+2002/09/15: mldonkey
+  - add: GUI
+      * Display the current upload/download rate in bytes.
+
+2002/09/14: mldonkey
+  - add: New options in downloads.ini:
+      * [gui_options_panel] to configure the options that are configurable in
+       the GUI without modifying the GUI. Fix for Bug #844
+      * [debug_net] to display more information about low-level network layer
+  - add: GUI
+      * New protocol 5 for message [Add_section_option]
+      * Boolean and filename options have special entries
+      * More client options in the GUI option panel
+  - fix: LimeWire
+      * Correctly display file sources
+      * No more Unix.write errors due to early disconnections
+      * More ultra-peers agent types allowed
+
+2002/09/11: mldonkey
+  - add: CyMeS server directory
+
 2002/09/08: mldonkey
   - fix: prevent connecting several times to the same server
   - fix: remove_old_servers should work again

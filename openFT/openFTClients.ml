@@ -24,7 +24,7 @@ open CommonFile
 open Options
 open BasicSocket
 open TcpBufferedSocket
-
+open CommonInteractive
 open CommonGlobals
   
 open OpenFTTypes
@@ -158,10 +158,10 @@ print_newline ();
   in
   (try Unix2.safe_mkdir incoming_dir with _ -> ());
   let new_name = 
-    Filename.concat incoming_dir file.file_name
+    Filename.concat incoming_dir (canonize_basename file.file_name)
   in
 (*  Printf.printf "RENAME to %s" new_name; print_newline ();*)
-  Unix2.rename file.file_temp  new_name;
+  let new_name = rename_to_incoming_dir file.file_temp  new_name in
   file.file_temp <- new_name
 
 let client_to_client s p sock =

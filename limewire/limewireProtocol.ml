@@ -542,18 +542,20 @@ let handler info header_handler body_handler =
                 header_done := true;
                 
                 header_handler sock header;
-                let nused = i - b.pos + 1 in
-                buf_used sock nused;              
-                if nread - nused > 20 then begin
+                if not (TcpBufferedSocket.closed sock) then begin
+                    let nused = i - b.pos + 1 in
+                    buf_used sock nused;              
+                    if nread - nused > 20 then begin
 (*
                   Printf.printf "BEGINNING OF BLOC (6 bytes from header)";
                   print_newline ();
                   dump (String.sub b.buf (b.pos-6) (min 20 (b.len - b.pos + 6)));
 Printf.printf "LEFT %d" (nread - nused); print_newline ();
 *)
-                    ()
-                  end;
-                body_handler sock (nread - nused)
+                        ()
+                      end;
+                    body_handler sock (nread - nused)
+                  end
               end else
               iter (i+1) true
           else
@@ -565,8 +567,8 @@ Printf.printf "LEFT %d" (nread - nused); print_newline ();
                 LittleEndian.dump header;
               );
           end
-    in
-    iter begin_pos false
+      in
+      iter begin_pos false
     with e ->
         Printf.printf "Exception %s in handler" (Printexc.to_string e); 
         print_newline ();
@@ -579,6 +581,7 @@ let handlers header_handlers body_handler =
     match !headers with
       [] -> body_handler sock nread
     | header_handler :: tail ->
+        Printf.printf "header handler"; print_newline ();
         let end_pos = b.pos + b.len in
         let begin_pos = max b.pos (end_pos - nread - 3) in
         let rec iter i n_read =
@@ -595,9 +598,11 @@ let handlers header_handlers body_handler =
 *)
                   headers := tail;
                   header_handler sock header;
-                  let nused = i - b.pos + 1 in
-                  buf_used sock nused;
-                  iter_read sock (nread - nused)
+                  if not (TcpBufferedSocket.closed sock) then begin
+                      let nused = i - b.pos + 1 in
+                      buf_used sock nused;
+                      iter_read sock (nread - nused)
+                    end
                 end else
                 iter (i+1) true
             else

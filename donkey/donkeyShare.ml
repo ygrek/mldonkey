@@ -163,8 +163,7 @@ let send_new_shared () =
             [] -> None
           | sock :: _ -> Some sock) (all_shared ()) 
       in
-      let msg = (DonkeyProtoServer.ShareReq list) in
-      direct_servers_send !socks msg;
+      direct_servers_send_share !socks list (!!client_buffer_size * 10 / 9)
     end
 
     

@@ -613,4 +613,59 @@ let shared_extensions = define_option downloads_ini ["shared_extensions"]
   "A list of extensions of files that should be shared. Files with extensions
     not in the list will not be shared (except if the list is empty :)"
     (list_option string_option) []
+
+    
+  
+let debug_net = define_option downloads_ini ["debug_net"]
+    "Set to true if you want some more information on low-level network layer"
+    bool_option false
+  
+let _ =
+  option_hook debug_net (fun _ -> BasicSocket.debug := !!debug_net)
+  
+let gui_options_panel = define_option downloads_ini ["gui_options_panel"]
+  "Which options are configurable in the GUI option panel, and in which
+    sections. Last entry indicates the kind of widget used (B=Boolean,T=Text)"
+    (list_option (tuple4_option (string_option, string_option, string_option, string_option)))
+  [
+    "Identification", "Your client name", (shortname client_name), "T";
+    "Identification", "Password", (shortname password), "T";
+    "Identification", "HTTP login", (shortname http_login), "T";
+    "Identification", "HTTP password", (shortname http_password), "T";
+    
+    "Ports", "HTTP Port", (shortname http_port), "T";
+    "Ports", "Telnet Port", (shortname telnet_port), "T";
+    "Ports", "GUI Port", (shortname gui_port), "T";
+    "Ports", "HTTP Bind Address", (shortname http_bind_addr), "T";
+    "Ports", "Telnet Bind Address", (shortname telnet_bind_addr), "T";
+    "Ports", "GUI Bind Address", (shortname gui_bind_addr), "T";
+    
+    "Bandwidth", "Maximal Download Bandwidth in kB/s", shortname max_hard_download_rate, "T";
+    "Bandwidth", "Maximal Upload Bandwidth in kB/s", shortname max_hard_upload_rate, "T";
+    "Bandwidth", "Maximal Number of Connected Servers", shortname max_connected_servers, "T";
+
+    "Delays", "Save Options Delay", shortname save_options_delay, "T";
+    "Delays", "Server Connection Timeout", shortname server_connection_timeout, "T";
+(*    "Delays", "Client Connection Timeout", shortname  *)
+    "Delays", "Update GUI Delay", shortname update_gui_delay, "T";
+    "Delays", "Maximal Server Age", shortname max_server_age, "T";
+    
+    "Chat", "External Chat Application Port", (shortname chat_app_port), "T";
+    "Chat", "External Chat Application Address", (shortname chat_app_host), "T";
+    "Chat", "Core Chat Port", (shortname chat_port), "T";
+    "Chat", "Core Chat Nick", (shortname chat_console_id), "T";
+    "Chat", "Chat Warning For Downloaded Files", (shortname chat_warning_for_downloaded), "B";
+    
+    "Files", "Temp directory", shortname temp_directory, "F";
+    "Files", "Incoming directory", shortname incoming_directory, "F";
+    "Files", "Previewer program", shortname previewer, "F";
+    
+    "Mail", "SMTP server", shortname smtp_server, "T";
+    "Mail", "SMTP port", shortname smtp_port, "T";
+    "Mail", "Your Email Address", shortname mail, "T";
+    
+    "Debug", "Verbose Mode", shortname verbose, "B";
+    "Debug", "Network Verbose Mode", shortname debug_net, "B";
+    
+  ]
   

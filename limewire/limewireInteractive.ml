@@ -97,9 +97,18 @@ let _ =
   file_ops.op_file_disk_name <- (fun file ->
       file.file_temp;
   );
-    file_ops.op_file_sources <- (fun file ->
+  file_ops.op_file_sources <- (fun file ->
+      Printf.printf "file_sources"; print_newline ();
       List2.tail_map (fun c ->
           as_client c.client_client
+      ) file.file_clients
+  );
+  file_ops.op_file_recover <- (fun file ->
+      List.iter (fun c ->
+          let keywords = LimewireServers.get_name_keywords file.file_name 
+          in
+          ignore (LimewireServers.send_query 0 keywords "");          
+          LimewireServers.get_file_from_source c file
       ) file.file_clients
   )
 
@@ -207,11 +216,16 @@ let _ =
   client_ops.op_client_info <- (fun c ->
       {
         P.client_network = network.network_num;
-        P.client_kind = Indirect_location ("", c.client_user.user_uid);
+        P.client_kind = c.client_user.user_kind;
         P.client_state = client_state (as_client c.client_client);
         P.client_type = client_type c;
         P.client_tags = [];
-        P.client_name = "";
+        P.client_name = (match c.client_user.user_kind with
+          | Known_location (ip, port) ->
+              Printf.sprintf "%s:%d" (Ip.to_string ip) port
+          | Indirect_location (_, id) -> 
+              Printf.sprintf "UID[%s...]" (String.sub (Md4.to_string id) 0 12)
+        );
         P.client_files = None;
         P.client_num = (client_num (as_client c.client_client));
         P.client_rating = Int32.zero;

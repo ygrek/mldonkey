@@ -215,7 +215,7 @@ class type com =
    It needs a {!Chat_config.config} class to
    access config options.*)
 class udp conf =
-  let localhost = Unix.gethostname () in
+  let localhost = conf#hostname in
   let h = Unix.gethostbyname localhost in
   let inet_addr = h.Unix.h_addr_list.(0) in
   let sock_addr = Unix.ADDR_INET (inet_addr, conf#port) in
@@ -328,7 +328,7 @@ let cpt = ref 1
    It needs a {!Chat_config.config} class to
    access config options.*)
 class tcp conf =
-  let localhost = Unix.gethostname () in
+  let localhost = conf#hostname in
 (*  let h = Unix.gethostbyname localhost in*)
   let inet_addr = Unix.inet_addr_of_string "0.0.0.0" (*h.Unix.h_addr_list.(0)*) in
   let sock_addr = Unix.ADDR_INET (inet_addr, conf#port) in

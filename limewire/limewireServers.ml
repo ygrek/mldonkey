@@ -159,13 +159,13 @@ let redirector_parse_header sock header =
 let connect_to_redirector () =
   match !redirectors_to_try with
     [] ->
-      redirectors_to_try := !redirectors_ips
-  | ip :: tail ->
+      redirectors_to_try := !!redirectors
+  | name :: tail ->
       redirectors_to_try := tail;
 (*      Printf.printf "connect to redirector"; print_newline (); *)
       try
         let sock = connect  "limewire to redirector"
-            (Ip.to_inet_addr ip) 6346
+            (Ip.to_inet_addr (Ip.from_name name)) 6346
             (fun sock event -> 
               match event with
                 BASIC_EVENT RTIMEOUT -> 
@@ -281,69 +281,74 @@ let update_client t =
   
   c.client_user.user_speed <- t.Q.speed;
   c
+
+let find_header header headers default =
+  try
+    List.assoc header headers
+  with Not_found -> default
   
 let server_parse_header s sock header =
   if !!verbose_servers> 10 then  LittleEndian.dump_ascii header;  
   try
-  if String2.starts_with header gnutella_200_ok then begin
+    if String2.starts_with header gnutella_200_ok then begin
 (*      Printf.printf "GOOD HEADER FROM ULTRAPEER";
       print_newline (); *)
         set_rtimeout sock DG.half_day;
 (*        Printf.printf "SPLIT HEADER..."; print_newline ();*)
-      let lines = Http_client.split_header header in
-      match lines with
+        let lines = Http_client.split_header header in
+        match lines with
           [] -> raise Not_found        
         | _ :: headers ->
 (*            Printf.printf "CUT HEADER"; print_newline ();*)
             let headers = Http_client.cut_headers headers in
-            let agent =  List.assoc "user-agent" headers in
-(*            Printf.printf "USER AGENT: %s" agent; print_newline ();*)
-            if String2.starts_with agent "LimeWire" ||
-              String2.starts_with agent "Gnucleus" ||
-              String2.starts_with agent "BearShare"              
-              then
-              begin
-                s.server_agent <- agent;
+            let agent =  find_header "user-agent" headers "Unknown" in
+            Printf.printf "USER AGENT: %s" agent; print_newline ();
+(*
+if String2.starts_with agent "LimeWire" ||
+String2.starts_with agent "Gnucleus" ||
+String2.starts_with agent "BearShare"              
+then
+begin
+*)
+            
+            s.server_agent <- agent;
+            server_must_update (as_server s.server_server);
 (*                Printf.printf "LIMEWIRE Detected"; print_newline ();*)
-                add_peers headers;
-                if List.assoc "x-ultrapeer" headers <> "True" then begin
-(*                    Printf.printf "NOT AN ULTRAPEER ???"; print_newline (); *)
-                    raise Not_found;
-                  end;
-                connected_servers := s :: !connected_servers;
+            add_peers headers;
+            if (find_header "x-ultrapeer" headers "False") <> "True" then
+              raise Not_found;
+            connected_servers := s :: !connected_servers;
 
 (*                Printf.printf "******** ULTRA PEER %s:%d  *******"
                   (Ip.to_string s.server_ip) s.server_port;
                 print_newline (); *)
-                write_string sock "GNUTELLA/0.6 200 OK\r\n\r\n";
-                set_server_state s Connected_idle;
-                recover_files_from_server sock
-              end
-            else raise Not_found
-    end else 
-  if String2.starts_with header gnutella_503_shielded then begin
+            write_string sock "GNUTELLA/0.6 200 OK\r\n\r\n";
+            set_server_state s Connected_idle;
+            recover_files_from_server sock
+      end else 
+    if String2.starts_with header gnutella_503_shielded then begin
 (*      Printf.printf "GOOD HEADER FROM SIMPLE PEER";
       print_newline ();*)
-      let lines = Http_client.split_header header in
-      match lines with
+        let lines = Http_client.split_header header in
+        match lines with
           [] -> raise Not_found        
         | _ :: headers ->
             let headers = Http_client.cut_headers headers in
             let agent = List.assoc "user-agent" headers in
             if String2.starts_with agent "LimeWire" ||
-                String2.starts_with agent "Gnucleus" ||
+              String2.starts_with agent "Gnucleus" ||
               String2.starts_with agent "BearShare"              
-              then
+            then
               begin
 (*                Printf.printf "LIMEWIRE Detected"; print_newline ();*)
                 add_peers headers;                
                 raise Not_found
               end
             else raise Not_found
-    end else begin
+      end else begin
 (*      Printf.printf "BAD HEADER FROM SERVER: [%s]" header; print_newline (); *)
-      raise Not_found
-    end
+        raise Not_found
+      end
   with
   | Not_found -> 
 (*      Printf.printf "DISCONNECTION"; print_newline (); *)
@@ -354,7 +359,7 @@ let server_parse_header s sock header =
 print_newline ();
   *)
       disconnect_from_server s
-  
+      
 let server_to_client s p sock =
 (*
   Printf.printf "server_to_client"; print_newline ();

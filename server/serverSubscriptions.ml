@@ -68,7 +68,11 @@ module Subs = struct
   (* Hashtable to store predicates. Keys are field and values are 
      (int -> int sub_tree) list *)
   let predicates = ref (Hashtbl.create 10)
-                     
+
+  (* Global list of active subscriptions with lifetime associated. Its type is
+  ((Md4.t * int) * float) list ref *)
+  let active_subs_list = ref []
+
   (* Pred constructor *)
   let new_pred id f = 
     {p_id = id;
@@ -89,8 +93,8 @@ module Subs = struct
   let predicate_true x = true
   let predicate_false x = false
                             
-  (* Predicate for an Or query. At least one of left sub_tree or right sub_tree validate
-  *)
+  (* Predicate for an Or query. At least one of left sub_tree or right sub_tree
+  validate *)
   let predicate_or x = (x >= 1)
                          
   (* Predicate for an And query. Both left and right sub_tree validate *)
@@ -152,7 +156,19 @@ module Subs = struct
       l
     else (e :: l)
 
-  (* WARNING : DUPLICATE CODE FROM serverIndexer.ml. MAYBE THIS SHOULD BE PLACE IN A COMMON FILE *)
+  (* Stem and split a string *)
+  let stem_and_split s =
+    let s = String.lowercase (String.copy s) in
+      for i = 0 to String.length s - 1 do
+        let c = s.[i] in
+          match c with
+              'a'..'z' | '0' .. '9' -> ()
+            | _ -> s.[i] <- ' ';
+      done;
+      String2.split_simplify s ' '
+
+  (* WARNING : DUPLICATE CODE FROM serverIndexer.ml. MAYBE THIS SHOULD BE PLACE
+  IN A COMMON FILE *)
   (* String field to bit *)
   let name_bit = 1
   let artist_bit = 2 (* tag "Artiste" *)
@@ -178,19 +194,27 @@ module Subs = struct
         [] -> []
       | hd :: tl ->
           (match hd.tag_value with
-               String v -> ((bit_of_field hd.tag_name), v) :: (cook_field_list tl)
+               String v ->
+                 if ((bit_of_field hd.tag_name) = name_bit) then
+                   let word_list = stem_and_split v in
+                     List.append ((name_bit, v) :: (cook_field_list tl))
+                       (List.map (fun w -> (word_bit, w)) word_list)
+                 else
+                   ((bit_of_field hd.tag_name), v) :: (cook_field_list tl)
              | _ -> cook_field_list tl)
-
+          
   let rec cook_pred_list l =
     match l with
         [] -> []
       | hd :: tl ->
           (match hd.tag_value with
-               String v-> cook_pred_list tl
-             | v -> ((bit_of_field hd.tag_name), v) :: (cook_pred_list tl))
+               Uint32 i
+             | Fint32 i -> 
+                 ((bit_of_field hd.tag_name), i) :: (cook_pred_list tl)
+             | _ -> cook_pred_list tl)
 
   (****************************** END UTILS ******************************)
-          
+
   (* Translate a query in yet another format that match my needs *)
   let rec translate_query q =
     match q with
@@ -204,7 +228,7 @@ module Subs = struct
       | _ -> failwith "Subscription not implemented by server"
 
   (* Parse a query to a subscription sub_tree *)
-  let rec query_to_subs id q parent action = 
+  let rec query_to_subs id q parent action =
     match q with
         And(l, r) -> 
           let sub_tree = new_sub_tree id predicate_and 0 action 0 parent in
@@ -307,46 +331,80 @@ module Subs = struct
                Hashtbl.add !predicates field [pred];
                Empty)
 
-  (* Remove a subscription with a complete id given *)
+  (* Add a new subscription *)
+  let add_subscription id lifetime query action =
+    (* First put it in the global list with its lifetime *)
+    active_subs_list := (id, (Unix.time ()) +. lifetime) :: !active_subs_list;
+    
+    (* Then put the effective query in the tree structure *)
+    ignore(query_to_subs id query Empty action)
+
+  (* Remove a subscription with a complete id given. NOT REMOVED FROM THE GLOBAL
+     LIST: done by remove_timeout_subs *)
   let remove_subs_id id =
     let ht = Hashtbl.create 1024 
     and ht2 = Hashtbl.create 10 in
       
+      Printf.printf "Removing subs (%s, %d)"
+        (Md4.to_string (fst id)) 
+        (snd id);
+      print_newline ();
+
       Hashtbl.iter (fun k field_list ->
-                      Hashtbl.add ht k (List.filter (fun field -> 
-                                                       (match field with
-                                                            Node n -> not (n.s_id = id)
-                                                          | Empty -> false)) field_list))
+                      Hashtbl.add ht k
+                      (List.filter (fun field -> 
+                                      (match field with
+                                           Node n -> not (n.s_id = id)
+                                         | Empty -> false)) field_list))
         !fields;
       fields := ht;
       
       Hashtbl.iter (fun k pred_list ->
-                      Hashtbl.add ht2 k (List.filter (fun pred -> not (pred.p_id = id))
-                                           pred_list))
+                      Hashtbl.add ht2 k
+                      (List.filter (fun pred -> not (pred.p_id = id))
+                         pred_list))
         !predicates;
       predicates := ht2
         
-  (* Remove a subscription with client md4 given *)
+  (* Remove a subscription with client md4 given. NOT REMOVED FROM THE GLOBAL
+     LIST: done by remove_timeout_subs *)
   let remove_subs_md4 md4 =
     let ht = Hashtbl.create 1024 
     and ht2 = Hashtbl.create 10 in
       
       Hashtbl.iter (fun k field_list ->
-                      Hashtbl.add ht k (List.filter (fun field -> 
-                                                       (match field with
-                                                            Node n -> not ((fst n.s_id) = md4)
-                                                          | Empty -> false)) field_list))
+                      Hashtbl.add ht k 
+                      (List.filter (fun field -> 
+                                      (match field with
+                                           Node n -> not ((fst n.s_id) = md4)
+                                         | Empty -> false)) field_list))
         !fields;
       fields := ht;
       
       Hashtbl.iter (fun k pred_list ->
-                      Hashtbl.add ht2 k (List.filter (fun pred -> not ((fst pred.p_id) = md4))
-                                           pred_list))
+                      Hashtbl.add ht2 k 
+                      (List.filter (fun pred -> not ((fst pred.p_id) = md4))
+                         pred_list))
         !predicates;
       predicates := ht2
         
+  (* Remove timeout subscriptions *)
+  let remove_timeout_subs () =
+    let current_time = Unix.time () in
+      active_subs_list :=
+      List.filter (fun elt -> (match elt with
+                                   (id, lifetime) -> 
+                                     if (lifetime > current_time) then
+                                       true
+                                     else
+                                       begin
+                                         remove_subs_id id;
+                                         false
+                                       end))
+        !active_subs_list
+                                     
   (* Find matching subscription and notify to client *)
-  let notify field_list field_list2 =
+  let notify field_list pred_list =
     (* Make a flat list of leaf subscription that "talk" about fields present in
        field_list *)
     let rec make_field_subs_list fl =
@@ -365,12 +423,15 @@ module Subs = struct
           [] -> []
         | hd :: tl ->
             let field = (fst hd) and value = (snd hd) in
-            let preds = Hashtbl.find !predicates field in
-              List.append (make_predicate_subs_list tl) 
-                (List.map (fun p -> (p.f) value) preds) in
+              try
+                let preds = Hashtbl.find !predicates field in
+                  List.append (make_predicate_subs_list tl) 
+                    (List.map (fun p -> (p.f) value) preds)
+              with Not_found ->
+                make_predicate_subs_list tl in
     let subs_list = List.append 
                       (make_field_subs_list field_list)
-                      (make_predicate_subs_list field_list2) in
+                      (make_predicate_subs_list pred_list) in
     let rec do_notify sl level =
       match sl with
           [] -> ()
@@ -405,7 +466,8 @@ end
 
 (****************** TO TEST
 
-  let query1 = (And (HasWord "coucou", And(HasField(1, "meuh meuh"), HasMaxVal(2, 100))))
+  let query1 = (And (HasWord "coucou", And(HasField(1, "meuh meuh"),
+  HasMaxVal(2, 100))))
 
   let notif1 = (fun sub_tree -> Printf.printf "notif1\n")
 
@@ -419,7 +481,8 @@ end
 
   Subs.notify [(2, "coucou"); (1, "meuh meuh"); (5, "haha")] [(2, 50)]
 
-  let query2 = (Or (HasWord "boudin", AndNot(HasField(2, "coucou"), HasField(1, "meuh meuh"))))
+  let query2 = (Or (HasWord "boudin", AndNot(HasField(2, "coucou"), HasField(1,
+  "meuh meuh"))))
 
   let notif2 = (fun sub_tree -> Printf.printf "notif2\n")
 

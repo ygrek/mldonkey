@@ -185,28 +185,29 @@ let can_share dirname =
   
 let rec shared_add_directory dirname local_dir =
   if can_share dirname then
-  let full_dir = Filename.concat dirname local_dir in
-  let files = Unix2.list_directory full_dir in
-  List.iter (fun file ->
-      let full_name = Filename.concat full_dir file in
-      let local_name = Filename.concat local_dir file in
-      try
-        if Unix2.is_directory full_name then
-          shared_add_directory dirname local_name
-          else
+    let full_dir = Filename.concat dirname local_dir in
+    let files = Unix2.list_directory full_dir in
+    List.iter (fun file ->
+        if file <> "" && file.[0] <> '.' then
+          let full_name = Filename.concat full_dir file in
+          let local_name = Filename.concat local_dir file in
           try
-            let size = file_size full_name in
-            if size > Int32.zero && ( !!shared_extensions = [] ||
-                List.mem (String.lowercase (Filename2.last_extension full_name)) !!shared_extensions)
-            then
-              new_shared dirname local_name full_name
-          with e -> 
-              Printf.printf "%s will not be shared (exception %s)"
-                full_name (Printexc.to_string e);
-              print_newline ();
-      with _ -> ()
-  ) files
-
+            if Unix2.is_directory full_name then
+              shared_add_directory dirname local_name
+            else
+            try
+              let size = file_size full_name in
+              if size > Int32.zero && ( !!shared_extensions = [] ||
+                  List.mem (String.lowercase (Filename2.last_extension full_name)) !!shared_extensions)
+              then
+                new_shared dirname local_name full_name
+            with e -> 
+                Printf.printf "%s will not be shared (exception %s)"
+                  full_name (Printexc.to_string e);
+                print_newline ();
+          with _ -> ()
+    ) files
+    
 let shared_add_directory dirname =
   shared_add_directory dirname ""
   

@@ -409,8 +409,11 @@ let help_text = "
                       MLDonkey
                       ========
 
-Release: 1.16
+Release: 1.99
 Authors: [b8]_bavard (Communication engine) and [b8]_Zoggy (GUI)
+
+This documentation file is now obsolete. Read the FAQ instead (either
+on the project WEB site or in the FAQ.html file).
 
  MLDonkey is a door to the 'donkey' network, a decentralized network used to
 exchange big files on the Internet. It is written in a wonderful language,
@@ -511,7 +514,7 @@ Frequently Asked Questions
 
 You can reach us for a short time on 
 
-      mldonkey@monsieurcinema.com
+      mldonkey@lachesis.inria.fr
 
 Please don't bother us too much with questions on how to use mldonkey. We
 prefer bug reports, containing USEFUL information to find the bug. You can

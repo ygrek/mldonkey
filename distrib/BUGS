@@ -1,0 +1,227 @@
+Before feeling a bug report form on 
+    http://savannah.gnu.org/bugs/?group=mldonkey
+please, check that the bug is not already registered (then, add a comment), and
+not in the following list of known bugs:
+
+
+Guys, we have to feel this file with the info from the bug tracking system...
+
+[Bug #419] mldonkey_gui core dumps with segmentation fault
+ WONT FIX
+
+  This bug appears only when running the statically-compiled GUI. Use
+   the shared version instead on your system.
+
+[Bug #420] Wrong permission on imported files
+ FIXED 2002/09/18
+ 
+  Imported files permission should be changed to 644.
+
+[Bug #421] Web interface message "The process for http://... protocol died unexpectedly"
+ FIXED (see #591)
+
+  Probably due to a bad detection of the IP address of the client. Need to
+    check the client_ip address in the config file. The URL put in the
+    page Refresh field is probably incorrect.
+
+[Bug #432] Bandwidth waste?: same packet is send with the same data 
+ FIXED 2002/09/16
+
+  The same packet was sent to the same host many times. In fact, to the
+   head of (udp_servers_list) instead of the head of (list) in
+   donkeyFiles.ml
+
+[ Bug #492 ] Potential security problem - mldonkey creating subdirectories.
+ FIXED
+
+  The use of safe_mkdir could create directories for filename containing /.
+  A better approach would be to remove bad characters in filenames.
+
+
+[ Bug #512 ] get wrong result by using command "id"
+ WONT FIX
+
+  The "id" command returns the address of the router/firewall. It is ok.
+
+[ Bug #531 ] Can't import old edonkey configuration
+ INVALID
+
+  Not enough information.
+
+[ Bug #560 ] Filenames changed after comitting
+ FIXED
+
+[ Bug #566 ] Can´t control mldonkey via http from outside
+ INVALID
+
+  Check the allowed_ips option in downloads.ini
+
+[ Bug #591 ] minor bug - vd: meta refresh use external ip
+  FIXED 2002/09/18
+
+  How to detect the IP address the request should be sent to ?
+
+[ Bug #599 ] Telnet interface: vma command does not always report #user and #file
+  TODO
+
+  The stats displayed by vm and vma are those stored in the server.met file,
+   and not the current ones, as found by mldonkey. The state of the GUI might
+   also be out-of-date, whereas the telnet is always exact.
+
+
+[ Bug #600 ] Command "extend search" does not seem to work
+  INVALID
+
+   Not enough information on the version where it appears.
+
+[ Bug #602 ] Memory Leak on OS X
+  TODO
+
+> When I first run MLdonkey my inactive memory is about 50MB and my free
+> memory about 600MB. Efter running MLdonkey for some hours (without any other
+> programs besides IE)my inactive memory has grown to about 600MB - it is not
+> released either when I quit MLdonkey
+
+  Maybe the Mac OS X Ocaml GC uses mmap and locks the memory. Weird.
+
+[ Bug #1217 ] Accidental deleting of downloads possible
+  FIXED
+
+  A confirmation dialog has been added to the Cancel button in the GUI.
+
+[ Bug #677 ] mldonkey (gui) doesnt accept all e2dk: links
+  FIXED
+
+   Cannot be reproduced on 1.99
+
+[ Bug #686 ] mldonkey deletes file in temp and incoming dir
+  FIXED
+
+   Cannot be reproduced on 1.99
+
+[ Bug #735 ] -avail seems not to work
+  INVALID
+
+    Availability is computed for each server.
+
+[ Bug #736 ] happens now-and-then
+  INVALID
+
+    Not enough information
+
+[ Bug #747 ] File gets smaller?
+  TODO
+
+    The question is: what happens if a file has not the same size as
+   expected on the network (ie you are downloading a 100 bytes file, and
+   it is in fact a 200 bytes file). 
+    Another question is: is the md4 always removed when a download is 
+   cancelled ?
+
+ 
+[ Bug #779 ] Why can't we no longer get a tarball of the cvs?
+  WONT FIX
+
+  Do not depend on me :) Normally, you can still access them on:
+   http://freesoftware.fsf.org/cvs.backups/
+
+[ Bug #782 ] ppp-connection  gets laggy
+  INVALID
+
+Use the bandwidth control options to prevent mldonkey from killing your line.
+
+[ Bug #792 ] mldondey uses rename() for downloaded files
+  FIXED
+
+[ Bug #842 ] mldonkey overwrites the modified download.ini
+  FIXED 2002/09/18
+
+    Prevent mldonkey from that when there is a syntax error in the
+   downloads.ini file.
+
+[ Bug #843 ] No error message appears when using "servers" command and no 
+  such a file is found/available
+  TODO
+
+    Be more explicit with this kind of errors. idem for non-existing commands.
+
+[ Bug #844 ] Change Request: All settings of the download.ini file should
+   be availble in the Gui
+  FIXED 2002/09/14
+
+    You can now do it yourself thanks to the gui_options_panel :)
+
+[ Bug #849 ] mlDonkey GUI LabGTK locale
+  TODO
+ 
+   How to manage LOCALE with Lablgtk ?
+
+[ Bug #877 ] Configuration should be stored in user home
+  WONT FIX
+
+    Since it's possible to start mldonkey from any directory, it is possible
+  for different users to use the same mldonkey in different directories.
+
+[ Bug #878 ] Hidden files are shared
+  FIXED 2002/09/18
+
+    Don't share files starting with a dot.
+
+[ Bug #949 ] mldonkey losses upload when only sharing
+  TODO
+
+    Check what happens exactlty when the connection is reset by the
+     provider. 
+
+[ Bug #970 ] Exception DownloadTypes.Already_done, but I haven't got the file
+   WONT FIX
+
+   Even if the files have different names, they have the same md4 and are the
+    same file.
+
+[ Bug #975 ] Bus Error under Jaguar GM
+  TODO
+
+[ Bug #985 ] NetBSD: Too many open files
+  TODO
+
+[ Bug #986 ] 200% of file (or more)
+  TODO see #747
+
+[ Bug #1052 ] buffer overflow warnings when MLdonkey is reading my shared files
+  FIXED 2002/09/19
+
+   This happens when the size of the message for sharing files is bigger than
+  the size of the buffer for the server connection.
+
+[ Bug #1053 ] no warning when overwriting files
+  FIXED 2002/09/18
+
+[ Bug #1073 ] mldonkey crashes if I want to "retry connect"
+  INVALID
+
+    Cannot reproduce it here.
+
+[ Bug #1088 ] WISHLIST: run mldonkey in chrooted Environment
+[ Bug #1108 ] Commit has problems with certain caracters in filenames
+[ Bug #1117 ] Bus Error with mldonkey 1.16
+[ Bug #1158 ] does NOT work under jaguar ...
+[ Bug #1173 ] array bounds violations in latest CVS on OS X 10.2 -> SIGBUS
+[ Bug #1174 ] Mldonkey loses downloaded bytes after stopping the core
+[ Bug #1175 ] Mldonkey sometimes ignores the max_hard_download_rate option
+[ Bug #1227 ] mldonkey on MacOS X 10.2 (Jaguar)
+
+[ Bug #1141 ] MLDONKEY KILLS MY LINUX!
+[ Bug #1222 ] OpenBSD Kernel Panic!
+ WONT FIX
+
+     A user space program run by a user cannot be responsible of a kernel 
+   panic. Maybe the memory leak could explain that ?
+
+[ Bug #1235 ] searches are not saved
+  WONT FIX
+
+    Searches are not saved, but results are, and local searches are then 
+     possible.
+
+[ Support #101301 ] 2 files download and 62MB files.ini

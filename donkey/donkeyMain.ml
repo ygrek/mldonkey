@@ -85,7 +85,8 @@ let disable enabler () =
         UdpSocket.close sock "");
   clients_list := [];
   servers_list := [];
-  if !!enable_donkey then enable_donkey =:= false
+  if !!enable_donkey then enable_donkey =:= false;
+  DonkeyOvernet.disable ()
   
 let enable () =
 
@@ -170,8 +171,10 @@ let enable () =
         "donkey client server"
       (Ip.to_inet_addr !!donkey_bind_addr)
       !!port client_connection_handler in
-    
+
     listen_sock := Some sock;
+    
+    DonkeyOvernet.enable enabler;
     
     begin
       match Unix.getsockname (BasicSocket.fd (TcpServerSocket.sock sock)) with

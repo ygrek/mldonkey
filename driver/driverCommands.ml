@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonGlobals
 open CommonShared
 open CommonSearch
 open CommonClient
@@ -164,6 +165,29 @@ let commands = [
         
         ""
     ), " : print options";
+    
+    "upstats", Arg_none (fun o ->
+        let buf = o.conn_buf in
+        Printf.bprintf buf "Upload statistics:\n";
+        Printf.bprintf buf "Total: %s bytes uploaded\n" 
+          (Int64.to_string !upload_counter);
+        let list = ref [] in
+        shared_iter (fun s ->
+            let impl = as_shared_impl s in
+            list := impl :: !list
+        );
+        let list = Sort.list (fun f1 f2 ->
+              (f1.impl_shared_requests = f2.impl_shared_requests &&
+              f1.impl_shared_uploaded > f2.impl_shared_uploaded) ||
+              (f1.impl_shared_requests > f2.impl_shared_requests )
+          ) !list in
+        List.iter (fun impl ->
+            Printf.bprintf buf "%-50s requests: %8d bytes: %10s\n"
+              impl.impl_shared_codedname impl.impl_shared_requests
+              (Int64.to_string impl.impl_shared_uploaded);
+        ) list;
+        "done"
+    ), " : statistics on upload";
     
     "set", Arg_two (fun name value o ->
         try

@@ -33,20 +33,50 @@ open Hashtbl
 
 
 let rec add_source_list liste loc= 
-         match liste with
-          [] ->  Printf.printf("add liste"); print_newline(); 
-                 [loc]
-         | hd::tl -> (* Printf.printf("parcourage"); print_newline();*)
-                     if hd.loc_ip = loc.loc_ip && hd.loc_port = loc.loc_port then
-                       tl
-                      else add_source_list tl loc
+  match liste with
+      [] -> [loc]
+    | hd::tl ->  
+	(*Printf.printf"parcourage for %s\n" (Ip.to_string loc.loc_ip);*)
+	if (Ip.equal hd.loc_ip loc.loc_ip) then
+	  begin
+	    if loc.loc_local then
+	      Printf.printf "WARNING: local equality  %s %b\n" (Ip.to_string loc.loc_ip)
+		hd.loc_local
+	    else
+	      Printf.printf "WARNING: remote equality %s %b\n" 
+		(Ip.to_string (
+		   try
+		     (match (Hashtbl.find clients_by_id loc.loc_ip) with
+			  RemoteClient c -> c.remote_client_remote_id
+			| _ -> Ip.null)
+		   with _-> (loc.loc_ip)
+		 )) 
+		hd.loc_local;
+	    (hd :: tl)
+	  end
+        else 
+	  (hd :: add_source_list tl loc)
         
+(*
 let supp_source_list liste source =
   let newliste = List.filter 
 		   (fun loc -> 
-		      source.loc_ip<>loc.loc_ip ||
-		      source.loc_port<>loc.loc_port) liste in
+		      not (Ip.equal source.loc_ip loc.loc_ip)
+		   ) liste in
     newliste
+*)
+
+
+let rec supp_source_list liste source =
+  match liste with 
+      [] -> Printf.printf "WARNING: FAIL TO REMOVE LOCATION TABLE %s \n" (Ip.to_string source.loc_ip);
+	[]
+    | hd :: tl -> 
+	if  (Ip.equal source.loc_ip hd.loc_ip) then
+	  tl
+	else
+	  hd :: supp_source_list tl source
+	    
 
  
 exception ToMuchFiles
@@ -54,8 +84,10 @@ exception ToMuchFiles
 let add md4 new_source = 
    try
      let liste = Hashtbl.find files_by_md4 md4 in
-     let newliste = add_source_list liste new_source in
-       Hashtbl.replace files_by_md4 md4 newliste 
+       if not (List.exists (fun l -> l.loc_local) liste) then
+	 incr nshared_md4;
+       let newliste = add_source_list liste new_source in
+	 Hashtbl.replace files_by_md4 md4 newliste
     with _ -> 
        (* Printf.printf("eXeption"); print_newline();*)
        if (!!max_files <= !nshared_md4) then
@@ -63,80 +95,159 @@ let add md4 new_source =
        Hashtbl.add files_by_md4 md4 [new_source];
        incr nshared_md4
 
-let adds md4 new_sources =
-  try  
-    let liste = ref (Hashtbl.find files_by_md4 md4) in
-    let module LI = ServerMessages.LocalisationInit in
-      List.iter (fun new_loc -> 
-		   liste := add_source_list !liste 
-		   { 
-		     loc_ip = new_loc.LI.source_ip;
-		     loc_port = new_loc.LI.source_port;
-		     loc_expired = Unix.time();
-		   }
-		) new_sources;
-      Hashtbl.replace files_by_md4 md4 !liste 
-  with _ -> 
-    let module LI = ServerMessages.LocalisationInit in
-      Hashtbl.add files_by_md4 md4 
-      (List2.tail_map (fun x -> 
-					      { 
-						loc_ip = x.LI.source_ip;
-						loc_port = x.LI.source_port;
-						loc_expired = Unix.time();
-					      }
-					   )new_sources);
-    incr nshared_remote_md4
-  
+
   
 
 let notifications md4 sources = 
-  let module LN = ServerMessages.LocateNotif in
-    try
-      let liste = ref (Hashtbl.find files_by_md4 md4) in
-	List.iter (fun source -> 
-		     let tmp =  { 
-		       loc_ip = source.LN.source_ip;
-		       loc_port = source.LN.source_port;
-		       loc_expired = 0.;
-		     } in
-		       if source.LN.add then
-			 liste :=  add_source_list !liste tmp
-		       else
-			 liste := supp_source_list !liste tmp
-		) sources;
+  try
+    let liste = ref (Hashtbl.find files_by_md4 md4) in
+    let adds,supps = List.partition (fun (add,notif) ->
+				       add) sources in
+      List.iter (fun (add,source) -> 
+		   if add then
+		     begin
+		       if not (List.exists (fun l -> not l.loc_local) !liste) then
+			 incr nshared_remote_md4;
+		       liste :=  add_source_list !liste source;
+			 end
+		   else
+		     begin
+		       liste := supp_source_list !liste source;
+		       if not (List.exists (fun l -> not l.loc_local) !liste) then
+			 decr nshared_remote_md4;
+		     end
+		) adds;
+      List.iter (fun (add,source) -> 
+		   if add then
+		     begin
+		       if not (List.exists (fun l -> not l.loc_local) !liste) then
+			 incr nshared_remote_md4;
+		       liste :=  add_source_list !liste source;
+		     end
+		   else
+		     begin
+		       liste := supp_source_list !liste source;
+		       if not (List.exists (fun l -> not l.loc_local) !liste) then
+			 decr nshared_remote_md4;
+		     end
+		) supps;
+
       if (!liste=[]) then
 	begin 
 	  Hashtbl.remove files_by_md4 md4;
-	  decr nshared_remote_md4
+	  (*decr nshared_md4*)
 	end
       else
 	Hashtbl.replace files_by_md4 md4 !liste;
-	
   with _ -> 
-     let loc_liste = List.map (fun source -> {
-                         loc_ip = source.LN.source_ip;
-		       loc_port = source.LN.source_port;
-		       loc_expired = 0.;
-		     }) sources in
-     Hashtbl.add files_by_md4 md4 loc_liste
+    let liste = ref [] in
+    let adds,supps = List.partition (fun (add,notif) ->
+			      add) sources in
+      List.iter (fun (add,source) -> 
+		   if add then
+		     begin
+		       if not (List.exists (fun l -> not l.loc_local) !liste) then
+			 incr nshared_remote_md4;
+		       liste :=  add_source_list !liste source;
+		     end
+		   else
+		     begin
+		       liste := supp_source_list !liste source;
+		       if not (List.exists (fun l -> not l.loc_local) !liste) then
+			 decr nshared_remote_md4;
+		     end
+		) adds;
+      List.iter (fun (add,source) -> 
+		   if add then
+		     begin
+		       if not (List.exists (fun l -> not l.loc_local) !liste) then
+			 incr nshared_remote_md4;
+		       liste :=  add_source_list !liste source;
+		     end
+		   else
+		     begin
+		       liste := supp_source_list !liste source;
+		       if not (List.exists (fun l -> not l.loc_local) !liste) then
+			 decr nshared_remote_md4;
+		     end
+		) supps;
+      
+      
+
+      if (!liste<>[]) then
+	begin
+	  Hashtbl.add files_by_md4 md4 !liste;
+	  incr nshared_remote_md4;
+	end
 		     
 
 let supp md4 source_loc = 
   try
-        let liste = ref (Hashtbl.find files_by_md4 md4) in
-          liste := supp_source_list !liste source_loc;
-          if !liste=[] then
-	    begin
-              Hashtbl.remove files_by_md4 md4;
-              decr nshared_md4
-            end
-          else
-            Hashtbl.replace files_by_md4 md4 !liste
+    (*Printf.printf "Supp For md4 : %s \n " (Md4.to_string md4);*)
+    let liste = ref (Hashtbl.find files_by_md4 md4) in
+      
+       (*List.iter (fun s -> 
+	 Printf.printf "%s:%d\n" (Ip.to_string s.loc_ip) s.loc_port
+	 ) !liste;*)
+      liste := supp_source_list !liste source_loc;
+      
+      (*Printf.printf "NEW LIST For md4 : %s \n " (Md4.to_string md4);
+      List.iter (fun s -> 
+		   Printf.printf "%s:%d\n" (Ip.to_string s.loc_ip) s.loc_port
+		) !liste;*)
+
+      if source_loc.loc_local && not (List.exists (fun loc -> loc.loc_local) !liste) then
+	begin
+	  (*Printf.printf "No more local source\n";*)
+	  decr nshared_md4
+	end;
+      
+      if !liste=[] then
+	begin
+          Hashtbl.remove files_by_md4 md4;
+	  (*Printf.printf "decr the count\n";*)
+        end
+      else
+	begin
+          Hashtbl.replace files_by_md4 md4 !liste;
+	end
   with _ -> Printf.printf "You want to remove a file that doesn't existe in location table\n"; 
     ()
-           
- 
+
+let remote_supp md4 source_loc = 
+  try
+    (*Printf.printf "For md4 : %s \n " (Md4.to_string md4);*)
+    let liste = ref (Hashtbl.find files_by_md4 md4) in
+      
+      (* List.iter (fun s -> 
+	 Printf.printf "%s:%d\n" (Ip.to_string s.loc_ip) s.loc_port
+	 ) !liste;*)
+      liste := supp_source_list !liste source_loc;
+      
+      (*Printf.printf "NEW LIST For md4 : %s \n " (Md4.to_string md4);
+	List.iter (fun s -> 
+	Printf.printf "%s:%d\n" (Ip.to_string s.loc_ip) s.loc_port
+	) !liste;*)
+
+      if source_loc.loc_local && not (List.exists (fun loc -> (not loc.loc_local)) !liste) then
+	begin
+	  (*Printf.printf "No more local source\n";*)
+	  decr nshared_remote_md4
+	end;
+      
+      if !liste=[] then
+	begin
+          Hashtbl.remove files_by_md4 md4;
+          (*decr nshared_md4*)
+        end
+      else
+	begin
+          Hashtbl.replace files_by_md4 md4 !liste;
+	end
+  with _ -> Printf.printf "You want to remove a remote file that doesn't existe in location table\n"; 
+    () 
+    
+
 let print () = 
          print_newline();
          Printf.printf("FILES BY MD4:");print_newline();
@@ -152,14 +263,19 @@ let print () =
          Printf.printf("FIN");print_newline();
          print_newline()
 
-let get_liste_of_md4 () =
+let get_list_of_md4 () =
   let l = ref [] in
     Hashtbl.iter( fun md4 sources ->
 		    l := (md4,(List.length sources)) :: !l 
 		) files_by_md4;
     !l
-     
-                 
+
+let get_locate_table () =
+  let l = ref [] in
+    Hashtbl.iter( fun md4 sources ->
+		    l := (md4,sources) :: !l 
+		) files_by_md4;
+    !l                
 
 module M = DonkeyProtoServer.QueryLocationReply
  
@@ -189,4 +305,10 @@ let get md4 =
                   print_newline();*)
                   raise Not_found
                 
+
+let exist md4 id =
+  try
+    let sources = Hashtbl.find files_by_md4 md4 in
+      (List.exists (fun loc -> loc.loc_ip = id ) sources)
+  with _ -> raise Not_found
 

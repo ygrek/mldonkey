@@ -46,6 +46,7 @@ type location = {
     mutable loc_ip : Ip.t;
     mutable loc_port : int;
     mutable loc_expired : float;
+    loc_local : bool;
   }
 
   (*
@@ -64,7 +65,7 @@ and client = {
     mutable client_conn_ip : Ip.t;
     mutable client_md4 : Md4.t;
     mutable client_mldonkey : int;
-    mutable client_sock: DonkeyProtoCom.server_sock option;
+    mutable client_sock: TcpBufferedSocket.t option;
     mutable client_kind : client_kind;
     mutable client_files : Md4.t list;
     mutable client_tags: CommonTypes.tag list;
@@ -95,6 +96,7 @@ and subscription = {
 type notification = {
   add : bool;
   md4 : Md4.t;
+  source_id : Ip.t;
   source_ip : Ip.t;
   source_port : int;
 }
@@ -121,11 +123,12 @@ open CommonNetwork
 let network = CommonNetwork.new_network "Donkey:server"
 
 type remote_client = {
-    mutable remote_client_local_id : Ip.t; 
-    mutable remote_client_server: int;
-    mutable remote_client_md4 : Md4.t;
-    mutable remote_client_kind : client_kind;
-    mutable remote_client_files : Md4.t list;
+  mutable remote_client_local_id : Ip.t; 
+  mutable remote_client_remote_id : Ip.t;
+  mutable remote_client_server: int;
+  mutable remote_client_md4 : Md4.t;
+  mutable remote_client_kind : client_kind;
+  mutable remote_client_files : Md4.t list;
 }
 
 

@@ -148,7 +148,7 @@ let client_to_server s t sock =
   match t with
     M.SetIDReq t ->
       s.server_cid <- t;
-      set_rtimeout sock 3600.; 
+      set_rtimeout sock !!connected_server_timeout; 
 (* force deconnection after one hour if nothing  appends *)
       set_server_state s Connected_initiating;
       s.server_score <- s.server_score + 5;

@@ -28,6 +28,11 @@ class config rcfile =
     method id = !!id
     method set_id i = id =:= i
 
+    val hostname = define_option op_file ["hostname"]
+	M.h_id string_option (Unix.gethostname ())
+    method hostname = !!id
+    method set_hostname i = hostname =:= i
+
     val port = define_option op_file ["port"]
 	M.h_port int_option 5036
     method port = !!port

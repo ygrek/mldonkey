@@ -19,6 +19,7 @@
 
 (** Configuration panel. *)
 
+open Gui_global
 module GO = Gui_options
 open Configwin
 
@@ -267,9 +268,20 @@ let create_gui_params () =
 
   [ server_options ; colors_options ; layout_options ; columns_options ; misc_options ]
   
-let create_option ?help label ref = string ?help ~f: (fun s -> ref := s) label !ref
-
+let create_string_option ?help label ref = string ?help ~f: (fun s -> ref := s) label !ref
+  
+let create_file_option ?help label ref = filename ?help ~f: (fun s -> ref := s) label !ref
+  
+let create_bool_option ?help label ref = bool ?help ~f: (fun s -> ref := string_of_bool s) label (bool_of_string !ref)
+  
+let add_option_value option value =
+  try
+    (Hashtbl.find options_values option) := !value
+  with _ ->
+      Hashtbl.add options_values option value
+  
 let create_client_params () =
+  (*
   (** Name and authentification *)
   let client_name = create_option M.o_client_name GO.client_name in
   let client_password = create_option M.o_password GO.client_password in
@@ -337,7 +349,23 @@ in
 	     [ smtp_server ; smtp_port ; mail ]);
     Section (M.o_misc,
 	     [max_up_rate ; max_con_servs ]) ;
-  ] 
+  ]  @
+  *)
+    (
+    List.map (fun (name, options) ->
+        Section (name,
+          List.map (fun (message, optype, option) ->
+              match optype with
+              | GuiTypes.StringEntry ->
+                  create_string_option message (Hashtbl.find options_values option)
+              | GuiTypes.BoolEntry ->                  
+                  create_bool_option message (Hashtbl.find options_values option)
+              | GuiTypes.FileEntry ->                  
+                  create_file_option message (Hashtbl.find options_values option)
+                  
+          ) !options)
+    ) !client_sections
+  )
 
 let update_toolbars_style gui =
   gui#tab_downloads#set_tb_style !!GO.toolbars_style;
@@ -345,6 +373,27 @@ let update_toolbars_style gui =
   gui#tab_friends#set_tb_style !!GO.toolbars_style ;
   gui#tab_queries#set_tb_style !!GO.toolbars_style 
 
+    
+let save_options gui =
+  let module P = GuiProto in
+
+  try
+    let list = ref [] in
+    Hashtbl.iter (fun option value ->
+        list := (option, !value) :: !list) 
+    options_values;   
+    Gui_com.send (P.SaveOptions_query !list)
+(*
+    (List.map
+                       (fun (name, r) -> (name, !r))
+                       Gui_options.client_options_assocs
+                    )
+);
+  *)
+  with _ ->
+    Printf.printf "ERROR SAVING OPTIONS (but port/password/host correctly set for GUI)"; print_newline ()
+
+  
 let edit_options gui =
   let gui_params = create_gui_params () in 
   let client_params = create_client_params () in
@@ -357,7 +406,8 @@ let edit_options gui =
       M.o_options structure 
   with
     Return_ok | Return_apply -> 
-      Gui_misc.save_options gui ;
+      Gui_misc.save_gui_options gui;      
+      save_options gui ;
       gui#tab_servers#box_servers#set_columns
 	!!GO.servers_columns;
       gui#tab_downloads#box_downloads#set_columns

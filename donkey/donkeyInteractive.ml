@@ -85,18 +85,12 @@ Unix2.safe_mkdir (Filename.dirname real_name);
   Printf.printf "\nMOVING %s TO %s\n" old_name real_name; 
   print_newline ();
   (try 
-      Unix2.rename old_name real_name ;
-      change_hardname file real_name;
+      let new_name = rename_to_incoming_dir old_name real_name in
+      change_hardname file new_name
     with e -> 
-        Printf.printf "Error in rename %s (src [%s] dst [%s])"
+        Printf.eprintf "Error in rename %s (src [%s] dst [%s])"
           (Printexc.to_string e) old_name real_name; 
         print_newline ();
-        let new_name = Filename.concat (Filename.dirname old_name)
-          (Filename.basename real_name) in
-        try 
-          Unix2.rename old_name new_name;
-          change_hardname file new_name
-        with _ -> ()
   )
   ;
   remove_file_clients file;
@@ -105,7 +99,8 @@ Unix2.safe_mkdir (Filename.dirname real_name);
   ()
   
 let save_file file name =
-  let real_name = Filename.concat !!incoming_directory name in
+  let real_name = Filename.concat !!incoming_directory (canonize_basename name)
+    in
   save_as file real_name;
   file_commit (as_file file.file_file)
 
@@ -157,7 +152,9 @@ let really_query_download filenames size md4 location old_file absents =
           (try 
               Printf.printf "Renaming from %s to %s" filename
                 temp_file; print_newline ();
-              Unix2.rename filename temp_file with e -> 
+              Unix2.rename filename temp_file;
+              Unix.chmod temp_file 0o644;
+              with e -> 
                 Printf.printf "Could not rename %s to %s: exception %s"
                   filename temp_file (Printexc.to_string e);
                 print_newline () );        
@@ -256,6 +253,36 @@ let load_prefs filename =
       print_newline ();
       [], []
       
+let import_temp temp_dir =  
+  let list = Unix2.list_directory temp_dir in
+  let module P = DonkeyImport.Part in
+  List.iter (fun filename ->
+      try
+        if Filename2.last_extension filename = ".part" then
+          let filename = Filename.concat temp_dir filename in
+          let met = filename ^ ".met" in
+          if Sys.file_exists met then
+            let s = File.to_string met in
+            let f = P.read s in
+            let filenames = ref [] in
+            let size = ref Int32.zero in
+            List.iter (fun tag ->
+                match tag with
+                  { tag_name = "filename"; tag_value = String s } ->
+                    Printf.printf "Import Donkey %s" s; 
+                    print_newline ();
+                    
+                    filenames := s :: !filenames;
+                | { tag_name = "size"; tag_value = Uint32 v } ->
+                    size := v
+                | _ -> ()
+            ) f.P.tags;
+            query_download !filenames !size f.P.md4 None 
+              (Some filename) (Some (List.rev f.P.absents));
+      
+      with _ -> ()
+  ) list
+  
   
 let import_config dirname =
   ignore (load_server_met (Filename.concat dirname "server.met"));
@@ -280,35 +307,8 @@ let import_config dirname =
               print_newline ();)
       | _ -> ()
   ) ot;
-  
-  let list = Unix2.list_directory !temp_dir in
-  let module P = DonkeyImport.Part in
-  List.iter (fun filename ->
-      try
-        if Filename2.last_extension filename = ".part" then
-          let filename = Filename.concat !temp_dir filename in
-          let met = filename ^ ".met" in
-          if Sys.file_exists met then
-            let s = File.to_string met in
-            let f = P.read s in
-            let filenames = ref [] in
-            let size = ref Int32.zero in
-            List.iter (fun tag ->
-                match tag with
-                  { tag_name = "filename"; tag_value = String s } ->
-                    Printf.printf "Import Donkey %s" s; 
-                    print_newline ();
-                    
-                    filenames := s :: !filenames;
-                | { tag_name = "size"; tag_value = Uint32 v } ->
-                    size := v
-                | _ -> ()
-            ) f.P.tags;
-            query_download !filenames !size f.P.md4 None 
-              (Some filename) (Some (List.rev f.P.absents));
-      
-      with _ -> ()
-  ) list
+
+  import_temp !temp_dir
   
 let broadcast msg =
   let s = msg ^ "\n" in
@@ -317,6 +317,7 @@ let broadcast msg =
       TcpBufferedSocket.write sock s 0 len
   ) !user_socks
 
+  
 (* compute the name used to save the file *)
   
 let longest_name file =
@@ -478,8 +479,6 @@ let commands = [
           end
         else 
           "not enough upload credits"
-    
-    
     ), " <m> : disable upload during <m> minutes (multiple of 5)";
     
     "import", Arg_one (fun dirname o ->
@@ -491,6 +490,16 @@ let commands = [
             Printf.sprintf "error %s while loading config" (
               Printexc.to_string e)
     ), " <dirname> : import the config from dirname";
+
+    "import_temp", Arg_one (fun dirname o ->
+        let buf = o.conn_buf in
+        try
+          import_temp dirname;
+          "temp files loaded"
+        with e ->
+            Printf.sprintf "error %s while loading temp files" (
+              Printexc.to_string e)
+    ), " <temp_dir> : import the old edonkey temp directory";
     
     "load_old_history", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -550,6 +559,8 @@ let commands = [
         ) files;
         "done"
     ), " : recover lost files from temp directory";
+
+    (*
     
     "upstats", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -573,6 +584,7 @@ let commands = [
         ) list;
         "done"
     ), " : statistics on upload";
+*)
     
     "xs", Arg_none (fun o ->
         let buf = o.conn_buf in

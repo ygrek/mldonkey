@@ -294,20 +294,6 @@ let get_vpaned gui (hpaned: GPack.paned) prop =
         prop =:= r.Gtk.height * 100 / (max 1 (h1 - hpaned#handle_size));
         save_gui_options gui
     ))
-  
-let save_options gui =
-  let module P = GuiProto in
-
-  try
-    Gui_com.send (P.SaveOptions_query
-                    (List.map
-                       (fun (name, r) -> (name, !r))
-                       Gui_options.client_options_assocs
-                    )
-		 );
-    save_gui_options gui
-  with _ ->
-    Printf.printf "ERROR SAVING OPTIONS (but port/password/host correctly set for GUI)"; print_newline ()
 
 let create_search query_entry max_hits search_type =
   let s = {

@@ -25,60 +25,6 @@ open TcpBufferedSocket
 let ports = ref []
 
       
-type tagged_file =  {
-    f_md4: Md4.t;
-    f_ip: Ip.t;
-    f_port: int;
-    f_tags: tag list;
-  }
-  
-let rec print_tags tags =
-  match tags with
-    [] -> ()
-  | tag :: tags ->
-      Printf.printf "  \"%s\" = " (String.escaped tag.tag_name);
-      begin
-        match tag.tag_value with
-        | Uint32 n -> Printf.printf "%s" (Int32.to_string n)
-        | Fint32 n -> Printf.printf "%s" (Int32.to_string n)
-        | Addr ip -> Printf.printf "%s" (Ip.to_string ip)
-        | String s -> Printf.printf "\"%s\"" 
-              (String.escaped s)
-      end;
-      print_tags tags
-
-let rec fprint_tags oc tags =
-  match tags with
-    [] -> Printf.fprintf oc "\n";
-          ()
-  | tag :: tags ->
-      Printf.fprintf oc "%s = " (String.escaped tag.tag_name);
-      begin
-        match tag.tag_value with
-        | Uint32 n -> Printf.fprintf oc "%s" (Int32.to_string n)
-        | Fint32 n -> Printf.fprintf oc "%s" (Int32.to_string n)
-        | Addr ip -> Printf.fprintf oc "%s" (Ip.to_string ip)
-        | String s -> Printf.fprintf oc "\"%s\"" 
-              (String.escaped s)
-      end;
-      fprint_tags oc tags
-
-let rec bprint_tags buf tags =
-  match tags with
-    [] -> Printf.bprintf buf "\n";
-          ()
-  | tag :: tags ->
-      Printf.bprintf buf "%s = " (String.escaped tag.tag_name);
-      begin
-        match tag.tag_value with
-        | Uint32 n -> Printf.bprintf buf "%s" (Int32.to_string n)
-        | Fint32 n -> Printf.bprintf buf "%s" (Int32.to_string n)
-        | Addr ip -> Printf.bprintf buf "%s" (Ip.to_string ip)
-        | String s -> Printf.bprintf buf "\"%s\"" 
-              (String.escaped s)
-      end;
-      bprint_tags buf tags
-      
 let const_int32_255 = Int32.of_int 255
 let output_int32_8 oc i =
   output_char oc (char_of_int (Int32.to_int (
@@ -194,7 +140,6 @@ let get_port s pos =
 let get_string s pos =
   let len = get_int16 s pos in
   String.sub s (pos+2) len, pos+2+len
-
 
 let rec get_tags s pos ntags names_of_tag =
   if ntags = 0 then [], pos else

@@ -91,6 +91,7 @@ val ( !! ) : 'a option_record -> 'a
 val ( =:= ) : 'a option_record -> 'a -> unit
 
 val shortname : 'a option_record -> string
+val option_type : 'a option_record -> string
 val get_help : 'a option_record -> string  
   
 (*4 Creating new option classes *)

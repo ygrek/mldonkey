@@ -120,28 +120,34 @@ let user_reader options auth sock nread  =
   let b = TcpBufferedSocket.buf sock in
   let end_pos = b.pos + b.len in
   let new_pos = end_pos - nread in
-  for i = new_pos to end_pos - 1 do
-    let c = b.buf.[i] in
-    if c = '\n' || c = '\r' || c = '\000' then 
-      let len = i - b.pos in
-      let cmd = String.sub b.buf b.pos len in
-      buf_used sock (len+1);
-      try
+  let rec iter i =
+    let end_pos = b.pos + b.len in
+    if i < end_pos then
+      let c = b.buf.[i] in
+      if c = '\n' || c = '\r' || c = '\000' then 
+        let len = i - b.pos in
+        let cmd = String.sub b.buf b.pos len in
+        buf_used sock (len+1);
         let buf = options.conn_buf in
         Buffer.clear buf;
         eval auth cmd options;
         Buffer.add_char buf '\n';
-        TcpBufferedSocket.write_string sock (Buffer.contents buf)
-      with
-        CommonTypes.CommandCloseSocket ->
-          (try
-              shutdown sock "user quit";
-          with _ -> ());
-      | e ->
-          TcpBufferedSocket.write_string sock
-            (Printf.sprintf "exception [%s]\n" (Printexc.to_string e));
-          
-  done
+        TcpBufferedSocket.write_string sock (Buffer.contents buf);
+        iter b.pos
+       else
+         iter (i+1)
+  in
+  try
+    iter new_pos
+  with
+  | CommonTypes.CommandCloseSocket ->
+    (try
+       shutdown sock "user quit";
+     with _ -> ());
+  | e ->
+    TcpBufferedSocket.write_string sock
+       (Printf.sprintf "exception [%s]\n" (Printexc.to_string e))
+
   
 let user_closed sock  msg =
   user_socks := List2.removeq sock !user_socks;
@@ -262,7 +268,7 @@ let http_add_header buf =
 
 let any_ip = Ip.of_inet_addr Unix.inet_addr_any
   
-let html_open_page buf r open_body =
+let html_open_page buf t r open_body =
   Buffer.clear buf;
   
   http_add_header buf;
@@ -273,11 +279,13 @@ let html_open_page buf r open_body =
   Buffer.add_string buf !!html_header;
   if !CommonInteractive.display_vd then begin
       let url = { r.get_url with
-          Url.server = Ip.to_string (
-            if !!http_bind_addr = any_ip then
+          Url.server = Ip.to_string (my_ip t);
+(*
+          if !!http_bind_addr = any_ip then
               client_ip None
             else
-              !!http_bind_addr);
+!!http_bind_addr);
+  *)
           Url.port = !!http_port;
           Url.proto = "http";
           } in
@@ -308,11 +316,11 @@ let http_handler options t r =
       try
         match r.get_url.Url.file with
         | "/commands.html" ->
-            html_open_page buf r true;
+            html_open_page buf t r true;
             Buffer.add_string buf !!web_common_header
         | "/" | "/index.html" -> 
             if !!use_html_frames then begin
-                html_open_page buf r false;
+                html_open_page buf t r false;
                 Printf.bprintf buf "
             <frameset src=\"index\" rows=\"%d,2*\">
                <frameset src=\"index\" cols=\"5*,1*\">
@@ -322,16 +330,16 @@ let http_handler options t r =
                <frame name=\"output\" src=\"/oneframe.html\">
             </frameset>" !!commands_frame_height             
               end else
-              html_open_page buf r true
+              html_open_page buf t r true
         | "/complex_search.html" ->
-            html_open_page buf r true;
+            html_open_page buf t r true;
             CommonSearch.complex_search buf
         | "/noframe.html"
         | "/oneframe.html" ->
-            html_open_page buf r true
+            html_open_page buf t r true
         
         | "/filter" ->
-            html_open_page buf r true;
+            html_open_page buf t r true;
             let b = Buffer.create 10000 in 
             let filter = ref (fun _ -> ()) in
             begin              
@@ -386,7 +394,7 @@ let http_handler options t r =
         
         
         | "/results" ->
-            html_open_page buf r true;
+            html_open_page buf t r true;
             let b = Buffer.create 10000 in
             List.iter (fun (arg, value) ->
                 match arg with
@@ -442,7 +450,7 @@ let http_handler options t r =
             let b = Buffer.create 10000 in
             DriverInteractive.display_file_list b options;
             
-            html_open_page buf r true;
+            html_open_page buf t r true;
             Buffer.add_string buf (html_escaped (Buffer.contents b))
 
         | "/submit" ->
@@ -464,15 +472,15 @@ let http_handler options t r =
                     eval (ref true) cmd options;
                     html_escaped (Buffer.contents b)
                   in
-                  html_open_page buf r true;
+                  html_open_page buf t r true;
                   Printf.bprintf buf  "\n<pre>\n%s\n</pre>\n" s;
 
               | [ ("custom", query) ] ->
-                  html_open_page buf r true;
+                  html_open_page buf t r true;
                   CommonSearch.custom_query buf query
                   
               | ("custom", query) :: args ->
-                  html_open_page buf r true;
+                  html_open_page buf t r true;
                   send_custom_query buf 
                     (let module G = GuiTypes in
                     { G.search_num = 0;
@@ -483,7 +491,7 @@ let http_handler options t r =
                      args
   
               | [ "setoption", _ ; "option", name; "value", value ] ->
-                  html_open_page buf r true;
+                  html_open_page buf t r true;
                   Options.set_simple_option downloads_ini name value;
                   Buffer.add_string buf "Option value changed"
                   
@@ -496,7 +504,7 @@ let http_handler options t r =
 end
 
         | cmd ->
-            html_open_page buf r true;
+            html_open_page buf t r true;
             Printf.bprintf buf "No page named %s" cmd
       with e ->
           Printf.bprintf buf "\nException %s\n" (Printexc.to_string e);

@@ -266,3 +266,12 @@ type gui_record = {
   
 exception Avifile_info of avi_info
 exception Mp3_info of Mp3tag.tag
+
+       
+type tagged_file =  {
+    f_md4: Md4.t;
+    f_ip: Ip.t;
+    f_port: int;
+    f_tags: tag list;
+  }
+  

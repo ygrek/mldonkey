@@ -19,7 +19,7 @@
 
 (***** Network order ******)
 
-
+open Autoconf
 open Int32ops
   
 let const_int32_255 = Int32.of_int 255
@@ -48,6 +48,7 @@ let str_int16 s pos i =
   s.[pos] <- char_of_int ((i lsr 8) land 255)
 
 let get_int16 s pos =
+  check_string s (pos+1);  
   let c1 = int_of_char s.[pos+1] in
   let c2 = int_of_char s.[pos] in
   c1 + c2 * 256
@@ -61,6 +62,7 @@ let buf_int buf i =
 
       
 let get_int32_8 s pos =
+  check_string s pos;
   Int32.of_int (int_of_char s.[pos])
     
 let get_int32_32 s pos = 
@@ -72,7 +74,9 @@ let get_int32_32 s pos =
     
 let get_int32 = get_int32_32
       
-let get_int8 s pos =  int_of_char s.[pos]
+let get_int8 s pos =  
+  check_string s pos;
+  int_of_char s.[pos]
     
 let get_int s pos = 
   let c4 = get_int8 s pos in

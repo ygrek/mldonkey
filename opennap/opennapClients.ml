@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonInteractive
 open CommonFile
 open CommonComplexOptions
 open CommonTypes
@@ -74,10 +75,11 @@ let file_complete file =
     else !!DO.incoming_directory
   in
   (try Unix2.safe_mkdir incoming_dir with _ -> ());
-  let new_name =  Filename.concat incoming_dir file.file_name
+  let new_name =  Filename.concat incoming_dir 
+    (canonize_basename file.file_name)
   in
 (*  Printf.printf "RENAME to %s" new_name; print_newline (); *)
-  Unix2.rename file.file_temp  new_name;
+  let new_name = rename_to_incoming_dir file.file_temp  new_name in
   file.file_temp <- new_name
 
 (*

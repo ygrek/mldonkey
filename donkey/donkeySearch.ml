@@ -173,7 +173,7 @@ let send_subscribe search query =
       | Some sock ->
           if s.server_mldonkey then
             direct_server_send sock (
-              M.Mldonkey_SubscribeReq (search.search_search.search_num, query))
+              M.Mldonkey_SubscribeReq (search.search_search.search_num, 3600, query))
           else begin
               direct_server_send sock (M.QueryReq query);
               Fifo.put s.server_search_queries 

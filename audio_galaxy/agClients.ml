@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonInteractive
 open CommonGlobals
 open CommonClient
 open CommonComplexOptions
@@ -71,8 +72,8 @@ let file_complete file file_id =
     else !!DO.incoming_directory
   in
   (try Unix2.safe_mkdir incoming_dir with _ -> ());
-  Unix2.rename file.file_temp
-    (Filename.concat incoming_dir file.file_name);
+  let new_name = rename_to_incoming_dir file.file_temp
+      (Filename.concat incoming_dir (canonize_basename file.file_name)) in
   CommonChat.send_warning_for_downloaded_file file.file_name
 
     

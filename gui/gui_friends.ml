@@ -47,100 +47,100 @@ let string_color_of_client c =
     Some _ -> M.o_col_files_listed, Some !!O.color_downloading 
   | _ -> string_color_of_state c.client_state
 
-  
+
 
 class dialog friend =
   object (self)
     inherit Gui_friends_base.dialog ()
-
+    
     val mutable name = friend.client_name
     method name =  name
     method friend = friend
     method num = friend.client_num
-
+    
     method send s =
       Gui_com.send (GuiProto.MessageToClient (friend.client_num, s))
-
+    
     method handle_message mes =
       wt_dialog#insert ~foreground: (Gui_misc.color_of_name name) name;
       wt_dialog#insert (" : "^mes^"\n");
       wt_dialog#set_position (wt_dialog#length - 1)
-
+    
     initializer
-      let return () = 
-	let s = wt_input#get_chars 0 wt_input#length in
-	let len = String.length s in
-	let s2 = 
-	  if len <= 0 then s
-	  else
-	    match s.[0] with
-	      '\n' -> String.sub s 1 (len - 1)
-	    | _ -> s
-	in
-	self#send s2;
-	wt_dialog#insert 
-	  ~foreground: (Gui_misc.color_of_name !Gui_options.client_name)
-	  !Gui_options.client_name;
-	wt_dialog#insert (" : "^s2^"\n") ;
-	wt_input#delete_text ~start: 0 ~stop: wt_input#length
-	  
+    let return () = 
+      let s = wt_input#get_chars 0 wt_input#length in
+      let len = String.length s in
+      let s2 = 
+        if len <= 0 then s
+        else
+        match s.[0] with
+          '\n' -> String.sub s 1 (len - 1)
+        | _ -> s
       in
-      Okey.add wt_input ~mods: [] GdkKeysyms._Return return;
-      Okey.add_list wt_input ~mods: [`CONTROL]
-	[GdkKeysyms._c; GdkKeysyms._C]
-	box#destroy;
-      Okey.add_list wt_dialog ~mods: [`CONTROL] 
-	[GdkKeysyms._c; GdkKeysyms._C]
-	box#destroy;
+      self#send s2;
+      wt_dialog#insert 
+        ~foreground: (Gui_misc.color_of_name !Gui_options.client_name)
+      !Gui_options.client_name;
+      wt_dialog#insert (" : "^s2^"\n") ;
+      wt_input#delete_text ~start: 0 ~stop: wt_input#length
+    
+    in
+    Okey.add wt_input ~mods: [] GdkKeysyms._Return return;
+    Okey.add_list wt_input ~mods: [`CONTROL]
+      [GdkKeysyms._c; GdkKeysyms._C]
+      box#destroy;
+    Okey.add_list wt_dialog ~mods: [`CONTROL] 
+      [GdkKeysyms._c; GdkKeysyms._C]
+      box#destroy;
 
-  end
+end
 
 class box columns () =
   let titles = List.map Gui_columns.Client.string_of_column columns in
   object (self)
     inherit [client_info] Gpattern.plist `EXTENDED titles true as pl
-    inherit Gui_friends_base.box () as box
-
+      inherit Gui_friends_base.box () as box
+    
     val mutable columns = columns
     method set_columns l =
       columns <- l;
       self#set_titles (List.map Gui_columns.Client.string_of_column columns);
       self#update
-
+    
     method coerce = box#vbox#coerce
-
+    
     method compare_by_col col f1 f2 =
       match col with
-	Col_client_name -> compare f1.client_name f2.client_name
+        Col_client_name -> compare f1.client_name f2.client_name
       |	Col_client_state -> compare f1.client_state f2.client_state
       |	Col_client_kind -> compare f1.client_kind f2.client_kind
       | Col_client_network -> compare f1.client_network f2.client_network
       | Col_client_type -> compare f1.client_type f2.client_type
-          
-          
+    
+    
     method compare f1 f2 =
       let abs = if current_sort >= 0 then current_sort else - current_sort in
       let col = 
-	try List.nth columns (abs - 1) 
-	with _ -> Col_client_name
+        try List.nth columns (abs - 1) 
+        with _ -> Col_client_name
       in
       let res = self#compare_by_col col f1 f2 in
       res * current_sort
-
+    
     method content_by_col f col =
       match col with
-	Col_client_name -> f.client_name
-      |	Col_client_state -> fst (string_color_of_client f)
-      |  Col_client_type -> (match f.client_type with
+        Col_client_name -> f.client_name
+      | Col_client_state -> fst (string_color_of_client f)
+      | Col_client_type -> (match f.client_type with
               FriendClient -> M.friend
             | ContactClient -> M.contact
-            | NormalClient -> "")
-      |  Col_client_network -> Gui_global.network_name f.client_network
-      |	Col_client_kind -> 
-	  match f.client_kind with
+            | NormalClient -> "Y")
+      | Col_client_network -> Gui_global.network_name f.client_network
+      | Col_client_kind -> 
+          match f.client_kind with
             Known_location _ -> M.direct
-	  | _ -> ""
-
+          | _ -> ""
+              
     method content f =
       let strings = List.map 
 	  (fun col -> P.String (self#content_by_col f col))
@@ -322,18 +322,20 @@ class box_list () =
       (
        match file_opt with
        | None -> ()
-       | Some file ->
+        | Some file ->
             match file.file_sources with
-	     None -> Gui_com.send (GuiProto.GetFile_locations file.file_num)
-	   | Some list ->
+              None -> 
+
+                Gui_com.send (GuiProto.GetFile_locations file.file_num)
+            | Some list ->
                 List.iter 
 		 (fun num ->
 		  try
 		    let c = Hashtbl.find G.locations num in
 		    if Mi.is_connected c.client_state then incr G.nclocations;
 		    l := c :: !l
-		  with _ -> 
-		    Gui_com.send (GuiProto.GetClient_info num)
+                    with _ -> 
+                        Gui_com.send (GuiProto.GetClient_info num)
 		 )  list
 
       );

@@ -10,13 +10,17 @@ let protocol_version =
 let queued_timeout = 
   define_option downloads_ini ["queued_timeout"] 
     "How long should we wait in the queue of another client"
-    float_option 3600. 
-  
-    
+    float_option 1800. 
+      
 let upload_timeout = 
   define_option downloads_ini ["upload_timeout"] 
     "How long can a silent client stay in the upload queue"
-    float_option 3600. 
+    float_option 1800. 
+
+let connected_server_timeout = 
+  define_option downloads_ini ["connected_server_timeout"]
+    "How long can a silent server stay connected"
+    float_option 1800.
   
 let upload_power = define_option downloads_ini ["upload_power"]
   "The weight of upload on a donkey connection compared to upload on other

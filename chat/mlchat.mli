@@ -26,6 +26,7 @@ class type config =
     method color_myself : string
     method color_not_connected : string
     method id : string
+    method hostname : string
     method people : (string * string * int) list
     method popup_all : bool
     method port : int
@@ -35,6 +36,7 @@ class type config =
     method set_color_myself : string -> unit
     method set_color_not_connected : string -> unit
     method set_id : string -> unit
+    method set_hostname : string -> unit
     method set_people : (id * host * port) list -> unit
     method set_popup_all : bool -> unit
     method set_port : int -> unit

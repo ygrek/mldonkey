@@ -20,7 +20,7 @@
 val query_id_reply : Ip.t -> DonkeyProtoServer.QueryIDReply.t -> unit
   
 val query_id :
-  DonkeyTypes.server -> DonkeyProtoCom.server_sock -> Ip.t -> unit
+  DonkeyTypes.server -> TcpBufferedSocket.t -> Ip.t -> unit
   
 val query_locations_reply : DonkeyTypes.server ->
   DonkeyProtoServer.QueryLocationReply.t -> unit
@@ -30,7 +30,7 @@ val connect_client :
 val client_connection_handler : 'a -> TcpServerSocket.event -> unit
 
 val query_files : DonkeyTypes.client ->
-  DonkeyProtoCom.client_sock -> DonkeyTypes.file list -> unit
+  TcpBufferedSocket.t -> DonkeyTypes.file list -> unit
   
 val udp_server_send : DonkeyTypes.server -> DonkeyProtoServer.t -> unit
   
@@ -39,4 +39,4 @@ val client_wants_file : DonkeyTypes.client -> Md4.t -> unit
 val clean_groups : unit -> unit
   
 val client_send_if_possible : TcpBufferedSocket.t -> 
-  DonkeyProtoCom.client_msg -> unit
+  DonkeyProtoClient.t -> unit

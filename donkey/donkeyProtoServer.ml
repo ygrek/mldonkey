@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Autoconf
 open LittleEndian
 open CommonTypes
 open CommonGlobals
@@ -233,9 +234,9 @@ module Share = struct
           Printf.fprintf oc "%d\n" t.f_port;
           Printf.fprintf oc "TAGS:\n";
           fprint_tags oc t.f_tags;
-	  Printf.fprintf oc "\n"
-          ) t
-
+          Printf.fprintf oc "\n"
+      ) t
+    
     let rec write_files buf files =
       match files with
         [] -> ()
@@ -250,6 +251,25 @@ module Share = struct
     let write buf t = 
       buf_int buf (List.length t);
       write_files buf t
+    
+    let rec write_files_max buf files max_len =
+      if Buffer.length buf < max_len then
+        match files with
+          [] -> ()
+        | file :: files ->
+            buf_md4 buf file.f_md4;
+            buf_ip buf file.f_ip;
+            buf_port buf file.f_port;
+            buf_int buf (List.length file.f_tags);
+            buf_tags buf file.f_tags names_of_tag;
+            write_files_max buf files max_len
+            
+    let write_max buf t max_len = 
+      buf_int buf (List.length t);
+      write_files_max buf t max_len
+      
+      
+      
   end
 
 module Info = struct 
@@ -424,6 +444,7 @@ module QueryReply  = struct
           
     let rec get_files  s pos n =
       if n = 0 then [], pos else
+        try
       let md4 = get_md4 s pos in
       let ip = get_ip s (pos + 16) in
       let port = get_port s (pos + 20) in
@@ -437,7 +458,8 @@ module QueryReply  = struct
         } in
       let files, pos =  get_files s pos (n-1) in
       file :: files, pos
-    
+        with _ -> 
+          raise Not_found
 
     let get_replies s pos = 
       let n = get_int s pos in
@@ -1118,7 +1140,10 @@ module PingServerUdp = struct (* client -> serveur pour identification ? *)
       
       
     let parse len s =
-      get_int32_32 s 1(*, get_int8 s 2, get_int8 s 3*)
+      try
+	get_int32_32 s 1(*, get_int8 s 2, get_int8 s 3*)
+      with _ ->
+	Int32.zero
       
     (*let print (t1,t2,t3) = 
       Printf.printf "MESSAGE 150 UDP %d %d %d" t1 t2 t3;
@@ -1192,9 +1217,14 @@ module ServerDescUdp = struct
   }
 
   let parse len s =
-    let ip = get_ip s 1 in
-     {
-	ip = ip
+    try
+      let ip = get_ip s 1 in
+	{
+	  ip = ip
+	}
+    with _ ->
+      {
+	  ip = Ip.null
       }
       
   let print t =
@@ -1238,11 +1268,16 @@ module ServerListUdp = struct
   }
 
   let parse len s =
-    let ip = get_ip s 1 in
+    try
+      let ip = get_ip s 1 in
+	{
+	  ip = ip;
+	}
+    with _ ->
       {
-	ip = ip;
+	ip = Ip.null
       }
-      
+	
   let print t =
     Printf.printf "ServerListUdp %s\n" (Ip.to_string t.ip)
 
@@ -1306,25 +1341,27 @@ type t =
 a mldonkey client by a mldonkey server *)
 | Mldonkey_MldonkeyUserReplyReq
 (* client to server: the client want to subscribe to this query *)
-| Mldonkey_SubscribeReq of int * CommonTypes.query
+| Mldonkey_SubscribeReq of int * int * CommonTypes.query
 (* server to client: the server send a notification to a subscription *)
 | Mldonkey_NotificationReq of int * QueryReply.t
 (* client to server: the client want to cancel a subscription *)
 | Mldonkey_CloseSubscribeReq of int
   
 let mldonkey_extensions len s =
+  check_string s 1;
   let opcode = int_of_char s.[1] in
   match opcode with  
   | 1 -> 
       Mldonkey_MldonkeyUserReplyReq
   | 2 -> 
       let num = get_int s 2 in
-      let query, pos = Query.parse_query s 6 in
-      Mldonkey_SubscribeReq (num, query)
+      let lifetime = get_int s 6 in
+      let query, pos = Query.parse_query s 10 in
+        Mldonkey_SubscribeReq (num, lifetime, query)
   | 3 ->
       let num = get_int s 2 in
       let files = QueryReply.get_replies s 6 in
-      Mldonkey_NotificationReq (num, files)
+        Mldonkey_NotificationReq (num, files)
       
   | 4 ->
       let num = get_int s 2 in
@@ -1436,8 +1473,9 @@ let print t =
         Printf.printf "QUERY MORE RESULTS"; print_newline ()
     | Mldonkey_MldonkeyUserReplyReq ->
         Printf.printf "MLDONKEY USER"; print_newline ()
-    | Mldonkey_SubscribeReq (num,t) -> 
-        Printf.printf "MLDONKEY SUBSCRIPTION %d" num; print_newline ();
+    | Mldonkey_SubscribeReq (num, lifetime, t) -> 
+        Printf.printf "MLDONKEY SUBSCRIPTION %d FOR %d SECONDS" num lifetime; 
+        print_newline ();
         Query.print t
     | Mldonkey_NotificationReq (num,t) ->
         Printf.printf "MLDONKEY NOTIFICATIONS TO %d" num; print_newline ();
@@ -1513,8 +1551,8 @@ let fprint oc t =
         Printf.fprintf oc "QUERY MORE RESULTS\n"
     | Mldonkey_MldonkeyUserReplyReq ->
         Printf.fprintf oc "MLDONKEY USER\n"
-    | Mldonkey_SubscribeReq (num,t) -> 
-        Printf.fprintf oc "MLDONKEY SUBSCRIBE %d\n" num;
+    | Mldonkey_SubscribeReq (num, lifetime, t) -> 
+        Printf.fprintf oc "MLDONKEY SUBSCRIBE %d FOR %d SECONDS\n" num lifetime;
         Query.fprint oc t
     | Mldonkey_NotificationReq (num,t) ->
         Printf.fprintf oc "MLDONKEY NOTIFICATIONS TO %d\n" num; 
@@ -1662,23 +1700,24 @@ mldonkey extensions to the protocol
       buf_int8 buf 250; (* MLdonkey extensions opcode *)
       buf_int8 buf 1
       
-  | Mldonkey_SubscribeReq (num,t) ->
+  | Mldonkey_SubscribeReq (num, lifetime, t) ->
       buf_int8 buf 250; (* MLdonkey extensions opcode *)
       buf_int8 buf 2;
       buf_int buf num;
+      buf_int buf lifetime;
       Query.write buf t
 
+  | Mldonkey_CloseSubscribeReq num ->
+      buf_int8 buf 250; (* MLdonkey extensions opcode *)
+      buf_int8 buf 4;
+      buf_int buf num;
+
+            
   | Mldonkey_NotificationReq (num,t) ->
       buf_int8 buf 250; (* MLdonkey extensions opcode *)
       buf_int8 buf 3;
       buf_int buf num;
       QueryReply.write_replies buf t
 
-  | Mldonkey_CloseSubscribeReq num ->
-      buf_int8 buf 250; (* MLdonkey extensions opcode *)
-      buf_int8 buf 4;
-      buf_int buf num
-
-            
 let write buf t =
   udp_write buf t

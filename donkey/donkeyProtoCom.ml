@@ -24,27 +24,11 @@ open DonkeyMftp
 open BasicSocket
 open TcpBufferedSocket
 
-type server_msg = DonkeyProtoServer.t 
-type client_msg =  DonkeyProtoClient.t 
-
-type server_sock = TcpBufferedSocket.t
-type client_sock = TcpBufferedSocket.t
-
   
 let verbose = ref false
 
 let buf = TcpBufferedSocket.internal_buf
 
-  
-let server_msg_to_string msg =
-  Buffer.clear buf;
-  buf_int8 buf 227;
-  buf_int buf 0;
-  DonkeyProtoServer.write buf msg;
-  let s = Buffer.contents buf in
-  let len = String.length s - 5 in
-  str_int s 1 len;
-  s
         
 let client_msg_to_string msg =
   Buffer.clear buf;
@@ -57,6 +41,16 @@ let client_msg_to_string msg =
   str_int s 1 len;
   s
   
+  
+let server_msg_to_string msg =
+  Buffer.clear buf;
+  buf_int8 buf 227;
+  buf_int buf 0;
+  DonkeyProtoServer.write buf msg;
+  let s = Buffer.contents buf in
+  let len = String.length s - 5 in
+  str_int s 1 len;
+  s
 
 let server_send sock m =
 (*
@@ -237,15 +231,35 @@ let new_string msg s =
   
 let empty_string = ""
   
-let client_msg msg = msg
-let server_msg msg = msg
-  
 let direct_servers_send s msg =
-  servers_send s (server_msg msg)
+  servers_send s msg
   
 let direct_client_send s msg =
-  client_send s (client_msg msg)
+  client_send s msg
   
 let direct_server_send s msg =
-  server_send s (server_msg msg)
+  server_send s msg
   
+  
+let direct_servers_send_share socks msg max_len =
+  Buffer.clear buf;
+  buf_int8 buf 227;
+  buf_int buf 0;
+  buf_int8 buf 21; (* ShareReq *)
+  DonkeyProtoServer.Share.write_max buf msg max_len;
+  let s = Buffer.contents buf in
+  let len = String.length s - 5 in
+  str_int s 1 len;
+  List.iter (fun sock -> write_string sock s) socks
+  
+    
+let direct_client_send_files sock msg max_len =
+  Buffer.clear buf;
+  buf_int8 buf 227;
+  buf_int buf 0;
+  buf_int8 buf 75; (* ViewFilesReply *)
+  DonkeyProtoClient.ViewFilesReply.write_max buf msg max_len;
+  let s = Buffer.contents buf in
+  let len = String.length s - 5 in
+  str_int s 1 len;
+  write_string sock s

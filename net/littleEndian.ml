@@ -24,8 +24,19 @@ Little Endian: weakest byte first
 
   *)
 
+open Autoconf
 open Int32ops
+
+  (*
+let check_string s pos =
+  if check_bounds && pos >= String.length s then
+    raise outofboundsaccess
   
+let check_array s pos =
+  if check_bounds && pos >= Array.length s then
+    raise outofboundsaccess
+      *)
+
 let const_int32_255 = Int32.of_int 255
 let const_int64_255 = Int64.of_int 255
 
@@ -40,15 +51,18 @@ let buf_int64_8 buf i =
         Int64.logand i const_int64_255)))
       
 let get_int32_8 s pos =
+  check_string s pos;
   Int32.of_int (int_of_char s.[pos])
   
 let get_int64_8 s pos =
+  check_string s pos;
   Int64.of_int (int_of_char s.[pos])
 
 let buf_int8 buf i =
   Buffer.add_char buf (char_of_int (i land 255))
 
 let get_int8 s pos = 
+  check_string s pos;
   int_of_char s.[pos]
 
 (* int 16 bits *)
@@ -62,6 +76,7 @@ let str_int16 s pos i =
   s.[pos+1] <- char_of_int ((i lsr 8) land 255)
 
 let get_int16 s pos =
+  check_string s (pos+1);
   let c1 = int_of_char s.[pos] in
   let c2 = int_of_char s.[pos+1] in
   c1 lor (c2 lsl 8)
@@ -124,6 +139,7 @@ let get_int s pos =
 (* IP addresses *)
   
 let get_ip s pos =
+  check_string s (pos+3);
   let c1 = int_of_char s.[pos] in
   let c2 = int_of_char s.[pos+1] in
   let c3 = int_of_char s.[pos+2] in
@@ -143,13 +159,35 @@ let rec get_list_rec get_item s pos len left =
   let (item,pos) = get_item s pos in
   get_list_rec get_item s pos (len-1) (item :: left)
   
-let get_list get_item s pos =
+let get_list32 get_item s pos =
   let len = get_int s pos in
   get_list_rec get_item s (pos+4) len []
 
-let buf_list buf_item b list =
+let buf_list32 buf_item b list =
   let len = List.length list in
   buf_int b len;
+  List.iter (buf_item b) list
+
+let buf_list = buf_list32
+  
+let get_list = get_list32
+
+let get_list16 get_item s pos =
+  let len = get_int16 s pos in
+  get_list_rec get_item s (pos+2) len []
+
+let buf_list16 buf_item b list =
+  let len = List.length list in
+  buf_int16 b len;
+  List.iter (buf_item b) list
+
+let get_list8 get_item s pos =
+  let len = get_int8 s pos in
+  get_list_rec get_item s (pos+1) len []
+
+let buf_list8 buf_item b list =
+  let len = List.length list in
+  buf_int8 b len;
   List.iter (buf_item b) list
 
 (* md4 *)

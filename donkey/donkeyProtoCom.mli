@@ -18,19 +18,18 @@
 *)
 
 
-type server_msg
-type client_msg
+(*
+type server_msg = DonkeyProtoServer.t 
+type client_msg =  DonkeyProtoClient.t 
 
-
-  
 type server_sock = TcpBufferedSocket.t
 type client_sock = TcpBufferedSocket.t
+    *)
 
-  
 val verbose : bool ref
-val server_send : TcpBufferedSocket.t -> server_msg -> unit
-val client_send : TcpBufferedSocket.t -> client_msg -> unit
-val servers_send : TcpBufferedSocket.t list -> server_msg -> unit
+val server_send : TcpBufferedSocket.t -> DonkeyProtoServer.t -> unit
+val client_send : TcpBufferedSocket.t -> DonkeyProtoClient.t -> unit
+val servers_send : TcpBufferedSocket.t list -> DonkeyProtoServer.t -> unit
 
   
   (*
@@ -63,18 +62,18 @@ val udp_basic_handler :
   (string -> UdpSocket.udp_packet -> unit) -> UdpSocket.t -> 
   UdpSocket.event -> unit
 
-val server_msg_to_string : server_msg -> string
-val client_msg_to_string : client_msg -> string
-  
-val server_msg : DonkeyProtoServer.t -> server_msg
-val client_msg : DonkeyProtoClient.t -> client_msg
+val server_msg_to_string : DonkeyProtoServer.t -> string
+val client_msg_to_string : DonkeyProtoClient.t -> string
   
 val direct_server_send : TcpBufferedSocket.t -> DonkeyProtoServer.t -> unit
 val direct_client_send : TcpBufferedSocket.t -> DonkeyProtoClient.t -> unit
 val direct_servers_send : TcpBufferedSocket.t list -> DonkeyProtoServer.t -> unit
-
+val direct_servers_send_share : 
+  TcpBufferedSocket.t list -> CommonTypes.tagged_file list -> int -> unit
+val direct_client_send_files : 
+    TcpBufferedSocket.t -> CommonTypes.tagged_file list -> int -> unit
   
-val new_string :  client_msg -> string -> unit
+val new_string :  DonkeyProtoClient.t -> string -> unit
   
 val udp_send_if_possible : UdpSocket.t -> 
   TcpBufferedSocket.bandwidth_controler -> 

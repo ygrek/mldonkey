@@ -96,4 +96,3 @@ let _ =
       Printf.printf "Exception %s" (Printexc.to_string e);print_newline ();
       dump !header (Buffer.contents buf)
       
-      

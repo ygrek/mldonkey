@@ -153,6 +153,7 @@ let read_header header_handler  sock nread =
 print_newline ();
   *)
   let rec iter i =
+    let end_pos = b.pos + b.len in
     if i < end_pos then
       if b.buf.[i] = '\n' && i <= end_pos - 2 then
         let c = b.buf.[i+1] in

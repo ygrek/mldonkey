@@ -287,6 +287,17 @@ let gui_reader (gui: gui_record) t sock =
             gui.gui_auth <- true;
             gui_send gui (
               P.Options_info (simple_options downloads_ini));
+            
+            List.iter (fun (section, message, option, optype) ->
+                gui_send gui (
+                  P.Add_section_option (section, message, option,
+                    match optype with
+                    | "B" -> BoolEntry 
+                    | "F" -> FileEntry 
+                    | _ -> StringEntry
+                  )))
+            !! gui_options_panel;
+            
             gui_send gui (P.DefineSearches !!CommonComplexOptions.customized_queries);
             if not gui.gui_poll then
               set_handler sock WRITE_DONE (connecting_writer gui);
@@ -903,15 +914,48 @@ let update_functions = [
     "update_client_files",update_client_files;
   ]
   
+let rec last = function
+    [x] -> x
+  | _ :: l -> last l
+  | _ -> (last_time (), 0.0, 0.0)
+    
+let trimto list =
+  let (list, _) = List2.cut 20 list in
+  list 
+  
+let bandwidth_samples = ref []
+  
 (* We should probably only send "update" to the current state of
 the info already sent to *)
 let update_gui_info () =
-  let msg = (Client_stats {
-      upload_counter = !upload_counter;
-      download_counter = !download_counter;
-      shared_counter = !shared_counter;
-      nshared_files = !nshared_files;
 
+  let time = last_time () in
+  let last_count_time, last_uploaded_bytes, last_downloaded_bytes = 
+    last !bandwidth_samples in
+  
+  let delay = time -. last_count_time in
+
+  let uploaded_bytes = Int64.to_float !uploaded_bytes in
+  let downloaded_bytes = Int64.to_float !downloaded_bytes in
+  
+  let upload_rate = if delay > 0. then
+      int_of_float ( (uploaded_bytes -. last_uploaded_bytes) /. delay )
+    else 0 in
+  
+  let download_rate = if delay > 0. then
+      int_of_float ( (downloaded_bytes -. last_downloaded_bytes) /. delay )
+    else 0 in
+
+  bandwidth_samples := trimto (
+    (time, uploaded_bytes, downloaded_bytes) :: !bandwidth_samples);
+  
+  let msg = (Client_stats {
+        upload_counter = !upload_counter;
+        download_counter = !download_counter;
+        shared_counter = !shared_counter;
+        nshared_files = !nshared_files;
+        upload_rate = upload_rate;
+        download_rate = download_rate;
       }) in
   update_events ();
   with_gui(fun gui -> 

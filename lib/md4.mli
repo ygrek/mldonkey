@@ -33,3 +33,6 @@ val random : unit -> t
 val digest_subfile : Unix32.t -> int32 -> int32 -> t
   
 val option : t Options.option_class
+  
+val xor : t -> t -> t
+  

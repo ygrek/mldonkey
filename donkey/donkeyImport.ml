@@ -235,12 +235,13 @@ module Part = struct
       let start_pos = ref Int32.zero in
       let absents = ref [] in
       List.iter (fun tag ->
-          let c = tag.tag_name.[0] in
-          match c, tag.tag_value with
-            '\t', Uint32 p -> start_pos := p;
-          | '\n', Uint32 p -> 
-              absents := (!start_pos, p) :: !absents;
-          | _ -> ()
+          if tag.tag_name <> "" then
+            let c = tag.tag_name.[0] in
+            match c, tag.tag_value with
+              '\t', Uint32 p -> start_pos := p;
+            | '\n', Uint32 p -> 
+                absents := (!start_pos, p) :: !absents;
+            | _ -> ()
       ) tags;
       {
         md4 = md4;

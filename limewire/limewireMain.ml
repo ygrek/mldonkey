@@ -46,13 +46,15 @@ let enable () =
   network.op_network_disable <- disable enabler;
   
   if not !!enable_limewire then enable_limewire =:= true;
+  (*
   List.iter (fun s ->
       try
         let ip = Ip.from_name s in
         redirectors_ips := ip :: !redirectors_ips
       with _ -> ()
   ) !!redirectors;
-
+*)
+  
   (*
   Hashtbl.iter (fun _ file ->
       if file_state file <> FileDownloaded then

@@ -285,11 +285,10 @@ let _ =
   Sys.set_signal  Sys.sighup
     (Sys.Signal_handle (fun _ ->
         Printf.printf "SIGUP"; print_newline ();
-        networks_iter (fun n ->
-            network_disable n;
-            network_enable n
-        ))
-    );
+        networks_iter  network_disable;
+        BasicSocket.print_sockets ();
+        networks_iter  network_enable;
+    ));
   Sys.set_signal  Sys.sigpipe (*Sys.Signal_ignore*)
     (Sys.Signal_handle (fun _ ->
         Printf.printf "SIGPIPE"; print_newline ()));
@@ -333,7 +332,7 @@ let _ =
   
   Options.prune_file downloads_ini;
 
-  load_web_infos ();
+  (try load_web_infos () with _ -> ());
   
   Printf.printf "Welcome to MLdonkey client"; print_newline ();
   Printf.printf "Check http://go.to/mldonkey for updates"; 

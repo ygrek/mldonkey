@@ -24,17 +24,23 @@ open LocalisationNotif*)
 val add : Md4.t -> ServerTypes.location -> unit
 
 (*add a liste of notification*)
-val adds : Md4.t -> ServerMessages.LocalisationInit.localisation list -> unit
+(*val adds : Md4.t -> ServerMessages.LocalisationInit.localisation list -> unit*)
 
 (*notify add and supp in server groupe cooperation*)
-val notifications : Md4.t -> ServerMessages.LocateNotif.localisation list -> unit
+val notifications : Md4.t -> (bool * ServerTypes.location) list -> unit
 
 (*val find : Md4.t -> (ServerTypes.location -> unit) -> unit*)
 
 val supp : Md4.t -> ServerTypes.location -> unit
+val remote_supp : Md4.t -> ServerTypes.location -> unit
 (*val supp : Md4.t -> ServerTypes.where -> unit*)
 
 val get : Md4.t -> DonkeyProtoServer.QueryLocationReply.t
 
 val print : unit -> unit
-val get_liste_of_md4 : unit -> (Md4.t * int) list
+val get_list_of_md4 : unit -> (Md4.t * int) list
+
+val get_locate_table : unit -> (Md4.t*ServerTypes.location list) list
+
+val exist : Md4.t -> Ip.t -> bool
+

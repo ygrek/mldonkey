@@ -220,7 +220,7 @@ class gui no_quit (data : Chat_data.data) =
 	    None -> ()
 	  | Some name ->
 	      let c = data#conf in
-	      self#open_room name ((c#id, Unix.gethostname (), c#port, Connected, false) :: l)
+	      self#open_room name ((c#id, c#hostname, c#port, Connected, false) :: l)
 
     initializer
       if no_quit then

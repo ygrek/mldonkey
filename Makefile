@@ -86,10 +86,10 @@ CHAT_SRCS = chat/chat_messages.ml\
         chat/chat_config.ml\
 
 COMMON_SRCS=common/commonTypes.ml \
+  common/guiTypes.ml \
   common/commonEvent.ml \
   common/commonOptions.ml \
   common/commonGlobals.ml \
-  common/guiTypes.ml \
   common/guiProto.ml \
   common/guiDecoding.ml \
   common/guiEncoding.ml \
@@ -135,7 +135,10 @@ DONKEY_SRCS= \
   donkey/donkeyClient.ml \
   donkey/donkeyFiles.ml  \
   donkey/donkeyServers.ml \
-  donkey/donkeySearch.ml donkey/donkeyInteractive.ml \
+  donkey/donkeySearch.ml \
+  donkey/donkeyProtoOvernet.ml \
+  donkey/donkeyOvernet.ml \
+  donkey/donkeyInteractive.ml \
   donkey/donkeyMain.ml
 
 
@@ -228,6 +231,23 @@ AUDIOGALAXY_SRCS=audio_galaxy/agTypes.ml \
   audio_galaxy/agHttpForward.ml \
   audio_galaxy/agMain.ml
 
+
+CYMES_SRCS=\
+  cymes/cymesTypes.ml \
+  cymes/cymesOptions.ml \
+  cymes/cymesGlobals.ml \
+  cymes/cymesProtocol.ml \
+  cymes/cymesMessages.ml \
+  cymes/cymesLocate.ml \
+  cymes/cymesIndexer.ml \
+  cymes/cymesLog.ml \
+  cymes/cymesSubscriptions.ml \
+  cymes/cymesServer.ml \
+  cymes/cymesClients.ml \
+  cymes/cymesMain.ml
+
+#   cymes/cymesUdp.ml 
+
 ifeq ("$(DONKEY)" , "yes")
 SUBDIRS += donkey
 
@@ -239,6 +259,11 @@ ifeq ("$(DONKEY_SERVER)" , "yes")
   CORE_PLUGINS += $(DONKEY_SERVER_SRCS)
   endif
 
+endif
+
+ifeq ("$(CYMES)" , "yes")
+SUBDIRS += cymes
+CORE_PLUGINS += $(CYMES_SRCS)
 endif
 
 ifeq ("$(OPEN_NAPSTER)" , "yes")
@@ -727,7 +752,7 @@ DISDIR=mldonkey-distrib
 distrib/Readme.txt: gui/gui_messages.ml
 	grep -A 1000 help_text gui/gui_messages.ml | grep -v '"' > distrib/Readme.txt
 
-release: opt distrib/Readme.txt VERSION
+release: opt VERSION
 	rm -rf mldonkey-*
 	cp -R distrib $(DISDIR)
 	for i in $(TARGETS); do \
@@ -739,6 +764,12 @@ release: opt distrib/Readme.txt VERSION
 	mv $(DISDIR).tar mldonkey-`cat VERSION`.shared.$(ARCH)-`uname -s`.tar
 	$(COMPRESS) mldonkey-`cat VERSION`.shared.$(ARCH)-`uname -s`.tar
 	scp mldonkey-`cat VERSION`.shared.$(ARCH)-`uname -s`.tar.$(COMPRESS_EXT) lachesis:devel/mldonkey-release/
+
+release-sources: VERSION
+	rm -rf **/CVS
+	rm -f config/Makefile.config
+	cd ..; tar zcf mldonkey-`cat mldonkey/VERSION`.sources.tar.gz mldonkey
+	scp ../mldonkey-`cat VERSION`.sources.tar.gz lachesis:devel/mldonkey-release/
 
 distrib: $(DISDIR)
 
@@ -783,7 +814,7 @@ $(SHADIR):  static distrib/Readme.txt VERSION
 	bzip2 mldonkey-`cat VERSION`.shared.$(MD4ARCH)-`uname -s`.tar
 
 VERSION: common/commonGlobals.ml
-	grep Release: common/commonGlobals.ml | awk -F : '{ print $$2 }' | awk '{ print $$1 }' > VERSION	
+	grep Release: common/commonGlobals.ml | awk -F: '{ print $$2 }' | awk '{ print $$1 }' > VERSION	
 
 auto-release: VERSION
 # i386

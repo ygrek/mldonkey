@@ -269,14 +269,13 @@ let exec_chooks o =
 let really_load filename options =
   let temp_file = filename ^ ".tmp" in
   if Sys.file_exists temp_file then begin
-      Printf.printf 
+      Printf.eprintf 
         "File %s exists\n" temp_file;
-      Printf.printf 
+      Printf.eprintf 
         "An error may have occurred during previous configuration save.\n";
-      Printf.printf 
+      Printf.eprintf 
         "Please, check your configurations files, and rename/remove this file\n";
-      Printf.printf "before restarting";
-      print_newline ();
+      Printf.eprintf "before restarting\n";
       exit 1
     end else
   let ic = open_in filename in
@@ -286,9 +285,9 @@ let really_load filename options =
     let list =
       try parse_gwmlrc stream with
         e ->
-          Printf.printf "At pos %d/%d" (Stream.count s) (Stream.count stream);
-          print_newline ();
-          raise e
+          Printf.eprintf "Syntax error while parsing file %s at pos %d\n"
+          filename (Stream.count s);
+          exit 2
     in
     List.iter
       (fun o ->
@@ -901,3 +900,6 @@ let prefixed_args prefix file =
       let s = String.sub s 1 (String.length s - 1) in
       (Printf.sprintf "-%s:%s" prefix s), f,h
   ) (simple_args file)
+
+let option_type o =
+  (get_class o).class_name

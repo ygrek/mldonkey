@@ -316,3 +316,27 @@ let set_fully_qualified_options name value =
                 iter (prefix^"-") opfile
             ) r.network_prefixes);
   with Exit -> ()
+      
+let canonize_basename name =
+  let name = String.copy name in
+  for i = 0 to String.length name - 1 do
+    match name.[i] with
+    | '/' | '\\' -> name.[i] <- '_'
+    | _ -> ()
+  done;
+  name
+      
+let rename_to_incoming_dir old_name new_name = 
+  let new_name = 
+    if Sys.file_exists new_name then
+      let rec iter num =
+        let new_name = Printf.sprintf "%s.%d" new_name num in
+        if Sys.file_exists new_name then
+          iter (num+1)
+        else new_name
+      in
+      iter 1
+    else new_name in
+  Unix2.rename old_name new_name;
+  new_name
+  

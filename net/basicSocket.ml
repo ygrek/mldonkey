@@ -52,7 +52,7 @@ type t = {
     mutable event_handler : handler;
     mutable error : string;
 
-    name : string;
+    mutable name : unit -> string;
     born : float;
 (*    mutable before_select : (t -> unit); *)
   }
@@ -110,7 +110,7 @@ let closed_tasks = ref []
 let print_socket s =  
   Printf.printf "FD %d: %20s Socket %s " 
     (Obj.magic s.fd)
-  (Date.to_string s.born) s.name;
+  (Date.to_string s.born) (s.name ());
   print_newline ()
   
 let close t msg =
@@ -189,7 +189,7 @@ let create_blocking name fd handler =
       event_handler = handler;
       error = "";
 (*      before_select = default_before_select; *)
-      name = name;
+      name = (fun _ -> name);
       born = last_time();
     } in
 (*  Printf.printf "ADD ONE TASK"; print_newline (); *)
@@ -394,15 +394,26 @@ let print_sockets () =
   print_newline ();
   List.iter (fun s ->
       print_socket s;
-      Printf.printf "  rtimeout %5.0f read %s & %s write %s & %s" 
-        (s.next_rtimeout -. last_time ())
-      (string_of_bool s.want_to_read)
-      (string_of_bool !(s.read_allowed))
-      (string_of_bool s.want_to_write)
-      (string_of_bool !(s.write_allowed))
+      Printf.printf "  rtimeout %5.0f read %b & %b write %b & %b (born %f)" 
+      (s.next_rtimeout -. last_time ())
+      (s.want_to_read)
+      (!(s.read_allowed))
+      (s.want_to_write)
+      (!(s.write_allowed))
+      (last_time () -. s.born)
       ;
       print_newline ();
   ) !fd_tasks;
   ()
   
-let info t = t.name
+let info t = t.name ()
+  
+let _ =
+  add_timer 300. (fun t ->
+      reactivate_timer t;
+      if !debug then
+        print_sockets ())
+  
+let set_printer s f =
+  s.name <- f
+  

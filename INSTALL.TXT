@@ -54,7 +54,19 @@ You have now two options to compile mldonkey:
   You can disable all other p2p networks using the --disable-multinet option
    with ./configure. Only edonkey support will then be compiled.
 
-See the USAGE.txt file for information on how to use mldonkey.
+------------------------------------------------------------------------
+
+Using mldonkey:
+---------------
+
+mldonkey binaries are normally distributed with only the content of the
+mldonkey/distrib/ directory. Consequently, all documentation files on how to
+use mldonkey are stored in this directory. You will also find default 
+configuration files in this directory, and in particular, a list of servers
+for edonkey in the servers.ini file.
+
+ See the distrib/Readme.txt and distrib/FAQ.html files for more information
+on how to use mldonkey.
 
  Note that you should execute mldonkey in the distrib/ directory, where a
 list of servers is present with other files. It will create other

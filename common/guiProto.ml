@@ -133,6 +133,13 @@ type to_gui =
 | Shared_file_info of shared_info
 | Shared_file_upload of int * (* upload *) int64 * (* requests *) int
 | Shared_file_unshared of int
+
+(* New message for protocol 5 *)
+| Add_section_option of
+(* section *) string * 
+(* message *) string *
+(* option_name *) string *
+(* option_type *) option_widget
   
 let from_gui_to_string t = 
   match t with

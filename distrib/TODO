@@ -23,6 +23,7 @@ For 2.00:
   * if you have no recent source for some file, or at least, no mldonkey
      source.
   * only for short periods
+- Do not share files starting with a dot.
 
 *********
 
@@ -37,6 +38,8 @@ For 2.01:
      to download from us. Maybe we could use priorities, but how ? Each network
      would have a score, and the better score would be given bandwidth first ?
    - Incomplete files can be automatically deleted when too old (7 days)
+   - Add a "cp" function to change the temp directory without breaking
+       the sparse file format (ie without increasing the size of copied files)
 
 *********
 
@@ -52,6 +55,7 @@ For 2.02:
       When an event is obsolete, it is replaced in place by the new state.
       The new state indicates its new position in the fifo. When events are
       sent to the GUI, they must be at the indicated position in the fifo.
+   - Client side verification of query results
 
 *********
 

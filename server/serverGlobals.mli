@@ -35,6 +35,10 @@ val nb_udp_query_sec : float ref
 val nb_udp_query_count : int ref 
 val nb_udp_loc_sec : float ref 
 val nb_udp_loc_count : int ref 
+
+val nb_udp_loc_reply_sec : float ref 
+val nb_udp_loc_reply_count : int ref 
+
 val nb_udp_req_sec : float ref 
 val nb_udp_req_count : int ref 
 val nb_udp_ping_server_sec : float ref
@@ -55,12 +59,21 @@ val to_connect : int list ref
 val group_id : Md4.t ref 
 val server_id : int ref 
 val nconnected_servers : int ref
+val nremote_clients : int ref
 val nshared_remote_md4 : int ref
 val server_counter : int ref
 val ngroup_clients : int ref
 val ngroup_files : int ref
 
+val stop_udp : bool ref
+
 val udp_sock : UdpSocket.t option ref
   
 val notifications : (Md4.t*int, ServerTypes.subscription) Hashtbl.t
-  
+
+val tag_name_list : string list ref
+val subs_match : (int * Ip.t) list ref
+
+val nb_notifs : int ref
+val nb_info : int ref 
+val info_percent : (int * float) ref

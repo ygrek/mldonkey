@@ -468,7 +468,9 @@ class box_downloads box_locs wl_status () =
            ;
 	);
       redraw_chunks draw_availability file;
-      box_locs#update_data_by_file (Some file)
+      begin
+        box_locs#update_data_by_file (Some file)
+      end
 
     method on_deselect _ =
       box_locs#update_data_by_file None

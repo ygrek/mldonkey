@@ -110,13 +110,13 @@ let find_sources_in_groups c md4 =
                       if !verbose_group then begin
                           Printf.printf "Send %d sources from file groups to mldonkey peer" (List.length !list); print_newline ();                  
                         end;
-                      let msg = client_msg (
+                      let msg = 
                           let module Q = DonkeyProtoClient.Sources in
                           DonkeyProtoClient.SourcesReq {
                             Q.md4 = md4;
                             Q.sources = !list;
                           }
-                        ) in
+                         in
                     client_send_if_possible sock msg 
                   end
           end else
@@ -218,10 +218,10 @@ let identify_as_mldonkey c sock =
   
 let query_files c sock for_files =  
   List.iter (fun file ->
-      let msg = client_msg (
+      let msg = 
           let module M = DonkeyProtoClient in
           let module C = M.QueryFile in
-          M.QueryFileReq file.file_md4)
+          M.QueryFileReq file.file_md4
       in
       client_send sock msg;
   ) for_files;
@@ -284,12 +284,12 @@ for mldonkey clients .*)
               let counter = ref 10 in
 
 (* send this location to  all connected locations *)
-              let msg = client_msg (
+              let msg = 
                   let module Q = M.Sources in
                   M.SourcesReq {
                     Q.md4 = file.file_md4;
                     Q.sources = [(ip, port, ip)];
-                  })                    
+                  }
               in
               let time = last_time () -. 900. in
               Intmap.iter (fun _ cc ->
@@ -347,7 +347,7 @@ for mldonkey clients .*)
         
         if !sources <> [] then
           if c.client_is_mldonkey = 2 then begin
-              client_send_if_possible sock (client_msg (
+              client_send_if_possible sock ( (
                 let module Q = M.Sources in
                 M.SourcesReq {
                   Q.md4 = file.file_md4;
@@ -467,7 +467,7 @@ let client_to_client for_files c t sock =
       
       if t.CR.md4 = !!client_md4 then
         TcpBufferedSocket.close sock "connected to myself";
-
+      
       c.client_tags <- t.CR.tags;
       List.iter (fun tag ->
           match tag with
@@ -488,7 +488,7 @@ let client_to_client for_files c t sock =
       client_must_update c;      
       if client_type c <> NormalClient then begin
           if last_time () > c.client_next_view_files then begin
-              (*
+(*
             Printf.printf "****************************************";
             print_newline ();
             Printf.printf "       ASK VIEW FILES         ";
@@ -502,7 +502,7 @@ print_newline ();
         end
   
   | M.ViewFilesReplyReq t ->
-      (*
+(*
       Printf.printf "****************************************";
       print_newline ();
       Printf.printf "       VIEW FILES REPLY         ";
@@ -551,7 +551,7 @@ print_newline ();
             Printf.printf "Exception in ViewFilesReply %s"
               (Printexc.to_string e); print_newline ();
       end;
-    
+  
   | M.AvailableSlotReq _ ->
       printf_string "[QUEUED]";
       set_rtimeout sock !!queued_timeout; 
@@ -621,6 +621,19 @@ print_newline ();
       
       let module Q = M.QueryChunksReply in      
       let file = find_file t.Q.md4 in
+      if Array.length t.Q.chunks <> file.file_nchunks then begin
+          Printf.printf "BAD BAD BAD: number of chunks is different %d/%d for %s:%ld on peer" (Array.length t.Q.chunks) file.file_nchunks (Md4.to_string file.file_md4) (file_size file);
+          print_newline ();
+(* What should we do ?
+
+1) Try to recover the correct size of the file: we can use 
+ViewFilesReq on all clients having the file to test what is
+the most widely used size for this file. Maybe create 
+different instances of the file for each proposed size ?
+
+*)
+        
+        end else 
       let chunks = 
         if t.Q.chunks = [||] then
           Array.create file.file_nchunks true
@@ -633,12 +646,30 @@ print_newline ();
       begin
         let module Q = M.QueryChunkMd4Reply in
         let file = find_file t.Q.md4 in
-        
+        if Array.length t.Q.chunks <> file.file_nchunks then begin
+            Printf.printf "BAD BAD BAD (2): number of chunks is different on peer";
+            print_newline ();
+(* What should we do ?
+
+1) Try to recover the correct size of the file: we can use 
+ViewFilesReq on all clients having the file to test what is
+the most widely used size for this file. Maybe create 
+different instances of the file for each proposed size ?
+
+Maybe we should allow a degraded mode of download, where each client
+is checked for the file.
+  
+*)
+          
+          end else 
+          
         let module Q = M.QueryChunkMd4Reply in
         if !!verbose then begin
             Printf.printf "MD4 FOR CHUNKS RECEIVED"; 
             print_newline ();
           end;
+        
+        
         if t.Q.chunks = [||] then
           file.file_md4s <- [file.file_md4]
         else
@@ -769,9 +800,9 @@ print_newline ();
       (*
       Printf.printf "ASK VIEW FILES"; print_newline ();
       *)
-      direct_client_send sock (
-        let module Q = M.ViewFilesReply in
-        M.ViewFilesReplyReq (DonkeyShare.make_tagged (Some sock) files))
+      direct_client_send_files sock (
+        DonkeyShare.make_tagged (Some sock) files)
+      (!!client_buffer_size * 10 /9)
   
   
   | M.QueryFileReq t when !has_upload = 0 -> 

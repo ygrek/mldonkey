@@ -477,6 +477,22 @@ module ViewFilesReply = struct
     let write buf t = 
       buf_int buf (List.length t);
       write_files buf t
+    
+    let rec write_files_max buf files max_len =
+      if Buffer.length buf < max_len then
+        match files with
+          [] -> ()
+        | file :: files ->
+            buf_md4 buf file.f_md4;
+            buf_ip buf file.f_ip;
+            buf_port buf file.f_port;
+            buf_int buf (List.length file.f_tags);
+            buf_tags buf file.f_tags names_of_tag;
+            write_files_max buf files max_len
+            
+    let write_max buf t max_len = 
+      buf_int buf (List.length t);
+      write_files_max buf t max_len
   end
   
 module OtherLocations = struct 
@@ -740,15 +756,4 @@ let write buf t =
       NoSuchFile.write buf t
   | UnknownReq s ->
       Buffer.add_string buf s
-
-let set_features has_upload name =
-  let len = String.length name in
-  if len >= 5 && 
-    name.[0] = 'p' &&
-    name.[1] = 'a' &&
-    name.[2] = 'x' &&
-    name.[3] = 'o' &&
-    name.[4] = 's' then begin
-      has_upload := 100000;
-    end
     

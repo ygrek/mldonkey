@@ -51,6 +51,7 @@ val write: t -> string -> int -> int -> unit
 val write_string: t -> string -> unit
 val connect: string -> Unix.inet_addr -> int -> handler -> t
 val close : t -> string -> unit
+val closed : t -> bool
 val shutdown : t -> string -> unit
 val error: t -> string
 val tcp_handler: t -> BasicSocket.t -> BasicSocket.event -> unit
@@ -92,4 +93,7 @@ val set_write_power : t -> int -> unit
 val remaining_to_write : t -> int
   
 val set_lifetime : t -> float -> unit
+  
+val uploaded_bytes : int64 ref
+val downloaded_bytes : int64 ref
   

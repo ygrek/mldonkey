@@ -204,11 +204,13 @@ let value_reader gui t sock =
         end
     
     | Client_stats s ->
-	gui#tab_uploads#wl_status#set_text
-          (Printf.sprintf "Upload %d/%s" 
-             s.nshared_files 
-	     (Gui_misc.size_of_int64 s.upload_counter)
-	  )
+        gui#tab_uploads#wl_status#set_text
+          (Printf.sprintf "Shared: %5d/%-12s   U/D bytes/s: %7d/%-7d" 
+            s.nshared_files 
+            (Gui_misc.size_of_int64 s.upload_counter)
+          s.upload_rate
+          s.download_rate
+        )
     
     | CoreProtocol v -> 
         
@@ -231,7 +233,7 @@ let value_reader gui t sock =
         gui#tab_queries#h_search_waiting num waiting
     
     | File_source (num, src) -> 
-        gui#tab_downloads#h_file_location num src
+        gui#tab_downloads#h_file_location num src;
     
     | File_downloaded (num, downloaded, rate) ->
         gui#tab_downloads#h_file_downloaded num downloaded rate
@@ -259,7 +261,7 @@ let value_reader gui t sock =
 (*            Printf.printf "Unknown user %d" user; print_newline ();*)
             Gui_com.send (GetUser_info user);
           end else 
-	  begin
+          begin
             gui#tab_servers#h_server_user key user
           end
     
@@ -288,7 +290,7 @@ let value_reader gui t sock =
               Printf.printf "Exception in Room_user %d %d" num user_num;
               print_newline ();
         end
-
+    
     | Room_remove_user (num, user_num) -> 
         
         begin try
@@ -308,15 +310,26 @@ let value_reader gui t sock =
                 try
                   let reference = 
                     List.assoc name Gui_options.client_options_assocs 
-                  in
-                  reference := value
+                  in                  
+                  reference := value;
+                  Gui_config.add_option_value name reference
                 with _ -> 
-                    ()
+                    Gui_config.add_option_value name (ref value)
               );
               iter tail
         in
         iter list
     
+    | Add_section_option (section, message, option, optype) ->
+        let line = message, optype, option in
+        (try
+            let options = List.assoc section !client_sections in
+            if not (List.mem line !options) then
+              options := !options @ [line]
+        with _ ->
+            client_sections := !client_sections  @[section, ref [line]]
+        )          
+        
     | DefineSearches l ->
         gui#tab_queries#h_define_searches l
     

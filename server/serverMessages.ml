@@ -1,7 +1,27 @@
+(* Copyright 2001, 2002 b8_bavard, b8_fee_carabine, INRIA *)
+(*
+    This file is part of mldonkey.
+
+    mldonkey is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    mldonkey is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with mldonkey; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*)
+
 (* declaration des differents types de messages entre les servers*)
 
 open BasicSocket
 open TcpBufferedSocket
+
 
 open GuiProto
 open LittleEndian
@@ -470,6 +490,7 @@ module LocalisationNotif= struct
 module LocateNotif= struct
   type localisation = {
     add : bool;
+    source_id : Ip.t;
     mutable source_ip : Ip.t;
     source_port : int; 
     
@@ -486,42 +507,59 @@ module LocateNotif= struct
   let rec list_sources s pos nb_sources =
     if nb_sources = 0 then [],pos else
       let add,pos = get_bool s pos in
-      let ip = get_ip s pos in
-      let port = get_port s (pos+4) in
+	(*Printf.printf "add %s at pos %d \n" (string_of_bool add) pos;*)
+      let id = get_ip s pos in
+      let ip = get_ip s (pos+4) in
+	(*Printf.printf "at  %s" (Ip.to_string ip);*)
+      let port = get_port s (pos+8) in
+	(*Printf.printf "port  %d\n" port;*)
       let source = {
 	add = add;
+	source_id = id;
 	source_ip = ip;
 	source_port = port;
       } in
-      let sources,pos = list_sources s (pos+8) (nb_sources-1) in
+      let sources,pos = list_sources s (pos+10) (nb_sources-1) in
+	(*Printf.printf "at pos %d \n" pos;*)
 	(source :: sources),pos
 
 
 
+
   let rec list_md4 htbl s pos nb_md4 =
-    if nb_md4 = 0 then htbl else
-      let md4 = get_md4 s pos in
-      let nb_sources = get_int s (pos+16) in
-      let sources,pos = list_sources s (pos+20) nb_sources in
-	Hashtbl.add htbl md4 sources;
-	(list_md4 htbl s pos (nb_md4-1))
+      if nb_md4 = 0 then htbl else
+	let md4 = get_md4 s pos in
+	  (*Printf.printf "get %s\n" (Md4.to_string md4);*)
+	let nb_sources = get_int s (pos+16) in
+	  (*Printf.printf "nbsources %d\n"  nb_sources;*)
+	let sources,pos = list_sources s (pos+20) nb_sources in
+	  Hashtbl.add htbl md4 sources;
+	  (list_md4 htbl s pos (nb_md4-1))
 
       
 
   let parse len s =
-    let message_id = get_int s 1 in
-    let nb_md4 = get_int s 5 in
-    let ack = get_int s 9 in
-    let notifs = Hashtbl.create nb_md4 in 
-      {
-        message_id = message_id;
-	nb_notifs = nb_md4;
-        ack = ack;
-	notifs = (list_md4 notifs s 13 nb_md4)
-      }
-     
-	
-	
+    try
+      let message_id = get_int s 1 in
+      let nb_md4 = get_int s 5 in
+      let ack = get_int s 9 in
+      let notifs = Hashtbl.create nb_md4 in 
+      let notifs = list_md4 notifs s 13 nb_md4 in
+      (*let count = ref 0 in
+	Hashtbl.iter (fun md4 sources ->
+			count := !count + (List.length sources)
+		     ) notifs;
+	Printf.printf "During Parsing %d notifs\n" !count;*)
+	{
+          message_id = message_id;
+	  nb_notifs = nb_md4;
+          ack = ack;
+	  notifs = notifs;
+	}
+    with _ ->
+      Printf.printf "Parsing PB\n";
+      raise Not_found
+
   
   let print t =  
     Printf.printf "SERVER SHARED NOTIFICATION %d : %d NOTIFS\n" t.message_id t.nb_notifs;
@@ -548,12 +586,30 @@ module LocateNotif= struct
 		    buf_int buf (List.length notif);
 		    List.iter ( fun x ->
 				  buf_bool buf x.add;
+				  buf_ip buf x.source_id;
 				  buf_ip buf x.source_ip;
 				  buf_port buf x.source_port
 			      ) notif
 		) t.notifs
 
 end
+
+module AckNotif = struct
+  type t = int
+
+  let parse len s =
+    (get_int s 1) 
+
+  let print t =
+    Printf.printf "ACK %d NOTIF PACKET\n" t
+  
+  let write buf t =
+    buf_int buf t
+
+end
+
+
+
 
 module AddSource = struct
     type t = {
@@ -702,7 +758,6 @@ end
 (*equals to QueryCallUDP*)
 module QueryUserConnect = struct 
     type t = {
-       md4 : Md4.t;
        local_client_id : Ip.t;
        client_ip : Ip.t;
        client_port : int;
@@ -710,12 +765,10 @@ module QueryUserConnect = struct
 
 
  let parse len s =  
-      let md4 = get_md4 s 1 in
-      let id = get_ip s 17 in
-      let ip = get_ip s 21 in
-      let port = get_port s 25 in
+      let id = get_ip s 1 in
+      let ip = get_ip s 5 in
+      let port = get_port s 9 in
       {
-        md4 = md4;
         local_client_id = id;
         client_ip = ip;
         client_port = port;
@@ -723,13 +776,11 @@ module QueryUserConnect = struct
       
     let print t =  
       Printf.printf "CONNECT A REMOTE FIREWALLED CLIENT:\n";
-      Printf.printf "File MD4: %s\n" (Md4.to_string t.md4);
       Printf.printf "Local id: %s\n" (Ip.to_string t.local_client_id);
       Printf.printf "Source ip: %s\n" (Ip.to_string t.client_ip);
       Printf.printf "Source port: %d\n" t.client_port
 
     let write buf t = 
-      buf_md4 buf t.md4;
       buf_ip buf t.local_client_id; 
       buf_ip buf t.client_ip;
       buf_port buf t.client_port
@@ -769,17 +820,20 @@ module Req  = struct
 type t = 
 | ServerConnectReq of ServerConnect.t
 | ACKConnectReq of ACKConnect.t
-| ConnectRockyReq of ConnectRocky.t 
+(*| ConnectRockyReq of ConnectRocky.t*) 
 | ConnectByGroupReq of ConnectByGroup.t
 | RecoveryReq of Recovery.t
 | ServerNotificationReq of ServerNotification.t
 | ServerSuppReq of ServerSupp.t
-| AddSourceReq of AddSource.t
+(*| AddSourceReq of AddSource.t
 | SuppSourceReq of SuppSource.t
 | LocalisationInitReq of LocalisationInit.t
-| LocalisationNotifReq of LocalisationNotif.t
+| LocalisationNotifReq of LocalisationNotif.t*)
 | LocateNotifReq of LocateNotif.t
+| AckNotifReq of AckNotif.t
 | QueryUserConnectReq of QueryUserConnect.t
+| QueryFileInfoReq of QueryFileInfo.t
+| QueryFileInfoReplyReq of QueryFileInfoReply.t 
 | UnKnownReq of string
 | MessageReq of Message.t
 | QuitReq
@@ -798,13 +852,16 @@ let parse s =
     | 5 -> MessageReq (Message.parse len s)
     | 6 -> ServerSuppReq (ServerSupp.parse len s)
     | 10 -> ServerNotificationReq (ServerNotification.parse len s)
-    | 12 -> ConnectRockyReq (ConnectRocky.parse len s)
+    (*| 12 -> ConnectRockyReq (ConnectRocky.parse len s)*)
     | 13 -> RecoveryReq (Recovery.parse len s)
-    | 30 -> AddSourceReq (AddSource.parse len s)
-    | 31 -> SuppSourceReq (SuppSource.parse len s)
-    | 32 -> LocalisationInitReq (LocalisationInit.parse len s)
-    | 33 -> LocalisationNotifReq (LocalisationNotif.parse len s)
+    (*| 30 -> AddSourceReq (AddSource.parse len s)
+    | 31 -> SuppSourceReq (SuppSource.parse len s)*)
+    (*| 32 -> LocalisationInitReq (LocalisationInit.parse len s)
+    | 33 -> LocalisationNotifReq (LocalisationNotif.parse len s)*)
+    | 33 -> AckNotifReq (AckNotif.parse len s)
     | 34 -> LocateNotifReq (LocateNotif.parse len s)
+    | 35 -> QueryFileInfoReq (QueryFileInfo.parse len s)
+    | 36 -> QueryFileInfoReplyReq (QueryFileInfoReply.parse len s)
     | 50 -> QueryUserConnectReq (QueryUserConnect.parse len s)
     | _ -> raise Not_found
   with e ->
@@ -822,13 +879,16 @@ let print t =
     | ConnectByGroupReq t -> ConnectByGroup.print t
     | ServerSuppReq t -> ServerSupp.print t
     | ServerNotificationReq t -> ServerNotification.print t
-    | ConnectRockyReq t -> ConnectRocky.print t
+    (*| ConnectRockyReq t -> ConnectRocky.print t*)
     | RecoveryReq t -> Recovery.print t
-    | AddSourceReq t -> AddSource.print t
+    (*| AddSourceReq t -> AddSource.print t
     | SuppSourceReq t -> SuppSource.print t
     | LocalisationInitReq t -> LocalisationInit.print t
-    | LocalisationNotifReq t -> LocalisationNotif.print t
+    | LocalisationNotifReq t -> LocalisationNotif.print t*)
     | LocateNotifReq t -> LocateNotif.print t
+    | AckNotifReq t -> AckNotif.print t
+    | QueryFileInfoReq t -> QueryFileInfo.print t
+    | QueryFileInfoReplyReq t -> QueryFileInfoReply.print t 
     | QueryUserConnectReq t -> QueryUserConnect.print t
     | UnKnownReq t-> DonkeyProtoServer.print (DonkeyProtoServer.UnknownReq t)
     | MessageReq t -> Message.print t
@@ -860,27 +920,36 @@ let udp_write buf t =
   | ServerNotificationReq t ->
       buf_int8 buf 10;
       ServerNotification.write buf t 
-  | ConnectRockyReq t -> 
+  (*| ConnectRockyReq t -> 
       buf_int8 buf 12;
-      ConnectRocky.write buf t
+      ConnectRocky.write buf t*)
   | RecoveryReq t ->
       buf_int8 buf 13;
       Recovery.write buf t
-  | LocalisationInitReq t ->
+  (*| LocalisationInitReq t ->
       buf_int8 buf 32;
       LocalisationInit.write buf t 
   | LocalisationNotifReq t ->
       buf_int8 buf 33;
-      LocalisationNotif.write buf t 
+      LocalisationNotif.write buf t*) 
+  | AckNotifReq t ->
+      buf_int8 buf 33;
+      AckNotif.write buf t
   | LocateNotifReq t ->
       buf_int8 buf 34;
       LocateNotif.write buf t 
-  | AddSourceReq t ->
+  (*| AddSourceReq t ->
       buf_int8 buf 30;
       AddSource.write buf t
   | SuppSourceReq t ->
       buf_int8 buf 31;
-      SuppSource.write buf t
+      SuppSource.write buf t*)
+  | QueryFileInfoReq t ->
+      buf_int8 buf 35;
+      QueryFileInfo.write buf t
+  | QueryFileInfoReplyReq t ->
+      buf_int8 buf 36;
+      QueryFileInfoReply.write buf t
   | QueryUserConnectReq t ->
       buf_int8 buf 50;
       QueryUserConnect.write buf t

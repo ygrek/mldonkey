@@ -50,8 +50,8 @@ let (peers_queue : (Ip.t * int) Fifo.t) = Fifo.create ()
 let nservers = ref 0
 let redirector_connected = ref false
 
-let redirectors_ips = ref ( [] : Ip.t list)
-let redirectors_to_try = ref ( [] : Ip.t list)
+(* let redirectors_ips = ref ( [] : Ip.t list) *)
+let redirectors_to_try = ref ( [] : string list)
   
 let files_by_key = Hashtbl.create 13
 
@@ -241,3 +241,6 @@ let server_remove s =
   Hashtbl.remove servers_by_key (s.server_ip, s.server_port)
 
 let client_type c = client_type (as_client c.client_client)
+
+let set_client_state client state =
+  CommonClient.set_client_state (as_client client.client_client) state

@@ -107,3 +107,15 @@ value md4_unsafe_fd (value digest_v, value fd_v, value pos_v, value len_v)
   return Val_unit;
 }
 
+value md4_xor(value m1_v, value m2_v, value m3_v) 
+{
+  char *m1 = String_val(m1_v);
+  char *m2 = String_val(m2_v);
+  char *m3 = String_val(m3_v);
+  int i;
+
+  for(i = 0; i<16; i++) m3[i] = m1[i] ^ m2[i];
+
+  return Val_unit;
+}
+

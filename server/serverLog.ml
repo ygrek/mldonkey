@@ -33,7 +33,7 @@ type stand_by_log = {
         mutable md4 : Md4.t;
         mutable time : float;
         mutable req : DonkeyProtoServer.t list;
-        mutable results : DonkeyMftp.tagged_file list;
+        mutable results : CommonTypes.tagged_file list;
         mutable note : string;
 }
 

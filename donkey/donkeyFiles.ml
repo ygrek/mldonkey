@@ -232,7 +232,7 @@ let force_check_locations () =
             
             let list = ref !udp_servers_list in
             for i = 1 to !!max_udp_sends do
-              match !udp_servers_list with
+              match !list with
                 [] -> ()
               | s :: tail ->
                   list := tail;
@@ -414,7 +414,7 @@ print_newline ();
 *)
     
     
-    let msg = client_msg 
+    let msg =  
       (
         let module M = DonkeyProtoClient in
         let module B = M.Bloc in

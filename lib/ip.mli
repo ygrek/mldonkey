@@ -48,3 +48,4 @@ val any : t
 val null : t
   
 val rev:t -> t
+val equal : t -> t -> bool
