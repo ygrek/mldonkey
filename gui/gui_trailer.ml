@@ -186,7 +186,11 @@ module MyCList: sig
       let rec iter i cols descs =
         match cols, descs with
           f :: cols, old_desc :: descs ->
-            let desc = f value in
+            let desc = try f value with
+                e -> 
+                  Printf.printf "Exception %s in desc" (Printexc.to_string e);
+                  print_newline ();
+                  old_desc in
             if desc <> old_desc then
               t.clist#set_cell ~text: desc (row t node) i;
             desc :: (iter (i+1) cols descs)
@@ -444,7 +448,8 @@ let (clist_downloads :
 (* DOWNLOADED *)
     (fun f -> Printf.sprintf "%+10s" (Int32.to_string f.file_downloaded));
 (* PERCENT *)
-    (fun f -> Printf.sprintf "%5.1f" (
+    (fun f -> 
+        Printf.sprintf "%5.1f" (
           Int32.to_float f.file_downloaded /. Int32.to_float f.file_size
           *. 100.)
         );
@@ -461,7 +466,9 @@ let (clist_downloads :
         let len = String.length f.file_availability in
         let p = ref 0 in
         for i = 0 to len - 1 do
-          if f.file_availability.[i] <> '0' then incr p
+          if f.file_availability.[i] <> '0' then begin
+              incr p
+            end
         done;
         if len = 0 then "" else 
           Printf.sprintf "%5.1f" (float_of_int !p /. float_of_int len *. 100.)
@@ -550,7 +557,6 @@ let menu_downloads_file t =
         gui_send (Preview file.file_md4));
     "Get Format Info",
     for_selection clist_downloads (fun file ->
-        Printf.printf "QEURY"; print_newline ();
         gui_send (QueryFormat file.file_md4));
   ]
       

@@ -305,6 +305,9 @@ value md4_unsafe_file (value digest_v, value filename_v)
 #define SEEK_END 2
 #endif
 
+#include <sys/types.h>
+#include <sys/stat.h>
+
 value md4_unsafe_fd (value digest_v, value fd_v, value pos_v, value len_v)
 {
   int fd = Int_val(fd_v);
@@ -316,7 +319,7 @@ value md4_unsafe_fd (value digest_v, value fd_v, value pos_v, value len_v)
   unsigned char buffer[BUFFER_LEN];
 
   MD4Init (&context);
-  if(pos != 0)     lseek(fd, pos, SEEK_SET);
+  lseek(fd, pos, SEEK_SET);
 
   while (len!=0){
     int max_nread = BUFFER_LEN > len ? len : BUFFER_LEN;

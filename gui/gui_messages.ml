@@ -521,6 +521,11 @@ TODO list
 ChangeLog
 =========
 
+Release 1.09:
+  * Bug fixes: fixed bad md4 computation of the first chunk.
+  * New command 'recover_temp' to recover all lost files from the temp
+     directory.
+
 Release 1.08:
   * Remove use of the 'mmap' system call.
   * Better management of delays between connection attempts.

@@ -518,6 +518,25 @@ let commands = [
               "Use 'commit' to move downloaded files to the incoming directory"
     
     ), "<num>: view file info";
+
+    "recover_temp", Arg_none (fun buf _ ->
+        let files = Unix2.list_directory !!temp_directory in
+        List.iter (fun filename ->
+            if String.length filename = 32 then
+              try
+                let md4 = Md4.of_string filename in
+                try
+                  ignore (Hashtbl.find files_by_md4 md4)
+                with Not_found ->
+                    let size = Unix32.getsize32 (Filename.concat 
+                          !!temp_directory filename) in
+                    query_download [] size md4 None None None
+              with e ->
+                  Printf.printf "exception %s in recover_temp"
+                    (Printexc.to_string e); print_newline ();
+        ) files;
+        "done"
+    ), " : recover lost files from temp directory";
     
     "reshare", Arg_none (fun buf _ ->
         check_shared_files ();

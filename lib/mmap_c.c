@@ -58,19 +58,6 @@ value mmap_mmap(value t_v)
   return Val_unit;
 }
 
-value ml_truncate32(value fd_v, value len_v)
-{
-  long len = Int32_val(len_v);
-  int fd = Int_val(fd_v);  
-  if(!fd)
-    failwith("ftruncate32: file is closed");
-
-  if(ftruncate(fd, len) < 0){
-    failwith("ml_truncate32: error in ftruncate");
-  }
-  return Val_unit;
-}
-
 value mmap_truncate(value t_v, value len_v)
 {
   long len = Int32_val(len_v);

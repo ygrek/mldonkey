@@ -64,7 +64,8 @@ LIB_CMOS= \
   lib/fifo.$(EXT) \
   lib/hole_tab.$(EXT) lib/indexer.$(EXT) lib/host.$(EXT)  \
   lib/misc.$(EXT) lib/md4.$(EXT) lib/unix32.$(EXT) \
-  lib/avifile.$(EXT) lib/http_lexer.$(EXT) lib/url.$(EXT)
+  lib/avifile.$(EXT) lib/http_lexer.$(EXT) lib/url.$(EXT) \
+  lib/mmap.$(EXT)
 
 NET_CMOS = \
   net/basicSocket.$(EXT) \
@@ -77,7 +78,7 @@ PROTO_CMOS= \
   secret/mftp_client.$(EXT) secret/mftp_server.$(EXT)  \
   secret/mftp_comm.$(EXT)  
 
-OBJS=lib/md4_c.o lib/unix32_c.o lib/inet_c.o cdk/select_c.o
+OBJS=lib/md4_c.o lib/unix32_c.o lib/inet_c.o cdk/select_c.o lib/mmap_c.o
 
 MIN_GUI_CMOS= gui/gui_types.$(EXT) gui/gui_proto.$(EXT)
 

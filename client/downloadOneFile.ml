@@ -375,8 +375,14 @@ let verify_chunk file i =
   (*
   let mmap = Mmap.mmap file.file_name 
     (file_fd file) begin_pos len in
-  let new_md4 = Mmap.md4_sub mmap Int32.zero len in
+  let mmap_md4 = Mmap.md4_sub mmap Int32.zero len in
   Mmap.munmap mmap;
+  if new_md4 <> mmap_md4 then begin
+      Printf.printf "BAD md4 computation"; print_newline ();
+      exit 1;
+    end else begin
+      Printf.printf "GOOD md4 computation"; print_newline ();
+end;
   *)
   if new_md4 = md4 then begin
       must_share_file file;

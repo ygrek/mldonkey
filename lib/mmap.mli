@@ -1,4 +1,3 @@
-(*
 
 type t
 
@@ -9,4 +8,3 @@ val blit_to_string :  t -> int32 -> string -> int32 -> int32 -> unit
 val munmap : t -> unit
 val md4_sub : t -> int32 -> int32 -> Md4.t
 val msync: t -> unit
-    *)
