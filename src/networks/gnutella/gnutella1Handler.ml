@@ -254,7 +254,7 @@ information. *)
               
               match s.search_search with
                 UserSearch (s,_) ->
-                  CommonInteractive.search_add_result s r.result_result
+                  CommonInteractive.search_add_result true s r.result_result
               | _ -> ()
       ) t.Q.files;
   | _ -> ()

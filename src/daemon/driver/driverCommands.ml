@@ -80,7 +80,7 @@ let list_options_html o list =
       
       if String.contains value '\n' then 
         Printf.bprintf buf "
-                  \\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>%s\\<form action=/submit target=\\\"$S\\\"\\> 
+                  \\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>%s\\<form action=\\\"submit\\\" target=\\\"$S\\\"\\> 
                   \\<input type=hidden name=setoption value=q\\>
                   \\<input type=hidden name=option value=%s\\>\\</td\\>\\<td\\>\\<textarea 
 					name=value rows=5 cols=20 wrap=virtual\\> 
@@ -96,7 +96,7 @@ let list_options_html o list =
           
           Printf.bprintf buf "
               \\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>%s\\</td\\>
-		      \\<td class=\\\"sr\\\"\\>\\<form action=/submit target=\\\"$S\\\"\\>\\<input type=hidden 
+		      \\<td class=\\\"sr\\\"\\>\\<form action=\\\"submit\\\" target=\\\"$S\\\"\\>\\<input type=hidden 
 				name=setoption value=q\\>\\<input type=hidden name=option value=%s\\>"  help name name;
           
           if value = "true" || value = "false" then 
@@ -132,7 +132,7 @@ let list_options o list =
       if String.contains value '\n' then begin
           if o.conn_output = HTML then
             Printf.bprintf buf "
-                  \\<tr\\>\\<td\\>\\<form action=/submit $S\\> 
+                  \\<tr\\>\\<td\\>\\<form action=\\\"submit\\\" $S\\> 
                   \\<input type=hidden name=setoption value=q\\>
                   \\<input type=hidden name=option value=%s\\> %s \\</td\\>\\<td\\>
                   \\<textarea name=value rows=10 cols=70 wrap=virtual\\> 
@@ -146,7 +146,7 @@ let list_options o list =
       else
       if o.conn_output = HTML then
         Printf.bprintf buf "
-              \\<tr\\>\\<td\\>\\<form action=/submit $S\\> 
+              \\<tr\\>\\<td\\>\\<form action=\\\"submit\\\" $S\\> 
 \\<input type=hidden name=setoption value=q\\>
 \\<input type=hidden name=option value=%s\\> %s \\</td\\>\\<td\\>
               \\<input type=text name=value size=40 value=\\\"%s\\\"\\>
@@ -192,9 +192,9 @@ let commands = [
             let num = int_of_string arg in
             if o.conn_output = HTML then
               begin
-                Printf.bprintf  buf "\\<a href=/files\\>Display all files\\</a\\>  ";
-                Printf.bprintf  buf "\\<a href=/submit?q=verify_chunks+%d\\>Verify chunks\\</a\\>  " num;
-		Printf.bprintf  buf "\\<a href=/submit?q=preview+%d\\>Preview\\</a\\>  " num;
+                Printf.bprintf  buf "\\<a href=\\\"files\\\"\\>Display all files\\</a\\>  ";
+                Printf.bprintf  buf "\\<a href=\\\"submit?q=verify_chunks+%d\\\"\\>Verify chunks\\</a\\>  " num;
+                Printf.bprintf  buf "\\<a href=\\\"submit?q=preview+%d\\\"\\>Preview\\</a\\>  " num;
                 if !!html_mods then
                   Printf.bprintf  buf "\\<a href=\\\"javascript:window.location.reload()\\\"\\>Reload\\</a\\>\\<br\\>\n";
               end;
@@ -264,11 +264,11 @@ let commands = [
     "preview", Arg_one (fun arg o ->
         
         let num = int_of_string arg in
-	let file = file_find num in
+        let file = file_find num in
         file_preview file;
         "done"
     ), "<file number> :\t\t\tstart previewer for file <file number>";
-
+    
     "vm", Arg_none (fun o ->
         CommonInteractive.print_connected_servers o;
         ""), ":\t\t\t\t\t$blist connected servers$n";
@@ -297,10 +297,10 @@ let commands = [
 \\<tr\\>\\<td\\>
 \\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
 \\<td class=downloaded width=100%%\\>\\</td\\>
-\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=shares'\\\"\\>Shares\\</a\\>\\</td\\>
-\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=html_mods'\\\"\\>Toggle html_mods\\</a\\>\\</td\\>
-\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=voo+1'\\\"\\>Full Options\\</a\\>\\</td\\>
-\\<td nowrap class=\\\"fbig pr\\\"\\>\\<a onclick=\\\"javascript:parent.fstatus.location.href='/submit?q=save'\\\"\\>Save\\</a\\>\\</td\\>
+\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=shares'\\\"\\>Shares\\</a\\>\\</td\\>
+\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=html_mods'\\\"\\>Toggle html_mods\\</a\\>\\</td\\>
+\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo+1'\\\"\\>Full Options\\</a\\>\\</td\\>
+\\<td nowrap class=\\\"fbig pr\\\"\\>\\<a onclick=\\\"javascript:parent.fstatus.location.href='submit?q=save'\\\"\\>Save\\</a\\>\\</td\\>
 \\</tr\\>\\</table\\>
 \\</td\\>\\</tr\\>
 \\<tr\\>\\<td\\>";
@@ -344,15 +344,15 @@ let commands = [
         
         if !!html_mods then 
           begin
-            Options.set_simple_option expert_ini "html_mods" "false";
-            Options.set_simple_option expert_ini "commands_frame_height" "140"
+            html_mods =:= false;
+            commands_frame_height =:= 140;
           end
         else
           begin 
-            Options.set_simple_option expert_ini "html_mods" "true";
-            Options.set_simple_option expert_ini "commands_frame_height" "80";
-            Options.set_simple_option expert_ini "html_mods_style" "0";
-            Options.set_simple_option expert_ini "use_html_frames" "true"
+            html_mods =:= true;
+            commands_frame_height =:= 80;
+            html_mods_style =:= 0;
+            use_html_frames =:= true
           end;
         
         "\\<script language=Javascript\\>top.window.location.reload();\\</script\\>"
@@ -362,26 +362,26 @@ let commands = [
     "html_mods_style", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
         if args = [] then begin
-			Array.iteri (fun i h -> 
-             Printf.bprintf buf "%d: %s\n" i (fst h);
-			) !html_mods_styles;
-			""
-        end
+            Array.iteri (fun i h -> 
+                Printf.bprintf buf "%d: %s\n" i (fst h);
+            ) !html_mods_styles;
+            ""
+          end
         else begin
-            Options.set_simple_option expert_ini "html_mods" "true";
-            Options.set_simple_option expert_ini "use_html_frames" "true";
+            html_mods =:= true;
+            use_html_frames =:= true;
             let num = int_of_string (List.hd args) in
-
-			if num >= 0 && num < (Array.length !html_mods_styles) then begin
-				Options.set_simple_option expert_ini "commands_frame_height" (Printf.sprintf "%d" (snd !html_mods_styles.(num)));
-				Options.set_simple_option expert_ini "html_mods_style" (Printf.sprintf "%d" num);
-				CommonMessages.colour_changer ();
-			end
-			else begin
-				Options.set_simple_option expert_ini "commands_frame_height" (Printf.sprintf "%d" (snd !html_mods_styles.(0)));
-               Options.set_simple_option expert_ini "html_mods_style" "0";
-               CommonMessages.colour_changer ();
-            end;
+            
+            if num >= 0 && num < (Array.length !html_mods_styles) then begin
+                commands_frame_height =:= (snd !html_mods_styles.(num));
+                html_mods_style =:= num;
+                CommonMessages.colour_changer ();
+              end
+            else begin
+                commands_frame_height =:= (snd !html_mods_styles.(0));
+                html_mods_style =:= 0;
+                CommonMessages.colour_changer ();
+              end;
             "\\<script language=Javascript\\>top.window.location.reload();\\</script\\>"
         end
     
@@ -397,7 +397,7 @@ let commands = [
 \\<!-- 
 function submitHtmlModsStyle() {
 var formID = document.getElementById(\\\"htmlModsStyleForm\\\")
-parent.fstatus.location.href='/submit?q=html_mods_style+'+formID.modsStyle.value;
+parent.fstatus.location.href='submit?q=html_mods_style+'+formID.modsStyle.value;
 }
 //--\\>
 \\</script\\>";
@@ -406,14 +406,14 @@ parent.fstatus.location.href='/submit?q=html_mods_style+'+formID.modsStyle.value
 \\<tr\\>\\<td\\>
 \\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
 \\<td class=downloaded width=100%%\\>\\</td\\>
-\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=voo+1'\\\"\\>Client\\</a\\>\\</td\\>
-\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=voo+2'\\\"\\>Ports\\</a\\>\\</td\\>
-\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=voo+3'\\\"\\>html\\</a\\>\\</td\\>
-\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=voo+4'\\\"\\>Delays\\</a\\>\\</td\\>
-\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=voo+5'\\\"\\>Files\\</a\\>\\</td\\>
-\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=voo+6'\\\"\\>Mail\\</a\\>\\</td\\>
-\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=voo+7'\\\"\\>Net\\</a\\>\\</td\\>
-\\<td nowrap class=\\\"fbig pr\\\"\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=voo'\\\"\\>All\\</a\\>\\</td\\>
+\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo+1'\\\"\\>Client\\</a\\>\\</td\\>
+\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo+2'\\\"\\>Ports\\</a\\>\\</td\\>
+\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo+3'\\\"\\>html\\</a\\>\\</td\\>
+\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo+4'\\\"\\>Delays\\</a\\>\\</td\\>
+\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo+5'\\\"\\>Files\\</a\\>\\</td\\>
+\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo+6'\\\"\\>Mail\\</a\\>\\</td\\>
+\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo+7'\\\"\\>Net\\</a\\>\\</td\\>
+\\<td nowrap class=\\\"fbig pr\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo'\\\"\\>All\\</a\\>\\</td\\>
 \\</tr\\>\\</table\\>
 \\</td\\>\\</tr\\>
 \\<tr\\>\\<td\\>";
@@ -529,9 +529,9 @@ Printf.bprintf buf "
 \\<tr\\>\\<td\\>
 \\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
 \\<td class=downloaded width=100%%\\>\\</td\\>
-\\<td nowrap class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=shares'\\\"\\>Shares\\</a\\>\\</td\\>
-\\<td nowrap class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:parent.fstatus.location.href='/submit?q=save'\\\"\\>Save\\</a\\>\\</td\\>
-\\<td nowrap class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=html_mods'\\\"\\>toggle html_mods\\</a\\>\\</td\\>
+\\<td nowrap class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=shares'\\\"\\>Shares\\</a\\>\\</td\\>
+\\<td nowrap class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:parent.fstatus.location.href='submit?q=save'\\\"\\>Save\\</a\\>\\</td\\>
+\\<td nowrap class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=html_mods'\\\"\\>toggle html_mods\\</a\\>\\</td\\>
 \\<td nowrap class=\\\"fbig fbigb pr\\\"\\>
 \\<form style=\\\"margin: 0px;\\\" name=\\\"htmlModsStyleForm\\\" id=\\\"htmlModsStyleForm\\\" 
 action=\\\"javascript:submitHtmlModsStyle();\\\"\\>
@@ -684,6 +684,7 @@ the name between []"
   *)
           with _ -> 
               Options.set_simple_option downloads_ini name value;
+              Options.set_simple_option downloads_expert_ini name value;
               Printf.sprintf "option %s value changed" name
         with e ->
             Printf.sprintf "Error %s" (Printexc2.to_string e)
@@ -792,7 +793,7 @@ the name between []"
         List.iter (fun s ->
             Printf.bprintf buf "%s[%-5d]%s %s %s\n" 
               (if o.conn_output = HTML then 
-                Printf.sprintf "\\<a href=/submit\\?q=forget\\+%d\\>[Forget]\\</a\\> \\<a href=/submit\\?q=vr\\+%d\\>" s.search_num s.search_num
+                Printf.sprintf "\\<a href=\\\"submit\\?q=forget\\+%d\\\"\\>[Forget]\\</a\\> \\<a href=\\\"submit\\?q=vr\\+%d\\\"\\>" s.search_num s.search_num
               else "")
             s.search_num 
               (if o.conn_output = HTML then "\\</a\\>" else "")
@@ -812,12 +813,12 @@ the name between []"
                 
                 if use_html_mods o then  
                   Printf.bprintf buf 
-                    "\\<a href=/submit\\?custom=%s target=\\\"$O\\\"\\>%s\\</a\\> " 
+                    "\\<a href=\\\"submit\\?custom=%s\\\" target=\\\"$O\\\"\\>%s\\</a\\> " 
                     (Url.encode name) name
                 
                 else
                   Printf.bprintf buf 
-                    "\\<a href=/submit\\?custom=%s $O\\> %s \\</a\\>\n" 
+                    "\\<a href=\\\"submit\\?custom=%s\\\" $O\\> %s \\</a\\>\n" 
                     (Url.encode name) name;
               end
             else
@@ -867,7 +868,7 @@ the name between []"
                    var getdir = prompt('Input: <priority#> <directory> (surround dir with quotes if necessary)','0 /home/mldonkey/share')
                    var reg = new RegExp (' ', 'gi') ;
                    var outstr = getdir.replace(reg, '+');
-                   parent.fstatus.location.href='/submit?q=share+' + outstr;
+                   parent.fstatus.location.href='submit?q=share+' + outstr;
                    setTimeout('window.location.reload()',1000);
                     }\\\"\\>Add Share\\</a\\>
 \\</td\\>
@@ -892,7 +893,7 @@ the name between []"
         onMouseOver=\\\"mOvr(this);\\\" 
         onMouseOut=\\\"mOut(this);\\\"
 		onClick=\\\'javascript:{ 
-		parent.fstatus.location.href=\\\"/submit?q=unshare+\\\\\\\"%s\\\\\\\"\\\"; 
+		parent.fstatus.location.href=\\\"submit?q=unshare+\\\\\\\"%s\\\\\\\"\\\"; 
         setTimeout(\\\"window.location.reload()\\\",1000);}'
 		class=\\\"srb\\\"\\>Unshare\\</td\\>
 		\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
@@ -1008,7 +1009,7 @@ the name between []"
                 let c = client_find num in
                 if use_html_mods o then Printf.bprintf buf "\\<tr class=\\\"%s\\\" 
 			 title=\\\"Add as friend\\\" 
-			 onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\" 
+			 onClick=\\\"parent.fstatus.location.href='submit?q=friend_add+%d'\\\" 
             onMouseOver=\\\"mOvr(this);\\\" 
             onMouseOut=\\\"mOut(this);\\\"\\>" 
                     (if (!counter mod 2 == 0) then "dl-1" else "dl-2") num;
@@ -1204,14 +1205,14 @@ function submitMessageForm() {
 var formID = document.getElementById(\\\"msgForm\\\")
 var regExp = new RegExp (' ', 'gi') ;
 var msgTextOut = formID.msgText.value.replace(regExp, '+');
-parent.fstatus.location.href='/submit?q=message+'+formID.clientNum.value+\\\"+\\\"+msgTextOut;
+parent.fstatus.location.href='submit?q=message+'+formID.clientNum.value+\\\"+\\\"+msgTextOut;
 formID.msgText.value=\\\"\\\";
 }
 //--\\>
 \\</script\\>";
                 
                 Printf.bprintf buf "\\<iframe id=\\\"msgWindow\\\" name=\\\"msgWindow\\\" height=\\\"80%%\\\"
-            width=\\\"100%%\\\" scrolling=yes src=\\\"/submit?q=message_log+20\\\"\\>\\</iframe\\>";
+            width=\\\"100%%\\\" scrolling=yes src=\\\"submit?q=message_log+20\\\"\\>\\</iframe\\>";
                 
                 Printf.bprintf buf "\\<form style=\\\"margin: 0px;\\\" name=\\\"msgForm\\\" id=\\\"msgForm\\\" action=\\\"javascript:submitMessageForm();\\\"\\>";
                 Printf.bprintf buf "\\<table width=100%% cellspacing=0 cellpadding=0 border=0\\>\\<tr\\>\\<td\\>";
@@ -1297,7 +1298,7 @@ formID.msgText.value=\\\"\\\";
 \\<td class=downloaded width=100%%\\>\\</td\\>
 \\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.reload()\\\"\\>Refresh\\</a\\> \\</td\\>
 \\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:
-                  { parent.fstatus.location.href='/submit?q=friend_remove+all';
+                  { parent.fstatus.location.href='submit?q=friend_remove+all';
                     setTimeout('window.location.reload()',1000);
                     }\\\"\\>Remove All\\</a\\>
 \\</td\\>
@@ -1305,7 +1306,7 @@ formID.msgText.value=\\\"\\\";
                    var getip = prompt('Friend IP [port] ie: 192.168.0.1 4662','192.168.0.1 4662')
                    var reg = new RegExp (' ', 'gi') ;
                    var outstr = getip.replace(reg, '+');
-                   parent.fstatus.location.href='/submit?q=afr+' + outstr;
+                   parent.fstatus.location.href='submit?q=afr+' + outstr;
                     setTimeout('window.location.reload()',1000);
                     }\\\"\\>Add by IP\\</a\\>
 \\</td\\>
@@ -1334,17 +1335,17 @@ formID.msgText.value=\\\"\\\";
                 incr counter;
                 Printf.bprintf buf "
 			\\<td title=\\\"Client number\\\"
-			onClick=\\\"location.href='/submit?q=files+%d'\\\" 
+			onClick=\\\"location.href='submit?q=files+%d'\\\" 
 			class=\\\"srb\\\"\\>%d\\</td\\>            
 			\\<td title=\\\"Remove friend\\\"
-			onClick=\\\"parent.fstatus.location.href='/submit?q=friend_remove+%d'\\\" 
+			onClick=\\\"parent.fstatus.location.href='submit?q=friend_remove+%d'\\\" 
 			class=\\\"srb\\\"\\>Remove\\</td\\>            
 			\\<td title=\\\"Network\\\" class=\\\"sr\\\"\\>%s\\</td\\>            
 			\\<td title=\\\"Name (click to view files)\\\"
-			onClick=\\\"location.href='/submit?q=files+%d'\\\" 
+			onClick=\\\"location.href='submit?q=files+%d'\\\" 
 			class=\\\"sr\\\"\\>%s\\</td\\>            
 	 		\\<td title=\\\"Click to view files\\\"
-            onClick=\\\"location.href='/submit?q=files+%d'\\\" 
+            onClick=\\\"location.href='submit?q=files+%d'\\\" 
             class=\\\"sr\\\"\\>%s\\</td\\>
 			\\</tr\\>"
                   i.client_num
@@ -1677,7 +1678,7 @@ formID.msgText.value=\\\"\\\";
                         title=\\\"[%d] Add as friend (avg: %.1f KB/s)\\\"
                         onMouseOver=\\\"mOvr(this);\\\"
                         onMouseOut=\\\"mOut(this);\\\" 
-                        onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>"
+                        onClick=\\\"parent.fstatus.location.href='submit?q=friend_add+%d'\\\"\\>"
                         ( if (!counter mod 2 == 0) then "dl-1" else "dl-2";) (client_num c) 
 						( float_of_int (Int64.to_int i.client_uploaded / 1024) /. 
  						  float_of_int (max 1 ((last_time ()) - i.client_connect_time)) )
@@ -1727,7 +1728,7 @@ formID.msgText.value=\\\"\\\";
                       
 					Printf.bprintf buf "\\<tr class=\\\"%s\\\" 
 					title=\\\"Add as Friend\\\" onMouseOver=\\\"mOvr(this);\\\" onMouseOut=\\\"mOut(this);\\\" 
-					onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>"
+					onClick=\\\"parent.fstatus.location.href='submit?q=friend_add+%d'\\\"\\>"
 					( if (!counter mod 2 == 0) then "dl-1" else "dl-2";) cnum;
                       
 					client_print_html c o;

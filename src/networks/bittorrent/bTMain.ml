@@ -84,12 +84,12 @@ let _ =
 );
   *)
   network.op_network_enable <- enable;
-  network.network_config_file <- Some bittorrent_ini;
+  network.network_config_file <- [bittorrent_ini];
   network.op_network_info <- (fun n ->
       { 
         network_netnum = network.network_num;
         network_config_filename = (match network.network_config_file with
-            None -> "" | Some opfile -> options_file_name opfile);
+            [] -> "" | opfile :: _ -> options_file_name opfile);
         network_netname = network.network_name;
         network_enabled = network.op_network_is_enabled ();
         network_uploaded = Int64.zero;

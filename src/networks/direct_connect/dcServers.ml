@@ -355,9 +355,9 @@ lprint_newline ()
                       match t.Search.sizelimit with
                       | NoLimit -> q
                       | AtMost n -> 
-                          QAnd (QHasMaxVal (CommonUploads.filesize_field, n),q)
+                          QAnd (QHasMaxVal (Field_Size, n),q)
                       | AtLeast n -> 
-                          QAnd (QHasMinVal (CommonUploads.filesize_field, n),q)
+                          QAnd (QHasMinVal (Field_Size, n),q)
                     ) in
                   lprintf "%d replies found" (Array.length files); 
                   lprint_newline ();
@@ -414,7 +414,7 @@ lprint_newline ()
             let result = new_result t.SR.filename t.SR.filesize in
             let user = new_user (Some s) t.SR.owner in
             add_result_source result user t.SR.filename;
-            CommonInteractive.search_add_result q result.result_result
+            CommonInteractive.search_add_result true q result.result_result
       end
   
   | UnknownReq "" -> ()

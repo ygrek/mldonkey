@@ -1037,7 +1037,7 @@ lprint_newline ();
 		let i = (client_info (as_client c.client_client)) in
           
 		Printf.bprintf buf "\\<td title=\\\"Add as Friend\\\" class=\\\"srb ar\\\"
-		onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>%d\\</TD\\>"
+		onClick=\\\"parent.fstatus.location.href='submit?q=friend_add+%d'\\\"\\>%d\\</TD\\>"
 		(client_num c) (client_num c);
 
 		html_mods_td buf [
@@ -1144,7 +1144,7 @@ lprint_newline ();
                     
 			Printf.bprintf buf " \\<tr onMouseOver=\\\"mOvr(this);\\\" onMouseOut=\\\"mOut(this);\\\" 
 			class=\\\"%s\\\"\\> \\<td title=\\\"Add as friend\\\" class=\\\"srb ar\\\"
-			onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>%d\\</TD\\>"
+			onClick=\\\"parent.fstatus.location.href='submit?q=friend_add+%d'\\\"\\>%d\\</TD\\>"
 			str (client_num c) (client_num c);
 
 			html_mods_td buf [

@@ -64,26 +64,27 @@ let  _ =
   *)
             end
         | QHasField(field, value) ->
-            lprintf "******  HAS FIELD  %s %s ********\n" field value; 
+            lprintf "******  HAS FIELD  %s %s ********\n" 
+            (string_of_field field) value; 
             begin
               match field with
-                "Album" | "Title" -> t
-              | "Artist" | _ -> t
+                Field_Album | Field_Title -> t
+              | Field_Artist | _ -> t
             end
         | QHasMinVal (field, value) ->
             begin
               match field with
-                "bitrate" ->  
+                Field_unknown "bitrate" ->  
                   { t with S.bitrate = Some (Int64.to_int value, OP.AtLeast) };
-              | "size" -> t
+              | Field_Size -> t
               | _ -> t
             end
         | QHasMaxVal (field, value) ->
             begin
               match field with
-                "bitrate" -> 
+                Field_unknown "bitrate" -> 
                   { t with S.bitrate = Some (Int64.to_int value, OP.AtBest) };
-              | "size" -> t
+              | Field_Size -> t
               | _ -> t
             end
         | QNone ->

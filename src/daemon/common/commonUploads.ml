@@ -91,13 +91,17 @@ let (shared_ops : shared_file CommonShared.shared_ops) =
   
   
 let waiting_shared_files = ref []
+
+(* The shared files indexed by the strings (lowercase), corresponding to
+their uids *)
+let shareds_by_uid = Hashtbl.create 13
   
 let current_job = ref None
 
-let rec start_job_for sh (uid, handler) = 
+let rec start_job_for sh (wanted_id, handler) = 
   try
     List.iter (fun id ->
-        match uid,id with
+        match wanted_id,id with
           BITPRINT, Bitprint _ 
         | SHA1, Sha1 _
         | ED2K, Ed2k _
@@ -106,7 +110,7 @@ let rec start_job_for sh (uid, handler) =
         | _ -> ()
     ) sh.shared_uids;
     
-    match uid with
+    match wanted_id with
       SHA1 -> 
         CommonHasher.compute_sha1 (Unix32.filename sh.shared_fd)
         zero sh.shared_size (fun job ->
@@ -122,9 +126,10 @@ let rec start_job_for sh (uid, handler) =
                 lprintf "%s has uid %s (%s)\n" sh.shared_fullname urn
                 (Base16.to_string 20 job.CommonHasher.job_result)
                 ;
-                sh.shared_uids <- (Sha1 
-                    (urn,sha1)) :: sh.shared_uids;
-                start_job_for sh (uid, handler)  
+                let uid = Sha1 (urn,sha1) in
+                sh.shared_uids <- uid :: sh.shared_uids;
+                Hashtbl.add shareds_by_uid (String.lowercase urn) sh;
+                start_job_for sh (wanted_id, handler)  
               end
         );
     | _ -> raise Exit
@@ -222,12 +227,12 @@ let index_name doc name =
 
 let bit_of_field field =
   match field with
-  | "filename" -> name_bit
-  | "Artist" -> artist_bit
-  | "Title" -> title_bit
-  | "Album" -> album_bit
-  | "format" -> format_bit 
-  | "type" -> media_bit
+  | Field_Filename -> name_bit
+  | Field_Artist -> artist_bit
+  | Field_Title -> title_bit
+  | Field_Album -> album_bit
+  | Field_Format -> format_bit 
+  | Field_Type -> media_bit
   | _ -> raise Not_found
         
 let rec query_to_query t = 
@@ -240,12 +245,12 @@ let rec query_to_query t =
   | QHasMinVal (field, minval) -> 
       Indexer.Predicate (fun s -> 
           match field with 
-          | "size" -> s.shared_size >= minval
+          | Field_Size -> s.shared_size >= minval
           | _ -> true)
   | QHasMaxVal (field, maxval) -> 
       Indexer.Predicate (fun s -> 
           match field with 
-          | "size" -> s.shared_size <= maxval
+          | Field_Size -> s.shared_size <= maxval
           | _ -> true)
     
       

@@ -157,11 +157,12 @@ let save_config () =
         Printf2.lprintf "Exception %s while flushing\n" (Printexc2.to_string e)
   );
   Options.save_with_help downloads_ini;
+  Options.save_with_help downloads_expert_ini;
   CommonComplexOptions.save ();
   networks_iter (fun r -> 
-      match r.network_config_file with
-        None -> ()
-      | Some opfile -> Options.save_with_help opfile);
+      List.iter (fun opfile ->
+          Options.save_with_help opfile          
+      ) r.network_config_file);
   ()
     
 let age_to_day date =
@@ -308,7 +309,7 @@ function cancelAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j
   function clearAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j=document.selectForm.elements[i];if (j.type==\\\"checkbox\\\") {j.checked=x;}}}//--\\>\\</script\\>
   ";
   
-  Printf.bprintf buf "\\<form name=selectForm action=/files\\>";
+  Printf.bprintf buf "\\<form name=selectForm action=\\\"files\\\"\\>";
   
   
   Html.begin_table_option  buf "width=100%";
@@ -353,7 +354,7 @@ function cancelAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j
   |] 
     (List.map (fun file ->
         [|
-          (Printf.sprintf "[\\<a href=/submit\\?q\\=vd+%d\\>%-5d\\</a\\> \\<a href=http://edonkeyfakes.ath.cx/fakecheck/update/fakecheck.php\\?size\\=%s\\&md4=%s\\>%s\\</a\\>]" 
+          (Printf.sprintf "[\\<a href=\\\"submit\\?q\\=vd+%d\\\"\\>%-5d\\</a\\> \\<a href=http://edonkeyfakes.ath.cx/fakecheck/update/fakecheck.php\\?size\\=%s\\&md4=%s\\>%s\\</a\\>]" 
               file.file_num
               file.file_num
               (Int64.to_string file.file_size)
@@ -470,12 +471,12 @@ function submitPriority(num,cp,sel) {
 	str += '\\<option value=\\\"-5\\\"\\>-5';
 	str += \\\"\\</select\\>\\\";
 	divID.innerHTML = str;
-	parent.fstatus.location.href='/submit?q=priority' + params;
+	parent.fstatus.location.href='submit?q=priority' + params;
 }
 //--\\>\\</script\\>
 
 \\<div class=main\\>
-\\<form id=\\\"selectForm\\\" name=\\\"selectForm\\\" action=/files\\>
+\\<form id=\\\"selectForm\\\" name=\\\"selectForm\\\" action=\\\"files\\\"\\>
 \\<table class=main cellspacing=0 cellpadding=0\\> 
 
 \\<tr\\>\\<td\\>
@@ -537,7 +538,7 @@ if !!html_mods_vd_prio then Printf.bprintf buf "\\<td title=\\\"Sort by priority
 
 Printf.bprintf buf "\\</tr\\>";
 
-let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='/submit?q=vd+%d';return true;\\\" class=\\\"dl ar\\\"\\>%s\\</td\\>" fn td in 
+let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d';return true;\\\" class=\\\"dl ar\\\"\\>%s\\</td\\>" fn td in 
 
   print_table_html_mods buf 
     (List.map (fun file ->
@@ -559,14 +560,14 @@ let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='/submit?q=vd+%d
                 file.file_num);
 
           (if !!html_mods_vd_network then 
-			Printf.sprintf "\\<td onClick=\\\"location.href='/submit?q=vd+%d';return true;\\\" 
+			Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d';return true;\\\" 
 			title=\\\"%s\\\" class=\\\"dl al\\\"\\>%s\\</td\\>" 
 			file.file_num (net_name file) (short_net_name file) else "");
           
           ( let size = Int64.to_float file.file_size in
             let downloaded = Int64.to_float file.file_downloaded in
             let size = if size < 1. then 1. else size in
-            Printf.sprintf "\\<TD onClick=\\\"location.href='/submit?q=vd+%d';return true;\\\" 
+            Printf.sprintf "\\<TD onClick=\\\"location.href='submit?q=vd+%d';return true;\\\" 
 			title=\\\"[File#: %d] [Net: %s]%s\\\" class=\\\"dl al\\\"\\>%s\\<br\\>
 			\\<table cellpadding=0 cellspacing=0 width=100%%\\>\\<tr\\>
 			\\<td class=loaded width=%d%%\\>\\&nbsp;\\</td\\>
@@ -651,7 +652,7 @@ let html_mods_done_files buf files =
 
 \\<tr\\>\\<td\\>
 
-\\<form name=selectForm2 action=/files\\>
+\\<form name=selectForm2 action=\\\"files\\\"\\>
 \\<table cellspacing=0  cellpadding=0  width=100%%\\>\\<tr\\>
 \\<td class=downloaded width=100%%\\>Total: %d - Use 'commit' to move these completed files to the incoming directory\\</td\\>
 \\</tr\\>\\</table\\>
@@ -705,13 +706,13 @@ let simple_print_file_list finished buf files format =
         (if format.conn_output = HTML then
           [|
             "[ Num ]"; 
-            "\\<a href=/submit\\?q\\=vd\\&sortby\\=name\\> File \\</a\\>"; 
-            "\\<a href=/submit\\?q\\=vd\\&sortby\\=percent\\> Percent \\</a\\>"; 
-            "\\<a href=/submit\\?q\\=vd\\&sortby\\=done\\> Downloaded \\</a\\>";
-            "\\<a href=/submit\\?q\\=vd\\&sortby\\=size\\> Size \\</a\\>"; 
+            "\\<a href=\\\"submit\\?q\\=vd\\&sortby\\=name\\\"\\> File \\</a\\>"; 
+            "\\<a href=\\\"submit\\?q\\=vd\\&sortby\\=percent\\\"\\> Percent \\</a\\>"; 
+            "\\<a href=\\\"submit\\?q\\=vd\\&sortby\\=done\\\"\\> Downloaded \\</a\\>";
+            "\\<a href=\\\"submit\\?q\\=vd\\&sortby\\=size\\\"\\> Size \\</a\\>"; 
             "Old";
-            "\\<a href=/submit\\?q\\=vd\\&sortby\\=rate\\> Rate \\</a\\>"; 
-            "\\<a href=/submit\\?q\\=vd\\&sortby\\=priority\\> Priority \\</a\\>"; 
+            "\\<a href=\\\"submit\\?q\\=vd\\&sortby\\=rate\\\"\\> Rate \\</a\\>"; 
+            "\\<a href=\\\"submit\\?q\\=vd\\&sortby\\=priority\\\"\\> Priority \\</a\\>"; 
           |] else
           [|
             "[ Num ]"; 
@@ -743,7 +744,7 @@ let simple_print_file_list finished buf files format =
                 (net_name file)
                 file.file_num
                   (if format.conn_output = HTML then  
-                    Printf.sprintf "[\\<a href=/submit\\?q\\=cancel\\+%d $S\\>CANCEL\\</a\\>][\\<a href=/submit\\?q\\=%s\\+%d $S\\>%s\\</a\\>] " 
+                    Printf.sprintf "[\\<a href=\\\"submit\\?q\\=cancel\\+%d\\\" $S\\>CANCEL\\</a\\>][\\<a href=\\\"submit\\?q\\=%s\\+%d\\\" $S\\>%s\\</a\\>] " 
                       file.file_num
                       (if downloading file then "pause" else "resume" ) 
                     file.file_num
@@ -778,8 +779,8 @@ let simple_print_file_list finished buf files format =
       (if format.conn_output = HTML then
         [|
           "[ Num ]"; 
-          "\\<a href=/submit\\?q\\=vd\\&sortby\\=name\\> File \\</a\\>"; 
-          "\\<a href=/submit\\?q\\=vd\\&sortby\\=size\\> Size \\</a\\>"; 
+          "\\<a href=\\\"submit\\?q\\=vd\\&sortby\\=name\\\"\\> File \\</a\\>"; 
+          "\\<a href=\\\"submit\\?q\\=vd\\&sortby\\=size\\\"\\> Size \\</a\\>"; 
           "MD4"; 
         |] 
       else
@@ -943,7 +944,7 @@ let old_print_search buf o results =
   
 let add_filter_table buf search_num = 
 
-  Printf.bprintf buf "\\<form action=/filter\\>";
+  Printf.bprintf buf "\\<form action=\\\"filter\\\"\\>";
   Printf.bprintf buf "\\<input type=hidden name=num value=%d\\>" search_num;
     
   Printf.bprintf buf "\\<table\\>";

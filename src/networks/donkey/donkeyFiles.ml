@@ -50,7 +50,7 @@ let search_handler s t =
   let waiting = s.search_waiting - 1 in
   s.search_waiting <- waiting;
   List.iter (fun f ->
-      search_found s f.f_md4 f.f_tags
+      search_found false s f.f_md4 f.f_tags
   ) t
 (*  search.search_handler (Waiting s.search_waiting) *)
     

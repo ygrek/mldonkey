@@ -37,6 +37,13 @@ open GnutellaComplexOptions
 
 open GnutellaProtocol
 
+(* Don't share files greater than 10 MB on Gnutella and limit to 200 files. 
+ Why ? Because we don't store URNs currently, and we don't want mldonkey
+ to compute hashes for hours at startup *)
+let max_shared_file_size = Int64.of_int 10000000
+let max_shared_files = 200
+let shared_files_counter = ref 0
+
 (*
 type query =
   QAnd of query * query
@@ -93,11 +100,15 @@ that we can reuse queries *)
       !g1_connected_servers <> [] || !g2_connected_servers <> [] 
   );
   network.op_network_share <- (fun fullname codedname size ->
+      if !shared_files_counter < max_shared_files &&
+        size < max_shared_file_size then begin
+        incr shared_files_counter;
       GnutellaProtocol.new_shared_words := true;
       let sh = CommonUploads.add_shared fullname codedname size in
       CommonUploads.ask_for_uid sh SHA1 (fun sh uid -> 
             lprintf "Could share urn\n";
             ())
+      end
   )
   
 let _ =
@@ -234,38 +245,18 @@ let _ =
           let c = new_client (Indirect_location ("", md4)) in
           friend_add (as_client c.client_client);
           true
-          
+      
       | _ -> 
-          let url = Url.of_string url in
-          if url.Url.file = "magnet:" then begin
-              let uids = ref [] in
-              let name = ref "" in
-              List.iter (fun (value, arg) ->
-                  if String2.starts_with value "xt" then
-                    uids := (extract_uids arg) @ !uids
-                  else 
-                  if String2.starts_with value "dn" then
-                    name := Url.decode arg
-                  else 
-                  if arg = "" then
-(* This is an error in the magnet, where a & has been kept instead of being
-  url-encoded *)
-                    name := Printf.sprintf "%s&%s" !name value
-                  else
-                    lprintf "MAGNET: unused field %s = %s\n"
-                      value arg
-              ) url.Url.args;
-              if !uids <> [] then begin
+          let (name, uids) = parse_magnet url in
+          if uids <> [] then begin
 (* Start a download for this file *)
-                  let r = new_result !name Int64.zero !uids in
-                  GnutellaServers.download_file r;
-                  true
-                end
-              else false
-            end else
-            false
+              let r = new_result name Int64.zero uids in
+              GnutellaServers.download_file r;
+              true
+            end
+          else false
   )
-    
+  
 let browse_client c = 
   lprintf "Gnutella: browse client not implemented\n";
   ()

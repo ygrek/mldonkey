@@ -25,17 +25,54 @@ type addr = {
     mutable addr_age : int;
   }
 
+type field_name =
+  Field_Size
+| Field_Filename
+| Field_Artist
+| Field_Album
+| Field_Title
+| Field_Format
+| Field_Type
+| Field_unknown of string
+
+let string_of_field field =
+  match field with
+    Field_Size -> "size"
+  | Field_Filename -> "filename"
+  | Field_Artist -> "artist"
+  | Field_Album -> "album"
+  | Field_Title -> "title"
+  | Field_Format -> "format"
+  | Field_Type -> "type"
+  | Field_unknown s -> s
+
+let field_of_string s =
+  match String.lowercase s with
+    "size" -> Field_Size
+  | "filename" -> Field_Filename
+  | "artist" -> Field_Artist
+  | "album" -> Field_Album
+  | "title" -> Field_Title
+  | "format" -> Field_Format
+  | "type" -> Field_Type
+  | _ -> Field_unknown s
+      
 type query =
   QAnd of query * query
 | QOr of query * query
 | QAndNot of query * query
 | QHasWord of string
-| QHasField of string * string
-| QHasMinVal of string * int64
-| QHasMaxVal of string * int64
+| QHasField of field_name * string
+| QHasMinVal of field_name * int64
+| QHasMaxVal of field_name * int64
 | QNone (** temporary, used when no value is available ;
 	   must be simplified before transforming into strings *)
 
+  
+  
+  
+  
+  
 type tag_value =
 | Uint64 of int64
 | Fint64 of int64
@@ -176,7 +213,7 @@ type extend_search =
 type network = {
     network_name : string;
     network_num : int;
-    mutable network_config_file : Options.options_file option;
+    mutable network_config_file : Options.options_file list;
     mutable network_incoming_subdir: (unit -> string);
     mutable network_prefix: (unit -> string);
     mutable op_network_connected_servers : (unit -> server list);

@@ -128,7 +128,7 @@ let client_to_client c t sock =
                 let basename = Filename2.basename file.C2C.file_name in
                 let r = new_result basename file.C2C.file_size in
                 add_result_source r u file.C2C.file_name;
-                search_add_result q r.result_result
+                search_add_result true q r.result_result
               with e ->
                   lprintf "Exception %s for file %s" 
                     (Printexc2.to_string e) file.C2C.file_name;

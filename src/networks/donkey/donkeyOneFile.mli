@@ -34,4 +34,5 @@ val remove_file : Md4.t -> unit
 val check_files_md4s : unit -> unit
 val clean_client_zones : DonkeyTypes.client -> unit
   
-val search_found : CommonTypes.search -> Md4.t -> CommonTypes.tag list -> unit
+val search_found : bool -> 
+  CommonTypes.search -> Md4.t -> CommonTypes.tag list -> unit

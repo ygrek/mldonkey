@@ -1929,7 +1929,11 @@ debug:
 	MORECFLAGS="-I patches/ocaml-3.06/ -DHEAP_DUMP" $(MAKE) $(CDK)/heap_c.o
 	$(MAKE)
 
-RELEASE_TARGETS=mldonkey mlnet mlgui
+RELEASE_TARGETS=mlnet 
+
+ifeq ("$(COMPILE_GUI)" , "yes")
+RELEASE_TARGETS += mlgui mlnet+gui
+endif
 
 release.shared: opt
 	rm -rf mldonkey-*
@@ -2011,7 +2015,7 @@ auto-release:
 ## i386
 	mkdir -p $(HOME)/release-$(CURRENT_VERSION)
 	cp -f config/Makefile.config.i386 config/Makefile.config
-	rm -f mldonkey mldonkey.static mlnet mlnet.static $(LIB)/md4_comp.* $(LIB)/md4_as.*
+	rm -f mlnet mlnet.static mlnet+gui mlnet+gui.static $(LIB)/md4_comp.* $(LIB)/md4_as.*
 	$(MAKE) opt static
 	$(MAKE) distrib
 	cp mldonkey-$(CURRENT_VERSION).static.i386-Linux.tar.bz2 $(HOME)/release-$(CURRENT_VERSION)/
@@ -2020,7 +2024,7 @@ auto-release:
 ## i686
 	mkdir -p $(HOME)/release-$(CURRENT_VERSION)
 	cp -f config/Makefile.config.i686 config/Makefile.config
-	rm -f mldonkey mldonkey.static mlnet mlnet.static $(LIB)/md4_comp.* $(LIB)/md4_as.*
+	rm -f  mlnet+gui mlnet+gui.static mlnet mlnet.static $(LIB)/md4_comp.* $(LIB)/md4_as.*
 	$(MAKE) opt static
 	$(MAKE) distrib
 	cp mldonkey-$(CURRENT_VERSION).static.i686-Linux.tar.bz2 $(HOME)/release-$(CURRENT_VERSION)/
@@ -2029,7 +2033,7 @@ auto-release:
 ## i586
 	mkdir -p $(HOME)/release-$(CURRENT_VERSION)
 	cp -f config/Makefile.config.i586 config/Makefile.config
-	rm -f mldonkey mldonkey.static mlnet mlnet.static $(LIB)/md4_comp.* $(LIB)/md4_as.*
+	rm -f  mlnet+gui mlnet+gui.static mlnet mlnet.static $(LIB)/md4_comp.* $(LIB)/md4_as.*
 	$(MAKE) opt static
 	$(MAKE) distrib
 	cp mldonkey-$(CURRENT_VERSION).static.i586-Linux.tar.bz2 $(HOME)/release-$(CURRENT_VERSION)/
@@ -2038,7 +2042,7 @@ auto-release:
 ## i486
 	mkdir -p $(HOME)/release-$(CURRENT_VERSION)
 	cp -f config/Makefile.config.i486 config/Makefile.config
-	rm -f mldonkey mldonkey.static mlnet mlnet.static $(LIB)/md4_comp.* $(LIB)/md4_as.*
+	rm -f  mlnet+gui mlnet+gui.static mlnet mlnet.static $(LIB)/md4_comp.* $(LIB)/md4_as.*
 	$(MAKE) opt static
 	$(MAKE) distrib
 	cp mldonkey-$(CURRENT_VERSION).static.i486-Linux.tar.bz2 $(HOME)/release-$(CURRENT_VERSION)/

@@ -442,10 +442,10 @@ end;
                   
                   gui_send gui (
                     P.Options_info (simple_options downloads_ini));
+                  gui_send gui (
+                    P.Options_info (simple_options downloads_expert_ini));
                   networks_iter_all (fun r ->
-                      match r.network_config_file with
-                        None -> ()
-                      | Some opfile ->
+                      List.iter (fun opfile ->
 (*
 lprintf "options for net %s" r.network_name; lprint_newline ();
 *)
@@ -462,7 +462,8 @@ lprintf "Sending for %s" prefix; lprint_newline ();
                               )  args)
                           );
 (*                            lprintf "sent for %s" prefix; lprint_newline (); *)
-                  
+                      )
+                      r.network_config_file 
                   );
 
 (* Options panels defined in downloads.ini *)
@@ -1014,19 +1015,18 @@ let update_gui_info () =
   )
   
 let install_hooks () = 
-  List.iter (fun (name,_) ->
-      set_option_hook downloads_ini name (fun _ ->
-          with_guis (fun gui ->
-              gui_send gui (P.Options_info [name, 
-                  get_simple_option downloads_ini name])
+  List.iter (fun ini ->
+      List.iter (fun (name,_) ->
+          set_option_hook ini name (fun _ ->
+              with_guis (fun gui ->
+                  gui_send gui (P.Options_info [name, 
+                      get_simple_option ini name])
+              )
           )
-      )
-  ) (simple_options downloads_ini)
-  ;
+      ) (simple_options ini)) 
+  [downloads_ini; downloads_expert_ini];
   networks_iter_all (fun r ->
-      match r.network_config_file with
-        None -> ()
-      | Some opfile ->
+      List.iter (fun opfile ->
           let args = simple_options opfile in
           let prefix = r.network_prefix()  in
           List.iter (fun (arg, value) ->
@@ -1038,6 +1038,9 @@ let install_hooks () =
                   )
               )                  
           )  args)
+      r.network_config_file 
+      )      
+
   ;
   
   private_room_ops.op_room_send_message <- (fun s msg ->

@@ -150,6 +150,10 @@ let network_options_prefix = define_option gnutella_ini
     when they are used in the telnet/WEB interfaces"
     string_option "GNUT-"
   
+let max_available_slots = define_option gnutella_ini
+    ["max_available_slots"] "The maximal number of slots for upload by Gnutella clients"
+    int_option 5
+  
 let shortname o =
   Printf.sprintf "%s%s" !!network_options_prefix (shortname o)
   
@@ -166,11 +170,11 @@ let gui_gnutella_options_panel =
     "Max Known Ultrapeers", shortname max_known_ultrapeers, "T";
     "Max Known Peers", shortname max_known_peers, "T";    *)
     "Commit Downloads In Incoming Subdir", shortname commit_in_subdir, "T";
+    "Max Available Slots", shortname max_available_slots, "T";
     
     "Gnutella: Enabled", shortname g1_enabled, "B";
     "          Max Connected Ultrapeers", shortname g1_max_ultrapeers, "T"; 
     "Gnutella2: Enabled", shortname g2_enabled, "B";
     "           Max Connected Ultrapeers", shortname g2_max_ultrapeers, "T"; 
   ]
-  
   

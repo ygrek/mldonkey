@@ -341,7 +341,7 @@ let server_print s o =
         Connected _ -> Printf.sprintf "title=\\\"Server Banner\\\" 
 						onMouseOver=\\\"mOvr(this);\\\"
 						onMouseOut=\\\"mOut(this);\\\"
-						onClick=\\\"location.href='/submit?q=server_banner+%d'\\\"" snum
+						onClick=\\\"location.href='submit?q=server_banner+%d'\\\"" snum
         | _ -> "")
 	  )
 	  snum
@@ -349,7 +349,7 @@ let server_print s o =
         Printf.sprintf
         "\\<TD class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
         onMouseOut=\\\"mOut(this);\\\" title=\\\"Connect|Disconnect\\\"
-        onClick=\\\"parent.fstatus.location.href='/submit?q=%s+%d'\\\"\\>%s\\</TD\\>"
+        onClick=\\\"parent.fstatus.location.href='submit?q=%s+%d'\\\"\\>%s\\</TD\\>"
       (match impl.impl_server_state with
         NotConnected _ -> "c"
       | _ -> "x")
@@ -362,7 +362,7 @@ let server_print s o =
         Printf.sprintf
         "\\<TD class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
         onMouseOut=\\\"mOut(this);\\\" title=\\\"Remove server\\\"
-        onClick=\\\"parent.fstatus.location.href='/submit?q=rem+%d'\\\"\\>Rem\\</TD\\>"
+        onClick=\\\"parent.fstatus.location.href='submit?q=rem+%d'\\\"\\>Rem\\</TD\\>"
       snum
       )
       

@@ -779,7 +779,8 @@ let save opfile =
     Hashtbl.clear once_values_rev;
     save_module "" oc
       (List.map option_to_value
-         (opfile.file_header_options @ opfile.file_options));
+        (opfile.file_header_options @ 
+        (List.rev opfile.file_options)));
     if not opfile.file_pruned then
       begin
         let rem = ref [] in

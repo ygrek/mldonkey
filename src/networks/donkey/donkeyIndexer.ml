@@ -270,6 +270,7 @@ let indexer = ref None
 
 let add_to_local_index_queue = ref []
 
+  (*
 let add_to_local_index r =
   if !!local_index_add_cmd <> "" then 
     add_to_local_index_queue := r :: !add_to_local_index_queue
@@ -342,7 +343,8 @@ let add_to_local_index_timer _ =
             (Printexc2.to_string e); lprint_newline ()
     
     end
-  
+      *)
+
 let result_add_by_md4 r =
   
   let rec rs = {
@@ -387,7 +389,7 @@ let index_result_no_filter r =
 
       rs.result_index <- index;
       
-      (try add_to_local_index r with _ -> ());
+(*      (try add_to_local_index r with _ -> ()); *)
       
       if !!save_file_history then begin
           output_result r;

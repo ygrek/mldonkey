@@ -1089,7 +1089,7 @@ let check_files_md4s () =
   with _ -> ()
 
       
-let search_found search md4 tags = 
+let search_found filter search md4 tags = 
   let file_name = ref "" in
   let file_size = ref Int64.zero in
   let availability = ref 0 in
@@ -1105,7 +1105,7 @@ let search_found search md4 tags =
   try
     let rs = DonkeyIndexer.find_result md4 in
 (*    lprintf "search_add_result\n";  *)
-    CommonInteractive.search_add_result search rs.result_result; (* ADD AVAILABILITY *)
+    CommonInteractive.search_add_result filter search rs.result_result; (* ADD AVAILABILITY *)
 (*    lprintf "search_add_result DONE\n";  *)
     let doc = rs.result_index in
     let result = Store.get store doc in
@@ -1122,7 +1122,7 @@ let search_found search md4 tags =
         let rs = DonkeyIndexer.index_result new_result in      
         let doc = rs.result_index in
 (*        lprintf "search_add_result\n";  *)
-        CommonInteractive.search_add_result search rs.result_result;
+        CommonInteractive.search_add_result filter search rs.result_result;
 (*        lprintf "search_add_result DONE\n";  *)
         let result = Store.get store doc in
         ()

@@ -49,7 +49,7 @@ let _ =
           let md4 = Md4.digest_subfile fd begin_pos len in
           lprintf "  Partial %3d : %s\n" i (Md4.to_string md4);
           let md4 = Md4.direct_to_string md4 in
-          String.blit md4 0 chunks i 16;
+          String.blit md4 0 chunks (i*16) 16;
         done;
         Md4.string chunks
       in

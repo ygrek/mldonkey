@@ -175,51 +175,53 @@ module PeerOption = struct
     let t = define_option_class "Peer" value_to_peer peer_to_value
 end
 
+let overnet_expert_ini = donkey_expert_ini
+  
 let overnet_store_size = 
-  define_option downloads_ini ["overnet_store_size"] "Size of the filename storage used to answer queries" 
+  define_option overnet_expert_ini ["overnet_store_size"] "Size of the filename storage used to answer queries" 
     int_option 2000
   
 let overnet_protocol_connect_version = 
-  define_option downloads_ini ["overnet_protocol_connect_version"] 
+  define_option overnet_expert_ini ["overnet_protocol_connect_version"] 
     "The protocol version sent on Overnet connections"
     int_option 1044
   
 let overnet_protocol_connectreply_version = 
-  define_option downloads_ini ["overnet_protocol_connectreply_version"] 
+  define_option overnet_expert_ini ["overnet_protocol_connectreply_version"] 
     "The protocol version sent on Overnet connections replies"
     int_option 44
 
 let overnet_port = 
-  define_option downloads_ini ["overnet_port"] "port for overnet" 
+  define_option overnet_expert_ini ["overnet_port"] "port for overnet" 
     int_option (2000 + Random.int 20000)
 
 let overnet_max_known_peers = 
-  define_option downloads_ini ["overnet_max_known_peers"] 
+  define_option overnet_expert_ini ["overnet_max_known_peers"] 
   "maximal number of peers to keep overnet connected (should be >2048)" 
     int_option 8192
 
 let overnet_search_keyword = 
-  define_option downloads_ini ["overnet_search_keyword"] 
+  define_option overnet_expert_ini ["overnet_search_keyword"] 
   "allow extended search to search on overnet" bool_option false
 
 let overnet_search_timeout = 
-  define_option downloads_ini ["overnet_search_timeout"] 
+  define_option overnet_expert_ini ["overnet_search_timeout"] 
   "How long shoud a search on Overnet wait for the last answer before terminating"
     int_option 140
       
 let overnet_query_peer_period = 
-  define_option downloads_ini ["overnet_query_peer_period"] 
+  define_option overnet_expert_ini ["overnet_query_peer_period"] 
   "Period between two queries in the overnet tree (should not be set under 5)"
     float_option 5.
       
 let overnet_max_search_hits = 
-  define_option downloads_ini ["overnet_max_search_hits"] 
+  define_option overnet_expert_ini ["overnet_max_search_hits"] 
   "Max number of hits in a search on Overnet"
     int_option 200 
       
 let gui_overnet_options_panel = 
   (*
-  define_option downloads_ini ["gui_overnet_options_panel"]
+  define_option overnet_expert_ini ["gui_overnet_options_panel"]
   "Which options are configurable in the GUI option panel, and in the
   Overnet section. Last entry indicates the kind of widget used (B=Boolean,T=Text)"
 (list_option (tuple3_option (string_option, string_option, string_option)))
@@ -234,7 +236,7 @@ let gui_overnet_options_panel =
   ]
       
 let overnet_options_version = 
-  define_option downloads_ini ["overnet_options_version"] 
+  define_option overnet_expert_ini ["overnet_options_version"] 
     "(internal)"
     int_option 0
 
@@ -997,7 +999,7 @@ let udp_client_handler t p =
 			lprintf "Matched"; 
                         lprint_newline ();
 *)
-			DonkeyOneFile.search_found ss r_md4 r_tags;
+			DonkeyOneFile.search_found true ss r_md4 r_tags;
 (*		      end
 		    else
 		      begin
@@ -1442,7 +1444,7 @@ let overnet_search (ss : search) =
     List.iter (fun w -> 
       let s = create_keyword_search w in
         Hashtbl.iter (fun r_md4 r_tags -> 
-            DonkeyOneFile.search_found ss r_md4 r_tags) s.search_results;
+            DonkeyOneFile.search_found true ss r_md4 r_tags) s.search_results;
       begin
 	match s.search_kind with
 	  KeywordSearch sss -> s.search_kind <- KeywordSearch (ss :: sss)

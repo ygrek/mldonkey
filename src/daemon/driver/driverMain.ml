@@ -200,7 +200,7 @@ while (my $uri = shift @ARGV) {
   Unix.chmod  "mldonkey_submit" 0o755
     
 let load_config () =
-
+  
   CommonGlobals.do_at_exit DriverInteractive.save_config;
   DriverInterface.install_hooks ();
 
@@ -209,27 +209,37 @@ let load_config () =
   let exists_downloads_ini = Sys.file_exists 
       (options_file_name downloads_ini) in
   if not exists_downloads_ini then begin
-      lprintf "No config file found. Generating one."; 
-      lprint_newline ();
+      lprintf "No config file found. Generating one.\n"; 
       let oc = open_out (options_file_name downloads_ini) in
       close_out oc; 
     end;
-  (try Options.load downloads_ini with e -> 
-        lprintf "exception during options load"; lprint_newline ();
+  let exists_expert_ini = Sys.file_exists 
+      (options_file_name downloads_expert_ini) in
+  if not exists_expert_ini then begin
+      lprintf "No config file found. Generating one.\n"; 
+      let oc = open_out (options_file_name downloads_expert_ini) in
+      close_out oc; 
+    end;
+  (try 
+      Options.load downloads_ini;
+      Options.load downloads_expert_ini;      
+    with e -> 
+        lprintf "Exception %s during options load\n" (Printexc2.to_string e); 
         exit 2;
         ());  
   
   CommonMessages.load_message_file ();
   if !!html_mods then CommonMessages.colour_changer ();
-        
+  
   networks_iter_all (fun r -> 
-      match r.network_config_file with
-        None -> ()
-      | Some opfile -> 
+      List.iter (fun opfile ->
           try
             Options.load opfile
           with Sys_error _ ->
-              Options.save_with_help opfile);
+              Options.save_with_help opfile
+      )      
+      r.network_config_file 
+  );
   
 (* Here, we try to update options when a new version of mldonkey is
 used. For example, we can add new web_infos... *)
@@ -253,18 +263,19 @@ used. For example, we can add new web_infos... *)
   
   
   more_args := !more_args
-    @ (Options.simple_args downloads_ini);
+    @ (Options.simple_args downloads_ini)
+    @ (Options.simple_args downloads_expert_ini);
   
   networks_iter_all (fun r ->
-      match r.network_config_file with
-        None -> ()
-      | Some opfile ->
+      List.iter (fun opfile ->
           let args = simple_args opfile in
           let prefix = r.network_prefix () in
           let args = List2.tail_map (fun (arg, spec, help) ->
                 (Printf.sprintf "-%s%s" prefix arg, spec, help)) args
             in
-          more_args := !more_args @ args);
+          more_args := !more_args @ args
+      ) r.network_config_file 
+  );
   
   Arg.parse ([
       "-v", Arg.Unit (fun _ ->
@@ -371,6 +382,7 @@ let _ =
       DriverInteractive.browse_friends ());
   
   Options.prune_file downloads_ini;
+  Options.prune_file downloads_expert_ini;
   (try load_web_infos () with _ -> ());
   lprintf "Welcome to MLdonkey client"; lprint_newline ();
   lprintf "Check http://www.mldonkey.net/ for updates"; 

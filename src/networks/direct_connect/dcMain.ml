@@ -80,7 +80,7 @@ let _ =
           DcComplexOptions.save_config ()
 );
   *)
-  network.network_config_file <- Some directconnect_ini;
+  network.network_config_file <- [directconnect_ini];
   network.op_network_connected_servers <- (fun _ ->
       List2.tail_map (fun s -> as_server s.server_server) !connected_servers   
   );
@@ -89,7 +89,7 @@ let _ =
       { 
         network_netnum = network.network_num;
         network_config_filename = (match network.network_config_file with
-            None -> "" | Some opfile -> options_file_name opfile);
+            [] -> "" | opfile :: _ -> options_file_name opfile);
         network_netname = network.network_name;
         network_enabled = network.op_network_is_enabled ();
         network_uploaded = Int64.zero;

@@ -1,6 +1,19 @@
 ChangeLog	
 =========
 
+2003/05/09: Simon (release-2-4-rc12)
+  - ed2k_hash: computation false for multichunks files, fixed.
+  - Gnutella2:
+     * Reply to QKR
+     * Reply to Q2 for URN requests
+     * Limit downloads to 5 slots (max_available_slots option in gnutella.ini)
+     * Support HTTP/1.1 upload, and /uri-res/N2R?urn:sha1: queries
+  - Options: options have been splitted in different files:
+     'downloads.ini' : most simple options
+     'downloads_expert.ini' : options for experts
+     'donkey.ini' :  simple options for edonkey
+     'donkey_expert.ini' : edonkey options for experts
+
 2003/05/08: Simon (release-2-4-rc11)
   - RPM: new Makefile rule 'rpm' to build rpms for mldonkey
   - Gnutella: 

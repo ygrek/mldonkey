@@ -39,7 +39,7 @@ val add_comment : Md4.t -> string -> unit
   
 val load_old_history : unit -> unit
   
-val add_to_local_index_timer : unit -> unit
+(*val add_to_local_index_timer : unit -> unit *)
   
 val find_result : Md4.t -> DonkeyTypes.result
 

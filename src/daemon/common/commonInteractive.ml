@@ -279,7 +279,7 @@ let send_custom_query user buf s args =
           if minsize = "" then raise Not_found;
           let minsize = Int64.of_string minsize in
           let unit = Int64.of_string unit in
-          QHasMinVal ("size", Int64.mul minsize unit)
+          QHasMinVal (Field_Size, Int64.mul minsize unit)
 
       | Q_MAXSIZE _ ->
           let maxsize = get_arg "maxsize" in
@@ -287,7 +287,7 @@ let send_custom_query user buf s args =
           if maxsize = "" then raise Not_found;
           let maxsize = Int64.of_string maxsize in
           let unit = Int64.of_string unit in
-          QHasMaxVal ("size", Int64.mul maxsize unit)
+          QHasMaxVal (Field_Size, Int64.mul maxsize unit)
 
       | Q_FORMAT _ ->
           let format = get_arg "format" in
@@ -298,7 +298,7 @@ let send_custom_query user buf s args =
             else format in
           want_comb_not andnot
             or_comb
-            (fun w -> QHasField("format", w)) QNone format
+            (fun w -> QHasField(Field_Format, w)) QNone format
           
       | Q_MEDIA _ ->
           let media = get_arg "media" in
@@ -307,30 +307,30 @@ let send_custom_query user buf s args =
               if media_propose = "" then raise Not_found
               else media_propose
             else media in
-          QHasField("type", media)
+          QHasField(Field_Type, media)
 
       | Q_MP3_ARTIST _ ->
           let artist = get_arg "artist" in
           if artist = "" then raise Not_found;
           want_comb_not andnot and_comb 
-            (fun w -> QHasField("Artist", w)) QNone artist
+            (fun w -> QHasField(Field_Artist, w)) QNone artist
           
       | Q_MP3_TITLE _ ->
           let title = get_arg "title" in
           if title = "" then raise Not_found;
           want_comb_not andnot and_comb 
-            (fun w -> QHasField("Title", w)) QNone title
+            (fun w -> QHasField(Field_Title, w)) QNone title
           
       | Q_MP3_ALBUM _ ->
           let album = get_arg "album" in
           if album = "" then raise Not_found;
           want_comb_not andnot and_comb 
-            (fun w -> QHasField("Album", w)) QNone album
+            (fun w -> QHasField(Field_Album, w)) QNone album
           
       | Q_MP3_BITRATE _ ->
           let bitrate = get_arg "bitrate" in
           if bitrate = "" then raise Not_found;
-          QHasMinVal("bitrate", Int64.of_string bitrate)
+          QHasMinVal(Field_unknown "bitrate", Int64.of_string bitrate)
 
     in
     try
@@ -351,9 +351,7 @@ let send_custom_query user buf s args =
 let all_simple_options () =
   let options = ref (simple_options downloads_ini) in
   networks_iter_all (fun r ->
-      match r.network_config_file with
-        None -> ()
-      | Some opfile ->
+      List.iter (fun opfile ->
           let args = simple_options opfile in
           let prefix = r.network_prefix () in
           let args = 
@@ -362,16 +360,15 @@ let all_simple_options () =
                 (Printf.sprintf "%s%s" prefix arg, value)) 
             args
           in
-          options := !options @ args
+          options := !options @ args)
+      r.network_config_file 
   );
   !options
 
 let all_simple_options_html () =
   let options = ref (simple_options_html downloads_ini) in
   networks_iter_all (fun r ->
-      match r.network_config_file with
-        None -> ()
-      | Some opfile ->
+      List.iter (fun opfile ->
           let args = simple_options_html opfile in
           let prefix = r.network_prefix () in
           let args = 
@@ -381,6 +378,8 @@ let all_simple_options_html () =
             args
           in
           options := !options @ args
+      )
+      r.network_config_file 
   );
   !options
 
@@ -400,19 +399,19 @@ let apply_on_fully_qualified_options name f =
     iter "" downloads_ini;
     if not (networks_iter_all_until_true (fun r ->
             try
-              match r.network_config_file with
-                None -> false
-              | Some opfile ->
+              List.iter (fun opfile ->
                   let prefix = r.network_prefix () in
                   iter prefix opfile;
-                  false
+              )
+              r.network_config_file ;
+              false
             with Exit -> true
         )) then begin
         lprintf "Could not set option %s" name; lprint_newline ();
         raise Not_found
       end
   with Exit -> ()
-
+      
 
 let set_fully_qualified_options name value =
   apply_on_fully_qualified_options name (fun opfile old_name old_value ->
@@ -448,23 +447,23 @@ let keywords_of_query query =
     | QHasField(field, w) ->
         begin
           match field with
-            "Album"
-          | "Title"
-          | "Artist"
+            Field_Album
+          | Field_Title
+          | Field_Artist
           | _ -> keywords := String2.split_simplify w ' '
         end
     | QHasMinVal (field, value) ->
         begin
           match field with
-            "bitrate"
-          | "size"
+            Field_unknown "bitrate"
+          | Field_Size
           | _ -> ()
         end
     | QHasMaxVal (field, value) ->
         begin
           match field with
-            "bitrate"
-          | "size"
+            Field_unknown "bitrate"
+          | Field_Size
           | _ -> ()
         end
     | QNone ->
@@ -483,7 +482,7 @@ let register_gui_options_panel name panel =
     
 let _ =
   add_infinite_option_timer filter_search_delay (fun _ ->
-      if !!filter_search then begin
+(*      if !!filter_search then *) begin
 (*          lprintf "Filter search results"; lprint_newline (); *)
           List.iter (fun user ->
               List.iter  (fun s -> CommonSearch.Filter.find s) 
@@ -493,8 +492,8 @@ let _ =
       CommonSearch.Filter.clear ()
   )
   
-let search_add_result s r =
-  if not !!filter_search then begin
+let search_add_result filter s r =
+  if not filter (*!!filter_search*) then begin
 (*      lprintf "Adding result to filter"; lprint_newline (); *)
       CommonSearch.search_add_result_in s r
     end

@@ -82,7 +82,7 @@ type g2_packet =
 | Q2_URN of CommonTypes.file_uid
 | Q2_DN of string
 | Q2_MD of string
-| Q2_SZR of int32 * int32
+| Q2_SZR of int64 * int64
 | Q2_I of string list
 | Q2_NOG1
   
@@ -284,7 +284,8 @@ module Print = struct
         | Q2_UDP (addr, None) -> M.buf_addr buf addr; "UDP"
         | Q2_URN s -> Buffer.add_string buf (string_of_uid s);   "URN"
         | Q2_DN s -> Buffer.add_string buf s; "DN"
-        | Q2_SZR (a32, b32) -> M.buf_int32 buf a32; M.buf_int32 buf b32; "SZR"
+        | Q2_SZR (a32, b32) -> M.buf_int64_32 buf a32; 
+            M.buf_int64_32 buf b32; "SZR"
         | Q2_I list ->
             Buffer.add_string buf (String2.unsplit list '+'); "I"
         | Q2_NOG1 ->
@@ -439,7 +440,8 @@ let g2_encode_payload msg =
     | Q2_URN s -> buf_uid buf s; "URN"
     | Q2_DN s -> Buffer.add_string buf s; "DN"
     | Q2_MD s -> Buffer.add_string buf s; "MD"
-    | Q2_SZR (a32, b32) -> M.buf_int32 buf a32; M.buf_int32 buf b32; "SZR"
+    | Q2_SZR (a32, b32) -> 
+        M.buf_int64_32 buf a32; M.buf_int64_32 buf b32; "SZR"
     | Q2_I list ->
         Buffer.add_string buf (String2.unsplit list '\000'); "I"
     | Q2_NOG1 -> "NOG1"
@@ -640,7 +642,7 @@ lprintf "\n";
     | [ "DN"; "Q2" ] -> 
         let s, pos = M.get_string s 0 (String.length s) in Q2_DN s
     | [ "SZR"; "Q2" ] -> 
-        Q2_SZR (M.get_int32 s 0, M.get_int32 s 4)
+        Q2_SZR (M.get_int64_32 s 0, M.get_int64_32 s 4)
     | [ "I"; "Q2" ] -> 
         Q2_I (String2.split s '\000')
     | [ "NOG1"; "Q2" ] -> Q2_NOG1
@@ -1327,14 +1329,19 @@ let server_send_query quid words sock s =
               ))) []) :: args
   in
   server_send sock s (packet (Q2 quid) args)
-    
+  
+let use_magnet = false
+  
 let server_ask_uid sock s quid fuid file_name =   
   let dn = 
-    Printf.sprintf "magnet?xt=%s&dn=%s"
-      (string_of_uid fuid) file_name
+    if use_magnet then
+    Q2_DN (Printf.sprintf "magnet?xt=%s&dn=%s"
+          (string_of_uid fuid) file_name)
+    else
+      Q2_URN fuid
   in
   let args = [
-      packet (Q2_DN dn) [];
+      packet dn [];
       packet (Q2_I ["URL"; "DN"; "MD"; "COM"; "PFS"; ""]) [];
     ]
   in

@@ -32,9 +32,9 @@ let search_string q =
     | QOr (q1, q2) ->  Printf.sprintf "(%s) OR (%s)" (iter q1) (iter q2)
     | QAndNot (q1, q2) ->  Printf.sprintf "(%s) AND NOT (%s)" (iter q1) (iter q2)
     | QHasWord s -> Printf.sprintf "CONTAINS[%s]" s
-    | QHasField (f,s) -> Printf.sprintf "[%s]CONTAINS[%s]" f s
-    | QHasMinVal (f,v) -> Printf.sprintf "[%s]>%Ld" f v
-    | QHasMaxVal (f,v) -> Printf.sprintf "[%s]<%Ld" f v
+    | QHasField (f,s) -> Printf.sprintf "[%s]CONTAINS[%s]" (string_of_field f) s
+    | QHasMinVal (f,v) -> Printf.sprintf "[%s]>%Ld" (string_of_field f) v
+    | QHasMaxVal (f,v) -> Printf.sprintf "[%s]<%Ld" (string_of_field f) v
     | QNone ->
 	lprintf "QNone in query\n";
 	""
@@ -93,29 +93,29 @@ let search_of_args args =
       [] -> q
     | "-minsize" :: minsize :: args ->
         let minsize = Int64.of_string minsize in
-        iter args ((QHasMinVal("size", minsize)) :: q)
+        iter args ((QHasMinVal(Field_Size, minsize)) :: q)
     | "-maxsize"  :: maxsize :: args ->
         let maxsize = Int64.of_string maxsize in
-        iter args  ((QHasMaxVal("size", maxsize)) :: q)
+        iter args  ((QHasMaxVal(Field_Size, maxsize)) :: q)
     | "-avail"  :: avail :: args ->
         let avail = Int64.of_string avail in
-        iter args ((QHasMinVal("avail", avail)) :: q)
+        iter args ((QHasMinVal(Field_unknown "avail", avail)) :: q)
     | "-media"  :: filetype :: args ->
-        iter args ((QHasField("type", filetype)) :: q)
+        iter args ((QHasField(Field_Type, filetype)) :: q)
     | "-Video"  :: args ->
-        iter args ((QHasField("type", "Video")) :: q)
+        iter args ((QHasField(Field_Type, "Video")) :: q)
     | "-Audio"  :: filetype :: args ->
-        iter args ((QHasField("type", "Audio")) :: q)
+        iter args ((QHasField(Field_Type, "Audio")) :: q)
     | "-format"  :: format :: args ->
-        iter args ((QHasField("format", format)) :: q)
+        iter args ((QHasField(Field_Format, format)) :: q)
     | "-artist"  :: format :: args ->
-        iter args ((QHasField("Artist", format)) :: q)
+        iter args ((QHasField(Field_Artist, format)) :: q)
     | "-title"  :: format :: args ->
-        iter args ((QHasField("Title", format)) :: q)
+        iter args ((QHasField(Field_Title, format)) :: q)
     | "-album"  :: format :: args ->
-        iter args ((QHasField("Album", format)) :: q)
+        iter args ((QHasField(Field_Album, format)) :: q)
     | "-field"  :: field :: format :: args ->
-        iter args ((QHasField(field, format)) :: q)
+        iter args ((QHasField(Field_unknown field, format)) :: q)
     | s :: args ->
         iter args ((QHasWord(s)) :: q)
   in
@@ -139,7 +139,7 @@ let custom_query buf query =
     <h2> %s </h2>
     </center>
 
-<form action=/submit>
+<form action=\"submit\">
 <input type=hidden name=custom value=\"%s\">
 <input type=submit value=Search>" query query;
     
@@ -489,7 +489,7 @@ let complex_search buf =
 <h2> Complex Search </h2>
 </center>
 
-<form action=/submit>
+<form action=\"submit\">
 <table border=0>
 <tr>
 <td width=\"1%\"><input type=text name=query size=40 value=\"\"></td>
@@ -706,35 +706,35 @@ let rec mftp_query_of_query_entry qe =
 
   | Q_MINSIZE (_,s) ->
       (
-       try QHasMinVal ("size", Int64.of_string s)
+       try QHasMinVal (Field_Size, Int64.of_string s)
        with _ -> QNone
       )
   | Q_MAXSIZE (_,s) ->
       (
-       try QHasMaxVal ("size", Int64.of_string s)
+       try QHasMaxVal (Field_Size, Int64.of_string s)
        with _ -> QNone
       )
   | Q_FORMAT (_,s) ->
       (
        try
-	 want_comb_not andnot or_comb (fun w -> QHasField("format", w)) QNone s
+	 want_comb_not andnot or_comb (fun w -> QHasField(Field_Format, w)) QNone s
        with Not_found ->
 	 QNone
       )
   | Q_MEDIA (_,s) ->
       (
-       try QHasField("type", List.assoc s search_media_list)
+       try QHasField(Field_Type, List.assoc s search_media_list)
        with Not_found -> 
 	 match String2.split_simplify s ' ' with
 	   [] -> QNone
-	 | _ -> QHasField ("type", s)
+	 | _ -> QHasField (Field_Type, s)
       )
 	
   | Q_MP3_ARTIST (_,s) ->
       (
        try 
 	 want_comb_not andnot and_comb 
-           (fun w -> QHasField("Artist", w)) QNone s
+           (fun w -> QHasField(Field_Artist, w)) QNone s
        with Not_found ->
 	 QNone
       )
@@ -743,7 +743,7 @@ let rec mftp_query_of_query_entry qe =
       (
        try 
 	 want_comb_not andnot and_comb 
-           (fun w -> QHasField("Title", w)) QNone s
+           (fun w -> QHasField(Field_Title, w)) QNone s
        with Not_found ->
 	 QNone
       ) 
@@ -751,7 +751,7 @@ let rec mftp_query_of_query_entry qe =
       (
        try 
 	 want_comb_not andnot and_comb 
-           (fun w -> QHasField("Album", w)) QNone s
+           (fun w -> QHasField(Field_Album, w)) QNone s
        with Not_found ->
 	 QNone
       )
@@ -761,7 +761,7 @@ let rec mftp_query_of_query_entry qe =
         try
           let bitrate =  Int64.of_string s
           in
-          QHasMinVal("bitrate", bitrate)
+          QHasMinVal(Field_unknown "bitrate", bitrate)
         with _ -> QNone
       end
 
@@ -886,15 +886,16 @@ module Indexing = struct
         | QHasWord s -> has_word s 0xffffffff
         | QHasField (f, s) ->
             has_word s (
-              if f = "type" then   media_bit else
-              if f = "format" then format_bit else
-              if f = "Title" then title_bit else
-              if f = "Artist" then artist_bit else
-              if f = "Album" then album_bit 
-              else 0xffffffff);
+              match f with
+                Field_Type -> media_bit 
+              | Field_Format -> format_bit
+              | Field_Title -> title_bit 
+              | Field_Artist -> artist_bit 
+              | Field_Album -> album_bit 
+              | _ -> 0xffffffff);
         | QHasMinVal (f,size) ->
             Indexer.Predicate
-              (if f = "size" then
+              (if f = Field_Size then
                 (fun doc -> 
                     let r = doc_value doc in
                     r.result_size >= size)
@@ -902,7 +903,7 @@ module Indexing = struct
         
         | QHasMaxVal (f,size) ->
             Indexer.Predicate (
-              if f = "size" then
+              if f = Field_Size then
                 (fun doc -> 
                     let r = doc_value doc in
                     r.result_size <= size)

@@ -26,6 +26,31 @@ open CommonTypes
 open CommonGlobals
 open DonkeyMftp
 
+  
+let field_of_tagname s =
+  match String.lowercase s with
+    "size" -> Field_Size
+  | "filename" -> Field_Filename
+  | "artist" -> Field_Artist
+  | "album" -> Field_Album
+  | "title" -> Field_Title
+  | "format" -> Field_Format
+  | "type" -> Field_Type
+  | _ -> Field_unknown s
+      
+  
+let tagname_of_field field =
+  match field with
+    Field_Size -> "size"
+  | Field_Filename -> "filename"
+  | Field_Artist -> "Artist"
+  | Field_Album -> "Album"
+  | Field_Title -> "Title"
+  | Field_Format -> "format"
+  | Field_Type -> "type"
+  | Field_unknown s -> s
+
+  
 module Connect = struct 
     type t = {
         md4 : Md4.t;
@@ -529,7 +554,7 @@ module Query  = struct (* request 22 *)
               with _ -> name 
             else name in
           
-          QHasField (name, field), pos
+          QHasField (field_of_tagname name, field), pos
       
       | 3 -> 
           let field = get_int64_32 s (pos + 1) in
@@ -543,8 +568,8 @@ module Query  = struct (* request 22 *)
             else name in
           begin
             match minmax with
-              1 -> QHasMinVal (name, field)
-            | 2 -> QHasMaxVal (name, field)
+              1 -> QHasMinVal (field_of_tagname name, field)
+            | 2 -> QHasMaxVal (field_of_tagname name, field)
             | _ -> failwith "Unknown QUERY minmax"
           end, pos
       | 4 -> QHasWord "", pos + 1
@@ -578,11 +603,11 @@ module Query  = struct (* request 22 *)
       | QHasWord s ->
           lprintf "Contains[%s]" s
       | QHasField (name, field) ->
-          lprintf "Field[%s] = [%s]" name field
+          lprintf "Field[%s] = [%s]" (string_of_field name) field
       | QHasMinVal (name, field) ->
-          lprintf "Field[%s] > [%s]" name (Int64.to_string field)
+          lprintf "Field[%s] > [%s]" (string_of_field name) (Int64.to_string field)
       | QHasMaxVal (name, field) ->
-          lprintf "Field[%s] < [%s]" name (Int64.to_string field)
+          lprintf "Field[%s] < [%s]" (string_of_field name) (Int64.to_string field)
       |	QNone ->
 	  lprintf "print_query: QNone in query\n";
 	  ()
@@ -610,11 +635,11 @@ module Query  = struct (* request 22 *)
       | QHasWord s ->
           Printf.bprintf oc "Contains[%s]" s
       | QHasField (name, field) ->
-          Printf.bprintf oc "Field[%s] = [%s]" name field
+          Printf.bprintf oc "Field[%s] = [%s]" (string_of_field name) field
       | QHasMinVal (name, field) ->
-          Printf.bprintf oc "Field[%s] > [%s]" name (Int64.to_string field)
+          Printf.bprintf oc "Field[%s] > [%s]" (string_of_field name) (Int64.to_string field)
       | QHasMaxVal (name, field) ->
-          Printf.bprintf oc "Field[%s] < [%s]" name (Int64.to_string field)
+          Printf.bprintf oc "Field[%s] < [%s]" (string_of_field name) (Int64.to_string field)
       |	QNone ->
 	  lprintf "print_query: QNone in query\n";
 	  ()
@@ -647,6 +672,7 @@ module Query  = struct (* request 22 *)
           buf_string buf s
       | QHasField (name, field) ->
           
+          let name = tagname_of_field name in
           let name = try
               let i = rev_assoc name names_of_tag in
               String.make 1 (char_of_int i)            
@@ -658,6 +684,7 @@ module Query  = struct (* request 22 *)
           
       | QHasMinVal (name, field) ->
           
+          let name = tagname_of_field name in
           let name = try
               let i = rev_assoc name names_of_tag in
               String.make 1 (char_of_int i)            
@@ -669,7 +696,8 @@ module Query  = struct (* request 22 *)
           buf_string buf name
 
       | QHasMaxVal (name, field) ->
-                    
+          
+          let name = tagname_of_field name in
           let name = try
               let i = rev_assoc name names_of_tag in
               String.make 1 (char_of_int i)            

@@ -65,14 +65,17 @@ let cmd_basedir = Autoconf.current_dir (* will not work on Windows *)
   
 let downloads_ini = create_options_file (
     Filename.concat file_basedir "downloads.ini")
-let expert_ini = downloads_ini
-
+let downloads_expert_ini = create_options_file (
+    Filename.concat file_basedir "downloads_expert.ini")
+  
 let servers_ini = create_options_file (
     Filename.concat file_basedir "servers.ini")
 let searches_ini = create_options_file (
     Filename.concat file_basedir "searches.ini")
+  (*
 let clients_ini = create_options_file (
     Filename.concat file_basedir "files.ini")
+  *)
 let files_ini = create_options_file (
     Filename.concat file_basedir "files.ini")
 let friends_ini = create_options_file (
@@ -117,11 +120,11 @@ let buffer_writes = define_option downloads_ini ["buffer_writes"]
     "Buffer writes and flush after buffer_writes_delay seconds (experimental)"
     bool_option false
 
-let buffer_writes_delay = define_option downloads_ini ["buffer_writes_delay"]
+let buffer_writes_delay = define_option downloads_expert_ini ["buffer_writes_delay"]
     "Buffer writes and flush after buffer_writes_delay seconds (experimental)" 
     float_option 30.
 
-let buffer_writes_threshold = define_option downloads_ini ["buffer_writes_threshold"]
+let buffer_writes_threshold = define_option downloads_expert_ini ["buffer_writes_threshold"]
   "Flush buffers if buffers exceed buffer_writes_threshold kB (experimental)" 
     int_option 1024
 
@@ -184,14 +187,14 @@ let allowed_ips = define_option downloads_ini ["allowed_ips"]
 list separated by spaces, wildcard=255 ie: use 192.168.0.255 for 192.168.0.* "
     (list_option Ip.option) [Ip.of_string "127.0.0.1"]  
   
-let enable_server = define_option downloads_ini
+let enable_server = define_option downloads_expert_ini
     ["enable_server"]
   "Set to true if you also want mldonkey to run as a server (experimental)"
     bool_option false
 
 let enable_overnet = define_option downloads_ini
     ["enable_overnet"]
-  "Set to true if you also want mldonkey to run as an overnet client"
+  "Set to true if you also want mldonkey to run as an overnet client (enable_donkey must be true)"
     bool_option false
 
 let enable_bittorrent = define_option downloads_ini
@@ -214,14 +217,14 @@ let enable_soulseek = define_option downloads_ini
   "Set to true if you also want mldonkey to run as a soulseek client (experimental)"
     bool_option false
     
-let enable_audiogalaxy = define_option downloads_ini
+let enable_audiogalaxy = define_option downloads_expert_ini
     ["enable_audiogalaxy"]
   "Set to true if you also want mldonkey to run as an audiogalaxy satellite (experimental)"
     bool_option false
   
 let enable_gnutella = define_option downloads_ini
     ["enable_gnutella"]
-  "Set to true if you also want mldonkey to run as a gnutella sub node (experimental)"
+  "Set to true if you also want mldonkey to run as a gnutella1/2 sub node (experimental)"
     bool_option false
   
 let enable_directconnect = define_option downloads_ini
@@ -229,7 +232,7 @@ let enable_directconnect = define_option downloads_ini
   "Set to true if you also want mldonkey to run as a direct-connect node (experimental)"
     bool_option false
 
-let enable_openft = define_option downloads_ini
+let enable_openft = define_option downloads_expert_ini
     ["enable_openft"]
   "Set to true if you also want mldonkey to run as a OpenFT sub node (experimental)"
     bool_option false
@@ -330,7 +333,7 @@ let _ =
 *********************)
   
       
-let shared_extensions = define_option expert_ini ["shared_extensions"]  
+let shared_extensions = define_option downloads_expert_ini ["shared_extensions"]  
   "A list of extensions of files that should be shared (\".mp3\",\".avi\" for examples). 
   Files with extensions not in the list will not be shared (except if the list 
    is empty :)"
@@ -345,60 +348,60 @@ let _ =
       
   )
   
-let client_timeout = define_option expert_ini ["client_timeout"] 
+let client_timeout = define_option downloads_expert_ini ["client_timeout"] 
   "Timeout on client connections when not queued" float_option 40.
 
-let interface_buffer = define_option expert_ini ["interface_buffer"] 
+let interface_buffer = define_option downloads_expert_ini ["interface_buffer"] 
   "The size of the buffer between the client and its GUI. Can be useful
 to increase when the connection between them has a small bandwith" int_option
   1000000
 
-let max_name_len = define_option expert_ini ["max_name_len"]
+let max_name_len = define_option downloads_expert_ini ["max_name_len"]
     "The size long names will be shorten to in the interface"
   int_option 50
 
-let term_ansi = define_option expert_ini ["term_ansi"]
+let term_ansi = define_option downloads_expert_ini ["term_ansi"]
     "Is the default terminal an ANSI terminal (escape sequences can be used)"
   bool_option true
   
-let previewer = define_option expert_ini ["previewer"]
+let previewer = define_option downloads_expert_ini ["previewer"]
   "Name of program used for preview (first arg is local filename, second arg
     is name of file as searched on eDonkey" string_option
   "mldonkey_previewer"
 
-let update_gui_delay = define_option expert_ini ["update_gui_delay"] 
+let update_gui_delay = define_option downloads_expert_ini ["update_gui_delay"] 
   "Delay between updates to the GUI" float_option 1.
  
-let temp_directory = define_option expert_ini ["temp_directory" ] 
+let temp_directory = define_option downloads_expert_ini ["temp_directory" ] 
     "The directory where temporary files should be put" 
     string_option (Filename.concat file_basedir "temp")
 
 let incoming_directory_prio =
-  define_option expert_ini ["incoming_directory_prio" ]
+  define_option downloads_expert_ini ["incoming_directory_prio" ]
       "The upload prio of the incoming directory"
           int_option 0
 
 let incoming_directory = 
-  define_option expert_ini ["incoming_directory" ] 
+  define_option downloads_expert_ini ["incoming_directory" ] 
     "The directory where downloaded files should be moved after commit" 
     string_option (Filename.concat file_basedir "incoming")
 
 let http_realm = 
-  define_option expert_ini ["http_realm"] "The realm shown when connecting with a WEB browser" string_option "MLdonkey"
+  define_option downloads_expert_ini ["http_realm"] "The realm shown when connecting with a WEB browser" string_option "MLdonkey"
 
-let set_client_ip = define_option expert_ini ["client_ip"] 
+let set_client_ip = define_option downloads_expert_ini ["client_ip"] 
     "The last IP address used for this client" Ip.option  
     (Ip.my ())
   
-let force_client_ip = define_option expert_ini ["force_client_ip"] 
+let force_client_ip = define_option downloads_expert_ini ["force_client_ip"] 
   "Use the IP specified by 'client_ip' instead of trying to determine it
     ourself. Don't set this option to true if you have dynamic IP."
     bool_option false
   
-let use_html_frames = define_option expert_ini ["use_html_frames"] 
+let use_html_frames = define_option downloads_expert_ini ["use_html_frames"] 
     "This option controls whether the WEB interface should use frames or not" bool_option true
 
-let commands_frame_height = define_option expert_ini ["commands_frame_height"] "The height of the command frame in pixel (depends on your screen and browser sizes)" int_option 80
+let commands_frame_height = define_option downloads_expert_ini ["commands_frame_height"] "The height of the command frame in pixel (depends on your screen and browser sizes)" int_option 80
 
 let _ = 
   Options.set_string_wrappers allowed_ips 
@@ -413,34 +416,35 @@ let _ =
   )
   
   
-let ask_for_gui = define_option expert_ini ["ask_for_gui"]
+let ask_for_gui = define_option downloads_expert_ini ["ask_for_gui"]
     "Ask for GUI start"    bool_option true
     
-let start_gui = define_option expert_ini ["start_gui"]
+let start_gui = define_option downloads_expert_ini ["start_gui"]
     "Automatically Start the GUI" bool_option false
 
 let bin_dir = Filename.dirname Sys.argv.(0)
   
-let mldonkey_bin = define_option expert_ini ["mldonkey_bin"]
+let mldonkey_bin = define_option downloads_expert_ini ["mldonkey_bin"]
     "Directory where mldonkey binaries are installed"
     string_option bin_dir
 
-let mldonkey_gui = define_option expert_ini ["mldonkey_gui"]
+let mldonkey_gui = define_option downloads_expert_ini ["mldonkey_gui"]
     "Name of GUI to start" string_option 
     (Filename.concat bin_dir "mlgui")
 
-
-let filter_search = define_option expert_ini ["filter_search"]
+(*
+let filter_search = define_option downloads_expert_ini ["filter_search"]
   "Should mldonkey filter results of searches
   (results are displayed only if they exactly match the request,
     and filtering is done every 'filter_search_delay'." 
     bool_option false
+    *)
 
-let filter_search_delay = define_option expert_ini ["filter_search_delay"]
+let filter_search_delay = define_option downloads_expert_ini ["filter_search_delay"]
   "Delay before two filtering on results (results
-    are not displayed until filtered). Min is 1 second." float_option 20.
+    are not displayed until filtered). Min is 1 second." float_option 5.
   
-let tcpip_packet_size = define_option expert_ini ["tcpip_packet_size"]
+let tcpip_packet_size = define_option downloads_expert_ini ["tcpip_packet_size"]
   "The size of the header of a TCP/IP packet on your connection (ppp adds
     14 bytes sometimes, so modify to take that into account)"
     int_option 40
@@ -450,7 +454,7 @@ let _ =
       TcpBufferedSocket.ip_packet_size := !!tcpip_packet_size
   )
 
-let mtu_packet_size = define_option expert_ini ["mtu_packet_size"]
+let mtu_packet_size = define_option downloads_expert_ini ["mtu_packet_size"]
   "The size of the MTU of a TCP/IP packet on your connection"
     int_option 1500
 
@@ -459,7 +463,7 @@ let _ =
       TcpBufferedSocket.mtu_packet_size := !!mtu_packet_size
   )
 
-let minimal_packet_size = define_option expert_ini ["minimal_packet_size"]
+let minimal_packet_size = define_option downloads_expert_ini ["minimal_packet_size"]
   "The size of the minimal packet you want mldonkey to send when data is
 available on the connection"
     int_option !TcpBufferedSocket.minimal_packet_size
@@ -469,7 +473,7 @@ let _ =
       TcpBufferedSocket.minimal_packet_size := !!minimal_packet_size
   )
 
-let network_update_url = define_option expert_ini ["network_update_url"]
+let network_update_url = define_option downloads_expert_ini ["network_update_url"]
     "URL where mldonkey can download update information on the network"
     string_option ""
   
@@ -479,16 +483,16 @@ let _ =
         "http://savannah.nongnu.org/download/mldonkey/network/" then
         network_update_url =:= "")
   
-let motd_html = define_option expert_ini ["motd_html"]
+let motd_html = define_option downloads_expert_ini ["motd_html"]
     "Message printed at startup (automatically downloaded from the previous
     URL directory" string_option "Welcome to MLdonkey"
   
-let run_as_user = define_option expert_ini ["run_as_user"]
+let run_as_user = define_option downloads_expert_ini ["run_as_user"]
   "The login of the user you want mldonkey to run as, after the ports
   have been bound (can be use not to run with root priviledges when 
 a port < 1024 is needed)" string_option ""
 
-let run_as_useruid = define_option expert_ini ["run_as_useruid"]
+let run_as_useruid = define_option downloads_expert_ini ["run_as_useruid"]
   "The UID of the user (0=disabled) you want mldonkey to run as, after the ports
   have been bound (can be use not to run with root priviledges when 
 a port < 1024 is needed)" int_option 0
@@ -500,63 +504,63 @@ let addr_option  =  define_option_class "Addr"
       addr, int_of_string port)
       (fun (addr, port) -> string_to_value (Printf.sprintf "%s:%d" addr port))
 
-let compaction_delay = define_option expert_ini ["compaction_delay"]
+let compaction_delay = define_option downloads_expert_ini ["compaction_delay"]
     "Force compaction every <n> hours (in [1..24])"
     int_option 2
   
-let vd_reload_delay = define_option expert_ini ["vd_reload_delay"]
+let vd_reload_delay = define_option downloads_expert_ini ["vd_reload_delay"]
     "The delay between reloads of the vd output in the WEB interface"
     int_option 120
     
-let http_bind_addr = define_option expert_ini ["http_bind_addr"]
+let http_bind_addr = define_option downloads_expert_ini ["http_bind_addr"]
     "The IP address used to bind the http server"
     Ip.option (Ip.any)
   
-let gui_bind_addr = define_option expert_ini ["gui_bind_addr"]
+let gui_bind_addr = define_option downloads_expert_ini ["gui_bind_addr"]
     "The IP address used to bind the gui server"
     Ip.option (Ip.of_inet_addr Unix.inet_addr_any)
   
-let telnet_bind_addr = define_option expert_ini ["telnet_bind_addr"]
+let telnet_bind_addr = define_option downloads_expert_ini ["telnet_bind_addr"]
     "The IP address used to bind the telnet server"
     Ip.option (Ip.of_inet_addr Unix.inet_addr_any)
   
 (** {2 Chat} *)
 
 let chat_app_port = 
-  define_option expert_ini ["chat_app_port"] 
+  define_option downloads_expert_ini ["chat_app_port"] 
     "port of the external chat application" 
     int_option 5036
 
 let chat_app_host = 
-  define_option expert_ini ["chat_app_host"] 
+  define_option downloads_expert_ini ["chat_app_host"] 
     "hostname of the external chat application" 
     string_option "localhost"
 
 let chat_port = 
-  define_option expert_ini ["chat_port"] 
+  define_option downloads_expert_ini ["chat_port"] 
     "port used by the external chat application to use the core as a proxy"
     int_option 4002
 
-let chat_bind_addr = define_option expert_ini ["chat_bind_addr"]
+let chat_bind_addr = define_option downloads_expert_ini ["chat_bind_addr"]
     "The IP address used to bind the chat server"
     Ip.option (Ip.of_inet_addr Unix.inet_addr_any)
 
 let chat_console_id =
-  define_option expert_ini ["chat_console_id"] 
+  define_option downloads_expert_ini ["chat_console_id"] 
     "the id to use for communicating with the core console through chat interface" 
     string_option "donkey console"
 
-let chat_warning_for_downloaded = define_option expert_ini
+let chat_warning_for_downloaded = define_option downloads_expert_ini
     ["chat_warning_for_downloaded"]
     "use the chat to indicate when a file has been downloaded"
     bool_option true
 
-let max_opened_connections = define_option expert_ini
+let max_opened_connections = define_option downloads_expert_ini
     ["max_opened_connections"] "Maximal number of opened connections" 
   int_option (min MlUnix.max_sockets 200)
 
   (*
-let web_header = define_option expert_ini
+let web_header = define_option downloads_expert_ini
     ["web_header"] "The header displayed in the WEB interface"
     string_option
   "
@@ -566,34 +570,34 @@ WEB server</h2>
 </table>
 <table width=100% border=0>
 <tr>
-  <td><a href=/submit?q=vm $O> View Connected Servers </a></td>
-  <td><a href=/submit?q=vma $O> View All Servers </a></td>
-  <td><a href=/submit?q=c $O> Connect More Servers </a></td>
-  <td><a href=/submit?q=view_custom_queries $O> Custom Searches </a></td>
-  <td><a href=/submit?q=xs $O> Extended Search </a></td>
-  <td><a href=/submit?q=upstats $O> Upload Statistics </a></td>
+  <td><a href=submit?q=vm $O> View Connected Servers </a></td>
+  <td><a href=submit?q=vma $O> View All Servers </a></td>
+  <td><a href=submit?q=c $O> Connect More Servers </a></td>
+  <td><a href=submit?q=view_custom_queries $O> Custom Searches </a></td>
+  <td><a href=submit?q=xs $O> Extended Search </a></td>
+  <td><a href=submit?q=upstats $O> Upload Statistics </a></td>
   </tr>
 <tr>
-<td><a href=/submit?q=vr $O> View Results </a></td>
-<td><a href=/files $O> View Downloads </a></td>
-<td><a href=/submit?q=commit $S> Commit Downloads </a></td>
-<td><a href=/submit?q=vs $O> View Searches </a></td>
-<td><a href=/submit?q=vo $O> View Options </a></td>
-<td><a href=/submit?q=help $O> View Help </a></td>
+<td><a href=submit?q=vr $O> View Results </a></td>
+<td><a href=files $O> View Downloads </a></td>
+<td><a href=submit?q=commit $S> Commit Downloads </a></td>
+<td><a href=submit?q=vs $O> View Searches </a></td>
+<td><a href=submit?q=vo $O> View Options </a></td>
+<td><a href=submit?q=help $O> View Help </a></td>
   </tr>
   </table>
 <br>
 "
 *)
 
-let file_completed_cmd = define_option expert_ini 
+let file_completed_cmd = define_option downloads_expert_ini 
     ["file_completed_cmd"] "A command that is called when a file is completely
     downloaded. Arguments are: <file_name on disk> <md4> <size>"
     string_option "" 
 
   
 
-let minor_heap_size = define_option expert_ini
+let minor_heap_size = define_option downloads_expert_ini
     ["minor_heap_size"] "Size of the minor heap in kB"
     int_option 32
       
@@ -604,81 +608,81 @@ let _ =
         (!!minor_heap_size * 1024) };     
   )
 
-let min_reask_delay = define_option expert_ini ["min_reask_delay"]
+let min_reask_delay = define_option downloads_expert_ini ["min_reask_delay"]
   "The minimal delay between two connections to the same client (in seconds)" 
     int_option 600
   
-let max_reask_delay = define_option expert_ini ["max_reask_delay"]
+let max_reask_delay = define_option downloads_expert_ini ["max_reask_delay"]
     "The maximal delay between two connections to the same client" 
   int_option 3600
 
-let html_mods = define_option expert_ini
+let html_mods = define_option downloads_expert_ini
     ["html_mods"] "Whether to use the modified WEB interface" bool_option true
 
-let html_mods_style = define_option expert_ini
+let html_mods_style = define_option downloads_expert_ini
     ["html_mods_style"] "Which html_mods style to use (set with html_mods_style command)" int_option 0
 
-let html_mods_human_readable = define_option expert_ini
+let html_mods_human_readable = define_option downloads_expert_ini
     ["html_mods_human_readable"] "Whether to use human readable GMk number format" bool_option true
 
-let html_mods_use_relative_availability = define_option expert_ini
+let html_mods_use_relative_availability = define_option downloads_expert_ini
     ["html_mods_use_relative_availability"] "Whether to use relative availability in the WEB interface" bool_option true
 
-let html_mods_vd_network = define_option expert_ini
+let html_mods_vd_network = define_option downloads_expert_ini
     ["html_mods_vd_network"] "Whether to display the Net column in vd output" bool_option false
 
-let html_mods_vd_active_sources = define_option expert_ini
+let html_mods_vd_active_sources = define_option downloads_expert_ini
     ["html_mods_vd_active_sources"] "Whether to display the Active Sources column in vd output" bool_option false
 
-let html_mods_vd_age = define_option expert_ini
+let html_mods_vd_age = define_option downloads_expert_ini
     ["html_mods_vd_age"] "Whether to display the Age column in vd output" bool_option true
 
-let html_mods_vd_last = define_option expert_ini
+let html_mods_vd_last = define_option downloads_expert_ini
     ["html_mods_vd_last"] "Whether to display the Last column in vd output" bool_option true
 
-let html_mods_vd_prio = define_option expert_ini
+let html_mods_vd_prio = define_option downloads_expert_ini
     ["html_mods_vd_prio"] "Whether to display the Priority column in vd output" bool_option false
 
-let html_mods_vd_queues = define_option expert_ini
+let html_mods_vd_queues = define_option downloads_expert_ini
     ["html_mods_vd_queues"] "Whether to display the Queues in vd # output" bool_option true
 
-let html_mods_show_pending = define_option expert_ini
+let html_mods_show_pending = define_option downloads_expert_ini
     ["html_mods_show_pending"] "Whether to display the pending slots in uploaders command" bool_option true
 
-let html_mods_load_message_file = define_option expert_ini
+let html_mods_load_message_file = define_option downloads_expert_ini
     ["html_mods_load_message_file"] "Whether to load the mldonkey_messages.ini file (false=use internal settings)" bool_option false
 
-let html_mods_max_messages = define_option expert_ini
+let html_mods_max_messages = define_option downloads_expert_ini
     ["html_mods_max_messages"] "Maximum chat messages to log in memory" int_option 10
   
 let use_html_mods o =
   o.CommonTypes.conn_output = CommonTypes.HTML && !!html_mods
   
-let html_checkbox_file_list = define_option expert_ini
+let html_checkbox_file_list = define_option downloads_expert_ini
     ["html_checkbox_file_list"] "Whether to use checkboxes in the WEB interface" bool_option true
     
-let display_downloaded_results = define_option expert_ini
+let display_downloaded_results = define_option downloads_expert_ini
     ["display_downloaded_results"] "Whether to display results already downloaded" bool_option true
 
     
-let filter_table_threshold = define_option expert_ini
+let filter_table_threshold = define_option downloads_expert_ini
     ["filter_table_threshold"] "Minimal number of results for filter form to appear"
     int_option 50
 
-let client_buffer_size = define_option expert_ini
+let client_buffer_size = define_option downloads_expert_ini
     ["client_buffer_size"] "Maximal size of the buffers of a client"
     int_option 500000
 
 let save_options_delay = 
-  define_option expert_ini ["save_options_delay"] 
+  define_option downloads_expert_ini ["save_options_delay"] 
     "The delay between two saves of the 'downloads.ini' file (default is 4 minutes)" 
   float_option 900.0
 
-let server_connection_timeout = define_option expert_ini
+let server_connection_timeout = define_option downloads_expert_ini
   ["server_connection_timeout"] 
   "timeout when connecting to a server" float_option 15.
   
-let new_print_search = define_option expert_ini
+let new_print_search = define_option downloads_expert_ini
     ["new_print_search"] "Use new display of search results (with tables,
     which might be slower for your browser to display)"
     bool_option false 
@@ -687,26 +691,26 @@ let _ =
       TcpBufferedSocket.max_buffer_size := maxi 50000 !!client_buffer_size
   )
 
-let download_sample_rate = define_option expert_ini ["download_sample_rate"]
+let download_sample_rate = define_option downloads_expert_ini ["download_sample_rate"]
   "The delay between one glance at a file and another" float_option 1.
  
-let download_sample_size = define_option expert_ini ["download_sample_size"]
+let download_sample_size = define_option downloads_expert_ini ["download_sample_size"]
     "How many samples go into an estimate of transfer rates" int_option 10
 
-let calendar = define_option expert_ini ["calendar"]
+let calendar = define_option downloads_expert_ini ["calendar"]
   "This option defines a set of date at which some commands have to be executed"
     (list_option (tuple3_option (list_option int_option,list_option int_option,
       string_option)))
   []
 
-let ip_cache_timeout = define_option expert_ini
+let ip_cache_timeout = define_option downloads_expert_ini
     ["ip_cache_timeout"]
     "The time an ip address can be kept in the cache"
     int_option 3600
 
   
 
-let verbosity = define_option expert_ini ["verbosity"] 
+let verbosity = define_option downloads_expert_ini ["verbosity"] 
   "A space-separated list of keywords. Each keyword triggers
   printing information on the corresponding messages:
   mc : debug client messages
@@ -791,7 +795,7 @@ let _ =
       ) (String2.split_simplify !!verbosity ' ')
   )
   
-let compaction_overhead = define_option expert_ini 
+let compaction_overhead = define_option downloads_expert_ini 
     ["compaction_overhead"] 
     "The percentage of free memory before a compaction is triggered"
     int_option 25
@@ -803,7 +807,7 @@ let _ =
   )
 
 let log_size = 
-  define_option downloads_ini ["log_size"]
+  define_option downloads_expert_ini ["log_size"]
     "size of log in number of records" int_option 300
   
 let _ = 
@@ -811,7 +815,7 @@ let _ =
       lprintf_max_size := !!log_size   
   )
     
-let max_displayed_results = define_option expert_ini
+let max_displayed_results = define_option downloads_expert_ini
     ["max_displayed_results"]
     "Maximal number of results displayed for a search"
     int_option 1000
@@ -820,13 +824,13 @@ let _ =
   option_hook filter_search_delay (fun _ ->
       if !!filter_search_delay < 1. then filter_search_delay =:= 1.)
 
-let options_version = define_option expert_ini ["options_version"]
+let options_version = define_option downloads_expert_ini ["options_version"]
     "(internal option)"
     int_option 0  
   
 let gui_options_panel = 
 (*
-  define_option expert_ini ["gui_options_panel"]
+  define_option downloads_expert_ini ["gui_options_panel"]
   "Which options are configurable in the GUI option panel, and in which
     sections. Last entry indicates the kind of widget used (B=Boolean,T=Text)"
 (list_option (tuple4_option (string_option, string_option, string_option, string_option)))
@@ -928,11 +932,11 @@ let empty_password user =
     (List.assoc user !!users) = empty_password
   with _ -> false
 
-let mlnet_redirector = define_option downloads_ini ["redirector"]
+let mlnet_redirector = define_option downloads_expert_ini ["redirector"]
     "IP:port of the network redirector"
     addr_option ("128.93.52.5", 3999)
 
-let log_file = define_option downloads_ini ["log_file"]
+let log_file = define_option downloads_expert_ini ["log_file"]
   "The file in which you want mldonkey to log its debug messages. If you
   set this option, mldonkey will log this info in the file until you use the
 'close_log' command. The log file may become very large. You can

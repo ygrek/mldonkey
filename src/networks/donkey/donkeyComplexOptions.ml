@@ -545,7 +545,7 @@ let done_files =
     *)
 
 let old_files = 
-  define_option downloads_ini ["old_files"] 
+  define_option donkey_expert_ini ["old_files"] 
   "The files that were downloaded" (list_option Md4.option) []
 
   (*

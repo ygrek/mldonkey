@@ -287,12 +287,11 @@ connection from another client. In this case, we should immediatly connect.
         with Already_done -> iter ()
       in
       iter ()          
-  
-  
+    
   | M.Mldonkey_NotificationReq (num, t) ->
       let s = search_find num in
       List.iter (fun f ->
-          DonkeyOneFile.search_found s f.f_md4 f.f_tags
+          DonkeyOneFile.search_found false s f.f_md4 f.f_tags
       ) t
   
   | M.QueryUsersReplyReq t ->

@@ -1,30 +1,20 @@
 TODO list for client
 ====================
 
-- RPM package
+URGENT:
 - Send QH2 in reply to Q2
-- Find "Bad File Descriptor" reason
-- Should we send a PI UDP with the QKR ?
-
-Gnutella2:
-  * Understand MD when no DN field is present
-  * Use urlfiles
-  * How to activate separately Gnutella and Gnutella2 ? Edonkey and Overnet ?
-
-Short schedule:
----------------
-* Propagate them to Query-Routing
-* Update Query-Routing tables as soon as possible
-* Use NSI installer for Windows
+- Reply to HTTP requests /R2N?urn
+- Understand MD when no DN field is present
 
 Let's schedule our work:
 ------------------------
 
 For 2.4: nothing, feature freeze now
 For 2.5:
+  - Save the URN computed for all files.
   - Gnutella:
-      * Gnutella2 support
       * Upload: use CommonUploads queues, and HTTP/1.1
+      * Send more information in HTTP/1.1 headers (alt-locs, thex)
   - Bittorrent:
       * Support for directory downloads
   - Misc:

@@ -126,13 +126,13 @@ $bGeneral:$n
 
 Use '$r";
            if o.conn_output = HTML then
-             Buffer.add_string buf "\\<a href=\\\"/submit?q=longhelp\\\"\\>";
+             Buffer.add_string buf "\\<a href=\\\"submit?q=longhelp\\\"\\>";
            Buffer.add_string buf "longhelp";
            if o.conn_output = HTML then
              Buffer.add_string buf "\\</a\\>";
            Buffer.add_string buf "$n' or '$r";
            if o.conn_output = HTML then
-             Buffer.add_string buf "\\<a href=\\\"/submit?q=longhelp\\\"\\>";
+             Buffer.add_string buf "\\<a href=\\\"submit?q=longhelp\\\"\\>";
            Buffer.add_string buf "??";
            if o.conn_output = HTML then
              Buffer.add_string buf "\\</a\\>";
@@ -646,18 +646,18 @@ let http_handler o t r =
                 if !!html_mods then
                   Printf.bprintf buf "
 			 <frameset src=\"index\" rows=\"%d,25,*\">
-                  <frame name=\"commands\" NORESIZE SCROLLING=\"NO\" NOSHADE marginwidth=0 marginheight=0 BORDER=0 FRAMESPACING=0 FRAMEBORDER=0 src=\"/commands.html\">
-                  <frame name=\"fstatus\" NORESIZE SCROLLING=\"NO\" NOSHADE marginwidth=0 marginheight=0 BORDER=0 FRAMESPACING=0 FRAMEBORDER=0 src=\"/noframe.html\">
-               <frame name=\"output\" NORESIZE NOSHADE marginwidth=0 marginheight=0 BORDER=0 FRAMESPACING=0 FRAMEBORDER=0 src=\"/oneframe.html\">
+                  <frame name=\"commands\" NORESIZE SCROLLING=\"NO\" NOSHADE marginwidth=0 marginheight=0 BORDER=0 FRAMESPACING=0 FRAMEBORDER=0 src=\"commands.html\">
+                  <frame name=\"fstatus\" NORESIZE SCROLLING=\"NO\" NOSHADE marginwidth=0 marginheight=0 BORDER=0 FRAMESPACING=0 FRAMEBORDER=0 src=\"noframe.html\">
+               <frame name=\"output\" NORESIZE NOSHADE marginwidth=0 marginheight=0 BORDER=0 FRAMESPACING=0 FRAMEBORDER=0 src=\"oneframe.html\">
             </frameset>" !!commands_frame_height
                 else
                   Printf.bprintf buf "
             <frameset src=\"index\" rows=\"%d,2*\">
                <frameset src=\"index\" cols=\"5*,1*\">
-                  <frame name=\"commands\" src=\"/commands.html\">
-                  <frame name=\"fstatus\" src=\"/noframe.html\">
+                  <frame name=\"commands\" src=\"commands.html\">
+                  <frame name=\"fstatus\" src=\"noframe.html\">
                </frameset>
-               <frame name=\"output\" src=\"/oneframe.html\">
+               <frame name=\"output\" src=\"oneframe.html\">
             </frameset>" !!commands_frame_height; 
               end else
               html_open_page buf t r true
@@ -788,7 +788,7 @@ let http_handler o t r =
                       | _ -> ()
                     end
                 | _ -> 
-                    lprintf "/files: Unbound argument \"%s=%s\"" arg value;
+                    lprintf "files: Unbound argument \"%s=%s\"" arg value;
                     lprint_newline ();
             ) r.get_url.Url.args;
             let b = Buffer.create 10000 in

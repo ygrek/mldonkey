@@ -575,13 +575,16 @@ let find_file file_name file_size =
       raise e
         *)
 
+
+let current_downloads = ref []
+
 let push_handler cc gconn sock header = 
   if !verbose_msg_clients then begin
       lprintf "PUSH HEADER: [%s]\n" (String.escaped header);
     end;
   try
     let (ip, port) = TcpBufferedSocket.host sock in
-
+    
     if String2.starts_with header "GIV" then begin
         if !verbose_msg_clients then begin    
             lprintf "PARSING GIV HEADER\n"; 
@@ -637,21 +640,49 @@ let push_handler cc gconn sock header =
     else begin
 (*        lprintf "parse_head\n";    *)
         let r = Http_server.parse_head (header ^ "\n") in
+        let url = r.Http_server.get_url in
         lprintf "Header parsed: %s ... %s\n"
-          (r.Http_server.request) (r.Http_server.get_url.Url.file);
+          (r.Http_server.request) (url.Url.file);
 (* "/get/num/filename" *)
         assert (r.Http_server.request = "GET");
-        let file = r.Http_server.get_url.Url.file in
-        let get = String.lowercase (String.sub file 0 5) in
-        assert (get = "/get/");
-        let pos = String.index_from file 5 '/' in
-        let num = String.sub file 5 (pos - 5) in
-        let filename = String.sub file (pos+1) (String.length file - pos - 1) in
-        lprintf "Download of file %s, filename = %s\n" num filename;
-        let num = int_of_string num in
-        lprintf "Download of file %d, filename = %s\n" num filename;
         
-        let sh = CommonUploads.find_by_num num in
+(* First of all, can we accept this request ???? *)
+        
+        let rec iter list rem =
+          match list with 
+            [] ->
+              if List.length rem >= !!max_available_slots then
+                failwith "All Slots Used";
+              sock :: rem
+          | s :: tail ->
+              if s == sock then list @ rem
+              else
+              if closed sock then
+                iter tail rem
+              else
+                iter tail (s :: rem)
+        in
+        current_downloads := iter !current_downloads [];
+        let file = url.Url.file in                    
+        let sh = 
+          if file = "/uri-res/N2R" then
+            match url.Url.args with
+              [(urn,_)] ->
+                lprintf "Found /uri-res/N2R request\n";
+                Hashtbl.find shareds_by_uid urn
+                
+            | _ -> failwith "Cannot parse /uri-res/N2R request"
+          else
+          let get = String.lowercase (String.sub file 0 5) in
+          assert (get = "/get/");
+          let pos = String.index_from file 5 '/' in
+          let num = String.sub file 5 (pos - 5) in
+          let filename = String.sub file (pos+1) (String.length file - pos - 1) in
+          lprintf "Download of file %s, filename = %s\n" num filename;
+          let num = int_of_string num in
+          lprintf "Download of file %d, filename = %s\n" num filename;
+          CommonUploads.find_by_num num
+        in
 
 (*
 BUG:
@@ -689,10 +720,18 @@ BUG:
         
         let rec refill sock =
           lprintf "refill called\n";
+          if uc.uc_chunk_pos = uc.uc_chunk_end then begin
+              match gconn.gconn_refill with
+                []  -> ()
+              | [_] -> gconn.gconn_refill <- []
+              | _ :: ((refill :: _ ) as tail) -> 
+                  gconn.gconn_refill <- tail;
+                  refill sock
+            end else
           if not !header_sent then begin
 (* BUG: send the header *)
               let buf = Buffer.create 100 in
-              Printf.bprintf buf "HTTP 200 OK\r\n";
+              Printf.bprintf buf "HTTP/1.1 200 OK\r\n";
               Printf.bprintf buf "Server: %s\r\n" user_agent;
               Printf.bprintf buf "Content-type:application/binary\r\n";
               Printf.bprintf buf "Content-length: %Ld\r\n" uc.uc_chunk_len;
@@ -733,8 +772,8 @@ BUG:
         in
         gconn.gconn_refill <- refill :: gconn.gconn_refill;
         match gconn.gconn_refill with
-          [ _ ] ->
-            (* First refill handler, must be called immediatly *)
+          refill :: tail ->
+(* First refill handler, must be called immediatly *)
             refill sock
         | _ -> (* Already a refill handler, wait for it to finish its job *)
             ()

@@ -595,3 +595,28 @@ let disconnect_from_server nservers s =
           if List.memq s !g1_connected_servers then
             g1_connected_servers := List2.removeq s !g1_connected_servers)
   | _ -> ()
+
+    
+let parse_magnet url =
+  let url = Url.of_string url in
+  if url.Url.file = "magnet:" then 
+    let uids = ref [] in
+    let name = ref "" in
+    List.iter (fun (value, arg) ->
+        if String2.starts_with value "xt" then
+          uids := (extract_uids arg) @ !uids
+        else 
+        if String2.starts_with value "dn" then
+          name := Url.decode arg
+        else 
+        if arg = "" then
+(* This is an error in the magnet, where a & has been kept instead of being
+  url-encoded *)
+          name := Printf.sprintf "%s&%s" !name value
+        else
+          lprintf "MAGNET: unused field %s = %s\n"
+            value arg
+    ) url.Url.args;
+    !name, !uids
+  else raise Not_found
+    

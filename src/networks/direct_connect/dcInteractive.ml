@@ -68,7 +68,7 @@ let _ =
         | QHasField(field, w) ->
             begin
               match field with
-              | "type" -> begin
+              | Field_Type -> begin
 (*
 1 for any file type
 2 for audio files ("mp3", "mp2", "wav", "au", "rm", "mid", "sm")
@@ -93,13 +93,13 @@ let _ =
         | QHasMinVal (field, value) ->
             begin
               match field with
-              | "size" -> sizelimit := AtLeast value
+              | Field_Size -> sizelimit := AtLeast value
               | _ -> ()
             end
         | QHasMaxVal (field, value) ->
             begin
               match field with
-              | "size" -> sizelimit := AtMost value
+              | Field_Size -> sizelimit := AtMost value
               | _ -> ()
             end
         | QNone ->

@@ -20,6 +20,8 @@
 open CommonSwarming
 open Printf2
 open Md4
+  
+open CommonUploads
 open CommonOptions
 open CommonSearch
 open CommonServer
@@ -40,6 +42,11 @@ open Gnutella2Proto
 
 let update_client u =
   new_client u.user_kind
+
+let find_urn urn =
+  try
+    [Hashtbl.find CommonUploads.shareds_by_uid (string_of_uid urn)]
+   with _ -> []
 
 let gnutella_uid md4 =
   let md4 = Md4.to_string md4 in
@@ -96,6 +103,25 @@ let g2_packet_handler s sock gconn p =
           packet (LNI_V "MLDK") [];
           packet (LNI_LS (Int32.zero,Int32.zero)) [];
         ])          
+
+(* Should we really reply to QKR if we are just a leaf ? We should probably
+  only reply if we are not already using all the available bandwidth. *)
+  
+  | QKR ->
+      server_send sock s
+        {
+        g2_payload = QKA; 
+        g2_children = [
+          {
+            g2_payload = QKA_QK (Int32.of_int 123456);
+            g2_children = [];
+          };
+          {
+            g2_payload = QKA_SNA (client_ip sock,0);
+            g2_children = [];
+          }
+        ]
+      }
   
   | QKA ->
       List.iter (fun c ->
@@ -114,83 +140,106 @@ let g2_packet_handler s sock gconn p =
             | FileUidSearch (file, uid) ->
                 server_ask_uid NoConnection s ss.search_uid uid file.file_name
       ) searches_by_uid;
-
-(*      
+  
   | Q2 md4 ->
       if !verbose_msg_servers then
         lprintf "SEARCH RECEIVED\n";
-      begin
-        try
+(* OK, two cases: search by URN/magnet, or search by keywords *)
+      
+      
+      server_send sock s (packet (QA md4)
+        [
+          packet (QA_TS (int32_time ())) [];
+          packet (QA_D ((client_ip sock, !!client_port), 0)) [];
+        ]);
+      
+      let by_urn = ref false in
+      let keywords = ref "" in
+      let min_size = ref None in
+      let max_size = ref None in
+      
+      let files = ref [] in
+      List.iter (fun c ->
+          match c.g2_payload with
+            Q2_URN urn -> 
+              by_urn := true;
+              files := find_urn urn
+          | Q2_DN dn when String2.starts_with dn "magnet" ->
+              let name, uids = parse_magnet dn in
+              by_urn := true;
+              List.iter (fun urn ->
+                  files := (find_urn urn) @ !files
+              ) uids             
+          
+          | Q2_DN dn -> keywords := dn
+          
+          | Q2_MD xml ->
+              begin try
+                  let xml = Xml.parse_string xml in
+                  ()
+                with e -> 
+                    lprintf "Error %s parsing Xml \n%s\n"
+                      (Printexc2.to_string e)
+                    (String.escaped xml)
+              end
+          | Q2_SZR (min, max) ->
+              min_size := Some min;
+              max_size := Some max
+          | _ -> ()
+      ) p.g2_children;
+      
+      if not !by_urn then begin
+(* Here, we should try to search for the files and store them in !files *)
+          
           let q = 
             let q = 
-              match String2.split_simplify t.Query.keywords ' ' with
+              match String2.split_simplify !keywords ' ' with
                 [] -> raise Not_found
               | s :: tail ->
                   List.fold_left (fun q s ->
                       QAnd (q, (QHasWord s))
                   ) (QHasWord s) tail
             in
-(*
-            match t.Search.sizelimit with
-            | NoLimit -> q
-            | AtMost n -> 
-                QAnd (QHasMaxVal (CommonUploads.filesize_field, n),q)
-            | AtLeast n -> 
-QAnd (QHasMinVal (CommonUploads.filesize_field, n),q)
-*) 
+            let q = match !min_size with
+                None -> q 
+              | Some sz ->
+                  QAnd (QHasMinVal (Field_Size, sz),q)
+            in
+            let q = match !max_size with
+                None -> q 
+              | Some sz ->
+                  QAnd (QHasMaxVal (Field_Size, sz),q)
+            in
             q
           in
-          try
-            let files = CommonUploads.query q in
-            if !verbose_msg_servers then
-              lprintf "%d replies found\n" (Array.length files); 
-
-(* How many matches should we return ? Let's say 10. *)
-            if files <> [||] then
-              let module M = QueryReply in
-              let module C = CommonUploads in
-              let replies = ref [] in
-              for i = 0 to mini (Array.length files - 1) 9 do
-                let sh = files.(i) in
-                let infos = ref [] in
-                List.iter (fun uid ->
-                    match uid with
-                      Sha1 (s, _) -> infos := s :: !infos;
-                    |  _ -> ()
-                ) sh.CommonUploads.shared_uids;
-                replies := {
-                  M.index = sh.C.shared_id;
-                  M.size = sh.C.shared_size;
-                  M.name = Filename.basename sh.C.shared_codedname;
-                  M.info = !infos;
-                } :: !replies
-              done;
-              let module P = QueryReply in
-              let t = QueryReplyReq {
-                  P.guid = !!client_uid;
-                  P.ip = client_ip NoConnection;
-                  P.port = !!client_port;
-                  P.speed = 1300; 
-                  P.files = !replies; 
-                  P.vendor = "MLDK"; 
-                  P.speed_measured = None; 
-                  P.busy = None; 
-                  P.stable = None; 
-                  P.xml_reply = ""; 
-                  P.support_chat = false; 
-                  P.dont_connect = None;
-                } in
-              let pp = { (new_packet t) with
-                  pkt_hops = 0;
-                  pkt_uid = p.pkt_uid;
-                } in
-              server_send s pp
+          Array.iter (fun file ->
+              files := file :: !files
+          ) ( CommonUploads.query q)
+                
           
-          with Not_found -> ()
-        with Not_found -> ()
-(*            lprintf "Query browse\n"    *)
-      end
-*)
+          
+        end;
+      
+      if List.length !files > 0 then 
+        server_send sock s (packet (QH2 (0,md4))
+          ( 
+            (packet (QH2_GU !!client_uid) []) ::
+            (packet (QH2_NA (h.host_ip, h.host_port)) []) ::
+            (packet (QH2_V "MLDK") []) ::
+            (packet QH2_UPRO [packet  (QH2_UPRO_NICK !!client_name) []]) ::
+            (List.map (fun sh ->
+                  packet QH2_H (
+                    (packet (QH2_H_DN (
+                          Filename.basename sh.shared_codedname)) []) ::
+                    (packet (QH2_H_URL "") []) ::
+                    (packet (QH2_H_G 1) []) :: (* meaning ??? *)
+                    (List.map (fun uid ->
+                          packet (QH2_H_URN uid) []  
+                      ) sh.shared_uids)
+                  )
+              ) !files)
+          ))
+        
   
   | KHL ->
       List.iter (fun c ->
@@ -230,8 +279,7 @@ QAnd (QHasMinVal (CommonUploads.filesize_field, n),q)
         with _ -> None in
       List.iter (fun c ->
           match c.g2_payload with
-            QA_D ((ip,port),_)
-          | QA_S ((ip,port),_) -> 
+          | QA_D ((ip,port),_) ->
               let h = new_host ip port true 2 in
               h.host_connected <- last_time ();
               begin
@@ -240,6 +288,11 @@ QAnd (QHasMinVal (CommonUploads.filesize_field, n),q)
                 | Some ss ->
                     ss.search_hosts <- Intset.add h.host_num ss.search_hosts
               end
+(* These ones have not been searched yet *)
+          | QA_S ((ip,port),_) -> 
+              let h = new_host ip port true 2 in
+              h.host_connected <- last_time ();
+
           
           | _ -> ()
       ) p.g2_children
@@ -424,7 +477,7 @@ XML ("audios",
               begin
                 match s.search_search with
                   UserSearch (s,_) ->
-                    CommonInteractive.search_add_result s r.result_result
+                    CommonInteractive.search_add_result true s r.result_result
                 | _ -> ()
               end
           | _ -> ()

@@ -479,7 +479,7 @@ function submitRenameForm() {
 var formID = document.getElementById(\\\"renameForm\\\")
 var regExp = new RegExp (' ', 'gi') ;
 var renameTextOut = formID.newName.value.replace(regExp, '+');
-parent.fstatus.location.href='/submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
+parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
 }
 //--\\>
 \\</script\\>" (file_num file);
