@@ -17,11 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+
 open Options
 open CommonTypes
 
 let (dummy_result : result) = Obj.magic 0
-  
+
 type 'a result_impl = {
     mutable impl_result_num : int;
     mutable impl_result_val : 'a;
@@ -82,10 +83,6 @@ let result_download (result : result) =
   let result = as_result_impl result in
   result.impl_result_ops.op_result_download result.impl_result_val
   
-let result_print (result : result) buf =
-  let result = as_result_impl result in
-  result.impl_result_ops.op_result_print result.impl_result_val buf
-
 let new_result_ops network = {
     op_result_network =  network;
     op_result_download = (fun _ _ -> ni_ok network "result_download");
@@ -94,5 +91,11 @@ let new_result_ops network = {
   }
 
 let result_find num = snd (H.find results_by_num (num, dummy_result))
+
   
+let result_print (result : result) buf count =
+  ()
+  
+let results_iter f =
+  H.iter (fun (n,r) -> f n r) results_by_num
   

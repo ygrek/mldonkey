@@ -31,6 +31,7 @@ open LimewireComplexOptions
 
 open LimewireProtocol
 
+  (*
 let _ =
   server_ops.op_server_print <- (fun s o ->
       let buf = o.conn_buf in
@@ -38,6 +39,7 @@ let _ =
         (Ip.to_string s.server_ip) s.server_port
         s.server_agent s.server_nfiles s.server_nfiles_last s.server_nkb      
   )
+  *)
 
 let _ =
   network.op_network_search <- (fun search buf ->
@@ -108,14 +110,6 @@ let file_num file =
   file.file_file.impl_file_num
 
 let _ =
-  file_ops.op_file_print <- (fun file o ->
-      let buf = o.conn_buf in
-      let f = file.file_result.result_file in
-      Printf.bprintf buf "[LimeWire %5d] %-50s %10s %10s\n" 
-        (file_num file) f.file_name 
-        (Int32.to_string f.file_size)
-      (Int32.to_string file.file_downloaded)      
-  );
   file_ops.op_file_cancel <- (fun file ->
       current_files := List2.remove file !current_files;
       file_cancel (as_file file.file_file);
@@ -132,14 +126,6 @@ let _ =
       let f = r.result_file in
       Hashtbl.remove OpennapGlobals.files_by_key (f.file_name, f.file_size);
       current_files := List2.removeq file !current_files      
-  );
-  file_ops.op_file_print <- (fun file o ->
-      let buf = o.conn_buf in
-      let f = file.file_result.result_file in
-      Printf.bprintf buf "[Opennap %5d] %-50s %10s %10s\n" 
-      (file_num file) f.file_name 
-      (Int32.to_string f.file_size)
-      (Int32.to_string file.file_downloaded)      
   );
   file_ops.op_file_info <- (fun file ->
       let r = file.file_result in
@@ -201,5 +187,11 @@ let _ =
         C.result_comment = None;
         C.result_done = false;
       }   
+  )
+            
+  
+let _ =
+  network.op_network_connected_servers <- (fun _ ->
+      List2.tail_map (fun s -> as_server s.server_server) !connected_servers
   )
   

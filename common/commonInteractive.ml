@@ -67,11 +67,17 @@ let start_search query buf =
 let print_connected_servers o =
   let buf = o.conn_buf in
   networks_iter (fun r ->
-      Printf.bprintf buf "Connected to %d servers on the %s network\n"
-        (List.length (network_connected_servers r)) r.network_name;
+      try
+      let list = network_connected_servers r in
+      Printf.bprintf buf "--- Connected to %d servers on the %s network ---\n"
+        (List.length list) r.network_name;
       List.iter (fun s ->
           server_print s o;
-      ) (network_connected_servers r)
+      ) list;
+      with e ->
+          Printf.bprintf  buf "Exception %s in print_connected_servers"
+            (Printexc.to_string e);
+          print_newline ();
   )
   
         

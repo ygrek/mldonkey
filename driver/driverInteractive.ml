@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonNetwork
 open CommonResult
 open CommonFile
 open CommonComplexOptions
@@ -154,7 +155,11 @@ let print_file_html_form buf files =
   |] 
     (List.map (fun file ->
         [|
-          (Printf.sprintf "[%-5d]" file.file_num);
+          (Printf.sprintf "[%-5d] %s" 
+              file.file_num
+              (let n = network_find_by_num file.file_network in
+              n.network_name)            
+            );
           (if file.file_state = FileDownloading then
               Printf.sprintf 
                 "\<input name=pause type=checkbox value=%d\> R
@@ -228,7 +233,9 @@ let simple_print_file_list finished buf files format =
     )
       (List.map (fun file ->
           [|
-            (Printf.sprintf "[%-5d]%s"
+              (Printf.sprintf "[%s %-5d]%s"
+                (let n = network_find_by_num file.file_network in
+                  n.network_name)
                 file.file_num
                 (if format.conn_output = HTML then  
                   Printf.sprintf "[\<a href=/submit\?q\=cancel\+%d $S\>CANCEL\</a\>][\<a href=/submit\?q\=%s\+%d $S\>%s\</a\>] " 
@@ -288,7 +295,10 @@ let simple_print_file_list finished buf files format =
     )
     (List.map (fun file ->
         [|
-            (Printf.sprintf "[%-5d]" file.file_num);
+            (Printf.sprintf "[%s %-5d]" 
+              (let n = network_find_by_num file.file_network in
+                n.network_name)
+              file.file_num);
             (short_name file);
             (Int32.to_string file.file_size);
             (Md4.to_string file.file_md4)
@@ -329,12 +339,16 @@ let old_print_search buf output results =
   
   (try
       List.iter (fun (rs,r,avail) ->
-          if !counter >= !!max_displayed_results then raise Exit;          
           incr counter;
-          Printf.bprintf  buf "[%5d]" !counter;
+          if !counter >= !!max_displayed_results then raise Exit;          
+          last_results := (!counter, rs) :: !last_results;
+          Printf.printf "Adding %d to last_results" !counter; print_newline ();
+          Printf.bprintf  buf "[%5d] %s" 
+            !counter
+            (let n = network_find_by_num r.result_network in
+            n.network_name);
           if output.conn_output = HTML then 
             Printf.bprintf buf "\<A HREF=/results\?d=%d $S\>" r.result_num;
-          last_results :=  (!counter, rs) :: !last_results;
           begin
             match r.result_names with
               [] -> ()
@@ -449,9 +463,10 @@ let print_search_html buf results format search_num =
               in
               incr counter;
               if !counter >= !!max_displayed_results then raise Exit;
+              Printf.printf "Adding %d to last_results" !counter; print_newline ();
               last_results := (!counter, rs) :: !last_results;
               files := [|
-                (Printf.sprintf "[%5d]\<input name=d type=checkbox value=%d\>" !counter !counter);
+                (Printf.sprintf "[%5d]\<input name=d type=checkbox value=%d\>" !counter r.result_num);
                 
                 (
                   let names = r.result_names in
@@ -536,7 +551,9 @@ let print_search buf s format =
           List.iter (fun (rs, r,avail) ->
           if !!display_downloaded_results || not r.result_done  then begin
               incr counter;
-              if !counter >= !!max_displayed_results then raise Exit;
+                  if !counter >= !!max_displayed_results then raise Exit;
+                  Printf.printf "Adding %d to last_results" !counter; print_newline ();
+                  last_results := (!counter, rs) :: !last_results;
               files := [|
                 (Printf.sprintf "[%5d]" !counter);
                 

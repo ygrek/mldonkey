@@ -41,7 +41,7 @@ type option_value =
 and option_module = (string * option_value) list
 ;;
 
-
+exception SideEffectOption
 
 type 'a option_class =
   { class_name : string;
@@ -293,12 +293,15 @@ let really_load filename options =
     List.iter
       (fun o ->
          try
-           o.option_value <-
-             o.option_class.from_value (find_value o.option_name list);
+          (try
+              o.option_value <-
+                o.option_class.from_value (find_value o.option_name list);
+            with SideEffectOption -> ());
            exec_chooks o;
            exec_hooks o
         with
-          Not_found ->
+          SideEffectOption -> ()
+        | Not_found ->
             Printf.printf "Option ";
             List.iter (fun s -> Printf.printf "%s " s) o.option_name;
             Printf.printf "not found in %s" filename;
@@ -402,6 +405,17 @@ let value_to_list v2c v =
   | Module _ -> failwith "Options: not a list option (Module)"
 ;;
 
+let value_to_listiter v2c v =
+  match v with
+    List l | SmallList l -> List.iter (fun v -> ignore(v2c v)) l; 
+      raise SideEffectOption
+  | StringValue s -> failwith (Printf.sprintf 
+        "Options: not a list option (StringValue [%s])" s)
+  | FloatValue _ -> failwith "Options: not a list option (FloatValue)"
+  | IntValue _ -> failwith "Options: not a list option (IntValue)"
+  | Module _ -> failwith "Options: not a list option (Module)"
+;;
+
 let rec convert_list c2v l res =
   match l with
     [] -> List.rev res
@@ -476,6 +490,11 @@ let option_option cl =
 
 let list_option cl =
   define_option_class (cl.class_name ^ " List") (value_to_list cl.from_value)
+    (list_to_value cl.to_value)
+;;
+
+let listiter_option cl =
+  define_option_class (cl.class_name ^ " List") (value_to_listiter cl.from_value)
     (list_to_value cl.to_value)
 ;;
 

@@ -115,6 +115,7 @@ let new_file file_id name size =
           file_downloaded = current_size;
           file_temp = file_temp;
           file_fd = Unix32.create file_temp [Unix.O_RDWR; Unix.O_CREAT] 0o666;
+          file_clients = [];
         } and impl = {
           impl_file_update = false;
           impl_file_num = 0;
@@ -126,9 +127,6 @@ let new_file file_id name size =
       Hashtbl.add files_by_key key file;
       file
       
-let add_source file src filename = 
-  raise Not_found
-
 let clients_by_name = Hashtbl.create 113
   
 let new_client name =
@@ -157,9 +155,23 @@ let new_client name =
       Hashtbl.add clients_by_name name c;
       c
 
+      
+let add_source file src filename = 
+  let  c = new_client src.source_nick in
+  if not (List.memq c file.file_clients) then begin
+      file.file_clients <- c :: file.file_clients;
+      c.client_files <- (file, filename) :: c.client_files
+    end;
+  c
+
+      
 let remove_client c =
   Hashtbl.remove clients_by_name c.client_name;
+  List.iter (fun (file,_) ->
+      file.file_clients <- List2.removeq c file.file_clients
+  ) c.client_files;
   client_remove (as_client c.client_client)
+  
       
 let set_client_state c state =
   set_client_state (as_client c.client_client) state

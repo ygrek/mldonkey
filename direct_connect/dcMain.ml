@@ -35,6 +35,16 @@ let enable () =
       reactivate_timer timer;
       DcServers.connect_servers ());
 
+  add_timer 300. (fun timer ->
+      reactivate_timer timer;
+      DcServers.recover_files ()
+  );
+
+  add_timer 60. (fun timer ->
+      reactivate_timer timer;
+      DcServers.ask_for_files ()
+  );
+  
   DcClients.listen ();
   if !!load_hublist &&
     !nknown_servers < !!max_known_servers

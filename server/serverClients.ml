@@ -69,6 +69,16 @@ let rec print_client_stat c option =
         | 'f' -> print_files_shared c.client_files
         | _ -> print_client_stat c 'a'
 
+let print table =
+        try
+           print_newline();
+           Printf.printf("Liste des clients");
+           print_newline();
+           Hashtbl.iter (fun md4 c -> print_client_stat c 'l') table;
+           Printf.printf("FIN liste des clients");
+           print_newline();
+        with _ -> Printf.printf " Liste des clients vide"; print_newline();
+
 exception Already_use
         
 let reply_to_client_connection c =
@@ -102,13 +112,7 @@ let reply_to_client_connection c =
       c.client_id <- id;
       Hashtbl.add clients_by_id id c;
 
-      print_newline();
-      Printf.printf("Liste des clients");
-      print_newline();
-      Hashtbl.iter (fun md4 c -> print_client_stat c 'l') clients_by_id;
-      Printf.printf("FIN liste des clients");
-      print_newline();
-      print_newline();
+     print clients_by_id;
       
       Printf.printf "SET ID"; print_newline ();
 (* send ID back to client *)
@@ -158,6 +162,17 @@ let send_query_reply sock c =
   ()
   
   
+let remove_md4_source c =
+  let files_liste = c.client_files in
+  let loc = {
+            loc_ip=c.client_id;
+            loc_port=c.client_location.loc_port;
+            loc_expired=0.0
+            } in
+  List.iter (fun md4 -> ServerLocate.supp md4 loc)
+  files_liste   
+   
+
 let server_to_client c t sock =
   Printf.printf "server_to_client"; print_newline ();
   M.print t;
@@ -189,13 +204,16 @@ let server_to_client c t sock =
       ()
   
   | M.ShareReq list ->
+      remove_md4_source c;                     
       List.iter (fun tmp ->
-          (*print_client_stat c 'l';*)
           ServerIndexer.add tmp;
-         
-          ServerLocate.add tmp.f_md4
-          {loc_ip=c.client_id;loc_port=c.client_location.loc_port;loc_expired=c.client_location.loc_expired};
-          c.client_files <- tmp.f_md4::c.client_files 
+          try 
+           ServerLocate.add tmp.f_md4
+           {loc_ip=c.client_id;loc_port=c.client_location.loc_port;loc_expired=c.client_location.loc_expired};
+            c.client_files <- tmp.f_md4::c.client_files 
+          with _ -> Printf.printf "To Much Files Sahred"
+                    
+          
        ) list;
          ServerLocate.print();
      
@@ -250,10 +268,9 @@ let server_to_client c t sock =
       let module R = M.QueryLocationReply in
       let peer_list = ServerLocate.get t in
       M.QueryLocationReply.print peer_list;
-      direct_server_send sock (M.QueryLocationReplyReq peer_list);  
-      
 (* send back QueryLocationReplyReq *)
-      Printf.printf "QueryLocationReq not implemented"; print_newline ();
+      direct_server_send sock (M.QueryLocationReplyReq peer_list);  
+(*Printf.printf "QueryLocationReq not implemented"; print_newline ();*)
       ()
       with Not_found -> ()
       end
@@ -269,11 +286,13 @@ let server_to_client c t sock =
 (* every minute, send a InfoReq message *)
 
 let remove_client c sock s = 
-  Printf.printf "CLIENT DISCONNECTED"; print_newline ();
+  Printf.printf ("CLIENT DISCONNECTED %s")
+  (Ip.to_string c.client_id);
+  print_newline ();
   Hashtbl.remove clients_by_id c.client_id;
-  let files_liste = c.client_files in
-  (*List.iter (fun md4 -> ServerLocate.supp md4 c.client_location)
-  files_liste;*)
+  remove_md4_source c;
+  print clients_by_id;
+  ServerLocate.print ();
   decr nconnected_clients
       
 let handler t event =

@@ -99,6 +99,10 @@ let value_to_file is_done assocs =
   in
   
   let file = new_file file_id file_name file_size in
+
+  if file_state file <> FileDownloaded then
+    current_files := file :: !current_files;
+  
   as_file file.file_file
 
 let file_to_value file =

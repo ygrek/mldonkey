@@ -166,9 +166,69 @@ let client_reader c t sock =
   | _ ->
       Printf.printf "###UNUSED CLIENT MESSAGE###########"; print_newline ();
       DcProtocol.print t
-      
-let client_downloaded c sock nread = ()
 
+      
+let file_complete file = ()
+  (*
+(*
+  Printf.printf "FILE %s DOWNLOADED" f.file_name;
+print_newline ();
+  *)
+  CommonComplexOptions.file_completed (as_file file.file_file);
+  current_files := List2.removeq file !current_files;
+  old_files =:= (f.file_name, f.file_size) :: !!old_files;
+  List.iter (fun s ->
+      s.source_downloads <- remove_download file s.source_downloads      
+  ) r.result_sources;
+  
+(* finally move file *)
+  let incoming_dir =
+    if !!commit_in_subdir <> "" then
+      Filename.concat !!DO.incoming_directory !!commit_in_subdir
+    else !!DO.incoming_directory
+  in
+  (try Unix2.safe_mkdir incoming_dir with _ -> ());
+  let new_name = 
+    Filename.concat incoming_dir f.file_name
+  in
+(*  Printf.printf "RENAME to %s" new_name; print_newline ();*)
+  Unix2.rename file.file_temp  new_name
+*)
+  
+let client_downloaded c sock nread = 
+  Printf.printf "----------------------------------------"; print_newline ();
+  Printf.printf "CLIENT RECEIVE STREAM !!!!!!!!!!!!!!!!!!"; print_newline ();
+  Printf.printf "----------------------------------------"; print_newline ();
+  if nread > 0 then
+    match c.client_download with
+    | DcDownload file ->
+        let b = TcpBufferedSocket.buf sock in
+        set_rtimeout sock half_day;
+        begin
+          let fd = try
+              Unix32.force_fd file.file_fd 
+            with e -> 
+                Printf.printf "In Unix32.force_fd"; print_newline ();
+                raise e
+          in
+          let final_pos = Unix32.seek32 file.file_fd c.client_pos Unix.SEEK_SET in
+          Unix2.really_write fd b.buf b.pos b.len;
+        end;
+(*      Printf.printf "DIFF %d/%d" nread b.len; print_newline ();*)
+        c.client_pos <- Int32.add c.client_pos (Int32.of_int b.len);
+(*
+      Printf.printf "NEW SOURCE POS %s" (Int32.to_string c.source_pos);
+print_newline ();
+  *)
+        TcpBufferedSocket.buf_used sock b.len;
+        if c.client_pos > file.file_downloaded then begin
+            file.file_downloaded <- c.client_pos;
+            file_must_update file;
+          end;
+        if file.file_downloaded = file.file_size then
+          file_complete file 
+    | _ -> assert false
+        
 let listen () =
   try
     let sock = TcpServerSocket.create "DC client server" 

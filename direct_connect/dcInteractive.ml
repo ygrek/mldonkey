@@ -41,18 +41,12 @@ let download r filenames =
             None -> ()
           | Some sock ->
               let c = add_source file s filename in
-              server_send sock (
-                let module C = ConnectToMe in
-                ConnectToMeReq {
-                  C.nick = s.source_server.server_last_nick;
-                  C.ip = !!CO.client_ip;
-                  C.port = !!dc_port;
-                }
-              )
+              ()
       ) r.result_sources;
-      ()
+      DcServers.ask_for_file file
     end
-    
+  
+    (*
 let _ =
   server_ops.op_server_print <- (fun s o ->
       let buf = o.conn_buf in
@@ -61,6 +55,7 @@ let _ =
         (DcServers.server_addr s) s.server_port
         s.server_name s.server_nusers      
   )
+  *)
 
 let _ =
   network.op_network_search <- (fun q buf ->

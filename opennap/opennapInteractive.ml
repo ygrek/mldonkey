@@ -33,6 +33,7 @@ module OP = OpennapProtocol
 module OC = OpennapClients
 
 
+  (*
 let _ =
   server_ops.op_server_print <- (fun s o ->
       let buf = o.conn_buf in
@@ -41,7 +42,8 @@ let _ =
         (Ip.to_string s.server_ip) s.server_port s.server_net s.server_nusers
         s.server_nfiles s.server_size
   )
-  
+  *)
+
 let  _ =
   network.op_network_search <- (fun q  buf ->
       let query = q.search_query in
@@ -149,14 +151,6 @@ let _ =
       Hashtbl.remove OpennapGlobals.files_by_key (f.file_name, f.file_size);
       current_files := List2.removeq file !current_files      
   );
-  file_ops.op_file_print <- (fun file o ->
-      let buf = o.conn_buf in
-      let f = file.file_result.result_file in
-      Printf.bprintf buf "[Opennap %5d] %-50s %10s %10s\n" 
-      (file_num file) f.file_name 
-      (Int32.to_string f.file_size)
-      (Int32.to_string file.file_downloaded)      
-  );
   file_ops.op_file_info <- (fun file ->
       let r = file.file_result in
       let f = r.result_file in
@@ -178,7 +172,8 @@ let _ =
         P.file_chunks_age = [|0.0|];
         P.file_age = 0.0;
       }    
-  )
+  );
+  file_ops.op_file_disk_name <- (fun file -> file.file_temp)
   
 let _ =
   server_ops.op_server_info <- (fun s ->
@@ -215,5 +210,10 @@ let _ =
         C.result_comment = None;
         C.result_done = false;
       }   
+  )
+  
+let _ =
+  network.op_network_connected_servers <- (fun _ ->
+      List2.tail_map (fun s -> as_server s.server_server) !connected_servers
   )
   

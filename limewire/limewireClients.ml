@@ -177,7 +177,8 @@ print_newline ();
     Filename.concat incoming_dir f.file_name
   in
 (*  Printf.printf "RENAME to %s" new_name; print_newline ();*)
-  Unix2.rename file.file_temp  new_name
+  Unix2.rename file.file_temp  new_name;
+  file.file_temp <- new_name
      
 let client_reader s file sock nread = 
   if nread > 0 then

@@ -19,7 +19,9 @@
 
 val clients_by_id :  (Ip.t, ServerTypes.client) Hashtbl.t
 val files_by_md4 : (Md4.t, ServerTypes.location list) Hashtbl.t 
+val servers_by_md4 : (Md4.t, ServerTypes.server) Hashtbl.t
 val client_counter : int ref
 val other_servers : ServerTypes.server list ref
 val nconnected_clients : int ref
+val nshared_files : int ref
   

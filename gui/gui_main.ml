@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Gui_global
 module O = Gui_options
 module M = Gui_messages
 module Com = Gui_com
@@ -94,8 +95,8 @@ let _ =
 
 (** {2 Handling core messages} *)
 
-open Gui_proto
 open CommonTypes
+open Gui_proto
   
 let canon_client gui c =
   let box_file_locs = gui#tab_downloads#box_locations in 
@@ -152,7 +153,45 @@ let value_reader gui t sock =
 	gui#tab_console#insert text
 
     | Network_info n ->
-        Hashtbl.add Gui_global.networks n.Gui_proto.network_num n
+        begin
+          try
+            let nn = Hashtbl.find Gui_global.networks n.Gui_proto.network_num
+            in
+            nn.net_enabled <- n.network_enabled;
+            nn.net_menu_item#set_active n.network_enabled
+          with _ ->
+              let display_menu_item =
+                GMenu.check_menu_item ~label: n.network_name ~active:true
+                ~packing:gui#menu_display#add ()
+              in
+              let network_menu_item =
+                GMenu.check_menu_item ~label: n.network_name 
+                ~active:n.network_enabled
+                  ~packing:gui#menu_networks#add ()
+              in
+              let nn = {
+                  net_num = n.network_num;
+                  net_name = n.network_name;
+                  net_enabled = n.network_enabled;
+                  net_menu_item = network_menu_item;
+                  net_displayed = true;
+                } in
+              ignore (network_menu_item#connect#toggled ~callback:(fun _ ->
+                    nn.net_enabled <- not nn.net_enabled;
+                    Com.send (EnableNetwork (n.network_num, 
+                        network_menu_item#active)
+                    )));
+              ignore (display_menu_item#connect#toggled ~callback:(fun _ ->
+                    nn.net_displayed <- not nn.net_displayed;
+                    networks_filtered := (if nn.net_displayed then
+                        List2.removeq nn.net_num !networks_filtered
+                      else nn.net_num :: !networks_filtered);
+                    gui#tab_servers#h_server_filter_networks;
+                    gui#tab_queries#h_search_filter_networks;
+              ));
+              Hashtbl.add Gui_global.networks n.Gui_proto.network_num nn;
+              ()
+        end
         
     | LocalInfo l ->
         gui#label_upload_status#set_text (

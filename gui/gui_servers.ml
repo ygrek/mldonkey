@@ -35,11 +35,17 @@ let string_color_of_state = Gui_friends.string_color_of_state
 
 let server_key s = s.server_num
 
+
+let is_filtered s =
+  List.memq s.server_network !G.networks_filtered
+
 class box columns users =
   let titles = List.map Gui_columns.string_of_server_column columns in 
   object (self)
     inherit [Gui_proto.server_info] Gpattern.plist `EXTENDED titles true as pl
       inherit Gui_servers_base.box () as box
+    
+    val mutable filtered_data = []
     
     val mutable columns = columns
     method set_columns l =
@@ -188,14 +194,20 @@ class box columns users =
       s.server_state <- s_new.server_state ;
       s.server_name <- s_new.server_name ;
       s.server_description <- s_new.server_description ;
-      if s.server_state = RemovedHost then
-        (
-          data <- List.filter (fun s2 -> s2 <> s) data;
-          self#wlist#remove row;
+      if row >= 0 then 
+        if s.server_state = RemovedHost then
+          (
+            data <- List.filter (fun s2 -> s2 <> s) data;
+            self#wlist#remove row;
+            decr G.nservers
+          )
+        else
+          self#update_row s row
+      else begin
+          filtered_data <- List.filter (fun s2 -> s2 <> s) filtered_data;
           decr G.nservers
-        )
-      else
-        self#update_row s row;
+        end;
+      
       (if s.server_users != s_new.server_users then begin
             s.server_users <- s_new.server_users ;
             List.iter (fun ss ->
@@ -204,43 +216,66 @@ class box columns users =
             ) self#selection;
           end
       )
-      
-
+    
+    
     method find_server num =
       let rec iter n l =
-	match l with
-	  [] -> raise Not_found
-	| s :: q ->
-	    if s.server_num = num then
-	      (n, s)
-	    else
-	      iter (n+1) q
+        match l with
+          [] -> 
+            if n >= 0 then
+              iter min_int filtered_data
+            else raise Not_found
+        | s :: q ->
+            if s.server_num = num then
+              (n, s)
+            else
+              iter (n+1) q
       in
       iter 0 data
-
+    
     method h_server_info s = 
       try
-	let (row, serv) = self#find_server s.server_num in
-	(
-	 match Mi.is_connected s.server_state, Mi.is_connected serv.server_state with
-	   true, false -> incr G.nconnected_servers
-	 | false, true -> decr G.nconnected_servers
-	 | _ -> ()
-	);
-	self#update_server serv s row
+        let (row, serv) = self#find_server s.server_num in
+        (
+          match Mi.is_connected s.server_state, Mi.is_connected serv.server_state with
+            true, false -> incr G.nconnected_servers
+          | false, true -> decr G.nconnected_servers
+          | _ -> ()
+        );
+        self#update_server serv s row
       with
-	Not_found ->
-	  if s.server_state <> RemovedHost then
-	    (
-	     data <- data @ [s];
-	     incr G.nservers;
-	     self#insert ~row: self#wlist#rows s;
-	     if Mi.is_connected s.server_state then
-	       incr G.nconnected_servers
+        Not_found ->
+          if s.server_state <> RemovedHost then
+            (
+              if is_filtered s then begin
+                  filtered_data <- filtered_data @ [s];
+                  incr G.nservers
+                end else begin
+                  data <- data @ [s];
+                  incr G.nservers;
+                  self#insert ~row: self#wlist#rows s;
+                  if Mi.is_connected s.server_state then
+                    incr G.nconnected_servers
+                end
 	    )
 	  else
 	    ()
-
+      
+    method h_server_filter_networks =
+      let data = data @ filtered_data in
+      let rec iter filtered not_filtered data =
+        match data with
+          [] -> List.rev filtered, List.rev not_filtered
+        | s :: tail ->
+            if is_filtered s then
+              iter (s :: filtered) not_filtered tail
+            else
+              iter filtered (s :: not_filtered) tail
+      in
+      let (filtered, not_filtered) = iter [] [] data in
+      filtered_data <- filtered;
+      self#update_data not_filtered
+            
     method h_server_state num state =
       try
 	let (row, serv) = self#find_server num in
@@ -358,6 +393,7 @@ class pane_servers () =
 
     (** {2 Handling core messages} *)
 
+    method h_server_filter_networks = servers#h_server_filter_networks
     method h_server_info = servers#h_server_info
     method h_server_state = servers#h_server_state
     method h_server_busy = servers#h_server_busy

@@ -34,7 +34,7 @@ and 'a file_ops = {
     mutable op_file_network : network;
     mutable op_file_commit : ('a -> unit);
     mutable op_file_save_as : ('a -> string -> unit);
-    mutable op_file_print : ('a -> CommonTypes.connection_options -> unit);
+(*    mutable op_file_print : ('a -> CommonTypes.connection_options -> unit); *)
     mutable op_file_to_option : ('a -> (string * option_value) list);
     mutable op_file_cancel : ('a -> unit);
     mutable op_file_pause : ('a -> unit);
@@ -102,11 +102,13 @@ let update_file_state impl state =
 let file_to_option (file : file) =
   let file = as_file_impl file in
   file.impl_file_ops.op_file_to_option file.impl_file_val
-  
+
+  (*
 let file_print (file : file) buf =
   let file = as_file_impl file in
   file.impl_file_ops.op_file_print file.impl_file_val buf
-  
+    *)
+
 let file_save_as (file : file) name =
   let file = as_file_impl file in
   file.impl_file_ops.op_file_save_as file.impl_file_val name
@@ -167,7 +169,7 @@ let new_file_ops network = {
     op_file_network =  network;
     op_file_commit = (fun _ -> ni_ok network "file_commit");
     op_file_save_as = (fun _ _ -> ni_ok network "file_save_as");
-    op_file_print = (fun _ _ -> ni_ok network "file_print");
+(*    op_file_print = (fun _ _ -> ni_ok network "file_print"); *)
     op_file_to_option = (fun _ -> fni network "file_to_option");
     op_file_cancel = (fun _ -> ni_ok network "file_cancel");
     op_file_info = (fun _ -> fni network "file_info");
@@ -200,4 +202,49 @@ let file_new_source file c =
   
 let com_files_by_num = files_by_num
 let files_by_num = ()
+
+  (*
+    file_ops.op_file_print <- (fun file o ->
+      let buf = o.conn_buf in
+      let f = file.file_result.result_file in
+      Printf.bprintf buf "[Opennap %5d] %-50s %10s %10s\n" 
+      (file_num file) f.file_name 
+      (Int32.to_string f.file_size)
+      (Int32.to_string file.file_downloaded)      
+);
+
+    file_ops.op_file_print <- (fun file o ->
+      let buf = o.conn_buf in
+      let f = file.file_result.result_file in
+      Printf.bprintf buf "[LimeWire %5d] %-50s %10s %10s\n" 
+        (file_num file) f.file_name 
+        (Int32.to_string f.file_size)
+      (Int32.to_string file.file_downloaded)      
+  );
+  file_ops.op_file_print <- (fun file o ->
+  );
+file_ops.op_file_print <- (fun f o ->
+      let buf = o.conn_buf in
+      Printf.bprintf buf "[Donkey %5d] %-50s %10s %10s\n" 
+        (file_num f) (first_name f) 
+        (Int32.to_string f.file_size)
+      (Int32.to_string f.file_downloaded)      
+  );
+*)
+
+module G = Gui_proto
+let file_print file o = 
+  let impl = as_file_impl file in
+  let info = file_info file in
+  let n = impl.impl_file_ops.op_file_network in
+  let buf = o.conn_buf in
+  
+  Printf.bprintf buf "[%-s %5d] %-50s %10s %10s\n" 
+    n.network_name (file_num file) (match info.G.file_names with
+      [] -> Md4.to_string info.G.file_md4
+    | name :: _ -> name)
+  (Int32.to_string info.G.file_size)
+  (Int32.to_string info.G.file_downloaded)      
+  
+  
   

@@ -1027,7 +1027,8 @@ let _ =
   );
   server_ops.op_server_users <- (fun s ->
       List2.tail_map (fun u -> as_user u.user_user) s.server_users)    ;
-
+()
+  (*
   server_ops.op_server_print <- (fun s o ->
       let buf = o.conn_buf in
       Printf.bprintf buf "[Donkey %-5d] %s:%-5d  "
@@ -1048,7 +1049,7 @@ let _ =
             Printf.bprintf buf " %6d %7d" s.server_nusers s.server_nfiles);
       Buffer.add_char buf '\n'
   )
-  
+*)  
 let _ =
   file_ops.op_file_save_as <- (fun file name ->
       file.file_filenames <- [name]
@@ -1062,13 +1063,7 @@ let _ =
   file_ops.op_file_recover <- (fun file ->
       if file_state file = FileDownloading then 
         reconnect_all file);
-  file_ops.op_file_print <- (fun f o ->
-      let buf = o.conn_buf in
-      Printf.bprintf buf "[Donkey %5d] %-50s %10s %10s\n" 
-        (file_num f) (first_name f) 
-        (Int32.to_string f.file_size)
-      (Int32.to_string f.file_downloaded)      
-  );
+  
   file_ops.op_file_sources <- (fun file ->
       let list = ref [] in
       Intmap.iter (fun _ c -> 
@@ -1114,59 +1109,7 @@ let _ =
   client_ops.op_client_connect <- (fun c ->
       connection_must_try c.client_connection_control;
       connect_client !!client_ip [] c
-  );    
-  client_ops.op_client_print <- (fun c output ->
-      let buf = output.conn_buf in      
-      (match c.client_kind with
-          Indirect_location _ -> 
-            Printf.bprintf buf "Client [%5d] Indirect client\n" 
-            (client_num c)
-        | Known_location (ip, port) ->
-            Printf.bprintf buf "Client [%5d] %s:%d\n" 
-            (client_num c)
-              (Ip.to_string ip) port);
-      Printf.bprintf buf "Name: %s\n" c.client_name;
-      (match c.client_all_files with
-          None -> ()
-        | Some results ->
-            Printf.bprintf buf "Files:\n";
-            List.iter (fun rs ->
-                let doc = rs.result_index in
-                let r = Store.get store doc in
-                if output.conn_output = HTML then 
-                  Printf.bprintf buf "\<A HREF=/submit\?q=download\&md4=%s\&size=%s\>"
-                    (Md4.to_string r.result_md4) (Int32.to_string r.result_size);
-                begin
-                  match r.result_names with
-                    [] -> ()
-                  | name :: names ->
-                      Printf.bprintf buf "%s\n" name;
-                      List.iter (fun s -> Printf.bprintf buf "       %s\n" s) names;
-                end;
-                begin
-                  match r.result_comment with
-                    None -> ()
-                  | Some comment ->
-                      Printf.bprintf buf "COMMENT: %s\n" comment;
-                end;
-                if output.conn_output = HTML then 
-                  Printf.bprintf buf "\</A HREF\>";
-                Printf.bprintf  buf "          %10s %10s " 
-                  (Int32.to_string r.result_size)
-                (Md4.to_string r.result_md4);
-                List.iter (fun t ->
-                    Buffer.add_string buf (Printf.sprintf "%-3s "
-                        (match t.tag_value with
-                          String s -> s
-                        | Uint32 i -> Int32.to_string i
-                        | Fint32 i -> Int32.to_string i
-                        | _ -> "???"
-                      ))
-                ) r.result_tags;
-                Buffer.add_char buf '\n';
-            ) results
-      )
-  )  
+  )
 
 let _ =
   user_ops.op_user_set_friend <- (fun u ->

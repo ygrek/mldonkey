@@ -235,7 +235,6 @@ let enable () =
       Printf.printf "Error: Exception %s during startup"
         (Printexc.to_string e); print_newline ()
 
-          
 let _ =
   file_ops.op_file_commit <- (fun file ->
       DonkeyInteractive.save_file file 

@@ -36,7 +36,8 @@ and 'a client_ops = {
     mutable op_client_commit : ('a -> unit);
     mutable op_client_connect : ('a -> unit);
     mutable op_client_save_as : ('a -> string -> unit);
-    mutable op_client_print : ('a -> CommonTypes.connection_options -> unit);
+(*    mutable op_client_print : ('a -> CommonTypes.connection_options -> unit);
+  *)
     mutable op_client_to_option : ('a -> (string * option_value) list);
     mutable op_client_cancel : ('a -> unit);
     mutable op_client_info : ('a -> Gui_proto.client_info);
@@ -78,11 +79,13 @@ let client_commit (client : client) =
   let client = as_client_impl client in
   client.impl_client_ops.op_client_commit client.impl_client_val;
   Hashtbl.remove clients_by_num client.impl_client_num
-  
+
+  (*
 let client_print (client : client) buf =
   let client = as_client_impl client in
   client.impl_client_ops.op_client_print client.impl_client_val buf
-  
+    *)
+
 let client_save_as (client : client) name =
   let client = as_client_impl client in
   client.impl_client_ops.op_client_save_as client.impl_client_val name
@@ -120,7 +123,7 @@ let new_client_ops network = {
     op_client_network =  network;
     op_client_commit = (fun _ -> ni_ok network "client_commit");
     op_client_save_as = (fun _ _ -> ni_ok network "client_save_as");
-    op_client_print = (fun _ _ -> ni_ok network "client_print");
+(*    op_client_print = (fun _ _ -> ni_ok network "client_print"); *)
     op_client_to_option = (fun _ -> fni network "client_to_option");
     op_client_cancel = (fun _ -> ni_ok network "client_cancel");
     op_client_info = (fun _ -> fni network "client_info");
@@ -180,3 +183,62 @@ let client_new_file client c =
   let key = (client_num client, (c : result)) in
   if not (List.mem key !client_new_files) then  
     client_new_files := key :: !client_new_files  
+
+(*
+
+  client_ops.op_client_print <- (fun c output ->
+      let buf = output.conn_buf in      
+      (match c.client_kind with
+          Indirect_location _ -> 
+            Printf.bprintf buf "Client [%5d] Indirect client\n" 
+            (client_num c)
+        | Known_location (ip, port) ->
+            Printf.bprintf buf "Client [%5d] %s:%d\n" 
+            (client_num c)
+              (Ip.to_string ip) port);
+      Printf.bprintf buf "Name: %s\n" c.client_name;
+      (match c.client_all_files with
+          None -> ()
+        | Some results ->
+            Printf.bprintf buf "Files:\n";
+            List.iter (fun rs ->
+                let doc = rs.result_index in
+                let r = Store.get store doc in
+                if output.conn_output = HTML then 
+                  Printf.bprintf buf "\<A HREF=/submit\?q=download\&md4=%s\&size=%s\>"
+                    (Md4.to_string r.result_md4) (Int32.to_string r.result_size);
+                begin
+                  match r.result_names with
+                    [] -> ()
+                  | name :: names ->
+                      Printf.bprintf buf "%s\n" name;
+                      List.iter (fun s -> Printf.bprintf buf "       %s\n" s) names;
+                end;
+                begin
+                  match r.result_comment with
+                    None -> ()
+                  | Some comment ->
+                      Printf.bprintf buf "COMMENT: %s\n" comment;
+                end;
+                if output.conn_output = HTML then 
+                  Printf.bprintf buf "\</A HREF\>";
+                Printf.bprintf  buf "          %10s %10s " 
+                  (Int32.to_string r.result_size)
+                (Md4.to_string r.result_md4);
+                List.iter (fun t ->
+                    Buffer.add_string buf (Printf.sprintf "%-3s "
+                        (match t.tag_value with
+                          String s -> s
+                        | Uint32 i -> Int32.to_string i
+                        | Fint32 i -> Int32.to_string i
+                        | _ -> "???"
+                      ))
+                ) r.result_tags;
+                Buffer.add_char buf '\n';
+            ) results
+      )
+  )  
+
+*)
+    
+let client_print c o = ()

@@ -356,14 +356,16 @@ let http_handler options t r =
                   "d" -> begin
                       try
                         let num = int_of_string value in 
-                        let r = List.assoc num !last_results in
+                        let r = result_find num in
                         result_download r [];
 
-                        Printf.bprintf buf "Download of file %d started\<br\>"
+                        Printf.bprintf buf "Download of file %d started<br>"
                           num
                       with  e -> 
-                          Printf.bprintf buf "Error %s with %s\<br\>" 
-                            (Printexc.to_string e) value
+                          Printf.bprintf buf "Error %s with %s<br>" 
+                            (Printexc.to_string e) value;
+                          results_iter (fun n  r ->
+                              Printf.bprintf buf "IN TABLE: %d   <br>\n" n)
                     end
                 | _ -> ()
             ) r.get_url.Url.args;
@@ -376,33 +378,22 @@ let http_handler options t r =
                 match arg with
                   "cancel" -> 
                     let num = int_of_string value in
-                    List.iter (fun file ->
-                        if (as_file_impl file).impl_file_num = num then 
-                          file_cancel file
-                          (*remove_file file.file_md4 *)
-                    ) !!files
+                    let file = file_find num in
+                    file_cancel file
                 | "pause" -> 
                     let num = int_of_string value in
-                    List.iter (fun file ->
-                        
-                        if (as_file_impl file).impl_file_num = num then begin
-                            file_pause file
-                          end
-                    ) !!files
+                    let file = file_find num in
+                    file_pause file
                 | "resume" -> 
                     let num = int_of_string value in
-                    List.iter (fun file ->
-                        
-                        if (as_file_impl file).impl_file_num = num then begin
-                            file_resume file
-                          end
-                    ) !!files
+                    let file = file_find num in
+                    file_resume file
                 | "sortby" -> 
                     begin
                       match value with
                       | "Percent" -> options.conn_sortvd <- ByPercent
                       | "File" -> options.conn_sortvd <- ByName
-                      | "Donkeyed" -> options.conn_sortvd <- ByDone
+                      | "Downloaded" -> options.conn_sortvd <- ByDone
                       | "Size" -> options.conn_sortvd <- BySize
                       | "Rate" -> options.conn_sortvd <- ByRate
                       | _ -> ()

@@ -46,11 +46,21 @@ let (results : (int, CommonTypes.result_info) Hashtbl.t) = Hashtbl.create 103
 (** Search counter. *)
 let search_counter = ref 0
 
+type net_info = {
+    net_num : int;
+    net_name : string;
+    mutable net_enabled : bool;
+    net_menu_item : GMenu.check_menu_item;
+    mutable net_displayed : bool;
+  }
+
+let networks_filtered = ref ([] : int list)
+  
 open Gui_proto
   
-let (networks : (int, Gui_proto.network_info) Hashtbl.t) = Hashtbl.create 13
+let (networks : (int, net_info) Hashtbl.t) = Hashtbl.create 13
   
-let network_name num = try (Hashtbl.find networks num).network_name
+let network_name num = try (Hashtbl.find networks num).net_name
   with _ -> "?"
       
 let (users : (int, Gui_proto.user_info) Hashtbl.t) = Hashtbl.create 1023

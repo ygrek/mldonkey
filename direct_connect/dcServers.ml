@@ -374,3 +374,38 @@ let _ =
         P.server_users = None;
         }
       else raise Not_found)
+  
+let recover_files () = ()
+  
+let ask_for_file file =
+  List.iter (fun c ->
+      match c.client_sock with 
+      | Some sock -> ()
+      | None -> 
+          match c.client_server with
+            None -> ()
+          | Some s ->
+              match s.server_sock with
+                None -> ()
+              | Some sock ->
+                  server_send sock (
+                    let module C = ConnectToMe in
+                    ConnectToMeReq {
+                      C.nick = s.server_last_nick;
+                      C.ip = !!CO.client_ip;
+                      C.port = !!dc_port;
+                    }
+                  );
+                  server_send sock (
+                    let module C = RevConnectToMe in
+                    RevConnectToMeReq {
+                      C.orig = s.server_last_nick;
+                      C.dest = c.client_name;
+                    }
+                  );
+  ) file.file_clients
+  
+let ask_for_files () =
+  Hashtbl.iter (fun _ file ->
+      ask_for_file file
+  ) files_by_key

@@ -33,6 +33,8 @@ type 'a option_record
 
 type options_file
 
+exception SideEffectOption
+  
 val create_options_file : string -> options_file
 val options_file_name : options_file -> string
 val set_options_file : options_file -> string -> unit
@@ -71,6 +73,7 @@ val filename_option : string option_class
   
   (* parameterized options *)
 val list_option : 'a option_class -> 'a list option_class
+val listiter_option : 'a option_class -> 'a list option_class
 val option_option : 'a option_class -> 'a option option_class
 val smalllist_option : 'a option_class -> 'a list option_class
 val sum_option : (string * 'a) list -> 'a option_class

@@ -124,6 +124,9 @@ class box columns () =
 	);
   end
 
+let is_filtered r =
+  List.memq r.result_network !Gui_global.networks_filtered
+
 class search_result_box () =
   let hbox_labels = GPack.hbox () in
   let wl_count = GMisc.label ~text: "" 
@@ -137,15 +140,36 @@ class search_result_box () =
   object (self)
     inherit box !!Gui_options.results_columns () as box
 
+    val mutable filtered_data = []
+    
     method add_result (res : CommonTypes.result_info) =
-      data <- data @ [res];
-      self#insert ~row: self#wlist#rows res;
-      wl_count#set_text 
-	(Printf.sprintf "%d %s" (List.length data) M.results)
+      if is_filtered res then 
+          filtered_data <- filtered_data @ [res]
+      else begin
+          data <- data @ [res];
+          self#insert ~row: self#wlist#rows res;
+          wl_count#set_text 
+            (Printf.sprintf "%d %s" (List.length data) M.results)
+        end
 
     method set_waiting n =
       wl_wait#set_text (M.waiting_for_replies n)
 
+    method filter_networks = 
+      let data = data @ filtered_data in
+      let rec iter filtered not_filtered data =
+        match data with
+          [] -> List.rev filtered, List.rev not_filtered
+        | s :: tail ->
+            if is_filtered s then
+              iter (s :: filtered) not_filtered tail
+            else
+              iter filtered (s :: not_filtered) tail
+      in
+      let (filtered, not_filtered) = iter [] [] data in
+      filtered_data <- filtered;
+      self#update_data not_filtered
+      
     initializer
       box#vbox#pack ~expand: false hbox_labels#coerce ;
       

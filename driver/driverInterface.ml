@@ -98,6 +98,21 @@ let gui_reader (gui: gui_record) t sock =
         let room = room_find num in
         room_send_message room msg
     
+    | P.EnableNetwork (num, bool) ->
+        let n = network_find_by_num num in
+        if n.op_network_is_enabled () <> bool then
+          (try
+              if bool then network_enable n else network_disable n;
+            with e ->
+                Printf.printf "Exception %s in network enable/disable" 
+                  (Printexc.to_string e);
+                print_newline ());
+        gui_send gui (P.Network_info {
+            P.network_num = n.network_num;
+            P.network_name = n.network_name;
+            P.network_enabled = network_is_enabled n;
+          })      
+        
     | P.ExtendedSearch ->
         networks_iter network_extend_search
     

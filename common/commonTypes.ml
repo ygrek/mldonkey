@@ -235,6 +235,13 @@ and location_kind =
   Known_location of Ip.t * int
 | Indirect_location of string * Md4.t
 
+(*
+We should add information about what has already been sent to the GUI to
+prevent sending the same information several times (for example, 
+to avoid the Client_info and Result_info message before the Client_file 
+message.
+*)
+  
 type gui_record = {
     mutable gui_search_nums : int list;
     mutable gui_searches : (int * search) list;

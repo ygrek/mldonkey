@@ -39,10 +39,12 @@ let enable () =
       with _ -> ()
   ) !!redirectors;
 
+  (*
   Hashtbl.iter (fun _ file ->
       if file_state file <> FileDownloaded then
         current_files := file :: !current_files
   ) files_by_key;
+*)
   
   add_timer 1.0 (fun timer ->
       reactivate_timer timer;

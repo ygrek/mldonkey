@@ -139,6 +139,10 @@ let new_file file_id file_name file_size =
           impl_file_ops = file_ops;
         }
       in
+      
+      let state = if current_size = file_size then FileDownloaded else
+          FileDownloading in
+      
       file_add file_impl FileDownloading;
 (*      Printf.printf "ADD FILE TO DOWNLOAD LIST"; print_newline (); *)
       Hashtbl.add files_by_key key file;

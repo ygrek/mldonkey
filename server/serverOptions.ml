@@ -41,20 +41,31 @@ let seed_port = define_option server_ini ["seedPort"]
   "Port of server to register" int_option 4661
 let max_clients = define_option server_ini ["maxClients"] 
   "Maximal number of clients connected" int_option 200
-
-  
+let max_files = define_option server_ini ["maxFiles"]
+  "Maximal number of files connected" int_option 1000
 let server_ip = define_option server_ini ["server_ip"] 
     "The last IP used for this server" Ip.option  
     (Ip.my ())
-
-
 let server_md4 = define_option server_ini ["server_md4"]
   "The MD4 of this server" Md4.option (Md4.random ())
 
-let groupe_cooperation_protocol = define_option server_ini
-["server_cooperation_protocol"] "Whitch protocol of cooperation : 1=Relay"
-int_option 1 
+let save_log = define_option server_ini ["save log"]
+  "Save all request on a file log" bool_option false
+
+
+
+(*Options for cooperation server protocol*) 
+let relais_cooperation_protocol = define_option server_ini
+["relais_cooperation_protocol"] "Your server will participate in a groupe of
+server" bool_option false
+
+let relais_master = define_option server_ini ["relais_master"] "Your server will
+be a master of a group" bool_option false
   
+
+let known_servers = define_option server_ini ["known_servers"]
+  "Known servers" (list_option (tuple2_option (Ip.option, int_option)))
+  []
 
 
 let save_config () =

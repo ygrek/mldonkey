@@ -111,7 +111,11 @@ let file_complete file =
   let f = r.result_file in
 (*  Printf.printf "FILE %s DOWNLOADED" f.file_name;
   print_newline (); *)
-  file_completed (as_file file.file_file);
+  (try file_completed (as_file file.file_file)
+    with e ->
+        Printf.printf "Exception %s in file completed"
+        (Printexc.to_string e)
+        ; print_newline ());
   current_files := List2.removeq file !current_files;
   old_files =:= (f.file_name, f.file_size) :: !!old_files;
   List.iter (fun s ->
@@ -129,7 +133,8 @@ let file_complete file =
     Filename.concat incoming_dir f.file_name
   in
 (*  Printf.printf "RENAME to %s" new_name; print_newline (); *)
-  Unix2.rename file.file_temp  new_name
+  Unix2.rename file.file_temp  new_name;
+  file.file_temp <- new_name
 
 (*
 

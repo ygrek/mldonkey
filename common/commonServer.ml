@@ -18,7 +18,7 @@
 *)
 
 
-
+open CommonNetwork
 open Options
 open CommonUser
 open CommonTypes
@@ -36,7 +36,7 @@ and 'a server_ops = {
     mutable op_server_network : network;
     mutable op_server_to_option : ('a -> (string * option_value) list);
     mutable op_server_remove : ('a -> unit);
-    mutable op_server_print : ('a -> CommonTypes.connection_options -> unit);
+(*    mutable op_server_print : ('a -> CommonTypes.connection_options -> unit); *)
     mutable op_server_info : ('a -> Gui_proto.server_info);
     mutable op_server_sort : ('a -> float);
     mutable op_server_connect : ('a -> unit);
@@ -98,9 +98,6 @@ let server_to_option server =
   let server = as_server_impl server in
   server.impl_server_ops.op_server_to_option server.impl_server_val
 
-let server_print server buf =
-  let server = as_server_impl server in
-  server.impl_server_ops.op_server_print server.impl_server_val buf
 
 let server_info (server : server) =
   let server = as_server_impl server in
@@ -121,7 +118,7 @@ let server_users s =
 let new_server_ops network = {
     op_server_network =  network;
     op_server_remove = (fun _ -> ni_ok network "server_remove");
-    op_server_print = (fun _ _ -> ni_ok network "server_print");
+(*    op_server_print = (fun _ _ -> ni_ok network "server_print"); *)
     op_server_to_option = (fun _ -> fni network "server_to_option");
     op_server_info = (fun _ -> fni network "server_info");
     op_server_sort = (fun _ -> ni_ok network "server_sort"; 0.0);
@@ -203,3 +200,49 @@ let server_new_user server user =
 let servers_by_num = ()
   
     
+(*  
+type server_info = {
+    server_num : int;
+    server_network : int;
+    
+    mutable server_ip : Ip.t;
+    mutable server_port : int;
+    mutable server_score : int;
+    mutable server_tags : CommonTypes.tag list;
+    mutable server_nusers : int;
+    mutable server_nfiles : int;
+    mutable server_state : host_state;
+    mutable server_name : string;
+    mutable server_description : string;
+    mutable server_users : int list option;
+  } 
+    *)
+
+module G = Gui_proto
+  
+let server_print s o =
+  let impl = as_server_impl s in
+  let n = impl.impl_server_ops.op_server_network in
+  let info = server_info s in
+  let buf = o.conn_buf in
+  Printf.bprintf buf "[%s %-5d] %s:%-5d %-20s %-20s"
+    n.network_name
+    (server_num s)
+  (Ip.to_string info.G.server_ip) info.G.server_port
+    info.G.server_name
+    info.G.server_description
+  ;
+  (*
+  List.iter (fun t ->
+      Printf.bprintf buf "%-3s "
+        (match t.tag_value with
+          String s -> s
+            | Uint32 i -> Int32.to_string i
+        | Fint32 i -> Int32.to_string i
+        | _ -> "???"
+      )
+) info.G.server_tags;
+  *)
+  Printf.bprintf buf " %6d %7d %s" info.G.server_nusers info.G.server_nfiles
+    (if impl.impl_server_state <> NotConnected then "Connected" else "");
+  Buffer.add_char buf '\n'

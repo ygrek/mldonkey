@@ -64,13 +64,37 @@ and client_kind =
 type server = {
     server_ip : Ip.t;
     server_port : int;
-  }
+}
 
+type peer = {
+    mutable peer_ip : Ip.t;
+    mutable peer_port : int;
+    mutable peer_sock : TcpBufferedSocket.t option;
+    mutable peer_tags : CommonTypes.tag list; 
+  }
   
 open CommonNetwork
   
 let network = CommonNetwork.new_network "Donkey:server"
 
+(*
+
+Il ne faut pas utiliser les memes noms de label dans deux records definis
+dans le meme module (client_md4 est aussi defini au dessus dans client.
+Il faut choisir d'autres noms ou placer le type dans un autre module (ou
+  un sous module).
+  
+type stand_by_log =
+ {  
+    client_md4 : Md4.t; 
+    client_ip : Ip.t;
+    time : float;
+    msg : Mftp_server.t;
+    reply : Mftp_server.t;
+ } 
+    *)
+
+(*
 type kLocation = {
     mutable ip : Ip.t;
     mutable port : int;
@@ -90,3 +114,4 @@ type where = {
         mutable loc : global;
         mutable expired : float;
 }
+*)

@@ -38,6 +38,14 @@ Before 1.17:
 
  * Change Shared message
 
+Before 2.00:
+  - Allow enable/disable network at runtime
+  - Allow enable/disable network display in the GUI
+  - Allow access to each network options in the GUI and telnet
+  - Detect disconnection to client in the GUI (zogzog, do it !!, it was done
+      in 1.16 and before)
+  - Allow passing ed2k links in GUI
+
 TODO list for server
 ====================
 * Send a ping to all clients every minute

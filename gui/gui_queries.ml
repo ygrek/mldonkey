@@ -363,6 +363,9 @@ class paned () =
 
     (** {2 Handling of core messages} *)
 
+    method h_search_filter_networks =
+      List.iter (fun (_, (srbox, _)) -> srbox#filter_networks) results
+      
     method h_search_result num res =
       try
 	let (box_res, vb) = List.assoc num results in

@@ -67,6 +67,7 @@ and file = {
     mutable file_downloaded : int32;
     mutable file_temp : string;
     mutable file_fd : Unix32.t;
+    mutable file_clients : client list;
   }
 
 and client = {

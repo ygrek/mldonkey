@@ -204,7 +204,8 @@ type from_gui =
 | SendMoreInfo of int list * int list
 | GetUser_info of int
 | SendMessage of int * room_message
-
+| EnableNetwork of int * bool
+  
 type to_gui =
 | Connected of int
 | Options_info of (string * string) list (*  options *)

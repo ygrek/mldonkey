@@ -117,9 +117,31 @@ class box columns () =
       box#vbox#pack ~expand: true pl#box
   end
 
+
+let is_filtered c =
+  List.memq c.client_network !Gui_global.networks_filtered
+
+
 class box_friends box_results () =
   object (self)
     inherit box !!O.friends_columns ()
+
+    val mutable filtered_data = []
+      
+    method filter_networks = 
+      let data = data @ filtered_data in
+      let rec iter filtered not_filtered data =
+        match data with
+          [] -> List.rev filtered, List.rev not_filtered
+        | s :: tail ->
+            if is_filtered s then
+              iter (s :: filtered) not_filtered tail
+            else
+              iter filtered (s :: not_filtered) tail
+      in
+      let (filtered, not_filtered) = iter [] [] data in
+      filtered_data <- filtered;
+      self#update_data not_filtered
 
     method remove () = 
       List.iter
