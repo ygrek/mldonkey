@@ -102,14 +102,16 @@ let print_connected_servers o =
         
       let counter = ref 0 in  
       List.iter (fun s ->
-      incr counter;
-        if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
-            else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
+            incr counter;
+            if use_html_mods o then begin
+                if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
+                else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
+              end;
 
           server_print s o;
       ) list;
         if use_html_mods o && List.length list > 0 then Printf.bprintf buf
-        "\\</table\\>";
+            "\\</table\\>";
       with e ->
           Printf.bprintf  buf "Exception %s in print_connected_servers"
             (Printexc2.to_string e);

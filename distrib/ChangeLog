@@ -1,6 +1,9 @@
 ChangeLog	
 =========
 
+2002/02/18: Simon  (release unstable-2-02-11)
+  - Fixed bugs in gpattern and vm commands
+
 2002/02/17: Simon (release unstable-2-02-10)
   - DonkeySources3: new source management (use 'sources' command for info)
       * Increased default max_clients_per_second to 30
