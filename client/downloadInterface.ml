@@ -292,7 +292,9 @@ print_newline ();
         let buf = Buffer.create 1000 in
         Buffer.add_string buf "\n----------------------------------\n";
         Printf.bprintf buf "Eval command: %s\n\n" cmd;
-        DownloadInteractive.eval (ref true) buf cmd TEXT;
+        let options = { conn_output = TEXT; conn_sortvd = BySize } in
+        DownloadInteractive.eval (ref true) buf cmd 
+        options;
         Buffer.add_string buf "\n\n";
         gui_send gui (P.Console (Buffer.contents buf))
     

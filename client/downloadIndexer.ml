@@ -214,15 +214,6 @@ let input_old_result ic =
       | _ -> ()
   ) file.result_tags;
   file
-    
-let output_result oc result =
-  output_value oc 
-  {
-      hresult_names = result.result_names;
-      hresult_md4 = result.result_md4;
-      hresult_size = result.result_size;
-      hresult_tags = result.result_tags;
-    }
   
 let clear () =
   Indexer.clear index;
@@ -250,7 +241,18 @@ let history_file_oc () =
       history_file_oc := Some oc;
       oc
   | Some oc -> oc
-      
+
+          
+let output_result result =
+  if !!save_file_history then
+  output_value (history_file_oc ()) 
+  {
+      hresult_names = result.result_names;
+      hresult_md4 = result.result_md4;
+      hresult_size = result.result_size;
+      hresult_tags = result.result_tags;
+    }
+
   
   
       
@@ -293,8 +295,6 @@ let index_result_no_filter r =
     _ -> 
       let doc = Indexer.make_doc index r in
       Hashtbl.add results r.result_md4 doc;
-
-(* SAVE HERE THE RESULT TO local_index_add *)
       
       if !!local_index_add_cmd <> "" then begin
           try
@@ -350,9 +350,10 @@ let index_result_no_filter r =
         end;
       
       if !!save_file_history then begin
-          output_result (history_file_oc ()) r;
+          output_result r;
           flush (history_file_oc ());
         end;
+
       List.iter (fun name ->
           index_name doc name
       ) r.result_names;      
@@ -501,11 +502,10 @@ let init () =
           close_in ic;
           Printf.printf "Generating new file"; print_newline ();
           begin try
-            let oc = open_out history_file in
             List.iter (fun file ->
-                output_result oc file
-            ) !list;
-            close_out oc
+                output_result file
+              ) !list;
+              close_history_oc ();
             with e ->            
                 Printf.printf "Error %s generating new history file"
                   (Printexc.to_string e);
@@ -527,23 +527,17 @@ let _ =
   DownloadGlobals.do_at_exit (fun _ ->
       if !!save_file_history then begin
           Printf.printf "Saving history 1"; print_newline (); 
-          close_out (history_file_oc ());
+          close_history_oc ();
           
-(*          Printf.printf "Saving history 2"; print_newline (); *)
-          let oc = open_out (history_file ^ ".tmp") in
-(*          Printf.printf "Saving history 3"; print_newline (); *)
           Hashtbl.iter (fun _ doc ->
               let r = Indexer.value doc in
-(*              Printf.printf "Saving history 4"; print_newline (); *)
-              output_result oc r
+              output_result r
           ) results;
-(*          Printf.printf "Saving history 5"; print_newline (); *)
-          close_out oc;
-          
-(*          Printf.printf "Saving history 6"; print_newline (); *)
+          close_history_oc ();
+(*          
           (try Sys.rename history_file (history_file ^ ".old") with _ -> ());
-(*          Printf.printf "Saving history 7"; print_newline (); *)
-          (try Sys.rename (history_file ^ ".tmp") history_file with _ -> ())
+(try Sys.rename (history_file ^ ".tmp") history_file with _ -> ())
+  *)
         end
   )
   

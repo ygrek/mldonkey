@@ -38,7 +38,6 @@ let result_name r =
   match r.result_names with
     [] -> None
   | name :: _ -> Some name
-
       
       
 let reconnect_all file =
@@ -177,7 +176,7 @@ let print_search buf s output =
   List.iter (fun (r,avail) ->
       incr counter;
       Printf.bprintf  buf "[%5d]" !counter;
-      if output = HTML then 
+      if output.conn_output = HTML then 
         Printf.bprintf buf "\<A HREF=/submit\?q=download\&md4=%s\&size=%s\>"
           (Md4.to_string r.result_md4) (Int32.to_string r.result_size);
       last_search := (!counter, 
@@ -196,7 +195,7 @@ let print_search buf s output =
         | Some comment ->
             Printf.bprintf buf "COMMENT: %s\n" comment;
       end;
-      if output = HTML then 
+      if output.conn_output = HTML then 
         Printf.bprintf buf "\</A HREF\>";
       Printf.bprintf  buf "          %10s %10s " 
         (Int32.to_string r.result_size)
@@ -466,7 +465,7 @@ let broadcast msg =
   ) !user_socks
   
   
-type arg_handler =  Buffer.t -> output_type -> string
+type arg_handler =  Buffer.t -> connection_options -> string
 type arg_kind = 
   Arg_none of arg_handler
 | Arg_multiple of (string list -> arg_handler)
@@ -532,7 +531,7 @@ let short_name file =
 let simple_print_file buf name_len done_len size_len format file =
   Printf.bprintf buf "[%-5d] "
       file.file_num;
-  if format = HTML && file.file_state <> FileDownloaded then 
+  if format.conn_output = HTML && file.file_state <> FileDownloaded then 
     Printf.bprintf buf "[\<a href=/submit\?q\=cancel\+%d\>CANCEL\</a\>] " 
     file.file_num;
   let s = short_name file in
@@ -570,20 +569,38 @@ let simple_print_file_list finished buf files format =
   )
   files;
   Printf.bprintf buf "[ Num ] ";
-  if format = HTML then Printf.bprintf buf "         ";
+  if format.conn_output = HTML then Printf.bprintf buf "         ";
 
+  let make_spaces len s =
+    String.make (max 0 (len - (String.length s))) ' '
+  in
   let s = "File" in
-  Printf.bprintf buf "%s%s " s (String.make (max 0 (!name_len - (String.length s))) ' ');
-
+  if format.conn_output = HTML then
+    Printf.bprintf buf "\<a href=/submit\?q\=vd\&sortby\=name\>%s\</a\>%s "
+    s (make_spaces  !name_len s)
+  else
+    Printf.bprintf buf "%s%s " s (make_spaces  !name_len s);
   
-  let s = "Downloaded" in
   if not finished then
-    Printf.bprintf buf "%s%s " s (String.make (max 0 (!done_len - (String.length s))) ' ');
+    let s = "Downloaded" in
+    if format.conn_output = HTML then
+      Printf.bprintf buf "\<a href=/submit\?q\=vd\&sortby\=done\>%s\</a\>%s "
+      s (make_spaces !done_len s)
+    else
+      Printf.bprintf buf "%s%s " s (make_spaces !done_len s);
+      
+    let s = "Size" in
+    if format.conn_output = HTML then
+      Printf.bprintf buf "\<a href=/submit\?q\=vd\&sortby\=size\>%s\</a\>%s "
+        s (make_spaces !size_len s)
+    else
+      Printf.bprintf buf "%s%s " s (make_spaces !size_len s);
 
-  let s = "Size" in
-  Printf.bprintf buf "%s%s " s (String.make (max 0 (!size_len - (String.length s))) ' ');
-
-  let s = if finished then "MD4" else "Rate" in
+  let s = if finished then "MD4" else
+    if format.conn_output = HTML then
+    "\<a href=/submit\?q\=vd\&sortby\=rate\>Rate\</a\>"
+    else "Rate"
+    in
   Printf.bprintf buf "%s\n" s;
   
   List.iter (simple_print_file buf !name_len !done_len !size_len format) files
@@ -888,7 +905,26 @@ let commands = [
             ""
         | _ ->
             Printf.bprintf  buf "Downloading %d files\n" (List.length !!files);
-            simple_print_file_list false buf !!files format;
+            let list = 
+              try
+                let sorter =
+                  match format.conn_sortvd with
+                  
+                  | BySize -> (fun f1 f2 -> f1.file_size >= f2.file_size)
+                  | ByRate -> (fun f1 f2 -> 
+                          f1.file_last_rate >= f2.file_last_rate)
+                  | ByName -> (fun f1 f2 -> 
+                          match f1.file_filenames, f2.file_filenames with
+                            n1 :: _ , n2 :: _ -> n1 <= n2
+                          | _ -> true)
+                  | ByDone -> (fun f1 f2 -> 
+                          f1.file_downloaded >= f2.file_downloaded)
+                  | _ -> raise Not_found
+                      in
+                Sort.list sorter !!files
+              with _ -> !!files
+            in
+            simple_print_file_list false buf list format;
             Printf.bprintf  buf "\nDownloaded %d files\n" 
               (List.length !!done_files);
             simple_print_file_list true buf !!done_files format;
@@ -1051,10 +1087,10 @@ let commands = [
     " <port> : change connection port";
     
     "vo", Arg_none (fun buf format ->
-        if format = HTML then
+        if format.conn_output = HTML then
           Printf.bprintf  buf "\<table border=0\>";
         List.iter (fun (name, value) ->
-            if format = HTML then
+            if format.conn_output = HTML then
               Printf.bprintf buf "
               \<tr\>\<td\>\<form action=/submit\> 
 \<input type=hidden name=setoption value=q\>
@@ -1066,7 +1102,7 @@ let commands = [
             else
               Printf.bprintf buf "%s = %s\n" name value)
         (Options.simple_options downloads_ini);
-        if format = HTML then
+        if format.conn_output = HTML then
           Printf.bprintf  buf "\</table\>";
         
         ""
@@ -1134,11 +1170,11 @@ let commands = [
         Printf.bprintf  buf "Searching %d queries\n" (List.length !searches);
         List.iter (fun s ->
             Printf.bprintf buf "%s[%-5d]%s %s %s\n" 
-              (if format = HTML then 
+              (if format.conn_output = HTML then 
                 Printf.sprintf "\<a href=/submit\?q=vr\+%d\>" s.search_num
               else "")
             s.search_num 
-              (if format = HTML then "\</a\>" else "")
+              (if format.conn_output = HTML then "\</a\>" else "")
             s.search_string
               (if s.search_waiting = 0 then "done" else
                 string_of_int s.search_waiting)
@@ -1231,7 +1267,7 @@ let commands = [
       
   ]
 
-let eval auth buf cmd output =
+let eval auth buf cmd options =
   let l = String2.tokens cmd in
   match l with
     [] -> ()
@@ -1257,7 +1293,7 @@ let eval auth buf cmd output =
           Printf.bprintf buf "Bad login/password"
       else
       if !auth then
-        execute_command commands buf output cmd args      
+        execute_command commands buf options cmd args      
       else
           Printf.bprintf buf "Command not authorized\n Use 'auth <password>' before."
 
@@ -1265,7 +1301,7 @@ let eval auth buf cmd output =
         
 let buf = Buffer.create 1000
 
-let user_reader auth sock nread  = 
+let user_reader options auth sock nread  = 
   let b = TcpClientSocket.buf sock in
   let end_pos = b.pos + b.len in
   let new_pos = end_pos - nread in
@@ -1277,7 +1313,7 @@ let user_reader auth sock nread  =
       buf_used sock (len+1);
       try
         Buffer.clear buf;
-        eval auth buf cmd TEXT;
+        eval auth buf cmd options;
         Buffer.add_char buf '\n';
         TcpClientSocket.write_string sock (Buffer.contents buf)
       with
@@ -1302,7 +1338,11 @@ let telnet_handler t event =
       if Ip.matches from_ip !!allowed_ips then 
         let sock = TcpClientSocket.create_simple s in
         let auth = ref (!!password = "") in
-        TcpClientSocket.set_reader sock (user_reader auth);
+        let options = {
+            conn_output = TEXT;
+            conn_sortvd = NotSorted;
+          } in
+        TcpClientSocket.set_reader sock (user_reader options auth);
         TcpClientSocket.set_closer sock user_closed;
         user_socks := sock :: !user_socks;
         TcpClientSocket.write_string sock "\nWelcome on mldonkey command-line\n";
@@ -1489,7 +1529,7 @@ let html_close_page buf =
   Buffer.add_string buf "</HTML>\n";
   ()
   
-let http_handler t r =
+let http_handler options t r =
   Buffer.clear buf;  
   if (!!http_password <> "" || !!http_login <> "") &&
     (r.options.passwd <> !!http_password || r.options.login <> !!http_login)
@@ -1516,18 +1556,26 @@ let http_handler t r =
         | "/submit" ->
             begin
               match r.get_url.Url.args with
-                ["q", cmd ] ->
-                  let s = 
-                    let b = Buffer.create 10000 in
-                    eval (ref true) b cmd HTML;
-                    html_escaped (Buffer.contents b)
-                  in
-                  Printf.bprintf buf  "\n<pre>\n%s\n</pre>\n" s;
               | [ "q", "download"; "md4", md4_string; "size", size_string ] ->
-                  
                   query_download [] (Int32.of_string size_string)
                   (Md4.of_string md4_string) None None None;
                   Printf.bprintf buf  "\n<pre>\nDownload started\n</pre>\n";
+                  
+              | ("q", cmd) :: other_args ->
+                  List.iter (fun arg ->
+                      match arg with
+                      | "sortby", "size" -> options.conn_sortvd <- BySize
+                      | "sortby", "name" -> options.conn_sortvd <- ByName
+                      | "sortby", "rate" -> options.conn_sortvd <- ByRate
+                      | "sortby", "done" -> options.conn_sortvd <- ByDone
+                      | _ -> ()
+                  ) other_args;
+                  let s = 
+                    let b = Buffer.create 10000 in
+                    eval (ref true) b cmd options;
+                    html_escaped (Buffer.contents b)
+                  in
+                  Printf.bprintf buf  "\n<pre>\n%s\n</pre>\n" s;
                   
               | [
                   "query", query;
@@ -1615,7 +1663,10 @@ let http_handler t r =
   TcpClientSocket.write t s 0 len;
   TcpClientSocket.close_after_write t
         
-      
+let http_options = { 
+    conn_output = HTML;
+    conn_sortvd = NotSorted;
+  }      
   
 let create_http_handler () = 
   create {
@@ -1623,5 +1674,5 @@ let create_http_handler () =
     requests = [];
     addrs = !!allowed_ips;
     base_ref = "";
-    default = http_handler;
+    default = http_handler http_options;
   }

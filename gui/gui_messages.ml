@@ -676,7 +676,8 @@ Release 1.15:
   * WEB interface:
     - New option 'web_header' to customize the header displayed by the
        Web interface.
-    - Correct HTML with HEAD and TITLE :)
+    - Generate correct HTML with HEAD and TITLE :)
+    - Downloads can be sorted by name/downloaded/size/rate.
   * Core:
     - New option 'file_completed_cmd' for a command which is called when 
      a file download is completed with as arguments: 
@@ -686,7 +687,7 @@ Release 1.15:
      See the 'Using auxiliary programs for local indexation' section in
      the help.
   * Most problems with ed2k:// links should be fixed (/ at the end, and
-     spaces in the middle).
+     spaces in the middle). MLdonkeySubmit is distributed for Konqueror users.
   * Fixed bugs:  
    - #100662: only valid server IPs are accepted.
 

@@ -243,3 +243,16 @@ type shared_file_info = {
     sh_size : int32;
   }
   
+  
+type sortvd_type = 
+  BySize
+| ByName
+| ByRate
+| ByDone
+| ByPercent
+| NotSorted
+  
+type connection_options = {
+    mutable conn_output : output_type; 
+    mutable conn_sortvd : sortvd_type;
+  }
