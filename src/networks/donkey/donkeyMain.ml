@@ -121,49 +121,49 @@ let disable enabler () =
       DonkeyOvernet.disable ()
     end
 
-    let reset_tags () =
-      client_to_client_tags :=
-      [
-        string_tag "name" (local_login ());
-        int_tag "version" !!DonkeyOptions.protocol_version;
-        int_tag "port" !client_port;
-      ];      
-      client_to_server_tags :=
-      [
-        string_tag "name" (local_login ());
-        int_tag "version" !!DonkeyOptions.protocol_version;
-        int_tag "port" !client_port;
-      ];      
-      if Autoconf.has_zlib then
-	client_to_server_tags := (int_tag "extended" 1)::!client_to_server_tags;
-      emule_info_tags := [
-                int_tag "compression" 0;
-                int_tag "udpport" (!!port+4);
-                int_tag "sourceexchange" 1;
-                int_tag "comments" 1;
-                int_tag "compatableclient" 10; 
-                int_tag "extendedrequest" 1;
-                int_tag "udpver" 1;
-       ];
-      overnet_connect_tags :=
-      [
-        string_tag "name" (local_login ());
-        int_tag "version" !!DonkeyOvernet.overnet_protocol_connect_version; 
-      ];
-      overnet_connectreply_tags :=
-      [
-        string_tag "name" (local_login ());
-        int_tag "version" !!DonkeyOvernet.overnet_protocol_connectreply_version; 
-      ]
-    
+let reset_tags () =
+  client_to_client_tags :=
+  [
+    string_tag "name" (local_login ());
+    int_tag "version" !!DonkeyOptions.protocol_version;
+    int_tag "port" !client_port;
+  ];      
+  client_to_server_tags :=
+  [
+    string_tag "name" (local_login ());
+    int_tag "version" !!DonkeyOptions.protocol_version;
+    int_tag "port" !client_port;
+  ];      
+  if Autoconf.has_zlib then
+    client_to_server_tags := (int_tag "extended" 1)::!client_to_server_tags;
+  emule_info_tags := [
+    int_tag "compression" 0;
+    int_tag "udpport" (!!port+4);
+    int_tag "sourceexchange" 1;
+    int_tag "comments" 1;
+    int_tag "compatableclient" 10; 
+    int_tag "extendedrequest" 1;
+    int_tag "udpver" 1;
+  ];
+  overnet_connect_tags :=
+  [
+    string_tag "name" (local_login ());
+    int_tag "version" !!DonkeyOvernet.overnet_protocol_connect_version; 
+  ];
+  overnet_connectreply_tags :=
+  [
+    string_tag "name" (local_login ());
+    int_tag "version" !!DonkeyOvernet.overnet_protocol_connectreply_version; 
+  ]
+  
 let enable () =
   if not !is_enabled then 
     let enabler = ref true in
     is_enabled := true;
-  network.op_network_disable <- disable enabler;
-  
-  if not !!enable_donkey then enable_donkey =:= true;
-  
+    network.op_network_disable <- disable enabler;
+    
+    if not !!enable_donkey then enable_donkey =:= true;
+    
   try
 (*  DonkeyClient.verbose := true; *)
 

@@ -738,6 +738,7 @@ let simple_print_file_list finished buf files format =
             "    Size";
             "    Left";
             "Old";
+            "A";
             "Rate";
 	    "Priority";
           |]     
@@ -759,7 +760,7 @@ let simple_print_file_list finished buf files format =
               (Printf.sprintf "%s[%10s %-5d]%s"
                 (if !!term_ansi then (color)
                  else "")
-                (net_name file)
+                (short_net_name file)
                 file.file_num
                   (if format.conn_output = HTML then  
                     Printf.sprintf "[\\<a href=\\\"submit\\?q\\=cancel\\+%d\\\" $S\\>CANCEL\\</a\\>][\\<a href=\\\"submit\\?q\\=%s\\+%d\\\" $S\\>%s\\</a\\>] " 
@@ -787,6 +788,7 @@ let simple_print_file_list finished buf files format =
                   done;
                   if !min = 0 then "-" else
                     string_of_int (age_to_day !min)));
+              (string_of_int (number_of_active_sources file));
               rate ^ "$n";
 	      string_of_int file.file_priority;
             |]
@@ -830,7 +832,13 @@ let display_file_list buf o =
     Printf.bprintf buf "Downloaded %d/%d files\n" (List.length !!done_files) 
     (List.length !!files);
 
-   
+  if o.conn_output <> HTML && !!improved_telnet then
+  begin
+    let list = List2.tail_map file_info !!files in
+    let list = Sort.list (fun f1 f2 -> percent f1 >= percent f2) list in
+    simple_print_file_list false buf list o
+  end
+  else
   let list = List2.tail_map file_info !!files in
   let list = 
     try

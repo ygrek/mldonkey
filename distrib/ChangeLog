@@ -2,6 +2,15 @@ ChangeLog
 =========
 
 2003/11/27: Fabrice
+   * Applied patches #2341 (BT), #2354 (BT with MultiFile), 
+       #2339 (improved telnet), #2311 (Overnet [EXPERIMENTAL])
+    BUT: is there a bug on Savannah, or is it my browser that incorrectly
+     download patches with &quot;, &gt;, etc... inside ?
+  * Fixed ed2k_hash compile error
+  * Hardcoded emule protocol version set to 0x30, connect to Razorblack
+  * Unix32: another bug fixed causing "really_write 0 BYTES" errors.
+
+2003/11/27: Fabrice
    * Bug with Unix32.read fixed (no flush).
    * New file type MultiFile in Unix32, created with create_multifile, to
        be used by BT. 

@@ -55,6 +55,7 @@ type client = {
     mutable client_alrd_sent_interested : bool;
     mutable client_alrd_sent_notinterested : bool;
     mutable client_interesting : bool;
+    mutable client_registered_bitfield : bool;
   }
 
 and file = {
@@ -70,6 +71,6 @@ and file = {
     mutable file_tracker_connected : bool;
     mutable file_tracker_interval : int;
     mutable file_tracker_last_conn : int;
-    mutable file_files : (string * int64 * int64) list;
+    mutable file_files : (string * int64) list;
     mutable file_blocks_downloaded : Int64Swarmer.block list;
   }

@@ -96,23 +96,26 @@ let value_to_file is_done assocs =
     with _ -> failwith "Bad file_tracker"
   in
   
-  let file = new_file file_id file_name file_size file_tracker 
-      file_piece_size in
-  
-  let _ = 
+  let file =  
     try
-      List.iter (fun v ->
-          file.file_files <- v :: file.file_files
-          )
+     let file_files = 
       (get_value "file_files" 
         (value_to_list (fun v ->
               match v with
-                SmallList [name; p1;p2]
-              | List [name; p1;p2] ->
-                  value_to_string name, value_to_int64 p1, value_to_int64 p2
+                SmallList [name; p1]
+              | List [name; p1] ->
+                  value_to_string name, value_to_int64 p1
               | _ -> assert false
-          )))
-    with _ -> ()
+		       ))) in
+     let file_t = 
+       new_file file_id file_name file_size file_tracker 
+	 file_piece_size file_files in
+       file_t.file_files <- file_files;
+       file_t
+     
+   with _ -> 
+     new_file file_id file_name file_size file_tracker 
+     file_piece_size []
   in
 
   (try 
@@ -178,8 +181,8 @@ let file_to_value file =
     "file_hashes", array_to_value 
       (to_value Sha1.option) file.file_chunks;
     "file_files", list_to_value ""
-      (fun (name, p1,p2) ->
-        SmallList [string_to_value name; int64_to_value p1; int64_to_value p2])
+      (fun (name, p1) ->
+        SmallList [string_to_value name; int64_to_value p1])
     file.file_files;
   ]
   

@@ -53,6 +53,9 @@ let file_num file =
 let file_must_update file =
   file_must_update (as_file file.file_file)
 
+let set_file_state file state = 
+ CommonFile.set_file_state (as_file file.file_file) state
+
 let client_type c = client_type (as_client c.client_client)
 
 let set_client_state client state =
@@ -107,10 +110,8 @@ let listen_sock = ref (None : TcpServerSocket.t option)
   
 let files_by_uid = Hashtbl.create 13
       
-let new_file file_id file_name file_size file_tracker piece_size = 
-  let file_temp = Filename.concat !!DO.temp_directory 
-      (Printf.sprintf "BT-%s" (Sha1.to_string file_id)) in
-  let t = Unix32.create_rw file_temp in
+let new_file file_id file_name file_size file_tracker piece_size file_u = 
+(*  let t = Unix32.create_rw file_temp in*)
   let swarmer = Int64Swarmer.create () in
   let partition = fixed_partition swarmer piece_size in
   let rec file = {
@@ -130,7 +131,7 @@ let new_file file_id file_name file_size file_tracker piece_size =
       file_blocks_downloaded = [];
     } and file_impl =  {
       dummy_file_impl with
-      impl_file_fd = t;
+      impl_file_fd = file_u;
       impl_file_size = file_size;
       impl_file_downloaded = Int64.zero;
       impl_file_val = file;
@@ -142,9 +143,9 @@ let new_file file_id file_name file_size file_tracker piece_size =
   Int64Swarmer.set_size swarmer file_size;  
   Int64Swarmer.set_writer swarmer (fun offset s pos len ->      
       if !!CommonOptions.buffer_writes then 
-        Unix32.buffered_write_copy t offset s pos len
+        Unix32.buffered_write_copy file_u offset s pos len
       else
-        Unix32.write t offset s pos len
+        Unix32.write file_u offset s pos len
   );
   Int64Swarmer.set_verifier partition (fun b ->
       if file.file_chunks = [||] then raise Not_found;
@@ -160,29 +161,30 @@ let new_file file_id file_name file_size file_tracker piece_size =
       if result then begin
           file.file_blocks_downloaded <- b :: file.file_blocks_downloaded;
           file_must_update file;
-	  (*Automatically send Have to ALL clients once a piece is verified
+(*Automatically send Have to ALL clients once a piece is verified
             NB : will probably have to check if client can be interested*)
           Hashtbl.iter (fun _ c ->
-                          let must_send = (not (Int64Swarmer.is_interesting file.file_partition c.client_bitmap )) in
-                            if ( must_send && 
-				 c.client_bitmap <> "" ) then             
-                              c.client_interesting <- false;
-                            begin
-                          match c.client_sock with
-                            | Connection sock -> 
-				if (c.client_bitmap.[num] <> '1') then
-                                  send_client c (Have (Int64.of_int num));
-                                    if (must_send && not 
-					  c.client_alrd_sent_notinterested) then
-                                      begin
-					c.client_alrd_sent_notinterested <- true;
-					send_client c NotInterested
-                                      end
-                                      
-				| _ -> ();
-                            end;
-				
-                       ) file.file_clients
+              if c.client_registered_bitfield then
+                begin
+                  let must_send = (not (Int64Swarmer.is_interesting file.file_partition c.client_bitmap )) in
+                  if must_send then
+                    c.client_interesting <- false;
+                  begin
+                    match c.client_sock with
+                    | Connection sock -> 
+                        if (c.client_bitmap.[num] <> '1') then
+                          send_client c (Have (Int64.of_int num));
+                        if (must_send && not 
+                              c.client_alrd_sent_notinterested) then
+                          begin
+                            c.client_alrd_sent_notinterested <- true;
+                            send_client c NotInterested
+                          end
+                    
+                    | _ -> ();
+                  end;
+                end				
+          ) file.file_clients
         end;
       result
   );
@@ -192,11 +194,19 @@ let new_file file_id file_name file_size file_tracker piece_size =
 (*      lprintf "ADD FILE TO DOWNLOAD LIST\n"; *)
   file
   
-let new_file file_id file_name file_size file_tracker piece_size =
+let new_file file_id file_name file_size file_tracker piece_size file_files =
   try
-    Hashtbl.find files_by_uid file_id
+    Hashtbl.find files_by_uid file_id;
   with Not_found -> 
-      new_file file_id file_name file_size file_tracker piece_size
+    let file_temp = Filename.concat !!DO.temp_directory 
+		      (Printf.sprintf "BT-%s" (Sha1.to_string file_id)) in
+    let file_u = 
+    if file_files <> [] then
+      Unix32.create_multifile file_temp [Unix.O_RDWR; Unix.O_CREAT] 0o666 file_files
+    else
+      Unix32.create_rw file_temp 
+    in
+      new_file file_id file_name file_size file_tracker piece_size file_u
   
 let new_client file peer_id kind =
   try
@@ -232,6 +242,7 @@ let new_client file peer_id kind =
           client_alrd_sent_interested = false;
           client_alrd_sent_notinterested = false;
           client_interesting = false;
+          client_registered_bitfield = false;
         } and impl = {
           dummy_client_impl with
           impl_client_val = c;

@@ -32,6 +32,14 @@ let max_cache_size = ref 50
 let mini (x: int) (y: int) =
   if x > y then y else x
 
+let really_write fd s pos len =
+  try
+    Unix2.really_write fd s pos len
+  with e ->
+      lprintf "Exception in really_write: pos=%d len=%d, string length=%d\n"
+        pos len (String.length s);
+      raise e
+    
 module FDCache = struct
     
     type t = {
@@ -120,7 +128,7 @@ module FDCache = struct
       let fd = local_force_fd file in
       let final_pos = Unix2.c_seek64 fd file_pos Unix.SEEK_SET in
       if verbose then lprintf "really_write %d\n" len;
-      Unix2.really_write fd string string_pos len
+      really_write fd string string_pos len
     
     
     let copy_chunk t1 t2 pos1 pos2 len =
@@ -488,7 +496,7 @@ TODO:
       let chunk_end = chunk_begin ++ chunk_len in
       let file_begin = file.pos in
       let file_end = file_begin ++ file.len in
-      if file_end > chunk_end then
+      if file_end >= chunk_end then
         let fd = FDCache.local_force_fd file.fd in
         fd, chunk_begin -- file_begin, None
       else
@@ -546,7 +554,7 @@ TODO:
       let chunk_end = chunk_begin ++ chunk_len in
       let file_begin = file.pos in
       let file_end = file_begin ++ file.len in
-      if file_end > chunk_end then
+      if file_end >= chunk_end then
         FDCache.read file.fd (chunk_begin -- file_begin)
         string string_pos len
       else
@@ -572,7 +580,7 @@ TODO:
         let chunk_end = chunk_begin ++ chunk_len in
         let file_begin = file.pos in
         let file_end = file_begin ++ file.len in
-        if file_end > chunk_end then
+        if file_end >= chunk_end then
           FDCache.write file.fd (chunk_begin -- file_begin)
           string string_pos len
         else
@@ -1047,4 +1055,26 @@ let rename t f =
 (* module MultiFile_Test = (MultiFile : File) *)
 module DiskFile_Test = (DiskFile : File)
 module SparseFile_Test = (SparseFile : File)
+
+  (*
+let _ =
   
+  let t = create_multifile "toto" MultiFile.access MultiFile.rights
+      [
+      "1", Int64.of_int 10;
+      "2", Int64.of_int 10;
+      "3", Int64.of_int 10;
+      "4", Int64.of_int 10;
+    ]
+  in
+  write t zero "1234567890" 0 10;
+  write t (Int64.of_int 10) "aaaaabbbbb" 0 10;
+  write t (Int64.of_int 20) "aaaaabbbbb" 0 10;
+  write t (Int64.of_int 30) "aaaaabbbbb" 0 10;
+  
+  let s = String.create 40 in
+  read t zero s 0 40;
+  lprintf "%s\n" s;
+  flush_fd t;
+  exit 2
+  *)

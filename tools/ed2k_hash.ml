@@ -33,7 +33,7 @@ let block_size = Int64.of_int 9728000
 
 let _ =
   Arg.parse [] (fun filename ->
-      let fd = Unix32.create filename  [Unix.O_RDONLY] 0o666 in
+      let fd = Unix32.create_ro filename in
       let file_size = Unix32.getsize64 filename in
       let nchunks = Int64.to_int (Int64.div 
             (Int64.sub file_size Int64.one) block_size) + 1 in

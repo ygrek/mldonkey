@@ -51,42 +51,46 @@ let disconnect_client c reason =
   if !verbose_msg_clients then
     lprintf "CLIENT %d: disconnected\n" (client_num c);
   begin
-  match c.client_sock with
-    NoConnection | ConnectionWaiting | ConnectionAborted -> ()
-  | Connection sock | CompressedConnection (_,_,_,sock) -> 
-      close sock reason;
-      try
-        List.iter (fun r -> Int64Swarmer.free_range r) c.client_ranges;
-        c.client_ranges <- [];
-        c.client_block <- None;
-        if not c.client_good then
-          connection_failed c.client_connection_control;
-        c.client_good <- false;
-        set_client_disconnected c reason;
-        (try close sock reason with _ -> ());
-        c.client_sock <- NoConnection;
-        let file = c.client_file in
-        c.client_chunks <- [];
-        c.client_allowed_to_write <- zero;
-        c.client_new_chunks <- [];
-        c.client_interesting <- false;
-        c.client_alrd_sent_interested <- false;
-        Int64Swarmer.unregister_uploader_bitmap 
-          file.file_partition c.client_bitmap;
-        for i = 0 to String.length c.client_bitmap - 1 do
-          c.client_bitmap.[0] <- '0';
-        done
-      with _ -> ()
+    match c.client_sock with
+      NoConnection | ConnectionWaiting | ConnectionAborted -> ()
+    | Connection sock | CompressedConnection (_,_,_,sock) -> 
+        close sock reason;
+        try
+          List.iter (fun r -> Int64Swarmer.free_range r) c.client_ranges;
+          c.client_ranges <- [];
+          c.client_block <- None;
+          if not c.client_good then
+            connection_failed c.client_connection_control;
+          c.client_good <- false;
+          set_client_disconnected c reason;
+          (try close sock reason with _ -> ());
+          c.client_sock <- NoConnection;
+          let file = c.client_file in
+          c.client_chunks <- [];
+          c.client_allowed_to_write <- zero;
+          c.client_new_chunks <- [];
+          c.client_interesting <- false;
+          c.client_alrd_sent_interested <- false;
+          if (c.client_registered_bitfield) then
+            begin
+              Int64Swarmer.unregister_uploader_bitmap 
+                file.file_partition c.client_bitmap;
+              c.client_registered_bitfield <- false;
+              for i = 0 to String.length c.client_bitmap - 1 do
+                c.client_bitmap.[0] <- '0';
+              done
+            end
+        with _ -> ()
   end;
   match reason with 
-    | Closed_connect_failed -> 
-	if c.client_num_try = 2 then	
-	    remove_client c
-	else	
-	    c.client_num_try <- c.client_num_try+1
-    | _ -> ()
-	
-
+  | Closed_connect_failed -> 
+      if c.client_num_try = 2 then	
+        remove_client c
+      else	
+        c.client_num_try <- c.client_num_try+1
+  | _ -> ()
+      
+    
 let disconnect_clients file = 
   Hashtbl.iter (fun _ c ->
       if !verbose_msg_clients then
@@ -98,7 +102,6 @@ let download_finished file =
   if List.memq file !current_files then begin      
       file_completed (as_file file.file_file);
       BTGlobals.remove_file file;
-      old_files =:= (file.file_name, file_size file) :: !!old_files;
       disconnect_clients file
     end
     
@@ -245,13 +248,12 @@ and update_client_bitmap c =
     let chunks = c.client_new_chunks in
     c.client_new_chunks <- [];
     let file = c.client_file in
-    Int64Swarmer.unregister_uploader_bitmap 
-      file.file_partition c.client_bitmap;
     List.iter (fun n ->
         c.client_bitmap.[n] <- '1') chunks;
     let bs = 
       Int64Swarmer.register_uploader_bitmap file.file_partition 
         c.client_bitmap in
+    c.client_registered_bitfield <- true;
     c.client_blocks <- bs
 
 and get_from_client sock (c: client) =

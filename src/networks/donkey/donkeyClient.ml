@@ -606,7 +606,7 @@ let init_client_connection c sock =
 (*    lprintf "Emule Extended Protocol query"; lprint_newline ();*)
       let module E = M.EmuleClientInfo in
       emule_send sock (M.EmuleClientInfoReq {
-          E.version = !!emule_protocol_version; 
+          E.version = (* !!emule_protocol_version*) 0x30; 
           E.protversion = 0x1;
           E.tags = !emule_info_tags;
         })
@@ -719,7 +719,7 @@ let client_to_client challenge for_files c t sock =
       if supports_eep c.client_brand then  begin
           let module E = M.EmuleClientInfo in
           emule_send sock (M.EmuleClientInfoReplyReq {
-              E.version = !!emule_protocol_version; 
+              E.version = (*!!emule_protocol_version*) 0x30; 
               E.protversion = 0x1;
               E.tags = !emule_info_tags;
             })

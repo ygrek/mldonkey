@@ -199,11 +199,13 @@ let protocol_version =
     "The version of the protocol that should be sent to servers "
     int_option 61
   
+  (*
 let emule_protocol_version = 
   define_expert_option donkey_section ["emule_protocol_version"] 
     "The version of the protocol that should be sent to eMule peers "
     int_option 0x26
-  
+    *)
+
 let queued_timeout = 
   define_expert_option donkey_section ["queued_timeout"] 
     "How long should we wait in the queue of another client"

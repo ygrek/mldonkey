@@ -70,6 +70,14 @@ let _ =
       Buffer.contents buf
   );
   file_ops.op_file_commit <- (fun file new_name ->
+	if not (List.mem (file.file_name, file_size file) !!old_files) then
+	  begin
+	    old_files =:= (file.file_name, file_size file) :: !!old_files;
+	    set_file_state file FileShared;
+	    try Unix32.rename (file_fd file) (new_name) with _ -> ()
+	  end	
+			     )
+(*
       try
         if file.file_files <> [] then 
 	  let base_dir_name = if String2.check_suffix new_name ".torrent" then
@@ -95,7 +103,7 @@ let _ =
       with e ->
           lprintf "Exception %s while commiting BitTorrent file"
             (Printexc.to_string e)
-  ) 
+  ) *)
   
   
 module P = GuiTypes
@@ -123,7 +131,7 @@ let _ =
         P.file_download_rate = file_download_rate file.file_file;
         P.file_chunks = Int64Swarmer.verified_bitmap file.file_partition;
         P.file_availability = 
-        [network.network_num,Int64Swarmer.verified_bitmap file.file_partition];
+        [network.network_num,Int64Swarmer.availability file.file_partition];
         P.file_format = FormatNotComputed 0;
         P.file_chunks_age = [|0|];
         P.file_age = file_age file;
@@ -197,7 +205,7 @@ let load_torrent_file filename =
                                 
                                 assert (!current_length <> zero);
                                 assert (!current_file <> "");
-                                file_files := (!current_file, !current_pos, !current_pos ++ !current_length) :: !file_files;
+                                file_files := (!current_file, !current_length) :: !file_files;
                                 current_pos := !current_pos ++ !current_length
                             
                             | _ -> assert false
@@ -245,11 +253,11 @@ let load_torrent_file filename =
         Sha1.direct_of_string s
     ) in
   
-  if !file_files <> [] && not (String2.check_suffix !file_name ".torrent") then
-    file_name := !file_name ^ ".torrent";
-
+(*  if !file_files <> [] && not (String2.check_suffix !file_name ".torrent") then
+    file_name := !file_name ^ ".torrent";*)
+    file_files := List.rev !file_files;
   let file = new_file file_id !file_name !length 
-      !announce !file_piece_size
+      !announce !file_piece_size !file_files
   in
   file.file_files <- !file_files;
   file.file_chunks <- pieces;
