@@ -125,7 +125,7 @@ type file_tag_name =
 | FT_FILE_DISKNAME
 | FT_FILE_PRIORITY
 | FT_FILE_STATUS
-  
+*)  
 type emule_tag_name =
 | ET_COMPRESSION
 | ET_UDPPORT
@@ -140,14 +140,13 @@ type emule_tag_name =
 | ET_MOD_TAROD
 | ET_TAROD_VERSION
 | ET_MOD_PLUS
-  
+(*  
 type pref_tag_name =
 | PT_PREF_NAME
 | PT_PREF_PORT
 | PT_PREF_VERSION
 | PT_PREF_TEMP
     *)
-
 type request_record = {
   mutable last_request : int;
   mutable nwarnings : int;
@@ -183,6 +182,59 @@ type brand =
   
 let brand_count = 12
   
+type brand_mod =
+  Brand_mod_unknown
+| Brand_mod_extasy
+| Brand_mod_hunter
+| Brand_mod_sivka
+| Brand_mod_ice
+| Brand_mod_plus
+| Brand_mod_lsd
+| Brand_mod_maella
+| Brand_mod_pille
+| Brand_mod_morphkad
+| Brand_mod_efmod
+| Brand_mod_xtreme
+| Brand_mod_bionic
+| Brand_mod_pawcio
+| Brand_mod_zzul
+| Brand_mod_blackhand
+| Brand_mod_lovelace
+| Brand_mod_morphnext
+| Brand_mod_fincan
+| Brand_mod_ewombat
+| Brand_mod_morph
+| Brand_mod_mortillo
+| Brand_mod_lh
+| Brand_mod_emulespana
+| Brand_mod_blackrat
+| Brand_mod_enkeydev
+| Brand_mod_gnaddelwarz
+| Brand_mod_phoenixkad
+| Brand_mod_koizo
+| Brand_mod_ed2kfiles
+| Brand_mod_athlazan
+| Brand_mod_cryptum
+| Brand_mod_lamerzchoice
+| Brand_mod_notdead
+| Brand_mod_peace
+| Brand_mod_goldicryptum
+| Brand_mod_eastshare
+| Brand_mod_mfck
+| Brand_mod_echanblard
+| Brand_mod_sp4rk
+| Brand_mod_powermule
+| Brand_mod_bloodymad
+| Brand_mod_roman2k
+| Brand_mod_gammaoh
+| Brand_mod_elfenwombat
+| Brand_mod_o2
+| Brand_mod_dm
+| Brand_mod_sfiom
+| Brand_mod_magic_elseve
+
+let brand_mod_count = 49
+
 type server = (*[]*){
     mutable server_server : server CommonServer.server_impl;
     mutable server_ip : Ip.t;
@@ -304,6 +356,7 @@ and client = {
     mutable client_downloaded : Int64.t;
     mutable client_uploaded : Int64.t;
     mutable client_brand : brand;
+    mutable client_mod_brand : brand_mod;
     mutable client_banned : bool;
     mutable client_overnet : bool;
     mutable client_score : int;
@@ -596,6 +649,14 @@ type brand_stat = {
   mutable brand_upload : Int64.t;
 }
   
+type brand_mod_stat = {
+  mutable brand_mod_seen : int;
+  mutable brand_mod_banned : int;
+  mutable brand_mod_filerequest : int;
+  mutable brand_mod_download : Int64.t;
+  mutable brand_mod_upload : Int64.t;
+}
+
 let dummy_stats =
   {
     brand_seen = 0;
@@ -603,6 +664,15 @@ let dummy_stats =
     brand_filerequest = 0;
     brand_download = Int64.zero;
     brand_upload = Int64.zero
+  }
+
+let dummy_mod_stats =
+  {
+    brand_mod_seen = 0;
+    brand_mod_banned = 0;
+    brand_mod_filerequest = 0;
+    brand_mod_download = Int64.zero;
+    brand_mod_upload = Int64.zero
   }
 
   (*

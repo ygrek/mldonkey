@@ -610,12 +610,15 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
 
       let defaultHeader () = 
         
-        html_mods_table_header buf "sourcesTable" "sources al" [ 
+        html_mods_table_header buf "sourcesTable" "sources al" ([ 
           ( "1", "srh ac", "Client number (click to add as friend)", "Num" ) ; 
           ( "0", "srh", "[A] = Active download from client", "A" ) ; 
           ( "0", "srh", "Client state", "CS" ) ; 
           ( "0", "srh", "Client name", "Name" ) ; 
           ( "0", "srh", "Client brand", "CB" ) ; 
+	  ] @
+          (if !!emule_mods_count then [( "0", "srh", "eMule MOD", "EM" )] else [])
+	  @ [
           ( "0", "srh", "Overnet [T]rue, [F]alse", "O" ) ; 
           ( "0", "srh", "Connection [I]ndirect, [D]irect", "C" ) ; 
           ( "0", "srh br", "IP address", "IP address" ) ; 
@@ -636,7 +639,7 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
                 (Array.init (String.length info.G.file_chunks)
                 (fun i -> ((int_of_char info.G.file_chunks.[i])-48)))) ) ; 
           ( "1", "srh ar", "Number of full chunks", (Printf.sprintf "%d"
-                (let fc = ref 0 in (String.iter (fun s -> if s = '2' then incr fc) info.G.file_chunks );!fc ))) ];
+                (let fc = ref 0 in (String.iter (fun s -> if s = '2' then incr fc) info.G.file_chunks );!fc ))) ]);
       
       in
       

@@ -758,7 +758,9 @@ let buffer_writes_threshold = define_expert_option current_section ["buffer_writ
   "Flush buffers if buffers exceed buffer_writes_threshold kB (experimental)" 
     int_option 1024
   
-
+let emule_mods_count = define_option current_section ["emule_mods_count"]
+    "build statistics about eMule mods"
+    bool_option false
 
   (*
 let password = define_option current_section ["password"] 

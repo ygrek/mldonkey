@@ -1,6 +1,14 @@
 ChangeLog	
 =========
 
+2004/01/14: Fabrice
+  * Applied Savannah patches:
+     #2475, #2474 (bin modes), #2479 (BT), #2473 (negative time),
+     #2437 (force-download typo), #2423 ("links" command), #2421 (connecttime),
+     #2417 (message 21), #2415 (LSD not banned), #2414 (old GUI),
+     #2413 (emule tags), #2411 (emule stats), #2473 (telnet)
+  * Applied Pango's patch: common_recover_temp
+
 2003/12/22: Fabrice
   * make_torrent: 
      * .torrent filename is specified by -torrent
@@ -10,7 +18,7 @@ ChangeLog
 
 2003/12/17: Fabrice
   * Applied upload_slots patch again
-	
+
 2003/12/16: Dek
   * mldonkey CVS moved to berlios until savannah is back again.
      see https://developer.berlios.de/cvs/?group_id=610 
@@ -21,7 +29,6 @@ ChangeLog
      emule_tags, upload_cnum, suxx_wap, mld_cb10, remove_challenge,
      upload_slots, html_gnutella2, amule
      
-
 2003/12/15: Fabrice
   * Modified "forget" command
   * Bittorrent: crash when commiting directories fixed

@@ -43,9 +43,49 @@ open BTGlobals
 open BTComplexOptions
 
 open BTProtocol
+open BTChooser
   
 let http_ok = "HTTP 200 OK"
 let http11_ok = "HTTP/1.1 200 OK"
+  
+
+let next_uploaders = ref ([] : BTTypes.client list)
+let current_uploaders = ref ([] : BTTypes.client list)
+
+
+let recompute_uploaders () =
+
+      next_uploaders := choose_next_uploaders 
+	(List.filter 
+	   (fun f -> file_state f = FileDownloading ) 
+	   !current_files );
+      
+      
+	(*TODO : Choose optimistic every 30 sec*)
+      
+      (*don't send Choke if new client is already a current client *)      
+      (*send choke to others*)
+      (*i hope that == will work between two clients*)
+      
+      List.iter ( fun c -> if ((List.mem c !next_uploaders)==false) then
+		    begin
+		      set_client_has_a_slot (as_client c) false;
+		      (*we will let him finish is download and choke him on next_request*)
+		    end
+		) !current_uploaders;
+      
+      List.iter ( fun c -> if ((List.mem c !current_uploaders)==false) then
+		    begin
+		      set_client_has_a_slot (as_client c) true;
+		      Rate.update_no_change c.client_downloaded_rate;
+		      Rate.update_no_change c.client_upload_rate;
+		      c.client_last_optimist<- last_time();
+		      client_enter_upload_queue (as_client c);
+		      send_client c Unchoke;
+		    end
+		) !next_uploaders;
+      current_uploaders := !next_uploaders
+
   
 let disconnect_client c reason =
   if !verbose_msg_clients then
@@ -71,20 +111,24 @@ let disconnect_client c reason =
           c.client_new_chunks <- [];
           c.client_interesting <- false;
           c.client_alrd_sent_interested <- false;
+	  if (c.client_registered_bitfield) then
+	    begin
           Int64Swarmer.unregister_uploader_bitmap 
             file.file_partition c.client_bitmap;
+	      c.client_registered_bitfield <- false;
           for i = 0 to String.length c.client_bitmap - 1 do
             c.client_bitmap.[0] <- '0';
           done
-        with _ -> ()
   end;
-  match reason with 
-  | Closed_connect_failed -> 
-      if c.client_num_try = 2 then	
-        remove_client c
+	  if client_has_a_slot (as_client c) then
+	    begin
+              remove_client c;
+	      recompute_uploaders ();
+	    end
       else	
-        c.client_num_try <- c.client_num_try+1
-  | _ -> ()
+	    remove_client c;
+        with _ -> ()
+  end
       
     
 let disconnect_clients file = 
@@ -98,7 +142,29 @@ let download_finished file =
   if List.memq file !current_files then begin      
       file_completed (as_file file.file_file);
       BTGlobals.remove_file file;
-      disconnect_clients file
+      disconnect_clients file;
+      (*Send info to tracker*)
+      let args = 
+	("info_hash", Sha1.direct_to_string file.file_id) ::
+	("peer_id", Sha1.direct_to_string !!client_uid) ::
+	("port", string_of_int !!client_port) ::
+	("uploaded", Int64.to_string file.file_uploaded) ::
+	("downloaded", Int64.to_string
+	   (Int64Swarmer.downloaded file.file_swarmer)) ::
+	("left", Int64.to_string ((file_size file) -- 
+				  (Int64Swarmer.downloaded file.file_swarmer)) ) ::
+	[("event", "completed" )]
+      in
+	
+      let module H = Http_client in
+      let r = {
+	H.basic_request with
+	  H.req_url = Url.of_string ~args: args file.file_tracker;
+	  H.req_proxy = !CommonOptions.http_proxy;
+	  H.req_user_agent = 
+	Printf.sprintf "MLdonkey %s" Autoconf.current_version;
+      } in
+	H.wget r (fun f -> ())     
     end
     
 let (++) = Int64.add
@@ -122,9 +188,6 @@ let bits = [| 128; 64; 32;16;8;4;2;1 |]
 (*Official client seems to use max_range_request 5 and max_range_len 2^14*)
 let max_range_requests = 5
 let max_range_len = 1 lsl 14
-let max_uploaders = 5
-let next_uploaders = ref ([] : BTTypes.client list)
-let current_uploaders = ref ([] : BTTypes.client list)
 
     
 let send_interested c = 
@@ -133,6 +196,26 @@ let send_interested c =
       c.client_alrd_sent_interested <- true;
       send_client c Interested
     end
+
+let send_bitfield c = 
+  let bitmap = Int64Swarmer.verified_bitmap c.client_file.file_partition in
+    send_client c (BitField 
+		     (        
+		       let nchunks = String.length bitmap in
+		       let len = (nchunks+7)/8 in
+		       let s = String.make len '\000' in
+			 for i = 0 to nchunks - 1 do
+			   let n = i lsr 3 in
+			   let j = i land 7 in
+			     (* In the future, only accept bitmap.[n] > '2' when verification works *)
+			     if bitmap.[i] >= '2' then begin
+			       s.[n] <- char_of_int (int_of_char s.[n]
+						     lor bits.(j))
+			     end
+			 done;
+			 s
+		     ))
+      
 
   
 let counter = ref 0
@@ -195,28 +278,16 @@ let rec client_parse_header counter cc init_sent gconn sock
     );
     
     set_client_state (c) (Connected (-1));
-    if not init_sent then send_init file c sock;
+    if not init_sent then 
+      begin
+        c.client_incoming<-true;
+        send_init file c sock;
+      end;
     connection_ok c.client_connection_control;
     if !verbose_msg_clients then
       lprintf "file and client found\n";
-    let bitmap = Int64Swarmer.verified_bitmap file.file_partition in
-    if bitmap <> "" then
-      send_client c (BitField 
-          (        
-          let nchunks = String.length bitmap in
-          let len = (nchunks+7)/8 in
-          let s = String.make len '\000' in
-          for i = 0 to nchunks - 1 do
-            let n = i lsr 3 in
-            let j = i land 7 in
-(* In the future, only accept bitmap.[n] > '2' when verification works *)
-            if bitmap.[i] >= '2' then begin
-                s.[n] <- char_of_int (int_of_char s.[n]
-                    lor bits.(j))
-              end
-          done;
-          s
-        )); 
+    if not c.client_incoming then
+      send_bitfield c;
     c.client_blocks_sent <- file.file_blocks_downloaded;
 
 
@@ -246,13 +317,13 @@ and update_client_bitmap c =
     let file = c.client_file in
     List.iter (fun n ->
         c.client_bitmap.[n] <- '1') chunks;
-              
+
 (* As we are lazy, we don't send this event...
         CommonEvent.add_event (File_update_availability
             (as_file file.file_file, as_client c, 
             String.copy bitmap));
 *)
-
+    
     let bs = 
       Int64Swarmer.register_uploader_bitmap file.file_partition 
         c.client_bitmap in
@@ -422,10 +493,10 @@ and client_to_client c sock msg =
 (*we are probably an optimistic uploaders for this client
              don't miss the oportunity if we can*)
             current_uploaders := c::(!current_uploaders);
-            send_client c Unchoke;
             c.client_sent_choke <- false;
             set_client_has_a_slot (as_client c) true;
-            client_enter_upload_queue (as_client c)
+            client_enter_upload_queue (as_client c);
+            send_client c Unchoke;
           end;
     
     | BitField p ->
@@ -447,21 +518,22 @@ and client_to_client c sock msg =
               bitmap.[i*8+j] <- '0';	    
           done;
         done;
-                
+        
         CommonEvent.add_event (File_update_availability
             (as_file file.file_file, as_client c, 
             String.copy bitmap));
-
+        
         if !verbose_msg_clients then 
           lprintf "BitField translated\n";
-        Int64Swarmer.unregister_uploader_bitmap 
-          file.file_partition c.client_bitmap;
         if !verbose_msg_clients then 
           lprintf "Old BitField Unregistered\n";
         let bs = 
           Int64Swarmer.register_uploader_bitmap file.file_partition bitmap in
+        c.client_registered_bitfield <- true;	  
         c.client_blocks <- bs;
         c.client_bitmap <- bitmap;
+        if c.client_incoming then
+          send_bitfield c;
         send_interested c;
         if !verbose_msg_clients then 
           lprintf "New BitField Registered\n";
@@ -494,7 +566,7 @@ and client_to_client c sock msg =
     | Choke ->
         begin
           set_client_state (c) (Connected (-1));
-          (*remote peer will clear the list of range we send*)
+(*remote peer will clear the list of range we send*)
           c.client_ranges <- [];
           c.client_choked <- true;
         end
@@ -505,7 +577,7 @@ and client_to_client c sock msg =
     | Unchoke ->
         begin
           c.client_choked <- false;
-          (*remote peer cleared our request : re-request*)
+(*remote peer cleared our request : re-request*)
           for i = 1 to max_range_requests - 
             List.length c.client_ranges do
             (try get_from_client sock c with _ -> ())
@@ -516,23 +588,23 @@ and client_to_client c sock msg =
     | Request (n, pos, len) ->
         if !CommonUploads.has_upload = 0 then
           begin
-            match c.client_upload_requests with
-              [] ->
-                if client_has_a_slot (as_client c) then
-                  begin
+            if client_has_a_slot (as_client c) then
+              begin
+                match c.client_upload_requests with
+                  [] ->
                     CommonUploads.ready_for_upload (as_client c);
                     c.client_upload_requests <- 
-                    c.client_upload_requests @ [n,pos,len];                 
-                  end
-                else
-                  begin
-                    send_client c Choke;
-                    c.client_sent_choke <- true;
-                    c.client_upload_requests <- [];                 
-                  end
-            | _ -> ()        
+                      c.client_upload_requests @ [n,pos,len];                 
+                | _ -> ()        
+              end
+            else
+              begin
+                send_client c Choke;
+                c.client_sent_choke <- true;
+                c.client_upload_requests <- [];                 
+              end
           end;
-    
+        
     
     | Ping -> ()
     
@@ -689,12 +761,12 @@ let send_pings () =
           match c.client_sock with
           | Connection sock -> 
               send_client c Ping;
-	      set_lifetime sock 100.;
+	      set_lifetime sock 130.;
           | _ -> ()
       ) file.file_clients
   ) !current_files
 
-
+(*
 let recompute_uploaders () =
   let max_list = ref ([] : BTTypes.client list) in
   let possible_uploaders = ref ([] :  BTTypes.client list) in
@@ -755,7 +827,7 @@ let recompute_uploaders () =
         end
   ) !next_uploaders;
   current_uploaders := !next_uploaders
-  
+  *)
 
 open Bencode
 
@@ -780,7 +852,6 @@ let connect_tracker file url =
     file.file_tracker_connected <- true;
     
     let v = Bencode.decode (File.to_string filename) in
-    file.file_tracker_connected <- true;
     file.file_tracker_last_conn <- last_time ();
     let interval = ref 600 in
     match v with
@@ -835,8 +906,9 @@ let connect_tracker file url =
     ("info_hash", Sha1.direct_to_string file.file_id) ::
     ("peer_id", Sha1.direct_to_string !!client_uid) ::
     ("port", string_of_int !!client_port) ::
-    ("uploaded", "0" ) ::
-    ("downloaded", "0" ) ::
+    ("uploaded", Int64.to_string file.file_uploaded) ::
+    ("downloaded", Int64.to_string
+       (Int64Swarmer.downloaded file.file_swarmer)) ::
     ("left", Int64.to_string ((file_size file) -- 
           (Int64Swarmer.downloaded file.file_swarmer)) ) ::
     args
@@ -845,12 +917,13 @@ let connect_tracker file url =
   let module H = Http_client in
   let r = {
       H.basic_request with
-      H.req_url = Url.of_string ~args: args url;
+      H.req_url = Url.of_string ~args: args file.file_tracker;
       H.req_proxy = !CommonOptions.http_proxy;
       H.req_user_agent = 
       Printf.sprintf "MLdonkey %s" Autoconf.current_version;
-    } in
-  H.wget r f
+      } in
+    if file.file_clients_num < !!ask_tracker_threshold then
+      H.wget r f
   
 let recover_files () =
   List.iter (fun file ->
@@ -880,7 +953,8 @@ let rec iter_upload sock c =
           let len = Int64.to_int len in
 (*          CommonUploads.consume_bandwidth (len/2); *)
           Unix32.read (file_fd file) offset upload_buffer 0 len;
-          
+            Rate.update c.client_upload_rate  (float_of_int len);
+	    file.file_uploaded <- file.file_uploaded ++ (Int64.of_int len);
 (*          lprintf "sending piece\n"; *)
           send_client c (Piece (num, pos, upload_buffer, 0, len));
           iter_upload sock c
@@ -907,6 +981,37 @@ let file_resume file =
   resume_clients file;
   (try connect_tracker file file.file_tracker  with _ -> ())
 
+
+(*Send info to tracker when stopping a file 
+*)
+let file_stop file =
+    if file.file_tracker_connected then 
+      begin
+	file.file_tracker_connected <- false;
+  let args = 
+    ("info_hash", Sha1.direct_to_string file.file_id) ::
+    ("peer_id", Sha1.direct_to_string !!client_uid) ::
+    ("port", string_of_int !!client_port) ::
+    ("uploaded", Int64.to_string file.file_uploaded) ::
+    ("downloaded", Int64.to_string
+       (Int64Swarmer.downloaded file.file_swarmer)) ::
+    ("left", Int64.to_string ((file_size file) -- 
+          (Int64Swarmer.downloaded file.file_swarmer)) ) ::
+    [("event", "stopped" )]
+  in
+  
+  let module H = Http_client in
+  let r = {
+    H.basic_request with
+      H.req_url = Url.of_string ~args: args file.file_tracker;
+      H.req_proxy = !CommonOptions.http_proxy;
+      H.req_user_agent = 
+    Printf.sprintf "MLdonkey %s" Autoconf.current_version;
+  } in
+    H.wget r (fun f->());
+      end
+      
+      
 let _ =
   client_ops.op_client_can_upload <- client_can_upload;
   file_ops.op_file_resume <- file_resume;
@@ -916,7 +1021,8 @@ let _ =
           match c.client_sock with
             Connection sock -> close sock Closed_by_user
           | _ -> ()
-      ) file.file_clients
+      ) file.file_clients;
+      file_stop file
   );
   client_ops.op_client_enter_upload_queue <- (fun c ->
       if !verbose_msg_clients then

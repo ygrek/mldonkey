@@ -77,6 +77,7 @@ type gui_client_info = {
     mutable gclient_rating : int;
     mutable gclient_connect_time : int;
     mutable gclient_software : string;
+    mutable gclient_emulemod : string;
     mutable gclient_downloaded : int64;
     mutable gclient_uploaded : int64;
     mutable gclient_upload : string option;

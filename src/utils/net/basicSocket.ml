@@ -112,11 +112,11 @@ let maxi (x: int) (y: int) =
 let infinite_timeout = 3600. *. 24. *. 365. (* one year ! *)
 
 let current_time = ref (Unix.gettimeofday ())
-let last_time = ref (int_of_float !current_time - 1000000000)
+let last_time = ref (int_of_float (!current_time -. 1000000000.))
   
 let update_time () =
   current_time := Unix.gettimeofday ();
-  last_time := (int_of_float !current_time - 1000000000);
+  last_time := (int_of_float (!current_time -. 1000000000.));
   !current_time
 
 let fd t = t.fd
@@ -499,11 +499,11 @@ let close_all () =
 let last_time () = !last_time
 let start_time = last_time ()
 let date_of_int date = 
-  float_of_int (if date >= 1000000000 then date else date + 1000000000)
+  if date >= 1000000000 then (float_of_int date) else (float_of_int date +. 1000000000.)
   
 let string_of_date date = Date.to_string (date_of_int date)
-let normalize_time time = 
-  if time >=  1000000000 then time - 1000000000 else time
+let normalize_time time =
+  if time >= 1000000000 || time < 0 then time - 1000000000 else time
 
 let use_threads = ref true
 external has_threads : unit -> bool = "ml_has_pthread"

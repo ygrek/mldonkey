@@ -353,6 +353,7 @@ let _ =
         P.client_chat_port = 0 ;
         P.client_connect_time = BasicSocket.last_time ();
         P.client_software = "";
+        P.client_emulemod = "";
         P.client_downloaded = zero;
         P.client_uploaded = zero;
         P.client_upload = None;

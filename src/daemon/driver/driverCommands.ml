@@ -229,18 +229,21 @@ let commands = [
         let buf = o.conn_buf in
         
         if use_html_mods o then
-          html_mods_table_header buf "downloadersTable" "downloaders" [ 
-            ( "1", "srh ac", "Client number (click to add as friend)", "Num" ) ; 
-            ( "0", "srh", "Client state", "CS" ) ; 
-            ( "0", "srh", "Client name", "Name" ) ; 
-            ( "0", "srh", "Client brand", "CB" ) ; 
-            ( "0", "srh", "Overnet [T]rue, [F]alse", "O" ) ; 
-            ( "1", "srh ar", "Connected time (minutes)", "CT" ) ; 
-            ( "0", "srh", "Connection [I]ndirect, [D]irect", "C" ) ; 
-            ( "0", "srh", "IP address", "IP address" ) ; 
-            ( "1", "srh ar", "Total UL bytes to this client for all files", "UL" ) ; 
-            ( "1", "srh ar", "Total DL bytes from this client for all files", "DL" ) ; 
-            ( "0", "srh", "Filename", "Filename" ) ]; 
+          html_mods_table_header buf "downloadersTable" "downloaders" ([ 
+              ( "1", "srh ac", "Client number (click to add as friend)", "Num" ) ; 
+              ( "0", "srh", "Client state", "CS" ) ; 
+              ( "0", "srh", "Client name", "Name" ) ; 
+              ( "0", "srh", "Client brand", "CB" ) ; 
+            ] @
+              (if !!emule_mods_count then [( "0", "srh", "eMule MOD", "EM" )] else [])
+            @ [
+              ( "0", "srh", "Overnet [T]rue, [F]alse", "O" ) ; 
+              ( "1", "srh ar", "Connected time (minutes)", "CT" ) ; 
+              ( "0", "srh", "Connection [I]ndirect, [D]irect", "C" ) ; 
+              ( "0", "srh", "IP address", "IP address" ) ; 
+              ( "1", "srh ar", "Total UL bytes to this client for all files", "UL" ) ; 
+              ( "1", "srh ar", "Total DL bytes from this client for all files", "DL" ) ; 
+              ( "0", "srh", "Filename", "Filename" ) ]); 
         
         let counter = ref 0 in
         
@@ -628,6 +631,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                         strings_of_option term_ansi; 
                         strings_of_option messages_filter; 
                         strings_of_option max_displayed_results; 
+                        strings_of_option emule_mods_count; 
                         strings_of_option chat_app_port; 
                         strings_of_option chat_app_host; 
                         strings_of_option chat_console_id; 
@@ -808,7 +812,12 @@ the name between []"
             ( "1", "srh", "Total file requests", "Reqs" ) ; 
             ( "1", "srh", "Total bytes sent", "Total" ) ; 
             ( "1", "srh", "Upload Ratio", "UPRatio" ) ;
-            ( "0", "srh", "Filename", "Filename" ) ]; 
+            ( "0", "srh", "Filename", "Filename" ) ]
+        else
+          begin
+            Printf.bprintf buf " Requests |  Bytes   | Uploaded | File\n";
+            Printf.bprintf buf "----------+----------+----------+----------------------------------------------------\n";
+          end;
         
         let counter = ref 0 in 
         
@@ -843,9 +852,11 @@ the name between []"
                 Printf.bprintf buf "\\</tr\\>\n";
               end
             else
-              Printf.bprintf buf "%-50s requests: %8d bytes: %10s\n"
-                (Filename.basename impl.impl_shared_codedname) impl.impl_shared_requests
-                (Int64.to_string impl.impl_shared_uploaded);
+              Printf.bprintf buf "%9d | %8s | %7s%% | %-50s\n"
+                (impl.impl_shared_requests)
+              (size_of_int64 impl.impl_shared_uploaded)
+              (Printf.sprintf "%3.1f" ((Int64.to_float impl.impl_shared_uploaded *. 100.) /. Int64.to_float impl.impl_shared_size))
+              (shorten (Filename.basename impl.impl_shared_codedname) !!max_name_len);
         ) list;
         
         if use_html_mods o then Printf.bprintf buf "\\</table\\>\\</div\\>\\</div\\>";
@@ -853,6 +864,26 @@ the name between []"
         
         "done"
     ), ":\t\t\t\tstatistics on upload";
+    
+    "links", Arg_none (fun o ->
+        let buf = o.conn_buf in
+        let list = ref [] in
+        shared_iter (fun s ->
+            let impl = as_shared_impl s in
+            list := impl :: !list );
+        let list = Sort.list (fun f1 f2 ->
+              (f1.impl_shared_requests = f2.impl_shared_requests &&
+                f1.impl_shared_uploaded > f2.impl_shared_uploaded) ||
+              (f1.impl_shared_requests > f2.impl_shared_requests )
+          ) !list in
+        List.iter (fun impl ->
+            if (impl.impl_shared_id <> Md4.null) then Printf.bprintf buf "ed2k://|file|%s|%s|%s|/\n"
+                (Filename.basename impl.impl_shared_codedname)
+              (Int64.to_string impl.impl_shared_size)
+              (Md4.to_string impl.impl_shared_id);
+        ) list;
+        "Done"
+    ), ":\t\t\t\t\tlist links of shared files";
     
     "add_url", Arg_two (fun kind url o ->
         let buf = o.conn_buf in
@@ -1003,16 +1034,19 @@ the name between []"
         Printf.bprintf  buf "Searching %d queries\n" (
           List.length user.ui_user_searches);
         List.iter (fun s ->
-            Printf.bprintf buf "%s[%-5d]%s %s %s\n" 
-              (if o.conn_output = HTML then 
-                Printf.sprintf "\\<a href=\\\"submit\\?q=forget\\+%d\\\"\\>[Forget]\\</a\\> \\<a href=\\\"submit\\?q=vr\\+%d\\\"\\>" s.search_num s.search_num
+            Printf.bprintf buf "%s[%-5d]%s %s %s (found %d)\n"
+              (if o.conn_output = HTML then
+                Printf.sprintf "\\<a href=\\\"submit\\?q=forget\\+%d\\\" target=fstatus\\>[Forget]\\</a\\> \\<a href=\\\"submit\\?q=vr\\+%d\\\"\\>" s.search_num s.search_num 
               else "")
             s.search_num 
               s.search_string
               (if o.conn_output = HTML then "\\</a\\>" else "")
             (if s.search_waiting = 0 then "done" else
                 string_of_int s.search_waiting)
-        ) user.ui_user_searches; ""), ":\t\t\t\t\tview all queries";
+            s.search_nresults
+        ) (Sort.list (fun f1 f2 -> f1.search_num < f2.search_num)
+          user.ui_user_searches); ""), ":\t\t\t\t\tview all queries";
+    
     
     "view_custom_queries", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -1160,6 +1194,15 @@ the name between []"
           "directory already unshared"
     
     ), "<dir> :\t\t\t\tshare directory <dir>";
+    
+    "recover_temp", Arg_none (fun o ->
+        networks_iter (fun r ->
+            try
+              CommonNetwork.network_recover_temp r
+            with _ -> ()
+        );	
+        "done"
+    ), ":\t\t\t\trecover lost files from temp directory";
     
     "pause", Arg_multiple (fun args o ->
         if args = ["all"] then
@@ -1330,10 +1373,28 @@ the name between []"
     "forget", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
         let user = o.conn_user in
-        List.iter (fun arg ->
-            let num = int_of_string arg in
-            CommonSearch.search_forget user (CommonSearch.search_find num)
-        ) args;        ""  
+        begin
+          match args with
+            ["all"] ->
+              List.iter (fun s ->
+                  CommonSearch.search_forget user (CommonSearch.search_find s.search_num);  
+              ) user.ui_user_searches
+          | [] ->
+              begin
+                match user.ui_user_searches with
+                  [] -> ()
+                | s :: _ ->
+                    CommonSearch.search_forget user
+                      (CommonSearch.search_find s.search_num); 
+              end
+          
+          | _ ->
+              List.iter (fun arg ->
+                  let num = int_of_string arg in
+                  CommonSearch.search_forget user (CommonSearch.search_find num)
+              ) args;
+        end;
+        ""  
     ), "<num1> <num2> ...:\t\t\t\tforget searches <num1> <num2> ...";
     
     "close_all_sockets", Arg_none (fun o ->
@@ -1901,7 +1962,7 @@ formID.msgText.value=\\\"\\\";
               
               begin
                 
-                html_mods_table_header buf "uploadersTable" "uploaders" [ 
+                html_mods_table_header buf "uploadersTable" "uploaders" ([ 
                   ( "1", "srh ac", "Client number", "Num" ) ; 
                   ( "0", "srh", "Network", "Network" ) ; 
                   ( "0", "srh", "Connection type [I]ndirect [D]irect", "C" ) ;
@@ -1909,9 +1970,12 @@ formID.msgText.value=\\\"\\\";
                   ( "0", "srh", "IP address", "IP address" ) ;
                   ( "0", "srh", "Connected time (minutes)", "CT" ) ;
                   ( "0", "srh", "Client brand", "CB" ) ;
+                  ] @
+                  (if !!emule_mods_count then [( "0", "srh", "eMule MOD", "EM" )] else [])
+                  @ [
                   ( "0", "srh ar", "Total DL bytes from this client for all files", "DL" ) ;
                   ( "0", "srh ar", "Total UL bytes to this client for all files", "UL" ) ;
-                  ( "0", "srh", "Filename", "Filename" ) ];
+                  ( "0", "srh", "Filename", "Filename" ) ]);
                 
                 List.iter (fun c ->
                     try
@@ -1933,15 +1997,18 @@ formID.msgText.value=\\\"\\\";
                             ("", "sr", Printf.sprintf "%d" (client_num c)); ];
                       
                           client_print_html c o;
-                          html_mods_td buf [
+                          html_mods_td buf ([
                             ("", "sr", (string_of_kind  i.client_kind));
                             ("", "sr", Printf.sprintf "%d" (((last_time ()) - i.client_connect_time) / 60));
                             ("", "sr", i.client_software);
+                            ] @
+                            (if !!emule_mods_count then [("", "sr", i.client_emulemod)] else [])
+                            @ [
                             ("", "sr ar", size_of_int64 i.client_downloaded);
                             ("", "sr ar", size_of_int64 i.client_uploaded);
                             ("", "sr", (match i.client_upload with
                                   Some cu -> cu
-                                | None -> "") ) ];
+                                | None -> "") ) ]);
                           
                           Printf.bprintf buf "\\</tr\\>"
                         end
@@ -1956,15 +2023,18 @@ formID.msgText.value=\\\"\\\";
               
               begin
                 Printf.bprintf buf "\\<br\\>\\<br\\>"; 
-                html_mods_table_header buf "uploadersTable" "uploaders" [ 
+                html_mods_table_header buf "uploadersTable" "uploaders" ([ 
                   ( "1", "srh ac", "Client number", "Num" ) ; 
                   ( "0", "srh", "Network", "Network" ) ; 
                   ( "0", "srh", "Connection type [I]ndirect [D]irect", "C" ) ;
                   ( "0", "srh", "Client name", "Client name" ) ;
                   ( "0", "srh", "Client brand", "CB" ) ;
+                  ] @
+                  (if !!emule_mods_count then [( "0", "srh", "eMule MOD", "EM" )] else [])
+                  @ [
                   ( "0", "srh ar", "Total DL bytes from this client for all files", "DL" ) ;
                   ( "0", "srh ar", "Total UL bytes to this client for all files", "UL" ) ;
-                  ( "0", "srh", "IP address", "IP address" ) ];
+                  ( "0", "srh", "IP address", "IP address" ) ]);
                 
                 Intmap.iter (fun cnum c ->
                     
@@ -1982,11 +2052,14 @@ formID.msgText.value=\\\"\\\";
                       
                       client_print_html c o;
                       
-                      html_mods_td buf [
+                      html_mods_td buf ([
                         ("", "sr", i.client_software);
+                        ] @
+                        (if !!emule_mods_count then [("", "sr", i.client_emulemod )] else [])
+                        @ [
                         ("", "sr ar", size_of_int64 i.client_downloaded);
                         ("", "sr ar", size_of_int64 i.client_uploaded);
-                        ("", "sr", string_of_kind i.client_kind); ];
+                        ("", "sr", string_of_kind i.client_kind); ]);
                       
                       Printf.bprintf buf "\\</tr\\>";
                     with _ -> ();

@@ -488,6 +488,7 @@ let get_client proto s pos =
       client_files = None;
       client_connect_time = 0;
       client_software = "";
+      client_emulemod = "";
       client_downloaded = zero;
       client_uploaded = zero;
       client_upload = None;
@@ -529,6 +530,7 @@ let get_client proto s pos =
     client_files = None;
     client_connect_time = connect_time;
     client_software = software;
+    client_emulemod = "";
     client_downloaded = downloaded;
     client_uploaded = uploaded;
     client_upload = upload;
@@ -866,7 +868,7 @@ let from_gui (proto : int array) opcode s =
         let list, pos = get_list get_string s 2 in
         let result_num = get_int s pos in
         let force = get_bool s (pos+4) in
-        Download_query (list, result_num, false)
+        Download_query (list, result_num, force)
 
     | 51 ->
         SetFilePriority(get_int s 2, get_int s 6)      

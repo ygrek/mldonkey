@@ -62,6 +62,11 @@ let rec dollar_escape o with_frames s =
               Buffer.add_string b Terminal.ANSI.ansi_BLUE;
             false
             
+        | 'g' ->
+            if o.conn_output = ANSI then
+              Buffer.add_string b Terminal.ANSI.ansi_GREEN;
+            false
+            
         | 'n' ->
             if o.conn_output = ANSI then 
               Buffer.add_string b Terminal.ANSI.ansi_NORMAL;
@@ -710,7 +715,7 @@ let http_handler o t r =
               Printf.bprintf buf "<p align=\"left\"><small>";
               let mfiles = List2.tail_map file_info !!files in
               List.iter (fun file ->
-                  Printf.bprintf buf  "<a href=\"wap.wml?%s=%d\">%s</a> <a href=\"wap.wml?VDC=%d\">C</a> [%-5d] %5.1f %s %s/%s <br />" (if downloading file then "VDP" else "VDR" ) (file.file_num) (if downloading file then "P" else "R" ) (file.file_num) (file.file_num) (file.file_download_rate /. 1024.)(short_name file) (print_human_readable(Int64.sub file.file_size file.file_downloaded)) (print_human_readable file.file_size);
+Printf.bprintf buf  "<a href=\"wap.wml?%s=%d\">%s</a> <a href=\"wap.wml?VDC=%d\">C</a> [%-5d] %5.1f %s %s/%s <br />" (if downloading file then "VDP" else "VDR" ) (file.file_num) (if downloading file then "P" else "R" ) (file.file_num) (file.file_num) (file.file_download_rate /. 1024.)(short_name file) (print_human_readable file (Int64.sub file.file_size file.file_downloaded)) (print_human_readable file file.file_size);
               
               ) mfiles;
               Printf.bprintf buf "<br />Downloaded %d/%d files " (List.length !!done_files) (List.length !!files);

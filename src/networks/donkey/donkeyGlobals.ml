@@ -437,6 +437,7 @@ let dummy_client =
       client_all_chunks = "";
       client_rating = 0;
       client_brand = Brand_unknown;
+      client_mod_brand = Brand_mod_unknown;
       client_checked = false;
       client_chat_port = 0 ; (** A VOIR : où trouver le 
             port de chat du client ? *)
@@ -494,6 +495,7 @@ let create_client key num =
       client_all_chunks = "";
       client_rating = 0;
       client_brand = Brand_unknown;
+      client_mod_brand = Brand_mod_unknown;
       client_checked = false;
       client_chat_port = 0 ; (** A VOIR : où trouver le 
             port de chat du client ? *)
@@ -750,7 +752,57 @@ let brand_to_string b =
   | Brand_server -> "server"
   | Brand_amule -> "aMule"
 
-
+let brand_mod_to_string b =
+  match b with
+    Brand_mod_unknown -> "unknown"
+  | Brand_mod_extasy -> "Extasy"
+  | Brand_mod_hunter -> "Hunter"
+  | Brand_mod_sivka -> "Sivka"
+  | Brand_mod_ice -> "IcE"
+  | Brand_mod_plus -> "Plus"
+  | Brand_mod_lsd -> "LSD"
+  | Brand_mod_maella -> "Maella"
+  | Brand_mod_pille -> "Pille"
+  | Brand_mod_morphkad -> "MorphKad"
+  | Brand_mod_efmod -> "eF-MOD"
+  | Brand_mod_xtreme -> "Xtreme"
+  | Brand_mod_bionic -> "Bionic"
+  | Brand_mod_pawcio -> "Pawcio"
+  | Brand_mod_zzul -> "ZZUL"
+  | Brand_mod_blackhand -> "Black Hand"
+  | Brand_mod_lovelace -> "lovelace"
+  | Brand_mod_morphnext -> "MorphNext"
+  | Brand_mod_fincan -> "fincan"
+  | Brand_mod_ewombat -> "eWombat"
+  | Brand_mod_morph -> "Morph"
+  | Brand_mod_mortillo -> "MorTillo"
+  | Brand_mod_lh -> "LionHeart"
+  | Brand_mod_emulespana -> "emulEspa\241a"
+  | Brand_mod_blackrat -> "BlackRat"
+  | Brand_mod_enkeydev -> "enkeyDev"
+  | Brand_mod_gnaddelwarz -> "Gnaddelwarz"
+  | Brand_mod_phoenixkad -> "pHoeniX-KAD"
+  | Brand_mod_koizo -> "koizo"
+  | Brand_mod_ed2kfiles -> "ed2kFiles"
+  | Brand_mod_athlazan -> "Athlazan"
+  | Brand_mod_cryptum -> "Cryptum"
+  | Brand_mod_lamerzchoice -> "LamerzChoice"
+  | Brand_mod_notdead -> "NotDead"
+  | Brand_mod_peace -> "peace"
+  | Brand_mod_goldicryptum -> "GoldiCryptum"
+  | Brand_mod_eastshare -> "EastShare"
+  | Brand_mod_mfck -> "[MFCK]"
+  | Brand_mod_echanblard -> "eChanblard"
+  | Brand_mod_sp4rk -> "Sp4rK"
+  | Brand_mod_powermule -> "PowerMule"
+  | Brand_mod_bloodymad -> "bloodymad"
+  | Brand_mod_roman2k -> "Roman2K"
+  | Brand_mod_gammaoh -> "GaMMaOH"
+  | Brand_mod_elfenwombat -> "ElfenWombat"
+  | Brand_mod_o2 -> "O2"
+  | Brand_mod_dm -> "DM"
+  | Brand_mod_sfiom -> "SF-IOM"
+  | Brand_mod_magic_elseve -> "Magic-Elseve"
       
 (*************************************************************
 
@@ -932,4 +984,3 @@ let server_accept_multiple_getsources s =
 
 let server_send_multiple_replies s =
   (s.server_flags land DonkeyProtoUdp.PingServerReplyUdp.multiple_replies) <> 0
-

@@ -428,6 +428,7 @@ BITTORRENT_SRCS= \
   $(SRC_BITTORRENT)/bTGlobals.ml \
   $(SRC_BITTORRENT)/bTComplexOptions.ml \
   $(SRC_BITTORRENT)/bTTracker.ml \
+  $(SRC_BITTORRENT)/bTChooser.ml \
   $(SRC_BITTORRENT)/bTClients.ml \
   $(SRC_BITTORRENT)/bTInteractive.ml \
   $(SRC_BITTORRENT)/bTMain.ml
@@ -563,11 +564,11 @@ install:: opt
              done; \
          fi
 	if test -e mlgui; then \
-             rm -f $(prefix)/bin/mlgui; cp -f mlnet $(prefix)/bin/mlgui; \
+             rm -f $(prefix)/bin/mlgui; cp -f mlgui $(prefix)/bin/mlgui; \
              rm -f $(prefix)/bin/mldonkey_gui; cp -f mlgui $(prefix)/bin/mldonkey_gui; \
          fi
 	if test -e mlnet+gui; then \
-             rm -f $(prefix)/bin/mlnet+gui; cp -f mlnet $(prefix)/bin/mlnet+gui; \
+             rm -f $(prefix)/bin/mlnet+gui; cp -f mlnet+gui $(prefix)/bin/mlnet+gui; \
              for link in mlslsk+gui mldonkey+gui mlgnut+gui mldc+gui mlbt+gui; do \
                rm -f $(prefix)/bin/$$link; ln -s mlnet+gui $(prefix)/bin/$$link; \
              done; \

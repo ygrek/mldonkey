@@ -27,6 +27,7 @@ val count_download : DonkeyTypes.client -> DonkeyTypes.file -> Int64.t -> unit
 val count_upload : DonkeyTypes.client -> DonkeyTypes.file -> Int64.t -> unit
 
 val gbrand_to_string : brand -> string
+val gbrand_mod_to_string : brand_mod -> string
 val print_stats : Buffer.t -> unit
 
 (*val save_download_history : DonkeyTypes.file -> unit*)

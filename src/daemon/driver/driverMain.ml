@@ -385,7 +385,11 @@ let _ =
       lprintf  "Network %s %s\n" r.network_name
         (if network_is_enabled r then "enabled" else "disabled");
       );  
-  networks_iter (fun r -> network_enable r);
+  networks_iter (fun r -> 
+    network_enable r;
+    (* are there drawbacks to start recover_temp unconditionally here ? *)
+    network_recover_temp r;
+  );
   CommonOptions.start_running_plugins := true;
   CommonInteractive.force_download_quotas ();
   

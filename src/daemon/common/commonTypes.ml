@@ -252,6 +252,7 @@ type network = {
       bool -> ((string * Options.option_value) list -> file);
     mutable op_network_client_of_option : 
       bool -> ((string * Options.option_value) list -> client);
+    mutable op_network_recover_temp : (unit -> unit);
     mutable op_network_share : (
       string -> string -> int64 -> unit);
     mutable op_network_private_message : (string -> string -> unit);

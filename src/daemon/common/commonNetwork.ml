@@ -72,6 +72,8 @@ let check_network_implementations () =
         lprintf "op_network_file_of_option";
       if c.op_network_client_of_option == cc.op_network_client_of_option then 
         lprintf "op_network_client_of_option";
+      if c.op_network_recover_temp == cc.op_network_recover_temp then 
+        lprintf "op_network_recover_temp\n";
       if c.op_network_search == cc.op_network_search then 
         lprintf "op_network_search\n";
       if c.op_network_share == cc.op_network_share then 
@@ -102,6 +104,7 @@ let network_load_complex_options n = n.op_network_load_complex_options ()
 let network_enable n =  n.op_network_enable ()
 let network_disable n = n.op_network_disable () 
 let network_share n s = n.op_network_share s
+let network_recover_temp n = n.op_network_recover_temp ()
 let network_add_server n s = n.op_network_add_server s
 let network_server_of_option n s = n.op_network_server_of_option s
 let network_file_of_option n f = n.op_network_file_of_option f
@@ -206,6 +209,7 @@ let new_network name flags prefix_option subdir_option =
       op_network_server_of_option =  (fun _ -> fni name "op_network_server_of_option");
       op_network_file_of_option =  (fun _ _ -> fni name "op_network_file_of_option");
       op_network_client_of_option =  (fun _ -> fni name "op_network_client_of_option");
+      op_network_recover_temp = (fun _ -> ni_ok name "recover_temp");
       op_network_search = (fun _ _ -> ni_ok name "search");
       op_network_share = (fun _ _ _ -> ni_ok name "share");
       op_network_private_message = (fun _ _ -> ni_ok name "private message");

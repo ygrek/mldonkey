@@ -119,6 +119,7 @@ let new_file file_id file_name file_size file_tracker piece_size file_u =
       file_piece_size = piece_size;
       file_id = file_id;
       file_name = file_name;
+      file_clients_num = 0;
       file_clients = Hashtbl.create 113;
       file_swarmer = swarmer;
       file_partition = partition;
@@ -129,6 +130,7 @@ let new_file file_id file_name file_size file_tracker piece_size file_u =
       file_tracker_interval = 600;
       file_files = [];
       file_blocks_downloaded = [];
+      file_uploaded = Int64.zero;
     } and file_impl =  {
       dummy_file_impl with
       impl_file_fd = file_u;
@@ -164,8 +166,9 @@ let new_file file_id file_name file_size file_tracker piece_size file_u =
 (*Automatically send Have to ALL clients once a piece is verified
             NB : will probably have to check if client can be interested*)
           Hashtbl.iter (fun _ c ->
+ 			  if c.client_registered_bitfield then
+ 			    begin
               let must_send = (not (Int64Swarmer.is_interesting file.file_partition c.client_bitmap )) in
-              if must_send && c.client_bitmap <> ""  then
                 c.client_interesting <- false;
               begin
                 match c.client_sock with
@@ -180,6 +183,7 @@ let new_file file_id file_name file_size file_tracker piece_size file_u =
                       end
                 
                 | _ -> ();
+              end;
               end				
           ) file.file_clients
         end;
@@ -237,6 +241,7 @@ let new_client file peer_id kind =
           client_allowed_to_write = zero;
           client_uploaded = zero;
           client_downloaded = zero;
+	  client_upload_rate = Rate.new_rate ();
 	  client_downloaded_rate = Rate.new_rate ();
           client_optimist_time=0;
           client_blocks_sent = [];
@@ -246,6 +251,9 @@ let new_client file peer_id kind =
           client_alrd_sent_interested = false;
           client_alrd_sent_notinterested = false;
           client_interesting = false;
+          client_incoming = false;
+	  client_registered_bitfield = false;
+	  client_last_optimist = 0;
         } and impl = {
           dummy_client_impl with
           impl_client_val = c;
@@ -255,6 +263,7 @@ let new_client file peer_id kind =
       c.client_connection_control.control_min_reask <- 120;
       new_client impl;
       Hashtbl.add file.file_clients peer_id c;
+      file.file_clients_num <- file.file_clients_num + 1;
       file_add_source (as_file file.file_file) (as_client c);
       c
   
@@ -264,4 +273,5 @@ let remove_file file =
 
 let remove_client c = 
     Hashtbl.remove c.client_file.file_clients c.client_uid ;
+    c.client_file.file_clients_num <- c.client_file.file_clients_num  - 1;
     file_remove_source (as_file c.client_file.file_file) (as_client c)

@@ -191,7 +191,7 @@ type table_align =
 | Align_Right
 | Align_Center
 
-let col_sep = "  "
+let col_sep = " "
 let add buf s align max_len =
   let slen = String.length s in
   let diff = max_len - slen in
@@ -229,9 +229,10 @@ let print_table_text buf alignments titles lines =
   let aligns = Array.create ncols Align_Center in
   Array.iteri (fun i al -> aligns.(i) <- al) alignments; 
   List.iter (fun line ->
+      let len = Array.length line in
       Array.iteri (fun i s ->
           add buf s aligns.(i) cols.(i);
-      Buffer.add_string buf col_sep;
+          if i+1 < len then  Buffer.add_string buf col_sep;
       ) line;
       Buffer.add_char buf '\n';      
   ) lines
@@ -688,14 +689,17 @@ let html_mods_done_files buf files =
     ) files);
   Printf.bprintf buf "\\</form\\>"
 
-let print_human_readable size =
+let print_human_readable file size =
  (if Int64.to_float size > 1024. && Int64.to_float size < 1048576. then
     (Printf.sprintf "%5.1f%s" (Int64.to_float size /. 1024.) ("kb") )
   else if size > Int64.of_float 1048576. && Int64.to_float size < 1073741824. then
     (Printf.sprintf "%5.1f%s" (Int64.to_float size /. 1048576.) ("mb") )
   else if size > Int64.of_float 1073741824. then
     (Printf.sprintf "%5.1f%s" (Int64.to_float size /. 1073741824.) ("gb") )
-  else (Printf.sprintf "%7s%s" (Int64.to_string size) ("b") ) )
+  else if size < Int64.zero then
+    (Printf.sprintf "%d chunks" 
+    ((String.length file.file_chunks)-(String.length (String2.replace (String2.replace file.file_chunks '0' "") '1' ""))))
+  else (Printf.sprintf "%8s%s" (Int64.to_string size) ("b") ) )
 
 let simple_print_file_list finished buf files format =
   let print_table = if format.conn_output = HTML then print_table_html 2
@@ -726,34 +730,33 @@ let simple_print_file_list finished buf files format =
           [|
             "[ Num ]"; 
             "File";
-            "Percent"; 
-            "Downloaded";
+            "    %"; 
+            "    Done";
             "    Size";
             "    Left";
             "Old";
-            "A";
-            "S";
+            " Active";
             "Rate";
-	    "Prio";
+            "Prio";
           |]     
       )
       (List.map (fun file ->
             let rate, color =
               match file.file_state with
               | FilePaused -> "Paused", "$r"
-              | FileQueued -> "Queued", "$r"
+              | FileQueued -> "Queued", "$g"
               | FileAborted s -> Printf.sprintf "Aborted %s" s, "$r"
               | _ ->
                   if file.file_download_rate < 10.24 then
-                    "-", ""
+                    "-", "$n"
                   else
-                    Printf.sprintf "%5.1f" (
+                    Printf.sprintf "%4.1f" (
                       file.file_download_rate /. 1024.), "$b"
             in
             [|
-              (Printf.sprintf "%s[%1s%4d]%s"
-                (if !!term_ansi then (color)
-                 else "")
+              (Printf.sprintf "%0s[%0s%4d]%0s"
+                  (if !!term_ansi then (color)
+                  else "")
                 (short_net_name file)
                 file.file_num
                   (if format.conn_output = HTML then  
@@ -764,13 +767,13 @@ let simple_print_file_list finished buf files format =
                       (if downloading file then "PAUSE" else "RESUME")
                   else ""));
               (short_name file);
-              (Printf.sprintf "%5.1f" (percent file));
-              (if !!improved_telnet then (print_human_readable file.file_downloaded)
-               else (Int64.to_string file.file_downloaded) );
-              (if !!improved_telnet then (print_human_readable file.file_size)
-               else (Int64.to_string file.file_size) );
-              (if !!improved_telnet then (print_human_readable (Int64.sub file.file_size file.file_downloaded))
-               else (Int64.to_string (Int64.sub file.file_size file.file_downloaded)) );
+              (Printf.sprintf "%3.1f" (percent file));
+              (if !!improved_telnet then (print_human_readable file file.file_downloaded)
+                else (Int64.to_string file.file_downloaded) );
+              (if !!improved_telnet then (print_human_readable file file.file_size)
+                else (Int64.to_string file.file_size) );
+              (if !!improved_telnet then (print_human_readable file (Int64.sub file.file_size file.file_downloaded))
+                else (Int64.to_string (Int64.sub file.file_size file.file_downloaded)) );
               (Printf.sprintf "%d:%s" (age_to_day file.file_age)
                 ( 
                   let len = Array.length file.file_chunks_age in
@@ -782,13 +785,12 @@ let simple_print_file_list finished buf files format =
                   done;
                   if !min = 0 then "-" else
                     string_of_int (age_to_day !min)));
-              (string_of_int (number_of_active_sources file));
-              (string_of_int (number_of_sources file));
-              rate ^ "$n";
-              (Printf.sprintf "%5d" (file.file_priority);)
+              (Printf.sprintf "%2d/%-4d" (number_of_active_sources file) (number_of_sources file));
+              rate;
+              (Printf.sprintf "%4d" (file.file_priority);)
             |]
         ) files)
-  else
+      else
   if use_html_mods format then 
     html_mods_done_files buf files
   else

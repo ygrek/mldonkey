@@ -39,6 +39,13 @@ let update r amount =
     if r.ratesince < (t -. 20.) then
       r.ratesince <- (t -. 20.)
 
+let update_no_change r = 
+  let t = float_of_int (last_time ()) in
+    r.ratesince <- t
+      
+let ratesince r = 
+  r.ratesince
+
 let new_rate () = 
   let t = float_of_int (last_time()) in
   {
@@ -46,6 +53,9 @@ let new_rate () =
     lasttime = t;
     rate = 0.;
   }
+	
+let last_time t = 
+  t.lasttime
 	
 let get_rate r =
   r.rate 

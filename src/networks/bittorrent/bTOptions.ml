@@ -82,4 +82,7 @@ let shared_files =
   "The files shared on this torrent server (pair .torrent file, and path to shared file or directory)"
     (list_option (tuple2_option (filename_option, filename_option))) []
   
-  
+    
+let ask_tracker_threshold = define_option bittorrent_section ["ask_tracker_threshold"]
+    "Ask the tracker for new sources only if you have fewer than that number of sources"
+    int_option 20

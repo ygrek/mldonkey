@@ -132,7 +132,7 @@ let _ =
         P.file_download_rate = file_download_rate file.file_file;
         P.file_chunks = Int64Swarmer.verified_bitmap file.file_partition;
         P.file_availability = 
-        [network.network_num,Int64Swarmer.verified_bitmap file.file_partition];
+        [network.network_num,Int64Swarmer.availability file.file_partition];
         P.file_format = FormatNotComputed 0;
         P.file_chunks_age = [|0|];
         P.file_age = file_age file;
@@ -221,6 +221,7 @@ let _ = (
           P.client_chat_port = 0 ;
           P.client_connect_time = BasicSocket.last_time ();
           P.client_software = "";
+          P.client_emulemod = "";
           P.client_downloaded = c.client_downloaded;
           P.client_uploaded = c.client_uploaded;
           P.client_upload = None;
@@ -260,11 +261,13 @@ let _ = (
         let cc = as_client c in
         let cinfo = client_info cc in
         client_print cc o;
-        Printf.bprintf buf "client: %s downloaded: %s uploaded: %s"
-          "bT" (* cinfo.GuiTypes.client_software *)
-          (Int64.to_string c.client_downloaded)
-        (Int64.to_string c.client_uploaded);
-        Printf.bprintf buf "\nfilename: %s\n\n" info.GuiTypes.file_name;
+        Printf.bprintf buf "\n%18sDown  : %-10s                  Uploaded: %-10s  Ratio: %s%1.1f (%s)\n" ""
+        (Int64.to_string c.client_downloaded)
+        (Int64.to_string c.client_uploaded)
+        (if c.client_downloaded > c.client_uploaded then "-" else "+")
+        (if c.client_uploaded > Int64.zero then (Int64.to_float (Int64.div c.client_downloaded c.client_uploaded)) else (1.))
+        ("BT");
+        (Printf.bprintf buf "%18sFile  : %s\n" "" info.GuiTypes.file_name);
     );
     client_ops.op_client_dprint_html <- (fun c o file str ->
         let info = file_info file in

@@ -463,16 +463,15 @@ onClick=\"mSub('fstatus','remove_old_servers')\">Remove old servers</TD>
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"top.output.location.href='http://ed2k.2x4u.de/list.html'\">Serverlist</TD>
 </TR></TBODY></TABLE></DIV>
-
 <DIV ID=\"tab4\" style=\"display: none\">
 <TABLE class=commands cellSpacing=0 cellPadding=0 width=\"100%\">
 <TBODY><TR>
 <TD class=\"bu bbig\" title=\"eDonkey statistics in a table\" 
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','cs')\">eDonkey Table</TD>
-<TD class=\"bu bbig\" title=\"eDonkey statistics in a list\" 
+<TD class=\"bu bbig\" title=\"eMule MODs statistics\" 
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('output','client_stats')\">eDonkey List</TD>
+onClick=\"mSub('output','csm')\">eMule MODs</TD>
 <TD class=\"bu bbig\" title=\"Overnet statistics\" 
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','ovstats')\">Overnet</TD>

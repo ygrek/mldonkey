@@ -41,8 +41,12 @@ let file_sources_ini = create_options_file (
 let stats_ini = create_options_file (
     Filename.concat file_basedir "stats.ini")
 
+let mod_stats_ini = create_options_file (
+    Filename.concat file_basedir "stats_mod.ini")
+
 let shared_section = file_section shared_files_ini [] ""
 let stats_section = file_section stats_ini [] ""
+let mod_stats_section = file_section mod_stats_ini [] ""
 let file_sources_section = file_section file_sources_ini [] ""
   
 
@@ -460,6 +464,38 @@ module StatsOption = struct
     let t = define_option_class "Stat" value_to_stat stat_to_value
   end
 
+module ModStatsOption = struct
+    
+    let value_to_mod_stat v =
+      match v with
+        Options.Module assocs ->
+          let get_value name conv = conv (List.assoc name assocs) in
+          let get_value_nil name conv = 
+            try conv (List.assoc name assocs) with _ -> []
+          in
+          { 
+            brand_mod_seen = value_to_int (List.assoc "mseen" assocs);
+            brand_mod_banned = value_to_int (List.assoc "mbanned" assocs);
+            brand_mod_filerequest = value_to_int (List.assoc "mfilereqs" assocs);
+            brand_mod_download = value_to_int64 (List.assoc "mdownload" assocs);
+            brand_mod_upload = value_to_int64 (List.assoc "mupload" assocs);
+          }
+          
+      | _ -> failwith "Options: not a mod_stat option"
+          
+    let stat_to_mod_value b =
+      Options.Module [
+        "mseen", int_to_value b.brand_mod_seen;
+        "mbanned", int_to_value b.brand_mod_banned;
+        "mfilereqs", int_to_value b.brand_mod_filerequest;
+        "mdownload", int64_to_value b.brand_mod_download;
+        "mupload", int64_to_value b.brand_mod_upload;
+      ]
+    
+    
+    let t = define_option_class "ModStat" value_to_mod_stat stat_to_mod_value
+  end
+
 let value_to_module f v =
   match v with
     Module list -> f list
@@ -645,6 +681,7 @@ let load _ =
   (try
       Options.load shared_files_ini;
       Options.load stats_ini;
+      Options.load mod_stats_ini;
     with Sys_error _ ->
         Options.save_with_help shared_files_ini)
   
@@ -655,8 +692,16 @@ let new_stats_array () =
       { dummy_stats with brand_seen = 0 }
   )
   
+let new_mod_stats_array () = 
+  Array.init brand_mod_count (fun _ ->
+      { dummy_mod_stats with brand_mod_seen = 0 }
+  )
+
 let gstats_by_brand = define_option stats_section ["stats"] "" 
     (array_option StatsOption.t) (new_stats_array ())
+
+let gstats_by_brand_mod = define_option mod_stats_section ["stats"] "" 
+    (array_option ModStatsOption.t) (new_mod_stats_array ())
 
 let _ =
   option_hook gstats_by_brand (fun _ ->
@@ -670,6 +715,18 @@ let _ =
         gstats_by_brand =:= t
   )
   
+let _ =
+  option_hook gstats_by_brand_mod (fun _ ->
+      let old_mod_stats = !!gstats_by_brand_mod in
+      let old_mod_len = Array.length old_mod_stats in
+      if old_mod_len <> brand_mod_count then
+        let t = new_mod_stats_array () in
+        for i = 0 to old_mod_len - 1 do
+          t.(i) <- old_mod_stats.(i)
+        done;
+        gstats_by_brand_mod =:= t
+  )
+
 let diff_time = ref 0
 
 let save _ =
@@ -678,6 +735,7 @@ let save _ =
   guptime =:= !!guptime + (last_time () - start_time) - !diff_time;
   diff_time := (last_time () - start_time);
   Options.save_with_help stats_ini;
+  Options.save_with_help mod_stats_ini;
   sources =:= [];
   DonkeySources.iter (fun s -> 
       (match s.source_client with

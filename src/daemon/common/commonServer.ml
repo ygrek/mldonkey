@@ -398,13 +398,16 @@ let server_print s o =
    else
 	begin
           
-        Printf.bprintf buf "[%s %-5d] %s:%-5d %-20s %-20s"
-          n.network_name
+        Printf.bprintf buf "[%-10s%5d] %15s:%-5d %s\n%40sUsers:%-8d Files:%-8d State:%s\n"
+          (n.network_name)
           (server_num s)
-        (Ip.string_of_addr info.G.server_addr) info.G.server_port
-          info.G.server_name
-          info.G.server_description
-        ;
+          (Ip.string_of_addr info.G.server_addr) 
+          (info.G.server_port)
+          (info.G.server_name) ("")
+          (info.G.server_nusers)
+          (info.G.server_nfiles)
+          (string_of_connection_state impl.impl_server_state);
+
 (*
   List.iter (fun t ->
       Printf.bprintf buf "%-3s "
@@ -415,10 +418,10 @@ let server_print s o =
         | _ -> "???"
       )
 ) info.G.server_tags;
-  *)
+
         Printf.bprintf buf " %6d %7d %s" info.G.server_nusers info.G.server_nfiles
           (string_of_connection_state impl.impl_server_state); 
-        Buffer.add_char buf '\n'
+        Buffer.add_char buf '\n'*)
       end;
     
   with e -> 

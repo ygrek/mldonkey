@@ -423,6 +423,105 @@ let identify_client_brand c =
     else
       if c.client_overnet then Brand_overnet else Brand_edonkey)
 
+let mod_array =
+  [|
+      ("extasy", Brand_mod_extasy);
+      ("hunter", Brand_mod_hunter);
+      ("sivka", Brand_mod_sivka);
+      ("ice", Brand_mod_ice);
+      ("plus", Brand_mod_plus);
+      ("lsd", Brand_mod_lsd);
+      ("maella", Brand_mod_maella);
+      ("pille", Brand_mod_pille);
+      ("morphkad", Brand_mod_morphkad);
+      ("ef-mod", Brand_mod_efmod);
+      ("xtreme", Brand_mod_xtreme);
+      ("bionic", Brand_mod_bionic);
+      ("pawcio", Brand_mod_pawcio);
+      ("gammaoh", Brand_mod_gammaoh);
+      ("zzul", Brand_mod_zzul);
+      ("black hand", Brand_mod_blackhand);
+      ("lovelace", Brand_mod_lovelace);
+      ("morphnext", Brand_mod_morphnext);
+      ("fincan", Brand_mod_fincan);
+      ("ewombat", Brand_mod_ewombat);
+      ("morph", Brand_mod_morph);
+      ("mortillo", Brand_mod_mortillo);
+      ("lh", Brand_mod_lh);
+      ("emulespa\241a", Brand_mod_emulespana);
+      ("blackrat", Brand_mod_blackrat);
+      ("enkeydev", Brand_mod_enkeydev);
+      ("gnaddelwarz", Brand_mod_gnaddelwarz);
+      ("phoenix-kad", Brand_mod_phoenixkad);
+      ("koizo", Brand_mod_koizo);
+      ("ed2kfiles", Brand_mod_ed2kfiles);
+      ("athlazan", Brand_mod_athlazan);
+      ("goldi cryptum", Brand_mod_goldicryptum);
+      ("cryptum", Brand_mod_cryptum);
+      ("lamerzchoice", Brand_mod_lamerzchoice);
+      ("notdead", Brand_mod_notdead);
+      ("peace", Brand_mod_peace);
+      ("eastshare", Brand_mod_eastshare);
+      ("[mfck]", Brand_mod_mfck);
+      ("echanblard", Brand_mod_echanblard);
+      ("sp4rk", Brand_mod_sp4rk);
+      ("bloodymad", Brand_mod_bloodymad);
+      ("roman2k", Brand_mod_roman2k);
+      ("elfenwombat", Brand_mod_elfenwombat);
+      ("o\178", Brand_mod_o2);
+      ("dm", Brand_mod_dm);
+      ("sf-iom", Brand_mod_sfiom);
+      ("magic-elseve", Brand_mod_magic_elseve)
+   |]
+
+let to_lowercase s = String.lowercase s
+
+let string_of_tags_list tags =
+  let s = ref "" in
+  List.iter (fun tag ->
+    let st = to_lowercase (CommonTypes.string_of_tag tag.tag_value) in
+    let str = tag.tag_name ^ " : " ^ st ^ " ; " in
+    s := !s ^ str
+  ) tags;
+  !s 
+
+let identify_client_mod_brand c tags =
+
+  if c.client_mod_brand = Brand_mod_unknown then begin
+      List.iter (fun tag ->
+        let s = to_lowercase (CommonTypes.string_of_tag tag.tag_value) in 
+          match tag.tag_name with
+           "mod_version" ->
+               begin
+               let rec iter i len =
+                 let sub = fst mod_array.(i) in
+(*                   if i = len then
+                   let st = "mod_version : " ^ s in
+                       c.client_mod_brand <- Brand_mod_other st
+                   else *)
+                     if  (String2.subcontains s sub) then
+                        c.client_mod_brand <- snd mod_array.(i)
+                     else iter (i+1) len
+               in
+               iter 0 (Array.length mod_array)
+               end
+
+           | _ -> ()
+
+   ) tags;
+   if String2.subcontains c.client_name "@PowerMule" then begin
+     c.client_mod_brand <- Brand_mod_powermule
+   end
+(*   if c.client_mod_brand = Brand_mod_unknown then
+     begin
+       let try_to_guess_who_i_am = string_of_tags_list c.client_tags in
+       c.client_mod_brand <- Brand_mod_other try_to_guess_who_i_am
+     end;
+    lprintf "name: %s, brand: %s, mod: %s"
+      c.client_name (brand_to_string c.client_brand) (brand_mod_to_string c.client_mod_brand);
+    lprint_newline(); *)
+  end
+
 let identify_emule_compatible c tags = 
   List.iter (fun tag -> 
       match tag.tag_name with
@@ -702,6 +801,8 @@ let client_to_client for_files c t sock =
 (*      lprintf "Emule Extended Protocol asked"; lprint_newline (); *)
       let module CI = M.EmuleClientInfo in
       identify_emule_compatible c t.CI.tags;
+      if !!emule_mods_count then
+          identify_client_mod_brand c t.CI.tags;
       
       if supports_eep c.client_brand then  begin
           let module E = M.EmuleClientInfo in
@@ -1715,8 +1816,7 @@ let read_first_message overnet m sock =
               lprintf "Client[%d]: banned (%s)\n" (client_num c) ban;
               raise Not_found
             end)
-      ["Mison"; "LSD"]; (* People who don't understand P2P themselves please leave this list alone *)
-    			(* LSD is no official eMule mod anymore *)
+      ["Mison"]; (* People who don't understand P2P themselves please leave this list alone *)
 
       if  !!reliable_sources && 
         ip_reliability (peer_ip sock) = Reliability_suspicious 0 then begin
@@ -2003,5 +2103,3 @@ let client_connection_handler overnet t event =
         end;
   | _ -> 
       ()      
-      
-      

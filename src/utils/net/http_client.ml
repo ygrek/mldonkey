@@ -343,7 +343,9 @@ let wget r f =
             (Url.to_string false r.req_url);
         end;
       let filename = Filename.temp_file "http_" ".tmp" in
-      File.from_string filename s;
+      let oc = open_out_bin filename in
+      output_string oc s;
+      close_out oc;
       try
         (f filename : unit);
         Sys.remove filename 

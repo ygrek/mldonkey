@@ -642,33 +642,6 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+renameTextOut+'\\\"';
         "done";
     ), ":\t\t\t\tprint temp directory content";
     
-    "recover_temp", Arg_none (fun o ->
-        let buf = o.conn_buf in
-        let files = Unix2.list_directory !!temp_directory in
-        List.iter (fun filename ->
-            if String.length filename = 32 then
-              try
-                let md4 = Md4.of_string filename in
-                try
-                  ignore (Hashtbl.find files_by_md4 md4)
-                with Not_found ->
-                    let size = Unix32.getsize (Filename.concat 
-                          !!temp_directory filename) in
-                    if size <> zero then
-                      let names = try DonkeyIndexer.find_names md4 
-                        with _ -> [] in
-                      let file = 
-                        query_download names size md4 None None None true
-                      in
-                        
-                      recover_md4s md4
-              with e ->
-                  lprintf "exception %s in recover_temp\n"
-                    (Printexc2.to_string e); 
-        ) files;
-        "done"
-    ), ":\t\t\t\trecover lost files from temp directory";
-    
     "sources", Arg_none (fun o ->
         let buf = o.conn_buf in
         DonkeySources.print_sources buf;
@@ -891,6 +864,7 @@ let _ =
         P.client_chat_port = c.client_chat_port ;
         P.client_connect_time = c.client_connect_time;
         P.client_software = gbrand_to_string c.client_brand;
+        P.client_emulemod = gbrand_mod_to_string c.client_mod_brand;
         P.client_downloaded = c.client_downloaded;
         P.client_uploaded = c.client_uploaded;
 (*        P.client_sock_addr =    (); *)
@@ -1001,6 +975,31 @@ let _ =
   
   network.op_network_connect_servers <- (fun _ ->
       force_check_server_connections true);
+
+  network.op_network_recover_temp <- (fun _ ->
+      let files = Unix2.list_directory !!temp_directory in
+      List.iter (fun filename ->
+	if String.length filename = 32 then
+          try
+            let md4 = Md4.of_string filename in
+            try
+              ignore (Hashtbl.find files_by_md4 md4)
+            with Not_found ->
+              let size = Unix32.getsize (Filename.concat 
+		!!temp_directory filename) in
+              if size <> zero then
+                let names = try DonkeyIndexer.find_names md4 
+                with _ -> [] in
+                let file = 
+                  query_download names size md4 None None None true
+                in
+                        
+                  recover_md4s md4
+          with e ->
+            lprintf "exception %s in recover_temp\n"
+            (Printexc2.to_string e); 
+      ) files
+  );
   
   network.op_network_parse_url <- parse_donkey_url;
   
@@ -1072,7 +1071,7 @@ lprint_newline ();
 		onClick=\\\"parent.fstatus.location.href='submit?q=friend_add+%d'\\\"\\>%d\\</TD\\>"
             (client_num c) (client_num c);
           
-          html_mods_td buf [
+          html_mods_td buf ([
             ("", "sr", (match c.client_block with 
                   None -> Printf.sprintf "" 
                 | Some b -> Printf.sprintf "%s" ( 
@@ -1084,6 +1083,9 @@ lprint_newline ();
               (short_string_of_connection_state (client_state c)) );
             (String.escaped c.client_name, "sr", client_short_name c.client_name);
             (brand_to_string c.client_brand, "sr", gbrand_to_string c.client_brand);
+            ] @
+            (if !!emule_mods_count then [(brand_mod_to_string c.client_mod_brand, "sr", gbrand_mod_to_string c.client_mod_brand)] else [])
+            @ [
             ("", "sr", (if c.client_overnet then "T" else "F"));
             ("", "sr", (match c.client_kind with 
                   Indirect_location _ -> Printf.sprintf "I"
@@ -1109,7 +1111,7 @@ lprint_newline ();
             ("", "sr ar", Printf.sprintf "%d" c.client_requests_sent);
             ("", "sr ar", Printf.sprintf "%d" c.client_requests_received);
             ("", "sr ar br", Printf.sprintf "%d" (((last_time ()) - c.client_connect_time) / 60));
-            ("", "sr br", (Md4.to_string c.client_md4)); ];
+            ("", "sr br", (Md4.to_string c.client_md4)); ]);
           
           Printf.bprintf buf "\\<td class=\\\"sr \\\"\\>";
           
@@ -1147,11 +1149,13 @@ lprint_newline ();
                 let (qfile, qchunks) =  List.hd qfiles in
                 if (qfile = (as_file_impl file).impl_file_val) then begin
                     client_print (as_client c.client_client) o;
-                    Printf.bprintf buf "client: %s downloaded: %s uploaded: %s" 
-                      (brand_to_string c.client_brand) 
+                    Printf.bprintf buf "\n%14sDown  : %-10s                  Uploaded: %-10s  Ratio: %s%1.1f (%s)\n" ""
                     (Int64.to_string c.client_downloaded) 
-                    (Int64.to_string c.client_uploaded);
-                    Printf.bprintf buf "\nfilename: %s\n\n" info.GuiTypes.file_name;
+                    (Int64.to_string c.client_uploaded)
+                    (if c.client_downloaded > c.client_uploaded then "-" else "+")
+                    (if c.client_uploaded > Int64.zero then (Int64.to_float (Int64.div c.client_downloaded c.client_uploaded)) else (1.))
+                    (brand_to_string c.client_brand);
+                    (Printf.bprintf buf "%14sFile  : %s\n" "" info.GuiTypes.file_name);
                   end;
               
               )
@@ -1179,11 +1183,14 @@ lprint_newline ();
 			onClick=\\\"parent.fstatus.location.href='submit?q=friend_add+%d'\\\"\\>%d\\</TD\\>"
                       str (client_num c) (client_num c);
                     
-                    html_mods_td buf [
+                    html_mods_td buf ([
                       (string_of_connection_state (client_state c), "sr", 
                         short_string_of_connection_state (client_state c));
                       (Md4.to_string c.client_md4, "sr", client_short_name c.client_name);
                       ("", "sr", gbrand_to_string c.client_brand);
+                      ] @
+                      (if !!emule_mods_count then [("", "sr", gbrand_mod_to_string c.client_mod_brand)] else [])
+                      @ [
                       ("", "sr", (if c.client_overnet then "T" else "F"));
                       ("", "sr ar", Printf.sprintf "%d" (((last_time ()) - c.client_connect_time) / 60));
                       ("", "sr", (match c.client_kind with  
@@ -1194,7 +1201,7 @@ lprint_newline ();
                         | Indirect_location _ -> (string_of_client_addr c));
                       ("", "sr ar", (size_of_int64 c.client_uploaded));
                       ("", "sr ar", (size_of_int64 c.client_downloaded));
-                      ("", "sr", info.GuiTypes.file_name) ];
+                      ("", "sr", info.GuiTypes.file_name) ]);
                     
                     Printf.bprintf buf "\\</tr\\>";
                     true

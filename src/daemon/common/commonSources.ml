@@ -49,6 +49,7 @@ module Make(M:sig
           mutable client_connected : bool;
           mutable client_next_queue : int;
           mutable client_brand : int;
+          mutable client_mod_brand : int;
           mutable client_name : string;
         }
       

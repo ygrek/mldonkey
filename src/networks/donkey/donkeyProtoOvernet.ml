@@ -437,11 +437,10 @@ let parse opcode s =
 
     | 21 ->
         (* idem as 33, but IP seem to be a low ID *)
-(*        if !verbose_overnet then begin
-*)
+        if !verbose_overnet then begin
             lprintf "Received code %d message.\nDump: " opcode; dump s; lprint_newline ();
-(*          end;
-*)
+          end;
+
         let peer, _ = get_peer s 0 in
         OvernetUnknown21 peer
 

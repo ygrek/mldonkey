@@ -309,7 +309,7 @@ dump (String.sub b.buf b.pos b.len);
                 with Not_found -> ()
             else
               (*received a ping*)
-              set_lifetime sock 100.
+              set_lifetime sock 130.
           end
         else raise Not_found
       done
@@ -450,7 +450,7 @@ let send_init file c sock =
   buf_string8 buf  "BitTorrent protocol";
   Buffer.add_string buf zero8;
   Buffer.add_string buf (Sha1.direct_to_string file.file_id);
-  Buffer.add_string buf (Sha1.direct_to_string c.client_uid);
+  Buffer.add_string buf (Sha1.direct_to_string !!client_uid);
   let s = Buffer.contents buf in
   write_string sock s
   

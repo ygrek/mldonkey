@@ -383,16 +383,15 @@ let client_print c o =
 	(String.escaped info.G.client_name, "sr", client_short_name info.G.client_name); ];
     end
   else begin
-      Printf.bprintf buf "[%s %-5d] %d %23s %-20s"
+      Printf.bprintf buf "[%s%6d] Name  : %-27s Rating  : %-10d  IP   : %-20s"
         n.network_name
         (client_num c)
-      i.GuiTypes.client_rating
+        (shorten info.G.client_name 20)
+        i.GuiTypes.client_rating
         (match info.G.client_kind with
-          Indirect_location (name, _) -> name
-        | Known_location (ip, port) ->
-            Printf.sprintf "%s:%d" (Ip.to_string ip) port
-      )
-      info.G.client_name
+            Indirect_location (name, _) -> name
+            | Known_location (ip, port) ->
+            Printf.sprintf "%s:%d" (Ip.to_string ip) port)
     end
 
 

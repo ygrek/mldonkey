@@ -84,8 +84,8 @@ let rec really_read fd s pos len =
     really_read fd s (pos + nread) (len - nread)
 
 let copy oldname newname =
-  let ic = open_in oldname in
-  let oc = open_out newname in
+  let ic = open_in_bin oldname in
+  let oc = open_out_bin newname in
   let buffer_len = 8192 in
   let buffer = String.create buffer_len in
   let rec copy_file () =

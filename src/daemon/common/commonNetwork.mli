@@ -17,6 +17,7 @@ val network_save_complex_options : CommonTypes.network -> unit
 val network_load_complex_options : CommonTypes.network -> unit
 val network_enable : CommonTypes.network -> unit
 val network_disable : CommonTypes.network -> unit
+val network_recover_temp : CommonTypes.network -> unit
 val network_share : CommonTypes.network -> string -> string -> int64 -> unit
 val network_add_server :
   CommonTypes.network ->

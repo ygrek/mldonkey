@@ -1042,6 +1042,7 @@ let udp_client_handler t p =
       lprint_newline ()
   
   | OvernetUnknown21 peer ->
+     if !verbose_overnet && debug_client other_ip then 
       lprintf "Unknown 21 message from %s:%d\n" (Ip.to_string other_ip) other_port;
       lprintf "\tPeer: %s\n\tIP: %s\n\tPort: %d\n\tKind: %d\n\n"
         (Md4.to_string peer.peer_md4) (Ip.to_string peer.peer_ip) peer.peer_port peer.peer_kind

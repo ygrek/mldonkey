@@ -69,6 +69,21 @@ let value_to_int32pair v =
   | _ -> 
       failwith "Options: Not an int32 pair"
 
+
+let value_to_state v =
+  match v with
+  | StringValue "Paused" -> FilePaused
+  | StringValue "Downloading" -> FileDownloading
+  | StringValue "Downloaded" -> FileDownloaded
+  | _ -> raise Not_found
+
+let state_to_value s = 
+  match s with
+  | FilePaused | FileAborted _ -> StringValue "Paused"
+  | FileDownloaded -> StringValue "Downloaded"
+  | _ -> StringValue "Downloading"
+
+
 let value_to_file is_done assocs =
   let get_value name conv = conv (List.assoc name assocs) in
   let get_value_nil name conv = 
@@ -96,28 +111,36 @@ let value_to_file is_done assocs =
     with _ -> failwith "Bad file_tracker"
   in
   
+  let file_state = get_value "file_state" value_to_state in
+  
   let file =  
     try
-     let file_files = 
-      (get_value "file_files" 
-        (value_to_list (fun v ->
-              match v with
-                SmallList [name; p1]
-              | List [name; p1] ->
-                  value_to_string name, value_to_int64 p1
-              | _ -> assert false
-		       ))) in
-     let file_t = 
-       new_download file_id file_name file_size file_tracker 
-	 file_piece_size file_files in
-       file_t.file_files <- file_files;
-       file_t
-     
-   with _ -> 
-     new_download file_id file_name file_size file_tracker 
-     file_piece_size []
+      let file_files = 
+        (get_value "file_files" 
+            (value_to_list (fun v ->
+                match v with
+                  SmallList [name; p1]
+                | List [name; p1] ->
+                    value_to_string name, value_to_int64 p1
+                | _ -> assert false
+            ))) in
+      let file_t = 
+        new_download file_id file_name file_size file_tracker 
+          file_piece_size file_files in
+      file_t.file_files <- file_files;
+      file_t
+    
+    with _ -> 
+        new_download file_id file_name file_size file_tracker 
+          file_piece_size []
   in
-
+  let file_uploaded = try
+      value_to_int64 (List.assoc "file_uploaded" assocs) 
+    with _ -> failwith "Bad file uploaded"
+  in
+  file.file_uploaded <- file_uploaded;
+  set_file_state file file_state;
+  
   (try 
       Int64Swarmer.set_present file.file_swarmer 
         (get_value "file_present_chunks" 
@@ -148,14 +171,14 @@ let value_to_file is_done assocs =
           (Printexc2.to_string e); 
   );
   
-  (try
+(*  (try
       ignore
         (get_value  "file_sources" (
           value_to_list (ClientOption.of_value file)))
     with e -> 
         lprintf "Exception %s while loading sources\n"
           (Printexc2.to_string e); 
-  );
+  );*)
   as_file file.file_file
   
 let file_to_value file =
@@ -166,14 +189,16 @@ let file_to_value file =
     "file_piece_size", int64_to_value (file.file_piece_size);
     "file_name", string_to_value file.file_name;
     "file_downloaded", int64_to_value (file_downloaded file);
+    "file_uploaded", int64_to_value  (file.file_uploaded);
+    "file_state", state_to_value (file_state file);
     "file_id", string_to_value (Sha1.to_string file.file_id);
     "file_tracker", string_to_value file.file_tracker;
     "file_chunks", string_to_value 
       (Int64Swarmer.verified_bitmap file.file_partition);
-    "file_sources", 
+(*    "file_sources", 
     list_to_value "BT Sources" (fun c ->
         ClientOption.to_value c) sources
-    ;
+    ;*)
     "file_present_chunks", List
       (List.map (fun (i1,i2) -> 
           SmallList [int64_to_value i1; int64_to_value i2])
