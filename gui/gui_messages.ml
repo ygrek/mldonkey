@@ -575,6 +575,8 @@ Release 1.11:
    - Limited open fds for files to 50 (doesn't limit shared files
        and downloaded files).
    - Execute entry on WEB interface always displayed.
+   - Removed a timeout closing all client connection after 2 minutes.
+   - Shared files are opened in read-only mode.
 
 Release 1.10:
   * Default timeout for server connection set to 5 for faster connection.

@@ -25,8 +25,7 @@ open DownloadOneFile
 open Mftp_comm
 open DownloadTypes
 open DownloadGlobals
-  open DownloadComplexOptions
-
+open DownloadComplexOptions
 open DownloadOptions
 open DownloadClient  
 open Gui_types
@@ -399,12 +398,18 @@ let rec really_read fd s pos len =
     really_read fd s (pos + nread) (len - nread)
   
 let send_small_block sock file begin_pos len = 
+  (*
+  Printf.printf "send_small_block %s %s"
+(Int32.to_string begin_pos) (Int32.to_string len);
+print_newline ();
+*)
   let fd = file.file_fd in
   let len_int = Int32.to_int len in
   ignore (Unix32.seek32 fd begin_pos Unix.SEEK_SET);
   really_read (Unix32.force_fd fd) upload_buffer 0 len_int;
   incr upload_counter;
   file.file_upload_blocks <- file.file_upload_blocks + 1;
+(*  Printf.printf "sending"; print_newline (); *)
   client_send sock (
     let module M = Mftp_client in
     let module B = M.Bloc in
@@ -419,6 +424,7 @@ let send_small_block sock file begin_pos len =
   );
   remaining_bandwidth := !remaining_bandwidth - len_int / 1000
   
+ 
 let rec send_client_block c sock per_client =
   if per_client > 0 then
     match c.client_upload with
@@ -465,7 +471,9 @@ let rec send_client_block_partial c sock per_client =
 (* last block from chunk *)
         begin
           (try send_small_block  sock up.up_file up.up_pos max_len
-            with _ -> ());
+            with e -> 
+                Printf.printf "exc %s in send_small_block"
+                  (Printexc.to_string e) ; print_newline () );
           up.up_chunks <- chunks;
           match chunks with
             [] -> 
@@ -493,15 +501,20 @@ let reset_upload_timer timer =
   (* timer started every 1/10 seconds *)
 let upload_timer timer =
   reactivate_timer timer;
-  download_engine ();
+  (try download_engine () with e -> 
+        Printf.printf "Exception %s in download_engine" 
+          (Printexc.to_string e); print_newline (););
   try
     while !remaining_bandwidth > 0 && not (Fifo.empty upload_clients) do
       if !remaining_bandwidth < 10 then begin
           let c = Fifo.take upload_clients in
           match c.client_sock with
           | Some sock ->
-              (try send_client_block_partial c sock !remaining_bandwidth
-                with _ -> ());
+              (try
+                  send_client_block_partial c sock !remaining_bandwidth
+                with e -> 
+                    Printf.printf "exc %s in send_client_block_partial"
+                      (Printexc.to_string e); print_newline () );
               (match c.client_upload with
                   None -> ()
                 | Some up ->
@@ -530,10 +543,12 @@ let upload_timer timer =
                     Fifo.put upload_clients c
                   end else 
                   up.up_waiting <- false
-            )
+          )
       | _ -> ()
     done
-  with _ -> ()
+  with e -> 
+      Printf.printf "exc %s in upload" (Printexc.to_string e);
+      print_newline () 
 
 let upload_credit_timer timer =
   reactivate_timer timer;

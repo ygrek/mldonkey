@@ -189,7 +189,7 @@ module FileOption = struct
           
           let file = DownloadGlobals.new_file (
               Filename.concat !!temp_directory file_md4_name)
-            (Md4.of_string file_md4_name) file_size in
+            (Md4.of_string file_md4_name) file_size true in
           
           (try 
               if file.file_exists then begin

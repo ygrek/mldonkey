@@ -78,7 +78,7 @@ val indirect_clients_by_md4 : (Md4.t, unit) Hashtbl.t
 val clients_by_kind : (Gui_types.location_kind, DownloadTypes.client) Hashtbl.t
 val clients_by_num : (int, DownloadTypes.client) Hashtbl.t
 val find_file : Md4.t -> DownloadTypes.file  
-val new_file : string -> Md4.t -> int32 -> DownloadTypes.file
+val new_file : string -> Md4.t -> int32 -> bool -> DownloadTypes.file
 val new_server : Ip.t -> int -> int -> DownloadTypes.server
 val find_server : Ip.t -> int -> DownloadTypes.server
 val new_client : Gui_types.location_kind -> DownloadTypes.client

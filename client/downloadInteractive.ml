@@ -256,7 +256,7 @@ let really_query_download filenames size md4 location old_file absents =
               Sys.rename filename temp_file with _ -> ());        
   end;
   
-  let file = new_file  temp_file md4 size in
+  let file = new_file  temp_file md4 size true in
   begin
     match absents with
       None -> ()

@@ -173,7 +173,7 @@ let new_shared = ref []
 let shared_files = ref []
 let download_counter = ref 0
   
-let new_file file_name md4 file_size =
+let new_file file_name md4 file_size writable =
   try
     find_file md4 
   with _ ->
@@ -200,7 +200,8 @@ let new_file file_name md4 file_size =
           file_size = file_size;
           file_nchunks = nchunks;
           file_chunks = [||];
-          file_fd = Unix32.create file_name [O_RDWR; O_CREAT] 0o666;
+          file_fd = Unix32.create file_name (if writable then
+              [O_RDWR; O_CREAT] else [O_RDONLY]) 0o666;
           file_all_chunks = String.make nchunks '0';
           file_absent_chunks =   [Int32.zero, file_size];
           file_filenames = [];

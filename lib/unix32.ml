@@ -48,12 +48,13 @@ let create f r a = {
   }
 
 let rec close_one () =
-  let t = Fifo.take cache in
-  match t.fd with
-    None -> 
-      close_one ()
-  | Some fd -> Unix.close fd; t.fd <- None
-      
+  if not (Fifo.empty cache) then
+    let t = Fifo.take cache in
+    match t.fd with
+      None -> 
+        close_one ()
+    | Some fd -> Unix.close fd; t.fd <- None
+        
 let force_fd t =
   match t.fd with
     None ->

@@ -198,9 +198,13 @@ let loop () =
           if not t.closed && t.lifetime < time then 
             (try t.event_handler t LTIMEOUT with _ -> ());
           if not t.closed && t.flags land 1 <> 0 then 
-            (try t.event_handler t CAN_READ with _ -> ());
+            (try 
+                t.next_rtimeout <- time +. t.rtimeout;
+                t.event_handler t CAN_READ with _ -> ());
           if not t.closed && t.flags land 2 <> 0 then 
-            (try t.event_handler t CAN_WRITE with _ -> ());
+            (try 
+                t.next_wtimeout <- time +. t.wtimeout;                
+                t.event_handler t CAN_WRITE with _ -> ());
       ) !tasks;
       List.iter (fun t ->
           if (not t.applied) && t.next_time <= !current_time then begin

@@ -378,6 +378,7 @@ We should probably check that here ... *)
   
   | M.AvailableSlotReq _ ->
       printf_string "[QUEUED]";
+      set_rtimeout (TcpClientSocket.sock sock) infinite_timeout;
       find_client_block c
 
 (*
@@ -391,7 +392,6 @@ We should probably check that here ... *)
       ) t;
       
       set_client_state c Connected_queued;
-      set_rtimeout (TcpClientSocket.sock sock) infinite_timeout;
       client_send sock (
         let module M = Mftp_client in
         M.QueueReq t);              
@@ -758,10 +758,11 @@ Mmap.munmap m;
         })
   
   | M.QueryBlocReq t when !has_upload = 0 -> 
-      
+
+      set_rtimeout (TcpClientSocket.sock sock) infinite_timeout;
       let module Q = M.QueryBloc in
       let file = find_file  t.Q.md4 in
-(*      Printf.printf "QUERY BLOCS %s" file.file_name; print_newline (); *)
+(* Printf.printf "QUERY BLOCS %s" file.file_hardname; print_newline ();*)
 
       let up = match c.client_upload with
           Some ({ up_file = f } as up) when f == file ->  up
@@ -782,7 +783,7 @@ Mmap.munmap m;
           Fifo.put upload_clients c;
           up.up_waiting <- true
         end
-      
+
   | _ -> ()
 
 let client_handler c sock event = 
@@ -865,7 +866,7 @@ let query_id_reply s t =
   let module M = Mftp_server in
   let module Q = M.QueryIDReply in
   let c = new_client (Known_location (t.Q.ip, t.Q.port)) in
-  Printf.printf "QueryIDReply: Connect client"; print_newline ();
+(*  Printf.printf "QueryIDReply: Connect client"; print_newline (); *)
   connect_client s [] c
       
 let query_id s sock ip =

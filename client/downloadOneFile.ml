@@ -834,7 +834,7 @@ let new_file_to_share sh =
         iter md4s 0;
         Md4.string s
   in
-  let file = new_file sh.sh_name md4 sh.sh_size in
+  let file = new_file sh.sh_name md4 sh.sh_size false in
   must_share_file file;
   file.file_md4s <- md4s;
   file.file_filenames <- [Filename.basename sh.sh_name]; 
