@@ -1,6 +1,14 @@
 ChangeLog	
 =========
 
+*  To use the latest version, you need to checkout and specify the tag
+* that you want to use (-r release-2-5-3) because we now have two
+* different branches, and you probably want to use the stable one
+* (-r release-2-5-1-patches) and not the default one (devel only).
+*
+*   2-5-3 is not unstable, it is a bug fix version of 2.5
+*   2-5-2 is unstable, use it only if you know what you are doing
+
 2003/06/05: Simon  (release-2-5-3)(branch: release-2-5-1-patches)
   - Fixed ENORMOUS bug in donkey that could cause corruption on other clients
      All the md4s will be recomputed for all shared files at next startup.
