@@ -542,7 +542,7 @@ and zero_block file i =
       | _ -> Printf.printf "Trying to zero some existing chunk!!";
           print_newline ())
   with _ -> ()
-      
+
 and check_file_block c file i max_clients =
   if c.client_chunks.(i) then begin
       begin
@@ -565,7 +565,7 @@ and check_file_block c file i max_clients =
               (b.block_begin) (b.block_end);
               print_newline ();
             end;
-	  zero_block file i;
+          zero_block file i;
           c.client_block <- Some b;
           file.file_chunks.(i) <- PartialVerified b;
           find_client_zone c;
@@ -590,24 +590,26 @@ and check_file_block c file i max_clients =
     end
 
 and start_download c =
-  if !verbose_download then begin
-      Printf.printf "start_download..."; print_newline ();
-    end;
-  match c.client_sock with
-    None -> ()
-  | Some sock ->
-      
-      match c.client_file_queue with
-        [] -> ()
-      | (file, (_, chunks)) :: _ ->
+  if not c.client_asked_for_slot then begin
+      if !verbose_download then begin
+          Printf.printf "start_download..."; print_newline ();
+        end;
+      match c.client_sock with
+        None -> ()
+      | Some sock ->
           
-          direct_client_send c (
-            let module M = DonkeyProtoClient in
-            let module Q = M.JoinQueue in
-            M.JoinQueueReq Q.t);                        
-          
-          restart_download c
-
+          match c.client_file_queue with
+            [] -> ()
+          | (file, (_, chunks)) :: _ ->
+              
+              direct_client_send c (
+                let module M = DonkeyProtoClient in
+                let module Q = M.JoinQueue in
+                M.JoinQueueReq Q.t);                        
+              c.client_asked_for_slot <- true;
+              
+              restart_download c
+    end
 
 and restart_download c = 
   if !verbose_download then begin

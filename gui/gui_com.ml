@@ -19,6 +19,8 @@
 
 (** Communicating with the mldonkey client. *)
 
+open BasicSocket
+open TcpBufferedSocket
 open Options
 open CommonGlobals
 open Gettext
@@ -61,13 +63,14 @@ let send t =
       print_newline ();
   | Some sock ->
       GuiEncoding.gui_send (GuiEncoding.from_gui !gui_protocol_used) sock t
-
+          
 let reconnect gui value_reader =
   (try disconnect gui with _ -> ());
+  let hostname = if !!O.hostname = "" then Unix.gethostname () 
+    else !!O.hostname in
   let sock = TcpBufferedSocket.connect ""
       (try
-        let h = Ip.from_name
-            (if !!O.hostname = "" then Unix.gethostname () else !!O.hostname) in
+        let h = Ip.from_name hostname in
         Ip.to_inet_addr h
       with 
         e -> 
@@ -91,6 +94,14 @@ let reconnect gui value_reader =
     !!O.port
       (fun _ _ -> ()) 
   in
+  
+  
+  if not (List.mem (hostname,!!O.port) !!O.history) then
+    begin
+      O.history =:= (hostname, !!O.port) :: !!O.history;
+      G.new_scanned_port := true
+    end;  
+  
   try
     connection := Some sock;
     TcpBufferedSocket.set_closer sock (fun _ msg -> 
@@ -184,4 +195,72 @@ let reconnect =
 let send = 
   if !core_included then UseFifo.send
   else UseSocket.send
-    
+      
+let scan_ports () =
+  let hostname = if !!O.hostname = "" then Unix.gethostname () else !!O.hostname
+  in
+  let ip = Ip.from_name hostname in
+  let addr = Ip.to_inet_addr ip in
+  let rec scan_port prev_next i max =
+    if !prev_next && i < max then
+      let next = ref true in
+      prev_next := false;
+      try
+        let sock = TcpBufferedSocket.connect "" addr i (fun sock e -> 
+              match e with
+                BASIC_EVENT (RTIMEOUT) -> close sock ""
+              | _ -> ()
+          ) in
+        GuiEncoding.gui_send (GuiEncoding.from_gui 1) sock 
+          (GuiProto.GuiProtocol GuiEncoding.best_gui_version);
+        set_closer sock (fun _ _ -> 
+            scan_port next (i+1) max);
+        let proto = ref 0 in
+        let nets = ref [] in
+        let console = ref "" in
+        TcpBufferedSocket.set_reader sock (fun sock nread ->
+            GuiDecoding.gui_cut_messages
+              (fun opcode s ->
+                try
+                  let m = GuiDecoding.to_gui GuiEncoding.best_gui_version
+                      opcode s in
+                  match m with
+                    CoreProtocol n -> 
+                      Printf.printf "GUI version %d on port %d" n i;
+                      print_newline ();
+                      proto := n
+                  | Network_info n ->
+                      nets := n.CommonTypes.network_netname :: !nets
+                  | Console m ->
+                      Printf.printf "GUI:\n proto %d\nnets:\n" !proto; print_newline ();
+                      List.iter (fun n ->
+                          Printf.printf "%s " n
+                      ) !nets;
+                      print_newline ();
+                      Printf.printf " motd:\n%s" m;
+                      print_newline ();
+                      
+                      if not (List.mem (hostname,i) !G.scanned_ports) then
+                        begin
+                          G.scanned_ports := (hostname, i) :: !G.scanned_ports;
+                          G.new_scanned_port := true
+                          
+                        end
+                      
+                  | _ -> close sock ""
+              with e -> close sock ""
+            ) sock nread
+            
+            );
+        
+        set_rtimeout sock 0.5;
+      with e -> 
+          scan_port next (i+1) max
+  in
+  scan_port (ref true) 0 10000;
+  scan_port (ref true) 10000 20000;
+  scan_port (ref true) 20000 30000;
+  scan_port (ref true) 30000 40000;
+  scan_port (ref true) 40000 50000;
+  scan_port (ref true) 50000 60000;
+  scan_port (ref true) 60000 65536

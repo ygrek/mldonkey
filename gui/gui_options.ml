@@ -453,6 +453,10 @@ let port = define_option mldonkey_gui_ini ["port"]
 let hostname = define_option mldonkey_gui_ini ["hostname"] 
     (gettext M.h_hostname) string_option "localhost"
 
+let history = define_option mldonkey_gui_ini ["history"]
+    "History of connected cores"
+  (list_option (tuple2_option (string_option, int_option))) []
+  
 (** Profondeur max pour l'auto expand des arborescences des fichiers
    des friends. *)
 let files_auto_expand_depth = define_option mldonkey_gui_ini 

@@ -37,7 +37,6 @@ let must_share_file file has_old_impl =
   match file.file_shared with
   | Some _ -> ()
   | None ->
-      Printf.printf "must_share_file"; print_newline ();
       new_shared := file :: !new_shared;
       let impl = {
           impl_shared_update = 1;

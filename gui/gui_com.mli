@@ -29,3 +29,6 @@ val connected : unit -> bool
   
 val gui_protocol_used : int ref
   
+val scan_ports : unit -> unit
+  
+  

@@ -229,6 +229,7 @@ let disconnect_client c =
           c.client_has_a_slot <- false;
           c.client_chunks <- [||];
           c.client_sock <- None;
+          c.client_asked_for_slot <- false;
           set_client_disconnected c;
           let files = c.client_file_queue in
           List.iter (fun (file, (chunks, _) ) -> 
@@ -518,26 +519,17 @@ let client_has_chunks c file chunks =
             let len = Array.length c1 in
             Array.blit chunks 0 c1 0 len;
             Array.blit chunks 0 c2 0 len;
-            
+
           with Not_found ->
               add_client_chunks file chunks;
-              
-              match c.client_file_queue with
-                [] ->
-                  if !verbose_download then begin
-                      Printf.printf "client_has_chunks: ADDING FILE TO QUEUE"; print_newline ();
-                    end;
-                  c.client_file_queue <- [file, 
-                    (chunks, Array.copy chunks)];
-                  start_download c
-              
-              | _ -> 
-                  if !verbose_download then begin
-                      Printf.printf "client_file_queue: ADDING NEXT FILE TO QUEUE"; print_newline ();
-                    end;
-                  c.client_file_queue <- c.client_file_queue @ [
-                    file, (chunks, Array.copy chunks) ]
-        )
+              if !verbose_download then begin
+                  Printf.printf "client_file_queue: ADDING FILE TO QUEUE"; print_newline ();
+                end;
+              c.client_file_queue <- c.client_file_queue @ [
+                file, (chunks, Array.copy chunks) ]
+        );
+        start_download c
+
       with _ -> 
           if !verbose_download then begin
               Printf.printf "client_has_chunks: EXCEPTION"; print_newline ()
@@ -941,6 +933,7 @@ print_newline ();
   | M.CloseSlotReq _ ->
       printf_string "[DOWN]";
       DonkeyOneFile.clean_client_zones c;
+      c.client_asked_for_slot <- false;
 (* OK, the slot is closed, but what should we do now ????? *)
       begin
         match c.client_file_queue with
@@ -1521,7 +1514,8 @@ let init_client sock c =
   c.client_upload <- None;
   c.client_rank <- 0;
   c.client_requests_received <- 0;
-  c.client_requests_sent <- 0
+  c.client_requests_sent <- 0;
+  c.client_asked_for_slot <- false
         
 let read_first_message overnet challenge m sock =
   let module M = DonkeyProtoClient in

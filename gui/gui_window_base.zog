@@ -14,6 +14,12 @@
             </menu_item>
             <menu_item name=itemKill width="-1" height="-1" border_width="-1" label="Gettext.gettext+Gui_messages.mKill_server" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
             </menu_item>
+            <menu_item name=itemScanPorts width="-1" height="-1" border_width="-1" label="%22Scan+ports%22" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
+            </menu_item>
+            <menu_item name=cores width="-1" height="-1" border_width="-1" label="%22Reconnect+To%22" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
+              <menu name=cores_menu width="-1" height="-1" border_width="-1" tab_label="" expand="false" fill="true" padding="-1">
+              </menu>
+            </menu_item>
             <menu_separator name=_ width="" height="" border_width="" tab_label="" expand="false" fill="true" padding="">
             </menu_separator>
             <menu_item name=itemQuit width="-1" height="-1" border_width="-1" label="Gettext.gettext+Gui_messages.mQuit" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">

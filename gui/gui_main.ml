@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Options
 open Gettext
 open Gui_global
 module O = Gui_options
@@ -27,7 +28,6 @@ module Mi = Gui_misc
 
 (*module Gui_rooms = Gui_rooms2*)
   
-let (!!) = Options.(!!)
 
 let _ = 
   (try Options.load O.mldonkey_gui_ini with
@@ -173,7 +173,7 @@ let canon_client gui c =
   c
 
 let verbose_gui_messages = ref false
-  
+    
 let value_reader gui t =
   try
     
@@ -506,6 +506,25 @@ fichier selectionne. Si ca marche toujours dans ton interface, pas de
       Printf.printf "Exception %s in reader" (Printexc2.to_string e);
       print_newline ()
 
+      
+let generate_connect_menu gui =
+  let add_item hostname port =
+    let menu_item =
+      let label = Printf.sprintf "%s:%d" hostname port in
+      GMenu.menu_item ~label: label
+      ~packing:gui#cores_menu#add ()
+      in
+    ignore (menu_item#connect#activate ~callback:(fun _ ->
+          O.hostname =:= hostname;
+          O.port =:= port;
+          Com.reconnect gui value_reader
+      ));
+  in
+  List.iter (fun child -> child#destroy ()) gui#cores_menu#children;
+  List.iter (fun (h,port) ->  add_item h port) !!O.history;
+  let _ = GMenu.menu_item ~packing:(gui#cores_menu#add) () in
+ List.iter (fun (h,port) ->  add_item h port) !G.scanned_ports
+
 let main () =
   let gui = new Gui_window.window () in
   let w = gui#window in
@@ -572,12 +591,19 @@ let main () =
 
   ignore (gui#itemOptions#connect#activate (fun () -> Gui_config.edit_options gui));
 
+  ignore (gui#itemScanPorts#connect#activate (fun _ ->
+        Com.scan_ports () 
+    ));
 
   (** connection with core *)
   Com.reconnect gui value_reader ;
 (*  BasicSocket.add_timer 2.0 update_sizes;*)
   let never_connected = ref true in
   BasicSocket.add_timer 1.0 (fun timer ->
+      if !G.new_scanned_port then begin
+          generate_connect_menu gui
+        end;
+      
       if !never_connected && not (Com.connected ()) then  begin
           BasicSocket.reactivate_timer timer;
           Com.reconnect gui value_reader

@@ -371,9 +371,12 @@ let clean_file_sources file nsources =
   for i = Array.length file.file_sources -1 downto 0 do
     try
       while !nsources > !!max_sources_per_file do
-        let _ = SourcesQueue.take file.file_sources.(i) in
-        ()          
-        
+        let _,s = SourcesQueue.take file.file_sources.(i) in
+        s.source_in_queues <- List2.removeq file s.source_in_queues;
+        match s.source_in_queues, s.source_client with
+          [] , SourceLastConnection _ -> 
+            H.remove sources s
+        | _ -> ()
       done
     with _ -> ()
         
@@ -749,8 +752,7 @@ let check_sources reconnect_client =
   
   let uptime = last_time () - start_time in
 
-  if uptime mod 60 = 0 then
-    recompute_ready_sources ();
+  if uptime mod 60 = 0 then recompute_ready_sources ();
   
   if uptime mod 600 = 0 then
     begin

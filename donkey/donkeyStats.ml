@@ -79,24 +79,30 @@ let count_seen c =
       Brand_unknown -> () (* be careful, raising an exception here will
 abort all other operations after that point for this client...*)
     | b ->
-	stats_by_brand.(brand_to_int b).brand_seen <-
-	stats_by_brand.(brand_to_int b).brand_seen + 1
+      stats_by_brand.(brand_to_int b).brand_seen <-
+        stats_by_brand.(brand_to_int b).brand_seen + 1;
+      !!gstats_by_brand.(brand_to_int b).brand_seen <-
+        !!gstats_by_brand.(brand_to_int b).brand_seen + 1
 
 let count_banned c =
   stats_all.brand_banned <- stats_all.brand_banned + 1;
   match c.client_brand with
       Brand_unknown -> () 
     | b ->
-	stats_by_brand.(brand_to_int b).brand_banned <-
-	stats_by_brand.(brand_to_int b).brand_banned + 1
+      stats_by_brand.(brand_to_int b).brand_banned <-
+        stats_by_brand.(brand_to_int b).brand_banned + 1;
+      !!gstats_by_brand.(brand_to_int b).brand_banned <-
+        !!gstats_by_brand.(brand_to_int b).brand_banned + 1
 
 let count_filerequest c =
   stats_all.brand_filerequest <- stats_all.brand_filerequest + 1;
   match c.client_brand with
       Brand_unknown -> ()
     | b ->
-	    stats_by_brand.(brand_to_int b).brand_filerequest <-
-	    stats_by_brand.(brand_to_int b).brand_filerequest + 1
+      stats_by_brand.(brand_to_int b).brand_filerequest <-
+        stats_by_brand.(brand_to_int b).brand_filerequest + 1;
+      !!gstats_by_brand.(brand_to_int b).brand_filerequest <-
+	    !!gstats_by_brand.(brand_to_int b).brand_filerequest + 1
 
 let count_download c f v =
   download_counter := Int64.add !download_counter v;
@@ -105,8 +111,10 @@ let count_download c f v =
   match c.client_brand with
       Brand_unknown -> ()
     | b ->
-	    stats_by_brand.(brand_to_int b).brand_download <-
-	    Int64.add stats_by_brand.(brand_to_int b).brand_download v
+      stats_by_brand.(brand_to_int b).brand_download <-
+        Int64.add stats_by_brand.(brand_to_int b).brand_download v;
+      !!gstats_by_brand.(brand_to_int b).brand_download <-
+        Int64.add !!gstats_by_brand.(brand_to_int b).brand_download v
 
 let count_upload c f v =
   upload_counter := Int64.add !upload_counter v;
@@ -115,8 +123,10 @@ let count_upload c f v =
   match c.client_brand with
       Brand_unknown -> failwith "unknown client type"
     | b ->
-	    stats_by_brand.(brand_to_int b).brand_upload <-
-	    Int64.add stats_by_brand.(brand_to_int b).brand_upload v
+      stats_by_brand.(brand_to_int b).brand_upload <-
+        Int64.add stats_by_brand.(brand_to_int b).brand_upload v;
+      !!gstats_by_brand.(brand_to_int b).brand_upload <-
+        Int64.add !!gstats_by_brand.(brand_to_int b).brand_upload v
 
 let percent_of_ints x y = 
   if y <> 0 then 100. *. (float_of_int x /. float_of_int y)
@@ -136,11 +146,11 @@ let save_stats () =
     output_string oc (Printf.sprintf "%d\n" ());
     
     for i=1 to brand_count-1 do
-      output_string oc (Printf.sprintf "%d\n" (gstats_by_brand.(i).brand_seen + stats_by_brand.(i).brand_seen));
-      output_string oc (Printf.sprintf "%d\n" (gstats_by_brand.(i).brand_filerequest + stats_by_brand.(i).brand_filerequest));
-      output_string oc ((Int64.to_string (Int64.add gstats_by_brand.(i).brand_download stats_by_brand.(i).brand_download)) ^ "\n");
-      output_string oc ((Int64.to_string (Int64.add gstats_by_brand.(i).brand_upload stats_by_brand.(i).brand_upload)) ^ "\n");
-      output_string oc (Printf.sprintf "%d\n" (gstats_by_brand.(i).brand_banned + stats_by_brand.(i).brand_banned));
+      output_string oc (Printf.sprintf "%d\n" (!!gstats_by_brand.(i).brand_seen + stats_by_brand.(i).brand_seen));
+      output_string oc (Printf.sprintf "%d\n" (!!gstats_by_brand.(i).brand_filerequest + stats_by_brand.(i).brand_filerequest));
+      output_string oc ((Int64.to_string (Int64.add !!gstats_by_brand.(i).brand_download stats_by_brand.(i).brand_download)) ^ "\n");
+      output_string oc ((Int64.to_string (Int64.add !!gstats_by_brand.(i).brand_upload stats_by_brand.(i).brand_upload)) ^ "\n");
+      output_string oc (Printf.sprintf "%d\n" (!!gstats_by_brand.(i).brand_banned + stats_by_brand.(i).brand_banned));
     done;
     
     close_out oc 
@@ -158,11 +168,11 @@ let load_stats () =
     
     for i=1 to brand_count-1 do
       try 
-        gstats_by_brand.(i).brand_seen <- int_of_string (input_line ic);	
-        gstats_by_brand.(i).brand_filerequest <- int_of_string (input_line ic);	
-        gstats_by_brand.(i).brand_download <- Int64.of_string (input_line ic);
-        gstats_by_brand.(i).brand_upload <- Int64.of_string (input_line ic);
-        gstats_by_brand.(i).brand_banned <- int_of_string (input_line ic);	
+        !!gstats_by_brand.(i).brand_seen <- int_of_string (input_line ic);	
+        !!gstats_by_brand.(i).brand_filerequest <- int_of_string (input_line ic);	
+        !!gstats_by_brand.(i).brand_download <- Int64.of_string (input_line ic);
+        !!gstats_by_brand.(i).brand_upload <- Int64.of_string (input_line ic);
+        !!gstats_by_brand.(i).brand_banned <- int_of_string (input_line ic);	
       with _ -> ()
     done;
     
@@ -377,36 +387,36 @@ let new_print_stats buf o =
       
       stats_all.brand_banned 
         (max 0.0 (percent_of_ints stats_all.brand_banned stats_all.brand_seen));
-
-
-	  let gstats_all = 
-		let stat = {
-    		brand_seen = 0;
-    		brand_banned = 0;
-    		brand_filerequest = 0;
-    		brand_download = Int64.zero;
-    		brand_upload = Int64.zero
-  		}
-  		in stat in
-
+      
+      
+      let gstats_all = 
+        let stat = {
+            brand_seen = 0;
+            brand_banned = 0;
+            brand_filerequest = 0;
+            brand_download = Int64.zero;
+            brand_upload = Int64.zero
+          }
+        in stat in
+      
       for i=0 to brand_count-1 do
-		
-		gstats_all.brand_seen <- gstats_all.brand_seen + !!gstats_by_brand.(i).brand_seen + stats_by_brand.(i).brand_seen;
-		gstats_all.brand_filerequest <- gstats_all.brand_filerequest + !!gstats_by_brand.(i).brand_filerequest + stats_by_brand.(i).brand_filerequest;
-		gstats_all.brand_download <- Int64.add (Int64.add gstats_all.brand_download !!gstats_by_brand.(i).brand_download) stats_by_brand.(i).brand_download;
-		gstats_all.brand_upload <- Int64.add (Int64.add gstats_all.brand_upload !!gstats_by_brand.(i).brand_upload) stats_by_brand.(i).brand_upload;
-		gstats_all.brand_banned <- gstats_all.brand_banned + !!gstats_by_brand.(i).brand_banned + stats_by_brand.(i).brand_banned;
-
-	  done; 
-  	  let gdays = (guptime () + uptime) / one_day in
+        
+        gstats_all.brand_seen <- gstats_all.brand_seen + !!gstats_by_brand.(i).brand_seen;
+        gstats_all.brand_filerequest <- gstats_all.brand_filerequest + !!gstats_by_brand.(i).brand_filerequest;
+        gstats_all.brand_download <- Int64.add gstats_all.brand_download !!gstats_by_brand.(i).brand_download ;
+        gstats_all.brand_upload <- Int64.add gstats_all.brand_upload !!gstats_by_brand.(i).brand_upload;
+        gstats_all.brand_banned <- gstats_all.brand_banned + !!gstats_by_brand.(i).brand_banned;
+      
+      done; 
+      let gdays = (guptime () + uptime) / one_day in
       let grem = maxi 1 ((guptime () + uptime) - gdays * one_day) in
-  
+      
       let ghours = grem / one_hour in
       let grem = grem - ghours * one_hour in
       let gmins = grem / one_minute in
-
+      
       Printf.bprintf buf "\\<br\\>\\<br\\>Total Uptime: %d seconds (%d+%02d:%02d)\n" (guptime() + uptime) gdays ghours gmins;
-
+      
       Printf.bprintf buf "\\<table class=\\\"cs\\\"\\>\\<tr\\>
 \\<td title=\\\"Client Brand\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C.B\\</td\\>
 \\<td title=\\\"Successful Connections\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Seen\\</td\\>
@@ -422,7 +432,7 @@ let new_print_stats buf o =
 \\<td title=\\\"Total Bans\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>B\\</td\\>
 \\<td title=\\\"Total Bans Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>%%\\</td\\>
 \\</tr\\>";
-
+      
       for i=1 to brand_count-1 do
         
         if brand_of_int i != Brand_server then (* dont print server stats *)
@@ -453,23 +463,23 @@ let new_print_stats buf o =
             
             
             (brandstr)
-          	(!!gstats_by_brand.(i).brand_seen + stats_by_brand.(i).brand_seen) 
-            (percent_of_ints (!!gstats_by_brand.(i).brand_seen + stats_by_brand.(i).brand_seen) gstats_all.brand_seen)
+          (!!gstats_by_brand.(i).brand_seen) 
+          (percent_of_ints (!!gstats_by_brand.(i).brand_seen) gstats_all.brand_seen)
           
-          	(!!gstats_by_brand.(i).brand_filerequest + stats_by_brand.(i).brand_filerequest)
-            (percent_of_ints (!!gstats_by_brand.(i).brand_filerequest + stats_by_brand.(i).brand_filerequest) gstats_all.brand_filerequest)
+          (!!gstats_by_brand.(i).brand_filerequest)
+          (percent_of_ints (!!gstats_by_brand.(i).brand_filerequest) gstats_all.brand_filerequest)
           
-          (size_of_int64 (Int64.add !!gstats_by_brand.(i).brand_download stats_by_brand.(i).brand_download))
-          (max 0.0 (percent_of_int64s (Int64.add !!gstats_by_brand.(i).brand_download stats_by_brand.(i).brand_download) gstats_all.brand_download))
-          ((Int64.to_float (Int64.add !!gstats_by_brand.(i).brand_download stats_by_brand.(i).brand_download)) /. (float_of_int (guptime() + uptime)) /. 1024.0)
-
-          (size_of_int64 (Int64.add !!gstats_by_brand.(i).brand_upload stats_by_brand.(i).brand_upload))
-          (max 0.0 (percent_of_int64s (Int64.add !!gstats_by_brand.(i).brand_upload stats_by_brand.(i).brand_upload) gstats_all.brand_upload))
-          ((Int64.to_float (Int64.add !!gstats_by_brand.(i).brand_upload stats_by_brand.(i).brand_upload)) /. (float_of_int (guptime() + uptime)) /. 1024.0)
+          (size_of_int64 (!!gstats_by_brand.(i).brand_download))
+          (max 0.0 (percent_of_int64s (!!gstats_by_brand.(i).brand_download) gstats_all.brand_download))
+          ((Int64.to_float (!!gstats_by_brand.(i).brand_download)) /. (float_of_int (guptime() + uptime)) /. 1024.0)
           
-          (!!gstats_by_brand.(i).brand_banned + stats_by_brand.(i).brand_banned) 
-            (max 0.0 (percent_of_ints (!!gstats_by_brand.(i).brand_banned + stats_by_brand.(i).brand_banned) gstats_all.brand_banned)) 
-
+          (size_of_int64 (!!gstats_by_brand.(i).brand_upload))
+          (max 0.0 (percent_of_int64s (!!gstats_by_brand.(i).brand_upload) gstats_all.brand_upload))
+          ((Int64.to_float (!!gstats_by_brand.(i).brand_upload)) /. (float_of_int (guptime() + uptime)) /. 1024.0)
+          
+          (!!gstats_by_brand.(i).brand_banned) 
+          (max 0.0 (percent_of_ints (!!gstats_by_brand.(i).brand_banned) gstats_all.brand_banned)) 
+          
 
 
       done;
@@ -567,34 +577,35 @@ let new_print_stats buf o =
 let _ =
   register_commands 
     [
-   "client_stats", Arg_none (fun o ->
-	let buf = o.conn_buf in
-	  print_stats buf;
-	  ""
-   ), ":\t\t\t\tshow breakdown of download/upload by clients brand";
-
-   "cs", Arg_none (fun o ->
-	let buf = o.conn_buf in
-	  new_print_stats buf o;
-	  ""
+    "client_stats", Arg_none (fun o ->
+        let buf = o.conn_buf in
+        print_stats buf;
+        ""
+    ), ":\t\t\t\tshow breakdown of download/upload by clients brand";
+    
+    "cs", Arg_none (fun o ->
+        let buf = o.conn_buf in
+        new_print_stats buf o;
+        ""
     ), ":\t\t\t\t\tshow table of download/upload by clients brand";
     
-   "reload_messages", Arg_none (fun o ->
-	begin
-
-    try
-      Options.load message_file
-    with
-      Sys_error _ ->
-        (try Options.save message_file with _ -> ())
-    | e ->
-        Printf.printf "Error %s loading message file %s"
-          (Printexc2.to_string e)
-        (Options.options_file_name message_file);
-        print_newline ();
-        Printf.printf "Using default messages."; print_newline ();
-
-	end;
-    ""
- ), ":\t\t\treload messages file";
+    "reload_messages", Arg_none (fun o ->
+        begin
+          
+          try
+            Options.load message_file
+          with
+            Sys_error _ ->
+              (try Options.save message_file with _ -> ())
+          | e ->
+              Printf.printf "Error %s loading message file %s"
+                (Printexc2.to_string e)
+              (Options.options_file_name message_file);
+              print_newline ();
+              Printf.printf "Using default messages."; print_newline ();
+        
+        end;
+        ""
+    ), ":\t\t\treload messages file";
   ]
+  

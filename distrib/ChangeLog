@@ -1,6 +1,16 @@
 ChangeLog	
 =========
 
+2002/03/01: Simon (v 2.02-23)
+  - Bug fixes:
+    * stats should be correctly saved
+    * sources above max_sources_per_file should be correctly removed
+    * IMPORTANT: JoinSlot message should be sent correctly again at 
+       each connection
+  - Gui: added a "Scan Ports" command to autodetect core port. Be careful, it
+    can trigger intrusion detection softwares ! It is partially asynchronous,
+    so that the replies may appear several seconds after the function returned.
+ 
 2002/02/28: Simon (v 2.02-22)
   - eDonkey: respect max_sources_per_file
   - Applied patch #1198, stats saved as options in 'stats.ini'

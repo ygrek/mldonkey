@@ -117,3 +117,6 @@ let _ =
 
 let top_menus = ref ([]: (string * (GMenu.menu -> unit)) list)
   
+let scanned_ports = ref ([] : ((string * int) list))
+let new_scanned_port = ref true
+  

@@ -562,6 +562,7 @@ let dummy_client =
       client_requests_sent = 0;
       client_requests_received = 0;
       client_indirect_address = None;
+      client_asked_for_slot = false;
       } and
     client_impl = {
       dummy_client_impl with            
@@ -610,6 +611,7 @@ let create_client key num =
       client_requests_received = 0;
       client_requests_sent = 0;
       client_indirect_address = None;      
+      client_asked_for_slot = false;
       } and
     client_impl = {
       dummy_client_impl with            
