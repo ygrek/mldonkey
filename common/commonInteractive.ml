@@ -27,7 +27,33 @@ open CommonNetwork
 open CommonResult
 open CommonServer
 open CommonTypes
-      
+
+  
+(* ripped from gui_misc *)
+
+let ko = 1024.0 
+let mo = ko *. ko 
+let go = mo *. ko 
+
+let size_of_int64 size =
+  if !!html_mods_human_readable then
+    let f = Int64.to_float size in
+    if f > go then
+      Printf.sprintf "%.2fG" (f /. go)
+    else
+      if f > mo then
+      Printf.sprintf "%.1fM" (f /. mo)
+      else
+    if f > ko then
+      Printf.sprintf "%.1fk" (f /. ko)
+    else
+      Int64.to_string size
+  else
+    Int64.to_string size
+
+
+
+  
 let days = ref 0      
 let hours = ref 0    
 
@@ -83,39 +109,42 @@ let print_connected_servers o =
   let buf = o.conn_buf in
   networks_iter (fun r ->
       try
-        let list = network_connected_servers r in
-        Printf.bprintf buf "--- Connected to %d servers on the %s network ---\n"
-          (List.length list) r.network_name;
-        
-        if use_html_mods o && List.length list > 0 then 
-          Printf.bprintf buf "\\<table class=\\\"servers\\\"\\>\\<tr\\>
+       let list = network_connected_servers r in
+       Printf.bprintf buf "--- Connected to %d servers on the %s network ---\n"
+         (List.length list) r.network_name;
+
+        if o.conn_output = HTML && !!html_mods && List.length list > 0 then 
+		Printf.bprintf buf "\\<table class=\\\"servers\\\"\\>\\<tr\\>
 \\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>#\\</td\\>
 \\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Button\\</td\\>
 \\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Network\\</td\\>
 \\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Status\\</td\\>
-\\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>IP\\</td\\>
+\\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh br\\\"\\>IP\\</td\\>
 \\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Users\\</td\\>
-\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Files\\</td\\>
+\\<td onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>Files\\</td\\>
 \\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Name\\</td\\>
 \\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Details\\</td\\>
 ";
-        
+      
       let counter = ref 0 in  
-      List.iter (fun s ->
-            incr counter;
-            if use_html_mods o then begin
-                if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
-                else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
-              end;
+       List.iter (fun s ->
+      incr counter;
 
-          server_print s o;
-      ) list;
-        if use_html_mods o && List.length list > 0 then Printf.bprintf buf
-            "\\</table\\>";
-      with e ->
-          Printf.bprintf  buf "Exception %s in print_connected_servers"
-            (Printexc2.to_string e);
-          print_newline ();
+		if o.conn_output = HTML && !!html_mods then 
+			begin
+        		if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
+            	else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
+
+			end;
+
+           server_print s o;
+       ) list;
+        if o.conn_output = HTML && !!html_mods && List.length list > 0 then Printf.bprintf buf
+        "\\</table\\>";
+       with e ->
+           Printf.bprintf  buf "Exception %s in print_connected_servers"
+             (Printexc2.to_string e);
+
   )
   
 let send_custom_query buf s args = 

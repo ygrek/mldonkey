@@ -349,35 +349,6 @@ let add_file_downloaded impl n =
 let com_files_by_num = files_by_num
 let files_by_num = ()
 
-  (*
-    file_ops.op_file_print <- (fun file o ->
-      let buf = o.conn_buf in
-      let f = file.file_result.result_file in
-      Printf.bprintf buf "[Opennap %5d] %-50s %10s %10s\n" 
-      (file_num file) f.file_name 
-      (Int32.to_string f.file_size)
-      (Int32.to_string file.file_downloaded)      
-);
-
-    file_ops.op_file_print <- (fun file o ->
-      let buf = o.conn_buf in
-      let f = file.file_result.result_file in
-      Printf.bprintf buf "[LimeWire %5d] %-50s %10s %10s\n" 
-        (file_num file) f.file_name 
-        (Int32.to_string f.file_size)
-      (Int32.to_string file.file_downloaded)      
-  );
-  file_ops.op_file_print <- (fun file o ->
-  );
-file_ops.op_file_print <- (fun f o ->
-      let buf = o.conn_buf in
-      Printf.bprintf buf "[Donkey %5d] %-50s %10s %10s\n" 
-        (file_num f) (first_name f) 
-        (Int32.to_string f.file_size)
-      (Int32.to_string f.file_downloaded)      
-  );
-*)
-
 module G = GuiTypes
   
 let file_print file o = 
@@ -394,10 +365,17 @@ let file_print file o =
   (Int64.to_string info.G.file_downloaded);
   
   
-  
-  if use_html_mods o then
+  if o.conn_output = HTML && !!html_mods then
     
     begin
+      
+      Printf.bprintf buf "ed2k: \\<A HREF=\\\"ed2k://|file|%s|%s|%s|/\\\"\\>ed2k://|file|%s|%s|%s|/\\</A\\>\n\n" 
+        (info.G.file_name) 
+      (Int64.to_string info.G.file_size)
+      (Md4.to_string info.G.file_md4)
+      (info.G.file_name) 
+      (Int64.to_string info.G.file_size)
+      (Md4.to_string info.G.file_md4);
       
       Printf.bprintf buf "\\<FORM\\>\\<SELECT\\>";
       let counter = ref 0 in
@@ -410,6 +388,7 @@ let file_print file o =
       ) info.G.file_names;
       
       Printf.bprintf buf "\\</SELECT\\>\\</FORM\\>\n";
+    
     end
   else
     begin
@@ -424,22 +403,29 @@ let file_print file o =
       let srcs = file_sources file in
       Printf.bprintf buf "%d sources:\n" (List.length srcs);
       
-      if List.length srcs > 0 && use_html_mods o then
-        Printf.bprintf buf "\\<table class=\\\"sources\\\"\\>\\<tr\\>
-\\<td title=\\\"Number\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>#\\</td\\>
-\\<td title=\\\"Client Number\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>C.Num\\</td\\>
+      if o.conn_output = HTML && List.length srcs > 0 && !!html_mods then
+        Printf.bprintf buf "\\<table id=\\\"sourcesTable\\\" name=\\\"sourcesTable\\\" class=\\\"sources\\\"\\>\\<tr\\>
+\\<td title=\\\"Client Number (Click to Add as Friend)\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ac\\\"\\>Num\\</td\\>
 \\<td title=\\\"A=Active Download from Client\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>A\\</td\\>
+\\<td title=\\\"Client State\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C.S\\</td\\>
 \\<td title=\\\"Client Name\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Name\\</td\\>
-\\<td title=\\\"Client Type\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C.T\\</td\\>
+\\<td title=\\\"Client Brand\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C.B\\</td\\>
+\\<td title=\\\"Overnet (T/F)\\\"onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>O\\</td\\>
 \\<td title=\\\"Connection [I]nDirect, [D]irect\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>C\\</td\\>
-\\<td title=\\\"IP Address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>IP\\</td\\>
+\\<td title=\\\"IP Address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh br\\\"\\>IP\\</td\\>
 \\<td title=\\\"Total UL Bytes to this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>UL\\</td\\>
-\\<td title=\\\"Total DL Bytes from this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>DL\\</td\\>
+\\<td title=\\\"Total DL Bytes from this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>DL\\</td\\>
 \\<td title=\\\"Your queue rank on this client\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Rank\\</td\\>
-\\<td title=\\\"Source score\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Score\\</td\\>
-\\<td title=\\\"Last OK (in minutes)\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>L.Ok\\</td\\>
-\\<td title=\\\"Last Try (in minutes)\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>L.Try\\</td\\>
-\\<td title=\\\"Next Try (in minutes)\\\"onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>N.Try\\</td\\>
+\\<td title=\\\"Source score\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>Scr\\</td\\>
+\\<td title=\\\"Last OK (in minutes)\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>LO\\</td\\>
+\\<td title=\\\"Last Try (in minutes)\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>LT\\</td\\>
+\\<td title=\\\"Next Try (in minutes)\\\"onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh br\\\"\\>NT\\</td\\>
+\\<td title=\\\"Has a Slot (T/F)\\\"onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>H\\</td\\>
+\\<td title=\\\"Banned (T/F)\\\"onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh br\\\"\\>B\\</td\\>
+\\<td title=\\\"Requests Sent\\\"onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>RS\\</td\\>
+\\<td title=\\\"Requests Received\\\"onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>RR\\</td\\>
+\\<td title=\\\"Connected Time (minutes)\\\"onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh br\\\"\\>CT\\</td\\>
+\\<td title=\\\"Client MD4\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh br\\\"\\>MD4\\</td\\>
 \\<td title=\\\"Chunks\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>%s\\</td\\>
 \\</tr\\>"
           info.G.file_chunks;
@@ -448,9 +434,16 @@ let file_print file o =
       List.iter (fun c ->
           incr counter;
           
-          if use_html_mods o then begin
-              if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>\\<td class=\\\"sr\\\"\\>%d\\</td\\>" !counter
-              else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>\\<td class=\\\"sr\\\"\\>%d\\</td\\>" !counter;
+          if o.conn_output = HTML && !!html_mods then begin
+              
+              Printf.bprintf buf "
+\\<tr  
+onMouseOver=\\\"mOvr(this,'#94AE94');\\\" 
+onMouseOut=\\\"mOut(this,this.bgColor);\\\" 
+class=";
+              
+              if (!counter mod 2 == 0) then Printf.bprintf buf "\\\"dl-1\\\"\\>"
+              else Printf.bprintf buf "\\\"dl-2\\\"\\>";
               client_bprint_html buf c file;
               Printf.bprintf buf "\\</tr\\>";
             end
@@ -459,11 +452,11 @@ let file_print file o =
       
       
       ) srcs;
-      if List.length srcs > 0 && use_html_mods o then
+      if o.conn_output = HTML && List.length srcs > 0 && !!html_mods then
         Printf.bprintf buf "\\</table\\>"
         
 
-    with _ -> ())
+with _ -> ())
 
 let file_size file = 
   (as_file_impl file).impl_file_size

@@ -23,7 +23,7 @@ open BasicSocket
 open CommonTypes
 
 
-let version = Printf.sprintf 
+let version = Printf.sprintf
 "MLDonkey %s: Objective-Caml Client/Server for the eDonkey2000 Network" 
   Autoconf.current_version
   

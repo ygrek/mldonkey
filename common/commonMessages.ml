@@ -554,7 +554,7 @@ onClick=\"mSub('$S','bw_stats')\">BW Stats
 </tr>
 </table>
 <td></td>
-<form action=\"submit\" target\=\"$O\" name=\"cmdFormular\">
+<form action=\"submit\" target=\"$O\" name=\"cmdFormular\">
 <td nowrap valign=top align=right>
 	<input style=\"
 	background: #E5FFE5;
@@ -708,7 +708,7 @@ onClick=\"mSub('$O','vd')\">Downloads
 </td>
 </tr></table>
 "
-  
+
 let html_header_old = define_option message_file ["html_header_old"]
   "The header used in the WEB interface (modify to add your CSS)"
     string_option  

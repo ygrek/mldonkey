@@ -486,6 +486,18 @@ let max_reask_delay = define_option expert_ini ["max_reask_delay"]
 let html_mods = define_option expert_ini
     ["html_mods"] "Whether to use the modified WEB interface" bool_option false
 
+  let html_mods_human_readable = define_option expert_ini
+    ["html_mods_human_readable"] "Whether to use the modified WEB interface" bool_option true
+
+let html_mods_use_relative_availability = define_option expert_ini
+    ["html_mods_use_relative_availability"] "Whether to use relative availability in the WEB interface" bool_option true
+
+let html_mods_vd_age = define_option expert_ini
+    ["html_mods_vd_age"] "Whether to display the Age column in vd output" bool_option true
+
+let html_mods_vd_last = define_option expert_ini
+    ["html_mods_vd_last"] "Whether to display the Last column in vd output" bool_option true
+  
 let use_html_mods o =
   o.CommonTypes.conn_output = CommonTypes.HTML && !!html_mods
   

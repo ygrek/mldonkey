@@ -292,44 +292,50 @@ let server_print s o =
     let info = server_info s in
     let buf = o.conn_buf in
     
-    
-    if use_html_mods o then
-      Printf.bprintf buf "
-     \\<td class=\\\"sr\\\"\\>%d\\</td\\>
-     %s
-     \\<td class=\\\"sr\\\"\\>%s\\</td\\>
-     \\<td class=\\\"sr\\\"\\>%s\\</td\\>
-     \\<td class=\\\"sr\\\"\\>%s:%d\\</td\\>
-     \\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
-     \\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
-     \\<td class=\\\"sr\\\"\\>%s\\</td\\>
-     \\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>\n"
-        (server_num s)
-      (
-        Printf.sprintf
-          "\\<TD class=\\\"srb\\\" onMouseOver=\\\"mOvr(this,'#94AE94');\\\"
-               onMouseOut=\\\"mOut(this,this.background);\\\"
-               onClick=\\\"location.href='/submit?q=%s+%d'\\\"\\>%s\\</TD\\>"
-          (match impl.impl_server_state with
-            NotConnected _ -> "c"
-          | _ -> "x")
-        (server_num s)
-        (match impl.impl_server_state with
-            NotConnected _ -> "Connect"
-          | _ -> "Disconnect")
+	
+	if o.conn_output = HTML && !!html_mods then
+	
+	begin
+
+
+    Printf.bprintf buf "
+    \\<td class=\\\"sr\\\"\\>%d\\</td\\>
+    %s
+    \\<td class=\\\"sr\\\"\\>%s\\</td\\>
+    \\<td class=\\\"sr\\\"\\>%s\\</td\\>
+    \\<td class=\\\"sr br\\\"\\>%s:%d\\</td\\>
+    \\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
+    \\<td class=\\\"sr ar br\\\"\\>%d\\</td\\>
+    \\<td class=\\\"sr\\\"\\>%s\\</td\\>
+    \\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>\n"
+      (server_num s)
+                (
+              Printf.sprintf
+              "\\<TD class=\\\"srb\\\" onMouseOver=\\\"mOvr(this,'#94AE94');\\\"
+              onMouseOut=\\\"mOut(this,this.bgColor);\\\"
+              onClick=\\\"parent.fstatus.location.href='/submit?q=%s+%d'\\\"\\>%s\\</TD\\>"
+      (match impl.impl_server_state with
+        NotConnected _ -> "c"
+      | _ -> "x")
+      (server_num s)
+      (match impl.impl_server_state with
+        NotConnected _ -> "Connect"
+      | _ -> "Disconnect")
       )
-      
+
       n.network_name
-        (string_of_connection_state impl.impl_server_state)
+   (string_of_connection_state impl.impl_server_state)
       (string_of_addr info.G.server_addr) 
-      info.G.server_port
-        info.G.server_nusers
-        info.G.server_nfiles
-        info.G.server_name
-        info.G.server_description
-    else
-      begin
-        
+	  info.G.server_port
+	  info.G.server_nusers
+	  info.G.server_nfiles
+      info.G.server_name
+      info.G.server_description
+
+	end
+   else
+	begin
+          
         Printf.bprintf buf "[%s %-5d] %s:%-5d %-20s %-20s"
           n.network_name
           (server_num s)

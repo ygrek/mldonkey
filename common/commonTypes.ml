@@ -116,6 +116,9 @@ type sortvd_type =
 | ByRate
 | ByDone
 | ByPercent
+| ByAge
+| ByETA
+| ByLast
 | NotSorted
   
 type connection_options = {
@@ -357,3 +360,20 @@ let string_of_connection_state s =
   | RemovedHost -> "Removed"
   | BlackListedHost -> "Black"
   | NewHost -> "New"
+      
+let short_string_of_connection_state s = 
+  match s with
+  | Connected (-1) ->    "Cn'd"
+  | NotConnected (-1) -> ""
+  | NotConnected 0 ->    "Qout"
+  | Connected  0 ->      "Qued"
+  | NotConnected n ->    "Rout" 
+  | Connected  n ->      "Rank" 
+  | Connecting ->        "Cing"
+  | Connected_initiating -> "Init"
+  | Connected_downloading -> "Down"
+      
+  | RemovedHost -> "Rem"
+  | BlackListedHost -> "BL"
+  | NewHost -> "New"
+      
