@@ -1,0 +1,1 @@
+external dump_heap: unit -> unit = "dump_heap"

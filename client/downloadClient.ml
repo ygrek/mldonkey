@@ -168,6 +168,10 @@ let new_chunk up begin_pos end_pos =
           up.up_chunks <- chunks @ [pair]
   
 let rec really_write fd s pos len =
+  if len = 0 then begin
+      Printf.printf "really_write 0 BYTES !!!!!!!!!"; print_newline ();
+      raise End_of_file
+    end else
   let nwrite = Unix.write fd s pos len in
   if nwrite = 0 then raise End_of_file else
   if nwrite < len then 
@@ -437,7 +441,7 @@ We should probably check that here ... *)
       !client_change_hook c
   
   | M.AvailableSlotReq _ ->
-      printf_string "[QUEUED]";
+      printf_string "[OK]";
       set_rtimeout (TcpBufferedSocket.sock sock) infinite_timeout;
       begin
         match c.client_block with
@@ -463,12 +467,14 @@ We should probably check that here ... *)
 *)  
   
   | M.JoinQueueReq _ ->
-      set_rtimeout (TcpBufferedSocket.sock sock) infinite_timeout;
-      
-      direct_client_send sock (
-        let module M = Mftp_client in
-        let module Q = M.AvailableSlot in
-        M.AvailableSlotReq Q.t);              
+      if Fifo.length upload_clients < !!max_upload_slots then begin
+          set_rtimeout (TcpBufferedSocket.sock sock) infinite_timeout;
+          
+          direct_client_send sock (
+            let module M = Mftp_client in
+            let module Q = M.AvailableSlot in
+            M.AvailableSlotReq Q.t);              
+        end
   
   | M.CloseSlotReq _ ->
       printf_string "[DOWN]"
@@ -661,11 +667,21 @@ We should probably check that here ... *)
                 ignore (Unix32.seek32 file.file_fd begin_pos Unix.SEEK_SET);
                 
                 begin
+                  
                   try
-                    really_write (Unix32.force_fd file.file_fd)
-                    t.Q.bloc_str t.Q.bloc_begin t.Q.bloc_len
+                    let fd = try
+                        Unix32.force_fd file.file_fd 
+                      with e -> 
+                          Printf.printf "In Unix32.force_fd"; print_newline ();
+                          raise e
+                        in
+                    really_write fd
+                      t.Q.bloc_str t.Q.bloc_begin t.Q.bloc_len
                   with
-                    e ->
+                    End_of_file ->
+                      Printf.printf "WITH CLIENT %s" c.client_name;
+                      print_newline ();
+                  | e ->
                       Printf.printf "Error %s while writing block. Pausing download" (Printexc.to_string e);
                       print_newline ();
                       file.file_state <- FilePaused;
@@ -933,7 +949,7 @@ for mldonkey clients .*)
       new_chunk up t.Q.start_pos2 t.Q.end_pos2;
       new_chunk up t.Q.start_pos3 t.Q.end_pos3;
       c.client_upload <- Some up;
-      if can_write sock && not up.up_waiting && !has_upload = 0 then begin
+      if not up.up_waiting && !has_upload = 0 then begin
           Fifo.put upload_clients c;
           up.up_waiting <- true
         end

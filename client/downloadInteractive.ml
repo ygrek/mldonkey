@@ -32,6 +32,11 @@ open DownloadOptions
 open DownloadGlobals
 open DownloadClient
 open Gui_types
+
+let day = 3600. *. 24.
+  
+let age_to_day date =
+  int_of_float ((last_time () -. date) /. day)
   
 exception CommandCloseSocket
 
@@ -375,6 +380,26 @@ let execute_command arg_list buf output cmd args =
     ) arg_list
   with Not_found -> ()
 
+let saved_name file =
+  let name = first_name file in
+  if !!use_mp3_tags then
+    match file.file_format with
+      Mp3 tags ->
+        let module T = Mp3tag in
+        let name = match name.[0] with
+            '0' .. '9' -> name
+          | _ -> Printf.sprintf "%20d-%s" tags.T.tracknum name
+        in
+        let name = if tags.T.album <> "" then
+            Printf.sprintf "%s/%s" tags.T.album name
+          else name in
+        let name = if tags.T.artist <> "" then
+            Printf.sprintf "%s/%s" tags.T.artist name
+          else name in
+        name          
+    | _ -> name
+  else name
+      
 let print_file buf file =
   Printf.bprintf buf "[%-5d] %s %10s %32s %s" 
     file.file_num
@@ -563,34 +588,35 @@ let print_file_html_form buf files =
           (Printf.sprintf "[%-5d]" file.file_num);
           (if file.file_state = FileDownloading then
               Printf.sprintf 
-              "\<input name=pause type=checkbox value=%d\>
+                "\<input name=pause type=checkbox value=%d\>
               R
                 \<input name=cancel type=checkbox value=%d\>"
                 file.file_num
                 file.file_num
             else 
               Printf.sprintf 
-              "P
+                "P
               \<input name=resume type=checkbox value=%d\>
                 \<input name=cancel type=checkbox value=%d\>"
                 file.file_num
                 file.file_num);
-
+          
           (short_name file);
           (Printf.sprintf "%5.1f" (percent file));
           (Int32.to_string file.file_downloaded);
           (Int32.to_string file.file_size);
-
-              ( 
-                let len = Array.length file.file_chunks_age in
-                if len = 0 then "-" else 
-                let min = ref (last_time ()) in
-                for i = 0 to len - 1 do
-                  if file.file_chunks_age.(i) < !min then
-                    min := file.file_chunks_age.(i)
-                done;
-                if !min < 0.1 then "-" else
-                  string_of_int (int_of_float ((last_time () -. !min) /. (3600. *. 24.))));
+          (Printf.sprintf "%d:%s"
+              (age_to_day file.file_age)
+            ( 
+              let len = Array.length file.file_chunks_age in
+              if len = 0 then "-" else 
+              let min = ref (last_time ()) in
+              for i = 0 to len - 1 do
+                if file.file_chunks_age.(i) < !min then
+                  min := file.file_chunks_age.(i)
+              done;
+              if !min < 0.1 then "-" else
+                string_of_int (age_to_day !min)));
           
           (if file.file_state = FilePaused then
               "Paused"
@@ -652,18 +678,18 @@ let simple_print_file_list finished buf files format =
             (short_name file);
             (Printf.sprintf "%5.1f" (percent file));
             (Int32.to_string file.file_downloaded);
-            (Int32.to_string file.file_size);
-
-              ( 
-                let len = Array.length file.file_chunks_age in
-                if len = 0 then "-" else 
-                let min = ref (last_time ()) in
-                for i = 0 to len - 1 do
-                  if file.file_chunks_age.(i) < !min then
-                    min := file.file_chunks_age.(i)
-                done;
+              (Int32.to_string file.file_size);
+              (Printf.sprintf "%d:%s" (age_to_day file.file_age)
+                ( 
+                  let len = Array.length file.file_chunks_age in
+                  if len = 0 then "-" else 
+                  let min = ref (last_time ()) in
+                  for i = 0 to len - 1 do
+                    if file.file_chunks_age.(i) < !min then
+                      min := file.file_chunks_age.(i)
+                  done;
                 if !min < 0.1 then "-" else
-                  string_of_int (int_of_float ((last_time () -. !min) /. (3600. *. 24.))));
+                    string_of_int (age_to_day !min)));
               
             (if file.file_state = FilePaused then
                 "Paused"
@@ -1149,6 +1175,11 @@ let commands = [
         s.server_port;
         ""
     ), " <ip> [<port>]: add a server";
+
+    "dump_heap", Arg_none (fun buf _ ->
+        Heap.dump_heap ();
+        "heap dumped"
+    ), " : dump heap for debug";
     
     "vu", Arg_none (fun buf _ ->
         Printf.sprintf "Upload credits : %d minutes\nUpload disabled for %d minutes" !upload_credit !has_upload;
@@ -1285,7 +1316,7 @@ let commands = [
     
     "commit", Arg_none (fun buf _ ->
         List.iter (fun file ->
-            save_file file.file_md4 (first_name file)
+            save_file file.file_md4 (saved_name file)
         ) !!done_files;
         "commited"
     ) , ": move downloaded files to incoming directory";

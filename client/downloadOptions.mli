@@ -103,3 +103,6 @@ val display_downloaded_results : bool Options.option_record
 val filter_table_threshold : int Options.option_record
 val client_buffer_size :  int Options.option_record
 val new_print_search : bool Options.option_record
+  
+val use_mp3_tags :  bool Options.option_record
+val max_upload_slots : int Options.option_record

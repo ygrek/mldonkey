@@ -742,6 +742,9 @@ TODO list for client
   * check that 'cancelled' files cannot be shared also in incoming/
   * don't add sources to files already downloaded.
   * efficient management of buffers
+  * background searches: 
+   - search and automatically download files
+
 
 TODO list for server
 ====================

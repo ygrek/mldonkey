@@ -196,8 +196,8 @@ let buf_add t b s pos1 len =
         b.pos <- 0;
       end
     else
-    if curpos + len > b.max_buf_size then begin
-        Printf.printf "BUFFER OVERFLOW %d+%d> %d" curpos len b.max_buf_size ; 
+    if b.len + len > b.max_buf_size then begin
+        Printf.printf "BUFFER OVERFLOW %d+%d> %d" b.len len b.max_buf_size ; 
         print_newline ();
         
         Printf.printf "MESSAGE [";
@@ -560,6 +560,10 @@ let set_max_write_buffer t len =
   
 let can_write t =
   t.wbuf.len = 0
+
+let can_write_len t len =
+(*  Printf.printf "CAN WRITE %d > %d + %d"  t.wbuf.max_buf_size t.wbuf.len len; print_newline (); *)
+  t.wbuf.max_buf_size > t.wbuf.len + len
   
 let close_after_write t =
   if t.wbuf.len = 0 then begin

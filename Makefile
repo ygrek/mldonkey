@@ -48,7 +48,7 @@ CFLAGS:=$(CFLAGS) $(CONFIG_INCLUDES)
 CDK_CMOS=cdk/printexc.$(EXT) cdk/genlex2.$(EXT) cdk/sysenv.$(EXT) \
   cdk/netbase.$(EXT) cdk/filepath.$(EXT) cdk/string2.$(EXT) \
   cdk/filename2.$(EXT) cdk/list2.$(EXT) cdk/hashtbl2.$(EXT) \
-  cdk/file.$(EXT) cdk/unix2.$(EXT)
+  cdk/file.$(EXT) cdk/unix2.$(EXT) cdk/heap.$(EXT)
 
 CONFIGWIN_CMOS=configwin/configwin_types.$(EXT) \
   configwin/configwin_messages.$(EXT) \
@@ -81,7 +81,7 @@ PROTO_CMOS= \
   secret/mftp_client.$(EXT) secret/mftp_server.$(EXT)  \
   secret/mftp_comm.$(EXT)  
 
-OBJS=lib/md4_comp.o lib/md4_c.o lib/unix32_c.o lib/inet_c.o cdk/select_c.o
+OBJS=lib/md4_comp.o lib/md4_c.o lib/unix32_c.o lib/inet_c.o cdk/select_c.o cdk/heap_c.o
 
 MIN_GUI_CMOS= gui/gui_types.$(EXT) gui/gui_proto.$(EXT)
 

@@ -92,7 +92,6 @@ value ml_select(value fdlist, value timeout) /* ML */
       if( (Field(v, FD_TASK_WLEN) != Val_int(0)) &&
           (Field(Field(v, FD_TASK_WRITE_ALLOWED),0) == Val_true)
         ) FD_SET(fd, &write);
-
     }
   }
   tm = Double_val(timeout);
@@ -108,7 +107,7 @@ value ml_select(value fdlist, value timeout) /* ML */
   leave_blocking_section();
 
   if (retcode < 0) {
-    if(errno == EINTR) goto restart_select;
+/*    if(errno == EINTR) goto restart_select; */
     uerror("select", Nothing);
   }
   for (l = fdlist; l != Val_int(0); l = Field(l, 1)) {

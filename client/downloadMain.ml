@@ -38,8 +38,12 @@ open DownloadOptions
 
   
 let _ =
-  Sys.set_signal  Sys.sigchld Sys.Signal_ignore;
-  Sys.set_signal  Sys.sigpipe Sys.Signal_ignore
+  Sys.set_signal  Sys.sigchld (*Sys.Signal_ignore;*)
+    (Sys.Signal_handle (fun _ ->
+      Printf.printf "SIGCHLD"; print_newline ()));
+  Sys.set_signal  Sys.sigpipe (*Sys.Signal_ignore*)
+    (Sys.Signal_handle (fun _ ->
+      Printf.printf "SIGPIPE"; print_newline ()))
 
 let is_directory filename =
   try let s = Unix.stat filename in s.Unix.st_kind = Unix.S_DIR with _ -> false

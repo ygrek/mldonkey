@@ -200,6 +200,10 @@ module FileOption = struct
           let file = DownloadGlobals.new_file (
               Filename.concat !!temp_directory file_md4_name)
             (Md4.of_string file_md4_name) file_size true in
+
+          (try
+              file.file_age <- get_value "file_age" value_to_float
+            with _ -> ());
           
           (try 
               if file.file_exists then begin
@@ -275,14 +279,15 @@ module FileOption = struct
           file.file_absent_chunks);
         "file_filenames", List
           (List.map (fun s -> string_to_value s) file.file_filenames);
-        "file_locations", list_to_value ClientOption.client_to_value
-          !locs;
+        "file_age", FloatValue file.file_age;
         "file_md4s", List
           (List.map (fun s -> string_to_value (Md4.to_string s)) 
           file.file_md4s);
         "file_downloaded", int32_to_value file.file_downloaded;
         "file_chunks_age", List (Array.to_list 
             (Array.map float_to_value file.file_chunks_age));
+        "file_locations", list_to_value ClientOption.client_to_value
+          !locs;        
       ]
     
     let t =

@@ -178,6 +178,7 @@ and file = {
     mutable file_size : int32;
     mutable file_nchunks : int;
     mutable file_chunks : chunk array;
+    mutable file_age : float;
     mutable file_chunks_age : float array;
     mutable file_fd : Unix32.t;
     mutable file_all_chunks : string;

@@ -211,6 +211,7 @@ let new_file file_name md4 file_size writable =
           file_shared = false;
           file_exists = file_exists;
           file_md4 = md4;
+          file_age = last_time ();
           file_hardname = file_name;
           file_size = file_size;
           file_nchunks = nchunks;
@@ -435,12 +436,16 @@ let download_control = TcpBufferedSocket.create_read_bandwidth_controler
     (!!max_hard_download_rate * 1024)
   
 let _ =
-  option_hook max_hard_upload_rate (fun _ ->
+  option_hook max_hard_upload_rate (fun _ -> 
+      let rate = (if !!max_hard_upload_rate = 0 then 10000
+          else !!max_hard_upload_rate) in
       TcpBufferedSocket.change_rate upload_control 
-        (!!max_hard_upload_rate * 1024));  
+        (rate * 1024));  
   option_hook max_hard_download_rate (fun _ ->
+      let rate = (if !!max_hard_download_rate = 0 then 10000
+          else !!max_hard_download_rate) in
       TcpBufferedSocket.change_rate download_control 
-        (!!max_hard_download_rate * 1024))  
+        (rate * 1024))  
     
 let file_groups = Hashtbl.create 1023
 let udp_clients = Hashtbl.create 1023

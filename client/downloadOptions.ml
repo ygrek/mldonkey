@@ -140,12 +140,7 @@ let max_xs_packets = define_option downloads_ini ["max_xs_packets"]
 
 let max_dialog_history = define_option downloads_ini ["max_dialog_history"]
     "Max number of messages of Chat remembered" int_option 30
-  
-let _ =
-  option_hook max_hard_upload_rate (fun _ ->
-      if !!max_hard_upload_rate < 1  then
-        max_hard_upload_rate =:= 1)
-  
+    
   
 let string_list_option = define_option_class "String"
     (fun v ->
@@ -427,3 +422,18 @@ let _ =
   option_hook client_buffer_size (fun _ ->
       TcpBufferedSocket.max_buffer_size := maxi 50000 !!client_buffer_size
   )
+  
+  
+let use_mp3_tags = define_option downloads_ini ["use_mp3_tags"] 
+  "Use mp3 tag content to save mp3 files"
+    bool_option false
+  
+
+let max_upload_slots = define_option downloads_ini ["max_upload_slots"]
+    "How many slots can be used for upload"
+    int_option 20
+  
+let _ =  
+  option_hook max_upload_slots (fun _ ->
+      if !!max_upload_slots < 20 then
+        max_upload_slots =:= 20)

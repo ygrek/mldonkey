@@ -433,16 +433,20 @@ print_newline ();
     let fd = file.file_fd in
     ignore (Unix32.seek32 fd begin_pos Unix.SEEK_SET);
     really_read (Unix32.force_fd fd) upload_buffer slen len_int;
+(*    Printf.printf "slen %d len_int %d final %d" slen len_int (String.length upload_buffer); 
+    print_newline (); *)
     incr upload_counter;
     file.file_upload_blocks <- file.file_upload_blocks + 1;
 (*  Printf.printf "sending"; print_newline (); *)
     printf_char 'U';
     
-    client_send sock msg
+    write_string sock upload_buffer
   with e -> 
       Printf.printf "Exception %s in send_small_block" (Printexc.to_string e);
       print_newline () 
   
+
+let max_msg_size = 15000
  
 let rec send_client_block c sock per_client =
   if per_client > 0 then
@@ -471,7 +475,8 @@ let rec send_client_block c sock per_client =
           begin
             send_small_block sock up.up_file up.up_pos msg_block_size;
             up.up_pos <- Int32.add up.up_pos msg_block_size;
-            send_client_block c sock (per_client-1)
+            if can_write_len sock max_msg_size then
+              send_client_block c sock (per_client-1)
           end
     | _ -> 
         ()
@@ -510,7 +515,55 @@ let rec send_client_block_partial c sock per_client =
   
 let reset_upload_timer _ =
   download_counter := 0;
-  remaining_bandwidth := !!max_hard_upload_rate
+  remaining_bandwidth := 
+  (if !!max_hard_upload_rate = 0 then 10000
+    else !!max_hard_upload_rate)
+
+let rec next_upload n =
+(*  Printf.printf "upload for %d" n; print_newline (); *)
+  if n > 0 && !remaining_bandwidth > 0 then begin
+      upload_to_one_client ();
+      next_upload (n-1)
+    end
+
+and upload_to_one_client () =
+  if !remaining_bandwidth < 10 then begin
+      let c = Fifo.take upload_clients in
+      match c.client_sock with
+      | Some sock ->
+          if can_write_len sock max_msg_size then 
+            send_client_block_partial c sock !remaining_bandwidth;
+          (match c.client_upload with
+              None -> ()
+            | Some up ->
+                if !has_upload = 0 then Fifo.put upload_clients c
+          )
+      | _ -> ()              
+    end else
+  let per_client = 
+    let len = Fifo.length upload_clients in
+    if len * 10 < !remaining_bandwidth then
+      mini 5 (max ((!remaining_bandwidth + 9)/ 10 / len ) 1) 
+    else 1 in
+  let c = Fifo.take upload_clients in
+  match c.client_sock with
+  | Some sock ->
+      if can_write_len sock max_msg_size then 
+        send_client_block c sock per_client;
+      (match c.client_upload with
+          None -> ()
+        | Some up ->
+            if !has_upload = 0 then  Fifo.put upload_clients c
+      )
+  | _ -> ()
+      
+
+let rec next_uploads () =
+  let len = Fifo.length upload_clients in
+(*  Printf.printf "uploads for %d" len; print_newline (); *)
+  let old = !remaining_bandwidth in
+  next_upload len;
+  if !remaining_bandwidth < old then next_uploads ()
   
   (* timer started every 1/10 seconds *)
 let upload_timer timer =
@@ -519,43 +572,8 @@ let upload_timer timer =
         Printf.printf "Exception %s in download_engine" 
           (Printexc.to_string e); print_newline (););
   try
-    while !remaining_bandwidth > 0 && not (Fifo.empty upload_clients) do
-      if !remaining_bandwidth < 10 then begin
-          let c = Fifo.take upload_clients in
-          match c.client_sock with
-          | Some sock ->
-              send_client_block_partial c sock !remaining_bandwidth;
-              (match c.client_upload with
-                  None -> ()
-                | Some up ->
-                    if can_write sock && !has_upload = 0 then begin
-                        up.up_waiting <- true;
-                        Fifo.put upload_clients c
-                      end else 
-                      up.up_waiting <- false
-              )
-          | _ -> ()              
-        end else
-      let per_client = 
-        let len = Fifo.length upload_clients in
-        if len * 10 < !remaining_bandwidth then
-          mini 5 (max ((!remaining_bandwidth + 9)/ 10 / len ) 1) 
-        else 1 in
-      let c = Fifo.take upload_clients in
-      match c.client_sock with
-      | Some sock ->
-          send_client_block c sock per_client;
-          (match c.client_upload with
-              None -> ()
-            | Some up ->
-                if can_write sock && !has_upload = 0 then begin
-                    up.up_waiting <- true;
-                    Fifo.put upload_clients c
-                  end else 
-                  up.up_waiting <- false
-          )
-      | _ -> ()
-    done
+(*    Printf.printf "upload ?"; print_newline (); *)
+    next_uploads ()
   with e -> 
       Printf.printf "exc %s in upload" (Printexc.to_string e);
       print_newline () 
