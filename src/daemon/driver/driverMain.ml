@@ -218,10 +218,11 @@ let load_config () =
   if not exists_expert_ini then begin
       if exists_downloads_ini then begin
           lprintf "Using old config file\n";
-          ignore (Sys.command "cp -f downloads.ini downloads_expert.ini");
-          ignore (Sys.command "cp -f downloads.ini donkey.ini");
-          ignore (Sys.command "cp -f downloads.ini donkey_expert.ini");
-        end else begin
+          (try Unix2.copy "downloads.ini" "downloads_expert.ini" with _ -> ());
+          (try Unix2.copy "downloads.ini" "donkey.ini" with _ -> ());
+          (try Unix2.copy "downloads.ini" "donkey_expert.ini" with _ -> ());
+
+          end else begin
           
           lprintf "No config file found. Generating one.\n"; 
           let oc = open_out (options_file_name downloads_expert_ini) in

@@ -1,6 +1,11 @@
 ChangeLog	
 =========
 
+2003/06/02: Simon  (release-2-5-1)
+  - BitTorrent: bug fix when reconnecting to tracker (remove empty event field)
+  - DriverMain: remove use of "cp" command
+  - Applied patches #1530, #1531, #1543, #1548 and #1563
+
 2003/05/26: Fabrice  (release-2-5)
   Stable release 2.5
 

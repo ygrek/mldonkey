@@ -1053,8 +1053,9 @@ is checked for the file.
       
       c.client_rating <- c.client_rating + 10;
       (match file_state file with
-          FilePaused | FileAborted _ -> 
-            next_file c; raise Not_found
+        | FilePaused 
+      | FileAborted _ 
+      | FileCancelled ->   next_file c; raise Not_found
         | _ -> ());
       
       let begin_pos = t.Q.start_pos in

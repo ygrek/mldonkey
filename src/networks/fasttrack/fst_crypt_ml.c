@@ -1,5 +1,7 @@
 #include "fst_crypt.h"
 
+#include <sys/types.h>
+#include <unistd.h>
 #include <netinet/in.h>
 #include "caml/mlvalues.h"
 #include "caml/fail.h"

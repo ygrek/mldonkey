@@ -860,10 +860,11 @@ let old_print_search buf o results =
   if use_html_mods o then 
        html_mods_table_header buf "resultsTable" "results" [ 
 		( "0", "srh", "Network", "Network" ) ; 
-		( "0", "srh", "Filename", "Filename" ) ; 
+		( "0", "srh", "File", "File (mouseover)" ) ; 
 		( "1", "srh ar", "Size", "Size" ) ; 
-		( "0", "srh", "MD4", "MD4" ) ; 
-		( "0", "srh", "Tag", "Tag" ) ] ; 
+		( "1", "srh ar", "Availability", "A" ) ; 
+		( "0", "srh", "Hash (click for bitzi lookup)", "Hash (bitzi click)" ) ; 
+		( "0", "srh", "Tags", "Tags (mouseover)" ) ] ; 
   
   (try
       List.iter (fun (rs,r,avail) ->
@@ -884,9 +885,27 @@ let old_print_search buf o results =
               !counter
               (let n = network_find_by_num r.result_network in
               n.network_name);
-          if o.conn_output = HTML then 
-            if !!html_mods then Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>\\<a href=/results\\?d=%d target=\\\"$S\\\"\\>" r.result_num
+          if o.conn_output = HTML then begin
+            if !!html_mods then begin
+			Printf.bprintf buf "\\<td title=\\\"";
+		  	let nl = ref false in
+          List.iter (fun t ->
+				  match t.tag_name with 
+					| "FTH" | "urn" -> ()  
+					| _ -> 
+						Buffer.add_string buf ((if !nl then "\n" else begin nl := true;"" end) ^ 
+						"|| (" ^ t.tag_name ^ "): " ^	
+						(match t.tag_value with 
+                  		| Uint64 i -> Int64.to_string i
+                  		| Fint64 i -> Int64.to_string i
+						| String s -> s   
+                  		| _ -> "???"));
+          ) r.result_tags;
+
+			Printf.bprintf buf "\\\" class=\\\"sr\\\"\\>\\<a href=/results\\?d=%d target=\\\"$S\\\"\\>" r.result_num
+			end
             else Printf.bprintf buf "\\<a href=/results\\?d=%d $S\\>" r.result_num;
+			end;
             begin
               match r.result_names with
                 [] -> ()
@@ -915,19 +934,56 @@ let old_print_search buf o results =
               if !!html_mods then Printf.bprintf buf "\\</a\\>\\</td\\>"
               else Printf.bprintf buf "\\</a href\\>";
             end;
+
+			let hash = ref "" in 
+			List.iter (fun t ->
+			  (match t.tag_name with 
+				| "urn" | "FTH"  -> (
+               		 match t.tag_value with
+          	       	  String s -> hash := s
+ 	               	| Uint64 i -> hash := Int64.to_string i
+    	           	| Fint64 i -> hash := Int64.to_string i
+        	       	| _ -> hash := "???")
+				| _ -> ())) r.result_tags;
+			if !hash = "" then hash := Md4.to_string r.result_md4;
+
           if use_html_mods o then 
-            Printf.bprintf buf "\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>"
-              (size_of_int64 r.result_size)
-            (Md4.to_string r.result_md4)
+            Printf.bprintf buf "\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+			\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+			\\<td class=\\\"sr\\\"\\>\\<a href=\\\"http://bitzi.com/lookup/%s\\\"\\>%s\\</a\\>\\</td\\>"
+            (size_of_int64 r.result_size)
+			(string_of_int avail)
+			(if String.contains !hash ':' then
+				String.sub !hash 
+				((String.rindex !hash ':')+1)
+				((String.length !hash) - (String.rindex !hash ':') - 1)
+			else !hash) !hash
           else	Printf.bprintf  buf "          %10s %10s " 
               (Int64.to_string r.result_size)
             (Md4.to_string r.result_md4);
           
-          if use_html_mods o then Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>";
+          if use_html_mods o then begin 
+			Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>";
           List.iter (fun t ->
+				  (match t.tag_name with 
+					| "availability" | "urn" | "FTH"  -> () 
+					| _ -> 
+					Buffer.add_string buf ("\\<span title=\\\"" ^ 
+                  (match t.tag_value with
+                    String s -> s
+                  | Uint64 i -> Int64.to_string i
+                  | Fint64 i -> Int64.to_string i
+                  | _ -> "???")
+				  ^ "\\\"\\>(" ^ t.tag_name ^ ") \\</span\\>");
+                )
+          ) r.result_tags;
+          Printf.bprintf buf "\\</td\\>\\</tr\\>";
+		  end
+		  else
+      		List.iter (fun t ->
               Buffer.add_string buf (Printf.sprintf "%-3s "
                   (if t.tag_name = "availability" then string_of_int avail else
-                  
+
                   match t.tag_value with
                     String s -> s
                   | Uint64 i -> Int64.to_string i
@@ -935,7 +991,6 @@ let old_print_search buf o results =
                   | _ -> "???"
                 ))
           ) r.result_tags;
-          if use_html_mods o then Printf.bprintf buf "\\</td\\>\\</tr\\>";
           Buffer.add_char buf '\n';
       ) results;
       if use_html_mods o then Printf.bprintf buf "\\</table\\>"

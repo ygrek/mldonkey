@@ -298,7 +298,7 @@ let udp_handler t sock event =
 let create addr port handler =
   let fd = Unix.socket Unix.PF_INET Unix.SOCK_DGRAM 0 in
   Unix.setsockopt fd Unix.SO_REUSEADDR true;
-  Unix.bind fd (Unix.ADDR_INET (Unix.inet_addr_any, port));
+  Unix.bind fd (Unix.ADDR_INET (addr, port));
   let port = match Unix.getsockname fd with
     Unix.ADDR_INET (ip, port) -> port
   |_ -> port in
