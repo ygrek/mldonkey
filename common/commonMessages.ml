@@ -37,7 +37,9 @@ let string name x = define_option message_file [name] "" string_option x
 
 (* Please do not modify *_mods0, add/modify your own html_mods_style *)
 
-let html_css_mods0 = define_option message_file ["html_css_mods0"] "Main CSS style 0" string_option  
+let html_css_mods0 = define_option message_file ["html_css_mods0"] 
+  "Main CSS style 0" 
+    string_option  
 "
 pre {color: #000; font-family: Courier, Arial, Helvetica, sans-serif; font-size: 12px;}
 p {color: #000; font-family: Verdana, Courier, Arial, Helvetica, sans-serif; font-size: 12px;}
@@ -115,11 +117,10 @@ td.ac {text-align: center;}
 .chunk1 { background: #33F;}
 "
 
-let html_header_mods0 = define_option message_file ["html_header_mods0"] "Header - style 0" string_option
+let html_js_mods0 = define_option message_file ["html_js_mods0"] 
+  "Main JS include style 0" 
+    string_option  
 "
-<title>MLdonkey: Web Interface</title>
-<link href=\"h.css\" rel=\"stylesheet\" type=\"text/css\">
-<script language=\"javascript\">
 <!--
 function mOvr(src,clrOver) {
  if (clrOver == undefined) {var clrOver='#94AE94'};
@@ -226,6 +227,15 @@ top.fstatus.document.writeln(\"</tr></table></body></html>\");
 top.fstatus.document.close();
 }
 //-->
+  "
+
+let html_header_mods0 = define_option message_file ["html_header_mods0"] 
+  "Header - style 0" 
+    string_option
+  "
+<title>MLdonkey: Web Interface</title>
+<link href=\"h.css\" rel=\"stylesheet\" type=\"text/css\">
+<script language=\"javascript\" src=\"i.js\">
 </script>
 "
 
@@ -267,11 +277,10 @@ a.extern:visited,a.extern:hover,a.extern:active { color: #000099; }
 .extern:hover { color: #000000; }
 "
 
-let download_html_header_mods0 = define_option message_file ["download_html_header_mods0"] "Download header - style 0" string_option
+let download_html_js_mods0 = define_option message_file ["download_html_js_mods0"] 
+  "Download JS include style 0" 
+    string_option  
 "
-<title>MLDonkey: Web Interface</title>
-<link href=\"dh.css\" rel=\"stylesheet\" type=\"text/css\">
-<script language=\"javascript\">
 <!--
 function mOvr(src) {
  src.style.cursor = 'pointer';
@@ -283,10 +292,20 @@ function mOut(src,bg) {
  src.bgColor = bg;
 }
 //-->
-</script>
 "
   
-let web_common_header_mods0 = define_option message_file ["web_common_header_mods0"] "Web header - style 0" string_option 
+let download_html_header_mods0 = define_option message_file ["download_html_header_mods0"] 
+  "Download header - style 0" 
+    string_option
+  "
+<title>MLDonkey: Web Interface</title>
+<link href=\"dh.css\" rel=\"stylesheet\" type=\"text/css\">
+<script language=\"javascript\" src=\"di.js\"></script>
+  "
+  
+let web_common_header_mods0 = define_option message_file ["web_common_header_mods0"] 
+  "Web header - style 0" 
+    string_option 
 "
 <table width=100% border=0 cellspacing=0 cellpadding=0>
 <tr><td>
@@ -568,11 +587,11 @@ onClick=\"mSub('$O','vd')\">Dls
 "
 
 let html_css_mods1 = html_css_mods0
-let html_header_mods1 = define_option message_file ["html_header_mods1"] "Header - style 1" string_option 
+
+let html_js_mods1 = define_option message_file ["html_js_mods1"] 
+  "Main JS include style 1" 
+    string_option
 "
-<title>MLDonkey: Web Interface</title>
-<link href=\"h.css\" rel=\"stylesheet\" type=\"text/css\">
-<script>                  
 <!--
 function mOvr(src,clrOver) {
  if (clrOver == undefined) {var clrOver='#94AE94'};
@@ -712,27 +731,31 @@ draw_td('memory statistics','/submit?q=mem_stats','memory','output');
 draw_td('old style statistics','/submit?q=client_stats','old style','output');
 close_page(); }
 //-->
-</script>
 "
+
+let html_header_mods1 = define_option message_file ["html_header_mods1"] 
+  "Header - style 1" 
+    string_option 
+  "
+<title>MLDonkey: Web Interface</title>
+<link href=\"h.css\" rel=\"stylesheet\" type=\"text/css\">
+<script language=\"javascript\" src=\"i.js\"></script>
+  "
+
 let download_html_css_mods1 = download_html_css_mods0 
-let download_html_header_mods1 = define_option message_file ["download_html_header_mods1"] "Download header - style 1" string_option "
+
+let download_html_js_mods1 = download_html_js_mods0
+
+let download_html_header_mods1 = define_option message_file ["download_html_header_mods1"] "Download header - style 1" string_option 
+  "
 <title>MLdonkey: Web Interface</title>
 <link href=\"dh.css\" rel=\"stylesheet\" type=\"text/css\">
-<script language=\"javascript\">
-<!--
-function mOvr(src) {
- src.style.cursor = 'pointer';
- src.style.backgroundColor = '#B8DCB8';
-}
-function mOut(src,bg) {
- src.style.cursor = 'default';
- src.style.backgroundColor = bg;
- src.bgColor = bg;
-}
-//-->
-</script>
+<script language=\"javascript\" src=\"di.js\"></script>
 "
-let web_common_header_mods1 = define_option message_file ["web_common_header_mods1"] "Web header - style 1" string_option 
+
+let web_common_header_mods1 = define_option message_file ["web_common_header_mods1"] 
+  "Web header - style 1" 
+    string_option 
 "
 <table width=100% border=0 cellspacing=0 cellpadding=0>
 <tr><td>
@@ -938,12 +961,11 @@ a.extern:visited,a.extern:active { color: #000099; }
 a.extern:hover { color: #000000; } 
   "
 
-let html_header_old = define_option message_file ["html_header_old"]
-  "The header used in the WEB interface (modify to add your CSS)"
+let html_js_old = define_option message_file
+  ["html_js_old"]
+  "The old js"
     string_option  
-  "<title>MLDonkey: Web Interface</title>
-<link href=\"h.css\" rel=\"stylesheet\" type=\"text/css\">
-<script>
+  "
 <!--
 function CheckInput(){
 var cmdString = document.cmdFormular.q.value;
@@ -958,13 +980,17 @@ document.cmdFormular.q.value = cmdValue;
 return true; 
 }
 //-->
-  </script>
+  "
 
-
+let html_header_old = define_option message_file ["html_header_old"]
+  "The header used in the WEB interface (modify to add your CSS)"
+    string_option  
+  "<title>MLDonkey: Web Interface</title>
+<link href=\"h.css\" rel=\"stylesheet\" type=\"text/css\">
+<script language=\"javascript\" src=\"i.js\"></script>
     "
   
-let download_html_css_old = define_option message_file
-  ["download_html_css_old"]
+let download_html_css_old = define_option message_file ["download_html_css_old"]
   "The small CSS)"
     string_option  
   "
@@ -982,14 +1008,10 @@ a.extern:visited,a.extern:active { color: #000099; }
 a.extern:hover { color: #000000; }
   "
   
-let download_html_header_old = define_option message_file ["download_html_header_old"]
-  "The header used in the WEB interface for downloads (modify to add your CSS)"
+let download_html_js_old = define_option message_file ["download_html_js_old"]
+  "The old js"
     string_option  
 "
-<title>MLdonkey: Web Interface</title>
-<link href=\"dh.css\" rel=\"stylesheet\" type=\"text/css\">
-
-<script>
 <!--
 function ovlink(){
 var cmdValue = \"ovlink \" + document.cmdFormular.q.value;
@@ -1004,7 +1026,15 @@ document.cmdFormular.q.value = cmdValue;
 document.cmdFormular.submit(); 
 }
 //-->
-</script>
+  "
+  
+let download_html_header_old = define_option message_file ["download_html_header_old"]
+  "The header used in the WEB interface for downloads (modify to add your CSS)"
+    string_option  
+  "
+<title>MLdonkey: Web Interface</title>
+<link href=\"dh.css\" rel=\"stylesheet\" type=\"text/css\">
+<script language=\"javascript\" src=\"di.js\"></script>
 "
 
     

@@ -136,54 +136,6 @@ let percent_of_ints x y =
 let percent_of_int64s x y = 
   if y <> Int64.zero then 100. *. (Int64.to_float x /. Int64.to_float y)
   else 0.
-
-(* Hack 
-let save_stats () = 
-  
-  try
-    
-    let oc = open_out (Filename.concat file_basedir "stats.dat") in
-    
-    output_string oc (Printf.sprintf "%d\n" ());
-    
-    for i=1 to brand_count-1 do
-      output_string oc (Printf.sprintf "%d\n" (!!gstats_by_brand.(i).brand_seen + stats_by_brand.(i).brand_seen));
-      output_string oc (Printf.sprintf "%d\n" (!!gstats_by_brand.(i).brand_filerequest + stats_by_brand.(i).brand_filerequest));
-      output_string oc ((Int64.to_string (Int64.add !!gstats_by_brand.(i).brand_download stats_by_brand.(i).brand_download)) ^ "\n");
-      output_string oc ((Int64.to_string (Int64.add !!gstats_by_brand.(i).brand_upload stats_by_brand.(i).brand_upload)) ^ "\n");
-      output_string oc (Printf.sprintf "%d\n" (!!gstats_by_brand.(i).brand_banned + stats_by_brand.(i).brand_banned));
-    done;
-    
-    close_out oc 
-  
-  with _ -> ()
-      
-
-let load_stats () =
-  
-  try 
-    
-    let ic = open_in (Filename.concat file_basedir "stats.dat") in
-    
-    guptime := int_of_string (input_line ic);	
-    
-    for i=1 to brand_count-1 do
-      try 
-        !!gstats_by_brand.(i).brand_seen <- int_of_string (input_line ic);	
-        !!gstats_by_brand.(i).brand_filerequest <- int_of_string (input_line ic);	
-        !!gstats_by_brand.(i).brand_download <- Int64.of_string (input_line ic);
-        !!gstats_by_brand.(i).brand_upload <- Int64.of_string (input_line ic);
-        !!gstats_by_brand.(i).brand_banned <- int_of_string (input_line ic);	
-      with _ -> ()
-    done;
-    
-    close_in ic;
-    
-    lprintf "LOADED STATS"; 
-    lprint_newline()
-  
-  with _ -> ()
-*)      
       
 let print_stats buf =
   let one_minute = 60 in

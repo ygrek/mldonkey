@@ -278,15 +278,13 @@ close it after a long timeout. *)
             let slen = sh.shared_size in
             let pos = c.client_pos in
             if pos < slen then
-              let fd = sh.shared_fd in
-              ignore (Unix32.seek64 fd pos Unix.SEEK_SET);
               let rlen = 
                 let rem = Int64.sub slen  pos in
                 let can = 8192 - len in
                 if rem > Int64.of_int can then can else Int64.to_int rem
               in
               let upload_buffer = String.create rlen in
-              Unix2.really_read (Unix32.force_fd fd) upload_buffer 0 rlen;
+              Unix32.read sh.shared_fd pos upload_buffer 0 rlen;
               TcpBufferedSocket.write sock upload_buffer 0 rlen;
               c.client_pos <- Int64.add c.client_pos (Int64.of_int rlen);
               if c.client_pos = slen then begin
@@ -324,6 +322,8 @@ let client_downloaded c sock nread =
     | DcDownload file ->
         let b = TcpBufferedSocket.buf sock in
         set_rtimeout sock half_day;
+        Unix32.write (file_fd file) c.client_pos  b.buf b.pos b.len;
+        (*
         begin
           let fd = try
               Unix32.force_fd (file_fd file) 
@@ -333,7 +333,7 @@ let client_downloaded c sock nread =
           in
           let final_pos = Unix32.seek64 (file_fd file) c.client_pos Unix.SEEK_SET in
           Unix2.really_write fd b.buf b.pos b.len;
-        end;
+        end; *)
 (*      lprintf "DIFF %d/%d" nread b.len; lprint_newline ();*)
         c.client_pos <- Int64.add c.client_pos (Int64.of_int b.len);
 (*

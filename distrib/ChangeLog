@@ -1,6 +1,22 @@
 ChangeLog	
 =========
 
+2003/03/19: Simon (v 2.04rc1-6)
+  - Applied patch #1297, #1298
+  - New command 'rename'
+  - New option 'minimal_packet_size' 
+  - TcpBufferSocket: use 'minimal_packet_size' instead of 'ip_packet_size'
+  - Modifications in Unix32 to abstract operations on big files. Next step:
+     filesystems that don't support sparse-files (Windows)
+  - 'auto_commit' is not done immediatly, but tested every minute
+  - Bug fix: Paused files were caused by Printf.printf and print_newline
+      with stdout closed (or terminal killed). Replaced by lprintf and
+      lprint_newline.
+
+2003/03/19: Simon
+  - MinGW port:
+        * Unix.write limited to 16 kB.
+
 2003/03/19: Simon (v 2.04rc1-5)
   - MinGW port:
 	* Support for non-blocking sockets

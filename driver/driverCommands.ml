@@ -290,35 +290,35 @@ let commands = [
     "vo", Arg_none (fun o ->
         let buf = o.conn_buf in
         if o.conn_output = HTML && !!html_mods then begin
-
-          Printf.bprintf buf "\\<div class=\\\"friends\\\"\\>\\<table class=main cellspacing=0 cellpadding=0\\> 
+            
+            Printf.bprintf buf "\\<div class=\\\"friends\\\"\\>\\<table class=main cellspacing=0 cellpadding=0\\> 
 \\<tr\\>\\<td\\>
 \\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
 \\<td class=downloaded width=100%%\\>\\</td\\>
 \\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=shares'\\\"\\>Shares\\</a\\>\\</td\\>
 \\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=html_mods'\\\"\\>Toggle html_mods\\</a\\>\\</td\\>
-\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=voo'\\\"\\>Full Options\\</a\\>\\</td\\>
+\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=voo+1'\\\"\\>Full Options\\</a\\>\\</td\\>
 \\<td nowrap class=\\\"fbig pr\\\"\\>\\<a onclick=\\\"javascript:parent.fstatus.location.href='/submit?q=save'\\\"\\>Save\\</a\\>\\</td\\>
 \\</tr\\>\\</table\\>
 \\</td\\>\\</tr\\>
 \\<tr\\>\\<td\\>";
-
-          list_options_html o  (
-            [
-              strings_of_option_html max_hard_upload_rate; 
-              strings_of_option_html max_hard_download_rate;
-              strings_of_option_html telnet_port; 
-              strings_of_option_html gui_port; 
-              strings_of_option_html http_port;
-              strings_of_option_html client_name;
-              strings_of_option_html allowed_ips;
-              strings_of_option_html set_client_ip; 
-              strings_of_option_html force_client_ip; 
-            ] );
-
-          Printf.bprintf buf "\\</td\\>\\<tr\\>\\</table\\>\\</div\\>"
-		end
-
+            
+            list_options_html o  (
+              [
+                strings_of_option_html max_hard_upload_rate; 
+                strings_of_option_html max_hard_download_rate;
+                strings_of_option_html telnet_port; 
+                strings_of_option_html gui_port; 
+                strings_of_option_html http_port;
+                strings_of_option_html client_name;
+                strings_of_option_html allowed_ips;
+                strings_of_option_html set_client_ip; 
+                strings_of_option_html force_client_ip; 
+              ] );
+            
+            Printf.bprintf buf "\\</td\\>\\<tr\\>\\</table\\>\\</div\\>"
+          end
+        
         else
           list_options o  (
             [
@@ -355,39 +355,142 @@ let commands = [
         
         "\\<script language=Javascript\\>top.window.location.reload();\\</script\\>"
     ), ":\t\t\t\ttoggle html_mods";
-
-
+    
+    
     "html_mods_style", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
-		if args = [] then begin
-		 Printf.bprintf buf "0: Default interface\n";
-		 Printf.bprintf buf "1: Small and simple interface\n";
-         ""
-		 end
-		else begin
+        if args = [] then begin
+            Printf.bprintf buf "0: Default interface\n";
+            Printf.bprintf buf "1: Small and simple interface\n";
+            ""
+          end
+        else begin
             Options.set_simple_option expert_ini "html_mods" "true";
             Options.set_simple_option expert_ini "use_html_frames" "true";
-        let num = int_of_string (List.hd args) in
-		(match num with
-		1 -> begin
-            Options.set_simple_option expert_ini "commands_frame_height" "42";
-            Options.set_simple_option expert_ini "html_mods_style" "1";
-		    end
-		| _ -> begin
-            Options.set_simple_option expert_ini "commands_frame_height" "80";
-            Options.set_simple_option expert_ini "html_mods_style" "0";
-		    end
-		);
-        "\\<script language=Javascript\\>top.window.location.reload();\\</script\\>"
-		end
-
-    ), ":\t\t\t\tselect html_mods_style <#>";
-
-
+            let num = int_of_string (List.hd args) in
+            (match num with
+                1 -> begin
+                    Options.set_simple_option expert_ini "commands_frame_height" "42";
+                    Options.set_simple_option expert_ini "html_mods_style" "1";
+                  end
+              | _ -> begin
+                    Options.set_simple_option expert_ini "commands_frame_height" "80";
+                    Options.set_simple_option expert_ini "html_mods_style" "0";
+                  end
+            );
+            "\\<script language=Javascript\\>top.window.location.reload();\\</script\\>"
+          end
     
-    "voo", Arg_none (fun o ->
+    ), ":\t\t\t\tselect html_mods_style <#>";
+    
+    
+    
+    "voo", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
-        if !!html_mods && o.conn_output = HTML then list_options_html o (CommonInteractive.all_simple_options_html ())
+        if use_html_mods o then begin
+            
+            Printf.bprintf buf "\\<div class=\\\"vo\\\"\\>\\<table class=main cellspacing=0 cellpadding=0\\> 
+\\<tr\\>\\<td\\>
+\\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
+\\<td class=downloaded width=100%%\\>\\</td\\>
+\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=voo+1'\\\"\\>Client\\</a\\>\\</td\\>
+\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=voo+2'\\\"\\>Ports\\</a\\>\\</td\\>
+\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=voo+3'\\\"\\>Bandwidth\\</a\\>\\</td\\>
+\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=voo+4'\\\"\\>Delays\\</a\\>\\</td\\>
+\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=voo+5'\\\"\\>Files\\</a\\>\\</td\\>
+\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=voo+6'\\\"\\>Mail\\</a\\>\\</td\\>
+\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=voo+7'\\\"\\>Net\\</a\\>\\</td\\>
+\\<td nowrap class=\\\"fbig pr\\\"\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=voo'\\\"\\>All\\</a\\>\\</td\\>
+\\</tr\\>\\</table\\>
+\\</td\\>\\</tr\\>
+\\<tr\\>\\<td\\>";
+            
+            list_options_html o (
+              match args with
+                [] | _ :: _ :: _ -> CommonInteractive.all_simple_options_html ()
+              | [tab] ->
+                  let tab = int_of_string tab in
+                  match tab with
+                    1 -> 
+                      [
+                        strings_of_option_html client_name; 
+                        strings_of_option_html set_client_ip; 
+                        strings_of_option_html force_client_ip; 
+                        strings_of_option_html run_as_user; 
+                        strings_of_option_html run_as_useruid; 
+                      ] 
+                  
+                  | 2 -> 
+                      [
+                        strings_of_option_html gui_bind_addr; 
+                        strings_of_option_html telnet_bind_addr; 
+                        strings_of_option_html http_bind_addr; 
+                        strings_of_option_html chat_bind_addr; 
+                        strings_of_option_html gui_port; 
+                        strings_of_option_html telnet_port; 
+                        strings_of_option_html http_port; 
+                        strings_of_option_html chat_port; 
+                        strings_of_option_html http_realm; 
+                        strings_of_option_html allowed_ips; 
+                      ] 
+                  | 3 -> 
+                      [
+                        strings_of_option_html max_hard_upload_rate; 
+                        strings_of_option_html max_hard_download_rate; 
+                        strings_of_option_html max_opened_connections; 
+                        strings_of_option_html max_concurrent_downloads; 
+                      ] 
+                  | 4 -> 
+                      [
+                        strings_of_option_html save_options_delay; 
+                        strings_of_option_html update_gui_delay; 
+                        strings_of_option_html server_connection_timeout; 
+                        strings_of_option_html client_timeout; 
+                        strings_of_option_html ip_cache_timeout; 
+                        strings_of_option_html compaction_delay; 
+                        strings_of_option_html min_reask_delay; 
+                        strings_of_option_html max_reask_delay; 
+                        strings_of_option_html buffer_writes; 
+                        strings_of_option_html buffer_writes_delay; 
+                        strings_of_option_html buffer_writes_threshold; 
+                      ] 
+                  | 5 -> 
+                      [
+                        strings_of_option_html previewer; 
+                        strings_of_option_html incoming_directory; 
+                        strings_of_option_html temp_directory; 
+                        strings_of_option_html file_completed_cmd; 
+                        strings_of_option_html allow_browse_share; 
+                        strings_of_option_html auto_commit; 
+                        strings_of_option_html log_file; 
+                      ] 
+                  | 6 -> 
+                      [
+                        strings_of_option_html mail; 
+                        strings_of_option_html smtp_port; 
+                        strings_of_option_html smtp_server; 
+                        strings_of_option_html add_mail_brackets; 
+                        strings_of_option_html filename_in_subject; 
+                      ] 
+                  | 7 -> 
+                      [
+                        strings_of_option_html enable_server; 
+                        strings_of_option_html enable_overnet; 
+                        strings_of_option_html enable_donkey; 
+                        strings_of_option_html enable_opennap; 
+                        strings_of_option_html enable_soulseek; 
+                        strings_of_option_html enable_audiogalaxy; 
+                        strings_of_option_html enable_limewire; 
+                        strings_of_option_html enable_directconnect; 
+                        strings_of_option_html enable_openft; 
+                        strings_of_option_html tcpip_packet_size; 
+                        strings_of_option_html mtu_packet_size; 
+                      ] 
+                  
+                  | _ -> CommonInteractive.all_simple_options_html ()
+            );
+            Printf.bprintf buf "\\</td\\>\\<tr\\>\\</table\\>\\</div\\>";
+          end
         else list_options o  (CommonInteractive.all_simple_options ());
         
         ""
@@ -1460,7 +1563,17 @@ formID.msgText.value=\\\"\\\";
         :: !!calendar;
         "action added"
     ), " <hour> \"...command...\": add a command to be executed every day";
-    
+
+    "rename", Arg_two (fun arg new_name o ->
+        let num = int_of_string arg in
+        try
+          let file = file_find num in
+          set_file_best_name file new_name;
+          Printf.sprintf "Download %d renamed to %s" num new_name
+        with _ -> Printf.sprintf "No file number %d" num
+    ), "<num> \"<new name>\" :\t\t\tchange name of download <num> to <new name>";
+
+ 
     ]
 
 let _ =

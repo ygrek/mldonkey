@@ -36,7 +36,11 @@ let do_daily () =
   load_web_infos ()
 
 let minute_timer () = 
-  CommonInteractive.force_download_quotas ()
+  CommonInteractive.force_download_quotas ();
+  if !!auto_commit then
+    List.iter (fun file ->
+        CommonComplexOptions.file_commit file
+    ) !!CommonComplexOptions.done_files
   
 let hourly_timer timer =
   incr hours;

@@ -81,6 +81,7 @@ lprint_newline ();
         set_rtimeout sock 120.;
         set_client_state (M.client d.download_client) 
         (Connected_downloading);
+        (*
         begin
           let fd = try
               Unix32.force_fd (file_fd file) 
@@ -89,9 +90,9 @@ lprint_newline ();
                 raise e
           in
           let final_pos = Unix32.seek64 (file_fd file) d.download_pos
-              Unix.SEEK_SET in
-          Unix2.really_write fd b.buf b.pos b.len;
-        end;
+              Unix.SEEK_SET in *)
+        Unix32.write (file_fd file) d.download_pos b.buf b.pos b.len;
+(*        end; *)
 (*      lprintf "DIFF %d/%d" nread b.len; lprint_newline ();*)
         d.download_pos <- Int64.add d.download_pos (Int64.of_int b.len);
 (*

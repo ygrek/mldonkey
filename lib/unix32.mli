@@ -21,9 +21,9 @@ type t
 
 val create : string -> Unix.open_flag list -> int -> t
 val close : t -> unit
-val force_fd : t -> Unix.file_descr
+(* val force_fd : t -> Unix.file_descr *)
   
-val seek64 : t -> int64 -> Unix.seek_command -> int64
+(* val seek64 : t -> int64 -> Unix.seek_command -> int64 *)
 val getsize64 : string -> int64
 val ftruncate64 : t -> int64 -> unit
 
@@ -37,6 +37,12 @@ val mtime64 : string -> float
   
 val flush : unit -> unit
 val flush_fd : t -> unit
+val buffered_write : t -> int64 -> string -> int -> int -> unit
 val write : t -> int64 -> string -> int -> int -> unit
 val max_buffered : int64 ref
+  
+val fd_of_chunk : t -> int64 -> int64 -> (Unix.file_descr * int64)
+  
+val read : t -> int64 -> string -> int -> int -> unit
+val allocate_chunk :  t -> int64 -> int64 -> unit
   

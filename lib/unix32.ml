@@ -30,7 +30,11 @@ type t = {
     mutable buffers : (string * int * int * int64 * int64) list;
   }
 
+(*
+For chunked files, we should read read the meta-file instead of the file.
+*)
 let getsize64 = Unix2.c_getsize64
+  
 let fds_size = Unix2.c_getdtablesize ()
 
 let buffered_bytes = ref Int64.zero
@@ -198,7 +202,7 @@ let flush _ =
   if !buffered_bytes <> Int64.zero then
     lprintf "[ERROR] remaining bytes after flush\n"
   
-let write t offset s pos_s len_s = 
+let buffered_write t offset s pos_s len_s = 
   let len = Int64.of_int len_s in
   match t.error with
     None -> 
@@ -216,5 +220,60 @@ let write t offset s pos_s len_s =
   | Some e -> 
       t.error <- None; 
       raise e
+
+let write t offset s pos_s len_s =  
+  let final_pos = seek64 t offset Unix.SEEK_SET in
+  if final_pos <> offset then begin
+      lprintf "BAD LSEEK in Unix32.write %Ld/%Ld\n" final_pos offset;
+      raise Not_found
+    end;
+
+(* if !verbose then begin
+      lprintf "{%d-%d = %Ld-%Ld}\n" (t.Q.bloc_begin)
+      (t.Q.bloc_len) (begin_pos) 
+      (end_pos);
+    end; *)
+  let fd = try force_fd t with e -> 
+        lprintf "In force_fd\n"; 
+        raise e
+  in
+  Unix2.really_write fd s pos_s len_s
   
+let fd_of_chunk t pos_s len_s =
+  let fd = force_fd t in
+  fd, pos_s
+  
+let read t offset s pos_s len_s =
+  let fd, offset = fd_of_chunk t offset (Int64.of_int len_s) in
+  let final_pos = seek64 t offset Unix.SEEK_SET in
+  
+  if final_pos <> offset then begin
+      lprintf "BAD LSEEK in Unix32.read %Ld/%Ld\n" final_pos offset;
+      raise Not_found
+    end;
+  Unix2.really_read fd s pos_s len_s
+
+let mini (x: int) (y: int) =
+  if x > y then y else x
+
+(* zero_chunk is only useful on sparse file systems, not on Windows 
+  for example *)
+    
+let allocate_chunk t offset len64 =
+  let len = Int64.to_int len64 in
+  let fd, offset = fd_of_chunk t offset len64 in
+  let final_pos = seek64 t offset Unix.SEEK_SET in
+  if final_pos <> offset then begin
+      lprintf "BAD LSEEK in Unix32.zero_chunk %Ld/%Ld\n"
+        final_pos offset; 
+      raise Not_found
+    end;
+  let buffer_size = 128 * 1024 in
+  let buffer = String.make buffer_size '\001' in
+  let remaining = ref len in
+  while !remaining > 0 do
+    let len = mini !remaining buffer_size in
+    Unix2.really_write fd buffer 0 len;
+    remaining := !remaining - len;
+  done;
   

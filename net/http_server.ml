@@ -749,7 +749,8 @@ let handler config t event =
         TcpBufferedSocket.set_reader sock (request_handler config);
         TcpBufferedSocket.set_closer sock request_closer;
         TcpBufferedSocket.set_handler sock TcpBufferedSocket.BUFFER_OVERFLOW
-          (fun _ -> lprintf "BUFFER OVERFLOW"; lprint_newline () );  ()
+          (fun _ -> TcpBufferedSocket.close sock "buffer overflow";
+	       lprintf "BUFFER OVERFLOW\n" );  ()
       else
         Unix.close s
   | _ -> ()

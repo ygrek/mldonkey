@@ -538,19 +538,25 @@ let add_simple_commands buf =
 	else
       !!CommonMessages.web_common_header_old)
 
-let http_add_header buf = 
+let http_add_gen_header buf =
   Buffer.add_string  buf "HTTP/1.0 200 OK\r\n";
-  Buffer.add_string  buf "Pragma: no-cache\r\n";
   Buffer.add_string  buf "Server: MLdonkey\r\n";
-  Buffer.add_string  buf "Connection: close\r\n";
+  Buffer.add_string  buf "Connection: close\r\n"
+
+let http_add_html_header buf = 
+  http_add_gen_header buf;
+  Buffer.add_string  buf "Pragma: no-cache\r\n";
   Buffer.add_string  buf "Content-Type: text/html; charset=iso-8859-1\r\n";
   Buffer.add_string  buf "\r\n"
 
 let http_add_css_header buf = 
-  Buffer.add_string  buf "HTTP/1.0 200 OK\r\n";
-  Buffer.add_string  buf "Server: MLdonkey\r\n";
-  Buffer.add_string  buf "Connection: close\r\n";
+  http_add_gen_header buf;
   Buffer.add_string  buf "Content-Type: text/css; charset=iso-8859-1\r\n";
+  Buffer.add_string  buf "\r\n"
+
+let http_add_js_header buf =
+  http_add_gen_header buf;
+  Buffer.add_string  buf "Content-Type: text/javascript; charset=iso-8859-1\r\n";
   Buffer.add_string  buf "\r\n"
 
 let any_ip = Ip.of_inet_addr Unix.inet_addr_any
@@ -558,12 +564,13 @@ let any_ip = Ip.of_inet_addr Unix.inet_addr_any
 let html_open_page buf t r open_body =
   Buffer.clear buf;
   html_page := true;
-  http_add_header buf;
+  http_add_html_header buf;
   
   if not !!html_mods then 
-    Buffer.add_string buf
+    (Buffer.add_string buf
       "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Frameset//EN\" 
-        \"http://www.w3.org/TR/html4/frameset.dtd\">\n<HTML>\n<HEAD>\n";
+        \"http://www.w3.org/TR/html4/frameset.dtd\">\n<HTML>\n<HEAD>\n";)
+    else Buffer.add_string buf "<html>\n<head>\n";
   
   if !CommonInteractive.display_vd then begin
       Buffer.add_string buf 
@@ -581,14 +588,14 @@ let html_open_page buf t r open_body =
 	  |	_ -> CommonMessages.html_header_mods0)
 	else CommonMessages.html_header_old);
   
-  Buffer.add_string buf "</HEAD>\n";
-  if open_body then Buffer.add_string buf "<BODY>\n";    
+  Buffer.add_string buf "</head>\n";
+  if open_body then Buffer.add_string buf "<body>\n";    
   if not !!use_html_frames then add_simple_commands buf;
   ()
   
 let html_close_page buf =
-  Buffer.add_string buf "</BODY>\n";  
-  Buffer.add_string buf "</HTML>\n";
+  Buffer.add_string buf "</body>\n";  
+  Buffer.add_string buf "</html>\n";
   ()
   
   
@@ -825,6 +832,7 @@ end
 			   | _ -> CommonMessages.html_css_mods0)
                else
                 CommonMessages.html_css_old)
+
         | "/dh.css" ->          
             Buffer.clear buf;
             html_page := false; 
@@ -835,6 +843,28 @@ end
 			  | _ -> CommonMessages.download_html_css_mods0)
                else
                 CommonMessages.download_html_css_old)
+
+        | "/i.js" ->
+            Buffer.clear buf;
+            html_page := false; 
+            http_add_js_header buf;
+            Buffer.add_string buf !!(if !!html_mods then
+				(match !!html_mods_style with 
+				 1 -> CommonMessages.html_js_mods1
+			   | _ -> CommonMessages.html_js_mods0)
+               else
+                CommonMessages.html_js_old)
+
+        | "/di.js" ->          
+            Buffer.clear buf;
+            html_page := false; 
+            http_add_js_header buf;
+            Buffer.add_string buf !!(if !!html_mods then 
+                (match !!html_mods_style with 
+				1 -> CommonMessages.download_html_js_mods1
+			  | _ -> CommonMessages.download_html_js_mods0)
+               else
+                CommonMessages.download_html_js_old)
 
         | cmd ->
             html_open_page buf t r true;
@@ -850,7 +880,6 @@ end
   let len = String.length s in
 (*  TcpBufferedSocket.set_monitored t; *)
   TcpBufferedSocket.set_max_write_buffer t (len + 100);
-  
   TcpBufferedSocket.write t s 0 len;
   TcpBufferedSocket.close_after_write t
         

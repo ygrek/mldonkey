@@ -773,9 +773,9 @@ lprint_newline ();
                 None -> ()
               | Some s ->
                   if s.source_age > last_time () - 600 &&
-		    (match ip_reliability ip with
-			 Reliability_reliable | Reliability_neutral -> true
-		       | Reliability_suspicious _ -> false) &&
+                    (match ip_reliability ip with
+                        Reliability_reliable | Reliability_neutral -> true
+                      | Reliability_suspicious _ -> false) &&
                     List.exists (fun r ->
                         match r.request_result with
                           File_not_found | File_possible | File_expected ->
@@ -1067,10 +1067,10 @@ is checked for the file.
       let file = client_file c in
       
       if !!reliable_sources && 
-        socket_reliability sock = Reliability_suspicious 0 then begin
+        client_reliability c = Reliability_suspicious 0 then begin
           lprintf "Receiving data from unreliable client, disconnect";
           lprint_newline ();
-	  corruption_warning c;
+          corruption_warning c;
           disconnect_client c;
           raise Not_found
         end;
@@ -1176,11 +1176,20 @@ is checked for the file.
             else
             try
               begin
-                if !!buffer_writes then 
-                  Unix32.write (file_fd file) begin_pos
-                    t.Q.bloc_str t.Q.bloc_begin t.Q.bloc_len
+                if c.client_connected then
+                  printf_string "#[OUT]"
                 else
+                  printf_string "#[IN]";
                 
+                try
+                  if !!buffer_writes then 
+                    Unix32.buffered_write (file_fd file) begin_pos
+                      t.Q.bloc_str t.Q.bloc_begin t.Q.bloc_len
+                  else
+                    Unix32.write (file_fd file) begin_pos
+                      t.Q.bloc_str t.Q.bloc_begin t.Q.bloc_len
+
+(*
                 let final_pos = Unix32.seek64 (file_fd file) 
                   begin_pos Unix.SEEK_SET in
                 if final_pos <> begin_pos then begin
@@ -1207,20 +1216,39 @@ is checked for the file.
                       raise e
                 in
                 Unix2.really_write fd t.Q.bloc_str t.Q.bloc_begin t.Q.bloc_len;
+*)
+                with 
+                | e ->
+                    lprintf "Error %s while writing block. Pausing download\n"
+                      (Printexc2.to_string e);
+                    file_pause (as_file file.file_file);      
               end;
-              List.iter (update_zone file begin_pos end_pos) c.client_zones;
+              (try
+                  List.iter (update_zone file begin_pos end_pos) c.client_zones;
+                with e ->
+                    lprintf "Exception %s while updating zones\n"
+                      (Printexc2.to_string e);
+                    raise e
+              );
               if not (List.mem c.client_ip bb.block_contributors) then
                 bb.block_contributors <- c.client_ip :: 
                 bb.block_contributors;
-              find_client_zone c;                    
+              (try
+                  find_client_zone c
+                with 
+                  | e ->
+                    lprintf "Exception %s while searching for find client zone\n"
+                      (Printexc2.to_string e);
+                    raise e)
+
             with
               End_of_file ->
-                lprintf "WITH CLIENT %s" c.client_name;
+                lprintf "END OF FILE WITH CLIENT %s" c.client_name;
                 lprint_newline ();
             | e ->
-                lprintf "Error %s while writing block. Pausing download" (Printexc2.to_string e);
-                lprint_newline ();
-                file_pause (as_file file.file_file);      
+                lprintf "Exception %s while searching for new chunk\n"
+                  (Printexc2.to_string e)
+                
       end;      
 
 (* Upload requests *)

@@ -126,6 +126,7 @@ val accept_connection_bandwidth :
   
 val ip_packet_size : int ref
 val mtu_packet_size : int ref
-  
+val minimal_packet_size : int ref
+
 val remove_ip_packet : bandwidth_controler -> unit
   

@@ -108,8 +108,10 @@ let ip_reliability ip =
     Hashtbl.find reliable_ips ip
   with Not_found -> Reliability_neutral
 
+      (*
 let socket_reliability sock =
   ip_reliability (peer_ip sock)
+  *)
 
 let client_reliability c =
   ip_reliability c.client_ip
@@ -141,14 +143,14 @@ let block_reliability b =
     aux b.block_contributors 0 0 0 max_int
 
 let print_reliability ip =
-  Printf.printf "%s is %s" (Ip.to_string ip)
+  lprintf "%s is %s" (Ip.to_string ip)
   (match ip_reliability ip with
-       Reliability_neutral -> "neutral"
-     | Reliability_reliable -> "reliable"
-     | Reliability_suspicious 0 -> "has sent corrupted data"
-     | Reliability_suspicious s -> Printf.sprintf "suspicious of level %d" s);
-  print_newline ()
-
+      Reliability_neutral -> "neutral"
+    | Reliability_reliable -> "reliable"
+    | Reliability_suspicious 0 -> "has sent corrupted data"
+    | Reliability_suspicious s -> Printf.sprintf "suspicious of level %d" s);
+  lprint_newline ()
+  
 let bprint_reliability buf ip =
   Printf.bprintf buf "%s is %s\n" (Ip.to_string ip)
   (match ip_reliability ip with

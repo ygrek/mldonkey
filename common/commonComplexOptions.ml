@@ -492,8 +492,6 @@ let file_completed (file : file) =
         ignore (CommonShared.new_shared "completed" (
             file_best_name file )
           file_name);
-	if !!auto_commit then
-	  file_commit file;
         (try mail_for_completed_file file with e ->
               lprintf "Exception %s in sendmail" (Printexc2.to_string e);
               lprint_newline ());
@@ -501,17 +499,17 @@ let file_completed (file : file) =
           chat_for_completed_file file;
         
         if !!file_completed_cmd <> "" then begin
-MlUnix.fork_and_exec  !!file_completed_cmd 
-                              [|
-                              file_name;
-                              file_id;
-                              Int64.to_string (file_size file);
-                              file_best_name file
-                            |]
-
-          end
+            MlUnix.fork_and_exec  !!file_completed_cmd 
+              [|
+              file_name;
+              file_id;
+              Int64.to_string (file_size file);
+              file_best_name file
+            |]
           
-
+          end
+      
+      
       end
   with e ->
       lprintf "Exception in file_completed: %s" (Printexc2.to_string e);

@@ -614,7 +614,6 @@ let commands = [
         let buf = o.conn_buf in
         let list = Unix2.list_directory !!temp_directory in
 
-
         let counter = ref 0 in
         let tr = ref "dl-1" in
         
@@ -1028,7 +1027,9 @@ let _ =
             );          
             P.file_priority = file_priority  file;
             P.file_availability = String2.init file.file_nchunks (fun i ->
-                let n = min file.file_available_chunks.(i) 255 in
+                
+(* Could file.file_available_chunks.(i) be under 0 ? *)
+                let n = maxi 0 (mini file.file_available_chunks.(i) 127) in
                 char_of_int n 
             );
             P.file_format = file.file_format;

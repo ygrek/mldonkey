@@ -323,7 +323,7 @@ class udp conf =
 
     initializer
       Unix.setsockopt sock Unix.SO_REUSEADDR true ;
-      Unix.set_nonblock sock ;
+      MlUnix.set_nonblock sock ;
       try
 	Unix.bind sock sock_addr
       with
@@ -447,7 +447,7 @@ class tcp conf =
 
     initializer
       Unix.setsockopt sock Unix.SO_REUSEADDR true ;
-      Unix.set_nonblock sock ;
+      MlUnix.set_nonblock sock ;
       try
 	Unix.bind sock sock_addr ;
 	Unix.listen sock 15;

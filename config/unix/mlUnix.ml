@@ -84,6 +84,8 @@ let max_filedescs = (max_all_sockets - max_sockets) / 2
 
 let chroot = Unix.chroot  
 
+
+let write = Unix.write
   
 let detach_daemon () =
   try

@@ -310,7 +310,7 @@ let shared_extensions = define_option expert_ini ["shared_extensions"]
 
   
 let client_timeout = define_option expert_ini ["client_timeout"] 
-  "Timeout on client connections when not queued" float_option 120.
+  "Timeout on client connections when not queued" float_option 40.
 
 let interface_buffer = define_option expert_ini ["interface_buffer"] 
   "The size of the buffer between the client and its GUI. Can be useful
@@ -416,6 +416,16 @@ let mtu_packet_size = define_option expert_ini ["mtu_packet_size"]
 let _ =
   option_hook mtu_packet_size (fun _ ->
       TcpBufferedSocket.mtu_packet_size := !!mtu_packet_size
+  )
+
+let minimal_packet_size = define_option expert_ini ["minimal_packet_size"]
+  "The size of the minimal packet you want mldonkey to send when data is
+available on the connection"
+    int_option !TcpBufferedSocket.minimal_packet_size
+
+let _ =
+  option_hook minimal_packet_size (fun _ ->
+      TcpBufferedSocket.minimal_packet_size := !!minimal_packet_size
   )
 
 let network_update_url = define_option expert_ini ["network_update_url"]

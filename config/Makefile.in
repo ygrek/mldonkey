@@ -545,8 +545,8 @@ CHAT_EXE_SRCS= \
 	chat/chat_args.ml \
 	chat/chat_main.ml
 
-MLCHAT_SRCS= \
-  $(CDK_SRCS) $(CONFIGWIN_SRCS) $(OKEY_SRCS) $(CHAT_SRCS) $(CHAT_EXE_SRCS)
+MLCHAT_SRCS=   $(CDK_SRCS)  $(LIB_SRCS) \
+  $(CONFIGWIN_SRCS) $(OKEY_SRCS) $(CHAT_SRCS) $(CHAT_EXE_SRCS)
 
 
 TARGETS += mldonkey_gui$(EXE)   mldonkey_gui2$(EXE)  mlchat$(EXE) mldonkey_guistarter$(EXE) 

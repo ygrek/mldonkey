@@ -286,9 +286,12 @@ module NewUpload = struct
         String.blit s 0 upload_buffer 0 slen;
         DonkeyProtoCom.new_string msg upload_buffer;
         
+        (*
         let fd = file_fd file in
         ignore (Unix32.seek64 fd begin_pos Unix.SEEK_SET);
-        Unix2.really_read (Unix32.force_fd fd) upload_buffer slen len_int;
+Unix2.really_read (Unix32.force_fd fd) upload_buffer slen len_int;
+*)
+        Unix32.read (file_fd file) begin_pos upload_buffer slen len_int;
         let uploaded = Int64.of_int len_int in
         count_upload c file uploaded;
         (match file.file_shared with None -> ()
@@ -482,10 +485,12 @@ lprint_newline ();
         let upload_buffer = String.create (slen + len_int) in
         String.blit s 0 upload_buffer 0 slen;
         DonkeyProtoCom.new_string msg upload_buffer;
-        
+        (*
         let fd = file_fd file in
         ignore (Unix32.seek64 fd begin_pos Unix.SEEK_SET);
-        Unix2.really_read (Unix32.force_fd fd) upload_buffer slen len_int;
+Unix2.really_read (Unix32.force_fd fd) upload_buffer slen len_int;
+*)
+        Unix32.read (file_fd file) begin_pos upload_buffer slen len_int;
 (*    lprintf "slen %d len_int %d final %d" slen len_int (String.length upload_buffer); 
 lprint_newline (); *)
         let uploaded = Int64.of_int len_int in

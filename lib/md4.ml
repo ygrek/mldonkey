@@ -122,7 +122,8 @@ let file s =
   
 let digest_subfile fd pos len =
   let digest = String.create hash_length in
-  digest_subfile digest (Unix32.force_fd fd) pos len;
+  let (fd, pos) = Unix32.fd_of_chunk fd pos len in
+  digest_subfile digest fd pos len;
   digest
   
 let create () =  String.create hash_length

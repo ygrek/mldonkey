@@ -126,6 +126,9 @@ let index_sub s pos len c =
 let read_stream c file sock b =
   lprint_char '.';
   begin
+    Unix32.write (file_fd file) c.client_pos  b.buf b.pos b.len;
+ 
+    (*
     begin
       let fd = try
           Unix32.force_fd (file_fd file) 
@@ -135,7 +138,7 @@ let read_stream c file sock b =
       in
       let final_pos = Unix32.seek64 (file_fd file) c.client_pos Unix.SEEK_SET in
       Unix2.really_write fd b.buf b.pos b.len;
-    end;
+    end; *)
 (*      lprintf "DIFF %d/%d" nread b.len; lprint_newline ();*)
     c.client_pos <- Int64.add c.client_pos (Int64.of_int b.len);
 (*

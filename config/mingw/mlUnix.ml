@@ -78,3 +78,6 @@ let detach_daemon _ = ()
 
 external set_nonblock: Unix.file_descr -> unit = "ml_set_nonblock"
 
+let mini (x: int) y = if x < y then x else y
+
+let write fd s pos len = Unix.write fd s pos (mini len 16000)

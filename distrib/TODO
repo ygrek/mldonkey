@@ -30,6 +30,9 @@ Before 2.04 :)
   * have a look at reliable_sources
 * Add a "log_file" option or argument.
 * Check the NaS problem in client_name
+* Download chunks separately
+* Why are the files suddently paused ? at least, when forcing pause, send
+   a message in the log.
 
 Core:
 =====
