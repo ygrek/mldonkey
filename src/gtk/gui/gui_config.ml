@@ -381,10 +381,13 @@ let save_options gui =
   
 let edit_options gui =
   try
-    lprintf "edit_options"; lprint_newline ();
+    lprintf "edit_options\n"; 
     let gui_params = create_gui_params () in 
     let client_params = create_sections_params !client_sections in
-    let plugins_params = create_sections_params !plugins_sections in
+    let plugins_params = create_sections_params 
+        (List.sort (fun (n1,_) (n2,_) ->
+          compare (String.lowercase n1) (String.lowercase n2)
+        ) !plugins_sections) in
     let structure = [
         Section_list ((gettext M.o_gui), gui_params) ;
         Section_list ((gettext M.o_client), client_params) ;

@@ -68,14 +68,6 @@ let max_queued_ranges = 1
 let nranges file = 
   Int64.to_int (Int64.div (file_size file) 
     min_range_size) + 5
-
-let download_finished file = 
-  file_completed (as_file file.file_file);
-  FasttrackGlobals.remove_file file;
-  old_files =:= (file.file_name, file_size file) :: !!old_files;
-  List.iter (fun c ->
-      c.client_downloads <- remove_download file c.client_downloads
-  ) file.file_clients
   
 let disconnect_client c r =
   match c.client_sock with
@@ -109,7 +101,17 @@ let disconnect_client c r =
           lprintf "Exception %s in disconnect_client\n"
             (Printexc2.to_string e))
   | _ -> ()
-  
+
+let download_finished file = 
+  if List.memq file !current_files then begin
+      file_completed (as_file file.file_file);
+      FasttrackGlobals.remove_file file;
+      old_files =:= (file.file_name, file_size file) :: !!old_files;
+      List.iter (fun c ->
+          c.client_downloads <- remove_download file c.client_downloads
+      ) file.file_clients
+    end
+    
 let rec client_parse_header c gconn sock header = 
   if !verbose_msg_clients then begin
       lprintf "CLIENT PARSE HEADER\n"; 
@@ -247,6 +249,11 @@ let rec client_parse_header c gconn sock header =
         (try get_from_client sock c with _ -> ());
     done; 
     gconn.gconn_handler <- Reader (fun gconn sock ->
+        if file_state file <> FileDownloading then begin
+            disconnect_client c Closed_by_user;
+            raise Exit;
+          end;
+        
         let b = TcpBufferedSocket.buf sock in
         let to_read = min (end_pos -- !counter_pos) 
           (Int64.of_int b.len) in

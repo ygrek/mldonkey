@@ -71,21 +71,23 @@ module Download = CommonDownloads.Make(struct
       let file file = as_file file.file_file
       let client client = as_client client.client_client        
       let subdir_option = commit_in_subdir
-        
+      
       let client_disconnected d =
         lprintf "DISCONNECTED FROM SOURCE"; lprint_newline ();
         let c = d.download_client in
         c.client_downloads <- List2.removeq d c.client_downloads
-        
-        
+      
+      
       let download_finished d =
         let file = d.download_file in
-        current_files := List2.removeq file !current_files;
-        old_files =:= (file_best_name (as_file file.file_file), 
-          file_size file) :: !!old_files;
-        List.iter (fun c ->
-            c.client_files <- List.remove_assoc file c.client_files      
-        ) file.file_clients
+        if List.memq file !current_files then begin
+            current_files := List2.removeq file !current_files;
+            old_files =:= (file_best_name (as_file file.file_file), 
+              file_size file) :: !!old_files;
+            List.iter (fun c ->
+                c.client_files <- List.remove_assoc file c.client_files      
+            ) file.file_clients
+          end
         
     end)
   

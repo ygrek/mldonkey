@@ -1,12 +1,15 @@
 ChangeLog	
 =========
 
+2003/05/26: Simon  (release-2-5-rc2)
+  - GUI:
+      * Plugins sorted in config panel
+  - Fixed bug adding one file several times in 'old_files'
+
 2003/05/25: Simon  (release-2-5-rc1)
   - Applied patch #1523, #1527
   - Fasttrack:
       * Limitation on the number of simultaneous sources for a file
-      * GNUT- prefix replaced by FT- ! It means that you must cancel or
-         finish all your fasttrack downloads before upgrading !
   - Fixed major file corruption bug when using 'buffer_writes' in bittorrent,
       fasttrack and gnutella.
 
@@ -15,7 +18,7 @@ ChangeLog
       * Fixed a compilation problem
   - GUI:
       * Fixed the problem with servers appearing as New Hosts
-  - PLugins initialized in the correct order (no downloads restarted at 0%)
+  - Plugins initialized in the correct order (no downloads restarted at 0%)
 
 2003/05/23: Simon  (release-2-4-5)
   - Fasttrack:

@@ -82,11 +82,13 @@ let disconnect_clients file =
   ) file.file_clients
           
 let download_finished file = 
-  file_completed (as_file file.file_file);
-  BTGlobals.remove_file file;
-  old_files =:= (file.file_name, file_size file) :: !!old_files;
-  disconnect_clients file
-  
+  if List.memq file !current_files then begin      
+      file_completed (as_file file.file_file);
+      BTGlobals.remove_file file;
+      old_files =:= (file.file_name, file_size file) :: !!old_files;
+      disconnect_clients file
+    end
+    
 let (++) = Int64.add
 let (--) = Int64.sub
       
@@ -204,7 +206,7 @@ let rec client_parse_header counter cc init_sent gconn sock
       lprintf "Exception %s in client_parse_header\n" (Printexc2.to_string e);
       close sock (Closed_for_exception e);
       raise e
-            
+
 and update_client_bitmap c =
   if c.client_new_chunks <> [] then
     let chunks = c.client_new_chunks in
@@ -324,59 +326,60 @@ and client_to_client c sock msg =
   try
     match msg with
       Piece (num, offset, s, pos, len) ->
+        let file = c.client_file in
         
         set_lifetime sock 600.;
         set_client_state c Connected_downloading;
-
+        
         c.client_good <- true;
-        if file_state file = FileDownloading then
-          let file = c.client_file in
-          let position = offset ++ file.file_piece_size ** num in
-          
-          if !verbose_msg_clients then 
-            (match c.client_ranges with
-                [] -> lprintf "EMPTY Ranges !!!\n"
-              | r :: _ -> 
-                  let (x,y) = Int64Swarmer.range_range r in
-                  lprintf "Current range %Ld [%d] (%Ld-%Ld)\n"
-                    position len
-                    x y 
-            );
-          
-          let old_downloaded = 
-            Int64Swarmer.downloaded file.file_swarmer in
-          List.iter Int64Swarmer.free_range c.client_ranges;      
-          Int64Swarmer.received file.file_swarmer
-            position s pos len;
-          List.iter Int64Swarmer.alloc_range c.client_ranges;
-          let new_downloaded = 
-            Int64Swarmer.downloaded file.file_swarmer in
-          
-          c.client_downloaded <- c.client_downloaded ++ (Int64.of_int len);
-          
-          if !verbose_msg_clients then 
-            (match c.client_ranges with
-                [] -> lprintf "EMPTY Ranges !!!\n"
-              | r :: _ -> 
-                  let (x,y) = Int64Swarmer.range_range r in
-                  lprintf "Received %Ld [%d] (%Ld-%Ld) -> %Ld\n"
-                    position len
-                    x y 
-                    (new_downloaded -- old_downloaded)
-            );
-          
-          
-          if new_downloaded <> old_downloaded then
-            add_file_downloaded file.file_file 
-              (new_downloaded -- old_downloaded);
-          begin
-            match c.client_ranges with
-              [] -> ()
-            | r :: tail ->
-                Int64Swarmer.free_range r;
-                c.client_ranges <- tail;
+        if file_state file = FileDownloading then begin
+            let position = offset ++ file.file_piece_size ** num in
+            
+            if !verbose_msg_clients then 
+              (match c.client_ranges with
+                  [] -> lprintf "EMPTY Ranges !!!\n"
+                | r :: _ -> 
+                    let (x,y) = Int64Swarmer.range_range r in
+                    lprintf "Current range %Ld [%d] (%Ld-%Ld)\n"
+                      position len
+                      x y 
+              );
+            
+            let old_downloaded = 
+              Int64Swarmer.downloaded file.file_swarmer in
+            List.iter Int64Swarmer.free_range c.client_ranges;      
+            Int64Swarmer.received file.file_swarmer
+              position s pos len;
+            List.iter Int64Swarmer.alloc_range c.client_ranges;
+            let new_downloaded = 
+              Int64Swarmer.downloaded file.file_swarmer in
+            
+            c.client_downloaded <- c.client_downloaded ++ (Int64.of_int len);
+            
+            if !verbose_msg_clients then 
+              (match c.client_ranges with
+                  [] -> lprintf "EMPTY Ranges !!!\n"
+                | r :: _ -> 
+                    let (x,y) = Int64Swarmer.range_range r in
+                    lprintf "Received %Ld [%d] (%Ld-%Ld) -> %Ld\n"
+                      position len
+                      x y 
+                      (new_downloaded -- old_downloaded)
+              );
+            
+            
+            if new_downloaded <> old_downloaded then
+              add_file_downloaded file.file_file 
+                (new_downloaded -- old_downloaded);
           end;
-          get_from_client sock c
+        begin
+          match c.client_ranges with
+            [] -> ()
+          | r :: tail ->
+              Int64Swarmer.free_range r;
+              c.client_ranges <- tail;
+        end;
+        get_from_client sock c
     
     | BitField p ->
         c.client_new_chunks <- [];
