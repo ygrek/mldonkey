@@ -49,7 +49,8 @@ let add_new_source new_score source_age addr =
     let finder =  { dummy_source with source_addr = addr } in
     let s = H.find sources finder in
     
-    incr stats_new_sources;
+      (* not a new source 
+   incr stats_new_sources;*)
     s
   
   with _ ->
@@ -213,7 +214,13 @@ let source_of_client c =
       raise Exit
   
   | Some s ->
-      
+      if s.source_age < (last_time () - 3 * 3600) then 
+	begin
+	  if !verbose_sources then
+	    lprintf "Too old source\n";
+	  incr stats_remove_too_old_sources;
+	  raise Exit;
+	end;  
       let ip, port = s.source_addr in
       if !verbose_sources then begin
           lprintf "Old source %s:%d score: %d" (Ip.to_string ip) port
@@ -268,8 +275,9 @@ let source_of_client c =
                 | File_new_source -> 'n'
               ); *)
               match r.request_result with
-                File_possible | File_not_found -> ()
+                File_possible -> ()
               | File_new_source | File_expected ->
+(*
                   let fifo = 
                     if c.client_score >= -10 then 
                       old_sources1_queue
@@ -296,6 +304,38 @@ let source_of_client c =
                         file.file_sources.(fifo) (last_time() , s);
                       s.source_in_queues <- file :: s.source_in_queues
                     end
+*)
+		  (*Same thing but with a different way + avoid raising exit*)
+                  (match 
+                    (if c.client_score >= -10 then 
+                       Some old_sources1_queue
+                     else 
+                     if c.client_score >= -20 then
+                      Some old_sources2_queue
+                    else
+                    if c.client_score >= -40 then
+                      Some old_sources3_queue                    
+		    else
+		      None
+		    ) 
+		    with 
+			Some q -> 
+			  if popular_file file then 
+			    begin
+			      incr stats_remove_bad_sources_of_popular_file;
+			      remove_file_location file c		
+			    end
+			  else
+			    if not (List.memq file s.source_in_queues) then begin
+			      Queue.put 
+				file.file_sources.(q) (last_time() , s);
+			      s.source_in_queues <- file :: s.source_in_queues
+			    end
+			      
+		      | None -> remove_file_location file c
+		  )
+	      | File_not_found -> 
+		  remove_file_location file c
               
               | File_found ->
                   if not (List.memq file s.source_in_queues) then begin
@@ -305,7 +345,10 @@ let source_of_client c =
                       s.source_in_queues <- file :: s.source_in_queues
                     end
                                   
-              | File_chunk when c.client_rank > !!good_client_rank ->
+              | File_chunk when (c.client_rank > !!good_client_rank) 
+		  || (c.client_rank = 0 ) ->
+		  (*No need to keep queue ranked = 0 cause we don't know when
+		  we will get a slot/queued *)
                   if not (List.memq file s.source_in_queues) then begin
                       Queue.put 
                         file.file_sources.(good_sources_queue)
@@ -385,7 +428,10 @@ let source_of_client c =
           s.source_files <- [];
           List.iter (fun r -> 
               remove_file_location r.request_file c) c.client_files;
-          c.client_files <- []
+	  c.client_source <- None;
+          c.client_files <- [];
+	  remove_client c
+
           
 let client_connected c =
   c.client_score <- 0;

@@ -72,7 +72,7 @@ DONKEY_DIR=donkey
 endif
 
 SRC_AUDIOGALAXY=src/networks/audio_galaxy
-SRC_DONKEY=src/networks/donkey
+SRC_DONKEY=src/networks/$(DONKEY_DIR)
 SRC_BITTORRENT=src/networks/bittorrent
 SRC_CYMES=src/networks/cymes
 SRC_OPENNAP=src/networks/opennap
@@ -283,8 +283,8 @@ DONKEY_SRCS= \
   $(SRC_DONKEY)/donkeyThieves.ml \
   $(SRC_DONKEY)/donkeyChunks.ml \
   $(SRC_DONKEY)/donkeyNeighbours.ml \
-  $(SRC_DONKEY)/donkeyOneFile.ml \
   $(SRC_DONKEY)/donkeyStats.ml \
+  $(SRC_DONKEY)/donkeyOneFile.ml \
   $(SRC_DONKEY)/donkeyClient.ml \
   $(SRC_DONKEY)/donkeyProtoOvernet.ml \
   \

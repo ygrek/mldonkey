@@ -179,8 +179,7 @@ let update_shared_info shared =
   
 let catch m f =
   try f () with e ->
-      lprintf "Exception %s for message %s" (Printexc2.to_string e) m;
-      lprint_newline () 
+      lprintf "Exception %s for message %s\n" (Printexc2.to_string e) m
 
 let send_event gui ev = 
   match ev with
@@ -350,7 +349,7 @@ send_update_old
 let console_messages = Fifo.create ()
         
 let gui_closed gui sock  msg =
-(*  lprintf "DISCONNECTED FROM GUI %s" msg; lprint_newline (); *)
+(*  lprintf "DISCONNECTED FROM GUI %s\n" msg; *)
   guis := List2.removeq gui !guis
 
 
@@ -417,7 +416,7 @@ let gui_initialize gui =
           if room_state room <> RoomClosed then begin
               addevent gui.gui_events.gui_rooms (room_num room) true;
               List.iter (fun user ->
-                  lprintf "room add user"; lprint_newline ();
+                  lprintf "room add user\n"; 
                   addevent gui.gui_events.gui_users (user_num user) true;
                   gui.gui_events.gui_new_events <-
                     (Room_add_user_event (room,user))
@@ -440,15 +439,15 @@ let gui_initialize gui =
       networks_iter_all (fun r ->
           List.iter (fun opfile ->
 (*
-lprintf "options for net %s" r.network_name; lprint_newline ();
+lprintf "options for net %s\n" r.network_name; 
 *)
               let prefix = r.network_prefix () in
               let args = simple_options prefix opfile in
 (*
-lprintf "Sending for %s" prefix; lprint_newline ();
+lprintf "Sending for %s\n" prefix; 
  *)
               gui_send gui (P.Options_info args)
-(*                            lprintf "sent for %s" prefix; lprint_newline (); *)
+(*                            lprintf "sent for %s\n" prefix; *)
           )
           r.network_config_file 
       );
@@ -493,7 +492,7 @@ let gui_reader (gui: gui_record) t _ =
     match t with    
     
     | GuiProtocol version ->
-        let version = min GuiEncoding.best_gui_version version in
+        let version = min GuiProto.best_gui_version version in
         gui.gui_proto_to_gui_version <- Array.create 
           (to_gui_last_opcode + 1) version;
         gui.gui_proto_from_gui_version <- Array.create 
@@ -505,7 +504,7 @@ let gui_reader (gui: gui_record) t _ =
         List.iter (fun (ext, bool) ->
             if ext = P.gui_extension_poll then
               (            
-                lprintf "Extension POLL %s" (string_of_bool bool); lprint_newline ();
+                lprintf "Extension POLL %s\n" (string_of_bool bool); 
                 gui.gui_poll <- bool
               )
         ) list
@@ -516,7 +515,7 @@ let gui_reader (gui: gui_record) t _ =
             Some sock when not (valid_password user pass) ->
               gui_send gui BadPassword;                  
               set_lifetime sock 5.;
-              lprintf "BAD PASSWORD"; lprint_newline ();
+              lprintf "BAD PASSWORD\n"; 
               TcpBufferedSocket.close sock (Closed_for_error "Bad Password")
           
           | _ ->
@@ -533,6 +532,12 @@ let gui_reader (gui: gui_record) t _ =
             if not gui.gui_initialized then 
               gui_initialize gui;
           in
+          begin
+            match gui.gui_sock with
+              None -> ()
+            | Some sock ->
+                TcpBufferedSocket.set_lifetime sock 3600.;
+          end;
           match t with
           | P.Command cmd ->
               let o = gui.gui_conn in
@@ -724,7 +729,7 @@ search.op_search_end_reply_handlers;
           
           | P.GetClient_files num ->        
               let c = client_find num in
-(*        lprintf "GetClient_files %d" num; lprint_newline (); *)
+(*        lprintf "GetClient_files %d\n" num;  *)
               List.iter (fun (dirname, r) ->
 (* delay sending to update *)
                   client_new_file c dirname r
@@ -1003,14 +1008,19 @@ let new_gui gui_send gui_auth sock  =
       };
       gui_send = gui_send;
     } in
-  gui_send gui (P.CoreProtocol GuiEncoding.best_gui_version);
+  gui_send gui (
+    P.CoreProtocol 
+      (
+      GuiProto.best_gui_version,
+      GuiProto.to_gui_last_opcode,
+      GuiProto.from_gui_last_opcode));
   gui
   
 let gui_handler t event = 
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
       let from_ip = Ip.of_inet_addr from_ip in
-      lprintf "CONNECTION FROM GUI"; lprint_newline ();
+      lprintf "CONNECTION FROM GUI\n"; 
       if Ip.matches from_ip !!allowed_ips then 
         
         let module P = GuiProto in
@@ -1020,25 +1030,28 @@ let gui_handler t event =
             s in
         
         let gui = new_gui binary_gui_send 
-          false (Some sock) in
+            false (Some sock) in
         gui.gui_result_handler <- binary_result_handler gui;
         TcpBufferedSocket.set_max_output_buffer sock !!interface_buffer;
+        TcpBufferedSocket.set_lifetime sock 30.;
         TcpBufferedSocket.set_reader sock (GuiDecoding.gui_cut_messages
             (fun opcode s ->
-              let m = GuiDecoding.from_gui gui.gui_proto_from_gui_version opcode s in
-              gui_reader gui m sock;
-              ));
+              try
+                let m = GuiDecoding.from_gui gui.gui_proto_from_gui_version 
+                  opcode s in
+                gui_reader gui m sock;
+              with GuiDecoding.FromGuiMessageNotImplemented -> ()
+          ));
         TcpBufferedSocket.set_closer sock (gui_closed gui);
         TcpBufferedSocket.set_handler sock TcpBufferedSocket.BUFFER_OVERFLOW
           (fun _ -> 
-            lprintf "BUFFER OVERFLOW"; lprint_newline ();
+            lprintf "BUFFER OVERFLOW\n"; 
             close sock Closed_for_overflow);
         (* sort GUIs in increasing order of their num *)
         
       else begin
-          lprintf "Connection from that IP %s not allowed"
+          lprintf "Connection from that IP %s not allowed\n"
             (Ip.to_string from_ip);
-          lprint_newline ();
           Unix.close s
         end
   | _ -> ()
@@ -1047,7 +1060,7 @@ let gift_handler t event =
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
       let from_ip = Ip.of_inet_addr from_ip in
-      lprintf "CONNECTION FROM GUI"; lprint_newline ();
+      lprintf "CONNECTION FROM GUI\n"; 
       if Ip.matches from_ip !!allowed_ips then 
         
         let module P = GuiProto in
@@ -1070,14 +1083,13 @@ let gift_handler t event =
         TcpBufferedSocket.set_closer sock (gui_closed gui);
         TcpBufferedSocket.set_handler sock TcpBufferedSocket.BUFFER_OVERFLOW
           (fun _ -> 
-            lprintf "BUFFER OVERFLOW"; lprint_newline ();
+            lprintf "BUFFER OVERFLOW\n"; 
             close sock Closed_for_overflow);
         (* sort GUIs in increasing order of their num *)
         
       else begin
-          lprintf "Connection from that IP %s not allowed"
+          lprintf "Connection from that IP %s not allowed\n"
             (Ip.to_string from_ip);
-          lprint_newline ();
           Unix.close s
         end
   | _ -> ()
@@ -1118,8 +1130,7 @@ let rec update_events list =
                       let user = user_find user_num  in
                       update_user_info user
                     with _ ->
-                        lprintf "USER NOT FOUND FOR MESSAGE"; 
-                        lprint_newline ();
+                        lprintf "USER NOT FOUND FOR MESSAGE\n"
               end;
               add_gui_event event
               
@@ -1270,7 +1281,7 @@ let _ =
                 None -> ()
               | Some gui ->
                   if !gui_reconnected then begin
-                      lprintf "close gui ..."; lprint_newline ();
+                      lprintf "close gui ...\n"; 
                       local_gui := None;
                       gui_closed gui () "local"
                     end else
@@ -1281,12 +1292,12 @@ let _ =
                         done
                       with Fifo.Empty -> ()
                       | e ->
-                          lprintf "Exception %s in handle gui message"
+                          lprintf "Exception %s in handle gui message\n"
                             (Printexc2.to_string e); 
-                          lprint_newline ();)
+                          )
             end;
             if !gui_reconnected then begin
-                lprintf "gui_reconnected !"; lprint_newline ();
+                lprintf "gui_reconnected !\n"; 
                 gui_reconnected := false;
                 let gui = new_gui binary_gui_send false None in
                 gui.gui_result_handler <- binary_result_handler gui;

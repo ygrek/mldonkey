@@ -101,9 +101,9 @@ let value_reader gui t =
     
     match t with
     
-    | CoreProtocol v -> 
+    | CoreProtocol (v,_,_) -> 
         
-        let version = min v GuiEncoding.best_gui_version in
+        let version = min v GuiProto.best_gui_version in
         for i = 0 to to_gui_last_opcode do
           Gui_com.to_gui_protocol_used.(i) <- version;
         done;

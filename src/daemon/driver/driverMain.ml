@@ -398,8 +398,9 @@ let _ =
       );  
   networks_iter (fun r -> 
     network_enable r;
-    (* are there drawbacks to start recover_temp unconditionally here ? *)
-    network_recover_temp r;
+(* are there drawbacks to start recover_temp unconditionally here ? *)
+      if !!recover_temp_on_startup then
+        network_recover_temp r;
   );
   CommonOptions.start_running_plugins := true;
   CommonInteractive.force_download_quotas ();

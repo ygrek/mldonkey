@@ -223,7 +223,7 @@ let disconnect_client c reason =
 		we must unregister him to update the swarmer
 		(Useful for availability)
 	      *)
-                  Int64Swarmer.disconnect_uploader up
+                  Int64Swarmer.unregister_uploader up
 (*	      c.client_registered_bitfield <- false;
           for i = 0 to String.length c.client_bitmap - 1 do
             c.client_bitmap.[0] <- '0';
@@ -580,8 +580,7 @@ of the subpiece in the piece(!), r is a (CommonSwarmer) range *)
                 end;
               try
 (*Given a block find a range inside*)
-                let r = Int64Swarmer.find_range up in
-                let x,y = Int64Swarmer.range_range r in
+                let (x,y,r) = Int64Swarmer.find_range up in
                 c.client_ranges <- c.client_ranges @ [x,y, r];
 (*                Int64Swarmer.alloc_range r; *)
                 let num, b_begin, b_end = Int64Swarmer.block_block b in
@@ -686,7 +685,8 @@ and client_to_client c sock msg =
               Int64Swarmer.downloaded swarmer in
 
 (*Update rate and ammount of data received from client*)
-            c.client_downloaded <- c.client_downloaded ++ (Int64.of_int len);
+            c.client_downloaded <- c.client_downloaded ++ 
+               (new_downloaded -- old_downloaded);
             Rate.update c.client_downloaded_rate  (float_of_int len);
             
             if !verbose_msg_clients then 
@@ -739,6 +739,7 @@ and client_to_client c sock msg =
           for j = 0 to 7 do
             if (int_of_char p.[i]) land bits.(j) <> 0 then
               begin
+		c.client_new_chunks <- i*8+j :: c.client_new_chunks;
                 bitmap.[i*8+j] <- '1';
               end
             else 
@@ -749,6 +750,7 @@ and client_to_client c sock msg =
 (*Update availability for GUI*)
         CommonEvent.add_event (File_update_availability
             (as_file file, as_client c,  String.copy bitmap));
+        update_client_bitmap c;
         
         let swarmer = match c.client_file.file_swarmer with
             None -> assert false
@@ -781,7 +783,21 @@ and client_to_client c sock msg =
         done*)
     
     | Have n ->
-        begin
+	(*A client can send a Have without sending a Bitfield*)
+        let swarmer = match c.client_file.file_swarmer with
+            None -> assert false
+          | Some swarmer -> swarmer in
+	let n = Int64.to_int n in
+	let verified = Int64Swarmer.verified_bitmap swarmer in
+          if verified.[n] < '2' then begin
+            c.client_interesting <- true;
+            send_interested c;  
+            c.client_new_chunks <- n :: c.client_new_chunks;
+            update_client_bitmap c;
+	  end;
+	    
+
+(*        begin
           match c.client_bitmap, c.client_uploader with
             Some bitmap, Some up ->
               let swarmer = Int64Swarmer.uploader_swarmer up in
@@ -801,9 +817,11 @@ and client_to_client c sock msg =
                   done*)
                       end
                   end
-          | _ -> assert false
+          | None, Some _ -> lprintf "no bitmap but client_uploader\n";
+	  | Some _ , None ->lprintf "bitmap but no client_uploader\n";
+	  | None, None -> lprintf "no bitmap no client_uploader\n";
         end
-        
+*)      
     | Interested ->
         c.client_interested <- true;
         

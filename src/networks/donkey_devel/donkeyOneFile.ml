@@ -18,7 +18,7 @@
 *)
 
 open CommonInteractive
-open Int32ops
+open Int64ops
 open Printf2
 open Md4
 open CommonSearch
@@ -42,9 +42,6 @@ open DonkeyGlobals
 open DonkeyChunks
 open DonkeyReliability
 
-  (*
-  (*
-  
 let new_block file i =
 
   let begin_pos = chunk_pos i in
@@ -103,7 +100,6 @@ let client_file c =
     [] -> failwith "No file for this client"
   | (file, _) :: _ -> file
 
-        *)
 
 let clean_client_zones c =
   match c.client_block with None -> ()
@@ -115,6 +111,7 @@ let clean_client_zones c =
           z.zone_nclients <- z.zone_nclients - 1) c.client_zones;
       sort_zones b;
       c.client_zones <- []
+
 
 let query_zones c b =
   let file = client_file c in
@@ -541,7 +538,8 @@ and start_download c =
               direct_client_send c (
                 let module M = DonkeyProtoClient in
                 let module Q = M.JoinQueue in
-                M.JoinQueueReq Q.t);
+                M.JoinQueueReq Q.t (*file.file_md4 *)
+);
               c.client_slot <- SlotAsked;
 
               restart_download c
@@ -1179,4 +1177,3 @@ let search_found filter search md4 tags =
         ()
       with _ ->  (* the file was probably filtered *)
           ()
-*)

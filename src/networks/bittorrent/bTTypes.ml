@@ -78,7 +78,7 @@ and file = {
     file_id : Sha1.t;
     file_name : string;
     mutable file_swarmer : Int64Swarmer.t option;
-    mutable file_clients : (Sha1.t, client) Hashtbl.t ;
+    mutable file_clients : ((Ip.t*int), client) Hashtbl.t ;
     mutable file_clients_num : int ;
     mutable file_chunks : Sha1.t array; 
     mutable file_tracker_connected : bool;

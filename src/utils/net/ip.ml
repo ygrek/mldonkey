@@ -21,6 +21,8 @@ open Printf2
 type t =  int * int * int * int
 
 external of_string : string -> t  = "ml_ints_of_string"
+
+let allow_local_network = ref false
   
 let of_inet_addr t = 
   of_string (Unix.string_of_inet_addr t)
@@ -80,7 +82,9 @@ let resolve_one t =
 
 let valid (j,_,_,i) = i != 0 && j != 0 && i != 255 && j < 224
   
-let reachable ip = match ip with
+let reachable ip = 
+  !allow_local_network ||
+  match ip with
     192, 168,_,_ -> false
   | 10, _, _, _ | 127, _,_,_ -> false
   | 172, v, _, _ when v > 15 && v < 32 -> false

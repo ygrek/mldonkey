@@ -20,6 +20,12 @@
 open Int64ops
 open Printf2
 open Md4
+open Options
+  
+open BasicSocket
+open TcpBufferedSocket
+
+open GuiTypes
 
 open CommonShared
 open CommonServer
@@ -28,17 +34,15 @@ open CommonClient
 open CommonUser
 open CommonInteractive
 open CommonNetwork
-open GuiTypes
+open CommonSwarming  
 open CommonTypes
 open CommonComplexOptions
 open CommonFile
+  
 open DonkeySearch
-open Options
 open DonkeyMftp
 open DonkeyProtoCom
 open DonkeyServers
-open BasicSocket
-open TcpBufferedSocket
 open DonkeyOneFile
 open DonkeyFiles
 open DonkeyComplexOptions
@@ -102,6 +106,8 @@ let load_server_met filename =
 let already_done = Failure "File already downloaded (use 'force_download' if necessary)"
       
 let really_query_download filenames size md4 location old_file absents =
+  
+  lprintf "really_query_download..................... \n";
   begin
     try
       let file = Hashtbl.find files_by_md4 md4 in
@@ -139,8 +145,11 @@ let really_query_download filenames size md4 location old_file absents =
     match absents with
       None -> ()
     | Some absents -> 
-        let absents = Sort.list (fun (p1,_) (p2,_) -> p1 <= p2) absents in
-        file.file_absent_chunks <- absents;
+        match file.file_swarmer with
+          None -> assert false
+        | Some swarmer ->
+            let absents = Sort.list (fun (p1,_) (p2,_) -> p1 <= p2) absents in
+            Int64Swarmer.set_absent swarmer absents
   end;
   
   let other_names = DonkeyIndexer.find_names md4 in
@@ -152,11 +161,10 @@ let really_query_download filenames size md4 location old_file absents =
   update_best_name file;
 
   DonkeyOvernet.recover_file file;
-  DonkeyNeighbours.new_download file;
   
   current_files := file :: !current_files;
 (*  !file_change_hook file; *)
-  set_file_size file (file_size file);
+(*  set_file_size file (file_size file); *)
   List.iter (fun s ->
       do_if_connected s.server_sock (fun sock ->
           query_location file sock)
@@ -203,7 +211,7 @@ let really_query_download filenames size md4 location old_file absents =
 with _ -> ()
 *)
   );
-  as_file file.file_file
+  as_file file
         
 let query_download filenames size md4 location old_file absents force =
   if not force then
@@ -341,7 +349,7 @@ else *)
 let print_file buf file =
   Printf.bprintf buf "[%-5d] %s %10Ld %32s %s" 
     (file_num file)
-    (file_best_name file)
+  (file_best_name file)
   (file_size file)
   (Md4.to_string file.file_md4)
   (if file_state file = FileDownloaded then
@@ -354,7 +362,7 @@ let print_file buf file =
       Known_location (ip, port) ->
         Printf.bprintf  buf "[%-5d] %12s %-5d    %s\n"
           (client_num c)
-          (Ip.to_string ip)
+        (Ip.to_string ip)
         port
           (match c.client_sock with
             NoConnection  -> 
@@ -365,7 +373,7 @@ let print_file buf file =
     | _ ->
         Printf.bprintf  buf "[%-5d] %12s            %s\n"
           (client_num c)
-          "Indirect"
+        "Indirect"
           (match c.client_sock with
             NoConnection -> string_of_date (connection_last_conn
                   c.client_connection_control)
@@ -373,22 +381,24 @@ let print_file buf file =
           | Connection _ -> "Connected")
   in
 
-  (* Intmap.iter f file.file_sources; *)
-  Printf.bprintf buf "\nChunks: \n";
-  Array.iteri (fun i c ->
-      Buffer.add_char buf (
-        match c with
-          PresentVerified -> 'V'
-        | PresentTemp -> 'p'
-        | AbsentVerified -> '_'
-        | AbsentTemp -> '.'
-        | PartialTemp _ -> '?'
-        | PartialVerified _ -> '!'
-      )
-  ) file.file_chunks
-
+(* Intmap.iter f file.file_sources; *)
+  match file.file_swarmer with
+    None -> ()
+  | Some swarmer ->
+      let bitmap = Int64Swarmer.verified_bitmap swarmer in
+      Printf.bprintf buf "\nChunks: %s\n" bitmap      
+  
 let recover_md4s md4 =
   let file = find_file md4 in  
+  match file.file_swarmer with
+    None -> ()
+  | Some swarmer ->
+      if !!max_recover_gap > zero then
+        Int64Swarmer.set_present swarmer 
+          (recover_bytes (as_file file));
+      Int64Swarmer.verify_all_blocks swarmer false
+  
+  (*
   if file.file_chunks <> [||] then
     for i = 0 to file.file_nchunks - 1 do
       file.file_chunks.(i) <- (match file.file_chunks.(i) with
@@ -397,7 +407,7 @@ let recover_md4s md4 =
         | PartialVerified x -> PartialTemp x
         | x -> x)
     done
-    
+*)    
 
     
 let parse_donkey_url url =
@@ -608,7 +618,7 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+renameTextOut+'\\\"';
 				\\<input style=\\\"font: 8pt sans-serif\\\" name=\\\"newName\\\" type=text size=50 value=\\\"%s\\\"\\>\\</input\\>\\</td\\>\\</form\\>
                 \\<td class=\\\"sr \\\"\\>%s\\</td\\> 
                 \\<td class=\\\"sr \\\"\\>\\<A HREF=\\\"%s\\\"\\>%s\\</A\\>\\</td\\>\\</tr\\>"
-                    !tr fnum fnum fnum (file_best_name file) "Downloading" (file_comment (as_file file.file_file)) filename  
+                    !tr fnum fnum fnum (file_best_name file) "Downloading" (file_comment (as_file file)) filename  
                 else
                   Printf.bprintf buf "%s is %s %s\n" filename
                     (file_best_name file)
@@ -784,7 +794,9 @@ let _ =
       try
         let v = 
           {
-            P.file_comment = file_comment (as_file file.file_file);
+            P.file_fields = Fields_file_info.all;
+            
+            P.file_comment = file_comment (as_file file);
             P.file_name = file_best_name file;
             P.file_num = (file_num file);
             P.file_network = network.network_num;
@@ -797,27 +809,14 @@ let _ =
             P.file_state = file_state file;
             P.file_sources = None;
             P.file_download_rate = file_download_rate file.file_file;
-            P.file_chunks = (
-              let nchunks = file.file_nchunks in
-              let s = String.make file.file_nchunks '0' in
-              if file.file_chunks <> [||] then begin
-                  for i = 0 to nchunks - 1 do
-                    match file.file_chunks.(i) with
-                      PresentTemp | PresentVerified -> s.[i] <- '2'
-                    | PartialTemp _ | PartialVerified _ -> s.[i] <- '1'
-                    | _ -> ()
-                  done;
-                end;
-              s
-            
-            );          
+            P.file_chunks = (match file.file_swarmer with
+                None -> "" | Some swarmer ->
+                  Int64Swarmer.verified_bitmap swarmer);
             P.file_priority = file_priority  file;
-            P.file_availability = [network.network_num, String2.init file.file_nchunks (fun i ->
-
-(* Could file.file_available_chunks.(i) be under 0 ? *)
-                let n = maxi 0 (mini file.file_available_chunks.(i) 127) in
-                char_of_int n 
-            )];
+            P.file_availability =  
+            [network.network_num,(match file.file_swarmer with
+                  None -> "" | Some swarmer ->
+                    Int64Swarmer.availability swarmer)];
             P.file_format = file.file_format;
             P.file_chunks_age = file.file_chunks_age;
             P.file_age = file_age file;
@@ -950,7 +949,7 @@ let _ =
 let _ =
   file_ops.op_file_save_as <- (fun file name ->
       file.file_filenames <- [name, noips()];
-      set_file_best_name (as_file file.file_file) name
+      set_file_best_name (as_file file) name
   );
   file_ops.op_file_set_format <- (fun file format ->
       file.file_format <- format);
@@ -962,7 +961,7 @@ let _ =
   file_ops.op_file_sources <- (fun file ->
       let list = ref [] in
       Intmap.iter (fun _ c -> 
-          list := (as_client c.client_client) :: !list) file.file_locations;
+          list := (as_client c) :: !list) file.file_locations;
       !list
   );
   file_ops.op_file_print_sources_html <- (fun file buf ->
@@ -998,6 +997,7 @@ let _ =
       force_check_server_connections true);
 
   network.op_network_recover_temp <- (fun _ ->
+      lprintf "op_network_recover_temp ++++++++++++++++++++++++++\n";
       let files = Unix2.list_directory !!temp_directory in
       List.iter (fun filename ->
 	if String.length filename = 32 then
@@ -1092,19 +1092,19 @@ lprint_newline ();
       
       begin
         try 
-          let i = (client_info (as_client c.client_client)) in
+          let i = (client_info (as_client c)) in
           
           Printf.bprintf buf "\\<td title=\\\"Add as Friend\\\" class=\\\"srb ar\\\"
 		onClick=\\\"parent.fstatus.location.href='submit?q=friend_add+%d'\\\"\\>%d\\</TD\\>"
             (client_num c) (client_num c);
           
           html_mods_td buf ([
-            ("", "sr", (match c.client_block with 
+            ("", "sr", (match c.client_download with 
                   None -> Printf.sprintf "" 
-                | Some b -> Printf.sprintf "%s" ( 
+                | Some _ -> Printf.sprintf "%s" ( 
                       let qfiles = c.client_file_queue in
-                      let (qfile, qchunks) =  List.hd qfiles in
-                      if (qfile = (as_file_impl file).impl_file_val) then
+                      let (qfile, qchunks,_) =  List.hd qfiles in
+                      if (qfile == (as_file_impl file).impl_file_val) then
                         "A" else "";)) );
             ((string_of_connection_state (client_state c)), "sr", 
               (short_string_of_connection_state (client_state c)) );
@@ -1133,7 +1133,7 @@ lprint_newline ();
             ("", "sr ar br", (let next = (connection_next_try c.client_connection_control) in
                 string_of_int ((next - (last_time ())) / 60)
               ));
-            ("", "sr ar", (if client_has_a_slot (as_client c.client_client) then "T" else "F"));
+            ("", "sr ar", (if client_has_a_slot (as_client c) then "T" else "F"));
             ("", "sr ar br", (if c.client_banned then "T" else "F"));
             ("", "sr ar", Printf.sprintf "%d" c.client_requests_sent);
             ("", "sr ar", Printf.sprintf "%d" c.client_requests_received);
@@ -1145,7 +1145,7 @@ lprint_newline ();
           ( let qfiles = c.client_file_queue in
             if qfiles <> [] then begin
                 try
-                  let _, (qchunks) = List.find (fun (qfile, _) ->
+                  let _, qchunks,_ = List.find (fun (qfile, _,_) ->
                         qfile = (as_file_impl file).impl_file_val) qfiles in
                   let tc = ref 0 in
                   Printf.bprintf buf "%s\\</td\\>\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>" 
@@ -1169,13 +1169,13 @@ lprint_newline ();
       
       try
         
-        (match c.client_block with
+        (match c.client_download with
             None -> ()
-          | Some b ->  ( 
+          | Some _ ->  ( 
                 let qfiles = c.client_file_queue in
-                let (qfile, qchunks) =  List.hd qfiles in
+                let (qfile, qchunks,_) =  List.hd qfiles in
                 if (qfile = (as_file_impl file).impl_file_val) then begin
-                    client_print (as_client c.client_client) o;
+                    client_print (as_client c) o;
                     Printf.bprintf buf "\n%14sDown  : %-10s                  Uploaded: %-10s  Ratio: %s%1.1f (%s)\n" ""
                     (Int64.to_string c.client_downloaded) 
                     (Int64.to_string c.client_uploaded)
@@ -1197,13 +1197,13 @@ lprint_newline ();
       let info = file_info file in
       let buf = o.conn_buf in
       try
-        (match c.client_block with
+        (match c.client_download with
             None -> false 
-          | Some b ->  ( 
+          | Some _ ->  ( 
                 let qfiles = c.client_file_queue in
-                let (qfile, qchunks) =  List.hd qfiles in
+                let (qfile, qchunks,_) =  List.hd qfiles in
                 if (qfile = (as_file_impl file).impl_file_val) then begin
-                    let i = (client_info (as_client c.client_client)) in
+                    let i = (client_info (as_client c)) in
                     
                     Printf.bprintf buf " \\<tr onMouseOver=\\\"mOvr(this);\\\" onMouseOut=\\\"mOut(this);\\\" 
 			class=\\\"%s\\\"\\> \\<td title=\\\"Add as friend\\\" class=\\\"srb ar\\\"

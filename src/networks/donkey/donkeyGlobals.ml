@@ -17,6 +17,9 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Int64ops
+open CommonSwarming
+
 open CommonInteractive
 open TcpBufferedSocket
 open Queues
@@ -31,7 +34,6 @@ open Options
 open CommonTypes
 open DonkeyTypes
 open BasicSocket
-open Ip_set
 open CommonOptions
 open DonkeyOptions
 open CommonOptions
@@ -96,15 +98,20 @@ let client_must_update c =
 let server_must_update s =
   server_must_update (as_server s.server_server)
 
-    
+let as_client c = as_client c.client_client
+let as_file file = as_file file.file_file    
 let file_priority file = file.file_file.impl_file_priority
 let file_size file = file.file_file.impl_file_size
-let file_downloaded file = file_downloaded (as_file file.file_file)
+let file_downloaded file = file_downloaded (as_file file)
 let file_age file = file.file_file.impl_file_age
 let file_fd file = file.file_file.impl_file_fd
-let file_disk_name file = file_disk_name (as_file file.file_file)
-let file_best_name file = file_best_name (as_file file.file_file)
-let set_file_disk_name file = set_file_disk_name (as_file file.file_file)
+let file_disk_name file = file_disk_name (as_file file)
+let file_best_name file = file_best_name (as_file file)
+let set_file_disk_name file = set_file_disk_name (as_file file)
+  
+let client_num c = client_num (as_client c)  
+let file_num c = file_num (as_file c)  
+let server_num c = server_num (as_server c.server_server)  
 
         
 (*************************************************************
@@ -245,23 +252,27 @@ let update_best_name file =
   
   if file_best_name file = md4_name then
     try
-(*      lprintf "BEST NAME IS MD4 !!!"; lprint_newline (); *)
+(*      lprintf "BEST NAME IS MD4 !!!\n";  *)
       let rec good_name file list =
         match list with
           [] -> raise Not_found;
         | (t,_) :: q -> if t <> md4_name then
               (String2.replace t '/' "::") else good_name file q in
       
-      set_file_best_name (as_file file.file_file) 
+      set_file_best_name (as_file file) 
       (good_name file file.file_filenames);
      
 (*      lprintf "BEST NAME now IS %s" (file_best_name file); *)
     with Not_found -> ()
-  
+
+let new_shared_files = ref [] 
+        
 let new_file file_state file_name md4 file_size writable =
+  lprintf "NEW FILE TO DOWNLAOD ??????????? %s\n" file_name;
   try
     find_file md4 
   with _ ->
+      let file_exists = Unix32.file_exists file_name in
       
       let t = 
         if
@@ -284,30 +295,35 @@ let new_file file_state file_name md4 file_size writable =
               failwith "Zero length file ?"
         else file_size
       in
+
+      if file_size <> zero then
+        Unix32.ftruncate64 t file_size;
+      
       let nchunks = Int64.to_int (Int64.div 
-          (Int64.sub file_size Int64.one) block_size) + 1 in
-      let file_exists = Unix32.file_exists file_name in
+            (Int64.sub file_size Int64.one) block_size) + 1 in
       let md4s = if file_size <= block_size then
-            [md4] 
-          else [] in
+          [md4] 
+        else [] in
       let rec file = {
           file_file = file_impl;
           file_shared = None;
           file_exists = file_exists;
           file_md4 = md4;
+          file_swarmer = None;
           file_nchunks = nchunks;
-          file_chunks = [||];
-          file_chunks_order = [||];
+
+(*          file_chunks = [||]; *)
+(*          file_chunks_order = [||]; *)
           file_chunks_age = [||];
 (*          file_all_chunks = String.make nchunks '0'; *)
-          file_absent_chunks =   [Int64.zero, file_size];
+(*          file_absent_chunks =   [Int64.zero, file_size]; *)
           file_filenames = [Filename.basename file_name, GuiTypes.noips() ];
           file_nsources = 0;
-          file_md4s = md4s;
-          file_available_chunks = Array.create nchunks 0;
+          file_md4s = Array.of_list md4s;
+(*          file_available_chunks = Array.create nchunks 0; *)
           file_format = FormatNotComputed 0;
           file_locations = Intmap.empty;
-          file_mtime = 0.0;
+(*          file_mtime = 0.0; *)
           file_initialized = false;
           
           file_clients = Fifo.create ();
@@ -332,6 +348,42 @@ let new_file file_state file_name md4 file_size writable =
           impl_file_last_seen = last_time () - 100 * 24 * 3600;
         }
       in
+      
+      (let swarmer = Int64Swarmer.create (as_file file) block_size zone_size
+        in
+        file.file_swarmer <- Some swarmer;
+        Int64Swarmer.set_writer swarmer (fun offset s pos len ->      
+(*
+      lprintf "DOWNLOADED: %d/%d/%d\n" pos len (String.length s);
+      AnyEndian.dump_sub s pos len;
+*)
+            
+            if !!CommonOptions.buffer_writes then 
+              Unix32.buffered_write_copy t offset s pos len
+            else
+              Unix32.write  t offset s pos len
+        );
+        Int64Swarmer.set_verifier swarmer (fun num begin_pos end_pos ->
+            if file.file_md4s = [||] then raise VerifierNotReady;
+            lprintf "Md4 to compute: %d %Ld-%Ld\n" num begin_pos end_pos;
+            Unix32.flush_fd (file_fd file);
+            let md4 = Md4.digest_subfile (file_fd file) 
+              begin_pos (end_pos -- begin_pos) in
+            let result = md4 = file.file_md4s.(num) in
+            lprintf "Md4 computed: %s against %s = %s\n"
+              (Md4.to_string md4) 
+            (Md4.to_string file.file_md4s.(num))
+            (if result then "VERIFIED" else "CORRUPTED");
+            if result then begin
+                let bitmap = Int64Swarmer.verified_bitmap swarmer in
+                try ignore (String.index bitmap '3')
+                with _ -> 
+                    new_shared_files := file :: !new_shared_files;
+                    file_must_update file;
+              end;
+            result)
+        );
+        
       update_best_name file;
       file_add file_impl file_state;
       Heap.set_tag file tag_file;
@@ -343,15 +395,16 @@ let change_hardname file file_name =
   let fd = file.file_file.impl_file_fd in
   Unix32.rename fd file_name
     *)
+  
+  (*
 
-let add_client_chunks file client_chunks =
   for i = 0 to file.file_nchunks - 1 do
     if client_chunks.(i) then 
       let new_n = file.file_available_chunks.(i) + 1 in
       if new_n  < 11 then  file_must_update file;
       file.file_available_chunks.(i) <- new_n;
   done
-      
+
 let remove_client_chunks file client_chunks = 
   for i = 0 to file.file_nchunks - 1 do
     if client_chunks.(i) then
@@ -360,19 +413,20 @@ let remove_client_chunks file client_chunks =
       file.file_available_chunks.(i) <- new_n;
       client_chunks.(i) <- false  
   done
-  
+    *)
+
 let is_black_address ip port =
   !!black_list && (
 (* lprintf "is black ="; *)
     not (ip_reachable ip) || (Ip.matches ip !!server_black_list) ||
     (List.mem port !!port_black_list) ||
-    (match match_ip !Ip_set.bl ip with
-	 None -> false
-       | Some br ->
-	   if !verbose_connect then
-	     lprintf "%s:%d blocked: %s\n" (Ip.to_string ip) port br.blocking_description;
-	   true))
-      
+    (match Ip_set.match_ip !Ip_set.bl ip with
+        None -> false
+      | Some br ->
+          if !verbose_connect then
+            lprintf "%s:%d blocked: %s\n" (Ip.to_string ip) port br.Ip_set.blocking_description;
+          true))
+  
 let new_server ip port score = 
   let key = (ip, port) in
   try
@@ -448,16 +502,17 @@ let dummy_client =
       client_ip = Ip.null;
       client_md4 = Md4.null;
       client_last_filereqs = 0;
-      client_chunks = [||];
-      client_block = None;
-      client_zones = [];
+(*      client_chunks = [||]; *)
+      client_download = None;
+(*      client_block = None; *)
+(*      client_zones = []; *)
       client_connection_control =  new_connection_control_recent_ok ( ());
       client_file_queue = [];
       client_tags = [];
       client_name = "";
       client_all_files = None;
       client_next_view_files = last_time () - 1;
-      client_all_chunks = "";
+(*      client_all_chunks = ""; *)
       client_rating = 0;
       client_brand = Brand_unknown;
       client_mod_brand = Brand_mod_unknown;
@@ -508,14 +563,15 @@ let create_client key num =
       client_ip = Ip.null;
       client_md4 = Md4.null;
       client_last_filereqs = 0;
-      client_chunks = [||];
-      client_block = None;
-      client_zones = [];
+(*      client_chunks = [||]; *)
+      client_download = None;
+(*      client_block = None; *)
+(*      client_zones = []; *)
       client_file_queue = [];
       client_tags = [];
       client_name = "";
       client_all_files = None;
-      client_all_chunks = "";
+(*      client_all_chunks = ""; *)
       client_rating = 0;
       client_brand = Brand_unknown;
       client_mod_brand = Brand_mod_unknown;
@@ -567,13 +623,13 @@ let find_client_by_key key =
   H.find clients_by_kind { dummy_client with client_kind = key }
   
 let client_type c =
-  client_type (as_client c.client_client)
+  client_type (as_client c)
 
 let set_client_type c t=
-  set_client_type (as_client c.client_client) t
+  set_client_type (as_client c) t
 
 let friend_add c =
-  friend_add (as_client c.client_client)
+  friend_add (as_client c)
       
 let set_client_name c name md4 =
   if name <> c.client_name || c.client_md4 <> md4 then begin
@@ -645,7 +701,7 @@ let local_mem_stats buf =
           with _ -> incr dead_clients;
 end;
 *)
-      let num = client_num (as_client c.client_client) in
+      let num = client_num c in
       incr client_counter;
       match c.client_sock with
         NoConnection -> begin
@@ -698,20 +754,15 @@ end;
   Printf.bprintf buf "   Disconnected aliases: %d\n" !disconnected_alias;
   ()
   
-let client_num c = client_num (as_client c.client_client)  
-let file_num c = file_num (as_file c.file_file)  
-let server_num c = server_num (as_server c.server_server)  
-  
 let remove_client c =
-  client_remove (as_client c.client_client);
-  H.remove clients_by_kind c; 
+  client_remove (as_client c);
 (*  hashtbl_remove clients_by_kind c.client_kind c; *)
 (*  hashtbl_remove clients_by_name c.client_name c *)
   ()
 
 
 let friend_remove c = 
-  friend_remove  (as_client c.client_client)
+  friend_remove  (as_client c)
 
 let last_search = ref (Intmap.empty : int Intmap.t)
   
@@ -756,9 +807,7 @@ let string_of_file_state s =
   | FileAborted s -> Printf.sprintf "Aborted: %s" s
   | FileQueued -> "File Queued"
       
-
-(* First patch for removing MLDK by devein(?) *)
-let left_bytes = ""
+let left_bytes = "MLDK"
 
 let overnet_server_ip = ref Ip.null
 let overnet_server_port = ref 0
@@ -884,15 +933,14 @@ let index = DocIndexer.create ()
 let check_result r tags =
   if r.result_names = [] || r.result_size = Int64.zero then begin
       if !verbose then begin
-          lprintf "BAD RESULT:";
-          lprint_newline ();
+          lprintf "BAD RESULT:\n";
           List.iter (fun tag ->
               lprintf "[%s] = [%s]" tag.tag_name
                 (match tag.tag_value with
                   String s -> s
                 | Uint64 i | Fint64 i -> Int64.to_string i
                 | Addr _ -> "addr");
-              lprint_newline ();
+              lprintf "\n";
           ) tags;
         end;
       false
@@ -942,34 +990,31 @@ Define a function to be called when the "mem_stats" command
 let _ =
   Heap.add_memstat "DonkeyGlobals" (fun _ ->
 (* current_files *)
-      lprintf "Current files: %d" (List.length !current_files);
-      lprint_newline ();
+      lprintf "Current files: %d\n" (List.length !current_files);
 (* clients_by_name *)
 (*      let list = Hashtbl2.to_list clients_by_name in
-      lprintf "Clients_by_name: %d" (List.length list);
-      lprint_newline ();
+      lprintf "Clients_by_name: %d\n" (List.length list);
       List.iter (fun c ->
           lprintf "[%d %s]" (client_num c)
           (if Hashtbl.mem clients_by_kind c.client_kind then "K" else " ") ;
      ) list;
-      lprint_newline ();
+     lprintf "\n";
 *)
       
 (* clients_by_kind *)
       let list = H.to_list clients_by_kind in
-      lprintf "Clients_by_kind: %d" (List.length list);
-      lprint_newline ();
+      lprintf "Clients_by_kind: %d\n" (List.length list);
       List.iter (fun c ->
-          lprintf "[%d ok: %s tried: %s next: %s state: %d rating: %d]" (client_num c)
+          lprintf "[%d ok: %s tried: %s next: %s state: %d rating: %d]\n" 
+          (client_num c)
           (string_of_date (c.client_connection_control.control_last_ok))
           (string_of_date (c.client_connection_control.control_last_try))
           (string_of_date (connection_next_try c.client_connection_control))
           c.client_connection_control.control_state
           c.client_rating
           ;
-          lprint_newline ();
      ) list;
-      lprint_newline ();
+      lprintf "\n";
   );
       
   Heap.add_memstat "DonkeyGlobals" local_mem_stats
@@ -997,7 +1042,7 @@ let client_id c =
           
 let save_join_queue c =
   if c.client_file_queue <> [] then
-    let files = List.map (fun (file, chunks) ->
+    let files = List.map (fun (file, chunks, _) ->
           file, Array.copy chunks
       ) c.client_file_queue in
     begin

@@ -143,7 +143,8 @@ val remove_ip_packet : bandwidth_controler -> unit
 val get_rtimeout : t -> float * float
   
 val http_proxy : (string * int) option ref
-
+val copy_read_buffer : bool ref
+  
 type connection_manager
   
 val unlimited_connection_manager : connection_manager

@@ -17,10 +17,16 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open CommonInteractive
 open Int64ops
 open Printf2
 open Md4
+open Options
+  
+open BasicSocket
+open TcpBufferedSocket
+  
+open CommonSwarming
+open CommonInteractive
 open CommonSearch
 open CommonGlobals
 open CommonComplexOptions
@@ -28,20 +34,22 @@ open CommonFile
 open CommonClient
 open CommonComplexOptions
 open CommonTypes
-open Options
-open BasicSocket
-open TcpBufferedSocket
+open CommonOptions
+
 open DonkeyMftp
 open DonkeyImport
 open DonkeyProtoCom
 open DonkeyTypes
 open DonkeyOptions
-open CommonOptions
 open DonkeyComplexOptions
 open DonkeyGlobals
 open DonkeyChunks
 open DonkeyReliability
-
+open DonkeyStats
+  
+  (*
+  (*
+  
 let new_block file i =
 
   let begin_pos = chunk_pos i in
@@ -95,11 +103,7 @@ let rec create_zones file begin_pos end_pos list =
       zone_nclients = 0;
     } :: list )
 
-let client_file c =
-  match c.client_file_queue with
-    [] -> failwith "No file for this client"
-  | (file, _) :: _ -> file
-
+        *)
 
 let clean_client_zones c =
   match c.client_block with None -> ()
@@ -111,7 +115,6 @@ let clean_client_zones c =
           z.zone_nclients <- z.zone_nclients - 1) c.client_zones;
       sort_zones b;
       c.client_zones <- []
-
 
 let query_zones c b =
   let file = client_file c in
@@ -475,29 +478,31 @@ and check_file_block c file i max_clients force =
             end
       | _ -> ()
     end
-
+*)
+    
 (* Sort files in clients file queue in order of priority and percentage downloaded
    This way higher priority files will be asked/downloaded first if the client does have more
    than one file to offer.
    Only sort if client_block is not set.
    Once the block has been finished allow changing order.
- *)
-and sort_file_queue c =
-  match c.client_block with
+*)
+
+let sort_file_queue c =
+  match c.client_download with
     Some _ -> ()
   | None ->
       match c.client_file_queue with
         [] -> ()
-      | [ (file, _) ] ->
+      | [ (file, chunks, up) ] ->
           if !verbose_download || c.client_debug then begin
               lprintf "sort_file_queue: single file. client(%d): %s, file(%d): %s\n" (client_num c) c.client_name (file_num file) (file_best_name file);
             end
-      | (file, _) :: _ ->
+      | (file, chunks, up) :: _ ->
           let fn = file_num file in
           if !verbose_download || c.client_debug then begin
               lprintf "sort_file_queue: multiple files. client(%d): %s, file(%d): %s\n" (client_num c) c.client_name (file_num file) (file_best_name file);
             end;
-          c.client_file_queue <- List.stable_sort (fun (f1, _) (f2, _) ->
+          c.client_file_queue <- List.stable_sort (fun (f1, _, _) (f2, _, _) ->
               let v = file_priority f2 - file_priority f1 in
               if v <> 0 then v else
               let s1 = if (file_size f1) > Int64.zero then
@@ -510,20 +515,23 @@ and sort_file_queue c =
           ) c.client_file_queue;
           match c.client_file_queue with
             [] -> ()
-          | (file, (chunks)) :: _ ->
+          | (file, chunks, _) :: _ ->
               if (file_num file) <> fn then begin
                   if !verbose_download || c.client_debug then begin
                       lprintf "sort_file_queue: queue change. client(%d): %s, file(%d): %s\n" (client_num c) c.client_name (file_num file) (file_best_name file);
                     end;
-                  c.client_chunks <- chunks;
-                  c.client_all_chunks <- String.make file.file_nchunks '0';
-                  c.client_zones <- [];
+(*
+(*                  c.client_chunks <- chunks; *)
+(*                  c.client_all_chunks <- String.make file.file_nchunks '0'; *)
+(*                  c.client_zones <- []; *)
                   for i = 0 to file.file_nchunks - 1 do
                     if c.client_chunks.(i)  then
                       c.client_all_chunks.[i] <- '1';
-                  done;
+done;
+  *)
                 end
 
+(*
 and start_download c =
   if c.client_slot = SlotNotAsked then begin
       if !verbose_download then begin
@@ -538,7 +546,7 @@ and start_download c =
               direct_client_send c (
                 let module M = DonkeyProtoClient in
                 let module Q = M.JoinQueue in
-                M.JoinQueueReq file.file_md4);
+                M.JoinQueueReq Q.t);
               c.client_slot <- SlotAsked;
 
               restart_download c
@@ -1044,42 +1052,6 @@ let remove_file md4 =
       raise e
         *)
 
-let check_file_downloaded file =
-  if file.file_absent_chunks = [] then
-    try
-      Array.iteri (fun i b ->
-          match b with
-            PresentVerified -> ()
-          | PresentTemp ->
-              let b = verify_chunk file i in
-              file.file_chunks.(i) <- b;
-(*
-              file.file_all_chunks.[i] <- (
-                match b with
-                  PresentVerified -> '1'
-                | PresentTemp ->  '0'
-                | AbsentVerified ->
-                    lprintf "(CORRUPTION FOUND)\n";
-                    '0'
-                | _ ->
-                    lprintf "OTHER\n";
-                    '0'
-);
-  *)
-              raise Not_found
-          | _ -> raise Not_found
-      ) file.file_chunks;
-      current_files := List2.removeq file !current_files;
-      DonkeyShare.remember_shared_info file (file_disk_name file);
-      file_completed (as_file file.file_file);
-      (try
-          let format = CommonMultimedia.get_info
-              (file_disk_name file) in
-          file.file_format <- format
-        with _ -> ());
-
-    with _ -> ()
-
 (*
 This function is called periodically, to compute md4s of files being
 downloaded. If a file is completely present, it is only added to the
@@ -1120,14 +1092,6 @@ will allow to fasten the sharing of these chunks. *)
             ) !current_files;
     with _ -> ())
 
-let _ =
-  file_ops.op_file_to_option <- (fun file ->
-      if file.file_chunks <> [||] && file.file_initialized then begin
-          file.file_absent_chunks <- List.rev (find_absents file);
-          check_file_downloaded file;
-        end;
-      file_to_value file)
-
 let check_files_md4s () =
   try
     check_downloaded_files ();
@@ -1135,7 +1099,546 @@ let check_files_md4s () =
 
   with _ -> ()
 
+let _ =
+  file_ops.op_file_to_option <- (fun file ->
+      if file.file_chunks <> [||] && file.file_initialized then begin
+          file.file_absent_chunks <- List.rev (find_absents file);
+          check_file_downloaded file;
+        end;
+      file_to_value file)
+  
+let client_has_chunks c file chunks =
 
+  failwith "client_has_chunks not implemented"
+  
+  DonkeySourcesMisc.add_file_location file c;
+
+  if file.file_chunks_age = [||] then
+    file.file_chunks_age <- Array.create file.file_nchunks 0;
+  let change_last_seen = ref false in
+  let chunks_string = String.make file.file_nchunks '0' in
+  for i = 0 to file.file_nchunks - 1 do
+    if chunks.(i) then chunks_string.[i] <- '1';
+    match file.file_chunks.(i) with
+      PresentVerified | PresentTemp -> 
+        file.file_chunks_age.(i) <- last_time ()
+    | _ -> 
+        if chunks.(i) then begin
+            change_last_seen := true;
+            file.file_chunks_age.(i) <- last_time ();
+            DonkeySourcesMisc.set_request_result c file File_chunk;
+          end 
+  done;
+  
+  if !change_last_seen then begin
+      try
+        if !verbose_download then begin
+            lprintf "client_has_chunks: change_last_seen\n"; 
+          end;
+        
+        let last_seen =  Array2.min file.file_chunks_age in
+        if last_seen > file.file_file.impl_file_last_seen then
+          begin
+            file.file_file.impl_file_last_seen <- last_seen;
+            file_must_update_downloaded (as_file file.file_file);
+          
+          end;
+        
+        CommonEvent.add_event (File_update_availability
+            (as_file file.file_file, as_client c.client_client, chunks_string));
+        
+        (
+(*
+         try
+            
+            let (c1, c2) = List.assq file c.client_file_queue in
+            remove_client_chunks file c1;
+            add_client_chunks file chunks;
+
+            let len = Array.length c1 in
+            Array.blit chunks 0 c1 0 len;
+            Array.blit chunks 0 c2 0 len;
+
+with Not_found ->
+  *)
+          add_client_chunks file chunks;
+          if !verbose_download then begin
+              lprintf "client_file_queue: ADDING FILE TO QUEUE\n"; 
+            end;
+          c.client_file_queue <- c.client_file_queue @ [
+            file, chunks ]
+        );
+        start_download c
+      
+      with _ -> 
+          if !verbose_download then begin
+              lprintf "client_has_chunks: EXCEPTION\n"; 
+            end
+    end
+
+*)
+
+(** What to do when a file is finished
+  @param file the finished file
+*)         
+let download_finished file = 
+  if List.memq file !current_files then begin      
+      current_files := List2.removeq file !current_files;
+      DonkeyShare.remember_shared_info file (file_disk_name file);
+      file_completed (as_file file);
+(* TODO: disconnect from all sources *)
+      (try
+          let format = CommonMultimedia.get_info
+              (file_disk_name file) in
+          file.file_format <- format
+        with _ -> ());
+    end
+
+(** Check if a file is finished or not.
+  A file is finished if all blocks are verified.
+  @param file The file to check status
+*)
+let check_file_downloaded file = 
+  match file_state file with
+    FileCancelled | FileShared | FileDownloaded -> ()
+  | _ ->
+      match file.file_swarmer with
+        None -> ()
+      | Some swarmer ->
+          let bitmap = Int64Swarmer.verified_bitmap swarmer in
+          lprintf "Verified bitmap: [%s]\n" bitmap;
+          let rec iter i =
+            if i =  String.length bitmap then true
+            else
+            if bitmap.[i] = '3' then iter (i+1) else false
+          in
+          let verified = iter 0 in
+          if verified then begin
+              if (file_size file <> Int64Swarmer.downloaded swarmer)
+              then
+                lprintf "DonkeyOneFile: Downloaded size differs after complete verification\n";
+              download_finished file
+            end
+            
+let check_files_downloaded () =
+  List.iter check_file_downloaded !current_files
+          
+(* TODO: we should sort the downloads, probably before asking QueryFiles 
+  messages. *)
+
+let add_client_chunks c file client_chunks =
+  match file.file_swarmer with
+    None -> failwith "add_client_chunks: no swarmer"
+  | Some swarmer ->
+      let rec iter list =
+        match list with
+          (f, chunks, up) :: tail ->
+            if f != file then iter tail
+            else begin
+                Int64Swarmer.update_uploader up
+                (Int64Swarmer.AvailableBoolBitmap client_chunks);
+                Array.blit client_chunks 0 chunks 0 (Array.length chunks)
+              end
+            
+        | [] ->
+            let up = Int64Swarmer.register_uploader swarmer (as_client c) 
+              (Int64Swarmer.AvailableBoolBitmap client_chunks) in
+            c.client_file_queue <-  c.client_file_queue @
+              [file, client_chunks, up]
+      in
+      iter c.client_file_queue
+      
+
+(* let next_file _ = failwith "next_file not implemented" *)
+      
+(* clean_client_zones: clean all structures related to downloads when
+   a client disconnects *)
+let clean_current_download c = 
+  match c.client_download with
+    None -> ()
+  | Some (file, up) ->
+      Int64Swarmer.clear_uploader_block up;
+      Int64Swarmer.clear_uploader_ranges up;
+      c.client_download <- None
+
+let send_get_range_request c file ranges = 
+  match c.client_sock with
+  | Connection sock ->
+      
+      set_rtimeout sock !queue_timeout;
+      let module M = DonkeyProtoClient in
+      let module Q = M.QueryBloc in
+      let msg, len =
+        match ranges with
+          [x1,y1,_] ->
+            {
+              Q.md4 = file.file_md4;
+              Q.start_pos1 = x1;
+              Q.end_pos1 = y1;
+              Q.start_pos2 = zero;
+              Q.end_pos2 = zero;
+              Q.start_pos3 = zero;
+              Q.end_pos3 = zero;
+            }, y1 -- x1
+        
+        | [x1,y1,_; x2,y2,_] ->
+            {
+              Q.md4 = file.file_md4;
+              Q.start_pos1 = x1;
+              Q.end_pos1 = y1;
+              Q.start_pos2 = x2;
+              Q.end_pos2 = y2;
+              Q.start_pos3 = zero;
+              Q.end_pos3 = zero;
+            }, y1 -- x1
+        
+        | [x1,y1,_; x2,y2,_; x3,y3,_ ] ->
+            {
+              Q.md4 = file.file_md4;
+              Q.start_pos1 = x1;
+              Q.end_pos1 = y1;
+              Q.start_pos2 = x2;
+              Q.end_pos2 = y2;
+              Q.start_pos3 = x3;
+              Q.end_pos3 = y3;
+            }, y1 -- x1
+        
+        | _ -> assert false
+      in
+      let msg = M.QueryBlocReq msg in
+      set_read_power sock (c.client_power + maxi 0 (file_priority file));
+      lprintf "QUEUE DOWNLOAD REQUEST\n";
+      CommonUploads.queue_download_request (fun _ -> 
+          direct_client_send c msg ) (Int64.to_int len) 
+  | _ -> assert false
+      
+let rec get_from_client c =
+  match c.client_download with
+    None ->
+      lprintf "get_from_client: no download\n";
+      begin
+        match c.client_file_queue with
+          [] -> 
+            
+            lprintf "get_from_client: no more file\n";
+            if not (client_has_a_slot (as_client c)) then begin
+                connection_delay c.client_connection_control;
+                match c.client_sock with
+                  Connection sock ->
+                    TcpBufferedSocket.close sock
+                      (Closed_for_error "No file to download");
+                | _ -> ()
+              end
+        
+        | (file, chunks, up) :: tail ->
+
+(* Should we start a download without asking for a slot first ?? *)
+            lprintf "get_from_client: next file\n";
+            c.client_download <- Some (file,up);
+            get_from_client c
+      end
+  
+  | Some (file,up) ->
+      
+      try
+        let b = Int64Swarmer.current_block up in
+        let ranges = Int64Swarmer.current_ranges up in
+        let before_find_range = List.length ranges in
+
+(*        lprintf "WAITING FOR %d BLOCS\n" before_find_range; *)
+        if before_find_range < 3 then
+          let rec iter n =
+            if n < 3 then
+              try
+                ignore (Int64Swarmer.find_range up);
+                iter (n+1)
+              with 
+                Not_found -> n
+            else n
+          in
+          let after_find_range = iter before_find_range in
+          if after_find_range > before_find_range then 
+            
+            let ranges = Int64Swarmer.current_ranges up in
+            send_get_range_request c file ranges;
+            
+          else
+(* No new range to download in this block *)
+              match ranges with
+                [] ->
+                  raise Not_found (* will query the next block *)
+                  
+              | _ -> 
+(* Wait for the already requested ranges before requesting the next block *)
+                  ()                  
+              
+        else
+(* We already have 3 ranges in the current block *)
+          ()
+      with Not_found ->
+          lprintf "get_from_client: no range\n";
+          try
+            let b = Int64Swarmer.find_block up in
+            get_from_client c
+            
+          with Not_found ->
+              lprintf "get_from_client: no block\n";
+              match Int64Swarmer.current_ranges up with
+                [] ->
+(* We have nothing to wait for in the current file *)
+                  begin
+                    
+                    lprintf "get_from_client: no expected ranges\n";
+                    
+                    c.client_download <- None;
+                    Int64Swarmer.unregister_uploader up;
+                    match c.client_file_queue with
+                      [] -> assert false
+                    | _ :: tail -> 
+(* We can go to next file now *)
+                        c.client_file_queue <- tail;
+                        get_from_client c
+                  end
+              | _ -> 
+(* We are still waiting for the previous requested ranges from this file *)
+                  ()
+                  
+      
+(* start_download: ask for a slot in the queue of the remote client,
+  or start querying blocks if already in the queue *)
+let request_slot c = 
+    if c.client_slot = SlotNotAsked then begin
+      if !verbose_download then begin
+          lprintf "start_download...\n";
+        end;
+      do_if_connected c.client_sock (fun sock ->
+          sort_file_queue c;
+          match c.client_file_queue with
+            [] -> ()
+          | (file, _,_ ) :: _ ->
+
+              direct_client_send c (
+                let module M = DonkeyProtoClient in
+                let module Q = M.JoinQueue in
+                M.JoinQueueReq Q.t);
+              c.client_slot <- SlotAsked;
+      )
+    end
+  
+let block_received c t = 
+  let module M = DonkeyProtoClient in  
+  let module Q = M.Bloc in
+  match c.client_download with
+    None -> 
+      lprintf "DonkeyOneFile.block_received: block received but no file !\n  Received: %s\n" (Md4.to_string t.Q.md4)
+  | Some (file, up) ->
+      
+      if file.file_md4 <> t.Q.md4 then begin
+          lprintf "DonkeyOneFile.block_received: block for bad file\n  Received: %s\n  Expected: %s\n" (Md4.to_string t.Q.md4) (Md4.to_string file.file_md4)
+        end else begin
+          DonkeySourcesMisc.set_request_result c file File_upload;
+          
+          c.client_rating <- c.client_rating + 10;
+          
+          let begin_pos = t.Q.start_pos in
+          let end_pos = t.Q.end_pos in
+          
+          set_client_state c (Connected_downloading (file_num file));
+          let len = Int64.sub end_pos begin_pos in
+          if Int64.to_int len <> t.Q.bloc_len then begin
+              lprintf "%d: inconsistent packet sizes\n" (client_num c);
+              raise Not_found
+            end;
+          count_download c file len;
+
+(* TODO: verify the received data has been requested *)
+          
+          let swarmer = Int64Swarmer.uploader_swarmer up in
+          let old_downloaded = Int64Swarmer.downloaded swarmer in
+          
+          begin
+            try
+              Int64Swarmer.received up
+                begin_pos
+                t.Q.bloc_str t.Q.bloc_begin t.Q.bloc_len
+            with
+            | e ->
+                let m =
+(*		      Printf.sprintf "File %s begin_pos=%s bloc_begin=%d bloc_len=%d:\nError %s while writing block%s\n" (file_best_name file) (Int64.to_string begin_pos) t.Q.bloc_begin t.Q.bloc_len (Printexc2.to_string e)  *)
+                  (match e with 
+                      Unix.Unix_error (Unix.ENOSPC, _, _) -> " (Disk full?)"
+                    | _ -> "") in
+(*                    Printf2.lprint_string m; *)
+                CommonEvent.add_event (Console_message_event m);
+                if e <> End_of_file then begin
+                    let m = "File paused.\n" in
+                    Printf2.lprint_string m;
+                    CommonEvent.add_event (Console_message_event m);
+                    file_pause (as_file file);
+                    raise e
+                  end
+          
+          end;
+
+(*            List.iter Int64Swarmer.alloc_range c.client_ranges; *)
+          let new_downloaded = 
+            Int64Swarmer.downloaded swarmer in
+          c.client_downloaded <- c.client_downloaded ++ (
+            new_downloaded -- old_downloaded);
+(*
+          if not (List.mem c.client_ip bb.block_contributors) then
+            bb.block_contributors <- c.client_ip :: 
+            bb.block_contributors;
+*)          
+          
+          
+          if new_downloaded <> old_downloaded then 
+            add_file_downloaded file.file_file 
+              (new_downloaded -- old_downloaded);
+          if new_downloaded -- old_downloaded < end_pos -- begin_pos then
+            lprintf "ALREADY RECEIVED: %Ld < %Ld\n"
+              (new_downloaded -- old_downloaded)
+            (end_pos -- begin_pos);
+          
+          get_from_client c
+
+(*
+                    
+      begin
+        match c.client_block with
+          None -> 
+            printf_string "NO BLOCK EXPECTED FROM CLIENT";
+            raise Not_found
+        | Some bb ->
+            let str_begin = Int64.of_int t.Q.bloc_begin in
+            
+            if bb.block_present || begin_pos < bb.block_begin
+                || begin_pos >= bb.block_end || end_pos > bb.block_end
+            then 
+              let chunk_num = Int64.to_int (Int64.div begin_pos block_size) 
+              in
+              lprintf "%d: Exceeding block boundaries\n" (client_num c);
+              
+              lprintf "%Ld-%Ld (%Ld-%Ld)\n" 
+                (begin_pos) (end_pos)
+              (bb.block_begin) (bb.block_end)
+              ;
+              
+              List.iter (fun z ->
+                  lprintf "zone: %Ld-%Ld"
+                    (z.zone_begin) (z.zone_end)
+              ) c.client_zones;
+
+(* try to recover the corresponding block ... *)
+              
+              if bb.block_pos <> chunk_num then begin
+                  lprintf "OLD BLOCK %d <> %d\n" bb.block_pos chunk_num;
+                end else
+                (              
+                  match file.file_chunks.(chunk_num) with
+                    PresentTemp | PresentVerified -> 
+                      lprintf "ALREADY PRESENT\n"; 
+
+(* Here, we should probably try to find a new block !! *)
+                      DonkeyOneFile.clean_client_zones c;
+                      DonkeyOneFile.find_client_block c                    
+                  
+                  | AbsentTemp | AbsentVerified ->
+                      lprintf "ABSENT (not implemented)\n"; 
+(* We receive information for a block we have not asked !! *)
+                  
+                  | PartialTemp b | PartialVerified b ->
+                      
+                      if b != bb then begin
+                          lprintf "BLOCK DISAGREEMENT\n"; 
+                        end else begin
+                          lprintf "PARTIAL\n"; 
+
+(* try to find the corresponding zone *)
+                          List.iter (fun z ->
+                              if z.zone_begin >= begin_pos &&
+                                end_pos > z.zone_begin then begin
+                                  lprintf "BEGIN ZONE MATCHES\n"; 
+                                end else
+                              if z.zone_begin < begin_pos &&
+                                begin_pos < z.zone_end &&
+                                z.zone_end < end_pos then begin
+                                  lprintf "END ZONE MATCHES\n";
+                                end 
+                          
+                          ) b.block_zones
+                        end
+                );              
+              raise Not_found
+            else
+            try
+              begin
+                if c.client_connected then
+                  printf_string "#[OUT]"
+                else
+                  printf_string "#[IN]";
+                
+                try
+                  if !!buffer_writes then 
+                    Unix32.buffered_write (file_fd file) 
+                  else
+                    Unix32.write (file_fd file) begin_pos
+                      t.Q.bloc_str t.Q.bloc_begin t.Q.bloc_len
+
+(*
+                let final_pos = Unix32.seek64 (file_fd file) 
+                  begin_pos Unix.SEEK_SET in
+                if final_pos <> begin_pos then begin
+                    lprintf "BAD LSEEK %Ld/%Ld\n"
+                      (final_pos)
+                    (begin_pos); 
+                    raise Not_found
+                  end;
+                if c.client_connected then
+                  printf_string "#[OUT]"
+                else
+                  printf_string "#[IN]";
+
+(*            if !verbose then begin
+                lprintf "{%d-%d = %Ld-%Ld}\n" (t.Q.bloc_begin)
+                (t.Q.bloc_len) (begin_pos) 
+                (end_pos);
+              end; *)
+                let fd = try
+                    Unix32.force_fd (file_fd file) 
+                  with e -> 
+                      lprintf "In Unix32.force_fd\n"; 
+                      raise e
+                in
+                Unix2.really_write fd t.Q.bloc_str t.Q.bloc_begin t.Q.bloc_len;
+*)
+              end;
+              (try
+                  List.iter (update_zone file begin_pos end_pos) c.client_zones;
+                with e ->
+(*                    lprintf "Exception %s while updating zones\n"
+                      (Printexc2.to_string e); *)
+                    raise e
+              );
+              (try
+                  find_client_zone c
+                with 
+                | e ->
+                    lprintf "Exception %s while searching for find client zone\n"
+                      (Printexc2.to_string e);
+                    raise e)
+            
+            with
+              End_of_file ->
+                lprintf "END OF FILE WITH CLIENT %s\n" c.client_name;
+            | e ->
+                lprintf "Exception %s while searching for new chunk\n"
+                  (Printexc2.to_string e)
+      
+      end;      
+*)
+        end    
+        
 let search_found filter search md4 tags =
   let file_name = ref "" in
   let file_size = ref Int64.zero in

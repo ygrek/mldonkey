@@ -50,184 +50,107 @@ exception VerifierNotReady
 (*************************************************************************)
 (*************************************************************************)
 (*                                                                       *)
-(*                         MODULE Integer                                *)
-(*                                                                       *)
-(*************************************************************************)
-(*************************************************************************)
-(*************************************************************************)
-  
-(*************************************************************************)
-(*************************************************************************)
-(*************************************************************************)
-(*                                                                       *)
-(*                         MODULE Swarmer                                *)
-(*                                                                       *)
-(*************************************************************************)
-(*************************************************************************)
-(*************************************************************************)
-  
-module type Swarmer =
-  sig
-    type t
-    and range
-    and uploader
-    and block
-      
-    type chunks =
-      AvailableRanges of (int64 * int64) list
-(* A bitmap is encoded with '0' for empty, '1' for present *)
-    | AvailableCharBitmap of string 
-(* A bitmap encoded as an array of boolean *)
-    | AvailableBoolBitmap of bool array
-      
-    val create : file -> int64 -> int64 -> t
-    val set_writer : t -> (int64 -> string -> int -> int -> unit) -> unit
-    val set_verifier : t -> (int -> int64 -> int64 -> bool) -> unit
-      
-    val set_present : t -> (int64 * int64) list -> unit
-    val set_absent : t -> (int64 * int64) list -> unit
-      
-    val verified_bitmap : t -> string
-    val set_verified_bitmap : t -> string -> unit
-      
-    val register_uploader : t -> client -> chunks -> uploader
-    val update_uploader : uploader -> chunks -> unit
-    val disconnect_uploader : uploader -> unit      
-      
-    val find_block : uploader -> block
-    val find_range : uploader -> range
-
-    val received : uploader -> int64 -> string -> int -> int -> unit
-    val print_t : string -> t -> unit
-    val range_range : range -> int64 * int64
-
-    val print_block : block -> unit
-    val block_block : block -> int * int64 * int64 
-    val availability : t -> string
-    val downloaded : t -> int64
-    val present_chunks : t -> (int64 * int64) list
-    val partition_size : t -> int
-    val compute_bitmap : t -> unit
-    val is_interesting : uploader -> bool	
-    val print_uploader : uploader -> unit
-
-    val last_seen : t -> int array
-      
-    val print_uploaders : t -> unit
-
-    val uploader_swarmer : uploader -> t
-      
-    val swarmer_to_value : t ->
-      (string * Options.option_value) list ->
-      (string * Options.option_value) list
-    val value_to_swarmer : t -> (string * Options.option_value) list -> unit
-  end
-
-(*************************************************************************)
-(*************************************************************************)
-(*************************************************************************)
-(*                                                                       *)
 (*                         MODULE Make                                   *)
 (*                                                                       *)
 (*************************************************************************)
 (*************************************************************************)
 (*************************************************************************)
   
-module Int64Swarmer = (struct
-      
-      
-      let (++) = Int64.add
-      let ( ** ) x y = Int64.mul x (Int64.of_int y)
-      let (--) = Int64.sub
-      
-      let zero = Int64.zero
+module Int64Swarmer = struct
+    
+    
+    let (++) = Int64.add
+    let ( ** ) x y = Int64.mul x (Int64.of_int y)
+    let (--) = Int64.sub
+    
+    let zero = Int64.zero
 
 (* Worst scenario?: 1 GB splitted in small ranges of 64 KB = 16 000 ranges.
   In eDonkey, ranges are 180 kB long.
 *)
 
 (*    let range_size = ref (Int64.of_int (64 * 1024)) *)
-      let block_size = ref (Int64.of_int (1024 * 1024))
-      let min_range_size = ref  (Int64.of_int (64 * 1024))
-      
-      type chunks =
-        AvailableRanges of (int64 * int64) list
+    let block_size = ref (Int64.of_int (1024 * 1024))
+    let min_range_size = ref  (Int64.of_int (64 * 1024))
+    
+    type chunks =
+      AvailableRanges of (int64 * int64) list
 (* A bitmap is encoded with '0' for empty, '1' for present *)
-      | AvailableCharBitmap of string 
+    | AvailableCharBitmap of string 
 (* A bitmap encoded as an array of boolean *)
-      | AvailableBoolBitmap of bool array
+    | AvailableBoolBitmap of bool array
+    
+    
+    type t = {
+        t_file : file;
         
-      
-      type t = {
-          t_file : file;
-          
-          mutable t_size : int64;
-          mutable t_block_size : int64;
-          mutable t_range_size : int64;
-          mutable t_strategy : strategy;
-          
-          mutable t_write : (int64 -> string -> int -> int -> unit);
-          mutable t_verifier : (int -> int64 -> int64 -> bool) option;
-          
-          mutable t_verified_bitmap : string;
-          mutable t_blocks : block_v array;
-          mutable t_availability : int array;
-          mutable t_nuploading : int array;
-          mutable t_last_seen : int array;
-          
-          mutable t_ncomplete_blocks : int;
-          mutable t_nverified_blocks : int;
-          mutable t_downloaded : int64;
-        }
-      
-      and block_v = 
-        EmptyBlock
-      | PartialBlock of block
-      | CompleteBlock
-      | VerifiedBlock
-      
-      and block = {
-          block_t : t;
-          block_num : int;
-          block_begin : Int64.t;
-          block_end : Int64.t;
-          mutable block_ranges : range;
-          mutable block_remaining : int64;
-        }
-      
-      and range = {
-          range_block : block;
-          range_begin : Int64.t; (* official begin int64 *)
-          mutable range_end : Int64.t;
-          mutable range_prev : range option;
-          mutable range_next : range option;
-          mutable range_current_begin : Int64.t; (* current begin pos *)
+        mutable t_size : int64;
+        mutable t_block_size : int64;
+        mutable t_range_size : int64;
+        mutable t_strategy : strategy;
+        
+        mutable t_write : (int64 -> string -> int -> int -> unit);
+        mutable t_verifier : (int -> int64 -> int64 -> bool) option;
+        
+        mutable t_verified_bitmap : string;
+        mutable t_blocks : block_v array;
+        mutable t_availability : int array;
+        mutable t_nuploading : int array;
+        mutable t_last_seen : int array;
+        
+        mutable t_ncomplete_blocks : int;
+        mutable t_nverified_blocks : int;
+        mutable t_downloaded : int64;
+      }
+    
+    and block_v = 
+      EmptyBlock
+    | PartialBlock of block
+    | CompleteBlock
+    | VerifiedBlock
+    
+    and block = {
+        block_t : t;
+        block_num : int;
+        block_begin : Int64.t;
+        block_end : Int64.t;
+        mutable block_ranges : range;
+        mutable block_remaining : int64;
+      }
+    
+    and range = {
+        range_block : block;
+        range_begin : Int64.t; (* official begin int64 *)
+        mutable range_end : Int64.t;
+        mutable range_prev : range option;
+        mutable range_next : range option;
+        mutable range_current_begin : Int64.t; (* current begin pos *)
 (*        mutable range_verified : bool; *)
-          mutable range_nuploading : int;
-        }
-      
-      and uploader = {
-          up_t : t;
-          up_client : client;
-          
-          mutable up_declared : bool;
-          
-          mutable up_chunks : chunks;
-          mutable up_complete_blocks : int array;
-          mutable up_ncomplete : int;
-          
-          mutable up_partial_blocks : (int * int64 * int64) array;
-          mutable up_npartial : int;
-          
-          mutable up_block : block option;
-          mutable up_block_begin : int64;
-          mutable up_block_end : int64;
-          
-          mutable up_ranges : range list;
-        }
-      
-      
-      let basic_write _ _ _ _ = ()
+        mutable range_nuploading : int;
+      }
+    
+    and uploader = {
+        up_t : t;
+        up_client : client;
+        
+        mutable up_declared : bool;
+        
+        mutable up_chunks : chunks;
+        mutable up_complete_blocks : int array;
+        mutable up_ncomplete : int;
+        
+        mutable up_partial_blocks : (int * int64 * int64) array;
+        mutable up_npartial : int;
+        
+        mutable up_block : block option;
+        mutable up_block_begin : int64;
+        mutable up_block_end : int64;
+        
+        mutable up_ranges : (int64 * int64 * range) list;
+      }
+    
+    
+    let basic_write _ _ _ _ = ()
 
 
 (*************************************************************************)
@@ -235,115 +158,142 @@ module Int64Swarmer = (struct
 (*                         print_uploader                                *)
 (*                                                                       *)
 (*************************************************************************)
-      
-      let print_uploader up =
-        lprintf "  interesting complete_blocks: %d\n     " up.up_ncomplete;
-        Array.iter (fun i -> lprintf " %d " i) up.up_complete_blocks;
-        lprintf "  interesting partial_blocks: %d\n     " up.up_npartial;
-        Array.iter (fun (i, begin_pos, end_pos) -> 
-            lprintf " %d[%s...%s] " i 
-              (Int64.to_string begin_pos)
-            (Int64.to_string end_pos)) up.up_partial_blocks
+    
+    let print_uploader up =
+      lprintf "  interesting complete_blocks: %d\n     " up.up_ncomplete;
+      Array.iter (fun i -> lprintf " %d " i) up.up_complete_blocks;
+      lprintf "  interesting partial_blocks: %d\n     " up.up_npartial;
+      Array.iter (fun (i, begin_pos, end_pos) -> 
+          lprintf " %d[%s...%s] " i 
+            (Int64.to_string begin_pos)
+          (Int64.to_string end_pos)) up.up_partial_blocks
 
 (*************************************************************************)
 (*                                                                       *)
 (*                         last_seen                                     *)
 (*                                                                       *)
 (*************************************************************************)
+    
+    let last_seen t =
+      for i = 0 to String.length t.t_verified_bitmap - 1 do
+        if t.t_verified_bitmap.[i] > '2' then
+          t.t_last_seen.(i) <- BasicSocket.last_time ()
+      done;
+      t.t_last_seen
 
-      let last_seen t =
-        for i = 0 to String.length t.t_verified_bitmap - 1 do
-          if t.t_verified_bitmap.[i] = '2' then
-            t.t_last_seen.(i) <- BasicSocket.last_time ()
-        done;
-        t.t_last_seen
-        
 (*************************************************************************)
 (*                                                                       *)
 (*                         create                                        *)
 (*                                                                       *)
 (*************************************************************************)
+    
+    let create file chunk_size range_size = 
       
-      let create file chunk_size range_size = 
-        
-        let size = file_size file in
-        let nchunks = 
-          1 + Int64.to_int (
-            Int64.div (Int64.sub size Int64.one) chunk_size) in
-        
-        let rec t = {
-            
-            t_file = file;
-            
-            t_size = size;
-            t_block_size = chunk_size;
-            t_range_size = range_size;
-            t_strategy = AdvancedStrategy;
-            
-            t_downloaded = zero;
-            t_ncomplete_blocks = 0;
-            t_nverified_blocks = 0;
-            
-            t_verified_bitmap = String.make nchunks '0';
-            t_blocks = Array.create nchunks EmptyBlock ;
-            t_availability = Array.create nchunks 0;
-            t_nuploading = Array.create nchunks 0;
-            t_last_seen = Array.create nchunks 0;
-            
-            t_verifier = None;
-            t_write = basic_write;
-          }
-        in 
-        t
+      let size = file_size file in
+      let nchunks = 
+        1 + Int64.to_int (
+          Int64.div (Int64.sub size Int64.one) chunk_size) in
+      
+      let rec t = {
+          
+          t_file = file;
+          
+          t_size = size;
+          t_block_size = chunk_size;
+          t_range_size = range_size;
+          t_strategy = AdvancedStrategy;
+          
+          t_downloaded = zero;
+          t_ncomplete_blocks = 0;
+          t_nverified_blocks = 0;
+          
+          t_verified_bitmap = String.make nchunks '0';
+          t_blocks = Array.create nchunks EmptyBlock ;
+          t_availability = Array.create nchunks 0;
+          t_nuploading = Array.create nchunks 0;
+          t_last_seen = Array.create nchunks 0;
+          
+          t_verifier = None;
+          t_write = basic_write;
+        }
+      in 
+      t
 
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         clear_uploader_ranges                         *)
+(*                                                                       *)
+(*************************************************************************) 
+    
+    let clear_uploader_ranges up = 
+      List.iter (fun (_,_,r) ->
+          r.range_nuploading <- r.range_nuploading - 1
+      ) up.up_ranges;
+      up.up_ranges <- []
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         clear_uploader_block                          *)
+(*                                                                       *)
+(*************************************************************************) 
+    
+    let clear_uploader_block up = 
+      match up.up_block with
+        None -> ()
+      | Some b ->
+          up.up_block <- None;
+          let num = b.block_num in
+          let t = up.up_t in
+          t.t_nuploading.(num) <- t.t_nuploading.(num) - 1
 
 (*************************************************************************)
 (*                                                                       *)
 (*                         apply_intervals (internal)                    *)
 (*                                                                       *)
 (*************************************************************************)
-      
-      let apply_intervals t f chunks =
-        let nchunks = Array.length t.t_blocks in
-        let find_block chunk_pos =
-          let pos = Int64.to_int (Int64.div chunk_pos t.t_block_size) in
-          if debug_all then 
-            lprintf "%s is block %d\n" (Int64.to_string chunk_pos) pos;
-          pos
-        in
-        let rec iter chunks =
-          match chunks with
-            [] -> ()
-          | (chunk_begin, chunk_end) :: tail ->
-              let chunk_begin = min chunk_begin t.t_size in
-              let chunk_end = min chunk_end t.t_size in
-              if chunk_begin < chunk_end then begin
-                  let i0 = find_block chunk_begin in
-                  let block_begin = t.t_block_size ** i0 in
-                  let rec iter_blocks i block_begin chunk_begin =
-                    if i < nchunks && block_begin < chunk_end then
-                      let block_end = block_begin ++ t.t_block_size in
-                      let block_end = min block_end t.t_size in
-                      
-                      let current_end =  min block_end chunk_end in
-                      
-                      if debug_all then 
-                        lprintf "Apply: %d %s-%s %s-%s\n"
-                          i 
-                          (Int64.to_string block_begin)
-                        (Int64.to_string block_end)
-                        (Int64.to_string chunk_begin)
-                        (Int64.to_string current_end);
-                      
-                      f i block_begin block_end chunk_begin current_end;
-                      
-                      iter_blocks (i+1) block_end block_end
-                  in
-                  iter_blocks i0 block_begin chunk_begin;
-                end;
-              iter tail
-        in
-        iter chunks
+    
+    let apply_intervals t f chunks =
+      let nchunks = Array.length t.t_blocks in
+      let block_pos chunk_pos =
+        let pos = Int64.to_int (Int64.div chunk_pos t.t_block_size) in
+        if debug_all then 
+          lprintf "%s is block %d\n" (Int64.to_string chunk_pos) pos;
+        pos
+      in
+      let rec iter chunks =
+        match chunks with
+          [] -> ()
+        | (chunk_begin, chunk_end) :: tail ->
+            let chunk_begin = min chunk_begin t.t_size in
+            let chunk_end = min chunk_end t.t_size in
+            if chunk_begin < chunk_end then begin
+                let i0 = block_pos chunk_begin in
+                let block_begin = t.t_block_size ** i0 in
+                let rec iter_blocks i block_begin chunk_begin =
+                  if i < nchunks && block_begin < chunk_end then
+                    let block_end = block_begin ++ t.t_block_size in
+                    let block_end = min block_end t.t_size in
+                    
+                    let current_end =  min block_end chunk_end in
+                    
+                    if debug_all then 
+                      lprintf "Apply: %d %s-%s %s-%s\n"
+                        i 
+                        (Int64.to_string block_begin)
+                      (Int64.to_string block_end)
+                      (Int64.to_string chunk_begin)
+                      (Int64.to_string current_end);
+                    
+                    f i block_begin block_end chunk_begin current_end;
+                    
+                    iter_blocks (i+1) block_end block_end
+                in
+                iter_blocks i0 block_begin chunk_begin;
+              end;
+            iter tail
+      in
+      iter chunks
 
 
 (*************************************************************************)
@@ -351,9 +301,9 @@ module Int64Swarmer = (struct
 (*                         set_writer                                    *)
 (*                                                                       *)
 (*************************************************************************)
-      
-      let set_writer t f = 
-        t.t_write <- f
+    
+    let set_writer t f = 
+      t.t_write <- f
 
 
 (*************************************************************************)
@@ -361,32 +311,32 @@ module Int64Swarmer = (struct
 (*                         print_t                                       *)
 (*                                                                       *)
 (*************************************************************************)
+    
+    let print_t s t =
+      lprintf "Ranges after %s: " s;
       
-      let print_t s t =
-        lprintf "Ranges after %s: " s;
-        
-        let rec iter r =
-          lprintf " %s(%s)-%s(%d)" 
-            (Int64.to_string r.range_begin)
-          (Int64.to_string r.range_current_begin)
-          (Int64.to_string r.range_end) r.range_nuploading;
-          match r.range_next with
-            None -> lprintf "\n"
-          | Some r -> iter r
-        in
-        
-        Array.iteri (fun i b ->
-            lprintf "   %d: " i;
-            match b with
-              PartialBlock b ->
-                lprintf " [%s .. %s] --> " 
-                  (Int64.to_string b.block_begin)
-                (Int64.to_string b.block_end);
-                iter b.block_ranges
-            | EmptyBlock -> lprintf "_\n"
-            | CompleteBlock -> lprintf "C\n"
-            | VerifiedBlock -> lprintf "V\n"
-        ) t.t_blocks
+      let rec iter r =
+        lprintf " %s(%s)-%s(%d)" 
+          (Int64.to_string r.range_begin)
+        (Int64.to_string r.range_current_begin)
+        (Int64.to_string r.range_end) r.range_nuploading;
+        match r.range_next with
+          None -> lprintf "\n"
+        | Some r -> iter r
+      in
+      
+      Array.iteri (fun i b ->
+          lprintf "   %d: " i;
+          match b with
+            PartialBlock b ->
+              lprintf " [%s .. %s] --> " 
+                (Int64.to_string b.block_begin)
+              (Int64.to_string b.block_end);
+              iter b.block_ranges
+          | EmptyBlock -> lprintf "_\n"
+          | CompleteBlock -> lprintf "C\n"
+          | VerifiedBlock -> lprintf "V\n"
+      ) t.t_blocks
 
 
 (*************************************************************************)
@@ -394,21 +344,21 @@ module Int64Swarmer = (struct
 (*                         print_block                                   *)
 (*                                                                       *)
 (*************************************************************************)
-      
-      let print_block b =
-        lprintf "Block %d: %s-%s\n" 
-          b.block_num
-          (Int64.to_string b.block_begin)
-        (Int64.to_string b.block_end);
-        lprintf "  ranges:\n";
-        let rec iter_range r =
-          lprintf "   %Ld-%Ld\n" r.range_current_begin r.range_end;
-          match r.range_next with
-            None -> ()
-          | Some rr -> iter_range rr
-        in
-        iter_range b.block_ranges;
-        lprintf "\n"
+    
+    let print_block b =
+      lprintf "Block %d: %s-%s\n" 
+        b.block_num
+        (Int64.to_string b.block_begin)
+      (Int64.to_string b.block_end);
+      lprintf "  ranges:\n";
+      let rec iter_range r =
+        lprintf "   %Ld-%Ld\n" r.range_current_begin r.range_end;
+        match r.range_next with
+          None -> ()
+        | Some rr -> iter_range rr
+      in
+      iter_range b.block_ranges;
+      lprintf "\n"
 
 
 
@@ -417,25 +367,26 @@ module Int64Swarmer = (struct
 (*                         close_ranges (internal)                       *)
 (*                                                                       *)
 (*************************************************************************)
-      let rec close_ranges t r =
-        
-        let added = r.range_end -- r.range_current_begin in
-        t.t_downloaded <- t.t_downloaded ++ added;
-        let b = r.range_block in
-        b.block_remaining <- b.block_remaining -- added;
-        
-        r.range_current_begin <- r.range_end;
-        match r.range_next with
-          None -> ()
-        | Some rr -> close_ranges t rr
+    let rec close_ranges t r =
+      
+      let added = r.range_end -- r.range_current_begin in
+      t.t_downloaded <- t.t_downloaded ++ added;
+      let b = r.range_block in
+      b.block_remaining <- b.block_remaining -- added;
+      
+      r.range_current_begin <- r.range_end;
+      match r.range_next with
+        None -> ()
+      | Some rr -> close_ranges t rr
 
 (*************************************************************************)
 (*                                                                       *)
 (*                         verify_block (internal)                       *)
 (*                                                                       *)
 (*************************************************************************)
-      
-      let verify_block t i = 
+    
+    let verify_block t i = 
+      if t.t_verified_bitmap.[i] = '2' then
         match t.t_verifier with
           None -> ()
         | Some f ->
@@ -460,10 +411,16 @@ module Int64Swarmer = (struct
                   t.t_blocks.(i) <- VerifiedBlock;
                 
                 end else begin
+                  lprintf "VERIFICATION OF BLOC %d OF %s FAILED\n"
+                    i (file_best_name t.t_file);
+                  t.t_ncomplete_blocks <- t.t_ncomplete_blocks - 1;
+                  
                   match t.t_blocks.(i) with
-                    EmptyBlock | PartialBlock _ -> ()
+                    EmptyBlock ->
+                      t.t_verified_bitmap.[i] <- '0'
+                  | PartialBlock _ -> 
+                      t.t_verified_bitmap.[i] <- '1'
                   | CompleteBlock ->
-                      t.t_ncomplete_blocks <- t.t_ncomplete_blocks - 1;
                       t.t_downloaded <- 
                         t.t_downloaded -- (block_end -- block_begin);
                       
@@ -476,20 +433,47 @@ module Int64Swarmer = (struct
 
 (*************************************************************************)
 (*                                                                       *)
+(*                         must_verify_block                             *)
+(*                                                                       *)
+(*************************************************************************)
+    
+    let must_verify_block t i immediatly = 
+      match t.t_verifier with
+        None -> ()
+      | Some f ->
+          if t.t_verified_bitmap.[i] < '2' then begin
+              t.t_verified_bitmap.[i] <- '2';
+              t.t_ncomplete_blocks <- t.t_ncomplete_blocks + 1;
+              if immediatly then verify_block t i
+            end
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         verify_all_blocks                             *)
+(*                                                                       *)
+(*************************************************************************)
+    
+    let verify_all_blocks t immediatly =
+      for i = 0 to String.length t.t_verified_bitmap - 1 do
+        must_verify_block t i immediatly
+      done
+
+(*************************************************************************)
+(*                                                                       *)
 (*                         compute_bitmap                                *)
 (*                                                                       *)
 (*************************************************************************)
-      
-      
-      let compute_bitmap t =
-        if t.t_ncomplete_blocks > t.t_nverified_blocks then begin
-            for i = 0 to Array.length t.t_blocks do
-              match t.t_blocks.(i) with
-                CompleteBlock ->
-                  verify_block t i
-              | _ -> ()
-            done
-          end
+    
+    
+    let compute_bitmap t =
+      if t.t_ncomplete_blocks > t.t_nverified_blocks then begin
+          for i = 0 to Array.length t.t_blocks do
+            match t.t_blocks.(i) with
+              CompleteBlock ->
+                verify_block t i
+            | _ -> ()
+          done
+        end
 
 
 (*************************************************************************)
@@ -497,30 +481,30 @@ module Int64Swarmer = (struct
 (*                         split_range (internal)                        *)
 (*                                                                       *)
 (*************************************************************************)
-      
-      let rec split_range r range_size =
-        assert (r.range_current_begin = r.range_begin);
-        let next_range = r.range_begin ++ range_size in
-        if r.range_end > next_range then 
-          let rr = {
-              range_block = r.range_block;
-              range_nuploading = 0;
-              range_next = r.range_next;
-              range_prev = Some r; 
-              range_begin = next_range;
-              range_current_begin = next_range;
-              range_end = r.range_end;
-            } in
-          begin
-            match r.range_next with
-              None -> ()
-            | Some rrr -> 
-                rrr.range_prev <- Some rr;
-          end;
-          r.range_next <- Some rr;
-          r.range_end <- next_range;
-          
-          split_range rr range_size
+    
+    let rec split_range r range_size =
+      assert (r.range_current_begin = r.range_begin);
+      let next_range = r.range_begin ++ range_size in
+      if r.range_end > next_range then 
+        let rr = {
+            range_block = r.range_block;
+            range_nuploading = 0;
+            range_next = r.range_next;
+            range_prev = Some r; 
+            range_begin = next_range;
+            range_current_begin = next_range;
+            range_end = r.range_end;
+          } in
+        begin
+          match r.range_next with
+            None -> ()
+          | Some rrr -> 
+              rrr.range_prev <- Some rr;
+        end;
+        r.range_next <- Some rr;
+        r.range_end <- next_range;
+        
+        split_range rr range_size
 
 
 (*************************************************************************)
@@ -528,38 +512,38 @@ module Int64Swarmer = (struct
 (*                         new_block (internal)                          *)
 (*                                                                       *)
 (*************************************************************************)
+    
+    let new_block t i =
+      let block_begin = t.t_block_size ** i in
+      let block_end = block_begin ++ t.t_block_size in
+      let block_end = min block_end t.t_size in
+      let rec b = {
+          block_t = t;
+          
+          block_begin = block_begin;
+          block_end = block_end;
+          block_ranges = range;
+          block_num = i;
+          block_remaining = block_end -- block_begin;
+        } 
       
-      let new_block t i =
-        let block_begin = t.t_block_size ** i in
-        let block_end = block_begin ++ t.t_block_size in
-        let block_end = min block_end t.t_size in
-        let rec b = {
-            block_t = t;
-            
-            block_begin = block_begin;
-            block_end = block_end;
-            block_ranges = range;
-            block_num = i;
-            block_remaining = block_end -- block_begin;
-          } 
-        
-        and range = {
-            range_prev = None;
-            range_next = None;
-            range_begin = block_begin;
-            range_end = block_end;
-            range_block = b;
-            range_nuploading = 0;
-            range_current_begin = block_begin;
-          }
-        in
-        
-        split_range range t.t_range_size;
-        
-        t.t_blocks.(i) <- PartialBlock b;
-        t.t_verified_bitmap.[i] <- '1';
-        if debug_all then lprintf "NB[%s]" t.t_verified_bitmap;
-        b
+      and range = {
+          range_prev = None;
+          range_next = None;
+          range_begin = block_begin;
+          range_end = block_end;
+          range_block = b;
+          range_nuploading = 0;
+          range_current_begin = block_begin;
+        }
+      in
+      
+      split_range range t.t_range_size;
+      
+      t.t_blocks.(i) <- PartialBlock b;
+      t.t_verified_bitmap.[i] <- '1';
+      if debug_all then lprintf "NB[%s]" t.t_verified_bitmap;
+      b
 
 
 (*************************************************************************)
@@ -567,11 +551,11 @@ module Int64Swarmer = (struct
 (*                         next_range (internal)                         *)
 (*                                                                       *)
 (*************************************************************************)
-      
-      let next_range f r =
-        match r.range_next with
-          None -> ()
-        | Some r -> f r
+    
+    let next_range f r =
+      match r.range_next with
+        None -> ()
+      | Some r -> f r
 
 
 (*************************************************************************)
@@ -579,51 +563,50 @@ module Int64Swarmer = (struct
 (*                         range_received (internal)                     *)
 (*                                                                       *)
 (*************************************************************************)
-      
-      let range_received r chunk_begin chunk_end =
-        if r.range_begin < chunk_end && r.range_end > chunk_begin then begin
+    
+    let range_received r chunk_begin chunk_end =
+      if r.range_begin < chunk_end && r.range_end > chunk_begin then begin
+          
+          let new_current_begin = 
+            max (min chunk_end r.range_end) r.range_current_begin in
+          let downloaded = new_current_begin -- r.range_current_begin in
+          let b = r.range_block in
+          let t = b.block_t in
+          t.t_downloaded <- t.t_downloaded ++ downloaded;
+          b.block_remaining <- b.block_remaining -- downloaded;
+          r.range_current_begin <- new_current_begin;
+          if r.range_current_begin = r.range_end then begin
+              (match r.range_next with
+                  None -> ()
+                | Some rr -> rr.range_prev <- r.range_prev);
+              (match r.range_prev with
+                  None -> 
+                    begin
+                      match r.range_next with
+                        None ->
+                          begin
+                            match t.t_blocks.(b.block_num) with
+                              PartialBlock _ | EmptyBlock ->
+                                begin match t.t_verifier with
+                                    Some _ ->
+                                      t.t_blocks.(b.block_num) <- CompleteBlock;
+                                      must_verify_block t b.block_num true
+                                  
+                                  | _ ->
+                                      t.t_ncomplete_blocks <- 
+                                        t.t_ncomplete_blocks + 1;
+                                      t.t_blocks.(b.block_num) <- VerifiedBlock;
+                                      t.t_verified_bitmap.[b.block_num] <- '3';
+                                      t.t_nverified_blocks <- t.t_nverified_blocks + 1;
+                                end
+                            | _ -> ()
+                          end
+                      | Some rr -> b.block_ranges <- rr
+                    end;
+                | Some rr -> rr.range_next <- r.range_next);
             
-            let new_current_begin = 
-              max (min chunk_end r.range_end) r.range_current_begin in
-            let downloaded = new_current_begin -- r.range_current_begin in
-            let b = r.range_block in
-            let t = b.block_t in
-            t.t_downloaded <- t.t_downloaded ++ downloaded;
-            b.block_remaining <- b.block_remaining -- downloaded;
-            r.range_current_begin <- new_current_begin;
-            if r.range_current_begin = r.range_end then begin
-                (match r.range_next with
-                    None -> ()
-                  | Some rr -> rr.range_prev <- r.range_prev);
-                (match r.range_prev with
-                    None -> 
-                      begin
-                        match r.range_next with
-                          None ->
-                            begin
-                              match t.t_blocks.(b.block_num) with
-                                PartialBlock _ | EmptyBlock ->
-                                  t.t_ncomplete_blocks <- 
-                                    t.t_ncomplete_blocks + 1;
-                                  begin match t.t_verifier with
-                                      Some _ ->
-                                        t.t_blocks.(b.block_num) <- CompleteBlock;
-                                        t.t_verified_bitmap.[b.block_num] <- '2';
-                                        verify_block t (b.block_num)
-                                    
-                                    | _ ->
-                                        t.t_blocks.(b.block_num) <- VerifiedBlock;
-                                        t.t_verified_bitmap.[b.block_num] <- '3';
-                                        t.t_nverified_blocks <- t.t_nverified_blocks + 1;
-                                  end
-                              | _ -> ()
-                            end
-                        | Some rr -> b.block_ranges <- rr
-                      end;
-                  | Some rr -> rr.range_next <- r.range_next);
-              
-              end
-          end
+            end
+        end
 
 
 (*************************************************************************)
@@ -631,8 +614,8 @@ module Int64Swarmer = (struct
 (*                         recompute_downloaded (internal)               *)
 (*                                                                       *)
 (*************************************************************************)
-
-      let recompute_downloaded t = ()
+    
+    let recompute_downloaded t = ()
 
 (*************************************************************************)
 (*                                                                       *)
@@ -642,12 +625,12 @@ module Int64Swarmer = (struct
 
 (* Assumption: we never download ranges from the middle, so present chunks
   can only overlap the beginning of a range *)
-      let set_present_block b chunk_begin chunk_end =
-        let rec iter r =
-          range_received r chunk_begin chunk_end;
-          next_range iter r
-        in
-        iter b.block_ranges
+    let set_present_block b chunk_begin chunk_end =
+      let rec iter r =
+        range_received r chunk_begin chunk_end;
+        next_range iter r
+      in
+      iter b.block_ranges
 
 
 (*************************************************************************)
@@ -655,356 +638,365 @@ module Int64Swarmer = (struct
 (*                         set_present                                   *)
 (*                                                                       *)
 (*************************************************************************)
-      
-      let set_present t chunks = 
-        apply_intervals t (fun i block_begin block_end chunk_begin chunk_end ->
-            match t.t_blocks.(i) with
-              EmptyBlock ->
-                if block_begin >= chunk_begin && block_end <= chunk_end then
-                  begin
-                    t.t_blocks.(i) <- CompleteBlock;
-                    t.t_verified_bitmap.[i] <- '2';
-                    
-                    t.t_ncomplete_blocks <- t.t_ncomplete_blocks + 1;
-                    t.t_downloaded <- 
-                      t.t_downloaded ++ (block_end -- block_begin)
-                  end
-                else
-                let b = new_block t i in
-                set_present_block b chunk_begin chunk_end
-            | PartialBlock b ->
-                set_present_block b chunk_begin chunk_end
-            | _ -> ()
-        ) chunks;
-        recompute_downloaded ()
+    
+    let set_present t chunks = 
+      apply_intervals t (fun i block_begin block_end chunk_begin chunk_end ->
+          match t.t_blocks.(i) with
+            EmptyBlock ->
+              if block_begin >= chunk_begin && block_end <= chunk_end then
+                begin
+                  t.t_blocks.(i) <- CompleteBlock;
+                  must_verify_block t i false;
+                  t.t_downloaded <- 
+                    t.t_downloaded ++ (block_end -- block_begin)
+                end
+              else
+              let b = new_block t i in
+              set_present_block b chunk_begin chunk_end
+          | PartialBlock b ->
+              set_present_block b chunk_begin chunk_end
+          | _ -> ()
+      ) chunks;
+      recompute_downloaded ()
 
 (*************************************************************************)
 (*                                                                       *)
 (*                         end_present (internal)                        *)
 (*                                                                       *)
 (*************************************************************************)
-      
-      let rec end_present present begin_present end_file list =
-        match list with
-          [] ->
-            let present = 
-              if begin_present = end_file then present else
-                (begin_present, end_file) :: present
-            in
-            List.rev present
-        | (begin_absent, end_absent) :: tail ->
-            let present = 
-              if begin_present = begin_absent then present
-              else (begin_present, begin_absent) :: present
-            in
-            end_present present end_absent end_file tail
+    
+    let rec end_present present begin_present end_file list =
+      match list with
+        [] ->
+          let present = 
+            if begin_present = end_file then present else
+              (begin_present, end_file) :: present
+          in
+          List.rev present
+      | (begin_absent, end_absent) :: tail ->
+          let present = 
+            if begin_present = begin_absent then present
+            else (begin_present, begin_absent) :: present
+          in
+          end_present present end_absent end_file tail
 
 (*************************************************************************)
 (*                                                                       *)
 (*                         set_absent                                    *)
 (*                                                                       *)
 (*************************************************************************)
-      
-      let set_absent t list = 
+    
+    let set_absent t list = 
 (* reverse absent/present in the list and call set_present *)
-        let list = 
-          match list with [] -> [ Int64.zero, t.t_size ]
-          | (t1,t2) :: tail ->
-              if t1 = zero then
-                end_present [] t2 t.t_size tail
-              else
-                end_present [zero, t1] t2 t.t_size tail
-        in
-        set_present t list
+      let list = 
+        match list with [] -> [ Int64.zero, t.t_size ]
+        | (t1,t2) :: tail ->
+            if t1 = zero then
+              end_present [] t2 t.t_size tail
+            else
+              end_present [zero, t1] t2 t.t_size tail
+      in
+      set_present t list
 
 (*************************************************************************)
 (*                                                                       *)
 (*                         update_uploader_chunks (internal)             *)
 (*                                                                       *)
 (*************************************************************************) 
-      
-      let update_uploader_chunks up chunks =
-        if not up.up_declared then
-          let t = up.up_t in
+    
+    let update_uploader_chunks up chunks =
+      if not up.up_declared then
+        let t = up.up_t in
 
 (* INVARIANT: complete_blocks must be in reverse order *)
+        
+        let complete_blocks = ref [] in
+        let partial_blocks = ref [] in
+        
+        begin
+          match chunks with
+            AvailableRanges chunks ->
+              
+              apply_intervals t (fun i block_begin block_end 
+                    chunk_begin chunk_end ->
+                  t.t_availability.(i) <- t.t_availability.(i) + 1;
+                  
+                  match t.t_blocks.(i) with
+                    CompleteBlock | VerifiedBlock -> ()
+                  | _ ->
+                      if block_begin = chunk_begin && block_end = chunk_end then
+                        complete_blocks := i :: !complete_blocks
+                      else
+                        partial_blocks := 
+                        (i, chunk_begin, chunk_end) :: !partial_blocks
+              ) chunks;
           
-          let complete_blocks = ref [] in
-          let partial_blocks = ref [] in
-          
-          begin
-            match chunks with
-              AvailableRanges chunks ->
-                
-                apply_intervals t (fun i block_begin block_end 
-                      chunk_begin chunk_end ->
+          | AvailableCharBitmap string ->
+              for i = 0 to String.length string - 1 do
+                if string.[i] = '1' then begin
                     t.t_availability.(i) <- t.t_availability.(i) + 1;
-                    
-                    match t.t_blocks.(i) with
-                      CompleteBlock | VerifiedBlock -> ()
-                    | _ ->
-                        if block_begin = chunk_begin && block_end = chunk_end then
-                          complete_blocks := i :: !complete_blocks
-                        else
-                          partial_blocks := 
-                          (i, chunk_begin, chunk_end) :: !partial_blocks
-                ) chunks;
-            
-            | AvailableCharBitmap string ->
-                for i = 0 to String.length string - 1 do
-                  if string.[i] = '1' then begin
-                      t.t_availability.(i) <- t.t_availability.(i) + 1;
-                      complete_blocks := i :: !complete_blocks
-                    end
-                done;
-            | AvailableBoolBitmap bitmap ->
-                for i = 0 to Array.length bitmap - 1 do
-                  if bitmap.(i) then begin
-                      t.t_availability.(i) <- t.t_availability.(i) + 1;
-                      complete_blocks := i :: !complete_blocks
-                    end
-                done;
-          end;
-          
-          List.iter (fun i ->
-              t.t_last_seen.(i) <- BasicSocket.last_time ()
-          ) !complete_blocks;
-          
-          let complete_blocks = Array.of_list !complete_blocks in
-          let partial_blocks = Array.of_list !partial_blocks in
-          up.up_chunks <- chunks;
-          
-          up.up_complete_blocks <- complete_blocks;
-          up.up_ncomplete <- Array.length complete_blocks;
-          up.up_partial_blocks <- partial_blocks;
-          up.up_npartial <- Array.length partial_blocks;
-          
-          up.up_block <- None;
-          up.up_block_begin <- zero;
-          up.up_block_end <- zero;
-          
-          up.up_declared <- true;
-          
-          if debug_all then print_uploader up
-            
+                    complete_blocks := i :: !complete_blocks
+                  end
+              done;
+          | AvailableBoolBitmap bitmap ->
+              for i = 0 to Array.length bitmap - 1 do
+                if bitmap.(i) then begin
+                    t.t_availability.(i) <- t.t_availability.(i) + 1;
+                    complete_blocks := i :: !complete_blocks
+                  end
+              done;
+        end;
+        
+        List.iter (fun i ->
+            t.t_last_seen.(i) <- BasicSocket.last_time ()
+        ) !complete_blocks;
+        
+        let complete_blocks = Array.of_list !complete_blocks in
+        let partial_blocks = Array.of_list !partial_blocks in
+        up.up_chunks <- chunks;
+        
+        up.up_complete_blocks <- complete_blocks;
+        up.up_ncomplete <- Array.length complete_blocks;
+        up.up_partial_blocks <- partial_blocks;
+        up.up_npartial <- Array.length partial_blocks;
+        
+        up.up_block <- None;
+        up.up_block_begin <- zero;
+        up.up_block_end <- zero;
+        
+        up.up_declared <- true;
+        
+        if debug_all then print_uploader up
+
 (*************************************************************************)
 (*                                                                       *)
 (*                         clean_uploader_chunks (internal)              *)
 (*                                                                       *)
 (*************************************************************************) 
+    
+    
+    let clean_uploader_chunks up = 
       
-      
-      let clean_uploader_chunks up = 
+      if up.up_declared then 
         
-        if up.up_declared then 
-          
-          let decr_availability t i =
-            t.t_availability.(i) <- t.t_availability.(i) - 1
-          in
+        let decr_availability t i =
+          t.t_availability.(i) <- t.t_availability.(i) - 1
+        in
 (*          lprintf "clean_uploader_chunks:\n"; *)
-          
-          let t = up.up_t in
-          for i = 0 to Array.length up.up_complete_blocks - 1 do
+        
+        let t = up.up_t in
+        for i = 0 to Array.length up.up_complete_blocks - 1 do
 (*            lprintf "decr_availability complete[%d] %d\n" i
               up.up_complete_blocks.(i); *)
-            decr_availability t up.up_complete_blocks.(i)
-          done;
-          for i = 0 to Array.length up.up_partial_blocks - 1 do
-            let b,_,_ = up.up_partial_blocks.(i) in
+          decr_availability t up.up_complete_blocks.(i)
+        done;
+        for i = 0 to Array.length up.up_partial_blocks - 1 do
+          let b,_,_ = up.up_partial_blocks.(i) in
 (*            lprintf "decr_availability partial[%d] %d\n" i b; *)
-            decr_availability t b
-          done;
-          (match up.up_block with
-              None -> ()
-            | Some b ->
-                let num = b.block_num in
-                t.t_nuploading.(num) <- t.t_nuploading.(num) - 1);
-          up.up_declared <- false
-          
+          decr_availability t b
+        done;
+        clear_uploader_block up;
+        up.up_declared <- false
+
 (*************************************************************************)
 (*                                                                       *)
 (*                         register_uploader                             *)
 (*                                                                       *)
 (*************************************************************************) 
+    
+    let register_uploader t client chunks =
       
-      let register_uploader t client chunks =
-        
-        let up =
-          {
-            up_t = t;
-            up_client = client;
-            
-            up_declared = false;
-            up_chunks = chunks;
-            
-            up_complete_blocks = [||];
-            up_ncomplete = 0;
-            
-            up_partial_blocks = [||];
-            up_npartial = 0;
-            
-            up_block = None;
-            up_block_begin = zero;
-            up_block_end = zero;
-            up_ranges = [];
-          }
-        in
-        update_uploader_chunks up chunks;
-        up
+      let up =
+        {
+          up_t = t;
+          up_client = client;
+          
+          up_declared = false;
+          up_chunks = chunks;
+          
+          up_complete_blocks = [||];
+          up_ncomplete = 0;
+          
+          up_partial_blocks = [||];
+          up_npartial = 0;
+          
+          up_block = None;
+          up_block_begin = zero;
+          up_block_end = zero;
+          up_ranges = [];
+        }
+      in
+      update_uploader_chunks up chunks;
+      up
 
 (*************************************************************************)
 (*                                                                       *)
 (*                         unregister_uploader                           *)
 (*                                                                       *)
 (*************************************************************************) 
-      
-      let disconnect_uploader up = 
-        clean_uploader_chunks up;
-        List.iter (fun r ->
-            r.range_nuploading <- r.range_nuploading - 1
-        ) up.up_ranges;
-        up.up_block <- None;
-        up.up_ranges <- []
+    
+    let unregister_uploader up = 
+      clean_uploader_chunks up;
+      clear_uploader_block up;
+      clear_uploader_ranges up
 
 (*************************************************************************)
 (*                                                                       *)
 (*                         update_uploader                               *)
 (*                                                                       *)
 (*************************************************************************) 
+    
+    let update_uploader up chunks = 
       
-      let update_uploader up chunks = 
-        
-        clean_uploader_chunks up;
-        update_uploader_chunks up chunks
+      clean_uploader_chunks up;
+      update_uploader_chunks up chunks
 
 (*************************************************************************)
 (*                                                                       *)
 (*                         print_uploaders                               *)
 (*                                                                       *)
 (*************************************************************************)
-      
-      let print_uploaders t =
-        let nblocks = Array.length t.t_blocks in
-        for i = 0 to nblocks - 1 do
-          
-          match t.t_blocks.(i) with
-            EmptyBlock -> lprintf "_"
-          | CompleteBlock -> lprintf "C"
-          | VerifiedBlock -> lprintf "V"
-          | PartialBlock b ->
-              if t.t_nuploading.(i) > 9 then
-                lprintf "X"
-              else
-                lprintf "%d" t.t_nuploading.(i)
-        done;
-        lprintf "\n";
-        for i = 0 to nblocks - 1 do
-          
-          match t.t_blocks.(i) with
-            EmptyBlock -> lprintf "_"
-          | CompleteBlock -> lprintf "C"
-          | VerifiedBlock -> lprintf "V"
-          | PartialBlock b ->
-              lprintf "{%d : %d=" b.block_num 
-                t.t_nuploading.(b.block_num);
-              
-              let rec iter_range r =
-                lprintf "(%d)" r.range_nuploading;
-                match r.range_next with
-                  None -> ()
-                | Some rr -> iter_range rr
-              in
-              iter_range b.block_ranges;
-              lprintf " }";
+    
+    let print_uploaders t =
+      let nblocks = Array.length t.t_blocks in
+      for i = 0 to nblocks - 1 do
         
-        done;
-        lprintf "\n"
+        match t.t_blocks.(i) with
+          EmptyBlock -> lprintf "_"
+        | CompleteBlock -> lprintf "C"
+        | VerifiedBlock -> lprintf "V"
+        | PartialBlock b ->
+            if t.t_nuploading.(i) > 9 then
+              lprintf "X"
+            else
+              lprintf "%d" t.t_nuploading.(i)
+      done;
+      lprintf "\n";
+      for i = 0 to nblocks - 1 do
+        
+        match t.t_blocks.(i) with
+          EmptyBlock -> lprintf "_"
+        | CompleteBlock -> lprintf "C"
+        | VerifiedBlock -> lprintf "V"
+        | PartialBlock b ->
+            lprintf "{%d : %d=" b.block_num 
+              t.t_nuploading.(b.block_num);
+            
+            let rec iter_range r =
+              lprintf "(%d)" r.range_nuploading;
+              match r.range_next with
+                None -> ()
+              | Some rr -> iter_range rr
+            in
+            iter_range b.block_ranges;
+            lprintf " }";
+      
+      done;
+      lprintf "\n"
 
 (*************************************************************************)
 (*                                                                       *)
 (*                         permute_and_return (internal)                 *)
 (*                                                                       *)
 (*************************************************************************)
-      
-      let max_clients_per_block = 3
-      
-      let permute_and_return up n =
-        let b = up.up_complete_blocks.(n) in
-        if debug_all then lprintf "permute_and_return %d <> %d" n b;
-        up.up_complete_blocks.(n) <- up.up_complete_blocks.(up.up_ncomplete-1);
-        up.up_complete_blocks.(up.up_ncomplete-1) <- b;
-        up.up_ncomplete <- up.up_ncomplete - 1;
-        let t = up.up_t in
-        match t.t_blocks.(b) with
-          EmptyBlock -> 
-            let b = new_block t b in
-            b, b.block_begin, b.block_end
-        | PartialBlock b -> 
-            b, b.block_begin, b.block_end
-        | _ -> assert false
+    
+    let max_clients_per_block = 3
+    
+    let permute_and_return up n =
+      let b = up.up_complete_blocks.(n) in
+      if debug_all then lprintf "permute_and_return %d <> %d" n b;
+      up.up_complete_blocks.(n) <- up.up_complete_blocks.(up.up_ncomplete-1);
+      up.up_complete_blocks.(up.up_ncomplete-1) <- b;
+      up.up_ncomplete <- up.up_ncomplete - 1;
+      let t = up.up_t in
+      match t.t_blocks.(b) with
+        EmptyBlock -> 
+          let b = new_block t b in
+          b, b.block_begin, b.block_end
+      | PartialBlock b -> 
+          b, b.block_begin, b.block_end
+      | _ -> assert false
 
 (*************************************************************************)
 (*                                                                       *)
 (*                         LinearStrategy.select_block (internal)            *)
 (*                                                                       *)
 (*************************************************************************)
-      
-      module LinearStrategy = struct
-          let select_block  up =
-            let rec iter_complete up =
-              let n = up.up_ncomplete in
-              if n = 0 then iter_partial up
-              else
-              let b = up.up_complete_blocks.(n-1) in
-              up.up_ncomplete <- n-1;
-              let t = up.up_t in
-              match t.t_blocks.(b) with
-                CompleteBlock | VerifiedBlock -> 
-                  iter_complete up
-              | PartialBlock b -> 
-                  b, b.block_begin, b.block_end
-              | EmptyBlock ->
-                  let b = new_block t b in
-                  b, b.block_begin, b.block_end
-            
-            and iter_partial up =
-              let n = up.up_npartial in
-              if n = 0 then raise Not_found;
-              let t = up.up_t in
-              let b, block_begin, block_end = up.up_partial_blocks.(n-1) in
-              let t = up.up_t in
-              match t.t_blocks.(b) with
-                CompleteBlock | VerifiedBlock -> 
-                  iter_partial up
-              | PartialBlock b -> 
-                  b, block_begin, block_end
-              | EmptyBlock ->
-                  let b = new_block t b in
-                  b, block_begin, block_end
-            in
-            iter_complete up
-        end
+    
+    module LinearStrategy = struct
+        let select_block  up =
+          let rec iter_complete up =
+            let n = up.up_ncomplete in
+            if n = 0 then iter_partial up
+            else
+            let b = up.up_complete_blocks.(n-1) in
+            up.up_ncomplete <- n-1;
+            let t = up.up_t in
+            match t.t_blocks.(b) with
+              CompleteBlock | VerifiedBlock -> 
+                iter_complete up
+            | PartialBlock b -> 
+                b, b.block_begin, b.block_end
+            | EmptyBlock ->
+                let b = new_block t b in
+                b, b.block_begin, b.block_end
+          
+          and iter_partial up =
+            let n = up.up_npartial in
+            if n = 0 then raise Not_found;
+            let t = up.up_t in
+            let b, block_begin, block_end = up.up_partial_blocks.(n-1) in
+            let t = up.up_t in
+            match t.t_blocks.(b) with
+              CompleteBlock | VerifiedBlock -> 
+                iter_partial up
+            | PartialBlock b -> 
+                b, block_begin, block_end
+            | EmptyBlock ->
+                let b = new_block t b in
+                b, block_begin, block_end
+          in
+          iter_complete up
+      end
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         should_download_block (internal)              *)
+(*                                                                       *)
+(*************************************************************************)
+    
+    let should_download_block t n =
+      match t.t_verified_bitmap.[n] with
+        '2' ->
+          begin
+            try
+              verify_block t n;
+              t.t_verified_bitmap.[n] < '2'            
+            with VerifierNotReady -> false
+          end
+      | '0' | '1' -> true
+      | _ -> false
 
 (*************************************************************************)
 (*                                                                       *)
 (*                         select_block (internal)                       *)
 (*                                                                       *)
 (*************************************************************************)
-      
-      exception BlockFound of int
-      
-      let random_int max = 
-        let x = Random.int max in
-        if debug_all then lprintf "(Random %d -> %d)" max x;
-        x
-      
-      let select_block up =
-        let t = up.up_t in
-        match t.t_strategy with
-          LinearStrategy ->
-            LinearStrategy.select_block up
-        | _ -> 
-            if up.up_ncomplete = 0 && up.up_npartial = 0 then raise Not_found;
+    
+    exception BlockFound of int
+    
+    let random_int max = 
+      let x = Random.int max in
+      if debug_all then lprintf "(Random %d -> %d)" max x;
+      x
+    
+    let select_block up =
+      let t = up.up_t in
+      match t.t_strategy with
+        LinearStrategy ->
+          LinearStrategy.select_block up
+      | _ -> 
+          if up.up_ncomplete = 0 && up.up_npartial = 0 then raise Not_found;
 
 (**************
 
@@ -1017,511 +1009,570 @@ better work at the beginning if the first incomplete blocks are offered
     to several clients.
 
 ***************)
-            
-            
-            
-            if up.up_ncomplete > 1 then begin
+          
+          
+          
+          if up.up_ncomplete > 1 then begin
+              
+              try
                 
-                try
-                  
-                  let rec iter_max_uploaders max_nuploaders =
-                    let t = up.up_t in
-                    let nblocks = Array.length t.t_blocks in
+                let rec iter_max_uploaders max_nuploaders =
+                  let t = up.up_t in
+                  let nblocks = Array.length t.t_blocks in
 
 (*************   Try to download the movie index and the first minute to
    allow preview of the file as soon as possible *)
-                    
-                    if debug_all then lprintf "{First}";
-                    
-                    let download_first n b =
-                      if 
-                        up.up_complete_blocks.(n) = b &&
-                        t.t_nuploading.(nblocks - 1) < max_nuploaders &&
-                        t.t_verified_bitmap.[nblocks - 1] < '2' then
-                        raise (BlockFound n)
-                    in
+                  
+                  if debug_all then lprintf "{First}";
+                  
+                  let download_first n b =
+                    if 
+                      up.up_complete_blocks.(n) = b &&
+                      t.t_nuploading.(nblocks - 1) < max_nuploaders &&
+                      should_download_block t (nblocks-1) then
+                      raise (BlockFound n)
+                  in
 
 (* This must be the position of the last block of the file *)
-                    download_first 0 (nblocks-1);
+                  download_first 0 (nblocks-1);
 
 (* This can be the position of the first block of the file *)
-                    download_first (up.up_ncomplete-1) 0;
+                  download_first (up.up_ncomplete-1) 0;
 
 (* This can be the position of the first block of the file *)
-                    download_first 0 0;
+                  download_first 0 0;
 
 (* These can be the positions of the second block of the file *)
-                    download_first 0 1;
-                    download_first (up.up_ncomplete-1) 1;
-                    download_first (up.up_ncomplete-2) 1;
+                  download_first 0 1;
+                  download_first (up.up_ncomplete-1) 1;
+                  download_first (up.up_ncomplete-2) 1;
 
 (************* If the file can be verified, and we don't have a lot of blocks
     yet, try to download the partial ones as soon as possible *)
-                    
-                    if debug_all then lprintf "{Partial}";
-                    
-                    let download_partial max_uploaders =
-                      let partial_block = ref (-1) in
-                      let partial_remaining = ref zero in
-                      for i = 0 to up.up_ncomplete - 1 do
-                        let n = up.up_complete_blocks.(i) in
-                        match t.t_blocks.(n) with
-                          PartialBlock b ->
-                            if (!partial_block = -1 ||
-                                !partial_remaining > b.block_remaining) &&
-                              t.t_nuploading.(n) < max_uploaders
-                            then
-                              begin
-                                partial_block := i;
-                                partial_remaining := b.block_remaining
-                              end                          
-                        | _ -> ()
-                      done;
-                      if !partial_block <> -1 then
-                        raise (BlockFound !partial_block)
-                    in
-                    
-                    if t.t_verifier <> None &&
-                      t.t_nverified_blocks + t.t_ncomplete_blocks < 2  then begin
-                        download_partial max_nuploaders;
-                      end;
+                  
+                  if debug_all then lprintf "{Partial}";
+                  
+                  let download_partial max_uploaders =
+                    let partial_block = ref (-1) in
+                    let partial_remaining = ref zero in
+                    for i = 0 to up.up_ncomplete - 1 do
+                      let n = up.up_complete_blocks.(i) in
+                      match t.t_blocks.(n) with
+                        PartialBlock b ->
+                          if (!partial_block = -1 ||
+                              !partial_remaining > b.block_remaining) &&
+                            t.t_nuploading.(n) < max_uploaders
+                          then
+                            begin
+                              partial_block := i;
+                              partial_remaining := b.block_remaining
+                            end                          
+                      | _ -> ()
+                    done;
+                    if !partial_block <> -1 then
+                      raise (BlockFound !partial_block)
+                  in
+                  
+                  if t.t_verifier <> None &&
+                    t.t_nverified_blocks + t.t_ncomplete_blocks < 2  then begin
+                      download_partial max_nuploaders;
+                    end;
 
 (************* Download rarest first only if other blocks are much more
   available *)
-                    
-                    if debug_all then lprintf "{Rarest}";
-                    
-                    let sum_availability = ref 0 in
-                    let min_availability = ref max_int in
+                  
+                  if debug_all then lprintf "{Rarest}";
+                  
+                  let sum_availability = ref 0 in
+                  let min_availability = ref max_int in
+                  for i = 0 to up.up_ncomplete - 1 do
+                    let n = up.up_complete_blocks.(i) in
+                    sum_availability := !sum_availability +
+                      t.t_availability.(n);
+                    min_availability := min !min_availability 
+                      t.t_availability.(n);
+                  done;
+                  
+                  let mean_availability = 
+                    !sum_availability / up.up_ncomplete in
+                  
+                  if mean_availability > 5 && !min_availability < 3 then
                     for i = 0 to up.up_ncomplete - 1 do
                       let n = up.up_complete_blocks.(i) in
-                      sum_availability := !sum_availability +
-                        t.t_availability.(n);
-                      min_availability := min !min_availability 
-                        t.t_availability.(n);
+                      if t.t_availability.(n) < 3 
+                          && should_download_block t n
+                      then
+                        raise (BlockFound i)
                     done;
-                    
-                    let mean_availability = 
-                      !sum_availability / up.up_ncomplete in
-                    
-                    if mean_availability > 5 && !min_availability < 3 then
-                      for i = 0 to up.up_ncomplete - 1 do
-                        let n = up.up_complete_blocks.(i) in
-                        if t.t_availability.(n) < 3 
-                            && t.t_verified_bitmap.[n] < '2'
-                        then
-                          raise (BlockFound i)
-                      done;
 
 (************* Otherwise, download in random order *)
-                    
-                    if debug_all then lprintf "{Random}";
-                    let find_random max_uploaders =
-                      let list = ref [] in
-                      if debug_all then lprintf " {NC: %d}" up.up_ncomplete;
-                      for i = 0 to up.up_ncomplete - 1 do
-                        let n = up.up_complete_blocks.(i) in
-                        if t.t_nuploading.(n) < max_uploaders
-                            && t.t_verified_bitmap.[n] < '2'
-                        then
-                          list := i :: !list
-                      done;
-                      match !list with
-                        [] -> ()
-                      | [i] -> raise (BlockFound i)
-                      | list ->
-                          let array = Array.of_list list in
-                          raise (BlockFound (array.(
-                                random_int (Array.length array))))
-                    in
-                    
-                    find_random max_nuploaders
+                  
+                  if debug_all then lprintf "{Random}";
+                  let find_random max_uploaders =
+                    let list = ref [] in
+                    if debug_all then lprintf " {NC: %d}" up.up_ncomplete;
+                    for i = 0 to up.up_ncomplete - 1 do
+                      let n = up.up_complete_blocks.(i) in
+                      if t.t_nuploading.(n) < max_uploaders
+                          && should_download_block t n
+                      then
+                        list := i :: !list
+                    done;
+                    match !list with
+                      [] -> ()
+                    | [i] -> raise (BlockFound i)
+                    | list ->
+                        let array = Array.of_list list in
+                        raise (BlockFound (array.(
+                              random_int (Array.length array))))
+                  in
+                  
+                  find_random max_nuploaders
 
 (************* Fall back on linear download if nothing worked *)
-                  
-                  in
-                  iter_max_uploaders 1;
-                  iter_max_uploaders max_clients_per_block;
-                  iter_max_uploaders max_int;
-                  raise Not_found
-                with 
-                  BlockFound n ->
-                    permute_and_return up n
-              end else
-              LinearStrategy.select_block up
+                
+                in
+                iter_max_uploaders 1;
+                iter_max_uploaders max_clients_per_block;
+                iter_max_uploaders max_int;
+                raise Not_found
+              with 
+                BlockFound n ->
+                  permute_and_return up n
+            end else
+            LinearStrategy.select_block up
 
 (*************************************************************************)
 (*                                                                       *)
 (*                         find_block                                    *)
 (*                                                                       *)
 (*************************************************************************)
-      
-      let find_block up =
-        try      
-          if debug_all then begin
-              lprintf "C: ";
-              for i = 0 to up.up_ncomplete - 1 do
-                lprintf "%d " up.up_complete_blocks.(i)
-              done;
-            end;
-          
-          let t = up.up_t in
-          (match up.up_block with
-              None -> ()
-            | Some b ->
-                let num = b.block_num in
-                t.t_nuploading.(num) <- t.t_nuploading.(num) - 1;            
-          );
-          let (b,block_begin,block_end) as result = select_block up in
-          let num = b.block_num in
-          t.t_nuploading.(num) <- t.t_nuploading.(num) + 1;
-          up.up_block <- Some b;
-          up.up_block_begin <- block_begin;
-          up.up_block_end <- block_end;
-          if debug_all then lprintf " = %d \n" num;
-          b
-        with e ->
-            if debug_all then lprintf "Exception %s\n" (Printexc2.to_string e);
-            raise e
+    
+    let find_block up =
+      try      
+        if debug_all then begin
+            lprintf "C: ";
+            for i = 0 to up.up_ncomplete - 1 do
+              lprintf "%d " up.up_complete_blocks.(i)
+            done;
+          end;
+        
+        let t = up.up_t in
+        match file_state t.t_file with
+        | FilePaused 
+        | FileAborted _ 
+        | FileCancelled -> raise Not_found
+        | _ -> 
+            
+            
+            (match up.up_block with
+                None -> ()
+              | Some b ->
+                  let num = b.block_num in
+                  t.t_nuploading.(num) <- t.t_nuploading.(num) - 1;
+                  up.up_block <- None;
+            );
+            
+            let (b,block_begin,block_end) as result = select_block up in
+            let num = b.block_num in
+            t.t_nuploading.(num) <- t.t_nuploading.(num) + 1;
+            up.up_block <- Some b;
+            up.up_block_begin <- block_begin;
+            up.up_block_end <- block_end;
+            if debug_all then lprintf " = %d \n" num;
+            b
+      with e ->
+          if debug_all then lprintf "Exception %s\n" (Printexc2.to_string e);
+          raise e
 
 (*************************************************************************)
 (*                                                                       *)
 (*                         clean_ranges (internal)                       *)
 (*                                                                       *)
 (*************************************************************************)
+    
+    let clean_ranges up =
       
-      let clean_ranges up =
-        
-        let rec iter list left =
-          match list with
-            [] -> List.rev left
-          | r :: tail ->
-              iter tail
-                (if r.range_current_begin < r.range_end then r :: left
-                else begin
-                    r.range_nuploading <- r.range_nuploading - 1;
-                    left
-                  end)
-        in
-        up.up_ranges <- iter up.up_ranges []
+      let rec iter list left =
+        match list with
+          [] -> List.rev left
+        | ((_,_,r) as rr) :: tail ->
+            iter tail
+              (if r.range_current_begin < r.range_end then rr :: left
+              else begin
+                  r.range_nuploading <- r.range_nuploading - 1;
+                  left
+                end)
+      in
+      up.up_ranges <- iter up.up_ranges []
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         current_ranges                                *)
+(*                                                                       *)
+(*************************************************************************)
+    
+    let current_ranges up =  up.up_ranges
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         current_block                                 *)
+(*                                                                       *)
+(*************************************************************************)
+    
+    let current_block up =  
+      match up.up_block with
+        None -> raise Not_found
+      | Some b -> b
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         in_uploader_ranges                            *)
+(*                                                                       *)
+(*************************************************************************)
+    
+    let rec in_uploader_ranges r list =
+      match list with
+        [] -> false
+      | (_,_,r') :: tail when r' == r -> true
+      | _ :: tail -> in_uploader_ranges r tail
 
 (*************************************************************************)
 (*                                                                       *)
 (*                         find_range                                    *)
 (*                                                                       *)
 (*************************************************************************)
+    
+    let find_range up =
+      clean_ranges up;
       
-      let find_range up =
-        clean_ranges up;
-        
-        let b =
-          match up.up_block with
-            None -> raise Not_found
-          | Some b -> b
-        in
-        let r = b.block_ranges in
-        
-        let rec iter limit r =
+      let b =
+        match up.up_block with
+          None -> raise Not_found
+        | Some b -> b
+      in
+      let r = b.block_ranges in
+      
+      let t = up.up_t in
+      
+      match file_state t.t_file with
+      | FilePaused 
+      | FileAborted _ 
+      | FileCancelled -> raise Not_found
+      | _ -> 
+          
+          let rec iter limit r =
 
 (* let use a very stupid heuristics: ask for the first non-used range.
 we thus might put a lot of clients on the same range !
 *)
-          
-          if not (List.memq r up.up_ranges) &&
-            r.range_current_begin < r.range_end &&
-            r.range_current_begin >= up.up_block_begin &&
-            r.range_end <= up.up_block_end &&
-            r.range_nuploading < limit
-          then begin
-              up.up_ranges <- up.up_ranges @ [r];
-              r.range_nuploading <- r.range_nuploading + 1;
-              if r.range_current_begin = r.range_end then
-                lprintf "CS error: range is empty <<<<<<<<<<<--------- error\n";
-              r
-            end else
-          match r.range_next with
-            None -> raise Not_found
-          | Some rr -> iter limit rr          
-        in
-        try
+            
+            if not (in_uploader_ranges r up.up_ranges) &&
+              r.range_current_begin < r.range_end &&
+              r.range_current_begin >= up.up_block_begin &&
+              r.range_end <= up.up_block_end &&
+              r.range_nuploading < limit
+            then begin
+                let key = r.range_current_begin, r.range_end, r in
+                up.up_ranges <- up.up_ranges @ [key];
+                r.range_nuploading <- r.range_nuploading + 1;
+                if r.range_current_begin = r.range_end then
+                  lprintf "CS error: range is empty <<<<<<<<<<<--------- error\n";
+                key
+              end else
+            match r.range_next with
+              None -> raise Not_found
+            | Some rr -> iter limit rr          
+          in
+          try
 (* first try to find ranges with 0 uploaders *)
-          iter 1 r
-        with Not_found ->
-            try
+            iter 1 r
+          with Not_found ->
+              try
 (* try normal ranges *)
-              iter max_clients_per_block r
-            with Not_found ->
+                iter max_clients_per_block r
+              with Not_found ->
 (* force maximal uploading otherwise to finish it *)
-                iter max_int r 
+                  iter max_int r 
 
 (*************************************************************************)
 (*                                                                       *)
 (*                         range_range                                   *)
 (*                                                                       *)
 (*************************************************************************)
-      
-      let range_range r = (r.range_current_begin, r.range_end)
+    
+    let range_range r = (r.range_current_begin, r.range_end)
 
 (*************************************************************************)
 (*                                                                       *)
 (*                         received                                      *)
 (*                                                                       *)
 (*************************************************************************)
+    
+    let received (up : uploader) (file_begin : Int64.t)
+      (s:string) (string_begin:int) (string_len:int) =
       
-      let received (up : uploader) (file_begin : Int64.t)
-        (s:string) (string_begin:int) (string_len:int) =
+      if string_len > 0 then
+        let file_end = file_begin ++ (Int64.of_int string_len) in
         
-        if string_len > 0 then
-          let file_end = file_begin ++ (Int64.of_int string_len) in
-          
-          if !verbose_swarming then
-            lprintf "received on %s-%s\n" 
-              (Int64.to_string file_begin)
-            (Int64.to_string file_end);
-          
-          List.iter (fun r ->
-              if r.range_current_begin < file_end &&
-                r.range_end > file_begin then begin
-                  
-                  let new_current_begin = min file_end r.range_end in
-                  let written_len = new_current_begin -- r.range_current_begin in
-                  
-                  let t = up.up_t in
-                  
-                  t.t_write r.range_current_begin s
-                    (string_begin + 
-                      Int64.to_int (r.range_current_begin -- file_begin))
-                  (Int64.to_int written_len);
-                  
-                  range_received r r.range_current_begin file_end;
+        if !verbose_swarming then
+          lprintf "received on %s-%s\n" 
+            (Int64.to_string file_begin)
+          (Int64.to_string file_end);
+
+(* TODO: check that everything we received has been required *)
+        
+        List.iter (fun (_,_,r) ->
+            if r.range_current_begin < file_end &&
+              r.range_end > file_begin then begin
                 
-                end
-          ) up.up_ranges
+                let new_current_begin = min file_end r.range_end in
+                let written_len = new_current_begin -- r.range_current_begin in
+                
+                let t = up.up_t in
+                
+                begin
+                  match file_state t.t_file with
+                  | FilePaused 
+                  | FileAborted _ 
+                  | FileCancelled -> ()
+                  | _ -> 
+                      
+                      t.t_write r.range_current_begin s
+                        (string_begin + 
+                          Int64.to_int (r.range_current_begin -- file_begin))
+                      (Int64.to_int written_len);
+                end;
+                range_received r r.range_current_begin file_end;
+              
+              end
+        ) up.up_ranges;
+        clean_ranges up
 
 (*************************************************************************)
 (*                                                                       *)
 (*                         present_chunks                                *)
 (*                                                                       *)
 (*************************************************************************)
+    
+    let present_chunks t =
+      let nblocks = Array.length t.t_blocks in
       
-      let present_chunks t =
-        let nblocks = Array.length t.t_blocks in
+      let rec iter_block_out i block_begin list = 
+        if debug_present_chunks then
+          lprintf "iter_block_out %d bb: %s\n"
+            i
+            (Int64.to_string block_begin); 
         
-        let rec iter_block_out i block_begin list = 
-          if debug_present_chunks then
-            lprintf "iter_block_out %d bb: %s\n"
-              i
-              (Int64.to_string block_begin); 
-          
-          let block_end = block_begin ++ t.t_block_size in
-          let block_end = min block_end t.t_size in
-          if i = nblocks then List.rev list else
-          match t.t_blocks.(i) with
-            EmptyBlock ->
-              iter_block_out (i+1) block_end list
-          | CompleteBlock | VerifiedBlock ->
-              let block_begin = t.t_block_size ** i in
-              iter_block_in (i+1) block_end block_begin list
-          | PartialBlock b ->
-              iter_range_out i block_end block_begin b.block_ranges  list
-        
-        and iter_block_in i block_begin chunk_begin list =
-          if debug_present_chunks then
-            lprintf "iter_block_in %d bb: %s cb:%s \n"
-              i
-              (Int64.to_string block_begin) 
-            (Int64.to_string chunk_begin) 
-            ; 
-          
-          let block_end = block_begin ++ t.t_block_size in
-          let block_end = min block_end t.t_size in
-          if i = nblocks then 
-            let list = (chunk_begin, t.t_size) :: list in
-            List.rev list
-          else
-          match t.t_blocks.(i) with
-            EmptyBlock ->
-              iter_block_out (i+1) block_end ( (chunk_begin, block_begin) :: list)
-          | CompleteBlock | VerifiedBlock ->
-              iter_block_in (i+1) block_end chunk_begin list
-          | PartialBlock b ->
-              iter_range_in i block_end 
-                chunk_begin block_begin b.block_ranges list
-        
-        and iter_range_out i block_end block_begin r list =
-          if debug_present_chunks then
-            lprintf "iter_range_out %d nb: %s bb:%s\n"
-              i
-              (Int64.to_string block_end) 
+        let block_end = block_begin ++ t.t_block_size in
+        let block_end = min block_end t.t_size in
+        if i = nblocks then List.rev list else
+        match t.t_blocks.(i) with
+          EmptyBlock ->
+            iter_block_out (i+1) block_end list
+        | CompleteBlock | VerifiedBlock ->
+            let block_begin = t.t_block_size ** i in
+            iter_block_in (i+1) block_end block_begin list
+        | PartialBlock b ->
+            iter_range_out i block_end block_begin b.block_ranges  list
+      
+      and iter_block_in i block_begin chunk_begin list =
+        if debug_present_chunks then
+          lprintf "iter_block_in %d bb: %s cb:%s \n"
+            i
             (Int64.to_string block_begin) 
-            ; 
-          
-          if r.range_begin > block_begin then
-            iter_range_in i block_end block_begin r.range_begin r list
-          else
-          
-          if r.range_current_begin > block_begin then begin
-              if r.range_current_begin < r.range_end then
-                let list = (r.range_begin, r.range_current_begin) :: list in
-                match r.range_next with
-                  None ->
-                    iter_block_out (i+1) block_end list
-                | Some rr ->
-                    iter_range_out i block_end r.range_end rr list              
-              else
+          (Int64.to_string chunk_begin) 
+          ; 
+        
+        let block_end = block_begin ++ t.t_block_size in
+        let block_end = min block_end t.t_size in
+        if i = nblocks then 
+          let list = (chunk_begin, t.t_size) :: list in
+          List.rev list
+        else
+        match t.t_blocks.(i) with
+          EmptyBlock ->
+            iter_block_out (i+1) block_end ( (chunk_begin, block_begin) :: list)
+        | CompleteBlock | VerifiedBlock ->
+            iter_block_in (i+1) block_end chunk_begin list
+        | PartialBlock b ->
+            iter_range_in i block_end 
+              chunk_begin block_begin b.block_ranges list
+      
+      and iter_range_out i block_end block_begin r list =
+        if debug_present_chunks then
+          lprintf "iter_range_out %d nb: %s bb:%s\n"
+            i
+            (Int64.to_string block_end) 
+          (Int64.to_string block_begin) 
+          ; 
+        
+        if r.range_begin > block_begin then
+          iter_range_in i block_end block_begin r.range_begin r list
+        else
+        
+        if r.range_current_begin > block_begin then begin
+            if r.range_current_begin < r.range_end then
+              let list = (r.range_begin, r.range_current_begin) :: list in
               match r.range_next with
                 None ->
-                  iter_block_in (i+1) block_end r.range_begin list
+                  iter_block_out (i+1) block_end list
               | Some rr ->
-                  iter_range_in i block_end
-                    r.range_begin r.range_end rr list                
-            end else
+                  iter_range_out i block_end r.range_end rr list              
+            else
+            match r.range_next with
+              None ->
+                iter_block_in (i+1) block_end r.range_begin list
+            | Some rr ->
+                iter_range_in i block_end
+                  r.range_begin r.range_end rr list                
+          end else
+        match r.range_next with
+          None ->
+            iter_block_out (i+1) block_end list
+        | Some rr ->
+            iter_range_out i block_end r.range_end rr list
+      
+      
+      and iter_range_in i block_end chunk_begin chunk_end r list =
+        if debug_present_chunks then
+          lprintf "iter_range_in %d bn: %s cb:%s ce: %s\n"
+            i
+            (Int64.to_string block_end) 
+          (Int64.to_string chunk_begin) 
+          (Int64.to_string chunk_end) ; 
+        
+        if r.range_current_begin < r.range_end then
+          let list = (chunk_begin, r.range_current_begin) :: list in
           match r.range_next with
             None ->
               iter_block_out (i+1) block_end list
           | Some rr ->
               iter_range_out i block_end r.range_end rr list
-        
-        
-        and iter_range_in i block_end chunk_begin chunk_end r list =
-          if debug_present_chunks then
-            lprintf "iter_range_in %d bn: %s cb:%s ce: %s\n"
-              i
-              (Int64.to_string block_end) 
-            (Int64.to_string chunk_begin) 
-            (Int64.to_string chunk_end) ; 
-          
-          if r.range_current_begin < r.range_end then
-            let list = (chunk_begin, r.range_current_begin) :: list in
-            match r.range_next with
-              None ->
-                iter_block_out (i+1) block_end list
-            | Some rr ->
-                iter_range_out i block_end r.range_end rr list
-          else
-          match r.range_next with
-            None ->
-              iter_block_in (i+1) block_end chunk_begin list
-          | Some rr ->
-              iter_range_in i block_end chunk_begin r.range_end rr list
-        in
-        iter_block_out 0 zero []
-        
+        else
+        match r.range_next with
+          None ->
+            iter_block_in (i+1) block_end chunk_begin list
+        | Some rr ->
+            iter_range_in i block_end chunk_begin r.range_end rr list
+      in
+      iter_block_out 0 zero []
+
 (*************************************************************************)
 (*                                                                       *)
 (*                         set_downloaded_block                          *)
 (*                                                                       *)
 (*************************************************************************)
+    
+    let set_downloaded_block t i =
+      match t.t_blocks.(i) with
+        EmptyBlock ->
+          let block_begin = t.t_block_size ** i in
+          let block_end = min (block_begin ++ t.t_block_size) t.t_size in
+          t.t_downloaded <- t.t_downloaded ++ (block_end -- block_begin)
+      | PartialBlock b ->
+          let rec iter r =
+            t.t_downloaded <- t.t_downloaded ++ 
+              (r.range_end -- r.range_current_begin);
+            r.range_current_begin <- r.range_end;
+            match r.range_next with
+              None -> r.range_prev <- None; r
+            | Some rr -> 
+                r.range_prev <- None;
+                r.range_next <- None;
+                iter rr
+          in
+          b.block_ranges <- iter b.block_ranges
+      | _ -> ()
 
-      let set_downloaded_block t i =
-        match t.t_blocks.(i) with
-          EmptyBlock ->
-            let block_begin = t.t_block_size ** i in
-            let block_end = min (block_begin ++ t.t_block_size) t.t_size in
-            t.t_downloaded <- t.t_downloaded ++ (block_end -- block_begin)
-        | PartialBlock b ->
-            let rec iter r =
-              t.t_downloaded <- t.t_downloaded ++ 
-                (r.range_end -- r.range_current_begin);
-              r.range_current_begin <- r.range_end;
-              match r.range_next with
-                None -> r.range_prev <- None; r
-              | Some rr -> 
-                  r.range_prev <- None;
-                  r.range_next <- None;
-                  iter rr
-            in
-            b.block_ranges <- iter b.block_ranges
-        | _ -> ()
-            
 (*************************************************************************)
 (*                                                                       *)
 (*                         set_verified_bitmap                           *)
 (*                                                                       *)
 (*************************************************************************)
+    
+    let set_verified_bitmap t bitmap =
+      t.t_verified_bitmap <- bitmap;
       
-      let set_verified_bitmap t bitmap =
-        t.t_verified_bitmap <- bitmap;
-        
-        for i = 0 to String.length bitmap - 1 do
-          match t.t_blocks.(i) with
-            VerifiedBlock -> ()
-          | CompleteBlock when bitmap.[i] = '3' ->
-              t.t_nverified_blocks <- t.t_nverified_blocks + 1;
-              t.t_blocks.(i) <- VerifiedBlock
-          | EmptyBlock | PartialBlock _ when bitmap.[i] = '3' ->
-              t.t_ncomplete_blocks <- t.t_ncomplete_blocks + 1;
-              t.t_nverified_blocks <- t.t_nverified_blocks + 1;
-              set_downloaded_block t i;
-              t.t_blocks.(i) <- VerifiedBlock
-          | EmptyBlock | PartialBlock _ when bitmap.[i] = '2' ->
-              t.t_ncomplete_blocks <- t.t_ncomplete_blocks + 1;
-              set_downloaded_block t i;
-              t.t_blocks.(i) <- CompleteBlock;
-              verify_block t i
-          | _ -> ()
-        done;
-        recompute_downloaded t
+      for i = 0 to String.length bitmap - 1 do
+        match t.t_blocks.(i) with
+          VerifiedBlock -> ()
+        | CompleteBlock when bitmap.[i] = '3' ->
+            t.t_nverified_blocks <- t.t_nverified_blocks + 1;
+            t.t_blocks.(i) <- VerifiedBlock
+        | EmptyBlock | PartialBlock _ when bitmap.[i] = '3' ->
+            t.t_ncomplete_blocks <- t.t_ncomplete_blocks + 1;
+            t.t_nverified_blocks <- t.t_nverified_blocks + 1;
+            set_downloaded_block t i;
+            t.t_blocks.(i) <- VerifiedBlock
+        | EmptyBlock | PartialBlock _ when bitmap.[i] = '2' ->
+            t.t_ncomplete_blocks <- t.t_ncomplete_blocks + 1;
+            set_downloaded_block t i;
+            t.t_blocks.(i) <- CompleteBlock;
+            verify_block t i
+        | _ -> ()
+      done;
+      recompute_downloaded t
 
 (*************************************************************************)
 (*                                                                       *)
 (*                         verified_bitmap                               *)
 (*                                                                       *)
 (*************************************************************************)
-      
-      let verified_bitmap t = t.t_verified_bitmap
+    
+    let verified_bitmap t = t.t_verified_bitmap
 
 (*************************************************************************)
 (*                                                                       *)
 (*                         set_verifier                                  *)
 (*                                                                       *)
 (*************************************************************************)
-      
-      let set_verifier t f = 
-        t.t_verifier <- Some f;
-        set_verified_bitmap t t.t_verified_bitmap
+    
+    let set_verifier t f = 
+      t.t_verifier <- Some f;
+      set_verified_bitmap t t.t_verified_bitmap
 
 (*************************************************************************)
 (*                                                                       *)
 (*                         downloaded                                    *)
 (*                                                                       *)
 (*************************************************************************)
-      
-      let downloaded t = t.t_downloaded
+    
+    let downloaded t = t.t_downloaded
 
 (*************************************************************************)
 (*                                                                       *)
 (*                         block_block                                   *)
 (*                                                                       *)
 (*************************************************************************)
-      
-      let block_block b = b.block_num, b.block_begin, b.block_end
+    
+    let block_block b = b.block_num, b.block_begin, b.block_end
 
 (*************************************************************************)
 (*                                                                       *)
 (*                         partition_size                                *)
 (*                                                                       *)
 (*************************************************************************)
-      
-      let partition_size t = Array.length t.t_blocks
+    
+    let partition_size t = Array.length t.t_blocks
+    
+    let uploader_swarmer up = up.up_t
 
-      let uploader_swarmer up = up.up_t
-        
 (*************************************************************************)
 (*                                                                       *)
 (*                         availability                                  *)
 (*                                                                       *)
 (*************************************************************************)
-      
-      let availability t =
-        let len = Array.length t.t_blocks in
-        let s = String.make len '\000' in
-        for i = 0 to len - 1 do
-          s.[i] <- char_of_int (
-            if t.t_availability.(i) < 0 then 0 else
-            if t.t_availability.(i) > 200 then 200 else t.t_availability.(i));
-        done;
-        s
+    
+    let availability t =
+      let len = Array.length t.t_blocks in
+      let s = String.make len '\000' in
+      for i = 0 to len - 1 do
+        s.[i] <- char_of_int (
+          if t.t_availability.(i) < 0 then 0 else
+          if t.t_availability.(i) > 200 then 200 else t.t_availability.(i));
+      done;
+      s
 
 (*************************************************************************)
 (*                                                                       *)
@@ -1537,66 +1588,82 @@ we thus might put a lot of clients on the same range !
                        p1 : 01230123
            is_interesting : 00001110
 *)
-      
-      let is_interesting up =
-        up.up_ncomplete > 0 || up.up_npartial > 0
+    
+    let is_interesting up =
+      up.up_ncomplete > 0 || up.up_npartial > 0
 
-        
+
 (*************************************************************************)
 (*                                                                       *)
 (*                         value_to_int64_pair (internal)                *)
 (*                                                                       *)
 (*************************************************************************)
-      
-      let value_to_int64_pair v =
-        match v with
-          List [v1;v2] | SmallList [v1;v2] ->
-            (value_to_int64 v1, value_to_int64 v2)
-        | _ -> 
-            failwith "Options: Not an int32 pair"
+    
+    let value_to_int64_pair v =
+      match v with
+        List [v1;v2] | SmallList [v1;v2] ->
+          (value_to_int64 v1, value_to_int64 v2)
+      | _ -> 
+          failwith "Options: Not an int32 pair"
 
 (*************************************************************************)
 (*                                                                       *)
 (*                         value_to_swarmer                              *)
 (*                                                                       *)
 (*************************************************************************)
+    
+    let value_to_swarmer t assocs = 
+      let get_value name conv = conv (List.assoc name assocs) in
       
-      let value_to_swarmer t assocs = 
-        let get_value name conv = conv (List.assoc name assocs) in
-
-        lprintf "Setting bitmap\n";
-        (try
-            
-            let set_bitmap =
-              let mtime = Unix32.mtime64 (file_fd t.t_file) in
-              let old_mtime = 
-                try 
-                  value_to_float (List.assoc "file_mtime" assocs) 
-                with Not_found -> mtime
-              in
-              old_mtime = mtime
+      lprintf "Setting bitmap\n";
+      (try
+          
+          let set_bitmap =
+            let mtime = Unix32.mtime64 (file_fd t.t_file) in
+            let old_mtime = 
+              try 
+                value_to_float (List.assoc "file_mtime" assocs) 
+              with Not_found -> mtime
             in
-            
+            old_mtime = mtime
+          in
+ 
+          try
             set_verified_bitmap t
               (get_value  "file_chunks" value_to_string)
-          with e -> 
-              lprintf "Exception %s while loading bitmap\n"
-                (Printexc2.to_string e); 
-        );
-        
-        lprintf "Loading present...\n";
-        (try 
-            set_present t 
-              (get_value "file_present_chunks" 
-                (value_to_list value_to_int64_pair));
-          with e ->
-              lprintf "Exception %s while set present\n"
-                (Printexc2.to_string e);         
-        );
-        lprintf "Downloaded after present %Ld\n" (downloaded t);
-        
-        ()      
-
+          with Not_found ->
+            set_verified_bitmap t
+              (get_value  "file_all_chunks" value_to_string)
+              
+        with e -> 
+            lprintf "Exception %s while loading bitmap\n"
+              (Printexc2.to_string e); 
+      );
+      
+      lprintf "Loading present...\n";
+      (try 
+          set_present t 
+            (get_value "file_present_chunks" 
+              (value_to_list value_to_int64_pair));
+        with e ->
+            lprintf "Exception %s while set present\n"
+              (Printexc2.to_string e);         
+      );
+      lprintf "Downloaded after present %Ld\n" (downloaded t);
+      
+      lprintf "Loading absent...\n";
+      (try 
+          set_absent t 
+            (get_value "file_absent_chunks" 
+              (value_to_list value_to_int64_pair));
+        with e ->
+            lprintf "Exception %s while set absent\n"
+              (Printexc2.to_string e);         
+      );
+      lprintf "Downloaded after absent %Ld\n" (downloaded t);
+      
+      ()      
+      
 (*************************************************************************)
 (*                                                                       *)
 (*                         swarmer_to_value                              *)
@@ -1611,8 +1678,23 @@ we thus might put a lot of clients on the same range !
                 SmallList [int64_to_value i1; int64_to_value i2])
             (present_chunks t))) ::
         other_vals
-        
-  end : Swarmer)
+      
+(*************************************************************************)
+(*                                                                       *)
+(*                         verify_one_block                              *)
+(*                                                                       *)
+(*************************************************************************)
+
+    let verify_one_block t =
+      let bitmap = t.t_verified_bitmap in
+      for i = 0 to String.length bitmap do
+        if bitmap.[i] = '2' then begin
+            verify_block t i;
+            raise Exit
+          end
+      done
+      
+  end 
 
 (*
 (*************************************************************************)

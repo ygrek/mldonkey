@@ -329,15 +329,20 @@ let handlers info gconn =
           
 (*          dump (String.sub b.buf b.pos (min b.len 100)); *)
           let slen = get_int8 b.buf b.pos in
-          if slen + 49 <= b.len then
+	  let peer_id = ref Sha1.null in
+          if slen + 29 <= b.len then
             let proto = String.sub b.buf (b.pos+1) slen in
             let file_id = Sha1.direct_of_string 
                 (String.sub  b.buf (b.pos+9+slen) 20) in
-            let peer_id = Sha1.direct_of_string 
-                (String.sub  b.buf (b.pos+29+slen) 20) in
+	      if slen + 49 <= b.len then
+		peer_id := Sha1.direct_of_string 
+		  (String.sub  b.buf (b.pos+29+slen) 20);
             let proto,pos = get_string8 b.buf b.pos in
-            buf_used b (slen+49);
-            h gconn sock (proto, file_id, peer_id);
+	      if slen + 49 <= b.len then
+		buf_used b (slen+49)
+	      else 
+		buf_used b (slen+29);
+            h gconn sock (proto, file_id, !peer_id);
             if not (TcpBufferedSocket.closed sock) then 
               iter_read sock 0
 

@@ -78,7 +78,7 @@ let filters = define_option donkey_section ["filters"]
     string_list_option ""
 
 let max_allowed_connected_servers () = 
-  BasicSocket.mini 3 !!max_connected_servers
+  BasicSocket.mini 5 !!max_connected_servers
 
 (*  
 let local_index_find_cmd = define_expert_option donkey_section 

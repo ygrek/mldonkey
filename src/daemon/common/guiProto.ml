@@ -28,7 +28,8 @@ type gift_command =
 let gui_extension_poll = 1
 let to_gui_last_opcode = 57
 let from_gui_last_opcode = 63
-
+let best_gui_version = 26
+  
 type from_gui =
 (* These two messages are protocol independant: they MUST be sent to
   establish the connection. *)
@@ -87,7 +88,6 @@ type from_gui =
 | GetDownloadedFiles
 | MessageToClient of int * string
 | SetRoomState of int * room_state
-
   
 (* New messages from protocol 4  *)
 | RefreshUploadStats
@@ -122,7 +122,7 @@ the messages (it will use the version specified in CoreProtocol instead
   
 type to_gui =
 (* This message is the first message sent by the core *)
-| CoreProtocol of int
+| CoreProtocol of int * int * int
   
 | Options_info of Options.option_info list (*  options *)
 | DefineSearches of (string * CommonTypes.query_entry) list

@@ -31,6 +31,8 @@ open AnyEndian
 open LittleEndian
 open TcpBufferedSocket
 
+exception FromGuiMessageNotImplemented
+  
 (*
 gui_cut_messages is a reader for TcpBufferedSocket.t that will cut the stream
   in GUI messages, and call f on each message.
@@ -389,6 +391,8 @@ let get_file proto s pos =
 *)
   
   {
+    file_fields = Fields_file_info.all;
+    
     file_comment = comment;
     file_num = num;
     file_network = net;
@@ -973,7 +977,7 @@ let from_gui (proto : int array) opcode s =
         
     | _ -> 
         lprintf "FROM GUI:Unknown message %d\n" opcode; 
-        raise Not_found
+        raise FromGuiMessageNotImplemented
   
   
   with e ->
@@ -1008,7 +1012,15 @@ let to_gui (proto : int array) opcode s =
     
 (*    lprintf "TO GUI: Opcode %d\n" opcode; *)
     match opcode with
-    | 0 -> CoreProtocol (get_int s 2)
+    | 0 ->
+        let version = get_int s 2 in
+        let (max_to_gui, max_from_gui) =
+          if String.length s > 10 then
+            get_int s 6, get_int s 10
+          else
+            57, 62
+        in
+        CoreProtocol (version, max_to_gui, max_from_gui)
     
     | 1 ->
         let list, pos = get_list (fun s pos ->

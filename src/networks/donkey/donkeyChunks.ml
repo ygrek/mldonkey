@@ -19,6 +19,12 @@
 
 open Printf2  
 open Md4
+open Options
+open Int64ops
+  
+open BasicSocket
+open TcpBufferedSocket
+  
 open CommonSearch
 open CommonGlobals
 open CommonComplexOptions
@@ -26,17 +32,18 @@ open CommonFile
 open CommonClient
 open CommonComplexOptions
 open CommonTypes
-open Options
-open BasicSocket
-open TcpBufferedSocket
+open CommonOptions
+open CommonSwarming
+  
+
 open DonkeyMftp
 open DonkeyImport
 open DonkeyProtoCom
 open DonkeyTypes
 open DonkeyOptions
-open CommonOptions
 open DonkeyGlobals          
-  
+
+  (*
 let chunk_pos i =
   Int64.mul (Int64.of_int i)  block_size
 
@@ -187,48 +194,54 @@ let compute_size file =
         (file_best_name file);
       end;
     file_must_update file
-  
+      *)  
+
 let verify_chunks file =
-  lprintf "Start verifying\n";
-  if file.file_md4s <> [] then
-    for i = 0 to file.file_nchunks - 1 do
-      let b = file.file_chunks.(i)  in
-      match b with
-        PresentVerified | AbsentVerified | PartialVerified _ ->
-          ()
-      | _ ->
-          let state = verify_chunk file i in
-          file.file_chunks.(i) <- (
-            if state = PresentVerified then begin
-                lprintf "(PRESENT VERIFIED)\n";
-                PresentVerified
-              end
-            else
-            match b with
-              PartialTemp bloc -> PartialVerified bloc
-            | PresentTemp ->
-                file.file_file.impl_file_downloaded <- 
-                  Int64.sub (file_downloaded file) block_size;
-                
-                if file_downloaded file > file_size file then begin
-                    lprintf "******* downloaded %Ld > %Ld size after verify_chunks ***** for %s\n"
-                      (file_downloaded file)
-                    (file_size file)
-                    (file_best_name file);
-                  end;
-                
-                lprintf "(CORRUPTION FOUND)\n";
-                file_must_update file;
-                AbsentVerified
-              | _ -> AbsentVerified);
+  match file.file_swarmer with
+    None -> failwith "verify_chunks: no swarmer to verify chunks"
+  | Some swarmer ->
+      if file.file_md4s <> [||] then
+        Int64Swarmer.verify_all_blocks swarmer true
+
+        (*
+        let b = file.file_chunks.(i)  in
+          match b with
+            PresentVerified | AbsentVerified | PartialVerified _ ->
+              ()
+          | _ ->
+              let state = verify_chunk file i in
+              file.file_chunks.(i) <- (
+                if state = PresentVerified then begin
+                    lprintf "(PRESENT VERIFIED)\n";
+                    PresentVerified
+                  end
+                else
+                match b with
+                  PartialTemp bloc -> PartialVerified bloc
+                | PresentTemp ->
+                    file.file_file.impl_file_downloaded <- 
+                      Int64.sub (file_downloaded file) block_size;
+                    
+                    if file_downloaded file > file_size file then begin
+                        lprintf "******* downloaded %Ld > %Ld size after verify_chunks ***** for %s\n"
+                          (file_downloaded file)
+                        (file_size file)
+                        (file_best_name file);
+                      end;
+                    
+                    lprintf "(CORRUPTION FOUND)\n";
+                    file_must_update file;
+                    AbsentVerified
+                | _ -> AbsentVerified);
 (*            file.file_all_chunks.[i] <- 
               (if state = PresentVerified then '1' else '0'); *)
-    
-    done;
-  lprintf "Done verifying\n";
-  file.file_absent_chunks <- List.rev (find_absents file);
-  compute_size file
-
+        
+        done;
+      lprintf "Done verifying\n";
+      file.file_absent_chunks <- List.rev (find_absents file);
+      compute_size file
+*)
+        
 (*************************************************************
 
    Save the files containing chunks identified by
@@ -255,19 +268,15 @@ let register_md4 i md4 (begin_pos : int64) (len : int64) file =
       
 let register_md4s md4s file_num file_size = 
   
-  let len = List.length md4s in
-  let rec iter md4s i chunk_pos =
-    match md4s with
-      [] -> ()
-    | md4 :: tail ->
-        let chunk_end = Int64.add chunk_pos block_size in
-        let chunk_size = if chunk_end > file_size then
-            Int64.sub file_size chunk_pos else block_size in
-        register_md4 i md4 chunk_pos chunk_size file_num;
-        iter tail (i+1) chunk_end
-  in
-  iter md4s 0 Int64.zero
-
+  for i = 0 to Array.length md4s - 1 do
+    let md4 = md4s.(i) in
+    let chunk_pos = block_size *.. i in
+    let chunk_end = Int64.add chunk_pos block_size in
+    let chunk_size = if chunk_end > file_size then
+        Int64.sub file_size chunk_pos else block_size in
+    register_md4 i md4 chunk_pos chunk_size file_num;
+  done
+  
   (*
 let copy_chunk other_file file chunk_pos chunk_size =
   lprintf "Copying chunk\n";
@@ -300,70 +309,72 @@ let copy_chunk other_file file chunk_pos chunk_size =
   with _ -> Unix.close file_in; raise Exit
         *)
 
+
+(*
+We should extend this mechanism between networks: 
+* For each download, we can associate several UIDs, and several checksums
+    types.
+* Then, we can copy chunks between two files sharing a given UID, or between
+    two files with the same checksum for the same block.
+  *)
+
 let duplicate_chunks () =
-    
   List.iter (fun file ->
       register_md4s file.file_md4s file (file_size file))
   !file_md4s_to_register;
   file_md4s_to_register := [];
-
+  
   let modified_files = ref [] in
   
   List.iter (fun file ->
-      
-      let md4s = file.file_md4s in
-      let file_size = file_size file in
-      let file_num = file_num file in
-      let len = List.length md4s in
-      let rec iter md4s i chunk_pos =
-        match md4s with
-          [] -> ()
-        | md4 :: tail ->
+      match file.file_swarmer with
+        None -> ()
+      | Some swarmer ->
+          let bitmap = Int64Swarmer.verified_bitmap swarmer in
+          
+          let md4s = file.file_md4s in
+          let file_size = file_size file in
+          let file_num = file_num file in
+          for i = 0 to Array.length file.file_md4s - 1 do
+            let chunk_pos = block_size *.. i in
+            let md4 = file.file_md4s.(i) in
             let chunk_end = Int64.add chunk_pos block_size in
             let chunk_size = if chunk_end > file_size then
                 Int64.sub file_size chunk_pos else block_size in
             
             (try
-                match file.file_chunks.(i) with
-                  PresentVerified | PresentTemp -> ()
-                | _ ->
-                    
+                if bitmap.[i] < '3' then
 (* Try to find a file where this chunk is already present *)
-                    let files = Hashtbl.find md4_table 
-                        (md4, i, chunk_pos, chunk_size)
-                    in
-                    List.iter (fun other_file ->
-                        match other_file.file_chunks.(i) with
-                          PresentVerified ->
-                            lprintf "Should copy chunk %d [%Ld:%Ld] from %s to %s\n" i chunk_pos chunk_size
-                              (file_best_name other_file) (file_best_name file);
-
-                            if not (List.memq file !modified_files) then
-                              modified_files := file :: !modified_files;
-                            
-                            Unix32.copy_chunk 
-                              (file_fd other_file) 
-                            (file_fd file) 
-                            chunk_pos chunk_pos 
-                            (Int64.to_int chunk_size);
-
-                            chunk_present file i;
-                            file_must_update file;
-                            raise Exit
-                        | _ -> ()
-                    ) !files
+                  let files = Hashtbl.find md4_table 
+                      (md4, i, chunk_pos, chunk_size)
+                  in
+                  List.iter (fun other_file ->
+                      match other_file.file_swarmer with
+                        None -> ()
+                      | Some other_swarmer ->
+                          let other_bitmap = Int64Swarmer.verified_bitmap 
+                              other_swarmer in
+                          if other_bitmap.[i] = '3' then
+                            begin
+                              lprintf "Should copy chunk %d [%Ld:%Ld] from %s to %s\n" i chunk_pos chunk_size
+                                (file_best_name other_file) (file_best_name file);
+                              
+                              if not (List.memq file !modified_files) then
+                                modified_files := file :: !modified_files;
+                              
+                              Unix32.copy_chunk 
+                                (file_fd other_file) 
+                              (file_fd file) 
+                              chunk_pos chunk_pos 
+                                (Int64.to_int chunk_size);
+                              
+                              Int64Swarmer.must_verify_block swarmer i true;
+                              raise Exit
+                            end
+                  ) !files
               with _ -> ()
             );
-            
-            iter tail (i+1) chunk_end
-      in
-      iter md4s 0 Int64.zero;
-  ) !current_files;
-
-(* Recompute the size of the files where we have duplicated chunks *)
-  
-  List.iter (fun file ->
-      file.file_absent_chunks <- List.rev (find_absents file);
-      compute_size file      
-  ) !modified_files
+          done;    
+  ) !current_files
+        
   

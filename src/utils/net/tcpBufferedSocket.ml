@@ -275,6 +275,11 @@ let accept_connection_bandwidth rc wc =
 (*                                                                       *)
 (*************************************************************************)
 
+let copy_read_buffer = ref true
+  
+let big_buffer_len = 65536
+let big_buffer = String.create big_buffer_len
+  
 let min_buffer_read = 2000
 let min_read_size = min_buffer_read - 100
 
@@ -517,52 +522,58 @@ let can_read_handler t sock max_len =
   let b = t.rbuf in
   let curpos = b.pos + b.len in
 (*  lprintf "curpos %d/%d\n" curpos b.len; *)
-  let can_read =
-    if b.buf = "" then 
-      if b.min_buf_size <= min_buffer_read then begin
-          b.buf <- new_string ();
-          min_buffer_read
-        end else begin
-          b.buf <- String.create b.min_buf_size;
-          b.min_buf_size
-        end
+  let buffer, buffer_pos, buffer_len =
+    if !copy_read_buffer then
+      big_buffer, 0, big_buffer_len
     else
-    let buf_len = String.length b.buf in
-    if buf_len - curpos < min_read_size then
-      if b.len + min_read_size > b.max_buf_size then
-        (
-          t.event_handler t BUFFER_OVERFLOW;
-          lprintf "[OVERFLOW] in %s" (info sock);
-          close t Closed_for_overflow;
-          raise exn_exit;
-          0
-        )
+    let can_write_in_buffer =
+      if b.buf = "" then 
+        if b.min_buf_size <= min_buffer_read then begin
+            b.buf <- new_string ();
+            min_buffer_read
+          end else begin
+            b.buf <- String.create b.min_buf_size;
+            b.min_buf_size
+          end
       else
-      if b.len + min_read_size < buf_len then
-        (
-          String.blit b.buf b.pos b.buf 0 b.len;
-          b.pos <- 0;
-          buf_len - b.len
-        )
+      let buf_len = String.length b.buf in
+      if buf_len - curpos < min_read_size then
+        if b.len + min_read_size > b.max_buf_size then
+          (
+            t.event_handler t BUFFER_OVERFLOW;
+            lprintf "[OVERFLOW] in %s" (info sock);
+            close t Closed_for_overflow;
+            raise exn_exit;
+            0
+          )
+        else
+        if b.len + min_read_size < buf_len then
+          (
+            String.blit b.buf b.pos b.buf 0 b.len;
+            b.pos <- 0;
+            buf_len - b.len
+          )
+        else
+        let new_len = mini
+            (maxi
+              (2 * buf_len) (b.len + min_read_size)) b.max_buf_size
+        in
+        let new_buf = String.create new_len in
+        String.blit b.buf b.pos new_buf 0 b.len;
+        b.pos <- 0;
+        b.buf <- new_buf;
+        new_len - b.len
       else
-      let new_len = mini
-          (maxi
-            (2 * buf_len) (b.len + min_read_size)) b.max_buf_size
-      in
-      let new_buf = String.create new_len in
-      String.blit b.buf b.pos new_buf 0 b.len;
-      b.pos <- 0;
-      b.buf <- new_buf;
-      new_len - b.len
-    else
-      buf_len - curpos
+        buf_len - curpos
+    in
+    b.buf, b.pos+b.len, can_write_in_buffer
   in
-  let can_read = mini max_len can_read in
+  let can_read = mini max_len buffer_len in
   if can_read > 0 then
     let nread = try
 (*        lprintf "{can read %d} --> " can_read; *)
 (*        lprintf "Unix.read %d/%d/%d\n"  (String.length b.buf) (b.pos + b.len) can_read;  *)
-        Unix.read (fd sock) b.buf (b.pos + b.len) can_read;
+        Unix.read (fd sock) buffer buffer_pos can_read;
 
 	
       with
@@ -575,15 +586,24 @@ let can_read_handler t sock max_len =
           raise e
 
     in
+    
+    if !copy_read_buffer then begin
+(*        lprintf "Copying %d bytes\n" nread; *)
+        buf_add t b big_buffer 0 nread
+      end else
+      b.len <- b.len + nread;
 (*    lprintf " %d\n" nread; *)
     b.min_buf_size <- mini b.max_buf_size (
       maxi (nread + nread / 2) min_read_size);
+
     (*
-    if nread = max_len then begin
-        lprintf "Unix.read: read limited %d\n" nread;
+    if nread = can_read then begin
+        lprintf "Unix.read: read limited: %d\n" nread;
+        lprintf "    given to handler: %d\n" max_len;
+        lprintf "    given by buffer: %d\n" buffer_len;
     end;
 *)
-
+    
     tcp_downloaded_bytes := Int64.add !tcp_downloaded_bytes (Int64.of_int nread);
     (match t.read_control with
         None -> () | Some bc ->
@@ -599,8 +619,8 @@ let can_read_handler t sock max_len =
     if nread = 0 then begin
       close t Closed_by_peer;
     end else begin
-      let curpos = b.pos in
-      b.len <- b.len + nread;
+
+      
       try
 (*              if t.monitored then
    (lprintf "event handler READ DONE\n"; ); *)
@@ -864,12 +884,12 @@ let set_refill t f =
 
 let close_after_write t =
   if t.wbuf.len = 0 then begin
-      lprintf "close_after_write: CLOSE\n";
+(*    lprintf "close_after_write: CLOSE\n";  - log output removed  *)
       shutdown t Closed_by_user
     end
   else
     set_handler t WRITE_DONE (fun t ->
-        lprintf "close_after_write: CLOSE\n";
+(*      lprintf "close_after_write: CLOSE\n";  - log output removed  *)
         shutdown t Closed_by_user)
     
 exception Http_proxy_error of string

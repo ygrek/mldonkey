@@ -204,6 +204,10 @@ and download = {
     download_uri : file_uri;
     mutable download_chunks : (int64 * int64) list;
     mutable download_uploader : Int64Swarmer.uploader option;
+    
+(* TODO: remove these two fields as they are already inside 
+Int64Swarmer.uploader. Redundant information might be a problem if
+consistency is not guaranteed. Do the same for BT *)
     mutable download_ranges : (int64 * int64 * Int64Swarmer.range) list;
     mutable download_block : Int64Swarmer.block option;
     mutable download_head : head_request;

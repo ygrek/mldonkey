@@ -20,6 +20,9 @@
 open Printf2
 open BasicSocket
 open Md4
+  
+open CommonSwarming
+  
 open CommonClient
 open CommonServer
 open CommonComplexOptions
@@ -269,6 +272,7 @@ let value_to_file file_size file_state assocs =
       Filename.concat !!temp_directory file_md4_name)
     (Md4.of_string file_md4_name) file_size true in
 
+  (*
   (try 
       if file.file_exists then begin
 (* only load absent chunks if file previously existed. *)
@@ -277,15 +281,21 @@ let value_to_file file_size file_state assocs =
             (value_to_list value_to_int32pair);
         end
     with _ -> ()                );
+*)
   
   file.file_filenames <-
     List.map (fun name -> name, GuiTypes.noips()) 
   (get_value_nil "file_filenames" (value_to_list value_to_string));
+  
+  (*
+  
   (try
       set_file_best_name (as_file file.file_file)
       (get_value "file_filename" value_to_string)
     with _ -> update_best_name file);
+*)
   
+(*
   (try
       let mtime = Unix32.mtime (file_disk_name file)  in
       let old_mtime = value_to_float (List.assoc "file_mtime" assocs) in
@@ -300,7 +310,17 @@ let value_to_file file_size file_state assocs =
       )
     with _ -> 
         lprintf "Could not load chunks states\n"; );
+*)
+  
+  (match file.file_swarmer with
+      None -> ()
+    | Some swarmer ->
+        Int64Swarmer.value_to_swarmer swarmer assocs;
+        add_file_downloaded file.file_file
+          (Int64Swarmer.downloaded swarmer);
 
+  );
+  
 (*
   List.iter (fun c ->
       DonkeyGlobals.new_source file  c;
@@ -320,12 +340,12 @@ let value_to_file file_size file_state assocs =
     then 0
     else Array2.min file.file_chunks_age);
     
-  let md4s = get_value_nil "file_md4s" (value_to_list value_to_md4) in
-  file.file_md4s <- (if md4s = [] then file.file_md4s else md4s);
+  let md4s = get_value "file_md4s" (value_to_array value_to_md4) in
+  file.file_md4s <- (if md4s = [||] then file.file_md4s else md4s);
   file_md4s_to_register := file :: !file_md4s_to_register;
-  as_file file.file_file
+  as_file file
   
-  
+(*  
 let string_of_chunks file =
   let nchunks = file.file_nchunks in
   let s = String.make nchunks '0' in
@@ -338,27 +358,36 @@ let string_of_chunks file =
     )
   done;
   s
+    *)
 
 let file_to_value file =
-  [
-    "file_md4", string_to_value (Md4.to_string file.file_md4);
-    "file_all_chunks", string_to_value (string_of_chunks file);  
-    "file_absent_chunks", List
-      (List.map (fun (i1,i2) -> 
-          SmallList [int64_to_value i1; int64_to_value i2])
-      file.file_absent_chunks);
-    "file_filenames", List
-      (List.map (fun (s,_) -> string_to_value s) file.file_filenames);
-    "file_md4s", List
-      (List.map (fun s -> string_to_value (Md4.to_string s)) 
-      file.file_md4s);
-    "file_downloaded", int64_to_value (file_downloaded file);
-    "file_chunks_age", List (Array.to_list 
-        (Array.map int_to_value file.file_chunks_age));
-    "file_mtime", float_to_value (
-      try Unix32.mtime (file_disk_name file) with _ -> 0.0)
-  ]
-  
+  let fields =
+    [
+      "file_md4", string_to_value (Md4.to_string file.file_md4);
+(*      "file_all_chunks", string_to_value (string_of_chunks file);   *)
+(*      "file_absent_chunks", List
+        (List.map (fun (i1,i2) -> 
+            SmallList [int64_to_value i1; int64_to_value i2])
+        file.file_absent_chunks); *)
+      "file_filenames", List
+        (List.map (fun (s,_) -> string_to_value s) file.file_filenames);
+      "file_md4s", array_to_value Md4.hash_to_value 
+        file.file_md4s;
+      "file_downloaded", int64_to_value (file_downloaded file);
+      "file_chunks_age", List (Array.to_list 
+          (Array.map int_to_value file.file_chunks_age));
+(*      "file_mtime", float_to_value (
+        try Unix32.mtime (file_disk_name file) with _ -> 0.0) *)
+    ]
+  in
+  let fields = 
+  match file.file_swarmer with
+    None -> fields
+  | Some swarmer ->
+      Int64Swarmer.swarmer_to_value swarmer fields
+  in
+  fields
+    
 module SharedFileOption = struct
     
     let value_to_shinfo v =
@@ -370,7 +399,7 @@ module SharedFileOption = struct
           in
           
           let sh_md4s = try
-              value_to_list (fun v ->
+              value_to_array (fun v ->
                   Md4.of_string (value_to_string v)) (List.assoc "md4s" assocs)
             with _ -> failwith "Bad shared file md4"
           in
@@ -395,8 +424,7 @@ module SharedFileOption = struct
     let shinfo_to_value sh =
       Options.Module [
         "name", filename_to_value sh.sh_name;
-        "md4s", list_to_value "Shared Md4" (fun md4 ->
-            string_to_value (Md4.to_string md4)) sh.sh_md4s;
+        "md4s", array_to_value Md4.hash_to_value sh.sh_md4s;
         "mtime", float_to_value sh.sh_mtime;
         "size", int64_to_value sh.sh_size;
       ]
@@ -666,7 +694,7 @@ let sources = define_option file_sources_section
   
       
 let load _ =
-  lprintf "LOADING SHARED FILES AND SOURCES"; lprint_newline ();
+  lprintf "LOADING SHARED FILES AND SOURCES\n"; 
   (try
       Options.load shared_files_ini;
       Options.load stats_ini;
@@ -719,7 +747,7 @@ let _ =
 let diff_time = ref 0
 
 let save _ =
-  lprintf "SAVING SHARED FILES AND SOURCES"; lprint_newline ();
+  lprintf "SAVING SHARED FILES AND SOURCES\n"; 
   Options.save_with_help shared_files_ini;
   guptime =:= !!guptime + (last_time () - start_time) - !diff_time;
   diff_time := (last_time () - start_time);
@@ -735,7 +763,7 @@ let save _ =
   save_time =:= last_time ();
   
   Options.save_with_help file_sources_ini;
-  lprintf "SAVED"; lprint_newline ();
+  lprintf "SAVED\n"; 
   sources =:= [];
   create_online_sig ()
     
@@ -751,13 +779,13 @@ let load_sources () =
   
 let _ =
   network.op_network_file_of_option <- value_to_file;
-(*  file_ops.op_file_to_option <- file_to_value; *)
+  file_ops.op_file_to_option <- file_to_value;
   
   network.op_network_server_of_option <- value_to_server;
   server_ops.op_server_to_option <- server_to_value;
   
   network.op_network_client_of_option <- (fun is_friend l ->
-      as_client (value_to_client is_friend l).client_client);
+      as_client (value_to_client is_friend l));
   client_ops.op_client_to_option <- client_to_value;
   
   network.op_network_load_complex_options <- load;

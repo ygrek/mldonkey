@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-
+exception FromGuiMessageNotImplemented
 
 val to_gui : int array -> int -> string -> GuiProto.to_gui
 val from_gui : int array -> int -> string -> GuiProto.from_gui

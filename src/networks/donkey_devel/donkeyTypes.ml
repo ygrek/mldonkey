@@ -19,7 +19,6 @@
 
 open Queues
 open Md4
-open CommonSwarming
 open CommonTypes
 
   (*
@@ -359,20 +358,18 @@ and client = {
     mutable client_sock : tcp_connection;
     mutable client_ip : Ip.t;
     mutable client_power : int ;
-    mutable client_uploader : Int64Swarmer.uploader option;
-    mutable client_block : Int64Swarmer.block option;
-    mutable client_zones : (int64 * int64 * Int64Swarmer.range) list;
+    mutable client_block : block option;
+    mutable client_zones : zone list;
     mutable client_connection_control : connection_control;
     mutable client_file_queue : (
       file * (* has displayed when connected *)
-      availability *
-      Int64Swarmer.uploader
+      availability
       ) list;
     mutable client_next_view_files :  int;
     mutable client_all_files : result list option;
     mutable client_tags: CommonTypes.tag list;
     mutable client_name : string;
-(*    mutable client_all_chunks : string; *)
+    mutable client_all_chunks : string;
     mutable client_rating : int ;
     mutable client_upload : upload_info option;
     mutable client_checked : bool;
@@ -411,8 +408,6 @@ and upload_info = {
     mutable up_chunks : (int64 * int64) list;
     mutable up_waiting : bool;
   }
-
-(*
   
 and chunk = 
   PresentTemp
@@ -439,7 +434,6 @@ and zone = {
     mutable zone_end : int64;
     mutable zone_nclients : int;
   }
-*)
   
 and source = {
     source_num : int;
@@ -481,23 +475,20 @@ and file = {
     file_file : file CommonFile.file_impl;
     file_md4 : Md4.t;
     file_exists : bool;
-    
-    mutable file_swarmer : Int64Swarmer.t option;
-    
     mutable file_nchunks : int;
-(*    mutable file_chunks : chunk array; *)
-(*    mutable file_chunks_order : int array; *)
+    mutable file_chunks : chunk array;
+    mutable file_chunks_order : int array;
     mutable file_chunks_age : int array;
 (*    mutable file_all_chunks : string; *)
-(*    mutable file_absent_chunks : (int64 * int64) list; *)
+    mutable file_absent_chunks : (int64 * int64) list;
     mutable file_filenames : (string * GuiTypes.ips_list) list;
     mutable file_nsources : int;
-    mutable file_md4s : Md4.t array;
+    mutable file_md4s : Md4.t list;
     mutable file_format : format;
-(*    mutable file_available_chunks : int array; *)
+    mutable file_available_chunks : int array;
     mutable file_shared : file CommonShared.shared_impl option;
     mutable file_locations : client Intmap.t; 
-(*    mutable file_mtime : float; *)
+    mutable file_mtime : float;
     mutable file_initialized : bool;
 (* Source management number 3 !! *)
     mutable file_clients : (client * int) Fifo.t;
@@ -537,7 +528,7 @@ exception Already_done
 
 type shared_file_info = {
     sh_name : string;
-    sh_md4s : Md4.t array;
+    sh_md4s : Md4.t list;
     sh_mtime : float;
     sh_size : int64;
   }

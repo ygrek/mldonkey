@@ -175,6 +175,20 @@ let really_query_file c file r =
           let module M = DonkeyProtoClient in
           M.QueryFileReq file.file_md4);      
         
+        DonkeyProtoCom.direct_client_send c (
+          let module M = DonkeyProtoClient in
+            M.QueryChunksReq file.file_md4); 
+	(*Ok the come back of QueryChunksReq here  :
+	  Here's the emule way of doing things :
+	  If they receive a Query for a File that they don't have
+	  they silently ignore it until they receive the 
+	  Chunk request.
+	  So without this comeback we didn't get File_not_found.
+	  We now do the exact same thing (sending nosuchfile for query
+	  chunks).
+	  NB : Old mldk clients (<2-5-[4|5] > 2-~ ) will fail 
+	  if they receive a querychunks for a file they don't share
+	*)
         r.request_time <- last_time ();
         match r.request_result with
           File_possible -> ()

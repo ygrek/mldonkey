@@ -1957,6 +1957,20 @@ let _ =
             files_to_cancel o
         | _ -> failwith "Invalid argument"
     ), " <yes|no|what>: confirm cancellation";
+
+    "test_recover", Arg_one (fun num o ->
+        
+        let num = int_of_string num in
+        let file = file_find num in
+        let segments = recover_bytes file in
+        let buf = o.conn_buf in
+        Printf.bprintf buf "Segments:\n";
+        List.iter (fun (begin_pos, end_pos) ->
+            Printf.bprintf buf "   %Ld - %Ld\n" begin_pos end_pos
+        ) segments;
+        ""
+    ), " <num> : print the segments downloaded in file";
+        
     
     "cancel", Arg_multiple (fun args o ->
         

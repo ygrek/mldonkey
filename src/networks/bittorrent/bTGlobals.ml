@@ -236,7 +236,7 @@ let new_download file_id
       
 let new_client file peer_id kind =
   try
-    let c = Hashtbl.find file.file_clients peer_id in
+    let c = Hashtbl.find file.file_clients kind in
     c.client_host <- kind;
     c
   with _ ->
@@ -280,7 +280,7 @@ let new_client file peer_id kind =
         } in
       c.client_connection_control.control_min_reask <- 120;
       new_client impl;
-      Hashtbl.add file.file_clients peer_id c;
+      Hashtbl.add file.file_clients kind c;
       file.file_clients_num <- file.file_clients_num + 1;
       file_add_source (as_file file) (as_client c);
       c
@@ -290,7 +290,7 @@ let remove_file file =
   current_files := List2.removeq file !current_files
 
 let remove_client c = 
-    Hashtbl.remove c.client_file.file_clients c.client_uid ;
+    Hashtbl.remove c.client_file.file_clients c.client_host ;
     c.client_file.file_clients_num <- c.client_file.file_clients_num  - 1;
     file_remove_source (as_file c.client_file) (as_client c)
 

@@ -719,4 +719,92 @@ let file_set_priority file p =
     end
 *)
 
+open Int64ops
 
+(* let max_recover_gap = ref (Int64.of_int 1) *)
+  
+let add_segment begin_pos end_pos segments =
+  match segments with
+    [] ->
+      (begin_pos, end_pos) :: segments
+  | (begin_pos2, end_pos2) :: tail ->
+      if end_pos2 -- begin_pos <= !!max_recover_gap then
+        (begin_pos2, end_pos) :: tail
+      else
+        (begin_pos, end_pos) :: segments
+  
+let recover_bytes file =
+  let size = file_size file in
+  let fd = file_fd file in
+  let len = 32768 in
+  let len64 = Int64.of_int len in
+  let s = String.create len in
+  let rec iter_file_out pos segments =
+    
+    if pos = size then segments else
+    
+    let max64 = min len64 (size -- pos) in
+    let max = Int64.to_int max64 in
+    if try
+        Unix32.read fd pos s 0 max;
+        true
+      with _ -> false
+    then 
+      iter_string_out (pos++max64) 0 max segments
+    else segments
+        
+  and iter_file_in pos begin_pos segments =
+    
+    if pos = size then
+      if begin_pos <> size then
+        add_segment begin_pos size segments 
+      else segments
+    else
+    
+    let max64 = min len64 (size -- pos) in
+    let max = Int64.to_int max64 in
+    if try
+        Unix32.read fd pos s 0 max;
+        true
+      with _ -> false
+    then 
+      iter_string_in (pos++max64) 0 max begin_pos segments
+    else
+    if begin_pos < pos then 
+      add_segment begin_pos pos segments
+    else segments
+  
+  and iter_string_out file_pos pos max segments =
+    
+    if pos = max then
+      iter_file_out file_pos segments
+    else
+    if s.[pos] = '\000' then
+      iter_string_out file_pos (pos+1) max segments
+    else
+    let begin_pos = file_pos -- (Int64.of_int (max - pos)) in
+(*    lprintf "  Downloaded byte at %Ld\n" begin_pos; *)
+    iter_string_in file_pos (pos+1) max file_pos  segments
+  
+  and iter_string_in file_pos pos max begin_pos segments =
+        
+    if pos = max then
+      iter_file_in file_pos begin_pos segments
+    else
+    if s.[pos] = '\000' then
+      let end_pos = file_pos -- (Int64.of_int (max - pos)) in
+(*      lprintf "  0 byte at %Ld\n" end_pos; *)
+      iter_string_out file_pos (pos+1) max 
+      (add_segment begin_pos end_pos segments)
+    else
+      iter_string_in file_pos (pos+1) max 
+        (file_pos -- (Int64.of_int (max - pos))) segments
+    
+  in
+  let segments = List.rev (iter_file_out zero []) in
+  lprintf "CommonFile.recover_bytes: recovered segments\n";
+  List.iter (fun (begin_pos, end_pos) ->
+      lprintf "   %Ld - %Ld\n" begin_pos end_pos
+  ) segments;
+  segments
+  

@@ -31,15 +31,14 @@ let dump_file filename =
   let ic = open_in filename in
   let s = String.create 20 in
   try
-    lprintf "file: %s" filename; lprint_newline ();
+    lprintf "file: %s\n" filename; 
     let pos = ref 0 in
     while true do 
       let n = input ic s 0 20 in
-      lprintf "pos = %d" !pos; lprint_newline ();
+      lprintf "pos = %d\n" !pos; 
       if n = 0 then raise Exit;
       dump (String.sub s 0 n);
       pos := !pos + n;
-      lprint_newline ();
     done
   with _ ->
       close_in ic
@@ -82,8 +81,8 @@ module Server = struct
         with e -> 
             (*
             let len = String.length s - pos in
-            lprintf "Error while reading servers %s (left %d)"
-              (Printexc2.to_string e) len; lprint_newline ();
+            lprintf "Error while reading servers %s (left %d)\n"
+              (Printexc2.to_string e) len; 
 dump (String.sub s pos len);      
   *)
             None
@@ -105,12 +104,11 @@ dump (String.sub s pos len);
       ) t
 
     let print t =
-      lprintf "SERVER.MET: %d servers" (List.length t); lprint_newline ();
+      lprintf "SERVER.MET: %d servers\n" (List.length t); 
       List.iter (fun s ->
-          lprintf "  SERVER %s:%d" (Ip.to_string s.ip) s.port;
-          lprint_newline ();
+          lprintf "  SERVER %s:%d\n" (Ip.to_string s.ip) s.port;
           print_tags s.tags;
-          lprint_newline ();
+          lprintf "\n";
       ) t;
       
   end

@@ -48,10 +48,10 @@ let when_disconnected (gui : gui) =
 
   
 let to_gui_protocol_used = Array.create (to_gui_last_opcode+1) 
-  GuiEncoding.best_gui_version
+  GuiProto.best_gui_version
 let from_gui_protocol_used = Array.create
     (from_gui_last_opcode+1) 
-  GuiEncoding.best_gui_version
+  GuiProto.best_gui_version
   
 module UseSocket = struct
   
@@ -126,6 +126,7 @@ let reconnect (gui : gui) value_reader arg reason =
               end
     );
     TcpBufferedSocket.set_max_output_buffer sock !!O.interface_buffer;
+    TcpBufferedSocket.set_max_input_buffer sock !!O.interface_buffer;
     TcpBufferedSocket.set_handler sock TcpBufferedSocket.BUFFER_OVERFLOW
     (fun _ -> 
         lprintf "BUFFER OVERFLOW\n"; 
@@ -141,7 +142,7 @@ let reconnect (gui : gui) value_reader arg reason =
               raise e
       ));
     gui#set_connect_status (M.mW_lb_connecting);
-    send (GuiProto.GuiProtocol GuiEncoding.best_gui_version)
+    send (GuiProto.GuiProtocol GuiProto.best_gui_version)
   with e ->
       lprintf "Exception %s in connecting\n" (Printexc2.to_string e);
       TcpBufferedSocket.close sock (Closed_for_exception e);
@@ -184,7 +185,7 @@ module UseFifo = struct
           );
         end;      
       gui#set_connect_status (M.mW_lb_connecting);
-      send (GuiProto.GuiProtocol GuiEncoding.best_gui_version)
+      send (GuiProto.GuiProtocol GuiProto.best_gui_version)
       
     let connected _ = true
       
@@ -223,7 +224,7 @@ let scan_ports () =
               | _ -> ()
           ) in
         GuiEncoding.gui_send (GuiEncoding.from_gui from_gui_protocol_used) sock 
-          (GuiProto.GuiProtocol GuiEncoding.best_gui_version);
+          (GuiProto.GuiProtocol GuiProto.best_gui_version);
         set_closer sock (fun _ _ -> 
             scan_port next (i+1) max);
         let proto = ref 0 in
@@ -236,14 +237,13 @@ let scan_ports () =
                   let m = GuiDecoding.to_gui to_gui_protocol_used
                       opcode s in
                   match m with
-                    CoreProtocol n -> 
-                      lprintf "GUI version %d on port %d" n i;
-                      lprint_newline ();
+                    CoreProtocol (n,_,_) -> 
+                      lprintf "GUI version %d on port %d\n" n i;
                       proto := n
                   | Network_info n ->
                       nets := n.CommonTypes.network_netname :: !nets
                   | Console m ->
-                      lprintf "GUI:\n proto %d\nnets:\n" !proto; lprint_newline ();
+                      lprintf "GUI:\n proto %d\nnets:\n" !proto; 
                       List.iter (fun n ->
                           lprintf "%s " n
                       ) !nets;

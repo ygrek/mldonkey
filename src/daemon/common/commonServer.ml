@@ -51,7 +51,7 @@ and 'a server_ops = {
 let ni n m = 
   let s = Printf.sprintf "Server.%s not implemented by %s" 
       m n.network_name in
-  lprint_string s; lprint_newline ();
+  lprintf "%s\n" s; 
   s
   
 let fni n m =  failwith (ni n m)
@@ -102,7 +102,7 @@ let _ =
   )
 
 let server_must_update s =
-(*  lprintf "server_must_update ?"; lprint_newline (); *)
+(*  lprintf "server_must_update ?\n";  *)
   let impl = as_server_impl s in
   if impl.impl_server_update <> 0 then
     CommonEvent.add_event (Server_info_event s);
@@ -114,7 +114,7 @@ let server_must_update_state s =
     begin
       impl.impl_server_update <- - impl.impl_server_update;
       CommonEvent.add_event (Server_info_event s);
-(*      lprintf "server_must_update YES"; lprint_newline (); *)
+(*      lprintf "server_must_update YES\n";  *)
     end
 
 
@@ -182,11 +182,10 @@ let new_server_ops network =
   
 
 let check_server_implementations () =
-  lprintf "\n----- Methods not implemented for CommonServer ----\n";
-  lprint_newline ();
+  lprintf "\n----- Methods not implemented for CommonServer ----\n\n";
   List.iter (fun (c, cc) ->
       let n = c.op_server_network.network_name in
-      lprintf "\n  Network %s\n" n; lprint_newline ();
+      lprintf "\n  Network %s\n\n" n; 
       if c.op_server_remove == cc.op_server_remove then 
         lprintf "op_server_remove\n";
       if c.op_server_to_option == cc.op_server_to_option then
@@ -425,6 +424,6 @@ let server_print s o =
       end;
     
   with e -> 
-      lprintf "Exception %s in CommonServer.server_print"
-        (Printexc2.to_string e); lprint_newline () 
+      lprintf "Exception %s in CommonServer.server_print\n"
+        (Printexc2.to_string e)
       

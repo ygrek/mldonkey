@@ -30,8 +30,10 @@ let bin_dir = Filename.dirname Sys.argv.(0)
   
 let home_dir = (try Sys.getenv "HOME" with _ -> ".")
 
-let config_dir_basename =
-  if Autoconf.windows then "mldonkey" else ".mldonkey"
+let hidden_dir_prefix =
+  if Autoconf.windows then "" else "."
+
+let config_dir_basename = hidden_dir_prefix ^ "mldonkey" 
   
 let config_dir = Filename.concat home_dir config_dir_basename
   
@@ -64,9 +66,8 @@ let (file_basedir, home_basedir) =
         ".", "."
         
     with e ->
-        lprintf "Exception %s trying to chroot %s"
+        lprintf "Exception %s trying to chroot %s\n"
           (Printexc2.to_string e) chroot_dir;
-        lprint_newline ();
         exit 2
   with _ ->  
       (try Sys.getenv "MLDONKEY_DIR" with _ -> 
@@ -322,7 +323,13 @@ let nolimit_ips = define_option current_section ["nolimit_ips"]
 upload/download and upload slots.  List separated by spaces, wildcard=255 
 ie: use 192.168.0.255 for 192.168.0.* "
     ip_list_option [Ip.localhost]  
-  
+
+let copy_read_buffer = define_option current_section
+    ["copy_read_buffer"]
+  "This option enables MLdonkey to always read as much data as possible
+  from a channel, but use more CPU as it must then copy the data in the
+    channel buffer."
+  bool_option true
   
   
   
@@ -525,14 +532,22 @@ let minimal_packet_size = define_expert_option current_section ["minimal_packet_
 available on the connection"
     int_option !TcpBufferedSocket.minimal_packet_size
 
-let network_update_url = define_expert_option current_section ["network_update_url"]
+let network_update_url = 
+  define_expert_option current_section ["network_update_url"]
     "URL where mldonkey can download update information on the network"
     string_option ""
-
-
+  
 let mlnet_redirector = define_expert_option current_section ["redirector"]
     "IP:port of the network redirector"
-    addr_option ("128.93.52.5", 3999)
+    addr_option ("129.104.11.42", 3999)
+
+(* The former redirector is dead, so use a new one. *)
+let _ =
+  option_hook mlnet_redirector (fun _ ->
+      let (ip, port) = !!mlnet_redirector in
+      if ip = "128.93.52.5" then 
+        mlnet_redirector =:=  ("129.104.11.42", 3999)
+  )
   
 let http_proxy_server = define_option current_section ["http_proxy_server"]
     "Direct HTTP queries to HTTP proxy" string_option ""
@@ -607,6 +622,17 @@ let max_concurrent_downloads = define_option current_section
 let delete_original = define_option current_section ["delete_original"]
   "Should MLdonkey delete the file downloaded when splitting has been succesful"
     bool_option false
+    
+let max_recover_gap = define_option current_section ["max_recover_gap"]
+  "The maximal length of zero bytes between non-zero bytes in a file that
+should be interpreted as downloaded during a recovery (0 = no recover at
+byte level, 1 is the minimum)"
+    int64_option Int64.zero
+    
+let recover_temp_on_startup = define_option current_section
+    ["recover_temp_on_startup"]
+  "Should MLdonkey try to recover downloads of files in temp/ at startup"
+    bool_option true
 
 let file_completed_cmd = define_option current_section 
     ["file_completed_cmd"] "A command that is called when a file is completely
@@ -895,6 +921,11 @@ let dp500_directory =
 let _ =
   option_hook client_bind_addr (fun _ ->
       TcpBufferedSocket.bind_address := Ip.to_inet_addr !!client_bind_addr
+  )
+
+let _ =
+  option_hook copy_read_buffer (fun _ ->
+      TcpBufferedSocket.copy_read_buffer := !!copy_read_buffer
   )
 
 
@@ -1322,7 +1353,17 @@ let _ =
   option_hook http_proxy_server proxy_update;
   option_hook http_proxy_port proxy_update;
   option_hook http_proxy_tcp http_proxy_tcp_update
-  
+
+let _ = 
+  option_hook allow_local_network (fun _ ->
+      Ip.allow_local_network := !!allow_local_network)
+
+  (*
+let _ =
+  option_hook max_recover_gap (fun _ ->
+      CommonFile.max_recover_gap := !!max_recover_gap)
+  *)
+
 (*  
     
     "Identification", "Allowed IPs", (shortname allowed_ips), "T";

@@ -296,6 +296,144 @@ let buf_kind buf k =
   | Indirect_location (name, md4) ->
       buf_int8 buf 1; buf_string buf name; buf_md4 buf md4
       
+let buf_partial_file proto buf f =
+  buf_int buf f.file_num;
+  if f.file_fields.Fields_file_info.file_network then begin
+      buf_int8 buf 1;
+      buf_int buf f.file_network;  
+    end;
+  if f.file_fields.Fields_file_info.file_names then begin
+      buf_int8 buf 2;
+      buf_list buf buf_string (List.map fst f.file_names);  
+    end;      
+  if f.file_fields.Fields_file_info.file_md4 then begin
+      buf_int8 buf 3;
+      buf_md4 buf f.file_md4;  
+    end;
+  if f.file_fields.Fields_file_info.file_size then begin
+      buf_int8 buf 4;
+      buf_int64_2 proto buf f.file_size;  
+    end;
+  if f.file_fields.Fields_file_info.file_downloaded then begin
+      buf_int8 buf 5;
+      buf_int64_2 proto buf f.file_downloaded;  
+    end;
+  if f.file_fields.Fields_file_info.file_nlocations then begin
+      buf_int8 buf 6;
+      buf_int buf f.file_nlocations;  
+    end;
+  if f.file_fields.Fields_file_info.file_nclients then begin
+      buf_int8 buf 7;
+      buf_int buf f.file_nclients;  
+    end;
+  if f.file_fields.Fields_file_info.file_state then begin
+      buf_int8 buf 8;
+      buf_file_state proto buf f.file_state;  
+    end;
+  if f.file_fields.Fields_file_info.file_chunks then begin
+      buf_int8 buf 9;
+      buf_string buf f.file_chunks;  
+    end;
+  if f.file_fields.Fields_file_info.file_availability then begin
+      buf_int8 buf 10;
+      buf_list buf (fun buf (network, avail) ->
+          buf_int buf network;
+          buf_string buf avail
+      ) f.file_availability
+    end;
+  if f.file_fields.Fields_file_info.file_download_rate then begin
+      buf_int8 buf 11;
+      buf_float buf f.file_download_rate;  
+    end;
+  if f.file_fields.Fields_file_info.file_chunks_age then begin
+      buf_int8 buf 12;
+      buf_array buf (buf_float_date proto) f.file_chunks_age;  
+    end;
+  if f.file_fields.Fields_file_info.file_age then begin
+      buf_int8 buf 13;
+      buf_float_date proto buf f.file_age;
+    end;
+  if f.file_fields.Fields_file_info.file_format then begin
+      buf_int8 buf 14;
+      buf_format buf f.file_format;
+    end;
+  if f.file_fields.Fields_file_info.file_name then begin
+      buf_int8 buf 15;
+      buf_string buf f.file_name;
+    end;
+  if f.file_fields.Fields_file_info.file_last_seen then begin
+      buf_int8 buf 16;
+      buf_int buf (compute_last_seen f.file_last_seen);
+    end;
+  if f.file_fields.Fields_file_info.file_priority then begin
+      buf_int8 buf 17;
+      buf_int buf f.file_priority;
+    end;
+  if f.file_fields.Fields_file_info.file_comment then begin
+      buf_int8 buf 18;
+      buf_string buf f.file_comment
+    end          
+      
+let buf_file_field proto buf field =
+  match field with
+  | Fields_file_info.File_network x ->
+      buf_int8 buf 1;
+      buf_int buf x
+  | Fields_file_info.File_names x ->
+      buf_int8 buf 2;
+      buf_list buf buf_string (List.map fst x);  
+  | Fields_file_info.File_md4 x ->
+      buf_int8 buf 3;
+      buf_md4 buf x
+  | Fields_file_info.File_size x ->
+      buf_int8 buf 4;
+      buf_int64_2 proto buf x
+  | Fields_file_info.File_downloaded x ->
+      buf_int8 buf 5;
+      buf_int64_2 proto buf x
+  | Fields_file_info.File_nlocations x ->
+      buf_int8 buf 6;
+      buf_int buf x
+  | Fields_file_info.File_nclients x ->
+      buf_int8 buf 7;
+      buf_int buf x
+  | Fields_file_info.File_state x ->
+      buf_int8 buf 8;
+      buf_file_state proto buf x
+  | Fields_file_info.File_chunks x ->
+      buf_int8 buf 9;
+      buf_string buf x
+  | Fields_file_info.File_availability x ->
+      buf_int8 buf 10;
+      buf_list buf (fun buf (network, avail) ->
+          buf_int buf network;
+          buf_string buf avail
+      ) x
+  | Fields_file_info.File_download_rate x ->
+      buf_int8 buf 11;
+      buf_float buf x
+  | Fields_file_info.File_chunks_age x ->
+      buf_int8 buf 12;
+      buf_array buf (buf_float_date proto) x
+  | Fields_file_info.File_age x ->
+      buf_int8 buf 13;
+      buf_float_date proto buf x
+  | Fields_file_info.File_format x ->
+      buf_int8 buf 14;
+      buf_format buf x
+  | Fields_file_info.File_name x ->
+      buf_int8 buf 15;
+      buf_string buf x
+  | Fields_file_info.File_last_seen x ->
+      buf_int8 buf 16;
+      buf_int buf (compute_last_seen x);
+  | Fields_file_info.File_priority x ->
+      buf_int8 buf 17;
+      buf_int buf x
+  | Fields_file_info.File_comment x ->
+      buf_int8 buf 18;
+      buf_string buf x
+    
 let buf_file proto buf f =
   buf_int buf f.file_num;
   buf_int buf f.file_network;  
@@ -322,7 +460,7 @@ let buf_file proto buf f =
 (* last, so that it can be safely discarded in partial implementations: *)
   buf_format buf f.file_format;
   if proto >= 8 then 
-      buf_string buf f.file_name;
+    buf_string buf f.file_name;
   if proto >= 9 then 
     let ls = compute_last_seen f.file_last_seen in
     buf_int buf ls;
@@ -445,9 +583,14 @@ let rec to_gui (proto : int array) buf t =
 (*    lprintf "TO_GUI\n"; *)
     match t with
     
-    | CoreProtocol version -> 
+    | CoreProtocol (version, max_to_gui, max_from_gui) -> 
+        let proto = proto.(0) in
         buf_int16 buf 0; 
-        buf_int buf version
+        buf_int buf version;
+        if proto > 25 then begin
+            buf_int buf max_to_gui;
+            buf_int buf max_from_gui
+          end
     
     | Options_info list -> 
         
@@ -888,8 +1031,6 @@ protocol version. Do not send them ? *)
         (Printexc2.to_string e)
         
         
-let best_gui_version = 25
-  
 (********** Some assertions *********)
   
 (*

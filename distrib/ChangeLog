@@ -1,6 +1,39 @@
 ChangeLog	
 =========
 
+ 2.5.17 is EXPERIMENTAL, as the eDonkey plugin has been modified A LOT, 
+  and some features not tested enough (recovery, copy_chunks), or
+  disabled (reliability). Avoid releasing binaries of this one.
+
+2004/03/17: Fabrice (version 2.5.17, tag release-2-5-17)
+  - TcpBufferedSocket: new option 'copy_read_buffer', every byte downloaded
+     from the network is copied twice, so more CPU used, but maybe better 
+     network performances.
+  - Donkey plugin: code clean-up to use CommonSwarming. Some features are
+     now disabled, such as "reliability" until they are implemented in
+     CommonSwarming (and so, shared by other plugins).
+
+2004/03/16: Fabrice
+  - New function 'CommonFile.recover_bytes' to recover files using non-zero
+     bytes interval written in the file. New associated option
+     'max_recover_gap' to indicate how many consecutive zeroes in
+     the file between non-zero bytes should still be considered as part of
+     a downloaded segment.
+
+2004/03/12: Fabrice
+  - IP: fixed option 'allow_local_network' 
+  - GUI protocol:
+      * New GUI protocol 26 with new format for CoreProtocol adding
+          the max known opcodes for to_gui and from_gui messages.
+      * The GUI can now receives unknown messages without breaking the
+          connection.
+
+2004/03/10: Fabrice
+  - Applied patches: #2760, #2766, #2767, #2768, #2773
+
+2004/03/09: Fabrice
+  - Applied patch backchanges.patch (HighTime) for BT plugin
+
 2004/03/07: Fabrice (version 2.5.16, tag release-2-5-16)
   - Applied patches:
         #2750 (blocking_updated2), #2753 (bug 2586)

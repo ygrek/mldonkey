@@ -109,3 +109,6 @@ val file_set_priority : CommonTypes.file -> int -> unit
 val file_debug : CommonTypes.file -> string
 val set_file_comment : CommonTypes.file -> string -> unit
 val file_comment : CommonTypes.file -> string
+  
+val recover_bytes : CommonTypes.file -> (int64 * int64) list
+  

@@ -17,12 +17,11 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open CommonSwarming
 open Md4
 
 val find_client_zone : DonkeyTypes.client -> unit
 val update_zone : DonkeyTypes.file -> 
-  int64 -> int64 -> (int64 * int64 * Int64Swarmer.range) -> unit
+  int64 -> int64 -> DonkeyTypes.zone -> unit
 val client_file : DonkeyTypes.client -> DonkeyTypes.file
 val find_client_block : DonkeyTypes.client -> unit
 val set_file_size : DonkeyTypes.file -> int64 -> unit

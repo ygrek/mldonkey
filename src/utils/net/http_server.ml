@@ -730,11 +730,11 @@ let manage config sock head =
 
   if len+clen > max_refill sock then
     TcpBufferedSocket.set_max_output_buffer sock (len + clen);
-  lprintf "HTTPSEND: [%s]\n" (String.escaped s);
+(*  lprintf "HTTPSEND: [%s]\n" (String.escaped s); - log commented out *)
   TcpBufferedSocket.write_string sock s;
     
   if request.request <> "HEAD" then begin
-      lprintf "HTTPSEND: [%s]\n" (String.escaped c);
+(*        lprintf "HTTPSEND: [%s]\n" (String.escaped c); - log commented out *)
       TcpBufferedSocket.write_string sock c;
       match request.reply_stream with
         None -> ()
@@ -749,8 +749,8 @@ let request_handler config sock nread =
   let end_pos = b.pos + b.len in
   let new_pos = end_pos - nread in
   let new_pos = maxi 0 (new_pos - 1) in
-  lprintf "received [%s]\n" (String.escaped 
-      (String.sub b.buf new_pos nread));
+(*  lprintf "received [%s]\n" (String.escaped 
+      (String.sub b.buf new_pos nread)); - log commented out *)
   let rec iter i =
     let end_pos = b.pos + b.len in
     if i < end_pos then

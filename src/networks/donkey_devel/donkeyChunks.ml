@@ -36,8 +36,7 @@ open DonkeyTypes
 open DonkeyOptions
 open CommonOptions
 open DonkeyGlobals          
-
-  (*
+  
 let chunk_pos i =
   Int64.mul (Int64.of_int i)  block_size
 
@@ -229,7 +228,6 @@ let verify_chunks file =
   lprintf "Done verifying\n";
   file.file_absent_chunks <- List.rev (find_absents file);
   compute_size file
-    *)
 
 (*************************************************************
 
@@ -303,8 +301,7 @@ let copy_chunk other_file file chunk_pos chunk_size =
         *)
 
 let duplicate_chunks () =
-
-  (*
+    
   List.iter (fun file ->
       register_md4s file.file_md4s file (file_size file))
   !file_md4s_to_register;
@@ -369,5 +366,4 @@ let duplicate_chunks () =
       file.file_absent_chunks <- List.rev (find_absents file);
       compute_size file      
   ) !modified_files
-*)
-  ()
+  

@@ -59,13 +59,10 @@ let print_string4 v s =
   lprint_newline ()
 
 let print_int32 s i=
-  lprintf "%s: %Ld" s i;
-  lprint_newline ()
+  lprintf "%s: %Ld\n" s i
 
 let print_int16 s i=
-  lprintf "%s: %d" s i;
-  lprint_newline ()
-  
+  lprintf "%s: %d\n" s i
 
 let search_info_avi ic =
   try
@@ -76,8 +73,7 @@ let search_info_avi ic =
 (* pos: 4 *)
     let size = input_int32 ic in
 (*
-  lprintf "SIZE %s" (Int64.to_string size);
-  lprint_newline ();
+  lprintf "SIZE %s\n" (Int64.to_string size);
 *)
 
 (* pos: 8 *)
@@ -91,26 +87,24 @@ let search_info_avi ic =
 (* position 16 *)
     let rec iter_list pos end_pos =
 (*
-  lprintf "POS %s/%s" (Int64.to_string pos) (Int64.to_string end_pos);
-lprint_newline ();    
+  lprintf "POS %s/%s\n" (Int64.to_string pos) (Int64.to_string end_pos);
   *)
       if pos < end_pos then begin
 (* on peut s'arreter quand size = 0 *)
           seek_in ic (Int64.to_int pos);
           let size2 = input_int32 ic in
 (*
-        lprintf "SIZE2 %s" (Int64.to_string size2);
-        lprint_newline ();
+        lprintf "SIZE2 %s\n" (Int64.to_string size2);
 *)
           
           if size2 = Int64.zero then raise Not_found;
           let header_name = input_string4 ic in
-(*        lprint_string4 "header" header_name; lprint_newline (); *)
+(*        lprint_string4 "header\n" header_name;  *)
 (* pos: pos + 8 *)       
           begin
             match header_name with
               "hdrl" ->
-(*              lprintf "HEADER"; lprint_newline (); *)
+(*              lprintf "HEADER\n";  *)
                 
                 let s = input_string4 ic in
                 if s <> "avih" then failwith "Bad AVI file (avih absent)";
@@ -155,11 +149,11 @@ lprint_newline ();
             
             
             | "movi" ->
-(*              lprintf "CHUNKS"; lprint_newline (); *)
+(*              lprintf "CHUNKS\n";  *)
                 ()
             
             | "strl" ->
-(*              lprintf "STREAM DESCRIPTION"; lprint_newline (); *)
+(*              lprintf "STREAM DESCRIPTION\n";  *)
                 
                 let offset = Int64.of_int 4  in
                 let pos0 = Int64.add pos offset in
@@ -167,7 +161,7 @@ lprint_newline ();
                 iter_list pos0 end_pos0
             
             | "strh" ->
-(*              lprintf "STREAM HEADER"; lprint_newline (); *)
+(*              lprintf "STREAM HEADER\n";  *)
                 
                 ignore (input_string4 ic);
                 
@@ -227,7 +221,7 @@ lprint_newline ();
     in
     let pos0 = Int64.of_int 16 in
     iter_list pos0 (Int64.add pos0 size);
-(*  lprintf "DONE"; lprint_newline () *)
+(*  lprintf "DONE\n";  *)
     ()
   with
   | FormatFound f as e -> raise e
@@ -237,15 +231,15 @@ let search_info_mp3 filename =
   try
     let tag = Mp3tag.Id3v1.read filename in
     let info = Mp3tag.info filename in
-    lprintf "MP3 INFO FOUND"; lprint_newline ();
+    lprintf "MP3 INFO FOUND\n"; 
     raise (FormatFound (MP3 (tag, info)))
   with
   | FormatFound _ as e -> raise e
   | Not_found -> () (* The file couldn't be found *)
   | x -> ()
       (*
-      lprintf "error while looking for mp3file %s: %s" filename
-        (Printexc2.to_string x); lprint_newline ()
+      lprintf "error while looking for mp3file %s: %s\n" filename
+        (Printexc2.to_string x); 
       *)
 
 let get_info file =
@@ -283,8 +277,7 @@ let get_info file =
       match e with
         FormatFound f -> f
       | e -> 
-          lprintf "get_info: Exception in %s" (Printexc2.to_string e);
-          lprint_newline ();
+          lprintf "get_info: Exception in %s\n" (Printexc2.to_string e);
           FormatUnknown
           
           

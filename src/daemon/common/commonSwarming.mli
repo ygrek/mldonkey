@@ -26,7 +26,7 @@ type strategy =
 
 exception VerifierNotReady
   
-module type Swarmer =
+module Int64Swarmer :
   sig
     type t
     and range
@@ -52,15 +52,20 @@ module type Swarmer =
     
     val register_uploader : t -> client -> chunks -> uploader
     val update_uploader : uploader -> chunks -> unit
-    val disconnect_uploader : uploader -> unit      
+    val clear_uploader_block : uploader -> unit      
+    val clear_uploader_ranges : uploader -> unit      
+    val unregister_uploader : uploader -> unit      
     
     val find_block : uploader -> block
-    val find_range : uploader -> range
-    
+    val find_range : uploader -> int64 * int64 * range
+    val current_block : uploader -> block
+    val current_ranges : uploader -> (int64 * int64 * range) list
+      
     val received : uploader -> int64 -> string -> int -> int -> unit
     val print_t : string -> t -> unit
     val range_range : range -> int64 * int64
-    
+      
+      
     val print_block : block -> unit
     val block_block : block -> int * int64 * int64 
     val availability : t -> string
@@ -70,6 +75,14 @@ module type Swarmer =
     val compute_bitmap : t -> unit
     val is_interesting : uploader -> bool	
     val print_uploader : uploader -> unit
+
+(* In these two function, the 'bool' is if verification should take place
+  immediatly or not. *)
+    val must_verify_block : t -> int -> bool -> unit
+    val verify_all_blocks : t -> bool -> unit
+      
+(* raise Exit if one block checksum has been computed *)
+    val verify_one_block : t -> unit
       
     val last_seen : t -> int array
     val print_uploaders : t -> unit    
@@ -82,5 +95,3 @@ module type Swarmer =
       
     val value_to_swarmer : t -> (string * Options.option_value) list -> unit
   end
-
-module Int64Swarmer : Swarmer 

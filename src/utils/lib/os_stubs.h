@@ -89,9 +89,9 @@ static int seek_command_table[] = {
 };
 
 
-extern int64 os_lseek(OS_FD fd, int64 pos, int dir);
+extern int64 os_lseek(OS_FD fd, off_t pos, int dir);
 extern int os_read(OS_FD fd, char *buf, int len);
-extern void os_ftruncate(OS_FD fd, int64 len);
+extern void os_ftruncate(OS_FD fd, off_t len);
 extern int os_getdtablesize();
 extern int64 os_getfdsize(OS_FD fd);
 extern int64 os_getfilesize(char *path);

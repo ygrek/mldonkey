@@ -82,7 +82,7 @@ let disconnect_client c r =
                   None -> ()
                 | Some up ->
                     d.download_uploader <- None;
-                    Int64Swarmer.disconnect_uploader up                    
+                    Int64Swarmer.unregister_uploader up                    
             ) c.client_downloads;
           c.client_downloads <- [];
           match c.client_connected_for with
@@ -337,7 +337,8 @@ end_pos !counter_pos b.len to_read;
               !counter_pos b.buf b.pos to_read_int;
           with e -> 
               lprintf "FT: Exception %s in Int64Swarmer.received\n"
-                (Printexc2.to_string e)
+                (Printexc2.to_string e);
+(* TODO: we should pause the download !!! *)
         end;
         c.client_reconnect <- true;
 (*          List.iter (fun (_,_,r) ->
@@ -460,12 +461,10 @@ and get_from_client sock (c: client) =
                           lprintf "Current Block: "; Int64Swarmer.print_block b;
                         end;
                       try
-                        let r = Int64Swarmer.find_range up in
+                        let (x,y,r) = Int64Swarmer.find_range up in
                         
                         lprintf "GOT RANGE:\n";
                         Int64Swarmer.print_uploaders swarmer;
-                        
-                        let (x,y) = Int64Swarmer.range_range r in 
                         d.download_ranges <- d.download_ranges @ [x,y,r];
 (*                        Int64Swarmer.alloc_range r; *)
                         Printf.sprintf "%Ld-%Ld" x (y -- Int64.one)

@@ -69,7 +69,7 @@ let disconnect_client c r =
                 None -> ()
               | Some up ->
                   d.download_uploader <- None;
-                  Int64Swarmer.disconnect_uploader up
+                  Int64Swarmer.unregister_uploader up
           ) c.client_downloads;
           c.client_downloads <- [];
           set_client_disconnected c r;
@@ -471,8 +471,7 @@ end;
 end;
   *)
                 try
-                  let r = Int64Swarmer.find_range up in 
-                  let (x,y) = Int64Swarmer.range_range r in
+                  let (x,y,r) = Int64Swarmer.find_range up in 
                   d.download_ranges <- d.download_ranges @ [x,y,r];
                   Printf.sprintf "%Ld-%Ld" x (y -- Int64.one)
                 with Not_found ->

@@ -59,18 +59,13 @@ let must_share_file file codedname has_old_impl =
       | Some old_impl -> replace_shared old_impl impl
 
 
-let md4_of_list md4s =
-  let len = List.length md4s in
+let md4_of_array md4s =
+  let len = Array.length md4s in
   let s = String.create (len * 16) in
-  let rec iter list i =
-    match list with
-      [] -> ()
-    | md4 :: tail ->
-        let md4 = Md4.direct_to_string md4 in
-        String.blit md4 0 s i 16;
-        iter tail (i+16)
-  in
-  iter md4s 0;
+  for i = 0 to len-1 do
+    let md4 = Md4.direct_to_string md4s.(i) in
+    String.blit md4 0 s (i*16) 16;
+  done;
   Md4.string s
   
 let new_file_to_share sh codedname old_impl =
@@ -78,12 +73,10 @@ let new_file_to_share sh codedname old_impl =
 (* How do we compute the total MD4 of the file ? *)
     
     let md4s = sh.sh_md4s in
-    let md4 = match md4s with
-        [md4] -> md4
-      | [] -> lprintf "No md4 for %s" sh.sh_name;
-          lprint_newline ();
-          raise Not_found
-      | _ -> md4_of_list md4s
+    let md4 = match Array.length md4s with
+        1 -> md4s.(0)
+      | 0 -> assert false
+      | _ -> md4_of_array md4s
     in
     
     lprintf "Sharing file with MD4: %s\n" (Md4.to_string md4);
@@ -97,8 +90,8 @@ let new_file_to_share sh codedname old_impl =
         file.file_filenames <- file.file_filenames @ [sh_name, GuiTypes.noips()];
         update_best_name file;
       end;
-    file.file_chunks <- Array.make file.file_nchunks PresentVerified;
-    file.file_absent_chunks <- [];
+(*  file.file_chunks <- Array.make file.file_nchunks PresentVerified; *)
+(*    file.file_absent_chunks <- []; *)
 (*    file.file_all_chunks <- String.make file.file_nchunks '1'; *)
     (try 
         file.file_format <- CommonMultimedia.get_info 
@@ -196,7 +189,7 @@ let check_shared_files () =
                     let s = {
                         sh_name = sh.shared_name;
                         sh_size = sh.shared_size;
-                        sh_md4s = List.rev sh.shared_list;
+                        sh_md4s = Array.of_list (List.rev sh.shared_list);
                         sh_mtime = Unix32.mtime sh.shared_name;
                       } in
                     lprintf "NEW SHARED FILE %s\n" sh.shared_name; 
@@ -208,8 +201,9 @@ let check_shared_files () =
                 else
                   job_creater ())
           with e ->
-              lprintf "Exception %s prevents sharing\n"
+              lprintf "Exception %s prevents sharing"
                 (Printexc2.to_string e);
+              lprint_newline ();
         in
         job_creater ()
         
@@ -282,7 +276,7 @@ lprintf "Searching %s" fullname; lprint_newline ();
   )
   
 let remember_shared_info file new_name =
-  if file.file_md4s <> [] then
+  if file.file_md4s <> [||] then
     try
       let disk_name = file_disk_name file in
       let mtime = Unix32.mtime disk_name in
@@ -306,4 +300,3 @@ let remember_shared_info file new_name =
           (Printexc2.to_string e)
         
 let must_share_file file = must_share_file file (file_best_name file) None
-  

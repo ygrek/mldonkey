@@ -130,6 +130,8 @@ let client_reliability c =
 	  lprint_newline ();
 	  ip_reliability c.client_ip *)
 
+
+  (*
 let block_reliability b =
   let rec aux ips r n s l =
     match ips with
@@ -141,6 +143,7 @@ let block_reliability b =
 	    | Reliability_suspicious ipl ->
 		aux q r n (s + 1) (min l ipl) in
     aux b.block_contributors 0 0 0 max_int
+    *)
 
 let print_reliability ip =
   lprintf "%s is %s" (Ip.to_string ip)
@@ -167,6 +170,7 @@ let bprint_reliability_table buf =
 let set_ip_reliability ip reliability =
   Hashtbl.replace reliable_ips ip reliability
 
+(*
 let valid_block_detected b =
   List.iter (fun ip -> 
     set_ip_reliability ip Reliability_reliable;
@@ -205,6 +209,7 @@ let allowed_by_reliability b c =
 	if r > 0 || n > 0 then max_int
 	else if n + s + 1 > min l crl then max_int
 	else 1
+          *)
 
 let _ =
   register_commands

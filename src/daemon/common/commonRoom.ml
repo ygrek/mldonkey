@@ -80,7 +80,7 @@ let _ =
 let ni n m = 
   let s = Printf.sprintf "Room.%s not implemented by %s" 
       m n.network_name in
-  lprint_string s; lprint_newline ();
+  lprintf "%s\n" s; 
   s
   
 let fni n m =   failwith (ni n m)

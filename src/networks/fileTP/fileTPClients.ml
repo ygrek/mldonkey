@@ -75,7 +75,7 @@ let disconnect_client c r =
               match d.download_uploader with
                 None -> ()
               | Some up ->
-                  Int64Swarmer.disconnect_uploader up;
+                  Int64Swarmer.unregister_uploader up;
                   d.download_ranges <- [];
                   d.download_uploader <- None;
             ) c.client_downloads;
@@ -190,12 +190,11 @@ let get_from_client sock (c: client) =
                               lprintf "Current Block: "; Int64Swarmer.print_block b;
                             end;
                           try
-                            let r = Int64Swarmer.find_range up in
+                            let (x,y,r) = Int64Swarmer.find_range up in
                             
 (*                            lprintf "GOT RANGE:\n"; *)
                             Int64Swarmer.print_uploaders swarmer;
                             
-                            let (x,y) = Int64Swarmer.range_range r in 
                             d.download_ranges <- d.download_ranges @ [x,y,r];
 (*                        Int64Swarmer.alloc_range r; *)
                             (x,y)

@@ -115,11 +115,10 @@ let new_result_ops network =
   r
   
 let check_result_implementations () =
-  lprintf "\n---- Methods not implemented for CommonResult ----\n";
-  lprint_newline ();
+  lprintf "\n---- Methods not implemented for CommonResult ----\n\n";
   List.iter (fun (c, cc) ->
       let n = c.op_result_network.network_name in
-      lprintf "\n  Network %s\n" n; lprint_newline ();
+      lprintf "\n  Network %s\n\n" n; 
       if c.op_result_download == cc.op_result_download then 
         lprintf "op_result_download\n";
       if c.op_result_info == cc.op_result_info then

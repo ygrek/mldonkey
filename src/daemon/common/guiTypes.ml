@@ -35,10 +35,94 @@ type 'a search_request = {
     mutable search_network : int;
   }
 
+module Fields_file_info = struct
+
+(* To decrease the size of the "file_info" messages sent to the GUI, send 
+only useful fields. The "op_file_info" function should take this bitmap
+as an argument, and "land" it with the plugin bitmap (to remove fields that
+are irrelevant for the plugin) and put that into the file_info.
+
+In the future, it might also be interesting that the GUI tells the core
+which fields it is interesting in (why send the availability when the
+  GUI cannot display it ?).
+  *)
+    
+    type t = {
+        mutable file_network : bool;
+        mutable file_comment : bool;
+        mutable file_name : bool;
+        mutable file_names : bool;
+        mutable file_md4 : bool;        
+        mutable file_size : bool;
+        mutable file_downloaded : bool;
+        mutable file_nlocations : bool;
+        mutable file_nclients: bool;
+        mutable file_state : bool;
+        mutable file_chunks : bool;
+        mutable file_availability : bool;
+        mutable file_sources : bool;
+        mutable file_download_rate : bool;
+        mutable file_format : bool;
+        mutable file_chunks_age : bool;
+        mutable file_age : bool;
+        mutable file_last_seen : bool;
+        mutable file_priority : bool;
+        mutable file_uids : bool;
+      }
+    
+    let all = {
+        file_network = true;
+        file_comment = true;
+        file_name = true;
+        file_names = true;
+        file_md4 = true;        
+        file_size = true;
+        file_downloaded = true;
+        file_nlocations = true;
+        file_nclients= true;
+        file_state = true;
+        file_chunks = true;
+        file_availability = true;
+        file_sources = true;
+        file_download_rate = true;
+        file_format = true;
+        file_chunks_age = true;
+        file_age = true;
+        file_last_seen = true;
+        file_priority = true;
+        file_uids = true;
+      }
+    
+    type file_info_fields =    
+    | File_network of int
+    | File_comment of string
+    | File_name of string
+    | File_names of (string * ips_list) list
+    | File_md4 of Md4.t        
+    | File_size of int64
+    | File_downloaded of int64
+    | File_nlocations of int
+    | File_nclients of int
+    | File_state of file_state
+    | File_chunks of string
+    | File_availability of (int * string) list
+    | File_download_rate of float
+    | File_format of format
+    | File_chunks_age of int array
+    | File_age of int
+    | File_last_seen of int
+    | File_priority of int
+(*    | File_uids of Uid.t list   *)
+(*    | File_sources of int list option *)
+      
+  end
+
+  
 type file_info = {
     file_num : int;    
+    file_fields : Fields_file_info.t;
+    
     file_network : int;
-
     mutable file_comment : string;
     mutable file_name : string;
     mutable file_names : (string * ips_list) list;
@@ -212,6 +296,8 @@ open BasicSocket
   
 let file_info_test = 
   {
+    file_fields = Fields_file_info.all;
+    
     file_comment = "";
     file_name = "tratra";
     file_num = 356;

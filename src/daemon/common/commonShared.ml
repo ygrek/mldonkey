@@ -71,7 +71,7 @@ let shareds_by_num = H.create 1027
 let ni n m = 
   let s = Printf.sprintf "Shared.%s not implemented by %s" 
       m n.network_name in
-  lprint_string s; lprint_newline ();
+  lprintf "%s\n" s;
   s
   
 let fni  n m =  failwith (ni n m)
@@ -95,8 +95,8 @@ let shared_must_update_downloaded shared =
 let update_shared_num impl =
   if impl.impl_shared_num = 0 then begin
 (*      if !verbose then begin *)
-          lprintf "NEW SHARED %s/%s" impl.impl_shared_codedname
-            impl.impl_shared_fullname; lprint_newline ();
+          lprintf "NEW SHARED %s/%s\n" impl.impl_shared_codedname
+            impl.impl_shared_fullname; 
 (*        end; *)
       incr shared_counter;
       impl.impl_shared_num <- !shared_counter;
@@ -121,8 +121,8 @@ let files_scanned = ref 0
 let files_scanned_size = ref Int64.zero
   
 let new_shared dirname prio filename fullname =
-(*  lprintf "XXXXXXX\ndirname %s \nfilename %s \nfullname %s"
-    dirname filename fullname; lprint_newline (); *)
+(*  lprintf "XXXXXXX\ndirname %s \nfilename %s \nfullname %s\n"
+    dirname filename fullname;  *)
   let fullname = Filename2.normalize fullname in
   let filename = Filename2.normalize filename in
   let dirname = try
@@ -133,8 +133,8 @@ let new_shared dirname prio filename fullname =
 	dirnames_prio := (name, prio) :: !dirnames_prio;
         name in
   let codedname = Filename.concat dirname filename in
-  lprintf "\ndirname %s \nfilename %s \nfullname %s\ncodedname %s"
-    dirname filename fullname codedname; lprint_newline (); 
+  lprintf "\ndirname %s \nfilename %s \nfullname %s\ncodedname %s\n"
+    dirname filename fullname codedname; 
 
   let size = Unix32.getsize fullname in
   incr files_scanned;
@@ -263,9 +263,8 @@ let shared_scan_directory shared_dir local_dir =
             with _ -> ()
       ) files
     with e -> 
-        lprintf "Exception %s while sharing %s"
-           (Printexc2.to_string e) full_dir;
-        lprint_newline ();
+        lprintf "Exception %s while sharing %s\n"
+           (Printexc2.to_string e) full_dir
   else 
     lprintf "Cannot share %s\n" full_dir
 
@@ -277,9 +276,9 @@ let _ =
           waiting_directories := tail;
           shared_scan_directory shared_dir local_dir;
           (*
-          lprintf "Shared %d files %Ld bytes"
+          lprintf "Shared %d files %Ld bytes\n"
             !files_scanned !files_scanned_size;
-          lprint_newline (); *)
+           *)
   )
     
 let shared_add_directory shared_dir =

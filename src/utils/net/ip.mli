@@ -69,3 +69,5 @@ val value_to_addr : Options.option_value -> addr
 val addr_to_value : addr -> Options.option_value
 val addr_option : addr Options.option_class
   
+val allow_local_network : bool ref
+  

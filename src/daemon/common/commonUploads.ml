@@ -750,9 +750,10 @@ let rec next_uploads () =
 
 let next_uploads () = 
   sent_bytes.(!counter-1) <- sent_bytes.(!counter-1) - !remaining_bandwidth;
+  (*
   if !verbose_upload then begin
       lprintf "Left %d\n" !remaining_bandwidth; 
-    end;
+    end; *)
   complete_bandwidth := !complete_bandwidth + !remaining_bandwidth;
   incr counter;
   if !counter = 11 then begin
@@ -761,9 +762,9 @@ let next_uploads () =
       (if !!max_hard_upload_rate = 0 then 10000 * 1024
         else (maxi (!!max_hard_upload_rate - 1) 1) * 1024 );
       complete_bandwidth := !total_bandwidth;
-      if !verbose_upload then begin
+(*      if !verbose_upload then begin
           lprintf "Init to %d\n" !total_bandwidth; 
-        end;
+        end; *)
       remaining_bandwidth := 0          
     end;
   
@@ -771,8 +772,8 @@ let next_uploads () =
   for i = 0 to 9 do
     last_sec := !last_sec + sent_bytes.(i)
   done;
-  
-  if !verbose_upload then begin
+
+(*  if !verbose_upload then begin
       lprintf "last sec: %d/%d (left %d)" !last_sec !total_bandwidth
         (!total_bandwidth - !last_sec);
       lprint_newline (); (*
@@ -780,16 +781,16 @@ let next_uploads () =
         lprintf "    last[%d] = %d\n" i  sent_bytes.(i)
       done; *)
       
-    end;
+    end; *)
   
   remaining_bandwidth := mini (mini (mini 
         (maxi (!remaining_bandwidth + !total_bandwidth / 10) 10000) 
       !total_bandwidth) !complete_bandwidth) 
   (!total_bandwidth - !last_sec);
   complete_bandwidth := !complete_bandwidth - !remaining_bandwidth;
-  if !verbose_upload then begin
+(*  if !verbose_upload then begin
       lprintf "Remaining %d[%d]\n" !remaining_bandwidth !complete_bandwidth; 
-    end;
+    end; *)
   sent_bytes.(!counter-1) <- !remaining_bandwidth;
   if !remaining_bandwidth > 0 then 
     next_uploads ()

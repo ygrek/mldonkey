@@ -99,6 +99,8 @@ let _ =
           None -> [| last_time () |]
         | Some swarmer -> Int64Swarmer.last_seen swarmer in
       {
+        P.file_fields = P.Fields_file_info.all;
+        
         P.file_comment = file_comment (as_file file);
         P.file_name = file.file_name;
         P.file_num = (file_num file);

@@ -17,22 +17,24 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonSwarming
 open Md4
 
-val find_client_zone : DonkeyTypes.client -> unit
-val update_zone : DonkeyTypes.file -> 
-  int64 -> int64 -> DonkeyTypes.zone -> unit
-val client_file : DonkeyTypes.client -> DonkeyTypes.file
-val find_client_block : DonkeyTypes.client -> unit
-val set_file_size : DonkeyTypes.file -> int64 -> unit
-val start_download : DonkeyTypes.client -> unit
-val restart_download : DonkeyTypes.client -> unit
-val next_file : DonkeyTypes.client -> unit
-  
-(*val remove_file : Md4.t -> unit *)
+val clean_current_download : DonkeyTypes.client -> unit
+(* val restart_download : DonkeyTypes.client -> unit *)
+val get_from_client : DonkeyTypes.client -> unit
+val request_slot : DonkeyTypes.client -> unit
+(* val client_file : DonkeyTypes.client -> DonkeyTypes.file *)
+(* val next_file : DonkeyTypes.client -> unit *)
+(*val set_file_size : DonkeyTypes.file -> int64 -> unit *)
+val check_files_downloaded : unit -> unit
+(*val client_has_chunks : DonkeyTypes.client -> DonkeyTypes.file ->
+  bool array -> unit *)
+val block_received : DonkeyTypes.client -> DonkeyProtoClient.Bloc.t -> unit
+val add_client_chunks : DonkeyTypes.client ->
+  DonkeyTypes.file -> bool array -> unit
 
-val check_files_md4s : unit -> unit
-val clean_client_zones : DonkeyTypes.client -> unit
+  
   
 val search_found : bool -> 
   CommonTypes.search -> Md4.t -> CommonTypes.tag list -> unit

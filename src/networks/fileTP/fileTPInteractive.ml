@@ -71,6 +71,8 @@ let _ =
   );
   file_ops.op_file_info <- (fun file ->
       {
+        P.file_fields = P.Fields_file_info.all;
+        
         P.file_comment = file_comment (as_file file);
         P.file_name = file_best_name file;
         P.file_num = (file_num file);
