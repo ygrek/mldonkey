@@ -1,13 +1,24 @@
-(***********************************************************************)
-(*                               MLChat                                *)
-(*                                                                     *)
-(*            Maxence Guesdon, projet Cristal, INRIA Rocquencourt      *)
-(*                                                                     *)
-(*  Copyright 2002 Institut National de Recherche en Informatique et   *)
-(*  en Automatique.  All rights reserved.  This file is distributed    *)
-(*  under the terms of the Q Public License version 1.0.               *)
-(*                                                                     *)
-(***********************************************************************)
+(**************************************************************************)
+(*  Copyright 2003, 2002 b8_bavard, b8_zoggy, , b52_simon INRIA            *)
+(*                                                                        *)
+(*    This file is part of mldonkey.                                      *)
+(*                                                                        *)
+(*    mldonkey is free software; you can redistribute it and/or modify    *)
+(*    it under the terms of the GNU General Public License as published   *)
+(*    by the Free Software Foundation; either version 2 of the License,   *)
+(*    or (at your option) any later version.                              *)
+(*                                                                        *)
+(*    mldonkey is distributed in the hope that it will be useful,         *)
+(*    but WITHOUT ANY WARRANTY; without even the implied warranty of      *)
+(*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the       *)
+(*    GNU General Public License for more details.                        *)
+(*                                                                        *)
+(*    You should have received a copy of the GNU General Public License   *)
+(*    along with mldonkey; if not, write to the Free Software             *)
+(*    Foundation, Inc., 59 Temple Place, Suite 330, Boston,               *)
+(*    MA  02111-1307  USA                                                 *)
+(*                                                                        *)
+(**************************************************************************)
 
 (** Messages and string constants. *)
 
@@ -19,7 +30,7 @@ let software_copyright =
   "Copyright 2002 Institut National de Recherche en \n"^
   "Informatique et en Automatique. All rights reserved.\n"^
   "This software is distributed under the terms of the\n"^
-  "Q Public License version 1.0.\n"^
+  "GPL Public License version 2.0.\n"^
   "(see file LICENSE in the distribution)"
 
 let software_about = 
