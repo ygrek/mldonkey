@@ -48,7 +48,7 @@ INCLUDES +=-I +lablgtk $(foreach file, $(SUBDIRS), -I $(file))
 
 CFLAGS:=$(CFLAGS) $(CONFIG_INCLUDES)
 
-TARGETS= use_tags$(EXE) mlnet$(EXE)
+TARGETS= use_tags$(EXE) mlnet$(EXE) 
 
 
 #######################################################################
@@ -341,6 +341,7 @@ MLCAST_SRCS= \
 
 
 
+
 ifeq ("$(DIRECT_CONNECT)" , "yes")
 SUBDIRS += direct_connect
 
@@ -447,6 +448,9 @@ mlslsk_SRCS= \
   $(SOULSEEK_SRCS) \
   \
   $(DRIVER_SRCS)
+
+
+
 
 
 
@@ -638,6 +642,10 @@ USE_TAGS_SRCS = \
   $(MP3TAG_SRCS) \
   lib/cddb_lexer.mll lib/cddb_file.ml \
   tools/use_tags.ml
+
+HASH_FILES_SRCS = \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  donkey/donkeyHasher.ml tools/hash_files.ml
 
 
 ######################################################################
@@ -942,6 +950,27 @@ use_tags.byte: $(USE_TAGS_OBJS) $(USE_TAGS_CMOS)
  
 use_tags.static:  $(USE_TAGS_OBJS) $(USE_TAGS_CMXS) 
 	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(USE_TAGS_OBJS) $(LIBS_opt)  $(_STATIC_LIBS_opt) $(USE_TAGS_CMXS) 
+
+
+HASH_FILES_ZOG := $(filter %.zog, $(HASH_FILES_SRCS)) 
+HASH_FILES_MLL := $(filter %.mll, $(HASH_FILES_SRCS)) 
+HASH_FILES_MLY := $(filter %.mly, $(HASH_FILES_SRCS)) 
+HASH_FILES_ML := $(filter %.ml %.mll %.zog %.mly, $(HASH_FILES_SRCS)) 
+HASH_FILES_C := $(filter %.c, $(HASH_FILES_SRCS)) 
+HASH_FILES_CMOS=$(foreach file, $(HASH_FILES_ML),   $(basename $(file)).cmo) 
+HASH_FILES_CMXS=$(foreach file, $(HASH_FILES_ML),   $(basename $(file)).cmx) 
+HASH_FILES_OBJS=$(foreach file, $(HASH_FILES_C),   $(basename $(file)).o)    
+
+TMPSOURCES += $(HASH_FILES_MLL:.mll=.ml) $(HASH_FILES_MLY:.mly=.ml) $(HASH_FILES_MLY:.mly=.mli) $(HASH_FILES_ZOG:.zog=.ml) 
+ 
+hash_files: $(HASH_FILES_OBJS) $(HASH_FILES_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@  $(HASH_FILES_OBJS) $(LIBS_opt) $(_LIBS_opt) $(HASH_FILES_CMXS) 
+ 
+hash_files.byte: $(HASH_FILES_OBJS) $(HASH_FILES_CMOS) 
+	$(OCAMLC) -o $@  $(HASH_FILES_OBJS) $(LIBS_byte)  $(_LIBS_byte) $(HASH_FILES_CMOS) 
+ 
+hash_files.static:  $(HASH_FILES_OBJS) $(HASH_FILES_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(HASH_FILES_OBJS) $(LIBS_opt)  $(_STATIC_LIBS_opt) $(HASH_FILES_CMXS) 
 
 
 

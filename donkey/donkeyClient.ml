@@ -160,10 +160,13 @@ and find_pending_slot () =
     iter ()
   with _ -> ()
   
+let connected_clients = Hashtbl.create 13
+
 let disconnect_client c =
   match c.client_sock with
     None -> ()
   | Some sock ->
+      (try Hashtbl.remove connected_clients c.client_md4 with _ -> ());
       remove_pending_slot c;
       connection_failed c.client_connection_control;
       TcpBufferedSocket.close sock "closed";
@@ -194,7 +197,7 @@ let client_can_receive c =
     | Brand_mldonkey2 -> true
     | Brand_mldonkey3 -> true
     | _ -> false
-  
+      
 let new_udp_client c group =
   match c.client_kind with
     Indirect_location _ -> ()
@@ -573,6 +576,14 @@ let client_to_client challenge for_files c t sock =
       if t.CR.md4 = !!client_md4 ||
          t.CR.md4 = overnet_md4 then
         TcpBufferedSocket.close sock "connected to myself";
+
+      
+(* Test if the client is already connected *)
+      if Hashtbl.mem connected_clients t.CR.md4 then begin
+          Printf.printf "Client is already connected"; print_newline ();
+          close sock "already connected";
+          raise Exit
+        end;
       
       c.client_tags <- t.CR.tags;
       List.iter (fun tag ->
@@ -581,7 +592,8 @@ let client_to_client challenge for_files c t sock =
               set_client_name c s t.CR.md4
           | _ -> ()
       ) c.client_tags;
-      
+
+      Hashtbl.add connected_clients t.CR.md4 c;
       
       connection_ok c.client_connection_control;
       
@@ -1283,6 +1295,13 @@ let read_first_message overnet m sock =
           TcpBufferedSocket.close sock "connected to myself";
           raise End_of_file
         end;
+            
+(* Test if the client is already connected *)
+      if Hashtbl.mem connected_clients t.CR.md4 then begin
+          Printf.printf "Client is already connected"; print_newline ();
+          close sock "already connected";
+          raise Exit
+        end;
       
       let name = ref "" in
       List.iter (fun tag ->
@@ -1293,6 +1312,8 @@ let read_first_message overnet m sock =
 
       let kind = Indirect_location (!name,t.CR.md4) in
       let c = new_client kind in
+
+      Hashtbl.add connected_clients t.CR.md4 c;
       
       begin
         match c.client_sock with

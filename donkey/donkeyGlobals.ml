@@ -362,7 +362,8 @@ let new_file file_state file_name md4 file_size writable =
               failwith "Zero length file ?"
         else file_size
       in
-      let nchunks = Int32.to_int (Int32.div file_size block_size) + 1 in
+      let nchunks = Int32.to_int (Int32.div 
+          (Int32.sub file_size Int32.one) block_size) + 1 in
       let file_exists = Sys.file_exists file_name in
       let md4s = if file_size <= block_size then
             [md4] 
@@ -376,7 +377,7 @@ let new_file file_state file_name md4 file_size writable =
           file_chunks = [||];
           file_chunks_order = [||];
           file_chunks_age = [||];
-          file_all_chunks = String.make nchunks '0';
+(*          file_all_chunks = String.make nchunks '0'; *)
           file_absent_chunks =   [Int32.zero, file_size];
           file_filenames = [Filename.basename file_name];
           file_nsources = 0;
@@ -385,6 +386,7 @@ let new_file file_state file_name md4 file_size writable =
           file_format = Unknown_format;
           file_paused_sources = Fifo.create ();
           file_locations = Intmap.empty;
+          file_mtime = 0.0;
         }
       and file_impl = {
           dummy_file_impl with

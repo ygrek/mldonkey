@@ -33,6 +33,52 @@ open BasicSocket
 open DonkeyTypes
 open DonkeyGlobals
 
+module SourcesQueue = struct
+    type 'a t = {
+        head : (unit -> 'a);
+        put : ('a -> unit);
+        length : (unit -> int);
+        take : (unit -> 'a);
+        iter : ( ('a -> unit) -> unit);
+      }
+      
+    let head t = t.head ()
+    let put t x = t.put x
+    let iter f t = t.iter f
+    let length t = t.length ()
+    let take t = t.take ()
+    
+    let create_fifo () = 
+      let t = Fifo.create () in
+      {
+        head = (fun _ -> Fifo.head t);
+        put = (fun x -> Fifo.put t x);
+        length = (fun _ -> Fifo.length t);
+        take = (fun _ -> Fifo.take t);
+        iter = (fun f -> Fifo.iter f t);
+      }
+      
+    let create_lifo () = 
+      let t = ref [] in
+      {
+        head = (fun _ -> match !t with 
+              [] -> raise Not_found | x :: _ -> x);
+        put = (fun x -> t := x :: !t);
+        length = (fun _ -> List.length !t);
+        take = (fun _ -> match !t with 
+              [] -> raise Not_found | x :: tail -> 
+                t:=tail; x);        
+        iter = (fun f -> List.iter f !t);
+      }
+  end
+  
+  
+  
+  
+  
+  
+  
+  
 let verbose_sources = ref false
   
 let immediate_connect_queue = 0
@@ -52,8 +98,8 @@ let bad_sources_queue4 = 9
 let bad_sources_queue = 10
   
 let nqueues = bad_sources_queue + 1
-let sources_queues = Array.init nqueues (fun _ -> Fifo.create ())
-let clients_queues = Array.init nqueues (fun _ -> Fifo.create ())
+let sources_queues = Array.init nqueues (fun _ -> SourcesQueue.create_fifo ())
+let clients_queues = Array.init nqueues (fun _ -> SourcesQueue.create_fifo ())
 let sources_periods = Array.create nqueues 600.
 let sources_slots = Array.create nqueues 1
 let sources_name = Array.create nqueues "sources"
@@ -61,6 +107,9 @@ let sources_name = Array.create nqueues "sources"
 let one_hour = 3600.
 
 let _ =
+  
+  sources_queues.(new_sources_queue) <- SourcesQueue.create_lifo ();
+  
   sources_periods.(immediate_connect_queue) <- 0.;
   sources_periods.(good_clients_queue) <- 600.;
   sources_periods.(new_sources_queue) <- 600.;
@@ -77,7 +126,7 @@ let _ =
   sources_slots.(good_clients_queue) <- 100;
   sources_slots.(new_sources_queue) <- 100;
   sources_slots.(concurrent_sources_queue) <- 50;
-  sources_slots.(old_sources_queue) <- 20;
+  sources_slots.(old_sources_queue) <- 50;
   sources_slots.(bad_sources_queue1) <- 30;
   sources_slots.(bad_sources_queue2) <- 30;
   sources_slots.(bad_sources_queue3) <- 30;
@@ -142,7 +191,8 @@ let add_file_location file c =
     end
     
 let remove_file_location file c = 
-  file.file_locations <- Intmap.remove (client_num c) file.file_locations
+  file.file_locations <- Intmap.remove (client_num c) file.file_locations;
+  c.client_files <- List2.removeq file c.client_files
   
 let reschedule_source s file =
 (* This already known source has been announced has a source for a new file *)
@@ -150,7 +200,7 @@ let reschedule_source s file =
   | SourceClient c -> add_file_location file c; s
       
   | SourceLastConnection (queue, time, client_num) ->
-      if sources_periods.(queue) > 601. || queue > new_sources_queue then
+      if sources_periods.(queue) > 601. || queue > old_sources_queue then
 (* This source will not be connected early enough *)
         (* TODO: if it is a popular file, don't schedule it too early *)
         let ss = { s with 
@@ -161,13 +211,13 @@ let reschedule_source s file =
         s.source_files <- []; (* Invalidate the old one *)
         H.remove sources s;
         H.add sources ss;
-        Fifo.put sources_queues.(new_sources_queue) s;
+        SourcesQueue.put sources_queues.(new_sources_queue) s;
         ss
       else
 (* The source is in a queue good for it *)
         s
         
-let new_source addr file =
+let queue_new_source new_queue addr file =
   let ip, port = addr in
   if !verbose_sources then begin
       Printf.printf "NEW SOURCE %s:%d" (Ip.to_string ip) port; print_newline ();
@@ -175,7 +225,7 @@ let new_source addr file =
   try
     let finder =  { dummy_source with source_addr = addr } in
     let s = H.find sources finder in
-    if not (List.mem_assoc file s.source_files) then 
+    if not (List.mem_assq file s.source_files) then 
       let s = reschedule_source s file in
       s.source_files <- (file, 0.0) :: s.source_files;
       s
@@ -194,12 +244,18 @@ let new_source addr file =
       if !verbose_sources then begin
           Printf.printf "Source added"; print_newline ();
         end;
-      Fifo.put sources_queues.(new_sources_queue) s;
+      SourcesQueue.put sources_queues.(new_queue) s;
       s
 
+let new_source addr file = 
+  queue_new_source new_sources_queue addr file
+
+let old_source addr file = 
+  queue_new_source old_sources_queue addr file
+      
 let iter f =
   Array.iter (fun fifo ->
-      Fifo.iter f fifo
+      SourcesQueue.iter f fifo
   ) sources_queues
 
       
@@ -242,7 +298,7 @@ let source_of_client c =
       if !verbose_sources then begin
           Printf.printf "--> friends"; print_newline ();
         end;
-      Fifo.put clients_queues.(good_clients_queue) (c, last_time ())
+      SourcesQueue.put clients_queues.(good_clients_queue) (c, last_time ())
     end else
   match c.client_source with
     None -> 
@@ -277,7 +333,7 @@ let source_of_client c =
             if !verbose_sources then begin
                 Printf.printf "--> client queue %d" new_queue; print_newline ();
               end;
-          Fifo.put clients_queues.(new_queue) (c, last_time ())          
+          SourcesQueue.put clients_queues.(new_queue) (c, last_time ())          
           end else
           begin
             if !verbose_sources then begin
@@ -290,7 +346,7 @@ let source_of_client c =
             s.source_files <- List.map (fun file -> 
                 file, try !(List.assq file c.client_requests) with _ -> 0.0) 
             c.client_files;
-            Fifo.put sources_queues.(new_queue) s
+            SourcesQueue.put sources_queues.(new_queue) s
           end
       with _ ->
           if !verbose_sources then begin
@@ -300,8 +356,8 @@ let source_of_client c =
         
 let reschedule_sources file =
   Array.iter (fun queue ->
-      Fifo.iter (fun s ->
-          if List.mem_assoc file s.source_files then
+      SourcesQueue.iter (fun s ->
+          if List.mem_assq file s.source_files then
             ignore (reschedule_source s file)
       ) queue
   ) sources_queues
@@ -319,8 +375,11 @@ let source_has_file c =
   if c.client_score = Client_not_connected then
     c.client_score <- Client_has_file
   
-(* this will be configurable later *)
+(* This will be configurable later... how many clients can we ask
+in 10 minutes ? *)
 let need_new_sources () =
-  Fifo.length sources_queues.(new_sources_queue) < 1000 &&
-  Fifo.length clients_queues.(good_clients_queue) < 500
+  SourcesQueue.length sources_queues.(new_sources_queue) +
+    SourcesQueue.length clients_queues.(good_clients_queue) < 
+    600 * !!max_clients_per_second
+  
   

@@ -1,6 +1,32 @@
 ChangeLog	
 =========
 
+2003/01/12: Simon (tag unstable-2-02-5)
+  - DonkeyClients: add md4s of connected clients to a hashtbl to prevent
+      accepting two connections from the same client.
+  - DonkeySources1: 
+     * new sources are queued LIFO.
+     * old sources are immediatly stored in old_sources.
+     * fixed adding several times the same file to one source
+  - DonkeyOptions: md4 now identifies mldonkey as emule.
+  - Gui_downloads: expose events redraw the color bar 
+  - DonkeyServers: black-list servers on port 4662
+
+2003/01/11: Simon
+  - DonkeyGlobals: remove 1 from size to compute nchunks in new_file
+  - DonkeyTypes: removed field file_all_chunks, recomputed
+  - DonkeyComplexOptions: save mtime and chunk states. mldonkey should not
+      compute the md4 at each startup anymore.
+
+2003/01/11: Simon
+  - Source Management: ask for new sources only if we have fewer than
+      600 * max_clients_per_second new/good sources.
+  - IRC: completely working ?
+      * Connect to server and login
+      * General channels (right-menu on IRC account) such as '#mldonkey' :)
+      * In channels: receive messages, receive users, send messages, close chat
+      * Private channels with users (double-click on user)
+
 2003/01/10: Simon (tag unstable-2-02-4)
   - Gui: display chunks availability when selecting a source
   - DonkeyComplexOptions: saved some space in file_sources.ini

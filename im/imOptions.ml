@@ -56,3 +56,11 @@ let accounts_ini = create_options_file
 let accounts = 
   define_option accounts_ini ["accounts"] 
   "The different accounts" (listiter_option AccountOption.t) []
+
+    
+open Gettext
+    
+let browse_url_command = define_option accounts_ini
+    ["browse_url_command"] "The command to be called for browsing an url"
+  (T.option (T.string T.format)) "opera -newwindow '%s'" 
+  

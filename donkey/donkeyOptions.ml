@@ -182,10 +182,8 @@ open Md4
     
 let mldonkey_md4 md4 =
   let md4 = Md4.direct_to_string md4 in
-  (*
-  md4.[5] <- 'M';
-md4.[14] <- 'L';
-  *)
+  md4.[5] <- Char.chr 14;
+  md4.[14] <- Char.chr 111;
   Md4.direct_of_string md4
 
 let client_md4 = define_option downloads_ini ["client_md4"]

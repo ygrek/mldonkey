@@ -9,12 +9,20 @@ Bugs in unstable-2-02-3:
  * add an option for locale (or verify that LANG is set correctly LANG=C ??)
  * keep connecting to bad sources with earlier times if we are not using
     all the connection slots...
+ * Stop connecting to sources when download bandwidth is fully used.
+ * Change the color of tabs when things change
+ * Different black lists for clients and servers ?
+ * Fix stats with sources, remove servers
+ * Send a news update 2.02
+ * check new sources before old new sources ...
+ * Remove sources of cancelled files
+ * Shorten connection lifetimes
+ * Check if one client can be connected twice.
 
 donkey/:
  * New source management
  * MLdonkey client generate "Exceeding Block Boundaries" errors which lose
      bandwidth
- * Option for walker time (with min 4 hours)
  * Extended search doesnot work after connect because no ping was sent.
  * Query and parse WEB server pages such as jiggle
  * Option to clear the server list at restart or when a new list is received

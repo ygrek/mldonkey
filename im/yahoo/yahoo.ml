@@ -654,7 +654,6 @@ let new_identity_val account =
       impl_identity_ops = identity_ops;
       impl_identity_val = identity;
       impl_identity_num = 0;
-      impl_identity_account = as_account account;
 (*      impl_identity_status = Status_offline; *)
     } and 
     identity = {

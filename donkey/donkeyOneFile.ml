@@ -190,9 +190,11 @@ let query_zones c b =
 
 let put_absents file =
 
-  for i = 0 to file.file_nchunks - 1 do
-    file.file_chunks.(i) <- PresentTemp;
-  done;
+  let temp_chunk chunk =
+    match chunk with
+      PresentTemp | AbsentTemp | PartialTemp _ -> true
+    | _ -> false
+  in
   
   let rec iter_chunks_in i zs =
     if i < file.file_nchunks then 
@@ -206,11 +208,14 @@ let put_absents file =
           iter_chunks_in i tail
           else
           if begin_pos <= chunk_pos i && end_pos >= chunk_end file i then begin
-              file.file_chunks.(i) <- AbsentTemp;
+              file.file_chunks.(i) <- (
+                if temp_chunk file.file_chunks.(i) then AbsentTemp else 
+                  AbsentVerified);
               iter_chunks_in (i+1) ((chunk_end file i, end_pos) :: tail)
             end else
           let b = new_block file i in
-          file.file_chunks.(i) <- PartialTemp b;
+          file.file_chunks.(i) <- (if temp_chunk file.file_chunks.(i) then 
+              PartialTemp b else PartialVerified b);
           iter_blocks_in i b zs
         
   and iter_blocks_in i b zs =
@@ -332,7 +337,9 @@ let verify_chunk file i =
   let len = Int32.sub end_pos begin_pos in
   let md4 = file_md4s.(i) in
   if !!verbose then begin
-      Printf.printf "verify_chunk %ld[%ld]" begin_pos len; print_newline ();
+      Printf.printf "verify_chunk %s[%d] %ld[%ld]" 
+        (file_disk_name file) i
+      begin_pos len; print_newline ();
     end;
   let t1 = Unix.gettimeofday () in
   let new_md4 = Md4.digest_subfile (file_fd file) begin_pos len in
@@ -376,9 +383,10 @@ let verify_file_md4 file i b =
       PartialTemp bloc -> PartialVerified bloc
     | PresentTemp -> AbsentVerified
     | _ -> AbsentVerified);
-  file.file_all_chunks.[i] <- 
-    (if state = PresentVerified then '1' else '0')
-  
+  (*
+  file.file_all_chunks.[i] <- (if state = PresentVerified then '1' else '0');
+  *)
+  () 
   
 let rec find_client_zone c = 
   match c.client_block with
@@ -476,8 +484,8 @@ and find_zone1 c b zones =
       file.file_chunks.(b.block_pos) <- PresentTemp;
       let state = verify_chunk file b.block_pos in
       file.file_chunks.(b.block_pos) <- state;
-      (file.file_all_chunks).[b.block_pos] <- (if state = PresentVerified 
-        then '1' else '0');
+(*      (file.file_all_chunks).[b.block_pos] <- (if state = PresentVerified 
+        then '1' else '0'); *)
       file.file_absent_chunks <- List.rev (find_absents file);
       c.client_block <- None;
       find_client_block c
@@ -770,8 +778,8 @@ let verify_chunks file =
                 file_must_update file;
                 AbsentVerified
               | _ -> AbsentVerified);
-            file.file_all_chunks.[i] <- 
-              (if state = PresentVerified then '1' else '0');
+(*            file.file_all_chunks.[i] <- 
+              (if state = PresentVerified then '1' else '0'); *)
     
     done;
   file.file_absent_chunks <- List.rev (find_absents file);
@@ -832,34 +840,34 @@ let set_file_size file sz =
       file.file_file.impl_file_size <- sz;
       file.file_nchunks <- Int32.to_int (Int32.div  
           (Int32.sub sz Int32.one) block_size)+1;
-      file.file_chunks <- Array.create file.file_nchunks (
-        if not (Sys.file_exists (file_disk_name file)) then begin
+      
+      if file.file_chunks = [||] then 
+        file.file_chunks <- Array.create file.file_nchunks (
+          if not (Sys.file_exists (file_disk_name file)) then begin
 (*            Printf.printf "Setting Absent Verified chunks"; print_newline ();*)
-            
-            AbsentVerified
-          end else begin
+              
+              AbsentVerified
+            end else begin
 (*            Printf.printf "Setting Absent Verified chunks"; print_newline (); *)
-            AbsentTemp
+              AbsentTemp
             
-          end);
-
+            end);
+      
       file.file_chunks_order <- random_chunks_order file.file_nchunks;
       
       Unix32.ftruncate32 (file_fd file) sz; (* at this point, file exists *)
       
-      file.file_all_chunks <- String.make file.file_nchunks '0';
-      
-      for i = 0 to file.file_nchunks - 1 do
-        if (file.file_all_chunks).[i] = '1' then 
-          file.file_chunks.(i) <- PresentTemp;
-      done;
-
       put_absents file;
       
+      Printf.printf "AFTER put_absents:"; print_newline ();
       for i = 0 to file.file_nchunks - 1 do
-        if file.file_chunks.(i) = PresentTemp then
-          file.file_all_chunks.[i] <- '1'
+        Printf.printf "  chunk[%d]: %s" i 
+          (match file.file_chunks.(i) with
+            PresentVerified | AbsentVerified | PartialVerified _ -> "ok"
+          | _ -> "compute");
+        print_newline ();
       done;
+      
       compute_size file;
       (* verify_chunks file;  *)
       
@@ -1027,6 +1035,7 @@ let check_file_downloaded file =
           | PresentTemp -> 
               let b = verify_chunk file i in
               file.file_chunks.(i) <- b;
+(*
               file.file_all_chunks.[i] <- (
                 match b with
                   PresentVerified -> '1'
@@ -1038,7 +1047,8 @@ let check_file_downloaded file =
                 | _ ->
                     Printf.printf "OTHER"; print_newline ();
                     '0'
-              );
+);
+  *)
               raise Not_found
           | _ -> raise Not_found
       ) file.file_chunks;        

@@ -454,6 +454,10 @@ value md4_unsafe_fd (value digest_v, value fd_v, value pos_v, value len_v)
 
     nread = os_read (fd, hash_buffer, max_nread);
 
+    if(nread < 0) {
+      unix_error(errno, "md4_safe_fd: Read", Nothing);
+    }
+
     if(nread == 0){
       MD4Final (digest, &context);
 
@@ -486,6 +490,10 @@ value md5_unsafe_fd (value digest_v, value fd_v, value pos_v, value len_v)
     int max_nread = HASH_BUFFER_LEN > len ? len : HASH_BUFFER_LEN;
 
     nread = os_read (fd, hash_buffer, max_nread);
+
+    if(nread < 0) {
+      unix_error(errno, "md4_safe_fd: Read", Nothing);
+    }
 
     if(nread == 0){
       md5_finish (&context, digest);

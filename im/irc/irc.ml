@@ -33,80 +33,6 @@ open ImOptions
 open ImEvent
 open ImIdentity
 open ImRoom
-
-(*
-nickname: char[9]
-
-client: nickname, hostname, login, server
-
-channel[200]: start with &#, no space, CTRL-G or ,
-{}| = lowercase([]\ )
-
-space separated
-[:prefix] command args\r\n
-
-prefix: severname | nick [!user] [@host]
-  
-args: - no space
-      - ':' trailing with spaces
-
-
-IRC C: JOIN #francais 
-IRC S: :sy23!~simon@d177.dhcp212-198-64.noos.fr JOIN :#francais
-event_chat_join: sy23 1 #francais
-IRC S: :brunner.freenode.net MODE #francais +n
-IRC S: :brunner.freenode.net 353 sy23 = #francais :@sy23
-event_chat_buddy_join: sy23 1 @sy23
-IRC S: :brunner.freenode.net 366 sy23 #francais :End of /NAMES list.
-IRC C: JOIN #mldonkey 
-IRC S: :sy23!~simon@d177.dhcp212-198-64.noos.fr JOIN :#mldonkey
-event_chat_join: sy23 2 #mldonkey
-IRC S: :brunner.freenode.net 332 sy23 #mldonkey :..:: Welcome to the best sharing client for linux: MLDONKEY for the edonkey and overnet network -- please visit: 
-http://www.mldonkeyworld.com for more info ::..
-IRC S: :brunner.freenode.net 333 sy23 #mldonkey lemmy 1039911115
-IRC S: :brunner.freenode.net 353 sy23 = #mldonkey :sy23 mobydick_ butze theos nitram_ ehrgeiz rgselk tristate pokey pango_ radenko calc mulligan_ tommie vnc|
-zzz Pucmel lemmy Vaste
-event_chat_buddy_join: sy23 2 sy23
-event_chat_buddy_join: sy23 2 mobydick_
-event_chat_buddy_join: sy23 2 butze
-event_chat_buddy_join: sy23 2 theos
-event_chat_buddy_join: sy23 2 nitram_
-event_chat_buddy_join: sy23 2 ehrgeiz
-event_chat_buddy_join: sy23 2 rgselk
-event_chat_buddy_join: sy23 2 tristate
-event_chat_buddy_join: sy23 2 pokey
-event_chat_buddy_join: sy23 2 pango_
-event_chat_buddy_join: sy23 2 radenko
-event_chat_buddy_join: sy23 2 calc
-event_chat_buddy_join: sy23 2 mulligan_
-event_chat_buddy_join: sy23 2 tommie
-event_chat_buddy_join: sy23 2 vnc|zzz
-event_chat_buddy_join: sy23 2 Pucmel
-event_chat_buddy_join: sy23 2 lemmy
-event_chat_buddy_join: sy23 2 Vaste
-IRC S: :brunner.freenode.net 366 sy23 #mldonkey :End of /NAMES list.
-event_chat_send: sy23 2 just checking.... bye all
-IRC C: PRIVMSG #mldonkey :just checking.... bye all
-event_chat_recv: sy23 2 sy23
-chat clicked close button
-conversation close callback
-IRC C: PART #mldonkey
-IRC S: :sy23!~simon@d177.dhcp212-198-64.noos.fr PART #mldonkey :
-event_chat_leave: sy23 2
-Leaving room #mldonkey.
-chat clicked close button
-conversation close callback
-IRC C: PART #francais
-IRC S: :sy23!~simon@d177.dhcp212-198-64.noos.fr PART #francais :
-event_chat_leave: sy23 1
-Leaving room #francais.
-date: Mon Jan  6 13:56:53 2003
-event_signoff: sy23
-removing NOP
-IRC C: QUIT :Download Gaim [http://gaim.sourceforge.net/]
-
-
-  *)
   
 (*************************************************************************)
 (*************************************************************************)
@@ -120,12 +46,13 @@ type account = {
     mutable account_account : account account_impl;
 
     mutable account_sock : TcpBufferedSocket.t option;
-    mutable account_login : string;
     mutable account_server : string;
     mutable account_port : int;
+    account_identity : identity;
     mutable account_identities : (string, identity) Hashtbl.t;
     mutable account_friends : identity list;
     mutable account_autologin : bool;
+    mutable account_channels : string list;
     
     mutable account_rooms : (string, room) Hashtbl.t;
   }
@@ -134,7 +61,7 @@ and identity = {
     mutable identity_identity : identity identity_impl;
 
     mutable identity_login : string; 
-    mutable identity_account : account;
+    identity_account : account;
     mutable identity_chat : chat option;
   }
 
@@ -201,21 +128,34 @@ let new_account_val () =
       impl_account_status = Status_offline;
     } and 
     account = {
-      account_login = "NEW LOGIN";
       account_sock = None;
       account_account = impl;
-      account_server = "irc.openprojects.net";
+      account_server = "irc.freenode.net";
       account_port = 6667;
       account_autologin = false;
       account_friends = [];
       account_identities = Hashtbl.create 13;
       account_rooms = Hashtbl.create 13;
+      account_identity = identity;
+      account_channels = ["#mldonkey"];
+    } 
+  and id_impl = {
+      impl_identity_ops = identity_ops;
+      impl_identity_val = identity;
+      impl_identity_num = 0;
+    } and 
+    identity = {
+      identity_login = "NEW LOGIN";
+      identity_identity = id_impl;
+      identity_account = account;
+      identity_chat = None;
     } in
   account
   
 let register_account account =
   let impl = account.account_account in
   update_account_num impl;
+  update_identity_num account.account_identity.identity_identity;
   accounts =:= (ImAccount.as_account impl) :: !!accounts
 
 let new_chat_val account =
@@ -241,7 +181,6 @@ let new_room_val account name =
       impl_room_ops = room_ops;
       impl_room_val = room;
       impl_room_num = 0;
-      impl_room_account = as_account account;
     } and 
     room = {
       room_name = name;
@@ -259,8 +198,6 @@ let new_identity_val account =
       impl_identity_ops = identity_ops;
       impl_identity_val = identity;
       impl_identity_num = 0;
-      impl_identity_account = as_account account;
-(*      impl_identity_status = Status_offline; *)
     } and 
     identity = {
       identity_login = "NEW FRIEND";
@@ -279,8 +216,8 @@ let register_identity identity =
 let account_record a =
   [
     "account_login", "Nick", false,
-    FromString (fun s ->  a.account_login <- s),
-    ToString (fun _ -> a.account_login);
+    FromString (fun s ->  a.account_identity.identity_login <- s),
+    ToString (fun _ -> a.account_identity.identity_login);
    
     "account_server", "Server", false,
     FromString (fun s -> a.account_server <- s),
@@ -293,6 +230,10 @@ let account_record a =
     "auto_login", "Auto Login", true,
     FromBool (fun b -> a.account_autologin <- b),
     ToBool (fun _ -> a.account_autologin);    
+    
+    "account_channels", "Preferred channels", true,
+    FromString (fun s -> a.account_channels <- String2.split_simplify s ' '),
+    ToString(fun s -> String2.unsplit a.account_channels ' ')
   ]
 
 let identity_record a =
@@ -335,77 +276,6 @@ let irc_handler account s event =
       set_account_status (as_account account) Status_offline;
   | _ -> ()
 
-(* NEW MESSAGE: service 2 status ffffffff payload: *)
-(*
-let irc_process_status account pkt = 
-  Printf.printf "NOT IMPLEMENTED: irc_process_status"; print_newline ();
-  List.iter (fun (key, value) ->
-      match key with
-      | 1 -> 
-          set_account_status (as_account account) 
-          (Status_online Online_available);
-          add_event (Account_event (as_account account));
-      | _ -> ()
-  ) pkt.payload
-  
-let irc_process_notify pkt = 
-  Printf.printf "NOT IMPLEMENTED: irc_process_notify"; print_newline ();
-  ()
-  
-let irc_process_message account pkt = 
-  let from = List.assoc 4 pkt.payload in
-  let msg = List.assoc 14 pkt.payload in
-(*  let tm = List.assoc 15 pkt.payload in *)
-  
-(*
-        if (pkt->status <= 1 || pkt->status == 5) {
-                char *m;
-                int i, j;
-                strip_linefeed(msg);
-                m = msg;
-                for (i = 0, j = 0; m[i]; i++) {
-                        if (m[i] == 033) {
-                                while (m[i] && (m[i] != 'm'))
-                                        i++;
-                                if (!m[i])
-                                        i--;
-                                continue;
-                        }
-                        msg[j++] = m[i];
-                }
-                msg[j] = 0;
-                serv_got_im(gc, from, msg, 0, tm, -1);
-        } else if (pkt->status == 2) {
-                do_error_dialog(_("Your message did not get sent."), _("Gaim - Error"));
-        }
-
-  *)
-  
-  Printf.printf "MESSAGE FROM %s: %s" from msg; print_newline ();
-  begin
-(* Who sent the message *)
-    let id = try
-        Hashtbl.find account.account_friends from
-      with _ ->
-          let id = new_identity_val account in
-          id.identity_login <- from;
-          register_identity id;
-          id
-    in
-(* On which chat ? *)
-    let chat = id_open_chat id in
-    add_event (Chat_message_event (as_chat chat, as_identity id, msg))
-  end
-  
-let irc_process_mail pkt = 
-  Printf.printf "NOT IMPLEMENTED: irc_process_mail"; print_newline ();
-  ()
-  
-let irc_process_contact pkt = 
-  Printf.printf "NOT IMPLEMENTED: irc_process_contact"; print_newline ();
-  ()
-  *)
-
 let new_identity account name =
   let id =
     try
@@ -417,62 +287,6 @@ let new_identity account name =
         id
   in
   id
-
-(*
-let irc_process_list account  pkt = 
-  List.iter (fun (key, value) ->
-      if key = 87 then
-        List.iter (fun line ->
-            let (group, names) = String2.cut_at line ':' in
-            let names = String2.split_simplify names ',' in
-            List.iter (fun name ->
-                irc_add_friend_in_group account group name;
-            ) names
-        ) (String2.split_simplify value '\n')
-  ) pkt.payload;
-  ()
-      
-let irc_reader account pkt sock = 
-  Printf.printf "Message from Yahoo"; print_newline ();
-  match pkt.service with
-  | YAHOO_SERVICE_AUTH ->  
-      let result6, result96 = irc_process_auth account
-        (List.assoc 94 pkt.payload) in
-      irc_send_message (get_sock account) (new_packet0 
-          YAHOO_SERVICE_AUTHRESP YAHOO_STATUS_AVAILABLE
-          [
-          0, account.account_login;
-          6, result6;
-          96, result96;
-          1, account.account_login
-        ])
-  | YAHOO_SERVICE_LOGON
-  | YAHOO_SERVICE_LOGOFF
-  | YAHOO_SERVICE_ISAWAY
-  | YAHOO_SERVICE_ISBACK
-  | YAHOO_SERVICE_GAMELOGON
-  | YAHOO_SERVICE_GAMELOGOFF ->
-      irc_process_status account pkt
-
-  | YAHOO_SERVICE_NOTIFY ->
-      irc_process_notify pkt
-      
-  | YAHOO_SERVICE_MESSAGE
-  | YAHOO_SERVICE_GAMEMSG ->
-    irc_process_message account pkt
-
-  | YAHOO_SERVICE_NEWMAIL ->
-    irc_process_mail pkt
-
-  | YAHOO_SERVICE_NEWCONTACT ->
-      irc_process_contact pkt
-    
-  | YAHOO_SERVICE_LIST ->
-      irc_process_list account pkt
-
-  | _ -> 
-      Printf.printf "UNUSED MESSAGE"; print_newline ()
-*)
 
 let verbose = ref true
 
@@ -554,11 +368,23 @@ add_event (Room_join (as_room room.room_room))
             as_identity id))
       end      
   
-  | "353", my_nick :: _ :: room_name :: names ->
+  | "PART", room_name :: _ ->   
+      begin      
+        let nick = parse_prefix prefix in
+        if nick <> account.account_identity.identity_login then
+        let room = find_room account room_name in
+        let id = new_identity account nick in
+        add_event (Room_user_leave (as_room room.room_room, 
+            as_identity id))
+      end      
+      
+  | "353", my_nick :: _ :: room_name :: names :: [] ->
       let room = find_room account room_name in
+
+      let names = String2.split_simplify names ' ' in
       
       List.iter (fun nick ->
-          if nick <> account.account_login then
+          if nick <> account.account_identity.identity_login then
             let id = new_identity account nick in
             add_event (Room_user_join (as_room room.room_room, 
                 as_identity id))
@@ -568,9 +394,36 @@ add_event (Room_join (as_room room.room_room))
       let room = find_room account room_name in
       add_event (Room_public_message (as_room room.room_room, 
                 motd))
+
+  | "PRIVMSG", room_name :: msg :: [] ->
+      
+      begin
+        let len = String.length room_name in
+        if len > 0 then
+          if room_name.[0] = '#' then
+(* a chat room *) 
+            begin
+              let room = find_room account room_name in
+              let nick = parse_prefix prefix in
+              let id = new_identity account nick in
+              add_event (Room_message (as_room room.room_room, 
+                  as_identity id, msg))
+            end else
+          if room_name = account.account_identity.identity_login then 
+                (* a private message *)
+            begin
+              let nick = parse_prefix prefix in
+              let id = new_identity account nick in
+              let chat = id_open_chat id in
+              add_event (Chat_message_event (as_chat chat, as_identity id, msg))
+            end
+          else begin
+              Printf.printf "UNUSED MESSAGE (bad room ?)"; print_newline ();
+            end
+      end
       
       
-      (*
+      (* Some code from Gaim
 	case 4:
 		if (!strncmp(word[5], "u2.10", 5))
 			id->six_modes = TRUE;
@@ -689,7 +542,7 @@ let irc_login account =
   match account.account_sock with
     Some sock -> () (* already connected *)
   | None ->
-      Printf.printf "connecting to irc %s" account.account_login; 
+      Printf.printf "connecting to irc %s" account.account_identity.identity_login; 
       print_newline ();
       set_account_status (as_account account) Status_connecting;
 
@@ -702,12 +555,12 @@ let irc_login account =
       set_account_status (as_account account) Status_connecting;
       set_reader sock (cut_messages irc_parser (irc_reader account));
       write_string sock (Printf.sprintf "NICK %s\r\n" 
-        account.account_login);
+        account.account_identity.identity_login);
       write_string sock (Printf.sprintf "USER %s %s %s :mlim(%s)\r\n" 
-          account.account_login (Unix.gethostname()) 
-        account.account_server account.account_login);
+          account.account_identity.identity_login (Unix.gethostname()) 
+        account.account_server account.account_identity.identity_login);
 
-      Printf.printf "connecting to irc %s" account.account_login; print_newline ()
+      Printf.printf "connecting to irc %s" account.account_identity.identity_login; print_newline ()
 
       with e ->
           Printf.printf "Exception %s in irc_login" (Printexc2.to_string e);
@@ -720,7 +573,14 @@ let irc_login account =
           set_account_status (as_account account) Status_offline          
           
 let irc_keepalive account = ()
-let irc_send account id msg = ()
+let irc_send account id msg = 
+  match account.account_sock with
+  | None ->
+      Printf.printf "We are not connected anymore !!!"; print_newline ();
+  | Some sock -> 
+      Printf.printf "sending private message"; print_newline ();
+      write_string sock (Printf.sprintf "PRIVMSG %s :%s\r\n"
+          id msg)
 
 let _ =
   protocol_ops.op_protocol_account_from_option <- (fun p assocs -> 
@@ -733,6 +593,13 @@ let _ =
   account_ops.op_account_login <- (fun account ->
       (try irc_login account with _ -> ());
   );
+  account_ops.op_account_logout <- (fun account ->
+      match account.account_sock with
+        None -> ()
+      | Some sock ->
+          close sock "";
+          set_account_status (as_account account) Status_offline
+  );
   account_ops.op_account_has_rooms <- (fun account -> 
       account.account_sock <> None);
   room_ops.op_room_name <- (fun room -> room.room_name);
@@ -744,7 +611,7 @@ let _ =
       register_account account;
       as_account account);
   account_ops.op_account_keepalive <- irc_keepalive;
-  account_ops.op_account_name <- (fun account -> account.account_login);
+  account_ops.op_account_name <- (fun account -> account.account_identity.identity_login);
   account_ops.op_account_config_record <- (fun a -> account_record a);
   account_ops.op_account_new_identity <- (fun account ->
       let identity = new_identity_val account in
@@ -775,35 +642,36 @@ let _ =
           id.identity_chat <- None
       ) chat.chat_friends
   );
-  
+  room_ops.op_room_send <- (fun room msg ->
+      let account = room.room_account  in
+      match account.account_sock with
+        None ->
+(* One day, all these messages will be displayed in the interface !! *)
+          Printf.printf "Cannot send message because not connected :)";
+          print_newline ();
+      | Some sock ->
+          write_string sock (Printf.sprintf "PRIVMSG %s :%s\r\n" 
+              room.room_name msg);
+          add_event (Room_message (as_room room.room_room, as_identity account.account_identity, msg))
+  );
+  room_ops.op_room_quit <- (fun room ->
+      let account = room.room_account  in
+      match account.account_sock with
+        None ->
+          Printf.printf "Cannot quit this room since not connected :)";
+          print_newline ();
+      | Some sock ->
+          write_string sock (Printf.sprintf "PART %s\r\n" 
+              room.room_name);
+          add_event (Room_leave (as_room room.room_room)) 
+          
+  );
   account_ops.op_account_join_room <- (fun account room_name ->
       match account.account_sock with
         None -> ()
       | Some sock ->
           write_string sock (Printf.sprintf "JOIN %s\r\n"  room_name)
-  )
-    
-(*
-Message: :sy23!~sy23@pc4-cmbg2-5-cust143.cmbg.cable.ntl.com JOIN :#mldonkey
-Discarding event
-server to client: read 9
-server to client: read 411
-server_to_client: complete message
-Message: :saberhagen.freenode.net 332 sy23 #mldonkey :..:: Welcome to the best sharing client for linux: MLDONKEY for the edonkey and overnet network -- please visit: http://www.mldonkeyworld.com for more info ::..
-UNUSED MESSAGE
-server_to_client: complete message
-Message: :saberhagen.freenode.net 333 sy23 #mldonkey lemmy 1039911115
-UNUSED MESSAGE
-server_to_client: complete message
-Message: :saberhagen.freenode.net 353 sy23 = #mldonkey :sy23 [FS]Cyberchriss tfe nitram ceu pango radenko_ |Holgi|_ pokey mobydick_ d00f mulligan_ tommie vnc|zzz _spiridon calc Pucmel lemmy Vaste 
-UNUSED MESSAGE
-server_to_client: complete message
-Message: :saberhagen.freenode.net 366 sy23 #mldonkey :End of /NAMES list.
-UNUSED MESSAGE
-server to client: read 426
-server_to_client: complete message
-Message: :USERNOTICE!usernotice@usernotice.utility.freenode NOTICE sy23 :You've connected to the Freenode network via IRC.OPENPROJECTS.NET, which is being PHASED OUT.  If you connected directly, please change your client's config to point to IRC.FREENODE.NET and reconnect.  If you connected via another project's irc hostname, irc client default or web site, please let the project owners know to change their pointer!  Thanks.
-UNUSED MESSAGE
-
-
-  *)
+  );
+  account_ops.op_account_prefered_rooms <- (fun account -> account.account_channels);
+  room_ops.op_room_account <- (fun room -> as_account room.room_account)
+  

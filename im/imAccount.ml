@@ -62,6 +62,8 @@ and 'a account_ops = {
     mutable op_account_join_room : ('a -> string -> unit);
     
     mutable op_account_has_rooms : ('a -> bool);
+    
+    mutable op_account_prefered_rooms : ('a -> string list);
   }
   
   
@@ -172,6 +174,10 @@ let account_protocol account =
 let account_open_chat account =
   let account = as_account_impl account in
   account.impl_account_ops.op_account_open_chat account.impl_account_val
+
+let account_prefered_rooms account =
+  let account = as_account_impl account in
+  account.impl_account_ops.op_account_prefered_rooms account.impl_account_val
   
   
 let new_account_ops protocol = {
@@ -187,6 +193,7 @@ let new_account_ops protocol = {
     op_account_set_status = fni protocol "op_account_set_status";
     op_account_contacts = fni protocol "op_account_contacts";
     op_account_open_chat = fni protocol "op_account_open_chat";
-    op_account_has_rooms = (fun x -> ni protocol "op_account_open_chat" x; false);
+    op_account_has_rooms = (fun x -> ni protocol "op_account_has_rooms" x; false);
+    op_account_prefered_rooms = (fun x -> ni protocol "op_account_prefered_rooms" x; []);
     op_account_join_room = fni protocol "op_account_open_chat";
   }

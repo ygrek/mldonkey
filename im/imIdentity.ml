@@ -24,7 +24,6 @@ type 'a identity_impl = {
     mutable impl_identity_num : int;
     mutable impl_identity_val : 'a;
     mutable impl_identity_ops : 'a identity_ops;
-    mutable impl_identity_account : account;
   }
   
 and 'a identity_ops = {
@@ -41,6 +40,8 @@ and 'a identity_ops = {
     
 (* Is this identity online ? *)
     mutable op_identity_status : ('a -> bool);
+
+    mutable op_identity_account : ('a -> account);
     
     mutable op_identity_config_record : ('a -> config_record);
     
@@ -64,7 +65,6 @@ let dummy_identity_impl = {
     impl_identity_num = 0;
     impl_identity_val = 0;
     impl_identity_ops = Obj.magic 0;
-    impl_identity_account = Obj.magic ();
   }
   
 let dummy_identity = as_identity dummy_identity_impl  
@@ -103,8 +103,8 @@ let identity_status identity =
   identity.impl_identity_ops.op_identity_status identity.impl_identity_val
 
 let identity_account identity =
-  let identity = as_identity_impl identity in
-  identity.impl_identity_account
+  let impl = as_identity_impl identity in
+  impl.impl_identity_ops.op_identity_account identity
 
 let identity_config_record identity =
   let identity = as_identity_impl identity in
@@ -123,5 +123,6 @@ let new_identity_ops protocol = {
     op_identity_status = fni protocol "op_identity_status";
     op_identity_config_record = fni protocol "op_identity_config_record";
     op_identity_open_chat = fni protocol "op_identity_open_chat";
+    op_identity_account = fni protocol "op_identity_account";
    }
   

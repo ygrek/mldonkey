@@ -93,7 +93,7 @@ let new_file_to_share sh old_impl =
       end;
     file.file_chunks <- Array.make file.file_nchunks PresentVerified;
     file.file_absent_chunks <- [];
-    file.file_all_chunks <- String.make file.file_nchunks '1';
+(*    file.file_all_chunks <- String.make file.file_nchunks '1'; *)
     (try 
         file.file_format <- CommonMultimedia.get_info 
           (file_disk_name file)

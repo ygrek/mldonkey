@@ -48,7 +48,7 @@ INCLUDES +=-I +lablgtk $(foreach file, $(SUBDIRS), -I $(file))
 
 CFLAGS:=$(CFLAGS) $(CONFIG_INCLUDES)
 
-TARGETS= use_tags$(EXE) mlnet$(EXE)
+TARGETS= use_tags$(EXE) mlnet$(EXE) 
 
 
 #######################################################################
@@ -337,6 +337,7 @@ MLCAST_SRCS= \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
   tools/mlcast.ml
 
+
 define(EXPAND_DRIVER,[[
 
 ifeq ("$($2)" , "yes")
@@ -365,6 +366,27 @@ EXPAND_DRIVER(mlnap,OPENNAP,opennap)
 EXPAND_DRIVER(mlgnut,LIMEWIRE,limewire)
 EXPAND_DRIVER(mldonkey,DONKEY,donkey)
 EXPAND_DRIVER(mlslsk,SOULSEEK,soulseek)
+
+
+define(EXPAND_PROGRAM,[[
+
+ifeq ("$($2)" , "yes")
+
+TARGETS += $1$(EXE)
+endif
+
+$1_SRCS= \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  $(MP3TAG_SRCS) \
+  $(CHAT_SRCS) \
+  $(COMMON_SRCS) \
+  $(COMMON_CLIENT_SRCS) \
+  \
+  $($3_SRCS) \
+  \
+  $(DRIVER_SRCS)
+
+]])
 
 
 MLNET_SRCS= \
@@ -555,6 +577,10 @@ USE_TAGS_SRCS = \
   lib/cddb_lexer.mll lib/cddb_file.ml \
   tools/use_tags.ml
 
+HASH_FILES_SRCS = \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+  donkey/donkeyHasher.ml tools/hash_files.ml
+
 
 ######################################################################
 
@@ -599,6 +625,7 @@ EXPAND(TOP,mldonkeytop)
 EXPAND(MLCHAT,mlchat,GTK)
 EXPAND(OBSERVER,observer)
 EXPAND(USE_TAGS,use_tags)
+EXPAND(HASH_FILES,hash_files)
 
 
 #######################################################################

@@ -236,7 +236,7 @@ let value_to_file is_done assocs =
       value_to_int32 (List.assoc "file_size" assocs) 
     with _ -> Int32.zero
   in
-
+  
   let file_state = get_value "file_state" value_to_state in
   
   let file = DonkeyGlobals.new_file file_state (
@@ -246,7 +246,7 @@ let value_to_file is_done assocs =
   (try
       file.file_file.impl_file_age <- get_value "file_age" value_to_float
     with _ -> ());
-
+  
   (try 
       if file.file_exists then begin
 (* only load absent chunks if file previously existed. *)
@@ -260,15 +260,25 @@ let value_to_file is_done assocs =
     get_value_nil "file_filenames" (value_to_list value_to_string);
   (try
       set_file_best_name (as_file file.file_file)
-         (get_value "file_filename" value_to_string)
+      (get_value "file_filename" value_to_string)
     with _ -> update_best_name file);
   
   (try
-      file.file_all_chunks <- get_value "file_all_chunks"
-        value_to_string
-    with _ -> ());
+      let mtime = Unix32.mtime32 (file_disk_name file) in
+      let old_mtime = value_to_float (List.assoc "file_mtime" assocs) in
+      file.file_mtime <- old_mtime;
+      let file_chunks = get_value "file_all_chunks" value_to_string in
+      file.file_chunks <- Array.init file.file_nchunks 
+        (fun i ->
+          let c = file_chunks.[i] in
+          if c = '0' then AbsentVerified else
+          if c = '2' then PresentVerified
+          else AbsentTemp
+      )
+    with _ -> 
+        Printf.printf "Could not load chunks states"; print_newline (););
 
-  (*
+(*
   List.iter (fun c ->
       DonkeyGlobals.new_source file  c;
   )
@@ -286,7 +296,7 @@ let value_to_file is_done assocs =
     if file.file_chunks_age = [||]
     then 0.0
     else Array2.min file.file_chunks_age);
- 
+  
   
   
   let md4s = get_value_nil "file_md4s" (value_to_list value_to_md4) in
@@ -295,12 +305,13 @@ let value_to_file is_done assocs =
   
   
 let string_of_chunks file =
-  let s = String.create file.file_nchunks in
-  for i = 0 to file.file_nchunks - 1 do
-    s.[i] <- (
-      match file.file_chunks.(i) with
-        PresentVerified | PresentTemp -> '1'
-      | _ -> '0'
+  let nchunks = file.file_nchunks in
+  let s = String.make nchunks '0' in
+  for i = 0 to nchunks - 1 do
+    s.[i] <- (match file.file_chunks.(i) with
+      | PresentVerified -> '2'
+      | AbsentVerified -> '0'
+      | _ -> '1' (* don't know ? *)
     )
   done;
   s
@@ -309,7 +320,7 @@ let file_to_value file =
   [
     "file_md4", string_to_value (Md4.to_string file.file_md4);
     "file_size", int32_to_value file.file_file.impl_file_size;
-    "file_all_chunks", string_to_value file.file_all_chunks;
+    "file_all_chunks", string_to_value (string_of_chunks file);  
     "file_state", state_to_value (file_state file);
     "file_absent_chunks", List
       (List.map (fun (i1,i2) -> 
@@ -325,6 +336,8 @@ let file_to_value file =
     "file_downloaded", int32_to_value file.file_file.impl_file_downloaded;
     "file_chunks_age", List (Array.to_list 
         (Array.map float_to_value file.file_chunks_age));
+    "file_mtime", float_to_value (
+      try Unix32.mtime32 (file_disk_name file) with _ -> 0.0)
   ]
   
 module SharedFileOption = struct
@@ -411,7 +424,7 @@ module ClientOption = struct
         | md4 :: tail ->
             try
               let file = find_file md4 in
-              let s = DonkeySources1.new_source addr file in
+              let s = DonkeySources1.old_source addr file in
               s.source_overnet <- overnet_source;
               s.source_client <- 
                 SourceLastConnection (DonkeySources1.new_sources_queue, 
@@ -419,7 +432,8 @@ module ClientOption = struct
               List.iter (fun md4 ->
                   try
                     let file = find_file md4 in
-                    s.source_files <- (file, 0.0) :: s.source_files
+                    if not (List.mem_assq file s.source_files) then
+                      s.source_files <- (file, 0.0) :: s.source_files
                   with _ -> ()
               ) files;
               s
@@ -489,12 +503,12 @@ let add_server ip port =
       s
   
 let check_add_server ip port =
-  if Ip.valid ip && not (is_black_address ip port) then
+  if Ip.valid ip && not (is_black_address ip port) && port <> 4662 then
     add_server ip port
   else raise Not_found
 
 let safe_add_server ip port =
-  if Ip.valid ip && not (is_black_address ip port) then
+  if Ip.valid ip && not (is_black_address ip port) && port <> 4662 then
     try
       ignore (DonkeyGlobals.find_server ip port)
     with _ ->

@@ -52,7 +52,7 @@ value md4_unsafe_file (value digest_v, value filename_v)
 
   else {
     MD4Init (&context);
-    while ((len = fread (hash_buffer, 1, HASH_BUFFER_LEN, file)))
+    while ((len = fread (hash_buffer, 1, HASH_BUFFER_LEN, file)) >0)
       MD4Update (&context, hash_buffer, len);
     MD4Final (digest, &context);
 

@@ -98,15 +98,16 @@ let query_locations s n_per_round =
       iter n_per_round
 
 let query_locations_timer () =
-  List.iter (fun s ->
+  if DonkeySources1.need_new_sources () then 
+    List.iter (fun s ->
 (* During the first 20 minutes, don't send any localisation query
 to the server *)
-      if s.server_queries_credit = 0 then
-        query_locations s !!files_queries_per_minute
-      else 
-        s.server_queries_credit <- s.server_queries_credit - 1
-  ) (connected_servers())
-
+        if s.server_queries_credit = 0 then
+          query_locations s !!files_queries_per_minute
+        else 
+          s.server_queries_credit <- s.server_queries_credit - 1
+    ) (connected_servers())
+    
 let _ =
   server_ops.op_server_sort <- (fun s ->
       (3600. *. (float_of_int s.server_score)) +. 
@@ -217,7 +218,8 @@ let client_to_server s t sock =
 number of queries that can be sent per minute (for lugdunum, it's one!).
 Once the first queries have been sent, we must wait 20 minutes before next
 queries. *)
-      query_locations s (20 * !!files_queries_per_minute);
+      if DonkeySources1.need_new_sources () then 
+        query_locations s (20 * !!files_queries_per_minute);
       s.server_queries_credit <- !!files_queries_initial_delay
 (*      !server_is_connected_hook s sock *)
   
@@ -444,7 +446,7 @@ position to the min_left_servers position.
   let to_remove = ref [] in
   let to_keep = ref [] in
   Hashtbl.iter (fun _ s ->
-      if is_black_address s.server_ip s.server_port then
+      if is_black_address s.server_ip s.server_port || s.server_port = 4662 then
         to_remove := s :: !to_remove
       else
         to_keep := (connection_last_conn s.server_connection_control, s) :: 
@@ -578,7 +580,8 @@ let next_walker_start = ref 0.0
 let walker_timer () = 
   
   if !!servers_walking_period > 0. &&
-    !nservers < max_allowed_connected_servers () + !!max_walker_servers then
+    !nservers < max_allowed_connected_servers () + !!max_walker_servers &&
+    DonkeySources1.need_new_sources () then
     
     match !walker_list with
       [] ->

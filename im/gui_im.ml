@@ -28,6 +28,18 @@ open ImChat
 open ImRoom  
 open Gpattern
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 let quit_on_close = ref false
   
 class dialog_box () =
@@ -223,10 +235,10 @@ let string_of_status status =
 
 let new_dialog chat =
   let window = GWindow.window ~kind: `DIALOG ~width: 300 ~height: 200 
-    ~title: "" () in
+      ~title: "" () in
   ignore (window#connect#destroy (fun () -> 
         ()
-        ));
+    ));
   let dialog = new dialog chat in
   window#set_title dialog#name;
   ignore (dialog#box#connect#destroy 
@@ -236,7 +248,22 @@ let new_dialog chat =
   dialog#wt_input#misc#grab_focus ();
   window, dialog
 
-      
+class simple_box () =
+  let vbox = GPack.vbox ~homogeneous:false () in
+  let wtool =
+    GButton.toolbar ~orientation:`HORIZONTAL ~style:`BOTH ~space_size:2
+      ~space_style:`LINE ~tooltips:true ~button_relief:`NONE
+    ~width: 200
+      ~packing:(vbox#pack ~expand:false ~fill:true ~padding:2) ()
+  in
+  object
+    val vbox = vbox
+    val wtool = wtool
+    method vbox = vbox
+    method wtool = wtool
+    method coerce = vbox#coerce
+end
+
 class contacts_window_list () =
   object(self)
     inherit [identity] Gpattern.plist `EXTENDED ["Name"; "Status"; "Temporary"]
@@ -266,6 +293,47 @@ class contacts_window_list () =
   *)
           
 end
+
+
+class identity_list () =
+  object(self)
+    inherit [identity] Gpattern.plist `EXTENDED ["Name"]
+      true (fun f -> identity_num f) as pl
+    inherit simple_box () as box
+    
+    
+    method compare id1 id2 = identity_num id1 - identity_num id2
+    method content id =
+      Printf.printf "content"; print_newline ();
+      ([ String (identity_name id) ], None)
+      
+    method update_contact id =
+      try
+        let (row, _ ) = self#find (identity_num id) in
+        self#update_row id row
+      with _ -> 
+          self#add_item id;
+
+    method on_double_click id =
+      identity_open_chat id
+      (*
+      let dialog = new_dialog id in
+()
+  *)
+
+    method remove_identity id = 
+      try
+        let (row, _ ) = self#find (identity_num id) in
+        self#remove_item row id
+      with _ -> ()
+      
+          
+    initializer
+      box#vbox#pack ~expand: true pl#box;
+
+          
+end
+
 
 let chat_windows = Hashtbl.create 13
 
@@ -383,8 +451,16 @@ class accounts_window () =
                 `I ("Remove", self#remove) ;
               ] in
             if tail = [] && account_has_rooms account then
-              (`I ("Join Room", (fun _ -> ask_for_room account))):: 
-              basic_menu
+              (`I ("Join Room", (fun _ -> ask_for_room account)))::
+              (let prefered_rooms = account_prefered_rooms account in
+                if prefered_rooms = [] then [] else
+                  [ `M ("Prefered Rooms",
+                      List.map (fun name ->
+                          `I (name, (fun _ -> 
+                                account_join_room account name))  
+                      ) prefered_rooms)]
+              
+              ) @basic_menu
             else basic_menu
       )
 
@@ -468,21 +544,89 @@ input_record (account_config_record account)));
   );
   window  
 *)
-  
-class room_window (room: room) =
-  
-  object (self)
 
-    inherit Gui_im_base.room_tab ()
+(** Return a color for a given name. *)
+let color_of_name name =
+  let accs = [| ref 0 ; ref 0 ; ref 0 |] in
+  for i = 0 to (String.length name) - 1 do
+    let m = i mod 3 in
+    accs.(m) := !(accs.(m)) + Char.code name.[i]
+  done;
+  let r = !(accs.(0)) mod 210 in
+  let g = !(accs.(1)) mod 210 in
+  let b = !(accs.(2)) mod 210 in
+  let s = Printf.sprintf "#%02X%02X%02X" r g b in
+  `NAME s
+
+class room_window (room: room) =
+  let room_users = new identity_list () in
+  object (self)
     
-    method update_room = ()
+    inherit Gui_im_base.room_tab ()
+
+    
+    
+    method update_room = ()    
+
+      (*
+    method init_window =
+      let (w,_) = Gdk.Window.get_size wpane#misc#window in
+      wpane#set_position (w - 200)
+*)
+      
+    method room_event (label: GMisc.label) event =
+      Printf.printf "room event"; print_newline ();
+      match event with
+      | Room_message (_, id, msg) ->
+          let nick = identity_name id in
+          let c = color_of_name nick in
+          text#insert ~foreground: c (Printf.sprintf "%s: " nick);
+          text#insert (Printf.sprintf "%s\n" msg)
+      
+      | Room_user_join (_, identity) ->
+          room_users#add_item identity
+      
+      | Room_user_leave (_, identity) ->
+          room_users#remove_identity identity
+      
+      | _ -> 
+          Printf.printf "unused room event"; print_newline ()
+    
+    method quit_this_room () = 
+      room_quit room
+      
+    initializer
+      ignore
+        (room_users#wtool#insert_button 
+          ~text: "Leave"
+          ~tooltip: "Leave this room"
+          ~icon: (Gui_icons.pixmap [] "trash.xpm")#coerce
+          ~callback: self#quit_this_room
+          ()
+      );
+      let account = room_account room in
+      nick_label#set_text (Printf.sprintf "%s:" (account_name account));
+      wpane#add2 room_users#coerce;
+      room_users#coerce#misc#show ();
+      let  on_entry_return () =
+        match entry#text with
+          "" -> ()
+        | s ->
+            room_send room s;
+            entry#set_text "";
+(*self#insert_text (Printf.sprintf "> %s\n" s) *)
+      in          
+      Okey.add entry ~mods: [] GdkKeysyms._Return
+        on_entry_return;
+      
+      
 end
 
 let room_tabs = Hashtbl.create 13
   
 let find_room_tab room =
   Hashtbl.find room_tabs (room_num room)
-      
+
 class main_window account =
   let accounts = new accounts_window () in
   let contacts = new contacts_window_list () in
@@ -490,26 +634,40 @@ class main_window account =
     inherit Gui_im_base.window2 ()
     
     method coerce = window#coerce
-            
+    
     method update_contact = contacts#update_contact 
     method update_account account = accounts#update_account account
+    
+    method find_room_or_create room = 
+      try
+        Hashtbl.find room_tabs (room_num room)
+      with _ -> 
+          Printf.printf "New room %d" (room_num room); print_newline ();
+          let room_window = new room_window room in
+          let label_text = Printf.sprintf "%s: Room %s"
+              (protocol_name (room_protocol room))
+            (room_name room) in
+          let label = GMisc.label ~text: label_text () in
+          main_notebook#append_page ~tab_label:label#coerce
+            room_window#coerce;
+          Hashtbl.add room_tabs (room_num room) (room_window, label);
+          room_window, label
+          
     method update_room room =
-      let room_window, label = try
-          Hashtbl.find room_tabs (room_num room)
-        with _ -> 
-            Printf.printf "New room %d" (room_num room); print_newline ();
-            let room_window = new room_window room in
-            let label_text = Printf.sprintf "%s: Room %s"
-                (protocol_name (room_protocol room))
-              (room_name room) in
-            let label = GMisc.label ~text: label_text () in
-            main_notebook#append_page ~tab_label:label#coerce
-              room_window#coerce;
-            Hashtbl.add room_tabs (room_num room) (room_window, label);
-            room_window, label
-      in
+      let room_window, label = self#find_room_or_create room in
       room_window#update_room
+          
+    method remove_room room =
+      let room_window, label = self#find_room_or_create room in
+      let page_num = main_notebook#page_num room_window#coerce in
+      main_notebook#goto_page 1;
+      main_notebook#remove_page page_num;
+      Hashtbl.remove room_tabs (room_num room)
       
+    method room_event room event =
+      let (room_window, label) = self#find_room_or_create room in
+      room_window#room_event label event
+            
     initializer
       contacts_hbox#add contacts#box;
       accounts_hbox#add accounts#box;
@@ -602,6 +760,15 @@ let _ =
           
       | Room_join room ->
           main_window#update_room room
+
+      | Room_leave room ->
+          main_window#remove_room room
+          
+      | Room_public_message (room, _)
+      | Room_message (room, _, _)
+      | Room_user_join (room, _) 
+      | Room_user_leave (room, _) ->
+          main_window#room_event room event
           
       | _ -> 
           Printf.printf "Discarding event"; print_newline ();

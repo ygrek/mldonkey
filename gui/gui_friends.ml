@@ -215,10 +215,10 @@ class box_friends box_files () =
     method menu =
       match self#selection with
         [] -> [ `I (gettext M.find_friend, self#find_friend) ;
-            `I (gettext M.remove_all_friends, self#remove_all_friends)]
+            `I (gettext M.remove_all_friends_text, self#remove_all_friends)]
       |	_ -> [ `I (gettext M.find_friend, self#find_friend) ;
             `I (gettext M.remove, self#remove) ;
-            `I (gettext M.remove_all_friends, self#remove_all_friends)]
+            `I (gettext M.remove_all_friends_text, self#remove_all_friends)]
     
     
     method h_update_friend f_new =
@@ -265,8 +265,8 @@ class box_friends box_files () =
       );
       ignore
         (wtool#insert_button 
-          ~text: (gettext M.remove_all_friends)
-        ~tooltip: (gettext M.remove_all_friends)
+          ~text: (gettext M.remove_all_friends_text)
+        ~tooltip: (gettext M.remove_all_friends_tips)
         ~icon: (Gui_options.pixmap M.o_xpm_remove_all_friends)#coerce
           ~callback: self#remove_all_friends
           ()

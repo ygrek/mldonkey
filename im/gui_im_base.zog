@@ -57,7 +57,7 @@
   </window>
 </entity>
 <entity name=window2>
-  <window name=window width="400" height="200" border_width="" title="Gui_messages.software" allow_shrink="true" allow_grow="true" auto_grow="true" modal="false" x="" y="">
+  <window name=window width="640" height="400" border_width="" title="Gui_messages.software" allow_shrink="true" allow_grow="true" auto_grow="true" modal="false" x="" y="">
     <vbox name=box width="600" height="440" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
       <menubar name=menubar width="-1" height="-1" border_width="-1" accel_group_name="" tab_label="" expand="false" fill="false" padding="-1">
         <menu_item name=_Menu width="-1" height="-1" border_width="-1" label="Gettext.gettext+Gui_messages.mFile" accel_modifier="[`CONTROL]" accel_flags="[`VISIBLE+;+`LOCKED]" accel_keysym="" show_toggle="true" show_indicator="true" right_justify="false" tab_label="" expand="false" fill="true" padding="-1">
@@ -86,15 +86,17 @@
 </entity>
 <entity name=room_tab>
   <vbox name=room_vbox width="" height="" border_width="" homogeneous="false" spacing="" tab_label="" expand="true" fill="true" padding="">
-    <hbox name=hbox_19 width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
-      <scrolled_window name=wscroll width="" height="" border_width="" hscrollbar_policy="`AUTOMATIC" vscrollbar_policy="`AUTOMATIC" placement="`TOP_LEFT" tab_label="" expand="true" fill="true" padding="">
-        <text name=wt_10 width="-1" height="-1" editable="false" word_wrap="true" line_wrap="true" tab_label="" expand="true" fill="true" padding="-1">
+    <hpaned name=wpane width="600" height="-1" border_width="-1" handle_size="-1" tab_label="" expand="true" fill="true" padding="-1">
+      <scrolled_window name=wscroll width="450" height="0" border_width="" hscrollbar_policy="`AUTOMATIC" vscrollbar_policy="`AUTOMATIC" placement="`TOP_LEFT" tab_label="" expand="true" fill="true" padding="">
+        <text name=text width="-1" height="-1" editable="false" word_wrap="true" line_wrap="true" tab_label="" expand="true" fill="true" padding="-1">
         </text>
       </scrolled_window>
-      <vbox name=users_vbox width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
-      </vbox>
+    </hpaned>
+    <hbox name=hbox_91 width="-1" height="-1" border_width="-1" homogeneous="false" spacing="-1" tab_label="" expand="false" fill="true" padding="-1">
+      <label name=nick_label width="-1" height="-1" text="%22My+nick:%22" justification="`LEFT" line_wrap="true" x_alignment="-1.0" y_alignment="-1.0" x_padding="-1" y_padding="-1" tab_label="" expand="false" fill="true" padding="-1">
+      </label>
+      <entry name=entry width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="true" fill="true" padding="-1">
+      </entry>
     </hbox>
-    <entry name=we_11 width="-1" height="-1" max_length="-1" text="" visibility="true" editable="true" tab_label="" expand="false" fill="false" padding="-1">
-    </entry>
   </vbox>
 </entity>

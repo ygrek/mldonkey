@@ -548,7 +548,9 @@ class box_downloads box_locs wl_status () =
 	    `I ((gettext M.preview), self#preview) ;
 	    `I ((gettext M.get_format), self#get_format) ;
 	  ] 
-
+          
+    val mutable last_displayed_file = None
+      
     method on_select file =
       label_file_info#set_text 
 	(
@@ -559,11 +561,14 @@ class box_downloads box_locs wl_status () =
            ;
 	);
       redraw_chunks draw_availability file;
+      last_displayed_file <- Some file;
       box_locs#update_data_by_file (Some file)
 
     method on_deselect _ =
       box_locs#update_data_by_file None
+      
 
+      
     (** {2 Handling core messages} *)
 
     method update_file f f_new row =
@@ -743,7 +748,12 @@ class box_downloads box_locs wl_status () =
 	   ~callback: self#get_format
 	   ()
 	);
-
+      ignore (draw_availability#event#connect#expose (fun _ ->
+          match last_displayed_file with
+            None -> true
+          | Some file -> 
+              redraw_chunks draw_availability file; true
+      ));
       self#vbox#pack ~expand: false ~fill: true label_file_info#coerce ;
       self#vbox#pack ~expand: false ~fill: true draw_availability#coerce
 

@@ -58,7 +58,7 @@ let useful_client c =
     else raise Not_found
   with _ ->
       if client_type c <> NormalClient then
-        Fifo.put clients_queues.(good_clients_queue) (c, last_time() +. 600.)
+        SourcesQueue.put clients_queues.(good_clients_queue) (c, last_time() +. 600.)
       else
       if files <> [] then  source_of_client c;
       false
@@ -121,9 +121,9 @@ let print_sources buf =
   for i = 0 to nqueues - 1 do 
     Printf.bprintf buf "Queue[%s]: %d sources\n" sources_name.(i)
     (let n = if i <= last_clients_queue then
-          Fifo.length clients_queues.(i)
+          SourcesQueue.length clients_queues.(i)
         else 
-          Fifo.length sources_queues.(i) in
+          SourcesQueue.length sources_queues.(i) in
       nsources := !nsources + n;
       n)
   done;
@@ -143,9 +143,9 @@ and if we have not exceeded the max number of clients   *)
     if !verbose_sources then begin
         Printf.printf "queue[%s]: %d sources" sources_name.(i)
         (let n = if i <= last_clients_queue then
-              Fifo.length clients_queues.(i)
+              SourcesQueue.length clients_queues.(i)
             else 
-              Fifo.length sources_queues.(i) in
+              SourcesQueue.length sources_queues.(i) in
           nsources := !nsources + n; n);
         print_newline ();
       end;
@@ -195,9 +195,9 @@ and if we have not exceeded the max number of clients   *)
                 
                 if index <= last_clients_queue then
                   
-                  let (c, time) = Fifo.head clients_queues.(index) in
+                  let (c, time) = SourcesQueue.head clients_queues.(index) in
                   if time +. sources_periods.(index) <= last_time () then
-                    let _ = Fifo.take clients_queues.(index) in
+                    let _ = SourcesQueue.take clients_queues.(index) in
                     
                     if useful_client c then
                       next_slot nclients index slot
@@ -206,7 +206,7 @@ and if we have not exceeded the max number of clients   *)
                   else raise Not_found
                 else
                 
-                let s = Fifo.head sources_queues.(index) in
+                let s = SourcesQueue.head sources_queues.(index) in
                 let ip, port = s.source_addr in
                 if !verbose_sources then begin
                     Printf.printf "One source %s:%d from queue[%s]" (Ip.to_string ip) port sources_name.(index); print_newline ();
@@ -216,7 +216,7 @@ and if we have not exceeded the max number of clients   *)
                     if !verbose_sources then begin
                         Printf.printf "Source invalidated"; print_newline ();
                       end;
-                    let s = Fifo.take sources_queues.(index) in
+                    let s = SourcesQueue.take sources_queues.(index) in
                     (nclients, index, slot)
                   end else
                 match s.source_client with
@@ -224,7 +224,7 @@ and if we have not exceeded the max number of clients   *)
                     
                     if time +. sources_periods.(index) <= last_time () then
 (* This source is good, connect to it !!! *)
-                      let s = Fifo.take sources_queues.(index) in
+                      let s = SourcesQueue.take sources_queues.(index) in
                       if !verbose_sources then begin
                           Printf.printf "Source could be connected"; print_newline ();
                         end;
@@ -247,7 +247,7 @@ and if we have not exceeded the max number of clients   *)
                 
                 | _ -> 
 (* This source is already connected, remove it immediatly, and retry *)
-                    let s = Fifo.take sources_queues.(index) in
+                    let s = SourcesQueue.take sources_queues.(index) in
                     (nclients, index, slot)
               with _ -> 
 (* for some reason, we didn't find a good client in this queue, go to the

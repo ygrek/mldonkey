@@ -24,7 +24,6 @@ type 'a room_impl = {
     mutable impl_room_num : int;
     mutable impl_room_val : 'a;
     mutable impl_room_ops : 'a room_ops;
-    mutable impl_room_account : account;
   }
   
 and 'a room_ops = {
@@ -34,13 +33,15 @@ and 'a room_ops = {
     mutable op_room_send : ('a -> string -> unit); 
     
 (* Remove this room from my contacts *)
-    mutable op_room_remove : ('a -> unit);
+    mutable op_room_quit : ('a -> unit);
     
 (* Get the name of this room *)
     mutable op_room_name : ('a -> string);
     
 (* Is this room online ? *)
     mutable op_room_status : ('a -> bool);
+    
+    mutable op_room_account : ('a -> account);
   }
   
   
@@ -60,7 +61,6 @@ let dummy_room_impl = {
     impl_room_num = 0;
     impl_room_val = 0;
     impl_room_ops = Obj.magic 0;
-    impl_room_account = Obj.magic 0;
   }
   
 let dummy_room = as_room dummy_room_impl  
@@ -86,9 +86,9 @@ let room_send room msg =
   let room = as_room_impl room in
   room.impl_room_ops.op_room_send room.impl_room_val msg
 
-let room_remove room =
+let room_quit room =
   let room = as_room_impl room in
-  room.impl_room_ops.op_room_remove room.impl_room_val
+  room.impl_room_ops.op_room_quit room.impl_room_val
 
 let room_name room =
   let room = as_room_impl room in
@@ -98,6 +98,11 @@ let room_status room =
   let room = as_room_impl room in
   room.impl_room_ops.op_room_status room.impl_room_val
   
+
+let room_account room =
+  let room = as_room_impl room in
+  room.impl_room_ops.op_room_account room.impl_room_val
+  
   
 let room_protocol room = 
   let room = as_room_impl room in
@@ -106,7 +111,8 @@ let room_protocol room =
 let new_room_ops protocol = {
     op_room_protocol = protocol; 
     op_room_send = fni2 protocol "op_room_send";
-    op_room_remove = fni protocol "op_room_remove";
+    op_room_quit = fni protocol "op_room_quit";
     op_room_name = fni protocol "op_room_name";
     op_room_status = fni protocol "op_room_status";
+    op_room_account = fni protocol "op_room_account";
   }

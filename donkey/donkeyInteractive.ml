@@ -416,6 +416,18 @@ let print_file buf file =
       )
   ) file.file_chunks
 
+let recover_md4s md4 =
+    let file = find_file md4 in
+    for i = 0 to file.file_nchunks - 1 do
+      file.file_chunks.(i) <- (match file.file_chunks.(i) with
+          PresentVerified -> PresentTemp
+        | AbsentVerified -> AbsentTemp
+        | PartialVerified x -> PartialTemp x
+        | x -> x)
+    done
+
+
+    
 let parse_donkey_url url =
   match String2.split (String.escaped url) '|' with
   | "ed2k://" :: "file" :: name :: size :: md4 :: _
@@ -624,7 +636,8 @@ let commands = [
                           !!temp_directory filename) in
                     let names = try DonkeyIndexer.find_names md4 
                       with _ -> [] in
-                    query_download names size md4 None None None true
+                      query_download names size md4 None None None true;
+                      recover_md4s md4
               with e ->
                   Printf.printf "exception %s in recover_temp"
                     (Printexc2.to_string e); print_newline ();
@@ -800,7 +813,16 @@ let _ =
         P.file_state = file_state file;
         P.file_sources = None;
         P.file_download_rate = file_download_rate file.file_file;
-        P.file_chunks = file.file_all_chunks;
+        P.file_chunks = (
+          let nchunks = file.file_nchunks in
+          let s = String.make file.file_nchunks '0' in
+          for i = 0 to nchunks - 1 do
+            match file.file_chunks.(i) with
+              PresentTemp | PresentVerified -> s.[i] <- '1'
+            | _ -> ()
+          done;
+          s
+        );          
         P.file_availability = String2.init file.file_nchunks (fun i ->
 	    char_of_int (min file.file_available_chunks.(i) 255));
         P.file_format = file.file_format;

@@ -197,8 +197,8 @@ class box columns users wl_status =
               `I ((gettext M.remove), self#remove) ;
               `S ]
       ) @
-        [ `I ((gettext M.connect_more_servers), self#connect_more_servers) ;
-        `I ((gettext M.remove_old_servers), self#remove_old_servers)
+        [ `I ((gettext M.connect_more_servers_text), self#connect_more_servers) ;
+        `I ((gettext M.remove_old_servers_text), self#remove_old_servers)
       ]	
     
     method set_tb_style = wtool#set_style
@@ -350,8 +350,8 @@ class box columns users wl_status =
 
       ignore
 	(wtool#insert_button 
-	   ~text: (gettext M.connect_more_servers)
-	   ~tooltip: (gettext M.connect_more_servers)
+	   ~text: (gettext M.connect_more_servers_text)
+	   ~tooltip: (gettext M.connect_more_servers_tips)
 	   ~icon: (Gui_options.pixmap M.o_xpm_connect_more_servers)#coerce
 	   ~callback: self#connect_more_servers
 	   ()
@@ -359,8 +359,8 @@ class box columns users wl_status =
 
       ignore
 	(wtool#insert_button 
-	   ~text: (gettext M.remove_old_servers)
-	   ~tooltip: (gettext M.remove_old_servers)
+	   ~text: (gettext M.remove_old_servers_text)
+	   ~tooltip: (gettext M.remove_old_servers_tips)
 	   ~icon: (Gui_options.pixmap M.o_xpm_remove_old_servers)#coerce
 	   ~callback: self#remove_old_servers
 	   ()
@@ -368,8 +368,8 @@ class box columns users wl_status =
 
       ignore
 	(wtool#insert_button 
-	   ~text: (gettext M.toggle_display_all_servers)
-	   ~tooltip: (gettext M.toggle_display_all_servers)
+	   ~text: (gettext M.toggle_display_all_servers_text)
+	   ~tooltip: (gettext M.toggle_display_all_servers_tips)
 	   ~icon: (Gui_options.pixmap M.o_xpm_toggle_display_all_servers)#coerce
 	   ~callback: self#toggle_display_all_servers
 	   ()

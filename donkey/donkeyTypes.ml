@@ -224,7 +224,7 @@ and file = {
     mutable file_chunks : chunk array;
     mutable file_chunks_order : int array;
     mutable file_chunks_age : float array;
-    mutable file_all_chunks : string;
+(*    mutable file_all_chunks : string; *)
     mutable file_absent_chunks : (int32 * int32) list;
     mutable file_filenames : string list;
     mutable file_nsources : int;
@@ -234,6 +234,7 @@ and file = {
     mutable file_paused_sources : (source * int) Fifo.t;
     mutable file_shared : file CommonShared.shared_impl option;
     mutable file_locations : client Intmap.t; 
+    mutable file_mtime : float;
   }
 
 and file_to_share = {
