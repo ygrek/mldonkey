@@ -45,15 +45,6 @@ open DonkeyComplexOptions
 open DonkeyGlobals
 open DonkeyTypes  
 
-module GlobalLRU = struct
-  end
-  
-module History = struct 
-  end
-  
-module SplitLRU = struct
-  end 
-
 let new_download file = ()
 let new_neighbour client file = ()
   
