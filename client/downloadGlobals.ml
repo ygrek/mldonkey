@@ -108,7 +108,6 @@ let connection_delay cc =
   
 open Mftp
   
-let client_ip = ref (Ip.of_ints (0,0,0,0))
 let client_tags = ref ([] : tag list)
 let client_port = ref 0
 
@@ -280,7 +279,7 @@ let new_server ip port score =
       let s = { 
           server_next_udp = last_time ();
           server_ip = ip;     
-          server_cid = !client_ip;
+          server_cid = !!client_ip;
           server_port = port; 
           server_sock = None; 
           server_num = !server_counter; 

@@ -34,6 +34,7 @@ type 'a option_record
 type options_file
 
 val create_options_file : string -> options_file
+val options_file_name : options_file -> string
 val set_options_file : options_file -> string -> unit
 val prune_file : options_file -> unit  
 (*4 Operations on option files *)

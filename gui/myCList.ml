@@ -1,3 +1,4 @@
+open Options
 open BasicSocket
   
 open Gui_options
@@ -20,8 +21,9 @@ let need_resize clist =
 
 let update_sizes timer = 
   reactivate_timer timer;
-  List.iter (fun clist -> 
-      try clist#columns_autosize () with _ -> ()) !clists_need_resize;
+  if !!auto_resize then
+    List.iter (fun clist -> 
+        try clist#columns_autosize () with _ -> ()) !clists_need_resize;
   clists_need_resize := []
 
   

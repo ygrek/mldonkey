@@ -97,6 +97,9 @@ let submit_search (gui: gui) local ()=
           search_artist = option_of_string s#entry_artist#text;
           search_album = option_of_string s#entry_album#text;
           search_fields = [];
+          search_and = [];
+          search_not = [];
+          search_or = [];
         };
         P.search_num = !search_counter;
       }));

@@ -93,18 +93,6 @@ module ClientOption = struct
   end
   
 
-
-module IpOption = struct
-    
-    let value_to_ip v = 
-      Ip.of_string (value_to_string v)
-      
-    let ip_to_value ip =
-      string_to_value (Ip.to_string ip)
-      
-    let t = define_option_class "Ip" value_to_ip ip_to_value      
-      
-  end
     
 module ServerOption = struct
     let value_to_server v = 
@@ -396,4 +384,3 @@ let remove_server ip port =
     known_servers  =:= List2.removeq s  !!known_servers ;
     DownloadGlobals.remove_server ip port
   with _ -> ()
-

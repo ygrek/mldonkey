@@ -16,6 +16,7 @@
     along with mldonkey; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
+
 open Options
 open Mftp
 open Mftp_comm
@@ -34,9 +35,6 @@ open Gui_types
 open DownloadOptions
 
   
-    
-let config_filename = "downloads.ini"
-
 let is_directory filename =
   try let s = Unix.stat filename in s.Unix.st_kind = Unix.S_DIR with _ -> false
 
@@ -76,7 +74,40 @@ let daily_timer timer =
 let _ = 
   try
 (*  DownloadClient.verbose := true; *)
+
+(**** INSTALL HOOKS ****)
+    
+    DownloadInterface.install_hooks ();
+    DownloadFiles.install_hooks ();
+
+
+
+(**** LOAD OPTIONS ****)
+
+    let exists_downloads_ini = Sys.file_exists 
+        (options_file_name downloads_ini) in
+    let exists_servers_ini = Sys.file_exists (options_file_name servers_ini) in
+    let exists_files_ini = Sys.file_exists (options_file_name files_ini) in
+    let exists_friends_ini = Sys.file_exists (options_file_name friends_ini) in
+    if not exists_downloads_ini then begin
+          Printf.printf "No config file found. Generating one."; 
+          print_newline ();
+        let oc = open_out (options_file_name downloads_ini) in
+        close_out oc; 
+      end;
+    (try Options.load downloads_ini with e -> 
+          Printf.printf "exception during options load"; print_newline ();
+          exit 2;
+          ());  
+    
+(**** PARSE ARGUMENTS ***)    
+    
     Arg.parse ([
+        "-client_ip", Arg.String (fun s ->
+            client_ip =:= Ip.of_string s;
+            force_client_ip =:= true;
+            ip_verified := 10;
+        ), " <ip> : force client IP address";
       "-exit", Arg.Unit (fun _ -> exit 0), ": exit immediatly";
       "-dump", Arg.String (fun file -> 
           Files.dump_file file), " <filename> : dump file";
@@ -115,31 +146,6 @@ let _ =
         Files.dump_file file; exit 0
     ) "";
 
-(**** INSTALL HOOKS ****)
-    
-    DownloadInterface.install_hooks ();
-    DownloadFiles.install_hooks ();
-
-
-
-(**** LOAD OPTIONS ****)
-
-    let exists_downloads_ini = Sys.file_exists "./downloads.ini" in
-    let exists_servers_ini = Sys.file_exists "./servers.ini" in
-    let exists_files_ini = Sys.file_exists "./files.ini" in
-    let exists_friends_ini = Sys.file_exists "./friends.ini" in
-    Options.set_options_file downloads_ini 
-    (try Filepath.find_in_path ["."] config_filename with
-        _ -> 
-          Printf.printf "No config file found. Generating one."; 
-          print_newline ();
-          let name = Filename.concat "." config_filename in
-          let oc = open_out name in close_out oc; name
-    );
-    (try Options.load downloads_ini with e -> 
-          Printf.printf "exception during options load"; print_newline ();
-          exit 2;
-          ());  
     
 (**** CREATE DIRS   ****)
     
@@ -153,15 +159,15 @@ let _ =
     (try Options.load files_ini with _ -> ());
     (try Options.load friends_ini with _ -> ());
     if exists_downloads_ini && not exists_files_ini then begin
-        Options.append files_ini "./downloads.ini";
+        Options.append files_ini (options_file_name downloads_ini);
         Options.save_with_help files_ini;
       end;
     if exists_downloads_ini && not exists_servers_ini then begin
-        Options.append servers_ini "./downloads.ini";
+        Options.append servers_ini (options_file_name downloads_ini);
         Options.save_with_help servers_ini;
       end;
     if exists_downloads_ini && not exists_friends_ini then begin
-        Options.append friends_ini "./downloads.ini";
+        Options.append friends_ini (options_file_name downloads_ini);
         Options.save_with_help friends_ini;
       end;
     Options.prune_file servers_ini;
@@ -240,6 +246,13 @@ let _ =
       | _ -> failwith "Bad socket address"
     end;
     
+    if not !!force_client_ip then begin
+        ip_verified := 0;
+        (try
+            client_ip =:= Ip.from_name (Unix.gethostname ())
+          with _ -> ());
+      end;
+    
     let port = !client_port in
     let sport = (port mod 256) * 256 + (port / 256) in
     
@@ -253,12 +266,7 @@ let _ =
           Printf.printf "in these clients.";
           print_newline ();
     end;
-    
-    client_ip := (try
-        Ip.from_name (Unix.gethostname ())
-      with _ -> Ip.localhost
-    );
-    
+        
     client_tags :=
     [
       { tag_name = "name"; tag_value =  String !!client_name };

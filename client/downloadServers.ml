@@ -38,7 +38,7 @@ let first_name file =
 let make_tagged files =
     (List.map (fun file ->
           { f_md4 = file.file_md4;
-            f_ip = !client_ip;
+            f_ip = !!client_ip;
             f_port = !client_port;
             f_tags = 
             { tag_name = "filename";
@@ -128,8 +128,24 @@ let server_handler s sock event =
       set_server_state s NotConnected;
       !server_is_disconnected_hook s
   | _ -> ()
-  
+
+let verify_ip sock =
+  try
+    incr ip_verified;
+    let ip = TcpClientSocket.my_ip sock in
+    if ip <> Ip.localhost  then begin
+        Printf.printf "USING %s FOR CLIENT IP" (Ip.to_string ip);
+        print_newline ();
+        client_ip =:= ip;
+        ip_verified := 10;
+      end;
+  with e -> 
+      Printf.printf "Exception %s while verifying IP address"
+        (Printexc.to_string e); print_newline ()
+      
+      
 let client_to_server s t sock =
+  if !ip_verified < 10 then verify_ip sock;
   let module M = Mftp_server in
   match t with
     M.SetIDReq t ->
@@ -191,7 +207,7 @@ let connect_server s =
     try
 (*                Printf.printf "CONNECTING ONE SERVER"; print_newline (); *)
       connection_try s.server_connection_control;
-      s.server_cid <- !client_ip;
+      s.server_cid <- !!client_ip;
       incr nservers;
       printf_char 's'; 
       let sock = TcpClientSocket.connect (
@@ -214,7 +230,7 @@ let connect_server s =
         let module C = M.Connect in
         M.ConnectReq {
           C.md4 = !!client_md4;
-          C.ip = !client_ip;
+          C.ip = !!client_ip;
           C.port = !client_port;
           C.tags = !client_tags;
         }

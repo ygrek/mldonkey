@@ -184,7 +184,7 @@ let new_friend c =
       match c.client_sock, c.client_state with
       | None, NotConnected ->
           connection_must_try c.client_connection_control;
-          connect_client !client_ip [] c
+          connect_client !!client_ip [] c
       | None, _ -> ()
       | Some sock, (
           Connected_initiating 
@@ -534,7 +534,7 @@ print_newline ();
     | P.ConnectFriend num ->
         let c = find_client num in
         connection_must_try c.client_connection_control;
-        connect_client !client_ip [] c
+        connect_client !!client_ip [] c
 
     | P.AddNewFriend (ip, port) ->
         

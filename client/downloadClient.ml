@@ -205,6 +205,7 @@ let real_client c =
   | Some c -> c
   
 let client_to_client for_files c t sock = 
+  if !ip_verified < 10 then DownloadServers.verify_ip sock;
   let c = real_client c in
   let module M = Mftp_client in
 (*  M.print t; print_newline (); *)
@@ -379,7 +380,7 @@ We should probably check that here ... *)
         let module C = M.ConnectReply in
         M.ConnectReplyReq {
           C.md4 = !!client_md4;
-          C.ip = !client_ip;
+          C.ip = !!client_ip;
           C.port = !client_port;
           C.tags = !client_tags;
           C.ip_server = t.CR.ip_server;
@@ -1027,7 +1028,7 @@ let query_locations_reply s t =
           let module Q = M.QueryCallUdp in
           udp_server_send s 
             (M.QueryCallUdpReq {
-              Q.ip = !client_ip;
+              Q.ip = !!client_ip;
               Q.port = !client_port;
               Q.id = ip;
             })

@@ -16,17 +16,21 @@
     along with mldonkey; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
+
 open Mftp
 open Options
 open DownloadTypes
 open Unix
 open Gui_types
+
+let file_basedir = ""
+let cmd_basedir = Autoconf.current_dir (* will not work on Windows *)
   
-let downloads_ini = create_options_file "./downloads.ini"
-let shared_files_ini = create_options_file "./shared_files.ini"
-let servers_ini = create_options_file "./servers.ini"
-let files_ini = create_options_file "./files.ini"
-let friends_ini = create_options_file "./friends.ini"
+let downloads_ini = create_options_file (file_basedir ^ "downloads.ini")
+let shared_files_ini = create_options_file (file_basedir ^ "shared_files.ini")
+let servers_ini = create_options_file (file_basedir ^ "servers.ini")
+let files_ini = create_options_file (file_basedir ^ "files.ini")
+let friends_ini = create_options_file (file_basedir ^ "friends.ini")
   
 let initial_score = define_option downloads_ini ["initial_score"] "" int_option 5
 
@@ -275,20 +279,51 @@ let file_completed_cmd = define_option downloads_ini
 let local_index_find_cmd = define_option downloads_ini 
     ["local_index_find_cmd"] "A command used locally to find more results
     during a search"
-    string_option "./local_index_find" 
+    string_option (cmd_basedir ^ "local_index_find") 
 
 let local_index_add_cmd = define_option downloads_ini 
     ["local_index_add_cmd"] "A command used locally to add new results
     to a local index after a search"
-    string_option "./local_index_add" 
+    string_option (cmd_basedir ^ "local_index_add")
   
 let compaction_overhead = define_option downloads_ini 
     ["compaction_overhead"] 
     "The percentage of free memory before a compaction is triggered"
     int_option 50
-  
+
 let _ =
   option_hook compaction_overhead (fun _ ->
       let gc_control = Gc.get () in
       Gc.set { gc_control with Gc.max_overhead = !!compaction_overhead };     
   )
+  
+  
+module IpOption = struct
+    
+    let value_to_ip v = 
+      Ip.of_string (value_to_string v)
+      
+    let ip_to_value ip =
+      string_to_value (Ip.to_string ip)
+      
+    let t = define_option_class "Ip" value_to_ip ip_to_value      
+      
+  end
+  
+(*  
+*)
+
+  
+let client_ip = define_option downloads_ini ["client_ip"] 
+    "The last IP used for this client" IpOption.t  
+    (try
+      let name = Unix.gethostname () in
+      Ip.from_name name
+    with _ -> Ip.localhost)
+  
+let force_client_ip = define_option downloads_ini ["force_client_ip"] 
+  "Use the IP specified by 'client_ip' instead of trying to determine it
+    ourself. Don't set this option to true if you have dynamic IP."
+    bool_option false
+  
+let ip_verified = ref 0

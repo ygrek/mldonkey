@@ -63,3 +63,5 @@ val port : int Options.option_record
 val hostname : string Options.option_record
 
 val max_client_name_len : int Options.option_record
+  
+val auto_resize : bool Options.option_record

@@ -581,23 +581,39 @@ let connect host port handler =
     t
   with e -> t
 
+
+let _ =
+  Sys.set_signal  Sys.sigchld Sys.Signal_ignore;
+  Sys.set_signal  Sys.sigpipe Sys.Signal_ignore
+
+  
   
 let exec_command cmd args handler =
   let (in_read, output) = Unix.pipe() in
   let (input, out_write) = Unix.pipe() in
   match Unix.fork() with
     0 -> begin
-      match Unix.fork () with
-        0 ->
-            if input <> Unix.stdin then
-              begin Unix.dup2 input Unix.stdin; Unix.close input end;
-            if output <> Unix.stdout then
-              begin Unix.dup2 output Unix.stdout; Unix.close output end;
-            Unix.close in_read;
-            Unix.close out_write;
-            Unix.execv cmd args;
-            exit 127
-        | id -> exit 0
+        try
+          match Unix.fork () with
+            0 -> begin
+                try
+                  if input <> Unix.stdin then
+                    begin Unix.dup2 input Unix.stdin; Unix.close input end;
+                  if output <> Unix.stdout then
+                    begin Unix.dup2 output Unix.stdout; Unix.close output end;
+                  Unix.close in_read;
+                  Unix.close out_write;
+                  Unix.execv cmd args;
+                  exit 127
+                with e -> 
+                    Printf.eprintf "Exception %s in exec_command\n"
+                      (Printexc.to_string e) ; 
+                    exit 1
+              end
+          | id -> 
+              exit 2
+        with _ -> 
+            exit 3
       end
   | id -> 
       ignore (snd(Unix.waitpid [] id));
@@ -681,5 +697,11 @@ let _ =
           bc.connections <- [];
           bc.nconnections <- 0;
       ) !write_bandwidth_controlers
-  );
+  )
 
+
+let my_ip t =
+  let fd = fd t.sock in
+  match Unix.getsockname fd with
+    Unix.ADDR_INET (ip, port) -> Ip.of_inet_addr ip
+  | _ -> raise Not_found

@@ -308,7 +308,9 @@ let really_load filename options =
       print_newline ();
       []
 ;;
-      
+
+let options_file_name f = f.file_name
+
 let load opfile =
   try opfile.file_rc <- really_load opfile.file_name opfile.file_options with
     Not_found -> 

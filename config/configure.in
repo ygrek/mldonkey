@@ -62,11 +62,17 @@ if test -f ../secret/mftp_server.ml; then
    MORE_SUBDIRS=secret
 fi
 
+case "`uname -s`" in
+  *win32* | *WIN32*) CURRENT_DIR="";;
+  *) CURRENT_DIR="./";;
+esac
+
+
 AC_SUBST(MORE_TARGETS)
 AC_SUBST(MORE_SUBDIRS)
 AC_SUBST(LABLGL_CMA)
 AC_SUBST(LABLGL_CMXA)
 AC_SUBST(CONFIG_INCLUDES)
+AC_SUBST(CURRENT_DIR)
 
-AC_OUTPUT(Makefile.config)
-
+AC_OUTPUT(Makefile.config ../lib/autoconf.ml)

@@ -43,7 +43,7 @@ let result_name r =
 let reconnect_all file =
   List.iter (fun c ->
       connection_must_try c.client_connection_control;
-      connect_client !client_ip [file] c) file.file_known_locations;
+      connect_client !!client_ip [file] c) file.file_known_locations;
   List.iter (fun s ->
       match s.server_sock, s.server_state with
       | Some sock, (Connected_idle | Connected_busy) ->
@@ -65,6 +65,9 @@ let search_of_args args =
       search_album = None;
       search_artist = None;
       search_fields = [];
+      search_and = [];
+      search_not = [];
+      search_or = [];
     }
   in
   let rec iter args =
@@ -106,6 +109,15 @@ let search_of_args args =
     | "-field"  :: field :: format :: args ->
         query.search_fields <- 
           (field, format) :: query.search_fields;
+        iter args
+    | "-and" :: s :: args ->
+        query.search_and <- s :: query.search_and;
+        iter args
+    | "-or" :: s :: args ->
+        query.search_or <- s :: query.search_or;
+        iter args
+    | "-not" :: s :: args ->
+        query.search_not <- s :: query.search_not;
         iter args
     | s :: args ->
         query.search_words <-
@@ -237,15 +249,14 @@ let load_server_met filename =
     let s = File.to_string filename in
     let ss = S.read s in
     List.iter (fun r ->
-        if Ip.valid r.S.ip then
-          let server = add_server r.S.ip r.S.port in
-          List.iter (fun tag ->
-              match tag with
-                { tag_name = "name"; tag_value = String s } -> 
-                  server.server_name <- s;
-                  |  { tag_name = "description" ; tag_value = String s } ->
-                  server.server_description <- s
-              | _ -> ()
+        let server = add_server r.S.ip r.S.port in
+        List.iter (fun tag ->
+            match tag with
+              { tag_name = "name"; tag_value = String s } -> 
+                server.server_name <- s;
+            |  { tag_name = "description" ; tag_value = String s } ->
+                server.server_description <- s
+            | _ -> ()
         ) r.S.tags
     ) ss
   with e ->
@@ -366,7 +377,7 @@ let really_query_download filenames size md4 location old_file absents =
           );
           match c.client_state with
             NotConnected -> 
-              connect_client !client_ip [file] c
+              connect_client !!client_ip [file] c
           | Connected_busy | Connected_idle | Connected_queued ->
               begin
                 match c.client_sock with
@@ -582,25 +593,27 @@ let simple_print_file_list finished buf files format =
     Printf.bprintf buf "%s%s " s (make_spaces  !name_len s);
   
   if not finished then
-    let s = "Downloaded" in
-    if format.conn_output = HTML then
-      Printf.bprintf buf "\<a href=/submit\?q\=vd\&sortby\=done\>%s\</a\>%s "
-      s (make_spaces !done_len s)
-    else
-      Printf.bprintf buf "%s%s " s (make_spaces !done_len s);
-      
-    let s = "Size" in
-    if format.conn_output = HTML then
-      Printf.bprintf buf "\<a href=/submit\?q\=vd\&sortby\=size\>%s\</a\>%s "
-        s (make_spaces !size_len s)
-    else
-      Printf.bprintf buf "%s%s " s (make_spaces !size_len s);
-
+    begin
+      let s = "Downloaded" in
+      if format.conn_output = HTML then
+        Printf.bprintf buf "\<a href=/submit\?q\=vd\&sortby\=done\>%s\</a\>%s "
+          s (make_spaces !done_len s)
+      else
+        Printf.bprintf buf "%s%s " s (make_spaces !done_len s);
+    end;
+  
+  let s = "Size" in
+  if format.conn_output = HTML then
+    Printf.bprintf buf "\<a href=/submit\?q\=vd\&sortby\=size\>%s\</a\>%s "
+      s (make_spaces !size_len s)
+  else
+    Printf.bprintf buf "%s%s " s (make_spaces !size_len s);
+  
   let s = if finished then "MD4" else
     if format.conn_output = HTML then
-    "\<a href=/submit\?q\=vd\&sortby\=rate\>Rate\</a\>"
+      "\<a href=/submit\?q\=vd\&sortby\=rate\>Rate\</a\>"
     else "Rate"
-    in
+  in
   Printf.bprintf buf "%s\n" s;
   
   List.iter (simple_print_file buf !name_len !done_len !size_len format) files
@@ -817,6 +830,61 @@ let commands = [
         Printf.sprintf "Upload credits : %d minutes\nUpload disabled for %d minutes" !upload_credit !has_upload;
     
     ), " : view upload credits";
+    
+    "vc", Arg_one (fun num buf output ->
+        try
+          let num = int_of_string num in
+          let c = find_client num in
+          (match c.client_kind with
+              Indirect_location -> 
+                Printf.bprintf buf "Client [%5d] Indirect client\n" num
+            | Known_location (ip, port) ->
+                Printf.bprintf buf "Client [%5d] %s:%d\n" num
+                  (Ip.to_string ip) port);
+          Printf.bprintf buf "Name: %s\n" c.client_name;
+          (match c.client_all_files with
+              None -> ()
+            | Some results ->
+                Printf.bprintf buf "Files:\n";
+                List.iter (fun r ->
+                    if output.conn_output = HTML then 
+                      Printf.bprintf buf "\<A HREF=/submit\?q=download\&md4=%s\&size=%s\>"
+                        (Md4.to_string r.result_md4) (Int32.to_string r.result_size);
+                    begin
+                      match r.result_names with
+                        [] -> ()
+                      | name :: names ->
+                          Printf.bprintf buf "%s\n" name;
+                          List.iter (fun s -> Printf.bprintf buf "       %s\n" s) names;
+                    end;
+                    begin
+                      match r.result_comment with
+                        None -> ()
+                      | Some comment ->
+                          Printf.bprintf buf "COMMENT: %s\n" comment;
+                    end;
+                    if output.conn_output = HTML then 
+                      Printf.bprintf buf "\</A HREF\>";
+                    Printf.bprintf  buf "          %10s %10s " 
+                      (Int32.to_string r.result_size)
+                    (Md4.to_string r.result_md4);
+                    List.iter (fun t ->
+                        Buffer.add_string buf (Printf.sprintf "%-3s "
+                            (match t.tag_value with
+                              String s -> s
+                            | Uint32 i -> Int32.to_string i
+                            | Fint32 i -> Int32.to_string i
+                            | _ -> "???"
+                          ))
+                    ) r.result_tags;
+                    Buffer.add_char buf '\n';
+                ) results
+                
+          );
+                
+          ""
+        with _ -> "No such client"
+    ), " <num> : view client";
     
     "comments", Arg_one (fun filename buf _ ->
         DownloadIndexer.load_comments filename;
@@ -1163,7 +1231,11 @@ let commands = [
 \t-title <word in title>
 \t-album <word in album>
 \t-artist <word in artist>
-\t-field <field> <fieldvalue> :
+\t-field <field> <fieldvalue>
+\t-not <word>
+\t-and <word> 
+\t-or <word> :
+
 ";
     
     "vs", Arg_none (fun buf format ->
@@ -1506,6 +1578,34 @@ Min bitrate
 </td>
 
 </tr>
+
+</table>
+
+<h3> Boolean options </h3>
+
+<table border=0>
+
+<tr>
+<td> And </td> 
+<td> 
+<input type=text name=and size=40 value=\"\">
+</td>
+</tr>
+
+<tr>
+<td> Or </td> 
+<td> 
+<input type=text name=or size=40 value=\"\">
+</td>
+</tr>
+
+<tr>
+<td> Not </td> 
+<td> 
+<input type=text name=not size=40 value=\"\">
+</td>
+</tr>
+
 </table>
 </form>
 "
@@ -1577,21 +1677,21 @@ let http_handler options t r =
                   in
                   Printf.bprintf buf  "\n<pre>\n%s\n</pre>\n" s;
                   
-              | [
-                  "query", query;
-                  "minsize", minsize;
-                  "minsize_unit", minsize_unit;
-                  "maxsize", maxsize;
-                  "maxsize_unit", maxsize_unit;
-                  "media", media;
-                  "media_propose", media_propose;
-                  "format", format;
-                  "format_propose", format_propose;
-                  "album", album;
-                  "artist", artist;
-                  "title", title;
-                  "bitrate", bitrate
-                ] ->
+              | 
+                  ("query", query) ::
+                  ("minsize", minsize) ::
+                  ("minsize_unit", minsize_unit) ::
+                  ("maxsize", maxsize) ::
+                  ("maxsize_unit", maxsize_unit) ::
+                  ("media", media) ::
+                  ("media_propose", media_propose) ::
+                  ("format", format) ::
+                  ("format_propose", format_propose) ::
+                  ("album", album) ::
+                  ("artist", artist) ::
+                  ("title", title) ::
+                  ("bitrate", bitrate) :: tail
+                ->
 
                   let option_of_string s =
                     if s = "" then None else Some s
@@ -1633,9 +1733,20 @@ let http_handler options t r =
                       search_artist = option_of_string artist;
                       search_album = option_of_string album;
                       search_fields = [];
+                      search_or = [];
+                      search_not = [];
+                      search_and = [];
                     }
                   in
-                    
+                  
+                  List.iter (fun (s,v) ->
+                      match s with
+                      | "and" -> query.search_and <- String2.tokens v
+                      | "or" -> query.search_or <- String2.tokens v
+                      | "not" -> query.search_not <- String2.tokens v
+                      | _ -> ()
+                  ) tail;
+                  
                   start_search query buf
 
               | [ "setoption", _ ; "option", name; "value", value ] ->

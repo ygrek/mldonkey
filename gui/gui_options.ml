@@ -216,10 +216,15 @@ let compaction_overhead = define_option mldonkey_gui_ini
     ["compaction_overhead"] 
     "The percentage of free memory before a compaction is triggered"
     int_option 50
+
+let auto_resize = define_option mldonkey_gui_ini
+    ["auto_resize"]
+  "auto resize columns" bool_option true
   
 let _ =
   option_hook compaction_overhead (fun _ ->
       let gc_control = Gc.get () in
       Gc.set { gc_control with Gc.max_overhead = !!compaction_overhead };     
   )
+  
   

@@ -495,7 +495,10 @@ s  <query> : search for files
         -Video
         -Audio
         -format <format>
-        -field <field> <fieldvalue> :
+        -field <field> <fieldvalue>
+        -not <word>
+        -and <word> 
+        -or <word> :
 
 vs : view all queries
 cancel  <num> : cancel download
@@ -651,18 +654,17 @@ TODO list
   * Queue uploads per chunk.
   * Add prefered servers.
   * Save options in a modular way (each server in a file ?).
-  * Recommandation for upload
-  * Alternative GUI and smaller minimal size
-  * Remove . for windows compatibility
-  * Allow setting the correct IP.
+  * Recommandation for upload.
   * Priorities on prefered servers.
-  * Download priorities (what does it mean ?)
+  * Download priorities (what does it mean ?).
   * Use source groups for local downloads.
+  * Use a cache of data to help diffusing files.
+  * Check that program exists before trying to execute.
 
 Known bugs:
 ===========
   * When clicking on the columns it sorts on that column, when
-   clicking again it should do a reverse sort on it
+   clicking again it should do a reverse sort on it, but it doesn't.
 
 ChangeLog
 =========
@@ -671,6 +673,8 @@ Release 1.15:
   * GUI:
     - Should fit in 640x480 screens.
     - Server can be specified by ip:port in Add Server entry.
+    - New option 'auto_resize' that can be used under Windows to
+       prevent the GUI from taking the focus.
   * Core acts now with all (direct) clients as a server to diffuse sources
      for files. Indirect mldonkey clients can also receive information.
   * WEB interface:
@@ -686,10 +690,14 @@ Release 1.15:
      controled by options 'local_index_find_cmd' and 'local_index_add_cmd'.
      See the 'Using auxiliary programs for local indexation' section in
      the help.
+    - New option -client_ip that can be used to force the IP used by
+     mldonkey (if you have a firewall). Be careful with dynamic IPs.
   * Most problems with ed2k:// links should be fixed (/ at the end, and
      spaces in the middle). MLdonkeySubmit is distributed for Konqueror users.
+  * Boolean expressions (AND, OR, NOT) allowed in searches.
   * Fixed bugs:  
    - #100662: only valid server IPs are accepted.
+   - Use IP returned by getsockname instead of the one from gethostbyname.
 
 Release 1.14:
   * Bandwidth is now controled by the 'max_hard_download_rate' and

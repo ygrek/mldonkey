@@ -834,28 +834,30 @@ let check_file_downloaded file =
       !file_change_hook file;
       move_file files done_files file.file_md4;
       
-      if !!file_completed_cmd <> "" then
-      match Unix.fork() with
-        0 -> begin            
-            match Unix.fork() with
-              0 -> begin
-                  try
-                      Unix.execv !!file_completed_cmd 
-                        (Array.of_list
+      if !!file_completed_cmd <> "" then begin
+        match Unix.fork() with
+          0 -> begin
+              try
+                match Unix.fork() with
+                  0 -> begin
+                      try
+                        Unix.execv !!file_completed_cmd 
+                          (Array.of_list
                           
-                          (file.file_hardname ::
-                          (Md4.to_string file.file_md4) ::
-                          (Int32.to_string file.file_size) ::
-                          file.file_filenames));
-                      exit 0
-                    
-                  with _ ->
-                      exit 127
-                end
-            | id -> exit 0
-          end
-      | id -> ignore (snd(Unix.waitpid [] id))
-      
+                            (file.file_hardname ::
+                            (Md4.to_string file.file_md4) ::
+                            (Int32.to_string file.file_size) ::
+                            file.file_filenames));
+                        exit 0
+                      with e -> 
+                          Printf.printf "Exception %s while starting file_completed_cmd" (Printexc.to_string e); print_newline ();
+                          exit 127
+                    end
+                | id -> exit 0
+              with _ -> exit 0
+            end
+          | id -> ignore (snd(Unix.waitpid [] id))
+        end
     with _ -> ()
         
 let update_options file =    

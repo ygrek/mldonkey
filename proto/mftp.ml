@@ -80,7 +80,7 @@ let buf_int32_8 buf i =
         Int32.logand i const_int32_255)))
 
 let buf_int8 buf i =
-  Buffer.add_char buf (char_of_int i)
+  Buffer.add_char buf (char_of_int (i land 255))
 
 let buf_int32_32 oc i =
   buf_int32_8 oc i;
@@ -89,6 +89,7 @@ let buf_int32_32 oc i =
   buf_int32_8 oc (right32 i  24)
   
 let buf_int16 buf i =
+  let i = i land 65535 in
   Buffer.add_char buf (char_of_int (i mod 256));
   Buffer.add_char buf (char_of_int (i / 256))
   

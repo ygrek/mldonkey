@@ -94,4 +94,7 @@ and search_query = {
     mutable search_album : string option;
     mutable search_artist : string option;    
     mutable search_max_hits : int;
+    mutable search_and : string list;
+    mutable search_or : string list;
+    mutable search_not : string list;
   }

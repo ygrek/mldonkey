@@ -1,6 +1,6 @@
 #! /bin/sh
 
-# From configure.in Revision: 1.3 
+# From configure.in Revision: 1.4 
 
 # Guess values for system-dependent variables and create Makefiles.
 # Generated automatically using autoconf version 2.13 
@@ -1597,6 +1597,13 @@ if test -f ../secret/mftp_server.ml; then
    MORE_SUBDIRS=secret
 fi
 
+case "`uname -s`" in
+  *win32* | *WIN32*) CURRENT_DIR="";;
+  *) CURRENT_DIR="./";;
+esac
+
+
+
 
 
 
@@ -1703,7 +1710,7 @@ done
 
 ac_given_srcdir=$srcdir
 
-trap 'rm -fr `echo "Makefile.config config.h" | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
+trap 'rm -fr `echo "Makefile.config ../lib/autoconf.ml config.h" | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
 EOF
 cat >> $CONFIG_STATUS <<EOF
 
@@ -1752,6 +1759,7 @@ s%@MORE_SUBDIRS@%$MORE_SUBDIRS%g
 s%@LABLGL_CMA@%$LABLGL_CMA%g
 s%@LABLGL_CMXA@%$LABLGL_CMXA%g
 s%@CONFIG_INCLUDES@%$CONFIG_INCLUDES%g
+s%@CURRENT_DIR@%$CURRENT_DIR%g
 
 CEOF
 EOF
@@ -1793,7 +1801,7 @@ EOF
 
 cat >> $CONFIG_STATUS <<EOF
 
-CONFIG_FILES=\${CONFIG_FILES-"Makefile.config"}
+CONFIG_FILES=\${CONFIG_FILES-"Makefile.config ../lib/autoconf.ml"}
 EOF
 cat >> $CONFIG_STATUS <<\EOF
 for ac_file in .. $CONFIG_FILES; do if test "x$ac_file" != x..; then
@@ -1965,5 +1973,4 @@ EOF
 chmod +x $CONFIG_STATUS
 rm -fr confdefs* $ac_clean_files
 test "$no_create" = yes || ${CONFIG_SHELL-/bin/sh} $CONFIG_STATUS || exit 1
-
 

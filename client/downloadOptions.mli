@@ -81,3 +81,10 @@ val web_header : string Options.option_record
 val file_completed_cmd : string Options.option_record
 val local_index_find_cmd : string Options.option_record
 val local_index_add_cmd : string Options.option_record
+  
+module IpOption : sig val t: Ip.t Options.option_class end
+
+val client_ip : Ip.t Options.option_record
+val force_client_ip : bool Options.option_record
+val ip_verified : int ref
+  

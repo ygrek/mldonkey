@@ -59,6 +59,7 @@ let create port handler =
   try
     let fd = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
     Unix.setsockopt fd Unix.SO_REUSEADDR true;
+    Unix.set_close_on_exec fd;
     Unix.bind fd (Unix.ADDR_INET (Unix.inet_addr_any, port));
     Unix.listen fd 10;
     let t = {

@@ -61,7 +61,7 @@ MP3TAGUI_CMOS=  mp3tagui/mp3_messages.$(EXT) mp3tagui/mp3_ui.$(EXT)
 
 OKEY_CMOS= okey/okey.$(EXT)
 
-LIB_CMOS= \
+LIB_CMOS= lib/autoconf.$(EXT) \
   lib/int32ops.$(EXT) lib/ip.$(EXT) lib/options.$(EXT) lib/numset.$(EXT)  \
   lib/fifo.$(EXT) \
   lib/hole_tab.$(EXT) lib/indexer.$(EXT) lib/host.$(EXT)  \

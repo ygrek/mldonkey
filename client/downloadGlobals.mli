@@ -30,7 +30,6 @@ val file_change_hook : (DownloadTypes.file -> unit) ref
   
 val page_size : int32
 
-val client_ip : Ip.t ref
 val client_port : int ref
 val client_tags  : Mftp.tag list ref
 
@@ -126,4 +125,3 @@ val set_server_state :
   
 val upload_control : TcpClientSocket.bandwidth_controler
 val download_control : TcpClientSocket.bandwidth_controler
-  

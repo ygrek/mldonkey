@@ -91,8 +91,9 @@ let make_query search =
           ( Q.HasField ("format", v) :: args)
     in
     
-    let args = (List.map (fun (s1,s2) ->
-            Q.HasField (s1, s2)) search.search_fields) @ args in
+    let args = 
+      (List.map (fun (s1,s2) -> Q.HasField (s1, s2)) search.search_fields) @ 
+        args in
     
     let rec iter_and q1 q2 args =
       match args with
@@ -106,6 +107,16 @@ let make_query search =
           iter_and q1 q2 tail
       | [q] -> q
     in
+    let q = List.fold_left (fun q s ->
+          Q.Or (q, Q.HasWord s)
+      ) q search.search_or in
+    let q = List.fold_left (fun q s ->
+          Q.And (q, Q.HasWord s)
+      ) q search.search_and in
+    let q = List.fold_left (fun q s ->
+          Q.AndNot (q, Q.HasWord s)
+      ) q search.search_not in
+
     q)
 
   (*
@@ -219,7 +230,7 @@ let force_check_locations () =
     List.iter (fun file -> 
         if file.file_state = FileDownloading then begin      
             List.iter (fun c ->
-                try connect_client !client_ip [file] c with _ -> ()) 
+                try connect_client !!client_ip [file] c with _ -> ()) 
             file.file_known_locations;
             List.iter (fun s ->
                 match s.server_sock with
@@ -260,11 +271,11 @@ let force_check_locations () =
       end;
     
     List.iter (fun c -> 
-        try connect_client !client_ip [] c with _ -> ()) !interesting_clients;
+        try connect_client !!client_ip [] c with _ -> ()) !interesting_clients;
     interesting_clients := [];
 
     List.iter (fun c ->
-        try connect_client !client_ip [] c with _ -> ()
+        try connect_client !!client_ip [] c with _ -> ()
     ) !!known_friends;
     
   with e ->
@@ -375,7 +386,7 @@ let udp_client_handler t p =
                   Printf.printf "New location by File Group !!"; print_newline ();
                   file.file_known_locations <- c :: file.file_known_locations;
                 end;
-              connect_client !client_ip [file] c
+              connect_client !!client_ip [file] c
           ) t.Q.locs
         with _ -> ()
       end;
