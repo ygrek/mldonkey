@@ -80,8 +80,7 @@ let index_string doc s fields =
 let index_name r name = 
   index_string r name 1 (* general search have field 1 *)
   
-let index_result r =
-  if not !!use_file_history then r else
+let index_result_no_filter r =
   try
 (*    Printf.printf "RESULT %s" (Md4.to_string r.result_md4);
     print_newline (); *)
@@ -93,7 +92,7 @@ let index_result r =
             index_name doc name
           end
     ) r.result_names;
-    rr
+    doc
   with
     _ -> 
       let doc = Indexer.make_doc index r in
@@ -116,7 +115,13 @@ let index_result r =
               index_string doc s media_bit
           | _ -> ()
       ) r.result_tags;
-      r
+      doc
+
+let index_result r =
+  if not !!use_file_history then r else
+  let doc = index_result_no_filter r in
+  if Indexer.filtered doc then raise Not_found;
+  Indexer.value doc
       
 let find s = 
   if not !!use_file_history then () else
@@ -216,29 +221,8 @@ let find s =
       s.search_nresults <- s.search_nresults + 1
   ) docs
 
-let filters = ref []
   
 let init () =
-(* apply filters *)
-  (*
-  List.iter (fun (name, applied, words) ->
-      filters := (name, (
-        Printf.printf "NEW FILTER %s" name; print_newline ();
-        let filter = 
-          Indexer.set_soft_filter index words in
-        if not applied then begin
-            Printf.printf "DISABLE FILTER"; print_newline ();
-            Indexer.disable_filter filter
-          end;
-        filter)) :: !filters;
-  ) !!soft_filters;
-  List.iter (fun (name, words) ->
-      filters := (name, 
-        let filter = 
-          Indexer.set_hard_filter index words in
-        filter) :: !filters;
-) !!hard_filters;
-*)
 (* load history *)
   if !! save_file_history then
     try
@@ -247,7 +231,7 @@ let init () =
       try
         while true do
           let file = input_result ic in
-          list := (index_result file) :: !list;
+          list := (Indexer.value (index_result_no_filter file)) :: !list;
         done
       with 
         End_of_file -> close_in ic
@@ -280,11 +264,21 @@ let add_name r file_name =
         end
     with _ ->
         r.result_names <- file_name :: r.result_names;
-        ignore (index_result r)
+        ignore (index_result_no_filter r)
   else
     r.result_names <- file_name :: r.result_names
     
 let _ =
+  Options.option_hook filters (fun _ ->
+      try
+(*        Printf.printf "CLEAR OLD FILTERS"; print_newline (); *)
+        Indexer.clear_filter index;
+(*        Printf.printf "SET NEW FILTERS"; print_newline (); *)
+        Indexer.filter_words index (stem !!filters)
+      with e ->
+          Printf.printf "Error %s in set filters" (Printexc.to_string e);
+          print_newline ();
+  );
   DownloadGlobals.do_at_exit (fun _ ->
       if !!save_file_history then begin
 (*          Printf.printf "Saving history 1"; print_newline (); *)

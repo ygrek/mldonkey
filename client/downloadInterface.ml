@@ -305,7 +305,7 @@ let gui_reader (gui: gui_record) t sock =
         gui_send gui (P.Console (Buffer.contents buf))
     
     | P.SetOption (name, value) ->
-        Options.set_simple_option name value
+        Options.set_simple_option downloads_ini name value
     
     | P.ForgetSearch num ->
         begin
@@ -338,7 +338,7 @@ let gui_reader (gui: gui_record) t sock =
                     Printexc.to_string e); print_newline ();
             );
             gui_send gui (
-              P.Options_info (simple_options ()));
+              P.Options_info (simple_options downloads_ini));
 (*
               {
                 P.connection_port = !!port;
@@ -444,7 +444,7 @@ let gui_reader (gui: gui_record) t sock =
         
         List.iter (fun (name, value) ->
             Printf.printf "%s:%s" name value; print_newline ();
-            set_simple_option name value) list;
+            set_simple_option downloads_ini name value) list;
 (*
         port =:= o.P.connection_port;
         rmt_port =:= o.P.control_port;
@@ -780,12 +780,13 @@ let install_hooks () =
       old_hook file
   );
   List.iter (fun (name,_) ->
-      set_option_hook name (fun _ ->
+      set_option_hook downloads_ini name (fun _ ->
           List.iter (fun gui ->
-              gui_send gui (P.Options_info [name, get_simple_option name])
+              gui_send gui (P.Options_info [name, 
+                  get_simple_option downloads_ini name])
           ) !guis
       )
-  ) (simple_options ());
+  ) (simple_options downloads_ini);
   let old_hook = !say_hook in
   say_hook := (fun c s ->
       let name = match c with 

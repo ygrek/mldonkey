@@ -67,7 +67,8 @@ value ml_truncate32(value fd_v, value len_v)
     failwith("ftruncate32: file is closed");
 
   if(ftruncate(fd, len) < 0){
-    failwith("ml_truncate32: error in ftruncate");
+
+    uerror("ml_truncate32: error in ftruncate",Nothing);
   }
   return Val_unit;
 }

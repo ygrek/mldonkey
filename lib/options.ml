@@ -23,18 +23,38 @@ type option_value =
 and option_module = (string * option_value) list
 ;;
 
+
+
 type 'a option_class =
   { class_name : string;
     from_value : option_value -> 'a;
     to_value : 'a -> option_value;
     mutable class_hooks : ('a option_record -> unit) list }
+  
 and 'a option_record =
   { option_name : string list;
     option_class : 'a option_class;
     mutable option_value : 'a;
     option_help : string;
-    mutable option_hooks : (unit -> unit) list }
+    mutable option_hooks : (unit -> unit) list;
+    option_file : options_file;
+  }
+  
+and options_file = {
+    mutable file_name : string; 
+    mutable file_options : Obj.t option_record list;
+    mutable file_rc : option_module;
+  }
 ;;
+
+let create_options_file name =
+  {
+    file_name = name;
+    file_options =[];
+    file_rc = [];
+  }
+  
+let set_options_file opfile name = opfile.file_name <- name
 
 let
   define_option_class
@@ -48,7 +68,7 @@ let
   c
 ;;  
 
-  
+(*
 let filename =
   ref
     (Filename.concat Sysenv.home
@@ -57,7 +77,8 @@ let filename =
 let gwmlrc = ref [];;
 
 let options = ref [];;
-  
+*)
+
 let rec find_value list m =
   match list with
     [] -> raise Not_found
@@ -71,6 +92,7 @@ let rec find_value list m =
   
 let
   define_option
+    (opfile : options_file)
     (option_name : string list)
     (option_help : string)
     (option_class : 'a option_class)
@@ -78,11 +100,13 @@ let
   let o =
     {option_name = option_name; option_help = option_help;
      option_class = option_class; option_value = default_value;
-     option_hooks = []}
+      option_hooks = []; option_file = opfile; }
   in
-  options := (Obj.magic o : Obj.t option_record) :: !options;
+  opfile.file_options <- (Obj.magic o : Obj.t option_record) ::
+    opfile.file_options;
   o.option_value <-
-    begin try o.option_class.from_value (find_value option_name !gwmlrc) with
+    begin try o.option_class.from_value (find_value option_name 
+        opfile.file_rc) with
       Not_found -> default_value
     | e ->
         Printf.printf "Options.define_option, for option %s: "
@@ -212,7 +236,7 @@ let exec_chooks o =
     o.option_class.class_hooks
 ;;  
   
-let really_load filename =
+let really_load filename options =
   let temp_file = filename ^ ".tmp" in
   if Sys.file_exists temp_file then begin
       Printf.printf 
@@ -246,7 +270,7 @@ let really_load filename =
          with
            e ->
              Printf.printf "Exc %s" (Printexc.to_string e); print_newline ())
-      !options;
+      options;
     list
   with
     e ->
@@ -255,18 +279,19 @@ let really_load filename =
       []
 ;;
       
-let load () =
-  try gwmlrc := really_load !filename with
-    Not_found -> Printf.printf "No %s found" !filename; print_newline ()
+let load opfile =
+  try opfile.file_rc <- really_load opfile.file_name opfile.file_options with
+    Not_found -> 
+      Printf.printf "No %s found" opfile.file_name; print_newline ()
 ;;
 
-let append filename =
-  try gwmlrc := really_load filename @ !gwmlrc with
-    Not_found -> Printf.printf "No %s found" filename; print_newline ()
+let append opfile filename =
+  try opfile.file_rc <-
+    really_load filename opfile.file_options @ opfile.file_rc with
+    Not_found -> 
+      Printf.printf "No %s found" filename; print_newline ()
 ;;
       
-let init () = load ();;
-
 let ( !! ) o = o.option_value;;
 let ( =:= ) o v = o.option_value <- v; exec_chooks o; exec_hooks o;;
     
@@ -514,9 +539,10 @@ and save_module_fields indent oc m =
       save_module_fields indent oc tail
 ;;
     
-let save () =
-  let temp_file = !filename ^ ".tmp" in
-  let old_file = !filename ^ ".old" in
+let save opfile =
+  let filename = opfile.file_name in
+  let temp_file = filename ^ ".tmp" in
+  let old_file = filename ^ ".old" in
   let oc = open_out temp_file in
   save_module "" oc
     (List.map
@@ -532,7 +558,9 @@ let save () =
                  (Printexc.to_string e);
                print_newline ();
                StringValue ""))
-       (List.rev !options));
+    (List.rev opfile.file_options));
+  Printf.fprintf oc
+  "\n(*\n These options are not used (errors, obsolete, ...) \n*)\n";
   List.iter
     (fun (name, value) ->
        try
@@ -541,21 +569,21 @@ let save () =
               match o.option_name with
                 n :: _ -> if n = name then raise Exit
               | _ -> ())
-           !options;
+           opfile.file_options;
          Printf.fprintf oc "%s = " (safe_string name);
          save_value "  " oc value;
          Printf.fprintf oc "\n"
        with
          _ -> ())
-    !gwmlrc;
+    opfile.file_rc;
   close_out oc;
-  (try Sys.rename !filename old_file with _ -> ());
-  (try Sys.rename temp_file !filename with _ -> ())
+  (try Sys.rename filename old_file with _ -> ());
+  (try Sys.rename temp_file filename with _ -> ())
 ;;
 
-let save_with_help () =
+let save_with_help opfile =
   with_help := true;
-  begin try save () with
+  begin try save opfile with
     _ -> ()
   end;
   with_help := false
@@ -573,7 +601,7 @@ let rec iter_order f list =
   | v :: tail -> f v; iter_order f tail
 ;;
   
-let help oc =
+let help oc opfile =
   List.iter
     (fun o ->
        Printf.fprintf oc "OPTION \"";
@@ -592,7 +620,7 @@ let help oc =
          _ -> ()
        end;
        Printf.fprintf oc "\n")
-    !options;
+    opfile.file_options;
   flush oc
 ;;
   
@@ -652,7 +680,7 @@ let get_help o =
 ;;
 
 
-let simple_options () =
+let simple_options opfile =
   let list = ref [] in
   List.iter (fun o ->
       match o.option_name with
@@ -661,10 +689,10 @@ let simple_options () =
           match o.option_class.to_value o.option_value with
             Module _ | SmallList _ | List _ -> ()
           | v -> list := (name, value_to_string v) :: !list
-  ) !options;
+  ) opfile.file_options;
   !list
 
-let get_option name =
+let get_option opfile name =
   let rec iter name list = 
     match list with 
       [] -> raise Not_found
@@ -672,19 +700,19 @@ let get_option name =
         if o.option_name = name then o
         else iter name list
   in
-  iter [name] !options
+  iter [name] opfile.file_options
   
   
-let set_simple_option name v =
-  let o = get_option name in
-  o.option_value <- o.option_class.from_value (string_to_value v)
-  
+let set_simple_option opfile name v =
+  let o = get_option opfile name in
+  o.option_value <- o.option_class.from_value (string_to_value v);
+  exec_chooks o; exec_hooks o;;
     
-let get_simple_option name =
-  let o = get_option name in
+let get_simple_option opfile name =
+  let o = get_option opfile name in
   value_to_string (o.option_class.to_value o.option_value)
   
-let set_option_hook name hook =
-  let o = get_option name in
+let set_option_hook opfile name hook =
+  let o = get_option opfile name in
   o.option_hooks <- hook :: o.option_hooks
   

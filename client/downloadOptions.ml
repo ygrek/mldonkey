@@ -5,64 +5,67 @@ open DownloadGlobals
 open Unix
 open Gui_types
   
-let initial_score = define_option ["initial_score"] "" int_option 5
+let downloads_ini = create_options_file "./downloads.ini"
+let shared_files_ini = create_options_file "./shared_files.ini"
+  
+let initial_score = define_option downloads_ini ["initial_score"] "" int_option 5
       
-let client_name = define_option ["client_name"] "small name of client" string_option 
+let client_name = define_option downloads_ini ["client_name"] "small name of client" string_option 
     "mldonkey"
 
-let small_retry_delay = define_option ["small_retry_delay"] 
+let small_retry_delay = define_option downloads_ini ["small_retry_delay"] 
   "" float_option 30.
-let medium_retry_delay = define_option ["medium_retry_delay"] "Minimal delay between two connection attempts to the same host" float_option 600.
-let long_retry_delay = define_option ["long_retry_delay"] 
+let medium_retry_delay = define_option downloads_ini ["medium_retry_delay"] "Minimal delay between two connection attempts to the same host" float_option 600.
+let long_retry_delay = define_option downloads_ini ["long_retry_delay"] 
     "Minimal delay between two connection attempts to the same host, 
   when the first one failed" float_option 3600.
-let client_timeout = define_option ["client_timeout"] 
+let client_timeout = define_option downloads_ini ["client_timeout"] 
   "Timeout on client connections when not queued" float_option 120.
 
-let interface_buffer = define_option ["interface_buffer"] 
+let interface_buffer = define_option downloads_ini ["interface_buffer"] 
   "The size of the buffer between the client and its GUI. Can be useful
 to increase when the connection between them has a small bandwith" int_option
   1000000
 
-let previewer = define_option ["previewer"]
+let previewer = define_option downloads_ini ["previewer"]
   "Name of program used for preview (first arg is local filename, second arg
     is name of file as searched on eDonkey" string_option
   "mldonkey_previewer"
   
 let gui_port = 
-  define_option ["gui_port"] "port for user interaction" int_option 4001
+  define_option downloads_ini ["gui_port"] "port for user interaction" int_option 4001
 
-let update_gui_delay = define_option ["update_gui_delay"] 
+let update_gui_delay = define_option downloads_ini ["update_gui_delay"] 
   "Delay between updates to the GUI" float_option 10.
  
-let temp_directory = define_option ["temp_directory" ] 
+let temp_directory = define_option downloads_ini ["temp_directory" ] 
     "The directory where temporary files should be put" 
   string_option "temp"
   
 let incoming_directory = 
-  define_option ["incoming_directory" ] 
+  define_option downloads_ini ["incoming_directory" ] 
     "The directory where downloaded files should be moved after commit" 
   string_option "incoming"
 
 let http_port = 
-  define_option ["http_port"] "The port used to connect to your client with a WEB browser" int_option 4080
+  define_option downloads_ini ["http_port"] "The port used to connect to your client with a WEB browser" int_option 4080
   
 let http_login = 
-  define_option ["http_login"] "Your login when using a WEB browser" string_option ""
+  define_option downloads_ini ["http_login"] "Your login when using a WEB browser" string_option ""
   
 let http_password = 
-  define_option ["http_password"] "Your password when using a WEB browser" string_option ""
+  define_option downloads_ini ["http_password"] "Your password when using a WEB browser" string_option ""
   
-let max_upload_rate = define_option ["max_upload_rate"] 
+let max_upload_rate = define_option downloads_ini ["max_upload_rate"] 
   "The maximal upload rate you can tolerate" int_option 30
   
-let max_download_rate = define_option ["max_download_rate"] 
+let max_download_rate = define_option downloads_ini ["max_download_rate"] 
     "The maximal download rate you can tolerate (0 = no limit)" int_option 0
 
-let max_xs_packets = define_option ["max_xs_packets"] 
+let max_xs_packets = define_option downloads_ini ["max_xs_packets"] 
   "Max number of UDP packets per round for eXtended Search" int_option 30
 
-let max_dialog_history = define_option ["max_dialog_history"]
+let max_dialog_history = define_option downloads_ini ["max_dialog_history"]
     "Max number of messages of Chat remembered" int_option 30
   
 let _ =
@@ -80,7 +83,7 @@ let string_list_option = define_option_class "String"
   string_to_value
 
   
-let features = define_option ["features"] "" string_list_option ""
+let features = define_option downloads_ini ["features"] "" string_list_option ""
 let set_features () =
   List.iter (Mftp_client.set_features has_upload) (String2.tokens !!features)
 
@@ -88,28 +91,28 @@ let set_features () =
 let _ =
   option_hook features set_features
   
-let password = define_option ["password"] 
+let password = define_option downloads_ini ["password"] 
   "The password to access your client from the GUI (setting it disables
   the command-line client)" string_option ""
 
-let port = define_option ["port"] "The port used for connection by other donkey clients." int_option 4662
+let port = define_option downloads_ini ["port"] "The port used for connection by other donkey clients." int_option 4662
 
 let save_options_delay = 
-  define_option ["save_options_delay"] 
+  define_option downloads_ini ["save_options_delay"] 
   "The delay between two saves of the 'downloads.ini' file" float_option 60.0
 
 let check_client_connections_delay = 
-  define_option ["check_client_connections_delay"] 
+  define_option downloads_ini ["check_client_connections_delay"] 
   "Delay used to request file sources" float_option 180.0
     
 let check_connections_delay = 
-  define_option ["check_connections_delay"] 
+  define_option downloads_ini ["check_connections_delay"] 
   "The delay between server connection rounds" float_option 5.0
   
-let max_connected_servers = define_option ["max_connected_servers"] 
+let max_connected_servers = define_option downloads_ini ["max_connected_servers"] 
     "The number of servers you want to stay connected to" int_option 10
 
-let max_udp_sends = define_option ["max_udp_sends"] 
+let max_udp_sends = define_option downloads_ini ["max_udp_sends"] 
     "The number of UDP packets you send every check_client_connections_delay" 
   int_option 10
 
@@ -120,34 +123,22 @@ let _ =
         max_connected_servers =:= 10)
   *)
 
-let retry_delay = define_option ["retry_delay"] "" float_option 3600.
-let server_connection_timeout = define_option ["server_connection_timeout"] 
+let retry_delay = define_option downloads_ini ["retry_delay"] "" float_option 3600.
+let server_connection_timeout = define_option downloads_ini ["server_connection_timeout"] 
   "timeout when connecting to a server" float_option 30.
 
-let telnet_port = define_option ["telnet_port"] "port for user interaction" int_option 4000
+let telnet_port = define_option downloads_ini ["telnet_port"] "port for user interaction" int_option 4000
 
-let max_server_age = define_option ["max_server_age"] "max number of days after which an unconnected server is removed" int_option 7
+let max_server_age = define_option downloads_ini ["max_server_age"] "max number of days after which an unconnected server is removed" int_option 7
 
-let use_file_history = define_option ["use_file_history"] "keep seen files in history to allow local search (can be expensive in memory)" bool_option true
+let use_file_history = define_option downloads_ini ["use_file_history"] "keep seen files in history to allow local search (can be expensive in memory)" bool_option true
   
-let save_file_history = define_option ["save_file_history"] "save the file history in a file and load it at startup" bool_option true
+let save_file_history = define_option downloads_ini ["save_file_history"] "save the file history in a file and load it at startup" bool_option true
 
-  (*
-let soft_filters = define_option ["soft_filters"] 
-  "filters on replies (replies will be kept). Each filter has a name,
-a boolean for applied/not applied, and a list of words
-example: soft_filters = [ (on_movies, true, [xxx; sex])]"
-    (list_option (tuple3_option (
-        string_option, bool_option, list_option string_option)))
-  []
-
-let hard_filters = define_option ["hard_filters"] 
-  "filters on replies (replies will not be saved)
-example: hard_filters = [ (on_movies, [xxx; sex])]"
-    (list_option (tuple2_option (
-        string_option, list_option string_option)))
-  []
-    *)
+  
+let filters = define_option downloads_ini ["filters"] 
+    "filters on replies (replies will be kept)."
+    string_list_option ""
 
 (************ COMPLEX OPTIONS *****************)
   
@@ -355,11 +346,58 @@ module FileOption = struct
         "file_downloaded", int32_to_value file.file_downloaded;      
       ]
     
-    
     let t =
       define_option_class "File" value_to_file file_to_value
     ;;
   end
+
+  
+module SharedFileOption = struct
+    
+    let value_to_shinfo v =
+      match v with
+        Options.Module assocs ->
+          let get_value name conv = conv (List.assoc name assocs) in
+          let get_value_nil name conv = 
+            try conv (List.assoc name assocs) with _ -> []
+          in
+          
+          let sh_md4s = try
+              value_to_list (fun v ->
+                  Md4.of_string (value_to_string v)) (List.assoc "md4s" assocs)
+            with _ -> failwith "Bad shared file md4"
+          in
+          let sh_size = try
+              value_to_int32 (List.assoc "size" assocs) 
+            with _ -> failwith "Bad shared file size"
+          in
+          let sh_name = try
+              value_to_filename (List.assoc "name" assocs)
+            with _ -> failwith "Bad shared file name"
+          in
+          let sh_mtime = try
+              value_to_float (List.assoc "mtime" assocs)
+            with _ -> failwith "Bad shared file mtime"
+          in
+          { sh_name = sh_name; sh_mtime = sh_mtime;
+            sh_size = sh_size; sh_md4s = sh_md4s;
+          }
+          
+      | _ -> failwith "Options: not a shared file info option"
+          
+    let shinfo_to_value sh =
+      Options.Module [
+        "name", filename_to_value sh.sh_name;
+        "md4s", list_to_value (fun md4 ->
+            string_to_value (Md4.to_string md4)) sh.sh_md4s;
+        "mtime", float_to_value sh.sh_mtime;
+        "size", int32_to_value sh.sh_size;
+      ]
+    
+    
+    let t = define_option_class "SharedFile" value_to_shinfo shinfo_to_value
+  end
+    
 
 module Md4Option = struct
     
@@ -389,30 +427,30 @@ module Md4Option = struct
   end
 
 let done_files = 
-  define_option ["done_files"] 
+  define_option downloads_ini ["done_files"] 
   "The files whose download is finished" (list_option FileOption.t) []
 
 let old_files = 
-  define_option ["old_files"] 
+  define_option downloads_ini ["old_files"] 
   "The files that were downloaded" (list_option Md4Option.t) []
 
 let known_friends = 
-  define_option ["friends"] 
+  define_option downloads_ini ["friends"] 
   "The list of known friends" (list_option ClientOption.t) []
 
-let client_md4 = define_option ["client_md4"]
+let client_md4 = define_option downloads_ini ["client_md4"]
     "The MD4 of this client" Md4Option.t (Md4.random ())
   
 let files = 
-  define_option ["files"] 
+  define_option downloads_ini ["files"] 
   "The files currently being downloaded" (list_option FileOption.t) []
 
-let known_servers = define_option ["known_servers"] "List of known servers"
+let known_servers = define_option downloads_ini ["known_servers"] "List of known servers"
     (list_option ServerOption.t) []
 
-  
-  
-  
+let known_shared_files = define_option shared_files_ini 
+    ["shared_files"] "" 
+    (list_option SharedFileOption.t) []
   
 (************  UPDATE OPTIONS *************)  
   

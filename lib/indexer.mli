@@ -14,3 +14,7 @@ val add : 'a index -> string -> 'a doc -> int -> unit
 val value : 'a doc -> 'a
 
 val clear : 'a index -> unit
+
+val filter_words : 'a index -> string list -> unit
+val clear_filter : 'a index -> unit
+val filtered : 'a doc -> bool

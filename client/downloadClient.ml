@@ -208,7 +208,7 @@ let client_to_client for_files c t sock =
       end
   
   | M.ViewFilesReplyReq t ->
-      (*
+(*
       Printf.printf "******* ViewFilesReplyReq ******* %d" c.client_num; 
 print_newline (); 
   *)
@@ -239,7 +239,7 @@ print_newline ();
             ) t);
           c.client_changed <- BigChange;
           !client_change_hook c
-
+        
         with e ->
             Printf.printf "Exception in ViewFilesReply %s"
               (Printexc.to_string e); print_newline ();
@@ -258,17 +258,19 @@ print_newline ();
             | Some _ -> c
             | None -> 
                 if cc.client_md4 = Md4.null || 
-                  t.CR.md4 = cc.client_md4 then
-                  (*
+                  t.CR.md4 = cc.client_md4 then begin
+(*
                 Printf.printf "Aliasing indirect connection to known client";
                 print_newline ();
 *)
-                  
-                cc.client_sock <- c.client_sock;
-                c.client_alias <- Some cc;
-                Hashtbl.remove clients_by_num c.client_num;
-                Hashtbl.add clients_by_num c.client_num cc;
-                cc
+                    
+                    cc.client_sock <- c.client_sock;
+                    c.client_alias <- Some cc;
+                    c.client_kind <- kind;
+                    Hashtbl.remove clients_by_num c.client_num;
+                    Hashtbl.add clients_by_num c.client_num cc;
+                    cc
+                  end else c
           with _ -> 
 (* unknown location *)
               c.client_kind <- kind;
@@ -279,10 +281,25 @@ print_newline ();
         else c
       in
 
+(* what about being connected several times to the same client ? 
+We should probably check that here ... *)  
       c.client_md4 <- t.CR.md4;
       
-      if t.CR.md4 = !!client_md4 then
-        TcpClientSocket.close sock "connected to myself";
+      if t.CR.md4 = !!client_md4 then begin
+          TcpClientSocket.close sock "connected to myself";
+          raise End_of_file
+        end;
+      begin
+        if c.client_kind = Indirect_location then 
+          try
+            Hashtbl.find indirect_clients_by_md4 t.CR.md4;
+            Printf.printf "We are already connected to this client... disconnect"; print_newline ();
+(* WE ARE ALREADY CONNECTED TO THIS CLIENT !!! *)
+            shutdown sock "already connected to client";
+            raise End_of_file
+          with Not_found -> 
+              Hashtbl.add indirect_clients_by_md4 t.CR.md4 ()
+      end;
       
       printf_char 'c'; 
       connection_ok c.client_connection_control;

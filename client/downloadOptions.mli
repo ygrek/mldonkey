@@ -1,3 +1,6 @@
+val downloads_ini : Options.options_file
+val shared_files_ini : Options.options_file
+
 val value_to_addr : Options.option_value -> Ip.t * int
 val value_to_md4 : Options.option_value -> Md4.t
   
@@ -36,13 +39,12 @@ val max_xs_packets : int Options.option_record
 val previewer : string Options.option_record
 val max_dialog_history : int Options.option_record
 
-  (*
-val soft_filters : (string * bool * string list) list Options.option_record
-val hard_filters : (string * string list) list Options.option_record
-*)
+val filters : string Options.option_record
   
 val client_md4 : Md4.t Options.option_record
-
+val known_shared_files : DownloadTypes.shared_file_info 
+  list Options.option_record
+  
 val use_file_history : bool Options.option_record
 val save_file_history : bool Options.option_record
   

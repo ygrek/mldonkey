@@ -100,6 +100,9 @@ let upload_counter = ref 0
 let download_credit = ref 0 
 let nshared_files = ref 0
 
+let sleeping = ref false
+let indirect_clients_by_md4 = Hashtbl.create 127
+  
 let last_xs = ref (-1)
 
 let max_allowed_connected_servers = 5
@@ -134,7 +137,7 @@ let find_file md4 = Hashtbl.find files_by_md4 md4
 
 let upload_clients = Fifo.create ()
 
-  
+let shared_files_info = Hashtbl.create 127
 let new_shared = ref []
 let shared_files = ref []
 let download_counter = ref 0

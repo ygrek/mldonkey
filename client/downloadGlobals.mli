@@ -16,6 +16,9 @@ val client_ip : Ip.t ref
 val client_port : int ref
 val client_tags  : Mftp.tag list ref
 
+val shared_files_info : (string, DownloadTypes.shared_file_info) Hashtbl.t
+
+val sleeping : bool ref
 val max_allowed_connected_servers : int
 val dialog_history : (string * string) list ref  
 val upload_credit : int ref
@@ -53,6 +56,7 @@ val download_credit : int ref
 val nshared_files :  int ref
 val udp_sock : UdpSocket.t option ref
 val last_xs : int ref
+val indirect_clients_by_md4 : (Md4.t, unit) Hashtbl.t
 val clients_by_kind : (Gui_types.location_kind, DownloadTypes.client) Hashtbl.t
 val clients_by_num : (int, DownloadTypes.client) Hashtbl.t
 val find_file : Md4.t -> DownloadTypes.file  

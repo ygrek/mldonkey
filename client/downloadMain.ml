@@ -94,8 +94,7 @@ let _ =
 
 (**** LOAD OPTIONS ****)
     
-    
-    Options.filename := 
+    Options.set_options_file downloads_ini 
     (try Filepath.find_in_path ["."] config_filename with
         _ -> 
           Printf.printf "No config file found. Generating one."; 
@@ -103,10 +102,11 @@ let _ =
           let name = Filename.concat "." config_filename in
           let oc = open_out name in close_out oc; name
     );
-    (try Options.load () with e -> 
+    (try Options.load downloads_ini with e -> 
           Printf.printf "exception during options load"; print_newline ();
           exit 2;
           ());  
+    (try Options.load shared_files_ini with _ -> ());
     features =:= !!features;  
     List.iter (fun file ->
         set_file_size file file.file_size) !!files;
@@ -128,7 +128,16 @@ let _ =
     List.iter (fun c ->
         c.client_is_friend <- Friend;
     ) !!known_friends;
-    
+
+    let list = ref [] in
+    List.iter (fun file ->
+        if Sys.file_exists file.sh_name then begin
+            Hashtbl.add shared_files_info file.sh_name file;
+            list := file :: !list
+          end
+    ) !!known_shared_files;
+    known_shared_files =:= !list;
+    Options.save shared_files_ini;
     DownloadOneFile.add_shared_files !!incoming_directory;
     DownloadIndexer.init ();
     

@@ -213,7 +213,7 @@ exception Already_done
 
 type shared_file_info = {
     sh_name : string;
-    sh_md4 : Md4.t list;
+    sh_md4s : Md4.t list;
     sh_mtime : float;
     sh_size : int32;
   }

@@ -626,13 +626,13 @@ let commands = [
     "vo", Arg_none (fun buf _ ->
         List.iter (fun (name, value) ->
             Printf.bprintf buf "%s = %s\n" name value)
-        (Options.simple_options ());
+        (Options.simple_options downloads_ini);
         ""
     ), " : print options";
     
     "set", Arg_two (fun name value buf _ ->
         try
-          Options.set_simple_option name value;
+          Options.set_simple_option downloads_ini name value;
           "option value changed"
         with e ->
             Printf.sprintf "Error %s" (Printexc.to_string e)

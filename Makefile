@@ -173,6 +173,7 @@ include Makefile.cdk
 
 clean: 
 	rm -f *.cm? donkey_* *.byte *.cmi $(TARGETS) *~ *.o core
+	rm -f mldonkey mldonkey_gui
 	(for i in $(SUBDIRS); do \
 		rm -f  $$i/*.cm? $$i/*.o ; \
 	done)

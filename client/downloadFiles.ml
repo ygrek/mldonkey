@@ -149,7 +149,7 @@ let force_save_options () =
   DownloadServers.update_options ();
   List.iter DownloadOneFile.update_options !!files;
   Gc.compact ();
-  Options.save_with_help ()
+  Options.save_with_help downloads_ini
 
     
 let udp_query_locations file s =

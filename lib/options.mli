@@ -13,27 +13,29 @@ which use the same conversion functions from loading and saving.*)
 type 'a option_record
 (*d The abstract type for an option *)
 
+type options_file
+
+val create_options_file : string -> options_file
+val set_options_file : options_file -> string -> unit
+  
 (*4 Operations on option files *)
   
-val filename : string ref
-(*d The name of the option file. *)
-  
-val load : unit -> unit
+val load : options_file -> unit
 (*d [load ()] loads the option file. All options whose value is specified
 in the option file are updated. *)
   
-val append : string -> unit
+val append : options_file -> string -> unit
 (*d [append filename] loads the specified option file. All options whose 
 value is specified in this file are updated. *)
   
-val save : unit -> unit
+val save : options_file -> unit
 (*d [save ()] saves all the options values to the option file. *)
-val save_with_help : unit -> unit
+val save_with_help : options_file -> unit
 (*d [save_with_help ()] saves all the options values to the option file,
 with the help provided for each option. *)
   
 (*4 Creating options *)  
-val define_option :
+val define_option : options_file ->
   string list ->  string -> 'a option_class -> 'a -> 'a option_record
 val option_hook : 'a option_record -> (unit -> unit) -> unit
     
@@ -107,7 +109,10 @@ val smalllist_to_value : ('a -> option_value) -> 'a list -> option_value
 val value_to_path : option_value -> string list
 val path_to_value : string list -> option_value
 
-val set_simple_option : string -> string -> unit
-val simple_options : unit -> (string * string) list
-val get_simple_option : string -> string
-val set_option_hook : string -> (unit -> unit) -> unit
+val filename_to_value : string -> option_value
+val value_to_filename : option_value -> string
+  
+val set_simple_option : options_file -> string -> string -> unit
+val simple_options : options_file -> (string * string) list
+val get_simple_option : options_file -> string -> string
+val set_option_hook : options_file -> string -> (unit -> unit) -> unit
