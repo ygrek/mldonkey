@@ -1,0 +1,4 @@
+#!/bin/sh
+
+touch .depend
+cd config; ./configure

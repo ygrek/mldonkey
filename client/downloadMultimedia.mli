@@ -1,0 +1,1 @@
+val get_info : string -> Gui_types.format

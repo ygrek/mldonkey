@@ -1,0 +1,12 @@
+#!/bin/sh
+
+echo Local File is "$1"
+echo Pseudo file name is "$2"
+
+MOVIE_PLAYER=mplayer
+
+case "$2" in
+    *.avi | *.mpg | *.mpeg | *.divx  | *.AVI | *.MPG | *.MPEG | *.DIVX)
+   $MOVIE_PLAYER  $1;;
+ *) echo No player for this file;;
+esac

@@ -1,0 +1,72 @@
+AC_REVISION($Revision$)
+AC_PREREQ(2.0)
+AC_INIT(Makefile.config.in)
+AC_CONFIG_HEADER(config.h)
+
+touch install-sh
+
+AC_CANONICAL_HOST
+AC_PROG_CC
+AC_EXEEXT
+AC_PROG_CPP
+
+AC_PROG_RANLIB
+
+AC_CHECK_PROG(OCAMLC, ocamlc.opt, ocamlc.opt)
+AC_CHECK_PROG(OCAMLC, ocamlc, ocamlrun ocamlc )
+AC_CHECK_PROG(OCAMLOPT, ocamlopt.opt, ocamlopt.opt)
+AC_CHECK_PROG(OCAMLOPT, ocamlopt, ocamlrun ocamlopt )
+AC_CHECK_PROG(OCAMLLEX, ocamllex.opt, ocamllex.opt)
+AC_CHECK_PROG(OCAMLLEX, ocamllex, ocamlrun ocamllex )
+
+# Sizes of various common basic types
+AC_CHECK_SIZEOF(int)
+AC_CHECK_SIZEOF(long)
+AC_CHECK_SIZEOF(void *)
+AC_CHECK_SIZEOF(char)
+AC_CHECK_SIZEOF(short)
+AC_CHECK_SIZEOF(float)
+AC_CHECK_SIZEOF(double)
+
+# various header files
+AC_CHECK_HEADERS(arpa/inet.h,,)
+
+# On linux plaforms, we will have to check that includes from kernel are
+# available.
+case $host in
+        *linux*)   
+           AC_CHECK_HEADERS(linux/limits.h,,
+             OLD_CPPFLAGS=$CPPFLAGS
+             CPPFLAGS="-I /usr/src/linux/include"
+             AC_CHECK_HEADER(linux/types.h,[CONFIG_INCLUDES="-I /usr/src/linux/include"])
+             CPPFLAGS=$OLD_CPPFLAGS
+           )
+        ;;
+        *)         ;;
+esac
+AC_MSG_CHECKING(Additionnal includes) 
+AC_MSG_RESULT($CONFIG_INCLUDES)
+
+OCAMLLIB=`ocamlc -where`
+
+if test -f $OCAMLLIB/lablgl.cma; then
+  LABLGL_CMA=lablgl.cma
+fi
+
+if test -f $OCAMLLIB/lablgl.cmxa; then
+  LABLGL_CMXA=lablgl.cmxa
+fi
+
+if test -f ../secret/mftp_server.ml; then
+   MORE_TARGETS=mldonkey
+   MORE_SUBDIRS=secret
+fi
+
+AC_SUBST(MORE_TARGETS)
+AC_SUBST(MORE_SUBDIRS)
+AC_SUBST(LABLGL_CMA)
+AC_SUBST(LABLGL_CMXA)
+AC_SUBST(CONFIG_INCLUDES)
+
+AC_OUTPUT(Makefile.config)
+

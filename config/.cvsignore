@@ -1,0 +1,5 @@
+config.h
+config.cache
+install-sh
+config.status
+Makefile.config

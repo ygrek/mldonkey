@@ -1,0 +1,46 @@
+	
+fclean:
+	rm -f *.cm[iaxo] *.[ao] *.cmxa core *.mlg *.opt *.byte *.log *.out *.exe *~ $(TMPFILES)
+
+fdepend: $(TMPFILES)
+	$(OCAMLDEP) $(INCLUDES)  *.ml *.mli > .depend
+
+.SUFFIXES: .mli .ml .cmx .cmo .o .c .cmi .out .exe .mll .mly .opt .byte .html .doc
+
+.mli.cmi :
+	$(OCAMLC) $(OFLAGS) $(INCLUDES) -c $<
+
+.ml.cmi :
+	$(OCAMLC) $(OFLAGS) $(INCLUDES) -c $<
+
+.ml.cmx :
+	$(OCAMLOPT) $(OFLAGS) $(INCLUDES) -c $<
+
+.ml.cmo :
+	$(OCAMLC) $(OFLAGS) $(INCLUDES) -c $<
+
+.mll.ml :
+	$(OCAMLLEX) $<
+
+.mly.ml :
+	$(OCAMLYACC) $<
+
+.mly.mli:
+	$(OCAMLYACC) $<
+
+.c.o :
+	$(OCAMLC) -ccopt "-I $(OCAML_SRC)/byterun -o $*.o" -ccopt "$(CFLAGS)" -c $<
+
+.cmo.byte:
+	$(OCAMLC) -o $*.byte $(LIBS) $<
+
+.cmx.opt:
+	$(OCAMLOPT) -o $*.opt $(OPTLIBS) $<
+
+.doc.html:
+	$(CDK_DOC) $*.doc
+	cp -f *.html $(CURDIR)/doc/
+
+.mli.html:
+	$(CDK_DOC) $*.mli
+	cp -f $*.html $(CURDIR)/doc/

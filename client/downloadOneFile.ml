@@ -1,0 +1,952 @@
+open Options
+open Unix
+open BasicSocket
+open TcpClientSocket
+open Mftp
+open Files
+open Mftp_comm
+open DownloadTypes
+open DownloadOptions
+open DownloadGlobals
+open Gui_types
+  
+let client_state t =
+  match t with
+    Connected_queued -> "Queued"
+  | NotConnected -> "Disconnected"
+  | Connected_idle -> "Connected"
+  | Connected_busy -> "Downloading"
+  | Connecting -> "Connecting"
+  | Connected_initiating -> "Initiating"
+  | Removed -> "Removed"
+      
+let set_client_state c s =
+  if c.client_state = Connected_busy then decr nclients;
+  if s = Connected_busy then incr nclients;  
+  c.client_state <- s
+
+
+let must_share_file file =
+  if not file.file_shared then begin
+      file.file_shared <- true;
+      incr nshared_files;
+      new_shared := file :: !new_shared
+    end
+
+          
+  
+let chunk_pos i =
+  Int32.mul (Int32.of_int i)  block_size
+
+let chunk_end file i =
+  let pos = Int32.mul (Int32.of_int (i+1))  block_size in
+  if pos > file.file_size then file.file_size else pos
+    
+let new_block file i =
+  
+  let begin_pos = chunk_pos i in
+  let end_pos = chunk_end file i in
+  {
+    block_present = false;
+    block_begin = begin_pos;
+    block_end = end_pos;
+    block_nclients = 0;
+    block_zones = [];
+    block_pos = i;
+    block_file = file;
+  } 
+
+let sort_zones b =
+  let zones = List.fold_left (fun zones z ->
+        if z.zone_begin = z.zone_end then z.zone_present <- true;
+        if z.zone_present  then zones else z :: zones
+    ) [] b.block_zones 
+  in
+  b.block_zones <- Sort.list (fun z1 z2 ->
+      z1.zone_nclients < z2.zone_nclients ||
+      (z1.zone_nclients == z2.zone_nclients &&
+        z1.zone_begin < z2.zone_begin)
+  ) zones
+
+let disconnected_from_client c msg =
+  printf_char ']'; 
+  c.client_chunks <- [||];
+  c.client_sock <- None;
+  let files = c.client_files in
+  List.iter (fun (file, chunks) -> remove_client_chunks file chunks)  files;    
+  c.client_files <- [];
+  begin
+  match c.client_kind with
+    Known_location _ -> ()
+  | Indirect_location ->
+      List.iter (fun (file,_) ->
+          file.file_indirect_locations <- 
+            List2.removeq c file.file_indirect_locations
+      ) files;
+      remove_client c
+  end;
+  set_client_state c NotConnected;
+  begin
+    match c.client_block with None -> ()
+    | Some b ->
+        c.client_block <- None;
+        b.block_nclients <- b.block_nclients - 1;
+        List.iter (fun z ->
+            z.zone_nclients <- z.zone_nclients - 1) c.client_zones;
+        sort_zones b
+  end
+
+
+let rec create_zones file begin_pos end_pos list =
+  if begin_pos = end_pos then list
+  else
+  let zone_end = Int32.add begin_pos zone_size in
+  let zone_end = if zone_end > end_pos then end_pos else zone_end in
+  if !verbose then begin
+      Printf.printf "[%s-%s]" (Int32.to_string begin_pos) 
+      (Int32.to_string zone_end);
+    end;
+  create_zones file zone_end end_pos ({
+      zone_begin = begin_pos;
+      zone_end = zone_end;
+      zone_nclients = 0;
+      zone_present = false;
+      zone_file = file;
+    } :: list ) 
+
+let client_file c =
+  match c.client_files with
+    [] -> failwith "No file for this client"
+  | (file, _) :: _ -> file
+  
+let query_zones c b = 
+  let file = client_file c in
+  sort_zones b;
+  match c.client_sock with
+    None -> assert false
+  | Some sock ->
+
+      set_rtimeout (TcpClientSocket.sock sock) !queue_timeout;
+      client_send sock (
+        let module M = Mftp_client in
+        let module Q = M.QueryBloc in
+        M.QueryBlocReq (match c.client_zones with
+            [z] ->
+              {
+                Q.md4 = file.file_md4;
+                Q.start_pos1 = z.zone_begin;
+                Q.end_pos1 = z.zone_end;
+                Q.start_pos2 = Int32.zero;
+                Q.end_pos2 = Int32.zero;
+                Q.start_pos3 = Int32.zero;
+                Q.end_pos3 = Int32.zero;
+              }
+          
+          | [z1;z2] ->
+              {
+                Q.md4 = file.file_md4;
+                Q.start_pos1 = z1.zone_begin;
+                Q.end_pos1 = z1.zone_end;
+                Q.start_pos2 = z2.zone_begin;
+                Q.end_pos2 = z2.zone_end;
+                Q.start_pos3 = Int32.zero;
+                Q.end_pos3 = Int32.zero;
+              }
+          
+          | [z1;z2;z3] ->
+              {
+                Q.md4 = file.file_md4;
+                Q.start_pos1 = z1.zone_begin;
+                Q.end_pos1 = z1.zone_end;
+                Q.start_pos2 = z2.zone_begin;
+                Q.end_pos2 = z2.zone_end;
+                Q.start_pos3 = z3.zone_begin;
+                Q.end_pos3 = z3.zone_end;
+              }
+          
+          | _ -> assert false));
+      printf_char '?'
+
+        
+(* create a list with all absent intervals *)
+
+let put_absents file =
+  if !verbose then begin
+      Printf.printf "put_absents"; print_newline ();
+    end;
+  for i = 0 to file.file_nchunks - 1 do
+    file.file_chunks.(i) <- PresentTemp;
+  done;
+  
+  let rec iter_chunks_in i zs =
+    if i < file.file_nchunks then 
+    match zs with
+      [] -> ()
+    | (begin_pos, end_pos) :: tail ->
+        if begin_pos >= chunk_end file i then
+          iter_chunks_in (i+1) zs
+        else
+        if end_pos <= chunk_pos i then
+          iter_chunks_in i tail
+          else
+          if begin_pos <= chunk_pos i && end_pos >= chunk_end file i then begin
+              file.file_chunks.(i) <- AbsentTemp;
+              iter_chunks_in (i+1) ((chunk_end file i, end_pos) :: tail)
+            end else
+          let b = new_block file i in
+          file.file_chunks.(i) <- PartialTemp b;
+          iter_blocks_in i b zs
+        
+  and iter_blocks_in i b zs =
+    match zs with
+      [] -> 
+        sort_zones b
+    | (begin_pos, end_pos) :: tail ->
+        if begin_pos >= b.block_end then begin
+            sort_zones b;
+            iter_chunks_in (i+1) zs 
+          end
+        else
+        if end_pos >= b.block_end then begin
+            if !verbose then Printf.printf "block %d :" i;
+            b.block_zones <- create_zones file begin_pos b.block_end
+              b.block_zones;
+            if !verbose then print_newline ();
+            sort_zones b;
+            iter_chunks_in (i+1) ((b.block_end, end_pos) :: tail)
+          end else begin
+            if !verbose then Printf.printf "block %d :" i;
+            b.block_zones <- create_zones file begin_pos end_pos b.block_zones;
+            if !verbose then print_newline ();
+            iter_blocks_in i b tail
+          end
+    
+    
+  in
+  
+  iter_chunks_in 0 file.file_absent_chunks
+  
+      
+let find_absents file =
+  let rec iter_chunks_out i prev =
+    if i = file.file_nchunks then prev else
+    match file.file_chunks.(i) with
+      AbsentTemp | AbsentVerified ->
+        iter_chunks_in (i+1) (chunk_pos i) prev
+    | PresentTemp | PresentVerified ->
+        iter_chunks_out (i+1) prev
+    | PartialTemp b | PartialVerified b ->
+        let zs = Sort.list (fun z1 z2 ->
+              z1.zone_begin <= z2.zone_begin
+          ) b.block_zones in
+        iter_blocks_out i zs prev
+        
+  and iter_chunks_in i begin_pos prev =
+    if i = file.file_nchunks then (begin_pos, file.file_size) :: prev else
+    match file.file_chunks.(i) with
+      AbsentTemp | AbsentVerified ->
+        iter_chunks_in (i+1) begin_pos prev
+    | PresentTemp |  PresentVerified ->
+        iter_chunks_out (i+1) ((begin_pos, chunk_pos i) :: prev)
+    | PartialTemp b | PartialVerified b ->
+        let zs = Sort.list (fun z1 z2 ->
+              z1.zone_begin <= z2.zone_begin
+          ) b.block_zones in
+        iter_blocks_in i zs begin_pos (chunk_pos i) prev
+    
+  and iter_blocks_in i zs begin_pos end_pos prev =
+    match zs with
+      [] -> 
+        if end_pos = chunk_pos (i+1) then
+          iter_chunks_in (i+1) begin_pos prev
+        else
+          iter_chunks_out (i+1) ((begin_pos, end_pos) :: prev)
+    | z :: zs ->
+        if end_pos = z.zone_begin then
+          iter_blocks_in i zs begin_pos z.zone_end prev
+        else
+          iter_blocks_in i zs z.zone_begin z.zone_end
+            ((begin_pos, end_pos) :: prev)
+    
+  and iter_blocks_out i zs prev =
+    match zs with
+      [] -> 
+        iter_chunks_out (i+1) prev
+    | z :: zs ->
+        iter_blocks_in i zs z.zone_begin z.zone_end prev
+        
+  in
+  iter_chunks_out 0 []
+    
+let compute_size file =
+  if file.file_size <> Int32.zero then
+    
+    let absents = ref Int32.zero in
+    for i = 0 to file.file_nchunks - 1 do
+      match file.file_chunks.(i) with
+        PresentTemp | PresentVerified -> ()
+      | AbsentTemp | AbsentVerified -> absents := Int32.add !absents (
+            Int32.sub (chunk_end file i) (chunk_pos i))
+      | PartialTemp b | PartialVerified b ->
+          List.iter (fun z ->
+              absents := Int32.add !absents (
+                Int32.sub z.zone_end z.zone_begin)
+          ) b.block_zones
+    done;
+    let current = Int32.sub file.file_size !absents in
+    if file.file_downloaded <> current then 
+      file.file_changed <- SmallChange;
+    file.file_downloaded <- current
+    
+let print_time tm =
+  let module U = Unix in
+  Printf.printf "TIME %d/%d/%d %2d:%02d:%02d" 
+    tm.U.tm_mday tm.U.tm_mon tm.U.tm_year
+    tm.U.tm_hour tm.U.tm_min tm.U.tm_sec;
+  print_newline ()
+  
+  
+let print_stats file = ()
+  (*
+  print_newline ();
+  print_time (Unix.localtime (last_time ()));
+  compute_size file;
+  let nc = ref 0 in
+  let ncc = ref 0 in
+  List.iter (fun  c ->
+      incr nc;
+      match c.client_sock with
+        None -> ()
+      | _ -> incr ncc;
+  ) file.file_known_locations;
+  List.iter (fun c ->
+      incr nc;
+      match c.client_sock with
+        None -> ()
+      | _ -> incr ncc;
+  ) file.file_indirect_locations;
+  Printf.printf "CLIENTS CONNECTED: %d/%d :" !ncc !nc;
+  List.iter (fun c ->
+      print_char (
+        match c.client_state with
+        | Connected_initiating
+        | Connected_idle -> 'C'
+        | Connecting -> 'c'
+        | NotConnected -> ' '
+        | Connected_queued -> 'Q'
+        | Connected_busy -> 'D'
+        | Removed -> 'R'
+            )
+  ) file.file_known_locations;
+  List.iter (fun c ->
+      print_char (
+        match c.client_state with
+        | Connected_initiating
+        | Connected_idle -> 'C'
+        | Connecting -> 'c'
+        | NotConnected -> ' '
+        | Connected_queued -> 'Q'
+        | Connected_busy -> 'D'
+        | Removed -> 'R'
+            )
+  ) file.file_indirect_locations;
+  print_newline ()
+*)
+  
+let verify_chunk file i =
+  if file.file_md4s = [] then file.file_chunks.(i) else
+  let file_md4s = Array.of_list file.file_md4s in
+  let begin_pos = chunk_pos i in
+  let end_pos = chunk_end file i in
+  let len = Int32.sub end_pos begin_pos in
+  let md4 = file_md4s.(i) in
+  let mmap = Mmap.mmap file.file_name 
+    (file_fd file) begin_pos len in
+  let new_md4 = Mmap.md4_sub mmap Int32.zero len in
+  Mmap.munmap mmap;
+  if new_md4 = md4 then begin
+      must_share_file file;
+      PresentVerified
+    end else begin
+(*
+print_newline ();
+Printf.printf "VERIFICATION FAILED";print_newline ();
+Printf.printf "%s\n%s" (Md4.to_string md4) (Md4.to_string new_md4);
+print_newline ();
+*)
+      AbsentVerified
+    end      
+  
+    
+let verify_file_md4 file i b =
+  let state = verify_chunk file i in
+  file.file_chunks.(i) <- (
+    if state = PresentVerified then begin
+        printf_char 'V';
+        PresentVerified
+      end
+    else
+    match b with
+      PartialTemp bloc -> PartialVerified bloc
+    | PresentTemp ->
+        printf_char 'E';
+        AbsentVerified
+    | _ -> AbsentVerified);
+  file.file_all_chunks.[i] <- 
+    (if state = PresentVerified then '1' else '0')
+  
+let rec find_client_zone c = 
+  match c.client_block with
+    None -> find_client_block c
+  | Some b ->
+(* client_zones : les zones en cours de telechargement *)
+(* block_zones : les zones disponibles pour telechargement *)
+      let z = match c.client_zones with
+        | [z1] -> if z1.zone_present then [] else [z1]
+        | [z1;z2] ->
+            let z = if z2.zone_present then [] else [z2] in
+            if z1.zone_present then z else z1 :: z 
+        | [z1;z2;z3] ->
+            let z = if z3.zone_present then [] else [z3] in
+            let z = if z2.zone_present then z else z2 :: z in
+            if z1.zone_present then z else z1 :: z 
+        | _ -> []
+      
+      in
+      if !verbose then begin
+          Printf.printf "REMAINING ZONES: %d" (List.length z);
+          print_newline ();
+        end;
+      let rem_zones = List.length b.block_zones in
+      match z with
+        [z1;z2;z3] -> ()
+      | [z1;z2] when rem_zones <= 2 -> ()
+      | [z1] when rem_zones <= 1 -> ()
+      | [z1;z2] -> find_zone3 c b z1 z2 b.block_zones
+      | [z1]  -> find_zone2 c b z1 b.block_zones
+      | _ -> find_zone1 c b b.block_zones
+
+and find_zone3 c b z1 z2 zones =
+  match zones with
+    [] -> c.client_zones <- [z1;z2]; query_zones c b
+  | z :: zones ->
+      if (not z.zone_present) && z != z1 && z != z2 then begin
+          c.client_zones <- [z1;z2;z];
+          z.zone_nclients <- z.zone_nclients + 1;
+          query_zones c b
+        end
+      else find_zone3 c b z1 z2 zones
+
+and find_zone2 c b z1 zones =
+  match zones with
+    [] -> c.client_zones <- [z1]; query_zones c b
+  | z :: zones ->
+      if (not z.zone_present) && z != z1 then begin
+          z.zone_nclients <- z.zone_nclients + 1;
+          find_zone3 c b z1 z zones
+        end
+      else find_zone2 c b z1 zones
+
+and find_zone1 c b zones =
+  let file = client_file c in
+  match zones with
+    [] -> 
+(* no block to download !! *)
+      c.client_zones <- []; 
+      if !verbose then begin
+          Printf.printf "DOWNLOADED ONE BLOCK"; 
+          print_newline ();
+        end;
+      b.block_present <- true;
+      b.block_nclients <- b.block_nclients - 1;      
+      file.file_chunks.(b.block_pos) <- PresentTemp;
+      let state = verify_chunk file b.block_pos in
+      file.file_chunks.(b.block_pos) <- state;
+      (file.file_all_chunks).[b.block_pos] <- (if state = PresentVerified 
+        then '1' else '0');
+      
+      begin
+        match state with
+          PresentVerified -> printf_char 'V'
+        | AbsentVerified -> printf_char 'E'
+        | _ -> printf_char 'D'
+      end;
+      printf_char '.';
+      file.file_absent_chunks <- List.rev (find_absents file);
+      find_client_block c
+  
+  | z :: zones ->
+      if (not z.zone_present) then begin
+          z.zone_nclients <- z.zone_nclients + 1;
+          find_zone2 c b z zones
+        end else
+        find_zone1 c b zones
+
+and check_file_block c file i max_clients =
+  if c.client_chunks.(i) then begin
+      begin
+        match file.file_chunks.(i) with
+          AbsentTemp | PartialTemp _ ->
+            verify_file_md4 file i file.file_chunks.(i)
+        | _ -> ()
+      end;
+      
+      match file.file_chunks.(i) with
+      
+      | AbsentVerified ->
+          let b = new_block file i in
+          b.block_zones <- create_zones file b.block_begin b.block_end [];
+          if !verbose then print_newline ();
+          
+          b.block_nclients <- 1;            
+          c.client_block <- Some b;
+          file.file_chunks.(i) <- PartialVerified b;
+          find_client_zone c;
+          raise Not_found
+      
+      | PartialVerified b when b.block_nclients < max_clients ->
+          b.block_nclients <- 1;            
+          c.client_block <- Some b;
+          file.file_chunks.(i) <- PartialVerified b;
+          find_client_zone c;
+          raise Not_found
+      
+      | _ -> ()
+    end
+
+and start_download c =
+  match c.client_sock with
+    None -> ()
+  | Some sock ->
+      match c.client_files with
+        [] -> ()
+      | (file, chunks) :: _ ->
+          c.client_block <- None;
+          c.client_chunks <- chunks;
+          c.client_all_chunks <- String.make file.file_nchunks '0';
+          c.client_zones <- [];
+          
+          for i = 0 to file.file_nchunks - 1 do
+            if c.client_chunks.(i)  then 
+              c.client_all_chunks.[i] <- '1';
+          done;          
+          if file.file_md4s = [] && file.file_size > block_size then begin
+              client_send sock (
+                let module M = Mftp_client in
+                let module C = M.QueryChunkMd4 in
+                M.QueryChunkMd4Req file.file_md4);
+            
+            end;
+          
+          
+          client_send sock (
+            let module M = Mftp_client in
+            let module Q = M.Message84 in
+            M.Message84Req Q.t);              
+          
+          set_rtimeout (TcpClientSocket.sock sock) !queue_timeout;
+          
+          set_client_state c Connected_queued;
+          
+          find_client_block c
+
+
+and find_client_block c =
+(* find an available block *)
+  
+  match c.client_files with
+    [] -> assert false
+  | (file, chunks) :: files -> 
+      
+      begin
+        match c.client_block with 
+          None ->
+            if !verbose then begin
+                Printf.printf "CLIENT IS FREE"; 
+                print_newline ();
+              end;
+        | Some _ ->
+            if !verbose then begin
+                Printf.printf "CLIENT IS ALREADY USED"; 
+                print_newline ();
+              end;
+      end;
+      try  
+        let last = file.file_nchunks - 1 in
+        if c.client_chunks.(last) && file.file_available_chunks.(last) = 1 then
+          check_file_block c file last max_int;
+
+        let rare_blocks = ref [] in
+        for i = 0 to file.file_nchunks - 1 do
+          if c.client_chunks.(i) && file.file_available_chunks.(i) = 1 then
+            rare_blocks := (Random.int 1000, i) :: !rare_blocks
+        done;        
+        
+        let rare_blocks = Sort.list (fun (c1,_) (c2,_) -> c1 <= c2)
+          !rare_blocks in
+        
+        List.iter (fun (_,i) ->
+            check_file_block c file i max_int) rare_blocks;
+
+        check_file_block c file last max_int;
+        for i = 0 to file.file_nchunks - 1 do
+          check_file_block c file i 1
+        done;
+(* TODO: send client on Partial block *)
+        if !verbose then begin
+            Printf.printf "NO ABSENT BLOCK FOUND"; 
+            print_newline ();
+          end;
+        for i = 0 to file.file_nchunks - 1 do
+          check_file_block c file i max_int
+        done;
+        if !verbose then begin
+            Printf.printf "NO PARTIAL BLOCK FOUND"; 
+            print_newline (); 
+          end;
+(* THIS CLIENT CANNOT HELP ANYMORE: USELESS FOR THIS FILE *)
+        next_file c
+      
+      with _ -> ()
+
+and next_file c =
+  
+  match c.client_files with
+    [] -> assert false
+  | (file, chunks) :: files -> 
+      remove_client_chunks file chunks;
+      match c.client_sock with
+        None -> ()
+      | Some sock ->
+          match files with
+            [] ->
+              connection_ok c.client_connection_control;
+              TcpClientSocket.close sock "useless client";            
+              raise Not_found
+          | _ ->
+              c.client_files <- files;
+              start_download c
+              
+      
+let disconnect_chunk ch =
+  match ch with
+  | PartialTemp b | PartialVerified b ->
+      let file = b.block_file in
+      b.block_present <- true;
+      List.iter (fun z ->
+          z.zone_begin <- file.file_size;
+      ) b.block_zones;
+      b.block_zones <- []            
+  | AbsentTemp | AbsentVerified | PresentTemp  | PresentVerified -> ()
+
+let verify_chunks file =
+  if file.file_md4s <> [] then
+    for i = 0 to file.file_nchunks - 1 do
+        let b = file.file_chunks.(i)  in
+        match b with
+          PresentVerified | AbsentVerified | PartialVerified _ ->
+            ()
+        | _ ->
+            let state = verify_chunk file i in
+            file.file_chunks.(i) <- (
+              if state = PresentVerified then begin
+                  Printf.printf "(PRESENT VERIFIED)";
+                  print_newline ();
+                  PresentVerified
+                end
+              else
+              match b with
+              PartialTemp bloc -> PartialVerified bloc
+            | PresentTemp ->
+                  Printf.printf "(CORRUPTION FOUND)"; print_newline ();
+                  AbsentVerified
+              | _ -> AbsentVerified);
+            file.file_all_chunks.[i] <- 
+              (if state = PresentVerified then '1' else '0');
+    
+    done;
+  file.file_absent_chunks <- List.rev (find_absents file);
+  compute_size file
+
+external ftruncate32 : Unix.file_descr -> int32 -> unit = "ml_truncate32"
+  
+let set_file_size file sz =
+  
+  if sz <> Int32.zero then begin
+      if file.file_size = Int32.zero then 
+          file.file_absent_chunks <- [Int32.zero, sz];
+      file.file_size <- sz;
+      file.file_nchunks <- Int32.to_int (Int32.div  
+          (Int32.sub sz Int32.one) block_size)+1;
+      file.file_chunks <- Array.create file.file_nchunks AbsentTemp;
+      ftruncate32 (file_fd file) sz;
+      
+      file.file_all_chunks <- String.make file.file_nchunks '0';
+      
+      for i = 0 to file.file_nchunks - 1 do
+        if (file.file_all_chunks).[i] = '1' then 
+          file.file_chunks.(i) <- PresentTemp;
+      done;
+
+      put_absents file;
+      
+      for i = 0 to file.file_nchunks - 1 do
+        if file.file_chunks.(i) = PresentTemp then
+          file.file_all_chunks.[i] <- '1'
+      done;
+      compute_size file;
+      (* verify_chunks file;  *)
+      
+(*
+      List.iter (fun (p0,p1) ->
+Printf.printf "%s <---> %s" (Int32.to_string p0) (Int32.to_string p1);
+  print_newline ();
+) file.file_absent_chunks;
+  *)
+    end
+  
+
+
+      
+let update_zone file begin_pos end_pos z =
+  if !verbose then begin
+      Printf.printf "CHECKING %s-%s" (Int32.to_string z.zone_begin)
+      (Int32.to_string z.zone_end); 
+      print_newline ();
+    end;
+  if z.zone_begin <= begin_pos &&
+    z.zone_end > begin_pos then 
+    if z.zone_end <= end_pos then begin
+        if !verbose then begin
+            Printf.printf "END OF ZONE DOWNLOADED"; 
+            print_newline ();
+          end;
+        file.file_downloaded <- 
+          Int32.add file.file_downloaded 
+          (Int32.sub z.zone_end z.zone_begin);
+        file.file_changed <- SmallChange;
+        z.zone_present <- true;
+        z.zone_begin <- z.zone_end;
+      end 
+    else begin
+        file.file_downloaded <- 
+          Int32.add file.file_downloaded 
+          (Int32.sub end_pos z.zone_begin);
+        file.file_changed <- SmallChange;
+        z.zone_begin <- end_pos;
+        if !verbose then begin
+            Printf.printf "ADVANCE TO %s" (Int32.to_string end_pos);
+            print_newline ();
+          end;
+      end
+
+
+let move_file src dst md4 =
+  src =:= List.rev (List.fold_left (fun files file ->
+        if file.file_md4 = md4 then begin
+            dst =:= file :: !!dst;
+            files 
+          end
+        else file :: files
+    ) [] !!src)
+  
+let remove_file md4 =
+  files =:= List.rev (List.fold_left (fun files file ->
+        if file.file_md4 = md4 then begin
+            file.file_state <- FileCancelled;
+            (match file.file_fd with
+                None -> ()
+              | Some fd -> 
+                  file.file_fd <- None;
+                  (try Unix.close fd with _ -> ());
+                  );
+            file.file_shared <- false;
+            decr nshared_files;
+            (try Sys.remove file.file_name with _ -> ());
+            (try Hashtbl.remove files_by_md4 file.file_md4 with _ -> ());
+            file.file_name <- "";
+            !file_change_hook file;
+            files end
+        else file :: files
+    ) [] !!files);
+  ()
+
+let check_file_downloaded file =
+  if file.file_absent_chunks = [] then
+    try
+      Array.iteri (fun i b ->
+          match b with
+            PresentVerified -> ()
+          | PresentTemp -> 
+              let b = verify_chunk file i in
+              file.file_chunks.(i) <- b;
+              file.file_all_chunks.[i] <- (
+                match b with
+                  PresentVerified -> '1'
+                | PresentTemp ->  '0'
+                | AbsentVerified ->
+                    Printf.printf "(CORRUPTION FOUND)";
+                    print_newline ();
+                    '0'
+                | _ ->
+                    Printf.printf "OTHER"; print_newline ();
+                    '0'
+              );
+              raise Not_found
+          | _ -> raise Not_found
+      ) file.file_chunks;        
+      file.file_state <- FileDownloaded;
+      (try
+          let format = DownloadMultimedia.get_info file.file_name in
+          file.file_format <- format
+        with _ -> ());
+      small_change_file file;
+      !file_change_hook file;
+      move_file files done_files file.file_md4
+    with _ -> ()
+        
+let update_options file =    
+  file.file_absent_chunks <- List.rev (find_absents file);
+  check_file_downloaded file;
+  print_stats file;
+  file.file_changed <- SmallChange
+
+let shared_fd sh =
+  match sh.shared_fd with
+    None ->
+      let fd = Unix.openfile sh.shared_name [O_RDONLY] 0o444 in
+      sh.shared_fd <- Some fd;
+      fd
+  | Some fd -> fd
+
+      
+let check_files_md4s timer =
+  reactivate_timer timer;
+  if !new_shared != [] then
+    begin
+      let msg = Mftp_server.ShareReq (DownloadServers.make_tagged !new_shared) in
+      new_shared := [];
+      let socks = ref [] in
+      List.iter (fun s ->
+          match s.server_sock with
+            None -> ()
+          | Some sock ->
+              socks := sock :: !socks) !connected_server_list;
+      servers_send !socks msg;
+    end;
+  
+  try
+    List.iter  check_file_downloaded !!files;
+    
+    (try
+        List.iter (fun file ->
+            if file.file_md4s <> [] then
+              Array.iteri (fun i b ->
+                  match b with
+                    PartialVerified _ | AbsentVerified -> ()
+                  | PresentVerified
+                  | _ ->
+                      verify_file_md4 file i b;
+                      compute_size file;
+                      raise Not_found
+              ) file.file_chunks
+        ) !!files;
+      with _ -> ());
+    
+    match !shared_files with
+      [] -> ()
+    | sh :: files ->
+        try
+          if not (Sys.file_exists sh.shared_name) then begin
+              Printf.printf "Shared file doesn't exist"; print_newline ();
+              raise Not_found;
+            end;
+          if Mmap.getsize32 sh.shared_name <> sh.shared_size then begin
+              Printf.printf "Bad shared file size" ; print_newline ();
+              raise Not_found;
+            end;
+          let end_pos = Int32.add sh.shared_pos block_size in
+          let end_pos = if end_pos > sh.shared_size then sh.shared_size
+            else end_pos in
+          let len = Int32.sub end_pos sh.shared_pos in
+          
+          let mmap = try
+              Mmap.mmap sh.shared_name (shared_fd sh) sh.shared_pos len 
+            with e -> 
+                Printf.printf "error %s in mmap" (Printexc.to_string e);
+                print_newline ();
+                raise e
+          in
+          let new_md4 = Mmap.md4_sub mmap Int32.zero len in
+          Mmap.munmap mmap;
+          sh.shared_list <- new_md4 :: sh.shared_list;
+          sh.shared_pos <- end_pos;
+          if end_pos = sh.shared_size then begin
+              Printf.printf "Sharing %s" sh.shared_name; 
+              print_newline ();
+              shared_files := files;
+(* How do we compute the total MD4 of the file ? *)
+              
+              let md4s = List.rev sh.shared_list in
+              let md4 = match md4s with
+                  [md4] -> md4
+                | [] -> Printf.printf "No md4 for %s" sh.shared_name;
+                    print_newline ();
+                    raise Not_found
+                | _ -> 
+                    let len = List.length md4s in
+                    let s = String.create (len * 16) in
+                    let rec iter list i =
+                      match list with
+                        [] -> ()
+                      | md4 :: tail ->
+                          let md4 = Md4.direct_to_string md4 in
+                          String.blit md4 0 s i 16;
+                          iter tail (i+16)
+                    in
+                    iter md4s 0;
+                    Md4.of_string s
+              in
+              let file = new_file sh.shared_name md4 sh.shared_size in
+              must_share_file file;
+              file.file_md4s <- md4s;
+              file.file_filenames <- [Filename.basename sh.shared_name]; 
+              file.file_chunks <- Array.make file.file_nchunks PresentVerified;
+              file.file_absent_chunks <- [];
+              file.file_all_chunks <- String.make file.file_nchunks '1';
+              file.file_state <- FileRemoved;
+              (try 
+                  file.file_format <- DownloadMultimedia.get_info file.file_name
+                with _ -> ());
+            end
+        with _ ->
+            shared_files := files
+    
+    
+  with _ -> ()
+
+      open Unix
+      
+
+let file_size filename = Mmap.getsize32 filename
+
+let rec add_shared_files dirname =
+  let files = Unix2.list_directory dirname in
+  List.iter (fun file ->
+      let name =  Filename.concat dirname file in
+      try
+        if Unix2.is_directory name then
+          add_shared_files name
+        else
+        let size = file_size name in
+        if size > Int32.zero then
+          shared_files := {
+            shared_name = name;
+            shared_size = size;
+            shared_list = [];
+            shared_pos = Int32.zero;
+            shared_fd = None;
+          } :: !shared_files
+      with _ -> ()
+  ) files
+  
