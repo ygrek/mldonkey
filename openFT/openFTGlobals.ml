@@ -373,7 +373,7 @@ let add_download file c index =
   if not (List.memq c file.file_clients) then begin
       c.client_downloads <- (file, index) :: c.client_downloads;
       file.file_clients <- c :: file.file_clients;
-      file_new_source (as_file file.file_file) (as_client c.client_client)
+      file_add_source (as_file file.file_file) (as_client c.client_client)
     end
     
       

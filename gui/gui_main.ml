@@ -244,8 +244,11 @@ let value_reader gui t sock =
     | Search_waiting (num,waiting) -> 
         gui#tab_queries#h_search_waiting num waiting
     
-    | File_source (num, src) -> 
+    | File_add_source (num, src) -> 
         gui#tab_downloads#h_file_location num src;
+    
+    | File_remove_source (num, src) -> 
+        gui#tab_downloads#h_file_remove_location num src;
     
     | File_downloaded (num, downloaded, rate, last_seen) ->
         gui#tab_downloads#h_file_downloaded num downloaded rate;

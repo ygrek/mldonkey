@@ -1,5 +1,5 @@
-(* Copyright 2002 b8_fange *)
-(*
+/* Copyright 2002 b8_fange */
+/*
     This file is part of mldonkey.
 
     mldonkey is free software; you can redistribute it and/or modify
@@ -15,13 +15,36 @@
     You should have received a copy of the GNU General Public License
     along with mldonkey; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-*)
+*/
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <string.h>
+#include <netdb.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <fcntl.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
-open Gui_im
+#include "gui_protocol.h"
 
-let _ =
-  quit_on_close := true;
-  main_window#window#show ();
-  BasicSocket.loop ()
-;;
-  
+int main()
+{
+  mldonkey_config config;
+  mldonkey_info info;
+
+  config.mldonkey_hostname = NULL;
+  config.mldonkey_port = 4001;
+  config.mldonkey_login = NULL;
+  config.mldonkey_password = NULL;
+  while(1){
+     printf("STATUS: %d\n", get_mldonkey_status(&config, &info));
+     sleep(5);
+  }
+  return 0;
+}

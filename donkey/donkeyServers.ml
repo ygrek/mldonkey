@@ -79,8 +79,8 @@ let query_locations s n_per_round =
             [] ->
               begin
                 List.iter (fun file ->
-                    if file_state file = FileDownloading && 
-                       not (file_enough_sources file) then
+                    if file_state file = FileDownloading
+                      then
                       s.server_waiting_queries <- 
                         file :: s.server_waiting_queries
                 ) !current_files;
@@ -90,8 +90,7 @@ let query_locations s n_per_round =
             end
           | file :: files ->
               s.server_waiting_queries <- files;
-              if file_state file = FileDownloading &&
-                 not (file_enough_sources file) then begin
+              if file_state file = FileDownloading then begin
                   query_location file sock;
                   iter (n-1)
                 end else
@@ -227,11 +226,25 @@ queries. *)
       printf_string "[MLDONKEY SERVER]"
         
   | M.QueryIDReplyReq t -> 
+(* This can either be a reply to a QueryID or a indirect request for
+connection from another client. In this case, we should immediatly connect.
+*)
+      
       let module Q = M.QueryIDReply in
-      if Ip.valid t.Q.ip && Ip.reachable t.Q.ip then
-        let c = new_client (Known_location (t.Q.ip, t.Q.port)) in
-        DonkeyClient.connect_as_soon_as_possible c
-   
+      if Ip.valid t.Q.ip && Ip.reachable t.Q.ip then begin
+          match Fifo.take s.server_id_requests with
+            None -> 
+              let c = new_client (Known_location (t.Q.ip, t.Q.port)) in
+              DonkeyClient.reconnect_client c;
+              friend_add c
+
+          | Some file ->
+              ignore (DonkeySources1.new_source (t.Q.ip, t.Q.port) file)
+        end
+
+  | M.QueryIDFailedReq t ->
+      ignore (Fifo.take s.server_id_requests)
+        
   | M.QueryReplyReq t ->
       let rec iter () =
         let search = try
@@ -308,8 +321,6 @@ and remove clients whose server is deconnected. *)
   | M.QueryLocationReplyReq t -> 
       DonkeyClient.query_locations_reply s t
       
-  | M.QueryIDFailedReq t -> ()
-      
   | _ -> 
 (*      !received_from_server_hook s sock t *)
       ()
@@ -330,7 +341,7 @@ let connect_server s =
         (
           Ip.to_inet_addr s.server_ip) s.server_port 
           (server_handler s) (* DonkeyProtoCom.server_msg_to_string*)  in
-      s.server_cid <- client_ip (Some sock);
+          s.server_cid <- client_ip (Some sock);
       set_server_state s Connecting;
       set_read_controler sock download_control;
       set_write_controler sock upload_control;
@@ -342,6 +353,7 @@ let connect_server s =
           close s "timeout"  
       );
       
+          Fifo.clear s.server_id_requests;
       s.server_waiting_queries <- [];
       s.server_queries_credit <- 0;
       s.server_sock <- Some sock;
@@ -559,43 +571,48 @@ let next_walker_start = ref 0.0
   
 (* one call every 5 seconds, so 12/minute, 720/hour *)
 let walker_timer () = 
-  match !walker_list with
-    [] ->
-      begin      
-        if !delayed_list <> [] then begin
-            walker_list := !delayed_list;
-            delayed_list := []
-          end else
+  
+  if !nservers < max_allowed_connected_servers () + !!max_walker_servers then
+    
+    match !walker_list with
+      [] ->
+        begin      
+          if !delayed_list <> [] then begin
+              walker_list := !delayed_list;
+              delayed_list := []
+            end else
           if last_time () > !next_walker_start then begin
               next_walker_start := last_time () +. 4. *. 3600.;
               Hashtbl.iter (fun _ s ->
                   walker_list := s :: !walker_list
               ) servers_by_key;
             end
-      end
-  | s :: tail ->
-      walker_list := tail;
-      match s.server_sock with
-        None -> 
-          if connection_can_try s.server_connection_control then begin
+        end
+    | s :: tail ->
+        walker_list := tail;
+        match s.server_sock with
+          None -> 
+            if connection_can_try s.server_connection_control then begin
+                
+                if !!verbose then begin
+                    Printf.printf "WALKER: try connect %s" 
+                      (Ip.to_string s.server_ip);
+                    print_newline ();
+                  end;
+                
+                connect_server s
+              end else begin
+                
+                delayed_list := s :: !delayed_list;
+                if !!verbose then begin
+                    Printf.printf "WALKER: connect %s delayed"
+                      (Ip.to_string s.server_ip);
+                    print_newline ();
+                  end;
               
-              if !!verbose then begin
-                  Printf.printf "WALKER: try connect %s" (Ip.to_string s.server_ip);
-                  print_newline ();
-                end;
-              
-              connect_server s
-            end else begin
-
-              delayed_list := s :: !delayed_list;
-              if !!verbose then begin
-                  Printf.printf "WALKER: connect %s delayed" (Ip.to_string s.server_ip);
-                  print_newline ();
-                end;
-              
-            end
-      | Some _ -> ()
-
+              end
+        | Some _ -> ()
+            
 (* one call per second *)
 
               
@@ -734,7 +751,7 @@ connections *)
             end;
           
           if connection_last_conn s.server_connection_control 
-              +. 60. < last_time () && not s.server_master then begin
+              +. 120. < last_time () && not s.server_master then begin
 (* We have been connected for two minutes to this server, we can disconnect 
 now if needed *)
               
@@ -749,7 +766,8 @@ now if needed *)
               match !masters with 
                 [] -> disconnect_old_server s
               | ss :: tail ->
-                  if mini (ss.server_nusers + 1000) (ss.server_nusers * 5)
+                  if !!keep_best_server &&
+                    mini (ss.server_nusers + 1000) (ss.server_nusers * 5)
                     < s.server_nusers then begin
                       
                       if !!verbose then begin

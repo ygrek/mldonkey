@@ -25,9 +25,10 @@ open ImEvent
 open ImTypes
 open ImIdentity
 open ImChat
-  
+open ImRoom  
 open Gpattern
 
+let quit_on_close = ref false
   
 class dialog_box () =
   let box = GPack.vbox ~homogeneous:false () in
@@ -172,6 +173,11 @@ let input_record record =
               let x = ref (tb ()) in
               C.bool ~f: (fun s -> x := s) name !x,
               (fun _ -> fb !x)
+          | FromInt fi, ToInt ti ->
+              let x = ref (ti ()) in
+              C.string ~f: (fun s -> x := int_of_string s) name 
+                (string_of_int !x),
+              (fun _ -> fi !x)
           | _ -> assert false
         in
         iter tail (param :: params) (f :: refs)
@@ -183,18 +189,34 @@ let input_record record =
   in 
   iter record [] []
 
+  
+let ask_for_room account =
+  let module C = Configwin in
+  let room_name = ref "" in
+  let params = [
+      C.string ~f: (fun s -> room_name := s) "Room Name:" !room_name;
+    ] in
+  match C.simple_get "" (List.rev params) with
+    C.Return_cancel -> ()
+  | C.Return_apply | C.Return_ok -> 
+      account_join_room account !room_name
+  
 let input_record record =
   input_record record;
   Options.save_with_help accounts_ini
 
 let input_account account =
-  input_record (account_config_record account);
-  add_event (Account_event account);
-  Options.save_with_help accounts_ini
-  
+  try
+    input_record (account_config_record account);
+    add_event (Account_event account);
+    Options.save_with_help accounts_ini
+  with e ->
+      Printf.printf "Execption %s in input_account"
+        (Printexc2.to_string e); print_newline ()
+      
 let string_of_status status =
   match status with
-  | Status_online Online_available -> "OK"
+  | Status_online Online_available -> "Online"
   | Status_online Online_away -> "Away"
   | Status_connecting -> "Connecting"
   | Status_offline -> "Offline"
@@ -249,7 +271,7 @@ let chat_windows = Hashtbl.create 13
 
 let find_chat_window chat =
   Hashtbl.find chat_windows (chat_num chat)
-
+  
 let chat_window chat =
   try
     find_chat_window chat
@@ -328,7 +350,8 @@ let account_window account =
         window
   in
   window
-        
+
+
 class accounts_window () =
   object(self)
     inherit [account] Gpattern.plist `EXTENDED ["Name"; "Status"; "Protocol"]
@@ -352,12 +375,17 @@ class accounts_window () =
     method menu =
       (match self#selection with
           [] -> []
-        |	_ ->
-            [
-              `I ("Connect/Disconnect", self#connect) ;
-              `I ("Settings", self#settings) ;
-              `I ("Remove", self#remove) ;
-            ]
+        | account :: tail ->
+            let basic_menu = 
+              [
+                `I ("Connect/Disconnect", self#connect) ;
+                `I ("Settings", self#settings) ;
+                `I ("Remove", self#remove) ;
+              ] in
+            if tail = [] && account_has_rooms account then
+              (`I ("Join Room", (fun _ -> ask_for_room account))):: 
+              basic_menu
+            else basic_menu
       )
 
     method settings () =
@@ -379,7 +407,7 @@ class accounts_window () =
       (account_window account)#show ()
           
 end
-  
+
 class im_window account =
   let accounts = new accounts_window () in
   object (self)
@@ -393,6 +421,7 @@ class im_window account =
       friends#add accounts#box
 end
 
+(*
 let accounts_window = 
   
   let window = new im_window () in
@@ -430,26 +459,116 @@ input_record (account_config_record account)));
         ~packing:new_accounts#add ()
       in
       ignore (menu_item#connect#activate ~callback:(fun _ ->
-            let account = protocol_new_account p in
-            input_account account;
-            ImEvent.add_event (Account_event account);
-            Printf.printf "NEW ACCOUNT"; print_newline ();
+              let account = protocol_new_account p in
+              input_account account;
+              ImEvent.add_event (Account_event account);
+              Printf.printf "NEW ACCOUNT"; print_newline ();
         ))
   
   );
   window  
+*)
+  
+class room_window (room: room) =
+  
+  object (self)
+
+    inherit Gui_im_base.room_tab ()
+    
+    method update_room = ()
+end
+
+let room_tabs = Hashtbl.create 13
+  
+let find_room_tab room =
+  Hashtbl.find room_tabs (room_num room)
+      
+class main_window account =
+  let accounts = new accounts_window () in
+  let contacts = new contacts_window_list () in
+  object (self)
+    inherit Gui_im_base.window2 ()
+    
+    method coerce = window#coerce
+            
+    method update_contact = contacts#update_contact 
+    method update_account account = accounts#update_account account
+    method update_room room =
+      let room_window, label = try
+          Hashtbl.find room_tabs (room_num room)
+        with _ -> 
+            Printf.printf "New room %d" (room_num room); print_newline ();
+            let room_window = new room_window room in
+            let label_text = Printf.sprintf "%s: Room %s"
+                (protocol_name (room_protocol room))
+              (room_name room) in
+            let label = GMisc.label ~text: label_text () in
+            main_notebook#append_page ~tab_label:label#coerce
+              room_window#coerce;
+            Hashtbl.add room_tabs (room_num room) (room_window, label);
+            room_window, label
+      in
+      room_window#update_room
+      
+    initializer
+      contacts_hbox#add contacts#box;
+      accounts_hbox#add accounts#box;
+end
+
+let main_window = 
+  let window = new main_window () in
+  window#window#set_title "IM Window";
+  ignore (window#window#connect#destroy (fun _ ->
+        if !quit_on_close then exit 0 else
+          window#coerce#misc#hide ()
+    ));
+  ignore (window#itemQuit#connect#activate 
+      (fun _ -> 
+        if !quit_on_close then exit 0 else window#coerce#misc#hide ()));
+  let _new_accounts = 
+    GMenu.menu_item ~label:"New accounts"  ~packing:(window#menubar#add) ()
+  in
+  let new_accounts = 
+    GMenu.menu ~packing:(_new_accounts#set_submenu) () in
+  
+  
+  ImProtocol.iter (fun p ->
+      let menu_item =
+        GMenu.menu_item ~label: 
+        (Printf.sprintf "New %s account" (protocol_name p))
+(*              ~active:n.network_enabled *)
+        ~packing:new_accounts#add ()
+      in
+      ignore (menu_item#connect#activate ~callback:(fun _ ->
+              let account = protocol_new_account p in
+              input_account account;
+              ImEvent.add_event (Account_event account);
+              Printf.printf "NEW ACCOUNT"; print_newline ();
+        ))
+  
+  );  
+  window
+  
+  
+
   
 let _ =
   ImEvent.set_event_handler (fun event ->
       match event with
       | Account_event account ->
           Printf.printf "Account event"; print_newline ();
-          accounts_window#update_account account;
+          main_window#update_account account;
+          
+          (*
           let w = account_window account in          
           if w#hidden && account_status account <> Status_offline then
-            w#show ()
-      | Identity_event id ->
-          Printf.printf "Identity_event"; print_newline ();
+            w#show ();
+          w#label_connect_status#set_text (match account_status account with
+              Status_offline -> "Offline"
+            | Status_connecting -> "Connecting ... "
+            | _ -> "Connected"); *)
+      | Account_friend_event id ->
+          Printf.printf "Account_friend_event"; print_newline ();
           let account = identity_account id in
           begin  try
               let w = find_account_window account in
@@ -481,17 +600,20 @@ let _ =
             d#handle_message (identity_name id) msg
           end
           
+      | Room_join room ->
+          main_window#update_room room
+          
       | _ -> 
           Printf.printf "Discarding event"; print_newline ();
   );
   Gui_global.top_menus := ("IM", (fun menu ->
         
         let menu_item =
-          GMenu.menu_item ~label: "Accounts Window"
+          GMenu.menu_item ~label: "IM Window"
             ~packing:menu#add ()
         in
         ignore (menu_item#connect#activate ~callback:(fun _ ->              
-              accounts_window#window#show ();
+              main_window#window#show ();
           ));        
         (*
         

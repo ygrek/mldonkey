@@ -35,11 +35,13 @@ type status =
 type from_record = 
 | FromString of (string -> unit)
 | FromBool of (bool -> unit)
+| FromInt of (int -> unit)
   
 type to_record = 
 | ToString of (unit -> string)
 | ToBool of (unit -> bool)
-
+| ToInt of (unit -> int)
+  
 type config_record =
   (string * string * bool * from_record * to_record) list
   
@@ -62,6 +64,7 @@ let from_record record assocs =
         match from_record with
           FromString f -> f (value_to_string value)
         | FromBool f -> f (value_to_bool value)
+        | FromInt f -> f (value_to_int value)
       with Optional -> ()
   ) record
 
@@ -70,6 +73,7 @@ let to_record record =
       match to_record with
         ToString f -> option,string_to_value (f ())
       | ToBool f -> option, bool_to_value (f ())
+      | ToInt f -> option, int_to_value (f ())
   ) record
   
 (*

@@ -106,7 +106,7 @@ let gtk_handler timer =
   
     
 let _ =
-  ignore (GMain.Main.init ());
+  ignore (GMain.Main.init ~setlocale: true ());
   BasicSocket.add_infinite_timer 0.1 gtk_handler
 
 let top_menus = ref ([]: (string * (GMenu.menu -> unit)) list)

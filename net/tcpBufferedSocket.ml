@@ -617,6 +617,9 @@ let can_write t =
 let can_write_len t len =
 (*  Printf.printf "CAN WRITE %d > %d + %d"  t.wbuf.max_buf_size t.wbuf.len len; print_newline (); *)
   t.wbuf.max_buf_size > t.wbuf.len + len
+
+let not_buffer_more t max =
+  t.wbuf.len < max
   
 let close_after_write t =
   if t.wbuf.len = 0 then begin

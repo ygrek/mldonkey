@@ -87,5 +87,6 @@ let _ =
         network_uploaded = Int64.zero;
         network_downloaded = Int64.zero;
       });
+  network.op_network_share <- add_shared;
   CommonInteractive.register_gui_options_panel 
     "Napster" !!gui_opennap_options_panel;

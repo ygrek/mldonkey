@@ -113,10 +113,11 @@ let string_of_format format =
       Printf.sprintf "AVI: %s %dx%d %d fps %d bpf"
 	f.avi_codec f.avi_width f.avi_height 
 	f.avi_fps f.avi_rate
-  | Mp3 tag ->
+  | MP3 (tag, _) ->
+      let module M = Mp3tag.Id3v1 in
       Printf.sprintf "MP3: %s - %s (%d): %s"
-	tag.Mp3tag.artist tag.Mp3tag.album 
-	tag.Mp3tag.tracknum tag.Mp3tag.title
+	tag.M.artist tag.M.album 
+	tag.M.tracknum tag.M.title
   | _ -> (gettext M.unknown)
 
 let time_to_string time =
@@ -300,7 +301,8 @@ class box_downloaded wl_status () =
 	  ()
 
     method save_all () = 
-      self#iter	(fun f -> Gui_com.send (GuiProto.SaveFile (f.file_num, file_first_name f)))
+      self#iter	(fun f -> 
+          Gui_com.send (GuiProto.SaveFile (f.file_num, file_first_name f)))
 
     method save_as () = 
       match self#selection with
@@ -321,7 +323,7 @@ class box_downloaded wl_status () =
 	file :: _ ->
 	  (
 	   match file.file_format with
-             Mp3 tag ->
+             MP3 (tag,_) ->
                Mp3_ui.edit_tag_v1 (gettext M.edit_mp3) tag ;
                Gui_com.send (GuiProto.ModifyMp3Tags (file.file_num, tag))
 	   | _ ->
@@ -338,7 +340,7 @@ class box_downloaded wl_status () =
 	    `M ((gettext M.save), self#save_menu_items file) ;
 	  ] @
 	  (match file.file_format with
-	    Mp3 _ -> [`I ((gettext M.edit_mp3), self#edit_mp3_tags)]
+	    MP3 _ -> [`I ((gettext M.edit_mp3), self#edit_mp3_tags)]
 	  | _ -> []) @
 	  [ `S ;
 	    `I ((gettext M.save_all), self#save_all) 
@@ -370,7 +372,7 @@ class box_downloaded wl_status () =
 	(wtool#insert_button 
 	   ~text: (gettext M.save)
 	   ~tooltip: (gettext M.save)
-	   ~icon: (Gui_icons.pixmap M.o_xpm_save)#coerce
+	   ~icon: (Gui_options.pixmap M.o_xpm_save)#coerce
 	   ~callback: self#save
 	   ()
 	);
@@ -379,7 +381,7 @@ class box_downloaded wl_status () =
 	(wtool#insert_button 
 	   ~text: (gettext M.save_as)
 	   ~tooltip: (gettext M.save_as)
-	   ~icon: (Gui_icons.pixmap M.o_xpm_save_as)#coerce
+	   ~icon: (Gui_options.pixmap M.o_xpm_save_as)#coerce
 	   ~callback: self#save_as
 	   ()
 	);
@@ -388,7 +390,7 @@ class box_downloaded wl_status () =
 	(wtool#insert_button 
 	   ~text: (gettext M.save_all)
 	   ~tooltip: (gettext M.save_all)
-	   ~icon: (Gui_icons.pixmap M.o_xpm_save_all)#coerce
+	   ~icon: (Gui_options.pixmap M.o_xpm_save_all)#coerce
 	   ~callback: self#save_all
 	   ()
 	);
@@ -397,7 +399,7 @@ class box_downloaded wl_status () =
 	(wtool#insert_button 
 	   ~text: (gettext M.edit_mp3)
 	   ~tooltip: (gettext M.edit_mp3)
-	   ~icon: (Gui_icons.pixmap M.o_xpm_edit_mp3)#coerce
+	   ~icon: (Gui_options.pixmap M.o_xpm_edit_mp3)#coerce
 	   ~callback: self#edit_mp3_tags
 	   ()
 	);
@@ -674,12 +676,14 @@ class box_downloads box_locs wl_status () =
 (*          Printf.printf "No such file %d" num; print_newline () *)
 	()
 
+    method h_file_remove_location (num:int) (src:int) = ()
+          
     initializer
       ignore
 	(wtool#insert_button 
 	   ~text: (gettext M.cancel)
 	   ~tooltip: (gettext M.cancel)
-	   ~icon: (Gui_icons.pixmap M.o_xpm_cancel)#coerce
+	   ~icon: (Gui_options.pixmap M.o_xpm_cancel)#coerce
 	   ~callback: self#cancel
 	   ()
 	);
@@ -687,7 +691,7 @@ class box_downloads box_locs wl_status () =
 	(wtool#insert_button 
 	   ~text: (gettext M.retry_connect)
 	   ~tooltip: (gettext M.retry_connect)
-	   ~icon: (Gui_icons.pixmap M.o_xpm_retry_connect)#coerce
+	   ~icon: (Gui_options.pixmap M.o_xpm_retry_connect)#coerce
 	   ~callback: self#retry_connect
 	   ()
 	);
@@ -695,7 +699,7 @@ class box_downloads box_locs wl_status () =
 	(wtool#insert_button 
 	   ~text: (gettext M.pause_resume_dl)
 	   ~tooltip: (gettext M.pause_resume_dl)
-	   ~icon: (Gui_icons.pixmap M.o_xpm_pause_resume)#coerce
+	   ~icon: (Gui_options.pixmap M.o_xpm_pause_resume)#coerce
 	   ~callback: self#pause_resume
 	   ()
 	);
@@ -704,7 +708,7 @@ class box_downloads box_locs wl_status () =
 	(wtool#insert_button 
 	   ~text: (gettext M.verify_chunks)
 	   ~tooltip: (gettext M.verify_chunks)
-	   ~icon: (Gui_icons.pixmap M.o_xpm_verify_chunks)#coerce
+	   ~icon: (Gui_options.pixmap M.o_xpm_verify_chunks)#coerce
 	   ~callback: self#verify_chunks
 	   ()
 	);
@@ -713,7 +717,7 @@ class box_downloads box_locs wl_status () =
 	(wtool#insert_button 
 	   ~text: (gettext M.preview)
 	   ~tooltip: (gettext M.preview)
-	   ~icon: (Gui_icons.pixmap M.o_xpm_preview)#coerce
+	   ~icon: (Gui_options.pixmap M.o_xpm_preview)#coerce
 	   ~callback: self#preview
 	   ()
 	);
@@ -722,7 +726,7 @@ class box_downloads box_locs wl_status () =
 	(wtool#insert_button 
 	   ~text: (gettext M.get_format)
 	   ~tooltip: (gettext M.get_format)
-	   ~icon: (Gui_icons.pixmap M.o_xpm_get_format)#coerce
+	   ~icon: (Gui_options.pixmap M.o_xpm_get_format)#coerce
 	   ~callback: self#get_format
 	   ()
 	);
@@ -778,6 +782,7 @@ class pane_downloads () =
     method h_file_last_seen = dls#h_file_last_seen
     method h_file_downloaded = dls#h_file_downloaded
     method h_file_location = dls#h_file_location
+    method h_file_remove_location = dls#h_file_remove_location
 
     method h_update_location c_new =
       locs#h_update_location c_new

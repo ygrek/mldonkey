@@ -445,3 +445,63 @@ let client_name = ref ""
 let client_options_assocs = [
     "client_name",   client_name;    
   ]
+
+
+let table = [
+  M.o_xpm_remove, (Trash_xpm.t, xpm_remove) ;
+  M.o_xpm_cancel, (Cancel_xpm.t, xpm_cancel);
+  M.o_xpm_connect, (Connect_xpm.t, xpm_connect);
+  M.o_xpm_disconnect, (Disconnect_xpm.t, xpm_disconnect);
+  M.o_xpm_view_users, (View_users_xpm.t, xpm_view_users);
+  M.o_xpm_connect_more_servers, (Connect_more_xpm.t, xpm_connect_more_servers);
+  M.o_xpm_remove_old_servers, (Trash_xpm.t, xpm_remove_old_servers);
+    M.o_xpm_toggle_display_all_servers, (
+      Get_format_xpm.t, xpm_toggle_display_all_servers);
+  M.o_xpm_save, (Save_xpm.t, xpm_save);
+  M.o_xpm_save_all, (Save_all_xpm.t, xpm_save_all);
+  M.o_xpm_save_as, (Save_as_xpm.t, xpm_save_as);
+  M.o_xpm_edit_mp3, (Edit_mp3_xpm.t, xpm_edit_mp3);
+  M.o_xpm_pause_resume, (Gui_icons.pause_resume, xpm_pause_resume);
+  M.o_xpm_get_format, (Get_format_xpm.t, xpm_get_format);
+  M.o_xpm_preview, (Preview_xpm.t, xpm_preview);
+  M.o_xpm_verify_chunks, (Verify_chunks_xpm.t, xpm_verify_chunks);
+  M.o_xpm_retry_connect, (Connect_xpm.t, xpm_retry_connect); 
+  M.o_xpm_add_to_friends, (Add_to_friends_xpm.t, xpm_add_to_friends);
+  M.o_xpm_download, (Download_xpm.t, xpm_download);
+   M.o_xpm_submit_search, (Get_format_xpm.t, xpm_submit_search); 
+  M.o_xpm_extend_search, (Extend_search_xpm.t, xpm_extend_search);
+  M.o_xpm_local_search, (Local_search_xpm.t, xpm_local_search);
+  M.o_xpm_find_friend, (Get_format_xpm.t, xpm_find_friend) ;  
+  M.o_xpm_remove_all_friends, (Gui_icons.remove_all_friends, xpm_remove_all_friends) ; 
+  M.o_xpm_close_room, (Trash_xpm.t, xpm_close_room) ;
+  M.o_xpm_refresh, (Refres_xpm.t, xpm_refresh) ;
+] 
+
+let gdk_pix i =
+  try
+    let (default, o) = List.assoc i table in
+    match !!o with
+      "" -> 
+	GDraw.pixmap_from_xpm_d ~data: default
+	  ~colormap: (Gdk.Color.get_system_colormap ())
+	  () 
+    | f ->
+	try
+	  GDraw.pixmap_from_xpm ~file: f
+	    ~colormap: (Gdk.Color.get_system_colormap ())
+	    () 
+	with
+	  _ ->
+	    GDraw.pixmap_from_xpm_d ~data: default
+	      ~colormap: (Gdk.Color.get_system_colormap ())
+	      () 
+  with
+    Not_found ->
+      GDraw.pixmap_from_xpm_d ~data: Trash_xpm.t
+	~colormap: (Gdk.Color.get_system_colormap ())
+	() 
+
+let pixmap i = 
+  GMisc.pixmap (gdk_pix i) ()
+
+

@@ -223,8 +223,7 @@ type file_state =
   
 let version = 19
   
-module Mp3tag = Mp3tag.Id3v1
-  
+
 type avi_info = {
     mutable avi_codec : string;
     mutable avi_width : int;
@@ -236,7 +235,7 @@ type avi_info = {
   
 type format =
   AVI of avi_info
-| Mp3 of Mp3tag.tag
+| MP3 of Mp3tag.Id3v1.tag * Mp3tag.info
 | FormatType of string * string
 | Unknown_format
 
@@ -307,14 +306,14 @@ and event =
 | Shared_info_event of shared
 
 | Client_new_file_event of client * string * result
-| File_new_source_event of file * client
+| File_add_source_event of file * client
+| File_remove_source_event of file * client
 | Server_new_user_event of server * user
 | Search_new_result_event of gui_record * int * result
 
 | Console_message_event of string
   
-exception Avifile_info of avi_info
-exception Mp3_info of Mp3tag.tag
+exception FormatFound of format
 
        
 type tagged_file =  {

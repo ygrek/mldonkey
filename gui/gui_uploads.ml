@@ -164,7 +164,7 @@ class upstats_box () =
 	(wtool#insert_button 
 	   ~text: (gettext M.refresh)
 	   ~tooltip: (gettext M.refresh)
-	   ~icon: (Gui_icons.pixmap M.o_xpm_refresh)#coerce
+	   ~icon: (Gui_options.pixmap M.o_xpm_refresh)#coerce
 	   ~callback: self#refresh
 	   ()
 	);

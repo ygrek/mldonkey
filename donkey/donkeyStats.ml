@@ -5,42 +5,45 @@ open DonkeyTypes
 open GuiTypes
 open BasicSocket (* last_time *)
 
-let brand_count = 8
+let brand_count = 9
 
 let brand_to_int b =
   match b with
-      Brand_unknown -> 0
-    | Brand_edonkey -> 1
-    | Brand_mldonkey1 -> 2
-    | Brand_mldonkey2 -> 3
-    | Brand_overnet -> 4
-    | Brand_oldemule -> 5
-    | Brand_newemule -> 6
-    | Brand_server -> 7
-
+    Brand_unknown -> 0
+  | Brand_edonkey -> 1
+  | Brand_mldonkey1 -> 2
+  | Brand_mldonkey2 -> 3
+  | Brand_overnet -> 4
+  | Brand_oldemule -> 5
+  | Brand_newemule -> 6
+  | Brand_server -> 7
+  | Brand_mldonkey3 -> 8
+      
 let brand_of_int b =
   match b with
-      0 -> Brand_unknown
-    | 1 -> Brand_edonkey
-    | 2 -> Brand_mldonkey1
-    | 3 -> Brand_mldonkey2
-    | 4 -> Brand_overnet
-    | 5 -> Brand_oldemule
-    | 6 -> Brand_newemule
-    | 7 -> Brand_server
-    | _ -> raise Not_found
-
+    0 -> Brand_unknown
+  | 1 -> Brand_edonkey
+  | 2 -> Brand_mldonkey1
+  | 3 -> Brand_mldonkey2
+  | 4 -> Brand_overnet
+  | 5 -> Brand_oldemule
+  | 6 -> Brand_newemule
+  | 7 -> Brand_server
+  | 8 -> Brand_mldonkey3
+  | _ -> raise Not_found
+      
 let brand_to_string b =
   match b with
-      Brand_unknown -> "unknown"
-    | Brand_edonkey -> "eDonkey"
-    | Brand_mldonkey1 -> "old mldonkey"
-    | Brand_mldonkey2 -> "new mldonkey"
-    | Brand_overnet -> "Overnet"
-    | Brand_oldemule -> "old eMule"
-    | Brand_newemule -> "new eMule"
-    | Brand_server -> "server"
-
+    Brand_unknown -> "unknown"
+  | Brand_edonkey -> "eDonkey"
+  | Brand_mldonkey1 -> "old mldonkey"
+  | Brand_mldonkey2 -> "new mldonkey"
+  | Brand_mldonkey3 -> "trusted mldonkey"
+  | Brand_overnet -> "Overnet"
+  | Brand_oldemule -> "old eMule"
+  | Brand_newemule -> "new eMule"
+  | Brand_server -> "server"
+      
 type brand_stat = {
   mutable brand_seen : int;
   mutable brand_banned : int;

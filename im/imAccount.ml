@@ -58,6 +58,10 @@ and 'a account_ops = {
     mutable op_account_new_identity : ('a -> identity);
     
     mutable op_account_open_chat : ('a -> identity list -> unit);
+    
+    mutable op_account_join_room : ('a -> string -> unit);
+    
+    mutable op_account_has_rooms : ('a -> bool);
   }
   
   
@@ -115,6 +119,14 @@ let account_logout account =
 let account_keepalive account =
   let account = as_account_impl account in
   account.impl_account_ops.op_account_keepalive account.impl_account_val
+
+let account_has_rooms account =
+  let account = as_account_impl account in
+  account.impl_account_ops.op_account_has_rooms account.impl_account_val
+
+let account_join_room account room_name =
+  let account = as_account_impl account in
+  account.impl_account_ops.op_account_join_room account.impl_account_val room_name
 
 let account_status account =
   let account = as_account_impl account in
@@ -175,4 +187,6 @@ let new_account_ops protocol = {
     op_account_set_status = fni protocol "op_account_set_status";
     op_account_contacts = fni protocol "op_account_contacts";
     op_account_open_chat = fni protocol "op_account_open_chat";
+    op_account_has_rooms = (fun x -> ni protocol "op_account_open_chat" x; false);
+    op_account_join_room = fni protocol "op_account_open_chat";
   }

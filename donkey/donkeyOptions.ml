@@ -17,11 +17,190 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+
 open Options
 open CommonOptions
 
-let donkey_ini = downloads_ini
+let donkey_ini = create_options_file (
+    Filename.concat file_basedir "edonkey.ini")
   
+  
+let initial_score = define_option downloads_ini ["initial_score"] "" int_option 5
+
+  
+  
+let max_xs_packets = define_option downloads_ini ["max_xs_packets"] 
+  "Max number of UDP packets per round for eXtended Search" int_option 30
+
+let max_dialog_history = define_option downloads_ini ["max_dialog_history"]
+    "Max number of messages of Chat remembered" int_option 30
+    
+  
+let string_list_option = define_option_class "String"
+    (fun v ->
+      match v with
+        List _ | SmallList _ -> ""
+      | _ -> value_to_string v
+  )
+  string_to_value
+
+
+  
+let port = define_option downloads_ini ["port"] "The port used for connection by other donkey clients." int_option 4662
+
+let check_client_connections_delay = 
+  define_option downloads_ini ["check_client_connections_delay"] 
+  "Delay used to request file sources" float_option 180.0
+    
+let check_connections_delay = 
+  define_option downloads_ini ["check_connections_delay"] 
+  "The delay between server connection rounds" float_option 5.0
+  
+let max_connected_servers = define_option downloads_ini
+  ["max_connected_servers"] 
+    "The number of servers you want to stay connected to" int_option 3
+
+let max_udp_sends = define_option downloads_ini ["max_udp_sends"] 
+    "The number of UDP packets you send every check_client_connections_delay" 
+  int_option 10
+
+
+  (*
+let _ =
+  option_hook max_connected_servers (fun _ ->
+      if !!max_connected_servers > 10 && !has_upload then
+        max_connected_servers =:= 10)
+  *)
+
+let retry_delay = define_option downloads_ini ["retry_delay"] "" float_option 3600.
+
+let max_server_age = define_option downloads_ini ["max_server_age"] "max number of days after which an unconnected server is removed" int_option 2
+
+let use_file_history = define_option downloads_ini ["use_file_history"] "keep seen files in history to allow local search (can be expensive in memory)" bool_option true
+  
+let save_file_history = define_option downloads_ini ["save_file_history"] "save the file history in a file and load it at startup" bool_option true
+
+  
+let filters = define_option downloads_ini ["filters"] 
+    "filters on replies (replies will be kept)."
+    string_list_option ""
+
+let max_allowed_connected_servers () = 
+  BasicSocket.mini 5 !!max_connected_servers
+
+  
+let local_index_find_cmd = define_option downloads_ini 
+    ["local_index_find_cmd"] "A command used locally to find more results
+    during a search"
+    string_option "" (* (cmd_basedir ^ "local_index_find")  *)
+
+let local_index_add_cmd = define_option downloads_ini 
+    ["local_index_add_cmd"] "A command used locally to add new results
+    to a local index after a search"
+    string_option "" (* (cmd_basedir ^ "local_index_add") *)
+  
+
+  
+
+let compute_md4_delay = define_option downloads_ini ["compute_md4_delay"]
+    "The delay between computations of the md4 of chunks"
+  float_option 10.
+  
+let server_black_list = define_option downloads_ini 
+    ["server_black_list"] "A list of server IP to remove from server list.
+    Servers on this list can't be added, and will eventually be removed"
+    (list_option Ip.option) []
+  
+let master_server_min_users = define_option downloads_ini
+    ["master_server_min_users"] "The minimal number of users for a server
+    to be admitted as one of the 5 master servers"
+    int_option 0
+  
+let force_high_id = define_option downloads_ini ["force_high_id"] 
+    "immediately close connection to servers that don't grant a High ID"
+    bool_option false
+
+let update_server_list = define_option downloads_ini
+    ["update_server_list"] "Set this option to false if you don't want auto
+    update of servers list" bool_option true
+
+let keep_best_server = define_option downloads_ini
+    ["keep_best_server"] "Set this option to false if you don't want mldonkey
+    to change the master servers it is connected to" bool_option true
+
+let max_walker_servers = define_option downloads_ini
+    ["max_walker_servers"] "Number of servers that can be used to walk
+between servers" int_option 1
+    
+let max_sources_age = define_option downloads_ini
+    ["max_source_age"] "Sources that have not been connected for this number of days are removed"
+    int_option 2
+  
+let max_clients_per_second = define_option downloads_ini
+    ["max_clients_per_second"] "Maximal number of connections to sources per second"
+    int_option 5
+  
+(*  
+let use_mp3_tags = define_option downloads_ini ["use_mp3_tags"] 
+  "Use mp3 tag content to save mp3 files"
+    bool_option false
+    *)
+
+let max_upload_slots = define_option downloads_ini ["max_upload_slots"]
+    "How many slots can be used for upload"
+    int_option 10
+  
+let _ =  
+  option_hook max_upload_slots (fun _ ->
+      if !!max_upload_slots < 10 then
+        max_upload_slots =:= 10)
+
+  
+let donkey_bind_addr = define_option downloads_ini ["donkey_bind_addr"]
+    "The IP address used to bind the donkey client"
+    Ip.option (Ip.of_inet_addr Unix.inet_addr_any)
+    
+let propagate_sources = define_option downloads_ini ["propagate_sources"]
+    "Allow mldonkey to propagate your sources to other donkey clients"
+    bool_option true
+  
+let max_sources_per_file = define_option downloads_ini ["max_sources_per_file"]
+    "Maximal number of sources for each file"
+    int_option 500
+    
+let good_sources_threshold = define_option downloads_ini ["good_sources_threshold"]
+    "What percentage of good sources is enough"
+    int_option 75
+  
+let min_left_sources = define_option downloads_ini
+    ["min_left_sources"]
+    "Minimal number of sources for a file"
+    int_option 100
+
+open Md4  
+    
+let mldonkey_md4 md4 =
+  let md4 = Md4.direct_to_string md4 in
+  md4.[5] <- 'M';
+  md4.[14] <- 'L';
+  Md4.direct_of_string md4
+
+let client_md4 = define_option downloads_ini ["client_md4"]
+    "The MD4 of this client" Md4.option (mldonkey_md4 (Md4.random ()))
+  
+let _ =
+  option_hook client_md4 (fun _ -> let m = mldonkey_md4 !!client_md4 in
+      if m <> !!client_md4 then
+        client_md4 =:= m)
+
+    
+
+let black_list = define_option downloads_ini ["black_list"]
+  ""    bool_option true
+  
+let redirector = define_option downloads_ini ["redirector"]
+    "IP:port of the network redirector"
+    addr_option ("128.93.52.5", 4665)
   
 let port_black_list = define_option downloads_ini 
     ["port_black_list"] "A list of ports that specify servers to remove
@@ -157,7 +336,6 @@ let gui_donkey_options_panel =
     "Force High ID", shortname force_high_id, "B";
     "Max Number of Connected Servers", shortname max_connected_servers, "T";
     "Max Upload Slots", shortname max_upload_slots, "T";
-    "Upload Quantum", shortname upload_quantum, "T";
     "Max Sources Per Download", shortname max_sources_per_file, "T";
     "Good Sources Threshold", shortname good_sources_threshold, "T";
     "Protocol Version", shortname protocol_version, "T";

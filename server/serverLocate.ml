@@ -81,7 +81,7 @@ let rec supp_source_list liste source =
 	    
 
  
-exception ToMuchFiles
+exception TooManyFiles
                       
 let add md4 new_source = 
    try
@@ -93,7 +93,7 @@ let add md4 new_source =
     with _ -> 
        (* Printf.printf("eXeption"); print_newline();*)
        if (!!max_files <= !nshared_md4) then
-           raise ToMuchFiles;
+           raise TooManyFiles;
        Hashtbl.add files_by_md4 md4 [new_source];
        incr nshared_md4
 

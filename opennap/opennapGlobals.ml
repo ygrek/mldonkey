@@ -399,3 +399,50 @@ let file_downloaded file = file.file_file.impl_file_downloaded
 let file_age file = file.file_file.impl_file_age
 let file_fd file = file.file_file.impl_file_fd
   
+  
+let shared_counter = ref (Int64.zero)
+let shared_files = Hashtbl.create 13 
+
+  
+let new_shared_dir dirname = {
+    shared_dirname = dirname;
+    shared_files = [];
+    shared_dirs = [];
+  }
+
+let shared_tree = new_shared_dir ""
+
+let rec add_shared_file node sh dir_list =
+  match dir_list with
+    [] -> assert false
+  | [filename] ->
+      node.shared_files <- sh :: node.shared_files
+  | dirname :: dir_tail ->
+      let node =
+        try
+          List.assoc dirname node.shared_dirs
+        with _ ->
+            let new_node = new_shared_dir dirname in
+            node.shared_dirs <- (dirname, new_node) :: node.shared_dirs;
+            new_node
+      in
+      add_shared_file node sh dir_tail
+  
+let add_shared full_name codedname size =
+  try
+    match CommonMultimedia.get_info full_name with
+      MP3 (tags, info) ->
+        let sh = {
+            shared_fullname = full_name;
+            shared_codedname = String2.replace codedname '/' "\\";
+            shared_size = size;
+            shared_fd=  Unix32.create full_name [Unix.O_RDONLY] 0o444;
+            shared_format = (tags, info);
+          } in
+        Hashtbl.add shared_files codedname sh;
+        add_shared_file shared_tree sh (String2.split codedname '/');
+        Printf.printf "Total shared : %s" (Int64.to_string !shared_counter);
+        print_newline () 
+    | _ -> ()
+  with _ -> ()
+      

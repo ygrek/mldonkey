@@ -1,4 +1,4 @@
-
+changequote([[, ]])
 # 
 #
 #
@@ -337,118 +337,34 @@ MLCAST_SRCS= \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
   tools/mlcast.ml
 
+define(EXPAND_DRIVER,[[
 
+ifeq ("$($2)" , "yes")
+SUBDIRS += $3
 
+CORE_PLUGINS += $($2_SRCS)
 
-
-ifeq ("$(DIRECT_CONNECT)" , "yes")
-SUBDIRS += direct_connect
-
-CORE_PLUGINS += $(DIRECT_CONNECT_SRCS)
-
-TARGETS += mldc$(EXE)
+TARGETS += $1$(EXE)
 endif
 
-mldc_SRCS= \
+$1_SRCS= \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
   $(MP3TAG_SRCS) \
   $(CHAT_SRCS) \
   $(COMMON_SRCS) \
   $(COMMON_CLIENT_SRCS) \
   \
-  $(DIRECT_CONNECT_SRCS) \
+  $($2_SRCS) \
   \
   $(DRIVER_SRCS)
 
+]])
 
-
-
-ifeq ("$(OPENNAP)" , "yes")
-SUBDIRS += opennap
-
-CORE_PLUGINS += $(OPENNAP_SRCS)
-
-TARGETS += mlnap$(EXE)
-endif
-
-mlnap_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  $(MP3TAG_SRCS) \
-  $(CHAT_SRCS) \
-  $(COMMON_SRCS) \
-  $(COMMON_CLIENT_SRCS) \
-  \
-  $(OPENNAP_SRCS) \
-  \
-  $(DRIVER_SRCS)
-
-
-
-
-ifeq ("$(LIMEWIRE)" , "yes")
-SUBDIRS += limewire
-
-CORE_PLUGINS += $(LIMEWIRE_SRCS)
-
-TARGETS += mlgnut$(EXE)
-endif
-
-mlgnut_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  $(MP3TAG_SRCS) \
-  $(CHAT_SRCS) \
-  $(COMMON_SRCS) \
-  $(COMMON_CLIENT_SRCS) \
-  \
-  $(LIMEWIRE_SRCS) \
-  \
-  $(DRIVER_SRCS)
-
-
-
-
-ifeq ("$(DONKEY)" , "yes")
-SUBDIRS += donkey
-
-CORE_PLUGINS += $(DONKEY_SRCS)
-
-TARGETS += mldonkey$(EXE)
-endif
-
-mldonkey_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  $(MP3TAG_SRCS) \
-  $(CHAT_SRCS) \
-  $(COMMON_SRCS) \
-  $(COMMON_CLIENT_SRCS) \
-  \
-  $(DONKEY_SRCS) \
-  \
-  $(DRIVER_SRCS)
-
-
-
-
-ifeq ("$(SOULSEEK)" , "yes")
-SUBDIRS += soulseek
-
-CORE_PLUGINS += $(SOULSEEK_SRCS)
-
-TARGETS += mlslsk$(EXE)
-endif
-
-mlslsk_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  $(MP3TAG_SRCS) \
-  $(CHAT_SRCS) \
-  $(COMMON_SRCS) \
-  $(COMMON_CLIENT_SRCS) \
-  \
-  $(SOULSEEK_SRCS) \
-  \
-  $(DRIVER_SRCS)
-
-
+EXPAND_DRIVER(mldc,DIRECT_CONNECT,direct_connect)
+EXPAND_DRIVER(mlnap,OPENNAP,opennap)
+EXPAND_DRIVER(mlgnut,LIMEWIRE,limewire)
+EXPAND_DRIVER(mldonkey,DONKEY,donkey)
+EXPAND_DRIVER(mlslsk,SOULSEEK,soulseek)
 
 
 MLNET_SRCS= \
@@ -645,302 +561,42 @@ USE_TAGS_SRCS = \
 ######################################################################
 
 
+define([[EXPAND]],[[
+$1_ZOG := $(filter %.zog, $($1_SRCS)) 
+$1_MLL := $(filter %.mll, $($1_SRCS)) 
+$1_MLY := $(filter %.mly, $($1_SRCS)) 
+$1_ML := $(filter %.ml %.mll %.zog %.mly, $($1_SRCS)) 
+$1_C := $(filter %.c, $($1_SRCS)) 
+$1_CMOS=$(foreach file, $($1_ML),   $(basename $(file)).cmo) 
+$1_CMXS=$(foreach file, $($1_ML),   $(basename $(file)).cmx) 
+$1_OBJS=$(foreach file, $($1_C),   $(basename $(file)).o)    
 
-
-
-mldonkey_ZOG := $(filter %.zog, $(mldonkey_SRCS)) 
-mldonkey_MLL := $(filter %.mll, $(mldonkey_SRCS)) 
-mldonkey_MLY := $(filter %.mly, $(mldonkey_SRCS)) 
-mldonkey_ML := $(filter %.ml %.mll %.zog %.mly, $(mldonkey_SRCS)) 
-mldonkey_C := $(filter %.c, $(mldonkey_SRCS)) 
-mldonkey_CMOS=$(foreach file, $(mldonkey_ML),   $(basename $(file)).cmo) 
-mldonkey_CMXS=$(foreach file, $(mldonkey_ML),   $(basename $(file)).cmx) 
-mldonkey_OBJS=$(foreach file, $(mldonkey_C),   $(basename $(file)).o)    
-
-TMPSOURCES += $(mldonkey_MLL:.mll=.ml) $(mldonkey_MLY:.mly=.ml) $(mldonkey_MLY:.mly=.mli) $(mldonkey_ZOG:.zog=.ml) 
+TMPSOURCES += $($1_MLL:.mll=.ml) $($1_MLY:.mly=.ml) $($1_MLY:.mly=.mli) $($1_ZOG:.zog=.ml) 
  
-mldonkey: $(mldonkey_OBJS) $(mldonkey_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@  $(mldonkey_OBJS) $(LIBS_opt) $(_LIBS_opt) $(mldonkey_CMXS) 
+$2: $($1_OBJS) $($1_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -o $[[@]]  $($1_OBJS) $(LIBS_opt) $($3_LIBS_opt) $($1_CMXS) 
  
-mldonkey.byte: $(mldonkey_OBJS) $(mldonkey_CMOS) 
-	$(OCAMLC) -o $@  $(mldonkey_OBJS) $(LIBS_byte)  $(_LIBS_byte) $(mldonkey_CMOS) 
+$2.byte: $($1_OBJS) $($1_CMOS) 
+	$(OCAMLC) -o $[[@]]  $($1_OBJS) $(LIBS_byte)  $($3_LIBS_byte) $($1_CMOS) 
  
-mldonkey.static:  $(mldonkey_OBJS) $(mldonkey_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(mldonkey_OBJS) $(LIBS_opt)  $(_STATIC_LIBS_opt) $(mldonkey_CMXS) 
+$2.static:  $($1_OBJS) $($1_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $[[@]] $($1_OBJS) $(LIBS_opt)  $($3_STATIC_LIBS_opt) $($1_CMXS) 
+]])
 
-
-MLDONKEYGUI_ZOG := $(filter %.zog, $(MLDONKEYGUI_SRCS)) 
-MLDONKEYGUI_MLL := $(filter %.mll, $(MLDONKEYGUI_SRCS)) 
-MLDONKEYGUI_MLY := $(filter %.mly, $(MLDONKEYGUI_SRCS)) 
-MLDONKEYGUI_ML := $(filter %.ml %.mll %.zog %.mly, $(MLDONKEYGUI_SRCS)) 
-MLDONKEYGUI_C := $(filter %.c, $(MLDONKEYGUI_SRCS)) 
-MLDONKEYGUI_CMOS=$(foreach file, $(MLDONKEYGUI_ML),   $(basename $(file)).cmo) 
-MLDONKEYGUI_CMXS=$(foreach file, $(MLDONKEYGUI_ML),   $(basename $(file)).cmx) 
-MLDONKEYGUI_OBJS=$(foreach file, $(MLDONKEYGUI_C),   $(basename $(file)).o)    
-
-TMPSOURCES += $(MLDONKEYGUI_MLL:.mll=.ml) $(MLDONKEYGUI_MLY:.mly=.ml) $(MLDONKEYGUI_MLY:.mly=.mli) $(MLDONKEYGUI_ZOG:.zog=.ml) 
- 
-mldonkey_gui: $(MLDONKEYGUI_OBJS) $(MLDONKEYGUI_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@  $(MLDONKEYGUI_OBJS) $(LIBS_opt) $(GTK_LIBS_opt) $(MLDONKEYGUI_CMXS) 
- 
-mldonkey_gui.byte: $(MLDONKEYGUI_OBJS) $(MLDONKEYGUI_CMOS) 
-	$(OCAMLC) -o $@  $(MLDONKEYGUI_OBJS) $(LIBS_byte)  $(GTK_LIBS_byte) $(MLDONKEYGUI_CMOS) 
- 
-mldonkey_gui.static:  $(MLDONKEYGUI_OBJS) $(MLDONKEYGUI_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(MLDONKEYGUI_OBJS) $(LIBS_opt)  $(GTK_STATIC_LIBS_opt) $(MLDONKEYGUI_CMXS) 
-
-
-MLDONKEYGUI2_ZOG := $(filter %.zog, $(MLDONKEYGUI2_SRCS)) 
-MLDONKEYGUI2_MLL := $(filter %.mll, $(MLDONKEYGUI2_SRCS)) 
-MLDONKEYGUI2_MLY := $(filter %.mly, $(MLDONKEYGUI2_SRCS)) 
-MLDONKEYGUI2_ML := $(filter %.ml %.mll %.zog %.mly, $(MLDONKEYGUI2_SRCS)) 
-MLDONKEYGUI2_C := $(filter %.c, $(MLDONKEYGUI2_SRCS)) 
-MLDONKEYGUI2_CMOS=$(foreach file, $(MLDONKEYGUI2_ML),   $(basename $(file)).cmo) 
-MLDONKEYGUI2_CMXS=$(foreach file, $(MLDONKEYGUI2_ML),   $(basename $(file)).cmx) 
-MLDONKEYGUI2_OBJS=$(foreach file, $(MLDONKEYGUI2_C),   $(basename $(file)).o)    
-
-TMPSOURCES += $(MLDONKEYGUI2_MLL:.mll=.ml) $(MLDONKEYGUI2_MLY:.mly=.ml) $(MLDONKEYGUI2_MLY:.mly=.mli) $(MLDONKEYGUI2_ZOG:.zog=.ml) 
- 
-mldonkey_gui2: $(MLDONKEYGUI2_OBJS) $(MLDONKEYGUI2_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@  $(MLDONKEYGUI2_OBJS) $(LIBS_opt) $(GTK_LIBS_opt) $(MLDONKEYGUI2_CMXS) 
- 
-mldonkey_gui2.byte: $(MLDONKEYGUI2_OBJS) $(MLDONKEYGUI2_CMOS) 
-	$(OCAMLC) -o $@  $(MLDONKEYGUI2_OBJS) $(LIBS_byte)  $(GTK_LIBS_byte) $(MLDONKEYGUI2_CMOS) 
- 
-mldonkey_gui2.static:  $(MLDONKEYGUI2_OBJS) $(MLDONKEYGUI2_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(MLDONKEYGUI2_OBJS) $(LIBS_opt)  $(GTK_STATIC_LIBS_opt) $(MLDONKEYGUI2_CMXS) 
-
-
-mldc_ZOG := $(filter %.zog, $(mldc_SRCS)) 
-mldc_MLL := $(filter %.mll, $(mldc_SRCS)) 
-mldc_MLY := $(filter %.mly, $(mldc_SRCS)) 
-mldc_ML := $(filter %.ml %.mll %.zog %.mly, $(mldc_SRCS)) 
-mldc_C := $(filter %.c, $(mldc_SRCS)) 
-mldc_CMOS=$(foreach file, $(mldc_ML),   $(basename $(file)).cmo) 
-mldc_CMXS=$(foreach file, $(mldc_ML),   $(basename $(file)).cmx) 
-mldc_OBJS=$(foreach file, $(mldc_C),   $(basename $(file)).o)    
-
-TMPSOURCES += $(mldc_MLL:.mll=.ml) $(mldc_MLY:.mly=.ml) $(mldc_MLY:.mly=.mli) $(mldc_ZOG:.zog=.ml) 
- 
-mldc: $(mldc_OBJS) $(mldc_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@  $(mldc_OBJS) $(LIBS_opt) $(_LIBS_opt) $(mldc_CMXS) 
- 
-mldc.byte: $(mldc_OBJS) $(mldc_CMOS) 
-	$(OCAMLC) -o $@  $(mldc_OBJS) $(LIBS_byte)  $(_LIBS_byte) $(mldc_CMOS) 
- 
-mldc.static:  $(mldc_OBJS) $(mldc_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(mldc_OBJS) $(LIBS_opt)  $(_STATIC_LIBS_opt) $(mldc_CMXS) 
-
-
-mlnap_ZOG := $(filter %.zog, $(mlnap_SRCS)) 
-mlnap_MLL := $(filter %.mll, $(mlnap_SRCS)) 
-mlnap_MLY := $(filter %.mly, $(mlnap_SRCS)) 
-mlnap_ML := $(filter %.ml %.mll %.zog %.mly, $(mlnap_SRCS)) 
-mlnap_C := $(filter %.c, $(mlnap_SRCS)) 
-mlnap_CMOS=$(foreach file, $(mlnap_ML),   $(basename $(file)).cmo) 
-mlnap_CMXS=$(foreach file, $(mlnap_ML),   $(basename $(file)).cmx) 
-mlnap_OBJS=$(foreach file, $(mlnap_C),   $(basename $(file)).o)    
-
-TMPSOURCES += $(mlnap_MLL:.mll=.ml) $(mlnap_MLY:.mly=.ml) $(mlnap_MLY:.mly=.mli) $(mlnap_ZOG:.zog=.ml) 
- 
-mlnap: $(mlnap_OBJS) $(mlnap_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@  $(mlnap_OBJS) $(LIBS_opt) $(_LIBS_opt) $(mlnap_CMXS) 
- 
-mlnap.byte: $(mlnap_OBJS) $(mlnap_CMOS) 
-	$(OCAMLC) -o $@  $(mlnap_OBJS) $(LIBS_byte)  $(_LIBS_byte) $(mlnap_CMOS) 
- 
-mlnap.static:  $(mlnap_OBJS) $(mlnap_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(mlnap_OBJS) $(LIBS_opt)  $(_STATIC_LIBS_opt) $(mlnap_CMXS) 
-
-
-MLNET_ZOG := $(filter %.zog, $(MLNET_SRCS)) 
-MLNET_MLL := $(filter %.mll, $(MLNET_SRCS)) 
-MLNET_MLY := $(filter %.mly, $(MLNET_SRCS)) 
-MLNET_ML := $(filter %.ml %.mll %.zog %.mly, $(MLNET_SRCS)) 
-MLNET_C := $(filter %.c, $(MLNET_SRCS)) 
-MLNET_CMOS=$(foreach file, $(MLNET_ML),   $(basename $(file)).cmo) 
-MLNET_CMXS=$(foreach file, $(MLNET_ML),   $(basename $(file)).cmx) 
-MLNET_OBJS=$(foreach file, $(MLNET_C),   $(basename $(file)).o)    
-
-TMPSOURCES += $(MLNET_MLL:.mll=.ml) $(MLNET_MLY:.mly=.ml) $(MLNET_MLY:.mly=.mli) $(MLNET_ZOG:.zog=.ml) 
- 
-mlnet: $(MLNET_OBJS) $(MLNET_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@  $(MLNET_OBJS) $(LIBS_opt) $(_LIBS_opt) $(MLNET_CMXS) 
- 
-mlnet.byte: $(MLNET_OBJS) $(MLNET_CMOS) 
-	$(OCAMLC) -o $@  $(MLNET_OBJS) $(LIBS_byte)  $(_LIBS_byte) $(MLNET_CMOS) 
- 
-mlnet.static:  $(MLNET_OBJS) $(MLNET_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(MLNET_OBJS) $(LIBS_opt)  $(_STATIC_LIBS_opt) $(MLNET_CMXS) 
-
-
-mlgnut_ZOG := $(filter %.zog, $(mlgnut_SRCS)) 
-mlgnut_MLL := $(filter %.mll, $(mlgnut_SRCS)) 
-mlgnut_MLY := $(filter %.mly, $(mlgnut_SRCS)) 
-mlgnut_ML := $(filter %.ml %.mll %.zog %.mly, $(mlgnut_SRCS)) 
-mlgnut_C := $(filter %.c, $(mlgnut_SRCS)) 
-mlgnut_CMOS=$(foreach file, $(mlgnut_ML),   $(basename $(file)).cmo) 
-mlgnut_CMXS=$(foreach file, $(mlgnut_ML),   $(basename $(file)).cmx) 
-mlgnut_OBJS=$(foreach file, $(mlgnut_C),   $(basename $(file)).o)    
-
-TMPSOURCES += $(mlgnut_MLL:.mll=.ml) $(mlgnut_MLY:.mly=.ml) $(mlgnut_MLY:.mly=.mli) $(mlgnut_ZOG:.zog=.ml) 
- 
-mlgnut: $(mlgnut_OBJS) $(mlgnut_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@  $(mlgnut_OBJS) $(LIBS_opt) $(_LIBS_opt) $(mlgnut_CMXS) 
- 
-mlgnut.byte: $(mlgnut_OBJS) $(mlgnut_CMOS) 
-	$(OCAMLC) -o $@  $(mlgnut_OBJS) $(LIBS_byte)  $(_LIBS_byte) $(mlgnut_CMOS) 
- 
-mlgnut.static:  $(mlgnut_OBJS) $(mlgnut_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(mlgnut_OBJS) $(LIBS_opt)  $(_STATIC_LIBS_opt) $(mlgnut_CMXS) 
-
-
-mlslsk_ZOG := $(filter %.zog, $(mlslsk_SRCS)) 
-mlslsk_MLL := $(filter %.mll, $(mlslsk_SRCS)) 
-mlslsk_MLY := $(filter %.mly, $(mlslsk_SRCS)) 
-mlslsk_ML := $(filter %.ml %.mll %.zog %.mly, $(mlslsk_SRCS)) 
-mlslsk_C := $(filter %.c, $(mlslsk_SRCS)) 
-mlslsk_CMOS=$(foreach file, $(mlslsk_ML),   $(basename $(file)).cmo) 
-mlslsk_CMXS=$(foreach file, $(mlslsk_ML),   $(basename $(file)).cmx) 
-mlslsk_OBJS=$(foreach file, $(mlslsk_C),   $(basename $(file)).o)    
-
-TMPSOURCES += $(mlslsk_MLL:.mll=.ml) $(mlslsk_MLY:.mly=.ml) $(mlslsk_MLY:.mly=.mli) $(mlslsk_ZOG:.zog=.ml) 
- 
-mlslsk: $(mlslsk_OBJS) $(mlslsk_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@  $(mlslsk_OBJS) $(LIBS_opt) $(_LIBS_opt) $(mlslsk_CMXS) 
- 
-mlslsk.byte: $(mlslsk_OBJS) $(mlslsk_CMOS) 
-	$(OCAMLC) -o $@  $(mlslsk_OBJS) $(LIBS_byte)  $(_LIBS_byte) $(mlslsk_CMOS) 
- 
-mlslsk.static:  $(mlslsk_OBJS) $(mlslsk_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(mlslsk_OBJS) $(LIBS_opt)  $(_STATIC_LIBS_opt) $(mlslsk_CMXS) 
-
-
-MLDONKEY_IM_ZOG := $(filter %.zog, $(MLDONKEY_IM_SRCS)) 
-MLDONKEY_IM_MLL := $(filter %.mll, $(MLDONKEY_IM_SRCS)) 
-MLDONKEY_IM_MLY := $(filter %.mly, $(MLDONKEY_IM_SRCS)) 
-MLDONKEY_IM_ML := $(filter %.ml %.mll %.zog %.mly, $(MLDONKEY_IM_SRCS)) 
-MLDONKEY_IM_C := $(filter %.c, $(MLDONKEY_IM_SRCS)) 
-MLDONKEY_IM_CMOS=$(foreach file, $(MLDONKEY_IM_ML),   $(basename $(file)).cmo) 
-MLDONKEY_IM_CMXS=$(foreach file, $(MLDONKEY_IM_ML),   $(basename $(file)).cmx) 
-MLDONKEY_IM_OBJS=$(foreach file, $(MLDONKEY_IM_C),   $(basename $(file)).o)    
-
-TMPSOURCES += $(MLDONKEY_IM_MLL:.mll=.ml) $(MLDONKEY_IM_MLY:.mly=.ml) $(MLDONKEY_IM_MLY:.mly=.mli) $(MLDONKEY_IM_ZOG:.zog=.ml) 
- 
-mlim: $(MLDONKEY_IM_OBJS) $(MLDONKEY_IM_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@  $(MLDONKEY_IM_OBJS) $(LIBS_opt) $(GTK_LIBS_opt) $(MLDONKEY_IM_CMXS) 
- 
-mlim.byte: $(MLDONKEY_IM_OBJS) $(MLDONKEY_IM_CMOS) 
-	$(OCAMLC) -o $@  $(MLDONKEY_IM_OBJS) $(LIBS_byte)  $(GTK_LIBS_byte) $(MLDONKEY_IM_CMOS) 
- 
-mlim.static:  $(MLDONKEY_IM_OBJS) $(MLDONKEY_IM_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(MLDONKEY_IM_OBJS) $(LIBS_opt)  $(GTK_STATIC_LIBS_opt) $(MLDONKEY_IM_CMXS) 
-
-
-STARTER_ZOG := $(filter %.zog, $(STARTER_SRCS)) 
-STARTER_MLL := $(filter %.mll, $(STARTER_SRCS)) 
-STARTER_MLY := $(filter %.mly, $(STARTER_SRCS)) 
-STARTER_ML := $(filter %.ml %.mll %.zog %.mly, $(STARTER_SRCS)) 
-STARTER_C := $(filter %.c, $(STARTER_SRCS)) 
-STARTER_CMOS=$(foreach file, $(STARTER_ML),   $(basename $(file)).cmo) 
-STARTER_CMXS=$(foreach file, $(STARTER_ML),   $(basename $(file)).cmx) 
-STARTER_OBJS=$(foreach file, $(STARTER_C),   $(basename $(file)).o)    
-
-TMPSOURCES += $(STARTER_MLL:.mll=.ml) $(STARTER_MLY:.mly=.ml) $(STARTER_MLY:.mly=.mli) $(STARTER_ZOG:.zog=.ml) 
- 
-mldonkey_guistarter: $(STARTER_OBJS) $(STARTER_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@  $(STARTER_OBJS) $(LIBS_opt) $(GTK_LIBS_opt) $(STARTER_CMXS) 
- 
-mldonkey_guistarter.byte: $(STARTER_OBJS) $(STARTER_CMOS) 
-	$(OCAMLC) -o $@  $(STARTER_OBJS) $(LIBS_byte)  $(GTK_LIBS_byte) $(STARTER_CMOS) 
- 
-mldonkey_guistarter.static:  $(STARTER_OBJS) $(STARTER_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(STARTER_OBJS) $(LIBS_opt)  $(GTK_STATIC_LIBS_opt) $(STARTER_CMXS) 
-
-
-TOP_ZOG := $(filter %.zog, $(TOP_SRCS)) 
-TOP_MLL := $(filter %.mll, $(TOP_SRCS)) 
-TOP_MLY := $(filter %.mly, $(TOP_SRCS)) 
-TOP_ML := $(filter %.ml %.mll %.zog %.mly, $(TOP_SRCS)) 
-TOP_C := $(filter %.c, $(TOP_SRCS)) 
-TOP_CMOS=$(foreach file, $(TOP_ML),   $(basename $(file)).cmo) 
-TOP_CMXS=$(foreach file, $(TOP_ML),   $(basename $(file)).cmx) 
-TOP_OBJS=$(foreach file, $(TOP_C),   $(basename $(file)).o)    
-
-TMPSOURCES += $(TOP_MLL:.mll=.ml) $(TOP_MLY:.mly=.ml) $(TOP_MLY:.mly=.mli) $(TOP_ZOG:.zog=.ml) 
- 
-mldonkeytop: $(TOP_OBJS) $(TOP_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@  $(TOP_OBJS) $(LIBS_opt) $(_LIBS_opt) $(TOP_CMXS) 
- 
-mldonkeytop.byte: $(TOP_OBJS) $(TOP_CMOS) 
-	$(OCAMLC) -o $@  $(TOP_OBJS) $(LIBS_byte)  $(_LIBS_byte) $(TOP_CMOS) 
- 
-mldonkeytop.static:  $(TOP_OBJS) $(TOP_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(TOP_OBJS) $(LIBS_opt)  $(_STATIC_LIBS_opt) $(TOP_CMXS) 
-
-
-MLCHAT_ZOG := $(filter %.zog, $(MLCHAT_SRCS)) 
-MLCHAT_MLL := $(filter %.mll, $(MLCHAT_SRCS)) 
-MLCHAT_MLY := $(filter %.mly, $(MLCHAT_SRCS)) 
-MLCHAT_ML := $(filter %.ml %.mll %.zog %.mly, $(MLCHAT_SRCS)) 
-MLCHAT_C := $(filter %.c, $(MLCHAT_SRCS)) 
-MLCHAT_CMOS=$(foreach file, $(MLCHAT_ML),   $(basename $(file)).cmo) 
-MLCHAT_CMXS=$(foreach file, $(MLCHAT_ML),   $(basename $(file)).cmx) 
-MLCHAT_OBJS=$(foreach file, $(MLCHAT_C),   $(basename $(file)).o)    
-
-TMPSOURCES += $(MLCHAT_MLL:.mll=.ml) $(MLCHAT_MLY:.mly=.ml) $(MLCHAT_MLY:.mly=.mli) $(MLCHAT_ZOG:.zog=.ml) 
- 
-mlchat: $(MLCHAT_OBJS) $(MLCHAT_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@  $(MLCHAT_OBJS) $(LIBS_opt) $(GTK_LIBS_opt) $(MLCHAT_CMXS) 
- 
-mlchat.byte: $(MLCHAT_OBJS) $(MLCHAT_CMOS) 
-	$(OCAMLC) -o $@  $(MLCHAT_OBJS) $(LIBS_byte)  $(GTK_LIBS_byte) $(MLCHAT_CMOS) 
- 
-mlchat.static:  $(MLCHAT_OBJS) $(MLCHAT_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(MLCHAT_OBJS) $(LIBS_opt)  $(GTK_STATIC_LIBS_opt) $(MLCHAT_CMXS) 
-
-
-OBSERVER_ZOG := $(filter %.zog, $(OBSERVER_SRCS)) 
-OBSERVER_MLL := $(filter %.mll, $(OBSERVER_SRCS)) 
-OBSERVER_MLY := $(filter %.mly, $(OBSERVER_SRCS)) 
-OBSERVER_ML := $(filter %.ml %.mll %.zog %.mly, $(OBSERVER_SRCS)) 
-OBSERVER_C := $(filter %.c, $(OBSERVER_SRCS)) 
-OBSERVER_CMOS=$(foreach file, $(OBSERVER_ML),   $(basename $(file)).cmo) 
-OBSERVER_CMXS=$(foreach file, $(OBSERVER_ML),   $(basename $(file)).cmx) 
-OBSERVER_OBJS=$(foreach file, $(OBSERVER_C),   $(basename $(file)).o)    
-
-TMPSOURCES += $(OBSERVER_MLL:.mll=.ml) $(OBSERVER_MLY:.mly=.ml) $(OBSERVER_MLY:.mly=.mli) $(OBSERVER_ZOG:.zog=.ml) 
- 
-observer: $(OBSERVER_OBJS) $(OBSERVER_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@  $(OBSERVER_OBJS) $(LIBS_opt) $(_LIBS_opt) $(OBSERVER_CMXS) 
- 
-observer.byte: $(OBSERVER_OBJS) $(OBSERVER_CMOS) 
-	$(OCAMLC) -o $@  $(OBSERVER_OBJS) $(LIBS_byte)  $(_LIBS_byte) $(OBSERVER_CMOS) 
- 
-observer.static:  $(OBSERVER_OBJS) $(OBSERVER_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(OBSERVER_OBJS) $(LIBS_opt)  $(_STATIC_LIBS_opt) $(OBSERVER_CMXS) 
-
-
-USE_TAGS_ZOG := $(filter %.zog, $(USE_TAGS_SRCS)) 
-USE_TAGS_MLL := $(filter %.mll, $(USE_TAGS_SRCS)) 
-USE_TAGS_MLY := $(filter %.mly, $(USE_TAGS_SRCS)) 
-USE_TAGS_ML := $(filter %.ml %.mll %.zog %.mly, $(USE_TAGS_SRCS)) 
-USE_TAGS_C := $(filter %.c, $(USE_TAGS_SRCS)) 
-USE_TAGS_CMOS=$(foreach file, $(USE_TAGS_ML),   $(basename $(file)).cmo) 
-USE_TAGS_CMXS=$(foreach file, $(USE_TAGS_ML),   $(basename $(file)).cmx) 
-USE_TAGS_OBJS=$(foreach file, $(USE_TAGS_C),   $(basename $(file)).o)    
-
-TMPSOURCES += $(USE_TAGS_MLL:.mll=.ml) $(USE_TAGS_MLY:.mly=.ml) $(USE_TAGS_MLY:.mly=.mli) $(USE_TAGS_ZOG:.zog=.ml) 
- 
-use_tags: $(USE_TAGS_OBJS) $(USE_TAGS_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -o $@  $(USE_TAGS_OBJS) $(LIBS_opt) $(_LIBS_opt) $(USE_TAGS_CMXS) 
- 
-use_tags.byte: $(USE_TAGS_OBJS) $(USE_TAGS_CMOS) 
-	$(OCAMLC) -o $@  $(USE_TAGS_OBJS) $(LIBS_byte)  $(_LIBS_byte) $(USE_TAGS_CMOS) 
- 
-use_tags.static:  $(USE_TAGS_OBJS) $(USE_TAGS_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -ccopt -static -o $@ $(USE_TAGS_OBJS) $(LIBS_opt)  $(_STATIC_LIBS_opt) $(USE_TAGS_CMXS) 
-
+EXPAND(mldonkey,mldonkey)
+EXPAND(MLDONKEYGUI,mldonkey_gui,GTK)
+EXPAND(MLDONKEYGUI2,mldonkey_gui2,GTK)
+EXPAND(mldc,mldc)
+EXPAND(mlnap,mlnap)
+EXPAND(MLNET,mlnet)
+EXPAND(mlgnut,mlgnut)
+EXPAND(mlslsk,mlslsk)
+EXPAND(MLDONKEY_IM,mlim,GTK)
+EXPAND(STARTER,mldonkey_guistarter,GTK)
+EXPAND(TOP,mldonkeytop)
+EXPAND(MLCHAT,mlchat,GTK)
+EXPAND(OBSERVER,observer)
+EXPAND(USE_TAGS,use_tags)
 
 
 #######################################################################

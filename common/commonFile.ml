@@ -286,9 +286,12 @@ let file_state file =
   let impl = as_file_impl file in
   impl.impl_file_state  
   
-let file_new_source (file : file) c =
+let file_add_source (file : file) c =
   client_must_update c;
-  CommonEvent.add_event (File_new_source_event (file,c))
+  CommonEvent.add_event (File_add_source_event (file,c))
+  
+let file_remove_source (file : file) c =
+  CommonEvent.add_event (File_remove_source_event (file,c))
 
 let rec last = function
     [x] -> x

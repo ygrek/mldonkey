@@ -77,7 +77,7 @@ module P = GuiTypes
   
 let _ =
   file_ops.op_file_cancel <- (fun file ->
-      Hashtbl.remove OpennapGlobals.files_by_key 
+      Hashtbl.remove files_by_key 
       (file.file_name, file_size file);
       current_files := List2.removeq file !current_files;
       file_cancel (as_file file.file_file);

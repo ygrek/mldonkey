@@ -476,7 +476,8 @@ let value_to_intmap f v2c v =
 
 let value_to_listiter v2c v =
   match v with
-    List l | SmallList l -> List.iter (fun v -> ignore(v2c v)) l; 
+    List l | SmallList l -> List.iter (fun v -> 
+          try ignore(v2c v) with SideEffectOption -> ()) l; 
       raise SideEffectOption
   | StringValue s -> failwith (Printf.sprintf 
         "Options: not a list option (StringValue [%s])" s)

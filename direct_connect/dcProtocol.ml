@@ -648,7 +648,7 @@ type t =
   
 let parse s = 
   try
-    (*
+(*
   Printf.printf "PARSE:"; print_newline ();
 AgProtocol.dump s;
   *)
@@ -662,13 +662,13 @@ AgProtocol.dump s;
             | "$Lock" -> LockReq (Lock.parse args)
             | "$Key" -> KeyReq (Key.parse args)
             | "$MyNick" -> MyNickReq (MyNick.parse args)
-
+            
             | "$GetNickList" -> GetNickListReq
             | "$NickList" -> NickListReq (NickList.parse args)
             | "$OpList" -> OpListReq (OpList.parse args)
             | "$Version" -> VersionReq (Version.parse args)
             | "$SR" -> SRReq (SR.parse args)
-
+            
             | "$ValidateNick" -> ValidateNickReq (ValidateNick.parse args)
             | "$ForceMove" -> ForceMoveReq (ForceMove.parse args)
             | "$Hello" -> HelloReq (Hello.parse args)
@@ -678,28 +678,33 @@ AgProtocol.dump s;
             | "$To:" -> ToReq (To.parse args)
             | "$Search" -> SearchReq (Search.parse args)
             | "$MultiSearch" -> MultiSearchReq (Search.parse args)
-
-                
+            
+            
             | "$Get" -> GetReq (Get.parse args)
             | "$FileLength" -> FileLengthReq (FileLength.parse args)
             | "$Direction" -> DirectionReq (Direction.parse args)
-            | "$GetListLen" -> GetListLenReq
-            | "$MaxedOut" -> MaxedOutReq
-            | "$Send" -> SendReq
-            | "$Canceled" -> CanceledReq
-
-                
+            
             | "$RevConnectToMe" -> RevConnectToMeReq (RevConnectToMe.parse args)
             | "$ConnectToMe" -> 
                 Printf.printf "Message [%s]" (String.escaped s);
                 print_newline ();
                 ConnectToMeReq (ConnectToMe.parse args)
             | "$MultiConnectToMe" -> MultiConnectToMeReq 
-                (MultiConnectToMe.parse args)
+                  (MultiConnectToMe.parse args)
             | _ -> UnknownReq s
           else
             MessageReq s
         else UnknownReq s
+    | [ cmd ] ->
+        begin
+          match cmd with
+          | "$Send" -> SendReq
+          | "$GetListLen" -> GetListLenReq
+          | "$MaxedOut" -> MaxedOutReq
+          | "$Canceled" -> CanceledReq
+              
+          | _ -> UnknownReq s
+        end
     | _ -> UnknownReq s
   with e ->
       Printf.printf "Exception %s in parse" (Printexc2.to_string e);
@@ -730,8 +735,8 @@ let write buf m =
   | MaxedOutReq -> MaxedOut.write buf ()
   | SendReq -> Send.write buf ()
   | CanceledReq -> Canceled.write buf ()
-    
-      
+  
+  
   | GetNickListReq -> Buffer.add_string buf "$GetNickList"
   | NickListReq t -> 
       Buffer.add_string buf "$NickList"; 
@@ -739,16 +744,16 @@ let write buf m =
   | OpListReq t -> Buffer.add_string buf "$OpList"; OpList.write buf t
   | VersionReq t -> Buffer.add_string buf "$Version"; Version.write buf t
   | SRReq t -> Buffer.add_string buf "$SR"; SR.write buf t
-      
-    
-      | ToReq t -> Buffer.add_string buf "$To:"; To.write buf t
+  
+  
+  | ToReq t -> Buffer.add_string buf "$To:"; To.write buf t
   | ValidateNickReq t -> 
       Buffer.add_string buf "$ValidateNick"; ValidateNick.write buf t
   | HubNameReq t -> 
       Buffer.add_string buf "$HubName"; HubName.write buf t
   | MessageReq t -> Buffer.add_string buf t
   | UnknownReq t -> Buffer.add_string buf t
-
+      
 let print m =
   begin
     match m with
@@ -757,29 +762,29 @@ let print m =
     | HelloReq t -> Hello.print t
     | QuitReq t -> Quit.print t
     | MyNickReq t -> MyNick.print t
-                
+    
     | GetNickListReq -> GetNickList.print ()
     | NickListReq t -> NickList.print t
     | OpListReq t -> OpList.print t
     | VersionReq t -> Version.print t
     | SRReq t -> SR.print t
     | ForceMoveReq t -> ForceMove.print t
-
-          
-  | GetReq t -> Get.print t
-  | FileLengthReq t -> FileLength.print t
-  | DirectionReq t -> Direction.print t
-  | GetListLenReq -> GetListLen.print ()
-  | MaxedOutReq -> MaxedOut.print ()
-  | SendReq -> Send.print ()
-  | CanceledReq -> Canceled.print ()
-
-        
+    
+    
+    | GetReq t -> Get.print t
+    | FileLengthReq t -> FileLength.print t
+    | DirectionReq t -> Direction.print t
+    | GetListLenReq -> GetListLen.print ()
+    | MaxedOutReq -> MaxedOut.print ()
+    | SendReq -> Send.print ()
+    | CanceledReq -> Canceled.print ()
+    
+    
     | RevConnectToMeReq t -> RevConnectToMe.print t
     | ConnectToMeReq t -> ConnectToMe.print t
     | MultiConnectToMeReq t -> MultiConnectToMe.print t
-        
-        
+    
+    
     | SearchReq t -> Search.print t
     | MultiSearchReq t -> Printf.printf "MULTI "; Search.print t
     | MyINFOReq t -> MyINFO.print t

@@ -291,7 +291,7 @@ class box submit_search query_entry =
 	(wtool#insert_button 
 	   ~text: (gettext M.submit)
 	   ~tooltip: (gettext M.submit)
-	   ~icon: (Gui_icons.pixmap M.o_xpm_submit_search)#coerce
+	   ~icon: (Gui_options.pixmap M.o_xpm_submit_search)#coerce
 	   ~callback: self#submit
 	   ()
 	);
@@ -299,7 +299,7 @@ class box submit_search query_entry =
 	(wtool#insert_button 
 	   ~text: (gettext M.local_search)
 	   ~tooltip: (gettext M.local_search)
-	   ~icon: (Gui_icons.pixmap M.o_xpm_local_search)#coerce
+	   ~icon: (Gui_options.pixmap M.o_xpm_local_search)#coerce
 	   ~callback: self#local
 	   ()
 	);
@@ -309,7 +309,7 @@ class box submit_search query_entry =
 	(wtool#insert_button 
 	   ~text: (gettext M.subscribe)
 	   ~tooltip: (gettext M.subscribe)
-	   ~icon: (Gui_icons.pixmap M.o_xpm_download)#coerce
+	   ~icon: (Gui_options.pixmap M.o_xpm_download)#coerce
 	   ~callback: self#subscribe
 	   ()
 	);

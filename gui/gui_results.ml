@@ -140,7 +140,7 @@ class box s_num columns () =
 	(wtool#insert_button 
 	   ~text: (gettext M.download)
 	   ~tooltip: (gettext M.download)
-	   ~icon: (Gui_icons.pixmap M.o_xpm_download)#coerce
+	   ~icon: (Gui_options.pixmap M.o_xpm_download)#coerce
 	   ~callback: self#download
 	   ()
 	);
@@ -150,7 +150,7 @@ class box s_num columns () =
 	    (wtool#insert_button 
 	       ~text: (gettext M.extended_search)
 	       ~tooltip: (gettext M.extended_search)
-	       ~icon: (Gui_icons.pixmap M.o_xpm_extend_search)#coerce
+	       ~icon: (Gui_options.pixmap M.o_xpm_extend_search)#coerce
 	       ~callback: self#extend_search
 	       ()
 	    );
@@ -281,7 +281,7 @@ class box_dir_files () =
 	(wtool#insert_button 
 	   ~text: (gettext M.download)
 	   ~tooltip: (gettext M.download_selected_dir)
-	   ~icon: (Gui_icons.pixmap M.o_xpm_download)#coerce
+	   ~icon: (Gui_options.pixmap M.o_xpm_download)#coerce
 	   ~callback: self#download_selected_dir
 	   ()
 	);

@@ -20,7 +20,6 @@
 (** Icons. *)
 
 module M = Gui_messages
-module O = Gui_options
 
 let (!!) = Options.(!!)
 
@@ -3857,61 +3856,49 @@ let refresh = [|
 "QtQtQtQtQtQtQtQtQtQtQt.n.n.n.n.n.n.n.nQtQtQtQtQtQtQtQtQtQtQtQtQt"|]
 *)
 
+
+
 let table = [
-  M.o_xpm_remove, (Trash_xpm.t, O.xpm_remove) ;
-  M.o_xpm_cancel, (Cancel_xpm.t, O.xpm_cancel);
-  M.o_xpm_connect, (Connect_xpm.t, O.xpm_connect);
-  M.o_xpm_disconnect, (Disconnect_xpm.t, O.xpm_disconnect);
-  M.o_xpm_view_users, (View_users_xpm.t, O.xpm_view_users);
-  M.o_xpm_connect_more_servers, (Connect_more_xpm.t, O.xpm_connect_more_servers);
-  M.o_xpm_remove_old_servers, (Trash_xpm.t, O.xpm_remove_old_servers);
-    M.o_xpm_toggle_display_all_servers, (
-      Get_format_xpm.t, O.xpm_toggle_display_all_servers);
-  M.o_xpm_save, (Save_xpm.t, O.xpm_save);
-  M.o_xpm_save_all, (Save_all_xpm.t, O.xpm_save_all);
-  M.o_xpm_save_as, (Save_as_xpm.t, O.xpm_save_as);
-  M.o_xpm_edit_mp3, (Edit_mp3_xpm.t, O.xpm_edit_mp3);
-  M.o_xpm_pause_resume, (pause_resume, O.xpm_pause_resume);
-  M.o_xpm_get_format, (Get_format_xpm.t, O.xpm_get_format);
-  M.o_xpm_preview, (Preview_xpm.t, O.xpm_preview);
-  M.o_xpm_verify_chunks, (Verify_chunks_xpm.t, O.xpm_verify_chunks);
-  M.o_xpm_retry_connect, (Connect_xpm.t, O.xpm_retry_connect); 
-  M.o_xpm_add_to_friends, (Add_to_friends_xpm.t, O.xpm_add_to_friends);
-  M.o_xpm_download, (Download_xpm.t, O.xpm_download);
-   M.o_xpm_submit_search, (Get_format_xpm.t, O.xpm_submit_search); 
-  M.o_xpm_extend_search, (Extend_search_xpm.t, O.xpm_extend_search);
-  M.o_xpm_local_search, (Local_search_xpm.t, O.xpm_local_search);
-  M.o_xpm_find_friend, (Get_format_xpm.t, O.xpm_find_friend) ;  
-  M.o_xpm_remove_all_friends, (remove_all_friends, O.xpm_remove_all_friends) ; 
-  M.o_xpm_close_room, (Trash_xpm.t, O.xpm_close_room) ;
-  M.o_xpm_refresh, (Refres_xpm.t, O.xpm_refresh) ;
-] 
-
-let gdk_pix i =
-  try
-    let (default, o) = List.assoc i table in
-    match !!o with
-      "" -> 
-	GDraw.pixmap_from_xpm_d ~data: default
-	  ~colormap: (Gdk.Color.get_system_colormap ())
-	  () 
-    | f ->
-	try
-	  GDraw.pixmap_from_xpm ~file: f
-	    ~colormap: (Gdk.Color.get_system_colormap ())
-	    () 
-	with
-	  _ ->
-	    GDraw.pixmap_from_xpm_d ~data: default
-	      ~colormap: (Gdk.Color.get_system_colormap ())
-	      () 
-  with
-    Not_found ->
-      GDraw.pixmap_from_xpm_d ~data: Trash_xpm.t
-	~colormap: (Gdk.Color.get_system_colormap ())
-	() 
-
-let pixmap i = 
-  GMisc.pixmap (gdk_pix i) ()
-
-
+    "trash.xpm", Trash_xpm.t ;
+    "cancel.xpm", Cancel_xpm.t;
+    "connect.xpm", Connect_xpm.t;
+    "disconnect.xpm", Disconnect_xpm.t;
+    "view_users.xpm", View_users_xpm.t;
+    "connect_more_servers.xpm", Connect_more_xpm.t;
+    "remove_old_servers.xpm", Trash_xpm.t;
+    "toggle_display_all_servers.xpm",  Get_format_xpm.t;
+    "save.xpm", Save_xpm.t;
+    "save_all.xpm", Save_all_xpm.t;
+    "save_as.xpm", Save_as_xpm.t;
+    "edit_mp3.xpm", Edit_mp3_xpm.t;
+    "pause_resume.xpm", pause_resume;
+    "get_format.xpm", Get_format_xpm.t;
+    "preview.xpm", Preview_xpm.t;
+    "verify_chunks.xpm", Verify_chunks_xpm.t;
+    "retry_connect.xpm", Connect_xpm.t; 
+    "add_to_friends.xpm", Add_to_friends_xpm.t;
+    "download.xpm", Download_xpm.t;
+    "submit_search.xpm", Get_format_xpm.t; 
+    "extend_search.xpm", Extend_search_xpm.t;
+    "local_search.xpm", Local_search_xpm.t;
+    "find_friend.xpm", Get_format_xpm.t ;  
+    "close_room.xpm", Trash_xpm.t ;
+    "refresh.xpm", Refres_xpm.t ;
+  ] 
+  
+let pixmap icons_path filename =
+  let pix = 
+    try
+      let filename = Filepath.find_in_path icons_path filename in
+      GDraw.pixmap_from_xpm ~file: filename
+        ~colormap: (Gdk.Color.get_system_colormap ())
+      () 
+    with _ ->
+        let data = try List.assoc filename table 
+          with _ -> Trash_xpm.t
+        in
+        GDraw.pixmap_from_xpm_d ~data: data
+          ~colormap: (Gdk.Color.get_system_colormap ())
+        () 
+  in
+  GMisc.pixmap pix ()

@@ -111,14 +111,6 @@ let commands = [
         raise CommonTypes.CommandCloseSocket
     ), ":\t\t\t\t\tclose telnet";
     
-    "bs", Arg_multiple (fun args o ->
-        List.iter (fun arg ->
-            let ip = Ip.of_string arg in
-            server_black_list =:=  ip :: !!server_black_list;
-        ) args;
-        "done"
-    ), "<ip1> <ip2> ... :\t\t\tadd these IPs to the servers black list";
-    
     "debug_socks", Arg_none (fun o ->
         BasicSocket.print_sockets ();
         "done"), ":\t\t\t\tfor debugging only";
@@ -130,11 +122,6 @@ let commands = [
     "save", Arg_none (fun o ->
         DriverInteractive.save_config ();
         "saved"), ":\t\t\t\t\tsave";
-    
-    "port", Arg_one (fun arg o ->
-        port =:= int_of_string arg;
-        "new port will change at next restart"),
-    "<port> :\t\t\t\tchange connection port";
     
     "vo", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -505,6 +492,24 @@ let commands = [
         ""
     ), ":\t\t\tdisplay all friends";
     
+    "files", Arg_one (fun arg o ->
+        let buf = o.conn_buf in
+        let n = int_of_string arg in
+        List.iter (fun c ->
+            if client_num c = n then begin
+                let rs = client_files c in
+                
+                let rs = List2.tail_map (fun (s, r) ->
+                      r, CommonResult.result_info r, 1
+                  ) rs in
+                CommonInteractive.last_results := [];
+                Printf.bprintf buf "Reinitialising download selectors\n";
+                print_results buf o rs;
+                
+                ()
+              end
+        ) !!friends;
+        ""), " <friend_num> :\tPrint friend files";
     ]
 
 let _ =

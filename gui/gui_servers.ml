@@ -316,7 +316,7 @@ class box columns users wl_status =
 	(wtool#insert_button 
 	   ~text: (gettext M.remove)
 	   ~tooltip: (gettext M.remove)
-	   ~icon: (Gui_icons.pixmap M.o_xpm_remove)#coerce
+	   ~icon: (Gui_options.pixmap M.o_xpm_remove)#coerce
 	   ~callback: self#remove
 	   ()
 	);
@@ -325,7 +325,7 @@ class box columns users wl_status =
 	(wtool#insert_button 
 	   ~text: (gettext M.connect)
 	   ~tooltip: (gettext M.connect)
-	   ~icon: (Gui_icons.pixmap M.o_xpm_connect)#coerce
+	   ~icon: (Gui_options.pixmap M.o_xpm_connect)#coerce
 	   ~callback: self#connect
 	   ()
 	);
@@ -334,7 +334,7 @@ class box columns users wl_status =
 	(wtool#insert_button 
 	   ~text: (gettext M.disconnect)
 	   ~tooltip: (gettext M.disconnect)
-	   ~icon: (Gui_icons.pixmap M.o_xpm_disconnect)#coerce
+	   ~icon: (Gui_options.pixmap M.o_xpm_disconnect)#coerce
 	   ~callback: self#disconnect
 	   ()
 	);
@@ -343,7 +343,7 @@ class box columns users wl_status =
 	(wtool#insert_button 
 	   ~text: (gettext M.view_users)
 	   ~tooltip: (gettext M.view_users)
-	   ~icon: (Gui_icons.pixmap M.o_xpm_view_users)#coerce
+	   ~icon: (Gui_options.pixmap M.o_xpm_view_users)#coerce
 	   ~callback: self#view_users
 	   ()
 	);
@@ -352,7 +352,7 @@ class box columns users wl_status =
 	(wtool#insert_button 
 	   ~text: (gettext M.connect_more_servers)
 	   ~tooltip: (gettext M.connect_more_servers)
-	   ~icon: (Gui_icons.pixmap M.o_xpm_connect_more_servers)#coerce
+	   ~icon: (Gui_options.pixmap M.o_xpm_connect_more_servers)#coerce
 	   ~callback: self#connect_more_servers
 	   ()
 	);
@@ -361,7 +361,7 @@ class box columns users wl_status =
 	(wtool#insert_button 
 	   ~text: (gettext M.remove_old_servers)
 	   ~tooltip: (gettext M.remove_old_servers)
-	   ~icon: (Gui_icons.pixmap M.o_xpm_remove_old_servers)#coerce
+	   ~icon: (Gui_options.pixmap M.o_xpm_remove_old_servers)#coerce
 	   ~callback: self#remove_old_servers
 	   ()
 	);
@@ -370,7 +370,7 @@ class box columns users wl_status =
 	(wtool#insert_button 
 	   ~text: (gettext M.toggle_display_all_servers)
 	   ~tooltip: (gettext M.toggle_display_all_servers)
-	   ~icon: (Gui_icons.pixmap M.o_xpm_toggle_display_all_servers)#coerce
+	   ~icon: (Gui_options.pixmap M.o_xpm_toggle_display_all_servers)#coerce
 	   ~callback: self#toggle_display_all_servers
 	   ()
 	);

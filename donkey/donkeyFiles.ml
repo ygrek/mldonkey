@@ -105,256 +105,6 @@ let make_xs ss =
   ) before;
   
   DonkeyOvernet.overnet_search ss
-
-(* Every five minutes, we fill the clients_lists array with the clients 
-that have to be connected in the next five minutes. *)
-    
-let fill_clients_list _ =
-
-(* First of all, clients which are still there should be saved *)
-
-  let keep_clients = 
-    clients_lists.(0) @
-    clients_lists.(1) @
-    clients_lists.(2) @
-    clients_lists.(3) @
-    clients_lists.(4) 
-  in
-  clients_lists.(0) <- [];
-  clients_lists.(1) <- [];
-  clients_lists.(2) <- [];
-  clients_lists.(3) <- [];
-  clients_lists.(4) <- [];
-  if !!verbose then begin
-      Printf.printf "Kept clients: %d" (List.length keep_clients); 
-      print_newline ();
-    end;
-
-(* Now, for each file, put the sources in the lists *)
-  List.iter (fun file -> 
-      if file_state file = FileDownloading then 
-        Intmap.iter (fun _ c ->
-            schedule_client c
-        )
-        file.file_sources;
-  ) !current_files;
-  clients_lists.(0) <- keep_clients @ clients_lists.(0);
-  remaining_seconds := 61;
-  Printf.printf "Next minute: %d" (List.length clients_lists.(0));  print_newline ();
-  Printf.printf "2 minutes: %d" (List.length clients_lists.(1));  print_newline ();
-  Printf.printf "3 minutes: %d" (List.length clients_lists.(2));  print_newline ();
-  Printf.printf "4 minutes: %d" (List.length clients_lists.(3));  print_newline ();
-  Printf.printf "5 minutes: %d" (List.length clients_lists.(4));  print_newline ();
-  Printf.printf "waiting for breaks: %d" (List.length !new_clients_list);  print_newline ()
-
-(* Every second, try to connect to some clients *)          
-let check_clients _ =
-  decr remaining_seconds;
-(*  Printf.printf "check_clients %d" !remaining_seconds; print_newline (); *)
-  if !remaining_seconds = 0 then begin
-      remaining_seconds := 60;
-      clients_lists.(0) <- clients_lists.(0) @ clients_lists.(1);
-      clients_lists.(1) <- clients_lists.(2);
-      clients_lists.(2) <- clients_lists.(3);
-      clients_lists.(3) <- clients_lists.(4);
-      clients_lists.(4) <- []
-    end;
-  let nnew_clients = List.length !new_clients_list in
-  let nwaiting = List.length clients_lists.(0) +
-    (nnew_clients / 10) +
-    (if nnew_clients>0 then 1 else 0) in
-  try
-    let nwaiting = ref (min
-          (nwaiting / !remaining_seconds + 1)
-        !!max_clients_per_second
-      ) in
-(*    Printf.printf "nwaiting %d" !nwaiting; print_newline (); *)
-    while !nwaiting > 0 do
-      if not (can_open_connection ()) then raise Exit;
-(*      Printf.printf "findind client"; print_newline ();*)
-      let c =
-        match clients_lists.(0) with
-          c :: tail -> clients_lists.(0) <- tail;
-(*            Printf.printf "client from list"; print_newline (); *)
-            c
-        | [] -> match !new_clients_list with
-              c :: tail -> 
-(*                Printf.printf "client from new clients"; print_newline (); *)
-                new_clients_list := tail;
-                c
-            | [] -> 
-(*                Printf.printf "no client"; print_newline (); *)
-                raise Exit in
-      c.client_on_list <- false;
-      try
-        if connection_can_try c.client_connection_control then begin
-            match c.client_sock with
-              None -> 
-                reconnect_client c;
-                if c.client_sock <> None then decr nwaiting
-            | Some sock ->
-                query_files c sock;
-                connection_try c.client_connection_control;
-                connection_ok c.client_connection_control;
-                ()
-          end else begin (*
-            Printf.printf "Client connection too early"; print_newline ();
-	    *)
-          end
-      with e ->
-          Printf.printf "Exception %s in check_clients"
-            (Printexc2.to_string e); print_newline ()
-    done
-  with Exit -> ()
-      
-      (*
-let throttle_searches () =
-  List.iter (fun file ->
-    let locs = file.file_sources in
-    let nNotConnected = ref 0 in
-    let nConnecting = ref 0 in
-    let nInitiating = ref 0 in
-    let nBusy = ref 0 in
-    let nIdle = ref 0 in
-    let nQueued = ref 0 in
-    let nNewHost = ref 0 in
-    let nRemovedHost = ref 0 in
-    if file.file_nlocations < !!max_sources_per_file then 
-      update_file_enough_sources file false
-    else begin
-      Intmap.iter (fun _ c ->
-	match c.client_client.impl_client_state with
-	  NotConnected -> incr nNotConnected
-	| Connecting -> incr nConnecting
-	| Connected_initiating -> incr nInitiating
-	| Connected_busy -> incr nBusy
-	| Connected_idle -> incr nIdle
-	| Connected_queued -> incr nQueued
-	| NewHost -> incr nNewHost
-	| RemovedHost -> incr nRemovedHost
-      ) locs;
-      Printf.printf "%s: NC:%d C:%d In:%d Bz:%d Id:%d Qu:%d Nw:%d Rm:%d" (Md4.to_string file.file_md4) !nNotConnected !nConnecting !nInitiating !nBusy !nIdle !nQueued !nNewHost !nRemovedHost;
-      print_newline ();
-      if !nNewHost > !!max_sources_per_file / 10 then begin
-	Printf.printf "%d untested sources, throttling searches" !nNewHost;
-	print_newline ();
-	update_file_enough_sources file true
-      end else
-	update_file_enough_sources file false
-    end
-  ) !current_files
-*)
-  
-(* We need to be smarter. This function should be called every 20 minutes for
-example. It should be used to remove sources when there are more sources
-than we want, and it should disable the 
-update_file_enough_sources flag if there are more than more 10% sources
-than we want.
-
-We need some properties:
-* Connected sources should not be removed.
-* New sources (added in the last 20 minutes) should not be removed.
-* Good sources (connected in last 30 minutes) should not be removed.
-* Other sources should be sorted and removed if needed.
-*)
-
-let remove_old_clients () =
-  let min_last_conn =  last_time () -. 
-    float_of_int !!max_sources_age *. one_day in
-
-(* Good sources: connected in the last 45 minutes *)
-(* New sources:  fake-connection 25 minutes before added *)
-  let good_last_conn = last_time () -. 45. *. 60. in
-
-(* How many good sources is enough ? *)
-  let good_threshold = !!max_sources_per_file * !!good_sources_threshold / 100 in
-  List.iter (fun file ->
-        
-(* First, remove sources older than max_sources_age *)
-      let old_sources = ref [] in
-      let young_sources = ref [] in
-      let nkept_sources = ref 0 in
-
-      Intmap.iter (fun _ c ->
-        match c.client_sock with
-	    Some _ ->
-		incr nkept_sources
-          | None ->
-	      if connection_last_conn c.client_connection_control < min_last_conn then
-		old_sources := c :: !old_sources
-	      else begin
-		young_sources := c :: !young_sources;
-		incr nkept_sources
-	      end
-      ) file.file_sources;
-      if !nkept_sources >= !!min_left_sources then
-	List.iter (fun c ->
-	  remove_source file c
-	) !old_sources;
-
-(* Do it only if we have more sources than we want *)
-(* Since the list should not grow once the max_sources_per_file limit
-   is reached (see DonkeyGlobals.new_source), this can only happen 
-   in exceptional cases (user lowering max_sources_per_file ?) *)
-      if file.file_nlocations > !!max_sources_per_file then begin
-	let must_remove = mini (List.length !young_sources) 
-			    (file.file_nlocations - !!max_sources_per_file) in
-        let sources = List.sort (fun c1 c2 ->
-(* First criterium for sorting is last_connection *)
-          let l1 = connection_last_conn c1.client_connection_control in
-          let l2 = connection_last_conn c2.client_connection_control in
-            if l1 = l2 then (* they're floats, it's never gonna happen! *)
-              c1.client_rating - c2.client_rating
-            else
-              if l1 > l2 then 1 else -1
-            ) !young_sources in
-          
-        let to_remove, kept = List2.cut must_remove sources in
-        (match to_remove, kept with
-           | c1 :: _ , c2 :: _ ->
-               let l1 = connection_last_conn c1.client_connection_control in
-               let l2 = connection_last_conn c2.client_connection_control in
-                 Printf.printf "remove %d (%s:%d) keep %d (%s:%d)"
-                  (client_num c1) (Date.to_string l1) c1.client_rating
-                  (client_num c2)  (Date.to_string l2) c2.client_rating;
-                print_newline ();
-             | _ -> 
-                Printf.printf "no to_remove or no kept";
-                print_newline ());
-        List.iter (fun c ->
-          remove_source file c
-        ) to_remove;
-        
-        Printf.printf "After clean: sources %d" file.file_nlocations; 
-        print_newline ();
-      end;
-
-      let ngood_sources = ref 0 in
-	Intmap.iter (fun _ c ->
-	  match c.client_sock with
-              Some _ -> incr ngood_sources
-            | None -> 
-		if connection_last_conn c.client_connection_control > good_last_conn then
-		  incr ngood_sources
-        ) file.file_sources;
-
-	Printf.printf "%s: %d good sources (%.2f %%)" (file_best_name file) !ngood_sources (100. *. (float_of_int !ngood_sources) /. (float_of_int !!max_sources_per_file));
-	print_newline ();
-
-	if !ngood_sources < good_threshold then begin
-	  if file.file_enough_sources then begin
-	    Printf.printf "Not enough good sources, restarting active search";
-	    print_newline ();
-	    file.file_enough_sources <- false
-	  end
-	end else begin
-	  if not file.file_enough_sources then begin
-	    Printf.printf "Enough good sources, stopping active search";
-	    print_newline ();
-	    file.file_enough_sources <- true
-	  end
-	end
-  ) !current_files
           
 let force_check_locations () =
   try
@@ -423,17 +173,8 @@ let new_friend c =
   friend_add c
 
 let browse_client c =
-  match c.client_sock, client_state c with
-  | None, NotConnected ->
-      connect_as_soon_as_possible c
-  | None, _ -> 
-      connect_as_soon_as_possible c 
-  | Some sock, (
-      Connected_initiating 
-    | Connected_busy
-    | Connected_queued
-    | Connected_idle)
-    ->
+  match c.client_sock with
+  | Some sock    ->
       (*
       Printf.printf "****************************************";
       print_newline ();
@@ -454,13 +195,13 @@ let add_user_friend s u =
         begin
           match s.server_sock, server_state s with 
             Some sock, (Connected_idle|Connected_busy) ->
-              query_id s sock u.user_ip;
+              query_id s sock u.user_ip None;
           | _ -> ()
         end;
         Indirect_location (u.user_name, u.user_md4)
       end
   in
-  let c = new_client kind in
+  let c = new_client kind  in
   c.client_tags <- u.user_tags;
   set_client_name c u.user_name u.user_md4;
   new_friend c
@@ -505,6 +246,24 @@ let msg_block_size_int = 10000
 let msg_block_size = Int32.of_int msg_block_size_int
 let upload_buffer = String.create msg_block_size_int
 let max_msg_size = 15000
+
+(* For upload, it is clearly useless to completely fill a
+socket. Since we will try to upload to this client again when the
+Fifo queue has been scanned, we can wait for it to download what we
+have already given. 
+
+max_hard_upload_rate * 1024 * nseconds
+
+where nseconds = Fifo.length upload_clients
+  
+  *)
+  
+let can_write_len sock len =
+  can_write_len sock len && 
+  (let upload_rate = 
+      (if !!max_hard_upload_rate = 0 then 10000 else !!max_hard_upload_rate)
+      * 1024 in
+    not_buffer_more sock (upload_rate * (Fifo.length upload_clients)))
   
 module NewUpload = struct
     
@@ -646,7 +405,7 @@ Divide the bandwidth between the clients
       let c = Fifo.take upload_clients in
       match c.client_sock with
       | Some sock ->
-          if can_write_len sock max_msg_size then
+          if can_write_len sock max_msg_size             then
             send_client_block c sock per_client;
           (match c.client_upload with
               None -> ()

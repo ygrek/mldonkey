@@ -50,6 +50,7 @@ let must_share_file file has_old_impl =
           impl_shared_requests = 0;
         } in
       file.file_shared <- Some impl;
+      incr CommonGlobals.nshared_files;
       match has_old_impl with
         None -> update_shared_num impl
       | Some old_impl -> replace_shared old_impl impl
@@ -175,21 +176,13 @@ let check_shared_files () =
             known_shared_files =:= s :: !!known_shared_files;
             new_file_to_share s (Some  sh.shared_shared);
             shared_remove  sh.shared_shared;
-            if !shared_files = [] then begin
-(*                  Printf.printf "Saving shared files"; print_newline (); *)
-                save shared_files_ini
-              end                
           end
       with e ->
           Printf.printf "Exception %s prevents sharing"
             (Printexc2.to_string e);
           print_newline ();
-          shared_files := files;
-          if !shared_files = [] then begin
-(*                Printf.printf "Saving shared files"; print_newline (); *)
-              save shared_files_ini
-            end                
-            
+          shared_files := files
+          
 let local_dirname = Sys.getcwd ()
   
 let _ =

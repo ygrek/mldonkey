@@ -209,7 +209,7 @@ let buf_message buf m =
   | PrivateMessage (n,s) -> buf_int8 buf 2; buf_int buf n; buf_string buf s
 
 let buf_mp3 buf t =
-  let module M = Mp3tag in
+  let module M = Mp3tag.Id3v1 in
   buf_string buf t.M.title;
   buf_string buf t.M.artist;
   buf_string buf t.M.album;
@@ -229,7 +229,7 @@ let buf_format buf f =
       buf_int buf avi.avi_height;
       buf_int buf avi.avi_fps;
       buf_int buf avi.avi_rate;
-  | Mp3 t -> 
+  | MP3 (t, _) -> 
       buf_int8 buf 3;
       buf_mp3 buf t
       
@@ -373,7 +373,7 @@ let rec to_gui_version_0 proto buf t =
   | File_availability (n, s1, s2) -> buf_int16 buf 9;
       buf_int buf n; buf_string buf s1; buf_string buf s2
       
-  | File_source (n1,n2) -> buf_int16 buf 10;
+  | File_add_source (n1,n2) -> buf_int16 buf 10;
       buf_int buf n1; buf_int buf n2
   
   | Server_busy (n1,n2,n3) -> buf_int16 buf 11;
@@ -424,24 +424,6 @@ let rec to_gui_version_0 proto buf t =
 
       
   | BadPassword -> buf_int16 buf 47
- 
-  | Add_section_option (section, message, option, optype) -> buf_int16 buf 36;
-      buf_string buf section;
-      buf_string buf message;
-      buf_string buf option;
-      buf_int8 buf (match optype with
-          StringEntry -> 0
-        | BoolEntry -> 1
-        | FileEntry -> 2)
- 
-  | Add_plugin_option (section, message, option, optype) -> buf_int16 buf 38;
-      buf_string buf section;
-      buf_string buf message;
-      buf_string buf option;
-      buf_int8 buf (match optype with
-          StringEntry -> 0
-        | BoolEntry -> 1
-        | FileEntry -> 2)
 
   | DownloadedFiles list ->      
       buf_int16 buf 30;
@@ -472,6 +454,27 @@ let rec to_gui_version_0 proto buf t =
       buf_int buf requests
   | Shared_file_unshared num -> buf_int16 buf 35;
       buf_int buf num
+ 
+  | Add_section_option (section, message, option, optype) -> buf_int16 buf 36;
+      buf_string buf section;
+      buf_string buf message;
+      buf_string buf option;
+      buf_int8 buf (match optype with
+          StringEntry -> 0
+        | BoolEntry -> 1
+        | FileEntry -> 2)
+ 
+  | Add_plugin_option (section, message, option, optype) -> buf_int16 buf 38;
+      buf_string buf section;
+      buf_string buf message;
+      buf_string buf option;
+      buf_int8 buf (match optype with
+          StringEntry -> 0
+        | BoolEntry -> 1
+        | FileEntry -> 2)
+
+  | File_remove_source (n1,n2) -> buf_int16 buf 50;
+      buf_int buf n1; buf_int buf n2
       
 let to_gui_version_2 proto buf t =
   match t with

@@ -20,7 +20,8 @@
 open Md4
 
 val query_id :
-  DonkeyTypes.server -> TcpBufferedSocket.t -> Ip.t -> unit
+  DonkeyTypes.server -> TcpBufferedSocket.t -> Ip.t -> 
+  DonkeyTypes.file option -> unit
   
 val query_locations_reply : DonkeyTypes.server ->
   DonkeyProtoServer.QueryLocationReply.t -> unit
@@ -40,9 +41,7 @@ val client_send_if_possible : TcpBufferedSocket.t ->
   DonkeyProtoClient.t -> unit
 
   
-val force_fast_connect_client  : DonkeyTypes.client -> unit
-val connect_as_soon_as_possible :  DonkeyTypes.client -> unit
-val unschedule_client :  DonkeyTypes.client -> unit
-val schedule_new_client : DonkeyTypes.client -> unit
-val schedule_client :  DonkeyTypes.client -> unit  
 val clean_requests : unit -> unit
+
+val disconnect_client : DonkeyTypes.client -> unit
+  

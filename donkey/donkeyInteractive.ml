@@ -56,12 +56,9 @@ let result_name r =
       
 let reconnect_all file =
   DonkeyOvernet.recover_file file;
-  Intmap.iter (fun _ c ->
-      connection_must_try c.client_connection_control;
-      match c.client_kind with
-        Known_location _ ->
-          connect_as_soon_as_possible c
-      | _ -> ()) file.file_sources;
+  
+(* This is expensive, no ? *)
+  DonkeySources1.reschedule_sources file;
   List.iter (fun s ->
       match s.server_sock, server_state s with
       | Some sock, (Connected_idle | Connected_busy) ->
@@ -404,7 +401,8 @@ let print_file buf file =
                   c.client_connection_control)
           | Some _ -> "Connected")
   in
-  Intmap.iter f file.file_sources;
+
+  (* Intmap.iter f file.file_sources; *)
   Printf.bprintf buf "\nChunks: \n";
   Array.iteri (fun i c ->
       Buffer.add_char buf (
@@ -560,6 +558,19 @@ let commands = [
         ) (connected_servers());
         ""
     ), ":\t\t\t\t\tprint ID on connected servers";
+    
+    "bs", Arg_multiple (fun args o ->
+        List.iter (fun arg ->
+            let ip = Ip.of_string arg in
+            server_black_list =:=  ip :: !!server_black_list;
+        ) args;
+        "done"
+    ), "<ip1> <ip2> ... :\t\t\tadd these IPs to the servers black list";
+    
+    "port", Arg_one (fun arg o ->
+        port =:= int_of_string arg;
+        "new port will change at next restart"),
+    "<port> :\t\t\t\tchange connection port";
     
     "add_url", Arg_two (fun kind url o ->
         let buf = o.conn_buf in
@@ -895,8 +906,9 @@ let _ =
   file_ops.op_file_sources <- (fun file ->
       let list = ref [] in
       Intmap.iter (fun _ c -> 
-          list := (as_client c.client_client) :: !list) file.file_sources;
-      !list);
+          list := (as_client c.client_client) :: !list) file.file_locations;
+      !list
+  );
   file_ops.op_file_cancel <- (fun file ->
       Hashtbl.remove files_by_md4 file.file_md4;
       current_files := List2.removeq file !current_files;
@@ -907,14 +919,6 @@ let _ =
       if !!keep_cancelled_in_old_files &&
         not (List.mem file.file_md4 !!old_files) then
         old_files =:= file.file_md4 :: !!old_files;
-      let sources = file.file_sources in
-      Intmap.iter (fun _ c ->
-          remove_source file c
-(*
-      c.client_source_for <- List2.removeq file c.client_source_for;
-          c.client_file_queue <- List.remove_assoc file c.client_file_queue;
-          check_useful_client c  *)
-      ) sources;
   );
   file_ops.op_file_comment <- (fun file ->
       Printf.sprintf "ed2k://|file|%s|%ld|%s|" 
@@ -956,16 +960,16 @@ let _ =
           List2.tail_map (fun r -> "", as_result r.result_result) files);
   client_ops.op_client_browse <- (fun c immediate ->
 (*      Printf.printf "should browse"; print_newline (); *)
-      if immediate then browse_client c else begin
-(*          Printf.printf "Adding friend to clients_list"; print_newline (); *)
-          connect_as_soon_as_possible c
-        end);
+      browse_client c 
+  );
   client_ops.op_client_connect <- (fun c ->
-      force_fast_connect_client c
+      match c.client_sock with
+        None ->  reconnect_client c
+      | _ -> ()
   );
   client_ops.op_client_clear_files <- (fun c ->
       c.client_all_files <- None;
-      check_useful_client c);
+  );
   client_ops.op_client_bprint <- (fun buf c ->
       Printf.bprintf buf "\t\t%s (last_ok <%s> lasttry <%s> nexttry <%s> onlist %b)\n"
         c.client_name 

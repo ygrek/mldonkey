@@ -757,7 +757,7 @@ let connect_server (ip,port) =
           (Ip.to_inet_addr ip) port
             (fun sock event -> 
               match event with
-                BASIC_EVENT RTIMEOUT -> 
+                BASIC_EVENT (RTIMEOUT|LTIMEOUT) -> 
 (*                  Printf.printf "RTIMEOUT"; print_newline (); *)
                   disconnect_from_server s
               | _ -> ()

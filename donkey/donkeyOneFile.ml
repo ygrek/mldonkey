@@ -83,31 +83,7 @@ let sort_zones b =
       (z1.zone_nclients == z2.zone_nclients &&
         z1.zone_begin < z2.zone_begin)
   ) zones
-
-let disconnect_client c =
-  match c.client_sock with
-    None -> ()
-  | Some sock ->
-      connection_failed c.client_connection_control;
-      TcpBufferedSocket.close sock "closed";
-      printf_string "-c"; 
-      c.client_has_a_slot <- false;
-      c.client_chunks <- [||];
-      c.client_sock <- None;
-      set_client_state c NotConnected;
-      let files = c.client_file_queue in
-      List.iter (fun (file, chunks) -> remove_client_chunks file chunks)  files;    
-      c.client_file_queue <- [];
-      begin
-        match c.client_block with None -> ()
-        | Some b ->
-            c.client_block <- None;
-            b.block_nclients <- b.block_nclients - 1;
-            List.iter (fun z ->
-                z.zone_nclients <- z.zone_nclients - 1) c.client_zones;
-            sort_zones b
-      end;
-      check_useful_client c
+      
       
 let rec create_zones file begin_pos end_pos list =
 (*  Printf.printf "create_zones for %ld-%ld"
@@ -140,7 +116,16 @@ let client_file c =
   | (file, _) :: _ -> file
 
 let download_fifo = Fifo.create ()
+
   
+let clean_client_zones c =
+  match c.client_block with None -> ()
+  | Some b ->
+      c.client_block <- None;
+      b.block_nclients <- b.block_nclients - 1;
+      List.iter (fun z ->
+          z.zone_nclients <- z.zone_nclients - 1) c.client_zones;
+      sort_zones b      
   
       
 let query_zones c b = 
@@ -1017,13 +1002,14 @@ let remove_file md4 =
     let file = Hashtbl.find files_by_md4 md4 in
     file_cancel (as_file file.file_file);
     Unix32.close (file_fd file);
-    decr nshared_files;
     (try Sys.remove (file_disk_name file) with e -> 
           Printf.printf "Exception %s in remove %s"
             (Printexc2.to_string e) (file_disk_name file);
           print_newline ());
     (try Hashtbl.remove files_by_md4 file.file_md4 with _ -> ());
-    remove_file_clients file;
+    (match file.file_shared with
+        None -> ()
+      | Some s -> CommonShared.shared_unshare (CommonShared.as_shared s));
     file.file_shared <- None;
 (*    !file_change_hook file; *)
     current_files := List2.removeq file !current_files;

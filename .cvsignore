@@ -21,3 +21,10 @@ test_*
 ocamlopt-*
 *.static
 xpm2ml*
+mldc
+mlgnut
+mlnap
+mlnet
+mlslsk
+mlim
+text_applet

@@ -431,8 +431,8 @@ let server_to_client c t sock =
 			     ServerServer.add_source_to_notify c tmp.f_md4; 
 			   end
 			) !added_files;
-            with _ -> (*Printf.printf "To Much Files Shared\n"*)
-	      direct_server_send sock (M.MessageReq (String.concat "" ["Too much files index in my server, so I can index ";(string_of_int (List.length c.client_files));" of your files"]))
+            with _ -> (*Printf.printf "Too Many Files Shared\n"*)
+	      direct_server_send sock (M.MessageReq (String.concat "" ["Too many files index in my server, so I can index ";(string_of_int (List.length c.client_files));" of your files"]))
 	  end;
           
           (* Update list of known tag name *)
@@ -704,7 +704,7 @@ let handler t event =
 
       if !!max_clients <= !nconnected_clients  then
 	begin
-	  (*Printf.printf "too much clients\n";*)
+	  (*Printf.printf "too many clients\n";*)
           Unix.close s
 	end
       else

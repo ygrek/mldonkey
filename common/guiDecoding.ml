@@ -166,7 +166,7 @@ let get_search_version_2 s pos =
 
 
 let get_mp3 s pos =
-  let module M = Mp3tag in
+  let module M = Mp3tag.Id3v1 in
   let title, pos = get_string s pos in
   let artist, pos = get_string s pos in
   let album, pos = get_string s pos in
@@ -185,6 +185,16 @@ let get_mp3 s pos =
   }, pos + 8
 
 
+let dummy_info =
+  let module M = Mp3tag in {
+    M.duration = 0;
+    M.samplerate = 0;
+    M.mode = M.Stereo;
+    M.bitrate = 0;
+    M.encoding = M.CBR;
+    M.filesize = 0;
+  }
+  
 let get_format s pos =
   match get_int8 s pos with
   | 0 -> Unknown_format, pos+1
@@ -208,7 +218,7 @@ let get_format s pos =
   
   | 3 ->
       let t,pos = get_mp3 s (pos+1) in 
-      Mp3 t, pos
+      MP3 (t, dummy_info), pos
   | _ -> assert false    
 
 let get_tag s pos =
@@ -879,7 +889,7 @@ let to_gui opcode s =
   | 10 -> 
       let n1 = get_int s 2 in
       let n2 = get_int s 6 in
-      File_source (n1,n2)
+      File_add_source (n1,n2)
   
   | 11 ->
       let n1 = get_int s 2 in
@@ -1142,6 +1152,11 @@ let to_gui opcode s =
         ndownloading_files = ndownloading_files;
         ndownloaded_files = ndownloaded_files;
       }
+  
+  | 50 -> 
+      let n1 = get_int s 2 in
+      let n2 = get_int s 6 in
+      File_remove_source (n1,n2)
       
   | _ -> 
       Printf.printf "TO GUI:Unknown message %d" opcode; print_newline ();

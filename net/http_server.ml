@@ -123,9 +123,9 @@ and handler = TcpBufferedSocket.t -> request -> unit
 
 and config = {
     bind_addr : Unix.inet_addr;
-    port : int;
+    mutable port : int;
     requests : (string * handler) list;
-    addrs : Ip.t list;
+    mutable addrs : Ip.t list;
     base_ref : string;
     default : handler;
   }

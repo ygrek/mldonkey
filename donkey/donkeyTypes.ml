@@ -20,20 +20,28 @@
 open Md4
 open CommonTypes
 
-type server (*[]*) = {
+    
+type client_score =
+  Client_not_connected 
+| Client_has_file
+| Client_has_new_chunk
+| Client_has_upload
+  
+  
+type server = (*[]*){
     mutable server_server : server CommonServer.server_impl;
     mutable server_ip : Ip.t;
     mutable server_cid : Ip.t;
-    mutable server_port : int (*[16]*);
+    mutable server_port : int;
     mutable server_sock : TcpBufferedSocket.t option;
     mutable server_nqueries : int;
     mutable server_search_queries : CommonTypes.search Fifo.t;
     mutable server_users_queries : bool Fifo.t;
     mutable server_connection_control : connection_control;
-    mutable server_score : int (*[16]*);
+    mutable server_score : int;
     mutable server_tags : CommonTypes.tag list;
-    mutable server_nusers : int (*[16]*);
-    mutable server_nfiles : int (*[24]*);
+    mutable server_nusers : int;
+    mutable server_nfiles : int;
     mutable server_name : string;
     mutable server_description : string;
     mutable server_users: user list;
@@ -41,6 +49,8 @@ type server (*[]*) = {
     mutable server_master : bool;
     mutable server_mldonkey : bool;
     mutable server_last_message : float; (* used only by mldonkey server *)
+
+    mutable server_id_requests : file option Fifo.t;
     
     mutable server_queries_credit : int;
     mutable server_waiting_queries : file list;
@@ -103,42 +113,43 @@ and server_change_kind =
 
 and availability = bool array
 
-(*
-    mutable client_is_friend : friend_kind;
-*)
-
 and brand = 
   Brand_unknown
 | Brand_edonkey
 | Brand_mldonkey1
 | Brand_mldonkey2
+| Brand_mldonkey3
 | Brand_overnet
 | Brand_oldemule
 | Brand_newemule
 | Brand_server
+
+and challenge = {
+    mutable challenge_md4 : Md4.t;
+    mutable challenge_ok : bool;
+  }
   
-and client (*[]*) = {
+and client = {
     client_client : client CommonClient.client_impl;
     mutable client_kind : location_kind;
     mutable client_source : source option;
     mutable client_md4 : Md4.t;
     mutable client_chunks : availability;
     mutable client_sock : TcpBufferedSocket.t option;
-    mutable client_power : int (*[4]*);
+    mutable client_power : int ;
     mutable client_block : block option;
     mutable client_zones : zone list;
     mutable client_connection_control : connection_control;
     mutable client_file_queue : (file * availability) list;
-    mutable client_source_for : file list;
     mutable client_next_view_files :  float;
     mutable client_all_files : result list option;
     mutable client_tags: CommonTypes.tag list;
     mutable client_name : string;
     mutable client_all_chunks : string;
-    mutable client_rating : int (*[16]*);
+    mutable client_rating : int ;
     mutable client_upload : upload_info option;
     mutable client_checked : bool;
-    mutable client_chat_port : int (*[2]*);
+    mutable client_chat_port : int ;
     mutable client_connected : bool;
     mutable client_on_list : bool;
 (* statistics *)
@@ -150,6 +161,10 @@ and client (*[]*) = {
     mutable client_banned : bool;
     mutable client_has_a_slot : bool;
     mutable client_overnet : bool;
+    mutable client_score : client_score;
+    mutable client_requests : (file * float ref) list;
+    mutable client_files : file list;
+    mutable client_next_queue : int;
   }
   
 and upload_info = {
@@ -189,48 +204,35 @@ and zone = {
 and source = {
     source_addr : Ip.t * int;
     mutable source_client: client_kind; 
+    
+(* This field is not kept up-to-date when source_client = SourceClient c,
+  change c.client_source_for *)
+    mutable source_files : (file * float) list;
+    mutable source_overnet : bool;
   }
 
 and client_kind = 
   SourceClient of client
-| SourceRecord of float (* last connection attempt *)
+| SourceLastConnection of int * float (* last connection attempt *)
   
 and file = {
     file_file : file CommonFile.file_impl;
     file_md4 : Md4.t;
     file_exists : bool;
-(*    mutable file_size : int32; *)
     mutable file_nchunks : int;
     mutable file_chunks : chunk array;
     mutable file_chunks_order : int array;
-(*    mutable file_age : float; *)
     mutable file_chunks_age : float array;
-(*    mutable file_fd : Unix32.t; *)
     mutable file_all_chunks : string;
     mutable file_absent_chunks : (int32 * int32) list;
     mutable file_filenames : string list;
-    mutable file_nlocations : int;
+    mutable file_nsources : int;
     mutable file_md4s : Md4.t list;
     mutable file_format : format;
     mutable file_available_chunks : int array;
-    mutable file_enough_sources : bool;
-
-(* These are the good sources: they have a chunk we want, or we are trying 
-to connect them. *)
-    mutable file_sources : client Intmap.t; 
-    
-    mutable file_emerging_sources : source list;
-    mutable file_concurrent_sources : source Fifo.t;
-    mutable file_old_sources : source Fifo.t;
-    mutable file_all_sources : ((Ip.t * int), source) Hashtbl.t;
-(*
-    mutable file_last_downloaded : (int32 * float) list;
-    mutable file_last_time : float;
-    mutable file_last_rate : float;
-*)
-    
-(* the time the file state was last computed and sent to guis *)
+    mutable file_paused_sources : (source * int) Fifo.t;
     mutable file_shared : file CommonShared.shared_impl option;
+    mutable file_locations : client Intmap.t; 
   }
 
 and file_to_share = {
@@ -271,4 +273,44 @@ type shared_file_info = {
     sh_mtime : float;
     sh_size : int32;
   }
+
   
+open CommonFile
+open CommonClient
+open CommonServer
+open CommonResult
+        
+let set_client_state c s =
+  let cc = as_client c.client_client in
+  let os = client_state cc in
+  if os <> s then begin
+      (*
+if os = Connected_busy then decr nclients;
+if s = Connected_busy then incr nclients;  
+  *)
+      set_client_state cc s;
+    end
+    
+let set_server_state s state =
+  let ss = as_server s.server_server in
+  if server_state ss <> state then begin
+      set_server_state ss state;
+    end
+  
+let file_state file =
+  CommonFile.file_state (as_file file.file_file)
+  
+let file_last_seen file = file.file_file.impl_file_last_seen
+  
+let file_must_update file =
+  file_must_update (as_file file.file_file)
+    
+let client_state client =
+  CommonClient.client_state (as_client client.client_client)
+    
+let client_new_file client r =
+  client_new_file (as_client client.client_client) ""
+  (as_result r.result_result)
+    
+let server_state server =
+  CommonServer.server_state (as_server server.server_server)

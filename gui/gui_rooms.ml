@@ -38,150 +38,6 @@ class box tb_style () =
     
     method set_tb_style (tb_style : Gtk.Tags.toolbar_style) = ()
 end
-  
-  (*
-
-class paned () =
-  let vbox = GPack.vbox ~homogeneous:false () in
-  let wpane =
-    GPack.paned `HORIZONTAL ~packing:(vbox#pack ~expand:true ~fill:true) ()
-  in
-  object
-    val vbox = vbox
-    val wpane = wpane
-    method vbox = vbox
-    method wpane = wpane
-    method coerce = vbox#coerce
-end;;
-
-
-let rooms_by_num = Hashtbl.create 113
-
-class pane_room (room : room_info) =
-  let close = ref (fun _ -> ()) in
-  let users = new box_users close in
-  let messages = new box () () in
-  object (self)
-    inherit paned  ()
-    
-    method box_messages = messages
-    method box_users = users
-    method hpaned = wpane
-    
-    val mutable position = 0
-    
-    method insert_text ?user ?(priv=false) s =
-      let user_info = 
-	match user with
-	  None -> None
-	| Some u ->
-	    let col = Gui_misc.color_of_name u in
-	    Some (col,
-		  Printf.sprintf "%s%s :" u
-		    (if priv then " (private)" else ""))
-      in
-      (
-       match user_info with
-	 None -> ()
-       | Some (c,s) ->
-	   messages#wt_10#insert ~foreground: c s
-      );
-      messages#wt_10#insert s
-    
-    
-    method on_entry_return () =
-      match messages#we_11#text with
-        "" -> ()
-      |	s ->
-          Gui_com.send
-	    (GuiProto.SendMessage (room.room_num, 
-				    PublicMessage (0,s)));
-          messages#we_11#set_text "";
-          (*self#insert_text (Printf.sprintf "> %s\n" s) *)
-          
-    initializer
-      Okey.add messages#we_11
-        ~mods: []
-        GdkKeysyms._Return
-        self#on_entry_return      
-    
-    
-    method set_tb_style st = 
-      users#set_tb_style st ;
-      messages#set_tb_style st
-
-(** {2 Handling core messages} *)
-
-(*
-    method h_user_info = servers#h_server_info
-    method h_server_state = servers#h_server_state
-    method h_server_busy = servers#h_server_busy
-    method h_server_user = servers#h_server_user
-*)
-        
-    method update_users =
-      let list = ref [] in
-      List.iter (fun u ->
-          try
-            let user_info = Hashtbl.find G.users u in
-            list := user_info :: !list
-          with _ ->
-              Gui_com.send (GuiProto.GetUser_info u);
-      ) room.room_users;
-      users#reset_data !list
-
-    method remove_user num =
-      if List.memq num room.room_users then begin
-          room.room_users <- List2.removeq num room.room_users;
-          self#update_users              
-        end
-    
-    method coerce = self#vbox#coerce
-    
-    initializer
-      wpane#add1 users#coerce;
-      wpane#add2 messages#coerce;
-      close := (fun _ -> 
-          let vbox = Hashtbl.find rooms_by_num room.room_num in
-          vbox#coerce#destroy ();
-	  Hashtbl.remove rooms_by_num room.room_num
-      )
-end
-      
-  
-let add_room_user num user_num =
-  try
-    let vbox = Hashtbl.find rooms_by_num num in
-    try
-      vbox#add_user user_num
-    with _ -> 
-        Printf.printf "No such user %d" user_num;
-        print_newline ();
-  with _ -> 
-      Printf.printf "No such room %d" num;
-      print_newline ()
-      
-let user_info user = 
-  ()  
-(*
-  match user.user_state with
-    RemovedHost -> 
-      Hashtbl.iter (fun num vbox ->
-          vbox#remove_user user.user_num
-          
-      ) rooms_by_num
-  | _ -> ()
-*)      
-  *)
-
-
-(*********************************************************************)
-(*********************************************************************)
-(*********************************************************************)
-(*********************************************************************)
-(*********************************************************************)
-(*********************************************************************)
-(*********************************************************************)      
 
 class rooms_box columns () =
   
@@ -225,54 +81,6 @@ class rooms_box columns () =
       in
       let col_opt = Some `BLACK      in
       (strings, col_opt)
-
-(*
-    method compare u1 u2 =
-      let res = match current_sort with
-      |	1 | -1 -> compare (Ip.valid u1.user_ip) (Ip.valid u2.user_ip)
-      |	2 | -2 -> compare u1.user_name u2.user_name
-      |	_ -> 0
-      in
-      res * current_sort
-
-    method content u =
-      let s_kind = 
-	if Ip.valid u.user_ip then 
-          M.direct
-	else ""
-      in
-      let s_name = u.user_name in
-      [ P.String s_kind ; P.String s_name ; ], None
-    
-    method add_to_friends () =
-      List.iter 
-	(fun u -> Gui_com.send (GuiProto.AddUserFriend u.user_num))
-	self#selection
-    
-    method browse_files () =
-      List.iter 
-        (fun u -> Gui_com.send (GuiProto.BrowseUser u.user_num))
-      self#selection
-      
-    method menu =
-      match self#selection with
-	[] -> []
-      |	_ -> [ 
-            `I (M.add_to_friends, self#add_to_friends);
-            `I (M.browse_files, self#browse_files)
-          ]
-
-    initializer
-      box#vbox#pack ~expand: true pl#box ;
-      ignore
-	(wtool#insert_button 
-	   ~text: M.add_to_friends
-	   ~tooltip: M.add_to_friends
-	   ~icon: (Gui_icons.pixmap M.o_xpm_add_to_friends)#coerce
-	   ~callback: self#add_to_friends
-	   ()
-	);
-*)
     
     method find_room num = self#find num
 
@@ -299,7 +107,7 @@ class box_users room =
         (wtool#insert_button 
           ~text: (gettext M.close_room)
           ~tooltip: (gettext M.close_room)
-          ~icon: (Gui_icons.pixmap M.o_xpm_close_room)#coerce
+          ~icon: (Gui_options.pixmap M.o_xpm_close_room)#coerce
           ~callback: (fun _ ->  
             Gui_com.send (GuiProto.SetRoomState (
                 room.room_num, RoomClosed)))

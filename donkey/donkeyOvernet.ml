@@ -876,13 +876,9 @@ let udp_client_handler t p =
 				  bcp (Md4.to_string md4);
 				print_newline (); *)
                                   if Ip.valid ip && Ip.reachable ip then
-                                    let c = new_client (Known_location (ip, port)) in
-                                    c.client_overnet <- true;
-				   c.client_brand <- Brand_overnet;
-				   if not (Intmap.mem (client_num c) file.file_sources) then
-				   new_source file c;				
-				   DonkeyClient.connect_as_soon_as_possible c
-                            | _ ->
+                                    let c = DonkeySources1.new_source (ip, port) file in
+                                    c.source_overnet <- true;
+                              | _ ->
 				Printf.printf "Ill formed bcp: %s" bcp;
 				print_newline ();
 			  end
@@ -1069,7 +1065,6 @@ let publish_shared_files () =
 let check_curent_downloads () =
   List.iter (fun file ->
     if file_state file = FileDownloading           
-        && not (file_enough_sources file)
         &&
       not (Hashtbl.mem overnet_searches file.file_md4) then
       let search = create_search (FileSearch file) file.file_md4 in

@@ -164,8 +164,11 @@ let send_event gui ev =
       gui_send gui (P.Client_file (client_num c, dirname, 
                     result_num r) )
 
-  | File_new_source_event (f,c) ->
-      gui_send gui (P.File_source (file_num f, client_num c));      
+  | File_add_source_event (f,c) ->
+      gui_send gui (P.File_add_source (file_num f, client_num c));      
+      
+  | File_remove_source_event (f,c) ->
+      gui_send gui (P.File_remove_source (file_num f, client_num c));      
       
   | Server_new_user_event (s,u) ->
       gui_send gui (P.Server_user (server_num s, user_num u))
@@ -375,7 +378,7 @@ end;
                     List.iter (fun c ->
                         addevent gui.gui_clients (client_num c) true;
                         gui.gui_new_events <-
-                          (File_new_source_event (file,c))
+                          (File_add_source_event (file,c))
                         :: gui.gui_new_events
                     ) (file_sources file)
                 ) !!files;
@@ -638,7 +641,7 @@ search.op_search_end_reply_handlers;
               let file = file_find num in
               let clients = file_sources file in
               List.iter (fun c ->
-                  file_new_source file c
+                  file_add_source file c
               ) clients
           
           | P.GetFile_info num ->
@@ -674,7 +677,7 @@ search.op_search_end_reply_handlers;
                 try 
                   let file = file_find num in
                   let filename = file_disk_name file in
-                  Mp3tag.write tag filename;
+                  Mp3tag.Id3v1.write tag filename;
                 with 
                   _ -> ()
               end
@@ -886,9 +889,13 @@ let rec update_events list =
               update_result_info r;
               add_gui_event event
               
-          | File_new_source_event (f,c) ->
+          | File_add_source_event (f,c) ->
               update_file_info f;
               update_client_info c;
+              add_gui_event event
+              
+          | File_remove_source_event (f,c) ->
+              update_file_info f;
               add_gui_event event
               
           | Server_new_user_event (s,u) ->

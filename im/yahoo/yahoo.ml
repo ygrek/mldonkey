@@ -805,7 +805,7 @@ let yahoo_add_friend_in_group account group name =
         let id = new_identity_val account in
         id.identity_login <- name;
         register_identity id;
-        add_event (Identity_event (as_identity id));
+        add_event (Account_friend_event (as_identity id));
         id
   in
   ()

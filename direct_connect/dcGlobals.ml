@@ -161,8 +161,6 @@ let connected_servers = ref ([]: server list)
 let servers_by_addr = Hashtbl.create 100
 let nknown_servers = ref 0  
   
-let shared_files = Hashtbl.create 13 
-
 let users_by_name = Hashtbl.create 113
     
 let files_by_key = Hashtbl.create 47
@@ -192,6 +190,8 @@ let server_must_update s = server_must_update (as_server s.server_server)
 let file_must_update s = file_must_update (as_file s.file_file)
 
 let shared_counter = ref (Int64.zero)
+let shared_files = Hashtbl.create 13 
+
   
 let new_shared_dir dirname = {
     shared_dirname = dirname;
@@ -285,7 +285,7 @@ let new_file file_id name file_size =
       let current_size = try
           Unix32.getsize32 file_temp
         with e ->
-            Printf.printf "Exception %s in current_size" (Printexc2.to_string e); 
+            Printf.printf "Exception %s in current_size of %s" (Printexc2.to_string e) file_temp; 
             print_newline ();
             Int32.zero
       in
@@ -349,7 +349,7 @@ let add_file_client file user filename =
   if not (List.memq c file.file_clients) then begin
       file.file_clients <- c :: file.file_clients;
       c.client_files <- (file, filename) :: c.client_files;
-      file_new_source (as_file file.file_file) (as_client c.client_client)
+      file_add_source (as_file file.file_file) (as_client c.client_client)
     end;
   c
 

@@ -35,3 +35,6 @@ val old_files : Md4.t list Options.option_record
 val value_to_addr : Options.option_value -> Ip.t * int
 val value_to_md4 : Options.option_value -> Md4.t
 val file_to_value :  DonkeyTypes.file -> (string * Options.option_value) list
+
+val load_sources : unit -> unit
+  

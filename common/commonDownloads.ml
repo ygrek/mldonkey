@@ -39,8 +39,10 @@ type download = {
     download_file : file; (* the file being downloaded *)
     download_client : client;
     mutable download_pos : int32; (* the position in the file *)
-    mutable download_sock : TcpBufferedSocket.t option; (* the socket for download (often shared in client structure) *)
-    mutable download_on_close : (download -> unit); (* function called when
+    mutable download_sock : TcpBufferedSocket.t option;
+(* the socket for download (often shared in client structure) *)
+    mutable download_on_close : (download -> unit);
+(* function called when
     the socket is closed (Unix.close is already done) *)
     download_subdir : string Options.option_record;
 (* The subdir option for the commit *)

@@ -238,8 +238,8 @@ function cancelAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j
             let size = if size < 1. then 1. else size in
             Printf.sprintf "%s \\<br\\>
 \\<table cellpadding=0 cellspaceing=0 width=100%%\\>\\<tr\\>
-\\<td class=loaded width=%d%%\\>\\&nbsp;  \\</td\\>
-\\<td class=remain width=%d%%\\>\\&nbsp;  \\</td\\>
+\\<td class=loaded width=%d%%\\>\\&nbsp;\\</td\\>
+\\<td class=remain width=%d%%\\>\\&nbsp;\\</td\\>
 \\</tr\\>\\</table\\>"
             (short_name file)
             (truncate (downloaded /. size *. 100.))
@@ -603,57 +603,39 @@ let print_search_html buf results format search_num =
     (List.rev !files);
   Printf.bprintf buf "\\</form\\>"      
 
-let print_search buf s format = 
   
-  last_search := Some s;
-  last_results := [];
-  let results = ref [] in
-  Intmap.iter (fun r_num (avail,r) ->
-      results := (r, result_info r, !avail) :: !results) s.search_results;
-  let results = Sort.list (fun (_, r1,_) (_, r2,_) ->
-        r1.result_size > r2.result_size
-    ) !results in
   
-  Printf.bprintf buf "Result of search %d\n" s.search_num;
-  Printf.bprintf buf "Reinitialising download selectors\n";
-  Printf.bprintf buf "%d results (%s)\n" s.search_nresults 
-    (if s.search_waiting = 0 then "done" else
-      (string_of_int s.search_waiting) ^ " waiting");
+let print_results buf format results =
   
-  if not !!new_print_search then old_print_search buf format results else
-    begin
-      if format.conn_output = HTML && !!html_checkbox_file_list then
-        print_search_html buf results format s.search_num
-      else
-      let print_table = if format.conn_output = HTML then print_table_html 2
-        else print_table_text in
-      
-      let counter = ref 0 in
-      let files = ref [] in
-      (try
-          List.iter (fun (rs, r,avail) ->
+  let print_table = if format.conn_output = HTML then print_table_html 2
+    else print_table_text in
+  
+  let counter = ref 0 in
+  let files = ref [] in
+  (try
+      List.iter (fun (rs, r,avail) ->
           if !!display_downloaded_results || not r.result_done  then begin
               incr counter;
-                  if !counter >= !!max_displayed_results then raise Exit;
-                  last_results := (!counter, rs) :: !last_results;
+              if !counter >= !!max_displayed_results then raise Exit;
+              last_results := (!counter, rs) :: !last_results;
               files := [|
                 (Printf.sprintf "[%5d]" !counter);
                 
                 (Printf.sprintf "%s%s%s"
                     (if format.conn_output = HTML then 
-                          Printf.sprintf "\\<A HREF=/results\\?d=%d $S\\>"
-                          r.result_num
+                      Printf.sprintf "\\<A HREF=/results\\?d=%d $S\\>"
+                        r.result_num
                     else "")
                   
                   (
                     let names = r.result_names in
                     let names = if r.result_done then
                         names @ ["ALREADY DOWNLOADED"] else names in
-                        let names = match  r.result_comment with
-                            "" -> names
-                          |  comment ->
-                              names @ ["COMMENT: " ^ comment] 
-                        in
+                    let names = match  r.result_comment with
+                        "" -> names
+                      |  comment ->
+                          names @ ["COMMENT: " ^ comment] 
+                    in
                     match names with
                       [name] -> name
                     | _ ->
@@ -691,19 +673,44 @@ let print_search buf s format =
               |] :: !files;
             end
       ) results;
-        with _ -> ());
-      
-      print_table buf [||] 
-        [|
-        "[ Num ]";
-        "Names";
-        "Size";
-        "Tags";
-        "Avail";
-        "MD4";
-      |] 
-        
-        (List.rev !files)
+    with _ -> ());
+  
+  print_table buf [||] 
+    [|
+    "[ Num ]";
+    "Names";
+    "Size";
+    "Tags";
+    "Avail";
+    "MD4";
+  |] 
+    
+    (List.rev !files)
+  
+  
+let print_search buf s format = 
+  
+  last_search := Some s;
+  last_results := [];
+  let results = ref [] in
+  Intmap.iter (fun r_num (avail,r) ->
+      results := (r, result_info r, !avail) :: !results) s.search_results;
+  let results = Sort.list (fun (_, r1,_) (_, r2,_) ->
+        r1.result_size > r2.result_size
+    ) !results in
+  
+  Printf.bprintf buf "Result of search %d\n" s.search_num;
+  Printf.bprintf buf "Reinitialising download selectors\n";
+  Printf.bprintf buf "%d results (%s)\n" s.search_nresults 
+    (if s.search_waiting = 0 then "done" else
+      (string_of_int s.search_waiting) ^ " waiting");
+  
+  if not !!new_print_search then old_print_search buf format results else
+    begin
+      if format.conn_output = HTML && !!html_checkbox_file_list then
+        print_search_html buf results format s.search_num
+      else
+        print_results buf format results 
     end  
 
 let browse_friends () =

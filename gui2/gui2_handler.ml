@@ -491,7 +491,7 @@ let menu_save_file t =
           )
         in
         match file.file_format with
-          Mp3 tag ->
+          MP3 (tag, _) ->
             let edit_mp3tag file () = 
 (*              Printf.printf "do it"; print_newline (); *)
               (
@@ -657,10 +657,11 @@ let update_current_file () =
             Printf.sprintf "AVI: %s %dx%d %d fps %d bpf"
               f.avi_codec f.avi_width f.avi_height 
               f.avi_fps f.avi_rate
-	| Mp3 tag ->
+          | MP3 (tag,_) ->
+              let module M = Mp3tag.Id3v1 in
 	    Printf.sprintf "MP3: %s - %s (%d): %s"
-	      tag.Mp3tag.artist tag.Mp3tag.album 
-	      tag.Mp3tag.tracknum tag.Mp3tag.title
+	      tag.M.artist tag.M.album 
+	      tag.M.tracknum tag.M.title
         | _ -> "Unknown")
         ;
   );
@@ -1172,7 +1173,7 @@ let value_reader (gui: gui) t sock =
           with _ -> ()
         end;
     
-    | File_source (f_num, c_num) ->
+    | File_add_source (f_num, c_num) ->
         
         begin
           try 
@@ -1194,6 +1195,8 @@ let value_reader (gui: gui) t sock =
             update_file f
           with _ -> ()
         end
+        
+    | File_remove_source (f_num, c_num) -> ()
     
     
     | P.Options_info list ->

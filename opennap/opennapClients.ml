@@ -45,6 +45,8 @@ let client_handler c sock event =
     BASIC_EVENT (CLOSED s) ->      
 (*      Printf.printf "CONNECTION WITH CLIENT LOST (%s)" s; print_newline (); *)
       disconnect_client c
+  | BASIC_EVENT (RTIMEOUT|LTIMEOUT) ->
+      disconnect_client c
   | _ -> ()
 
 
@@ -287,10 +289,7 @@ let connect_client c =
       set_write_controler sock DG.upload_control;
       
       set_reader sock (client_reader c);
-      set_rtimeout sock 30.;
-      set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
-          disconnect_client c
-      )
+      set_rtimeout sock 30.
       
       
       

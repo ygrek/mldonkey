@@ -304,3 +304,7 @@ let _ =
           List2.tail_map (fun (s, r) ->
             s, as_result r.result_result  
           ) list)
+
+let _ =
+  network.op_network_save_complex_options <- (fun _ -> ())
+  

@@ -39,7 +39,7 @@ let hourly_timer timer =
   CommonShared.shared_check_files ();
   if !hours mod !!compaction_delay = 0 then Gc.compact ();
   DriverControlers.check_calendar ()
-
+    
 let start_interfaces () =
   
   if !!http_port <> 0 then begin try
@@ -50,50 +50,17 @@ let start_interfaces () =
           print_newline ();
     end;
   
-  if !!telnet_port <> 0 then begin try
-        ignore(TcpServerSocket.create "telnet server"
-          (Ip.to_inet_addr !!telnet_bind_addr)
-          !!telnet_port DriverControlers.telnet_handler);  
-      with e ->
-          Printf.printf "Exception %s while starting telnet interface"
-            (Printexc2.to_string e);
-          print_newline ();
+  ignore (find_port  "telnet server" !!telnet_bind_addr
+    telnet_port DriverControlers.telnet_handler);  
+  
+  if !!chat_port <> 0 then begin
+      ignore (find_port "chat server" !!chat_bind_addr
+        chat_port DriverControlers.chat_handler);  
+      CommonChat.send_hello ()
     end;
 
-  if !!chat_port <> 0 then 
-    begin
-      try
-        ignore(TcpServerSocket.create "chat server"
-		 (Ip.to_inet_addr !!chat_bind_addr)
-		 !!chat_port DriverControlers.chat_handler);  
-	(** Send hello to the chat app *)
-	CommonChat.send_hello ()
-      with e ->
-          Printf.printf "Exception %s while starting chat interface"
-            (Printexc2.to_string e);
-          print_newline ();
-    end;
-  
-  if !!gui_port <> 0 then
-    begin
-      restart_gui_server := (fun _ ->
-          begin
-            match !gui_server_sock with
-              None -> ()
-            | Some sock ->
-                TcpServerSocket.close sock "gui server restart"
-          end;
-          gui_server_sock := Some 
-            (TcpServerSocket.create "gui server" (Ip.to_inet_addr !!gui_bind_addr)
-            !!gui_port gui_handler);  
-      );
-      try
-        !restart_gui_server ();
-      with e ->
-          Printf.printf "Exception %s while starting GUI interface"
-            (Printexc2.to_string e);
-          print_newline ();
-    end  ;
+  gui_server_sock := find_port "gui server"  !!gui_bind_addr
+    gui_port gui_handler;  
   add_infinite_option_timer update_gui_delay DriverInterface.update_gui_info
 
 
@@ -309,12 +276,12 @@ Files.dump_file file), " <filename> : dump file";
           print_newline ();
           exit 0), 
       " : display information on the implementations";
+      "-find_port", Arg.Set find_other_port, " : find another port when one
+      is already used";
     ] @ !more_args)
     (fun file -> ()
 (*      Files.dump_file file; exit 0 *)
   ) "";
-
-  networks_iter (fun r -> network_load_complex_options r);
     
 
 (**** CREATE DIRS   ****)
@@ -362,7 +329,8 @@ let _ =
   Options.save_with_help files_ini;
   Options.save_with_help friends_ini;
   Options.save_with_help searches_ini;
-  
+
+  networks_iter (fun r -> network_load_complex_options r);
   
   networks_iter_all (fun r -> 
       Printf.printf "Network %s %s" r.network_name
@@ -376,9 +344,7 @@ let _ =
   
   add_infinite_timer 3600. hourly_timer;
   shared_add_directory !!incoming_directory;
-  List.iter shared_add_directory !!shared_directories;
-  
-  
+  List.iter shared_add_directory !!shared_directories;  
   
   add_infinite_timer 300. (fun timer ->
       DriverInteractive.browse_friends ());
@@ -401,13 +367,13 @@ let _ =
   
   (try
       let _ = Sys.getenv("DISPLAY") in
-      if !!start_gui then
+      if !!start_gui && Sys.file_exists !!mldonkey_gui then
         ignore (Sys.command (Printf.sprintf "%s &" !!mldonkey_gui))
       else
-      if !!ask_for_gui then
-        ignore (Sys.command
-            (Printf.sprintf "%s %s&" (Filename.concat !!mldonkey_bin 
-                "mldonkey_guistarter") !!mldonkey_gui));
+      let asker = Filename.concat !!mldonkey_bin "mldonkey_guistarter" in
+      if !!ask_for_gui  && Sys.file_exists !!mldonkey_gui &&
+        Sys.file_exists asker then
+        ignore (Sys.command (Printf.sprintf "%s %s&" asker !!mldonkey_gui));
     with Not_found -> 
         Printf.printf "Not running under X, not trying to start the GUI";
         print_newline ());

@@ -248,10 +248,6 @@ let nservers = ref 0
 let servers_by_key = Hashtbl.create 127
 let servers_list = ref ([] : server list)
   
-let clients_lists = Array.create 5  ([] : client list)
-let new_clients_list = ref ([] : client list)
-let remaining_seconds = ref 60
-  
 (* let remaining_time_for_clients = ref (60 * 15) *)
 let location_counter = ref 0
 let download_credit = ref 0 
@@ -318,21 +314,6 @@ let files_by_md4 = Hashtbl.create 127
 
 let find_file md4 = Hashtbl.find files_by_md4 md4
 
-        
-let set_client_state c s =
-  let cc = as_client c.client_client in
-  let os = client_state cc in
-  if os <> s then begin
-      if os = Connected_busy then decr nclients;
-      if s = Connected_busy then incr nclients;  
-      set_client_state cc s;
-    end
-    
-let set_server_state s state =
-  let ss = as_server s.server_server in
-  if server_state ss <> state then begin
-      set_server_state ss state;
-    end
     
 let servers_ini_changed = ref true
 let upload_clients = (Fifo.create () : client Fifo.t)
@@ -392,18 +373,12 @@ let new_file file_state file_name md4 file_size writable =
           file_all_chunks = String.make nchunks '0';
           file_absent_chunks =   [Int32.zero, file_size];
           file_filenames = [Filename.basename file_name];
-          file_nlocations = 0;
+          file_nsources = 0;
           file_md4s = md4s;
           file_available_chunks = Array.create nchunks 0;
           file_format = Unknown_format;
-          file_enough_sources = false;
-          
-          file_sources = Intmap.empty;
-          file_emerging_sources = [];
-          file_old_sources = Fifo.create ();
-          file_concurrent_sources = Fifo.create ();
-          
-          file_all_sources = Hashtbl.create 1001;
+          file_paused_sources = Fifo.create ();
+          file_locations = Intmap.empty;
         }
       and file_impl = {
           dummy_file_impl with
@@ -476,6 +451,7 @@ let new_server ip port score =
           server_last_message = 0.0;
           server_queries_credit = 0;
           server_waiting_queries = [];
+          server_id_requests = Fifo.create ();
         }
       and server_impl = 
         {
@@ -520,7 +496,6 @@ let dummy_client =
       client_zones = [];
       client_connection_control =  new_connection_control_recent_ok ( ());
       client_file_queue = [];
-      client_source_for = [];
       client_tags = [];
       client_name = "";
       client_all_files = None;
@@ -540,6 +515,10 @@ let dummy_client =
       client_banned = false;
       client_has_a_slot = false;
       client_overnet = false;
+      client_score = Client_not_connected;
+      client_requests = [];
+      client_files = [];
+      client_next_queue = 0;
     } and
     client_impl = {
       dummy_client_impl with            
@@ -548,19 +527,6 @@ let dummy_client =
     }
   in
   c  
-
-let sources = Hashtbl.create 13557
-let new_source ip port =
-  let addr = (ip, port) in
-  try
-    Hashtbl.find sources addr
-  with _ ->
-      let src = {
-          source_addr = addr;
-          source_client = SourceRecord 0.0;
-        }  in
-      Hashtbl.add sources addr src;
-      src
       
 let new_client key =
   let c = 
@@ -580,27 +546,30 @@ let new_client key =
             client_zones = [];
             client_connection_control =  new_connection_control_recent_ok ( ());
             client_file_queue = [];
-            client_source_for = [];
             client_tags = [];
             client_name = "";
             client_all_files = None;
             client_next_view_files = last_time () -. 1.;
             client_all_chunks = "";
             client_rating = 0;
-	    client_brand = Brand_unknown;
+            client_brand = Brand_unknown;
             client_checked = false;
             client_chat_port = 0 ; (** A VOIR : où trouver le 
             port de chat du client ? *)
             client_connected = false;
             client_power = !!upload_power;
-	    client_downloaded = Int64.zero;
-	    client_uploaded = Int64.zero;
+            client_downloaded = Int64.zero;
+            client_uploaded = Int64.zero;
             client_on_list = false;            
             client_already_counted = false;
             client_banned = false;
             client_has_a_slot = false;
             client_overnet = false;
-            } and
+            client_score = Client_not_connected;
+            client_requests = [];
+            client_files = [];
+            client_next_queue = 0;
+          } and
           client_impl = {
             dummy_client_impl with            
             impl_client_val = c;
@@ -613,31 +582,7 @@ let new_client key =
         c
   in
   c
-  
-let client_from_source src =
-  match src.source_client with
-    SourceClient c -> c
-  | SourceRecord _ -> 
-      let (ip,port) = src.source_addr in
-      let c = new_client (Known_location (ip,port)) in
-      c.client_source <- Some src;
-      c
 
-let new_client key =
-  match key with
-    Known_location (ip,port) ->
-      begin
-        let src = new_source ip port in
-        match src.source_client with
-          SourceRecord _ ->
-            let c = new_client key in
-            c.client_source <- Some src;
-            src.source_client <- SourceClient c;
-            c
-        | SourceClient c -> c
-      end
-  | Indirect_location _ -> new_client key
-      
 let client_type c =
   client_type (as_client c.client_client)
 
@@ -716,15 +661,6 @@ end;
       incr client_counter;
       match c.client_sock with
         None -> begin
-            if c.client_source_for = [] then incr uninteresting_clients
-            else begin
-                List.iter (fun file ->
-                    if not (Intmap.mem num file.file_sources) then
-                      begin
-                        incr unlocated_client;
-                      end
-                ) c.client_source_for;
-              end;
             match c.client_kind with
               Indirect_location _ -> incr unconnected_unknown_clients
             | _ -> ()
@@ -755,43 +691,6 @@ end;
   Printf.bprintf buf "   Bad numbered clients: %d\n" !bad_numbered_clients;
   Printf.bprintf buf "   Dead clients: %d\n" !dead_clients;
   Printf.bprintf buf "   Disconnected aliases: %d\n" !disconnected_alias;
-  
-  let direct_locs = ref 0 in
-  let indirect_locs = ref 0 in
-  let aliased_locations = ref 0 in
-  let loc_unaware = ref 0 in
-  let unregistered_locs = ref 0 in
-  Hashtbl.iter (fun md4 file ->
-      Printf.bprintf buf "FILE %s\n" (file_disk_name file);
-      let len = Intmap.length file.file_sources in
-      Printf.bprintf buf "  locs %d\n" len;
-      direct_locs := !direct_locs + len;
-      
-      (*
-      Intmap.iter (fun _ c ->
-          try
-            let cc = Hashtbl.find clients_by_num num in
-            if not (List.memq file c.client_files) then 
-              incr loc_unaware;
-            if cc != c then incr aliased_locations;
-          with _ -> incr unregistered_locs;
-) file.file_indirect_locations;
-  
-      Intmap.iter (fun _ c ->
-          try
-            let cc = Hashtbl.find clients_by_num c.client_num in
-            if not (List.memq file c.client_files) then 
-              incr loc_unaware;
-            if cc != c then incr aliased_locations;
-          with _ -> incr unregistered_locs;
-      ) file.file_known_locations;
-      *)
-  ) files_by_md4;
-  Printf.bprintf buf "Direct locs: %d\n" !direct_locs;
-  Printf.bprintf buf "Indirect locs: %d\n" !indirect_locs;
-  Printf.bprintf buf "Aliased locs: %d\n" !aliased_locations;
-  Printf.bprintf buf "Unregitered locs: %d\n" !unregistered_locs;
-  Printf.bprintf buf "Unaware locs: %d\n" !loc_unaware;
   ()
   
 let client_num c = client_num (as_client c.client_client)  
@@ -804,18 +703,10 @@ let remove_client c =
 (*  hashtbl_remove clients_by_name c.client_name c *)
   ()
 
+  
+  (*
 let check_useful_client c = 
-  let useful =
-    client_type c <> NormalClient ||
-    c.client_sock <> None ||
-    c.client_downloaded <> Int64.zero || (* don't forget *)
-    c.client_uploaded <> Int64.zero || (* don't forgive *)
-    match c.client_kind with
-      Known_location (ip, port) -> c.client_source_for != [] && 
-        not (is_black_address ip port )
-    | Indirect_location _ -> 
-        c.client_source_for != [] || c.client_upload != None
-  in
+  let useful = c.client_is_friend in
   if not useful then begin
       List.iter (fun file ->
           file.file_sources <- Intmap.remove (client_num c) file.file_sources;
@@ -824,10 +715,12 @@ let check_useful_client c =
       c.client_source_for <- [];
       remove_client c
     end
-    
+      *)
+
 let friend_remove c = 
   friend_remove  (as_client c.client_client)
-    
+
+  (*
 let remove_file_clients file =
   let locs = file.file_sources in
   file.file_sources <- Intmap.empty;
@@ -837,9 +730,11 @@ let remove_file_clients file =
         c.client_source_for <- List2.removeq file c.client_source_for;
       check_useful_client c
   ) locs  
-  
+    *)
+
 let last_search = ref (Intmap.empty : int Intmap.t)
-      
+  
+  (*
 let remove_source file c =
   if List.memq file c.client_source_for then begin  
       file.file_sources <- Intmap.remove (client_num c) file.file_sources;
@@ -885,27 +780,7 @@ no sources have been connected yet. *)
       c.client_source_for <- file :: c.client_source_for;
 (*      Printf.printf "New source added %d" file.file_nlocations; *)
     end    
-   
-let file_state file =
-  CommonFile.file_state (as_file file.file_file)
-  
-let file_enough_sources file =
-  file.file_enough_sources
-  
-let file_last_seen file = file.file_file.impl_file_last_seen
-  
-let file_must_update file =
-  file_must_update (as_file file.file_file)
-    
-let client_state client =
-  CommonClient.client_state (as_client client.client_client)
-    
-let client_new_file client r =
-  client_new_file (as_client client.client_client) ""
-  (as_result r.result_result)
-    
-let server_state server =
-  CommonServer.server_state (as_server server.server_server)
+      *)
   
 (* indexation *)
 let comments = (Hashtbl.create 127 : (Md4.t,string) Hashtbl.t)
@@ -969,20 +844,6 @@ let _ =
           print_newline ();
      ) list;
       print_newline ();
-
-(* clients_list *)
-      let print_client_list l =
-	Printf.printf "Clients list: %d" (List.length l);
-	print_newline ();
-	List.iter (fun c ->
-		     Printf.printf "[%d %s]" (client_num c)
-		     (if H.mem clients_by_kind c then "K" else " ") ;
-		  ) l;
-	print_newline () in
-
-	Array.iter (fun list -> print_client_list list) clients_lists;
-	print_client_list !new_clients_list
-          
   )
   
   
@@ -1056,7 +917,3 @@ let result_of_file md4 tags =
   ) tags;
   if check_result r tags then Some r else None
     
-        
-let update_file_enough_sources file state =
-  file.file_enough_sources <- state;
-  file_must_update file

@@ -96,6 +96,21 @@ and file = {
     file_name : string;
     mutable file_clients : client list;
   }
+
+and shared_file = {
+    shared_fullname : string;
+    shared_codedname : string;
+    shared_size : int32;
+    shared_fd : Unix32.t;
+    shared_format : Mp3tag.Id3v1.tag * Mp3tag.info;
+  }
+
+and shared_tree =
+  { 
+    shared_dirname : string;
+    mutable shared_files : shared_file list;
+    mutable shared_dirs : (string * shared_tree) list;
+  }
   
 and client_state =
   Client_not_connected

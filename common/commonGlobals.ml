@@ -27,8 +27,32 @@ let version = Printf.sprintf "
 MLDonkey %s: Objective-Caml Client/Server for the eDonkey2000 Network" 
   Autoconf.current_version
   
+(* Should we try to find another port when we cannot bind to the one set
+in an option, and then change the option accordingly. ?> *)
+let find_other_port = ref false
 
-    
+  
+let find_port server_name bind_addr port_option handler =
+  if !!port_option <> 0 then
+    let rec iter port =
+      try
+        let sock = TcpServerSocket.create server_name
+            (Ip.to_inet_addr bind_addr)
+          port handler in
+        port_option =:= port;
+        Some sock
+      with e ->
+          if !find_other_port then iter (port+1)
+          else begin
+              Printf.printf "Exception %s while starting %s" server_name
+                (Printexc2.to_string e);
+              print_newline ();
+              None
+            end
+    in
+    iter !!port_option
+  else None
+  
 let one_day = 3600. *. 24.
 let half_day = one_day /. 2.
 

@@ -29,7 +29,7 @@ module P = Gpattern
 module O = Gui_options
 
 let (!!) = Options.(!!)
-(* [ M.kind ; M.name ; ] *)
+
 class box columns () =
   let titles = List.map Gui_columns.User.string_of_column columns in 
   object (self)
@@ -73,25 +73,6 @@ class box columns () =
       in
       let col_opt = Some `BLACK      in
       (strings, col_opt)
-
-    (*
-    method compare u1 u2 =
-      let res = match current_sort with
-      |	1 | -1 -> compare (Ip.valid u1.user_ip) (Ip.valid u2.user_ip)
-      |	2 | -2 -> compare u1.user_name u2.user_name
-      |	_ -> 0
-      in
-      res * current_sort
-
-    method content u =
-      let s_kind = 
-	if Ip.valid u.user_ip then 
-          M.direct
-	else ""
-      in
-      let s_name = u.user_name in
-      [ P.String s_kind ; P.String s_name ; ], None
-*)
     
     method add_to_friends () =
       List.iter 
@@ -121,7 +102,7 @@ class box columns () =
 	(wtool#insert_button 
 	   ~text: (gettext M.add_to_friends)
 	   ~tooltip: (gettext M.add_to_friends)
-	   ~icon: (Gui_icons.pixmap M.o_xpm_add_to_friends)#coerce
+	   ~icon: (Gui_options.pixmap M.o_xpm_add_to_friends)#coerce
 	   ~callback: self#add_to_friends
 	   ()
 	);

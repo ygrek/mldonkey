@@ -22,7 +22,7 @@ val create : unit -> 'a t
 val put : 'a t -> 'a -> unit
 val take : 'a t -> 'a
 val clear : 'a t -> unit
-val read : 'a t -> 'a
+val head : 'a t -> 'a
 val empty : 'a t -> bool
 val to_list : 'a t -> 'a list
 val length : 'a t -> int

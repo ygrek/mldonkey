@@ -24,6 +24,7 @@ type 'a room_impl = {
     mutable impl_room_num : int;
     mutable impl_room_val : 'a;
     mutable impl_room_ops : 'a room_ops;
+    mutable impl_room_account : account;
   }
   
 and 'a room_ops = {
@@ -59,6 +60,7 @@ let dummy_room_impl = {
     impl_room_num = 0;
     impl_room_val = 0;
     impl_room_ops = Obj.magic 0;
+    impl_room_account = Obj.magic 0;
   }
   
 let dummy_room = as_room dummy_room_impl  
@@ -96,6 +98,10 @@ let room_status room =
   let room = as_room_impl room in
   room.impl_room_ops.op_room_status room.impl_room_val
   
+  
+let room_protocol room = 
+  let room = as_room_impl room in
+  room.impl_room_ops.op_room_protocol
   
 let new_room_ops protocol = {
     op_room_protocol = protocol; 

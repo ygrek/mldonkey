@@ -319,7 +319,7 @@ let connect_client c =
                 (Ip.to_inet_addr ip) port
                 (fun sock event ->
                   match event with
-                    BASIC_EVENT RTIMEOUT ->
+                    BASIC_EVENT (RTIMEOUT|LTIMEOUT) ->
                       disconnect_client c
                   | BASIC_EVENT (CLOSED _) ->
                       disconnect_client c

@@ -107,13 +107,24 @@ let new_protocol name v =
   Hnum.add protocols_by_num p;
   p
   
-let fni protocol name _ =
-  failwith (Printf.sprintf "Method %s not implemented in %s" name 
-      (protocol_name protocol))
+let ni protocol name _ =
+  Printf.printf "Method %s not implemented in %s" name 
+    (protocol_name protocol);
+  print_newline ()
   
-let fni2 protocol name _ _ =
-  failwith (Printf.sprintf "Method %s not implemented in %s" name 
-      (protocol_name protocol))
+let fni protocol name x =
+  ni protocol name x;
+  raise Not_found
+  
+let ni2 protocol name _ _ =
+  Printf.printf "Method %s not implemented in %s" name 
+    (protocol_name protocol); print_newline ()
+  
+  
+let fni2 protocol name x y =
+  ni2 protocol name x y;
+  raise Not_found
+  
 
 let protocol_find_by_name name = 
   Hname.find protocols_by_name

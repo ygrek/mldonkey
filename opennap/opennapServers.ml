@@ -258,7 +258,10 @@ let client_to_server s t sock =
       s.server_port s.server_net; print_newline ();
 Printf.printf "MESSAGE FROM SERVER: %s" error; print_newline ()  *)
 
-  | OP.MessageReq error -> ()
+  | OP.MessageReq error -> 
+      let msg = Printf.sprintf "From server %s [%s:%d]: %s\n"
+          s.server_desc (Ip.to_string s.server_ip) s.server_port error in
+      CommonEvent.add_event (Console_message_event msg)
 
     
   | OP.NickAlreadyUsedReq ->
@@ -284,6 +287,29 @@ print_newline (); *)
 (*      Printf.printf "*****  CONNECTED %s  ******" mail; print_newline (); *)
       set_server_state s Connected_idle;
       connected_servers := s :: !connected_servers;
+      
+      (try
+          let nshared_files = ref 0 in
+          Hashtbl.iter (fun _ sh ->
+              if !nshared_files > !!max_shared_files then raise Exit;
+
+              let (tag,info) = sh.shared_format in
+              OP.debug_server_send sock (OP.AddFileReq (
+                  let module M = OP.AddFile in
+                  {
+                    M.filename = sh.shared_codedname;
+                    M.md5 = Md5.to_string Md5.null;
+                    M.size = Int32.of_int info.Mp3tag.filesize;
+                    M.bitrate = info.Mp3tag.bitrate;
+                    M.freq = 0;
+                    M.length = info.Mp3tag.duration;
+                  }
+                ))
+              
+          ) shared_files;
+          
+        with _ -> ());
+      
       recover_files_from_server s
       
   | OP.ServerStatsReq t ->
@@ -494,6 +520,9 @@ let _ =
   server_ops.op_server_remove <- (fun s ->
       disconnect_server s;
       server_remove s
-  )
+  );
+  
+  network.op_network_connected <- (fun _ -> !connected_servers != []);
+  network.op_network_save_complex_options <- (fun _ -> ())
   
   

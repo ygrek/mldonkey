@@ -251,7 +251,7 @@ class box_friends box_files () =
         (wtool#insert_button 
           ~text: (gettext M.find_friend)
         ~tooltip: (gettext M.find_friend)
-        ~icon: (Gui_icons.pixmap M.o_xpm_find_friend)#coerce
+        ~icon: (Gui_options.pixmap M.o_xpm_find_friend)#coerce
           ~callback: self#find_friend
           ()
       );
@@ -259,7 +259,7 @@ class box_friends box_files () =
         (wtool#insert_button 
           ~text: (gettext M.remove)
         ~tooltip: (gettext M.remove)
-        ~icon: (Gui_icons.pixmap M.o_xpm_remove)#coerce
+        ~icon: (Gui_options.pixmap M.o_xpm_remove)#coerce
           ~callback: self#remove
           ()
       );
@@ -267,7 +267,7 @@ class box_friends box_files () =
         (wtool#insert_button 
           ~text: (gettext M.remove_all_friends)
         ~tooltip: (gettext M.remove_all_friends)
-        ~icon: (Gui_icons.pixmap M.o_xpm_remove_all_friends)#coerce
+        ~icon: (Gui_options.pixmap M.o_xpm_remove_all_friends)#coerce
           ~callback: self#remove_all_friends
           ()
       );
@@ -380,7 +380,7 @@ class box_list () =
 	(wtool#insert_button 
 	   ~text: (gettext M.add_to_friends)
 	   ~tooltip: (gettext M.add_to_friends)
-	   ~icon: (Gui_icons.pixmap M.o_xpm_add_to_friends)#coerce
+	   ~icon: (Gui_options.pixmap M.o_xpm_add_to_friends)#coerce
 	   ~callback: self#add_to_friends
 	   ()
 	);

@@ -116,3 +116,5 @@ val compute_lost_byte : bandwidth_controler -> int
   
 val exec_command : string -> string array -> handler -> t * t
   
+val not_buffer_more : t -> int -> bool
+  

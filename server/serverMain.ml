@@ -263,7 +263,7 @@ let _ =
 			    Printf.bprintf buf "nb udp requets/second :%f\n" (!nb_udp_req_sec /. 60.);
 			    Printf.bprintf buf "nb udp Location/second:%f, %f is return \nnb udp Query/second:%f\n" (!nb_udp_loc_sec /. 60.) (!nb_udp_loc_reply_sec /. !nb_udp_loc_sec *. 100.) (!nb_udp_query_sec /. 60.);
 			    if (!stop_udp) then
-			      Printf.bprintf buf "I received too much query and i stop all udp reply to server\n"
+			      Printf.bprintf buf "I received too many queries and i stop all udp reply to server\n"
 			    else
 			      Printf.bprintf buf "I reply server and client udp message\n";
 			    Printf.bprintf buf "nb udp rely send/second : %f\n" (!nb_udp_reply_sec /. 60.);

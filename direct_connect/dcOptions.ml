@@ -60,11 +60,11 @@ let dc_port = define_option directconnect_ini ["client_port"]
   
 let login = define_option directconnect_ini ["login"]
     "Your login on DC (no spaces !!!)" string_option ""
-  
     
 let max_known_servers = define_option directconnect_ini
     ["query_hublist_limit"] 
-    "The limit on the number of servers to avoid asking for a new list" int_option 100
+    "The limit on the number of servers to avoid asking for a new list" 
+  int_option 100
     
 let commit_in_subdir = define_option directconnect_ini ["commit_in_subdir"]
   "The subdirectory of temp/ where files should be moved to"
@@ -76,7 +76,7 @@ let servers_list_url = define_option directconnect_ini ["servers_list_url"]
   
 let client_description = define_option directconnect_ini
     ["client_description"] "The description sent in the MyINFO message"
-    string_option "mldonkey client"
+    string_option "mldc client"
   
 (* We should probably only have one common option for all networks for the
   speed. However, it might be interesting to cheat on some networks... *)
@@ -87,7 +87,7 @@ let client_speed = define_option directconnect_ini
   
 let client_keyinfo = define_option directconnect_ini
     ["client_keyinfo"] "The key info sent in the handshake message"
-    string_option "Pk=mldonkey"
+    string_option "Pk=mldc"
   
 let network_options_prefix = define_option directconnect_ini
     ["network_options_prefix"] 

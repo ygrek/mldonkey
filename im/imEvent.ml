@@ -21,12 +21,19 @@ open ImTypes
   
 type event =
 | Account_event of account
-| Identity_event of identity 
+| Account_friend_event of identity 
   
 | Chat_open_event of chat
 | Chat_my_message of chat * string
 | Chat_message_event of chat * identity * string
 | Chat_close_event of  chat
+
+| Room_join of room
+| Room_leave of room
+| Room_message of room * identity * string
+| Room_user_join of room * identity
+| Room_user_leave of room * identity
+| Room_public_message of room * string
   
   (*
   

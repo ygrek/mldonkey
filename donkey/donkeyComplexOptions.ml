@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open BasicSocket
 open Md4
 open CommonClient
 open CommonServer
@@ -30,13 +31,14 @@ open CommonOptions
 open CommonGlobals
 open DonkeyGlobals
 
-let set_features () =
-  ignore (String2.tokens !!features)
+let shared_files_ini = create_options_file (
+    Filename.concat file_basedir "shared_files.ini")
+  
+let file_sources_ini = create_options_file (
+    Filename.concat file_basedir "file_sources.ini")
+
 
   
-let _ =
-  option_hook features set_features
-
     
 (************ COMPLEX OPTIONS *****************)
   
@@ -265,11 +267,12 @@ let value_to_file is_done assocs =
       file.file_all_chunks <- get_value "file_all_chunks"
         value_to_string
     with _ -> ());
-  
+
+  (*
   List.iter (fun c ->
       DonkeyGlobals.new_source file  c;
   )
-  (get_value_nil "file_locations" (value_to_list value_to_donkey_client));
+   (get_value_nil "file_locations" (value_to_list value_to_donkey_client)); *)
   
   (try
       file.file_chunks_age <-
@@ -303,16 +306,6 @@ let string_of_chunks file =
   s
 
 let file_to_value file =
-  let locs = ref [] in
-  Intmap.iter (fun _ c ->
-      match c.client_kind with
-        Indirect_location _ -> 
-          if c.client_md4 <> Md4.null then 
-            locs := c :: !locs
-      | _ ->             
-          locs := c :: !locs
-  ) file.file_sources;
-  
   [
     "file_md4", string_to_value (Md4.to_string file.file_md4);
     "file_size", int32_to_value file.file_file.impl_file_size;
@@ -332,8 +325,6 @@ let file_to_value file =
     "file_downloaded", int32_to_value file.file_file.impl_file_downloaded;
     "file_chunks_age", List (Array.to_list 
         (Array.map float_to_value file.file_chunks_age));
-    "file_locations", list_to_value "Donkey Locations" donkey_client_to_value
-      !locs;        
   ]
   
 module SharedFileOption = struct
@@ -380,6 +371,79 @@ module SharedFileOption = struct
     
     
     let t = define_option_class "SharedFile" value_to_shinfo shinfo_to_value
+  end
+
+let value_to_module f v =
+  match v with
+    Module list -> f list
+  | _ -> failwith "Option should be a module"
+  
+module ClientOption = struct
+    
+    let value_to_source assocs = 
+      let get_value name conv = conv (List.assoc name assocs) in
+      let get_value_nil name conv = 
+        try conv (List.assoc name assocs) with _ -> []
+      in
+      let addr = get_value "source_addr" (fun v ->
+            match v with
+              List [ip;port] | SmallList [ip;port] ->
+                let ip = Ip.of_string (value_to_string ip) in
+                let port = value_to_int port in
+                (ip, port)
+            | _ -> failwith  "Options: Not an source option")
+      in
+      let files = get_value "source_files" (value_to_list Md4.value_to_hash) in
+      
+      let overnet_source = try
+          get_value "source_overnet" value_to_bool
+        with _ -> false in
+      
+      let last_conn = 
+        try
+          (min (get_value "source_age" value_to_float) (last_time ()))
+        with _ -> last_time ()
+      in
+      
+      let rec iter files =
+        match files with
+          [] -> raise SideEffectOption
+        | md4 :: tail ->
+            try
+              let file = find_file md4 in
+              let s = DonkeySources1.new_source addr file in
+              s.source_overnet <- overnet_source;
+              s.source_client <- 
+                SourceLastConnection (DonkeySources1.new_sources_queue, 
+                last_conn);
+              List.iter (fun md4 ->
+                  try
+                    let file = find_file md4 in
+                    s.source_files <- (file, 0.0) :: s.source_files
+                  with _ -> ()
+              ) files;
+              s
+            with _ -> iter tail
+      in 
+      iter files
+      
+    let source_to_value s =
+      let last_conn = match s.source_client with
+          SourceLastConnection (_, time) -> time
+        | _ -> last_time ()
+      in
+      let (ip, port) = s.source_addr in
+      Module [
+        "source_age", float_to_value (* last_conn *) 0.0;
+        "source_addr", addr_to_value ip port;
+        "source_overnet", bool_to_value s.source_overnet;
+        "source_files", list_to_value "file list" (fun (file,_) -> 
+              Md4.hash_to_value file.file_md4) s.source_files
+      ]
+      
+    
+    let t = define_option_class "Source" (value_to_module value_to_source)
+      source_to_value
   end
     
       
@@ -437,15 +501,40 @@ let remove_server ip port =
     DonkeyGlobals.servers_ini_changed := true;
     DonkeyGlobals.remove_server ip port
   with _ -> ()
-    
+
+      
+let sources = define_option file_sources_ini 
+    ["sources"] "" 
+    (listiter_option ClientOption.t) []
+
+      
 let load _ =
-  try
-    Options.load shared_files_ini
-  with Sys_error _ ->
-      Options.save_with_help shared_files_ini
+  Printf.printf "LOADING SHARED FILES AND SOURCES"; print_newline ();
+  (try
+      Options.load shared_files_ini
+    with Sys_error _ ->
+        Options.save_with_help shared_files_ini)
 
 let save _ =
-  Options.save_with_help shared_files_ini
+  Printf.printf "SAVING SHARED FILES AND SOURCES"; print_newline ();
+  Options.save_with_help shared_files_ini;
+  sources =:= [];
+  DonkeySources1.iter (fun s -> sources =:= s :: !!sources);
+  List.iter (fun file ->
+      Fifo.iter (fun (s,_) -> sources =:= s :: !!sources) 
+      file.file_paused_sources;
+      
+  ) !current_files;
+  Options.save_with_help file_sources_ini;
+  Printf.printf "SAVED"; print_newline ();
+  sources =:= []
+
+let load_sources () = 
+  (try 
+      Options.load file_sources_ini
+    with _ -> ())
+
+    
   
 let _ =
   network.op_network_add_file <- value_to_file;

@@ -188,13 +188,13 @@ print_newline ();
               let rcFrame_dy = input_int16 ic in
               
               if fccType = "vids" then                
-                raise (Avifile_info {
+                raise (FormatFound (AVI {
                     avi_codec = fccHandler;
                     avi_width = rcFrame_dx;
                     avi_height = rcFrame_dy;
                     avi_fps = Int32.to_int (Int32.div dwRate dwScale);
                     avi_rate = Int32.to_int dwLength;
-                  });
+                  }));
               
 
               
@@ -231,16 +231,15 @@ print_newline ();
 
 let search_info_mp3 filename =
   try
-    let tag = Mp3tag.read filename in
-    raise (Mp3_info tag)
+    let tag = Mp3tag.Id3v1.read filename in
+    let info = Mp3tag.info filename in
+    raise (FormatFound (MP3 (tag, info)))
   with
-    Not_found -> ()
-  | Mp3_info tag -> 
-      raise (Mp3_info tag)
+  | FormatFound _ as e -> raise e
   | x ->
       Printf.printf "error while looking for mp3file %s: %s" filename
-        (Printexc2.to_string x); print_newline ();
-      raise x
+        (Printexc2.to_string x); print_newline ()
+
 
 let get_info file =
   let ic = open_in file in
@@ -275,6 +274,6 @@ let get_info file =
   with e -> 
       close_in ic;
       match e with
-        Avifile_info i -> AVI i
-      |	Mp3_info tag ->  Mp3 tag
+        FormatFound f -> f
       | _ -> raise e
+          

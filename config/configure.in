@@ -3,8 +3,12 @@ AC_PREREQ(2.0)
 AC_INIT(Makefile.config.in)
 AC_CONFIG_HEADER(config.h)
 
+CONFIG_ARGS_DEFINED=yes
+CONFIG_ARGS=$*
+echo $CONFIG_ARGS
+
 CURRENT_VERSION=2.02
-CURRENT_RELEASE=0
+CURRENT_RELEASE=1
 
 REQUIRED_OCAML=3.06
 REQUIRED_LABLGTK=1.2.4
@@ -61,8 +65,14 @@ AC_ARG_ENABLE(cymes, [--disable-cymes:       allows you to remove support for Cy
 
 AC_ARG_ENABLE(donkey, [--disable-donkey:       allows you to remove support for eDonkey], [DONKEY="$enableval"])
 
-IM=no
-AC_ARG_ENABLE(im, [--enable-im:       (undocumented)], [IM="$enableval"])
+AC_ARG_ENABLE(ocamlver, [--enable-ocamlver=3.06:       allows you to change the required version of ocaml], [REQUIRED_OCAML="$enableval"])
+
+AC_ARG_ENABLE(lablgtkver, [--enable-lablgtkver=1.2.4:       allows you to change the required version of lablgtk], [REQUIRED_LABLGTK="$enableval"])
+
+
+
+IM=yes
+AC_ARG_ENABLE(devel, [--enable-devel:       (undocumented)], [DEVEL="$enableval"])
 
 AC_CANONICAL_HOST
 AC_PROG_CC
@@ -594,7 +604,7 @@ AC_SUBST(OPEN_DONKEY)
 AC_SUBST(DONKEY_SERVER)
 AC_SUBST(CYMES)
 
-AC_SUBST(IM)
+AC_SUBST(DEVEL)
 AC_SUBST(JABBR)
 
 AC_SUBST(OCAMLOPT_DIL)
@@ -611,6 +621,8 @@ AC_SUBST(CURRENT_VERSION)
 AC_SUBST(CURRENT_RELEASE)
 AC_SUBST(GTOOLBOX_POPUPMENU)
 AC_SUBST(OS_FILES)
+AC_SUBST(CONFIG_ARGS)
+AC_SUBST(CONFIG_ARGS_DEFINED)
 
 AUTOCONF=../lib/autoconf.ml
 GTK_AUTOCONF=../lib/gAutoconf.ml

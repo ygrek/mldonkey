@@ -53,7 +53,7 @@ type from_gui =
 | SwitchDownload of int * bool
 | VerifyAllChunks of int
 | QueryFormat of int
-| ModifyMp3Tags of int * Mp3tag.tag
+| ModifyMp3Tags of int * Mp3tag.Id3v1.tag
 | ForgetSearch of int
 | SetOption of string * string
 | Command of string
@@ -98,7 +98,8 @@ type to_gui =
 | File_info of file_info
 | File_downloaded of int * int32 * float * float
 | File_availability of int * string * string
-| File_source of int * int
+| File_add_source of int * int
+| File_remove_source of int * int
   
 | Server_busy of int * int * int
 | Server_user of int * int

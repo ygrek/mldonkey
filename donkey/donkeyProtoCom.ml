@@ -133,7 +133,7 @@ let cut_messages parse f sock nread =
               print_newline ();
             end;
           let s = String.sub b.buf (b.pos+5) msg_len in
-          TcpBufferedSocket.buf_used sock  (msg_len + 5);
+          TcpBufferedSocket.buf_used sock (msg_len + 5);
           let t = parse opcode s in
           f t sock
         end
@@ -337,7 +337,7 @@ let tag_file file =
           { tag_name = "type"; tag_value = String "Video" };
           { tag_name = "format"; tag_value = String "avi" };
         ]
-    | Mp3 _ ->
+    | MP3 _ ->
         [
           { tag_name = "type"; tag_value = String "Audio" };
           { tag_name = "format"; tag_value = String "mp3" };

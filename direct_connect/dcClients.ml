@@ -104,6 +104,7 @@ let init_connection nick_sent c sock =
 let read_first_message nick_sent t sock =
   Printf.printf "FIRST MESSAGE"; print_newline ();
   print t;
+  print_newline ();
   match t with 
     MyNickReq n ->
       begin
@@ -126,6 +127,7 @@ let read_first_message nick_sent t sock =
 let client_reader c t sock =
   Printf.printf "FROM CLIENT %s" c.client_name; print_newline ();
   print t;
+  print_newline ();
   match t with
     MyNickReq n ->
       connection_ok c.client_connection_control;
@@ -142,6 +144,10 @@ let client_reader c t sock =
       begin
         match client_type c, c.client_all_files with
         | (FriendClient | ContactClient), None ->
+
+(* So, we cannot downlaod anything else from a friend ??? *)
+            
+            
             Printf.printf "TRY TO DOWNLOAD FILE LIST"; print_newline ();
             debug_server_send sock (GetReq {
                 Get.name = "MyList.DcLst";
@@ -188,7 +194,7 @@ let client_reader c t sock =
               end else begin
                 Printf.printf "Bad file size: %ld  <> %ld"
                   t
-                   (file_size file);
+                  (file_size file);
                 print_newline ();
                 disconnect_client c;
                 raise Not_found
@@ -196,6 +202,7 @@ let client_reader c t sock =
         
         | DcDownloadList buf ->
             c.client_receiving <- t;
+        
         | _ ->
             Printf.printf "Not downloading any thing"; print_newline ();
             disconnect_client c;
@@ -205,6 +212,8 @@ let client_reader c t sock =
   
   | GetReq t ->
 (* this client REALLY wants to download from us !! *)
+      Printf.printf "GET REQ"; print_newline ();
+      
       if t.Get.name = "MyList.DcLst" then begin
           c.client_pos <- Int32.zero;
           let list = make_shared_list () in
@@ -225,64 +234,63 @@ let client_reader c t sock =
         end
   
   | SendReq ->
+      c.client_pos <- Int32.zero;
       let refill sock =
         Printf.printf "FILL SOCKET"; print_newline ();
         let len = remaining_to_write sock in
-        if len < 8192 then
-          match c.client_download with
-            DcUploadList list ->
-              let slen = String.length list in
-              let pos = Int32.to_int c.client_pos in
-              if pos < slen then
-                TcpBufferedSocket.write sock list pos (mini (slen - pos) (8192 - len))
-          | DcUpload sh -> 
-              let slen = sh.shared_size in
-              let pos = c.client_pos in
-              if pos < slen then
-                let fd = sh.shared_fd in
-                ignore (Unix32.seek32 fd pos Unix.SEEK_SET);
-                let rlen = 
-                  let rem = Int32.sub slen  pos in
-                  let can = 8192 - len in
-                  if rem > Int32.of_int can then can else Int32.to_int rem
-                in
-                let upload_buffer = String.create rlen in
-                Unix2.really_read (Unix32.force_fd fd) upload_buffer 0 rlen;
-                TcpBufferedSocket.write sock upload_buffer 0 rlen
+        match c.client_download with
+          DcUploadList list ->
+            Printf.printf "DcUploadList"; print_newline ();
+            let slen = String.length list in
+            let pos = Int32.to_int c.client_pos in
+            if pos < slen then begin
+                let send_len = mini (slen - pos) (8192 - len) in
+                Printf.printf "Sending %d" send_len; print_newline ();
+                TcpBufferedSocket.write sock list pos send_len;
+                Printf.printf "sent"; print_newline ();
+                c.client_pos <- Int32.add c.client_pos (Int32.of_int send_len);
+                
+                if pos + len = slen then begin
+(* Normally, the client should close the connection after the download,
+but since we don't want a buggy client to keep this connection, just
+close it after a long timeout. *)
+                    set_lifetime sock 120.
+                  end
+              
+              end 
+        
+        | DcUpload sh -> 
+            Printf.printf "DcUpload"; print_newline ();            
+            let slen = sh.shared_size in
+            let pos = c.client_pos in
+            if pos < slen then
+              let fd = sh.shared_fd in
+              ignore (Unix32.seek32 fd pos Unix.SEEK_SET);
+              let rlen = 
+                let rem = Int32.sub slen  pos in
+                let can = 8192 - len in
+                if rem > Int32.of_int can then can else Int32.to_int rem
+              in
+              let upload_buffer = String.create rlen in
+              Unix2.really_read (Unix32.force_fd fd) upload_buffer 0 rlen;
+              TcpBufferedSocket.write sock upload_buffer 0 rlen;
+              c.client_pos <- Int32.add c.client_pos (Int32.of_int rlen);
+              if c.client_pos = slen then begin
+(* Normally, the client should close the connection after the download,
+but since we don't want a buggy client to keep this connection, just
+close it after a long timeout. *)
+                    set_lifetime sock 120. 
+                end
           | _ -> assert false
       in
       set_refill sock refill;
-      set_handler sock WRITE_DONE (fun sock -> close sock "write done")
+      set_handler sock WRITE_DONE (fun sock -> 
+          Printf.printf "CLOSE SOCK AFTER REFILL DONE"; print_newline ();
+          close sock "write done")
         
   | _ ->
       Printf.printf "###UNUSED CLIENT MESSAGE###########"; print_newline ();
       DcProtocol.print t
-
-     (*
-let save_file_as file filename =
-
-(* finally move file *)
-  let incoming_dir =
-    if !!commit_in_subdir <> "" then
-      Filename.concat !!incoming_directory !!commit_in_subdir
-    else !!incoming_directory
-  in
-  (try Unix2.safe_mkdir incoming_dir with _ -> ());
-  let new_name = 
-    Filename.concat incoming_dir (canonize_basename file.file_name)
-  in
-  try
-    Printf.printf "*******  RENAME %s to %s *******" 
-      (file_disk_name file) new_name; print_newline ();
-    let new_name = rename_to_incoming_dir 
-      (file_disk_name file)  new_name in
-    Printf.printf "*******  RENAME %s to %s DONE *******" 
-      (file_disk_name file) new_name; print_newline ();
-    set_file_disk_name file new_name
-  with e ->
-      Printf.printf "Exception %s in rename" (Printexc2.to_string e);
-      print_newline () 
-      *)
 
 let file_complete file = 
 (*
@@ -291,7 +299,6 @@ print_newline ();
   *)
   CommonComplexOptions.file_completed (as_file file.file_file);
   current_files := List2.removeq file !current_files;
-(*  old_files =:= (f.file_name, f.file_size) :: !!old_files; *)
   List.iter (fun c ->
       c.client_files <- List.remove_assoc file c.client_files
   ) file.file_clients
@@ -324,31 +331,35 @@ print_newline ();
             file.file_file.impl_file_downloaded <- c.client_pos;
             file_must_update file;
           end;
-        if (file_downloaded file) = (file_size file) then
-          file_complete file 
+        if (file_downloaded file) = (file_size file) then begin
+            close sock "file downloaded";
+            file_complete file 
+          end
           
     | DcDownloadList buf ->
+        Printf.printf "DcDownloadList"; print_newline ();
         let b = TcpBufferedSocket.buf sock in        
         let len = b.len in
         Buffer.add_substring buf b.buf b.pos b.len;
         buf_used sock b.len;
         c.client_receiving <- Int32.sub c.client_receiving (Int32.of_int len);
+        Printf.printf "Received %d of List" len; print_newline ();
+        close sock "file list received"; print_newline ();
         if c.client_receiving = Int32.zero then begin
-            (*
             Printf.printf "----------------------------------------"; print_newline ();
             Printf.printf "RECEIVED COMPLETE FILE LIST "; print_newline ();
-Printf.printf "----------------------------------------"; print_newline ();
-  *)
+            Printf.printf "----------------------------------------"; print_newline ();
+            
             let s = Buffer.contents buf in
             let s = Che3.decompress s in
             try
-(*              Printf.printf "LIST: [%s]" (String.escaped s);
-              print_newline (); *)
+              Printf.printf "LIST: [%s]" (String.escaped s);
+              print_newline (); 
               let files = parse_list c.client_user s in
-(*              Printf.printf "PARSED"; print_newline (); *)
+              Printf.printf "PARSED"; print_newline (); 
               c.client_all_files <- Some files;
               List.iter (fun (dirname,r) ->
-(*                  Printf.printf "NEW FILE"; print_newline (); *)
+                  Printf.printf "NEW FILE in %s" dirname; print_newline (); 
                   client_new_file (as_client c.client_client) dirname
                     (as_result r.result_result)
               ) files;
@@ -415,7 +426,7 @@ let connect_client c =
             (Ip.to_inet_addr ip) port
             (fun sock event ->
               match event with
-                BASIC_EVENT RTIMEOUT ->
+              | BASIC_EVENT (RTIMEOUT | LTIMEOUT) ->
                   disconnect_client c
               | BASIC_EVENT (CLOSED _) ->
                   disconnect_client c

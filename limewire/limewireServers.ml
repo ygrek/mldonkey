@@ -169,7 +169,7 @@ let connect_to_redirector () =
             (Ip.to_inet_addr (Ip.from_name name)) 6346
             (fun sock event -> 
               match event with
-                BASIC_EVENT RTIMEOUT -> 
+                BASIC_EVENT (RTIMEOUT|LTIMEOUT) -> 
                   close sock "timeout";
                   redirector_connected := false;
 (*                  Printf.printf "TIMEOUT FROM REDIRECTOR"; print_newline ()*)
@@ -460,7 +460,7 @@ let connect_server (ip,port) =
           (Ip.to_inet_addr ip) port
             (fun sock event -> 
               match event with
-                BASIC_EVENT RTIMEOUT -> 
+                BASIC_EVENT (RTIMEOUT|LTIMEOUT) -> 
 (*                  Printf.printf "RTIMEOUT"; print_newline (); *)
                   disconnect_from_server s
               | _ -> ()

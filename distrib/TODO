@@ -1,99 +1,49 @@
 TODO list for client
 ====================
 
-********************** URGENT ************************
+donkey/:
+ * New source management
+ * MLdonkey client generate "Exceeding Block Boundaries" errors which lose
+     bandwidth
+ * Option to prevent automatic raising of servers
+ * Option for walker time (with min 4 hours)
+ * Extended search doesnot work after connect because no ping was sent.
+ * Query and parse WEB server pages such as jiggle
+ * Option to clear the server list at restart or when a new list is received
+ * Cancel and Redownload doesnot work
+ * What happens when a shared file cannot be read ?
+ * Downloaded files seem not shared
 
-Problems:
- * MLdonkey loses its sources without reason.
- * MLdonkey client generate "Exceeding Block Boundaries" errors
- * Walker doesnot seem to work ?
+direct_connect/:
+ * When a download is finished, can the link be reused ?
+ * Don't always download from incoming peer the files list
+ * Reply to search requests
 
-Source management:
-* max_sources_per_file should be the number of good sources (ie
-   sources that have chunks we want).
+gui/:
+ * Popup when clicking on a file with stats on sources
+ * Show list of file names for files being downloaded
+ * Add preview for downloaded files
 
+soulseek/:
+ * Test new rooms
+ * Display the number of new message per room
 
+common/:
+ * Common functions for linear uploads and downloads
 
-* Popup when clicking on a file with stats on sources
-* Active telnet: print the current state of files when it changes
+limewire/:
+ * Chech the is_http_ok function: too wide ?
 
-* Command 'master <c>' to set a server as the master
-* Change master server when a new server has more than 5x the number
- of clients and files than a master server
-
-1) For zoggy (the GUI):
-  1) There is a bin as icon for "Find Friend"
-  2) New lines in the console are not displayed because the window
-      don't scroll immediatly
-  3) Show list of file names for files being downloaded
-  4) Add reduced icons
-
-2) Extended search doesnot work after connect because no ping was sent.
-
-3) vm and uploaders doesnot work in gui
-
-4) print source propagation footprint
-
-All the last changes should be tested carefully before committing:
-- Test Soulseek with new rooms
-
-The GUI
- * Improve the gui CPU usage
- * Stop sharing the widgets in the chatrooms
- * .zog files should be manually editable (remove default properties)
-
-LimeWire and other networks: check carefully what is replied by a client
-  for a download. In particular, check that there are no "Server busy" errors
-  added to the download stream. Check the is_http_ok function in
-  limewireClients.ml.
-
-Socks 5 support
-
-Savannah motds:
-  motd.html (to be displayed in the html frame of your browser)
-  -> generate motd.txt (to be displayed in the help panel, at the beginning, 
-   and in the telnet login)
-  motd.conf (changes that have to be made to the default config. For example,
-    adding servers and peers, supermode activation parameters, etc)
-
-Redirectors: send more information to the redirectors
-  to help other users to connect
-
-Remove UDP messages to dead servers
-
-Query and parse WEB server pages such as jiggle
-
-Reduce mldonkey memory footprint
-
-Use our own network of servers
-
-For 2.00: 
-- Fix poll mechanism for GUIs:
-  - Messages in DriverInterface.update_ should only be sent if gui_poll
-      is false
-  - Consequently, Get_ messages should receive a reply immediatly if
-      gui_poll is true.
-
-- Add special IP addresses with no upload limit and no upload slots for
-    good friends.
-- Better bandwidth control: take TCP-IP packet header size into account
+net/:
+ * Socks 5 support
+ * Better bandwidth control: take TCP-IP packet header size into account
     and UDP too.
-- Server: server: seedIP unused and stats not sent
-- Number of messages in Soulseek per room
 
-- Better anticipation of TCP bandwidth
-- Web Server inside each server
-- GUI stub for multiple GUIs
-- Send a message for password retry
-- Different users per mldonkey with their own private searches
-- Add preview for downloaded files
-- Option to completely replace the server list
-- Cancel and Redownload doesnot work
-- What happens when a shared file cannot be read ?
+opennap/:
+ * Register files on server
+ * Reply to upload requests
 
-- Can a file be shared before being enough downloaded.
-- Batch file of ed2k:// lines
-- to be inserted a line of GMain.Main.set_locale ()
+- to be inserted a line of 
 above GMain.Main.init ().
 *********
 
@@ -317,3 +267,24 @@ Every second, we call the function "check_sources".
 NEW SOURCE MANAGEMENT:
 ----------------------
 
+Just a thought, lol. Also, how about making an mldonkey version that can run as a deomon just like giFT? 
+
+A few more ideas:
+
+GUI IDEAS: 
+- Add a columb to the download window that will say YES as soon as 100% of the file is found on the network (for say a period of 2 days?) 
+- Add the option to rename file while it's downloading (allowing to choise from list of common filenames for that file). 
+- Any way to add a way to display the queue position on overnet and emule clients? (yes, they support that feature) 
+- Posibly an improved search.. 
+
+GENERAL: 
+- Posibility to set mldonkey to folow symbolic links to a certain depth. 
+- Prioritizing download/uploads (has been discussed a lot, so I thought I'll mention it here) 
+- Automatic upload regulation to increase upload when download is slow (not sure how that works for that edonkeybot had it and it worked quite nicely) 
+- What ever happened to the 'collection' files from edonkey? I would like mldonkey to have that feature, so people can share collections of entire series. 
+
+WEB INTERFACE: 
+- I would prefer the filesize in webinterface to be displayed in mbytes rather then bytes, same with comulitive upload/download speed at bottom right corner of gui. 
+- Display free disk space in Web Interface so that you can check remotely how much space you still have, (good if you access mldonkey with remote windows). 
+- Any chance of adding a graph to the web interface to show download/upload for a set period of time? that would truley rock. 
+- Please add number of sources and number of connected sources to web interface.[/b]

@@ -27,11 +27,11 @@
 /* Define if you have the <arpa/inet.h> header file.  */
 #undef HAVE_ARPA_INET_H
 
-/* Define if you have the <netinet/ip.h> header file.  */
-#undef HAVE_NETINET_IP_H
-
 /* Define if you have the <linux/limits.h> header file.  */
 #undef HAVE_LINUX_LIMITS_H
+
+/* Define if you have the <netinet/ip.h> header file.  */
+#undef HAVE_NETINET_IP_H
 
 /* Define if you have the <sys/poll.h> header file.  */
 #undef HAVE_SYS_POLL_H

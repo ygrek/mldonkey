@@ -39,7 +39,8 @@ open CommonGlobals
 
 
 let _ =
-  network.op_network_is_enabled <- (fun _ -> !!enable_donkey)
+  network.op_network_is_enabled <- (fun _ -> !!enable_donkey);
+  network.network_config_file <- Some donkey_ini
 
 let hourly_timer timer =
   DonkeyClient.clean_groups ();
@@ -54,12 +55,22 @@ let quarter_timer timer =
   DonkeyServers.remove_old_servers ()
 
 let fivemin_timer timer =
-  DonkeyFiles.remove_old_clients ();
-  DonkeyFiles.fill_clients_list ();
   DonkeyShare.send_new_shared ()
 
 let second_timer timer =
-  DonkeyFiles.check_clients ();
+  (try
+      if !DonkeySources1.verbose_sources then begin
+          Printf.printf "Check sources"; print_newline ();
+        end;
+      DonkeySources2.check_sources ();
+      if !DonkeySources1.verbose_sources then begin
+          Printf.printf "Check sources done"; print_newline ();
+        end;
+    with e ->
+        if !DonkeySources1.verbose_sources then begin
+            Printf.printf "Exception %s while checking sources" 
+              (Printexc2.to_string e) ; print_newline ()
+          end);
   DonkeyFiles.reset_upload_timer ()
 
 let halfmin_timer timer =
@@ -72,7 +83,7 @@ let disable enabler () =
   enabler := false;
   if !!enable_donkey then enable_donkey =:= false;
   Hashtbl2.safe_iter (fun s -> disconnect_server s) servers_by_key;
-  H.iter (fun c -> disconnect_client c) clients_by_kind;
+  H.iter (fun c -> DonkeyClient.disconnect_client c) clients_by_kind;
   (match !listen_sock with None -> ()
     | Some sock -> 
         listen_sock := None;
@@ -85,22 +96,12 @@ let disable enabler () =
     | Some sock -> 
         udp_sock := None;
         UdpSocket.close sock "");
-  Array.iter (fun list -> 
-      List.iter (fun c -> c.client_on_list <- false) list) 
-  clients_lists;
-  List.iter (fun c -> c.client_on_list <- false) !new_clients_list;
-  clients_lists.(0) <- [];
-  clients_lists.(1) <- [];
-  clients_lists.(2) <- [];
-  clients_lists.(3) <- [];
-  clients_lists.(4) <- [];
-  new_clients_list := [];
   servers_list := [];
   if !!enable_donkey then enable_donkey =:= false;
   DonkeyOvernet.disable ()
   
 let enable () =
-
+  
   let enabler = ref true in
   network.op_network_disable <- disable enabler;
   
@@ -111,14 +112,11 @@ let enable () =
 
 (**** LOAD OTHER OPTIONS ****)
     
-    (try Options.load shared_files_ini with _ -> ());
-    
-
     DonkeyIndexer.load_comments comment_filename;
     DonkeyIndexer.install_hooks ();
     CommonGlobals.do_at_exit (fun _ -> DonkeyIndexer.save_history ());
-    
-    (*
+
+(*
     BasicSocket.add_timer 10. (fun timer ->
         BasicSocket.reactivate_timer timer;
         match !indexer with
@@ -130,37 +128,35 @@ let enable () =
               end)
 *)
     
-    features =:= !!features;  
-    
     Hashtbl.iter (fun _ file ->
         try
-        if file_state file <> FileDownloaded then begin
-            current_files := file :: !current_files;
-            set_file_size file (file_size file)
-          end else begin
-            try
-              let file_disk_name = file_disk_name file in
-              if Sys.file_exists file_disk_name &&
-                Unix32.getsize32 file_disk_name <> Int32.zero then begin
-                  Printf.printf "FILE DOWNLOADED"; print_newline ();
-                  DonkeyShare.remember_shared_info file file_disk_name;
-                  Printf.printf "REMEMBERED"; print_newline ();
-                  file_completed (as_file file.file_file);
-                  let file_id = Filename.basename file_disk_name in
-                  ignore (CommonShared.new_shared "completed" (
-                      file_best_name file )
-                    file_disk_name);
-
-                  Printf.printf "COMPLETED"; print_newline ();
-                  (try
-                      let format = CommonMultimedia.get_info file_disk_name
+          if file_state file <> FileDownloaded then begin
+              current_files := file :: !current_files;
+              set_file_size file (file_size file)
+            end else begin
+              try
+                let file_disk_name = file_disk_name file in
+                if Sys.file_exists file_disk_name &&
+                  Unix32.getsize32 file_disk_name <> Int32.zero then begin
+                    Printf.printf "FILE DOWNLOADED"; print_newline ();
+                    DonkeyShare.remember_shared_info file file_disk_name;
+                    Printf.printf "REMEMBERED"; print_newline ();
+                    file_completed (as_file file.file_file);
+                    let file_id = Filename.basename file_disk_name in
+                    ignore (CommonShared.new_shared "completed" (
+                        file_best_name file )
+                      file_disk_name);
+                    
+                    Printf.printf "COMPLETED"; print_newline ();
+                    (try
+                        let format = CommonMultimedia.get_info file_disk_name
                         in
-                      file.file_format <- format
+                        file.file_format <- format
                       with _ -> ());        
-                end
-              else raise Not_found
-            with _ -> 
-                file_commit (as_file file.file_file)
+                  end
+                else raise Not_found
+              with _ -> 
+                  file_commit (as_file file.file_file)
             end
         with e ->
             Printf.printf "Exception %s while recovering download %s"
@@ -178,33 +174,37 @@ let enable () =
           end
     ) !!known_shared_files;
     known_shared_files =:= !list;
-    Options.save shared_files_ini;
 
-    
-    
 (**** CREATE WAITING SOCKETS ****)
-    
-    begin try
-        let sock =
-          (UdpSocket.create (Ip.to_inet_addr !!donkey_bind_addr)
-            (!!port + 4) 
-            (udp_handler DonkeyFiles.udp_client_handler))
-        in
-        udp_sock := Some sock;
-        UdpSocket.set_write_controler sock udp_write_controler
+    let rec find_port new_port =
+      try
+        let sock = TcpServerSocket.create 
+            "donkey client server"
+            (Ip.to_inet_addr !!donkey_bind_addr)
+          !!port (client_connection_handler false) in
+        
+        listen_sock := Some sock;
+        port =:= new_port;
+        
+        begin try
+            let sock =
+              (UdpSocket.create (Ip.to_inet_addr !!donkey_bind_addr)
+                (!!port + 4) 
+                (udp_handler DonkeyFiles.udp_client_handler))
+            in
+            udp_sock := Some sock;
+            UdpSocket.set_write_controler sock udp_write_controler;
+          with e ->
+              Printf.printf "Exception %s while binding UDP socket"
+                (Printexc2.to_string e);
+              print_newline ();
+        end;
+        sock
       with e ->
-          Printf.printf "Exception %s while binding UDP socket"
-            (Printexc2.to_string e);
-          print_newline ();
-    end;
-    
-    let sock = TcpServerSocket.create 
-        "donkey client server"
-      (Ip.to_inet_addr !!donkey_bind_addr)
-      !!port (client_connection_handler false) in
-
-    listen_sock := Some sock;
-    
+          if !find_other_port then find_port (new_port+1)
+          else  raise e
+    in
+    let sock = find_port !!port in
     DonkeyOvernet.enable enabler;
     
     begin
@@ -230,8 +230,6 @@ let enable () =
     Options.option_hook DonkeyOptions.protocol_version reset_tags;
     Options.option_hook client_name reset_tags;
     
-    DonkeyFiles.fill_clients_list ();    
-
 (**** START TIMERS ****)
     add_session_option_timer enabler check_client_connections_delay 
       DonkeyFiles.force_check_locations;
@@ -250,6 +248,9 @@ let enable () =
     add_session_timer enabler 0.1 DonkeyFiles.upload_timer;
     add_session_timer enabler 60. DonkeyServers.query_locations_timer;
 
+    
+    DonkeyComplexOptions.load_sources ();
+    
 (**** START PLAYING ****)  
     (try force_check_locations () with _ -> ());
     (try force_check_server_connections true with _ -> ());

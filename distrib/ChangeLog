@@ -1,6 +1,67 @@
 ChangeLog	
 =========
 
+2003/01/08: Simon (tag unstable-2-02-1)
+  - Fixed some bugs in new sources management. Seems to works pretty well.
+      BUT DEVELOPMENT ONLY VERSION, USE IT AT YOUR OWN RISKS !!
+  - For fun: new mldonkey authentification, just to see how long it will take
+     to emule devels to break it :)
+
+2003/01/07: Simon
+  - ./configure:
+     * called automatically by make when needed
+     * -enable-im has been removed
+     * -enable-devel has been added for development things
+  - IM: 
+     * Friends, accounts and rooms are packed inside a notebook
+     * IRC connects and join channels, but the channel widget is not done
+     * The IM widget is available from mldonkey_gui IM menu
+     * 'mlim' is mldonkey IM-specific program
+  - Donkey:
+     * New source management seems to work, not complete yet
+     * Upload: fill client buffers depending on the upload rate
+
+2003/01/02: Simon
+  - Makefile: simplification and regeneration from config/Makefile.in
+
+2002/12/29: Simon
+  - Gui: fixed the display of the number of shared files
+
+2002/12/28: Simon
+  - DonkeyServers: 
+    * New option 'keep_best_server' (default true) to automatically change
+       the server mldonkey remains connected when it finds a better server
+    * walker: does not reconnect if already connected to more than
+       the maximal number of servers (option 'max_walker_servers' (default 1)).
+
+2002/12/27: Simon
+  - Opennap: send shared files to server after connection.
+
+2002/12/26: Simon
+  - Options: 
+    * new options file 'edonkey.ini' for options specific to eDonkey/Overnet
+    * eDonkey specific options moved from 'downloads.ini' to 'edonkey.ini'
+  - Direct-Connect: upload works correctly. Need more tests. Maybe add
+     different mailing-lists for (mldonkey-dc@, mldonkey-nap@,...)
+
+2002/12/25: Simon
+  - New argument -find_port, to search other ports when the ones specified are
+      already used. The options are modified accordingly.
+  - Option 'allowed_ips': changed are immediatly taken into account for
+      the HTTP interface.
+  - Major Bug: fixed bug of 100% CPU usage when timeout < 0.0001 and poll used.
+  - Direct-Connect: upload of shared list works
+  - Makefile: different executables for each network. 
+     'mldonkey' -> eDonkey2000 + Overnet
+     'mldc' -> Direct-Connect
+     'mlgnut' -> Gnutella
+     'mlslsk' -> SoulSeek
+     'mlnap' -> Open Napster
+    and 'mlnet' for all networks
+
+2002/12/24: Simon
+  - Test for existence of the GUI before asking or trying to start it
+
 2002/12/23: Simon (tag release-2-02)
   MAJOR BUG FIX:
   - DonkeyClient: fixed a bug preventing download from indirect clients.
@@ -89,7 +150,7 @@ ChangeLog
      * Black-listed servers are removed immediatly
      * Last Connection is extracted immediatly
 
-2002/12/09: Simon
+2002/12/09: Simon (tag release-2-01)
   - Fabrice should compile and release binaries for 2.01
   - Fixed problem with stats
   - Overnet: added an option for publish (false by default since still in dev)

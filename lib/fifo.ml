@@ -132,7 +132,7 @@ let clear t =
   t.inpos <- 0;
   t.outpos <- 0
 
-let read t =
+let head t =
   if t.empty then raise Empty;
   t.array.(t.outpos)
 

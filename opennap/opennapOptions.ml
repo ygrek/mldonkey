@@ -63,6 +63,10 @@ let server_connection_timeout =
   define_option opennap_ini ["server_connection_timeout"] 
   "timeout when connecting to a server" float_option 10.
     
+let max_shared_files = define_option opennap_ini ["max_shared_files"]
+  "The maximal number of files to share on a server"
+    int_option 400
+  
 let commit_in_subdir = define_option opennap_ini ["commit_in_subdir"]
   "The subdirectory of temp/ where files should be moved to"
     string_option "Napster"

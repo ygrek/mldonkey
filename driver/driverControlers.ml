@@ -549,11 +549,16 @@ let http_options = {
   }      
   
 let create_http_handler () = 
-  create {
-    bind_addr = Ip.to_inet_addr !!http_bind_addr;
-    port = !!http_port;
-    requests = [];
-    addrs = !!allowed_ips;
-    base_ref = "";
-    default = http_handler http_options;
-  }
+  let config = {
+      bind_addr = Ip.to_inet_addr !!http_bind_addr ;
+      port = !!http_port;
+      requests = [];
+      addrs = !!allowed_ips;
+      base_ref = "";
+      default = http_handler http_options;      
+    } in
+  option_hook allowed_ips (fun _ -> config.addrs <- !!allowed_ips);
+  let sock = find_port "http server" !!http_bind_addr http_port
+      (Http_server.handler config) in
+  config.port <- !!http_port
+  

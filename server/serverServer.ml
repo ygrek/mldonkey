@@ -635,7 +635,7 @@ let rec server_to_server s t sock =
 	      begin 
 		(*new server allowed to much files or clients for the goupe*)
                 direct_group_send sock (M.MessageReq ("too high clients and file bound\n"));
-		TcpBufferedSocket.close sock "CONNECTION REFUSED: to much file or client on your server";
+		TcpBufferedSocket.close sock "CONNECTION REFUSED: too many file or client on your server";
 		decr nconnected_servers
 	      end
 	    else
@@ -1099,7 +1099,7 @@ let handler t event =
 
       if !!max_servers <= !nconnected_servers then
       begin
-	  Printf.printf "too much servers\n";
+	  Printf.printf "too many servers\n";
           Unix.close s
       end
       else

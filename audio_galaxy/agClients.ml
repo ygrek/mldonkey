@@ -168,7 +168,7 @@ let init_file_transfer t =
         (Ip.to_inet_addr c.client_ip) c.client_port
           (fun sock event -> 
             match event with
-              TcpBufferedSocket.BASIC_EVENT BasicSocket.RTIMEOUT -> 
+              TcpBufferedSocket.BASIC_EVENT (RTIMEOUT|LTIMEOUT) -> 
                 client_close c sock
             | _ -> ())
       in
