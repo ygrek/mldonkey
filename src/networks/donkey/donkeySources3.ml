@@ -316,6 +316,8 @@ let source_of_client c =
                   if !verbose_sources then begin
                       lprintf "%d --> kept (source)" (client_num c); lprint_newline ();
                     end;
+                let level = rank_level c.client_rank in
+                !stats_ranks.(level)  <- !stats_ranks.(level) + 1;
                   if not (List.memq file s.source_in_queues) then begin
                       Fifo.put file.file_clients (c, last_time ());
                       s.source_in_queues <- file :: s.source_in_queues
@@ -326,6 +328,8 @@ let source_of_client c =
                   if !verbose_sources then begin
                       lprintf "%d --> kept (uploader)" (client_num c); lprint_newline ();
                     end;
+		  let level = rank_level c.client_rank in
+        	  !stats_ranks.(level)  <- !stats_ranks.(level) + 1;
                   if not (List.memq file s.source_in_queues) then begin
                       Fifo.put file.file_clients (c, last_time ());
                       s.source_in_queues <- file :: s.source_in_queues
@@ -721,7 +725,7 @@ let print_sources buf =
 
   let nsources = ref 0 in
   let per_queue = Array.create (nqueues+1) 0 in
-  Printf.bprintf buf "By files:\n";
+  Printf.bprintf buf "\nBy files:\n";
   List.iter (fun file ->
 
       if file_state file = FileDownloading then begin

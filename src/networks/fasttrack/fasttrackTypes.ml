@@ -97,9 +97,32 @@ typedef enum
 } FSTQueryCmp;
 
 /*****************************************************************************/
+  *)
 
-typedef enum { SearchTypeSearch, SearchTypeBrowse, SearchTypeLocate } FSTSearchType;
-*)
+(* any = 0 *)
+let name_of_tag = 
+  [
+    "year", 1;
+    "filename", 2;
+    "hash", 3;
+    "title", 4;
+    "time", 5;
+    "artist", 6;
+    "album", 8;
+    "language", 10;
+    "keywords", 12;
+    "resolution", 13;
+    "genre", 14;
+    "OS", 16;
+    "bitdepth", 17;
+    "quality", 21;
+    "version", 24;
+    "comment", 26;
+    "codec", 28; (* "divx" *)
+    "rating", 29;
+    "size", 33;
+    "type", 34; (* "movie", "video clip",... *)
+  ]
   
 type search_type =
   UserSearch of search * string * string * string

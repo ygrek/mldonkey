@@ -33,6 +33,14 @@ module type Digest = sig
 (* [to_string_case upper hash] *)
     val to_string_case : bool -> t -> string
     val of_string : string -> t
+      
+    val to_hexa : t -> string
+    val to_hexa_case : bool -> t -> string
+    val of_hexa : string -> t
+      
+    val to_base32 : t -> string
+    val to_base32_case : bool -> t -> string
+    val of_base32 : string -> t
     
     val string : string -> t
     val file : string -> t

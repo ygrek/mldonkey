@@ -27,7 +27,7 @@ void enc_type_20 (unsigned char *key, unsigned int seed);
 
 /*****************************************************************************/
 
-static void pad_init(unsigned int *pseed, unsigned int enc_type, unsigned char* pad, unsigned int pad_size);
+static int pad_init(unsigned int seed, unsigned int enc_type, unsigned char* pad, unsigned int pad_size);
 static unsigned char clock_cipher(FSTCipher *cipher);
 static unsigned int calculate_num_xor(unsigned int seed);
 static int calculate_num(unsigned int *num, int val);
@@ -78,7 +78,7 @@ void fst_cipher_init(FSTCipher *cipher, unsigned int seed, unsigned int enc_type
 
 	FST_DBG_2 ("init_cipher: seed = 0x%08x, enc_type = 0x%02x", seed, enc_type);
 
-	pad_init(&seed, enc_type, cipher->pad, sizeof(cipher->pad));
+	seed = pad_init(seed, enc_type, cipher->pad, sizeof(cipher->pad));
 
 	// adjust pad
 	c = 0;
@@ -111,6 +111,8 @@ void fst_cipher_init(FSTCipher *cipher, unsigned int seed, unsigned int enc_type
 		// modify cipher->lookup
 		for(i=0; i<sizeof(cipher->lookup); i++)
 		{
+
+		  /* BIG ENDIAN */
 			if( (j = calculate_num((unsigned int*) &md5, 0x100 - i) + i) != i)
 			{
 				unsigned char a = cipher->lookup[j];
@@ -159,11 +161,10 @@ unsigned int fst_cipher_decode_enc_type(unsigned int seed, unsigned int crypted_
 
 /*****************************************************************************/
 
-static void pad_init(unsigned int *pseed, unsigned int enc_type, unsigned char* pad, unsigned int pad_size)
+static int pad_init(unsigned int seed, unsigned int enc_type, unsigned char* pad, unsigned int pad_size)
 {
 	int i;
 	unsigned int temp;
-	unsigned int seed = *pseed;
 	
 	memset(pad, 0, pad_size);
 
@@ -211,6 +212,7 @@ static void pad_init(unsigned int *pseed, unsigned int enc_type, unsigned char* 
 
 	if(enc_type & 0x1E6)
 	{
+		  /* BIG ENDIAN */
 		unsigned int key_80[20];
 		unsigned char *p_key = (unsigned char*)key_80;
 
@@ -306,7 +308,7 @@ static void pad_init(unsigned int *pseed, unsigned int enc_type, unsigned char* 
 			pad[i] ^= p_key[i];
 
 	}
-	*pseed = seed;
+	return seed;
 }
 
 /**
@@ -585,11 +587,11 @@ value ml_cipher_packet_get(value s_v, value pos_v,
   printf("out seed:%X enc_type: %X\n", out_cipher->seed, out_cipher->enc_type);
 */
 
-  seed = htonl (((unsigned int*)(s+pos))[0]);
+  seed = htonl  (((unsigned int*)(s+pos))[0]);
   enc_type = htonl (((unsigned int*)(s+pos+4))[0]);
   enc_type = fst_cipher_decode_enc_type (seed, enc_type);
 
-/*  printf("in seed:%X enc_type: %X\n", seed, out_cipher->enc_type); */
+  printf("in seed:%X enc_type: %X\n", seed, out_cipher->enc_type); 
 
   if(enc_type > 0x29)    failwith ("ERROR: unsupported encryption");
 
@@ -612,6 +614,7 @@ value ml_cipher_packet_set(value cipher_v, value s_v, value pos_v)
   );
 */
 
+/* in OCAML: "\250\000\182\043" */
   ((unsigned int*)(s+pos))[0] = 0x02BB600FA; /* random number? */
   ((unsigned int*)(s+pos+4))[0] = htonl(cipher->seed);
   ((unsigned int*)(s+pos+8))[0] = htonl(

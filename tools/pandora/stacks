@@ -1,0 +1,17 @@
+# -*- perl -*-
+
+%separator { 
+   @pcap [$file = "trace.dump"]
+   @ipprotoswitch [$tcp = 1, $udp = 2]
+   ( 
+      @tcpscan
+      @demux [$algo = "tcpquad"] <
+         @tcpreorder
+         @tcpprint
+      >
+   | 
+      @udpscan
+      @tcpprint
+   )
+   @discard 
+}

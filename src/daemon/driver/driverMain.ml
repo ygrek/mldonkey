@@ -255,7 +255,7 @@ used. For example, we can add new web_infos... *)
       lprintf "Updating options to level 1"; lprint_newline ();
       web_infos =:= 
         (
-        ("server.met", 1, "http://savannah.nongnu.org/download/mldonkey/network/servers.met");        
+        ("server.met", 1, "http://ocbmaurice.dyns.net/pl/slist.pl?download");        
         ):: 
       !!web_infos;
     end;

@@ -1,6 +1,12 @@
 ChangeLog	
 =========
 
+2003/05/18: Simon (release-2-4-2)
+  - Applied patches #1476, #1477, #1479 and #1481
+  - FastTrack:
+     * Can look for new sources
+  - Added mldonkey/tools/pandora/ to help understand protocols
+
 2003/05/14: Simon (release-2-4-1)
   - FastTrack: first try, far from complete, only for x86 !!!
      * Copy of gnutella/ plugin architecture to fasttrack/

@@ -3,31 +3,41 @@ TODO list for client
 
 ADD urn:sha1:<HASH> and urn:tree:tiger/:<HASH> to QRT
 
-URGENT:
-- Understand MD when no DN field is present
+Fasttrack:
+==========
+ * Add more headers to GET requests
+ * Ask longer ranges since HTTP/1.1 is not well supported
+ * Better Queries
+ 
+Corruption ?? What to do to avoid it ? Maybe enter a special mode where 
+every byte must be downloaded from different clients to be sure ? This
+could be done by keeping the chunk in memory (9 MB is not big :) ), or just
+the diff (ie we have downloaded it once, it is corrupted, so we have:
+ * ranges which are similar to those written on disk
+ * ranges that are different
+ 
 
 Let's schedule our work:
 ------------------------
 
-For 2.4: nothing, feature freeze now
 For 2.5:
-  - Save the URN computed for all files.
-  - Gnutella:
-      * Upload: use CommonUploads queues, and HTTP/1.1
-      * Send more information in HTTP/1.1 headers (alt-locs, thex)
-  - Bittorrent:
-      * Support for directory downloads
-  - Misc:
-      * Interactive downloads (popups for one file with progress bar)
-  - Searches:
-      * Make difference between Subscribe and Submit searches clear
-      * Create Uniq hashes from search queries
-      * Why doesn't filter_search work correctly with tags
+  - Fasttrack plugin
   - GUI:
       * Add columns for tags (or display tags in the margin)
       * Give more information on why a connection failed
 
 For 2.6:
+  - Save the URN computed for all files.
+  - Gnutella:
+      * Upload: use CommonUploads queues
+      * Send more information in HTTP/1.1 headers (alt-locs, thex)
+  - Misc:
+      * Interactive downloads (popups for one file with progress bar)
+  - Searches:
+      * Make difference between Subscribe and Submit searches clear
+      * Why doesn't filter_search work correctly with tags
+
+For 2.7:
   - Gnutella:
       * THEX corruption detection
       * deflate-style compression
@@ -36,10 +46,10 @@ For 2.6:
           DonkeySources3 --> CommonSources
       * Use CommonSwarming to choose ranges to download
 
-For 2.7:
+For 2.8:
   - Download one file on two networks
 
-For 2.8:
+For 2.9:
   - Gnutella:
       * Act as an ultra-peer
   - eDonkey:
@@ -49,7 +59,7 @@ For 2.8:
       * Implementation of sparse-files
       * CD get and Collections
 
-For 2.9:
+For 2.10:
   - WinMX and Piolet
 
 Bittorrent:

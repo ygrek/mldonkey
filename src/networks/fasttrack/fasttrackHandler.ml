@@ -112,7 +112,7 @@ let server_msg_handler sock s msg_type m =
             let end_name = String.index_from m pos '\001' in
             let end_netname = String.index_from m end_name '\000' in
             String.sub m pos (end_name - pos),
-            String.sub m (end_name+1) (end_netname - end_name),
+            String.sub m (end_name+1) (end_netname - end_name -1),
             end_netname + 1
           in
           
@@ -127,6 +127,7 @@ let server_msg_handler sock s msg_type m =
           
           lprintf "   Result %s size: %Ld tags: %d\n" 
             (Md5Ext.to_string_case false result_hash) result_size ntags;
+
           
           let rec iter_tags name pos n tags =
             if n > 0 && pos < len-2 then
@@ -136,6 +137,11 @@ let server_msg_handler sock s msg_type m =
               let tag_len = Int64.to_int tag_len in
               let tagdata = String.sub m pos tag_len in
               let name = if tag = 2 then tagdata else name in
+              let tag = try
+                  List2.assoc_inv tag name_of_tag
+                with _ -> 
+                    string_of_int tag
+              in
               iter_tags name (pos + tag_len) (n-1) 
               ((tag, tagdata) :: tags)
             else
@@ -143,7 +149,7 @@ let server_msg_handler sock s msg_type m =
           in
           let result_name, tags, pos = iter_tags "Unknown" pos ntags [] in
           List.iter (fun (tag, tagdata) ->
-              lprintf "      Tag: %d --> %s\n" tag (String.escaped tagdata);
+              lprintf "      Tag: %s --> %s\n" tag (String.escaped tagdata);
           ) tags;
           let user = new_user (Known_location (user_ip, user_port)) in
           (*

@@ -89,16 +89,13 @@ let eval auth cmd o =
   let l = String2.tokens cmd in
   match l with
     [] -> ()
-  | cmd :: args ->
-      if cmd = "longhelp" || cmd = "??" then begin
+    | ["longhelp"] | ["??"] ->
           let module M = CommonMessages in
           Buffer.add_string  buf !!M.available_commands_are;
           List.iter (fun (cmd, _, help) ->
               Printf.bprintf  buf "$r%s$n %s\n" cmd help) 
           !CommonNetwork.network_commands
-        end else 
-      if cmd = "help" || cmd = "?" then begin
-          
+    | ["help"] | ["?"] ->
           let module M = CommonMessages in
           Buffer.add_string  buf
             "Main commands are:
@@ -139,14 +136,14 @@ Use '$r";
            Buffer.add_string buf "$n' for all commands.
 Use '$rhelp command$n' or '$r? command$n' for help on a command.
             ";
+    | "?" :: args | "help" :: args ->
           List.iter (fun arg ->
               List.iter (fun (cmd, _, help) ->
                   if cmd = arg then    
                     Printf.bprintf  buf "%s %s\n" cmd help) 
               !CommonNetwork.network_commands)
           args
-
-        end else
+    | cmd :: args ->
       if cmd = "q" then
         raise CommonTypes.CommandCloseSocket
       else

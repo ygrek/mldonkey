@@ -182,9 +182,18 @@ module type Digest = sig
     val null : t
     val one : t
     val two : t
+
     val to_string : t -> string
     val to_string_case : bool -> t -> string
     val of_string : string -> t
+      
+    val to_hexa : t -> string
+    val to_hexa_case : bool -> t -> string
+    val of_hexa : string -> t
+      
+    val to_base32 : t -> string
+    val to_base32_case : bool -> t -> string
+    val of_base32 : string -> t
     
     val string : string -> t
     val file : string -> t
@@ -269,6 +278,14 @@ module Make(M: sig
     let of_string = Base.of_string hash_length
     let to_string = Base.to_string hash_length
     let to_string_case upper s = Base.to_string_case upper hash_length s
+    
+    let of_hexa = Base16.of_string hash_length
+    let to_hexa = Base16.to_string hash_length
+    let to_hexa_case upper s = Base16.to_string_case upper hash_length s
+    
+    let of_base32 = Base32.of_string hash_length
+    let to_base32 = Base32.to_string hash_length
+    let to_base32_case upper s = Base32.to_string_case upper hash_length s
       
     open Options
     
