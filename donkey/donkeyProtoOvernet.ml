@@ -275,6 +275,7 @@ let write buf t =
         
   | OvernetSearchReply (md4, peers) ->
       buf_int8 buf 15;
+      buf_md4 buf md4;
       buf_list8 buf_peer buf peers
   
   | OvernetGetSearchResults (md4, kind, min, max) ->

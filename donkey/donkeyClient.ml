@@ -232,7 +232,7 @@ let query_files c sock =
               let module C = M.QueryFile in
               M.QueryFileReq file.file_md4);          
           incr nqueries
-      ) !current_files (*c.client_source_for*);
+      ) (* !current_files *) c.client_source_for;
       if !nqueries > 0 then
         c.client_last_filereqs <- last_time ();
       if !!verbose then begin
@@ -948,12 +948,9 @@ let read_first_message t sock =
       let module CR = M.Connect in
       
       if t.CR.md4 = !!client_md4 then begin
-          Printf.printf "CONNECT TO MYSELF"; print_newline ();
           TcpBufferedSocket.close sock "connected to myself";
           raise End_of_file
         end;
-      
-      Printf.printf "PCO 0"; print_newline ();
       
       let name = ref "" in
       List.iter (fun tag ->
@@ -965,8 +962,6 @@ let read_first_message t sock =
       let kind = Indirect_location (!name,t.CR.md4) in
       let c = new_client kind in
       
-      Printf.printf "PCO 1"; print_newline ();
-      
       begin
         match c.client_sock with
           None -> 
@@ -977,8 +972,6 @@ let read_first_message t sock =
             close sock "already connected"; raise Not_found
       end;
 
-      Printf.printf "PCO 2"; print_newline ();
-      
       set_write_power sock c.client_power;
       set_read_power sock c.client_power;
 
@@ -996,11 +989,8 @@ let read_first_message t sock =
 		     | Some _ -> if ?? = s.server_ip then
 			 c.client_brand <- Brand_server
 ) (connected_servers ()) *)
-      Printf.printf "PCO 3"; print_newline ();
       identify_client_brand c;
 
-      Printf.printf "PCO 4"; print_newline ();
-      
       direct_client_send sock (
         let module M = DonkeyProtoClient in
         let module C = M.ConnectReply in

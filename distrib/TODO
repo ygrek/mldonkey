@@ -6,6 +6,7 @@ TODO list for client
 Problems:
  * MLdonkey loses its sources without reason.
  * MLdonkey client generate "Exceeding Block Boundaries" errors
+ * Walker doesnot seem to work ?
 
 * Popup when clicking on a file with stats on sources
 * Active telnet: print the current state of files when it changes

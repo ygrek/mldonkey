@@ -1,6 +1,10 @@
 ChangeLog	
 =========
 
+2002/12/18: Simon
+  - Multi-column sort should work again.
+  - Reverted again the query for all files to a query for one file.
+
 2002/12/18: Simon (tag release-2-01-3)
   - Removed the Credit System. The world is already unfair enough, no need
       to bring a monetary system here. Moreover, it prevents correct downloads

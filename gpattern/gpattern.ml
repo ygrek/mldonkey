@@ -63,7 +63,16 @@ class virtual ['a] filtered_plist
     
     method private sort = 
       Array.fill contents 0 nitems dummy_line;
-      Sort2.subarray self#compare items 0 nitems
+      let array = Array.init nitems (fun i ->
+            (items.(i),i)) in
+      Array.sort (fun (v1,n1) (v2,n2) ->
+          let cmp = self#compare v1 v2 in
+          if cmp = 0 then compare n1 n2 else cmp
+      ) array;
+      for i = 0 to nitems - 1 do
+        let item, _ = array.(i) in
+        items.(i) <- item
+      done
     
     method set_titles l =
       wscroll#remove wlist#coerce;
