@@ -11,6 +11,11 @@ except the fact is needs Ocaml 3.08.3
 
 3792 : EDK/HTML: More readable uptime in cs
 3795 : Updated files for bugs building GTK2 GUI, GTK1 newgui and GTK1 oldgui
+* To build GTK1 newgui: ./configure
+  To build GTK1 oldgui: ./configure --disable-newgui
+  To build GTK2 GUI: ./configure --enable-gtk2
+  lablgtk-1.2.7 and lablgtk2-2.4.0 can both be installed at the same time.
+
 3816 : New URLs in FakeCheck. Corrected Bitzi URL
 3573 : Allows for aliased commands in driverCommands
 3822 : Fix for completed files appear multiple times in upstats
