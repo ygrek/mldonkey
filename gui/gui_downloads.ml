@@ -480,7 +480,7 @@ let redraw_chunks draw_avail file =
 	  ~width: dx ~height:wy ()
       end
     done
-    
+
 class box_downloads box_locs wl_status () =
   let draw_availability =
     GMisc.drawing_area ~height:20
@@ -618,14 +618,27 @@ class box_downloads box_locs wl_status () =
     method h_downloaded = self#h_cancelled 
     method h_downloading f = self#h_paused f
 
-    method h_file_availability num chunks avail =
+    method h_file_availability file_num client_num avail =      
       try
-	let (row, f) = self#find_file num in
-	self#update_file f 
-	  { f with file_chunks = chunks ; file_availability = avail } 
-	  row
+        let files = Intmap.find client_num !availabilities in
+        try
+          let (s,file) = Intmap.find file_num !files in
+          String.blit avail 0 s 0 (String.length avail);
+        with _ ->
+            let _, file = self#find_file file_num in
+            files := Intmap.add file_num (avail,file) !files
+      with _ ->
+          let _, file = self#find_file file_num in          
+          availabilities := Intmap.add client_num
+            (ref (Intmap.add file_num (avail,file) Intmap.empty)) !availabilities
+      (*
+      try
+        let (row, f) = self#find_file file_num in
+        self#update_file f 
+          { f with file_chunks = chunks ; file_availability = avail } 
+          row
       with Not_found -> ()
-
+*)
 (*
     method remove_client c =
       List.iter (fun file ->
@@ -738,7 +751,8 @@ class box_downloads box_locs wl_status () =
 
 class pane_downloads () =
   let wl_status = GMisc.label ~text: "" ~show: true () in
-  let locs = new Gui_friends.box_list () in
+  let client_info_box = GPack.vbox ~homogeneous:false () in
+  let locs = new Gui_friends.box_list client_info_box in
   let dled = new box_downloaded wl_status () in
   let dls = new box_downloads locs wl_status () in
   object (self)
@@ -804,7 +818,8 @@ class pane_downloads () =
 
 
       
-      hpaned#add2 locs#coerce;
+      clients_wpane#add1 locs#coerce;
+      clients_wpane#add2 client_info_box#coerce;
       vpaned#add1 dled#coerce;
       vpaned#add2 dls#coerce ;
   end

@@ -80,6 +80,8 @@ class window () =
       Mi.get_hpaned self tab_downloads#hpaned O.downloads_hpane_left;  
       Mi.set_vpaned tab_downloads#vpaned O.downloads_vpane_up;
       Mi.get_vpaned self tab_downloads#vpaned O.downloads_vpane_up;
+      Mi.set_vpaned tab_downloads#clients_wpane O.downloads_wpane_up;
+      Mi.get_vpaned self tab_downloads#clients_wpane O.downloads_wpane_up;
       
       notebook#goto_page 2;
       Mi.set_hpaned tab_friends#hpaned !!O.friends_hpane_left;

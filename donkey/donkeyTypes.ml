@@ -213,7 +213,8 @@ and source = {
 
 and client_kind = 
   SourceClient of client
-| SourceLastConnection of int * float (* last connection attempt *)
+| SourceLastConnection of int * float (* last connection attempt *) * 
+  int (* booked client num *)
   
 and file = {
     file_file : file CommonFile.file_impl;

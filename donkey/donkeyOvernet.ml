@@ -127,10 +127,6 @@ let published_files2 : (Md4.t,Md4.t*CommonTypes.tag list) Hashtbl.t =
 let published_files_fifo2 = Queue.create ()
 let published_files_size2 = ref 0
  
-(* overnet_md4 should be different from client_md4 for protocol safety reasons *)
-let overnet_md4 = Md4.random()
-(*let overnet_md4 = Md4.of_string "FBB5EA4C0A82FB995911223344556677";*)
-
 module PeerOption = struct
     
     let value_to_peer v = 
@@ -340,7 +336,7 @@ let add_global_peer peer =
   if not ( is_black_address peer.peer_ip peer.peer_port ) &&
      not ( private_address peer.peer_ip ) then
     begin
-      if (peer.peer_ip <> !!donkey_bind_addr) && (peer.peer_md4 <> overnet_md4) then
+      if (peer.peer_ip <> client_ip None) && (peer.peer_md4 <> overnet_md4) then
 	begin
 	  let i=Md4.up peer.peer_md4 in
 	  if Hashtbl.mem !!global_peers.(i) peer.peer_md4 then
@@ -367,7 +363,7 @@ let add_global_peer peer =
         if !!verbose_overnet then
         begin
 	      Printf.printf "Tried to add myself as a peer: %s/%s %s/%s\n" 
-	        (Ip.to_string peer.peer_ip) (Ip.to_string !!donkey_bind_addr)
+	        (Ip.to_string peer.peer_ip) (Ip.to_string (client_ip None))
 	        (Md4.to_string peer.peer_md4) (Md4.to_string overnet_md4); 	    
         end
     end
@@ -379,12 +375,12 @@ let publicize_peers () =
   List.iter (fun a -> 
       udp_send a.peer_ip a.peer_port
         (OvernetPublicize(overnet_md4,
-          !!donkey_bind_addr,!!overnet_port, 0) ) ) 
+          client_ip None,!overnet_client_port, 0) ) ) 
   global_dist;
   List.iter (fun a -> 
       udp_send a.peer_ip a.peer_port
         (OvernetPublicize(overnet_md4,
-          !!donkey_bind_addr,!!overnet_port, 0) ) ) 
+          client_ip None,!overnet_client_port, 0) ) ) 
   local_dist
   
 (* If one peer block is running low, try to get new peers using Connect *)
@@ -399,7 +395,7 @@ let find_new_peers () =
             Printf.printf "FINDING NEW PEERS"; print_newline ();
           end;
         List.iter (fun a -> udp_send a.peer_ip a.peer_port 
-              (OvernetConnect(overnet_md4,!!donkey_bind_addr,!!overnet_port, 0) ) )
+              (OvernetConnect(overnet_md4,client_ip None,!overnet_client_port, 0) ) )
         (get_uniform_distribution () ) ;
       end
       
@@ -805,7 +801,7 @@ let udp_client_handler t p =
 		      s.search_done_peers <- XorSet.add (distance, sender) s.search_done_peers;
 		    end
 		  else
-		    Printf.printf "BUG: This peer retuned results but cannot be found !\n";
+		    Printf.printf "BUG: This peer returned results but cannot be found !\n";
 		  
 		  if !!verbose_overnet then 
 		    begin
@@ -1086,8 +1082,13 @@ let enable enabler =
     (!!overnet_port) (DonkeyClient.client_connection_handler true) in
 
       tcp_sock := Some sock;
+
+      match Unix.getsockname (BasicSocket.fd (TcpServerSocket.sock sock)) with
+        Unix.ADDR_INET (ip, port) ->
+          overnet_client_port :=  port
+      | _ -> failwith "Bad socket address"
     with e ->
-        Printf.printf "Could not affect a TCP port %d for Overnet" (!!port + 1);
+        Printf.printf "Could not affect a TCP port %d for Overnet" !!overnet_port;
         print_newline ();
         tcp_sock := None;
   end;
@@ -1150,7 +1151,7 @@ let parse_overnet_url url =
   | "boot" :: name :: port :: _ ->
       let ip = Ip.from_name name in
       let port = int_of_string port in
-      udp_send ip port (OvernetConnect(overnet_md4,!!donkey_bind_addr,!!overnet_port, 0));
+      udp_send ip port (OvernetConnect(overnet_md4,client_ip None,!overnet_client_port, 0));
       true
   | _ -> false
       
@@ -1163,7 +1164,7 @@ let _ =
     "boot", Arg_two (fun ip port o ->
         let ip = Ip.from_name ip in
         let port = int_of_string port in
-        udp_send ip port (OvernetConnect(overnet_md4,!!donkey_bind_addr,!!overnet_port, 0));
+        udp_send ip port (OvernetConnect(overnet_md4,client_ip None,!overnet_client_port, 0));
         Printf.sprintf "peer %s:%d added" (Ip.to_string ip) port
     ), "<ip> <port> :\t\t\tadd an Overnet peer";
     
@@ -1297,7 +1298,7 @@ let _ =
                     Printf.printf "ADDING OVERNET PEER %s:%d" name port; 
                     print_newline ();
                   end;
-	      udp_send ip port (OvernetConnect(overnet_md4,!!donkey_bind_addr,!!overnet_port, 0));
+	      udp_send ip port (OvernetConnect(overnet_md4,client_ip None,!overnet_client_port, 0));
           | _ -> 
               Printf.printf "BAD LINE ocl: %s" s;
               print_newline ();

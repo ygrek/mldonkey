@@ -369,7 +369,7 @@ let loop () =
 
 (*      Printf.printf "timeout %f" !timeout; print_newline (); *)
       
-      if !timeout < 0.002 then timeout := 0.002;
+      if !timeout < 0.01 then timeout := 0.01;
 (*      
       Printf.printf "TASKS: %d" (List.length !tasks); print_newline ();
       Printf.printf "TIMEOUT: %f" !timeout; print_newline ();

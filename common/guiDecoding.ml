@@ -878,13 +878,12 @@ let to_gui opcode s =
       let size = get_int32 s 6 in
       let rate, pos = get_float s 10 in
       File_downloaded (n, size, rate, BasicSocket.last_time ())
-  
-  
+    
   | 9 ->
-      let n = get_int s 2 in
-      let s1, pos = get_string s 6 in
-      let s2, pos = get_string s pos in
-      File_availability (n, s1, s2)
+      let file_num = get_int s 2 in
+      let client_num = get_int s 6 in
+      let avail,_ = get_string s 10 in
+      File_update_availability (file_num, client_num, avail)
   
   | 10 -> 
       let n1 = get_int s 2 in

@@ -31,8 +31,12 @@ let (!!) = Options.(!!)
 
 let _ = 
   (try Options.load O.mldonkey_gui_ini with
-      e ->
-        Printf.printf "Exception %s in load options" (Printexc2.to_string e);
+      Sys_error _ ->
+	(try Options.save O.mldonkey_gui_ini with _ -> ())
+     | e ->
+        Printf.printf "Exception %s in load options %s" 
+	 (Printexc2.to_string e)
+	 (Options.options_file_name O.mldonkey_gui_ini);
         print_newline ();
   );
   let args = 
@@ -254,8 +258,8 @@ let value_reader gui t sock =
         gui#tab_downloads#h_file_downloaded num downloaded rate;
         gui#tab_downloads#h_file_last_seen num last_seen
     
-    | File_availability (num, chunks, avail) ->
-        gui#tab_downloads#h_file_availability num chunks avail;
+    | File_update_availability (file_num, client_num, avail) ->
+        gui#tab_downloads#h_file_availability file_num client_num avail;
     
     | File_info f ->
 (*        Printf.printf "FILE INFO"; print_newline (); *)

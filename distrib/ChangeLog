@@ -1,6 +1,21 @@
 ChangeLog	
 =========
 
+2003/01/10: Simon (tag unstable-2-02-4)
+  - Gui: display chunks availability when selecting a source
+  - DonkeyComplexOptions: saved some space in file_sources.ini
+  - DonkeyClient: 
+     * JoinQueue are not forgotten when the queue is full.
+  - DonkeyGlobals: Use Weak Hashtbl for udp_clients. Should save memory.
+  - New command 'sources' to print the state of the different source queues.
+  - DonkeySources2: Always use the same client_num for the same source
+      (to avoid flooding the GUI with new clients)
+  - Pango's patches: 39_readable_server_banners, 40_boot_time_is_redundant, 
+     43_waiting_queries_late_filtering, 46_overnet_fix_errormsg, 
+     50_tight_file_commit, 52_self_create_mldonkey_gui_ini ,
+     53_dont_propagate_overnet_sources, 55_overnet_send_appropriate_infos
+     57_optional_servers_walking
+
 2003/01/10: Simon (tag unstable-2-02-3)
   - DonkeySources2: fixes from 2003/01/08 had been reverted by CVS. 
       Sources were dropped under heavy usage
@@ -9,14 +24,13 @@ ChangeLog
   - DonkeyClient/DonkeyProtoClient: complete implementation of Emule 
       client-to-client source propagation.
   - DonkeyClient: limitation of file groups to 1000 files
-      (should reduce memory usage)
+      (should save memory)
   - DonkeyGlobals: removed the mldonkey letters in md4
   - Makefile: 'mlim' is compiled only if mldonkey_gui is compiled
   - DonkeyOptions: removed options are back in downloads.ini  
 
 2003/01/08: Simon (tag unstable-2-02-1)
   - Fixed some bugs in new sources management. Seems to works pretty well.
-      BUT DEVELOPMENT ONLY VERSION, USE IT AT YOUR OWN RISKS !!
   - For fun: new mldonkey authentification, just to see how long it will take
      to emule devels to break it :)
 

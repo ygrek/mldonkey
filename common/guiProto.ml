@@ -97,8 +97,8 @@ type to_gui =
   
 | File_info of file_info
 | File_downloaded of int * int32 * float * float
-| File_availability of int * string * string
 | File_add_source of int * int
+| File_update_availability of int * int * string
 | File_remove_source of int * int
   
 | Server_busy of int * int * int

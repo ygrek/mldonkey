@@ -658,17 +658,24 @@ let commands = [
     ), ":\t\t\tstatistics on upload";
 *)
     
+    "sources", Arg_none (fun o ->
+        let buf = o.conn_buf in
+        DonkeySources2.print_sources buf;
+        "done"
+    ), ":\t\t\t\tshow sources currently known";
+    
     "uploaders", Arg_none (fun o ->
         let buf = o.conn_buf in
-        List.iter (fun c ->
+        Fifo.iter (fun c ->
             client_print (as_client c.client_client) o;
             Printf.bprintf buf "client: %s downloaded: %s uploaded: %s" (brand_to_string c.client_brand) (Int64.to_string c.client_downloaded) (Int64.to_string c.client_uploaded);
             match c.client_upload with
               Some cu ->
                 Printf.bprintf buf "\nfilename: %s\n\n" (file_best_name cu.up_file)
             | None -> ()
-        ) (Fifo.to_list upload_clients);
-        "done"
+        ) upload_clients;
+        Printf.sprintf "Total number of uploaders : %d" 
+          (Fifo.length upload_clients);
     ), ":\t\t\t\tshow users currently uploading";
     
     

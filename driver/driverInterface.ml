@@ -45,7 +45,6 @@ let gui_send gui t =
   try
     GuiEncoding.gui_send (GuiEncoding.to_gui gui.gui_version) gui.gui_sock t
   with UnsupportedGuiMessage -> 
-      Printf.printf "Unsup"; print_newline ();
 (* the message is probably not supported by this GUI *)
       ()
   
@@ -166,6 +165,9 @@ let send_event gui ev =
 
   | File_add_source_event (f,c) ->
       gui_send gui (P.File_add_source (file_num f, client_num c));      
+
+  | File_update_availability (f,c,avail) ->
+      gui_send gui (P.File_update_availability (file_num f, client_num c,avail));      
       
   | File_remove_source_event (f,c) ->
       gui_send gui (P.File_remove_source (file_num f, client_num c));      
@@ -889,7 +891,8 @@ let rec update_events list =
               update_result_info r;
               add_gui_event event
               
-          | File_add_source_event (f,c) ->
+          | File_add_source_event (f,c)
+          | File_update_availability (f,c,_) ->
               update_file_info f;
               update_client_info c;
               add_gui_event event

@@ -1050,6 +1050,7 @@ let value_reader (gui: gui) t sock =
           with _ -> ()
         end
     
+        (*
     | File_availability (num, chunks, avail) ->
         begin
           try 
@@ -1065,7 +1066,8 @@ let value_reader (gui: gui) t sock =
             }
           with _ -> ()
         end
-    
+*)
+        
     | File_info f ->
         begin try update_file f with _ -> () end
     

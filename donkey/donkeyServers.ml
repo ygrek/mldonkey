@@ -78,15 +78,14 @@ let query_locations s n_per_round =
           match s.server_waiting_queries with
             [] ->
               begin
-                List.iter (fun file ->
-                    if file_state file = FileDownloading
-                      then
-                      s.server_waiting_queries <- 
-                        file :: s.server_waiting_queries
-                ) !current_files;
+                s.server_waiting_queries <- !current_files;
                 if s.server_waiting_queries <> [] then
-                  let nqueries = List.length s.server_waiting_queries in
-                  iter (min n (nqueries - (n_per_round - n)))
+                  let nqueries = ref 0 in
+ 		  List.iter (fun file ->
+ 		    if file_state file = FileDownloading then
+ 			incr nqueries
+ 		  ) !current_files;
+                   iter (mini n (!nqueries - (n_per_round - n)))
             end
           | file :: files ->
               s.server_waiting_queries <- files;
@@ -139,6 +138,7 @@ let server_handler s sock event =
 
   | _ -> ()
       
+let last_message_sender = ref (-1)
       
 let client_to_server s t sock =
   let module M = DonkeyProtoServer in
@@ -179,8 +179,13 @@ let client_to_server s t sock =
         end
         
   | M.MessageReq msg ->
-      let msg = Printf.sprintf "From server %s [%s:%d]: %s\n"
-          s.server_name (Ip.to_string s.server_ip) s.server_port msg in
+      if !last_message_sender <> server_num s then begin
+	let server_header = Printf.sprintf "\n+-- From server %s [%s:%d] ------\n"
+	  s.server_name (Ip.to_string s.server_ip) s.server_port in
+	CommonEvent.add_event (Console_message_event server_header);
+	last_message_sender := server_num s
+      end;
+      let msg = Printf.sprintf "| %s\n" msg in
       CommonEvent.add_event (Console_message_event msg)
       
   | M.ServerListReq l ->
@@ -572,7 +577,8 @@ let next_walker_start = ref 0.0
 (* one call every 5 seconds, so 12/minute, 720/hour *)
 let walker_timer () = 
   
-  if !nservers < max_allowed_connected_servers () + !!max_walker_servers then
+  if !!servers_walking_period > 0. &&
+    !nservers < max_allowed_connected_servers () + !!max_walker_servers then
     
     match !walker_list with
       [] ->
@@ -582,7 +588,7 @@ let walker_timer () =
               delayed_list := []
             end else
           if last_time () > !next_walker_start then begin
-              next_walker_start := last_time () +. 4. *. 3600.;
+              next_walker_start := last_time () +. !!servers_walking_period *. 3600.;
               Hashtbl.iter (fun _ s ->
                   walker_list := s :: !walker_list
               ) servers_by_key;

@@ -112,10 +112,59 @@ let clean_requests () = (* to be called every hour *)
       Hashtbl.remove banned_ips ip;
   ) !remove_ips
 
+  
+let pending_slots_map = ref Intmap.empty
+let pending_slots_fifo = Fifo.create ()
+  
+let add_pending_slot c =
+  if not (Intmap.mem (client_num c) !pending_slots_map) then begin
+      pending_slots_map := Intmap.add (client_num c) c !pending_slots_map;
+      Fifo.put pending_slots_fifo (client_num c)
+    end
+  
+let remove_pending_slot c =
+  if Intmap.mem (client_num c) !pending_slots_map then
+    pending_slots_map := Intmap.remove (client_num c) !pending_slots_map
+    
+let rec give_a_slot c = 
+  remove_pending_slot c;
+  match c.client_sock with
+    None -> find_pending_slot ()
+  | Some sock ->
+      set_rtimeout sock !!upload_timeout;
+      
+      direct_client_send sock (
+        let module M = DonkeyProtoClient in
+        let module Q = M.AvailableSlot in
+        M.AvailableSlotReq Q.t);
+      c.client_has_a_slot <- true;
+      
+      if !!verbose then begin
+          Printf.printf "New uploader %s: brand %s" 
+            c.client_name (brand_to_string c.client_brand);
+          print_newline ();
+        end;
+      
+      set_write_power sock (c.client_power);
+      set_read_power sock (c.client_power)
+      
+and find_pending_slot () =
+  try
+    let rec iter () =
+      let cnum = Fifo.take pending_slots_fifo in
+      try
+        let c = Intmap.find cnum !pending_slots_map in
+        give_a_slot c
+      with _ -> iter ()
+    in
+    iter ()
+  with _ -> ()
+  
 let disconnect_client c =
   match c.client_sock with
     None -> ()
   | Some sock ->
+      remove_pending_slot c;
       connection_failed c.client_connection_control;
       TcpBufferedSocket.close sock "closed";
       printf_string "-c"; 
@@ -128,6 +177,7 @@ let disconnect_client c =
           remove_client_chunks file chunks)  
       files;    
       c.client_file_queue <- [];
+      if c.client_upload != None then find_pending_slot ();
       DonkeyOneFile.clean_client_zones c;
       DonkeySources1.source_of_client c
   
@@ -149,21 +199,21 @@ let new_udp_client c group =
   match c.client_kind with
     Indirect_location _ -> ()
   | Known_location (ip, port) ->
+      let uc = {
+          udp_client_last_conn = last_time ();
+          udp_client_ip = ip;
+          udp_client_port = port;
+          udp_client_can_receive = client_can_receive c
+        }
+      in
       let uc =
         try
-          let uc = Hashtbl.find udp_clients c.client_kind in
+          let uc = UdpClientWHashtbl.find udp_clients uc in
           uc.udp_client_last_conn <- last_time ();
           uc
         with _ ->
-            let uc = {
-                udp_client_last_conn = last_time ();
-                udp_client_ip = ip;
-                udp_client_port = port;
-		udp_client_can_receive = client_can_receive c
-              }
-            in
             Heap.set_tag uc tag_udp_client;
-            Hashtbl.add udp_clients c.client_kind uc;
+            UdpClientWHashtbl.add udp_clients uc;
             uc
       in          
       group.group <- UdpClientMap.add c.client_kind uc group.group
@@ -189,7 +239,10 @@ let max_file_groups = 1000
 let file_groups_fifo = Fifo.create ()
 
 let find_sources_in_groups c md4 =
-  if !!propagate_sources then
+  if !!propagate_sources &&
+    (match c.client_brand with
+        Brand_mldonkey1 | Brand_overnet -> false
+      | _ -> true) then
     try
       let group = Hashtbl.find file_groups md4 in
       try
@@ -222,39 +275,36 @@ let find_sources_in_groups c md4 =
                     end
             end;
           
-          if c.client_brand <> Brand_mldonkey1 then
-            match c.client_kind with 
-              Indirect_location _ -> ()
-            | Known_location (ip, port) ->
+          match c.client_kind with 
+            Indirect_location _ -> ()
+          | Known_location (ip, port) ->
 (* send this client as a source for the file to
 		     all mldonkey clients in the group. add client to group *)
-                
-                UdpClientMap.iter (fun _ uc ->
-                    if uc.udp_client_can_receive then begin
-                        if !verbose_group then
-                          (Printf.printf "Send new source to file groups UDP peers"; 
-                            print_newline ());
-                        udp_client_send uc (
-                          let module M = DonkeyProtoServer in
-                          M.QueryLocationReplyUdpReq (
-                            let module Q = M.QueryLocationReply in
-                            {
-                              Q.md4 = md4;
-                              Q.locs = [{ Q.ip = ip; Q.port = port }];
-                            }))
-                      end
-                ) group.group;
-                new_udp_client c group
+              
+              UdpClientMap.iter (fun _ uc ->
+                  if uc.udp_client_can_receive then begin
+                      if !verbose_group then
+                        (Printf.printf "Send new source to file groups UDP peers"; 
+                          print_newline ());
+                      udp_client_send uc (
+                        let module M = DonkeyProtoServer in
+                        M.QueryLocationReplyUdpReq (
+                          let module Q = M.QueryLocationReply in
+                          {
+                            Q.md4 = md4;
+                            Q.locs = [{ Q.ip = ip; Q.port = port }];
+                          }))
+                    end
+              ) group.group;
+              new_udp_client c group
     with _ ->
-        if c.client_brand <> Brand_mldonkey1 then begin
-            if Fifo.length file_groups_fifo >= max_file_groups then 
-              Hashtbl.remove file_groups (Fifo.take file_groups_fifo);
-            let group = { group = UdpClientMap.empty } in
-            Hashtbl.add file_groups md4 group;
-            Fifo.put file_groups_fifo md4;
-            new_udp_client c group
-          end
-          
+        if Fifo.length file_groups_fifo >= max_file_groups then 
+          Hashtbl.remove file_groups (Fifo.take file_groups_fifo);
+        let group = { group = UdpClientMap.empty } in
+        Hashtbl.add file_groups md4 group;
+        Fifo.put file_groups_fifo md4;
+        new_udp_client c group
+        
 let clean_groups () =
   let one_day_before = last_time () -. one_day in
   Hashtbl.iter (fun file group ->
@@ -327,7 +377,9 @@ let client_has_chunks c file chunks =
   if file.file_chunks_age = [||] then
     file.file_chunks_age <- Array.create file.file_nchunks 0.0;
   let change_last_seen = ref false in
+  let chunks_string = String.make file.file_nchunks '0' in
   for i = 0 to file.file_nchunks - 1 do
+    if chunks.(i) then chunks_string.[i] <- '1';
     match file.file_chunks.(i) with
       PresentVerified | PresentTemp -> 
         file.file_chunks_age.(i) <- last_time ()
@@ -351,6 +403,8 @@ let client_has_chunks c file chunks =
     end;
   
   add_client_chunks file chunks;
+  CommonEvent.add_event (File_update_availability
+      (as_file file.file_file, as_client c.client_client, chunks_string));
   
   match c.client_file_queue with
     [] ->
@@ -367,6 +421,9 @@ let add_new_location sock file c =
   let module M = DonkeyProtoClient in
   
   if !!propagate_sources &&
+    (match c.client_brand with
+	 Brand_mldonkey1 | Brand_overnet -> false
+       | _ -> true) &&
     last_time () -. connection_last_conn c.client_connection_control < 300.
   then begin
 (* Send the known sources to the client. *)
@@ -386,7 +443,7 @@ let add_new_location sock file c =
                       connection_last_conn cc.client_connection_control > time
                     then
                       match cc.client_kind with
-                      | Known_location (ip, port) when not cc.client_overnet -> 
+                      | Known_location (ip, port) -> 
                           sources := (ip, port, ip) :: !sources;
                           decr send_locations;
                           if !send_locations = 0 then
@@ -404,8 +461,7 @@ let add_new_location sock file c =
                         }));
         end;
       
-      if c.client_brand <> Brand_mldonkey1 then begin
-          match c.client_kind with
+      match c.client_kind with
             Indirect_location _ -> ()
           | Known_location (ip, port) ->
               try
@@ -452,7 +508,6 @@ let add_new_location sock file c =
                 
                 ) file.file_sources;
               with _ -> ();
-        end
     end
       *)
 
@@ -496,7 +551,7 @@ let solve_challenge md4 =
         iter n) in
   let v = Marshal.to_string array [] in
   Md4.string v  
-
+  
 let client_to_client challenge for_files c t sock = 
   let module M = DonkeyProtoClient in
 (*
@@ -515,7 +570,8 @@ let client_to_client challenge for_files c t sock =
       
       let module CR = M.ConnectReply in
       
-      if t.CR.md4 = !!client_md4 then
+      if t.CR.md4 = !!client_md4 ||
+         t.CR.md4 = overnet_md4 then
         TcpBufferedSocket.close sock "connected to myself";
       
       c.client_tags <- t.CR.tags;
@@ -668,24 +724,11 @@ print_newline ();
                 if Fifo.length upload_clients >= !!max_upload_slots then
                   raise Exit;
           end;
-          set_rtimeout sock !!upload_timeout;
           
-          direct_client_send sock (
-            let module M = DonkeyProtoClient in
-            let module Q = M.AvailableSlot in
-            M.AvailableSlotReq Q.t);
-          c.client_has_a_slot <- true;
-          
-          if !!verbose then begin
-              Printf.printf "New uploader %s: brand %s" 
-                c.client_name (brand_to_string c.client_brand);
-              print_newline ();
-            end;
-          
-          set_write_power sock (c.client_power);
-          set_read_power sock (c.client_power);
+          give_a_slot c
         
         with _ ->
+            add_pending_slot c;
             if !!verbose then begin
                 Printf.printf "(uploader %s: brand %s, couldn't get a slot)" 
                   c.client_name (brand_to_string c.client_brand);
@@ -715,7 +758,8 @@ print_newline ();
         let module Q = M.CloseSlot in
         M.CloseSlotReq Q.t);
       if c.client_file_queue = [] then
-        set_rtimeout sock 120.
+        set_rtimeout sock 120.;
+      find_pending_slot ()
   
   | M.QueryFileReplyReq t ->
       let module Q = M.QueryFileReply in
@@ -1234,7 +1278,8 @@ let read_first_message overnet m sock =
       let module CR = M.Connect in
 
       
-      if t.CR.md4 = !!client_md4 then begin
+      if t.CR.md4 = !!client_md4 ||
+         t.CR.md4 = overnet_md4 then begin
           TcpBufferedSocket.close sock "connected to myself";
           raise End_of_file
         end;
@@ -1299,13 +1344,22 @@ let read_first_message overnet m sock =
       direct_client_send sock (
         let module M = DonkeyProtoClient in
         let module C = M.ConnectReply in
-        M.ConnectReplyReq {
-          C.md4 = !!client_md4;
-          C.ip = client_ip (Some sock);
-          C.port = !client_port;
-          C.tags = !client_tags;
-          C.server_info = t.CR.server_info;
-        }
+	if c.client_overnet then
+          M.ConnectReplyReq {
+            C.md4 = overnet_md4;
+            C.ip = client_ip (Some sock);
+            C.port = !overnet_client_port;
+            C.tags = !overnet_client_tags;
+            C.server_info = None;
+          }
+	else
+          M.ConnectReplyReq {
+            C.md4 = !!client_md4;
+            C.ip = client_ip (Some sock);
+            C.port = !client_port;
+            C.tags = !client_tags;
+            C.server_info = t.CR.server_info;
+          }
       );
 
             
@@ -1403,15 +1457,24 @@ let reconnect_client c =
             direct_client_send sock (
               let module M = DonkeyProtoClient in
               let module C = M.Connect in
-              M.ConnectReq {
-                C.md4 = !!client_md4; (* we want a different id each conn *)
-                C.ip = client_ip None;
-                C.port = !client_port;
-                C.tags = !client_tags;
-                C.version = 16;
-                C.server_info = if c.client_overnet then None else 
-                  Some (server_ip, server_port);
-            }
+	      if c.client_overnet then
+                M.ConnectReq {
+                  C.md4 = overnet_md4;
+                  C.ip = client_ip None;
+                  C.port = !overnet_client_port;
+                  C.tags = !overnet_client_tags;
+                  C.version = 16;
+                  C.server_info = None;
+                }
+	      else
+                M.ConnectReq {
+                  C.md4 = !!client_md4;
+                  C.ip = client_ip None;
+                  C.port = !client_port;
+                  C.tags = !client_tags;
+                  C.version = 16;
+                  C.server_info = Some (server_ip, server_port);
+                }
           )
 
         with e -> 

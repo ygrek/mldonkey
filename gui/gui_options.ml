@@ -278,8 +278,13 @@ let searches_hpane_left = define_option mldonkey_gui_ini
   
 let downloads_vpane_up = define_option mldonkey_gui_ini
     ["layout"; "downloads_vpane_up"]
-  "Size in % of up part of the downloads vpane"
+  "Size in % of up part of the downloads vpane (downloaded/downloading)"
     int_option 40
+
+let downloads_wpane_up = define_option mldonkey_gui_ini
+    ["layout"; "downloads_wpane_up"]
+  "Size in % of up part of the downloads vpane (locations/client info)"
+    int_option 75
 
 let friends_vpane_up = define_option mldonkey_gui_ini
     ["layout"; "friends_vpane_up"]

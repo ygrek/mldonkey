@@ -407,32 +407,21 @@ let file_commited_name file =
   is received. *)
   
 let file_commit file =
-  try
-    let impl = as_file_impl file in
-    if impl.impl_file_state = FileDownloaded then begin
-        update_file_state impl FileShared;
-        done_files =:= List2.removeq file !!done_files;
-
+  let impl = as_file_impl file in
+  if impl.impl_file_state = FileDownloaded then
+    let new_name = file_commited_name file in
+    try
+      Printf.printf "*******  RENAME %s to %s *******" (file_disk_name file) new_name; print_newline ();
+      Unix2.rename (file_disk_name file) new_name;
         
-        let new_name = file_commited_name file in
-        impl.impl_file_ops.op_file_commit impl.impl_file_val new_name;        
-        begin
-          try
-            Printf.printf "*******  RENAME %s to %s *******" (file_disk_name file) new_name; print_newline ();
-            Unix2.rename (file_disk_name file) new_name;
-            
-            Printf.printf "*******  RENAME %s to %s DONE *******" (file_disk_name file) new_name; print_newline ();
-            set_file_disk_name file new_name
-          with e ->
-              Printf.printf "Exception %s in rename" (Printexc2.to_string e);
-              print_newline () 
-        end;            
-        let best_name = file_best_name file in  
-        
-        ignore (CommonShared.new_shared "completed" best_name new_name)
-      
-      end
-  with e ->
+      Printf.printf "*******  RENAME %s to %s DONE *******" (file_disk_name file) new_name; print_newline ();
+      set_file_disk_name file new_name;
+      let best_name = file_best_name file in  
+      ignore (CommonShared.new_shared "completed" best_name new_name);
+      impl.impl_file_ops.op_file_commit impl.impl_file_val new_name;
+      done_files =:= List2.removeq file !!done_files;
+      update_file_state impl FileShared;
+    with e ->
       Printf.printf "Exception in file_commit: %s" (Printexc2.to_string e);
       print_newline ()
       

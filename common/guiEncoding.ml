@@ -369,10 +369,7 @@ let rec to_gui_version_0 proto buf t =
       
   | File_downloaded (n, size, rate, last_seen) -> buf_int16 buf 8;
       buf_int buf n; buf_int32 buf size; buf_float buf rate
-      
-  | File_availability (n, s1, s2) -> buf_int16 buf 9;
-      buf_int buf n; buf_string buf s1; buf_string buf s2
-      
+            
   | File_add_source (n1,n2) -> buf_int16 buf 10;
       buf_int buf n1; buf_int buf n2
   
@@ -475,6 +472,8 @@ let rec to_gui_version_0 proto buf t =
 
   | File_remove_source (n1,n2) -> buf_int16 buf 50;
       buf_int buf n1; buf_int buf n2
+
+  | File_update_availability _ -> raise UnsupportedGuiMessage
       
 let to_gui_version_2 proto buf t =
   match t with
@@ -575,6 +574,14 @@ let to_gui_version_10 proto buf t =
       
   | _ -> to_gui_version_9 proto buf t
 
+      
+let to_gui_version_11 proto buf t =
+  match t with
+
+  | File_update_availability (file_num, client_num, avail) -> buf_int16 buf 9;
+      buf_int buf file_num; buf_int buf client_num; buf_string buf avail
+
+  | _ -> to_gui_version_10 proto buf t
 (* next message must be 49 *) 
       
 let to_gui_funs = [| 
@@ -589,6 +596,7 @@ let to_gui_funs = [|
     to_gui_version_8; 
     to_gui_version_9; 
     to_gui_version_10; 
+    to_gui_version_11; 
   |]
 
 let to_gui proto = to_gui_funs.(proto) proto
@@ -754,6 +762,7 @@ let from_gui_funs = [|
     from_gui_version_7;  
     from_gui_version_7;  
     from_gui_version_7;  
+    from_gui_version_7;  
     |]
 
   
@@ -815,7 +824,7 @@ let _ =
 } *)
   in
   
-  let to_gui = to_gui 10 in
+  let to_gui = to_gui 11 in
   let check_to_gui = 
     check to_gui GuiDecoding.to_gui in
   assert (check_to_gui (MessageFromClient (32, "Hello")));
@@ -831,7 +840,7 @@ let _ =
   assert (check_to_gui (Add_plugin_option ("section", "message", "option", StringEntry )));
   
   let check_from_gui = 
-    check (from_gui 10)  GuiDecoding.from_gui in
+    check (from_gui 11)  GuiDecoding.from_gui in
   assert (check_from_gui (MessageToClient (33, "Bye")));
   assert (check_from_gui (GuiExtensions [1, true; 2, false]));
   assert (check_from_gui GetConnectedServers);

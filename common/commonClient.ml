@@ -220,7 +220,19 @@ let new_client (client : 'a client_impl) =
   let (client : client) = Obj.magic client in
   H.add clients_by_num client;
   client_must_update client
+
+let book_client_num () = 
+  incr client_counter;
+  !client_counter
   
+let new_client_with_num (client : 'a client_impl) num =
+  client.impl_client_num <- num;
+  let (client : client) = Obj.magic client in
+  H.add clients_by_num client;
+  client_must_update client
+  
+let new_client (client : 'a client_impl) =
+  new_client_with_num client (book_client_num ())
   
 let client_remove c =
   set_client_state c RemovedHost

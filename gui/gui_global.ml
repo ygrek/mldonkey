@@ -76,6 +76,10 @@ let (client_sections :   (string * (string * GuiTypes.option_widget * string) li
 let (plugins_sections :   (string * (string * GuiTypes.option_widget * string) list ref) list ref) = ref []
 let (options_values : (string, string ref) Hashtbl.t) = Hashtbl.create 100
 
+let (availabilities : (string * file_info) Intmap.t ref
+    Intmap.t ref) = ref Intmap.empty
+
+  
 let clear () =
   nservers := 0;
   nconnected_servers := 0;
@@ -110,3 +114,4 @@ let _ =
   BasicSocket.add_infinite_timer 0.1 gtk_handler
 
 let top_menus = ref ([]: (string * (GMenu.menu -> unit)) list)
+  

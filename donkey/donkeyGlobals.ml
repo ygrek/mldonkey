@@ -232,6 +232,12 @@ open DonkeyMftp
   
 let client_tags = ref ([] : tag list)
 let client_port = ref 0
+let overnet_client_tags = ref ([] : tag list)
+let overnet_client_port = ref 0
+
+(* overnet_md4 should be different from client_md4 for protocol safety reasons *)
+let overnet_md4 = Md4.random()
+(*let overnet_md4 = Md4.of_string "FBB5EA4C0A82FB995911223344556677";*)
     
 module H = Weak2.Make(struct
       type t = client
@@ -527,64 +533,70 @@ let dummy_client =
     }
   in
   c  
-      
-let new_client key =
-  let c = 
-    try
-      H.find clients_by_kind { dummy_client with client_kind = key }
-    with _ ->
-        let rec c = {
-            client_client = client_impl;
-            client_upload = None;
-            client_kind = key;   
-            client_source = None;
-            client_sock = None;
-            client_md4 = Md4.null;
-            client_last_filereqs = 0.;
-            client_chunks = [||];
-            client_block = None;
-            client_zones = [];
-            client_connection_control =  new_connection_control_recent_ok ( ());
-            client_file_queue = [];
-            client_tags = [];
-            client_name = "";
-            client_all_files = None;
-            client_next_view_files = last_time () -. 1.;
-            client_all_chunks = "";
-            client_rating = 0;
-            client_brand = Brand_unknown;
-            client_checked = false;
-            client_chat_port = 0 ; (** A VOIR : où trouver le 
+
+let create_client key num =  
+  let rec c = {
+      client_client = client_impl;
+      client_upload = None;
+      client_kind = key;   
+      client_source = None;
+      client_sock = None;
+      client_md4 = Md4.null;
+      client_last_filereqs = 0.;
+      client_chunks = [||];
+      client_block = None;
+      client_zones = [];
+      client_connection_control =  new_connection_control_recent_ok ( ());
+      client_file_queue = [];
+      client_tags = [];
+      client_name = "";
+      client_all_files = None;
+      client_next_view_files = last_time () -. 1.;
+      client_all_chunks = "";
+      client_rating = 0;
+      client_brand = Brand_unknown;
+      client_checked = false;
+      client_chat_port = 0 ; (** A VOIR : où trouver le 
             port de chat du client ? *)
-            client_connected = false;
-            client_power = !!upload_power;
-            client_downloaded = Int64.zero;
-            client_uploaded = Int64.zero;
-            client_on_list = false;            
-            client_already_counted = false;
-            client_banned = false;
-            client_has_a_slot = false;
-            client_overnet = false;
-            client_score = Client_not_connected;
-            client_requests = [];
-            client_files = [];
-            client_next_queue = 0;
-          } and
-          client_impl = {
-            dummy_client_impl with            
-            impl_client_val = c;
-            impl_client_ops = client_ops;
-          }
-        in
-        Heap.set_tag c tag_client;
-        CommonClient.new_client client_impl;
-        H.add clients_by_kind c;
-        c
+      client_connected = false;
+      client_power = !!upload_power;
+      client_downloaded = Int64.zero;
+      client_uploaded = Int64.zero;
+      client_on_list = false;            
+      client_already_counted = false;
+      client_banned = false;
+      client_has_a_slot = false;
+      client_overnet = false;
+      client_score = Client_not_connected;
+      client_requests = [];
+      client_files = [];
+      client_next_queue = 0;
+    } and
+    client_impl = {
+      dummy_client_impl with            
+      impl_client_val = c;
+      impl_client_ops = client_ops;
+    }
   in
+  Heap.set_tag c tag_client;
+  CommonClient.new_client_with_num client_impl num;
+  H.add clients_by_kind c;
   c
 
-let find_indirect_client key =  
+let new_client key =
+  try
     H.find clients_by_kind { dummy_client with client_kind = key }
+  with _ ->
+      create_client key (book_client_num ())
+
+let new_client_with_num key num =
+  try
+    H.find clients_by_kind { dummy_client with client_kind = key }
+  with _ ->
+      create_client key num
+      
+let find_client_by_key key =  
+  H.find clients_by_kind { dummy_client with client_kind = key }
   
 let client_type c =
   client_type (as_client c.client_client)
@@ -633,7 +645,17 @@ let _ =
         (rate * 1024))  
     
 let file_groups = (Hashtbl.create 1023 : (Md4.t, file_group) Hashtbl.t)
-let udp_clients = (Hashtbl.create 1023 : (location_kind, udp_client) Hashtbl.t)
+  
+  
+module UdpClientWHashtbl = Weak2.Make(struct
+      type t = udp_client
+      let hash c = Hashtbl.hash (c.udp_client_ip, c.udp_client_port)
+      
+      let equal x y = x.udp_client_port = y.udp_client_port
+        && x.udp_client_ip = y.udp_client_ip
+    end)
+
+let udp_clients = UdpClientWHashtbl.create 1023
 
 let mem_stats buf = 
   Gc.compact ();

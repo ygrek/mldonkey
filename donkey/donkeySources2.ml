@@ -65,7 +65,7 @@ let useful_client c =
   
 (* Change a source structure into a client structure before attempting
   a connection. *)
-let client_of_source s index = 
+let client_of_source s index client_num = 
   if !verbose_sources then begin
       Printf.printf "client_of_source"; print_newline ();
     end;
@@ -76,7 +76,8 @@ let client_of_source s index =
   (files <> []) &&
   (if downloading then
       let (ip, port) = s.source_addr in
-      let c = DonkeyGlobals.new_client (Known_location (ip,port)) in
+      let c = DonkeyGlobals.new_client_with_num (Known_location (ip,port))
+        client_num in
       c.client_next_queue <- (
 (* If the connection fails:
 - if the client is a good client, try a new attempt shortly (old_sources_queue)
@@ -114,6 +115,19 @@ let client_of_source s index =
             Fifo.put file.file_paused_sources (s, index)
         ) files; false)
   )
+  
+let print_sources buf =
+  let nsources = ref 0 in  
+  for i = 0 to nqueues - 1 do 
+    Printf.bprintf buf "Queue[%s]: %d sources\n" sources_name.(i)
+    (let n = if i <= last_clients_queue then
+          Fifo.length clients_queues.(i)
+        else 
+          Fifo.length sources_queues.(i) in
+      nsources := !nsources + n;
+      n)
+  done;
+  Printf.bprintf buf "\nTotal number of sources:%d\n" !nsources
   
   
 (* This function is called every second *)
@@ -206,7 +220,7 @@ and if we have not exceeded the max number of clients   *)
                     (nclients, index, slot)
                   end else
                 match s.source_client with
-                | SourceLastConnection (queue, time) ->
+                | SourceLastConnection (queue, time, client_num) ->
                     
                     if time +. sources_periods.(index) <= last_time () then
 (* This source is good, connect to it !!! *)
@@ -215,7 +229,7 @@ and if we have not exceeded the max number of clients   *)
                           Printf.printf "Source could be connected"; print_newline ();
                         end;
                       
-                      if client_of_source s queue then
+                      if client_of_source s queue client_num then
                         
                         next_slot nclients index slot
                       

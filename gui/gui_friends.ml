@@ -273,7 +273,16 @@ class box_friends box_files () =
       );
 end
 
-class box_list () =
+
+let colorGreen = `NAME "green"
+let colorRed   = `NAME "red"
+let colorBlue  = `NAME "blue"
+let colorGray  = `NAME "gray"
+let colorWhite =`WHITE
+let colorBlack = `BLACK
+
+
+class box_list (client_info_box : GPack.box) =
   let vbox_list = GPack.vbox () in
   let label_locs = GMisc.label () in
   
@@ -365,25 +374,129 @@ class box_list () =
         c.client_tags <- c_new.client_tags;
         self#update_row c row
       with
-	Not_found ->
-	  ()
-
+        Not_found ->
+          ()
+    
     method update_locations_label =
       label_locs#set_text 
         (Printf.sprintf !!Gui_messages.connected_to_locations !G.nclocations !G.nlocations)
-
+    
     initializer
       vbox_list#pack ~expand: true prebox#coerce;
       vbox_list#pack ~expand: false label_locs#coerce;
-
+      
       ignore
-	(wtool#insert_button 
-	   ~text: (gettext M.add_to_friends)
-	   ~tooltip: (gettext M.add_to_friends)
-	   ~icon: (Gui_options.pixmap M.o_xpm_add_to_friends)#coerce
-	   ~callback: self#add_to_friends
-	   ()
-	);
+        (wtool#insert_button 
+          ~text: (gettext M.add_to_friends)
+        ~tooltip: (gettext M.add_to_friends)
+        ~icon: (Gui_options.pixmap M.o_xpm_add_to_friends)#coerce
+          ~callback: self#add_to_friends
+          ()
+      );
+    
+    val mutable selected = None
+    method on_select c = 
+      match selected with
+      | Some (cc,_) when c == cc -> ()
+      | _ ->
+          begin
+            match selected with
+              None -> ()
+            | Some (_, w) -> w#coerce#destroy ()
+          end;
+          let files = 
+            try
+              let files = Intmap.find c.client_num !Gui_global.availabilities 
+              in
+              let list = ref [] in
+              Intmap.iter (fun file_num (avail, file) ->
+                  list := (avail, file) :: !list
+              ) !files;
+              Array.of_list !list
+            with _ -> [||]
+          in
+          
+          let table = GPack.table ~rows: (1+ 2* Array.length files)
+            ~columns:1 ~packing:(
+              client_info_box#pack ~expand:false ~fill:true)   () in
+          selected <- Some (c, table);
+          
+          let rects = Array.mapi (fun i (avail, file) ->
+                let file_name_label = 
+                  GMisc.label ~text:(Printf.sprintf "%s" 
+                    (Gui_misc.short_name file.file_name))
+                  ~justify:`LEFT ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0) ()
+                in
+                table#attach ~left:1 ~top:(2+2 *i) file_name_label#coerce; 
+                let avail_label =  GMisc.drawing_area ~width: 200 ~height:20 () in
+                table#attach ~left:1 ~top:(3+2 *i) avail_label#coerce; 
+                
+                ignore (avail_label#event#connect#expose ~callback:
+                  (fun _ -> 
+                      
+                      
+                      let w = avail_label#misc#window in
+                      let d = new GDraw.drawable w in
+                      avail_label#misc#show ();
+                      
+                      let nchunks = String.length avail in
+                      
+                      let wx = 200 in
+                      let wy = 20 in
+                      
+                      let init = avail.[0] = '1' in
+                      let nchunks = String.length file.file_chunks in
+                      let dx = (float_of_int wx) /. (float_of_int nchunks) in
+                      
+                      let draw x0 x1 inside =
+                        d#set_foreground (
+                          if inside then colorGreen else colorRed
+                        );
+                        d#rectangle ~filled: true
+                        ~x:x0  ~y: 0 
+                          ~width: (x1 - x0) ~height:wy ()
+                        
+                      in
+                      
+                      let rec iter inside x0 i =
+                        if i = nchunks then
+                          draw x0 (int_of_float (float_of_int i *. dx) ) inside
+                        else
+                        if inside = (avail.[i] = '1') then
+                          iter inside x0 (i+1)
+                        else 
+                        let x1 = int_of_float (float_of_int i *. dx) in
+                        draw x0 x1 inside;
+                        iter (not inside) x1 (i+1)
+                          
+                      in
+                      iter init 0 1;
+                      
+                      false));
+                
+                avail_label, avail
+            ) files in
+          
+          (*
+          for i = 0 to Array.length files - 1 do
+            let (avail, file) = files.(i) in
+            let file_name_label = 
+              GMisc.label ~text:(Printf.sprintf "%s" file.file_name)
+              ~justify:`LEFT ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0) ()
+            in
+            table#attach ~left:1 ~top:(2+2 *i) file_name_label#coerce; 
+            let avail_label =  GMisc.drawing_area ~width: 200 ~height:20 () in
+            table#attach ~left:1 ~top:(3+2 *i) avail_label#coerce; 
+            
+           
+done;
+  *)            
+
+          let client_name_label = 
+            GMisc.label ~text:(Printf.sprintf "Client name: %s" c.client_name)
+            ~justify:`LEFT ~line_wrap:true ~xalign:(-1.0) ~yalign:(-1.0) ()
+          in
+          table#attach ~left:1 ~top:1 client_name_label#coerce; 
 
   end
 

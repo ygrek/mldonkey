@@ -106,7 +106,7 @@ let sources = H.create 13557
   
 let dummy_source = {
     source_addr = (Ip.null, 0);
-    source_client = SourceLastConnection (0, 0.0);
+    source_client = SourceLastConnection (0, 0.0, 0);
     source_files = [];
     source_overnet = false;
   }
@@ -149,13 +149,14 @@ let reschedule_source s file =
   match s.source_client with
   | SourceClient c -> add_file_location file c; s
       
-  | SourceLastConnection (queue, time) ->
+  | SourceLastConnection (queue, time, client_num) ->
       if sources_periods.(queue) > 601. || queue > new_sources_queue then
 (* This source will not be connected early enough *)
         (* TODO: if it is a popular file, don't schedule it too early *)
         let ss = { s with 
             source_files = s.source_files;
-            source_client = SourceLastConnection (new_sources_queue, time);
+            source_client = SourceLastConnection (
+              new_sources_queue, time, client_num);
           } in
         s.source_files <- []; (* Invalidate the old one *)
         H.remove sources s;
@@ -184,7 +185,8 @@ let new_source addr file =
   with _ ->
       let s = {
           source_addr = addr;
-          source_client = SourceLastConnection (new_sources_queue, 0.0);
+          source_client = SourceLastConnection (
+            new_sources_queue, 0.0, CommonClient.book_client_num ());
           source_files = [file, 0.0];
           source_overnet = false;
         }  in
@@ -283,7 +285,8 @@ let source_of_client c =
               end;
             List.iter (fun file -> remove_file_location file c) c.client_files;
             
-            s.source_client <- SourceLastConnection (new_queue, last_time ());
+            s.source_client <- SourceLastConnection (
+              new_queue, last_time (), client_num c);
             s.source_files <- List.map (fun file -> 
                 file, try !(List.assq file c.client_requests) with _ -> 0.0) 
             c.client_files;

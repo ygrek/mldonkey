@@ -222,6 +222,12 @@ let enable () =
         string_tag "name" !!client_name;
         int_tag "version" !!DonkeyOptions.protocol_version;
         int_tag "port" !client_port;
+      ];
+      overnet_client_tags :=
+      [
+        string_tag "name" !!client_name;
+        int_tag "version" !!DonkeyOptions.protocol_version;
+        int_tag "port" !overnet_client_port;
       ]
     in
     reset_tags ();

@@ -56,8 +56,6 @@ let find_port server_name bind_addr port_option handler =
 let one_day = 3600. *. 24.
 let half_day = one_day /. 2.
 
-let boot_time = last_time ()
-
 let printf_char c =
   if !!verbose then 
     (print_char c; Pervasives.flush Pervasives.stdout)

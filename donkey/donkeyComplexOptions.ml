@@ -402,7 +402,7 @@ module ClientOption = struct
       let last_conn = 
         try
           (min (get_value "source_age" value_to_float) (last_time ()))
-        with _ -> last_time ()
+        with _ -> 0.0
       in
       
       let rec iter files =
@@ -415,7 +415,7 @@ module ClientOption = struct
               s.source_overnet <- overnet_source;
               s.source_client <- 
                 SourceLastConnection (DonkeySources1.new_sources_queue, 
-                last_conn);
+                last_conn, CommonClient.book_client_num ());
               List.iter (fun md4 ->
                   try
                     let file = find_file md4 in
@@ -429,19 +429,25 @@ module ClientOption = struct
       
     let source_to_value s =
       let last_conn = match s.source_client with
-          SourceLastConnection (_, time) -> time
+          SourceLastConnection (_, time, _) -> time
         | _ -> last_time ()
       in
       let (ip, port) = s.source_addr in
-      Module [
-        "source_age", float_to_value (* last_conn *) 0.0;
-        "source_addr", addr_to_value ip port;
-        "source_overnet", bool_to_value s.source_overnet;
-        "source_files", list_to_value "file list" (fun (file,_) -> 
-              Md4.hash_to_value file.file_md4) s.source_files
-      ]
       
-    
+      let list = [
+          "source_addr", addr_to_value ip port;
+          "source_files", list_to_value "file list" (fun (file,_) -> 
+              Md4.hash_to_value file.file_md4) s.source_files;          
+        ] in
+      let list = 
+        if last_conn < 1. then list else
+          ("source_age", float_to_value last_conn) :: list
+      in
+      let list = if s.source_overnet then
+          ("source_overnet", bool_to_value true) :: list else list
+      in
+      Module list
+      
     let t = define_option_class "Source" (value_to_module value_to_source)
       source_to_value
   end

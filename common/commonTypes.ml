@@ -307,6 +307,7 @@ and event =
 
 | Client_new_file_event of client * string * result
 | File_add_source_event of file * client
+| File_update_availability of file * client * string
 | File_remove_source_event of file * client
 | Server_new_user_event of server * user
 | Search_new_result_event of gui_record * int * result

@@ -233,7 +233,7 @@ let random_order_download =
       
 let verbose_overnet = 
   define_option donkey_ini ["verbose_overnet"] 
-    "Should overnet be verbatim ?"
+    "Should overnet be verbose ?"
     bool_option false
 
 let connected_server_timeout = 
@@ -276,6 +276,16 @@ let min_left_servers = define_option donkey_ini ["min_left_servers"]
   "Minimal number of servers remaining after remove_old_servers"
     int_option 200
   
+let servers_walking_period = define_option donkey_ini ["servers_walking_period"]
+  "How often should we check all servers (minimum 4 hours, 0 to disable)"
+    float_option 6.
+  
+let _ =
+  option_hook servers_walking_period (fun _ ->
+    if !!servers_walking_period > 0. &&
+      !!servers_walking_period < 4. then
+	servers_walking_period =:= 4.)
+
 let network_options_prefix = define_option donkey_ini
     ["options_prefix"] "The prefix which is appended to options names
     when they are used in the telnet/WEB interfaces"
@@ -336,6 +346,7 @@ let gui_donkey_options_panel =
     "Min Left Servers After Clean", shortname min_left_servers, "T";
     "Update Server List", shortname update_server_list, "B";
     "Min Users on Master Servers", shortname master_server_min_users, "T";
+    "Servers Walking Period", shortname servers_walking_period, "T";
     "Force High ID", shortname force_high_id, "B";
     "Max Number of Connected Servers", shortname max_connected_servers, "T";
     "Max Upload Slots", shortname max_upload_slots, "T";
