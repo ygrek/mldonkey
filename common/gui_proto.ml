@@ -76,6 +76,90 @@ type search = {
     mutable search_max_hits : int;
   }
 
+  
+type network_info = {
+    network_num : int;
+    network_name : string;
+    mutable network_enabled : bool;
+  }
+  
+type file_info = {
+    file_num : int;    
+    file_network : int;
+    
+    mutable file_names : string list;
+    mutable file_md4 : Md4.t;        
+    mutable file_size : int32;
+    mutable file_downloaded : int32; (* LOT OF CHANGES *)
+    mutable file_nlocations : int; (* MANY CHANGES *)
+    mutable file_nclients: int;
+
+    mutable file_state : file_state;
+    mutable file_chunks : string;
+    mutable file_availability : string; (* MANY CHANGES *)
+    mutable file_sources : int list option;
+    mutable file_download_rate : float; (* LOT OF CHANGES *)
+    mutable file_format : format;
+    mutable file_chunks_age : float array;
+    mutable file_age : float;
+  }
+  
+type user_info = {
+    user_num : int;
+    user_md4 : Md4.t;
+    user_name : string;
+    user_ip : Ip.t;
+    user_port : int;
+    user_tags : tag list;
+    user_server : int;
+    mutable user_state : host_state;
+  }
+
+type server_info = {
+    server_num : int;
+    server_network : int;
+    
+    mutable server_ip : Ip.t;
+    mutable server_port : int;
+    mutable server_score : int;
+    mutable server_tags : CommonTypes.tag list;
+    mutable server_nusers : int;
+    mutable server_nfiles : int;
+    mutable server_state : host_state;
+    mutable server_name : string;
+    mutable server_description : string;
+    mutable server_users : int list option;
+  } 
+
+type room_info = {
+    room_num : int;
+    room_network : int;
+    room_name : string;
+    mutable room_state : room_state;
+    mutable room_users : int list;
+  }
+  
+type client_info = {
+    client_num : int;
+    client_network : int;
+    
+    mutable client_kind : location_kind;
+(*    mutable client_md4 : Md4.t;                   *)
+(*    mutable client_chunks : string;               *)
+(*    mutable client_files : (Md4.t * string) list; *)
+    mutable client_state : host_state;
+    mutable client_type : client_type;
+    mutable client_tags: CommonTypes.tag list;
+    mutable client_name : string;
+    mutable client_files:  result_info list option;
+    mutable client_rating : int32;
+    mutable client_chat_port : int option;
+  }
+
+type local_info = {
+    mutable upload_counter : int; 
+    mutable shared_files : int;
+  }
 
 type from_gui =
 | ConnectMore_query
@@ -120,90 +204,6 @@ type from_gui =
 | SendMoreInfo of int list * int list
 | GetUser_info of int
 | SendMessage of int * room_message
-  
-and network_info = {
-    network_num : int;
-    network_name : string;
-    mutable network_enabled : bool;
-  }
-  
-and file_info = {
-    file_num : int;    
-    file_network : int;
-    
-    mutable file_names : string list;
-    mutable file_md4 : Md4.t;        
-    mutable file_size : int32;
-    mutable file_downloaded : int32; (* LOT OF CHANGES *)
-    mutable file_nlocations : int; (* MANY CHANGES *)
-    mutable file_nclients: int;
-
-    mutable file_state : file_state;
-    mutable file_chunks : string;
-    mutable file_availability : string; (* MANY CHANGES *)
-    mutable file_sources : int list option;
-    mutable file_download_rate : float; (* LOT OF CHANGES *)
-    mutable file_format : format;
-    mutable file_chunks_age : float array;
-    mutable file_age : float;
-  }
-  
-and user_info = {
-    user_num : int;
-    user_md4 : Md4.t;
-    user_name : string;
-    user_ip : Ip.t;
-    user_port : int;
-    user_tags : tag list;
-    user_server : int;
-    mutable user_state : host_state;
-  }
-
-and server_info = {
-    server_num : int;
-    server_network : int;
-    
-    mutable server_ip : Ip.t;
-    mutable server_port : int;
-    mutable server_score : int;
-    mutable server_tags : CommonTypes.tag list;
-    mutable server_nusers : int;
-    mutable server_nfiles : int;
-    mutable server_state : host_state;
-    mutable server_name : string;
-    mutable server_description : string;
-    mutable server_users : int list option;
-  } 
-
-and room_info = {
-    room_num : int;
-    room_network : int;
-    room_name : string;
-    mutable room_state : room_state;
-    mutable room_users : int list;
-  }
-  
-and client_info = {
-    client_num : int;
-    client_network : int;
-    
-    mutable client_kind : location_kind;
-(*    mutable client_md4 : Md4.t;                   *)
-(*    mutable client_chunks : string;               *)
-(*    mutable client_files : (Md4.t * string) list; *)
-    mutable client_state : host_state;
-    mutable client_type : client_type;
-    mutable client_tags: CommonTypes.tag list;
-    mutable client_name : string;
-    mutable client_files:  result_info list option;
-    mutable client_rating : int32;
-    mutable client_chat_port : int option;
-  }
-
-and local_info = {
-    mutable upload_counter : int; 
-    mutable shared_files : int;
-  }
 
 type to_gui =
 | Connected of int

@@ -354,6 +354,20 @@ let add_to_local_index_timer _ =
     
     end
   
+let result_add_by_md4 r =
+  
+  let rec rs = {
+      result_result = result_impl;
+      result_index = Store.dummy_index;
+    } and result_impl = {
+      impl_result_num = 0;
+      impl_result_val = rs;
+      impl_result_ops = result_ops;
+    } in
+  new_result result_impl;
+  Hashtbl.add results_by_md4 r.result_md4 rs; 
+  r.result_num <- result_impl.impl_result_num;
+  rs
   
 let index_result_no_filter r =
   try
@@ -378,24 +392,12 @@ let index_result_no_filter r =
       if Hashtbl.mem files_by_md4  r.result_md4 then
         r.result_done <- true;
       
-      let rec rs = {
-          result_result = result_impl;
-          result_index = Store.dummy_index;
-        } and result_impl = {
-          impl_result_num = 0;
-          impl_result_val = rs;
-          impl_result_ops = result_ops;
-        } in
-      new_result result_impl;
-      
-      r.result_num <- result_impl.impl_result_num;
+      let rs = result_add_by_md4 r in
       
       let index = Store.add store r in
 
       rs.result_index <- index;
       
-      Hashtbl.add results_by_md4 r.result_md4 rs;
-
       (try add_to_local_index r with _ -> ());
       
       if !!save_file_history then begin
@@ -511,11 +513,15 @@ let find s =
           Printf.printf "doc filtered"; print_newline ();
         end else
       let r = doc_value doc in
-      let rs = result_find r.result_num in
+      
+      let rs = try
+          Hashtbl.find results_by_md4  r.result_md4
+        with _ -> result_add_by_md4 r
+      in
       comment_result r doc;
 
 (*    merge_result s doc.num; *)
-      search_add_result s (as_result_impl rs)
+      search_add_result s rs.result_result
   ) docs
   
 

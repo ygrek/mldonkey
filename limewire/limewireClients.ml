@@ -17,34 +17,6 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-
-(*
-
-PUSH HEADER: [GNUTELLA CONNECT/0.6\013\nUser-Agent: BearShare 2.5.0\013\nMachine: 1,13,511,1,1693\013\nPong-Caching: 0.1\013\nHops-Flow: 1.0\013\nListen-IP: 67.217.243.113:6346\013\n\013]
-
-*)
-
-(*
-  
-1022569854.519 24.102.10.39:3600 -> 212.198.235.45:51736 of len 82
-ascii [ 
-G I V   8 1 : 9 7 4 3 2 1 3 F B 4 8 6 2 3 D 0 F F D F A B B 3 8 0 E C 6 C 0 0 / P o l i c e   V i d e o   -   E v e r y   B r e a t h   Y o u   T a k e . m p g(10)(10)]
-
-"GIV %d:%s/%s\n\n" file.file_number client.client_md4 file.file_name
-
-1022569854.558 212.198.235.45:51736 -> 24.102.10.39:3600 of len 137
-ascii [ G E T   / g e t / 8 1 / P o l i c e   V i d e o   -   E v e r y   B r e a t h   Y o u   T a k e . m p g   H T T P / 1 . 0(13)(10) U s e r - A g e n t :   L i m e W i r e   2 . 4 . 4(13)(10) R a n g e :   b y t e s = 0 -(13)(10) C h a t :   2 1 2 . 1 9 8 . 2 3 5 . 4 5 : 6 3 4 6(13)(10)(13)(10)]
-
-1022569854.727 24.102.10.39:3600 -> 212.198.235.45:51736 of len 14
-ascii [ H T T P   2 0 0   O K  (13)(10)]
-  
-1022569854.935 24.102.10.39:3600 -> 212.198.235.45:51736 of len 1460
-ascii [ S e r v e r :   L i m e W i r e   2 . 4 . 1(13)(10) C o n t e n t - t y p e : a p p l i c a t i o n / b i n a r y(13)(10) C o n t e n t - l e n g t h : 4 1 3 2 0 5 0 0(13)(10)(13)
-(10)(0)(0)(1)(186) !(0)(1)(0)(9)(128)(27)(145)(0)(0)(1)(187)(0)(9)(128)(27)(145)(1)(225)(255)(224)(224) .(0)(0)(1)(190)(8)(243)(15)(2
-55)(255)(255)(255)(255)(255)(255)(255)(255)(255)(255)(255)(255)(255)(255)(255)(2
-55)
-*)
-
 open CommonComplexOptions
 open CommonTypes
 open CommonFile
@@ -108,18 +80,20 @@ let client_parse_header s file sock header =
 (*
   *)
     if is_http_ok header then
-            begin
-              Printf.printf "GOOD HEADER FROM CONNECTED CLIENT"; print_newline ();
+      begin
+        (*
+Printf.printf "GOOD HEADER FROM CONNECTED CLIENT"; print_newline ();
+  *)
               set_rtimeout sock 120.;
-              Printf.printf "SPLIT HEADER..."; print_newline ();
+(*              Printf.printf "SPLIT HEADER..."; print_newline (); *)
               let lines = Http_client.split_header header in
-              Printf.printf "REMOVE HEADLINE..."; print_newline ();
+(*              Printf.printf "REMOVE HEADLINE..."; print_newline (); *)
               match lines with
                 [] -> raise Not_found        
               | _ :: headers ->
-                  Printf.printf "CUT HEADERS..."; print_newline ();
+(*                  Printf.printf "CUT HEADERS..."; print_newline (); *)
                   let headers = Http_client.cut_headers headers in
-                  Printf.printf "START POS..."; print_newline ();
+(*                  Printf.printf "START POS..."; print_newline (); *)
                   let start_pos = 
                     try
                       let range = List.assoc "content-range" headers in
@@ -160,8 +134,10 @@ let client_parse_header s file sock header =
                       (Int32.to_string c.source_pos));
                   ()
       end else begin
+        (*
         Printf.printf "BAD HEADER FROM CONNECTED CLIENT:"; print_newline ();
-        BigEndian.dump header;
+BigEndian.dump header;
+        *) 
         disconnect_from_source s
       end
   with e ->
@@ -179,8 +155,10 @@ let rec remove_download file list =
 let file_complete file =
   let r = file.file_result in
   let f = r.result_file in
+(*
   Printf.printf "FILE %s DOWNLOADED" f.file_name;
-  print_newline ();
+print_newline ();
+  *)
   file_completed (as_file file.file_file);
   current_files := List2.removeq file !current_files;
   old_files =:= (f.file_name, f.file_size) :: !!old_files;
@@ -198,7 +176,7 @@ let file_complete file =
   let new_name = 
     Filename.concat incoming_dir f.file_name
   in
-  Printf.printf "RENAME to %s" new_name; print_newline ();
+(*  Printf.printf "RENAME to %s" new_name; print_newline ();*)
   Unix2.rename file.file_temp  new_name
      
 let client_reader s file sock nread = 
@@ -206,7 +184,8 @@ let client_reader s file sock nread =
   let c = client s in
   let b = TcpBufferedSocket.buf sock in
   if not c.source_error then begin
-      let f = file.file_result.result_file in
+        let f = file.file_result.result_file in
+        set_rtimeout sock half_day;
       begin
         let fd = try
             Unix32.force_fd file.file_fd 
@@ -231,8 +210,8 @@ print_newline ();
       if file.file_downloaded = f.file_size then
         file_complete file 
     end else begin
-      Printf.printf "ERROR REPORTED: [%s]" (String.sub b.buf b.pos b.len);
-      print_newline ();
+(*      Printf.printf "ERROR REPORTED: [%s]" (String.sub b.buf b.pos b.len);
+      print_newline (); *)
       disconnect_from_source s
     end
 
@@ -274,7 +253,7 @@ let connect_source s =
       [] -> disconnect_from_source s
     | file :: _ ->
         get_from_client sock s c file;
-        Printf.printf "++++++++ CONNECTING TO CLIENT +++++++"; print_newline ();
+(*        Printf.printf "++++++++ CONNECTING TO CLIENT +++++++"; print_newline (); *)
         
         TcpBufferedSocket.set_closer sock (fun _ s ->
             client_close c
@@ -311,20 +290,20 @@ let find_file file_name file_size =
       raise e
       
 let push_handler c sock header = 
-  Printf.printf "PUSH HEADER: [%s]" (String.escaped header);
-  print_newline ();
+(*  Printf.printf "PUSH HEADER: [%s]" (String.escaped header);
+  print_newline (); *)
   try
     if String2.starts_with header "GIV" then begin
-        Printf.printf "PARSING GIV HEADER"; print_newline ();
+(*        Printf.printf "PARSING GIV HEADER"; print_newline (); *)
         let colon_pos = String.index header ':' in
         let slash_pos = String.index header '/' in
         let uid = Md4.of_string (String.sub header (colon_pos+1) 32) in
         let index = int_of_string (String.sub header 4 (colon_pos-4)) in
         let s = Hashtbl.find sources_by_uid uid in
-        Printf.printf "SOURCE FOUND"; print_newline ();
+(*        Printf.printf "SOURCE FOUND"; print_newline (); *)
         match s.source_client with
           Some cc -> 
-            Printf.printf "ALREADY CONNECTED"; print_newline ();
+(*            Printf.printf "ALREADY CONNECTED"; print_newline (); *)
             client_close c
         | None ->
             connection_ok s.source_connection_control;
@@ -362,10 +341,10 @@ let listen () =
           match event with
             TcpServerSocket.CONNECTION (s, 
               Unix.ADDR_INET(from_ip, from_port)) ->
-              Printf.printf "CONNECTION RECEIVED FROM %s FOR PUSH"
+(*              Printf.printf "CONNECTION RECEIVED FROM %s FOR PUSH"
                 (Ip.to_string (Ip.of_inet_addr from_ip))
               ; 
-              print_newline ();
+              print_newline (); *)
               
               
               let sock = TcpBufferedSocket.create

@@ -224,6 +224,7 @@ let new_file file_state file_name md4 file_size writable =
           file_new_locations = true;
         }
       and file_impl = {
+          impl_file_update = false;
           CommonFile.impl_file_state = FileNew;
           CommonFile.impl_file_num = 0;
           CommonFile.impl_file_val = file;
@@ -293,6 +294,7 @@ let new_server ip port score =
         }
       and server_impl = 
         {
+          impl_server_update = false;
           CommonServer.impl_server_state = NewHost;
           CommonServer.impl_server_num = 0;
           CommonServer.impl_server_sort = 0.0;
@@ -351,7 +353,8 @@ let new_client key =
           client_chat_port = None ; (** A VOIR : où trouver le 
 					 port de chat du client ? *)
         } and
-        client_impl = {
+          client_impl = {
+            impl_client_update = false;
           impl_client_state = NotConnected;
           impl_client_type = NormalClient;
           impl_client_val = c;

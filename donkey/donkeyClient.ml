@@ -428,6 +428,11 @@ let read_first_message t sock =
       query_files c sock [];
       if client_is_friend c then
         if last_time () > c.client_next_view_files then begin
+            Printf.printf "****************************************";
+            print_newline ();
+            Printf.printf "       ASK VIEW FILES         ";
+            print_newline ();
+
             direct_client_send sock (
               let module M = Mftp_client in
               let module C = M.ViewFiles in
@@ -480,6 +485,10 @@ let client_to_client for_files c t sock =
       client_must_update c;      
       if client_is_friend c then begin
           if last_time () > c.client_next_view_files then begin
+            Printf.printf "****************************************";
+            print_newline ();
+            Printf.printf "       ASK VIEW FILES         ";
+            print_newline ();
               direct_client_send sock (
                 let module M = Mftp_client in
                 let module C = M.ViewFiles in
@@ -488,6 +497,11 @@ let client_to_client for_files c t sock =
         end
   
   | M.ViewFilesReplyReq t ->
+      Printf.printf "****************************************";
+      print_newline ();
+      Printf.printf "       VIEW FILES REPLY         ";
+      print_newline ();
+
       let module Q = M.ViewFilesReply in
       begin
         try

@@ -36,7 +36,9 @@ let enable () =
       DcServers.connect_servers ());
 
   DcClients.listen ();
-  if !!load_hublist then  DcServers.load_servers_list "";
+  if !!load_hublist &&
+    !nknown_servers < !!max_known_servers
+  then  DcServers.load_servers_list "";
 (*  network.command_vm <- DcInteractive.print_connected_servers *)
     ()
 

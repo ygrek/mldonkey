@@ -46,7 +46,7 @@ TARGETS= use_tags$(EXE) mldonkey$(EXE)
 CDK_SRCS=cdk/printexc.ml cdk/genlex2.ml cdk/sysenv.ml \
   cdk/netbase.ml cdk/filepath.ml cdk/string2.ml \
   cdk/filename2.ml cdk/list2.ml cdk/hashtbl2.ml \
-  cdk/file.ml cdk/unix2.ml cdk/heap.ml
+  cdk/file.ml cdk/unix2.ml cdk/heap.ml cdk/weak2.ml
 
 MP3TAG_SRCS=     mp3tagui/mp3_info.ml  mp3tagui/mp3_genres.ml \
   mp3tagui/mp3_misc.ml\

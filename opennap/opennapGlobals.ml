@@ -59,6 +59,7 @@ let new_server ip port =
           server_pending_searches = [];
         } and 
         server_impl = {
+          impl_server_update = false;
           impl_server_state = NewHost;
           impl_server_sort = 0.0;
           impl_server_val = s;
@@ -74,65 +75,6 @@ let new_server ip port =
       
 let set_server_state s state =
   set_server_state (as_server s.server_server) state
-    
-
-  (*
-let (sources : (source, full_source) Hashtbl.t) = Hashtbl.create 1023
-let source_num = ref 0
-let (sources_by_num : (int, full_source) Hashtbl.t) = Hashtbl.create 1023
-
-let (results_by_num : (int, result) Hashtbl.t) = Hashtbl.create 1023
-let (results_by_file : (file, result) Hashtbl.t) = Hashtbl.create 1023
-let result_num = ref 0
-
-  
-  
-let new_result file_name file_size =
-  let file = {
-      file_name = file_name;
-      file_size = file_size;
-    } in
-  try
-    Hashtbl.find results_by_file file
-  with _ ->
-      incr result_num;
-      let result = {
-          result_num = !result_num;
-          result_file = file;
-          result_sources = [];
-        } in
-      Hashtbl.add results_by_file file result;
-      result
-      
-
-let new_file file_name file_size =
-  let key = (file_name, file_size) in
-  try
-    Hashtbl.find files_by_key key  
-  with _ ->
-      incr file_num;
-      let file_temp = Filename.concat !!DO.temp_directory 
-          (Printf.sprintf "LW-%s" (Md4.to_string file_id)) in
-      let current_size = try
-          Unix32.getsize32 file_temp
-        with e ->
-            Printf.printf "Exception %s in current_size" (Printexc.to_string e); 
-            print_newline ();
-            Int32.zero
-      in
-      
-      let download = {
-          file_num = !file_num;
-          file_id = file_id;
-          file_result = new_result file_name file_size;
-          file_downloaded = current_size;
-          file_temp = file_temp;
-          file_fd = Unix32.create file_temp [Unix.O_RDWR; Unix.O_CREAT] 0o666;
-        } in
-      Hashtbl.add files_by_key key download;
-      download
-
-        *)
 
   
 let files_by_key = Hashtbl.create 13
@@ -178,7 +120,7 @@ let new_file file_id file_name file_size =
     Hashtbl.find files_by_key key  
   with _ ->
       let file_temp = Filename.concat !!DO.temp_directory 
-          (Printf.sprintf "LW-%s" (Md4.to_string file_id)) in
+          (Printf.sprintf "ON-%s" (Md4.to_string file_id)) in
       let current_size = try
           Unix32.getsize32 file_temp
         with e ->
@@ -195,6 +137,7 @@ let new_file file_id file_name file_size =
           file_temp = file_temp;
           file_fd = Unix32.create file_temp [Unix.O_RDWR; Unix.O_CREAT] 0o666;
         } and file_impl = {
+          impl_file_update = false;
           impl_file_state = FileNew;
           impl_file_num = 0; 
           impl_file_ops = file_ops;

@@ -67,10 +67,11 @@ let search_find num = Hashtbl.find searches_by_num num
 
 let search_add_result s r =
   try
-    let c = Intmap.find r.impl_result_num s.search_results in
+    let (c,_) = Intmap.find r.impl_result_num s.search_results in
     incr c
   with _ ->
-      s.search_results <- Intmap.add r.impl_result_num (ref 1) s.search_results;
+      s.search_results <- Intmap.add r.impl_result_num (ref 1, as_result r)
+      s.search_results;
       let r = as_result r in 
       List.iter (fun f -> f r) s.op_search_new_result_handlers
 

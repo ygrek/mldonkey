@@ -59,3 +59,7 @@ let dc_port = define_option directconnect_ini ["client_port"]
 let login = define_option directconnect_ini ["login"]
     "Your login on DC" string_option ""
   
+    
+let max_known_servers = define_option directconnect_ini
+    ["query_hublist_limit"] 
+    "The limit on the number of servers to avoid asking for a new list" int_option 100

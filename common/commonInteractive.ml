@@ -40,8 +40,7 @@ let print_results o =
       last_search := Some q;
       last_results := [];
       let counter = ref 1 in
-      Intmap.iter (fun r_num count ->
-          let r = result_find r_num in
+      Intmap.iter (fun r_num (count,r) ->
           CommonResult.result_print r !counter o;
           last_results := (!count, r) :: !last_results;
           incr counter;

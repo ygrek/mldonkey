@@ -285,6 +285,10 @@ let new_friend c =
         | Connected_queued
         | Connected_idle)
         ->
+            Printf.printf "****************************************";
+            print_newline ();
+            Printf.printf "       ASK VIEW FILES         ";
+            print_newline ();
           direct_client_send sock (
             let module M = Mftp_client in
             let module C = M.ViewFiles in
@@ -381,6 +385,7 @@ and remove clients whose server is deconnected. *)
                   user_server = s;                  
                 } 
               and  user_impl = {
+                  impl_user_update = false;
                   impl_user_state = NewHost;
                   impl_user_num = 0;
                   impl_user_val = user;

@@ -113,7 +113,9 @@ let canon_client gui c =
       if is_in_locations then
         gui#tab_downloads#h_update_location c;
       
-      if c.client_files <> None then cc.client_files <- c.client_files;
+      if c.client_files <> None then begin
+          cc.client_files <- c.client_files;
+        end;
       cc.client_state <- c.client_state;
       begin
         if c.client_type <> cc.client_type then begin
@@ -133,7 +135,6 @@ let canon_client gui c =
       
       cc
     with _ ->
-        Printf.printf "New client %d" c.client_num; print_newline ();
         Hashtbl.add G.locations c.client_num c;
         begin
           match c.client_type with
@@ -171,8 +172,13 @@ let value_reader gui t sock =
 	  )
  
     | Search_result (num,r) -> 
-        let r = Hashtbl.find G.results r in
-        gui#tab_queries#h_search_result num r
+        begin try
+          let r = Hashtbl.find G.results r in
+            gui#tab_queries#h_search_result num r
+          with _ -> 
+              Printf.printf "Exception in Search_result %d %d" num r;
+              print_newline ();
+        end
 
     | Search_waiting (num,waiting) -> 
 	gui#tab_queries#h_search_waiting num waiting
@@ -190,7 +196,7 @@ let value_reader gui t sock =
 	gui#tab_downloads#h_file_info f;
             
     | Server_info s ->
-	gui#tab_servers#h_server_info s;
+        gui#tab_servers#h_server_info s;
         gui#update_server_label
     
     | Server_state (key,state) ->
@@ -202,7 +208,6 @@ let value_reader gui t sock =
         gui#update_server_label 
     
     | Server_user (key, user) ->
-        Printf.printf "Server_user"; print_newline ();
         if not (Hashtbl.mem G.users user) then begin
             Gui_com.send (GetUser_info user);
           end else begin
@@ -211,11 +216,11 @@ let value_reader gui t sock =
           end
 
     | Room_info room ->
+(*        Printf.printf "Room info %d" room.room_num; print_newline (); *)
         let wnote = (gui#wnote_rooms :> GPack.notebook) in
-        Gui_rooms.room_info  wnote room
+        Gui_rooms.room_info wnote room
           
     | User_info user ->
-        Printf.printf "USER INFO"; print_newline ();
         let user = try 
             let u = Hashtbl.find G.users user.user_num  in
             u.user_state <- user.user_state;
@@ -228,11 +233,22 @@ let value_reader gui t sock =
         Gui_rooms.user_info user;
         gui#update_server_label
 
-    | Room_user (num, user_num) ->
-        Gui_rooms.add_room_user num user_num
+    | Room_user (num, user_num) -> 
+        
+        begin try
+            Gui_rooms.add_room_user num user_num
+          with e ->
+              Printf.printf "Exception in Room_user %d %d" num user_num;
+              print_newline ();
+        end
 
     | Room_message (num, msg) ->
-        Gui_rooms.add_room_message num msg
+        begin try
+            Gui_rooms.add_room_message num msg
+                  with e ->
+              Printf.printf "Exception in Room_message %d" num;
+              print_newline ();
+        end
         
     | GuiConnected -> 
 	()
@@ -288,14 +304,16 @@ let value_reader gui t sock =
         (
           try
             let file = Hashtbl.find G.results file_num in
-            let c = Hashtbl.find G.locations num in
-            let files = match c.client_files with
-                None -> []
-              | Some files -> files in
-            ignore (canon_client gui { c with client_files = Some (file :: files) });
-         with _ -> 
-           Com.send (GetClient_info num);
-           Com.send (GetClient_files num)
+            try
+              let c = Hashtbl.find G.locations num in
+              let files = match c.client_files with
+                  None -> []
+                | Some files -> files in
+              ignore (canon_client gui
+                  { c with client_files = Some (file :: files) });
+            with _ ->
+                Com.send (GetClient_info num);
+          with _ ->  ()
 	)
 
     | Client_info c -> 

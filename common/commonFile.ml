@@ -18,11 +18,12 @@
 *)
 
 
-
+open CommonClient
 open Options
 open CommonTypes
   
 type 'a file_impl = {
+    mutable impl_file_update : bool;
     mutable impl_file_state : file_state;
     mutable impl_file_num : int;
     mutable impl_file_val : 'a;
@@ -52,8 +53,7 @@ let file_num = ref 0
 let files_by_num = Hashtbl.create 1027
   
   
-let files_update_map = ref Intmap.empty
-  
+
 let ni n m = 
   let s = Printf.sprintf "File.%s not implemented by %s" 
       m n.network_name in
@@ -71,29 +71,29 @@ let as_file  (file : 'a file_impl) =
 let as_file_impl  (file : file) =
   let (file : 'a file_impl) = Obj.magic file in
   file
+
+let files_update_list = ref []
   
+let file_must_update file =
+  let impl = as_file_impl file in
+  if not impl.impl_file_update then
+    begin
+      impl.impl_file_update <- true;
+      files_update_list := file :: !files_update_list
+    end
+
 let update_file_num impl =
   if impl.impl_file_num = 0 then begin
       incr file_num;
       impl.impl_file_num <- !file_num;
-      Hashtbl.add files_by_num !file_num (as_file impl)
+      Hashtbl.add files_by_num !file_num (as_file impl);
+      file_must_update (as_file impl);
     end
 
   
 let file_num file =
   let impl = as_file_impl  file in
   impl.impl_file_num
-
-let file_must_update s =
-  if not (Intmap.mem (as_file_impl s).impl_file_num !files_update_map) then
-    files_update_map := Intmap.add (as_file_impl s).impl_file_num 
-    s !files_update_map
-
-let file_new_sources = ref []
-    
-let file_new_source file c =
-  file_new_sources := (file_num file, 
-    CommonClient.client_num c) :: !file_new_sources  
     
 let update_file_state impl state =
   impl.impl_file_state <- state;
@@ -188,6 +188,15 @@ let file_find num =
 let file_state file =
   let impl = as_file_impl file in
   impl.impl_file_state  
+  
+  
+let file_new_sources = ref []
+    
+let file_new_source file c =
+  client_must_update c;
+  file_new_sources := (file_num file, 
+    CommonClient.client_num c) :: !file_new_sources  
+
   
 let com_files_by_num = files_by_num
 let files_by_num = ()

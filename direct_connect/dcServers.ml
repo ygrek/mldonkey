@@ -124,6 +124,7 @@ let server_handler s sock event =
       connection_failed (s.server_connection_control);
       s.server_sock <- None;
       set_server_state s NotConnected;
+      set_room_state s RoomClosed;
       connected_servers := List2.removeq s !connected_servers;
       s.server_messages <- (ServerMessage "************* CLOSED ***********\n")
       :: s.server_messages;
@@ -132,9 +133,13 @@ let server_handler s sock event =
   | _ -> ()
 
 let rec client_to_server s t sock = 
+
+(*
   Printf.printf "From %s:%d"
     (server_addr s) s.server_port; print_newline ();
-  DcProtocol.print t;
+DcProtocol.print t;
+
+  *)
   match t with
     LockReq lock ->
       server_send sock (
@@ -191,7 +196,6 @@ let rec client_to_server s t sock =
       List.iter (fun t  -> ignore (user_add s t)) t.NickList.users
         
   | MessageReq t ->
-      Printf.printf "MSG: %s" t; print_newline ();
       s.server_messages <- (ServerMessage t) :: s.server_messages;
       room_must_update (as_room s.server_room)
 
@@ -251,7 +255,7 @@ and connect_server s =
       set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
           close s "timeout"  
       );
-(*      s.server_nick <- 0; *)
+      s.server_nick <- 0;
       s.server_sock <- Some sock;
     with e -> 
         Printf.printf "%s:%d IMMEDIAT DISCONNECT %s"

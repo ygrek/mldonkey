@@ -30,48 +30,6 @@ open DcOptions
 open CommonGlobals
 open DcGlobals
 
-  
-let servers_by_addr = Hashtbl.create 100
-  
-let new_server addr =
-  try
-    Hashtbl.find servers_by_addr addr 
-  with _ ->
-      let rec h = { 
-          server_server = server_impl;
-          server_room = room_impl;
-          server_name = "<unknown>";
-          server_addr = addr;
-          server_nusers = 0;
-          server_info = "";
-          server_ip_cached = None;
-          server_connection_control = new_connection_control (last_time());
-          server_sock = None;
-          server_port = 411;
-          server_nick = 0;
-          server_last_nick = "";
-          server_searches = [];
-          server_users = [];
-          server_messages = [];
-        } and 
-        server_impl = {
-          impl_server_state = NewHost;
-          impl_server_sort = 0.0;
-          impl_server_val = h;
-          impl_server_ops = server_ops;
-          impl_server_num = 0;
-        } and 
-        room_impl = {
-          impl_room_state = RoomPaused;
-          impl_room_val = h;
-          impl_room_ops = room_ops;
-          impl_room_num = 0;
-        }         
-      in
-      server_add server_impl;
-      room_add room_impl;
-      Hashtbl.add servers_by_addr addr h;
-      h
       
 let addr_to_value addr =
   match addr with

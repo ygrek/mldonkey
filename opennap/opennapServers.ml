@@ -94,8 +94,8 @@ let recover_files () =
       let keywords = 
         match stem f.file_name with 
           [] | [_] -> 
-            Printf.printf "Not enough keywords to recover %s" f.file_name;
-            print_newline ();
+(*            Printf.printf "Not enough keywords to recover %s" f.file_name;
+            print_newline (); *)
             [f.file_name]
         | l -> l
       in
@@ -113,8 +113,8 @@ let recover_files_from_server s =
           let keywords = 
             match stem f.file_name with 
               [] | [_] -> 
-                Printf.printf "Not enough keywords to recover %s" f.file_name;
-                print_newline ();
+(*                Printf.printf "Not enough keywords to recover %s" f.file_name;
+                print_newline (); *)
                 [f.file_name]
             | l -> l
           in
@@ -137,12 +137,12 @@ let try_nick s sock =
 
 
 let get_file_from_source src file r =
-  Printf.printf "GET FILE FROM SOURCE !!!!!!!!!!!!!!!!!!!!"; print_newline ();
+(*  Printf.printf "GET FILE FROM SOURCE !!!!!!!!!!!!!!!!!!!!"; print_newline (); *)
   try
     if connection_can_try src.source_connection_control then begin
         connection_try src.source_connection_control;      
-        Printf.printf "Opennap.get_file_from_source not implemented"; 
-        print_newline ();
+(*        Printf.printf "Opennap.get_file_from_source not implemented";  
+        print_newline (); *)
         let s = src.source_server in
         match s.server_sock with
           None -> ()
@@ -176,7 +176,7 @@ let get_file_from_source src file r =
 let download_file (r : result) =
   let f = r.result_file in
   let file = new_file (Md4.random ()) f.file_name f.file_size in
-  Printf.printf "DOWNLOAD FILE %s" f.file_name; print_newline ();
+(*  Printf.printf "DOWNLOAD FILE %s" f.file_name; print_newline (); *)
   if not (List.memq file !current_files) then begin
       current_files := file :: !current_files;
     end;
@@ -235,11 +235,11 @@ let server_handler s sock event =
 let client_to_server s t sock =
   if !DG.ip_verified < 10 then DG.verify_ip sock;
   match t with
-  | OP.ErrorReq error ->
-      Printf.printf "SERVER %s:%d %s" (Ip.to_string s.server_ip)
+  | OP.ErrorReq error
+  | OP.MessageReq error -> 
+      Printf.printf "SERVER %s:%d %s" (Ip.to_string s.server_ip) 
       s.server_port s.server_net; print_newline ();
       Printf.printf "ERROR FROM SERVER: %s" error; print_newline () 
-  | OP.MessageReq error -> ()
 (*      Printf.printf "SERVER %s:%d %s" (Ip.to_string s.server_ip) 
       s.server_port s.server_net; print_newline ();
       Printf.printf "MESSAGE FROM SERVER: %s" error; print_newline ()  *)
@@ -259,7 +259,7 @@ try_nick s sock;
       login_on_server s sock
   | OP.LoginAckReq mail ->
       set_rtimeout sock DG.half_day;
-      Printf.printf "*****  CONNECTED %s  ******" mail; print_newline (); 
+(*      Printf.printf "*****  CONNECTED %s  ******" mail; print_newline (); *)
       set_server_state s Connected_idle;
       connected_servers := s :: !connected_servers;
       recover_files_from_server s
@@ -283,19 +283,19 @@ try_nick s sock;
             begin
               try
                 let file = find_file (basename t.SR.filename) t.SR.size in 
-                Printf.printf "++++++++++ RECOVER %s ++++++++" t.SR.filename;
-                print_newline ();
+(*                Printf.printf "++++++++++ RECOVER %s ++++++++" t.SR.filename;
+                print_newline (); *)
                 let r = file.file_result in
-                Printf.printf "1"; print_newline ();
+(*                Printf.printf "1"; print_newline (); *)
                 let src = update_source s t in
                 add_source r src t.SR.filename;
-                Printf.printf "2"; print_newline ();
-                Printf.printf "3"; print_newline ();
+(*                Printf.printf "2"; print_newline (); *)
+(*                Printf.printf "3"; print_newline (); *)
                 add_download file src ""; (* 0 since index is already known. verify ? *)
-                Printf.printf "4"; print_newline ();
+(*                Printf.printf "4"; print_newline (); *)
                 get_file_from_source src file r;
-                Printf.printf "5"; print_newline ();
-                Printf.printf "6"; print_newline ();
+(*                Printf.printf "5"; print_newline (); *)
+(*                Printf.printf "6"; print_newline (); *)
               with _ -> ()
             end
       end
@@ -315,14 +315,14 @@ try_nick s sock;
       
       begin
         let module DA = OP.DownloadAck in
-        Printf.printf "DownloadAckReq %s !!!!!!!!!!!!!!!!!!!!!!!!" t.DA.nick; 
+(*        Printf.printf "DownloadAckReq %s !!!!!!!!!!!!!!!!!!!!!!!!" t.DA.nick;  *)
         print_newline (); 
         try
           let src = List.assoc t.DA.nick s.server_sources in
           
           if t.DA.port = 0 then (
-              Printf.printf "************** Must download indirectly  *************"; 
-              print_newline ();
+(*              Printf.printf "************** Must download indirectly  *************"; 
+              print_newline (); *)
               OP.debug_server_send sock (OP.AlternateDownloadRequestReq (
                   let module DR = OP.DownloadRequest in
                   {
@@ -331,8 +331,8 @@ try_nick s sock;
                   }
                 ));
             ) else (
-              Printf.printf "************** Can download directly *************"; 
-              print_newline ();
+(*              Printf.printf "************** Can download directly *************"; 
+              print_newline (); *)
               let ip = t.DA.ip in
               let port = t.DA.port in
               OpennapClients.connect_client src ip port
@@ -352,7 +352,7 @@ try_nick s sock;
         ()
       end;
       let module DE = OP.DownloadError in
-      Printf.printf "?????????Download Error %s %s ???????????" t.DE.nick t.DE.filename;
+      Printf.printf "?????????Download Error %s %s ???????????" t.DE.nick t.DE.filename; 
       print_newline ();
       
   | _ -> 
@@ -375,7 +375,7 @@ let connect_server s =
       set_write_controler sock DG.upload_control;
       
       set_reader sock (OpennapProtocol.opennap_handler (client_to_server s));
-      set_rtimeout sock 5.;
+      set_rtimeout sock 30.;
       set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
           close s "timeout"  
       );
@@ -413,7 +413,8 @@ let rec connect_one_server () =
           end
 
   
-let connect_servers () = Printf.printf "CONNECT SERVERS"; print_newline ();
+let connect_servers () = 
+(*  Printf.printf "CONNECT SERVERS"; print_newline (); *)
   if !nservers < !!max_connected_servers then
     for i = !nservers to !!max_connected_servers do
       connect_one_server ()

@@ -97,6 +97,18 @@ type result_info = {
     mutable result_done : bool;
   }
 
+let result_info_all = 255
+let result_info_name = 1
+let result_info_tags = 2
+let result_info_comment = 4
+  
+type result_parts =
+  Result_info_all of result_info
+| Result_info_parts of int * result_part list
+  
+and result_part =
+  Result_info_name of string list
+  
 type output_type = TEXT | HTML
   
 type sortvd_type = 
@@ -151,9 +163,10 @@ type network = {
       bool -> ((string * Options.option_value) list -> file);
     mutable op_network_add_client : 
       bool -> ((string * Options.option_value) list -> client);
+
     mutable op_network_prefixed_args : 
       (unit -> (string * Arg.spec * string) list);
-
+    
     mutable op_network_search : (search -> Buffer.t -> unit);
     mutable op_network_share : (shared -> unit);
     mutable op_network_private_message : (string -> string -> unit);
@@ -172,7 +185,7 @@ and search = {
     mutable search_max_hits : int; (* total max allowed hits *)
     mutable search_query : query;
     mutable search_nresults : int;
-    mutable search_results : (int ref) Intmap.t;
+    mutable search_results : (int ref * result) Intmap.t;
     mutable search_waiting : int; (* how many replies are we waiting for *)
     mutable search_string : string;
     mutable search_closed : bool; (* should we continue to ask/wait for results *)
@@ -230,6 +243,7 @@ type gui_record = {
     mutable gui_friends : client list;
     mutable gui_servers : server list; 
     mutable gui_sources : (client list * file) option;
+    mutable gui_rooms : room list;
   }
   
 exception Avifile_info of avi_info

@@ -25,6 +25,7 @@ open CommonTypes
 type 'a client_impl = {
     mutable impl_client_type : client_type;
     mutable impl_client_state : host_state;
+    mutable impl_client_update : bool;
     mutable impl_client_num : int;
     mutable impl_client_val : 'a;
     mutable impl_client_ops : 'a client_ops;
@@ -132,13 +133,15 @@ let new_client_ops network = {
 
 let client_find num = Hashtbl.find clients_by_num num
     
-let clients_update_map = ref Intmap.empty
-
-let client_must_update s =
-  if not (Intmap.mem (as_client_impl s).impl_client_num !clients_update_map) 
-  then
-    clients_update_map := Intmap.add (as_client_impl s).impl_client_num 
-      s !clients_update_map
+let clients_update_list = ref []
+  
+let client_must_update client =
+  let impl = as_client_impl client in
+  if not impl.impl_client_update then
+    begin
+      impl.impl_client_update <- true;
+      clients_update_list := client :: !clients_update_list
+    end
 
 let client_state c =
   let impl = as_client_impl c in

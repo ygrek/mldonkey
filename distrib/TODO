@@ -36,6 +36,8 @@ Before 1.17:
    directory.
  + Imported files should have permission 644.[ Bug #420 ]
 
+ * Change Shared message
+
 TODO list for server
 ====================
 * Send a ping to all clients every minute

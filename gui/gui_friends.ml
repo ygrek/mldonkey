@@ -138,8 +138,13 @@ class box_friends box_results () =
 
     method on_select f =
       match f.client_files with
-	None -> Gui_com.send (GetClient_files f.client_num)
-      |	Some l -> box_results#update_data l
+        None -> 
+          Printf.printf "No file for friend %d" f.client_num; print_newline ();
+          Gui_com.send (GetClient_files f.client_num)
+      |	Some l -> 
+          Printf.printf "%d files for friend %d" (List.length l) f.client_num;
+          print_newline ();
+          box_results#update_data l
 
     method on_deselect f =
       box_results#update_data []
@@ -168,16 +173,17 @@ class box_friends box_results () =
 
     method h_update_friend f_new =
       try
-	let (row, f) = self#find_client f_new.client_num in
-	if f_new.client_files <> None then f.client_files <- f_new.client_files;
-	f.client_state <- f_new.client_state;
-	f.client_type <- f_new.client_type;
-	f.client_rating <- f_new.client_rating;
-	f.client_name <- f_new.client_name;
-	
-	f.client_kind <- f_new.client_kind;
-	f.client_tags <- f_new.client_tags;
-	self#update_row f row
+        let (row, f) = self#find_client f_new.client_num in
+        if f_new.client_files <> None then 
+          f.client_files <- f_new.client_files;
+        f.client_state <- f_new.client_state;
+        f.client_type <- f_new.client_type;
+        f.client_rating <- f_new.client_rating;
+        f.client_name <- f_new.client_name;
+        
+        f.client_kind <- f_new.client_kind;
+        f.client_tags <- f_new.client_tags;
+        self#update_row f row
       with
 	Not_found ->
 	  data <- data @ [f_new] ;
@@ -280,14 +286,15 @@ class box_list () =
              incr G.nclocations ;
              self#update_locations_label
 	);
-	if c_new.client_files <> None then c.client_files <- c_new.client_files;
-	c.client_state <- c_new.client_state;
-	c.client_rating <- c_new.client_rating;
-	c.client_name <- c_new.client_name;
-	
-	c.client_kind <- c_new.client_kind;
-	c.client_tags <- c_new.client_tags;
-	self#update_row c row
+        if c_new.client_files <> None then
+          c.client_files <- c_new.client_files;
+        c.client_state <- c_new.client_state;
+        c.client_rating <- c_new.client_rating;
+        c.client_name <- c_new.client_name;
+        
+        c.client_kind <- c_new.client_kind;
+        c.client_tags <- c_new.client_tags;
+        self#update_row c row
       with
 	Not_found ->
 	  ()

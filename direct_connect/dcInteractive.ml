@@ -64,10 +64,14 @@ let _ =
 
 let _ =
   network.op_network_search <- (fun q buf ->
+      Printf.printf "+++++++++++++  SEARCH ON DC +++++++++++++"; print_newline ();
+      Printf.printf "+++++++++++++  SEARCH ON DC +++++++++++++"; print_newline ();
+      Printf.printf "+++++++++++++  SEARCH ON DC +++++++++++++"; print_newline ();
+      Printf.printf "+++++++++++++  SEARCH ON DC +++++++++++++"; print_newline ();
       let query = q.search_query in
       let module S = Search in
       let words = ref [] in
-      let filetype = ref 1 in
+      let filetype = ref 0 in
       let sizelimit = ref NoLimit in
       let rec iter q =
         match q with
@@ -101,15 +105,20 @@ let _ =
       iter query;
       searches := q :: !searches;
       let words = String2.unsplit !words ' ' in
+      Printf.printf "+++++++++++++  SENDING SEARCH ON DC +++++++++++++"; print_newline ();
+      Printf.printf "+++++++++++++  SENDING SEARCH ON DC +++++++++++++"; print_newline ();
+      Printf.printf "+++++++++++++  SENDING SEARCH ON DC +++++++++++++"; print_newline ();
       List.iter (fun s ->
+          Printf.printf "FOR CONNECTED SERVER"; print_newline ();
           let msg = SearchReq {
-              S.orig = Printf.sprintf "Hub:%s_%d" !!CO.client_name s.server_nick;
+              S.orig = Printf.sprintf "Hub:%s" s.server_last_nick;
               S.sizelimit = !sizelimit;
               S.filetype = !filetype;
               S.words = words;
             } in
+          Printf.printf "??????"; print_newline ();
           match s.server_sock with
-            None -> ()
+            None -> Printf.printf "NOT CONNECTED !!!!!!!!!"; print_newline ();
           | Some sock ->
               server_send sock msg; 
               s.server_searches <- q :: s.server_searches; 

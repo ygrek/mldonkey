@@ -510,8 +510,7 @@ let print_search buf s format =
   last_search := Some s;
   last_results := [];
   let results = ref [] in
-  Intmap.iter (fun r_num avail ->
-      let r = result_find r_num in
+  Intmap.iter (fun r_num (avail,r) ->
       results := (r, result_info r, !avail) :: !results) s.search_results;
   let results = Sort.list (fun (_, r1,_) (_, r2,_) ->
         r1.result_size > r2.result_size

@@ -353,6 +353,7 @@ let file_completed (file : file) =
 let file_add impl state = 
   let file = as_file impl in
   if impl.impl_file_state = FileNew then begin
+      Printf.printf "update file num"; print_newline ();
       update_file_num impl;
       (match state with
           FileDownloaded -> 

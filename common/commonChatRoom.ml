@@ -21,6 +21,7 @@ open Options
 open CommonTypes
   
 type 'a room_impl = {
+    mutable impl_room_update : bool;
     mutable impl_room_state : room_state;
     mutable impl_room_val : 'a;
     mutable impl_room_num : int;
@@ -41,8 +42,6 @@ and 'a room_ops = {
 let room_counter = ref 0
 let rooms_by_num = Hashtbl.create 1027
   
-let rooms_update_map = ref Intmap.empty
-  
 let ni n m = 
   let s = Printf.sprintf "Room.%s not implemented by %s" 
       m n.network_name in
@@ -59,12 +58,17 @@ let as_room  (room : 'a room_impl) =
 let as_room_impl  (room : room) =
   let (room : 'a room_impl) = Obj.magic room in
   room
+
+  let rooms_update_list = ref []
   
-let room_must_update s =
-  if not (Intmap.mem (as_room_impl s).impl_room_num !rooms_update_map) 
-  then
-    rooms_update_map := Intmap.add (as_room_impl s).impl_room_num 
-      s !rooms_update_map
+  
+let room_must_update room =
+  let impl = as_room_impl room in
+  if not impl.impl_room_update then
+    begin
+      impl.impl_room_update <- true;
+      rooms_update_list := room :: !rooms_update_list
+    end
 
 let room_add (room : 'a room_impl) =
   incr room_counter;
@@ -113,6 +117,7 @@ let room_resume (room : room) =
   let impl = as_room_impl room in
   if impl.impl_room_state = RoomPaused then begin
       set_room_state room RoomOpened;
+      room_must_update room;
       impl.impl_room_ops.op_room_resume impl.impl_room_val;
     end
   
@@ -140,6 +145,7 @@ let room_close (room : room) =
   let impl = as_room_impl room in
   if not (impl.impl_room_state = RoomClosed) then begin
       set_room_state room RoomClosed;
+      room_must_update room;
       impl.impl_room_ops.op_room_close impl.impl_room_val;
       Hashtbl.remove rooms_by_num impl.impl_room_num
     end

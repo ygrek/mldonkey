@@ -297,9 +297,9 @@ let server_parse_header s sock header =
                   end;
                 connected_servers := s :: !connected_servers;
 
-                Printf.printf "******** ULTRA PEER %s:%d  *******"
+(*                Printf.printf "******** ULTRA PEER %s:%d  *******"
                   (Ip.to_string s.server_ip) s.server_port;
-                print_newline ();
+                print_newline (); *)
                 write_string sock "GNUTELLA/0.6 200 OK\r\n\r\n";
                 set_server_state s Connected_idle;
                 recover_files_from_server sock
@@ -326,7 +326,7 @@ let server_parse_header s sock header =
               end
             else raise Not_found
     end else begin
-      Printf.printf "BAD HEADER FROM SERVER: [%s]" header; print_newline ();
+(*      Printf.printf "BAD HEADER FROM SERVER: [%s]" header; print_newline (); *)
       raise Not_found
     end
   with
@@ -371,7 +371,9 @@ print p;
         end
   
   | QueryReq _ ->
-      Printf.printf "REPLY TO QUERY NOT IMPLEMENTED YET :("; print_newline ();
+(*      Printf.printf "REPLY TO QUERY NOT IMPLEMENTED YET :("; print_newline ();*)
+      ()
+      
   | QueryReplyReq t ->
 (*      Printf.printf "REPLY TO QUERY"; print_newline ();*)
       let module Q = QueryReply in
@@ -390,14 +392,14 @@ print p;
               search_add_result s.search_search result.result_result;
           ) t.Q.files
         with Not_found ->            
-            Printf.printf "NO SUCH SEARCH !!!!"; print_newline ();
+(*            Printf.printf "NO SUCH SEARCH !!!!"; print_newline (); *)
             List.iter (fun ff ->
                 List.iter (fun file ->
                     let r = file.file_result in
                     let f = r.result_file in
                     if f.file_name = ff.Q.name && f.file_size = ff.Q.size then 
                       begin
-                        Printf.printf "++++++++++++++ RECOVER FILE %s +++++++++++++" f.file_name; print_newline ();
+(*                        Printf.printf "++++++++++++++ RECOVER FILE %s +++++++++++++" f.file_name; print_newline (); *)
                         let s = update_source t in
                         add_download file s ff.Q.index
                         end
@@ -500,7 +502,7 @@ let get_file_from_source s file r =
   if connection_can_try s.source_connection_control then begin
       connection_try s.source_connection_control;      
       if s.source_push then begin
-          Printf.printf "++++++ ASKING FOR PUSH +++++++++"; print_newline ();  
+(*          Printf.printf "++++++ ASKING FOR PUSH +++++++++"; print_newline ();   *)
           
 (* do as if connection failed. If it connects, connection will be set to OK *)
           connection_failed s.source_connection_control;
@@ -524,7 +526,7 @@ let get_file_from_source s file r =
 let download_file (r : result) =
   let f = r.result_file in
   let file = new_file (Md4.random ()) f.file_name f.file_size in
-  Printf.printf "DOWNLOAD FILE %s" f.file_name; print_newline ();
+(*  Printf.printf "DOWNLOAD FILE %s" f.file_name; print_newline (); *)
   if not (List.memq file !current_files) then begin
       current_files := file :: !current_files;
     end;

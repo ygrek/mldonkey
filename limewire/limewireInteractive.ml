@@ -119,6 +119,9 @@ let _ =
   file_ops.op_file_cancel <- (fun file ->
       current_files := List2.remove file !current_files;
       file_cancel (as_file file.file_file);
+  );
+  file_ops.op_file_disk_name <- (fun file ->
+      file.file_temp;
   )
   
 module P = Gui_proto
@@ -199,3 +202,4 @@ let _ =
         C.result_done = false;
       }   
   )
+  

@@ -20,9 +20,11 @@
 
 
 open Options
+open CommonUser
 open CommonTypes
   
 type 'a server_impl = {
+    mutable impl_server_update : bool;
     mutable impl_server_state : CommonTypes.host_state;
     mutable impl_server_num : int;
     mutable impl_server_sort : float;
@@ -67,12 +69,15 @@ let as_server_impl  (server : server) =
   let (server : 'a server_impl) = Obj.magic server in
   server
 
-let servers_update_map = ref Intmap.empty
+let servers_update_list = ref []
   
 let server_must_update s =
-  if not (Intmap.mem (as_server_impl s).impl_server_num !servers_update_map) then
-    servers_update_map := Intmap.add (as_server_impl s).impl_server_num 
-      s !servers_update_map
+  let impl = as_server_impl s in
+  if not impl.impl_server_update then
+    begin
+      impl.impl_server_update <- true;
+      servers_update_list := s :: !servers_update_list
+    end
 
 let server_update_num impl =
   let server = as_server impl in
@@ -189,11 +194,11 @@ let com_servers_by_num = servers_by_num
   
 let server_new_users = ref []
     
-let server_new_user server c =
-  let key = (server_num server, (c : user)) in
+let server_new_user server user =
+  user_must_update user;
+  let key = (server_num server, (user : user)) in
   if not (List.mem key !server_new_users) then
-    server_new_users := key :: !server_new_users  
-
+    server_new_users := key :: !server_new_users
 
 let servers_by_num = ()
   

@@ -23,6 +23,7 @@ open Options
 open CommonTypes
   
 type 'a user_impl = {
+    mutable impl_user_update : bool;
     mutable impl_user_state : host_state;
     mutable impl_user_num : int;
     mutable impl_user_val : 'a;
@@ -52,14 +53,15 @@ let as_user_impl  (user : user) =
   user
 
     
-let users_update_map = ref Intmap.empty
+let users_update_list = ref []
 
-let user_must_update s =
-  if not (Intmap.mem (as_user_impl s).impl_user_num !users_update_map) 
-  then
-    users_update_map := Intmap.add (as_user_impl s).impl_user_num 
-      s !users_update_map
-
+let user_must_update user =
+  let impl = as_user_impl user in
+  if not impl.impl_user_update then
+    begin
+      impl.impl_user_update <- true;
+      users_update_list := user :: !users_update_list
+    end
       
 let user_add (user : 'a user_impl) =
   incr user_counter;
@@ -142,9 +144,7 @@ let new_user_ops network = {
   }
 
 let user_find num = Hashtbl.find users_by_num num
-  
-  
-  
+    
 let user_num c = 
   let c = as_user_impl c in
   c.impl_user_num

@@ -24,6 +24,7 @@ type t
   
 type shared_impl = {
     impl_shared_filename : string;
+    mutable impl_shared_update : bool;
     mutable impl_shared_num : int;
     mutable impl_shared_ops : (t * (t shared_ops)) list;
   }
@@ -35,8 +36,6 @@ and 'a shared_ops = {
 let shared_num = ref 0
 let shareds_by_num = Hashtbl.create 1027
 let shareds_by_filename = Hashtbl.create 1027
-  
-let shareds_update_map = ref Intmap.empty
   
 let ni n m = 
   let s = Printf.sprintf "Shared.%s not implemented by %s" 
@@ -55,15 +54,29 @@ let as_shared_impl  (shared : shared) =
   let (shared : shared_impl) = Obj.magic shared in
   shared
 
+    
+let shareds_update_list = ref []
+  
+let shared_must_update shared =
+  let impl = as_shared_impl shared in
+  if not impl.impl_shared_update then
+    begin
+      impl.impl_shared_update <- true;
+      shareds_update_list := shared :: !shareds_update_list
+    end
+
+  
 let new_shared filename =
   if not (Hashtbl.mem shareds_by_filename filename) then begin
       incr shared_num;
       let impl = {
+          impl_shared_update = false;
           impl_shared_filename = filename;
           impl_shared_num = !shared_num;
           impl_shared_ops = [];
         } in
       let s = as_shared impl in
+      shared_must_update (as_shared impl);
       Hashtbl.add shareds_by_num !shared_num s;
       Hashtbl.add shareds_by_filename filename s;
       CommonNetwork.networks_iter (fun n -> CommonNetwork.network_share n s)
@@ -83,12 +96,6 @@ let shared_unshare s =
       try o.op_shared_unshare s v with _ -> ()) impl.impl_shared_ops;
   Hashtbl.remove shareds_by_num impl.impl_shared_num;
   Hashtbl.remove shareds_by_filename impl.impl_shared_filename
-  
-let shared_must_update s =
-  if not (Intmap.mem (as_shared_impl s).impl_shared_num !shareds_update_map) 
-  then
-    shareds_update_map := Intmap.add (as_shared_impl s).impl_shared_num 
-      s !shareds_update_map
   
 let new_shared_ops network = {
     op_shared_unshare = (fun _ _ -> ni_ok network "shared_unshare");

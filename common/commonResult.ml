@@ -19,6 +19,8 @@
 
 open Options
 open CommonTypes
+
+let (dummy_result : result) = Obj.magic 0
   
 type 'a result_impl = {
     mutable impl_result_num : int;
@@ -34,13 +36,21 @@ and 'a result_ops = {
   }
   
 let result_counter = ref 0
-let results_by_num = Hashtbl.create 1027
+  
+module H = Weak2.Make(struct
+      type t = int * result
+      let hash (x,_) = Hashtbl.hash x
+      
+      let equal (x,_) (y,_) = x = y        
+    end)
+  
+let results_by_num = H.create 1027
   
 let new_result (result : 'a result_impl) =
   incr result_counter;
   result.impl_result_num <- !result_counter;
   let (result : result) = Obj.magic result in
-  Hashtbl.add results_by_num !result_counter result
+  H.add results_by_num (!result_counter, result)
 
   
 let ni n m = 
@@ -83,6 +93,6 @@ let new_result_ops network = {
     op_result_info = (fun _ -> fni network "result_info");
   }
 
-let result_find num = Hashtbl.find results_by_num num
+let result_find num = snd (H.find results_by_num (num, dummy_result))
   
   

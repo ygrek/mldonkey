@@ -160,9 +160,11 @@ let room_info (wnote: GPack.notebook) room =
   try
     let vbox = Hashtbl.find rooms_by_num room.room_num in
     match room.room_state with
-      RoomClosed -> (* remove the room *) ()
+      RoomClosed -> (* remove the room *) 
+        Printf.printf "room closed"; print_newline ();
     | RoomOpened -> (* room resumed *) ()
-    | RoomPaused -> (* room paused *) ()
+    | RoomPaused -> (* room paused *) 
+        Printf.printf "room paused"; print_newline ();
   with
     _ ->
       if room.room_state = RoomOpened then begin
@@ -172,13 +174,23 @@ let room_info (wnote: GPack.notebook) room =
           wnote#append_page ~tab_label: wl#coerce vbox#coerce ;
           Hashtbl.add rooms_by_num room.room_num vbox;
           vbox#update_users
-        end
+        end else
+        (Printf.printf "Can add room %d" room.room_num;
+          print_newline ())
   
   
 let add_room_user num user_num =
-  let vbox = Hashtbl.find rooms_by_num num in
-  vbox#add_user user_num
-  
+  try
+    let vbox = Hashtbl.find rooms_by_num num in
+    try
+      vbox#add_user user_num
+    with _ -> 
+        Printf.printf "No such user %d" user_num;
+        print_newline ();
+  with _ -> 
+      Printf.printf "No such room %d" num;
+      print_newline ()
+      
 let user_info user = 
   match user.user_state with
     RemovedHost -> 

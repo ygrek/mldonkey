@@ -889,7 +889,9 @@ let _ =
 
 let _ =
   result_ops.op_result_info <- (fun rs ->
-      Store.get store rs.result_index
+      let r = Store.get store rs.result_index in
+      r.result_num <- rs.result_result.impl_result_num;
+      r
   )
 
 module P = Gui_proto

@@ -33,15 +33,6 @@ module OP = OpennapProtocol
 module OC = OpennapClients
 
 
-  (*
-let print_connected_servers buf =
-  Printf.bprintf buf "Connected to %d OpenNap servers\n" 
-    (List.length !OG.connected_servers); 
-  List.iter (fun s ->
-
-  ) !OG.connected_servers
-    *)
-
 let _ =
   server_ops.op_server_print <- (fun s o ->
       let buf = o.conn_buf in
@@ -173,7 +164,7 @@ let _ =
         P.file_num = (file_num file);
         P.file_network = network.network_num;
         P.file_names = [f.file_name];
-        P.file_md4 = Md4.null;
+        P.file_md4 = file.file_id;
         P.file_size = f.file_size;
         P.file_downloaded = file.file_downloaded;
         P.file_nlocations = 0;

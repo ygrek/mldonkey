@@ -54,6 +54,7 @@ let new_server ip port =
           server_nkb_last = 0;
         } and
         server_impl = {
+          impl_server_update = false;
           impl_server_state = NewHost;
           impl_server_sort = 0.0;
           impl_server_val = s;
@@ -131,6 +132,7 @@ let new_file file_id file_name file_size =
           file_temp = file_temp;
           file_fd = Unix32.create file_temp [Unix.O_RDWR; Unix.O_CREAT] 0o666;
         } and file_impl =  {
+          impl_file_update = false;
           impl_file_state = FileNew;
           impl_file_num = 0;
           impl_file_val = file;
@@ -138,6 +140,7 @@ let new_file file_id file_name file_size =
         }
       in
       file_add file_impl FileDownloading;
+(*      Printf.printf "ADD FILE TO DOWNLOAD LIST"; print_newline (); *)
       Hashtbl.add files_by_key key file;
       file
 

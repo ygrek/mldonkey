@@ -1,6 +1,11 @@
 ChangeLog
 =========
 
+2002/06/27:
+ - Started using Weak Hashtbl in common/ structures to avoid memory leaks
+ - The GUI displays correctly eDonkey, Open-Napster, LimeWire and DirectConnect
+ - Lots of debbugging messages have been removed.
+
 Pre-Release 1.99:
   Complete change of the architecture. mldonkey should now support multiple
    peer-to-peer networks. Currently, download is possible from:

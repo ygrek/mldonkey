@@ -43,7 +43,8 @@ let gui_send gui t = value_send gui.gui_sock (t : Gui_proto.to_gui)
 let restart_gui_server = ref (fun _ -> ())
   
 let send_result gui num r =
-  if List.mem    num gui.gui_search_nums then begin
+  Printf.printf "GUI RESULT FOR SEARCH %d" num; print_newline ();
+  if List.mem num gui.gui_search_nums then begin
     let module P = Gui_proto in
       gui_send gui (P.Result_info (result_info r));
       gui_send gui (P.Search_result (num, result_num r))
@@ -54,17 +55,12 @@ let send_waiting gui num r =
     let module P = Gui_proto in
     gui_send gui (P.Search_waiting (num,r))
 
+
 let send_file_info gui file =
   let module P = Gui_proto in  
   gui_send gui (P.File_info (CommonFile.file_info file))
 
-let send_full_file_info gui file =
-  let module P = Gui_proto in  
-  let file_info = file_info file in
-  gui_send gui (P.File_info file_info)
-  
-  
-  
+let search_results_list = ref []  
   
 let send_server_info gui s =
   gui_send gui (P.Server_info (CommonServer.server_info s))
@@ -74,14 +70,7 @@ let send_client_info gui c =
   gui_send gui (P.Client_info (CommonClient.client_info c))
 
 let gui_reader (gui: gui_record) t sock =
-
-(*
-  if Obj.is_int (Obj.repr t) then
-    Printf.printf "from gui: int %d" (Obj.magic t)
-  else
-    Printf.printf "from gui: %d" (Obj.tag (Obj.repr t)); 
-print_newline ();
-*)  
+  
   try
     let module P = Gui_proto in
     match t with
@@ -137,16 +126,19 @@ print_newline ();
                               gui_send gui
                                 (P.File_source (file_num file, client_num c))
                             with _ -> ());
-                          
-
+                      
+                      
                       | _ -> 
                           gui.gui_sources <- None;
                           match gui.gui_files with
                             file :: files ->
                               gui.gui_files <- files;
                               
-                              (try send_file_info gui file with _ -> ());
-                              gui.gui_sources <- Some (file_sources file, file)
+                              (try
+                                  Printf.printf "send file info"; print_newline ();
+                                  (try send_file_info gui file with _ -> ());
+                                  gui.gui_sources <- Some (file_sources file, file)
+                                with _ -> ())
                           | _ -> 
                               gui.gui_files <- [];
                               match gui.gui_friends with
@@ -161,15 +153,27 @@ print_newline ();
                                           gui_send gui
                                             (P.Client_file (client_num c, 
                                               result_num r))
-                                          ) (client_files c)
+                                      ) (client_files c)
                                     with _ -> ());
-                                  
-                          | [] ->
-                              match gui.gui_servers with
-                                s :: servers ->
-                                  gui.gui_servers <- servers;
-                                  (try send_server_info gui s with _ -> ())
-                              | [] -> raise Not_found
+                              
+                              | [] ->
+                                  match gui.gui_servers with
+                                    s :: servers ->
+                                      gui.gui_servers <- servers;
+                                      (try send_server_info gui s with _ -> ())
+                                  | [] -> 
+                                      (*
+                                      match gui.gui_rooms with
+                                        r :: tail ->
+                                          gui.gui_rooms <- tail;
+                                          (try
+                                              match room_state r with
+                                                RoomClosed -> ()
+                                              | _ -> 
+                                                  gui_send gui
+                                                    (P.Room_info (room_info r))
+                                            with _ -> ())
+                                      | [] ->  *) raise Not_found
                     done;
                   with _ -> 
                       gui_send gui (P.GuiConnected);
@@ -183,6 +187,7 @@ print_newline ();
         exit_properly ()
     
     | P.Search_query (local,s) ->
+        Printf.printf "GUI SEARCH QUERY %d" s.P.search_num; print_newline ();
         let query = 
           try CommonGlobals.simplify_query
             (CommonSearch.mftp_query_of_query_entry 
@@ -197,11 +202,13 @@ print_newline ();
         gui.gui_search_nums <- num ::  gui.gui_search_nums;
         gui.gui_searches <- (num, search) :: gui.gui_searches;
         search.op_search_new_result_handlers <- (fun r ->
-            send_result gui num r 
+            search_results_list := (gui, num, r) :: !search_results_list;
         ) :: search.op_search_new_result_handlers;
+        (*
         search.op_search_end_reply_handlers <- 
           (fun _ -> send_waiting gui num search.search_waiting) ::
-        search.op_search_end_reply_handlers;
+search.op_search_end_reply_handlers;
+  *)
         
     | P.Download_query (filenames, num) ->
         begin
@@ -222,7 +229,6 @@ print_newline ();
     | P.SaveOptions_query list ->
         
         List.iter (fun (name, value) ->
-            Printf.printf "%s:%s" name value; print_newline ();
             set_simple_option downloads_ini name value) list;
         DriverInteractive.save_config ()
     
@@ -258,13 +264,12 @@ print_newline ();
         ) (client_files c)
         
     | P.GetClient_info num ->
-        gui_send gui (P.Client_info (client_info (client_find num)))
+        client_must_update (client_find num)
         
     | P.GetUser_info num ->
-        gui_send gui (P.User_info (user_info (user_find num)))
+        user_must_update (user_find num)
         
-    | P.GetServer_users num ->
-    
+    | P.GetServer_users num ->    
         let s = server_find num in
         let users = server_users s in
         List.iter (fun user ->
@@ -388,6 +393,7 @@ print_newline ();
       print_newline ()
   
 let gui_closed gui sock  msg =
+  Printf.printf "DISCONNECTED FROM GUI"; print_newline ();
   guis := List2.removeq gui !guis;
   ()
   
@@ -410,7 +416,12 @@ let gui_handler t event =
             gui_files = !!files @ !!CommonComplexOptions.done_files;
             gui_friends = !!friends;
             gui_servers = !!servers;
+            gui_rooms = [];
           } in
+        Hashtbl.iter (fun _ room ->
+            if room_state room <> RoomClosed then
+              gui.gui_rooms <- room :: gui.gui_rooms;
+        ) com_rooms_by_num;
         TcpBufferedSocket.set_max_write_buffer sock !!interface_buffer;
         TcpBufferedSocket.set_reader sock (value_handler 
             (gui_reader gui));
@@ -440,71 +451,142 @@ let gui_handler t event =
   | _ -> ()
   
 
-let update_files () =    
-  let map = !files_update_map in
-  files_update_map := Intmap.empty;
-  Intmap.iter (fun _ file ->
-      try
-        let file_info = P.File_info (file_info file) in
-        List.iter (fun gui -> gui_send gui file_info) !guis;
-      with _ -> ()
-  ) map
-  
-let update_servers () =
-  let map = !servers_update_map in
-  servers_update_map := Intmap.empty;
-  Intmap.iter (fun _ server ->
-      try
-        let server_info = P.Server_info (server_info server) in
-        List.iter (fun gui -> gui_send gui server_info) !guis;
-      with _ -> ()
-  ) map
-  
-let update_clients () =
-  let map = !clients_update_map in
-  clients_update_map := Intmap.empty;
-  Intmap.iter (fun _ client ->
-      try
-        let client_info = P.Client_info (client_info client) in
-        List.iter (fun gui -> gui_send gui client_info) !guis;
-      with _ -> ()
-  ) map
-  
+let must_wait () =
+  List.exists (fun gui -> not (can_fill gui.gui_sock)) !guis
+
+let rec update old_list new_list sender =
+  if must_wait () then
+    old_list @ new_list
+  else
+  match old_list with
+    v :: tail ->
+      sender v;
+      update tail new_list sender
+  | [] ->
+      match new_list with
+        [] -> []
+      | v :: tail ->
+          sender v;
+          update [] tail sender
+          
+let files_old_list = ref []
+let update_files () =
+  files_old_list := update !files_old_list !files_update_list 
+      (fun file ->
+        try
+          let file_info = P.File_info (file_info file) in
+          List.iter (fun gui -> gui_send gui file_info) !guis;
+          (as_file_impl file).impl_file_update <- false;
+        with _ -> ()
+  );
+  files_update_list := []
+          
+let users_old_list = ref []
 let update_users () =
-  let map = !users_update_map in
-  users_update_map := Intmap.empty;
-  Intmap.iter (fun _ user ->
-      try
-        let user_info = P.User_info (user_info user) in
-        List.iter (fun gui -> gui_send gui user_info) !guis;
-      with _ -> ()
-  ) map
+  users_old_list := update !users_old_list !users_update_list 
+      (fun user ->
+        try
+          let user_info = P.User_info (user_info user) in
+          List.iter (fun gui -> gui_send gui user_info) !guis;
+          (as_user_impl user).impl_user_update <- false;
+        with _ -> ()
+  );
+  users_update_list := []
+          
+let servers_old_list = ref []
+let update_servers () =
+  servers_old_list := update !servers_old_list !servers_update_list 
+      (fun server ->
+        try
+          let server_info = P.Server_info (server_info server) in
+          List.iter (fun gui -> gui_send gui server_info) !guis;
+          (as_server_impl server).impl_server_update <- false;
+        with _ -> ()
+  );
+  servers_update_list := []
+
+let update_searches () =
+  let rec iter list = 
+    if must_wait () then list else
+    match list with
+      [] -> []
+    | (gui, num, r) :: tail ->
+        send_result gui num r; 
+        iter tail
+  in
+  search_results_list := iter !search_results_list
+
   
+let clients_old_list = ref []
+let update_clients () =
+  clients_old_list := update !clients_old_list !clients_update_list 
+      (fun client ->
+        try
+          let client_info = P.Client_info (client_info client) in
+          List.iter (fun gui -> gui_send gui client_info) !guis;
+          (as_client_impl client).impl_client_update <- false;
+        with _ -> ()
+  );
+  clients_update_list := []
+
+let rooms_old_list = ref []
 let update_rooms () =
-  if !guis <> [] then begin
-      let map = !rooms_update_map in
-      rooms_update_map := Intmap.empty;
-      Intmap.iter (fun num room ->
-          try
-            let room_info = P.Room_info (room_info room) in
-            let messages = room_messages room in
-            List.iter (fun gui -> 
-                gui_send gui room_info;
-                List.iter (fun m -> 
-                    gui_send gui (P.Room_message (num, m))
-                ) messages;
-            ) !guis;
-          with _ -> ()
-      ) map;
-    end
+  if !guis <> [] then 
+    rooms_old_list := update !rooms_old_list !rooms_update_list 
+      (fun room ->
+        try
+          match room_state room with
+            RoomOpened ->
+              let num = room_num room in
+              let room_info = P.Room_info (room_info room) in
+              let messages = room_messages room in
+              List.iter (fun gui -> 
+                  gui_send gui room_info;
+                  List.iter (fun m -> 
+                      gui_send gui (P.Room_message (num, m))
+                  ) messages;
+              ) !guis;
+          | _ -> 
+              ()
+        with _ -> ()
+    );
+  rooms_update_list := []
+
+let update_room_users () =
+  let rec iter list =
+    if must_wait () then list else
+    match list with
+      [] -> []
+    | (room_num, user) :: tail ->
+        (try
+            let room = room_find room_num in
+            match room_state room with
+              RoomOpened ->
+                let room_msg = Room_info (room_info room) in
+                let user_msg = User_info (user_info user) in
+                let msg = Room_user (room_num, user_num user) in
+                List.iter (fun gui -> 
+                    gui_send gui room_msg;
+                    gui_send gui user_msg;
+                    gui_send gui msg) !guis;       
+            | _ -> ()
+          with _ -> ());
+        iter tail
+  in
+  room_new_users := iter !room_new_users
     
+  
 let update_file_sources () =
   let map = !file_new_sources in
   file_new_sources := [];
   List.iter (fun (file_num, client_num) ->
       try
+        let client = client_find client_num in
+        let client_msg = Client_info (client_info client) in
         let msg = File_source (file_num, client_num) in
-        List.iter (fun gui -> gui_send gui msg) !guis;       
+        List.iter (fun gui -> 
+            gui_send gui client_msg;
+            gui_send gui msg) !guis;       
       with _ -> ()
   ) map
   
@@ -513,8 +595,11 @@ let update_server_users () =
   server_new_users := [];
   List.iter (fun (server_num, user) ->
       try
+        let user_msg = User_info (user_info user) in
         let msg = Server_user (server_num, user_num user) in
-        List.iter (fun gui -> gui_send gui msg) !guis;       
+        List.iter (fun gui -> 
+            gui_send gui user_msg;
+            gui_send gui msg) !guis;       
       with _ -> ()
   ) map
   
@@ -525,67 +610,47 @@ let update_client_files () =
       try
         let result_msg = Result_info (result_info r) in
         let msg = Client_file (client_num, result_num r) in
-        List.iter (fun gui -> 
-            gui_send gui msg) !guis;       
-      with _ -> ()
-  ) map
-  
-let update_room_users () =
-  let map = !room_new_users in
-  room_new_users := [];
-  List.iter (fun (room_num, user) ->
-      try
-        let user_msg = User_info (user_info user) in
-        let msg = Room_user (room_num, user_num user) in
-        List.iter (fun gui -> 
-            gui_send gui user_msg;
-            gui_send gui msg) !guis;       
+        List.iter (
+          fun gui -> 
+            gui_send gui result_msg;
+            gui_send gui msg
+        ) 
+        !guis;       
       with _ -> ()
   ) map
 
   
-let update_functions = ref [
+let update_functions = [
     "update_files", update_files;
     "update_servers",update_servers;
     "update_clients",update_clients;
     "update_users",update_users;
     "update_rooms",update_rooms;
     "update_file_sources",update_file_sources;
+    "update_searches",update_searches;
     "update_server_users",update_server_users;
     "update_client_files",update_client_files;
     "update_room_users",update_room_users;
   ]
-      
+  
 (* We should probably only send "update" to the current state of
 the info already sent to *)
 let update_gui_info timer =
   reactivate_timer timer;
-
-  let rec iter functions functions_done =
-    if List.exists (fun gui -> not (can_fill gui.gui_sock)) !guis then begin
-        Printf.printf "Wait for some update functions"; print_newline ();
-        functions @ (List.rev functions_done)
-      end else
-    match functions with
-      [] -> List.rev functions_done
-    | (name,f) :: tail ->
-        Printf.printf "BEFORE %s" name; print_newline ();
-        List.iter (fun gui ->
-            let (_,w) = buf_size gui.gui_sock in
-            Printf.printf "SIZE: %d" w; print_newline ();
-        ) !guis;
-        (try f () with _ -> ());
-        Printf.printf "AFTER %s" name; print_newline ();
-        List.iter (fun gui ->
-            let (_,w) = buf_size gui.gui_sock in
-            Printf.printf "SIZE: %d" w; print_newline ();
-        ) !guis;
-        iter tail ((name,f) :: functions_done)
-        
-    
+  let rec iter fs =
+    match fs with 
+      [] -> ()
+    | (name, f) :: fs ->
+        if  must_wait () then begin
+            Printf.printf "Wait for some update functions"; print_newline ();
+          end else begin
+(*            Printf.printf "APPLY %s" name; print_newline (); *)
+            (try f () with _ -> ());
+(*            Printf.printf "DONE"; print_newline ();  *)
+            iter fs
+          end
   in
-  update_functions := iter !update_functions []
-  
+  iter update_functions
   
 let install_hooks () = 
   List.iter (fun (name,_) ->
