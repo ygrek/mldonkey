@@ -508,13 +508,15 @@ module TigerTree = struct
           assert (to_string (string s4) =
             "PZMRYHGY6LTBEH63ZWAHDORHSYTLO4LEFUIKHWY");
           true
-        with e ->
-            lprintf "Unable to compute correct Tiger trees.\n";
-            lprintf "Send a bug report with your configuration\n";
-            lprintf "and how you obtained this executable.\n";
-            lprintf "Running with Tiger tree corruption detection disabled.\n";
-            lprintf "(used only if you run the Gnutella plugin)\n";
-            false
+      with e ->
+          lprintf "TigerTree: Exception %s\n" 
+            (Printexc2.to_string e);
+          lprintf "Unable to compute correct Tiger trees.\n";
+          lprintf "Send a bug report with your configuration\n";
+          lprintf "and how you obtained this executable.\n";
+          lprintf "Running with Tiger tree corruption detection disabled.\n";
+          lprintf "(used only if you run the Gnutella plugin)\n";
+          false
   end
 
 (* Use urn:tree:tiger: also ... *)
