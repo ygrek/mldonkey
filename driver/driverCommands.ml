@@ -59,6 +59,72 @@ let execute_command arg_list output cmd args =
     iter arg_list
   with Not_found -> ()
 
+
+let list_options_html o list = 
+  let buf = o.conn_buf in
+  if o.conn_output = HTML then
+    Printf.bprintf  buf "\\<div class=\\\"vo\\\"\\>\\<table class=vo cellspacing=0 cellpadding=0\\>
+\\<tr\\>
+\\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Name (Mouseover=Help)\\</td\\>
+\\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Value\\</td\\>
+\\<td onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>Default\\</td\\>
+\\</tr\\>
+";
+
+    let counter = ref 0 in
+      
+  List.iter (fun (name, value, def, help) ->
+      incr counter;
+      if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
+                               else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
+
+      if String.contains value '\n' then 
+            Printf.bprintf buf "
+                  \\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>%s\\<form action=/submit target=\\\"$S\\\"\\> 
+                  \\<input type=hidden name=setoption value=q\\>
+                  \\<input type=hidden name=option value=%s\\>\\</td\\>\\<td\\>\\<textarea 
+					name=value rows=5 cols=20 wrap=virtual\\> 
+                  %s   
+                  \\</textarea\\>\\<input type=submit value=Modify\\>
+                  \\</td\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>
+                  \\</form\\>
+                  " help name name value def
+
+      else  
+
+	    begin
+
+        	  Printf.bprintf buf "
+              \\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>%s\\</td\\>
+		      \\<td class=\\\"sr\\\"\\>\\<form action=/submit target=\\\"$S\\\"\\>\\<input type=hidden 
+				name=setoption value=q\\>\\<input type=hidden name=option value=%s\\>"  help name name;
+	
+			 if value = "true" || value = "false" then 
+	
+				 Printf.bprintf buf "\\<SELECT style=\\\"font-family: verdana; font-size: 10px;\\\" 
+									name=\\\"value\\\" onchange=\\\"this.form.submit()\\\"\\>
+									\\<OPTION SELECTED\\>%s\\<OPTION\\>%s\\</SELECT\\>" 
+					value 
+					(if value="true" then "false" else "true")
+			 else
+
+        	  Printf.bprintf buf "\\<input style=\\\"font-family: verdana; font-size: 10px;\\\" 
+				type=text name=value size=20 value=\\\"%s\\\"\\>"
+			  value;
+
+        	  Printf.bprintf buf "
+              \\</td\\>
+              \\<td class=\\\"sr\\\"\\>%s\\</td\\>
+			  \\</tr\\>\\</form\\>
+              " def
+       end;
+
+        
+  )list;
+  if o.conn_output = HTML then
+    Printf.bprintf  buf "\\</table\\>\\</div\\>"
+
+
 let list_options o list = 
   let buf = o.conn_buf in
   if o.conn_output = HTML then
@@ -187,16 +253,31 @@ let commands = [
     "vo", Arg_none (fun o ->
         let buf = o.conn_buf in
         list_options o  (
-          List.map Options.strings_of_option 
-            [max_hard_upload_rate; max_hard_download_rate;
-            telnet_port; gui_port; http_port]
+            [
+            strings_of_option  max_hard_upload_rate; 
+            strings_of_option max_hard_download_rate;
+            strings_of_option telnet_port; 
+            strings_of_option gui_port; 
+            strings_of_option http_port;
+            strings_of_option client_name;
+            strings_of_option allowed_ips;
+            strings_of_option set_client_ip; 
+            strings_of_option force_client_ip; 
+            ]
         );        
+
+
+        if o.conn_output = HTML && !!html_mods then 
+          	Printf.bprintf buf "\n\n\n\\<a href=\\\"javascript:window.location.href='/submit?q=voo'\\\"\\>Edit Full Options\\</a\\>\n\n";
+
         "\nUse 'voo' for all options"    
     ), ":\t\t\t\t\tdisplay options";
     
     "voo", Arg_none (fun o ->
         let buf = o.conn_buf in
-        list_options o  (CommonInteractive.all_simple_options ());
+        if !!html_mods && o.conn_output = HTML then list_options_html o (CommonInteractive.all_simple_options_html ())
+         			   else list_options o  (CommonInteractive.all_simple_options ());
+
         ""
     ), ":\t\t\t\t\tprint options";
     
@@ -425,7 +506,15 @@ let commands = [
             else
               
               Printf.bprintf buf "[%s]\n" name
-        ) !! customized_queries; ""
+        ) !! customized_queries; 
+	
+                if o.conn_output = HTML && !!html_mods then  
+                  Printf.bprintf buf 
+                    "\\<a href=\\\"http://www.jigle.com\\\" target=\\\"$O\\\"\\>Jigle\\</a\\>  \\<a 
+					href=\\\"http://www.sharereactor.com/search.php\\\" target=\\\"$O\\\"\\>ShareReactor\\</a\\>  \\<a 
+					href=\\\"http://www.filedonkey.com\\\" target=\\\"$O\\\"\\>File Donkey\\</a\\>  ";
+
+		""
     ), ":\t\t\tview custom queries";
     
     "cancel", Arg_multiple (fun args o ->
@@ -690,7 +779,7 @@ let commands = [
         ) !!friends;
         
         if o.conn_output = HTML && !!html_mods then 
-          Printf.bprintf buf "\\</tr\\>\\</table\\>\\<A HREF=\\\"javascript:parent.fstatus.location.href='/submit?q=friend_removeall'\\\"\\>Remove All Friends\\</A\\>\\</div\\>";
+          Printf.bprintf buf "\\</tr\\>\\</table\\>\\<A onclick=\\\"javascript:parent.fstatus.location.href='/submit?q=friend_removeall';\\\"\\>Remove All Friends\\</A\\>\\</div\\>";
         
         ""
     ), ":\t\t\tdisplay all friends";

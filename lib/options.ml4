@@ -58,6 +58,7 @@ and 'a option_record =
     option_class : 'a option_class;
     mutable option_value : 'a;
     option_help : string;
+	option_default : 'a;
     mutable option_hooks : (unit -> unit) list;
     mutable string_wrappers : (('a -> string) * (string -> 'a)) option;
     option_file : options_file;
@@ -140,6 +141,7 @@ let
       option_help = option_help;
       option_class = option_class; 
       option_value = default_value;
+	  option_default = default_value;
       string_wrappers = None;
       option_hooks = []; 
       option_file = opfile; }
@@ -432,7 +434,7 @@ let rec value_to_string v =
   | IntValue i -> Int64.to_string i
   | FloatValue f -> string_of_float f
   | OnceValue v -> value_to_string v
-  | _ -> failwith "Options: not a string option"
+  | _ -> "NaS" 
 ;;
       
 let string_to_value s = StringValue s;;
@@ -1065,6 +1067,25 @@ let simple_options opfile =
               list := (name, value_to_string v) :: !list
   ) opfile.file_options;
   !list
+
+let simple_options_html opfile =
+  let list = ref [] in
+  List.iter
+    (fun o ->
+       match o.option_name with
+         [] | _ :: _ :: _ -> ()
+       | [name] ->
+           match o.option_class.to_value o.option_value with
+             Module _ | SmallList _ | List _ ->
+               begin match o.string_wrappers with
+                 None -> ()
+               | Some (to_string, from_string) ->
+                   list := (name, to_string o.option_value, value_to_string (o.option_class.to_value o.option_default), o.option_help) :: !list
+               end
+           | v -> list := (name, value_to_string v, value_to_string (o.option_class.to_value o.option_default), o.option_help) :: !list)
+    opfile.file_options;
+  !list
+
 
 let get_option opfile name =
   let rec iter name list = 

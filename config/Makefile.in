@@ -133,7 +133,7 @@ COMMON_CLIENT_SRCS= \
   common/commonDownloads.ml \
   common/commonUploads.ml
 
-all: Makefile config/Makefile.config opt
+all: Makefile config/Makefile.config $(TARGET_TYPE)
 
 config/configure: config/configure.in
 	cd config; autoconf

@@ -278,7 +278,7 @@ let initialized = define_option expert_ini ["initialized"]
   "(not used)"
     bool_option false
 
-let client_ip = define_option expert_ini ["client_ip"] 
+let set_client_ip = define_option expert_ini ["client_ip"] 
     "The last IP address used for this client" Ip.option  
     (Ip.my ())
   
@@ -653,7 +653,7 @@ let gui_options_panel = define_option expert_ini ["gui_options_panel"]
     "Identification", "HTTP password", (shortname http_password), "T";
     "Identification", "Allowed IPs", (shortname allowed_ips), "T";
     
-    "Ports", "Client IP", (shortname client_ip), "T";
+    "Ports", "Client IP", (shortname set_client_ip), "T";
     "Ports", "Force Client IP", (shortname force_client_ip), "B";
     "Ports", "HTTP Port", (shortname http_port), "T";
     "Ports", "Telnet Port", (shortname telnet_port), "T";
@@ -700,12 +700,12 @@ let gui_options_panel = define_option expert_ini ["gui_options_panel"]
  ]  
   
 let client_ip sock =
-  if !!force_client_ip then !!client_ip else
+  if !!force_client_ip then !!set_client_ip else
   match sock with
-    None -> !!client_ip
+    None -> !!set_client_ip
   | Some sock ->
       let ip = TcpBufferedSocket.my_ip sock in
-      if ip <> Ip.localhost && !!client_ip <> ip then  client_ip =:= ip;
+      if ip <> Ip.localhost && !!set_client_ip <> ip then  set_client_ip =:= ip;
       ip
 
       

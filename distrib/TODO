@@ -12,6 +12,7 @@ Before 2.03:
 * Try to display more information on where the memory is used... in the GUI ?
     with shared files ?
 * Force use of max_sources_per_file
+* Add an option to ./configure to disable GUI compilation
 
 vd <num> jump to 100% of cpu
 

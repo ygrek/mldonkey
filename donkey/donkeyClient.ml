@@ -717,7 +717,8 @@ print_newline ();
         end;
       is_banned c sock
   
-  | M.EmuleQueueRankingReq t ->
+  | M.EmuleQueueRankingReq t 
+  | M.QueueRankingReq t ->
       c.client_rank <- t;
       set_client_state c (Connected t);
 (* REMOVE THIS !!!

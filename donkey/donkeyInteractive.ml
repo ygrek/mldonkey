@@ -701,9 +701,14 @@ let commands = [
                     
                     incr counter;
                     
-                    if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
-                    else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
-                    
+
+					Printf.bprintf buf "\\<tr class=\\\"%s\\\" 
+					title=\\\"Add as Friend\\\"
+					onMouseOver=\\\"mOvr(this,'#94AE94');\\\"
+					onMouseOut=\\\"mOut(this,this.bgColor);\\\" 
+					onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>"
+					( if (!counter mod 2 == 0) then "dl-1" else "dl-2";)
+		    	    (client_num c);
                     
                     client_print (as_client c.client_client) o;
                     
@@ -1081,9 +1086,12 @@ print_newline ();
             let module C = M.ViewFiles in
             M.ViewFilesReq C.t);          
       | _ -> 
-          Printf.printf "connect to client"; print_newline ();
+          Printf.printf "****************************************";
+          print_newline ();
+          Printf.printf "       TRY TO CONTACT FRIEND         ";
+          print_newline ();
+
           reconnect_client c
-  
   );
   client_ops.op_client_connect <- (fun c ->
       match c.client_sock with
@@ -1213,15 +1221,24 @@ onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>%d\\</T
           (
             let qfiles = c.client_file_queue in
             let found = ref 0 in
+
+			if List.length qfiles > 0 then Printf.bprintf buf  
+					"\\<table class=chunks cellspacing=0 cellpadding=0\\>\\<tr\\>";
+
+
             List.iter (fun (qfile, qchunks) ->
                 if (qfile = (as_file_impl file).impl_file_val) && (!found = 0) then 
                   begin
                     incr found;
                     Array.iter (fun b ->
-                        if b then Buffer.add_string buf "1" 
-                        else Buffer.add_string buf "0") qchunks
+						Printf.bprintf buf "\\<TD class=\\\"%s\\\"\\>\\&nbsp;\\</td\\>"
+                        (if b then "chunk1" 
+                              else "chunk0") 
+					) qchunks
                   end;
-            ) qfiles
+            ) qfiles;
+
+			if List.length qfiles > 0 then Printf.bprintf buf "\\</tr\\>\\</table\\>";
           
           );
           

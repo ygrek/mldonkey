@@ -461,7 +461,7 @@ let print_sources buf =
   Printf.bprintf buf "  Indirect Connections: %d \n" !indirect_connections;
   Printf.bprintf buf "  Total Connections: %d \n" (nb_sockets ());
 
-  
+  Printf.bprintf buf "\n  Indirect Sources waiting: %d\n" (Fifo.length indirect_fifo); 
   let positive_sources = ref 0 in
   let negative_sources = ref 0 in
   let nchunks = ref 0 in

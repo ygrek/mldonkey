@@ -980,10 +980,9 @@ let udp_client_handler t p =
       end
 
   (* send the answer *)
-  | OvernetGetMyIP ->
+  | OvernetGetMyIP other_port ->
       begin
         let other_ip = ip_of_udp_packet p in
-	let other_port = port_of_udp_packet p in
 	(* FIXME : should be able to flush the UDP buffer*)
 	udp_send other_ip other_port (OvernetGetMyIPResult other_ip);
 	udp_send other_ip other_port OvernetGetMyIPDone;
@@ -992,6 +991,13 @@ let udp_client_handler t p =
   | OvernetGetMyIPResult(ip) -> ()
 
   | OvernetGetMyIPDone -> ()
+      
+  | OvernetUnknown _ ->
+      Printf.printf "Last Unknown message coming from %s:%d"
+        (Ip.to_string (ip_of_udp_packet p)) (port_of_udp_packet p);
+      print_newline ()
+
+      
   | _ -> 
       if !verbose_overnet then begin
 	Printf.printf "UNUSED MESSAGE"; print_newline ()

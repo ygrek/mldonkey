@@ -319,7 +319,7 @@ let _ =
   shared_add_directory !!incoming_directory;
   List.iter shared_add_directory !!shared_directories;  
   
-  add_infinite_timer 300. (fun timer ->
+  add_infinite_timer 1800. (fun timer ->
       DriverInteractive.browse_friends ());
   
   Options.prune_file downloads_ini;

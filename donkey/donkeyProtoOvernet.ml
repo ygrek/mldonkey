@@ -226,7 +226,7 @@ dec: [
 
 | OvernetUnknown of int * string
 
-| OvernetGetMyIP
+| OvernetGetMyIP of int
 
 | OvernetGetMyIPResult of Ip.t
 
@@ -238,6 +238,9 @@ dec: [
 
 | OvernetFirewallConnectionNACK of Md4.t
 
+| OvernetUnknown21 of peer
+| OvernetUnknown33 of peer
+  
 let names_of_tag =
   [
     1, "filename";
@@ -306,10 +309,9 @@ let write buf t =
       buf_int8 buf 20;
       buf_md4 buf md4
 
-  | OvernetGetMyIP ->
+  | OvernetGetMyIP port ->
       buf_int8 buf 27;
-      buf_int8 buf 54;
-      buf_int8 buf 18
+      buf_int16 buf port
 
   | OvernetGetMyIPResult (ip) ->
       buf_int8 buf 28;
@@ -331,6 +333,14 @@ let write buf t =
       buf_int8 buf 26;
       buf_md4 buf md4
 
+  | OvernetUnknown33 peer ->
+      buf_int8 buf 33;
+      buf_peer buf peer
+
+  | OvernetUnknown21 peer ->
+      buf_int8 buf 21;
+      buf_peer buf peer
+      
   | OvernetUnknown (opcode, s) ->
       buf_int8 buf opcode;
       Buffer.add_string buf s
@@ -426,6 +436,11 @@ let parse opcode s =
         let md4 = get_md4 s 0 in
         OvernetPublished md4
 
+    | 21 ->
+        (* idem as 33, but IP seem to be a low ID *)
+        let peer, _ = get_peer s 0 in
+        OvernetUnknown21 peer
+
     | 24 ->
         if !verbose_overnet then begin
             Printf.printf "OK: OVERNET FIREWALL CONNECTION"; print_newline ();
@@ -449,28 +464,7 @@ let parse opcode s =
         OvernetFirewallConnectionNACK(md4)
 
     | 27 ->
-        let opcode1 = get_int8 s 0 in
-	let opcode2 = get_int8 s 1 in	
-	if opcode1 = 54 && opcode2 = 18 then 
-	  begin
-	    if !verbose_overnet then 
-	      begin
-		Printf.printf "OK: GETMYIP"; 
-		print_newline ();
-	      end;
-	    OvernetGetMyIP
-	  end
-	else
-	  begin
-	    if !verbose_overnet then 
-	      begin
-		Printf.printf "UNKNOWN: opcode %d, opcode1 %d, opcode2 %d " opcode opcode1 opcode2; 
-		print_newline ();
-	      end;
-	    dump s;
-            print_newline ();
-            OvernetUnknown (opcode, s)
-	  end
+        OvernetGetMyIP (get_int16 s 0)
     | 28 -> 
 	if !verbose_overnet then begin
             Printf.printf "OK: GETMYIPRESULT MESSAGE"; print_newline ();
@@ -482,6 +476,11 @@ let parse opcode s =
             Printf.printf "OK: GETMYIPDONE MESSAGE"; print_newline ();
           end;
         OvernetGetMyIPDone
+        
+    | 33 ->
+        let peer, _ = get_peer s 0 in
+        OvernetUnknown33 peer
+        
     | _ ->
         Printf.printf "UNKNOWN: opcode %d" opcode; print_newline ();
         dump s;

@@ -403,7 +403,7 @@ let file_print file o =
       let srcs = file_sources file in
       Printf.bprintf buf "%d sources:\n" (List.length srcs);
       
-      if o.conn_output = HTML && List.length srcs > 0 && !!html_mods then
+      if o.conn_output = HTML && List.length srcs > 0 && !!html_mods then begin
         Printf.bprintf buf "\\<table id=\\\"sourcesTable\\\" name=\\\"sourcesTable\\\" class=\\\"sources\\\"\\>\\<tr\\>
 \\<td title=\\\"Client Number (Click to Add as Friend)\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ac\\\"\\>Num\\</td\\>
 \\<td title=\\\"A=Active Download from Client\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>A\\</td\\>
@@ -426,10 +426,26 @@ let file_print file o =
 \\<td title=\\\"Requests Received\\\"onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>RR\\</td\\>
 \\<td title=\\\"Connected Time (minutes)\\\"onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh br\\\"\\>CT\\</td\\>
 \\<td title=\\\"Client MD4\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh br\\\"\\>MD4\\</td\\>
-\\<td title=\\\"Chunks\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>%s\\</td\\>
-\\</tr\\>"
-          info.G.file_chunks;
+\\<td title=\\\"Chunks\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>
+";
+	
+		Printf.bprintf buf "\\<table class=chunks cellspacing=0 cellpadding=0\\>\\<tr\\>";
+
+		String.iter (fun (b) ->  
+		Printf.bprintf buf "\\<TD class=\\\"%s\\\"\\>\\&nbsp;\\</td\\>" 
+                        (if b='1' then "chunk1"
+                                 else "chunk0")
+
+		) info.G.file_chunks;
       
+
+		Printf.bprintf buf "\\</tr\\>\\</table\\>";
+
+Printf.bprintf buf "\\</td\\> \\</tr\\>";
+
+		end;
+
+		
       let counter = ref 0 in
       List.iter (fun c ->
           incr counter;

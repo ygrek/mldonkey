@@ -684,6 +684,19 @@ module EmuleQueueRanking = struct
       Buffer.add_string buf string_null10
             
   end
+
+module QueueRanking = struct 
+
+    type t = int
+      
+    let parse len s = get_int s 1      
+    let print t = 
+      Printf.printf "QUEUE RANKING: %d" t; print_newline ()
+
+    let write buf t = 
+      buf_int buf t
+            
+  end
       
 module EmuleRequestSources = struct 
 
@@ -805,7 +818,9 @@ type t =
 | EndOfDownloadReq of EndOfDownload.t
 | NewUserIDReq of NewUserID.t
 | NoSuchFileReq of NoSuchFile.t  
-
+| QueueRankingReq of QueueRanking.t
+  
+  
 | EmuleClientInfoReq of EmuleClientInfo.t
 | EmuleClientInfoReplyReq of EmuleClientInfo.t
 | EmuleQueueRankingReq of EmuleQueueRanking.t
@@ -839,6 +854,8 @@ let print t =
     | EndOfDownloadReq t -> EndOfDownload.print t
     | NewUserIDReq t -> NewUserID.print t
     | NoSuchFileReq t -> NoSuchFile.print t
+    | QueueRankingReq t -> 
+        QueueRanking.print t
         
     | EmuleClientInfoReq t -> 
         EmuleClientInfo.print "EMULE CLIENT INFO"  t
@@ -926,6 +943,7 @@ let parse magic s =
           | 75 -> ViewFilesReplyReq (ViewFilesReply.parse len s)
           | 76 -> ConnectReplyReq (ConnectReply.parse len s)
           | 77 -> NewUserIDReq (NewUserID.parse len s)
+          | 78 -> SayReq (Say.parse len s)
           | 79 -> QueryChunksReq (QueryChunks.parse len s)
           | 80 -> QueryChunksReplyReq (QueryChunksReply.parse len s)
           | 81 -> QueryChunkMd4Req (QueryChunkMd4.parse len s)
@@ -940,7 +958,7 @@ let parse magic s =
           | 87 -> CloseSlotReq (CloseSlot.parse len s)
           | 88 -> QueryFileReq (QueryFile.parse len s)
           | 89 -> QueryFileReplyReq (QueryFileReply.parse len s)
-          | 78 -> SayReq (Say.parse len s)
+          | 92 -> QueueRankingReq (QueueRanking.parse len s)
           | 250 -> SourcesReq (Sources.parse len s)        
               
           | _ -> raise Not_found
@@ -1055,6 +1073,9 @@ let write buf t =
   | NoSuchFileReq t ->
       buf_int8 buf 72;
       NoSuchFile.write buf t
+  | QueueRankingReq t ->
+      buf_int8 buf 92;
+      QueueRanking.write buf t
       
   | EmuleClientInfoReq t ->
       buf_int8 buf 1;
@@ -1165,3 +1186,5 @@ Browse directory
 ....
   
 *)
+      
+(* 92: Queue Rank *)

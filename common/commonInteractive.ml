@@ -311,6 +311,24 @@ let all_simple_options () =
   );
   !options
 
+let all_simple_options_html () =
+  let options = ref (simple_options_html downloads_ini) in
+  networks_iter_all (fun r ->
+      match r.network_config_file with
+        None -> ()
+      | Some opfile ->
+          let args = simple_options_html opfile in
+          let prefix = !!(r.network_prefix) in
+          let args = 
+            if prefix = "" then args else 
+              List2.tail_map (fun (arg, value, def, help) ->
+                (Printf.sprintf "%s%s" prefix arg, value, def, help)) 
+            args
+          in
+          options := !options @ args
+  );
+  !options
+
 let apply_on_fully_qualified_options name f =
   if !verbose then begin
       Printf.printf "For option %s" name; print_newline ();

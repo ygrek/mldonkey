@@ -159,6 +159,12 @@ table.bw_stats {
 	border: 1; 
 	border: #000 solid 1px;
 }
+table.vo {
+    margin-right: auto;
+    margin-left: auto;
+    border: 1;
+    border: #000 solid 1px;
+}
 div.bw_stats { text-align: center; }
 div.friends { text-align: center; }
 div.cs { text-align: center; }
@@ -170,6 +176,8 @@ td.br {border-right: #000 dotted 1px;}
 td.ar {text-align: right;}
 td.al {text-align: left;}
 td.ac {text-align: center;}
+td.chunk0 { background: #F33;}
+td.chunk1 { background: #33F;}
 
 -->
 </style>
@@ -185,6 +193,7 @@ function mOut(src,clrIn)
 {
     src.style.cursor = 'default';
     src.style.backgroundColor = clrIn;
+    src.bgColor = clrIn;
         }
 function mStatus(Str)
         {
@@ -446,18 +455,18 @@ onMouseOut=\"mOut(this,this.bgColor);\"
 onClick=\"top.output.location.href='http://www.freesoftware.fsf.org/mldonkey/'\">Homepage
 </td>
 <td 
-title=\"Jigle.com Search\"
+title=\"English/German Support Forums\"
 class=\"bu bsmall1 b2\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"top.output.location.href='http://www.jigle.com'\">Jigle Srch
+onClick=\"top.output.location.href='http://www.mldonkeyworld.com/'\">Forums
 </td>
 <td 
-title=\"Friends\"
+title=\"Options\"
 class=\"bu bsmall2 b2\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$O','friends')\">Friends
+onClick=\"mSub('$O','vo')\">Options
 </td>
 <td 
 title=\"Memory Statistics\"
@@ -465,13 +474,6 @@ class=\"bu bsmall2 b2\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
 onClick=\"mSub('$O','mem_stats')\">Mem
-</td>
-<td 
-title=\"View sources statistics\"
-class=\"bu bsmall2 b2\"
-onMouseOver=\"mOvr(this,'#BADEBA');\"
-onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$O','sources')\">Srcs
 </td>
 <td 
 title=\"Client Statistics\"
@@ -510,25 +512,25 @@ onMouseOut=\"mOut(this,this.bgColor);\"
 onClick=\"top.output.location.href='http://savannah.nongnu.org/cgi-bin/viewcvs/*checkout*/mldonkey/mldonkey/distrib/ChangeLog?rev=HEAD&content-type=text/plain'\">ChangeLog
 </td>
 <td 
-title=\"English/German Support Forums\"
+title=\"Friends\"
 class=\"bu bsmall1 b4\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"top.output.location.href='http://www.mldonkeyworld.com/'\">Forums
+onClick=\"mSub('$O','friends')\">Friends
 </td>
 <td 
-title=\"Options\"
-class=\"bu bsmall2 b4\"
-onMouseOver=\"mOvr(this,'#BADEBA');\"
-onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$O','vo')\">Options
-</td>
-<td colspan=2
 title=\"Save Options\"
 class=\"bu bsmall2 b4\"
 onMouseOver=\"mOvr(this,'#BADEBA');\"
 onMouseOut=\"mOut(this,this.bgColor);\"
-onClick=\"mSub('$S','save')\">Save Options
+onClick=\"mSub('$S','save')\">Save 
+</td>
+<td 
+title=\"View sources statistics\"
+class=\"bu bsmall2 b4\"
+onMouseOver=\"mOvr(this,'#BADEBA');\"
+onMouseOut=\"mOut(this,this.bgColor);\"
+onClick=\"mSub('$O','sources')\">Srcs
 </td>
 <td 
 title=\"Client Statistics in a Table\"

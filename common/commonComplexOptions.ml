@@ -287,7 +287,7 @@ let customized_queries = define_option searches_ini ["customized_queries"] ""
         ]
       );
     ];
-    "Search for mp3s", 
+    "MP3 Search", 
     Q_AND [
       Q_KEYWORDS ("keywords", "");
       Q_MP3_ARTIST ("Artist", ""); 
@@ -299,7 +299,7 @@ let customized_queries = define_option searches_ini ["customized_queries"] ""
         Q_FORMAT ("Format", "mp3");
       ]
     ];
-    "Search for movies", 
+    "Movie Search", 
     Q_AND [
       Q_KEYWORDS ("keywords", "");
       Q_HIDDEN [
@@ -308,7 +308,7 @@ let customized_queries = define_option searches_ini ["customized_queries"] ""
         Q_FORMAT ("Format", "avi");
       ]
     ];
-    "Search for albums",
+    "Album Search",
     Q_AND [
       Q_KEYWORDS ("Keywords", "album");
       Q_HIDDEN [

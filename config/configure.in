@@ -8,7 +8,7 @@ CONFIG_ARGS=$*
 echo $CONFIG_ARGS
 
 CURRENT_VERSION=2.02
-CURRENT_RELEASE=15
+CURRENT_RELEASE=16
 
 REQUIRED_OCAML=3.06
 REQUIRED_LABLGTK=1.2.4
@@ -24,6 +24,8 @@ SOULSEEK=yes
 OPENFT=no
 CYMES=no
 DONKEY=yes
+
+BUILD_GUI=yes
 
 MULTINET=yes
 AC_ARG_ENABLE(multinet, [--disable-multinet:       allows you to only compile support for edonkey], [MULTINET="$enableval"])
@@ -67,7 +69,9 @@ AC_ARG_ENABLE(donkey, [--disable-donkey:       allows you to remove support for 
 
 AC_ARG_ENABLE(ocamlver, [--enable-ocamlver=3.06:       allows you to change the required version of ocaml], [REQUIRED_OCAML="$enableval"])
 
-AC_ARG_ENABLE(lablgtkver, [--enable-lablgtkver=1.2.4:       allows you to change the required version of lablgtk], [REQUIRED_LABLGTK="$enableval"])
+AC_ARG_ENABLE(ocamlver, [--enable-ocamlver=3.06:       allows you to change the required version of ocaml], [REQUIRED_OCAML="$enableval"])
+
+AC_ARG_ENABLE(gui, [--disable-gui:       allows you to remove the GUI], [BUILD_GUI="$enableval"])
 
 
 
@@ -260,7 +264,11 @@ if test "$OCAMLC" = "$LOCAL_OCAML"/ocamlc.opt ; then
 else
   if test "$OCAMLC" = "$LOCAL_OCAML"/ocamlc ; then
   OCAML_PATH="$LOCAL_OCAML"/
-  OCAMLOPT=$LOCAL_OCAML/ocamlopt
+  if test -f "$LOCAL_OCAML/ocamlopt"; then
+    OCAMLOPT=$LOCAL_OCAML/ocamlopt
+  else
+    OCAMLOPT=no
+  fi
   OCAMLMKTOP=$LOCAL_OCAML/ocamlmktop
   OCAMLDEP=$LOCAL_OCAML/ocamldep
   OCAMLLEX=$LOCAL_OCAML/ocamllex
@@ -268,7 +276,7 @@ else
   CAMLP4=$LOCAL_OCAML/camlp4
   else
   AC_CHECK_PROG(OCAMLOPT, ocamlopt.opt, ocamlopt.opt)
-  AC_CHECK_PROG(OCAMLOPT, ocamlopt, ocamlopt)
+  AC_CHECK_PROG(OCAMLOPT, ocamlopt, ocamlopt, no)
   AC_CHECK_PROG(OCAMLDEP, ocamldep, ocamldep)
   AC_CHECK_PROG(OCAMLLEX, ocamllex.opt, ocamllex.opt)
   AC_CHECK_PROG(OCAMLLEX, ocamllex, ocamllex)
@@ -293,13 +301,22 @@ case "$OCAMLVERSION" in
 esac
 
 
-OCAMLOPTVERSION=`$OCAMLOPT -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
-echo "ocamlopt version is $OCAMLOPTVERSION"
+if test "$OCAMLOPT" = "no"; then
+  TARGET_TYPE=byte
+  OCAMLLIB_EXT=cma
+else
+  TARGET_TYPE=opt
+  OCAMLLIB_EXT=cmxa
 
-test "$OCAMLOPTVERSION" = "$OCAMLVERSION" || {
-  echo "********  Version $REQUIRED_OCAML of ocamlopt is required  *********" 1>&2; 
-  echo "*******  Check http://ocaml.inria.fr/  ********" 1>&2; 
-  exit 1; } 
+  OCAMLOPTVERSION=`$OCAMLOPT -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
+  echo "ocamlopt version is $OCAMLOPTVERSION"
+
+  test "$OCAMLOPTVERSION" = "$OCAMLVERSION" || {
+    echo "********  Version $REQUIRED_OCAML of ocamlopt is required  *********" 1>&2; 
+    echo "*******  Check http://ocaml.inria.fr/  ********" 1>&2; 
+    exit 1; } 
+
+fi
 
 
 # Sizes of various common basic types
@@ -356,8 +373,8 @@ if test -f $OCAMLLIB/lablgl.cma; then
   LABLGL_CMA=lablgl.cma
 fi
 
-if test -f $OCAMLLIB/lablgl.cmxa; then
-  LABLGL_CMXA=lablgl.cmxa
+if test -f $OCAMLLIB/lablgl.$OCAMLLIB_EXT; then
+  LABLGL_CMXA=lablgl.$OCAMLLIB_EXT
 fi
 
   if test "$AUDIO_GALAXY" = "yes" ; then
@@ -442,12 +459,19 @@ if test "$DONKEY" = "yes" ; then
       BAD_TARGETS="$BAD_TARGETS donkey_server donkey_client"
 fi
 
-AC_CHECK_PROG(GTK_CONFIG, gtk-config, gtk-config, no)
+
+# Check for GTK only if we want to build the GUI
+if test "$BUILD_GUI" = "yes"; then
+  AC_CHECK_PROG(GTK_CONFIG, gtk-config, gtk-config, no)
+else
+  GTK_CONFIG=no
+fi
+
 if test "$GTK_CONFIG" = "no"; then
      LABLGTK_CONFIG=no
 else
   AC_MSG_CHECKING(Checking for native code lablgtk)
-  if test -f `$OCAMLC -where`/lablgtk/lablgtk.cmxa; then
+  if test -f `$OCAMLC -where`/lablgtk/lablgtk.$OCAMLLIB_EXT; then
      AC_MSG_RESULT(yes)
      LABLGTK_CONFIG=yes
   else
@@ -490,7 +514,7 @@ else
           rm -rf lablgtk-"$REQUIRED_LABLGTK"
          )
          cd $CONFIG_DIR
-         if test -f `$OCAMLC -where`/lablgtk/lablgtk.cmxa; then
+         if test -f `$OCAMLC -where`/lablgtk/lablgtk.$OCAMLLIB_EXT; then
             LABLGTK_CONFIG=yes
          else
             echo "Installation of lablgtk failed"
@@ -503,19 +527,19 @@ else
   fi
 fi
 
-  if test "$IM" = "yes" ; then
-    AC_CHECK_FILE(../im,IM=yes, [
-      IM=no
-    ])
-  else
-    IM=no
-  fi
+if test "$IM" = "yes" ; then
+  AC_CHECK_FILE(../im,IM=yes, [
+  IM=no
+  ])
+else
+   IM=no
+fi
 
 
 if test "$IM" = "yes"; then
   CRYPTOKIT=no
   AC_MSG_CHECKING(Checking for CryptoKit)
-  if test -f $OCAMLLIB/cryptokit.cmxa; then
+  if test -f $OCAMLLIB/cryptokit.$OCAMLLIB_EXT; then
     CRYPTOKIT=yes
     AC_MSG_RESULT(yes)
   else
@@ -525,7 +549,7 @@ if test "$IM" = "yes"; then
   if test "$CRYPTOKIT" = "yes"; then
     YAXPO=no
     AC_MSG_CHECKING(Checking for Yaxpo)
-    if test -f $OCAMLLIB/yaxpo.cmxa; then
+    if test -f $OCAMLLIB/yaxpo.$OCAMLLIB_EXT; then
       YAXPO=yes
       AC_MSG_RESULT(yes)
     else
@@ -536,7 +560,7 @@ if test "$IM" = "yes"; then
   if test "$YAXPO" = "yes"; then
     JABBR=no
     AC_MSG_CHECKING(Checking for Jabbr)
-    if test -f $OCAMLLIB/jabbr.cmxa; then
+    if test -f $OCAMLLIB/jabbr.$OCAMLLIB_EXT; then
       JABBR=yes
       AC_MSG_RESULT(yes)
     else
@@ -653,6 +677,7 @@ AC_SUBST(GTOOLBOX_POPUPMENU)
 AC_SUBST(OS_FILES)
 AC_SUBST(CONFIG_ARGS)
 AC_SUBST(CONFIG_ARGS_DEFINED)
+AC_SUBST(TARGET_TYPE)
 
 AC_SUBST(HAS_ZLIB)
 AC_SUBST(ZLIB_UNCOMPRESS)

@@ -151,20 +151,6 @@ let force_check_locations () =
         with _ -> ()
       end;
 
-    (*
-(* USELESS NOW *)
-    List.iter (fun c -> 
-        try connect_client !!client_ip [] c with _ -> ()) !interesting_clients;
-    interesting_clients := [];
-*)
-
-    (*
-(* USELESS NOW *)
-    List.iter (fun c ->
-        try connect_client !!client_ip [] c with _ -> ()
-    ) !!known_friends;
-*)
-    
   with e ->
       Printf.printf "force_check_locations: %s" (Printexc2.to_string e);
       print_newline ()

@@ -69,7 +69,7 @@ and bandwidth_controler = {
   }
 
 let ip_packet_size = ref 40
-let mtu_packet_size = ref 2048
+let mtu_packet_size = ref 1500
   
 let forecast_download_ip_packet t =
   match t.read_control with

@@ -1,7 +1,20 @@
 ChangeLog	
 =========
 
-2002/02/19: Simon
+2002/02/20: Simon (v 2.02-16)
+  - Applied patch #1409: new html_mods
+  - Added some options in 'vo':
+       client_name,allowed_ips,client_ip, force_client_ip
+  - ./configure:
+       * If no native code compiler is available, compile in bytecode (HPPA)
+       * New option -disable-gui
+  - Protocols: 
+       * Overnet: Fixed message 27, removed message 33
+       * eDonkey: added message 92
+       * Try to print the IP:port for unknown packets
+  - Net: mtu changed to 1500
+
+2002/02/19: Simon (v 2.02-15)
   - Applied patch #1136: better mail output
   - Applied patch adding "rem" command
   - Applied patch #1128: Adding chunk_width edit option
