@@ -53,6 +53,9 @@ open DonkeyTypes
 open DonkeyReliability
 
 module Udp = DonkeyProtoUdp
+
+(* Lifetime of a socket after sending interesting messages *)
+let active_lifetime = 1200.
   
 let is_banned c sock = 
   c.client_banned <- Hashtbl.mem banned_ips (peer_ip sock)
@@ -135,7 +138,6 @@ let _ =
     | Some sock ->
         
         set_rtimeout sock !!upload_timeout;
-        set_lifetime sock one_day;
         direct_client_send c (
           let module M = DonkeyProtoClient in
           let module Q = M.AvailableSlot in
@@ -780,7 +782,7 @@ lprint_newline ();
       end;
   
   | M.AvailableSlotReq _ ->
-      set_lifetime sock 3600.;
+      set_lifetime sock active_lifetime;
       set_rtimeout sock !!queued_timeout; 
 (* how long should we wait for a block ? *)
       begin
@@ -1009,7 +1011,8 @@ is checked for the file.
       end
   
   | M.BlocReq t ->
-      set_lifetime sock 3600.;
+      
+      set_lifetime sock active_lifetime;
       let module Q = M.Bloc in
       let file = client_file c in
       
@@ -1408,11 +1411,13 @@ end else *)
   
   | M.QueryBlocReq t when !CommonUploads.has_upload = 0 &&
     client_has_a_slot (as_client c.client_client) ->
+      
       if !verbose then begin
           lprintf "uploader %s(%s) ask for block" c.client_name
             (brand_to_string c.client_brand); lprint_newline ();
         end;
-      
+
+      set_lifetime sock active_lifetime;
       set_rtimeout sock !!upload_timeout;
       let module Q = M.QueryBloc in
       let file = find_file  t.Q.md4 in
@@ -1749,6 +1754,10 @@ let reconnect_client c =
               c.client_connect_time <- last_time ();
               init_connection sock;
               init_client sock c;
+(* The lifetime of the client socket is now half an hour, and
+can be increased by AvailableSlotReq, BlocReq, QueryBlocReq 
+  messages *)
+              set_lifetime sock active_lifetime;
               
               c.client_checked <- false;
               
@@ -1883,6 +1892,15 @@ let client_connection_handler overnet t event =
               in
               init_connection sock;
               
+(* Normal connections have 20 minutes to live (AvailableSlot, QueryBloc
+  and Bloc messages extend this lifetime), whereas exceeding connections
+  have only 1 minute 30 seconds to live. *)
+              set_lifetime sock (
+                if can_open_connection () then
+                  active_lifetime
+                else 
+                  90.
+              );
               (try
                   
                   let challenge = {

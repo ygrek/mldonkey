@@ -660,3 +660,6 @@ let int32_tag s i =
 
 let string_tag s i = 
   { tag_name = s; tag_value = String i }
+
+let html_mods_styles = ref
+  [| "Green" ; "Small"; "L.Blue"; "L.Purple"; "Monochrome" |]

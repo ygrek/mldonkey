@@ -71,16 +71,19 @@ let disconnect_client c =
         done
       with _ -> ()
 
-let download_finished file = 
-  file_completed (as_file file.file_file);
-  BTGlobals.remove_file file;
-  old_files =:= (file.file_name, file_size file) :: !!old_files;
+let disconnect_clients file = 
   Hashtbl.iter (fun _ c ->
       if !verbose_msg_clients then
         lprintf "disconnect since download is finished\n";
       disconnect_client c
   ) file.file_clients
-
+          
+let download_finished file = 
+  file_completed (as_file file.file_file);
+  BTGlobals.remove_file file;
+  old_files =:= (file.file_name, file_size file) :: !!old_files;
+  disconnect_clients file
+  
 let (++) = Int64.add
 let (--) = Int64.sub
       
@@ -144,7 +147,7 @@ let rec client_parse_header counter cc init_sent gconn sock
           disconnect_client c;
           c.client_sock <- Some sock;
       | Some _ -> ()
-          );
+    );
     
     set_client_state (c) (Connected (-1));
     if not init_sent then send_init file c sock;
@@ -239,21 +242,33 @@ and get_from_client sock (c: client) =
                     lprintf "Could not find range in current block\n";
                   c.client_blocks <- List2.removeq b c.client_blocks;
                   c.client_block <- None;
+                  
+                  
                   iter ()
         in
         iter ()
       with Not_found -> 
           if !verbose_swarming then
             lprintf "Unable to get a block !!\n";
+          
+          let bitmap = Int64Swarmer.verified_bitmap file.file_partition in
+          for i = 0 to String.length bitmap - 1 do
+            if bitmap.[i] <> '3' then raise Not_found;
+          done;
+          
+          if (file_size file <> Int64Swarmer.downloaded file.file_swarmer)
+          then
+            lprintf "Downloaded size differs after complete verification\n";
+          download_finished file;
           raise Not_found
     in
     send_client c (Request (num,x,y));
     if !verbose_msg_clients then
       lprintf "CLIENT %d: Asking %s For Range %Ld-%Ld\n"
-      (client_num c)
+        (client_num c)
       (Sha1.to_string c.client_uid) 
       x y
-
+      
 and client_to_client c sock msg = 
   if !verbose_msg_clients then begin
       let (timeout, next) = get_rtimeout sock in
@@ -321,8 +336,6 @@ and client_to_client c sock msg =
           );
         
         
-        if new_downloaded = file_size file then
-          download_finished file;
         if new_downloaded <> old_downloaded then
           add_file_downloaded file.file_file 
             (new_downloaded -- old_downloaded);

@@ -65,6 +65,8 @@ module P = GuiTypes
 let _ =
   file_ops.op_file_cancel <- (fun file ->
       remove_file file;
+      BTClients.disconnect_clients file;
+      (try  Unix32.remove (file_fd file)  with e -> ());
       file_cancel (as_file file.file_file);
   );
   file_ops.op_file_info <- (fun file ->

@@ -228,13 +228,13 @@ let custom_query buf query =
       | Q_KEYWORDS (label, default) ->
           Printf.bprintf buf "
 <table border=0>
-          <td>%s </td> <td width=\"1%%\"><input type=text name=keywords size=40 value=\"%s\"></td>
+          <td width=100 align=right>%s</td><td><input type=text name=keywords size=40 value=\"%s\"></td>
 </table>" label default
           
       | Q_MINSIZE (label, default) ->
           Printf.bprintf  buf "
 <table border=0>
-<td> %s </td> 
+<td width=100 align=right> %s </td> 
 
 <td> 
 <input type=text name=minsize size=40 value=\"%s\">
@@ -258,7 +258,7 @@ let custom_query buf query =
       | Q_MAXSIZE (label, default) ->
           Printf.bprintf  buf "
 <table border=0>
-<td> %s </td> 
+<td width=100 align=right> %s </td> 
 
 <td> 
 <input type=text name=maxsize size=40 value=\"%s\">
@@ -284,7 +284,7 @@ let custom_query buf query =
 <table border=0>
 
 <tr>
-<td>
+<td width=100 align=right>
 %s
 </td>
 
@@ -310,7 +310,7 @@ let custom_query buf query =
 <table border=0>
 
 <tr>
-<td> %s </td> 
+<td width=100 align=right> %s </td> 
 <td> 
 <input type=text name=album size=40 value=\"%s\">
 </td>
@@ -324,7 +324,7 @@ let custom_query buf query =
 <table border=0>
 
 <tr>
-<td> %s </td> 
+<td width=100 align=right> %s </td> 
 <td> 
 <input type=text name=title size=40 value=\"%s\">
 </td>
@@ -338,7 +338,7 @@ let custom_query buf query =
 <table border=0>
 
 <tr>
-<td> %s </td> 
+<td width=100 align=right> %s </td> 
 <td> 
 <input type=text name=artist size=40 value=\"%s\">
 </td>
@@ -353,7 +353,7 @@ let custom_query buf query =
 <table border=0>
           
 <tr>
-<td> %s </td> 
+<td width=100 align=right> %s </td> 
 
 <td> 
 <input type=text name=media size=40 value=\"%s\">
@@ -381,7 +381,7 @@ let custom_query buf query =
           Printf.bprintf  buf "
 <table border=0>
 <tr>
-<td> %s </td> 
+<td width=100 align=right> %s </td> 
 
 <td> 
 <input type=text name=format size=40 value=\"%s\">

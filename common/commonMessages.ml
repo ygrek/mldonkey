@@ -94,6 +94,7 @@ color: #000; background: @C11@;
 td.fbig { cursor: pointer; padding-left: 2px; padding-right: 2px; font-family: Verdana; font-size: 10px; background: @C10@; border-top: #000 solid 1px; border-left: #000 solid
 1px; }
 td.pr { border-right: #000 solid 1px; }
+td.fbigb { border-top: #000 solid 0px; border-bottom: #000 solid 1px; }
 td, tr {font-size: 12px; font-face: verdana; }
 td.sr { white-space: nowrap; padding-top: 2px; padding-bottom: 2px; padding-left: 4px; padding-right: 4px; font-family: verdana; font-size: 10px; color: #000;  }
 td.srp { white-space: nowrap; padding-top: 2px; padding-bottom: 2px; padding-left: 0px; padding-right: 4px; font-family: verdana; font-size: 10px; color: #555;  }
@@ -351,7 +352,7 @@ title=\"Options\"
 class=\"bu bsmall2 b2\"
 onMouseOver=\"mOvr(this,'mOvr1');\"
 onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$O','vo')\">Options
+onClick=\"mSub('$O','voo+1')\">Options
 </td>
 <td
 title=\"Memory statistics\"
@@ -696,7 +697,8 @@ function draw_middle_header() {
 top.fstatus.document.open();top.fstatus.document.clear();
 top.fstatus.document.writeln(\"<html><head>\");
 top.fstatus.document.writeln(\"<link href='h.css' rel='stylesheet' type='text/css'>\");
-top.fstatus.document.writeln(\"<script language='javascript' src='i.js'></script>\");
+top.fstatus.document.writeln('<script language=\"javascript\" src=\"i.js\">');
+top.fstatus.document.writeln(\"</script>\");
 top.fstatus.document.writeln(\"</head><body><center><table cellspacing=0 cellpadding=0 class='bw_stats'><tr>\");
 }
 function close_page() {
@@ -770,14 +772,14 @@ title=\"List connected servers\"
 class=\"bu bbig\"
 onMouseOver=\"mOvr(this,'mOvr1');\"
 onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$O','vm');draw_server_opts()\">Servers
+onClick=\"draw_server_opts();mSub('$O','vm');\">Servers
 </td>
 <td 
 title=\"Options\"
 class=\"bu bbig\"
 onMouseOver=\"mOvr(this,'mOvr1');\"
 onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$O','vo')\">Options
+onClick=\"mSub('$O','voo+1')\">Options
 </td>
 
 <td 
@@ -792,14 +794,14 @@ title=\"Scan temp directory for files\"
 class=\"bu bbig\"
 onMouseOver=\"mOvr(this,'mOvr1');\"
 onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$O','scan_temp');draw_scan_opts()\">Show temp
+onClick=\"draw_scan_opts();mSub('$O','scan_temp')\">Show temp
 </td>
 <td 
 title=\"Client statistics in a table\"
 class=\"bu bbig\"
 onMouseOver=\"mOvr(this,'mOvr1');\"
 onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$O','cs');draw_stats()\">Statistics
+onClick=\"draw_stats();mSub('$O','cs')\">Statistics
 </td>
 
 <td 
@@ -865,7 +867,7 @@ title=\"View searches\"
 class=\"bu bbig bb4\"
 onMouseOver=\"mOvr(this,'mOvr1');\"
 onMouseOut=\"mOut(this);\"
-onClick=\"mSub('$O','vs');draw_xs_search()\">View searches <!-- added -->
+onClick=\"draw_xs_search();mSub('$O','vs')\">View searches <!-- added -->
 </td>
 <td 
 title=\"Rescan for shared files\"

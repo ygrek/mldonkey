@@ -772,8 +772,8 @@ let _ =
       | Room_user_leave (room, _) ->
           main_window#room_event room event
           
-      | _ -> 
-          lprintf "Discarding event"; lprint_newline ();
+(*      | _ -> 
+          lprintf "Discarding event"; lprint_newline (); *)
   );
   Gui_global.top_menus := ("IM", (fun menu ->
         

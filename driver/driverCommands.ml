@@ -362,12 +362,12 @@ let commands = [
     "html_mods_style", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
         if args = [] then begin
-            Printf.bprintf buf "0: Default interface\n";
-            Printf.bprintf buf "1: Small and simple interface\n";
-            Printf.bprintf buf "2: Light blue\n";
-            Printf.bprintf buf "3: Light purple\n";
-            Printf.bprintf buf "4: Monochrome\n";
-            ""
+
+			Array.iteri (fun i h -> 
+             Printf.bprintf buf "%d: %s\n" i h;
+			) !html_mods_styles;
+			""
+
           end
         else begin
             Options.set_simple_option expert_ini "html_mods" "true";
@@ -400,6 +400,15 @@ let commands = [
     "voo", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
         if use_html_mods o then begin
+
+                Printf.bprintf buf "\\<script language=javascript\\>
+\\<!-- 
+function submitHtmlModsStyle() {
+var formID = document.getElementById(\\\"htmlModsStyleForm\\\")
+parent.fstatus.location.href='/submit?q=html_mods_style+'+formID.modsStyle.value;
+}
+//--\\>
+\\</script\\>";
             
             Printf.bprintf buf "\\<div class=\\\"vo\\\"\\>\\<table class=main cellspacing=0 cellpadding=0\\> 
 \\<tr\\>\\<td\\>
@@ -463,6 +472,7 @@ let commands = [
                         strings_of_option_html html_mods_show_pending; 
                         strings_of_option_html html_mods_load_message_file; 
                         strings_of_option_html html_mods_max_messages; 
+                        strings_of_option_html commands_frame_height; 
                         strings_of_option_html display_downloaded_results; 
                         strings_of_option_html vd_reload_delay; 
                       ] 
@@ -517,7 +527,30 @@ let commands = [
                   
                   | _ -> CommonInteractive.all_simple_options_html ()
             );
-            Printf.bprintf buf "\\</td\\>\\<tr\\>\\</table\\>\\</div\\>";
+
+Printf.bprintf buf "
+\\</td\\>\\</tr\\>
+\\<tr\\>\\<td\\>
+\\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
+\\<td class=downloaded width=100%%\\>\\</td\\>
+\\<td nowrap class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=shares'\\\"\\>Shares\\</a\\>\\</td\\>
+\\<td nowrap class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:parent.fstatus.location.href='/submit?q=save'\\\"\\>Save\\</a\\>\\</td\\>
+\\<td nowrap class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='/submit?q=html_mods'\\\"\\>toggle html_mods\\</a\\>\\</td\\>
+\\<td nowrap class=\\\"fbig fbigb pr\\\"\\>
+\\<form style=\\\"margin: 0px;\\\" name=\\\"htmlModsStyleForm\\\" id=\\\"htmlModsStyleForm\\\" 
+action=\\\"javascript:submitHtmlModsStyle();\\\"\\>
+\\<select id=\\\"modsStyle\\\" name=\\\"modsStyle\\\"
+style=\\\"font-size: 8px; font-family: verdana\\\" onchange=\\\"this.form.submit()\\\"\\>
+\\<option value=\\\"0\\\"\\>html style\n";
+
+			Array.iteri (fun i h -> 
+             Printf.bprintf buf "\\<option value=\\\"%d\\\"\\>%s\n" i h;
+			) !html_mods_styles;
+
+Printf.bprintf buf "
+\\</select\\>\\</td\\>
+\\</tr\\>\\</table\\>";
+            Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>\\</div\\>";
           end
         else list_options o  (CommonInteractive.all_simple_options ());
         

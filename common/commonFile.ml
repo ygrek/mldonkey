@@ -527,7 +527,7 @@ parent.fstatus.location.href='/submit?q=rename+%d+\\\"'+renameTextOut+'\\\"';
         (Array.init (String.length info.G.file_chunks)
         (fun i -> ((int_of_char info.G.file_chunks.[i])-48)))) ) ; 
 		( "1", "srh ar", "Number of full chunks", (Printf.sprintf "%d"
-        (let fc = ref 0 in (String.iter (fun s -> if s >= '2' then incr fc) info.G.file_chunks );!fc ))) ];
+        (let fc = ref 0 in (String.iter (fun s -> if s = '2' then incr fc) info.G.file_chunks );!fc ))) ];
 
       let counter = ref 0 in
       List.iter (fun c ->

@@ -1,6 +1,18 @@
 ChangeLog	
 =========
 
+2003/04/08: Simon
+  - Applied patch #1372 (= #1373 I hope)
+  - Tiger: try to prevent Bus Error bugs on Solaris by aligning the buffer
+  - BitTorrent: 
+      * Verify file before commiting
+      * Properly cancel files
+  - Unix32: flush buffers before closing files
+  - Donkey: connections have now a lifetime of 20 minutes at the 
+     beginning, increased when receiving important messages (upload, download).
+     Connections above max_opened_connections have only 1 minute 30 to life.
+     Might improve the limit on the number of connections.
+
 2003/04/07: Simon  (v 2.04rc1-14)
   - Fixed bug with client_uid option in mlnet.
   - Applied patch #1370

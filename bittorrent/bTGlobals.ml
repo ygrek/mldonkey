@@ -33,6 +33,37 @@ open BTTypes
 open BTOptions
 open CommonSwarming  
 open CommonNetwork
+
+    
+let file_size file = file.file_file.impl_file_size
+let file_downloaded file = file_downloaded (as_file file.file_file)
+let file_age file = file.file_file.impl_file_age
+let file_fd file = file.file_file.impl_file_fd
+let file_disk_name file = file_disk_name (as_file file.file_file)
+let set_file_disk_name file = set_file_disk_name (as_file file.file_file)
+    
+let file_state file =
+  file_state (as_file file.file_file)
+  
+let file_num file =
+  file_num (as_file file.file_file)
+  
+let file_must_update file =
+  file_must_update (as_file file.file_file)
+
+let client_type c = client_type (as_client c.client_client)
+
+let set_client_state client state =
+  CommonClient.set_client_state (as_client client.client_client) state
+  
+let set_client_disconnected client =
+  CommonClient.set_client_disconnected (as_client client.client_client) 
+  
+  
+  
+let as_client c = as_client c.client_client
+let client_num c = client_num (as_client c)
+
   
 let network = new_network "BitTorrent"  
     (fun _ -> !!network_options_prefix)
@@ -61,13 +92,6 @@ let (file_ops : file CommonFile.file_ops) =
   
 let (client_ops : client CommonClient.client_ops) = 
   CommonClient.new_client_ops network
-    
-let file_size file = file.file_file.impl_file_size
-let file_downloaded file = file_downloaded (as_file file.file_file)
-let file_age file = file.file_file.impl_file_age
-let file_fd file = file.file_file.impl_file_fd
-let file_disk_name file = file_disk_name (as_file file.file_file)
-let set_file_disk_name file = set_file_disk_name (as_file file.file_file)
     
 module DO = CommonOptions
 
@@ -127,7 +151,7 @@ let new_file file_id file_name file_size file_tracker piece_size =
       (if result then "VERIFIED" else "CORRUPTED");
       if result then begin
           file.file_blocks_downloaded <- b :: file.file_blocks_downloaded;
-          file_must_update (as_file file.file_file)
+          file_must_update file;
         end;
       result
   );
@@ -178,28 +202,6 @@ let new_client file peer_id kind =
       Hashtbl.add file.file_clients peer_id c;
       c
   
-let file_state file =
-  file_state (as_file file.file_file)
-  
-let file_num file =
-  file_num (as_file file.file_file)
-  
-let file_must_update file =
-  file_must_update (as_file file.file_file)
-
-let client_type c = client_type (as_client c.client_client)
-
-let set_client_state client state =
-  CommonClient.set_client_state (as_client client.client_client) state
-  
-let set_client_disconnected client =
-  CommonClient.set_client_disconnected (as_client client.client_client) 
-  
-  
 let remove_file file = 
   Hashtbl.remove files_by_uid file.file_id;
   current_files := List2.removeq file !current_files
-  
-  
-let as_client c = as_client c.client_client
-let client_num c = client_num (as_client c)

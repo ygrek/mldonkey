@@ -927,3 +927,16 @@ let _ =
   )
   
   
+(* gnutella2: use shareaza redirector:
+http://cache.shareaza.com/cache.aspx?get=1&hostfile=1&net=gnutella2
+
+Format:
+h|10.111.2.6:6346|942
+h|81.50.66.76:6346|752
+h|147.134.33.137:1076|348
+h|64.247.95.19:6346|931
+u|http://www20.brinkster.com/dgc2/lynnx.asp
+
+
+  *)
+  

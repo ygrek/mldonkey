@@ -941,7 +941,7 @@ let _ =
   file_ops.op_file_cancel <- (fun file ->
       Hashtbl.remove files_by_md4 file.file_md4;
       current_files := List2.removeq file !current_files;
-      (try  Sys.remove (file_disk_name file)  with e -> 
+      (try  Unix32.remove (file_fd file)  with e -> 
             lprintf "Sys.remove %s exception %s" 
             (file_disk_name file)
             (Printexc2.to_string e); lprint_newline ());

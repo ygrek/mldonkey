@@ -40,6 +40,7 @@ val flush_fd : t -> unit
 val buffered_write : t -> int64 -> string -> int -> int -> unit
 val write : t -> int64 -> string -> int -> int -> unit
 val max_buffered : int64 ref
+val remove : t -> unit
   
 val fd_of_chunk : t -> int64 -> int64 -> (Unix.file_descr * int64)
   

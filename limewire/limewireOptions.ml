@@ -62,6 +62,18 @@ let redirectors = define_option limewire_ini ["redirectors"]
     "router4.limewire.com";
   ]
 (* (Ip.of_string "64.61.25.171")   *)
+
+let gnutella2_redirectors = define_option limewire_ini ["gnutella2_redirectors"]
+    "The URLs where hosts on gnutella2 can be downloaded"
+    (list_option string_option)
+  [
+   "http://cache.shareaza.com/cache.aspx?get=1&hostfile=1&net=gnutella2" 
+  ]
+
+let gnutella2_cache = define_option limewire_ini ["gnutella2_cache"]
+    "The known gnutella2 hosts"
+    (list_option (tuple2_option (Ip.option, int_option)))
+  []
   
   
 let commit_in_subdir = define_option limewire_ini ["commit_in_subdir"]

@@ -747,39 +747,52 @@ word64 table[4*256] = {
     0xC83223F1720AEF96LL   /* 1022 */,    0xC3A0396F7363A51FLL   /* 1023 */};
 
 
-void tiger_hash(char prefix, char *s, int len, unsigned char *digest)
-{
-  char x = s[-1];
+/* If these headers are placed at the beginning of the file, the computation
+ * is incorrect... */
 
-/* This fix is clearly awful, but normally, strings are prefixed with
-some headers, so it should be OK. */
-
-  s[-1] = prefix;
-  static_tiger((word64*)(s-1), (len+1), (word64*) (digest));
-  s[-1] = x;
-#ifdef BIG_ENDIAN
-  {
-    int i;
-    word64* res = (word64*) digest;
-    for(i=0;i<3;i++){
-      word64 r = res[i];
-      char* d = (char*)(res+i);
-      int j;
-      for(j=0; j<8;j++) d[j] = (r >> (j*8)) & 0xff;
-    }
-  }
-
-#endif
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 #if 0
-  { int i;
-  printf("Digested in:\n");
-  for(i=0;i<23;i++) printf("%02X", digest[i]);
-  printf("\n");
-  }
+#define MAX_TIGER_CHUNK_SIZE 8192
+static char tiger_buffer[MAX_TIGER_CHUNK_SIZE];
+
+void tiger_hash(char prefix, char *s, int len, unsigned char *digest)
+{
+   
+         if(len>= MAX_TIGER_CHUNK_SIZE){
+	                printf("tiger_hash: error chunk too big\n");
+	                exit(2);
+     }
+   
+   
+   tiger_buffer[0] = prefix;
+   memcpy(tiger_buffer+1, s, len);
+   static_tiger((word64*)tiger_buffer, (len+1), (word64*) (digest));
+}
+#else
+#define MAX_TIGER_CHUNK_SIZE 1024
+static word64 tiger_buffer[MAX_TIGER_CHUNK_SIZE];
+void tiger_hash(char prefix, char *s, int len, unsigned char *digest)
+{
+   
+      char *buffer = (char*) tiger_buffer;
+   
+      if(len>= 8*MAX_TIGER_CHUNK_SIZE)
+     {
+	
+	        printf("tiger_hash: error chunk too big\n");
+	        exit(2);
+     }
+   
+   
+      buffer[0] = prefix;
+      memcpy(buffer+1, s, len);
+      static_tiger(tiger_buffer, (len+1), (word64*) (digest));
+}
 #endif
 
-}
 
 void tiger_tree_string(char *s, int len, int pos, int block_size, char *digest)
 {
