@@ -424,7 +424,12 @@ let parse_donkey_url url =
       true
   
   | _ ->  false
+
       
+let register_commands list =
+  register_commands
+    (List2.tail_map (fun (n,f,h) -> (n, "Network/Edonkey", f,h)) list)
+
 let commands = [
     "n", Arg_multiple (fun args o ->
         let buf = o.conn_buf in

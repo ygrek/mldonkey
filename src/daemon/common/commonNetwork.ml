@@ -173,9 +173,18 @@ let register_escape_char (c : char) (f : unit -> string) =
 let escape_char c = (List.assq c !network_escape_chars) ()
 *)
   
-let network_commands = ref ([] : (string * CommonTypes.arg_kind * string) list)
+let network_commands = ref ([] : (string * string * CommonTypes.arg_kind * string) list)
+
+let commands_by_kind = Hashtbl.create 11
   
 let register_commands list = 
+  List.iter (fun (s, n, f, h) ->
+      try
+        let ss = Hashtbl.find commands_by_kind n in
+        ss := (s,h) :: !ss
+      with _ ->
+          Hashtbl.add commands_by_kind n (ref [s,h])
+  ) list;
   network_commands := list @ !network_commands
   
 let network_connect_servers n = n.op_network_connect_servers ()

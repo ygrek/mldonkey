@@ -312,7 +312,7 @@ let _ = (
 let _ =
   CommonNetwork.register_commands 
     [
-    "compute_torrent", Arg_one (fun filename o ->
+    "compute_torrent", "Network/Bittorrent", Arg_one (fun filename o ->
         let announce = Printf.sprintf "http://%s:%d/tracker"
             (Ip.to_string (CommonOptions.client_ip None)) !!tracker_port in
         
@@ -332,7 +332,7 @@ let _ =
 in torrents/tracked/. The file is automatically tracked, and seeded if
     in incoming/";
     
-    "torrents", Arg_none (fun o ->
+    "torrents", "Network/Bittorrent", Arg_none (fun o ->
         
         if !!tracker_port <> 0 then
           begin          

@@ -36,6 +36,7 @@ type options_section
 
 type option_info = {
     option_name : string;
+    option_shortname : string;
     option_desc : string;
     option_value : string;
     option_help : string;

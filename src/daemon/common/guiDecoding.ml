@@ -934,6 +934,7 @@ let dummy_option =
   let module M = Options in
   {
     M.option_name = "";
+    M.option_shortname = "";
     M.option_desc = "";
     M.option_default = "";
     M.option_value = "";
@@ -1141,6 +1142,7 @@ let to_gui (proto : int array) opcode s =
             {
               M.option_desc = message;
               M.option_name = option;
+              M.option_shortname = option;
               M.option_type = optype;
               M.option_help = help;
               M.option_value = value;
@@ -1158,6 +1160,8 @@ let to_gui (proto : int array) opcode s =
             dummy_option with
             M.option_desc = message;
             M.option_name = option;
+            M.option_shortname = option;
+            
             M.option_type = optype;
           } in
         Add_section_option (section, o)
@@ -1199,6 +1203,7 @@ let to_gui (proto : int array) opcode s =
             {
               M.option_desc = message;
               M.option_name = option;
+              M.option_shortname = option;
               M.option_type = optype;
               M.option_help = help;
               M.option_value = value;

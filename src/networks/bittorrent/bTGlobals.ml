@@ -114,6 +114,31 @@ let listen_sock = ref (None : TcpServerSocket.t option)
 let files_by_uid = Hashtbl.create 13
   
 let max_range_len = Int64.of_int (1 lsl 14)
+  
+let check_if_interesting file c =
+  
+  if not c.client_alrd_sent_notinterested then
+    let must_send = 
+(* The client has nothing to propose to us *)
+      (not (Int64Swarmer.is_interesting c.client_uploader )) &&
+(* All the requested ranges are useless *)
+      (List.filter (fun (_,_,r) ->
+            let x,y = Int64Swarmer.range_range r in
+            x < y) c.client_ranges = []) &&
+(* The current block is also useless *)
+      (match c.client_block with
+          None -> true
+        | Some b -> 
+            let (block_num,_,_) = Int64Swarmer.block_block b in
+            let bitmap = Int64Swarmer.verified_bitmap file.file_swarmer in
+            bitmap.[block_num] <> '3')
+    in
+    if must_send then
+      begin
+        c.client_interesting <- false;
+        c.client_alrd_sent_notinterested <- true;
+        send_client c NotInterested
+      end
       
 let new_file file_id file_name file_size file_tracker piece_size file_u file_state = 
 (*  let t = Unix32.create_rw file_temp in*)
@@ -169,24 +194,12 @@ let new_file file_id file_name file_size file_tracker piece_size file_u file_sta
 (*Automatically send Have to ALL clients once a piece is verified
             NB : will probably have to check if client can be interested*)
           Hashtbl.iter (fun _ c ->
+              
               if c.client_registered_bitfield then
                 begin
-                  let must_send = (not (Int64Swarmer.is_interesting c.client_uploader )) in
-                  c.client_interesting <- false;
-                  begin
-                    match c.client_sock with
-                    | Connection sock -> 
-                        if (c.client_bitmap.[num] <> '1') then
-                          send_client c (Have (Int64.of_int num));
-                        if (must_send && not 
-                              c.client_alrd_sent_notinterested) then
-                          begin
-                            c.client_alrd_sent_notinterested <- true;
-                            send_client c NotInterested
-                          end
-                          
-                | _ -> ();
-              end;
+                  if (c.client_bitmap.[num] <> '1') then
+                    send_client c (Have (Int64.of_int num));
+                  check_if_interesting file c                          
               end				
           ) file.file_clients
         end;

@@ -294,8 +294,7 @@ type tracker_peer = {
   
 type tracker = {
     mutable tracker_table : (Sha1.t, tracker_peer) Hashtbl.t;
-    mutable tracker_peers1 : tracker_peer list;
-    mutable tracker_peers2 : tracker_peer list;
+    mutable tracker_peers : tracker_peer Fifo.t;
   }
   
 let current_tracked_files = ref (Hashtbl.create 13)
@@ -367,7 +366,7 @@ let http_handler t r =
                       peer_active = last_time ();
                     } in
                   Hashtbl.add tracker.tracker_table !peer_id peer;
-                  tracker.tracker_peers1 <- peer :: tracker.tracker_peers1;
+                  Fifo.put tracker.tracker_peers peer;
                   peer
             in
             let head =
@@ -382,23 +381,23 @@ let http_handler t r =
               
               | _ ->
 (* Return the 20 best peers *)
-                  let head, tail = List2.cut 20 tracker.tracker_peers1 in
-                  tracker.tracker_peers1 <- tail;
-                  let head = 
-                    let n = List.length head in
-                    if n < 20 then begin
-                        tracker.tracker_peers1 <- tracker.tracker_peers2;
-                        tracker.tracker_peers2 <- [];
-                        let head2, tail = List2.cut (20-n) tracker.tracker_peers1
-                        in
-                        tracker.tracker_peers1 <- tail;
-                        head @ head2
-                      end
-                    else 
-                      head 
-                  in
-                  tracker.tracker_peers2 <- head @ tracker.tracker_peers2;
-                  head
+
+                  let list = ref [] in
+                  
+                  (try
+                      for i = 0 to 19 do
+                        let peer = Fifo.take tracker.tracker_peers in
+                        list := peer :: !list
+                      done
+                    with _ -> ());
+                  
+                  List.iter (fun p ->
+                      lprintf "Tracker send: %s:%d\n" 
+                        (Ip.to_string p.peer_ip) p.peer_port;
+                      Fifo.put tracker.tracker_peers p
+                  ) !list;
+                  
+                  !list
             in
 (* reply by sending [head] *)
             
@@ -484,8 +483,7 @@ let scan_tracked_directory _ =
           with Not_found ->
               {
                 tracker_table = Hashtbl.create 13;
-                tracker_peers1 = [];
-                tracker_peers2 = [];
+                tracker_peers = Fifo.create ();
               }
         in
         Hashtbl.add !current_tracked_files info_hash tracker
@@ -531,9 +529,9 @@ let clean_tracker_timer () =
       List.iter (fun p ->
           Hashtbl.remove tracker.tracker_table p.peer_id
       ) !old_peers;
-      tracker.tracker_peers1 <- 
-        List.sort (fun p1 p2 -> - compare p1.peer_active p2.peer_active) !list;
-      tracker.tracker_peers2 <- [];
+      Fifo.clear tracker.tracker_peers;
+      List.iter (fun p ->
+          Fifo.put tracker.tracker_peers p) !list
   ) !current_tracked_files
   
 let _ =

@@ -1158,19 +1158,19 @@ let save_download_history file =
 let _ =
   register_commands 
     [
-    "client_stats", Arg_none (fun o ->
+    "client_stats", "Network/Donkey",Arg_none (fun o ->
         let buf = o.conn_buf in
         print_stats buf;
         ""
     ), ":\t\t\t\tshow breakdown of download/upload by clients brand";
     
-    "cs", Arg_none (fun o ->
+    "cs", "Network/Donkey",Arg_none (fun o ->
         let buf = o.conn_buf in
         new_print_stats buf o;
         ""
     ), ":\t\t\t\t\tshow table of download/upload by clients brand";
   
-    "csm", Arg_none (fun o ->
+    "csm", "Network/Donkey",Arg_none (fun o ->
         let buf = o.conn_buf in
         new_print_mod_stats buf o;
         ""

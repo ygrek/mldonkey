@@ -455,7 +455,7 @@ open Queues
 open GuiTypes
   
 let commands = [
-    "g2stats", Arg_none (fun o ->
+    "g2stats", "Network/Gnutella2", Arg_none (fun o ->
         let buf = o.conn_buf in
         Printf.bprintf buf "ultrapeers_waiting_queue: %d\n" 
           (Queue.length ultrapeers_waiting_queue);

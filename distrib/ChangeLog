@@ -4,6 +4,12 @@ ChangeLog
 Note: Due to the changes in CommonSwarming, this version is to be considered
  as EXPERIMENTAL on all networks, EXCEPT Edonkey & Overnet.
 
+2004/02/04: Fabrice (version 2.5.4+7)
+  * Bittorent:
+     * Fixed upload for seeded files, and probably some other bugs.
+  * Telnet interface:
+     * ?? display commands per category
+
 2004/02/03: Fabrice (version 2.5.4+6)
   * Applied patches #2556, #2558, #2559, #2561, #2568, #2569, #2571, 
        #2572, #2574

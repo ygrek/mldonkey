@@ -41,7 +41,7 @@ type client = {
     mutable client_host : Ip.t * int;
     mutable client_chunks : (int64 * int64) list;
     mutable client_uploader : Int64Swarmer.uploader;
-    mutable client_ranges : Int64Swarmer.range list;
+    mutable client_ranges : (int64 * int64 * Int64Swarmer.range) list;
     mutable client_block : Int64Swarmer.block option;
     
     mutable client_sent_choke : bool; (* we sent a Choke to the client *)

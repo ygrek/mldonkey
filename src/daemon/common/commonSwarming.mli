@@ -19,8 +19,6 @@
 
 open CommonTypes
 
-val verbose_swarming : bool ref 
-
 type strategy =
   LinearStrategy    (* one after the other one *)
 | AdvancedStrategy  (* first chunks first, rarest chunks second, 

@@ -21,6 +21,6 @@ open CommonTypes
 
 (* val commands : (string * arg_kind * string) list *)
 val execute_command :
-    (string * arg_kind * string) list ->
+    (string * 'a * arg_kind * string) list ->
   CommonTypes.ui_conn -> string -> 
   string list -> unit

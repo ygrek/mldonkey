@@ -209,7 +209,7 @@ let allowed_by_reliability b c =
 let _ =
   register_commands
     [
-      "dump_reliability", Arg_none (fun o ->
+      "dump_reliability", "Network/Donkey", Arg_none (fun o ->
 	let buf = o.conn_buf in
 	bprint_reliability_table buf;
 	""

@@ -147,8 +147,7 @@ let define_simple_option
           (match option_name with
             [] -> "???"
           | name :: _ -> name);
-        lprintf "%s" (Printexc2.to_string e);
-        lprint_newline ();
+        lprintf "%s\n" (Printexc2.to_string e);
         default_value
   end;
   o
@@ -197,8 +196,7 @@ and parse_once_value i = parser
     [< 'Kwd "@" >] -> 
     begin
       try Hashtbl.find once_values i with Not_found ->
-          lprintf "Error in saved file: @%Ld@ not defined" i;
-          lprint_newline ();
+          lprintf "Error in saved file: @%Ld@ not defined\n" i;
           exit 2
     end
 |  [< 'Kwd "="; v = parse_option >] ->
@@ -277,18 +275,15 @@ let really_load filename sections =
                 begin
                   lprintf "Option ";
                   List.iter (fun s -> lprintf "%s " s) o.option_name;
-                  lprintf "not found in %s" filename;
-                  lprint_newline ()
+                  lprintf "not found in %s\n" filename;
                 end
           | e ->
               lprintf "Exception: %s while handling option:"
                 (Printexc2.to_string e);
               List.iter (fun s -> lprintf "%s " s) o.option_name;
-              lprint_newline ();
-              lprintf "  in %s" filename;
-              lprint_newline ();
-              lprintf "Aborting.";
-              lprint_newline ();
+              lprintf "\n";
+              lprintf "  in %s\n" filename;
+              lprintf "Aborting\n.";
               exit 2
         in
       List.iter (fun s ->
@@ -297,8 +292,7 @@ let really_load filename sections =
         list
       with
         e ->
-          lprintf "Error %s in %s" (Printexc2.to_string e) filename;
-          lprint_newline ();
+          lprintf "Error %s in %s\n" (Printexc2.to_string e) filename;
           []
     with
       e -> close_in ic; raise e
@@ -454,7 +448,7 @@ let load opfile =
     opfile.file_rc <-
       really_load opfile.file_name opfile.file_sections
   with
-    Not_found -> lprintf "No %s found" opfile.file_name; lprint_newline ()
+    Not_found -> lprintf "No %s found\n" opfile.file_name
 
 let append opfile filename =
   try
@@ -462,7 +456,7 @@ let append opfile filename =
       really_load filename opfile.file_sections @
         opfile.file_rc
   with
-    Not_found -> lprintf "No %s found" filename; lprint_newline ()
+    Not_found -> lprintf "No %s found\n" filename
       
 let ( !! ) o = o.option_value
 let ( =:= ) o v = o.option_value <- v; exec_chooks o; exec_hooks o
@@ -630,9 +624,8 @@ let rec convert_list name c2v l res =
       match
         try Some (c2v v) with
           e ->
-            lprintf "Exception %s in Options.convert_list for %s"
+            lprintf "Exception %s in Options.convert_list for %s\n"
               (Printexc2.to_string e) name;
-            lprint_newline ();
             None
       with
         None -> convert_list name c2v list res
@@ -782,11 +775,10 @@ let option_to_value o =
   o.option_name, o.option_help,
   (try o.option_class.to_value o.option_value with
      e ->
-       lprintf "Error while saving option \"%s\": %s"
+       lprintf "Error while saving option \"%s\": %s\n"
          (try List.hd o.option_name with
             _ -> "???")
          (Printexc2.to_string e);
-       lprint_newline ();
        StringValue "")
 
 let string_of_string_list list =
@@ -875,9 +867,9 @@ let save opfile =
              with
                Exit -> ()
              | e ->
-                 lprintf "Exception %s in Options.save"
+                 lprintf "Exception %s in Options.save\n"
                    (Printexc2.to_string e);
-                 lprint_newline ())
+                 )
           opfile.file_rc;
         opfile.file_rc <- !rem
       end;
@@ -944,8 +936,7 @@ let rec value_to_tuple2 (c1, c2 as cs) v =
   | SmallList [v1; v2] -> from_value c1 v1, from_value c2 v2
   | OnceValue v -> value_to_tuple2 cs v
   | List l | SmallList l ->
-      lprintf "list of %d" (List.length l);
-      lprint_newline ();
+      lprintf "list of %d\n" (List.length l);
       failwith "Options: not a tuple2 list option"
   | _ -> failwith "Options: not a tuple2 option"
   
@@ -1019,6 +1010,7 @@ let simple_options opfile =
   
   
 let get_option opfile name =
+(*  lprintf "get_option [%s]\n" name;*)
   let rec iter name list sections =
     match list with
     | o :: list -> if o.option_name = name then o else 
@@ -1082,6 +1074,7 @@ module M = struct
     
     type option_info = {
         option_name : string;
+        option_shortname : string;
         option_desc : string;
         option_value : string;
         option_help : string;
@@ -1105,6 +1098,7 @@ let strings_of_option prefix o =
       let desc = if o.option_desc = "" then name else o.option_desc in
       {
         M.option_name = Printf.sprintf "%s%s" prefix name;
+        M.option_shortname = name;
         M.option_desc = desc;
         M.option_value = string_of_option_value o o.option_value;
         M.option_default = string_of_option_value o o.option_default;
@@ -1155,6 +1149,7 @@ let strings_of_section_options prefix s =
 
 type option_info = M.option_info = {
     option_name : string;
+    option_shortname : string;
     option_desc : string;
     option_value : string;
     option_help : string;

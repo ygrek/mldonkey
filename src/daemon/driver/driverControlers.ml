@@ -94,29 +94,35 @@ let eval auth cmd o =
   let l = String2.tokens cmd in
   match l with
     [] -> ()
-    | ["longhelp"] | ["??"] ->
-           let module M = CommonMessages in
-           Buffer.add_string  buf M.available_commands_are;
-          if use_html_mods o then 
-            html_mods_table_header buf "voTable" "vo" [
-             ( "0", "srh", "Command", "Command" ) ;
-             ( "0", "srh", "Help", "Help" ) ] ; 
+  | ["longhelp"] | ["??"] ->
+      let module M = CommonMessages in
+      Buffer.add_string  buf M.available_commands_are;
+      if use_html_mods o then begin
           let counter = ref 0 in
-          List.iter (fun (cmd, _, help) ->
-            if use_html_mods o then begin
+          List.iter (fun (cmd, _, _, help) ->
               incr counter;
               let ncmd = ref cmd in
               let nhelp = ref help in
               Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>"(if (!counter mod 2 == 0) then "dl-1" else "dl-2";);
               html_mods_td buf [ ("", "sr", !ncmd); ("", "srw", Str.global_replace (Str.regexp "\n") "\\<br\\>" !nhelp) ];
               Printf.bprintf buf "\\</tr\\>\n";
-            end
-            else Printf.bprintf buf "$r%s$n %s\n" cmd help;
-		      ) (if use_html_mods o then 
-		        (List.sort (fun (c1,_,_) (c2,_,_) -> compare c1 c2) !CommonNetwork.network_commands)
-            else !CommonNetwork.network_commands);
-            if use_html_mods o then Printf.bprintf buf "\\</table\\>\\</div\\>"
-
+          ) 
+          (List.sort (fun (c1,_, _,_) (c2,_, _,_) -> compare c1 c2)
+            !CommonNetwork.network_commands);
+          Printf.bprintf buf "\\</table\\>\\</div\\>"
+        end else        
+        begin
+          let list = Hashtbl2.to_list2 commands_by_kind in
+          let list = List.sort (fun (s1,_) (s2,_) -> compare s1 s2) list in
+          List.iter (fun (s,list) ->
+              Printf.bprintf buf "\n   $b%s$n:\n" s;
+              let list = List.sort (fun (s1,_) (s2,_) -> compare s1 s2) !list in
+              List.iter (fun (cmd, help) ->
+                  Printf.bprintf buf "$r%s$n %s\n" cmd help;
+              ) list
+          ) list;
+        end 
+        
     | ["help"] | ["?"] ->
           let module M = CommonMessages in
           Buffer.add_string  buf
@@ -160,7 +166,7 @@ Use '$rhelp command$n' or '$r? command$n' for help on a command.
             ";
     | "?" :: args | "help" :: args ->
           List.iter (fun arg ->
-              List.iter (fun (cmd, _, help) ->
+              List.iter (fun (cmd, _, _, help) ->
                   if cmd = arg then    
                     Printf.bprintf  buf "%s %s\n" cmd help) 
               !CommonNetwork.network_commands)

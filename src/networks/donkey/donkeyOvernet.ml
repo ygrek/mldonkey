@@ -1295,6 +1295,10 @@ let parse_overnet_url url =
       
 let connected_peers () =
   List.map (fun p -> p.peer_ip, p.peer_port)  (get_uniform_distribution ())
+
+let register_commands list =
+  register_commands
+    (List2.tail_map (fun (n,f,h) -> (n, "Network/Overnet", f,h)) list)
   
 let _ =
   register_commands 

@@ -19,6 +19,156 @@
 
 
 open Md4
+  
+type uid_type =
+| Bitprint of Sha1.t * TigerTree.t
+| Sha1 of Sha1.t
+| Md5 of Md5.t
+| Ed2k of Md4.t
+| TigerTree of TigerTree.t
+| Md5Ext of Md5Ext.t     (* for Fasttrack *)
+| BTUrl of Sha1.t
+  
+and file_uid_id = 
+| BITPRINT
+| SHA1
+| ED2K
+| MD5
+| MD5EXT
+| TIGER
+
+module Uid : sig
+    type t     
+    val create : uid_type -> t
+    val to_string : t -> string
+    val of_string : string -> t
+    val to_uid : t -> uid_type     
+    val mem : t -> t list -> bool
+    val add : t -> t list -> t list
+    val derive : t -> t list
+    val expand : t list -> t list
+    
+    val compare : t -> t -> int
+    val no : t
+  end = struct
+    
+    type t = {
+        mutable uid_string : string option;
+        mutable uid_type : uid_type option;
+      }
+    
+    let no = {
+        uid_type = None;
+        uid_string = None;
+      }
+    
+    let create uid = {
+        uid_string = None ;
+        uid_type = Some uid;
+      }
+    
+    let of_string s = 
+      if s = "" then no else
+        {
+          uid_string = Some s;
+          uid_type = None;
+        }
+    
+    let uid_to_string uid = 
+      match uid with
+        Bitprint (sha1,ttr) -> 
+          Printf.sprintf "urn:bitprint:%s.%s" (Sha1.to_string sha1)
+          (TigerTree.to_string ttr)
+      | Sha1 sha1 -> 
+          Printf.sprintf "urn:sha1:%s"  (Sha1.to_string sha1)
+      | Ed2k ed2k -> 
+          Printf.sprintf "urn:ed2k:%s" (Md4.to_string ed2k)
+      | Md5 md5 -> 
+          Printf.sprintf "urn:md5:%s" (Md5.to_string md5)
+      | TigerTree ttr -> 
+          Printf.sprintf "urn:ttr:%s"  (TigerTree.to_string ttr)
+      | Md5Ext md5 -> 
+          Printf.sprintf "urn:sig2dat:%s" (Md5Ext.to_base32 md5)
+      | BTUrl url ->
+          Printf.sprintf "urn:bt:%s" (Sha1.to_string url)
+
+(* Maybe it would be better to raise an exception for errors ? *)      
+    let uid_of_string s =
+      let s = String.lowercase s in
+      let (urn, rem) = String2.cut_at s ':' in
+      if urn <> "urn" then failwith "Illegal UID";
+      let (sign, rem) = String2.cut_at rem ':' in
+      match sign with
+      | "ed2k" -> Ed2k (Md4.of_string rem)
+      | "bitprint" | "bp" -> 
+          let (sha1, ttr) = String2.cut_at rem '.' in
+          let sha1 = Sha1.of_string sha1 in
+          let tiger = TigerTree.of_string ttr in
+          Bitprint (sha1, tiger)
+      | "sha1" -> Sha1 (Sha1.of_string rem)
+      | "tree" ->
+          let (tiger, rem) = String2.cut_at rem ':' in
+          if tiger <> "tiger" then 
+            failwith (Printf.sprintf "Illformed URN [%s]" s);
+          TigerTree (TigerTree.of_string rem)
+      | "ttr" -> TigerTree (TigerTree.of_string rem)
+      | "md5" ->  Md5 (Md5.of_string rem)
+      | "sig2dat" -> Md5Ext (Md5Ext.of_base32 rem)
+      | "bt" | "bittorrent" -> 
+          BTUrl (Sha1.of_string rem)
+      | _ -> failwith "Illegal UID"
+    
+    let to_string t =
+      match t.uid_string, t.uid_type with 
+        Some s, _ -> s
+      | None, Some uid -> 
+          let s = uid_to_string uid in
+          t.uid_string <- Some s;
+          s
+      | None, None -> ""
+    
+    let to_uid t = 
+      match t.uid_type, t.uid_string with 
+        Some uid, _ -> uid
+      | None, Some s -> 
+          let uid = uid_of_string s in
+          t.uid_type <- Some uid;
+          uid
+      | None, None -> assert false
+    
+    
+    let derive uid =
+      match uid.uid_type with
+        Some (Bitprint (sha1, tiger)) ->
+          [create (Sha1 (sha1)); create (TigerTree(tiger))]
+      | _ -> []
+        
+    let compare u1 u2 =
+      compare (to_string u1) (to_string u2)
+    
+    let rec mem uid list =
+      match list with
+        [] -> false
+      | t :: tail ->
+          compare t uid = 0 || mem uid tail
+          
+    let add uid list =
+      if not (mem uid list) then
+        uid :: list
+      else 
+        list
+    
+    let rec expand_rec list uids =
+      match list with
+        [] -> []
+      | t :: tail ->
+          let list = derive t in
+          expand_rec (list@tail) (add t uids)
+    
+    let expand uids = expand_rec uids []
+      
+      
+  end
 
 type field_name =
   Field_Size
@@ -488,133 +638,7 @@ let short_string_of_connection_state s =
   | RemovedHost -> "Rem"
   | BlackListedHost -> "BL"
   | NewHost -> "New"
-
-open Md4
-  
-type uid_type =
-| Bitprint of Sha1.t * TigerTree.t
-| Sha1 of Sha1.t
-| Md5 of Md5.t
-| Ed2k of Md4.t
-| TigerTree of TigerTree.t
-| Md5Ext of Md5Ext.t     (* for Fasttrack *)
-| BTUrl of Sha1.t
-
-and file_uid_id = 
-| BITPRINT
-| SHA1
-| ED2K
-| MD5
-| MD5EXT
-| TIGER
-  
-module Uid : sig
-    type t     
-    val create : uid_type -> t
-    val to_string : t -> string
-    val of_string : string -> t
-    val to_uid : t -> uid_type     
-    val mem : t -> t list -> bool
-    val add : t -> t list -> t list
-    val derive : t -> t list
-    val expand : t list -> t list
-  end = struct
     
-    type t = {
-        mutable uid_string : string;
-        uid_type : uid_type;
-      }
-    
-    let create uid = {
-        uid_string = "";
-        uid_type = uid;
-      }
-
-    let to_uid t = t.uid_type
-      
-    let to_string uid = 
-      if uid.uid_string = "" then
-        uid.uid_string <- 
-          (match uid.uid_type with
-            Bitprint (sha1,ttr) -> 
-              Printf.sprintf "urn:bitprint:%s.%s" (Sha1.to_string sha1)
-              (TigerTree.to_string ttr)
-          | Sha1 sha1 -> 
-              Printf.sprintf "urn:sha1:%s"  (Sha1.to_string sha1)
-          | Ed2k ed2k -> 
-              Printf.sprintf "urn:ed2k:%s" (Md4.to_string ed2k)
-          | Md5 md5 -> 
-              Printf.sprintf "urn:md5:%s" (Md5.to_string md5)
-          | TigerTree ttr -> 
-              Printf.sprintf "urn:ttr:%s"  (TigerTree.to_string ttr)
-          | Md5Ext md5 -> 
-              Printf.sprintf "urn:sig2dat:%s" (Md5Ext.to_base32 md5)
-          | BTUrl url ->
-              Printf.sprintf "urn:bt:%s" (Sha1.to_string url)
-        );
-      uid.uid_string
-
-    
-    let of_string s =
-      let s = String.lowercase s in
-      let (urn, rem) = String2.cut_at s ':' in
-      if urn <> "urn" then  failwith (Printf.sprintf "Illformed URN [%s]" s);
-      let (sign, rem) = String2.cut_at rem ':' in
-      let uid = match sign with
-        | "ed2k" -> Ed2k (Md4.of_string rem)
-        | "bitprint" | "bp" -> 
-            let (sha1, ttr) = String2.cut_at rem '.' in
-            let sha1 = Sha1.of_string sha1 in
-            let tiger = TigerTree.of_string ttr in
-            Bitprint (sha1, tiger)
-        | "sha1" -> Sha1 (Sha1.of_string rem)
-        | "tree" ->
-            let (tiger, rem) = String2.cut_at rem ':' in
-            if tiger <> "tiger" then 
-              failwith (Printf.sprintf "Illformed URN [%s]" s);
-            TigerTree (TigerTree.of_string rem)
-        | "ttr" -> TigerTree (TigerTree.of_string rem)
-        | "md5" ->  Md5 (Md5.of_string rem)
-        | "sig2dat" -> Md5Ext (Md5Ext.of_base32 rem)
-        | "bt" | "bittorrent" -> 
-            BTUrl (Sha1.of_string rem)
-        | _ -> 
-            failwith (Printf.sprintf "Illformed URN [%s]" s)
-      in        
-      { 
-        uid_string = s;
-        uid_type = uid;
-      }
-    
-    let derive uid =
-      match uid.uid_type with
-        Bitprint (sha1, tiger) ->
-          [create (Sha1 (sha1)); create (TigerTree(tiger))]
-      | _ -> []
-
-    let rec mem uid list =
-      match list with
-        [] -> false
-      | t :: tail ->
-          t.uid_type = uid.uid_type || mem uid tail
-          
-    let add uid list =
-      if not (mem uid list) then
-        uid :: list
-      else 
-        list
-
-    let rec expand_rec list uids =
-      match list with
-        [] -> []
-      | t :: tail ->
-          let list = derive t in
-          expand_rec (list@tail) (add t uids)
-          
-    let expand uids = expand_rec uids []
-        
-  end
-  
 exception IgnoreNetwork
   
 let string_of_tag tag =

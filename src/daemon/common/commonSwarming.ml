@@ -25,12 +25,12 @@ PROBLEMS:
   *)
 
 
+open CommonOptions
 open Options
 open CommonTypes
 open Printf2
 
-let verbose_swarming = ref false
-
+  
 let check_swarming = false
 let debug_present_chunks = false
 let debug_all = false
@@ -192,6 +192,8 @@ module Int64Swarmer = (struct
       
       and uploader = {
           up_t : t;
+          
+          mutable up_declared : bool;
           
           mutable up_chunks : chunks;
           mutable up_complete_blocks : int array;
@@ -418,7 +420,7 @@ module Int64Swarmer = (struct
                 match t.t_blocks.(i) with
                   EmptyBlock | PartialBlock _ -> ()
                 | CompleteBlock ->
-                    t.t_ncomplete_blocks <- t.t_ncomplete_blocks - 1;              
+                    t.t_ncomplete_blocks <- t.t_ncomplete_blocks - 1;
                     t.t_downloaded <- 
                       t.t_downloaded -- (block_end -- block_begin);
                     
@@ -564,6 +566,8 @@ module Int64Swarmer = (struct
                                       Some _ ->
                                         t.t_blocks.(b.block_num) <- CompleteBlock;
                                         t.t_verified_bitmap.[b.block_num] <- '2';
+                                        verify_block t (b.block_num)
+                                    
                                     | _ ->
                                         t.t_blocks.(b.block_num) <- VerifiedBlock;
                                         t.t_verified_bitmap.[b.block_num] <- '3';
@@ -666,54 +670,57 @@ module Int64Swarmer = (struct
 (*************************************************************************) 
       
       let update_uploader_chunks up chunks =
-        let t = up.up_t in
+        if not up.up_declared then
+          let t = up.up_t in
 
 (* INVARIANT: complete_blocks must be in reverse order *)
-        
-        let complete_blocks = ref [] in
-        let partial_blocks = ref [] in
-        
-        begin
-          match chunks with
-            AvailableRanges chunks ->
-              
-              apply_intervals t (fun i block_begin block_end 
-                    chunk_begin chunk_end ->
-                  t.t_availability.(i) <- t.t_availability.(i) + 1;
-                  
-                  match t.t_blocks.(i) with
-                    CompleteBlock | VerifiedBlock -> ()
-                  | _ ->
-                      if block_begin = chunk_begin && block_end = chunk_end then
-                        complete_blocks := i :: !complete_blocks
-                      else
-                        partial_blocks := 
-                        (i, chunk_begin, chunk_end) :: !partial_blocks
-              ) chunks;
           
-          | AvailableBitmap string ->
-              for i = 0 to String.length string - 1 do
-                if string.[i] = '1' then begin
+          let complete_blocks = ref [] in
+          let partial_blocks = ref [] in
+          
+          begin
+            match chunks with
+              AvailableRanges chunks ->
+                
+                apply_intervals t (fun i block_begin block_end 
+                      chunk_begin chunk_end ->
                     t.t_availability.(i) <- t.t_availability.(i) + 1;
-                    complete_blocks := i :: !complete_blocks
-                  end
-              done;
-        end;
-        let complete_blocks = Array.of_list !complete_blocks in
-        let partial_blocks = Array.of_list !partial_blocks in
-        up.up_chunks <- chunks;
-        
-        up.up_complete_blocks <- complete_blocks;
-        up.up_ncomplete <- Array.length complete_blocks;
-        up.up_partial_blocks <- partial_blocks;
-        up.up_npartial <- Array.length partial_blocks;
-        
-        up.up_block <- None;
-        up.up_block_begin <- zero;
-        up.up_block_end <- zero;
-        
-        if debug_all then print_uploader up
-
+                    
+                    match t.t_blocks.(i) with
+                      CompleteBlock | VerifiedBlock -> ()
+                    | _ ->
+                        if block_begin = chunk_begin && block_end = chunk_end then
+                          complete_blocks := i :: !complete_blocks
+                        else
+                          partial_blocks := 
+                          (i, chunk_begin, chunk_end) :: !partial_blocks
+                ) chunks;
+            
+            | AvailableBitmap string ->
+                for i = 0 to String.length string - 1 do
+                  if string.[i] = '1' then begin
+                      t.t_availability.(i) <- t.t_availability.(i) + 1;
+                      complete_blocks := i :: !complete_blocks
+                    end
+                done;
+          end;
+          let complete_blocks = Array.of_list !complete_blocks in
+          let partial_blocks = Array.of_list !partial_blocks in
+          up.up_chunks <- chunks;
+          
+          up.up_complete_blocks <- complete_blocks;
+          up.up_ncomplete <- Array.length complete_blocks;
+          up.up_partial_blocks <- partial_blocks;
+          up.up_npartial <- Array.length partial_blocks;
+          
+          up.up_block <- None;
+          up.up_block_begin <- zero;
+          up.up_block_end <- zero;
+          
+          up.up_declared <- true;
+          
+          if debug_all then print_uploader up
+            
 (*************************************************************************)
 (*                                                                       *)
 (*                         clean_uploader_chunks (internal)              *)
@@ -722,23 +729,32 @@ module Int64Swarmer = (struct
       
       
       let clean_uploader_chunks up = 
-        let decr_availability t i =
-          t.t_availability.(i) <- t.t_availability.(i) - 1
-        in
-        let t = up.up_t in
-        for i = 0 to Array.length up.up_complete_blocks - 1 do
-          decr_availability t up.up_complete_blocks.(i)
-        done;
-        for i = 0 to Array.length up.up_partial_blocks - 1 do
-          let b,_,_ = up.up_partial_blocks.(i) in
-          decr_availability t b
-        done;
-        (match up.up_block with
-            None -> ()
-          | Some b ->
-              let num = b.block_num in
-              t.t_nuploading.(num) <- t.t_nuploading.(num) - 1)
-
+        
+        if up.up_declared then 
+          
+          let decr_availability t i =
+            t.t_availability.(i) <- t.t_availability.(i) - 1
+          in
+          lprintf "clean_uploader_chunks:\n";
+          
+          let t = up.up_t in
+          for i = 0 to Array.length up.up_complete_blocks - 1 do
+            lprintf "decr_availability complete[%d] %d\n" i
+              up.up_complete_blocks.(i);
+            decr_availability t up.up_complete_blocks.(i)
+          done;
+          for i = 0 to Array.length up.up_partial_blocks - 1 do
+            let b,_,_ = up.up_partial_blocks.(i) in
+            lprintf "decr_availability partial[%d] %d\n" i b;
+            decr_availability t b
+          done;
+          (match up.up_block with
+              None -> ()
+            | Some b ->
+                let num = b.block_num in
+                t.t_nuploading.(num) <- t.t_nuploading.(num) - 1);
+          up.up_declared <- false
+          
 (*************************************************************************)
 (*                                                                       *)
 (*                         register_uploader                             *)
@@ -750,7 +766,8 @@ module Int64Swarmer = (struct
         let up =
           {
             up_t = t;
-            
+          
+            up_declared = false;
             up_chunks = chunks;
             
             up_complete_blocks = [||];
@@ -1399,6 +1416,7 @@ we thus might put a lot of clients on the same range !
         let s = String.make len '\000' in
         for i = 0 to len - 1 do
           s.[i] <- char_of_int (
+            if t.t_availability.(i) < 0 then 0 else
             if t.t_availability.(i) > 200 then 200 else t.t_availability.(i));
         done;
         s

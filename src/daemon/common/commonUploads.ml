@@ -810,8 +810,7 @@ let ready_for_upload c =
     
 let add_pending_slot c =
   if client_has_a_slot c then begin
-      lprintf "Avoided inserting an uploader in pending slots!";
-      lprint_newline ()
+      lprintf "Avoided inserting an uploader in pending slots!\n";
     end 
   else 
   if not (Intmap.mem (client_num c) !pending_slots_map) then

@@ -7,3 +7,4 @@ autoconf.ml.new
 gAutoconf.ml
 gAutoconf.ml.new
 options.ml
+gettext.ml

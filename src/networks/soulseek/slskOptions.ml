@@ -84,7 +84,7 @@ let next_token =
 let network_options_prefix = define_option soulseek_section
     ["options_prefix"] "The prefix which is appended to options names
     when they are used in the telnet/WEB interfaces"
-    string_option "slsk-"
+    string_option "SLSK-"
   
 let shortname o =
   Printf.sprintf "%s%s" !!network_options_prefix (shortname o)

@@ -599,14 +599,13 @@ let all_active_network_opfile_network_names () =
        !names
 
 let apply_on_fully_qualified_options name f =
-  if !verbose then begin
-      lprintf "For option %s\n" name; 
-    end;
+  if !verbose then lprintf "For option %s\n" name; 
   let rec iter prefix opfile =
     let args = simple_options prefix opfile in
     List.iter (fun o ->
+(*        lprintf "Compare [%s] [%s]\n" o.option_name name; *)
         if o.option_name = name then
-          (f opfile o.option_name o.option_value; raise Exit))
+          (f opfile o.option_shortname o.option_value; raise Exit))
     args
   in
   try
@@ -615,6 +614,7 @@ let apply_on_fully_qualified_options name f =
             try
               List.iter (fun opfile ->
                   let prefix = r.network_prefix () in
+(*                  lprintf "Prefix [%s]\n" prefix; *)
                   iter prefix opfile;
               )
               r.network_config_file ;
@@ -629,8 +629,7 @@ let apply_on_fully_qualified_options name f =
 
 let set_fully_qualified_options name value =
   apply_on_fully_qualified_options name (fun opfile old_name old_value ->
-    set_simple_option opfile old_name value)
-
+      set_simple_option opfile old_name value)
 
 let get_fully_qualified_options name =
   let value = ref None in

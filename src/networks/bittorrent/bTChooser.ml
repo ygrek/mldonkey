@@ -23,6 +23,7 @@ open BTTypes
 open CommonGlobals
 open BasicSocket
 open CommonTypes
+open List2
 
 let max_uploaders = 5
 
@@ -30,26 +31,22 @@ let max_uploaders = 5
 
 (*given some files choose the next uploaders based on their behavior
   Will choose five uploaders for each file in list
+  fun_comp is the function used to classify clients
 *)
-let choose_next_uploaders files =   
+let choose_next_uploaders files fun_comp =   
   let full_list = ref ([] : BTTypes.client list) 
   and keepn orl l i = 
     (*keep l1 l2 num constructs a list of num items max with all 
       l1 items +  some l2 items *)
-    if (List.length orl) < i then
-      let rec keepaux k j =
-	if j=0 then [] 
-	else match k with
-	  | [] -> []
-	  | p::r -> p::(keepaux r (j-1)) in
-	orl@(keepaux l (i-List.length orl))
+    let orig_num = List.length orl in
+      if orig_num < i && i>0 then
+	let keep,rest = cut (i - orig_num) l in
+	   orl@keep,rest
     else
-      orl
+	orl,l
   in
     
     List.iter (fun f ->
-		 if file_state f = FileDownloading then
-		   begin
 		     let max_list = ref ([] : BTTypes.client list) in
 	(*Choose at most five uploaders for _each_ files*)	 
 		 (*all clients*)
@@ -65,16 +62,15 @@ let choose_next_uploaders files =
 					      && (c.client_sock != NoConnection) 
 					   ) !possible_uploaders in
 		     (*dl : clients which gave something to us
-		       nodl : clients which gave nothing to us*)
+		       nodl : clients which gave nothing to us
 		   let dl,nodl = List.partition (fun a -> Rate.(>) a.client_downloaded_rate 
-						   Rate.zero ) filtl in
+						   Rate.zero ) filtl in*)
 		     
 		   (*sort by biggest contributor*)
-		   let sortl = List.sort (fun a b -> Rate.compare b.client_downloaded_rate 
-					    a.client_downloaded_rate) dl in
-
+		   let sortl = List.sort fun_comp filtl in
 		     
-		     max_list:= keepn !max_list sortl (max_uploaders - 1);
+		   let to_add,next = keepn !max_list sortl (max_uploaders - 1) in
+		     max_list:= to_add;
 		     (*
 		       clients in optim are current optimistic uploaders (30 seconds)	      
 		     *)
@@ -82,16 +78,27 @@ let choose_next_uploaders files =
 							     (Rate.ratesince a.client_upload_rate) > 0.
 							     && 
 							     a.client_last_optimist + 30 > last_time()
-							 ) nodl in
+							 ) next in
 		       (*
 			 Choose 
 		       *)
 		     let notoptim = List.sort (fun a b -> compare a.client_last_optimist b.client_last_optimist) notoptim in
 		       
+		     let to_add,next =  keepn !max_list (optim) (max_uploaders) in
+		       max_list := to_add;
+		        let to_add,_ = keepn !max_list (notoptim) 
+					   (max_uploaders) in
+			 full_list := !full_list @ to_add;
 		       
-		       
-		       max_list := keepn !max_list (optim) (max_uploaders);    
-		       full_list := !full_list @ (keepn !max_list (notoptim) (max_uploaders))
-		   end
 ) files;
-    !full_list;
+    !full_list
+
+
+let choose_best_downloaders files = 
+  choose_next_uploaders files (fun a b -> Rate.compare b.client_downloaded_rate 
+				 a.client_downloaded_rate)
+
+(*highest uploader first in list*)
+let choose_best_uploaders files = 
+  choose_next_uploaders files (fun a b -> Rate.compare b.client_upload_rate 
+				 a.client_upload_rate)

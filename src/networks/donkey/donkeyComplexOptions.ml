@@ -594,6 +594,22 @@ let done_files =
   "The files whose download is finished" (list_option FileOption.t) []
     *)
 
+module UidOption = struct
+    
+    let value_to_hash v = 
+      try
+        let uid = Uid.of_string (value_to_string v) in
+        ignore (Uid.to_uid uid);
+        uid
+      with _ -> Uid.create (Ed2k (Md4.value_to_hash v))
+            
+    let hash_to_value v = string_to_value (Uid.to_string v)
+      
+    let t =
+      define_option_class "Uid" value_to_hash hash_to_value
+    
+  end
+
 let old_files = 
   define_option donkey_section ["old_files"] 
   "The files that were downloaded" (list_option Md4.option) []
