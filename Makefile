@@ -422,6 +422,11 @@ AUDIOGALAXY_SRCS= \
   $(SRC_AUDIOGALAXY)/agMain.ml
 
 
+MAKE_TORRENT_SRCS = \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS) \
+  $(CHAT_SRCS) $(COMMON_SRCS) $(COMMON_CLIENT_SRCS) $(BITTORRENT_SRCS) \
+  tools/make_torrent.ml
+
 KDE_APPLET=yes
 
 ifeq ("$(OPENFT)" , "yes")
@@ -1923,6 +1928,31 @@ ed2k_hash.byte: $(ED2K_HASH_OBJS) $(ED2K_HASH_CMOS)  $(ED2K_HASH_CMAS)
  
 ed2k_hash.static:  $(ED2K_HASH_OBJS) $(ED2K_HASH_CMXS)  $(ED2K_HASH_CMXAS)
 	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(ED2K_HASH_OBJS) $(LIBS_opt) $(LIBS_flags)  $(_LIBS_flags)  $(_STATIC_LIBS_opt) -I build $(ED2K_HASH_CMXAS) $(ED2K_HASH_CMXS)
+
+
+MAKE_TORRENT_ZOG := $(filter %.zog, $(MAKE_TORRENT_SRCS)) 
+MAKE_TORRENT_MLL := $(filter %.mll, $(MAKE_TORRENT_SRCS)) 
+MAKE_TORRENT_MLY := $(filter %.mly, $(MAKE_TORRENT_SRCS)) 
+MAKE_TORRENT_ML4 := $(filter %.ml4, $(MAKE_TORRENT_SRCS)) 
+MAKE_TORRENT_ML := $(filter %.ml %.mll %.zog %.mly %.ml4, $(MAKE_TORRENT_SRCS)) 
+MAKE_TORRENT_C := $(filter %.c, $(MAKE_TORRENT_SRCS)) 
+MAKE_TORRENT_CMOS=$(foreach file, $(MAKE_TORRENT_ML),   $(basename $(file)).cmo) 
+MAKE_TORRENT_CMXS=$(foreach file, $(MAKE_TORRENT_ML),   $(basename $(file)).cmx) 
+MAKE_TORRENT_OBJS=$(foreach file, $(MAKE_TORRENT_C),   $(basename $(file)).o)    
+
+MAKE_TORRENT_CMXAS := $(foreach file, $(MAKE_TORRENT_CMXA),   build/$(basename $(file)).cmxa)
+MAKE_TORRENT_CMAS=$(foreach file, $(MAKE_TORRENT_CMXA),   build/$(basename $(file)).cma)    
+
+TMPSOURCES += $(MAKE_TORRENT_ML4:.ml4=.ml) $(MAKE_TORRENT_MLL:.mll=.ml) $(MAKE_TORRENT_MLY:.mly=.ml) $(MAKE_TORRENT_MLY:.mly=.mli) $(MAKE_TORRENT_ZOG:.zog=.ml) 
+ 
+make_torrent: $(MAKE_TORRENT_OBJS) $(MAKE_TORRENT_CMXS) $(MAKE_TORRENT_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(MAKE_TORRENT_OBJS) $(LIBS_opt) $(LIBS_flags) $(_LIBS_opt) $(_LIBS_flags) -I build $(MAKE_TORRENT_CMXAS) $(MAKE_TORRENT_CMXS) 
+ 
+make_torrent.byte: $(MAKE_TORRENT_OBJS) $(MAKE_TORRENT_CMOS)  $(MAKE_TORRENT_CMAS)
+	$(OCAMLC) -linkall -o $@  $(MAKE_TORRENT_OBJS) $(LIBS_byte) $(LIBS_flags)  $(_LIBS_byte) $(_LIBS_flags) -I build $(MAKE_TORRENT_CMAS) $(MAKE_TORRENT_CMOS) 
+ 
+make_torrent.static:  $(MAKE_TORRENT_OBJS) $(MAKE_TORRENT_CMXS)  $(MAKE_TORRENT_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(MAKE_TORRENT_OBJS) $(LIBS_opt) $(LIBS_flags)  $(_LIBS_flags)  $(_STATIC_LIBS_opt) -I build $(MAKE_TORRENT_CMXAS) $(MAKE_TORRENT_CMXS)
 
 
 COPYSOURCES_ZOG := $(filter %.zog, $(COPYSOURCES_SRCS)) 

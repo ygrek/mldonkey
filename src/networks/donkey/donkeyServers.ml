@@ -235,7 +235,7 @@ let client_to_server s t sock =
       set_server_state s (Connected (-1));
       (* add_connected_server s; *)
       
-(* Send localisation queries to the server. We are limited by the maximalù
+(* Send localisation queries to the server. We are limited by the maximal
 number of queries that can be sent per minute (for lugdunum, it's one!).
 Once the first queries have been sent, we must wait 20 minutes before next
 queries. *)
