@@ -1,6 +1,12 @@
 ChangeLog	
 =========
 
+2003/04/24: Simon
+  - Applied patch #1424
+  - Changes in 64bits system calls
+  - Gnutella:
+     * Bug fixes: HTTP return code is correctly tested
+
 2003/04/23: Simon (v release-2-4-rc6)
   - Applied patch #1402
   - Prevent exceptions from raising from calls to lprintf

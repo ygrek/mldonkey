@@ -773,6 +773,7 @@ let http_handler o t r =
                       | "Last" -> o.conn_sortvd <- ByLast
                       | "Srcs" -> o.conn_sortvd <- BySources
                       | "A" -> o.conn_sortvd <- ByASources
+                      | "N" -> o.conn_sortvd <- ByNet
                       | _ -> ()
                     end
                 | _ -> 

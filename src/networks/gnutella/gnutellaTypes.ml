@@ -94,7 +94,7 @@ and result = {
 and file = {
     file_file : file CommonFile.file_impl;
     file_id : Md4.t;
-    file_name : string;
+    mutable file_name : string;
     file_swarmer : Int64Swarmer.t;
     file_partition : CommonSwarming.Int64Swarmer.partition;
     mutable file_clients : client list;

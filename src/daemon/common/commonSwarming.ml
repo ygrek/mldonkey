@@ -148,7 +148,8 @@ module Make(Integer: Integer) = struct
         mutable block_num : int;
         mutable block_nuploaders : int;
       }
-    
+    exception VerifierNotImplemented
+          
     let basic_write _ _ _ _ = ()
     
     let create _  = 
@@ -243,7 +244,10 @@ partitions. *)
             iter_block b;
             p.part_bitmap.[b.block_num] <- '0'
           end
-      with e -> 
+      with 
+      | VerifierNotImplemented -> 
+          p.part_bitmap.[b.block_num] <- '3'
+      | e -> 
           lprintf "ERROR: Exception %s in verify_block %d\n"
             (Printexc2.to_string e) b.block_num
     
@@ -433,14 +437,15 @@ partitions. *)
       in
       iter_before chunks t.t_ranges;
       List.iter compute_bitmap t.t_partitions
-    
+
+
     let partition t f =
       let rec p = {
           part_t = t;
           part_splitter = f;
           part_blocks = b;
           part_nblocks = 0;
-          part_verifier = (fun _ -> raise Not_found);
+          part_verifier = (fun _ -> raise VerifierNotImplemented);
           part_bitmap = "";
         }
       

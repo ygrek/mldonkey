@@ -45,7 +45,7 @@ let _ =
           Options.save Gui_messages.message_file
       ), ": update internationalisation message file")::
     Options.simple_args O.mldonkey_gui_ini in
-  Arg.parse args (Arg.usage args)  "mldonkey_gui: the GUI to use with mldonkey"
+  Arg.parse args (Arg.usage args)  "mlgui: the GUI to use with mldonkey"
   
 (* Check bindings *)
 let _ = 

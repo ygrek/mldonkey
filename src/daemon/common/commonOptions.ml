@@ -38,7 +38,7 @@ let _ =
 let (file_basedir, home_basedir) = 
   try
     if (String2.starts_with 
-          (Filename.basename Sys.argv.(0))  "mldonkey_gui")
+          (Filename.basename Sys.argv.(0))  "mlgui")
     then raise Exit;
     let chroot_dir = Sys.getenv "MLDONKEY_CHROOT" in
     try
@@ -426,7 +426,7 @@ let mldonkey_bin = define_option expert_ini ["mldonkey_bin"]
 
 let mldonkey_gui = define_option expert_ini ["mldonkey_gui"]
     "Name of GUI to start" string_option 
-    (Filename.concat bin_dir "mldonkey_gui")
+    (Filename.concat bin_dir "mlgui")
 
 
 let filter_search = define_option expert_ini ["filter_search"]
@@ -622,6 +622,9 @@ let html_mods_human_readable = define_option expert_ini
 
 let html_mods_use_relative_availability = define_option expert_ini
     ["html_mods_use_relative_availability"] "Whether to use relative availability in the WEB interface" bool_option true
+
+let html_mods_vd_network = define_option expert_ini
+    ["html_mods_vd_network"] "Whether to display the Net column in vd output" bool_option false
 
 let html_mods_vd_active_sources = define_option expert_ini
     ["html_mods_vd_active_sources"] "Whether to display the Active Sources column in vd output" bool_option false

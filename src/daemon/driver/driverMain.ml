@@ -390,7 +390,7 @@ let _ =
           if !!start_gui && Sys.file_exists !!mldonkey_gui then
             ignore (Sys.command (Printf.sprintf "%s &" !!mldonkey_gui))
           else
-          let asker = Filename.concat !!mldonkey_bin "mldonkey_guistarter" in
+          let asker = Filename.concat !!mldonkey_bin "mlguistarter" in
           if !!ask_for_gui  && Sys.file_exists !!mldonkey_gui &&
             Sys.file_exists asker then
             ignore (Sys.command (Printf.sprintf "%s %s&" asker !!mldonkey_gui));

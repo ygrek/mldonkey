@@ -50,9 +50,10 @@ let attrib = 1 lsl 30
 
 (**************** UNIX I/O FUNCTIONS *******************)  
   
-external ftruncate64 : Unix.file_descr -> int64 -> unit = "ml_truncate64"
+external ftruncate64 : Unix.file_descr -> int64 -> unit = 
+  "unix_ftruncate_64"
 external seek64 : Unix.file_descr -> int64 -> Unix.seek_command -> int64 =
-  "ml_lseek64"
+  "unix_lseek_64"
 
 let rec iter_write fd s pos len =
   let nwrite = Unix.write fd s pos len in

@@ -23,13 +23,15 @@ extern int os_read(OS_FD fd, char *buf, int len)
   return numread;
 }
 
-void os_ftruncate(OS_FD fd, int size)
+void os_ftruncate(OS_FD fd, int64 size)
 {
   uint curpos;
+  long ofs_low = (long) size;
+  long ofs_high = (long) (size >> 32);
 
   curpos = SetFilePointer (fd, 0, NULL, FILE_CURRENT);
   if (curpos == 0xFFFFFFFF
-      || SetFilePointer (fd, size, NULL, FILE_BEGIN) == 0xFFFFFFFF
+      || SetFilePointer (fd, ofs_low, &ofs_high, FILE_BEGIN) == 0xFFFFFFFF
       || !SetEndOfFile (fd))
     {
       long err = GetLastError();
@@ -45,21 +47,26 @@ int os_getdtablesize()
   return 256;
 }
 
-int os_getfdsize(OS_FD fd)
+int64 os_getfdsize(OS_FD fd)
 {
   long len_high;
+  int64 ret;
 
-  return GetFileSize(fd, &len_high);
+  ret = GetFileSize(fd, &len_high);
+  return ((int64) len_high << 32 | ret);
 }
 
-int os_getfilesize(char *path)
+int64 os_getfilesize(char *path)
 {
   OS_FD fd = CreateFile(path, GENERIC_READ, FILE_SHARE_READ,
 			NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL,
 			NULL);
+  long len_high;
+  long ret;
   if (fd != INVALID_HANDLE_VALUE){
-    int size = GetFileSize(fd, NULL);
+    ret = GetFileSize(fd, &len_high);
     CloseHandle(fd);
+    return  ((int64) len_high << 32 | ret);
   } else {
     long err = GetLastError();
     if (err != NO_ERROR) {
@@ -69,11 +76,11 @@ int os_getfilesize(char *path)
   }
 }
 
-int os_lseek(OS_FD fd, int ofs, int cmd)
+int64 os_lseek(OS_FD fd, int64 ofs, int cmd)
 {
   long ret;
   long ofs_low = ofs;
-  long ofs_high = ofs_low >= 0 ? 0 : -1;
+  long ofs_high = (long) (ofs >> 32);
   long err;
 
   ret = SetFilePointer(fd, ofs_low, &ofs_high, cmd);
@@ -84,11 +91,7 @@ int os_lseek(OS_FD fd, int ofs, int cmd)
       uerror("os_lseek", Nothing);
     }
   }
-  if (ofs_high != 0 || ret > Max_long) {
-    win32_maperr(ERROR_ARITHMETIC_OVERFLOW);
-    uerror("os_lseek", Nothing);
-  }
-  return ret;
+  return ((int64) ofs_high << 32 | ret);
 }
 
 #include <winsock2.h>
@@ -107,3 +110,21 @@ void os_set_nonblock(OS_SOCKET fd)
 }
 
 
+/*******************************************************************
+
+
+                         unix_ftruncate_64
+
+
+*******************************************************************/
+
+#define ZEROS_LEN 1024
+value unix_ftruncate_64(value fd_v, value len_v)
+{
+  unsigned long len = Int64_val(len_v);
+  OS_FD fd = Fd_val(fd_v);  
+
+  os_ftruncate(fd, len);
+    
+  return Val_unit;
+}

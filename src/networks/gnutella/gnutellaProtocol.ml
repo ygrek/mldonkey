@@ -155,10 +155,13 @@ let handlers info gconn =
 (*                    if info then begin
                         lprintf "HEADER : ";
                         dump header; lprint_newline ();
-                      end; *)
-                    h gconn sock header;
+end; *)
+                    
+                    (try h gconn sock header with
+                        e -> close sock "");
                     if not (TcpBufferedSocket.closed sock) then begin
                         let nused = i - b.pos + 1 in
+(*                        lprintf "HEADER: buf_used %d\n" nused; *)
                         buf_used sock nused;
                         iter_read sock 0
                       end

@@ -97,8 +97,8 @@ let server_to_client s p sock =
         end
   
   | QueryReq t ->
-(*      lprintf "REPLY TO QUERY NOT IMPLEMENTED YET :(\n";*)
-      lprintf "SEARCH RECEIVED\n";
+      if !verbose_msg_servers then
+        lprintf "SEARCH RECEIVED\n";
       begin
         try
           let q = 
@@ -122,7 +122,8 @@ QAnd (QHasMinVal (CommonUploads.filesize_field, n),q)
           in
           try
             let files = CommonUploads.query q in
-            lprintf "%d replies found\n" (Array.length files); 
+            if !verbose_msg_servers then
+              lprintf "%d replies found\n" (Array.length files); 
 
 (* How many matches should we return ? Let's say 10. *)
             if files <> [||] then
@@ -204,7 +205,8 @@ information. *)
           
           (try
               let file = Hashtbl.find files_by_key (f.Q.name, f.Q.size) in
-              lprintf "++++++++++++ RECOVER FILE BY KEY %s +++++++++++\n" 
+              if !verbose_msg_servers then
+                lprintf "++++++++++++ RECOVER FILE BY NAME %s +++++++++++\n" 
                 file.file_name; 
               let c = update_client t in
               add_download file c (FileByIndex (f.Q.index, f.Q.name))
@@ -213,13 +215,21 @@ information. *)
           List.iter (fun uid ->
               try
                 let file = Hashtbl.find files_by_uid uid in
-                lprintf "++++++++++++ RECOVER FILE BY UID %s +++++++++++\n" 
+                if !verbose_msg_servers then
+                  lprintf "++++++++++++ RECOVER FILE BY UID %s +++++++++++\n" 
                   file.file_name; 
                 
                 if file_size file = Int64.zero then begin
                     lprintf "Recover correct file size\n";
                     file.file_file.impl_file_size <- f.Q.size;
                     Int64Swarmer.set_size file.file_swarmer f.Q.size;
+                    file_must_update file;
+                  end;
+
+                if file.file_name = "" then begin
+                    lprintf "Recover correct name\n";
+                    file.file_name <- f.Q.name;
+                    file.file_file.impl_file_best_name <- f.Q.name;
                     file_must_update file;
                   end;
                 

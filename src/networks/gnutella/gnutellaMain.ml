@@ -69,10 +69,12 @@ let enable () =
   add_session_timer enabler 1.0 (fun timer ->
       GnutellaServers.connect_servers ());
 
+  GnutellaServers.ask_for_files ();
   add_session_timer enabler 60.0 (fun timer ->
       GnutellaServers.ask_for_files ();
       GnutellaServers.send_pings ());
-  
+
+  Gnutella.recover_files ();
   add_session_timer enabler 300.0 (fun timer ->
       Gnutella.recover_files ());
 

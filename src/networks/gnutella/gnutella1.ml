@@ -207,7 +207,10 @@ module Query = struct (* QUERY *)
     
     let print t = 
       lprintf "QUERY FOR %s (%d exts)\n" t.keywords 
-        (List.length t.xml_query)
+        (List.length t.xml_query);
+      List.iter (fun xml ->
+          lprintf "          ext: %s\n" (String.escaped xml)
+      ) t.xml_query
     
     let write buf t =
       buf_int16 buf t.min_speed;
@@ -530,7 +533,7 @@ let new_packet t =
       | UnknownReq (i,_) -> i);
     pkt_ttl = (match t with
       | QrtPatchReq _ | QrtResetReq _ -> 1
-      | _ -> 7);
+      | _ -> 2);
     pkt_hops = 0;
     pkt_payload  =t;
   }
@@ -546,7 +549,13 @@ let server_send s t =
   match s.server_sock with
     None -> ()
   | Some sock ->
-      write_string sock (server_msg_to_string t)          
+      let m = server_msg_to_string t in
+      (match t.pkt_payload with
+        | QueryReq s -> 
+            lprintf "SENDING QUERY: \n"; print t
+        | _ -> ());
+            
+      write_string sock m
 
 let server_send_new s t =
   server_send s (new_packet t)

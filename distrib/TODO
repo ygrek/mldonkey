@@ -1,7 +1,8 @@
 TODO list for client
 ====================
 
-os_lseek: limited to 32 bits !!!
+Gnutella:
+  * Don't perform more than one search per minute on each ultrapeer
 
 Short schedule:
 ---------------

@@ -65,7 +65,9 @@ let disconnect_client c =
         set_client_disconnected c;
         close sock "closed";
         c.client_sock <- None
-      with _ -> ()
+      with e -> 
+          lprintf "Exception %s in disconnect_client\n"
+            (Printexc2.to_string e)
 
 let (++) = Int64.add
 let (--) = Int64.sub
@@ -100,14 +102,14 @@ let rec client_parse_header c gconn sock header =
     let size = file_size file in
     
     let endline_pos = String.index header '\n' in
-    let code = 
+    let http, code = 
       match String2.split (String.sub header 0 endline_pos
         ) ' ' with
       | http :: code :: ok :: _ -> 
           let code = int_of_string code in
           if not (String2.starts_with (String.lowercase http) "http") then
             failwith "Not in http protocol";
-          code
+          http, code
       | _ -> failwith "Not a HTTP header line"
     in
     if !verbose_msg_clients then begin
@@ -128,18 +130,12 @@ let rec client_parse_header c gconn sock header =
     
     begin
       try
-        let (urn,_) = List.assoc "x-gnutella-content-urn" headers in
-
-(* Contribute: maybe we can find the bitprint associated with a SHA1 here,
-  and use it for corruption detection... *)
-        
-        
         
         let (locations,_) = 
           List.assoc "x-gnutella-alternate-location" headers in
         let locations = String2.split locations ',' in
         
-        lprintf "Alternate locations for: %s\n" urn;
+        lprintf "Alternate locations\n";
         let urls = List.map (fun s ->
               match String2.split_simplify s ' ' with
                 [] -> lprintf "Cannot parse : %s\n" s; ""
@@ -148,25 +144,43 @@ let rec client_parse_header c gconn sock header =
           ) locations in
         lprintf "\n";
         
-        let uids = extract_uids urn in
-        List.iter (fun uid ->
-            try
-              let file = Hashtbl.find files_by_uid uid in
-              List.iter (fun url ->
-                  try
-                    let url = Url.of_string url in
-                    let ip = Ip.of_string url.Url.server in
-                    let port = url.Url.port in
-                    let uri = url.Url.full_file in
-                    
-                    let c = new_client (Known_location (ip,port)) in
-                    add_download file c (FileByUrl uri)
+        let files = ref [] in
+        (try
+            let (urn,_) = List.assoc "x-gnutella-content-urn" headers in
+
+(* Contribute: maybe we can find the bitprint associated with a SHA1 here,
+  and use it for corruption detection... *)
+            
+            
+            
+            let uids = extract_uids urn in
+            List.iter (fun uid ->
+                try
+                  files := (Hashtbl.find files_by_uid uid) :: !files
+                
+                with _ -> ()
+            ) uids
+          with Not_found ->
+              match c.client_requests with 
+                d :: _ -> files := d.download_file :: !files
+              | _ -> ()
+        );
+        
+        List.iter (fun file ->
+            List.iter (fun url ->
+                try
+                  let url = Url.of_string url in
+                  let ip = Ip.of_string url.Url.server in
+                  let port = url.Url.port in
+                  let uri = url.Url.full_file in
                   
-                  with _ -> ()
-              ) urls
-            with _ -> ()
-        ) uids
-      
+                  let c = new_client (Known_location (ip,port)) in
+                  add_download file c (FileByUrl uri)
+                
+                with _ -> ()
+            ) urls
+        ) !files
+        
       with _ -> ()
     
     end;
@@ -177,7 +191,7 @@ X-TigerTree-Path: /gnutella/tigertree/v2?urn:tree:tiger/:YRASTJJK6JPRHREV3JGIFLS
 X-Metadata-Path: /gnutella/metadata/v1?urn:tree:tiger/:7EOOAH7YUP7USYTMOFVIWWPKXJ6VD3ZE633C7AA
 *)
     
-    if  code < 200 && code > 299 then
+    if  code < 200 || code > 299 then
       failwith "Bad HTTP code";
     
     
@@ -212,11 +226,13 @@ X-Metadata-Path: /gnutella/metadata/v1?urn:tree:tiger/:7EOOAH7YUP7USYTMOFVIWWPKX
             lprintf "Exception %s for range [%s]\n" 
               (Printexc2.to_string e) range;
             raise e
-      with Not_found -> 
+      with e -> 
 (* A bit dangerous, no ??? *)
-          lprintf "Could not find range header, assuming 0-\nHEADER: %s\n"
+          lprintf "ERROR: Could not find/parse range header (exception %s), assuming 0-\nHEADER: %s\n" 
+          (Printexc2.to_string e)
           (String.escaped header);
-          Int64.zero, size
+          disconnect_client c;
+          raise Exit
     in 
     (try
         let (len,_) = List.assoc "content-length" headers in
@@ -224,12 +240,19 @@ X-Metadata-Path: /gnutella/metadata/v1?urn:tree:tiger/:7EOOAH7YUP7USYTMOFVIWWPKX
         lprintf "Specified length: %Ld\n" len;
         if len <> end_pos -- start_pos then
           begin
-            lprintf "\n\nWARNING: bad computed range \n\n";
+            failwith "\n\nERROR: bad computed range: %Ld-%Ld/%Ld \n%s\n"
+            start_pos end_pos len
+                      (String.escaped header);
           end
-      with _ -> ());
+      with _ -> 
+          lprintf "[WARNING]: no Content-Length field\n%s\n"
+            (String.escaped header)
+    );
     
-    lprintf "Receiving range: %Ld-%Ld (len = %Ld)\n"
-      start_pos end_pos (end_pos -- start_pos);
+    lprintf "Receiving range: %Ld-%Ld (len = %Ld)\n%s\n"    
+      start_pos end_pos (end_pos -- start_pos)
+    (String.escaped header)
+    ;
     set_client_state c (Connected_downloading);
     let counter_pos = ref start_pos in
 (* Send the next request !!! *)
@@ -241,7 +264,14 @@ X-Metadata-Path: /gnutella/metadata/v1?urn:tree:tiger/:7EOOAH7YUP7USYTMOFVIWWPKX
         let b = TcpBufferedSocket.buf sock in
         let to_read = min (end_pos -- !counter_pos) 
           (Int64.of_int b.len) in
+        (*
+        lprintf "Reading: end_pos %Ld counter_pos %Ld len %d = to_read %Ld\n"
+end_pos !counter_pos b.len to_read;
+   *)
         let to_read_int = Int64.to_int to_read in
+(*
+  lprintf "CHUNK: %s\n" 
+          (String.escaped (String.sub b.buf b.pos to_read_int)); *)
         let old_downloaded = 
           Int64Swarmer.downloaded file.file_swarmer in
         List.iter Int64Swarmer.free_range d.download_ranges;
@@ -270,12 +300,20 @@ X-Metadata-Path: /gnutella/metadata/v1?urn:tree:tiger/:7EOOAH7YUP7USYTMOFVIWWPKX
         if new_downloaded <> old_downloaded then
           add_file_downloaded file.file_file
             (new_downloaded -- old_downloaded);
+        (*
+lprintf "READ %Ld\n" (new_downloaded -- old_downloaded);
+lprintf "READ: buf_used %d\n" to_read_int;
+  *)
         TcpBufferedSocket.buf_used sock to_read_int;
         counter_pos := !counter_pos ++ to_read;
         if !counter_pos = end_pos then begin
             match d.download_ranges with
               [] -> assert false
             | r :: tail ->
+                (*
+                lprintf "Ready for next chunk (version %s)\nHEADER:%s\n" http
+                  (String.escaped header);
+                *)
                 Int64Swarmer.free_range r;
                 d.download_ranges <- tail;
                 gconn.gconn_handler <- HttpHeader
@@ -324,7 +362,8 @@ and friend_parse_header c gconn sock header =
 and get_from_client sock (c: client) =
   match c.client_downloads with
     [] -> 
-      lprintf "No other download to start\n";
+      if !verbose_msg_clients then
+        lprintf "No other download to start\n";
       raise Not_found
   | d :: tail ->
       if !verbose_msg_clients then begin
@@ -399,7 +438,8 @@ and get_from_client sock (c: client) =
       Printf.bprintf buf "Range: bytes=%s\r\n" range;
       Printf.bprintf buf "\r\n";
       let s = Buffer.contents buf in
-      lprintf "SENDING REQUEST: %s\n" (String.escaped s); 
+      if !verbose_msg_clients then
+        lprintf "SENDING REQUEST: %s\n" (String.escaped s);
       write_string sock s;
       c.client_requests <- c.client_requests @ [d];
       lprintf "Asking %s For Range %s\n" (Md4.to_string c.client_user.user_uid) 
@@ -434,17 +474,17 @@ let connect_client c =
             TcpBufferedSocket.set_write_controler sock upload_control;
             
             c.client_host <- Some (ip, port);
+            set_client_state c Connecting;
+            c.client_sock <- Some sock;
+            TcpBufferedSocket.set_closer sock (fun _ _ ->
+                disconnect_client c
+            );
+            set_rtimeout sock 30.;
             match c.client_downloads with
               [] -> 
 (* Here, we should probably browse the client or reply to
 an upload request *)
                 
-                set_client_state c Connecting;
-                c.client_sock <- Some sock;
-                TcpBufferedSocket.set_closer sock (fun _ _ ->
-                    disconnect_client c
-                );
-                set_rtimeout sock 30.;
                 if !verbose_msg_clients then begin
                     lprintf "NOTHING TO DOWNLOAD FROM CLIENT\n";
                   end;
@@ -557,7 +597,7 @@ let push_handler cc gconn sock header =
                 raise End_of_file
       end
     else begin
-        lprintf "parse_head\n";
+(*        lprintf "parse_head\n";    *)
         let r = Http_server.parse_head (header ^ "\n") in
         lprintf "Header parsed: %s ... %s\n"
           (r.Http_server.request) (r.Http_server.get_url.Url.file);
@@ -662,7 +702,8 @@ BUG:
             ()
       end
   with e ->
-      lprintf "Exception %s in push_handler\n" (Printexc2.to_string e);
+      lprintf "Exception %s in push_handler: %s\n" (Printexc2.to_string e)
+      (String.escaped header);
       (match !cc with Some c -> disconnect_client c | _ -> ());
       raise e
 

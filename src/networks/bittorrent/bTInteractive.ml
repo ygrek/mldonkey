@@ -125,150 +125,145 @@ module C = CommonTypes
 open Bencode
 
 let load_torrent_file filename =
-         try
-            lprintf ".torrent file loaded\n";
-            let s = File.to_string filename in
+  lprintf ".torrent file loaded\n";
+  let s = File.to_string filename in
 (*            lprintf "Loaded: %s\n" (String.escaped s); *)
-            let v = Bencode.decode s in
+  let v = Bencode.decode s in
 (*            lprintf "Decoded file: %s\n" (Bencode.print v);  *)
-            
-            
-            let announce = ref "" in
-            let file_info = ref (List []) in
-            let file_name = ref "" in
-            let file_piece_size = ref zero in
-            let file_pieces = ref "" in
-            let length = ref zero in
-            let file_files = ref [] in
-            
-            begin
-              match v with
-                Dictionary list ->
-                  List.iter (fun (key, value) ->
-                      match key, value with 
-                        String "announce", String tracker_url ->
-                          announce := tracker_url
-                      | String "info", ((Dictionary list) as info) ->
-                          
-                          file_info := info;
-                          List.iter (fun (key, value) ->
-                              match key, value with
-                              | String "files", List files ->
-                                  
-                                  let current_pos = ref zero in
-                                  List.iter (fun v ->
-                                      match v with
-                                        Dictionary list ->
-                                          let current_file = ref "" in
-                                          let current_length = ref zero in
-                                          
-                                          List.iter (fun (key, value) ->
-                                              match key, value with
-                                                String "path", List path ->
-                                                  current_file := 
-                                                  Filepath.path_to_string '/'
-                                                    (List.map (fun v ->
-                                                        match v with
-                                                          String s -> s
-                                                        | _ -> assert false
-                                                    ) path)
-                                              
-                                              | String "length", Int n ->
-                                                  length := !length ++ n;
-                                                  current_length := n;
-                                              
-                                              | String key, _ -> 
-                                                  lprintf "other field [%s] in files\n" key
-                                              | _ -> 
-                                                  lprintf "other field in files\n"
-                                          ) list;
-                                          
-                                          assert (!current_length <> zero);
-                                          assert (!current_file <> "");
-                                          file_files := (!current_file, !current_pos, !current_pos ++ !current_length) :: !file_files;
-                                          current_pos := !current_pos ++ !current_length
-                                          
-                                      | _ -> assert false
-                                  ) files;
-                                  
-                              | String "length", Int n -> 
-                                  length := n
-                              | String "name", String name ->
-                                  file_name := name
-                              | String "piece length", Int n ->
-                                  file_piece_size := n
-                              | String "pieces", String pieces ->
+  
+  
+  let announce = ref "" in
+  let file_info = ref (List []) in
+  let file_name = ref "" in
+  let file_piece_size = ref zero in
+  let file_pieces = ref "" in
+  let length = ref zero in
+  let file_files = ref [] in
+  
+  begin
+    match v with
+      Dictionary list ->
+        List.iter (fun (key, value) ->
+            match key, value with 
+              String "announce", String tracker_url ->
+                announce := tracker_url
+            | String "info", ((Dictionary list) as info) ->
+                
+                file_info := info;
+                List.iter (fun (key, value) ->
+                    match key, value with
+                    | String "files", List files ->
+                        
+                        let current_pos = ref zero in
+                        List.iter (fun v ->
+                            match v with
+                              Dictionary list ->
+                                let current_file = ref "" in
+                                let current_length = ref zero in
+                                
+                                List.iter (fun (key, value) ->
+                                    match key, value with
+                                      String "path", List path ->
+                                        current_file := 
+                                        Filepath.path_to_string '/'
+                                          (List.map (fun v ->
+                                              match v with
+                                                String s -> s
+                                              | _ -> assert false
+                                          ) path)
+                                    
+                                    | String "length", Int n ->
+                                        length := !length ++ n;
+                                        current_length := n;
+                                    
+                                    | String key, _ -> 
+                                        lprintf "other field [%s] in files\n" key
+                                    | _ -> 
+                                        lprintf "other field in files\n"
+                                ) list;
+                                
+                                assert (!current_length <> zero);
+                                assert (!current_file <> "");
+                                file_files := (!current_file, !current_pos, !current_pos ++ !current_length) :: !file_files;
+                                current_pos := !current_pos ++ !current_length
+                            
+                            | _ -> assert false
+                        ) files;
+                    
+                    | String "length", Int n -> 
+                        length := n
+                    | String "name", String name ->
+                        file_name := name
+                    | String "piece length", Int n ->
+                        file_piece_size := n
+                    | String "pieces", String pieces ->
 (*                                  lprintf "Provided pieces: %d\n" 
                                     ((String.length pieces) / 20); *)
-                                  file_pieces := pieces
-                              | String key, _ -> 
-                                  lprintf "other field [%s] in info\n" key
-                              | _ -> 
-                                  lprintf "other field in info\n"
-                          ) list
-                          
-                      | String key, _ -> 
-                          lprintf "other field [%s] after info\n" key
-                      | _ -> 
-                          lprintf "other field after info\n"
-                  ) list
-              | _ -> assert false
-            end;
-
-            assert (!announce <> "");
-            assert (!file_name <> "");
-            assert (!file_piece_size <> zero);
-            assert (!file_pieces <> "");
+                        file_pieces := pieces
+                    | String key, _ -> 
+                        lprintf "other field [%s] in info\n" key
+                    | _ -> 
+                        lprintf "other field in info\n"
+                ) list
             
-            assert (!file_info = Bencode.decode (Bencode.encode !file_info));
-            
-            let file_id = Sha1.string (Bencode.encode !file_info) in
-            let npieces = 
-              1+ Int64.to_int ((!length -- one) // !file_piece_size)
-            in
+            | String key, _ -> 
+                lprintf "other field [%s] after info\n" key
+            | _ -> 
+                lprintf "other field after info\n"
+        ) list
+    | _ -> assert false
+  end;
+  
+  assert (!announce <> "");
+  assert (!file_name <> "");
+  assert (!file_piece_size <> zero);
+  assert (!file_pieces <> "");
+  
+  assert (!file_info = Bencode.decode (Bencode.encode !file_info));
+  
+  let file_id = Sha1.string (Bencode.encode !file_info) in
+  let npieces = 
+    1+ Int64.to_int ((!length -- one) // !file_piece_size)
+  in
 (*            lprintf "npieces %d length %Ld piece %Ld %d\n"
               npieces !length !file_piece_size (String.length !file_pieces); *)
-            let pieces = Array.init npieces (fun i ->
-                  let s = String.sub !file_pieces (i*20) 20 in
-                  Sha1.direct_of_string s
-              ) in
-            
-            let file = new_file file_id !file_name !length 
-                !announce !file_piece_size
-            in
-            file.file_files <- !file_files;
-            file.file_chunks <- pieces;
-            BTClients.connect_tracker file !announce;
-            ()
-            
-          with e ->
-              lprintf "Could not start download because %s\n"
-                (Printexc2.to_string e)
-        
-        
-
+  let pieces = Array.init npieces (fun i ->
+        let s = String.sub !file_pieces (i*20) 20 in
+        Sha1.direct_of_string s
+    ) in
+  
+  let file = new_file file_id !file_name !length 
+      !announce !file_piece_size
+  in
+  file.file_files <- !file_files;
+  file.file_chunks <- pieces;
+  BTClients.connect_tracker file !announce;
+  ()
+  
+  
+  
 let _ =
   network.op_network_parse_url <- (fun url ->
       let ext = String.lowercase (Filename2.last_extension url) in
       lprintf "Last extension: %s\n" ext;
       if ext = ".torrent" || ext = ".tor" then
-       try
-         lprintf "Trying to load %s\n" url;
-         load_torrent_file url;
-         true
-       with e ->
-        lprintf "Exception %s while loading\n" (Printexc2.to_string e);
-        let module H = Http_client in
-        let r = {
-            H.basic_request with
-            H.req_url = Url.of_string url;
-            H.req_user_agent = 
-            Printf.sprintf "MLdonkey %s" Autoconf.current_version;
-          } in
-        
-        H.wget r load_torrent_file;
-        
-        true
+        try
+          lprintf "Trying to load %s\n" url;
+          load_torrent_file url;
+          true
+        with e ->
+            lprintf "Exception %s while loading\n" (Printexc2.to_string e);
+            let module H = Http_client in
+            let r = {
+                H.basic_request with
+                H.req_url = Url.of_string url;
+                H.req_user_agent = 
+                Printf.sprintf "MLdonkey %s" Autoconf.current_version;
+              } in
+            
+            H.wget r load_torrent_file;
+            
+            true
       else
         false
   )

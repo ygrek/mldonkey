@@ -119,6 +119,18 @@ let number_of_active_sources gf =
     incr nasrcs;
   ) (file_sources (file_find gf.file_num));
   !nasrcs
+
+let net_name gf =
+	let n = network_find_by_num gf.file_network in
+	n.network_name
+
+let short_net_name gf =
+    let nn = net_name gf in
+	match nn with 
+   | "Open Napster" -> "N"
+   | "Direct Connect" -> "C"
+   | _ -> String.sub nn 0 1 
+   
   
 module Html = struct
     let begin_td buf = Printf.bprintf buf "\\<td\\>"
@@ -343,8 +355,7 @@ function cancelAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j
               file.file_num
               (Int64.to_string file.file_size)
             (Md4.to_string file.file_md4)
-            (let n = network_find_by_num file.file_network in
-              n.network_name)            
+            (net_name file)
           );
 
           (if downloading file then
@@ -457,7 +468,7 @@ function submitPriority(num,cp,sel) {
 \\<tr\\>\\<td\\>
 
 \\<table cellspacing=0  cellpadding=0  width=100%%\\>\\<tr\\>
-\\<td class=downloaded width=100%%\\>Downloading %d files (%s/%s @ %.1f KB/s)\\</td\\>
+\\<td class=downloaded width=100%%\\>Downloading %d file%s (%s/%s @ %.1f KB/s)\\</td\\>
 
 \\<td class=big\\>\\<input class=bigbutton type=\\\"button\\\" value=\\\"Pause all\\\" onclick=\\\"pauseAll(true);\\\"\\>\\</td\\>
 \\<td class=big\\>\\<input class=bigbutton type=\\\"button\\\" value=\\\"Resume all\\\" onclick=\\\"resumeAll(true);\\\"\\>\\</td\\>
@@ -470,13 +481,19 @@ function submitPriority(num,cp,sel) {
 
 \\<table class=downloaders cellspacing=0 cellpadding=0\\>\\<tr\\>
 
-\\<td title=\\\"Pause/Resume/Cancel\\\" class=\\\"dlheader\\\"\\>P/R/C\\</TD\\>
-\\<td title=\\\"Sort by filename\\\" class=dlheader\\>\\<input class=headbutton type=submit value=File name=sortby\\>\\</td\\>
+\\<td title=\\\"Pause/Resume/Cancel\\\" class=\\\"dlheader\\\"\\>P/R/C\\</td\\>"
+(List.length guifiles) (if List.length guifiles = 1 then "" else "s") 
+(size_of_int64 !tdl) (size_of_int64 !tsize) (!trate /. 1024.);
+
+if !!html_mods_vd_network then Printf.bprintf buf 
+"\\<td title=\\\"Sort by network\\\" class=dlheader\\>\\<input style=\\\"padding-left: 0px; padding-right: 0px;\\\" class=headbutton type=submit value=N name=sortby\\>\\</td\\>";
+
+Printf.bprintf buf 
+"\\<td title=\\\"Sort by filename\\\" class=dlheader\\>\\<input class=headbutton type=submit value=File name=sortby\\>\\</td\\>
 \\<td title=\\\"Sort by size\\\" class=dlheader\\>\\<input class=headbutton type=submit value=Size name=sortby\\>\\</td\\>
 \\<td title=\\\"Sort by size downloaded\\\" class=dlheader\\>\\<input class=\\\"headbutton ar\\\" type=submit value=DLed name=sortby\\>\\</td\\>
 \\<td title=\\\"Sort by percent\\\" class=dlheader\\>\\<input class=headbutton type=submit value=%% name=sortby\\>\\</td\\>
-\\<td title=\\\"Sort by number of sources\\\" class=dlheader\\>\\<input style=\\\"padding-left: 0px; padding-right: 0px;\\\" class=headbutton type=submit value=Srcs name=sortby\\>\\</td\\>"
-(List.length guifiles) (size_of_int64 !tdl) (size_of_int64 !tsize) (!trate /. 1024.);
+\\<td title=\\\"Sort by number of sources\\\" class=dlheader\\>\\<input style=\\\"padding-left: 0px; padding-right: 0px;\\\" class=headbutton type=submit value=Srcs name=sortby\\>\\</td\\>";
 
 if !!html_mods_vd_active_sources then Printf.bprintf buf 
 "\\<td title=\\\"Sort by number of active sources\\\" class=dlheader\\>\\<input style=\\\"padding-left: 0px; padding-right: 0px;\\\" class=headbutton type=submit value=A name=sortby\\>\\</td\\>";
@@ -485,29 +502,25 @@ Printf.bprintf buf
 "\\<td title=\\\"File availability percentage (using %s availability)\\\" class=\\\"dlheader ac\\\"\\>Avail\\</td\\>"
 (if !!html_mods_use_relative_availability then "Relative" else "Total");
 
-if !!html_mods_vd_age then Printf.bprintf buf "
-\\<td title=\\\"Sort by age of download\\\" class=dlheader\\>\\<input style=\\\"padding-left: 0px; padding-right: 0px;\\\" class=headbutton type=submit value=Age name=sortby\\>\\</td\\>
-";
+if !!html_mods_vd_age then Printf.bprintf buf 
+"\\<td title=\\\"Sort by age of download\\\" class=dlheader\\>\\<input style=\\\"padding-left: 0px; padding-right: 0px;\\\" class=headbutton type=submit value=Age name=sortby\\>\\</td\\>";
 
-if !!html_mods_vd_last then Printf.bprintf buf "
-\\<td title=\\\"Sort by last seen complete\\\" class=dlheader\\>\\<input style=\\\"padding-left: 0px; padding-right: 0px;\\\" class=headbutton type=submit value=Last name=sortby\\>\\</td\\>
-";
+if !!html_mods_vd_last then Printf.bprintf buf 
+"\\<td title=\\\"Sort by last seen complete\\\" class=dlheader\\>\\<input style=\\\"padding-left: 0px; padding-right: 0px;\\\" class=headbutton type=submit value=Last name=sortby\\>\\</td\\>";
 
-Printf.bprintf buf "
-\\<td title=\\\"Sort by rate\\\" class=dlheader\\>\\<input style=\\\"padding-left: 0px; padding-right: 0px;\\\" class=headbutton type=submit value=Rate name=sortby\\>\\</td\\>
-\\<td title=\\\"Sort by estimated time of arrival\\\" class=dlheader\\>\\<input style=\\\"padding-left: 0px; padding-right: 0px;\\\" class=headbutton type=submit value=ETA name=sortby\\>\\</td\\>
-";
+Printf.bprintf buf 
+"\\<td title=\\\"Sort by rate\\\" class=dlheader\\>\\<input style=\\\"padding-left: 0px; padding-right: 0px;\\\" class=headbutton type=submit value=Rate name=sortby\\>\\</td\\>
+\\<td title=\\\"Sort by estimated time of arrival\\\" class=dlheader\\>\\<input style=\\\"padding-left: 0px; padding-right: 0px;\\\" class=headbutton type=submit value=ETA name=sortby\\>\\</td\\>";
 
-if !!html_mods_vd_prio then Printf.bprintf buf "\\<td title=\\\"Sort by priority\\\" class=dlheader\\>\\<input style=\\\"padding-left: 0px; padding-right: 0px;\\\" class=headbutton type=submit value=Priority name=sortby\\>\\</td\\>
-";
+if !!html_mods_vd_prio then Printf.bprintf buf "\\<td title=\\\"Sort by priority\\\" class=dlheader\\>\\<input style=\\\"padding-left: 0px; padding-right: 0px;\\\" class=headbutton type=submit value=Priority name=sortby\\>\\</td\\>";
 
 Printf.bprintf buf "\\</tr\\>";
+
+let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='/submit?q=vd+%d';return true;\\\" class=\\\"dl ar\\\"\\>%s\\</td\\>" fn td in 
 
   print_table_html_mods buf 
     (List.map (fun file ->
         [|
-
-
           (if downloading file then
               Printf.sprintf "
 				onMouseOver=\\\"mOvr(this);return true;\\\" onMouseOut=\\\"mOut(this);\\\"\\>
@@ -523,60 +536,48 @@ Printf.bprintf buf "\\</tr\\>";
                 \\<input class=checkbox name=cancel type=checkbox value=%d\\>\\</td\\>"
                 file.file_num
                 file.file_num);
+
+          (if !!html_mods_vd_network then 
+			Printf.sprintf "\\<td onClick=\\\"location.href='/submit?q=vd+%d';return true;\\\" 
+			title=\\\"%s\\\" class=\\\"dl al\\\"\\>%s\\</td\\>" 
+			file.file_num (net_name file) (short_net_name file) else "");
           
           ( let size = Int64.to_float file.file_size in
             let downloaded = Int64.to_float file.file_downloaded in
             let size = if size < 1. then 1. else size in
             Printf.sprintf "\\<TD onClick=\\\"location.href='/submit?q=vd+%d';return true;\\\" 
-title=\\\"[File: %d] Network: %s\\\" class=\\\"dl al\\\"\\>%s\\<br\\>
-\\<table cellpadding=0 cellspacing=0 width=100%%\\>\\<tr\\>
-\\<td class=loaded width=%d%%\\>\\&nbsp;\\</td\\>
-\\<td class=remain width=%d%%\\>\\&nbsp;\\</td\\>
-\\</tr\\>\\</table\\>\\</td\\>"
+			title=\\\"[File#: %d] [Net: %s]%s\\\" class=\\\"dl al\\\"\\>%s\\<br\\>
+			\\<table cellpadding=0 cellspacing=0 width=100%%\\>\\<tr\\>
+			\\<td class=loaded width=%d%%\\>\\&nbsp;\\</td\\>
+			\\<td class=remain width=%d%%\\>\\&nbsp;\\</td\\>
+			\\</tr\\>\\</table\\>\\</td\\>"
             file.file_num
             file.file_num
-  			(let n = network_find_by_num file.file_network in
-              n.network_name)      
+  			(net_name file)
+			(if !!max_name_len < String.length file.file_name then " " ^ file.file_name else "")
             (short_name file)
             (truncate (downloaded /. size *. 100.))
             (truncate ( (1. -. downloaded /. size) *. 100.))
           );           
 
-          (Printf.sprintf "\\<td onClick=\\\"location.href='/submit?q=vd+%d';return true;\\\" class=\\\"dl ar\\\"\\>%s\\</td\\>" file.file_num (size_of_int64 file.file_size));
-          (Printf.sprintf "\\<td onClick=\\\"location.href='/submit?q=vd+%d';return true;\\\" class=\\\"dl ar\\\"\\>%s\\</td\\>" file.file_num (size_of_int64 file.file_downloaded));
-          (Printf.sprintf "\\<td onClick=\\\"location.href='/submit?q=vd+%d';return true;\\\" class=\\\"dl ar\\\"\\>%5.1f\\</td\\>" file.file_num (percent file));
-
-          (Printf.sprintf "\\<td onClick=\\\"location.href='/submit?q=vd+%d';return true;\\\" class=\\\"dl ar\\\"\\>%d\\</td\\>" file.file_num 
-			(number_of_sources file) 
-          );
+          (ctd file.file_num (size_of_int64 file.file_size));
+          (ctd file.file_num (size_of_int64 file.file_downloaded));
+          (ctd file.file_num (Printf.sprintf "%.1f" (percent file)));
+          (ctd file.file_num (Printf.sprintf "%d" (number_of_sources file)));
 
           (if !!html_mods_vd_active_sources then 
-            Printf.sprintf "\\<td onClick=\\\"location.href='/submit?q=vd+%d';return true;\\\" class=\\\"dl ar\\\"\\>%d\\</td\\>" file.file_num 
-			(number_of_active_sources file) 
-		  else ""
-		  );
+            ctd file.file_num (Printf.sprintf "%d" (number_of_active_sources file))
+		  else "");
 
-          (Printf.sprintf "\\<td onClick=\\\"location.href='/submit?q=vd+%d';return true;\\\" class=\\\"dl ar\\\"\\> %s\\</td\\>"
-            file.file_num 
-            (if !!html_mods_use_relative_availability
-            then file_availability file
-            else string_availability file.file_availability)
-          );
-
+          (ctd file.file_num (if !!html_mods_use_relative_availability
+				then file_availability file else string_availability file.file_availability));
 
           (if !!html_mods_vd_age then 
-			Printf.sprintf "\\<td onClick=\\\"location.href='/submit?q=vd+%d';return true;\\\" class=\\\"dl ar\\\"\\>%s\\</td\\>"
-            file.file_num
-            (let age = (BasicSocket.last_time ()) - file.file_age in
-            time_to_string age)
-		   else ""
-          );
-
+			ctd file.file_num (let age = (BasicSocket.last_time ()) - file.file_age in time_to_string age)
+		   else "");
 
           (if !!html_mods_vd_last then 
-			Printf.sprintf "\\<td onClick=\\\"location.href='/submit?q=vd+%d';return true;\\\" class=\\\"dl ar\\\"\\>%s\\</td\\>"
-            file.file_num
-            (if file.file_last_seen > 0
+			ctd file.file_num (if file.file_last_seen > 0
              then let last = (BasicSocket.last_time ()) - file.file_last_seen in
                 time_to_string last
              else "-"
@@ -584,8 +585,7 @@ title=\\\"[File: %d] Network: %s\\\" class=\\\"dl al\\\"\\>%s\\<br\\>
 			else ""
           );
           
-          (Printf.sprintf "\\<td onClick=\\\"location.href='/submit?q=vd+%d';return true;\\\" class=\\\"dl ar\\\"\\>%s\\</td\\>" 
-				file.file_num
+          (ctd file.file_num
                 (match file.file_state with 
 				   FilePaused -> "Paused"
                  | FileQueued -> "Queued"
@@ -594,15 +594,11 @@ title=\\\"[File: %d] Network: %s\\\" class=\\\"dl al\\\"\\>%s\\<br\\>
                 )
           );
 
-          (Printf.sprintf "\\<td onClick=\\\"location.href='/submit?q=vd+%d';return true;\\\" class=\\\"dl ar\\\"\\>"
-            file.file_num ^
-			(if (file.file_download_rate < 10.24 || stalled file) then "-" 
-				else time_to_string (calc_file_eta file)) 
-			^ "\\</td\\>"
-		  );
+          (ctd file.file_num (if (file.file_download_rate < 10.24 || stalled file) then "-" 
+				else time_to_string (calc_file_eta file)) );
 
           (if !!html_mods_vd_prio then 
-	     (Printf.sprintf "\\<td class=\\\"dl ar\\\"\\>\\<div id=\\\"divSelectPriority%d\\\"\\>\\<select id=\\\"selectPriority%d\\\" name=\\\"selectPriority%d\\\" 
+	      (Printf.sprintf "\\<td class=\\\"dl ar\\\"\\>\\<div id=\\\"divSelectPriority%d\\\"\\>\\<select id=\\\"selectPriority%d\\\" name=\\\"selectPriority%d\\\" 
 			style=\\\"font-size: 8px; font-family: verdana\\\" onchange=\\\"javascript:submitPriority(%d,%d,this)\\\"\\>\n" 
 			file.file_num file.file_num file.file_num file.file_num file.file_priority)
 			^ (match file.file_priority with 0 | -10 | 10 -> "" | _ ->
@@ -659,10 +655,7 @@ let html_mods_done_files buf files =
     (List.map (fun file ->
         [|
             (Printf.sprintf "\\>\\<td class=dl\\>%d\\</td\\>\\<td class=dl\\>%s\\</td\\>"
-               file.file_num
-              (let n = network_find_by_num file.file_network in
-                n.network_name));
-
+             file.file_num (net_name file));
             (Printf.sprintf "\\<td class=dl\\>%s\\</td\\>"
             (short_name file));
             (Printf.sprintf "\\<td class=dl\\>%s\\</td\\>"
@@ -726,8 +719,7 @@ let simple_print_file_list finished buf files format =
             [|
               (Printf.sprintf "%s[%s %-5d]%s"
                 color
-                  (let n = network_find_by_num file.file_network in
-                  n.network_name)
+                (net_name file)
                 file.file_num
                   (if format.conn_output = HTML then  
                     Printf.sprintf "[\\<a href=/submit\\?q\\=cancel\\+%d $S\\>CANCEL\\</a\\>][\\<a href=/submit\\?q\\=%s\\+%d $S\\>%s\\</a\\>] " 
@@ -780,8 +772,7 @@ let simple_print_file_list finished buf files format =
     (List.map (fun file ->
           [|
             (Printf.sprintf "[%s %-5d]" 
-                (let n = network_find_by_num file.file_network in
-                n.network_name)
+                (net_name file) 
               file.file_num);
             (short_name file);
             (Int64.to_string file.file_size);
@@ -817,6 +808,7 @@ let display_file_list buf o =
         | ByETA -> (fun f1 f2 -> calc_file_eta f1 <= calc_file_eta f2)
         | ByAge -> (fun f1 f2 -> f1.file_age >= f2.file_age)
         | ByLast -> (fun f1 f2 -> f1.file_last_seen >= f2.file_last_seen)
+        | ByNet -> (fun f1 f2 -> net_name f1 <= net_name f2)
         | NotSorted -> raise Not_found
       in
       Sort.list sorter list

@@ -137,7 +137,8 @@ let _ =
   server_ops.op_server_connect <- (fun s ->
       GnutellaServers.connect_server s.server_gnutella2 
       GnutellaServers.retry_and_fake s []);
-  server_ops.op_server_disconnect <- GnutellaServers.disconnect_server
+  server_ops.op_server_disconnect <- GnutellaServers.disconnect_server;
+  server_ops.op_server_to_option <- (fun _ -> raise Not_found)
 
 module C = CommonTypes
   
@@ -197,6 +198,14 @@ let _ =
                   else 
                   if String2.starts_with value "dn" then
                     name := Url.decode arg
+                  else 
+                  if arg = "" then
+(* This is an error in the magnet, where a & has been kept instead of being
+  url-encoded *)
+                    name := Printf.sprintf "%s&%s" !name value
+                  else
+                    lprintf "MAGNET: unused field %s = %s\n"
+                      value arg
               ) url.Url.args;
               if !uids <> [] then begin
 (* Start a download for this file *)

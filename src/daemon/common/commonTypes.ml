@@ -124,6 +124,7 @@ type sortvd_type =
 | ByLast
 | BySources
 | ByASources
+| ByNet
 | NotSorted
   
 type room_state = 

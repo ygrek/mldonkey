@@ -313,24 +313,6 @@ value ml_setsock_iptos_throughput(value sock_v)
 /*******************************************************************
 
 
-                         ml_lseek64
-
-
-*******************************************************************/
-
-value ml_lseek64(value fd, value ofs, value cmd)
-{
-  long ret;
-  long pos = Int64_val(ofs);
-  ret = os_lseek(Fd_val(fd), pos,
-                       seek_command_table[Int_val(cmd)]);
-  if (ret == -1) uerror("lseek", Nothing);
-  return copy_int64(ret);
-}
-
-/*******************************************************************
-
-
                          ml_getsize64
 
 
@@ -343,25 +325,6 @@ value ml_getsize64(value path)
   return copy_int64(os_getfilesize(String_val(path)));
 }
 
-
-/*******************************************************************
-
-
-                         ml_truncate64
-
-
-*******************************************************************/
-
-#define ZEROS_LEN 1024
-value ml_truncate64(value fd_v, value len_v)
-{
-  unsigned long len = Int64_val(len_v);
-  OS_FD fd = Fd_val(fd_v);  
-
-  os_ftruncate(fd, len);
-    
-  return Val_unit;
-}
 
 /*******************************************************************
 

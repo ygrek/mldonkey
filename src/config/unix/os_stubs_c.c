@@ -47,7 +47,7 @@
 #include <sys/mman.h>
 #endif
 
-int os_lseek(OS_FD fd, int pos, int dir)
+int64 os_lseek(OS_FD fd, int64 pos, int dir)
 {
   return lseek(fd, pos, dir);
 }
@@ -57,7 +57,7 @@ int os_read(OS_FD fd, char *buf, int len)
   return read(fd, buf, len);
 }
  
-void os_ftruncate(OS_FD fd, int len)
+void os_ftruncate(OS_FD fd, int64 len)
 {
   unsigned long cursize;
   if(!fd) failwith("ftruncate32: file is closed");
@@ -79,7 +79,7 @@ int os_getdtablesize()
   return getdtablesize();
 }
 
-int os_getfdsize(OS_FD fd)
+int64 os_getfdsize(OS_FD fd)
 {
   struct stat buf;
 
@@ -89,7 +89,7 @@ int os_getfdsize(OS_FD fd)
   return buf.st_size;
 }
 
-int os_getfilesize(char *path)
+int64 os_getfilesize(char *path)
 {
   struct stat buf;
 

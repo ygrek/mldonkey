@@ -67,8 +67,7 @@ let server_send_push s uid uri =
     Gnutella2.server_send_push s uid uri  
   else
     Gnutella1.server_send_push s uid uri  
-  
-  
+    
 let send_qrt_sequence s =
   let update_table =
     if !new_shared_words then begin

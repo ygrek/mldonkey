@@ -114,7 +114,8 @@ let rename oldname newname =
             Sys.remove newname
       
 external c_seek64 : Unix.file_descr -> int64 -> Unix.seek_command -> int64 =
-  "ml_lseek64" 
+  "unix_lseek_64" 
 external c_getsize64 : string -> int64 = "ml_getsize64"
-external c_ftruncate64 : Unix.file_descr -> int64 -> unit = "ml_truncate64"
+external c_ftruncate64 : Unix.file_descr -> int64 -> unit =
+  "unix_ftruncate_64"
 external c_getdtablesize : unit -> int = "ml_getdtablesize"

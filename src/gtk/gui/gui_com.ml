@@ -84,7 +84,7 @@ let reconnect gui value_reader =
                 (Printexc2.to_string e);
               lprint_newline ();
               lprint_newline ();
-              lprintf "mldonkey_gui was unable to find the IP address of the host [%s]" !!O.hostname; lprint_newline ();
+              lprintf "mlgui was unable to find the IP address of the host [%s]" !!O.hostname; lprint_newline ();
               lprint_newline ();
               
               lprintf "Please, edit the $HOME/.mldonkey_gui.ini, and change the 'hostname' option"; lprint_newline ();

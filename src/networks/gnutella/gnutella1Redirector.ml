@@ -175,7 +175,7 @@ let connect_hostfile _ =
           H.req_user_agent = 
           Printf.sprintf "MLdonkey %s" Autoconf.current_version;
         } in
-      lprintf "Connecting Gnutella2 %s\n" url;
+      lprintf "Connecting Gnutella1 %s\n" url;
       H.wget r parse_hostfile    
       
 let connect _ = 

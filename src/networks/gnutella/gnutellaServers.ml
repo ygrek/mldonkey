@@ -244,7 +244,8 @@ let rec server_parse_header with_accept retry_fake s gconn sock header =
       Buffer.add_string buf "\r\n";
       Buffer.contents buf
     in
-(*    lprintf "CONNECT REQUEST: %s\n" (String.escaped msg);   *)
+    if !verbose_msg_servers then
+      lprintf "CONNECT REQUEST: %s\n" (String.escaped msg); 
     write_string sock msg;
     
     (*
@@ -264,7 +265,8 @@ let rec server_parse_header with_accept retry_fake s gconn sock header =
 
   with
   | e -> 
-      lprintf "DISCONNECT WITH EXCEPTION %s\n" (Printexc2.to_string e);
+      if !verbose_msg_servers then
+        lprintf "DISCONNECT WITH EXCEPTION %s\n" (Printexc2.to_string e);
       Gnutella.disconnect_from_server s
       
 and connect_server with_accept retry_fake s headers =  
@@ -272,11 +274,14 @@ and connect_server with_accept retry_fake s headers =
     Some _ -> ()
   | None -> 
       try
+        if not (Ip.valid s.server_ip) then
+          failwith "Invalid IP for server\n";
         let ip = s.server_ip in
         let port = s.server_port in
 (*        if !verbose_msg_servers then begin
             lprintf "CONNECT TO %s:%d\n" (Ip.to_string ip) port;
-          end;  *)
+end;  *)
+        
         let sock = connect "gnutella to server"
             (Ip.to_inet_addr ip) port
             (fun sock event -> 
@@ -322,7 +327,10 @@ and connect_server with_accept retry_fake s headers =
 Printf.bprintf buf "Accept-Encoding: deflate\r\n"; *)
 (* Other Gnutella headers *)          
               Printf.bprintf buf "X-Query-Routing: 0.1\r\n";
+              Printf.bprintf buf "Pong-Caching: 0.1\r\n";
               Printf.bprintf buf "GGEP: 0.5\r\n"; 
+              Printf.bprintf buf "Hops-Flow: 0.1\r\n"; 
+(*              Printf.bprintf buf "X-Guess: 0.1\r\n";  *)
             end else begin
 (*              lprintf "****** Retry and fake **********\n"; *)
               List.iter (fun (key, value) ->
@@ -337,7 +345,8 @@ Printf.bprintf buf "Accept-Encoding: deflate\r\n"; *)
           Buffer.add_string buf "\r\n";
           Buffer.contents buf
         in
-(*        lprintf "SENDING %s\n" (String.escaped s); *)
+        if !verbose_msg_servers then
+          lprintf "SENDING %s\n" (String.escaped s);
         write_string sock s;
       with _ ->
           Gnutella.disconnect_from_server s
@@ -366,15 +375,34 @@ let try_connect_ultrapeer () =
   connect_server (with_accept || s.server_gnutella2) retry_and_fake s []
 
 (*
-GNUTELLA CONNECT/0.6\013\n
-Listen-IP: 81.100.86.143:6346\013\n
-Remote-IP: 207.5.221.193\013\n
-User-Agent: MLDonkey 2.4-rc6\013\n
-X-Query-Routing: 0.1\013\n
-GGEP: 0.5\013\n
-X-My-Address: 81.100.86.143:6346\013\n
-X-Ultrapeer: False\013\n\013\n
+GNUTELLA CONNECT/0.6
+Listen-IP: 81.100.86.143:6346
+Remote-IP: 207.5.221.193
+User-Agent: MLDonkey 2.4-rc6
+X-Query-Routing: 0.1
+Pong-Caching: 0.1
+GGEP: 0.5
+X-My-Address: 81.100.86.143:6346
+X-Ultrapeer: False
+X-Ultrapeer-Needed: True
+  
+Bearshare:
+==========
+GNUTELLA CONNECT/0.6
+OK X-Ultrapeer: False                                    
+OK User-Agent: BearShare 4.2.5
+Machine: 1,13,510,1,1196
+OK Pong-Caching: 0.1
+OK X-Query-Routing: 0.1
+Hops-Flow: 1.0
+OK Listen-IP: 0.0.0.0:6346
+OK Remote-IP: 24.117.189.175
+OK GGEP: 0.5
+BearChat: 1.0
+FP-Auth-Challenge: YZCOLR2IFSF7WMVLYY54IS4Y5SQY52PM
 
+
+  
   *)
   
 let connect_servers () =

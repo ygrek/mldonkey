@@ -456,6 +456,7 @@ parent.fstatus.location.href='/submit?q=html_mods_style+'+formID.modsStyle.value
                       [
                         strings_of_option_html html_mods_use_relative_availability; 
                         strings_of_option_html html_mods_human_readable; 
+                        strings_of_option_html html_mods_vd_network; 
                         strings_of_option_html html_mods_vd_active_sources; 
                         strings_of_option_html html_mods_vd_age; 
                         strings_of_option_html html_mods_vd_last; 
