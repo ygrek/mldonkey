@@ -512,9 +512,10 @@ TODO list
   * Set 'Connected locations' label.
   * Plugins.
   * Correct display of availability.
-  * Filters.
-  * Remove MD4 computation for shared files.
   * Add sleep and wakeup commands.
+  * More options in GUI
+  * Ask for passwords if they are not set. Check IP addresses too.
+  * Check that imported files are not completely downloaded.
 
 ChangeLog
 =========
