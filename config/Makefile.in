@@ -565,7 +565,7 @@ install:: opt
          fi
 	if test -e mlgui; then \
              rm -f $(prefix)/bin/mlgui; cp -f mlgui $(prefix)/bin/mlgui; \
-             rm -f $(prefix)/bin/mldonkey_gui; ln -s mlgui $(prefix)/bin/mldonkey_gui; \
+             rm -f $(prefix)/bin/mldonkey_gui; cp -f mlgui $(prefix)/bin/mldonkey_gui; \
          fi
 	if test -e mlnet+gui; then \
              rm -f $(prefix)/bin/mlnet+gui; cp -f mlnet+gui $(prefix)/bin/mlnet+gui; \

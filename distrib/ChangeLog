@@ -1,6 +1,9 @@
 ChangeLog	
 =========
 
+2004/01/16: Fabrice
+  * Fixed problem with files.ini when downloading BitTorrent files
+
 2004/01/15: Fabrice
   * Applied Savannah patches #2480, #2481 (emule), #2482 (old GUI)
 

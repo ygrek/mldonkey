@@ -17,14 +17,15 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-
-
-open CommonSwarming
 open Printf2
 open Md4
+open Options
+  
+open CommonGlobals
+open CommonSwarming
 open CommonTypes
 open CommonFile
-open Options
+
 open BTTypes
 open BTOptions
 open BTGlobals
@@ -111,7 +112,9 @@ let value_to_file is_done assocs =
     with _ -> failwith "Bad file_tracker"
   in
   
-  let file_state = get_value "file_state" value_to_state in
+  let file_state = try
+      get_value "file_state" value_to_state 
+    with _ -> FileDownloading in
   
   let file =  
     try
@@ -136,7 +139,7 @@ let value_to_file is_done assocs =
   in
   let file_uploaded = try
       value_to_int64 (List.assoc "file_uploaded" assocs) 
-    with _ -> failwith "Bad file uploaded"
+    with _ -> zero
   in
   file.file_uploaded <- file_uploaded;
   set_file_state file file_state;
