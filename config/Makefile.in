@@ -371,6 +371,10 @@ CDK_CMXA=cdk.cmxa
 MLNET_CMXA=cdk.cmxa common.cmxa client.cmxa core.cmxa driver.cmxa
 MLNET_SRCS= $(MAIN_SRCS)
 
+mlnet+gui_CMXA=cdk.cmxa common.cmxa client.cmxa core.cmxa driver.cmxa \
+  gmisc.cmxa guibase.cmxa gui.cmxa
+mlnet+gui_SRCS=$(MAIN_SRCS)
+
 
 
 #######################################################################
@@ -504,7 +508,7 @@ MLCHAT_CMXA= cdk.cmxa gmisc.cmxa
 MLCHAT_SRCS=  $(CHAT_SRCS) $(CHAT_EXE_SRCS)
 
 
-TARGETS += mldonkey_gui$(EXE)   mldonkey_gui2$(EXE)  mlchat$(EXE) mldonkey_guistarter$(EXE) 
+TARGETS += mldonkey_gui$(EXE)   mldonkey_gui2$(EXE)  mlchat$(EXE) mldonkey_guistarter$(EXE) mlnet+gui$(EXE)
 
 ifeq ("$(DEVEL)", "yes")
 
@@ -675,6 +679,7 @@ EXPAND(mldc+gui,mldc+gui,GTK,mldc+gui)
 EXPAND(mlnap,mlnap,NO,mlnap)
 EXPAND(mlnap+gui,mlnap+gui,GTK,mlnap+gui)
 EXPAND(MLNET,mlnet,NO,MLNET)
+EXPAND(mlnet+gui,mlnet+gui,GTK,mlnet+gui)
 EXPAND(mlgnut,mlgnut,NO,mlgnut)
 EXPAND(mlgnut+gui,mlgnut+gui,GTK,mlgnut+gui)
 EXPAND(mlslsk,mlslsk,NO,mlslsk)

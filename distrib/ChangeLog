@@ -11,6 +11,7 @@ ChangeLog
     * Bandwidth should be displayed correctly in WEB interface: the
        control_ bandwidth should be displayed instead of tcp_ which includes
        interfaces.
+    * Filename: assert failure removed
   - Applied patch #1320
 
 2003/03/22: Simon (v 2.04rc1-9)

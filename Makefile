@@ -371,6 +371,10 @@ CDK_CMXA=cdk.cmxa
 MLNET_CMXA=cdk.cmxa common.cmxa client.cmxa core.cmxa driver.cmxa
 MLNET_SRCS= $(MAIN_SRCS)
 
+mlnet+gui_CMXA=cdk.cmxa common.cmxa client.cmxa core.cmxa driver.cmxa \
+  gmisc.cmxa guibase.cmxa gui.cmxa
+mlnet+gui_SRCS=$(MAIN_SRCS)
+
 
 
 #######################################################################
@@ -504,7 +508,7 @@ MLCHAT_CMXA= cdk.cmxa gmisc.cmxa
 MLCHAT_SRCS=  $(CHAT_SRCS) $(CHAT_EXE_SRCS)
 
 
-TARGETS += mldonkey_gui$(EXE)   mldonkey_gui2$(EXE)  mlchat$(EXE) mldonkey_guistarter$(EXE) 
+TARGETS += mldonkey_gui$(EXE)   mldonkey_gui2$(EXE)  mlchat$(EXE) mldonkey_guistarter$(EXE) mlnet+gui$(EXE)
 
 ifeq ("$(DEVEL)", "yes")
 
@@ -1202,6 +1206,31 @@ mlnet.byte: $(MLNET_OBJS) $(MLNET_CMOS)  $(MLNET_CMAS)
  
 mlnet.static:  $(MLNET_OBJS) $(MLNET_CMXS)  $(MLNET_CMXAS)
 	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(MLNET_OBJS) $(LIBS_opt) $(LIBS_flags)  $(NO_LIBS_flags)  $(NO_STATIC_LIBS_opt) $(MLNET_CMXAS) $(MLNET_CMXS)
+
+
+mlnet+gui_ZOG := $(filter %.zog, $(mlnet+gui_SRCS)) 
+mlnet+gui_MLL := $(filter %.mll, $(mlnet+gui_SRCS)) 
+mlnet+gui_MLY := $(filter %.mly, $(mlnet+gui_SRCS)) 
+mlnet+gui_ML4 := $(filter %.ml4, $(mlnet+gui_SRCS)) 
+mlnet+gui_ML := $(filter %.ml %.mll %.zog %.mly %.ml4, $(mlnet+gui_SRCS)) 
+mlnet+gui_C := $(filter %.c, $(mlnet+gui_SRCS)) 
+mlnet+gui_CMOS=$(foreach file, $(mlnet+gui_ML),   $(basename $(file)).cmo) 
+mlnet+gui_CMXS=$(foreach file, $(mlnet+gui_ML),   $(basename $(file)).cmx) 
+mlnet+gui_OBJS=$(foreach file, $(mlnet+gui_C),   $(basename $(file)).o)    
+
+mlnet+gui_CMXAS := $(mlnet+gui_CMXA)
+mlnet+gui_CMAS=$(foreach file, $(mlnet+gui_CMXAS),   $(basename $(file)).cma)    
+
+TMPSOURCES += $(mlnet+gui_ML4:.ml4=.ml) $(mlnet+gui_MLL:.mll=.ml) $(mlnet+gui_MLY:.mly=.ml) $(mlnet+gui_MLY:.mly=.mli) $(mlnet+gui_ZOG:.zog=.ml) 
+ 
+mlnet+gui: $(mlnet+gui_OBJS) $(mlnet+gui_CMXS) $(mlnet+gui_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(mlnet+gui_OBJS) $(LIBS_opt) $(LIBS_flags) $(GTK_LIBS_opt) $(GTK_LIBS_flags) $(mlnet+gui_CMXAS) $(mlnet+gui_CMXS) 
+ 
+mlnet+gui.byte: $(mlnet+gui_OBJS) $(mlnet+gui_CMOS)  $(mlnet+gui_CMAS)
+	$(OCAMLC) -linkall -o $@  $(mlnet+gui_OBJS) $(LIBS_byte) $(LIBS_flags)  $(GTK_LIBS_byte) $(GTK_LIBS_flags) $(mlnet+gui_CMAS) $(mlnet+gui_CMOS) 
+ 
+mlnet+gui.static:  $(mlnet+gui_OBJS) $(mlnet+gui_CMXS)  $(mlnet+gui_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(mlnet+gui_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) $(mlnet+gui_CMXAS) $(mlnet+gui_CMXS)
 
 
 mlgnut_ZOG := $(filter %.zog, $(mlgnut_SRCS)) 

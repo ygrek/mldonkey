@@ -122,7 +122,7 @@ let path_of_filename filename =
   let filename = String.copy filename in
   let len = String.length filename in
   for i = 0 to len - 1 do
-    if filename.[i] = '\\' then filename.[i] <- slash;
+    if filename.[i] = '\\' then filename.[i] <- '/';
   done;
   let filename = 
     if len > 2 && filename.[1]  = ':' &&
