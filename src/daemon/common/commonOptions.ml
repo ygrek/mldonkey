@@ -146,7 +146,7 @@ let _ =
 
 
 let allow_browse_share = define_option downloads_ini ["allow_browse_share"]
-    "Allow others to browse our share list (0: none, 1: friends only, 2: everyone" int_option 1
+    "Allow others to browse our share list (0: none, 1: friends only, 2: everyone" int_option 2
 
 let is_not_spam = ref (fun _ -> true)
 
@@ -441,6 +441,9 @@ let incoming_directory =
 
 let http_realm = 
   define_option downloads_expert_ini ["http_realm"] "The realm shown when connecting with a WEB browser" string_option "MLdonkey"
+
+let create_mlsubmit =
+  define_option downloads_expert_ini ["create_mlsubmit"] "Should the MLSUBMIT.REG file be created" bool_option true
 
 let set_client_ip = define_option downloads_ini ["client_ip"] 
     "The last IP address used for this client" Ip.option  
@@ -995,6 +998,13 @@ let empty_password user =
 let mlnet_redirector = define_option downloads_expert_ini ["redirector"]
     "IP:port of the network redirector"
     addr_option ("128.93.52.5", 3999)
+
+  (*
+let allow_network_stats = define_option downloads_ini ["allow_network_stats"]
+  "Send ANONYMISED informations about the behavior to generate stats on
+    the whole network and its clients"
+    bool_option true
+  *)
 
 let log_file = define_option downloads_expert_ini ["log_file"]
   "The file in which you want mldonkey to log its debug messages. If you

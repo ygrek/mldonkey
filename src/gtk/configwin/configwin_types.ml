@@ -30,6 +30,7 @@ type string_param = {
     string_f_apply : (string -> unit) ; (** the function to call to apply the new value of the parameter *)
     string_help : string option ; (** optional help string *)
     string_expand : bool ; (** expand or not *)
+    string_password : bool;
   } ;;
 
 (** This type represents a boolean parameter. *)

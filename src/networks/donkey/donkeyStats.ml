@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open AnyEndian
+open LittleEndian
 open Printf2
 open Options
 open BasicSocket (* last_time *)
@@ -27,6 +29,8 @@ open CommonGlobals
 open CommonNetwork
 open CommonMessages
 open CommonInteractive
+  
+open DonkeyOptions
 open DonkeyTypes
 open DonkeyGlobals
 open DonkeyComplexOptions
@@ -487,6 +491,75 @@ let new_print_stats buf o =
       done
     end
 
+let append_out name =
+  open_out_gen [Open_wronly; Open_creat; Open_append; Open_text] 0o666 name
+
+
+  (*
+let save_download_history file = 
+  
+  let buf = Buffer.create 100 in
+
+(* Some opcode for edonkey downloads *)
+  buf_int8 buf 153;         (* opcode = stats *)
+  buf_md4 buf !!client_md4; (* client md4, and NOT IP *)
+
+  let time = Unix.time () in
+  let time = Unix.localtime time in
+  (* date on 5 bytes *)
+  buf_int8 buf time.Unix.tm_hour;
+  buf_int8 buf time.Unix.tm_mday;
+  buf_int8 buf time.Unix.tm_mon;
+  buf_int16 buf time.Unix.tm_year;
+(* ANONYMISED Informations on the downloads: *)
+(*   Send the SHA1 hash of the MD4+size, so that they cannot be recovered, 
+          but they can be used to compare downloads. *)
+  let m = Printf.sprintf "%s%Ld" 
+      (Md4.Md4.direct_to_string file.file_md4) (file_size file) in
+  let m = Md4.Sha1.string m in (* compute SHA1 of the string *)
+(* SENT: 20 bytes *)
+  Buffer.add_string buf (Md4.Sha1.direct_to_string m);
+
+(* Send the magnitude of the size (power of 10) *)
+  let size = ref (file_size file) in
+  let m = ref 0 in
+  while !size <> Int64.zero do
+    incr m;
+    size := !size // (Int64.of_int 10)
+  done;
+(* SENT: 1 byte *)
+  buf_int8 buf !m;
+  
+  let current = ref [] in
+  
+  Intmap.iter (fun _ c ->
+      let location =
+        match c.client_kind with
+          Indirect_location (name, md4) -> 
+            Printf.sprintf "%s%s" name 
+              (Md4.Md4.direct_to_string md4)
+        | Known_location (ip,port) ->
+            Printf.sprintf "%s%d"
+              (Ip.to_string ip) port
+      in
+
+(* ANONYMISATION of the source: we compute the Sha1 digest of the source,
+  which cannot be recovered from this information *)
+      let location = Md4.Sha1.string location in (* compute SHA1 of the string *)
+      current := location :: !current;
+  ) file.file_locations;
+  
+  buf_list (fun buf s ->
+      Buffer.add_string buf (Md4.Sha1.direct_to_string s)
+  ) buf !current;
+
+    
+  let file_history = Filename.concat file_basedir "downloads.stats" in
+  let oc = append_out file_history in
+  output_string oc (Buffer.contents buf);
+  close_out oc
+*)  
+    
 let _ =
   register_commands 
     [
@@ -502,4 +575,6 @@ let _ =
         ""
     ), ":\t\t\t\t\tshow table of download/upload by clients brand";
   ]
+  
+
   

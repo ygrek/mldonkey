@@ -1,6 +1,10 @@
 ChangeLog	
 =========
 
+2003/10/12: Simon (release-2-5-4)
+   * Applied patches #2033 (hide-dirs), #2038 (ocaml-3.07), 
+      #2039 (mlsubmit.reg), #2041 (hide-psswd)
+
 2003/10/10: Simon
    * Removed patch #1765
 	
@@ -20,7 +24,7 @@ ChangeLog
 	DELAYED: #1911 (hidden-chunks)
 
 	
-2003/06/07: Simon (release-2-5-4)
+2003/06/07: Simon (release-2-5-3)
    * Applied patches #1582, #1594, #1598
 
 2003/06/06: 

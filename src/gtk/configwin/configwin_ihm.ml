@@ -323,6 +323,7 @@ class string_param_box param =
   let we = GEdit.entry
       ~editable: param.string_editable
       ~packing: (hbox#pack ~expand: param.string_expand ~padding: 2)
+      ~visibility: ( not param.string_password )
       ()
   in
   let _ = 
@@ -1013,6 +1014,20 @@ let string ?(editable=true) ?(expand=true) ?help ?(f=(fun _ -> ())) label v =
       string_editable = editable ;
       string_f_apply = f ;
       string_expand = expand ;
+      string_password = false;
+    } 
+
+(** Create a password param. *)
+let password ?(editable=true) ?(expand=true) ?help ?(f=(fun _ -> ())) label v =
+  String_param
+    {
+      string_label = label ;
+      string_help = help ;
+      string_value = v ;
+      string_editable = editable ;
+      string_f_apply = f ;
+      string_expand = expand ;
+      string_password = true;
     } 
 
 (** Create a bool param. *)
@@ -1112,6 +1127,7 @@ let text ?(editable=true) ?(expand=true) ?help ?(f=(fun _ -> ())) label v =
       string_editable = editable ;
       string_f_apply = f ;
       string_expand = expand ;
+      string_password = false;
     } 
 
 (** Create a filename param. *)
@@ -1124,6 +1140,7 @@ let filename ?(editable=true) ?(expand=true)?help ?(f=(fun _ -> ())) label v =
       string_editable = editable ;
       string_f_apply = f ;
       string_expand = expand ;
+      string_password = false;
     } 
 
 (** Create a filenames param.*)

@@ -11,6 +11,7 @@ CURRENT_VERSION=2.5
 CURRENT_RELEASE=4
 
 REQUIRED_OCAML=3.06
+
 REQUIRED_LABLGTK=1.2.4
 
 touch install-sh
@@ -175,6 +176,7 @@ else
    OCAMLVERSION=`$OCAMLC -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
    case "$OCAMLVERSION" in
     "$REQUIRED_OCAML"*) ;;
+    "$REQUIRED_OCAML_REG") ;;
     *) echo "Need build"
        BUILD_OCAML=yes;;
    esac
@@ -679,6 +681,7 @@ ARCH=$arch
 
 case "$OCAMLVERSION" in
   3.06) TYPE_FORMAT="";;
+  3.07) TYPE_FORMAT="";;
   *) TYPE_FORMAT="type ('a,'b,'c) ml_format = ('a,'b, 'c,'c) format  type ('a,'b,'c) format = ('a,'b, 'c) ml_format";;
 esac		    
 

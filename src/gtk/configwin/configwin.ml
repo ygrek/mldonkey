@@ -35,6 +35,7 @@ type return_button =
 
 
 let string = Configwin_ihm.string
+let password = Configwin_ihm.password
 let text = Configwin_ihm.text
 let strings = Configwin_ihm.strings
 let list = Configwin_ihm.list

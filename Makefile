@@ -476,7 +476,7 @@ install:: opt
 
 ifeq ("$(COMPILE_GUI)" , "yes")
 
-SUBDIRS += $(SRC_GUI) $(SRC_GUI2) $(CONFIGWIN) $(OKEY) $(GPATTERN) icons/$(ICONS_CHOICE) +lablgtk
+SUBDIRS += $(SRC_GUI) $(SRC_GUI2) $(CONFIGWIN) $(OKEY) $(GPATTERN) icons/$(ICONS_CHOICE) +lablgtk 
 
 GTK_LIBS_byte=-I +lablgtk $(LABLGL_CMA) lablgtk.cma
 GTK_LIBS_opt=-I +lablgtk  $(LABLGL_CMXA) lablgtk.cmxa
@@ -1968,9 +1968,9 @@ pa_zog.cma: $(PA_ZOG_FILES)
 $(TMPSOURCES): pa_zog.cma
 
 depend:  pa_zog.cma $(LIB)/http_lexer.ml $(TMPSOURCES) $(TMPFILES)
-	$(OCAMLDEP) $(INCLUDES) *.ml *.mli > .depend
+	$(OCAMLDEP) $(patsubst -I +lablgtk,,$(INCLUDES)) *.ml *.mli > .depend
 	(for i in $(SUBDIRS); do \
-		$(OCAMLDEP) $(INCLUDES) $$i/*.ml $$i/*.mli  >> .depend; \
+		$(OCAMLDEP) $(patsubst -I +lablgtk,,$(INCLUDES)) $$i/*.ml $$i/*.mli  >> .depend; \
 	done)
 
 $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/Makefile: patches/ocamlopt-$(REQUIRED_OCAML).tar.gz

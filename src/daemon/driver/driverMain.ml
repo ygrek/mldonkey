@@ -453,7 +453,7 @@ let _ =
           exit 2
     end;
   
-  save_mlsubmit_reg ();
+  if !!create_mlsubmit then save_mlsubmit_reg ();
   DriverInteractive.save_config ();
   
   Unix32.max_cache_size := MlUnix.max_filedescs

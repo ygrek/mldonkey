@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open AnyEndian
+open LittleEndian
 open Printf2
 open CommonOptions
 open BasicSocket  
@@ -100,7 +102,9 @@ support the charge, at least, currently. *)
                   TcpBufferedSocket.close sock Closed_for_timeout
               | _ -> ())
         in
+
         TcpBufferedSocket.set_rtimeout sock 30.;
+        
         let to_read = ref [] in
         set_reader sock (cut_messages (fun opcode s ->
               lprintf "redirector info received\n";

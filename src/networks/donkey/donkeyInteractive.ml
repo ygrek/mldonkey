@@ -94,9 +94,8 @@ let load_server_met filename =
     ) ss;
     List.length ss
   with e ->
-      lprintf "Exception %s while loading %s" (Printexc2.to_string e)
+      lprintf "Exception %s while loading %s\n" (Printexc2.to_string e)
       filename;
-      lprint_newline ();
       0
 
 let already_done = Failure "File already downloaded (use 'force_download' if necessary)"
@@ -123,15 +122,15 @@ let really_query_download filenames size md4 location old_file absents =
             Unix32.file_exists temp_file) then
           (try 
               if !verbose then begin
-                  lprintf "Renaming from %s to %s" filename
-                    temp_file; lprint_newline ();
+                  lprintf "Renaming from %s to %s\n" filename
+                    temp_file; 
                 end;
               Unix2.rename filename temp_file;
               Unix.chmod temp_file 0o644;
               with e -> 
-                lprintf "Could not rename %s to %s: exception %s"
+                lprintf "Could not rename %s to %s: exception %s\n"
                   filename temp_file (Printexc2.to_string e);
-                lprint_newline () );        
+                 );        
   end;
   
   let file = new_file FileDownloading temp_file md4 size true in
@@ -246,9 +245,8 @@ let load_prefs filename =
     let t = P.read s in
     t.P.client_tags, t.P.option_tags
   with e ->
-      lprintf "Exception %s while loading %s" (Printexc2.to_string e)
+      lprintf "Exception %s while loading %s\n" (Printexc2.to_string e)
       filename;
-      lprint_newline ();
       [], []
       
 let import_temp temp_dir =  
@@ -267,8 +265,7 @@ let import_temp temp_dir =
             List.iter (fun tag ->
                 match tag with
                   { tag_name = "filename"; tag_value = String s } ->
-                    lprintf "Import Donkey %s" s; 
-                    lprint_newline ();
+                    lprintf "Import Donkey %s\n" s; 
                     
                     filenames := s :: !filenames;
                 | { tag_name = "size"; tag_value = Uint64 v } ->
@@ -301,8 +298,8 @@ let import_config dirname =
       | { tag_name = "temp"; tag_value = String s } ->
           if Sys.file_exists s then (* be careful on that *)
             temp_dir := s
-          else (lprintf "Bad temp directory, using default";
-              lprint_newline ();)
+          else (lprintf "Bad temp directory, using default\n";
+              )
       | _ -> ()
   ) ot;
 
@@ -658,8 +655,8 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+renameTextOut+'\\\"';
                       query_download names size md4 None None None true;
                       recover_md4s md4
               with e ->
-                  lprintf "exception %s in recover_temp"
-                    (Printexc2.to_string e); lprint_newline ();
+                  lprintf "exception %s in recover_temp\n"
+                    (Printexc2.to_string e); 
         ) files;
         "done"
     ), ":\t\t\t\trecover lost files from temp directory";
@@ -740,9 +737,12 @@ let _ =
       DonkeySources.recompute_ready_sources ()       );
   file_ops.op_file_pause <- (fun file -> ()  );
   file_ops.op_file_commit <- (fun file new_name ->
+      
+(*      DonkeyStats.save_download_history file; *)
+      
       if not (List.mem file.file_md4 !!old_files) then
         old_files =:= file.file_md4 :: !!old_files;
-      lprintf "REMEMBER SHARE FILE INFO %s" new_name; lprint_newline (); 
+      lprintf "REMEMBER SHARE FILE INFO %s\n" new_name; 
       DonkeyShare.remember_shared_info file new_name
   );
   network.op_network_connected <- (fun _ ->
@@ -817,8 +817,7 @@ let _ =
           } in
         v
       with e ->
-          lprintf "Exception %s in op_file_info" (Printexc2.to_string e);
-          lprint_newline ();
+          lprintf "Exception %s in op_file_info\n" (Printexc2.to_string e);
           raise e
           
   )
@@ -959,9 +958,9 @@ let _ =
       Hashtbl.remove files_by_md4 file.file_md4;
       current_files := List2.removeq file !current_files;
       (try  Unix32.remove (file_fd file)  with e -> 
-            lprintf "Sys.remove %s exception %s" 
+            lprintf "Sys.remove %s exception %s\n" 
             (file_disk_name file)
-            (Printexc2.to_string e); lprint_newline ());
+            (Printexc2.to_string e); );
       if !!keep_cancelled_in_old_files &&
         not (List.mem file.file_md4 !!old_files) then
         old_files =:= file.file_md4 :: !!old_files;
@@ -1009,7 +1008,7 @@ let _ =
       | Some files -> 
           List2.tail_map (fun r -> "", as_result r.result_result) files);
   client_ops.op_client_browse <- (fun c immediate ->
-      lprintf "*************** should browse  ***********"; lprint_newline (); 
+      lprintf "*************** should browse  ***********\n"; 
       match c.client_sock with
       | Some sock    ->
 (*
@@ -1023,10 +1022,8 @@ lprint_newline ();
             let module C = M.ViewFiles in
             M.ViewFilesReq C.t);          
       | _ -> 
-          lprintf "****************************************";
-          lprint_newline ();
-          lprintf "       TRYING TO CONTACT FRIEND         ";
-          lprint_newline ();
+          lprintf "****************************************\n";
+          lprintf "       TRYING TO CONTACT FRIEND         \n";
           
           reconnect_client c
   );
@@ -1230,18 +1227,18 @@ let _ =
 
 let _ =
   add_web_kind "server.met" (fun filename ->
-      lprintf "FILE LOADED"; lprint_newline ();
+      lprintf "FILE LOADED\n"; 
       let n = load_server_met filename in
       lprintf "%d SERVERS ADDED" n; lprint_newline ();    
   );
   add_web_kind "servers.met" (fun filename ->
-      lprintf "FILE LOADED"; lprint_newline ();
+      lprintf "FILE LOADED\n"; 
       let n = load_server_met filename in
-      lprintf "%d SERVERS ADDED" n; lprint_newline ();    
+      lprintf "%d SERVERS ADDED\n" n; 
   );
   add_web_kind "comments.met" (fun filename ->
       DonkeyIndexer.load_comments filename;
-      lprintf "COMMENTS ADDED"; lprint_newline ();   
+      lprintf "COMMENTS ADDED\n"; 
   );
   
   

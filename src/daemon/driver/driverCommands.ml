@@ -708,7 +708,7 @@ the name between []"
                 incr counter;
                 
                 let ed2k = Printf.sprintf "ed2k://|file|%s|%s|%s|/" 
-                    impl.impl_shared_codedname 
+                    (Filename.basename impl.impl_shared_codedname)
                     (Int64.to_string impl.impl_shared_size)
                   (Md4.to_string impl.impl_shared_id) in
                 
@@ -719,12 +719,12 @@ the name between []"
                   ("", "sr ar", Printf.sprintf "%d" impl.impl_shared_requests);
                   ("", "sr ar", size_of_int64 impl.impl_shared_uploaded);
                   ("", "sr", Printf.sprintf "\\<a href=\\\"%s\\\"\\>%s\\</a\\>" 
-                      ed2k impl.impl_shared_codedname) ];
+                      ed2k (Filename.basename impl.impl_shared_codedname)) ];
                 Printf.bprintf buf "\\</tr\\>\n";
               end
             else
               Printf.bprintf buf "%-50s requests: %8d bytes: %10s\n"
-                impl.impl_shared_codedname impl.impl_shared_requests
+                (Filename.basename impl.impl_shared_codedname) impl.impl_shared_requests
                 (Int64.to_string impl.impl_shared_uploaded);
         ) list;
         

@@ -242,24 +242,25 @@ let propagate_working_servers servers peers =
                 total_shared := 
                 Int64.add !total_shared i.S.impl_shared_size
             );
-
+            
             buf_int64 buf !total_shared;
             buf_int64 buf !total_uploaded;
-            
+
 (* Overnet peers *)
-	    buf_int buf (List.length peers);
+            buf_int buf (List.length peers);
             List.iter (fun (ip,port) -> 
                 buf_ip buf ip; buf_int16 buf port) peers;
 
 (* Statistics for Supernode creation *)
-	    buf_int16 buf !!max_hard_upload_rate;
-	    buf_int16 buf !!max_hard_download_rate;
-	    buf_int buf (compute_lost_byte upload_control);
-	    buf_int buf (compute_lost_byte download_control);
-
+            buf_int16 buf !!max_hard_upload_rate;
+            buf_int16 buf !!max_hard_download_rate;
+            buf_int buf (compute_lost_byte upload_control);
+            buf_int buf (compute_lost_byte download_control);
+            
             let s = Buffer.contents buf in    
             let name, port = !!mlnet_redirector in
-            UdpSocket.write propagation_socket s (Ip.from_name name) port
+            UdpSocket.write propagation_socket s (Ip.from_name name) port;
+            
           with e ->
               lprintf "Exception %s in udp_sendonly" (Printexc2.to_string e);
               lprint_newline () 
