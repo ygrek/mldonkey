@@ -12,14 +12,16 @@
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is the MLdonkey protocol handler 1.3.
+ * The Original Code is the MLdonkey protocol handler 1.4.
  *
  * The Initial Developer of the Original Code is
  * Simon Peter <dn.tlp@gmx.net>.
- * Portions created by the Initial Developer are Copyright (C) 2003
+ * Portions created by the Initial Developer are Copyright (C) 2003, 2004
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ * Sven Koch
+ * Len Walter <len@unsw.edu.au>
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -75,7 +77,7 @@ const WND_WIDTH = 320;
 const WND_HEIGHT = 200;
 
 // configuration (and defaults)
-cfgUser   = "admin";
+cfgUser   = "";
 cfgPass   = "";
 cfgServer = "localhost";
 cfgPort   = "4080";
@@ -106,9 +108,11 @@ MLdonkeyProtocolHandler.prototype.newURI = function(aSpec, aCharset, aBaseURI)
 
 MLdonkeyProtocolHandler.prototype.newChannel = function(aURI)
 {
-    // rewrite the URI to a http URL to the mldonkey server
-    var myURI = "http://" + cfgUser + ":" + cfgPass + "@" + cfgServer + ":" +
-      cfgPort + "/submit?q=dllink+" + encodeURIComponent(decodeURI(aURI.spec));
+    // rewrite the URI into a http URL to the mldonkey server
+    var myURI = "http://";
+    if(cfgUser != "") myURI += cfgUser + ":" + cfgPass + "@";
+    myURI += cfgServer + ":" + cfgPort + "/submit?q=dllink+" +
+    encodeURIComponent(decodeURI(aURI.spec));
 
     // open up a window with our newly generated http URL
     var wwatch = Components.classes[NS_WINDOWWATCHER_CONTRACTID].getService(nsIWindowWatcher);

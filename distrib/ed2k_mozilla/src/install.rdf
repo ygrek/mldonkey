@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+
+<RDF xmlns="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+     xmlns:em="http://www.mozilla.org/2004/em-rdf#">
+
+  <Description about="urn:mozilla:install-manifest">
+    <em:id>{bc72206d-b3ce-4b49-88b9-d59b388a0cde}</em:id>
+    <em:version>1.4</em:version>
+
+    <!-- Target Application this extension can install into,
+        with minimum and maximum supported versions. --> 
+    <em:targetApplication>
+      <Description>
+        <em:id>{ec8030f7-c20a-464f-9b0e-13a3a9e97384}</em:id>
+        <em:minVersion>0.7</em:minVersion>
+        <em:maxVersion>1.2</em:maxVersion>
+      </Description>
+    </em:targetApplication>
+
+    <!-- Front End MetaData -->
+    <em:name>Mozilla MLdonkey Protocol Handler</em:name>
+    <em:description>Mozilla/Firefox MLdonkey Protocol Handler</em:description>
+    <em:creator>Simon Peter</em:creator>
+    <em:contributor>Len Walter</em:contributor>
+    <em:contributor>Sven Koch</em:contributor>
+    <em:homepageURL>http://www.informatik.uni-oldenburg.de/~dyna/mldonkey/</em:homepageURL>
+  </Description>
+</RDF>
