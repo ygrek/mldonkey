@@ -1,4 +1,4 @@
-(* Copyright 2002 b8_fange *)
+(* Copyright 2001, 2002 b8_bavard, b8_fee_carabine, INRIA *)
 (*
     This file is part of mldonkey.
 
@@ -16,12 +16,3 @@
     along with mldonkey; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
-
-open Gui_im
-
-let _ =
-  quit_on_close := true;
-  main_window#window#show ();
-  BasicSocket.loop ()
-;;
-  
