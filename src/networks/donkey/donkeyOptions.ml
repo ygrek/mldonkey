@@ -171,6 +171,10 @@ let mldonkey_md4 md4 =
   md4.[14] <- Char.chr 111;
   Md4.direct_of_string md4
 
+
+let server_client_md4 = define_option donkey_ini ["server_client_md4"]
+    "The MD4 of this client" Md4.option ( (Md4.random ())) 
+
 let client_md4 = define_option donkey_ini ["client_md4"]
     "The MD4 of this client" Md4.option (mldonkey_md4 (Md4.random ()))
   

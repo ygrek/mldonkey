@@ -230,7 +230,7 @@ let client_to_server s t sock =
       ) s.server_tags;
       printf_char 'S';
       set_server_state s (Connected (-1));
-      add_connected_server s;
+      (* add_connected_server s; *)
       
 (* Send localisation queries to the server. We are limited by the maximalù
 number of queries that can be sent per minute (for lugdunum, it's one!).
@@ -389,12 +389,13 @@ let connect_server s =
             let module M = DonkeyProtoServer in
             let module C = M.Connect in
             M.ConnectReq {
-              C.md4 = !!client_md4;
+              C.md4 = !!server_client_md4;
               C.ip = client_ip (Some sock);
               C.port = !client_port;
               C.tags = !client_tags;
             }
           );
+    add_connected_server s;
     with e -> 
 (*
       lprintf "%s:%d IMMEDIAT DISCONNECT "

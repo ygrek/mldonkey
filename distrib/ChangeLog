@@ -11,9 +11,11 @@ ChangeLog
 	#1748 (emule-bugfix), #1753 (max-conn-servers),
 	#1765 (limit-reqs DANGER), #1801 (http-proxy),
 	#1843 (message-file), #1862 (download-amount),
-	#2024 (filenames), #2025 (friends-slots)
-
+	#2024 (filenames), #2025 (friends-slots),
+	suxx-lugdunum-fix-v2
+	
 	DELAYED: #1911 (hidden-chunks)
+
 	
 2003/06/07: Simon (release-2-5-4)
    * Applied patches #1582, #1594, #1598

@@ -405,8 +405,10 @@ let identify_client_brand c =
   if c.client_brand = Brand_unknown then
     let md4 = Md4.direct_to_string c.client_md4 in
     c.client_brand <- (
-      if md4.[5] = Char.chr 14 && md4.[14] = Char.chr 111 then
-	Brand_newemule
+      if List.exists (fun s -> Ip.equal c.client_ip s.server_ip) (connected_servers ()) then
+       Brand_server
+      else if md4.[5] = Char.chr 14 && md4.[14] = Char.chr 111 then
+       Brand_newemule
       else if md4.[5] = 'M' && md4.[14] = 'L' then
         Brand_mldonkey2
     else
@@ -1730,14 +1732,29 @@ let read_first_message overnet challenge m sock =
             C.left_bytes = left_bytes;
           }
         else
+	begin
+	 if (c.client_brand == Brand_server) then begin
+          M.ConnectReplyReq {
+            C.md4 = !!server_client_md4;
+            C.ip = client_ip (Some sock);
+            C.port = !client_port;
+            C.tags = !client_tags;
+            C.server_info = t.CR.server_info;
+            C.left_bytes = left_bytes; 
+          }
+	 end
+	 else
+	 begin
           M.ConnectReplyReq {
             C.md4 = !!client_md4;
             C.ip = client_ip (Some sock);
             C.port = !client_port;
             C.tags = !client_tags;
             C.server_info = t.CR.server_info;
-            C.left_bytes = left_bytes;
+            C.left_bytes = left_bytes; 
           }
+	 end;
+	end;
       );
 
       init_client_connection c sock;
