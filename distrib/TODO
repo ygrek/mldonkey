@@ -124,3 +124,61 @@ GUI:
             saw it complete three days ago
          --/8d : idem, but we have never seen it complete
 
+
+***********************************************************************
+
+   And bug reports
+
+***********************************************************************
+Fasttrack
+=========
+FT not respecting max sources per file settings
+http://savannah.nongnu.org/bugs/?func=detailitem&item_id=3761
+
+
+GUI bugs
+========
+"max hits" doesn't work
+http://savannah.nongnu.org/bugs/index.php?func=detailitem&item_id=3675
+
+Source-state error in GUI
+http://savannah.nongnu.org/bugs/?func=detailitem&item_id=2443
+
+Commited file is not removed from GUI
+http://savannah.nongnu.org/bugs/?func=detailitem&item_id=3705
+
+Right click to file option save doesn't show all file names
+http://savannah.nongnu.org/bugs/?func=detailitem&item_id=3179
+
+"old" gtk gui column sizes
+http://savannah.nongnu.org/bugs/?func=detailitem&item_id=6917
+
+
+HTML_mods bugs
+==============
+Cancel and Pause-"Feature" at same time
+http://savannah.nongnu.org/bugs/?func=detailitem&item_id=3227
+
+
+Requests for GUI enhancements
+=============================
+Change the serach-for field into a combo box
+http://savannah.nongnu.org/bugs/index.php?func=detailitem&item_id=3445
+
+Remember current tab on exit
+http://savannah.nongnu.org/bugs/index.php?func=detailitem&item_id=3476
+
+Better GUI for identifying what files are in good states
+http://savannah.nongnu.org/bugs/index.php?func=detailitem&item_id=4316
+
+ed2k-links of all files available (might be best for html_mods)
+https://savannah.nongnu.org/bugs/index.php?func=detailitem&item_id=4378
+
+
+Others
+======
+Wrong filename used when downloading ed2k links? (Patch attached)
+http://savannah.nongnu.org/bugs/index.php?func=detailitem&item_id=4080
+
+Handling of foreign characters
+http://savannah.nongnu.org/bugs/index.php?func=detailitem&item_id=4154
