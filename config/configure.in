@@ -574,7 +574,8 @@ if test "$IM" = "yes"; then
 fi
 
 if test "$PTHREAD_LIBS" = "no"; then
-  echo "Dont use threads"
+ PTHREAD_LIBS="" 
+ echo "Dont use threads"
 else
   ACX_PTHREAD
 fi
