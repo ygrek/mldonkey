@@ -1,6 +1,9 @@
 ChangeLog	
 =========
 
+2003/11/19: Fabrice
+   * Modified to compile with ocaml-3.07
+
 2003/11/17: Fabrice
    * Applied patches
       - GUI: #2080-#2087

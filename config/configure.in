@@ -10,9 +10,10 @@ echo $CONFIG_ARGS
 CURRENT_VERSION=2.5
 CURRENT_RELEASE=4
 
-REQUIRED_OCAML=3.06
+REQUIRED_OCAML=3.07
+DOWNLOAD_OCAML=3.07pl2
 
-REQUIRED_LABLGTK=1.2.4
+REQUIRED_LABLGTK=1.2.6
 
 touch install-sh
 
@@ -79,7 +80,7 @@ AC_ARG_ENABLE(bittorrent, [--disable-bittorrent:       allows you to remove supp
 
 AC_ARG_ENABLE(donkey, [--disable-donkey:       allows you to remove support for eDonkey], [DONKEY="$enableval"])
 
-AC_ARG_ENABLE(ocamlver, [--enable-ocamlver=3.06:       allows you to change the required version of ocaml], [REQUIRED_OCAML="$enableval"])
+AC_ARG_ENABLE(ocamlver, [--enable-ocamlver=3.07:       allows you to change the required version of ocaml], [REQUIRED_OCAML="$enableval"])
 
 AC_ARG_ENABLE(gui, [--disable-gui:       allows you to remove the GUI], [BUILD_GUI="$enableval"])
 
@@ -151,7 +152,7 @@ case "$host" in
   powerpc-*-linux*)             arch=power; model=ppc; system=elf;;
   powerpc-*-rhapsody*)          arch=power; model=ppc; system=rhapsody;;
   powerpc-*-darwin*)            arch=power; model=ppc; system=rhapsody
-    REQUIRED_OCAML=3.06+27
+    REQUIRED_OCAML=3.07
     
     echo "***************************************************"
     echo
@@ -179,6 +180,8 @@ else
    OCAMLVERSION=`$OCAMLC -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
    case "$OCAMLVERSION" in
     "$REQUIRED_OCAML"*) ;;
+    3.06*);;
+    3.07*);;
     "$REQUIRED_OCAML_REG") ;;
     *) echo "Need build"
        BUILD_OCAML=yes;;
@@ -190,7 +193,7 @@ if test "$BUILD_OCAML" = "yes"; then
   AC_CHECK_FILE("$LOCAL_OCAML"/ocamlc.opt, [
     OCAMLVERSION=`$LOCAL_OCAML/ocamlc.opt -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
    case "$OCAMLVERSION" in
-    "$REQUIRED_OCAML"*)
+    "$REQUIRED_OCAML"* | 3.06*)
        BUILD_OCAML=no
        OCAMLC=$LOCAL_OCAML/ocamlc.opt
        ac_cv_prog_OCAMLC=$LOCAL_OCAML/ocamlc.opt
@@ -220,21 +223,21 @@ if test "$BUILD_OCAML" = "yes"; then
   case "$i" in
    y* | Y*) 
       cd $PATCH_DIR
-      if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then
+      if test ! -f ocaml-"$DOWNLOAD_OCAML".tar.gz; then
         echo Downloading ...
 
-#  http://pauillac.inria.fr/caml/distrib/ocaml-"$REQUIRED_OCAML"/ocaml-"$REQUIRED_OCAML".tar.gz
+        $WGET        http://pauillac.inria.fr/caml/distrib/ocaml-"$REQUIRED_OCAML"/ocaml-"$DOWNLOAD_OCAML".tar.gz
 
-        $WGET  http://savannah.nongnu.org/download/mldonkey/tools/ocaml-"$REQUIRED_OCAML".tar.gz
+#        $WGET  http://savannah.nongnu.org/download/mldonkey/tools/ocaml-"$REQUIRED_OCAML".tar.gz
 #        $WGET  http://pauillac.inria.fr/~lefessan/mldonkey/ocaml-"$REQUIRED_OCAML".tar.gz
       fi
-      if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then exit 1; fi
+      if test ! -f ocaml-"$DOWNLOAD_OCAML".tar.gz; then exit 1; fi
 
       echo Uncompressing ...
       mkdir -p $BUILD_DIR
       cd $BUILD_DIR
       rm -rf ocaml-"$REQUIRED_OCAML"
-      gzip -cd $PATCH_DIR/ocaml-"$REQUIRED_OCAML".tar.gz | tar vxf -
+      gzip -cd $PATCH_DIR/ocaml-"$DOWNLOAD_OCAML".tar.gz | tar vxf -
       cd ocaml-"$REQUIRED_OCAML"
       if test -f $PATCH_DIR/ocaml-"$REQUIRED_OCAML".patch; then
         echo Patching ...
@@ -251,6 +254,11 @@ if test "$BUILD_OCAML" = "yes"; then
       $GNU_MAKE world opt opt.opt
       echo Installing ...
       $GNU_MAKE install
+      if ! test -f $LOCAL_DIR/lib/ocaml/threads; then
+        if ! test -f $LOCAL_DIR/lib/ocaml/vmthreads; then
+          ln -s vmthreads  $LOCAL_DIR/lib/ocaml/threads
+        fi
+      fi
       cd $BUILD_DIR
       rm -rf ocaml-"$REQUIRED_OCAML"
       cd $CONFIG_DIR
@@ -311,7 +319,7 @@ OCAMLVERSION=`$OCAMLC -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
 echo "ocamlc version is $OCAMLVERSION"
 
 case "$OCAMLVERSION" in
- "$REQUIRED_OCAML"*) ;;
+ "$REQUIRED_OCAML"* | 3.06* ) ;;
  *) 
   echo "********  Version $REQUIRED_OCAML of Objective-Caml is required  *********" 1>&2; 
   echo "*******  Check http://ocaml.inria.fr/  ********" 1>&2; 
@@ -683,8 +691,7 @@ esac
 ARCH=$arch
 
 case "$OCAMLVERSION" in
-  3.06) TYPE_FORMAT="";;
-  3.07) TYPE_FORMAT="";;
+  3.06* | 3.07* ) TYPE_FORMAT="";;
   *) TYPE_FORMAT="type ('a,'b,'c) ml_format = ('a,'b, 'c,'c) format  type ('a,'b,'c) format = ('a,'b, 'c) ml_format";;
 esac		    
 
