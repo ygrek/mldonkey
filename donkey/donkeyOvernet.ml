@@ -35,7 +35,9 @@ open DonkeyGlobals
 open DonkeyOptions
 open DonkeyMftp
 open DonkeyProtoOvernet
-    
+
+let publish_implemented = false
+  
 module PeerOption = struct
     
     let value_to_peer v = 
@@ -305,24 +307,26 @@ let recover_file (file : DonkeyTypes.file) =
         ignore (create_search (FileSearch file) file.file_md4)
   
 let publish_file (file : DonkeyTypes.file) = 
-  if !!overnet_search_sources then begin
-    try
-      let s = Hashtbl.find  overnet_searches file.file_md4 in
-      s.search_publish_file <- true
-    with _ ->
-        let s = create_search (FileSearch file) file.file_md4 in
-        s.search_publish_file <- true
-    end;
-  if !!overnet_search_keyword then begin
-      let index_string w =
-        let s = create_keyword_search w in
-        s.search_publish_files <- file :: s.search_publish_files;
-        ()
-      in
-      List.iter (fun name ->
-          List.iter index_string (String2.stem name)
-      ) file.file_filenames;
+  if publish_implemented then begin
+      if !!overnet_search_sources then begin
+          try
+            let s = Hashtbl.find  overnet_searches file.file_md4 in
+            s.search_publish_file <- true
+          with _ ->
+              let s = create_search (FileSearch file) file.file_md4 in
+              s.search_publish_file <- true
+        end;
+      if !!overnet_search_keyword then begin
+          let index_string w =
+            let s = create_keyword_search w in
+            s.search_publish_files <- file :: s.search_publish_files;
+            ()
+          in
+          List.iter (fun name ->
+              List.iter index_string (String2.stem name)
+          ) file.file_filenames;
 (* We should also probably index of tags fields *)
+        end
     end
     
 let recover_all_files () =
@@ -331,6 +335,12 @@ let recover_all_files () =
         if file_state file = FileDownloading then
           recover_file file          
     ) !DonkeyGlobals.current_files
+
+let ip_of_udp_packet p =
+  match p.UdpSocket.addr with
+    Unix.ADDR_INET (inet, port) ->
+      Ip.of_inet_addr inet
+  | _ -> assert false
     
 let udp_client_handler t p =
   match t with
@@ -339,6 +349,29 @@ let udp_client_handler t p =
         let peers = List.rev peers in
         match peers with
           peer :: tail ->
+            
+            let other_ip = ip_of_udp_packet p in
+            
+            if !!verbose then begin
+                let rec iteri i list =
+                  match list with
+                    [] -> 
+                      Printf.printf "NO OWN IP ADDRESS IN PACKET"; 
+                      print_newline ();
+                  | p :: tail ->
+                      if p.peer_ip = other_ip then begin
+                          Printf.printf "PEER ADDRESS IS %d" i; print_newline ();
+                        end
+                      else 
+                        iteri (i+1) tail
+                in
+                iteri 0 peers;
+              end;            
+            
+            
+            if Ip.valid peer.peer_ip then 
+              peer.peer_ip <- other_ip;
+            
             add_peer peer;
             peer.peer_last_msg <- last_time ();
             connected_peers := (peer, last_time ()) :: !connected_peers;
@@ -364,7 +397,7 @@ let udp_client_handler t p =
             ) overnet_searches;
         | _ -> ()
       end
-  
+      
   | OvernetSearchReply (md4, peers) ->
       begin
         try

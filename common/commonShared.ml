@@ -101,6 +101,11 @@ let update_shared_num impl =
       shared_must_update (as_shared impl);
     end
 
+let replace_shared old_impl impl =
+  H.remove shareds_by_num (as_shared old_impl);
+  impl.impl_shared_num <- old_impl.impl_shared_num;
+  shared_must_update (as_shared impl)
+    
 let shared_remove impl =
   H.remove shareds_by_num (as_shared impl)
     

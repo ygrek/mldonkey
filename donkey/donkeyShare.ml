@@ -32,7 +32,7 @@ open CommonOptions
 open DonkeyComplexOptions
 open DonkeyGlobals
   
-let must_share_file file =
+let must_share_file file has_old_impl =
   match file.file_shared with
   | Some _ -> ()
   | None ->
@@ -48,10 +48,13 @@ let must_share_file file =
           impl_shared_val = file;
           impl_shared_requests = 0;
         } in
-      update_shared_num impl;
-      file.file_shared <- Some impl
+      file.file_shared <- Some impl;
+      match has_old_impl with
+        None -> update_shared_num impl
+      | Some old_impl -> replace_shared old_impl impl
 
-let new_file_to_share sh =
+
+let new_file_to_share sh old_impl =
   try
 (* How do we compute the total MD4 of the file ? *)
     
@@ -77,7 +80,7 @@ let new_file_to_share sh =
     in
     
     let file = new_file FileShared sh.sh_name md4 sh.sh_size false in
-    must_share_file file;
+    must_share_file file old_impl;
     file.file_md4s <- md4s;
     let sh_name = Filename.basename sh.sh_name in
     if not (List.mem sh_name file.file_filenames) then begin
@@ -167,7 +170,7 @@ let check_shared_files () =
             print_newline ();
             Hashtbl.add shared_files_info sh.shared_name s;
             known_shared_files =:= s :: !!known_shared_files;
-            new_file_to_share s;
+            new_file_to_share s (Some  sh.shared_shared);
             shared_remove  sh.shared_shared;
             if !shared_files = [] then begin
 (*                  Printf.printf "Saving shared files"; print_newline (); *)
@@ -207,7 +210,7 @@ Printf.printf "Searching %s" fullname; print_newline ();
                 Printf.printf "USING OLD MD4s for %s" fullname;
                 print_newline (); 
               end;
-            new_file_to_share s
+            new_file_to_share s None
           end else begin
             if !!verbose then begin                
                 Printf.printf "Shared file %s has been modified" fullname;
@@ -264,3 +267,5 @@ let remember_shared_info file new_name =
           (Printexc.to_string e);
         print_newline ()
         
+let must_share_file file = must_share_file file None
+  

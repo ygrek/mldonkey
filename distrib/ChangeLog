@@ -1,6 +1,14 @@
 ChangeLog	
 =========
 
+2002/10/15: mldonkey
+  - fix: files should not appear twice anymore in upload panel (files whose
+      md4s have been computed replace [are not added anymore to] their
+      corresponding temporary shared file).
+  - fix: added must_write in udpSocket.ml when bandwidth controler is used
+      (UDP packets were not sent anymore...)
+  - fix: upload not more than the bandwidth each second
+
 2002/10/14: mldonkey
   - add: internationalisation
       * envirronment variable MLDONKEY_GUI_MESSAGES

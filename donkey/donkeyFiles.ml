@@ -372,7 +372,8 @@ module NewUpload = struct
     let remaining_bandwidth = ref 0    
     let total_bandwidth = ref 0    
     let complete_bandwidth = ref 0
-    let counter = ref 0    
+    let counter = ref 1    
+    let sent_bytes = Array.create 10 0
     
     let rec send_small_block c sock file begin_pos len_int = 
 (*      let len_int = Int32.to_int len in *)
@@ -541,15 +542,16 @@ Divide the bandwidth between the clients
           upload_to_one_client ();
           fifo_uploads (n-1)
         end
-
+    
     let rec next_uploads () =
       let old_remaining_bandwidth = !remaining_bandwidth in
       let len = Fifo.length upload_clients in
       fifo_uploads len;
       if !remaining_bandwidth < old_remaining_bandwidth then
         next_uploads ()
-      
+    
     let next_uploads () =
+      sent_bytes.(!counter-1) <- sent_bytes.(!counter-1) - !remaining_bandwidth;
       if verbose_upload then begin
           Printf.printf "Left %d" !remaining_bandwidth; print_newline ();
         end;
@@ -566,11 +568,27 @@ Divide the bandwidth between the clients
             end;
           remaining_bandwidth := 0          
         end;
-      remaining_bandwidth := mini (mini (maxi (!remaining_bandwidth + !total_bandwidth / 10) 10000) !total_bandwidth) !complete_bandwidth;
+      
+      let last_sec = ref 0 in
+      for i = 0 to 9 do
+        last_sec := !last_sec + sent_bytes.(i)
+      done;
+      
+      if verbose_upload then begin
+          Printf.printf "last sec: %d/%d (left %d)" !last_sec !total_bandwidth
+            (!total_bandwidth - !last_sec);
+          print_newline ();
+        end;
+      
+      remaining_bandwidth := mini (mini (mini 
+            (maxi (!remaining_bandwidth + !total_bandwidth / 10) 10000) 
+          !total_bandwidth) !complete_bandwidth) 
+      (!total_bandwidth - !last_sec);
       complete_bandwidth := !complete_bandwidth - !remaining_bandwidth;
       if verbose_upload then begin
           Printf.printf "Remaining %d[%d]" !remaining_bandwidth !complete_bandwidth; print_newline ();
         end;
+      sent_bytes.(!counter-1) <- !remaining_bandwidth;
       if !remaining_bandwidth > 0 then 
         next_uploads ()
       

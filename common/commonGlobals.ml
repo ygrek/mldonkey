@@ -25,7 +25,7 @@ open CommonTypes
   
 let version = "
 MLDonkey: Objective-Caml Client/Server for the eDonkey2000 Network
-Release: 1.99b8+6
+Release: 1.99b8+7
 "
 
     
@@ -41,9 +41,10 @@ let printf_string c =
   if !!verbose then 
     (print_string c; Pervasives.flush Pervasives.stdout)
 
+let minutes25 = 25. *. 60.
   
 let new_connection_control () = {
-    control_last_ok = 0.0;
+    control_last_ok = last_time () -. minutes25;
     control_state = 0.0;
     control_last_try = 0.0;
   }

@@ -27,7 +27,7 @@ open DonkeyMftp
 type peer = 
   { 
     peer_md4 : Md4.t;
-    peer_ip : Ip.t;
+    mutable peer_ip : Ip.t;
     peer_port : int;
     peer_kind : int;
     mutable peer_last_msg : float;

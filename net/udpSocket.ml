@@ -37,7 +37,7 @@ type udp_packet = {
 module PacketSet = Set.Make (struct
       type t = int * udp_packet
       let compare (t1,p1) (t2,p2) = 
-        compare (t1, String.length p1.content) (t2, String.length p2.content)
+        compare (t1, String.length p1.content,p1) (t2, String.length p2.content,p2)
     end)
 
 
@@ -114,10 +114,10 @@ let print_addr addr =
         Printf.printf "ADDR_UNIX (%s)" s;
   end;
   print_newline ()
+
+let max_delayed_send = 30
   
 let write t s pos len addr =
-(* An UDP packet must be sent in the next 10 seconds, or it has to be dropped *)
-  let max_time = last_time () +. 10. in
   if not (closed t) then 
     match t.write_controler with
       None ->
@@ -139,7 +139,6 @@ Printf.printf "UDP sent [%s]" (String.escaped
                     content = String.sub s  pos len;
                     addr = addr;
                   }) t.wlist;
-                Printf.printf "EWOULDBLOCK on UDP send..."; print_newline ();
                 must_write sock true;
             | e ->
                 Printf.printf "Exception %s in sendto"
@@ -148,16 +147,21 @@ Printf.printf "UDP sent [%s]" (String.escaped
                 print_addr addr;
                 raise e
           end
-        else
-          t.wlist <- PacketSet.add (0, {
+        else begin
+            t.wlist <- PacketSet.add (0, {
+                content = String.sub s  pos len;
+              addr = addr;
+              })  t.wlist;
+            must_write t.sock true;
+          end
+    | Some bc ->
+        begin
+          t.wlist <- PacketSet.add (bc.base_time + max_delayed_send, {
               content = String.sub s  pos len;
               addr = addr;
-            })  t.wlist
-    | Some bc ->
-        t.wlist <- PacketSet.add (bc.base_time + 10, {
-            content = String.sub s  pos len;
-            addr = addr;
-          })  t.wlist
+            })  t.wlist;
+          must_write t.sock true;
+        end
     
 let dummy_sock = Obj.magic 0
 
@@ -185,17 +189,22 @@ let iter_write_no_bc t sock =
     iter_write_no_bc t sock 
   with
     Unix.Unix_error (Unix.EWOULDBLOCK, _, _) as e -> 
-      must_write sock true
+      must_write t.sock true
 
 let rec iter_write t sock bc = 
   if bc.total_bytes = 0 || bc.remaining_bytes > 0 then
+    let _ = () in
     let (time,p) = PacketSet.min_elt t.wlist in
     t.wlist <- PacketSet.remove (time,p) t.wlist;
-    if time + 10 < bc.base_time then
+    if time < bc.base_time then begin
+        if !debug then begin
+            Printf.printf "[UDP DROPPED]"; flush stdout;
+          end;
       iter_write t sock bc
-    else
+      end else
     let len = String.length p.content in
     begin try
+        
         ignore (
           Unix.sendto (fd sock) p.content 0 len  [] p.addr);
         udp_uploaded_bytes := Int64.add !udp_uploaded_bytes (Int64.of_int len);
@@ -231,11 +240,14 @@ let udp_handler t sock event =
   
   | CAN_WRITE ->
       begin
-        match t.write_controler with
-          None ->
-            iter_write_no_bc t sock
-        | Some bc ->
-            iter_write t sock bc
+        try
+          match t.write_controler with
+            None ->
+              iter_write_no_bc t sock
+          | Some bc ->
+              iter_write t sock bc
+        with Not_found ->
+            must_write t.sock false
       end;
       if not (closed t) then begin
           t.event_handler t CAN_REFILL;
