@@ -1,6 +1,9 @@
 ChangeLog	
 =========
 
+2003/05/26: Fabrice  (release-2-5)
+  Stable release 2.5
+
 2003/05/26: Simon  (release-2-5-rc3)
   - Fasttrack:
       * Reduce client_name to 32 characters
