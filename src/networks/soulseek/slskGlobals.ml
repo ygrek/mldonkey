@@ -65,8 +65,8 @@ let (client_ops : client CommonClient.client_ops) =
 
   
 
-let login () = 
-  if !!login = "" then !!CommonOptions.client_name else !!login
+let local_login () = 
+  if !!login = "" then !!CommonOptions.global_login else !!login
   
 let set_server_state s state =
   set_server_state (as_server s.server_server) state

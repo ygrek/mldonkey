@@ -625,8 +625,8 @@ let clean_file s =
   String2.replace_char s '\r' '\n';
   String2.replace_char s ' ' '\n'
 
-let client_name () =
-  let name = !!client_name in
+let local_login () =
+  let name = !!global_login in
   let len = String.length name in
   if len > 32 then name else  String.sub name 0 32
     

@@ -12,6 +12,10 @@ ChangeLog
       - #2067 ("nu" for bittorrent), 
         #2070 (new option "all_sources_on_telnet"),
         #2094 (sort files by priority for each downloader)
+   * Some modifications for soulseek:
+      * Retry connect only after 300 seconds.
+      * Don't retry connect after INVALIDPASS unless login or password is
+          changed
 
 2003/10/12: Simon (release-2-5-4)
    * Applied patches #2033 (hide-dirs), #2038 (ocaml-3.07), 

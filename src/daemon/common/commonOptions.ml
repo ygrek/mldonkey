@@ -101,18 +101,18 @@ let new_name () =
     (random_letter ()) (random_letter ()) (random_letter ()) 
     (random_letter ()) (random_letter ()) (random_letter ()))
   
-let client_name = define_option downloads_ini ["client_name"] 
+let global_login = define_option downloads_ini ["client_name"] 
     "small name of client" string_option (new_name ())
 
 let _ =
   let in_hook = ref false in
-  option_hook client_name (fun _ ->
-      let len = String.length !!client_name in
+  option_hook global_login (fun _ ->
+      let len = String.length !!global_login in
       let prefix = "mldonkey_" in
       let prefix_len = String.length prefix in
       if len > prefix_len && 
-        String.sub !!client_name 0 prefix_len = prefix then
-        client_name =:= new_name ()
+        String.sub !!global_login 0 prefix_len = prefix then
+        global_login =:= new_name ()
   )
 
 
@@ -904,7 +904,7 @@ let gui_options_panel =
 *)
   
   [
-    "Identification", "Your client name", (shortname client_name), "T";
+    "Identification", "Your client name", (shortname global_login), "T";
     (*
     "Identification", "Password", (shortname password), "T";
     "Identification", "HTTP login", (shortname http_login), "T";

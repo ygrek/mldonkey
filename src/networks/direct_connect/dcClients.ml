@@ -77,7 +77,7 @@ let init_connection nick_sent c sock =
   connection_ok c.client_connection_control;  
   if not nick_sent then begin
       let my_nick = match c.client_user.user_servers with
-          [] -> !!client_name
+          [] -> local_login ()
         | s :: _ -> s.server_last_nick 
       in
       server_send !verbose_msg_clients sock (MyNickReq my_nick);

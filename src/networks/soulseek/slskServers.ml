@@ -39,6 +39,8 @@ open SlskOptions
 open SlskGlobals
 open TcpBufferedSocket
 open SlskProtocol
+
+let no_retry = ref false
   
 let disconnect_server s r =
   match s.server_sock with
@@ -64,11 +66,10 @@ let server_to_client s m sock =
         match t with
           S2C.LoginAck.Success (message, ip) ->
             set_server_state s Connected_initiating;
-            lprintf "Message from server: %s" message;
-            lprint_newline ();
+            lprintf "Message from server: %s\n" message;
         | S2C.LoginAck.Failure message ->
-            lprintf "Rejected from server: %s" message;
-            lprint_newline ();
+            lprintf "Rejected from server: %s\n" message;
+            no_retry :=  (message = "INVALIDPASS");
             disconnect_server s (Closed_for_error message)
         
       end
@@ -163,7 +164,7 @@ let connect_server s =
               server_send sock (
                 let module L = C2S.Login in
                 C2S.LoginReq {
-                  L.login = login ();
+                  L.login = local_login ();
                   L.password = !!password;
                   L.version = 200;
                 });
@@ -233,19 +234,30 @@ main_server_port =:= port;
       lprint_newline ()
   
 let server_list = ref []
-      
+
+let update_server_list () =
+  if !server_list = [] && not !no_retry then
+    Hashtbl.iter (fun _ s ->
+        server_list := s :: !server_list) servers_by_addr
+    
 let rec connect_servers () =
   if !connected_servers = [] then
     match !server_list with
       [] ->
-        if !load_server_list_last + 600 < last_time () then
-          load_url slsk_kind "http://www.slsk.org/slskinfo2";
-        Hashtbl.iter (fun _ s ->
-            server_list := s :: !server_list) servers_by_addr
+        ()
+(*        if !load_server_list_last + 600 < last_time () then
+load_url slsk_kind "http://www.slsk.org/slskinfo2"; *)
     | s :: tail ->
         server_list := tail;
         connect_server s
 
-        
+       
+let can_retry () =
+  no_retry := false;
+  update_server_list ()
+
 let _ =
-  add_web_kind slsk_kind load_server_list
+  add_web_kind slsk_kind load_server_list;
+  option_hook login can_retry;
+  option_hook global_login can_retry;
+  option_hook password can_retry

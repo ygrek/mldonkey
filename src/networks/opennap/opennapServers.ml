@@ -134,8 +134,8 @@ let recover_files_from_server s =
   
 let new_nick s =
   s.server_nick_num <- s.server_nick_num + 1;
-  s.server_last_nick <- if s.server_nick_num = 0 then !!DO.client_name else
-    Printf.sprintf "%s[%d]" !!DO.client_name s.server_nick_num  
+  s.server_last_nick <- if s.server_nick_num = 0 then !!DO.global_login else
+    Printf.sprintf "%s[%d]" !!DO.global_login s.server_nick_num  
     
 let try_nick s sock =
   new_nick s;

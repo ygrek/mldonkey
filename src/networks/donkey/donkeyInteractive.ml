@@ -287,7 +287,7 @@ let import_config dirname =
   List.iter (fun tag ->
       match tag with
       | { tag_name = "name"; tag_value = String s } ->
-          client_name =:=  s
+          login =:=  s
       | { tag_name = "port"; tag_value = Uint64 v } ->
           port =:=  Int64.to_int v
       | _ -> ()

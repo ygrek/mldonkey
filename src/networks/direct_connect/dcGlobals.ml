@@ -352,13 +352,13 @@ let set_client_state c state =
 let set_client_disconnected c =
   set_client_disconnected (as_client c.client_client)
               
-let login () =
-  if !!login = "" then !!CommonOptions.client_name else !!login
+let local_login () =
+  if !!login = "" then !!CommonOptions.global_login else !!login
     
 let login s =
   let nick = 
-    if s.server_nick = 0 then login () else 
-      Printf.sprintf "%s_%d" (login ()) s.server_nick 
+    if s.server_nick = 0 then local_login () else 
+      Printf.sprintf "%s_%d" (local_login ()) s.server_nick 
   in
   s.server_nick <- s.server_nick + 1;
   s.server_last_nick <- nick;

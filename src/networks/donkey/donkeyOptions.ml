@@ -44,6 +44,10 @@ let string_list_option = define_option_class "String"
   )
   string_to_value
 
+  
+let login = define_option donkey_ini ["login"] 
+    "login of client on eDonkey network (nothing default to global one)" string_option ""
+
 let port = define_option donkey_ini ["port"] "The port used for connection by other donkey clients." int_option 4662
 
 let check_client_connections_delay = 
@@ -336,6 +340,7 @@ let gui_donkey_options_panel =
     "Max Sources Per Download", shortname max_sources_per_file, "T";
     "Protocol Version", shortname protocol_version, "T";
     "Commit Downloads In Incoming Subdir", shortname commit_in_subdir, "T";
+    "Login", shortname login, "T";
     "Port", shortname port, "T";
     "Download Chunks in Random order", shortname random_order_download, "B";    
     "Sources Per Chunk", shortname sources_per_chunk, "T";
@@ -343,4 +348,5 @@ let gui_donkey_options_panel =
     "Dynamic Slot Allocation", shortname dynamic_slots, "B";
     "Friend Slots", shortname friend_slots, "B";
   ]
+
 

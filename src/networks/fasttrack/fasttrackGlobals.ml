@@ -525,11 +525,11 @@ let ft_client_name = ref ""
   
 let client_name () = 
   
-  let name = !!client_name in
+  let name = !!global_login in
   if name != !old_client_name then  begin
       let len = String.length name in
       ft_client_name := String.sub name 0 (min 32 len);
-      old_client_name := !!client_name;
+      old_client_name := name;
       String2.replace_char !ft_client_name ' ' '_';
     end;
   !ft_client_name

@@ -1,6 +1,11 @@
 TODO list for client
 ====================
 
+Soulseek: in case of 
+   Message from server
+   LOGIN FAILURE INVALIDPASS
+  prevent any new reconnection
+
 ADD urn:sha1:<HASH> and urn:tree:tiger/:<HASH> to QRT
 
 Fasttrack:

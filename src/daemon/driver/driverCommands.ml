@@ -328,7 +328,7 @@ let commands = [
                 strings_of_option_html telnet_port; 
                 strings_of_option_html gui_port; 
                 strings_of_option_html http_port;
-                strings_of_option_html client_name;
+                strings_of_option_html global_login;
                 strings_of_option_html allowed_ips;
                 strings_of_option_html set_client_ip; 
                 strings_of_option_html force_client_ip; 
@@ -345,7 +345,7 @@ let commands = [
               strings_of_option telnet_port; 
               strings_of_option gui_port; 
               strings_of_option http_port;
-              strings_of_option client_name;
+              strings_of_option global_login;
               strings_of_option allowed_ips;
               strings_of_option set_client_ip; 
               strings_of_option force_client_ip; 
@@ -476,7 +476,7 @@ if (\\\"0123456789.\\\".indexOf(v) == -1)
                   match tab with
                     1 -> 
                       [
-                        strings_of_option_html client_name; 
+                        strings_of_option_html global_login; 
                         strings_of_option_html set_client_ip; 
                         strings_of_option_html force_client_ip; 
                         strings_of_option_html run_as_user; 

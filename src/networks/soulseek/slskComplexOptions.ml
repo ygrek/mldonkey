@@ -30,7 +30,9 @@ let servers =
   define_option soulseek_ini ["servers"]
     "" (list_option (tuple2_option (string_option, int_option))) 
   (* this server is no more actual [ ("mail.slsk.org", 2240) ] *)
-    [ ("38.115.131.131", 2240) ]
+  [
+    
+    ("server.slsknet.org", 2240) ]
   
 let save_config () =
   servers =:= List.map (fun s ->

@@ -55,6 +55,8 @@ let enable () =
     !!main_server_port in
 *)  
     if not !!enable_soulseek then enable_soulseek =:= true;
+
+    add_timer 10. (fun _ -> SlskServers.update_server_list ());
     
     List.iter (fun (server_name, server_port) ->
         ignore (new_server (Ip.addr_of_string server_name) server_port)
@@ -64,6 +66,7 @@ let enable () =
         SlskServers.connect_servers ());
     
     add_session_timer enabler 300. (fun timer ->
+        SlskServers.update_server_list ();
         SlskServers.recover_files ()
     );
     

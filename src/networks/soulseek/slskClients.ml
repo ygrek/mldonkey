@@ -103,7 +103,7 @@ let connect_download c file req =
         in
         let  d = Download.new_download sock c file 1 in
         set_reader sock (Download.download_reader d);
-        init_download_connection sock file (login()) req 
+        init_download_connection sock file (local_login()) req 
         d.download_pos;
   
   with e ->
@@ -252,7 +252,7 @@ let connect_peer c token msgs =
             TcpBufferedSocket.set_reader sock (
               soulseek_handler C2C.parse (client_to_client c));
             c.client_peer_sock <- Some sock;
-            init_peer_connection sock (login ()) token;
+            init_peer_connection sock (local_login ()) token;
             List.iter (fun t -> client_send sock t) msgs
       with e ->
           lprintf "Exception %s while connecting to client\n" 

@@ -174,7 +174,7 @@ let client_reader c =
                   connection_ok c.client_connection_control;
                   let s =  (Printf.sprintf "%s \"%s\" %Ld"
                         (match c.client_user.user_servers with
-                          [] -> !!CommonOptions.client_name
+                          [] -> !!CommonOptions.global_login
                         | s :: _ -> s.server_last_nick) filename 
                         (file_downloaded file)) in
                   write_string sock s;

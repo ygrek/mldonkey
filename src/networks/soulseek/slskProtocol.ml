@@ -1017,7 +1017,7 @@ let server_send sock t =
   let s = server_msg_to_string t in
 
   if !verbose_msg_servers then begin
-      lprintf "SENDING TO SERVER:"; lprint_newline ();
+      lprintf "SENDING TO SERVER:\n"; 
       C2S.print t;
       AnyEndian.dump s;
     end;

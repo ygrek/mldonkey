@@ -89,6 +89,9 @@ let halfmin_timer timer =
   DonkeyServers.update_master_servers ()
 (*  DonkeyIndexer.add_to_local_index_timer () *)
 
+
+let local_login () =
+  if !!login = "" then !!global_login else !!login
   
 let is_enabled = ref false
   
@@ -239,25 +242,26 @@ let enable () =
     let reset_tags () =
       client_tags :=
       [
-        string_tag "name" !!client_name;
+        string_tag "name" (local_login ());
         int_tag "version" !!DonkeyOptions.protocol_version;
         int_tag "port" !client_port;
       ];      
       overnet_connect_tags :=
       [
-        string_tag "name" !!client_name;
+        string_tag "name" (local_login ());
         int_tag "version" !!DonkeyOvernet.overnet_protocol_connect_version; 
       ];
       overnet_connectreply_tags :=
       [
-        string_tag "name" !!client_name;
+        string_tag "name" (local_login ());
         int_tag "version" !!DonkeyOvernet.overnet_protocol_connectreply_version; 
       ]
     in
     reset_tags ();
 
     Options.option_hook DonkeyOptions.protocol_version reset_tags;
-    Options.option_hook client_name reset_tags;
+    Options.option_hook global_login reset_tags;
+    Options.option_hook login reset_tags;
     
 (**** START TIMERS ****)
     add_session_option_timer enabler check_client_connections_delay 
