@@ -65,6 +65,35 @@ let buf_port buf port =
 let buf_addr buf (ip,port) =
   buf_ip buf ip;
   buf_port buf port
+
+let buf_tag buf tag names_of_tag =
+  let name = try rev_assoc tag.tag_name names_of_tag 
+    with _ -> tag.tag_name
+  in
+(* try
+            let i = rev_assoc name names_of_tag in
+            String.make 1 (char_of_int i)
+          with _ -> name *) 
+    match tag.tag_value with
+    | Uint64 n -> 
+        buf_int8 buf 3;
+        buf_string buf name;
+        buf_int64_32 buf n
+    | Fint64 n -> 
+        buf_int8 buf 4;
+        buf_string buf name;
+        buf_int64_32 buf n
+    | Addr ip -> assert false
+    | String s -> 
+        buf_int8 buf 2;
+        buf_string buf name;
+        buf_string buf s
+    | Uint16 n ->
+        buf_int8 buf 8;
+        buf_int16 buf n
+    | Uint8 n ->
+        buf_int8 buf 9;
+        buf_int8 buf n
   
 let rec buf_tags buf tags names_of_tag =
   buf_int buf (List.length tags);
@@ -72,30 +101,7 @@ let rec buf_tags buf tags names_of_tag =
     match tags with
       [] -> ()
     | tag :: tags ->
-        let name = try rev_assoc tag.tag_name names_of_tag 
-            with _ -> tag.tag_name
-        in
-(* try
-            let i = rev_assoc name names_of_tag in
-            String.make 1 (char_of_int i)
-          with _ -> name *) 
-        begin
-          match tag.tag_value with
-          | Uint64 n -> 
-              buf_int8 buf 3;
-              buf_string buf name;
-              buf_int64_32 buf n
-          | Fint64 n -> 
-              buf_int8 buf 4;
-              buf_string buf name;
-              buf_int64_32 buf n
-          | Addr ip -> assert false
-          | String s -> 
-              buf_int8 buf 2;
-              buf_string buf name;
-              buf_string buf s
-        
-        end;
+        buf_tag buf tag names_of_tag;
         iter_tags tags
   in
   iter_tags tags
@@ -138,7 +144,7 @@ let get_port s pos =
 
 let get_string = get_string16
   
-let get_tag s pos names_of_tag =
+let get_tag names_of_tag s pos =
   let t = get_uint8 s pos in
   let name, pos2 = get_string s (pos+1) in
 (*  lprintf "tag name = %s" (String.escaped name);   *)
@@ -149,6 +155,10 @@ let get_tag s pos names_of_tag =
         Uint64 v, pos2+4
     | 4 -> let v = get_uint64_32 s pos2 in
         Fint64 v, pos2+4
+    | 8 -> let v = get_int16 s pos2 in
+        Uint16 v, pos2 + 2
+    | 9 -> let v = get_uint8 s pos2 in
+        Uint8 v, pos2 + 1
     | _ -> 
         lprintf "get_tags: unknown tag %d at pos %d\n" t pos;
         raise Not_found
@@ -165,7 +175,7 @@ let get_tag s pos names_of_tag =
 let get_tags s pos names_of_tag =
   let rec iter_tags ntags pos tags =
     if ntags = 0 then List.rev tags, pos else
-    let tag, pos = get_tag s pos names_of_tag in
+    let tag, pos = get_tag names_of_tag s pos in
     iter_tags (ntags-1) pos (tag :: tags) 
   in
   iter_tags (get_int s pos) (pos+4) []

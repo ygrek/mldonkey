@@ -160,7 +160,7 @@ let supernode_browse_client node =
             M.ConnectReq {
               C.md4 = !!client_md4;
               C.ip = client_ip None;
-              C.port = !client_port;
+              C.port = !!donkey_port;
               C.tags = !client_to_client_tags;
               C.version = 16;
               C.server_info = Some (server_ip, server_port);

@@ -113,7 +113,8 @@ let disable enabler () =
             UdpSocket.close sock Closed_by_user);
       servers_list := [];
       if !!enable_donkey then enable_donkey =:= false;
-      DonkeyOvernet.disable ()
+      DonkeyProtoOvernet.Overnet.disable ();
+      DonkeyProtoKademlia.Kademlia.disable ()
     end
 
 let reset_tags () =
@@ -124,16 +125,16 @@ let reset_tags () =
   [
     string_tag "name" (local_login ());
     int_tag "version" protocol_version;
-    int_tag "emule_udpports" (!!port+4);
+    int_tag "emule_udpports" (!!donkey_port+4);
     int_tag "emule_version" m.emule_version;
     int64_tag "emule_miscoptions1" emule_miscoptions1;
-    int_tag "port" !client_port;
+    int_tag "port" !!donkey_port;
   ];      
   client_to_server_tags :=
   [
     string_tag "name" (local_login ());
     int_tag "version" protocol_version;
-    int_tag "port" !client_port;
+    int_tag "port" !!donkey_port;
   ];      
   if Autoconf.has_zlib then
     client_to_server_tags := (int_tag "extended" 1)::!client_to_server_tags;
@@ -141,7 +142,7 @@ let reset_tags () =
     int_tag "compression" 
       (if !!emule_compression then m.emule_compression else 0);
     int_tag "udpver" m.emule_udpver;
-    int_tag "udpport" (!!port+4);
+    int_tag "udpport" (!!donkey_port+4);
     int_tag "sourceexchange" m.emule_sourceexchange;
     int_tag "comments" m.emule_comments;
     int_tag "compatableclient" 10; 
@@ -152,12 +153,12 @@ let reset_tags () =
   overnet_connect_tags :=
   [
     string_tag "name" (local_login ());
-    int_tag "version" !!DonkeyOvernet.overnet_protocol_connect_version; 
+    int_tag "version" !!DonkeyProtoOvernet.overnet_protocol_connect_version; 
   ];
   overnet_connectreply_tags :=
   [
     string_tag "name" (local_login ());
-    int_tag "version" !!DonkeyOvernet.overnet_protocol_connectreply_version; 
+    int_tag "version" !!DonkeyProtoOvernet.overnet_protocol_connectreply_version; 
   ]
   
 let enable () =
@@ -243,16 +244,16 @@ let enable () =
           let sock = TcpServerSocket.create 
               "donkey client server"
               (Ip.to_inet_addr !!client_bind_addr)
-            !!port (client_connection_handler false) in
+            !!donkey_port (client_connection_handler false) in
           
           TcpServerSocket.set_accept_controler sock connections_controler;
           listen_sock := Some sock;
-          port =:= new_port;
+          donkey_port =:= new_port;
           
           begin try
               let sock =
                 (UdpSocket.create (Ip.to_inet_addr !!client_bind_addr)
-                  (!!port + 4) 
+                  (!!donkey_port + 4) 
                   (udp_handler DonkeyUdp.udp_client_handler))
               in
               udp_sock := Some sock;
@@ -267,17 +268,18 @@ let enable () =
             if !find_other_port then find_port (new_port+1)
             else  raise e
       in
-      let sock = find_port !!port in
-      DonkeyOvernet.enable enabler;
+      let sock = find_port !!donkey_port in
+      DonkeyProtoOvernet.Overnet.enable enabler;
+      DonkeyProtoKademlia.Kademlia.enable enabler;
       
       begin
         match Unix.getsockname (BasicSocket.fd (TcpServerSocket.sock sock)) with
           Unix.ADDR_INET (ip, port) ->
-            client_port :=  port
+            assert (!!donkey_port = port);
         | _ -> failwith "Bad socket address"
       end;
       
-      let port = !client_port in
+      let port = !!donkey_port in
       
       reset_tags ();
       
@@ -365,7 +367,9 @@ let _ =
   CommonInteractive.register_gui_options_panel "eDonkey" 
     gui_donkey_options_panel;
   CommonInteractive.register_gui_options_panel "Overnet" 
-    DonkeyOvernet.gui_overnet_options_panel
+    DonkeyProtoOvernet.Overnet.gui_overnet_options_panel;
+  CommonInteractive.register_gui_options_panel "Kademlia" 
+    DonkeyProtoKademlia.Kademlia.gui_overnet_options_panel
 
   
 let _ =

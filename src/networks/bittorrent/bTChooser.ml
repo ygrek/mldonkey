@@ -24,9 +24,8 @@ open CommonGlobals
 open BasicSocket
 open CommonTypes
 open List2
-
-let max_uploaders = 5
-
+open BTOptions
+open Options
 
 
 (*given some files choose the next uploaders based on their behavior
@@ -69,7 +68,7 @@ let choose_next_uploaders files fun_comp =
 (*sort by biggest contributor*)
       let sortl = List.sort fun_comp filtl in
       
-      let to_add,next = keepn !max_list sortl (max_uploaders - 1) in
+      let to_add,next = keepn !max_list sortl (!!max_uploaders_per_torrent - 1) in
       max_list:= to_add;
 (*
 		       clients in optim are current optimistic uploaders (30 seconds)	      
@@ -84,10 +83,10 @@ let choose_next_uploaders files fun_comp =
 		       *)
       let notoptim = List.sort (fun a b -> compare a.client_last_optimist b.client_last_optimist) notoptim in
       
-      let to_add,next =  keepn !max_list (optim) (max_uploaders) in
+      let to_add,next =  keepn !max_list (optim) (!!max_uploaders_per_torrent) in
       max_list := to_add;
       let to_add,_ = keepn !max_list (notoptim) 
-        (max_uploaders) in
+        (!!max_uploaders_per_torrent) in
       full_list := !full_list @ to_add;
   
   ) files;

@@ -1,71 +1,63 @@
-Mozilla MLdonkey Protocol Handler 1.4
-Copyright (C) 2003, 2004 Simon Peter <dn.tlp@gmx.net>
+Mozilla MLdonkey Protocol Handler 1.3
+Copyright (C) 2003 Simon Peter <dn.tlp@gmx.net>
 
 Description:
 ------------
-This is a protocol handler for Mozilla and Firefox (see www.mozilla.org) that
-forwards some link types to a running MLdonkey (see www.mldonkey.net) client.
+This is a protocol handler for Mozilla (see www.mozilla.org) that forwards
+some link types to a running MLdonkey (see www.mldonkey.net) client.
 
 Supported protocols are ed2k:, magnet: and sig2dat:.
 
 The protocol handler is implemented in JavaScript and should run on any
-platform supported by Mozilla or Firefox.
+platform supported by Mozilla.
 
 Installation:
 -------------
-Just open the .xpi installer file in Mozilla/Firefox and follow the on-screen
-instructions. On a UNIX derivative system, you most likely need to start your
-browser as root to complete the installation.
+Just open the .xpi installer file with Mozilla and follow the on-screen
+instructions. On a UNIX derivative system, you most likely need to start Mozilla
+as root to complete the installation.
 
-It is best to shutdown the browser completely by closing all open windows
-prior to restarting it as root because there may be some startup scripts used
-by your version that may just open another window instead of starting it as
-root.
+It is best to shutdown Mozilla completely by closing all open windows prior to
+restarting it as root because there may be some startup scripts used by your
+version that may just open another window instead of starting Mozilla as root.
 
 After having installed the package, you need to set it up. Refer to the next
 section on this topic.
 
-After setup, restart your browser and everything should be in place. Supported
-link types will automatically be forwarded to your MLdonkey when you click on
-them.
+After setup, restart Mozilla and everything should be in place. Supported link
+types will automatically be forwarded to your MLdonkey when you click on them.
 
 Configuration:
 --------------
 The protocol handler is configurable through Mozilla's preferences scheme. The
 preferences can be set in multiple ways, depending on your browser version.
 
-For Mozilla 1.3, newer versions and Firefox, the preferences are accessible by
-visiting the URL "about:config" inside the browser. This opens a page
-containing a table of all available preference options. Right clicking on the
-table opens a menu to create, modify and reset the options. Note that the
-preference defaults of this protocol handler are internal and NOT visible
-initially in the list! To set your own preferences, you have to create them.
+For Mozilla 1.3 and up, the preferences are accessible by visiting the URL
+"about:config" inside the browser. This opens a page containing a table of all
+available preference options. Right clicking on the table opens a menu to
+create, modify and reset the options. Note that the preference defaults of this
+protocol handler are internal and NOT visible initially in the list! To set your
+own preferences, you have to create them.
 
 For Mozilla versions below 1.3, you can set the preferences by creating a file
 'user.js' in your profile directory (this is $HOME/.mozilla/default/<profile>/
-on UNIX systems, where <profile> has to be replaced by some cryptic string --
-just look in that directory) and set the options there by adding lines of the
-form: user_pref("option", "value"); to it.
+on UNIX systems) and set the options there by adding lines of the form:
+user_pref("option", "value"); to it.
 
 The following preference options are available:
 
-Option:                 Default:        Description:
--------                 --------        ------------
-network.mldonkey.server localhost       hostname on which MLdonkey is running
-network.mldonkey.user                   login with this username
-network.mldonkey.pass                   login with this password
-network.mldonkey.port   4080            port of the MLdonkey WEB service
+Option:			Default:	Description:
+-------			--------	------------
+network.mldonkey.server	localhost	hostname on which MLdonkey is running
+network.mldonkey.user	admin		login with this username
+network.mldonkey.pass			login with this password
+network.mldonkey.port	4080		port of the MLdonkey WEB service
 
-All these options are string options. Remember to restart your browser before
-any of them can take effect!
+All these options are string options. Remember to restart Mozilla before any of
+them can take effect!
 
 News:
 -----
-Changes for version 1.4:
-- Added compatibility for the new component system of Firefox 0.9
-  (thanks to Len Walter <len@unsw.edu.au>).
-- Username is now empty by default.
-
 Changes for version 1.3:
 - Added support for "sig2dat" links.
 - More fixes for some strange, half-escaped URLs.
@@ -100,12 +92,10 @@ The Original Code is the MLdonkey protocol handler.
 
 The Initial Developer of the Original Code is
 Simon Peter <dn.tlp@gmx.net>.
-Portions created by the Initial Developer are Copyright (C) 2003, 2004
+Portions created by the Initial Developer are Copyright (C) 2003
 the Initial Developer. All Rights Reserved.
 
 Contributor(s):
-Sven Koch
-Len Walter <len@unsw.edu.au>
 
 Alternatively, the contents of this file may be used under the terms of
 either the GNU General Public License Version 2 or later (the "GPL"), or

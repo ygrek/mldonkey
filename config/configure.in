@@ -11,10 +11,10 @@ MYCONFIG_ARGS_DEFINED=yes
 echo $MYCONFIG_ARGS
 
 CURRENT_VERSION=2.5
-CURRENT_RELEASE=22
+CURRENT_RELEASE=23
 
-REQUIRED_OCAML=3.07
-DOWNLOAD_OCAML=3.07pl2
+REQUIRED_OCAML=3.08.0
+DOWNLOAD_OCAML=3.08.0
 
 REQUIRED_LABLGTK=1.2.6
 
@@ -97,7 +97,7 @@ AC_ARG_ENABLE(openft,        [--disable-openft:         allows you to remove sup
 
 AC_ARG_ENABLE(cymes,         [--disable-cymes:          allows you to remove support for Cymes], [CYMES="$enableval"])
 
-AC_ARG_ENABLE(ocamlver, [--enable-ocamlver=3.07:   allows you to change the required version of ocaml], [REQUIRED_OCAML="$enableval"])
+AC_ARG_ENABLE(ocamlver, [--enable-ocamlver=3.08.0:   allows you to change the required version of ocaml], [REQUIRED_OCAML="$enableval"])
 
 AC_ARG_ENABLE(gtk2, [--enable-gtk2:   allows you to compile using GTK2], [USE_GTK2="$enableval"])
 
@@ -194,6 +194,7 @@ else
     "$REQUIRED_OCAML"*) ;;
     3.06*);;
     3.07*);;
+    3.08*);;
     "$REQUIRED_OCAML_REG") ;;
     *) echo "Need build"
        BUILD_OCAML=yes;;
@@ -250,7 +251,7 @@ if test "$BUILD_OCAML" = "yes"; then
       cd $BUILD_DIR
       rm -rf ocaml-"$REQUIRED_OCAML"
       gzip -cd $PATCH_DIR/ocaml-"$DOWNLOAD_OCAML".tar.gz | tar vxf -
-      cd ocaml-"$REQUIRED_OCAML"
+      cd ocaml-"$DOWNLOAD_OCAML"
       if test -f $PATCH_DIR/ocaml-"$REQUIRED_OCAML".patch; then
         echo Patching ...
         patch -p1 < $PATCH_DIR/ocaml-"$REQUIRED_OCAML".patch
@@ -386,9 +387,7 @@ if test "$ZLIB" = "yes"; then
   ZLIB__UNCOMPRESS_STRING2="Zlib.uncompress_string2 s"
   ZLIB__COMPRESS_STRING="Zlib.compress_string s"
 else
-  HAS_ZLIB=false
-  ZLIB__UNCOMPRESS_STRING2="s"
-  ZLIB__COMPRESS_STRING="s"
+  echo "Zlib missing, did you install zlib and zlib-developer packages?"; exit 1
 fi
 
 ICONV=no
@@ -736,6 +735,11 @@ AC_MSG_CHECKING(compile GTK GUI)
         GTK_VERSION=`$GTK_CONFIG --version`
         COMPILE_GUI=yes
         AC_MSG_RESULT(yes)
+        if test "$BUILD_NEWGUI" = "yes"; then
+        echo "compiling newgui"
+        else
+        echo "compiling oldgui"
+        fi
 	fi
         AC_MSG_CHECKING(GToolbox.popup_menu args)
         if test "$OS_FILES" = "mingw"; then
@@ -793,7 +797,7 @@ esac
 ARCH=$arch
 
 case "$OCAMLVERSION" in
-  3.06* | 3.07* ) TYPE_FORMAT="";;
+  3.06* | 3.07* | 3.08* ) TYPE_FORMAT="";;
   *) TYPE_FORMAT="type ('a,'b,'c) ml_format = ('a,'b, 'c,'c) format  type ('a,'b,'c) format = ('a,'b, 'c) ml_format";;
 esac		    
 
@@ -898,6 +902,11 @@ diff $GTK_AUTOCONF.new $GTK_AUTOCONF 2> /dev/null > /dev/null || cp -f $GTK_AUTO
 cd ..
 
 if test "$OS_FILES" = "mingw"; then
+   echo "compiling win32 resource file"
+   windres -o resfile.o config/mldonkey.rc
+fi
+
+if test "$OS_FILES" = "cygwin"; then
    echo "compiling win32 resource file"
    windres -o resfile.o config/mldonkey.rc
 fi

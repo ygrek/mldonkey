@@ -87,3 +87,17 @@ let shared_files =
 let ask_tracker_threshold = define_option bittorrent_section ["ask_tracker_threshold"]
     "Ask the tracker for new sources only if you have fewer than that number of sources"
     int_option 20
+
+let max_uploaders_per_torrent = define_option bittorrent_section ["max_uploaders_per_torrent"]
+    "Maximum number of uploaders for one torrent"
+    int_option 5
+
+let _ =
+  option_hook max_uploaders_per_torrent
+    (fun _ ->
+      if !!max_uploaders_per_torrent < 1 then max_uploaders_per_torrent =:= 5)
+  
+  
+let cookies = define_option bittorrent_section ["cookies"]
+    "Cookies send with http request to get .torrent file"
+    (list_option (tuple2_option (string_option, list_option (tuple2_option (string_option, string_option))))) []

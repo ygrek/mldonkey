@@ -391,7 +391,8 @@ let file_download_rate impl =
   impl.impl_file_last_rate <- rate;
   rate
   
-let add_file_downloaded impl n =
+let add_file_downloaded file n =
+  let impl = as_file_impl file in
   impl.impl_file_downloaded <- Int64.add impl.impl_file_downloaded n;
 (* you cannot remove received bytes *)
   if Int64.compare n Int64.zero > 0 then

@@ -159,7 +159,32 @@ let brand_mod_to_int b =
   | Brand_mod_blackmule -> 69
   | Brand_mod_morphxt -> 70
   | Brand_mod_ngdonkey -> 71
-  | Brand_mod_cyrex -> 72
+  | Brand_mod_hawkstar -> 72
+  | Brand_mod_neomule -> 73
+  | Brand_mod_cyrex -> 74
+  | Brand_mod_aldo -> 75
+  | Brand_mod_emulede -> 76
+  | Brand_mod_zx -> 77
+  | Brand_mod_ibericaxt -> 78
+  | Brand_mod_candymule -> 79
+  | Brand_mod_ackronic -> 80
+  | Brand_mod_rappis -> 81
+  | Brand_mod_overdose -> 82
+  | Brand_mod_hebmule -> 83
+  | Brand_mod_senfei -> 84
+  | Brand_mod_spoofmod -> 85
+  | Brand_mod_fusspilz -> 86
+  | Brand_mod_rocket -> 87
+  | Brand_mod_warezfaw -> 88
+  | Brand_mod_emusicmule -> 89
+  | Brand_mod_aideadsl -> 90
+  | Brand_mod_epo -> 91
+  | Brand_mod_kalitsch -> 92
+  | Brand_mod_raynz -> 93
+  | Brand_mod_serverclient -> 94
+  | Brand_mod_bl4ckbird -> 95
+  | Brand_mod_bl4ckf0x -> 96
+  | Brand_mod_rt -> 97
 
 let brand_mod_of_int b =
   match b with
@@ -235,7 +260,32 @@ let brand_mod_of_int b =
   | 69 -> Brand_mod_blackmule
   | 70 -> Brand_mod_morphxt
   | 71 -> Brand_mod_ngdonkey
-  | 72 -> Brand_mod_cyrex
+  | 72 -> Brand_mod_hawkstar
+  | 73 -> Brand_mod_neomule
+  | 74 -> Brand_mod_cyrex
+  | 75 -> Brand_mod_aldo
+  | 76 -> Brand_mod_emulede
+  | 77 -> Brand_mod_zx
+  | 78 -> Brand_mod_ibericaxt
+  | 79 -> Brand_mod_candymule
+  | 80 -> Brand_mod_ackronic
+  | 81 -> Brand_mod_rappis
+  | 82 -> Brand_mod_overdose
+  | 83 -> Brand_mod_hebmule
+  | 84 -> Brand_mod_senfei
+  | 85 -> Brand_mod_spoofmod
+  | 86 -> Brand_mod_fusspilz
+  | 87 -> Brand_mod_rocket
+  | 88 -> Brand_mod_warezfaw
+  | 89 -> Brand_mod_emusicmule
+  | 90 -> Brand_mod_aideadsl
+  | 91 -> Brand_mod_epo
+  | 92 -> Brand_mod_kalitsch
+  | 93 -> Brand_mod_raynz
+  | 94 -> Brand_mod_serverclient
+  | 95 -> Brand_mod_bl4ckbird
+  | 96 -> Brand_mod_bl4ckf0x
+  | 97 -> Brand_mod_rt
   | _ -> raise Not_found
       
 let gbrand_mod_to_string b =
@@ -312,7 +362,32 @@ let gbrand_mod_to_string b =
   | Brand_mod_blackmule -> "blm"
   | Brand_mod_morphxt -> "Mxt"
   | Brand_mod_ngdonkey -> "ngd"
+  | Brand_mod_hawkstar -> "haw"
+  | Brand_mod_neomule -> "neo"
   | Brand_mod_cyrex -> "cyr"
+  | Brand_mod_aldo -> "ald"
+  | Brand_mod_emulede -> "ede"
+  | Brand_mod_zx -> "zx"
+  | Brand_mod_ibericaxt -> "iBx"
+  | Brand_mod_candymule -> "can"
+  | Brand_mod_ackronic -> "ack"
+  | Brand_mod_rappis -> "rap"
+  | Brand_mod_overdose -> "ove"
+  | Brand_mod_hebmule -> "heb"
+  | Brand_mod_senfei -> "sen"
+  | Brand_mod_spoofmod -> "spo"
+  | Brand_mod_fusspilz -> "fus"
+  | Brand_mod_rocket -> "roc"
+  | Brand_mod_warezfaw -> "war"
+  | Brand_mod_emusicmule -> "emm"
+  | Brand_mod_aideadsl -> "aid"
+  | Brand_mod_epo -> "epo"
+  | Brand_mod_kalitsch -> "kal"
+  | Brand_mod_raynz -> "ray"
+  | Brand_mod_serverclient -> "sc"
+  | Brand_mod_bl4ckbird -> "b4b"
+  | Brand_mod_bl4ckf0x -> "b4f"
+  | Brand_mod_rt -> "rt"
 
 let stats_all = dummy_stats 
 let mod_stats_all = dummy_mod_stats 

@@ -91,9 +91,6 @@ end_pos !counter_pos b.len to_read;
             
             if new_downloaded = file_size file then
               download_finished file;
-            if new_downloaded <> old_downloaded then
-              add_file_downloaded file.file_file
-                (new_downloaded -- old_downloaded);
             
       with e -> 
         lprintf "FT: Exception %s in Int64Swarmer.received\n"

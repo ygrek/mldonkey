@@ -159,6 +159,7 @@ let new_file file_id file_name file_size file_tracker piece_size file_u file_sta
       file_files = [];
       file_blocks_downloaded = [];
       file_uploaded = Int64.zero;
+      file_torr_fname = "";
     } and file_impl =  {
       dummy_file_impl with
       impl_file_fd = file_u;

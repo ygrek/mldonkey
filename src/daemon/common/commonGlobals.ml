@@ -400,6 +400,7 @@ let rec print_tags tags =
       lprintf "  \"%s\" = " (tag_name tag);
       begin
         match tag.tag_value with
+        | Uint16 n | Uint8 n -> lprintf "%d" n
         | Uint64 n -> lprintf "%s" (Int64.to_string n)
         | Fint64 n -> lprintf "%s" (Int64.to_string n)
         | Addr ip -> lprintf "%s" (Ip.to_string ip)
@@ -415,6 +416,7 @@ let rec fprint_tags oc tags =
       Printf.fprintf oc "%s = " (tag_name tag);
       begin
         match tag.tag_value with
+        | Uint8 n | Uint16 n -> Printf.fprintf oc "%d" n
         | Uint64 n -> Printf.fprintf oc "%s" (Int64.to_string n)
         | Fint64 n -> Printf.fprintf oc "%s" (Int64.to_string n)
         | Addr ip -> Printf.fprintf oc "%s" (Ip.to_string ip)
@@ -430,6 +432,7 @@ let rec bprint_tags buf tags =
       Printf.bprintf buf "%s = " (tag_name tag);
       begin
         match tag.tag_value with
+        | Uint8 n | Uint16 n -> Printf.bprintf buf "%d" n
         | Uint64 n -> Printf.bprintf buf "%s" (Int64.to_string n)
         | Fint64 n -> Printf.bprintf buf "%s" (Int64.to_string n)
         | Addr ip -> Printf.bprintf buf "%s" (Ip.to_string ip)
@@ -646,18 +649,33 @@ let for_int_tag tag f =
     Uint64 i | Fint64 i -> f (Int64.to_int i)
   | String _ -> ()
   | Addr _ -> ()
+  | Uint16 n | Uint8 n -> f n
 
 let for_int64_tag tag f =
   match tag.tag_value with
     Uint64 i | Fint64 i -> f i
   | String _ -> ()
   | Addr _ -> ()
+  | Uint8 n | Uint16 n -> f (Int64.of_int n)
 
+let for_two_int16_tag tag f =
+  match tag.tag_value with
+    Uint64 i | Fint64 i -> 
+      let i1 = Int64.to_int (right64 i 16) in
+      let i0 = Int64.to_int i in
+      let i0 = i0 land 0xffff in
+      let i1 = i1 land 0xffff in
+      f i0 i1
+  | String _ -> ()
+  | Addr _ -> ()
+  | Uint8 n | Uint16 n -> f n 0
+      
 let for_string_tag tag f =
   match tag.tag_value with
     Uint64 _ | Fint64 _ -> ()
   | String s -> f s
   | Addr _ -> ()
+  | Uint16 _ | Uint8 _ -> ()
       
 (* Name,FrameHeight *)
 let html_mods_styles = ref

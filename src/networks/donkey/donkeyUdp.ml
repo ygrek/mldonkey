@@ -91,6 +91,7 @@ let cut_for_udp_send max_servers list =
   iter list max_servers []
 
 let make_xs ss =
+  lprintf "******** make_xs ********\n";
   if ss.search_num <> !xs_last_search then begin
       xs_last_search := ss.search_num;
       xs_servers_list := Hashtbl2.to_list servers_by_key;
@@ -113,8 +114,9 @@ when receiving an old ping.
               Udp.QueryUdpReq ss.search_query
 	  else *) Udp.QueryMultipleUdpReq ss.search_query);
   ) before;
-  
-  DonkeyOvernet.overnet_search ss
+  lprintf "===================== STARTING SEARCH ON OVERNET =========\n";
+  DonkeyProtoOvernet.Overnet.overnet_search ss;
+  DonkeyProtoKademlia.Kademlia.overnet_search ss
           
 let force_check_locations () =
   try

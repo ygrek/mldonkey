@@ -53,6 +53,7 @@ module Make(M: sig
       module CommonTypes : sig
           type file
           type client
+          type uid_type
         end
 
       open CommonTypes
@@ -67,6 +68,7 @@ module Make(M: sig
           val file_best_name : file -> string
           val file_state : file -> file_state
           val file_fd : file -> Unix32.t
+          val add_file_downloaded : file -> int64 -> unit
         end
     end) = struct
 
@@ -108,6 +110,8 @@ type chunks =
 
 type t = {
     t_file : file;
+
+    mutable t_checksums : uid_type array;
     
     mutable t_size : int64;
     mutable t_block_size : int64;
@@ -172,6 +176,11 @@ and uploader = {
     mutable up_block_end : int64;
     
     mutable up_ranges : (int64 * int64 * range) list;
+  }
+
+type chunk = {
+    chunk_uid : uid_type;
+    chunk_size : int64;
   }
 
 
@@ -252,6 +261,8 @@ let create file chunk_size range_size =
       
       t_file = file;
       
+      t_checksums = [||];
+      
       t_size = size;
       t_block_size = chunk_size;
       t_range_size = range_size;
@@ -274,7 +285,7 @@ let create file chunk_size range_size =
   HS.add swarmers_by_num t;
   t
 
-
+  
 (*************************************************************************)
 (*                                                                       *)
 (*                         clear_uploader_ranges                         *)
@@ -497,6 +508,11 @@ let set_toverify_block t i =
 (*************************************************************************)
 
 let set_completed_block t i =
+  begin
+    match t.t_blocks.(i) with
+      PartialBlock b -> close_ranges t b.block_ranges
+    | _ -> ()
+  end;  
   match t.t_blocks.(i) with
     CompleteBlock | VerifiedBlock -> ()
   | _ ->
@@ -535,15 +551,7 @@ let verify_block t i =
           let block_end = block_begin ++  t.t_block_size in
           let block_end = min block_end t.t_size in
           if f i block_begin block_end then begin
-              begin
-                match t.t_blocks.(i) with
-                  PartialBlock b ->
-                    t.t_ncomplete_blocks <- t.t_ncomplete_blocks + 1;
-                    close_ranges t b.block_ranges
-                | EmptyBlock ->                 
-                    t.t_ncomplete_blocks <- t.t_ncomplete_blocks + 1;
-                | _ -> ()
-              end;
+              set_toverify_block t i;
               set_verified_block t i
             
             end else begin
@@ -707,6 +715,17 @@ let next_range f r =
   | Some rr -> f rr
         *)
 
+        
+(*************************************************************************)
+(*                                                                       *)
+(*                         add_all_downloaded                            *)
+(*                                                                       *)
+(*************************************************************************)
+        
+let add_all_downloaded t old_downloaded = 
+  let new_downloaded = t.t_downloaded in
+  if new_downloaded <> old_downloaded then 
+    add_file_downloaded t.t_file (new_downloaded -- old_downloaded)
   
 (*************************************************************************)
 (*                                                                       *)
@@ -759,14 +778,6 @@ let range_received r chunk_begin chunk_end =
 
 (*************************************************************************)
 (*                                                                       *)
-(*                         recompute_downloaded (internal)               *)
-(*                                                                       *)
-(*************************************************************************)
-
-let recompute_downloaded t = () 
-
-(*************************************************************************)
-(*                                                                       *)
 (*                         set_present_block (internal)                  *)
 (*                                                                       *)
 (*************************************************************************)
@@ -797,6 +808,8 @@ let set_present_block b chunk_begin chunk_end =
 (*************************************************************************)
 
 let set_present t chunks = 
+  
+  let old_downloaded = t.t_downloaded in  
   apply_intervals t (fun i block_begin block_end chunk_begin chunk_end ->
 (*      lprintf "interval: %Ld-%Ld in block %d [%Ld-%Ld]"
         chunk_begin chunk_end i block_begin block_end; *)
@@ -822,8 +835,8 @@ let set_present t chunks =
 (*          lprintf "  Other\n"; *)
           ()
   ) chunks;
-  recompute_downloaded ()
-
+  add_all_downloaded t old_downloaded
+  
 (*************************************************************************)
 (*                                                                       *)
 (*                         end_present (internal)                        *)
@@ -1487,76 +1500,83 @@ let received (up : uploader) (file_begin : Int64.t)
       (Int64.to_string file_end);
 
 (* TODO: check that everything we received has been required *)
-    
-    List.iter (fun (_,_,r) ->
-        if r.range_current_begin < file_end &&
-          r.range_end > file_begin then begin
+    let t = up.up_t in
+    let old_downloaded = t.t_downloaded in
+    try  
+      
+      List.iter (fun (_,_,r) ->
+          if r.range_current_begin < file_end &&
+            r.range_end > file_begin then begin
+              
+              let new_current_begin = min file_end r.range_end in
+              let written_len = new_current_begin -- r.range_current_begin in
+              
+              
+              begin
+                match file_state t.t_file with
+                | FilePaused 
+                | FileAborted _ 
+                | FileCancelled -> ()
+                | _ -> 
+                    
+                    let string_pos = string_begin + 
+                        Int64.to_int (r.range_current_begin -- file_begin) in
+                    let string_length = Int64.to_int written_len in
+                    
+                    if 
+                      string_pos < 0 ||
+                      string_pos < string_begin || 
+                      string_len > string_length then begin
+                        lprintf "[ERROR CommonSwarming]: BAD WRITE\n";
+                        lprintf "  received: file_pos:%Ld string:%d %d\n"
+                          file_begin string_begin string_len;
+                        lprintf "  ranges:\n";
+                        List.iter (fun (_,_,r) ->
+                            lprintf "     range: %Ld-[%Ld]-%Ld"
+                              r.range_begin r.range_current_begin
+                              r.range_end;
+                            (match r.range_next with
+                                None -> ()
+                              | Some rr -> 
+                                  lprintf "  next: %Ld" rr.range_begin);
+                            (match r.range_prev with
+                                None -> ()
+                              | Some rr -> 
+                                  lprintf "  prev: %Ld" rr.range_begin);
+                            lprintf "\n";
+                            let b = r.range_block in
+                            lprintf "        block: %d[%c] %Ld-%Ld [%s]"
+                              b.block_num 
+                              t.t_verified_bitmap.[b.block_num]
+                              b.block_begin b.block_end
+                              (match t.t_blocks.(b.block_num) with
+                                EmptyBlock -> "empty"
+                              | PartialBlock _ -> "partial"
+                              | CompleteBlock -> "complete"
+                              | VerifiedBlock -> "verified"
+                            );
+                            let br = b.block_ranges in
+                            lprintf " first range: %Ld(%Ld)"
+                              br.range_begin
+                              (br.range_end -- br.range_current_begin);
+                            lprintf "\n";
+                        ) up.up_ranges;
+                      end else
+                      t.t_write
+                        r.range_current_begin  
+                        s string_pos string_length;
+              end;
+              range_received r r.range_current_begin file_end;
             
-            let new_current_begin = min file_end r.range_end in
-            let written_len = new_current_begin -- r.range_current_begin in
-            
-            let t = up.up_t in
-            
-            begin
-              match file_state t.t_file with
-              | FilePaused 
-              | FileAborted _ 
-              | FileCancelled -> ()
-              | _ -> 
-                  
-                  let string_pos = string_begin + 
-                      Int64.to_int (r.range_current_begin -- file_begin) in
-                  let string_length = Int64.to_int written_len in
-                  
-                  if 
-                    string_pos < 0 ||
-                    string_pos < string_begin || 
-                    string_len > string_length then begin
-                      lprintf "[ERROR CommonSwarming]: BAD WRITE\n";
-                      lprintf "  received: file_pos:%Ld string:%d %d\n"
-                        file_begin string_begin string_len;
-                      lprintf "  ranges:\n";
-                      List.iter (fun (_,_,r) ->
-                          lprintf "     range: %Ld-[%Ld]-%Ld"
-                            r.range_begin r.range_current_begin
-                            r.range_end;
-                          (match r.range_next with
-                              None -> ()
-                            | Some rr -> 
-                                lprintf "  next: %Ld" rr.range_begin);
-                          (match r.range_prev with
-                              None -> ()
-                            | Some rr -> 
-                                lprintf "  prev: %Ld" rr.range_begin);
-                          lprintf "\n";
-                          let b = r.range_block in
-                          lprintf "        block: %d[%c] %Ld-%Ld [%s]"
-                            b.block_num 
-                            t.t_verified_bitmap.[b.block_num]
-                            b.block_begin b.block_end
-                            (match t.t_blocks.(b.block_num) with
-                              EmptyBlock -> "empty"
-                            | PartialBlock _ -> "partial"
-                            | CompleteBlock -> "complete"
-                            | VerifiedBlock -> "verified"
-                          );
-                          let br = b.block_ranges in
-                          lprintf " first range: %Ld(%Ld)"
-                            br.range_begin
-                            (br.range_end -- br.range_current_begin);
-                          lprintf "\n";
-                      ) up.up_ranges;
-                    end else
-                    t.t_write
-                      r.range_current_begin  
-                      s string_pos string_length;
-            end;
-            range_received r r.range_current_begin file_end;
-          
-          end
-    ) up.up_ranges;
-    clean_ranges up
-
+            end
+      ) up.up_ranges;
+      clean_ranges up;
+      add_all_downloaded t old_downloaded
+    with e -> 
+        add_all_downloaded t old_downloaded;
+        raise e
+  
+        
 (*************************************************************************)
 (*                                                                       *)
 (*                         present_chunks                                *)
@@ -1668,6 +1688,77 @@ let present_chunks t =
 
 (*************************************************************************)
 (*                                                                       *)
+(*                         propagate_chunk                               *)
+(*                                                                       *)
+(*************************************************************************) 
+
+let propagate_chunk t1 ts pos1 size =
+  List.iter (fun (t2, i2, pos2) ->
+      lprintf "Should propagate chunk from %s %Ld to %s %Ld [%Ld]\n" 
+        (file_best_name t1.t_file) pos1
+        (file_best_name t2.t_file) pos2 size;
+      Unix32.copy_chunk (file_fd t1.t_file)  (file_fd t2.t_file)
+      pos1 pos2 (Int64.to_int size);
+
+      let old_downloaded = t2.t_downloaded in
+      set_toverify_block t2 i2;
+      set_verified_block t2 i2;
+      add_all_downloaded t2 old_downloaded
+
+  ) ts
+  
+(*************************************************************************)
+(*                                                                       *)
+(*                         duplicate_chunks                              *)
+(*                                                                       *)
+(*************************************************************************) 
+
+(* This is the least aggressive version. I was thinking of computing
+checksums for all possible schemas for all files, to be able to
+move chunks from/to BT files from/to ED2k files. *)
+  
+let duplicate_chunks () =
+  let chunks = Hashtbl.create 100 in
+  HS.iter (fun t ->
+      let rec iter i len pos bsize size =
+        if i < len then
+          let c = {
+              chunk_uid = t.t_checksums.(i);
+              chunk_size = min (size -- pos) bsize;
+            } in
+          let (has, has_not) = try
+              Hashtbl.find chunks c
+            with _ -> 
+                let sw = (ref [], ref []) in
+                Hashtbl.add chunks c sw;
+                sw
+          in
+          let sw = if t.t_verified_bitmap.[i] = '3' then has else has_not in
+          sw := (t, i, pos) :: !sw;
+          iter (i+1) len (pos ++ bsize) bsize size
+      in
+      iter 0 (Array.length t.t_checksums) zero t.t_block_size t.t_size
+  ) swarmers_by_num;
+  Hashtbl.iter (fun c (has, has_not) ->
+      match !has, !has_not with
+        _ ,  []
+      | [], _ -> ()
+      | (t, _, pos) :: _, ts ->
+          propagate_chunk t ts pos c.chunk_size
+  ) chunks
+  
+  
+(*************************************************************************)
+(*                                                                       *)
+(*                         set_checksums                                 *)
+(*                                                                       *)
+(*************************************************************************) 
+
+let set_checksums t tab = match t with
+    None -> () | Some t -> t.t_checksums <- tab
+
+(*************************************************************************)
+(*                                                                       *)
 (*                         set_verified_bitmap                           *)
 (*                                                                       *)
 (*************************************************************************)
@@ -1687,8 +1778,7 @@ let set_verified_bitmap t bitmap =
         set_completed_block t i;
         verify_block t i
     | _ -> ()
-  done;
-  recompute_downloaded t
+  done
 
 (*************************************************************************)
 (*                                                                       *)
@@ -1865,6 +1955,8 @@ let value_to_swarmer t assocs =
           
     with e -> ());
   
+  add_all_downloaded t zero;
+  
   ()      
 
 (*************************************************************************)
@@ -1911,7 +2003,8 @@ let swarmer_to_value t other_vals =
 
 (* Compute an approximation of the storage used by this module *)
     
-    let _ = 
+let _ = 
+  BasicSocket.add_infinite_timer 300. duplicate_chunks;
       Heap.add_memstat "CommonSources" (fun level buf ->
           let counter = ref 0 in
           let nchunks = ref 0 in

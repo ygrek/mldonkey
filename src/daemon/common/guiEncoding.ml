@@ -172,7 +172,9 @@ let buf_tag buf t =
   | Fint64 s -> buf_int8 buf 1; buf_int64_32 buf s
   | String s -> buf_int8 buf 2; buf_string buf s
   | Addr ip -> buf_int8 buf 3; buf_ip buf ip
-    
+  | Uint16 n -> buf_int8 buf 4; buf_int16 buf n
+  | Uint8 n -> buf_int8 buf 5; buf_int8 buf n
+      
 let buf_host_state proto buf t =
   if proto < 12 then
     buf_int8 buf (    

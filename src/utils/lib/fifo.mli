@@ -32,3 +32,4 @@ val put_back : 'a t -> 'a list -> unit
 val iter: ('a -> unit) -> 'a t -> unit
 val remove : 'a t -> 'a -> unit
   
+val to_array : 'a t -> 'a array

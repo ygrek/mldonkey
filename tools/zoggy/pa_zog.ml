@@ -1,13 +1,28 @@
-(***********************************************************************)
-(*                                Zoggy                                *)
-(*                                                                     *)
-(*       Daniel de Rauglaudre, projet Cristal, INRIA Rocquencourt      *)
-(*                                                                     *)
-(*  Copyright 2001 Institut National de Recherche en Informatique et   *)
-(*  en Automatique.  All rights reserved.  This file is distributed    *)
-(*  under the terms of the Q Public License version 1.0.               *)
-(*                                                                     *)
-(***********************************************************************)
+(**************************************************************************)
+(*                   Cameleon                                             *)
+(*                                                                        *)
+(*      Copyright (C) 2002 Institut National de Recherche en Informatique et   *)
+(*      en Automatique. All rights reserved.                              *)
+(*                                                                        *)
+(*      This program is free software; you can redistribute it and/or modify  *)
+(*      it under the terms of the GNU General Public License as published by  *)
+(*      the Free Software Foundation; either version 2 of the License, or  *)
+(*      any later version.                                                *)
+(*                                                                        *)
+(*      This program is distributed in the hope that it will be useful,   *)
+(*      but WITHOUT ANY WARRANTY; without even the implied warranty of    *)
+(*      MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the     *)
+(*      GNU General Public License for more details.                      *)
+(*                                                                        *)
+(*      You should have received a copy of the GNU General Public License  *)
+(*      along with this program; if not, write to the Free Software       *)
+(*      Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA          *)
+(*      02111-1307  USA                                                   *)
+(*                                                                        *)
+(*      Contact: Maxence.Guesdon@inria.fr                                *)
+(**************************************************************************)
+
+(* $Id$ *)
 
 #load "pa_extend.cmo";;
 #load "q_MLast.cmo";;
@@ -33,21 +48,48 @@ let gen_anonynous_name ele =
   
 let parse_string loc =
   function
-    "false" -> <:expr< False >>
-  | "true" -> <:expr< True >>
+    "false" -> 
+      let loc = 
+	(
+	 { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+	 { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+	)	
+      in
+      <:expr< False >>
+  | "true" ->
+      let loc = 
+	(
+	 { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+	 { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+	)	
+      in
+      <:expr< True >>
+
   | str ->
       try
         let strm = Stream.of_string str in
         let r = Grammar.Entry.parse Pcaml.expr strm in
-        Pcaml.expr_reloc (fun _ -> loc) 0 r
+        Pcaml.expr_reloc
+	  (fun _ -> Lexing.dummy_pos, Lexing.dummy_pos) 
+	  Lexing.dummy_pos 
+	  r
       with
         e ->
           Printf.eprintf "Error in \"%s\"\n" str; flush stderr;
           let (e, loc) =
             match e with
               Stdpp.Exc_located ((bp, ep), e) ->
-                e, (fst loc + bp, fst loc + ep)
-            | e -> (e, loc)
+                e, ({ Lexing.dummy_pos with
+		      Lexing.pos_cnum = fst loc + bp.Lexing.pos_cnum}, 
+		    { Lexing.dummy_pos with
+		      Lexing.pos_cnum = fst loc + ep.Lexing.pos_cnum}
+		   )
+            | e -> (e, ({ Lexing.dummy_pos with
+			  Lexing.pos_cnum = fst loc} ,
+			{ Lexing.dummy_pos with
+			  Lexing.pos_cnum = snd loc}
+		       )
+		   )
           in
           Stdpp.raise_with_loc loc e
 
@@ -65,7 +107,14 @@ let ast_of_prop_value loc props kind =
     let p = List.find (fun p -> p.prop_kind = kind) props in
     parse_prop_value p
   with
-    Not_found -> <:expr< "" >>
+    Not_found -> 
+      	let loc = 
+	  (
+	   { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+	   { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+	  )	
+	in
+	<:expr< "" >>
 
 let get_prop_label ele prop =
   match prop.prop_kind with
@@ -193,6 +242,13 @@ let field_error_string f =
       (_, n, _, _) -> n
 
 let ast_of_creation_options_code loc ele f =
+  let loc = 
+    (
+     { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+     { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+    )	
+  in
+
   let g f prop =
     match prop.prop_kind with
       Function | Tab_label | Expand | Fill | Padding -> f
@@ -202,19 +258,19 @@ let ast_of_creation_options_code loc ele f =
     | PPixmap_file ->
 	if must_gen prop then
           let v = parse_prop_value prop in
-            <:expr< $f$ (GDraw.pixmap_from_xpm ~file : $v$ ()) >>
+          <:expr< $f$ (GDraw.pixmap_from_xpm ~file : $v$ ()) >>
 	else
  	  raise (Field_error (field_error_string PPixmap_file))
     | PPixmap_data ->
 	if must_gen prop then
           let v = parse_prop_value prop in
-            <:expr< $f$ (GDraw.pixmap_from_xpm_d ~data : $v$ ()) >>
+          <:expr< $f$ (GDraw.pixmap_from_xpm_d ~data : $v$ ()) >>
 	else
  	  raise (Field_error (field_error_string PPixmap_data))
     | PPixmap_code ->
 	if must_gen prop then
           let v = parse_prop_value prop in
-            <:expr< $f$ $v$ >>
+          <:expr< $f$ $v$ >>
 	else
  	  raise (Field_error (field_error_string PPixmap_code))
     | _ ->
@@ -230,6 +286,12 @@ let ast_of_pack_options_code loc f ele =
     match prop.prop_kind with
       Expand | Fill | Padding ->
         if must_gen prop then
+	  let loc = 
+	    (
+	     { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+	     { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+	    )	
+	  in
           let v = parse_prop_value prop in
           <:expr< $f$ ~ $get_prop_label ele prop$ : $v$ >>
         else f
@@ -237,27 +299,57 @@ let ast_of_pack_options_code loc f ele =
   in
   List.fold_left g f ele.props
 
-let ast_of_pack_code loc parent ele f =
+let ast_of_pack_code (loc : int * int) parent ele f =
   try
     let pack_met = Zog_types.pack_method_of_ele parent ele in
     match pack_met with
       No_pack -> f
     | Insert_page ->
-        let g = let loc = parent.name_loc in <:expr< $lid:parent.name$ >> in
+        let g = 
+	  let loc = 
+	    (
+	     { Lexing.dummy_pos with Lexing.pos_cnum = fst parent.name_loc } ,
+	     { Lexing.dummy_pos with Lexing.pos_cnum = snd parent.name_loc }
+	    )	
+	  in
+	  <:expr< $lid:parent.name$ >> 
+	in
+	let loc1 = loc in
+	let loc = 
+	  (
+	   { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+	   { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+	  )	
+	in
         <:expr<
           $f$ ~packing:
             (fun w ->
                $g$ # append_page
                  ~tab_label:
                     (GMisc.label
-                        ~text:$ast_of_prop_value loc ele.props Tab_label$ ())
+                        ~text:$ast_of_prop_value loc1 ele.props Tab_label$ ())
                     #coerce w)
         >>
     | _ ->
-        let g = let loc = parent.name_loc in <:expr< $lid:parent.name$ >> in
+        let g = 
+	  let loc = 
+	    (
+	     { Lexing.dummy_pos with Lexing.pos_cnum = fst parent.name_loc } ,
+	     { Lexing.dummy_pos with Lexing.pos_cnum = snd parent.name_loc }
+	    )	
+	  in
+	  <:expr< $lid:parent.name$ >> 
+	in
+	let loc1 = loc in
+	let loc = 
+	  (
+	   { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+	   { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+	  )	
+	in
         let p x = <:expr< $f$ ~packing: $x$ >> in
         match pack_met with
-          Pack -> p (ast_of_pack_options_code loc <:expr< $g$ # pack >> ele)
+          Pack -> p (ast_of_pack_options_code loc1 <:expr< $g$ # pack >> ele)
         | Add -> p <:expr< $g$ # add >>
         | Add1 -> p <:expr< $g$ # add1 >>
         | Add2 -> p <:expr< $g$ # add2 >>
@@ -265,7 +357,15 @@ let ast_of_pack_code loc parent ele f =
         | Set_submenu -> p <:expr< $g$ # set_submenu >>
         | Insert_page | No_pack -> f
   with
-    Failure s -> prerr_endline s; <:expr< $f$ failed >>
+    Failure s -> 
+      	let loc = 
+	  (
+	   { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+	   { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+	  )	
+	in
+	prerr_endline s; 
+	<:expr< $f$ failed >>
 
 let ast_of_custom_pack_code loc parent ele ce =
   try
@@ -274,23 +374,62 @@ let ast_of_custom_pack_code loc parent ele ce =
       No_pack -> ce
     | Insert_page ->
 
-	let g = let loc = parent.name_loc in <:expr< $lid:parent.name$>> in
-        let n = let loc = ele.name_loc in <:expr< $lid:ele.name$ >> in
+	let g = 
+	  let loc = 
+	    (
+	     { Lexing.dummy_pos with Lexing.pos_cnum = fst parent.name_loc } ,
+	     { Lexing.dummy_pos with Lexing.pos_cnum = snd parent.name_loc }
+	    )	
+	  in
+	  <:expr< $lid:parent.name$>> 
+	in
+        let n = 
+	  let loc = 
+	    (
+	     { Lexing.dummy_pos with Lexing.pos_cnum = fst ele.name_loc } ,
+	     { Lexing.dummy_pos with Lexing.pos_cnum = snd ele.name_loc }
+	    )	
+	  in
+	  <:expr< $lid:ele.name$ >> 
+	in
+	let loc1 = loc in
+	let loc = 
+	  (
+	   { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+	   { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+	  )	
+	in
+
         <:class_expr<
         let _ = $g$ # append_page
             ~tab_label:
             (GMisc.label
-               ~text:$ast_of_prop_value loc ele.props
+               ~text:$ast_of_prop_value loc1 ele.props
                Tab_label$ ())
             #coerce $n$#coerce in
         $ce$
         >>
     | _ ->
 
-        let g = let loc = parent.name_loc in <:expr< $lid:parent.name$ >> in
+        let g = 
+	  let loc = 
+	    (
+	     { Lexing.dummy_pos with Lexing.pos_cnum = fst parent.name_loc } ,
+	     { Lexing.dummy_pos with Lexing.pos_cnum = snd parent.name_loc }
+	    )	
+	  in
+	  <:expr< $lid:parent.name$ >> 
+	in
+	let loc1 = loc in
+	let loc = 
+	  (
+	   { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+	   { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+	  )	
+	in
         let r =
           match pack_met with
-            Pack -> ast_of_pack_options_code loc <:expr< $g$ # pack >> ele
+            Pack -> ast_of_pack_options_code loc1 <:expr< $g$ # pack >> ele
           | Add -> <:expr< $g$ # add >>
           | Add1 -> <:expr< $g$ # add1 >>
           | Add2 -> <:expr< $g$ # add2 >>
@@ -298,10 +437,26 @@ let ast_of_custom_pack_code loc parent ele ce =
           | Set_submenu -> <:expr< $g$ # set_submenu >>
           | Insert_page | No_pack -> g
         in
-        let n = let loc = ele.name_loc in <:expr< $lid:ele.name$ >> in
+        let n = 
+	  let loc = 
+	    (
+	     { Lexing.dummy_pos with Lexing.pos_cnum = fst ele.name_loc } ,
+	     { Lexing.dummy_pos with Lexing.pos_cnum = snd ele.name_loc }
+	    )	
+	  in
+	  <:expr< $lid:ele.name$ >> 
+	in
         <:class_expr< let _ = $r$ $n$ # coerce in $ce$ >>
   with
-    Failure s -> prerr_endline s; <:class_expr< let _ = failed in $ce$ >>
+    Failure s -> 
+      let loc = 
+	(
+	 { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+	 { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+	  )	
+      in
+      prerr_endline s; 
+      <:class_expr< let _ = failed in $ce$ >>
 
 (** The accel_group variable name for the given Menubar ele. *)
 let accel_group_name ele =
@@ -329,28 +484,56 @@ let rec ast_of_post_menu_item_creation_code loc accel_name ele ce =
         match
           remove_blanks (Zog_types.get_prop_value ele.props Accel_modifier)
         with
-          "" -> <:expr< [] >>
+          "" -> 
+	    let loc = 
+	    (
+	     { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+	     { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+	    )	
+	    in
+	    <:expr< [] >>
         | s -> parse_string loc s
       in
       let flags =
         match
           remove_blanks (Zog_types.get_prop_value ele.props Accel_flags)
         with
-          "" -> <:expr< [] >>
+          "" ->
+	    let loc = 
+	    (
+	     { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+	     { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+	    )	
+	    in
+	    <:expr< [] >>
         | s -> parse_string loc s
+      in
+      let loc1 = loc in
+      let loc = 
+	(
+	 { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+	 { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+	)	
       in
       <:class_expr<
         let _ =
           $lid:ele.name$ #add_accelerator ~group: $lid:accel_name$
-             ~modi: $modifier$ ~flags: $flags$ $parse_string loc v$
+             ~modi: $modifier$ ~flags: $flags$ $parse_string loc1 v$
         in
         $ce$ >>
+
 and ast_of_post_menu_creation_code loc accel_name ele ce =
   match ele.classe with
     Menu ->
       let ce =
         List.fold_right (ast_of_post_menu_item_creation_code loc accel_name)
           ele.children ce
+      in
+      let loc = 
+	(
+	 { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+	 { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+	)	
       in
       <:class_expr<
          let _ = $lid:ele.name$ #set_accel_group $lid:accel_name$ in $ce$ >>
@@ -370,11 +553,23 @@ let ast_of_post_menubar_creation_code ?win loc ele ce =
 	 match win with
 	   None -> ce
 	 | Some w -> 
+	     let loc = 
+	       (
+		{ Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+		{ Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+	       )	
+	     in
 	     <:class_expr<
 	     let _ = $lid:w$#add_accel_group $lid:acc_name$ in $ce$
 	     >>
 	)      
       in
+      let loc = 
+	(
+	 { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+	 { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+	)	
+      in      
       <:class_expr<
       let $lid:acc_name$ = GtkData.AccelGroup.create () in 
       $ce2$
@@ -402,6 +597,12 @@ let rec ast_of_ele_creations ?win loc parent_opt previous_opt ele ce =
       let f =
         match ele.classe, previous_opt with
           Radio_menu_item, Some e when e.classe = Radio_menu_item ->
+	    let loc = 
+	      (
+	       { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+	       { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+	      )	
+	    in
             <:expr< $f$ ~group: $lid:e.name$ #group >>
         | _ -> f
       in
@@ -419,41 +620,101 @@ let rec ast_of_ele_creations ?win loc parent_opt previous_opt ele ce =
 (* BEGIN CDK *)
   gen_anonynous_name ele;
   if ele.name = "_" then  
-      <:class_expr< let _ = $e$ () in $ce$  >>
+      	let loc = 
+	  (
+	   { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+	   { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+	  )	
+	in
+	<:class_expr< let _ = $e$ () in $ce$  >>
     else
     (* END CDK *)
-  let n = let loc = ele.name_loc in <:patt< $lid:ele.name$ >> in
+  let n = 
+    let loc = 
+      (
+       { Lexing.dummy_pos with Lexing.pos_cnum = fst ele.name_loc } ,
+       { Lexing.dummy_pos with Lexing.pos_cnum = snd ele.name_loc }
+	  )	
+    in <:patt< $lid:ele.name$ >> 
+  in
+  let loc = 
+    (
+     { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+     { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+    )	
+  in
   <:class_expr< let $n$ = $e$ () in $ce$ >>
 
-let rec ast_of_ele_methods loc ele =
-  let cil =
-    if ele.classe = Menubar then
-      let accel_name = accel_group_name ele in
-      [<:class_str_item< method $accel_name$ = $lid:accel_name$ >>]
-    else []
-  in
+  let rec ast_of_ele_methods loc ele =
+    let cil =
+      if ele.classe = Menubar then
+	let accel_name = accel_group_name ele in
+	let loc = 
+	  (
+	   { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+	   { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+	  )	
+	in
+	[<:class_str_item< method $accel_name$ = $lid:accel_name$ >>]
+      else []
+    in
 (* BEGIN CDK *)
-  gen_anonynous_name ele;
-  let cil = if ele.name.[0] <> '_' then 
-    let n = let loc = ele.name_loc in <:expr< $lid:ele.name$ >> in
-    <:class_str_item< method $ele.name$ = $n$ >> :: cil else cil in
+    gen_anonynous_name ele;
+    let cil = if ele.name.[0] <> '_' then 
+      let n = 
+	let loc = 
+	  (
+	   { Lexing.dummy_pos with Lexing.pos_cnum = fst ele.name_loc } ,
+	   { Lexing.dummy_pos with Lexing.pos_cnum = snd ele.name_loc }
+	  )	
+	in
+	<:expr< $lid:ele.name$ >> 
+      in
+      let loc = 
+	(
+	 { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+	 { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+	)	
+      in
+      <:class_str_item< method $ele.name$ = $n$ >> :: cil else cil in
 (* END CDK *)  
-  List.fold_left (fun cil ele -> cil @ ast_of_ele_methods loc ele) cil
-    ele.children
+    List.fold_left (fun cil ele -> cil @ ast_of_ele_methods loc ele) cil
+      ele.children
   
 let rec ast_of_ele_vals loc ele =
   let cil =
     if ele.classe = Menubar then
       let accel_name = accel_group_name ele in
+      let loc = 
+	(
+	 { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+	 { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+	)	
+      in
       [<:class_str_item< value $accel_name$ = $lid:accel_name$ >>]
     else []
   in
 (* BEGIN CDK *)
   gen_anonynous_name ele;
-  let n = let loc = ele.name_loc in <:expr< $lid:ele.name$ >> in
+  let n = 
+    let loc = 
+      (
+       { Lexing.dummy_pos with Lexing.pos_cnum = fst ele.name_loc } ,
+       { Lexing.dummy_pos with Lexing.pos_cnum = snd ele.name_loc }
+      )	
+    in
+    <:expr< $lid:ele.name$ >> 
+  in
   let cil = if ele.name.[0] <> '_' then 
+    let loc = 
+      (
+       { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+       { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+      )	
+    in
     <:class_str_item< value $ele.name$ = $n$ >> :: cil  
-   else cil in
+   else cil 
+  in
 (* END CDK *)  
   List.fold_left (fun cil ele -> cil @ ast_of_ele_vals loc ele) cil
     ele.children
@@ -468,9 +729,28 @@ let ast_of_entity loc entity =
           match e.classe with
             Window -> cil
           | _ ->
-              let n = let loc = e.name_loc in <:expr< $lid:e.name$ >> in
+              let n = 
+		let loc = 
+		  (
+		   { Lexing.dummy_pos with Lexing.pos_cnum = fst e.name_loc } ,
+		   { Lexing.dummy_pos with Lexing.pos_cnum = snd e.name_loc }
+		  )	
+		in <:expr< $lid:e.name$ >> 
+	      in
+	      let loc = 
+		(
+		 { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+		 { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+		)	
+	      in
               let ci = <:class_str_item< method coerce = $n$ # coerce >> in
               cil @ [ci]
+    in
+    let loc = 
+      (
+       { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+       { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+      )	
     in
     <:class_expr< object $None$ $list:cil$ end >>
   in
@@ -484,6 +764,12 @@ let ast_of_entity loc entity =
 	  | _ -> None
 	in
 	ast_of_ele_creations ?win: win_opt loc None None ele ce
+  in
+  let loc = 
+    (
+     { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+     { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+	  )	
   in
   let ce =
     List.fold_right (fun p ce -> <:class_expr< fun $lid:p$ -> $ce$ >>)
@@ -511,7 +797,10 @@ let _ =
           ">" ->
 	    try
               let entity = {en_name = name; en_params = pl; en_ele = w} in
-		ast_of_entity loc entity, loc
+	      (
+	       let loc = ((fst loc).Lexing.pos_cnum, (snd loc).Lexing.pos_cnum) in
+	       ast_of_entity loc entity
+	      ), loc
             with Field_error m ->
               field_error m;
 	      exit 1
@@ -531,9 +820,11 @@ let _ =
               List.map
                 (fun (x, v, vloc) ->
                    {prop_kind = Zog_misc.property_kind_of_property_name x;
-                    prop_value = Zog_misc.decode v; prop_value_loc = vloc})
+                    prop_value = Zog_misc.decode v; 
+		     prop_value_loc = ((fst vloc).Lexing.pos_cnum, (snd vloc).Lexing.pos_cnum)})
                 proplist
             in
+	    let nloc = ((fst loc).Lexing.pos_cnum, (snd loc).Lexing.pos_cnum) in
             { name = name; name_loc = nloc;
               classe = Zog_misc.class_of_class_name tag; 
 	      props = proplist;
@@ -548,7 +839,7 @@ let _ =
       [ [ x = LIDENT; "="; (v, vloc) = string -> x, v, vloc ] ]
     ;
     string:
-      [ [ v = STRING -> v, loc ] ]
+      [ [ v = STRING -> v,  loc ] ]
     ;
     ident:
       [ [ v = LIDENT -> v, loc ] ]

@@ -94,10 +94,16 @@ let connect_tracker file event f =
       let downloaded = Int64Swarmer.downloaded swarmer in
       let args,must_check_delay, downloaded = 
         match event with
-        | "completed" -> [("event", "completed")],true, zero
-        | "started" -> [("event", "started")],true, downloaded
-        | "stopped" -> [("event", "stopped")],false, downloaded
-        | _ -> [], true, downloaded
+        | "completed" -> 
+(* ok, when downloading, "completed" shoud be sent immediatly! But
+when sharing, only every interval *)
+           if file_state file = FileDownloading then
+             [("event", "completed")],false,(Int64Swarmer.downloaded swarmer)
+           else
+             [("event", "completed")],true,(Int64.of_int 0)
+        | "started" -> [("event", "started")],true,(Int64Swarmer.downloaded swarmer)
+        | "stopped" -> [("event", "stopped")],false,(Int64Swarmer.downloaded swarmer)
+        | _ -> [],true,(Int64Swarmer.downloaded swarmer)
       in
       if (not must_check_delay) || (file.file_tracker_last_conn + 
             file.file_tracker_interval 
@@ -131,7 +137,7 @@ let connect_tracker file event f =
             f fileres
         )
       else
-        ()
+        lprintf "Request NOT sent to tracker - remaning: %d\n" (file.file_tracker_interval - (last_time () - file.file_tracker_last_conn))
         
 
 (** In this function we decide which peers will be 
@@ -277,9 +283,18 @@ let download_finished file =
   if List.memq file !current_files then begin      
     (*CommonComplexOptions.file_completed*)    
       file_completed (as_file file);
-      current_files := List2.removeq file !current_files;
+      remove_file file;
       disconnect_clients file;
-      connect_tracker file "completed" (fun _ -> ())
+      connect_tracker file "stopped" (fun _ -> ());
+(* start sharing! - Copy file from torrents/download to torrent/seeded *)
+      try
+        let s = File.to_string file.file_torr_fname in  
+        if String.length s = 0 then raise Not_found;
+        let filename = Filename.concat seeded_directory 
+          ((String2.replace file.file_name '/' "") ^ ".torrent") in
+        File.from_string filename s
+      with _ ->
+        lprintf "Unable to start sharing %s\n" file.file_torr_fname
     end
           
 
@@ -707,7 +722,7 @@ and client_to_client c sock msg =
             
             
             if new_downloaded <> old_downloaded then
-              add_file_downloaded file.file_file 
+              add_file_downloaded (as_file file) 
                 (new_downloaded -- old_downloaded);
           end;
         begin
@@ -718,7 +733,7 @@ and client_to_client c sock msg =
               c.client_ranges <- tail;
         end;
         get_from_client sock c;
-        if (List.length !current_uploaders < (max_uploaders-1)) &&
+        if (List.length !current_uploaders < (!!max_uploaders_per_torrent-1)) &&
           (List.mem c (!current_uploaders)) == false && c.client_interested then
           begin
 (*we are probably an optimistic uploaders for this client

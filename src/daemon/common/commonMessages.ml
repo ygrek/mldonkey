@@ -486,7 +486,7 @@ onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','gstats')\">Gnutella</TD>
 <TD class=\"bu bbig\" title=\"Memory statistics\" 
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('output','mem_stats')\">Memory</TD>
+onClick=\"mSub('output','mem_stats 0')\">Memory</TD>
 <TD class=\"bu bbig\" title=\"Sources statistics\" 
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','sources')\">Sources</TD>

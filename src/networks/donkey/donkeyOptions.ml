@@ -34,7 +34,7 @@ let max_xs_packets = define_expert_option donkey_section ["max_xs_packets"]
 let max_dialog_history = define_expert_option donkey_section ["max_dialog_history"]
     "Max number of messages of Chat remembered" int_option 30
     
-let port = define_option donkey_section ["port"] "The port used for connection by other donkey clients." int_option 4662
+let donkey_port = define_option donkey_section ["port"] "The port used for connection by other donkey clients." int_option 4662
 
 let check_client_connections_delay = 
   define_expert_option donkey_section ["check_client_connections_delay"] 
@@ -267,8 +267,18 @@ let min_users_on_server = define_option donkey_section ["min_users_on_server"]
      "min connected users for each server" int_option 0
 
 let login = define_option donkey_section ["login"] 
-  "login of client on eDonkey network (nothing default to global one)" string_option ""
+    "login of client on eDonkey network (nothing default to global one)" string_option ""
 
+let overnet_options_section_name = "Overnet"
+
+let overnet_section = file_section donkey_ini [ overnet_options_section_name ]
+    "Overnet options"  
+
+let overnet_port =  
+  define_option overnet_section [overnet_options_section_name; "port"] 
+  "port for overnet" 
+    int_option (2000 + Random.int 20000)
+  
   
   
 (* let source_management = define_expert_option donkey_section
@@ -307,7 +317,7 @@ let gui_donkey_options_panel =
     "Max Upload Slots", shortname max_upload_slots, "T";
     "Max Sources Per Download", shortname max_sources_per_file, "T";
     "Commit Downloads In Incoming Subdir", shortname commit_in_subdir, "T";
-    "Port", shortname port, "T";
+    "Port", shortname donkey_port, "T";
     "Login", shortname login, "T";
     "Download Chunks in Random order", shortname random_order_download, "B";    
     "Sources Per Chunk", shortname sources_per_chunk, "T";

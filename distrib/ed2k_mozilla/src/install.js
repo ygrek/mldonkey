@@ -16,11 +16,10 @@
  *
  * The Initial Developer of the Original Code is
  * Simon Peter <dn.tlp@gmx.net>.
- * Portions created by the Initial Developer are Copyright (C) 2003, 2004
+ * Portions created by the Initial Developer are Copyright (C) 2003
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
- * Len Walter <len@unsw.edu.au>
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -36,14 +35,14 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-const G_MSG        = "Mozilla MLdonkey Protocol Handler 1.4";
+const G_MSG        = "Mozilla MLdonkey Protocol Handler 1.3";
 const G_NAME       = "ed2k";
-const G_VER        = "1.4";
+const G_VER        = "1.3";
 
 var err = initInstall(G_MSG, G_NAME, G_VER);
 logComment("initInstall: " + err);
 
-addFile("protocol handler", "components/ed2kprotocol.js", getFolder("Components"), "");
+addFile("protocol handler", "ed2kprotocol.js", getFolder("Components"), "");
 
 // needed for older versions to see the new component
 var f = getFolder("Program", "component.reg");

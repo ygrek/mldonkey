@@ -252,6 +252,8 @@ module type Digest = sig
     val to_string : t -> string
     val to_string_case : bool -> t -> string
     val of_string : string -> t
+
+    val to_bits : t -> string
       
     val to_hexa : t -> string
     val to_hexa_case : bool -> t -> string
@@ -316,7 +318,20 @@ module Make(M: sig
       let digest = String.create hash_length in
       unsafe_string digest s len;
       digest
-    
+
+    let to_bits s =
+      let len = String.length s in
+      let digest = String.create (8*len) in
+      for i = 0 to len-1 do
+        let c = int_of_char s.[i] in
+        for j = 7 downto 0 do
+          digest.[i*8 + (7-j)] <- 
+            (if c land (1 lsl j) <> 0 then '1' else '0')
+            
+        done
+      done;
+      digest
+      
     external xor_c : t -> t -> t -> unit = "md4_xor" "noalloc"
     
     let xor m1 m2 =

@@ -739,13 +739,14 @@ static int ml_gethostbyname(char *hostname)
   return 1;
 }
 
-extern value alloc_inet_addr(uint32 a);
+
+extern value alloc_inet_addr(struct in_addr * a);
 
 static value alloc_one_addr(char volatile *a)
 {
   struct in_addr addr;
   memmove (&addr, (char*)a, entry_h_length);
-  return alloc_inet_addr(addr.s_addr);
+  return alloc_inet_addr(&addr);
 }
 
 static void store_in_job(value job_v)

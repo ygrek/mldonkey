@@ -136,10 +136,8 @@ let emule_info =
     E.tags = [];
   }
 
-let client_port = ref 0
 let overnet_connectreply_tags = ref ([] :  tag list)
 let overnet_connect_tags = ref ([] :  tag list)
-let overnet_client_port = ref 0
 
 let overnet_md4 = Md4.random()
 let nservers = ref 0
@@ -422,10 +420,14 @@ let is_black_address ip port =
           true))
   
 let new_server ip port score = 
-  let key = (ip, port) in
+  let key = (ip) in
   try
-    Hashtbl.find servers_by_key key
-  with _ ->
+    let found = Hashtbl.find servers_by_key key in
+(* Is updating port to the most recent value the correct thing to do ?
+   PlasmaHH says they're legitimate servers switching ports :( *)
+    found.server_port <- port;
+    found
+  with Not_found ->
       let rec s = { 
         server_server = server_impl;
         server_next_udp = last_time ();
@@ -469,11 +471,11 @@ let new_server ip port score =
       s      
 
 let find_server ip port =
-  let key = (ip, port) in
+  let key = (ip) in
   Hashtbl.find servers_by_key key  
 
 let remove_server ip port =
-  let key = (ip, port) in
+  let key = (ip) in
   let s = Hashtbl.find servers_by_key key in
   try
     Hashtbl.remove servers_by_key key;
@@ -782,7 +784,6 @@ let left_bytes = "MLDK"
 let overnet_server_ip = ref Ip.null
 let overnet_server_port = ref 0
 
-        
 let brand_to_string b =
   match b with
     Brand_unknown -> "unknown"
@@ -885,6 +886,7 @@ let check_result r tags =
                 (match tag.tag_value with
                   String s -> s
                 | Uint64 i | Fint64 i -> Int64.to_string i
+                | Uint16 n | Uint8 n -> string_of_int n
                 | Addr _ -> "addr");
               lprintf "\n";
           ) tags;

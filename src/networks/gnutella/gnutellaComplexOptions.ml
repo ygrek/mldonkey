@@ -129,9 +129,6 @@ let value_to_file file_size file_state assocs =
       None -> ()
     | Some swarmer ->
         Int64Swarmer.value_to_swarmer swarmer assocs;
-        add_file_downloaded file.file_file
-          (Int64Swarmer.downloaded swarmer);
-        
   );
 (*
   (try 

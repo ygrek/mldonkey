@@ -304,10 +304,11 @@ DONKEY_SRCS= \
   $(SRC_DONKEY)/donkeyNeighbours.ml \
   $(SRC_DONKEY)/donkeyStats.ml \
   $(SRC_DONKEY)/donkeyOneFile.ml \
-  $(SRC_DONKEY)/donkeyClient.ml \
-  $(SRC_DONKEY)/donkeyProtoOvernet.ml \
   \
   $(SRC_DONKEY)/donkeyOvernet.ml \
+  $(SRC_DONKEY)/donkeyProtoKademlia.ml \
+  $(SRC_DONKEY)/donkeyClient.ml \
+  $(SRC_DONKEY)/donkeyProtoOvernet.ml \
   $(SRC_DONKEY)/donkeyUdp.ml \
   $(SRC_DONKEY)/donkeyFiles.ml  \
   $(SRC_DONKEY)/donkeyServers.ml \

@@ -31,12 +31,16 @@ val buf_port : Buffer.t -> int -> unit
 val buf_addr : Buffer.t -> Ip.t * int -> unit
 val buf_tags :
   Buffer.t -> CommonTypes.tag list -> (string * string) list -> unit
+val buf_tag :
+  Buffer.t -> CommonTypes.tag -> (string * string) list -> unit
 (*val read_uint8 : in_channel -> int32
 val read_uint32 : in_channel -> int32 *)
 val read_request : in_channel -> string
 val output_request : out_channel -> string -> unit
 val get_port : string -> int -> int
 val get_string : string -> int -> string * int
+val get_tag :
+     (string * string) list -> string -> int -> CommonTypes.tag * int
 val get_tags :
   string -> int -> (string * string) list -> CommonTypes.tag list * int
 val get_peer : string -> int -> (Ip.t * int) * int

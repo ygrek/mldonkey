@@ -267,9 +267,11 @@ type query =
   
 type tag_value =
 | Uint64 of int64
-| Fint64 of int64  (* Why do we keep that one ?? *)
+| Fint64 of int64  (* Why do we keep that one, it is supposed to be a float ? *)
 | String of string
 | Addr of Ip.t
+| Uint16 of int
+| Uint8 of int
 
 type tag = {
     mutable tag_name : string;
@@ -683,7 +685,8 @@ let string_of_tag tag =
     Uint64 i| Fint64 i -> Int64.to_string i
   | Addr x -> Ip.to_string x
   | String s -> s
-
+  | Uint16 n | Uint8 n -> string_of_int n
+      
 type arg_handler =  ui_conn -> string
 type arg_kind = 
   Arg_none of arg_handler

@@ -30,7 +30,8 @@ let filename =  "observer.dat"
 
 let motd_html = ref (try File.to_string "motd.html" with _ -> "")
 let servers_met = ref (try File.to_string "servers.met" with _ -> "")
-let peers_ocl = ref (try File.to_string "peers.ocl" with _ -> "")
+let overnet_peers_ocl = ref (try File.to_string "overnet_peers.ocl" with _ -> "")
+let kademlia_peers_ocl = ref (try File.to_string "kademlia_peers.ocl" with _ -> "")
 let motd_conf = ref (try File.to_string "motd.conf" with _ -> "")
 
 let redirector_info = ref ""
@@ -41,8 +42,9 @@ let update_redirector_info () =
   buf_int16 buf 0;
   buf_string16 buf !motd_html;
   buf_string16 buf !servers_met;
-  buf_string16 buf !peers_ocl;
+  buf_string16 buf !overnet_peers_ocl;
   buf_string16 buf !motd_conf;
+  buf_string16 buf !kademlia_peers_ocl;
   let s = Buffer.contents buf in
 (* the len should be (String.length s - 4), but since the IP address (4 bytes) 
   is added at the end, it is (String.length s) *)
@@ -92,9 +94,43 @@ char[len]: packets
 
 *)
 
-let new_servers = ref []
-let new_peers = ref []
-
+module T = struct
+    
+    type key = Ip.t * int
+    
+    type 'a t = {
+        objects_fifo : key Fifo.t; 
+        max_objects : int;
+        objects_table : (key, key) Hashtbl.t;
+      }
+    
+    let create max_objects = {
+        objects_fifo = Fifo.create ();
+        max_objects = max_objects;
+        objects_table = Hashtbl.create 127;
+      }
+      
+    let add t key = 
+      let (ip, port) = key in
+      if Ip.valid ip && ip <> Ip.localhost && Ip.reachable ip &&
+        not (Hashtbl.mem t.objects_table key) then
+        begin
+          Hashtbl.add t.objects_table key key;
+          Fifo.put t.objects_fifo key;
+          if Fifo.length t.objects_fifo = t.max_objects then 
+            let key = Fifo.take t.objects_fifo in
+            Hashtbl.remove t.objects_table key
+        end
+        
+    let to_list t =
+      Fifo.to_list t.objects_fifo
+        
+  end
+  
+let new_servers = T.create 200
+let new_overnet_peers = T.create 1000
+let new_kademlia_peers = T.create 1000
+  
   
 let print_record t ip_firewall s =
   try
@@ -130,7 +166,7 @@ let print_record t ip_firewall s =
         lprintf "Version: %s, uptime: %02d:%02d, shared: %Ld, uploaded: %Ld\n"
           version (uptime / 3600) ((uptime/60) mod 60) shared uploaded;
         List.iter (fun (ip, port) ->
-            new_servers := (ip, port) :: !new_servers;
+            T.add new_servers (ip, port);
             lprintf "            Connected to %s:%d\n"
               (Ip.to_string ip) port;
         ) ips;
@@ -141,7 +177,7 @@ let print_record t ip_firewall s =
             for i = 0 to npeers - 1 do
               let ip = get_ip s (pos+4+i*6) in
               let port = get_int16 s (pos+6+i*6) in
-              new_peers := (ip, port) :: !new_peers;
+              T.add new_overnet_peers (ip, port);
               lprintf "         Overnet Peer %s:%d\n"
                 (Ip.to_string ip) port;
             
@@ -257,7 +293,7 @@ let print_record t ip_firewall s =
 
                   lprintf "    DKSV:\n";
                   List.iter (fun (ip, port) ->
-                      new_servers := (ip, port) :: !new_servers;
+                      T.add new_servers (ip, port);
                       lprintf "            Connected to %s:%d\n"
                         (Ip.to_string ip) port;
                   ) servers
@@ -272,8 +308,23 @@ let print_record t ip_firewall s =
                   
                   lprintf "    DKOV:\n";
                   List.iter (fun (ip, port) ->
-                      new_servers := (ip, port) :: !new_servers;
+                      T.add new_overnet_peers (ip, port);
                       lprintf "            Overnet peer %s:%d\n"
+                        (Ip.to_string ip) port;
+                  ) servers
+  
+              | "DKKD" -> 
+                let servers, pos = get_list (fun s pos ->
+                        let ip = get_ip s pos in
+                        let port = get_port s (pos+4) in
+                        (ip, port), pos+6
+                    ) s 0 in
+                  
+                  
+                  lprintf "    DKKD:\n";
+                  List.iter (fun (ip, port) ->
+                      T.add new_kademlia_peers (ip, port);
+                      lprintf "            Kademlia peer %s:%d\n"
                         (Ip.to_string ip) port;
                   ) servers
                   
@@ -507,34 +558,11 @@ let _ =
     ] 
     (fun _ -> ()) ""
 
-  
-let time = ref 0
-let servers_array = Array.create !servers_age []
-let peers_array = Array.create !peers_age []
 
-let dump_list array new_hosts adder dumper =
+let dump_list new_hosts adder dumper =
   try
 (*    lprintf "dump server list\n"; *)
-    incr time;
-    let len = Array.length array in
-    array.(!time mod Array.length array) <- !new_hosts;
-    new_hosts := [];
-    let servers = Hashtbl.create 97 in
-    let servers_ip = Hashtbl.create 97 in
-    for i = 0 to len - 1 do
-      List.iter (fun ((ip,port) as key) ->
-          if port <> 4662 && Ip.valid ip && ip <> Ip.localhost
-              && Ip.reachable ip then
-            try
-              let key = Hashtbl.find servers_ip ip in
-              Hashtbl.remove servers key
-            with _ ->
-                Hashtbl.add servers key (adder ip port);
-                Hashtbl.add servers_ip ip key
-      ) array.(i)
-    done;
-    let list = Hashtbl2.to_list servers in
-    dumper list
+    dumper (List2.tail_map adder (T.to_list new_hosts));
   with e ->
       lprintf "error: %s\n" (Printexc2.to_string e)
   
@@ -543,8 +571,8 @@ let dump_servers_list _ =
   (try motd_html := File.to_string "motd.html" with _ -> ());
   (try motd_conf := File.to_string "motd.conf" with _ -> ());
   update_redirector_info ();
-  dump_list servers_array new_servers 
-    (fun ip port ->
+  dump_list new_servers 
+    (fun (ip, port) ->
       { S.ip = ip; S.port = port; S.tags = []; };)
   (fun list ->
       let list,_ = List2.cut 500 list in
@@ -560,21 +588,24 @@ let dump_servers_list _ =
   )
 
 let dump_peers_list _ =
-  dump_list peers_array new_peers 
-    (fun ip port -> (ip,port))
-  (fun list ->
-      let buf = Buffer.create 100 in
-      List.iter (fun (ip, port) ->
-          Printf.bprintf buf "%s,%d,X\n" (Ip.to_string ip) port;
-      ) list;
-      peers_ocl := (Buffer.contents buf);
-      File.from_string "peers.ocl" !peers_ocl;
-      update_redirector_info ();
-      (*
-      ignore
-        (Sys.command "scp -B -q peers.ocl simon_mld@subversions.gnu.org:/upload/mldonkey/network/");
-*)
-  )
+  let store new_peers peers_ocl peers_file =
+      dump_list new_peers 
+      (fun key -> key)
+    (fun list ->
+        let buf = Buffer.create 100 in
+        List.iter (fun (ip, port) ->
+            Printf.bprintf buf "%s,%d,X\n" (Ip.to_string ip) port;
+        ) list;
+        peers_ocl := (Buffer.contents buf);
+        File.from_string peers_file !peers_ocl;
+    )
+  in
+  store new_overnet_peers 
+    overnet_peers_ocl "overnet_peers.ocl";  
+  store new_kademlia_peers 
+    kademlia_peers_ocl "kademlia_peers.ocl";  
+  update_redirector_info ()
+
   
 let _ =
   update_redirector_info ();
@@ -587,7 +618,7 @@ let _ =
     try
       let file = File.to_string "servers.met" in
       List.iter (fun s ->
-        servers_array.(0) <- (s.S.ip , s.S.port) :: servers_array.(0)
+        T.add new_servers (s.S.ip , s.S.port)
         ) (S.read file)
     with _ -> lprintf "Could not load old server list\n"; 
   end;

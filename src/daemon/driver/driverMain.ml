@@ -450,7 +450,7 @@ let _ =
   
   Options.prune_file downloads_ini;
 (*  Options.prune_file downloads_expert_ini; *)
-  (try CommonWeb.load_web_infos () with _ -> ());
+  add_timer 20. (fun _ -> try CommonWeb.load_web_infos () with _ -> ());
   lprintf (_b "Welcome to MLdonkey client\n"); 
   lprintf (_b "Check http://www.mldonkey.net/ for updates\n"); 
   lprintf (_b "To command: telnet %s %d\n") 
@@ -503,6 +503,7 @@ let _ =
     end;
   
   if !!create_mlsubmit then save_mlsubmit_reg ();
+  DriverInteractive.initialization_completed := true;
   DriverInteractive.save_config ();
   
   Unix32.max_cache_size := MlUnix.max_filedescs

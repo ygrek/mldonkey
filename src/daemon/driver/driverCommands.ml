@@ -2031,7 +2031,7 @@ let _ =
         match args with
           [arg] ->
             let num = int_of_string arg in
-            if o.conn_output = HTML then
+(*            if o.conn_output = HTML then *)
               List.iter 
                 (fun file -> if (as_file_impl file).impl_file_num = num then 
                     begin

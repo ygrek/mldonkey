@@ -24,6 +24,7 @@ module Make (M : sig
       module CommonTypes : sig
           type file
           type client
+          type uid_type
         end
       
       open CommonTypes
@@ -38,6 +39,7 @@ module Make (M : sig
           val file_best_name : file -> string
           val file_state : file -> file_state
           val file_fd : file -> Unix32.t
+          val add_file_downloaded : file -> int64 -> unit
         end
     
     end) : sig
@@ -110,6 +112,7 @@ module Make (M : sig
       
 (* raise Exit if one block checksum has been computed *)
     val verify_one_block : t -> unit
+    val set_checksums : t option -> CommonTypes.uid_type array -> unit
       
     val compute_last_seen : t -> int array
     val print_uploaders : t -> unit    

@@ -258,6 +258,8 @@ let get_tag s pos =
     | 2 -> let s, pos = get_string s (pos+1) in
         String s, pos
     | 3 -> Addr (get_ip s (pos+1)), pos+5
+    | 4 -> Uint16 (get_int16 s (pos+1)), pos+3
+    | 5 -> Uint8 (get_uint8 s (pos+1)), pos+2
     | _ -> assert false
   in
   { tag_name = name; tag_value = value }, pos

@@ -272,9 +272,34 @@ type brand_mod =
 | Brand_mod_blackmule
 | Brand_mod_morphxt
 | Brand_mod_ngdonkey
+| Brand_mod_hawkstar
+| Brand_mod_neomule
 | Brand_mod_cyrex
+| Brand_mod_aldo
+| Brand_mod_emulede
+| Brand_mod_zx
+| Brand_mod_ibericaxt
+| Brand_mod_candymule
+| Brand_mod_ackronic
+| Brand_mod_rappis
+| Brand_mod_overdose
+| Brand_mod_hebmule
+| Brand_mod_senfei
+| Brand_mod_spoofmod
+| Brand_mod_fusspilz
+| Brand_mod_rocket
+| Brand_mod_warezfaw
+| Brand_mod_emusicmule
+| Brand_mod_aideadsl
+| Brand_mod_epo
+| Brand_mod_kalitsch
+| Brand_mod_raynz
+| Brand_mod_serverclient
+| Brand_mod_bl4ckbird
+| Brand_mod_bl4ckf0x
+| Brand_mod_rt
 
-let brand_mod_count = 73
+let brand_mod_count = 98
 
 type source_uid = 
   Direct_address of Ip.t * int
@@ -288,7 +313,7 @@ module DonkeySources = CommonSources.Make(struct
       
       open Options
 
-      type source_brand = bool (* overnet or not *)
+      type source_brand = bool
       let value_to_source_brand = value_to_bool
       let source_brand_to_value = bool_to_value
       let dummy_source_brand = false

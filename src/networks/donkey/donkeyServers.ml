@@ -376,7 +376,7 @@ and remove clients whose server is deconnected. *)
       ()
       
 let connect_server s =
-  if can_open_connection connection_manager then
+  if !!enable_servers && can_open_connection connection_manager then
     match s.server_sock with
     | NoConnection ->
 (* Increment the connected servers counter immediatly *)
@@ -412,7 +412,7 @@ let connect_server s =
                   M.ConnectReq {
                     C.md4 = !!client_md4;
                     C.ip = client_ip (Some sock);
-                    C.port = !client_port;
+                    C.port = !!donkey_port;
                     C.tags = !client_to_server_tags;
                   }
                 );
@@ -548,9 +548,11 @@ position to the min_left_servers position.
   lprintf "Delay to detect old servers: %2.2f\n" (t3 -. t2); 
 
   List.iter (fun s ->
+    remove_server s.server_ip s.server_port
+(* was, for an unknown reason,
       server_remove (as_server s.server_server);
-      Hashtbl.remove servers_by_key (s.server_ip, s.server_port))
-  !to_remove;
+      Hashtbl.remove servers_by_key (s.server_ip) *)
+  ) !to_remove;
 
   let t4 = Unix.gettimeofday () in
   lprintf "Delay to finally remove servers: %2.2f\n" (t4 -. t3);   

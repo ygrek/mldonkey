@@ -187,16 +187,22 @@ module Html = struct
       value onclick
   end
   
+let initialization_completed = ref false
+
 let save_config () =
   (try Unix32.flush () with e -> 
         Printf2.lprintf "Exception %s while flushing\n" (Printexc2.to_string e)
   );
-  Options.save_with_help downloads_ini;
-  CommonComplexOptions.save ();
-  networks_iter_all (fun r -> 
-      List.iter (fun opfile ->
-          Options.save_with_help opfile          
-      ) r.network_config_file);
+  if !initialization_completed then (
+    Options.save_with_help downloads_ini;
+    CommonComplexOptions.save ();
+    networks_iter_all (fun r -> 
+        List.iter (fun opfile ->
+            Options.save_with_help opfile          
+        ) r.network_config_file);
+  ) else (
+    Printf2.lprintf "Initialization not completed, bypassing state saving\n"
+  );
   ()
     
 let age_to_day date =

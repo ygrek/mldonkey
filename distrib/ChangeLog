@@ -1,6 +1,36 @@
 ChangeLog	
 =========
 
+2004/08/04: Fabrice (version 2.5.23 = 2.6pre5, tag release-2-5-23)
+  - ocaml-3.08 is required to compile now.
+  - Overnet and Emule-Kademlia share the same (partial) implementation:
+      * Use global options "enable_overnet", "enable_kademlia" and
+          "enable_servers" to choose which modes you want to use.
+      * See the options for Kademlia and Overnet in donkey.ini.
+      * Use kad_ and ov_ prefixes to call commands for these networks
+         ("kad_buckets" gives the current connection status, "kad_boots"
+           gives the number of known peers to bootstrap, "kad_stats" gives
+           the current status of searches, "kad_store" for what is published
+           on the client)
+      * Currently working:
+         * Search for keywords (normal searches)
+         * Search for files (localisation of sources)
+         * Replies to external searches
+
+2004/08/01: Fabrice
+  - Applied Savannah patches: #3249 (no udp), #3250 (mem_stats), 
+     #3251 (verify_chunks)
+
+2004/07/30: Fabrice
+  - Applied patches: #3053 (configure), #3064 (bt share), #3146 (ed2k servers),
+     #3160 (emule mods), #3183 (config saved), #3235 (zlib), #3242 (Makefile),
+     #3245 (bt nuploaders), #3246 (bt cookies)
+  - Added src/networks/donkey/donkeyProtoKademlia.ml. Rewritting DonkeyOvernet
+     to fix the implementation of Overnet, and to make it usable for Kademlia.
+
+2004/07/29: Fabrice
+  - CommonSwarming: re-implemented chunk duplication.
+
 2004/07/29: Fabrice  (version 2.5.22 = 2.6pre4, tag release-2-5-22)
   - Fixed a bug in number of sources computation.
 

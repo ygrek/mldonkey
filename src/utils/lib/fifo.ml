@@ -172,6 +172,21 @@ let to_list t =
   Array.blit t.array 0 tab (s - t.outpos) t.inpos;
   Array.to_list tab
 
+let to_array t =
+  if t.empty then [||] else
+  if t.inpos > t.outpos then
+    let len = t.inpos - t.outpos in
+    let tab = Array.create len t.array.(0) in
+    Array.blit t.array t.outpos tab 0 len;
+    tab
+  else
+  let s = Array.length t.array in
+  let len = s + t.inpos - t.outpos in
+  let tab = Array.create len t.array.(0) in
+  Array.blit t.array t.outpos tab 0 (s - t.outpos);
+  Array.blit t.array 0 tab (s - t.outpos) t.inpos;
+  tab
+
 let length t = 
 (*  lprintf "FIFO LEN"; lprint_newline (); *)
   if t.empty then 0 else

@@ -364,7 +364,7 @@ lprint_newline ();
   *)
         buf_used b b.len;
         if c.client_pos > (file_downloaded file) then begin
-            add_file_downloaded file.file_file
+            add_file_downloaded (as_file file.file_file)
             (Int64.sub c.client_pos (file_downloaded file));
           end;
         if (file_downloaded file) = (file_size file) then begin

@@ -302,7 +302,7 @@ let exit_exn = Exit
 
 
 let unsafe_get = String.unsafe_get
-external is_printable : char -> bool = "is_printable"
+external is_printable : char -> bool = "caml_is_printable"
 let unsafe_set = String.unsafe_set
   
 let escaped s =

@@ -95,7 +95,7 @@ val file_remove_source : CommonTypes.file -> CommonTypes.client -> unit
 val last : (int64 * int) list -> int64 * int
 val sample_timer : unit -> unit
 val file_download_rate : 'a file_impl -> float
-val add_file_downloaded : 'a file_impl -> Int64.t -> unit
+val add_file_downloaded : CommonTypes.file -> Int64.t -> unit
 val files_by_num : unit
 val file_downloaders : CommonTypes.file -> CommonTypes.ui_conn -> int -> bool
 val colored_chunks : int array -> string

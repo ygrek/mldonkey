@@ -100,7 +100,7 @@ module Make(M: sig
   *)
         buf_used b b.len;
         if d.download_pos > file_downloaded file then 
-          add_file_downloaded (as_file_impl file)
+          add_file_downloaded file
           (Int64.sub d.download_pos (file_downloaded file));
         if file_downloaded file = file_size file then
           file_complete d

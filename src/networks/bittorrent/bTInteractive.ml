@@ -146,8 +146,9 @@ let load_torrent_string s =
   in
   file.file_files <- torrent.torrent_files;
   file.file_chunks <- torrent.torrent_pieces;
+  file.file_torr_fname <- "/dev/null";
   BTClients.get_sources_from_tracker file;
-  ()
+  file
   
 let load_torrent_file filename =
   let s = File.to_string filename in  
@@ -155,7 +156,9 @@ let load_torrent_file filename =
   let download_filename = Filename.concat downloads_directory
       (Filename.basename filename) in
   File.from_string download_filename s;
-  load_torrent_string s
+  lprintf "BTInteractive.load_torrent_file %s\n" download_filename;
+  let file = load_torrent_string s in
+  file.file_torr_fname <- download_filename
 
 let parse_tracker_reply file filename =
 (*This is the function which will be called by the http client
@@ -165,7 +168,7 @@ for parsing the response*)
   let v = Bencode.decode (File.to_string filename) in
 
   lprintf "Received: %s\n" (Bencode.print v);
-  let interval = ref 600 in
+  file.file_tracker_interval <- 600;
   match v with
     Dictionary list ->
       List.iter (fun (key,value) ->
@@ -179,10 +182,12 @@ for parsing the response*)
   
 let try_share_file filename =
 (*  lprintf "BTInteractive.try_share_file: %s\n" filename; *)
+  let ss = filename in
   let s = File.to_string filename in  
   let file_id, torrent = BTTracker.decode_torrent s in
   
-  let filename = Filename.concat !!incoming_directory torrent.torrent_name in
+  let filename = Filename.concat (Filename.concat !!incoming_directory !!commit_in_subdir) torrent.torrent_name in
+
   if Sys.file_exists filename then 
     let file_u = 
       if torrent.torrent_files <> [] then
@@ -199,6 +204,7 @@ let try_share_file filename =
         torrent.torrent_announce torrent.torrent_piece_size 
         torrent.torrent_files filename FileShared
     in
+    file.file_torr_fname <- ss;
 
     let swarmer = match file.file_swarmer with 
         None -> assert false 
@@ -225,7 +231,17 @@ let share_files _ =
           let filename = Filename.concat dir file in
           try_share_file filename
       ) filenames
-  ) [seeded_directory; tracked_directory]
+  ) [seeded_directory; tracked_directory];
+  let copy_shfiles = current_files in
+  List.iter (fun file ->
+    if not (Sys.file_exists file.file_torr_fname) && file_state file = FileShared then
+    begin
+      lprintf "Removing torrent share for %s\n" file.file_torr_fname;
+      BTClients.file_stop file;
+      remove_file file;
+      BTClients.disconnect_clients file
+    end
+  ) !copy_shfiles
     
   
 let _ =
@@ -240,12 +256,23 @@ let _ =
         with e ->
             lprintf "Exception %s while loading\n" (Printexc2.to_string e);
             let module H = Http_client in
+	    let u = Url.of_string url in
             let r = {
                 H.basic_request with
-                H.req_url = Url.of_string url;
+                H.req_url = u;
                 H.req_proxy = !CommonOptions.http_proxy;
                 H.req_user_agent = 
                 Printf.sprintf "MLdonkey %s" Autoconf.current_version;
+		H.req_headers = try
+		  let cookies = List.assoc u.Url.server !!BTOptions.cookies in
+		  [ ( "Cookie", List.fold_left (fun res (key, value) ->
+		  	if res = "" then
+			  key ^ "=" ^ value
+			else
+			  res ^ "; " ^ key ^ "=" ^ value
+		    ) "" cookies
+		  ) ]
+		with Not_found -> [];
               } in
             
             H.wget r load_torrent_file;
@@ -406,7 +433,16 @@ in torrents/tracked/. The file is automatically tracked, and seeded if
         else
           _s "Tracker not activated (tracker_port = 0)"
     ), _s " : print all .torrent files on this server";
-    
+
+    "seeded_torrents", "Network/Bittorrent", Arg_none (fun o ->
+
+      List.iter (fun file ->
+          if file_state file = FileShared then
+              Printf.bprintf o.conn_buf "%s [%s]\n" file.file_name (Int64.to_string file.file_uploaded)
+      ) !current_files;
+      _s "done"
+
+    ), _s " : print all sedded .torrent files on this server";
     (*
     "print_torrent", Arg_one (fun filename o ->
 
@@ -422,7 +458,8 @@ let gui_message s =
   match get_int16 s 0 with
     0 ->
       let text = String.sub s 2 (String.length s - 2) in
-      load_torrent_string text
+      let _ = load_torrent_string text in
+      ()
   | opcode -> failwith (Printf.sprintf "BT: Unknown message opcode %d" opcode)
   
 let _ =

@@ -61,7 +61,8 @@ let result_name r =
 
       
 let reconnect_all file =
-  DonkeyOvernet.recover_file file;
+  DonkeyProtoOvernet.Overnet.recover_file file;
+  DonkeyProtoKademlia.Kademlia.recover_file file;
   
 (* This is expensive, no ? *)
 (*  DonkeySources.reschedule_sources file; *)
@@ -161,7 +162,8 @@ let really_query_download filenames size md4 location old_file absents =
     (fun name -> name , { ips=[]; nips=0}) filenames);
   update_best_name file;
 
-  DonkeyOvernet.recover_file file;
+  DonkeyProtoOvernet.Overnet.recover_file file;
+  DonkeyProtoKademlia.Kademlia.recover_file file;
   
   current_files := file :: !current_files;
 (*  !file_change_hook file; *)
@@ -314,7 +316,7 @@ let import_config dirname =
       | { tag_name = "name"; tag_value = String s } ->
           login =:=  s
       | { tag_name = "port"; tag_value = Uint64 v } ->
-          port =:=  Int64.to_int v
+          donkey_port =:=  Int64.to_int v
       | _ -> ()
   ) ct;
 
@@ -596,10 +598,6 @@ let commands = [
                         let old_downloaded = Int64Swarmer.downloaded swarmer in
                         Int64Swarmer.set_present swarmer segments;
                         let new_downloaded = Int64Swarmer.downloaded swarmer in
-                        if new_downloaded > old_downloaded then
-                          add_file_downloaded file.file_file
-                            (new_downloaded -- old_downloaded);
-                        
                         Printf.bprintf buf "Recovered %Ld bytes for %s\n"
                           (new_downloaded -- old_downloaded) 
                         (file_best_name file)
@@ -619,7 +617,7 @@ let commands = [
     ), "<ip1> <ip2> ... :\t\t\tadd these IPs to the servers black list";
     
     "port", Arg_one (fun arg o ->
-        port =:= int_of_string arg;
+        donkey_port =:= int_of_string arg;
         "new port will change at next restart"),
     "<port> :\t\t\t\tchange connection port";
     
@@ -1047,6 +1045,8 @@ let _ =
       if !!keep_cancelled_in_old_files &&
         not (List.mem file.file_md4 !!old_files) then
         old_files =:= file.file_md4 :: !!old_files;
+      DonkeyProtoOvernet.Overnet.cancel_recover_file file;
+      DonkeyProtoKademlia.Kademlia.cancel_recover_file file;
   );
   file_ops.op_file_comment <- (fun file ->
       Printf.sprintf "ed2k://|file|%s|%Ld|%s|" 

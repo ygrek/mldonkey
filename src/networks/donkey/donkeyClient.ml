@@ -437,6 +437,7 @@ let mod_array =
     ("pille", Brand_mod_pille);
     ("morphkad", Brand_mod_morphkad);
     ("ef-mod", Brand_mod_efmod);
+      ("efmod", Brand_mod_efmod);
     ("xtreme", Brand_mod_xtreme);
     ("bionic", Brand_mod_bionic);
     ("pawcio", Brand_mod_pawcio);
@@ -477,6 +478,7 @@ let mod_array =
     ("stormit", Brand_mod_stormit);
     ("omax", Brand_mod_omax);
     ("spiders", Brand_mod_spiders);
+      ("ib\233ricaxt", Brand_mod_ibericaxt);
     ("ib\233rica", Brand_mod_iberica);
     ("stonehenge", Brand_mod_stonehenge);
     ("mison", Brand_mod_mison);
@@ -493,11 +495,38 @@ let mod_array =
     ("morphxt", Brand_mod_morphxt);
     ("ngdonkey", Brand_mod_ngdonkey);
     ("morph", Brand_mod_morph);
+      ("emule.de", Brand_mod_emulede);
+      ("aldo", Brand_mod_aldo);
     ("dm", Brand_mod_dm);
     ("lc", Brand_mod_lc);
     ("lh", Brand_mod_lh);
-    ("ice", Brand_mod_ice);
-    ("cyrex", Brand_mod_cyrex)
+      ("l!onetwork", Brand_mod_lh);
+      ("lionetwork", Brand_mod_lh);
+      ("hawkstar", Brand_mod_hawkstar);
+      ("neo mule", Brand_mod_neomule);
+      ("cyrex", Brand_mod_cyrex);
+      ("zx", Brand_mod_zx);
+      ("ackronic", Brand_mod_ackronic);
+      ("rappis", Brand_mod_rappis);
+      ("overdose", Brand_mod_overdose);
+      ("hebmule", Brand_mod_hebmule);
+      ("senfei", Brand_mod_senfei);
+      ("spoofmod", Brand_mod_spoofmod);
+      ("fusspilz", Brand_mod_fusspilz);
+      ("rocket", Brand_mod_rocket);
+      ("warezfaw", Brand_mod_warezfaw);
+      ("emusicmule", Brand_mod_emusicmule);
+      ("aideadsl", Brand_mod_aideadsl);
+      ("a i d e a d s l", Brand_mod_aideadsl);
+      ("epo", Brand_mod_epo);
+      ("kalitsch", Brand_mod_kalitsch);
+      ("raynz", Brand_mod_raynz);
+      ("serverclient", Brand_mod_serverclient);
+      ("bl4ckbird", Brand_mod_bl4ckbird);
+      ("bl4ckf0x", Brand_mod_bl4ckf0x);
+      ("candy-mule", Brand_mod_candymule);
+      ("rt", Brand_mod_rt);
+      ("ice", Brand_mod_ice)
   |]
   
 let to_lowercase s = String.lowercase s
@@ -541,7 +570,14 @@ let update_client_from_tags c tags =
       match tag.tag_name with
       | "name" -> ()
       | "version" -> ()
-      | "emule_udpports" -> ()
+      | "emule_udpports" -> 
+          for_two_int16_tag tag (fun ed2k_port kad_port ->
+(* Kademlia: we should use this client to bootstrap Kademlia *)
+              if kad_port <> 0 then
+                DonkeyProtoKademlia.Kademlia.bootstrap 
+                  c.client_ip kad_port
+          )
+
       | "emule_miscoptions1" ->
           for_int64_tag tag (fun i ->
               DonkeyProtoClient.update_emule_proto_from_miscoptions1 
@@ -604,13 +640,13 @@ let query_id ip port id =
     match s.server_sock with 
       NoConnection | ConnectionWaiting _ ->
         
-        DonkeyProtoCom.udp_send (get_udp_sock ())
+(*    DonkeyProtoCom.udp_send (get_udp_sock ())
         ip (port+4)
         (DonkeyProtoUdp.QueryCallUdpReq {
             Q.ip = client_ip;
-            Q.port = !client_port;
+            Q.port = !!donkey_port;
             Q.id = id;
-          })
+          }) *) ()
     | Connection sock ->
         printf_string "[QUERY ID]";
         server_send sock (
@@ -677,7 +713,7 @@ let query_files c sock =
 (* Nice to see some emule devels here... It's always possible to 
 crack a protocol, but let's try to make it as boring as possible... *)
     
-    external hash_param : int -> int -> 'a -> int = "hash_univ_param" "noalloc"
+    external hash_param : int -> int -> 'a -> int = "caml_hash_univ_param" "noalloc"
 let hash x = hash_param 10 100 x
 
 let shared_of_file file =
@@ -1189,6 +1225,8 @@ other one for unlimited sockets.  *)
           end else
         if file.file_nchunks = 1 then begin
             lprintf "[ERROR]: one chunk file without md4\n"; 
+            Int64Swarmer.set_checksums file.file_swarmer 
+              [| Ed2k file.file_md4 |];
             file.file_md4s <- [|file.file_md4|]
           end else
         if t.Q.chunks = [||] then begin
@@ -1218,6 +1256,8 @@ is checked for the file.
                 lprintf "[ERROR]: Bad list of MD4s, discarding\n"; 
               end else begin
                 file_md4s_to_register := file :: !file_md4s_to_register;
+                Int64Swarmer.set_checksums file.file_swarmer 
+                  (Array.map (fun m -> Ed2k m) md4s);
                 file.file_md4s <- md4s
               end
           
@@ -1829,7 +1869,7 @@ let read_first_message overnet m sock =
           M.ConnectReplyReq {
             C.md4 = overnet_md4;
             C.ip = client_ip (Some sock);
-            C.port = !overnet_client_port;
+            C.port = !!overnet_port;
             C.tags = !overnet_connectreply_tags;
             C.server_info = Some (!overnet_server_ip, !overnet_server_port);
             C.left_bytes = left_bytes;
@@ -1852,7 +1892,7 @@ let read_first_message overnet m sock =
             M.ConnectReplyReq {
               C.md4 = !!client_md4;
               C.ip = client_ip (Some sock);
-              C.port = !client_port;
+              C.port = !!donkey_port;
               C.tags = !client_to_client_tags;
               C.server_info = t.CR.server_info;
               C.left_bytes = left_bytes; 
@@ -1955,7 +1995,7 @@ can be increased by AvailableSlotReq, BlocReq, QueryBlocReq
                           M.ConnectReq {
                             C.md4 = overnet_md4;
                             C.ip = client_ip None;
-                            C.port = !overnet_client_port;
+                            C.port = !!overnet_port;
                             C.tags = !overnet_connect_tags;
                             C.version = 16;
                             C.server_info = Some (!overnet_server_ip, 
@@ -1966,7 +2006,7 @@ can be increased by AvailableSlotReq, BlocReq, QueryBlocReq
                           M.ConnectReq {
                             C.md4 = !!client_md4;
                             C.ip = client_ip None;
-                            C.port = !client_port;
+                            C.port = !!donkey_port;
                             C.tags = !client_to_client_tags;
                             C.version = 16;
                             C.server_info = Some (server_ip, server_port);

@@ -88,4 +88,5 @@ and file = {
     mutable file_blocks_downloaded : (int * int64 * int64) list;
     (* vvv probably a network specific value vvv ?what about file_downloaded?*)
     mutable file_uploaded : int64;
+    mutable file_torr_fname : string;
   }

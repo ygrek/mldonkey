@@ -10,6 +10,16 @@ URGENT:
     the downloaded size to decrease instead of increasing. We should not
     maybe allow verification during this phase to have a correct computation.
  * When a file is cancelled, remove all the downloaders immediatly.
+ * What currently happens with common chunks ?
+ * Why aren't file_sources.ini sources loaded on startup ?
+ * Remove this error message:
+      Exception Failure("Unix32.read on destroyed FD") in send_small_block
+      ERROR: Client source can not be NOne
+ *  a lot of Unexpected UDP message:
+      UDP QUERY LOCATIONS: 34AAEA22BB6344AC0AC2AEB5D50D6B0D
+ * in Edonkey: we should be able to activate/desactivate 
+      Servers/Overnet/Kademlia, and know, for each of them, whether we
+      are connected or not (in particular for Overnet/Kademlia).
 
 BUGS:
 

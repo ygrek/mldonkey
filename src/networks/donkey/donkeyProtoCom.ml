@@ -302,7 +302,7 @@ let make_tagged sock files =
   (List2.tail_map (fun file ->
         { f_md4 = file.file_md4;
           f_ip = client_ip sock;
-          f_port = !client_port;
+          f_port = !!donkey_port;
           f_tags = tag_file file;
         }
     ) files)

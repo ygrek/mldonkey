@@ -37,6 +37,8 @@ module type Digest = sig
     val to_string_case : bool -> t -> string
     val of_string : string -> t
       
+    val to_bits : t -> string      
+      
     val to_hexa : t -> string
     val to_hexa_case : bool -> t -> string
     val of_hexa : string -> t

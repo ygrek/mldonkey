@@ -127,9 +127,6 @@ let value_to_file file_size file_state assocs =
       None -> ()
     | Some swarmer ->
         Int64Swarmer.value_to_swarmer swarmer assocs;
-        add_file_downloaded file.file_file
-          (Int64Swarmer.downloaded swarmer);
-        
   );
 
   (try
@@ -140,6 +137,14 @@ let value_to_file file_size file_state assocs =
         lprintf "Exception %s while loading sources\n"
           (Printexc2.to_string e); 
 );
+
+  let file_torr_fname =
+    try
+      get_value "file_torrent_name" value_to_string
+    with _ -> "/dev/null"
+  in
+  file.file_torr_fname <- file_torr_fname;
+
   as_file file
   
 let file_to_value file =
@@ -153,6 +158,7 @@ let file_to_value file =
     "file_uploaded", int64_to_value  (file.file_uploaded);
     "file_id", string_to_value (Sha1.to_string file.file_id);
     "file_tracker", string_to_value file.file_tracker;
+    "file_torrent_name", string_to_value file.file_torr_fname;
 (* OK, but I still don't like the idea of forgetting all the clients.
 We should have a better strategy, ie rating the clients and connecting
 to them depending on the results of our last connections. And then,

@@ -368,6 +368,16 @@ let enable_overnet = define_option current_section
     ["enable_overnet"]
   "Set to true if you also want mldonkey to run as an overnet client (enable_donkey must be true)"
     bool_option false
+  
+let enable_kademlia = define_option current_section
+    ["enable_kademlia"]
+  "Set to true if you also want mldonkey to run as an kademlia client (enable_donkey must be true, and only experimental)"
+    bool_option false
+  
+let enable_servers = define_option current_section
+    ["enable_servers"]
+  "Set to true if you also want mldonkey to run with edonkey servers (enable_donkey must be true, and only experimental)"
+    bool_option true
 
 let enable_bittorrent = define_option current_section
     ["enable_bittorrent"]

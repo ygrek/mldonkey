@@ -149,6 +149,7 @@ let tag_to_value =
       | String s -> string_to_value s
       | Addr _ -> assert false
       | Fint64 i -> int64_to_value i
+      | Uint16 n | Uint8 n -> int_to_value n
   )
   
 module ResultOption = struct 
