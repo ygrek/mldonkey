@@ -784,6 +784,7 @@ let http_handler o t r =
                       | "Srcs" -> o.conn_sortvd <- BySources
                       | "A" -> o.conn_sortvd <- ByASources
                       | "N" -> o.conn_sortvd <- ByNet
+                      | "Avail" -> o.conn_sortvd <- ByAvail
                       | _ -> ()
                     end
                 | _ -> 

@@ -198,7 +198,7 @@ config/configure: config/configure.in
 
 ifeq ("$(CONFIG_ARGS_DEFINED)" , "yes")
 
-config/Makefile.config: config/configure config/Makefile.config.in $(LIB)/autoconf.ml.new.in
+config/Makefile.config: config/configure config/Makefile.config.in $(LIB)/autoconf.ml.new.in packages/rpm/Makefile.in
 	./configure $(CONFIG_ARGS)
 
 else
@@ -2026,7 +2026,6 @@ buildrpm:
 	cd rpm/mldonkey; rm -rf **/*.cm? **/*.o 
 	cd rpm; tar jcf mldonkey.sources.tar.bz2 mldonkey
 	rm -rf rpm/mldonkey
-
 
 #######################################################################
 

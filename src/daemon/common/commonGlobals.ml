@@ -486,12 +486,11 @@ let chat_message_fifo = (Fifo.create () : (int * string * int * string * string)
 
 let log_chat_message i num n s = 
   Fifo.put chat_message_fifo (last_time(),i,num,n,s);
-(* rely on GC? no, you cannot rely on GC for this as you cannot have it
-  guess when a message should be removed *)
   
   while (Fifo.length chat_message_fifo) > !!html_mods_max_messages  do
     let foo = Fifo.take chat_message_fifo in ()
   done
+let last_message_log = ref 0
   
 let html_mods_table_header buf n c l =
     Printf.bprintf buf "\\<div class=\\\"%s\\\"\\>\\<table id=\\\"%s\\\" name=\\\"%s\\\" class=\\\"%s\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>" 

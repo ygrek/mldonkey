@@ -363,6 +363,7 @@ value ml_ints_of_string(value s_v)
   char *first;
   char c;
 
+  while(*curs == ' ') curs++;
   first = curs;
   while(isdigit(*curs)) curs++;
   if(*curs != '.' || curs == first || curs - first > 3) goto error;

@@ -1,25 +1,19 @@
 TODO list for client
 ====================
 
+- RPM package
+- Send QH2 in reply to Q2
+- Find "Bad File Descriptor" reason
+- Search by UID is a bad thing, always add a search by keywords on Gnutella
+- Should we send a PI UDP with the QKR ?
+
+Check zlib support again in Gnutella
+
+
 Gnutella2:
   * Understand MD when no DN field is present
   * Limit total number of hosts
   * As soon as a new host is discovered, spread searches on it
-
-CommonConnections: a module to manage external connections
-  * The number of connections is limited
-  * When a connection is possible, we should try to find the most interesting one
-
-  The objects we store: the object should be triggered when a connection is possible,
-    the object might not use the connection (if one is already available for that object).
-    
-  For each object, we have:
-   * A time before which the object should not be connected
-   * A score computed when the object could be connected
-
-  How it works:
-   1) Put the object in the Fifo with the next time when it should be connected
-   2) Every second, takes objects from the fifo, and put them in the queues
 
 Gnutella:
   * Don't perform more than one search per minute on each ultrapeer

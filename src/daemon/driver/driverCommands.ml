@@ -831,7 +831,8 @@ the name between []"
             href=\\\"http://www.sharereactor.com/search.php\\\" name=\\\"ShareReactor\\\" target=\\\"$O\\\"\\>SR\\</a\\> \\<a
             href=\\\"http://www.filenexus.com/\\\" name=\\\"FileNexus\\\" target=\\\"$O\\\"\\>FN\\</a\\> \\<a
             href=\\\"http://www.fileheaven.org/\\\" name=\\\"FileHeaven\\\" target=\\\"$O\\\"\\>FH\\</a\\> \\<a
-            href=\\\"http://www.filedonkey.com\\\" name=\\\"FileDonkey\\\" target=\\\"$O\\\"\\>FD\\</a\\> ";
+            href=\\\"http://www.filedonkey.com\\\" name=\\\"FileDonkey\\\" target=\\\"$O\\\"\\>FD\\</a\\> \\<a
+            href=\\\"http://bitzi.com/search/\\\" name=\\\"Bitzi\\\" target=\\\"$O\\\"\\>Bitzi\\</a\\> ";
         
         ""
     ), ":\t\t\tview custom queries";
@@ -1145,6 +1146,7 @@ the name between []"
         
         if use_html_mods o then Printf.bprintf buf "\\<div class=\\\"messages\\\"\\>";
         
+		last_message_log := last_time();
         Printf.bprintf buf "%d logged messages\n" (Fifo.length chat_message_fifo);
         
         if Fifo.length chat_message_fifo > 0 then
@@ -1661,8 +1663,8 @@ formID.msgText.value=\\\"\\\";
                   ( "0", "srh", "IP address", "IP address" ) ;
                   ( "0", "srh", "Connected time (minutes)", "CT" ) ;
                   ( "0", "srh", "Client brand", "CB" ) ;
-                  ( "0", "srh", "Total DL bytes from this client for all files", "DL" ) ;
-                  ( "0", "srh", "Total UL bytes to this client for all files", "UL" ) ;
+                  ( "0", "srh ar", "Total DL bytes from this client for all files", "DL" ) ;
+                  ( "0", "srh ar", "Total UL bytes to this client for all files", "UL" ) ;
                   ( "0", "srh", "Filename", "Filename" ) ];
                 
                 List.iter (fun c ->
@@ -1672,11 +1674,14 @@ formID.msgText.value=\\\"\\\";
                           incr counter;                        
                           
                           Printf.bprintf buf "\\<tr class=\\\"%s\\\" 
-                        title=\\\"[%d] Add as friend\\\"
+                        title=\\\"[%d] Add as friend (avg: %.1f KB/s)\\\"
                         onMouseOver=\\\"mOvr(this);\\\"
                         onMouseOut=\\\"mOut(this);\\\" 
                         onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>"
-                        ( if (!counter mod 2 == 0) then "dl-1" else "dl-2";) (client_num c) (client_num c);
+                        ( if (!counter mod 2 == 0) then "dl-1" else "dl-2";) (client_num c) 
+						( float_of_int (Int64.to_int i.client_uploaded / 1024) /. 
+ 						  float_of_int (max 1 ((last_time ()) - i.client_connect_time)) )
+						(client_num c);
                           
                         client_print_html c o;
 						html_mods_td buf [
@@ -1710,8 +1715,8 @@ formID.msgText.value=\\\"\\\";
                   ( "0", "srh", "Connection type [I]ndirect [D]irect", "C" ) ;
                   ( "0", "srh", "Client name", "Client name" ) ;
                   ( "0", "srh", "Client brand", "CB" ) ;
-                  ( "0", "srh", "Total DL bytes from this client for all files", "DL" ) ;
-                  ( "0", "srh", "Total UL bytes to this client for all files", "UL" ) ;
+                  ( "0", "srh ar", "Total DL bytes from this client for all files", "DL" ) ;
+                  ( "0", "srh ar", "Total UL bytes to this client for all files", "UL" ) ;
                   ( "0", "srh", "IP address", "IP address" ) ];
                 
                 Intmap.iter (fun cnum c ->

@@ -728,6 +728,7 @@ let brand_to_string b =
   | Brand_overnet -> "Overnet"
   | Brand_newemule -> "eMule"
   | Brand_lmule -> "lMule"
+  | Brand_shareaza -> "shareaza"
   | Brand_server -> "server"
 
 

@@ -316,9 +316,15 @@ let create_bool_option ?help label ref = bool ?help ~f: (fun s -> ref := string_
   
 let add_option_value option value =
   try
-    (Hashtbl.find options_values option) := !value
+    let o  = Hashtbl.find options_values option in
+    o.option_value := !value;
+    o.option_old_value <- !value;
+    
   with _ ->
-      Hashtbl.add options_values option value
+      Hashtbl.add options_values option {
+        option_value = value;
+        option_old_value = !value;
+      }
   
 let create_sections_params sections =
   List.map (fun (name, options) ->
@@ -327,11 +333,14 @@ let create_sections_params sections =
             try
               (match optype with
                 | GuiTypes.StringEntry ->
-                    create_string_option message (Hashtbl.find options_values option)
+                    create_string_option message
+                      (Hashtbl.find options_values option).option_value
                 | GuiTypes.BoolEntry ->                  
-                    create_bool_option message (Hashtbl.find options_values option)
+                    create_bool_option message
+                    (Hashtbl.find options_values option).option_value
                 | GuiTypes.FileEntry ->                  
-                    create_file_option message (Hashtbl.find options_values option)
+                    create_file_option message
+                    (Hashtbl.find options_values option).option_value
               ) :: list
             with Not_found ->
                 lprintf "No option %s" option; lprint_newline ();
@@ -352,8 +361,11 @@ let save_options gui =
 
   try
     let list = ref [] in
-    Hashtbl.iter (fun option value ->
-        list := (option, !value) :: !list) 
+    Hashtbl.iter (fun option o ->
+        if !(o.option_value) <> o.option_old_value then begin
+            o.option_old_value <- !(o.option_value);
+            list := (option, o.option_old_value) :: !list;
+          end) 
     options_values;   
     Gui_com.send (P.SaveOptions_query !list)
 (*

@@ -86,8 +86,8 @@ let file_availability f =
     if i < 0
     then 
       if n < 0.0001
-      then "-"
-      else Printf.sprintf "%5.0f" (p /. n *. 100.0)
+      then 0.0
+      else (p /. n *. 100.0)
     else
       if partial_chunk f.file_chunks.[i]
       then
@@ -106,9 +106,13 @@ let string_availability s =
         incr p
       end
   done;
-  if len = 0 then "" else 
-    Printf.sprintf "%5.0f" (float_of_int !p /. float_of_int len *. 100.)
+  if len = 0 then 0.0 else 
+    (float_of_int !p /. float_of_int len *. 100.)
 
+let get_file_availability f = 
+if !!html_mods_use_relative_availability
+	then file_availability f 
+	else string_availability f.file_availability
 
 let number_of_sources gf = List.length (file_sources (file_find gf.file_num))
     
@@ -421,11 +425,21 @@ function cancelAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j
 	let tsize = ref Int64.zero in
 	let tdl = ref Int64.zero in
 	let trate = ref 0.0 in
+	let qsize = ref Int64.zero in
+	let qdl = ref Int64.zero in
+	let qnum = ref 0 in
 
 	List.iter (fun file -> 
 	 tsize := Int64.add !tsize file.file_size;
      tdl := Int64.add !tdl file.file_downloaded;
 	 trate := !trate +. file.file_download_rate;
+
+	 if file.file_state = FileQueued then begin
+		qsize := Int64.add !qsize file.file_size;
+		qdl := Int64.add !qdl file.file_downloaded;
+		incr qnum;
+	 end;
+
 	) guifiles;
         
   Printf.bprintf buf "\\</pre\\>
@@ -467,7 +481,7 @@ function submitPriority(num,cp,sel) {
 \\<tr\\>\\<td\\>
 
 \\<table cellspacing=0  cellpadding=0  width=100%%\\>\\<tr\\>
-\\<td class=downloaded width=100%%\\>Downloading %d file%s (%s/%s @ %.1f KB/s)\\</td\\>
+\\<td %s class=downloaded width=100%%\\>Total(%d): %s/%s @ %.1f KB/s\\</td\\>%s
 
 \\<td class=big\\>\\<input class=bigbutton type=\\\"button\\\" value=\\\"Pause all\\\" onclick=\\\"pauseAll(true);\\\"\\>\\</td\\>
 \\<td class=big\\>\\<input class=bigbutton type=\\\"button\\\" value=\\\"Resume all\\\" onclick=\\\"resumeAll(true);\\\"\\>\\</td\\>
@@ -481,8 +495,16 @@ function submitPriority(num,cp,sel) {
 \\<table class=downloaders cellspacing=0 cellpadding=0\\>\\<tr\\>
 
 \\<td title=\\\"Pause/Resume/Cancel\\\" class=\\\"dlheader\\\"\\>P/R/C\\</td\\>"
-(List.length guifiles) (if List.length guifiles = 1 then "" else "s") 
-(size_of_int64 !tdl) (size_of_int64 !tsize) (!trate /. 1024.);
+(if !qnum > 0 then begin
+	Printf.sprintf "title=\\\"Active(%d): %s/%s | Queued(%d): %s/%s\\\""
+	(List.length guifiles - !qnum) (size_of_int64 (Int64.sub !tdl !qdl)) (size_of_int64 (Int64.sub !tsize !qsize))
+	!qnum (size_of_int64 !qdl) (size_of_int64 !qsize);
+end
+else "")
+(List.length guifiles) (size_of_int64 !tdl) (size_of_int64 !tsize) (!trate /. 1024.)
+(let unread = ref 0 in
+Fifo.iter (fun (t,i,num,n,s) -> if t > !last_message_log then incr unread) chat_message_fifo;
+if !unread > 0 then Printf.sprintf "\\<td class=downloaded title=\\\"%d unread messages\\\"\\>(+%d)\\&nbsp;\\</td\\>" !unread !unread else "");
 
 if !!html_mods_vd_network then Printf.bprintf buf 
 "\\<td title=\\\"Sort by network\\\" class=dlheader\\>\\<input style=\\\"padding-left: 0px; padding-right: 0px;\\\" class=headbutton type=submit value=N name=sortby\\>\\</td\\>";
@@ -498,7 +520,7 @@ if !!html_mods_vd_active_sources then Printf.bprintf buf
 "\\<td title=\\\"Sort by number of active sources\\\" class=dlheader\\>\\<input style=\\\"padding-left: 0px; padding-right: 0px;\\\" class=headbutton type=submit value=A name=sortby\\>\\</td\\>";
 
 Printf.bprintf buf 
-"\\<td title=\\\"File availability percentage (using %s availability)\\\" class=\\\"dlheader ac\\\"\\>Avail\\</td\\>"
+"\\<td title=\\\"Sort by file availability percentage (using %s availability)\\\" class=dlheader\\>\\<input style=\\\"padding-left: 0px; padding-right: 0px;\\\" class=headbutton type=submit value=Avail name=sortby\\>\\</td\\>"
 (if !!html_mods_use_relative_availability then "Relative" else "Total");
 
 if !!html_mods_vd_age then Printf.bprintf buf 
@@ -568,8 +590,8 @@ let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='/submit?q=vd+%d
             ctd file.file_num (Printf.sprintf "%d" (number_of_active_sources file))
 		  else "");
 
-          (ctd file.file_num (if !!html_mods_use_relative_availability
-				then file_availability file else string_availability file.file_availability));
+          (ctd file.file_num (Printf.sprintf "%.0f" (get_file_availability file))); 
+
 
           (if !!html_mods_vd_age then 
 			ctd file.file_num (let age = (BasicSocket.last_time ()) - file.file_age in time_to_string age)
@@ -808,6 +830,7 @@ let display_file_list buf o =
         | ByAge -> (fun f1 f2 -> f1.file_age >= f2.file_age)
         | ByLast -> (fun f1 f2 -> f1.file_last_seen >= f2.file_last_seen)
         | ByNet -> (fun f1 f2 -> net_name f1 <= net_name f2)
+        | ByAvail -> (fun f1 f2 -> get_file_availability f1 >= get_file_availability f2)
         | NotSorted -> raise Not_found
       in
       Sort.list sorter list

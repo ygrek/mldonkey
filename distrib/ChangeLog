@@ -1,7 +1,14 @@
 ChangeLog	
 =========
 
-2003/06/02: Simon (release-2-4-rc9)
+2003/05/05: Simon (release-2-4-rc10)
+  - Applied patches #1459, #1460 and #1462
+  - Soulseek: 
+     * New option 'servers', with mail.slsk.org:2240 by default
+  - GUI:
+     * Only send modified options
+
+2003/05/05: Simon (release-2-4-rc9)
   - eDonkey:
      * Added ed2k_hash to the distribution (use 'make ed2k_hash' to compile)
   - Options:

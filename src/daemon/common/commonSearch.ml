@@ -136,12 +136,12 @@ let custom_query buf query =
     let q = List.assoc query !!CommonComplexOptions.customized_queries in
     Printf.bprintf buf "
     <center>
-    <h2> Custom Search %s </h2>
+    <h2> %s </h2>
     </center>
 
 <form action=/submit>
 <input type=hidden name=custom value=\"%s\">
-<input type=submit value=Search>\n" query query;
+<input type=submit value=Search>" query query;
     
     let rec iter q in_op =
       match q with

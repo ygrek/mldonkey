@@ -177,10 +177,12 @@ let print_connected_servers o =
   networks_iter (fun r ->
       try
        let list = network_connected_servers r in
+		if r.network_name <> "BitTorrent" then begin	
        if use_html_mods o then Printf.bprintf buf "\\<div class=servers\\>";
        Printf.bprintf buf "--- Connected to %d servers on the %s network ---\n"
          (List.length list) r.network_name;
        if use_html_mods o then Printf.bprintf buf "\\</div\\>";
+		end;
        if use_html_mods o && List.length list > 0 then server_print_html_header buf;
 
       let counter = ref 0 in  

@@ -65,7 +65,7 @@ let is_banned c sock =
 (* Supports Emule Extended Protocol *)
 let supports_eep cb = 
   match cb with
-    Brand_lmule | Brand_newemule | Brand_cdonkey | Brand_mldonkey3 -> true
+    Brand_lmule | Brand_newemule | Brand_cdonkey | Brand_mldonkey3 | Brand_shareaza -> true
   | _ -> false
 
 let ban_client c sock msg = 
@@ -426,6 +426,7 @@ let identify_emule_compatible c tags =
 									match intof64 with 
 									1 -> c.client_brand <- Brand_cdonkey
 								  | 2 -> c.client_brand <- Brand_lmule
+								  | 4 -> c.client_brand <- Brand_shareaza
 								  | _ -> ()
 								  end
                   		| _ -> ())

@@ -827,14 +827,15 @@ let resend_udp_packets () =
               let (s,ip,port,seq,times, next_time,acked) = 
                 Fifo.take udp_packet_waiting_for_ack in
               if not !acked then begin
-                  lprintf "UDP resend %d\n" seq;
+(*                  lprintf "UDP resend %d\n" seq; *)
                   UdpSocket.write sock s ip port;
-                  if times < 8 then 
+                  if times < 3 then 
                     Fifo.put udp_packet_waiting_for_ack (s, ip, port, seq, 
                       times+1, 
                       last_time () + 10, acked)
                   else
-                    lprintf "UDP packet %d lost\n" seq
+(*                    lprintf "UDP packet %d lost\n" seq *) 
+                    ()
                 end;
             end else
             raise Not_found
@@ -873,11 +874,10 @@ let udp_send_ack ip port counter =
           (char_of_int ((counter lsr 8) land 0xff))
         in
         let len = String.length s in
-        lprintf "ack sent\n";
+(*        lprintf "ack sent\n"; *)
         UdpSocket.write sock s ip port
       with e ->
-          lprintf "Exception %s in udp_send" (Printexc2.to_string e);
-          lprint_newline () 
+          lprintf "Exception %s in udp_send\n" (Printexc2.to_string e)
 
           
 let host_send sock h p = 
@@ -936,7 +936,7 @@ exception AckPacket
 let udp_fragmented_packets = Fifo.create ()
   
 let parse_udp_packet ip port buf =
-  
+
 (*  lprintf "\n\nNEW UDP PACKET   \n%s\n" (String.escaped buf); *)
   let len = String.length buf in
   
@@ -957,15 +957,15 @@ let parse_udp_packet ip port buf =
 *)
   if nFlags land 2 <> 0 then begin
       udp_send_ack ip port nSequence;
-      lprintf "Need ack\n";
+(*      lprintf "Need ack\n"; *)
     end;
   
   if nCount = 0 then begin
-      lprintf "ACK PACKET (%d)\n" nSequence;
+(*      lprintf "ACK PACKET (%d)\n" nSequence; *)
       
       Fifo.iter (fun (s,p_ip,p_port,p_seq,_,_,acked) ->
           if p_ip = ip && p_port = port && p_seq = nSequence then begin
-              lprintf "packed %d Acked !!\n" p_seq;
+(*              lprintf "packed %d Acked !!\n" p_seq; *)
               acked := true
             end
       ) udp_packet_waiting_for_ack;
@@ -977,11 +977,11 @@ let parse_udp_packet ip port buf =
   let buf = 
     if nCount > 1 then begin
         let my_part = (get_int8 buf 6)-1 in
-lprintf "part %d on %d\n" my_part nCount;
+        lprintf "part %d on %d\n" my_part nCount;
         let needed = Array.create nCount None in
         Fifo.iter (fun (p_ip, p_port, nSeq, nPart, nFlags, data) ->
             if p_port = port && nSeq = nSequence
-              && p_ip = ip then needed.(nPart) <- Some data
+                && p_ip = ip then needed.(nPart) <- Some data
         ) udp_fragmented_packets;
         if needed.(my_part) <> None then
           failwith "Fragmented packet already present\n";
@@ -1002,7 +1002,7 @@ lprintf "part %d on %d\n" my_part nCount;
 (* All needed packets are present *)
         lprintf "Fragmented packet built";
         Buffer.contents b
-
+        
         
         
       end else buf

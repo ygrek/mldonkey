@@ -49,6 +49,10 @@ let enable () =
     !!main_server_port in
 *)  
   if not !!enable_soulseek then enable_soulseek =:= true;
+
+  List.iter (fun (server_name, server_port) ->
+      ignore (new_server (new_addr_name server_name) server_port)
+  ) !!SlskComplexOptions.servers;
   
   add_session_timer enabler 5.0 (fun timer ->
       SlskServers.connect_servers ());
@@ -69,8 +73,8 @@ let enable () =
   
 let _ =
   network.op_network_is_enabled <- (fun _ -> !! CommonOptions.enable_soulseek);
+  network.op_network_save_complex_options <- SlskComplexOptions.save_config;
 (*
-  network.op_network_save_simple_options <- SlskComplexOptions.save_config;
   network.op_network_load_simple_options <- (fun _ -> 
       try Options.load soulseek_ini
         with Sys_error _ ->

@@ -19,7 +19,27 @@
 
 open Options
 open SlskOptions
-
+open SlskTypes
+open CommonTypes
+  
 let old_files = 
   define_option soulseek_ini ["old_files"]
     "" (list_option (tuple2_option (string_option, int64_option))) []
+
+let servers = 
+  define_option soulseek_ini ["servers"]
+    "" (list_option (tuple2_option (string_option, int_option))) 
+  [ ("mail.slsk.org", 2240) ]
+  
+let save_config () =
+  servers =:= List.map (fun s ->
+      let addr = s.server_addr in
+      let port = s.server_port in
+      let name = if addr.addr_name = "" then
+          Ip.to_string addr.addr_ip
+        else addr.addr_name
+      in
+      (name, port)
+  ) (Hashtbl2.to_list SlskGlobals.servers_by_addr)
+  
+  

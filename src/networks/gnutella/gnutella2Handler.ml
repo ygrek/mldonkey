@@ -109,6 +109,82 @@ let g2_packet_handler s sock gconn p =
           server_recover_file file NoConnection s
       ) !current_files
 
+(*      
+  | Q2 md4 ->
+      if !verbose_msg_servers then
+        lprintf "SEARCH RECEIVED\n";
+      begin
+        try
+          let q = 
+            let q = 
+              match String2.split_simplify t.Query.keywords ' ' with
+                [] -> raise Not_found
+              | s :: tail ->
+                  List.fold_left (fun q s ->
+                      QAnd (q, (QHasWord s))
+                  ) (QHasWord s) tail
+            in
+(*
+            match t.Search.sizelimit with
+            | NoLimit -> q
+            | AtMost n -> 
+                QAnd (QHasMaxVal (CommonUploads.filesize_field, n),q)
+            | AtLeast n -> 
+QAnd (QHasMinVal (CommonUploads.filesize_field, n),q)
+*) 
+            q
+          in
+          try
+            let files = CommonUploads.query q in
+            if !verbose_msg_servers then
+              lprintf "%d replies found\n" (Array.length files); 
+
+(* How many matches should we return ? Let's say 10. *)
+            if files <> [||] then
+              let module M = QueryReply in
+              let module C = CommonUploads in
+              let replies = ref [] in
+              for i = 0 to mini (Array.length files - 1) 9 do
+                let sh = files.(i) in
+                let infos = ref [] in
+                List.iter (fun uid ->
+                    match uid with
+                      Sha1 (s, _) -> infos := s :: !infos;
+                    |  _ -> ()
+                ) sh.CommonUploads.shared_uids;
+                replies := {
+                  M.index = sh.C.shared_id;
+                  M.size = sh.C.shared_size;
+                  M.name = Filename.basename sh.C.shared_codedname;
+                  M.info = !infos;
+                } :: !replies
+              done;
+              let module P = QueryReply in
+              let t = QueryReplyReq {
+                  P.guid = !!client_uid;
+                  P.ip = client_ip NoConnection;
+                  P.port = !!client_port;
+                  P.speed = 1300; 
+                  P.files = !replies; 
+                  P.vendor = "MLDK"; 
+                  P.speed_measured = None; 
+                  P.busy = None; 
+                  P.stable = None; 
+                  P.xml_reply = ""; 
+                  P.support_chat = false; 
+                  P.dont_connect = None;
+                } in
+              let pp = { (new_packet t) with
+                  pkt_hops = 0;
+                  pkt_uid = p.pkt_uid;
+                } in
+              server_send s pp
+          
+          with Not_found -> ()
+        with Not_found -> ()
+(*            lprintf "Query browse\n"    *)
+      end
+*)
       
   | KHL ->
       List.iter (fun c ->

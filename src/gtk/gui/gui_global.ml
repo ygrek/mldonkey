@@ -84,7 +84,13 @@ let (users : (int, GuiTypes.user_info) Hashtbl.t) = Hashtbl.create 1023
   
 let (client_sections :   (string * (string * GuiTypes.option_widget * string) list ref) list ref) = ref []
 let (plugins_sections :   (string * (string * GuiTypes.option_widget * string) list ref) list ref) = ref []
-let (options_values : (string, string ref) Hashtbl.t) = Hashtbl.create 100
+  
+type mldonkey_option = {
+    mutable option_old_value : string; 
+    option_value : string ref;
+  }
+  
+let (options_values : (string, mldonkey_option) Hashtbl.t) = Hashtbl.create 100
 
 let (availabilities : (string * file_info) Intmap.t ref
     Intmap.t ref) = ref Intmap.empty
