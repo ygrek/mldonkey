@@ -1,6 +1,0 @@
-<entity name=box>
-  <scrolled_window name=wscroll width="" height="" border_width="" hscrollbar_policy="`AUTOMATIC" vscrollbar_policy="`AUTOMATIC" placement="`TOP_LEFT" tab_label="" expand="false" fill="true" padding="">
-    <text name=wtext width="" height="" editable="false" word_wrap="true" line_wrap="true" tab_label="" expand="false" fill="true" padding="">
-    </text>
-  </scrolled_window>
-</entity>

@@ -1,3 +1,0 @@
-let popup_menu ~button: button ~time: time ~entries: entries =
-  GToolbox.popup_menu @GTOOLBOX_POPUPMENU@ ~entries: entries
-
