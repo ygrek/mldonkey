@@ -115,7 +115,8 @@ LIB_SRCS=   \
 
 NET_SRCS = \
   net/basicSocket.ml \
-  net/ip.ml net/mailer.ml net/bigEndian.ml net/littleEndian.ml \
+  net/ip.ml net/mailer.ml \
+  net/anyEndian.ml net/bigEndian.ml net/littleEndian.ml \
   net/tcpBufferedSocket.ml \
   net/tcpClientSocket.ml net/tcpServerSocket.ml \
   net/udpSocket.ml net/http_server.ml net/http_client.ml \
@@ -157,7 +158,8 @@ COMMON_CLIENT_SRCS= \
   common/commonMultimedia.ml \
   common/commonInteractive.ml \
   common/commonDownloads.ml \
-  common/commonUploads.ml
+  common/commonUploads.ml \
+  common/commonSwarming.ml
 
 all: Makefile config/Makefile.config $(TARGET_TYPE)
 
@@ -272,6 +274,17 @@ LIMEWIRE_SRCS= \
   limewire/limewireInteractive.ml \
   limewire/limewireMain.ml
 
+BITTORRENT_SRCS= \
+  bittorrent/bencode.ml \
+  bittorrent/bTTypes.ml \
+  bittorrent/bTOptions.ml \
+  bittorrent/bTGlobals.ml \
+  bittorrent/bTComplexOptions.ml \
+  bittorrent/bTProtocol.ml \
+  bittorrent/bTClients.ml \
+  bittorrent/bTInteractive.ml \
+  bittorrent/bTMain.ml
+  
 OPENFT_SRCS= \
   openFT/openFTTypes.ml \
   openFT/openFTOptions.ml \
@@ -348,9 +361,6 @@ SUBDIRS += openFT
 CORE_SRCS += $(OPENFT_SRCS)
 
 endif
-
-limewire_plugin:
-	$(MAKE) PLUGIN_SRCS=LIMEWIRE_SRCS PLUGIN=limewire plugin
 
 ifeq ("$(AUDIO_GALAXY)" , "yes")
 SUBDIRS += audio_galaxy
@@ -485,9 +495,6 @@ INSTALLER_CMXA= cdk.cmxa gmisc.cmxa common.cmxa
 INSTALLER_SRCS= \
   $(GUI_BASE_SRCS) gui/gui_installer_base.zog gui/gui_installer.ml
 
-TOP_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) 
-
 
 #######################################################################
 
@@ -545,6 +552,11 @@ endif
 IM_CORE +=   im/imMain.ml
 
 endif
+
+
+TOP_CMXA=cdk.cmxa common.cmxa client.cmxa
+TOP_SRCS= 
+
 
 
 
@@ -691,6 +703,53 @@ mlgnut+gui_CMXA=cdk.cmxa \
    common.cmxa client.cmxa mlgnut.cmxa driver.cmxa \
    gmisc.cmxa guibase.cmxa gui.cmxa
 mlgnut+gui_SRCS= $(MAIN_SRCS)
+
+
+
+
+ifeq ("$(BITTORRENT)" , "yes")
+SUBDIRS += bittorrent
+
+CORE_SRCS += $(BITTORRENT_SRCS)
+
+TARGETS += mlbt$(EXE)
+
+ifeq ("$(COMPILE_GUI)" , "yes")
+
+TARGETS += mlbt+gui$(EXE)
+
+endif
+endif
+
+
+mlbt_CMXA= cdk.cmxa common.cmxa client.cmxa mlbt.cmxa driver.cmxa
+mlbt_SRCS= $(MAIN_SRCS)
+
+
+BITTORRENT_ZOG := $(filter %.zog, $(BITTORRENT_SRCS)) 
+BITTORRENT_MLL := $(filter %.mll, $(BITTORRENT_SRCS)) 
+BITTORRENT_MLY := $(filter %.mly, $(BITTORRENT_SRCS)) 
+BITTORRENT_ML4 := $(filter %.ml4, $(BITTORRENT_SRCS)) 
+BITTORRENT_ML := $(filter %.ml %.mll %.zog %.mly %.ml4, $(BITTORRENT_SRCS)) 
+BITTORRENT_C := $(filter %.c, $(BITTORRENT_SRCS)) 
+BITTORRENT_CMOS=$(foreach file, $(BITTORRENT_ML),   $(basename $(file)).cmo) 
+BITTORRENT_CMXS=$(foreach file, $(BITTORRENT_ML),   $(basename $(file)).cmx) 
+BITTORRENT_OBJS=$(foreach file, $(BITTORRENT_C),   $(basename $(file)).o)    
+
+TMPSOURCES += $(BITTORRENT_ML4:.ml4=.ml) $(BITTORRENT_MLL:.mll=.ml) $(BITTORRENT_MLY:.mly=.ml) $(BITTORRENT_MLY:.mly=.mli) $(BITTORRENT_ZOG:.zog=.ml) 
+ 
+mlbt.cmxa: $(BITTORRENT_OBJS) $(BITTORRENT_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(BITTORRENT_OBJS) $(LIBS_flags) $(_LIBS_flags) $(BITTORRENT_CMXS) 
+ 
+mlbt.cma: $(BITTORRENT_OBJS) $(BITTORRENT_CMOS) 
+	$(OCAMLC) -a -o $@  $(BITTORRENT_OBJS) $(LIBS_flags) $(_LIBS_flags) $(BITTORRENT_CMOS) 
+ 
+
+
+mlbt+gui_CMXA=cdk.cmxa \
+   common.cmxa client.cmxa mlbt.cmxa driver.cmxa \
+   gmisc.cmxa guibase.cmxa gui.cmxa
+mlbt+gui_SRCS= $(MAIN_SRCS)
 
 
 
@@ -1260,6 +1319,31 @@ mlgnut.static:  $(mlgnut_OBJS) $(mlgnut_CMXS)  $(mlgnut_CMXAS)
 	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(mlgnut_OBJS) $(LIBS_opt) $(LIBS_flags)  $(NO_LIBS_flags)  $(NO_STATIC_LIBS_opt) $(mlgnut_CMXAS) $(mlgnut_CMXS)
 
 
+mlbt_ZOG := $(filter %.zog, $(mlbt_SRCS)) 
+mlbt_MLL := $(filter %.mll, $(mlbt_SRCS)) 
+mlbt_MLY := $(filter %.mly, $(mlbt_SRCS)) 
+mlbt_ML4 := $(filter %.ml4, $(mlbt_SRCS)) 
+mlbt_ML := $(filter %.ml %.mll %.zog %.mly %.ml4, $(mlbt_SRCS)) 
+mlbt_C := $(filter %.c, $(mlbt_SRCS)) 
+mlbt_CMOS=$(foreach file, $(mlbt_ML),   $(basename $(file)).cmo) 
+mlbt_CMXS=$(foreach file, $(mlbt_ML),   $(basename $(file)).cmx) 
+mlbt_OBJS=$(foreach file, $(mlbt_C),   $(basename $(file)).o)    
+
+mlbt_CMXAS := $(mlbt_CMXA)
+mlbt_CMAS=$(foreach file, $(mlbt_CMXAS),   $(basename $(file)).cma)    
+
+TMPSOURCES += $(mlbt_ML4:.ml4=.ml) $(mlbt_MLL:.mll=.ml) $(mlbt_MLY:.mly=.ml) $(mlbt_MLY:.mly=.mli) $(mlbt_ZOG:.zog=.ml) 
+ 
+mlbt: $(mlbt_OBJS) $(mlbt_CMXS) $(mlbt_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(mlbt_OBJS) $(LIBS_opt) $(LIBS_flags) $(NO_LIBS_opt) $(NO_LIBS_flags) $(mlbt_CMXAS) $(mlbt_CMXS) 
+ 
+mlbt.byte: $(mlbt_OBJS) $(mlbt_CMOS)  $(mlbt_CMAS)
+	$(OCAMLC) -linkall -o $@  $(mlbt_OBJS) $(LIBS_byte) $(LIBS_flags)  $(NO_LIBS_byte) $(NO_LIBS_flags) $(mlbt_CMAS) $(mlbt_CMOS) 
+ 
+mlbt.static:  $(mlbt_OBJS) $(mlbt_CMXS)  $(mlbt_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(mlbt_OBJS) $(LIBS_opt) $(LIBS_flags)  $(NO_LIBS_flags)  $(NO_STATIC_LIBS_opt) $(mlbt_CMXAS) $(mlbt_CMXS)
+
+
 mlgnut+gui_ZOG := $(filter %.zog, $(mlgnut+gui_SRCS)) 
 mlgnut+gui_MLL := $(filter %.mll, $(mlgnut+gui_SRCS)) 
 mlgnut+gui_MLY := $(filter %.mly, $(mlgnut+gui_SRCS)) 
@@ -1283,6 +1367,31 @@ mlgnut+gui.byte: $(mlgnut+gui_OBJS) $(mlgnut+gui_CMOS)  $(mlgnut+gui_CMAS)
  
 mlgnut+gui.static:  $(mlgnut+gui_OBJS) $(mlgnut+gui_CMXS)  $(mlgnut+gui_CMXAS)
 	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(mlgnut+gui_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) $(mlgnut+gui_CMXAS) $(mlgnut+gui_CMXS)
+
+
+mlbt+gui_ZOG := $(filter %.zog, $(mlbt+gui_SRCS)) 
+mlbt+gui_MLL := $(filter %.mll, $(mlbt+gui_SRCS)) 
+mlbt+gui_MLY := $(filter %.mly, $(mlbt+gui_SRCS)) 
+mlbt+gui_ML4 := $(filter %.ml4, $(mlbt+gui_SRCS)) 
+mlbt+gui_ML := $(filter %.ml %.mll %.zog %.mly %.ml4, $(mlbt+gui_SRCS)) 
+mlbt+gui_C := $(filter %.c, $(mlbt+gui_SRCS)) 
+mlbt+gui_CMOS=$(foreach file, $(mlbt+gui_ML),   $(basename $(file)).cmo) 
+mlbt+gui_CMXS=$(foreach file, $(mlbt+gui_ML),   $(basename $(file)).cmx) 
+mlbt+gui_OBJS=$(foreach file, $(mlbt+gui_C),   $(basename $(file)).o)    
+
+mlbt+gui_CMXAS := $(mlbt+gui_CMXA)
+mlbt+gui_CMAS=$(foreach file, $(mlbt+gui_CMXAS),   $(basename $(file)).cma)    
+
+TMPSOURCES += $(mlbt+gui_ML4:.ml4=.ml) $(mlbt+gui_MLL:.mll=.ml) $(mlbt+gui_MLY:.mly=.ml) $(mlbt+gui_MLY:.mly=.mli) $(mlbt+gui_ZOG:.zog=.ml) 
+ 
+mlbt+gui: $(mlbt+gui_OBJS) $(mlbt+gui_CMXS) $(mlbt+gui_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(mlbt+gui_OBJS) $(LIBS_opt) $(LIBS_flags) $(GTK_LIBS_opt) $(GTK_LIBS_flags) $(mlbt+gui_CMXAS) $(mlbt+gui_CMXS) 
+ 
+mlbt+gui.byte: $(mlbt+gui_OBJS) $(mlbt+gui_CMOS)  $(mlbt+gui_CMAS)
+	$(OCAMLC) -linkall -o $@  $(mlbt+gui_OBJS) $(LIBS_byte) $(LIBS_flags)  $(GTK_LIBS_byte) $(GTK_LIBS_flags) $(mlbt+gui_CMAS) $(mlbt+gui_CMOS) 
+ 
+mlbt+gui.static:  $(mlbt+gui_OBJS) $(mlbt+gui_CMXS)  $(mlbt+gui_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(mlbt+gui_OBJS) $(LIBS_opt) $(LIBS_flags)  $(GTK_LIBS_flags)  $(GTK_STATIC_LIBS_opt) $(mlbt+gui_CMXAS) $(mlbt+gui_CMXS)
 
 
 mlslsk_ZOG := $(filter %.zog, $(mlslsk_SRCS)) 
@@ -1529,13 +1638,13 @@ TOP_CMOS=$(foreach file, $(TOP_ML),   $(basename $(file)).cmo)
 TOP_CMXS=$(foreach file, $(TOP_ML),   $(basename $(file)).cmx) 
 TOP_OBJS=$(foreach file, $(TOP_C),   $(basename $(file)).o)    
 
-TOP_CMXAS := $(_CMXA)
+TOP_CMXAS := $(TOP_CMXA)
 TOP_CMAS=$(foreach file, $(TOP_CMXAS),   $(basename $(file)).cma)    
 
 TMPSOURCES += $(TOP_ML4:.ml4=.ml) $(TOP_MLL:.mll=.ml) $(TOP_MLY:.mly=.ml) $(TOP_MLY:.mly=.mli) $(TOP_ZOG:.zog=.ml) 
  
 mldonkeytop: $(TOP_OBJS) $(TOP_CMOS) $(TOP_CMAS)
-	ocamlmktop $(PLUGIN_FLAG) -o $@  $(TOP_OBJS) $(LIBS_byte) $(LIBS_flags) $(_LIBS_byte) $(_LIBS_flags) $(TOP_CMAS) $(TOP_CMOS) 
+	ocamlmktop -linkall $(PLUGIN_FLAG) -o $@  $(TOP_OBJS) $(LIBS_byte) $(LIBS_flags) $(_LIBS_byte) $(_LIBS_flags) $(TOP_CMAS) $(TOP_CMOS) 
  
 
 

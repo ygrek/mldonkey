@@ -77,3 +77,6 @@ val length : 'a t -> int
 
 val top : 'a t -> 'a
 val nth : 'a t -> int -> 'a
+
+val to_list : 'a t -> 'a list
+  

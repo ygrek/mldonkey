@@ -231,20 +231,7 @@ where nseconds = Fifo.length upload_clients
   
   *)
   
-let can_write_len sock len =
-  can_write_len sock len && 
-  (let upload_rate = 
-      (if !!max_hard_upload_rate = 0 then 10000 else !!max_hard_upload_rate)
-      * 1024 in
-    not_buffer_more sock (upload_rate * (Fifo.length upload_clients)))
-  
 module NewUpload = struct
-    
-    let remaining_bandwidth = ref 0    
-    let total_bandwidth = ref 0    
-    let complete_bandwidth = ref 0
-    let counter = ref 1    
-    let sent_bytes = Array.create 10 0
     
     
     let check_end_upload c sock = ()
@@ -258,7 +245,7 @@ module NewUpload = struct
     
     let rec send_small_block c sock file begin_pos len_int = 
 (*      let len_int = Int32.to_int len in *)
-      remaining_bandwidth := !remaining_bandwidth - len_int;
+      CommonUploads.consume_bandwidth len_int;
       try
         if !verbose then begin
             lprintf "send_small_block(%s-%s) %Ld %d"
@@ -285,8 +272,8 @@ module NewUpload = struct
         let upload_buffer = String.create (slen + len_int) in
         String.blit s 0 upload_buffer 0 slen;
         DonkeyProtoCom.new_string msg upload_buffer;
-        
-        (*
+
+(*
         let fd = file_fd file in
         ignore (Unix32.seek64 fd begin_pos Unix.SEEK_SET);
 Unix2.really_read (Unix32.force_fd fd) upload_buffer slen len_int;
@@ -311,7 +298,7 @@ Unix2.really_read (Unix32.force_fd fd) upload_buffer slen len_int;
           lprint_newline () 
     
     let rec send_client_block c sock per_client =
-      if per_client > 0 && !remaining_bandwidth > 0 then
+      if per_client > 0 && CommonUploads.remaining_bandwidth () > 0 then
         match c.client_upload with
         | Some ({ up_chunks = _ :: chunks } as up)  ->
             if up.up_file.file_shared = None then begin
@@ -354,10 +341,10 @@ Unix2.really_read (Unix32.force_fd fd) upload_buffer slen len_int;
                   send_client_block c sock per_client
               end
         | _ -> ()
-    
-    
-    and upload_to_one_client () =
-      if !remaining_bandwidth < 10000 then begin
+
+(* 
+    let upload_to_one_client () =
+      if CommonUploads.remaining_bandwidth () < 10000 then begin
           let c = Fifo.take upload_clients in
           match c.client_sock with
           | Some sock ->
@@ -389,7 +376,25 @@ Divide the bandwidth between the clients
                 if !has_upload = 0 then  Fifo.put upload_clients c
           )
       | _ -> ()
+ *)   
     
+    let upload_to_client c size = 
+      match c.client_sock with
+        None -> ()
+      |     Some sock ->
+          if CommonUploads.can_write_len sock (maxi max_msg_size size) then
+            send_client_block c sock size;
+          (match c.client_upload with
+              None -> ()
+            | Some up ->
+                if !CommonUploads.has_upload = 0 then
+                  CommonUploads.ready_for_upload (as_client c.client_client)
+          )
+
+    let _ =
+      client_ops.op_client_can_upload <- upload_to_client
+          
+    (*
     let rec fifo_uploads n =
       if n>0 && !remaining_bandwidth > 0 then
         begin
@@ -447,8 +452,12 @@ Divide the bandwidth between the clients
         next_uploads ()
       
     let reset_upload_timer () = ()
+    *)
+    
   end
       
+      
+      (*
 module OldUpload = struct
     
     let remaining_bandwidth = ref 0
@@ -540,7 +549,7 @@ lprint_newline (); *)
               begin
                 send_small_block c sock up.up_file up.up_pos msg_block_size;
                 up.up_pos <- Int64.add up.up_pos msg_block_size;
-                if can_write_len sock max_msg_size then
+                if CommonUploads.can_write_len sock max_msg_size then
                   send_client_block c sock (per_client-1)
               end
         | _ -> 
@@ -595,7 +604,7 @@ lprint_newline (); *)
           let c = Fifo.take upload_clients in
           match c.client_sock with
           | Some sock ->
-              if can_write_len sock max_msg_size then 
+              if CommonUploads.can_write_len sock max_msg_size then 
                 send_client_block_partial c sock !remaining_bandwidth;
               (match c.client_upload with
                   None -> ()
@@ -612,7 +621,7 @@ lprint_newline (); *)
       let c = Fifo.take upload_clients in
       match c.client_sock with
       | Some sock ->
-          if can_write_len sock max_msg_size then 
+          if CommonUploads.can_write_len sock max_msg_size then 
             send_client_block c sock per_client;
           (match c.client_upload with
               None -> ()
@@ -631,13 +640,9 @@ lprint_newline (); *)
         
 end
 
+*)
 
-
-  (* timer started every 1/10 seconds *)
-let upload_timer () =
-  (try download_engine () with e -> 
-        lprintf "Exception %s in download_engine" 
-          (Printexc2.to_string e); lprint_newline (););
+(*
   try
 (*    lprintf "upload ?"; lprint_newline (); *)
     if !!new_upload_system then
@@ -661,3 +666,4 @@ let upload_credit_timer _ =
   else
     decr has_upload
     
+*)

@@ -115,7 +115,7 @@ type option_value =
 | SmallList of option_value list
 | OnceValue of option_value 
 | DelayedValue of (out_channel -> string -> unit)
-  
+
 and option_module =
   (string * option_value) list
 
@@ -124,7 +124,7 @@ val define_option_class :
 
 val to_value : 'a option_class -> 'a -> option_value
 val from_value : 'a option_class -> option_value -> 'a
-  
+
 val value_to_string : option_value -> string
 val string_to_value : string -> option_value
 val value_to_int : option_value -> int
@@ -146,22 +146,24 @@ val path_to_value : string list -> option_value
 
 val filename_to_value : string -> option_value
 val value_to_filename : option_value -> string
-  
+
 val set_simple_option : options_file -> string -> string -> unit
 val simple_options : options_file -> (string * string) list
 val simple_options_html : options_file -> (string * string * string * string) list
 val get_simple_option : options_file -> string -> string
 val set_option_hook : options_file -> string -> (unit -> unit) -> unit
-  
+
 val set_string_wrappers : 'a option_record -> 
   ('a -> string) -> (string -> 'a) -> unit
-  
+
 val simple_args : options_file -> (string * Arg.spec * string) list
-  
+
 val prefixed_args : 
   string -> options_file -> (string * Arg.spec * string) list
 
 val once_value : option_value -> option_value
 val strings_of_option : 'a option_record -> string * string
 val strings_of_option_html : 'a option_record  -> string * string * string * string
-  
+
+val array_to_value : ('a -> option_value) -> 'a array -> option_value
+val value_to_array : (option_value -> 'a) -> option_value -> 'a array

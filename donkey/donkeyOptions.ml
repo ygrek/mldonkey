@@ -153,15 +153,6 @@ let log_clients_on_console = define_option downloads_ini
   ""
     bool_option false
 
-let max_upload_slots = define_option downloads_ini ["max_upload_slots"]
-    "How many slots can be used for upload"
-    int_option 5
-  
-let _ =  
-  option_hook max_upload_slots (fun _ ->
-      if !!max_upload_slots < 3 then
-        max_upload_slots =:= 3)
-
   
 let donkey_bind_addr = define_option downloads_ini ["donkey_bind_addr"]
     "The IP address used to bind the donkey client"
@@ -325,9 +316,6 @@ let sources_per_chunk =
   define_option donkey_ini ["sources_per_chunk"]
     "How many sources to use to download each chunk"
     int_option 1
-
-let dynamic_slots = define_option downloads_ini ["dynamic_slots"] 
-  "Set this to true if you want to have dynamic upload slot allocation (experimental)" bool_option false
 
 let _ = 
 (* Clients should never send more than 5 localisations queries

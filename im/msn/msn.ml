@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open AnyEndian
+
 open Printf2
 open Md4
 open ImTypes
@@ -424,7 +426,7 @@ and msn_reader msn_parser sock nread =
     lprintf "server to client %d" nread; 
     lprint_newline ();
     let b = TcpBufferedSocket.buf sock in
-    LittleEndian.dump (String.sub b.buf b.pos b.len);
+    dump (String.sub b.buf b.pos b.len);
     lprint_newline ();
     
     let rec iter pos max_pos =
@@ -451,7 +453,7 @@ and msn_reader msn_parser sock nread =
                         let msg = String.sub b.buf b.pos len in
                         TcpBufferedSocket.buf_used sock len;
                         lprintf "MSG:"; lprint_newline ();
-                        LittleEndian.dump msg;
+                        AnyEndian.dump msg;
                         lprint_newline ();
                         msn_parser  sock tokens msg; 
                         

@@ -19,6 +19,7 @@
 
 (** GUI main window. *)
 
+open Printf2
 open Gettext
 open CommonTypes
 open GuiProto
@@ -115,7 +116,7 @@ class window () =
 	  Okey.add ~cond w ~mods k f
 	with
 	  Not_found ->
-            prerr_endline (Gui_messages.action_unknown action)
+            lprintf "%s\n" (Gui_messages.action_unknown action)
       in
 
       (* Global shortcuts *)

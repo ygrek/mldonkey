@@ -19,6 +19,8 @@
 
 (* Translated from sources of Gaim *)
 
+open AnyEndian
+
 open Printf2
 open Options
 open Md4
@@ -547,7 +549,7 @@ let send_message sock pkt =
   let s = Buffer.contents buf in
   Buffer.clear buf;
   lprintf "SENDING MESSAGE:"; lprint_newline ();
-  LittleEndian.dump s; lprint_newline ();
+  dump s; lprint_newline ();
   write_string sock s;
   ()
   

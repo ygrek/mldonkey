@@ -127,144 +127,32 @@ let clean_requests () = (* to be called every hour *)
       Hashtbl.remove banned_ips ip;
   ) !remove_ips
 
+let _ =
   
-let add_pending_slot c =
-  if c.client_has_a_slot then begin
-      lprintf "Avoided inserting an uploader in pending slots!";
-      lprint_newline ()
-    end 
-  else 
-  if not (Intmap.mem (client_num c) !pending_slots_map) then
-    begin
-(* This is useless since it is the goal of the pending_slots_map 
-        else if Fifo.mem pending_slots_fifo (client_num c) then begin
-	lprintf "Avoided inserting a client twice in pending slots";
-	lprint_newline ()
-      end else *)
-      pending_slots_map := Intmap.add (client_num c) c !pending_slots_map;
-    end
-    
-let remove_pending_slot c =
-  if Intmap.mem (client_num c) !pending_slots_map then
-    pending_slots_map := Intmap.remove (client_num c) !pending_slots_map
-    
-let rec give_a_slot c = 
-  remove_pending_slot c;
-  match c.client_sock with
-    None -> find_pending_slot ()
-  | Some sock ->
-      set_rtimeout sock !!upload_timeout;
-      c.client_has_a_slot <- true;
-      
-      set_lifetime sock one_day;
-      direct_client_send c (
-        let module M = DonkeyProtoClient in
-        let module Q = M.AvailableSlot in
-        M.AvailableSlotReq Q.t);
-      
-      if !verbose then begin
-          lprintf "New uploader %s: brand %s" 
-            c.client_name (brand_to_string c.client_brand);
-          lprint_newline ();
-        end;
-      
-      set_write_power sock (c.client_power);
-      set_read_power sock (c.client_power)
-      
-and find_pending_slot () =
-  try
-    let rec iter () =
-      let c = Intmap.top !pending_slots_map in
-      give_a_slot c
-    in
-    iter ()
-  with _ -> ()
-
-let static_refill_upload_slots () =
-  let len = Fifo.length upload_clients in
-  if len < !!max_upload_slots then find_pending_slot ()
-
-(* Since dynamic slots allocation is based on feedback, it should not 
- * allocate new slots too fast, since connections need some time to reach 
- * a stable state. 
- * To compensate for that slow pace, slots are allocated quadratically
- * as long as the link is not saturated. 
- *)
-
-let not_saturated_count = ref 0
-let allocation_cluster = ref 1
+  let client_enter_upload_queue c =
+    match c.client_sock with
+      None -> ()
+    | Some sock ->
+        
+        set_rtimeout sock !!upload_timeout;
+        set_lifetime sock one_day;
+        direct_client_send c (
+          let module M = DonkeyProtoClient in
+          let module Q = M.AvailableSlot in
+          M.AvailableSlotReq Q.t);
+        
+        if !verbose then begin
+            lprintf "New uploader %s: brand %s" 
+              c.client_name (brand_to_string c.client_brand);
+            lprint_newline ();
+          end;
+        
+        set_write_power sock (c.client_power);
+        set_read_power sock (c.client_power)
   
-let dynamic_refill_upload_slots () =
-  let reset_state () =
-    not_saturated_count := 0;
-    allocation_cluster := 1 in
-
-  let open_slots n =
-    let i = ref n in
-    if !verbose_upload then begin
-      lprintf "try to allocate %d more slots" n;
-      lprint_newline ()
-    end;
-    while !i > 0 do
-      find_pending_slot ();
-      decr i
-    done in
-
-  let slot_bw = 3072 in
-  let min_upload_slots = 3 in
-(*  let estimated_capacity = !!max_hard_upload_rate * 1024 in *)
-  let estimated_capacity = detected_uplink_capacity () in
-  if !verbose_upload then begin
-    lprintf "usage: %d(%d) capacity: %d "
-      (short_delay_upload_usage ()) 
-      (upload_usage ()) 
-      estimated_capacity;
-    lprint_newline ()
-  end;
-  let len = Fifo.length upload_clients in
-  if len < !!max_upload_slots then begin
-
-(* enough free bw for another slot *)
-    if short_delay_upload_usage () + slot_bw < estimated_capacity then begin
-      if !verbose_upload then begin
-	lprintf "uplink not fully used";
-	lprint_newline ()
-      end;
-      incr not_saturated_count
-    end else reset_state ();
-          
-    if len < min_upload_slots then begin
-      if !verbose_upload then begin
-	lprintf "too few upload slots";
-	lprint_newline ()
-      end;
-      open_slots (min_upload_slots - len);
-      reset_state ()
-    end else if !not_saturated_count >= 2 then begin
-      open_slots (min !allocation_cluster (!!max_upload_slots - len));
-      incr allocation_cluster
-    end
-  end
-
-let turn = ref (-1)
-
-let refill_upload_slots () =
-  incr turn;
-  if !turn = 5 then
-    turn := 0;
-  if !!dynamic_slots then begin
-    if !turn = 0 then
-      (* call every 5s *)
-      dynamic_refill_upload_slots ()
-  end else
-    (* call every 1s *)
-    static_refill_upload_slots ();
-
-  if !turn = 0 then
-    (* call every 5s *)
-    update_upload_history ()
-
-    
+  in
+  client_ops.op_client_enter_upload_queue <- client_enter_upload_queue
+   
 let log_client_info c sock = 
   let buf = Buffer.create 100 in
   let date = BasicSocket.date_of_int (last_time ()) in
@@ -284,7 +172,7 @@ let log_client_info c sock =
   (last_time () - c.client_connect_time)
   (if c.client_rank > 0 then
       Printf.sprintf "rank %d" c.client_rank
-    else "")
+      else "")
   (nwritten sock) (nread sock)
   (if c.client_banned then "banned" else "")
   c.client_requests_received
@@ -315,10 +203,10 @@ let disconnect_client c =
             lprintf "Client[%d]: disconnected\n" (client_num c);
           if c.client_checked then count_seen c;
           if !!log_clients_on_console && c.client_name <> "" then 
-              log_client_info c sock
+            log_client_info c sock
             ;
           (try Hashtbl.remove connected_clients c.client_md4 with _ -> ());
-          remove_pending_slot c; 
+          CommonUploads.remove_pending_slot (as_client c.client_client);
           connection_failed c.client_connection_control;
           TcpBufferedSocket.close sock "closed";
           printf_string "-c"; 
@@ -333,7 +221,7 @@ let disconnect_client c =
               remove_client_chunks file chunks)  
           files;    
 
-          (*
+(*
           if c.client_file_queue <> [] then begin
               lprintf "Client %d: " (client_num c);
               List.iter (fun (file, _) -> 
@@ -342,9 +230,9 @@ let disconnect_client c =
 end;
   *)
           c.client_file_queue <- [];  
-          if c.client_upload != None then refill_upload_slots ();
+          if c.client_upload != None then CommonUploads.refill_upload_slots ();
           DonkeyOneFile.clean_client_zones c;
-          
+        
         with e -> lprintf "Exception %s in disconnect_client"
               (Printexc2.to_string e); lprint_newline ());
 (*      lprintf "Client %d to source:" (client_num c);
@@ -434,7 +322,7 @@ let find_sources_in_groups c md4 =
 (* send the list of members of the group to the client *)
                   let list = ref [] in
                   UdpClientMap.iter (fun _ uc ->
-		    match ip_reliability uc.udp_client_ip with
+                      match ip_reliability uc.udp_client_ip with
 			Reliability_reliable | Reliability_neutral ->
 			  list := (uc.udp_client_ip, uc.udp_client_port, uc.udp_client_ip) :: !list
 		      | Reliability_suspicious _ -> ()
@@ -544,14 +432,14 @@ let identify_emule_compatible c tags =
 let query_files c sock =  
   let nall_queries = ref 0 in
   let nqueries = ref 0 in
-  
+
 (*  lprintf "Client %d:" (client_num c); lprint_newline (); *)
   let files = ref [] in
   (if c.client_files = [] then begin
 (*        lprintf "  query all files"; lprint_newline (); *)
         files := !current_files 
-        
-        end else
+      
+      end else
       List.iter (fun r ->
           if r.request_result > File_not_found then begin
 (*              lprintf "   query file %s" (file_best_name r.request_file); 
@@ -559,8 +447,8 @@ let query_files c sock =
               files := r.request_file :: !files
             end;
       ) c.client_files);
-  
-  (*
+
+(*
   if !files = [] then begin
       lprintf "   No queries to send !"; lprint_newline ();
     end;
@@ -630,15 +518,15 @@ let client_has_chunks c file chunks =
 
 with Not_found ->
   *)
-              add_client_chunks file chunks;
-              if !verbose_download then begin
-                  lprintf "client_file_queue: ADDING FILE TO QUEUE"; lprint_newline ();
-                end;
-              c.client_file_queue <- c.client_file_queue @ [
-                file, chunks ]
+          add_client_chunks file chunks;
+          if !verbose_download then begin
+              lprintf "client_file_queue: ADDING FILE TO QUEUE"; lprint_newline ();
+            end;
+          c.client_file_queue <- c.client_file_queue @ [
+            file, chunks ]
         );
         start_download c
-
+      
       with _ -> 
           if !verbose_download then begin
               lprintf "client_has_chunks: EXCEPTION"; lprint_newline ()
@@ -648,8 +536,8 @@ with Not_found ->
 
 (* Nice to see some emule devels here... It's always possible to 
 crack a protocol, but let's try to make it as boring as possible... *)
-
-external hash_param : int -> int -> 'a -> int = "hash_univ_param" "noalloc"
+    
+    external hash_param : int -> int -> 'a -> int = "hash_univ_param" "noalloc"
 let hash x = hash_param 10 100 x
 
 type challenge_vals =
@@ -936,6 +824,7 @@ lprint_newline ();
   
   | M.JoinQueueReq _ ->
 (*
+(*
       if !!ban_queue_jumpers && c.client_banned then
         direct_client_send sock (M.EmuleQueueRankingReq 
           (900 + Random.int 100))
@@ -959,14 +848,14 @@ lprint_newline ();
           set_lifetime sock one_day;
           add_pending_slot c
         
-        with _ ->
-            add_pending_slot c;
-            if !verbose then begin
-                lprintf "(uploader %s: brand %s, couldn't get a slot)" 
-                  c.client_name (brand_to_string c.client_brand);
-                lprint_newline ()
-              end;
-      end
+        with _ -> *)
+      CommonUploads.add_pending_slot (as_client c.client_client);
+      if !verbose then begin
+          lprintf "(uploader %s: brand %s, couldn't get a slot)" 
+            c.client_name (brand_to_string c.client_brand);
+          lprint_newline ()
+        end;
+(*      end *)
   
   | M.CloseSlotReq _ ->
       printf_string "[DOWN]";
@@ -992,7 +881,7 @@ lprint_newline ();
         M.CloseSlotReq Q.t);
       if c.client_file_queue = [] then
         set_rtimeout sock 120.;
-      find_pending_slot ()
+      CommonUploads.find_pending_slot ()
   
   | M.QueryFileReplyReq t ->
       let module Q = M.QueryFileReply in
@@ -1169,7 +1058,7 @@ is checked for the file.
             
             if bb.block_present || begin_pos < bb.block_begin
                 || begin_pos >= bb.block_end || end_pos > bb.block_end
-            then 
+              then 
               let chunk_num = Int64.to_int (Int64.div begin_pos block_size) 
               in
               lprintf "%d: Exceeding block boundaries" (client_num c);
@@ -1294,11 +1183,11 @@ is checked for the file.
               (try
                   find_client_zone c
                 with 
-                  | e ->
+                | e ->
                     lprintf "Exception %s while searching for find client zone\n"
                       (Printexc2.to_string e);
                     raise e)
-
+            
             with
               End_of_file ->
                 lprintf "END OF FILE WITH CLIENT %s" c.client_name;
@@ -1306,11 +1195,11 @@ is checked for the file.
             | e ->
                 lprintf "Exception %s while searching for new chunk\n"
                   (Printexc2.to_string e)
-                
+      
       end;      
 
 (* Upload requests *)
-  | M.ViewFilesReq t when !has_upload = 0 && !!allow_browse_share -> 
+  | M.ViewFilesReq t when !CommonUploads.has_upload = 0 && !!allow_browse_share -> 
       let files = DonkeyShare.all_shared () in
       let published_files = ref [] in
       List.iter (fun f ->
@@ -1326,7 +1215,7 @@ is checked for the file.
   | M.QueryFileReq t ->
       c.client_requests_received <- c.client_requests_received + 1;
       
-      if  !has_upload = 0 && 
+      if  !CommonUploads.has_upload = 0 && 
         not (!!ban_queue_jumpers && c.client_banned) then
         
         
@@ -1418,7 +1307,7 @@ end else *)
           ) t.Q.sources
         with _ -> ()
       end
-      
+  
   
   | M.SourcesReq t ->
       
@@ -1454,30 +1343,30 @@ end else *)
 (* A VOIR : historique à gérer *)
 (*      !say_hook c s *)
       private_message_from (as_client c.client_client)  s;
-
+      
       let cip =
-         ( 
-            try
-              
-              match c.client_sock with
-                Some sock -> Ip.to_string (peer_ip sock)
-              | None -> (match c.client_kind with 
-                      Known_location (ip,port) -> Ip.to_string ip
-                    | Indirect_location _ -> "Indirect"
-                  )
+        ( 
+          try
             
-            with _ -> 
-                
-                try 
-                  match c.client_kind with 
+            match c.client_sock with
+              Some sock -> Ip.to_string (peer_ip sock)
+                | None -> (match c.client_kind with 
                     Known_location (ip,port) -> Ip.to_string ip
                   | Indirect_location _ -> "Indirect"
-                with _ -> ""
-          ) 
+                )
+          
+          with _ -> 
+              
+              try 
+                match c.client_kind with 
+                  Known_location (ip,port) -> Ip.to_string ip
+                | Indirect_location _ -> "Indirect"
+              with _ -> ""
+        ) 
       in
-	  log_chat_message cip (client_num c) c.client_name s;
+      log_chat_message cip (client_num c) c.client_name s;
   
-  | M.QueryChunkMd4Req t when !has_upload = 0 -> 
+  | M.QueryChunkMd4Req t when !CommonUploads.has_upload = 0 -> 
       
       let file = find_file t in
       begin
@@ -1496,7 +1385,7 @@ end else *)
   | M.QueryChunksReq t ->
       c.client_requests_received <- c.client_requests_received + 1;
       
-      if  !has_upload = 0 && not 
+      if  !CommonUploads.has_upload = 0 && not 
           (!!ban_queue_jumpers && c.client_banned) then
         
         let file = find_file t in
@@ -1516,17 +1405,18 @@ end else *)
             Q.chunks = chunks;
           });
         DonkeySourcesMisc.query_file c file
-        
-  | M.QueryBlocReq t when !has_upload = 0 && c.client_has_a_slot ->
+  
+  | M.QueryBlocReq t when !CommonUploads.has_upload = 0 &&
+    client_has_a_slot (as_client c.client_client) ->
       if !verbose then begin
           lprintf "uploader %s(%s) ask for block" c.client_name
             (brand_to_string c.client_brand); lprint_newline ();
         end;
-  
+      
       set_rtimeout sock !!upload_timeout;
       let module Q = M.QueryBloc in
       let file = find_file  t.Q.md4 in
-
+      
       let up, waiting = match c.client_upload with
           Some ({ up_file = f } as up) when f == file ->  up, up.up_waiting
         | Some old_up ->
@@ -1550,8 +1440,8 @@ end else *)
       new_chunk up t.Q.start_pos2 t.Q.end_pos2;
       new_chunk up t.Q.start_pos3 t.Q.end_pos3;
       c.client_upload <- Some up;
-      if not waiting && !has_upload = 0 then begin
-          Fifo.put upload_clients c;
+      if not waiting && !CommonUploads.has_upload = 0 then begin
+          CommonUploads.ready_for_upload (as_client c.client_client);
           up.up_waiting <- true
         end
 
@@ -1626,9 +1516,9 @@ let init_client sock c =
       match c.client_upload with
         None -> ()
       | Some up ->
-          if not up.up_waiting && !has_upload = 0 then begin
+          if not up.up_waiting && !CommonUploads.has_upload = 0 then begin
               up.up_waiting <- true;
-              Fifo.put upload_clients c
+              CommonUploads.ready_for_upload (as_client c.client_client)
             end
   );
 (*
@@ -1705,15 +1595,15 @@ let read_first_message overnet challenge m sock =
         match c.client_sock with
           None -> 
             c.client_sock <- Some sock;
-	    c.client_ip <- peer_ip sock;
+            c.client_ip <- peer_ip sock;
             c.client_connected <- false;
             init_client sock c;
             c.client_connect_time <- last_time ();
-            
+        
         | Some _ -> 
             close sock "already connected"; raise Not_found
       end;
-
+      
       begin
         match c.client_source, kind with
           None, Known_location (ip, port) ->
@@ -1727,7 +1617,7 @@ let read_first_message overnet challenge m sock =
       
       set_write_power sock c.client_power;
       set_read_power sock c.client_power;
-
+      
       set_client_name c !name t.CR.md4;
       connection_try c.client_connection_control;
       connection_ok c.client_connection_control;
@@ -1735,10 +1625,10 @@ let read_first_message overnet challenge m sock =
       
       if  !!reliable_sources && 
         ip_reliability (peer_ip sock) = Reliability_suspicious 0 then begin
-	set_client_state c BlackListedHost;
-	raise Not_found
-      end;
-            
+          set_client_state c BlackListedHost;
+          raise Not_found
+        end;
+      
       begin
         match t.CR.server_info with
           Some (ip, port) when !!update_server_list -> 
@@ -1750,7 +1640,7 @@ let read_first_message overnet challenge m sock =
               end
         | _ -> ()
       end;
-      
+
 (*      List.iter (fun s ->
 		   match s.server_sock with
 		       None -> ()
@@ -1758,11 +1648,11 @@ let read_first_message overnet challenge m sock =
 			 c.client_brand <- Brand_server
 ) (connected_servers ()) *)
       identify_client_brand c;
-
+      
       direct_client_send c (
         let module M = DonkeyProtoClient in
         let module C = M.ConnectReply in
-	if c.client_overnet then
+        if c.client_overnet then
           M.ConnectReplyReq {
             C.md4 = overnet_md4;
             C.ip = client_ip (Some sock);
@@ -1772,7 +1662,7 @@ let read_first_message overnet challenge m sock =
               !overnet_server_port);
             C.left_bytes = left_bytes;
           }
-	else
+        else
           M.ConnectReplyReq {
             C.md4 = !!client_md4;
             C.ip = client_ip (Some sock);
@@ -1782,7 +1672,7 @@ let read_first_message overnet challenge m sock =
             C.left_bytes = left_bytes;
           }
       );
-
+      
       if supports_eep c.client_brand then  begin
 (*          lprintf "Emule Extended Protocol query"; lprint_newline (); *)
           let module E = M.EmuleClientInfo in
@@ -1797,18 +1687,18 @@ let read_first_message overnet challenge m sock =
         end;
       
       set_client_state c (Connected (-1));      
-            
+      
       challenge.challenge_md4 <-  Md4.random ();
       direct_client_send c (
         let module M = DonkeyProtoClient in
         M.QueryFileReq challenge.challenge_md4);
       challenge.challenge_solved <- solve_challenge challenge.challenge_md4;
-
+      
       query_files c sock; 
-
+      
       if client_type c <> NormalClient then
         if last_time () > c.client_next_view_files then begin
-            (*
+(*
             lprintf "****************************************";
             lprint_newline ();
             lprintf "       ASK VIEW FILES         ";
@@ -1819,22 +1709,22 @@ let read_first_message overnet challenge m sock =
               let module M = DonkeyProtoClient in
               let module C = M.ViewFiles in
               M.ViewFilesReq C.t);          
-            end;
-      client_must_update c;
-is_banned c sock;
+          end;
+        client_must_update c;
+      is_banned c sock;
       Some c
-      
+  
   | M.NewUserIDReq _ ->
       M.print m; lprint_newline ();
       None
-      
+  
   | _ -> 
       lprintf "BAD MESSAGE FROM CONNECTING CLIENT"; lprint_newline ();
       M.print m; lprint_newline ();
       close sock "bad connecting message";
       raise Not_found
-
-  
+      
+      
 let reconnect_client c =
   if can_open_connection () then begin
       match c.client_kind with
@@ -1842,7 +1732,7 @@ let reconnect_client c =
       | Known_location (ip, port) ->
           if client_state c <> BlackListedHost then
             if !!black_list && is_black_address ip port ||
-	       (!!reliable_sources && ip_reliability ip = Reliability_suspicious 0) then
+              (!!reliable_sources && ip_reliability ip = Reliability_suspicious 0) then
               set_client_state c BlackListedHost
             else
             try
@@ -1872,7 +1762,7 @@ let reconnect_client c =
                   (client_to_client challenge files c));
               
               c.client_sock <- Some sock;
-	      c.client_ip <- ip;
+              c.client_ip <- ip;
               c.client_connected <- true;
               let server_ip, server_port = 
                 try
@@ -1979,46 +1869,47 @@ let client_connection_handler overnet t event =
   printf_string "[REMOTE CONN]";
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
-
+      
       if !DonkeySourcesMisc.indirect_connections < !!max_indirect_connections(* can_open_connection () *) then
-      begin
-      accept_connection_bandwidth download_control upload_control;
-      (try
-          let c = ref None in
-          incr DonkeySourcesMisc.indirect_connections;
-          let sock = 
-            TcpBufferedSocket.create "donkey client connection" s 
-              (client_handler2 c) 
-(*client_msg_to_string*)
-          in
-          init_connection sock;
-          
+        begin
+          accept_connection_bandwidth download_control upload_control;
           (try
+              let c = ref None in
+              incr DonkeySourcesMisc.indirect_connections;
+              let sock = 
+                TcpBufferedSocket.create "donkey client connection" s 
+                  (client_handler2 c) 
+(*client_msg_to_string*)
+              in
+              init_connection sock;
               
-              let challenge = {
-                  challenge_md4 = Md4.null;
-                  challenge_solved = Md4.null;
-                  challenge_ok = false;
-                } in
-              set_reader sock 
-                (DonkeyProtoCom.client_handler2 c (read_first_message overnet challenge)
-                (client_to_client challenge []));
-            
-            with e -> lprintf "Exception %s in init_connection"
+              (try
+                  
+                  let challenge = {
+                      challenge_md4 = Md4.null;
+                      challenge_solved = Md4.null;
+                      challenge_ok = false;
+                    } in
+                  set_reader sock 
+                    (DonkeyProtoCom.client_handler2 c (read_first_message overnet challenge)
+                    (client_to_client challenge []));
+                
+                with e -> lprintf "Exception %s in init_connection"
+                      (Printexc2.to_string e);
+                    lprint_newline ());
+            with e ->
+                lprintf "Exception %s in client_connection_handler"
                   (Printexc2.to_string e);
-                lprint_newline ());
-        with e ->
-            lprintf "Exception %s in client_connection_handler"
-              (Printexc2.to_string e);
-            lprint_newline ();
-            Unix.close s)
+                lprint_newline ();
+                Unix.close s)
         end     
-
+      
       else begin
           lprintf "***** CONNECTION PREVENTED by limitations *****";
           lprint_newline ();
           Unix.close s
-     end;
+        end;
   | _ -> 
       ()      
-  
+      
+      

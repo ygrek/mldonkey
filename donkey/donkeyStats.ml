@@ -18,18 +18,18 @@
 *)
 
 open Printf2
-open DonkeyComplexOptions
 open Options
-open DonkeyGlobals
+open BasicSocket (* last_time *)
+open GuiTypes
 open CommonOptions 
 open CommonTypes
 open CommonGlobals
 open CommonNetwork
-open DonkeyTypes
-open GuiTypes
 open CommonMessages
-open BasicSocket (* last_time *)
 open CommonInteractive
+open DonkeyTypes
+open DonkeyGlobals
+open DonkeyComplexOptions
 
 
 let brand_to_int b =

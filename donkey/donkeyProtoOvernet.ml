@@ -20,6 +20,8 @@
 open Printf2
 open Md4
 
+  open AnyEndian
+
 open CommonOptions
 open Options
 open DonkeyOptions

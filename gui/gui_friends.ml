@@ -333,7 +333,6 @@ let colorGray  = `NAME "gray"
 let colorWhite =`WHITE
 let colorBlack = `BLACK
 
-
 class box_list (client_info_box : GPack.box) friend_tab =
   let vbox_list = GPack.vbox () in
   let label_locs = GMisc.label () in

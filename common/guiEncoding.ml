@@ -24,6 +24,7 @@ open CommonGlobals
 open CommonTypes
 open GuiTypes
 open GuiProto  
+open AnyEndian
 open LittleEndian
 open TcpBufferedSocket
 
@@ -733,11 +734,11 @@ let _ =
       let opcode = get_int16 s 0 in
       let v = decoder opcode s in
       if (decoder opcode s <> msg) then begin
-          LittleEndian.dump s;
+          AnyEndian.dump s;
           let buf = Buffer.create 1000 in
           encoder buf msg;
           let s2 = Buffer.contents buf in
-          LittleEndian.dump s2;
+          AnyEndian.dump s2;
           if s = s2 then
             (lprintf "s = s2"; lprint_newline (); false)
           else

@@ -33,7 +33,7 @@ open BasicSocket
 open TcpBufferedSocket
 
 open CommonGlobals
-  
+open CommonSwarming  
 open LimewireTypes
 open LimewireOptions
 open LimewireGlobals
@@ -43,36 +43,14 @@ open LimewireProtocol
 
 let http_ok = "HTTP 200 OK"
 let http11_ok = "HTTP/1.1 200 OK"
-  
-module Download = CommonDownloads.Make(struct 
-      
-      type c = client
-      type f = file
-      
-      let file file = as_file file.file_file
-      let client client = as_client client.client_client
-      let subdir_option = commit_in_subdir
-            
-      let client_disconnected d =
-        let c = d.download_client in
-        if !verbose_msg_clients then begin
-            lprintf "Disconnected from source\n"; 
-          end;
-        connection_failed c.client_connection_control;
-        set_client_disconnected c;
-        c.client_sock <- None;
-        c.client_file <- None
-      
-      let download_finished d = 
-        let file = d.download_file in
-        LimewireGlobals.remove_file file;
-        old_files =:= (file.file_name, file_size file) :: !!old_files;
-        List.iter (fun c ->
-            c.client_downloads <- List.remove_assoc file c.client_downloads
-        ) file.file_clients
-        
-    end)
 
+let download_finished file = 
+  file_completed (as_file file.file_file);
+  LimewireGlobals.remove_file file;
+  old_files =:= (file.file_name, file_size file) :: !!old_files;
+  List.iter (fun c ->
+      c.client_downloads <- remove_download file c.client_downloads
+  ) file.file_clients
   
 let disconnect_client c =
   match c.client_sock with
@@ -82,112 +60,231 @@ let disconnect_client c =
         if !verbose_msg_clients then begin
             lprintf "Disconnected from source\n"; 
           end;
+        c.client_requests <- [];
         connection_failed c.client_connection_control;
         set_client_disconnected c;
         close sock "closed";
         c.client_sock <- None
       with _ -> ()
-          
-let is_http_ok header = 
-  let pos = String.index header '\n' in
-  match String2.split (String.sub header 0 pos) ' ' with
-    http :: code :: ok :: _ -> 
-      let code = int_of_string code in
-      code >= 200 && code < 299 && 
-      String2.starts_with (String.lowercase http) "http"
-  | _ -> false
-  
-let client_parse_header c gconn sock header = 
-  if !verbose_msg_clients then begin
-      lprintf "CLIENT PARSE HEADER\n"; 
-    end;
-  try
-    match c.client_file with 
-      None -> close sock "no download !"; raise Exit
-    | Some d ->
-        connection_ok c.client_connection_control;
-        set_client_state c Connected_initiating;    
-        if !verbose_msg_clients then begin
-            lprintf "HEADER FROM CLIENT:\n";
-            LittleEndian.dump_ascii header; 
-          end;
-        if is_http_ok header then
-          begin
-            
-            if !verbose_msg_clients then begin
-                lprintf "GOOD HEADER FROM CONNECTED CLIENT\n";
-              end;
-            
-            set_rtimeout sock 120.;
-(*              lprintf "SPLIT HEADER...\n"; *)
-            let lines = Http_client.split_header header in
-(*              lprintf "REMOVE HEADLINE...\n"; *)
-            match lines with
-              [] -> raise Not_found        
-            | _ :: headers ->
-(*                  lprintf "CUT HEADERS...\n"; *)
-                let headers = Http_client.cut_headers headers in
-(*                  lprintf "START POS...\n"; *)
-                let start_pos = 
-                  try
-                    let range = List.assoc "content-range" headers in
-                    try
-                      let npos = (String.index range 'b')+6 in
-                      let dash_pos = try String.index range '-' with _ -> -10 in
-                      let slash_pos = try String.index range '/' with _ -> -20 in
-                      let star_pos = try String.index range '*' with _ -> -30 in
-                      if star_pos = slash_pos-1 then
-                        Int64.zero (* "bytes */X" *)
-                      else
-                      let x = Int64.of_string (
-                          String.sub range npos (dash_pos - npos) )
-                      in
-                      if slash_pos = star_pos - 1 then 
-                        x (* "bytes x-y/*" *)
-                      else
-                      let len = String.length range in
-                      let y = Int64.of_string (
-                          String.sub range (dash_pos+1) (slash_pos - dash_pos - 1))
-                      in
-                      let z = Int64.of_string (
-                          String.sub range (slash_pos+1) (len - slash_pos -1) )
-                      in
-                      if y = z then Int64.sub x Int64.one else x
-                    with 
-                    | e ->
-                        lprintf "Exception %s for range [%s]\n" 
-                          (Printexc2.to_string e) range;
-                        raise e
-                  with Not_found -> Int64.zero
-                in                  
-                if d.CommonDownloads.download_pos <> start_pos then  begin
-                    lprintf "Asked %s Bad range %s for %s\n"
-                      (Md4.to_string c.client_user.user_uid)
-                    (Int64.to_string start_pos)
-                    (Int64.to_string d.CommonDownloads.download_pos);
-                    raise Exit
-                  end;
-                set_client_state c (Connected 0);
-                gconn.gconn_handler <- Reader (fun h sock nread ->
-                    Download.download_reader d sock nread)
-          end else begin
-            if !verbose_msg_clients then begin
-                lprintf "BAD HEADER FROM CONNECTED CLIENT:\n";
-                LittleEndian.dump header;
-              end;        
-            disconnect_client c
-          end
-  with e ->
-      lprintf "Exception %s in client_parse_header\n" (Printexc2.to_string e);
-      LittleEndian.dump header;      
-      disconnect_client c;
-      raise e
+
+let (++) = Int64.add
+let (--) = Int64.sub
 
 let client_to_client s p sock =
   match p.pkt_payload with
   | _ -> ()
+      
 
-let friend_parse_header c gconn sock header =
+                
+let rec client_parse_header c gconn sock header = 
+  if !verbose_msg_clients then begin
+      lprintf "CLIENT PARSE HEADER\n"; 
+    end;
+  try
+    set_lifetime sock 3600.;
+    let d = 
+      match c.client_requests with 
+        [] -> failwith "No download request !!!"
+      | d :: tail ->
+          c.client_requests <- tail;
+          d
+    in
+    connection_ok c.client_connection_control;
+    set_client_state c Connected_initiating;    
+    if !verbose_msg_clients then begin
+        lprintf "HEADER FROM CLIENT:\n";
+        AnyEndian.dump_ascii header; 
+      end;
+    let file = d.download_file in
+    let size = file_size file in
+    
+    let endline_pos = String.index header '\n' in
+    let code = 
+      match String2.split (String.sub header 0 endline_pos
+        ) ' ' with
+      | http :: code :: ok :: _ -> 
+          let code = int_of_string code in
+          if not (String2.starts_with (String.lowercase http) "http") then
+            failwith "Not in http protocol";
+          code
+      | _ -> failwith "Not a HTTP header line"
+    in
+    if !verbose_msg_clients then begin
+        lprintf "GOOD HEADER FROM CONNECTED CLIENT\n";
+      end;
+    
+    set_rtimeout sock 120.;
+(*              lprintf "SPLIT HEADER...\n"; *)
+    let lines = Http_client.split_header header in
+(*              lprintf "REMOVE HEADLINE...\n"; *)
+    let headers = match lines with
+        [] -> raise Not_found        
+      | _ :: headers -> headers
+    in
+(*                  lprintf "CUT HEADERS...\n"; *)
+    let headers = Http_client.cut_headers headers in
+(*                  lprintf "START POS...\n"; *)
+    
+    begin
+      try
+        let urn = List.assoc "x-gnutella-content-urn" headers in
+
+(* Contribute: maybe we can find the bitprint associated with a SHA1 here,
+  and use it for corruption detection... *)
+        
+        
+        
+        let locations = 
+          List.assoc "x-gnutella-alternate-location" headers in
+        let locations = String2.split locations ',' in
+        
+        lprintf "Alternate locations for: %s\n" urn;
+        let urls = List.map (fun s ->
+              match String2.split_simplify s ' ' with
+                [] -> lprintf "Cannot parse : %s\n" s; ""
+              | url :: _ ->
+                  lprintf "  Location: %s\n" url; url
+          ) locations in
+        lprintf "\n";
+
+        let uids = extract_uids urn in
+        List.iter (fun uid ->
+            try
+              let file = Hashtbl.find files_by_uid uid in
+              List.iter (fun url ->
+                  try
+                    let url = Url.of_string url in
+                    let ip = Ip.of_string url.Url.server in
+                    let port = url.Url.port in
+                    let uri = url.Url.full_file in
+                    
+                    let c = new_client (Known_location (ip,port)) in
+                    add_download file c (FileByUrl uri)
+                    
+                  with _ -> ()
+              ) urls
+            with _ -> ()
+        ) uids
+
+      with _ -> ()
+    
+    end;
+
+(*                
+Shareaza adds:
+X-TigerTree-Path: /gnutella/tigertree/v2?urn:tree:tiger/:YRASTJJK6JPRHREV3JGIFLSHSQAYDODVTSJ4A3I
+X-Metadata-Path: /gnutella/metadata/v1?urn:tree:tiger/:7EOOAH7YUP7USYTMOFVIWWPKXJ6VD3ZE633C7AA
+*)
+    
+    if  code < 200 && code > 299 then
+      failwith "Bad HTTP code";
+    
+    
+    let start_pos, end_pos = 
+      try
+        let range = List.assoc "content-range" headers in
+        try
+          let npos = (String.index range 'b')+6 in
+          let dash_pos = try String.index range '-' with _ -> -10 in
+          let slash_pos = try String.index range '/' with _ -> -20 in
+          let star_pos = try String.index range '*' with _ -> -30 in
+          if star_pos = slash_pos-1 then
+            Int64.zero, size (* "bytes */X" *)
+          else
+          let x = Int64.of_string (
+              String.sub range npos (dash_pos - npos) )
+          in
+          let len = String.length range in
+          let y = Int64.of_string (
+              String.sub range (dash_pos+1) (slash_pos - dash_pos - 1))
+          in
+          if slash_pos = star_pos - 1 then 
+            x,y ++ Int64.one (* "bytes x-y/*" *)
+          else
+          let z = Int64.of_string (
+              String.sub range (slash_pos+1) (len - slash_pos -1) )
+          in
+          if y = z then x -- Int64.one, size else 
+            x,y ++ Int64.one
+        with 
+        | e ->
+            lprintf "Exception %s for range [%s]\n" 
+              (Printexc2.to_string e) range;
+            raise e
+      with Not_found -> 
+(* A bit dangerous, no ??? *)
+          lprintf "Could not find range header, assuming 0-\n";
+          Int64.zero, size
+    in 
+    (try
+        let len = List.assoc "content-length" headers in
+        let len = Int64.of_string len in
+        lprintf "Specified length: %Ld\n" len;
+        if len <> end_pos -- start_pos then
+          begin
+            lprintf "\n\nWARNING: bad computed range \n\n";
+          end
+      with _ -> ());
+    
+    lprintf "Receiving range: %Ld-%Ld (len = %Ld)\n"
+      start_pos end_pos (end_pos -- start_pos);
+    set_client_state c (Connected_downloading);
+    let counter_pos = ref start_pos in
+(* Send the next request !!! *)
+    for i = 0 to 6 do
+      if List.length d.download_ranges < 6 then
+        (try get_from_client sock c with _ -> ());
+    done;
+    gconn.gconn_handler <- Reader (fun gconn sock ->
+        let b = TcpBufferedSocket.buf sock in
+        let to_read = min (end_pos -- !counter_pos) 
+          (Int64.of_int b.len) in
+        let to_read_int = Int64.to_int to_read in
+        let old_downloaded = 
+          Int64Swarmer.downloaded file.file_swarmer in
+        List.iter Int64Swarmer.free_range d.download_ranges;
+        
+        Int64Swarmer.received file.file_swarmer
+          !counter_pos b.buf b.pos to_read_int;
+        List.iter Int64Swarmer.alloc_range d.download_ranges;
+        let new_downloaded = 
+          Int64Swarmer.downloaded file.file_swarmer in
+        
+        (match d.download_ranges with
+            [] -> lprintf "EMPTY Ranges !!!\n"
+          | r :: _ -> 
+              let (x,y) = Int64Swarmer.range_range r in
+              lprintf "Received %Ld [%Ld] (%Ld-%Ld) -> %Ld\n"
+                !counter_pos to_read
+                x y 
+                (new_downloaded -- old_downloaded)
+        );
+        
+        
+        if new_downloaded = file_size file then
+          download_finished file;
+        if new_downloaded <> old_downloaded then
+          add_file_downloaded file.file_file
+            (new_downloaded -- old_downloaded);
+        TcpBufferedSocket.buf_used sock to_read_int;
+        counter_pos := !counter_pos ++ to_read;
+        if !counter_pos = end_pos then begin
+            match d.download_ranges with
+              [] -> assert false
+            | r :: tail ->
+                Int64Swarmer.free_range r;
+                d.download_ranges <- tail;
+                gconn.gconn_handler <- HttpHeader
+                  (client_parse_header c);
+          end)
+    
+  with e ->
+      lprintf "Exception %s in client_parse_header\n" (Printexc2.to_string e);
+      AnyEndian.dump header;      
+      disconnect_client c;
+      raise e
+      
+and friend_parse_header c gconn sock header =
   try
     if String2.starts_with header gnutella_200_ok then begin
         set_rtimeout sock half_day;
@@ -202,7 +299,7 @@ let friend_parse_header c gconn sock header =
               String2.starts_with agent "BearShare"              
             then
               begin
-                (* add_peers headers; *)
+(* add_peers headers; *)
                 write_string sock "GNUTELLA/0.6 200 OK\r\n\r\n";
                 if !verbose_msg_clients then begin
                     lprintf "********* READY TO BROWSE FILES *********\n";
@@ -217,39 +314,91 @@ let friend_parse_header c gconn sock header =
       lprintf "Exception %s in friend_parse_header\n" 
         (Printexc2.to_string e); 
       disconnect_client c
+
+and get_from_client sock (c: client) =
+  match c.client_downloads with
+    [] -> 
+      lprintf "No other download to start\n";
+      raise Not_found
+  | d :: tail ->
+      if !verbose_msg_clients then begin
+          lprintf "FINDING ON CLIENT\n";
+        end;
+      let file = d.download_file in
+      if !verbose_msg_clients then begin
+          lprintf "FILE FOUND, ASKING\n";
+        end;
       
-let get_from_client sock (c: client) (file : file) =
-  if !verbose_msg_clients then begin
-      lprintf "FINDING ON CLIENT\n";
-    end;
-  let index = List.assoc file c.client_downloads in
-  if !verbose_msg_clients then begin
-      lprintf "FILE FOUND, ASKING\n";
-    end;
-  
-  let new_pos = file_downloaded file in
-  let buf = Buffer.create 100 in
-  (match index with
-      FileByUrl url -> Printf.bprintf buf "GET %s HTTP/1.0\r\n" url
-    | FileByIndex index -> 
-        Printf.bprintf buf "GET /get/%d/%s HTTP/1.0\r\n" index
-        (Url.encode file.file_name));
-  Printf.bprintf buf "User-Agent: %s\r\n" user_agent;
-  Printf.bprintf buf "Range: bytes=%Ld-\r\n" new_pos;
-  Printf.bprintf buf "\r\n";
-  write_string sock (Buffer.contents buf);
-  
-  let d = Download.new_download sock 
-      c
-      file
-      (mini
-        (Int64.to_int (Int64.sub (file_size file) (file_downloaded file)))
-      1000)
-  in
-  c.client_file <- Some d;
-  lprintf "Asking %s For Range %Ld\n" (Md4.to_string c.client_user.user_uid) new_pos; 
-  d
-  
+      if !verbose_swarming then begin
+          lprintf "Current download:\n  Current chunks: "; 
+          List.iter (fun (x,y) -> lprintf "%Ld-%Ld " x y) d.download_chunks;
+          lprintf "\n  Current ranges: ";
+          List.iter (fun r ->
+              let (x,y) = Int64Swarmer.range_range r 
+              in
+              lprintf "%Ld-%Ld " x y) d.download_ranges;
+          lprintf "\n  Current blocks: ";
+          List.iter (fun b -> Int64Swarmer.print_block b) d.download_blocks;
+          lprintf "\n\nFinding Range: \n";
+        end;
+      let range = 
+        try
+          let rec iter () =
+            match d.download_block with
+              None -> 
+                if !verbose_swarming then
+                  lprintf "No block\n";
+                let b = Int64Swarmer.get_block d.download_blocks in
+                if !verbose_swarming then begin
+                    lprintf "Block Found: "; Int64Swarmer.print_block b;
+                  end;
+                d.download_block <- Some b;
+                iter ()
+            | Some b ->
+                if !verbose_swarming then begin
+                    lprintf "Current Block: "; Int64Swarmer.print_block b;
+                  end;
+                try
+                  let r = Int64Swarmer.find_range b 
+                      d.download_chunks d.download_ranges 
+                      (Int64.of_int (256 * 1024)) in
+                  d.download_ranges <- d.download_ranges @ [r];
+                  Int64Swarmer.alloc_range r;
+                  let x,y = Int64Swarmer.range_range r in
+                  Printf.sprintf "%Ld-%Ld" x (y -- Int64.one)
+                with Not_found ->
+                    if !verbose_swarming then 
+                      lprintf "Could not find range in current block\n";
+                    d.download_blocks <- List2.removeq b d.download_blocks;
+                    d.download_block <- None;
+                    iter ()
+          in
+          iter ()
+        with Not_found -> 
+            lprintf "Unable to get a block !!";
+            raise Not_found
+      in
+      let buf = Buffer.create 100 in
+      (match d.download_uri with
+          FileByUrl url -> Printf.bprintf buf "GET %s HTTP/1.1\r\n" url
+        | FileByIndex (index, name) -> 
+            Printf.bprintf buf "GET /get/%d/%s HTTP/1.1\r\n" index
+              name);
+      (match c.client_host with
+          None -> ()
+        | Some (ip, port) ->
+            Printf.bprintf buf "Host: %s:%d\r\n" 
+              (Ip.to_string ip) port);
+      Printf.bprintf buf "User-Agent: %s\r\n" user_agent;
+      Printf.bprintf buf "Range: bytes=%s\r\n" range;
+      Printf.bprintf buf "\r\n";
+      let s = Buffer.contents buf in
+      lprintf "SENDING REQUEST: %s\n" (String.escaped s); 
+      write_string sock s;
+      c.client_requests <- c.client_requests @ [d];
+      lprintf "Asking %s For Range %s\n" (Md4.to_string c.client_user.user_uid) 
+      range
+      
 let connect_client c =
   match c.client_sock with
   | Some sock -> ()
@@ -275,12 +424,14 @@ let connect_client c =
                   | _ -> ()
               )
             in
+            TcpBufferedSocket.set_read_controler sock download_control;
+            TcpBufferedSocket.set_write_controler sock upload_control;
+            
+            c.client_host <- Some (ip, port);
             match c.client_downloads with
               [] -> 
 (* Here, we should probably browse the client or reply to
 an upload request *)
-                TcpBufferedSocket.set_read_controler sock download_control;
-                TcpBufferedSocket.set_write_controler sock upload_control;
                 
                 set_client_state c Connecting;
                 c.client_sock <- Some sock;
@@ -306,11 +457,12 @@ an upload request *)
                 write_string sock s;
             
             
-            | (file, _) :: _ ->
+            | d :: _ ->
                 if !verbose_msg_clients then begin
                     lprintf "READY TO DOWNLOAD FILE\n";
                   end;
-                let d = get_from_client sock c file in
+                
+                get_from_client sock c;
                 set_gnutella_sock sock !verbose_msg_clients
                   (HttpHeader (client_parse_header c))
       
@@ -344,6 +496,8 @@ let push_handler cc gconn sock header =
       lprintf "PUSH HEADER: [%s]\n" (String.escaped header);
     end;
   try
+    let (ip, port) = TcpBufferedSocket.host sock in
+
     if String2.starts_with header "GIV" then begin
         if !verbose_msg_clients then begin    
             lprintf "PARSING GIV HEADER\n"; 
@@ -355,7 +509,15 @@ let push_handler cc gconn sock header =
         if !verbose_msg_clients then begin
             lprintf "PARSED\n";
           end;
-        let c = new_client uid (Indirect_location ("", uid)) in
+        let c = try
+            Hashtbl.find clients_by_uid (Indirect_location ("", uid)) 
+          with _ ->
+              try
+                Hashtbl.find clients_by_uid (Known_location (ip,port))
+              with _ ->
+                  new_client  (Indirect_location ("", uid)) 
+        in
+        c.client_host <- Some (ip, port);
         match c.client_sock with
           Some _ -> 
             if !verbose_msg_clients then begin
@@ -374,11 +536,13 @@ let push_handler cc gconn sock header =
               if !verbose_msg_clients then begin
                   lprintf "FINDING FILE %d\n" index; 
                 end;
-              let file = List2.assoc_inv (FileByIndex index) c.client_downloads in
+              let d = find_download_by_index index c.client_downloads in
               if !verbose_msg_clients then begin
                   lprintf "FILE FOUND\n";
                 end;
-              let d = get_from_client sock c file in
+              
+              c.client_downloads <- d :: (List2.removeq d c.client_downloads);
+              get_from_client sock c;
               gconn.gconn_handler <- HttpHeader (client_parse_header c)
             with e ->
                 lprintf "Exception %s during client connection\n"
@@ -418,11 +582,11 @@ BUG:
               x, None, _ -> x, sh.shared_size
             | x, Some y, Some z ->
                 if y = z then (* some vendor bug *)
-                  Int64.sub x Int64.one, y
+                  x -- Int64.one, y
                 else
-                  x, Int64.add y Int64.one
+                  x, y ++ Int64.one
             | x, Some y, None ->
-                x, Int64.add y Int64.one
+                x, y ++ Int64.one
           with _ -> no_range
         in
         let uc = {
@@ -430,7 +594,7 @@ BUG:
             uc_file = sh;
 (* BUG: parse the range header *)
             uc_chunk_pos = chunk_pos;
-            uc_chunk_len = Int64.sub chunk_end chunk_pos;
+            uc_chunk_len = chunk_end -- chunk_pos;
             uc_chunk_end = chunk_end;
           } in
         let header_sent = ref false in
@@ -451,14 +615,14 @@ BUG:
               if (chunk_pos, chunk_end) <> no_range then begin
                   Printf.bprintf buf "Accept-Ranges: bytes\r\n";
                   Printf.bprintf buf "Content-range: bytes=%Ld-%Ld/%Ld\r\n"
-                    chunk_pos (Int64.sub uc.uc_chunk_end Int64.one)
+                    chunk_pos (uc.uc_chunk_end -- Int64.one)
                   sh.shared_size;
                 end;
               Buffer.add_string buf "\r\n";
               let s = Buffer.contents buf in
               TcpBufferedSocket.write_string sock s;
               lprintf "Sending Header:\n";
-              LittleEndian.dump s;
+              AnyEndian.dump s;
               lprint_newline ();
               header_sent:=true;
             end;
@@ -468,7 +632,7 @@ BUG:
           let pos = uc.uc_chunk_pos in
           if pos < uc.uc_chunk_end && can > 0 then
             let rlen = 
-              let rem = Int64.sub slen  pos in
+              let rem = slen --  pos in
               if rem > Int64.of_int can then can else Int64.to_int rem
             in
             let upload_buffer = String.create rlen in
@@ -477,10 +641,10 @@ BUG:
             
             let impl = sh.shared_impl in
             impl.impl_shared_uploaded <- 
-              Int64.add impl.impl_shared_uploaded (Int64.of_int rlen);
+              impl.impl_shared_uploaded ++ (Int64.of_int rlen);
             shared_must_update_downloaded (as_shared impl);
 
-            uc.uc_chunk_pos <- Int64.add uc.uc_chunk_pos (Int64.of_int rlen);
+            uc.uc_chunk_pos <- uc.uc_chunk_pos ++ (Int64.of_int rlen);
             if remaining_to_write sock = 0 then refill sock
         in
         gconn.gconn_refill <- refill :: gconn.gconn_refill;

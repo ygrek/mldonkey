@@ -77,6 +77,12 @@ let buf_int buf i =
   buf_int8 buf (i lsr 8);
   buf_int8 buf i
 
+let str_int s pos i =
+  s.[pos+3] <- char_of_int (i land 255);
+  s.[pos+2] <- char_of_int ((i lsr 8) land 255);
+  s.[pos+1] <- char_of_int ((i lsr 16) land 255);
+  s.[pos] <- char_of_int ((i lsr 24) land 255)
+
       
 let get_int32_8 s pos =
   check_string s pos;

@@ -31,7 +31,6 @@ val next_file : DonkeyTypes.client -> unit
   
 val remove_file : Md4.t -> unit
 
-val download_engine : unit -> unit
 val check_files_md4s : unit -> unit
 val clean_client_zones : DonkeyTypes.client -> unit
   

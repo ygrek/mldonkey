@@ -147,3 +147,8 @@ let nth map n =
     (_, None) -> raise Not_found
   | (_, Some node) -> node
       
+let to_list map =
+  let list = ref [] in
+  iter (fun _ v -> list := v :: !list) map;
+  !list
+  

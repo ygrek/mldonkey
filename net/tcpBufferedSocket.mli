@@ -83,7 +83,8 @@ val change_rate : bandwidth_controler -> int -> unit
   
 val my_ip : t -> Ip.t
 val peer_ip : t -> Ip.t
-
+val host : t -> Ip.t * int
+  
 val stats :  Buffer.t -> t -> unit
 val buf_size : t -> int * int
 val can_fill : t -> bool
@@ -129,4 +130,7 @@ val mtu_packet_size : int ref
 val minimal_packet_size : int ref
 
 val remove_ip_packet : bandwidth_controler -> unit
+
+val get_rtimeout : t -> float * float
+  
   

@@ -317,7 +317,7 @@ let rec exec_tasks =
   | t :: tail ->
       (
         let time = !current_time in
-        if not t.closed && t.next_rtimeout < time then 
+        if not t.closed && t.next_rtimeout < time then           
           (try t.event_handler t RTIMEOUT with _ -> ());
         if not t.closed && t.next_wtimeout < time then 
           (try t.event_handler t WTIMEOUT with _ -> ());
@@ -475,4 +475,7 @@ let normalize_time time =
 
 let use_threads = ref true
 external has_threads : unit -> bool = "ml_has_pthread"
+  
+let get_rtimeout t = t.rtimeout, t.next_rtimeout -. !current_time
+  
   

@@ -27,7 +27,8 @@ Little Endian: weakest byte first
 open Md4
 open Autoconf
 open Int32ops
-
+open AnyEndian
+  
   (*
 let check_string s pos =
   if check_bounds && pos >= String.length s then
@@ -39,16 +40,6 @@ let check_array s pos =
       *)
 
 (******** Operations on 31 bits integers ********)
-  
-external get_byte: string -> int -> int = "%string_safe_get"
-external set_byte: string -> int -> int -> unit = "%string_safe_set"
-
-let buf_int8 buf i =
-  Buffer.add_char buf (char_of_int (i land 255))
-
-let get_int8 s pos = 
-  check_string s pos;
-  int_of_char s.[pos]
   
   
 let buf_int16 buf i =
@@ -104,14 +95,6 @@ let get_int s pos =
 
 (******** Operations on 32 bits integers ********)
   
-let buf_int32_8 buf i =
-  Buffer.add_char buf (char_of_int (Int32.to_int (
-        and32 i const_int32_255)))
-      
-let get_int32_8 s pos =
-  check_string s pos;
-  Int32.of_int (int_of_char s.[pos])
-  
 let buf_int32 oc i =
   buf_int32_8 oc i;
   buf_int32_8 oc (right32 i  8);
@@ -132,14 +115,6 @@ let get_int32 s pos =
 
   
 (******** Operations on 64 bits integers ********)
-   
-let buf_int64_8 buf i =
-  Buffer.add_char buf (char_of_int (Int64.to_int (
-        Int64.logand i const_int64_255)))
-  
-let get_int64_8 s pos =
-  check_string s pos;
-  Int64.of_int (int_of_char s.[pos])
 
 let buf_int64 oc i =
   buf_int64_8 oc i;
@@ -186,12 +161,7 @@ let buf_ip buf ip =
   buf_int8 buf ip2;
   buf_int8 buf ip3
 
-  
-let rec get_list_rec get_item s pos len left =
-  if len = 0 then List.rev left, pos else
-  let (item,pos) = get_item s pos in
-  get_list_rec get_item s pos (len-1) (item :: left)
-  
+    
 let get_list32 get_item s pos =
   let len = get_int s pos in
   get_list_rec get_item s (pos+4) len []
@@ -214,81 +184,11 @@ let buf_list16 buf_item b list =
   buf_int16 b len;
   List.iter (buf_item b) list
 
-let get_list8 get_item s pos =
-  let len = get_int8 s pos in
-  get_list_rec get_item s (pos+1) len []
-
-let buf_list8 buf_item b list =
-  let len = List.length list in
-  buf_int8 b len;
-  List.iter (buf_item b) list
-
 (* md4 *)
-  
-let buf_md4 buf s = Buffer.add_string buf (Md4.direct_to_string s)
-
-let get_md4 s pos =
-  try Md4.direct_of_string (String.sub s pos 16)  
-  with e ->
-    lprintf "exception in get_md4 %d s=%s" pos (String.escaped s); 
-    lprint_newline ();
-    raise e
-
-      
-let dump_ascii s =
-  let len = String.length s in
-  lprintf "ascii: [";
-  for i = 0 to len - 1 do
-    let c = s.[i] in
-    let n = int_of_char c in
-    if n > 31 && n < 127 then
-      lprintf " %c" c
-    else
-      lprintf "(%d)" n
-  done;
-  lprintf "]\n"
-      
-let dump s =
-  let len = String.length s in
-  lprintf "ascii: [";
-  for i = 0 to len - 1 do
-    let c = s.[i] in
-    let n = int_of_char c in
-    if n > 31 && n < 127 then
-      lprintf " %c" c
-    else
-      lprintf "(%d)" n
-  done;
-  lprintf "]\n";
-  lprintf "dec: [";
-  for i = 0 to len - 1 do
-    let c = s.[i] in
-    let n = int_of_char c in
-    lprintf "(%d)" n            
-  done;
-  lprintf "]\n"
-
-let dump_sub s pos len =
-  lprintf "dec: [";
-  for i = 0 to len - 1 do
-    let c = s.[pos+i] in
-    let n = int_of_char c in
-    lprintf "(%d)" n            
-  done;
-  lprintf "]\n";
-  lprint_newline ()
 
 let buf_string16 buf s =
   buf_int16 buf (String.length s);
   Buffer.add_string buf s
-
-let buf_string8 buf s =
-  buf_int8 buf (String.length s);
-  Buffer.add_string buf s
-
-let get_string8 s pos =
-  let len = get_int8 s pos in
-  String.sub s (pos+1) len, pos+1+len
 
 let get_string16 s pos =
   let len = get_int16 s pos in

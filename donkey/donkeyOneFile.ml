@@ -98,9 +98,7 @@ let client_file c =
     [] -> failwith "No file for this client"
   | (file, _) :: _ -> file
 
-let download_fifo = Fifo.create ()
 
-  
 let clean_client_zones c =
   match c.client_block with None -> ()
   | Some b ->
@@ -162,11 +160,9 @@ let query_zones c b =
       in
       let msg = M.QueryBlocReq msg in
       set_read_power sock (c.client_power + maxi 0 (file_priority file));
-      if !!max_hard_download_rate <> 0 then begin
-(*          lprintf "CLIENT: put in download fifo\n";  *)
-        Fifo.put download_fifo (sock, msg, len)
-        end else
-        direct_client_send c msg
+      CommonUploads.queue_download_request (fun _ ->
+          direct_client_send c msg) len
+      
         
 
         
@@ -963,25 +959,6 @@ let update_zone file begin_pos end_pos z =
     end        
 *)
       
-let download_engine () =
-  if not (Fifo.empty download_fifo) then begin
-      let credit = !!max_hard_download_rate in
-      let credit = if credit = 0 then 10000 else credit in
-      download_credit := !download_credit + credit;
-      let rec iter () =
-        if !download_credit > 0 && not (Fifo.empty download_fifo) then  
-          begin
-            (try
-                let (sock, msg, len) = Fifo.take download_fifo in
-                download_credit := !download_credit - (len / 1000 + 1);
-                direct_client_sock_send sock msg
-              with _ -> ());
-            iter ()
-          end
-      in
-      iter ()
-    end
-
 (*  
 let best_name file =
   match file.file_filenames with

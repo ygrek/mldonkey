@@ -18,6 +18,6 @@
 *)
 
 val g2_connected_servers : LimewireTypes.server list ref
-val g2_handler : LimewireProtocol.gconn -> TcpBufferedSocket.t -> int -> unit
+val g2_handler : LimewireProtocol.gconn -> TcpBufferedSocket.t -> unit
 val g2_recover_files_from_server : TcpBufferedSocket.t -> unit
   

@@ -1,28 +1,32 @@
 type 'a client_impl = {
-  mutable impl_client_type : CommonTypes.client_type;
-  mutable impl_client_state : CommonTypes.host_state;
-  mutable impl_client_update : int;
-  mutable impl_client_num : int;
-  mutable impl_client_val : 'a;
-  mutable impl_client_ops : 'a client_ops;
-} 
+    mutable impl_client_type : CommonTypes.client_type;
+    mutable impl_client_state : CommonTypes.host_state;
+    mutable impl_client_update : int;
+    mutable impl_client_has_slot : bool;
+    mutable impl_client_num : int;
+    mutable impl_client_val : 'a;
+    mutable impl_client_ops : 'a client_ops;
+  
+  } 
 and 'a client_ops = {
-  mutable op_client_network : CommonTypes.network;
-  mutable op_client_connect : 'a -> unit;
-  mutable op_client_to_option : 'a -> (string * Options.option_value) list;
-  mutable op_client_info : 'a -> GuiTypes.client_info;
-  mutable op_client_say : 'a -> string -> unit;
-  mutable op_client_browse : 'a -> bool -> unit;
-  mutable op_client_files : 'a -> (string * CommonTypes.result) list;
-  mutable op_client_clear_files : 'a -> unit;
-  mutable op_client_bprint : 'a -> Buffer.t -> unit;
-  mutable op_client_bprint_html : 'a -> Buffer.t -> CommonTypes.file -> unit;
-  mutable op_client_dprint :
+    mutable op_client_network : CommonTypes.network;
+    mutable op_client_connect : 'a -> unit;
+    mutable op_client_to_option : 'a -> (string * Options.option_value) list;
+    mutable op_client_info : 'a -> GuiTypes.client_info;
+    mutable op_client_say : 'a -> string -> unit;
+    mutable op_client_browse : 'a -> bool -> unit;
+    mutable op_client_files : 'a -> (string * CommonTypes.result) list;
+    mutable op_client_clear_files : 'a -> unit;
+    mutable op_client_bprint : 'a -> Buffer.t -> unit;
+    mutable op_client_bprint_html : 'a -> Buffer.t -> CommonTypes.file -> unit;
+    mutable op_client_dprint :
     'a -> CommonTypes.ui_conn -> CommonTypes.file -> unit;
-  mutable op_client_dprint_html :
+    mutable op_client_dprint_html :
     'a -> CommonTypes.ui_conn -> CommonTypes.file -> string -> bool;
-  mutable op_client_debug : 'a -> bool -> unit;
-} 
+    mutable op_client_debug : 'a -> bool -> unit;
+    mutable op_client_can_upload : 'a -> int -> unit;
+    mutable op_client_enter_upload_queue : 'a -> unit;
+  } 
 val client_print_html : CommonTypes.client -> CommonTypes.ui_conn -> unit
 val client_print : CommonTypes.client -> CommonTypes.ui_conn -> unit
 val client_must_update : CommonTypes.client -> unit
@@ -63,3 +67,10 @@ val client_new_file :
 val client_find : int -> CommonTypes.client
 val clients_get_all : unit -> int list
 val check_client_implementations : unit -> unit
+val client_can_upload : CommonTypes.client -> int -> unit
+val client_enter_upload_queue : CommonTypes.client -> unit
+val client_has_a_slot : CommonTypes.client -> bool
+val set_client_has_a_slot : CommonTypes.client -> bool -> unit
+  
+val uploaders : CommonTypes.client Intmap.t ref
+  

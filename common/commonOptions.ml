@@ -160,7 +160,8 @@ let max_hard_download_rate = define_option downloads_ini ["max_hard_download_rat
   "The maximal download rate you can tolerate on your link in kBytes/s (0 = no limit)
   The limit will apply on all your connections (clients and servers) and both
 control and data messages." int_option 0
-  
+
+
   (*
 let password = define_option downloads_ini ["password"] 
   "The password to access your client from the GUI (setting it disables
@@ -181,6 +182,11 @@ let enable_overnet = define_option downloads_ini
     ["enable_overnet"]
   "Set to true if you also want mldonkey to run as an overnet client"
     bool_option true
+
+let enable_bittorrent = define_option downloads_ini
+    ["enable_bittorrent"]
+  "Set to true if you also want mldonkey to run as an Bittorrent client"
+    bool_option false
 
 let enable_donkey = define_option downloads_ini
     ["enable_donkey"]
@@ -893,3 +899,15 @@ let log_file = define_option downloads_ini ["log_file"]
     also enable logging in a file after startup using the 'log_file' command."
   string_option ""
   
+
+let max_upload_slots = define_option downloads_ini ["max_upload_slots"]
+    "How many slots can be used for upload"
+    int_option 5
+  
+let _ =  
+  option_hook max_upload_slots (fun _ ->
+      if !!max_upload_slots < 3 then
+        max_upload_slots =:= 3)
+
+let dynamic_slots = define_option downloads_ini ["dynamic_slots"] 
+  "Set this to true if you want to have dynamic upload slot allocation (experimental)" bool_option false

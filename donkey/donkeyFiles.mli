@@ -23,9 +23,6 @@ val search_found :
 val force_check_locations : unit -> unit
 val search_handler :
   CommonTypes.search ->  DonkeyProtoServer.QueryReply.t -> unit
-val reset_upload_timer : unit -> unit
-val upload_timer : unit -> unit
-val upload_credit_timer : unit -> unit
 val udp_client_handler: DonkeyProtoUdp.t -> UdpSocket.udp_packet -> unit 
 val make_xs : CommonTypes.search -> unit
   

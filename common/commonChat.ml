@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 (** Chat functions. *)
 
 let version = Chat_proto.version
@@ -33,8 +34,8 @@ let send_paquet_to_mlchat (p : C.packet) =
     let host = !!O.chat_app_host in
     try Unix.inet_addr_of_string host
     with _ ->
-      let h = Unix.gethostbyname host in
-      h.Unix.h_addr_list.(0)
+        let h = Unix.gethostbyname host in
+        h.Unix.h_addr_list.(0)
   in
   let sockaddr = Unix.ADDR_INET (inet_addr, !!O.chat_app_port) in
   try
@@ -46,13 +47,12 @@ let send_paquet_to_mlchat (p : C.packet) =
   with
   | Unix.Unix_error (e,s1,s2) ->
       let s = (Unix.error_message e)^" : "^s1^" "^s2 in
-      prerr_endline s ;
-      prerr_endline (Printf.sprintf "chat_app_host=%s chat_app_port=%d"
-		       !!O.chat_app_host !!O.chat_app_port)
+      lprintf "%s\nchat_app_host=%s chat_app_port=%d\n" s
+        !!O.chat_app_host !!O.chat_app_port
   | e ->
-      prerr_endline (Printexc2.to_string e);
-      prerr_endline (Printf.sprintf "chat_app_host=%s chat_app_port=%d"
-		       !!O.chat_app_host !!O.chat_app_port)
+      lprintf "%s\nchat_app_host=%s chat_app_port=%d\n"
+        (Printexc2.to_string e)
+      !!O.chat_app_host !!O.chat_app_port
 
 
 let send_chat_proto name ad_opt m =

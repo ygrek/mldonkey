@@ -145,7 +145,9 @@ let _ =
         C.result_size = r.result_size;
         C.result_format = result_format_of_name r.result_name;
         C.result_type = result_media_of_name r.result_name;
-        C.result_tags = [];
+        C.result_tags = List.map (fun uid ->
+            string_tag "urn" (string_of_uid uid)
+        ) r.result_uids;
         C.result_comment = "";
         C.result_done = false;
       }   
@@ -167,12 +169,13 @@ let _ =
           let ip = Ip.of_string ip in
           let port = int_of_string port in
           let md4 = Md4.of_string uid in
-          let c = new_client md4 (Known_location (ip, port)) in
+          let c = new_client (Known_location (ip, port)) in
+          c.client_user.user_uid <- md4;
           friend_add (as_client c.client_client);
           true
       | "lw://" :: "friend" :: uid :: _ ->
           let md4 = Md4.of_string uid in
-          let c = new_client md4 (Indirect_location ("", md4)) in
+          let c = new_client (Indirect_location ("", md4)) in
           friend_add (as_client c.client_client);
           true
           
@@ -186,7 +189,7 @@ let _ =
                     uids := (extract_uids arg) @ !uids
                   else 
                   if String2.starts_with value "dn" then
-                    name := Url.decode value
+                    name := Url.decode arg
               ) url.Url.args;
               if !uids <> [] then begin
 (* Start a download for this file *)
@@ -221,6 +224,11 @@ let _ =
         P.client_num = (client_num (as_client c.client_client));
         P.client_rating = 0;
         P.client_chat_port = 0 ;
+        P.client_connect_time = BasicSocket.last_time ();
+        P.client_software = "";
+        P.client_downloaded = zero;
+        P.client_uploaded = zero;
+        P.client_upload = None;
       }
   );
   client_ops.op_client_browse <- (fun c immediate ->

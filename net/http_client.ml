@@ -222,6 +222,7 @@ let get_page r content_handler f =
           (Ip.to_inet_addr ip)
           port (fun _ _ -> ())
         in
+        lprintf "Request: %s\n" (String.escaped request);
         TcpBufferedSocket.write_string sock request;
         TcpBufferedSocket.set_reader sock (http_reply_handler 
             (default_headers_handler level))
@@ -296,25 +297,25 @@ headers;
 
   
 let wget r f = 
-    
+  
   let file_buf = Buffer.create 1000 in
   let file_size = ref 0 in
-
+  
   get_page r
     (fun maxlen headers sock nread ->
-        let buf = TcpBufferedSocket.buf sock in
-        
-        if nread > 0 then begin
-            let left = 
-              if maxlen >= 0 then
-                mini (maxlen - !file_size) nread
-              else nread
+      let buf = TcpBufferedSocket.buf sock in
+      
+      if nread > 0 then begin
+          let left = 
+            if maxlen >= 0 then
+              mini (maxlen - !file_size) nread
+            else nread
           in
           Buffer.add_string file_buf (String.sub buf.buf buf.pos left);
-            buf_used sock left;
-            file_size := !file_size + left;
-            if nread > left then
-              TcpBufferedSocket.close sock "end read"
+          buf_used sock left;
+          file_size := !file_size + left;
+          if nread > left then
+            TcpBufferedSocket.close sock "end read"
         end)
   (fun _ ->  
       let s = Buffer.contents file_buf in

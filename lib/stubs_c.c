@@ -20,13 +20,17 @@
 #include "../config/config.h"
 #include "../lib/os_stubs.h"
 
+#include <string.h> 
+#include <ctype.h>
+
 #define lseek XXXXXXXXX
 #define read XXXXXXXXX
 #define ftruncate XXXXXXXXX
 
 #define UNIX_BUFFER_SIZE 16384
 
-
+extern void enter_blocking_section(); 
+extern void leave_blocking_section();
 
 
 /*******************************************************************
@@ -669,7 +673,6 @@ value ml_setlcnumeric(value no)
 
 
 
-#include <string.h>
 #include <caml/mlvalues.h>
 #include <caml/alloc.h>
 #include <caml/memory.h>
@@ -697,7 +700,7 @@ static int entry_h_length;
 
 static void save_one_addr(char volatile *dest, char const *a)
 {
-  memmove (dest, a, entry_h_length);
+  memmove ((char*)dest, (char*) a, entry_h_length);
 }
 
 static void save_host_entry(struct hostent *entry)
@@ -761,7 +764,7 @@ extern value alloc_inet_addr(uint32 a);
 static value alloc_one_addr(char volatile *a)
 {
   struct in_addr addr;
-  memmove (&addr, a, entry_h_length);
+  memmove (&addr, (char*)a, entry_h_length);
   return alloc_inet_addr(addr.s_addr);
 }
 
@@ -866,7 +869,7 @@ static void * hasher_thread(void * arg)
     pthread_cond_timedwait(&cond, &mutex, &timeout);
     
     if(!ip_job_done){
-      job_error = ml_gethostbyname(job_hostname);
+      job_error = ml_gethostbyname((char*) job_hostname);
 
       ip_job_done = 1;
 /*      printf("job finished %d\n", job_error); */
@@ -878,7 +881,7 @@ static void * hasher_thread(void * arg)
 
 value ml_ip_job_start(value job_v)
 {
-  strcpy(job_hostname, String_val(Field(job_v,0)));
+  strcpy( (char*) job_hostname, String_val(Field(job_v,0)));
 
   if(!thread_started){
     int retcode;

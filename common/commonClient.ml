@@ -27,6 +27,7 @@ type 'a client_impl = {
     mutable impl_client_type : client_type;
     mutable impl_client_state : host_state;
     mutable impl_client_update : int;
+    mutable impl_client_has_slot : bool;
     mutable impl_client_num : int;
     mutable impl_client_val : 'a;
     mutable impl_client_ops : 'a client_ops;
@@ -69,6 +70,10 @@ decide whether to connect immediatly or not. *)
     CommonTypes.file -> string -> bool);
     
     mutable op_client_debug : ('a -> bool -> unit);
+    
+    mutable op_client_can_upload : ('a -> int -> unit);
+    
+    mutable op_client_enter_upload_queue : ('a -> unit);
   }
   
 let client_counter = CommonUser.user_counter
@@ -90,6 +95,7 @@ let dummy_client_impl = {
     impl_client_type = NormalClient;
     impl_client_state = NewHost;
     impl_client_update = 1;
+    impl_client_has_slot = false;
     impl_client_num = 0;
     impl_client_val = 0;
     impl_client_ops = Obj.magic None;
@@ -126,6 +132,10 @@ let client_say (client : client) s =
   let client = as_client_impl client in
   client.impl_client_ops.op_client_say client.impl_client_val s
 
+let client_can_upload (client : client) s =
+  let client = as_client_impl client in
+  client.impl_client_ops.op_client_can_upload client.impl_client_val s
+
 let client_debug (client : client) s =
   let client = as_client_impl client in
   client.impl_client_ops.op_client_debug client.impl_client_val s
@@ -161,6 +171,10 @@ let client_clear_files client=
 let client_browse client immediate =
   let client = as_client_impl client in
   client.impl_client_ops.op_client_browse client.impl_client_val immediate
+
+let client_enter_upload_queue client =
+  let client = as_client_impl client in
+  client.impl_client_ops.op_client_enter_upload_queue client.impl_client_val 
   
 let ni n m = 
   let s = Printf.sprintf "Client.%s not implemented by %s" 
@@ -188,6 +202,8 @@ let new_client_ops network =
       op_client_bprint_html = (fun _ _ _ -> ni_ok network "client_bprint_html");
       op_client_dprint = (fun _ _ _ -> ni_ok network "client_dprint");
       op_client_dprint_html = (fun _ _ _ _ -> fni network "client_dprint_html");
+      op_client_can_upload = (fun _ _ -> ni_ok network "client_can_upload");
+      op_client_enter_upload_queue = (fun _ -> ni_ok network "client_enter_upload_queue");
     } in
   let cc = (Obj.magic c : int client_ops) in
   clients_ops := (cc, { cc with op_client_network = c.op_client_network })
@@ -245,8 +261,27 @@ let set_client_state c state =
       client_must_update_state c
     end
 
+let uploaders = ref Intmap.empty
+
+let client_has_a_slot c = 
+  (as_client_impl c).impl_client_has_slot
+  
+let set_client_has_a_slot c b = 
+  let impl = as_client_impl c in
+  if not b && impl.impl_client_has_slot then begin
+      impl.impl_client_has_slot <- false;
+      uploaders := Intmap.remove (client_num c) !uploaders
+    end
+  else
+  if b && not impl.impl_client_has_slot then  begin
+      uploaders := Intmap.add (client_num c) c !uploaders;
+      impl.impl_client_has_slot <- b
+    end
+    
 let set_client_disconnected c =
   let impl = as_client_impl c in
+  set_client_has_a_slot c false;
+  
   match impl.impl_client_state with
     Connected n -> set_client_state c (NotConnected n)
   | _ ->  set_client_state c (NotConnected (-1))

@@ -139,7 +139,6 @@ let servers_list = ref ([] : server list)
   
 (* let remaining_time_for_clients = ref (60 * 15) *)
 let location_counter = ref 0
-let download_credit = ref 0 
 
 let current_files = ref ([] : file list)
   
@@ -148,8 +147,6 @@ let sleeping = ref false
 let xs_last_search = ref (-1)
 let xs_servers_list = ref ([] : server list)
   
-let has_upload = ref 0
-let upload_credit = ref 0
 let zone_size = Int64.of_int (180 * 1024) 
 let block_size = Int64.of_int 9728000
   
@@ -165,9 +162,6 @@ let (old_requests : (int * int, request_record) Hashtbl.t) =
   Hashtbl.create 13013
 
   
-let (pending_slots_map : client Intmap.t ref) = ref Intmap.empty
-(* let (pending_slots_fifo : int Fifo.t)  = Fifo.create () *)
-
   
 let max_file_groups = 1000
 let (file_groups_fifo : Md4.t Fifo.t) = Fifo.create ()
@@ -222,7 +216,6 @@ let find_file md4 = Hashtbl.find files_by_md4 md4
 
     
 let servers_ini_changed = ref true
-let upload_clients = (Fifo.create () : client Fifo.t)
 
 let shared_files_info = (Hashtbl.create 127 : (string, shared_file_info) Hashtbl.t)
 let new_shared = ref ([] : file list)
@@ -566,15 +559,6 @@ let find_client_by_name name =
   with ClientFound c -> c
 
 let udp_servers_replies = (Hashtbl.create 127 : (Md4.t, server) Hashtbl.t)
-  
-let _ =
-  option_hook max_hard_upload_rate (fun _ -> 
-      TcpBufferedSocket.change_rate upload_control 
-        (!!max_hard_upload_rate * 1024));  
-  option_hook max_hard_download_rate (fun _ ->
-      let rate = !!max_hard_download_rate in
-      TcpBufferedSocket.change_rate download_control 
-        (rate * 1024))  
     
 let file_groups = (Hashtbl.create 1023 : (Md4.t, file_group) Hashtbl.t)
 

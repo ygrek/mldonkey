@@ -25,6 +25,7 @@ open Md4
 open CommonGlobals
 open LittleEndian
 open TcpBufferedSocket
+open AnyEndian
 
   
 let gnutella_ok = "GNUTELLA OK"     
@@ -47,7 +48,7 @@ type 'a packet = {
 let get_string s pos =
   let len = String.length s in
   try
-    if pos <= len then raise Exit;
+    if pos >= len then raise Exit;
     let end_pos = String.index_from s pos '\000' in
     String.sub s pos (end_pos - pos), end_pos+1
   with _ -> 
@@ -540,7 +541,7 @@ let server_send sock t =
   
 type ghandler =
   HttpHeader of (gconn -> TcpBufferedSocket.t -> string -> unit)
-| Reader of (gconn -> TcpBufferedSocket.t -> int -> unit)
+| Reader of (gconn -> TcpBufferedSocket.t -> unit)
 
 and gconn = {
     mutable gconn_handler : ghandler;
@@ -548,7 +549,7 @@ and gconn = {
     mutable gconn_close_on_write : bool;
   }
     
-let gnutella_handler parse f handler sock nread =
+let gnutella_handler parse f handler sock =
   let b = TcpBufferedSocket.buf sock in
   lprintf "GNUTELLA HANDLER\n";
   dump (String.sub b.buf b.pos b.len);
@@ -647,9 +648,8 @@ let handlers info gconn =
     if b.len > 0 then
       match gconn.gconn_handler with
       | HttpHeader h ->
-          lprintf "header handler\n"; 
           let end_pos = b.pos + b.len in
-          let begin_pos = max b.pos (end_pos - nread - 3) in
+          let begin_pos =  b.pos in
           let rec iter i n_read =
             if i < end_pos then
               if b.buf.[i] = '\r' then
@@ -658,15 +658,15 @@ let handlers info gconn =
               if b.buf.[i] = '\n' then
                 if n_read then begin
                     let header = String.sub b.buf b.pos (i - b.pos) in
-                    if info then begin
+(*                    if info then begin
                         lprintf "HEADER : ";
                         dump header; lprint_newline ();
-                      end;
+                      end; *)
                     h gconn sock header;
                     if not (TcpBufferedSocket.closed sock) then begin
                         let nused = i - b.pos + 1 in
                         buf_used sock nused;
-                        iter_read sock (nread - nused)
+                        iter_read sock 0
                       end
                   end else
                   iter (i+1) true
@@ -674,9 +674,10 @@ let handlers info gconn =
                 iter (i+1) false
           in
           iter begin_pos false
-      | Reader h -> h gconn sock nread
-    else 
-      lprintf "Nothing to read\n"
+      | Reader h -> 
+          let len = b.len in
+          h gconn sock;
+          if b.len < len then iter_read sock 0
   in
   iter_read
   
@@ -687,17 +688,13 @@ let set_gnutella_sock sock info ghandler =
       gconn_close_on_write = false;
     } in
   TcpBufferedSocket.set_reader sock (handlers info gconn);
-  lprintf "setting refill handler\n"; 
   TcpBufferedSocket.set_refill sock (fun sock ->
-      lprintf "calling major with %d refill handlers\n"
-        (List.length gconn.gconn_refill);
       match gconn.gconn_refill with
         [] -> ()
       | refill :: _ -> refill sock
   );
   TcpBufferedSocket.set_handler sock TcpBufferedSocket.WRITE_DONE (
     fun sock ->
-      lprintf "write done...\n";
       match gconn.gconn_refill with
         [] -> ()
       | _ :: tail -> 

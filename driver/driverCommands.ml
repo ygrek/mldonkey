@@ -1067,7 +1067,7 @@ class=\\\"shares\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>
             force_download_quotas ();
             "Done"
         | [] -> "Bad number of args"
-            
+    
     ), "<priority> <files numbers> :\tchange file priorities";
     
     "version", Arg_none (fun o ->
@@ -1582,6 +1582,207 @@ formID.msgText.value=\\\"\\\";
         ) lines;
         "done"
     ), "<file> :\t\t\tdownload all the links contained in the file";
+    
+    
+    "uploaders", Arg_none (fun o ->
+        let buf = o.conn_buf in
+        
+        let nuploaders = Intmap.length !uploaders in 
+        
+        if use_html_mods o then
+          
+          begin
+            
+            let counter = ref 0 in
+            
+            Printf.bprintf buf "\\<div class=\\\"uploaders\\\"\\>Total
+            upload slots: %d (%d) | Pending slots: %d\n" nuploaders
+              (Fifo.length CommonUploads.upload_clients)
+              (Intmap.length !CommonUploads.pending_slots_map);
+            
+            if nuploaders > 0 then
+              
+              begin
+                
+                html_mods_table_header buf "uploadersTable" "uploaders" [ 
+                  ( "0", "srh", "Network", "Network" ) ; 
+                  ( "0", "srh", "Connection type [I]ndirect [D]irect", "C" ) ;
+                  ( "0", "srh", "Client name", "Client name" ) ;
+                  ( "0", "srh", "IP address", "IP address" ) ;
+                  ( "0", "srh", "Connected time (minutes)", "CT" ) ;
+                  ( "0", "srh", "Client brand", "CB" ) ;
+                  ( "0", "srh", "Total DL bytes from this client for all files", "DL" ) ;
+                  ( "0", "srh", "Total UL bytes to this client for all files", "UL" ) ;
+                  ( "0", "srh", "Filename", "Filename" ) ];
+                
+                List.iter (fun c ->
+                    try
+                      let i = client_info c in
+                      if is_connected i.client_state then begin
+                          incr counter;                        
+                          
+                          Printf.bprintf buf "\\<tr class=\\\"%s\\\" 
+                        title=\\\"[%d] Add as friend\\\"
+                        onMouseOver=\\\"mOvr(this);\\\"
+                        onMouseOut=\\\"mOut(this);\\\" 
+                        onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>"
+                            ( if (!counter mod 2 == 0) then "dl-1" else "dl-2";)
+                          (client_num c)
+                          (client_num c);
+                          
+                          
+                          client_print_html c o;
+                          
+                          begin
+                            match i.client_kind with
+                              Known_location (ip,_) -> Printf.bprintf buf "\\<td
+                        class=\\\"sr\\\"\\>%s\\</td\\>\\<td
+                        class=\\\"sr ar\\\"\\>%d\\</td\\>\\<td
+                        class=\\\"sr\\\"\\>%s\\</td\\>" 
+                                  (Ip.to_string ip)
+                                (((last_time ()) - i.client_connect_time) / 60)
+                                i.client_software
+                            | _ -> Printf.bprintf buf "\\<td
+                        class=\\\"sr\\\"\\>\\</td\\>
+                        \\<td class=\\\"sr\\\"\\>\\</td\\> 
+                        \\<td class=\\\"sr\\\"\\>\\</td\\>" 
+                          end;
+                          
+                          Printf.bprintf buf "\\<td
+                        class=\\\"sr ar\\\"\\>%s\\</td\\>\\<td
+                        class=\\\"sr ar\\\"\\>%s\\</td\\>" 
+                            (size_of_int64 i.client_downloaded) 
+                          (size_of_int64 i.client_uploaded);
+                          
+                          Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>\n" 
+                            (match i.client_upload with
+                              Some cu -> cu
+                            | None -> "");
+                          
+                          Printf.bprintf buf "\\</tr\\>"
+                        end
+                    with _ -> ()
+                ) (List.sort 
+                    (fun c1 c2 -> compare (client_num c1) (client_num c2))
+                  (Intmap.to_list !uploaders));
+                Printf.bprintf buf "\\</table\\>\\</div\\>";
+              end;
+            
+            if !!html_mods_show_pending && Intmap.length !CommonUploads.pending_slots_map > 0 then
+              
+              begin
+                Printf.bprintf buf "\\<br\\>\\<br\\>"; 
+                html_mods_table_header buf "uploadersTable" "uploaders" [ 
+                  ( "0", "srh", "Network", "Network" ) ; 
+                  ( "0", "srh", "Connection type [I]ndirect [D]irect", "C" ) ;
+                  ( "0", "srh", "Client name", "Client name" ) ;
+                  ( "0", "srh", "Client brand", "CB" ) ;
+                  ( "0", "srh", "Total DL bytes from this client for all files", "DL" ) ;
+                  ( "0", "srh", "Total UL bytes to this client for all files", "UL" ) ;
+                  ( "0", "srh", "IP address", "IP address" ) ];
+                
+                Intmap.iter (fun cnum c ->
+                    
+                    try 
+                      let i = client_info c in
+                      incr counter;
+                      
+                      Printf.bprintf buf "\\<tr class=\\\"%s\\\" 
+ 					title=\\\"Add as Friend\\\"
+ 					onMouseOver=\\\"mOvr(this);\\\"
+ 					onMouseOut=\\\"mOut(this);\\\" 
+ 					onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>"
+                        ( if (!counter mod 2 == 0) then "dl-1" else "dl-2";)
+                      cnum;
+                      
+                      
+                      client_print_html c o;
+                      
+                      Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>" 
+                        i.client_software;
+                      
+                      Printf.bprintf buf "\\<td
+                         class=\\\"sr ar\\\"\\>%s\\</td\\>\\<td
+                         class=\\\"sr ar\\\"\\>%s\\</td\\>" 
+                        (size_of_int64 i.client_downloaded) 
+                      (size_of_int64 i.client_uploaded);
+                      
+                      Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>"
+                        (try 
+                          
+                          (  match i.client_kind with
+                              Known_location (ip,_) -> Ip.to_string ip
+                            | _ -> "")
+                        
+                        with _ -> ""
+                      );
+                      
+                      Printf.bprintf buf "\\</tr\\>";
+                    
+                    
+                    with _ -> ();
+                
+                ) !CommonUploads.pending_slots_map;
+                Printf.bprintf buf "\\</table\\>\\</div\\>";
+              
+              end;
+            
+            Printf.bprintf buf "\\</div\\>";
+            ""
+          end
+        else
+          begin
+            
+            Intmap.iter (fun _ c ->
+                try
+                  let i = client_info c in
+                  
+                  client_print c o;
+                  Printf.bprintf buf "client: %s downloaded: %s uploaded: %s\n" i.client_software (Int64.to_string i.client_downloaded) (Int64.to_string i.client_uploaded);
+                  match i.client_upload with
+                    Some cu ->
+                      Printf.bprintf buf "      filename: %s\n" cu
+                  | None -> ()
+                with _ -> 
+                   Printf.bprintf buf "no info on client %d\n" (client_num c )
+            ) !uploaders;
+            
+            Printf.sprintf "Total upload slots: %d (%d) | Pending slots: %d\n" nuploaders
+              (Fifo.length CommonUploads.upload_clients)
+              (Intmap.length !CommonUploads.pending_slots_map);
+
+            
+          end
+          
+    
+    ), ":\t\t\t\tshow users currently uploading";
+
+    "nu", Arg_one (fun num o ->
+        let buf = o.conn_buf in
+        let num = int_of_string num in
+        
+        if num > 0 then (* we want to disable upload for a short time *)
+          let num = mini !CommonUploads.upload_credit num in
+          CommonUploads.has_upload := !CommonUploads.has_upload + num;
+          CommonUploads.upload_credit := !CommonUploads.upload_credit - num;
+          Printf.sprintf
+            "upload disabled for %d minutes (remaining credits %d)" 
+            !CommonUploads.has_upload !CommonUploads.upload_credit
+        else
+        
+        if num < 0 && !CommonUploads.has_upload > 0 then
+(* we want to restart upload probably *)
+          let num = - num in
+          let num = mini num !CommonUploads.has_upload in
+          CommonUploads.has_upload := !CommonUploads.has_upload - num;
+          CommonUploads.upload_credit := !CommonUploads.upload_credit + num;
+          Printf.sprintf
+            "upload disabled for %d minutes (remaining credits %d)" 
+            !CommonUploads.has_upload !CommonUploads.upload_credit
+        
+        else ""
+    ), "<m> :\t\t\t\tdisable upload during <m> minutes (multiple of 5)";
+
     
     ]
 

@@ -19,6 +19,10 @@
 
 open Printf2
 
+let (++) = Int64.add
+let (--) = Int64.sub
+let chunk_min_size = ref (Int64.of_int 65000)
+
 let verbose = false
 let max_cache_size = ref 50
 
@@ -98,134 +102,21 @@ module FDCache = struct
     let exists t = Sys.file_exists t.filename
       
   end
-  
-module SparseFile = struct
 
-(*
-
-type chunk = {
-  mutable pos : int64;
-  mutable len : int64;
-  mutable filename : string option;
-  mutable next : chunk option;
-}
-
-type t = {
-  filename : string;
-  size : int64;
-  mutable chunks : chunk;
-}
-
-let create filename size = 
-  let dirname = Printf.sprintf "%s.chunks" filename in
-  Unix.mkdir dirname;
-  {
-    filename = filename;
-    size = size;
-    chunks = {
-        pos = Int64.zero; 
-        len = size; 
-        created = None;
-        next = None;
-       }; 
-  }
-
-let (+) = Int64.add
-let (-) = Int64.sub
-
-let chunk_min_size = ref 65000
-
-let split_chunk c pos =
-  let cc = {
-    created = None;
-    pos = pos;
-    len = c.len - pos;
-   } in
-  c.next <- Some cc;
-  c.len <- (pos - c.pos)
-
-let rec extend_chunk c size = 
-  match c.next with
-    None -> 
-     lprintf "Cannot extend last chunk\n";
-     assert false
-  | Some cc ->
-     if cc.created <> None then
-       begin
-         append_chunk c cc;
-         remove_chunk cc;
-         c.next <- cc.next;
-         c.len <- (cc.pos + cc.len) - c.pos;
-       end
-     else
-     if cc.len >= size + !chunk_min_size then 
-       begin
-         split_chunk cc (cc.pos + size);
-         extend_chunk c size;
-       end 
-     else
-       begin
-         c.next <- cc.next;
-         c.len <- (cc.pos + cc.len) - c.pos;
-         ftruncate_chunk c (c.len + cc.len);
-       end
-
-let open_chunk c = ()
-let create_chunk c = () 
-
-let get_chunk t pos len = 
-  let c = t.chunks in
-  let rec iter c =
-
-    if c.created <> None && c.pos <= pos && c.pos + c.len >= pos + len then
-       (open_chunk c, pos - c.pos)
-    else
-    if c.created <> None && pos <= c.pos + c.len + !chunk_min_size then
-      begin
-        extend_chunk c (maxi !chunk_min_size (pos+len - c.pos -c.len + !chunk_min_size));
-        iter c
-      end
-    else
-    if c.pos + c.len <= pos then
-      match c.next with
-      | None -> 
-         lprintf "Invalid access in file pos %Ld is after last chunk\n" pos;
-         assert false
-      | Some c -> iter c
-    else
-    if c.pos + !chunk_min_size < pos then 
-      begin
-        split_chunk c pos;
-        iter c     
-      end
-    else
-    if c.pos + c.len > pos + (maxi len !chunk_min_size) + !chunk_min_size then
-      begin
-        split_chunk c (pos+(maxi len !chunk_min_size)+!chunk_min_size);
-        iter c
-      end
-    else 
-      begin
-        create_chunk c;
-        iter c
-      end
-  in
-  iter c
-
-let build t =
-  if t.chunks.created = None then create_chunk c;
-  while t.chunks.next <> None do
-    extend_chunk c t.size
-  done;
-  
-
-*)
-
-    
-    
+module type File =   sig
+    type t
+    val create : string -> Unix.open_flag list -> int -> t
+    val fd_of_chunk : t -> int64 -> int64 -> Unix.file_descr * int64
+    val close : t -> unit
+    val rename : t -> string -> unit
+    val ftruncate64 : t -> int64 -> unit
+    val getsize64 : t -> int64
+    val mtime64 : t -> float
+    val exists : t -> bool
   end
+
   
-module DiskFile = struct
+module DiskFile : File = struct
     
     type t = FDCache.t 
     
@@ -245,10 +136,174 @@ module DiskFile = struct
     let mtime64 = FDCache.mtime64
     let exists = FDCache.exists
   end
+
+    
+module SparseFile : File = struct
+
+  type chunk = {
+    mutable dirname : string;
+    mutable pos : int64;
+    mutable len : int64;
+    mutable created : bool;
+    mutable fd : FDCache.t;
+    mutable next : chunk option;
+  }
+
+  type t = {
+    mutable filename : string;
+    mutable size : int64;
+    mutable chunks : chunk;
+  }
+
+  let rights = 0o664
+  let access = [Unix.O_CREAT; Unix.O_RDWR]
+
+  let create filename rights access = 
+    let dirname = Printf.sprintf "%s.chunks" filename in
+    Unix.mkdir dirname  0o755;
+    {
+      filename = filename;
+      size = Int64.zero;
+      chunks = {
+          dirname = dirname;
+          pos = Int64.zero; 
+          len = Int64.zero; 
+          created = false;
+          fd = FDCache.create filename rights access;
+          next = None;
+         }; 
+     }
+
+let (+) = Int64.add
+let (-) = Int64.sub
+
+let append_chunk dest src = 
+  failwith "SparseFile.append_chunk not implemented"
+let remove_chunk c = 
+  failwith "SparseFile.remove_chunk not implemented"
+
+let ftruncate_chunk c size = 
+  FDCache.ftruncate64 c.fd size;
+  c.created <- true
+let open_chunk c = FDCache.local_force_fd c.fd
+
+let split_chunk c pos =
+  let cc = {
+    dirname = c.dirname;
+    fd = FDCache.create (Filename.concat c.dirname 
+       (Int64.to_string pos)) access rights;
+    pos = pos;
+    len = c.len - pos;
+    next = c.next;
+    created = false;
+   } in
+  c.next <- Some cc;
+  c.len <- (pos - c.pos)
+
+let rec extend_chunk c size = 
+  match c.next with
+    None -> 
+     lprintf "Cannot extend last chunk\n";
+     assert false
+  | Some cc ->
+     if cc.created then
+       begin
+         append_chunk c cc;
+         remove_chunk cc;
+         c.next <- cc.next;
+         c.len <- (cc.pos + cc.len) - c.pos;
+       end
+     else
+     if cc.len >= size + !chunk_min_size then 
+       begin
+         split_chunk cc (cc.pos + size);
+         extend_chunk c size;
+       end 
+     else
+       begin
+         c.next <- cc.next;
+         c.len <- (cc.pos + cc.len) - c.pos;
+         ftruncate_chunk c (c.len + cc.len);
+       end
+
+
+let get_chunk t pos len = 
+  let c = t.chunks in
+  let rec iter c =
+    if c.created && c.pos <= pos && c.pos + c.len >= pos + len then
+       (open_chunk c, pos - c.pos)
+    else
+    if c.created && pos <= c.pos + c.len + !chunk_min_size then
+      begin
+        extend_chunk c (max !chunk_min_size (pos+len - c.pos -c.len + !chunk_min_size));
+        iter c
+      end
+    else
+    if c.pos + c.len <= pos then
+      match c.next with
+      | None -> 
+         lprintf "Invalid access in file pos %Ld is after last chunk\n" pos;
+         assert false
+      | Some c -> iter c
+    else
+    if c.pos + !chunk_min_size < pos then 
+      begin
+        split_chunk c pos;
+        iter c     
+      end
+    else
+    if c.pos + c.len > pos + (max len !chunk_min_size) + !chunk_min_size then
+      begin
+        split_chunk c (pos+(max len !chunk_min_size)+ !chunk_min_size);
+        iter c
+      end
+    else 
+      begin
+        ftruncate_chunk c c.len;
+        iter c
+      end
+  in
+  iter c
+
+let build t =
+  let c = t.chunks in
+  if not c.created then ftruncate_chunk c c.len;
+  while c.next <> None do
+    extend_chunk c t.size
+  done;
+  t
+  
+
+let fd_of_chunk = get_chunk 
+
+let close t = 
+  failwith "SparseFile.close not implemented"
+
+let rename t f =
+  failwith "SparseFile.rename not implemented"
+
+let ftruncate64 t size = 
+  t.size <- size;
+  t.chunks.len <- size;
+  assert (t.chunks.next = None)
+
+let getsize64 t =
+  failwith "SparseFile.getsize64 not implemented"
+
+let mtime64 t =
+  failwith "SparseFile.mtime64 not implemented"
+
+let exists t = 
+  failwith "SparseFile.exists not implemented"
+  
+    
+  end
+  
   
 type file_kind = 
 (*  SparseFile of SparseFile.t *)
 | DiskFile of DiskFile.t  
+| SparseFile of SparseFile.t
   
 type t = {
     file_kind : file_kind;
@@ -256,29 +311,56 @@ type t = {
     mutable error : exn option;
     mutable buffers : (string * int * int * int64 * int64) list;    
   }
+
+module H = Weak2.Make(struct
+    type old_t = t
+    type t = old_t
+    let hash t = Hashtbl.hash t.filename
+      
+    let equal x y  = x.filename = y.filename
+    end)
+
+let dummy =  {
+    file_kind = DiskFile (DiskFile.create "" [] 0);
+    filename = "";
+    error = None;
+    buffers = [];
+  } 
   
-let create f r a = {
+let table = H.create 100
+
+let create f r a = 
+  try
+    H.find table { dummy with filename = f }
+  with _ ->
+  let t =  {
     file_kind = DiskFile (DiskFile.create f r a);
     filename = f;
     error = None;
     buffers = [];
-  }
+  } in
+  H.add table t;
+  t
 
 let fd_of_chunk t pos len = 
   match t.file_kind with
   | DiskFile t -> DiskFile.fd_of_chunk t pos len
+  | SparseFile t -> SparseFile.fd_of_chunk t pos len
 
 let ftruncate64 t len =
   match t.file_kind with
   | DiskFile t -> DiskFile.ftruncate64 t len
+  | SparseFile t -> SparseFile.ftruncate64 t len
 
 let mtime64 t =
   match t.file_kind with
   | DiskFile t -> DiskFile.mtime64 t 
+  | SparseFile t -> SparseFile.mtime64 t 
 
 let getsize64 t =
   match t.file_kind with
   | DiskFile t -> DiskFile.getsize64 t 
+  | SparseFile t -> SparseFile.getsize64 t 
       
 (*
 For chunked files, we should read read the meta-file instead of the file.
@@ -309,13 +391,12 @@ let rename t f =
   t.filename <- f;
   match t.file_kind with
   | DiskFile t -> DiskFile.rename t f
+  | SparseFile t -> SparseFile.rename t f
       
 
 
 let buffer = Buffer.create 65000
 
-let (++) = Int64.add
-let (--) = Int64.sub
 
 let flush_buffer t offset = 
   if verbose then lprintf "flush_buffer\n";
@@ -324,7 +405,7 @@ let flush_buffer t offset =
   let len = String.length s in
   try
     if verbose then lprintf "seek64 %Ld\n" offset;
-    let fd, offset =  fd_of_chunk t offset len in
+    let fd, offset =  fd_of_chunk t offset (Int64.of_int len) in
     let final_pos = Unix2.c_seek64 fd offset Unix.SEEK_SET in
     if verbose then lprintf "really_write %d\n" len;
     Unix2.really_write fd s 0 len;
@@ -423,7 +504,7 @@ let buffered_write t offset s pos_s len_s =
       raise e
 
 let write t offset s pos_s len_s =  
-  let fd, offset = fd_of_chunk t offset len_s in
+  let fd, offset = fd_of_chunk t offset (Int64.of_int len_s) in
   let final_pos = Unix2.c_seek64 fd offset Unix.SEEK_SET in
   if final_pos <> offset then begin
       lprintf "BAD LSEEK in Unix32.write %Ld/%Ld\n" final_pos offset;
@@ -501,12 +582,14 @@ let close_all = FDCache.close_all
 let close t = 
   match t.file_kind with
   | DiskFile t -> DiskFile.close t
+  | SparseFile t -> SparseFile.close t
 
 let create_ro filename = create filename [Unix.O_RDONLY] 0o666
   
 let exists t = 
   match t.file_kind with
   | DiskFile t -> DiskFile.exists t
+  | SparseFile t -> SparseFile.exists t
 
 let getsize64 s =  getsize64 (create_ro s)
 let mtime64 s =  mtime64 (create_ro s)

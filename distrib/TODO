@@ -1,7 +1,18 @@
 TODO list for client
 ====================
 
-mldonkey shares "." ???
+1) Add verification in CommonSwarming at the partition level
+
+val set_verifier : partition -> (block -> bool) -> unit
+val present_bitmap : partition -> string (absent, partial, present, verified)
+val verified : partition -> bool
+
+2) Add upload on BitTorrent
+
+3) Multi-File support for BitTorrent
+
+Add interactive downloads: click on "Interactive Download", and a popup
+  ask for where to save the file, and a popup with a progress bar is displayed.
 
 Next big challenges:
 --------------------
@@ -11,9 +22,12 @@ Next big challenges:
 * export_temp
 
 Gnutella:
- * Use a list for downloads instead of Hashtbl. Iter on the list
-  to find identical downloads by name if no uid, by uid otherwise.
- * Remove any matching on name if an UID is provided.
+ * Really test Swarming:
+    - Verify that several clients don't receive the same blocks to download
+    - Verify that received data is included in the range
+    - Connect to new sources as soon as possible
+    - Correctly read and save present chunks
+ * Act as a Gnutella client, forward requests with TTL set to 2
 
 *******************
 Before 2.04 :)

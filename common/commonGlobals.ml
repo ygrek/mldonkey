@@ -25,6 +25,13 @@ open CommonTypes
 open UdpSocket
 open TcpBufferedSocket
 
+let zero = Int64.zero
+let one = Int64.one
+let (++) = Int64.add
+let (--) = Int64.sub
+let ( ** ) x y = Int64.mul x (Int64.of_int y)
+let ( // ) x y = Int64.div x y
+  
 let networks_string = ref ""
   
 let version () = 
@@ -118,6 +125,16 @@ let upload_control = TcpBufferedSocket.create_write_bandwidth_controler
   
 let download_control = TcpBufferedSocket.create_read_bandwidth_controler 
     (!!max_hard_download_rate * 1024)
+
+      
+let _ =
+  option_hook max_hard_upload_rate (fun _ -> 
+      TcpBufferedSocket.change_rate upload_control 
+        (!!max_hard_upload_rate * 1024));  
+  option_hook max_hard_download_rate (fun _ ->
+      let rate = !!max_hard_download_rate in
+      TcpBufferedSocket.change_rate download_control 
+        (rate * 1024))  
 
 let udp_write_controler = UdpSocket.new_bandwidth_controler upload_control
 
@@ -634,3 +651,12 @@ let update_upload_history () =
 let detected_uplink_capacity () =
   List.fold_left maxi 0 (Fifo2.to_list upload_history)
 
+
+let int_tag s i = 
+  { tag_name = s; tag_value = Uint64 (Int64.of_int i) }
+
+let int32_tag s i = 
+  { tag_name = s; tag_value = Uint64 i }
+
+let string_tag s i = 
+  { tag_name = s; tag_value = String i }

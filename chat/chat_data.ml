@@ -22,6 +22,7 @@
 
 (** A class for the state. *)
 
+open Printf2
 open Chat_types
 open Chat_proto
 
@@ -89,7 +90,7 @@ class data pred (conf : Chat_config.config) (com : Chat_proto.com) =
     method print_people =
       List.iter
 	(fun (i,h,p,_,_) -> 
-	  prerr_endline (Printf.sprintf "%s@%s:%d" i h p))
+	  lprintf "%s@%s\n:%d\n" i h p)
 	people
 			   
 

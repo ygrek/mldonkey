@@ -173,7 +173,7 @@ void tiger_compress(word64 *str, word64 state[3])
   tiger_compress_macro(((word64*)str), ((word64*)state))
 #endif
 
-void tiger(word64 *str, word64 length, word64 res[3])
+static void static_tiger(word64 *str, word64 length, word64 res[3])
 {
   register word64 i, j;
   unsigned char temp[64];
@@ -181,6 +181,14 @@ void tiger(word64 *str, word64 length, word64 res[3])
   res[0]=0x0123456789ABCDEFLL;
   res[1]=0xFEDCBA9876543210LL;
   res[2]=0xF096A5B4C3B2E187LL;
+
+#if 0
+  { int i;
+  printf("Digested in:\n");
+  for(i=0;i<23;i++) printf("%02X", ((char*)res)[i]);
+  printf("\n");
+  }
+#endif
 
   for(i=length; i>=64; i-=64)
     {
@@ -747,8 +755,29 @@ void tiger_hash(char prefix, char *s, int len, unsigned char *digest)
 some headers, so it should be OK. */
 
   s[-1] = prefix;
-  tiger((word64*)(s-1), (len+1), (word64*) (digest));
+  static_tiger((word64*)(s-1), (len+1), (word64*) (digest));
   s[-1] = x;
+#ifdef BIG_ENDIAN
+  {
+    int i;
+    word64* res = (word64*) digest;
+    for(i=0;i<3;i++){
+      word64 r = res[i];
+      char* d = (char*)(res+i);
+      int j;
+      for(j=0; j<8;j++) d[j] = (r >> (j*8)) & 0xff;
+    }
+  }
+
+#endif
+
+#if 0
+  { int i;
+  printf("Digested in:\n");
+  for(i=0;i<23;i++) printf("%02X", digest[i]);
+  printf("\n");
+  }
+#endif
 
 }
 

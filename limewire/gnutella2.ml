@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+
+open AnyEndian
 open Printf2
 open CommonOptions
 open LimewireOptions
@@ -24,7 +26,8 @@ open Options
 open Md4
 open CommonGlobals
 open TcpBufferedSocket
-
+open LittleEndian
+  
 type addr = Ip.t * int
   
 type g2_packet =
@@ -144,7 +147,7 @@ let g2_encode_payload msg =
   Buffer.clear buf;
   let name = 
     match msg with 
-    | TO md4 -> M.buf_md4 buf md4; "TO"
+    | TO md4 -> buf_md4 buf md4; "TO"
     | PI -> "PI"
     | PI_RELAIS ->  "RELAIS"
     | PI_UDP addr -> M.buf_addr buf addr;  "UDP"
@@ -155,7 +158,7 @@ let g2_encode_payload msg =
     | LNI_GU md4
     | KHL_NH_GU md4 
     | KHL_CH_GU md4 
-      -> M.buf_md4 buf md4; "GU"
+      -> buf_md4 buf md4; "GU"
     | LNI_V s
     | KHL_NH_V s
     | KHL_CH_V s
@@ -187,7 +190,7 @@ let g2_encode_payload msg =
     | QKA_SNA addr -> M.buf_addr buf addr; "SNA" 
     | QKA_QNA addr -> M.buf_addr buf addr; "QNA" 
         
-    | Q2 md4 -> M.buf_md4 buf md4; "Q2"
+    | Q2 md4 -> buf_md4 buf md4; "Q2"
     | Q2_UDP (addr, int32) -> M.buf_addr buf addr; M.buf_int32 buf int32; "UDP"
     | Q2_URN s -> Buffer.add_string buf s; "URN"
     | Q2_DN s -> Buffer.add_string buf s; "DN"
@@ -195,21 +198,21 @@ let g2_encode_payload msg =
     | Q2_I list ->
         Buffer.add_string buf (String2.unsplit list '\000'); "I"
         
-    | QA md4 -> M.buf_md4 buf md4; "QA"
+    | QA md4 -> buf_md4 buf md4; "QA"
     | QA_TS int32 -> M.buf_int32 buf int32; "TS"
     | QA_D (addr, int16) -> M.buf_addr buf addr; M.buf_int16 buf int16; "D"
     | QA_S (addr, int32) -> M.buf_addr buf addr; M.buf_int32 buf int32; "S"
     | QA_FR addr -> M.buf_addr buf addr; "FR"
     
-    | QH2 (char, md4) -> M.buf_int8 buf char; M.buf_md4 buf md4; "QH2"
-    | QH2_GU md4 -> M.buf_md4 buf md4; "GU"
+    | QH2 (char, md4) -> buf_int8 buf char; buf_md4 buf md4; "QH2"
+    | QH2_GU md4 -> buf_md4 buf md4; "GU"
     | QH2_V s -> Buffer.add_string buf s; "V"
     | QH2_NA addr -> M.buf_addr buf addr; "NA"
     | QH2_NH -> "NH"
     | QH2_BUP -> "BUP"
-    | QH2_HG c -> M.buf_int8 buf c; "HG"
+    | QH2_HG c -> buf_int8 buf c; "HG"
     | QH2_HG_SS (a16,b8,c) ->
-        M.buf_int16 buf a16; M.buf_int8 buf b8; M.buf_int buf c; "SS"
+        M.buf_int16 buf a16; buf_int8 buf b8; M.buf_int buf c; "SS"
     | QH2_H -> "H"
         
     | QH2_H_URN s -> Buffer.add_string buf s; "URN"
@@ -223,7 +226,7 @@ let g2_encode_payload msg =
         M.buf_int32 buf int32;
         Buffer.add_string buf s; "DN"
     | QH2_H_SZ sz -> M.buf_int64 buf sz; "SZ"
-    | QH2_H_G i8 -> M.buf_int8 buf i8; "G"
+    | QH2_H_G i8 -> buf_int8 buf i8; "G"
     | QH2_H_ID i32 -> M.buf_int32 buf i32; "ID"
     | QH2_H_CSC i16 -> M.buf_int16 buf i16; "CSC"
     | QH2_H_PART i32 -> M.buf_int32 buf i32; "PART"
@@ -262,8 +265,8 @@ let rec g2_encode pkt =
         (len_len lsl 6) lor ((name_len-1) lsl 3)
     in
     Buffer.add_char buf (char_of_int cb);
-    if len_len = 1 then LittleEndian.buf_int8 buf !size else
-    if len_len = 2 then LittleEndian.buf_int16 buf !size else
+    if len_len = 1 then buf_int8 buf !size else
+    if len_len = 2 then buf_int16 buf !size else
       LittleEndian.buf_int24 buf !size;
     
     Buffer.add_string buf name;
@@ -282,7 +285,7 @@ let g2_decode_payload names be s =
     let module M = G2_LittleEndian in
     match names with
       
-    | "TO" :: _ -> TO (M.get_md4 s 0)
+    | "TO" :: _ -> TO (get_md4 s 0)
       
     | [ "PI" ] -> PI
     | [ "RELAIS"; "PI" ] -> PI_RELAIS
@@ -293,7 +296,7 @@ let g2_decode_payload names be s =
     
     | [ "LNI" ] -> LNI
     | [ "NA"; "LNI" ] -> LNI_NA  (M.get_addr s 0 (String.length s))
-    | [ "GU"; "LNI" ] -> LNI_GU (M.get_md4 s 0)
+    | [ "GU"; "LNI" ] -> LNI_GU (get_md4 s 0)
     | [ "V" ; "LNI" ] -> LNI_V (String.sub s 0 4)
     | [ "LS"; "LNI" ] -> LNI_LS (M.get_int32 s 0, M.get_int32 s 4)
     | [ "HS"; "LNI" ] -> LNI_HS (M.get_int16 s 0, M.get_int16 s 2)
@@ -301,14 +304,14 @@ let g2_decode_payload names be s =
     | [ "KHL" ] -> KHL
     | [ "TS"; "KHL" ] -> KHL_TS (M.get_int32 s 0)
     | [ "NH" ; "KHL" ] -> KHL_NH (M.get_addr s 0 (String.length s))
-    | [ "GU"; "NH" ;"KHL" ] -> KHL_NH_GU (M.get_md4 s 0)
+    | [ "GU"; "NH" ;"KHL" ] -> KHL_NH_GU (get_md4 s 0)
     | [ "V" ; "NH" ;"KHL" ] -> KHL_NH_V (String.sub s 0 4)
     | [ "LS"; "NH" ;"KHL" ] -> KHL_NH_LS (M.get_int32 s 0, M.get_int32 s 4)
     | [ "HS"; "NH" ;"KHL" ] -> KHL_NH_HS (M.get_int16 s 0, M.get_int16 s 2)
     | [ "CH" ; "KHL" ] -> 
         let len = String.length s in
         KHL_CH (M.get_addr s 0 (len - 4), M.get_int32 s (len-4))
-    | [ "GU"; "CH" ;"KHL" ] -> KHL_CH_GU (M.get_md4 s 0)
+    | [ "GU"; "CH" ;"KHL" ] -> KHL_CH_GU (get_md4 s 0)
     | [ "V" ; "CH" ;"KHL" ] -> KHL_CH_V (String.sub s 0 4)
     | [ "LS"; "CH" ;"KHL" ] -> KHL_CH_LS (M.get_int32 s 0, M.get_int32 s 4)
     | [ "HS"; "CH" ;"KHL" ] -> KHL_CH_HS (M.get_int16 s 0, M.get_int16 s 2)
@@ -327,7 +330,7 @@ let g2_decode_payload names be s =
     | [ "SNA" ; "QKA" ] -> QKA_SNA  (M.get_addr s 0 (String.length s))
     | [ "QNA" ; "QKA" ] -> QKA_QNA  (M.get_addr s 0 (String.length s))
 
-    | [ "Q2" ] -> Q2 (M.get_md4 s 0)
+    | [ "Q2" ] -> Q2 (get_md4 s 0)
     | [ "UDP"; "Q2" ] -> 
         let len = String.length s in
         Q2_UDP (M.get_addr s 0 (len - 4), M.get_int32 s (len-4))
@@ -352,22 +355,22 @@ let g2_decode_payload names be s =
         in
         Q2_I (iter [] s 0 len)
         
-    | [ "QA" ] -> QA (M.get_md4 s 0)
+    | [ "QA" ] -> QA (get_md4 s 0)
     | [ "TS"; "QA" ] -> QA_TS (M.get_int32 s 0)
     | [ "D"; "QA" ] -> QA_D (M.get_addr s 0 6, M.get_int16 s 6)
     | [ "S"; "QA" ] -> QA_S (M.get_addr s 0 6, M.get_int32 s 6)
     | [ "FR"; "QA" ] -> QA_FR (M.get_addr s 0 (String.length s))
 
-    | [ "QH2" ] -> QH2 (M.get_int8 s 0, M.get_md4 s 1)
-    | [ "GU"; "QH2" ] -> QH2_GU (M.get_md4 s 0)
+    | [ "QH2" ] -> QH2 (get_int8 s 0, get_md4 s 1)
+    | [ "GU"; "QH2" ] -> QH2_GU (get_md4 s 0)
     | [ "V" ; "QH2" ] -> QH2_V (String.sub s 0 4)
     | [ "NA"; "QH2" ] -> QH2_NA (M.get_addr s 0 (String.length s))
     | [ "NH"; "QH2" ] -> QH2_NH
     | [ "BUP"; "QH2" ] -> QH2_BUP
         
-    | [ "HG"; "QH2" ] -> QH2_HG (M.get_int8 s 0)
+    | [ "HG"; "QH2" ] -> QH2_HG (get_int8 s 0)
     | [ "SS"; "HG"; "QH2" ] -> 
-        QH2_HG_SS (M.get_int16 s 0, M.get_int8 s 2, M.get_int s 3)
+        QH2_HG_SS (M.get_int16 s 0, get_int8 s 2, M.get_int s 3)
 
     | [ "H"; "QH2" ] -> QH2_H
     | [ "URN"; "H"; "QH2" ] -> 
@@ -390,7 +393,7 @@ let g2_decode_payload names be s =
         let len = String.length s in
         QH2_H_SZ (if len = 4 then  Int64.of_int32 (M.get_int32 s 0)
           else M.get_int64 s 0)
-    | [ "G"; "H"; "QH2" ] -> QH2_H_G (M.get_int8 s 0)
+    | [ "G"; "H"; "QH2" ] -> QH2_H_G (get_int8 s 0)
     | [ "ID"; "H"; "QH2" ] -> QH2_H_ID (M.get_int32 s 0)
     | [ "CSC"; "H"; "QH2" ] -> QH2_H_CSC (M.get_int16 s 0)
     | [ "PART"; "H"; "QH2" ] -> QH2_H_PART (M.get_int32 s 0)
@@ -407,7 +410,7 @@ let rec g2_parse name has_children bigendian s =
   let rec iter_child pos children = 
     if pos >= len then children, len
     else
-    let cb = LittleEndian.get_int8 s pos in
+    let cb = get_int8 s pos in
     if cb = 0 then children, len else
     let len_len = (cb lsr 6) land 3 in
     if len < pos + 1 + len_len then
@@ -429,10 +432,10 @@ and g2_extract_packet root_name cb s be pos len =
   let len_len = (cb lsr 6) land 3 in    
   let pkt_len, pkt_pos = 
     match len_len, be with
-    | 1, true -> BigEndian.get_int8 s (pos+1), 2 
+    | 1, true -> get_int8 s (pos+1), 2 
     | 2, true -> BigEndian.get_int16 s (pos+1), 3 
     | 3, true -> BigEndian.get_int24 s (pos+1), 4
-    | 1, false -> LittleEndian.get_int8 s (pos+1), 2 
+    | 1, false -> get_int8 s (pos+1), 2 
     | 2, false -> LittleEndian.get_int16 s (pos+1), 3 
     | 3, false -> LittleEndian.get_int24 s (pos+1), 4
     | _ -> 0, 1
@@ -451,24 +454,24 @@ and g2_extract_packet root_name cb s be pos len =
 let g2_packet_handler connection m = 
   lprintf "g2_packet_handler not implemented\n"
   
-let g2_handler gconn sock nread =
+let g2_handler gconn sock =
   let b = TcpBufferedSocket.buf sock in
   lprintf "GNUTELLA2 HANDLER\n";
-  LittleEndian.dump (String.sub b.buf b.pos b.len);
+  AnyEndian.dump (String.sub b.buf b.pos b.len);
   try
     while b.len >= 2 do
       let s = b.buf in
       lprintf "g2_tcp_packet_handler\n";
-      let cb = LittleEndian.get_int8 s b.pos in
+      let cb = get_int8 s b.pos in
       let len_len = (cb lsr 6) land 3 in
       if b.len < 1 + len_len then raise Not_found;
       let be = cb land 2 <> 0 in
       
       let len, pos = match len_len, be with
-        | 1, true -> BigEndian.get_int8 s (b.pos+1), 2 
+        | 1, true -> get_int8 s (b.pos+1), 2 
         | 2, true -> BigEndian.get_int16 s (b.pos+1), 3 
         | 3, true -> BigEndian.get_int24 s (b.pos+1), 4
-        | 1, false -> LittleEndian.get_int8 s (b.pos+1), 2 
+        | 1, false -> get_int8 s (b.pos+1), 2 
         | 2, false -> LittleEndian.get_int16 s (b.pos+1), 3 
         | 3, false -> LittleEndian.get_int24 s (b.pos+1), 4
         | _ -> 0, 1
@@ -498,8 +501,8 @@ let g2_udp_handler p =
   let buf = p.UdpSocket.content in
   let len = String.length buf in
   let pos = 8 in
-  let nCount = LittleEndian.get_int8 buf 7 in
-  let nFlags = LittleEndian.get_int8 buf 3 in
+  let nCount = get_int8 buf 7 in
+  let nFlags = get_int8 buf 3 in
   let ack_me = nFlags land 2 <> 0 in
 (* Contribute:
   - deflating
@@ -508,15 +511,15 @@ let g2_udp_handler p =
 *)
   if nCount > 1 || nFlags land 1 <> 0 then
     lprintf "g2_udp_handler not implemented\n";
-  let cb = LittleEndian.get_int8 buf 8 in
+  let cb = get_int8 buf 8 in
   let len_len = (cb lsr 6) land 3 in
   let be = cb land 2 <> 0 in
   
   let pkt_len, pkt_pos = match len_len, be with
-    | 1, true -> BigEndian.get_int8 buf (pos+1), 2 
+    | 1, true -> get_int8 buf (pos+1), 2 
     | 2, true -> BigEndian.get_int16 buf (pos+1), 3 
     | 3, true -> BigEndian.get_int24 buf (pos+1), 4
-    | 1, false -> LittleEndian.get_int8 buf (pos+1),  2 
+    | 1, false -> get_int8 buf (pos+1),  2 
     | 2, false -> LittleEndian.get_int16 buf (pos+1), 3 
     | 3, false -> LittleEndian.get_int24 buf (pos+1), 4
     | _ -> 0, 1

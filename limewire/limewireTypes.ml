@@ -21,7 +21,8 @@
 open Md4
 
 open CommonTypes
-
+open CommonSwarming
+  
 type server = {
     server_server : server CommonServer.server_impl;
     server_ip : Ip.t;
@@ -58,17 +59,17 @@ want both upload and download from the same client. We could maybe use
 two different tables to look up for clients ? *)
 and client = {
     client_client : client CommonClient.client_impl;
-    mutable client_downloads : (file * file_uri) list;
+    mutable client_downloads : download list;
     mutable client_connection_control : connection_control;
     mutable client_sock : TcpBufferedSocket.t option;
     mutable client_user : user;
-    mutable client_file : (file, client) CommonDownloads.download option;
     mutable client_all_files : file list option;
-    mutable client_pos : int64;
+    mutable client_requests : download list;
+    mutable client_host : (Ip.t * int) option;
   }
 
 and file_uri =
-  FileByIndex of int
+  FileByIndex of int * string
 | FileByUrl of string
   
 and upload_client = {
@@ -91,10 +92,21 @@ and file = {
     file_file : file CommonFile.file_impl;
     file_id : Md4.t;
     file_name : string;
+    file_swarmer : Int64Swarmer.t;
+    file_partition : CommonSwarming.Int64Swarmer.partition;
     mutable file_clients : client list;
     mutable file_uids : file_uid list; 
   }
 
+and download = {
+    download_file : file;
+    download_uri : file_uri;
+    mutable download_chunks : (int64 * int64) list;
+    mutable download_blocks : Int64Swarmer.block list;
+    mutable download_ranges : Int64Swarmer.range list;
+    mutable download_block : Int64Swarmer.block option;
+  }
+  
 and file_uid =
 | Bitprint of string * Sha1.t * Tiger.t
 | Sha1 of string * Sha1.t

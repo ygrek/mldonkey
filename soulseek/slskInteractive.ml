@@ -234,6 +234,11 @@ let _ =
         P.client_num = (client_num (as_client c.client_client));
         P.client_rating = 0;
         P.client_chat_port = 0 ;
+        P.client_connect_time = last_time ();
+        P.client_software = "";
+        P.client_downloaded = zero;
+        P.client_uploaded = zero;
+        P.client_upload = None;
       }
   );
   client_ops.op_client_browse <- (fun c immediate ->

@@ -474,6 +474,7 @@ let colorBlue  = `NAME "blue"
 let colorGray  = `NAME "gray"
 let colorWhite =`WHITE
 let colorBlack = `BLACK
+let colorCyan = `NAME "cyan"
 
 let drawing = ref (None :   [ `window] GDraw.drawable option)
   
@@ -489,42 +490,144 @@ let redraw_chunks draw_avail file =
     | Some d -> d
   in
   
-  let wx, wy = drawing#size in
-  drawing#set_foreground colorWhite;
-  drawing#rectangle ~filled: true ~x:0 ~y:0 ~width:wx ~height:wy ();
-  
-  let nchunks = String.length file.file_chunks in
-  let dx = min !!O.chunk_width (wx / nchunks) in
-  let offset = (wx - nchunks * dx) / 2 in
-  let offset = if offset < 0 then 0 else offset in
-  let dx2 = if dx <= 2 then dx else dx - 1 in
-  for i = 0 to nchunks - 1 do
-    if !!Gui_options.use_availability_height
-    then begin
-        if file.file_chunks.[i] = '1'
+  try
+    let wx, wy = drawing#size in
+    drawing#set_foreground colorWhite;
+    drawing#rectangle ~filled: true ~x:0 ~y:0 ~width:wx ~height:wy ();
+    let nchunks = String.length file.file_chunks in
+    let dx = min !!O.chunk_width (wx / nchunks) in
+    
+    if wx > nchunks*dx && dx > 0 then
+      
+      let offset = (wx - nchunks * dx) / 2 in
+      let offset = if offset < 0 then 0 else offset in
+      let dx2 = if dx <= 2 then dx else dx - 1 in
+      for i = 0 to nchunks - 1 do
+        if !!Gui_options.use_availability_height
         then begin
-            drawing#set_foreground colorGreen;
+            if file.file_chunks.[i] >= '2'
+            then begin
+                drawing#set_foreground colorGreen;
+                drawing#rectangle ~filled: true
+                ~x:(offset + i*dx) ~y: 0 
+                  ~width: dx2 ~height:wy ()
+              end
+            else
+            let h = int_of_char (file.file_availability.[i])
+            in
+            if h = 0
+            then
+              begin
+                drawing#set_foreground (            
+                  if file.file_chunks.[i] = '0' then
+                    colorRed
+                  else
+                    colorCyan
+                );
+                drawing#rectangle ~filled: true
+                ~x:(offset + i*dx) ~y: 0
+                  ~width: dx2 ~height:wy ();
+              end
+            else begin
+                let h = min ((wy * h) / !!Gui_options.availability_max) wy in
+                drawing#set_foreground colorGray;
+                drawing#rectangle ~filled: true
+                ~x:(offset + i*dx) ~y: 0
+                  ~width: dx2 ~height: (wy - h) ();
+                
+                drawing#set_foreground colorBlue;
+                drawing#rectangle ~filled: true
+                ~x:(offset + i*dx) ~y: (wy - h)
+                ~width: dx2 ~height:h ();
+              end
+          end else begin
+            drawing#set_foreground (
+              if file.file_chunks.[i] >= '2' then
+                colorGreen
+              else
+              match int_of_char file.file_availability.[i] with
+                0 -> colorRed
+              | 1 -> colorBlue
+              | _ -> colorBlack);
             drawing#rectangle ~filled: true
             ~x:(offset + i*dx) ~y: 0 
               ~width: dx2 ~height:wy ()
           end
-        else
-        let h = int_of_char (file.file_availability.[i])
+      done          
+    else
+      
+    let group = (nchunks+wx-1) / wx in
+    let chunk n =
+      let p = n * group in
+      let get i = 
+        let v = 
+          if i < nchunks then file.file_chunks.[i] else '2'
         in
-        if h = 0
-        then begin
-            drawing#set_foreground colorRed;
-            drawing#rectangle ~filled: true
-            ~x:(offset + i*dx) ~y: 0
-              ~width: dx2 ~height:wy ();
-          end
-        else begin
-            let h = min ((wy * h) / !!Gui_options.availability_max) wy in
-            drawing#set_foreground colorGray;
-            drawing#rectangle ~filled: true
-            ~x:(offset + i*dx) ~y: 0
-              ~width: dx2 ~height: (wy - h) ();
-            
+        v
+      in
+      let current = String.make 1 (get p) in
+      for i = p+1 to p+group-1 do
+        current.[0] <- (
+          match get i, current with
+            '0',"0" -> '0'
+          | '1', _ -> '1'
+          | ('2' | '3'), ("2"|"3") -> '2'
+          | _ -> '1')
+      done;
+      current.[0]
+    in
+    let avail i =
+      let p = i * group in
+      let get i = 
+        if i < nchunks then file.file_availability.[i] else '\200'
+      in
+      let current = ref (get p) in
+      for i = p+1 to p+group-1 do
+        current := min (get i) !current
+      done;
+      !current
+    in
+    let dx = 1 in
+    let nchunks = nchunks / group in  
+
+    let offset = (wx - nchunks * dx) / 2 in
+    let offset = if offset < 0 then 0 else offset in
+    let dx2 = if dx <= 2 then dx else dx - 1 in
+    for i = 0 to nchunks - 1 do
+      let chunk = chunk i in
+      let avail = avail i in
+      if !!Gui_options.use_availability_height
+      then begin
+          if chunk >= '2'
+          then begin
+              drawing#set_foreground colorGreen;
+              drawing#rectangle ~filled: true
+              ~x:(offset + i*dx) ~y: 0 
+                ~width: dx2 ~height:wy ()
+            end
+          else
+          let h = int_of_char avail
+          in
+          if h = 0
+          then
+            begin
+              drawing#set_foreground (            
+                if chunk = '0' then
+                  colorRed
+                else
+                  colorCyan
+              );
+              drawing#rectangle ~filled: true
+              ~x:(offset + i*dx) ~y: 0
+                ~width: dx2 ~height:wy ();
+            end
+          else begin
+              let h = min ((wy * h) / !!Gui_options.availability_max) wy in
+              drawing#set_foreground colorGray;
+              drawing#rectangle ~filled: true
+              ~x:(offset + i*dx) ~y: 0
+                ~width: dx2 ~height: (wy - h) ();
+              
             drawing#set_foreground colorBlue;
             drawing#rectangle ~filled: true
             ~x:(offset + i*dx) ~y: (wy - h)
@@ -532,10 +635,10 @@ let redraw_chunks draw_avail file =
           end
       end else begin
         drawing#set_foreground (
-          if file.file_chunks.[i] = '1' then
+          if chunk >= '2' then
             colorGreen
           else
-          match int_of_char file.file_availability.[i] with
+          match int_of_char avail with
             0 -> colorRed
           | 1 -> colorBlue
           | _ -> colorBlack);
@@ -543,8 +646,11 @@ let redraw_chunks draw_avail file =
         ~x:(offset + i*dx) ~y: 0 
           ~width: dx2 ~height:wy ()
       end
-  done
-
+    done
+  with e ->
+      Printf2.lprintf "Exception %s during drawing\n"
+        (Printexc2.to_string e)
+      
 class box_downloads box_locs wl_status () =
   let draw_availability =
     GMisc.drawing_area ~height:20

@@ -33,3 +33,6 @@ mldc+gui
 *.byte
 *.cmxa
 *.a
+*+gui
+contrib
+mlbt*

@@ -798,6 +798,12 @@ let peer_ip t =
   match Unix.getpeername fd with
     Unix.ADDR_INET (ip, port) -> Ip.of_inet_addr ip
   | _ -> raise Not_found
+    
+let host t =
+  let fd = fd t.sock in
+  match Unix.getpeername fd with
+    Unix.ADDR_INET (ip, port) -> Ip.of_inet_addr ip, port
+  | _ -> raise Not_found
       
 let stats buf t =
   BasicSocket.stats buf t.sock;
@@ -825,6 +831,7 @@ let if_possible bc len =
 let set_rtimeout s t = set_rtimeout (sock s) t
 let set_wtimeout s t = set_wtimeout (sock s) t
 
+open AnyEndian
 open LittleEndian
    
 let internal_buf = Buffer.create 17000
@@ -892,4 +899,6 @@ let exec_command cmd args handler =
   
 let nread t = t.nread
 let nwritten t = t.nwrite
+  
+let get_rtimeout t = get_rtimeout t.sock
   

@@ -349,3 +349,313 @@ let query q = Indexer.find (Indexer.query_to_query q)
 let find_by_name name = Hashtbl.find shared_files name
   
 let find_by_num num = Hashtbl.find table num
+
+(**********************************************************************
+
+
+                     UPLOAD SCHEDULER
+
+
+***********************************************************************)
+
+let client_is_connected c = is_connected (client_state c)
+  
+
+(* Move the uploaders and nu commands to driver *)
+
+
+
+
+
+
+
+let upload_clients = (Fifo.create () : client Fifo.t)
+
+
+let (pending_slots_map : client Intmap.t ref) = ref Intmap.empty
+(* let (pending_slots_fifo : int Fifo.t)  = Fifo.create () *)
+
+let remaining_bandwidth = ref 0    
+let total_bandwidth = ref 0    
+let complete_bandwidth = ref 0
+let counter = ref 1    
+let sent_bytes = Array.create 10 0
+let has_upload = ref 0
+let upload_credit = ref 0
+
+
+let can_write_len sock len =
+  can_write_len sock len && 
+  (let upload_rate = 
+      (if !!max_hard_upload_rate = 0 then 10000 else !!max_hard_upload_rate)
+      * 1024 in
+    not_buffer_more sock (upload_rate * (Fifo.length upload_clients)))
+
+let upload_to_one_client () =
+  if !remaining_bandwidth < 10000 then begin
+      let c = Fifo.take upload_clients in
+      client_can_upload c  !remaining_bandwidth
+    end else
+  let per_client = 
+    let len = Fifo.length upload_clients in
+    if len * 10000 < !remaining_bandwidth then
+(* Each client in the Fifo can receive 10000 bytes.
+Divide the bandwidth between the clients
+*)
+      (!remaining_bandwidth / 10000 / len) * 10000
+    else mini 10000 !remaining_bandwidth in
+  let c = Fifo.take upload_clients in
+  client_can_upload c per_client
+
+let rec fifo_uploads n =
+  if n>0 && !remaining_bandwidth > 0 then
+    begin
+      upload_to_one_client ();
+      fifo_uploads (n-1)
+    end
+
+let rec next_uploads () =
+  let old_remaining_bandwidth = !remaining_bandwidth in
+  let len = Fifo.length upload_clients in
+  fifo_uploads len;
+  if !remaining_bandwidth < old_remaining_bandwidth then
+    next_uploads ()
+
+let next_uploads () = 
+  sent_bytes.(!counter-1) <- sent_bytes.(!counter-1) - !remaining_bandwidth;
+  if !verbose_upload then begin
+      lprintf "Left %d" !remaining_bandwidth; lprint_newline ();
+    end;
+  complete_bandwidth := !complete_bandwidth + !remaining_bandwidth;
+  incr counter;
+  if !counter = 11 then begin
+      counter := 1;
+      total_bandwidth := 
+      (if !!max_hard_upload_rate = 0 then 10000 * 1024
+        else (maxi (!!max_hard_upload_rate - 1) 1) * 1024 );
+      complete_bandwidth := !total_bandwidth;
+      if !verbose_upload then begin
+          lprintf "Init to %d" !total_bandwidth; lprint_newline ();
+        end;
+      remaining_bandwidth := 0          
+    end;
+  
+  let last_sec = ref 0 in
+  for i = 0 to 9 do
+    last_sec := !last_sec + sent_bytes.(i)
+  done;
+  
+  if !verbose_upload then begin
+      lprintf "last sec: %d/%d (left %d)" !last_sec !total_bandwidth
+        (!total_bandwidth - !last_sec);
+      lprint_newline ();
+    end;
+  
+  remaining_bandwidth := mini (mini (mini 
+        (maxi (!remaining_bandwidth + !total_bandwidth / 10) 10000) 
+      !total_bandwidth) !complete_bandwidth) 
+  (!total_bandwidth - !last_sec);
+  complete_bandwidth := !complete_bandwidth - !remaining_bandwidth;
+  if !verbose_upload then begin
+      lprintf "Remaining %d[%d]" !remaining_bandwidth !complete_bandwidth; lprint_newline ();
+    end;
+  sent_bytes.(!counter-1) <- !remaining_bandwidth;
+  if !remaining_bandwidth > 0 then 
+    next_uploads ()
+
+let reset_upload_timer () = ()
+    
+let reset_upload_timer _ =
+  reset_upload_timer ()
+  
+let upload_credit_timer _ =
+  if !has_upload = 0 then 
+    (if !upload_credit < 300 then incr upload_credit)
+  else
+    decr has_upload
+    
+let ready_for_upload c =
+  Fifo.put upload_clients c
+    
+let add_pending_slot c =
+  if client_has_a_slot c then begin
+      lprintf "Avoided inserting an uploader in pending slots!";
+      lprint_newline ()
+    end 
+  else 
+  if not (Intmap.mem (client_num c) !pending_slots_map) then
+    begin
+(* This is useless since it is the goal of the pending_slots_map 
+        else if Fifo.mem pending_slots_fifo (client_num c) then begin
+	lprintf "Avoided inserting a client twice in pending slots";
+	lprint_newline ()
+      end else *)
+      pending_slots_map := Intmap.add (client_num c) c !pending_slots_map;
+    end
+    
+let remove_pending_slot c =
+  if Intmap.mem (client_num c) !pending_slots_map then
+    pending_slots_map := Intmap.remove (client_num c) !pending_slots_map
+    
+let rec give_a_slot c =
+  remove_pending_slot c;
+  if not (client_is_connected c) then begin
+      find_pending_slot ()
+    end
+  else begin
+      set_client_has_a_slot c true;
+      client_enter_upload_queue c
+    end
+    
+and find_pending_slot () =
+  try
+    let rec iter () =
+      let c = Intmap.top !pending_slots_map in
+      give_a_slot c
+    in
+    iter ()
+  with _ -> ()
+
+let static_refill_upload_slots () =
+  let len = Fifo.length upload_clients in
+  if len < !!max_upload_slots then find_pending_slot ()
+
+(* Since dynamic slots allocation is based on feedback, it should not 
+ * allocate new slots too fast, since connections need some time to reach 
+ * a stable state. 
+ * To compensate for that slow pace, slots are allocated quadratically
+ * as long as the link is not saturated. 
+ *)
+
+let not_saturated_count = ref 0
+let allocation_cluster = ref 1
+  
+let dynamic_refill_upload_slots () =
+  let reset_state () =
+    not_saturated_count := 0;
+    allocation_cluster := 1 in
+
+  let open_slots n =
+    let i = ref n in
+    if !verbose_upload then begin
+      lprintf "try to allocate %d more slots" n;
+      lprint_newline ()
+    end;
+    while !i > 0 do
+      find_pending_slot ();
+      decr i
+    done in
+
+  let slot_bw = 3072 in
+  let min_upload_slots = 3 in
+(*  let estimated_capacity = !!max_hard_upload_rate * 1024 in *)
+  let estimated_capacity = detected_uplink_capacity () in
+  if !verbose_upload then begin
+    lprintf "usage: %d(%d) capacity: %d "
+      (short_delay_upload_usage ()) 
+      (upload_usage ()) 
+      estimated_capacity;
+    lprint_newline ()
+  end;
+  let len = Fifo.length upload_clients in
+  if len < !!max_upload_slots then begin
+
+(* enough free bw for another slot *)
+    if short_delay_upload_usage () + slot_bw < estimated_capacity then begin
+      if !verbose_upload then begin
+	lprintf "uplink not fully used";
+	lprint_newline ()
+      end;
+      incr not_saturated_count
+    end else reset_state ();
+          
+    if len < min_upload_slots then begin
+      if !verbose_upload then begin
+	lprintf "too few upload slots";
+	lprint_newline ()
+      end;
+      open_slots (min_upload_slots - len);
+      reset_state ()
+    end else if !not_saturated_count >= 2 then begin
+      open_slots (min !allocation_cluster (!!max_upload_slots - len));
+      incr allocation_cluster
+    end
+  end
+
+let turn = ref (-1)
+
+let refill_upload_slots () =
+  incr turn;
+  if !turn = 5 then
+    turn := 0;
+  if !!dynamic_slots then begin
+    if !turn = 0 then
+      (* call every 5s *)
+      dynamic_refill_upload_slots ()
+  end else
+    (* call every 1s *)
+    static_refill_upload_slots ();
+
+  if !turn = 0 then
+    (* call every 5s *)
+    update_upload_history ()
+
+
+let consume_bandwidth len =
+  remaining_bandwidth := !remaining_bandwidth - len
+
+let remaining_bandwidth () = !remaining_bandwidth
+  
+  
+
+(**********************************************************************
+
+
+                     DOWNLOAD SCHEDULER
+
+
+***********************************************************************)
+
+let download_credit = ref 0 
+let download_fifo = Fifo.create ()
+
+    
+let download_engine () =
+  if not (Fifo.empty download_fifo) then begin
+      let credit = !!max_hard_download_rate in
+      let credit = 2 * (if credit = 0 then 10000 else credit) in
+      download_credit := !download_credit + credit;
+      let rec iter () =
+        if !download_credit > 0 && not (Fifo.empty download_fifo) then  
+          begin
+            (try
+                let (f, len) = Fifo.take download_fifo in
+                download_credit := !download_credit - (len / 1000 + 1);
+                f ()
+              with _ -> ());
+            iter ()
+          end
+      in
+      iter ()
+    end
+
+let queue_download_request f len =  
+  if !!max_hard_download_rate <> 0 then 
+    f ()
+  else
+    Fifo.put download_fifo (f,len)    
+
+    (*
+  (* timer started every 1/10 seconds *)
+let download_timer () =
+  *)
+
+
+  (* timer started every 1/10 seconds *)
+let upload_download_timer () =
+  (try download_engine () 
+    with e -> 
+        lprintf "Exception %s in download_engine\n"  (Printexc2.to_string e)
+  );
+  (try next_uploads ()
+  with e ->  lprintf "exc %s in upload\n" (Printexc2.to_string e))

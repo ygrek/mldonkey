@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf2
 open CommonTypes
 open Options
 open BasicSocket
@@ -150,7 +151,7 @@ ignore (gui#clist_download#connect#unselect_row (download_unset_selection gui));
       Okey.add ~cond w ~mods k f
     with
       Not_found ->
-        prerr_endline (Gui2_messages.action_unknown action)
+        lprintf "%s\n"  (Gui2_messages.action_unknown action)
   in
 
 (* Global shortcuts *)

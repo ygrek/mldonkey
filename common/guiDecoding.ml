@@ -18,12 +18,14 @@
 *)
 
 open Printf2
-  open Md4
-
+open Md4
+  
 open CommonGlobals
 open CommonTypes
 open GuiTypes
 open GuiProto
+open AnyEndian  
+open AnyEndian
 open LittleEndian
 open TcpBufferedSocket
 
@@ -470,6 +472,11 @@ let get_client proto s pos =
     client_rating = rating;
     client_chat_port = chat_port;
     client_files = None;
+    client_connect_time = 0;
+    client_software = "";
+    client_uploaded = zero;
+    client_downloaded = zero;
+    client_upload = None;
   }, pos
 
 let get_network s pos =
@@ -776,7 +783,7 @@ let from_gui proto opcode s =
       lprintf "Decoding gui proto[%d]: exception %s, opcode %d" proto
         (Printexc2.to_string e) opcode;
       lprint_newline ();
-      LittleEndian.dump s;
+      dump s;
       lprint_newline ();
       raise e
       

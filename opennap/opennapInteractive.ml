@@ -64,8 +64,7 @@ let  _ =
   *)
             end
         | QHasField(field, value) ->
-            lprintf "******  HAS FIELD  %s %s ********" field value; 
-            lprint_newline ();
+            lprintf "******  HAS FIELD  %s %s ********\n" field value; 
             begin
               match field with
                 "Album" | "Title" -> t
@@ -88,7 +87,7 @@ let  _ =
               | _ -> t
             end
         | QNone ->
-            prerr_endline "OpennapInteractive.start_search: QNone in query";
+            lprintf "OpennapInteractive.start_search: QNone in query\n";
             t
       in
       let msg = iter t query in
@@ -202,8 +201,8 @@ let _ =
         
         P.user_server = (match user.user_servers with
             [] -> 
-              lprintf "%s(%d) is not on any server" user.user_nick user.user_user.impl_user_num;
-              lprint_newline ();
+              lprintf "%s(%d) is not on any server\n" 
+              user.user_nick user.user_user.impl_user_num;
               0
           | s :: _ -> s.server_server.impl_server_num);
       })
@@ -236,6 +235,11 @@ let _ =
         P.client_num = (client_num (as_client c.client_client));
         P.client_rating = 0;
         P.client_chat_port = 0 ;
+        P.client_connect_time = BasicSocket.last_time ();
+        P.client_software = "";
+        P.client_downloaded = zero;
+        P.client_uploaded = zero;
+        P.client_upload = None;
       }
   );
   client_ops.op_client_browse <- (fun c immediate ->

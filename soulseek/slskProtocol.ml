@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open AnyEndian
+
 open Printf2
 open CommonOptions
 open TcpBufferedSocket
@@ -83,7 +85,7 @@ let get_user_status s pos = (* 4 * 7 = 28 *)
   
 let unknown opcode s =
   lprintf "Unknown: opcode %d" opcode; lprint_newline ();
-  LittleEndian.dump s
+  dump s
   
 module C2S = struct
     
@@ -1017,7 +1019,7 @@ let server_send sock t =
   if !verbose_msg_servers then begin
       lprintf "SENDING TO SERVER:"; lprint_newline ();
       C2S.print t;
-      LittleEndian.dump s;
+      AnyEndian.dump s;
     end;
   
   write_string sock s
@@ -1030,7 +1032,7 @@ let client_send sock t =
   if !verbose_msg_clients then begin
       lprintf "SENDING TO CLIENT:"; lprint_newline ();
       C2C.print t;
-      LittleEndian.dump s;
+      AnyEndian.dump s;
     end;
   
   write_string sock s

@@ -19,6 +19,7 @@
 
 (** Types to define columns. *)
 
+open Printf2
 open Gettext
 open Options
 module M = Gui_messages
@@ -48,9 +49,8 @@ module Make(M: sig
           match M.column_strings with
             [] -> assert false
           | (c,name)  :: _ ->
-              prerr_endline 
-                (Printf.sprintf 
-                  "incorrect column : %s, using %s instead" s name);
+              lprintf 
+                "incorrect column : %s, using %s instead\n" s name;
               c
     
     open Options

@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open AnyEndian
 open Printf2
 open Md4
 open Autoconf
@@ -583,7 +584,7 @@ module Query  = struct (* request 22 *)
       | QHasMaxVal (name, field) ->
           lprintf "Field[%s] < [%s]" name (Int64.to_string field)
       |	QNone ->
-	  prerr_endline "print_query: QNone in query";
+	  lprintf "print_query: QNone in query\n";
 	  ()
     
     let  print t = 
@@ -615,7 +616,7 @@ module Query  = struct (* request 22 *)
       | QHasMaxVal (name, field) ->
           Printf.fprintf oc "Field[%s] < [%s]" name (Int64.to_string field)
       |	QNone ->
-	  prerr_endline "print_query: QNone in query\n";
+	  lprintf "print_query: QNone in query\n";
 	  ()
 
 
@@ -680,7 +681,7 @@ module Query  = struct (* request 22 *)
           buf_string buf name
 
       |	QNone ->
-	  prerr_endline "print_query: QNone in query";
+	  lprintf "print_query: QNone in query\n";
 	  ()
             
   end

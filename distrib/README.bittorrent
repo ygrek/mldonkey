@@ -1,0 +1,40 @@
+
+BitTorrent support in MLdonkey (v  2.04rc-13)
+============================== 
+
+MLdonkey contains ALPHA support for downloading files using the BitTorrent
+protocol. 
+
+USAGE:
+******
+
+1) Be sure that BitTorrent support is enabled: in downloads.ini, 
+    enable_bittorrent should be true. To enable it, just use:
+
+   set enable_bittorrent true 
+
+   in the console
+
+2) Use a binary with BitTorrent code: mlbc, mlbc+gui, mlnet or mlnet+gui
+
+3) Now, you can start a download in one of these programs:
+
+  dllink  http://207.44.142.96/redhat9.torrent
+
+  MLdonkey will connect to the WEB server, download the .torrent metainfo
+file, and add the file to the downloads list. If the file is not added,
+it is probably that the WEB server could not be contacted.
+
+RESTRICTIONS:
+*************
+
+* MLdonkey cannot be used to publish files on BitTorrent: it does not 
+  contain a tracker.   It can just upload partial files it is currently
+  downloading.
+
+* Multiple files are saved in one file. You need to find the positions of
+  the files and cut the file in pieces after the download (see files.ini for
+  the positions)
+
+
+

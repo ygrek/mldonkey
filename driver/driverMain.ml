@@ -35,7 +35,8 @@ let do_daily () =
   incr days;
   load_web_infos ()
 
-let minute_timer () = 
+let minute_timer () =
+  CommonUploads.upload_credit_timer ();
   CommonInteractive.force_download_quotas ();
   if !!auto_commit then
     List.iter (fun file ->
@@ -53,7 +54,12 @@ let second_timer timer =
   (try 
       update_link_stats () 
     with e -> 
-        lprintf "Exception %s" (Printexc2.to_string e); lprint_newline ())
+        lprintf "Exception %s" (Printexc2.to_string e); lprint_newline ());
+	  (try 
+     CommonUploads.refill_upload_slots ()
+   with e -> 
+     lprintf "Exception %s" (Printexc2.to_string e); lprint_newline ());
+  CommonUploads.reset_upload_timer ()
   
 let start_interfaces () =
   
@@ -344,6 +350,8 @@ let _ =
   
   add_infinite_timer 60. minute_timer;
   add_infinite_timer 3600. hourly_timer;
+  add_infinite_timer 0.1 CommonUploads.upload_download_timer;
+
   shared_add_directory !!incoming_directory;
   List.iter shared_add_directory !!shared_directories;  
   

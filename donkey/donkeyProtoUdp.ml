@@ -24,7 +24,8 @@ open LittleEndian
 open CommonTypes
 open CommonGlobals
 open DonkeyMftp
-
+open AnyEndian
+  
 module QueryUdpReply  = struct 
     
     type t = tagged_file

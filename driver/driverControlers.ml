@@ -516,7 +516,7 @@ let chat_handler t event =
            Unix.close s
      with
        Failure mess ->
-	 prerr_endline mess;
+	 lprintf "%s\n" mess;
 	 Unix.close s
     )
   | _ ->

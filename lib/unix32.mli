@@ -49,4 +49,3 @@ val allocate_chunk :  t -> int64 -> int64 -> unit
 val copy_chunk : t -> t -> int64 -> int64 -> int64 -> unit
 val create_ro : string -> t
 val file_exists : string -> bool
-  

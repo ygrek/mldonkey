@@ -61,10 +61,6 @@ let fivemin_timer timer =
   DonkeyChunks.duplicate_chunks ()
 
 let second_timer timer =
-  (try 
-     DonkeyClient.refill_upload_slots ()
-   with e -> 
-     lprintf "Exception %s" (Printexc2.to_string e); lprint_newline ());
   (try
 (*
       if !verbose_src_manager then begin
@@ -79,12 +75,10 @@ let second_timer timer =
         if !verbose_src_manager then begin
             lprintf "Exception %s while checking sources" 
               (Printexc2.to_string e) ; lprint_newline ()
-          end);
-  DonkeyFiles.reset_upload_timer ()
+          end)
 
 let halfmin_timer timer =
   DonkeyServers.update_master_servers ();
-  DonkeyFiles.upload_credit_timer ();
   DonkeyIndexer.add_to_local_index_timer ()
 
   
@@ -267,7 +261,6 @@ let enable () =
     add_session_timer enabler 300. fivemin_timer;
     add_session_timer enabler 900. quarter_timer;
     add_session_timer enabler 1. second_timer;
-    add_session_timer enabler 0.1 DonkeyFiles.upload_timer;
     add_session_timer enabler 60. DonkeyServers.query_locations_timer;
 
     

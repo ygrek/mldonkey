@@ -364,41 +364,6 @@ class box submit_search query_entry =
 
 end
 
-(*
-class freedb_box submit_search =
-  let query_entry = Gui_cdget.FreeDB.query in
-  let f_submit = ref (fun () -> ()) in
-  let (w,expand,form) = form_of_entry 
-      (fun () -> !f_submit ()) 
-    query_entry 
-  in
-  object(self)
-    inherit Gui_queries_base.box () 
-    
-    method submit () = 
-      let qe = entry_of_form form in
-      submit_search (qe, Gui_cdget.FreeDB.submit_freedb_search qe)
-      
-    method set_tb_style st = 
-      wtool#set_style st;
-    
-    initializer
-      f_submit := (fun () -> self#submit ());
-      box_fields#pack w;
-      ignore (wchk_show#connect#clicked
-          (fun () -> hide_or_show wchk_show#active form));
-      ignore
-        (wtool#insert_button 
-          ~text: (gettext M.submit)
-        ~tooltip: (gettext M.submit)
-        ~icon: (Gui_options.pixmap M.o_xpm_submit_search)#coerce
-          ~callback: self#submit
-          ()
-      );
-
-end
-*)
-
 (*   let query_entry = Q_KEYWORDS ("Title", "") in *)
 
 class url_box query_entry submit_search =
@@ -490,26 +455,7 @@ class paned () =
 (*      List.iter (fun (_,(b,_)) -> b#remove_extend_search_button) results; *)
       
       results <- (s.GuiTypes.search_num, (box_res, vbox)) :: results
-    
-      (*
-    method submit_freedb_search qe =
-      let desc = Gui_misc.description_of_query qe in
-      let wl = GMisc.label ~text: desc () in
-      let vbox = GPack.vbox () in
-      let box_res = new Gui_cdget.FreeDB.results qe in
-      vbox#pack ~expand: true box_res#coerce;
-      let wb_close = GButton.button ~label: (gettext M.close_search)
-        ~packing: (vbox#pack ~expand: false)
-        ()
-        in
-      ignore (wb_close#connect#clicked (fun _ ->
-            vbox#destroy ()
-        ));
-      wnote_results#insert_page ~tab_label: wl#coerce ~pos: 0 vbox#coerce;
-      wnote_results#goto_page 0;
-      wnote_main#goto_page 3;
-*)
-      
+          
     method submit_url_search result_box qe =
       let desc = Gui_misc.description_of_query qe in
       let wl = GMisc.label ~text: desc () in
@@ -559,13 +505,11 @@ class paned () =
         Not_found ->
           ()
     
-    
-    
     method h_define_searches l =
       let f (label, qe) =
         let b = new box self#submit_search qe in
         let wl = GMisc.label ~text: label () in
-        wnote_queries#append_page ~tab_label: wl#coerce b#coerce;
+        wnote_queries#insert_page ~pos: 0 ~tab_label: wl#coerce b#coerce;
         b#set_tb_style !!Gui_options.toolbars_style;
         queries_box <- b :: queries_box
       in

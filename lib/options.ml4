@@ -710,6 +710,11 @@ let list_option cl =
   define_option_class (cl.class_name ^ " List") (value_to_list cl.from_value)
     (list_to_value cl.class_name cl.to_value)
 
+let value_to_array from_value a =
+  Array.of_list (value_to_list from_value a)
+let array_to_value to_value v =
+  list_to_value "" to_value (Array.to_list v)
+  
 let array_option cl =
   define_option_class (cl.class_name ^ " Array")
     (fun v -> Array.of_list (value_to_list cl.from_value v))

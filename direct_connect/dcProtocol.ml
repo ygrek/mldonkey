@@ -22,6 +22,7 @@ open CommonGlobals
 open DcGlobals
 open DcTypes
 open TcpBufferedSocket
+open AnyEndian
 
 
 module Empty = functor(M: sig val msg : string end) -> 
@@ -805,7 +806,7 @@ let print m =
     | ToReq t -> To.print t
     | MessageReq t -> lprintf "MESSAGE: %s" t
     | UnknownReq t -> lprintf "UNKNOWN:"; 
-        LittleEndian.dump t
+        dump t
   end;
   lprint_newline () 
   

@@ -96,4 +96,5 @@ val normalize_time : int -> int
   
 val use_threads : bool ref
 external has_threads : unit -> bool = "ml_has_pthread"
+val get_rtimeout : t -> float * float
   

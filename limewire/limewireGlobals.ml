@@ -31,7 +31,7 @@ open CommonGlobals
 open Options
 open LimewireTypes
 open LimewireOptions
-  
+open CommonSwarming  
 open CommonNetwork
 
 (*
@@ -192,8 +192,8 @@ let redirectors_to_try = ref ( [] : string list)
 let files_by_uid = Hashtbl.create 13
 let files_by_key = Hashtbl.create 13
 
-let (users_by_uid : (Md4.t, user) Hashtbl.t) = Hashtbl.create 127
-let (clients_by_uid : (Md4.t, client) Hashtbl.t) = Hashtbl.create 127
+let (users_by_uid ) = Hashtbl.create 127
+let (clients_by_uid ) = Hashtbl.create 127
 let results_by_key = Hashtbl.create 127
 let results_by_uid = Hashtbl.create 127
   
@@ -227,6 +227,13 @@ let new_server ip port =
       Hashtbl.add servers_by_key key s;
       s
 
+let string_of_uid uid = 
+  match uid with
+    Bitprint (s,_,_) -> s
+  | Sha1 (s,_) -> s
+  | Md4 (s,_) -> s
+  | Md5 (s,_) -> s
+      
 let extract_uids arg = 
   match String2.split (String.lowercase arg) ':' with
   | "urn" :: "sha1" :: sha1_s :: _ ->
@@ -255,6 +262,7 @@ let add_source r s index =
 let new_result file_name file_size uids =
   match uids with
     [] -> (
+        lprintf "New result by key\n";
         let key = (file_name, file_size) in
         try
           Hashtbl.find results_by_key key
@@ -275,6 +283,7 @@ let new_result file_name file_size uids =
             Hashtbl.add results_by_key key result;
             result)
   | uid :: other_uids ->
+      lprintf "New result by UID\n";
       let r = 
         try
           Hashtbl.find results_by_uid uid
@@ -317,17 +326,23 @@ let new_result file_name file_size uids =
       in
       List.iter iter_uid other_uids;
       r
+
+let megabyte = Int64.of_int (1024 * 1024)
       
 let new_file file_id file_name file_size = 
   let file_temp = Filename.concat !!DO.temp_directory 
       (Printf.sprintf "LW-%s" (Md4.to_string file_id)) in
   let t = Unix32.create file_temp [Unix.O_RDWR; Unix.O_CREAT] 0o666 in
+  let swarmer = Int64Swarmer.create () in
+  let partition = fixed_partition swarmer megabyte in
   let rec file = {
       file_file = file_impl;
       file_id = file_id;
       file_name = file_name;
       file_clients = [];
       file_uids = [];
+      file_swarmer = swarmer;
+      file_partition = partition;
     } and file_impl =  {
       dummy_file_impl with
       impl_file_fd = t;
@@ -339,7 +354,14 @@ let new_file file_id file_name file_size =
       impl_file_best_name = file_name;
     }
   in
-  
+  lprintf "SET SIZE : %Ld\n" file_size;
+  Int64Swarmer.set_size swarmer file_size;  
+  Int64Swarmer.set_writer swarmer (fun offset s pos len ->      
+      if !!CommonOptions.buffer_writes then 
+        Unix32.buffered_write t offset s pos len
+      else
+        Unix32.write  t offset s pos len
+  );
   current_files := file :: !current_files;
   file_add file_impl FileDownloading;
 (*      lprintf "ADD FILE TO DOWNLOAD LIST\n"; *)
@@ -373,15 +395,17 @@ let new_file file_id file_name file_size file_uids =
       ) file_uids;
       file
               
-let new_user uid kind =
+let new_user kind =
   try
-    let s = Hashtbl.find users_by_uid uid in
+    let s = Hashtbl.find users_by_uid kind in
     s.user_kind <- kind;
     s
   with _ ->
       let rec user = {
           user_user = user_impl;
-          user_uid = uid;
+          user_uid = (match kind with
+              Known_location _ -> Md4.null
+            | Indirect_location (_, uid) -> uid);
           user_kind = kind;
 (*          user_files = []; *)
           user_speed = 0;
@@ -391,20 +415,20 @@ let new_user uid kind =
             impl_user_val = user;
           } in
       user_add user_impl;
-      Hashtbl.add users_by_uid uid user;
+      Hashtbl.add users_by_uid kind user;
       user
   
-let new_client uid kind =
+let new_client kind =
   try
-    Hashtbl.find clients_by_uid uid 
+    Hashtbl.find clients_by_uid kind 
   with _ ->
-      let user = new_user uid kind in
+      let user = new_user kind in
       let rec c = {
           client_client = impl;
           client_sock = None;
 (*          client_name = name; 
           client_kind = None; *)
-          client_file = None;
+          client_requests = [];
 (* 
 client_pos = Int32.zero; 
 client_error = false;
@@ -414,14 +438,14 @@ client_error = false;
           client_user = user;
           client_connection_control = new_connection_control (());
           client_downloads = [];
-          client_pos = Int64.zero;
+          client_host = None;
         } and impl = {
           dummy_client_impl with
           impl_client_val = c;
           impl_client_ops = client_ops;
         } in
       new_client impl;
-      Hashtbl.add clients_by_uid uid c;
+      Hashtbl.add clients_by_uid kind c;
       c
     
 let add_download file c index =
@@ -429,12 +453,44 @@ let add_download file c index =
 (*  add_source r c.client_user index; *)
   lprintf "Adding file to client\n";
   if not (List.memq c file.file_clients) then begin
-      c.client_downloads <- (file, index) :: c.client_downloads;
+      let chunks = [ Int64.zero, file_size file ] in
+      let bs = Int64Swarmer.register_uploader file.file_partition chunks in
+      c.client_downloads <- c.client_downloads @ [{
+          download_file = file;
+          download_uri = index;
+          download_chunks = chunks;
+          download_blocks = bs;
+          download_ranges = [];
+          download_block = None;
+        }];
       file.file_clients <- c :: file.file_clients;
       file_add_source (as_file file.file_file) (as_client c.client_client)
     end
     
-      
+let rec find_download file list = 
+  match list with
+    [] -> raise Not_found
+  | d :: tail ->
+      if d.download_file == file then d else find_download file tail
+    
+let rec find_download_by_index index list = 
+  match list with
+    [] -> raise Not_found
+  | d :: tail ->
+      match d.download_uri with
+        FileByIndex (i,_) when i = index -> d
+      | _ -> find_download_by_index index tail
+
+let remove_download file list =
+  let rec iter file list rev =
+    match list with
+      [] -> List.rev rev
+    | d :: tail ->
+        if d.download_file == file then
+          iter file tail rev else
+          iter file tail (d :: rev)
+  in
+  iter file list []
   
 let file_state file =
   file_state (as_file file.file_file)

@@ -1,6 +1,33 @@
 ChangeLog	
 =========
 
+2003/04/06: Simon  (v 2.04rc1-13)
+  - BitTorrent: almost complete implementation, still to test
+      Current Restrictions:
+        * No support for multiple files in one file (open files.ini, 
+          you will find the positions of the sub-files there)
+        * No support for releasing files
+      But upload WORKS correctly
+  - Lot of code has moved, need some more testing before stable 2.04
+
+2003/04/04: Simon
+  - LimeWire Plugin:
+     * GUID fixed
+  - Some C warnings removed
+  - Moved donkey/ upload code to common/commonUploads.ml to be used by other
+      plugins
+  - Fixed Tiger Tree function on BigEndian platforms
+
+2003/04/03: Simon 
+  - Fixed bugs #3079 and #3080 :)
+  - New common/commonSwarming.ml module to handle swarming for all networks
+      that support it.
+  - LimeWire Plugin:
+     * Swarming possible, not completely tested
+     * More headers understood: 
+       X-Gnutella-Alternate-Location, X-Gnutella-Content-URN,
+         Remote-IP
+
 2003/04/01: Simon  (v 2.04rc1-12)
   - Fixed per user Column Sorting in HTTP interface
   - Fixed bug #3003 :)

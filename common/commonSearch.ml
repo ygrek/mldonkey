@@ -36,7 +36,7 @@ let search_string q =
     | QHasMinVal (f,v) -> Printf.sprintf "[%s]>%Ld" f v
     | QHasMaxVal (f,v) -> Printf.sprintf "[%s]<%Ld" f v
     | QNone ->
-	prerr_endline "QNone in query";
+	lprintf "QNone in query\n";
 	""
   in
   iter q

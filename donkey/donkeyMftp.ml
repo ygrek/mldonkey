@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open AnyEndian
+
 open Printf2
 open CommonTypes
 open LittleEndian
@@ -66,15 +68,6 @@ let buf_port buf port =
 let buf_peer buf (ip,port) =
   buf_ip buf ip;
   buf_port buf port
-
-let int_tag s i = 
-  { tag_name = s; tag_value = Uint64 (Int64.of_int i) }
-
-let int32_tag s i = 
-  { tag_name = s; tag_value = Uint64 i }
-
-let string_tag s i = 
-  { tag_name = s; tag_value = String i }
   
 let rec buf_tags buf tags names_of_tag =
   buf_int buf (List.length tags);

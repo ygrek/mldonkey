@@ -2,77 +2,67 @@
                       MLDonkey
                       ========
 
-Release: 1.16
-Authors: [b8]_bavard (Communication engine) and [b8]_Zoggy (GUI)
+Release 2.04rc1
+---------------
 
- MLDonkey is a door to the 'donkey' network, a decentralized network used to
-exchange big files on the Internet. It is written in a wonderful language,
-called Objective-Caml, and present most features of the basic Windows donkey
-client, plus some more:
- - It should work on most UNIX-compatible platforms.
- - You can remotely command your client, either by telnet, on a WEB browser,
-   or with the GTK interface. 
- - You can connect to several servers, and each search will query all the 
-    connected servers.
- - You can select mp3s by bitrates in queries (useful ?).
- - You can select the name of a downloaded file before moving it to your
-   incoming directory.
- - You can have several queries in the graphical user interface at the same
-    time. 
- - You can remember your old queries results in the command-line interface.
- - You can search in the history of all files you have seen on the network.
+MLdonkey is a multi-network file-sharing client, written in Objective-Caml.
+It can run as a daemon on your computer, and can be controlled via 3 
+interfaces: telnet, WEB and GUIs.
 
+FOR HELP:
+=========
+Mailing-Lists available from: http://www.mldonkey.net/
+
+IRC channel: irc.freenode.net, chat #mldonkey
+
+Web sites:
+http://www.mldonkey.net/         Official site, bug reports
+http://www.mldonkeyworld.com/    English forum
+http://www.mldonkey.org/         German forum
+
+Mailing-lists:
+mldonkey-users@nongnu.org
+Archives: http://mail.nongnu.org/mailman/listinfo/mldonkey-users
 
 USAGE:
 ======
 
-  This package contains three files: 'mldonkey', 'mldonkey_gui' and
-servers.ini'.
+You can find three kind of binaries in MLdonkey distributions, their names
+are of the form:
 
-'mldonkey' is the main program, a daemon which is used to download files.
-It takes no argument, and outputs some debugging messages on his terminal,
-so you should not close it. So, to start your program in the background, 
-you can use:
+* mldonkey, mlgnut,... : the clients to access the different networks
+* mldonkey_gui: the Graphical Interface ONLY 
+* mldonkey+gui, mlgnut+gui,...: the client with the GUI integrated
 
-prompt> ./mldonkey > mldonkey.log &
+Among the different networks clients, you can find:
+  mldonkey: eDonkey + Overnet support
+  mlgnut : Gnutella (+ Gnutella2 in the future) support
+  mlslsk: Soulseek support
+  mlbt: BitTorrent support
+  mldc: Direct-Connect support
+and mlnet: all the networks in one binary
 
-  'mldonkey' expects to find several .ini files in the directory 
-where it is started. You can use the file provided in this package, or your
-old one if you already used 'mldonkey' before. It contains a list of servers
-that were available when the release was done. You can edit 'downloads.ini' 
-to modify its parameters before starting 'mldonkey', but you can also 
-modify the parameters in the graphical user interface 'mldonkey_gui'.
+To start, create an empty directory where mldonkey will store its 
+configuration files, its temporary files and its downloaded files.
+Then, just start mldonkey. It will create a temp/ and an incoming/ 
+directories, and many .ini configuration files.
 
- 'mldonkey_gui', the graphical user interface, can be started by:
+Now, to communicate with him, you have the choice:
+1) WEB: open http://127.0.0.1:4080/
 
-prompt> ./mldonkey_gui &
+2) Telnet: telnet 127.0.0.1 4000
 
- 'mldonkey_gui' doesn't need to be started in the same directory as
-'mldonkey'. Without parameters, it expects to find 'mldonkey' running on the
-same computer on the default port. If you started 'mldonkey' on another
-computer, you should specify the hostname (myhost.mydomain.mydot for example)
-on the command line:
+3) The GUI: mldonkey_gui
 
-prompt> ./mldonkey_gui myhost.mydomain.mydot
+Normally, you can use CTRL-C to stop it, even if the best way is still
+to use the 'kill' internal command in one of the 3 interfaces.
 
- If you also modified the GUI port, you can also specify it (here 9999 for
-example) on the command line:
+************************************************************************
 
-prompt>  ./mldonkey_gui myhost.mydomain.mydot 9999
+     NOTE: THIS PART OF THE DOCUMENTATION IS OBSOLETE. You can still
+    find information inside, but the most up-to-date information is
+    available in the Wiki of http://www.mldonkeyworld.com/ 
 
- You can also start the GUI, and modify these settings in the Options panel,
-and then try to reconnect. This is anyway necessary if you have put a
-password.
-
- Instead of using the GUI, you can also telnet to the daemon:
-
-prompt> telnet localhost 4000
-
-(on your local computer) or 
-
-prompt> telnet myhost.mydomain.mydot
-
-(if the client was started on that host).
 
 Using the config the standard core :
 ===================================
@@ -94,36 +84,6 @@ servers '/.../donkey2000/server.met'
 
   Filenames containing special characters (such as spaces) should be put
 inside ''.
-
-
-Frequently Asked Questions
-==========================
-
-*) How can I contact the authors ?
-----------------------------------
-
-You can reach us for a short time on 
-
-      mldonkey@mldonkey.net
-      mldonkey-users@non-gnu.org
-
-Please don't bother us too much with questions on how to use mldonkey. We
-prefer bug reports, containing USEFUL information to find the bug. You can
-also submit bugs on the savannah WEB site:
-
-  http://www.freesoftware.fsf.org/mldonkey/
-
-For advices on how to use mldonkey, you can check several forums:
-
-  http://www.mldonkeyworld.com/
-  http://www.mldonkey.org/      (German forum)
-
-*) What about the sources ? What about the protocol ?
------------------------------------------------------
-
-All sources are available on the savannah WEB site:
-
-  http://www.freesoftware.fsf.org/mldonkey/
 
 *) The GUI/telnet/WEB can't connect to the core.
 -----------------------------------------------
@@ -177,25 +137,6 @@ Some options can also be modified by the 'set' command (in the command-line
 client or in the console of the GUI). These options appear when you use
 the 'vo' command.
 
-*) How can I communicate with the client ?
-------------------------------------------
-
-There are three ways to communicate with the client. In all the cases, you 
-can run the client on one computer and control it from another computer.
-In these examples, we suppose they both run on the local computer 'localhost':
-
-  1) Use the GUI, called 'mldonkey_gui':
-
-prompt> ./mldonkey_gui localhost
-
-  2) Use the command-line client:
-
-prompt> telnet localhost 4000
-
-  3) Use a WEB browser:
-
-prompt> lynx http://localhost:4080/
-
 *) How can use the GUI on MacOS X ?
 -----------------------------------
 
@@ -232,64 +173,6 @@ By default, mldonkey uses ports 4662 for tcp connections, and port 4666 for
 udp connections. If you change the tcp port, udp port will be tcp_port + 4.
 Therefore, you should allow your firewall to send incoming connections and
 messages on these ports to your local network.
-
-
-Help on the command-line interface
-==================================
-
-In a different shell, telnet to your application by:
-
-prompt> telnet localhost 4000
-
-4000 is the default port for connecting with the command-line client. 
-Command-line client is disabled if you have set a password.
-
-Then, use ? to find some help on available commands. Some commands are only 
-available in the graphical interface (setting options for example), others
-only in the command-line interface (import of old donkey config for example).
-
-Here is the output of the help command for version 1.12:
-n  <ip> [<port>]: add a server
-vu  : view upload credits
-nu  <m> : disable upload during <m> minutes (multiple of 5)
-import  <dirname> : import the config from dirname
-x  <num> : disconnect from server
-servers  <filename> : add the servers from a server.met file
-commit : move downloaded files to incoming directory
-vd <num>: view file info
-reshare  : check shared files for removal
-vm : list connected servers
-vma : list all known servers
-q : close telnet
-kill : save and kill the server
-save : save
-d <size> <md4> : download this file
-upstats  : statistics on upload
-port  <port> : change connection port
-vo  : print options
-set  <option_name> <option_value> : change option value
-vr   [<num>]: view results of a search
-forget  <num> : forget search <num>
-ls  <query> : local search
-s  <query> : search for files
-
-        With special args:
-        -minsize <size>
-        -maxsize <size>
-        -media <Video|Audio|...>
-        -Video
-        -Audio
-        -format <format>
-        -field <field> <fieldvalue>
-        -not <word>
-        -and <word> 
-        -or <word> :
-
-vs : view all queries
-cancel  <num> : cancel download
-xs : extended search
-clh  : clear local history
-c  [<num>]: connect to more servers (or to server <num>)
 
 
 Help on the graphical user interface
@@ -422,9 +305,4 @@ The indexer is called each time a new result is received by mldonkey,
 and the result is given on its standard input in the same format as specified
 above. It can be used to add the result to the index that is used by the
 Finder.
-
-Known bugs:
-===========
-  * When clicking on the columns it sorts on that column, when
-   clicking again it should do a reverse sort on it, but it doesn't.
 

@@ -37,5 +37,5 @@ let parse () =
     ()
   with
     Failure s ->
-      prerr_endline s ;
+      lprintf_newline "%s" s ;
       exit 1

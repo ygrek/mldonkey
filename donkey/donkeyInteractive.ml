@@ -457,7 +457,8 @@ let commands = [
     
     "vu", Arg_none (fun o ->
         let buf = o.conn_buf in
-        Printf.sprintf "Upload credits : %d minutes\nUpload disabled for %d minutes" !upload_credit !has_upload;
+        Printf.sprintf "Upload credits : %d minutes\nUpload disabled for %d
+minutes" !CommonUploads.upload_credit !CommonUploads.has_upload;
     
     ), ":\t\t\t\t\tview upload credits";
     
@@ -475,33 +476,7 @@ let commands = [
         DonkeyIndexer.add_comment md4 comment;
         "Comment added"
     ), "<md4> \"<comment>\" :\t\tadd comment on a md4";
-    
-    "nu", Arg_one (fun num o ->
-        let buf = o.conn_buf in
-        let num = int_of_string num in
         
-        if num > 0 then (* we want to disable upload for a short time *)
-          let num = mini !upload_credit num in
-          has_upload := !has_upload + num;
-          upload_credit := !upload_credit - num;
-          Printf.sprintf
-            "upload disabled for %d minutes (remaining credits %d)" 
-            !has_upload !upload_credit
-        else
-        
-        if num < 0 && !has_upload > 0 then
-(* we want to restart upload probably *)
-          let num = - num in
-          let num = mini num !has_upload in
-          has_upload := !has_upload - num;
-          upload_credit := !upload_credit + num;
-          Printf.sprintf
-            "upload disabled for %d minutes (remaining credits %d)" 
-            !has_upload !upload_credit
-        
-        else ""
-    ), "<m> :\t\t\t\tdisable upload during <m> minutes (multiple of 5)";
-    
     "import", Arg_one (fun dirname o ->
         let buf = o.conn_buf in
         try
@@ -580,70 +555,70 @@ let commands = [
     "scan_temp", Arg_none (fun o ->
         let buf = o.conn_buf in
         let list = Unix2.list_directory !!temp_directory in
-
+        
         let counter = ref 0 in
         let tr = ref "dl-1" in
         
         if use_html_mods o then
-
-		html_mods_table_header buf "scan_tempTable" "scan_temp" [ 
-		( "0", "srh", "Filename", "Filename" ) ; 
-		( "0", "srh", "Status", "Status" ) ;
-		( "0", "srh", "MD4", "MD4" ) ];
-
-
+          
+          html_mods_table_header buf "scan_tempTable" "scan_temp" [ 
+            ( "0", "srh", "Filename", "Filename" ) ; 
+            ( "0", "srh", "Status", "Status" ) ;
+            ( "0", "srh", "MD4", "MD4" ) ];
+        
+        
         List.iter (fun filename ->
             incr counter;
             if (!counter mod 2 == 0) then tr := "dl-1"
-                                     else tr := "dl-2";
+            else tr := "dl-2";
             try
               let md4 = Md4.of_string filename in
               try
                 let file = find_file md4 in
                 if use_html_mods o then
-                Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>\\<td
+                  Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>\\<td
                 class=\\\"sr\\\"\\>\\<A HREF=\\\"%s\\\"\\>%s\\</A\\>\\</td\\>
                 \\<td class=\\\"sr \\\"\\>%s\\</td\\> 
                 \\<td class=\\\"sr \\\"\\>%s\\</td\\>\\</tr\\>" 
-                 !tr (file_comment (as_file file.file_file)) (file_best_name file) "Downloading" filename
+                    !tr (file_comment (as_file file.file_file)) (file_best_name file) "Downloading" filename
                 else
-                Printf.bprintf buf "%s is %s %s\n" filename
-                  (file_best_name file)
-                "(downloading)" 
+                  Printf.bprintf buf "%s is %s %s\n" filename
+                    (file_best_name file)
+                  "(downloading)" 
               with _ ->
-                if use_html_mods o then
-                Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+                  if use_html_mods o then
+                    Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>
                 \\<td class=\\\"sr \\\"\\>%s\\</td\\> 
                 \\<td class=\\\"sr \\\"\\>%s\\</td\\>\\</tr\\>" !tr 
-                  (try
-                      let names = DonkeyIndexer.find_names md4 in
-                      List.hd names
-                    with _ -> "Never Seen") 
+                      (try
+                        let names = DonkeyIndexer.find_names md4 in
+                        List.hd names
+                      with _ -> "Never Seen") 
                     (if List.mem md4 !!old_files then
-                      "Old file" else "Unknown")
-                      filename
-                else
-                  Printf.bprintf buf "%s %s %s\n"
+                        "Old file" else "Unknown")
                     filename
-                    (if List.mem md4 !!old_files then
-                      "is an old file" else "is unknown")
-                  (try
-                      let names = DonkeyIndexer.find_names md4 in
-                      List.hd names
-                    with _ -> "and never seen")
+                  else
+                    Printf.bprintf buf "%s %s %s\n"
+                      filename
+                      (if List.mem md4 !!old_files then
+                        "is an old file" else "is unknown")
+                    (try
+                        let names = DonkeyIndexer.find_names md4 in
+                        List.hd names
+                      with _ -> "and never seen")
             
             with _ -> 
                 if use_html_mods o then
-                Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>\\<td class=\\\"sr\\\"\\>Unknown\\</td\\>
+                  Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>\\<td class=\\\"sr\\\"\\>Unknown\\</td\\>
                 \\<td class=\\\"sr \\\"\\>\\</td\\> 
                 \\<td class=\\\"sr \\\"\\>%s\\</td\\>\\</tr\\>" !tr filename 
                 else
-                Printf.bprintf buf "%s unknown\n" filename
+                  Printf.bprintf buf "%s unknown\n" filename
         
         ) list;
-
+        
         if use_html_mods o then Printf.bprintf buf "\\</table\\>\\</div\\>";
-                
+        
         "done";
     ), ":\t\t\t\tprint temp directory content";
     
@@ -682,165 +657,6 @@ let commands = [
         "done"
     ), ":\t\t\trecompute order of connections to sources (experimental)";
     
-    "uploaders", Arg_none (fun o ->
-        let buf = o.conn_buf in
-        
-        
-        
-        if use_html_mods o then
-          
-          begin
-            
-            let counter = ref 0 in
-            
-            Printf.bprintf buf "\\<div class=\\\"uploaders\\\"\\>Total upload slots: %d | Pending slots: %d\n" (Fifo.length upload_clients) (Intmap.length !pending_slots_map);
-            
-            if Fifo.length upload_clients > 0 then
-              
-              begin
-                
-		        html_mods_table_header buf "uploadersTable" "uploaders" [ 
-		        ( "0", "srh", "Network", "Network" ) ; 
-		        ( "0", "srh", "Connection type [I]ndirect [D]irect", "C" ) ;
-		        ( "0", "srh", "Client name", "Client name" ) ;
-		        ( "0", "srh", "IP address", "IP address" ) ;
-		        ( "0", "srh", "Connected time (minutes)", "CT" ) ;
-		        ( "0", "srh", "Client brand", "CB" ) ;
-		        ( "0", "srh", "Total DL bytes from this client for all files", "DL" ) ;
-		        ( "0", "srh", "Total UL bytes to this client for all files", "UL" ) ;
-		        ( "0", "srh", "Filename", "Filename" ) ];
-                
-                List.iter (fun c ->
-                    if c.client_sock <> None then begin
-                        incr counter;                        
-                        
-                        Printf.bprintf buf "\\<tr class=\\\"%s\\\" 
-                        title=\\\"[%d] Add as friend\\\"
-                        onMouseOver=\\\"mOvr(this);\\\"
-                        onMouseOut=\\\"mOut(this);\\\" 
-                        onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>"
-                          ( if (!counter mod 2 == 0) then "dl-1" else "dl-2";)
-                        (client_num c)
-                        (client_num c);
-                        
-                        
-                        client_print_html (as_client c.client_client) o;
-                        
-                        begin
-                          match c.client_sock with
-                            Some sock -> Printf.bprintf buf "\\<td
-                        class=\\\"sr\\\"\\>%s\\</td\\>\\<td
-                        class=\\\"sr ar\\\"\\>%d\\</td\\>\\<td
-                        class=\\\"sr\\\"\\>%s\\</td\\>" 
-                                (Ip.to_string (peer_ip sock))
-          						(((last_time ()) - c.client_connect_time) / 60)
-								 (gbrand_to_string c.client_brand) 
-                          | None -> Printf.bprintf buf "\\<td
-                        class=\\\"sr\\\"\\>\\</td\\>
-                        \\<td class=\\\"sr\\\"\\>\\</td\\> 
-                        \\<td class=\\\"sr\\\"\\>\\</td\\>" 
-                        end;
-                        
-                        Printf.bprintf buf "\\<td
-                        class=\\\"sr ar\\\"\\>%s\\</td\\>\\<td
-                        class=\\\"sr ar\\\"\\>%s\\</td\\>" 
-                          (size_of_int64 c.client_downloaded) 
-                        (size_of_int64 c.client_uploaded);
-                        
-                        Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>\n" 
-                          (match c.client_upload with
-                            Some cu -> (file_best_name cu.up_file)
-                          | None -> "");
-                        
-                        Printf.bprintf buf "\\</tr\\>"
-                      end
-                ) (List.sort 
-		     (fun c1 c2 -> compare (client_num c1) (client_num c2))
-		     (Fifo.to_list upload_clients));
-                Printf.bprintf buf "\\</table\\>\\</div\\>";
-              end;
-            
-            if !!html_mods_show_pending && Intmap.length !pending_slots_map > 0 then
-              
-              begin
-                
-                Printf.bprintf buf "\\<br\\>\\<br\\>"; 
-		        html_mods_table_header buf "uploadersTable" "uploaders" [ 
-		        ( "0", "srh", "Network", "Network" ) ; 
-		        ( "0", "srh", "Connection type [I]ndirect [D]irect", "C" ) ;
-		        ( "0", "srh", "Client name", "Client name" ) ;
-		        ( "0", "srh", "Client brand", "CB" ) ;
-		        ( "0", "srh", "Total DL bytes from this client for all files", "DL" ) ;
-		        ( "0", "srh", "Total UL bytes to this client for all files", "UL" ) ;
-		        ( "0", "srh", "IP address", "IP address" ) ];
-                
-                Intmap.iter (fun cnum c ->
-                    
-                    try 
-                                            
-                      incr counter;
-                      
-                      Printf.bprintf buf "\\<tr class=\\\"%s\\\" 
- 					title=\\\"Add as Friend\\\"
- 					onMouseOver=\\\"mOvr(this);\\\"
- 					onMouseOut=\\\"mOut(this);\\\" 
- 					onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>"
-                        ( if (!counter mod 2 == 0) then "dl-1" else "dl-2";)
-                      cnum;
-                      
-                      
-                      client_print_html (as_client c.client_client) o;
-                      
-                      Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>" 
-                        (gbrand_to_string c.client_brand);
-                      
-                      Printf.bprintf buf "\\<td
-                         class=\\\"sr ar\\\"\\>%s\\</td\\>\\<td
-                         class=\\\"sr ar\\\"\\>%s\\</td\\>" 
-                        (size_of_int64 c.client_downloaded) 
-                      (size_of_int64 c.client_uploaded);
-			
-                      Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>"
-                      (try 
-                          
-                          (  match c.client_sock with
-                            Some sock -> (Ip.to_string (peer_ip sock)) 
-                          | None -> "")
-                      
-                      with _ -> ""
-					  );
-                          
-                      Printf.bprintf buf "\\</tr\\>";
-                    
-                    
-                    with _ -> ();
-                
-                ) !pending_slots_map;
-                Printf.bprintf buf "\\</table\\>\\</div\\>";
-              
-              end;
-
-            Printf.bprintf buf "\\</div\\>";
-            ""
-          end
-        else
-          begin
-                     Fifo.iter (fun c ->
-             client_print (as_client c.client_client) o;
-             Printf.bprintf buf "client: %s downloaded: %s uploaded: %s" (brand_to_string c.client_brand) (Int64.to_string c.client_downloaded) (Int64.to_string c.client_uploaded);
-             match c.client_upload with
-               Some cu ->
-                 Printf.bprintf buf "\nfilename: %s\n\n" (file_best_name cu.up_file)
-             | None -> ()
-         ) upload_clients;
-         Printf.sprintf "Total number of uploaders : %d" 
-           (Fifo.length upload_clients);
-
-          end
-          
-        
-    ), ":\t\t\t\tshow users currently uploading";
-    
     "xs", Arg_none (fun o ->
         let buf = o.conn_buf in
         if !xs_last_search >= 0 then begin
@@ -864,7 +680,7 @@ let commands = [
         "download started"
     
     ), "<size> <md4> :\t\t\tdownload from size and md4";
-
+    
     "dup", Arg_none (fun _ ->
         DonkeyChunks.duplicate_chunks (); "done"),
     ":\t\t\t\t\tfind duplicate chunks (experimental)";
@@ -884,7 +700,7 @@ let commands = [
         ) args;
         "done"
     ), "<port1> <port2> ... :\t\tadd these Ports to the port black list";
-
+    
     "send_servers", Arg_none (fun o ->
         DonkeyProtoCom.propagate_working_servers 
           (List.map (fun s -> s.server_ip, s.server_port)
@@ -893,7 +709,7 @@ let commands = [
         ;
         "done"
     ), ":\t\t\t\tsend the list of connected servers to the redirector";
-    
+  
   ]
   
 let _ =
@@ -970,17 +786,17 @@ let _ =
               if file.file_chunks <> [||] then begin
                   for i = 0 to nchunks - 1 do
                     match file.file_chunks.(i) with
-                      PresentTemp | PresentVerified -> 
-                        s.[i] <- '1'
+                      PresentTemp | PresentVerified -> s.[i] <- '2'
+                    | PartialTemp _ | PartialVerified _ -> s.[i] <- '1'
                     | _ -> ()
                   done;
                 end;
               s
-              
+            
             );          
             P.file_priority = file_priority  file;
             P.file_availability = String2.init file.file_nchunks (fun i ->
-                
+
 (* Could file.file_available_chunks.(i) be under 0 ? *)
                 let n = maxi 0 (mini file.file_available_chunks.(i) 127) in
                 char_of_int n 
@@ -1044,6 +860,15 @@ let _ =
         P.client_num = (client_num c);
         P.client_rating = c.client_rating;
         P.client_chat_port = c.client_chat_port ;
+        P.client_connect_time = c.client_connect_time;
+        P.client_software = gbrand_to_string c.client_brand;
+        P.client_downloaded = c.client_downloaded;
+        P.client_uploaded = c.client_uploaded;
+        P.client_upload = 
+        (match c.client_upload with
+            Some cu -> Some (file_best_name cu.up_file)
+          | None -> None);
+                        
       }
   );
   client_ops.op_client_debug <- (fun c debug ->
@@ -1250,7 +1075,7 @@ onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>%d\\</T
           
           (
             string_of_connection_state (client_state c) )
-
+          
           (
             short_string_of_connection_state (client_state c) )
           
@@ -1301,77 +1126,77 @@ onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>%d\\</T
             string_of_int ((next - (last_time ())) / 60)
           )
           
-          (if c.client_has_a_slot then "T" else "F")
+          (if client_has_a_slot (as_client c.client_client)then "T" else "F")
           (if c.client_banned then "T" else "F")
           c.client_requests_sent
             c.client_requests_received
             (((last_time ()) - c.client_connect_time) / 60)
           (Md4.to_string c.client_md4);
-
+          
           (
             let qfiles = c.client_file_queue in
             if qfiles <> [] then begin
-	      try
-		  let _, (qchunks) = List.find (fun (qfile, _) ->
-		  qfile = (as_file_impl file).impl_file_val) qfiles in
-                let tc = ref 0 in
-                Printf.bprintf buf "%s\\</td\\>\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>" 
+                try
+                  let _, (qchunks) = List.find (fun (qfile, _) ->
+                        qfile = (as_file_impl file).impl_file_val) qfiles in
+                  let tc = ref 0 in
+                  Printf.bprintf buf "%s\\</td\\>\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>" 
                     (CommonFile.colored_chunks qchunks) 
-                    (Array.iter (fun b -> if b then incr tc) qchunks;!tc);
-	      with Not_found -> (
-                Printf.bprintf buf "\\</td\\>\\<td class=\\\"sr ar\\\"\\>\\</td\\>" 
-			);
-	    end
-        else
-                Printf.bprintf buf "\\</td\\>\\<td class=\\\"sr ar\\\"\\>\\</td\\>" 
+                  (Array.iter (fun b -> if b then incr tc) qchunks;!tc);
+                with Not_found -> (
+                      Printf.bprintf buf "\\</td\\>\\<td class=\\\"sr ar\\\"\\>\\</td\\>" 
+                    );
+              end
+            else
+              Printf.bprintf buf "\\</td\\>\\<td class=\\\"sr ar\\\"\\>\\</td\\>" 
           );
         
         with _ -> ()
       end;
   );
-
+  
   client_ops.op_client_dprint <- (fun c o file ->
-	let info = file_info file in
-	let buf = o.conn_buf in
-
-		try
-
-          (match c.client_block with
-              None -> ()
-            | Some b ->  ( 
-                  let qfiles = c.client_file_queue in
-                  let (qfile, qchunks) =  List.hd qfiles in
-                  if (qfile = (as_file_impl file).impl_file_val) then begin
-             		client_print (as_client c.client_client) o;
-            		 Printf.bprintf buf "client: %s downloaded: %s uploaded: %s" 
-						(brand_to_string c.client_brand) 
-						(Int64.to_string c.client_downloaded) 
-						(Int64.to_string c.client_uploaded);
-             		Printf.bprintf buf "\nfilename: %s\n\n" info.GuiTypes.file_name;
-				  end;
-
-		 )
-
-		)
-
-		with _ -> ()
-
+      let info = file_info file in
+      let buf = o.conn_buf in
+      
+      try
+        
+        (match c.client_block with
+            None -> ()
+          | Some b ->  ( 
+                let qfiles = c.client_file_queue in
+                let (qfile, qchunks) =  List.hd qfiles in
+                if (qfile = (as_file_impl file).impl_file_val) then begin
+                    client_print (as_client c.client_client) o;
+                    Printf.bprintf buf "client: %s downloaded: %s uploaded: %s" 
+                      (brand_to_string c.client_brand) 
+                    (Int64.to_string c.client_downloaded) 
+                    (Int64.to_string c.client_uploaded);
+                    Printf.bprintf buf "\nfilename: %s\n\n" info.GuiTypes.file_name;
+                  end;
+              
+              )
+        
+        )
+      
+      with _ -> ()
+  
   );
   
   client_ops.op_client_dprint_html <- (fun c o file str ->
-	let info = file_info file in
-	let buf = o.conn_buf in
-
-		try
-
-          (match c.client_block with
-              None -> false 
-            | Some b ->  ( 
-                  let qfiles = c.client_file_queue in
-                  let (qfile, qchunks) =  List.hd qfiles in
-                  if (qfile = (as_file_impl file).impl_file_val) then begin
-
-          Printf.bprintf buf "
+      let info = file_info file in
+      let buf = o.conn_buf in
+      
+      try
+        
+        (match c.client_block with
+            None -> false 
+          | Some b ->  ( 
+                let qfiles = c.client_file_queue in
+                let (qfile, qchunks) =  List.hd qfiles in
+                if (qfile = (as_file_impl file).impl_file_val) then begin
+                    
+                    Printf.bprintf buf "
 \\<tr onMouseOver=\\\"mOvr(this);\\\"
 onMouseOut=\\\"mOut(this);\\\" 
 class=\\\"%s\\\"\\>
@@ -1388,59 +1213,59 @@ onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>%d\\</T
 \\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
 \\<td class=\\\"sr\\\"\\>%s\\</td\\>
 \\</tr\\>"
-			str
-            (client_num c)
-            (client_num c)
-          ( string_of_connection_state (client_state c) )
-          ( short_string_of_connection_state (client_state c) )
-          (Md4.to_string c.client_md4)
-          c.client_name 
-           (gbrand_to_string c.client_brand)
-
-          (if c.client_overnet then "T" else "F") 
-          (((last_time ()) - c.client_connect_time) / 60)
-          (match c.client_kind with 
-              Indirect_location _ -> Printf.sprintf "I"
-            | Known_location (ip,port) -> Printf.sprintf "D")
-          
-          (
-            
-            try
-              
-              match c.client_sock with
-                Some sock -> Printf.sprintf "%s" (Ip.to_string (peer_ip sock))
-              | None -> (match c.client_kind with 
-                      Known_location (ip,port) -> Printf.sprintf "%s" (Ip.to_string ip)
-                    | Indirect_location _ -> Printf.sprintf "None"
-                  )
-            
-            with _ -> 
+                      str
+                      (client_num c)
+                    (client_num c)
+                    ( string_of_connection_state (client_state c) )
+                    ( short_string_of_connection_state (client_state c) )
+                    (Md4.to_string c.client_md4)
+                    c.client_name 
+                      (gbrand_to_string c.client_brand)
+                    
+                    (if c.client_overnet then "T" else "F") 
+                    (((last_time ()) - c.client_connect_time) / 60)
+                    (match c.client_kind with 
+                        Indirect_location _ -> Printf.sprintf "I"
+                      | Known_location (ip,port) -> Printf.sprintf "D")
+                    
+                    (
+                      
+                      try
+                        
+                        match c.client_sock with
+                          Some sock -> Printf.sprintf "%s" (Ip.to_string (peer_ip sock))
+                        | None -> (match c.client_kind with 
+                                Known_location (ip,port) -> Printf.sprintf "%s" (Ip.to_string ip)
+                              | Indirect_location _ -> Printf.sprintf "None"
+                            )
+                      
+                      with _ -> 
+                          
+                          try 
+                            match c.client_kind with 
+                              Known_location (ip,port) -> Printf.sprintf "%s" (Ip.to_string ip)
+                            | Indirect_location _ -> Printf.sprintf "None"
+                          with _ -> ""
+                    ) 
+                    
+                    (size_of_int64 c.client_uploaded) 
+                    (size_of_int64 c.client_downloaded)
+                    
+                    info.GuiTypes.file_name;
+                    
+                    true
+                  
+                  end
                 
-                try 
-                  match c.client_kind with 
-                    Known_location (ip,port) -> Printf.sprintf "%s" (Ip.to_string ip)
-                  | Indirect_location _ -> Printf.sprintf "None"
-                with _ -> ""
-          ) 
-
-          (size_of_int64 c.client_uploaded) 
-          (size_of_int64 c.client_downloaded)
-
-		info.GuiTypes.file_name;
-
-		true
-
-		end
-
-		else false;
-		)
-
-	)
-
-	with _ -> false;
-
+                else false;
+              )
+        
+        )
+      
+      with _ -> false;
+  
   )
-
+  
 let _ =
   user_ops.op_user_set_friend <- (fun u ->
       let s = u.user_server in
@@ -1491,4 +1316,5 @@ let _ =
       DonkeyIndexer.load_comments filename;
       lprintf "COMMENTS ADDED"; lprint_newline ();   
   )
+  
   

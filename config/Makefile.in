@@ -115,7 +115,8 @@ LIB_SRCS=   \
 
 NET_SRCS = \
   net/basicSocket.ml \
-  net/ip.ml net/mailer.ml net/bigEndian.ml net/littleEndian.ml \
+  net/ip.ml net/mailer.ml \
+  net/anyEndian.ml net/bigEndian.ml net/littleEndian.ml \
   net/tcpBufferedSocket.ml \
   net/tcpClientSocket.ml net/tcpServerSocket.ml \
   net/udpSocket.ml net/http_server.ml net/http_client.ml \
@@ -157,7 +158,8 @@ COMMON_CLIENT_SRCS= \
   common/commonMultimedia.ml \
   common/commonInteractive.ml \
   common/commonDownloads.ml \
-  common/commonUploads.ml
+  common/commonUploads.ml \
+  common/commonSwarming.ml
 
 all: Makefile config/Makefile.config $(TARGET_TYPE)
 
@@ -272,6 +274,17 @@ LIMEWIRE_SRCS= \
   limewire/limewireInteractive.ml \
   limewire/limewireMain.ml
 
+BITTORRENT_SRCS= \
+  bittorrent/bencode.ml \
+  bittorrent/bTTypes.ml \
+  bittorrent/bTOptions.ml \
+  bittorrent/bTGlobals.ml \
+  bittorrent/bTComplexOptions.ml \
+  bittorrent/bTProtocol.ml \
+  bittorrent/bTClients.ml \
+  bittorrent/bTInteractive.ml \
+  bittorrent/bTMain.ml
+  
 OPENFT_SRCS= \
   openFT/openFTTypes.ml \
   openFT/openFTOptions.ml \
@@ -348,9 +361,6 @@ SUBDIRS += openFT
 CORE_SRCS += $(OPENFT_SRCS)
 
 endif
-
-limewire_plugin:
-	$(MAKE) PLUGIN_SRCS=LIMEWIRE_SRCS PLUGIN=limewire plugin
 
 ifeq ("$(AUDIO_GALAXY)" , "yes")
 SUBDIRS += audio_galaxy
@@ -485,9 +495,6 @@ INSTALLER_CMXA= cdk.cmxa gmisc.cmxa common.cmxa
 INSTALLER_SRCS= \
   $(GUI_BASE_SRCS) gui/gui_installer_base.zog gui/gui_installer.ml
 
-TOP_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) 
-
 
 #######################################################################
 
@@ -547,6 +554,11 @@ IM_CORE +=   im/imMain.ml
 endif
 
 
+TOP_CMXA=cdk.cmxa common.cmxa client.cmxa
+TOP_SRCS= 
+
+
+
 define([[EXPAND_LIB]],[[
 $1_ZOG := $(filter %.zog, $($1_SRCS)) 
 $1_MLL := $(filter %.mll, $($1_SRCS)) 
@@ -601,6 +613,7 @@ $1+gui_SRCS= $(MAIN_SRCS)
 EXPAND_DRIVER(mldc,DIRECT_CONNECT,direct_connect)
 EXPAND_DRIVER(mlnap,OPENNAP,opennap)
 EXPAND_DRIVER(mlgnut,LIMEWIRE,limewire)
+EXPAND_DRIVER(mlbt,BITTORRENT,bittorrent)
 EXPAND_DRIVER(mldonkey,DONKEY,donkey)
 EXPAND_DRIVER(mlslsk,SOULSEEK,soulseek)
 
@@ -683,7 +696,9 @@ EXPAND(mlnap+gui,mlnap+gui,GTK,mlnap+gui)
 EXPAND(MLNET,mlnet,NO,MLNET)
 EXPAND(mlnet+gui,mlnet+gui,GTK,mlnet+gui)
 EXPAND(mlgnut,mlgnut,NO,mlgnut)
+EXPAND(mlbt,mlbt,NO,mlbt)
 EXPAND(mlgnut+gui,mlgnut+gui,GTK,mlgnut+gui)
+EXPAND(mlbt+gui,mlbt+gui,GTK,mlbt+gui)
 EXPAND(mlslsk,mlslsk,NO,mlslsk)
 EXPAND(mlslsk+gui,mlslsk+gui,GTK,mlslsk+gui)
 EXPAND(MLDONKEY_IM,mlim,GTK,MLDONKEY_IM)
@@ -713,13 +728,13 @@ TOP_CMOS=$(foreach file, $(TOP_ML),   $(basename $(file)).cmo)
 TOP_CMXS=$(foreach file, $(TOP_ML),   $(basename $(file)).cmx) 
 TOP_OBJS=$(foreach file, $(TOP_C),   $(basename $(file)).o)    
 
-TOP_CMXAS := $(_CMXA)
+TOP_CMXAS := $(TOP_CMXA)
 TOP_CMAS=$(foreach file, $(TOP_CMXAS),   $(basename $(file)).cma)    
 
 TMPSOURCES += $(TOP_ML4:.ml4=.ml) $(TOP_MLL:.mll=.ml) $(TOP_MLY:.mly=.ml) $(TOP_MLY:.mly=.mli) $(TOP_ZOG:.zog=.ml) 
  
 mldonkeytop: $(TOP_OBJS) $(TOP_CMOS) $(TOP_CMAS)
-	ocamlmktop $(PLUGIN_FLAG) -o $@  $(TOP_OBJS) $(LIBS_byte) $(LIBS_flags) $(_LIBS_byte) $(_LIBS_flags) $(TOP_CMAS) $(TOP_CMOS) 
+	ocamlmktop -linkall $(PLUGIN_FLAG) -o $@  $(TOP_OBJS) $(LIBS_byte) $(LIBS_flags) $(_LIBS_byte) $(_LIBS_flags) $(TOP_CMAS) $(TOP_CMOS) 
  
 
 

@@ -449,7 +449,7 @@ let menu_save_file t =
         match file_opt with
           None -> ()
         | Some name -> 
-            prerr_endline ("save as "^name); 
+            lprintf "save as %s\n" name; 
             gui_send (GuiProto.SaveFile (file.file_num, name))
       in
       List.map 

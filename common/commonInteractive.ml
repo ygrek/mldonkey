@@ -61,17 +61,14 @@ let days = ref 0
 let hours = ref 0    
   
 let cut_messages f sock nread =
-  lprintf "cut_messages %d\n" nread;
   let b = buf sock in
   try
     while b.len >= 4 do
       let msg_len = LittleEndian.get_int b.buf b.pos in
-      lprintf "waiting for %d\n" msg_len;
       if b.len >= 4 + msg_len then
         begin
           let s = String.sub b.buf (b.pos+4) msg_len in
           buf_used sock (msg_len + 4);
-          lprintf "message received\n";
           let opcode = LittleEndian.get_int16 s 0 in
           (f opcode s : unit)
         end
@@ -468,7 +465,7 @@ let keywords_of_query query =
           | _ -> ()
         end
     | QNone ->
-        prerr_endline "LimewireInteractive.start_search: QNone in query";
+        lprintf "LimewireInteractive.start_search: QNone in query\n";
         ()
   in
   iter query;

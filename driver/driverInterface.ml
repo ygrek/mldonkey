@@ -564,7 +564,7 @@ lprintf "Sending for %s" prefix; lprint_newline ();
                     (CommonSearch.mftp_query_of_query_entry 
                       s.GuiTypes.search_query)
                 with Not_found ->
-                    prerr_endline "Not_found in mftp_query_of_query_entry";
+                    lprintf "Not_found in mftp_query_of_query_entry\n";
                     raise Not_found
               in
               let buf = Buffer.create 100 in

@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonSwarming
 open Printf2
 open Md4
 open CommonTypes
@@ -44,8 +45,7 @@ module ClientOption = struct
           in
           let client_port = get_value "client_port" value_to_int in
           let client_uid = get_value "client_uid" (from_value Md4.option) in
-          let c = new_client client_uid 
-              (Known_location(client_ip, client_port)) in
+          let c = new_client (Known_location(client_ip, client_port)) in
           
           (try
               c.client_user.user_speed <- get_value "client_speed" value_to_int 
@@ -83,6 +83,13 @@ module ClientOption = struct
   
   end
 
+let value_to_int32pair v =
+  match v with
+    List [v1;v2] | SmallList [v1;v2] ->
+      (value_to_int64 v1, value_to_int64 v2)
+  | _ -> 
+      failwith "Options: Not an int32 pair"
+
 let value_to_file is_done assocs =
   let get_value name conv = conv (List.assoc name assocs) in
   let get_value_nil name conv = 
@@ -103,23 +110,33 @@ let value_to_file is_done assocs =
   let file_uids = ref [] in
   let uids_option = try
       value_to_list value_to_string (List.assoc "file_uids" assocs) 
-    with _ -> failwith "Bad file size"
+    with _ -> []
   in
   List.iter (fun v ->
       file_uids := extract_uids v @ !file_uids) uids_option;
   
   
   let file = new_file file_id file_name file_size !file_uids in
+
+    (try 
+      Int64Swarmer.set_present file.file_swarmer 
+        (get_value "file_present_chunks" 
+        (value_to_list value_to_int32pair))
+    with _ -> ()                );
+
   
   (try
       ignore (get_value "file_sources" (value_to_list (fun v ->
               match v with
-                SmallList [c; index] | List [c;index] ->
+              | SmallList [c; index; name] | List [c;index; name] ->
                   let s = ClientOption.value_to_client c in
                   add_download file s (
-                    try                       
-                      FileByIndex (value_to_int index)
-                    with _ -> FileByUrl (value_to_string index))
+                    FileByIndex (value_to_int index, value_to_string name))
+    
+              | SmallList [c; index] | List [c;index] ->
+                  let s = ClientOption.value_to_client c in
+                  add_download file s (
+                    FileByUrl (value_to_string index))
               | _ -> failwith "Bad source"
           )))
     with e -> 
@@ -127,7 +144,7 @@ let value_to_file is_done assocs =
           (Printexc2.to_string e); 
   );
   as_file file.file_file
-
+  
 let file_to_value file =
   [
     "file_size", int64_to_value (file_size file);
@@ -136,12 +153,23 @@ let file_to_value file =
     "file_id", string_to_value (Md4.to_string file.file_id);
     "file_sources", 
     list_to_value "LimeWire Sources" (fun c ->
-        SmallList [ClientOption.client_to_value c;
-          match (List.assq file c.client_downloads) with
-            FileByIndex i -> int_to_value i
-          | FileByUrl s -> string_to_value s]
+        match (find_download file c.client_downloads).download_uri with
+          FileByIndex (i,n) -> 
+            SmallList [ClientOption.client_to_value c; int_to_value i; 
+              string_to_value n]
+        | FileByUrl s -> 
+            SmallList [ClientOption.client_to_value c; 
+              string_to_value s]
     ) file.file_clients
     ;
+    "file_uids", list_to_value "toto" (fun uid ->
+        string_to_value  (string_of_uid uid))
+    file.file_uids;
+    "file_present_chunks", List
+      (List.map (fun (i1,i2) -> 
+          SmallList [int64_to_value i1; int64_to_value i2])
+      (Int64Swarmer.present_chunks file.file_swarmer));
+    
   ]
   
 let old_files = 

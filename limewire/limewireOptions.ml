@@ -42,12 +42,16 @@ let client_port = define_option limewire_ini ["client_port"]
 let enable_gnutella1 = define_option limewire_ini ["enable_gnutella1"]
     "Do you want to support Gnutella1 protocol"
     bool_option true
+  
+let enable_gnutella2 = define_option limewire_ini ["enable_gnutella2"]
+    "Do you want to support Gnutella2 protocol (not yet supported)"
+    bool_option false
 
 let redirectors = define_option limewire_ini ["redirectors"]
     "The hosts to connect to to get a list of peers"
     (list_option string_option)
   [
-    "public.bearshare.net";
+(*    "public.bearshare.net"; Useless they don't keep us*)
     "gnotella.fileflash.com";
     "gnutella-again.hostscache.com";
     "connect1.bearshare.net";
@@ -87,6 +91,13 @@ let server_connection_timeout =
 
 let client_uid = define_option downloads_ini ["client_uid"]
     "The UID of this client" Md4.option (Md4.random ())
+  
+  let _	 =
+  option_hook client_uid (fun _ ->
+     let s = Md4.direct_to_string !!client_uid in
+     s.[8] <- '\255';
+     s.[15] <- '\000';
+  )
   
   (*
 let verbose_clients = 
