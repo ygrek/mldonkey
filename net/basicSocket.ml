@@ -453,3 +453,5 @@ let close_all () =
   
 let start_time = last_time ()
   
+external setsock_iptos_throughput: Unix.file_descr -> int = "setsock_iptos_throughput"
+  

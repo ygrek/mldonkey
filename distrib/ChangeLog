@@ -1,6 +1,23 @@
 ChangeLog	
 =========
 
+2002/10/22: mldonkey
+  - Patch #576 applied.
+  - i18n: 
+      * Message files changed: ~/.mldonkey_gui_messages.ini for GUI and
+          ~/.mldonkey_messages.ini for core
+      * Some messages customizable in core
+      * web_common_header, html_header and download_html_header moved
+          to ~/.mldonkey_messages.ini
+      * ~/.mldonkey_messages.ini can be overwritten MLDONKEY_MESSAGES
+
+2002/10/21: mldonkey
+  - lib/options.ml: always close open files. "Too Many Open File" bug again.
+
+2002/10/20: mldonkey
+  - New default options for 'web_common_header' and 'html_header' by Xou.
+  - Patches #572, #573 and #574 applied.
+
 2002/10/16: mldonkey
   - release 2.00
   - fix: uploaded files do not appear twice in panel

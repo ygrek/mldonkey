@@ -3,6 +3,8 @@ AC_PREREQ(2.0)
 AC_INIT(Makefile.config.in)
 AC_CONFIG_HEADER(config.h)
 
+CURRENT_VERSION=2.00+1
+
 REQUIRED_OCAML=3.06
 REQUIRED_LABLGTK=1.2.4
 
@@ -246,6 +248,7 @@ AC_CHECK_SIZEOF(double)
 
 # various header files
 AC_CHECK_HEADERS(arpa/inet.h,,)
+AC_CHECK_HEADERS(netinet/ip.h,,)
 
 # poll if possible
 AC_CHECK_HEADERS(sys/poll.h,,)
@@ -540,6 +543,7 @@ AC_SUBST(COMPRESS)
 AC_SUBST(COMPRESS_EXT)
 AC_SUBST(RELEASENAME)
 AC_SUBST(CHECKBOUNDS)
+AC_SUBST(CURRENT_VERSION)
 
 AUTOCONF=../lib/autoconf.ml
 AC_OUTPUT(Makefile.config $AUTOCONF.new)

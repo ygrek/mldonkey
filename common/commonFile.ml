@@ -25,6 +25,7 @@ open CommonTypes
 type 'a file_impl = {
     mutable impl_file_update : int;
     mutable impl_file_state : file_state;
+
     mutable impl_file_num : int;
     mutable impl_file_val : 'a;
     mutable impl_file_ops : 'a file_ops;
@@ -38,7 +39,8 @@ type 'a file_impl = {
     mutable impl_file_priority: int;
     mutable impl_file_last_seen : float;
   }
-  
+
+
 and 'a file_ops = {
     mutable op_file_network : network;
     
@@ -140,6 +142,7 @@ let update_file_num impl =
       H.add files_by_num (as_file impl);
       file_must_update (as_file impl);
     end
+    
     
 let update_file_state impl state =
   impl.impl_file_state <- state;
@@ -281,7 +284,6 @@ let file_find num =
 let file_state file =
   let impl = as_file_impl file in
   impl.impl_file_state  
-  
   
 let file_new_source (file : file) c =
   client_must_update c;

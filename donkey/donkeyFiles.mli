@@ -29,6 +29,7 @@ val upload_credit_timer : unit -> unit
 val udp_client_handler: DonkeyProtoServer.t -> UdpSocket.udp_packet -> unit 
 val make_xs : CommonTypes.search -> unit
   
+val throttle_searches : unit -> unit
 val fill_clients_list : unit -> unit
 val check_clients : unit -> unit
 val remove_old_clients : unit -> unit

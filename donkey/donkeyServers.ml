@@ -78,7 +78,8 @@ let query_locations s n_per_round =
             [] ->
               begin
                 List.iter (fun file ->
-                    if file_state file = FileDownloading then
+                    if file_state file = FileDownloading && 
+                       not (file_enough_sources file) then
                       s.server_waiting_queries <- 
                         file :: s.server_waiting_queries
                 ) !current_files;
@@ -88,7 +89,8 @@ let query_locations s n_per_round =
             end
           | file :: files ->
               s.server_waiting_queries <- files;
-              if file_state file = FileDownloading then begin
+              if file_state file = FileDownloading &&
+                 not (file_enough_sources file) then begin
                   query_location file sock;
                   iter (n-1)
                 end else

@@ -68,7 +68,16 @@ char[len]: packets
 let print_record t ip_firewall s =
   let ip = get_ip s 1 in
   let ips, pos = get_list get_peer s 5 in
-
+  let version, uptime, shared, uploaded =
+    try
+      let version, pos = get_string s pos in
+      let uptime = get_int s pos in
+      let shared = get_int64 s (pos+4) in
+      let uploaded = get_int64 s (pos+12) in
+      version, uptime, shared, uploaded
+    with _ ->
+        "unknown", 0, Int64.zero, Int64.zero
+  in
   let t = Int32.to_float t in
   
   let t = localtime t in
@@ -83,6 +92,9 @@ let print_record t ip_firewall s =
   (Ip.to_string ip_firewall)
   ;
   print_newline ();
+  Printf.printf "Version: %s, uptime: %02d:%02d, shared: %Ld, uploaded: %Ld"
+    version (uptime / 3600) ((uptime/60) mod 60) shared uploaded;
+    print_newline ();
   List.iter (fun (ip, port) ->
       Printf.printf "            Connected to %s:%d"
         (Ip.to_string ip) port;
@@ -141,6 +153,8 @@ let count_records () =
       last_record := Some t;
       let ip = get_ip s 1 in
       let ips, pos = get_list get_peer s 5 in
+      
+      
       if not (Hashtbl.mem clients (ip, ip_firewall)) then
         begin
           Hashtbl.add clients  (ip, ip_firewall) ips;
@@ -151,8 +165,7 @@ let count_records () =
             begin
               Hashtbl.add servers s ();
               incr server_counter;
-            end;
-          
+            end;          
       ) ips
   ) (fun _ ->
       Printf.printf "%d MLdonkey clients" !counter;

@@ -410,6 +410,7 @@ let new_file file_state file_name md4 file_size writable =
           file_changed = FileInfoChange;
           file_format = Unknown_format;
           file_new_locations = true;
+          file_enough_sources = false;
         }
       and file_impl = {
           dummy_file_impl with
@@ -843,6 +844,9 @@ no sources have been connected yet. *)
 let file_state file =
   CommonFile.file_state (as_file file.file_file)
   
+let file_enough_sources file =
+  file.file_enough_sources
+  
 let file_last_seen file = file.file_file.impl_file_last_seen
   
 let file_must_update file =
@@ -1005,3 +1009,7 @@ let result_of_file md4 tags =
   ) tags;
   if check_result r tags then Some r else None
     
+        
+let update_file_enough_sources file state =
+  file.file_enough_sources <- state;
+  file_must_update file

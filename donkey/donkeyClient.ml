@@ -870,6 +870,7 @@ let client_handler2 c sock event =
       | _ -> ()
       
 let init_connection sock =
+  ignore (setsock_iptos_throughput (fd (TcpBufferedSocket.sock sock)));
   TcpBufferedSocket.set_read_controler sock download_control;
   TcpBufferedSocket.set_write_controler sock upload_control;
   set_rtimeout sock !!client_timeout;

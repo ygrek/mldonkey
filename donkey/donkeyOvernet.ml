@@ -389,6 +389,7 @@ let udp_client_handler t p =
             overnet_searches;
             List.iter (fun file ->
                 if file_state file = FileDownloading           
+                   && not (file_enough_sources file)
                     && !!overnet_search_sources &&
                   not (Hashtbl.mem overnet_searches file.file_md4) then
                   let search = create_simple_search 

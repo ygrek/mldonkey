@@ -27,6 +27,7 @@ ou <a href=faq.html.fr> Francais </a>
       <li> <strong> <a href=#back3> Where can I find support on mldonkey ?  </a> </strong>
       <li> <strong> <a href=#back4> Where can I download mldonkey ?  </a> </strong>
       <li> <strong> <a href=#back5> Where can I find mldonkey for Windows ?  </a> </strong>
+	   <li> <strong> <a href=#back6> What's new with MLdonkey 2.00 ? </a> </strong>
     </ol>
 
  <a name=index_run>
@@ -195,6 +196,28 @@ MLdonkey does not run very well under Cygwin on Windows. Moreover, there
 is no native port of MLdonkey to Windows, so you will not be able to run 
 it on these systems.
 
+     <p>
+
+     If you have some knowledge of MinGW, you might try to compile
+     Objective-Caml and mldonkey. It would probably run better than under
+     Cygwin. Note that mldonkey does not use threads, and the select call
+     is only used to descriminate between sockets (read/write/connect/accept).
+
+<li> <h3> <a name=back6> What's new with MLdonkey 2.00 ? </a> </h3>
+
+     If you were using MLdonkey 1.16, you might be interested in knowing what is new
+     with MLdonkey 2.00. Here are the main improvements:
+
+     <ul>
+
+       <li> Overnet support.
+       <li> Completely New GUI: upload panel, icons, configuration of many options.
+       <li> Post-filtering of results (see Overnet or LimeWire plugins).
+       <li> Multi-networks support (sources and CVS only).
+       <li> Many bug fixes: memory leak, "too many open file descrs", sharing,
+	    upload/download rates, ...
+     </ul>
+     
 </ol>
 
 <hr>
@@ -706,22 +729,51 @@ startup, not as the number of servers he will remain connected to.
 
 <li> <h3> <a name=edonkey5> What's about Overnet ? </a> </h3> 
 
-<a href="http://www.overnet.com"> Overnet </a>  is a network using the same download protocol as edonkey, but a 
-different 
-<a href="http://citeseer.nj.nec.com/529075.html"> search/localisation protocol </a>, that doesn't need servers.
+     <a href="http://www.overnet.com"> Overnet </a>  is a network using the same
+     download protocol as edonkey, but a different
+     <a href="http://citeseer.nj.nec.com/529075.html"> search/localisation protocol </a>,
+     that doesn't need servers.
 
- <p> From release 1.99 beta 7, mldonkey is able to connect to Overnet. The
-only working functionnality is the ability to find new sources on Overnet for
-files whose downloads were started on edonkey, when the "overnet" command 
-is called.
+     <p>
 
-<p> For that, you need a list of Overnet nodes (one, maybe obsolete, is in 
-distrib/servers.ini, or use the "boot" command). Nothing is currently displayed in 
-the GUI, so you can only know if Overnet support works by examining mldonkey logs.
+     MLdonkey 2.00 is able to search for files and sources on Overnet. For that, you must
+     make sure that:
 
-<p> Beta 8 will be able to search files and find sources for downloads, 
-and the "overnet" command will be removed.
+     <ol>
 
+       <li> The "overnet_search_sources" and "overnet_search_keywords" options are set to
+	    true.
+
+       <li> You have a (recent) list of Overnet peers that you can connect to. For that, you
+	    can:
+
+	    <ul>
+	      <li> Use the "servers.ini" file from the most recent distribution of mldonkey. It
+		   contains a long list of Overnet peers.
+
+	      <li> Use the "boot IP PORT" command, to add a new peer.
+
+	      <li> Use the "ovweb URL" command, to download a .ocl file from url URL
+		   containing a list of recent peers.
+		   
+	    </ul>
+
+	    You can use the "ovstats" command, to display how many peers you have been able
+	    to connect to (well, they have replied to a connect UDP packet).
+
+       <li> If you have enabled "overnet_search_keywords", replies to search can arrive from
+	    Overnet peers. These results are not very accurate (they only need to match only
+	    one of the keywords, instead of all for example).
+
+	    <p>
+
+	    As for all networks, you can activate post-filtering of results (very useful on
+	    Gnutella too): set the "filter_search" option to true, and maybe the "filter_search_delay"
+	    option (period between results updates in seconds). Then, only results matching exactly
+	    your query will be displayed.
+	    
+     </ol>
+     
  <li> <h3> <a name=edonkey6> I'm behind a firewall, what should I do ? </a> </h3> 
 
 MLdonkey uses two ports for incoming connections, one on TCP (default is 
@@ -819,8 +871,12 @@ In particular, multiple-words queries are often understood as logical-or
 queries between words, ie each document that contains at least one word is returned.
 
 <p>
-Of course, there should be some way to filter replies in mldonkey, but it 
-is not yet implemented.
+       As for Overnet, you can activate post-filtering of sources. Then, results
+       which are received are checked by mldonkey against the query and only displayed if
+       they are accurate. Post-Filtering is activated by setting the "filter_search" option
+       to true, and modifying the "filter_search_delay" depending on the period you
+       want between updates (for example, 30 means that results will be added only every
+       30 seconds).
 
 </ol>
 

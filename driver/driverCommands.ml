@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonMessages
 open CommonGlobals
 open CommonShared
 open CommonSearch
@@ -39,7 +40,7 @@ let execute_command arg_list output cmd args =
     let rec iter list =
       match list with
         [] -> 
-          Printf.bprintf buf "No such command %s\n" cmd
+          Gettext.buftext buf no_such_command cmd
       | (command, arg_kind, help) :: tail ->
           if command = cmd then
             Buffer.add_string buf (
@@ -49,7 +50,7 @@ let execute_command arg_list output cmd args =
               | Arg_one f, [arg] -> f arg  output
               | Arg_two f, [a1;a2] -> f a1 a2 output
               | Arg_three f, [a1;a2;a3] -> f a1 a2 a3 output
-              | _ -> "Bad number of arguments"
+              | _ -> !!bad_number_of_args
             )
           else
             iter tail
@@ -97,13 +98,6 @@ let commands = [
             ""
         | _ ->
             DriverInteractive.display_file_list buf o;
-(*
-            Printf.bprintf  buf "\nDownloading %d files\n" 
-              (List.length !!files);
-            
-            List.iter (fun file ->
-                file_print file o) !!files;
-*)              
             ""    
     ), "<num>: view file info";
     

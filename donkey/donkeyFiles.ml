@@ -22,6 +22,7 @@ open CommonServer
 open CommonComplexOptions
 open GuiProto
 open CommonClient
+open CommonFile
 open CommonUser
 open CommonSearch
 open CommonTypes
@@ -160,6 +161,42 @@ let check_clients _ =
     done
   with Exit -> ()
       
+let throttle_searches () =
+  List.iter (fun file ->
+    let locs = file.file_sources in
+    let nNotConnected = ref 0 in
+    let nConnecting = ref 0 in
+    let nInitiating = ref 0 in
+    let nBusy = ref 0 in
+    let nIdle = ref 0 in
+    let nQueued = ref 0 in
+    let nNewHost = ref 0 in
+    let nRemovedHost = ref 0 in
+    if file.file_nlocations < !!max_sources_per_file then 
+      update_file_enough_sources file false
+    else begin
+      Intmap.iter (fun _ c ->
+	match c.client_client.impl_client_state with
+	  NotConnected -> incr nNotConnected
+	| Connecting -> incr nConnecting
+	| Connected_initiating -> incr nInitiating
+	| Connected_busy -> incr nBusy
+	| Connected_idle -> incr nIdle
+	| Connected_queued -> incr nQueued
+	| NewHost -> incr nNewHost
+	| RemovedHost -> incr nRemovedHost
+      ) locs;
+      Printf.printf "%s: NC:%d C:%d In:%d Bz:%d Id:%d Qu:%d Nw:%d Rm:%d" (Md4.to_string file.file_md4) !nNotConnected !nConnecting !nInitiating !nBusy !nIdle !nQueued !nNewHost !nRemovedHost;
+      print_newline ();
+      if !nNewHost > !!max_sources_per_file / 10 then begin
+	Printf.printf "%d untested sources, throttling searches" !nNewHost;
+	print_newline ();
+	update_file_enough_sources file true
+      end else
+	update_file_enough_sources file false
+    end
+  ) !current_files
+
 let remove_old_clients () =
   let min_last_conn =  last_time () -. 
     float_of_int !!max_sources_age *. one_day in

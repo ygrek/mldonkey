@@ -37,9 +37,9 @@ let rec dollar_escape with_frames s =
       if escaped then
         match c with
         | 'O' -> if with_frames then
-              Buffer.add_string b " target=output"; false
+              Buffer.add_string b " target=\"output\""; false
         | 'S' -> if with_frames then
-              Buffer.add_string b " target=status"; false
+              Buffer.add_string b " target=\"status\""; false
         | 'P' -> if with_frames then
               Buffer.add_string b " target=\"_parent\""; false
         | 'G' -> false
@@ -62,7 +62,8 @@ let eval auth cmd options =
     [] -> ()
   | cmd :: args ->
       if cmd = "help" || cmd = "?" then begin
-          Printf.bprintf  buf "Available commands are:\n";
+          let module M = CommonMessages in
+          Buffer.add_string  buf !!M.available_commands_are;
           List.iter (fun (cmd, _, help) ->
               Printf.bprintf  buf "%s %s\n" cmd help) 
           !CommonNetwork.network_commands
@@ -78,15 +79,18 @@ let eval auth cmd options =
         in
         if !!password = arg_password then begin
             auth := true;
-            Printf.bprintf buf "Full access enabled"
+            let module M = CommonMessages in
+            Buffer.add_string buf !!M.full_access
           end else
-          Printf.bprintf buf "Bad login/password"
+        let module M = CommonMessages in
+        Buffer.add_string buf !!M.bad_login
       else
       if !auth then
         DriverCommands.execute_command 
           !CommonNetwork.network_commands options cmd args      
       else
-          Printf.bprintf buf "Command not authorized\n Use 'auth <password>' before."
+      let module M = CommonMessages in
+      Buffer.add_string buf !!M.command_not_authorized
 
               
 (* This function is called every hour to check if we have something to do 
@@ -253,7 +257,7 @@ let buf = Buffer.create 1000
 open Http_server
 
 let add_simple_commands buf =
-  Buffer.add_string buf !!web_common_header  
+  Buffer.add_string buf !!CommonMessages.web_common_header  
 
 let http_add_header buf = 
   Buffer.add_string  buf "HTTP/1.0 200 OK\r\n";
@@ -272,9 +276,9 @@ let html_open_page buf t r open_body =
   
   Buffer.add_string buf
   "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Frameset//EN\" 
-  \"http://www.w3.org/TR/html4/frameset.dtd\"><HTML>\n<HEAD>\n";
-  Buffer.add_string buf !!html_header;
+  \"http://www.w3.org/TR/html4/frameset.dtd\">\n<HTML>\n<HEAD>\n";
   if !CommonInteractive.display_vd then begin
+      Buffer.add_string buf !!CommonMessages.download_html_header;
       let url = { r.get_url with
           Url.server = Ip.to_string (my_ip t);
 (*
@@ -289,7 +293,8 @@ let html_open_page buf t r open_body =
       Printf.bprintf buf "<meta http-equiv=Refresh
       content=\"%d; URL=%s\">" !!vd_reload_delay
       (Url.to_string true url);
-    end;
+    end else
+    Buffer.add_string buf !!CommonMessages.html_header;
   Buffer.add_string buf "</HEAD>\n";
   if open_body then Buffer.add_string buf "<BODY>\n";    
   if not !!use_html_frames then add_simple_commands buf;
@@ -314,7 +319,7 @@ let http_handler options t r =
         match r.get_url.Url.file with
         | "/commands.html" ->
             html_open_page buf t r true;
-            Buffer.add_string buf !!web_common_header
+            Buffer.add_string buf !!CommonMessages.web_common_header
         | "/" | "/index.html" -> 
             if !!use_html_frames then begin
                 html_open_page buf t r false;
@@ -401,8 +406,8 @@ let http_handler options t r =
                         let r = result_find num in
                         result_download r [] false;
 
-                        Printf.bprintf buf "Download of file %d started<br>"
-                          num
+                        let module M = CommonMessages in
+                        Gettext.buftext buf M.download_started num
                       with  e -> 
                           Printf.bprintf buf "Error %s with %s<br>" 
                             (Printexc.to_string e) value;

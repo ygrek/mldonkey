@@ -361,10 +361,10 @@ print_newline ();
       disconnect_from_server s
       
 let server_to_client s p sock =
-(*
-  Printf.printf "server_to_client"; print_newline ();
-print p;
-  *)
+  if !!verbose_servers > 100 then begin
+      Printf.printf "server_to_client"; print_newline ();
+      print p;
+    end;
   match p.pkt_payload with
   | PingReq t ->
       if p.pkt_hops <= 3 then

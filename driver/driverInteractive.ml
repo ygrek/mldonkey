@@ -157,9 +157,9 @@ let print_table_html spacing buf aligns titles lines =
   Html.end_table buf
   
 let print_file_html_form buf files =
-
-
-    Printf.bprintf buf "
+  
+  
+  Printf.bprintf buf "
 \\<script language=JavaScript\\>\\<!--
 function pauseAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j=document.selectForm.elements[i];if (j.name==\\\"pause\\\") {j.checked=x;}}}
 function resumeAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j=document.selectForm.elements[i];if (j.name==\\\"resume\\\") {j.checked=x;}}}
@@ -168,10 +168,10 @@ function cancelAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j
   ";
   
   Printf.bprintf buf "\\<form name=selectForm action=/files\\>";
-
+  
   
   Html.begin_table_option  buf "width=100%";
-
+  
   Html.begin_td_option buf "width=50%";
   Printf.bprintf buf "\\<input type=submit value='Submit Changes'\\>";
   Html.end_td buf;
@@ -194,7 +194,7 @@ function cancelAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j
   Html.begin_td buf;
   Html.button buf "Clear all" "clearAll(false);";
   Html.end_td buf;
-    
+  
   Html.end_table buf;
   
   print_table_html 10 buf 
@@ -215,7 +215,7 @@ function cancelAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j
               file.file_num
               (let n = network_find_by_num file.file_network in
               n.network_name)            
-            );
+          );
           (if file.file_state = FileDownloading then
               Printf.sprintf 
                 "\\<input name=pause type=checkbox value=%d\\> R
@@ -230,7 +230,19 @@ function cancelAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j
                 file.file_num
                 file.file_num);
           
-          (short_name file);
+          ( let size = Int32.to_float file.file_size in
+            let downloaded = Int32.to_float file.file_downloaded in
+            let size = if size < 1. then 1. else size in
+            Printf.sprintf "%s \\<br\\>
+\\<table cellpadding=0 cellspaceing=0 width=100%%\\>\\<tr\\>
+\\<td class=loaded width=%d%%\\>\\&nbsp;  \\</td\\>
+\\<td class=remain width=%d%%\\>\\&nbsp;  \\</td\\>
+\\</tr\\>\\</table\\>"
+            (short_name file)
+            (truncate (downloaded /. size *. 100.))
+            (truncate ( (1. -. downloaded /. size) *. 100.))
+          );              	
+          
           (Printf.sprintf "%5.1f" (percent file));
           (Int32.to_string file.file_downloaded);
           (Int32.to_string file.file_size);

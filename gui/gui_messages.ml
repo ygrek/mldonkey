@@ -25,7 +25,7 @@ open Gettext
 let message_file_name = try
     Sys.getenv "MLDONKEY_GUI_MESSAGES"
   with _ -> 
-      Filename.concat (try Sys.getenv "HOME" with _ -> ".") "gui_messages.ini"
+      Filename.concat (try Sys.getenv "HOME" with _ -> ".") ".mldonkey_gui_messages.ini"
   
 let _ =
   Printf.printf "Using Message File %s" message_file_name; print_newline ()

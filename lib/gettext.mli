@@ -40,9 +40,12 @@ module T :
     val int64 :  'b arrow -> (int64 -> 'b) arrow
     val nativeint :  'b arrow -> (nativeint -> 'b) arrow
     val format : string arrow
+    val bformat : unit arrow
     val option : 'a arrow ->
       ('a, unit, string) format Options.option_class
+    val boption : 'a arrow ->
+      ('a, Buffer.t, unit) format Options.option_class
   end
   
 val gettext : ('a, unit, string) format Options.option_record -> 'a
-  
+val buftext : Buffer.t -> ('a, Buffer.t, unit) format Options.option_record -> 'a

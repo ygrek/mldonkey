@@ -61,6 +61,7 @@ let second_timer timer =
   DonkeyFiles.reset_upload_timer ()
 
 let halfmin_timer timer =
+  DonkeyFiles.throttle_searches ();
   DonkeyServers.update_master_servers ();
   DonkeyFiles.upload_credit_timer ();
   DonkeyIndexer.add_to_local_index_timer ()

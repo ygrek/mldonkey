@@ -212,7 +212,7 @@ let propagate_working_servers servers =
             let ip = Ip.my () in
             buf_ip buf ip; (* The client IP *)
             buf_list buf_peer buf servers; (* The servers he is connected to *)
-            buf_string buf CommonGlobals.version_number;
+            buf_string buf Autoconf.current_version;
             buf_int buf (int_of_float (last_time () -. start_time)); (* uptime in sec *)
             let module S = CommonShared in
             let total_shared = ref Int64.zero in

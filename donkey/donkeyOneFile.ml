@@ -345,7 +345,10 @@ let verify_chunk file i =
   if !!verbose then begin
       Printf.printf "verify_chunk %ld[%ld]" begin_pos len; print_newline ();
     end;
+  let t1 = Unix.gettimeofday () in
   let new_md4 = Md4.digest_subfile (file_fd file) begin_pos len in
+  let t2 = Unix.gettimeofday () in
+  Printf.printf "Delay for MD4: %2.2f" (t2 -. t1); print_newline ();
   (*
   let mmap = Mmap.mmap file.file_name 
     (file_fd file) begin_pos len in
@@ -521,19 +524,20 @@ and check_file_block c file i max_clients =
           find_client_zone c;
           raise Not_found
       
-      | PartialVerified b when b.block_nclients < max_clients ->
-          b.block_nclients <- b.block_nclients + 1;            
-          c.client_block <- Some b;
-          if !!verbose then begin
-              Printf.printf "\n%d: NEW CLIENT FOR BLOCK [%ld - %ld]" (client_num c)
-              (b.block_begin) (b.block_end);
-              print_newline ();
-            end;
-          
-          file.file_chunks.(i) <- PartialVerified b;
-          find_client_zone c;
-          raise Not_found
-      
+      | PartialVerified b ->
+          if b.block_nclients < max_clients then begin
+              b.block_nclients <- b.block_nclients + 1;            
+              c.client_block <- Some b;
+              if !!verbose then begin
+                  Printf.printf "\n%d: NEW CLIENT FOR BLOCK [%ld - %ld]" (client_num c)
+                  (b.block_begin) (b.block_end);
+                  print_newline ();
+                end;
+              
+              file.file_chunks.(i) <- PartialVerified b;
+              find_client_zone c;
+              raise Not_found
+            end      
       | _ -> ()
     end
 
@@ -575,6 +579,21 @@ and find_client_block c =
       
       if file_state file <> FileDownloading then next_file c else 
       let _ = () in
+      
+      
+      Printf.printf "FIND CLIENT BLOCK"; print_newline ();
+      for i = 0 to file.file_nchunks - 1 do
+        print_char (match file.file_chunks.(i) with
+          | PartialVerified _ -> 'P'
+          | PartialTemp _ -> 'p'
+          | AbsentVerified -> 'A'
+          | AbsentTemp -> 'a'
+          | PresentVerified -> 'D'
+          | PresentTemp -> 'd')
+      done;
+      print_newline ();
+      
+      
       begin
         match c.client_block with 
           None ->
@@ -595,6 +614,16 @@ and find_client_block c =
           if c.client_chunks.(i) && (match file.file_chunks.(i) with
                 AbsentVerified -> true
               | PartialVerified b when b.block_nclients = 0 -> true
+              | _ -> false
+            ) then
+            check_file_block c file i 1
+        done;        
+
+(* chunks whose computation will probably lead to only one MD4 *)
+        for i = 0 to file.file_nchunks - 1 do
+          if c.client_chunks.(i) && (match file.file_chunks.(i) with
+                AbsentTemp -> true
+              | PartialTemp b when b.block_nclients = 0 -> true
               | _ -> false
             ) then
             check_file_block c file i 1

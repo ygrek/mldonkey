@@ -255,3 +255,26 @@ value ml_select(value fd_list, value timeout)
 #endif
 
 }
+
+#if defined(HAVE_NETINET_IP_H)
+
+#include <netinet/ip.h>
+
+value setsock_iptos_throughput(value sock_v)
+{
+  int sock = Int_val(sock_v);
+  int tos = IPTOS_THROUGHPUT /* IPTOS_MINCOST obsoleted by ECN */;
+  return Val_int(setsockopt(sock,
+      IPPROTO_IP, IP_TOS,
+      &tos, sizeof(tos)));
+}
+
+#else
+
+value setsock_iptos_throughput(value sock_v)
+{
+  return Val_unit;
+}
+
+#endif
+

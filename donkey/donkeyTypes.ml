@@ -184,6 +184,9 @@ and file = {
     mutable file_md4s : Md4.t list;
     mutable file_format : format;
     mutable file_available_chunks : int array;
+    mutable file_enough_sources : bool;
+
+
 
 (*
     mutable file_last_downloaded : (int32 * float) list;

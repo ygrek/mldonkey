@@ -285,48 +285,52 @@ let really_load filename options =
       exit 1
     end else
   let ic = open_in filename in
-  let s = Stream.of_channel ic in
   try
-    let stream = lexer s in
-    let list =
-      try parse_gwmlrc stream with
-        e ->
-          Printf.eprintf "Syntax error while parsing file %s at pos %d\n"
-          filename (Stream.count s);
-          exit 2
-    in
-    List.iter
-      (fun o ->
-         try
-          (try
-              o.option_value <-
-                o.option_class.from_value (find_value o.option_name list);
-            with SideEffectOption -> ());
-           exec_chooks o;
-           exec_hooks o
-        with
-          SideEffectOption -> ()
-        | OptionNotFound ->
-            Printf.printf "Option ";
-            List.iter (fun s -> Printf.printf "%s " s) o.option_name;
-            Printf.printf "not found in %s" filename;
-            print_newline ();
-        | e ->
-            Printf.printf "Exception: %s while handling option:"
-              (Printexc.to_string e); 
-            List.iter (fun s -> Printf.printf "%s " s) o.option_name;
-            print_newline ();
-            Printf.printf "  in %s" filename; print_newline ();
-            Printf.printf "Aborting."; print_newline ();
+    let s = Stream.of_channel ic in
+    try
+      let stream = lexer s in
+      let list =
+        try parse_gwmlrc stream with
+          e ->
+            Printf.eprintf "Syntax error while parsing file %s at pos %d\n"
+              filename (Stream.count s);
             exit 2
-    )
+      in
+      List.iter
+        (fun o ->
+          try
+            (try
+                o.option_value <-
+                  o.option_class.from_value (find_value o.option_name list);
+              with SideEffectOption -> ());
+            exec_chooks o;
+            exec_hooks o
+          with
+            SideEffectOption -> ()
+          | OptionNotFound ->
+              Printf.printf "Option ";
+              List.iter (fun s -> Printf.printf "%s " s) o.option_name;
+              Printf.printf "not found in %s" filename;
+              print_newline ();
+          | e ->
+              Printf.printf "Exception: %s while handling option:"
+                (Printexc.to_string e); 
+              List.iter (fun s -> Printf.printf "%s " s) o.option_name;
+              print_newline ();
+              Printf.printf "  in %s" filename; print_newline ();
+              Printf.printf "Aborting."; print_newline ();
+              exit 2
+      )
       options;
-    list
-  with
-    e ->
-      Printf.printf "Error %s in %s" (Printexc.to_string e) filename;
-      print_newline ();
-      []
+      close_in ic;
+      list
+    with
+      e ->
+        Printf.printf "Error %s in %s" (Printexc.to_string e) filename;
+        print_newline ();
+        []
+  with e ->
+      close_in ic; raise e
 ;;
 
 let options_file_name f = f.file_name
@@ -710,6 +714,7 @@ let save opfile =
   let temp_file = filename ^ ".tmp" in
   let old_file = filename ^ ".old" in
   let oc = open_out temp_file in
+  try
   save_module "" oc
     (List.map
       (fun o ->
@@ -749,7 +754,9 @@ let save opfile =
     end;
   close_out oc;
   (try Unix2.rename filename old_file with _ -> ());
-  (try Unix2.rename temp_file filename with _ -> ())
+    (try Unix2.rename temp_file filename with _ -> ())
+  with e ->
+      close_out oc; raise e
 ;;
 
 let save_with_help opfile =

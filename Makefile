@@ -47,7 +47,7 @@ CDK_SRCS=cdk/printexc.ml cdk/genlex2.ml cdk/sysenv.ml \
   cdk/netbase.ml cdk/filepath.ml cdk/string2.ml \
   cdk/filename2.ml cdk/list2.ml cdk/hashtbl2.ml \
   cdk/file.ml cdk/unix2.ml cdk/heap.ml cdk/weak2.ml \
-  cdk/select_c.c cdk/heap_c.c cdk/array2.ml
+  cdk/select_c.c cdk/heap_c.c cdk/array2.ml cdk/sort2.ml
 
 ifeq ("$(ZLIB)" , "yes")
   LIBS_opt += -cclib -lz
@@ -84,6 +84,7 @@ CHAT_SRCS = chat/chat_messages.ml\
         chat/chat_config.ml\
 
 COMMON_SRCS=common/commonTypes.ml \
+  common/commonMessages.ml \
   common/guiTypes.ml \
   common/commonEvent.ml \
   common/commonOptions.ml \
@@ -822,48 +823,48 @@ debug:
 	MORECFLAGS="-I patches/ocaml-3.06/ -DHEAP_DUMP" $(MAKE) cdk/heap_c.o
 	$(MAKE)
 
-release.shared: opt VERSION
+release.shared: opt
 	rm -rf mldonkey-*
 	cp -R distrib $(DISDIR)
 	for i in $(TARGETS); do \
 	   cp $$i $(DISDIR)/$$i; \
    	   strip  $(DISDIR)/$$i; \
 	done
-	mv $(DISDIR) $(DISDIR)-`cat VERSION`
-	tar cf $(DISDIR).tar $(DISDIR)-`cat VERSION`
-	mv $(DISDIR).tar mldonkey-`cat VERSION`.shared.$(MD4ARCH)-`uname -s`.tar
-	$(COMPRESS) mldonkey-`cat VERSION`.shared.$(MD4ARCH)-`uname -s`.tar
+	mv $(DISDIR) $(DISDIR)-$(CURRENT_VERSION)
+	tar cf $(DISDIR).tar $(DISDIR)-$(CURRENT_VERSION)
+	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s`.tar
+	$(COMPRESS) mldonkey-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s`.tar
 
 upload.shared: release.shared
-	scp mldonkey-`cat VERSION`.shared.$(MD4ARCH)-`uname -s`.tar.$(COMPRESS_EXT) lachesis:devel/mldonkey-release/
+	scp mldonkey-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s`.tar.$(COMPRESS_EXT) lachesis:devel/mldonkey-release/
 
-release.static: static opt VERSION
+release.static: static opt
 	rm -rf mldonkey-*
 	cp -R distrib $(DISDIR)
 	for i in $(TARGETS); do \
 	   cp $$i.static $(DISDIR)/$$i; \
    	   strip  $(DISDIR)/$$i; \
 	done
-	mv $(DISDIR) $(DISDIR)-`cat VERSION`
-	tar cf $(DISDIR).tar $(DISDIR)-`cat VERSION`
-	mv $(DISDIR).tar mldonkey-`cat VERSION`.static.$(MD4ARCH)-`uname -s`.tar
-	$(COMPRESS) mldonkey-`cat VERSION`.static.$(MD4ARCH)-`uname -s`.tar
+	mv $(DISDIR) $(DISDIR)-$(CURRENT_VERSION)
+	tar cf $(DISDIR).tar $(DISDIR)-$(CURRENT_VERSION)
+	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar
+	$(COMPRESS) mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar
 
 upload.static: release.static
-	scp mldonkey-`cat VERSION`.static.$(MD4ARCH)-`uname -s`.tar.$(COMPRESS_EXT) lachesis:devel/mldonkey-release/
+	scp mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar.$(COMPRESS_EXT) lachesis:devel/mldonkey-release/
 
 
-release.sources: VERSION
+release.sources: 
 	rm -rf **/CVS
 	rm -f config/Makefile.config
-	cd ..; tar zcf mldonkey-`cat mldonkey/VERSION`.sources.tar.gz mldonkey
+	cd ..; tar zcf mldonkey-$(CURRENT_VERSION).sources.tar.gz mldonkey
 
 upload.sources: release.sources
-	scp ../mldonkey-`cat VERSION`.sources.tar.gz lachesis:devel/mldonkey-release/
+	scp ../mldonkey-$(CURRENT_VERSION).sources.tar.gz lachesis:devel/mldonkey-release/
 
 distrib: $(DISDIR)
 
-$(DISDIR):  static distrib/Readme.txt VERSION
+$(DISDIR):  static distrib/Readme.txt
 	rm -rf mldonkey-*
 	cp -R distrib $(DISDIR)
 	rm -rf $(DISDIR)/CVS
@@ -872,10 +873,10 @@ $(DISDIR):  static distrib/Readme.txt VERSION
 	cp mldonkey_gui.static $(DISDIR)/mldonkey_gui
 	strip $(DISDIR)/mldonkey_gui
 	tar cf $(DISDIR).tar $(DISDIR)
-	mv $(DISDIR).tar mldonkey-`cat VERSION`.static.$(MD4ARCH)-`uname -s`.tar
-	bzip2 mldonkey-`cat VERSION`.static.$(MD4ARCH)-`uname -s`.tar
+	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar
+	bzip2 mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar
 
-macosx:  opt distrib/Readme.txt VERSION
+macosx:  opt distrib/Readme.txt
 	rm -rf mldonkey-*
 	cp -R distrib $(DISDIR)
 	rm -rf $(DISDIR)/CVS
@@ -884,14 +885,14 @@ macosx:  opt distrib/Readme.txt VERSION
 	cp mldonkey_gui $(DISDIR)/mldonkey_gui
 	strip $(DISDIR)/mldonkey_gui
 	tar cf $(DISDIR).tar $(DISDIR)
-	mv $(DISDIR).tar mldonkey-`cat VERSION`.shared.ppc-MacOS-X.tar
-	gzip mldonkey-`cat VERSION`.shared.ppc-MacOS-X.tar
+	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).shared.ppc-MacOS-X.tar
+	gzip mldonkey-$(CURRENT_VERSION).shared.ppc-MacOS-X.tar
 
 SHADIR=mldonkey-shared
 
 shared: $(SHADIR)
 
-$(SHADIR):  static distrib/Readme.txt VERSION
+$(SHADIR):  static distrib/Readme.txt
 	rm -rf mldonkey-*
 	cp -R distrib $(SHADIR)
 	rm -rf $(SHADIR)/CVS
@@ -900,49 +901,46 @@ $(SHADIR):  static distrib/Readme.txt VERSION
 	cp mldonkey_gui $(SHADIR)/mldonkey_gui
 	strip $(SHADIR)/mldonkey_gui
 	tar cf $(SHADIR).tar $(SHADIR)
-	mv $(SHADIR).tar mldonkey-`cat VERSION`.shared.$(MD4ARCH)-`uname -s`.tar
-	bzip2 mldonkey-`cat VERSION`.shared.$(MD4ARCH)-`uname -s`.tar
+	mv $(SHADIR).tar mldonkey-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s`.tar
+	bzip2 mldonkey-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s`.tar
 
-VERSION: common/commonGlobals.ml
-	grep Release: common/commonGlobals.ml | awk -F: '{ print $$2 }' | awk '{ print $$1 }' > VERSION	
-
-auto-release: VERSION
+auto-release:
 # i386
-	mkdir -p $(HOME)/release-`cat VERSION`
+	mkdir -p $(HOME)/release-$(CURRENT_VERSION)
 	cp -f config/Makefile.config.i386 config/Makefile.config
 	rm -f mldonkey mldonkey.static lib/md4_comp.* lib/md4_as.*
 	$(MAKE) opt static
 	$(MAKE) distrib
-	cp mldonkey-`cat VERSION`.static.i386-Linux.tar.bz2 $(HOME)/release-`cat VERSION`/
+	cp mldonkey-$(CURRENT_VERSION).static.i386-Linux.tar.bz2 $(HOME)/release-$(CURRENT_VERSION)/
 	$(MAKE) shared
-	cp mldonkey-`cat VERSION`.shared.i386-Linux.tar.bz2 $(HOME)/release-`cat VERSION`/
+	cp mldonkey-$(CURRENT_VERSION).shared.i386-Linux.tar.bz2 $(HOME)/release-$(CURRENT_VERSION)/
 # i686
-	mkdir -p $(HOME)/release-`cat VERSION`
+	mkdir -p $(HOME)/release-$(CURRENT_VERSION)
 	cp -f config/Makefile.config.i686 config/Makefile.config
 	rm -f mldonkey mldonkey.static lib/md4_comp.* lib/md4_as.*
 	$(MAKE) opt static
 	$(MAKE) distrib
-	cp mldonkey-`cat VERSION`.static.i686-Linux.tar.bz2 $(HOME)/release-`cat VERSION`/
+	cp mldonkey-$(CURRENT_VERSION).static.i686-Linux.tar.bz2 $(HOME)/release-$(CURRENT_VERSION)/
 	$(MAKE) shared
-	cp mldonkey-`cat VERSION`.shared.i686-Linux.tar.bz2 $(HOME)/release-`cat VERSION`/
+	cp mldonkey-$(CURRENT_VERSION).shared.i686-Linux.tar.bz2 $(HOME)/release-$(CURRENT_VERSION)/
 # i586
-	mkdir -p $(HOME)/release-`cat VERSION`
+	mkdir -p $(HOME)/release-$(CURRENT_VERSION)
 	cp -f config/Makefile.config.i586 config/Makefile.config
 	rm -f mldonkey mldonkey.static lib/md4_comp.* lib/md4_as.*
 	$(MAKE) opt static
 	$(MAKE) distrib
-	cp mldonkey-`cat VERSION`.static.i586-Linux.tar.bz2 $(HOME)/release-`cat VERSION`/
+	cp mldonkey-$(CURRENT_VERSION).static.i586-Linux.tar.bz2 $(HOME)/release-$(CURRENT_VERSION)/
 	$(MAKE) shared
-	cp mldonkey-`cat VERSION`.shared.i586-Linux.tar.bz2 $(HOME)/release-`cat VERSION`/
+	cp mldonkey-$(CURRENT_VERSION).shared.i586-Linux.tar.bz2 $(HOME)/release-$(CURRENT_VERSION)/
 # i486
-	mkdir -p $(HOME)/release-`cat VERSION`
+	mkdir -p $(HOME)/release-$(CURRENT_VERSION)
 	cp -f config/Makefile.config.i486 config/Makefile.config
 	rm -f mldonkey mldonkey.static lib/md4_comp.* lib/md4_as.*
 	$(MAKE) opt static
 	$(MAKE) distrib
-	cp mldonkey-`cat VERSION`.static.i486-Linux.tar.bz2 $(HOME)/release-`cat VERSION`/
+	cp mldonkey-$(CURRENT_VERSION).static.i486-Linux.tar.bz2 $(HOME)/release-$(CURRENT_VERSION)/
 	$(MAKE) shared
-	cp mldonkey-`cat VERSION`.shared.i486-Linux.tar.bz2 $(HOME)/release-`cat VERSION`/
+	cp mldonkey-$(CURRENT_VERSION).shared.i486-Linux.tar.bz2 $(HOME)/release-$(CURRENT_VERSION)/
 
 
 #######################################################################

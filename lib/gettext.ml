@@ -160,6 +160,9 @@ let text_option (expected_type : 'a arrow)
 
 let gettext v = Printf.sprintf !!v
   
+let buftext buf (v : ('a, Buffer.t, unit) format Options.option_record) = 
+  Printf.bprintf buf !!v
+  
 module T = struct
     let int x = arrow_add_variable (Obj.magic Type_int : int variable) x
     let char x = arrow_add_variable (Obj.magic Type_char : char variable) x
@@ -170,7 +173,9 @@ module T = struct
     let int64 x = arrow_add_variable (Obj.magic Type_int64 : int64 variable) x
     let nativeint x = arrow_add_variable (Obj.magic Type_nativeint : nativeint variable) x
     let format = (Obj.magic [] : string arrow)
+    let bformat = (Obj.magic [] : unit arrow)
     let option = text_option
+    let boption x = (Obj.magic text_option) x
   end
 
 

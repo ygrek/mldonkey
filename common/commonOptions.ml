@@ -22,6 +22,7 @@ open Options
 open Unix
 
   
+  
 let file_basedir = 
   try
     Sys.getenv "MLDONKEY_DIR"
@@ -327,48 +328,6 @@ let compute_md4_delay = define_option downloads_ini ["compute_md4_delay"]
     "The delay between computations of the md4 of chunks"
   float_option 10.
   
-let web_common_header = define_option downloads_ini
-    ["web_common_header"] "The header displayed in the WEB interface"
-    string_option
-  "
-  <table width=100% border=0> <tr>
-<td>
-  <h2>Connected to <a href=http://www.freesoftware.fsf.org/mldonkey/ $P> MLdonkey </a> 
-WEB server</h2>
-  </td>
-<td>
-<form action=\"submit\" $O>
-<table border=0>
-<tr>
-<td width=\"1%\"><input type=text name=q size=40 value=\"\"></td>
-<td align=left><input type=submit value=\"Execute\"></td>
-</tr>
-</table>
-</form>
-  </td>
-</table>
-<table width=100% border=0>
-<tr>
-  <td><a href=/submit?q=vm $O> View Connected Servers </a></td>
-  <td><a href=/submit?q=vma $O> View All Servers </a></td>
-  <td><a href=/submit?q=c $O> Connect More Servers </a></td>
-  <td><a href=/submit?q=view_custom_queries $S> Custom Searches </a></td>
-  <td><a href=/submit?q=xs $O> Extended Search </a></td>
-  <td><a href=/submit?q=upstats $O> Upload Statistics </a></td>
-  $G
-  </tr>
-<tr>
-<td><a href=/submit?q=vr $O> View Results </a></td>
-<td><a href=/submit?q=vd $O> View Downloads </a></td>
-<td><a href=/submit?q=commit $S> Commit Downloads </a></td>
-<td><a href=/submit?q=vs $O> View Searches </a></td>
-<td><a href=/submit?q=vo $O> View Options </a></td>
-<td><a href=/submit?q=help $O> View Help </a></td>
-  </tr>
-  </table>
-<br>
-"
-
 let server_black_list = define_option downloads_ini 
     ["server_black_list"] "A list of server IP to remove from server list.
     Servers on this list can't be added, and will eventually be removed"
@@ -450,15 +409,7 @@ let compaction_delay = define_option downloads_ini ["compaction_delay"]
 let vd_reload_delay = define_option downloads_ini ["vd_reload_delay"]
     "The delay between reloads of the vd output in the WEB interface"
     int_option 120
-  
-let html_header = define_option downloads_ini ["html_header"]
-  "The header used in the WEB interface (modify to add your CSS)"
-    string_option  
-  "<TITLE>\n
-  MLdonkey WEB Interface\n
-  </TITLE>\n
-    "
-  
+    
 let http_bind_addr = define_option downloads_ini ["http_bind_addr"]
     "The IP address used to bind the http server"
     Ip.option (Ip.any)
@@ -611,7 +562,13 @@ let shared_extensions = define_option downloads_ini ["shared_extensions"]
     not in the list will not be shared (except if the list is empty :)"
     (list_option string_option) []
 
-    
+
+
+  
+let strict_bandwidth = define_option downloads_ini ["strict_bandwidth"]
+    "Should the bandwidth be controled more strictly ? (count IP packets)"
+    bool_option true
+  
   
 let debug_net = define_option downloads_ini ["debug_net"]
     "Set to true if you want some more information on low-level network layer"

@@ -87,3 +87,5 @@ val close_all : unit -> unit
   
 val start_time : float
   
+external setsock_iptos_throughput: Unix.file_descr -> int = "setsock_iptos_throughput"
+  
