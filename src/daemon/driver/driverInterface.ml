@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonInteractive
 open Printf2
 open UdpSocket
 open CommonShared
@@ -941,7 +942,8 @@ let gui_handler t event =
       if Ip.matches from_ip !!allowed_ips then 
         
         let module P = GuiProto in
-        let sock = TcpBufferedSocket.create_simple 
+        let token = create_token unlimited_connection_manager in
+        let sock = TcpBufferedSocket.create_simple token
             "gui connection"
             s in
         
@@ -977,7 +979,8 @@ let gift_handler t event =
       if Ip.matches from_ip !!allowed_ips then 
         
         let module P = GuiProto in
-        let sock = TcpBufferedSocket.create_simple 
+        let token = create_token unlimited_connection_manager in
+        let sock = TcpBufferedSocket.create_simple token
             "gui connection"
             s in
         

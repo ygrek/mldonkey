@@ -84,7 +84,7 @@ let known_servers = define_option opennap_ini
 *)
 
 
-let value_to_file is_done assocs =
+let value_to_file file_size file_state assocs =
   let get_value name conv = conv (List.assoc name assocs) in
   let get_value_nil name conv = 
     try conv (List.assoc name assocs) with _ -> []
@@ -96,14 +96,10 @@ let value_to_file is_done assocs =
       Md4.of_string (get_value "file_id" value_to_string)
     with _ -> failwith "Bad file_id"
   in
-  let file_size = try
-      value_to_int64 (List.assoc "file_size" assocs) 
-    with _ -> failwith "Bad file size"
-  in
   
   let file = new_file file_id file_name file_size in
 
-  if file_state file <> FileDownloaded then
+  if file_state <> FileDownloaded then
     current_files := file :: !current_files;
     
   (try
@@ -138,7 +134,6 @@ let value_to_file is_done assocs =
 
 let file_to_value file =
   [
-    "file_size", int64_to_value (file_size file);
     "file_name", string_to_value file.file_name;
     "file_downloaded", int64_to_value (file_downloaded file);
     "file_id", string_to_value (Md4.to_string file.file_id);

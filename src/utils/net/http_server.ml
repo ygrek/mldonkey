@@ -19,7 +19,8 @@
 
 open Printf2
 open BasicSocket
-
+open TcpBufferedSocket
+  
 let html_escaped s =
   String2.convert false (fun b escaped c ->
       if escaped then
@@ -748,7 +749,9 @@ let handler config t event =
 (* check here if ip is OK *)
       let from_ip = Ip.of_inet_addr from_ip in
       if Ip.matches from_ip config.addrs then 
-        let sock = TcpBufferedSocket.create_simple "http connection" s in
+        let token = create_token unlimited_connection_manager in
+        let sock = TcpBufferedSocket.create_simple 
+            token "http connection" s in
 	BasicSocket.prevent_close (TcpBufferedSocket.sock sock);
         TcpBufferedSocket.set_reader sock (request_handler config);
         TcpBufferedSocket.set_closer sock request_closer;

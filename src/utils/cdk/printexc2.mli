@@ -34,25 +34,15 @@ val print: ('a -> 'b) -> 'a -> 'b
            The typical use is to catch and report exceptions that
            escape a function application. *)
 
-val catch: ('a -> 'b) -> 'a -> 'b
-        (* [Printexc2.catch fn x] is similar to [Printexc2.print], but
-           aborts the program with exit code 2 after printing the
-           uncaught exception.  This function is deprecated: the runtime
-           system is now able to print uncaught exceptions as precisely
-           as [Printexc2.catch] does.  Moreover, calling [Printexc2.catch]
-           makes it harder to track the location of the exception
-           using the debugger or the stack backtrace facility.
-           So, do not use [Printexc2.catch] in new code.  *)
-
 val register_exn : (exn -> string) -> unit
 (*d [register_exn printer] registers a printer for user-defined 
 exceptions. [printer] is a function which takes an exception as argument
 and converts it to a string. If it cannot convert the exception, it should
 raise it again. *)
   
-val catchexn : string -> (unit -> unit) -> unit
-  
-(*d [catchexn msg f] executes the function [f] and returns unit. If an 
+val catch : string -> ('a -> unit) -> 'a -> unit
+val catch2 : string -> ('a -> 'b -> unit) -> 'a -> 'b -> unit
+(*d [catch msg f x] executes the function [f] and returns unit. If an 
 exception is raised during the execution of [f], the message [msg] is 
     printed on standard output with the exception using [printexn], and unit
     is returned. *)

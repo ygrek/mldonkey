@@ -41,7 +41,7 @@ type server = {
     server_port : int;
     mutable server_desc : string;
     mutable server_net : string;
-    mutable server_sock : TcpBufferedSocket.t option; 
+    mutable server_sock : tcp_connection; 
     mutable server_connection_control : connection_control;
     mutable server_size : int;
     mutable server_nusers : int;
@@ -73,7 +73,7 @@ and client = {
     mutable client_user : user;
     client_name : string;
     mutable client_addr : (Ip.t * int) option;
-    mutable client_sock : TcpBufferedSocket.t option;
+    mutable client_sock : tcp_connection;
     mutable client_pos : int64;
     mutable client_error : bool;
     mutable client_files : (file * string) list;

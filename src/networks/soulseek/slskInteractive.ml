@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonInteractive
+open Int32ops
 open Printf2
 open Md4
 open CommonGlobals
@@ -76,18 +78,18 @@ let _ =
       SlskGlobals.searches := (!!next_token, q) :: !SlskGlobals.searches;
       let words = String2.unsplit !words ' ' in
       lprintf "SEARCH COMPUTED"; lprint_newline ();
+      let msg = C2S.FileSearchReq {
+          C2S.FileSearch.words = words;
+          C2S.FileSearch.id = !!next_token;
+        } in
       List.iter (fun s ->
-          let msg = C2S.FileSearchReq {
-              C2S.FileSearch.words = words;
-              C2S.FileSearch.id = !!next_token;
-            } in
-          match s.server_sock with
-            None -> ()
-          | Some sock ->
+          do_if_connected s.server_sock (fun sock ->
               lprintf "SENDING SEARCH"; lprint_newline ();
               server_send sock msg; 
               s.server_search <- Some q; 
-              Printf.bprintf  buf "Sending search\n") !connected_servers
+              Printf.bprintf  buf "Sending search\n") 
+      )
+      !connected_servers
   )
   
     
@@ -281,28 +283,22 @@ let _ =
         | _ -> assert false
       in
       List.iter (fun s ->
-          match s.server_sock with
-            None -> ()
-          | Some sock ->
-              server_send sock msg) !connected_servers  
+          do_if_connected s.server_sock (fun sock ->
+              server_send sock msg)) !connected_servers  
   );
   room_ops.op_room_name <- (fun s -> s.room_name);
   room_ops.op_room_resume <- (fun r ->
       set_room_state r RoomOpened;
       List.iter (fun s ->
-          match s.server_sock with
-            None -> ()
-          | Some sock ->
-              server_send sock (C2S.JoinRoomReq r.room_name)
+          do_if_connected s.server_sock (fun sock ->
+              server_send sock (C2S.JoinRoomReq r.room_name))
       ) !connected_servers
   );
   room_ops.op_room_close <- (fun r ->
       set_room_state r RoomPaused;
       List.iter (fun s ->
-          match s.server_sock with
-            None -> ()
-          | Some sock ->
-              server_send sock (C2S.LeaveRoomReq r.room_name)
+          do_if_connected s.server_sock (fun sock ->
+              server_send sock (C2S.LeaveRoomReq r.room_name))
       ) !connected_servers
       
   );

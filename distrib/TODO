@@ -1,6 +1,9 @@
 TODO list for client
 ====================
 
+Flush buffers after do_at_exit (wait 5 secondes after exit ?).
+Share only on some networks.
+
 ************************************************************************
 Edonkey:
  * Extension to download small files immediatly (files smaller than 10k for
@@ -21,8 +24,6 @@ Edonkey:
  * BUG: Files randomly pause
 
 BitTorrent:
- * BUG: Why does mldonkey crash when commiting files
- * Fix the performance problem of CommonSwarming
  * Implement file availability as in edonkey.
  * Content-Encoding: gzip
  * bt 3.2 ... a want= and have= parameter 
@@ -39,7 +40,6 @@ FastTrack:
     downloading clients
 
 Gnutella2:
- * Split Gnutella into two different plugins, Gnutella and Gnutella2.
  * Why doesn't TigerTree work on Mac ? 
  * Allow browsing other clients.
  * ADD urn:sha1:<HASH> and urn:tree:tiger/:<HASH> to QRT

@@ -69,22 +69,22 @@ let server_parse_after s gconn sock =
                   let msg_type, size = 
                     match xtype with
                       0 ->
-                        let msg_type = get_int8 b.buf (b.pos+1) in
+                        let msg_type = get_uint8 b.buf (b.pos+1) in
 (* zero *)
-                        let len_hi = get_int8 b.buf (b.pos+3) in
-                        let len_lo = get_int8 b.buf (b.pos+4) in
+                        let len_hi = get_uint8 b.buf (b.pos+3) in
+                        let len_lo = get_uint8 b.buf (b.pos+4) in
                         msg_type, (len_hi lsl 8) lor len_lo
                     | 1 ->
 (* zero *)
-                        let len_hi = get_int8 b.buf (b.pos+2) in
-                        let msg_type = get_int8 b.buf (b.pos+3) in
-                        let len_lo = get_int8 b.buf (b.pos+4) in
+                        let len_hi = get_uint8 b.buf (b.pos+2) in
+                        let msg_type = get_uint8 b.buf (b.pos+3) in
+                        let len_lo = get_uint8 b.buf (b.pos+4) in
                         msg_type, (len_hi lsl 8) lor len_lo
                     | _ ->
 (*zero*)        
-                        let len_lo = get_int8 b.buf (b.pos+2) in
-                        let len_hi = get_int8 b.buf (b.pos+3) in
-                        let msg_type = get_int8 b.buf (b.pos+4) in
+                        let len_lo = get_uint8 b.buf (b.pos+2) in
+                        let len_hi = get_uint8 b.buf (b.pos+3) in
+                        let msg_type = get_uint8 b.buf (b.pos+4) in
                         msg_type, (len_hi lsl 8) lor len_lo
                   in
 (*                lprintf "Message to read: xtype %d type %d len %d\n"
@@ -181,75 +181,69 @@ let connect_server h =
     | Some s -> s
   in
   match s.server_sock with
-    ConnectionWaiting -> ()
-  | ConnectionAborted -> s.server_sock <- ConnectionWaiting
-  | Connection _ | CompressedConnection _ -> ()
   | NoConnection -> 
       incr nservers;
-      s.server_sock <- ConnectionWaiting;
-      add_pending_connection (fun _ ->
-          decr nservers;
-          match s.server_sock with
-            ConnectionAborted -> 
-              s.server_sock <- NoConnection;
-              free_ciphers s
-          | Connection _ | CompressedConnection _ | NoConnection -> ()
-          | ConnectionWaiting ->
-              try
-                let ip = Ip.ip_of_addr h.host_addr in
-                if not (Ip.valid ip) then
-                  failwith "Invalid IP for server\n";
-                let port = s.server_host.host_port in
-                if !verbose_msg_servers then begin
-                    lprintf "CONNECT TO %s:%d\n" 
-                    (Ip.string_of_addr h.host_addr) port;
-                  end;  
-                h.host_tcp_request <- last_time ();
-                let sock = connect "gnutella to server"
-                    (Ip.to_inet_addr ip) port
-                    (fun sock event -> 
-                      match event with
-                        BASIC_EVENT (RTIMEOUT|LTIMEOUT) -> 
+      let token =
+        add_pending_connection connection_manager (fun token ->
+            decr nservers;
+                try
+                  let ip = Ip.ip_of_addr h.host_addr in
+                  if not (Ip.valid ip) then
+                    failwith "Invalid IP for server\n";
+                  let port = s.server_host.host_port in
+                  if !verbose_msg_servers then begin
+                      lprintf "CONNECT TO %s:%d\n" 
+                        (Ip.string_of_addr h.host_addr) port;
+                    end;  
+                  h.host_tcp_request <- last_time ();
+                  let sock = connect token "fasttrack to server"
+                      (Ip.to_inet_addr ip) port
+                      (fun sock event -> 
+                        match event with
+                          BASIC_EVENT (RTIMEOUT|LTIMEOUT) -> 
 (*                  lprintf "RTIMEOUT\n"; *)
-                          disconnect_from_server nservers s Closed_for_timeout
-                      | _ -> ()
-                  ) in
-                TcpBufferedSocket.set_read_controler sock download_control;
-                TcpBufferedSocket.set_write_controler sock upload_control;
-                
-                set_server_state s Connecting;
-                s.server_sock <- Connection sock;
-                incr nservers;
-                set_fasttrack_sock sock !verbose_msg_servers
-                  (Reader (server_parse_cipher s)
-                
-                );
-                set_closer sock (fun _ error -> 
+                            disconnect_from_server nservers s Closed_for_timeout
+                        | _ -> ()
+                    ) in
+                  TcpBufferedSocket.set_read_controler sock download_control;
+                  TcpBufferedSocket.set_write_controler sock upload_control;
+                  
+                  set_server_state s Connecting;
+                  s.server_sock <- Connection sock;
+                  incr nservers;
+                  set_fasttrack_sock sock !verbose_msg_servers
+                    (Reader (server_parse_cipher s)
+                  
+                  );
+                  set_closer sock (fun _ error -> 
 (*            lprintf "CLOSER %s\n" error; *)
-                    disconnect_from_server nservers s error);
-                set_rtimeout sock !!server_connection_timeout;
-                
-                let in_cipher = create_cipher () in
-                let out_cipher = create_cipher () in
-                s.server_ciphers <- Some {
-                  in_cipher = in_cipher;
-                  out_cipher = out_cipher;
-                  in_xinu = Int64.of_int 0x51;
-                  out_xinu = Int64.of_int 0x51;
-                };
-                set_cipher out_cipher out_cipher_seed 0x29;
-                
-                let s = String.create 12 in
-                cipher_packet_set out_cipher s 0;
-                if !verbose_msg_servers then begin
-                    lprintf "SENDING %s\n" (String.escaped s);
-                    AnyEndian.dump s;
-                  end;
-                write_string sock s;
-              with _ ->
-                  disconnect_from_server nservers s Closed_connect_failed
-      )
-
+                      disconnect_from_server nservers s error);
+                  set_rtimeout sock !!server_connection_timeout;
+                  
+                  let in_cipher = create_cipher () in
+                  let out_cipher = create_cipher () in
+                  s.server_ciphers <- Some {
+                    in_cipher = in_cipher;
+                    out_cipher = out_cipher;
+                    in_xinu = Int64.of_int 0x51;
+                    out_xinu = Int64.of_int 0x51;
+                  };
+                  set_cipher out_cipher out_cipher_seed 0x29;
+                  
+                  let s = String.create 12 in
+                  cipher_packet_set out_cipher s 0;
+                  if !verbose_msg_servers then begin
+                      lprintf "SENDING %s\n" (String.escaped s);
+                      AnyEndian.dump s;
+                    end;
+                  write_string sock s;
+                with _ ->
+                    disconnect_from_server nservers s Closed_connect_failed
+        )
+      in
+      s.server_sock <- ConnectionWaiting token;
+  | _ -> ()
+        
 let get_file_from_source c file =
   if connection_can_try c.client_connection_control then begin
       connection_try c.client_connection_control;
@@ -280,8 +274,9 @@ let exit = Exit
 let disconnect_server s r =
   match s.server_sock with
   | Connection sock -> close sock r
-  | ConnectionWaiting -> 
-      s.server_sock <- ConnectionAborted;
+  | ConnectionWaiting token -> 
+      cancel_token token;
+      s.server_sock <- NoConnection;
       free_ciphers s
       
   | _ -> ()

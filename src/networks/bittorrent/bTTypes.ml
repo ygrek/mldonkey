@@ -40,7 +40,7 @@ type client = {
     mutable client_sock : tcp_connection;
     mutable client_host : Ip.t * int;
     mutable client_chunks : (int64 * int64) list;
-    mutable client_blocks : Int64Swarmer.block list;
+    mutable client_uploader : Int64Swarmer.uploader;
     mutable client_ranges : Int64Swarmer.range list;
     mutable client_block : Int64Swarmer.block option;
     
@@ -60,7 +60,7 @@ type client = {
     mutable client_uploaded : int64;
     mutable client_optimist_time : int;
     
-    mutable client_blocks_sent : Int64Swarmer.block list;
+    mutable client_blocks_sent : (int * int64 * int64) list;
     mutable client_good : bool;
     mutable client_num_try : int;
     mutable client_alrd_sent_interested : bool;
@@ -78,7 +78,6 @@ and file = {
     file_id : Sha1.t;
     file_name : string;
     file_swarmer : Int64Swarmer.t;
-    file_partition : CommonSwarming.Int64Swarmer.partition;
     mutable file_clients : (Sha1.t, client) Hashtbl.t ;
     mutable file_clients_num : int ;
     mutable file_chunks : Sha1.t array; 
@@ -86,7 +85,7 @@ and file = {
     mutable file_tracker_interval : int;
     mutable file_tracker_last_conn : int;
     mutable file_files : (string * int64) list;
-    mutable file_blocks_downloaded : Int64Swarmer.block list;
+    mutable file_blocks_downloaded : (int * int64 * int64) list;
     (* vvv probably a network specific value vvv ?what about file_downloaded?*)
     mutable file_uploaded : int64;
   }

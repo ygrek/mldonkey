@@ -79,7 +79,8 @@ let reconnect (gui : gui) value_reader arg reason =
   (try disconnect gui reason with _ -> ());
   let hostname = if !!O.hostname = "" then Unix.gethostname () 
     else !!O.hostname in
-  let sock = TcpBufferedSocket.connect ""
+  let token = create_token unlimited_connection_manager in
+  let sock = TcpBufferedSocket.connect token ""
       (try
         let h = Ip.from_name hostname in
         Ip.to_inet_addr h
@@ -216,7 +217,8 @@ let scan_ports () =
       let next = ref true in
       prev_next := false;
       try
-        let sock = TcpBufferedSocket.connect "" addr i (fun sock e -> 
+        let token = create_token unlimited_connection_manager in
+        let sock = TcpBufferedSocket.connect token "" addr i (fun sock e -> 
               match e with
                 BASIC_EVENT (RTIMEOUT) -> close sock Closed_for_timeout
               | _ -> ()

@@ -36,6 +36,7 @@ open CommonShared
 open CommonServer
 open DcTypes
 open DcOptions
+open CommonInteractive
   
 module DO = CommonOptions
 
@@ -73,6 +74,8 @@ let network = new_network "Direct Connect"
     ]
     (fun _ -> !!network_options_prefix)
   (fun _ -> !!commit_in_subdir)
+
+let connection_manager = network.network_connection_manager
   
   (*
 OK   op_result_download : ('a -> string list -> unit);
@@ -310,7 +313,7 @@ let new_client name =
       let user = new_user None name in
       let rec c = {
           client_client = impl;
-          client_sock = None;
+          client_sock = NoConnection;
           client_name = name;
           client_addr = None;
           client_files = [];
@@ -387,7 +390,7 @@ let new_server addr port=
           server_nusers = 0;
           server_info = "";
           server_connection_control = new_connection_control ();
-          server_sock = None;
+          server_sock = NoConnection;
           server_port = port;
           server_nick = 0;
           server_last_nick = "";

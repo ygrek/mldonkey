@@ -29,6 +29,8 @@ open ServerTypes
 let network = CommonNetwork.new_network "Donkey:server"
     network_options_prefix commit_in_subdir
 
+let connection_manager = network.network_connection_manager
+  
 (*basic data structures*)
 let (files_by_md4  :  (Md4.t, ServerTypes.location list) Hashtbl.t )
   

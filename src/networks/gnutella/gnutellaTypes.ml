@@ -28,7 +28,7 @@ type query_key =
   NoUdpSupport
 | GuessSupport
 | UdpSupport of Md4.t
-| UdpQueryKey of int32
+| UdpQueryKey of int64
   
 type host = {
     host_num : int;
@@ -60,7 +60,7 @@ and server = {
     mutable server_nfiles_last : int;
     mutable server_nkb_last : int;
     mutable server_vendor : string;
-    mutable server_connected : int32;
+    mutable server_connected : int64;
     
     mutable server_gnutella2 : bool;
     mutable server_host : host;
@@ -130,7 +130,6 @@ and file = {
     file_id : Md4.t;
     mutable file_name : string;
     file_swarmer : Int64Swarmer.t;
-    file_partition : CommonSwarming.Int64Swarmer.partition;
     mutable file_clients : client list;
     mutable file_uids : Uid.t list; 
     mutable file_searches : local_search list;
@@ -140,7 +139,7 @@ and download = {
     download_file : file;
     download_uri : file_uri;
     mutable download_chunks : (int64 * int64) list;
-    mutable download_blocks : Int64Swarmer.block list;
+    download_uploader : Int64Swarmer.uploader;
     mutable download_ranges : (int64 * int64 * Int64Swarmer.range) list;
     mutable download_block : Int64Swarmer.block option;
   }

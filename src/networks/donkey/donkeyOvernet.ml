@@ -331,7 +331,7 @@ let udp_send ip port msg =
         if !verbose_overnet && debug_client ip then 
         begin            
                     lprintf "Sending UDP to %s:%d type %d (0x%02X)" 
-                      (Ip.to_string ip) port (get_int8 s 1) (get_int8 s 1);
+                      (Ip.to_string ip) port (get_uint8 s 1) (get_uint8 s 1);
                     lprint_newline ();
 (*dump s; lprint_newline ();*)
 	  end;

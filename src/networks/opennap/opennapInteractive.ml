@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonInteractive
+open Int32ops
 open Printf2
 open Md4
 open CommonSearch
@@ -101,11 +103,11 @@ let try_send buf num tail =
   let num = int_of_string num in
   let msg = OP.UnknownReq (num, tail) in
   List.iter (fun s ->
-      match s.server_sock with
-        None -> ()
-      | Some sock ->
+      do_if_connected s.server_sock (fun sock ->
           OP.server_send sock msg; 
-          Printf.bprintf  buf "Sending message\n") !OG.connected_servers
+          Printf.bprintf  buf "Sending message\n")
+  )
+  !OG.connected_servers
 
 let string_of_length d =
   Printf.sprintf "%02d:%02d" (d / 60) (d mod 60)
@@ -217,11 +219,10 @@ let _ =
 let browse_client c = 
   let user = c.client_user in
   List.iter (fun s ->
-      match s.server_sock with
-        None -> ()
-      | Some sock ->
+      do_if_connected s.server_sock (fun sock ->
           s.server_browse_queue <- s.server_browse_queue @ [c];
-          OP.server_send sock (OP.BrowseUserReq user.user_nick);
+          OP.server_send sock (OP.BrowseUserReq user.user_nick)
+      );
   ) user.user_servers
   
 let _ =

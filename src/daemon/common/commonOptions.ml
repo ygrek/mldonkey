@@ -97,17 +97,6 @@ let servers_section = file_section servers_ini [] ""
 
 let ip_list_option = list_option Ip.option
 
-let dir_option = define_option_class "shared directory"
-    (fun v -> 
-      match v with
-        SmallList [dir; prio] 
-      | List [dir; prio]
-        -> value_to_string dir, value_to_int prio
-      | _ -> value_to_string v, 0
-      
-      )
-  (fun (dir, prio) -> SmallList [string_to_value dir; int_to_value prio])
-
 let allow_browse_share_option = define_option_class "Integer"
     (fun v ->
       match v with
@@ -552,11 +541,20 @@ let auto_commit = define_option current_section
   "Set to false if you don't want mldonkey to automatically put completed files in incoming directory"
     bool_option true
 
+  (*
 let commit_unverified_files = define_option current_section
     ["commit_unverified_files"]
   "Set to true if you want MLdonkey to commit files without verifying them completely"
     bool_option false
+*)
   
+let emulate_sparsefiles = define_expert_option current_section
+    ["emulate_sparsefiles"]
+  "Set to true if you want MLdonkey to emulate sparse files on your disk.
+  Files will use less space, but <preview> and <recover> won't work anymore.
+  Works only on Edonkey plugin. EXPERIMENTAL."
+    bool_option false
+
 let max_concurrent_downloads = define_option current_section 
     ["max_concurrent_downloads"] 
   "The maximal number of files in Downloading state (other ones are Queued)"
@@ -575,9 +573,11 @@ let file_started_cmd = define_option current_section
     ["file_started_cmd"]
   "The command which is called when a download is started. Arguments
 are '-file <num>'"
-    string_option 
+    string_option ""
+  
+  (*
   (Filename.concat bin_dir "mlprogress")
-
+*)
   
   
 let current_section = startup_section
@@ -632,17 +632,6 @@ let mldonkey_bin = define_expert_option current_section ["mldonkey_bin"]
 let mldonkey_gui = define_expert_option current_section ["mldonkey_gui"]
     "Name of GUI to start" string_option 
     (Filename.concat bin_dir "mlgui")
-
-let shared_directories = 
-  define_option current_section ["shared_directories" ] 
-    "Directories where files will be shared, prio of that directories"
-  (list_option dir_option) []
-  
-let shared_extensions = define_expert_option current_section ["shared_extensions"]  
-  "A list of extensions of files that should be shared (\".mp3\",\".avi\" for examples). 
-  Files with extensions not in the list will not be shared (except if the list 
-   is empty :)"
-    (list_option string_option) []
 
   
   
@@ -980,6 +969,7 @@ let verbosity = define_expert_option current_section ["verbosity"]
   "A space-separated list of keywords. Each keyword triggers
   printing information on the corresponding messages:
   mc : debug client messages
+  mct : debug emule clients tags
   ms : debug server messages
   connect : debug connections
   net : debug net
@@ -1074,13 +1064,13 @@ let _ =
         String.sub !!global_login 0 prefix_len = prefix then
         global_login =:= new_name ()
   );
+  
   option_hook log_file (fun _ ->
       if !!log_file <> "" then
         try
           let oc = open_out !!log_file in
           lprintf "Logging in %s\n" !!log_file;
-          lprintf_output := Some oc;
-          lprintf_to_stdout := true
+          log_to_file oc;
         with e ->
             lprintf "Exception %s while opening log file: %s\n"
               (Printexc2.to_string e) !!log_file
@@ -1111,13 +1101,13 @@ let _ =
         ("ocl",1, "http://savannah.nongnu.org/download/mldonkey/network/peers.ocl");
       ]  
   );
+  (*
   option_hook shared_extensions (fun _ ->
       let list = List.map (fun ext ->
             if String.length ext > 0 && ext.[0] <> '.' then "." ^ ext else ext
         ) !!shared_extensions in
       if list <> !!shared_extensions then shared_extensions =:= list
-      
-  );
+  ); *)
   option_hook tcpip_packet_size (fun _ ->
       TcpBufferedSocket.ip_packet_size := !!tcpip_packet_size
   );
@@ -1142,6 +1132,7 @@ let _ =
 
 let verbose_msg_servers = ref false
 let verbose_msg_clients = ref false
+let verbose_msg_clienttags = ref false
 let verbose_src_manager = ref false
 let verbose_src_prop = ref false
 let verbose = ref false
@@ -1160,6 +1151,7 @@ let _ =
       
       verbose_connect := false;
       verbose_msg_clients := false;
+      verbose_msg_clienttags := false;
       verbose_msg_servers := false;
       BasicSocket.debug := false;
       verbose_src_prop := false;
@@ -1177,6 +1169,7 @@ let _ =
       List.iter (fun s ->
           match s with
           | "mc" -> verbose_msg_clients := true;
+          | "mct" -> verbose_msg_clienttags := true;
           | "ms" -> verbose_msg_servers := true;
           | "verb" -> verbose := true;
           | "sm" -> verbose_src_manager := true;

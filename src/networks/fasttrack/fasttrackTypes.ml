@@ -91,7 +91,7 @@ and server = {
     mutable server_nfiles_last : int;
     mutable server_nkb_last : int;
     mutable server_vendor : string;
-    mutable server_connected : int32;
+    mutable server_connected : int64;
     
     mutable server_host : host;
     
@@ -190,7 +190,6 @@ and file = {
     file_id : Md4.t;
     mutable file_name : string;
     file_swarmer : Int64Swarmer.t;
-    file_partition : CommonSwarming.Int64Swarmer.partition;
     mutable file_clients : client list;
     mutable file_search : local_search;
     mutable file_hash : Md5Ext.t;
@@ -203,7 +202,7 @@ and download = {
     download_file : file;
     download_uri : file_uri;
     mutable download_chunks : (int64 * int64) list;
-    mutable download_blocks : Int64Swarmer.block list;
+    mutable download_uploader : Int64Swarmer.uploader;
     mutable download_ranges : (int64 * int64 * Int64Swarmer.range) list;
     mutable download_block : Int64Swarmer.block option;
   }

@@ -185,7 +185,10 @@ let cprintf kont fmt =
     Buffer.add_string dest (printer ()); doprn i
   in doprn 0
   
-let lprintf_handler = ref (fun s -> ())
+let lprintf_handler = ref (fun s -> 
+      Printf.printf "Message [%s] discared\n" s;
+      print_newline ();
+  )
   
 let lprintf fmt = 
   cprintf (fun s -> try !lprintf_handler s with _ -> ())
@@ -211,7 +214,7 @@ let lprintf_to_stdout = ref true
 let lprintf_output = ref (Some stderr)
   
 let _ =
-  set_lprintf_handler (fun s -> 
+  set_lprintf_handler (fun s ->       
       match !lprintf_output with
         Some out when !lprintf_to_stdout ->
           Printf.fprintf out "%s" s; flush out
@@ -222,5 +225,35 @@ let _ =
             incr lprintf_size;
           Fifo.put lprintf_fifo s 
   )
+
+let detach () =
+  match !lprintf_output with
+    Some oc when oc == Pervasives.stdout -> lprintf_output := None
+  | _ -> ()
   
-  
+let close_log () =
+  lprintf_to_stdout := false;
+  match !lprintf_output with
+    None -> ()
+  | Some oc ->
+      if oc != stderr && oc != stderr then
+        close_out oc;
+      lprintf_output := None
+
+        
+let log_to_file oc =
+  close_log ();
+  lprintf_output := Some oc;
+  lprintf_to_stdout := true
+
+let log_to_buffer buf =
+  try
+    while true do
+      let s = Fifo.take lprintf_fifo in
+      decr lprintf_size;
+      Buffer.add_string buf s
+    done
+  with _ -> ()
+      
+let set_logging b =
+  lprintf_to_stdout := b

@@ -313,17 +313,17 @@ let parse s =
       try
         match x with 
           GGEP.UnknownBlock s -> GGEP_unknown s
-        | GGEP.GGEP ("GUE", s) -> GGEP_GUE_guess (get_int8 s 0)
+        | GGEP.GGEP ("GUE", s) -> GGEP_GUE_guess (get_uint8 s 0)
         | GGEP.GGEP ("VC", s) ->
             let vendor = String.sub s 0 4 in
-            let version = get_int8 s 4 in
+            let version = get_uint8 s 4 in
             let version1 = (version lsr 4) land 0xf in
             let version2 = version land 0xf in
             GGEP_VC_vendor (vendor, version1, version2)
         | GGEP.GGEP ("DU", s) ->
             let du = match String.length s with
                 0 -> 0
-              | 1 -> get_int8 s 0 
+              | 1 -> get_uint8 s 0 
               | 2 -> LittleEndian.get_int16 s 0 
               | 3 -> LittleEndian.get_int24 s 0 
               | _ -> LittleEndian.get_int s 0 in

@@ -228,8 +228,11 @@ information. *)
                 if file_size file = Int64.zero then begin
                     lprintf "Recover correct file size\n";
                     file.file_file.impl_file_size <- f.Q.size;
+                    
+                    failwith "GnutellaHandler: Recover with old size 0 not implemented"
+(*                    
                     Int64Swarmer.set_size file.file_swarmer f.Q.size;
-                    file_must_update file;
+                    file_must_update file; *)
                   end;
 
                 if file.file_name = "" then begin

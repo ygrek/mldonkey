@@ -111,7 +111,6 @@ val use_threads : bool ref
 external has_threads : unit -> bool = "ml_has_pthread"
 val get_rtimeout : t -> float * float
 val int64_time : unit -> int64
-val int32_time : unit -> int32
   
 val string_of_reason : close_reason -> string
   

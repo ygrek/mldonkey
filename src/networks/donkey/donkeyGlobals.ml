@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonInteractive
+open TcpBufferedSocket
 open Queues
 open Printf2
 open Md4
@@ -57,6 +59,7 @@ let network = CommonNetwork.new_network "Donkey"
     (fun _ -> !!network_options_prefix)
   (fun _ -> !!commit_in_subdir)
 (*    network_options_prefix commit_in_subdir *)
+let connection_manager = network.network_connection_manager
   
 let (shared_ops : file CommonShared.shared_ops) = 
   CommonShared.new_shared_ops network
@@ -259,8 +262,18 @@ let new_file file_state file_name md4 file_size writable =
     find_file md4 
   with _ ->
       
-      let t = Unix32.create_diskfile file_name (if writable then
-            [Unix.O_RDWR; Unix.O_CREAT] else [Unix.O_RDONLY]) 0o666
+      let t = 
+        if
+(* Don't use this for shared files ! *)
+          writable && 
+(* Only if the option is set *)
+          !!emulate_sparsefiles &&
+(* Only if the file does not already exists *)
+          not (Sys.file_exists file_name)
+        then
+          Unix32.create_sparsefile file_name
+        else
+          Unix32.create_diskfile file_name Unix32.rw_flag 0o666
       in
       let file_size =
         if file_size = Int64.zero then
@@ -362,7 +375,7 @@ let new_server ip port score =
         server_ip = ip;     
         server_cid = None (* client_ip None *);
         server_port = port; 
-        server_sock = None; 
+        server_sock = NoConnection; 
         server_nqueries = 0;
         server_search_queries = Fifo.create ();
         server_users_queries = Fifo.create ();
@@ -409,8 +422,9 @@ let remove_server ip port =
     Hashtbl.remove servers_by_key key;
     servers_list := List2.removeq s !servers_list ;
     (match s.server_sock with
-        None -> ()
-      | Some sock -> 
+        NoConnection -> ()
+      | ConnectionWaiting token -> cancel_token token
+      | Connection sock -> 
           shutdown (TcpBufferedSocket.sock sock) Closed_by_user);
     server_remove (as_server s.server_server)
   with _ -> ()
@@ -421,7 +435,7 @@ let dummy_client =
       client_upload = None;
       client_kind = Indirect_location ("", Md4.null);   
       client_source = None;
-      client_sock = None;
+      client_sock = NoConnection;
       client_ip = Ip.null;
       client_md4 = Md4.null;
       client_last_filereqs = 0;
@@ -481,7 +495,7 @@ let create_client key num =
 
       client_upload = None;
       client_source = None;
-      client_sock = None;
+      client_sock = NoConnection;
       client_ip = Ip.null;
       client_md4 = Md4.null;
       client_last_filereqs = 0;
@@ -625,12 +639,13 @@ end;
       let num = client_num (as_client c.client_client) in
       incr client_counter;
       match c.client_sock with
-        None -> begin
+        NoConnection -> begin
             match c.client_kind with
               Indirect_location _ -> incr unconnected_unknown_clients
             | _ -> ()
           end
-      | Some sock ->
+      | ConnectionWaiting _  -> ()
+      | Connection sock ->
           let buf_len, nmsgs = TcpBufferedSocket.buf_size sock in
           (try
               Hashtbl.find connected_clients_by_num num
@@ -650,12 +665,12 @@ end;
   Hashtbl.iter (fun _ file ->
       Intmap.iter (fun _ c ->
           match c.client_sock with
-            None -> begin
+            NoConnection -> begin
                 match c.client_kind with
                   Indirect_location _ -> incr bad_clients_in_files
                 | _ -> ()
               end
-          | Some sock -> ()              
+          | _ -> ()              
       ) file.file_locations;
   ) files_by_md4;
   
@@ -809,6 +824,20 @@ let brand_mod_to_string b =
   | Brand_mod_stormit -> "Stormit"
   | Brand_mod_omax -> "OMaX"
   | Brand_mod_mison -> "Mison"
+  | Brand_mod_phoenix -> "Phoenix"
+  | Brand_mod_spiders -> "Spiders"
+  | Brand_mod_iberica -> "Ib\233rica"
+  | Brand_mod_mortimer -> "Mortimer"
+  | Brand_mod_stonehenge -> "Stonehenge"
+  | Brand_mod_xlillo -> "Xlillo"
+  | Brand_mod_imperator -> "ImperatoR"
+  | Brand_mod_raziboom -> "Raziboom"
+  | Brand_mod_khaos -> "Khaos"
+  | Brand_mod_hardmule -> "Hardmule"
+  | Brand_mod_sc -> "SC"
+  | Brand_mod_cy4n1d -> "Cy4n1d"
+  | Brand_mod_dmx -> "DMX"
+  | Brand_mod_ketamine -> "Ketamine"
       
 (*************************************************************
 

@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonGlobals
 open Printf2
 open Md4
 open CommonFile
@@ -138,10 +139,8 @@ let send_new_shared () =
       let list = all_shared () in
       List.iter (fun s ->
           if s.server_master then
-            match s.server_sock with
-              None -> ()
-            | Some sock ->
-                direct_server_send_share s.server_has_zlib sock list)
+            do_if_connected s.server_sock (fun sock ->
+                direct_server_send_share s.server_has_zlib sock list))
       (connected_servers ());
     end
           

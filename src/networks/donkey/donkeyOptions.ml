@@ -110,7 +110,7 @@ let master_server_min_users = define_option donkey_section
   
 let force_high_id = define_option donkey_section ["force_high_id"] 
     "immediately close connection to servers that don't grant a High ID"
-    bool_option true
+    bool_option false
 
 let update_server_list = define_option donkey_section
     ["update_server_list"] "Set this option to false if you don't want auto
@@ -145,7 +145,7 @@ let log_clients_on_console = define_expert_option donkey_section
 
 let propagate_sources = define_expert_option donkey_section ["propagate_sources"]
     "Allow mldonkey to propagate your sources to other donkey clients"
-    bool_option false
+    bool_option true
   
 let max_sources_per_file = define_option donkey_section ["max_sources_per_file"]
     "Maximal number of sources for each file"

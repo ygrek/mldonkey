@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Int32ops
 open Printf2
 open Md4
 open Options
@@ -63,29 +64,7 @@ module ClientOption = struct
   
   end
 
-let value_to_int32pair v =
-  match v with
-    List [v1;v2] | SmallList [v1;v2] ->
-      (value_to_int64 v1, value_to_int64 v2)
-  | _ -> 
-      failwith "Options: Not an int32 pair"
-
-
-let value_to_state v =
-  match v with
-  | StringValue "Paused" -> FilePaused
-  | StringValue "Downloading" -> FileDownloading
-  | StringValue "Downloaded" -> FileDownloaded
-  | _ -> raise Not_found
-
-let state_to_value s = 
-  match s with
-  | FilePaused | FileAborted _ -> StringValue "Paused"
-  | FileDownloaded -> StringValue "Downloaded"
-  | _ -> StringValue "Downloading"
-
-
-let value_to_file is_done assocs =
+let value_to_file file_size file_state assocs =
   let get_value name conv = conv (List.assoc name assocs) in
   let get_value_nil name conv = 
     try conv (List.assoc name assocs) with _ -> []
@@ -97,10 +76,6 @@ let value_to_file is_done assocs =
       Sha1.of_string (get_value "file_id" value_to_string)
     with _ -> failwith "Bad file_id"
   in
-  let file_size = try
-      value_to_int64 (List.assoc "file_size" assocs) 
-    with _ -> failwith "Bad file size"
-  in
   let file_piece_size = try
       value_to_int64 (List.assoc "file_piece_size" assocs) 
     with _ -> failwith "Bad file size"
@@ -111,10 +86,6 @@ let value_to_file is_done assocs =
       get_value "file_tracker" value_to_string
     with _ -> failwith "Bad file_tracker"
   in
-  
-  let file_state = try
-      get_value "file_state" value_to_state 
-    with _ -> FileDownloading in
   
   let file =  
     try
@@ -142,20 +113,6 @@ let value_to_file is_done assocs =
     with _ -> zero
   in
   file.file_uploaded <- file_uploaded;
-  set_file_state file file_state;
-  
-  (try 
-      Int64Swarmer.set_present file.file_swarmer 
-        (get_value "file_present_chunks" 
-          (value_to_list value_to_int32pair));
-      lprintf "add_file_downloaded %Ld\n" (Int64Swarmer.downloaded file.file_swarmer);
-      add_file_downloaded file.file_file
-        (Int64Swarmer.downloaded file.file_swarmer)
-    with e ->
-        lprintf "Exception %s while set present\n"
-          (Printexc2.to_string e); 
-    
-        );
   
   
   (try
@@ -166,13 +123,11 @@ let value_to_file is_done assocs =
           (Printexc2.to_string e); 
   );
   
-  (try
-      Int64Swarmer.set_verified_bitmap file.file_partition
-        (get_value  "file_chunks" value_to_string)
-    with e -> 
-        lprintf "Exception %s while loading bitmap\n"
-          (Printexc2.to_string e); 
-  );
+  Int64Swarmer.value_to_swarmer file.file_swarmer assocs;
+  lprintf "add_file_downloaded %Ld\n" (Int64Swarmer.downloaded file.file_swarmer);
+  
+  add_file_downloaded file.file_file
+    (Int64Swarmer.downloaded file.file_swarmer);
   
 (*  (try
       ignore
@@ -187,25 +142,18 @@ let value_to_file is_done assocs =
 let file_to_value file =
   let sources = Hashtbl2.to_list file.file_clients in
   
-  [
-    "file_size", int64_to_value (file_size file);
+  Int64Swarmer.swarmer_to_value file.file_swarmer
+    [
     "file_piece_size", int64_to_value (file.file_piece_size);
     "file_name", string_to_value file.file_name;
     "file_downloaded", int64_to_value (file_downloaded file);
     "file_uploaded", int64_to_value  (file.file_uploaded);
-    "file_state", state_to_value (file_state file);
     "file_id", string_to_value (Sha1.to_string file.file_id);
     "file_tracker", string_to_value file.file_tracker;
-    "file_chunks", string_to_value 
-      (Int64Swarmer.verified_bitmap file.file_partition);
 (*    "file_sources", 
     list_to_value "BT Sources" (fun c ->
         ClientOption.to_value c) sources
     ;*)
-    "file_present_chunks", List
-      (List.map (fun (i1,i2) -> 
-          SmallList [int64_to_value i1; int64_to_value i2])
-      (Int64Swarmer.present_chunks file.file_swarmer));
     "file_hashes", array_to_value 
       (to_value Sha1.option) file.file_chunks;
     "file_files", list_to_value ""

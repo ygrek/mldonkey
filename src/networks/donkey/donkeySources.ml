@@ -23,6 +23,8 @@ where tried ? We could reconnect more frequently to bad sources if we
 have time to do it.
 *)
 
+open CommonGlobals
+open TcpBufferedSocket
 open Queues
 open Printf2
 open Md4
@@ -421,9 +423,7 @@ let recompute_ready_sources f =
   
 (* query all connected clients *)
   Intmap.iter (fun _ c ->
-      match c.client_sock with
-        None -> ()
-      | Some sock ->  
+      do_if_connected c.client_sock (fun sock ->
           match client_state c with
             Connected _ | Connected_downloading ->
               List.iter (fun r ->
@@ -433,7 +433,7 @@ let recompute_ready_sources f =
                       File_not_found | File_possible -> ()
                     | _ -> DonkeySourcesMisc.really_query_file c file r
               ) c.client_files
-          | _ -> ()
+          | _ -> ())
   ) !outside_queue
   
   
@@ -955,13 +955,13 @@ let check_sources reconnect_client =
           try
             let s = find_server ip port in
             match s.server_sock with
-              None -> raise Not_found
-            | Some sock ->
+              Connection sock ->
                 DonkeyProtoCom.direct_server_send sock (
                   let module M = DonkeyProtoServer in
                   let module C = M.QueryID in
-                  M.QueryIDReq id
+                  M.QueryIDReq id                  
                 );
+            | _ -> raise Not_found
           with _ ->
               ask_indirect_connection_by_udp ip port id
         else raise Not_found
@@ -970,7 +970,7 @@ let check_sources reconnect_client =
   
   
   let rec iter_first n =
-    if CommonGlobals.can_open_connection () && n > 0 then 
+    if can_open_connection connection_manager && n > 0 then 
       match !source_files with
         [] -> 
           source_files := !current_files;
@@ -981,7 +981,7 @@ let check_sources reconnect_client =
               then n-1 else n)
   
   and iter_second n found = 
-    if  CommonGlobals.can_open_connection () && n > 0 then 
+    if  can_open_connection connection_manager && n > 0 then 
       match !source_files with
         [] -> 
           if found then begin

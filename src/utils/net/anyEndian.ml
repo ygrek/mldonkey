@@ -35,10 +35,11 @@ external set_byte: string -> int -> int -> unit = "%string_safe_set"
 let buf_int8 buf i =
   Buffer.add_char buf (char_of_int (i land 255))
 
-let get_int8 s pos = 
+let get_uint8 s pos = 
   check_string s pos;
   int_of_char s.[pos]
   
+  (*
 let buf_int32_8 buf i =
   Buffer.add_char buf (char_of_int (Int32.to_int (
         and32 i const_int32_255)))
@@ -46,7 +47,8 @@ let buf_int32_8 buf i =
 let get_int32_8 s pos =
   check_string s pos;
   Int32.of_int (int_of_char s.[pos])
-   
+  *)
+
 let buf_int64_8 buf i =
   Buffer.add_char buf (char_of_int (Int64.to_int (
         Int64.logand i const_int64_255)))
@@ -62,7 +64,7 @@ let rec get_list_rec get_item s pos len left =
   get_list_rec get_item s pos (len-1) (item :: left)
   
 let get_list8 get_item s pos =
-  let len = get_int8 s pos in
+  let len = get_uint8 s pos in
   get_list_rec get_item s (pos+1) len []
 
 let buf_list8 buf_item b list =
@@ -130,7 +132,7 @@ let buf_string8 buf s =
   Buffer.add_string buf s
 
 let get_string8 s pos =
-  let len = get_int8 s pos in
+  let len = get_uint8 s pos in
   String.sub s (pos+1) len, pos+1+len
 
         

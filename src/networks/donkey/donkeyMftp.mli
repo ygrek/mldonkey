@@ -17,10 +17,13 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+(*
 val const_int32_255 : int32
 val output_int32_8 : out_channel -> int32 -> unit
 val output_int32_32 : out_channel -> int32 -> unit
 val output_int8 : out_channel -> int -> unit
+*)
+
 val output_int : out_channel -> int -> unit
 val rev_assoc : 'a -> ('b * 'a) list -> 'b
 val buf_string : Buffer.t -> string -> unit
@@ -28,8 +31,8 @@ val buf_port : Buffer.t -> int -> unit
 val buf_addr : Buffer.t -> Ip.t * int -> unit
 val buf_tags :
   Buffer.t -> CommonTypes.tag list -> (string * string) list -> unit
-val read_uint8 : in_channel -> int32
-val read_uint32 : in_channel -> int32
+(*val read_uint8 : in_channel -> int32
+val read_uint32 : in_channel -> int32 *)
 val read_request : in_channel -> string
 val output_request : out_channel -> string -> unit
 val get_port : string -> int -> int

@@ -65,8 +65,9 @@ let gui_bittorrent_options_panel =
     
 let tracker_port = define_option bittorrent_section ["tracker_port"]
   "The port to bind the tracker to"
-    int_option 0
-  
+    int_option 6881
+
+(*
 let torrent_files =
   define_option bittorrent_section ["torrent_files"]
   "The torrent files to serve on the tracker WEB server"
@@ -81,7 +82,7 @@ let shared_files =
   define_option bittorrent_section ["shared_files"]
   "The files shared on this torrent server (pair .torrent file, and path to shared file or directory)"
     (list_option (tuple2_option (filename_option, filename_option))) []
-  
+*)  
     
 let ask_tracker_threshold = define_option bittorrent_section ["ask_tracker_threshold"]
     "Ask the tracker for new sources only if you have fewer than that number of sources"

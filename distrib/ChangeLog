@@ -1,6 +1,66 @@
 ChangeLog	
 =========
 
+Note: Due to the changes in CommonSwarming, this version is to be considered
+ as EXPERIMENTAL on all networks, EXCEPT Edonkey & Overnet.
+
+2003/01/28: Fabrice
+  * CommonShared:
+     Strategies of sharing can be defined in "searches.ini" (recursive or not,
+      min file size, extensions). 
+     * Predefined strategies:
+         [all_files]: recursively all files > 10 KB
+         [mp3s]: recursively .mp3 < 10 MB
+         [avis]: recursively .avi > 500 MB
+         [only_directory]: not recursive, all files > 10 KB
+     * Strategy for incoming/ is now [only_directory].
+     * Format of "shared_directories" option changed accordingly: new default
+        directory shared/ with strategy [all_files].
+  * CommonComplexOptions:
+     file_state, file_age and file_size are saved for all networks in options.
+  * CommonSwarming:
+     functions to save and load chunks and present_chunks from options.
+
+2003/01/27: Fabrice
+  * TcpBufferedSocket: 
+    * Weak form of connection_manager, that should progressively be used to
+        better distribute connections among networks.
+    * Zlib Compression of connection is now done transparently.
+  * Int32ops: removed Int32 operations. int32 should be removed as many times
+      as possible to avoid limitations at 4GB. Bittorrent protocol does not
+      support files > 4 GB (check new version ?)
+
+2003/01/26: Fabrice
+  * CommonSwarming: completely rewritten. No partition anymore. Better
+      block choice strategy. More efficient strutures.
+  * BTTracker: 
+      * new directories in "torrents/":
+        * downloads/: .torrent of files being currently downloaded
+        * tracked/: .torrent of files being currently tracked (maybe seeded)
+        * seeded/: .torrent of files being currently seeded
+      * mldonkey command 'compute_torrent' computes a .torrent file for a
+        filename and put it in torrents/tracked/. The file is immediatly
+        tracked.
+      * mldonkey tracker can be accessed:
+          http://ip:6881/tracker?info_hash=.... -> for the tracker
+          http://ip:6881/filename.torrent -> to download 'filename.torrent'
+
+2004/01/23: Fabrice
+  * ed2k_hash: new option -check <size> to compute different hashes on
+      a generated file of size <size> KB, to test DiskFile, SparseFile and
+      MultiFile implementations. 
+  * Unix32:
+     * Open ALL files in RW mode by default, and fall back in RO mode in
+        case of error. 
+     * New format SparseFile completely implemented. 
+     * Unix32.rename makes the Unix32.t invalid. Might cause some bugs
+        when sharing just commited files (TO CHECK).
+  * Options:
+     * New EXPERIMENTAL option 'emulate_sparsefiles' in downloads.ini,
+        to emulate sparse files on non-sparse filesystems (e.g. FAT).
+        Currently only works for Edonkey files, and <preview> and
+        <recover_file> won't work for them.
+
 2004/01/16: Fabrice
   * Fixed problem with files.ini when downloading BitTorrent files
 

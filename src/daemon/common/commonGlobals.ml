@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Int32ops
 open Printf2
 open Options
 open CommonOptions
@@ -25,12 +26,12 @@ open CommonTypes
 open UdpSocket
 open TcpBufferedSocket
 
-let zero = Int64.zero
-let one = Int64.one
-let (++) = Int64.add
-let (--) = Int64.sub
-let ( ** ) x y = Int64.mul x (Int64.of_int y)
-let ( // ) x y = Int64.div x y
+let megabyte = Int64.of_int (1024 * 1024)
+let kilobyte = Int64.of_int 1024
+let kilobytes256 = Int64.of_int (256 * 1024)
+let kilobytes x = kilobyte *.. x
+let megabytes x = megabyte *.. x
+let kilobytes64 = kilobytes 64
   
 let networks_string = ref ""
   
@@ -156,18 +157,7 @@ let _ =
 let udp_write_controler = UdpSocket.new_bandwidth_controler upload_control
 
 let udp_read_controler = UdpSocket.new_bandwidth_controler download_control
-  
-let can_open_connection () =
-  let ns = nb_sockets () in
-  let max = mini !!max_opened_connections MlUnix.max_sockets in
-  (*
-  if !!debug_net then begin
-      lprintf "CAN OPEN (conns: %d < %d && upload U/D: %d %d)\n" ns max 
-        (UdpSocket.remaining_bytes udp_write_controler)
-        (UdpSocket.remaining_bytes udp_read_controler);
-    end; *)
-  ns < max
-  
+    
 (*
   
     
@@ -693,21 +683,10 @@ let partial_chunk c =
   match c with
     '0' | '1' -> true
   | _ -> false
-    
-let waiting_connections = Fifo.create ()
-  
-let schedule_connections () =
-  let max_wanted = mini 
-      (!!max_connections_per_second + nb_sockets ()) MlUnix.max_sockets in
-  try
-    while nb_sockets () < max_wanted do
-      let f = Fifo.take waiting_connections in
-      try f () with _ -> ()
-    done
-  with _ -> ()
+
+module Connections = struct
       
-let add_pending_connection f =
-  Fifo.put waiting_connections f
+  end
   
       
 let parse_magnet url =
@@ -733,12 +712,12 @@ let parse_magnet url =
     !name, !uids
   else raise Not_found
 
+    (*
 module CanBeCompressed = struct
     
     let to_deflate = ref []
     let to_deflate_len = ref 0
-    
-    
+        
     let compression_buffer_len = 20000
     let compression_buffer = String.create compression_buffer_len
     
@@ -829,6 +808,12 @@ module CanBeCompressed = struct
             (Printexc2.to_string e);
           raise e
   end
-  
+    *)
+
 let ip_reachable ip =
   !!allow_local_network || Ip.reachable ip
+  
+let do_if_connected tcp_connection f =
+  match tcp_connection with
+    Connection sock -> f sock
+  | _ -> ()

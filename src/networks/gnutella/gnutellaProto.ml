@@ -79,8 +79,8 @@ module Ping = struct
       if s = "" then SimplePing else
       let port = get_int16 s 0 in
       let ip = get_ip s 2 in
-      let nfiles = get_int64_32 s 6 in
-      let nkb = get_int64_32 s 10 in
+      let nfiles = get_uint64_32 s 6 in
+      let nkb = get_uint64_32 s 10 in
       let s = String.sub s 14 (String.length s - 15) in
       ComplexPing { ip = ip;
         port = port;
@@ -219,7 +219,7 @@ module Vendor = struct
       let version = LittleEndian.get_int16 s 6 in
       match vendor, num, version with
       | "BEAR", 4, 1 ->
-          Bear4_HopsFlow (get_int8 s 8)
+          Bear4_HopsFlow (get_uint8 s 8)
       | "BEAR", 7, 1 ->
           Bear7_ConnectBack (get_int16 s 8)
       | "GTKG", 7, 1 ->
@@ -349,7 +349,7 @@ module QueryReply = struct (* QUERY_REPLY *)
     let rec iter_files nfiles s pos list =
       if nfiles = 0 then List.rev list, pos else
       let index = get_int s pos in
-      let size = get_int64_32 s (pos+4) in
+      let size = get_uint64_32 s (pos+4) in
       let name,pos = get_string0 s (pos+8) in
       let info,pos = get_string0 s pos in
       iter_files (nfiles-1) s pos (
@@ -362,16 +362,16 @@ module QueryReply = struct (* QUERY_REPLY *)
     
     
     let parse s =
-      let nfiles = get_int8 s 0 in
+      let nfiles = get_uint8 s 0 in
       let port = get_int16 s 1 in
       let ip = get_ip s 3 in
       let speed = get_int s 7 in
       let files, pos  = iter_files nfiles s 11 [] in
       
       let vendor = String.sub s pos 4 in
-      let vendor_len = get_int8 s (pos+4) in
-      let byte5 = get_int8 s (pos+5) in
-      let byte6 = get_int8 s (pos+6) in
+      let vendor_len = get_uint8 s (pos+4) in
+      let byte5 = get_uint8 s (pos+5) in
+      let byte6 = get_uint8 s (pos+6) in
       
       let dont_connect = if byte6 land 1 = 0 then None else
           Some (byte5 land 1 <> 0)
@@ -387,7 +387,7 @@ module QueryReply = struct (* QUERY_REPLY *)
       in
       let support_chat, xml_reply =
         try
-          let support_chat = get_int8 s (pos+9) = 1 in
+          let support_chat = get_uint8 s (pos+9) = 1 in
           let xml_reply,pos = get_string0 s (pos+10) in
           support_chat, xml_reply
         with _ -> false, ""
@@ -621,7 +621,7 @@ let server_send s t =
       raise Exit;
     end;
   match s.server_sock with
-    NoConnection | ConnectionWaiting | ConnectionAborted -> 
+    NoConnection | ConnectionWaiting _ -> 
       begin
         match s.server_query_key with
           GuessSupport ->
@@ -629,7 +629,7 @@ let server_send s t =
             udp_send h.host_ip h.host_port t
         | _ -> ()
       end
-  | Connection sock | CompressedConnection (_,_,_,sock) ->
+  | Connection sock ->
       let m = server_msg_to_string t in
       write_string sock m
 
@@ -647,7 +647,7 @@ let gnutella_handler parse f handler sock =
       if b.len >= 23 + msg_len then
         begin
           let pkt_uid = get_md4 b.buf b.pos in
-          let pkt_type = match get_int8 b.buf (b.pos+16) with
+          let pkt_type = match get_uint8 b.buf (b.pos+16) with
               0 -> PING
             | 1 -> PONG
             | 2 -> BYE
@@ -658,8 +658,8 @@ let gnutella_handler parse f handler sock =
             | 129 -> QUERY_REPLY
             | n -> UNKNOWN n
           in
-          let pkt_ttl = get_int8 b.buf  (b.pos+17) in
-          let pkt_hops = get_int8 b.buf  (b.pos+18) in
+          let pkt_ttl = get_uint8 b.buf  (b.pos+17) in
+          let pkt_hops = get_uint8 b.buf  (b.pos+18) in
           let data = String.sub b.buf (b.pos+23) msg_len in
           buf_used b (msg_len + 23);
           let pkt = {
@@ -865,7 +865,7 @@ module Pandora = struct
         let msg_len = get_int s (pos+19) in
         if len >= 23 + msg_len then
           let pkt_uid = get_md4 s pos in
-          let pkt_type = match get_int8 s (pos+16) with
+          let pkt_type = match get_uint8 s (pos+16) with
               0 -> PING
             | 1 -> PONG
             | 2 -> BYE
@@ -876,8 +876,8 @@ module Pandora = struct
             | 129 -> QUERY_REPLY
             | n -> UNKNOWN n
           in
-          let pkt_ttl = get_int8 s  (pos+17) in
-          let pkt_hops = get_int8 s  (pos+18) in
+          let pkt_ttl = get_uint8 s  (pos+17) in
+          let pkt_hops = get_uint8 s  (pos+18) in
           let data = String.sub s (pos+23) msg_len in
           let pkt = {
               pkt_uid = pkt_uid;

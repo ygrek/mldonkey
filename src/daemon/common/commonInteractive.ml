@@ -23,14 +23,257 @@ open Printf2
 open CommonOptions
 open BasicSocket  
 open TcpBufferedSocket
+open Options
+  
+open CommonClient
+open CommonServer
+open CommonNetwork
+open CommonOptions
+open CommonTypes
+open CommonFile
 open CommonGlobals
 open CommonSearch
-open Options
-open CommonNetwork
 open CommonResult
 open CommonServer
 open CommonTypes
+open CommonComplexOptions
+  
+  
+  
+(*************  ADD/REMOVE FUNCTIONS ************)
 
+let canonize_basename name =
+  let name = String.copy name in
+  for i = 0 to String.length name - 1 do
+    match name.[i] with
+    | '/' | '\\' -> name.[i] <- '_'
+    | _ -> ()
+  done;
+  name
+  
+let file_commited_name file =   
+  let network = file_network file in
+  let best_name = file_best_name file in
+  let file_name = file_disk_name file in
+  let incoming_dir =
+    if network.network_incoming_subdir () <> "" then
+      Filename.concat !!incoming_directory
+        (network.network_incoming_subdir ())
+    else !!incoming_directory
+  in
+  (try Unix2.safe_mkdir incoming_dir with _ -> ());
+  let new_name = 
+    Filename.concat incoming_dir (canonize_basename 
+        (file_best_name file))
+  in
+  let new_name = 
+    if Sys.file_exists new_name then
+      let rec iter num =
+        let new_name = Printf.sprintf "%s.%d" new_name num in
+        if Sys.file_exists new_name then
+          iter (num+1)
+        else new_name
+      in
+      iter 1
+    else new_name in
+  new_name  
+  
+(* This function is called on each downloaded file when the "commit" command
+  is received. *)
+  
+let file_commit file =
+  let impl = as_file_impl file in
+  if impl.impl_file_state = FileDownloaded then
+    let new_name = file_commited_name file in
+    try
+      set_file_disk_name file new_name;
+      let best_name = file_best_name file in  
+      Unix32.close (file_fd file);
+      (* Commit the file first, and share it after... *)
+      impl.impl_file_ops.op_file_commit impl.impl_file_val new_name;
+      if not (Unix2.is_directory new_name) then 
+        ignore (CommonShared.new_shared 
+            !!incoming_directory !!incoming_directory_prio best_name new_name);
+      done_files =:= List2.removeq file !!done_files;
+      update_file_state impl FileShared;
+    with e ->
+      lprintf "Exception in file_commit: %s\n" (Printexc2.to_string e)
+      
+let file_cancel file =
+  try
+  let impl = as_file_impl file in
+
+  if impl.impl_file_state <> FileCancelled then begin
+        update_file_state impl FileCancelled;
+        impl.impl_file_ops.op_file_cancel impl.impl_file_val;
+        Unix32.close (file_fd file);
+        files =:= List2.removeq file !!files;
+    end
+  with e ->
+      lprintf "Exception in file_cancel: %s\n" (Printexc2.to_string e)
+
+        
+let mail_for_completed_file file =
+  if !!mail <> "" then
+    let module M = Mailer in
+    let line1 = "mldonkey has completed the download of:\r\n\r\n" in
+
+    let line2 = Printf.sprintf "\r\nFile: %s\r\nSize: %Ld bytes\r\nComment: %s\r\n" 
+      (file_best_name file)
+      (file_size file)
+      (file_comment file)
+    in
+    
+    let subject = if !!filename_in_subject then
+        Printf.sprintf "[mldonkey] file received - %s"
+        (file_best_name file)
+      else
+        Printf.sprintf "mldonkey, file received";        
+    in
+    
+    let mail = {
+        M.mail_to = !!mail;
+        M.mail_from = Printf.sprintf "mldonkey <%s>" !!mail;
+        M.mail_subject = subject;
+        M.mail_body = line1 ^ line2;
+      } in
+    M.sendmail !!smtp_server !!smtp_port !!add_mail_brackets mail
+
+let chat_for_completed_file file =
+  CommonChat.send_warning_for_downloaded_file (file_best_name file)
+
+      
+let file_completed (file : file) =
+  try
+    let impl = as_file_impl file in
+    if impl.impl_file_state = FileDownloading then begin
+        files =:= List2.removeq file !!files;
+        done_files =:= file :: !!done_files;
+        update_file_state impl FileDownloaded;  
+        let file_name = file_disk_name file in
+        let file_id = Filename.basename file_name in
+        ignore (CommonShared.new_shared "completed" 0 (
+            file_best_name file )
+          file_name);
+        (try mail_for_completed_file file with e ->
+              lprintf "Exception %s in sendmail\n" (Printexc2.to_string e);
+              );
+        if !!CommonOptions.chat_warning_for_downloaded then
+          chat_for_completed_file file;
+        
+        if !!file_completed_cmd <> "" then begin
+            MlUnix.fork_and_exec  !!file_completed_cmd 
+              [|
+              file_name;
+              file_id;
+              Int64.to_string (file_size file);
+              file_best_name file
+            |]
+          
+          end
+      
+      
+      end
+  with e ->
+      lprintf "Exception in file_completed: %s\n" (Printexc2.to_string e)
+      
+let file_add impl state = 
+  try
+    let file = as_file impl in
+    if impl.impl_file_state = FileNew then begin
+        update_file_num impl;
+        (match state with
+            FileDownloaded -> 
+              done_files =:= file :: !!done_files;
+          | FileShared
+          | FileNew
+          | FileCancelled -> ()
+              
+          | FileAborted _
+          | FileDownloading
+          | FileQueued
+          | FilePaused -> 
+              files =:= file :: !!files);
+        update_file_state impl state
+      end
+  with e ->
+      lprintf "Exception in file_add: %s\n" (Printexc2.to_string e)
+      
+let server_remove server =
+  try
+    let impl = as_server_impl server in
+    if impl.impl_server_state <> RemovedHost then begin
+        set_server_state server RemovedHost;
+        (try impl.impl_server_ops.op_server_remove impl.impl_server_val
+          with _ -> ());
+        servers =:= Intmap.remove (server_num server) !!servers;
+      end
+  with e ->
+      lprintf "Exception in server_remove: %s\n" (Printexc2.to_string e)
+  
+let server_add impl =
+  let server = as_server impl in
+  if impl.impl_server_state = NewHost then begin
+      server_update_num impl;
+      servers =:= Intmap.add (server_num server) server !!servers;
+      impl.impl_server_state <- NotConnected (BasicSocket.Closed_by_user, -1);
+    end
+
+let friend_add c =
+  let impl = as_client_impl c in
+  if not (is_friend c) then begin
+      set_friend c;
+      client_must_update c;
+      friends =:= c :: !!friends;
+      contacts := List2.removeq c !contacts;
+      impl.impl_client_ops.op_client_browse impl.impl_client_val true
+    end
+    
+(* Maybe we should not add the client to the contact list and completely remove
+it ? *)
+let friend_remove c =
+  try
+    let impl = as_client_impl c in
+    if is_friend c then begin
+        set_not_friend c;
+        client_must_update c;
+        friends =:= List2.removeq c !!friends;
+        impl.impl_client_ops.op_client_clear_files impl.impl_client_val
+      end else
+    if is_contact c then begin
+        set_not_contact c;
+        client_must_update c;
+        contacts := List2.removeq c !contacts;
+        impl.impl_client_ops.op_client_clear_files impl.impl_client_val
+      end        
+      
+  with e ->
+      lprintf "Exception in friend_remove: %s\n" (Printexc2.to_string e)
+  
+let contact_add c =
+  let impl = as_client_impl c in
+  if not (is_friend c || is_contact c) then begin
+      set_contact c;
+      client_must_update c;
+      contacts := c :: !contacts;
+      impl.impl_client_ops.op_client_browse impl.impl_client_val true
+    end
+    
+let contact_remove c =
+  try
+    let impl = as_client_impl c in
+    if is_contact c then begin
+        set_not_contact c;
+        client_must_update c;
+        contacts := List2.removeq c !contacts;
+        impl.impl_client_ops.op_client_clear_files impl.impl_client_val
+      end
+  with e ->
+      lprintf "Exception in contact_remove: %s\n" (Printexc2.to_string e)
+
+  
+  
+  
 let time_of_sec sec = 
   let hours = sec / 60 / 60 in
   let rest = sec - hours * 60 * 60 in

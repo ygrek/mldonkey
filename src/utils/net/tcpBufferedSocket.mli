@@ -31,7 +31,8 @@ and buf = {
   mutable len : int;
   mutable max_buf_size : int;
   } 
-  
+
+type token
 type t
   
 type bandwidth_controler (* = {
@@ -51,9 +52,9 @@ and handler = t -> event -> unit
 val max_buffer_size : int ref
 
 val sock: t -> BasicSocket.t
-val create : string -> Unix.file_descr -> handler -> t
-val create_simple : string -> Unix.file_descr -> t
-val create_blocking : string -> Unix.file_descr -> handler -> t
+val create : token -> string -> Unix.file_descr -> handler -> t
+val create_simple : token -> string -> Unix.file_descr -> t
+val create_blocking : token -> string -> Unix.file_descr -> handler -> t
 val buf : t -> buf
 val set_reader : t -> (t -> int -> unit) -> unit
 val sock_used : t -> int -> unit
@@ -64,7 +65,7 @@ val set_handler : t -> event -> (t -> unit) -> unit
 val set_refill : t -> (t -> unit) -> unit
 val write: t -> string -> int -> int -> unit
 val write_string: t -> string -> unit
-val connect: string -> Unix.inet_addr -> int -> handler -> t
+val connect: token -> string -> Unix.inet_addr -> int -> handler -> t
 val close : t -> BasicSocket.close_reason -> unit
 val closed : t -> bool
 val shutdown : t -> BasicSocket.close_reason -> unit
@@ -140,4 +141,22 @@ val remove_ip_packet : bandwidth_controler -> unit
 val get_rtimeout : t -> float * float
   
 val http_proxy : (string * int) option ref
+
+type connection_manager
   
+val unlimited_connection_manager : connection_manager
+  
+val create_connection_manager : unit -> connection_manager
+val add_pending_connection :
+  connection_manager -> (token -> unit) -> token
+val can_open_connection : connection_manager -> bool
+
+val reset_connection_scheduler : unit -> unit
+  
+val cancel_token : token -> unit
+val create_token : connection_manager -> token
+  
+val set_max_opened_connections : (unit -> int) -> unit
+val set_max_connections_per_second : (unit -> int) -> unit
+  
+val deflate_connection : t -> unit

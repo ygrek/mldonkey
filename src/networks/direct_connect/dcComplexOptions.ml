@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonInteractive
 open Printf2
 open Md4
 open CommonClient
@@ -70,7 +71,7 @@ let server_to_value h =
   
 
 
-let value_to_file is_done assocs =
+let value_to_file file_size file_state assocs =
   let get_value name conv = conv (List.assoc name assocs) in
   let get_value_nil name conv = 
     try conv (List.assoc name assocs) with _ -> []
@@ -81,10 +82,6 @@ let value_to_file is_done assocs =
     try
       Md4.of_string (get_value "file_id" value_to_string)
     with _ -> failwith "Bad file_id"
-  in
-  let file_size = try
-      value_to_int64 (List.assoc "file_size" assocs) 
-    with _ -> failwith "Bad file size"
   in
   
   let file = new_file file_id file_name file_size in

@@ -349,7 +349,6 @@ value ml_setsock_iptos_throughput(value sock_v)
 
 *******************************************************************/
 
-
 value ml_sizeofoff_t(value unit)
 {
   return Val_int(sizeof(off_t));

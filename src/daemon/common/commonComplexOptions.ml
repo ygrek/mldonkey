@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Int32ops
 open Options  
 open Printf2
 open BasicSocket
@@ -29,6 +30,7 @@ open CommonOptions
 open CommonTypes
 open CommonFile
 
+  
 (*
   let addr_to_value addr =
   if addr.addr_name = "" then
@@ -65,6 +67,20 @@ let value_to_addr v =
 
 module FileOption = struct
     
+    let value_to_state v =
+      match v with
+      | StringValue "Paused" -> FilePaused
+      | StringValue "Downloading" -> FileDownloading
+      | StringValue "Downloaded" -> FileDownloaded
+      | _ -> raise Not_found
+    
+    let state_to_value s = 
+      match s with
+      | FilePaused | FileAborted _ -> StringValue "Paused"
+      | FileDownloaded -> StringValue "Downloaded"
+      | _ -> StringValue "Downloading"
+    
+    
     let value_to_file is_done v =
       match v with
         Options.Module assocs ->
@@ -72,18 +88,51 @@ module FileOption = struct
           let network = try get_value "file_network" value_to_string
             with _ -> "Donkey" in
           let network = network_find_by_name network in
-          let file = network_file_of_option network is_done assocs in
+          let file_state = 
+            try
+              get_value "file_state" value_to_state 
+            with _ -> FileDownloading
+          in          
+          let file_size = try
+              value_to_int64 (List.assoc "file_size" assocs) 
+            with _ -> Int64.zero
+          in
+          
+          let file = network_file_of_option network file_size 
+              file_state assocs in
           let priority = try get_value "file_priority" value_to_int 
             with _ -> 0 in
+          
+          let impl = as_file_impl file in
+          (try
+              impl.impl_file_age <- 
+                normalize_time (get_value "file_age" value_to_int)
+            with _ -> ());
+          set_file_state file file_state;       
+          (match file_state with
+              FileDownloading -> lprintf "New downloading file\n";
+            | FileDownloaded -> lprintf "New downloaded file\n";
+            | _ -> lprintf "..........\n"
+          );
+          
+          (try
+              set_file_best_name file
+              (get_value "file_filename" value_to_string)
+            with _ -> ());
           file_set_priority file priority;
           file
       | _ -> assert false
-    
+          
     let file_to_value file =
         let netname = string_to_value (file_network file).network_name in
-        Options.Module (
+      let impl = as_file_impl file in
+      Options.Module (
         ("file_network", netname) ::
+        ("file_size", int64_to_value (file_size file)) ::
         ("file_priority", int_to_value (file_priority file)) ::
+        ("file_state", state_to_value (file_state file)) ::
+        ("file_filename", string_to_value (file_best_name file)) ::
+        ("file_age", IntValue (Int64.of_int impl.impl_file_age)) ::
           (file_to_option file)
         )
           
@@ -381,237 +430,170 @@ let save () =
   Options.save_with_help servers_ini;
   lprintf "Options correctly saved\n"
 
-(*************  ADD/REMOVE FUNCTIONS ************)
-
-let canonize_basename name =
-  let name = String.copy name in
-  for i = 0 to String.length name - 1 do
-    match name.[i] with
-    | '/' | '\\' -> name.[i] <- '_'
-    | _ -> ()
-  done;
-  name
-  
-let file_commited_name file =   
-  let network = file_network file in
-  let best_name = file_best_name file in
-  let file_name = file_disk_name file in
-  let incoming_dir =
-    if network.network_incoming_subdir () <> "" then
-      Filename.concat !!incoming_directory
-        (network.network_incoming_subdir ())
-    else !!incoming_directory
-  in
-  (try Unix2.safe_mkdir incoming_dir with _ -> ());
-  let new_name = 
-    Filename.concat incoming_dir (canonize_basename 
-        (file_best_name file))
-  in
-  let new_name = 
-    if Sys.file_exists new_name then
-      let rec iter num =
-        let new_name = Printf.sprintf "%s.%d" new_name num in
-        if Sys.file_exists new_name then
-          iter (num+1)
-        else new_name
-      in
-      iter 1
-    else new_name in
-  new_name  
-  
-(* This function is called on each downloaded file when the "commit" command
-  is received. *)
-  
-let file_commit file =
-  let impl = as_file_impl file in
-  if impl.impl_file_state = FileDownloaded then
-    let new_name = file_commited_name file in
-    try
-      set_file_disk_name file new_name;
-      let best_name = file_best_name file in  
-      Unix32.close (file_fd file);
-      (* Commit the file first, and share it after... *)
-      impl.impl_file_ops.op_file_commit impl.impl_file_val new_name;
-      if not (Unix2.is_directory new_name) then 
-        ignore (CommonShared.new_shared 
-            !!incoming_directory !!incoming_directory_prio best_name new_name);
-      done_files =:= List2.removeq file !!done_files;
-      update_file_state impl FileShared;
-    with e ->
-      lprintf "Exception in file_commit: %s\n" (Printexc2.to_string e)
       
-let file_cancel file =
-  try
-  let impl = as_file_impl file in
-
-  if impl.impl_file_state <> FileCancelled then begin
-        update_file_state impl FileCancelled;
-        impl.impl_file_ops.op_file_cancel impl.impl_file_val;
-        Unix32.close (file_fd file);
-        files =:= List2.removeq file !!files;
-    end
-  with e ->
-      lprintf "Exception in file_cancel: %s\n" (Printexc2.to_string e)
-
-        
-let mail_for_completed_file file =
-  if !!mail <> "" then
-    let module M = Mailer in
-    let line1 = "mldonkey has completed the download of:\r\n\r\n" in
-
-    let line2 = Printf.sprintf "\r\nFile: %s\r\nSize: %Ld bytes\r\nComment: %s\r\n" 
-      (file_best_name file)
-      (file_size file)
-      (file_comment file)
-    in
-    
-    let subject = if !!filename_in_subject then
-        Printf.sprintf "[mldonkey] file received - %s"
-        (file_best_name file)
-      else
-        Printf.sprintf "mldonkey, file received";        
-    in
-    
-    let mail = {
-        M.mail_to = !!mail;
-        M.mail_from = Printf.sprintf "mldonkey <%s>" !!mail;
-        M.mail_subject = subject;
-        M.mail_body = line1 ^ line2;
-      } in
-    M.sendmail !!smtp_server !!smtp_port !!add_mail_brackets mail
-
-let chat_for_completed_file file =
-  CommonChat.send_warning_for_downloaded_file (file_best_name file)
-
-      
-let file_completed (file : file) =
-  try
-    let impl = as_file_impl file in
-    if impl.impl_file_state = FileDownloading then begin
-        files =:= List2.removeq file !!files;
-        done_files =:= file :: !!done_files;
-        update_file_state impl FileDownloaded;  
-        let file_name = file_disk_name file in
-        let file_id = Filename.basename file_name in
-        ignore (CommonShared.new_shared "completed" 0 (
-            file_best_name file )
-          file_name);
-        (try mail_for_completed_file file with e ->
-              lprintf "Exception %s in sendmail\n" (Printexc2.to_string e);
-              );
-        if !!CommonOptions.chat_warning_for_downloaded then
-          chat_for_completed_file file;
-        
-        if !!file_completed_cmd <> "" then begin
-            MlUnix.fork_and_exec  !!file_completed_cmd 
-              [|
-              file_name;
-              file_id;
-              Int64.to_string (file_size file);
-              file_best_name file
-            |]
-          
-          end
-      
-      
-      end
-  with e ->
-      lprintf "Exception in file_completed: %s\n" (Printexc2.to_string e)
-      
-let file_add impl state = 
-  try
-    let file = as_file impl in
-    if impl.impl_file_state = FileNew then begin
-        update_file_num impl;
-        (match state with
-            FileDownloaded -> 
-              done_files =:= file :: !!done_files;
-          | FileShared
-          | FileNew
-          | FileCancelled -> ()
-              
-          | FileAborted _
-          | FileDownloading
-          | FileQueued
-          | FilePaused -> 
-              files =:= file :: !!files);
-        update_file_state impl state
-      end
-  with e ->
-      lprintf "Exception in file_add: %s\n" (Printexc2.to_string e)
-      
-let server_remove server =
-  try
-    let impl = as_server_impl server in
-    if impl.impl_server_state <> RemovedHost then begin
-        set_server_state server RemovedHost;
-        (try impl.impl_server_ops.op_server_remove impl.impl_server_val
-          with _ -> ());
-        servers =:= Intmap.remove (server_num server) !!servers;
-      end
-  with e ->
-      lprintf "Exception in server_remove: %s\n" (Printexc2.to_string e)
-  
-let server_add impl =
-  let server = as_server impl in
-  if impl.impl_server_state = NewHost then begin
-      server_update_num impl;
-      servers =:= Intmap.add (server_num server) server !!servers;
-      impl.impl_server_state <- NotConnected (BasicSocket.Closed_by_user, -1);
-    end
-
 let contacts = ref []
 
-let friend_add c =
-  let impl = as_client_impl c in
-  if not (is_friend c) then begin
-      set_friend c;
-      client_must_update c;
-      friends =:= c :: !!friends;
-      contacts := List2.removeq c !contacts;
-      impl.impl_client_ops.op_client_browse impl.impl_client_val true
-    end
+module SharingOption = struct
     
-(* Maybe we should not add the client to the contact list and completely remove
-it ? *)
-let friend_remove c =
-  try
-    let impl = as_client_impl c in
-    if is_friend c then begin
-        set_not_friend c;
-        client_must_update c;
-        friends =:= List2.removeq c !!friends;
-        impl.impl_client_ops.op_client_clear_files impl.impl_client_val
-      end else
-    if is_contact c then begin
-        set_not_contact c;
-        client_must_update c;
-        contacts := List2.removeq c !contacts;
-        impl.impl_client_ops.op_client_clear_files impl.impl_client_val
-      end        
+    let value_to_sharing v = 
+      match v with
+      | Module assocs -> begin
+            let get_value name conv default =
+              try conv (List.assoc name assocs) 
+              with _ -> default 
+            in
+            let sharing_recursive = get_value "recursive"
+                value_to_bool false 
+            in
+            let sharing_minsize = get_value "minsize"
+                value_to_int64 zero 
+            in
+            let sharing_maxsize = get_value "maxsize"
+                value_to_int64 Int64.max_int 
+            in
+            let sharing_extensions = get_value "extensions"
+                (value_to_list value_to_string) [] 
+            in
+            {
+             sharing_recursive = sharing_recursive; 
+             sharing_minsize = sharing_minsize; 
+             sharing_maxsize = sharing_maxsize; 
+             sharing_extensions = sharing_extensions; 
+            }
+          end
+      | _ -> assert false
+    
+    let sharing_to_value s =
+      let list = [
+          "recursive", bool_to_value s.sharing_recursive;
+          "extensions", 
+          list_to_value "ExtList" string_to_value s.sharing_extensions;
+          "minsize", int64_to_value s.sharing_minsize;
+          "maxsize", int64_to_value s.sharing_maxsize;
+        ]
+      in
+      Options.Module list
       
-  with e ->
-      lprintf "Exception in friend_remove: %s\n" (Printexc2.to_string e)
-  
-let contact_add c =
-  let impl = as_client_impl c in
-  if not (is_friend c || is_contact c) then begin
-      set_contact c;
-      client_must_update c;
-      contacts := c :: !contacts;
-      impl.impl_client_ops.op_client_browse impl.impl_client_val true
-    end
-    
-let contact_remove c =
-  try
-    let impl = as_client_impl c in
-    if is_contact c then begin
-        set_not_contact c;
-        client_must_update c;
-        contacts := List2.removeq c !contacts;
-        impl.impl_client_ops.op_client_clear_files impl.impl_client_val
-      end
-  with e ->
-      lprintf "Exception in contact_remove: %s\n" (Printexc2.to_string e)
+    let t =
+      define_option_class "Sharing" value_to_sharing
+        sharing_to_value 
 
+  end
+
+let sharing_only_directory = {
+      sharing_extensions = [];
+      sharing_recursive = false;
+      sharing_minsize = Int64.of_int 10240;
+      sharing_maxsize = Int64.max_int;
+    }  
+  
+let sharing_strategies = define_option searches_section
+    ["customized_sharing"] ""
+    (list_option (tuple2_option (string_option, SharingOption.t)))
+  [ 
+
+(* For mp3 sharers: recursively share all .mp3 files < 10 MB *)
+    "mp3s", {
+      sharing_extensions = [".mp3"];
+      sharing_recursive = true;
+      sharing_minsize = zero;
+      sharing_maxsize = megabytes 10;
+    };
+
+(* For video sharers: recursively share all .avi files > 500 MB *)
+    "avis", {
+      sharing_extensions = [".avi"];
+      sharing_recursive = true;
+      sharing_minsize = megabytes 500;
+      sharing_maxsize = Int64.max_int;
+    };
+
+    "all_files", {
+      sharing_extensions = [];
+      sharing_recursive = true;
+      sharing_minsize = Int64.of_int 10240;
+      sharing_maxsize = Int64.max_int;
+    };
+    
+(* For incoming directory, share all files in the directory (not recursive) *)
+    "only_directory", sharing_only_directory;
+  ]
+  
+module SharedDirectoryOption = struct
+    
+    let value_to_shared_directory v = 
+      match v with
+      | Module assocs -> begin
+            let get_value name conv =  conv (List.assoc name assocs) 
+            in
+            let get_value_safe name conv default =
+              try conv (List.assoc name assocs) 
+              with _ -> default 
+            in
+            let shdir_dirname = get_value "dirname" value_to_filename
+            in
+            let shdir_priority = get_value_safe "priority" value_to_int 0
+            in
+            let shdir_networks = get_value_safe "networks"
+                (value_to_list value_to_string) [] 
+            in
+            let shdir_strategy = get_value_safe "strategy"
+                value_to_string "only_directory"
+            in
+            {
+              shdir_dirname = shdir_dirname; 
+              shdir_strategy = shdir_strategy; 
+              shdir_networks = shdir_networks; 
+              shdir_priority = shdir_priority; 
+            }
+          end
       
+      | SmallList [dir; prio] 
+      | List [dir; prio] ->
+          {
+            shdir_dirname = value_to_filename dir; 
+            shdir_strategy = "only_directory"; 
+            shdir_networks = []; 
+            shdir_priority = value_to_int prio; 
+          }          
+      | v -> 
+          let dir = value_to_string v in
+          let prio = 0 in
+          {
+            shdir_dirname = dir; 
+            shdir_strategy = "only_directory"; 
+            shdir_networks = []; 
+            shdir_priority = prio; 
+          }
+          
+    let shared_directory_to_value s =
+      let list = [
+          "dirname", filename_to_value s.shdir_dirname;
+          "networks", 
+          list_to_value "NetList" string_to_value s.shdir_networks;
+          "strategy", 
+          string_to_value  s.shdir_strategy;
+          "priority", int_to_value s.shdir_priority;
+        ]
+      in
+      Options.Module list
+      
+    let t =
+      define_option_class "Shared Directory" value_to_shared_directory
+        shared_directory_to_value
+
+  end
+    
+  
+let shared_directories = 
+  define_option CommonOptions.path_section ["shared_directories" ] 
+  "Directories where files will be shared"
+    (list_option SharedDirectoryOption.t) 
+  [
+    {
+      shdir_dirname = "shared";
+      shdir_priority = 0;
+      shdir_networks = [];
+      shdir_strategy = "all_files";
+    }
+  ]

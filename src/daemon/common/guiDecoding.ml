@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Int32ops
 open Printf2
 open Md4
   
@@ -75,10 +76,10 @@ let get_array f s pos =
   let list, pos = get_list f s pos in
   Array.of_list list, pos
 
-let get_bool s pos = (get_int8 s pos) = 1
+let get_bool s pos = (get_uint8 s pos) = 1
 
 let rec get_query s pos =
-  let op = get_int8 s pos in
+  let op = get_uint8 s pos in
   match op with
   | 0 ->
       let list, pos = get_list get_query s (pos+1) in
@@ -138,7 +139,7 @@ let rec get_query s pos =
   | _ -> assert false
 
 let get_search_type s pos =
-  match get_int8 s pos with
+  match get_uint8 s pos with
     0 -> LocalSearch
   | 1 -> RemoteSearch
   | 2 -> SubscribeSearch
@@ -198,7 +199,7 @@ let dummy_info =
   }
   
 let get_format s pos =
-  match get_int8 s pos with
+  match get_uint8 s pos with
   | 0 -> FormatUnknown, pos+1
   | 1 ->
       let s1, pos = get_string s (pos+1) in
@@ -226,11 +227,11 @@ let get_format s pos =
 let get_tag s pos =
   let name, pos = get_string s pos in
   let value, pos =
-    match get_int8 s pos with
+    match get_uint8 s pos with
       0 -> 
-        Uint64 (get_int64_32 s (pos+1)), pos+5
+        Uint64 (get_uint64_32 s (pos+1)), pos+5
     | 1 -> 
-        Fint64 (get_int64_32 s (pos+1)), pos+5
+        Fint64 (get_uint64_32 s (pos+1)), pos+5
     | 2 -> let s, pos = get_string s (pos+1) in
         String s, pos
     | 3 -> Addr (get_ip s (pos+1)), pos+5
@@ -243,7 +244,7 @@ let get_result s pos =
   let net = get_int s (pos+4) in
   let names, pos = get_list get_string s (pos+8) in
   let md4 = get_md4 s pos in
-  let size = get_int64_32 s (pos+16) in
+  let size = get_uint64_32 s (pos+16) in
   let format, pos = get_string s (pos+20) in
   let t, pos = get_string s pos in
   let tags, pos = get_list get_tag s pos in
@@ -263,7 +264,7 @@ let get_result s pos =
   }, pos+1
 
 let get_message s pos =
-  match get_int8 s pos with
+  match get_uint8 s pos with
     0 ->
       let s, pos = get_string s (pos+1) in
       ServerMessage s, pos
@@ -278,7 +279,7 @@ let get_message s pos =
   | _ -> assert false
 
 let get_file_state s pos =
-  match get_int8 s pos with
+  match get_uint8 s pos with
   | 0 -> FileDownloading, pos+1
   | 1 -> FilePaused, pos+1
   | 2 -> FileDownloaded, pos+1
@@ -303,8 +304,8 @@ let get_file proto s pos =
   let names, pos = 
     get_list get_string s (pos+8) in
   let md4 = get_md4 s pos in
-  let size = get_int64_32 s (pos+16) in
-  let downloaded = get_int64_32 s (pos+20) in
+  let size = get_uint64_32 s (pos+16) in
+  let downloaded = get_uint64_32 s (pos+20) in
   let nlocations = get_int s (pos+24) in
   let nclients = get_int s (pos+28) in
   let state, pos = get_file_state s (pos+32) in
@@ -375,7 +376,7 @@ assert (priority = file_info.file_priority);
 
 let get_host_state proto s pos =
   if proto < 12 then
-  (match get_int8 s pos with
+  (match get_uint8 s pos with
   | 0 -> NotConnected (BasicSocket.Closed_by_user, -1)
   | 1 -> Connecting
   | 2 -> Connected_initiating
@@ -388,7 +389,7 @@ let get_host_state proto s pos =
   | 9 -> NotConnected (BasicSocket.Closed_by_user,0)
   | _ -> assert false), pos+1
   else
-  match get_int8 s pos with
+  match get_uint8 s pos with
   | 0 -> NotConnected (BasicSocket.Closed_by_user,-1), pos+1
   | 1 -> Connecting, pos+1
   | 2 -> Connected_initiating, pos+1
@@ -404,7 +405,7 @@ let get_host_state proto s pos =
 
 
 let get_addr s pos =
-  match get_int8 s pos with
+  match get_uint8 s pos with
     0 ->
       let ip = get_ip s (pos+1) in
       Ip.addr_of_ip ip, pos+5
@@ -446,14 +447,14 @@ let get_server proto s pos =
   }, pos
 
 let get_client_type s pos = 
-  match get_int8 s pos with
+  match get_uint8 s pos with
     0 -> 0
   | 1 -> client_friend_tag
   | 2 -> client_contact_tag
   | _ -> assert false
 
 let get_kind s pos =
-  match get_int8 s pos with
+  match get_uint8 s pos with
     0 ->
       let ip = get_ip s (pos+1) in
       let port = get_int16 s (pos+5) in
@@ -605,7 +606,7 @@ let get_user s pos =
 
 
 let get_room_state s pos =
-  match get_int8 s pos with
+  match get_uint8 s pos with
     0 -> RoomOpened
   | 1 -> RoomClosed
   | 2 -> RoomPaused
@@ -631,7 +632,7 @@ let get_shared_info s pos =
   let num = get_int s pos in
   let network = get_int s (pos+4) in
   let name, pos = get_string s (pos+8) in
-  let size = get_int64_32 s pos in
+  let size = get_uint64_32 s pos in
   let uploaded = get_int64 s (pos+4) in
   let requests = get_int s (pos+12) in
   {
@@ -648,7 +649,7 @@ let get_shared_info_version_10 s pos =
   let num = get_int s pos in
   let network = get_int s (pos+4) in
   let name, pos = get_string s (pos+8) in
-  let size = get_int64_32 s pos in
+  let size = get_uint64_32 s pos in
   let uploaded = get_int64 s (pos+4) in
   let requests = get_int s (pos+12) in
   let md4 = get_md4 s (pos+16) in
@@ -857,7 +858,7 @@ let from_gui (proto : int array) opcode s =
     | 46 -> GetDownloadedFiles
     | 47 -> 
         let list, pos = get_list (fun s pos -> 
-              (get_int s pos, 1 = get_int8 s (pos+4)), pos+5) s 2 in
+              (get_int s pos, 1 = get_uint8 s (pos+4)), pos+5) s 2 in
         GuiExtensions list
     | 48 ->
         SetRoomState (get_int s 2, get_room_state s 6)
@@ -974,7 +975,7 @@ let to_gui (proto : int array) opcode s =
     
     | 8 ->
         let n = get_int s 2 in
-        let size = get_int64_32 s 6 in
+        let size = get_uint64_32 s 6 in
         let rate, pos = get_float s 10 in
         File_downloaded (n, size, rate, BasicSocket.last_time ())
     
@@ -1136,7 +1137,7 @@ let to_gui (proto : int array) opcode s =
             }
           else
           let optype = 
-            match get_int8 s pos with
+            match get_uint8 s pos with
               0 -> "String" 
             | 1 -> "Bool" 
             | 2 -> "Filename"
@@ -1194,7 +1195,7 @@ let to_gui (proto : int array) opcode s =
             }
           else
           let optype = 
-            match get_int8 s pos with
+            match get_uint8 s pos with
               0 -> "String" 
             | 1 -> "Bool" 
             | 2 -> "Filename"
@@ -1257,7 +1258,7 @@ let to_gui (proto : int array) opcode s =
     
     | 46 ->
         let n = get_int s 2 in
-        let size = get_int64_32 s 6 in
+        let size = get_uint64_32 s 6 in
         let rate, pos = get_float s 10 in
         let last_seen = get_int s pos in
         File_downloaded (n, size, rate, 

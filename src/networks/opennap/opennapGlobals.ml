@@ -20,6 +20,7 @@
 open Printf2
 open Md4
 
+open CommonInteractive
 open OpennapOptions
 open CommonClient
 open CommonUser
@@ -49,7 +50,9 @@ let network = new_network "Open Napster"
     (fun _ -> !!network_options_prefix)
   (fun _ -> !!commit_in_subdir)
 (*    network_options_prefix commit_in_subdir *)
-      
+  
+let connection_manager = network.network_connection_manager
+  
 let (result_ops : result CommonResult.result_ops) = 
   CommonResult.new_result_ops network
   
@@ -122,7 +125,7 @@ let new_server ip port =
           server_port = port;
           server_desc = "";
           server_net = "";
-          server_sock = None;
+          server_sock = NoConnection;
           server_nusers = 0;
           server_nfiles = 0;
           server_size = 0;
@@ -259,7 +262,7 @@ let new_client name =
       let user = new_user None name in
       let rec c = {
           client_client = impl;
-          client_sock = None;
+          client_sock = NoConnection;
           client_name = name;
           client_addr = None;
           client_files = [];

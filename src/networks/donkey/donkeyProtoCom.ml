@@ -87,10 +87,8 @@ let client_send c m =
       DonkeyProtoClient.print m;
       lprint_newline ();
     end;
-  match c.client_sock with
-    None -> ()
-  | Some sock ->
-      direct_client_sock_send sock m
+  do_if_connected c.client_sock (fun sock ->
+      direct_client_sock_send sock m)
 
 let emule_send sock m =
   let m = client_msg_to_string 0xc5 m in
@@ -120,7 +118,7 @@ let client_handler2 c ff f =
     let b = TcpBufferedSocket.buf sock in
     try
       while b.len >= 5 do
-        let opcode = get_int8 b.buf b.pos in
+        let opcode = get_uint8 b.buf b.pos in
         let msg_len = get_int b.buf (b.pos+1) in
         if b.len >= 5 + msg_len then
           begin
@@ -151,7 +149,7 @@ let cut_messages parse f sock nread =
   let b = TcpBufferedSocket.buf sock in
   try
     while b.len >= 5 do
-      let opcode = get_int8 b.buf b.pos in
+      let opcode = get_uint8 b.buf b.pos in
       let msg_len = get_int b.buf (b.pos+1) in
       if b.len >= 5 + msg_len then
         begin

@@ -51,11 +51,14 @@ let listen () = ()
       
 let disconnect_peer c reason =
   match c.client_peer_sock with
-    None -> ()
-  | Some sock ->
+    NoConnection -> ()
+  | ConnectionWaiting token ->
+      cancel_token token;
+      c.client_peer_sock <- NoConnection
+  | Connection sock ->
       lprintf "DISCONNECTED FROM PEER"; lprint_newline ();
       close sock reason;
-      c.client_peer_sock <- None;
+      c.client_peer_sock <- NoConnection;
       c.client_requests <- []
 
 let disconnect_result c sock =
@@ -96,15 +99,19 @@ let connect_download c file req =
     match c.client_addr with
       None -> ()
     | Some (ip,port) ->
-        connection_try c.client_connection_control;
-        let sock = connect "client download" 
-            (Ip.to_inet_addr ip) port
-            (fun _ _ -> ())
+        let token = add_pending_connection connection_manager (fun token ->
+              connection_try c.client_connection_control;
+              let sock = connect token "client download" 
+                  (Ip.to_inet_addr ip) port
+                  (fun _ _ -> ())
+              in
+              let  d = Download.new_download sock c file 1 in
+              set_reader sock (Download.download_reader d);
+              init_download_connection sock file (local_login()) req 
+                d.download_pos;
+          )
         in
-        let  d = Download.new_download sock c file 1 in
-        set_reader sock (Download.download_reader d);
-        init_download_connection sock file (local_login()) req 
-        d.download_pos;
+        ()
   
   with e ->
       lprintf "Exception %s while connecting to client" 
@@ -216,71 +223,79 @@ let connect_peer c token msgs =
       lprintf "CONNECT PEER"; lprint_newline ();
     end;
   match c.client_peer_sock with
-    Some sock -> 
+    Connection sock -> 
       List.iter (fun t -> client_send sock t) msgs
-  | None ->
-      try
-        match c.client_addr with
-          None -> 
-            if !verbose_msg_clients then begin
-                lprintf "NO ADDRESS FOR CLIENT"; lprint_newline ();
-              end;
-            List.iter (fun s ->
-                match s.server_sock with
-                  None -> ()
-                | Some sock ->
-                    if !verbose_msg_servers then begin
-                        lprintf "ASKING FOR CLIENT IP: %s"  c.client_name;
-                        lprint_newline ();
-                      end;
-                    server_send sock (C2S.GetPeerAddressReq c.client_name);
-            ) !connected_servers
-            
-        | Some (ip,port) ->
-            if !verbose_msg_clients then begin
-                lprintf "CONNECTING"; lprint_newline ();
-              end;
-            connection_try c.client_connection_control;      
-            let sock = connect "peer connect" 
-                (Ip.to_inet_addr ip) port
-                (fun _ _ -> ())
-            in
-            set_closer sock (fun _ r -> disconnect_peer c r);
-            TcpBufferedSocket.set_read_controler sock download_control;
-            TcpBufferedSocket.set_write_controler sock upload_control;
-            set_rtimeout sock 30.;
-            TcpBufferedSocket.set_reader sock (
-              soulseek_handler C2C.parse (client_to_client c));
-            c.client_peer_sock <- Some sock;
-            init_peer_connection sock (local_login ()) token;
-            List.iter (fun t -> client_send sock t) msgs
-      with e ->
-          lprintf "Exception %s while connecting to client\n" 
-            (Printexc2.to_string e);
-          disconnect_peer c (Closed_for_exception e)
-
+  | ConnectionWaiting _ -> ()
+  | NoConnection ->
+      match c.client_addr with
+        None -> 
+          if !verbose_msg_clients then begin
+              lprintf "NO ADDRESS FOR CLIENT"; lprint_newline ();
+            end;
+          List.iter (fun s ->
+              do_if_connected s.server_sock (fun sock ->
+                  if !verbose_msg_servers then begin
+                      lprintf "ASKING FOR CLIENT IP: %s"  c.client_name;
+                      lprint_newline ();
+                    end;
+                  server_send sock (C2S.GetPeerAddressReq c.client_name);
+              )
+          ) !connected_servers
+      
+      | Some (ip,port) ->
+          let token =
+            add_pending_connection connection_manager (fun ctoken ->
+                c.client_peer_sock <- NoConnection;
+                try
+                  if !verbose_msg_clients then begin
+                      lprintf "CONNECTING"; lprint_newline ();
+                    end;
+                  connection_try c.client_connection_control;      
+                  let sock = connect ctoken "peer connect" 
+                      (Ip.to_inet_addr ip) port
+                      (fun _ _ -> ())
+                  in
+                  set_closer sock (fun _ r -> disconnect_peer c r);
+                  TcpBufferedSocket.set_read_controler sock download_control;
+                  TcpBufferedSocket.set_write_controler sock upload_control;
+                  set_rtimeout sock 30.;
+                  TcpBufferedSocket.set_reader sock (
+                    soulseek_handler C2C.parse (client_to_client c));
+                  c.client_peer_sock <- Connection sock;
+                  init_peer_connection  sock (local_login ()) token;
+                  List.iter (fun t -> client_send sock t) msgs
+                with e ->
+                    lprintf "Exception %s while connecting to client\n" 
+                      (Printexc2.to_string e);
+                    disconnect_peer c (Closed_for_exception e)
+            ) in
+          c.client_peer_sock <- ConnectionWaiting token
+          
 let connect_result c token =
-  try
-    match c.client_addr with
-      None -> ()
-    | Some (ip,port) ->
-        if !verbose_msg_clients then begin
-            lprintf "CONNECTING"; lprint_newline ();
-          end;
-        connection_try c.client_connection_control;      
-        let sock = connect "peer connect" 
-            (Ip.to_inet_addr ip) port
-            (fun _ _ -> ())
-        in
-        set_closer sock (fun _ _ -> disconnect_result c sock);
-        TcpBufferedSocket.set_read_controler sock download_control;
-        TcpBufferedSocket.set_write_controler sock upload_control;
-        set_rtimeout sock 30.;
-        TcpBufferedSocket.set_reader sock (
-          soulseek_handler C2C.parse (client_to_client c));
-        c.client_result_socks <- sock :: c.client_result_socks;
-        init_result_connection sock token
-      with e ->
-          lprintf "Exception %s while connecting to client" 
-            (Printexc2.to_string e);
-          lprint_newline ()
+  match c.client_addr with
+    None -> ()
+  | Some (ip,port) ->
+      let ctoken = add_pending_connection connection_manager (fun ctoken ->
+            try
+              if !verbose_msg_clients then begin
+                  lprintf "CONNECTING"; lprint_newline ();
+                end;
+              connection_try c.client_connection_control;      
+              let sock = connect ctoken "peer connect" 
+                  (Ip.to_inet_addr ip) port
+                  (fun _ _ -> ())
+              in
+              set_closer sock (fun _ _ -> disconnect_result c sock);
+              TcpBufferedSocket.set_read_controler sock download_control;
+              TcpBufferedSocket.set_write_controler sock upload_control;
+              set_rtimeout sock 30.;
+              TcpBufferedSocket.set_reader sock (
+                soulseek_handler C2C.parse (client_to_client c));
+              c.client_result_socks <- sock :: c.client_result_socks;
+              init_result_connection sock token
+            with e ->
+                lprintf "Exception %s while connecting to client" 
+                  (Printexc2.to_string e);
+                lprint_newline ()
+        ) in
+      ()

@@ -222,12 +222,12 @@ let rec server_parse_header nservers with_accept retry_fake s gconn sock header
       failwith "Protocol Gnutella2 not supported"
     else
     if code <> "200" then begin
-        s.server_connected <- int32_time ();
+        s.server_connected <- int64_time ();
         if retry_fake then begin
             GnutellaGlobals.disconnect_from_server nservers s
-(Closed_for_error "Bad HTTP code");
+              (Closed_for_error "Bad HTTP code");
             connect_server nservers with_accept false s.server_host
-            !keep_headers
+              !keep_headers
           end else
           failwith  (Printf.sprintf "Bad return code [%s]" code)
       
@@ -259,9 +259,9 @@ let rec server_parse_header nservers with_accept retry_fake s gconn sock header
     
     set_rtimeout sock DG.half_day;
     set_server_state s (Connected (-1));
-    s.server_connected <- int32_time ();    
+    s.server_connected <- int64_time ();    
     GnutellaHandler.init s sock gconn;
-        
+  
   with
   | e -> 
       if !verbose_msg_servers then
@@ -277,18 +277,11 @@ and connect_server nservers with_accept retry_fake h headers =
     | Some s -> s
   in
   match s.server_sock with
-    ConnectionWaiting -> ()
-  | ConnectionAborted -> s.server_sock <- ConnectionWaiting
-  | Connection _ | CompressedConnection _ -> ()
   | NoConnection -> 
       incr nservers;
-      s.server_sock <- ConnectionWaiting;
-      add_pending_connection (fun _ ->
+      let token =
+      add_pending_connection connection_manager (fun token ->
           decr nservers;
-          match s.server_sock with
-            ConnectionAborted -> s.server_sock <- NoConnection;
-          | Connection _ | NoConnection | CompressedConnection _ -> ()
-          | ConnectionWaiting ->
               try
                 if not (Ip.valid s.server_host.host_ip) then
                   failwith "Invalid IP for server\n";
@@ -298,7 +291,7 @@ and connect_server nservers with_accept retry_fake h headers =
             lprintf "CONNECT TO %s:%d\n" (Ip.to_string ip) port;
 end;  *)
                 h.host_tcp_request <- last_time ();
-                let sock = connect "gnutella to server"
+                let sock = connect token "gnutella to server"
                     (Ip.to_inet_addr ip) port
                     (fun sock event -> 
                       match event with
@@ -382,9 +375,12 @@ Printf.bprintf buf "X-Degree: %d\r\n" !!g1_max_ultrapeers;
                 write_string sock s;
               with e ->
                   disconnect_from_server nservers s
-                     (Closed_for_exception e)
-      )
-
+                    (Closed_for_exception e)
+        )
+      in
+      s.server_sock <- ConnectionWaiting token
+  | _ -> ()
+      
 let get_file_from_source c file =
   if connection_can_try c.client_connection_control then begin
       connection_try c.client_connection_control;
@@ -504,7 +500,9 @@ Remote-IP: 207.5.238.35
 let disconnect_server s r =
   match s.server_sock with
   | Connection sock -> close sock r
-  | ConnectionWaiting -> s.server_sock <- ConnectionAborted
+  | ConnectionWaiting token -> 
+      cancel_token token;
+      s.server_sock <- NoConnection
   | _ -> ()
     
 let ask_for_files () =

@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonSwarming
+open Int32ops
 open Xml
 open Printf2
 open Md4
@@ -220,8 +222,9 @@ let _ =
         P.file_state = file_state file;
         P.file_sources = None;
         P.file_download_rate = file_download_rate file.file_file;
-        P.file_chunks = "0";
-        P.file_availability = [network.network_num, "0"];
+        P.file_chunks = Int64Swarmer.verified_bitmap file.file_swarmer;
+        P.file_availability = 
+        [network.network_num,Int64Swarmer.availability file.file_swarmer];
         P.file_format = FormatNotComputed 0;
         P.file_chunks_age = [|0|];
         P.file_age = file_age file;

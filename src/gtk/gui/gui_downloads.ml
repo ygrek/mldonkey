@@ -115,21 +115,24 @@ let float_avail s =
   with _ -> 0.0
 
 let file_availability f =
-  let rec loop i p n =
-    if i < 0
-    then
-      if n = 0.0
-      then "---"
-      else Printf.sprintf "%5.1f" (p /. n *. 100.0)
-    else
-      if CommonGlobals.partial_chunk f.file_chunks.[i]
-      then
-(*	if f.file_availability.[i] <> '\000'
-	then loop (i - 1) (p +. 1.0) (n +. 1.0)
-	else *) loop (i - 1) p (n +. 1.0)
-      else loop (i - 1) p n
-  in
-    loop ((String.length f.file_chunks) - 1) 0.0 0.0
+  match f.file_availability with
+    (_,avail) :: _ ->
+      let rec loop i p n =
+        if i < 0
+        then
+          if n = 0.0
+          then "---"
+          else Printf.sprintf "%5.1f" (p /. n *. 100.0)
+        else
+          if CommonGlobals.partial_chunk f.file_chunks.[i]
+          then
+	    if avail.[i] <> (char_of_int 0)
+	    then loop (i - 1) (p +. 1.0) (n +. 1.0)
+	    else loop (i - 1) p (n +. 1.0)
+	  else loop (i - 1) p n
+      in
+      loop ((String.length avail) - 1) 0.0 0.0
+  | _ -> "---"
 
 let string_availability f =
   let maxi = ref 0. in

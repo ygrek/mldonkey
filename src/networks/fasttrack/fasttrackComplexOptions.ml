@@ -108,11 +108,13 @@ let value_to_int32pair v =
   | _ -> 
       failwith "Options: Not an int32 pair"
 
-let value_to_file is_done assocs =
+let value_to_file file_size file_state assocs =
   let get_value name conv = conv (List.assoc name assocs) in
   let get_value_nil name conv = 
     try conv (List.assoc name assocs) with _ -> []
   in
+
+  lprintf "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n";
   
   let file_name = get_value "file_name" value_to_string in
   let file_id = 
@@ -125,22 +127,13 @@ let value_to_file is_done assocs =
       Md5Ext.of_string (get_value "file_hash" value_to_string)
     with _ -> failwith "Bad file_hash"
   in
-  let file_size = try
-      value_to_int64 (List.assoc "file_size" assocs) 
-    with _ -> failwith "Bad file size"
-  in
   
   let file = new_file file_id file_name file_size file_hash in
-  
-  (try 
-      Int64Swarmer.set_present file.file_swarmer 
-        (get_value "file_present_chunks" 
-          (value_to_list value_to_int32pair));
-      add_file_downloaded file.file_file
-        (Int64Swarmer.downloaded file.file_swarmer)      
-    with _ -> ()                
-  );
-  
+
+  Int64Swarmer.value_to_swarmer file.file_swarmer assocs;
+  add_file_downloaded file.file_file
+    (Int64Swarmer.downloaded file.file_swarmer);
+
   (try
       ignore (get_value "file_sources" (value_to_list (fun v ->
               match v with
@@ -162,8 +155,8 @@ let value_to_file is_done assocs =
   as_file file.file_file
   
 let file_to_value file =
+  Int64Swarmer.swarmer_to_value file.file_swarmer
   [
-    "file_size", int64_to_value (file_size file);
     "file_name", string_to_value file.file_name;
     "file_downloaded", int64_to_value (file_downloaded file);
     "file_id", string_to_value (Md4.to_string file.file_id);
@@ -177,13 +170,7 @@ let file_to_value file =
         | FileByUrl s -> 
             SmallList [ClientOption.client_to_value c; 
               string_to_value s]
-    ) file.file_clients
-    ;
-    "file_present_chunks", List
-      (List.map (fun (i1,i2) -> 
-          SmallList [int64_to_value i1; int64_to_value i2])
-      (Int64Swarmer.present_chunks file.file_swarmer));
-    
+    ) file.file_clients;
   ]
   
 let old_files = 

@@ -178,10 +178,10 @@ let parse_packet msg_type m =
         if n > 0 && pos + 32 < len then
           let user_ip = LittleEndian.get_ip m pos in
           let user_port = BigEndian.get_int16 m (pos+4) in
-          let user_bandwidth = get_int8 m (pos+6) in
+          let user_bandwidth = get_uint8 m (pos+6) in
           let pos = pos + 7 in
           let user_name, user_netname, pos =
-            if get_int8 m pos = 2 then
+            if get_uint8 m pos = 2 then
               "unknown", "unknown", pos+1
             else
             let end_name = String.index_from m pos '\001' in
@@ -302,22 +302,22 @@ let rec parse_packets pos s ciphers =
             let msg_type, size = 
               match xtype with
                 0 ->
-                  let msg_type = get_int8 s (pos+1) in
+                  let msg_type = get_uint8 s (pos+1) in
 (* zero *)
-                  let len_hi = get_int8 s (pos+3) in
-                  let len_lo = get_int8 s (pos+4) in
+                  let len_hi = get_uint8 s (pos+3) in
+                  let len_lo = get_uint8 s (pos+4) in
                   msg_type, (len_hi lsl 8) lor len_lo
               | 1 ->
 (* zero *)
-                  let len_hi = get_int8 s (pos+2) in
-                  let msg_type = get_int8 s (pos+3) in
-                  let len_lo = get_int8 s (pos+4) in
+                  let len_hi = get_uint8 s (pos+2) in
+                  let msg_type = get_uint8 s (pos+3) in
+                  let len_lo = get_uint8 s (pos+4) in
                   msg_type, (len_hi lsl 8) lor len_lo
               | _ ->
 (*zero*)        
-                  let len_lo = get_int8 s (pos+2) in
-                  let len_hi = get_int8 s (pos+3) in
-                  let msg_type = get_int8 s (pos+4) in
+                  let len_lo = get_uint8 s (pos+2) in
+                  let len_hi = get_uint8 s (pos+3) in
+                  let msg_type = get_uint8 s (pos+4) in
                   msg_type, (len_hi lsl 8) lor len_lo
             in
 (*                lprintf "Message to read: xtype %d type %d len %d\n"

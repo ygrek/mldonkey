@@ -211,7 +211,8 @@ module ServerToClient = struct
     | ExternalIpReq
     | ShareFileReq
     | UnshareFileReq
-    
+    | UnknownPacket of string
+      
     let parse msg_type m =
       match msg_type with
         0x00 -> NodeListReq
@@ -239,5 +240,7 @@ module ServerToClient = struct
       | 0x2c -> ExternalIpReq (* IP address on 4 bytes *)
       | 0x22 -> ShareFileReq
       | 0x05 -> UnshareFileReq
-          
+      | _ -> 
+          lprintf "FasttrackProtocol: unknown packet %d" msg_type;
+          UnknownPacket m
   end

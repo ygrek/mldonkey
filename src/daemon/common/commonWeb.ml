@@ -52,7 +52,8 @@ support the charge, at least, currently. *)
   Ip.async_ip name (fun ip ->
       try
         lprintf "connecting to redirector\n";
-        let sock = TcpBufferedSocket.connect "connect redirector"
+        let token = create_token unlimited_connection_manager in
+        let sock = TcpBufferedSocket.connect token "connect redirector"
             (Ip.to_inet_addr ip) port            
             (fun sock event ->
               match event with

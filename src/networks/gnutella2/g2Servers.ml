@@ -234,8 +234,8 @@ let rec server_parse_header s gconn sock header  =
       failwith "Protocol G2 not supported"
     else
     if code <> "200" then begin
-        s.server_connected <- int32_time ();
-          failwith  (Printf.sprintf "Bad return code [%s]" code)
+        s.server_connected <- int64_time ();
+        failwith  (Printf.sprintf "Bad return code [%s]" code)
       end else
     let msg = 
       let buf = Buffer.create 100 in
@@ -256,7 +256,10 @@ let rec server_parse_header s gconn sock header  =
     if !verbose_msg_servers then
       lprintf "CONNECT REQUEST: %s\n" (String.escaped msg); 
     write_string sock msg;
-
+    
+    (* Now, change to deflated connection if needed *)
+    if !deflate then
+      deflate_connection sock;
 (*
     if not retry_fake then
       lprintf "******** CONNECTED BY FAKING ********\n";
@@ -264,9 +267,9 @@ let rec server_parse_header s gconn sock header  =
     
     set_rtimeout sock DG.half_day;
     set_server_state s (Connected (-1));
-    s.server_connected <- int32_time ();    
+    s.server_connected <- int64_time ();    
     G2Handler.init s sock gconn
-        
+  
   with
   | e -> 
       if !verbose_msg_servers then
@@ -282,115 +285,112 @@ and connect_server h headers =
     | Some s -> s
   in
   match s.server_sock with
-    ConnectionWaiting -> ()
-  | ConnectionAborted -> s.server_sock <- ConnectionWaiting
-  | Connection _ | CompressedConnection _ -> ()
   | NoConnection -> 
       
       G2Proto.server_send_ping s.server_sock s;
       
       incr nservers;
-      s.server_sock <- ConnectionWaiting;
-      add_pending_connection (fun _ ->
-          decr nservers;
-          match s.server_sock with
-            ConnectionAborted -> s.server_sock <- NoConnection;
-          | Connection _ | NoConnection | CompressedConnection _ -> ()
-          | ConnectionWaiting ->
-              try
-                if not (Ip.valid s.server_host.host_addr) then
-                  failwith "Invalid IP for server\n";
-                let ip = s.server_host.host_addr in
-                let port = s.server_host.host_port in
+      let token =
+        add_pending_connection connection_manager (fun token ->
+            s.server_sock <- NoConnection;
+            decr nservers;
+            try
+                  if not (Ip.valid s.server_host.host_addr) then
+                    failwith "Invalid IP for server\n";
+                  let ip = s.server_host.host_addr in
+                  let port = s.server_host.host_port in
 (*        if !verbose_msg_servers then begin
             lprintf "CONNECT TO %s:%d\n" (Ip.to_string ip) port;
 end;  *)
-                 H.set_request h Tcp_Connect;
-                let sock = connect "gnutella to server"
-                    (Ip.to_inet_addr ip) port
-                    (fun sock event -> 
-                      match event with
-                        BASIC_EVENT (RTIMEOUT|LTIMEOUT) -> 
+                  H.set_request h Tcp_Connect;
+                  let sock = connect token "gnutella to server"
+                      (Ip.to_inet_addr ip) port
+                      (fun sock event -> 
+                        match event with
+                          BASIC_EVENT (RTIMEOUT|LTIMEOUT) -> 
 (*                  lprintf "RTIMEOUT\n"; *)
-                          disconnect_from_server s Closed_for_timeout
-                      | _ -> ()
-                  ) in
-                TcpBufferedSocket.set_read_controler sock download_control;
-                TcpBufferedSocket.set_write_controler sock upload_control;
-                
-                set_server_state s Connecting;
-                s.server_sock <- Connection sock;
-                incr nservers;
-                set_gnutella_sock (Connection sock) !verbose_msg_servers
-                  (HttpHeader (server_parse_header s)
-                
-                );
-                set_closer sock (fun _ error -> 
-(*            lprintf "CLOSER %s\n" error; *)
-                    disconnect_from_server s error);
-                set_rtimeout sock !!server_connection_timeout;
-                
-                let s = 
-                  let buf = Buffer.create 100 in
-(* Start by G2 headers *)
-                  Buffer.add_string buf "GNUTELLA CONNECT/0.6\r\n";
-                  Printf.bprintf buf "Listen-IP: %s:%d\r\n"
-                    (Ip.to_string (client_ip (Connection sock))) !!client_port;
-                  Printf.bprintf buf "Remote-IP: %s\r\n"
-                    (Ip.to_string s.server_host.host_addr);
+                            disconnect_from_server s Closed_for_timeout
+                        | _ -> ()
+                    ) in
+                  TcpBufferedSocket.set_read_controler sock download_control;
+                  TcpBufferedSocket.set_write_controler sock upload_control;
                   
-                  if headers = [] then begin
-                      Printf.bprintf buf "User-Agent: %s\r\n" user_agent;
-                      Printf.bprintf buf "Accept: application/x-gnutella2\r\n";
-                      if !!deflate_connections then                      
-                        Printf.bprintf buf "Accept-Encoding: deflate\r\n";
+                  set_server_state s Connecting;
+                  s.server_sock <- Connection sock;
+                  incr nservers;
+                  set_gnutella_sock (Connection sock) !verbose_msg_servers
+                    (HttpHeader (server_parse_header s)
+                  
+                  );
+                  set_closer sock (fun _ error -> 
+(*            lprintf "CLOSER %s\n" error; *)
+                      disconnect_from_server s error);
+                  set_rtimeout sock !!server_connection_timeout;
+                  
+                  let s = 
+                    let buf = Buffer.create 100 in
+(* Start by G2 headers *)
+                    Buffer.add_string buf "GNUTELLA CONNECT/0.6\r\n";
+                    Printf.bprintf buf "Listen-IP: %s:%d\r\n"
+                      (Ip.to_string (client_ip (Connection sock))) !!client_port;
+                    Printf.bprintf buf "Remote-IP: %s\r\n"
+                      (Ip.to_string s.server_host.host_addr);
+                    
+                    if headers = [] then begin
+                        Printf.bprintf buf "User-Agent: %s\r\n" user_agent;
+                        Printf.bprintf buf "Accept: application/x-gnutella2\r\n";
+                        if !!deflate_connections then                      
+                          Printf.bprintf buf "Accept-Encoding: deflate\r\n";
 
 (* Other G2 headers *)          
-                      Printf.bprintf buf "X-Max-TTL: 4\r\n";
-                      Printf.bprintf buf "Vendor-Message: 0.1\r\n";
-                      Printf.bprintf buf "X-Query-Routing: 0.1\r\n";
+                        Printf.bprintf buf "X-Max-TTL: 4\r\n";
+                        Printf.bprintf buf "Vendor-Message: 0.1\r\n";
+                        Printf.bprintf buf "X-Query-Routing: 0.1\r\n";
 (* We add these two headers for Limewire, we are not completely sure we
   can comply with, as we are not ultrapeers... *)
-
-                      Printf.bprintf buf "X-Dynamic-Querying: 0.1\r\n";
-Printf.bprintf buf "X-Ultrapeer-Query-Routing: 0.1\r\n";
+                        
+                        Printf.bprintf buf "X-Dynamic-Querying: 0.1\r\n";
+                        Printf.bprintf buf "X-Ultrapeer-Query-Routing: 0.1\r\n";
 
 (* Guess support will be enabled soon *)
-                      Printf.bprintf buf "X-Guess: 0.1\r\n";
-                      Printf.bprintf buf "Vendor-Message: 0.1\r\n";
+                        Printf.bprintf buf "X-Guess: 0.1\r\n";
+                        Printf.bprintf buf "Vendor-Message: 0.1\r\n";
 (* We don't forward Pongs at all, so we have this header... *)
-                      Printf.bprintf buf "Pong-Caching: 0.1\r\n";
-                      Printf.bprintf buf "Bye-Packet: 0.1\r\n";
-                      Printf.bprintf buf "GGEP: 0.5\r\n"; 
+                        Printf.bprintf buf "Pong-Caching: 0.1\r\n";
+                        Printf.bprintf buf "Bye-Packet: 0.1\r\n";
+                        Printf.bprintf buf "GGEP: 0.5\r\n"; 
 (* We never forward messages, so all our messages have hops = 0 *)
-                      Printf.bprintf buf "Hops-Flow: 0.1\r\n"; 
+                        Printf.bprintf buf "Hops-Flow: 0.1\r\n"; 
 (* Don't really know what this header means, so we just put the number
 of ultrapeers we want to connect to *)
-                      Printf.bprintf buf "X-Degree: %d\r\n" !!max_ultrapeers; 
-                      
-                      Printf.bprintf buf "X-Guess: 0.1\r\n";  
-                    end else begin
+                        Printf.bprintf buf "X-Degree: %d\r\n" !!max_ultrapeers; 
+                        
+                        Printf.bprintf buf "X-Guess: 0.1\r\n";  
+                      end else begin
 (*              lprintf "****** Retry and fake **********\n"; *)
-                      List.iter (fun (key, value) ->
-                          Printf.bprintf buf "%s: %s\r\n" key value
-                      ) headers;
-                    end;
-                  Printf.bprintf buf "X-My-Address: %s:%d\r\n"
-                    (Ip.to_string (client_ip (Connection sock))) !!client_port;
-                  Printf.bprintf buf "X-Ultrapeer: False\r\n";
-                  Printf.bprintf buf "X-Ultrapeer-Needed: True\r\n";
+                        List.iter (fun (key, value) ->
+                            Printf.bprintf buf "%s: %s\r\n" key value
+                        ) headers;
+                      end;
+                    Printf.bprintf buf "X-My-Address: %s:%d\r\n"
+                      (Ip.to_string (client_ip (Connection sock))) !!client_port;
+                    Printf.bprintf buf "X-Ultrapeer: False\r\n";
+                    Printf.bprintf buf "X-Ultrapeer-Needed: True\r\n";
 (* Finish with headers *)
-                  Buffer.add_string buf "\r\n";
-                  Buffer.contents buf
-                in
-                if !verbose_msg_servers then
-                  lprintf "SENDING %s\n" (String.escaped s);
-                write_string sock s;
-              with e ->
-                  disconnect_from_server s
-                     (Closed_for_exception e)
-      )
-
+                    Buffer.add_string buf "\r\n";
+                    Buffer.contents buf
+                  in
+                  if !verbose_msg_servers then
+                    lprintf "SENDING %s\n" (String.escaped s);
+                  write_string sock s;
+                with e ->
+                    disconnect_from_server s
+                      (Closed_for_exception e)
+        )
+      in
+      s.server_sock <- ConnectionWaiting token
+  | _ ->()
+      
 let get_file_from_source c file =
   if connection_can_try c.client_connection_control then begin
       connection_try c.client_connection_control;
@@ -510,7 +510,9 @@ Remote-IP: 207.5.238.35
 let disconnect_server s r =
   match s.server_sock with
   | Connection sock -> close sock r
-  | ConnectionWaiting -> s.server_sock <- ConnectionAborted
+  | ConnectionWaiting token -> 
+      cancel_token token;
+      s.server_sock <- NoConnection
   | _ -> ()
     
 let ask_for_files () =

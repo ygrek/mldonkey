@@ -107,7 +107,7 @@ let network_share n s = n.op_network_share s
 let network_recover_temp n = n.op_network_recover_temp ()
 let network_add_server n s = n.op_network_add_server s
 let network_server_of_option n s = n.op_network_server_of_option s
-let network_file_of_option n f = n.op_network_file_of_option f
+let network_file_of_option n f = n.op_network_file_of_option f 
 let network_client_of_option n f = n.op_network_client_of_option f
 
   
@@ -192,14 +192,16 @@ let network_parse_url n url = n.op_network_parse_url url
 let network_info n = n.op_network_info ()
 
 let new_network name flags prefix_option subdir_option = 
+  let manager = TcpBufferedSocket.create_connection_manager () in
   let r =
     {
       network_name = name;
       network_num = network_uid ();
       network_prefix = prefix_option;
-     network_flags = flags;
+      network_flags = flags;
       network_incoming_subdir = subdir_option;
       network_config_file = [];
+      network_connection_manager = manager;
       op_network_connected_servers = (fun _ -> fni name "connected_servers");
       op_network_is_enabled =  (fun _ -> fni name "is_enabled");
       op_network_save_complex_options =  (fun _ -> ni_ok name "save_complex_options");

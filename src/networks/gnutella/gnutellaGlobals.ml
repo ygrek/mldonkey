@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonInteractive
+open Int32ops
 open Queues
 open Printf2
 open Md4
@@ -83,7 +85,9 @@ let network = new_network "Gnutella"
     NetworkHasMultinet;
   ] (fun _ -> !!network_options_prefix)
   (fun _ -> !!commit_in_subdir)
-      
+
+let connection_manager = network.network_connection_manager
+  
 let (result_ops : result CommonResult.result_ops) = 
   CommonResult.new_result_ops network
   
@@ -230,7 +234,7 @@ let new_server ip port =
           server_nkb_last = 0;
           server_vendor = "";
           
-          server_connected = Int32.zero;
+          server_connected = zero;
           server_gnutella2 = false;
           server_query_key = NoUdpSupport;
         } and
@@ -327,9 +331,10 @@ let new_file file_id file_name file_size =
   let file_temp = Filename.concat !!temp_directory 
       (Printf.sprintf "GNUT-%s" (Md4.to_string file_id)) in
   let t = Unix32.create_rw file_temp in
-  let swarmer = Int64Swarmer.create () in
-  let partition = fixed_partition swarmer megabyte in
-    let keywords = get_name_keywords file_name in
+  let swarmer = Int64Swarmer.create file_size megabyte 
+    (Int64.of_int (256 * 1024)) 
+    in
+  let keywords = get_name_keywords file_name in
   let words = String2.unsplit keywords ' ' in
   let rec file = {
       file_file = file_impl;
@@ -338,7 +343,6 @@ let new_file file_id file_name file_size =
       file_clients = [];
       file_uids = [];
       file_swarmer = swarmer;
-      file_partition = partition;
       file_searches = [search];
     } and file_impl =  {
       dummy_file_impl with
@@ -357,7 +361,6 @@ let new_file file_id file_name file_size =
   in
   Hashtbl.add searches_by_uid search.search_uid search;
   lprintf "SET SIZE : %Ld\n" file_size;
-  Int64Swarmer.set_size swarmer file_size;  
   Int64Swarmer.set_writer swarmer (fun offset s pos len ->      
       if !!CommonOptions.buffer_writes then 
         Unix32.buffered_write_copy t offset s pos len
@@ -460,14 +463,15 @@ let add_download file c index =
   lprintf "Adding file to client\n";
   if not (List.memq c file.file_clients) then begin
       let chunks = [ Int64.zero, file_size file ] in
-      let bs = Int64Swarmer.register_uploader file.file_partition chunks in
+      let up = Int64Swarmer.register_uploader file.file_swarmer 
+          (Int64Swarmer.AvailableRanges chunks) in
       c.client_downloads <- c.client_downloads @ [{
           download_file = file;
           download_uri = index;
           download_chunks = chunks;
-          download_blocks = bs;
           download_ranges = [];
           download_block = None;
+          download_uploader = up;
         }];
       file.file_clients <- c :: file.file_clients;
       file_add_source (as_file file.file_file) (as_client c.client_client)
@@ -553,8 +557,8 @@ let disconnect_from_server nservers s r =
       let h = s.server_host in
       (match server_state s with 
           Connected _ ->
-            let connection_time = Int32.to_int (
-                Int32.sub (int32_time ()) s.server_connected) in
+            let connection_time = Int64.to_int (
+                Int64.sub (int64_time ()) s.server_connected) in
             lprintf "DISCONNECT FROM SERVER %s:%d after %d seconds\n" 
               (Ip.to_string h.host_ip) h.host_port
               connection_time

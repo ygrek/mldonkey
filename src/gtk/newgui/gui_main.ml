@@ -41,13 +41,13 @@ let chmod_config () =
   in
   begin
     if Sys.file_exists base_config then
-      Unix.chmod base_config 0o600
+      Printexc2.catch2 "Unix.chmod" Unix.chmod base_config 0o600 
     else
       ()
   end;
   begin
     if Sys.file_exists save_config then
-      Unix.chmod save_config 0o600
+      Printexc2.catch2 "Unix.chmod" Unix.chmod save_config 0o600
     else
       ()
   end

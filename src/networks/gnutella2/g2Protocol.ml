@@ -65,7 +65,7 @@ module QrtReset = struct
     
     let parse s = 
       { table_length = get_int s 0;
-        infinity = get_int8 s 4;
+        infinity = get_uint8 s 4;
       }
     
     let print t = 
@@ -97,10 +97,10 @@ struct gnutella_qrp_patch {
     
     let parse s = 
       {
-        seq_no = get_int8 s 0;
-        seq_size = get_int8 s 1;
-        compressor = get_int8 s 2;
-        entry_bits = get_int8 s 3;
+        seq_no = get_uint8 s 0;
+        seq_size = get_uint8 s 1;
+        compressor = get_uint8 s 2;
+        entry_bits = get_uint8 s 3;
         table = String.sub s 4 (String.length s - 4);
       }
     
@@ -166,52 +166,55 @@ let add_header_fields header sock trailer =
 let handlers info gconn =
   let rec iter_read sock nread =
 (*    lprintf "iter_read %d\n" nread; *)
-    let b = CanBeCompressed.buf gconn.gconn_sock in
-    if b.len > 0 then
-      match gconn.gconn_handler with
-      | HttpHeader h ->
-          let end_pos = b.pos + b.len in
-          let begin_pos =  b.pos in
-          let rec iter i n_read =
-            if i < end_pos then
-              if b.buf.[i] = '\r' then
-                iter (i+1) n_read
-              else
-              if b.buf.[i] = '\n' then
-                if n_read then begin
-                    let header = String.sub b.buf b.pos (i - b.pos) in
+    match gconn.gconn_sock with
+      NoConnection | ConnectionWaiting _ -> ()
+    | Connection sock ->
+        let b = buf sock in
+        if b.len > 0 then
+          match gconn.gconn_handler with
+          | HttpHeader h ->
+              let end_pos = b.pos + b.len in
+              let begin_pos =  b.pos in
+              let rec iter i n_read =
+                if i < end_pos then
+                  if b.buf.[i] = '\r' then
+                    iter (i+1) n_read
+                  else
+                  if b.buf.[i] = '\n' then
+                    if n_read then begin
+                        let header = String.sub b.buf b.pos (i - b.pos) in
 (*                    if info then begin
                         lprintf "HEADER : ";
                         dump header; lprint_newline ();
 end; *)
-                    
-                    (try h gconn sock header with
-                        e -> close sock 
-			(BasicSocket.Closed_for_exception e));
-                    if not (TcpBufferedSocket.closed sock) then begin
-                        let nused = i - b.pos + 1 in
+                        
+                        (try h gconn sock header with
+                            e -> close sock 
+                                (BasicSocket.Closed_for_exception e));
+                        if not (TcpBufferedSocket.closed sock) then begin
+                            let nused = i - b.pos + 1 in
 (*                        lprintf "HEADER: buf_used %d\n" nused; *)
-                        buf_used b nused;
-                        iter_read sock 0
-                      end
-                  end else
-                  iter (i+1) true
-              else
-                iter (i+1) false
-          in
-          iter begin_pos false
-      | Reader h -> 
-          let len = b.len in
-          h gconn sock;
-          if b.len < len then iter_read sock 0
+                            buf_used b nused;
+                            iter_read sock 0
+                          end
+                      end else
+                      iter (i+1) true
+                  else
+                    iter (i+1) false
+              in
+              iter begin_pos false
+          | Reader h -> 
+              let len = b.len in
+              h gconn sock;
+              if b.len < len then iter_read sock 0
   in
   iter_read
-
+  
 
 let set_gnutella_sock conn info ghandler = 
   match conn with
-    ConnectionAborted|ConnectionWaiting|NoConnection -> assert false
-  | Connection sock | CompressedConnection (_,_,_,sock) ->
+    ConnectionWaiting _ |NoConnection -> assert false
+  | Connection sock  ->
   let gconn = {
       gconn_handler = ghandler;
       gconn_refill = [];

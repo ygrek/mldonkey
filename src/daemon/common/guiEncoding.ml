@@ -296,7 +296,7 @@ let buf_file proto buf f =
           let ls = compute_last_seen f.file_last_seen in
           buf_int buf ls;
           if proto >= 12 then begin
-              buf_int32 buf (Int32.of_int f.file_priority)
+              buf_int buf f.file_priority
             end
         end
     end

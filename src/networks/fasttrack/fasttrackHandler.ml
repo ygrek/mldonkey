@@ -51,7 +51,7 @@ let udp_packet_handler ip port msg =
     lprintf "Received UDP packet from %s:%d: \n%s\n" 
       (Ip.to_string ip) port (Print.print msg);*)
   let s = new_server ip port in
-  s.server_connected <- int32_time ()
+  s.server_connected <- int64_time ()
 
 
 let server_msg_handler sock s msg_type m =
@@ -61,7 +61,7 @@ let server_msg_handler sock s msg_type m =
       lprintf "SessMsgNodeList\n";
       set_rtimeout sock half_day;
       set_server_state s (Connected (-1));
-      s.server_connected <- int32_time ();    
+      s.server_connected <- int64_time ();    
       if not (List.memq s !connected_servers) then
         connected_servers := s :: !connected_servers;
       
@@ -110,10 +110,10 @@ let server_msg_handler sock s msg_type m =
         if n > 0 && pos + 32 < len then
           let user_ip = LittleEndian.get_ip m pos in
           let user_port = BigEndian.get_int16 m (pos+4) in
-          let user_bandwidth = get_int8 m (pos+6) in
+          let user_bandwidth = get_uint8 m (pos+6) in
           let pos = pos + 7 in
           let user_name, user_netname, pos =
-            if get_int8 m pos = 2 then
+            if get_uint8 m pos = 2 then
               "unknown", "unknown", pos+1
             else
             let end_name = String.index_from m pos '\001' in

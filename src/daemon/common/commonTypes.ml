@@ -29,6 +29,16 @@ type field_name =
 | Field_Format
 | Field_Type
 | Field_unknown of string
+  
+type file_state =
+  FileDownloading
+| FileQueued
+| FilePaused
+| FileDownloaded
+| FileShared
+| FileCancelled
+| FileNew
+| FileAborted of string
 
 let string_of_field field =
   match field with
@@ -131,15 +141,23 @@ type compressor =
 
 type tcp_connection =
 | NoConnection        (* No current connection *)
-| ConnectionWaiting   (* Waiting for a connection slot to open locally *)
-| ConnectionAborted   (* Abort any waiting connection slot *)
+| ConnectionWaiting of TcpBufferedSocket.token
+    (* Waiting for a connection slot to open locally *)
 | Connection of TcpBufferedSocket.t (* We are connected *)
-| CompressedConnection of
-  compressor *
-  TcpBufferedSocket.buf * (* read buffer after decompression *)
-  TcpBufferedSocket.buf * (* write buffer before decompression *)
-  TcpBufferedSocket.t (* We are connected, with compression *)
 
+type sharing_strategy = {
+    sharing_recursive : bool;
+    sharing_minsize : int64;
+    sharing_maxsize : int64;
+    sharing_extensions : string list;
+  }
+
+type shared_directory = {
+    shdir_dirname : string;
+    shdir_priority : int;
+    shdir_strategy : string;
+    shdir_networks : string list;
+  }
   
 type connection_control = {
     mutable control_last_ok : int;
@@ -233,6 +251,7 @@ type extend_search =
 type network = {
     network_name : string;
     network_num : int;
+    network_connection_manager : TcpBufferedSocket.connection_manager;
     mutable network_flags : network_flag list;
     mutable network_config_file : Options.options_file list;
     mutable network_incoming_subdir: (unit -> string);
@@ -249,7 +268,7 @@ type network = {
     mutable op_network_add_server : 
       (Ip.addr -> int -> server);
     mutable op_network_file_of_option : 
-      bool -> ((string * Options.option_value) list -> file);
+      int64 -> file_state -> ((string * Options.option_value) list -> file);
     mutable op_network_client_of_option : 
       bool -> ((string * Options.option_value) list -> client);
     mutable op_network_recover_temp : (unit -> unit);
@@ -307,18 +326,6 @@ and search = {
 
 exception CommandCloseSocket
   
-  
-type file_state =
-  FileDownloading
-| FileQueued
-| FilePaused
-| FileDownloaded
-| FileShared
-
-| FileCancelled
-| FileNew
-
-| FileAborted of string
   
 let version = 19
   

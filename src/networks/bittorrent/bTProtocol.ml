@@ -277,10 +277,10 @@ let bt_parser opcode m =
   | 1 -> Unchoke
   | 2 -> Interested
   | 3 -> NotInterested
-  | 4 -> Have (get_int64_32 m 0)
+  | 4 -> Have (get_uint64_32 m 0)
   | 5 -> BitField m
-  | 6 -> Request (get_int m 0, get_int64_32 m 4, get_int64_32 m 8)
-  | 7 -> Piece (get_int m 0, get_int64_32 m 4, m, 8, String.length m - 8)
+  | 6 -> Request (get_int m 0, get_uint64_32 m 4, get_uint64_32 m 8)
+  | 7 -> Piece (get_int m 0, get_uint64_32 m 4, m, 8, String.length m - 8)
   | _ -> raise Not_found
   
 let bt_handler parse_fun handler sock =
@@ -403,12 +403,8 @@ With bencoded payload:
 
 let buf = Buffer.create 100
 let send_client c msg =
+    do_if_connected  c.client_sock (fun sock ->
   try
-    match c.client_sock with 
-      NoConnection | ConnectionWaiting | ConnectionAborted -> 
-        failwith "Client is not connected\n"
-(*      lprintf "send_client: not connected\n";        *) 
-    | Connection sock | CompressedConnection (_,_,_,sock) ->
         Buffer.clear buf;
 (*        lprintf "send_client\n";         *)
         begin
@@ -442,7 +438,8 @@ let send_client c msg =
   with e ->
       lprintf "CLIENT : Error %s in send_client\n"
         (Printexc2.to_string e)
-      
+)
+
 let zero8 = String.make 8 '\000'
   
 let send_init file c sock = 

@@ -58,53 +58,25 @@ let _ =
   );
   file_ops.op_file_debug <- (fun file ->
       let buf = Buffer.create 100 in
-      Int64Swarmer.debug_print buf file.file_swarmer;
+(*      Int64Swarmer.debug_print buf file.file_swarmer; *)
       Hashtbl.iter (fun _ c ->
           Printf.bprintf buf "Client %d: %s\n" (client_num c)
           (match c.client_sock with
               NoConnection -> "No Connection"
-            | Connection _ | CompressedConnection _ -> "Connected"
-            | ConnectionWaiting -> "Waiting for Connection"
-            | ConnectionAborted -> "Connection Aborted"
+            | Connection _  -> "Connected"
+            | ConnectionWaiting _ -> "Waiting for Connection"
           )
       ) file.file_clients;
       Buffer.contents buf
   );
   file_ops.op_file_commit <- (fun file new_name ->
-	if not (List.mem (file.file_name, file_size file) !!old_files) then
-	  begin
-	    old_files =:= (file.file_name, file_size file) :: !!old_files;
-	    set_file_state file FileShared;
-	    try Unix32.rename (file_fd file) (new_name) with _ -> ()
-	  end	
-			     )
-(*
-      try
-        if file.file_files <> [] then 
-	  let base_dir_name = if String2.check_suffix new_name ".torrent" then
-            String.sub new_name 0 ((String.length new_name) - 8)
-	  else 
-            new_name ^ ".d" in
-          let bt_fd = Unix32.create_ro new_name in
-          List.iter (fun (filename, begin_pos, end_pos) ->
-              let filename = Filename.concat base_dir_name filename in
-              lprintf "Would save file as %s\n" filename;
-              let dirname = Filename.dirname filename in
-              Unix2.safe_mkdir dirname;
-              lprintf "Copying %Ld %Ld to 0\n"
-                begin_pos (end_pos -- begin_pos);
-              let fd = Unix32.create_rw
-                filename in
-              Unix32.copy_chunk bt_fd fd begin_pos zero 
-                (Int64.to_int (end_pos -- begin_pos));
-              Unix32.close fd
-          ) file.file_files;
-          Unix32.close bt_fd;
-          if !!delete_original then Sys.remove new_name
-      with e ->
-          lprintf "Exception %s while commiting BitTorrent file"
-            (Printexc.to_string e)
-  ) *)
+      if not (List.mem (file.file_name, file_size file) !!old_files) then
+        begin
+          old_files =:= (file.file_name, file_size file) :: !!old_files;
+          set_file_state file FileShared;
+          try Unix32.rename (file_fd file) (new_name) with _ -> ()
+        end	
+  )
   
   
 module P = GuiTypes
@@ -130,9 +102,9 @@ let _ =
         P.file_state = file_state file;
         P.file_sources = None;
         P.file_download_rate = file_download_rate file.file_file;
-        P.file_chunks = Int64Swarmer.verified_bitmap file.file_partition;
+        P.file_chunks = Int64Swarmer.verified_bitmap file.file_swarmer;
         P.file_availability = 
-        [network.network_num,Int64Swarmer.availability file.file_partition];
+        [network.network_num,Int64Swarmer.availability file.file_swarmer];
         P.file_format = FormatNotComputed 0;
         P.file_chunks_age = [|0|];
         P.file_age = file_age file;
@@ -145,35 +117,61 @@ let _ =
 module C = CommonTypes
             
 open Bencode
-
   
 let load_torrent_file filename =
   let s = File.to_string filename in  
+  
+  let download_filename = Filename.concat downloads_directory
+      (Filename.basename filename) in
+  File.from_string download_filename s;
+  
   let file_id, torrent = BTTracker.decode_torrent s in
   let file = new_download file_id torrent.torrent_name 
-    torrent.torrent_length 
-    torrent.torrent_announce torrent.torrent_piece_size 
-    torrent.torrent_files
+      torrent.torrent_length 
+      torrent.torrent_announce torrent.torrent_piece_size 
+      torrent.torrent_files
   in
   file.file_files <- torrent.torrent_files;
   file.file_chunks <- torrent.torrent_pieces;
-  BTClients.connect_tracker file torrent.torrent_announce;
+  BTClients.get_sources_from_tracker file torrent.torrent_announce;
   ()
+
+
+let try_share_file filename =
+  let s = File.to_string filename in  
+  let file_id, torrent = BTTracker.decode_torrent s in
   
-let share_files () =
-  List.iter (fun (filename, shared_file) ->
-      let s = File.to_string filename in  
-      let file_id, torrent = BTTracker.decode_torrent s in
-      let file = new_file file_id torrent.torrent_name 
-          torrent.torrent_length 
-          torrent.torrent_announce torrent.torrent_piece_size 
-          torrent.torrent_files shared_file
-      in
-      file.file_files <- torrent.torrent_files;
-      file.file_chunks <- torrent.torrent_pieces;
-      BTClients.connect_tracker file torrent.torrent_announce;
-  ) !!shared_files  
-  
+  let filename = Filename.concat !!incoming_directory torrent.torrent_name in
+  if Sys.file_exists filename then 
+    let file_u = 
+      if torrent.torrent_files <> [] then
+        Unix32.create_multifile filename
+          [Unix.O_RDWR; Unix.O_CREAT] 0o666 torrent.torrent_files
+      else
+        Unix32.create_rw filename
+    in
+    
+    let file = new_file file_id torrent.torrent_name 
+        torrent.torrent_length 
+        torrent.torrent_announce torrent.torrent_piece_size 
+        torrent.torrent_files filename
+    in
+    file.file_files <- torrent.torrent_files;
+    file.file_chunks <- torrent.torrent_pieces;
+    BTClients.connect_tracker file torrent.torrent_announce "completed" 
+      (fun _ -> ())
+    
+(* Call one minute after start, and then every 20 minutes. Should 
+  automatically contact the tracker. *)    
+let share_files _ =
+  List.iter (fun dir ->
+      let filenames = Unix2.list_directory dir in
+      List.iter (fun file ->
+          let filename = Filename.concat dir file in
+          try_share_file filename
+      ) filenames
+  ) [seeded_directory; tracked_directory]
+    
   
 let _ =
   network.op_network_parse_url <- (fun url ->
@@ -303,10 +301,17 @@ let _ =
         let announce = Printf.sprintf "http://%s:%d/tracker"
           (Ip.to_string (CommonOptions.client_ip None)) !!tracker_port in
 
-        BTTracker.generate_torrent announce
-          (Printf.sprintf "%s.torrent" filename)
-        filename;
+        let basename = Filename.basename filename in
+        let torrent = Filename.concat tracked_directory 
+            (Printf.sprintf "%s.torrent" filename)
+        in
+        BTTracker.generate_torrent announce torrent filename;
+        BTTracker.scan_tracked_directory ();
+        try_share_file filename;
         ".torrent file generated"
-    ), " <filename> : generate the corresponding <filename>.torrent file";
+    ), " <filename> : generate the corresponding <filename>.torrent file
+in torrents/tracked/. The file is automatically tracked, and seeded if
+in incoming/";
         
   ]
+  

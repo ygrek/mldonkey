@@ -19,8 +19,7 @@
 
 (*
 For each file on disk that has to be shared, call
-  network_share file_name codedname file_size
-  
+  network_share file_name codedname file_size  
 *)
 
 open Printf2
@@ -211,10 +210,17 @@ let can_share dirname =
   
 let waiting_directories = ref []
   
-let shared_add_directory dirname prio local_dir =
-  waiting_directories := (dirname, prio, local_dir) :: !waiting_directories
+let shared_add_directory shared_dir local_dir =
+  waiting_directories := (shared_dir, local_dir) :: !waiting_directories
   
-let shared_scan_directory dirname prio local_dir =
+let shared_scan_directory shared_dir local_dir =
+  let dirname = shared_dir.shdir_dirname in
+  let strategy = try
+      List.assoc shared_dir.shdir_strategy 
+        !!CommonComplexOptions.sharing_strategies
+    with _ -> 
+        CommonComplexOptions.sharing_only_directory    
+  in
   let dirname = 
     if Filename.is_relative dirname then
       Filename.concat file_basedir dirname
@@ -230,20 +236,25 @@ let shared_scan_directory dirname prio local_dir =
             let full_name = Filename.concat full_dir file in
             let local_name = Filename.concat local_dir file in
             try
-              if Unix2.is_directory full_name then
-                shared_add_directory dirname prio local_name
+              if Unix2.is_directory full_name then begin
+                  if strategy.sharing_recursive then
+                    shared_add_directory shared_dir local_name
+                end
               else
               try
                 let size = file_size full_name in
-                if size > Int64.zero && ( !!shared_extensions = [] ||
+                if size > strategy.sharing_minsize && 
+                  size < strategy.sharing_maxsize &&
+                  (strategy.sharing_extensions = [] ||
                     List.mem (String.lowercase (
-                        Filename2.last_extension full_name)) !!shared_extensions)
+                        Filename2.last_extension full_name)) 
+                    strategy.sharing_extensions)
                 then
-                  new_shared dirname prio local_name full_name
+                  new_shared dirname shared_dir.shdir_priority
+                    local_name full_name
               with e -> 
-                  lprintf "%s will not be shared (exception %s)"
+                  lprintf "%s will not be shared (exception %s)\n"
                     full_name (Printexc2.to_string e);
-                  lprint_newline ();
             with _ -> ()
       ) files
     with e -> 
@@ -254,27 +265,23 @@ let shared_scan_directory dirname prio local_dir =
     lprintf "Cannot share %s\n" full_dir
 
 let _ = 
-  BasicSocket.add_infinite_timer 0.5 (fun _ ->
+  BasicSocket.add_infinite_timer 1. (fun _ ->
       match !waiting_directories with
         [] -> ()
-      | (dirname, prio, local_dir) :: tail ->
+      | (shared_dir, local_dir) :: tail ->
           waiting_directories := tail;
-          let dirname = 
-            if Filename.is_relative dirname then
-              Filename.concat (Sys.getcwd ()) dirname
-            else dirname 
-          in
-          shared_scan_directory dirname prio local_dir;
+          shared_scan_directory shared_dir local_dir;
           (*
           lprintf "Shared %d files %Ld bytes"
             !files_scanned !files_scanned_size;
           lprint_newline (); *)
   )
     
-let shared_add_directory (dirname, prio) =
-  if dirname <> "" then begin
-      lprintf "SHARING %s PRIO %d" dirname prio; lprint_newline ();
-      shared_add_directory dirname prio ""
+let shared_add_directory shared_dir =
+  if shared_dir.shdir_dirname <> "" then begin
+      lprintf "SHARING %s PRIO %d\n" shared_dir.shdir_dirname
+        shared_dir.shdir_priority;
+      shared_add_directory shared_dir ""
     end
 
 (* TODO: We need to be able to unshare whole directories that still exist ! *)
@@ -286,7 +293,8 @@ let shared_check_files () =
       if not (Unix32.file_exists name) then list := s :: !list
   ) shareds_by_num;
   List.iter (fun s -> shared_unshare s) !list;
-  List.iter (fun s -> shared_add_directory s) !!shared_directories
+  List.iter (fun s -> shared_add_directory s) 
+  !!  CommonComplexOptions.shared_directories
   
 let impl_shared_info impl =
   let module T = GuiTypes in

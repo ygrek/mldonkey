@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonInteractive
 open Printf2
 open Md4
 open CommonOptions
@@ -50,7 +51,9 @@ let network = new_network "Soulseek"
     (fun _ -> !!network_options_prefix)
   (fun _ -> !!commit_in_subdir)
 (*    network_options_prefix commit_in_subdir *)
-      
+  
+let connection_manager = network.network_connection_manager      
+  
 let (result_ops : result CommonResult.result_ops) = 
   CommonResult.new_result_ops network
   
@@ -113,7 +116,7 @@ let new_server addr port=
           server_nusers = 0;
           server_info = "";
           server_connection_control = new_connection_control ();
-          server_sock = None;
+          server_sock = NoConnection;
           server_port = port;
           server_nick = 0;
           server_last_nick = "";
@@ -163,7 +166,7 @@ let new_client name =
       let u = new_user name in
       let rec c = {
           client_client = impl;
-          client_peer_sock = None;
+          client_peer_sock = NoConnection;
           client_downloads = [];
           client_result_socks = [];
           client_name = name;

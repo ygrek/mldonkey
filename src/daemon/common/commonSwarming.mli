@@ -20,67 +20,60 @@
 open CommonTypes
 
 val verbose_swarming : bool ref 
-  
-module type Integer = sig
-    type t
-    val add : t -> t -> t
-    val sub : t -> t -> t
-    val zero : t 
-    val of_int : int -> t
-    val to_int : t -> int
-    val to_string : t -> string
-  end
-  
-      module type Swarmer =
-    sig
-      type pos
-      and t
-      and block
-      and range
-      and partition
-      and multirange
-      val create : unit -> t
-      val set_writer : t -> (pos -> string -> int -> int -> unit) -> unit
-      val set_size : t -> pos -> unit
-      val set_present : t -> (pos * pos) list -> unit
-    val set_absent : t -> (pos * pos) list -> unit
-      val partition : t -> (pos -> pos) -> partition
-      val set_verifier : partition -> (block -> bool) -> unit
-      val verified_bitmap : partition -> string
-      val set_verified_bitmap : partition -> string -> unit
-      val register_uploader : partition -> (pos * pos) list -> block list
-      val unregister_uploader : t -> (pos * pos) list -> block list -> unit
-      val register_uploader_bitmap : partition -> string -> block list
-      val unregister_uploader_bitmap : partition -> string -> unit
-      val get_block : block list -> block
-      val find_range :
-        block -> (pos * pos) list -> range list -> pos -> range
-      val find_range_bitmap : block -> range list -> pos -> range
-      val find_multirange :
-        block -> (pos * pos) list -> multirange list -> pos -> multirange
-      val alloc_multirange : multirange -> unit
-      val free_multirange : multirange -> unit
-      val alloc_range : range -> unit
-      val free_range : range -> unit
-      val received : t -> pos -> string -> int -> int -> unit
-      val sort_chunks : (pos * pos) list -> (pos * pos) list
-      val print_t : string -> t -> unit
-      val print_block : block -> unit
-      val range_range : range -> pos * pos
-      val multirange_range : multirange -> pos * pos
-      val block_block : block -> int * pos * pos
-      val availability : partition -> string
-      val downloaded : t -> pos
-      val present_chunks : t -> (pos * pos) list
-      val partition_size : partition -> int
-      val debug_print : Buffer.t -> t -> unit
-      val compute_bitmap : partition -> unit
-      val is_interesting : partition -> string -> bool	
-  end
-  
-module Make(I: Integer) : Swarmer with type pos = I.t
 
-module Int64Swarmer : Swarmer with type pos = int64
+type strategy =
+  LinearStrategy    (* one after the other one *)
+| AdvancedStrategy  (* first chunks first, rarest chunks second, 
+     complete first third, and random final *)
   
-val fixed_partition : Int64Swarmer.t -> int64 -> Int64Swarmer.partition
-  
+module type Swarmer =
+  sig
+    type t
+    and range
+    and uploader
+    and block
+    
+    type chunks =
+      AvailableRanges of (int64 * int64) list
+(* A bitmap is encoded with '0' for empty, '1' for present *)
+    | AvailableBitmap of string 
+    
+    val create : int64 -> int64 -> int64 -> t
+    val set_writer : t -> (int64 -> string -> int -> int -> unit) -> unit
+    val set_verifier : t -> (int -> int64 -> int64 -> bool) -> unit
+    
+    val set_present : t -> (int64 * int64) list -> unit
+    val set_absent : t -> (int64 * int64) list -> unit
+    
+    val verified_bitmap : t -> string
+    val set_verified_bitmap : t -> string -> unit
+    
+    val register_uploader : t -> chunks -> uploader
+    val update_uploader : uploader -> chunks -> unit
+    val disconnect_uploader : uploader -> unit      
+    
+    val find_block : uploader -> block
+    val find_range : uploader -> range
+    
+    val received : uploader -> int64 -> string -> int -> int -> unit
+    val print_t : string -> t -> unit
+    val range_range : range -> int64 * int64
+    
+    val print_block : block -> unit
+    val block_block : block -> int * int64 * int64 
+    val availability : t -> string
+    val downloaded : t -> int64
+    val present_chunks : t -> (int64 * int64) list
+    val partition_size : t -> int
+    val compute_bitmap : t -> unit
+    val is_interesting : uploader -> bool	
+    val print_uploader : uploader -> unit
+    val print_uploaders : t -> unit    
+    val swarmer_to_value : t ->
+      (string * Options.option_value) list ->
+      (string * Options.option_value) list
+      
+    val value_to_swarmer : t -> (string * Options.option_value) list -> unit
+  end
+
+module Int64Swarmer : Swarmer 

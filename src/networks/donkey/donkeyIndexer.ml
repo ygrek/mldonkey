@@ -113,17 +113,17 @@ let output_value oc h =
 
 let get_tag s pos =
   let name, pos = get_string s pos in
-  let t = get_int8 s pos in
+  let t = get_uint8 s pos in
   let tag, pos =
     if t = 0 then
       let s, pos = get_string s (pos+1) in
       String s, pos
     else 
     if t = 1 then
-      Uint64 (get_int64_32 s (pos+1)), pos + 5
+      Uint64 (get_uint64_32 s (pos+1)), pos + 5
     else
     if t = 2 then
-      Fint64 (get_int64_32 s (pos+1)), pos + 5
+      Fint64 (get_uint64_32 s (pos+1)), pos + 5
     else
     let ip = get_ip s (pos+1) in
     Addr ip, pos + 5
@@ -134,7 +134,7 @@ let input_value ic =
   let s = read_request ic in
   let (names, pos) = get_list get_string s 0 in
   let md4 = get_md4 s pos in
-  let size = get_int64_32 s (pos + 16) in
+  let size = get_uint64_32 s (pos + 16) in
   let pos = pos + 16 + 4 in
   let (tags, pos) = get_list get_tag s pos in
   {

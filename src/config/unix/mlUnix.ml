@@ -96,9 +96,7 @@ let detach_daemon () =
     Unix.close Unix.stdin;
     Unix.close Unix.stdout;
     Unix.close Unix.stderr;
-    (match !Printf2.lprintf_output with
-        Some oc when oc == Pervasives.stdout -> Printf2.lprintf_output := None
-      | _ -> ())
+    Printf2.detach ();
         
   with e ->
       lprintf "Exception %s in detach_daemon\n"

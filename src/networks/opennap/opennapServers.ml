@@ -53,12 +53,11 @@ let end_of_search s =
 let send_search fast s ss msg =
   if not (List.mem_assoc ss s.server_pending_searches) then
     let f ss =
-      match s.server_sock with
-        None -> ()
-      | Some sock -> 
+      do_if_connected s.server_sock (fun sock ->
           lprintf "SENDING SEARCH TO %s\n" s.server_desc; 
           s.server_searches <- Some ss;
           OP.debug_server_send sock (OP.SearchReq msg)
+      )
     in
     match s.server_pending_searches with
       [] ->
@@ -113,9 +112,7 @@ let recover_files () =
   ()
   
 let recover_files_from_server s =
-  match s.server_sock with
-    None -> ()
-  | Some sock -> 
+  do_if_connected  s.server_sock (fun sock ->
       List.iter (fun file ->
           let keywords = 
             match stem file.file_name with 
@@ -129,8 +126,7 @@ let recover_files_from_server s =
               S.artist = Some (String2.unsplit keywords ' ') } in
           send_search false s (Recover_file keywords) t
       ) !current_files;
-      ()
-      
+  )
   
 let new_nick s =
   s.server_nick_num <- s.server_nick_num + 1;
@@ -149,9 +145,7 @@ let get_file_from_source c file =
         connection_try c.client_connection_control;      
 (*        lprintf "Opennap.get_file_from_source not implemented\n";  *)
         List.iter (fun s ->
-            match s.server_sock with
-              None -> ()
-            | Some sock ->
+            do_if_connected s.server_sock (fun sock ->
                 connection_failed c.client_connection_control;      
 
 (* emulate WinMX behavior *)
@@ -169,6 +163,7 @@ let get_file_from_source c file =
                       DR.filename = List.assq file c.client_files;
                     }
                   ));
+            )
         ) c.client_user.user_servers;
         
         end
@@ -226,9 +221,13 @@ let update_source s t =
     *)
 
 let disconnect_server s r =
-      match s.server_sock with
-        None -> ()
-  | Some sock -> 
+  
+  match s.server_sock with
+    NoConnection -> ()
+  | ConnectionWaiting token ->
+      cancel_token token;
+      s.server_sock <- NoConnection
+  | Connection sock -> 
       
       (try close sock r with _ -> ());
       decr nservers;
@@ -236,7 +235,7 @@ let disconnect_server s r =
       (Ip.to_string s.server_ip) s.server_port; 
 *)
       DG.connection_failed (s.server_connection_control);
-      s.server_sock <- None;
+      s.server_sock <- NoConnection;
       set_server_state s (NotConnected (r, -1));
       connected_servers := List2.removeq s !connected_servers
 
@@ -418,43 +417,49 @@ try_nick s sock;
       OpennapProtocol.print t
       
 let connect_server s =
-  if DG.can_open_connection () then
-    try
+  if can_open_connection connection_manager then
+    let token =
+      add_pending_connection connection_manager (fun token ->
+          s.server_sock <- NoConnection;
+          try
 (*      lprintf "CONNECTING ONE SERVER\n"; *)
-      DG.connection_try s.server_connection_control;
-      incr nservers;
-      DG.printf_char 's'; 
-      let sock = TcpBufferedSocket.connect "opennap to server" 
-          (Ip.to_inet_addr s.server_ip) s.server_port 
-          (server_handler s) (* Mftp_comm.server_msg_to_string*)  in
-      set_server_state s Connecting;
-      set_read_controler sock DG.download_control;
-      set_write_controler sock DG.upload_control;
-      
-      set_reader sock (OpennapProtocol.opennap_handler (client_to_server s));
-      set_rtimeout sock !!server_connection_timeout;
-      set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
-          close s Closed_for_timeout
-      );
-      s.server_nick_num <- 0;
-      s.server_searches <- None;
-      s.server_pending_searches <- [];
-      s.server_browse_queue <- [];
-      try_nick s sock;  
+            DG.connection_try s.server_connection_control;
+            incr nservers;
+            DG.printf_char 's'; 
+            let sock = TcpBufferedSocket.connect token "opennap to server" 
+                (Ip.to_inet_addr s.server_ip) s.server_port 
+                (server_handler s) (* Mftp_comm.server_msg_to_string*)  in
+            set_server_state s Connecting;
+            set_read_controler sock DG.download_control;
+            set_write_controler sock DG.upload_control;
+            
+            set_reader sock (OpennapProtocol.opennap_handler (client_to_server s));
+            set_rtimeout sock !!server_connection_timeout;
+            set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
+                close s Closed_for_timeout
+            );
+            s.server_nick_num <- 0;
+            s.server_searches <- None;
+            s.server_pending_searches <- [];
+            s.server_browse_queue <- [];
+            try_nick s sock;  
 (*      try_login_on_server s sock; *)
-      s.server_sock <- Some sock;
-    with e -> 
-        lprintf "%s:%d IMMEDIAT DISCONNECT %s"
-          (Ip.to_string s.server_ip) s.server_port
-          (Printexc2.to_string e); 
+            s.server_sock <- Connection sock;
+          with e -> 
+              lprintf "%s:%d IMMEDIAT DISCONNECT %s"
+                (Ip.to_string s.server_ip) s.server_port
+                (Printexc2.to_string e); 
 (*      lprintf "DISCONNECTED IMMEDIATLY\n"; *)
-        decr nservers;
-        s.server_sock <- None;
-        set_server_state s (NotConnected (Closed_connect_failed, -1));
-        DG.connection_failed s.server_connection_control
-        
+              decr nservers;
+              s.server_sock <- NoConnection;
+              set_server_state s (NotConnected (Closed_connect_failed, -1));
+              DG.connection_failed s.server_connection_control
+      )
+    in
+    s.server_sock <- ConnectionWaiting token
+    
 let rec connect_one_server () =
-  if DG.can_open_connection () then
+  if can_open_connection connection_manager then
     match !servers_list with
       [] ->
         servers_list := !current_servers;
@@ -465,9 +470,8 @@ let rec connect_one_server () =
         if DG.connection_can_try s.server_connection_control then
           begin
             match s.server_sock with
-              Some _ -> ()
-            | None -> 
-                connect_server s
+              NoConnection -> connect_server s
+            | _ -> ()
           end
 
   

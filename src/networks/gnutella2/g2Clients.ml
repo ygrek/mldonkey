@@ -26,7 +26,8 @@ How shareaza knows the correspondances between URNs:
 ascii: [ H T T P / 1 . 1   5 0 3   B u s y(10)(10) S e r v e r :   S h a r e a z a   1 . 8 . 8 . 0(10)(10) R e m o t e - I P :   8 1 . 1 0 0 . 8 6 . 1 4 3(10)(10) C o n n e c t i o n :   K e e p - A l i v e(10)(10) A c c e p t - R a n g e s :   b y t e s(10)(10) X - P e r H o s t :   2(10)(10) X - N i c k :   B i l l o u t 6 6 6(10)(10) X - C o n t e n t - U R N :   u r n : b i t p r i n t : U K 4 B I K S O X 5 D 3 N C W 3 5 G Y A L U H A T U 5 4 C D I V . E T U 4 3 V C R 3 T N K V Z R M 3 U N S K 5 G T B 5 H X A V M F U W W C Z Y Y(10)(10) X - C o n t e n t - U R N :   e d 2 k : 9 a 9 4 c 7 8 9 5 8 9 7 f f a 5 d 7 c f e 5 8 0 b e a 9 7 2 8 6(10)(10) X - T i g e r T r e e - P a t h :   / g n u t e l l a / t i g e r t r e e / v 3 ? u r n : t r e e : t i g e r / : E T U 4 3 V C R 3 T N K V Z R M 3 U N S K 5 G T B 5 H X A V M F U W W C Z Y Y(10)(10) X - T h e x - U R I :   / g n u t e l l a / t h e x / v 1 ? u r n : t r e e : t i g e r / : E T U 4 3 V C R 3 T N K V Z R M 3 U N S K 5 G T B 5 H X A V M F U W W C Z Y Y & d e p t h = 9 & e d 2 k = 0(10)(10) C o n t e n t - T y p e :   t e x t / h t m l(10)(10) C o n t e n t - L e n g t h :   2 1 2 5(10)(10)(10)]
 
 *)
-  
+
+open Int32ops
 open CommonShared
 open CommonUploads
 open Printf2
@@ -56,19 +57,27 @@ let http11_ok = "HTTP/1.1 200 OK"
   
 let disconnect_client c r =
   match c.client_sock with
-  | Connection sock | CompressedConnection (_,_,_,sock) -> 
+  | Connection sock ->
       (try
         if !verbose_msg_clients then begin
             lprintf "Disconnected from source\n"; 
           end;
         c.client_requests <- [];
-        connection_failed c.client_connection_control;
+          connection_failed c.client_connection_control;
+          List.iter (fun d ->
+              Int64Swarmer.disconnect_uploader d.download_uploader;
+          ) c.client_downloads;
+          c.client_downloads <- [];
+
         set_client_disconnected c r;
         close sock r;
         c.client_sock <- NoConnection
       with e -> 
           lprintf "Exception %s in disconnect_client\n"
-            (Printexc2.to_string e))
+              (Printexc2.to_string e))
+  | ConnectionWaiting token ->
+      cancel_token token;
+      c.client_sock <- NoConnection
   | _ -> ()
 
 let download_finished file = 
@@ -85,9 +94,6 @@ let check_finished file =
   if file_state file <> FileDownloaded &&
     (file_size file = Int64Swarmer.downloaded file.file_swarmer) then
     download_finished file
-   
-let (++) = Int64.add
-let (--) = Int64.sub
   
 (*
 let client_to_client s p sock =
@@ -328,13 +334,9 @@ end_pos !counter_pos b.len to_read;
           (String.escaped (String.sub b.buf b.pos to_read_int)); *)
         let old_downloaded = 
           Int64Swarmer.downloaded file.file_swarmer in
-        List.iter (fun (_,_,r) -> Int64Swarmer.free_range r) 
-        d.download_ranges;
         
-        Int64Swarmer.received file.file_swarmer
+        Int64Swarmer.received d.download_uploader
           !counter_pos b.buf b.pos to_read_int;
-        List.iter (fun (_,_,r) ->
-            Int64Swarmer.alloc_range r) d.download_ranges;
         let new_downloaded = 
           Int64Swarmer.downloaded file.file_swarmer in
         
@@ -370,7 +372,6 @@ lprintf "READ: buf_used %d\n" to_read_int;
                 lprintf "Ready for next chunk (version %s)\nHEADER:%s\n" http
                   (String.escaped header);
                 *)
-                Int64Swarmer.free_range r;
                 d.download_ranges <- tail;
                 gconn.gconn_handler <- HttpHeader
                   (client_parse_header c);
@@ -438,7 +439,7 @@ and get_from_client sock (c: client) =
 (*              let (x,y) = Int64Swarmer.range_range r               in *)
               lprintf "%Ld-%Ld " x y) d.download_ranges;
           lprintf "\n  Current blocks: ";
-          List.iter (fun b -> Int64Swarmer.print_block b) d.download_blocks;
+(*          List.iter (fun b -> Int64Swarmer.print_block b) d.download_blocks; *)
           lprintf "\n\nFinding Range: \n";
         end;
       let range = 
@@ -448,10 +449,10 @@ and get_from_client sock (c: client) =
               None -> 
                 if !verbose_swarming then
                   lprintf "No block\n";
-                let b = Int64Swarmer.get_block d.download_blocks in
-                if !verbose_swarming then begin
+                let b = Int64Swarmer.find_block d.download_uploader in
+(*                if !verbose_swarming then begin
                     lprintf "Block Found: "; Int64Swarmer.print_block b;
-                  end;
+                  end; *)
                 d.download_block <- Some b;
                 iter ()
             | Some b ->
@@ -459,18 +460,15 @@ and get_from_client sock (c: client) =
                     lprintf "Current Block: "; Int64Swarmer.print_block b;
                   end;
                 try
-                  let r = Int64Swarmer.find_range b 
-                      d.download_chunks (List.map 
-                        (fun (_,_,r) -> r)d.download_ranges)
-                    (Int64.of_int (256 * 1024)) in
+                  let r = Int64Swarmer.find_range d.download_uploader in
                   let (x,y) = Int64Swarmer.range_range r in 
                   d.download_ranges <- d.download_ranges @ [x,y,r];
-                  Int64Swarmer.alloc_range r;
+(*                  Int64Swarmer.alloc_range r;*)
                   Printf.sprintf "%Ld-%Ld" x (y -- Int64.one)
                 with Not_found ->
                     if !verbose_swarming then 
                       lprintf "Could not find range in current block\n";
-                    d.download_blocks <- List2.removeq b d.download_blocks;
+(*                  d.download_blocks <- List2.removeq b d.download_blocks; *)
                     d.download_block <- None;
                     iter ()
           in
@@ -505,85 +503,80 @@ and get_from_client sock (c: client) =
       
 let connect_client c =
   match c.client_sock with
-  | Connection _ | CompressedConnection _ -> ()
-  | ConnectionWaiting -> ()
-  | ConnectionAborted -> c.client_sock <- ConnectionWaiting;
   | NoConnection ->
-      add_pending_connection (fun _ ->
-          match c.client_sock with
-            ConnectionAborted -> c.client_sock <- NoConnection
-          | Connection _ | NoConnection | CompressedConnection _ -> ()
-          | _ ->
-          try
-          if !verbose_msg_clients then begin
-              lprintf "connect_client\n";
-            end;
-            match c.client_user.user_kind with
-              Indirect_location _ -> ()
-            | Known_location (ip, port) ->
+      let token = 
+      add_pending_connection connection_manager (fun token ->
+              try
                 if !verbose_msg_clients then begin
-                    lprintf "connecting %s:%d\n" (Ip.to_string ip) port; 
+                    lprintf "connect_client\n";
                   end;
-                let sock = connect "gnutella download" 
-                    (Ip.to_inet_addr ip) port
-                    (fun sock event ->
-                      match event with
-                        BASIC_EVENT (RTIMEOUT|LTIMEOUT) ->
-                          disconnect_client c Closed_for_timeout
-                      | BASIC_EVENT (CLOSED s) ->
-                          disconnect_client c s
-                      | _ -> ()
-                  )
-                in
-                TcpBufferedSocket.set_read_controler sock download_control;
-                TcpBufferedSocket.set_write_controler sock upload_control;
-                
-                c.client_host <- Some (ip, port);
-                set_client_state c Connecting;
-                c.client_sock <- Connection sock;
-                TcpBufferedSocket.set_closer sock (fun _ s ->
-                    disconnect_client c s
-                );
-                set_rtimeout sock 30.;
-                match c.client_downloads with
-                  [] -> 
+                match c.client_user.user_kind with
+                  Indirect_location _ -> ()
+                | Known_location (ip, port) ->
+                    if !verbose_msg_clients then begin
+                        lprintf "connecting %s:%d\n" (Ip.to_string ip) port; 
+                      end;
+                    let sock = connect token "gnutella download" 
+                        (Ip.to_inet_addr ip) port
+                        (fun sock event ->
+                          match event with
+                            BASIC_EVENT (RTIMEOUT|LTIMEOUT) ->
+                              disconnect_client c Closed_for_timeout
+                          | BASIC_EVENT (CLOSED s) ->
+                              disconnect_client c s
+                          | _ -> ()
+                      )
+                    in
+                    TcpBufferedSocket.set_read_controler sock download_control;
+                    TcpBufferedSocket.set_write_controler sock upload_control;
+                    
+                    c.client_host <- Some (ip, port);
+                    set_client_state c Connecting;
+                    c.client_sock <- Connection sock;
+                    TcpBufferedSocket.set_closer sock (fun _ s ->
+                        disconnect_client c s
+                    );
+                    set_rtimeout sock 30.;
+                    match c.client_downloads with
+                      [] -> 
 (* Here, we should probably browse the client or reply to
 an upload request *)
-                    
-                    if !verbose_msg_clients then begin
-                        lprintf "NOTHING TO DOWNLOAD FROM CLIENT\n";
-                      end;
-                    if client_browsed_tag land client_type c = 0 then
-                      disconnect_client c (Closed_for_error "Nothing to download");
-                    set_gnutella_sock (Connection sock) !verbose_msg_clients
-                      (HttpHeader (friend_parse_header c));
-                    let s = add_header_fields 
-                        "GNUTELLA CONNECT/0.6\r\n" sock 
-                        (Printf.sprintf "Remote-IP: %s\r\n\r\n" (Ip.to_string ip))
-                    in
+                        
+                        if !verbose_msg_clients then begin
+                            lprintf "NOTHING TO DOWNLOAD FROM CLIENT\n";
+                          end;
+                        if client_browsed_tag land client_type c = 0 then
+                          disconnect_client c (Closed_for_error "Nothing to download");
+                        set_gnutella_sock (Connection sock) !verbose_msg_clients
+                          (HttpHeader (friend_parse_header c));
+                        let s = add_header_fields 
+                            "GNUTELLA CONNECT/0.6\r\n" sock 
+                            (Printf.sprintf "Remote-IP: %s\r\n\r\n" (Ip.to_string ip))
+                        in
 (*
         lprintf "SENDING\n";
         AP.dump s;
   *)
-                    write_string sock s;
-                
-                
-                | d :: _ ->
-                    if !verbose_msg_clients then begin
-                        lprintf "READY TO DOWNLOAD FILE\n";
-                      end;
+                        write_string sock s;
                     
-                    get_from_client sock c;
-                    set_gnutella_sock (Connection sock) !verbose_msg_clients
-                      (HttpHeader (client_parse_header c))
-          
-          with e ->
-              lprintf "Exception %s while connecting to client\n" 
-                (Printexc2.to_string e);
-              disconnect_client c (Closed_for_exception e)
+                    
+                    | d :: _ ->
+                        if !verbose_msg_clients then begin
+                            lprintf "READY TO DOWNLOAD FILE\n";
+                          end;
+                        
+                        get_from_client sock c;
+                        set_gnutella_sock (Connection sock) !verbose_msg_clients
+                          (HttpHeader (client_parse_header c))
+              
+              with e ->
+                  lprintf "Exception %s while connecting to client\n" 
+                    (Printexc2.to_string e);
+                  disconnect_client c (Closed_for_exception e)
       );
-      c.client_sock <- ConnectionWaiting
-
+in
+c.client_sock <- ConnectionWaiting token
+  | _ -> ()
 (*
   
 1022569854.519 24.102.10.39:3600 -> 212.198.235.45:51736 of len 82
@@ -634,7 +627,7 @@ let push_handler cc gconn sock header =
         in
         c.client_host <- Some (ip, port);
         match c.client_sock with
-        | Connection _ | CompressedConnection _ -> 
+        | Connection _  -> 
             if !verbose_msg_clients then begin
                 lprintf "ALREADY CONNECTED\n"; 
               end;
@@ -799,9 +792,7 @@ BUG:
 
             uc.uc_chunk_pos <- uc.uc_chunk_pos ++ (Int64.of_int rlen);
             if remaining_to_write sock = 0 then refill conn
-          | CompressedConnection _ ->
-              lprintf "refill CompressedConnection not implemented\n";
-              assert false
+
           | _ -> assert false
         in
         gconn.gconn_refill <- refill :: gconn.gconn_refill;
@@ -851,7 +842,8 @@ let listen () =
               ; 
               
               lprintf "*********** CONNECTION ***********\n";
-              let sock = TcpBufferedSocket.create
+              let token = create_token connection_manager in
+              let sock = TcpBufferedSocket.create token
                   "gnutella client connection" s 
                   (fun sock event -> 
                     match event with
@@ -880,30 +872,32 @@ let listen () =
         (Printexc2.to_string e)
       
 let push_connection guid index ip port =
-  let sh = CommonUploads.find_by_num index in
-  let sock = connect "gnutella download" 
-      (Ip.to_inet_addr ip) port
-      (fun sock event -> 
-        match event with
-          BASIC_EVENT (RTIMEOUT|LTIMEOUT) -> close sock Closed_for_timeout
-        | _ -> ()
-    )
-  in
-  lprintf "CONNECTION PUSHED TO %s\n" (Ip.to_string ip); 
+  add_pending_connection connection_manager (fun token ->
+      let sh = CommonUploads.find_by_num index in
+      let sock = connect token "gnutella download" 
+          (Ip.to_inet_addr ip) port
+          (fun sock event -> 
+            match event with
+              BASIC_EVENT (RTIMEOUT|LTIMEOUT) -> close sock Closed_for_timeout
+            | _ -> ()
+        )
+      in
+      lprintf "CONNECTION PUSHED TO %s\n" (Ip.to_string ip); 
+      
+      TcpBufferedSocket.set_read_controler sock download_control;
+      TcpBufferedSocket.set_write_controler sock upload_control;
+      
+      let c = ref None in
+      TcpBufferedSocket.set_closer sock (fun _ s ->
+          match !c with
+            Some c ->  disconnect_client c s
+          | None -> ()
+      );
+      BasicSocket.set_rtimeout (TcpBufferedSocket.sock sock) 30.;
+      set_gnutella_sock (Connection sock) !verbose_msg_clients
+        (HttpHeader (push_handler c));
+      write_string sock 
+        (Printf.sprintf "GIV %d:%s/%s\n\n" 
+          index (Md4.to_string guid) sh.shared_codedname)
   
-  TcpBufferedSocket.set_read_controler sock download_control;
-  TcpBufferedSocket.set_write_controler sock upload_control;
-  
-  let c = ref None in
-  TcpBufferedSocket.set_closer sock (fun _ s ->
-      match !c with
-        Some c ->  disconnect_client c s
-      | None -> ()
-  );
-  BasicSocket.set_rtimeout (TcpBufferedSocket.sock sock) 30.;
-  set_gnutella_sock (Connection sock) !verbose_msg_clients
-    (HttpHeader (push_handler c));
-  write_string sock 
-    (Printf.sprintf "GIV %d:%s/%s\n\n" 
-      index (Md4.to_string guid) sh.shared_codedname)
-    
+  )

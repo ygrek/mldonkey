@@ -25,13 +25,13 @@ module G = Gui_global
 
 open GuiProto
 
-let ko = Int32.of_int 1024
+let ko = Int64.of_int 1024
   
 let unit_of_string s =
   match String.lowercase s with
-    "mo" -> Int32.mul ko ko
+    "mo" -> Int64.mul ko ko
   | "ko" -> ko
-  | _ -> Int32.one
+  | _ -> Int64.one
 
 let ko = 1024.0
 let mo = ko *. ko
@@ -149,7 +149,7 @@ let description_of_query q =
 (** To pretty-print a file size (int32) *)
 let size_of_int32 size =
   if !!Gui_options.use_size_suffixes then
-    let f = Int32.to_float size in
+    let f = Int64.to_float size in
     if f > go then
       Printf.sprintf "%.2fG" (f /. go)
     else
@@ -159,9 +159,9 @@ let size_of_int32 size =
 	if f > ko then
 	  Printf.sprintf "%.1fk" (f /. ko)
 	else
-	  Int32.to_string size
+	  Int64.to_string size
   else
-    Int32.to_string size
+    Int64.to_string size
 
 (** To pretty-print a file size (int64) *)
 let size_of_int64 size =

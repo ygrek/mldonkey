@@ -36,7 +36,9 @@ open CommonNetwork
   
 let network = new_network "OpenFT"  
     network_options_prefix commit_in_subdir
-      
+
+let connection_manager = network.network_connection_manager
+  
 let (result_ops : result CommonResult.result_ops) = 
   CommonResult.new_result_ops network
   

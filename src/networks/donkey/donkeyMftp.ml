@@ -25,18 +25,17 @@ open LittleEndian
 open Int32ops
 open TcpBufferedSocket
 
-      
-let const_int32_255 = Int32.of_int 255
+let const_int32_255 = Int64.of_int 255
 let output_int32_8 oc i =
-  output_char oc (char_of_int (Int32.to_int (
-        Int32.logand i const_int32_255)))
+  output_char oc (char_of_int (Int64.to_int (
+        Int64.logand i const_int32_255)))
 
 let output_int32_32 oc i =
   output_int32_8 oc i;
-  output_int32_8 oc (right32 i  8);
-  output_int32_8 oc (right32 i  16);
-  output_int32_8 oc (right32 i  24)
-
+  output_int32_8 oc (right64 i  8);
+  output_int32_8 oc (right64 i  16);
+  output_int32_8 oc (right64 i  24)
+  
 let output_int8 oc i =
   output_char oc (char_of_int (i land 255))
   
@@ -102,20 +101,20 @@ let rec buf_tags buf tags names_of_tag =
   iter_tags tags
   
 let read_uint8 ic =
-  Int32.of_int (int_of_char (input_char ic))
+  Int64.of_int (int_of_char (input_char ic))
   
-let read_uint32 ic =
+let read_uint64_32 ic =
   let a0 = read_uint8 ic in
   let a1 = read_uint8 ic in
   let a2 = read_uint8 ic in
   let a3 = read_uint8 ic in
-  a0 +. (left32 a1  8) +. (left32 a2 16) +. (left32 a3 24) 
+  a0 ++ (left64 a1  8) ++ (left64 a2 16) ++ (left64 a3 24) 
 
 let read_request ic =
   let c = int_of_char (input_char ic) in
   assert (c = 227);
-  let len32 = read_uint32 ic in
-  let len = Int32.to_int len32 in
+  let len32 = read_uint64_32 ic in
+  let len = Int64.to_int len32 in
   let s = String.create len in
   really_input ic s 0 len;
   (*
@@ -140,15 +139,15 @@ let get_port s pos =
 let get_string = get_string16
   
 let get_tag s pos names_of_tag =
-  let t = get_int8 s pos in
+  let t = get_uint8 s pos in
   let name, pos2 = get_string s (pos+1) in
 (*  lprintf "tag name = %s" (String.escaped name);   *)
   let v, pos = match t with
     | 2 -> let v, pos = get_string s pos2 in
         String v, pos
-    | 1|3 -> let v = get_int64_32 s pos2 in
+    | 1|3 -> let v = get_uint64_32 s pos2 in
         Uint64 v, pos2+4
-    | 4 -> let v = get_int64_32 s pos2 in
+    | 4 -> let v = get_uint64_32 s pos2 in
         Fint64 v, pos2+4
     | _ -> 
         lprintf "get_tags: unknown tag %d at pos %d\n" t pos;

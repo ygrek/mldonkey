@@ -17,16 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-(*
-Two solutions:
-1) Limit the number of connection attempts: if we have 10 ranges to download,
-only allow 10 concurrent connections, so that we will download each
-range only from one client
-2) Don't ask for the range immediatly, wait for the connection to be
-accepted (using the refill function of the socket ?), and check which range
-to ask at that point.
-*)
-
+open Int32ops
 open Queues
 open Printf2
 open Md4
@@ -84,11 +75,13 @@ let disconnect_client c r =
           if c.client_reconnect then
             List.iter (fun d ->
                 let file = d.download_file in
+              Int64Swarmer.disconnect_uploader d.download_uploader;
                 if not (List.memq file c.client_in_queues) then begin
                     Queue.put file.file_clients_queue (0,c);
                     c.client_in_queues <- file :: c.client_in_queues
                   end;
             ) c.client_downloads;
+          c.client_downloads <- [];
           match c.client_connected_for with
             None -> ()
           | Some file -> 
@@ -116,9 +109,10 @@ let download_finished file =
 
 let check_finished file =
   if file_state file <> FileDownloaded &&
-    (file_size file = Int64Swarmer.downloaded file.file_swarmer) then
-    download_finished file
-   
+    (file_size file = Int64Swarmer.downloaded file.file_swarmer) then begin
+      download_finished file
+    end
+    
 let rec client_parse_header c gconn sock header = 
   if !verbose_msg_clients then begin
       lprintf "CLIENT PARSE HEADER\n"; 
@@ -291,20 +285,20 @@ end_pos !counter_pos b.len to_read;
           (String.escaped (String.sub b.buf b.pos to_read_int)); *)
         let old_downloaded = 
           Int64Swarmer.downloaded file.file_swarmer in
-        List.iter (fun (_,_,r) -> Int64Swarmer.free_range r) 
-        d.download_ranges;
+(*        List.iter (fun (_,_,r) -> Int64Swarmer.free_range r)  
+        d.download_ranges; *)
 
         begin
           try
-            Int64Swarmer.received file.file_swarmer
+            Int64Swarmer.received d.download_uploader
               !counter_pos b.buf b.pos to_read_int;
           with e -> 
               lprintf "FT: Exception %s in Int64Swarmer.received\n"
                 (Printexc2.to_string e)
         end;
           c.client_reconnect <- true;
-          List.iter (fun (_,_,r) ->
-              Int64Swarmer.alloc_range r) d.download_ranges;
+(*          List.iter (fun (_,_,r) ->
+              Int64Swarmer.alloc_range r) d.download_ranges; *)
         let new_downloaded = 
           Int64Swarmer.downloaded file.file_swarmer in
         
@@ -340,7 +334,7 @@ lprintf "READ: buf_used %d\n" to_read_int;
                 lprintf "Ready for next chunk (version %s)\nHEADER:%s\n" http
                   (String.escaped header);
                 *)
-                Int64Swarmer.free_range r;
+(*                Int64Swarmer.free_range r; *)
                 d.download_ranges <- tail;
                 (* If we have no more range to receive, disconnect *)
                 if d.download_ranges = [] then raise Exit;
@@ -380,7 +374,7 @@ and get_from_client sock (c: client) =
 (*              let (x,y) = Int64Swarmer.range_range r               in *)
                     lprintf "%Ld-%Ld " x y) d.download_ranges;
                 lprintf "\n  Current blocks: ";
-                List.iter (fun b -> Int64Swarmer.print_block b) d.download_blocks;
+(*                List.iter (fun b -> Int64Swarmer.print_block b) d.download_blocks; *)
                 lprintf "\n\nFinding Range: \n";
               end;
             let range = 
@@ -388,9 +382,12 @@ and get_from_client sock (c: client) =
                 let rec iter () =
                   match d.download_block with
                     None -> 
-                      if !verbose_swarming then
-                        lprintf "No block\n";
-                      let b = Int64Swarmer.get_block d.download_blocks in
+                      if !verbose_swarming then lprintf "No block\n";
+                      let b = Int64Swarmer.find_block d.download_uploader in
+                      
+                      lprintf "GOT BLOCK:\n";
+                      Int64Swarmer.print_uploaders file.file_swarmer;
+                      
                       if !verbose_swarming then begin
                           lprintf "Block Found: "; Int64Swarmer.print_block b;
                         end;
@@ -401,18 +398,19 @@ and get_from_client sock (c: client) =
                           lprintf "Current Block: "; Int64Swarmer.print_block b;
                         end;
                       try
-                        let r = Int64Swarmer.find_range b 
-                            d.download_chunks (List.map 
-                              (fun (_,_,r) -> r)d.download_ranges)
-                          (range_size file) in
+                        let r = Int64Swarmer.find_range d.download_uploader in
+                        
+                        lprintf "GOT RANGE:\n";
+                        Int64Swarmer.print_uploaders file.file_swarmer;
+                        
                         let (x,y) = Int64Swarmer.range_range r in 
                         d.download_ranges <- d.download_ranges @ [x,y,r];
-                        Int64Swarmer.alloc_range r;
+(*                        Int64Swarmer.alloc_range r; *)
                         Printf.sprintf "%Ld-%Ld" x (y -- Int64.one)
                       with Not_found ->
                           if !verbose_swarming then 
                             lprintf "Could not find range in current block\n";
-                          d.download_blocks <- List2.removeq b d.download_blocks;
+(*                          d.download_blocks <- List2.removeq b d.download_blocks; *)
                           d.download_block <- None;
                           iter ()
                 in
@@ -447,7 +445,11 @@ and get_from_client sock (c: client) =
             Printf.bprintf buf "\r\n";
             let s = Buffer.contents buf in
             if !verbose_msg_clients then
-              lprintf "SENDING REQUEST: %s\n" (String.escaped s);
+              lprintf "SENDING REQUEST to %s: %s\n" 
+                (match c.client_host with
+                  None -> "(??)"
+                | Some (ip,port) -> Ip.to_string ip)
+              (String.escaped s);
             write_string sock s;
             c.client_requests <- c.client_requests @ [d];
             if !verbose_msg_clients then 
@@ -464,11 +466,8 @@ let init_client sock =
   
 let connect_client c =
   match c.client_sock with
-  | Connection sock | CompressedConnection (_,_,_,sock) -> ()
-  | ConnectionWaiting -> ()
-  | ConnectionAborted -> c.client_sock <- ConnectionWaiting;
-  | NoConnection ->
-      
+    NoConnection ->
+
 (* Count this connection in the first file counter. Here, we assume
 that the connection will not be aborted (otherwise, disconnect_client
   should clearly be called). *)
@@ -479,7 +478,7 @@ that the connection will not be aborted (otherwise, disconnect_client
                   c.client_connected_for <- Some file;
                   file.file_nconnected_clients <- 
                     file.file_nconnected_clients + 1;
-                  (*
+(*
                   lprintf "For file %s, %d/%d clients connected (connecting %d)\n"
                     (file.file_name)
                   file.file_nconnected_clients (nranges file) 
@@ -487,67 +486,64 @@ that the connection will not be aborted (otherwise, disconnect_client
                   raise Exit;
                 end
           ) c.client_downloads with _ -> ());
-      
-      add_pending_connection (fun _ ->
-            match c.client_sock with
-              ConnectionAborted -> c.client_sock <- NoConnection
-            | Connection _ | NoConnection -> ()
-            | _ ->
-                if List.exists (fun d ->
-                      let file = d.download_file in
-                      file_state file = FileDownloading 
-                  ) c.client_downloads 
-                then
-                  try
+      let token =     
+        add_pending_connection connection_manager (fun token ->
+            if List.exists (fun d ->
+                  let file = d.download_file in
+                  file_state file = FileDownloading 
+              ) c.client_downloads 
+            then
+              try
+                if !verbose_msg_clients then begin
+                    lprintf "connect_client\n";
+                  end;
+                match c.client_user.user_kind with
+                  Indirect_location _ -> ()
+                | Known_location (ip, port) ->
                     if !verbose_msg_clients then begin
-                        lprintf "connect_client\n";
+                        lprintf "connecting %s:%d\n" (Ip.to_string ip) port; 
                       end;
-                    match c.client_user.user_kind with
-                      Indirect_location _ -> ()
-                    | Known_location (ip, port) ->
-                        if !verbose_msg_clients then begin
-                            lprintf "connecting %s:%d\n" (Ip.to_string ip) port; 
-                          end;
-                        c.client_reconnect <- false;
-                        let sock = connect "gnutella download" 
-                            (Ip.to_inet_addr ip) port
-                            (fun sock event ->
-                              match event with
-                                BASIC_EVENT (RTIMEOUT|LTIMEOUT) ->
-                                  disconnect_client c Closed_for_timeout
-                              | BASIC_EVENT (CLOSED s) ->
-                                  disconnect_client c s
+                    c.client_reconnect <- false;
+                    let sock = connect token "fasttrack download" 
+                        (Ip.to_inet_addr ip) port
+                        (fun sock event ->
+                          match event with
+                            BASIC_EVENT (RTIMEOUT|LTIMEOUT) ->
+                              disconnect_client c Closed_for_timeout
+                          | BASIC_EVENT (CLOSED s) ->
+                              disconnect_client c s
 
 (* You can only use the CONNECTED signal if the socket is not yet controlled
   by the bandwidth manager... *)
-                              
-                              | CONNECTED ->
+                          
+                          | CONNECTED ->
 (*           lprintf "CONNECTED !!! Asking for range...\n"; *)
-                                  init_client sock;                
-                                  get_from_client sock c
-                              | _ -> ()
-                          )
-                        in
-                        c.client_host <- Some (ip, port);
-                        set_client_state c Connecting;
-                        c.client_sock <- Connection sock;
-                        TcpBufferedSocket.set_closer sock (fun _ s ->
-                            disconnect_client c s
-                        );
-                        set_rtimeout sock 30.;
-                        if !verbose_msg_clients then begin
-                            lprintf "READY TO DOWNLOAD FILE\n";
-                          end;
-                        set_fasttrack_sock sock !verbose_msg_clients
-                          (HttpHeader (client_parse_header c))
-                  
-                  with e ->
-                      lprintf "Exception %s while connecting to client\n" 
-                        (Printexc2.to_string e);
-                      disconnect_client c (Closed_for_exception e)
-        );
-        c.client_sock <- ConnectionWaiting
-        
+                              init_client sock;                
+                              get_from_client sock c
+                          | _ -> ()
+                      )
+                    in
+                    c.client_host <- Some (ip, port);
+                    set_client_state c Connecting;
+                    c.client_sock <- Connection sock;
+                    TcpBufferedSocket.set_closer sock (fun _ s ->
+                        disconnect_client c s
+                    );
+                    set_rtimeout sock 30.;
+                    if !verbose_msg_clients then begin
+                        lprintf "READY TO DOWNLOAD FILE\n";
+                      end;
+                    set_fasttrack_sock sock !verbose_msg_clients
+                      (HttpHeader (client_parse_header c))
+              
+              with e ->
+                  lprintf "Exception %s while connecting to client\n" 
+                    (Printexc2.to_string e);
+                  disconnect_client c (Closed_for_exception e)
+        ) in
+      c.client_sock <- ConnectionWaiting token
+  | _ -> ()
+      
 (*
 let current_downloads = ref []
 

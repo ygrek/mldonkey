@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Int32ops
 open Md4
 open Options
 open Printf2
@@ -27,8 +28,28 @@ open CommonGlobals
   
 open BTOptions
 open BTTypes
+open BTGlobals
 open Bencode
 
+(* 
+
+We could have a a-la-edonkey tracker: it would connect back to incoming
+  client, and check whether they are accessible from the outside world,
+and also check which chunks they have before sending them sources, so
+that we can filter out immediatly sources that are not interesting for
+them.
+*)
+  
+(*
+
+torrents/: for BitTorrent
+  downloads/: .torrent files of current downloads
+  tracked/: .torrent files of tracked downloads
+    * If the file appears in incoming/, it is automatically seeded.
+  seeded/:
+     * If the file appears in incoming/, it is automatically seeded.
+
+  *)
   
 let decode_torrent s =
   lprintf ".torrent file loaded\n";
@@ -230,7 +251,7 @@ let make_torrent announce filename =
   let npieces = 1+ Int64.to_int ((length -- one) // chunk_size) in
   let pieces = Array.create npieces Sha1.null in
   for i = 0 to npieces - 1 do
-    let begin_pos = chunk_size ** i in
+    let begin_pos = chunk_size *.. i in
     
     let end_pos = begin_pos ++ chunk_size in
     let end_pos = 
@@ -322,6 +343,7 @@ let http_handler t r =
                     peer_active = last_time ();
                   } in
                 Hashtbl.add tracker.tracker_table !peer_id peer;
+                tracker.tracker_peers1 <- peer :: tracker.tracker_peers1;
                 peer
           in
           match !event with
@@ -332,6 +354,7 @@ let http_handler t r =
           | "stopped" -> 
 (* Don't return anything *)
               ()
+              
           | _ ->
 (* Return the 20 best peers *)
               let head, tail = List2.cut 20 tracker.tracker_peers1 in
@@ -355,11 +378,21 @@ let http_handler t r =
         with e ->
             lprintf "BTTracker: Exception %s\n" (Printexc2.to_string e)
       end
+      
   | filename ->
       try
-        let file = List.assoc filename !!torrent_files in
         
-        let s = File.to_string file in
+        if (Filename.check_suffix filename ".torrent") then
+          failwith "Incorrect filename";
+        for i = 0 to String.length filename - 1 do
+          let c = filename.[i] in
+          if c = '/' || c = '\\' then failwith "Incorrect filename"
+        done;
+        if filename.[1] = ':' then failwith "Incorrect filename";
+        
+        let filename = Filename.concat tracked_directory filename in
+        
+        let s = File.to_string filename in
         let len = String.length s in
         let buf = Buffer.create (len+1000) in
 
@@ -427,13 +460,16 @@ let clean_tracker_timer () =
         List.sort (fun p1 p2 -> - compare p1.peer_active p2.peer_active) !list;
       tracker.tracker_peers2 <- [];
   ) !current_tracked_files
+
+let scan_tracked_directory _ = 
+  let filenames = Unix2.list_directory tracked_directory in
   
-let install_tracked_files () =
   let old_tracked_files = !current_tracked_files in
   current_tracked_files := Hashtbl.create 13;
-  List.iter (fun torrent ->
+  List.iter (fun filename ->
+      let filename = Filename.concat tracked_directory filename in
       try
-        let s = File.to_string torrent in
+        let s = File.to_string filename in
         let (info_hash : Sha1.t), torrent = decode_torrent s in
         let tracker = 
           try
@@ -447,9 +483,9 @@ let install_tracked_files () =
         in
         Hashtbl.add !current_tracked_files info_hash tracker
       with e ->
-          lprintf "Cannot track file %s\n" torrent
-  ) !!tracked_files
+          lprintf "Cannot track file %s\n" filename
+  ) filenames
   
 let _ =
-  option_hook tracked_files install_tracked_files
+  add_infinite_timer 120. scan_tracked_directory
   

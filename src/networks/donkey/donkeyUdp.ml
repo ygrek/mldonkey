@@ -100,8 +100,8 @@ let make_xs ss =
   xs_servers_list := after;
   List.iter (fun s ->
       match s.server_sock with
-      | Some sock -> ()
-      | None ->
+        Connection _ -> ()
+      | _ ->
           let module M = DonkeyProtoServer in
           let module Q = M.Query in
           udp_server_send s (
@@ -140,8 +140,9 @@ let force_check_locations () =
 	[] -> false
       | s :: tail -> 
 	  udp_servers_list := tail;
-	  (match s.server_sock with
-            None -> 
+            (match s.server_sock with
+                Connection _ -> ()
+              | _ -> 
 	      if 
 		connection_last_conn s.server_connection_control + 3600*8 > last_time () &&
 		s.server_next_udp <= last_time () then begin
@@ -151,7 +152,7 @@ let force_check_locations () =
 		    old_servers := s :: !old_servers);
 		  incr nservers;
 		end
-	  | _ -> ());
+            );
 	  true do
       ()
     done;
@@ -188,9 +189,9 @@ let force_check_locations () =
               if 
                 connection_last_conn s.server_connection_control + 3600*8 > last_time () &&
                 s.server_next_udp <= last_time () then
-                  match s.server_sock with
-                  None -> udp_query_locations file s
-                  | _ -> ()
+                      match s.server_sock with
+                      | Connection _ -> ()
+                      | _ -> udp_query_locations file s
 	    ) !old_servers;
 	  end
     ) !current_files;
@@ -213,7 +214,7 @@ let add_user_friend s u =
     else begin
         begin
           match s.server_sock, server_state s with 
-            Some sock, (Connected _ |Connected_downloading) ->
+            Connection sock, (Connected _ |Connected_downloading) ->
               query_id s sock u.user_ip None;
           | _ -> ()
         end;

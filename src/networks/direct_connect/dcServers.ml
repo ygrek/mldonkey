@@ -45,35 +45,35 @@ let active_search_supported = false
 let try_connect_client c =
   if connection_can_try c.client_connection_control then
     match c.client_sock with
-    | Some _ -> ()
-    | None -> 
-        match c.client_addr with
-          None ->
-            List.iter (fun s ->
-                match s.server_sock with
-                  None -> ()
-                | Some sock ->
-                    server_send !verbose_msg_servers sock (
-                      let module C = RevConnectToMe in
-                      RevConnectToMeReq {
-                        C.orig = s.server_last_nick;
-                        C.dest = c.client_name;
-                      }
-                    );
-                    if not !!firewalled then
+    | NoConnection -> begin
+          match c.client_addr with
+            None ->
+              List.iter (fun s ->
+                  match s.server_sock with
+                  | Connection sock ->
                       server_send !verbose_msg_servers sock (
-                        let module C = ConnectToMe in
-                        ConnectToMeReq {
-                          C.nick = c.client_name;
-                          C.ip = CO.client_ip (Some sock);
-                          C.port = !!dc_port;
+                        let module C = RevConnectToMe in
+                        RevConnectToMeReq {
+                          C.orig = s.server_last_nick;
+                          C.dest = c.client_name;
                         }
                       );
-            )                    
-            c.client_user.user_servers 
-        | Some (ip, port) ->
-            DcClients.connect_client c
-            
+                      if not !!firewalled then
+                        server_send !verbose_msg_servers sock (
+                          let module C = ConnectToMe in
+                          ConnectToMeReq {
+                            C.nick = c.client_name;
+                            C.ip = CO.client_ip (Some sock);
+                            C.port = !!dc_port;
+                          }
+                        );
+                  | _ -> ()
+              )                    
+              c.client_user.user_servers 
+          | Some (ip, port) ->
+              DcClients.connect_client c
+        end
+    | _ -> ()
             
 let add_search s words =
   if not (Fifo.mem s.server_searches words) then
@@ -114,15 +114,12 @@ let recover_files_from_server s =
       if file_state file = FileDownloading then begin
           
           List.iter (fun c ->
-              match c.client_sock with
-              | Some _ -> ()
-              | None -> 
+              do_if_connected  c.client_sock 
+                (fun _ ->
                   match c.client_addr with
                     Some _ -> ()
                   | None ->
-                      match s.server_sock with
-                        None -> ()
-                      | Some sock ->
+                      do_if_connected s.server_sock (fun sock ->
 
 (* TODO: Get Information on this client to have its IP address, and
   directly connect to him *)
@@ -143,7 +140,9 @@ let recover_files_from_server s =
                                 C.port = !!dc_port;
                               }
                             );
-          )                    
+                      )                    
+              )
+          )
           file.file_clients;
           
 (* try to find new sources by queries *)
@@ -166,8 +165,11 @@ let server_addr s = Ip.string_of_addr s.server_addr
   
 let disconnect_server s reason =
   match s.server_sock with
-    None -> ()
-  | Some sock -> 
+  | NoConnection -> ()
+  | ConnectionWaiting token -> 
+      cancel_token token;
+      s.server_sock <- NoConnection
+  | Connection sock ->
       (try close sock reason with _ -> ());      
       decr nservers;
       if !verbose_msg_servers then begin
@@ -175,7 +177,7 @@ let disconnect_server s reason =
             (server_addr s) s.server_port (BasicSocket.string_of_reason reason); 
         end;
       connection_failed (s.server_connection_control);
-      s.server_sock <- None;
+      s.server_sock <- NoConnection;
       if !verbose_msg_servers then begin
           lprintf "******** NOT CONNECTED *****\n"; 
         end;
@@ -183,11 +185,11 @@ let disconnect_server s reason =
       connected_servers := List2.removeq s !connected_servers;
       s.server_messages <- 
         (room_new_message (as_room s.server_room) 
-          (ServerMessage "************* CLOSED ***********\n"))
-        :: s.server_messages;
+        (ServerMessage "************* CLOSED ***********\n"))
+      :: s.server_messages;
       set_room_state s RoomClosed;
       room_must_update (as_room s.server_room)
-      
+  
 let server_handler s sock event = 
   match event with
     BASIC_EVENT (CLOSED r) -> disconnect_server s r     
@@ -430,53 +432,58 @@ lprint_newline ()
 and connect_server s =
   Ip.async_ip_of_addr s.server_addr (fun ip ->
       match s.server_sock with
-      | Some _ -> ()
-      | None ->
-          if can_open_connection () then 
-            try
-              connection_try s.server_connection_control;
-              incr nservers;
-              printf_char 's'; 
-              
-              let sock = TcpBufferedSocket.connect "directconnect to server" 
-	        (Ip.to_inet_addr ip)
-                s.server_port (server_handler s)  in
-              
-              set_server_state s Connecting;
-              set_read_controler sock download_control;
-              set_write_controler sock upload_control;
-              
-              Fifo.clear s.server_searches;
-              s.server_search_timeout <- last_time () + 30;
-              
-              set_reader sock (DcProtocol.dc_handler verbose_msg_servers (client_to_server s));
-              set_rtimeout sock 60.;
-              set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
-                  close s Closed_for_timeout
-              );
-              s.server_nick <- 0;
-              s.server_sock <- Some sock;
-            with e -> 
-                if !verbose_msg_servers then begin
-                    lprintf "%s:%d IMMEDIAT DISCONNECT %s"
-                      (Ip.string_of_addr s.server_addr) s.server_port
-                      (Printexc2.to_string e); lprint_newline ();
-                  end;
+      | NoConnection ->
+          if can_open_connection connection_manager then 
+            let token = 
+              add_pending_connection connection_manager (fun token ->
+                  s.server_sock <- NoConnection;
+                  try
+                    connection_try s.server_connection_control;
+                    incr nservers;
+                    printf_char 's'; 
+                    
+                    let sock = TcpBufferedSocket.connect token
+                        "directconnect to server" 
+                        (Ip.to_inet_addr ip)
+                      s.server_port (server_handler s)  in
+                    
+                    set_server_state s Connecting;
+                    set_read_controler sock download_control;
+                    set_write_controler sock upload_control;
+                    
+                    Fifo.clear s.server_searches;
+                    s.server_search_timeout <- last_time () + 30;
+                    
+                    set_reader sock (DcProtocol.dc_handler verbose_msg_servers (client_to_server s));
+                    set_rtimeout sock 60.;
+                    set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
+                        close s Closed_for_timeout
+                    );
+                    s.server_nick <- 0;
+                    s.server_sock <- Connection sock;
+                  with e -> 
+                      if !verbose_msg_servers then begin
+                          lprintf "%s:%d IMMEDIAT DISCONNECT %s"
+                            (Ip.string_of_addr s.server_addr) s.server_port
+                            (Printexc2.to_string e); lprint_newline ();
+                        end;
 (*      lprintf "DISCONNECTED IMMEDIATLY"; lprint_newline (); *)
-                decr nservers;
-                s.server_sock <- None;
-                set_server_state s (NotConnected (Closed_connect_failed, -1));
-                connection_failed s.server_connection_control)
-                
+                      decr nservers;
+                      s.server_sock <- NoConnection;
+                      set_server_state s (NotConnected (Closed_connect_failed, -1));
+                      connection_failed s.server_connection_control)
+            in  
+            s.server_sock <- ConnectionWaiting token
+      | _ -> ()
+  ) 
+  
 let try_connect_server s =
-  if connection_can_try s.server_connection_control then
-      match s.server_sock with
-        Some _ -> ()
-      | None -> 
-          connect_server s
+  if connection_can_try s.server_connection_control && 
+    s.server_sock = NoConnection then
+    connect_server s
     
 let rec connect_one_server () =
-  if can_open_connection () then
+  if can_open_connection connection_manager then
     match !servers_list with
       [] ->
         Hashtbl.iter (fun _ h ->
@@ -549,10 +556,8 @@ let recover_files_clients () =
                 end;
               try_connect_client c;
               List.iter (fun s ->
-                  match s.server_sock with
-                    Some _ -> ()
-                  | None ->
-                      try_connect_server s
+                  if s.server_sock = NoConnection then
+                    try_connect_server s
               ) c.client_user.user_servers
           ) file.file_clients;
 
@@ -581,9 +586,7 @@ let recover_files_searches () =
   List.iter (fun s ->
       try
         if s.server_search_timeout < last_time () then
-          match s.server_sock with
-            None -> ()
-          | Some sock ->
+          do_if_connected  s.server_sock (fun sock ->
               let words = Fifo.take s.server_searches in
               s.server_search_timeout <- last_time () + !!search_timeout;
               let module S = Search in
@@ -603,6 +606,7 @@ let recover_files_searches () =
               if !verbose_msg_servers then begin
                   Printf.bprintf  buf "Sending search\n"
                 end
+          )
       with _ -> ()
   ) !connected_servers
   

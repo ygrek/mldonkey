@@ -82,19 +82,16 @@ let print fct arg =
     flush stderr;
     raise x
 
-let catch fct arg =
-  try
-    fct arg
-  with x ->
-    flush stdout;
-    eprintf "Uncaught exception: %s\n" (to_string x);
-    exit 2
-
-      
 let register_exn f = printers := f :: !printers
   
-let catchexn s f =
-  try f () with
+let catch s f x =
+  try f x with
+    e -> 
+      lprintf "Uncaught exception in %s: %s" s (to_string e);
+      lprint_newline () 
+  
+let catch2 s f x y =
+  try f x y with
     e -> 
       lprintf "Uncaught exception in %s: %s" s (to_string e);
       lprint_newline () 

@@ -44,8 +44,7 @@ val shared_iter : (CommonTypes.shared -> unit) -> unit
 val file_size : string -> int64
 val local_dirname : string
 val can_share : string -> bool
-val waiting_directories : (string * int * string) list ref
-val shared_add_directory : string * int -> unit
+val shared_add_directory : CommonTypes.shared_directory -> unit
 val shared_check_files : unit -> unit
 val impl_shared_info : 'a shared_impl -> GuiTypes.shared_info
 val shared_info : CommonTypes.shared -> GuiTypes.shared_info

@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonGlobals
 open CommonTypes
 
 open Options
@@ -149,13 +150,12 @@ TcpBufferedSocket.write_string t_out (Buffer.contents buf)
   
 let send_search search query =
   List.iter (fun s ->
-      match s.server_sock with
-        None -> ()
-      | Some sock ->
+      do_if_connected s.server_sock (fun sock ->
           let module M = DonkeyProtoServer in
           let module Q = M.Query in
           direct_server_send sock (M.QueryReq query);
           Fifo.put s.server_search_queries search
+      )
   ) (connected_servers());
   DonkeyUdp.make_xs search;
   local_search search        
@@ -166,9 +166,7 @@ let send_subscribe search query =
   let module M = DonkeyProtoServer in
   let module Q = M.Query in
   List.iter (fun s ->
-      match s.server_sock with
-        None -> ()
-      | Some sock ->
+      do_if_connected  s.server_sock (fun sock ->
           if s.server_mldonkey then
             direct_server_send sock (
               M.Mldonkey_SubscribeReq (search.search_num, 3600, query))
@@ -176,6 +174,7 @@ let send_subscribe search query =
               direct_server_send sock (M.QueryReq query);
               Fifo.put s.server_search_queries search
             end
+      )
   ) (connected_servers());
   DonkeyUdp.make_xs search;
   local_search search        

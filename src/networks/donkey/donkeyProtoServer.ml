@@ -121,7 +121,7 @@ ascii [ 9(3)(4)(0) M a i n(0)(0)(2)(0)(5)(0) M u s i c(0)(0)(3)(0)(3)(0) A r t(0
     type t = channel list
       
     let parse len s =
-      let nchans = get_int8 s 1 in
+      let nchans = get_uint8 s 1 in
       let rec iter s pos nchans =
         if nchans = 0 then [] else
         let name, pos = get_string s pos in
@@ -328,7 +328,7 @@ module ServerList = struct
     type t = server list
       
     let parse len s = 
-      let n = get_int8 s 1 in
+      let n = get_uint8 s 1 in
       let rec iter i  =
         if i = n then [] else
         let ip = get_ip s (2 + i * 6) in
@@ -528,10 +528,10 @@ module Query  = struct (* request 22 *)
       ]
     
     let rec parse_query s pos =
-      let t = get_int8 s pos in
+      let t = get_uint8 s pos in
       match t with
         0 -> 
-          let t = get_int8 s (pos+1) in
+          let t = get_uint8 s (pos+1) in
           begin
             match t with
               0 -> 
@@ -560,8 +560,8 @@ module Query  = struct (* request 22 *)
           QHasField (field_of_tagname name, field), pos
       
       | 3 -> 
-          let field = get_int64_32 s (pos + 1) in
-          let minmax = get_int8 s (pos + 5) in
+          let field = get_uint64_32 s (pos + 1) in
+          let minmax = get_uint8 s (pos + 5) in
           let name, pos = get_string s (pos + 6) in
           let name = try
               List.assoc name names_of_tag
@@ -720,7 +720,7 @@ module QueryUsers = struct (* request 26 *)
     type t = string
       
     let parse len s =
-      let targ = get_int8 s 1 in
+      let targ = get_uint8 s 1 in
       match targ with
         4 -> ""
       | 1 -> 
@@ -838,7 +838,7 @@ module QueryLocationReply  = struct
       
     let parse len s = 
       let md4 = get_md4 s 1 in
-      let n = get_int8 s 17 in
+      let n = get_uint8 s 17 in
       let rec iter i  =
         if i = n then [] else
         let ip = get_ip s (18 + i * 6) in
@@ -974,11 +974,11 @@ module QueryServersReply  = struct
       try
 	let ip = get_ip s 1 in
 	let port = get_port s 5 in
-	let nservers = get_int8 s 7 in
+	let nservers = get_uint8 s 7 in
 	let servers = parse_servers nservers s 8 in
 	  { server_ip = ip; server_port = port; servers = servers }
       with _ ->
-	let nservers = get_int8 s 1 in
+	let nservers = get_uint8 s 1 in
 	let servers = parse_servers nservers s 2 in
 	  { server_ip = Ip.null; server_port = 0; servers = servers }  
       

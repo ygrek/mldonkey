@@ -27,7 +27,9 @@ val network_server_of_option :
   (string * Options.option_value) list -> CommonTypes.server
 val network_file_of_option :
   CommonTypes.network ->
-  bool -> (string * Options.option_value) list -> CommonTypes.file
+    int64 ->
+    CommonTypes.file_state ->
+    (string * Options.option_value) list -> CommonTypes.file
 val network_client_of_option :
   CommonTypes.network ->
   bool -> (string * Options.option_value) list -> CommonTypes.client

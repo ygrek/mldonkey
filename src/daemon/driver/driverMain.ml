@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonInteractive
 open Printf2
 open CommonInteractive
 open CommonShared
@@ -40,7 +41,7 @@ let minute_timer () =
   CommonInteractive.force_download_quotas ();
   if !!auto_commit then
     List.iter (fun file ->
-        CommonComplexOptions.file_commit file
+        file_commit file
     ) !!CommonComplexOptions.done_files
   
 let hourly_timer timer =
@@ -59,9 +60,9 @@ let second_timer timer =
      CommonUploads.refill_upload_slots ()
    with e -> 
         lprintf "Exception %s" (Printexc2.to_string e); lprint_newline ());
-  CommonGlobals.schedule_connections ();
   CommonUploads.reset_upload_timer ();
-  CommonUploads.shared_files_timer ()
+  CommonUploads.shared_files_timer ();
+  ()
   
 let start_interfaces () =
   
@@ -216,8 +217,8 @@ let load_config () =
       let oc = open_out (options_file_name downloads_ini) in
       close_out oc; 
     end;
-  
-  (*
+
+(*
   let exists_expert_ini = Sys.file_exists 
       (options_file_name downloads_expert_ini) in
   if not exists_expert_ini then begin
@@ -244,10 +245,10 @@ let load_config () =
   
   CommonMessages.load_message_file ();
   if !!html_mods then begin
-		if !!html_mods_style > 0 && !!html_mods_style < (Array.length !html_mods_styles) then
-		commands_frame_height =:= (snd !html_mods_styles.(!!html_mods_style));
-		CommonMessages.colour_changer ();
-  end;
+      if !!html_mods_style > 0 && !!html_mods_style < (Array.length !html_mods_styles) then
+        commands_frame_height =:= (snd !html_mods_styles.(!!html_mods_style));
+      CommonMessages.colour_changer ();
+    end;
   networks_iter_all (fun r -> 
       List.iter (fun opfile ->
           try
@@ -257,12 +258,12 @@ let load_config () =
       )      
       r.network_config_file 
   );
-  
+
 (* Here, we try to update options when a new version of mldonkey is
 used. For example, we can add new web_infos... *)
   if !!options_version < 1 then begin
       lprintf "Updating options to level 1"; lprint_newline ();
-    (*  web_infos =:= 
+(*  web_infos =:= 
         (
         ("server.met", 1, "http://ocbmaurice.dyns.net/pl/slist.pl?download");        
         ):: 
@@ -273,9 +274,9 @@ used. For example, we can add new web_infos... *)
       if !!min_reask_delay = 720 then min_reask_delay =:= 600
     end;
   options_version =:= 2;
-  
-(**** PARSE ARGUMENTS ***)    
 
+(**** PARSE ARGUMENTS ***)    
+  
   let more_args = ref [] in
   
   
@@ -288,7 +289,7 @@ used. For example, we can add new web_infos... *)
           let args = simple_args prefix opfile in
           let args = List2.tail_map (fun (arg, spec, help) ->
                 (Printf.sprintf "-%s" arg, spec, help)) args
-            in
+          in
           more_args := !more_args @ args
       ) r.network_config_file 
   );
@@ -315,14 +316,14 @@ used. For example, we can add new web_infos... *)
           lprint_newline ();
           exit 0), 
       " : display information on the implementations";
-       "-stdout", Arg.Unit (fun _ ->
-           keep_console_output := true;
-           lprintf_output := Some stdout
-       ), 
+      "-stdout", Arg.Unit (fun _ ->
+          keep_console_output := true;
+          log_to_file stdout;
+      ), 
        ": keep output to stdout after startup";
        "-stderr", Arg.Unit (fun _ ->
            keep_console_output := true;
-           lprintf_output := Some stderr;
+           log_to_file stderr;
        ), 
        ": keep output to stderr after startup";
       "-daemon", Arg.Set daemon,
@@ -371,7 +372,9 @@ let _ =
   add_infinite_option_timer download_sample_rate CommonFile.sample_timer;  
   
   (try Options.load servers_ini with _ -> ());
+  lprintf "Loading files_ini....................\n";
   (try Options.load files_ini with _ -> ());
+  lprintf "Loading friends_ini....................\n";
   (try Options.load friends_ini with _ -> ());
   (try Options.load searches_ini with _ -> ());
   
@@ -393,6 +396,11 @@ let _ =
   CommonOptions.start_running_plugins := true;
   CommonInteractive.force_download_quotas ();
   
+  TcpBufferedSocket.set_max_opened_connections 
+    (fun _ -> !!max_opened_connections);
+  TcpBufferedSocket.set_max_connections_per_second 
+    (fun _ -> !!max_connections_per_second);
+  
   add_infinite_option_timer save_options_delay (fun timer ->
       DriverInteractive.save_config ());
   start_interfaces ();
@@ -400,10 +408,14 @@ let _ =
   add_infinite_timer 60. minute_timer;
   add_infinite_timer 3600. hourly_timer;
   add_infinite_timer 0.1 CommonUploads.upload_download_timer;
-  add_infinite_timer 1. CanBeCompressed.deflate_timer;
 
-  shared_add_directory (!!incoming_directory, !!incoming_directory_prio);
-  List.iter shared_add_directory !!shared_directories;  
+  shared_add_directory {
+    shdir_dirname = !!incoming_directory;
+    shdir_priority = !!incoming_directory_prio;
+    shdir_strategy = "only_directory";
+    shdir_networks = [];
+  };
+  List.iter shared_add_directory !!CommonComplexOptions.shared_directories;  
   
   add_infinite_timer 1800. (fun timer ->
       DriverInteractive.browse_friends ());
@@ -480,20 +492,24 @@ let _ =
       lprintf "Disabling output to console, to enable: stdout true\n";
       
       if !!log_file <> "" then begin
+          (*
           try
+            Printf.printf "+XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX+\n";
             let oc = open_out !!log_file in
             lprintf "Logging in %s\n" !!log_file;
             
             (* Don't close stdout !!!
             (match !lprintf_output with
                None -> () | Some oc -> close_out oc);
-             *)
-            lprintf_output := Some oc;
+*)
+            log_to_file oc;
+            lprintf "Start log in %s\n" !!log_file;
           with e ->
               lprintf "Exception %s while opening log file: %s\n"
-                (Printexc2.to_string e) !!log_file
+(Printexc2.to_string e) !!log_file *)
+          ()
         end else
-              lprintf_to_stdout := false;
+              close_log ();
             
       
 (* Question: is-it not to late to go in background ? Is-it possible that

@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonInteractive
+open Int32ops
 open Options
 open Printf2
 open Md4
@@ -116,9 +118,7 @@ let _ =
       iter query;
       let words = String2.unsplit !words ' ' in
       List.iter (fun s ->
-          match s.server_sock with
-            None -> ()
-              | Some sock ->
+          do_if_connected s.server_sock (fun sock ->
               let msg = SearchReq {
               S.orig = 
               (if (not DcServers.active_search_supported) || !!firewalled then
@@ -135,7 +135,9 @@ let _ =
               server_send !CommonOptions.verbose_msg_servers sock msg; 
               s.server_search <- Some q; 
               s.server_search_timeout <- last_time () + !!search_timeout;
-              Printf.bprintf  buf "Sending search\n") !connected_servers
+              Printf.bprintf  buf "Sending search\n")
+  )
+      !connected_servers
   );
   network.op_network_connected <- (fun _ ->
       !connected_servers <> []
@@ -186,10 +188,9 @@ let _ =
   server_ops.op_server_disconnect <- (fun s -> 
 					  DcServers.disconnect_server s Closed_by_user);
   server_ops.op_server_query_users <- (fun s ->
-      match s.server_sock with
-        None -> ()
-      | Some sock ->
+      do_if_connected  s.server_sock (fun sock ->
           server_send !verbose_msg_servers sock (GetNickListReq)
+      )
   );
   server_ops.op_server_users <- (fun s ->
       let list = ref [] in
@@ -220,15 +221,13 @@ let _ =
   room_ops.op_room_messages <- (fun s age ->
       extract_messages s.server_messages age);
   room_ops.op_room_send_message <- (fun s m ->
-      match s.server_sock with
-        None -> ()
-      | Some sock ->
+      do_if_connected  s.server_sock (fun sock ->
           match m with
             PublicMessage (0,m) ->
               let m = Printf.sprintf "<%s> %s" s.server_last_nick m in
               server_send !verbose_msg_servers sock (MessageReq m)
           | _ -> assert false
-  );
+      ));
   room_ops.op_room_name <- (fun s ->
       s.server_name
   )

@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonInteractive
 open Printf2
 open CommonUploads
 open CommonInteractive
@@ -41,15 +42,18 @@ open DcProtocol
 
 let disconnect_client c reason = 
   match c.client_sock with
-    None -> ()
-  | Some sock ->
+  | Connection sock ->
       connection_failed c.client_connection_control;      
       lprintf "CLOSE SOCKET"; lprint_newline ();
       close sock reason;
       set_client_disconnected c reason;
       if c.client_files = [] then
         remove_client c
-
+  | ConnectionWaiting token -> 
+      cancel_token token;
+      c.client_sock <- NoConnection
+  | _ -> ()
+      
 let char_percent =  int_of_char '%'
 let char_z =  int_of_char 'z'
         
@@ -77,7 +81,7 @@ let should_browse c =
   
 let init_connection nick_sent c sock =
   c.client_receiving <- Int64.zero;
-  c.client_sock <- Some sock;
+  c.client_sock <- Connection sock;
   connection_ok c.client_connection_control;  
   if not nick_sent then begin
       let my_nick = match c.client_user.user_servers with
@@ -115,11 +119,11 @@ let read_first_message nick_sent t sock =
       begin
         let c = new_client n in
         match c.client_sock with
-          Some sock -> lprintf "Already connected"; lprint_newline ();
+          Connection _ -> lprintf "Already connected"; lprint_newline ();
             close sock (Closed_for_error "already connected");
             raise Not_found
             
-        | None ->
+        | _ ->
             init_connection nick_sent c sock;
             Some c
       end
@@ -327,7 +331,7 @@ let file_complete file =
   lprintf "FILE %s DOWNLOADED" f.file_name;
 lprint_newline ();
   *)
-  CommonComplexOptions.file_completed (as_file file.file_file);
+  file_completed (as_file file.file_file);
   current_files := List2.removeq file !current_files;
   List.iter (fun c ->
       c.client_files <- List.remove_assoc file c.client_files
@@ -431,7 +435,8 @@ let listen () =
               (Ip.to_string (Ip.of_inet_addr from_ip))
               ; 
               
-              let sock = TcpBufferedSocket.create
+              let token = create_token connection_manager in
+              let sock = TcpBufferedSocket.create token
                   "DC client connection" s (fun _ _ -> ()) in
               init_anon_client false sock
 
@@ -444,49 +449,59 @@ let listen () =
         (Printexc2.to_string e)
 
 let connect_client c =
-  try
-    match c.client_addr with
-      None -> ()
-    | Some (ip,port) ->
-        connection_try c.client_connection_control;      
-        let sock = connect "client download" 
-            (Ip.to_inet_addr ip) port
-            (fun sock event ->
-              match event with
-              | BASIC_EVENT (RTIMEOUT | LTIMEOUT) ->
-                  disconnect_client c Closed_for_timeout
-              | BASIC_EVENT (CLOSED s) ->
-                  disconnect_client c s
-              | _ -> ()
-          )
-        in
-        TcpBufferedSocket.set_read_controler sock download_control;
-        TcpBufferedSocket.set_write_controler sock upload_control;
-        set_rtimeout sock 30.;
-        TcpBufferedSocket.set_reader sock (
-          dc_handler3 verbose_msg_clients (ref (Some c)) (read_first_message false) client_reader
-            client_downloaded);
+  let token = 
+    add_pending_connection connection_manager
+      (fun token ->
+        try
+          match c.client_addr with
+            None -> ()
+          | Some (ip,port) ->
+              connection_try c.client_connection_control;      
+              let sock = connect token "client download" 
+                  (Ip.to_inet_addr ip) port
+                  (fun sock event ->
+                    match event with
+                    | BASIC_EVENT (RTIMEOUT | LTIMEOUT) ->
+                        disconnect_client c Closed_for_timeout
+                    | BASIC_EVENT (CLOSED s) ->
+                        disconnect_client c s
+                    | _ -> ()
+                )
+              in
+              TcpBufferedSocket.set_read_controler sock download_control;
+              TcpBufferedSocket.set_write_controler sock upload_control;
+              set_rtimeout sock 30.;
+              TcpBufferedSocket.set_reader sock (
+                dc_handler3 verbose_msg_clients (ref (Some c)) (read_first_message false) client_reader
+                  client_downloaded);
+              
+              init_connection false c sock;
         
-        init_connection false c sock;
+        with e ->
+            lprintf "Exception %s while connecting to client\n" 
+              (Printexc2.to_string e);
+            disconnect_client c Closed_connect_failed
+    )
+  in
+  c.client_sock <- ConnectionWaiting token
           
-  with e ->
-      lprintf "Exception %s while connecting to client\n" 
-        (Printexc2.to_string e);
-      disconnect_client c Closed_connect_failed
-
 let connect_anon s ip port =
-  lprintf "CONNECT ANON\n"; 
-  try
-    let sock = connect "client download" 
-        (Ip.to_inet_addr ip) port
-        (fun _ _ -> ())
-    in
-    init_anon_client true sock;
-    server_send !verbose_msg_clients sock (MyNickReq s.server_last_nick);
-    server_send !verbose_msg_clients sock (
-      create_key ());
-          
-  with e ->
-      lprintf "Exception %s while connecting to  anon client\n" 
-        (Printexc2.to_string e)
-      
+  let token =
+    add_pending_connection connection_manager (fun token ->
+        lprintf "CONNECT ANON\n"; 
+        try
+          let sock = connect token "client download" 
+              (Ip.to_inet_addr ip) port
+              (fun _ _ -> ())
+          in
+          init_anon_client true sock;
+          server_send !verbose_msg_clients sock (MyNickReq s.server_last_nick);
+          server_send !verbose_msg_clients sock (
+            create_key ());
+        
+        with e ->
+            lprintf "Exception %s while connecting to  anon client\n" 
+              (Printexc2.to_string e)
+    )      
+  in
+  ()

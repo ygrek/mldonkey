@@ -210,9 +210,7 @@ Divide the bandwidth between the clients
  *)   
     
     let upload_to_client c size = 
-      match c.client_sock with
-        None -> ()
-      |     Some sock ->
+      do_if_connected  c.client_sock (fun sock ->
           if CommonUploads.can_write_len sock (maxi max_msg_size size) then
             send_client_block c sock size;
           (match c.client_upload with
@@ -221,7 +219,7 @@ Divide the bandwidth between the clients
                 if !CommonUploads.has_upload = 0 then
                   CommonUploads.ready_for_upload (as_client c.client_client)
           )
-
+      )
     let _ =
       client_ops.op_client_can_upload <- upload_to_client
           

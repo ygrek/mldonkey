@@ -65,6 +65,8 @@ class virtual ['a] filtered_plist
     
     val mutable columns_width = ([] : (int * int) list)
 
+    val mutable first_click_done = false;
+
     method box = wscroll#coerce
     method wlist = wlist
     
@@ -197,6 +199,10 @@ class virtual ['a] filtered_plist
       ignore (wlist#connect#unselect_row f_unselect_table);
       ignore (wlist#connect#click_column
           (fun c -> 
+            if not first_click_done then begin
+              wlist#columns_autosize ();
+              first_click_done <- true
+            end;
             (* GToolbox.autosize_clist self#wlist; *)
             self#resort_column c ()
         )

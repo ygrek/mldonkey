@@ -38,8 +38,13 @@ module DG = CommonGlobals
 
 let disconnect_client c r =
   match c.client_sock with
-    None -> ()
-  | Some sock -> close sock r
+    NoConnection  -> ()
+  | ConnectionWaiting token ->
+      cancel_token token;
+      c.client_sock <- NoConnection
+  | Connection sock -> 
+      close sock r;
+      c.client_sock <- NoConnection
       
 let client_handler c sock event = 
   match event with
@@ -255,13 +260,20 @@ let client_reader2 c sock nread =
           List.iter (fun cc ->
               if cc.client_name = nick then 
                 match cc.client_sock with
-                  None ->
+                  NoConnection ->
                     cc.client_file <- Some file;
                     cc.client_pos <- file_downloaded file;
                     write_string sock (Int64.to_string cc.client_pos);
-                    cc.client_sock <- Some sock;
+                    cc.client_sock <- Connection sock;
                     c := Some cc
-                | Some sock ->
+                | ConnectionWaiting token ->
+                    cancel_token token;
+                    cc.client_file <- Some file;
+                    cc.client_pos <- file_downloaded file;
+                    write_string sock (Int64.to_string cc.client_pos);
+                    cc.client_sock <- Connection sock;
+                    c := Some cc
+                | _ ->
                     close sock (Closed_for_error "Already Connected");
                     raise Not_found
           ) file.file_clients
@@ -279,24 +291,28 @@ let client_reader2 c sock nread =
           read_stream c file sock b
           
 let connect_client c =
-  match c.client_addr with
-    None -> assert false
-  | Some (ip, port) ->
-      c.client_file <- None;
+  let token =
+    add_pending_connection connection_manager (fun token ->
+        c.client_sock <- NoConnection;
+        match c.client_addr with
+          None -> assert false
+        | Some (ip, port) ->
+            c.client_file <- None;
 (*      lprintf "TRYING TO CONNECT CLIENT ON %s:%d" 
 (Ip.to_string ip) port; lprint_newline (); *)
-      let sock = TcpBufferedSocket.connect "opennap to client" 
-	  (Ip.to_inet_addr ip) port 
-          (client_handler c)  in
-      c.client_sock <- Some sock;
-      set_read_controler sock DG.download_control;
-      set_write_controler sock DG.upload_control;
-      
-      set_reader sock (client_reader c);
-      set_rtimeout sock 30.
-      
-      
-      
+            let sock = TcpBufferedSocket.connect token "opennap to client" 
+                (Ip.to_inet_addr ip) port 
+                (client_handler c)  in
+            c.client_sock <- Connection sock;
+            set_read_controler sock DG.download_control;
+            set_write_controler sock DG.upload_control;
+            
+            set_reader sock (client_reader c);
+            set_rtimeout sock 30.
+    )      
+  in
+  c.client_sock <- ConnectionWaiting token
+  
 let listen () =
   try
     let sock = TcpServerSocket.create "opennap client server" 
@@ -315,7 +331,8 @@ let listen () =
               lprintf "INDIRECT CONNECTION !!!!"; lprint_newline ();
 *)
               let c = ref None in
-              let sock = TcpBufferedSocket.create
+              let token = create_token connection_manager in
+              let sock = TcpBufferedSocket.create token
                   "opennap client connection" s (fun _ _ -> ()) in
               TcpBufferedSocket.set_read_controler sock download_control;
               TcpBufferedSocket.set_write_controler sock upload_control;

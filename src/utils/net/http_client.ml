@@ -219,7 +219,8 @@ let get_page r content_handler f =
 (*    lprintf "async_ip ...\n"; *)
     Ip.async_ip server (fun ip ->
 (*        lprintf "IP done %s:%d\n" (Ip.to_string ip) port; *)
-        let sock = TcpBufferedSocket.connect "http client connecting" 
+        let token = create_token unlimited_connection_manager in
+        let sock = TcpBufferedSocket.connect token "http client connecting"
           (Ip.to_inet_addr ip)
           port (fun _ e -> 
               ()

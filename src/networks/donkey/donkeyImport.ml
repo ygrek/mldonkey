@@ -137,7 +137,7 @@ module Known = struct
     
     let rec read_files s pos n left =
       if n = 0 then List.rev left else
-      let mtime = get_int64_32 s pos in
+      let mtime = get_uint64_32 s pos in
 (*      lprintf "file at pos %d" pos; lprint_newline (); *)
       let md4 = get_md4 s (pos+4) in
       let nblocks = get_int16 s (pos+20) in
@@ -253,7 +253,7 @@ module Part = struct
       }
       
     let read s =
-      assert (get_int8 s 0 = 224);
+      assert (get_uint8 s 0 = 224);
       (* assert (get_int s 1 = 0); *)
       read_file s 5
     

@@ -28,14 +28,14 @@ let input_int16 ic =
   let i1 = input_int8 ic in
   i0 + 256 * i1
 
-let int32_65536 = Int32.of_int 65536
+let int32_65536 = Int64.of_int 65536
   
 let input_int32 ic =
   let i0 = input_int16 ic in
   let i1 = input_int16 ic in
-  let i0 = Int32.of_int i0 in
-  let i1 = Int32.of_int i1 in
-  Int32.add i0 (Int32.mul i1 int32_65536)
+  let i0 = Int64.of_int i0 in
+  let i1 = Int64.of_int i1 in
+  Int64.add i0 (Int64.mul i1 int32_65536)
   
 let input_int ic =
   let i0 = input_int16 ic in
@@ -59,7 +59,7 @@ let print_string4 v s =
   lprint_newline ()
 
 let print_int32 s i=
-  lprintf "%s: %ld" s i;
+  lprintf "%s: %Ld" s i;
   lprint_newline ()
 
 let print_int16 s i=
@@ -76,7 +76,7 @@ let search_info_avi ic =
 (* pos: 4 *)
     let size = input_int32 ic in
 (*
-  lprintf "SIZE %s" (Int32.to_string size);
+  lprintf "SIZE %s" (Int64.to_string size);
   lprint_newline ();
 *)
 
@@ -91,19 +91,19 @@ let search_info_avi ic =
 (* position 16 *)
     let rec iter_list pos end_pos =
 (*
-  lprintf "POS %s/%s" (Int32.to_string pos) (Int32.to_string end_pos);
+  lprintf "POS %s/%s" (Int64.to_string pos) (Int64.to_string end_pos);
 lprint_newline ();    
   *)
       if pos < end_pos then begin
 (* on peut s'arreter quand size = 0 *)
-          seek_in ic (Int32.to_int pos);
+          seek_in ic (Int64.to_int pos);
           let size2 = input_int32 ic in
 (*
-        lprintf "SIZE2 %s" (Int32.to_string size2);
+        lprintf "SIZE2 %s" (Int64.to_string size2);
         lprint_newline ();
 *)
           
-          if size2 = Int32.zero then raise Not_found;
+          if size2 = Int64.zero then raise Not_found;
           let header_name = input_string4 ic in
 (*        lprint_string4 "header" header_name; lprint_newline (); *)
 (* pos: pos + 8 *)       
@@ -145,12 +145,12 @@ lprint_newline ();
               print_int32 "dwHeight" dwHeight;
               *)
                 
-                seek_in ic ((Int32.to_int pos) + main_header_len +20);
+                seek_in ic ((Int64.to_int pos) + main_header_len +20);
                 let s = input_string4 ic in
 (*              lprint_string4 "LIST:" s; *)
-                let pos_in = Int32.add pos (Int32.of_int (
+                let pos_in = Int64.add pos (Int64.of_int (
                       main_header_len +24)) in
-                let last_pos = Int32.add pos_in size2 in
+                let last_pos = Int64.add pos_in size2 in
                 iter_list pos_in last_pos
             
             
@@ -161,9 +161,9 @@ lprint_newline ();
             | "strl" ->
 (*              lprintf "STREAM DESCRIPTION"; lprint_newline (); *)
                 
-                let offset = Int32.of_int 4  in
-                let pos0 = Int32.add pos offset in
-                let end_pos0 = Int32.add pos size2 in
+                let offset = Int64.of_int 4  in
+                let pos0 = Int64.add pos offset in
+                let end_pos0 = Int64.add pos size2 in
                 iter_list pos0 end_pos0
             
             | "strh" ->
@@ -194,8 +194,8 @@ lprint_newline ();
                         avi_codec = fccHandler;
                         avi_width = rcFrame_dx;
                         avi_height = rcFrame_dy;
-                        avi_fps = int_of_float(1000.0 *. Int32.to_float(dwRate) /. Int32.to_float(dwScale));
-                        avi_rate = Int32.to_int dwLength;
+                        avi_fps = int_of_float(1000.0 *. Int64.to_float(dwRate) /. Int64.to_float(dwScale));
+                        avi_rate = Int64.to_int dwLength;
                       }));
                 
                 
@@ -221,12 +221,12 @@ lprint_newline ();
             | _ -> ()
           end;
           
-          iter_list (Int32.add pos (Int32.add size2 (Int32.of_int 8))) end_pos
+          iter_list (Int64.add pos (Int64.add size2 (Int64.of_int 8))) end_pos
         end 
     
     in
-    let pos0 = Int32.of_int 16 in
-    iter_list pos0 (Int32.add pos0 size);
+    let pos0 = Int64.of_int 16 in
+    iter_list pos0 (Int64.add pos0 size);
 (*  lprintf "DONE"; lprint_newline () *)
     ()
   with

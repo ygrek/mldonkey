@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonInteractive
 open Printf2
 open Md4
 open CommonUser
@@ -74,9 +75,7 @@ let query_location file sock =
   )
           
 let query_locations s n_per_round = 
-  match s.server_sock with
-    None -> ()
-  | Some sock ->
+  do_if_connected  s.server_sock (fun sock ->
       let rec iter n =
         if n>0 then
           match s.server_waiting_queries with
@@ -106,7 +105,7 @@ let query_locations s n_per_round =
                 iter n
       in
       iter n_per_round
-
+  )
       
 (* every 60 seconds *)
 let query_locations_timer () =
@@ -127,8 +126,11 @@ let _ =
 
 let disconnect_server s reason =
   match s.server_sock with
-    None -> ()
-  | Some sock ->
+    NoConnection -> ()
+  | ConnectionWaiting token ->
+      cancel_token token;
+      s.server_sock <- NoConnection
+  | Connection sock ->
       decr nservers;
       TcpBufferedSocket.close sock reason;
       (*
@@ -136,7 +138,7 @@ let disconnect_server s reason =
 (Ip.to_string s.server_ip) s.server_port; lprint_newline ();
   *)
       connection_failed (s.server_connection_control);
-      s.server_sock <- None;
+      s.server_sock <- NoConnection;
       s.server_score <- s.server_score - 1;
       s.server_users <- [];
       set_server_state s (NotConnected (reason, -1));
@@ -360,56 +362,62 @@ and remove clients whose server is deconnected. *)
       ()
       
 let connect_server s =
-  if can_open_connection () then
-    try
-      match s.server_sock with
-        Some _ -> printf_string "[e0]"
-      | _ ->
+  if can_open_connection connection_manager then
+    match s.server_sock with
+    | NoConnection ->
+        
+        let token = add_pending_connection connection_manager (fun token ->
+              s.server_sock <- NoConnection;
+              try
 
 (*                lprintf "CONNECTING ONE SERVER"; lprint_newline (); *)
-          connection_try s.server_connection_control;
-          incr nservers;
-          printf_char 's'; 
-          let sock = TcpBufferedSocket.connect "donkey to server"
-              (Ip.to_inet_addr s.server_ip) s.server_port 
-              (server_handler s) (* DonkeyProtoCom.server_msg_to_string*)  in
-          s.server_cid <- None (*client_ip (Some sock) *);
-          set_server_state s Connecting;
-          set_read_controler sock download_control;
-          set_write_controler sock upload_control;
-          
-          set_reader sock (DonkeyProtoCom.cut_messages DonkeyProtoServer.parse
-              (client_to_server s));
-          set_rtimeout sock !!server_connection_timeout;
-          
-          Fifo.clear s.server_id_requests;
-          s.server_waiting_queries <- [];
-          s.server_queries_credit <- 0;
-          s.server_sock <- Some sock;
-          direct_server_send sock (
-            let module M = DonkeyProtoServer in
-            let module C = M.Connect in
-            M.ConnectReq {
-              C.md4 = !!client_md4;
-              C.ip = client_ip (Some sock);
-              C.port = !client_port;
-              C.tags = !client_to_server_tags;
-            }
-          );
-    add_connected_server s;
-    with e -> 
+                connection_try s.server_connection_control;
+                incr nservers;
+                printf_char 's'; 
+                let sock = TcpBufferedSocket.connect token "donkey to server"
+                    (Ip.to_inet_addr s.server_ip) s.server_port 
+                    (server_handler s) (* DonkeyProtoCom.server_msg_to_string*)  in
+                s.server_cid <- None (*client_ip (Some sock) *);
+                set_server_state s Connecting;
+                set_read_controler sock download_control;
+                set_write_controler sock upload_control;
+                
+                set_reader sock (DonkeyProtoCom.cut_messages DonkeyProtoServer.parse
+                    (client_to_server s));
+                set_rtimeout sock !!server_connection_timeout;
+                
+                Fifo.clear s.server_id_requests;
+                s.server_waiting_queries <- [];
+                s.server_queries_credit <- 0;
+                s.server_sock <- Connection sock;
+                direct_server_send sock (
+                  let module M = DonkeyProtoServer in
+                  let module C = M.Connect in
+                  M.ConnectReq {
+                    C.md4 = !!client_md4;
+                    C.ip = client_ip (Some sock);
+                    C.port = !client_port;
+                    C.tags = !client_to_server_tags;
+                  }
+                );
+                add_connected_server s;
+              with e -> 
 (*
       lprintf "%s:%d IMMEDIAT DISCONNECT "
       (Ip.to_string s.server_ip) s.server_port; lprint_newline ();
 *)
 (*      lprintf "DISCONNECTED IMMEDIATLY"; lprint_newline (); *)
-        disconnect_server s (Closed_for_exception e)
+                  disconnect_server s (Closed_for_exception e)
+          )
+        in 
+        s.server_sock <- ConnectionWaiting token
+    | _ -> ()        
         
 let print_empty_list = ref true
-        
+  
 let rec connect_one_server () =
 (*  lprintf "connect_one_server"; lprint_newline (); *)
-  if can_open_connection () then
+  if can_open_connection connection_manager then
     match !servers_list with
       [] ->
         
@@ -445,15 +453,14 @@ let rec connect_one_server () =
           begin
 (* connect to server *)
             match s.server_sock with
-              Some _ -> ()
-            | None -> 
+            | NoConnection -> 
                 if s.server_score < 0 then begin
 (*                  lprintf "TOO BAD SCORE"; lprint_newline ();*)
                     connect_one_server ()
                   end
                 else
                   connect_server s
-          
+            | _ -> connect_one_server ()          
           end
           
 
@@ -461,7 +468,7 @@ let force_check_server_connections user =
 (*  lprintf "force_check_server_connections"; lprint_newline (); *)
   if user || !nservers < max_allowed_connected_servers ()  then 
     let rec iter n =
-      if n > 0 && can_open_connection () then begin
+      if n > 0 && can_open_connection connection_manager then begin
           connect_one_server ();
           iter (n-1)
         end
@@ -508,7 +515,7 @@ position to the min_left_servers position.
   
   for i = Array.length array - 1 downto !!min_left_servers do
     let ls, s = array.(i) in
-    if ls < min_last_conn && s.server_sock = None then begin
+    if ls < min_last_conn && s.server_sock = NoConnection then begin
         if !verbose then begin
             lprintf "Server too old: %s:%d" 
               (Ip.to_string s.server_ip) s.server_port;
@@ -558,8 +565,8 @@ let update_master_servers _ =
   List.iter (fun s ->
       if s.server_master then
         match s.server_sock with
-          None -> ()
-        | Some _ -> incr nmasters;
+        | Connection _ -> incr nmasters;
+        | _ -> ()
   ) (connected_servers ());
   let nconnected_servers = ref 0 in
   let list = List.sort (fun s2 s1 ->
@@ -571,16 +578,12 @@ let update_master_servers _ =
         if !nmasters <  max_allowed_connected_servers () &&
           s.server_nusers >= !!master_server_min_users
         then begin
-            match s.server_sock with
-              None -> 
-              (*  lprintf "MASTER NOT CONNECTED"; lprint_newline ();  *)
-                ()
-            | Some sock ->                
-(*                lprintf "NEW MASTER SERVER"; lprint_newline (); *)
+            do_if_connected  s.server_sock (fun sock ->
                 s.server_master <- true;
                 incr nmasters;
                 direct_server_send_share s.server_has_zlib sock
-                (DonkeyShare.all_shared ())
+                  (DonkeyShare.all_shared ())
+            )
           end else
         if connection_last_conn s.server_connection_control 
             + 120 < last_time () &&
@@ -589,16 +592,8 @@ let update_master_servers _ =
             nconnected_servers := !nconnected_servers - 3;
 (*            lprintf "DISCONNECT FROM EXTRA SERVER %s:%d "
 (Ip.to_string s.server_ip) s.server_port; lprint_newline ();
-  *)
-            (match s.server_sock with
-                None ->                   
-                  (*
-                  lprintf "Not connected !"; 
-lprint_newline ();
 *)
-                  ()
-
-              | Some sock ->
+            do_if_connected s.server_sock (fun sock ->
   (*                lprintf "shutdown"; lprint_newline (); *)
                   (shutdown sock (Closed_for_error "No more slots")));
           end
@@ -635,7 +630,7 @@ let walker_timer () =
     | s :: tail ->
         walker_list := tail;
         match s.server_sock with
-          None -> 
+          NoConnection -> 
             if connection_can_try s.server_connection_control then begin
                 
                 if !verbose then begin
@@ -655,7 +650,7 @@ let walker_timer () =
                   end;
               
               end
-        | Some _ -> ()
+        | _ -> ()
             
 (* one call per second *)
 
@@ -715,7 +710,7 @@ let udp_walker_timer () =
       
       
 let update_master_servers _ =
-
+  
   if !verbose then begin
       
       lprint_newline ();
@@ -733,13 +728,13 @@ let update_master_servers _ =
   List.iter (fun s ->
       if s.server_master then 
         match s.server_sock with
-          None -> s.server_master <- false
-        | _ -> 
+        | Connection _ -> 
             if !verbose then begin
                 lprintf "MASTER: OLD MASTER %s" (Ip.to_string s.server_ip);
                 lprint_newline ();
               end;
             masters := s :: !masters
+        | _ -> s.server_master <- false
   ) list;
   let nmasters = ref (List.length !masters) in
   
@@ -751,18 +746,17 @@ let update_master_servers _ =
 the fewer users. *)  
   
   let make_master s =
-    match s.server_sock with
-      None -> assert false
-    | Some sock ->                
+    do_if_connected s.server_sock (fun sock ->
         if !verbose then begin
             lprintf "   MASTER: %s\n" (Ip.to_string s.server_ip); 
           end;
         s.server_master <- true;
         incr nmasters;
         direct_server_send_share s.server_has_zlib sock
-        (DonkeyShare.all_shared ())        
+          (DonkeyShare.all_shared ())        
+    )
   in
-
+  
   let max_allowed_connected_servers = max_allowed_connected_servers () in
   let nconnected_servers = ref 0 in
   
@@ -776,24 +770,22 @@ connections *)
           end;
         
         nconnected_servers := !nconnected_servers - 3;
-        (match s.server_sock with
-            None -> assert false
-          | Some sock ->
-              
+        do_if_connected  s.server_sock (fun sock ->
+
 (* We will disconnect from this server. Send the last queries and
   wait for 60 seconds to disconnect. *)
-              
-              List.iter (fun file ->
-                  query_location file sock 
-              ) s.server_waiting_queries;
-              
-              
-              set_lifetime sock 60.);
+            
+            List.iter (fun file ->
+                query_location file sock 
+            ) s.server_waiting_queries;
+            
+            
+            set_lifetime sock 60.);
       end
   in
   
   List.iter (fun s ->
-      if s.server_sock <> None then begin
+      do_if_connected  s.server_sock (fun _ ->
           incr nconnected_servers;
           
           if !verbose then begin
@@ -836,7 +828,8 @@ now if needed *)
                     end else
                     disconnect_old_server s
             end
-        end)
+      )
+  )
   list;
   
   if !verbose then begin

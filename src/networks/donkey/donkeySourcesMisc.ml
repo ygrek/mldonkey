@@ -211,11 +211,12 @@ let add_file_location file c =
       file.file_locations <- Intmap.add (client_num c) c file.file_locations;
       CommonFile.file_add_source (CommonFile.as_file file.file_file) 
       (CommonClient.as_client c.client_client);
-      match c.client_sock, client_state c with
-        Some sock, (Connected_downloading
-          | Connected _) ->
-          query_file c file
-      | _ -> ()
+      do_if_connected c.client_sock (fun sock ->
+          match client_state c with
+            Connected_downloading
+          | Connected _ ->
+              query_file c file
+          | _ -> ())
     end
     
 let remove_file_location file c = 

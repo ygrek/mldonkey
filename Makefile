@@ -199,9 +199,9 @@ COMMON_CLIENT_SRCS= \
   $(COMMON)/commonFile.ml \
   $(COMMON)/commonResult.ml \
   $(COMMON)/commonNetwork.ml \
+  $(COMMON)/commonComplexOptions.ml \
   $(COMMON)/commonShared.ml \
   $(COMMON)/commonRoom.ml \
-  $(COMMON)/commonComplexOptions.ml \
   $(COMMON)/commonSearch.ml \
   $(COMMON)/commonMultimedia.ml \
   $(COMMON)/commonWeb.ml \

@@ -29,7 +29,7 @@ type server = {
     mutable server_info : string;
     mutable server_nusers : int;
     server_connection_control : CommonTypes.connection_control;
-    mutable server_sock : TcpBufferedSocket.t option;
+    mutable server_sock : tcp_connection;
     mutable server_port : int;
     mutable server_nick : int;
     mutable server_last_nick : string;
@@ -69,7 +69,7 @@ and client = {
     client_client : client CommonClient.client_impl;
     client_name : string;
     mutable client_addr : (Ip.t * int) option;
-    mutable client_peer_sock : TcpBufferedSocket.t option;
+    mutable client_peer_sock : tcp_connection;
     mutable client_downloads : (file, client) CommonDownloads.download list;
     mutable client_result_socks : TcpBufferedSocket.t list;
     client_connection_control : CommonTypes.connection_control;

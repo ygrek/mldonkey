@@ -49,8 +49,7 @@ val read : t -> int64 -> string -> int -> int -> unit
 val allocate_chunk :  t -> int64 -> int -> unit
   
 val copy_chunk : t -> t -> int64 -> int64 -> int -> unit
-  
-  
+    
 val file_exists : string -> bool
 
 val fd_of_chunk : t -> int64 -> int64 -> 
@@ -70,6 +69,8 @@ val create_rw : string -> t
   
 val create_multifile :     
   string -> Unix.open_flag list -> int -> (string * int64) list -> t
+
+val create_sparsefile :  string -> t
 
 val ro_flag :  Unix.open_flag list
 val rw_flag :  Unix.open_flag list

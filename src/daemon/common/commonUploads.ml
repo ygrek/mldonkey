@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Int32ops
 open Md4
 open CommonShared
 open Printf2
@@ -32,8 +33,18 @@ open TcpBufferedSocket
 open CommonGlobals
 open CommonOptions
 
-(* We should implement a common uploader too for all networks where
-upload is done linearly. *)
+(* 
+PROBLEMS: most of the time, users won't share their files on all networks.
+We should provide a different directory than incoming/, where files
+would be shared, per directory ?
+
+We should move to a per-network approach. This module would be a functor,
+and each network would be configured to share or not share different
+directories. Moreover, we should have a different sharing strategy.
+
+Default would be: share all files greater than 1 MB in incoming/ on Edonkey.
+  
+*)
   
 (*******************************************************************
 
@@ -430,7 +441,7 @@ let filesize_field = "size"
   
 module Indexer = struct
         
-let stem s =
+ let stem s =
   let s = String.lowercase (String.copy s) in
   for i = 0 to String.length s - 1 do
     let c = s.[i] in
@@ -488,10 +499,10 @@ let rec query_to_query t =
           match field with 
           | Field_Size -> s.shared_size <= maxval
           | _ -> true)
-    
-      
+  
+  
   | _ -> failwith "Query not implemented by server"
-      
+
 (*
   
 type query =
@@ -959,7 +970,6 @@ let remaining_bandwidth () = !remaining_bandwidth
 
 let download_credit = ref 0 
 let download_fifo = Fifo.create ()
-
     
 let download_engine () =
   if not (Fifo.empty download_fifo) then begin
@@ -985,12 +995,6 @@ let queue_download_request f len =
     f ()
   else
     Fifo.put download_fifo (f,len)    
-
-    (*
-  (* timer started every 1/10 seconds *)
-let download_timer () =
-  *)
-
 
   (* timer started every 1/10 seconds *)
 let upload_download_timer () =

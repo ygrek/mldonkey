@@ -20,16 +20,49 @@
 open Printf2
 open BasicSocket
 
-(* let _ = Unix2.init () *)
-  
-type event = 
+let max_opened_connections = ref (fun () -> maxi 20 (MlUnix.max_sockets - 50))
+let max_connections_per_second = ref (fun () -> 50)
+
+let opened_connections = ref 0
+let opened_connections_this_second = ref 0
+
+let max_buffer_size = ref 100000
+
+let bind_address = ref Unix.inet_addr_any
+let ip_packet_size = ref 40
+let mtu_packet_size = ref 1500
+let minimal_packet_size = ref 600
+
+let tcp_uploaded_bytes = ref Int64.zero
+let tcp_downloaded_bytes = ref Int64.zero
+
+let exn_exit = Exit
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         TYPES                                         *)
+(*                                                                       *)
+(*************************************************************************)
+
+type event =
   WRITE_DONE
 | CAN_REFILL
 | CONNECTED
 | BUFFER_OVERFLOW
 | READ_DONE of int
 | BASIC_EVENT of BasicSocket.event
-  
+
+type token = {
+    mutable token_used : bool;
+    connection_manager : connection_manager;
+  }
+
+and connection_manager = {
+    mutable nestablished_connections : int;
+    mutable nwaiting_connections : int;
+    waiting_connections : (token * (token -> unit)) Fifo.t;
+  }
+
 type buf = {
     mutable buf : string;
     mutable pos : int;
@@ -49,20 +82,30 @@ type t = {
     mutable nwrite : int;
     mutable nup_packets : int;
     mutable monitored : bool;
-    
+
     mutable read_control : bandwidth_controler option;
     mutable write_control : bandwidth_controler option;
-    mutable write_power : int;    
-    mutable read_power : int;    
-    
+    mutable write_power : int;
+    mutable read_power : int;
+
     mutable peer_ip : Ip.t;
     mutable my_ip : Ip.t;
 
     mutable noproxy : bool;
     mutable connecting : bool;
     mutable host : string;
-  }  
-  
+
+    mutable token : token;
+
+    mutable compression : (
+      Zlib.stream *
+      Zlib.stream *
+      buf * (* read buffer after decompression *)
+      buf (* write buffer before decompression *)
+    ) option;
+
+  }
+
 and handler = t -> event -> unit
 
 and bandwidth_controler = {
@@ -77,23 +120,129 @@ and bandwidth_controler = {
     mutable forecast_bytes : int;
   }
 
-let bind_address = ref Unix.inet_addr_any
-let ip_packet_size = ref 40
-let mtu_packet_size = ref 1500
-let minimal_packet_size = ref 600
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         Connections Managers                          *)
+(*                                                                       *)
+(*************************************************************************)
+
+let managers = ref []
+
+let create_connection_manager () =
+  let manager = {
+      nestablished_connections = 0;
+      nwaiting_connections = 0;
+      waiting_connections = Fifo.create ();
+  }
+  in
+  managers := manager :: !managers;
+  manager
+
+let create_token manager = {
+    token_used = false;
+    connection_manager = manager;
+  }
+
+let add_pending_connection manager f =
+  let token = create_token manager in
+  Fifo.put manager.waiting_connections (token, f);
+  manager.nwaiting_connections <- manager.nwaiting_connections + 1;
+  token
+
+let can_open_connection manager =
+  manager.nestablished_connections +
+    manager.nwaiting_connections < !max_opened_connections ()
+
+
+(******
+  This scheduler does not use the already established connections.
+*****)
+
+let schedule_connections () =
+  let max_wanted = !max_opened_connections () in
+  let current_connections = !opened_connections in
+  let max_connections_per_second = !max_connections_per_second () in
   
+  let rec iter todo_managers done_managers =
+
+(*
+    lprintf "todo_managers %d done_managers %d\n" 
+(List.length todo_managers) (List.length done_managers);
+  *)
+    match todo_managers with
+      [] -> begin
+          match done_managers with
+            [] -> ()
+          | _ -> iter done_managers []
+        end
+    | manager :: tail ->
+(*
+        lprintf "!opened_connections_this_second %d < max_connections_per_second %d\n" !opened_connections_this_second max_connections_per_second;
+        lprintf "&& !opened_connections %d < max_wanted %d\n"
+          !opened_connections max_wanted;
+*)
+        if !opened_connections_this_second < max_connections_per_second
+            && !opened_connections < max_wanted then
+          if
+            (try
+                let (token,f) =
+                  Fifo.take manager.waiting_connections in
+                manager.nwaiting_connections <-
+                  manager.nwaiting_connections - 1;
+                if not token.token_used then begin
+                    f token;
+                  end;
+(* prevent in any case the token from being used later *)
+                token.token_used <- true;
+                true
+              with _ -> false)
+          then
+            iter tail (manager :: done_managers)
+          else
+            iter tail done_managers
+  in
+  iter !managers []
+
+let cancel_token token =
+  token.token_used <- true
+
+let used_token token = token.token_used
+
+let unlimited_connection_manager = create_connection_manager ()
+
+let reset_connection_scheduler _ =
+  opened_connections_this_second := 0
+
+let use_token token fd =
+  if token.token_used then begin
+      (try Unix.close fd with _ -> ());
+      failwith "Token already used";
+    end;
+  token.token_used <- true;
+  token.connection_manager.nestablished_connections <-
+    token.connection_manager.nestablished_connections + 1;
+  incr opened_connections;
+  incr opened_connections_this_second
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         Bandwidth Consumers                           *)
+(*                                                                       *)
+(*************************************************************************)
+
 let forecast_download_ip_packet t =
   match t.read_control with
     None -> ()
   | Some bc ->
       bc.forecast_bytes <- bc.forecast_bytes + !ip_packet_size
-  
+
 let forecast_upload_ip_packet t =
   match t.write_control with
     None -> ()
   | Some bc ->
       bc.forecast_bytes <- bc.forecast_bytes + !ip_packet_size
-  
+
 let download_ip_packets t n =
   match t.read_control with
     None -> ()
@@ -101,8 +250,8 @@ let download_ip_packets t n =
       bc.remaining_bytes <- bc.remaining_bytes - !ip_packet_size * n
 
 let remove_ip_packet bc =
-  bc.remaining_bytes <- bc.remaining_bytes - !ip_packet_size  
-      
+  bc.remaining_bytes <- bc.remaining_bytes - !ip_packet_size
+
 let upload_ip_packets t n =
   match t.write_control with
     None -> ()
@@ -113,19 +262,20 @@ let accept_connection_bandwidth rc wc =
   rc.remaining_bytes <- rc.remaining_bytes - !ip_packet_size;
   wc.forecast_bytes <- wc.forecast_bytes + !ip_packet_size;
   rc.forecast_bytes <- rc.forecast_bytes + !ip_packet_size
-      
-let tcp_uploaded_bytes = ref Int64.zero
-let tcp_downloaded_bytes = ref Int64.zero
-  
-let nread t = t.nread
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         Buffers management                            *)
+(*                                                                       *)
+(*************************************************************************)
 
 let min_buffer_read = 500
-let min_read_size = min_buffer_read - 100  
-  
+let min_read_size = min_buffer_read - 100
+
 let old_strings_size = 20
 let old_strings = Array.create old_strings_size ""
 let old_strings_len = ref 0
-  
+
 let new_string () =
   if !old_strings_len > 0 then begin
       decr old_strings_len;
@@ -134,7 +284,7 @@ let new_string () =
       s
     end else
     String.create min_buffer_read
-  
+
 let delete_string s =
   if !old_strings_len < old_strings_size &&
     String.length s = min_buffer_read then begin
@@ -142,15 +292,116 @@ let delete_string s =
       incr old_strings_len;
     end
 
-let close t s = 
+let buf_create max =
+  {
+    buf = "";
+    pos = 0;
+    len = 0;
+    max_buf_size = max;
+  }
+
+
+let buf_used b nused =
+  if nused = b.len then
+    ( b.len <- 0;
+      b.pos <- 0;
+      delete_string b.buf;
+      b.buf <- "";
+      )
+  else
+    (b.len <- b.len - nused; b.pos <- b.pos + nused)
+
+let buf_size  t =
+  (String.length t.rbuf.buf),
+  (String.length t.wbuf.buf)
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         buf_add                                       *)
+(*                                                                       *)
+(*************************************************************************)
+
+let buf_add t b s pos1 len =
+  let curpos = b.pos + b.len in
+  let max_len =
+    if b.buf = "" then
+      begin
+        b.buf <- new_string ();
+        min_buffer_read
+      end else
+      String.length b.buf in
+  if max_len - curpos < len then (* resize before blit *)
+    if b.len + len < max_len then (* just move to 0 *)
+      begin
+        String.blit b.buf b.pos b.buf 0 b.len;
+        String.blit s pos1 b.buf b.len len;
+        b.len <- b.len + len;
+        b.pos <- 0;
+      end
+    else
+    if b.len + len > b.max_buf_size then begin
+        lprintf "BUFFER OVERFLOW %d+%d> %d\n" b.len len b.max_buf_size ;
+
+        lprintf "MESSAGE [";
+        for i = pos1 to pos1 + (mini len 20) - 1 do
+          lprintf "(%d)" (int_of_char s.[i]);
+        done;
+        if len > 20 then lprintf "...";
+        lprintf "]\n";
+
+        t.event_handler t BUFFER_OVERFLOW;
+      end
+    else
+    let new_len = mini (maxi (2 * max_len) (b.len + len)) b.max_buf_size  in
+(*    if t.monitored then
+      (lprintf "Allocate new for %d\n" len; ); *)
+    let new_buf = String.create new_len in
+    String.blit b.buf b.pos new_buf 0 b.len;
+    String.blit s pos1 new_buf b.len len;
+    b.len <- b.len + len;
+    b.pos <- 0;
+    if max_len = min_buffer_read then delete_string b.buf;
+(*    if t.monitored then
+      (lprintf "new buffer allocated\n"; ); *)
+    b.buf <- new_buf
+  else begin
+      String.blit s pos1 b.buf curpos len;
+      b.len <- b.len + len
+    end
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         Sockets management                            *)
+(*                                                                       *)
+(*************************************************************************)
+
+let buf t = t.rbuf
+let sock t = t.sock
+let closed t = closed t.sock
+let error t = t.error
+let sock_used t nused = buf_used t.rbuf nused
+let remaining_to_write t =  t.wbuf.len
+let nread t = t.nread
+let nwritten t = t.nwrite
+let can_write t =  t.wbuf.len = 0
+let can_write_len t len = t.wbuf.max_buf_size > t.wbuf.len + len
+let not_buffer_more t max =  t.wbuf.len < max
+let can_fill t = t.wbuf.len < (t.wbuf.max_buf_size / 2)
+let get_rtimeout t = get_rtimeout t.sock
+
+
+let close t s =
 (*
   if t.monitored then begin
-      lprintf "close with %s %s\n" t.error s; 
+      lprintf "close with %s %s\n" t.error s;
 end;
 *)
   if not t.closing then
     begin
       try
+        t.token.connection_manager.nestablished_connections <-
+          t.token.connection_manager.nestablished_connections - 1;
+        decr opened_connections;
         t.closing <- true;
         delete_string t.rbuf.buf;
         delete_string t.wbuf.buf;
@@ -162,128 +413,30 @@ end;
           end;
         close t.sock s (* (Printf.sprintf "%s after %d/%d" s t.nread t.nwrite) *)
       with e ->
-          lprintf "Exception %s in TcpBufferedSocket.close\n" 
-            (Printexc2.to_string e); 
+          lprintf "Exception %s in TcpBufferedSocket.close\n"
+            (Printexc2.to_string e);
           raise e
     end
-    
+
 let shutdown t s =
   (*
   if t.monitored then begin
-      lprintf "shutdown\n"; 
+      lprintf "shutdown\n";
 end;
   *)
-  (try BasicSocket.shutdown t.sock s with e -> 
+  (try BasicSocket.shutdown t.sock s with e ->
        lprintf "exception %s in shutdown\n" (Printexc2.to_string e);
         );
-  (try close t s with  e -> 
+  (try close t s with  e ->
         lprintf "exception %s in shutdown\n" (Printexc2.to_string e);
         )
 
-let buf_create max = 
-  {
-    buf = "";
-    pos = 0;
-    len = 0;
-    max_buf_size = max;
-  } 
+(*************************************************************************)
+(*                                                                       *)
+(*                         write                                         *)
+(*                                                                       *)
+(*************************************************************************)
 
-let error t = t.error
-      
-let set_closer t f =
-  let old_handler = t.event_handler in
-  let handler t ev =
-(*    if t.monitored then (lprintf "set_closer handler\n"); *)
-    match ev with
-      BASIC_EVENT (CLOSED s) ->
-(*        lprintf "READ_DONE %d\n" nread; *)
-        f t s
-    |_ -> old_handler t ev
-  in
-  t.event_handler <- handler
-
-      
-let buf_used b nused =
-  if nused = b.len then
-    ( b.len <- 0; 
-      b.pos <- 0;
-      delete_string b.buf;
-      b.buf <- "";
-      )
-  else
-    (b.len <- b.len - nused; b.pos <- b.pos + nused)
-
-let sock_used t nused = buf_used t.rbuf nused
-
-    
-let set_handler t event handler =
-  let old_handler = t.event_handler in
-  let handler t ev =
-(*    if t.monitored then (lprintf "set_handler handler\n"; ); *)
-    if ev = event then
-      handler t
-    else
-      old_handler t ev
-  in
-  t.event_handler <- handler
-
-let set_refill t f =
-  set_handler t CAN_REFILL f;
-  if t.wbuf.len = 0 then (try f t with _ -> ())
-
-let buf t = t.rbuf
-let sock t = t.sock
-  
-let closed t = closed t.sock
-
-let buf_add t b s pos1 len =
-  let curpos = b.pos + b.len in
-  let max_len = 
-    if b.buf = "" then
-      begin
-        b.buf <- new_string ();
-        min_buffer_read
-      end else
-      String.length b.buf in
-  if max_len - curpos < len then (* resize before blit *)
-    if b.len + len < max_len then (* just move to 0 *)
-      begin
-        String.blit b.buf b.pos b.buf 0 b.len;
-        String.blit s pos1 b.buf b.len len;            
-        b.len <- b.len + len;
-        b.pos <- 0;
-      end
-    else
-    if b.len + len > b.max_buf_size then begin
-        lprintf "BUFFER OVERFLOW %d+%d> %d\n" b.len len b.max_buf_size ; 
-        
-        lprintf "MESSAGE [";
-        for i = pos1 to pos1 + (mini len 20) - 1 do
-          lprintf "(%d)" (int_of_char s.[i]);
-        done;
-        if len > 20 then lprintf "...";
-        lprintf "]\n"; 
-        
-        t.event_handler t BUFFER_OVERFLOW;
-      end
-    else
-    let new_len = mini (maxi (2 * max_len) (b.len + len)) b.max_buf_size  in
-(*    if t.monitored then
-      (lprintf "Allocate new for %d\n" len; ); *)
-    let new_buf = String.create new_len in
-    String.blit b.buf b.pos new_buf 0 b.len;
-    String.blit s pos1 new_buf b.len len;            
-    b.len <- b.len + len;
-    b.pos <- 0;
-    if max_len = min_buffer_read then delete_string b.buf;
-(*    if t.monitored then
-      (lprintf "new buffer allocated\n"; ); *)
-    b.buf <- new_buf
-  else begin
-      String.blit s pos1 b.buf curpos len;
-      b.len <- b.len + len
-    end
-    
 let write t s pos1 len =
 (*  lprintf "want_write %d\n" len; *)
   if len > 0 && not (closed t) then
@@ -291,22 +444,22 @@ let write t s pos1 len =
     let b = t.wbuf in
     let pos1 =
       if b.len = 0 && not t.connecting && (match t.write_control with
-            None -> 
+            None ->
 (*              lprintf "NO CONTROL\n"; *)
               true
-          | Some bc -> 
+          | Some bc ->
 (*              lprintf "LIMIT %d\n" bc.total_bytes; *)
               bc.total_bytes = 0)
-      then 
+      then
         try
           let fd = fd t.sock in
           let nw = MlUnix.write fd s pos1 len in
-          
+
           upload_ip_packets t (1 + len / !mtu_packet_size);
           forecast_download_ip_packet t;
-          
+
 (*          if t.monitored then begin
-              lprintf "write: direct written %d\n" nw;  
+              lprintf "write: direct written %d\n" nw;
 end; *)
           tcp_uploaded_bytes := Int64.add !tcp_uploaded_bytes (Int64.of_int nw);
           (match t.write_control with
@@ -322,7 +475,7 @@ end; *)
         | e ->
             t.error <- Closed_for_error (Printf.sprintf "Write Error: %s" (Printexc2.to_string e));
             close t t.error;
-            
+
 (*      lprintf "exce %s in read\n" (Printexc2.to_string e);  *)
             raise e
 
@@ -333,16 +486,18 @@ end; *)
       must_write sock true;
       buf_add t b s pos1 (pos2 - pos1)
 
-let write_string t s = write t s 0 (String.length s)
-      
+(*************************************************************************)
+(*                                                                       *)
+(*                         can_read_handler                              *)
+(*                                                                       *)
+(*************************************************************************)
+
 let dummy_sock = Obj.magic 0
 
-let exn_exit = Exit
-  
-  
+
 (* max_len is the maximal length we authorized to read, min_read_size
 is the minimal size we authorize to read *)
-  
+
 let can_read_handler t sock max_len =
 (*  let max_len = 100000 in (* REMOVE THIS: don't care about bw *) *)
   let b = t.rbuf in
@@ -351,29 +506,29 @@ let can_read_handler t sock max_len =
     if b.buf = "" then begin
         b.buf <- new_string ();
         min_buffer_read
-      end 
+      end
     else
     let buf_len = String.length b.buf in
     if buf_len - curpos < min_read_size then
       if b.len + min_read_size > b.max_buf_size then
         (
-          t.event_handler t BUFFER_OVERFLOW; 
-          lprintf "[OVERFLOW] in %s" (info sock); 
+          t.event_handler t BUFFER_OVERFLOW;
+          lprintf "[OVERFLOW] in %s" (info sock);
           close t Closed_for_overflow;
-          raise exn_exit; 
+          raise exn_exit;
           0
         )
       else
       if b.len + min_read_size < buf_len then
-        ( 
+        (
           String.blit b.buf b.pos b.buf 0 b.len;
           b.pos <- 0;
           buf_len - b.len
         )
       else
-      let new_len = mini 
-          (maxi 
-            (2 * buf_len) (b.len + min_read_size)) b.max_buf_size  
+      let new_len = mini
+          (maxi
+            (2 * buf_len) (b.len + min_read_size)) b.max_buf_size
       in
       let new_buf = String.create new_len in
       String.blit b.buf b.pos new_buf 0 b.len;
@@ -388,9 +543,9 @@ let can_read_handler t sock max_len =
     let nread = try
 (*        lprintf "Unix.read %d/%d/%d\n"  (String.length b.buf) (b.pos + b.len) can_read; *)
         Unix.read (fd sock) b.buf (b.pos + b.len) can_read;
-        
+
 	
-      with 
+      with
         Unix.Unix_error((Unix.EWOULDBLOCK | Unix.EAGAIN), _,_) as e -> raise e
       | e ->
           t.error <- Closed_for_error (Printf.sprintf "Can Read Error: %s" (Printexc2.to_string e));
@@ -398,7 +553,7 @@ let can_read_handler t sock max_len =
 
 (*      lprintf "exce %s in read\n" (Printexc2.to_string e); *)
           raise e
-    
+
     in
 
     (*
@@ -406,13 +561,13 @@ let can_read_handler t sock max_len =
         lprintf "Unix.read: read limited %d\n" nread;
     end;
 *)
-    
+
     tcp_downloaded_bytes := Int64.add !tcp_downloaded_bytes (Int64.of_int nread);
     (match t.read_control with
         None -> () | Some bc ->
           bc.moved_bytes <-
-          Int64.add bc.moved_bytes (Int64.of_int nread));        
-    
+          Int64.add bc.moved_bytes (Int64.of_int nread));
+
     t.nread <- t.nread + nread;
     if nread > 0 then begin
         let npackets = 1 + nread / !mtu_packet_size in
@@ -425,7 +580,7 @@ let can_read_handler t sock max_len =
       let curpos = b.pos in
       b.len <- b.len + nread;
       try
-(*              if t.monitored then 
+(*              if t.monitored then
    (lprintf "event handler READ DONE\n"; ); *)
         t.event_handler t (READ_DONE nread);
       with
@@ -439,9 +594,15 @@ let can_read_handler t sock max_len =
           raise e
     end
 
+(*************************************************************************)
+(*                                                                       *)
+(*                         can_write_handler                             *)
+(*                                                                       *)
+(*************************************************************************)
+
 let can_write_handler t sock max_len =
 (*      if t.monitored then (
-          lprintf "CAN_WRITE (%d)\n" t.wbuf.len; 
+          lprintf "CAN_WRITE (%d)\n" t.wbuf.len;
         ); *)
   let b = t.wbuf in
   if not t.connecting then (
@@ -459,7 +620,7 @@ let can_write_handler t sock max_len =
             None -> ()
           | Some bc ->
               bc.moved_bytes <-
-              Int64.add bc.moved_bytes (Int64.of_int nw));        
+              Int64.add bc.moved_bytes (Int64.of_int nw));
         t.nwrite <- t.nwrite + nw;
         b.len <- b.len - nw;
         b.pos <- b.pos + nw;
@@ -469,7 +630,7 @@ let can_write_handler t sock max_len =
             delete_string b.buf;
             b.buf <- "";
           end
-      with 
+      with
         Unix.Unix_error((Unix.EWOULDBLOCK | Unix.EAGAIN ), _,_) as e -> raise e
       | e ->
           t.error <- Closed_for_error (Printf.sprintf "Can Write Error: %s" (Printexc2.to_string e));
@@ -477,7 +638,7 @@ let can_write_handler t sock max_len =
 
 (*      lprintf "exce %s in read\n" (Printexc2.to_string e);  *)
           raise e
-    
+
     end;
   if not (closed t) then begin
       t.event_handler t CAN_REFILL;
@@ -487,14 +648,16 @@ let can_write_handler t sock max_len =
           must_write t.sock false;
           t.event_handler t WRITE_DONE
         end
-    end      
+    end
   )
 
-let remaining_to_write t =
-  let b = t.wbuf in
-  b.len
-    
-let tcp_handler t sock event = 
+(*************************************************************************)
+(*                                                                       *)
+(*                         tcp_handler                                   *)
+(*                                                                       *)
+(*************************************************************************)
+
+let tcp_handler t sock event =
   match event with
   | CAN_READ ->
 (*      lprintf "CAN_READ\n"; *)
@@ -503,7 +666,7 @@ let tcp_handler t sock event =
           None ->
             can_read_handler t sock 1000000
         | Some bc ->
-            if bc.total_bytes = 0 then 
+            if bc.total_bytes = 0 then
               can_read_handler t sock 1000000
             else begin
 (*                lprintf "DELAYED\n";  *)
@@ -535,6 +698,135 @@ let tcp_handler t sock event =
       end
   | _ -> t.event_handler t (BASIC_EVENT event)
 
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         Bandwidth Controlers                          *)
+(*                                                                       *)
+(*************************************************************************)
+
+let read_bandwidth_controlers = ref []
+let write_bandwidth_controlers = ref []
+
+let create_read_bandwidth_controler rate =
+  let bc = {
+      remaining_bytes = rate;
+      total_bytes = rate;
+      nconnections = 0;
+      connections = [];
+      allow_io = ref true;
+      remaining_bytes_user = (fun _ _ -> ());
+      moved_bytes = Int64.zero;
+      lost_bytes = Array.create 3600 0;
+      forecast_bytes = 0;
+  } in
+  read_bandwidth_controlers := bc :: !read_bandwidth_controlers;
+  bc
+
+let create_write_bandwidth_controler rate =
+  let bc = {
+      remaining_bytes = rate;
+      total_bytes = rate;
+      nconnections = 0;
+      connections = [];
+      allow_io = ref true;
+      remaining_bytes_user = (fun _ _ -> ());
+      moved_bytes = Int64.zero;
+      lost_bytes = Array.create 3600 0;
+      forecast_bytes = 0;
+    } in
+  write_bandwidth_controlers := bc :: !write_bandwidth_controlers;
+  bc
+
+let change_rate bc rate =
+  bc.total_bytes <- rate
+
+let bandwidth_controler t sock =
+  (match t.read_control with
+      None -> ()
+    | Some bc ->
+        must_read sock (bc.total_bytes = 0 || bc.remaining_bytes > 0));
+  (match t.write_control with
+      None -> ()
+    | Some bc ->
+        must_write sock ((bc.total_bytes = 0 || bc.remaining_bytes > 0)
+          && t.wbuf.len > 0))
+
+let reset_bandwidth_controlers _ =
+  List.iter (fun bc ->
+      bc.remaining_bytes_user bc.total_bytes bc.remaining_bytes;
+      bc.remaining_bytes <- bc.total_bytes - bc.forecast_bytes;
+      bc.forecast_bytes <- 0;
+      if bc.remaining_bytes > 0 then bc.allow_io := true
+(*            lprintf "READ remaining_bytes: %d" bc.remaining_bytes;  *)
+  ) !read_bandwidth_controlers;
+  List.iter (fun bc ->
+      bc.remaining_bytes_user bc.total_bytes bc.remaining_bytes;
+      bc.remaining_bytes <- bc.total_bytes - bc.forecast_bytes;
+      bc.forecast_bytes <- 0;
+      if bc.remaining_bytes > 0 then bc.allow_io := true;
+(*
+          lprintf "WRITE remaining_bytes: %d\n" bc.remaining_bytes;
+          *)
+  ) !write_bandwidth_controlers
+
+let compute_lost_byte bc =
+  if bc.total_bytes = 0 then -1 else
+  let sum = ref Int64.zero in
+  for i = 0 to 3600-1 do
+    sum := Int64.add !sum (Int64.of_int bc.lost_bytes.(i));
+  done;
+  Int64.to_int (Int64.div !sum (Int64.of_int 3600))
+
+let moved_bytes bc = bc.moved_bytes
+
+let set_remaining_bytes_user bc f =
+  bc.remaining_bytes_user <- f
+
+let set_lost_bytes bc lost sec =
+  bc.lost_bytes.(sec mod 3600) <- lost
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         Setting handlers                              *)
+(*                                                                       *)
+(*************************************************************************)
+
+let set_closer t f =
+  let old_handler = t.event_handler in
+  let handler t ev =
+(*    if t.monitored then (lprintf "set_closer handler\n"); *)
+    match ev with
+      BASIC_EVENT (CLOSED s) ->
+(*        lprintf "READ_DONE %d\n" nread; *)
+        f t s
+    |_ -> old_handler t ev
+  in
+  t.event_handler <- handler
+
+let set_handler t event handler =
+  let old_handler = t.event_handler in
+  let handler t ev =
+(*    if t.monitored then (lprintf "set_handler handler\n"; ); *)
+    if ev = event then
+      handler t
+    else
+      old_handler t ev
+  in
+  t.event_handler <- handler
+
+let set_refill t f =
+  set_handler t CAN_REFILL f;
+  if t.wbuf.len = 0 then (try f t with _ -> ())
+
+let close_after_write t =
+  if t.wbuf.len = 0 then begin
+      shutdown t Closed_by_user
+    end
+  else
+    set_handler t WRITE_DONE (fun t ->
+        shutdown t Closed_by_user)
+
 exception Http_proxy_error of string
 let http_proxy = ref None
 
@@ -552,7 +844,7 @@ let set_reader t f =
             (* HTTP/1.0 200 OK\n\n *)
             let b = buf sock in
             let rcode, rstr, rstr_end =
-              try 
+              try
                 let rcode_pos = 8 (*String.index_from b.buf b.pos ' '*) in
                 let rcode = String.sub b.buf (rcode_pos+1) 3 in
                 let rstr_pos = 12 (*String.index_from b.buf (rcode_pos+1) ' '*) in
@@ -589,7 +881,7 @@ let set_reader t f =
     | _ -> old_handler t ev
   in
   t.event_handler <- handler
-      
+
 let set_handler t event handler =
   let old_handler = t.event_handler in
   let handler t ev =
@@ -605,79 +897,67 @@ let set_refill t f =
   set_handler t CAN_REFILL f;
   if t.wbuf.len = 0 then (try f t with _ -> ())
 
-let read_bandwidth_controlers = ref []
-let write_bandwidth_controlers = ref []
-  
-      
-let create_read_bandwidth_controler rate = 
-  let bc = {
-      remaining_bytes = rate;
-      total_bytes = rate;
-      nconnections = 0;
-      connections = [];
-      allow_io = ref true;
-      remaining_bytes_user = (fun _ _ -> ());
-      moved_bytes = Int64.zero;
-      lost_bytes = Array.create 3600 0;
-      forecast_bytes = 0;      
-  } in
-  read_bandwidth_controlers := bc :: !read_bandwidth_controlers;
-  bc
-      
-let create_write_bandwidth_controler rate = 
-  let bc = {
-      remaining_bytes = rate;
-      total_bytes = rate;
-      nconnections = 0;
-      connections = [];
-      allow_io = ref true;
-      remaining_bytes_user = (fun _ _ -> ());
-      moved_bytes = Int64.zero;
-      lost_bytes = Array.create 3600 0;
-      forecast_bytes = 0;
-    } in
-  write_bandwidth_controlers := bc :: !write_bandwidth_controlers;
-  bc
-  
-let change_rate bc rate =
-  bc.total_bytes <- rate
+(*************************************************************************)
+(*                                                                       *)
+(*                         Socket Configuration                          *)
+(*                                                                       *)
+(*************************************************************************)
 
-let bandwidth_controler t sock = 
-  (match t.read_control with
-      None -> ()
-    | Some bc ->
-        must_read sock (bc.total_bytes = 0 || bc.remaining_bytes > 0));
-  (match t.write_control with
-      None -> ()
-    | Some bc ->
-        must_write sock ((bc.total_bytes = 0 || bc.remaining_bytes > 0)
-          && t.wbuf.len > 0))  
-  
 let set_read_controler t bc =
   t.read_control <- Some bc;
 (*  set_before_select t.sock (bandwidth_controler t); *)
   set_allow_read t.sock bc.allow_io;
   bandwidth_controler t t.sock
-  
+
 let set_write_controler t bc =
   t.write_control <- Some bc;
 (*  set_before_select t.sock (bandwidth_controler t); *)
   set_allow_write t.sock bc.allow_io;
   bandwidth_controler t t.sock
-  
-let max_buffer_size = ref 100000 
 
-let dump_socket t buf = 
+let set_monitored t =
+  t.monitored <- true
+
+let set_rtimeout s t = set_rtimeout (sock s) t
+let set_wtimeout s t = set_wtimeout (sock s) t
+
+let set_write_power t p = t.write_power <- p
+let set_read_power t p = t.read_power <- p
+
+let set_lifetime s = set_lifetime (sock s)
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         Printing Information                          *)
+(*                                                                       *)
+(*************************************************************************)
+
+let dump_socket t buf =
   print_socket buf t.sock;
   Printf.bprintf buf "rbuf: %d/%d wbuf: %d/%d\n" t.rbuf.len
     (String.length t.rbuf.buf) t.wbuf.len (String.length t.wbuf.buf)
-  
-let create name fd handler =
+
+let stats buf t =
+  BasicSocket.stats buf t.sock;
+  Printf.bprintf buf "  rbuf size: %d/%d\n" (String.length t.rbuf.buf)
+  t.rbuf.max_buf_size;
+  Printf.bprintf buf "  wbuf size: %d/%d\n" (String.length t.wbuf.buf)
+  t.wbuf.max_buf_size
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         create                                        *)
+(*                                                                       *)
+(*************************************************************************)
+
+let create token name fd handler =
+  use_token token fd;
   if !debug then begin
-      lprintf "[fd %d %s]\n" (get_fd_num fd) name; 
+      lprintf "[fd %d %s]\n" (get_fd_num fd) name;
     end;
   MlUnix.set_close_on_exec fd;
   let t = {
+      token = token;
       closing = false;
       sock = dummy_sock;
       rbuf = buf_create !max_buffer_size;
@@ -698,6 +978,7 @@ let create name fd handler =
       noproxy = true;
       connecting = false;
       host = "";
+      compression = None;
     } in
   let sock = BasicSocket.create name fd (tcp_handler t) in
   let name = (fun () ->
@@ -710,9 +991,17 @@ let create name fd handler =
   t.sock <- sock;
   t
 
-let create_blocking name fd handler =
+(*************************************************************************)
+(*                                                                       *)
+(*                         create_blocking                               *)
+(*                                                                       *)
+(*************************************************************************)
+
+let create_blocking token name fd handler =
+  use_token token fd;
   MlUnix.set_close_on_exec fd;
   let t = {
+      token = token;
       closing = false;
       sock = dummy_sock;
       rbuf = buf_create !max_buffer_size;
@@ -733,16 +1022,24 @@ let create_blocking name fd handler =
       noproxy = true;
       connecting = false;
       host = "";
+      compression = None;
     } in
   let sock = create_blocking name fd (tcp_handler t) in
   t.sock <- sock;
   set_dump_info sock (dump_socket t);
   t
-  
-let create_simple name fd =
-  create name fd (fun _ _ -> ())
-  
-let connect name host port handler =
+
+let create_simple token name fd =
+  create token name fd (fun _ _ -> ())
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         connect                                       *)
+(*                                                                       *)
+(*************************************************************************)
+
+let connect token name host port handler =
+  if token.token_used then failwith "Token already used";
   try
 (*    lprintf "CONNECT %s:%d\n" (Unix.string_of_inet_addr host) port; *)
     let s = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
@@ -755,209 +1052,98 @@ let connect name host port handler =
     in
     let use_proxy = proxy_ip <> Ip.null && proxy_ip <> (Ip.of_inet_addr host) in
     if use_proxy then begin
-      (* connect to proxy in blocking mode, so we sure, connections established when we send CONNECT *)
-      lprintf "via proxy\n";
-      Unix.connect s (Unix.ADDR_INET(Ip.to_inet_addr proxy_ip, proxy_port));
-      let buf = Buffer.create 200 in
-      let dotted_host = Unix.string_of_inet_addr host in
-      Printf.bprintf buf "CONNECT %s:%d HTTP/1.1\n" dotted_host port;
-      Printf.bprintf buf "Pragma: no-cache\n";
-      Printf.bprintf buf "Cache-Control: no-cache\n";
-      Printf.bprintf buf "Connection: Keep-Alive\n";
-      Printf.bprintf buf "Proxy-Connection: Keep-Alive\n";
-      (*Printf.bprintf buf "User-Agent: Mozilla/4.0 (compatible; MSIE 5.01; Windows NT; Hotbar 2.0)\n";*)
-      Printf.bprintf buf "User-Agent: MLDonkey %s\n" Autoconf.current_version;
-      Printf.bprintf buf "\n";
-      let nw = MlUnix.write s (Buffer.contents buf) 0 (Buffer.length buf) in
-      ()
-    end;
-    let t = create name s handler in
+(* connect to proxy in blocking mode, so we sure, connections established when we send CONNECT *)
+        lprintf "via proxy\n";
+        Unix.connect s (Unix.ADDR_INET(Ip.to_inet_addr proxy_ip, proxy_port));
+        let buf = Buffer.create 200 in
+        let dotted_host = Unix.string_of_inet_addr host in
+        Printf.bprintf buf "CONNECT %s:%d HTTP/1.1\n" dotted_host port;
+        Printf.bprintf buf "Pragma: no-cache\n";
+        Printf.bprintf buf "Cache-Control: no-cache\n";
+        Printf.bprintf buf "Connection: Keep-Alive\n";
+        Printf.bprintf buf "Proxy-Connection: Keep-Alive\n";
+(*Printf.bprintf buf "User-Agent: Mozilla/4.0 (compatible; MSIE 5.01; Windows NT; Hotbar 2.0)\n";*)
+        Printf.bprintf buf "User-Agent: MLDonkey %s\n" Autoconf.current_version;
+        Printf.bprintf buf "\n";
+        let nw = MlUnix.write s (Buffer.contents buf) 0 (Buffer.length buf) in
+        ()
+      end;
+    let t = create token name s handler in
     must_write (sock t) true;
     try
       if use_proxy then begin
-        t.noproxy <- false;
-        t.connecting <- true;
-        t.host <- (Unix.string_of_inet_addr host)
-      end else
+          t.noproxy <- false;
+          t.connecting <- true;
+          t.host <- (Unix.string_of_inet_addr host)
+        end else
         Unix.connect s (Unix.ADDR_INET(host,port));
       upload_ip_packets t 1;             (* The TCP SYN packet *)
       forecast_download_ip_packet t;  (* The TCP ACK packet *)
       forecast_upload_ip_packet t;    (* The TCP ACK packet *)
       if use_proxy then begin
-      end;
+        end;
       t
-    with 
-      Unix.Unix_error((Unix.EINPROGRESS|Unix.EINTR|Unix.EWOULDBLOCK),_,_) -> 
+    with
+      Unix.Unix_error((Unix.EINPROGRESS|Unix.EINTR|Unix.EWOULDBLOCK),_,_) ->
         upload_ip_packets t 1;             (* The TCP SYN packet *)
         forecast_download_ip_packet t;  (* The TCP ACK packet *)
         forecast_upload_ip_packet t;    (* The TCP ACK packet *)
         t
-    | e -> 
+    | e ->
         lprintf "For host %s port %d\n" (Unix.string_of_inet_addr host)
-        port; 
+        port;
         close t Closed_connect_failed;
         raise e
-  with e -> 
+  with e ->
       lprintf "+++ Exception BEFORE CONNECT %s\n" (Printexc2.to_string e);
       raise e
-      
-  
-  
-let set_max_write_buffer t len =
-  t.wbuf.max_buf_size <- len;
-  t.rbuf.max_buf_size <- len
-  
-let can_write t =
-  t.wbuf.len = 0
 
-let can_write_len t len =
-(*  lprintf "CAN WRITE %d > %d + %d\n"  t.wbuf.max_buf_size t.wbuf.len len;  *)
-  t.wbuf.max_buf_size > t.wbuf.len + len
 
-let not_buffer_more t max =
-  t.wbuf.len < max
-  
-let close_after_write t =
-  if t.wbuf.len = 0 then begin
-      shutdown t Closed_by_user
-    end
-  else
-    set_handler t WRITE_DONE (fun t -> 
-        shutdown t Closed_by_user)
 
-let set_monitored t =
-  t.monitored <- true
-  
-let reset_bandwidth_controlers _ =       
-  List.iter (fun bc ->
-      bc.remaining_bytes_user bc.total_bytes bc.remaining_bytes;
-      bc.remaining_bytes <- bc.total_bytes - bc.forecast_bytes;
-      bc.forecast_bytes <- 0;
-      if bc.remaining_bytes > 0 then bc.allow_io := true
-(*            lprintf "READ remaining_bytes: %d" bc.remaining_bytes;  *)
-  ) !read_bandwidth_controlers;
-  List.iter (fun bc ->
-      bc.remaining_bytes_user bc.total_bytes bc.remaining_bytes;
-      bc.remaining_bytes <- bc.total_bytes - bc.forecast_bytes;          
-      bc.forecast_bytes <- 0;
-      if bc.remaining_bytes > 0 then bc.allow_io := true;
-(*
-          lprintf "WRITE remaining_bytes: %d\n" bc.remaining_bytes; 
-          *)
-  ) !write_bandwidth_controlers
-  
-let _ =
-  add_infinite_timer 1.0 reset_bandwidth_controlers;
-
-  set_before_select_hook (fun _ ->
-      List.iter (fun bc ->
-          bc.allow_io := (bc.total_bytes = 0 || bc.remaining_bytes > 0);
-      ) !read_bandwidth_controlers;
-        List.iter (fun bc ->
-          bc.allow_io := (bc.total_bytes = 0 || bc.remaining_bytes > 0);
-      ) !write_bandwidth_controlers;
-  );
-
-  set_after_select_hook (fun _ ->
-      List.iter (fun bc ->
-          List.iter (fun t ->
-              if bc.remaining_bytes > 0 then
-                let nconnections = maxi bc.nconnections 1 in
-                let can_read = maxi 1 (bc.remaining_bytes / nconnections) in
-                let can_read = maxi !ip_packet_size (can_read * t.read_power) in
-                let old_nread = t.nread in
-                (try
-                    can_read_handler t t.sock can_read  
-                  with _ -> ());
-                bc.remaining_bytes <- bc.remaining_bytes - 
-                t.nread + old_nread;
-                bc.nconnections <- bc.nconnections - t.read_power;
-          ) bc.connections;
-          if bc.remaining_bytes > 0 then bc.allow_io := false;
-          bc.connections <- [];
-          bc.nconnections <- 0;
-      ) !read_bandwidth_controlers;
-      List.iter (fun bc ->
-          List.iter (fun t ->
-              if bc.remaining_bytes > 0 then
-                let nconnections = maxi bc.nconnections 1 in
-                let can_write = maxi 1 (bc.remaining_bytes / nconnections) in
-                let can_write = maxi 
-                  (!minimal_packet_size) (can_write * t.write_power)
-                in
-                let old_nwrite = t.nwrite in
-                (try
-(*                    lprintf "WRITE\n";  *)
-                    can_write_handler t t.sock (mini can_write t.wbuf.len)
-                  with _ -> ());
-                bc.remaining_bytes <- bc.remaining_bytes - 
-                t.nwrite + old_nwrite;
-                bc.nconnections <- bc.nconnections - t.write_power;
-          ) bc.connections;
-          if bc.remaining_bytes > 0 then bc.allow_io := false;
-          bc.connections <- [];
-          bc.nconnections <- 0;
-      ) !write_bandwidth_controlers
-  )
+(*************************************************************************)
+(*                                                                       *)
+(*                         IP addresses                                  *)
+(*                                                                       *)
+(*************************************************************************)
 
 
 let my_ip t =
   if t.my_ip = Ip.null then
     let fd = fd t.sock in
     match Unix.getsockname fd with
-      Unix.ADDR_INET (ip, port) -> 
+      Unix.ADDR_INET (ip, port) ->
         let ip = Ip.of_inet_addr ip in
         t.my_ip <- ip;
         ip
     | _ -> raise Not_found
   else t.my_ip
-    
+
 let peer_ip t =
   if t.peer_ip = Ip.null then
   let fd = fd t.sock in
   match Unix.getpeername fd with
-      Unix.ADDR_INET (ip, port) -> 
+      Unix.ADDR_INET (ip, port) ->
         let ip = Ip.of_inet_addr ip in
         t.peer_ip <- ip; ip
   | _ -> raise Not_found
   else
     t.peer_ip
-    
+
 let host t =
   let fd = fd t.sock in
   match Unix.getpeername fd with
     Unix.ADDR_INET (ip, port) -> Ip.of_inet_addr ip, port
   | _ -> raise Not_found
-      
-let stats buf t =
-  BasicSocket.stats buf t.sock;
-  Printf.bprintf buf "  rbuf size: %d/%d\n" (String.length t.rbuf.buf)
-  t.rbuf.max_buf_size;
-  Printf.bprintf buf "  wbuf size: %d/%d\n" (String.length t.wbuf.buf)
-  t.wbuf.max_buf_size
 
-let buf_size  t =
-  (String.length t.rbuf.buf),
-  (String.length t.wbuf.buf)
-  
-let can_fill t =
-  t.wbuf.len < (t.wbuf.max_buf_size / 2)
-
-  (*
-let if_possible bc len = 
-  bc.total_bytes = 0 ||
-  if bc.last_remaining >= len then begin
-      bc.last_remaining <- bc.last_remaining - len;
-      true;
-    end else false
-      *)
-
-let set_rtimeout s t = set_rtimeout (sock s) t
-let set_wtimeout s t = set_wtimeout (sock s) t
+(*************************************************************************)
+(*                                                                       *)
+(*                         Sending Marshalled Values                     *)
+(*                                                                       *)
+(*************************************************************************)
 
 open AnyEndian
 open LittleEndian
-   
+
 let internal_buf = Buffer.create 17000
 
 let simple_send_buf buf sock =
@@ -991,38 +1177,189 @@ let value_handler f sock nread =
     done
   with Not_found -> ()
 
-let set_write_power t p = t.write_power <- p
-let set_read_power t p = t.read_power <- p
-  
-let set_lifetime s = set_lifetime (sock s)
-  
-let moved_bytes bc = bc.moved_bytes
-  
-let set_remaining_bytes_user bc f =
-  bc.remaining_bytes_user <- f
-  
-let set_lost_bytes bc lost sec =
-  bc.lost_bytes.(sec mod 3600) <- lost
+(*************************************************************************)
+(*                                                                       *)
+(*                         exec_command                                  *)
+(*                                                                       *)
+(*************************************************************************)
 
-let compute_lost_byte bc =
-  if bc.total_bytes = 0 then -1 else
-  let sum = ref Int64.zero in
-  for i = 0 to 3600-1 do
-    sum := Int64.add !sum (Int64.of_int bc.lost_bytes.(i));
-  done;
-  Int64.to_int (Int64.div !sum (Int64.of_int 3600))
-
-  
-let exec_command cmd args handler = 
+let exec_command cmd args handler =
+  let token_in = create_token unlimited_connection_manager in
+  let token_out = create_token unlimited_connection_manager in
   MlUnix.exec_command cmd args (fun in_read out_write ->
-      let t_in = create "pipe_int" in_read handler in
-      let t_out = create "pipe_out" out_write (fun _ _ -> ()) in
+      let t_in = create token_in "pipe_int" in_read handler in
+      let t_out = create token_out "pipe_out" out_write (fun _ _ -> ()) in
       must_read (sock t_out) false;
       (t_in, t_out)
   )
-  
-let nread t = t.nread
-let nwritten t = t.nwrite
-  
-let get_rtimeout t = get_rtimeout t.sock
-  
+
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         Setting configuration                         *)
+(*                                                                       *)
+(*************************************************************************)
+
+let set_max_connections_per_second f =
+  max_connections_per_second := f
+
+let set_max_opened_connections f =
+  max_opened_connections := f
+
+let set_max_write_buffer t len =
+  t.wbuf.max_buf_size <- len;
+  t.rbuf.max_buf_size <- len
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         Compression                                   *)
+(*                                                                       *)
+(*************************************************************************)
+
+let to_deflate = ref []
+let to_deflate_len = ref 0
+
+let compression_buffer_len = 20000
+let compression_buffer = String.create compression_buffer_len
+
+let deflate_connection sock =
+  lprintf "Creating deflate connection\n";
+  let comp = Some (Zlib.inflate_init true, Zlib.deflate_init 6 true,
+      buf_create !max_buffer_size, buf_create !max_buffer_size) in
+  sock.compression <- comp
+
+let rec iter_deflate sock zs wbuf =
+  if wbuf.len > 0 then begin
+      lprintf "iter_deflate\n";
+      let (_, used_in, used_out) = Zlib.deflate zs
+          wbuf.buf wbuf.pos wbuf.len
+          compression_buffer 0 compression_buffer_len
+          Zlib.Z_SYNC_FLUSH in
+      lprintf "deflated %d/%d -> %d\n" used_in wbuf.len used_out;
+      lprintf "[%s]\n" (String.escaped (String.sub compression_buffer 0 used_out));
+      write sock compression_buffer 0 used_out;
+      buf_used wbuf used_in;
+      if used_in > 0 || used_out > 0 then
+        iter_deflate sock zs wbuf
+    end
+
+let deflate_timer _ =
+  List.iter (fun sock ->
+      try
+        match sock.compression with
+          Some (_, zs, _, wbuf) ->
+            if closed sock then raise Exit;
+            iter_deflate sock zs wbuf
+        | _ -> ()
+      with e ->
+          lprintf "[ERROR] Exception %s in CanBeCompressed.deflate_timer\n"
+            (Printexc2.to_string e)
+  ) !to_deflate;
+  to_deflate := [];
+  to_deflate_len := 0
+
+let to_deflate conn =
+  if not (List.memq conn !to_deflate) then
+    to_deflate := conn :: !to_deflate;
+  if !to_deflate_len > 1000000 then
+    deflate_timer ()
+
+let rec iter_inflate zs sock b rbuf =
+  if b.len > 0 then begin
+      lprintf "iter_inflate %d\n" b.len;
+      lprintf "[%s]\n" (String.escaped (String.sub b.buf b.pos b.len));
+      let (_, used_in, used_out) = Zlib.inflate zs b.buf b.pos b.len
+          compression_buffer 0 compression_buffer_len
+          Zlib.Z_SYNC_FLUSH in
+      lprintf "inflated %d/%d -> %d\n" used_in b.len used_out;
+      lprintf "[%s]\n" (String.escaped (String.sub compression_buffer 0 used_out));
+      buf_add sock rbuf compression_buffer 0 used_out;
+      buf_used b used_in;
+      if used_in > 0 || used_out > 0 then
+        iter_inflate zs sock b rbuf
+    end
+
+let buf t =
+  match t.compression with
+    None -> t.rbuf
+  | Some (zs, _, rbuf, _) ->
+      lprintf "CanBeCompressed.buf\n";
+      let b = buf t in
+      if b.len > 0 then iter_inflate zs t b rbuf;
+      rbuf
+
+let write t s pos len =
+  match t.compression with
+    None -> write t s pos len
+  | Some (_,_, _,wbuf) ->
+
+      to_deflate_len := !to_deflate_len + len;
+      to_deflate t;
+      buf_add t wbuf s pos len
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         MAIN                                          *)
+(*                                                                       *)
+(*************************************************************************)
+
+let write_string t s = write t s 0 (String.length s)
+
+let _ =
+  add_infinite_timer 1.0 (fun _ ->
+      reset_bandwidth_controlers ();
+      reset_connection_scheduler ();
+      deflate_timer ();
+  );
+
+  set_before_select_hook (fun _ ->
+      schedule_connections ();
+      List.iter (fun bc ->
+          bc.allow_io := (bc.total_bytes = 0 || bc.remaining_bytes > 0);
+      ) !read_bandwidth_controlers;
+        List.iter (fun bc ->
+          bc.allow_io := (bc.total_bytes = 0 || bc.remaining_bytes > 0);
+      ) !write_bandwidth_controlers;
+  );
+
+  set_after_select_hook (fun _ ->
+      List.iter (fun bc ->
+          List.iter (fun t ->
+              if bc.remaining_bytes > 0 then
+                let nconnections = maxi bc.nconnections 1 in
+                let can_read = maxi 1 (bc.remaining_bytes / nconnections) in
+                let can_read = maxi !ip_packet_size (can_read * t.read_power) in
+                let old_nread = t.nread in
+                (try
+                    can_read_handler t t.sock can_read
+                  with _ -> ());
+                bc.remaining_bytes <- bc.remaining_bytes -
+                t.nread + old_nread;
+                bc.nconnections <- bc.nconnections - t.read_power;
+          ) bc.connections;
+          if bc.remaining_bytes > 0 then bc.allow_io := false;
+          bc.connections <- [];
+          bc.nconnections <- 0;
+      ) !read_bandwidth_controlers;
+      List.iter (fun bc ->
+          List.iter (fun t ->
+              if bc.remaining_bytes > 0 then
+                let nconnections = maxi bc.nconnections 1 in
+                let can_write = maxi 1 (bc.remaining_bytes / nconnections) in
+                let can_write = maxi
+                  (!minimal_packet_size) (can_write * t.write_power)
+                in
+                let old_nwrite = t.nwrite in
+                (try
+(*                    lprintf "WRITE\n";  *)
+                    can_write_handler t t.sock (mini can_write t.wbuf.len)
+                  with _ -> ());
+                bc.remaining_bytes <- bc.remaining_bytes -
+                t.nwrite + old_nwrite;
+                bc.nconnections <- bc.nconnections - t.write_power;
+          ) bc.connections;
+          if bc.remaining_bytes > 0 then bc.allow_io := false;
+          bc.connections <- [];
+          bc.nconnections <- 0;
+      ) !write_bandwidth_controlers
+  )

@@ -16,7 +16,7 @@
     along with mldonkey; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
-
+open Int32ops
 open Printf2
 open Md4
 
@@ -62,7 +62,7 @@ let reconnect_all file =
   DonkeySources.reschedule_sources file;
   List.iter (fun s ->
       match s.server_sock, server_state s with
-      | Some sock, (Connected _ | Connected_downloading) ->
+      | Connection sock, (Connected _ | Connected_downloading) ->
           s.server_waiting_queries <- file :: s.server_waiting_queries
       | _ -> ()
   ) (connected_servers())
@@ -156,10 +156,8 @@ let really_query_download filenames size md4 location old_file absents =
 (*  !file_change_hook file; *)
   set_file_size file (file_size file);
   List.iter (fun s ->
-      match s.server_sock with
-        None -> () (* assert false !!! *)
-      | Some sock ->
-          query_location file sock
+      do_if_connected s.server_sock (fun sock ->
+          query_location file sock)
   ) (connected_servers());
 
   (try
@@ -357,17 +355,20 @@ let print_file buf file =
           (Ip.to_string ip)
         port
           (match c.client_sock with
-            None -> string_of_date (connection_last_conn
+            NoConnection  -> 
+              string_of_date (connection_last_conn
                   c.client_connection_control)
-          | Some _ -> "Connected")
+          | ConnectionWaiting _ -> "Connecting"
+          | Connection _ -> "Connected")
     | _ ->
         Printf.bprintf  buf "[%-5d] %12s            %s\n"
           (client_num c)
           "Indirect"
           (match c.client_sock with
-            None -> string_of_date (connection_last_conn
+            NoConnection -> string_of_date (connection_last_conn
                   c.client_connection_control)
-          | Some _ -> "Connected")
+          | ConnectionWaiting _ -> "Connecting"
+          | Connection _ -> "Connected")
   in
 
   (* Intmap.iter f file.file_sources; *)
@@ -734,10 +735,12 @@ let _ =
       try
         let c = DonkeyGlobals.find_client_by_name iddest in
         match c.client_sock with
-          None -> 
+          NoConnection -> 
             DonkeyClient.reconnect_client c;
             c.client_pending_messages <- c.client_pending_messages @ [s];
-        | Some sock ->
+        | ConnectionWaiting _ ->
+            c.client_pending_messages <- c.client_pending_messages @ [s];
+        | Connection sock ->
             direct_client_send c (DonkeyProtoClient.SayReq s)
       with
         Not_found ->
@@ -845,8 +848,8 @@ let _ =
   )
 let string_of_client_addr c =
   try match c.client_sock with
-      Some sock -> (Ip.to_string (peer_ip sock)) 
-    | None -> ""
+      Connection sock -> (Ip.to_string (peer_ip sock)) 
+    | _ -> ""
   with _ -> ""
       
 let _ =
@@ -887,8 +890,11 @@ let _ =
   )
 let disconnect_server s r =
   match s.server_sock with
-    None -> ()
-  | Some sock ->
+    NoConnection -> ()
+  | ConnectionWaiting token ->
+      cancel_token token;
+      s.server_sock <- NoConnection
+  | Connection sock ->
       TcpBufferedSocket.shutdown sock r
       
 let _ =
@@ -901,14 +907,14 @@ let _ =
 
   server_ops.op_server_query_users <- (fun s ->
       match s.server_sock, server_state s with
-        Some sock, (Connected _ | Connected_downloading) ->
+        Connection sock, (Connected _ | Connected_downloading) ->
           direct_server_send sock (DonkeyProtoServer.QueryUsersReq "");
           Fifo.put s.server_users_queries false
       | _ -> ()
   );
   server_ops.op_server_find_user <- (fun s user ->
       match s.server_sock, server_state s with
-        Some sock, (Connected _ | Connected_downloading) ->
+        Connection sock, (Connected _ | Connected_downloading) ->
           direct_server_send sock (DonkeyProtoServer.QueryUsersReq user);
           Fifo.put s.server_users_queries true
       | _ -> ()      
@@ -1010,10 +1016,12 @@ when sending a message? emule or ml problem? *)
 let _ =
   client_ops.op_client_say <- (fun c s ->
       match c.client_sock with
-        None -> 
+      | NoConnection -> 
           DonkeyClient.reconnect_client c;
           c.client_pending_messages <- c.client_pending_messages @ [s];
-      | Some sock ->
+      | ConnectionWaiting _ -> 
+          c.client_pending_messages <- c.client_pending_messages @ [s];
+      | Connection sock ->
           direct_client_send c (DonkeyProtoClient.SayReq s)
   );  
   client_ops.op_client_files <- (fun c ->
@@ -1024,7 +1032,7 @@ let _ =
   client_ops.op_client_browse <- (fun c immediate ->
       lprintf "*************** should browse  ***********\n"; 
       match c.client_sock with
-      | Some sock    ->
+      | Connection sock    ->
 (*
       lprintf "****************************************";
       lprint_newline ();
@@ -1035,15 +1043,16 @@ lprint_newline ();
             let module M = DonkeyProtoClient in
             let module C = M.ViewFiles in
             M.ViewFilesReq C.t);          
-      | _ -> 
+      | NoConnection -> 
           lprintf "****************************************\n";
           lprintf "       TRYING TO CONTACT FRIEND         \n";
           
           reconnect_client c
+      | _ -> ()
   );
   client_ops.op_client_connect <- (fun c ->
       match c.client_sock with
-        None ->  reconnect_client c
+        NoConnection ->  reconnect_client c
       | _ -> ()
   );
   client_ops.op_client_clear_files <- (fun c ->

@@ -238,15 +238,29 @@ type brand_mod =
 | Brand_mod_stormit
 | Brand_mod_omax
 | Brand_mod_mison
+| Brand_mod_phoenix
+| Brand_mod_spiders
+| Brand_mod_iberica
+| Brand_mod_mortimer
+| Brand_mod_stonehenge
+| Brand_mod_xlillo
+| Brand_mod_imperator
+| Brand_mod_raziboom
+| Brand_mod_khaos
+| Brand_mod_hardmule
+| Brand_mod_sc
+| Brand_mod_cy4n1d
+| Brand_mod_dmx
+| Brand_mod_ketamine
 
-let brand_mod_count = 55
+let brand_mod_count = 69
 
 type server = (*[]*){
     mutable server_server : server CommonServer.server_impl;
     mutable server_ip : Ip.t;
     mutable server_cid : Ip.t option;
     mutable server_port : int;
-    mutable server_sock : TcpBufferedSocket.t option;
+    mutable server_sock : tcp_connection;
     mutable server_nqueries : int;
     mutable server_search_queries : CommonTypes.search Fifo.t;
     mutable server_users_queries : bool Fifo.t;
@@ -337,7 +351,7 @@ and client = {
     mutable client_source : source option;
     mutable client_md4 : Md4.t;
     mutable client_chunks : availability;
-    mutable client_sock : TcpBufferedSocket.t option;
+    mutable client_sock : tcp_connection;
     mutable client_ip : Ip.t;
     mutable client_power : int ;
     mutable client_block : block option;

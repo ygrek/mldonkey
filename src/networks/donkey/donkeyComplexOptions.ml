@@ -253,20 +253,7 @@ let value_to_int32pair v =
   | _ -> 
       failwith "Options: Not an int32 pair"
 
-let value_to_state v =
-  match v with
-  | StringValue "Paused" -> FilePaused
-  | StringValue "Downloading" -> FileDownloading
-  | StringValue "Downloaded" -> FileDownloaded
-  | _ -> raise Not_found
-
-let state_to_value s = 
-  match s with
-  | FilePaused | FileAborted _ -> StringValue "Paused"
-  | FileDownloaded -> StringValue "Downloaded"
-  | _ -> StringValue "Downloading"
-
-let value_to_file is_done assocs =
+let value_to_file file_size file_state assocs =
   let get_value name conv = conv (List.assoc name assocs) in
   let get_value_nil name conv = 
     try conv (List.assoc name assocs) with _ -> []
@@ -277,21 +264,11 @@ let value_to_file is_done assocs =
       get_value "file_md4" value_to_string
     with _ -> failwith "Bad file_md4"
   in
-  let file_size = try
-      value_to_int64 (List.assoc "file_size" assocs) 
-    with _ -> Int64.zero
-  in
-  
-  let file_state = get_value "file_state" value_to_state in
   
   let file = DonkeyGlobals.new_file file_state (
       Filename.concat !!temp_directory file_md4_name)
     (Md4.of_string file_md4_name) file_size true in
-  
-  (try
-      file.file_file.impl_file_age <- normalize_time (get_value "file_age" value_to_int)
-    with _ -> ());
-  
+
   (try 
       if file.file_exists then begin
 (* only load absent chunks if file previously existed. *)
@@ -322,7 +299,7 @@ let value_to_file is_done assocs =
           else PresentTemp
       )
     with _ -> 
-        lprintf "Could not load chunks states"; lprint_newline (););
+        lprintf "Could not load chunks states\n"; );
 
 (*
   List.iter (fun c ->
@@ -365,17 +342,13 @@ let string_of_chunks file =
 let file_to_value file =
   [
     "file_md4", string_to_value (Md4.to_string file.file_md4);
-    "file_size", int64_to_value file.file_file.impl_file_size;
     "file_all_chunks", string_to_value (string_of_chunks file);  
-    "file_state", state_to_value (file_state file);
     "file_absent_chunks", List
       (List.map (fun (i1,i2) -> 
           SmallList [int64_to_value i1; int64_to_value i2])
       file.file_absent_chunks);
-    "file_filename", string_to_value (file_best_name file);
     "file_filenames", List
       (List.map (fun (s,_) -> string_to_value s) file.file_filenames);
-    "file_age", IntValue (Int64.of_int file.file_file.impl_file_age);
     "file_md4s", List
       (List.map (fun s -> string_to_value (Md4.to_string s)) 
       file.file_md4s);

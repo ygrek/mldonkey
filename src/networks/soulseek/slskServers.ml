@@ -44,10 +44,13 @@ let no_retry = ref false
   
 let disconnect_server s r =
   match s.server_sock with
-    None -> ()
-  | Some sock ->
+    NoConnection -> ()
+  | ConnectionWaiting token ->
+      cancel_token token;
+      s.server_sock <- NoConnection
+  | Connection sock ->
       close sock r;
-      s.server_sock <- None;
+      s.server_sock <- NoConnection;
       set_server_state s (NotConnected (r, -1));
       connected_servers := List2.removeq s !connected_servers
 
@@ -131,47 +134,51 @@ let server_to_client s m sock =
       lprint_newline () 
       
 let connect_server s = 
-  Ip.async_ip_of_addr s.server_addr (fun ip ->
-      
+  Ip.async_ip_of_addr s.server_addr (fun ip ->      
       match s.server_sock with
-        Some _ -> ()
-      | None ->
-          if can_open_connection () then
-            try
-              connection_try s.server_connection_control;
-              let sock = TcpBufferedSocket.connect "slsk to server" 
-		  (Ip.to_inet_addr ip)
-                s.server_port (fun _ _ -> ())  in
-              
-              set_reader sock (soulseek_handler S2C.parse 
-                  (server_to_client s));
-              
-              set_server_state s Connecting;
-              set_read_controler sock download_control;
-              set_write_controler sock upload_control;
-              
-              set_rtimeout sock 20.;
-              set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
-                  lprintf "Connection timeout"; lprint_newline ();
-                  close s Closed_for_timeout
-              );
-              set_closer sock (fun _ r -> disconnect_server s r);
-              s.server_nick <- 0;
-              s.server_sock <- Some sock;
-              server_send sock (
-                let module L = C2S.Login in
-                C2S.LoginReq {
-                  L.login = local_login ();
-                  L.password = !!password;
-                  L.version = 200;
-                });
-              server_send sock (C2S.SetWaitPortReq !!slsk_port)
-            with e -> 
-                lprintf "%s:%d IMMEDIAT DISCONNECT %s"
-                  (Ip.string_of_addr s.server_addr) s.server_port
-                  (Printexc2.to_string e); lprint_newline ();
-                disconnect_server s (Closed_for_exception e)
-
+      | NoConnection ->
+          if can_open_connection connection_manager then
+            let ctoken = 
+              add_pending_connection connection_manager (fun ctoken ->
+                  s.server_sock <- NoConnection;
+                  try
+                    connection_try s.server_connection_control;
+                    let sock = TcpBufferedSocket.connect 
+                      ctoken "slsk to server" 
+                        (Ip.to_inet_addr ip)
+                      s.server_port (fun _ _ -> ())  in
+                    
+                    set_reader sock (soulseek_handler S2C.parse 
+                        (server_to_client s));
+                    
+                    set_server_state s Connecting;
+                    set_read_controler sock download_control;
+                    set_write_controler sock upload_control;
+                    
+                    set_rtimeout sock 20.;
+                    set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
+                        lprintf "Connection timeout"; lprint_newline ();
+                        close s Closed_for_timeout
+                    );
+                    set_closer sock (fun _ r -> disconnect_server s r);
+                    s.server_nick <- 0;
+                    s.server_sock <- Connection sock;
+                    server_send sock (
+                      let module L = C2S.Login in
+                      C2S.LoginReq {
+                        L.login = local_login ();
+                        L.password = !!password;
+                        L.version = 200;
+                      });
+                    server_send sock (C2S.SetWaitPortReq !!slsk_port)
+                  with e -> 
+                      lprintf "%s:%d IMMEDIAT DISCONNECT %s"
+                        (Ip.string_of_addr s.server_addr) s.server_port
+                        (Printexc2.to_string e); lprint_newline ();
+                      disconnect_server s (Closed_for_exception e)
+              ) in
+            s.server_sock <- ConnectionWaiting ctoken;
+      | _ -> ()
   )
   
 let recover_files () = ()

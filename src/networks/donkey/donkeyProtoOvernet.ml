@@ -49,7 +49,7 @@ let get_peer s pos =
   let md4 = get_md4 s pos in
   let ip = get_ip s (pos+16) in
   let port = get_int16 s (pos+20) in
-  let kind = get_int8 s (pos+22) in
+  let kind = get_uint8 s (pos+22) in
   {
     peer_md4 = md4;
     peer_ip = ip;
@@ -363,7 +363,7 @@ let parse opcode s =
         let md4 = get_md4 s 0 in
         let ip = get_ip s 16 in
         let port = get_int16 s 20 in
-        let kind = get_int8 s 22 in
+        let kind = get_uint8 s 22 in
         OvernetConnect (md4, ip, port, kind)
     | 11 -> 
         if !verbose_overnet then
@@ -376,7 +376,7 @@ let parse opcode s =
         let md4 = get_md4 s 0 in
         let ip = get_ip s 16 in
         let port = get_int16 s 20 in
-        let kind = get_int8 s 22 in
+        let kind = get_uint8 s 22 in
         OvernetPublicize (md4,ip,port,kind)
     | 13 ->
         if !verbose_overnet then
@@ -385,7 +385,7 @@ let parse opcode s =
     | 14 -> 
         if !verbose_overnet then
           lprintf "RCVD: SEARCH MESSAGE (14)\n";
-        let kind = get_int8 s 0 in
+        let kind = get_uint8 s 0 in
         let md4 = get_md4 s 1 in
         OvernetSearch (kind, md4)
     
@@ -400,7 +400,7 @@ let parse opcode s =
         if !verbose_overnet then
             lprintf "RCVD: SEARCH GET REPLIES (16): ";
         let md4 = get_md4 s 0 in
-        let kind = get_int8 s 16 in
+        let kind = get_uint8 s 16 in
         let min = get_int16 s 17 in
         let max = get_int16 s 19 in
         if !verbose_overnet then

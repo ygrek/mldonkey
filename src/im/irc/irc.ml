@@ -548,7 +548,8 @@ let irc_login account =
       set_account_status (as_account account) Status_connecting;
 
       try
-      let sock = TcpBufferedSocket.connect "im to irc" 
+        let token = create_token unlimited_connection_manager in
+      let sock = TcpBufferedSocket.connect token "im to irc" 
           (Ip.to_inet_addr (Ip.from_name account.account_server)) 
           account.account_port 
           (irc_handler account) in

@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Int32ops
 open Xml
 open Printf2
 open Md4
@@ -70,7 +71,7 @@ let g2_packet_handler s sock gconn p =
   let h = s.server_host in
   if !verbose_msg_servers then begin
       lprintf "Received %s packet from %s:%d: \n%s\n" 
-        (match sock with Connection _ | CompressedConnection _ -> "TCP" | _ -> "UDP")
+        (match sock with Connection _  -> "TCP" | _ -> "UDP")
       (Ip.to_string h.host_addr) h.host_port
         (Print.print p);
     end;
@@ -78,7 +79,7 @@ let g2_packet_handler s sock gconn p =
   | PI -> 
       server_send sock s (packet PO []);
       if s.server_need_qrt && (match sock with
-          | Connection _ | CompressedConnection _ -> true
+          | Connection _  -> true
           | _ -> false) then begin
           s.server_need_qrt <- false;
           send_qrt_sequence s false
@@ -116,7 +117,7 @@ let g2_packet_handler s sock gconn p =
           packet (LNI_NA (client_ip sock, !!client_port))  [];
           packet (LNI_GU !!client_uid) [];
           packet (LNI_V "MLDK") [];
-          packet (LNI_LS (Int32.zero,Int32.zero)) [];
+          packet (LNI_LS (zero,zero)) [];
         ])          
 
 (* Should we really reply to QKR if we are just a leaf ? We should probably
@@ -167,7 +168,7 @@ let g2_packet_handler s sock gconn p =
       
       server_send sock s (packet (QA md4)
         [
-          packet (QA_TS (int32_time ())) [];
+          packet (QA_TS ((int64_time ()))) [];
           packet (QA_D ((client_ip sock, !!client_port), 0)) [];
         ]);
       
@@ -292,7 +293,7 @@ packet QH2_H (
               Connected _ ->
                 let p = packet 
                     (KHL_CH 
-                      ((h.host_addr, h.host_port), int32_time ()))
+                      ((h.host_addr, h.host_port), int64_time ()))
                   [
                     (packet (KHL_CH_V s.server_vendor) [])
                   ] in
@@ -506,9 +507,13 @@ XML ("audios",
                     | Some size ->
                         if file_size file = Int64.zero then begin
                             lprintf "Recover correct file size\n";
+                            
+                            failwith "G2Handler: recover from size 0 not implemented"
+(*
                             file.file_file.impl_file_size <- size;
                             Int64Swarmer.set_size file.file_swarmer size;
-                            file_must_update file;
+file_must_update file;
+  *)
                           end);
                   
                   let c = update_client user in
@@ -546,7 +551,7 @@ let udp_packet_handler ip port msg =
     lprintf "Received UDP packet from %s:%d: \n%s\n" 
       (Ip.to_string ip) port (Print.print msg);*)
   let s = new_server ip port in
-  s.server_connected <- int32_time ();
+  s.server_connected <- int64_time ();
   g2_packet_handler s NoConnection () msg
   (*
   match msg.g2_payload with

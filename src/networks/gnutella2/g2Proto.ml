@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Int32ops
 open BasicSocket
 open AnyEndian
 open Printf2
@@ -76,7 +77,7 @@ type g2_packet =
 | LNI_NA of addr (* with or without the port ??? *)
 | LNI_GU of Md4.t (* [16] uid *)
 | LNI_V of string (* [4] vendor *)
-| LNI_LS of int32 (* files *) * int32 (* kB *)
+| LNI_LS of int64 (* files *) * int64 (* kB *)
 | LNI_HS of int (* [2] leaves *) * int (* [2] max_leaves *)
   
 | KHL 
@@ -84,12 +85,12 @@ type g2_packet =
 | KHL_NH of addr
 | KHL_NH_GU of Md4.t
 | KHL_NH_V of string (* [4] vendor *)
-| KHL_NH_LS of int32 (* files *) * int32 (* kB *)
+| KHL_NH_LS of int64 (* files *) * int64 (* kB *)
 | KHL_NH_HS of int (* [2] leaves *) * int (* [2] max_leaves *)  
-| KHL_CH of (addr * int32) (* last conn *)
+| KHL_CH of (addr * int64) (* last conn *)
 | KHL_CH_GU of Md4.t
 | KHL_CH_V of string (* [4] vendor *)
-| KHL_CH_LS of int32 (* files *) * int32 (* kB *)
+| KHL_CH_LS of int64 (* files *) * int64 (* kB *)
 | KHL_CH_HS of int (* [2] leaves *) * int (* [2] max_leaves *)  
 
 | PUSH of addr
@@ -100,12 +101,12 @@ type g2_packet =
 | QKR
 | QKR_RNA of addr
 | QKA
-| QKA_QK of int32
+| QKA_QK of int64
 | QKA_SNA of addr
 | QKA_QNA of addr
   
 | Q2 of Md4.t
-| Q2_UDP of addr * int32 option
+| Q2_UDP of addr * int64 option
 | Q2_URN of Uid.t
 | Q2_DN of string
 | Q2_MD of string
@@ -114,9 +115,9 @@ type g2_packet =
 | Q2_NOG1
   
 | QA of Md4.t
-| QA_TS of int32
+| QA_TS of int64
 | QA_D of addr * int (* [2] leaves number *)
-| QA_S of addr * int32 option
+| QA_S of addr * int64 option
 | QA_FR of addr
   
 | QH2 of int (* [1] hop count *) * Md4.t
@@ -138,9 +139,9 @@ type g2_packet =
 | QH2_H_SZDN of int64 * string
 | QH2_H_SZ of int64 (* 32 or 64 bits *)
 | QH2_H_G of int (* [1] group id *)
-| QH2_H_ID of int32 (* object id *)
+| QH2_H_ID of int64 (* object id *)
 | QH2_H_CSC of int (* [2] n cached sources *)
-| QH2_H_PART of int32 (* length got *)
+| QH2_H_PART of int64 (* length got *)
 | QH2_H_COM of string 
 | QH2_H_PVU of string
 | QH2_MD of string
@@ -228,7 +229,7 @@ module Print = struct
         
         let buf_int64_32 buf v = Printf.bprintf buf " %Ld " v
         let buf_int64 buf v = Printf.bprintf buf " %Ld " v
-        let buf_int32 buf v = Printf.bprintf buf " %ld " v
+(*        let buf_int32 buf v = Printf.bprintf buf " %ld " v *)
         let buf_int16 buf v = Printf.bprintf buf " %d " v
         let buf_int8 buf v = Printf.bprintf buf " %d " v
         let buf_int buf v = Printf.bprintf buf " %d " v
@@ -282,16 +283,16 @@ module Print = struct
         | LNI_LS (a,b)
         | KHL_NH_LS (a,b)
         | KHL_CH_LS (a,b)
-          -> M.buf_int32 buf a; M.buf_int32 buf b; "LS"
+          -> M.buf_int64_32 buf a; M.buf_int64_32 buf b; "LS"
         | LNI_HS (a,b)
         | KHL_NH_HS (a,b) -> M.buf_int8 buf a; M.buf_int8 buf b; "HS"
         | KHL_CH_HS (a,b) -> M.buf_int16 buf a; M.buf_int16 buf b; "HS"
         | KHL -> "KHL"
-        | KHL_TS int32 -> M.buf_int64_32 buf int32; "TS"
+        | KHL_TS int64 -> M.buf_int64_32 buf int64; "TS"
         | KHL_NH addr -> M.buf_addr buf addr; "NH"
         
-        | KHL_CH (addr, int32) -> 
-            M.buf_addr buf addr; M.buf_int32 buf int32; "CH"
+        | KHL_CH (addr, int64) -> 
+            M.buf_addr buf addr; M.buf_int64_32 buf int64; "CH"
         
         | PUSH addr -> M.buf_addr buf addr; "PUSH"
         
@@ -299,13 +300,14 @@ module Print = struct
         | QKR -> "QKR"
         | QKR_RNA addr -> M.buf_addr buf addr; "RNA" 
         | QKA -> "QKA"
-        | QKA_QK i32 -> M.buf_int32 buf i32; "QK"
+        | QKA_QK i32 -> M.buf_int64_32 buf i32; "QK"
 
         | QKA_SNA addr -> M.buf_short_addr buf addr; "SNA" 
         | QKA_QNA addr -> M.buf_addr buf addr; "QNA" 
         
         | Q2 md4 -> buf_md4 buf md4; "Q2"
-        | Q2_UDP (addr, Some int32) -> M.buf_addr buf addr; M.buf_int32 buf int32; "UDP"
+        | Q2_UDP (addr, Some int64) -> M.buf_addr buf addr; 
+            M.buf_int64_32 buf int64; "UDP"
         | Q2_UDP (addr, None) -> M.buf_addr buf addr; "UDP"
         | Q2_URN s -> Buffer.add_string buf (Uid.to_string s);   "URN"
         | Q2_DN s -> Buffer.add_string buf s; "DN"
@@ -318,9 +320,10 @@ module Print = struct
             
             
         | QA md4 -> buf_md4 buf md4; "QA"
-        | QA_TS int32 -> M.buf_int32 buf int32; "TS"
+        | QA_TS int64 -> M.buf_int64_32 buf int64; "TS"
         | QA_D (addr, int16) -> M.buf_addr buf addr; M.buf_int16 buf int16; "D"
-        | QA_S (addr, Some int32) -> M.buf_addr buf addr; M.buf_int32 buf int32; "S"
+        | QA_S (addr, Some int64) -> M.buf_addr buf addr; 
+            M.buf_int64_32 buf int64; "S"
         | QA_S (addr, None) -> M.buf_addr buf addr; "S"
         | QA_FR addr -> M.buf_addr buf addr; "FR"
         
@@ -349,13 +352,13 @@ module Print = struct
         | QH2_UPRO_NICK s -> Buffer.add_string buf s; "NICK"
         | QH2_H_DN s2 -> 
             Buffer.add_string buf s2; "DN"
-        | QH2_H_SZDN (int32, s2) -> 
-            M.buf_int64_32 buf int32; Buffer.add_string buf s2; "DN"
+        | QH2_H_SZDN (int64, s2) -> 
+            M.buf_int64_32 buf int64; Buffer.add_string buf s2; "DN"
         | QH2_H_SZ sz -> M.buf_int64 buf sz; "SZ"
         | QH2_H_G i8 -> M.buf_int8 buf i8; "G"
-        | QH2_H_ID i32 -> M.buf_int32 buf i32; "ID"
+        | QH2_H_ID i32 -> M.buf_int64_32 buf i32; "ID"
         | QH2_H_CSC i16 -> M.buf_int16 buf i16; "CSC"
-        | QH2_H_PART i32 -> M.buf_int32 buf i32; "PART"
+        | QH2_H_PART i32 -> M.buf_int64_32 buf i32; "PART"
         | QHT_PATCH p -> QrtPatch.print buf p; ""
         | QHT_RESET -> "QHT_RESET"
         
@@ -434,16 +437,16 @@ let g2_encode_payload msg =
     | LNI_LS (a,b)
     | KHL_NH_LS (a,b)
     | KHL_CH_LS (a,b)
-      -> M.buf_int32 buf a; M.buf_int32 buf b; "LS"
+      -> M.buf_int64_32 buf a; M.buf_int64_32 buf b; "LS"
     | KHL_NH_HS (a,b)  -> buf_int8 buf a; buf_int8 buf b; "HS"
     | LNI_HS (a,b)
     | KHL_CH_HS (a,b) -> M.buf_int16 buf a; M.buf_int16 buf b; "HS"
     | KHL -> "KHL"
-    | KHL_TS int32 -> M.buf_int64_32 buf int32; "TS"
+    | KHL_TS int64 -> M.buf_int64_32 buf int64; "TS"
     | KHL_NH addr -> M.buf_addr buf addr; "NH"
     
-    | KHL_CH (addr, int32) -> 
-        M.buf_addr buf addr; M.buf_int32 buf int32; "CH"
+    | KHL_CH (addr, int64) -> 
+        M.buf_addr buf addr; M.buf_int64_32 buf int64; "CH"
     | PUSH addr -> M.buf_addr buf addr; "PUSH"
 
 (*  
@@ -457,10 +460,10 @@ let g2_encode_payload msg =
     | QKA -> "QKA"
     | QKA_SNA addr -> M.buf_short_addr buf addr; "SNA" 
     | QKA_QNA addr -> M.buf_addr buf addr; "QNA" 
-    | QKA_QK i32 -> M.buf_int32 buf i32; "QK"
+    | QKA_QK i32 -> M.buf_int64_32 buf i32; "QK"
     
     | Q2 md4 -> buf_md4 buf md4; "Q2"
-    | Q2_UDP (addr, Some int32) -> M.buf_addr buf addr; M.buf_int32 buf int32; "UDP"
+    | Q2_UDP (addr, Some int64) -> M.buf_addr buf addr; M.buf_int64_32 buf int64; "UDP"
     | Q2_UDP (addr, None) -> M.buf_addr buf addr; "UDP"
     | Q2_URN s -> buf_uid buf s; "URN"
     | Q2_DN s -> Buffer.add_string buf s; "DN"
@@ -471,9 +474,9 @@ let g2_encode_payload msg =
         Buffer.add_string buf (String2.unsplit list '\000'); "I"
     | Q2_NOG1 -> "NOG1"
     | QA md4 -> buf_md4 buf md4; "QA"
-    | QA_TS int32 -> M.buf_int32 buf int32; "TS"
+    | QA_TS int64 -> M.buf_int64_32 buf int64; "TS"
     | QA_D (addr, int16) -> M.buf_addr buf addr; M.buf_int16 buf int16; "D"
-    | QA_S (addr, Some int32) -> M.buf_addr buf addr; M.buf_int32 buf int32; "S"
+    | QA_S (addr, Some int64) -> M.buf_addr buf addr; M.buf_int64_32 buf int64; "S"
     | QA_S (addr, None) -> M.buf_addr buf addr; "S"
         
     | QA_FR addr -> M.buf_addr buf addr; "FR"
@@ -506,9 +509,9 @@ let g2_encode_payload msg =
         M.buf_int64_32 buf int32; Buffer.add_string buf s2; "DN"
     | QH2_H_SZ sz -> M.buf_int64 buf sz; "SZ"
     | QH2_H_G i8 -> buf_int8 buf i8; "G"
-    | QH2_H_ID i32 -> M.buf_int32 buf i32; "ID"
+    | QH2_H_ID i32 -> M.buf_int64_32 buf i32; "ID"
     | QH2_H_CSC i16 -> M.buf_int16 buf i16; "CSC"
-    | QH2_H_PART i32 -> M.buf_int32 buf i32; "PART"
+    | QH2_H_PART i32 -> M.buf_int64_32 buf i32; "PART"
     | UPROC -> "UPROC"        
     | UPROD -> "UPROD"
     | UPROD_XML s -> Buffer.add_string buf s; "XML"
@@ -622,25 +625,25 @@ lprintf "\n";
     | [ "NA"; "LNI" ] -> LNI_NA  (M.get_addr s 0 (String.length s))
     | [ "GU"; "LNI" ] -> LNI_GU (get_md4 s 0)
     | [ "V" ; "LNI" ] -> LNI_V (String.sub s 0 4)
-    | [ "LS"; "LNI" ] -> LNI_LS (M.get_int32 s 0, M.get_int32 s 4)
+    | [ "LS"; "LNI" ] -> LNI_LS (M.get_uint64_32 s 0, M.get_uint64_32 s 4)
     | [ "HS"; "LNI" ] -> LNI_HS (M.get_int16 s 0, M.get_int16 s 2)
     
     | [ "KHL" ] -> KHL
-    | [ "TS"; "KHL" ] -> KHL_TS (M.get_int64_32 s 0)
+    | [ "TS"; "KHL" ] -> KHL_TS (M.get_uint64_32 s 0)
     | [ "NH" ; "KHL" ] -> 
         KHL_NH (M.get_addr s 0 (String.length s))
     | [ "GU"; "NH" ;"KHL" ] -> KHL_NH_GU (get_md4 s 0)
     | [ "V" ; "NH" ;"KHL" ] -> KHL_NH_V (String.sub s 0 4)
-    | [ "LS"; "NH" ;"KHL" ] -> KHL_NH_LS (M.get_int32 s 0, M.get_int32 s 4)
+    | [ "LS"; "NH" ;"KHL" ] -> KHL_NH_LS (M.get_uint64_32 s 0, M.get_uint64_32 s 4)
     | [ "HS"; "NH" ;"KHL" ] -> 
         assert (String.length s = 2);
-        KHL_NH_HS (get_int8 s 0, get_int8 s 1)
+        KHL_NH_HS (get_uint8 s 0, get_uint8 s 1)
     | [ "CH" ; "KHL" ] -> 
         let len = String.length s in
-        KHL_CH (M.get_addr s 0 (len - 4), M.get_int32 s (len-4))
+        KHL_CH (M.get_addr s 0 (len - 4), M.get_uint64_32 s (len-4))
     | [ "GU"; "CH" ;"KHL" ] -> KHL_CH_GU (get_md4 s 0)
     | [ "V" ; "CH" ;"KHL" ] -> KHL_CH_V (String.sub s 0 4)
-    | [ "LS"; "CH" ;"KHL" ] -> KHL_CH_LS (M.get_int32 s 0, M.get_int32 s 4)
+    | [ "LS"; "CH" ;"KHL" ] -> KHL_CH_LS (M.get_uint64_32 s 0, M.get_uint64_32 s 4)
     | [ "HS"; "CH" ;"KHL" ] -> KHL_CH_HS (M.get_int16 s 0, M.get_int16 s 2)
     
     | [ "PUSH" ] -> PUSH (M.get_addr s 0 (String.length s))
@@ -648,7 +651,7 @@ lprintf "\n";
     | [ "QKR" ] -> QKR
     | [ "RNA" ; "QKR" ] -> QKR_RNA  (M.get_addr s 0 (String.length s))
     | [ "QKA" ] -> QKA
-    | [ "QK" ; "QKA" ] ->  QKA_QK  (M.get_int32 s 0)
+    | [ "QK" ; "QKA" ] ->  QKA_QK  (M.get_uint64_32 s 0)
     | [ "SNA" ; "QKA" ] -> QKA_SNA  (M.get_addr s 0 (String.length s))
     | [ "QNA" ; "QKA" ] -> QKA_QNA  (M.get_addr s 0 (String.length s))
     
@@ -656,7 +659,7 @@ lprintf "\n";
     | [ "UDP"; "Q2" ] -> 
         let len = String.length s in
         if len > 6 then
-          Q2_UDP (M.get_addr s 0 (len - 4), Some (M.get_int32 s (len-4)))
+          Q2_UDP (M.get_addr s 0 (len - 4), Some (M.get_uint64_32 s (len-4)))
         else
           Q2_UDP (M.get_addr s 0 len, None)
     | [ "MD"; "Q2" ] -> 
@@ -667,22 +670,22 @@ lprintf "\n";
     | [ "DN"; "Q2" ] -> 
         let s, pos = M.get_string s 0 (String.length s) in Q2_DN s
     | [ "SZR"; "Q2" ] -> 
-        Q2_SZR (M.get_int64_32 s 0, M.get_int64_32 s 4)
+        Q2_SZR (M.get_uint64_32 s 0, M.get_uint64_32 s 4)
     | [ "I"; "Q2" ] -> 
         Q2_I (String2.split s '\000')
     | [ "NOG1"; "Q2" ] -> Q2_NOG1
     | [ "QA" ] -> QA (get_md4 s 0)
-    | [ "TS"; "QA" ] -> QA_TS (M.get_int32 s 0)
+    | [ "TS"; "QA" ] -> QA_TS (M.get_uint64_32 s 0)
     | [ "D"; "QA" ] -> QA_D (M.get_addr s 0 6, M.get_int16 s 6)
     | [ "S"; "QA" ] -> 
         let len = String.length s in
         if len > 6 then
-          QA_S (M.get_addr s 0 (len - 4), Some (M.get_int32 s (len-4)))
+          QA_S (M.get_addr s 0 (len - 4), Some (M.get_uint64_32 s (len-4)))
         else
           QA_S (M.get_addr s 0 len, None)
     | [ "FR"; "QA" ] -> QA_FR (M.get_addr s 0 (String.length s))
     
-    | [ "QH2" ] -> QH2 (get_int8 s 0, get_md4 s 1)
+    | [ "QH2" ] -> QH2 (get_uint8 s 0, get_md4 s 1)
     | [ "GU"; "QH2" ] -> QH2_GU (get_md4 s 0)
     | [ "V" ; "QH2" ] -> QH2_V (String.sub s 0 4)
     | [ "NA"; "QH2" ] -> QH2_NA (M.get_addr s 0 (String.length s))
@@ -691,11 +694,11 @@ lprintf "\n";
     | [ "BH"; "QH2" ] -> QH2_BH
     | [ "PCH"; "QH2" ] -> QH2_PCH
     
-    | [ "HG"; "QH2" ] -> QH2_HG (get_int8 s 0)
+    | [ "HG"; "QH2" ] -> QH2_HG (get_uint8 s 0)
     | [ "SS"; "HG"; "QH2" ] -> 
-        QH2_HG_SS (M.get_int16 s 0, get_int8 s 2, M.get_int s 3)
+        QH2_HG_SS (M.get_int16 s 0, get_uint8 s 2, M.get_int s 3)
     | [ "SS"; "QH2" ] -> 
-        QH2_SS (M.get_int16 s 0, get_int8 s 2, M.get_int s 3)
+        QH2_SS (M.get_int16 s 0, get_uint8 s 2, M.get_int s 3)
     
     | [ "H"; "QH2" ] -> QH2_H
     | [ "URN"; "H"; "QH2" ] -> 
@@ -715,20 +718,20 @@ lprintf "\n";
           QH2_H_DN s
     | [ "SZ"; "H"; "QH2" ] -> 
         let len = String.length s in
-        QH2_H_SZ (if len = 4 then  Int64.of_int32 (M.get_int32 s 0)
+        QH2_H_SZ (if len = 4 then  M.get_uint64_32 s 0
           else M.get_int64 s 0)
-    | [ "G"; "H"; "QH2" ] -> QH2_H_G (get_int8 s 0)
-    | [ "ID"; "H"; "QH2" ] -> QH2_H_ID (M.get_int32 s 0)
+    | [ "G"; "H"; "QH2" ] -> QH2_H_G (get_uint8 s 0)
+    | [ "ID"; "H"; "QH2" ] -> QH2_H_ID (M.get_uint64_32 s 0)
     | [ "CSC"; "H"; "QH2" ] -> QH2_H_CSC (M.get_int16 s 0)
-    | [ "PART"; "H"; "QH2" ] -> QH2_H_PART (M.get_int32 s 0)
+    | [ "PART"; "H"; "QH2" ] -> QH2_H_PART (M.get_uint64_32 s 0)
     
     | [ "QHT" ] ->
-        if get_int8 s 0 = 1 then
+        if get_uint8 s 0 = 1 then
           let p = {
-              QrtPatch.seq_no = get_int8 s 1; 
-              QrtPatch.seq_size = get_int8 s 2; 
-              QrtPatch.compressor = get_int8 s 3; 
-              QrtPatch.entry_bits = get_int8 s 4; 
+              QrtPatch.seq_no = get_uint8 s 1; 
+              QrtPatch.seq_size = get_uint8 s 2; 
+              QrtPatch.compressor = get_uint8 s 3; 
+              QrtPatch.entry_bits = get_uint8 s 4; 
               QrtPatch.table = String.sub s 5 (String.length s - 5);
             } in 
           (*
@@ -772,7 +775,7 @@ let rec g2_parse name has_children bigendian s =
   let rec iter_child pos children = 
     if pos >= len then children, len
     else
-    let cb = get_int8 s pos in
+    let cb = get_uint8 s pos in
     if cb = 0 then children, (pos+1) else
     let len_len = (cb lsr 6) land 3 in
     if len < pos + 1 + len_len then
@@ -795,8 +798,8 @@ let rec g2_parse name has_children bigendian s =
 else List.map (fun  c ->
         match c.g2_payload with
 	QH2_H_DN s when String.length s >= 4 ->  
-            let sz = if bigendian then BigEndian.get_int64_32 s 0 
-              else LittleEndian.get_int64_32 s 0 in
+            let sz = if bigendian then BigEndian.get_uint64_32 s 0 
+              else LittleEndian.get_uint64_32 s 0 in
             let dn = String.sub s 4 (String.length s - 4) in
               { g2_children = c.g2_children;
                 g2_payload = QH2_H_SZDN (sz,dn);
@@ -813,10 +816,10 @@ and g2_extract_packet root_name cb s be pos len =
   let len_len = (cb lsr 6) land 3 in    
   let pkt_len, pkt_pos = 
     match len_len, be with
-    | 1, true -> get_int8 s (pos+1), 2 
+    | 1, true -> get_uint8 s (pos+1), 2 
     | 2, true -> BigEndian.get_int16 s (pos+1), 3 
     | 3, true -> BigEndian.get_int24 s (pos+1), 4
-    | 1, false -> get_int8 s (pos+1), 2 
+    | 1, false -> get_uint8 s (pos+1), 2 
     | 2, false -> LittleEndian.get_int16 s (pos+1), 3 
     | 3, false -> LittleEndian.get_int24 s (pos+1), 4
     | _ -> 0, 1
@@ -833,12 +836,13 @@ and g2_extract_packet root_name cb s be pos len =
   g2_parse (name :: root_name) has_children be packet, pos + msg_len
 
 let socket_send sock p =
-  let m = g2_encode p in
-  (*
+  do_if_connected sock (fun sock ->
+      let m = g2_encode p in
+(*
   lprintf "DUMP SENT: \n";
   dump m; *)
-  CanBeCompressed.write_string sock m
-  
+      write_string sock m
+  )  
   
   
 let udp_counter = ref 0
@@ -931,7 +935,7 @@ let host_send sock h p =
   let ip = h.host_addr in
   let port = h.host_port in
   match sock with
-  | Connection _ | CompressedConnection _  ->
+  | Connection _   ->
       if !verbose_msg_servers then
         lprintf "Sending on TCP to %s:%d: \n%s\n" 
           (Ip.to_string ip) port (Print.print p);
@@ -951,16 +955,16 @@ AnyEndian.dump (String.sub b.buf b.pos b.len);
     while b.len >= 2 do
       let s = b.buf in
 (*      lprintf "g2_tcp_packet_handler\n"; *)
-      let cb = get_int8 s b.pos in
+      let cb = get_uint8 s b.pos in
       let len_len = (cb lsr 6) land 3 in
       if b.len < 1 + len_len then raise Not_found;
       let be = cb land 2 <> 0 in
       
       let len, pos = match len_len, be with
-        | 1, true -> get_int8 s (b.pos+1), 2 
+        | 1, true -> get_uint8 s (b.pos+1), 2 
         | 2, true -> BigEndian.get_int16 s (b.pos+1), 3 
         | 3, true -> BigEndian.get_int24 s (b.pos+1), 4
-        | 1, false -> get_int8 s (b.pos+1), 2 
+        | 1, false -> get_uint8 s (b.pos+1), 2 
         | 2, false -> LittleEndian.get_int16 s (b.pos+1), 3 
         | 3, false -> LittleEndian.get_int24 s (b.pos+1), 4
         | _ -> 0, 1
@@ -985,16 +989,16 @@ exception FragmentedPacket
 let udp_fragmented_packets = Fifo.create ()
   
 let parse s s_pos =
-  let cb = get_int8 s s_pos in
+  let cb = get_uint8 s s_pos in
   let len_len = (cb lsr 6) land 3 in
   if String.length s - s_pos < 1 + len_len then raise Not_found;
   let be = cb land 2 <> 0 in
   
   let len, pos = match len_len, be with
-    | 1, true -> get_int8 s (s_pos+1), 2 
+    | 1, true -> get_uint8 s (s_pos+1), 2 
     | 2, true -> BigEndian.get_int16 s (s_pos+1), 3 
     | 3, true -> BigEndian.get_int24 s (s_pos+1), 4
-    | 1, false -> get_int8 s (s_pos+1), 2 
+    | 1, false -> get_uint8 s (s_pos+1), 2 
     | 2, false -> LittleEndian.get_int16 s (s_pos+1), 3 
     | 3, false -> LittleEndian.get_int24 s (s_pos+1), 4
     | _ -> 0, 1
@@ -1029,8 +1033,8 @@ let parse_udp_packet ip port buf =
     failwith "Not a GNUTELLA2 packet (no GND)\n"
   else
   let nSequence = LittleEndian.get_int16 buf 4 in
-  let nCount = get_int8 buf 7 in
-  let nFlags = get_int8 buf 3 in
+  let nCount = get_uint8 buf 7 in
+  let nFlags = get_uint8 buf 3 in
   let ack_me = nFlags land 2 <> 0 in
 (* Contribute:
   - deflating
@@ -1058,7 +1062,7 @@ let parse_udp_packet ip port buf =
   
   let buf = 
     if nCount > 1 then begin
-        let my_part = (get_int8 buf 6)-1 in
+        let my_part = (get_uint8 buf 6)-1 in
 (*        lprintf "part %d on %d\n" my_part nCount; *)
         let needed = Array.create nCount None in
         Fifo.iter (fun (p_ip, p_port, nSeq, nPart, nFlags, data) ->
@@ -1103,15 +1107,15 @@ let parse_udp_packet ip port buf =
     let len = String.length buf in
     try
       let pos = 0 in
-      let cb = get_int8 buf pos in
+      let cb = get_uint8 buf pos in
       let len_len = (cb lsr 6) land 3 in
       let be = cb land 2 <> 0 in
       
       let pkt_len, pkt_pos = match len_len, be with
-        | 1, true -> get_int8 buf (pos+1), 2 
+        | 1, true -> get_uint8 buf (pos+1), 2 
         | 2, true -> BigEndian.get_int16 buf (pos+1), 3 
         | 3, true -> BigEndian.get_int24 buf (pos+1), 4
-        | 1, false -> get_int8 buf (pos+1),  2 
+        | 1, false -> get_uint8 buf (pos+1),  2 
         | 2, false -> LittleEndian.get_int16 buf (pos+1), 3 
         | 3, false -> LittleEndian.get_int24 buf (pos+1), 4
         | _ ->
@@ -1189,8 +1193,8 @@ let parse_udp_packet ip port buf =
       (*
   let len = String.length buf in
   let nSequence = get_int16 buf 4 in
-  let nCount = get_int8 buf 7 in
-  let nFlags = get_int8 buf 3 in
+  let nCount = get_uint8 buf 7 in
+  let nFlags = get_uint8 buf 3 in
   let ack_me = nFlags land 2 <> 0 in
 (* Contribute:
   - deflating
@@ -1208,15 +1212,15 @@ let parse_udp_packet ip port buf =
       lprintf "need ack\n";
       udp_send_ack ip port nSequence;
     end;
-  let cb = get_int8 buf pos in
+  let cb = get_uint8 buf pos in
   let len_len = (cb lsr 6) land 3 in
   let be = cb land 2 <> 0 in
   
   let pkt_len, pkt_pos = match len_len, be with
-    | 1, true -> get_int8 buf (pos+1), 2 
+    | 1, true -> get_uint8 buf (pos+1), 2 
     | 2, true -> BigEndian.get_int16 buf (pos+1), 3 
     | 3, true -> BigEndian.get_int24 buf (pos+1), 4
-    | 1, false -> get_int8 buf (pos+1),  2 
+    | 1, false -> get_uint8 buf (pos+1),  2 
     | 2, false -> LittleEndian.get_int16 buf (pos+1), 3 
     | 3, false -> LittleEndian.get_int24 buf (pos+1), 4
     | _ -> 0, 1
@@ -1346,7 +1350,7 @@ let server_send_query quid words xml_query sock s =
                 | UdpQueryKey k -> Some k
                 | _ -> 
                     host_send_qkr s.server_host;
-                    Some Int32.zero
+                    Some zero
               ))) []) :: args
   in
   server_send sock s (packet (Q2 quid) args)
@@ -1462,8 +1466,8 @@ let print_string s buf =
     lprintf "Not a GNUTELLA2 packet (no GND)\n"
   else
   let nSequence = LittleEndian.get_int16 buf 4 in
-  let nCount = get_int8 buf 7 in
-  let nFlags = get_int8 buf 3 in
+  let nCount = get_uint8 buf 7 in
+  let nFlags = get_uint8 buf 3 in
   let ack_me = nFlags land 2 <> 0 in
 (* Contribute:
   - deflating
@@ -1488,15 +1492,15 @@ let print_string s buf =
     try
       if nFlags land 2 <> 0 then
         lprintf "Need ack\n";
-      let cb = get_int8 buf pos in
+      let cb = get_uint8 buf pos in
       let len_len = (cb lsr 6) land 3 in
       let be = cb land 2 <> 0 in
       
       let pkt_len, pkt_pos = match len_len, be with
-        | 1, true -> get_int8 buf (pos+1), 2 
+        | 1, true -> get_uint8 buf (pos+1), 2 
         | 2, true -> BigEndian.get_int16 buf (pos+1), 3 
         | 3, true -> BigEndian.get_int24 buf (pos+1), 4
-        | 1, false -> get_int8 buf (pos+1),  2 
+        | 1, false -> get_uint8 buf (pos+1),  2 
         | 2, false -> LittleEndian.get_int16 buf (pos+1), 3 
         | 3, false -> LittleEndian.get_int24 buf (pos+1), 4
         | _ ->

@@ -116,7 +116,7 @@ module PingServerUdp = struct (* client -> serveur pour identification ? *)
       
     let parse len s =
       try
-	get_int64_32 s 1(*, get_int8 s 2, get_int8 s 3*)
+	get_uint64_32 s 1(*, get_int8 s 2, get_int8 s 3*)
       with _ ->
 	Int64.zero
                   
@@ -143,7 +143,7 @@ module PingServerReplyUdp = struct (* reponse du serveur a 150 *)
     let multiple_replies = 2
     
     type t = {
-        challenge : int32;
+        challenge : int64;
         users : int;
         files : int;
         soft_limit : int  option;
@@ -153,7 +153,7 @@ module PingServerReplyUdp = struct (* reponse du serveur a 150 *)
       }
 (*           <E3><97><users><files><softLimit><hardLimit><maxUsers><flags> *)
     let parse len s =
-      let challenge = get_int32 s 1 in
+      let challenge = get_uint64_32 s 1 in
       let users = get_int s 5 in
       let files = get_int s 9 in
       let soft_limit = if len > 13 then Some (get_int  s 9) else None in
@@ -180,7 +180,7 @@ module PingServerReplyUdp = struct (* reponse du serveur a 150 *)
       Printf.bprintf oc "\n"
     
     let write buf t =
-      buf_int32 buf t.challenge;
+      buf_int64_32 buf t.challenge;
       buf_int buf t.users;
       buf_int buf t.files;
       (match t.soft_limit, t.hard_limit, t.max_users, t.flags with
@@ -305,7 +305,7 @@ module QueryLocationReplyUdp = struct
       let rec iter_len pos list =
         if pos < len then
           let md4 = get_md4 s pos in
-          let n = get_int8 s (pos+16) in
+          let n = get_uint8 s (pos+16) in
           let rec iter i  =
             if i = n then [] else
             let ip = get_ip s (pos+17 + i * 6) in

@@ -53,7 +53,10 @@ let enable () =
     let enabler = ref true in
     is_enabled := true;
     if !!tracker_port > 0 then BTTracker.start_tracker ();
-    BTInteractive.share_files ();
+    add_infinite_timer 1200. (fun _ ->
+        BTInteractive.share_files ();
+        BTTracker.clean_tracker_timer ());
+    add_timer 60. BTInteractive.share_files;
     network.op_network_disable <- disable enabler;
     
   if not !!enable_bittorrent then enable_bittorrent =:= true;

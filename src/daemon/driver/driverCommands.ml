@@ -1133,7 +1133,7 @@ the name between []"
             Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>\\<td title=\\\"Incoming directory is always shared\\\" class=\\\"srb\\\"\\>Incoming\\</td\\>
 \\<td class=\\\"sr ar\\\"\\>0\\</td\\>\\<td title=\\\"Incoming\\\" class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>" !!incoming_directory;
             
-            List.iter (fun (dir, prio) -> 
+            List.iter (fun shared_dir -> 
                 incr counter;
                 Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>
 		\\<td title=\\\"Click to unshare this directory\\\" 
@@ -1145,7 +1145,10 @@ the name between []"
 		class=\\\"srb\\\"\\>Unshare\\</td\\>
 		\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>
 		\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>" 
-                  (if !counter mod 2 == 0 then "dl-1" else "dl-2") dir prio dir;
+                  (if !counter mod 2 == 0 then "dl-1" else "dl-2") 
+                shared_dir.shdir_dirname 
+                shared_dir.shdir_priority
+                shared_dir.shdir_dirname;
             )
             !!shared_directories;
             
@@ -1156,7 +1159,9 @@ the name between []"
             
             Printf.bprintf buf "Shared directories:\n";
             Printf.bprintf buf "  %d %s\n" !!incoming_directory_prio !!incoming_directory;
-            List.iter (fun (dir, prio) -> Printf.bprintf buf "  %d %s\n" prio dir)
+            List.iter (fun sd -> 
+                Printf.bprintf buf "  %d %s\n" 
+                sd.shdir_priority sd.shdir_dirname)
             !!shared_directories;
           
           end;
@@ -1164,30 +1169,45 @@ the name between []"
     ), ":\t\t\t\tprint shared directories";
     
     "share", Arg_multiple (fun args o ->
-        let (prio, arg) = match args with
-            [prio; arg] -> int_of_string prio, arg
-          | [arg] -> 0, arg
+        let (prio, arg, strategy) = match args with
+          | [prio; arg; strategy] -> int_of_string prio, arg, strategy
+          | [prio; arg] -> int_of_string prio, arg, "only_directory"
+          | [arg] -> 0, arg, "only_directory"
           | _  -> failwith "Bad number of arguments"
         in
+
+        let shdir = {
+            shdir_dirname = arg;
+            shdir_priority = prio;
+            shdir_networks = []; 
+            shdir_strategy = strategy;
+          } in
         
         if Unix2.is_directory arg then
-          if not (List.mem_assoc arg !!shared_directories) then begin
-              shared_directories =:= (arg, prio) :: !!shared_directories;
-              shared_add_directory (arg, prio);
+          if not (List.mem shdir !!shared_directories) then begin
+              shared_directories =:= shdir :: !!shared_directories;
+              shared_add_directory shdir;
               "directory added"
-            end else if not (List.mem (arg, prio) !!shared_directories) then begin
+            end (* else 
+            if not (List.mem (arg, prio) !!shared_directories) then begin
               shared_directories =:= (arg, prio) :: List.remove_assoc arg !!shared_directories;
               shared_add_directory (arg, prio);
               "prio changed"
-            end else
+            end *) else
             "directory already shared"
         else
           "no such directory"
-    ), "<prio> <dir> :\t\t\tshare directory <dir> with <prio>";
+    ), "<priority> <dir> [<strategy>] :\t\t\tshare directory <dir> with <priority> [and sharing strategy <strategy>]";
     
     "unshare", Arg_one (fun arg o ->
-        if List.mem_assoc arg !!shared_directories then begin
-            shared_directories =:= List.remove_assoc arg !!shared_directories;
+
+        let found = ref false in
+        shared_directories =:= List.filter (fun sd ->
+            let diff = sd.shdir_dirname <> arg in
+            if not diff then found := true;
+            diff
+        ) !!shared_directories;
+        if !found then begin
             CommonShared.shared_check_files ();
             "directory removed"
           end else
@@ -1747,13 +1767,7 @@ formID.msgText.value=\\\"\\\";
     
     "log", Arg_none (fun o ->
         let buf = o.conn_buf in
-        (try
-            while true do
-              let s = Fifo.take lprintf_fifo in
-              decr lprintf_size;
-              Buffer.add_string buf s
-            done
-          with _ -> ());
+        log_to_buffer buf;
         "------------- End of log"
     ), ":\t\t\t\t\tdump current log state to console";
     
@@ -1778,7 +1792,7 @@ formID.msgText.value=\\\"\\\";
     "stdout", Arg_one (fun arg o ->
         let buf = o.conn_buf in
         let b = bool_of_string arg in
-        lprintf_to_stdout := b;
+        set_logging b;
         Printf.sprintf "log to stdout %s" 
           (if b then "enabled" else "disabled")
     ), "<true|false> :\t\t\treactivate log to stdout";
@@ -1824,19 +1838,12 @@ formID.msgText.value=\\\"\\\";
     
     "log_file", Arg_one (fun arg o ->
         let oc = open_out arg in
-        (match !lprintf_output with
-            Some oc when oc != stdout -> close_out oc
-          | _ -> ());
-        lprintf_output := Some oc;
-        lprintf_to_stdout := true;
+        log_to_file oc;
         "log started"
     ), "<file> :\t\t\tstart logging in file <file>";
     
     "close_log", Arg_none (fun o ->
-        (match !lprintf_output with
-            None -> () | Some oc -> close_out oc);
-        lprintf_output := None;
-        lprintf_to_stdout := false;
+        close_log ();
         "log stopped"
     ), ":\t\t\t\tclose logging to file";
     

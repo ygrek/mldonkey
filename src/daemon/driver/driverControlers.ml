@@ -437,7 +437,8 @@ let telnet_handler t event =
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
       let from_ip = Ip.of_inet_addr from_ip in
       if Ip.matches from_ip !!allowed_ips then 
-        let sock = TcpBufferedSocket.create_simple 
+        let token = create_token unlimited_connection_manager in
+        let sock = TcpBufferedSocket.create_simple token
           "telnet connection"
           s in
         let telnet = {

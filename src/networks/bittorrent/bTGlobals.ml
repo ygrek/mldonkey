@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open CommonInteractive
+open Int32ops
 open Printf2
 open Md4
 open CommonClient
@@ -83,7 +85,8 @@ let network = new_network "BitTorrent"
      op_result_download : ('a -> string list -> unit);
      op_result_info : ('a -> CommonTypes.result_info);
   *)
-      
+let connection_manager = network.network_connection_manager
+    
 let (result_ops : result CommonResult.result_ops) = 
   CommonResult.new_result_ops network
   
@@ -109,11 +112,13 @@ let current_files = ref ([] : BTTypes.file list)
 let listen_sock = ref (None : TcpServerSocket.t option)
   
 let files_by_uid = Hashtbl.create 13
+  
+let max_range_len = Int64.of_int (1 lsl 14)
       
 let new_file file_id file_name file_size file_tracker piece_size file_u = 
 (*  let t = Unix32.create_rw file_temp in*)
-  let swarmer = Int64Swarmer.create () in
-  let partition = fixed_partition swarmer piece_size in
+  let swarmer = Int64Swarmer.create file_size piece_size 
+      (min max_range_len piece_size)  in
   let rec file = {
       file_file = file_impl;
       file_piece_size = piece_size;
@@ -122,7 +127,6 @@ let new_file file_id file_name file_size file_tracker piece_size file_u =
       file_clients_num = 0;
       file_clients = Hashtbl.create 113;
       file_swarmer = swarmer;
-      file_partition = partition;
       file_tracker = file_tracker;
       file_chunks = [||];
       file_tracker_connected = false;
@@ -142,16 +146,14 @@ let new_file file_id file_name file_size file_tracker piece_size file_u =
       impl_file_best_name = file_name;
     }
   in
-  Int64Swarmer.set_size swarmer file_size;  
   Int64Swarmer.set_writer swarmer (fun offset s pos len ->      
       if !!CommonOptions.buffer_writes then 
         Unix32.buffered_write_copy file_u offset s pos len
       else
         Unix32.write file_u offset s pos len
   );
-  Int64Swarmer.set_verifier partition (fun b ->
+  Int64Swarmer.set_verifier swarmer (fun num begin_pos end_pos ->
       if file.file_chunks = [||] then raise Not_found;
-      let num, begin_pos, end_pos = Int64Swarmer.block_block b in
       lprintf "Sha1 to compute: %d %Ld-%Ld\n" num begin_pos end_pos;
       Unix32.flush_fd (file_fd file);
       let sha1 = Sha1.digest_subfile (file_fd file) 
@@ -161,27 +163,28 @@ let new_file file_id file_name file_size file_tracker piece_size file_u =
         (Sha1.to_string sha1) (Sha1.to_string file.file_chunks.(num))
       (if result then "VERIFIED" else "CORRUPTED");
       if result then begin
-          file.file_blocks_downloaded <- b :: file.file_blocks_downloaded;
+          file.file_blocks_downloaded <- (num, begin_pos, end_pos) :: 
+          file.file_blocks_downloaded;
           file_must_update file;
 (*Automatically send Have to ALL clients once a piece is verified
             NB : will probably have to check if client can be interested*)
           Hashtbl.iter (fun _ c ->
- 			  if c.client_registered_bitfield then
- 			    begin
-              let must_send = (not (Int64Swarmer.is_interesting file.file_partition c.client_bitmap )) in
-                c.client_interesting <- false;
-              begin
-                match c.client_sock with
-                | Connection sock -> 
-                    if (c.client_bitmap.[num] <> '1') then
-                      send_client c (Have (Int64.of_int num));
-                    if (must_send && not 
-                          c.client_alrd_sent_notinterested) then
-                      begin
-                        c.client_alrd_sent_notinterested <- true;
-                        send_client c NotInterested
-                      end
-                
+              if c.client_registered_bitfield then
+                begin
+                  let must_send = (not (Int64Swarmer.is_interesting c.client_uploader )) in
+                  c.client_interesting <- false;
+                  begin
+                    match c.client_sock with
+                    | Connection sock -> 
+                        if (c.client_bitmap.[num] <> '1') then
+                          send_client c (Have (Int64.of_int num));
+                        if (must_send && not 
+                              c.client_alrd_sent_notinterested) then
+                          begin
+                            c.client_alrd_sent_notinterested <- true;
+                            send_client c NotInterested
+                          end
+                          
                 | _ -> ();
               end;
               end				
@@ -231,13 +234,14 @@ let new_client file peer_id kind =
           client_choked = true;
           client_sent_choke = false;
           client_interested = false;
-          client_blocks = [];
+          client_uploader = Int64Swarmer.register_uploader 
+            file.file_swarmer (Int64Swarmer.AvailableRanges []);
           client_chunks = [];
           client_ranges = [];
           client_block = None;
           client_uid = peer_id;
           client_bitmap = 
-          String.make (Int64Swarmer.partition_size file.file_partition) '\000';
+          String.make (Int64Swarmer.partition_size file.file_swarmer) '\000';
           client_allowed_to_write = zero;
           client_uploaded = zero;
           client_downloaded = zero;
@@ -275,3 +279,13 @@ let remove_client c =
     Hashtbl.remove c.client_file.file_clients c.client_uid ;
     c.client_file.file_clients_num <- c.client_file.file_clients_num  - 1;
     file_remove_source (as_file c.client_file.file_file) (as_client c)
+
+let downloads_directory = Filename.concat "torrents" "downloads"
+let tracked_directory = Filename.concat "torrents" "tracked"
+let seeded_directory = Filename.concat "torrents" "seeded"
+
+let _ = 
+  Unix2.safe_mkdir "torrents";
+  Unix2.safe_mkdir downloads_directory;
+  Unix2.safe_mkdir tracked_directory;  
+  Unix2.safe_mkdir seeded_directory;

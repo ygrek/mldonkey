@@ -90,7 +90,7 @@ ed 1d             ..<...Ôu çİí.
 
       
     let parse len s =
-      let version = get_int8 s 1 in
+      let version = get_uint8 s 1 in
       let md4 = get_md4 s 2 in
       let ip = get_ip s 18 in
       let port = get_port s 22 in
@@ -280,7 +280,7 @@ module QueryChunksReply = struct (* Request 80 *)
         if nchunks = 0 then [||] else
         let chunks = Array.create nchunks false  in
         for i = 0 to (nchunks-1) / 8 do
-          let m = get_int8 s (19+i) in
+          let m = get_uint8 s (19+i) in
           for j = 0 to 7 do
             let n = i * 8 + j in
             if n < nchunks then
@@ -408,8 +408,8 @@ module Bloc  = struct
     let parse len s = 
       {
         md4 = get_md4 s 1;
-        start_pos = get_int64_32 s 17;
-        end_pos = get_int64_32 s 21;
+        start_pos = get_uint64_32 s 17;
+        end_pos = get_uint64_32 s 21;
         bloc_str = s;
         bloc_begin = 25;
         bloc_len = len - 25;
@@ -441,12 +441,12 @@ module QueryBloc  = struct
     let parse len s = 
       {
         md4 = get_md4 s 1;
-        start_pos1 = get_int64_32 s 17;
-        end_pos1 = get_int64_32 s 29;
-        start_pos2 = get_int64_32 s 21;
-        end_pos2 = get_int64_32 s 33;
-        start_pos3 = get_int64_32 s 25;
-        end_pos3 = get_int64_32 s 37;
+        start_pos1 = get_uint64_32 s 17;
+        end_pos1 = get_uint64_32 s 29;
+        start_pos2 = get_uint64_32 s 21;
+        end_pos2 = get_uint64_32 s 33;
+        start_pos3 = get_uint64_32 s 25;
+        end_pos3 = get_uint64_32 s 37;
       }
       
     let print t = 
@@ -703,8 +703,8 @@ module EmuleClientInfo = struct
       ]
       
     let parse len s =
-      let version = get_int8 s 1 in
-      let protversion = get_int8 s 2 in
+      let version = get_uint8 s 1 in
+      let protversion = get_uint8 s 2 in
       let tags,_ = get_tags s 3 names_of_tag in
       {
         version = version; 

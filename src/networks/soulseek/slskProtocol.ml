@@ -527,7 +527,7 @@ ascii: [
             GetPeerAddressReplyReq (name, ip, port)
         | 5 -> 
             let s, pos = get_string s 0 in
-            let present = get_int8 s pos in
+            let present = get_uint8 s pos in
             AddUserReplyReq (s, present = 1)
         | 7 -> 
             let user, pos = get_string s 0 in
@@ -708,10 +708,10 @@ module C2C = struct
       }
     
     let get_file s pos =
-      let code = get_int8 s pos in
+      let code = get_uint8 s pos in
       let name, pos = get_string s (pos+1) in
-      let size = get_int64_32 s pos in
-      let size2 = get_int64_32 s (pos+4) in
+      let size = get_uint64_32 s pos in
+      let size2 = get_uint64_32 s (pos+4) in
       let format, pos = get_string s (pos+8) in
       let tags, pos = get_list (fun s pos ->
             (get_int s pos, get_int s (pos+4)), pos+8) s pos
@@ -756,7 +756,7 @@ module C2C = struct
           let user, pos = get_string s 0 in
           let id = get_int s pos in
           let files, pos = get_list get_file s (pos+4) in
-          let freeulslots = get_int8 s pos in
+          let freeulslots = get_uint8 s pos in
           let ulspeed = get_int s (pos+1) in
 (*        let ???? = get_int s (pos+5) in *)
           {
@@ -832,14 +832,14 @@ module C2C = struct
             let download = get_int s 0 = 0 in
             let req = get_int s 4 in
             let file, pos = get_string s 8 in
-            let size = get_int64_32 s pos in
+            let size = get_uint64_32 s pos in
             TransferRequestReq (download, req, file, size)
         
         | 41 -> 
             let req = get_int s 0 in
-            let allowed = get_int8 s 4 = 1 in
+            let allowed = get_uint8 s 4 = 1 in
             if allowed then
-              let filesize = get_int64_32 s 5 in
+              let filesize = get_uint64_32 s 5 in
               TransferOKReplyReq (req, filesize)
             else
             let reason, pos = get_string s 5 in

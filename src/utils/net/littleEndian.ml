@@ -88,14 +88,14 @@ let str_int s pos i =
   s.[pos+3] <- char_of_int ((i lsr 24) land 255)
 
 let get_int s pos =
-  let c1 = get_int8 s pos in
-  let c2 = get_int8 s (pos+1) in
-  let c3 = get_int8 s (pos+2) in
-  let c4 = get_int8 s (pos+3) in
+  let c1 = get_uint8 s pos in
+  let c2 = get_uint8 s (pos+1) in
+  let c3 = get_uint8 s (pos+2) in
+  let c4 = get_uint8 s (pos+3) in
   let x =   c1 lor (c2 lsl 8) lor (c3 lsl 16) lor (c4 lsl 24) in
   x
 
-(******** Operations on 32 bits integers ********)
+(******** Operations on 32 bits integers *******
   
 let buf_int32 oc i =
   buf_int32_8 oc i;
@@ -114,7 +114,7 @@ let get_int32 s pos =
     (or32 (left32 c2 8)
     (or32 (left32 c3 16) 
        (left32 c4 24)))
-
+*)
   
 (******** Operations on 64 bits integers ********)
 
@@ -129,16 +129,24 @@ let buf_int64 oc i =
   buf_int64_8 oc (right64 i  48);
   buf_int64_8 oc (right64 i  56)
 
+let buf_int64_32 oc i =
+  buf_int64_8 oc i;
+  buf_int64_8 oc (right64 i  8);
+  buf_int64_8 oc (right64 i  16);
+  buf_int64_8 oc (right64 i  24)
+  
+let get_uint64_32 s pos =
+  let c1 = get_uint8 s pos in
+  let c2 = get_uint8 s (pos+1) in
+  let c3 = get_uint8 s (pos+2) in
+  let c4 = get_uint8 s (pos+3) in
+  let start = Int64.of_int (c1 + (c2 lsl 8) + (c3 lsl 16)) in
+  (left64 (Int64.of_int c4) 24) ++ start
 
 let get_int64 s pos = 
-  let i1 = get_int32 s pos in
-  let i2 = get_int32 s (pos+4) in
-  or64 (and64 (Int64.of_int32 i1) bits32_64) (left64 (Int64.of_int32 i2) 32)
-
-let get_int64_32 s pos =
-  let i1 = get_int32 s pos in
-  and64 (Int64.of_int32 i1) bits32_64
-
+  let i1 = get_uint64_32 s pos in
+  let i2 = get_uint64_32 s (pos+4) in
+  or64 (and64 i1 bits32_64) (left64 i2 32)
      
 let buf_int64_32 oc i =
   buf_int64_8 oc i;

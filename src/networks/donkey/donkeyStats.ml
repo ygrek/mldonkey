@@ -139,6 +139,20 @@ let brand_mod_to_int b =
   | Brand_mod_stormit -> 52
   | Brand_mod_omax -> 53
   | Brand_mod_mison -> 54
+  | Brand_mod_phoenix -> 55
+  | Brand_mod_spiders -> 56
+  | Brand_mod_iberica -> 57
+  | Brand_mod_mortimer -> 58
+  | Brand_mod_stonehenge -> 59
+  | Brand_mod_xlillo -> 60
+  | Brand_mod_imperator -> 61
+  | Brand_mod_raziboom -> 62
+  | Brand_mod_khaos -> 63
+  | Brand_mod_hardmule -> 64
+  | Brand_mod_sc -> 65
+  | Brand_mod_cy4n1d -> 66
+  | Brand_mod_dmx -> 67
+  | Brand_mod_ketamine -> 68
 
 let brand_mod_of_int b =
   match b with
@@ -197,6 +211,20 @@ let brand_mod_of_int b =
   | 52 -> Brand_mod_stormit
   | 53 -> Brand_mod_omax
   | 54 -> Brand_mod_mison
+  | 55 -> Brand_mod_phoenix
+  | 56 -> Brand_mod_spiders
+  | 57 -> Brand_mod_iberica
+  | 58 -> Brand_mod_mortimer
+  | 59 -> Brand_mod_stonehenge
+  | 60 -> Brand_mod_xlillo
+  | 61 -> Brand_mod_imperator
+  | 62 -> Brand_mod_raziboom
+  | 63 -> Brand_mod_khaos
+  | 64 -> Brand_mod_hardmule
+  | 65 -> Brand_mod_sc
+  | 66 -> Brand_mod_cy4n1d
+  | 67 -> Brand_mod_dmx
+  | 68 -> Brand_mod_ketamine
   | _ -> raise Not_found
       
 let gbrand_mod_to_string b =
@@ -256,6 +284,20 @@ let gbrand_mod_to_string b =
   | Brand_mod_stormit -> "Sto"
   | Brand_mod_omax -> "OMX"
   | Brand_mod_mison -> "Mis"
+  | Brand_mod_phoenix -> "pPho"
+  | Brand_mod_spiders -> "spi"
+  | Brand_mod_iberica -> "Ib"
+  | Brand_mod_mortimer -> "mor"
+  | Brand_mod_stonehenge -> "sto"
+  | Brand_mod_xlillo -> "Xli"
+  | Brand_mod_imperator -> "Imp"
+  | Brand_mod_raziboom -> "Raz"
+  | Brand_mod_khaos -> "Kha"
+  | Brand_mod_hardmule -> "Har"
+  | Brand_mod_sc -> "SC"
+  | Brand_mod_cy4n1d -> "Cy4"
+  | Brand_mod_dmx -> "DMX"
+  | Brand_mod_ketamine -> "Ket"
 
 let stats_all = dummy_stats 
 let mod_stats_all = dummy_mod_stats 
@@ -504,7 +546,7 @@ let new_print_stats buf o =
 
       for i=1 to brand_count do
         if i=brand_count then showTotal := true;
-       if i != 6 then begin (* dont print server stats - avoid the raise_failure of brand_of_int *)
+        if !showTotal || ( brand_of_int i != Brand_server && stats_by_brand.(i).brand_seen > 0 ) then begin
           incr counter;
           Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>" (if (!counter mod 2 == 0) then "dl-1" else "dl-2");
           Printf.bprintf buf "
@@ -614,7 +656,7 @@ let new_print_stats buf o =
       showTotal := false;
       for i=1 to brand_count do
        if i=brand_count then showTotal := true;
-       if i != 6 then begin (* dont print server stats - avoid the raise_failure of brand_of_int *)
+       if !showTotal || ( brand_of_int i != Brand_server && !!gstats_by_brand.(i).brand_seen > 0 ) then begin
           incr counter;
           Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>" (if (!counter mod 2 == 0) then "dl-1" else "dl-2");
           Printf.bprintf buf "
@@ -813,6 +855,7 @@ let new_print_mod_stats buf o =
 
       for i=1 to brand_mod_count do
         if i=brand_mod_count then showTotal := true;
+        if !showTotal || stats_by_brand_mod.(i).brand_mod_seen > 0 then begin
           incr counter;
           Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>" (if (!counter mod 2 == 0) then "dl-1" else "dl-2");
           Printf.bprintf buf "
@@ -886,6 +929,7 @@ let new_print_mod_stats buf o =
              (if stats_by_brand_mod.(i).brand_mod_upload = Int64.zero then 0.0 else 
 			 ( (Int64.to_float stats_by_brand_mod.(i).brand_mod_download) /.
              (Int64.to_float stats_by_brand_mod.(i).brand_mod_upload) )));
+        end
       done;
       Printf.bprintf buf "\\</table\\>\\</div\\>\n";
       
@@ -921,6 +965,7 @@ let new_print_mod_stats buf o =
       showTotal := false;
       for i=1 to brand_mod_count do
        if i=brand_mod_count then showTotal := true;
+       if !showTotal || !!gstats_by_brand_mod.(i).brand_mod_seen > 0 then begin
           incr counter;
           Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>" (if (!counter mod 2 == 0) then "dl-1" else "dl-2");
           Printf.bprintf buf "
@@ -988,6 +1033,7 @@ let new_print_mod_stats buf o =
           (if !!gstats_by_brand_mod.(i).brand_mod_upload = Int64.zero then 0.0 else 
 			( (Int64.to_float !!gstats_by_brand_mod.(i).brand_mod_download) /.
             (Int64.to_float !!gstats_by_brand_mod.(i).brand_mod_upload) )))
+        end
       done;
       Printf.bprintf buf "\\</table\\>\\</div\\>\n";
     end
@@ -1008,11 +1054,7 @@ let new_print_mod_stats buf o =
         (percent_of_ints mod_stats_all.brand_mod_banned mod_stats_all.brand_mod_seen);
       
       for i=1 to brand_mod_count-1 do
-(*        if brand_of_int i != Brand_server then (* dont print server stats *) *)
           let brandstr = 
-(*            if brand_of_int i = Brand_mldonkey3 then 
-              "trusted mld"
-            else *)
               brand_mod_to_string (brand_mod_of_int i) in
           
           Printf.bprintf buf "%-12s|%6d %3.f%%|%7.1f %5.1f %3.0f%%|%7.1f %5.1f %3.0f%%|%5d %3.0f%%\n"
