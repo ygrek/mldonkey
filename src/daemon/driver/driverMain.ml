@@ -221,9 +221,7 @@ let load_config () =
           (try Unix2.copy "downloads.ini" "downloads_expert.ini" with _ -> ());
           (try Unix2.copy "downloads.ini" "donkey.ini" with _ -> ());
           (try Unix2.copy "downloads.ini" "donkey_expert.ini" with _ -> ());
-
-          end else begin
-          
+        end else begin          
           lprintf "No config file found. Generating one.\n"; 
           let oc = open_out (options_file_name downloads_expert_ini) in
           close_out oc; 
@@ -231,7 +229,7 @@ let load_config () =
     end;
   (try 
       Options.load downloads_ini;
-      Options.load downloads_expert_ini;      
+      (try Options.load downloads_expert_ini with _ -> ());      
     with e -> 
         lprintf "Exception %s during options load\n" (Printexc2.to_string e); 
         exit 2;
@@ -353,7 +351,7 @@ let _ =
         CommonGlobals.exit_properly 0))
 
 let _ =
-    
+  
   load_config ();
   
   add_infinite_option_timer download_sample_rate CommonFile.sample_timer;  
@@ -363,10 +361,27 @@ let _ =
   (try Options.load friends_ini with _ -> ());
   (try Options.load searches_ini with _ -> ());
   
+  (try Options.load CommonUploads.M.shared_files_ini;
+      
+      let list = ref [] in
+(* Normally, we should check that downloaded files are still there.
+  
+  *)    
+      let list = ref [] in
+      List.iter (fun file ->
+          if Unix32.file_exists file.sh_name then begin
+              Hashtbl.add CommonUploads.M.shared_files_info file.sh_name file;
+              list := file :: !list
+            end
+      ) !!CommonUploads.M.known_shared_files;
+      CommonUploads.M.known_shared_files =:= !list;
+      with _ -> ());
+  
   Options.save_with_help servers_ini;
   Options.save_with_help files_ini;
   Options.save_with_help friends_ini;
   Options.save_with_help searches_ini;
+  Options.save_with_help CommonUploads.M.shared_files_ini;
   
   networks_iter (fun r -> network_load_complex_options r);
   networks_iter_all (fun r -> 

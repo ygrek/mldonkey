@@ -31,9 +31,6 @@ open DonkeyOptions
 open CommonOptions
 open CommonGlobals
 open DonkeyGlobals
-
-let shared_files_ini = create_options_file (
-    Filename.concat file_basedir "shared_files.ini")
   
 let file_sources_ini = create_options_file (
     Filename.concat file_basedir "file_sources.ini")
@@ -340,53 +337,7 @@ let file_to_value file =
     "file_mtime", float_to_value (
       try Unix32.mtime64 (file_disk_name file) with _ -> 0.0)
   ]
-  
-module SharedFileOption = struct
     
-    let value_to_shinfo v =
-      match v with
-        Options.Module assocs ->
-          let get_value name conv = conv (List.assoc name assocs) in
-          let get_value_nil name conv = 
-            try conv (List.assoc name assocs) with _ -> []
-          in
-          
-          let sh_md4s = try
-              value_to_list (fun v ->
-                  Md4.of_string (value_to_string v)) (List.assoc "md4s" assocs)
-            with _ -> failwith "Bad shared file md4"
-          in
-          let sh_size = try
-              value_to_int64 (List.assoc "size" assocs) 
-            with _ -> failwith "Bad shared file size"
-          in
-          let sh_name = try
-              value_to_filename (List.assoc "name" assocs)
-            with _ -> failwith "Bad shared file name"
-          in
-          let sh_mtime = try
-              value_to_float (List.assoc "mtime" assocs)
-            with _ -> failwith "Bad shared file mtime"
-          in
-          { sh_name = sh_name; sh_mtime = sh_mtime;
-            sh_size = sh_size; sh_md4s = sh_md4s;
-          }
-          
-      | _ -> failwith "Options: not a shared file info option"
-          
-    let shinfo_to_value sh =
-      Options.Module [
-        "name", filename_to_value sh.sh_name;
-        "md4s", list_to_value "Shared Md4" (fun md4 ->
-            string_to_value (Md4.to_string md4)) sh.sh_md4s;
-        "mtime", float_to_value sh.sh_mtime;
-        "size", int64_to_value sh.sh_size;
-      ]
-    
-    
-    let t = define_option_class "SharedFile" value_to_shinfo shinfo_to_value
-  end
-  
 module StatsOption = struct
     
     let value_to_stat v =
@@ -558,10 +509,6 @@ let files =
 let known_servers = define_option servers_ini["known_servers"] "List of known servers"
     (list_option ServerOption.t) []
     *)
-
-let known_shared_files = define_option shared_files_ini 
-    ["shared_files"] "" 
-    (list_option SharedFileOption.t) []
   
 (************  UPDATE OPTIONS *************)  
   
@@ -602,10 +549,8 @@ let sources = define_option file_sources_ini
 let load _ =
   lprintf "LOADING SHARED FILES AND SOURCES"; lprint_newline ();
   (try
-      Options.load shared_files_ini;
       Options.load stats_ini;
-    with Sys_error _ ->
-        Options.save_with_help shared_files_ini)
+    with Sys_error _ -> ())
   
 let guptime = define_option stats_ini ["guptime"] "" int_option 0
   
@@ -633,7 +578,6 @@ let diff_time = ref 0
 
 let save _ =
   lprintf "SAVING SHARED FILES AND SOURCES"; lprint_newline ();
-  Options.save_with_help shared_files_ini;
   guptime =:= !!guptime + (last_time () - start_time) - !diff_time;
   diff_time := (last_time () - start_time);
   Options.save_with_help stats_ini;

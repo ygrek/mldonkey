@@ -50,19 +50,24 @@ type client = {
     mutable client_good : bool;
   }
 
+and file_info = {
+    file_info_tracker : string;
+    file_info_id : Sha1.t;
+    file_info_size : int64;
+    file_info_chunks : Sha1.t array; 
+    file_info_files : (string * int64 * int64) list;
+    file_info_piece_size : int64;
+    file_info_name : string;
+  }
+  
 and file = {
-    file_file : file CommonFile.file_impl;
-    file_piece_size : int64;
-    file_tracker : string;
-    file_id : Sha1.t;
-    file_name : string;
-    file_swarmer : Int64Swarmer.t;
+    file_shared : CommonDownloads.SharedDownload.file;
+
+    file_info : file_info;
     file_partition : CommonSwarming.Int64Swarmer.partition;
     mutable file_clients : (Sha1.t, client) Hashtbl.t ;
-    mutable file_chunks : Sha1.t array; 
     mutable file_tracker_connected : bool;
     mutable file_tracker_interval : int;
     mutable file_tracker_last_conn : int;
-    mutable file_files : (string * int64 * int64) list;
     mutable file_blocks_downloaded : Int64Swarmer.block list;
   }

@@ -201,7 +201,7 @@ let parse_packet msg_type m =
           let ntags = Int64.to_int ntags in
           
           lprintf "   Result %s size: %Ld tags: %d\n" 
-            (Md5Ext.to_string_case false result_hash) result_size ntags;
+            (Md5Ext.to_hexa_case false result_hash) result_size ntags;
           lprintf "    %s\n" (Md5Ext.to_hexa result_hash);
           
           
@@ -227,7 +227,7 @@ let parse_packet msg_type m =
             "FastTrack://%s:%d/.hash=%s" (Ip.to_string user_ip)
             user_port (Md5Ext.to_string_case false result_hash) in *)
           let url = Printf.sprintf 
-              "/.hash=%s" (Md5Ext.to_string_case false result_hash) in 
+              "/.hash=%s" (Md5Ext.to_hexa_case false result_hash) in 
           lprintf "URL = %s\n" url;
           iter pos (n-1)
       in

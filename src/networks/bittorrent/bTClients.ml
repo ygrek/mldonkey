@@ -19,28 +19,28 @@
 
 
 open AnyEndian
+open Printf2
+  open Options
+open BasicSocket
+open TcpBufferedSocket
+open Md4
+
 open CommonShared
 open CommonUploads
-open Printf2
 open CommonOptions
-open CommonDownloads
-open Md4
 open CommonInteractive
 open CommonClient
 open CommonComplexOptions
 open CommonTypes
 open CommonFile
-open Options
-open BasicSocket
-open TcpBufferedSocket
-
 open CommonGlobals
 open CommonSwarming  
+open CommonDownloads.SharedDownload
+  
 open BTTypes
 open BTOptions
 open BTGlobals
 open BTComplexOptions
-
 open BTProtocol
   
 let http_ok = "HTTP 200 OK"
@@ -80,7 +80,8 @@ let disconnect_clients file =
         lprintf "disconnect since download is finished\n";
       disconnect_client c Closed_by_user
   ) file.file_clients
-          
+
+  (*
 let download_finished file = 
   if List.memq file !current_files then begin      
       file_completed (as_file file.file_file);
@@ -88,22 +89,11 @@ let download_finished file =
       old_files =:= (file.file_name, file_size file) :: !!old_files;
       disconnect_clients file
     end
-    
+      *)
+
 let (++) = Int64.add
 let (--) = Int64.sub
       
-
-let check_finished file = 
-  if file_state file <> FileDownloaded then begin
-      let bitmap = Int64Swarmer.verified_bitmap file.file_partition in
-      for i = 0 to String.length bitmap - 1 do
-        if bitmap.[i] <> '3' then raise Not_found;
-      done;  
-      if (file_size file <> Int64Swarmer.downloaded file.file_swarmer)
-      then
-        lprintf "Downloaded size differs after complete verification\n";
-      download_finished file
-    end
     
 let bits = [| 128; 64; 32;16;8;4;2;1 |]
 
@@ -223,8 +213,9 @@ and update_client_bitmap c =
 
 and get_from_client sock (c: client) =
   let file = c.client_file in
+  let file_shared = file.file_shared in
   if List.length c.client_ranges < max_range_requests && 
-    file_state file = FileDownloading then 
+    file_state file_shared = FileDownloading then 
     let num, x,y, r = 
       if !verbose_msg_clients then begin
           lprintf "CLIENT %d: Finding new range to send\n" (client_num c);
@@ -287,7 +278,7 @@ and get_from_client sock (c: client) =
           if !verbose_swarming then
             lprintf "Unable to get a block !!\n";
           Int64Swarmer.compute_bitmap file.file_partition;
-          check_finished file;
+          check_finished file.file_shared;
           raise Not_found
     in
     send_client c (Request (num,x,y));
@@ -309,6 +300,8 @@ and client_to_client c sock msg =
     end;
   
   let file = c.client_file in
+  let file_shared = file.file_shared in
+  let file_info = file.file_info in
   if c.client_blocks_sent != file.file_blocks_downloaded then begin
       let rec iter list =
         match list with
@@ -326,13 +319,15 @@ and client_to_client c sock msg =
     match msg with
       Piece (num, offset, s, pos, len) ->
         let file = c.client_file in
+        let file_shared = file.file_shared in
+        let file_info = file.file_info in
         
         set_lifetime sock 600.;
         set_client_state c Connected_downloading;
         
         c.client_good <- true;
-        if file_state file = FileDownloading then begin
-            let position = offset ++ file.file_piece_size ** num in
+        if file_state file_shared = FileDownloading then begin
+            let position = offset ++ file_info.file_info_piece_size ** num in
             
             if !verbose_msg_clients then 
               (match c.client_ranges with
@@ -345,13 +340,13 @@ and client_to_client c sock msg =
               );
             
             let old_downloaded = 
-              Int64Swarmer.downloaded file.file_swarmer in
+              Int64Swarmer.downloaded file_shared.file_swarmer in
             List.iter Int64Swarmer.free_range c.client_ranges;      
-            Int64Swarmer.received file.file_swarmer
+            Int64Swarmer.received file_shared.file_swarmer
               position s pos len;
             List.iter Int64Swarmer.alloc_range c.client_ranges;
             let new_downloaded = 
-              Int64Swarmer.downloaded file.file_swarmer in
+              Int64Swarmer.downloaded file_shared.file_swarmer in
             
             c.client_downloaded <- c.client_downloaded ++ (Int64.of_int len);
             
@@ -368,7 +363,7 @@ and client_to_client c sock msg =
             
             
             if new_downloaded <> old_downloaded then
-              add_file_downloaded file.file_file 
+              add_file_downloaded file_shared.file_file 
                 (new_downloaded -- old_downloaded);
           end;
         begin
@@ -436,8 +431,8 @@ and client_to_client c sock msg =
     | Unchoke ->
         List.iter (fun r ->
             let (x, y) = Int64Swarmer.range_range r in
-            let num = Int64.to_int (x // file.file_piece_size) in
-            let b_begin = file.file_piece_size **  num in
+            let num = Int64.to_int (x // file_info.file_info_piece_size) in
+            let b_begin = file_info.file_info_piece_size **  num in
             send_client c (Request (num, x -- b_begin, y -- x))
         ) c.client_ranges
         
@@ -672,19 +667,21 @@ let connect_tracker file url =
         resume_clients file
     
     | _ -> assert false    
-  in
+  
+  in       
   let args = 
     if file.file_tracker_connected then [] else
       [("event", "started" )]
   in
   let args = 
-      ("info_hash", Sha1.direct_to_string file.file_id) ::
-      ("peer_id", Sha1.direct_to_string !!client_uid) ::
-      ("port", string_of_int !!client_port) ::
-      ("uploaded", "0" ) ::
-      ("downloaded", "0" ) ::
-      ("left", Int64.to_string ((file_size file) -- 
-            (Int64Swarmer.downloaded file.file_swarmer)) ) ::
+    ("info_hash", Sha1.direct_to_string file.file_info.file_info_id) ::
+    ("peer_id", Sha1.direct_to_string !!client_uid) ::
+(*      ("ip", Ip.to_string (client_ip None)) ; *)
+    ("port", string_of_int !!client_port) ::
+    ("uploaded", "0" ) ::
+    ("downloaded", "0" ) ::
+    ("left", Int64.to_string ((file_size file.file_shared) -- 
+        (Int64Swarmer.downloaded file.file_shared.file_swarmer)) ) ::
     args
   in
   
@@ -699,12 +696,12 @@ let connect_tracker file url =
   
 let recover_files () =
   List.iter (fun file ->
-      (try check_finished file with e -> ());
-      if file_state file = FileDownloading then begin
+      (try check_finished file.file_shared with e -> ());
+      if file_state file.file_shared = FileDownloading then begin
           (try resume_clients file with _ -> ());
           if file.file_tracker_last_conn + file.file_tracker_interval 
               < last_time () then
-            (try connect_tracker file file.file_tracker  with _ -> ())
+            (try connect_tracker file file.file_info.file_info_tracker  with _ -> ())
         end
   ) !current_files
 
@@ -718,12 +715,12 @@ let rec iter_upload sock c =
           c.client_upload_requests <- tail;
           
           let file = c.client_file in
-          let offset = pos ++ file.file_piece_size ** num in
+          let offset = pos ++ file.file_info.file_info_piece_size ** num in
           c.client_allowed_to_write <- c.client_allowed_to_write -- len;
           c.client_uploaded <- c.client_uploaded ++ len;
           let len = Int64.to_int len in
 (*          CommonUploads.consume_bandwidth (len/2); *)
-          Unix32.read (file_fd file) offset upload_buffer 0 len;
+          Unix32.read (file_fd file.file_shared) offset upload_buffer 0 len;
           
 (*          lprintf "sending piece\n"; *)
           send_client c (Piece (num, pos, upload_buffer, 0, len));
@@ -749,19 +746,10 @@ let client_can_upload c allowed =
 
 let file_resume file = 
   resume_clients file;
-  (try connect_tracker file file.file_tracker  with _ -> ())
+  (try connect_tracker file file.file_info.file_info_tracker  with _ -> ())
 
 let _ =
   client_ops.op_client_can_upload <- client_can_upload;
-  file_ops.op_file_resume <- file_resume;
-  file_ops.op_file_recover <- file_resume;
-  file_ops.op_file_pause <- (fun file -> 
-      Hashtbl.iter (fun _ c ->
-          match c.client_sock with
-            Connection sock -> close sock Closed_by_user
-          | _ -> ()
-      ) file.file_clients
-  );
   client_ops.op_client_enter_upload_queue <- (fun c ->
       if !verbose_msg_clients then
         lprintf "CLIENT %d: client_enter_upload_queue\n" (client_num c);

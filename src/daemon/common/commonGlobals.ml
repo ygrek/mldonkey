@@ -695,4 +695,26 @@ let schedule_connections () =
       
 let add_pending_connection f =
   Fifo.put waiting_connections f
-  
+      
+let parse_magnet url =
+  let url = Url.of_string url in
+  if url.Url.file = "magnet:" then 
+    let uids = ref [] in
+    let name = ref "" in
+    List.iter (fun (value, arg) ->
+        if String2.starts_with value "xt" then
+          uids := expand_uids (uid_of_string arg :: !uids)
+        else 
+        if String2.starts_with value "dn" then
+          name := Url.decode arg
+        else 
+        if arg = "" then
+(* This is an error in the magnet, where a & has been kept instead of being
+  url-encoded *)
+          name := Printf.sprintf "%s&%s" !name value
+        else
+          lprintf "MAGNET: unused field %s = %s\n"
+            value arg
+    ) url.Url.args;
+    !name, !uids
+  else raise Not_found

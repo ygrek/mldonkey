@@ -26,7 +26,9 @@ open BasicSocket
 open CommonSwarming
 open CommonTypes
 open CommonFile
-
+open CommonHosts
+open CommonDownloads.SharedDownload
+  
 open GnutellaTypes
 open GnutellaOptions
 open GnutellaGlobals
@@ -103,49 +105,13 @@ module ClientOption = struct
   
   end
 
-let value_to_int32pair v =
-  match v with
-    List [v1;v2] | SmallList [v1;v2] ->
-      (value_to_int64 v1, value_to_int64 v2)
-  | _ -> 
-      failwith "Options: Not an int32 pair"
-
-let value_to_file is_done assocs =
+let value_to_file file_shared assocs =
   let get_value name conv = conv (List.assoc name assocs) in
   let get_value_nil name conv = 
     try conv (List.assoc name assocs) with _ -> []
-  in
+  in  
   
-  let file_name = get_value "file_name" value_to_string in
-  let file_id = 
-    try
-      Md4.of_string (get_value "file_id" value_to_string)
-    with _ -> failwith "Bad file_id"
-  in
-  let file_size = try
-      value_to_int64 (List.assoc "file_size" assocs) 
-    with _ -> failwith "Bad file size"
-  in
-  
-  let file_uids = ref [] in
-  let uids_option = try
-      value_to_list value_to_string (List.assoc "file_uids" assocs) 
-    with _ -> []
-  in
-  List.iter (fun v ->
-      file_uids := extract_uids v @ !file_uids) uids_option;
-  
-  
-  let file = new_file file_id file_name file_size !file_uids in
-  
-  (try 
-      Int64Swarmer.set_present file.file_swarmer 
-        (get_value "file_present_chunks" 
-          (value_to_list value_to_int32pair));
-      add_file_downloaded file.file_file
-        (Int64Swarmer.downloaded file.file_swarmer)      
-    with _ -> ()                
-  );
+  let file = new_file file_shared in
   
   (try
       ignore (get_value "file_sources" (value_to_list (fun v ->
@@ -164,15 +130,10 @@ let value_to_file is_done assocs =
     with e -> 
         lprintf "Exception %s while loading source\n"
           (Printexc2.to_string e); 
-  );
-  as_file file.file_file
+  )
   
 let file_to_value file =
   [
-    "file_size", int64_to_value (file_size file);
-    "file_name", string_to_value file.file_name;
-    "file_downloaded", int64_to_value (file_downloaded file);
-    "file_id", string_to_value (Md4.to_string file.file_id);
     "file_sources", 
     list_to_value "Gnutella Sources" (fun c ->
         match (find_download file c.client_downloads).download_uri with
@@ -184,21 +145,14 @@ let file_to_value file =
               string_to_value s]
     ) file.file_clients
     ;
-    "file_uids", list_to_value "toto" (fun uid ->
-        string_to_value  (string_of_uid uid))
-    file.file_uids;
-    "file_present_chunks", List
-      (List.map (fun (i1,i2) -> 
-          SmallList [int64_to_value i1; int64_to_value i2])
-      (Int64Swarmer.present_chunks file.file_swarmer));
-    
   ]
   
 let old_files = 
   define_option gnutella_ini ["old_files"]
     "" (list_option (tuple2_option (string_option, int64_option))) []
     
-    
+let exit = Exit
+  
 let save_config () =
   g1_ultrapeers =:= [];
   g2_ultrapeers =:= [];
@@ -206,21 +160,24 @@ let save_config () =
   g2_peers =:= [];
   
   Queue.iter (fun h -> 
-      if h.host_kind <> 0 then
-        let o = match h.host_kind, h.host_ultrapeer with
-          | 1, true -> g1_ultrapeers
-          | 1, _ -> g1_peers
-          | _, true -> g2_ultrapeers
-          | _ -> g2_peers
-        in
+      try
+      let o = match h.host_kind with
+        | (1, true) -> g1_ultrapeers
+        | 1, _ -> g1_peers
+        | 2, true -> g2_ultrapeers
+        | 2,_ -> g2_peers
+        | _ -> raise exit
+      in
 (* Don't save hosts that are older than 1 hour, and not responding *)
-        if max h.host_connected h.host_age > last_time () - 3600 then
-          o =:= (h.host_ip, h.host_port) :: !!o) 
+      if max h.host_connected h.host_age > last_time () - 3600 then
+          o =:= (h.host_addr, h.host_port) :: !!o
+      with _ -> ()) 
   workflow;
   
   ()
-  
+
 let _ =
-  network.op_network_file_of_option <- value_to_file;
-  file_ops.op_file_to_option <- file_to_value
-  
+  network_file_ops.op_download_of_value <- value_to_file;
+  file_ops.op_download_to_value <- file_to_value;
+  network.op_network_file_of_option <- 
+    CommonDownloads.SharedDownload.value_to_file

@@ -31,6 +31,8 @@ open TcpBufferedSocket
 
 open CommonTypes
 open CommonGlobals
+open CommonHosts
+  
 open Options
 open GnutellaTypes
 open GnutellaGlobals
@@ -104,13 +106,13 @@ let rec find_ultrapeer queue =
 (*      lprintf "not ready: %d s\n" (next - last_time ()); *)
       raise Not_found;
     end;
-  ignore (host_queue_take queue);    
+  ignore (H.host_queue_take queue);    
   try
     h,
     
     match h.host_kind with
-      1 -> if not !!g1_enabled then raise Not_found; false
-    | 2 -> if not !!g2_enabled then raise Not_found; true
+      (1,_) -> if not !!g1_enabled then raise Not_found; false
+    | (2,_) -> if not !!g2_enabled then raise Not_found; true
     | _ -> 
         not !!g1_enabled
 with _ -> find_ultrapeer queue
@@ -145,7 +147,7 @@ let connect_servers connect =
       with _ -> ());
   (try 
       for i = 0 to 3 do
-        let h = host_queue_take g2_waiting_udp_queue in
+        let h = H.host_queue_take g2_waiting_udp_queue in
 (*        lprintf "g2_waiting_udp_queue\n"; *)
         if (
             match h.host_server with
@@ -156,7 +158,7 @@ let connect_servers connect =
                 | _ -> true
           ) then begin
 (*            lprintf "host_send_qkr...\n"; *)
-            h.host_udp_request <- last_time ();
+            H.set_request h Udp_Connect;
             host_send_qkr h
           end
       done

@@ -966,3 +966,7 @@ let max_connections_per_second = define_option downloads_ini
   "Maximal number of connections that can be opened per second
 (will supersede max_clients_per_second in the future)"
   int_option 10
+    
+let delete_original = define_option downloads_ini ["delete_original"]
+  "Should MLdonkey delete the file downloaded when splitting has been succesful"
+    bool_option false

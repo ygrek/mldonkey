@@ -47,8 +47,8 @@ let g2_parse_redirector_page f =
           begin
             try
               let ip, port = String2.cut_at ip_port ':' in
-              let h = new_host 
-                  (Ip.of_string ip) (int_of_string port) true 2 in
+              let h = H.new_host 
+                  (Ip.of_string ip) (int_of_string port) (2,true) in
               ()
             with _ -> ()
           end

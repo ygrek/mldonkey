@@ -22,30 +22,22 @@ open Md4
 
 open CommonTypes
 open CommonSwarming
-
+open CommonDownloads
 
 type query_key =
   NoUdpSupport
 | GuessSupport
 | UdpSupport of Md4.t
 | UdpQueryKey of int32
-  
-type host = {
-    host_num : int;
-    mutable host_server : server option;
-    host_ip : Ip.t;
-    host_port : int;
-    mutable host_age : int;
-    mutable host_udp_request : int;
-    mutable host_tcp_request : int;
-    mutable host_connected : int;
-(* 0 -> gnutella1 or gnutella2, 1 -> gnutella1, 2 -> gnutella2 *)
-    mutable host_kind : int;
-    mutable host_ultrapeer : bool;
-    
-    mutable host_queues : host Queue.t list;
-  }
 
+type host_kind = int * bool
+
+type request = 
+| Tcp_Connect
+| Udp_Connect
+  
+type host = (server, host_kind, request, Ip.t) CommonHosts.host
+  
 and server = {
     server_server : server CommonServer.server_impl;
     mutable server_agent : string;
@@ -126,13 +118,10 @@ and result = {
   }
 
 and file = {
-    file_file : file CommonFile.file_impl;
-    file_id : Md4.t;
-    mutable file_name : string;
-    file_swarmer : Int64Swarmer.t;
+    file_shared : SharedDownload.file;
+
     file_partition : CommonSwarming.Int64Swarmer.partition;
     mutable file_clients : client list;
-    mutable file_uids : file_uid list; 
     mutable file_searches : local_search list;
   }
 

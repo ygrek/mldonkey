@@ -218,7 +218,6 @@ let find_file md4 = Hashtbl.find files_by_md4 md4
     
 let servers_ini_changed = ref true
 
-let shared_files_info = (Hashtbl.create 127 : (string, shared_file_info) Hashtbl.t)
 let new_shared = ref ([] : file list)
 let shared_files = ref ([] : file_to_share list)
 

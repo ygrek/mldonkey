@@ -23,7 +23,8 @@ open Md4
 open BasicSocket
 open Options
 open TcpBufferedSocket
-  
+
+open CommonHosts
 open CommonOptions
 open CommonClient
 open CommonUser
@@ -35,6 +36,7 @@ open CommonFile
 open CommonGlobals
 open CommonSwarming  
 open CommonNetwork
+open CommonDownloads.SharedDownload
   
 open FasttrackTypes
 open FasttrackOptions
@@ -91,27 +93,32 @@ let (room_ops : server CommonRoom.room_ops) =
   
 let (user_ops : user CommonUser.user_ops) = 
   CommonUser.new_user_ops network
-  
+
+  (*
 let (file_ops : file CommonFile.file_ops) = 
   CommonFile.new_file_ops network
+    *)
+
+let (network_file_ops: file_network) = new_file_network "Fasttrack"
+let (file_ops: file network_file) = new_network_file network_file_ops
+  
   
 let (client_ops : client CommonClient.client_ops) = 
   CommonClient.new_client_ops network
 
-    
+    (*
 let file_size file = file.file_file.impl_file_size
 let file_downloaded file = file_downloaded (as_file file.file_file)
 let file_age file = file.file_file.impl_file_age
 let file_fd file = file.file_file.impl_file_fd
 let file_disk_name file = file_disk_name (as_file file.file_file)
 let set_file_disk_name file = set_file_disk_name (as_file file.file_file)
+  *)
 
 let current_files = ref ([] : FasttrackTypes.file list)
 
 let listen_sock = ref (None : TcpServerSocket.t option)
   
-let hosts_by_key = Hashtbl.create 103
-
 let (searches_by_uid : (int, local_search) Hashtbl.t) = Hashtbl.create 11
 
   (*
@@ -134,13 +141,6 @@ let results_by_uid = Hashtbl.create 127
 
 ****************************************************************)
   
-  
-  
-(* Hosts are first injected in workflow. The workflow ensures that any
-host object is inspected every two minutes. *)
-let (workflow : host Queue.t) = 
-  Queues.workflow (fun time -> time + 120 > last_time ())
-
 let ready _ = false
   
 (* From the main workflow, hosts are moved to these workflows when they
@@ -163,51 +163,27 @@ let nservers = ref 0
 
 let connected_servers = ref ([] : server list)
   
-  
-
-let host_queue_add q h time =
-  if not (List.memq q h.host_queues) then begin
-      Queue.put q (time, h);
-      h.host_queues <- q :: h.host_queues
-    end
-
-let host_queue_take q =
-  let (time,h) = Queue.take q in
-  if List.memq q h.host_queues then begin
-      h.host_queues <- List2.removeq q h.host_queues 
-    end;
-  h
-      
-let hosts_counter = ref 0
-  
-let new_host ip port ultrapeer = 
-  let key = (ip,port) in
-  try
-    let h = Hashtbl.find hosts_by_key key in
-    h.host_age <- last_time ();
-    h
-  with _ ->
-      incr hosts_counter;
-      let host = {
-          host_num = !hosts_counter;
-          host_server = None;
-          host_addr = ip;
-          host_port = port;
-          
-          host_age = last_time ();
-          host_tcp_request = 0;
-          host_udp_request = 0;
-          host_connected = 0;
-          
-          host_kind = ultrapeer;
-          host_queues = [];
-        } in
-      Hashtbl.add hosts_by_key key host;
-      host_queue_add workflow host 0;
-      host
+module H = CommonHosts.Make(struct
+      include FasttrackTypes
+      type request = unit
+      type ip = Ip.addr
+        
+      let requests = 
+        [
+          (), (
+            600, 
+            (fun kind ->
+                [match kind with
+                  Ultrapeer | IndexServer -> ultrapeers_waiting_queue
+                | _ -> peers_waiting_queue]
+            )
+            )
+        ]
+      let default_requests _ = [ (), 0 ]
+    end)
       
 let new_server ip port =
-  let h = new_host ip port Ultrapeer in
+  let h = H.new_host ip port Ultrapeer in
   match h.host_server with
     Some s -> s
   | None ->
@@ -270,71 +246,52 @@ let new_result file_name file_size tags hash =
   r
   
 let megabyte = Int64.of_int (1024 * 1024)
+
+let _ =
+  register_network network_file_ops;
+  network_file_ops.op_download_start <- 
+  (fun file ->
       
-let new_file file_id file_name file_size file_hash = 
-  let file_temp = Filename.concat !!temp_directory 
-      (Printf.sprintf "FT-%s" (Md4.to_string file_id)) in
-  let t = Unix32.create file_temp [Unix.O_RDWR; Unix.O_CREAT] 0o666 in
-  let swarmer = Int64Swarmer.create () in
-  let partition = fixed_partition swarmer megabyte in
-    let keywords = get_name_keywords file_name in
-  let words = String2.unsplit keywords ' ' in
-  let rec file = {
-      file_file = file_impl;
-      file_id = file_id;
-      file_name = file_name;
-      file_clients = [];
-      file_swarmer = swarmer;
-      file_partition = partition;
-      file_search = search;
-      file_hash = file_hash;
-      file_filenames = [file_name];
-      file_clients_queue = Queues.workflow (fun _ -> false);
-      file_nconnected_clients = 0;
-    } and file_impl =  {
-      dummy_file_impl with
-      impl_file_fd = t;
-      impl_file_size = file_size;
-      impl_file_downloaded = Int64.zero;
-      impl_file_val = file;
-      impl_file_ops = file_ops;
-      impl_file_age = last_time ();          
-      impl_file_best_name = file_name;
-    } and search = {
-      search_search = FileSearch file;
-      search_id = !search_num;
-    } 
-  in
-  incr search_num;
-  Hashtbl.add searches_by_uid search.search_id search;
-  lprintf "SET SIZE : %Ld\n" file_size;
-  Int64Swarmer.set_size swarmer file_size;  
-  Int64Swarmer.set_writer swarmer (fun offset s pos len ->      
-      
-      (*
-      lprintf "DOWNLOADED: %d/%d/%d\n" pos len (String.length s);
-      AnyEndian.dump_sub s pos len;
-*)
-      
-      if !!CommonOptions.buffer_writes then 
-        Unix32.buffered_write_copy t offset s pos len
-      else
-        Unix32.write  t offset s pos len
-  );
-  current_files := file :: !current_files;
-  file_add file_impl FileDownloading;
-(*      lprintf "ADD FILE TO DOWNLOAD LIST\n"; *)
-  file
+      List.iter (fun uid ->
+          
+          match uid with
+            Md5Ext (_,file_hash) ->            
+              if not (Hashtbl.mem files_by_uid file_hash) then
+                
+                let swarmer = file.file_swarmer in
+                let partition = fixed_partition swarmer megabyte in
+                let keywords = get_name_keywords file.file_name in
+                let words = String2.unsplit keywords ' ' in
+                let rec f = {
+                    file_shared = file;
+                    file_clients = [];
+                    file_partition = partition;
+                    file_search = search;
+                    file_hash = file_hash;
+                    file_clients_queue = Queues.workflow (fun _ -> false);
+                    file_nconnected_clients = 0;
+                  } 
+                and search = {
+                    search_search = FileSearch f;
+                    search_id = !search_num;
+                  } 
+                in
+                incr search_num;
+                Hashtbl.add searches_by_uid search.search_id search;
+                Hashtbl.add files_by_uid file_hash f;
+                lprintf "SET SIZE : %Ld\n" (file_size file);
+
+                add_file_impl file file_ops f;
+                
+                current_files := f :: !current_files;
+                
+                ()
+          | _ ->()
+      ) file.file_uids
+  ) 
 
 exception FileFound of file
-  
-let new_file file_id file_name file_size file_hash =
-  try
-    Hashtbl.find files_by_uid file_hash 
-  with _ ->
-    let file = new_file file_id file_name file_size file_hash in
-    file    
-              
+                
 let new_user kind =
   try
     let s = Hashtbl.find users_by_uid kind in
@@ -400,7 +357,7 @@ let add_download file c index =
 (*  add_source r c.client_user index; *)
   lprintf "Adding file to client\n";
   if not (List.memq c file.file_clients) then begin
-      let chunks = [ Int64.zero, file_size file ] in
+      let chunks = [ Int64.zero, file_size file.file_shared ] in
       let bs = Int64Swarmer.register_uploader file.file_partition chunks in
       c.client_downloads <- c.client_downloads @ [{
           download_file = file;
@@ -411,7 +368,7 @@ let add_download file c index =
           download_block = None;
         }];
       file.file_clients <- c :: file.file_clients;
-      file_add_source (as_file file.file_file) (as_client c.client_client);
+      file_add_source (as_file file.file_shared.file_file) (as_client c.client_client);
       if not (List.memq file c.client_in_queues) then begin
           Queue.put file.file_clients_queue (0,c);
           c.client_in_queues <- file :: c.client_in_queues
@@ -442,15 +399,6 @@ let remove_download file list =
           iter file tail (d :: rev)
   in
   iter file list []
-  
-let file_state file =
-  file_state (as_file file.file_file)
-  
-let file_num file =
-  file_num (as_file file.file_file)
-  
-let file_must_update file =
-  file_must_update (as_file file.file_file)
 
 let server_num s =
   server_num (as_server s.server_server)

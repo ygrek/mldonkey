@@ -27,6 +27,7 @@ open TcpBufferedSocket
 open CommonGlobals
 open CommonTypes
 open CommonOptions
+open CommonDownloads.SharedDownload
   
 open FasttrackOptions
 open FasttrackTypes
@@ -163,7 +164,7 @@ let server_send_query s ss =
       
   | FileSearch file -> 
       
-      lprintf "FileSearch [%s] for %d\n" file.file_name ss.search_id;
+      lprintf "FileSearch [%s] for %d\n" file.file_shared.file_name ss.search_id;
       let b = Buffer.create 100 in
       Buffer.add_string b "\000\001";
 

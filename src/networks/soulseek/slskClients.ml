@@ -43,7 +43,8 @@ open SlskTypes
 open SlskOptions
 open SlskGlobals
 open SlskProtocol
-
+open CommonDownloads.SimpleDownload
+  
 let requests = ref 0  
 
     
@@ -63,7 +64,8 @@ let disconnect_result c sock =
   close sock Closed_by_user;
   c.client_result_socks <- List2.removeq sock c.client_result_socks
   
-module Download = CommonDownloads.Make(struct 
+  
+module Download = Make(struct 
       
       type c = client
       type f = file

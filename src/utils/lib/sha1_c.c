@@ -418,7 +418,7 @@ value sha1_unsafe_string(value digest_v, value string_v, value len_v)
 
 #include <stdio.h>
 
-value sha1_unsafe_file (value digest_v, value filename_v)
+value sha1_unsafe_file (value digest_v, value filename_v, value file_size)
 {
   char *filename  = String_val(filename_v);
   unsigned char *digest = String_val(digest_v);

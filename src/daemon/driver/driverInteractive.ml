@@ -158,7 +158,7 @@ let save_config () =
   );
   Options.save_with_help downloads_ini;
   Options.save_with_help downloads_expert_ini;
-  CommonComplexOptions.save ();
+  CommonInteractive.save ();
   networks_iter (fun r -> 
       List.iter (fun opfile ->
           Options.save_with_help opfile          

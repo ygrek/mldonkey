@@ -47,10 +47,6 @@ let network_options_prefix = define_option bittorrent_ini
 let shortname o =
   Printf.sprintf "%s%s" !!network_options_prefix (shortname o)
   
-let delete_original = define_option bittorrent_ini ["delete_original"]
-  "Should MLdonkey delete the file downloaded when splitting has been succesful"
-    bool_option false
-  
 let gui_bittorrent_options_panel = 
   (*
   define_option bittorrent_ini ["gui_bittorrent_options_panel"]

@@ -465,10 +465,10 @@ let file_print file o =
           "BitTorrent" ->  ();
         | _ -> (
               Printf.bprintf buf "ed2k: \\<a href=\\\"ed2k://|file|%s|%s|%s|/\\\"\\>ed2k://|file|%s|%s|%s|/\\</A\\>\n\n"
-                (info.G.file_name) 
+                (Filename.basename info.G.file_name) 
               (Int64.to_string info.G.file_size)
               (Md4.to_string info.G.file_md4)
-              (info.G.file_name) 
+              (Filename.basename info.G.file_name) 
               (Int64.to_string info.G.file_size)
               (Md4.to_string info.G.file_md4);
               

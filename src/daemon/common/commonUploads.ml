@@ -20,7 +20,6 @@
 open Md4
 open CommonShared
 open Printf2
-open CommonInteractive
 open CommonClient
 open CommonComplexOptions
 open CommonTypes
@@ -29,8 +28,131 @@ open Options
 open BasicSocket
 open TcpBufferedSocket
 
+open GuiTypes
 open CommonGlobals
 open CommonOptions
+
+  
+    
+module M = struct    
+let shared_files_ini = create_options_file (
+    Filename.concat file_basedir "shared_files.ini")
+
+
+module SharedFileOption = struct
+    
+    let value_to_shinfo v =
+      match v with
+        Options.Module assocs ->
+          let get_value name conv = conv (List.assoc name assocs) in
+          let get_value_nil name conv = 
+            try conv (List.assoc name assocs) with _ -> []
+          in
+          
+          let sh_md4s = try
+              value_to_list (fun v ->
+                  Md4.of_string (value_to_string v)) (List.assoc "md4s" assocs)
+            with _ -> failwith "Bad shared file md4"
+          in
+          let sh_size = try
+              value_to_int64 (List.assoc "size" assocs) 
+            with _ -> failwith "Bad shared file size"
+          in
+          let sh_name = try
+              value_to_filename (List.assoc "name" assocs)
+            with _ -> failwith "Bad shared file name"
+          in
+          let sh_mtime = try
+              value_to_float (List.assoc "mtime" assocs)
+            with _ -> failwith "Bad shared file mtime"
+          in
+          let sh_uids = try
+              value_to_list (fun v ->
+                  uid_of_string (value_to_string v)  
+              ) (List.assoc "hashes" assocs)
+            with _ -> 
+                lprintf "[WARNING]: Could not load hash for %s\n"
+                  sh_name;
+                []
+          in
+          { 
+            sh_name = sh_name; 
+            sh_mtime = sh_mtime;
+            sh_size = sh_size; 
+            sh_md4s = sh_md4s;
+            sh_uids = sh_uids;
+          }
+          
+      | _ -> failwith "Options: not a shared file info option"
+          
+    let shinfo_to_value sh =
+      Options.Module [
+        "name", filename_to_value sh.sh_name;
+        "md4s", list_to_value "Shared Md4" (fun md4 ->
+            string_to_value (Md4.to_string md4)) sh.sh_md4s;
+        "mtime", float_to_value sh.sh_mtime;
+        "size", int64_to_value sh.sh_size;
+        "hashes", list_to_value "Hashes" (fun uid ->
+            string_to_value (string_of_uid uid)
+        ) sh.sh_uids;
+      ]
+    
+    
+    let t = define_option_class "SharedFile" value_to_shinfo shinfo_to_value
+  end
+  
+let known_shared_files = define_option shared_files_ini 
+    ["shared_files"] "" 
+    (list_option SharedFileOption.t) []
+
+    
+let shared_files_info = (Hashtbl.create 127 :
+    (string, shared_file_info) Hashtbl.t)
+
+let find_shared_info fullname size =
+  let s = Hashtbl.find shared_files_info fullname in
+  let mtime = Unix32.mtime64 fullname in
+  if s.sh_mtime = mtime && s.sh_size = size then begin
+      if !verbose_share then begin
+          lprintf "USING OLD MD4s for %s" fullname;
+          lprint_newline (); 
+        end;
+      s
+    end else begin
+      if !verbose_share then begin                
+          lprintf "Shared file %s has been modified" fullname;
+          lprint_newline ();
+        end;
+      Hashtbl.remove shared_files_info fullname;
+      known_shared_files =:= List2.removeq s !!known_shared_files;
+      raise Not_found
+    end
+      
+let new_shared_info name size md4s mtime uids =
+  try
+    let s = find_shared_info name size in
+    if md4s <> [] then
+      s.sh_md4s <- md4s;
+    List.iter (fun uid ->
+        if not (List.mem uid s.sh_uids) then
+          s.sh_uids <- uid :: s.sh_uids
+    ) uids;
+    s
+  with _ ->
+      let s = {
+          sh_name = name;
+          sh_size = size;
+          sh_md4s = md4s;
+          sh_mtime = mtime (* Unix32.mtime64 name *);
+          sh_uids = uids;
+        } in
+      lprintf "NEW SHARED FILE %s" name; 
+      lprint_newline ();
+      Hashtbl.add shared_files_info name s;
+      known_shared_files =:= s :: !!known_shared_files;
+      s      
+  
+end
 
 (* We should implement a common uploader too for all networks where
 upload is done linearly. *)
@@ -53,7 +175,7 @@ type shared_file = {
     shared_id : int;
     shared_format : CommonTypes.format;
     shared_impl : shared_file shared_impl;
-    mutable shared_uids : file_uid list;
+    shared_info : shared_file_info;
     mutable shared_uids_wanted : 
     (file_uid_id * (shared_file -> file_uid -> unit)) list;
   }
@@ -65,7 +187,8 @@ and shared_tree =
     mutable shared_dirs : (string * shared_tree) list;
   }
 
-let network = CommonNetwork.new_network "Global Shares"
+  
+let network = CommonNetwork.new_network "MultiNet"
     (fun _ -> "")
     (fun _ -> "")
 
@@ -106,9 +229,10 @@ let rec start_job_for sh (wanted_id, handler) =
         | SHA1, Sha1 _
         | ED2K, Ed2k _
         | MD5, Md5 _ 
+        | MD5EXT, Md5Ext _
           -> (try handler sh id with _ -> ()); raise Exit
         | _ -> ()
-    ) sh.shared_uids;
+    ) sh.shared_info.sh_uids;
     
     match wanted_id with
       SHA1 -> 
@@ -119,19 +243,22 @@ let rec start_job_for sh (wanted_id, handler) =
                 current_job := None;
               end else
               begin
-                let sha1 = Sha1.direct_of_string job.CommonHasher.job_result
-                in
-                let urn = Printf.sprintf "urn:sha1:%s" (Sha1.to_string sha1)
-                in
-                lprintf "%s has uid %s (%s)\n" sh.shared_fullname urn
-                (Base16.to_string 20 job.CommonHasher.job_result)
-                ;
-                let uid = Sha1 (urn,sha1) in
-                sh.shared_uids <- uid :: sh.shared_uids;
+                let sha1 = Sha1.direct_of_string job.CommonHasher.job_result in
+                let uid = uid_of_uid (Sha1 ("", sha1)) in
+                let urn = string_of_uid uid in
+                sh.shared_info.sh_uids <- uid :: sh.shared_info.sh_uids;
                 Hashtbl.add shareds_by_uid (String.lowercase urn) sh;
                 start_job_for sh (wanted_id, handler)  
               end
         );
+    | MD5EXT ->
+        let md5ext = Md5Ext.file sh.shared_fullname in
+        let uid = uid_of_uid (Md5Ext ("", md5ext)) in
+        let urn = string_of_uid uid in
+        sh.shared_info.sh_uids <- uid :: sh.shared_info.sh_uids;
+        Hashtbl.add shareds_by_uid (String.lowercase urn) sh;
+        start_job_for sh (wanted_id, handler)  
+        
     | _ -> raise Exit
     
   with Exit -> 
@@ -403,7 +530,8 @@ let add_shared full_name codedname size =
           shared_format = CommonMultimedia.get_info full_name;
           shared_impl = impl;
           shared_uids_wanted = [];
-          shared_uids = [];
+          shared_info = M.new_shared_info full_name size [] 
+            (Unix32.mtime64 full_name) [];
         } in
       
       update_shared_num impl;
@@ -759,7 +887,5 @@ let upload_download_timer () =
   );
   (try next_uploads ()
   with e ->  lprintf "exc %s in upload\n" (Printexc2.to_string e))
-              
-  
   
   

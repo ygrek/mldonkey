@@ -602,3 +602,22 @@ let _ =
   option_hook max_concurrent_downloads (fun _ ->
       force_download_quotas ()   
   )
+
+    
+let load () = 
+  Options.load files_ini;
+  Options.load servers_ini;
+  Options.load searches_ini;
+  Options.load friends_ini
+  
+let save () = 
+  networks_iter (fun n -> network_save_complex_options n);
+  
+(*  servers =:= server_sort (); *)
+  
+  Options.save_with_help files_ini;
+  Options.save_with_help searches_ini;
+  Options.save_with_help friends_ini;
+  Options.save_with_help servers_ini;
+  Options.save_with_help CommonUploads.M.shared_files_ini;
+  lprintf "Options correctly saved\n"
