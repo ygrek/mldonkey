@@ -68,9 +68,15 @@ ifeq ("$(ZLIB)" , "yes")
   CDK_SRCS +=  cdk/zlib.ml cdk/zlibstubs.c
 endif
 
-ifneq ("$(LIBPTHREAD)" , "")
-  LIBS_opt += -cclib $(LIBPTHREAD)
-  LIBS_byte += -cclib $(LIBPTHREAD)
+ifneq ("$(PTHREAD_CFLAGS)" , "")
+  CFLAGS += $(PTHREAD_CFLAGS)
+  LIBS_opt += -ccopt "$(PTHREAD_CFLAGS)"
+  LIBS_byte += -ccopt "$(PTHREAD_CFLAGS)"
+endif
+
+ifneq ("$(PTHREAD_LIBS)" , "")
+  LIBS_opt += -cclib "$(PTHREAD_LIBS)"
+  LIBS_byte += -cclib "$(PTHREAD_LIBS)"
 endif
 
 MP3TAG_SRCS=     mp3tagui/mp3_info.ml  mp3tagui/mp3_genres.ml \
@@ -82,20 +88,21 @@ LIB_SRCS=   lib/autoconf.ml \
   config/$(OS_FILES)/mlUnix.ml \
   config/$(OS_FILES)/os_stubs_c.c \
   lib/intmap.ml lib/stringMap.ml \
-  lib/int32ops.ml lib/options.ml4 lib/ip.ml  lib/numset.ml  \
+  lib/int32ops.ml lib/options.ml4 lib/numset.ml  \
   lib/fifo.ml lib/fifo2.ml lib/intset.ml \
   lib/hole_tab.ml lib/store.ml \
   lib/indexer.ml lib/indexer1.ml lib/indexer2.ml lib/host.ml  \
   lib/misc.ml lib/unix32.ml  lib/md4.ml \
   lib/avifile.ml lib/http_lexer.mll lib/url.ml \
-  lib/mailer.ml lib/date.ml \
+  lib/date.ml \
   lib/md4_comp.c lib/md4_c.c \
   lib/gettext.ml lib/md5_c.c \
   lib/stubs_c.c
 
 NET_SRCS = \
-  net/bigEndian.ml net/littleEndian.ml \
-  net/basicSocket.ml net/tcpBufferedSocket.ml \
+  net/basicSocket.ml \
+  net/ip.ml net/mailer.ml net/bigEndian.ml net/littleEndian.ml \
+  net/tcpBufferedSocket.ml \
   net/tcpClientSocket.ml net/tcpServerSocket.ml \
   net/udpSocket.ml net/http_server.ml net/http_client.ml \
   net/multicast.ml net/multicast_c.c 
@@ -144,7 +151,7 @@ all: Makefile config/Makefile.config $(TARGET_TYPE)
 
 config/configure: config/configure.in
 	cd config; autoconf
-	
+
 ifeq ("$(CONFIG_ARGS_DEFINED)" , "yes")
 
 config/Makefile.config: Makefile config/configure config/Makefile.config.in lib/autoconf.ml.new.in

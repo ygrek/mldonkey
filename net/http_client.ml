@@ -217,12 +217,15 @@ let get_page r content_handler f =
       | None -> url.server, url.port
       | Some (s, p) -> s, p
     in
-    let sock = TcpBufferedSocket.connect "http client connecting" (Ip.to_inet_addr (Ip.from_name server))
-      port (fun _ _ -> ())
-    in
-    TcpBufferedSocket.write_string sock request;
-    TcpBufferedSocket.set_reader sock (http_reply_handler 
-        (default_headers_handler level))
+    Ip.async_ip server (fun ip ->
+        let sock = TcpBufferedSocket.connect "http client connecting" 
+          (Ip.to_inet_addr ip)
+          port (fun _ _ -> ())
+        in
+        TcpBufferedSocket.write_string sock request;
+        TcpBufferedSocket.set_reader sock (http_reply_handler 
+            (default_headers_handler level))
+    )
     
   and default_headers_handler level sock ans_code headers =
     (*
@@ -372,3 +375,4 @@ let cut_headers headers =
       Printf.printf "Exception in cut_headers: %s" (Printexc2.to_string e);
       print_newline ();
       raise e
+      

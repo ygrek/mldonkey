@@ -125,7 +125,8 @@ let _ =
           P.server_name = s.server_agent;
           P.server_description = "";
           P.server_users = None;
-        } else
+          P.server_banner = "";
+          } else
         raise Not_found
   )
 

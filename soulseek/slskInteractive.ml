@@ -121,6 +121,7 @@ let _ =
         P.server_name = s.server_name;
         P.server_description = s.server_info;
         P.server_users = None;
+        P.server_banner = "";
         }
   )
 

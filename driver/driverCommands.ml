@@ -294,7 +294,7 @@ let commands = [
           end;
         
         "\\<script language=Javascript\\>top.window.location.reload();\\</script\\>"
-    ), ":\t\t\t\t\ttoggle html_mods";
+    ), ":\t\t\t\ttoggle html_mods";
     
     "voo", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -337,29 +337,29 @@ let commands = [
         
         
         
-List.iter (fun impl ->
-    if use_html_mods o then
-      begin
-        incr counter;
-        
-        let ed2k = Printf.sprintf "ed2k://|file|%s|%s|%s|/" 
-            impl.impl_shared_codedname 
-            (Int64.to_string impl.impl_shared_size)
-          (Md4.to_string impl.impl_shared_id) in
-        
-        Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>"
-          (if (!counter mod 2 == 0) then "dl-1" else "dl-2";);
-        
-        Printf.bprintf buf "\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>\\<td
+        List.iter (fun impl ->
+            if use_html_mods o then
+              begin
+                incr counter;
+                
+                let ed2k = Printf.sprintf "ed2k://|file|%s|%s|%s|/" 
+                    impl.impl_shared_codedname 
+                    (Int64.to_string impl.impl_shared_size)
+                  (Md4.to_string impl.impl_shared_id) in
+                
+                Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>"
+                  (if (!counter mod 2 == 0) then "dl-1" else "dl-2";);
+                
+                Printf.bprintf buf "\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>\\<td
              	class=\\\"sr ar\\\"\\>%s\\</td\\>\\<td class=\\\"sr\\\"\\>\\<A HREF=\\\"%s\\\"\\>%s\\</A\\>
  				\\</td\\>\\</tr\\>\n"
-          impl.impl_shared_requests
-          (size_of_int64 impl.impl_shared_uploaded)
-        ed2k
-          impl.impl_shared_codedname;
-        
-                end
-              else
+                  impl.impl_shared_requests
+                  (size_of_int64 impl.impl_shared_uploaded)
+                ed2k
+                  impl.impl_shared_codedname;
+              
+              end
+            else
 (*
         List.iter (fun impl ->
             if use_html_mods o then
@@ -558,14 +558,14 @@ List.iter (fun impl ->
               
               Printf.bprintf buf "[%s]\n" name
         ) !! customized_queries; 
-	
-                if o.conn_output = HTML && !!html_mods then  
-                  Printf.bprintf buf 
-                    "\\<a href=\\\"http://www.jigle.com\\\" target=\\\"$O\\\"\\>Jigle\\</a\\>  \\<a 
+        
+        if o.conn_output = HTML && !!html_mods then  
+          Printf.bprintf buf 
+            "\\<a href=\\\"http://www.jigle.com\\\" target=\\\"$O\\\"\\>Jigle\\</a\\>  \\<a 
 					href=\\\"http://www.sharereactor.com/search.php\\\" target=\\\"$O\\\"\\>ShareReactor\\</a\\>  \\<a 
 					href=\\\"http://www.filedonkey.com\\\" target=\\\"$O\\\"\\>File Donkey\\</a\\>  ";
-
-		""
+        
+        ""
     ), ":\t\t\tview custom queries";
     
     "cancel", Arg_multiple (fun args o ->
@@ -903,8 +903,19 @@ List.iter (fun impl ->
             server_remove (server_find num)
         ) args;
         Printf.sprintf "%d servers removed" (List.length args)
-    ), "<serv1> ... <servx>\t\tremove servers";
+    ), "<serv1> ... <servx> :\t\tremove servers";
+
+      "server_banner", Arg_one (fun num o ->
+        let buf = o.conn_buf in
+        let num = int_of_string num in
+        let s = server_find num in
+        (match server_state s with
+            NotConnected _ -> ()
+          | _ ->   server_banner s o);
+        ""
+    ), "<num> :\t\t\tprint connected server banner <server num>";
     
+
     ]
 
 let _ =

@@ -524,19 +524,20 @@ module P = GuiTypes
 let _ =
   server_ops.op_server_info <- (fun s ->
       if !!enable_directconnect then
-      {
-        P.server_num = (server_num s);
-        P.server_network = network.network_num;
-        P.server_addr = s.server_addr;
-        P.server_port = s.server_port;
-        P.server_score = 0;
-        P.server_tags = [];
-        P.server_nusers = s.server_nusers;
-        P.server_nfiles = 0;
-        P.server_state = server_state s;
-        P.server_name = s.server_name;
-        P.server_description = s.server_info;
-        P.server_users = None;
+        {
+          P.server_num = (server_num s);
+          P.server_network = network.network_num;
+          P.server_addr = s.server_addr;
+          P.server_port = s.server_port;
+          P.server_score = 0;
+          P.server_tags = [];
+          P.server_nusers = s.server_nusers;
+          P.server_nfiles = 0;
+          P.server_state = server_state s;
+          P.server_name = s.server_name;
+          P.server_description = s.server_info;
+          P.server_users = None;
+          P.server_banner = "";
         }
       else raise Not_found)
 

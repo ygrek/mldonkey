@@ -53,3 +53,5 @@ val equal : t -> t -> bool
 val value_to_ip : Options.option_value -> t
 val ip_to_value : t -> Options.option_value
   
+val async_ip : string -> (t -> unit) -> unit
+  

@@ -415,16 +415,16 @@ let file_print file o =
 \\<td title=\\\"IP Address\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh br\\\"\\>IP\\</td\\>
 \\<td title=\\\"Total UL Bytes to this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>UL\\</td\\>
 \\<td title=\\\"Total DL Bytes from this client for all files\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>DL\\</td\\>
-\\<td title=\\\"Your queue rank on this client\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Rank\\</td\\>
+\\<td title=\\\"Your queue rank on this client\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Rnk\\</td\\>
 \\<td title=\\\"Source score\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>Scr\\</td\\>
-\\<td title=\\\"Last OK (in minutes)\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>LO\\</td\\>
-\\<td title=\\\"Last Try (in minutes)\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>LT\\</td\\>
-\\<td title=\\\"Next Try (in minutes)\\\"onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh br\\\"\\>NT\\</td\\>
+\\<td title=\\\"Last OK (in minutes)\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>LO\\</td\\>
+\\<td title=\\\"Last Try (in minutes)\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>LT\\</td\\>
+\\<td title=\\\"Next Try (in minutes)\\\"onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>NT\\</td\\>
 \\<td title=\\\"Has a Slot (T/F)\\\"onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>H\\</td\\>
 \\<td title=\\\"Banned (T/F)\\\"onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh br\\\"\\>B\\</td\\>
-\\<td title=\\\"Requests Sent\\\"onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>RS\\</td\\>
-\\<td title=\\\"Requests Received\\\"onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh\\\"\\>RR\\</td\\>
-\\<td title=\\\"Connected Time (minutes)\\\"onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh br\\\"\\>CT\\</td\\>
+\\<td title=\\\"Requests Sent\\\"onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>RS\\</td\\>
+\\<td title=\\\"Requests Received\\\"onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>RR\\</td\\>
+\\<td title=\\\"Connected Time (minutes)\\\"onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>CT\\</td\\>
 \\<td title=\\\"Client MD4\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh br\\\"\\>MD4\\</td\\>
 \\<td title=\\\"Chunks\\\" onClick=\\\"_tabSort(this,0);\\\" class=\\\"srh\\\"\\>
 ";

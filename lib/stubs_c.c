@@ -581,3 +581,257 @@ value ml_setlcnumeric(value no)
   return Val_unit;
 }
 
+/******************************************************************/
+
+
+/*        Asynchronous resolution of DNS names in threads         */
+
+
+/******************************************************************/
+
+
+
+
+
+
+
+
+#include <string.h>
+#include <caml/mlvalues.h>
+#include <caml/alloc.h>
+#include <caml/memory.h>
+#include <caml/fail.h>
+///#include <signals.h>
+//#include "unixsupport.h"
+
+// #include "socketaddr.h"
+#ifndef _WIN32
+#include <sys/types.h>
+#include <netdb.h>
+#endif
+
+#define NETDB_BUFFER_SIZE 10000
+
+#ifdef _WIN32
+#define GETHOSTBYADDR_IS_REENTRANT 1
+#define GETHOSTBYNAME_IS_REENTRANT 1
+#endif
+
+static char volatile ip_job_result[256];
+static int volatile job_naddresses = 0;
+static int entry_h_length;
+
+
+static void save_one_addr(char volatile *dest, char const *a)
+{
+  memmove (dest, a, entry_h_length);
+}
+
+static void save_host_entry(struct hostent *entry)
+{
+  char **ptrs = (char **)entry->h_addr_list;
+
+  entry_h_length = entry->h_length;
+#ifdef h_addr
+  job_naddresses = 0;
+  while(*ptrs != NULL){
+    save_one_addr(ip_job_result + entry_h_length * job_naddresses++, *ptrs++);
+  }
+#else
+  job_naddresses = 1;
+  save_one_addr(ip_job_result, entry->h_addr);
+#endif
+}
+
+static int ml_gethostbyname(char *hostname)
+{
+  struct hostent * hp;
+
+#if HAS_GETHOSTBYNAME_R == 5
+  {
+    struct hostent h;
+    char buffer[NETDB_BUFFER_SIZE];
+    int h_errno;
+    enter_blocking_section();
+    hp = gethostbyname_r(hostname, &h, buffer, sizeof(buffer), &h_errno);
+    leave_blocking_section();
+  }
+#elif HAS_GETHOSTBYNAME_R == 6
+  {
+    struct hostent h;
+    char buffer[NETDB_BUFFER_SIZE];
+    int h_errno, rc;
+    enter_blocking_section();
+    rc = gethostbyname_r(hostname, &h, buffer, sizeof(buffer), &hp, &h_errno);
+    leave_blocking_section();
+    if (rc != 0) hp = NULL;
+  }
+#else
+#ifdef GETHOSTBYNAME_IS_REENTRANT
+  enter_blocking_section();
+#endif
+  hp = gethostbyname(hostname);
+#ifdef GETHOSTBYNAME_IS_REENTRANT
+  leave_blocking_section();
+#endif
+#endif
+
+  if (hp == (struct hostent *) NULL) return 0;
+
+/*  printf("No error\n"); */
+  save_host_entry(hp);
+  return 1;
+}
+
+extern value alloc_inet_addr(uint32 a);
+
+static value alloc_one_addr(char volatile *a)
+{
+  struct in_addr addr;
+  memmove (&addr, a, entry_h_length);
+  return alloc_inet_addr(addr.s_addr);
+}
+
+static void store_in_job(value job_v)
+{
+  value adr = Val_unit;
+  value addr_list = Val_unit;
+  int i;
+
+/*  printf("store_in_job %d\n", job_naddresses); */
+  Begin_roots3 (job_v, addr_list, adr);
+#ifdef h_addr
+  addr_list = alloc_small(job_naddresses, 0);
+  for(i=0; i<job_naddresses; i++){
+    adr = alloc_one_addr(ip_job_result + i * entry_h_length);
+    modify(&Field(addr_list,i), adr);
+  }
+#else
+  adr = alloc_one_addr(ip_job_result);
+  addr_list = alloc_small(1, 0);
+  Field(addr_list, 0) = adr;
+#endif
+  modify(&Field(job_v,1), addr_list);
+  End_roots();
+}
+
+#if !defined(HAVE_LIBPTHREAD) || !(HAS_GETHOSTBYNAME_R || GETHOSTBYNAME_IS_REENTRANT)
+
+value ml_ip_job_start(value job_v)
+{
+  char *hostname = String_val(Field(job_v,0));
+  if(ml_gethostbyname(hostname)){
+    Field(job_v, 2) = Val_false;
+    store_in_job(job_v);
+  } else {
+    Field(job_v, 2) = Val_true;
+  }
+  return Val_unit;
+}
+
+value ml_ip_job_done(value job_v)
+{
+  return Val_true;
+}
+
+
+#else
+
+#include <string.h>
+#include <pthread.h>
+#include <signal.h>
+#include <sys/time.h>
+
+static int thread_started = 0;
+static int volatile ip_job_done = 1;
+static char volatile job_hostname[256];
+static int volatile job_error = 0;
+
+static pthread_t pthread;
+static pthread_cond_t cond;
+static pthread_mutex_t mutex;
+
+value ml_ip_job_done(value job_v)
+{
+  if(ip_job_done){
+    if(job_error){ 
+      Field(job_v, 2) = Val_false;
+      store_in_job(job_v);
+    } else {
+/*      printf("found error\n"); */
+      Field(job_v, 2) = Val_true;
+    }
+    return Val_true;
+  }
+
+  return Val_false;
+}
+
+static void * hasher_thread(void * arg)
+{
+  struct timeval now;
+  struct timespec timeout;
+  sigset_t mask;
+
+  /* Block all signals so that we don't try to execute a Caml signal handler */
+  sigfillset(&mask);
+  pthread_sigmask(SIG_BLOCK, &mask, NULL);
+  
+  nice(19);
+  
+  pthread_mutex_lock(&mutex);
+
+  while(1){
+    gettimeofday(&now, NULL);
+    timeout.tv_sec = now.tv_sec + 10;
+    timeout.tv_nsec = now.tv_usec * 1000;
+
+/*    printf("waiting for next job\n");  */
+    pthread_cond_timedwait(&cond, &mutex, &timeout);
+    
+    if(!ip_job_done){
+      job_error = ml_gethostbyname(job_hostname);
+
+      ip_job_done = 1;
+/*      printf("job finished %d\n", job_error); */
+    }
+  }
+    
+  return NULL;
+}
+
+value ml_ip_job_start(value job_v)
+{
+  strcpy(job_hostname, String_val(Field(job_v,0)));
+
+  if(!thread_started){
+    int retcode;
+
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+
+    pthread_cond_init(&cond, NULL);
+    pthread_mutex_init(&mutex, NULL);
+
+    thread_started = 1;
+    retcode = pthread_create(&pthread, &attr, hasher_thread, NULL);
+
+    if(retcode){
+      perror("Error while starting Hashing thread");
+      exit(2);
+    }
+  }
+
+  enter_blocking_section();
+  pthread_mutex_lock(&mutex);
+/*  printf("Starting job\n");  */
+  ip_job_done = 0; /* Thread can run ... */
+  pthread_cond_signal(&cond);  
+  pthread_mutex_unlock(&mutex);
+  leave_blocking_section ();
+
+  return Val_unit;
+}
+
+#endif

@@ -441,7 +441,7 @@ let check_source_from_file reconnect_client file =
               print_newline ();
           | Some s ->
               if not (List.memq file s.source_in_queues) then begin
-                  Printf.printf "ERROR: client should be in file queue";
+                  Printf.printf "ERROR: client should be in file queue (1)";
                   print_newline ();
                 end;
               
@@ -488,7 +488,7 @@ Printf.printf "ERROR: Source invalidated"; print_newline ();
                 let _,s = SourcesQueue.take file.file_sources.(i) in
                                 
                 if not (List.memq file s.source_in_queues) then begin
-                    Printf.printf "ERROR: client should be in file queue";
+                    Printf.printf "ERROR: client should be in file queue (2)";
                     print_newline ();
                   end;
                 
@@ -506,7 +506,7 @@ Printf.printf "ERROR: Source invalidated"; print_newline ();
                   
                   
                   if not (List.memq file s.source_in_queues) then begin
-                      Printf.printf "ERROR: client should be in file queue";
+                      Printf.printf "ERROR: client should be in file queue (3)";
                       print_newline ();
                     end;
                   
@@ -548,7 +548,7 @@ Printf.printf "ERROR: Source invalidated"; print_newline ();
 (* This source is already connected, remove it immediatly, and retry *)
                 let _, s = SourcesQueue.take file.file_sources.(i) in
                 if not (List.memq file s.source_in_queues) then begin
-                    Printf.printf "ERROR: client should be in file queue";
+                    Printf.printf "ERROR: client should be in file queue (4)";
                     print_newline ();
                   end;
                 

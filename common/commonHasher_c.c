@@ -75,16 +75,16 @@ value ml_job_done(value job_v)
 
 /* We use this shared variable for thread synchronization... yes, mutexes
 and conditions would be better... wait for the patch */
-int volatile  job_done = 1;
+static int volatile  job_done = 1;
 
 /* We use these variables for thread communication */
-char volatile job_result[64];
-OS_FD volatile  job_fd = 0;
-long volatile job_begin_pos = 0;
-long volatile job_len = 0;
-int volatile job_method = 0;
+static char volatile job_result[64];
+static OS_FD volatile  job_fd = 0;
+static long volatile job_begin_pos = 0;
+static long volatile job_len = 0;
+static int volatile job_method = 0;
 
-int thread_started = 0;
+static int thread_started = 0;
 
 static pthread_t pthread;
 static pthread_cond_t cond;
@@ -174,14 +174,16 @@ value ml_job_start(value job_v, value fd_v)
     }
   }
 
-
+  enter_blocking_section();
   pthread_mutex_lock(&mutex);
 /*  printf("Starting job\n"); */
   job_done = 0; /* Thread can run ... */
   pthread_cond_signal(&cond);  
   pthread_mutex_unlock(&mutex);
+  leave_blocking_section ();
 
   return Val_unit;
 }
 
 #endif
+

@@ -284,6 +284,12 @@ type server_info = {
     *)
 
 module G = GuiTypes
+
+let server_banner s o =
+  let buf = o.conn_buf in
+  let info = server_info s in
+  Printf.bprintf buf "%s" 
+      info.G.server_banner
   
 let server_print s o =
   let impl = as_server_impl s in
@@ -291,15 +297,15 @@ let server_print s o =
   try
     let info = server_info s in
     let buf = o.conn_buf in
-    
 	
 	if o.conn_output = HTML && !!html_mods then
+
+	let snum = (server_num s) in
 	
 	begin
 
-
     Printf.bprintf buf "
-    \\<td class=\\\"sr\\\"\\>%d\\</td\\>
+    \\<td class=\\\"srb\\\" %s \\>%d\\</td\\>
     %s
     \\<td class=\\\"sr\\\"\\>%s\\</td\\>
     \\<td class=\\\"sr\\\"\\>%s\\</td\\>
@@ -308,16 +314,25 @@ let server_print s o =
     \\<td class=\\\"sr ar br\\\"\\>%d\\</td\\>
     \\<td class=\\\"sr\\\"\\>%s\\</td\\>
     \\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>\n"
-      (server_num s)
-                (
-              Printf.sprintf
-              "\\<TD class=\\\"srb\\\" onMouseOver=\\\"mOvr(this,'#94AE94');\\\"
-              onMouseOut=\\\"mOut(this,this.bgColor);\\\"
-              onClick=\\\"parent.fstatus.location.href='/submit?q=%s+%d'\\\"\\>%s\\</TD\\>"
+	  (
+        Printf.sprintf "%s"
+        (match impl.impl_server_state with
+        Connected _ -> Printf.sprintf "title=\\\"Server Banner\\\" 
+						onMouseOver=\\\"mOvr(this,'#94AE94');\\\"
+						onMouseOut=\\\"mOut(this,this.bgColor);\\\"
+						onClick=\\\"location.href='/submit?q=server_banner+%d'\\\"" snum
+        | _ -> "")
+	  )
+	  snum
+      (
+        Printf.sprintf
+        "\\<TD class=\\\"srb\\\" onMouseOver=\\\"mOvr(this,'#94AE94');\\\"
+        onMouseOut=\\\"mOut(this,this.bgColor);\\\"
+        onClick=\\\"parent.fstatus.location.href='/submit?q=%s+%d'\\\"\\>%s\\</TD\\>"
       (match impl.impl_server_state with
         NotConnected _ -> "c"
       | _ -> "x")
-      (server_num s)
+      snum
       (match impl.impl_server_state with
         NotConnected _ -> "Connect"
       | _ -> "Disconnect")

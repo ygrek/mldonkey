@@ -69,6 +69,7 @@ type server = (*[]*){
     mutable server_nfiles : int;
     mutable server_name : string;
     mutable server_description : string;
+    mutable server_banner : string;
     mutable server_users: user list;
     mutable server_next_udp : int;
     mutable server_master : bool;
@@ -165,7 +166,11 @@ and client = {
     mutable client_block : block option;
     mutable client_zones : zone list;
     mutable client_connection_control : connection_control;
-    mutable client_file_queue : (file * availability) list;
+    mutable client_file_queue : (
+      file * 
+      (availability * (* has displayed when connected *)
+      availability)   (* has known when disconnected when Emule comes back *)
+      ) list;
     mutable client_next_view_files :  int;
     mutable client_all_files : result list option;
     mutable client_tags: CommonTypes.tag list;

@@ -193,7 +193,7 @@ print_newline ();
                         avi_codec = fccHandler;
                         avi_width = rcFrame_dx;
                         avi_height = rcFrame_dy;
-                        avi_fps = Int32.to_int (Int32.div dwRate dwScale);
+                        avi_fps = int_of_float(1000.0 *. Int32.to_float(dwRate) /. Int32.to_float(dwScale));
                         avi_rate = Int32.to_int dwLength;
                       }));
                 

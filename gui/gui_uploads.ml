@@ -44,14 +44,15 @@ class box columns () =
     true  (fun si -> si.shared_num) as pl
       inherit Gui_uploads_base.box () as box
     
+    val mutable clipboard = ""
     val mutable columns = columns
     method set_columns l =
       columns <- l;
       self#set_titles 
         (List.map C.Shared_files_up.string_of_column !!columns);
       self#update
-
-      
+    
+    
     method column_menu  i = 
       [
         `I ("Sort", self#resort_column i);
@@ -124,28 +125,45 @@ class box columns () =
         !!columns 
       in
       (strings, None)
-
+    
     method menu =
-      
+
 (* fuck the object oriented style: how do I copy something to the
 console ???? *)
       
       let copy_ed2k_links list _ = 
+        let buf = Buffer.create 100 in
         List.iter (fun si ->
             let link = Printf.sprintf "ed2k://|file|%s|%Ld|%s|" 
 (* Why are some files prefixed by their path ?? *)
                 (Filename.basename si.shared_filename)
               si.shared_size
-              (Md4.to_string si.shared_id)
+                (Md4.to_string si.shared_id)
             in
-            !Gui_global.console_message link
-        ) list
+            Printf.bprintf buf "%s\n" link;
+        ) list;
+        let link = Buffer.contents buf in
+        !Gui_global.console_message link;
+        clipboard <- link;
+
+        (*
+        ignore (self#misc#grab_selection `PRIMARY);
+        self#misc#add_selection_target ~target:"string" `PRIMARY;
+        ignore (self#misc#connect#selection_get (fun sel ~info ~time ->
+              Printf.printf "request selection"; print_newline ();
+              sel#return clipboard
+          )); 
+        ignore (self#event#connect#selection_clear (fun sel ~info ~time ->
+              Printf.printf "request selection"; print_newline ();
+              sel#return clipboard
+          ));
+*)      
       in
-      
       match self#selection with
         [] -> []
       |	list ->
-          [ `I (("Copy ed2k link to console"), copy_ed2k_links list)  ] 
+          [ `I (("Copy ed2k link to console/clipboard"), copy_ed2k_links list) 
+            ] 
     
     method find_file num = self#find num
     

@@ -101,6 +101,7 @@ type server_info = {
     mutable server_name : string;
     mutable server_description : string;
     mutable server_users : int list option;
+    mutable server_banner : string;
   } 
 
 type room_info = {

@@ -591,6 +591,7 @@ let verbosity = define_option expert_ini ["verbosity"]
   do : some download warnings
   unk : unknown messages
   ov : overnet
+  share: debug sharing
 "
     string_option ""
 
@@ -603,6 +604,7 @@ let verbose_download = ref false
 let verbose_unknown_messages = ref false
 let verbose_overnet = ref false
 let verbose_location = ref false
+let verbose_share = ref false
   
 let _ = 
   option_hook verbosity (fun _ ->
@@ -617,6 +619,7 @@ let _ =
       verbose_unknown_messages := false;
       verbose_overnet := false;
       verbose_location := false;
+      verbose_share := false;
       
       List.iter (fun s ->
           match s with
@@ -630,6 +633,7 @@ let _ =
           | "unk" -> verbose_unknown_messages := true
           | "ov" -> verbose_overnet := true
           | "loc" -> verbose_location := true
+          | "share" -> verbose_share := true
               
           | "all" ->
               
@@ -641,7 +645,9 @@ let _ =
               verbose := true;
               verbose_download := true;
               verbose_unknown_messages := true;
-              verbose_overnet := true
+              verbose_overnet := true;
+              verbose_share := true
+              
           | _ -> ()
               
       ) (String2.split_simplify !!verbosity ' ')

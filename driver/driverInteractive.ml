@@ -72,7 +72,7 @@ let calc_file_eta f =
     else rate
   in
   let eta = 
-    if rate < 0.0001
+    if rate < 0.1
     then 1000.0 *. 60.0 *. 60.0 *. 24.0
     else missing /. rate
   in

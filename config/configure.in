@@ -8,7 +8,7 @@ CONFIG_ARGS=$*
 echo $CONFIG_ARGS
 
 CURRENT_VERSION=2.02
-CURRENT_RELEASE=19
+CURRENT_RELEASE=20
 
 REQUIRED_OCAML=3.06
 REQUIRED_LABLGTK=1.2.4
@@ -74,8 +74,8 @@ AC_ARG_ENABLE(ocamlver, [--enable-ocamlver=3.06:       allows you to change the 
 AC_ARG_ENABLE(gui, [--disable-gui:       allows you to remove the GUI], [BUILD_GUI="$enableval"])
 
 
-PTHREAD_LIB=no
-AC_ARG_ENABLE(pthread-lib, [--enable-pthread-lib=pthread :       allows you to add pthread support in mldonkey], [PTHREAD_LIB="$enableval"])
+PTHREAD_LIBS=no
+AC_ARG_ENABLE(pthread-lib, [--enable-pthread-lib=pthread :       allows you to add pthread support in mldonkey], [PTHREAD_LIBS="$enableval"])
 
 
 
@@ -573,14 +573,11 @@ if test "$IM" = "yes"; then
   fi
 fi
 
-if test "$PTHREAD_LIB" = "no"; then
+if test "$PTHREAD_LIBS" = "no"; then
   echo "Dont use threads"
 else
-  OLD_LIBS="$LIBS"
-  LIBS=""
-  AC_CHECK_LIB($PTHREAD_LIB,pthread_create)
-  HAVE_LIBPTHREAD="$LIBS"
-  LIBS="$OLD_LIBS"
+  PTHREAD_LIBS=""
+  ACX_PTHREAD
 fi
 
 
@@ -650,7 +647,6 @@ AC_SUBST(OCAMLDEP)
 AC_SUBST(CAMLP4)
 AC_SUBST(PERL)
 AC_SUBST(OCAMLMKTOP)
-AC_SUBST(HAVE_LIBPTHREAD)
 
 AC_SUBST(MORE_TARGETS)
 AC_SUBST(MORE_SUBDIRS)

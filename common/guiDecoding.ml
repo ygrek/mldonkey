@@ -423,6 +423,7 @@ let get_server proto s pos =
     server_state = state;
     server_name = name;
     server_description = description;
+	server_banner = "";
     server_users = None;
   }, pos
 

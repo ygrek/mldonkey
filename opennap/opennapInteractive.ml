@@ -166,7 +166,8 @@ let _ =
         P.server_name = s.server_desc;
         P.server_description = s.server_net;
         P.server_users = None;
-      }
+        P.server_banner = "";
+        }
   )
 
 module C = CommonTypes

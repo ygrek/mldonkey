@@ -896,6 +896,7 @@ let _ =
   file_ops.op_file_commit <- (fun file new_name ->
       if not (List.mem file.file_md4 !!old_files) then
         old_files =:= file.file_md4 :: !!old_files;
+      Printf.printf "REMEMBER SHARE FILE INFO %s" new_name; print_newline (); 
       DonkeyShare.remember_shared_info file new_name
   );
   network.op_network_connected <- (fun _ ->
@@ -996,6 +997,7 @@ let _ =
         P.server_state = server_state s;
         P.server_name = s.server_name;
         P.server_description = s.server_description;
+        P.server_banner = s.server_banner;
         P.server_users = None;
       }
   )
@@ -1292,7 +1294,7 @@ onClick=\\\"parent.fstatus.location.href='/submit?q=friend_add+%d'\\\"\\>%d\\</T
                 "\\<table class=chunks cellspacing=0 cellpadding=0\\>\\<tr\\>\\<script language=\\\"javascript\\\"\\>\\<!--\n";
             
             
-            List.iter (fun (qfile, qchunks) ->
+            List.iter (fun (qfile, (qchunks, _)) ->
                 if (qfile = (as_file_impl file).impl_file_val) && (!found = 0) then 
                   begin
                     incr found;

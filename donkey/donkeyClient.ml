@@ -217,10 +217,17 @@ let disconnect_client c =
           c.client_sock <- None;
           set_client_disconnected c;
           let files = c.client_file_queue in
-          List.iter (fun (file, chunks) -> 
+          List.iter (fun (file, (chunks, _) ) -> 
               remove_client_chunks file chunks)  
           files;    
-          c.client_file_queue <- [];
+          
+          if c.client_file_queue <> [] then begin
+              Printf.printf "Client %d: " (client_num c);
+              List.iter (fun (file, _) -> 
+                  Printf.printf "%d " (file_num file)) c.client_file_queue;
+              print_newline ();
+            end;
+(*        c.client_file_queue <- [];  *)
           if c.client_upload != None then find_pending_slot ();
           DonkeyOneFile.clean_client_zones c;
         with e -> Printf.printf "Exception %s in disconnect_client"
@@ -474,25 +481,37 @@ let client_has_chunks c file chunks =
           
           end;
         
-        add_client_chunks file chunks;
         CommonEvent.add_event (File_update_availability
             (as_file file.file_file, as_client c.client_client, chunks_string));
         
-        if not (List.mem_assq file c.client_file_queue) then
-        match c.client_file_queue with
-          [] ->
-            if !verbose_download then begin
-                Printf.printf "client_has_chunks: ADDING FILE TO QUEUE"; print_newline ();
-              end;
-            c.client_file_queue <- [file, chunks];
-            start_download c
-        
-        | _ -> 
-            if !verbose_download then begin
-                Printf.printf "client_file_queue: ADDING NEXT FILE TO QUEUE"; print_newline ();
-              end;
-            c.client_file_queue <- c.client_file_queue @ [file, chunks]
+        (try
+            let (c1, c2) = List.assq file c.client_file_queue in
+            remove_client_chunks file c1;
+            add_client_chunks file chunks;
+
+            let len = Array.length c1 in
+            Array.blit chunks 0 c1 0 len;
+            Array.blit chunks 0 c2 0 len;
             
+          with Not_found ->
+              add_client_chunks file chunks;
+              
+              match c.client_file_queue with
+                [] ->
+                  if !verbose_download then begin
+                      Printf.printf "client_has_chunks: ADDING FILE TO QUEUE"; print_newline ();
+                    end;
+                  c.client_file_queue <- [file, 
+                    (chunks, Array.copy chunks)];
+                  start_download c
+              
+              | _ -> 
+                  if !verbose_download then begin
+                      Printf.printf "client_file_queue: ADDING NEXT FILE TO QUEUE"; print_newline ();
+                    end;
+                  c.client_file_queue <- c.client_file_queue @ [
+                    file, (chunks, Array.copy chunks) ]
+        )
       with _ -> 
           if !verbose_download then begin
               Printf.printf "client_has_chunks: EXCEPTION"; print_newline ()
@@ -892,6 +911,7 @@ print_newline ();
         match c.client_file_queue with
           [] -> ()
         | _ -> 
+            Printf.printf "CloseSlotReq"; print_newline ();
             DonkeyOneFile.start_download c;
             set_rtimeout sock !!queued_timeout;
       end
@@ -1459,7 +1479,7 @@ let init_client sock c =
   ); *)
   c.client_block <- None;
   c.client_zones <- [];
-  c.client_file_queue <- [];
+(*  c.client_file_queue <- []; *)
   c.client_has_a_slot <- false;
   c.client_upload <- None;
   c.client_rank <- 0;

@@ -18,6 +18,9 @@ Before 2.03:
 * Check the problem with clients disconnecting with 'n'
 * We should be careful with remove: can a client still be in a queue for
    another file when removed ? Add a counter to the source !
+* Comments propagation
+* Error Not_found in udp_handler
+* Interaction with Emules. What happens after the first chunk ?
 
 Some fields are not necessary anymore:
   - zone_file

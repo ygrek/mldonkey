@@ -524,8 +524,34 @@ let main () =
       init _menu
   ) !Gui_global.top_menus;
   ignore (w#connect#destroy quit);
+  
+  console_message := (fun s -> 
 
-  console_message := (fun s -> gui#tab_console#insert s);
+      (*
+      Printf.printf "to primary"; print_newline ();
+      let e = gui#tab_console#text in
+  
+      ignore (GtkBase.Selection.owner_set e#as_widget `PRIMARY 0);
+(*      ignore(e#misc#grab_selection `PRIMARY); *)
+(*      e#misc#add_selection_target ~target:"string" `PRIMARY; 
+      ignore (e#misc#connect#selection_get (fun sel ~info ~time ->
+            Printf.printf "request selection"; print_newline ();
+            sel#return s
+        )); *)
+      ignore (e#event#connect#selection_clear  (fun sel ->
+            Printf.printf "selection cleared"; print_newline ();
+            true
+        ));
+      ignore (e#event#connect#selection_request (fun sel ->
+            Printf.printf "Selection request"; print_newline ();
+            true
+        ));
+      ignore (e#event#connect#selection_notify (fun sel ->
+            Printf.printf "Selection notify"; print_newline ();
+            true
+));
+  *)
+      gui#tab_console#insert s);
   
   (** menu actions *)
   ignore (gui#itemQuit#connect#activate w#destroy) ;

@@ -251,7 +251,7 @@ let new_print_stats buf o =
 \\<td title=\\\"Total Uploads\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>UL\\</td\\>
 \\<td title=\\\"Total Uploads Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>%%\\</td\\>
 \\<td title=\\\"Total Uploads Average Kbps\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar br\\\"\\>kbs\\</td\\>
-\\<td title=\\\"Total Bans\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>Bans\\</td\\>
+\\<td title=\\\"Total Bans\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>B\\</td\\>
 \\<td title=\\\"Total Bans Percent\\\" onClick=\\\"_tabSort(this,1);\\\" class=\\\"srh ar\\\"\\>%%\\</td\\>
 \\</tr\\>";
       

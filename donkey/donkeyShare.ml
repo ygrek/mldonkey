@@ -248,11 +248,11 @@ let local_dirname = Sys.getcwd ()
   
 let _ =
   network.op_network_share <- (fun fullname codedname size ->
-      if !verbose then begin
+      if !verbose_share then begin
           Printf.printf "FULLNAME %s" fullname; print_newline ();
         end;
       let codedname = Filename.basename codedname in
-      if !verbose then begin
+      if !verbose_share then begin
           Printf.printf "CODEDNAME %s" codedname; print_newline ();
         end;
       try
@@ -262,13 +262,13 @@ Printf.printf "Searching %s" fullname; print_newline ();
         let s = Hashtbl.find shared_files_info fullname in
         let mtime = Unix32.mtime64 fullname in
         if s.sh_mtime = mtime && s.sh_size = size then begin
-            if !verbose then begin
+            if !verbose_share then begin
                 Printf.printf "USING OLD MD4s for %s" fullname;
                 print_newline (); 
               end;
             new_file_to_share s None
           end else begin
-            if !verbose then begin                
+            if !verbose_share then begin                
                 Printf.printf "Shared file %s has been modified" fullname;
                 print_newline ();
               end;
@@ -277,7 +277,7 @@ Printf.printf "Searching %s" fullname; print_newline ();
             raise Not_found
           end
       with Not_found ->
-          if !verbose then begin
+          if !verbose_share then begin
               Printf.printf "No info on %s" fullname; print_newline (); 
             end;
           
@@ -320,7 +320,7 @@ let remember_shared_info file new_name =
       let disk_name = file_disk_name file in
       let mtime = Unix32.mtime64 disk_name in
       
-      if !verbose then begin
+      if !verbose_share then begin
           Printf.printf "Remember %s" new_name; print_newline ();
         end;
       Hashtbl.add shared_files_info new_name {

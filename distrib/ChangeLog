@@ -1,6 +1,17 @@
 ChangeLog	
 =========
 
+2002/02/25: Simon (v 2.02-20)
+  - Applied patch #1174, #1177, #1178
+  - With threads, asynchronous DNS resolution of urls
+  - GUI: ed2k links directly saved to selection, but doesnot work yet
+  - eDonkey: 
+     * Try to work around the incoming Emule connections sending
+        an immediate AvailableSlot
+     * Inverted 2 shared/commit lines in CommonComplexOptions.file_commit to
+        prevent rehashing of downloaded files
+  - ./configure: Improved pthread support
+
 2002/02/25: Simon (v 2.02-19)
   - Fixed Makefile for pthread library
 

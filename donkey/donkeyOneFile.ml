@@ -598,7 +598,7 @@ and start_download c =
       
       match c.client_file_queue with
         [] -> ()
-      | (file, chunks) :: _ ->
+      | (file, (_, chunks)) :: _ ->
           
           direct_client_send c (
             let module M = DonkeyProtoClient in
@@ -618,7 +618,7 @@ and restart_download c =
       
       match c.client_file_queue with
         [] -> ()
-      | (file, chunks) :: _ ->
+      | (file, (_, chunks)) :: _ ->
           
           c.client_block <- None;
           c.client_chunks <- chunks;
@@ -645,12 +645,13 @@ and find_client_block c =
       Printf.printf "find_client_block: started"; print_newline ();
     end;
   match c.client_file_queue with
-    [] -> 
-      if !verbose_download then begin
-          Printf.printf "find_client_block: NO FILE IN QUEUE"; print_newline ();
-        end;
-      assert false
-  | (file, chunks) :: files -> 
+    [] ->
+    (* Emule may reconnect and give the slot without us asking for it.
+    We have to fix this behavior in the future. *)
+    
+      Printf.printf "Client %d: NO FILE IN QUEUE" (client_num c); 
+      print_newline ();
+  | (file, (_, chunks)) :: files -> 
       
       if !verbose_download then begin
           Printf.printf "File %s state %s"
@@ -832,7 +833,7 @@ and next_file c =
   Printf.printf "next_file..."; print_newline ();
   match c.client_file_queue with
     [] -> assert false
-  | (file, chunks) :: files -> 
+  | (file, (chunks, _) ) :: files -> 
       DonkeyGlobals.remove_client_chunks file chunks;
       match c.client_sock with
         None -> 

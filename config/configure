@@ -564,7 +564,7 @@ CONFIG_ARGS=$*
 echo $CONFIG_ARGS
 
 CURRENT_VERSION=2.02
-CURRENT_RELEASE=19
+CURRENT_RELEASE=20
 
 REQUIRED_OCAML=3.06
 REQUIRED_LABLGTK=1.2.4
@@ -700,11 +700,11 @@ fi
 
 
 
-PTHREAD_LIB=no
+PTHREAD_LIBS=no
 # Check whether --enable-pthread-lib or --disable-pthread-lib was given.
 if test "${enable_pthread_lib+set}" = set; then
   enableval="$enable_pthread_lib"
-  PTHREAD_LIB="$enableval"
+  PTHREAD_LIBS="$enableval"
 fi
 
 
@@ -3029,65 +3029,315 @@ echo "configure:3023: checking Checking for Jabbr" >&5
   fi
 fi
 
-if test "$PTHREAD_LIB" = "no"; then
+if test "$PTHREAD_LIBS" = "no"; then
   echo "Dont use threads"
 else
-  OLD_LIBS="$LIBS"
-  LIBS=""
-  echo $ac_n "checking for pthread_create in -l$PTHREAD_LIB""... $ac_c" 1>&6
-echo "configure:3039: checking for pthread_create in -l$PTHREAD_LIB" >&5
-ac_lib_var=`echo $PTHREAD_LIB'_'pthread_create | sed 'y%./+-%__p_%'`
-if eval "test \"`echo '$''{'ac_cv_lib_$ac_lib_var'+set}'`\" = set"; then
-  echo $ac_n "(cached) $ac_c" 1>&6
-else
-  ac_save_LIBS="$LIBS"
-LIBS="-l$PTHREAD_LIB  $LIBS"
-cat > conftest.$ac_ext <<EOF
-#line 3047 "configure"
+  PTHREAD_LIBS=""
+  
+
+
+ac_ext=c
+# CFLAGS is not in ac_cpp because -g, -O, etc. are not valid cpp options.
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='${CC-cc} -c $CFLAGS $CPPFLAGS conftest.$ac_ext 1>&5'
+ac_link='${CC-cc} -o conftest${ac_exeext} $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&5'
+cross_compiling=$ac_cv_prog_cc_cross
+
+acx_pthread_ok=no
+
+# We used to check for pthread.h first, but this fails if pthread.h
+# requires special compiler flags (e.g. on True64 or Sequent).
+# It gets checked for in the link test anyway.
+
+# First of all, check if the user has set any of the PTHREAD_LIBS,
+# etcetera environment variables, and if threads linking works using
+# them:
+if test x"$PTHREAD_LIBS$PTHREAD_CFLAGS" != x; then
+        save_CFLAGS="$CFLAGS"
+        CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
+        save_LIBS="$LIBS"
+        LIBS="$PTHREAD_LIBS $LIBS"
+        echo $ac_n "checking for pthread_join in LIBS=$PTHREAD_LIBS with CFLAGS=$PTHREAD_CFLAGS""... $ac_c" 1>&6
+echo "configure:3062: checking for pthread_join in LIBS=$PTHREAD_LIBS with CFLAGS=$PTHREAD_CFLAGS" >&5
+        cat > conftest.$ac_ext <<EOF
+#line 3064 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
     builtin and then its argument prototype would still apply.  */
-char pthread_create();
+char pthread_join();
 
 int main() {
-pthread_create()
+pthread_join()
 ; return 0; }
 EOF
-if { (eval echo configure:3058: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:3075: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
-  eval "ac_cv_lib_$ac_lib_var=yes"
+  acx_pthread_ok=yes
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+fi
+rm -f conftest*
+        echo "$ac_t""$acx_pthread_ok" 1>&6
+        if test x"$acx_pthread_ok" = xno; then
+                PTHREAD_LIBS=""
+                PTHREAD_CFLAGS=""
+        fi
+        LIBS="$save_LIBS"
+        CFLAGS="$save_CFLAGS"
+fi
+
+# We must check for the threads library under a number of different
+# names; the ordering is very important because some systems
+# (e.g. DEC) have both -lpthread and -lpthreads, where one of the
+# libraries is broken (non-POSIX).
+
+# Create a list of thread flags to try.  Items starting with a "-" are
+# C compiler flags, and other items are library names, except for "none"
+# which indicates that we try without any flags at all.
+
+acx_pthread_flags="pthreads none -Kthread -kthread lthread -pthread -pthreads -mthreads pthread --thread-safe -mt"
+
+# The ordering *is* (sometimes) important.  Some notes on the
+# individual items follow:
+
+# pthreads: AIX (must check this before -lpthread)
+# none: in case threads are in libc; should be tried before -Kthread and
+#       other compiler flags to prevent continual compiler warnings
+# -Kthread: Sequent (threads in libc, but -Kthread needed for pthread.h)
+# -kthread: FreeBSD kernel threads (preferred to -pthread since SMP-able)
+# lthread: LinuxThreads port on FreeBSD (also preferred to -pthread)
+# -pthread: Linux/gcc (kernel threads), BSD/gcc (userland threads)
+# -pthreads: Solaris/gcc
+# -mthreads: Mingw32/gcc, Lynx/gcc
+# -mt: Sun Workshop C (may only link SunOS threads [-lthread], but it
+#      doesn't hurt to check since this sometimes defines pthreads too;
+#      also defines -D_REENTRANT)
+# pthread: Linux, etcetera
+# --thread-safe: KAI C++
+
+case "${host_cpu}-${host_os}" in
+        *solaris*)
+
+        # On Solaris (at least, for some versions), libc contains stubbed
+        # (non-functional) versions of the pthreads routines, so link-based
+        # tests will erroneously succeed.  (We need to link with -pthread or
+        # -lpthread.)  (The stubs are missing pthread_cleanup_push, or rather
+        # a function called by this macro, so we could check for that, but
+        # who knows whether they'll stub that too in a future libc.)  So,
+        # we'll just look for -pthreads and -lpthread first:
+
+        acx_pthread_flags="-pthread -pthreads pthread -mt $acx_pthread_flags"
+        ;;
+esac
+
+if test x"$acx_pthread_ok" = xno; then
+for flag in $acx_pthread_flags; do
+
+        case $flag in
+                none)
+                echo $ac_n "checking whether pthreads work without any flags""... $ac_c" 1>&6
+echo "configure:3142: checking whether pthreads work without any flags" >&5
+                ;;
+
+                -*)
+                echo $ac_n "checking whether pthreads work with $flag""... $ac_c" 1>&6
+echo "configure:3147: checking whether pthreads work with $flag" >&5
+                PTHREAD_CFLAGS="$flag"
+                ;;
+
+                *)
+                echo $ac_n "checking for the pthreads library -l$flag""... $ac_c" 1>&6
+echo "configure:3153: checking for the pthreads library -l$flag" >&5
+                PTHREAD_LIBS="-l$flag"
+                ;;
+        esac
+
+        save_LIBS="$LIBS"
+        save_CFLAGS="$CFLAGS"
+        LIBS="$PTHREAD_LIBS $LIBS"
+        CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
+
+        # Check for various functions.  We must include pthread.h,
+        # since some functions may be macros.  (On the Sequent, we
+        # need a special flag -Kthread to make this header compile.)
+        # We check for pthread_join because it is in -lpthread on IRIX
+        # while pthread_create is in libc.  We check for pthread_attr_init
+        # due to DEC craziness with -lpthreads.  We check for
+        # pthread_cleanup_push because it is one of the few pthread
+        # functions on Solaris that doesn't have a non-functional libc stub.
+        # We try pthread_create on general principles.
+        cat > conftest.$ac_ext <<EOF
+#line 3173 "configure"
+#include "confdefs.h"
+#include <pthread.h>
+int main() {
+pthread_t th; pthread_join(th, 0);
+                     pthread_attr_init(0); pthread_cleanup_push(0, 0);
+                     pthread_create(0,0,0,0); pthread_cleanup_pop(0); 
+; return 0; }
+EOF
+if { (eval echo configure:3182: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+  rm -rf conftest*
+  acx_pthread_ok=yes
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+fi
+rm -f conftest*
+
+        LIBS="$save_LIBS"
+        CFLAGS="$save_CFLAGS"
+
+        echo "$ac_t""$acx_pthread_ok" 1>&6
+        if test "x$acx_pthread_ok" = xyes; then
+                break;
+        fi
+
+        PTHREAD_LIBS=""
+        PTHREAD_CFLAGS=""
+done
+fi
+
+# Various other checks:
+if test "x$acx_pthread_ok" = xyes; then
+        save_LIBS="$LIBS"
+        LIBS="$PTHREAD_LIBS $LIBS"
+        save_CFLAGS="$CFLAGS"
+        CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
+
+        # Detect AIX lossage: threads are created detached by default
+        # and the JOINABLE attribute has a nonstandard name (UNDETACHED).
+        echo $ac_n "checking for joinable pthread attribute""... $ac_c" 1>&6
+echo "configure:3214: checking for joinable pthread attribute" >&5
+        cat > conftest.$ac_ext <<EOF
+#line 3216 "configure"
+#include "confdefs.h"
+#include <pthread.h>
+int main() {
+int attr=PTHREAD_CREATE_JOINABLE;
+; return 0; }
+EOF
+if { (eval echo configure:3223: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+  rm -rf conftest*
+  ok=PTHREAD_CREATE_JOINABLE
 else
   echo "configure: failed program was:" >&5
   cat conftest.$ac_ext >&5
   rm -rf conftest*
-  eval "ac_cv_lib_$ac_lib_var=no"
+  ok=unknown
 fi
 rm -f conftest*
-LIBS="$ac_save_LIBS"
-
+        if test x"$ok" = xunknown; then
+                cat > conftest.$ac_ext <<EOF
+#line 3235 "configure"
+#include "confdefs.h"
+#include <pthread.h>
+int main() {
+int attr=PTHREAD_CREATE_UNDETACHED;
+; return 0; }
+EOF
+if { (eval echo configure:3242: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+  rm -rf conftest*
+  ok=PTHREAD_CREATE_UNDETACHED
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -rf conftest*
+  ok=unknown
 fi
-if eval "test \"`echo '$ac_cv_lib_'$ac_lib_var`\" = yes"; then
-  echo "$ac_t""yes" 1>&6
-    ac_tr_lib=HAVE_LIB`echo $PTHREAD_LIB | sed -e 's/[^a-zA-Z0-9_]/_/g' \
-    -e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/'`
-  cat >> confdefs.h <<EOF
-#define $ac_tr_lib 1
+rm -f conftest*
+        fi
+        if test x"$ok" != xPTHREAD_CREATE_JOINABLE; then
+                cat >> confdefs.h <<\EOF
+#define PTHREAD_CREATE_JOINABLE $ok
 EOF
 
-  LIBS="-l$PTHREAD_LIB $LIBS"
+        fi
+        echo "$ac_t""${ok}" 1>&6
+        if test x"$ok" = xunknown; then
+                echo "configure: warning: we do not know how to create joinable pthreads" 1>&2
+        fi
 
+        echo $ac_n "checking if more special flags are required for pthreads""... $ac_c" 1>&6
+echo "configure:3265: checking if more special flags are required for pthreads" >&5
+        flag=no
+        case "${host_cpu}-${host_os}" in
+                *-aix* | *-freebsd*)     flag="-D_THREAD_SAFE";;
+                *solaris* | *-osf* | *-hpux*) flag="-D_REENTRANT";;
+        esac
+        echo "$ac_t""${flag}" 1>&6
+        if test "x$flag" != xno; then
+                PTHREAD_CFLAGS="$flag $PTHREAD_CFLAGS"
+        fi
+
+        LIBS="$save_LIBS"
+        CFLAGS="$save_CFLAGS"
+
+        # More AIX lossage: must compile with cc_r
+        # Extract the first word of "cc_r", so it can be a program name with args.
+set dummy cc_r; ac_word=$2
+echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
+echo "configure:3283: checking for $ac_word" >&5
+if eval "test \"`echo '$''{'ac_cv_prog_PTHREAD_CC'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  if test -n "$PTHREAD_CC"; then
+  ac_cv_prog_PTHREAD_CC="$PTHREAD_CC" # Let the user override the test.
+else
+  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS=":"
+  ac_dummy="$PATH"
+  for ac_dir in $ac_dummy; do
+    test -z "$ac_dir" && ac_dir=.
+    if test -f $ac_dir/$ac_word; then
+      ac_cv_prog_PTHREAD_CC="cc_r"
+      break
+    fi
+  done
+  IFS="$ac_save_ifs"
+  test -z "$ac_cv_prog_PTHREAD_CC" && ac_cv_prog_PTHREAD_CC="${CC}"
+fi
+fi
+PTHREAD_CC="$ac_cv_prog_PTHREAD_CC"
+if test -n "$PTHREAD_CC"; then
+  echo "$ac_t""$PTHREAD_CC" 1>&6
 else
   echo "$ac_t""no" 1>&6
 fi
 
-  HAVE_LIBPTHREAD="$LIBS"
-  LIBS="$OLD_LIBS"
+else
+        PTHREAD_CC="$CC"
+fi
+
+
+
+
+
+# Finally, execute ACTION-IF-FOUND/ACTION-IF-NOT-FOUND:
+if test x"$acx_pthread_ok" = xyes; then
+        cat >> confdefs.h <<\EOF
+#define HAVE_LIBPTHREAD 1
+EOF
+
+        :
+else
+        acx_pthread_ok=no
+        
+fi
+ac_ext=c
+# CFLAGS is not in ac_cpp because -g, -O, etc. are not valid cpp options.
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='${CC-cc} -c $CFLAGS $CPPFLAGS conftest.$ac_ext 1>&5'
+ac_link='${CC-cc} -o conftest${ac_exeext} $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&5'
+cross_compiling=$ac_cv_prog_cc_cross
+
+
 fi
 
 
 echo $ac_n "checking compile GTK GUI""... $ac_c" 1>&6
-echo "configure:3091: checking compile GTK GUI" >&5
+echo "configure:3341: checking compile GTK GUI" >&5
   if test "$LABLGTK_CONFIG" = "no"; then
         echo "$ac_t""no" 1>&6
         BAD_TARGETS="$BAD_TARGETS mldonkey_gui\$(EXE) mldonkey_gui2\$(EXE) mlchat\$(EXE)"
@@ -3102,7 +3352,7 @@ echo "configure:3091: checking compile GTK GUI" >&5
         echo "$ac_t""yes" 1>&6
 
         echo $ac_n "checking GToolbox.popup_menu args""... $ac_c" 1>&6
-echo "configure:3106: checking GToolbox.popup_menu args" >&5
+echo "configure:3356: checking GToolbox.popup_menu args" >&5
         GTOOLBOX="`$OCAMLC -where`/lablgtk/gToolbox.mli"
         grep popup $GTOOLBOX | grep -i button 2> /dev/null && GTOOLBOX_ARGS=new
         if test "$GTOOLBOX_ARGS" = "new"; then
@@ -3122,7 +3372,7 @@ esac
 # Extract the first word of "bzip2", so it can be a program name with args.
 set dummy bzip2; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:3126: checking for $ac_word" >&5
+echo "configure:3376: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_COMPRESS'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -3151,7 +3401,7 @@ fi
 # Extract the first word of "gzip", so it can be a program name with args.
 set dummy gzip; ac_word=$2
 echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
-echo "configure:3155: checking for $ac_word" >&5
+echo "configure:3405: checking for $ac_word" >&5
 if eval "test \"`echo '$''{'ac_cv_prog_COMPRESS'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -3200,7 +3450,6 @@ case "$OCAMLVERSION" in
   3.06) TYPE_FORMAT="";;
   *) TYPE_FORMAT="type ('a,'b,'c) ml_format = ('a,'b, 'c,'c) format  type ('a,'b,'c) format = ('a,'b, 'c) ml_format";;
 esac		    
-
 
 
 
@@ -3418,9 +3667,11 @@ s%@OCAMLMKTOP@%$OCAMLMKTOP%g
 s%@CAMLP4@%$CAMLP4%g
 s%@PERL@%$PERL%g
 s%@GTK_CONFIG@%$GTK_CONFIG%g
+s%@PTHREAD_CC@%$PTHREAD_CC%g
+s%@PTHREAD_LIBS@%$PTHREAD_LIBS%g
+s%@PTHREAD_CFLAGS@%$PTHREAD_CFLAGS%g
 s%@COMPRESS@%$COMPRESS%g
 s%@TYPE_FORMAT@%$TYPE_FORMAT%g
-s%@HAVE_LIBPTHREAD@%$HAVE_LIBPTHREAD%g
 s%@MORE_TARGETS@%$MORE_TARGETS%g
 s%@MORE_SUBDIRS@%$MORE_SUBDIRS%g
 s%@LABLGL_CMA@%$LABLGL_CMA%g

@@ -420,8 +420,9 @@ let file_commit file =
       Printf.printf "*******  RENAME %s to %s DONE *******" (file_disk_name file) new_name; print_newline ();
       set_file_disk_name file new_name;
       let best_name = file_best_name file in  
-      ignore (CommonShared.new_shared "completed" best_name new_name);
+      (* Commit the file first, and share it after... *)
       impl.impl_file_ops.op_file_commit impl.impl_file_val new_name;
+      ignore (CommonShared.new_shared "completed" best_name new_name);
       done_files =:= List2.removeq file !!done_files;
       update_file_state impl FileShared;
     with e ->

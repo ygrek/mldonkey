@@ -140,6 +140,7 @@ let disconnect_server s =
       s.server_users <- [];
       set_server_state s (NotConnected (-1));
       s.server_master <- false;
+	  s.server_banner <- "";
       remove_connected_server s
       
 let server_handler s sock event = 
@@ -198,6 +199,7 @@ let client_to_server s t sock =
           CommonEvent.add_event (Console_message_event server_header);
 	last_message_sender := server_num s
       end;
+	  s.server_banner <- s.server_banner ^ Printf.sprintf "%s\n" msg;
       let msg = Printf.sprintf "| %s\n" msg in
       CommonEvent.add_event (Console_message_event msg)
       

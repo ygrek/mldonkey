@@ -137,9 +137,9 @@ let string_availability s =
 let string_of_format format =
   match format with
     AVI f ->
-      Printf.sprintf "AVI: %s %dx%d %d fps %d bpf"
+      Printf.sprintf "AVI: %s %dx%d %g fps %d bpf"
 	f.avi_codec f.avi_width f.avi_height 
-	f.avi_fps f.avi_rate
+	(float_of_int(f.avi_fps) *. 0.001) f.avi_rate
   | MP3 (tag, _) ->
       let module M = Mp3tag.Id3v1 in
       Printf.sprintf "MP3: %s - %s (%d): %s"
