@@ -198,6 +198,8 @@ let connect_server s =
           Ip.to_inet_addr s.server_ip) s.server_port 
           (server_handler s) in
       set_server_state s Connecting;
+      TcpClientSocket.set_read_controler sock download_control;
+      TcpClientSocket.set_write_controler sock upload_control;
       
       set_reader sock (Mftp_comm.server_handler
           (client_to_server s));

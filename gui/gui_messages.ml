@@ -622,11 +622,15 @@ ChangeLog
 =========
 
 Release 1.14:
+  * Bandwidth is now controled by the 'max_hard_download_rate' and
+      'max_hard_upload_rate' options. Old rate options are obsolete.
   * All simple options can now be set by arguments on the command line (use 
      -help to show arguments).
   * Bug fixes:
     - Removed non-tailrecursive function in options.ml causing segfault when
        loading files.ini.
+    - Connected clients without names in GUI should not appear anymore.
+    - Remove 2 minutes timeout for queued clients.
 
 Release 1.13:
   * Annotations on files in file 'comments.met'. Commands 'comments <filename>'

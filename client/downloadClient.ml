@@ -211,7 +211,7 @@ let client_to_client for_files c t sock =
           c.client_is_friend <- Friend
         with _ -> ()
       end;
-      c.client_changed <- ClientStateChange;      
+      c.client_changed <- ClientInfoChange;      
       !client_change_hook c;      
       begin
         match c.client_is_friend with
@@ -381,7 +381,9 @@ We should probably check that here ... *)
                   M.ViewFilesReq C.t);          
               end
         | _ -> ()
-      end
+      end;
+      c.client_changed <- ClientInfoChange;
+      !client_change_hook c
   
   | M.AvailableSlotReq _ ->
       printf_string "[QUEUED]";
@@ -410,7 +412,8 @@ We should probably check that here ... *)
 *)  
   
   | M.JoinQueueReq _ ->
-      
+      set_rtimeout (TcpClientSocket.sock sock) infinite_timeout;
+
       client_send sock (
         let module M = Mftp_client in
         let module Q = M.AvailableSlot in
@@ -804,6 +807,12 @@ let client_handler c sock event =
   match event with
     BASIC_EVENT (CLOSED s) ->
       printf_string "-c";
+
+      (*
+      if c.client_state = Connected_queued then begin
+          Printf.printf "** CLIENT QUEUED DISCONNECTED FOR %s" s; print_newline ();
+        end;
+      *)
       connection_failed c.client_connection_control;
       disconnected_from_client c s
   
@@ -845,6 +854,9 @@ let reconnect_client cid files c =
               Ip.to_inet_addr ip) 
             port 
               (client_handler c) in
+          TcpClientSocket.set_read_controler sock download_control;
+          TcpClientSocket.set_write_controler sock upload_control;
+
           init_connection c sock files;
           c.client_sock <- Some sock;
           let s = DownloadServers.last_connected_server () in
@@ -945,6 +957,8 @@ let client_connection_handler t event =
       let c = new_client Indirect_location in
       set_client_state c Connected_initiating;
       let sock = TcpClientSocket.create s (client_handler c) in
+      TcpClientSocket.set_read_controler sock download_control;
+      TcpClientSocket.set_write_controler sock upload_control;
       init_connection c sock [];      
       c.client_sock <- Some sock;
       

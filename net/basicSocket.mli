@@ -27,12 +27,15 @@ val last_time : unit -> float
   
 val fd : t -> Unix.file_descr
 val must_write : t -> bool -> unit
+val must_read : t -> bool -> unit
 val set_rtimeout : t -> float -> unit
 val set_wtimeout : t -> float -> unit
 val set_lifetime : t -> float -> unit
 val set_handler : t -> handler -> unit
 val handler : t -> handler
 val closed : t -> bool
+
+val set_before_select : t -> (t -> unit) -> unit
   
   
 val create : Unix.file_descr -> handler -> t
@@ -40,6 +43,8 @@ val create_blocking : Unix.file_descr -> handler -> t
 val close : t -> string -> unit
 val shutdown : t -> string -> unit
 
+val set_before_select_hook : (unit -> unit) -> unit
+val set_after_select_hook : (unit -> unit) -> unit
   
 (* val add_timer: float -> (unit -> unit) -> unit *)
   

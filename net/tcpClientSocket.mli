@@ -31,6 +31,8 @@ and buf = {
   } 
   
 type t
+
+type bandwidth_controler
   
 and handler = t -> event -> unit
 
@@ -57,3 +59,10 @@ val can_write : t -> bool
 val set_monitored : t -> unit
   
 val close_after_write : t -> unit
+
+val create_read_bandwidth_controler : int -> bandwidth_controler
+val create_write_bandwidth_controler : int -> bandwidth_controler
+val set_read_controler : t -> bandwidth_controler -> unit
+val set_write_controler : t -> bandwidth_controler -> unit
+val change_rate : bandwidth_controler -> int -> unit
+  

@@ -42,6 +42,8 @@ val server_connection_timeout : float Options.option_record
 val telnet_port : int Options.option_record
 val max_server_age : int Options.option_record
 val interface_buffer : int Options.option_record
+val max_hard_upload_rate : int Options.option_record
+val max_hard_download_rate : int Options.option_record
 val max_upload_rate : int Options.option_record
 val max_download_rate : int Options.option_record
 val password : string Options.option_record

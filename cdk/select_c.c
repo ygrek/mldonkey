@@ -56,7 +56,8 @@ extern void uerror (char * cmdname, value arg) Noreturn;
 #define FD_TASK_FD 0
 #define FD_TASK_FLAGS 1
 #define FD_TASK_WLEN 2
-#define FD_TASK_CLOSED 3
+#define FD_TASK_RLEN 3
+#define FD_TASK_CLOSED 4
 
 typedef fd_set file_descr_set;
 
@@ -80,7 +81,7 @@ value ml_select(value fdlist, value timeout) /* ML */
     if(Field(v, FD_TASK_CLOSED) == Val_false){
       int fd = Int_val(Field(v,FD_TASK_FD));
 /*      fprintf(stderr, "FD in SELECT %d\n", fd); */
-      FD_SET(fd, &read);
+      if(Field(v, FD_TASK_RLEN) != Val_int(0)) FD_SET(fd, &read);
       if(Field(v, FD_TASK_WLEN) != Val_int(0)) FD_SET(fd, &write);
     }
   }

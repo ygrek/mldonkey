@@ -314,12 +314,12 @@ let _ =
           match s.server_users with
             None -> 
               gui_send (GetServer_users (server_key s))
-          | Some users -> ()
+          | Some users -> 
+              MyCList.clear clist_server_users;
         end;
       match s.server_users with
         None -> ()
       | Some users ->
-          MyCList.clear clist_server_users;
           List.iter (fun u -> 
               MyCList.update clist_server_users (u.user_name, u.user_md4) u) 
           users;
@@ -529,18 +529,17 @@ let set_clist_file_locations_file file =
       current_file := file.file_num;
       nclocations := 0;
       nlocations := 0;
-      MyCList.clear clist_file_locations;
       match file.file_more_info with
         None -> 
           gui_send (GetFile_locations file.file_md4)
-      | Some mi -> ()
+      | Some mi -> 
+          MyCList.clear clist_file_locations;
     end;
   match file.file_more_info with
     None -> ()
   | Some mi ->
       nclocations := 0;
       nlocations := 0;
-      MyCList.clear clist_file_locations;
       List.iter (fun c -> 
           if is_connected c.client_state then incr nclocations;
           MyCList.update clist_file_locations c.client_num c) 
@@ -775,14 +774,14 @@ let _ =
           match c.client_files with
             None -> 
               gui_send (GetClient_files c.client_num)
-          | Some files -> ()
+          | Some files -> 
+              MyCList.clear clist_friend_files;              
         end;
       match c.client_files with
         None -> ()
       | Some files -> 
-          MyCList.clear clist_friend_files;
           List.iter (fun r -> 
-              MyCList.add clist_friend_files r.result_md4 r) 
+              MyCList.update clist_friend_files r.result_md4 r) 
           files;
   )
 
@@ -882,10 +881,11 @@ let canon_client c =
               nclocations := !nclocations - 1;
               update_locations_label ()
         end;
-      cc.client_files <- c.client_files;
+      if c.client_files <> None then cc.client_files <- c.client_files;
       cc.client_state <- c.client_state;
       cc.client_is_friend <- c.client_is_friend;
       cc.client_rating <- c.client_rating;
+      cc.client_name <- c.client_name;
       
       if is_in_locations then
         MyCList.set_value clist_file_locations c.client_num cc;

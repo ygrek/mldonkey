@@ -123,3 +123,7 @@ val set_client_state :
   
 val set_server_state : 
   DownloadTypes.server -> Gui_types.connection_state -> unit
+  
+val upload_control : TcpClientSocket.bandwidth_controler
+val download_control : TcpClientSocket.bandwidth_controler
+  

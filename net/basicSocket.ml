@@ -30,6 +30,7 @@ type t = {
     mutable fd : Unix.file_descr;
     mutable flags : int;
     mutable want_to_write : bool;
+    mutable want_to_read : bool;
     mutable closed : bool;
     
 (* YOU CAN MODIFY THESE *)
@@ -43,6 +44,8 @@ type t = {
     
     mutable event_handler : handler;
     mutable error : string;
+    
+    mutable before_select : (t -> unit);
   }
 
 and handler = t -> event -> unit
@@ -69,7 +72,9 @@ let last_time () = !current_time
 let fd t = t.fd
 
 let must_write t b  = t.want_to_write <- b
-  
+let must_read t b  = t.want_to_read <- b
+
+let set_before_select t f = t.before_select <- f
     
 let dummy_fd = Obj.magic (-1)
 
@@ -105,6 +110,18 @@ let handler t = t.event_handler
 
 let tasks  = ref ([]: t list)
 
+let before_select_hooks = ref []
+  
+let set_before_select_hook f =
+  before_select_hooks := f :: !before_select_hooks
+
+let after_select_hooks = ref []
+  
+let set_after_select_hook f =
+  after_select_hooks := f :: !after_select_hooks
+  
+let default_before_select t = ()
+  
 let create_blocking fd handler =
   incr nb_sockets;
   Unix.set_nonblock fd;
@@ -114,6 +131,7 @@ let create_blocking fd handler =
       fd = fd;
       
       want_to_write = false;
+      want_to_read = true;
       closed = false;
       
       flags = 0;
@@ -128,6 +146,7 @@ let create_blocking fd handler =
 
       event_handler = handler;
       error = "";
+      before_select = default_before_select;
     } in
 (*  Printf.printf "ADD ONE TASK"; print_newline (); *)
   tasks := t :: !tasks; 
@@ -153,10 +172,13 @@ let rec iter_task old_tasks time =
           tail
         else
         begin
+          t.before_select t;
+          
           if t.want_to_write then 
             timeout := min (t.next_wtimeout -. time) !timeout;
           
-          timeout := min (t.next_rtimeout -. time) !timeout;
+          if t.want_to_read then
+            timeout := min (t.next_rtimeout -. time) !timeout;
 (*          Printf.printf "NEXT TIMEOUT: %f/%f" t.next_rtimeout time;
 print_newline ();
   *)
@@ -188,7 +210,10 @@ let reactivate_timer t =
       t.next_time <- last_time () +. t.delay;
       t.applied <- false;
     end
-        
+    
+let can_read = 1
+let can_write = 2
+    
 let loop () =
   Sys.set_signal  Sys.sigpipe Sys.Signal_ignore;
   while true do
@@ -201,15 +226,16 @@ let loop () =
             (try t.event_handler t WTIMEOUT with _ -> ());
           if not t.closed && t.lifetime < time then 
             (try t.event_handler t LTIMEOUT with _ -> ());
-          if not t.closed && t.flags land 1 <> 0 then 
+          if not t.closed && t.flags land can_read <> 0 then 
             (try 
                 t.next_rtimeout <- time +. t.rtimeout;
                 t.event_handler t CAN_READ with _ -> ());
-          if not t.closed && t.flags land 2 <> 0 then 
+          if not t.closed && t.flags land can_write <> 0 then 
             (try 
                 t.next_wtimeout <- time +. t.wtimeout;                
                 t.event_handler t CAN_WRITE with _ -> ());
       ) !tasks;
+      List.iter (fun f -> try f () with _ -> ()) !after_select_hooks;
       List.iter (fun t ->
           if (not t.applied) && t.next_time <= !current_time then begin
               t.applied <- true;
@@ -242,7 +268,8 @@ let loop () =
       Printf.printf "TIMEOUT: %f" !timeout; print_newline ();
 timeout := 5.;
 *)
-      select !tasks !timeout;
+      List.iter (fun f -> try f () with _ -> ()) !before_select_hooks;
+      select !tasks !timeout; 
     with e ->
         Printf.printf "Exception %s in Select.loop" (Printexc.to_string e);
         print_newline ();

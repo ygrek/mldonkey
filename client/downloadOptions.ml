@@ -30,6 +30,9 @@ let friends_ini = create_options_file "./friends.ini"
   
 let initial_score = define_option downloads_ini ["initial_score"] "" int_option 5
 
+  
+let _ = Random.self_init ()
+
 let random_letter () =
   char_of_int (97 + Random.int 26)
   
@@ -38,6 +41,19 @@ let client_name = define_option downloads_ini ["client_name"] "small name of cli
     (Printf.sprintf "mldonkey_%c%c%c%c%c" (random_letter ()) (random_letter ()) 
     (random_letter ()) (random_letter ()) (random_letter ()))
 
+let _ =
+  let in_hook = ref false in
+  option_hook client_name (fun _ ->
+      if not !in_hook &&
+        (!!client_name = "mldonkey_rfrnx" || !!client_name = "mldonkey") then
+        begin 
+          in_hook := true;
+          client_name =:= (Printf.sprintf "mldonkey_%c%c%c%c%c"
+              (random_letter ()) (random_letter ()) 
+            (random_letter ()) (random_letter ()) (random_letter ()));
+        end
+  )
+  
 let small_retry_delay = define_option downloads_ini ["small_retry_delay"] 
   "" float_option 30.
 let medium_retry_delay = define_option downloads_ini ["medium_retry_delay"] "Minimal delay between two connection attempts to the same host" float_option 600.
@@ -93,12 +109,22 @@ let http_password =
 let initialized = define_option downloads_ini ["initialized"] 
   "(not used)"
     bool_option false
-    
+  
+let max_hard_upload_rate = define_option downloads_ini ["max_hard_upload_rate"] 
+  "The maximal upload rate you can tolerate on your link in kB/s (0 = no limit)
+  The limit will apply on all your connections (clients and servers) and both
+control and data messages." int_option 0
+  
+let max_hard_download_rate = define_option downloads_ini ["max_hard_download_rate"] 
+  "The maximal download rate you can tolerate on your link in kB/s (0 = no limit)
+  The limit will apply on all your connections (clients and servers) and both
+control and data messages." int_option 0
+
 let max_upload_rate = define_option downloads_ini ["max_upload_rate"] 
-  "The maximal upload rate you can tolerate" int_option 3000
+  "The maximal upload rate you can tolerate (in kB/s)" int_option 3000
   
 let max_download_rate = define_option downloads_ini ["max_download_rate"] 
-    "The maximal download rate you can tolerate (0 = no limit)" int_option 0
+  "The maximal download rate you can tolerate in kB/s(0 = no limit)" int_option 0
 
 let max_xs_packets = define_option downloads_ini ["max_xs_packets"] 
   "Max number of UDP packets per round for eXtended Search" int_option 30

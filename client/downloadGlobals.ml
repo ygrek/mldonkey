@@ -107,8 +107,6 @@ let connection_delay cc =
     (last_time () +. !min_retry_delay)
   
 open Mftp
-
-let _ = Random.self_init ()
   
 let client_ip = ref (Ip.of_ints (0,0,0,0))
 let client_tags = ref ([] : tag list)
@@ -422,4 +420,18 @@ let exit_properly _ =
   
 let can_open_connection () =
   nb_sockets () < !!max_opened_connections 
+  
+let upload_control = TcpClientSocket.create_write_bandwidth_controler 
+    (!!max_hard_upload_rate * 1024)
+  
+let download_control = TcpClientSocket.create_read_bandwidth_controler 
+    (!!max_hard_download_rate * 1024)
+  
+let _ =
+  option_hook max_hard_upload_rate (fun _ ->
+      TcpClientSocket.change_rate upload_control 
+        (!!max_hard_upload_rate * 1024));  
+  option_hook max_hard_download_rate (fun _ ->
+      TcpClientSocket.change_rate download_control 
+        (!!max_hard_download_rate * 1024));
   
