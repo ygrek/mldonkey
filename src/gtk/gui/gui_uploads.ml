@@ -133,14 +133,22 @@ console ???? *)
       
       let copy_ed2k_links list _ = 
         let buf = Buffer.create 100 in
-        List.iter (fun si ->
-            let link = Printf.sprintf "ed2k://|file|%s|%Ld|%s|" 
-(* Why are some files prefixed by their path ?? *)
-                (Filename.basename si.shared_filename)
-              si.shared_size
-                (Md4.to_string si.shared_id)
-            in
-            Printf.bprintf buf "%s\n" link;
+        List.iter (fun s ->
+    match s.shared_uids with
+        uid :: _ -> (
+          match (Uid.to_uid uid) with
+              Ed2k md4 ->
+                begin
+                  let link = Printf.sprintf "ed2k://|file|%s|%Ld|%s|"
+                             (Filename.basename s.shared_filename)
+                             s.shared_size
+                             (Md4.to_string md4)
+                  in
+                  Printf.bprintf buf "%s\n" link;
+                end
+            | _ -> ())
+
+      | _ -> ()
         ) list;
         let link = Buffer.contents buf in
         !Gui_global.console_message link;
