@@ -179,7 +179,7 @@ let new_file file_id file_name file_size =
   with _ ->
       let file_temp = Filename.concat !!DO.temp_directory 
           (Printf.sprintf "ON-%s" (Md4.to_string file_id)) in
-      let t = Unix32.create file_temp [Unix.O_RDWR; Unix.O_CREAT] 0o666 in
+      let t = Unix32.create_rw file_temp in
       let current_size = try
           Unix32.getsize64 file_temp
         with e ->
@@ -353,7 +353,7 @@ let add_shared full_name codedname size =
             shared_fullname = full_name;
             shared_codedname = String2.replace codedname '/' "\\";
             shared_size = size;
-            shared_fd=  Unix32.create full_name [Unix.O_RDONLY] 0o444;
+            shared_fd=  Unix32.create_ro full_name;
             shared_format = (tags, info);
           } in
         Hashtbl.add shared_files codedname sh;

@@ -280,7 +280,7 @@ let megabyte = Int64.of_int (1024 * 1024)
 let new_file file_id file_name file_size file_hash = 
   let file_temp = Filename.concat !!temp_directory 
       (Printf.sprintf "FT-%s" (Md4.to_string file_id)) in
-  let t = Unix32.create file_temp [Unix.O_RDWR; Unix.O_CREAT] 0o666 in
+  let t = Unix32.create_rw file_temp in
   let swarmer = Int64Swarmer.create () in
   let partition = fixed_partition swarmer megabyte in
     let keywords = get_name_keywords file_name in

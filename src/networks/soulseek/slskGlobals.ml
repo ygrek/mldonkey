@@ -263,7 +263,7 @@ let new_file file_id name file_size =
           file_clients = [];
         } and impl = {
           dummy_file_impl with
-          impl_file_fd = Unix32.create file_temp [Unix.O_RDWR; Unix.O_CREAT] 0o666;
+          impl_file_fd = Unix32.create_rw file_temp;
           impl_file_size = file_size;
           impl_file_downloaded = current_size;
           impl_file_val = file;

@@ -84,8 +84,8 @@ let _ =
               Unix2.safe_mkdir dirname;
               lprintf "Copying %Ld %Ld to 0\n"
                 begin_pos (end_pos -- begin_pos);
-              let fd = Unix32.create
-                  filename [Unix.O_RDWR; Unix.O_CREAT] 0o666 in
+              let fd = Unix32.create_rw
+                filename in
               Unix32.copy_chunk bt_fd fd begin_pos zero 
                 (Int64.to_int (end_pos -- begin_pos));
               Unix32.close fd

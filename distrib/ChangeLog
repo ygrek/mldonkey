@@ -1,6 +1,11 @@
 ChangeLog	
 =========
 
+2003/11/27: Fabrice
+   * Bug with Unix32.read fixed (no flush).
+   * New file type MultiFile in Unix32, created with create_multifile, to
+       be used by BT. 
+
 2003/11/24: Fabrice
    * New UDP protocol implemented:
 	* Understand servers flags in UDP pongs

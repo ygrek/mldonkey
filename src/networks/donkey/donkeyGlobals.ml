@@ -259,7 +259,7 @@ let new_file file_state file_name md4 file_size writable =
     find_file md4 
   with _ ->
       
-      let t = Unix32.create file_name (if writable then
+      let t = Unix32.create_diskfile file_name (if writable then
             [Unix.O_RDWR; Unix.O_CREAT] else [Unix.O_RDONLY]) 0o666
       in
       let file_size =

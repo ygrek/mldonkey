@@ -119,3 +119,14 @@ external c_ftruncate64 : Unix.file_descr -> int64 -> unit =
   "mld_ftruncate_64"
 external c_getdtablesize : unit -> int = "ml_getdtablesize"
 external c_sizeofoff_t : unit -> int = "ml_sizeofoff_t"
+
+let rec remove_all_directory dirname =
+  let files = list_directory dirname in
+  List.iter (fun file ->
+      let filename = Filename.concat dirname file in
+      if is_directory filename then
+        remove_all_directory filename
+      else
+        Sys.remove filename
+  ) files;
+  Unix.rmdir dirname

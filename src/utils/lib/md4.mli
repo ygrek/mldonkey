@@ -44,7 +44,7 @@ module type Digest = sig
     val of_base32 : string -> t
     
     val string : string -> t
-    val file : string -> t
+(*    val file : string -> t *)
     val create : unit -> t
     val direct_of_string : string -> t
     val direct_to_string : t -> string

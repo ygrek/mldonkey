@@ -260,7 +260,7 @@ module type Digest = sig
     val of_base32 : string -> t
     
     val string : string -> t
-    val file : string -> t
+(*    val file : string -> t *)
     val create : unit -> t
     val direct_of_string : string -> t
     val direct_to_string : t -> string
@@ -328,8 +328,13 @@ module Make(M: sig
     
     let digest_subfile fd pos len =
       let digest = String.create hash_length in
-      let (fd, pos) = Unix32.fd_of_chunk fd pos len in
+      let (fd, pos, filename) = Unix32.fd_of_chunk fd pos len in
       digest_subfile digest fd pos len;
+      (match filename with
+          None -> ()
+        | Some filename ->
+            Sys.remove filename
+      );
       digest
     
     let create () =  String.create hash_length
@@ -466,12 +471,17 @@ module PreTigerTree = Make(struct
       external unsafe_string : string -> string -> int -> unit = "tigertree_unsafe_string"
       external digest_subfile : string -> Unix.file_descr -> int64 -> int64 -> unit =
         "tigertree_unsafe64_fd"
-        
+      
       let unsafe_file digest filename file_size = 
-        let fd = Unix32.create filename [Unix.O_RDONLY] 0o444 in
-        let (fd, pos) = Unix32.fd_of_chunk fd Int64.zero file_size in
-        digest_subfile digest fd pos file_size;
-        ()
+        let fd = Unix32.create_diskfile filename [Unix.O_RDONLY] 0o444 in
+        let (fd, pos, filename) = Unix32.fd_of_chunk fd Int64.zero file_size in
+        let digest = digest_subfile digest fd pos file_size in
+        (match filename with
+            None -> ()
+          | Some filename ->
+              Sys.remove filename
+        );
+        digest
     
       module Base = Base32
         

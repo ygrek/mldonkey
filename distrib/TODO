@@ -1,6 +1,13 @@
 TODO list for client
 ====================
 
+* Fix the address in client_info sent as a string instead of an ADDR
+* Put as many config files as possible in ~/.mldonkey/,~/.mldonkey/mlgui
+* Fix performance problems in CommonSwarming
+
+ * What happens when the writes are buffered, mtime does not correspond to
+   the real value ?
+
 * Verify that make_xs is synchronized with sources searches always
 
 * Suppress all classes in newgui.

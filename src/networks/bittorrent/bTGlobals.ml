@@ -110,7 +110,7 @@ let files_by_uid = Hashtbl.create 13
 let new_file file_id file_name file_size file_tracker piece_size = 
   let file_temp = Filename.concat !!DO.temp_directory 
       (Printf.sprintf "BT-%s" (Sha1.to_string file_id)) in
-  let t = Unix32.create file_temp [Unix.O_RDWR; Unix.O_CREAT] 0o666 in
+  let t = Unix32.create_rw file_temp in
   let swarmer = Int64Swarmer.create () in
   let partition = fixed_partition swarmer piece_size in
   let rec file = {

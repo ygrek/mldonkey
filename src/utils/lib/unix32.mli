@@ -19,7 +19,7 @@
 
 type t
 
-val create : string -> Unix.open_flag list -> int -> t
+  
 val close : t -> unit
 (* val force_fd : t -> Unix.file_descr *)
   
@@ -43,11 +43,30 @@ val write : t -> int64 -> string -> int -> int -> unit
 val max_buffered : int64 ref
 val remove : t -> unit
   
-val fd_of_chunk : t -> int64 -> int64 -> (Unix.file_descr * int64) 
-  
 val read : t -> int64 -> string -> int -> int -> unit
 val allocate_chunk :  t -> int64 -> int -> unit
   
 val copy_chunk : t -> t -> int64 -> int64 -> int -> unit
-val create_ro : string -> t
+  
+  
 val file_exists : string -> bool
+
+val fd_of_chunk : t -> int64 -> int64 -> 
+  (Unix.file_descr * int64 * string option) 
+  
+
+val create_diskfile : string -> Unix.open_flag list -> int -> t
+val create_ro : string -> t
+val create_rw : string -> t
+  
+(* 
+[create_multifile dirname access rights files]: create a directory
+[dirname] containing the files in [files]. [files] is a list of tuples
+[(filename, size)] where [filename] is relative inside the directory
+[dirname] and [size] is the size of the files. 
+  *)
+  
+val create_multifile :     
+  string -> Unix.open_flag list -> int -> (string * int64) list -> t
+
+  

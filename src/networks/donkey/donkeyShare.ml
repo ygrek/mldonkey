@@ -279,7 +279,7 @@ lprintf "Searching %s" fullname; lprint_newline ();
               shared_size = size;
               shared_list = [];
               shared_pos = Int64.zero;
-              shared_fd = Unix32.create fullname [Unix.O_RDONLY] 0o444;
+              shared_fd = Unix32.create_ro fullname;
             } in
           update_shared_num impl;  
           shared_files := pre_shared :: !shared_files;
