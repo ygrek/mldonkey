@@ -33,6 +33,7 @@ open CommonComplexOptions
 open CommonTypes
 open CommonOptions
 open CommonSwarming
+open CommonDownloads.SharedDownload
   
 open DonkeyMftp
 open DonkeyImport
@@ -110,59 +111,7 @@ let clean_client_zones c =
       sort_zones b;
       c.client_zones <- []
   
-      
-let query_zones c b = 
-  let file = client_file c in
-  sort_zones b;
-  match c.client_sock with
-    None -> assert false
-  | Some sock ->
-      
-      set_rtimeout sock !queue_timeout;
-        let module M = DonkeyProtoClient in
-        let module Q = M.QueryBloc in
-      let msg, len =           
-        match c.client_zones with
-            [z] ->
-              {
-                Q.md4 = file.file_md4;
-                Q.start_pos1 = z.zone_begin;
-                Q.end_pos1 = z.zone_end;
-                Q.start_pos2 = Int64.zero;
-                Q.end_pos2 = Int64.zero;
-                Q.start_pos3 = Int64.zero;
-                Q.end_pos3 = Int64.zero;
-              }, Int64.to_int (Int64.sub z.zone_end z.zone_begin)
-          
-          | [z1;z2] ->
-              {
-                Q.md4 = file.file_md4;
-                Q.start_pos1 = z1.zone_begin;
-                Q.end_pos1 = z1.zone_end;
-                Q.start_pos2 = z2.zone_begin;
-                Q.end_pos2 = z2.zone_end;
-                Q.start_pos3 = Int64.zero;
-                Q.end_pos3 = Int64.zero;
-              }, Int64.to_int (Int64.sub z1.zone_end z1.zone_begin)
-          
-          | [z1;z2;z3] ->
-              {
-                Q.md4 = file.file_md4;
-                Q.start_pos1 = z1.zone_begin;
-                Q.end_pos1 = z1.zone_end;
-                Q.start_pos2 = z2.zone_begin;
-                Q.end_pos2 = z2.zone_end;
-                Q.start_pos3 = z3.zone_begin;
-                Q.end_pos3 = z3.zone_end;
-              }, Int64.to_int (Int64.sub z1.zone_end z1.zone_begin)
-          
-          | _ -> assert false
-      in
-      let msg = M.QueryBlocReq msg in
-      set_read_power sock (c.client_power + maxi 0 (file_priority file));
-      CommonUploads.queue_download_request (fun _ ->
-          direct_client_send c msg) len
-      
+            
         
 
         
@@ -977,26 +926,6 @@ let move_file_to_done_files md4 =
       lprintf "move_file_to_done_files NOT FOUND\n";
       raise e 
         *)
-
-let remove_file md4 =
-  try
-    let file = Hashtbl.find files_by_md4 md4 in
-    file_cancel (as_file file.file_file);
-    Unix32.close (file_fd file);
-    (try Sys.remove (file_disk_name file) with e -> 
-          lprintf "Exception %s in remove %s\n"
-            (Printexc2.to_string e) (file_disk_name file);
-          );
-    (try Hashtbl.remove files_by_md4 file.file_md4 with _ -> ());
-    (match file.file_shared with
-        None -> ()
-      | Some s -> CommonShared.shared_unshare (CommonShared.as_shared s));
-    file.file_shared <- None;
-(*    !file_change_hook file; *)
-    current_files := List2.removeq file !current_files;
-  with e -> 
-      lprintf "remove_file NOT FOUND\n";
-      raise e 
     
 let check_file_downloaded file =
   if file.file_absent_chunks = [] then
@@ -1090,32 +1019,183 @@ let check_files_md4s () =
   with _ -> ()
 *)
 
-(* Ask a client to enter its queue *)
-let start_download c = ()
+
+let query_zones c sock file ranges = 
   
-(* Initialize a client just as if we had tried to enter its queue *)
-let restart_download c = ()
+  let module M = DonkeyProtoClient in
+  let module Q = M.QueryBloc in
+  let msg, len =           
+    match ranges with
+      [zone_begin, zone_end, _] ->
+        {
+          Q.md4 = file.file_md4;
+          Q.start_pos1 = zone_begin;
+          Q.end_pos1 = zone_end;
+          Q.start_pos2 = Int64.zero;
+          Q.end_pos2 = Int64.zero;
+          Q.start_pos3 = Int64.zero;
+          Q.end_pos3 = Int64.zero;
+        }, Int64.to_int (Int64.sub zone_end zone_begin)
+    
+    | [ z1_begin, z1_end, _;
+        z2_begin, z2_end, _ 
+        ] ->
+        {
+          Q.md4 = file.file_md4;
+          Q.start_pos1 = z1_begin;
+          Q.end_pos1 = z1_end;
+          Q.start_pos2 = z2_begin;
+          Q.end_pos2 = z2_end;
+          Q.start_pos3 = Int64.zero;
+          Q.end_pos3 = Int64.zero;
+        }, Int64.to_int (Int64.sub z1_end z1_begin)
+    
+    | [ z1_begin, z1_end, _;
+        z2_begin, z2_end, _;
+        z3_begin, z3_end, _ 
+        ] ->
+        {
+          Q.md4 = file.file_md4;
+          Q.start_pos1 = z1_begin;
+          Q.end_pos1 = z1_end;
+          Q.start_pos2 = z2_begin;
+          Q.end_pos2 = z2_end;
+          Q.start_pos3 = z3_begin;
+          Q.end_pos3 = z3_end;
+        }, Int64.to_int (Int64.sub z1_end z1_begin)
+    
+    | _ -> assert false
+  in
+  let msg = M.QueryBlocReq msg in
+  set_read_power sock (c.client_power + maxi 0 (file_priority file));
+  CommonUploads.queue_download_request (fun _ ->
+      direct_client_send c msg) len
   
+
 (* Disconnect from a client *)
 let clean_client_zones c =
   match c.client_block with None -> ()
   | Some b ->
       c.client_block <- None;
 (*      lprintf "client %d: clear block %d\n" (client_num c) b.block_pos; *)
-      List.iter (fun r -> Int64Swarmer.free_range r) c.client_ranges;
+      List.iter (fun (_,_,r) -> Int64Swarmer.free_range r) c.client_ranges;
       c.client_ranges <- [];
-      List.iter (fun (file, bitmap) ->
-          Int64Swarmer.unregister_uploader_bitmap 
-            file.file_partition bitmap) 
-      c.client_file_queue
-      
-(* Find a new block to download *)
-let find_client_block c = ()
-  
-let next_file c = ()
-  
-let set_file_size file size = ()
+      c.client_blocks <- []
 
+(* Ask a client to enter its queue *)
+let rec start_download c = 
+  lprintf "start_download...1\n";
+  if c.client_slot = SlotNotAsked then begin
+      if !verbose_download then begin
+          lprintf "start_download...\n"; 
+        end;
+      match c.client_sock with
+        None -> ()
+      | Some sock ->
+          
+          match c.client_file_queue with
+            [] -> ()
+          | (file, (chunks)) :: _ ->
+              
+              direct_client_send c (
+                let module M = DonkeyProtoClient in
+                let module Q = M.JoinQueue in
+                M.JoinQueueReq Q.t);                        
+              c.client_slot <- SlotAsked;
+    
+    end
+
+(* Initialize a client just as if we had tried to enter its queue *)
+and restart_download c = 
+  lprintf "restart_download...1\n";
+  if !verbose_download || c.client_debug then begin
+      lprintf "restart_download...\n"; 
+    end;
+  match c.client_sock with
+    None -> ()
+  | Some sock ->
+      
+      match c.client_file_queue with
+        [] -> 
+          lprintf "restart_download... no file in queue\n";
+      | (file, bitmap) :: _ ->
+
+(*          lprintf "client %d: restart download\n"  (client_num c) ; *)
+          
+          clean_client_zones c;
+
+(* Get the list of blocks corresponding to the bitmap. Maybe a better way to
+do it ? *)
+          lprintf "bitmap: [%s]\n" bitmap;
+          Int64Swarmer.unregister_uploader_bitmap file.file_partition bitmap;
+          lprintf "bitmap: [%s]\n" bitmap;
+          c.client_blocks <- Int64Swarmer.register_uploader_bitmap 
+            file.file_partition bitmap;          
+          lprintf "restart_download... %d blocks to download\n"
+            (List.length c.client_blocks);
+          
+          set_rtimeout sock !!queued_timeout;
+          set_client_state c (Connected 0)
+
+
+(* Find a new block to download *)
+and find_client_block c = 
+  lprintf "find_client_block...1\n";
+  match c.client_file_queue with
+    [] -> ()
+  | (file, bitmap) :: _ ->
+      
+      try
+        let old_len = List.length c.client_ranges in        
+        let rec iter3 c file bitmap =
+          
+          let len = List.length c.client_ranges in
+          lprintf "find_client_block... currently %d ranges\n" len;
+          if len < 3 then
+            let b = match c.client_block with
+                None ->
+                  lprintf "find_client_block... no current block\n";
+                  let b = Int64Swarmer.get_block c.client_blocks in
+                  lprintf "find_client_block... current block found\n";
+                  c.client_block <- Some b;
+                  b
+              | Some b -> b
+            in
+            try
+              lprintf "find_client_block ... find_range\n";
+              let r = Int64Swarmer.find_range_bitmap b 
+                  (List.map 
+                    (fun (_,_,r) -> r) c.client_ranges)
+                (Int64.of_int (256 * 1024)) in
+              lprintf "find_range_bitmap... range found\n";
+              let (x,y) = Int64Swarmer.range_range r in 
+              c.client_ranges <- c.client_ranges @ [x,y,r];
+              Int64Swarmer.alloc_range r;
+              
+              iter3 c file bitmap
+            with Not_found ->
+                c.client_blocks <- List2.removeq b c.client_blocks;
+                c.client_block <- None;
+                iter3 c file bitmap
+        in
+        iter3 c file bitmap;
+        let len = List.length c.client_ranges in
+        lprintf "find_client_block... now %d ranges\n" len;
+        match c.client_sock with
+          None -> ()
+        | Some sock ->
+            query_zones c sock file c.client_ranges        
+      with Not_found ->
+          lprintf "find_client_block... no block found\n";
+          next_file c
+          
+and next_file c = 
+  lprintf "next_file...1\n";
+  ()
+  
+let set_file_size file size = 
+  lprintf "set_file_size...not implemented\n";
+  ()
   
 let client_file c =
   match c.client_file_queue with

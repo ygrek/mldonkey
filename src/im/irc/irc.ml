@@ -518,7 +518,7 @@ let cut_messages parse_fun reader sock nread =
 
             let s = String.sub b.buf b.pos (pos-b.pos) in
             let used = pos - b.pos + 2 in
-            buf_used sock used;
+            buf_used b used;
             
             if !verbose then begin
                 lprintf "Message: %s" s; 

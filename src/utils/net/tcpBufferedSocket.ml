@@ -185,7 +185,6 @@ let buf_create max =
 
 let error t = t.error
       
-      
 let set_reader t f =
   let old_handler = t.event_handler in
   let handler t ev =
@@ -211,8 +210,7 @@ let set_closer t f =
   t.event_handler <- handler
 
       
-let buf_used t nused =
-  let b = t.rbuf in
+let buf_used b nused =
   if nused = b.len then
     ( b.len <- 0; 
       b.pos <- 0;
@@ -222,6 +220,9 @@ let buf_used t nused =
   else
     (b.len <- b.len - nused; b.pos <- b.pos + nused)
 
+let sock_used t nused = buf_used t.rbuf nused
+
+    
 let set_handler t event handler =
   let old_handler = t.event_handler in
   let handler t ev =
@@ -879,7 +880,7 @@ let value_handler f sock nread =
         begin
           let s = String.sub b.buf (b.pos+5) msg_len in
           let t = Marshal.from_string  s 0 in
-          buf_used sock  (msg_len + 5);
+          buf_used b  (msg_len + 5);
           f t sock;
           ()
         end

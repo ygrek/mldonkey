@@ -31,6 +31,8 @@ open TcpBufferedSocket
 
 open CommonTypes
 open CommonGlobals
+open CommonHosts
+  
 open Options
 open GnutellaTypes
 open GnutellaGlobals
@@ -90,32 +92,23 @@ let rec find_ultrapeer queue =
 (*      lprintf "not ready: %d s\n" (next - last_time ()); *)
       raise Not_found;
     end;
-  ignore (host_queue_take queue);    
+  ignore (H.host_queue_take queue);    
   try
-    h,
-    
-    match h.host_kind with
-      1 -> if not !!g1_enabled then raise Not_found; false
-    | 2 -> if not !!g2_enabled then raise Not_found; true
-    | _ -> 
-        not !!g1_enabled
+    h,true
 with _ -> find_ultrapeer queue
 
       
 let try_connect_ultrapeer connect =
   let (h, with_accept) = 
-    try
-      find_ultrapeer g1_ultrapeers_waiting_queue
-    with _ ->
 (*        lprintf "not in waiting\n"; *)
         try
-          find_ultrapeer g0_ultrapeers_waiting_queue
+          find_ultrapeer g1_ultrapeers_waiting_queue
         with _ ->
 (*                lprintf "not in old\n"; *)
             Gnutella1Redirector.connect ();
             find_ultrapeer g1_peers_waiting_queue
   in
-  connect g1_nservers false false h []
+  connect false h []
   
 let connect_servers connect =
   (*

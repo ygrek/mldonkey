@@ -26,19 +26,22 @@ open BasicSocket
 open CommonSwarming
 open CommonTypes
 open CommonFile
-
+open CommonHosts
+open CommonGlobals
+open CommonDownloads.SharedDownload
+  
 open FasttrackTypes
 open FasttrackOptions
 open FasttrackGlobals
 
 let ultrapeers = define_option fasttrack_ini
-    ["cache"; "ultrapeers"]
+    ["ultrapeers"]
     "Known ultrapeers" (list_option (tuple2_option
       (Ip.addr_option, int_option)))
   []
 
 let peers = define_option fasttrack_ini
-    ["cache"; "peers"]
+    ["peers"]
     "Known Peers" (list_option (tuple2_option (Ip.addr_option, int_option)))
   []
 
@@ -101,46 +104,19 @@ with _ -> ());
   
   end
 
-let value_to_int32pair v =
-  match v with
-    List [v1;v2] | SmallList [v1;v2] ->
-      (value_to_int64 v1, value_to_int64 v2)
-  | _ -> 
-      failwith "Options: Not an int32 pair"
-
-let value_to_file is_done assocs =
+let value_to_file file assocs =
   let get_value name conv = conv (List.assoc name assocs) in
   let get_value_nil name conv = 
     try conv (List.assoc name assocs) with _ -> []
   in
-  
-  let file_name = get_value "file_name" value_to_string in
-  let file_id = 
-    try
-      Md4.of_string (get_value "file_id" value_to_string)
-    with _ -> failwith "Bad file_id"
-  in
   let file_hash = 
     try
-      Md5Ext.of_string (get_value "file_hash" value_to_string)
+      Md5Ext.of_hexa (get_value "file_hash" value_to_string)
     with _ -> failwith "Bad file_hash"
   in
-  let file_size = try
-      value_to_int64 (List.assoc "file_size" assocs) 
-    with _ -> failwith "Bad file size"
-  in
   
-  let file = new_file file_id file_name file_size file_hash in
-  
-  (try 
-      Int64Swarmer.set_present file.file_swarmer 
-        (get_value "file_present_chunks" 
-          (value_to_list value_to_int32pair));
-      add_file_downloaded file.file_file
-        (Int64Swarmer.downloaded file.file_swarmer)      
-    with _ -> ()                
-  );
-  
+  let file = Hashtbl.find files_by_uid file_hash in
+    
   (try
       ignore (get_value "file_sources" (value_to_list (fun v ->
               match v with
@@ -158,16 +134,11 @@ let value_to_file is_done assocs =
     with e -> 
         lprintf "Exception %s while loading source\n"
           (Printexc2.to_string e); 
-  );
-  as_file file.file_file
-  
+  )
+
 let file_to_value file =
   [
-    "file_size", int64_to_value (file_size file);
-    "file_name", string_to_value file.file_name;
-    "file_downloaded", int64_to_value (file_downloaded file);
-    "file_id", string_to_value (Md4.to_string file.file_id);
-    "file_hash", string_to_value (Md5Ext.to_string_case false file.file_hash);
+    "file_hash", string_to_value (Md5Ext.to_hexa_case false file.file_hash);
     "file_sources", 
     list_to_value "Fasttrack Sources" (fun c ->
         match (find_download file c.client_downloads).download_uri with
@@ -177,15 +148,9 @@ let file_to_value file =
         | FileByUrl s -> 
             SmallList [ClientOption.client_to_value c; 
               string_to_value s]
-    ) file.file_clients
-    ;
-    "file_present_chunks", List
-      (List.map (fun (i1,i2) -> 
-          SmallList [int64_to_value i1; int64_to_value i2])
-      (Int64Swarmer.present_chunks file.file_swarmer));
-    
+    ) file.file_clients;
   ]
-  
+
 let old_files = 
   define_option fasttrack_ini ["old_files"]
     "" (list_option (tuple2_option (string_option, int64_option))) []
@@ -202,7 +167,7 @@ let save_config () =
       if h.host_kind <> IndexServer &&
           max h.host_connected h.host_age > last_time () - 3600 then
         o =:= (h.host_addr, h.host_port) :: !!o) 
-  workflow;
+  H.workflow;
   
   let files = !!old_files in
   old_files =:= [];
@@ -212,8 +177,9 @@ let save_config () =
   ) files;
   
   ()
-  
+
 let _ =
-  network.op_network_file_of_option <- value_to_file;
-  file_ops.op_file_to_option <- file_to_value
-  
+  network_file_ops.op_download_of_value <- value_to_file;
+  file_ops.op_download_to_value <- file_to_value;
+  network.op_network_file_of_option <- 
+    CommonDownloads.SharedDownload.value_to_file

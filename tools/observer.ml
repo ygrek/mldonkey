@@ -41,7 +41,9 @@ let update_redirector_info () =
   buf_string16 buf !peers_ocl;
   buf_string16 buf !motd_conf;
   let s = Buffer.contents buf in
-  let len = String.length s - 4 in
+(* the len should be (String.length s - 4), but since the IP address (4 bytes) 
+  is added at the end, it is (String.length s) *)
+  let len = String.length s in
   LittleEndian.str_int s 0 len;
   redirector_info:=  s
   
@@ -182,13 +184,17 @@ let create_observer port =
             let sock = TcpBufferedSocket.create "observer connection" s 
                 (fun sock event ->
                   match event with
-                    BASIC_EVENT (LTIMEOUT | RTIMEOUT) -> close sock "timeout"
+                    BASIC_EVENT (LTIMEOUT | RTIMEOUT) -> 
+                      close sock Closed_for_timeout
                   | _ -> ()
               )
             in
             set_lifetime sock 300.; 
             set_rtimeout sock 30.; 
-            write_string sock !redirector_info;
+            let b = Buffer.create 100 in
+            Buffer.add_string b  !redirector_info;
+            buf_ip b (peer_ip sock);
+            write_string sock (Buffer.contents b)
         | _ -> ()
     ) in
   ()  

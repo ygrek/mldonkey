@@ -30,6 +30,7 @@ open TcpBufferedSocket
 open CommonTypes
 open CommonOptions
 open CommonGlobals
+open CommonHosts
   
 open GnutellaGlobals
 open GnutellaTypes
@@ -570,6 +571,7 @@ let server_msg_to_string pkt =
   str_int s 19 len;
   if !verbose_msg_servers then begin
       lprintf "SENDING :\n";
+      print pkt;
       dump s;
     end;
   s 
@@ -616,26 +618,21 @@ let udp_send ip port msg =
           lprintf "Exception %s in udp_send\n" (Printexc2.to_string e)
 
 let server_send s t =
-  if s.server_gnutella2 then begin
-      lprintf "server_send: try to send a gnutella1 packet to a gnutella2 server\n";
-      raise Exit;
-    end;
   match s.server_sock with
     NoConnection | ConnectionWaiting | ConnectionAborted -> 
       begin
         match s.server_query_key with
           GuessSupport ->
             let h = s.server_host in
-            udp_send h.host_ip h.host_port t
+            udp_send (h.host_addr) h.host_port t
         | _ -> ()
       end
-  | Connection sock ->
+  | Connection _ | CompressedConnection _ ->
       let m = server_msg_to_string t in
-      write_string sock m
-
+      CanBeCompressed.write_string s.server_sock m
+      
 let server_send_new s t =
   server_send s (new_packet t)
-
 
 let gnutella_handler parse f handler sock =
   let b = TcpBufferedSocket.buf sock in
@@ -661,7 +658,7 @@ let gnutella_handler parse f handler sock =
           let pkt_ttl = get_int8 b.buf  (b.pos+17) in
           let pkt_hops = get_int8 b.buf  (b.pos+18) in
           let data = String.sub b.buf (b.pos+23) msg_len in
-          TcpBufferedSocket.buf_used sock (msg_len + 23);
+          TcpBufferedSocket.buf_used b (msg_len + 23);
           let pkt = {
               pkt_uid = pkt_uid;
               pkt_type = pkt_type;

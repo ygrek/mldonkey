@@ -445,7 +445,7 @@ module QueryReply  = struct
     let parse len s = get_replies s 1
     
     let print t = 
-      lprintf "FOUND:\n";
+      lprintf "FOUND %d results:\n" (List.length t);
       List.iter (fun t ->
           lprintf "FILE:\n";
           lprintf "  MD4: %s\n" (Md4.to_string t.f_md4);

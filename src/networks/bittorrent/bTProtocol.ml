@@ -296,12 +296,12 @@ dump (String.sub b.buf b.pos b.len);
         let msg_len = get_int b.buf b.pos in
         if b.len >= 4 + msg_len then
           begin
-              TcpBufferedSocket.buf_used sock 4;
+              TcpBufferedSocket.buf_used b 4;
 (*              lprintf "Message complete\n"; *)
             if msg_len > 0 then 
               let opcode = get_int8 b.buf b.pos in
               let payload = String.sub b.buf (b.pos+1) (msg_len-1) in
-              TcpBufferedSocket.buf_used sock msg_len;
+              TcpBufferedSocket.buf_used b msg_len;
 (*              lprintf "Opcode %d\n" opcode; *)
                 try
                   let p = parse_fun opcode payload in
@@ -334,7 +334,7 @@ let handlers info gconn =
             let peer_id = Sha1.direct_of_string 
                 (String.sub  b.buf (b.pos+29+slen) 20) in
             let proto,pos = get_string8 b.buf b.pos in
-            TcpBufferedSocket.buf_used sock (slen+49);
+            TcpBufferedSocket.buf_used b (slen+49);
             h gconn sock (proto, file_id, peer_id);
             if not (TcpBufferedSocket.closed sock) then 
               iter_read sock 0
@@ -439,6 +439,10 @@ let send_client c msg =
           end;
 (*        dump s; *)
         write_string sock s
+    | CompressedConnection (comp, rbuf, wbuf, sock) -> 
+        lprintf "CompressedConnection not implemented\n";
+        assert false
+        
   with e ->
       lprintf "CLIENT %d: Error %s in send_client\n" (client_num c)
         (Printexc2.to_string e)
@@ -449,7 +453,7 @@ let send_init file c sock =
   let buf = Buffer.create 100 in
   buf_string8 buf  "BitTorrent protocol";
   Buffer.add_string buf zero8;
-  Buffer.add_string buf (Sha1.direct_to_string file.file_id);
+  Buffer.add_string buf (Sha1.direct_to_string file.file_info.file_info_id);
   Buffer.add_string buf (Sha1.direct_to_string c.client_uid);
   let s = Buffer.contents buf in
   write_string sock s

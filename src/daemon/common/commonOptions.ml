@@ -226,7 +226,12 @@ let enable_audiogalaxy = define_option downloads_expert_ini
   
 let enable_gnutella = define_option downloads_ini
     ["enable_gnutella"]
-  "Set to true if you also want mldonkey to run as a gnutella1/2 sub node (experimental)"
+  "Set to true if you also want mldonkey to run as a gnutella1 sub node (experimental)"
+    bool_option false
+
+let enable_gnutella2 = define_option downloads_ini
+    ["enable_gnutella2"]
+  "Set to true if you also want mldonkey to run as a gnutella2 sub node (experimental)"
     bool_option false
   
 let enable_fasttrack = define_option downloads_ini
@@ -719,6 +724,7 @@ let verbosity = define_option downloads_expert_ini ["verbosity"]
   printing information on the corresponding messages:
   mc : debug client messages
   ms : debug server messages
+  connect : debug connections
   net : debug net
   verb : debug other
   loc : debug source research
@@ -745,10 +751,12 @@ let verbose_overnet = ref false
 let verbose_location = ref false
 let verbose_share = ref false
 let verbose_md4 = ref false
+let verbose_connect = ref false
   
 let _ = 
   option_hook verbosity (fun _ ->
-      
+
+      verbose_connect := false;
       verbose_msg_clients := false;
       verbose_msg_servers := false;
       BasicSocket.debug := false;
@@ -778,9 +786,11 @@ let _ =
           | "loc" -> verbose_location := true
           | "share" -> verbose_share := true
           | "md4" -> verbose_md4 := true
+          | "connect" -> verbose_connect := true
               
           | "all" ->
-              
+
+              verbose_connect := true;
               verbose_msg_clients := true;
               verbose_msg_servers := true;
               BasicSocket.debug := true;
@@ -966,3 +976,7 @@ let max_connections_per_second = define_option downloads_ini
   "Maximal number of connections that can be opened per second
 (will supersede max_clients_per_second in the future)"
   int_option 10
+    
+let delete_original = define_option downloads_ini ["delete_original"]
+  "Should MLdonkey delete the file downloaded when splitting has been succesful"
+    bool_option false

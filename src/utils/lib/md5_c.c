@@ -407,44 +407,6 @@ md5_finish(md5_state_t *pms, md5_byte_t digest[16])
 #include "caml/fail.h"
 #include "caml/alloc.h"
 
-value md5_unsafe_string(value digest_v, value string_v, value len_v)
-{
-  unsigned char *digest = String_val(digest_v);
-  unsigned char *string = String_val(string_v);
-  long len = Long_val(len_v);
-  md5_state_t context;
-
-  md5_init (&context);
-  md5_append (&context, string, len);
-  md5_finish (&context, digest);
- 
-  return Val_unit;
-}
-
-#include <stdio.h>
-
-value md5_unsafe_file (value digest_v, value filename_v)
-{
-  char *filename  = String_val(filename_v);
-  unsigned char *digest = String_val(digest_v);
-  FILE *file;
-  md5_state_t context;
-  int len;
-
-  if ((file = fopen (filename, "rb")) == NULL)
-    raise_not_found();
-
-  else {
-    md5_init (&context);
-    while ((len = fread (hash_buffer, 1, HASH_BUFFER_LEN, file)))
-      md5_append (&context, hash_buffer, len);
-    md5_finish (&context, digest);
-
-    fclose (file);
-  }
-  return Val_unit;
-}
-
 /**************************************************************************
 
                       Crypt function

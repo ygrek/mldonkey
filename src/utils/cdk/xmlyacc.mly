@@ -32,7 +32,8 @@ xml:
 childs:
 	| xml childs { let result,context = $2 in (($1)::result,context) }
 	| END id CLOSE { ([],$2) }
-;
+  ;
+  
 attribs:
 	| { [] }
 	| attribs attrib	{ $1@[$2] }

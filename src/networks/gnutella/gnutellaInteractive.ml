@@ -20,6 +20,9 @@
 open Xml
 open Printf2
 open Md4
+open Options
+  
+  
 open CommonSearch
 open CommonGlobals
 open CommonUser
@@ -31,7 +34,9 @@ open CommonTypes
 open CommonComplexOptions
 open CommonFile
 open CommonInteractive
-open Options
+open CommonHosts
+open CommonDownloads.SharedDownload
+
 open GnutellaTypes
 open GnutellaOptions
 open GnutellaGlobals
@@ -158,9 +163,7 @@ that we can reuse queries *)
           search_hosts = Intset.empty;
         } in
       
-      if !!g1_enabled then  Gnutella1.send_query uid words;
-      if !!g2_enabled then  Gnutella2.send_query uid words xml_query;
-      
+      Gnutella1.send_query uid words;
       Hashtbl.add searches_by_uid uid s;
       ());
   network.op_network_close_search <- (fun s ->
@@ -170,7 +173,7 @@ that we can reuse queries *)
       Hashtbl.remove searches_by_uid (find_search s).search_uid  
   );
   network.op_network_connected <- (fun _ ->
-      !g1_connected_servers <> [] || !g2_connected_servers <> [] 
+      !g1_connected_servers <> [] 
   );
   network.op_network_share <- (fun fullname codedname size ->
       if !shared_files_counter < max_shared_files &&
@@ -179,8 +182,14 @@ that we can reuse queries *)
       GnutellaProtocol.new_shared_words := true;
       let sh = CommonUploads.add_shared fullname codedname size in
       CommonUploads.ask_for_uid sh SHA1 (fun sh uid -> 
-            lprintf "Could share urn\n";
-            ())
+              lprintf "Could share urn:sha1:\n";
+              ());
+      CommonUploads.ask_for_uid sh TIGER (fun sh uid -> 
+              lprintf "Could share urn:tiger:\n";
+              ());
+      CommonUploads.ask_for_uid sh BITPRINT (fun sh uid -> 
+              lprintf "Could share urn:bitprint:\n";
+              ());
       end
   )
   
@@ -188,57 +197,28 @@ let _ =
   result_ops.op_result_download <- (fun result _ force ->
       GnutellaServers.download_file result)
 
-let file_num file =
-  file.file_file.impl_file_num
-
 let _ =
-  file_ops.op_file_sources <- (fun file ->
+  file_ops.op_download_sources <- (fun file ->
       lprintf "file_sources\n"; 
       List2.tail_map (fun c ->
           as_client c.client_client
       ) file.file_clients
   );
-  file_ops.op_file_recover <- (fun file ->
+  file_ops.op_download_recover <- (fun file ->
       GnutellaServers.recover_file file;
       List.iter (fun c ->
           GnutellaServers.get_file_from_source c file
       ) file.file_clients
+  );
+  file_ops.op_download_finish <- (fun file ->
+      remove_file file;
+      List.iter (fun s ->
+          Hashtbl.remove searches_by_uid s.search_uid
+      ) file.file_searches
   )
 
   
 module P = GuiTypes
-  
-let _ =
-  file_ops.op_file_cancel <- (fun file ->
-      remove_file file;
-      file_cancel (as_file file.file_file);
-      List.iter (fun s ->
-          Hashtbl.remove searches_by_uid s.search_uid
-      ) file.file_searches
-  );
-  file_ops.op_file_info <- (fun file ->
-      {
-        P.file_name = file.file_name;
-        P.file_num = (file_num file);
-        P.file_network = network.network_num;
-        P.file_names = [file.file_name];
-        P.file_md4 = Md4.null;
-        P.file_size = file_size file;
-        P.file_downloaded = file_downloaded file;
-        P.file_nlocations = 0;
-        P.file_nclients = 0;
-        P.file_state = file_state file;
-        P.file_sources = None;
-        P.file_download_rate = file_download_rate file.file_file;
-        P.file_chunks = "0";
-        P.file_availability = "0";
-        P.file_format = FormatNotComputed 0;
-        P.file_chunks_age = [|0|];
-        P.file_age = file_age file;
-        P.file_last_seen = BasicSocket.last_time ();
-        P.file_priority = file_priority (as_file file.file_file);
-      }    
-  )
   
 let _ =
   server_ops.op_server_info <- (fun s ->
@@ -246,7 +226,7 @@ let _ =
         {
           P.server_num = (server_num s);
           P.server_network = network.network_num;
-          P.server_addr = Ip.addr_of_ip s.server_host.host_ip;
+          P.server_addr = Ip.addr_of_ip s.server_host.host_addr;
           P.server_port = s.server_host.host_port;
           P.server_score = 0;
           P.server_tags = [];
@@ -261,10 +241,7 @@ let _ =
         raise Not_found
   );
   server_ops.op_server_connect <- (fun s ->
-      GnutellaServers.connect_server 
-        (if s.server_gnutella2 then g2_nservers else g1_nservers)
-      s.server_gnutella2 
-      GnutellaServers.retry_and_fake s.server_host []);
+      GnutellaServers.connect_server GnutellaServers.retry_and_fake s.server_host []);
   server_ops.op_server_disconnect <-
 (fun s -> GnutellaServers.disconnect_server s BasicSocket.Closed_by_user);
   server_ops.op_server_to_option <- (fun _ -> raise Not_found)
@@ -295,9 +272,6 @@ let _ =
   network.op_network_connected_servers <- (fun _ ->
       List2.tail_map (fun s -> as_server s.server_server)
       !g1_connected_servers
-        @
-        List2.tail_map (fun s -> as_server s.server_server)
-      !g2_connected_servers
   );
   network.op_network_parse_url <- (fun url ->
       match String2.split (String.escaped url) '|' with
@@ -447,26 +421,14 @@ open GuiTypes
 let commands = [
     "gstats", Arg_none (fun o ->
         let buf = o.conn_buf in
-        Printf.bprintf buf "g0_ultrapeers_waiting_queue: %d\n" 
-          (Queue.length g0_ultrapeers_waiting_queue);
         Printf.bprintf buf "g1_ultrapeers_waiting_queue: %d\n" 
           (Queue.length g1_ultrapeers_waiting_queue);
-        Printf.bprintf buf "g2_ultrapeers_waiting_queue: %d\n" 
-          (Queue.length g2_ultrapeers_waiting_queue);
-        Printf.bprintf buf "g0_peers_waiting_queue: %d\n" 
-          (Queue.length g0_peers_waiting_queue);
         Printf.bprintf buf "g1_peers_waiting_queue: %d\n" 
           (Queue.length g1_peers_waiting_queue);
-        Printf.bprintf buf "g2_peers_waiting_queue: %d\n" 
-          (Queue.length g2_peers_waiting_queue);
         Printf.bprintf buf "g1_active_udp_queue: %d\n" 
           (Queue.length g1_active_udp_queue);
-        Printf.bprintf buf "g2_active_udp_queue: %d\n" 
-          (Queue.length g2_active_udp_queue);
         Printf.bprintf buf "g1_waiting_udp_queue: %d\n" 
           (Queue.length g1_waiting_udp_queue);
-        Printf.bprintf buf "g2_waiting_udp_queue: %d\n" 
-          (Queue.length g2_waiting_udp_queue);
         ""
     ), " :\t\t\t\tprint stats on Gnutella network";
     

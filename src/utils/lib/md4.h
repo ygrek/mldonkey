@@ -66,4 +66,8 @@ void MD4Update PROTO_LIST
   ((MD4_CTX *, unsigned char *, unsigned int));
 void MD4Final PROTO_LIST ((unsigned char [16], MD4_CTX *));
 
+#define md4_init(contextp) Md4Init(contextp)
+#define md4_append(contextp,buffer,len) MD4Update(contextp,buffer,len)
+#define md4_finish(contextp,digest) MD4Final(digest, contextp)
+
 #endif

@@ -30,6 +30,7 @@ NO_STATIC_LIBS_opt=
 LIBS_byte=-custom unix.cma str.cma
 LIBS_opt= unix.cmxa str.cmxa
 
+DUMP=ethereal.ml
 
 #######################################################################
 
@@ -55,10 +56,12 @@ SRC_GUI2=src/gtk/gui2
 
 SRC_AUDIOGALAXY=src/networks/audio_galaxy
 SRC_DONKEY=src/networks/donkey
+SRC_OPEN_DONKEY=src/networks/donkey_devel
 SRC_BITTORRENT=src/networks/bittorrent
 SRC_CYMES=src/networks/cymes
 SRC_OPENNAP=src/networks/opennap
 SRC_GNUTELLA=src/networks/gnutella
+SRC_GNUTELLA2=src/networks/gnutella2
 SRC_OPENFT=src/networks/openFT
 SRC_FASTTRACK=src/networks/fasttrack
 SRC_SOULSEEK=src/networks/soulseek
@@ -138,7 +141,7 @@ LIB_SRCS=   \
   $(LIB)/indexer.ml $(LIB)/indexer1.ml $(LIB)/indexer2.ml $(LIB)/host.ml  \
   $(LIB)/misc.ml $(LIB)/unix32.ml  $(LIB)/md4.ml \
   $(LIB)/avifile.ml $(LIB)/http_lexer.mll $(LIB)/url.ml \
-  $(LIB)/date.ml \
+  $(LIB)/date.ml $(LIB)/fst_hash.c \
   $(LIB)/md4_comp.c $(LIB)/md4_c.c \
   $(LIB)/gettext.ml $(LIB)/md5_c.c $(LIB)/sha1_c.c \
   $(LIB)/tiger.c \
@@ -152,7 +155,7 @@ NET_SRCS = \
   $(NET)/tcpServerSocket.ml \
   $(NET)/udpSocket.ml $(NET)/http_server.ml $(NET)/http_client.ml \
   $(NET)/multicast.ml $(NET)/multicast_c.c  \
-  $(NET)/terminal.ml
+  $(NET)/terminal.ml  $(NET)/cobs.ml
 
 #  $(NET)/tcpClientSocket.ml 
 
@@ -188,10 +191,12 @@ COMMON_CLIENT_SRCS= \
   $(COMMON)/commonComplexOptions.ml \
   $(COMMON)/commonSearch.ml \
   $(COMMON)/commonMultimedia.ml \
-  $(COMMON)/commonInteractive.ml \
-  $(COMMON)/commonDownloads.ml \
+  $(COMMON)/commonSwarming.ml \
   $(COMMON)/commonUploads.ml \
-  $(COMMON)/commonSwarming.ml
+  $(COMMON)/commonDownloads.ml \
+  $(COMMON)/commonSources.ml \
+  $(COMMON)/commonHosts.ml \
+  $(COMMON)/commonInteractive.ml 
 
 all: Makefile config/Makefile.config $(TARGET_TYPE)
 
@@ -262,10 +267,46 @@ DONKEY_SRCS= \
   $(SRC_DONKEY)/donkeyInteractive.ml \
   $(SRC_DONKEY)/donkeyMain.ml
 
+OPEN_DONKEY_SRCS= \
+  \
+  $(SRC_OPEN_DONKEY)/donkeyTypes.ml \
+  $(SRC_OPEN_DONKEY)/donkeyOptions.ml \
+  $(SRC_OPEN_DONKEY)/donkeyMftp.ml $(SRC_OPEN_DONKEY)/donkeyImport.ml \
+  $(SRC_OPEN_DONKEY)/donkeyOpenProtocol.ml \
+  $(SRC_OPEN_DONKEY)/donkeyProtoClient.ml \
+  $(SRC_OPEN_DONKEY)/donkeyProtoServer.ml  \
+  $(SRC_OPEN_DONKEY)/donkeyProtoUdp.ml  \
+  \
+  $(SRC_OPEN_DONKEY)/donkeyGlobals.ml \
+  $(SRC_OPEN_DONKEY)/donkeyProtoCom.ml  \
+  $(SRC_OPEN_DONKEY)/donkeySourcesMisc.ml \
+  $(SRC_OPEN_DONKEY)/donkeySources1.ml  \
+  $(SRC_OPEN_DONKEY)/donkeySources2.ml  \
+  $(SRC_OPEN_DONKEY)/donkeySources3.ml  \
+  $(SRC_OPEN_DONKEY)/donkeySources.ml  \
+ \
+  $(SRC_OPEN_DONKEY)/donkeyComplexOptions.ml \
+  $(SRC_OPEN_DONKEY)/donkeySupernode.ml \
+  $(SRC_OPEN_DONKEY)/donkeyIndexer.ml \
+  $(SRC_OPEN_DONKEY)/donkeyShare.ml \
+  $(SRC_OPEN_DONKEY)/donkeyReliability.ml \
+  $(SRC_OPEN_DONKEY)/donkeyChunks.ml \
+  $(SRC_OPEN_DONKEY)/donkeyOneFile.ml \
+  $(SRC_OPEN_DONKEY)/donkeyStats.ml \
+  $(SRC_OPEN_DONKEY)/donkeyClient.ml \
+  $(SRC_OPEN_DONKEY)/donkeyProtoOvernet.ml \
+  \
+  $(SRC_OPEN_DONKEY)/donkeyOvernet.ml \
+  $(SRC_OPEN_DONKEY)/donkeyFiles.ml  \
+  $(SRC_OPEN_DONKEY)/donkeyServers.ml \
+  $(SRC_OPEN_DONKEY)/donkeySearch.ml \
+  $(SRC_OPEN_DONKEY)/donkeyInteractive.ml \
+  $(SRC_OPEN_DONKEY)/donkeyMain.ml
+
 
 OBSERVER_SRCS = \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS) \
-  $(CHAT_SRCS) $(COMMON_SRCS) $(COMMON_CLIENT_SRCS) $(DONKEY_SRCS) \
+  $(CHAT_SRCS) $(COMMON_SRCS) $(COMMON_CLIENT_SRCS) $(OPEN_DONKEY_SRCS) \
   tools/observer.ml
 
 ED2K_HASH_SRCS = \
@@ -304,26 +345,38 @@ OPENNAP_SRCS= \
  $(SRC_OPENNAP)/opennapMain.ml 
 
 GNUTELLA_SRCS= \
-  $(SRC_GNUTELLA)/cobs.ml \
   $(SRC_GNUTELLA)/gnutellaTypes.ml \
   $(SRC_GNUTELLA)/gnutellaOptions.ml \
   $(SRC_GNUTELLA)/gnutellaGlobals.ml \
   $(SRC_GNUTELLA)/gnutellaComplexOptions.ml \
   $(SRC_GNUTELLA)/gnutellaProtocol.ml \
   $(SRC_GNUTELLA)/gnutella1Proto.ml \
-  $(SRC_GNUTELLA)/gnutella2Proto.ml \
   $(SRC_GNUTELLA)/gnutellaClients.ml \
   $(SRC_GNUTELLA)/gnutella1Handler.ml \
-  $(SRC_GNUTELLA)/gnutella2Handler.ml \
   $(SRC_GNUTELLA)/gnutella1Redirector.ml \
-  $(SRC_GNUTELLA)/gnutella2Redirector.ml \
   $(SRC_GNUTELLA)/gnutella1.ml \
-  $(SRC_GNUTELLA)/gnutella2.ml \
   $(SRC_GNUTELLA)/gnutellaServers.ml \
   $(SRC_GNUTELLA)/gnutellaInteractive.ml \
   $(SRC_GNUTELLA)/gnutellaMain.ml
 
 #  $(SRC_GNUTELLA)/gnutella.ml 
+
+GNUTELLA2_SRCS= \
+  $(SRC_GNUTELLA2)/gnutella2Types.ml \
+  $(SRC_GNUTELLA2)/gnutella2Options.ml \
+  $(SRC_GNUTELLA2)/gnutella2Globals.ml \
+  $(SRC_GNUTELLA2)/gnutella2ComplexOptions.ml \
+  $(SRC_GNUTELLA2)/gnutella2Protocol.ml \
+  $(SRC_GNUTELLA2)/gnutella2Proto.ml \
+  $(SRC_GNUTELLA2)/gnutella2Clients.ml \
+  $(SRC_GNUTELLA2)/gnutella2Handler.ml \
+  $(SRC_GNUTELLA2)/gnutella2Redirector.ml \
+  $(SRC_GNUTELLA2)/gnutella2.ml \
+  $(SRC_GNUTELLA2)/gnutella2Servers.ml \
+  $(SRC_GNUTELLA2)/gnutella2Interactive.ml \
+  $(SRC_GNUTELLA2)/gnutella2Main.ml
+
+#  $(SRC_GNUTELLA2)/gnutella.ml 
 
 BITTORRENT_SRCS= \
   $(SRC_BITTORRENT)/bencode.ml \
@@ -459,27 +512,27 @@ install:: opt
              done; \
          fi
 	if test -e mlgui; then \
-             rm -f $(prefix)/bin/mlgui; cp -f mlnet $(prefix)/bin/mlgui; \
+             rm -f $(prefix)/bin/mlgui; cp -f mlgui $(prefix)/bin/mlgui; \
              rm -f $(prefix)/bin/mldonkey_gui; cp -f mlgui $(prefix)/bin/mldonkey_gui; \
          fi
 	if test -e mlnet+gui; then \
-             rm -f $(prefix)/bin/mlnet+gui; cp -f mlnet $(prefix)/bin/mlnet+gui; \
+             rm -f $(prefix)/bin/mlnet+gui; cp -f mlnet+gui $(prefix)/bin/mlnet+gui; \
              for link in mlslsk+gui mldonkey+gui mlgnut+gui mldc+gui mlbt+gui; do \
                rm -f $(prefix)/bin/$$link; ln -s mlnet+gui $(prefix)/bin/$$link; \
              done; \
          fi
 	if test -e mlim; then \
-             rm -f $(prefix)/bin/mlim; cp -f mlnet $(prefix)/bin/mlim; \
+             rm -f $(prefix)/bin/mlim; cp -f mlim $(prefix)/bin/mlim; \
          fi
 
 
 ifeq ("$(COMPILE_GUI)" , "yes")
 
-SUBDIRS += $(SRC_GUI) $(SRC_GUI2) $(CONFIGWIN) $(OKEY) $(GPATTERN) icons/$(ICONS_CHOICE) +lablgtk
+SUBDIRS += $(SRC_GUI) $(SRC_GUI2) $(CONFIGWIN) $(OKEY) $(GPATTERN) icons/$(ICONS_CHOICE) +$(LABLGTK)
 
-GTK_LIBS_byte=-I +lablgtk $(LABLGL_CMA) lablgtk.cma
-GTK_LIBS_opt=-I +lablgtk  $(LABLGL_CMXA) lablgtk.cmxa
-GTK_STATIC_LIBS_opt=-I +lablgtk lablgtk.cmxa
+GTK_LIBS_byte=-I +$(LABLGTK) $(LABLGL_CMA) lablgtk.cma
+GTK_LIBS_opt=-I +$(LABLGTK)  $(LABLGL_CMXA) lablgtk.cmxa
+GTK_STATIC_LIBS_opt=-I +$(LABLGTK) lablgtk.cmxa
 
 
 CONFIGWIN_SRCS= \
@@ -641,6 +694,9 @@ runtop: top
 TOP_CMXA=cdk.cmxa common.cmxa client.cmxa core.cmxa
 TOP_SRCS= 
 
+DUMP_CMXA=cdk.cmxa common.cmxa client.cmxa core.cmxa
+DUMP_SRCS=$(DUMP)
+
 
 
 
@@ -789,6 +845,53 @@ mlgnut+gui_SRCS= $(MAIN_SRCS)
 
 
 
+ifeq ("$(GNUTELLA2)" , "yes")
+SUBDIRS += src/networks/gnutella2
+
+CORE_SRCS += $(GNUTELLA2_SRCS)
+
+## TARGETS += mlgnut2$(EXE)
+
+ifeq ("$(COMPILE_GUI)" , "yes")
+
+## BUNDLE_TARGETS += mlgnut2+gui$(EXE)
+
+endif
+endif
+
+
+mlgnut2_CMXA= cdk.cmxa common.cmxa client.cmxa mlgnut2.cmxa driver.cmxa
+mlgnut2_SRCS= $(MAIN_SRCS)
+
+
+GNUTELLA2_ZOG := $(filter %.zog, $(GNUTELLA2_SRCS)) 
+GNUTELLA2_MLL := $(filter %.mll, $(GNUTELLA2_SRCS)) 
+GNUTELLA2_MLY := $(filter %.mly, $(GNUTELLA2_SRCS)) 
+GNUTELLA2_ML4 := $(filter %.ml4, $(GNUTELLA2_SRCS)) 
+GNUTELLA2_ML := $(filter %.ml %.mll %.zog %.mly %.ml4, $(GNUTELLA2_SRCS)) 
+GNUTELLA2_C := $(filter %.c, $(GNUTELLA2_SRCS)) 
+GNUTELLA2_CMOS=$(foreach file, $(GNUTELLA2_ML),   $(basename $(file)).cmo) 
+GNUTELLA2_CMXS=$(foreach file, $(GNUTELLA2_ML),   $(basename $(file)).cmx) 
+GNUTELLA2_OBJS=$(foreach file, $(GNUTELLA2_C),   $(basename $(file)).o)    
+
+TMPSOURCES += $(GNUTELLA2_ML4:.ml4=.ml) $(GNUTELLA2_MLL:.mll=.ml) $(GNUTELLA2_MLY:.mly=.ml) $(GNUTELLA2_MLY:.mly=.mli) $(GNUTELLA2_ZOG:.zog=.ml) 
+ 
+build/mlgnut2.cmxa: $(GNUTELLA2_OBJS) $(GNUTELLA2_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(GNUTELLA2_OBJS) $(LIBS_flags) $(_LIBS_flags) $(GNUTELLA2_CMXS) 
+ 
+build/mlgnut2.cma: $(GNUTELLA2_OBJS) $(GNUTELLA2_CMOS) 
+	$(OCAMLC) -a -o $@  $(GNUTELLA2_OBJS) $(LIBS_flags) $(_LIBS_flags) $(GNUTELLA2_CMOS) 
+ 
+
+
+mlgnut2+gui_CMXA=cdk.cmxa \
+   common.cmxa client.cmxa mlgnut2.cmxa driver.cmxa \
+   gmisc.cmxa guibase.cmxa gui.cmxa
+mlgnut2+gui_SRCS= $(MAIN_SRCS)
+
+
+
+
 ifeq ("$(FASTTRACK)" , "yes")
 SUBDIRS += src/networks/fasttrack
 
@@ -882,6 +985,56 @@ mlbt+gui_SRCS= $(MAIN_SRCS)
 
 
 
+ifeq ("$(OPEN_DONKEY)", "yes")
+  
+
+ifeq ("$(OPEN_DONKEY)" , "yes")
+SUBDIRS += src/networks/donkey_devel
+
+CORE_SRCS += $(OPEN_DONKEY_SRCS)
+
+## TARGETS += mldonkey$(EXE)
+
+ifeq ("$(COMPILE_GUI)" , "yes")
+
+## BUNDLE_TARGETS += mldonkey+gui$(EXE)
+
+endif
+endif
+
+
+mldonkey_CMXA= cdk.cmxa common.cmxa client.cmxa mldonkey.cmxa driver.cmxa
+mldonkey_SRCS= $(MAIN_SRCS)
+
+
+OPEN_DONKEY_ZOG := $(filter %.zog, $(OPEN_DONKEY_SRCS)) 
+OPEN_DONKEY_MLL := $(filter %.mll, $(OPEN_DONKEY_SRCS)) 
+OPEN_DONKEY_MLY := $(filter %.mly, $(OPEN_DONKEY_SRCS)) 
+OPEN_DONKEY_ML4 := $(filter %.ml4, $(OPEN_DONKEY_SRCS)) 
+OPEN_DONKEY_ML := $(filter %.ml %.mll %.zog %.mly %.ml4, $(OPEN_DONKEY_SRCS)) 
+OPEN_DONKEY_C := $(filter %.c, $(OPEN_DONKEY_SRCS)) 
+OPEN_DONKEY_CMOS=$(foreach file, $(OPEN_DONKEY_ML),   $(basename $(file)).cmo) 
+OPEN_DONKEY_CMXS=$(foreach file, $(OPEN_DONKEY_ML),   $(basename $(file)).cmx) 
+OPEN_DONKEY_OBJS=$(foreach file, $(OPEN_DONKEY_C),   $(basename $(file)).o)    
+
+TMPSOURCES += $(OPEN_DONKEY_ML4:.ml4=.ml) $(OPEN_DONKEY_MLL:.mll=.ml) $(OPEN_DONKEY_MLY:.mly=.ml) $(OPEN_DONKEY_MLY:.mly=.mli) $(OPEN_DONKEY_ZOG:.zog=.ml) 
+ 
+build/mldonkey.cmxa: $(OPEN_DONKEY_OBJS) $(OPEN_DONKEY_CMXS) 
+	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $@  $(OPEN_DONKEY_OBJS) $(LIBS_flags) $(_LIBS_flags) $(OPEN_DONKEY_CMXS) 
+ 
+build/mldonkey.cma: $(OPEN_DONKEY_OBJS) $(OPEN_DONKEY_CMOS) 
+	$(OCAMLC) -a -o $@  $(OPEN_DONKEY_OBJS) $(LIBS_flags) $(_LIBS_flags) $(OPEN_DONKEY_CMOS) 
+ 
+
+
+mldonkey+gui_CMXA=cdk.cmxa \
+   common.cmxa client.cmxa mldonkey.cmxa driver.cmxa \
+   gmisc.cmxa guibase.cmxa gui.cmxa
+mldonkey+gui_SRCS= $(MAIN_SRCS)
+
+
+else
+  
 
 ifeq ("$(DONKEY)" , "yes")
 SUBDIRS += src/networks/donkey
@@ -927,6 +1080,8 @@ mldonkey+gui_CMXA=cdk.cmxa \
    gmisc.cmxa guibase.cmxa gui.cmxa
 mldonkey+gui_SRCS= $(MAIN_SRCS)
 
+
+endif
 
 
 
@@ -1735,13 +1890,13 @@ ED2K_HASH_CMAS=$(foreach file, $(ED2K_HASH_CMXA),   build/$(basename $(file)).cm
 
 TMPSOURCES += $(ED2K_HASH_ML4:.ml4=.ml) $(ED2K_HASH_MLL:.mll=.ml) $(ED2K_HASH_MLY:.mly=.ml) $(ED2K_HASH_MLY:.mly=.mli) $(ED2K_HASH_ZOG:.zog=.ml) 
  
-ed2k_hash: $(ED2K_HASH_OBJS) $(ED2K_HASH_CMXS) $(ED2K_HASH_CMXAS)
+hash_file: $(ED2K_HASH_OBJS) $(ED2K_HASH_CMXS) $(ED2K_HASH_CMXAS)
 	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(ED2K_HASH_OBJS) $(LIBS_opt) $(LIBS_flags) $(_LIBS_opt) $(_LIBS_flags) -I build $(ED2K_HASH_CMXAS) $(ED2K_HASH_CMXS) 
  
-ed2k_hash.byte: $(ED2K_HASH_OBJS) $(ED2K_HASH_CMOS)  $(ED2K_HASH_CMAS)
+hash_file.byte: $(ED2K_HASH_OBJS) $(ED2K_HASH_CMOS)  $(ED2K_HASH_CMAS)
 	$(OCAMLC) -linkall -o $@  $(ED2K_HASH_OBJS) $(LIBS_byte) $(LIBS_flags)  $(_LIBS_byte) $(_LIBS_flags) -I build $(ED2K_HASH_CMAS) $(ED2K_HASH_CMOS) 
  
-ed2k_hash.static:  $(ED2K_HASH_OBJS) $(ED2K_HASH_CMXS)  $(ED2K_HASH_CMXAS)
+hash_file.static:  $(ED2K_HASH_OBJS) $(ED2K_HASH_CMXS)  $(ED2K_HASH_CMXAS)
 	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(ED2K_HASH_OBJS) $(LIBS_opt) $(LIBS_flags)  $(_LIBS_flags)  $(_STATIC_LIBS_opt) -I build $(ED2K_HASH_CMXAS) $(ED2K_HASH_CMXS)
 
 
@@ -2203,7 +2358,7 @@ rpm: sourcedist
 	$(CAMLP4) pa_o.cmo pa_op.cmo pr_o.cmo -impl $< > $@
 
 .c.o :
-	$(OCAMLC) -ccopt "-I $(OCAML_SRC)/byterun -o $*.o" -ccopt "$(CFLAGS)" -c $<
+	$(OCAMLC) -ccopt "-Wall -I $(OCAML_SRC)/byterun -o $*.o" -ccopt "$(CFLAGS)" -c $<
 
 .cc.o :
 	$(CXX) $(CXX_FLAGS) -o $*.o $(CFLAGS) -c $<

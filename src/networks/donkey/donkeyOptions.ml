@@ -69,6 +69,9 @@ let use_file_history = define_option donkey_expert_ini ["use_file_history"] "kee
 let reliable_sources = define_option donkey_ini ["reliable_sources"] 
   "Should mldonkey try to detect sources responsible for corruption and ban them" bool_option false
   
+let ban_identity_thieves = define_option donkey_ini ["ban_identity_thieves"] 
+  "Should mldonkey try to detect sources masquerading as others and ban them" bool_option false
+  
 let save_file_history = define_option donkey_expert_ini ["save_file_history"] "save the file history in a file and load it at startup" bool_option true
 
   

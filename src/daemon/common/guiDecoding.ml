@@ -42,7 +42,7 @@ let gui_cut_messages f sock nread =
       if b.len >= 4 + msg_len then
         begin
           let s = String.sub b.buf (b.pos+4) msg_len in
-          buf_used sock (msg_len + 4);
+          buf_used b (msg_len + 4);
           let opcode = get_int16 s 0 in
           (f opcode s : unit)
         end
@@ -358,6 +358,7 @@ assert (priority = file_info.file_priority);
     file_name = name;
     file_last_seen = BasicSocket.last_time () - last_seen;
     file_priority = priority;
+    file_uids = [];
   }, pos
 
 let get_host_state proto s pos =

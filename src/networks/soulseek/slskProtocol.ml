@@ -981,7 +981,7 @@ let soulseek_handler parse f sock nread =
           let opcode = get_int b.buf (b.pos+4) in
           let data = String.sub b.buf (b.pos+8) (msg_len-4) in
 (*          LittleEndian.dump (String.sub b.buf b.pos (msg_len+4)); *)
-          TcpBufferedSocket.buf_used sock (msg_len + 4);
+          TcpBufferedSocket.buf_used b (msg_len + 4);
           let t = parse opcode data in
 (*          print t; *)
           f t sock

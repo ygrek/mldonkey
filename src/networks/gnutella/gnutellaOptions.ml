@@ -30,34 +30,16 @@ let g1_max_ultrapeers = define_option gnutella_ini
     ["g1_max_ultrapeers"]
   "Maximal number of ultrapeers connected on Gnutella1"
     int_option 5
-  
-let g2_max_ultrapeers = define_option gnutella_ini
-    [ "g2_max_ultrapeers"]
-  "Maximal number of ultrapeers connected on Gnutella2"
-    int_option 5
 
 let _ = 
   option_hook g1_max_ultrapeers 
     (fun _ ->
-      if !!g1_max_ultrapeers > 10 then g1_max_ultrapeers =:= 10);
-  option_hook g2_max_ultrapeers 
-    (fun _ ->
-      if !!g2_max_ultrapeers > 10 then g2_max_ultrapeers =:= 10)
+      if !!g1_max_ultrapeers > 10 then g1_max_ultrapeers =:= 10)
   
 let client_port = define_option gnutella_ini ["client_port"]
     "The port to bind the client to"
     int_option 6346
   
-let g1_enabled = define_option gnutella_ini
-    ["gnutella1_enabled"]
-    "Do you want to support Gnutella1 protocol"
-    bool_option true
-  
-let g2_enabled = define_option gnutella_ini
-    ["gnutella2_enabled"]
-    "Do you want to support Gnutella2 protocol (not yet supported)"
-    bool_option true
-
 let gnutella1_hostfiles = define_option gnutella_ini 
     ["gnutella1"; "hostfiles"]
   "A list of GWCache urls"
@@ -90,19 +72,6 @@ let g1_redirectors = define_option gnutella_ini
     "router4.gnutella.com";
   ]
 (* (Ip.of_string "64.61.25.171")   *)
-
-let g2_redirectors = define_option gnutella_ini
-    ["gnutella2"; "redirectors"]
-    "The URLs where hosts on gnutella2 can be downloaded"
-    (list_option string_option)
-  [
-   "http://cache.shareaza.com/cache.aspx?get=1&hostfile=1&net=gnutella2" 
-  ]
-
-let gnutella2_cache = define_option gnutella_ini ["gnutella2_cache"]
-    "The known gnutella2 hosts"
-    (list_option (tuple2_option (Ip.option, int_option)))
-  []
   
   
 let commit_in_subdir = define_option gnutella_ini ["commit_in_subdir"]
@@ -172,9 +141,6 @@ let gui_gnutella_options_panel =
     "Commit Downloads In Incoming Subdir", shortname commit_in_subdir, "T";
     "Max Available Slots", shortname max_available_slots, "T";
     
-    "Gnutella: Enabled", shortname g1_enabled, "B";
     "          Max Connected Ultrapeers", shortname g1_max_ultrapeers, "T"; 
-    "Gnutella2: Enabled", shortname g2_enabled, "B";
-    "           Max Connected Ultrapeers", shortname g2_max_ultrapeers, "T"; 
   ]
   

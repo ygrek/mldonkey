@@ -63,24 +63,24 @@ let supports_eep cb =
   | _ -> false
 
 let ban_client c sock msg = 
-  let module M = DonkeyProtoClient in
-  
-  if !verbose then begin
-      lprintf "client %s(%s) %s, it has been banned" msg
-        c.client_name (brand_to_string c.client_brand);
-      lprint_newline ();
-    end;
-  
-  let ip = peer_ip sock in
-  count_banned c;
-  c.client_banned <- true;
-  Hashtbl.add banned_ips ip (last_time ());
-                
-  if !!send_warning_messages then
-    direct_client_send c ( M.SayReq  (
-        Printf.sprintf 
-        "[AUTOMATED ERROR] Your client %s, it has been banned" msg))
-  
+    let ip = peer_ip sock in
+  if not (Hashtbl.mem banned_ips ip) then
+    let module M = DonkeyProtoClient in
+    
+    if !verbose then begin
+        lprintf "client %s(%s) %s, it has been banned\n" msg
+          c.client_name (brand_to_string c.client_brand);
+      end;
+    
+    count_banned c;
+    c.client_banned <- true;
+    Hashtbl.add banned_ips ip (last_time ());
+    
+    if !!send_warning_messages then
+      direct_client_send c ( M.SayReq  (
+          Printf.sprintf 
+            "[AUTOMATED ERROR] Your client %s has been banned" msg))
+      
 let corruption_warning c =
   if !!send_warning_messages then
     let module M = DonkeyProtoClient in
@@ -630,7 +630,10 @@ let client_to_client challenge for_files c t sock =
         t.CR.md4 = overnet_md4 then
         TcpBufferedSocket.close sock (Closed_for_error "Connected to myself");
 
-
+      if not (register_client_hash (peer_ip sock) t.CR.md4) then
+	if !!ban_identity_thieves then
+          ban_client c sock "is probably using stolen client hashes";
+      
 (* Test if the client is already connected *)
       if Hashtbl.mem connected_clients t.CR.md4 then begin
 (*          lprintf "Client is already connected"; lprint_newline (); *)
@@ -1648,6 +1651,20 @@ let read_first_message overnet challenge m sock =
       connection_try c.client_connection_control;
       connection_ok c.client_connection_control;
       c.client_tags <- t.CR.tags;
+      
+      if not (register_client_hash (peer_ip sock) t.CR.md4) &&
+        !!ban_identity_thieves then
+        ban_client c sock "is probably using stolen client hashes";
+      
+      List.iter (fun ban ->
+          if String2.subcontains c.client_name ban then begin
+              direct_client_send c (
+                M.SayReq "[AUTOMATED WARNING] Sorry, you have not understood P2P");
+              set_client_state c BlackListedHost;
+              lprintf "Client[%d]: banned (%s)\n" (client_num c) ban;
+              raise Not_found
+            end)
+      ["Mison"; "LSD"; "Sivka"; "MorTillo"; "eMule Plus"; "sivka"];
       
       if  !!reliable_sources && 
         ip_reliability (peer_ip sock) = Reliability_suspicious 0 then begin

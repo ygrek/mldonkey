@@ -1,40 +1,86 @@
 TODO list for client
 ====================
 
-ADD urn:sha1:<HASH> and urn:tree:tiger/:<HASH> to QRT
+Implementation of CommonUploads and CommonDownloads:
+ * Bugs:
+    1) Availability is not displayed anymore
+    4) add_uid 1 ed2k://
+    2) Options to choose the programs to copy and moves files
+       (internal, external, sparse, or background script)
+    3) Problems of correctly rescheduling file downloads when pausing/resuming
+        files
+    5) Correctly updates chunks being downloaded
+ 
+ * Schedule:
+    1) Test Upload in edonkey
+    2) Correctly handle tiger hashes
+    3) Improve Gnutella2 support
+      3.1) Extract a new trace from the current shareaza client
+      3.2) Better parse the download HTTP replies
+      3.3) Put urn:sha1: in QRT, and publish it
+    5) Avoid recomputation of hashes when a file is commmited
 
-Fasttrack:
-==========
- * Add more headers to GET requests
- * Fifo to reconnect to clients PER FILE, limited by the number of currently
-    downloading clients
+Add a field in the network info structure to describe the network:
+ * file-sharing ?
+   * searches ?
+ * rooms ?
+ * user to user chat ?
+ * browse user ?
 
- * Problem with files containing corruption. Clearly, there is a bug
-    somewhere, either in mldonkey, or in kazaa (bad implementation of
-    pipelining ?). Or buffer_writes ?
-  
-Corruption ?? What to do to avoid it ? Maybe enter a special mode where 
-every byte must be downloaded from different clients to be sure ? This
-could be done by keeping the chunk in memory (9 MB is not big :) ), or just
-the diff (ie we have downloaded it once, it is corrupted, so we have:
- * ranges which are similar to those written on disk
- * ranges that are different
+The observer should provide the IP address of client to the client.
 
-What is this UDP message for :
-EmuleReaskFilePingUdpReq 40351E4E097708BCBDEB336CDDAEE092
+Gnutella2: ping by UDP all the nodes that are supposed to be able to know
+us so that the router knows to route their packets to us.
 
-Associate kinds with networks, and only download useful urls
+Marketing :)
+------------
+* Register MLdonkey on icm.linux.tucows.com
+* In general, target Linux/Mac OS X sites, not Windows ones
+* Ask Linux distribution vendors, such as Mandrake why they don't provide 
+   MLdonkey in their distribution.
 
+* Why do files appear twice in shared_files_new.ini ?
+* Why are files in temp/ also shared, even FT- ones ?
+* Take care of what happens when files with length 0 are entered
 
+- Limit to 2/3 the number of servers/supernodes per network
+- urldecode on sig2dat
+- nu also on downloads
+
+./configure: don't ask questions, just don't compile if not possible !
+
+- bind correctly in all plugins
+
+- put ed2k_hash as default target
+
+CommonDownloads
+---------------
+ * Recover/Send UIDs from Shareaza clients headers
+ * Check new file UIDS every minute
+ * Create a 'Display' partition, that is used to nicely display the downloaded
+     ranges.
+
+CommonSwarming inside Edonkey marked in sources by [BROKEN]
+-----------------------------
+ * Share files using CommonUploads, in particular, share incomplete files
+    Currently, sharing is COMPLETELY disabled
+ * Allow recover_temp in CommonSwarming
+ * Allow duplicate_chunks in CommonSwarming
+ * Allow verify_chunks in CommonSwarming
+ * Send an Event to the File when availability changes
+ * Coorectly reply to ViewFiles
+ 
+What should we do with the old_files option ? put file_name, file_size, URNs ?
 
 Let's schedule our work:
 ------------------------
-
-For 2.5:
-  - Fasttrack plugin
-  - GUI:
-      * Add columns for tags (or display tags in the margin)
-      * Give more information on why a connection failed
+2.5.+: 
+ * Correctly cancel files (remove them from current_files in all plugins)
+ * Share on Fasttrack (compute hashes, send messages)
+ * Display the tag names in the GUI
+ * Add urn:sha1:<HASH> and urn:tree:tiger/:<HASH> to QRT
+ * Give more information on why a connection failed
+ * Save SHA1 and all identifiers in shared_files.ini
 
 For 2.6:
   - Save the URN computed for all files.
@@ -71,6 +117,18 @@ For 2.9:
 
 For 2.10:
   - WinMX and Piolet
+ 
+Corruption ?? What to do to avoid it ? Maybe enter a special mode where 
+every byte must be downloaded from different clients to be sure ? This
+could be done by keeping the chunk in memory (9 MB is not big :) ), or just
+the diff (ie we have downloaded it once, it is corrupted, so we have:
+ * ranges which are similar to those written on disk
+ * ranges that are different
+
+What is this UDP message for :
+EmuleReaskFilePingUdpReq 40351E4E097708BCBDEB336CDDAEE092
+
+Associate kinds with networks, and only download useful urls
 
 Bittorrent:
 -----------

@@ -24,43 +24,7 @@
 #include "caml/fail.h"
 #include "caml/alloc.h"
 
-value md4_unsafe_string(value digest_v, value string_v, value len_v)
-{
-  unsigned char *digest = String_val(digest_v);
-  unsigned char *string = String_val(string_v);
-  long len = Long_val(len_v);
-  MD4_CTX context;
-
-  MD4Init (&context);
-  MD4Update (&context, string, len);
-  MD4Final (digest, &context);
- 
-  return Val_unit;
-}
-
 #include <stdio.h>
-
-value md4_unsafe_file (value digest_v, value filename_v)
-{
-  char *filename  = String_val(filename_v);
-  unsigned char *digest = String_val(digest_v);
-  FILE *file;
-  MD4_CTX context;
-  int len;
-
-  if ((file = fopen (filename, "rb")) == NULL)
-    raise_not_found();
-
-  else {
-    MD4Init (&context);
-    while ((len = fread (hash_buffer, 1, HASH_BUFFER_LEN, file)) >0)
-      MD4Update (&context, hash_buffer, len);
-    MD4Final (digest, &context);
-
-    fclose (file);
-  }
-  return Val_unit;
-}
 
 value md4_xor(value m1_v, value m2_v, value m3_v) 
 {

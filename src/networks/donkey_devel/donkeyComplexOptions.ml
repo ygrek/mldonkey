@@ -30,7 +30,8 @@ open CommonTypes
 open CommonOptions
 open CommonGlobals
 open CommonSwarming
-  
+open CommonDownloads.SharedDownload
+
 open DonkeyGlobals
 open DonkeyTypes
 open DonkeyOptions
@@ -39,10 +40,7 @@ let file_sources_ini = create_options_file (
     Filename.concat file_basedir "file_sources.ini")
   
 let stats_ini = create_options_file (
-    Filename.concat file_basedir "stats.ini")
-
-
-  
+    Filename.concat file_basedir "stats.ini")  
     
 (************ COMPLEX OPTIONS *****************)
   
@@ -209,20 +207,7 @@ let value_to_int32pair v =
   | _ -> 
       failwith "Options: Not an int32 pair"
 
-let value_to_state v =
-  match v with
-  | StringValue "Paused" -> FilePaused
-  | StringValue "Downloading" -> FileDownloading
-  | StringValue "Downloaded" -> FileDownloaded
-  | _ -> raise Not_found
-
-let state_to_value s = 
-  match s with
-  | FilePaused | FileAborted _ -> StringValue "Paused"
-  | FileDownloaded -> StringValue "Downloaded"
-  | _ -> StringValue "Downloading"
-
-let value_to_file is_done assocs =
+let value_to_file file_shared assocs =
   let get_value name conv = conv (List.assoc name assocs) in
   let get_value_nil name conv = 
     try conv (List.assoc name assocs) with _ -> []
@@ -233,46 +218,19 @@ let value_to_file is_done assocs =
       get_value "file_md4" value_to_string
     with _ -> failwith "Bad file_md4"
   in
-  let file_size = try
-      value_to_int64 (List.assoc "file_size" assocs) 
-    with _ -> Int64.zero
+  
+  let file = Hashtbl.find files_by_md4  (Md4.of_string file_md4_name) 
   in
   
-  let file_state = get_value "file_state" value_to_state in
-  
-  let file = DonkeyGlobals.new_file file_state (
-      Filename.concat !!temp_directory file_md4_name)
-    (Md4.of_string file_md4_name) file_size true in
-  
   (try
-      file.file_file.impl_file_age <- normalize_time (get_value "file_age" value_to_int)
-    with _ -> ());
-  
-  (try 
-      if file.file_exists then begin
-(* only load absent chunks if file previously existed. *)
-          Int64Swarmer.set_absent file.file_swarmer
-            (get_value "file_absent_chunks" 
-              (value_to_list value_to_int32pair))
-        end
-    with _ -> ()                );
-  
-  (try 
-      if file.file_exists then begin
-(* only load absent chunks if file previously existed. *)
-          Int64Swarmer.set_present file.file_swarmer
-            (get_value "file_present_chunks" 
-              (value_to_list value_to_int32pair))
-        end
-    with _ -> ()                );
-  
-  file.file_filenames <-
-    get_value_nil "file_filenames" (value_to_list value_to_string);
-  (try
-      set_file_best_name (as_file file.file_file)
-      (get_value "file_filename" value_to_string)
-    with _ -> update_best_name file);
-  
+      Int64Swarmer.set_verified_bitmap file.file_partition
+        (get_value  "file_all_chunks" value_to_string)
+    with e -> 
+        lprintf "Exception %s while loading bitmap\n"
+          (Printexc2.to_string e); 
+  );
+
+  (*
   (try
       let mtime = Unix32.mtime64 (file_disk_name file)  in
       let old_mtime = value_to_float (List.assoc "file_mtime" assocs) in
@@ -281,74 +239,24 @@ let value_to_file is_done assocs =
       Int64Swarmer.set_verified_bitmap file.file_partition file_chunks
     with _ -> 
         lprintf "Could not load chunks states"; lprint_newline (););
-
-(*
-  List.iter (fun c ->
-      DonkeyGlobals.new_source file  c;
-  )
-   (get_value_nil "file_locations" (value_to_list value_to_donkey_client)); *)
-
-  (*
-  (try
-      file.file_chunks_age <-
-        get_value "file_chunks_age" 
-        (fun v -> 
-          let list = value_to_list (fun v -> normalize_time (value_to_int v)) v in
-          Array.of_list list)
-    with _ -> ());
-  
-  file.file_file.impl_file_last_seen <- (
-    if file.file_chunks_age = [||]
-    then 0
-    else Array2.min file.file_chunks_age);
-*)
-  
+  *)
   let md4s = get_value_nil "file_md4s" (value_to_list value_to_md4) in
-  file.file_md4s <- (if md4s = [] then file.file_md4s else md4s);
-  file_md4s_to_register := file :: !file_md4s_to_register;
-  as_file file.file_file
+  file.file_md4s <- (if md4s = [] then file.file_md4s else Array.of_list md4s);
+  file_md4s_to_register := file :: !file_md4s_to_register
   
-  
-let string_of_chunks file =
-  Int64Swarmer.verified_bitmap file.file_partition
-  (*
-  let nchunks = file_nchunks file in
-  let s = String.make nchunks '0' in
-  for i = 0 to nchunks - 1 do
-    s.[i] <- (match file.file_chunks.(i) with
-      | PresentVerified -> '2'
-      | AbsentVerified 
-      | PartialVerified _ -> '0'
-      | _ -> '1' (* don't know ? *)
-    )
-  done;
-  s
-*)
-  
+
 let file_to_value file =
+  lprintf "file_to_value\n";
   [
     "file_md4", string_to_value (Md4.to_string file.file_md4);
-    "file_size", int64_to_value file.file_file.impl_file_size;
-    "file_all_chunks", string_to_value (string_of_chunks file);  
-    "file_state", state_to_value (file_state file);
-    "file_present_chunks", List
-      (List.map (fun (i1,i2) -> 
-          SmallList [int64_to_value i1; int64_to_value i2])
-      (Int64Swarmer.present_chunks file.file_swarmer));
-    "file_filename", string_to_value (file_best_name file);
-    "file_filenames", List
-      (List.map (fun s -> string_to_value s) file.file_filenames);
-    "file_age", IntValue (Int64.of_int file.file_file.impl_file_age);
+    "file_all_chunks", string_to_value 
+      (Int64Swarmer.verified_bitmap file.file_partition);  
     "file_md4s", List
       (List.map (fun s -> string_to_value (Md4.to_string s)) 
-      file.file_md4s);
-    "file_downloaded", int64_to_value (file_downloaded file);
-(*    "file_chunks_age", List (Array.to_list 
-        (Array.map int_to_value file.file_chunks_age)); *)
-    "file_mtime", float_to_value (
-      try Unix32.mtime64 (file_disk_name file) with _ -> 0.0)
+      (Array.to_list file.file_md4s));
   ]
-    
+  
+  
 module StatsOption = struct
     
     let value_to_stat v =
@@ -614,10 +522,17 @@ let load_sources () =
     with _ -> ())
 
     
-  
+   
 let _ =
+  network_file_ops.op_download_of_value <- value_to_file; 
+  file_ops.op_download_to_value <- file_to_value;
+  network.op_network_file_of_option <- 
+    CommonDownloads.SharedDownload.value_to_file;
+
+  (*
   network.op_network_file_of_option <- value_to_file;
-(*  file_ops.op_file_to_option <- file_to_value; *)
+  file_ops.op_file_to_option <- file_to_value; 
+*)
   
   network.op_network_server_of_option <- value_to_server;
   server_ops.op_server_to_option <- server_to_value;

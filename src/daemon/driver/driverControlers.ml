@@ -300,7 +300,7 @@ let user_reader o telnet sock nread  =
   let rec iter () =
     if b.len > 0 then
       let c = b.buf.[b.pos] in
-      buf_used sock 1;
+      buf_used b 1;
 (*      lprintf "char %d\n" (int_of_char c); *)
       if c = '\255' && not telnet.telnet_iac then begin
           telnet.telnet_iac <- true;

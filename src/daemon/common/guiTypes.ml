@@ -76,7 +76,10 @@ type file_info = {
     mutable file_age : int;
     mutable file_last_seen : int;
     mutable file_priority : int;
+    
+    mutable file_uids : file_uid list;
   }
+  
   
 type user_info = {
     user_num : int;
@@ -255,5 +258,6 @@ let file_info_test =
     file_age = 3;
     file_last_seen = BasicSocket.last_time ();
     file_priority = 0;
+    file_uids = [];
   } 
   

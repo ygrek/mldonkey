@@ -110,7 +110,19 @@ let replace_shared old_impl impl =
   impl.impl_shared_num <- old_impl.impl_shared_num;
   H.add shareds_by_num (as_shared impl);
   shared_must_update (as_shared impl)
-    
+  
+let shared_add_uploaded s uploaded =
+  let impl = as_shared_impl s in
+  shared_must_update_downloaded s;
+  impl.impl_shared_uploaded <- Int64.add impl.impl_shared_uploaded uploaded;
+  ()
+  
+let shared_add_request s =
+  let impl = as_shared_impl s in
+  shared_must_update_downloaded s;
+  impl.impl_shared_requests <- impl.impl_shared_requests + 1;
+  ()
+  
 let shared_remove impl =
   H.remove shareds_by_num (as_shared impl)
     
@@ -218,7 +230,7 @@ let shared_add_directory dirname prio local_dir =
 let shared_scan_directory dirname prio local_dir =
   let dirname = 
     if Filename.is_relative dirname then
-      Filename.concat file_basedir dirname
+      Filename.concat (Sys.getcwd ()) dirname
     else dirname 
   in
   let full_dir = Filename.concat dirname local_dir in
@@ -266,12 +278,12 @@ let _ =
             else dirname 
           in
           shared_scan_directory dirname prio local_dir;
-          (*
+(*
           lprintf "Shared %d files %Ld bytes"
             !files_scanned !files_scanned_size;
           lprint_newline (); *)
   )
-    
+  
 let shared_add_directory (dirname, prio) =
   if dirname <> "" then begin
       lprintf "SHARING %s PRIO %d" dirname prio; lprint_newline ();
@@ -324,4 +336,5 @@ let shareds_by_num = ()
   Options.set_string_wrappers shared_directories
     Filepath.semipath_to_string
     Filepath.string_to_semipath*)
+
 

@@ -423,7 +423,7 @@ parent.fstatus.location.href='submit?q=html_mods_style+'+formID.modsStyle.value;
                 [] | _ :: _ :: _ -> 
                   let v=   CommonInteractive.all_simple_options_html () in
                   v
-                  
+              
               | [tab] ->
                   let tab = int_of_string tab in
                   match tab with
@@ -662,6 +662,18 @@ the name between []"
         
         "done"
     ), ":\t\t\t\tstatistics on upload";
+    
+    
+    "add_url", Arg_two (fun kind url o ->
+        let buf = o.conn_buf in
+        let v = (kind, 1, url) in
+        if not (List.mem v !!web_infos) then
+          web_infos =:=  v :: !!web_infos;
+        load_url kind url;
+        "url added to web_infos. downloading now"
+    ), "<kind> <url> :\t\t\tload this file from the web.
+\t\t\t\t\tkind is either server.met (if the downloaded file is a server.met)";
+    
     
     "set", Arg_two (fun name value o ->
         try

@@ -818,7 +818,7 @@ let dc_handler debug f sock nread =
           let pos = String.index_from b.buf (b.pos + b.len - nread) '|' in
           if pos < b.pos + b.len then
             let s = String.sub b.buf b.pos (pos - b.pos) in
-            buf_used sock (pos - b.pos + 1);
+            buf_used b (pos - b.pos + 1);
             f (parse !debug s) sock;
             iter b.len
         end
@@ -838,7 +838,7 @@ let dc_handler3 debug c ff f r sock nread =
             let pos = String.index_from b.buf (b.pos + b.len - nread) '|' in
             if pos < b.pos + b.len then
               let s = String.sub b.buf b.pos (pos - b.pos) in
-              buf_used sock (pos - b.pos + 1);
+              buf_used b (pos - b.pos + 1);
               let m = parse !debug s in
               match !c with
                 None -> 

@@ -343,7 +343,7 @@ let client_downloaded c sock nread =
       lprintf "NEW SOURCE POS %s" (Int64.to_string c.source_pos);
 lprint_newline ();
   *)
-        TcpBufferedSocket.buf_used sock b.len;
+        TcpBufferedSocket.buf_used b b.len;
         if c.client_pos > (file_downloaded file) then begin
             add_file_downloaded file.file_file
             (Int64.sub c.client_pos (file_downloaded file));
@@ -358,7 +358,7 @@ lprint_newline ();
         let b = TcpBufferedSocket.buf sock in        
         let len = b.len in
         Buffer.add_substring buf b.buf b.pos b.len;
-        buf_used sock b.len;
+        buf_used b b.len;
         c.client_receiving <- Int64.sub c.client_receiving (Int64.of_int len);
         lprintf "Received %d of List\n" len; 
         close sock Closed_by_user; 

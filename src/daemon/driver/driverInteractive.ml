@@ -158,7 +158,7 @@ let save_config () =
   );
   Options.save_with_help downloads_ini;
   Options.save_with_help downloads_expert_ini;
-  CommonComplexOptions.save ();
+  CommonInteractive.save ();
   networks_iter (fun r -> 
       List.iter (fun opfile ->
           Options.save_with_help opfile          
@@ -902,9 +902,9 @@ let old_print_search buf o results =
                   		| _ -> "???"));
           ) r.result_tags;
 
-			Printf.bprintf buf "\\\" class=\\\"sr\\\"\\>\\<a href=/results\\?d=%d target=\\\"$S\\\"\\>" r.result_num
+			Printf.bprintf buf "\\\" class=\\\"sr\\\"\\>\\<a href=results\\?d=%d target=\\\"$S\\\"\\>" r.result_num
 			end
-            else Printf.bprintf buf "\\<a href=/results\\?d=%d $S\\>" r.result_num;
+            else Printf.bprintf buf "\\<a href=results\\?d=%d $S\\>" r.result_num;
 			end;
             begin
               match r.result_names with
@@ -1120,7 +1120,7 @@ let print_search_html buf results o search_num =
   if !counter > !!filter_table_threshold then
     add_filter_table buf search_num;
   
-  Printf.bprintf buf "\\<form action=/results\\>";
+  Printf.bprintf buf "\\<form action=results\\>";
   Printf.bprintf buf "\\<input type=submit value='Submit Changes'\\>";
   print_table_html 10 buf [||] 
     [|
@@ -1158,8 +1158,8 @@ let print_results buf o results =
                 
                 (Printf.sprintf "%s%s%s"
                     (if o.conn_output = HTML then begin
-                        if !!html_mods then Printf.sprintf "\\<a href=/results\\?d=%d target=\\\"$S\\\"\\>" r.result_num
-                        else Printf.sprintf "\\<a href=/results\\?d=%d $S\\>" r.result_num;
+                        if !!html_mods then Printf.sprintf "\\<a href=results\\?d=%d target=\\\"$S\\\"\\>" r.result_num
+                        else Printf.sprintf "\\<a href=results\\?d=%d $S\\>" r.result_num;
                       end
                     else "")
                   

@@ -37,7 +37,7 @@ rule xml = parse
 	| '\n'	{ newline lexbuf; update lexbuf; xml lexbuf }
 	| space+{ update lexbuf; xml lexbuf }
 	| '<'	{ OPEN }
-	| '>'	{ CLOSE }
+	| '>' [^ '<']*	{ CLOSE }
 	| "</"	{ END }
 	| "/>"  { UNARYCLOSE }
 	| '='	{ EQ }
@@ -48,7 +48,7 @@ rule xml = parse
 	| "<%"	{ code_string lexbuf; }
 	| "<!"	{ doc_string lexbuf; }
 	| ident	{ update lexbuf; IDENT(get lexbuf) }
-	| _		{ error lexbuf; }
+	| _	{ error lexbuf; }
 and
 	q_string = parse
 	| '\''	{ !curstr; }

@@ -56,7 +56,10 @@ val create_simple : string -> Unix.file_descr -> t
 val create_blocking : string -> Unix.file_descr -> handler -> t
 val buf : t -> buf
 val set_reader : t -> (t -> int -> unit) -> unit
-val buf_used : t -> int -> unit
+val sock_used : t -> int -> unit
+val buf_create : int -> buf
+val buf_used : buf -> int -> unit
+val buf_add : t -> buf -> string -> int -> int -> unit
 val set_handler : t -> event -> (t -> unit) -> unit
 val set_refill : t -> (t -> unit) -> unit
 val write: t -> string -> int -> int -> unit

@@ -115,7 +115,7 @@ type overnet_search = {
     mutable search_nresults : int;
     mutable search_results : (Md4.t, tag list) Hashtbl.t;
     mutable search_hits : int;
-    mutable search_publish_files : file list;
+    mutable search_publish_files : tagged_file list;
     mutable search_publish_file : bool;
   }
 
@@ -717,6 +717,7 @@ let publish_file (file : DonkeyTypes.file) =
           files_to_be_published := s :: !files_to_be_published;
         end
   end;
+  (*[BROKEN] and probably explose in memory usage anyway...
   if !!overnet_search_keyword then 
     begin
       let index_string w =
@@ -727,7 +728,9 @@ let publish_file (file : DonkeyTypes.file) =
       List.iter (fun name -> List.iter index_string (String2.stem name) ) 
       file.file_filenames;
     end
-    
+*)
+  ()
+  
 let recover_all_files () =
   List.iter (fun file ->
       if file_state file = FileDownloading then
@@ -965,7 +968,8 @@ let udp_client_handler t p =
 				(*lprintf "FIXME: Received a BCP type 1 %s for MD4 %s" 
 				  bcp (Md4.to_string md4);
 				lprint_newline (); *)
-                                  if Ip.valid ip && Ip.reachable ip then
+                                  if Ip.valid ip && 
+                                    ((not !!black_list) || Ip.reachable ip) then
                                     let c = DonkeySources.new_source (ip, port) file in
                                     c.source_overnet <- true;
                               | _ ->
@@ -1075,8 +1079,8 @@ let query_min_peer s =
           List.iter 
             (fun file ->
               udp_send p.peer_ip p.peer_port 
-                (OvernetPublish (s.search_md4, file.file_md4, 
-                  DonkeyProtoCom.tag_file file))
+                (OvernetPublish (s.search_md4, file.f_md4, 
+                   file.f_tags))
           ) s.search_publish_files
       | FileSearch file ->
           if file_state file = FileDownloading then
@@ -1154,10 +1158,12 @@ let do_publish_shared_files () =
     end
     
 let publish_shared_files () = 
+  (*[BROKEN]
   match !files_to_be_published with 
     [] -> List.iter (fun file -> publish_file file) (DonkeyShare.all_shared ())
   | _ -> ()
-      
+*)
+  ()
 let check_curent_downloads () =
   List.iter (fun file ->
     if file_state file = FileDownloading           

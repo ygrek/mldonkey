@@ -145,7 +145,8 @@ let enable () =
                 indexer := None;
               end)
 *)
-    
+
+(*[BROKEN]
     Hashtbl.iter (fun _ file ->
         try
           if file_state file <> FileDownloaded then begin
@@ -180,7 +181,8 @@ let enable () =
             lprintf "Exception %s while recovering download %s"
               (Printexc2.to_string e) (file_disk_name file); lprint_newline ();
     ) files_by_md4;
-
+*)
+  
 (**** CREATE WAITING SOCKETS ****)
     let rec find_port new_port =
       try
@@ -217,7 +219,9 @@ let enable () =
       match Unix.getsockname (BasicSocket.fd (TcpServerSocket.sock sock)) with
         Unix.ADDR_INET (ip, port) ->
           client_port :=  port
-      | _ -> failwith "Bad socket address"
+        | _ -> 
+            lprintf "********** CAN NOT BIND TCP PORT **********\n";
+            failwith "Bad socket address"
     end;
     
     let port = !client_port in

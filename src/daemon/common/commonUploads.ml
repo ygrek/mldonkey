@@ -20,7 +20,6 @@
 open Md4
 open CommonShared
 open Printf2
-open CommonInteractive
 open CommonClient
 open CommonComplexOptions
 open CommonTypes
@@ -29,8 +28,143 @@ open Options
 open BasicSocket
 open TcpBufferedSocket
 
+open GuiTypes
 open CommonGlobals
 open CommonOptions
+
+  
+    
+module M = struct    
+let shared_files_ini = create_options_file (
+    Filename.concat file_basedir "files_shared.ini")
+
+
+module SharedFileOption = struct
+    
+    let value_to_shinfo v =
+      match v with
+        Options.Module assocs ->
+          let get_value name conv = conv (List.assoc name assocs) in
+          let get_value_nil name conv = 
+            try conv (List.assoc name assocs) with _ -> []
+          in
+          
+          let sh_md4s = try
+              value_to_list (fun v ->
+                  Md4.of_string (value_to_string v)) (List.assoc "md4s" assocs)
+            with _ -> []
+          in
+          let sh_tiger = try
+              value_to_list (fun v ->
+                  TigerTree.of_string (value_to_string v)) (List.assoc "tiger" assocs)
+            with _ -> []
+          in
+          let sh_size = try
+              value_to_int64 (List.assoc "size" assocs) 
+            with _ -> failwith "Bad shared file size"
+          in
+          let sh_name = try
+              value_to_filename (List.assoc "name" assocs)
+            with _ -> failwith "Bad shared file name"
+          in
+          let sh_mtime = try
+              value_to_float (List.assoc "mtime" assocs)
+            with _ -> failwith "Bad shared file mtime"
+          in
+          let sh_uids = try
+              value_to_list (fun v ->
+                  uid_of_string (value_to_string v)  
+              ) (List.assoc "hashes" assocs)
+            with _ -> 
+                lprintf "[WARNING]: Could not load hash for %s\n"
+                  sh_name;
+                []
+          in
+          { 
+            sh_name = sh_name; 
+            sh_mtime = sh_mtime;
+            sh_size = sh_size; 
+            sh_md4s = Array.of_list sh_md4s;
+            sh_tiger = Array.of_list sh_tiger;
+            sh_uids = sh_uids;
+          }
+          
+      | _ -> failwith "Options: not a shared file info option"
+          
+    let shinfo_to_value sh =
+      Options.Module [
+        "name", filename_to_value sh.sh_name;
+        "md4s", list_to_value "Shared Md4" (fun md4 ->
+            string_to_value (Md4.to_string md4)) (Array.to_list sh.sh_md4s);
+        "tiger", list_to_value "Shared Tiger" (fun md4 ->
+            string_to_value (TigerTree.to_string md4)) (Array.to_list sh.sh_tiger);
+        "mtime", float_to_value sh.sh_mtime;
+        "size", int64_to_value sh.sh_size;
+        "hashes", list_to_value "Hashes" (fun uid ->
+            string_to_value (string_of_uid uid)
+        ) sh.sh_uids;
+      ]
+    
+    
+    let t = define_option_class "SharedFile" value_to_shinfo shinfo_to_value
+  end
+  
+let known_shared_files = define_option shared_files_ini 
+    ["shared_files"] "" 
+    (list_option SharedFileOption.t) []
+
+    
+let shared_files_info = (Hashtbl.create 127 :
+    (string, shared_file_info) Hashtbl.t)
+
+let find_shared_info fullname size =
+  let s = Hashtbl.find shared_files_info fullname in
+  let mtime = Unix32.mtime64 fullname in
+  if s.sh_mtime = mtime && s.sh_size = size then begin
+      if !verbose_share then begin
+          lprintf "USING OLD MD4s for %s" fullname;
+          lprint_newline (); 
+        end;
+      s
+    end else begin
+      if !verbose_share then begin                
+          lprintf "Shared file %s has been modified" fullname;
+          lprint_newline ();
+        end;
+      Hashtbl.remove shared_files_info fullname;
+      known_shared_files =:= List2.removeq s !!known_shared_files;
+      raise Not_found
+    end
+
+let put_shared_info name size md4s mtime uids =
+  
+  let s = {
+      sh_name = name;
+      sh_size = size;
+      sh_md4s = Array.of_list md4s;
+      sh_tiger = [||];
+      sh_mtime = mtime (* Unix32.mtime64 name *);
+      sh_uids = uids;
+    } in
+  lprintf "NEW SHARED FILE %s\n" name; 
+  Hashtbl.add shared_files_info name s;
+  known_shared_files =:= s :: !!known_shared_files;
+  s      
+  
+let new_shared_info name size md4s mtime uids =
+  try
+    let s = find_shared_info name size in
+    if md4s <> [] then
+      s.sh_md4s <- Array.of_list md4s;
+    List.iter (fun uid ->
+        if not (List.mem uid s.sh_uids) then
+          s.sh_uids <- uid :: s.sh_uids
+    ) uids;
+    s
+  with _ ->
+      put_shared_info name size md4s mtime uids
+      
+end
 
 (* We should implement a common uploader too for all networks where
 upload is done linearly. *)
@@ -53,7 +187,7 @@ type shared_file = {
     shared_id : int;
     shared_format : CommonTypes.format;
     shared_impl : shared_file shared_impl;
-    mutable shared_uids : file_uid list;
+    shared_info : shared_file_info;
     mutable shared_uids_wanted : 
     (file_uid_id * (shared_file -> file_uid -> unit)) list;
   }
@@ -65,7 +199,8 @@ and shared_tree =
     mutable shared_dirs : (string * shared_tree) list;
   }
 
-let network = CommonNetwork.new_network "Global Shares"
+  
+let network = CommonNetwork.new_network "MultiNet"
     (fun _ -> "")
     (fun _ -> "")
 
@@ -76,10 +211,6 @@ let _ =
   
 let (shared_ops : shared_file CommonShared.shared_ops) = 
   CommonShared.new_shared_ops network
-
-  
-  
-  
   
 (*******************************************************************
 
@@ -98,17 +229,150 @@ let shareds_by_uid = Hashtbl.create 13
   
 let current_job = ref None
 
+let ed2k_block_size = Int64.of_int 9728000
+let tiger_block_size = Int64.of_int (1024 * 1024)
+  
+let ask_for_uid sh uid f =
+  sh.shared_uids_wanted <- (uid,f) :: sh.shared_uids_wanted;
+  waiting_shared_files := sh :: !waiting_shared_files
+
+let md4_of_list md4s =
+  let len = List.length md4s in
+  let s = String.create (len * 16) in
+  let rec iter list i =
+    match list with
+      [] -> ()
+    | md4 :: tail ->
+        let md4 = Md4.direct_to_string md4 in
+        String.blit md4 0 s i 16;
+        iter tail (i+16)
+  in
+  iter md4s 0;
+  Md4.string s
+
+let rec tiger_of_array array pos block =
+  if block = 1 then
+    array.(pos)
+  else
+  let len = Array.length array in
+  if pos + block / 2 >= len then
+    tiger_of_array array pos (block/2)
+  else
+  let d1 = tiger_of_array array pos (block/2) in
+  let d2 = tiger_of_array array (pos+block/2) (block/2) in
+  let s = String.create (1 + Tiger.length * 2) in
+  s.[0] <- '\001';
+  String.blit (TigerTree.direct_to_string d1) 0 s 1 Tiger.length;
+  String.blit (TigerTree.direct_to_string d2) 0 s (1+Tiger.length) Tiger.length;
+  let t = Tiger.string s in
+  let t = TigerTree.direct_of_string (Tiger.direct_to_string t) in
+  t
+  
+let rec tiger_max_block_size block len =
+  if block >= len then block
+  else tiger_max_block_size (block*2) len
+  
+let tiger_of_array array =
+  tiger_of_array array 0 (tiger_max_block_size  1 (Array.length array))
+
+let rec tiger_pos nblocks =
+  if nblocks < 2 then 0 else
+  let half = nblocks / 2 in
+  let acc = nblocks - 2 * half in
+  let half = half + acc in
+  half + tiger_pos half
+
+let rec tiger_pos2 nblocks =
+  if nblocks < 2 then 0, [] else
+  let half = nblocks / 2 in
+  let acc = nblocks - 2 * half in
+  let half = half + acc in
+  let pos, list = tiger_pos2 half in
+  let list = (nblocks, pos) :: list in
+  let pos = half + pos in
+  pos, list
+
+let tiger_node d1 d2 = 
+  let s = String.create (1 + Tiger.length * 2) in
+  s.[0] <- '\001';
+  String.blit (TigerTree.direct_to_string d1) 0 s 1 Tiger.length;
+  String.blit (TigerTree.direct_to_string d2) 0 s (1+Tiger.length) Tiger.length;
+  let t = Tiger.string s in
+  let t = TigerTree.direct_of_string (Tiger.direct_to_string t) in
+  t
+  
+let rec tiger_tree s array pos block =
+  if block = 1 then
+    array.(pos)
+  else
+  let len = Array.length array in
+  if pos + block / 2 >= len then
+    tiger_tree s array pos (block/2)
+  else
+  let d1 = tiger_tree s array pos (block/2) in
+  let d2 = tiger_tree s array (pos+block/2) (block/2) in
+  tiger_node d1 d2
+  
+let rec fill_tiger_tree s list =
+  match list with
+    [] -> ()
+  | (nblocks, pos) :: tail ->
+(* nblocks: the number of blocks in the next level
+   pos: the position of the blocks in to be created
+*)
+      let half = nblocks / 2 in
+      let acc = nblocks - 2 * half in
+
+      let next_pos = pos + half + acc in
+      for i = 0 to half - 1 do
+        let d1 = s.(next_pos+2*i) in
+        let d2 = s.(next_pos+2*i+1) in
+        s.(pos+i) <- tiger_node d1 d2;
+      done;
+      if acc = 1 then s.(pos+half) <- s.(next_pos+2*half);
+      fill_tiger_tree s tail
+
+let flatten_tiger_array array = 
+  let len = Array.length array in
+  let s = String.create ( len * TigerTree.length) in  
+  for i = 0 to len - 1 do
+    String.blit (TigerTree.direct_to_string array.(i)) 0
+      s (i * TigerTree.length) TigerTree.length
+  done;
+  s
+
+let unflatten_tiger_array s = 
+  let len = String.length s / TigerTree.length in
+  let array = Array.create len TigerTree.null in  
+  for i = 0 to len - 1 do
+    array.(i) <- TigerTree.direct_of_string 
+      (String.sub s (i * TigerTree.length) TigerTree.length)
+  done;
+  array
+  
+let make_tiger_tree array =
+  let len = Array.length array in
+  let pos, list = tiger_pos2 len in
+  let s = Array.create (pos + len) TigerTree.null in
+  for i = 0 to len - 1 do
+    s.(pos+i) <- array.(i)
+  done;
+  fill_tiger_tree s list;
+  flatten_tiger_array s
+  
 let rec start_job_for sh (wanted_id, handler) = 
   try
     List.iter (fun id ->
         match wanted_id,id with
-          BITPRINT, Bitprint _ 
         | SHA1, Sha1 _
         | ED2K, Ed2k _
         | MD5, Md5 _ 
+        | MD5EXT, Md5Ext _
+        | BITPRINT, Bitprint _
+        | TIGER, TigerTree _
           -> (try handler sh id with _ -> ()); raise Exit
         | _ -> ()
-    ) sh.shared_uids;
+    ) sh.shared_info.sh_uids;
     
     match wanted_id with
       SHA1 -> 
@@ -119,24 +383,104 @@ let rec start_job_for sh (wanted_id, handler) =
                 current_job := None;
               end else
               begin
-                let sha1 = Sha1.direct_of_string job.CommonHasher.job_result
-                in
-                let urn = Printf.sprintf "urn:sha1:%s" (Sha1.to_string sha1)
-                in
-                lprintf "%s has uid %s (%s)\n" sh.shared_fullname urn
-                (Base16.to_string 20 job.CommonHasher.job_result)
-                ;
-                let uid = Sha1 (urn,sha1) in
-                sh.shared_uids <- uid :: sh.shared_uids;
+                let sha1 = job.CommonHasher.job_result in
+                let uid = uid_of_uid (Sha1 ("", sha1)) in
+                let urn = string_of_uid uid in
+                sh.shared_info.sh_uids <- uid :: sh.shared_info.sh_uids;
                 Hashtbl.add shareds_by_uid (String.lowercase urn) sh;
                 start_job_for sh (wanted_id, handler)  
               end
         );
-    | _ -> raise Exit
+    | BITPRINT ->
+        let sha1 = ref None in
+        let tiger = ref None in
+        List.iter (fun id ->
+            match id with
+            | Sha1 (_, s) -> sha1 := Some s
+            | TigerTree (_, s) -> tiger := Some s
+            | _ -> ()
+        ) sh.shared_info.sh_uids;
+        begin
+          match !sha1, !tiger with
+            Some sha1, Some tiger ->
+              let uid = uid_of_uid (Bitprint ("", sha1, tiger)) in
+              let urn = string_of_uid uid in
+              sh.shared_info.sh_uids <- uid :: sh.shared_info.sh_uids;
+              Hashtbl.add shareds_by_uid (String.lowercase urn) sh;
+              start_job_for sh (wanted_id, handler)
+          
+          | _ -> ()
+(*
+(* Not enough information to compute the bitprint. Ask for the corresponding
+information. What happens if there is an error during SHA1 or TIGER
+computation ??? *)
+              ask_for_uid sh BITPRINT handler;
+              (match !sha1 with
+                  None ->  ask_for_uid sh SHA1 (fun _ _ -> ())
+                | _ -> ());
+              (match !tiger with
+                  None ->  ask_for_uid sh TIGER (fun _ _ -> ())
+| _ -> ());
+  *)
+        end
     
+    | MD5EXT ->
+        let md5ext = Md5Ext.file sh.shared_fullname in
+        let uid = uid_of_uid (Md5Ext ("", md5ext)) in
+        let urn = string_of_uid uid in
+        sh.shared_info.sh_uids <- uid :: sh.shared_info.sh_uids;
+        Hashtbl.add shareds_by_uid (String.lowercase urn) sh;
+        start_job_for sh (wanted_id, handler)  
+    
+    | ED2K ->
+        let size = sh.shared_size in
+        let chunk_size = ed2k_block_size  in
+        let nhashes = Int64.to_int (size // chunk_size) + 1 in
+        let rec iter pos hashes =
+          if pos < size then
+            CommonHasher.compute_md4 sh.shared_fullname
+              pos (min (size -- pos) chunk_size)
+            (fun job ->
+                iter (pos ++ chunk_size) (job.CommonHasher.job_result :: hashes))
+          else
+          let list = List.rev hashes in
+          let ed2k = md4_of_list list in
+          let uid = uid_of_uid (Ed2k ("", ed2k)) in
+          let urn = string_of_uid uid in
+          sh.shared_info.sh_md4s <- Array.of_list list;
+          sh.shared_info.sh_uids <- uid :: sh.shared_info.sh_uids;
+          Hashtbl.add shareds_by_uid (String.lowercase urn) sh;
+          start_job_for sh (wanted_id, handler)                
+        in
+        iter zero []
+    
+    | TIGER -> 
+        let size = sh.shared_size in
+        let chunk_size = tiger_block_size in
+        let nhashes = Int64.to_int (size // chunk_size) + 1 in
+        let rec iter pos hashes =
+          if pos < size then
+            CommonHasher.compute_tiger sh.shared_fullname
+              pos (min (size -- pos) chunk_size)
+            (fun job ->
+                iter (pos ++ chunk_size) (job.CommonHasher.job_result :: hashes))
+          else
+          let array = Array.of_list (List.rev hashes) in
+          let tiger = tiger_of_array array in
+          let uid = uid_of_uid (TigerTree ("", tiger)) in
+          let urn = string_of_uid uid in
+          sh.shared_info.sh_tiger <- array;
+          sh.shared_info.sh_uids <- uid :: sh.shared_info.sh_uids;
+          Hashtbl.add shareds_by_uid (String.lowercase urn) sh;
+          start_job_for sh (wanted_id, handler)                
+        in
+        iter zero []
+    
+    | _ -> raise Exit
+  
   with Exit -> 
       current_job := None
-  
+      
   
 let shared_files_timer _ =
   match !current_job with
@@ -151,10 +495,6 @@ let shared_files_timer _ =
               sh.shared_uids_wanted <- tail;
               current_job := Some sh;
               start_job_for sh uid
-
-let ask_for_uid sh uid f =
-  sh.shared_uids_wanted <- (uid,f) :: sh.shared_uids_wanted;
-  waiting_shared_files := sh :: !waiting_shared_files
               
 (*******************************************************************
 
@@ -403,7 +743,8 @@ let add_shared full_name codedname size =
           shared_format = CommonMultimedia.get_info full_name;
           shared_impl = impl;
           shared_uids_wanted = [];
-          shared_uids = [];
+          shared_info = M.new_shared_info full_name size [] 
+            (Unix32.mtime64 full_name) [];
         } in
       
       update_shared_num impl;
@@ -463,7 +804,8 @@ let can_write_len sock len =
   (let upload_rate = 
       (if !!max_hard_upload_rate = 0 then 10000 else !!max_hard_upload_rate)
       * 1024 in
-    not_buffer_more sock (upload_rate * (Fifo.length upload_clients)))
+    lprintf "upload_rate %d\n" upload_rate;
+    not_buffer_more sock (upload_rate * (1 + Fifo.length upload_clients)))
 
 let upload_to_one_client () =
   if !remaining_bandwidth < 10000 then begin
@@ -558,8 +900,7 @@ let ready_for_upload c =
     
 let add_pending_slot c =
   if client_has_a_slot c then begin
-      lprintf "Avoided inserting an uploader in pending slots!";
-      lprint_newline ()
+      lprintf "Avoided inserting an uploader in pending slots!\n";
     end 
   else 
   if not (Intmap.mem (client_num c) !pending_slots_map) then
@@ -758,8 +1099,32 @@ let upload_download_timer () =
         lprintf "Exception %s in download_engine\n"  (Printexc2.to_string e)
   );
   (try next_uploads ()
-  with e ->  lprintf "exc %s in upload\n" (Printexc2.to_string e))
-              
+    with e ->  lprintf "exc %s in upload\n" (Printexc2.to_string e))
+
+(*
+    head.agent=MyAgentName/2.6
+    head.version=S0.4
+    bitprint=433IUJ4MB4TRY3X74SL4B6BTD3JLTD5C
+    tag.file.length=2373194
+    tag.file.first20=1F8B080028F2DE3E0003ECFD7B7FDB3696380ECF
+    tag.filename.filename=mldonkey-2.5-3.sources.tar.gz
+    tag.ed2k.ed2khash=fe0cefcf20e7106214b6546d85061432
+    tag.uuhash.uuhash=hqdpK4JOn2/mplyBEfTafcO4+yA
+*)
+
+
+let make_bitzi_post_request args= 
   
+  let module H = Http_client in
+  let r = {
+      H.basic_request with
+      
+      H.req_url = Url.of_string "http://bitzi.com/lookup" ~args:args;
+      H.req_user_agent = Printf.sprintf "MLdonkey/%s" Autoconf.current_version;
+      H.req_referer = None;
+      H.req_request = H.POST;
+    } in
+  
+  r
   
   

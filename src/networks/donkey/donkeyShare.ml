@@ -149,9 +149,8 @@ The problem: sh.shared_fd might be closed during the execution of the
 thread. Moreover, we don't want to open all the filedescs for all the
 files being shared !
 *)
-
-let computation = ref false
     
+let computation = ref false
 (*   Compute (at most) one MD4 chunk if needed. *)
 let check_shared_files () =  
   let module M = CommonHasher in
@@ -193,16 +192,10 @@ let check_shared_files () =
                 sh.shared_list <- new_md4 :: sh.shared_list;
                 sh.shared_pos <- end_pos;
                 if end_pos = sh.shared_size then begin
-                    let s = {
-                        sh_name = sh.shared_name;
-                        sh_size = sh.shared_size;
-                        sh_md4s = List.rev sh.shared_list;
-                        sh_mtime = Unix32.mtime64 sh.shared_name;
-                      } in
-                    lprintf "NEW SHARED FILE %s" sh.shared_name; 
-                    lprint_newline ();
-                    Hashtbl.add shared_files_info sh.shared_name s;
-                    known_shared_files =:= s :: !!known_shared_files;
+                    let mtime = Unix32.mtime64 sh.shared_name  in
+                    sh.shared_list <- List.rev sh.shared_list;
+                    let s = CommonUploads.M.new_shared_info sh.shared_name sh.shared_size 
+                        sh.shared_list mtime [] in
                     new_file_to_share s sh.shared_shared.impl_shared_codedname (Some  sh.shared_shared);
                     shared_remove  sh.shared_shared;
                   end
@@ -230,23 +223,9 @@ let _ =
 (*
 lprintf "Searching %s" fullname; lprint_newline ();
 *)
-        let s = Hashtbl.find shared_files_info fullname in
-        let mtime = Unix32.mtime64 fullname in
-        if s.sh_mtime = mtime && s.sh_size = size then begin
-            if !verbose_share then begin
-                lprintf "USING OLD MD4s for %s" fullname;
-                lprint_newline (); 
-              end;
-            new_file_to_share s codedname None
-          end else begin
-            if !verbose_share then begin                
-                lprintf "Shared file %s has been modified" fullname;
-                lprint_newline ();
-              end;
-            Hashtbl.remove shared_files_info fullname;
-            known_shared_files =:= List2.removeq s !!known_shared_files;
-            raise Not_found
-          end
+        let s = CommonUploads.M.find_shared_info fullname size in
+        new_file_to_share s codedname None
+
       with Not_found ->
           if !verbose_share then begin
               lprintf "No info on %s" fullname; lprint_newline (); 
@@ -294,17 +273,12 @@ let remember_shared_info file new_name =
       if !verbose_share then begin
           lprintf "Remember %s" new_name; lprint_newline ();
         end;
-      
-      if not (Hashtbl.mem shared_files_info new_name) then
-        let s = {
-            sh_name = new_name;
-            sh_size = file_size file;
-            sh_mtime = mtime;
-            sh_md4s = file.file_md4s;
-          } in
-        
-        known_shared_files =:= s :: !!known_shared_files;    
-        Hashtbl.add shared_files_info new_name s
+      let s =
+        CommonUploads.M.new_shared_info 
+        new_name (file_size file) 
+        file.file_md4s mtime []
+      in
+      ()
     with e ->
         lprintf "Exception %s in remember_shared_info"
           (Printexc2.to_string e);

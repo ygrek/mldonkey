@@ -122,11 +122,19 @@ type host_state =
 | RemovedHost
 | BlackListedHost
 
+type compressor = 
+  Deflate of Zlib.stream * Zlib.stream
+  
 type tcp_connection =
 | NoConnection        (* No current connection *)
 | ConnectionWaiting   (* Waiting for a connection slot to open locally *)
 | ConnectionAborted   (* Abort any waiting connection slot *)
 | Connection of TcpBufferedSocket.t (* We are connected *)
+| CompressedConnection of
+  compressor *
+  TcpBufferedSocket.buf * (* read buffer after decompression *)
+  TcpBufferedSocket.buf * (* write buffer before decompression *)
+  TcpBufferedSocket.t (* We are connected, with compression *)
 
   
 type connection_control = {
@@ -451,15 +459,21 @@ let short_string_of_connection_state s =
 open Md4
   
 type file_uid =
-| Bitprint of string * Sha1.t * Tiger.t
+| Bitprint of string * Sha1.t * TigerTree.t
 | Sha1 of string * Sha1.t
 | Md5 of string * Md5.t
 | Ed2k of string * Md4.t
-| TigerTree of string * Tiger.t
+| TigerTree of string * TigerTree.t
 | Md5Ext of string * Md5Ext.t     (* for Fasttrack *)
+| BTUrl of string * Sha1.t
   
 and file_uid_id = 
-  BITPRINT | SHA1 | ED2K | MD5
+| BITPRINT
+| SHA1
+| ED2K
+| MD5
+| MD5EXT
+| TIGER
   
 let string_of_uid uid = 
   match uid with
@@ -469,13 +483,14 @@ let string_of_uid uid =
   | Md5 (s,_) -> s
   | TigerTree (s,_) -> s
   | Md5Ext (s, _) -> s
+  | BTUrl (s,_) -> s
       
 (* Fill the UID with a correct string representation *)
 let uid_of_uid uid = 
   match uid with
     Bitprint (_,sha1,ttr) -> 
       Bitprint (Printf.sprintf "urn:bitprint:%s.%s" (Sha1.to_string sha1)
-        (Tiger.to_string ttr), sha1, ttr)
+        (TigerTree.to_string ttr), sha1, ttr)
   | Sha1 (_,sha1) -> 
       Sha1 (Printf.sprintf "urn:sha1:%s"  (Sha1.to_string sha1),  sha1)
   | Ed2k (_,ed2k) -> 
@@ -483,10 +498,12 @@ let uid_of_uid uid =
   | Md5 (_,md5) -> 
       Md5 (Printf.sprintf "urn:md5:%s" (Md5.to_string md5), md5)
   | TigerTree (_,ttr) -> 
-      TigerTree (Printf.sprintf "urn:ttr:%s"  (Tiger.to_string ttr), ttr)
+      TigerTree (Printf.sprintf "urn:ttr:%s"  (TigerTree.to_string ttr), ttr)
   | Md5Ext (_,md5) -> 
       Md5Ext (Printf.sprintf "urn:sig2dat:%s" (Md5Ext.to_base32 md5), md5)
-  
+  | BTUrl (_, url) ->
+      BTUrl (Printf.sprintf "urn:bt:%s" (Sha1.to_string url), url)
+      
 let uid_of_string s =
   let s = String.lowercase s in
   let (urn, rem) = String2.cut_at s ':' in
@@ -496,18 +513,40 @@ let uid_of_string s =
     | "ed2k" -> Ed2k ("", Md4.of_string rem)
     | "bitprint" | "bp" -> 
         let (sha1, ttr) = String2.cut_at rem '.' in
-        Bitprint ("", Sha1.of_string sha1, Tiger.of_string ttr)
+        let sha1 = Sha1.of_string sha1 in
+        let tiger = TigerTree.of_string ttr in
+        Bitprint ("", sha1, tiger)
     | "sha1" -> Sha1 ("", Sha1.of_string rem)
     | "tree" ->
         let (tiger, rem) = String2.cut_at rem ':' in
         if tiger <> "tiger" then 
           failwith (Printf.sprintf "Illformed URN [%s]" s);
-        TigerTree ("", Tiger.of_string rem)
-    | "ttr" -> TigerTree ("", Tiger.of_string rem)
+        TigerTree ("", TigerTree.of_string rem)
+    | "ttr" -> TigerTree ("", TigerTree.of_string rem)
     | "md5" ->  Md5 ("", Md5.of_string rem)
     | "sig2dat" -> Md5Ext ("", Md5Ext.of_base32 rem)
+    | "bt" | "bittorrent" -> 
+        BTUrl ("", Sha1.of_string rem)
     | _ -> 
         failwith (Printf.sprintf "Illformed URN [%s]" s))
+
+let expand_uids uids =
+  let all_uids = ref [] in
+  List.iter (fun uid ->
+      if not (List.mem uid !all_uids) then 
+        all_uids := uid :: !all_uids;
+      match uid with
+        Bitprint (_, sha1, tiger) ->
+          let uid = uid_of_uid (Sha1 ("", sha1)) in
+          if not (List.mem uid !all_uids) then 
+            all_uids := uid :: !all_uids;
+          let uid = uid_of_uid (TigerTree ("", tiger)) in
+          if not (List.mem uid !all_uids) then 
+            all_uids := uid :: !all_uids;
+      | _ -> ()
+  ) uids;
+  !all_uids
+  
   
 exception IgnoreNetwork
   
@@ -516,3 +555,16 @@ let string_of_tag tag =
     Uint64 i| Fint64 i -> Int64.to_string i
   | Addr x -> Ip.to_string x
   | String s -> s
+      
+
+(* This structure is kept to record the informations on shared files between
+  sessions *)
+      
+type shared_file_info = {
+    sh_name : string;
+    mutable sh_md4s : Md4.t array;
+    mutable sh_tiger : TigerTree.t array;
+    sh_mtime : float;
+    sh_size : int64;
+    mutable sh_uids : file_uid list;
+  }

@@ -30,7 +30,7 @@ open CommonNetwork
 
 let keep_console_output = ref false
 let daemon = ref false
-  
+
 let do_daily () =
   incr days;
   load_web_infos ()
@@ -41,7 +41,8 @@ let minute_timer () =
   if !!auto_commit then
     List.iter (fun file ->
         CommonComplexOptions.file_commit file
-    ) !!CommonComplexOptions.done_files
+    ) !!CommonComplexOptions.done_files;
+  CommonDownloads.SharedDownload.Bitzi.minute_timer ()
   
 let hourly_timer timer =
   incr hours;
@@ -54,14 +55,17 @@ let second_timer timer =
   (try 
       update_link_stats () 
     with e -> 
-        lprintf "Exception %s" (Printexc2.to_string e); lprint_newline ());
-	  (try 
-     CommonUploads.refill_upload_slots ()
-   with e -> 
-        lprintf "Exception %s" (Printexc2.to_string e); lprint_newline ());
+        lprintf "Exception %s\n" (Printexc2.to_string e));
+  (try 
+      CommonUploads.refill_upload_slots ()
+    with e -> 
+        lprintf "Exception %s\n" (Printexc2.to_string e); );
   CommonGlobals.schedule_connections ();
   CommonUploads.reset_upload_timer ();
-  CommonUploads.shared_files_timer ()
+  CommonUploads.shared_files_timer ();
+  CommonDownloads.SharedDownload.check_finished_timer ()
+  
+  
   
 let start_interfaces () =
   
@@ -69,21 +73,20 @@ let start_interfaces () =
   if !!http_port <> 0 then begin try
         ignore (DriverControlers.create_http_handler ());
       with e ->
-          lprintf "Exception %s while starting HTTP interface"
+          lprintf "Exception %s while starting HTTP interface\n"
             (Printexc2.to_string e);
-          lprint_newline ();
     end;
   
   ignore (find_port  "telnet server" !!telnet_bind_addr
       telnet_port DriverControlers.telnet_handler);  
-  lprintf "2"; lprint_newline ();
+  lprintf "2\n"; 
   
   if !!chat_port <> 0 then begin
       ignore (find_port "chat server" !!chat_bind_addr
           chat_port DriverControlers.chat_handler);  
       try
         CommonChat.send_hello ()
-      with _ -> lprintf "CommonChat.send_hello failed"; lprint_newline ();
+      with _ -> lprintf "CommonChat.send_hello failed\n"; 
     end;
 
   gui_server_sock := find_port "gui server"  !!gui_bind_addr
@@ -95,7 +98,7 @@ let start_interfaces () =
 
 let _ =
   add_web_kind "motd.html" (fun filename ->
-      lprintf "motd.html changed"; lprint_newline ();
+      lprintf "motd.html changed\n"; 
     motd_html =:= File.to_string filename
   );
   add_web_kind "motd.conf" (fun filename ->
@@ -113,14 +116,14 @@ let _ =
 	| "del_item" ->
             CommonInteractive.del_item_from_fully_qualified_options name value
 	| _ -> 
-	    lprintf "UNUSED LINE: %s" line; lprint_newline ()
+	    lprintf "UNUSED LINE: %s\n" line; 
           
       done;
     with 
     | End_of_file ->
 	close_in ic
-    | e -> lprintf "Error while reading motd.conf(%s): %s" filename
-	(Printexc2.to_string e); lprint_newline ();
+    | e -> lprintf "Error while reading motd.conf(%s): %s\n" filename
+	(Printexc2.to_string e); 
 	close_in ic
 			   )
 
@@ -221,9 +224,7 @@ let load_config () =
           (try Unix2.copy "downloads.ini" "downloads_expert.ini" with _ -> ());
           (try Unix2.copy "downloads.ini" "donkey.ini" with _ -> ());
           (try Unix2.copy "downloads.ini" "donkey_expert.ini" with _ -> ());
-
-          end else begin
-          
+        end else begin          
           lprintf "No config file found. Generating one.\n"; 
           let oc = open_out (options_file_name downloads_expert_ini) in
           close_out oc; 
@@ -231,12 +232,11 @@ let load_config () =
     end;
   (try 
       Options.load downloads_ini;
-      Options.load downloads_expert_ini;      
+      (try Options.load downloads_expert_ini with _ -> ());      
     with e -> 
         lprintf "Exception %s during options load\n" (Printexc2.to_string e); 
         exit 2;
         ());  
-  
   CommonMessages.load_message_file ();
   if !!html_mods then CommonMessages.colour_changer ();
   
@@ -249,11 +249,10 @@ let load_config () =
       )      
       r.network_config_file 
   );
-  
 (* Here, we try to update options when a new version of mldonkey is
 used. For example, we can add new web_infos... *)
   if !!options_version < 1 then begin
-      lprintf "Updating options to level 1"; lprint_newline ();
+      lprintf "Updating options to level 1\n"; 
     (*  web_infos =:= 
         (
         ("server.met", 1, "http://ocbmaurice.dyns.net/pl/slist.pl?download");        
@@ -261,7 +260,7 @@ used. For example, we can add new web_infos... *)
       !!web_infos;*)
     end;
   if !!options_version < 2 then begin
-      lprintf "Updating options to level 2"; lprint_newline ();
+      lprintf "Updating options to level 2\n"; 
       if !!min_reask_delay = 720 then min_reask_delay =:= 600
     end;
   options_version =:= 2;
@@ -288,16 +287,14 @@ used. For example, we can add new web_infos... *)
   
   Arg.parse ([
       "-v", Arg.Unit (fun _ ->
-          lprintf "%s" (CommonGlobals.version ());
-          lprint_newline ();
+          lprintf "%s\n" (CommonGlobals.version ());
           exit 0), " : print version number and exit";
       "-exit", Arg.Unit (fun _ -> exit 0), ": exit immediatly";
       "-format", Arg.String (fun file ->
           let format = CommonMultimedia.get_info file in
           ()), " <filename> : check file format";
       "-test_ip", Arg.String (fun ip ->
-          lprintf "%s = %s" ip (Ip.to_string (Ip.of_string ip));
-          lprint_newline ();
+          lprintf "%s = %s\n" ip (Ip.to_string (Ip.of_string ip));
           exit 0), "<ip> : undocumented";
       "-check_impl", Arg.Unit (fun _ ->
           CommonNetwork.check_network_implementations ();
@@ -331,16 +328,16 @@ used. For example, we can add new web_infos... *)
 let _ =  
   MlUnix.set_signal  Sys.sigchld (*Sys.Signal_ignore;*)
     (Sys.Signal_handle (fun _ ->
-        lprintf "SIGCHLD"; lprint_newline ()));
+        lprintf "SIGCHLD\n"; ));
   MlUnix.set_signal  Sys.sighup
     (Sys.Signal_handle (fun _ ->
-        lprintf "SIGHUP"; lprint_newline ();
+        lprintf "SIGHUP\n"; 
         BasicSocket.close_all ();
 (*        BasicSocket.print_sockets (); *)
     ));
   MlUnix.set_signal  Sys.sigpipe (*Sys.Signal_ignore*)
     (Sys.Signal_handle (fun _ ->
-        lprintf "SIGPIPE"; lprint_newline ()));
+        lprintf "SIGPIPE\n"; ));
   MlUnix.set_signal  Sys.sigint (*Sys.Signal_ignore*)
     (Sys.Signal_handle (fun _ ->
 (*      if !CommonOptions.verbose then
@@ -353,7 +350,7 @@ let _ =
         CommonGlobals.exit_properly 0))
 
 let _ =
-    
+  
   load_config ();
   
   add_infinite_option_timer download_sample_rate CommonFile.sample_timer;  
@@ -362,11 +359,27 @@ let _ =
   (try Options.load files_ini with _ -> ());
   (try Options.load friends_ini with _ -> ());
   (try Options.load searches_ini with _ -> ());
+
+  (try Options.load CommonUploads.M.shared_files_ini;
+      let list = ref [] in
+(* Normally, we should check that downloaded files are still there.
   
+  *)    
+      let list = ref [] in
+      List.iter (fun file ->
+          if Unix32.file_exists file.sh_name then begin
+              Hashtbl.add CommonUploads.M.shared_files_info file.sh_name file;
+              list := file :: !list
+            end
+      ) !!CommonUploads.M.known_shared_files;
+      CommonUploads.M.known_shared_files =:= !list;
+      with _ -> ());
   Options.save_with_help servers_ini;
   Options.save_with_help files_ini;
   Options.save_with_help friends_ini;
   Options.save_with_help searches_ini;
+  Options.save_with_help CommonUploads.M.shared_files_ini;
+
   
   networks_iter (fun r -> network_load_complex_options r);
   networks_iter_all (fun r -> 
@@ -384,6 +397,7 @@ let _ =
   add_infinite_timer 60. minute_timer;
   add_infinite_timer 3600. hourly_timer;
   add_infinite_timer 0.1 CommonUploads.upload_download_timer;
+  add_infinite_timer 1. CanBeCompressed.deflate_timer;
 
   shared_add_directory (!!incoming_directory, !!incoming_directory_prio);
   List.iter shared_add_directory !!shared_directories;  
@@ -394,16 +408,12 @@ let _ =
   Options.prune_file downloads_ini;
   Options.prune_file downloads_expert_ini;
   (try load_web_infos () with _ -> ());
-  lprintf "Welcome to MLdonkey client"; lprint_newline ();
-  lprintf "Check http://www.mldonkey.net/ for updates"; 
-  lprint_newline ();
-  lprintf "To command: telnet 127.0.0.1 %d" !!telnet_port; 
-  lprint_newline ();
-  lprintf "Or with browser: http://127.0.0.1:%d" !!http_port; 
-  lprint_newline ();
+  lprintf "Welcome to MLdonkey client\n"; 
+  lprintf "Check http://www.mldonkey.net/ for updates\n"; 
+  lprintf "To command: telnet 127.0.0.1 %d\n" !!telnet_port; 
+  lprintf "Or with browser: http://127.0.0.1:%d\n" !!http_port; 
   
-  lprint_string (DriverControlers.text_of_html !!motd_html);
-  lprint_newline ();
+  lprintf "%s\n" (DriverControlers.text_of_html !!motd_html);
   
 
   add_init_hook (fun _ ->
@@ -418,8 +428,8 @@ let _ =
             Sys.file_exists asker then
             ignore (Sys.command (Printf.sprintf "%s %s&" asker !!mldonkey_gui));
         with Not_found -> 
-            lprintf "Not running under X, not trying to start the GUI";
-            lprint_newline ());
+            lprintf "Not running under X, not trying to start the GUI\n";
+            );
   );
  
   if !!run_as_user <> "" then begin
@@ -429,9 +439,8 @@ let _ =
         let pw = Unix.getpwuid (Unix.getuid()) in
         lprintf "mldonkey is now running as %s\n"  pw.Unix.pw_name;
       with e ->
-          lprintf "Exception %s trying to set user_uid [%s]"
+          lprintf "Exception %s trying to set user_uid [%s]\n"
           (Printexc2.to_string e) !!run_as_user;
-          lprint_newline ();
           exit 2
     end;
  
@@ -440,9 +449,8 @@ let _ =
         MlUnix.setuid !!run_as_useruid;
         lprintf "mldonkey is now running as uid %d\n"  !!run_as_useruid;
       with e ->
-          lprintf "Exception %s trying to set user_uid [%d]"
+          lprintf "Exception %s trying to set user_uid [%d]\n"
           (Printexc2.to_string e) !!run_as_useruid;
-          lprint_newline ();
           exit 2
     end;
   

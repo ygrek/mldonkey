@@ -33,7 +33,8 @@ open CommonComplexOptions
 open CommonFile
 open CommonTypes
 open CommonGlobals
-
+open CommonHosts
+open CommonDownloads.SharedDownload
   
 open FasttrackTypes
 open FasttrackGlobals
@@ -43,8 +44,8 @@ open FasttrackComplexOptions
 open FasttrackProto
           
 let udp_packet_handler ip port msg = 
-  let h = new_host ip port Ultrapeer in
-  host_queue_add active_udp_queue h (last_time ());
+  let h = H.new_host ip port Ultrapeer in
+  H.host_queue_add active_udp_queue h (last_time ());
   h.host_connected <- last_time ();
 (*  if !verbose_udp then
     lprintf "Received UDP packet from %s:%d: \n%s\n" 
@@ -71,7 +72,7 @@ let server_msg_handler sock s msg_type m =
         let unknown = BigEndian.get_int16 m (i*8+6) in
         
         lprintf "    LittleEndian Node %s:%d   %d\n" (Ip.to_string l_ip) l_port unknown;
-        let (h : host) = new_host (Ip.addr_of_ip l_ip) l_port Ultrapeer in
+        let (h : host) = H.new_host (Ip.addr_of_ip l_ip) l_port Ultrapeer in
         ();
       done;
       if s.server_host.host_kind = IndexServer then
@@ -132,8 +133,9 @@ let server_msg_handler sock s msg_type m =
           let ntags = Int64.to_int ntags in
           
           lprintf "   Result %s size: %Ld tags: %d\n" 
-            (Md5Ext.to_string_case false result_hash) result_size ntags;
-          
+            (Md5Ext.to_hexa_case false result_hash) result_size ntags;
+
+(* dynint: year, quality, time *)
           
           let rec iter_tags name pos n tags =
             if n > 0 && pos < len-2 then
@@ -164,7 +166,7 @@ let server_msg_handler sock s msg_type m =
             "FastTrack://%s:%d/.hash=%s" (Ip.to_string user_ip)
             user_port (Md5Ext.to_string_case false result_hash) in *)
           let url = Printf.sprintf 
-              "/.hash=%s" (Md5Ext.to_string_case false result_hash) in 
+              "/.hash=%s" (Md5Ext.to_hexa_case false result_hash) in 
           begin
             match s.search_search with
               UserSearch (sss, _,_,_) ->
@@ -177,8 +179,9 @@ let server_msg_handler sock s msg_type m =
                 let c = new_client user.user_kind in
                 add_download file c (FileByUrl url);
                 
-                if not (List.mem result_name file.file_filenames) then 
-                  file.file_filenames <- file.file_filenames @ [result_name] ;
+                if not (List.mem result_name file.file_shared.file_filenames) then 
+                  file.file_shared.file_filenames <- 
+                  file.file_shared.file_filenames @ [result_name] ;
                 
             | _ -> ()
           end;

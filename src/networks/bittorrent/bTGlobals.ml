@@ -19,6 +19,9 @@
 
 open Printf2
 open Md4
+open BasicSocket
+open Options
+
 open CommonClient
 open CommonUser
 open CommonTypes
@@ -26,15 +29,15 @@ open CommonComplexOptions
 open CommonServer
 open CommonResult
 open CommonFile
-open BasicSocket
-open CommonGlobals
-open Options
-open BTTypes
-open BTOptions
 open CommonSwarming  
 open CommonNetwork
+open CommonDownloads.SharedDownload  
+open CommonGlobals
+  
+open BTTypes
+open BTOptions
 
-    
+    (*
 let file_size file = file.file_file.impl_file_size
 let file_downloaded file = file_downloaded (as_file file.file_file)
 let file_age file = file.file_file.impl_file_age
@@ -48,9 +51,8 @@ let file_state file =
 let file_num file =
   file_num (as_file file.file_file)
   
-let file_must_update file =
-  file_must_update (as_file file.file_file)
-
+  *)
+  
 let client_type c = client_type (as_client c.client_client)
 
 let set_client_state client state =
@@ -87,9 +89,9 @@ let (room_ops : server CommonRoom.room_ops) =
 let (user_ops : user CommonUser.user_ops) = 
   CommonUser.new_user_ops network
   
-let (file_ops : file CommonFile.file_ops) = 
-  CommonFile.new_file_ops network
-  
+let (network_file_ops: file_network) = new_file_network "BitTorrent"
+let (file_ops: file network_file) = new_network_file network_file_ops
+    
 let (client_ops : client CommonClient.client_ops) = 
   CommonClient.new_client_ops network
     
@@ -98,76 +100,65 @@ module DO = CommonOptions
 let current_files = ref ([] : BTTypes.file list)
 
 let listen_sock = ref (None : TcpServerSocket.t option)
+
+let infos_by_uid = Hashtbl.create 13
   
 let files_by_uid = Hashtbl.create 13
-      
-let new_file file_id file_name file_size file_tracker piece_size = 
-  let file_temp = Filename.concat !!DO.temp_directory 
-      (Printf.sprintf "BT-%s" (Sha1.to_string file_id)) in
-  let t = Unix32.create file_temp [Unix.O_RDWR; Unix.O_CREAT] 0o666 in
-  let swarmer = Int64Swarmer.create () in
-  let partition = fixed_partition swarmer piece_size in
+
+let new_file file_shared file_id =
+  
+  let file_info = Hashtbl.find infos_by_uid file_id in
+  let partition = fixed_partition file_shared.file_swarmer "bittorrent"
+      file_info.file_info_piece_size in
   let rec file = {
-      file_file = file_impl;
-      file_piece_size = piece_size;
-      file_id = file_id;
-      file_name = file_name;
+      file_shared = file_shared;
+      file_info = file_info;
       file_clients = Hashtbl.create 113;
-      file_swarmer = swarmer;
       file_partition = partition;
-      file_tracker = file_tracker;
-      file_chunks = [||];
       file_tracker_connected = false;
       file_tracker_last_conn = 0;
       file_tracker_interval = 600;
-      file_files = [];
       file_blocks_downloaded = [];
-    } and file_impl =  {
-      dummy_file_impl with
-      impl_file_fd = t;
-      impl_file_size = file_size;
-      impl_file_downloaded = Int64.zero;
-      impl_file_val = file;
-      impl_file_ops = file_ops;
-      impl_file_age = last_time ();          
-      impl_file_best_name = file_name;
     }
   in
-  Int64Swarmer.set_size swarmer file_size;  
-  Int64Swarmer.set_writer swarmer (fun offset s pos len ->      
-      if !!CommonOptions.buffer_writes then 
-        Unix32.buffered_write_copy t offset s pos len
-      else
-        Unix32.write t offset s pos len
-  );
+(*  file_shared.file_verified_partition <- Some partition; *)
   Int64Swarmer.set_verifier partition (fun b ->
-      if file.file_chunks = [||] then raise Not_found;
+      if file_info.file_info_chunks = [||] then 
+        raise Int64Swarmer.VerifierNotReady;
       let num, begin_pos, end_pos = Int64Swarmer.block_block b in
       lprintf "Sha1 to compute: %d %Ld-%Ld\n" num begin_pos end_pos;
-      Unix32.flush_fd (file_fd file);
-      let sha1 = Sha1.digest_subfile (file_fd file) 
+      Unix32.flush_fd (file_fd file_shared);
+      let sha1 = Sha1.digest_subfile (file_fd file_shared) 
         begin_pos (end_pos -- begin_pos) in
-      let result = sha1 = file.file_chunks.(num) in
+      let result = sha1 = file_info.file_info_chunks.(num) in
       lprintf "Sha1 computed: %s against %s = %s\n"
-        (Sha1.to_string sha1) (Sha1.to_string file.file_chunks.(num))
+        (Sha1.to_string sha1) 
+      (Sha1.to_string file_info.file_info_chunks.(num))
       (if result then "VERIFIED" else "CORRUPTED");
       if result then begin
           file.file_blocks_downloaded <- b :: file.file_blocks_downloaded;
-          file_must_update file;
+          file_must_update file_shared;
         end;
       result
   );
+  file_shared.file_files <- file_info.file_info_files;
   current_files := file :: !current_files;
   Hashtbl.add files_by_uid file_id file;
-  file_add file_impl FileDownloading;
-(*      lprintf "ADD FILE TO DOWNLOAD LIST\n"; *)
   file
-  
-let new_file file_id file_name file_size file_tracker piece_size =
-  try
-    Hashtbl.find files_by_uid file_id
-  with Not_found -> 
-      new_file file_id file_name file_size file_tracker piece_size
+                  
+let _ = 
+  register_network network_file_ops;
+  network_file_ops.op_download_start <- 
+    (fun file_shared ->      
+      List.iter (fun uid ->          
+          match uid with
+          | BTUrl (_, file_id) ->
+              if not (Hashtbl.mem files_by_uid file_id) then
+                ignore (new_file file_shared file_id)
+              
+          | _ ->()
+      ) file_shared.file_uids
+  ) 
   
 let new_client file peer_id kind =
   try
@@ -206,9 +197,9 @@ let new_client file peer_id kind =
       c.client_connection_control.control_min_reask <- 120;
       new_client impl;
       Hashtbl.add file.file_clients peer_id c;
-      file_add_source (as_file file.file_file) (as_client c);
+      file_add_source file.file_shared (as_client c);
       c
   
 let remove_file file = 
-  Hashtbl.remove files_by_uid file.file_id;
+  Hashtbl.remove files_by_uid file.file_info.file_info_id;
   current_files := List2.removeq file !current_files

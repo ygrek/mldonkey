@@ -20,35 +20,35 @@
 open Printf2
 open CommonOptions
 
-type hash_method = MD4 | MD5 | SHA1
+type hash_method = MD4 | MD5 | SHA1 | TIGER
 
-type job = {
+type 'a job = {
     job_name : string;
     job_begin : int64;
     job_len : int64;
     job_method : hash_method;
-    job_result : string;
-    job_handler : (job -> unit);
+    job_result : 'a;
+    job_handler : ('a job -> unit);
     job_error : bool;
   }
 
-let fifo = Fifo.create ()
+let (fifo : string job Fifo.t) = Fifo.create ()
 let current_job = ref None
   
-external job_done : job -> bool = "ml_job_done"
-external job_start : job -> Unix.file_descr -> unit = "ml_job_start"
+external job_done : 'a job -> bool = "ml_job_done"
+external job_start : 'a job -> Unix.file_descr -> unit = "ml_job_start"
   
 let _ =
   if BasicSocket.has_threads () then begin
       lprintf "Using threads\n"; 
     end;
   BasicSocket.add_infinite_timer 0.1 (fun _ ->
-(*      lprintf "test job\n"; *)
+(*      lprintf "test job\n";  *)
       try
         match !current_job with
         | None -> raise Not_found
         | Some (job, fd) ->
-(*            lprintf "job done\n"; *)
+(*            lprintf "job done\n";  *)
             if job_done job then begin
                 if !verbose_md4 then begin
                     lprintf "Job finished\n"; 
@@ -69,13 +69,18 @@ let _ =
 (*                lprintf "No waiting job\n"; *)
                 raise e
           in
-(*          lprintf "Job ready\n"; *)
+(*          lprintf "Job started\n";   *)
           try
             let fd = Unix.openfile job.job_name [Unix.O_RDONLY] 0o444 in
             current_job := Some (job, fd);
             if !verbose_md4 then begin
-                lprintf "Starting job %s %Ld %Ld\n" job.job_name
-                  job.job_begin job.job_len; 
+                lprintf "Starting job %s %Ld %Ld %s\n" job.job_name
+                  job.job_begin job.job_len
+                  (match job.job_method with
+                    MD5 -> "MD5"
+                  | TIGER -> "TIGER"
+                  | SHA1 -> "SHA1"
+                  | MD4 -> "MD4"); 
               end;
             job_start job fd;
             if !verbose_md4 then begin
@@ -92,11 +97,11 @@ let compute_md4 name begin_pos len f =
       job_begin = begin_pos;
       job_len = len;
       job_method = MD4;
-      job_result = String.create Md4.Md4.length;
+      job_result = Md4.Md4.create ();
       job_handler = f;
       job_error = false;
     } in
-  Fifo.put fifo job
+  Fifo.put fifo (Obj.magic job)
   
 let compute_sha1 name begin_pos len f =
   let job = {
@@ -104,9 +109,33 @@ let compute_sha1 name begin_pos len f =
       job_begin = begin_pos;
       job_len = len;
       job_method = SHA1;
-      job_result = String.create Md4.Sha1.length;
+      job_result = Md4.Sha1.create ();
       job_handler = f;
       job_error = false;
     } in
-  Fifo.put fifo job
+  Fifo.put fifo (Obj.magic job)
+  
+let compute_md5 name begin_pos len f =
+  let job = {
+      job_name = name;
+      job_begin = begin_pos;
+      job_len = len;
+      job_method = MD5;
+      job_result = Md4.Md5.create ();
+      job_handler = f;
+      job_error = false;
+    } in
+  Fifo.put fifo (Obj.magic job)
+  
+let compute_tiger name begin_pos len f =
+  let job = {
+      job_name = name;
+      job_begin = begin_pos;
+      job_len = len;
+      job_method = TIGER;
+      job_result = Md4.TigerTree.create ();
+      job_handler = f;
+      job_error = false;
+    } in
+  Fifo.put fifo (Obj.magic job)
   

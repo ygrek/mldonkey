@@ -27,11 +27,13 @@ open TcpBufferedSocket
 open CommonGlobals
 open CommonTypes
 open CommonOptions
+open CommonHosts
+open CommonDownloads.SharedDownload
   
-open GnutellaOptions
-open GnutellaTypes
-open GnutellaProtocol
-open GnutellaGlobals
+open Gnutella2Options
+open Gnutella2Types
+open Gnutella2Protocol
+open Gnutella2Globals
   
 type addr = Ip.t * int
 
@@ -68,7 +70,7 @@ type g2_packet =
 | PUSH of addr
   
 | QHT_RESET
-| QHT_PATCH of GnutellaProtocol.QrtPatch.t
+| QHT_PATCH of Gnutella2Protocol.QrtPatch.t
   
 | QKR
 | QKR_RNA of addr
@@ -165,10 +167,10 @@ module G2_LittleEndian = struct
           let sha1 = String.sub s pos 20 in
           let ttr = String.sub s (pos+20) 24 in
           let sha1 = Sha1.direct_of_string sha1 in
-          let ttr = Tiger.direct_of_string ttr in
+          let ttr = TigerTree.direct_of_string ttr in
           Bitprint (Printf.sprintf "urn:bitprint:%s.%s" 
               (Sha1.to_string sha1)
-            (Tiger.to_string ttr), sha1, ttr),
+            (TigerTree.to_string ttr), sha1, ttr),
           pos+44
       | "sha1" -> 
           let sha1 = String.sub s pos 20 in
@@ -178,9 +180,9 @@ module G2_LittleEndian = struct
           
       | "tree:tiger" | "ttr" -> 
           let ttr = String.sub s pos 24 in
-          let ttr = Tiger.direct_of_string ttr in
+          let ttr = TigerTree.direct_of_string ttr in
           TigerTree (Printf.sprintf "urn:ttr:%s" 
-              (Tiger.to_string ttr), ttr), pos + 24
+              (TigerTree.to_string ttr), ttr), pos + 24
       | "md5" -> 
           let ed2k = String.sub s pos 16 in
           let ed2k = Md5.direct_of_string ed2k in
@@ -371,7 +373,7 @@ let buf_uid buf s = match s with
   | Bitprint (_,sha1, ttr) ->
       Buffer.add_string buf "bp\000"; 
       Buffer.add_string buf (Sha1.direct_to_string sha1);
-      Buffer.add_string buf (Tiger.direct_to_string ttr);
+      Buffer.add_string buf (TigerTree.direct_to_string ttr);
   | Sha1 (_,sha1) ->
       Buffer.add_string buf "sha1\000"; 
       Buffer.add_string buf (Sha1.direct_to_string sha1)
@@ -383,7 +385,7 @@ let buf_uid buf s = match s with
       Buffer.add_string buf (Md5.direct_to_string md5)
   | TigerTree (_, ttr) ->
       Buffer.add_string buf "ttr\000"; 
-      Buffer.add_string buf (Tiger.direct_to_string ttr)
+      Buffer.add_string buf (TigerTree.direct_to_string ttr)
   | _ -> ()
       
 let g2_encode_payload msg = 
@@ -423,8 +425,8 @@ let g2_encode_payload msg =
     | PUSH addr -> M.buf_addr buf addr; "PUSH"
 
 (*  
-| QHT_reset of GnutellaProtocol.QrtReset.t
-| QHT_patch of GnutellaProtocol.QrtPatch.t
+| QHT_reset of Gnutella2Protocol.QrtReset.t
+| QHT_patch of Gnutella2Protocol.QrtPatch.t
 *)
     
     
@@ -812,7 +814,7 @@ let socket_send sock p =
   (*
   lprintf "DUMP SENT: \n";
   dump m; *)
-  write_string sock m
+  CanBeCompressed.write_string sock m
   
   
   
@@ -903,21 +905,23 @@ let udp_send_ack ip port counter =
 
           
 let host_send sock h p = 
-  let ip = h.host_ip in
+  lprintf "host_send\n";
+  let ip = h.host_addr in
   let port = h.host_port in
   match sock with
-  | Connection sock ->
-      if !verbose_msg_servers then
+  | Connection _ | CompressedConnection _ ->
+(*      if !verbose_msg_servers then *)
         lprintf "Sending on TCP to %s:%d: \n%s\n" 
           (Ip.to_string ip) port (Print.print p);
       socket_send sock p
+      
   | _ -> 
-      udp_send ip port p
+      udp_send (ip) port p
 
 let packet p list = { g2_children = list; g2_payload = p }
 
 let g2_handler f gconn sock  =
-  let b = TcpBufferedSocket.buf sock in
+  let b = CanBeCompressed.buf gconn.gconn_sock in
 (*
   lprintf "GNUTELLA2 HANDLER\n";
 AnyEndian.dump (String.sub b.buf b.pos b.len);
@@ -948,8 +952,11 @@ AnyEndian.dump (String.sub b.buf b.pos b.len);
       let name = String.sub b.buf (b.pos + pos) name_len in
       let packet = String.sub b.buf (b.pos + pos + name_len) len in
       let has_children = cb land 4 <> 0 in
-      TcpBufferedSocket.buf_used sock msg_len;
-      f gconn (g2_parse [name] has_children be packet)
+      TcpBufferedSocket.buf_used b msg_len;
+      lprintf "packet header extracted\n";
+      let m = g2_parse [name] has_children be packet in
+      lprintf "packet extracted\n";
+      f gconn m
     done
   with 
   | Not_found -> ()
@@ -1286,6 +1293,7 @@ mary="fab"/></identity></gProfile>'
   
     
 let server_send sock s =
+  lprintf "server_send\n";
   host_send sock s.server_host
 
 let server_send_qrt_reset s = 
@@ -1365,7 +1373,8 @@ let server_recover_file file sock s =
 (*          server_send_query ss.search_uid words NoConnection s *)
           ()
       | FileUidSearch (file, uid) ->
-          server_ask_uid NoConnection s ss.search_uid uid file.file_name        
+          server_ask_uid NoConnection s ss.search_uid uid 
+          file.file_shared.file_name        
   ) file.file_searches
   
 let server_send_ping sock s = 
@@ -1575,19 +1584,23 @@ module Pandora = struct
       else pos
     
     let parse_string s =
-      lprintf "Parse string:\n %s\n" (String.escaped s);
+(*      lprintf "Parse string:\n %s\n" (String.escaped s); *)
       let rec iter pos =
 (*          lprintf "iter %d\n" pos; *)
         if pos < String.length s then
           let p, decoded, pos = parse s pos in
-          
+
+(*
           lprintf "decoded:\n";
           dump decoded;
+*)
           
           (try
               let encoded = g2_encode p in
+(*
               lprintf "encoded:\n";
-              dump encoded;
+dump encoded;
+  *)
               let pp, _, _ = parse encoded 0 in
               
               if encoded <> decoded then begin
@@ -1607,7 +1620,7 @@ module Pandora = struct
           iter pos
       in
       iter 0
-      
+    
     let piter s1 deflate h msgs = 
       let len = String.length s1 in
       try
@@ -1624,7 +1637,7 @@ module Pandora = struct
             begin
 (* First of all, deflate in one pass *)
               try
-                lprintf "PARSE ONE BEGIN...\n%s\n" (String.escaped s1);
+(*                lprintf "PARSE ONE BEGIN...\n%s\n" (String.escaped s1); *)
                 let z = Zlib.inflate_init true in
                 let s =  
                   let s2 = String.make 1000000 '\000' in
@@ -1635,7 +1648,7 @@ module Pandora = struct
                   String.sub s2 0 used_out
                 in
                 parse_string s;
-                lprintf "...PARSE ONE END\n";
+(*                lprintf "...PARSE ONE END\n"; *)
               with e ->
                   lprintf "Exception %s in deflate1\n" (Printexc2.to_string e)
             end;
@@ -1651,9 +1664,9 @@ module Pandora = struct
                   let len = String.length rem in
                   let s2 = String.make 100000 '\000' in
                   let f = Zlib.Z_SYNC_FLUSH in
-                  lprintf "deflating %d bytes\n" len;
+(*                  lprintf "deflating %d bytes\n" len; *)
                   let (_,used_in, used_out) = Zlib.inflate z rem 0 len s2 0 100000 f in
-                  lprintf "decompressed %d/%d[%d]\n" used_out len used_in;
+(*                  lprintf "decompressed %d/%d[%d]\n" used_out len used_in; *)
                   let m = String.sub s2 0 used_out in
                   
                   (try parse_string m with
@@ -1672,7 +1685,7 @@ module Pandora = struct
       with e ->
           lprintf "Execption %s while deflating \n O\nCUT:%s\n"
             (Printexc2.to_string e) (String.escaped s1)
-          
+    
     let commit () =  
       Hashtbl.iter (fun _ cnx ->
           let buf = Buffer.create 1000 in
@@ -1681,52 +1694,50 @@ module Pandora = struct
           ) cnx.buf;
           let s = Buffer.contents buf in
           let len = String.length s in
-          try
-            if String2.starts_with s "GNUTELLA CONNECT" then begin
-                let h1 = iter s 0 in
-                let h2 = iter s h1 in
-                lprintf "\n-----------------------------------------------\n";
-                lprintf "\nCONNECTION %s:%d -> %s:%d: %d bytes\n" 
-                  cnx.ip1 cnx.port1 cnx.ip2 cnx.port2 len;
-                let s1 = (String.sub s h2 (len-h2)) in
-                let s2 = (String.sub s h1 (h2-h1)) in
-                lprintf "Header 1: \n%s\n" (hescaped (String.sub s 0 h1));
-                lprintf "Header 2: \n%s\n" (hescaped s2);
-                let deflate = try ignore (String2.search_from s2 0 "deflate");
-                    lprintf "deflate\n"; true with _ -> false in
-                piter s1 deflate h2 cnx.buf
-              end else 
-            if String2.starts_with s "GNUTELLA" then begin
-                let h1 = iter s 0 in
-                lprintf "\n-----------------------------------------------\n";
-                lprintf "\nCONNECTION %s:%d -> %s:%d: %d bytes\n" 
-                  cnx.ip1 cnx.port1 cnx.ip2 cnx.port2 len;
-                
-                let s1 = (String.sub s h1 (len-h1)) in
-                let s2 = (String.sub s 0 h1) in
-                lprintf "Header 1: \n%s\n" (hescaped s2);
-                let deflate = try ignore (String2.search_from s2 0 "deflate");
-                    lprintf "deflate\n"; true with _ -> false in
-                piter s1 deflate h1 cnx.buf
-              end else 
-            if String2.starts_with s "GET" then begin
-                lprintf "Http connect to\n";
-                let h1 = iter s 0 in
-                lprintf "Header 1: \n%s\n" (hescaped (String.sub s 0 h1));
-              end else 
-            if String2.starts_with s "HTTP" then begin
-                lprintf "Http connected from\n";
-                let h1 = iter s 0 in
-                lprintf "Header 1: \n%s\n" (hescaped (String.sub s 0 h1));
-              end else 
-              lprintf "Starting %s\n" (String.escaped
-                  (String.sub s 0 (min len 20)))
-          with 
-          
-          | e ->
-              lprintf "Exception %s in\n%s\n" (Printexc2.to_string e)
-              (String.escaped s);
-              ()            
+          lprintf "\n-----------------------------------------------\n";
+          lprintf "\nCONNECTION %s:%d -> %s:%d: %d bytes\n" 
+            cnx.ip1 cnx.port1 cnx.ip2 cnx.port2 len;
+          begin
+            try
+              if String2.starts_with s "GNUTELLA CONNECT" then begin
+                  let h1 = iter s 0 in
+                  let h2 = iter s h1 in
+                  let s1 = (String.sub s h2 (len-h2)) in
+                  let s2 = (String.sub s h1 (h2-h1)) in
+                  lprintf "Header 1: \n%s\n" (hescaped (String.sub s 0 h1));
+                  lprintf "Header 2: \n%s\n" (hescaped s2);
+                  let deflate = try ignore (String2.search_from s2 0 "deflate");
+                      lprintf "deflate\n"; true with _ -> false in
+                  piter s1 deflate h2 cnx.buf
+                end else 
+              if String2.starts_with s "GNUTELLA" then begin
+                  let h1 = iter s 0 in
+                  let s1 = (String.sub s h1 (len-h1)) in
+                  let s2 = (String.sub s 0 h1) in
+                  lprintf "Header 1: \n%s\n" (hescaped s2);
+                  let deflate = try ignore (String2.search_from s2 0 "deflate");
+                      lprintf "deflate\n"; true with _ -> false in
+                  piter s1 deflate h1 cnx.buf;
+                end else 
+              if String2.starts_with s "GET" then begin
+                  lprintf "Http connect to\n";
+                  let h1 = iter s 0 in
+                  lprintf "Header 1: \n%s\n" (hescaped (String.sub s 0 h1));
+                end else 
+              if String2.starts_with s "HTTP" then begin
+                  lprintf "Http connected from\n";
+                  let h1 = iter s 0 in
+                  lprintf "Header 1: \n%s\n" (hescaped (String.sub s 0 h1));
+                end else 
+                lprintf "Starting [%s]\n" (String.escaped
+                    (String.sub s 0 (min len 100)))
+            with           
+            | e ->
+                lprintf "Exception %s in\n%s\n" (Printexc2.to_string e)
+                (String.escaped s);
+                ()            
+          end;
+          lprintf "\nEND OF CONNECTION\n---------------------------------------\n";
       ) connections;
-      lprintf "\n\n#use \"limewire.ml\";;\n\n"
+      
 end

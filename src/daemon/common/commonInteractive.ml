@@ -68,7 +68,7 @@ let cut_messages f sock nread =
       if b.len >= 4 + msg_len then
         begin
           let s = String.sub b.buf (b.pos+4) msg_len in
-          buf_used sock (msg_len + 4);
+          buf_used b (msg_len + 4);
           let opcode = LittleEndian.get_int16 s 0 in
           (f opcode s : unit)
         end
@@ -116,9 +116,15 @@ support the charge, at least, currently. *)
               let motd_conf_file = Filename.temp_file "motd" ".conf" in
               File.from_string motd_conf_file motd_conf_s;
               load_file "motd.conf" motd_conf_file;              
+
+              let ip = L.get_ip s pos in
+              last_high_id := ip;
               
-              lprintf "Redirector info loaded\n";
-              TcpBufferedSocket.close sock Closed_by_user
+              lprintf "Redirector info loaded (IP set to %s)\n"
+                (Ip.to_string ip);
+              TcpBufferedSocket.close sock Closed_by_user;
+              
+              
           ))
       with e -> 
           lprintf "Exception %s while connecting redirector\n"
@@ -602,3 +608,22 @@ let _ =
   option_hook max_concurrent_downloads (fun _ ->
       force_download_quotas ()   
   )
+
+    
+let load () = 
+  Options.load files_ini;
+  Options.load servers_ini;
+  Options.load searches_ini;
+  Options.load friends_ini
+  
+let save () = 
+  networks_iter (fun n -> network_save_complex_options n);
+  
+(*  servers =:= server_sort (); *)
+  
+  Options.save_with_help files_ini;
+  Options.save_with_help searches_ini;
+  Options.save_with_help friends_ini;
+  Options.save_with_help servers_ini;
+  Options.save_with_help CommonUploads.M.shared_files_ini;
+  lprintf "Options correctly saved\n"

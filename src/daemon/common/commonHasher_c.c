@@ -28,6 +28,7 @@
 #define METHOD_MD4      Val_int(0)
 #define METHOD_MD5      Val_int(1)
 #define METHOD_SHA1     Val_int(2)
+#define METHOD_TIGER     Val_int(2)
 
 #define JOB_BEGIN_POS   1
 #define JOB_LEN         2
@@ -38,112 +39,148 @@
 #include "../../utils/lib/md4.h"
 #include "../../utils/lib/md5.h"
 #include "../../utils/lib/sha1_c.h"
+#include "../../utils/lib/tiger.h"
+
 
 
 /* Use a different buffer to avoid sharing it between the two threads !! */
 static unsigned char local_hash_buffer[HASH_BUFFER_LEN];
 
-static void md4_unsafe64_fd_direct (OS_FD fd, long pos, long len, 
-  unsigned char *digest)
-{
-  MD4_CTX context;
-  int nread;
 
-  MD4Init (&context);
-  os_lseek(fd, pos, SEEK_SET);
 
-  while (len!=0){
-    int max_nread = HASH_BUFFER_LEN > len ? len : HASH_BUFFER_LEN;
-
-    nread = os_read (fd, local_hash_buffer, max_nread);
-
-    if(nread < 0) {
-      unix_error(errno, "md4_safe_fd: Read", Nothing);
-    }
-
-    if(nread == 0){
-      MD4Final (digest, &context);
-
-      return;
-    }
-
-    MD4Update (&context, local_hash_buffer, nread);
-    len -= nread;
-  }
-  MD4Final (digest, &context);
-
-  return;
+#define COMPLETE_HASH(HASH_NAME,HASH_CONTEXT,HASH_INIT,HASH_APPEND,HASH_FINISH) \
+static void HASH_NAME##_unsafe64_fd_direct (OS_FD fd, long pos, long len, \
+  unsigned char *digest) \
+{ \
+  HASH_CONTEXT context; \
+  int nread; \
+ \
+  HASH_INIT (&context); \
+  os_lseek(fd, pos, SEEK_SET); \
+ \
+  while (len!=0){ \
+    int max_nread = HASH_BUFFER_LEN > len ? len : HASH_BUFFER_LEN; \
+ \
+    nread = os_read (fd, local_hash_buffer, max_nread); \
+ \
+    if(nread < 0) { \
+      unix_error(errno, "hash_safe_fd_direct: Read", Nothing); \
+    } \
+ \
+    if(nread == 0){ \
+      HASH_FINISH (&context, digest); \
+ \
+      return; \
+    } \
+ \
+    HASH_APPEND (&context, local_hash_buffer, nread); \
+    len -= nread; \
+  } \
+  HASH_FINISH (&context, digest); \
 }
 
-static void md5_unsafe64_fd_direct (OS_FD fd, long pos, long len, 
-  unsigned char *digest)
+COMPLETE_HASH(sha1,SHA1_CTX,sha1_init,sha1_append, sha1_finish)
+COMPLETE_HASH(md5,md5_state_t,md5_init,md5_append,md5_finish)
+COMPLETE_HASH(md4,MD4_CTX,MD4Init,MD4Update,md4_finish)
+
+static void tiger_tree_fd(OS_FD fd, int len, int pos, int block_size, char *digest)
 {
-  md5_state_t context;
-  int nread;
+  static char tiger_buffer[BLOCK_SIZE+1];
+  if(block_size == BLOCK_SIZE){
+    int length = (len - pos > BLOCK_SIZE) ? BLOCK_SIZE : len - pos;
+    char *s = tiger_buffer+1;
+    int toread = length;
+    char *curs = s;
+      while (toread!=0){
+      int max_nread = toread;
+/* HASH_BUFFER_LEN > toread ? toread : HASH_BUFFER_LEN; */
 
-  md5_init (&context);
-  os_lseek(fd, pos, SEEK_SET);
+      int nread = os_read (fd, curs, max_nread);
 
-  while (len!=0){
-    int max_nread = HASH_BUFFER_LEN > len ? len : HASH_BUFFER_LEN;
-
-    nread = os_read (fd, local_hash_buffer, max_nread);
-
-    if(nread < 0) {
-      unix_error(errno, "md5_safe_fd: Read", Nothing);
+        if(nread <= 0) {
+        unix_error(errno, "tiger_safe_fd: Read", Nothing);
+      }
+      curs += nread;
+      toread -= nread;
     }
 
-    if(nread == 0){
-      md5_finish (&context, digest);
-
-      return;
+    tiger_hash(0, s, length, digest);
+  } else {    
+    if(pos+block_size/2 >=len){
+      tiger_tree_fd(fd, len, pos, block_size/2, digest);
+    } else {
+      char digests_prefixed[1+DIGEST_LEN * 2];
+      char *digests = digests_prefixed+1;
+      tiger_tree_fd(fd, len, pos, block_size/2, digests);
+      tiger_tree_fd(fd, len, pos+block_size/2, block_size/2, digests+DIGEST_LEN);
+      tiger_hash(1,digests, 2*DIGEST_LEN, digest);
     }
-
-    md5_append (&context, local_hash_buffer, nread);
-    len -= nread;
   }
-  md5_finish (&context, digest);
 }
 
-
-static void sha1_unsafe64_fd_direct (OS_FD fd, long pos, long len, 
-  unsigned char *digest)
-{
-  SHA1_CTX context;
-  int nread;
-
-  sha1_init (&context);
-  os_lseek(fd, pos, SEEK_SET);
-
-  while (len!=0){
-    int max_nread = HASH_BUFFER_LEN > len ? len : HASH_BUFFER_LEN;
-
-    nread = os_read (fd, local_hash_buffer, max_nread);
-
-    if(nread < 0) {
-      unix_error(errno, "sha1_safe_fd: Read", Nothing);
-    }
-
-    if(nread == 0){
-      sha1_finish (&context, digest);
-
-      return;
-    }
-
-    sha1_append (&context, local_hash_buffer, nread);
-    len -= nread;
-  }
-  sha1_finish (&context, digest);
-}
 
 #ifndef HAVE_LIBPTHREAD
 
 #define MAX_CHUNK_SIZE 1000000
-static  SHA1_CTX sha1_context;
 static OS_FD job_fd;
 static long job_pos;
 static long job_len;
 static value job_finished = 1;
+
+
+/*
+   This computes incrementally a Hash on a given file chunk. The 'timer'
+variables forces computations to wait at least for 1 second between 
+computations of MAX_CHUNK_SIZE(1 Mo) bytes hashes.
+*/
+
+#define PARTIAL_HASH(HASH_NAME,HASH_CONTEXT,HASH_INIT,HASH_APPEND,HASH_FINISH) \
+value HASH_NAME##_step(value job_v) \
+{ \
+  int nread; \
+  int ndone = 0; \
+  static int timer = 0; \
+  static  HASH_CONTEXT context; \
+  if(job_v == Val_unit) { \
+    HASH_INIT(&context); \
+    return Val_false; \
+  } \
+  if(--timer > 0) return Val_false; \
+  while (job_len>0 && ndone< MAX_CHUNK_SIZE){ \
+    int max_nread = HASH_BUFFER_LEN > job_len ? job_len : HASH_BUFFER_LEN; \
+     \
+    nread = os_read (job_fd, local_hash_buffer, max_nread); \
+     \
+    if(nread <= 0) { \
+      unix_error(errno, "partial_hash: Read", Nothing); \
+    } \
+     \
+    if(nread == 0){ \
+      unsigned char *digest = String_val(Field(job_v, JOB_RESULT)); \
+      HASH_FINISH (&context, digest); \
+      job_finished = 1; \
+      timer = 10; \
+      return Val_true; \
+    } \
+     \
+    HASH_APPEND (&context, local_hash_buffer, nread); \
+    job_len -= nread; \
+    ndone += nread; \
+  } \
+   \
+  if(job_len <= 0){ \
+    unsigned char *digest = String_val(Field(job_v, JOB_RESULT));       \
+    HASH_FINISH (&context, digest); \
+    job_finished = 1; \
+    timer = 10; \
+    return Val_true; \
+  } \
+  return Val_false;   \
+}
+
+PARTIAL_HASH(sha1,SHA1_CTX,sha1_init,sha1_append, sha1_finish)
+PARTIAL_HASH(md5,md5_state_t,md5_init,md5_append,md5_finish)
+PARTIAL_HASH(md4,MD4_CTX,MD4Init,MD4Update,md4_finish)
 
 value ml_job_start(value job_v, value fd_v)
 {
@@ -154,12 +191,28 @@ value ml_job_start(value job_v, value fd_v)
   job_len = Int64_val(Field(job_v, JOB_LEN));
 
   if(Field(job_v, JOB_METHOD) == METHOD_MD4)
-  { md4_unsafe64_fd_direct(job_fd, job_pos, job_len, digest); 
-    return Val_unit; }
+  {
+    if(job_len < MAX_CHUNK_SIZE){
+      md4_unsafe64_fd_direct(job_fd, job_pos, job_len, digest); 
+    } else {
+      job_finished = 0;
+      md4_step(Val_unit);
+      os_lseek(job_fd, job_pos, SEEK_SET);
+    }
+    return Val_unit; 
+  }
   
   if(Field(job_v, JOB_METHOD) == METHOD_MD5)
-  { md5_unsafe64_fd_direct(job_fd, job_pos, job_len, digest); 
-    return Val_unit; }
+  {
+    if(job_len < MAX_CHUNK_SIZE){
+      md5_unsafe64_fd_direct(job_fd, job_pos, job_len, digest); 
+    } else {
+      job_finished = 0;
+      md5_step(Val_unit);
+      os_lseek(job_fd, job_pos, SEEK_SET);
+    }
+    return Val_unit; 
+  }
   
   if(Field(job_v, JOB_METHOD) == METHOD_SHA1)
   {
@@ -167,10 +220,16 @@ value ml_job_start(value job_v, value fd_v)
       sha1_unsafe64_fd_direct(job_fd, job_pos, job_len, digest); 
     } else {
       job_finished = 0;
-      sha1_init (&sha1_context);
+      sha1_step(Val_unit);
       os_lseek(job_fd, job_pos, SEEK_SET);
     }
     return Val_unit; 
+  }
+  
+  if(Field(job_v, JOB_METHOD) == METHOD_TIGER)
+  {
+    tiger_tree_fd(job_fd, job_len, job_pos, tiger_block_size(job_len), digest);
+    return Val_unit;
   }
   
   printf("commonHasher_c.c: method sha1 not implemented\n");
@@ -181,39 +240,16 @@ value ml_job_start(value job_v, value fd_v)
 
 value ml_job_done(value job_v)
 {
-  int nread;
-  int ndone = 0;
   if(job_finished) return Val_true;
   
   if(Field(job_v, JOB_METHOD) == METHOD_SHA1){
-    while (job_len>0 && ndone< MAX_CHUNK_SIZE){
-      int max_nread = HASH_BUFFER_LEN > job_len ? job_len : HASH_BUFFER_LEN;
-      
-      nread = os_read (job_fd, local_hash_buffer, max_nread);
-      
-      if(nread <= 0) {
-        unix_error(errno, "sha1_safe_fd: Read", Nothing);
-      }
-      
-      if(nread == 0){
-        unsigned char *digest = String_val(Field(job_v, JOB_RESULT));
-        sha1_finish (&sha1_context, digest);
-        job_finished = 1;
-        return Val_true;
-      }
-      
-      sha1_append (&sha1_context, local_hash_buffer, nread);
-      job_len -= nread;
-      ndone += nread;
-    }
-    
-    if(job_len <= 0){
-      unsigned char *digest = String_val(Field(job_v, JOB_RESULT));      
-      sha1_finish (&sha1_context, digest);
-      job_finished = 1;
-      return Val_true;
-    }
-    return Val_false;  
+    return sha1_step(job_v);
+  }
+  if(Field(job_v, JOB_METHOD) == METHOD_MD5){
+    return md5_step(job_v);
+  }
+  if(Field(job_v, JOB_METHOD) == METHOD_MD4){
+    return md4_step(job_v);
   }
   printf("commonHasher_c: spliting of computation not available for md4/md5\n");
   exit(2);
@@ -292,15 +328,18 @@ static void * hasher_thread(void * arg)
         else
           if( job_method == METHOD_SHA1)
             sha1_unsafe64_fd_direct(job_fd, job_begin_pos, job_len, job_result);
-          else {
-            printf("commonHasher_c.c: method sha1 not implemented\n");
-            exit(2);
-          }
-        /*        fprintf(stderr,"job finished\n");  */
-        job_done = 1;
-      }
+          else 
+            if( job_method == METHOD_TIGER)
+              tiger_unsafe64_fd_direct(job_fd, job_begin_pos, job_len, job_result);
+            else {
+              printf("commonHasher_c.c: method sha1 not implemented\n");
+              exit(2);
+            }
+            /*        fprintf(stderr,"job finished\n");  */
+            job_done = 1;
+    }
   }
-    
+  
   return NULL;
 }
 

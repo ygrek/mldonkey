@@ -10,7 +10,8 @@ let parse lexbuf =
 	try
 		(Xmlyacc.main Xmllex.xml lexbuf)
 	with
-		Parsing.Parse_error -> raise (Xml_error (Printf.sprintf "Parse error line %d characters %d-%d" !Xmllex.curline !Xmllex.pmin !Xmllex.pmax))
+		Parsing.Parse_error -> raise (Xml_error (Printf.sprintf "Parse error line %d characters %d-%d" !Xmllex.curline (Lexing.lexeme_start lexbuf)
+	 (Lexing.lexeme_end lexbuf)))
 
 let parse_string s =
 	parse (Lexing.from_string s)

@@ -25,10 +25,11 @@ module type Base = sig
   
 module type Digest = sig
     type t
-    
+
     val null : t
     val one : t
     val two : t
+      
     val to_string : t -> string
 (* [to_string_case upper hash] *)
     val to_string_case : bool -> t -> string
@@ -68,9 +69,11 @@ module type Digest = sig
 module Md4 : Digest    
 module Md5 : Digest
 module Sha1 : Digest
+module TigerTree : Digest  
 module Tiger : Digest  
 module Md5Ext : Digest
   
 module Base16 : Base
 module Base32 : Base
+module Base6427 : Base
   

@@ -69,6 +69,9 @@ let use_file_history = define_option donkey_expert_ini ["use_file_history"] "kee
 let reliable_sources = define_option donkey_ini ["reliable_sources"] 
   "Should mldonkey try to detect sources responsible for corruption and ban them" bool_option false
   
+let ban_identity_thieves = define_option donkey_ini ["ban_identity_thieves"] 
+  "Should mldonkey try to detect sources masquerading as others and ban them" bool_option false
+  
 let save_file_history = define_option donkey_expert_ini ["save_file_history"] "save the file history in a file and load it at startup" bool_option true
 
   
@@ -306,6 +309,13 @@ let sources_per_chunk =
   define_option donkey_expert_ini ["sources_per_chunk"]
     "How many sources to use to download each chunk"
     int_option 1
+
+  
+(* This option is used to avoid the delay when connecting to a server before
+sending the list of shared files, which is only sent to master servers. *)
+let immediate_master = 
+  define_option donkey_expert_ini ["immediate_master"] 
+    "(only for development tests)" bool_option false
 
 let _ = 
 (* Clients should never send more than 5 localisations queries

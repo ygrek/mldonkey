@@ -148,7 +148,7 @@ let old_source old_source_score source_age addr file =
 
 let new_source  addr file = 
   if !verbose_location then lprint_char 'n'; 
-  let last_conn = last_time () - !!min_reask_delay in
+  let last_conn = (* last_time () - !!min_reask_delay *) 10 in
   let s = add_new_source 0 last_conn addr in
   add_source_request s file last_conn File_new_source;
   s

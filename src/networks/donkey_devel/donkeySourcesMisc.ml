@@ -27,10 +27,13 @@ have time to do it.
 
 open Printf2
 open Options
-open CommonOptions
-open DonkeyOptions
-open CommonTypes
 open BasicSocket
+
+open CommonOptions
+open CommonTypes
+open CommonDownloads.SharedDownload
+  
+open DonkeyOptions
 open DonkeyTypes
 open DonkeyGlobals
 
@@ -72,7 +75,7 @@ let string_of_result r =
   | File_chunk -> "File_chunk"
   | File_upload -> "File_upload"
     
-let rec iter_has_request rs file =
+let rec iter_has_request rs (file : file) =
   match rs with
     [] -> raise Not_found
   | r :: tail ->
@@ -193,7 +196,7 @@ lprint_newline ();
     end
     
 let query_file c file =
-  if file_state file = FileDownloading then
+  if file_state (file : file) = FileDownloading then
     let r = 
       try
         find_client_request c file
@@ -211,7 +214,7 @@ let query_file c file =
 let add_file_location file c =
   if not (Intmap.mem (client_num c) file.file_locations) then begin
       file.file_locations <- Intmap.add (client_num c) c file.file_locations;
-      CommonFile.file_add_source (CommonFile.as_file file.file_file) 
+      file_add_source file.file_multinet 
       (CommonClient.as_client c.client_client);
       match c.client_sock, client_state c with
         Some sock, (Connected_downloading

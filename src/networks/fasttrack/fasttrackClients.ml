@@ -27,6 +27,27 @@ accepted (using the refill function of the socket ?), and check which range
 to ask at that point.
 *)
 
+(*
+
+Examples of replies:
+
+ascii: [ H T T P / 1 . 0   4 1 6   R e q u e s t e d   R a n g e   N o t   S a t i s f i a b l e(10) X - K a z a a - U s e r n a m e :   f e r r a n(13)(10) X - K a z a a - N e t w o r k :   K a Z a A(13)(10) X - K a z a a - I P :   8 0 . 3 5 . 6 9 . X X X : 3 9 8 4(13)(10) X - K a z a a - S u p e r n o d e I P :   2 1 3 . 6 7 . 1 6 4 . X X X : 1 1 9 8(13)(10)]
+
+
+ascii: [ H T T P / 1 . 0   5 0 3   S e r v i c e   U n a v a i l a b l e(10) R e t r y - A f t e r :   3(13)(10) X - K a z a a - U s e r n a m e :   g e m i x(13)(10) X - K a z a a - N e t w o r k :   K a Z a A(13)(10) X - K a z a a - I P :   2 1 7 . 1 2 6 . 1 3 . X X : 1 2 1 4(13)(10) X - K a z a a - S u p e r n o d e I P :   6 2 . 4 3 . 3 3 . X X X : 3 3 1 8(13)(10)]
+
+
+
+
+*)
+
+
+
+
+
+
+
+
 open Queues
 open Printf2
 open Md4
@@ -46,6 +67,7 @@ open CommonTypes
 open CommonFile
 open CommonGlobals
 open CommonSwarming  
+open CommonDownloads.SharedDownload
   
 open FasttrackTypes
 open FasttrackOptions
@@ -66,8 +88,7 @@ let range_size file =  min_range_size
 let max_queued_ranges = 1
 
 let nranges file = 
-  Int64.to_int (Int64.div (file_size file) 
-    min_range_size) + 5
+  Int64.to_int (Int64.div (file_size file -- file_downloaded file) min_range_size) + 5
   
 let disconnect_client c r =
   match c.client_sock with
@@ -104,6 +125,7 @@ let disconnect_client c r =
             (Printexc2.to_string e))
   | _ -> ()
 
+      (*
 let download_finished file = 
   if List.memq file !current_files then begin
       file_completed (as_file file.file_file);
@@ -113,11 +135,7 @@ let download_finished file =
           c.client_downloads <- remove_download file c.client_downloads
       ) file.file_clients
     end
-
-let check_finished file =
-  if file_state file <> FileDownloaded &&
-    (file_size file = Int64Swarmer.downloaded file.file_swarmer) then
-    download_finished file
+      *)
    
 let rec client_parse_header c gconn sock header = 
   if !verbose_msg_clients then begin
@@ -139,7 +157,7 @@ let rec client_parse_header c gconn sock header =
         AnyEndian.dump_ascii header; 
       end;
     let file = d.download_file in
-    let size = file_size file in
+    let size = file_size file.file_shared in
     
     let endline_pos = String.index header '\n' in
     let http, code = 
@@ -173,8 +191,10 @@ let rec client_parse_header c gconn sock header =
     
     
     let start_pos, end_pos = 
+      let has_content_range = ref false in
       try
         let (range,_) = List.assoc "content-range" headers in
+        has_content_range := true;
         try
           let npos = (String.index range 'b')+6 in
           let dash_pos = try String.index range '-' with _ -> -10 in
@@ -205,7 +225,7 @@ let rec client_parse_header c gconn sock header =
             raise e
       with e -> 
           try
-            if code <> 206 then raise Not_found;
+            if code <> 206 && code <> 200 then raise Not_found;
             let (len,_) = List.assoc "content-length" headers in
             let len = Int64.of_string len in
             lprintf "Specified length: %Ld\n" len;
@@ -256,7 +276,7 @@ let rec client_parse_header c gconn sock header =
         (try get_from_client sock c with _ -> ());
     done; 
     gconn.gconn_handler <- Reader (fun gconn sock ->
-        if file_state file <> FileDownloading then begin
+        if file_state file.file_shared <> FileDownloading then begin
             disconnect_client c Closed_by_user;
             raise Exit;
           end;
@@ -272,14 +292,13 @@ end_pos !counter_pos b.len to_read;
 (*
   lprintf "CHUNK: %s\n" 
           (String.escaped (String.sub b.buf b.pos to_read_int)); *)
-        let old_downloaded = 
-          Int64Swarmer.downloaded file.file_swarmer in
+        let old_downloaded = downloaded file.file_shared in
         List.iter (fun (_,_,r) -> Int64Swarmer.free_range r) 
         d.download_ranges;
 
         begin
           try
-            Int64Swarmer.received file.file_swarmer
+            Int64Swarmer.received file.file_shared.file_swarmer
               !counter_pos b.buf b.pos to_read_int;
           with e -> 
               lprintf "FT: Exception %s in Int64Swarmer.received\n"
@@ -288,8 +307,7 @@ end_pos !counter_pos b.len to_read;
           c.client_reconnect <- true;
           List.iter (fun (_,_,r) ->
               Int64Swarmer.alloc_range r) d.download_ranges;
-        let new_downloaded = 
-          Int64Swarmer.downloaded file.file_swarmer in
+        let new_downloaded = downloaded file.file_shared in
         
         (match d.download_ranges with
             [] -> lprintf "EMPTY Ranges !!!\n"
@@ -304,16 +322,16 @@ end_pos !counter_pos b.len to_read;
               ()
         );
         
-        if new_downloaded = file_size file then
-          download_finished file;
         if new_downloaded <> old_downloaded then
-          add_file_downloaded file.file_file
+          add_file_downloaded file.file_shared.file_file
             (new_downloaded -- old_downloaded);
+        if new_downloaded = file_size file.file_shared then
+          check_finished file.file_shared;
 (*
 lprintf "READ %Ld\n" (new_downloaded -- old_downloaded);
 lprintf "READ: buf_used %d\n" to_read_int;
   *)
-        TcpBufferedSocket.buf_used sock to_read_int;
+        TcpBufferedSocket.buf_used b to_read_int;
         counter_pos := !counter_pos ++ to_read;
         if !counter_pos = end_pos then begin
             match d.download_ranges with
@@ -345,7 +363,8 @@ and get_from_client sock (c: client) =
           lprintf "No other download to start\n";
         raise Not_found
     | d :: tail ->
-        if file_state d.download_file <> FileDownloading then iter tail
+        if file_state d.download_file.file_shared <> FileDownloading 
+          then iter tail
         else begin
             if !verbose_msg_clients then begin
                 lprintf "FINDING ON CLIENT\n";
@@ -402,7 +421,7 @@ and get_from_client sock (c: client) =
                 iter ()
               with Not_found -> 
                   lprintf "Unable to get a block !!";
-                  check_finished file;
+                  check_finished file.file_shared;
                   raise Not_found
             in
             let buf = Buffer.create 100 in
@@ -441,7 +460,7 @@ let init_client sock =
   
 let connect_client c =
   match c.client_sock with
-  | Connection sock -> ()
+  | Connection _ | CompressedConnection _ -> ()
   | ConnectionWaiting -> ()
   | ConnectionAborted -> c.client_sock <- ConnectionWaiting;
   | NoConnection ->
@@ -451,7 +470,7 @@ that the connection will not be aborted (otherwise, disconnect_client
   should clearly be called). *)
       (try List.iter (fun d ->
               let file = d.download_file in
-              if file_state file = FileDownloading then
+              if file_state file.file_shared = FileDownloading then
                 begin
                   c.client_connected_for <- Some file;
                   file.file_nconnected_clients <- 
@@ -472,7 +491,7 @@ that the connection will not be aborted (otherwise, disconnect_client
             | _ ->
                 if List.exists (fun d ->
                       let file = d.download_file in
-                      file_state file = FileDownloading 
+                      file_state file.file_shared = FileDownloading 
                   ) c.client_downloads 
                 then
                   try

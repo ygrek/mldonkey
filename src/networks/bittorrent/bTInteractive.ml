@@ -17,8 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Options
 open Printf2
 open Md4
+open BasicSocket
+open TcpBufferedSocket
+  
 open CommonSearch
 open CommonGlobals
 open CommonUser
@@ -31,23 +35,29 @@ open CommonComplexOptions
 open CommonFile
 open CommonSwarming
 open CommonInteractive
-open Options
+open CommonDownloads.SharedDownload
+  
 open BTTypes
 open BTOptions
 open BTGlobals
 open BTComplexOptions
-open BasicSocket
-
 open BTProtocol
 
 let _ =
   network.op_network_connected <- (fun _ -> true)
 
-let file_num file =
-  file.file_file.impl_file_num
-
 let _ =
-  file_ops.op_file_sources <- (fun file ->
+  file_ops.op_download_resume <- BTClients.file_resume;
+  file_ops.op_download_recover <- BTClients.file_resume;
+  file_ops.op_download_pause <- (fun file -> 
+      Hashtbl.iter (fun _ c ->
+          match c.client_sock with
+            Connection sock -> close sock Closed_by_user
+          | _ -> ()
+      ) file.file_clients
+  );
+  
+  file_ops.op_download_sources <- (fun file ->
       lprintf "file_sources\n"; 
       let list = ref [] in
       Hashtbl.iter (fun _ c ->
@@ -55,78 +65,23 @@ let _ =
       ) file.file_clients;
       !list
   );
-  file_ops.op_file_debug <- (fun file ->
-      let buf = Buffer.create 100 in
-      Int64Swarmer.debug_print buf file.file_swarmer;
+  file_ops.op_download_debug <- (fun file buf ->
       Hashtbl.iter (fun _ c ->
           Printf.bprintf buf "Client %d: %s\n" (client_num c)
           (match c.client_sock with
               NoConnection -> "No Connection"
-            | Connection sock -> "Connected"
+            | Connection sock | CompressedConnection (_,_,_,sock) -> "Connected"
             | ConnectionWaiting -> "Waiting for Connection"
             | ConnectionAborted -> "Connection Aborted"
           )
-      ) file.file_clients;
-      Buffer.contents buf
+      ) file.file_clients;  
   );
-  file_ops.op_file_commit <- (fun file new_name ->
-      try
-        if file.file_files <> [] then 
-          let old_file = new_name ^ ".torrent" in
-          Sys.rename new_name old_file;
-          let old_fd = Unix32.create_ro old_file in
-          List.iter (fun (filename, begin_pos, end_pos) ->
-              let filename = Filename.concat new_name filename in
-              lprintf "Would save file as %s\n" filename;
-              let dirname = Filename.dirname filename in
-              Unix2.safe_mkdir dirname;
-              lprintf "Copying %Ld %Ld to 0\n"
-                begin_pos (end_pos -- begin_pos);
-              let fd = Unix32.create
-                  filename [Unix.O_RDWR; Unix.O_CREAT] 0o666 in
-              Unix32.copy_chunk old_fd fd begin_pos zero (end_pos -- begin_pos);
-              Unix32.close fd
-          ) file.file_files;
-          Unix32.close old_fd;
-          if !!delete_original then Sys.remove old_file
-      with e ->
-          lprintf "Exception %s while commiting BitTorrent file"
-            (Printexc.to_string e)
-  ) 
-  
-  
-module P = GuiTypes
-  
-let _ =
-  file_ops.op_file_cancel <- (fun file ->
+  file_ops.op_download_finish <- (fun file ->
       remove_file file;
       BTClients.disconnect_clients file;
-      (try  Unix32.remove (file_fd file)  with e -> ());
-      file_cancel (as_file file.file_file);
-  );
-  file_ops.op_file_info <- (fun file ->
-      {
-        P.file_name = file.file_name;
-        P.file_num = (file_num file);
-        P.file_network = network.network_num;
-        P.file_names = [file.file_name];
-        P.file_md4 = Md4.null;
-        P.file_size = file_size file;
-        P.file_downloaded = file_downloaded file;
-        P.file_nlocations = 0;
-        P.file_nclients = 0;
-        P.file_state = file_state file;
-        P.file_sources = None;
-        P.file_download_rate = file_download_rate file.file_file;
-        P.file_chunks = Int64Swarmer.verified_bitmap file.file_partition;
-        P.file_availability = Int64Swarmer.verified_bitmap file.file_partition;
-        P.file_format = FormatNotComputed 0;
-        P.file_chunks_age = [|0|];
-        P.file_age = file_age file;
-        P.file_last_seen = BasicSocket.last_time ();
-        P.file_priority = file_priority (as_file file.file_file);
-      }    
   )
+  
+module P = GuiTypes
 
 module C = CommonTypes
             
@@ -240,11 +195,22 @@ let load_torrent_file filename =
         Sha1.direct_of_string s
     ) in
   
-  let file = new_file file_id !file_name !length 
-      !announce !file_piece_size
-  in
-  file.file_files <- !file_files;
-  file.file_chunks <- pieces;
+  let file_info = {
+      file_info_name = !file_name;
+      file_info_id = file_id;
+      file_info_piece_size = !file_piece_size;
+      file_info_tracker = !announce;
+      file_info_size = !length;
+      file_info_chunks = pieces;
+      file_info_files = !file_files;
+    } in
+  
+  Hashtbl.add infos_by_uid file_id file_info;
+  
+  let uid = uid_of_uid (BTUrl ("", file_id)) in
+  
+  let file = new_download None !file_name !length None [uid] in
+  let file = Hashtbl.find files_by_uid file_id in
   BTClients.connect_tracker file !announce;
   ()
   

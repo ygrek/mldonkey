@@ -34,6 +34,8 @@ open CommonFile
 open CommonSwarming
 open CommonTypes
 open CommonGlobals
+open CommonHosts
+open CommonDownloads.SharedDownload
   
 open FasttrackTypes
 open FasttrackGlobals
@@ -50,11 +52,11 @@ let server_parse_after s gconn sock =
       match int_of_char b.buf.[b.pos] with
         0x50 ->
 (*          lprintf "We have got a ping\n"; *)
-          buf_used sock 1;
+          buf_used b 1;
           server_send_pong s
       | 0x52 ->
 (*          lprintf "We have got a pong\n"; *)
-          buf_used sock 1          
+          buf_used b 1          
       | 0x4b ->
 (*          lprintf "We have got a real packet\n"; *)
           begin
@@ -97,7 +99,7 @@ let server_parse_after s gconn sock =
                           (Int64.lognot (Int64.of_int (size + msg_type))) 
                         int64_ffffffff);
                       let m = String.sub b.buf (b.pos+5) size in
-                      buf_used sock (size + 5);
+                      buf_used b (size + 5);
                       FasttrackHandler.server_msg_handler sock s msg_type m
                     end (* else
                   lprintf "Waiting for remaining %d bytes\n"
@@ -146,7 +148,7 @@ let server_parse_netname s gconn sock =
       if buf.[pos] = '\000' then begin
           let netname = String.sub buf start_pos (pos-start_pos) in
 (*          lprintf "netname: [%s]\n" (String.escaped netname); *)
-          buf_used sock (pos-start_pos+1);
+          buf_used b (pos-start_pos+1);
           match s.server_ciphers with
             None -> assert false
           | Some ciphers ->
@@ -165,7 +167,7 @@ let server_parse_cipher s gconn sock =
       None -> assert false
     | Some ciphers ->
         cipher_packet_get b.buf b.pos ciphers.in_cipher ciphers.out_cipher;
-        buf_used sock 8;
+        buf_used b 8;
         server_crypt_and_send s ciphers.out_cipher (network_name ^ "\000");
         gconn.gconn_handler <- CipherReader (ciphers.in_cipher, server_parse_netname s);
         lprintf "waiting for netname\n"
@@ -183,7 +185,7 @@ let connect_server h =
   match s.server_sock with
     ConnectionWaiting -> ()
   | ConnectionAborted -> s.server_sock <- ConnectionWaiting
-  | Connection _ -> ()
+  | Connection _ | CompressedConnection _ -> ()
   | NoConnection -> 
       incr nservers;
       s.server_sock <- ConnectionWaiting;
@@ -193,7 +195,7 @@ let connect_server h =
             ConnectionAborted -> 
               s.server_sock <- NoConnection;
               free_ciphers s
-          | Connection _ | NoConnection -> ()
+          | Connection _ | CompressedConnection _ | NoConnection -> ()
           | ConnectionWaiting ->
               try
                 let ip = Ip.ip_of_addr h.host_addr in
@@ -204,7 +206,7 @@ let connect_server h =
                     lprintf "CONNECT TO %s:%d\n" 
                     (Ip.string_of_addr h.host_addr) port;
                   end;  
-                h.host_tcp_request <- last_time ();
+                H.set_request h ();
                 let sock = connect "gnutella to server"
                     (Ip.to_inet_addr ip) port
                     (fun sock event -> 
@@ -287,18 +289,22 @@ let disconnect_server s r =
   | _ -> ()
 
 let recover_file file = 
-  FasttrackClients.check_finished file;
-  if file_state file = FileDownloading then
-    List.iter (fun s ->
-        let ss = file.file_search in
-        if not (Fifo.mem s.server_searches ss) then
-          Fifo.put s.server_searches ss        
-    ) !connected_servers
-    
+  check_finished file.file_shared;
+  List.iter (fun s ->
+      let ss = file.file_search in
+      if not (Fifo.mem s.server_searches ss) then
+        Fifo.put s.server_searches ss        
+  ) !connected_servers
+  
+let _ =
+  file_ops.op_download_recover <- recover_file
+  
 let download_file (r : result) =
-  let file = new_file (Md4.random ()) 
-    r.result_name r.result_size r.result_hash in
-  lprintf "DOWNLOAD FILE %s\n" file.file_name; 
+  ignore (new_download None
+      r.result_name r.result_size None
+      [uid_of_uid (Md5Ext("", r.result_hash))]);
+  let file = Hashtbl.find files_by_uid r.result_hash in
+  lprintf "DOWNLOAD FILE %s\n" file.file_shared.file_name; 
   if not (List.memq file !current_files) then begin
       current_files := file :: !current_files;
     end;
@@ -307,8 +313,7 @@ let download_file (r : result) =
       add_download file c index;
       get_file_from_source c file;
   ) r.result_sources;
-  recover_file file;
-  ()
+  recover_file file
 
 let recover_files () = (* called every 10 minutes *)
   List.iter (fun file ->
@@ -327,7 +332,7 @@ let ask_for_files () = (* called every minute *)
         let ss = Fifo.take s.server_searches in
         match ss.search_search with
           FileSearch file ->
-            if file_state file = FileDownloading then
+            if file_state file.file_shared = FileDownloading then
               server_send_query s ss
         | _ -> server_send_query s ss
       with _ -> ()
@@ -351,56 +356,23 @@ let _ =
   server_ops.op_server_remove <- (fun s ->
       disconnect_server s Closed_by_user
   )
-  
-let manage_host h =
-  try
-    let current_time = last_time () in
-(*    lprintf "host queue before %d\n" (List.length h.host_queues);  *)
 
-(*    lprintf "host queue after %d\n" (List.length h.host_queues); *)
-(* Don't do anything with hosts older than one hour and not responding *)
-    if max h.host_connected h.host_age > last_time () - 3600 then begin
-        host_queue_add workflow h current_time;
-(* From here, we must dispatch to the different queues *)
-        match h.host_kind with
-        | Ultrapeer | IndexServer ->        
-            if h.host_udp_request + 600 < last_time () then begin
-(*              lprintf "waiting_udp_queue\n"; *)
-                host_queue_add waiting_udp_queue h current_time;
-              end;
-            if h.host_tcp_request + 600 < last_time () then begin
-                host_queue_add  ultrapeers_waiting_queue h current_time;
-              end
-        | Peer ->
-            if h.host_udp_request + 600 < last_time () then begin
-(*              lprintf "g01_waiting_udp_queue\n"; *)
-                host_queue_add waiting_udp_queue h current_time;
-              end;
-            if h.host_tcp_request + 600 < last_time () then
-              host_queue_add peers_waiting_queue h current_time;
-      end    else 
-    if max h.host_connected h.host_age > last_time () - 3 * 3600 then begin
-        host_queue_add workflow h current_time;      
-      end else
-(* This host is too old, remove it *)
-      ()
-          
-  with e ->
-      lprintf "Exception %s in manage_host\n" (Printexc2.to_string e)
-  
 let manage_hosts () = 
+  (*
   let rec iter () =
-    let h = host_queue_take workflow in
+    let h = H.host_queue_take workflow in
     manage_host h;
     iter ()
   in
-  (try iter () with _ -> ());
+(try iter () with _ -> ());
+*)
+  H.manage_hosts ();
   List.iter (fun file ->
-      if file_state file = FileDownloading then
+      if file_state file.file_shared = FileDownloading then
         try
 (* For each file, we allow only (nranges+5) simultaneous communications, 
   to prevent too many clients from saturing the line for only one file. *)
-          let max_nconnected_clients = FasttrackClients.nranges file in
+          let max_nconnected_clients = FasttrackClients.nranges file.file_shared in
           while file.file_nconnected_clients < max_nconnected_clients do
             let (_,c) = Queue.take file.file_clients_queue in
             c.client_in_queues <- List2.removeq file c.client_in_queues;
@@ -417,7 +389,7 @@ let rec find_ultrapeer queue =
 (*        lprintf "not ready: %d s\n" (next - last_time ());  *)
         raise Not_found;
       end;
-    ignore (host_queue_take queue);
+    ignore (H.host_queue_take queue);
     h
   with _ -> find_ultrapeer queue
       
@@ -432,7 +404,7 @@ let try_connect_ultrapeer connect =
         with _ ->
 (*            lprintf "not in g0_ultrapeers_waiting_queue\n";   *)
             let (h : host) = 
-              new_host (Ip.addr_of_string "fm2.imesh.com") 1214 IndexServer in
+              H.new_host (Ip.addr_of_string "fm2.imesh.com") 1214 IndexServer in
             find_ultrapeer peers_waiting_queue
   in
 (*  lprintf "contacting..\n";  *)

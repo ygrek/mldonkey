@@ -1,6 +1,51 @@
 ChangeLog	
 =========
 
+Current state: only for beta testing
+ * All previous downloads are lost (will be fixed in a future release)
+ * All hash-based networks (edonkey, fasttrack, gnutella1/2, bittorrent) 
+    can download together the same file
+ * Some functions don't work anymore: recover_temp, dup, ...
+ * Downloaded chunks are not displayed correctly
+ * many other problems, but download and upload do work 
+
+2003/06/21: Simon
+   * Edonkey2000:
+      * Download and Upload verified
+
+2003/06/17: Simon
+   * Gnutella2: 
+      * Connections compressed with deflate
+      * Fixed bug preventing all connections (to be fixed in stable)
+
+2003/06/17: Simon
+   * Edonkey plugin:
+      * Send list of shared files
+   * CommonUploads:
+      * Functions on Tiger trees
+
+2003/06/16: Simon
+   * CommonUpload:
+      * Computation of Tiger Trees and Ed2k hashes
+
+2003/06/12: Simon
+   * Fixed computation of Tiger Tree on BigEndian machines
+
+2003/06/09: Simon
+   * Edonkey plugin uses CommonDownloads
+   * ed2k_hash computes bitprint (-hash bp)
+   * Bitprint computation uses old format for tiger tree (modify lines 
+      791 and 792 of tiger.c)
+
+2003/06/08: Simon  (release-2-5-devel-4)
+   * Edonkey plugin uses CommonSwarming
+
+2003/06/07: Simon
+   * Applied patches #1582, #1594, #1598
+
+2003/06/07: Simon (release-2-5-4)
+   * Applied patches #1582, #1594, #1598
+
 2003/06/06: 
   - CVS Modifications: Branches:
     * new branch release-2-5-devel for development version

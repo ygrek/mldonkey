@@ -70,13 +70,13 @@ val direct_client_send : DonkeyTypes.client -> DonkeyProtoClient.t -> unit
 val direct_client_sock_send : TcpBufferedSocket.t -> DonkeyProtoClient.t -> unit
 val direct_servers_send : TcpBufferedSocket.t list -> DonkeyProtoServer.t -> unit
 val direct_server_send_share : 
-  TcpBufferedSocket.t  -> DonkeyTypes.file list -> unit
+  TcpBufferedSocket.t  -> CommonTypes.tagged_file list -> unit
 val direct_client_send_files : 
-    TcpBufferedSocket.t -> DonkeyTypes.file list -> unit
+    TcpBufferedSocket.t -> CommonTypes.tagged_file list -> unit
   
 val new_string :  DonkeyProtoClient.t -> string -> unit
   
-val tag_file : DonkeyTypes.file -> CommonTypes.tag list
+(* val tag_file : DonkeyTypes.file -> CommonTypes.tag list *)
  
 
 val udp_server_send : DonkeyTypes.server -> DonkeyProtoUdp.t -> unit

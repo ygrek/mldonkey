@@ -97,9 +97,8 @@ let copy oldname newname =
   
   
 let rename oldname newname =
-  try
-    Unix.rename oldname newname
-  with
+  if oldname <> newname then
+  try Unix.rename oldname newname with
     Unix_error(EXDEV,_,_) as e ->
 (* renaming is not enough, we must COPY *)
       lprintf "COPY %s TO %s" oldname newname; lprint_newline ();

@@ -8,7 +8,7 @@ CONFIG_ARGS=$*
 echo $CONFIG_ARGS
 
 CURRENT_VERSION=2.5
-CURRENT_RELEASE=3
+CURRENT_RELEASE=devel-4
 
 REQUIRED_OCAML=3.06
 REQUIRED_LABLGTK=1.2.4
@@ -19,13 +19,17 @@ BATCH=no
 AUDIO_GALAXY=no
 OPEN_NAPSTER=yes
 GNUTELLA=yes
+GNUTELLA2=yes
 DIRECT_CONNECT=yes
 SOULSEEK=yes
 OPENFT=no
 CYMES=no
-DONKEY=yes
+DONKEY=no
+OPEN_DONKEY=yes
 BITTORRENT=yes
 FASTTRACK=yes
+
+LABLGTK=lablgtk
 
 BUILD_GUI=yes
 
@@ -44,6 +48,7 @@ if test ! "$MULTINET" = "yes"; then
   AUDIO_GALAXY=no
   OPEN_NAPSTER=no
   GNUTELLA=no
+  GNUTELLA2=no
   DIRECT_CONNECT=no
   SOULSEEK=no
   OPENFT=no
@@ -61,6 +66,8 @@ AC_ARG_ENABLE(opennap, [--disable-opennap:       allows you to remove support fo
 
 AC_ARG_ENABLE(gnutella, [--disable-gnutella:       allows you to remove support for Gnutella], [GNUTELLA="$enableval"])
 
+AC_ARG_ENABLE(gnutella2, [--disable-gnutella2:       allows you to remove support for Gnutella2], [GNUTELLA2="$enableval"])
+
 AC_ARG_ENABLE(directconnect, [--disable-directconnect:       allows you to remove support for Direct Connect], [DIRECT_CONNECT="$enableval"])
 
 AC_ARG_ENABLE(soulseek, [--disable-soulseek:       allows you to remove support for SoulSeek], [SOULSEEK="$enableval"])
@@ -70,6 +77,8 @@ AC_ARG_ENABLE(openft, [--disable-openft:       allows you to remove support for 
 AC_ARG_ENABLE(cymes, [--disable-cymes:       allows you to remove support for Cymes], [CYMES="$enableval"])
 
 AC_ARG_ENABLE(fasttrack, [--disable-fasttrack:       allows you to remove support for FastTrack], [FASTTRACK="$enableval"])
+
+AC_ARG_ENABLE(open_donkey, [--disable-open_donkey:       allows you to remove support for unstable donkey plugin], [OPEN_DONKEY="$enableval"])
 
 AC_ARG_ENABLE(bittorrent, [--disable-bittorrent:       allows you to remove support for Bittorent], [BITTORRENT="$enableval"])
 
@@ -83,9 +92,7 @@ AC_ARG_ENABLE(gui, [--disable-gui:       allows you to remove the GUI], [BUILD_G
 PTHREAD_LIBS=no
 AC_ARG_ENABLE(pthread, [--enable-pthread :       allows you to add pthread support in mldonkey], [PTHREAD_LIBS="$enableval"])
 AC_ARG_ENABLE(pthread-lib, [--enable-pthread-lib :  legacy option], [PTHREAD_LIBS="$enableval"])
-
-
-
+AC_ARG_ENABLE(lablgtk2, [--enable-lablgtk2 :       allows you to use lablgtk2], [LABLGTK=lablgtk2])
 IM=yes
 AC_ARG_ENABLE(devel, [--enable-devel:       (undocumented)], [DEVEL="$enableval"])
 
@@ -438,6 +445,21 @@ fi
     BAD_TARGETS="$BAD_TARGETS gnutella"
   fi
 
+  if test "$GNUTELLA2" = "yes"; then
+    if test "$ZLIB" = "yes"; then
+       AC_CHECK_FILE(../src/networks/gnutella2,GNUTELLA2=yes, [
+         GNUTELLA2=no
+         BAD_TARGETS="$BAD_TARGETS gnutella2"
+       ])
+    else
+       GNUTELLA2=no
+       BAD_TARGETS="$BAD_TARGETS gnutella2(no Zlib)"
+    fi
+  else
+    GNUTELLA2=no
+    BAD_TARGETS="$BAD_TARGETS gnutella2"
+  fi
+
   if test "$BITTORRENT" = "yes"; then
     AC_CHECK_FILE(../src/networks/bittorrent,BITTORRENT=yes, [
       BITTORRENT=no
@@ -518,14 +540,14 @@ fi
 if test "$GTK_CONFIG" = "no"; then
      LABLGTK_CONFIG=no
 else
-  AC_MSG_CHECKING(Checking for native code lablgtk)
-  if test -f `$OCAMLC -where`/lablgtk/lablgtk.$OCAMLLIB_EXT; then
+  AC_MSG_CHECKING(Checking for native code $LABLGTK)
+  if test -f `$OCAMLC -where`/$LABLGTK/lablgtk.$OCAMLLIB_EXT; then
      AC_MSG_RESULT(yes)
      LABLGTK_CONFIG=yes
   else
      AC_MSG_RESULT(no)
      LABLGTK_CONFIG=no
-     if test -f `$OCAMLC -where`/lablgtk/lablgtk.cma; then
+     if test -f `$OCAMLC -where`/$LABLGTK/lablgtk.cma; then
        echo "--------------------------------"
        echo "Lablgtk is not installed properly. See the INSTALL.txt"
        echo "file of mldonkey to see how to compile lablgtk. You"
@@ -562,7 +584,7 @@ else
           rm -rf lablgtk-"$REQUIRED_LABLGTK"
          )
          cd $CONFIG_DIR
-         if test -f `$OCAMLC -where`/lablgtk/lablgtk.$OCAMLLIB_EXT; then
+         if test -f `$OCAMLC -where`/$LABLGTK/lablgtk.$OCAMLLIB_EXT; then
             LABLGTK_CONFIG=yes
          else
             echo "Installation of lablgtk failed"
@@ -640,7 +662,7 @@ AC_MSG_CHECKING(compile GTK GUI)
         AC_MSG_RESULT(yes)
 
         AC_MSG_CHECKING(GToolbox.popup_menu args)
-        GTOOLBOX="`$OCAMLC -where`/lablgtk/gToolbox.mli"
+        GTOOLBOX="`$OCAMLC -where`/$LABLGTK/gToolbox.mli"
         grep popup $GTOOLBOX | grep -i button 2> /dev/null && GTOOLBOX_ARGS=new
         if test "$GTOOLBOX_ARGS" = "new"; then
           GTOOLBOX_POPUPMENU=' ~button: button ~time: time '
@@ -707,6 +729,7 @@ AC_SUBST(AUDIO_GALAXY)
 AC_SUBST(OPEN_NAPSTER)
 AC_SUBST(DIRECT_CONNECT)
 AC_SUBST(GNUTELLA)
+AC_SUBST(GNUTELLA2)
 AC_SUBST(BITTORRENT)
 AC_SUBST(SOULSEEK)
 AC_SUBST(OPENFT)
@@ -718,6 +741,7 @@ AC_SUBST(CYMES)
 
 AC_SUBST(DEVEL)
 AC_SUBST(JABBR)
+AC_SUBST(LABLGTK)
 
 AC_SUBST(OCAMLOPT_DIL)
 AC_SUBST(COMPILE_GUI)
