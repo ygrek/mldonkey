@@ -1518,7 +1518,8 @@ formID.msgText.value=\\\"\\\";
     "log_file", Arg_one (fun arg o ->
         let oc = open_out arg in
         (match !lprintf_output with
-            None -> () | Some oc -> close_out oc);
+            Some oc when oc != stdout -> close_out oc
+          | _ -> ());
         lprintf_output := Some oc;
         lprintf_to_stdout := true;
         "log started"

@@ -324,9 +324,9 @@ let _ =
   
   networks_iter (fun r -> network_load_complex_options r);
   networks_iter_all (fun r -> 
-      Printf.printf  "Network %s %s" r.network_name
+      lprintf  "Network %s %s\n" r.network_name
         (if network_is_enabled r then "enabled" else "disabled");
-      print_newline () );  
+      );  
   networks_iter (fun r -> network_enable r);
   CommonInteractive.force_download_quotas ();
   
@@ -412,8 +412,11 @@ let _ =
           try
             let oc = open_out !!log_file in
             lprintf "Logging in %s\n" !!log_file;
+            
+            (* Don't close stdout !!!
             (match !lprintf_output with
-                None -> () | Some oc -> close_out oc);
+               None -> () | Some oc -> close_out oc);
+             *)
             lprintf_output := Some oc;
           with e ->
               lprintf "Exception %s while opening log file: %s\n"

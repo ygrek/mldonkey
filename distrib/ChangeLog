@@ -1,6 +1,10 @@
 ChangeLog	
 =========
 
+2003/03/21: Simon (v 2.04rc1-8)
+  - Fixed config/Makefile.in to compile static binaries
+  - Bug fix: don't close stdout when a log_file is provided
+
 2003/03/20: Simon (v 2.04rc1-7)
   - Build libraries before building executables
   - Applied patch #1300, #1302, #1303, #1307

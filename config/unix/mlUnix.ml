@@ -99,8 +99,8 @@ let detach_daemon () =
     Printf2.lprintf_output := None;
         
   with e ->
-      Printf.printf "Exception %s in detach_daemon"
-        (Printexc2.to_string e); print_newline ();
+      lprintf "Exception %s in detach_daemon\n"
+        (Printexc2.to_string e); 
       exit 2
 
 let set_nonblock = Unix.set_nonblock

@@ -1,6 +1,13 @@
 TODO list for client
 ====================
 
+Next big challenges:
+--------------------
+* Upload on all networks
+* Cd_get and Collections
+* Sparse-files
+* export_temp
+
 *******************
 Before 2.04 :)
 *******************
@@ -33,6 +40,8 @@ Before 2.04 :)
 * Download chunks separately
 * Why are the files suddently paused ? at least, when forcing pause, send
    a message in the log.
+
+
 
 Core:
 =====

@@ -663,7 +663,7 @@ $2.byte: $($1_OBJS) $($1_CMOS)  $($1_CMAS)
 	$(OCAMLC) -linkall -o $[[@]]  $($1_OBJS) $(LIBS_byte) $(LIBS_flags)  $($3_LIBS_byte) $($3_LIBS_flags) $($1_CMAS) $($1_CMOS) 
  
 $2.static:  $($1_OBJS) $($1_CMXS)  $($1_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $[[@]] $($1_OBJS) $(LIBS_opt) $(LIBS_flags)  $($3_STATIC_LIBS_opt) $(1_CMXAS) $($1_CMXS) 
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $[[@]] $($1_OBJS) $(LIBS_opt) $(LIBS_flags)  $($3_LIBS_flags)  $($3_STATIC_LIBS_opt) $($1_CMXAS) $($1_CMXS)
 ]])
 
 EXPAND(mldonkey,mldonkey,NO,mldonkey)
@@ -749,7 +749,7 @@ zogml:
 
 
 clean: 
-	rm -f *.cm? donkey_* *.byte *.cm?? $(TARGETS) *~ *.o core *.static
+	rm -f *.cm? donkey_* *.byte *.cm?? $(TARGETS) *~ *.o core *.static *.a
 	rm -f *_plugin
 	rm -f mldonkey mldonkey_gui
 	(for i in $(SUBDIRS); do \
