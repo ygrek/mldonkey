@@ -63,7 +63,7 @@ LIB_CMOS= \
   lib/int32ops.$(EXT) lib/ip.$(EXT) lib/options.$(EXT) lib/numset.$(EXT)  \
   lib/fifo.$(EXT) \
   lib/hole_tab.$(EXT) lib/indexer.$(EXT) lib/host.$(EXT)  \
-  lib/misc.$(EXT) lib/md4.$(EXT) lib/unix32.$(EXT) \
+  lib/misc.$(EXT) lib/unix32.$(EXT)  lib/md4.$(EXT) \
   lib/avifile.$(EXT) lib/http_lexer.$(EXT) lib/url.$(EXT) \
   lib/mailer.$(EXT)
 

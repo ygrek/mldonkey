@@ -192,15 +192,15 @@ let new_file file_name md4 file_size =
       let md4s = if file_size <= block_size then
             [md4] 
           else [] in
-      let file = {
+      let rec file = {
           file_shared = false;
           file_exists = file_exists;
           file_md4 = md4;
-          file_name = file_name;
+          file_hardname = file_name;
           file_size = file_size;
           file_nchunks = nchunks;
           file_chunks = [||];
-          file_fd = None;
+          file_fd = Unix32.create file_name [O_RDWR; O_CREAT] 0o666;
           file_all_chunks = String.make nchunks '0';
           file_absent_chunks =   [Int32.zero, file_size];
           file_filenames = [];
@@ -223,6 +223,10 @@ let new_file file_name md4 file_size =
       Hashtbl.add files_by_md4 md4 file;
       file
 
+let change_hardname file file_name =
+  file.file_hardname <- file_name;
+  Unix32.close file.file_fd;
+  file.file_fd <- Unix32.create file_name [O_RDWR; O_CREAT] 0o666
       
 let big_change_file file =
   file.file_changed <- BigChange
@@ -373,21 +377,11 @@ let remove_client c =
   Hashtbl.remove clients_by_num c.client_num
   
 let find_client num =
-  Hashtbl.find clients_by_num num
-  
-let file_fd file =
-  match file.file_fd with
-  | Some fd -> fd
-  | None ->
-      let file_name = file.file_name in
-      let fd = Unix.openfile file_name [O_RDWR; O_CREAT] 0o666 in
-      file.file_fd <- Some fd;
-      fd
-      
+  Hashtbl.find clients_by_num num      
       
 let first_name file =
   match file.file_filenames with
-    [] -> Filename.basename file.file_name
+    [] -> Filename.basename file.file_hardname
   | name :: _ -> name
 
 let exit_handlers = ref []

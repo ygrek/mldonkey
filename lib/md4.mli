@@ -30,4 +30,4 @@ val direct_of_string : string -> t
 val direct_to_string : t -> string
 val random : unit -> t
   
-val digest_subfile : Unix.file_descr -> int32 -> int32 -> t
+val digest_subfile : Unix32.t -> int32 -> int32 -> t

@@ -17,8 +17,13 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-external seek32 : Unix.file_descr -> int32 -> Unix.seek_command -> int32 =
-  "ml_lseek32"
+type t
+
+val create : string -> Unix.open_flag list -> int -> t
+val close : t -> unit
+val force_fd : t -> Unix.file_descr
+  
+val seek32 : t -> int32 -> Unix.seek_command -> int32
 external getsize32 : string -> int32 = "ml_getsize32"
-external ftruncate32 : Unix.file_descr -> int32 -> unit = "ml_truncate32"
+val ftruncate32 : t -> int32 -> unit
   

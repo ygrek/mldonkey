@@ -477,7 +477,7 @@ let gui_reader (gui: gui_record) t sock =
         begin
           let file = find_file md4 in
           let cmd = Printf.sprintf "%s \"%s\" \"%s\"" !!previewer
-              file.file_name (first_name file) in
+              file.file_hardname (first_name file) in
           ignore (Sys.command cmd)
         end
           
@@ -522,7 +522,7 @@ let gui_reader (gui: gui_record) t sock =
         begin
           try
             let file = find_file md4 in
-            let format = DownloadMultimedia.get_info file.file_name in
+            let format = DownloadMultimedia.get_info file.file_hardname in
             file.file_format <- format;
             small_change_file file
           with _ -> ()
@@ -533,7 +533,7 @@ let gui_reader (gui: gui_record) t sock =
           try 
             let file = find_file md4 in
 (*            Printf.printf "Setting mp3 tags"; print_newline () ; *)
-            let filename = file.file_name in
+            let filename = file.file_hardname in
 (*            Printf.printf "EDIT"; print_newline (); *)
             Mp3tag.write tag filename;
 (*            Printf.printf "Mp3 tags ok." *)

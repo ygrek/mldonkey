@@ -101,3 +101,10 @@ value ml_truncate32(value fd_v, value len_v)
       
   return Val_unit;
 }
+
+#include <unistd.h>
+
+value ml_getdtablesize(value unit)
+{
+  return Val_int(getdtablesize());
+}

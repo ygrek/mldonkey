@@ -152,14 +152,14 @@ and zone = {
   }
 
 and file = {
-    mutable file_name : string;
+    mutable file_hardname : string;
     file_md4 : Md4.t;
     file_num : int;
     file_exists : bool;
     mutable file_size : int32;
     mutable file_nchunks : int;
     mutable file_chunks : chunk array;
-    mutable file_fd : Unix.file_descr option;
+    mutable file_fd : Unix32.t;
     mutable file_all_chunks : string;
     mutable file_absent_chunks : (int32 * int32) list;
     mutable file_filenames : string list;
@@ -187,7 +187,7 @@ and shared_file = {
     shared_size : int32;
     mutable shared_list : Md4.t list;
     mutable shared_pos : int32;
-    mutable shared_fd : Unix.file_descr option;
+    mutable shared_fd : Unix32.t;
   }
 
 module UdpClientMap = Map.Make(struct

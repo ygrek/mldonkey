@@ -156,11 +156,12 @@ let _ =
     let list = ref [] in
     List.iter (fun file -> 
         try
-          if Sys.file_exists file.file_name &&
-            Unix32.getsize32 file.file_name <> Int32.zero then begin
+          if Sys.file_exists file.file_hardname &&
+            Unix32.getsize32 file.file_hardname <> Int32.zero then begin
               file.file_state <- FileDownloaded;
               (try
-                  let format = DownloadMultimedia.get_info file.file_name in
+                  let format = DownloadMultimedia.get_info file.file_hardname
+                  in
                   file.file_format <- format
                 with _ -> ());        
               list := file :: !list

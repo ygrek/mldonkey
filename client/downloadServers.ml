@@ -32,7 +32,7 @@ open Gui_types
   
 let first_name file =
   match file.file_filenames with
-    [] -> Filename.basename file.file_name
+    [] -> Filename.basename file.file_hardname
   | name :: _ -> name
 
 let make_tagged files =
@@ -50,7 +50,7 @@ let make_tagged files =
                   Unknown_format ->
                     (try
                         file.file_format <- 
-                          DownloadMultimedia.get_info file.file_name
+                          DownloadMultimedia.get_info file.file_hardname
                       with _ -> ())
                 | _ -> ()
               );

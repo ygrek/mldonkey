@@ -572,6 +572,9 @@ Release 1.11:
   * Bug fixes:
    - Don't add twice the incoming dir to shared file names.
    - Cross-partition moves fail, but filename is renamed in temp dir.
+   - Limited open fds for files to 50 (doesn't limit shared files
+       and downloaded files).
+   - Execute entry on WEB interface always displayed.
 
 Release 1.10:
   * Default timeout for server connection set to 5 for faster connection.

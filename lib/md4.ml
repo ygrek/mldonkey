@@ -77,7 +77,7 @@ let file s =
   
 let digest_subfile fd pos len =
   let digest = String.create 16 in
-  digest_subfile digest fd pos len;
+  digest_subfile digest (Unix32.force_fd fd) pos len;
   digest
   
 let create () =

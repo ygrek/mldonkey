@@ -94,7 +94,7 @@ val remove_client_chunks :
 val add_client_chunks :   
   DownloadTypes.file -> DownloadTypes.availability -> unit
   
-val file_fd : DownloadTypes.file -> Unix.file_descr
+val change_hardname : DownloadTypes.file -> string -> unit
 val first_name : DownloadTypes.file -> string
   
 val exit_properly : unit -> unit

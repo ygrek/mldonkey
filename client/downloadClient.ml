@@ -580,12 +580,12 @@ We should probably check that here ... *)
               begin
                 printf_char '#'; 
                 
-                let fd = file_fd file in
-                ignore (Unix32.seek32 fd begin_pos Unix.SEEK_SET);
+                ignore (Unix32.seek32 file.file_fd begin_pos Unix.SEEK_SET);
                 
                 begin
                   try
-                    really_write fd t.Q.bloc_str t.Q.bloc_begin t.Q.bloc_len
+                    really_write (Unix32.force_fd file.file_fd)
+                    t.Q.bloc_str t.Q.bloc_begin t.Q.bloc_len
                   with
                     e ->
                       Printf.printf "Error %s while writing block. Pausing download" (Printexc.to_string e);
@@ -659,7 +659,7 @@ Mmap.munmap m;
             M.QueryFileReplyReq {
               Q.md4 = file.file_md4;
               Q.name = match file.file_filenames with
-                [] -> file.file_name
+                [] -> file.file_hardname
               | name :: _ -> name
             });
           

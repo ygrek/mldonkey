@@ -380,7 +380,7 @@ let verify_chunk file i =
   let end_pos = chunk_end file i in
   let len = Int32.sub end_pos begin_pos in
   let md4 = file_md4s.(i) in
-  let new_md4 = Md4.digest_subfile (file_fd file) begin_pos len in
+  let new_md4 = Md4.digest_subfile file.file_fd begin_pos len in
   (*
   let mmap = Mmap.mmap file.file_name 
     (file_fd file) begin_pos len in
@@ -669,7 +669,7 @@ let set_file_size file sz =
       file.file_nchunks <- Int32.to_int (Int32.div  
           (Int32.sub sz Int32.one) block_size)+1;
       file.file_chunks <- Array.create file.file_nchunks AbsentTemp;
-      Unix32.ftruncate32 (file_fd file) sz;
+      Unix32.ftruncate32 file.file_fd sz;
       
       file.file_all_chunks <- String.make file.file_nchunks '0';
       
@@ -731,17 +731,12 @@ let remove_file md4 =
   files =:= List.rev (List.fold_left (fun files file ->
         if file.file_md4 = md4 then begin
             file.file_state <- FileCancelled;
-            (match file.file_fd with
-                None -> ()
-              | Some fd -> 
-                  file.file_fd <- None;
-                  (try Unix.close fd with _ -> ());
-                  );
+            Unix32.close file.file_fd;
             file.file_shared <- false;
             decr nshared_files;
-            (try Sys.remove file.file_name with _ -> ());
+            (try Sys.remove file.file_hardname with _ -> ());
             (try Hashtbl.remove files_by_md4 file.file_md4 with _ -> ());
-            file.file_name <- "";
+            file.file_hardname <- "";
             !file_change_hook file;
             files end
         else file :: files
@@ -801,7 +796,7 @@ let check_file_downloaded file =
             Printf.printf "Exception %s in sendmail" (Printexc.to_string e);
             print_newline ());
       (try
-          let format = DownloadMultimedia.get_info file.file_name in
+          let format = DownloadMultimedia.get_info file.file_hardname in
           file.file_format <- format
         with _ -> ());
       small_change_file file;
@@ -814,15 +809,6 @@ let update_options file =
   check_file_downloaded file;
   print_stats file;
   file.file_changed <- SmallChange
-
-let shared_fd sh =
-  match sh.shared_fd with
-    None ->
-      let fd = Unix.openfile sh.shared_name [O_RDONLY] 0o444 in
-      sh.shared_fd <- Some fd;
-      fd
-  | Some fd -> fd
-
 
 let new_file_to_share sh =
   try
@@ -857,7 +843,7 @@ let new_file_to_share sh =
   file.file_all_chunks <- String.make file.file_nchunks '1';
   file.file_state <- FileRemoved;
   (try 
-      file.file_format <- DownloadMultimedia.get_info file.file_name
+      file.file_format <- DownloadMultimedia.get_info file.file_hardname
     with _ -> ());
     Printf.printf "Sharing %s" sh.sh_name;
     print_newline ();
@@ -917,7 +903,7 @@ let check_files_md4s timer =
             else end_pos in
           let len = Int32.sub end_pos sh.shared_pos in
           
-          let new_md4 = Md4.digest_subfile (shared_fd sh) sh.shared_pos len in
+          let new_md4 = Md4.digest_subfile (sh.shared_fd) sh.shared_pos len in
           
           sh.shared_list <- new_md4 :: sh.shared_list;
           sh.shared_pos <- end_pos;
@@ -995,7 +981,7 @@ let rec add_shared_files dirname =
                 shared_size = size;
                 shared_list = [];
                 shared_pos = Int32.zero;
-                shared_fd = None;
+                shared_fd = Unix32.create real_name [O_RDONLY] 0o444;
               } :: !shared_files
       with _ -> ()
   ) files

@@ -399,10 +399,10 @@ let rec really_read fd s pos len =
     really_read fd s (pos + nread) (len - nread)
   
 let send_small_block sock file begin_pos len = 
-  let fd = file_fd file in
+  let fd = file.file_fd in
   let len_int = Int32.to_int len in
   ignore (Unix32.seek32 fd begin_pos Unix.SEEK_SET);
-  really_read fd upload_buffer 0 len_int;
+  really_read (Unix32.force_fd fd) upload_buffer 0 len_int;
   incr upload_counter;
   file.file_upload_blocks <- file.file_upload_blocks + 1;
   client_send sock (

@@ -117,15 +117,11 @@ let save_file md4 name =
       if file.file_md4 = md4 then begin
           old_files =:= file.file_md4 :: !!old_files;
           file.file_state <- FileRemoved;
-          begin
-            match file.file_fd with
-              None -> ()
-            | Some fd -> Unix.close fd; file.file_fd <- None;
-          end;
-          let old_name = file.file_name in
+          Unix32.close file.file_fd;
+          let old_name = file.file_hardname in
           (try 
               Sys.rename old_name real_name ;
-              file.file_name <- real_name;
+              change_hardname file real_name;
             with e -> 
                 Printf.printf "Error in rename %s (src [%s] dst [%s])"
                   (Printexc.to_string e) old_name real_name; 
@@ -134,7 +130,7 @@ let save_file md4 name =
                   (Filename.basename real_name) in
                 try 
                   Sys.rename old_name new_name;
-                  file.file_name <- new_name
+                  change_hardname file new_name
                 with _ -> ()
           )
           ;
@@ -202,17 +198,11 @@ let check_shared_files () =
       if file.file_shared then
         match file.file_state with
           FileRemoved ->
-            if not (Sys.file_exists file.file_name) then begin
+            if not (Sys.file_exists file.file_hardname) then begin
                 file.file_shared <- false;
                 decr nshared_files;
-                begin
-                  match file.file_fd with
-                    None -> ()
-                  | Some fd -> 
-                      (try Unix.close fd with _ -> ());
-                      file.file_fd <- None;
-                end;
-                file.file_name <- "";
+                Unix32.close  file.file_fd;
+                file.file_hardname <- "";
                 list := file.file_md4 :: !list;
               end
         | _ -> ()) files_by_md4;
