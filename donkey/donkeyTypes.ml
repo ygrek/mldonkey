@@ -257,10 +257,10 @@ and file = {
     mutable file_md4s : Md4.t list;
     mutable file_format : format;
     mutable file_available_chunks : int array;
+    mutable file_paused_sources : (source * file_request) Fifo.t;
     mutable file_shared : file CommonShared.shared_impl option;
     mutable file_locations : client Intmap.t; 
     mutable file_mtime : float;
-    mutable file_initialized : bool;
   }
 
 and file_to_share = {

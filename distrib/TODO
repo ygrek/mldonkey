@@ -1,7 +1,31 @@
 TODO list for client
 ====================
 
+******************
+* Keep the result of a request to a given source: remove the file from
+   source_files if needed. Define a record type for file requests:
+   file * last_req * result (File_expected | File_not_found | File_found | File_chunk | File_upload)
+* Remove the fucking assertion failure
+* Add paused sources when resuming a download
+* Is files.ini being removed ?
+
 set_locale(LC_NUMERIC, "C");
+
+max_opened_connections  - 924 is for most users too high
+max_reask_delay         - 3600 is too high for emule queues
+save_options_delay      - do we really need saving every 4 Minutes?
+server_connection_timeout - 5 is way too low for most servers
+use_file_history        - a lot of users complain about mem-problems
+max_upload_slots        - 10 is too high for most users (i guess)
+
+
+OP_REASKFILEPING (0x90) (size=16)
+OP_QUEUEFULL (0x93)
+OP_REASKACK (0x91) (size=2)
+OP_FILENOTFOUND (0x92)
+
+ClientUDPSocket.(h|cpp)
+
 
 Program received signal SIGSEGV, Segmentation fault.
 0x0818884e in MD4Transform ()
@@ -21,6 +45,18 @@ sources should only be asked when they have rare files
 I would like a state between DOWNLOADING and PAUSED that does not
 query for the file anymore but still accepts blocks for it and
 utilised queue positions.
+
+I can confirm this one, but I think the bytes are saved, just the
+counters of the missing bytes in the files.ini are not updated. In a
+correct way.
+
+Ok, the bytes are saved, the byte-counters are updated, BUT: After
+restarting and rehashing, mldonkey marks the incomplete chunks as
+missing and throws the already downloaded bytes away, resetting the
+byte-counters to the chunk-borders.
+
+>  yes, there is a little think to do. there is no link to mldonkey.org in
+>  your web-interface. it would be very nice, if you could add us too.
 
 c) High memory usage is still not fixed. For the first 2-3 hours MLDonkey
 runs very well (using 15-10 MB of memory). Then suddenly it begins to

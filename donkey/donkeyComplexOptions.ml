@@ -101,7 +101,6 @@ let value_to_client is_friend assocs =
         (min (get_value "client_age" value_to_int) 
           (BasicSocket.last_time ()))
       in
-      let last_conn = normalize_time last_conn in
       CommonGlobals.connection_set_last_conn l.client_connection_control
         last_conn;
     with _ -> ());
@@ -176,8 +175,8 @@ let value_to_server assocs =
         with _ -> ());
       (try
           connection_set_last_conn l.server_connection_control
-            (normalize_time (mini (get_value "server_age" value_to_int) 
-            (BasicSocket.last_time ())));
+            (min (get_value "server_age" value_to_int) 
+            (BasicSocket.last_time ()));
         with _ -> ());
       as_server l.server_server
 
@@ -245,7 +244,7 @@ let value_to_file is_done assocs =
     (Md4.of_string file_md4_name) file_size true in
   
   (try
-      file.file_file.impl_file_age <- normalize_time (get_value "file_age" value_to_int)
+      file.file_file.impl_file_age <- get_value "file_age" value_to_int
     with _ -> ());
   
   (try 
@@ -274,7 +273,7 @@ let value_to_file is_done assocs =
           let c = file_chunks.[i] in
           if c = '0' then AbsentVerified else
           if c = '2' then PresentVerified
-          else PresentTemp
+          else AbsentTemp
       )
     with _ -> 
         Printf.printf "Could not load chunks states"; print_newline (););
@@ -289,7 +288,7 @@ let value_to_file is_done assocs =
       file.file_chunks_age <-
         get_value "file_chunks_age" 
         (fun v -> 
-          let list = value_to_list (fun v -> normalize_time (value_to_int v)) v in
+          let list = value_to_list value_to_int v in
           Array.of_list list)
     with _ -> ());
   
@@ -311,7 +310,7 @@ let string_of_chunks file =
   for i = 0 to nchunks - 1 do
     s.[i] <- (match file.file_chunks.(i) with
       | PresentVerified -> '2'
-      | AbsentVerified -> '0'
+      | AbsentVerified | PartialVerified _ -> '0'
       | _ -> '1' (* don't know ? *)
     )
   done;
@@ -435,7 +434,10 @@ module ClientOption = struct
         with _ -> 0
       in
         
-      let last_conn = normalize_time last_conn in
+      let last_conn = 
+        if last_conn < 1 || last_conn> 100 * 24 * 3600 then !!save_time - 650 
+        else last_conn
+      in
       
       let rec iter files =
         match files with
@@ -569,6 +571,10 @@ let save _ =
         SourceClient c -> s.source_files <- c.client_files;
       | _ -> ());      
       sources =:= s :: !!sources);
+  List.iter (fun file ->
+      Fifo.iter (fun (s,_) -> sources =:= s :: !!sources) 
+      file.file_paused_sources;
+  ) !current_files;
   
   save_time =:= last_time ();
   

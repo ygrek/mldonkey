@@ -291,7 +291,7 @@ let get_float s pos =
 
 let get_int_float s pos = 
   let s, pos = get_string s pos in
-  BasicSocket.normalize_time (int_of_float (float_of_string s)), pos
+  int_of_float (float_of_string s -. 1000000000.), pos
 
 let get_file_version_0 s pos = 
   let num = get_int s pos in
@@ -385,7 +385,7 @@ let get_file_version_9 s pos =
   let age, pos = get_int_float s pos in
   let format, pos = get_format s pos in
   let name, pos = get_string s pos in
-  let last_seen = get_int s pos in
+  let last_seen,_ = get_int_float s pos in
   {
     file_num = num;
     file_network = net;
@@ -404,7 +404,7 @@ let get_file_version_9 s pos =
     file_format = format;
     file_sources = None;
     file_name = name;
-    file_last_seen = BasicSocket.last_time () - last_seen;
+    file_last_seen = BasicSocket.last_time () + last_seen;
   }, pos
 
 let get_host_state s pos = 
