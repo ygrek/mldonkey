@@ -1,6 +1,6 @@
 #! /bin/sh
 
-# From configure.in Revision: 1.16 
+# From configure.in Revision: 1.17 
 
 # Guess values for system-dependent variables and create Makefiles.
 # Generated automatically using autoconf version 2.13 
@@ -1854,11 +1854,11 @@ fi
 fi
 if eval "test \"`echo '$ac_cv_file_'$ac_safe`\" = yes"; then
   echo "$ac_t""yes" 1>&6
-  CLOSED_DONKEY=yes
+  OPEN_DONKEY=yes
 else
   echo "$ac_t""no" 1>&6
 
-    CLOSED_DONKEY=no
+    OPEN_DONKEY=no
     BAD_TARGETS="$BAD_TARGETS open_donkey"
   
 fi
@@ -2108,7 +2108,7 @@ s%@DIRECT_CONNECT@%$DIRECT_CONNECT%g
 s%@LIMEWIRE@%$LIMEWIRE%g
 s%@SOULSEEK@%$SOULSEEK%g
 s%@DONKEY@%$DONKEY%g
-s%@CLOSED_DONKEY@%$CLOSED_DONKEY%g
+s%@OPEN_DONKEY@%$OPEN_DONKEY%g
 s%@DONKEY_SERVER@%$DONKEY_SERVER%g
 s%@COMPILE_GUI@%$COMPILE_GUI%g
 

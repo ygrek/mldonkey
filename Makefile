@@ -132,14 +132,12 @@ DONKEY_PROTO_SRCS= donkey/donkeyMftp.ml donkey/donkeyImport.ml \
  donkey/donkeyOpenProtocol.ml \
   secret/mftp_client.ml secret/mftp_server.ml  \
   secret/mftp_comm.ml  
+endif
 
-else
 ifeq ("$(OPEN_DONKEY)" , "yes")
 SUBDIRS += donkey
 
 DONKEY_SRCS=  donkey/donkey.lam
-
-endif
 endif
 
 ifeq ("$(OPEN_NAPSTER)" , "yes")
@@ -339,7 +337,7 @@ USE_TAGS = \
 MLDONKEY_ZOG := $(filter %.zog, $(MLDONKEY_SRCS))
 MLDONKEY_MLL := $(filter %.mll, $(MLDONKEY_SRCS))
 MLDONKEY_MLY := $(filter %.mly, $(MLDONKEY_SRCS))
-MLDONKEY_ML := $(filter %.ml %.mll %.zog %.mly, $(MLDONKEY_SRCS))
+MLDONKEY_ML := $(filter %.ml %.mll %.zog %.mly %.lam, $(MLDONKEY_SRCS))
 MLDONKEY_C := $(filter %.c, $(MLDONKEY_SRCS))
 
 MLDONKEY_CMOS=$(foreach file, $(MLDONKEY_ML),   $(basename $(file)).cmo)
