@@ -45,6 +45,12 @@ open FileTPComplexOptions
 open FileTPProtocol
 
 open FileTPClients
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         MAIN                                          *)
+(*                                                                       *)
+(*************************************************************************)
   
 let http_send_range_request c range sock d = 
   let url = d.download_url in
@@ -74,6 +80,12 @@ let http_send_range_request c range sock d =
       (String.escaped s);
   write_string sock s;
   c.client_requests <- c.client_requests @ [d]
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         MAIN                                          *)
+(*                                                                       *)
+(*************************************************************************)
 
   
 let rec client_parse_header c gconn sock header = 
@@ -313,9 +325,21 @@ lprintf "READ: buf_used %d\n" to_read_int;
       disconnect_client c (Closed_for_exception e);
       raise e
       
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         MAIN                                          *)
+(*                                                                       *)
+(*************************************************************************)
         
 let http_set_sock_handler c sock =
   set_fileTP_sock sock (HttpHeader (client_parse_header c))
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         MAIN                                          *)
+(*                                                                       *)
+(*************************************************************************)
   
 let http_check_size u url start_download_file =
   let module H = Http_client in
@@ -342,12 +366,41 @@ let http_check_size u url start_download_file =
       | Some result_size ->
           start_download_file u url result_size)
 
+(*************************************************************************)
+(*                                                                       *)
+(*                         MAIN                                          *)
+(*                                                                       *)
+(*************************************************************************)
+
+let http_connect token c f =
+  let ip = Ip.from_name c.client_hostname in
+  connect token "fileTP download" 
+      (Ip.to_inet_addr ip) c.client_port
+      (fun sock event ->
+        match event with
+          BASIC_EVENT (RTIMEOUT|LTIMEOUT) ->
+            disconnect_client c Closed_for_timeout
+        | BASIC_EVENT (CLOSED s) ->
+            disconnect_client c s
+
+(* You can only use the CONNECTED signal if the socket is not yet controlled
+by the bandwidth manager... 2004/02/03: Normally, not true anymore, it should now work
+  even in this case... *)
+        
+        | CONNECTED ->
+          lprintf "CONNECTED !!! Asking for range...\n"; 
+          f sock
+        | _ -> ()
+    )
+    
+  
 let proto =
   {
     proto_send_range_request = http_send_range_request;
     proto_set_sock_handler = http_set_sock_handler;
     proto_check_size = http_check_size;
-    proto_string = "http"
+    proto_string = "http";
+    proto_connect = http_connect;
   }
   
   

@@ -123,7 +123,7 @@ let new_file file_id file_name file_size =
       file_name = file_name;
       file_clients = [];
       file_swarmer = swarmer;
-      file_filenames = [file_name, GuiTypes.noips()];
+      file_filenames = [Filename.basename file_name, GuiTypes.noips()];
       file_clients_queue = Queues.workflow (fun _ -> false);
       file_nconnected_clients = 0;
     } and file_impl =  {
@@ -134,7 +134,7 @@ let new_file file_id file_name file_size =
       impl_file_val = file;
       impl_file_ops = file_ops;
       impl_file_age = last_time ();          
-      impl_file_best_name = file_name;
+      impl_file_best_name = Filename.basename file_name;
     }
   in
   Int64Swarmer.set_verifier swarmer (fun _ _ _ ->

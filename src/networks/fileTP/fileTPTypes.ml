@@ -61,10 +61,12 @@ and download = {
 
 and tp_proto = {
     proto_send_range_request : (client -> (int64 * int64) ->
-       TcpBufferedSocket.t -> download -> unit);    
+        TcpBufferedSocket.t -> download -> unit);    
     proto_set_sock_handler : (client -> TcpBufferedSocket.t -> unit);
     proto_string : string;
     proto_check_size : Url.url -> string -> 
        (Url.url -> string -> int64 -> unit) -> unit;
+    proto_connect : TcpBufferedSocket.token ->
+      client -> (TcpBufferedSocket.t -> unit) -> TcpBufferedSocket.t;
   }
   

@@ -1,5 +1,5 @@
 
-let exec_command cmd args handler = failwith "Not yet implemented"
+let execvp_command cmd args handler = failwith "Not yet implemented"
 (*
 val exec_command : string -> string array -> handler -> t * t
 *)  

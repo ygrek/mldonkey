@@ -24,7 +24,7 @@ PROBLEMS:
   'find_block' that it has already used.
   *)
 
-
+open Int32ops
 open CommonOptions
 open Options
 open CommonTypes

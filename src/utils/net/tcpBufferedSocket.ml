@@ -73,7 +73,8 @@ type buf = {
 
 type t = {
     mutable closing : bool;
-    mutable sock : BasicSocket.t;
+    mutable sock_in : BasicSocket.t;
+    mutable sock_out : BasicSocket.t;
     mutable rbuf : buf;
     mutable wbuf : buf;
     mutable event_handler : handler;
@@ -382,8 +383,7 @@ let buf_add t b s pos1 len =
 (*************************************************************************)
 
 let buf t = t.rbuf
-let sock t = t.sock
-let closed t = closed t.sock
+let closed t = closed t.sock_out
 let error t = t.error
 let sock_used t nused = buf_used t.rbuf nused
 let remaining_to_write t =  t.wbuf.len
@@ -393,7 +393,7 @@ let can_write t =  t.wbuf.len = 0
 let can_write_len t len = t.wbuf.max_buf_size > t.wbuf.len + len
 let not_buffer_more t max =  t.wbuf.len < max
 let can_fill t = t.wbuf.len < (t.wbuf.max_buf_size / 2)
-let get_rtimeout t = get_rtimeout t.sock
+let get_rtimeout t = get_rtimeout t.sock_in
 
 
 let close t s =
@@ -417,7 +417,10 @@ end;
             upload_ip_packets t 1;
             forecast_download_ip_packet t;
           end;
-        close t.sock s (* (Printf.sprintf "%s after %d/%d" s t.nread t.nwrite) *)
+        close t.sock_in s;
+        if t.sock_in <> t.sock_out then
+          close t.sock_out s
+        (* (Printf.sprintf "%s after %d/%d" s t.nread t.nwrite) *)
       with e ->
           lprintf "Exception %s in TcpBufferedSocket.close\n"
             (Printexc2.to_string e);
@@ -430,12 +433,16 @@ let shutdown t s =
       lprintf "shutdown\n";
 end;
   *)
-  (try BasicSocket.shutdown t.sock s with e ->
+  (try 
+      BasicSocket.shutdown t.sock_out s;
+      if t.sock_in <> t.sock_out then
+        BasicSocket.shutdown t.sock_in s;
+      with e ->
        lprintf "exception %s in shutdown\n" (Printexc2.to_string e);
         );
   (try close t s with  e ->
         lprintf "exception %s in shutdown\n" (Printexc2.to_string e);
-        )
+  )
 
 (*************************************************************************)
 (*                                                                       *)
@@ -458,7 +465,8 @@ let write t s pos1 len =
               bc.total_bytes = 0)
       then
         try
-          let fd = fd t.sock in
+          let fd = fd t.sock_out in
+(*       lprintf "WRITE [%s]\n" (String.escaped (String.sub s pos1 len)); *)
           let nw = MlUnix.write fd s pos1 len in
 
           upload_ip_packets t (1 + len / !mtu_packet_size);
@@ -488,7 +496,7 @@ end; *)
       else pos1
     in
     if pos2 > pos1 then
-      let sock = t.sock in
+      let sock = t.sock_out in
       must_write sock true;
       buf_add t b s pos1 (pos2 - pos1)
 
@@ -552,6 +560,7 @@ let can_read_handler t sock max_len =
   let can_read = mini max_len can_read in
   if can_read > 0 then
     let nread = try
+(*        lprintf "{can read %d} --> " can_read; *)
 (*        lprintf "Unix.read %d/%d/%d\n"  (String.length b.buf) (b.pos + b.len) can_read;  *)
         Unix.read (fd sock) b.buf (b.pos + b.len) can_read;
 
@@ -566,6 +575,7 @@ let can_read_handler t sock max_len =
           raise e
 
     in
+(*    lprintf " %d\n" nread; *)
     b.min_buf_size <- mini b.max_buf_size (
       maxi (nread + nread / 2) min_read_size);
     (*
@@ -622,7 +632,9 @@ let can_write_handler t sock max_len =
     begin
       try
 (*     lprintf "try write %d/%d\n" max_len t.wbuf.len; *)
-        let fd = fd sock in
+            let fd = fd sock in
+(*            lprintf "WRITE [%s]\n" (String.escaped 
+              (String.sub b.buf b.pos max_len)); *)
         let nw = MlUnix.write fd b.buf b.pos max_len in
 
 (*            if t.monitored then
@@ -657,7 +669,7 @@ let can_write_handler t sock max_len =
       if b.len = 0 then begin
           delete_string b.buf;
           b.pos <- 0;
-          must_write t.sock false;
+          must_write t.sock_out false;
           t.event_handler t WRITE_DONE
         end
     end
@@ -686,17 +698,17 @@ let tcp_handler_write t sock =
           end
   end
   
-let tcp_handler t sock event =
+let tcp_handler t event =
   match event with
   | CAN_READ ->
 (*      lprintf "CAN_READ\n"; *)
       begin
         match t.read_control with
           None ->
-            can_read_handler t sock 1000000
+            can_read_handler t t.sock_in 1000000
         | Some bc ->
             if bc.total_bytes = 0 then
-              can_read_handler t sock 1000000
+              can_read_handler t t.sock_in 1000000
             else begin
 (*                lprintf "DELAYED\n";  *)
                 if bc.remaining_bytes > 0 then
@@ -715,7 +727,7 @@ let tcp_handler t sock event =
             t.nwrite = 0 
           end else true
       in
-      if can_write then tcp_handler_write t sock
+      if can_write then tcp_handler_write t t.sock_out
   | _ -> t.event_handler t (BASIC_EVENT event)
 
 
@@ -824,6 +836,17 @@ let set_closer t f =
   in
   t.event_handler <- handler
 
+let set_rtimer t f =
+  let old_handler = t.event_handler in
+  let handler t ev =
+(*    if t.monitored then (lprintf "set_closer handler\n"); *)
+    match ev with
+      BASIC_EVENT (RTIMEOUT | LTIMEOUT) ->
+        f t
+    |_ -> old_handler t ev
+  in
+  t.event_handler <- handler
+
 let set_handler t event handler =
   let old_handler = t.event_handler in
   let handler t ev =
@@ -846,7 +869,7 @@ let close_after_write t =
   else
     set_handler t WRITE_DONE (fun t ->
         shutdown t Closed_by_user)
-
+    
 exception Http_proxy_error of string
 let http_proxy = ref None
 
@@ -893,7 +916,7 @@ let set_reader t f =
           t.event_handler <- handler;
           t.connecting <- false;
           t.event_handler t CONNECTED;
-          if t.nwrite = 0 then tcp_handler t t.sock CAN_WRITE;
+          if t.nwrite = 0 then tcp_handler t CAN_WRITE;
           lprintf "old handler set\n"
   in
   let handler t ev =
@@ -930,25 +953,25 @@ let set_connected t f =
 let set_read_controler t bc =
   t.read_control <- Some bc;
 (*  set_before_select t.sock (bandwidth_controler t); *)
-  set_allow_read t.sock bc.allow_io;
-  bandwidth_controler t t.sock
+  set_allow_read t.sock_in bc.allow_io;
+  bandwidth_controler t t.sock_in
 
 let set_write_controler t bc =
   t.write_control <- Some bc;
 (*  set_before_select t.sock (bandwidth_controler t); *)
-  set_allow_write t.sock bc.allow_io;
-  bandwidth_controler t t.sock
+  set_allow_write t.sock_out bc.allow_io;
+  bandwidth_controler t t.sock_out
 
 let set_monitored t =
   t.monitored <- true
 
-let set_rtimeout s t = set_rtimeout (sock s) t
-let set_wtimeout s t = set_wtimeout (sock s) t
+let set_rtimeout s t = set_rtimeout s.sock_in t
+let set_wtimeout s t = set_wtimeout s.sock_out t
 
 let set_write_power t p = t.write_power <- p
 let set_read_power t p = t.read_power <- p
 
-let set_lifetime s = set_lifetime (sock s)
+let set_lifetime s = set_lifetime s.sock_in
 
 (*************************************************************************)
 (*                                                                       *)
@@ -957,12 +980,14 @@ let set_lifetime s = set_lifetime (sock s)
 (*************************************************************************)
 
 let dump_socket t buf =
-  print_socket buf t.sock;
+  print_socket buf t.sock_in;
+  print_socket buf t.sock_out;
   Printf.bprintf buf "rbuf: %d/%d wbuf: %d/%d\n" t.rbuf.len
     (String.length t.rbuf.buf) t.wbuf.len (String.length t.wbuf.buf)
 
 let stats buf t =
-  BasicSocket.stats buf t.sock;
+  BasicSocket.stats buf t.sock_in;
+  BasicSocket.stats buf t.sock_out;
   Printf.bprintf buf "  rbuf size: %d/%d\n" (String.length t.rbuf.buf)
   t.rbuf.max_buf_size;
   Printf.bprintf buf "  wbuf size: %d/%d\n" (String.length t.wbuf.buf)
@@ -983,7 +1008,8 @@ let create token name fd handler =
   let t = {
       token = token;
       closing = false;
-      sock = dummy_sock;
+      sock_in = dummy_sock;
+      sock_out = dummy_sock;
       rbuf = buf_create !max_buffer_size;
       wbuf = buf_create !max_buffer_size;
       event_handler = handler;
@@ -1004,7 +1030,8 @@ let create token name fd handler =
       host = "";
       compression = None;
     } in
-  let sock = BasicSocket.create name fd (tcp_handler t) in
+  let sock = BasicSocket.create name fd (fun _ event ->
+        tcp_handler t event) in
   let name = (fun () ->
         Printf.sprintf "%s (nread: %d nwritten: %d) [U %s,D %s]" name t.nread t.nwrite
         (string_of_bool (t.read_control <> None)) (string_of_bool (t.write_control <> None));
@@ -1012,7 +1039,69 @@ let create token name fd handler =
     ) in
   set_printer sock name;
   set_dump_info sock (dump_socket t);
-  t.sock <- sock;
+  t.sock_in <- sock;
+  t.sock_out <- sock;
+  t
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         create_pipe                                   *)
+(*                                                                       *)
+(*************************************************************************)
+
+let create_pipe token name fd_in fd_out handler =
+  use_token token fd_in;
+  if !debug then begin
+      lprintf "[fd %d %s]\n" (get_fd_num fd_in) name;
+    end;
+  MlUnix.set_close_on_exec fd_in;
+  MlUnix.set_close_on_exec fd_out;
+  let t = {
+      token = token;
+      closing = false;
+      sock_in = dummy_sock;
+      sock_out = dummy_sock;
+      rbuf = buf_create !max_buffer_size;
+      wbuf = buf_create !max_buffer_size;
+      event_handler = handler;
+      error = Closed_by_peer;
+      nread = 0;
+      ndown_packets = 0;
+      nwrite = 0;
+      nup_packets = 0;
+      monitored = false;
+      read_control = None;
+      write_control = None;
+      write_power = 1;
+      read_power = 1;
+      peer_ip = Ip.null;
+      my_ip = Ip.null;
+      noproxy = true;
+      connecting = false;
+      host = "";
+      compression = None;
+    } in
+  
+  let fname = (fun () ->
+        Printf.sprintf "%s (nread: %d nwritten: %d) [U %s,D %s]" name
+          t.nread t.nwrite (string_of_bool (t.read_control <> None))
+        (string_of_bool (t.write_control <> None));
+        ;
+    ) in
+  
+  
+  let sock_in = BasicSocket.create name fd_in (fun _ event ->
+        tcp_handler t event) in
+  set_printer sock_in fname;
+  set_dump_info sock_in (dump_socket t);
+
+  let sock_out = BasicSocket.create name fd_out (fun _ event ->
+        tcp_handler t event) in
+  set_printer sock_out fname;
+  set_dump_info sock_out (dump_socket t);
+  
+  t.sock_in <- sock_in;
+  t.sock_out <- sock_out;
   t
 
 (*************************************************************************)
@@ -1027,7 +1116,8 @@ let create_blocking token name fd handler =
   let t = {
       token = token;
       closing = false;
-      sock = dummy_sock;
+      sock_in = dummy_sock;
+      sock_out = dummy_sock;
       rbuf = buf_create !max_buffer_size;
       wbuf = buf_create !max_buffer_size;
       event_handler = handler;
@@ -1048,8 +1138,10 @@ let create_blocking token name fd handler =
       host = "";
       compression = None;
     } in
-  let sock = create_blocking name fd (tcp_handler t) in
-  t.sock <- sock;
+  let sock = create_blocking name fd (fun sock event ->
+        tcp_handler t event) in
+  t.sock_in <- sock;
+  t.sock_out <- sock;
   set_dump_info sock (dump_socket t);
   t
 
@@ -1093,7 +1185,7 @@ let connect token name host port handler =
         ()
       end;
     let t = create token name s handler in
-    must_write (sock t) true;
+    must_write t.sock_out true;
     try
       if use_proxy then begin
           t.noproxy <- false;
@@ -1135,7 +1227,7 @@ let connect token name host port handler =
 
 let my_ip t =
   if t.my_ip = Ip.null then
-    let fd = fd t.sock in
+    let fd = fd t.sock_in in
     match Unix.getsockname fd with
       Unix.ADDR_INET (ip, port) ->
         let ip = Ip.of_inet_addr ip in
@@ -1146,7 +1238,7 @@ let my_ip t =
 
 let peer_ip t =
   if t.peer_ip = Ip.null then
-  let fd = fd t.sock in
+  let fd = fd t.sock_out in
   match Unix.getpeername fd with
       Unix.ADDR_INET (ip, port) ->
         let ip = Ip.of_inet_addr ip in
@@ -1156,7 +1248,7 @@ let peer_ip t =
     t.peer_ip
 
 let host t =
-  let fd = fd t.sock in
+  let fd = fd t.sock_out in
   match Unix.getpeername fd with
     Unix.ADDR_INET (ip, port) -> Ip.of_inet_addr ip, port
   | _ -> raise Not_found
@@ -1209,14 +1301,12 @@ let value_handler f sock nread =
 (*                                                                       *)
 (*************************************************************************)
 
-let exec_command cmd args handler =
-  let token_in = create_token unlimited_connection_manager in
-  let token_out = create_token unlimited_connection_manager in
-  MlUnix.exec_command cmd args (fun in_read out_write ->
-      let t_in = create token_in "pipe_int" in_read handler in
-      let t_out = create token_out "pipe_out" out_write (fun _ _ -> ()) in
-      must_read (sock t_out) false;
-      (t_in, t_out)
+let exec_command token cmd args handler =
+  MlUnix.execvp_command cmd args (fun in_read out_write ->
+      let t = create_pipe token "pipe" in_read out_write
+        handler in
+      must_read t.sock_in false;
+      t
   )
 
 
@@ -1358,7 +1448,7 @@ let _ =
                 let old_nread = t.nread in
                 (try
 (*                    lprintf "allow to read %d\n" can_read; *)
-                    can_read_handler t t.sock can_read
+                    can_read_handler t t.sock_in can_read
                   with _ -> ());
                 bc.remaining_bytes <- bc.remaining_bytes -
                 t.nread + old_nread;
@@ -1379,7 +1469,7 @@ let _ =
                 let old_nwrite = t.nwrite in
                 (try
 (*                    lprintf "WRITE\n";  *)
-                    can_write_handler t t.sock (mini can_write t.wbuf.len)
+                    can_write_handler t t.sock_out (mini can_write t.wbuf.len)
                   with _ -> ());
                 bc.remaining_bytes <- bc.remaining_bytes -
                 t.nwrite + old_nwrite;
@@ -1390,3 +1480,10 @@ let _ =
           bc.nconnections <- 0;
       ) !write_bandwidth_controlers
   )
+
+let prevent_close t =
+  prevent_close t.sock_in;  
+  prevent_close t.sock_out
+  
+let must_write t bool = must_write t.sock_out bool
+  

@@ -2066,6 +2066,10 @@ But if we receive them, take them !
           (if ip_reachable ip  then 
               ignore (DonkeySources.new_source (ip, port) file))
         else
+       match s.server_cid with
+           None -> ()
+         | Some cid ->
+             if Ip.valid cid then
         match s.server_sock with
         | Connection sock ->
             printf_string "QUERY ID";

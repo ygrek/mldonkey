@@ -52,7 +52,6 @@ and handler = t -> event -> unit
 
 val max_buffer_size : int ref
 
-val sock: t -> BasicSocket.t
 val create : token -> string -> Unix.file_descr -> handler -> t
 val create_simple : token -> string -> Unix.file_descr -> t
 val create_blocking : token -> string -> Unix.file_descr -> handler -> t
@@ -64,6 +63,7 @@ val buf_used : buf -> int -> unit
 val buf_add : t -> buf -> string -> int -> int -> unit
 val set_handler : t -> event -> (t -> unit) -> unit
 val set_refill : t -> (t -> unit) -> unit
+val set_rtimer : t ->  (t -> unit) -> unit
 val write: t -> string -> int -> int -> unit
 val write_string: t -> string -> unit
 val connect: token -> string -> Unix.inet_addr -> int -> handler -> t
@@ -71,7 +71,7 @@ val close : t -> BasicSocket.close_reason -> unit
 val closed : t -> bool
 val shutdown : t -> BasicSocket.close_reason -> unit
 val error: t -> BasicSocket.close_reason
-val tcp_handler: t -> BasicSocket.t -> BasicSocket.event -> unit
+(* val tcp_handler: t -> BasicSocket.t -> BasicSocket.event -> unit *)
 val set_closer : t -> (t -> BasicSocket.close_reason -> unit) -> unit
 val nread : t -> int
 val set_max_write_buffer : t -> int -> unit  
@@ -122,7 +122,7 @@ val set_lost_bytes : bandwidth_controler -> int -> int -> unit
 val compute_lost_byte : bandwidth_controler -> int
   
   
-val exec_command : string -> string array -> handler -> t * t
+val exec_command : token -> string -> string array -> handler -> t * int
   
 val not_buffer_more : t -> int -> bool
   
@@ -162,3 +162,6 @@ val set_max_connections_per_second : (unit -> int) -> unit
   
 val deflate_connection : t -> unit
 val set_connected : t -> (t -> unit) -> unit
+
+val prevent_close : t -> unit
+val must_write : t -> bool -> unit

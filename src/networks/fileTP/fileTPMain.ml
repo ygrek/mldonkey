@@ -74,6 +74,7 @@ let _ =
   
   Hashtbl.add protos_by_name "http" FileTPHTTP.proto;
   Hashtbl.add protos_by_name "ftp" FileTPFTP.proto;
+  Hashtbl.add protos_by_name "ssh" FileTPSSH.proto;
   
   network.op_network_is_enabled <- (fun _ -> !!CommonOptions.enable_fileTP);
   option_hook enable_fileTP (fun _ ->

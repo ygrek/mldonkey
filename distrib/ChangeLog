@@ -1,8 +1,19 @@
 ChangeLog	
 =========
 
-Note: Due to the changes in CommonSwarming, this version is to be considered
- as EXPERIMENTAL on all networks, EXCEPT Edonkey & Overnet.
+2004/02/07: Fabrice (version 2.5.9, tag release-2-5-9)
+  * Applied patch #2428, #2595, #2596
+  * TcpBufferedSocket: 'exec_command' only creates one TcpBufferedSocket.t
+     both for reading and writing.
+  * FileTP:
+     * Basic "remote shell" protocol (using ssh):
+        use 'http <ssh://hostname/relative-filename>' to download the file
+        hostname:~/relative-filename. ssh must be able to connect to the
+        host without password exchange. The remote host must have the
+        'get_range' utility in the PATH of ssh (use "make utils" to
+        have 'get_range' compiled with in mldonkey). The transfer rate is
+        not very good (30 KB/s, either because of too small 
+        tcpBufferedSocket buffers, or because of the base64 encoding).
 
 2004/02/06: Fabrice (version 2.5.8, tag release-2-5-8)
   * FileTP:

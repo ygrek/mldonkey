@@ -53,7 +53,7 @@ let file_num file =
 
 let _ =
   file_ops.op_file_sources <- (fun file ->
-      lprintf "file_sources\n"; 
+(*      lprintf "file_sources\n"; *)
       let list = ref [] in
       Hashtbl.iter (fun _ c ->
           list := (as_client c) :: !list

@@ -462,7 +462,7 @@ let telnet_handler t event =
             conn_width = 80; 
             conn_height = 0;
           } in
-	BasicSocket.prevent_close (TcpBufferedSocket.sock sock);
+        TcpBufferedSocket.prevent_close sock;
         TcpBufferedSocket.set_max_write_buffer sock !!interface_buffer;
         TcpBufferedSocket.set_reader sock (user_reader o telnet);
         TcpBufferedSocket.set_closer sock user_closed;

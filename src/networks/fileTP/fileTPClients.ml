@@ -176,7 +176,7 @@ let get_from_client sock (c: client) =
                           iter ()
                       | Some b ->
                           
-(*                          if !verbose_swarming then *) begin
+                          if !verbose_swarming then  begin
                               lprintf "Current Block: "; Int64Swarmer.print_block b;
                             end;
                           try
@@ -208,10 +208,9 @@ let get_from_client sock (c: client) =
   in
   iter c.client_downloads
   
-let init_client sock =
+let init_client c sock =
   TcpBufferedSocket.set_read_controler sock download_control;
-  TcpBufferedSocket.set_write_controler sock upload_control;
-  ()
+  TcpBufferedSocket.set_write_controler sock upload_control
   
 let connect_client c =
 (*  lprintf "connect_client...\n"; *)
@@ -237,7 +236,6 @@ that the connection will not be aborted (otherwise, disconnect_client
                 end
           ) c.client_downloads with _ -> ());
 (*      lprintf "...\n"; *)
-      let ip = Ip.from_name c.client_hostname in
 (*      lprintf "connect_client... pending\n"; *)
       let token =     
         add_pending_connection connection_manager (fun token ->
@@ -252,37 +250,23 @@ that the connection will not be aborted (otherwise, disconnect_client
                     lprintf "connect_client\n";
                   end;
                 if !verbose_msg_clients then begin
-                    lprintf "connecting %s:%d\n" (Ip.to_string ip) 
+                    lprintf "connecting %s:%d\n" c.client_hostname
                     c.client_port; 
                   end;
                 c.client_reconnect <- false;
-                let sock = connect token "fileTP download" 
-                    (Ip.to_inet_addr ip) c.client_port
-                    (fun sock event ->
-                      match event with
-                        BASIC_EVENT (RTIMEOUT|LTIMEOUT) ->
-                          disconnect_client c Closed_for_timeout
-                      | BASIC_EVENT (CLOSED s) ->
-                          disconnect_client c s
-
-(* You can only use the CONNECTED signal if the socket is not yet controlled
-by the bandwidth manager... 2004/02/03: Normally, not true anymore, it should now work
-  even in this case... *)
+                let sock = c.client_proto.proto_connect token c (fun sock ->
                       
-                      | CONNECTED ->
-                          lprintf "CONNECTED !!! Asking for range...\n"; 
-                          
-                          List.iter (fun d ->
-                              let file = d.download_file in
-                              let chunks = [ Int64.zero, file_size file ] in
-                              let bs = Int64Swarmer.register_uploader file.file_swarmer 
-                                  (Int64Swarmer.AvailableRanges chunks) in
-                              d.download_uploader <- Some bs
-                          ) c.client_downloads;
-                          
-                          init_client sock;                
-                          get_from_client sock c
-                      | _ -> ()
+                      List.iter (fun d ->
+                          let file = d.download_file in
+                          let chunks = [ Int64.zero, file_size file ] in
+                          let bs = Int64Swarmer.register_uploader file.file_swarmer 
+                              (Int64Swarmer.AvailableRanges chunks) in
+                          d.download_uploader <- Some bs
+                      ) c.client_downloads;
+                      
+                      init_client c sock;                
+                      get_from_client sock c
+                      
                   )
                 in
                 set_client_state c Connecting;

@@ -156,7 +156,7 @@ LIB_SRCS=   \
 
 NET_SRCS = \
   $(NET)/basicSocket.ml \
-  $(NET)/ip.ml $(NET)/mailer.ml \
+  $(NET)/ip.ml $(NET)/mailer.ml $(NET)/base64.ml  \
   $(NET)/anyEndian.ml $(NET)/bigEndian.ml $(NET)/littleEndian.ml \
   $(NET)/tcpBufferedSocket.ml \
   $(NET)/tcpServerSocket.ml \
@@ -474,6 +474,7 @@ FILETP_SRCS= \
   $(SRC_FILETP)/fileTPClients.ml \
   $(SRC_FILETP)/fileTPHTTP.ml \
   $(SRC_FILETP)/fileTPFTP.ml \
+  $(SRC_FILETP)/fileTPSSH.ml \
   $(SRC_FILETP)/fileTPInteractive.ml \
   $(SRC_FILETP)/fileTPMain.ml
 
@@ -519,6 +520,10 @@ MAKE_TORRENT_SRCS = \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS) \
   $(CHAT_SRCS) $(COMMON_SRCS) $(COMMON_CLIENT_SRCS) $(BITTORRENT_SRCS) \
   tools/make_torrent.ml
+
+GET_RANGE_SRCS = \
+  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS) \
+  $(CHAT_SRCS)   tools/get_range.ml
 
 KDE_APPLET=yes
 
@@ -2182,6 +2187,31 @@ make_torrent.static:  $(MAKE_TORRENT_OBJS) $(MAKE_TORRENT_CMXS)  $(MAKE_TORRENT_
 	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(MAKE_TORRENT_OBJS) $(LIBS_opt) $(LIBS_flags)  $(_LIBS_flags)  $(_STATIC_LIBS_opt) -I build $(MAKE_TORRENT_CMXAS) $(MAKE_TORRENT_CMXS)
 
 
+GET_RANGE_ZOG := $(filter %.zog, $(GET_RANGE_SRCS)) 
+GET_RANGE_MLL := $(filter %.mll, $(GET_RANGE_SRCS)) 
+GET_RANGE_MLY := $(filter %.mly, $(GET_RANGE_SRCS)) 
+GET_RANGE_ML4 := $(filter %.ml4, $(GET_RANGE_SRCS)) 
+GET_RANGE_ML := $(filter %.ml %.mll %.zog %.mly %.ml4, $(GET_RANGE_SRCS)) 
+GET_RANGE_C := $(filter %.c, $(GET_RANGE_SRCS)) 
+GET_RANGE_CMOS=$(foreach file, $(GET_RANGE_ML),   $(basename $(file)).cmo) 
+GET_RANGE_CMXS=$(foreach file, $(GET_RANGE_ML),   $(basename $(file)).cmx) 
+GET_RANGE_OBJS=$(foreach file, $(GET_RANGE_C),   $(basename $(file)).o)    
+
+GET_RANGE_CMXAS := $(foreach file, $(GET_RANGE_CMXA),   build/$(basename $(file)).cmxa)
+GET_RANGE_CMAS=$(foreach file, $(GET_RANGE_CMXA),   build/$(basename $(file)).cma)    
+
+TMPSOURCES += $(GET_RANGE_ML4:.ml4=.ml) $(GET_RANGE_MLL:.mll=.ml) $(GET_RANGE_MLY:.mly=.ml) $(GET_RANGE_MLY:.mly=.mli) $(GET_RANGE_ZOG:.zog=.ml) 
+ 
+get_range: $(GET_RANGE_OBJS) $(GET_RANGE_CMXS) $(GET_RANGE_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $@  $(GET_RANGE_OBJS) $(LIBS_opt) $(LIBS_flags) $(_LIBS_opt) $(_LIBS_flags) -I build $(GET_RANGE_CMXAS) $(GET_RANGE_CMXS) 
+ 
+get_range.byte: $(GET_RANGE_OBJS) $(GET_RANGE_CMOS)  $(GET_RANGE_CMAS)
+	$(OCAMLC) -linkall -o $@  $(GET_RANGE_OBJS) $(LIBS_byte) $(LIBS_flags)  $(_LIBS_byte) $(_LIBS_flags) -I build $(GET_RANGE_CMAS) $(GET_RANGE_CMOS) 
+ 
+get_range.static:  $(GET_RANGE_OBJS) $(GET_RANGE_CMXS)  $(GET_RANGE_CMXAS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $@ $(GET_RANGE_OBJS) $(LIBS_opt) $(LIBS_flags)  $(_LIBS_flags)  $(_STATIC_LIBS_opt) -I build $(GET_RANGE_CMXAS) $(GET_RANGE_CMXS)
+
+
 COPYSOURCES_ZOG := $(filter %.zog, $(COPYSOURCES_SRCS)) 
 COPYSOURCES_MLL := $(filter %.mll, $(COPYSOURCES_SRCS)) 
 COPYSOURCES_MLY := $(filter %.mly, $(COPYSOURCES_SRCS)) 
@@ -2489,8 +2519,8 @@ $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/Makefile: patches/ocamlopt-$(REQUIRED_OCAML)
 $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/ocamlopt: $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/Makefile
 	cd $(LOCAL)/ocamlopt-$(REQUIRED_OCAML); $(MAKE)
 
-utils: ed2k_hash make_torrent copysources
-utils.byte: ed2k_hash.byte make_torrent.byte copysources.byte
+utils: ed2k_hash make_torrent copysources get_range
+utils.byte: ed2k_hash.byte make_torrent.byte copysources.byte get_range.byte
 
 #######################################################################
 

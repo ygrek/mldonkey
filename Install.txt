@@ -27,9 +27,14 @@ The Options tab in the web interface shows the ports.
 
 -You're done!-
 
+Some goodies (make_torrent, ed2k_hash) come with mldonkey, you can also
+compile them using the additionnal command:
+
+Mldonkey/> make utils
+
 ==================
 There are additional ways besides the web interface to control Mlnet(MLdonkey).
-- Compiling support for the 'mldonkey_gui' application while compiling MLdonkey
+- Compiling support for the 'mlgui' application while compiling MLdonkey
   is one. This requires additional libraries, which, depending on your platform
   and skill, may be easy or not so easy to add. The 'mlnet' application functions
   fine without the GUI.

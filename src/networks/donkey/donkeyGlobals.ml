@@ -427,7 +427,7 @@ let remove_server ip port =
         NoConnection -> ()
       | ConnectionWaiting token -> cancel_token token
       | Connection sock -> 
-          shutdown (TcpBufferedSocket.sock sock) Closed_by_user);
+          TcpBufferedSocket.shutdown sock Closed_by_user);
     server_remove (as_server s.server_server)
   with _ -> ()
 
@@ -659,7 +659,7 @@ end;
                 Printf.bprintf buf "%d: %6d/%6d\n" num
                   buf_len nmsgs *)
           );
-          if BasicSocket.closed (TcpBufferedSocket.sock sock) then
+          if TcpBufferedSocket.closed sock then
             incr closed_connections;
   ) clients_by_kind;
   

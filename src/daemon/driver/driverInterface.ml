@@ -482,7 +482,7 @@ lprintf "Sending for %s" prefix; lprint_newline ();
       match gui.gui_sock with
         None -> ()
       | Some sock ->
-          BasicSocket.must_write (TcpBufferedSocket.sock sock) true;
+          TcpBufferedSocket.must_write sock true;
           set_handler sock WRITE_DONE (connecting_writer gui);
     end
   
@@ -988,7 +988,7 @@ let gift_handler t event =
         gui.gui_result_handler <- gift_result_handler gui;
         guis := gui :: !guis;
         
-	BasicSocket.prevent_close (TcpBufferedSocket.sock sock);
+        TcpBufferedSocket.prevent_close sock;
         TcpBufferedSocket.set_max_write_buffer sock !!interface_buffer;
         TcpBufferedSocket.set_reader sock (GiftDecoding.gui_cut_messages
             (fun s ->

@@ -20,7 +20,7 @@
 open Printf2
 open Unix
 
-let exec_command cmd args handler = 
+let execvp_command cmd args handler = 
   let (in_read, output) = Unix.pipe() in
   let (input, out_write) = Unix.pipe() in
   match Unix.fork() with
@@ -35,7 +35,7 @@ let exec_command cmd args handler =
                     begin Unix.dup2 output Unix.stdout; Unix.close output end;
                   Unix.close in_read;
                   Unix.close out_write;
-                  Unix.execv cmd args;
+                  Unix.execvp cmd args;
                   exit 127
                 with e -> 
                     Printf.eprintf "Exception %s in exec_command\n"
@@ -51,7 +51,8 @@ let exec_command cmd args handler =
       ignore (snd(Unix.waitpid [] id));
       Unix.close input;
       Unix.close output;
-      handler in_read out_write
+      let sock = handler in_read out_write in
+      sock, id
 
 let fork_and_exec cmd args = 
             match Unix.fork() with

@@ -409,7 +409,7 @@ let init_anon_client init_sent sock =
   
   TcpBufferedSocket.set_read_controler sock download_control;
   TcpBufferedSocket.set_write_controler sock upload_control;
-  BasicSocket.set_rtimeout (TcpBufferedSocket.sock sock) 30.;
+  TcpBufferedSocket.set_rtimeout sock 30.;
   
   let c = ref None in
   TcpBufferedSocket.set_closer sock (fun _ s ->

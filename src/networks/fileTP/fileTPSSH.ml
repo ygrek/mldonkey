@@ -1,0 +1,305 @@
+(* Copyright 2001, 2002 b8_bavard, b8_fee_carabine, INRIA *)
+(*
+    This file is part of mldonkey.
+
+    mldonkey is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    mldonkey is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with mldonkey; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*)
+
+open Int32ops
+open Queues
+open Printf2
+open Md4
+open Options
+
+open BasicSocket
+open TcpBufferedSocket
+  
+open CommonShared
+open CommonUploads
+open CommonOptions
+open CommonDownloads
+open CommonInteractive
+open CommonClient
+open CommonComplexOptions
+open CommonTypes
+open CommonFile
+open CommonGlobals
+open CommonSwarming  
+  
+open FileTPTypes
+open FileTPOptions
+open FileTPGlobals
+open FileTPComplexOptions
+open FileTPProtocol
+
+open FileTPClients
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         MAIN                                          *)
+(*                                                                       *)
+(*************************************************************************)
+
+let segment_received c num s pos = 
+  if String.length s > 0 then
+    let d =
+      match c.client_downloads with
+        [] -> disconnect_client c Closed_by_user; raise Exit
+      | d :: _ ->
+          let file = d.download_file in
+          if file_num file <> num || file_state file <> FileDownloading then begin
+              disconnect_client c Closed_by_user;
+              raise Exit;
+            end;
+          d
+    in  
+    let file = d.download_file in
+(*
+  lprintf "CHUNK: %s\n" 
+          (String.escaped (String.sub b.buf b.pos to_read_int)); *)
+    let old_downloaded = 
+      Int64Swarmer.downloaded file.file_swarmer in
+    
+    begin
+      try
+        match d.download_uploader with
+          None -> assert false
+        | Some up ->
+            Int64Swarmer.received up
+              pos s 0 (String.length s);
+      with e -> 
+          lprintf "FT: Exception %s in Int64Swarmer.received\n"
+            (Printexc2.to_string e)
+    end;
+    c.client_reconnect <- true;
+(*          List.iter (fun (_,_,r) ->
+              Int64Swarmer.alloc_range r) d.download_ranges; *)
+    let new_downloaded = 
+      Int64Swarmer.downloaded file.file_swarmer in
+    
+    if new_downloaded = file_size file then
+      download_finished file;
+    if new_downloaded <> old_downloaded then
+      add_file_downloaded file.file_file
+        (new_downloaded -- old_downloaded);
+(*
+lprintf "READ %Ld\n" (new_downloaded -- old_downloaded);
+lprintf "READ: buf_used %d\n" to_read_int;
+  *)
+    
+    (match d.download_ranges with
+      | (xx,yy,r) :: tail when  pos >= xx && pos <= yy -> 
+          let (x,y) = Int64Swarmer.range_range r in
+          lprintf "Remaining: %Ld-%Ld/%Ld-%Ld\n" 
+            x y xx yy;
+          if x = y then begin
+              d.download_ranges <- tail; 
+              (match c.client_sock with
+                  Connection sock ->
+                    for i = 1 to max_queued_ranges do
+                      if List.length d.download_ranges <= max_queued_ranges then
+                        (try get_from_client sock c with _ -> ());
+                    done; 
+                | _ -> ());
+(* If we have no more range to receive, disconnect *)
+              lprintf "\n ********** RANGE DOWNLOADED  ********** \n";
+              
+            end
+      | (xx,yy,r) :: tail ->
+          let (x,y) = Int64Swarmer.range_range r in
+          lprintf "Bad range (%Ld): %Ld-%Ld/%Ld-%Ld\n"  pos
+            x y xx yy;
+      | [] -> 
+          lprintf "***** outside of ranges !!!\n"
+    )
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         MAIN                                          *)
+(*                                                                       *)
+(*************************************************************************)
+  
+let ssh_send_range_request c (x,y) sock d =  
+  let file = d.download_url in
+  TcpBufferedSocket.write_string sock 
+    (Printf.sprintf "get_range range %Ld %Ld %d '.%s'\n"  x y
+    (file_num d.download_file) file);
+  ()
+  
+(*************************************************************************)
+(*                                                                       *)
+(*                         MAIN                                          *)
+(*                                                                       *)
+(*************************************************************************)
+        
+let ssh_set_sock_handler c sock = 
+  ()
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         MAIN                                          *)
+(*                                                                       *)
+(*************************************************************************)
+  
+let ssh_check_size u url start_download_file = 
+  let token = create_token unlimited_connection_manager in
+  let sock, pid = exec_command token  "ssh"
+      [| 
+      "ssh";
+      u.Url.server;
+    |] (fun _ _ -> ());
+  in
+  
+  set_rtimer sock (fun _ ->
+      lprintf "SSH TIMER\n";
+      (try Unix.kill Sys.sigkill pid with _ -> ());
+      TcpBufferedSocket.close sock Closed_for_timeout);
+  set_closer sock (fun _ s ->
+      lprintf "SSH closed\n";
+      (try Unix.kill Sys.sigkill pid with _ -> ());
+      close sock s);
+  TcpBufferedSocket.set_reader sock (fun sock nread ->
+      lprintf "SSH reader %d\n" nread;
+      let b = TcpBufferedSocket.buf sock in
+      let rec iter i =
+        if i < b.len then
+          if b.buf.[b.pos + i] = '\n' then begin
+              let slen = if i > 0 && b.buf.[b.pos + i - 1] = '\r' then
+                  i - 1
+                else i in
+              let line = String.sub b.buf b.pos slen in
+              lprintf "SSH LINE [%s]\n" line;
+              buf_used b (i+1);
+              if String2.starts_with line "[SIZE " then begin
+                  let pos = String.index line ']' in
+                  let size = String.sub line 6 (pos-6) in
+                  lprintf "Size [%s]\n" size;
+                  let result_size = Int64.of_string size in
+                  start_download_file u url result_size;
+                  (try Unix.kill Sys.sigkill pid with _ ->());
+                end else
+                iter 0
+            end else
+            iter (i+1)
+      in
+      iter 0
+  );  
+  TcpBufferedSocket.write_string sock 
+    (Printf.sprintf "get_range size '.%s' ; exit\n" u.Url.file);
+  set_rtimeout sock 15.
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         MAIN                                          *)
+(*                                                                       *)
+(*************************************************************************)
+
+  
+  
+type segment =
+  Nothing
+| SegmentPos of int * int64 * int * int
+| Segment of int * int64 * int * int * string
+  
+let ssh_connect token c f =
+  let ip = c.client_hostname in
+  let sock, pid = exec_command token  "ssh"
+      [| 
+      "ssh";
+      c.client_hostname;
+    |] (fun _ _ -> ());
+  in
+  set_rtimer sock (fun _ ->
+      (try Unix.kill Sys.sigkill pid with _ -> ());
+      disconnect_client c Closed_for_timeout);
+  set_closer sock (fun _ s ->
+      (try Unix.kill Sys.sigkill pid with _ -> ());
+      disconnect_client c s);
+  let segment = ref Nothing in
+  TcpBufferedSocket.set_reader sock (fun sock nread ->
+      let b = TcpBufferedSocket.buf sock in
+      let rec iter i =
+        if i < b.len then
+          if b.buf.[b.pos + i] = '\n' then begin
+              let slen = if i > 0 && b.buf.[b.pos + i - 1] = '\r' then
+                  i - 1
+                else i in
+              let line = String.sub b.buf b.pos slen in
+(*              lprintf "SSH LINE [%s]\n" line; *)
+              buf_used b (i+1);
+              
+              if String2.starts_with line "[SEGMENT " && !segment = Nothing then
+                let line = String.sub line 9 (String.length line - 10) in
+                lprintf "segmented [%s]\n" line;
+                match String2.split_simplify line ' '  with
+                  [file_num; pos; len; elen] ->
+                    let file_num = int_of_string file_num in
+                    let pos = Int64.of_string pos in
+                    let len = int_of_string len in
+                    let elen = int_of_string elen in
+                    segment := SegmentPos (file_num, pos,len,elen);
+                    lprintf "Waiting for segment...\n";
+                    iter 0
+                | _ ->
+                    lprintf "SSH: unexpected segment\n";
+                    disconnect_client c (Closed_for_error "unexpected reply")
+              else
+              if line  = "[/SEGMENT]" then
+                match !segment with
+                  Segment (file_num, pos, len, elen, s) ->
+                    lprintf "******* SEGMENT RECEIVED *******\n";
+(*
+                    lprintf "Received/expected: %d/%d\n" (String.length s) elen;
+*)
+                    let ss = Base64.decode s in
+(*
+                    lprintf "Decoded/expected: %d/%d\n" (String.length ss) len;
+*)
+                    segment_received c file_num ss pos;                    
+                    segment := Nothing;
+                    iter 0
+                | _ ->
+                    lprintf "SSH: unexpected end of segment\n";
+                    disconnect_client c (Closed_for_error "unexpected reply")
+                    
+              else
+              match !segment with
+                Nothing -> iter 0
+              | SegmentPos (file_num, pos, len, elen) ->
+                  segment := Segment (file_num, pos, len, elen, line);
+                  lprintf "++++++++++++ SEGEMNT RECEIVED ++++++++++\n";
+                  iter 0
+              | _ -> begin
+                    lprintf "SSH: unexpected line\n";
+                    disconnect_client c (Closed_for_error "unexpected reply")
+                  end
+            end else
+            iter (i+1)
+      in
+      iter 0
+  );  
+  f sock;
+  sock
+  
+let proto =
+  {
+    proto_send_range_request = ssh_send_range_request;
+    proto_set_sock_handler = ssh_set_sock_handler;
+    proto_check_size = ssh_check_size;
+    proto_string = "ssh";
+    proto_connect = ssh_connect;
+  }
+  
+  

@@ -172,6 +172,12 @@ let of_string ?(args=[]) s =
         let host, port, file, user, pass = cut 6 21 in
         create ~proto:"ftp" ~server:host ~port ~user ~pass file
       with _ -> raise (Invalid_argument "this string is not a valid ftp url")
+    else if String2.check_prefix s "ssh://"
+    then
+      try
+        let host, port, file, user, pass = cut 6 22 in
+        create ~proto:"ssh" ~server:host ~port ~user ~pass file
+      with _ -> raise (Invalid_argument "this string is not a valid ssh url")
     else
 (* we accept URL with no protocol for local files *)
     let file = s in

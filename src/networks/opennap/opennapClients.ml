@@ -343,7 +343,7 @@ let listen () =
                   | Some c ->
                       disconnect_client c s
               );
-              BasicSocket.set_rtimeout (TcpBufferedSocket.sock sock) 30.;
+              TcpBufferedSocket.set_rtimeout sock 30.;
               
               write_string sock "1";
               

@@ -40,3 +40,11 @@ let int64_of_uint32 v =
   and64 (Int64.of_int32 v) bits32_64
   
 let int32_of_int64 v = Int64.to_int32
+  
+let megabyte = Int64.of_int (1024 * 1024)
+let kilobyte = Int64.of_int 1024
+let kilobytes256 = Int64.of_int (256 * 1024)
+let kilobytes x = kilobyte *.. x
+let megabytes x = megabyte *.. x
+let kilobytes64 = kilobytes 64
+  

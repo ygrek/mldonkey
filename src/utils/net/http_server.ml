@@ -754,7 +754,7 @@ let handler config t event =
         let token = create_token unlimited_connection_manager in
         let sock = TcpBufferedSocket.create_simple 
             token "http connection" s in
-	BasicSocket.prevent_close (TcpBufferedSocket.sock sock);
+        TcpBufferedSocket.prevent_close sock;
         TcpBufferedSocket.set_reader sock (request_handler config);
         TcpBufferedSocket.set_closer sock request_closer;
         TcpBufferedSocket.set_handler sock TcpBufferedSocket.BUFFER_OVERFLOW

@@ -853,7 +853,7 @@ let listen () =
                     Some c ->  disconnect_client c s
                   | None -> ()
               );
-              BasicSocket.set_rtimeout (TcpBufferedSocket.sock sock) 30.;
+              TcpBufferedSocket.set_rtimeout sock 30.;
               set_gnutella_sock sock !verbose_msg_clients
                 (HttpHeader (push_handler c));
           | _ -> ()
@@ -887,7 +887,7 @@ let push_connection guid index ip port =
               Some c ->  disconnect_client c s
             | None -> ()
         );
-        BasicSocket.set_rtimeout (TcpBufferedSocket.sock sock) 30.;
+        TcpBufferedSocket.set_rtimeout sock 30.;
         set_gnutella_sock sock !verbose_msg_clients
           (HttpHeader (push_handler c));
         write_string sock 

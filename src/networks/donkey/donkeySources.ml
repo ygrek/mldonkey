@@ -962,6 +962,10 @@ let check_sources reconnect_client =
           
           try
             let s = find_server ip port in
+           match s.server_cid with
+               None -> ()
+             | Some cid ->
+                 if Ip.valid cid then
             match s.server_sock with
               Connection sock ->
                 DonkeyProtoCom.direct_server_send sock (

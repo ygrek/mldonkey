@@ -56,7 +56,7 @@ let file_num file =
 
 let _ =
   file_ops.op_file_sources <- (fun file ->
-      lprintf "file_sources\n"; 
+(*      lprintf "file_sources\n";  *)
       List2.tail_map (fun c ->
           as_client c.client_client
       ) file.file_clients
@@ -72,7 +72,7 @@ let _ =
   file_ops.op_file_info <- (fun file ->
       {
         P.file_comment = file_comment (as_file file.file_file);
-        P.file_name = file.file_name;
+        P.file_name = file_best_name (as_file file.file_file);
         P.file_num = (file_num file);
         P.file_network = network.network_num;
         P.file_names = file.file_filenames;
@@ -214,8 +214,11 @@ let test_mirrors file urls =
       try
         let u = Url.of_string url in
         let proto = match u.Url.proto with
-            "http" -> FileTPHTTP.proto
-          | _ -> failwith "Unknow URL protocol"
+          | "http" -> FileTPHTTP.proto
+          | "ftp" -> FileTPFTP.proto
+          | "ssh" -> FileTPSSH.proto
+          | s -> failwith 
+              (Printf.sprintf "Unknown URL protocol [%s]" s)
         in
         proto.proto_check_size u url 
           (start_download_file_from_mirror proto file)
@@ -281,9 +284,11 @@ let start_download_file proto u url result_size =
 let download_file url = 
   let u = Url.of_string url in
   let proto = match u.Url.proto with
-    | "http" -> FileTPHTTP.proto
+    | "http" -> FileTPHTTP.proto  
     | "ftp" -> FileTPFTP.proto
-    | _ -> failwith "Unknow URL protocol"
+    | "ssh" -> FileTPSSH.proto
+    | s -> failwith 
+        (Printf.sprintf "Unknown URL protocol [%s]" s)
   in
   proto.proto_check_size u url (start_download_file proto)
   

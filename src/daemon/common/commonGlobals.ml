@@ -25,13 +25,6 @@ open BasicSocket
 open CommonTypes
 open UdpSocket
 open TcpBufferedSocket
-
-let megabyte = Int64.of_int (1024 * 1024)
-let kilobyte = Int64.of_int 1024
-let kilobytes256 = Int64.of_int (256 * 1024)
-let kilobytes x = kilobyte *.. x
-let megabytes x = megabyte *.. x
-let kilobytes64 = kilobytes 64
   
 let networks_string = ref ""
   
