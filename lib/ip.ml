@@ -73,11 +73,12 @@ let resolve_one t =
       to_fixed_string t
 
 let valid (j,_,_,i) = i != 0 && j != 0 && i != 255 && j < 224
+  
 let reachable ip = match ip with
     192, 168,_,_ -> false
   | 10, _, _, _ -> false
   | 172, v, _, _ when v > 15 && v < 32 -> false
-  | 127, 0, 0, 1 -> false
+  | 127, 0, 0, 1 -> true
   | _ -> true
   
   
