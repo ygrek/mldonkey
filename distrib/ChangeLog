@@ -1,6 +1,9 @@
 ChangeLog	
 =========
 
+2004/01/15: Fabrice
+  * Applied Savannah patches #2480, #2481 (emule), #2482 (old GUI)
+
 2004/01/14: Fabrice
   * Applied Savannah patches:
      #2475, #2474 (bin modes), #2479 (BT), #2473 (negative time),

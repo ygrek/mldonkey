@@ -139,10 +139,9 @@ let canon_client gui c =
       
       begin
         if c.client_type <> cc.client_type then begin
-            match c.client_type, cc.client_type with
-            | NormalClient, _ ->
+            if c.client_type = 0 then
                 box_friends#h_remove_friend c.client_num
-            | _  ->
+            else
                 box_friends#h_update_friend cc
           end
       end;
@@ -154,9 +153,8 @@ let canon_client gui c =
       cc.client_kind <- c.client_kind;
       cc.client_tags <- c.client_tags;
       begin
-        match c.client_type with
-          NormalClient -> ()
-        | _ -> box_friends#h_update_friend cc;
+        if c.client_type <> 0 then
+          box_friends#h_update_friend cc;
       end;
       
       cc
@@ -164,9 +162,8 @@ let canon_client gui c =
 (*        lprintf "Adding client %d" c.client_num; lprint_newline ();  *)
         Hashtbl.add G.locations c.client_num c;
         begin
-          match c.client_type with
-            NormalClient -> ()
-          | _ -> box_friends#h_update_friend c;
+          if c.client_type <> 0 then
+            box_friends#h_update_friend c;
         end;
         c
   in

@@ -524,3 +524,5 @@ let string_of_reason c =
   | Closed_connect_failed -> "connect failed"
   | Closed_for_exception e -> Printf.sprintf "exception %s"
         (Printexc2.to_string e)
+
+let update_time () = ignore (update_time ())

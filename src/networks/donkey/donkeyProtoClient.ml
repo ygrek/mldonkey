@@ -690,6 +690,9 @@ module EmuleClientInfo = struct
         "\128", "mod_morph_version";
         "\130", "mod_mortillo";
         "\131", "mod_mortillo_version";
+        "\132", "chanblard_version";
+        "\133", "signature";
+        "\134", "cache";
         "\135", "mod_lsd";
         "\136", "mod_lsd_version";
         "\144", "mod_lovelace_version";

@@ -202,3 +202,105 @@ let _ =
   lprint_string (Printf.sprintf !! nshared 23 (Int32.one));
   lprint_newline ();
   *)
+
+module NEW = struct 
+    
+    type 'a message = {
+        name : string;
+        index : int;
+      }
+    
+    let strings = Hashtbl.create 1111
+    let next_slot = ref 0
+    let translation = ref [||]
+    let default = ref [||]
+    let requests = ref [||]
+    let message_file = ref ""    
+    
+    let save_message_file = ref false
+    
+    let no_translation = ""
+    
+    let register x =
+      try
+        let index = Hashtbl.find strings x in
+        { name = x; index = index }        
+      with Not_found ->
+          
+          save_message_file := true;
+          
+          if !next_slot = Array.length !translation then begin
+              
+              let new_array = Array.create (2 * !next_slot+ 1) no_translation
+              in
+              Array.blit !translation 0 new_array 0 !next_slot;
+              translation := new_array;
+              
+              let new_array = Array.create (2 * !next_slot+ 1) 0 
+              in
+              Array.blit !requests 0 new_array 0 !next_slot;
+              requests := new_array;
+              
+              let new_array = Array.create (2 * !next_slot+ 1) no_translation
+              in
+              Array.blit !default 0 new_array 0 !next_slot;
+              default := new_array;
+            
+            end;
+          let index = !next_slot in
+          incr next_slot;
+          !default.(index ) <- x;
+          { name = x ; index = index }        
+    
+    let b_ x = 
+      let y = (Obj.magic x : string) in
+      Obj.magic (register y : string message)
+    
+    let s_ x = register x
+    
+    let p_ m = 
+      let index = m.index in
+      !requests.(index) <- !requests.(index) + 1;
+      let translation = !translation.(index) in
+      let s= if translation == no_translation then
+          !default.(index)
+        else translation
+      in
+      Obj.magic (s : string)
+    
+    
+    let save_messages () =
+      if !message_file <> "" then
+        let oc = open_out !message_file in
+
+(* Untranslated strings first *)        
+        for i = 0 to Array.length !default do
+          if !translation.(i) == no_translation then
+          Printf.fprintf oc "\"%s\" = \"\"\n"
+            (String.escaped !default.(i)) 
+        done;
+
+(* Translated strings second *)
+        for i = 0 to Array.length !default do
+          if !translation.(i) != no_translation then
+            Printf.fprintf oc "\"%s\" = \"%s\"\n"
+              (String.escaped !default.(i)) 
+            (String.escaped !translation.(i))
+        done;
+        
+        close_out oc;
+        save_message_file := false
+        
+    let save_message_file () =
+      if !save_message_file then
+        save_messages ()
+    
+    
+    let set_message_file filename = 
+(* If the file exists, load it. Check that '%' formats are the same
+in the default and in the translation. *)
+
+      save_message_file ()
+      
+        
+  end

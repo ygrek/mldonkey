@@ -803,6 +803,12 @@ let brand_mod_to_string b =
   | Brand_mod_dm -> "DM"
   | Brand_mod_sfiom -> "SF-IOM"
   | Brand_mod_magic_elseve -> "Magic-Elseve"
+  | Brand_mod_schlumpmule -> "SchlumpMule"
+  | Brand_mod_lc -> "LC"
+  | Brand_mod_noamson -> "NoamSon"
+  | Brand_mod_stormit -> "Stormit"
+  | Brand_mod_omax -> "OMaX"
+  | Brand_mod_mison -> "Mison"
       
 (*************************************************************
 

@@ -129,6 +129,7 @@ class box columns friend_tab =
       
     method column_menu  i = 
       [
+        `I ("Autosize", fun _ -> self#wlist#columns_autosize ());
         `I ("Sort", self#resort_column i);
         `I ("Remove Column",
           (fun _ -> 
@@ -188,10 +189,10 @@ class box columns friend_tab =
       match col with
         Col_client_name -> shorten !!O.max_client_name_len f.client_name
       | Col_client_state -> fst (string_color_of_client friend_tab f)
-      | Col_client_type -> (match f.client_type with
-              FriendClient -> gettext M.friend
-            | ContactClient -> gettext M.contact
-            | NormalClient -> "Y")
+      | Col_client_type -> (let t = f.client_type in
+            if t land client_friend_tag <> 0 then gettext M.friend else
+            if t land client_contact_tag <> 0 then gettext M.contact else
+              "Y")
       | Col_client_network -> Gui_global.network_name f.client_network
       | Col_client_kind -> 
           match f.client_kind with

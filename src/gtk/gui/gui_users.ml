@@ -46,6 +46,7 @@ class box columns () =
     
     method column_menu  i = 
       [
+        `I ("Autosize", fun _ -> self#wlist#columns_autosize ());
         `I ("Sort", self#resort_column i);
         `I ("Remove Column",
           (fun _ -> 

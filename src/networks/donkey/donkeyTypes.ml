@@ -232,8 +232,14 @@ type brand_mod =
 | Brand_mod_dm
 | Brand_mod_sfiom
 | Brand_mod_magic_elseve
+| Brand_mod_schlumpmule
+| Brand_mod_lc
+| Brand_mod_noamson
+| Brand_mod_stormit
+| Brand_mod_omax
+| Brand_mod_mison
 
-let brand_mod_count = 49
+let brand_mod_count = 55
 
 type server = (*[]*){
     mutable server_server : server CommonServer.server_impl;

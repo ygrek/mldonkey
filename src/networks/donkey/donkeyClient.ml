@@ -471,7 +471,13 @@ let mod_array =
       ("o\178", Brand_mod_o2);
       ("dm", Brand_mod_dm);
       ("sf-iom", Brand_mod_sfiom);
-      ("magic-elseve", Brand_mod_magic_elseve)
+      ("magic-elseve", Brand_mod_magic_elseve);
+      ("schlumpmule", Brand_mod_schlumpmule);
+      ("lc", Brand_mod_lc);
+      ("noamson", Brand_mod_noamson);
+      ("stormit", Brand_mod_stormit);
+      ("omax", Brand_mod_omax);
+      ("mison", Brand_mod_mison)
    |]
 
 let to_lowercase s = String.lowercase s

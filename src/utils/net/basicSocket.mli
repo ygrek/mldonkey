@@ -36,7 +36,7 @@ type handler = t -> event -> unit
 
 val infinite_timeout : float
 val last_time : unit -> int
-
+val update_time : unit -> unit
   
 val fd : t -> Unix.file_descr
 val must_write : t -> bool -> unit

@@ -346,8 +346,8 @@ let buf_client proto buf c =
       (match c.client_upload with
           Some s -> buf_string buf s
         | None -> buf_string buf "");
-      if proto >= 20 then 
-        buf_int buf (BasicSocket.last_time () - c.client_connect_time)
+      if proto >= 20 then
+        buf_int buf c.client_connect_time
     end
     
 let buf_network proto buf n =

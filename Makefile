@@ -565,7 +565,7 @@ install:: opt
          fi
 	if test -e mlgui; then \
              rm -f $(prefix)/bin/mlgui; cp -f mlgui $(prefix)/bin/mlgui; \
-             rm -f $(prefix)/bin/mldonkey_gui; cp -f mlgui $(prefix)/bin/mldonkey_gui; \
+             rm -f $(prefix)/bin/mldonkey_gui; ln -s mlgui $(prefix)/bin/mldonkey_gui; \
          fi
 	if test -e mlnet+gui; then \
              rm -f $(prefix)/bin/mlnet+gui; cp -f mlnet+gui $(prefix)/bin/mlnet+gui; \
@@ -574,7 +574,7 @@ install:: opt
              done; \
          fi
 	if test -e mlim; then \
-             rm -f $(prefix)/bin/mlim; cp -f mlnet $(prefix)/bin/mlim; \
+             rm -f $(prefix)/bin/mlim; cp -f mlim $(prefix)/bin/mlim; \
          fi
 
 
@@ -751,12 +751,12 @@ GUI_BASE_SRCS= \
   $(SRC_GUI)/gui_messages.ml   $(SRC_GUI)/gui_global.ml \
   $(SRC_GUI)/gui_columns.ml \
   $(SRC_GUI)/gui_keys.ml \
-  $(SRC_GUI)/gui_options.ml \
-  $(SRC_PROGRESS)/gui_progress.ml \
-  $(SRC_GUI)/gui_misc.ml \
-  $(SRC_GUI)/gui_com.ml 
+  $(SRC_GUI)/gui_options.ml
 
 NEWGUI_SRCS=  \
+  $(SRC_PROGRESS)/gui_progress.ml \
+  $(SRC_GUI)/gui_misc.ml \
+  $(SRC_GUI)/gui_com.ml \
   $(SRC_GUI)/gui_types.ml \
   $(SRC_GUI)/gui_graph_base.ml $(SRC_GUI)/gui_graph.ml \
   $(SRC_GUI)/gui_console_base.zog $(SRC_GUI)/gui_console.ml \
@@ -776,6 +776,9 @@ NEWGUI_SRCS=  \
   $(SRC_GUI)/gui_main.ml
 
 PROGRESS_SRCS = \
+  $(SRC_PROGRESS)/gui_progress.ml \
+  $(SRC_GUI)/gui_misc.ml \
+  $(SRC_GUI)/gui_com.ml \
   $(SRC_PROGRESS)/gui_progress_main.ml
 
 OLDGUI_SRCS=  \
@@ -789,7 +792,7 @@ OLDGUI_SRCS=  \
   $(SRC_GUI)/gui_rooms_base.zog $(SRC_GUI)/gui_rooms.ml \
   $(SRC_GUI)/gui_friends_base.zog $(SRC_GUI)/gui_friends.ml \
   $(SRC_GUI)/gui_cdget_base.zog $(SRC_GUI)/gui_cdget.ml \
-  $(SRC_GUI)/gui_queries_base.zog $(SRC_GUI)/gui_queries.ml \
+  $(SRC_GUI)/gui_queries_base.ml $(SRC_GUI)/gui_queries.ml \
   $(SRC_GUI)/gui_servers_base.zog $(SRC_GUI)/gui_servers.ml \
   $(SRC_GUI)/gui_downloads_base.zog $(SRC_GUI)/gui_downloads.ml \
   $(SRC_GUI)/gui_window_base.zog $(SRC_GUI)/gui_window.ml \
@@ -848,7 +851,10 @@ MLCHAT_CMXA= cdk.cmxa gmisc.cmxa
 MLCHAT_SRCS=  $(CHAT_SRCS) $(CHAT_EXE_SRCS)
 
 
-TARGETS += mlgui$(EXE) mlchat$(EXE) mlguistarter$(EXE) mlprogress$(EXE)
+TARGETS += mlgui$(EXE) mlchat$(EXE) mlguistarter$(EXE)
+ifeq ("$(BUILD_NEWGUI)", "yes")
+  TARGETS += mlprogress$(EXE)
+endif
 
 TARGETS +=  mlnet+gui$(EXE)
 

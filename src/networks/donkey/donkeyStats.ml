@@ -133,6 +133,12 @@ let brand_mod_to_int b =
   | Brand_mod_dm -> 46
   | Brand_mod_sfiom -> 47
   | Brand_mod_magic_elseve -> 48
+  | Brand_mod_schlumpmule -> 49
+  | Brand_mod_lc -> 50
+  | Brand_mod_noamson -> 51
+  | Brand_mod_stormit -> 52
+  | Brand_mod_omax -> 53
+  | Brand_mod_mison -> 54
 
 let brand_mod_of_int b =
   match b with
@@ -185,6 +191,12 @@ let brand_mod_of_int b =
   | 46 -> Brand_mod_dm
   | 47 -> Brand_mod_sfiom
   | 48 -> Brand_mod_magic_elseve
+  | 49 -> Brand_mod_schlumpmule
+  | 50 -> Brand_mod_lc
+  | 51 -> Brand_mod_noamson
+  | 52 -> Brand_mod_stormit
+  | 53 -> Brand_mod_omax
+  | 54 -> Brand_mod_mison
   | _ -> raise Not_found
       
 let gbrand_mod_to_string b =
@@ -238,6 +250,12 @@ let gbrand_mod_to_string b =
   | Brand_mod_dm -> "DM"
   | Brand_mod_sfiom -> "SFI"
   | Brand_mod_magic_elseve -> "MEl"
+  | Brand_mod_schlumpmule -> "sch"
+  | Brand_mod_lc -> "LC"
+  | Brand_mod_noamson -> "NoS"
+  | Brand_mod_stormit -> "Sto"
+  | Brand_mod_omax -> "OMX"
+  | Brand_mod_mison -> "Mis"
 
 let stats_all = dummy_stats 
 let mod_stats_all = dummy_mod_stats 

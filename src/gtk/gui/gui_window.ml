@@ -79,7 +79,10 @@ class window () =
       Mi.get_hpaned self tab_servers#hpaned_servers O.servers_hpane_left;
       Mi.set_vpaned tab_servers#vpaned_servers O.servers_vpane_up;
       Mi.get_vpaned self tab_servers#vpaned_servers O.servers_vpane_up;
-      
+
+      tab_servers#box_servers#wlist#columns_autosize();
+      tab_servers#box_users#wlist#columns_autosize();
+
       notebook#goto_page 1;
       Mi.set_hpaned tab_downloads#hpaned O.downloads_hpane_left;
       Mi.get_hpaned self tab_downloads#hpaned O.downloads_hpane_left;  
@@ -87,7 +90,11 @@ class window () =
       Mi.get_vpaned self tab_downloads#vpaned O.downloads_vpane_up;
       Mi.set_vpaned tab_downloads#clients_wpane O.downloads_wpane_up;
       Mi.get_vpaned self tab_downloads#clients_wpane O.downloads_wpane_up;
-      
+
+      tab_downloads#box_downloads#wlist#columns_autosize();
+      tab_downloads#box_downloaded#wlist#columns_autosize();
+      tab_downloads#box_locations#wlist#columns_autosize();
+
       notebook#goto_page 2;
       Mi.set_hpaned tab_friends#hpaned O.friends_hpane_left;
       Mi.get_hpaned self tab_friends#hpaned O.friends_hpane_left;
@@ -98,10 +105,15 @@ class window () =
       Mi.set_hpaned tab_friends#box_files#wpane O.friends_hpane_dirs;
       Mi.get_hpaned self tab_friends#box_files#wpane O.friends_hpane_dirs;
 
+      tab_friends#box_friends#wlist#columns_autosize();
+      tab_friends#box_files#box_results#wlist#columns_autosize();
+
       notebook#goto_page 4;
       Mi.set_hpaned tab_rooms#hpaned O.rooms_hpane_left;
       Mi.get_hpaned self tab_rooms#hpaned O.rooms_hpane_left;
-      
+
+      notebook#goto_page 5;
+      tab_uploads#upstats_box#wlist#columns_autosize();
 (*
       notebook#goto_page 3;
       Mi.set_hpaned tab_searches#hpaned O.searches_hpane_left;  

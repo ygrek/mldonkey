@@ -41,7 +41,7 @@ let preview file () =  Gui_com.send (Preview file.file_num)
   
 let save_menu_items file =
   List.map
-    (fun name ->
+    (fun (name,_) ->
       `I (name, 
         (fun _ -> 
             Gui_com.send (GuiProto.SaveFile (file.file_num, name))
@@ -213,6 +213,7 @@ class box columns sel_mode () =
     
     method column_menu  i = 
       [
+        `I ("Autosize", fun _ -> self#wlist#columns_autosize ());
         `I ("Sort", self#resort_column i);
         `I ("Remove Column",
           (fun _ -> 
@@ -790,8 +791,8 @@ class box_downloads box_locs wl_status () =
               match last_displayed_file with
                 Some file ->
                     let n = view_availability + 1 in
-                    lprintf "view_availability %d/%d\n" n
-                      (List.length file.file_availability);
+                    (* lprintf "view_availability %d/%d\n" n
+                      (List.length file.file_availability); *)
                     view_availability <- (if
                       n > List.length file.file_availability 
                     then 0 else n);
@@ -1049,7 +1050,9 @@ end
 
 class pane_downloads () =
   let wl_status = GMisc.label ~text: "" ~show: true () in
-  let client_info_box = GPack.vbox ~homogeneous:false () in
+  let scroll_box = GPack.vbox () in
+  let scroll = GBin.scrolled_window ~hpolicy:`AUTOMATIC ~vpolicy:`AUTOMATIC ~placement:`TOP_LEFT ~packing:scroll_box#add () in
+  let client_info_box = GPack.vbox ~packing:scroll#add_with_viewport () in
   let locs = new Gui_friends.box_list client_info_box false in
   let dled = new box_downloaded wl_status () in
   let dls = new box_downloads locs wl_status () in
@@ -1129,7 +1132,7 @@ class pane_downloads () =
 
       
       clients_wpane#add1 locs#coerce;
-      clients_wpane#add2 client_info_box#coerce;
+      clients_wpane#add2 scroll_box#coerce;
       downloaded_frame#add dled#coerce; 
       downloads_frame#add dls#coerce ;
       if !!Gui_options.downloads_up then  begin

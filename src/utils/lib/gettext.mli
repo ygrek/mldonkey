@@ -51,3 +51,17 @@ module T :
   
 val gettext : ('a, unit, string) format Options.option_record -> 'a
 val buftext : Buffer.t -> ('a, Buffer.t, unit) format Options.option_record -> 'a
+
+module NEW : sig
+
+    type 'a message
+    
+    val save_message_file : unit -> unit
+    val set_message_file : string -> unit
+
+    val b_ : ('a, 'b, 'c) format -> ('a, 'b, 'c) format message
+    val s_ : string -> string message
+      
+    val p_ : 'a message -> 'a
+      
+  end
