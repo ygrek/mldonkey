@@ -71,6 +71,10 @@ let enable () =
   ()
   
 let _ =
+  
+  Hashtbl.add protos_by_name "http" FileTPHTTP.proto;
+  Hashtbl.add protos_by_name "ftp" FileTPFTP.proto;
+  
   network.op_network_is_enabled <- (fun _ -> !!CommonOptions.enable_fileTP);
   option_hook enable_fileTP (fun _ ->
       if !CommonOptions.start_running_plugins then

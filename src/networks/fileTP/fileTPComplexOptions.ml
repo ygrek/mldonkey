@@ -41,10 +41,12 @@ module ClientOption = struct
           let get_value_nil name conv = 
             try conv (List.assoc name assocs) with _ -> []
           in
-          let client_hostname = get_value "client_hostname" value_to_string
-          in
+          let client_hostname = get_value "client_hostname" value_to_string in
           let client_port = get_value "client_port" value_to_int in
-          let c = new_client client_hostname client_port in
+          let client_proto = try
+              get_value "client_proto" value_to_string with _ -> "http" in
+          let proto = find_proto client_proto in
+          let c = new_client proto client_hostname client_port in
 
 (*
           (try
@@ -64,6 +66,7 @@ with _ -> ());
       Options.Module [
         "client_hostname", string_to_value c.client_hostname;
         "client_port", int_to_value c.client_port;
+        "client_proto", string_to_value c.client_proto.proto_string;
 (*
             "client_speed", int_to_value u.user_speed;
 "client_push", bool_to_value false;

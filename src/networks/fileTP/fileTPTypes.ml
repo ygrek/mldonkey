@@ -36,6 +36,7 @@ type client = {
     mutable client_requests : download list;
     mutable client_reconnect : bool;
     mutable client_connected_for : file option;
+    mutable client_proto : tp_proto;
   }
 
 and file = {
@@ -57,3 +58,13 @@ and download = {
     mutable download_ranges : (int64 * int64 * Int64Swarmer.range) list;
     mutable download_block : Int64Swarmer.block option;
   }
+
+and tp_proto = {
+    proto_send_range_request : (client -> (int64 * int64) ->
+       TcpBufferedSocket.t -> download -> unit);    
+    proto_set_sock_handler : (client -> TcpBufferedSocket.t -> unit);
+    proto_string : string;
+    proto_check_size : Url.url -> string -> 
+       (Url.url -> string -> int64 -> unit) -> unit;
+  }
+  

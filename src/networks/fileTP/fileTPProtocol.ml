@@ -91,7 +91,7 @@ end; *)
   in
   iter_read
 
-let set_fileTP_sock sock info ghandler = 
+let set_fileTP_sock sock ghandler = 
   let gconn = {
       gconn_handler = ghandler;
       gconn_refill = [];

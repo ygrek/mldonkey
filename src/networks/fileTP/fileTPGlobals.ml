@@ -88,7 +88,11 @@ let redirectors_to_try = ref ( [] : string list)
 
 let files_by_uid = Hashtbl.create 13
 
-let (clients_by_uid ) = Hashtbl.create 127
+let clients_by_uid = Hashtbl.create 127
+let protos_by_name = Hashtbl.create 13  
+  
+let find_proto (name : string) =
+  (Hashtbl.find protos_by_name name : tp_proto)
   
 (***************************************************************
 
@@ -164,7 +168,7 @@ let new_file file_id file_name file_size =
       Hashtbl.add files_by_uid file_id file;
       file    
       
-let new_client hostname port =
+let new_client proto hostname port =
   let key = (hostname,port) in
   try
     Hashtbl.find clients_by_uid key
@@ -187,6 +191,7 @@ client_error = false;
           client_reconnect = false;
           client_in_queues = [];
           client_connected_for = None;
+          client_proto = proto;
         } and impl = {
           dummy_client_impl with
           impl_client_val = c;

@@ -40,6 +40,21 @@ let commit_in_subdir = define_option fileTP_section ["commit_in_subdir"]
     string_option "FileTP"
 
 let user_agent = Printf.sprintf "MLDonkey %s" Autoconf.current_version
+
+let mirrors = define_option fileTP_section ["mirrors"]
+    "A list of lists, where each list contains equivalent prefixes for mirrors"
+    (list_option (list_option string_option))
+  
+  (*
+   [
+      [
+"http://www-ftp.lip6.fr/pub/linux/distributions/mandrake/";
+"http://mirrors.kernel.org/mandrake/";
+     ]
+   ]
+*)
+
+  []
   
   (*
 let verbose_clients = 

@@ -184,34 +184,8 @@ let _ =
 (* As in bittorrent: make an initial connection just to know the complete
   size of the file and disconnect immediatly after. *)
 
-let start_download_file url headers =
-  lprintf "RECEIVED HEADERS\n";
-  let content_length = ref None in
-  List.iter (fun (name, content) ->
-      if String.lowercase name = "content-length" then
-        try          
-          content_length := Some (Int64.of_string content)
-        with _ -> 
-            lprintf "bad content length [%s]\n" content;
-  ) headers;
-  match !content_length with
-    None -> failwith "Unable to start download (HEAD failed)"
-  | Some result_size ->
-      lprintf "STARTING DOWNLOAD WITH SIZE %Ld\n" result_size;
-      let file = new_file (Md4.random ()) url.Url.file result_size in
-      lprintf "DOWNLOAD FILE %s\n" file.file_name; 
-      if not (List.memq file !current_files) then begin
-          current_files := file :: !current_files;
-        end;
-      
-      let client_hostname = url.Url.server in
-      let client_port = url.Url.port in
-      let c = new_client client_hostname client_port in
-      add_download file c url.Url.full_file;
-      FileTPClients.get_file_from_source c file; 
-      ()
-
-let start_download_file_from_mirror file url headers =
+let rec start_download_file_from_mirror proto file url u result_size =
+  (*
   lprintf "RECEIVED HEADERS\n";
   let content_length = ref None in
   List.iter (fun (name, content) ->
@@ -223,47 +197,96 @@ let start_download_file_from_mirror file url headers =
   ) headers;
   match !content_length with
     None -> failwith "Unable to mirror download (HEAD failed)"
-  | Some result_size ->
+  | Some result_size -> *)
       lprintf "STARTING DOWNLOAD WITH SIZE %Ld\n" result_size;
       if file_size file <> result_size then
         lprintf "Unable to mirror download (files have different sizes)"
       else
       let client_hostname = url.Url.server in
       let client_port = url.Url.port in
-      let c = new_client client_hostname client_port in
+      let c = new_client proto client_hostname client_port in
       add_download file c url.Url.full_file;
       FileTPClients.get_file_from_source c file; 
-      ()
-      
-  
-let download_file url =
-  let url = Url.of_string url in
-  
-  let module H = Http_client in
-  let r = {
-      H.basic_request with
-      H.req_url = url;
-      H.req_proxy = !CommonOptions.http_proxy;
-      H.req_request = H.HEAD;
-      H.req_user_agent = user_agent;
-    } in
-  
-  H.whead r (start_download_file url)
+      ()  
+
+let test_mirrors file urls =
+  List.iter (fun url ->
+      try
+        let u = Url.of_string url in
+        let proto = match u.Url.proto with
+            "http" -> FileTPHTTP.proto
+          | _ -> failwith "Unknow URL protocol"
+        in
+        proto.proto_check_size u url 
+          (start_download_file_from_mirror proto file)
+        (*
+        let module H = Http_client in
+        let r = {
+            H.basic_request with
+            H.req_url = u;
+            H.req_proxy = !CommonOptions.http_proxy;
+            H.req_request = H.HEAD;
+            H.req_user_agent = user_agent;
+          } in
+        
+H.whead r (start_download_file_from_mirror file u)
+  *)
+      with _ -> ()) urls
+
+let find_mirrors file url =
+  let urllen = String.length url in
+  let rec iter1 list =
+    match list with
+      [] -> ()
+    | list :: tail -> 
+        iter2 list list;
+        iter1 tail
+        
+  and iter2 mirrors list =
+    match list with
+      [] -> ()
+    | name :: tail ->
+        let namelen = String.length name in
+        if urllen > namelen &&
+          String.sub url 0 namelen = name then
+          let suffix = String.sub url namelen (urllen - namelen) in
+          test_mirrors file (List.map (fun name ->
+                name ^ suffix) mirrors)
+        else
+          iter2 mirrors tail
+  in
+  iter1 !!mirrors
   
 let download_file_from_mirror file url =
-  let url = Url.of_string url in
+  test_mirrors file [url];
+  find_mirrors file url
   
-  let module H = Http_client in
-  let r = {
-      H.basic_request with
-      H.req_url = url;
-      H.req_proxy = !CommonOptions.http_proxy;
-      H.req_request = H.HEAD;
-      H.req_user_agent = user_agent;
-    } in
+let start_download_file proto u url result_size =
+  lprintf "STARTING DOWNLOAD WITH SIZE %Ld\n" result_size;
+  let file = new_file (Md4.random ()) u.Url.file result_size in
+  lprintf "DOWNLOAD FILE %s\n" file.file_name; 
+  if not (List.memq file !current_files) then begin
+      current_files := file :: !current_files;
+    end;
   
-  H.whead r (start_download_file_from_mirror file url)
-
+  let client_hostname = u.Url.server in
+  let client_port = u.Url.port in
+  let c = new_client proto client_hostname client_port in
+  add_download file c u.Url.full_file;
+  find_mirrors file url;
+  FileTPClients.get_file_from_source c file; 
+  ()
+  
+  
+let download_file url = 
+  let u = Url.of_string url in
+  let proto = match u.Url.proto with
+    | "http" -> FileTPHTTP.proto
+    | "ftp" -> FileTPFTP.proto
+    | _ -> failwith "Unknow URL protocol"
+  in
+  proto.proto_check_size u url (start_download_file proto)
+  
 let _ =
   network.op_network_parse_url <- (fun url ->
       false);
