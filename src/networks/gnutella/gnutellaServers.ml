@@ -619,28 +619,6 @@ let manage_host h =
       lprintf "Exception %s in manage_host\n" (Printexc2.to_string e)
       
 let manage_hosts () = 
-(*
-      lprintf "g0_ultrapeers_waiting_queue: %d\n" 
-        (Queue.length g0_ultrapeers_waiting_queue);
-      lprintf "g1_ultrapeers_waiting_queue: %d\n" 
-        (Queue.length g1_ultrapeers_waiting_queue);
-      lprintf "g2_ultrapeers_waiting_queue: %d\n" 
-        (Queue.length g2_ultrapeers_waiting_queue);
-      lprintf "g0_peers_waiting_queue: %d\n" 
-        (Queue.length g0_peers_waiting_queue);
-      lprintf "g1_peers_waiting_queue: %d\n" 
-        (Queue.length g1_peers_waiting_queue);
-      lprintf "g2_peers_waiting_queue: %d\n" 
-        (Queue.length g2_peers_waiting_queue);
-      lprintf "g1_active_udp_queue: %d\n" 
-        (Queue.length g1_active_udp_queue);
-      lprintf "g2_active_udp_queue: %d\n" 
-        (Queue.length g2_active_udp_queue);
-      lprintf "g1_waiting_udp_queue: %d\n" 
-        (Queue.length g1_waiting_udp_queue);
-      lprintf "g2_waiting_udp_queue: %d\n" 
-        (Queue.length g2_waiting_udp_queue);
-*)
   let rec iter () =
     let h = host_queue_take workflow in
     manage_host h;

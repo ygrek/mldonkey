@@ -271,10 +271,10 @@ let add_source r s index =
       r.result_sources <- key :: r.result_sources
     end
 
-let new_result file_name file_size uids =
+let new_result file_name file_size tags uids =
   match uids with
     [] -> (
-        lprintf "New result by key\n";
+(*        lprintf "New result by key\n"; *)
         let key = (file_name, file_size) in
         try
           Hashtbl.find results_by_key key
@@ -285,7 +285,7 @@ let new_result file_name file_size uids =
                 result_size = file_size;
                 result_sources = [];
                 result_uids = [];
-                result_tags = [];
+                result_tags = tags;
               } and
               result_impl = {
                 dummy_result_impl with
@@ -296,7 +296,7 @@ let new_result file_name file_size uids =
             Hashtbl.add results_by_key key result;
             result)
   | uid :: other_uids ->
-      lprintf "New result by UID\n";
+(*      lprintf "New result by UID\n"; *)
       let r = 
         try
           Hashtbl.find results_by_uid uid
@@ -306,7 +306,7 @@ let new_result file_name file_size uids =
                 result_name = file_name;
                 result_size = file_size;
                 result_sources = [];
-                result_tags = [];
+                result_tags = tags;
                 result_uids = [uid];
               } and
               result_impl = {

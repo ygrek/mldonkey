@@ -69,7 +69,7 @@ module FileOption = struct
           let network = try get_value "file_network" value_to_string
             with _ -> "Donkey" in
           let network = network_find_by_name network in
-          let file = network_add_file network is_done assocs in
+          let file = network_file_of_option network is_done assocs in
           let priority = try get_value "file_priority" value_to_int 
             with _ -> 0 in
           file_set_priority file priority;
@@ -115,7 +115,7 @@ module ServerOption = struct
                 lprintf "Network %s not supported\n" network;
                 raise e
               in
-          let server = network_add_server network assocs in
+          let server = network_server_of_option network assocs in
           server
       | _ -> assert false
     
@@ -334,7 +334,7 @@ module ClientOption = struct
             with _ -> "Donkey"
           in
           let network = network_find_by_name network in
-          let c = network_add_client network is_friend assocs in
+          let c = network_client_of_option network is_friend assocs in
           c
       | _ -> assert false
           
@@ -440,8 +440,7 @@ let file_cancel file =
         files =:= List2.removeq file !!files;
     end
   with e ->
-      lprintf "Exception in file_cancel: %s" (Printexc2.to_string e);
-      lprint_newline ()
+      lprintf "Exception in file_cancel: %s\n" (Printexc2.to_string e)
 
         
 let mail_for_completed_file file =
@@ -487,8 +486,8 @@ let file_completed (file : file) =
             file_best_name file )
           file_name);
         (try mail_for_completed_file file with e ->
-              lprintf "Exception %s in sendmail" (Printexc2.to_string e);
-              lprint_newline ());
+              lprintf "Exception %s in sendmail\n" (Printexc2.to_string e);
+              );
         if !!CommonOptions.chat_warning_for_downloaded then
           chat_for_completed_file file;
         
@@ -506,8 +505,7 @@ let file_completed (file : file) =
       
       end
   with e ->
-      lprintf "Exception in file_completed: %s" (Printexc2.to_string e);
-      lprint_newline ()
+      lprintf "Exception in file_completed: %s\n" (Printexc2.to_string e)
       
 let file_add impl state = 
   try
@@ -529,8 +527,7 @@ let file_add impl state =
         update_file_state impl state
       end
   with e ->
-      lprintf "Exception in file_add: %s" (Printexc2.to_string e);
-      lprint_newline ()
+      lprintf "Exception in file_add: %s\n" (Printexc2.to_string e)
       
 let server_remove server =
   try
@@ -542,8 +539,7 @@ let server_remove server =
         servers =:= Intmap.remove (server_num server) !!servers;
       end
   with e ->
-      lprintf "Exception in server_remove: %s" (Printexc2.to_string e);
-      lprint_newline ()
+      lprintf "Exception in server_remove: %s\n" (Printexc2.to_string e)
   
 let server_add impl =
   let server = as_server impl in
@@ -586,8 +582,7 @@ let friend_remove c =
         
     | _ -> ()
   with e ->
-      lprintf "Exception in friend_remove: %s" (Printexc2.to_string e);
-      lprint_newline ()
+      lprintf "Exception in friend_remove: %s\n" (Printexc2.to_string e)
   
 let contact_add c =
   let impl = as_client_impl c in
@@ -610,7 +605,6 @@ let contact_remove c =
         impl.impl_client_ops.op_client_clear_files impl.impl_client_val
     | _ -> ()
   with e ->
-      lprintf "Exception in contact_remove: %s" (Printexc2.to_string e);
-      lprint_newline ()
+      lprintf "Exception in contact_remove: %s\n" (Printexc2.to_string e)
 
       

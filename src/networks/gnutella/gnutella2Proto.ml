@@ -883,9 +883,8 @@ let udp_send ip port msg =
         UdpSocket.write sock s ip port;
 (*        UdpSocket.write sock s Ip.localhost !!client_port *)
       with e ->
-          lprintf "Exception %s in udp_send" (Printexc2.to_string e);
-          lprint_newline () 
- 
+          lprintf "Exception %s in udp_send\n" (Printexc2.to_string e)
+          
 let udp_send_ack ip port counter =
   match !udp_sock with
     None -> ()
@@ -1302,21 +1301,17 @@ let host_send_qkr h =
       [
       (packet (QKR_RNA (client_ip NoConnection, !!client_port)) [])
     ])
-
   
-let server_send_query quid words sock s = 
+let server_send_query quid words xml_query sock s = 
 (*  lprintf "*********8 server_ask_query *********\n"; *)
-  
-  let xml_query = 
-    "<?xml version=\"1.0\"?><audios xsi:noNamespaceSchemaLocation=\"http://www.limewire.com/schemas/audio.xsd\"><audio/></audios>"
-  in 
-  let args = 
-        [
-      packet (Q2_DN words) []; 
-      packet (Q2_MD xml_query) [];  
-      packet (Q2_I ["URL"; "DN"; "MD";"COM"; "PFS";""]) [];
-    ]
+  let args = [packet (Q2_I ["URL"; "DN"; "MD";"COM"; "PFS";""]) []  ]
   in
+  let args = 
+    if xml_query <> "" then
+      (packet (Q2_MD  xml_query) []) :: args
+    else args 
+  in
+  let args = ( packet (Q2_DN words) [] ) :: args in
   let args = match sock, s.server_query_key with
       _, NoUdpSupport -> args
     | _  ->
@@ -1362,7 +1357,7 @@ let server_recover_file file sock s =
   List.iter (fun ss ->
       match ss.search_search with
         
-      | UserSearch (_,words) ->
+      | UserSearch (_,words, xml_query) ->
 (*          server_send_query ss.search_uid words NoConnection s *)
           ()
       | FileWordSearch (_,words) ->

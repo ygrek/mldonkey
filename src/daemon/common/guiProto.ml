@@ -68,6 +68,7 @@ type from_gui =
 | SendMessage of int * room_message
 | EnableNetwork of int * bool
 | BrowseUser of int
+| AddServer_query of int * Ip.t * int
   
 (* New messages from protocol 3 *)
 | GuiExtensions of (int * bool) list
@@ -207,6 +208,7 @@ let from_gui_to_string t =
       
   | RefreshUploadStats -> "RefreshUploadStats"
   | SetFilePriority _ -> "SetFilePriority"      
+  | AddServer_query _ -> "AddServer_query"
       
 let string_of_to_gui t =
   match t with

@@ -9,7 +9,7 @@ val search_add_result_in :
   CommonTypes.search -> 'a CommonResult.result_impl -> unit
 val search_end_reply : CommonTypes.search -> unit
 val search_nresults : CommonTypes.search -> int
-val search_of_args : string list -> CommonTypes.query
+val search_of_args : string list -> CommonTypes.query * int
 type englob_op = IN_NOOP | IN_AND | IN_OR
 val custom_query : Buffer.t -> string -> unit
 val complex_search : Buffer.t -> unit

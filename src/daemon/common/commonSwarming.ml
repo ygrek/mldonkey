@@ -87,7 +87,7 @@ module type Swarmer = sig
     val downloaded : t -> pos
     val present_chunks : t -> (pos * pos) list
     val partition_size : partition -> int
-    val debug_print : t -> string
+    val debug_print : Buffer.t -> t -> unit
     val compute_bitmap : partition -> unit
   end
   
@@ -985,8 +985,7 @@ start at the beginning of the range. *)
         None -> ()
       | Some rr -> debug_ranges buf rr
 
-    let debug_print t =
-      let buf = Buffer.create 1000 in
+    let debug_print buf t =
       Printf.bprintf buf "Swarmer:\n";
       Printf.bprintf buf "BEGIN\n";
       Printf.bprintf buf "  File downloaded/size: %s/%s\n" 
@@ -996,8 +995,7 @@ start at the beginning of the range. *)
       debug_ranges buf t.t_ranges;    
       Printf.bprintf buf "  \n";
       debug_partitions buf t.t_partitions;
-      Printf.bprintf buf "END\n";      
-      Buffer.contents buf      
+      Printf.bprintf buf "END\n"
       
   end
   

@@ -29,7 +29,6 @@ module Mi = Gui_misc
 
 (*module Gui_rooms = Gui_rooms2*)
   
-
 let _ = 
   (try Options.load O.mldonkey_gui_ini with
       Sys_error _ ->

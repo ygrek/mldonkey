@@ -50,6 +50,7 @@ type 'a search_request = {
     mutable search_type : search_type;
     mutable search_query : 'a; (* query_entry for the GUI *)
     mutable search_max_hits : int;
+    mutable search_network : int;
   }
 
   

@@ -223,11 +223,13 @@ type network = {
     mutable op_network_enable : (unit -> unit);
     mutable op_network_disable : (unit -> unit);
     
-    mutable op_network_add_server : 
+    mutable op_network_server_of_option : 
       ((string * Options.option_value) list -> server);
-    mutable op_network_add_file : 
+    mutable op_network_add_server : 
+      (Ip.t -> int -> server);
+    mutable op_network_file_of_option : 
       bool -> ((string * Options.option_value) list -> file);
-    mutable op_network_add_client : 
+    mutable op_network_client_of_option : 
       bool -> ((string * Options.option_value) list -> client);
     mutable op_network_share : (
       string -> string -> int64 -> unit);
@@ -471,3 +473,6 @@ let string_of_uid uid =
   | Md5 (s,_) -> s
   | TigerTree (s,_) -> s
       
+
+exception IgnoreNetwork
+  

@@ -1932,7 +1932,7 @@ debug:
 RELEASE_TARGETS=mlnet 
 
 ifeq ("$(COMPILE_GUI)" , "yes")
-RELEASE_TARGETS += mlgui mlnet+gui
+RELEASE_TARGETS += mlgui mlnet+gui mlguistarter mlchat
 endif
 
 release.shared: opt
@@ -1949,6 +1949,9 @@ release.shared: opt
 upload.shared: release.shared
 	scp mldonkey-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s`.tar.$(COMPRESS_EXT) lachesis:devel/mldonkey-release/
 
+upload.shared.rcp: release.shared
+	rcp mldonkey-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s`.tar.$(COMPRESS_EXT) lachesis:devel/mldonkey-release/
+
 release.static: static opt
 	rm -rf mldonkey-*
 	cp -R distrib $(DISDIR)
@@ -1962,6 +1965,9 @@ release.static: static opt
 
 upload.static: release.static
 	scp mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar.$(COMPRESS_EXT) lachesis:devel/mldonkey-release/
+
+upload.static.rcp: release.static
+	rcp mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar.$(COMPRESS_EXT) lachesis:devel/mldonkey-release/
 
 
 release.sources: 

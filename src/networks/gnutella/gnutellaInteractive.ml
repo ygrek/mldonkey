@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Xml
 open Printf2
 open Md4
 open CommonSearch
@@ -63,30 +64,100 @@ let find_search s =
   try
     Hashtbl.iter (fun _ ss ->
         match ss.search_search with
-          UserSearch (sss, _) when s == sss -> raise (M.Found ss)
+          UserSearch (sss, _,_) when s == sss -> raise (M.Found ss)
         | _ -> ()
     ) searches_by_uid;
     raise Not_found
   with M.Found s -> s
+
+let xml_to_string xml = 
+  "<?xml version=\"1.0\"?>" ^ (  Xml.to_string xml)
+      
+let audio_schema tags = 
+  XML ("audios",
+    [("xsi:nonamespaceschemalocation",
+        "http://www.limewire.com/schemas/audio.xsd")],
+    [XML ("audio", tags, [])])
+
+(*
+[
+("artist", "Tom Jones");
+("album", "Mars Attacks Soundtrack");
+("title", "It&apos;s Not Unusal");
+
+("sampleRate", "44100"); 
+("seconds", "239"); 
+("index", "0");
+("bitrate", "128")
+("track", "1"); 
+("description", "Tom Jones, hehe"); 
+("genre", "Retro");
+("year", "1997")
+] 
+
+*)
+  
+let xml_query_of_query q =
+
+  let keywords = ref [] in
+  let add_words w =
+    keywords := (String2.split_simplify w ' ') @ !keywords
+  in
+  let audio = ref false in
+  let tags = ref [] in  
+  let rec iter q = 
+    match q with
+    | QOr (q1,q2) 
+    | QAnd (q1, q2) -> iter q1; iter q2
+    | QAndNot (q1,q2) -> iter q1 
+    | QHasWord w ->  add_words w
+    | QHasField(field, w) ->
+        begin
+          match field with
+            Field_Type -> 
+              begin
+                match String.lowercase w with
+                  "audio" -> audio := true
+                | _ -> add_words w
+              end
+          | Field_Format ->
+              begin
+                match String.lowercase w with
+                | "mp3" | "wav" -> 
+                    add_words w;
+                    audio := true
+                | _ -> add_words w
+              end
+          | Field_Album -> tags := ("album", w) :: !tags; add_words w
+          | Field_Artist -> tags := ("artist", w) :: !tags; add_words w
+          | Field_Title -> tags := ("title", w) :: !tags; add_words w
+          | _ -> add_words w
+        end
+    | QHasMinVal (field, value) -> ()
+    | QHasMaxVal (field, value) -> ()
+    | QNone ->  ()
+  in
+  iter q;
+  !keywords, if !audio then xml_to_string (audio_schema !tags) else ""
+      
 let _ =
   network.op_network_search <- (fun search buf ->
       let query = search.search_query in
-      let keywords = CommonInteractive.keywords_of_query query in
-      let words = String2.unsplit keywords ' ' in
-      
-      
+      let words, xml_query = xml_query_of_query query in
+      let words = String2.unsplit words ' ' in
+
 (* Maybe we could generate the id for the query from the query itself, so
 that we can reuse queries *)
       let uid = Md4.random () in
       
       let s = {
-          search_search = UserSearch (search, words);
+          search_search = UserSearch (search, words, xml_query);
           search_uid = uid;
           search_hosts = Intset.empty;
         } in
       
       if !!g1_enabled then  Gnutella1.send_query uid words;
-      if !!g2_enabled then  Gnutella2.send_query uid words;
+      if !!g2_enabled then  Gnutella2.send_query uid words xml_query;
       
       Hashtbl.add searches_by_uid uid s;
       ());
@@ -250,7 +321,7 @@ let _ =
           let (name, uids) = parse_magnet url in
           if uids <> [] then begin
 (* Start a download for this file *)
-              let r = new_result name Int64.zero uids in
+              let r = new_result name Int64.zero [] uids in
               GnutellaServers.download_file r;
               true
             end
@@ -293,6 +364,7 @@ let _ =
   
   
 let _ =  
+  
   user_ops.op_user_info <- (fun user ->
       {
         P.user_num = user.user_user.impl_user_num;
@@ -303,5 +375,43 @@ let _ =
         P.user_tags = [];
         
         P.user_server = 0;
-      })
+      });
+  
+  network.op_network_add_server <- (fun ip port ->
+      as_server (new_server ip port).server_server
+  )
+
+open Queues
+open GuiTypes
+  
+let commands = [
+    "gstats", Arg_none (fun o ->
+        let buf = o.conn_buf in
+        Printf.bprintf buf "g0_ultrapeers_waiting_queue: %d\n" 
+          (Queue.length g0_ultrapeers_waiting_queue);
+        Printf.bprintf buf "g1_ultrapeers_waiting_queue: %d\n" 
+          (Queue.length g1_ultrapeers_waiting_queue);
+        Printf.bprintf buf "g2_ultrapeers_waiting_queue: %d\n" 
+          (Queue.length g2_ultrapeers_waiting_queue);
+        Printf.bprintf buf "g0_peers_waiting_queue: %d\n" 
+          (Queue.length g0_peers_waiting_queue);
+        Printf.bprintf buf "g1_peers_waiting_queue: %d\n" 
+          (Queue.length g1_peers_waiting_queue);
+        Printf.bprintf buf "g2_peers_waiting_queue: %d\n" 
+          (Queue.length g2_peers_waiting_queue);
+        Printf.bprintf buf "g1_active_udp_queue: %d\n" 
+          (Queue.length g1_active_udp_queue);
+        Printf.bprintf buf "g2_active_udp_queue: %d\n" 
+          (Queue.length g2_active_udp_queue);
+        Printf.bprintf buf "g1_waiting_udp_queue: %d\n" 
+          (Queue.length g1_waiting_udp_queue);
+        Printf.bprintf buf "g2_waiting_udp_queue: %d\n" 
+          (Queue.length g2_waiting_udp_queue);
+        ""
+    ), " :\t\t\t\tprint stats on Gnutella network";
+    
+    ]
+  
+let _ = 
+  CommonNetwork.register_commands commands
   

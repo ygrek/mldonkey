@@ -71,7 +71,7 @@ let network = CommonNetwork.new_network "Global Shares"
 
 let _ = 
   network.op_network_connected <- (fun _ -> false);
-  network.op_network_is_enabled <- (fun _ -> false);
+  network.op_network_is_enabled <- (fun _ -> raise IgnoreNetwork);
   network.op_network_info <- (fun _ -> raise Not_found)
   
 let (shared_ops : shared_file CommonShared.shared_ops) = 

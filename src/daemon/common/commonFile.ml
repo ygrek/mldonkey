@@ -124,7 +124,7 @@ let _ =
 let ni n m = 
   let s = Printf.sprintf "File.%s not implemented by %s" 
       m n.network_name in
-  lprint_string s; lprint_newline ();
+  lprintf "%s\n" s; 
   s
   
 let fni n m = failwith (ni n m)
@@ -270,10 +270,9 @@ let new_file_ops network =
 
 let check_file_implementations () =
   lprintf "\n---- Methods not implemented for CommonFile ----\n";
-  lprint_newline ();
   List.iter (fun (c, cc) ->
       let n = c.op_file_network.network_name in
-      lprintf "\n  Network %s\n" n; lprint_newline ();
+      lprintf "\n  Network %s\n" n; 
       if c.op_file_to_option == cc.op_file_to_option then 
         lprintf "op_file_to_option\n";
       if c.op_file_info == cc.op_file_info then

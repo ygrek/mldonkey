@@ -56,7 +56,7 @@ let g1_enabled = define_option gnutella_ini
 let g2_enabled = define_option gnutella_ini
     ["gnutella2_enabled"]
     "Do you want to support Gnutella2 protocol (not yet supported)"
-    bool_option false
+    bool_option true
 
 let gnutella1_hostfiles = define_option gnutella_ini 
     ["gnutella1"; "hostfiles"]

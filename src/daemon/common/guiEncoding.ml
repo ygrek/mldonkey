@@ -350,7 +350,9 @@ let buf_search proto buf s =
   buf_query buf s.search_query;
   buf_int buf s.search_max_hits;
   if proto >= 2 then
-    buf_search_type buf s.search_type
+    buf_search_type buf s.search_type;
+  if proto >= 16 then
+    buf_int buf s.search_network
 
 let buf_shared_info proto buf s =
   buf_int buf s.shared_num;
@@ -560,7 +562,7 @@ let rec to_gui proto buf t =
       buf_int16 buf 51;
       buf_list buf (fun buf i -> buf_int buf i) clients;
       buf_list buf (fun buf i -> buf_int buf i) servers
-  
+        
 (***************
 
      Encoding of messages from the GUI to the Core 
@@ -718,9 +720,14 @@ protocol version. Do not send them ? *)
       if proto >= 12 then
         buf_int16 buf 51; buf_int buf num; buf_int buf prio
 
+  | AddServer_query (net, ip, port) ->
+      buf_int16 buf 54;
+      buf_int buf net;
+      buf_ip buf ip;
+      buf_int16 buf port
 
-let best_gui_version = 15
-  
+
+let best_gui_version = 16
   
 (********** Some assertions *********)
   

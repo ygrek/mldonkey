@@ -64,6 +64,7 @@ let disconnect_client c =
         let file = c.client_file in
         c.client_chunks <- [];
         c.client_allowed_to_write <- zero;
+        c.client_new_chunks <- [];
         Int64Swarmer.unregister_uploader_bitmap 
           file.file_partition c.client_bitmap;
         for i = 0 to String.length c.client_bitmap - 1 do
@@ -106,6 +107,8 @@ let bits = [| 128; 64; 32;16;8;4;2;1 |]
 let max_range_requests = 10
 let max_range_len = 1 lsl 15
 
+    
+  
 let counter = ref 0
 let rec client_parse_header counter cc init_sent gconn sock 
     (proto, file_id, peer_id) = 
@@ -199,6 +202,20 @@ let rec client_parse_header counter cc init_sent gconn sock
       lprintf "Exception %s in client_parse_header\n" (Printexc2.to_string e);
       close sock "error";
       raise e
+            
+and update_client_bitmap c =
+  if c.client_new_chunks <> [] then
+    let chunks = c.client_new_chunks in
+    c.client_new_chunks <- [];
+    let file = c.client_file in
+    Int64Swarmer.unregister_uploader_bitmap 
+      file.file_partition c.client_bitmap;
+    List.iter (fun n ->
+        c.client_bitmap.[n] <- '1') chunks;
+    let bs = 
+      Int64Swarmer.register_uploader_bitmap file.file_partition 
+        c.client_bitmap in
+    c.client_blocks <- bs
 
 and get_from_client sock (c: client) =
   let file = c.client_file in
@@ -229,6 +246,7 @@ and get_from_client sock (c: client) =
             None -> 
               if !verbose_swarming then
                 lprintf "No block\n";
+              update_client_bitmap c;
               let b = Int64Swarmer.get_block c.client_blocks in
               if !verbose_swarming then begin 
                   lprintf "Block Found: "; Int64Swarmer.print_block b;
@@ -356,8 +374,9 @@ and client_to_client c sock msg =
                 c.client_ranges <- tail;
           end;
           get_from_client sock c
-          
+    
     | BitField p ->
+        c.client_new_chunks <- [];
         let file = c.client_file in
         let npieces = Int64Swarmer.partition_size file.file_partition in
         let len = String.length p in
@@ -382,23 +401,25 @@ and client_to_client c sock msg =
         c.client_bitmap <- bitmap;
         if !verbose_msg_clients then 
           lprintf "New BitField Registered\n";
-        for i = 1 to max_range_requests do
+        for i = 1 to max_range_requests - List.length c.client_ranges do
           (try get_from_client sock c with _ -> ())
         done
-        
+
     | Have n ->
-        let file = c.client_file in
-        Int64Swarmer.unregister_uploader_bitmap 
-          file.file_partition c.client_bitmap;
-        c.client_bitmap.[Int64.to_int n] <- '1';
-        let bs = 
-          Int64Swarmer.register_uploader_bitmap file.file_partition 
-            c.client_bitmap in
-        c.client_blocks <- bs;
-        for i = 1 to max_range_requests do
-          (try get_from_client sock c with _ -> ())
-        done
-    
+        let n = Int64.to_int n in
+        if c.client_bitmap.[n] <> '1' then
+          let verified = Int64Swarmer.verified_bitmap file.file_partition in
+          if verified.[n] <> '3' then begin
+              c.client_new_chunks <- n :: c.client_new_chunks;
+              if c.client_block = None then begin
+                  update_client_bitmap c;
+                  for i = 1 to max_range_requests - 
+                    List.length c.client_ranges do
+                    (try get_from_client sock c with _ -> ())
+                  done
+                end
+            end
+            
     | Interested ->
         c.client_interested <- true;
         send_client c Unchoke
@@ -643,8 +664,7 @@ let connect_tracker file url =
           ) list;
           resume_clients file
       
-      | _ -> assert false
-    
+      | _ -> assert false    
     
     in       
     let args = [
@@ -724,7 +744,14 @@ let client_can_upload c allowed =
 let _ =
   client_ops.op_client_can_upload <- client_can_upload;
   file_ops.op_file_resume <- file_resume;
-  file_ops.op_file_pause <- (fun _ -> ());
+  file_ops.op_file_recover <- file_resume;
+  file_ops.op_file_pause <- (fun file -> 
+      Hashtbl.iter (fun _ c ->
+          match c.client_sock with
+            Connection sock -> close sock "pause"
+          | _ -> ()
+      ) file.file_clients
+  );
   client_ops.op_client_enter_upload_queue <- (fun c ->
       if !verbose_msg_clients then
         lprintf "CLIENT %d: client_enter_upload_queue\n" (client_num c);

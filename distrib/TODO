@@ -1,9 +1,8 @@
 TODO list for client
 ====================
 
+
 URGENT:
-- Send QH2 in reply to Q2
-- Reply to HTTP requests /R2N?urn
 - Understand MD when no DN field is present
 
 Let's schedule our work:
@@ -19,6 +18,13 @@ For 2.5:
       * Support for directory downloads
   - Misc:
       * Interactive downloads (popups for one file with progress bar)
+  - Searches:
+      * Make difference between Subscribe and Submit searches clear
+      * Create Uniq hashes from search queries
+      * Why doesn't filter_search work correctly with tags
+  - GUI:
+      * Add columns for tags (or display tags in the margin)
+      * Give more information on why a connection failed
 
 For 2.6:
   - Gnutella:

@@ -101,12 +101,13 @@ let get_vpaned gui (hpaned: GPack.paned) prop =
         save_gui_options gui
     ))
 
-let create_search query_entry max_hits search_type =
+let create_search query_entry max_hits net search_type =
   let s = {
-    GuiTypes.search_num = !Gui_global.search_counter ;
-    GuiTypes.search_query = query_entry ;
+      GuiTypes.search_num = !Gui_global.search_counter ;
+      GuiTypes.search_query = query_entry ;
       GuiTypes.search_max_hits = max_hits ;
       GuiTypes.search_type = search_type;
+      GuiTypes.search_network = net;
   } 
   in
   incr Gui_global.search_counter;

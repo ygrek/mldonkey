@@ -472,8 +472,9 @@ and get_from_client sock (c: client) =
         lprintf "SENDING REQUEST: %s\n" (String.escaped s);
       write_string sock s;
       c.client_requests <- c.client_requests @ [d];
-      lprintf "Asking %s For Range %s\n" (Md4.to_string c.client_user.user_uid) 
-      range
+      if !verbose_msg_clients then 
+        lprintf "Asking %s For Range %s\n" (Md4.to_string c.client_user.user_uid) 
+        range
       
 let connect_client c =
   match c.client_sock with

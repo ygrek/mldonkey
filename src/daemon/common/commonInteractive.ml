@@ -169,7 +169,11 @@ let download_file o arg =
   
 let start_search user query buf =
   let s = CommonSearch.new_search user query in
-  networks_iter (fun r -> r.op_network_search s buf);
+  networks_iter (fun r -> 
+      if query.GuiTypes.search_network = 0 ||
+        r.network_num = query.GuiTypes.search_network
+        then
+        r.op_network_search s buf);
   s
   
 let print_connected_servers o =
@@ -202,13 +206,12 @@ let print_connected_servers o =
 
   )
   
-let send_custom_query user buf s args = 
-  let query = s.GuiTypes.search_query in
+let send_custom_query user buf query args = 
   try
     let q = List.assoc query !!CommonComplexOptions.customized_queries in
     let args = ref args in
     let get_arg arg_name = 
-(*      lprintf "Getting %s" arg_name; lprint_newline (); *)
+(*      lprintf "Getting %s\n" arg_name; *)
       match !args with
         (label, value) :: tail ->
           args := tail;
@@ -226,7 +229,7 @@ let send_custom_query user buf s args =
       | Q_KEYWORDS _ -> 
           let value = get_arg "keywords" in
           want_and_not andnot (fun w -> QHasWord w) QNone value
-          
+      
       | Q_AND list ->
           begin
             let ands = ref [] in
@@ -238,7 +241,7 @@ let send_custom_query user buf s args =
             | q1 :: tail ->
                 List.fold_left (fun q1 q2 -> QAnd (q1,q2)) q1 tail
           end
-
+      
       | Q_HIDDEN list ->
           begin
             let ands = ref [] in
@@ -250,7 +253,7 @@ let send_custom_query user buf s args =
             | q1 :: tail ->
                 List.fold_left (fun q1 q2 -> QAnd (q1,q2)) q1 tail
           end
-          
+      
       | Q_OR list ->
           begin
             let ands = ref [] in
@@ -262,7 +265,7 @@ let send_custom_query user buf s args =
             | q1 :: tail ->
                 List.fold_left (fun q1 q2 -> QOr (q1,q2)) q1 tail
           end
-          
+      
       | Q_ANDNOT (q1, q2) ->
           begin
             let r1 = iter q1 in
@@ -270,9 +273,9 @@ let send_custom_query user buf s args =
               QAndNot(r1, iter q2)
             with Not_found -> r1
           end
-          
+      
       | Q_MODULE (s, q) -> iter q
-
+      
       | Q_MINSIZE _ ->
           let minsize = get_arg "minsize" in
           let unit = get_arg "minsize_unit" in
@@ -280,7 +283,7 @@ let send_custom_query user buf s args =
           let minsize = Int64.of_string minsize in
           let unit = Int64.of_string unit in
           QHasMinVal (Field_Size, Int64.mul minsize unit)
-
+      
       | Q_MAXSIZE _ ->
           let maxsize = get_arg "maxsize" in
           let unit = get_arg "maxsize_unit" in
@@ -288,7 +291,7 @@ let send_custom_query user buf s args =
           let maxsize = Int64.of_string maxsize in
           let unit = Int64.of_string unit in
           QHasMaxVal (Field_Size, Int64.mul maxsize unit)
-
+      
       | Q_FORMAT _ ->
           let format = get_arg "format" in
           let format_propose = get_arg "format_propose" in
@@ -299,7 +302,7 @@ let send_custom_query user buf s args =
           want_comb_not andnot
             or_comb
             (fun w -> QHasField(Field_Format, w)) QNone format
-          
+      
       | Q_MEDIA _ ->
           let media = get_arg "media" in
           let media_propose = get_arg "media_propose" in
@@ -308,35 +311,49 @@ let send_custom_query user buf s args =
               else media_propose
             else media in
           QHasField(Field_Type, media)
-
+      
       | Q_MP3_ARTIST _ ->
           let artist = get_arg "artist" in
           if artist = "" then raise Not_found;
           want_comb_not andnot and_comb 
             (fun w -> QHasField(Field_Artist, w)) QNone artist
-          
+      
       | Q_MP3_TITLE _ ->
           let title = get_arg "title" in
           if title = "" then raise Not_found;
           want_comb_not andnot and_comb 
             (fun w -> QHasField(Field_Title, w)) QNone title
-          
+      
       | Q_MP3_ALBUM _ ->
           let album = get_arg "album" in
           if album = "" then raise Not_found;
           want_comb_not andnot and_comb 
             (fun w -> QHasField(Field_Album, w)) QNone album
-          
+      
       | Q_MP3_BITRATE _ ->
           let bitrate = get_arg "bitrate" in
           if bitrate = "" then raise Not_found;
           QHasMinVal(Field_unknown "bitrate", Int64.of_string bitrate)
-
+    
     in
     try
       let request = CommonGlobals.simplify_query (iter q) in
       Printf.bprintf buf "Sending query !!!";
-      ignore (start_search user {s with GuiTypes.search_query = request } buf)
+      
+      let s = 
+        let module G = GuiTypes in
+        { G.search_num = 0;
+          G.search_query = request;
+          G.search_type = RemoteSearch;
+          G.search_max_hits = 10000;
+          G.search_network = (
+            try
+              let net = get_arg "network" in
+              (network_find_by_name net).network_num
+            with _ -> 0);
+        }
+      in
+      ignore (start_search user s buf)
     with
       Not_found ->
         Printf.bprintf buf "Void query %s" query        
@@ -349,7 +366,11 @@ let send_custom_query user buf s args =
         (Printexc2.to_string e)
 
 let all_simple_options () =
-  let options = ref (simple_options downloads_ini) in
+  let options = ref (
+      (simple_options downloads_ini) 
+      @ (simple_options downloads_expert_ini)
+    )
+  in
   networks_iter_all (fun r ->
       List.iter (fun opfile ->
           let args = simple_options opfile in
@@ -366,7 +387,9 @@ let all_simple_options () =
   !options
 
 let all_simple_options_html () =
-  let options = ref (simple_options_html downloads_ini) in
+  let options = ref (
+      (simple_options_html downloads_ini) @
+      (simple_options_html downloads_expert_ini)) in
   networks_iter_all (fun r ->
       List.iter (fun opfile ->
           let args = simple_options_html opfile in
@@ -385,7 +408,7 @@ let all_simple_options_html () =
 
 let apply_on_fully_qualified_options name f =
   if !verbose then begin
-      lprintf "For option %s" name; lprint_newline ();
+      lprintf "For option %s\n" name; 
     end;
   let rec iter prefix opfile =
     let args = simple_options opfile in
@@ -397,6 +420,7 @@ let apply_on_fully_qualified_options name f =
   in
   try
     iter "" downloads_ini;
+    iter "" downloads_expert_ini;
     if not (networks_iter_all_until_true (fun r ->
             try
               List.iter (fun opfile ->
@@ -407,7 +431,7 @@ let apply_on_fully_qualified_options name f =
               false
             with Exit -> true
         )) then begin
-        lprintf "Could not set option %s" name; lprint_newline ();
+        lprintf "Could not set option %s\n" name; 
         raise Not_found
       end
   with Exit -> ()
@@ -443,14 +467,14 @@ let keywords_of_query query =
     | QOr (q1,q2) 
     | QAnd (q1, q2) -> iter q1; iter q2
     | QAndNot (q1,q2) -> iter q1 
-    | QHasWord w -> keywords := String2.split_simplify w ' '
+    | QHasWord w -> keywords := (String2.split_simplify w ' ') @ !keywords
     | QHasField(field, w) ->
         begin
           match field with
             Field_Album
           | Field_Title
           | Field_Artist
-          | _ -> keywords := String2.split_simplify w ' '
+          | _ -> keywords := (String2.split_simplify w ' ') @ !keywords
         end
     | QHasMinVal (field, value) ->
         begin
@@ -483,7 +507,7 @@ let register_gui_options_panel name panel =
 let _ =
   add_infinite_option_timer filter_search_delay (fun _ ->
 (*      if !!filter_search then *) begin
-(*          lprintf "Filter search results"; lprint_newline (); *)
+(*          lprintf "Filter search results\n"; *)
           List.iter (fun user ->
               List.iter  (fun s -> CommonSearch.Filter.find s) 
               user.ui_user_searches;
@@ -494,7 +518,7 @@ let _ =
   
 let search_add_result filter s r =
   if not filter (*!!filter_search*) then begin
-(*      lprintf "Adding result to filter"; lprint_newline (); *)
+(*      lprintf "Adding result to filter\n"; *)
       CommonSearch.search_add_result_in s r
     end
   else

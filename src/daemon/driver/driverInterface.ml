@@ -791,7 +791,11 @@ search.op_search_end_reply_handlers;
                   | RoomClosed -> room_close room
                   | RoomPaused -> room_pause room
                 end
-          
+  
+          | AddServer_query (num, ip, port) ->
+              let n = network_find_by_num num in
+              let s = n.op_network_add_server ip port in
+              server_connect s
           | RefreshUploadStats ->
               
               shared_iter (fun s ->

@@ -613,8 +613,7 @@ let udp_send ip port msg =
         UdpSocket.write sock s ip port;
 (*        UdpSocket.write sock s Ip.localhost !!client_port *)
       with e ->
-          lprintf "Exception %s in udp_send" (Printexc2.to_string e);
-          lprint_newline () 
+          lprintf "Exception %s in udp_send\n" (Printexc2.to_string e)
 
 let server_send s t =
   if s.server_gnutella2 then begin

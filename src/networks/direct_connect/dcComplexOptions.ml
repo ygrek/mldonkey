@@ -164,10 +164,10 @@ let value_to_client is_friend assocs =
 let _ =
   server_ops.op_server_sort <- (fun s ->
       connection_last_conn s.server_connection_control);
-  network.op_network_add_server <- value_to_server;
+  network.op_network_server_of_option <- value_to_server;
   server_ops.op_server_to_option <- server_to_value;  
-  network.op_network_add_file <- value_to_file;
+  network.op_network_file_of_option <- value_to_file;
   file_ops.op_file_to_option <- file_to_value;
   client_ops.op_client_to_option <- client_to_value;
-  network.op_network_add_client <- (fun is_friend c ->
+  network.op_network_client_of_option <- (fun is_friend c ->
       as_client (value_to_client is_friend c).client_client)

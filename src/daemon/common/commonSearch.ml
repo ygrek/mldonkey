@@ -87,7 +87,8 @@ let search_nresults s =
       
         
 let search_of_args args =
-
+  let net = ref 0 in
+  
   let rec iter args q =
     match args with
       [] -> q
@@ -116,16 +117,19 @@ let search_of_args args =
         iter args ((QHasField(Field_Album, format)) :: q)
     | "-field"  :: field :: format :: args ->
         iter args ((QHasField(Field_unknown field, format)) :: q)
+    | "-network" :: name :: args ->
+        net := (network_find_by_name name).network_num;
+        iter args q
     | s :: args ->
         iter args ((QHasWord(s)) :: q)
   in
   let q = iter args [] in
-  match q with 
+  (match q with 
     [] -> failwith "Void query"
   | q1 :: tail ->
       List.fold_left (fun q1 q2 ->
             QAnd (q1,q2)
-        ) q1 tail
+        ) q1 tail), !net
    
 
   
@@ -147,7 +151,7 @@ let custom_query buf query =
       match q with
       
       | Q_COMBO _ -> assert false
-        
+      
       | Q_AND list ->
           if in_op <> IN_AND then begin
               Buffer.add_string buf "<table border=1>";
@@ -203,7 +207,7 @@ let custom_query buf query =
               ) list;
               Buffer.add_string buf "</table>";              
             end
-            
+      
       | Q_ANDNOT (q1,q2) ->
           Buffer.add_string buf "<table border=1>";
           Buffer.add_string buf "<tr>";
@@ -211,7 +215,7 @@ let custom_query buf query =
           iter q1 IN_AND;
           Buffer.add_string buf "</td>";
           Buffer.add_string buf "</tr>";
-
+          
           Buffer.add_string buf "<tr>";
           Buffer.add_string buf "<table border=1>";
           Buffer.add_string buf "<tr>";
@@ -224,13 +228,13 @@ let custom_query buf query =
           Buffer.add_string buf "</tr>";
           Buffer.add_string buf "</table>";
           Buffer.add_string buf "</tr>";
-
+      
       | Q_KEYWORDS (label, default) ->
           Printf.bprintf buf "
 <table border=0>
           <td width=100 align=right>%s</td><td><input type=text name=keywords size=40 value=\"%s\"></td>
 </table>" label default
-          
+      
       | Q_MINSIZE (label, default) ->
           Printf.bprintf  buf "
 <table border=0>
@@ -254,7 +258,7 @@ let custom_query buf query =
               let size = Int64.div size (Int64.of_int 1048576) in
               Int64.to_string size
             with _ -> "")
-
+      
       | Q_MAXSIZE (label, default) ->
           Printf.bprintf  buf "
 <table border=0>
@@ -278,7 +282,7 @@ let custom_query buf query =
               let size = Int64.div size (Int64.of_int 1048576) in
               Int64.to_string size
             with _ -> "")
-          
+      
       | Q_MP3_BITRATE (label, default) -> 
           Printf.bprintf buf "
 <table border=0>
@@ -346,9 +350,9 @@ let custom_query buf query =
 </table>
 
           " label default
-          
+      
       | Q_MEDIA (label, default) -> 
-
+          
           Printf.bprintf buf "
 <table border=0>
           
@@ -375,8 +379,8 @@ let custom_query buf query =
 </table>
 
           " label default
-
-          
+      
+      
       | Q_FORMAT (label, default) -> 
           Printf.bprintf  buf "
 <table border=0>
@@ -401,82 +405,105 @@ let custom_query buf query =
 </table>
 
           " label default
-          
+      
       | Q_MODULE (label, q) -> 
           Printf.bprintf buf "<table border=0> <tr><td> <h3> %s </h3> </td></tr>" label;
           Printf.bprintf buf "<tr><td>";
           iter q in_op;
           Printf.bprintf buf "</td></tr>";
           Printf.bprintf buf "</table>";
-          
+      
       | Q_HIDDEN list ->
           List.iter iter_hidden list
-          
+    
     and iter_hidden q =
       match q with
       
       | Q_COMBO _ -> assert false
-          
+      
       | Q_AND list | Q_OR list | Q_HIDDEN list ->
           List.iter iter_hidden list
-          
+      
       | Q_ANDNOT (q1,q2) ->
           iter_hidden q1;
           iter_hidden q2;
-          
+      
       | Q_KEYWORDS (label, default) ->
           Printf.bprintf buf 
-          "<input type=hidden name=keywords value=\"%s\">"
-          default
-          
+            "<input type=hidden name=keywords value=\"%s\">"
+            default
+      
       | Q_MINSIZE (label, default) ->
           Printf.bprintf  buf 
-          "<input type=hidden name=minsize value=\"%s\">
+            "<input type=hidden name=minsize value=\"%s\">
            <input type=hidden name=minsize_unit value=\"1\">" default
-
+      
       | Q_MAXSIZE (label, default) ->
           Printf.bprintf  buf 
-          "<input type=hidden name=maxsize value=\"%s\">
+            "<input type=hidden name=maxsize value=\"%s\">
            <input type=hidden name=maxsize_unit value=\"1\">" default
-          
+      
       | Q_MP3_BITRATE (label, default) -> 
           Printf.bprintf buf 
-          "<input type=hidden name=bitrate value=\"%s\">"
-          default
-
+            "<input type=hidden name=bitrate value=\"%s\">"
+            default
+      
       | Q_MP3_ALBUM (label, default) -> 
           Printf.bprintf buf 
-          "<input type=album name=bitrate value=\"%s\">"
-          default
-
+            "<input type=album name=bitrate value=\"%s\">"
+            default
+      
       | Q_MP3_TITLE (label, default) -> 
           Printf.bprintf  buf 
-          "<input type=hidden name=title value=\"%s\">"
-          default
-
+            "<input type=hidden name=title value=\"%s\">"
+            default
+      
       | Q_MP3_ARTIST (label, default) -> 
           Printf.bprintf  buf 
-          "<input type=hidden name=artist value=\"%s\">"
-          default
-          
+            "<input type=hidden name=artist value=\"%s\">"
+            default
+      
       | Q_MEDIA (label, default) -> 
           Printf.bprintf  buf 
-          "<input type=hidden name=media value=\"%s\">
+            "<input type=hidden name=media value=\"%s\">
           <input type=hidden name=media_propose value=\"\">"
-          default
-
-          
+            default
+      
+      
       | Q_FORMAT (label, default) -> 
           Printf.bprintf  buf 
-          "<input type=hidden name=format value=\"%s\">
+            "<input type=hidden name=format value=\"%s\">
           <input type=hidden name=format_propose value=\"\">"
-          default
-          
+            default
+      
       | Q_MODULE (label, q) -> 
           iter_hidden q
-
+    
     in
     iter q IN_AND;
+
+    Printf.bprintf buf "</td></tr>";
+    Printf.bprintf buf "</table>";
+    
+    Printf.bprintf buf "<table border=0> <tr><td> <h3> Misc </h3> </td></tr>";
+    Printf.bprintf buf "<tr><td>";
+    
+    Printf.bprintf buf "
+<table border=0>
+          <td width=100 align=right>Network</td><td>
+    <select name=network>
+    <option value=\"\"> --- </option>            
+";    
+    Hashtbl.iter (fun name net ->
+        try if net.op_network_is_enabled () then
+            Printf.bprintf buf "
+            <option value=\"%s\"> %s </option>            
+            " name name
+        with _ -> ()
+    ) CommonNetwork.networks_by_name;
+    Printf.bprintf buf "
+      </select></td></table>" ;
+    
     Buffer.add_string buf "</form>"
     
   with Not_found ->
@@ -484,7 +511,7 @@ let custom_query buf query =
 
 let complex_search buf =
   Buffer.add_string  buf
-  "
+    "
 <center>
 <h2> Complex Search </h2>
 </center>
@@ -645,11 +672,32 @@ Min bitrate
 <input type=text name=not size=40 value=\"\">
 </td>
 </tr>
-
+    ";
+  
+  Printf.bprintf buf "
+<tr>
+<td> Network </td> 
+<td> 
+      <select name=network>
+    <option value=\"\"> --- </option>            
+";    
+  Hashtbl.iter (fun name net ->
+      try if net.op_network_is_enabled () then
+          Printf.bprintf buf "
+            <option value=\"%s\"> %s </option>            
+            " name name
+      with _ -> ()
+  ) CommonNetwork.networks_by_name;
+  Printf.bprintf buf "
+      </select></td></tr>" ;
+  
+  
+  Buffer.add_string buf
+    "
 </table>
 </form>
 "
-
+  
 let search_forget user s =
   networks_iter (fun n -> network_forget_search n s);
   Hashtbl.remove searches_by_num s.search_num;
@@ -938,7 +986,8 @@ module Filter = struct
     let index_string doc s fields =
       let words = String2.stem s in
       List.iter (fun s ->
-(*      lprintf "ADD [%s] in index" s; lprint_newline (); *)
+(*          lprintf "ADD %d: [%s] in index [field %d]\n"  
+            doc.result_num s fields;  *)
           DocIndexer.add  index s doc fields
       ) words 
       
@@ -955,14 +1004,14 @@ module Filter = struct
       let req = query_to_indexer doc_value ss in  
       
       let docs = DocIndexer.query index req in
-(*  lprintf "%d results" (List.length docs); lprint_newline (); *)
+(*  lprintf "%d results\n" (List.length docs);  *)
       Array.iter (fun doc ->
           if DocIndexer.filtered doc then begin
               lprintf "doc filtered\n"; 
             end else
           let r = doc_value doc in
 (*    merge_result s doc.num; *)
-(*      lprintf "search_add_result"; lprint_newline ();*)
+          lprintf "search_add_result: %d\n" doc.result_num; 
           search_add_result_in s (as_result_impl (result_find r.result_num))
       ) docs
 

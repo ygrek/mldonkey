@@ -324,7 +324,8 @@ class box submit_search query_entry =
         try int_of_string we_max_hits#text
         with _ -> 200
       in
-      let search = Gui_misc.create_search qe max_hits local in
+      let net = List.assoc nets_wcombo#entry#text nets in 
+      let search = Gui_misc.create_search qe max_hits net local in
       submit_search search
     
     method local () = self#submit ~local: LocalSearch ()

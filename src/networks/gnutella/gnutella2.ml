@@ -55,9 +55,9 @@ let extend_query f =
   in
   Queue.iter send g2_active_udp_queue
   
-let send_query uid words =
+let send_query uid words xml_query =
   let f s =
-    server_send_query uid words s.server_sock s in
+    server_send_query uid words xml_query s.server_sock s in
   List.iter f !g2_connected_servers;
   extend_query f
 

@@ -119,7 +119,7 @@ install -m 644 distrib/ed2k_submit/ed2k.protocol  %{buildroot}%{_datadir}/servic
 
 %files
 %defattr(-,root,root)
-%doc COPYING docs/* distrib/AUTHORS distrib/BUGS distrib/ChangeLog  distrib/Developers.txt  distrib/directconnect.ini  distrib/ed2k_links.txt  distrib/FAQ.html  distrib/Readme.txt  distrib/TODO
+%doc COPYING docs/* distrib/AUTHORS distrib/BUGS distrib/ChangeLog  distrib/directconnect.ini  distrib/ed2k_links.txt  distrib/FAQ.html  distrib/INSTALL  distrib/TODO
 %{_bindir}/mlnet
 %{_bindir}/mldonkey_command
 %{_bindir}/kill_mldonkey

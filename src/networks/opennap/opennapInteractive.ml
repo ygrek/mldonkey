@@ -245,5 +245,10 @@ let _ =
       }
   );
   client_ops.op_client_browse <- (fun c immediate ->
-      browse_client c  )
+      browse_client c  );
   
+  
+  
+  network.op_network_add_server <- (fun ip port ->
+      as_server (new_server ip port).server_server
+  )

@@ -321,8 +321,8 @@ let udp_handler f sock event =
             let len = String.length pbuf in
             f p
           with e ->
-              lprintf "Error %s in udp_handler"
-                (Printexc2.to_string e); lprint_newline () 
+              lprintf "Error %s in udp_handler\n"
+                (Printexc2.to_string e); 
       ) ;
   | _ -> ()
 

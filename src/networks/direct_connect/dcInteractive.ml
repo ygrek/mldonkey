@@ -17,11 +17,13 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Options
 open Printf2
 open Md4
+open BasicSocket
+  
 open CommonOptions
 open CommonGlobals
-open BasicSocket
 open CommonComplexOptions
 open CommonClient
 open CommonFile
@@ -31,7 +33,7 @@ open CommonServer
 open CommonResult
 open CommonTypes
 open CommonSearch
-open Options
+  
 open DcTypes
 open DcOptions
 open DcGlobals
@@ -359,5 +361,8 @@ let _ =
           ) list)
 
 let _ =
-  network.op_network_save_complex_options <- (fun _ -> ())
+  network.op_network_save_complex_options <- (fun _ -> ());
+  network.op_network_add_server <- (fun ip port ->
+      as_server (new_server (new_addr_ip ip) port).server_server
+  )
   

@@ -20,18 +20,68 @@
 (** GUI for the list of servers. *)
 
 open Options
+open GToolbox
+  
 open Gettext
 open CommonGlobals
 open CommonTypes
 open GuiTypes
 open Gui_columns
-
+open Gui_global
+  
 module M = Gui_messages
 module P = Gpattern
 module O = Gui_options
 module G = Gui_global
 module Mi = Gui_misc
 
+let mOk = "Ok"
+let mCancel = "Cancel"
+  
+let input_widget2 ~widget1 ~widget2 ~get_text ~bind_ok ~title message =
+  let retour = ref None in
+  let window = GWindow.dialog ~title ~modal:true () in
+  ignore (window#connect#destroy ~callback: GMain.Main.quit);
+  let main_box = window#vbox in
+  let hbox_boutons = window#action_area in
+  
+  let vbox_saisie = GPack.vbox ~packing: main_box#pack () in
+  let hbox_saisie = GPack.hbox ~packing: vbox_saisie#pack () in
+  
+  let wl_invite = GMisc.label
+      ~text: message
+      ~packing: (hbox_saisie#pack ~padding: 3)
+    ()
+  in
+  
+  hbox_saisie#pack widget1 ~padding: 3;
+  hbox_saisie#pack widget2 ~padding: 3;
+  
+  let wb_ok = GButton.button ~label: "OK"
+      ~packing: (hbox_boutons#pack ~expand: true ~padding: 3) () in
+  wb_ok#grab_default ();
+  let wb_cancel = GButton.button ~label: "Cancel"
+      ~packing: (hbox_boutons#pack ~expand: true ~padding: 3) () in
+  let f_ok () =
+    retour := Some (get_text ()) ;
+    window#destroy ()
+  in
+  let f_cancel () = 
+    retour := None;
+    window#destroy () 
+  in
+  ignore (wb_ok#connect#clicked f_ok);
+  ignore (wb_cancel#connect#clicked f_cancel);
+  
+  widget1#misc#grab_focus ();
+  window#show ();
+  GMain.Main.main ();
+  
+  !retour
+
+
+  
+  
 let (!!) = Options.(!!)
 
 let string_color_of_state = Gui_friends.string_color_of_state
@@ -175,6 +225,25 @@ class box columns users wl_status =
         (fun s -> Gui_com.send (GuiProto.ViewUsers s.server_num))
       self#selection
     
+    method add_server () = 
+      
+      let text = "Address(ip:port) :" in
+      let title = "Add Server by Address" in
+      let nets,wcombo = networks_combo false in
+      let we_chaine = GEdit.entry ~width: 200 ~text:"" () in
+      match
+        input_widget2  ~widget1:we_chaine#coerce ~widget2:wcombo#coerce
+        ~get_text:(fun () -> wcombo#entry#text, we_chaine#text) ~bind_ok:true
+        ~title  text
+      with
+        None -> ()
+      | Some (net, addr) ->
+          let net = List.assoc net nets in
+          let (ip,port) = String2.cut_at addr ':' in
+          let ip = Ip.of_string ip in
+          let port = int_of_string port in
+          Gui_com.send (GuiProto.AddServer_query (net, ip, port))
+
     method connect_more_servers () =
       Gui_com.send GuiProto.ConnectMore_query
     
@@ -245,9 +314,9 @@ class box columns users wl_status =
       ]	
     
     method set_tb_style st = 
-        if Options.(!!) Gui_options.mini_toolbars then
-          (wtool1#misc#hide (); wtool2#misc#show ()) else
-          (wtool2#misc#hide (); wtool1#misc#show ());
+      if Options.(!!) Gui_options.mini_toolbars then
+        (wtool1#misc#hide (); wtool2#misc#show ()) else
+        (wtool2#misc#hide (); wtool1#misc#show ());
       wtool1#set_style st;
       wtool2#set_style st;
 
@@ -383,7 +452,7 @@ class box columns users wl_status =
       ~icon: (M.o_xpm_connect)
       ~callback: self#connect
         ();
-
+      
       Gui_misc.insert_buttons wtool1 wtool2 
         ~text: (gettext M.disconnect)
       ~tooltip: (gettext M.disconnect)
@@ -418,6 +487,14 @@ class box columns users wl_status =
       ~icon: (M.o_xpm_toggle_display_all_servers)
       ~callback: self#toggle_display_all_servers
         ();
+      
+      Gui_misc.insert_buttons wtool1 wtool2
+        ~text: "Add Server"
+        ~tooltip: "Add Server by Address"
+        ~icon: (M.o_xpm_find_friend)
+      ~callback: self#add_server
+        ();
+      
   end
 
 class pane_servers () =

@@ -236,7 +236,6 @@ let enable_openft = define_option downloads_expert_ini
     ["enable_openft"]
   "Set to true if you also want mldonkey to run as a OpenFT sub node (experimental)"
     bool_option false
-
   
 (* Infer which nets to start depending on the name used *)
 let _ =
@@ -372,7 +371,7 @@ let previewer = define_option downloads_expert_ini ["previewer"]
 let update_gui_delay = define_option downloads_expert_ini ["update_gui_delay"] 
   "Delay between updates to the GUI" float_option 1.
  
-let temp_directory = define_option downloads_expert_ini ["temp_directory" ] 
+let temp_directory = define_option downloads_ini ["temp_directory" ] 
     "The directory where temporary files should be put" 
     string_option (Filename.concat file_basedir "temp")
 
@@ -382,18 +381,18 @@ let incoming_directory_prio =
           int_option 0
 
 let incoming_directory = 
-  define_option downloads_expert_ini ["incoming_directory" ] 
+  define_option downloads_ini ["incoming_directory" ] 
     "The directory where downloaded files should be moved after commit" 
     string_option (Filename.concat file_basedir "incoming")
 
 let http_realm = 
   define_option downloads_expert_ini ["http_realm"] "The realm shown when connecting with a WEB browser" string_option "MLdonkey"
 
-let set_client_ip = define_option downloads_expert_ini ["client_ip"] 
+let set_client_ip = define_option downloads_ini ["client_ip"] 
     "The last IP address used for this client" Ip.option  
     (Ip.my ())
   
-let force_client_ip = define_option downloads_expert_ini ["force_client_ip"] 
+let force_client_ip = define_option downloads_ini ["force_client_ip"] 
   "Use the IP specified by 'client_ip' instead of trying to determine it
     ourself. Don't set this option to true if you have dynamic IP."
     bool_option false
@@ -416,10 +415,10 @@ let _ =
   )
   
   
-let ask_for_gui = define_option downloads_expert_ini ["ask_for_gui"]
+let ask_for_gui = define_option downloads_ini ["ask_for_gui"]
     "Ask for GUI start"    bool_option true
     
-let start_gui = define_option downloads_expert_ini ["start_gui"]
+let start_gui = define_option downloads_ini ["start_gui"]
     "Automatically Start the GUI" bool_option false
 
 let bin_dir = Filename.dirname Sys.argv.(0)
@@ -487,12 +486,12 @@ let motd_html = define_option downloads_expert_ini ["motd_html"]
     "Message printed at startup (automatically downloaded from the previous
     URL directory" string_option "Welcome to MLdonkey"
   
-let run_as_user = define_option downloads_expert_ini ["run_as_user"]
+let run_as_user = define_option downloads_ini ["run_as_user"]
   "The login of the user you want mldonkey to run as, after the ports
   have been bound (can be use not to run with root priviledges when 
 a port < 1024 is needed)" string_option ""
 
-let run_as_useruid = define_option downloads_expert_ini ["run_as_useruid"]
+let run_as_useruid = define_option downloads_ini ["run_as_useruid"]
   "The UID of the user (0=disabled) you want mldonkey to run as, after the ports
   have been bound (can be use not to run with root priviledges when 
 a port < 1024 is needed)" int_option 0
@@ -555,7 +554,7 @@ let chat_warning_for_downloaded = define_option downloads_expert_ini
     "use the chat to indicate when a file has been downloaded"
     bool_option true
 
-let max_opened_connections = define_option downloads_expert_ini
+let max_opened_connections = define_option downloads_ini
     ["max_opened_connections"] "Maximal number of opened connections" 
   int_option (min MlUnix.max_sockets 200)
 
@@ -590,7 +589,7 @@ WEB server</h2>
 "
 *)
 
-let file_completed_cmd = define_option downloads_expert_ini 
+let file_completed_cmd = define_option downloads_ini 
     ["file_completed_cmd"] "A command that is called when a file is completely
     downloaded. Arguments are: <file_name on disk> <md4> <size>"
     string_option "" 
@@ -707,8 +706,6 @@ let ip_cache_timeout = define_option downloads_expert_ini
     ["ip_cache_timeout"]
     "The time an ip address can be kept in the cache"
     int_option 3600
-
-  
 
 let verbosity = define_option downloads_expert_ini ["verbosity"] 
   "A space-separated list of keywords. Each keyword triggers

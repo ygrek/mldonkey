@@ -17,22 +17,24 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open CommonSwarming
+open Xml
 open Printf2
 open Md4
+open BasicSocket
+open TcpBufferedSocket
+open Options
   
+open CommonSwarming  
 open CommonUploads
 open CommonOptions
 open CommonSearch
 open CommonServer
 open CommonComplexOptions
 open CommonFile
-open BasicSocket
-open TcpBufferedSocket
-
 open CommonTypes
 open CommonGlobals
-open Options
+
+  
 open GnutellaTypes
 open GnutellaGlobals
 open GnutellaOptions
@@ -106,7 +108,8 @@ let g2_packet_handler s sock gconn p =
 
 (* Should we really reply to QKR if we are just a leaf ? We should probably
   only reply if we are not already using all the available bandwidth. *)
-  
+
+(* ONLY ULTRAPEERS ARE SUPPOSED TO REPLY TO THESE MESSAGES
   | QKR ->
       server_send sock s
         {
@@ -122,6 +125,7 @@ let g2_packet_handler s sock gconn p =
           }
         ]
       }
+*)
   
   | QKA ->
       List.iter (fun c ->
@@ -133,8 +137,8 @@ let g2_packet_handler s sock gconn p =
       Hashtbl.iter (fun _ ss ->
           if not (Intset.mem h.host_num ss.search_hosts) then 
             match ss.search_search with
-            | UserSearch (_,words) ->
-                server_send_query ss.search_uid words NoConnection s
+            | UserSearch (_,words,xml_query) ->
+                server_send_query ss.search_uid words xml_query NoConnection s
             | FileWordSearch (_,words) -> ()
 (*                server_send_query ss.search_uid words NoConnection s *)
             | FileUidSearch (file, uid) ->
@@ -215,9 +219,6 @@ let g2_packet_handler s sock gconn p =
           Array.iter (fun file ->
               files := file :: !files
           ) ( CommonUploads.query q)
-                
-          
-          
         end;
       
       if List.length !files > 0 then 
@@ -239,7 +240,7 @@ let g2_packet_handler s sock gconn p =
                   )
               ) !files)
           ))
-        
+  
   
   | KHL ->
       List.iter (fun c ->
@@ -292,7 +293,7 @@ let g2_packet_handler s sock gconn p =
           | QA_S ((ip,port),_) -> 
               let h = new_host ip port true 2 in
               h.host_connected <- last_time ();
-
+          
           
           | _ -> ()
       ) p.g2_children
@@ -387,7 +388,7 @@ XML ("audios",
                 with e ->
                     lprintf "Exception %s while parsing: \n%s\n"
                       (Printexc2.to_string e) xml
-                    
+              
               end
           | _ -> ()              
       ) p.g2_children;
@@ -395,7 +396,22 @@ XML ("audios",
       let user_files = List.rev !user_files in
       let user_files = match !xml_info with
           None -> user_files
-        | Some _ -> user_files in
+        | Some (XML (kind, _, files)) -> 
+            
+            if List.length files = List.length user_files then begin
+                List.map2 (fun (urn, size, name, url, _) file ->
+                    let XML (file_type, tags, _) = file in
+                    (urn, size, name, url, 
+                      List.map (fun (tag, v) ->
+                          string_tag tag v) tags)
+                ) user_files files
+              end else begin
+                lprintf "ERROR: Not enough XML entries %d/%d\n"
+                  (List.length files) (List.length user_files);
+                user_files 
+              end
+            
+      in
       
       if !verbose_msg_servers then begin
           lprintf "Results Received: \n";
@@ -470,14 +486,14 @@ XML ("audios",
           | Some s, Some size ->
               let uids = match urn with 
                   None -> [] | Some uid -> [uid] in
-              let r = new_result name size uids in
+              let r = new_result name size tags uids in
               
               add_source r user (FileByUrl url);
               
               begin
                 match s.search_search with
-                  UserSearch (s,_) ->
-                    CommonInteractive.search_add_result true s r.result_result
+                  UserSearch (s,_,_) ->
+                    CommonInteractive.search_add_result false s r.result_result
                 | _ -> ()
               end
           | _ -> ()

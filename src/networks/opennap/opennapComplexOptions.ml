@@ -171,11 +171,11 @@ let old_files =
     "" (list_option (tuple2_option (string_option, int64_option))) []  
       
 let _ =
-  network.op_network_add_file <- value_to_file;
+  network.op_network_file_of_option <- value_to_file;
   file_ops.op_file_to_option <- file_to_value;
   server_ops.op_server_sort <- (fun s ->
       connection_last_conn s.server_connection_control);
-  network.op_network_add_server <- value_to_server;
+  network.op_network_server_of_option <- value_to_server;
   server_ops.op_server_to_option <- server_to_value;  
   
  

@@ -136,3 +136,20 @@ let top_menus = ref ([]: (string * (GMenu.menu -> unit)) list)
 let scanned_ports = ref ([] : ((string * int) list))
 let new_scanned_port = ref true
   
+    
+let networks_combo all_possible =
+  let nets = ref [] in
+  Hashtbl.iter (fun num net ->
+      if net.net_enabled then
+        nets := (net.net_name, num) :: !nets
+  ) networks;
+  let nets = if all_possible then 
+      ("All Networks", 0) :: !nets
+    else !nets in
+  let wcombo = GEdit.combo
+      ~popdown_strings: (List.map fst nets)
+    ~value_in_list: true
+    ~ok_if_empty: false
+      ~width: 120 ()
+  in
+  nets, wcombo

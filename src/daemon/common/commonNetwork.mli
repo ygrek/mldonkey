@@ -19,11 +19,14 @@ val network_disable : CommonTypes.network -> unit
 val network_share : CommonTypes.network -> string -> string -> int64 -> unit
 val network_add_server :
   CommonTypes.network ->
+  Ip.t -> int -> CommonTypes.server
+val network_server_of_option :
+  CommonTypes.network ->
   (string * Options.option_value) list -> CommonTypes.server
-val network_add_file :
+val network_file_of_option :
   CommonTypes.network ->
   bool -> (string * Options.option_value) list -> CommonTypes.file
-val network_add_client :
+val network_client_of_option :
   CommonTypes.network ->
   bool -> (string * Options.option_value) list -> CommonTypes.client
 val networks_iter : (CommonTypes.network -> unit) -> unit

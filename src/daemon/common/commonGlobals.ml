@@ -56,9 +56,8 @@ let find_port server_name bind_addr port_option handler =
       with e ->
           if !find_other_port then iter (port+1)
           else begin
-              lprintf "Exception %s while starting %s" server_name
+              lprintf "Exception %s while starting %s\n" server_name
                 (Printexc2.to_string e);
-              lprint_newline ();
               None
             end
     in
@@ -147,10 +146,9 @@ let can_open_connection () =
   let max = mini !!max_opened_connections MlUnix.max_sockets in
   (*
   if !!debug_net then begin
-      lprintf "CAN OPEN (conns: %d < %d && upload U/D: %d %d)" ns max 
+      lprintf "CAN OPEN (conns: %d < %d && upload U/D: %d %d)\n" ns max 
         (UdpSocket.remaining_bytes udp_write_controler)
         (UdpSocket.remaining_bytes udp_read_controler);
-      lprint_newline ();
     end; *)
   ns < max
   
@@ -193,16 +191,16 @@ let do_at_exit f =
   exit_handlers := f :: !exit_handlers
       
 let exit_properly n =
-(*  lprintf "exit_properly handlers"; lprint_newline (); *)
+(*  lprintf "exit_properly handlers\n"; *)
   List.iter (fun f -> try 
-(*        lprintf "exit_properly handler ..."; lprint_newline (); *)
+(*        lprintf "exit_properly handler ...\n";  *)
         f () ;
-(*        lprintf "exit_properly done"; lprint_newline (); *)
+(*        lprintf "exit_properly done\n"; *)
       with e -> 
           lprintf "exit_properly (exception %s)"
             (Printexc2.to_string e); lprint_newline ();
   ) !exit_handlers;
-(*  lprintf "exit_properly DONE"; lprint_newline (); *)
+(*  lprintf "exit_properly DONE\n"; *)
   Pervasives.exit n
 
 let user_socks = ref ([] : TcpBufferedSocket.t list)
@@ -463,7 +461,7 @@ let mldonkey_wget url f =
   
   
 let load_url kind url =
-  lprintf "QUERY URL %s" url; lprint_newline ();
+  lprintf "QUERY URL %s\n" url; 
   let f = 
     try 
       List.assoc kind !file_kinds 
@@ -619,9 +617,8 @@ let update_link_stats () =
     | _ -> failwith "wrong number of measures");
 
 (*
-  lprintf "BANDWIDTH %d/%d %d/%d" !control_upload_rate !tcp_upload_rate
+  lprintf "BANDWIDTH %d/%d %d/%d\n" !control_upload_rate !tcp_upload_rate
     !control_download_rate !tcp_download_rate ;
-  lprint_newline ();
 *) 
   put time sample bandwidth_samples;
   trimto 20 bandwidth_samples;

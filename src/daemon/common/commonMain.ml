@@ -25,7 +25,7 @@ let _ =
       try
         f ()
       with e ->
-          lprintf "Exception %s in init_hooks"
-            (Printexc2.to_string e); lprint_newline ();      
+          lprintf "Exception %s in init_hooks\n"
+            (Printexc2.to_string e); 
   ) !init_hooks;
   BasicSocket.loop ()

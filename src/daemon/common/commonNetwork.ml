@@ -58,9 +58,9 @@ let new_network name prefix_option subdir_option =
       op_network_load_complex_options =  (fun _ -> ni_ok name "load_complex_options");
       op_network_enable =  (fun _ -> ni_ok name "enable");
       op_network_disable =  (fun _ -> ni_ok name "disable");
-      op_network_add_server =  (fun _ -> fni name "add_server");
-      op_network_add_file =  (fun _ _ -> fni name "add_file");
-      op_network_add_client =  (fun _ -> fni name "add_client");
+      op_network_server_of_option =  (fun _ -> fni name "op_network_server_of_option");
+      op_network_file_of_option =  (fun _ _ -> fni name "op_network_file_of_option");
+      op_network_client_of_option =  (fun _ -> fni name "op_network_client_of_option");
       op_network_search = (fun _ _ -> ni_ok name "search");
       op_network_share = (fun _ _ _ -> ni_ok name "share");
       op_network_private_message = (fun _ _ -> ni_ok name "private message");
@@ -72,6 +72,7 @@ let new_network name prefix_option subdir_option =
       op_network_parse_url = (fun _ -> ni_ok name "parse_url"; false);
       op_network_info = (fun _ -> fni name "network_info");
       op_network_connected = (fun _ -> ni_ok name "connected"; false);
+      op_network_add_server = (fun _ -> fni name "op_network_add_server");
     }
   in
   let rr = (Obj.magic r: network) in
@@ -110,10 +111,12 @@ let check_network_implementations () =
         lprintf "op_network_enable\n";
       if c.op_network_add_server == cc.op_network_add_server then 
         lprintf "op_network_add_server\n";
-      if c.op_network_add_file == cc.op_network_add_file then 
-        lprintf "op_network_add_file\n";
-      if c.op_network_add_client == cc.op_network_add_client then 
-        lprintf "op_network_add_client\n";
+      if c.op_network_server_of_option == cc.op_network_server_of_option then 
+        lprintf "op_network_server_of_option";
+      if c.op_network_file_of_option == cc.op_network_file_of_option then 
+        lprintf "op_network_file_of_option";
+      if c.op_network_client_of_option == cc.op_network_client_of_option then 
+        lprintf "op_network_client_of_option";
       if c.op_network_search == cc.op_network_search then 
         lprintf "op_network_search\n";
       if c.op_network_share == cc.op_network_share then 
@@ -145,45 +148,52 @@ let network_enable n =  n.op_network_enable ()
 let network_disable n = n.op_network_disable () 
 let network_share n s = n.op_network_share s
 let network_add_server n s = n.op_network_add_server s
-let network_add_file n f = n.op_network_add_file f
-let network_add_client n f = n.op_network_add_client f
+let network_server_of_option n s = n.op_network_server_of_option s
+let network_file_of_option n f = n.op_network_file_of_option f
+let network_client_of_option n f = n.op_network_client_of_option f
 
   
 let networks_iter f =
   List.iter (fun r ->
       try
         if network_is_enabled r then f r
-      with e ->
-          lprintf "Exception %s in Network.iter for %s"
+      with
+      | IgnoreNetwork -> ()
+      | e ->
+          lprintf "Exception %s in Network.iter for %s\n"
             (Printexc2.to_string e) r.network_name;
-          lprint_newline ()
   ) !networks
   
 let networks_iter_until_true f =
   List.exists (fun r ->
       try
         network_is_enabled r && f r
-      with e ->
-          lprintf "Exception %s in Network.iter for %s"
+      with 
+        IgnoreNetwork -> false
+      | e ->
+          lprintf "Exception %s in Network.iter for %s\n"
             (Printexc2.to_string e) r.network_name;
-          lprint_newline ();
           false
   ) !networks
   
 let networks_iter_all f =
   List.iter (fun r ->
-      try f r  with e ->
-          lprintf "Exception %s in Network.iter for %s"
+      try f r  
+      with
+      | IgnoreNetwork -> ()
+      | e ->
+          lprintf "Exception %s in Network.iter for %s\n"
             (Printexc2.to_string e) r.network_name;
-          lprint_newline ()
   ) !networks
   
 let networks_iter_all_until_true f =
   List.exists (fun r ->
-      try f r  with e ->
-          lprintf "Exception %s in Network.iter for %s"
+      try f r  
+      with
+        IgnoreNetwork -> false
+      | e ->
+          lprintf "Exception %s in Network.iter for %s\n"
             (Printexc2.to_string e) r.network_name;
-          lprint_newline ();
           false
   ) !networks
 

@@ -60,13 +60,12 @@ module Make(M: sig
       | Some sock ->
           close sock "";
           (try M.client_disconnected d with _ -> ());
-          lprintf "DISCONNECTED FROM SOURCE"; lprint_newline ();
+          lprintf "DISCONNECTED FROM SOURCE\n"; 
           d.download_sock <- None
     
     let file_complete d =
 (*
-  lprintf "FILE %s DOWNLOADED" f.file_name;
-lprint_newline ();
+  lprintf "FILE %s DOWNLOADED\n" f.file_name;
   *)
       file_completed (M.file d.download_file);
       (try M.download_finished d with _ -> ())
@@ -86,18 +85,17 @@ lprint_newline ();
           let fd = try
               Unix32.force_fd (file_fd file) 
             with e -> 
-                lprintf "In Unix32.force_fd"; lprint_newline ();
+                lprintf "In Unix32.force_fd\n"; 
                 raise e
           in
           let final_pos = Unix32.seek64 (file_fd file) d.download_pos
               Unix.SEEK_SET in *)
         Unix32.write (file_fd file) d.download_pos b.buf b.pos b.len;
 (*        end; *)
-(*      lprintf "DIFF %d/%d" nread b.len; lprint_newline ();*)
+(*      lprintf "DIFF %d/%d\n" nread b.len; *)
         d.download_pos <- Int64.add d.download_pos (Int64.of_int b.len);
 (*
-      lprintf "NEW SOURCE POS %s" (Int64.to_string c.client_pos);
-lprint_newline ();
+      lprintf "NEW SOURCE POS %s\n" (Int64.to_string c.client_pos);
   *)
         TcpBufferedSocket.buf_used sock b.len;
         if d.download_pos > file_downloaded file then 

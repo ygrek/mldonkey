@@ -194,6 +194,7 @@ let new_client file peer_id kind =
           client_uploaded = zero;
           client_downloaded = zero;
           client_blocks_sent = [];
+          client_new_chunks = [];
         } and impl = {
           dummy_client_impl with
           impl_client_val = c;

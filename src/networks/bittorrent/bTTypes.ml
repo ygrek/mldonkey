@@ -36,7 +36,9 @@ type client = {
     mutable client_chocked : bool;
     mutable client_interested : bool;
     mutable client_uid : Sha1.t;
+    
     mutable client_bitmap : string;
+    mutable client_new_chunks : int list;
     
     mutable client_upload_requests : (int * int64 * int64) list;
     mutable client_allowed_to_write : int64;

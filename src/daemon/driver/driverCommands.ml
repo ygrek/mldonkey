@@ -66,10 +66,10 @@ let execute_command arg_list output cmd args =
 
 let list_options_html o list = 
   let buf = o.conn_buf in
-     html_mods_table_header buf "voTable" "vo" [ 
-		( "0", "srh", "Option name", "Name (Help=mouseOver)" ) ; 
-		( "0", "srh", "Option value", "Value" ) ; 
-		( "0", "srh", "Option default", "Default" ) ] ; 
+  html_mods_table_header buf "voTable" "vo" [ 
+    ( "0", "srh", "Option name", "Name (Help=mouseOver)" ) ; 
+    ( "0", "srh", "Option value", "Value" ) ; 
+    ( "0", "srh", "Option default", "Default" ) ] ; 
   
   let counter = ref 0 in
   
@@ -118,11 +118,11 @@ let list_options_html o list =
 			  \\</tr\\>\\</form\\>
               " def
         end;
-      
-      
+  
+  
   )list;
-    Printf.bprintf  buf "\\</table\\>\\</div\\>"
-
+  Printf.bprintf  buf "\\</table\\>\\</div\\>"
+  
 
 let list_options o list = 
   let buf = o.conn_buf in
@@ -383,7 +383,7 @@ let commands = [
                 CommonMessages.colour_changer ();
               end;
             "\\<script language=Javascript\\>top.window.location.reload();\\</script\\>"
-        end
+          end
     
     ), ":\t\t\tselect html_mods_style <#>";
     
@@ -392,8 +392,8 @@ let commands = [
     "voo", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
         if use_html_mods o then begin
-
-                Printf.bprintf buf "\\<script language=javascript\\>
+            
+            Printf.bprintf buf "\\<script language=javascript\\>
 \\<!-- 
 function submitHtmlModsStyle() {
 var formID = document.getElementById(\\\"htmlModsStyleForm\\\")
@@ -420,7 +420,10 @@ parent.fstatus.location.href='submit?q=html_mods_style+'+formID.modsStyle.value;
             
             list_options_html o (
               match args with
-                [] | _ :: _ :: _ -> CommonInteractive.all_simple_options_html ()
+                [] | _ :: _ :: _ -> 
+                  let v=   CommonInteractive.all_simple_options_html () in
+                  v
+                  
               | [tab] ->
                   let tab = int_of_string tab in
                   match tab with
@@ -521,10 +524,11 @@ parent.fstatus.location.href='submit?q=html_mods_style+'+formID.modsStyle.value;
                         strings_of_option_html mlnet_redirector; 
                       ] 
                   
-                  | _ -> CommonInteractive.all_simple_options_html ()
+                  | _ -> 
+                      let v = CommonInteractive.all_simple_options_html () in
+                      v
             );
-
-Printf.bprintf buf "
+            Printf.bprintf buf "
 \\</td\\>\\</tr\\>
 \\<tr\\>\\<td\\>
 \\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
@@ -538,18 +542,19 @@ action=\\\"javascript:submitHtmlModsStyle();\\\"\\>
 \\<select id=\\\"modsStyle\\\" name=\\\"modsStyle\\\"
 style=\\\"font-size: 8px; font-family: verdana\\\" onchange=\\\"this.form.submit()\\\"\\>
 \\<option value=\\\"0\\\"\\>html style\n";
-
-			Array.iteri (fun i h -> 
-             Printf.bprintf buf "\\<option value=\\\"%d\\\"\\>%s\n" i (fst h);
-			) !html_mods_styles;
-
-Printf.bprintf buf "
+            
+            Array.iteri (fun i h -> 
+                Printf.bprintf buf "\\<option value=\\\"%d\\\"\\>%s\n" i (fst h);
+            ) !html_mods_styles;
+            
+            Printf.bprintf buf "
 \\</select\\>\\</td\\>
 \\</tr\\>\\</table\\>";
             Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>\\</div\\>";
           end
-        else list_options o  (CommonInteractive.all_simple_options ());
-        
+        else begin
+            list_options o  (CommonInteractive.all_simple_options ());
+          end;
         ""
     ), ":\t\t\t\t\tprint all options";
     
@@ -637,13 +642,13 @@ the name between []"
                 
                 Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>"
                   (if (!counter mod 2 == 0) then "dl-1" else "dl-2";);
-
-				html_mods_td buf [
-				("", "sr ar", Printf.sprintf "%d" impl.impl_shared_requests);
-				("", "sr ar", size_of_int64 impl.impl_shared_uploaded);
-				("", "sr", Printf.sprintf "\\<a href=\\\"%s\\\"\\>%s\\</a\\>" 
-					ed2k impl.impl_shared_codedname) ];
- 				Printf.bprintf buf "\\</tr\\>\n";
+                
+                html_mods_td buf [
+                  ("", "sr ar", Printf.sprintf "%d" impl.impl_shared_requests);
+                  ("", "sr ar", size_of_int64 impl.impl_shared_uploaded);
+                  ("", "sr", Printf.sprintf "\\<a href=\\\"%s\\\"\\>%s\\</a\\>" 
+                      ed2k impl.impl_shared_codedname) ];
+                Printf.bprintf buf "\\</tr\\>\n";
               end
             else
               Printf.bprintf buf "%-50s requests: %8d bytes: %10s\n"
@@ -683,9 +688,12 @@ the name between []"
 );
   *)
           with _ -> 
-              Options.set_simple_option downloads_ini name value;
-              Options.set_simple_option downloads_expert_ini name value;
-              Printf.sprintf "option %s value changed" name
+              try
+                Options.set_simple_option downloads_ini name value;
+                Printf.sprintf "option %s value changed" name
+              with _ ->
+                  Options.set_simple_option downloads_expert_ini name value;
+                  Printf.sprintf "option %s value changed" name
         with e ->
             Printf.sprintf "Error %s" (Printexc2.to_string e)
     ), "<option_name> <option_value> :\t$bchange option value$n";
@@ -713,13 +721,14 @@ the name between []"
     "s", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
         let user = o.conn_user in
-        let query = CommonSearch.search_of_args args in
+        let query, net = CommonSearch.search_of_args args in
         ignore (CommonInteractive.start_search user
             (let module G = GuiTypes in
             { G.search_num = 0;
               G.search_query = query;
               G.search_max_hits = 10000;
               G.search_type = RemoteSearch;
+              G.search_network = net;
             }) buf);
         ""
     ), "<query> :\t\t\t\tsearch for files on all networks\n
@@ -743,13 +752,14 @@ the name between []"
     "ls", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
         let user = o.conn_user in
-        let query = CommonSearch.search_of_args args in
+        let query, net = CommonSearch.search_of_args args in
         ignore (CommonInteractive.start_search user
             (let module G = GuiTypes in
             { G.search_num = 0;
               G.search_query = query;
               G.search_max_hits = 10000;
               G.search_type = LocalSearch;
+              G.search_network = net;
             }) buf);
         ""
     ), "<query> :\t\t\t\t$bsearch for files on all networks$n\n
@@ -875,11 +885,11 @@ the name between []"
 \\</tr\\>\\</table\\>
 \\</td\\>\\</tr\\> 
 \\<tr\\>\\<td\\>";
-
-          html_mods_table_header buf "sharesTable" "shares" [ 
-            ( "0", "srh ac", "Click to unshare directory", "Unshare" ) ; 
-            ( "1", "srh ar", "Priority", "P" ) ; 
-            ( "0", "srh", "Directory", "Directory" ) ]; 
+            
+            html_mods_table_header buf "sharesTable" "shares" [ 
+              ( "0", "srh ac", "Click to unshare directory", "Unshare" ) ; 
+              ( "1", "srh ar", "Priority", "P" ) ; 
+              ( "0", "srh", "Directory", "Directory" ) ]; 
             
             let counter = ref 0 in
             
@@ -917,11 +927,11 @@ the name between []"
     ), ":\t\t\t\tprint shared directories";
     
     "share", Arg_multiple (fun args o ->
-       let (prio, arg) = match args with
+        let (prio, arg) = match args with
             [prio; arg] -> int_of_string prio, arg
-	  | [arg] -> 0, arg
-	  | _  -> failwith "Bad number of arguments"
-	in
+          | [arg] -> 0, arg
+          | _  -> failwith "Bad number of arguments"
+        in
         
         if Unix2.is_directory arg then
           if not (List.mem_assoc arg !!shared_directories) then begin
@@ -1147,7 +1157,7 @@ the name between []"
         
         if use_html_mods o then Printf.bprintf buf "\\<div class=\\\"messages\\\"\\>";
         
-		last_message_log := last_time();
+        last_message_log := last_time();
         Printf.bprintf buf "%d logged messages\n" (Fifo.length chat_message_fifo);
         
         if Fifo.length chat_message_fifo > 0 then
@@ -1163,16 +1173,16 @@ the name between []"
             
             Fifo.iter (fun (t,i,num,n,s) ->
                 if use_html_mods o then begin
-                  	Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>"
-                    (if (!counter mod 2 == 0) then "dl-1" else "dl-2");
-					html_mods_td buf [
-					("", "sr", Date.simple (BasicSocket.date_of_int t));
-					("", "sr",  i);
-					("", "sr", Printf.sprintf "%d" num);
-					("", "sr", n);
-					("", "srw", (String.escaped s)) ];
-                  	Printf.bprintf buf "\\</tr\\>" 
-					end
+                    Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>"
+                      (if (!counter mod 2 == 0) then "dl-1" else "dl-2");
+                    html_mods_td buf [
+                      ("", "sr", Date.simple (BasicSocket.date_of_int t));
+                      ("", "sr",  i);
+                      ("", "sr", Printf.sprintf "%d" num);
+                      ("", "sr", n);
+                      ("", "srw", (String.escaped s)) ];
+                    Printf.bprintf buf "\\</tr\\>" 
+                  end
                 else
                   Printf.bprintf buf "\n%s [client #%d] %s(%s): %s\n"
                     (Date.simple (BasicSocket.date_of_int t)) num n i s;
@@ -1292,7 +1302,7 @@ formID.msgText.value=\\\"\\\";
         let buf = o.conn_buf in
         
         if use_html_mods o then begin
-          Printf.bprintf buf "\\<div class=\\\"friends\\\"\\>\\<table class=main cellspacing=0 cellpadding=0\\> 
+            Printf.bprintf buf "\\<div class=\\\"friends\\\"\\>\\<table class=main cellspacing=0 cellpadding=0\\> 
 \\<tr\\>\\<td\\>
 \\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
 \\<td class=downloaded width=100%%\\>\\</td\\>
@@ -1313,13 +1323,13 @@ formID.msgText.value=\\\"\\\";
 \\</tr\\>\\</table\\>
 \\</td\\>\\</tr\\>
 \\<tr\\>\\<td\\>";
-		html_mods_table_header buf "friendsTable" "friends" [ 
-		( "1", "srh", "Client number", "Num" ) ; 
-		( "0", "srh", "Remove", "Remove" ) ; 
-		( "0", "srh", "Network", "Network" ) ; 
-		( "0", "srh", "Name", "Name" ) ; 
-		( "0", "srh", "State", "State" ) ] ; 
-        end;
+            html_mods_table_header buf "friendsTable" "friends" [ 
+              ( "1", "srh", "Client number", "Num" ) ; 
+              ( "0", "srh", "Remove", "Remove" ) ; 
+              ( "0", "srh", "Network", "Network" ) ; 
+              ( "0", "srh", "Name", "Name" ) ; 
+              ( "0", "srh", "State", "State" ) ] ; 
+          end;
         let counter = ref 0 in
         List.iter (fun c ->
             let i = client_info c in
@@ -1413,14 +1423,14 @@ formID.msgText.value=\\\"\\\";
             Printf.bprintf buf "\\<div class=\\\"bw_stats\\\"\\>";
             Printf.bprintf buf "\\<table class=\\\"bw_stats\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>";
             Printf.bprintf buf "\\<td\\>\\<table border=0 cellspacing=0 cellpadding=0\\>\\<tr\\>";
-
-			html_mods_td buf [
-			("Download KB/s (UDP|TCP)", "bu bbig bbig1 bb4", Printf.sprintf "Down: %.1f KB/s (%d|%d)" 
-				dlkbs !udp_download_rate !control_download_rate);
-			("Upload KB/s (UDP|TCP)", "bu bbig bbig1 bb4", Printf.sprintf "Up: %.1f KB/s (%d|%d)"
-				ulkbs !udp_upload_rate !control_upload_rate);
-			("Total shared bytes (files)", "bu bbig bbig1 bb3", Printf.sprintf "Shared: %s (%d files)"
-				(size_of_int64 !upload_counter) !nshared_files) ];
+            
+            html_mods_td buf [
+              ("Download KB/s (UDP|TCP)", "bu bbig bbig1 bb4", Printf.sprintf "Down: %.1f KB/s (%d|%d)" 
+                  dlkbs !udp_download_rate !control_download_rate);
+              ("Upload KB/s (UDP|TCP)", "bu bbig bbig1 bb4", Printf.sprintf "Up: %.1f KB/s (%d|%d)"
+                  ulkbs !udp_upload_rate !control_upload_rate);
+              ("Total shared bytes (files)", "bu bbig bbig1 bb3", Printf.sprintf "Shared: %s (%d files)"
+                  (size_of_int64 !upload_counter) !nshared_files) ];
             
             Printf.bprintf buf "\\</tr\\>\\</table\\>\\</td\\>\\</tr\\>\\</table\\>\\</div\\>";
             
@@ -1637,6 +1647,18 @@ formID.msgText.value=\\\"\\\";
         "done"
     ), "<file> :\t\t\tdownload all the links contained in the file";
     
+
+    "networks", Arg_none (fun o ->
+        let buf = o.conn_buf in
+        Printf.bprintf buf "Networks:\n";
+        Hashtbl.iter (fun name n ->
+            try
+              Printf.bprintf buf "   %-30s %s\n" name
+                (if n.op_network_is_enabled () then "Enabled" else "Disabled")
+            with _ -> ()
+        ) networks_by_name;
+        ""
+    ) , " :\t\t\t\tprint all networks";
     
     "uploaders", Arg_none (fun o ->
         let buf = o.conn_buf in

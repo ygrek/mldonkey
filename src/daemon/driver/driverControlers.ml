@@ -826,14 +826,7 @@ let http_handler o t r =
                   
               | ("custom", query) :: args ->
                   html_open_page buf t r true;
-                  send_custom_query o.conn_user buf 
-                    (let module G = GuiTypes in
-                    { G.search_num = 0;
-                      G.search_query = query;
-                      G.search_type = RemoteSearch;
-                      G.search_max_hits = 10000;
-                    })
-                     args
+                  send_custom_query o.conn_user buf query  args
   
               | [ "setoption", _ ; "option", name; "value", value ] ->
                   html_open_page buf t r true;

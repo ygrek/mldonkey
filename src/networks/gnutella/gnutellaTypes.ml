@@ -66,7 +66,7 @@ and server = {
   }
 
 type search_type =
-  UserSearch of search * string
+  UserSearch of search * string * string
 | FileUidSearch of file * file_uid
 | FileWordSearch of file * string
   

@@ -55,13 +55,20 @@ let _ =
       ) file.file_clients;
       !list
   );
-  file_ops.op_file_recover <- (fun file ->
-      Hashtbl.iter (fun _ c ->
-          BTClients.get_file_from_source c file
-      ) file.file_clients
-  );
   file_ops.op_file_debug <- (fun file ->
-      Int64Swarmer.debug_print file.file_swarmer);
+      let buf = Buffer.create 100 in
+      Int64Swarmer.debug_print buf file.file_swarmer;
+      Hashtbl.iter (fun _ c ->
+          Printf.bprintf buf "Client %d: %s\n" (client_num c)
+          (match c.client_sock with
+              NoConnection -> "No Connection"
+            | Connection sock -> "Connected"
+            | ConnectionWaiting -> "Waiting for Connection"
+            | ConnectionAborted -> "Connection Aborted"
+          )
+      ) file.file_clients;
+      Buffer.contents buf
+  );
   file_ops.op_file_commit <- (fun file new_name ->
       try
         if file.file_files <> [] then 
@@ -80,12 +87,13 @@ let _ =
               Unix32.copy_chunk old_fd fd begin_pos zero (end_pos -- begin_pos);
               Unix32.close fd
           ) file.file_files;
-          Unix32.close old_fd
+          Unix32.close old_fd;
+          if !!delete_original then Sys.remove old_file
       with e ->
           lprintf "Exception %s while commiting BitTorrent file"
             (Printexc.to_string e)
   ) 
-
+  
   
 module P = GuiTypes
   
@@ -270,92 +278,92 @@ let _ =
   )
   
 let _ = (
-  client_ops.op_client_info <- (fun c ->
-      let (ip,port) = c.client_host in
-      let id = c.client_uid in
-      {
-        P.client_network = network.network_num;
-        P.client_kind = Known_location (ip,port);
-        P.client_state = client_state (as_client c);
-        P.client_type = client_type c;
-        P.client_tags = [];
-        P.client_name = 
-        (Printf.sprintf "%s:%d" (Ip.to_string ip) port);
-        P.client_files = None;
-        P.client_num = (client_num c);
-        P.client_rating = 0;
-        P.client_chat_port = 0 ;
-        P.client_connect_time = BasicSocket.last_time ();
-        P.client_software = "";
-        P.client_downloaded = c.client_downloaded;
-        P.client_uploaded = c.client_uploaded;
-        P.client_upload = None;
-	    P.client_sock_addr = (Ip.to_string ip);
-      }
-  );
-  client_ops.op_client_bprint <- (fun c buf ->
-	  let cc = as_client c in
-	  let cinfo = client_info cc in
-		Printf.bprintf buf "%s (%s)\n" 
-			cinfo.GuiTypes.client_name
-			(Sha1.to_string c.client_uid)
-  );
-  client_ops.op_client_bprint_html <- (fun c buf file ->
-
-		html_mods_td buf [
-		("", "sr br ar", Printf.sprintf "%d" (client_num c));
-		("", "sr br", (Sha1.to_string c.client_uid));
-		("", "sr", (Ip.to_string (fst c.client_host)));
-		("", "sr br ar", Printf.sprintf "%d" (snd c.client_host));
-		("", "sr ar", (size_of_int64 c.client_uploaded));
-		("", "sr ar br", (size_of_int64 c.client_downloaded));
-		("", "sr", (if c.client_interested then "T" else "F"));
-		("", "sr", (if c.client_chocked then "T" else "F"));
-		("", "sr br ar", (Int64.to_string c.client_allowed_to_write));
+    client_ops.op_client_info <- (fun c ->
+        let (ip,port) = c.client_host in
+        let id = c.client_uid in
+        {
+          P.client_network = network.network_num;
+          P.client_kind = Known_location (ip,port);
+          P.client_state = client_state (as_client c);
+          P.client_type = client_type c;
+          P.client_tags = [];
+          P.client_name = 
+          (Printf.sprintf "%s:%d" (Ip.to_string ip) port);
+          P.client_files = None;
+          P.client_num = (client_num c);
+          P.client_rating = 0;
+          P.client_chat_port = 0 ;
+          P.client_connect_time = BasicSocket.last_time ();
+          P.client_software = "";
+          P.client_downloaded = c.client_downloaded;
+          P.client_uploaded = c.client_uploaded;
+          P.client_upload = None;
+          P.client_sock_addr = (Ip.to_string ip);
+        }
+    );
+    client_ops.op_client_bprint <- (fun c buf ->
+        let cc = as_client c in
+        let cinfo = client_info cc in
+        Printf.bprintf buf "%s (%s)\n" 
+          cinfo.GuiTypes.client_name
+          (Sha1.to_string c.client_uid)
+    );
+    client_ops.op_client_bprint_html <- (fun c buf file ->
+        
+        html_mods_td buf [
+          ("", "sr br ar", Printf.sprintf "%d" (client_num c));
+          ("", "sr br", (Sha1.to_string c.client_uid));
+          ("", "sr", (Ip.to_string (fst c.client_host)));
+          ("", "sr br ar", Printf.sprintf "%d" (snd c.client_host));
+          ("", "sr ar", (size_of_int64 c.client_uploaded));
+          ("", "sr ar br", (size_of_int64 c.client_downloaded));
+          ("", "sr", (if c.client_interested then "T" else "F"));
+          ("", "sr", (if c.client_chocked then "T" else "F"));
+          ("", "sr br ar", (Int64.to_string c.client_allowed_to_write));
 (* This is way too slow for 1000's of chunks on a page with 100's of sources 
 		("", "sr", (CommonFile.colored_chunks (Array.init (String.length c.client_bitmap)
        (fun i -> (if c.client_bitmap.[i] = '1' then 2 else 0)) )) );
 *)
-		("", "sr ar", (let fc = ref 0 in 
-			(String.iter (fun s -> if s = '1' then incr fc) c.client_bitmap );
-			(Printf.sprintf "%d" !fc) ) ) ];
-  );
-  client_ops.op_client_dprint <- (fun c o file ->
-	let info = file_info file in
-	let buf = o.conn_buf in
-	let cc = as_client c in
-	let cinfo = client_info cc in
-    client_print cc o;
-    Printf.bprintf buf "client: %s downloaded: %s uploaded: %s"
-    "bT" (* cinfo.GuiTypes.client_software *)
-    (Int64.to_string c.client_downloaded)
-    (Int64.to_string c.client_uploaded);
-    Printf.bprintf buf "\nfilename: %s\n\n" info.GuiTypes.file_name;
-  );
-  client_ops.op_client_dprint_html <- (fun c o file str ->
-	let info = file_info file in
-	let buf = o.conn_buf in
-	let cc = as_client c in
-	let cinfo = client_info cc in
-	Printf.bprintf buf " \\<tr onMouseOver=\\\"mOvr(this);\\\"
+          ("", "sr ar", (let fc = ref 0 in 
+              (String.iter (fun s -> if s = '1' then incr fc) c.client_bitmap );
+              (Printf.sprintf "%d" !fc) ) ) ];
+    );
+    client_ops.op_client_dprint <- (fun c o file ->
+        let info = file_info file in
+        let buf = o.conn_buf in
+        let cc = as_client c in
+        let cinfo = client_info cc in
+        client_print cc o;
+        Printf.bprintf buf "client: %s downloaded: %s uploaded: %s"
+          "bT" (* cinfo.GuiTypes.client_software *)
+          (Int64.to_string c.client_downloaded)
+        (Int64.to_string c.client_uploaded);
+        Printf.bprintf buf "\nfilename: %s\n\n" info.GuiTypes.file_name;
+    );
+    client_ops.op_client_dprint_html <- (fun c o file str ->
+        let info = file_info file in
+        let buf = o.conn_buf in
+        let cc = as_client c in
+        let cinfo = client_info cc in
+        Printf.bprintf buf " \\<tr onMouseOver=\\\"mOvr(this);\\\"
 	onMouseOut=\\\"mOut(this);\\\" class=\\\"%s\\\"\\>" str;
-	
-	html_mods_td buf [
-	("", "srb ar", Printf.sprintf "%d" (client_num c));
-	((string_of_connection_state (client_state cc)), "sr", 
-		(short_string_of_connection_state (client_state cc)));
-	((Sha1.to_string c.client_uid), "sr", cinfo.GuiTypes.client_name);
-	("", "sr", "bT"); (* cinfo.GuiTypes.client_software *)
-	("", "sr", "F");
-	("", "sr ar", Printf.sprintf "%d" 
-		(((last_time ()) - cinfo.GuiTypes.client_connect_time) / 60));
-	("", "sr", "D");
-	("", "sr", (Ip.to_string (fst c.client_host)));
-	("", "sr ar", (size_of_int64 c.client_uploaded));
-	("", "sr ar", (size_of_int64 c.client_downloaded));
-	("", "sr", info.GuiTypes.file_name); ];
-    true
-  )
+        
+        html_mods_td buf [
+          ("", "srb ar", Printf.sprintf "%d" (client_num c));
+          ((string_of_connection_state (client_state cc)), "sr", 
+            (short_string_of_connection_state (client_state cc)));
+          ((Sha1.to_string c.client_uid), "sr", cinfo.GuiTypes.client_name);
+          ("", "sr", "bT"); (* cinfo.GuiTypes.client_software *)
+          ("", "sr", "F");
+          ("", "sr ar", Printf.sprintf "%d" 
+              (((last_time ()) - cinfo.GuiTypes.client_connect_time) / 60));
+          ("", "sr", "D");
+          ("", "sr", (Ip.to_string (fst c.client_host)));
+          ("", "sr ar", (size_of_int64 c.client_uploaded));
+          ("", "sr ar", (size_of_int64 c.client_downloaded));
+          ("", "sr", info.GuiTypes.file_name); ];
+        true
+    )
 )
 
   

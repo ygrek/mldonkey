@@ -137,17 +137,6 @@ let rec get_query s pos =
       Q_HIDDEN list, pos
   | _ -> assert false
 
-let get_search_version_0 s pos =
-  let num = get_int s pos in
-  let q, pos = get_query s (pos+4) in
-  let max = get_int s pos in
-  { 
-    search_num = num; 
-    search_query = q;
-    search_max_hits = max;
-    search_type = RemoteSearch;
-  }, (pos+4)
-
 let get_search_type s pos =
   match get_int8 s pos with
     0 -> LocalSearch
@@ -155,18 +144,28 @@ let get_search_type s pos =
   | 2 -> SubscribeSearch
   | _ -> assert false
 
-let get_search_version_2 s pos =
+let get_search proto s pos =
   let num = get_int s pos in
   let q, pos = get_query s (pos+4) in
   let max = get_int s pos in
-  let stype = get_search_type s (pos+4) in
+  let stype, pos = 
+    if proto >= 2 then
+      get_search_type s (pos+4), pos+5
+    else
+      RemoteSearch, pos+4
+  in
+  let net, pos =
+    if proto >= 16 then
+      get_int s pos, pos+4
+    else 0, pos
+  in
   { 
     search_num = num; 
     search_query = q;
     search_max_hits = max;
     search_type = stype;
-  }, (pos+4)
-
+    search_network = net;
+  }, pos
 
 let get_mp3 s pos =
   let module M = Mp3tag.Id3v1 in
@@ -591,7 +590,7 @@ let from_gui proto opcode s =
     | 5 -> let pass,_ = get_string s 2 in Password ("admin", pass)
     | 6 -> 
         let local = get_bool s 2 in
-        let search, pos = get_search_version_0 s 3 in
+        let search, pos = get_search proto s 3 in
         search.search_type <- if local then LocalSearch else RemoteSearch;
         Search_query search
     | 7 -> 
@@ -745,7 +744,7 @@ let from_gui proto opcode s =
     | 41 ->
         let int = get_int s 2 in 
         BrowseUser  int
-    | 42 -> let s, pos = get_search_version_2 s 2 in Search_query s
+    | 42 -> let s, pos = get_search proto s 2 in Search_query s
     | 43 -> 
         let int = get_int s 2 in 
         let message, pos = get_string s 6 in
@@ -781,6 +780,12 @@ let from_gui proto opcode s =
         let bool = get_bool s 6 in 
         CloseSearch  (int, bool)
 
+    | 54 ->
+        let net = get_int s 2 in
+        let ip = get_ip s 6 in
+        let port = get_int16 s 10 in
+        AddServer_query (net, ip, port) 
+        
     | _ -> 
         lprintf "FROM GUI:Unknown message %d" opcode; lprint_newline ();
         raise Not_found

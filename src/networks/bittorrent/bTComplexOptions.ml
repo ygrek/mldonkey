@@ -193,5 +193,5 @@ let save_config () =
 
   
 let _ =
-  network.op_network_add_file <- value_to_file;
+  network.op_network_file_of_option <- value_to_file;
   file_ops.op_file_to_option <- file_to_value
