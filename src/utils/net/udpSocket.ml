@@ -37,6 +37,11 @@ type udp_packet = {
 *)
   }
 
+let local_sendto a b c d e f = 
+(*  Printf2.lprintf "sendto\n"; *)
+  Unix.sendto a b c d e f
+   
+
 module PacketSet = Set.Make (struct
       type t = int * udp_packet
       let compare (t1,p1) (t2,p2) = 
@@ -154,7 +159,7 @@ let write t s ip port =
             try
               let len = String.length s in
 
-              let code = Unix.sendto (fd sock) s 0 len [] addr in
+              let code = local_sendto (fd sock) s 0 len [] addr in
               udp_uploaded_bytes := Int64.add !udp_uploaded_bytes (Int64.of_int len);
               ()
 (*
@@ -201,7 +206,7 @@ let rec iter_write_no_bc t sock =
     let len = String.length p.content in
     begin try
         ignore (
-        Unix.sendto (fd sock) p.content 0 len  [] p.addr);
+        local_sendto (fd sock) p.content 0 len  [] p.addr);
         udp_uploaded_bytes := Int64.add !udp_uploaded_bytes (Int64.of_int len);
       with
         Unix.Unix_error ((Unix.EWOULDBLOCK | Unix.ENOBUFS), _, _) as e -> raise e
@@ -235,7 +240,7 @@ let rec iter_write t sock bc =
         
 
         ignore (
-          Unix.sendto (fd sock) p.content 0 len  [] p.addr);
+          local_sendto (fd sock) p.content 0 len  [] p.addr);
         udp_uploaded_bytes := Int64.add !udp_uploaded_bytes (Int64.of_int len);
         bc.remaining_bytes <- bc.remaining_bytes - (len + !
           TcpBufferedSocket.ip_packet_size) ;
@@ -393,7 +398,7 @@ let set_socks_proxy t ss =
     let send_and_wait () =
       let s = Buffer.contents buf in
       Buffer.clear buf;
-      assert (Unix.sendto fd s 0 (String.length s) [] proxy_addr > 0);
+      assert (local_sendto fd s 0 (String.length s) [] proxy_addr > 0);
       
       match Unix.select [fd] [] [] 30. with
 	[],_,_ -> failwith "[SOCKS] timeout"  

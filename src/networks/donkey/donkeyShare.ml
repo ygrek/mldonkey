@@ -189,7 +189,7 @@ let check_shared_files () =
                   end else 
                 let _ = () in
 (*              lprintf "md4 computed"; lprint_newline (); *)
-                let new_md4 = Md4.direct_of_string job.M.job_result in
+                let new_md4 = job.M.job_result in
                 
                 sh.shared_list <- new_md4 :: sh.shared_list;
                 sh.shared_pos <- end_pos;

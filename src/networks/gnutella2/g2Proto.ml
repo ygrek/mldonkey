@@ -27,11 +27,38 @@ open TcpBufferedSocket
 open CommonGlobals
 open CommonTypes
 open CommonOptions
+open CommonHosts
   
 open G2Options
 open G2Types
 open G2Protocol
 open G2Globals
+  
+  
+  
+  
+  
+  
+(*******************************************************************)
+  
+  
+(*                HTTP Protocol (downloads)                         *)
+  
+  
+(*******************************************************************)
+
+  
+let known_download_headers = []
+let known_supernode_headers = []
+  
+  
+(*******************************************************************)
+  
+(*                  Gnutella2 Protocol                             *)
+  
+(*******************************************************************)
+  
+  
   
 type addr = Ip.t * int
 
@@ -79,7 +106,7 @@ type g2_packet =
   
 | Q2 of Md4.t
 | Q2_UDP of addr * int32 option
-| Q2_URN of CommonTypes.file_uid
+| Q2_URN of Uid.t
 | Q2_DN of string
 | Q2_MD of string
 | Q2_SZR of int64 * int64
@@ -105,7 +132,7 @@ type g2_packet =
 | QH2_SS of int (* [2]queue *) * int (* [1]capacity *) * int (* [4]speed *)
 | QH2_HG_SS of int (* [2]queue *) * int (* [1]capacity *) * int (* [4]speed *)
 | QH2_H 
-| QH2_H_URN of file_uid
+| QH2_H_URN of Uid.t
 | QH2_H_URL of string
 | QH2_H_DN of string
 | QH2_H_SZDN of int64 * string
@@ -134,62 +161,60 @@ type packet = {
 
 module G2_LittleEndian = struct
     include LittleEndian
-      
+    
     let get_addr s pos len =
       let ip = get_ip s pos in
       let port = if pos + 6 <= len then get_int16 s (pos+4) else 0 in
       (ip, port)
-
+    
     let buf_addr buf (ip,port) =
       buf_ip buf ip;
       buf_int16 buf port
-
+    
     let buf_short_addr buf (ip,port) =
       buf_ip buf ip
-      
+    
     let get_string s pos len =
       try
         let end_pos = String.index_from s pos '\000' in
         String.sub s pos (end_pos - pos), end_pos+1
       with _ -> String.sub s pos (len-pos), len
-
+    
     let get_uid s pos len =
       let f, pos = get_string s pos len in
-      match f with
-      | "ed2k" -> 
-          let ed2k = String.sub s pos 16 in
-          let ed2k = Md4.direct_of_string ed2k in
-          Ed2k (Printf.sprintf "urn:ed2k:%s" (Md4.to_string ed2k), ed2k),
-          pos+16
-      | "bitprint" | "bp" -> 
-          let sha1 = String.sub s pos 20 in
-          let ttr = String.sub s (pos+20) 24 in
-          let sha1 = Sha1.direct_of_string sha1 in
-          let ttr = TigerTree.direct_of_string ttr in
-          Bitprint (Printf.sprintf "urn:bitprint:%s.%s" 
-              (Sha1.to_string sha1)
-            (TigerTree.to_string ttr), sha1, ttr),
-          pos+44
-      | "sha1" -> 
-          let sha1 = String.sub s pos 20 in
-          let sha1 = Sha1.direct_of_string sha1 in
-          Sha1 (Printf.sprintf "urn:sha1:%s" 
-              (Sha1.to_string sha1),  sha1), pos + 20
-          
-      | "tree:tiger" | "ttr" -> 
-          let ttr = String.sub s pos 24 in
-          let ttr = TigerTree.direct_of_string ttr in
-          TigerTree (Printf.sprintf "urn:ttr:%s" 
-              (TigerTree.to_string ttr), ttr), pos + 24
-      | "md5" -> 
-          let ed2k = String.sub s pos 16 in
-          let ed2k = Md5.direct_of_string ed2k in
-          Md5 (Printf.sprintf "urn:md5:%s" (Md5.to_string ed2k), ed2k),
-          pos + 16
-      | _ -> 
-          failwith (Printf.sprintf 
-              "Unknown Uniq Ressource Identifier: %s" f), pos
-      
+      let uid, pos =
+        match f with
+        | "ed2k" -> 
+            let ed2k = String.sub s pos 16 in
+            let ed2k = Md4.direct_of_string ed2k in
+            Ed2k (ed2k),
+            pos+16
+        | "bitprint" | "bp" -> 
+            let sha1 = String.sub s pos 20 in
+            let ttr = String.sub s (pos+20) 24 in
+            let sha1 = Sha1.direct_of_string sha1 in
+            let ttr = TigerTree.direct_of_string ttr in
+            Bitprint (sha1, ttr),
+            pos+44
+        | "sha1" -> 
+            let sha1 = String.sub s pos 20 in
+            let sha1 = Sha1.direct_of_string sha1 in
+            Sha1 (sha1), pos + 20
+        
+        | "tree:tiger" | "ttr" -> 
+            let ttr = String.sub s pos 24 in
+            let ttr = TigerTree.direct_of_string ttr in
+            TigerTree (ttr), pos + 24
+        | "md5" -> 
+            let ed2k = String.sub s pos 16 in
+            let ed2k = Md5.direct_of_string ed2k in
+            Md5 (ed2k),
+            pos + 16
+        | _ -> 
+            failwith (Printf.sprintf 
+                "Unknown Uniq Ressource Identifier: %s" f), pos
+      in
+      Uid.create uid,pos
   end
   
 module Print = struct
@@ -282,7 +307,7 @@ module Print = struct
         | Q2 md4 -> buf_md4 buf md4; "Q2"
         | Q2_UDP (addr, Some int32) -> M.buf_addr buf addr; M.buf_int32 buf int32; "UDP"
         | Q2_UDP (addr, None) -> M.buf_addr buf addr; "UDP"
-        | Q2_URN s -> Buffer.add_string buf (string_of_uid s);   "URN"
+        | Q2_URN s -> Buffer.add_string buf (Uid.to_string s);   "URN"
         | Q2_DN s -> Buffer.add_string buf s; "DN"
         | Q2_SZR (a32, b32) -> M.buf_int64_32 buf a32; 
             M.buf_int64_32 buf b32; "SZR"
@@ -314,7 +339,7 @@ module Print = struct
             M.buf_int16 buf a16; M.buf_int8 buf b8; M.buf_int buf c; "SS"
         | QH2_H -> "H"
         
-        | QH2_H_URN s -> Buffer.add_string buf (string_of_uid s); "URN"
+        | QH2_H_URN s -> Buffer.add_string buf (Uid.to_string s); "URN"
         | QH2_H_URL s -> Buffer.add_string buf s; "URL"
         | QH2_H_COM s -> Buffer.add_string buf s; "COM"
         | QH2_H_PVU s -> Buffer.add_string buf s; "PVU"
@@ -331,8 +356,7 @@ module Print = struct
         | QH2_H_ID i32 -> M.buf_int32 buf i32; "ID"
         | QH2_H_CSC i16 -> M.buf_int16 buf i16; "CSC"
         | QH2_H_PART i32 -> M.buf_int32 buf i32; "PART"
-        | QHT_PATCH p -> 
-            "QHT_PATCH"
+        | QHT_PATCH p -> QrtPatch.print buf p; ""
         | QHT_RESET -> "QHT_RESET"
         
         | UPROC -> "UPROC"
@@ -367,21 +391,21 @@ module Print = struct
   
 let buf = Buffer.create 50 
   
-let buf_uid buf s = match s with
-  | Bitprint (_,sha1, ttr) ->
+let buf_uid buf s = match Uid.to_uid s with
+  | Bitprint (sha1, ttr) ->
       Buffer.add_string buf "bp\000"; 
       Buffer.add_string buf (Sha1.direct_to_string sha1);
       Buffer.add_string buf (TigerTree.direct_to_string ttr);
-  | Sha1 (_,sha1) ->
+  | Sha1 (sha1) ->
       Buffer.add_string buf "sha1\000"; 
       Buffer.add_string buf (Sha1.direct_to_string sha1)
-  | Ed2k (_,ed2k) ->
+  | Ed2k (ed2k) ->
       Buffer.add_string buf "ed2k\000"; 
       Buffer.add_string buf (Md4.direct_to_string ed2k)
-  | Md5 (_, md5) ->
+  | Md5 (md5) ->
       Buffer.add_string buf "md5\000"; 
       Buffer.add_string buf (Md5.direct_to_string md5)
-  | TigerTree (_, ttr) ->
+  | TigerTree (ttr) ->
       Buffer.add_string buf "ttr\000"; 
       Buffer.add_string buf (TigerTree.direct_to_string ttr)
   | _ -> ()
@@ -707,6 +731,7 @@ lprintf "\n";
               QrtPatch.entry_bits = get_int8 s 4; 
               QrtPatch.table = String.sub s 5 (String.length s - 5);
             } in 
+          (*
           if p.QrtPatch.compressor = 1 then
             (try
 (*                lprintf "Decompressing\n"; *)
@@ -718,7 +743,7 @@ lprintf "\n";
                   lprintf "Exception in uncompress %s\n"
                     (Printexc2.to_string e)
                   
-            );
+            ); *)
           QHT_PATCH p
         else begin
 (*            lprintf "RESET %d\n" (M.get_int s 1);
@@ -812,7 +837,7 @@ let socket_send sock p =
   (*
   lprintf "DUMP SENT: \n";
   dump m; *)
-  write_string sock m
+  CanBeCompressed.write_string sock m
   
   
   
@@ -903,10 +928,10 @@ let udp_send_ack ip port counter =
 
           
 let host_send sock h p = 
-  let ip = h.host_ip in
+  let ip = h.host_addr in
   let port = h.host_port in
   match sock with
-  | Connection sock ->
+  | Connection _ | CompressedConnection _  ->
       if !verbose_msg_servers then
         lprintf "Sending on TCP to %s:%d: \n%s\n" 
           (Ip.to_string ip) port (Print.print p);
@@ -1332,7 +1357,7 @@ let server_ask_uid sock s quid fuid file_name =
   let dn = 
     if use_magnet then
     Q2_DN (Printf.sprintf "magnet?xt=%s&dn=%s"
-          (string_of_uid fuid) file_name)
+          (Uid.to_string fuid) file_name)
     else
       Q2_URN fuid
   in
@@ -1575,19 +1600,24 @@ module Pandora = struct
       else pos
     
     let parse_string s =
-      lprintf "Parse string:\n %s\n" (String.escaped s);
+(*      lprintf "Parse string:\n %s\n" (String.escaped s); *)
       let rec iter pos =
 (*          lprintf "iter %d\n" pos; *)
         if pos < String.length s then
+          try
           let p, decoded, pos = parse s pos in
           
+(*
           lprintf "decoded:\n";
           dump decoded;
+*)
           
           (try
               let encoded = g2_encode p in
+(*
               lprintf "encoded:\n";
-              dump encoded;
+dump encoded;
+  *)
               let pp, _, _ = parse encoded 0 in
               
               if encoded <> decoded then begin
@@ -1605,6 +1635,9 @@ module Pandora = struct
           
           lprintf "Packet: \n%s\n" (Print.print p);
           iter pos
+          with Not_found -> 
+              String.sub s pos (String.length s - pos)
+        else ""
       in
       iter 0
       
@@ -1624,7 +1657,7 @@ module Pandora = struct
             begin
 (* First of all, deflate in one pass *)
               try
-                lprintf "PARSE ONE BEGIN...\n%s\n" (String.escaped s1);
+(*                lprintf "PARSE ONE BEGIN...\n%s\n" (String.escaped s1); *)
                 let z = Zlib.inflate_init true in
                 let s =  
                   let s2 = String.make 1000000 '\000' in
@@ -1634,43 +1667,47 @@ module Pandora = struct
                       0 1000000 f in
                   String.sub s2 0 used_out
                 in
-                parse_string s;
-                lprintf "...PARSE ONE END\n";
+                ignore (parse_string s);
+(*                lprintf "...PARSE ONE END\n"; *)
               with e ->
                   lprintf "Exception %s in deflate1\n" (Printexc2.to_string e)
             end;
             let z = Zlib.inflate_init true in
-            let rec iter list offset rem =
+            let rec iter list offset rem buf =
               match list with
                 [] -> ()
               | m :: tail ->
                   let len = String.length m in
-                  if len <= offset then iter tail (offset - len) rem else
+                  if len <= offset then iter tail (offset - len) rem buf else
                   let m = if offset > 0 then String.sub m offset (len - offset) else m in
                   let rem = rem ^ m in
                   let len = String.length rem in
                   let s2 = String.make 100000 '\000' in
                   let f = Zlib.Z_SYNC_FLUSH in
-                  lprintf "deflating %d bytes\n" len;
+(*                  lprintf "deflating %d bytes\n" len; *)
                   let (_,used_in, used_out) = Zlib.inflate z rem 0 len s2 0 100000 f in
-                  lprintf "decompressed %d/%d[%d]\n" used_out len used_in;
-                  let m = String.sub s2 0 used_out in
+(*                  lprintf "decompressed %d/%d[%d]\n" used_out len used_in; *)
+                  let m = buf ^ (String.sub s2 0 used_out) in
                   
-                  (try parse_string m with
+                  let buf =
+                    try
+                      parse_string m
+                    with
                       e ->
-                        lprintf "Execption %s while parse_string\n"
-                          (Printexc2.to_string e));
-                  
+                        lprintf "Exception %s while parse_string\n"
+                          (Printexc2.to_string e);
+                        ""
+                  in
                   
                   let rem = 
                     if used_in < len then String.sub rem used_in len else "" in
-                  iter tail 0 rem
+                  iter tail 0 rem buf
             in
-            iter msgs h ""
+            iter msgs h "" ""
           else
-            parse_string s1
+            ignore (parse_string s1)
       with e ->
-          lprintf "Execption %s while deflating \n O\nCUT:%s\n"
+          lprintf "Exception %s while deflating \n O\nCUT:%s\n"
             (Printexc2.to_string e) (String.escaped s1)
           
     let commit () =  
@@ -1681,13 +1718,14 @@ module Pandora = struct
           ) cnx.buf;
           let s = Buffer.contents buf in
           let len = String.length s in
+          lprintf "\n-----------------------------------------------\n";
+          lprintf "\nCONNECTION %s:%d -> %s:%d: %d bytes\n" 
+            cnx.ip1 cnx.port1 cnx.ip2 cnx.port2 len;
+          begin
           try
             if String2.starts_with s "GNUTELLA CONNECT" then begin
                 let h1 = iter s 0 in
                 let h2 = iter s h1 in
-                lprintf "\n-----------------------------------------------\n";
-                lprintf "\nCONNECTION %s:%d -> %s:%d: %d bytes\n" 
-                  cnx.ip1 cnx.port1 cnx.ip2 cnx.port2 len;
                 let s1 = (String.sub s h2 (len-h2)) in
                 let s2 = (String.sub s h1 (h2-h1)) in
                 lprintf "Header 1: \n%s\n" (hescaped (String.sub s 0 h1));
@@ -1698,16 +1736,12 @@ module Pandora = struct
               end else 
             if String2.starts_with s "GNUTELLA" then begin
                 let h1 = iter s 0 in
-                lprintf "\n-----------------------------------------------\n";
-                lprintf "\nCONNECTION %s:%d -> %s:%d: %d bytes\n" 
-                  cnx.ip1 cnx.port1 cnx.ip2 cnx.port2 len;
-                
                 let s1 = (String.sub s h1 (len-h1)) in
                 let s2 = (String.sub s 0 h1) in
                 lprintf "Header 1: \n%s\n" (hescaped s2);
                 let deflate = try ignore (String2.search_from s2 0 "deflate");
                     lprintf "deflate\n"; true with _ -> false in
-                piter s1 deflate h1 cnx.buf
+                  piter s1 deflate h1 cnx.buf;
               end else 
             if String2.starts_with s "GET" then begin
                 lprintf "Http connect to\n";
@@ -1719,14 +1753,16 @@ module Pandora = struct
                 let h1 = iter s 0 in
                 lprintf "Header 1: \n%s\n" (hescaped (String.sub s 0 h1));
               end else 
-              lprintf "Starting %s\n" (String.escaped
-                  (String.sub s 0 (min len 20)))
+                lprintf "Starting [%s]\n" (String.escaped
+                    (String.sub s 0 (min len 100)))
           with 
-          
           | e ->
               lprintf "Exception %s in\n%s\n" (Printexc2.to_string e)
               (String.escaped s);
               ()            
+          end;
+          lprintf "\nEND OF CONNECTION\n---------------------------------------\n";
       ) connections;
-      lprintf "\n\n#use \"limewire.ml\";;\n\n"
-end
+      
+  end
+  

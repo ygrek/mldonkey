@@ -43,7 +43,8 @@ upload is done linearly. *)
   
 *******************************************************************)
 
-  
+let ed2k_block_size = Int64.of_int 9728000
+let tiger_block_size = Int64.of_int (1024 * 1024)
   
 type shared_file = {
     shared_fullname : string;
@@ -53,9 +54,12 @@ type shared_file = {
     shared_id : int;
     shared_format : CommonTypes.format;
     shared_impl : shared_file shared_impl;
-    mutable shared_uids : file_uid list;
+    mutable shared_md4s : Md4.t array;
+    mutable shared_tiger : TigerTree.t array;
+    shared_mtime : float;
+    mutable shared_uids : Uid.t list;
     mutable shared_uids_wanted : 
-    (file_uid_id * (shared_file -> file_uid -> unit)) list;
+    (file_uid_id * (shared_file -> Uid.t -> unit)) list;
   }
 
 and shared_tree =
@@ -104,6 +108,130 @@ let (shared_ops : shared_file CommonShared.shared_ops) =
 *******************************************************************)
   
   
+let md4_of_list md4s =
+  let len = List.length md4s in
+  let s = String.create (len * 16) in
+  let rec iter list i =
+    match list with
+      [] -> ()
+    | md4 :: tail ->
+        let md4 = Md4.direct_to_string md4 in
+        String.blit md4 0 s i 16;
+        iter tail (i+16)
+  in
+  iter md4s 0;
+  Md4.string s
+
+let rec tiger_of_array array pos block =
+  if block = 1 then
+    array.(pos)
+  else
+  let len = Array.length array in
+  if pos + block / 2 >= len then
+    tiger_of_array array pos (block/2)
+  else
+  let d1 = tiger_of_array array pos (block/2) in
+  let d2 = tiger_of_array array (pos+block/2) (block/2) in
+  let s = String.create (1 + Tiger.length * 2) in
+  s.[0] <- '\001';
+  String.blit (TigerTree.direct_to_string d1) 0 s 1 Tiger.length;
+  String.blit (TigerTree.direct_to_string d2) 0 s (1+Tiger.length) Tiger.length;
+  let t = Tiger.string s in
+  let t = TigerTree.direct_of_string (Tiger.direct_to_string t) in
+  t
+  
+let rec tiger_max_block_size block len =
+  if block >= len then block
+  else tiger_max_block_size (block*2) len
+  
+let tiger_of_array array =
+  tiger_of_array array 0 (tiger_max_block_size  1 (Array.length array))
+
+let rec tiger_pos nblocks =
+  if nblocks < 2 then 0 else
+  let half = nblocks / 2 in
+  let acc = nblocks - 2 * half in
+  let half = half + acc in
+  half + tiger_pos half
+
+let rec tiger_pos2 nblocks =
+  if nblocks < 2 then 0, [] else
+  let half = nblocks / 2 in
+  let acc = nblocks - 2 * half in
+  let half = half + acc in
+  let pos, list = tiger_pos2 half in
+  let list = (nblocks, pos) :: list in
+  let pos = half + pos in
+  pos, list
+
+let tiger_node d1 d2 = 
+  let s = String.create (1 + Tiger.length * 2) in
+  s.[0] <- '\001';
+  String.blit (TigerTree.direct_to_string d1) 0 s 1 Tiger.length;
+  String.blit (TigerTree.direct_to_string d2) 0 s (1+Tiger.length) Tiger.length;
+  let t = Tiger.string s in
+  let t = TigerTree.direct_of_string (Tiger.direct_to_string t) in
+  t
+  
+let rec tiger_tree s array pos block =
+  if block = 1 then
+    array.(pos)
+  else
+  let len = Array.length array in
+  if pos + block / 2 >= len then
+    tiger_tree s array pos (block/2)
+  else
+  let d1 = tiger_tree s array pos (block/2) in
+  let d2 = tiger_tree s array (pos+block/2) (block/2) in
+  tiger_node d1 d2
+  
+let rec fill_tiger_tree s list =
+  match list with
+    [] -> ()
+  | (nblocks, pos) :: tail ->
+(* nblocks: the number of blocks in the next level
+   pos: the position of the blocks in to be created
+*)
+      let half = nblocks / 2 in
+      let acc = nblocks - 2 * half in
+
+      let next_pos = pos + half + acc in
+      for i = 0 to half - 1 do
+        let d1 = s.(next_pos+2*i) in
+        let d2 = s.(next_pos+2*i+1) in
+        s.(pos+i) <- tiger_node d1 d2;
+      done;
+      if acc = 1 then s.(pos+half) <- s.(next_pos+2*half);
+      fill_tiger_tree s tail
+
+let flatten_tiger_array array = 
+  let len = Array.length array in
+  let s = String.create ( len * TigerTree.length) in  
+  for i = 0 to len - 1 do
+    String.blit (TigerTree.direct_to_string array.(i)) 0
+      s (i * TigerTree.length) TigerTree.length
+  done;
+  s
+
+let unflatten_tiger_array s = 
+  let len = String.length s / TigerTree.length in
+  let array = Array.create len TigerTree.null in  
+  for i = 0 to len - 1 do
+    array.(i) <- TigerTree.direct_of_string 
+      (String.sub s (i * TigerTree.length) TigerTree.length)
+  done;
+  array
+  
+let make_tiger_tree array =
+  let len = Array.length array in
+  let pos, list = tiger_pos2 len in
+  let s = Array.create (pos + len) TigerTree.null in
+  for i = 0 to len - 1 do
+    s.(pos+i) <- array.(i)
+  done;
+  fill_tiger_tree s list;
+  flatten_tiger_array s
+  
 let waiting_shared_files = ref []
 
 (* The shared files indexed by the strings (lowercase), corresponding to
@@ -115,7 +243,7 @@ let current_job = ref None
 let rec start_job_for sh (wanted_id, handler) = 
   try
     List.iter (fun id ->
-        match wanted_id,id with
+        match wanted_id,Uid.to_uid id with
           BITPRINT, Bitprint _ 
         | SHA1, Sha1 _
         | ED2K, Ed2k _
@@ -133,19 +261,113 @@ let rec start_job_for sh (wanted_id, handler) =
                 current_job := None;
               end else
               begin
-                let sha1 = Sha1.direct_of_string job.CommonHasher.job_result
+                let sha1 = job.CommonHasher.job_result
                 in
                 let urn = Printf.sprintf "urn:sha1:%s" (Sha1.to_string sha1)
                 in
                 lprintf "%s has uid %s (%s)\n" sh.shared_fullname urn
-                (Base16.to_string 20 job.CommonHasher.job_result)
+                  (Sha1.to_string job.CommonHasher.job_result)
                 ;
-                let uid = Sha1 (urn,sha1) in
+                let uid = Uid.create (Sha1 sha1) in
                 sh.shared_uids <- uid :: sh.shared_uids;
                 Hashtbl.add shareds_by_uid (String.lowercase urn) sh;
                 start_job_for sh (wanted_id, handler)  
               end
         );
+    
+    | BITPRINT ->
+        let sha1 = ref None in
+        let tiger = ref None in
+        List.iter (fun id ->
+            match Uid.to_uid id with
+            | Sha1 (s) -> sha1 := Some s
+            | TigerTree (s) -> tiger := Some s
+            | _ -> ()
+        ) sh.shared_uids;
+        begin
+          match !sha1, !tiger with
+            Some sha1, Some tiger ->
+              let uid = Uid.create (Bitprint (sha1, tiger)) in
+              let urn = Uid.to_string uid in
+              sh.shared_uids <- uid :: sh.shared_uids;
+              Hashtbl.add shareds_by_uid (String.lowercase urn) sh;
+              start_job_for sh (wanted_id, handler)
+          
+          | _ -> ()
+(*
+(* Not enough information to compute the bitprint. Ask for the corresponding
+information. What happens if there is an error during SHA1 or TIGER
+computation ??? *)
+              ask_for_uid sh BITPRINT handler;
+              (match !sha1 with
+                  None ->  ask_for_uid sh SHA1 (fun _ _ -> ())
+                | _ -> ());
+              (match !tiger with
+                  None ->  ask_for_uid sh TIGER (fun _ _ -> ())
+| _ -> ());
+  *)
+        end
+    
+    | MD5EXT ->
+        let md5ext =  
+          let fd = Unix32.create_rw sh.shared_fullname in
+          let file_size = Unix32.getsize64 fd in
+          let len64 = min (Int64.of_int 307200) file_size in
+          let len = Int64.to_int len64 in
+          let s = String.create len in
+          Unix32.read fd zero s 0 len;
+          Md5Ext.string s
+        in
+        let uid = Uid.create (Md5Ext (md5ext)) in
+        let urn = Uid.to_string uid in
+        sh.shared_uids <- uid :: sh.shared_uids;
+        Hashtbl.add shareds_by_uid (String.lowercase urn) sh;
+        start_job_for sh (wanted_id, handler)  
+    
+    | ED2K ->
+        let size = sh.shared_size in
+        let chunk_size = ed2k_block_size  in
+        let nhashes = Int64.to_int (size // chunk_size) + 1 in
+        let rec iter pos hashes =
+          if pos < size then
+            CommonHasher.compute_md4 sh.shared_fullname
+              pos (min (size -- pos) chunk_size)
+            (fun job ->
+                iter (pos ++ chunk_size) (job.CommonHasher.job_result :: hashes))
+          else
+          let list = List.rev hashes in
+          let ed2k = md4_of_list list in
+          let uid = Uid.create (Ed2k (ed2k)) in
+          let urn = Uid.to_string uid in
+          sh.shared_md4s <- Array.of_list list;
+          sh.shared_uids <- uid :: sh.shared_uids;
+          Hashtbl.add shareds_by_uid (String.lowercase urn) sh;
+          start_job_for sh (wanted_id, handler)                
+        in
+        iter zero []
+    
+    | TIGER -> 
+        let size = sh.shared_size in
+        let chunk_size = tiger_block_size in
+        let nhashes = Int64.to_int (size // chunk_size) + 1 in
+        let rec iter pos hashes =
+          if pos < size then
+            CommonHasher.compute_tiger sh.shared_fullname
+              pos (min (size -- pos) chunk_size)
+            (fun job ->
+                iter (pos ++ chunk_size) (job.CommonHasher.job_result :: hashes))
+          else
+          let array = Array.of_list (List.rev hashes) in
+          let tiger = tiger_of_array array in
+          let uid = Uid.create (TigerTree (tiger)) in
+          let urn = Uid.to_string uid in
+          sh.shared_tiger <- array;
+          sh.shared_uids <- uid :: sh.shared_uids;
+          Hashtbl.add shareds_by_uid (String.lowercase urn) sh;
+          start_job_for sh (wanted_id, handler)                
+        in
+        iter zero []
+        
     | _ -> raise Exit
     
   with Exit -> 
@@ -396,6 +618,8 @@ let add_shared full_name codedname size =
   with Not_found ->
       incr shareds_counter;
       
+      let fd = Unix32.create_ro full_name in
+      
       let rec impl = {
           impl_shared_update = 1;
           impl_shared_fullname = full_name;
@@ -413,11 +637,14 @@ let add_shared full_name codedname size =
           shared_codedname = codedname;
           shared_size = size;
           shared_id = !shareds_counter;
-          shared_fd=  Unix32.create_diskfile full_name [Unix.O_RDONLY] 0o444;
+          shared_fd=  fd;
           shared_format = CommonMultimedia.get_info full_name;
           shared_impl = impl;
           shared_uids_wanted = [];
           shared_uids = [];
+          shared_mtime = Unix32.mtime64 fd;
+          shared_md4s = [||];
+          shared_tiger = [||];
         } in
       
       update_shared_num impl;

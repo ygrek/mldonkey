@@ -67,84 +67,6 @@ let size_of_int64 size =
     Int64.to_string size
 
   
-let days = ref 0      
-let hours = ref 0    
-  
-let cut_messages f sock nread =
-  let b = buf sock in
-  try
-    while b.len >= 4 do
-      let msg_len = LittleEndian.get_int b.buf b.pos in
-      if b.len >= 4 + msg_len then
-        begin
-          let s = String.sub b.buf (b.pos+4) msg_len in
-          buf_used b (msg_len + 4);
-          let opcode = LittleEndian.get_int16 s 0 in
-          (f opcode s : unit)
-        end
-      else raise Not_found
-    done
-  with Not_found -> ()
-  
-let load_web_infos () =
-(* Try to connect the redirector to get interesting information, since we
-are not allowed to use savannah anymore. The redirector should be able to
-support the charge, at least, currently. *)
-  let (name, port) = !!mlnet_redirector in
-  Ip.async_ip name (fun ip ->
-      try
-        lprintf "connecting to redirector\n";
-        let sock = TcpBufferedSocket.connect "connect redirector"
-            (Ip.to_inet_addr ip) port            
-            (fun sock event ->
-              match event with
-              | BASIC_EVENT (LTIMEOUT | RTIMEOUT) -> 
-                  TcpBufferedSocket.close sock Closed_for_timeout
-              | _ -> ())
-        in
-
-        TcpBufferedSocket.set_rtimeout sock 30.;
-        
-        let to_read = ref [] in
-        set_reader sock (cut_messages (fun opcode s ->
-              lprintf "redirector info received\n";
-              let module L = LittleEndian in
-              
-              let motd_html_s, pos = L.get_string16 s 2 in
-              let servers_met_s, pos = L.get_string16 s pos in
-              let peers_ocl_s, pos = L.get_string16 s pos in
-              let motd_conf_s, pos = L.get_string16 s pos in
-              
-              motd_html =:= motd_html_s;
-              
-              let servers_met_file = Filename.temp_file "servers" ".met" in
-              File.from_string servers_met_file servers_met_s;
-              load_file "servers.met" servers_met_file;
-
-              let peers_ocl_file = Filename.temp_file "peers" ".ocl" in
-              File.from_string peers_ocl_file peers_ocl_s;
-              load_file "ocl" peers_ocl_file;
-
-              let motd_conf_file = Filename.temp_file "motd" ".conf" in
-              File.from_string motd_conf_file motd_conf_s;
-              load_file "motd.conf" motd_conf_file;              
-              
-              lprintf "Redirector info loaded\n";
-              TcpBufferedSocket.close sock Closed_by_user
-          ))
-      with e -> 
-          lprintf "Exception %s while connecting redirector\n"
-            (Printexc2.to_string e)
-  );
-  
-  if !!network_update_url <> "" then begin
-    load_url "motd.html" (Filename.concat !!network_update_url "motd.html");
-    load_url "motd.conf" (Filename.concat !!network_update_url "motd.conf");
-  end;
-  List.iter (fun (kind, period, url) ->
-      if !days mod period = 0 then load_url kind url
-  ) !!CommonOptions.web_infos
-
 let display_vd = ref false
   
 let print_results o =
@@ -162,6 +84,16 @@ let print_results o =
           incr counter;
       ) q.search_results
 
+
+let start_download file =
+  
+  if !!file_started_cmd <> "" then 
+      MlUnix.fork_and_exec  !!file_started_cmd 
+      [|
+      !!file_started_cmd;
+        "-file";
+        string_of_int (CommonFile.file_num file);
+      |]
       
 let download_file o arg =
   let user = o.conn_user in
@@ -172,7 +104,8 @@ let download_file o arg =
         None -> "no last search"
       | Some s ->
           let result = List.assoc (int_of_string arg) user.ui_last_results  in
-          CommonResult.result_download result [] false; 
+          let file = CommonResult.result_download result [] false in
+          start_download file;
           "download started"
     with
     | Failure s -> s

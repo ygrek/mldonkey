@@ -47,11 +47,14 @@ let g2_parse_redirector_page f =
           begin
             try
               let ip, port = String2.cut_at ip_port ':' in
-              let h = new_host 
-                  (Ip.of_string ip) (int_of_string port) true 2 in
+              let h = H.new_host 
+                  (Ip.of_string ip) (int_of_string port) true in
               ()
             with _ -> ()
           end
+      | "u" :: url :: _ ->
+          if not (List.mem url !!redirectors) then
+            redirectors =:= url :: !!redirectors
       | _ -> ()
   ) lines
 
@@ -62,6 +65,8 @@ let connect () =
       next_redirector_access := last_time () + 3600;
       List.iter (fun url ->
           let module H = Http_client in
+          let url = Printf.sprintf "%s?get=1&hostfile=1&net=gnutella2&client=MLDK&version=%s"
+              url Autoconf.current_version in
           let r = {
               H.basic_request with
               H.req_url = Url.of_string url;

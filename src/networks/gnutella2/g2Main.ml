@@ -32,6 +32,7 @@ open G2Globals
 open G2Types
 open CommonTypes
 open G2Servers
+open CommonHosts
 
 let is_enabled = ref false
    
@@ -42,7 +43,7 @@ let disable enabler () =
           match h.host_server with
             None -> ()
           | Some s -> G2Servers.disconnect_server s Closed_by_user)
-      hosts_by_key;
+      H.hosts_by_key;
       Hashtbl2.safe_iter (fun c -> disconnect_client c Closed_by_user) clients_by_uid;
       (match !listen_sock with None -> ()
         | Some sock -> 
@@ -65,13 +66,13 @@ let enable () =
   if not !!enable_gnutella2 then enable_gnutella2 =:= true;
 
   List.iter (fun (ip,port) -> 
-      ignore (new_host ip port true 2)) !!ultrapeers;
+        ignore (H.new_host ip port true)) !!ultrapeers;
 
   List.iter (fun (ip,port) -> 
-      ignore (new_host ip port false 2)) !!peers;
+        ignore (H.new_host ip port false)) !!peers;
   
   add_session_timer enabler 1.0 (fun timer ->
-      G2Servers.manage_hosts ();
+        H.manage_hosts ();
         G2Proto.resend_udp_packets ();
         G2Scheduler.connect_servers G2Servers.connect_server;      
       );

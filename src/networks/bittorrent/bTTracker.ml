@@ -52,6 +52,7 @@ let decode_torrent s =
           Dictionary list ->
             let current_file = ref "" in
             let current_length = ref zero in
+            let length_set = ref false in
             
             List.iter (fun (key, value) ->
                 match key, value with
@@ -67,6 +68,7 @@ let decode_torrent s =
                 | String "length", Int n ->
                     length := !length ++ n;
                     current_length := n;
+                    length_set := true
                 
                 | String key, _ -> 
                     lprintf "other field [%s] in files\n" key
@@ -74,7 +76,7 @@ let decode_torrent s =
                     lprintf "other field in files\n"
             ) list;
             
-            assert (!current_length <> zero);
+            assert (!length_set);
             assert (!current_file <> "");
             file_files := (!current_file, !current_length) :: !file_files;
             current_pos := !current_pos ++ !current_length
@@ -270,7 +272,7 @@ type tracker = {
     mutable tracker_peers2 : tracker_peer list;
   }
   
-let tracked_files = Hashtbl.create 13
+let current_tracked_files = ref (Hashtbl.create 13)
   
 let http_handler t r =
   match r.get_url.Url.file with
@@ -299,16 +301,7 @@ let http_handler t r =
           ) args;
           
           let tracker = 
-            try 
-              Hashtbl.find tracked_files !info_hash 
-            with Not_found ->
-                let tracker = {
-                    tracker_table = Hashtbl.create 13;
-                    tracker_peers1 = [];
-                    tracker_peers2 = [];
-                  } in
-                Hashtbl.add tracked_files !info_hash tracker;
-                tracker
+              Hashtbl.find !current_tracked_files !info_hash 
           in
           
           let peer = 
@@ -332,7 +325,11 @@ let http_handler t r =
                 peer
           in
           match !event with
-            "completed" | "stopped" -> 
+            "completed" ->
+(* Reply with clients that could not connect to this tracker otherwise *)
+              ()
+              
+          | "stopped" -> 
 (* Don't return anything *)
               ()
           | _ ->
@@ -354,13 +351,40 @@ let http_handler t r =
               in
               tracker.tracker_peers2 <- head @ tracker.tracker_peers2;
 (* reply by sending [head] *)
-              
+        
         with e ->
             lprintf "BTTracker: Exception %s\n" (Printexc2.to_string e)
       end
-  | _ ->  
-      lprintf "BTTracker: Unexpected request [%s]\n" 
-      (Url.to_string true r.get_url)
+  | filename ->
+      try
+        let file = List.assoc filename !!torrent_files in
+        
+        let s = File.to_string file in
+        let len = String.length s in
+        let buf = Buffer.create (len+1000) in
+
+(* Create the answer *)
+        Buffer.add_string  buf "HTTP/1.0 200 OK\r\n";
+        Printf.bprintf buf "Content-Length: %d\r\n" len;
+        Buffer.add_string  buf "Server: MLdonkey\r\n";
+        Buffer.add_string  buf "Connection: close\r\n";
+        Buffer.add_string  buf "Content-Type: application/x-bittorrent\r\n";
+        Buffer.add_string  buf "\r\n";
+        Buffer.add_string buf s;
+        
+(* Send the answer *)        
+        let s = Buffer.contents buf in
+        let len = String.length s in
+        TcpBufferedSocket.set_max_write_buffer t (len + 100);
+        TcpBufferedSocket.write t s 0 len;
+        TcpBufferedSocket.close_after_write t        
+        
+      with e ->
+          lprintf "BTTracker: Unexpected request [%s]\n" 
+            (Url.to_string true r.get_url);
+          raise e
+
+let tracker_sock = ref None
       
 let start_tracker () = 
   let config = {
@@ -373,8 +397,17 @@ let start_tracker () =
     } in
   let sock = TcpServerSocket.create "BT tracker"
       Unix.inet_addr_any !!tracker_port (Http_server.handler config) in
+  tracker_sock := Some sock;
   ()
 
+let stop_tracker () =
+  match !tracker_sock with
+    None -> ()
+  | Some sock ->
+(* We should also close all the sockets opened for HTTP connections, no ? *)
+      TcpServerSocket.close sock Closed_by_user;
+      tracker_sock := None
+  
 let clean_tracker_timer () =
   let time_threshold = last_time () - 3600 in
   Hashtbl.iter (fun _ tracker ->
@@ -384,7 +417,7 @@ let clean_tracker_timer () =
           if peer.peer_active < time_threshold then
             old_peers := peer :: !old_peers
           else
-          if Ip.valid peer.peer_ip && Ip.reachable peer.peer_ip then
+          if Ip.valid peer.peer_ip && ip_reachable peer.peer_ip then
             list := peer :: !list) 
       tracker.tracker_table;
       List.iter (fun p ->
@@ -393,4 +426,30 @@ let clean_tracker_timer () =
       tracker.tracker_peers1 <- 
         List.sort (fun p1 p2 -> - compare p1.peer_active p2.peer_active) !list;
       tracker.tracker_peers2 <- [];
-  ) tracked_files
+  ) !current_tracked_files
+  
+let install_tracked_files () =
+  let old_tracked_files = !current_tracked_files in
+  current_tracked_files := Hashtbl.create 13;
+  List.iter (fun torrent ->
+      try
+        let s = File.to_string torrent in
+        let (info_hash : Sha1.t), torrent = decode_torrent s in
+        let tracker = 
+          try
+            Hashtbl.find old_tracked_files info_hash
+          with Not_found ->
+              {
+                tracker_table = Hashtbl.create 13;
+                tracker_peers1 = [];
+                tracker_peers2 = [];
+              }
+        in
+        Hashtbl.add !current_tracked_files info_hash tracker
+      with e ->
+          lprintf "Cannot track file %s\n" torrent
+  ) !!tracked_files
+  
+let _ =
+  option_hook tracked_files install_tracked_files
+  

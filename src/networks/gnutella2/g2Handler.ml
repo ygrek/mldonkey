@@ -33,7 +33,7 @@ open CommonComplexOptions
 open CommonFile
 open CommonTypes
 open CommonGlobals
-
+open CommonHosts
   
 open G2Types
 open G2Globals
@@ -47,7 +47,7 @@ let update_client u =
 
 let find_urn urn =
   try
-    [Hashtbl.find CommonUploads.shareds_by_uid (string_of_uid urn)]
+    [Hashtbl.find CommonUploads.shareds_by_uid (Uid.to_string urn)]
    with _ -> []
 
 let gnutella_uid md4 =
@@ -70,20 +70,32 @@ let g2_packet_handler s sock gconn p =
   let h = s.server_host in
   if !verbose_msg_servers then begin
       lprintf "Received %s packet from %s:%d: \n%s\n" 
-        (match sock with Connection _ -> "TCP" | _ -> "UDP")
-      (Ip.to_string h.host_ip) h.host_port
+        (match sock with Connection _ | CompressedConnection _ -> "TCP" | _ -> "UDP")
+      (Ip.to_string h.host_addr) h.host_port
         (Print.print p);
     end;
   match p.g2_payload with 
   | PI -> 
       server_send sock s (packet PO []);
-      if s.server_need_qrt && (match s.server_sock with
-            Connection _ -> true | _ -> false) then begin
+      if s.server_need_qrt && (match sock with
+          | Connection _ | CompressedConnection _ -> true
+          | _ -> false) then begin
           s.server_need_qrt <- false;
           send_qrt_sequence s false
+        end;
+      begin
+        (match s.server_query_key with
+            UdpQueryKey _  -> ()
+          | _ -> host_send_qkr s.server_host);        
+      end
+   
+  | PO -> 
+      begin
+        (match s.server_query_key with
+            UdpQueryKey _  -> ()
+          | _ -> host_send_qkr s.server_host);        
         end
   
-  | PO -> ()
   | UPROC -> 
       server_send sock s 
         (packet UPROD [
@@ -129,6 +141,7 @@ let g2_packet_handler s sock gconn p =
 *)
   
   | QKA ->
+      H.host_queue_add active_udp_queue h (last_time ());
       List.iter (fun c ->
           match c.g2_payload with
             QKA_QK key -> s.server_query_key <- UdpQueryKey key
@@ -226,10 +239,30 @@ let g2_packet_handler s sock gconn p =
         server_send sock s (packet (QH2 (0,md4))
           ( 
             (packet (QH2_GU !!client_uid) []) ::
-            (packet (QH2_NA (h.host_ip, h.host_port)) []) ::
+            (packet (QH2_NA (h.host_addr, h.host_port)) []) ::
             (packet (QH2_V "MLDK") []) ::
             (packet QH2_UPRO [packet  (QH2_UPRO_NICK (local_login ())) []]) ::
             (List.map (fun sh ->
+(*
+
+packet QH2_H (
+                    let uids = ref [] in
+                    
+                    List.iter (fun uid ->
+                        match uid with
+                          Bitprint _ | Ed2k _ | Sha1 _ ->
+                          uids := (packet (QH2_H_URN uid) []) :: !uids
+                        | _ -> ()
+                    ) sh.shared_info.sh_uids;
+                    
+                    (packet (QH2_H_DN (
+                          Filename.basename sh.shared_codedname)) []) ::
+                    (packet (QH2_H_URL "") []) ::
+                    (packet (QH2_H_G 1) []) :: (* meaning ??? *)
+                    !uids
+                  )
+*)
+                  
                   packet QH2_H (
                     (packet (QH2_H_DN (
                           Filename.basename sh.shared_codedname)) []) ::
@@ -248,7 +281,7 @@ let g2_packet_handler s sock gconn p =
           match c.g2_payload with
             KHL_NH (ip,port) 
           | KHL_CH ((ip,port),_) ->
-              let h = new_host ip port true 2 in ()
+              let h = H.new_host ip port true in ()
           | _ -> ()
       ) p.g2_children;
       let children = ref [] in
@@ -259,7 +292,7 @@ let g2_packet_handler s sock gconn p =
               Connected _ ->
                 let p = packet 
                     (KHL_CH 
-                      ((h.host_ip, h.host_port), int32_time ()))
+                      ((h.host_addr, h.host_port), int32_time ()))
                   [
                     (packet (KHL_CH_V s.server_vendor) [])
                   ] in
@@ -282,7 +315,7 @@ let g2_packet_handler s sock gconn p =
       List.iter (fun c ->
           match c.g2_payload with
           | QA_D ((ip,port),_) ->
-              let h = new_host ip port true 2 in
+              let h = H.new_host ip port true in
               h.host_connected <- last_time ();
               begin
                 match ss with
@@ -292,7 +325,7 @@ let g2_packet_handler s sock gconn p =
               end
 (* These ones have not been searched yet *)
           | QA_S ((ip,port),_) -> 
-              let h = new_host ip port true 2 in
+              let h = H.new_host ip port true in
               h.host_connected <- last_time ();
           
           
@@ -422,7 +455,7 @@ XML ("audios",
                   None -> "??" | Some sz -> Int64.to_string sz) 
               (match urn with
                   None -> "no URN"
-                | Some urn -> string_of_uid urn)
+                | Some urn -> Uid.to_string urn)
               url
           ) user_files;
         end;      
@@ -446,7 +479,7 @@ XML ("audios",
           let url = match urn with
               None -> url
             | Some uid ->
-                Printf.sprintf "/uri-res/N2R?%s" (string_of_uid uid)
+                Printf.sprintf "/uri-res/N2R?%s" (Uid.to_string uid)
           in
           
           (match size with
@@ -507,8 +540,7 @@ XML ("audios",
 
           
 let udp_packet_handler ip port msg = 
-  let h = new_host ip port true 2 in
-  host_queue_add active_udp_queue h (last_time ());
+  let h = H.new_host ip port true in
   h.host_connected <- last_time ();
 (*  if !verbose_udp then
     lprintf "Received UDP packet from %s:%d: \n%s\n" 
@@ -527,9 +559,10 @@ let udp_packet_handler ip port msg =
 *)      
 
 let init s sock gconn = 
+  gconn.gconn_sock <- s.server_sock;
   connected_servers := s :: !connected_servers;
   gconn.gconn_handler <- 
-    Reader (g2_handler (g2_packet_handler s (Connection sock)));
+    Reader (g2_handler (g2_packet_handler s s.server_sock));
   server_send_ping s.server_sock s;
   server_send_ping NoConnection s;
   server_send NoConnection s (packet PI []);

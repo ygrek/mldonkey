@@ -62,6 +62,12 @@ module Connect  = struct
         "\017", "version";
         "\015", "port";
         "\031", "udpport";
+        "\060", "downloadtime";
+        "\061", "incompleteparts";
+        "\085", "mod_version";
+        "\249", "emule_udpports";
+        "\250", "emule_miscoptions1";
+        "\251", "emule_version";
       ]
 (*
 e3
@@ -157,6 +163,12 @@ module ConnectReply  = struct
         "\001", "name";
         "\017", "version";
         "\015", "port";
+        "\060", "downloadtime";
+        "\061", "incompleteparts";
+        "\085", "mod_version";
+        "\249", "emule_udpports";
+        "\250", "emule_miscoptions1";
+        "\251", "emule_version";
       ]
     
     let parse len s =
@@ -658,12 +670,29 @@ module EmuleClientInfo = struct
         "\036", "comments";
         "\037", "extendedrequest";
         "\038", "compatableclient";
+        "\039", "features";
+        "\060", "downloadtime";
+        "\061", "incompleteparts";
+        "\062", "l2hac";
         "\084", "mod_featureset";
         "\086", "mod_protocol";
         "\085", "mod_version";
+        "\092", "mod_secure_community";
+        "\102", "mod_fusion";
+        "\103", "mod_fusion_version";
         "\119", "mod_tarod";
         "\120", "tarod_version";
+        "\121", "mod_morph";
+        "\128", "mod_morph_version";
+        "\130", "mod_mortillo";
+        "\131", "mod_mortillo_version";
+        "\135", "mod_lsd";
+        "\136", "mod_lsd_version";
+        "\144", "mod_lovelace_version";
+        "\148", "mod_oxy";
         "\153", "mod_plus";
+        "\160", "mod_wombat";
+        "\161", "dev_wombat";
       ]
       
     let parse len s =

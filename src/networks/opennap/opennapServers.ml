@@ -189,7 +189,7 @@ let download_file (r : result) =
       let c = add_file_client file user  filename in
       get_file_from_source c file;
   ) r.result_sources;
-  ()
+  as_file file.file_file
 
 let login_on_server s sock =
   new_nick s;

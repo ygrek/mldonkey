@@ -827,7 +827,7 @@ and next_file c =
           match files with
             [] ->
               lprintf "next_file: no more file\n"; 
-              if not c.client_has_a_slot then begin
+              if not (client_has_a_slot (as_client c.client_client)) then begin
                   connection_delay c.client_connection_control;
 (* This guy could still want to upload from us !!! *)
                   TcpBufferedSocket.close sock

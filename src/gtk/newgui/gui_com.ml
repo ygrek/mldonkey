@@ -31,12 +31,18 @@ module O = Gui_options
 module G = Gui_global
 
   
+type gui = <
+  clear : unit;
+  set_connect_status : string -> unit;
+    >
+
+  
 let copy_message t =
   if !!Gui_options.copy_messages then
     Marshal.from_string (Marshal.to_string t []) 0
   else t
 
-let when_disconnected gui =
+let when_disconnected (gui : gui) =
   gui#clear ;
   G.clear ()
 
@@ -69,7 +75,7 @@ let send t =
   | Some sock ->
       GuiEncoding.gui_send (GuiEncoding.from_gui from_gui_protocol_used) sock t
           
-let reconnect gui value_reader reason =
+let reconnect (gui : gui) value_reader arg reason =
   (try disconnect gui reason with _ -> ());
   let hostname = if !!O.hostname = "" then Unix.gethostname () 
     else !!O.hostname in
@@ -114,7 +120,7 @@ let reconnect gui value_reader reason =
         | Some s -> 
             if s == sock then begin
                 connection := None;
-                gui#label_connect_status#set_text (gettext M.not_connected);
+                gui#set_connect_status (gettext M.not_connected);
                 when_disconnected gui
               end
     );
@@ -128,13 +134,13 @@ let reconnect gui value_reader reason =
         (fun opcode s ->
           try
             let m = GuiDecoding.to_gui to_gui_protocol_used opcode s in
-            value_reader gui m;
+            value_reader arg m;
           with e ->
               lprintf "Exception %s in decode/exec" (Printexc2.to_string e); 
               lprint_newline ();
               raise e
       ));
-    gui#label_connect_status#set_text "Connecting";
+    gui#set_connect_status "Connecting";
     send (GuiProto.GuiProtocol GuiEncoding.best_gui_version)
   with e ->
       lprintf "Exception %s in connecting\n" (Printexc2.to_string e);
@@ -154,7 +160,7 @@ module UseFifo = struct
     let disconnect gui reason = 
       when_disconnected gui
     
-    let reconnect gui value_reader reason =       
+    let reconnect ( gui : gui) value_reader arg reason =       
       disconnect gui reason;      
       gui_reconnected := true;
       Fifo.clear core_gui_fifo;
@@ -167,7 +173,7 @@ module UseFifo = struct
                 while true do
                   while true do
                     let m = copy_message (Fifo.take core_gui_fifo) in
-                    value_reader gui m 
+                    value_reader arg m 
                   done
                 done
               with Fifo.Empty -> ()
@@ -177,7 +183,7 @@ module UseFifo = struct
                   lprint_newline ();
           );
         end;      
-      gui#label_connect_status#set_text "Connecting";
+      gui#set_connect_status "Connecting";
       send (GuiProto.GuiProtocol GuiEncoding.best_gui_version)
       
     let connected _ = true

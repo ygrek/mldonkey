@@ -63,7 +63,7 @@ let buf_port buf port =
   buf_int16 buf port
         
 
-let buf_peer buf (ip,port) =
+let buf_addr buf (ip,port) =
   buf_ip buf ip;
   buf_port buf port
   

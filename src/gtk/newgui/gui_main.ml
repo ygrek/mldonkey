@@ -140,14 +140,28 @@ let value_reader gui t =
   try
     
     if !verbose_gui_messages then begin
-        lprintf "MESSAGE RECEIVED: %s" 
+        lprintf "MESSAGE RECEIVED: %s\n" 
           (string_of_to_gui t);
-        lprint_newline ();
-      
       end;
     
     
     match t with
+
+      (* The first message received from the core *)
+    | CoreProtocol v -> 
+        
+        
+        let version = min v GuiEncoding.best_gui_version in
+        for i = 0 to GuiDecoding.to_gui_last_opcode do
+          Gui_com.to_gui_protocol_used.(i) <- version;
+        done;
+        for i = 0 to GuiDecoding.from_gui_last_opcode do
+          Gui_com.from_gui_protocol_used.(i) <- version;
+        done;
+        lprintf "Using protocol %d for communications\n" version;
+        gui#label_connect_status#set_text (gettext M.connected);
+        Com.send (Password (!!O.login, !!O.password))
+
     | Console text ->
         gui#tab_console#insert text
     
@@ -212,20 +226,6 @@ let value_reader gui t =
         );
         gui#tab_graph#set_upload_rate (s.tcp_upload_rate + s.udp_upload_rate);
         gui#tab_graph#set_download_rate (s.tcp_download_rate + s.udp_download_rate)
-    
-    | CoreProtocol v -> 
-        
-        
-        let version = min v GuiEncoding.best_gui_version in
-        for i = 0 to GuiDecoding.to_gui_last_opcode do
-          Gui_com.to_gui_protocol_used.(i) <- version;
-        done;
-        for i = 0 to GuiDecoding.from_gui_last_opcode do
-          Gui_com.from_gui_protocol_used.(i) <- version;
-        done;
-        lprintf "Using protocol %d for communications\n" version;
-        gui#label_connect_status#set_text (gettext M.connected);
-        Com.send (Password (!!O.login, !!O.password))
     
     | Search_result (num,r,_) -> 
         begin try
@@ -461,8 +461,7 @@ fichier selectionne. Si ca marche toujours dans ton interface, pas de
     | GiftServerStats _ -> assert false
         
   with e ->
-      lprintf "Exception %s in reader" (Printexc2.to_string e);
-      lprint_newline ()
+      lprintf "Exception %s in reader\n" (Printexc2.to_string e)
 
       
 let generate_connect_menu gui =
@@ -475,7 +474,7 @@ let generate_connect_menu gui =
     ignore (menu_item#connect#activate ~callback:(fun _ ->
           O.hostname =:= hostname;
           O.port =:= port;
-          Com.reconnect gui value_reader BasicSocket.Closed_by_user
+          Com.reconnect (gui :> Com.gui) value_reader gui BasicSocket.Closed_by_user
       ));
   in
   List.iter (fun child -> child#destroy ()) gui#cores_menu#children;
@@ -581,7 +580,7 @@ let main () =
 
   CommonGlobals.do_at_exit (fun _ ->
       Gui_misc.save_gui_options gui;
-      Gui_com.disconnect gui BasicSocket.Closed_by_user);  
+      Gui_com.disconnect (gui :> Com.gui) BasicSocket.Closed_by_user);  
 (** menu actions *)
 (*
   ignore (gui#itemQuit#connect#activate (fun () ->
@@ -595,9 +594,9 @@ let main () =
   ignore (gui#buttonKill#connect#clicked (fun () -> Com.send KillServer));
 
   ignore (gui#itemReconnect#connect#activate 
-      (fun () ->Com.reconnect gui value_reader BasicSocket.Closed_by_user));
+      (fun () ->Com.reconnect (gui :> Com.gui) value_reader gui BasicSocket.Closed_by_user));
   ignore (gui#itemDisconnect#connect#activate 
-	    (fun () -> Com.disconnect gui BasicSocket.Closed_by_user));
+	    (fun () -> Com.disconnect (gui :> Com.gui) BasicSocket.Closed_by_user));
 
   ignore (gui#itemServers#connect#activate (fun () -> gui#notebook#goto_page 1));
   ignore (gui#itemDownloads#connect#activate (fun () -> gui#notebook#goto_page 2));
@@ -629,7 +628,7 @@ let main () =
   );
   
   (** connection with core *)
-  Com.reconnect gui value_reader BasicSocket.Closed_by_user ;
+  Com.reconnect (gui :> Com.gui) value_reader gui BasicSocket.Closed_by_user ;
 (*  BasicSocket.add_timer 2.0 update_sizes;*)
   let never_connected = ref true in
   BasicSocket.add_timer 1.0 (fun timer ->
@@ -639,7 +638,7 @@ let main () =
       
       if !never_connected && not (Com.connected ()) then  begin
           BasicSocket.reactivate_timer timer;
-          Com.reconnect gui value_reader BasicSocket.Closed_by_user
+          Com.reconnect (gui :> Com.gui) value_reader gui BasicSocket.Closed_by_user
         end else
         never_connected := false
   )

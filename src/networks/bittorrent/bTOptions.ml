@@ -32,11 +32,6 @@ let client_port = define_option bittorrent_section ["client_port"]
     "The port to bind the client to"
     int_option 6882
   
-let tracker_port = define_option bittorrent_section ["tracker_port"]
-  "The port to bind the tracker to"
-    int_option 13000
-  
-  
 let commit_in_subdir = define_option bittorrent_section ["commit_in_subdir"]
   "The subdirectory of temp/ where files should be moved to"
     string_option "BT"
@@ -65,4 +60,26 @@ let gui_bittorrent_options_panel =
     "Commit Downloads In Incoming Subdir", shortname commit_in_subdir, "T";
     "Delete Original", shortname delete_original, "B";
   ]
+
+  
+    
+let tracker_port = define_option bittorrent_section ["tracker_port"]
+  "The port to bind the tracker to"
+    int_option 0
+  
+let torrent_files =
+  define_option bittorrent_section ["torrent_files"]
+  "The torrent files to serve on the tracker WEB server"
+    (list_option (tuple2_option (string_option, filename_option))) []
+    
+let tracked_files = 
+  define_option bittorrent_section ["tracked_files"]
+  "The files tarcked on this tracker"
+    (list_option filename_option) []
+
+let shared_files = 
+  define_option bittorrent_section ["shared_files"]
+  "The files shared on this torrent server (pair .torrent file, and path to shared file or directory)"
+    (list_option (tuple2_option (filename_option, filename_option))) []
+  
   

@@ -1,0 +1,35 @@
+
+body{background-color:#B2CCB2;color: #000; font-family: Verdana, Arial, Helvetica, sans-serif;font-size: 13px; margin-top: 10px; margin: 2;}
+td,pre {color: #000; font-family: Verdana, Arial, Helvetica, sans-serif; font-size: 10px;}
+table.downloaders { margin-right: auto; margin-left: auto; border: 1; border: #000 solid 1px;}
+div.main { text-align: center; }
+table.main { margin-right: auto; margin-left: auto; }
+td.loaded{padding-top: 0px; padding-bottom: 0px; background-color:#72AA72; font-size:1px; line-height: 2px;}
+td.remain{padding-top: 0px; padding-bottom: 0px; background-color:#EEE; font-size:1px; line-height: 2px;}
+td.downloaded{font-family: Verdana; font-weight: 500; font-size: 12px; color: #000;}
+td.dl { white-space: nowrap; padding-top: 2px; padding-bottom: 2px; padding-left: 5px; padding-right: 5px; font-family: verdana; font-size: 10px; color: #000;  }
+td.dlheader {cursor: pointer; color: #000000; font-family: Verdana, serif; font-size: 10px;
+border-bottom: solid 1px; background: #90C890; padding-left: 3px;
+padding-right: 3px;}
+input.checkbox { background: #90C890; vertical-align: middle; height: 10px; width: 10px; }
+td.sr { white-space: nowrap; padding-top: 2px; padding-bottom: 2px; padding-left: 5px; padding-right: 5px; font-family: verdana; font-size: 10px; color: #000;  }
+table { cellspacing: 0; cellpadding: 0; }
+td.ar {text-align: right;}
+td.al {text-align: left;}
+td.ac {text-align: center;}
+td.big { border-top: #000 solid 1px; border-left: #000 solid 1px; }
+td.pr { border-right: #000 solid 1px; }
+.bigbutton { font-family: Verdana, serif; font-size: 10px; background: #CBE5CB; border: #CBE5CB solid 1px; cursor: pointer; }
+.headbutton {
+ width: 100%; font-family: Verdana, serif; font-size: 10px; border: #90C890 solid 1px; background: #90C890; 
+ padding-left: 5px; padding-right: 5px; cursor: pointer;
+}
+tr.dl-1 { background: #FFF; }
+tr.dl-2 { background: #EEE; }
+tr.mOvrDL, .mOvrDL {background: #BADEBA; cursor: pointer; }
+input {font-family: tahoma; font-size: 10px}
+a{ text-decoration: none; font-weight: bold;}
+a:link,a:active,a:visited { color: #000; }
+a:hover { color: #000; text-decoration: underline;}
+a.extern:visited,a.extern:hover,a.extern:active { color: #000099; }
+.extern:hover { color: #000; }

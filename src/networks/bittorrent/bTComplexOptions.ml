@@ -108,13 +108,13 @@ let value_to_file is_done assocs =
               | _ -> assert false
 		       ))) in
      let file_t = 
-       new_file file_id file_name file_size file_tracker 
+       new_download file_id file_name file_size file_tracker 
 	 file_piece_size file_files in
        file_t.file_files <- file_files;
        file_t
      
    with _ -> 
-     new_file file_id file_name file_size file_tracker 
+     new_download file_id file_name file_size file_tracker 
      file_piece_size []
   in
 

@@ -170,7 +170,7 @@ let rec client_parse_header c gconn sock header =
             
             
             
-            let uids = expand_uids [uid_of_string urn] in
+            let uids = Uid.expand [Uid.of_string urn] in
             List.iter (fun uid ->
                 try
                   files := (Hashtbl.find files_by_uid uid) :: !files

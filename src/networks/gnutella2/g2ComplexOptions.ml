@@ -26,6 +26,7 @@ open BasicSocket
 open CommonSwarming
 open CommonTypes
 open CommonFile
+open CommonHosts
 
 open G2Types
 open G2Options
@@ -123,7 +124,7 @@ let value_to_file is_done assocs =
     with _ -> []
   in
   List.iter (fun v ->
-      file_uids := (uid_of_string v) :: !file_uids) uids_option;
+      file_uids := (Uid.of_string v) :: !file_uids) uids_option;
   
   
   let file = new_file file_id file_name file_size !file_uids in
@@ -175,7 +176,7 @@ let file_to_value file =
     ) file.file_clients
     ;
     "file_uids", list_to_value "toto" (fun uid ->
-        string_to_value  (string_of_uid uid))
+        string_to_value  (Uid.to_string uid))
     file.file_uids;
     "file_present_chunks", List
       (List.map (fun (i1,i2) -> 
@@ -194,15 +195,17 @@ let save_config () =
   peers =:= [];
   
   Queue.iter (fun h -> 
-      if h.host_kind <> 0 then
-        let o = match h.host_kind, h.host_ultrapeer with
-          | _, true -> ultrapeers
+      try
+      let o = match h.host_kind with
+        | true -> ultrapeers
           | _ -> peers
         in
 (* Don't save hosts that are older than 1 hour, and not responding *)
-        if max h.host_connected h.host_age > last_time () - 3600 then
-          o =:= (h.host_ip, h.host_port) :: !!o) 
-  workflow;
+        if max h.host_connected h.host_age > last_time () - 3600 then begin
+            o =:= (h.host_addr, h.host_port) :: !!o;
+          end
+      with _ -> ()) 
+  H.workflow;
   
   ()
   

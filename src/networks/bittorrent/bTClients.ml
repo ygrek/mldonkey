@@ -246,6 +246,13 @@ and update_client_bitmap c =
     let file = c.client_file in
     List.iter (fun n ->
         c.client_bitmap.[n] <- '1') chunks;
+              
+(* As we are lazy, we don't send this event...
+        CommonEvent.add_event (File_update_availability
+            (as_file file.file_file, as_client c, 
+            String.copy bitmap));
+*)
+
     let bs = 
       Int64Swarmer.register_uploader_bitmap file.file_partition 
         c.client_bitmap in
@@ -416,6 +423,7 @@ and client_to_client c sock msg =
              don't miss the oportunity if we can*)
             current_uploaders := c::(!current_uploaders);
             send_client c Unchoke;
+            c.client_sent_choke <- false;
             set_client_has_a_slot (as_client c) true;
             client_enter_upload_queue (as_client c)
           end;
@@ -439,6 +447,11 @@ and client_to_client c sock msg =
               bitmap.[i*8+j] <- '0';	    
           done;
         done;
+                
+        CommonEvent.add_event (File_update_availability
+            (as_file file.file_file, as_client c, 
+            String.copy bitmap));
+
         if !verbose_msg_clients then 
           lprintf "BitField translated\n";
         Int64Swarmer.unregister_uploader_bitmap 
@@ -459,6 +472,7 @@ and client_to_client c sock msg =
     | Have n ->
         let n = Int64.to_int n in
         if c.client_bitmap.[n] <> '1' then
+          
           let verified = Int64Swarmer.verified_bitmap file.file_partition in
           if verified.[n] <> '3' then begin
               c.client_interesting <- true;
@@ -475,50 +489,51 @@ and client_to_client c sock msg =
     
     | Interested ->
         c.client_interested <- true;
-        
+    
     
     | Choke ->
         begin
-	  set_client_state (c) (Connected (-1));
+          set_client_state (c) (Connected (-1));
           (*remote peer will clear the list of range we send*)
           c.client_ranges <- [];
           c.client_choked <- true;
-	end
-
+        end
+    
     | NotInterested -> 
-	c.client_interested <- false;
-
+        c.client_interested <- false;
+    
     | Unchoke ->
-	begin
+        begin
           c.client_choked <- false;
           (*remote peer cleared our request : re-request*)
           for i = 1 to max_range_requests - 
             List.length c.client_ranges do
-              (try get_from_client sock c with _ -> ())
+            (try get_from_client sock c with _ -> ())
           done
         end
-
-        
+    
+    
     | Request (n, pos, len) ->
         if !CommonUploads.has_upload = 0 then
-        begin
-          match c.client_upload_requests with
-            [] ->
-              if client_has_a_slot (as_client c) then
+          begin
+            match c.client_upload_requests with
+              [] ->
+                if client_has_a_slot (as_client c) then
                   begin
                     CommonUploads.ready_for_upload (as_client c);
                     c.client_upload_requests <- 
                     c.client_upload_requests @ [n,pos,len];                 
                   end
-              else
+                else
                   begin
                     send_client c Choke;
+                    c.client_sent_choke <- true;
                     c.client_upload_requests <- [];                 
                   end
-          | _ -> ()        
-        end;
-
-        
+            | _ -> ()        
+          end;
+    
+    
     | Ping -> ()
     
     | Cancel _ -> ()
@@ -683,63 +698,64 @@ let send_pings () =
 let recompute_uploaders () =
   let max_list = ref ([] : BTTypes.client list) in
   let possible_uploaders = ref ([] :  BTTypes.client list) in
-      List.iter (fun f ->
-		   Hashtbl.iter (fun _ c -> 
-				   begin
-                                   possible_uploaders := (c::!possible_uploaders);
-				end )  f.file_clients;
-		)
-	!current_files;
-    let filtl = List.filter (fun c -> c.client_interested == true 
-                               && (c.client_sock != NoConnection) 
-			    ) !possible_uploaders in
-      
-    let dl,nodl = List.partition (fun a -> Rate.(>) a.client_downloaded_rate 
-				    Rate.zero ) filtl in
-    let sortl = List.sort (fun a b -> Rate.compare b.client_downloaded_rate 
-			     a.client_downloaded_rate) dl in
+  List.iter (fun f ->
+      Hashtbl.iter (fun _ c -> 
+          begin
+            possible_uploaders := (c::!possible_uploaders);
+          end )  f.file_clients;
+  )
+  !current_files;
+  let filtl = List.filter (fun c -> c.client_interested == true 
+        && (c.client_sock != NoConnection) 
+    ) !possible_uploaders in
+  
+  let dl,nodl = List.partition (fun a -> Rate.(>) a.client_downloaded_rate 
+          Rate.zero ) filtl in
+  let sortl = List.sort (fun a b -> Rate.compare b.client_downloaded_rate 
+          a.client_downloaded_rate) dl in
+  
+  let keepn orl l i = 
+    if (List.length orl) < i then
+      let rec keepaux k j =
+        if j=0 then [] 
+        else match k with
+        | [] -> []
+        | p::r -> p::(keepaux r (j-1)) in
+      orl@(keepaux l (i-List.length orl))
+    else
+      orl
+  in
+  
+  max_list:= keepn !max_list sortl (max_uploaders - 1);
+  
+  max_list:= keepn !max_list nodl (max_uploaders - 1);    
+  
+  next_uploaders := !max_list;
 
-    let keepn orl l i = 
-      if (List.length orl) < i then
-         let rec keepaux k j =
-           if j=0 then [] 
-         else match k with
-           | [] -> []
-           | p::r -> p::(keepaux r (j-1)) in
-           orl@(keepaux l (i-List.length orl))
-      else
-       orl
-    in
-         
-      max_list:= keepn !max_list sortl (max_uploaders - 1);
 
-      max_list:= keepn !max_list nodl (max_uploaders - 1);    
+(*TODO : Choose optimistic every 30 sec*)
 
-      next_uploaders := !max_list;
-      
-      
-	(*TODO : Choose optimistic every 30 sec*)
-      
-      (*don't send Choke if new client is already a current client *)      
-      (*send choke to others*)
-      (*i hope that == will work between two clients*)
-      
-      List.iter ( fun c -> if ((List.mem c !next_uploaders)==false) then
-		    begin
-		      set_client_has_a_slot (as_client c) false;
-		      (*we will let him finish is download and choke him on next_request*)
-		    end
-		) !current_uploaders;
-      
-      List.iter ( fun c -> if ((List.mem c !current_uploaders)==false) then
-		    begin
-		      send_client c Unchoke;
-		      set_client_has_a_slot (as_client c) true;
-		      client_enter_upload_queue (as_client c);
-		    end
-		) !next_uploaders;
-      current_uploaders := !next_uploaders
-    
+(*don't send Choke if new client is already a current client *)      
+(*send choke to others*)
+(*i hope that == will work between two clients*)
+  
+  List.iter ( fun c -> if ((List.mem c !next_uploaders)==false) then
+        begin
+          set_client_has_a_slot (as_client c) false;
+(*we will let him finish is download and choke him on next_request*)
+        end
+  ) !current_uploaders;
+  
+  List.iter ( fun c -> if ((List.mem c !current_uploaders)==false) then
+        begin
+          send_client c Unchoke;
+          c.client_sent_choke <- false;
+          set_client_has_a_slot (as_client c) true;
+          client_enter_upload_queue (as_client c);
+        end
+  ) !next_uploaders;
+  current_uploaders := !next_uploaders
+  
 
 open Bencode
 
@@ -757,6 +773,9 @@ let resume_clients file =
   ) file.file_clients
   
 let connect_tracker file url = 
+  if file.file_tracker_last_conn + file.file_tracker_interval 
+      < last_time () then
+    
   let f filename = 
     file.file_tracker_connected <- true;
     
@@ -807,7 +826,10 @@ let connect_tracker file url =
   in
   let args = 
     if file.file_tracker_connected then [] else
-      [("event", "started" )]
+        [("event", 
+            match file_state file with
+              FileShared -> "completed"
+            | _ -> "started" )]
   in
   let args = 
     ("info_hash", Sha1.direct_to_string file.file_id) ::
@@ -833,12 +855,13 @@ let connect_tracker file url =
 let recover_files () =
   List.iter (fun file ->
       (try check_finished file with e -> ());
-      if file_state file = FileDownloading then begin
+      match file_state file with
+        FileDownloading ->
           (try resume_clients file with _ -> ());
-          if file.file_tracker_last_conn + file.file_tracker_interval 
-              < last_time () then
-            (try connect_tracker file file.file_tracker  with _ -> ())
-        end
+          (try connect_tracker file file.file_tracker  with _ -> ())
+      | FileShared ->
+          (try connect_tracker file file.file_tracker  with _ -> ())
+      | _ -> ()
   ) !current_files
 
 let upload_buffer = String.create 100000

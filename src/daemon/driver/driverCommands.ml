@@ -611,6 +611,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                         strings_of_option enable_soulseek; 
                         strings_of_option enable_audiogalaxy; 
                         strings_of_option enable_gnutella; 
+                        strings_of_option enable_gnutella2; 
                         strings_of_option enable_directconnect; 
                         strings_of_option enable_openft; 
                         strings_of_option tcpip_packet_size; 
@@ -989,7 +990,10 @@ the name between []"
         match !CommonGlobals.aborted_download with
           None -> "No download to force"
         | Some r ->
-            CommonResult.result_download (CommonResult.result_find r) [] true;
+            let file = CommonResult.result_download 
+                (CommonResult.result_find r) [] true
+            in
+            CommonInteractive.start_download file;
             "download forced"
     ), ":\t\t\tforce download of an already downloaded file";
     
@@ -1323,13 +1327,14 @@ the name between []"
             CommonGlobals.version () else CommonGlobals.version ()
     ), ":\t\t\t\tprint mldonkey version";
     
-    "forget", Arg_one (fun num o ->
+    "forget", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
         let user = o.conn_user in
-        let num = int_of_string num in
-        CommonSearch.search_forget user (CommonSearch.search_find num);
-        ""  
-    ), "<num> :\t\t\t\tforget search <num>";
+        List.iter (fun arg ->
+            let num = int_of_string arg in
+            CommonSearch.search_forget user (CommonSearch.search_find num)
+        ) args;        ""  
+    ), "<num1> <num2> ...:\t\t\t\tforget searches <num1> <num2> ...";
     
     "close_all_sockets", Arg_none (fun o ->
         BasicSocket.close_all ();
@@ -1774,15 +1779,33 @@ formID.msgText.value=\\\"\\\";
         "log stopped"
     ), ":\t\t\t\tclose logging to file";
     
-    "!", Arg_one (fun arg o ->
-        let cmd = List.assoc arg !!allowed_commands in
-        let tmp = Filename.temp_file "com" ".out" in
-        let ret = Sys.command (Printf.sprintf "%s >& %s"
-              cmd tmp) in
-        let output = File.to_string tmp in
-        Sys.remove tmp;
-        Printf.sprintf "%s\n---------------- Exited with code %d" output ret 
-    ), "<cmd> :\t\t\t\tstart command <cmd> (must be allowed in 'allowed_commands' option";
+    "!", Arg_multiple (fun arg o ->
+        if !!allow_any_command then
+          match arg with
+            c :: tail ->
+              let args = String2.unsplit tail ' ' in
+              let cmd = List.assoc c !!allowed_commands in
+              let tmp = Filename.temp_file "com" ".out" in
+              let ret = Sys.command (Printf.sprintf "%s %s > %s"
+                    cmd args tmp) in
+              let output = File.to_string tmp in
+              Sys.remove tmp;
+              Printf.sprintf "%s\n---------------- Exited with code %d" output ret 
+          | _ -> "no command given"
+        else
+        match arg with
+          [arg] ->
+            let cmd = List.assoc arg !!allowed_commands in
+            let tmp = Filename.temp_file "com" ".out" in
+            let ret = Sys.command (Printf.sprintf "%s > %s"
+                  cmd tmp) in
+            let output = File.to_string tmp in
+            Sys.remove tmp;
+            Printf.sprintf "%s\n---------------- Exited with code %d" output ret 
+        | [] ->
+            "no command given"
+        | _ -> "For arbitrary commands, you must set 'allowed_any_command'"
+    ), "<cmd> :\t\t\t\tstart command <cmd> (must be allowed in 'allowed_commands' option or by 'allow_any_command' if arguments)";
     
     "add_user", Arg_two (fun user pass o ->
         if o.conn_user = default_user then
@@ -1879,6 +1902,7 @@ formID.msgText.value=\\\"\\\";
               begin
                 
                 html_mods_table_header buf "uploadersTable" "uploaders" [ 
+                  ( "1", "srh ac", "Client number", "Num" ) ; 
                   ( "0", "srh", "Network", "Network" ) ; 
                   ( "0", "srh", "Connection type [I]ndirect [D]irect", "C" ) ;
                   ( "0", "srh", "Client name", "Client name" ) ;
@@ -1905,6 +1929,9 @@ formID.msgText.value=\\\"\\\";
                               float_of_int (max 1 ((last_time ()) - i.client_connect_time)) )
                           (client_num c);
                           
+                          html_mods_td buf [
+                            ("", "sr", Printf.sprintf "%d" (client_num c)); ];
+                      
                           client_print_html c o;
                           html_mods_td buf [
                             ("", "sr", (string_of_kind  i.client_kind));
@@ -1930,6 +1957,7 @@ formID.msgText.value=\\\"\\\";
               begin
                 Printf.bprintf buf "\\<br\\>\\<br\\>"; 
                 html_mods_table_header buf "uploadersTable" "uploaders" [ 
+                  ( "1", "srh ac", "Client number", "Num" ) ; 
                   ( "0", "srh", "Network", "Network" ) ; 
                   ( "0", "srh", "Connection type [I]ndirect [D]irect", "C" ) ;
                   ( "0", "srh", "Client name", "Client name" ) ;
@@ -1948,6 +1976,9 @@ formID.msgText.value=\\\"\\\";
 					title=\\\"Add as Friend\\\" onMouseOver=\\\"mOvr(this);\\\" onMouseOut=\\\"mOut(this);\\\" 
 					onClick=\\\"parent.fstatus.location.href='submit?q=friend_add+%d'\\\"\\>"
                         ( if (!counter mod 2 == 0) then "dl-1" else "dl-2";) cnum;
+                      
+                      html_mods_td buf [
+                        ("", "sr", Printf.sprintf "%d" (client_num c)); ];
                       
                       client_print_html c o;
                       

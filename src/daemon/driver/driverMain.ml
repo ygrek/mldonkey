@@ -32,8 +32,8 @@ let keep_console_output = ref false
 let daemon = ref false
   
 let do_daily () =
-  incr days;
-  load_web_infos ()
+  incr CommonWeb.days;
+  CommonWeb.load_web_infos ()
 
 let minute_timer () =
   CommonUploads.upload_credit_timer ();
@@ -44,10 +44,10 @@ let minute_timer () =
     ) !!CommonComplexOptions.done_files
   
 let hourly_timer timer =
-  incr hours;
-  if !hours mod 24 = 0 then do_daily ();
+  incr CommonWeb.hours;
+  if !CommonWeb.hours mod 24 = 0 then do_daily ();
   CommonShared.shared_check_files ();
-  if !hours mod !!compaction_delay = 0 then Gc.compact ();
+  if !CommonWeb.hours mod !!compaction_delay = 0 then Gc.compact ();
   DriverControlers.check_calendar ()
 
 let second_timer timer =
@@ -345,17 +345,14 @@ used. For example, we can add new web_infos... *)
 
 let _ =  
   MlUnix.set_signal  Sys.sigchld (*Sys.Signal_ignore;*)
-    (Sys.Signal_handle (fun _ ->
-        lprintf "SIGCHLD"; lprint_newline ()));
+    (Sys.Signal_handle (fun _ -> lprintf "SIGCHLD\n"));
   MlUnix.set_signal  Sys.sighup
     (Sys.Signal_handle (fun _ ->
-        lprintf "SIGHUP"; lprint_newline ();
-        BasicSocket.close_all ();
+        lprintf "SIGHUP"; BasicSocket.close_all ();
 (*        BasicSocket.print_sockets (); *)
     ));
   MlUnix.set_signal  Sys.sigpipe (*Sys.Signal_ignore*)
-    (Sys.Signal_handle (fun _ ->
-        lprintf "SIGPIPE"; lprint_newline ()));
+    (Sys.Signal_handle (fun _ -> lprintf "SIGPIPE\n"));
   MlUnix.set_signal  Sys.sigint (*Sys.Signal_ignore*)
     (Sys.Signal_handle (fun _ ->
 (*      if !CommonOptions.verbose then
@@ -409,7 +406,7 @@ let _ =
   
   Options.prune_file downloads_ini;
 (*  Options.prune_file downloads_expert_ini; *)
-  (try load_web_infos () with _ -> ());
+  (try CommonWeb.load_web_infos () with _ -> ());
   lprintf "Welcome to MLdonkey client"; lprint_newline ();
   lprintf "Check http://www.mldonkey.net/ for updates"; 
   lprint_newline ();

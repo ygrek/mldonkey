@@ -41,7 +41,9 @@ let update_redirector_info () =
   buf_string16 buf !peers_ocl;
   buf_string16 buf !motd_conf;
   let s = Buffer.contents buf in
-  let len = String.length s - 4 in
+(* the len should be (String.length s - 4), but since the IP address (4 bytes) 
+  is added at the end, it is (String.length s) *)
+  let len = String.length s in
   LittleEndian.str_int s 0 len;
   redirector_info:=  s
   
@@ -182,13 +184,21 @@ let create_observer port =
             let sock = TcpBufferedSocket.create "observer connection" s 
                 (fun sock event ->
                   match event with
-                    BASIC_EVENT (LTIMEOUT | RTIMEOUT) -> close sock "timeout"
+                    BASIC_EVENT (LTIMEOUT | RTIMEOUT) -> 
+                      close sock Closed_for_timeout
                   | _ -> ()
               )
             in
             set_lifetime sock 300.; 
             set_rtimeout sock 30.; 
-            write_string sock !redirector_info;
+            let b = Buffer.create 100 in
+            Buffer.add_string b  !redirector_info;
+            buf_ip b (peer_ip sock);
+            let s = Buffer.contents b in
+            let len = String.length s in
+            Printf.printf "Sending %d bytes" len; print_newline ();
+            set_max_write_buffer sock (len + 100);
+            write_string sock s
         | _ -> ()
     ) in
   ()  
@@ -304,9 +314,11 @@ let dump_servers_list _ =
     (fun ip port ->
       { S.ip = ip; S.port = port; S.tags = []; };)
   (fun list ->
-    let buf = Buffer.create 100 in
+      let list,_ = List2.cut 500 list in
+      let buf = Buffer.create 100 in
       S.write buf list;
       servers_met := (Buffer.contents buf);
+      File.from_string "servers.met" !servers_met;
       update_redirector_info ();
 (* now, what is the command to send the file to the WEB server ??? *)
 (*
@@ -323,6 +335,7 @@ let dump_peers_list _ =
           Printf.bprintf buf "%s,%d,X\n" (Ip.to_string ip) port;
       ) list;
       peers_ocl := (Buffer.contents buf);
+      File.from_string "peers.ocl" !peers_ocl;
       update_redirector_info ();
       (*
       ignore

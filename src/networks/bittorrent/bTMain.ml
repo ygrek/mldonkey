@@ -44,6 +44,7 @@ let disable enabler () =
         | Some sock -> 
             listen_sock := None;
             TcpServerSocket.close sock Closed_by_user);
+      BTTracker.stop_tracker ();
       if !!enable_bittorrent then enable_bittorrent =:= false
     end
     
@@ -51,8 +52,10 @@ let enable () =
   if not !is_enabled then
     let enabler = ref true in
     is_enabled := true;
-  network.op_network_disable <- disable enabler;
-  
+    if !!tracker_port > 0 then BTTracker.start_tracker ();
+    BTInteractive.share_files ();
+    network.op_network_disable <- disable enabler;
+    
   if not !!enable_bittorrent then enable_bittorrent =:= true;
   (*
   List.iter (fun s ->

@@ -56,7 +56,7 @@ let http11_ok = "HTTP/1.1 200 OK"
   
 let disconnect_client c r =
   match c.client_sock with
-  | Connection sock -> 
+  | Connection sock | CompressedConnection (_,_,_,sock) -> 
       (try
         if !verbose_msg_clients then begin
             lprintf "Disconnected from source\n"; 
@@ -95,7 +95,6 @@ let client_to_client s p sock =
   | _ -> ()
 *)      
 
-                
 let rec client_parse_header c gconn sock header = 
   if !verbose_msg_clients then begin
       lprintf "CLIENT PARSE HEADER\n"; 
@@ -119,9 +118,9 @@ let rec client_parse_header c gconn sock header =
     let size = file_size file in
     
     let endline_pos = String.index header '\n' in
+    let first_line = String.sub header 0 endline_pos in
     let http, code = 
-      match String2.split (String.sub header 0 endline_pos
-        ) ' ' with
+      match String2.split first_line ' ' with
       | http :: code :: ok :: _ -> 
           let code = int_of_string code in
           if not (String2.starts_with (String.lowercase http) "http") then
@@ -144,6 +143,21 @@ let rec client_parse_header c gconn sock header =
 (*                  lprintf "CUT HEADERS...\n"; *)
     let headers = Http_client.cut_headers headers in
 (*                  lprintf "START POS...\n"; *)
+    
+    if !verbose_unknown_messages then begin
+        let unknown_header = ref false in
+        List.iter (fun (header, _) ->
+            unknown_header := !unknown_header || not (List.mem header G2Proto.known_download_headers)
+        ) headers;
+        if !unknown_header then begin
+            lprintf "G2 DEVEL: Download Header contains unknown fields\n";
+            lprintf "    %s\n" first_line;
+            List.iter (fun (header, (value,header2)) ->
+                lprintf "    [%s] = [%s](%s)\n" header value header2;
+            ) headers;
+            lprintf "G2 DEVEL: end of header\n";        
+          end;
+      end;
     
     begin
       try
@@ -170,7 +184,7 @@ let rec client_parse_header c gconn sock header =
             
             
             
-            let uids = expand_uids [uid_of_string urn] in
+            let uids = Uid.expand [Uid.of_string urn] in
             List.iter (fun uid ->
                 try
                   files := (Hashtbl.find files_by_uid uid) :: !files
@@ -498,7 +512,7 @@ let connect_client c =
       add_pending_connection (fun _ ->
           match c.client_sock with
             ConnectionAborted -> c.client_sock <- NoConnection
-          | Connection _ | NoConnection -> ()
+          | Connection _ | NoConnection | CompressedConnection _ -> ()
           | _ ->
           try
           if !verbose_msg_clients then begin
@@ -541,7 +555,7 @@ an upload request *)
                       end;
                     if client_type c = NormalClient then                
                       disconnect_client c (Closed_for_error "Nothing to download");
-                    set_gnutella_sock sock !verbose_msg_clients
+                    set_gnutella_sock (Connection sock) !verbose_msg_clients
                       (HttpHeader (friend_parse_header c));
                     let s = add_header_fields 
                         "GNUTELLA CONNECT/0.6\r\n" sock 
@@ -560,7 +574,7 @@ an upload request *)
                       end;
                     
                     get_from_client sock c;
-                    set_gnutella_sock sock !verbose_msg_clients
+                    set_gnutella_sock (Connection sock) !verbose_msg_clients
                       (HttpHeader (client_parse_header c))
           
           with e ->
@@ -620,7 +634,7 @@ let push_handler cc gconn sock header =
         in
         c.client_host <- Some (ip, port);
         match c.client_sock with
-        | Connection _ -> 
+        | Connection _ | CompressedConnection _ -> 
             if !verbose_msg_clients then begin
                 lprintf "ALREADY CONNECTED\n"; 
               end;
@@ -732,7 +746,9 @@ BUG:
         impl.impl_shared_requests <- impl.impl_shared_requests + 1;
         shared_must_update_downloaded (as_shared impl);
         
-        let rec refill sock =
+        let rec refill conn =
+          match conn with
+            Connection sock ->
           lprintf "refill called\n";
           if uc.uc_chunk_pos = uc.uc_chunk_end then begin
               match gconn.gconn_refill with
@@ -740,7 +756,7 @@ BUG:
               | [_] -> gconn.gconn_refill <- []
               | _ :: ((refill :: _ ) as tail) -> 
                   gconn.gconn_refill <- tail;
-                  refill sock
+                  refill conn
             end else
           if not !header_sent then begin
 (* BUG: send the header *)
@@ -782,13 +798,17 @@ BUG:
             shared_must_update_downloaded (as_shared impl);
 
             uc.uc_chunk_pos <- uc.uc_chunk_pos ++ (Int64.of_int rlen);
-            if remaining_to_write sock = 0 then refill sock
+            if remaining_to_write sock = 0 then refill conn
+          | CompressedConnection _ ->
+              lprintf "refill CompressedConnection not implemented\n";
+              assert false
+          | _ -> assert false
         in
         gconn.gconn_refill <- refill :: gconn.gconn_refill;
         match gconn.gconn_refill with
           refill :: tail ->
 (* First refill handler, must be called immediatly *)
-            refill sock
+            refill gconn.gconn_sock
         | _ -> (* Already a refill handler, wait for it to finish its job *)
             ()
       end
@@ -849,7 +869,7 @@ let listen () =
                   | None -> ()
               );
               BasicSocket.set_rtimeout (TcpBufferedSocket.sock sock) 30.;
-              set_gnutella_sock sock !verbose_msg_clients
+              set_gnutella_sock (Connection sock) !verbose_msg_clients
                 (HttpHeader (push_handler c));
           | _ -> ()
       ) in
@@ -881,7 +901,7 @@ let push_connection guid index ip port =
       | None -> ()
   );
   BasicSocket.set_rtimeout (TcpBufferedSocket.sock sock) 30.;
-  set_gnutella_sock sock !verbose_msg_clients
+  set_gnutella_sock (Connection sock) !verbose_msg_clients
     (HttpHeader (push_handler c));
   write_string sock 
     (Printf.sprintf "GIV %d:%s/%s\n\n" 

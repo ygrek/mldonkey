@@ -140,8 +140,8 @@ QAnd (QHasMinVal (CommonUploads.filesize_field, n),q)
                 let sh = files.(i) in
                 let infos = ref [] in
                 List.iter (fun uid ->
-                    match uid with
-                      Sha1 (s, _) -> infos := s :: !infos;
+                    match Uid.to_uid uid with
+                      Sha1 _ -> infos := Uid.to_string uid :: !infos;
                     |  _ -> ()
                 ) sh.CommonUploads.shared_uids;
                 replies := {

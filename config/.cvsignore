@@ -9,3 +9,4 @@ wget
 Makefile.config.i?86
 confdefs.h
 autom4te.cache
+mldonkey.rc

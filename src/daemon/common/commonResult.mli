@@ -7,7 +7,7 @@ type 'a result_impl = {
 } 
 and 'a result_ops = {
   mutable op_result_network : CommonTypes.network;
-  mutable op_result_download : 'a -> string list -> bool -> unit;
+  mutable op_result_download : 'a -> string list -> bool -> CommonTypes.file;
   mutable op_result_info : 'a -> CommonTypes.result_info;
 } 
 val result_counter : int ref
@@ -21,7 +21,8 @@ val ni : CommonTypes.network -> string -> string
 val fni : CommonTypes.network -> string -> 'a
 val ni_ok : CommonTypes.network -> string -> unit
 val result_info : CommonTypes.result -> CommonTypes.result_info
-val result_download : CommonTypes.result -> string list -> bool -> unit
+val result_download : CommonTypes.result -> string list -> bool -> 
+  CommonTypes.file
 val results_ops : (int result_ops * int result_ops) list ref
 val new_result_ops : CommonTypes.network -> 'a result_ops
 val check_result_implementations : unit -> unit

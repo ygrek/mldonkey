@@ -40,10 +40,10 @@ let _ =
   
 let client_port = define_option gnutella2_section ["client_port"]
     "The port to bind the client to"
-    int_option 6346
+    int_option 6347
 
 let redirectors = define_option gnutella2_section
-    ["gnutella2"; "redirectors"]
+    ["redirectors"]
     "The URLs where hosts on gnutella2 can be downloaded, you can find a
 list here: http://gwebcache.jonatkins.com/?urlcache"
     (list_option string_option)
@@ -54,6 +54,14 @@ list here: http://gwebcache.jonatkins.com/?urlcache"
     "http://gwc.gnewsgroups.com/cgi-bin/gcache.cgi";
     "http://gwc.mamarazzi.net/";
     "http://gwebcache.jonatkins.com/cgi-bin/gwebcache.cgi";
+    "http://g2cache.theg2.net/gwcache/lynnx.asp";
+    "http://user1.7host.com/dgwc2/lynnx.asp";
+    "http://www20.brinkster.com/dgc2/lynnx.asp";
+    "http://ptzldd1.ath.cx/perlgcache.cgi";
+    "http://www25.brinkster.com/dcache/dcache.asp";
+    "http://gwebcache4.jonatkins.com/cgi-bin/perlgcache.cgi";
+    "http://gwebcache2.jonatkins.com/cgi-bin/gwebcache.cgi";
+    "http://gwebcache5.jonatkins.com/cgi-bin/perlgcache.cgi";
   ]
 
 let cache = define_option gnutella2_section ["hosts_cache"]
@@ -66,6 +74,12 @@ let commit_in_subdir = define_option gnutella2_section ["commit_in_subdir"]
   "The subdirectory of temp/ where files should be moved to"
     string_option "G2"
 
+  
+let deflate_connections = define_option gnutella2_section ["deflate_connections"]
+    "(only for development tests)"  
+    bool_option true
+
+  
 let user_agent = Printf.sprintf "MLDonkey %s" Autoconf.current_version
 
 let max_known_ultrapeers = define_option gnutella2_section ["max_known_ultrapeers"]
@@ -105,7 +119,7 @@ let verbose_servers =
 let network_options_prefix = define_option gnutella2_section
     ["options_prefix"] "The prefix which is appended to options names
     when they are used in the telnet/WEB interfaces"
-    string_option "GNUT-"
+    string_option "G2-"
   
 let max_available_slots = define_option gnutella2_section
     ["max_available_slots"] "The maximal number of slots for upload by G2 clients"

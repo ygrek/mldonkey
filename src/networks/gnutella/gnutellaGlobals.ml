@@ -243,7 +243,7 @@ let new_server ip port =
       h.host_server <- Some s;
       s
 
-let extract_uids arg = expand_uids [uid_of_string arg]
+let extract_uids arg = Uid.expand [Uid.of_string arg]
   
 let add_source r s index =
   let key = (s, index) in
@@ -500,7 +500,7 @@ let remove_download file list =
   
 let file_state file =
   file_state (as_file file.file_file)
-  
+
 let file_num file =
   file_num (as_file file.file_file)
   

@@ -43,6 +43,7 @@ module type Integer = sig
       val set_writer : t -> (pos -> string -> int -> int -> unit) -> unit
       val set_size : t -> pos -> unit
       val set_present : t -> (pos * pos) list -> unit
+    val set_absent : t -> (pos * pos) list -> unit
       val partition : t -> (pos -> pos) -> partition
       val set_verifier : partition -> (block -> bool) -> unit
       val verified_bitmap : partition -> string

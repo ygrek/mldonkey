@@ -56,6 +56,7 @@ module type Swarmer = sig
     val set_writer : t -> (pos -> string -> int -> int -> unit) -> unit
     val set_size : t -> pos -> unit
     val set_present : t -> (pos * pos) list -> unit
+    val set_absent : t -> (pos * pos) list -> unit
     val partition : t -> (pos -> pos) -> partition
           
     val set_verifier : partition -> (block -> bool) -> unit
@@ -378,6 +379,8 @@ partitions. *)
             apply_partition t part
         ) t.t_partitions
     
+      
+        
     let set_present t chunks = 
       let rec iter_before chunks r =
         match chunks with 
@@ -452,6 +455,33 @@ partitions. *)
       iter_before chunks t.t_ranges;
       List.iter compute_bitmap t.t_partitions
 
+
+    let rec end_present present begin_present end_file list =
+      match list with
+        [] ->
+          let present = 
+            if begin_present = end_file then present else
+              (begin_present, end_file) :: present
+          in
+          List.rev present
+      | (begin_absent, end_absent) :: tail ->
+          let present = 
+            if begin_present = begin_absent then present
+            else (begin_present, begin_absent) :: present
+          in
+          end_present present end_absent end_file tail
+    
+    let set_absent t list = 
+(* reverse absent/present in the list and call set_present *)
+      let list = 
+        match list with [] -> [ Integer.zero, t.t_size ]
+        | (t1,t2) :: tail ->
+            if t1 = zero then
+              end_present [] t2 t.t_size tail
+            else
+              end_present [zero, t1] t2 t.t_size tail
+      in
+      set_present t list
 
     let partition t f =
       let rec p = {

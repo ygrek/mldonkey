@@ -29,6 +29,8 @@ open CommonFile
 open BasicSocket
 open TcpBufferedSocket
 
+open CommonHosts
+  
 open CommonTypes
 open CommonGlobals
 open Options
@@ -45,12 +47,12 @@ let extend_query f =
   let send h =
     try
       match h.host_server with
-        None -> ()
+        None -> () (* lprintf "no server record for udp search\n"; *)
       | Some s ->
           match s.server_query_key with 
             | UdpQueryKey _ ->
                 f s
-            | _ -> ()
+            | _ -> ()  (*  lprintf "no query key for udp search\n"; *)
     with _ -> ()
   in
   Queue.iter send active_udp_queue
@@ -104,7 +106,7 @@ let rec find_ultrapeer queue =
 (*      lprintf "not ready: %d s\n" (next - last_time ()); *)
       raise Not_found;
     end;
-  ignore (host_queue_take queue);    
+  ignore (H.host_queue_take queue);    
   try
     h, true
     
@@ -121,7 +123,7 @@ let try_connect_ultrapeer connect =
             find_ultrapeer peers_waiting_queue
   in
 (*  lprintf "contacting..\n"; *)
-  connect nservers true false h []
+  connect h []
   
 let connect_servers connect =
 (*
@@ -137,7 +139,7 @@ let connect_servers connect =
       with _ -> ());
   (try 
       for i = 0 to 3 do
-        let h = host_queue_take waiting_udp_queue in
+        let h = H.host_queue_take waiting_udp_queue in
 (*        lprintf "waiting_udp_queue\n"; *)
         if (
             match h.host_server with
@@ -148,7 +150,7 @@ let connect_servers connect =
                 | _ -> true
           ) then begin
 (*            lprintf "host_send_qkr...\n"; *)
-            h.host_udp_request <- last_time ();
+            H.set_request h Udp_Connect;
             host_send_qkr h
           end
       done

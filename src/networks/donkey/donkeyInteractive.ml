@@ -201,7 +201,8 @@ let really_query_download filenames size md4 location old_file absents =
           | _ -> ()
 with _ -> ()
 *)
-  )
+  );
+  as_file file.file_file
         
 let query_download filenames size md4 location old_file absents force =
   if not force then
@@ -272,9 +273,10 @@ let import_temp temp_dir =
                     size := v
                 | _ -> ()
             ) f.P.tags;
-            query_download !filenames !size f.P.md4 None 
+            let file = query_download !filenames !size f.P.md4 None 
               (Some filename) (Some (List.rev f.P.absents)) true;
-      
+            in
+            ()
       with _ -> ()
   ) list
   
@@ -400,8 +402,10 @@ let parse_donkey_url url =
   | "file" :: name :: size :: md4 :: _ ->
       let md4 = if String.length md4 > 32 then
           String.sub md4 0 32 else md4 in
-      query_download [name] (Int64.of_string size)
-      (Md4.of_string md4) None None None false;
+      let file = query_download [name] (Int64.of_string size)
+        (Md4.of_string md4) None None None false;
+      in
+      CommonInteractive.start_download file;
       true
   | "ed2k://" :: "server" :: ip :: port :: _
   | "server" :: ip :: port :: _ ->
@@ -652,7 +656,10 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+renameTextOut+'\\\"';
                     if size <> zero then
                       let names = try DonkeyIndexer.find_names md4 
                         with _ -> [] in
-                      query_download names size md4 None None None true;
+                      let file = 
+                        query_download names size md4 None None None true
+                      in
+                        
                       recover_md4s md4
               with e ->
                   lprintf "exception %s in recover_temp\n"
@@ -691,8 +698,9 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+renameTextOut+'\\\"';
     
     "dd", Arg_two(fun size md4 o ->
         let buf = o.conn_buf in
-        query_download [] (Int64.of_string size)
-        (Md4.of_string md4) None None None false;
+        let file = query_download [] (Int64.of_string size)
+          (Md4.of_string md4) None None None false in
+        CommonInteractive.start_download file;
         "download started"
     
     ), "<size> <md4> :\t\t\tdownload from size and md4";
@@ -954,7 +962,7 @@ let _ =
       !list
   );
   file_ops.op_file_print_sources_html <- (fun file buf ->
-      if !!source_management = 3 then DonkeySources3.print_sources_html file buf
+      if !!source_management = 3 then DonkeySources.print_sources_html file buf
   );
   file_ops.op_file_cancel <- (fun file ->
       Hashtbl.remove files_by_md4 file.file_md4;

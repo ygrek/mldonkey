@@ -697,8 +697,7 @@ let manage config sock head =
     | [] -> 
         config.default sock request
   in
-  iter config.requests
-
+  iter config.requests  
   
 let request_handler config sock nread =  
   let b = TcpBufferedSocket.buf sock in
@@ -719,7 +718,7 @@ lprint_newline ();
           let len = i + 2 - b.pos in
           let header = String.sub b.buf b.pos len in
           buf_used b len;
-          manage config sock header        
+          manage config sock header
         else
         if c = '\r' && i <= end_pos - 3 && b.buf.[i+2] = '\n' then
           let len = i + 3 - b.pos in
@@ -733,7 +732,12 @@ lprint_newline ();
     else
       ()
   in
-  iter new_pos
+  try
+    iter new_pos
+  with e ->
+      lprintf "HTTPSERVER: Exception %s in request_handler\n"
+        (Printexc2.to_string e);
+      close sock (Closed_for_exception e)
 
 let request_closer sock msg = 
   ()
@@ -745,6 +749,7 @@ let handler config t event =
       let from_ip = Ip.of_inet_addr from_ip in
       if Ip.matches from_ip config.addrs then 
         let sock = TcpBufferedSocket.create_simple "http connection" s in
+	BasicSocket.prevent_close (TcpBufferedSocket.sock sock);
         TcpBufferedSocket.set_reader sock (request_handler config);
         TcpBufferedSocket.set_closer sock request_closer;
         TcpBufferedSocket.set_handler sock TcpBufferedSocket.BUFFER_OVERFLOW

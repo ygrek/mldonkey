@@ -1,0 +1,161 @@
+<table width=100% border=0 cellspacing=0 cellpadding=0>
+<tr><td>
+<table class="topcommands" cellspacing=0 cellpadding=0><tr>
+<td 
+title="Upload statistics"
+class="bu bbig"
+onMouseOver="mOvr(this,'mOvr1');"
+onMouseOut="mOut(this);"
+onClick="mSub('output','upstats')">Uploads
+</td>
+<td 
+title="View current uploaders"
+class="bu bbig"
+onMouseOver="mOvr(this,'mOvr1');"
+onMouseOut="mOut(this);"
+onClick="mSub('output','uploaders')">Ulers
+</td>
+<td 
+title="List connected servers"
+class="bu bbig"
+onMouseOver="mOvr(this,'mOvr1');"
+onMouseOut="mOut(this);"
+onClick="draw_server_opts();mSub('output','vm');">Servers
+</td>
+<td 
+title="Options"
+class="bu bbig"
+onMouseOver="mOvr(this,'mOvr1');"
+onMouseOut="mOut(this);"
+onClick="draw_options();mSub('output','voo+1')">Options
+</td>
+
+<td 
+title="Custom search"
+class="bu bbig"
+onMouseOver="mOvr(this,'mOvr1');"
+onMouseOut="mOut(this);"
+onClick="top.output.location.href='submit?custom=Complex Search';mSub('fstatus','view_custom_queries')">Search
+</td>
+<td 
+title="Scan temp directory for files"
+class="bu bbig"
+onMouseOver="mOvr(this,'mOvr1');"
+onMouseOut="mOut(this);"
+onClick="draw_scan_opts();mSub('output','scan_temp')">Show temp
+</td>
+<td 
+title="Client statistics in a table"
+class="bu bbig"
+onMouseOver="mOvr(this,'mOvr1');"
+onMouseOut="mOut(this);"
+onClick="draw_stats();mSub('output','cs')">Statistics
+</td>
+
+<td 
+title="MLDonkey homepage"
+class="bu bbig bbig2"
+onMouseOver="mOvr(this,'mOvr1');"
+onMouseOut="mOut(this);"
+onClick="top.output.location.href='http://www.mldonkey.net/'">Homepage
+</td>
+<td 
+title="English/German support forums"
+class="bu bbig bbig2"
+onMouseOver="mOvr(this,'mOvr1');"
+onMouseOut="mOut(this);"
+onClick="top.output.location.href='http://www.mldonkeyworld.com/'">Forums
+</td>
+<td 
+title="Kill/Close the MLdonkey core"
+class="bu bbig bbig3 bb2"
+onMouseOver="mOvr(this,'mOvr1');"
+onMouseOut="mOut(this);"
+onClick="mSub('output','kill')">Kill core
+</td>
+<tr>
+<td 
+title="View current downloads"
+class="bu bbig bb4"
+onMouseOver="mOvr(this,'mOvr1');"
+onMouseOut="mOut(this);"
+onClick="mSub('output','vd');mSub('fstatus','bw_stats')">Downloads
+</td>
+<td 
+title="View current downloaders"
+class="bu bbig bb4"
+onMouseOver="mOvr(this,'mOvr1');"
+onMouseOut="mOut(this);"
+onClick="mSub('output','downloaders')">Dlers
+</td>
+<td 
+title="Message window (20 second refresh)"
+class="bu bbig bb4"
+onMouseOver="mOvr(this,'mOvr1');"
+onMouseOut="mOut(this);"
+onClick="mSub('output','message')">Messages
+</td>
+<td 
+title="Friends"
+class="bu bbig bb4"
+onMouseOver="mOvr(this,'mOvr1');"
+onMouseOut="mOut(this);"
+onClick="mSub('output','friends')">Friends
+</td>
+<td 
+title="View searches"
+class="bu bbig bb4"
+onMouseOver="mOvr(this,'mOvr1');"
+onMouseOut="mOut(this);"
+onClick="draw_xs_search();mSub('output','vs')">View searches
+</td>
+<td 
+title="Rescan for shared files"
+class="bu bbig bb4"
+onMouseOver="mOvr(this,'mOvr1');"
+onMouseOut="mOut(this);"
+onClick="mSub('fstatus','reshare')">Reshare
+</td>
+<td 
+title="Bandwidth stats (10 second refresh)"
+class="bu bbig bb4 "
+onMouseOver="mOvr(this,'mOvr1');"
+onMouseOut="mOut(this);"
+onClick="mSub('fstatus','bw_stats')">Bw stats
+</td>
+<td 
+title="View the CVS changeLog"
+class="bu bbig bbig2 bb4"
+onMouseOver="mOvr(this,'mOvr1');"
+onMouseOut="mOut(this);"
+onClick="top.output.location.href='http://savannah.nongnu.org/cgi-bin/viewcvs/*checkout*/mldonkey/mldonkey/distrib/ChangeLog?rev=HEAD&content-type=text/plain'">ChangeLog
+</td>
+<td 
+title="Help!"
+class="bu bbig bbig2 bb4"
+onMouseOver="mOvr(this,'mOvr2');"
+onMouseOut="mOut(this);"
+onClick="mSub('output','help')">Help!
+</td>
+<td 
+title="Show current version"
+class="bu bbig bbig3 bb3"
+onMouseOver="mOvr(this,'mOvr1');"
+onMouseOut="mOut(this);"
+onClick="mSub('fstatus','version')">Version
+</td>
+
+</tr>
+</table>
+<td></td>
+<form action="submit" target="output" name="cmdFormular">
+<td nowrap valign=top align=right>
+	<input style=" font-size: 10px; font-family: Verdana; width: 80px;
+	" class="txt" type="text" name="q" size=13 value=""><br><input style="	
+	color: #FFF; font-weight: 600; height: 18px; font-family: verdana; padding: 0px; font-size: 10px; height: 18px; width: 65px;
+	" class="but" type="submit" value="Execute"><input style="	
+	color: #FFF; font-weight: 600; height: 18px; font-family: verdana; padding: 0px; font-size: 10px; height: 18px; width: 15px;
+	" class="but" onclick="_cmdLine();" type="button" value="!">
+</td>
+</form>
+</tr></table>

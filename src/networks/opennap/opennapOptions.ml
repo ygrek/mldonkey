@@ -31,8 +31,8 @@ let opennap_section = file_section opennap_ini [] ""
   
 let client_port = define_option opennap_section ["client_port"]
     "The port to bind the client to"
-    int_option 9999
-
+    int_option 6699
+  
 let max_connected_servers = define_option opennap_section ["max_connected_servers"] 
     "The number of servers you want to stay connected to" int_option 5
 
@@ -44,9 +44,6 @@ let _ =
 let client_password = define_option opennap_section ["client_password"]
     "The password used to log on the napster server"
     string_option "nopass"
-  
-let client_port = define_option opennap_section ["client_port"] 
-  "The data port for napster uploads" int_option 6699
   
 let client_info = define_option opennap_section ["client_info"]
   "The info on this client"

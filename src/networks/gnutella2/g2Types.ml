@@ -30,21 +30,13 @@ type query_key =
 | UdpSupport of Md4.t
 | UdpQueryKey of int32
   
-type host = {
-    host_num : int;
-    mutable host_server : server option;
-    host_ip : Ip.t;
-    host_port : int;
-    mutable host_age : int;
-    mutable host_udp_request : int;
-    mutable host_tcp_request : int;
-    mutable host_connected : int;
-(* 0 -> gnutella1 or gnutella2, 1 -> gnutella1, 2 -> gnutella2 *)
-    mutable host_kind : int;
-    mutable host_ultrapeer : bool;
+type host_kind = bool
     
-    mutable host_queues : host Queue.t list;
-  }
+type request = 
+| Tcp_Connect
+| Udp_Connect
+
+type host = (server, host_kind, request, Ip.t) CommonHosts.host
 
 and server = {
     server_server : server CommonServer.server_impl;
@@ -62,14 +54,13 @@ and server = {
     mutable server_vendor : string;
     mutable server_connected : int32;
     
-    mutable server_gnutella2 : bool;
     mutable server_host : host;
     mutable server_query_key : query_key;
   }
 
 type search_type =
   UserSearch of search * string * string
-| FileUidSearch of file * file_uid
+| FileUidSearch of file * Uid.t
 | FileWordSearch of file * string
   
 and local_search = {
@@ -122,7 +113,7 @@ and result = {
     result_size : int64;
     mutable result_tags : tag list;
     mutable result_sources : (user * file_uri) list;
-    mutable result_uids : file_uid list;
+    mutable result_uids : Uid.t list;
   }
 
 and file = {
@@ -132,7 +123,7 @@ and file = {
     file_swarmer : Int64Swarmer.t;
     file_partition : CommonSwarming.Int64Swarmer.partition;
     mutable file_clients : client list;
-    mutable file_uids : file_uid list; 
+    mutable file_uids : Uid.t list; 
     mutable file_searches : local_search list;
   }
 

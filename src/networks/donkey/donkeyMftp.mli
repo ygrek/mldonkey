@@ -25,7 +25,7 @@ val output_int : out_channel -> int -> unit
 val rev_assoc : 'a -> ('b * 'a) list -> 'b
 val buf_string : Buffer.t -> string -> unit
 val buf_port : Buffer.t -> int -> unit
-val buf_peer : Buffer.t -> Ip.t * int -> unit
+val buf_addr : Buffer.t -> Ip.t * int -> unit
 val buf_tags :
   Buffer.t -> CommonTypes.tag list -> (string * string) list -> unit
 val read_uint8 : in_channel -> int32

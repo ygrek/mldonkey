@@ -224,7 +224,7 @@ let propagate_working_servers servers peers =
             buf_ip buf ip; (* The client IP *)
 
 (* The server IPs *)
-            buf_list buf_peer buf servers; (* The servers he is connected to *)
+            buf_list buf_addr buf servers; (* The servers he is connected to *)
 
 (* Some statistics on the network *)
             buf_string buf Autoconf.current_version;

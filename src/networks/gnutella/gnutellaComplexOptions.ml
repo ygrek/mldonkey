@@ -123,7 +123,7 @@ let value_to_file is_done assocs =
     with _ -> []
   in
   List.iter (fun v ->
-      file_uids := (uid_of_string v) :: !file_uids) uids_option;
+      file_uids := (Uid.of_string v) :: !file_uids) uids_option;
   
   
   let file = new_file file_id file_name file_size !file_uids in
@@ -175,7 +175,7 @@ let file_to_value file =
     ) file.file_clients
     ;
     "file_uids", list_to_value "toto" (fun uid ->
-        string_to_value  (string_of_uid uid))
+        string_to_value  (Uid.to_string uid))
     file.file_uids;
     "file_present_chunks", List
       (List.map (fun (i1,i2) -> 

@@ -377,10 +377,12 @@ let rec exec_timers = function
       );
       exec_timers tail
       
+let loop_delay = ref 0.02
+
 let loop () =
   while true do
     try
-      (try select [] 0.05;  with _ -> ());
+      if !loop_delay > 0. then (try select [] !loop_delay;  with _ -> ());
       let time = update_time () in
       exec_tasks !fd_tasks;
       exec_hooks !after_select_hooks;

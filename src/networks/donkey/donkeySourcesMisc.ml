@@ -28,6 +28,7 @@ have time to do it.
 open Printf2
 open Options
 open CommonOptions
+open CommonGlobals
 open DonkeyOptions
 open CommonTypes
 open BasicSocket
@@ -420,7 +421,7 @@ let create_source new_score source_age addr =
 
 let ask_indirect_connection_by_udp ip port id =
   let client_ip = client_ip None in
-  if Ip.reachable client_ip then
+  if ip_reachable client_ip then
     let module Q = DonkeyProtoUdp.QueryCallUdp in
       
     DonkeyProtoCom.udp_send (get_udp_sock ())

@@ -24,6 +24,9 @@ open TcpBufferedSocket
 open Options
 open Unix
 
+let bin_dir = Filename.dirname Sys.argv.(0)
+  
+  
 let home_dir = (try Sys.getenv "HOME" with _ -> ".")
 
 let config_dir_basename =
@@ -294,7 +297,11 @@ let max_connections_per_second = define_option current_section
 (will supersede max_clients_per_second in the future)"
   int_option 10
   
-  
+let loop_delay = define_expert_option current_section
+  ["loop_delay"] 
+"The delay in milliseconds to wait in the event loop. Can be decreased to
+increase the bandwidth usage, or increased to lower the CPU usage."
+  int_option 30
   
   
   
@@ -386,10 +393,10 @@ let html_mods_use_relative_availability = define_expert_option current_section
     ["html_mods_use_relative_availability"] "Whether to use relative availability in the WEB interface" bool_option true
 
 let html_mods_vd_network = define_expert_option current_section
-    ["html_mods_vd_network"] "Whether to display the Net column in vd output" bool_option false
+    ["html_mods_vd_network"] "Whether to display the Net column in vd output" bool_option true
 
 let html_mods_vd_active_sources = define_expert_option current_section
-    ["html_mods_vd_active_sources"] "Whether to display the Active Sources column in vd output" bool_option false
+    ["html_mods_vd_active_sources"] "Whether to display the Active Sources column in vd output" bool_option true
 
 let html_mods_vd_age = define_expert_option current_section
     ["html_mods_vd_age"] "Whether to display the Age column in vd output" bool_option true
@@ -398,7 +405,7 @@ let html_mods_vd_last = define_expert_option current_section
     ["html_mods_vd_last"] "Whether to display the Last column in vd output" bool_option true
 
 let html_mods_vd_prio = define_expert_option current_section
-    ["html_mods_vd_prio"] "Whether to display the Priority column in vd output" bool_option false
+    ["html_mods_vd_prio"] "Whether to display the Priority column in vd output" bool_option true
 
 let html_mods_vd_queues = define_expert_option current_section
     ["html_mods_vd_queues"] "Whether to display the Queues in vd # output" bool_option true
@@ -577,9 +584,13 @@ let file_completed_cmd = define_option current_section
     downloaded. Arguments are: <file_name on disk> <md4> <size>"
     string_option "" 
 
-  
-  
-  
+let file_started_cmd = define_option current_section
+    ["file_started_cmd"]
+  "The command which is called when a download is started. Arguments
+are '-file <num>'"
+    string_option 
+  (Filename.concat bin_dir "mlprogress")
+
   
   
 let current_section = startup_section
@@ -622,8 +633,6 @@ let incoming_directory =
     "The directory where downloaded files should be moved after commit" 
     string_option (Filename.concat file_basedir "incoming")
 
-let bin_dir = Filename.dirname Sys.argv.(0)
-  
 let previewer = define_expert_option current_section ["previewer"]
   "Name of program used for preview (first arg is local filename, second arg
     is name of file as searched on eDonkey" string_option
@@ -669,6 +678,12 @@ commands should short, so that the core is not blocked more than necessary."
     "ls", "ls incoming"; 
   ]
 
+let allow_any_command = define_option current_section
+    ["allow_any_command"]
+  "Allow you to use any command with ! in the interface instead of only the
+ones in allowed_commands"
+    bool_option false
+  
 let empty_password = Md4.string ""
   
 let users = define_option current_section ["users"]
@@ -952,6 +967,11 @@ let options_version = define_expert_option current_section ["options_version"]
   
 let current_section = debug_section
 
+let allow_local_network = 
+  define_expert_option current_section ["allow_local_network"]
+  "If this option is set, IP addresses on the local network are allowed 
+(only for debugging)" bool_option false
+
 let log_size = 
   define_expert_option current_section ["log_size"]
     "size of log in number of records" int_option 300
@@ -1201,6 +1221,11 @@ let _ =
       ) (String2.split_simplify !!verbosity ' ')
   )
 
+
+let _ =
+  option_hook loop_delay (fun _ ->
+     BasicSocket.loop_delay := (float_of_int !!loop_delay) /. 1000.;
+  )
 
 let _ =
   option_hook messages_filter (fun _ ->

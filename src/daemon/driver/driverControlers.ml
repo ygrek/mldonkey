@@ -451,6 +451,7 @@ let telnet_handler t event =
             conn_width = 80; 
             conn_height = 0;
           } in
+	BasicSocket.prevent_close (TcpBufferedSocket.sock sock);
         TcpBufferedSocket.set_max_write_buffer sock !!interface_buffer;
         TcpBufferedSocket.set_reader sock (user_reader o telnet);
         TcpBufferedSocket.set_closer sock user_closed;
@@ -663,6 +664,63 @@ let http_handler o t r =
       in
       try
         match r.get_url.Url.file with
+	| "/wap.wml" ->
+	begin
+	Buffer.clear buf;  
+	  Buffer.add_string  buf "HTTP/1.0 200 OK\r\n";
+	  Buffer.add_string  buf "Server: MLdonkey\r\n";
+	  Buffer.add_string  buf "Connection: close\r\n";
+	  Buffer.add_string  buf "Content-Type: text/vnd.wap.wml\r\n";
+           let dlkbs = 
+              (( (float_of_int !udp_download_rate) +. (float_of_int !control_download_rate)) /. 1024.0) in
+            let ulkbs =
+              (( (float_of_int !udp_upload_rate) +. (float_of_int !control_upload_rate)) /. 1024.0) in 
+	Printf.bprintf buf "
+<?xml version=\"1.0\"?>
+<!DOCTYPE wml PUBLIC \"-//WAPFORUM//DTD WML 1.1//EN\" \"http://www.wapforum.org/DTD/wml_1.1.xml\">
+
+<wml>
+<card id=\"main\" title=\"MLDonkey Index Page\">  ";
+(* speed *)
+Printf.bprintf buf "<p align=\"left\">
+   <small>
+    DL %.1f KB/s (%d|%d) UL: %.1f KB/s (%d|%d)
+   </small>
+</p>" dlkbs !udp_download_rate !control_download_rate ulkbs !udp_upload_rate !control_upload_rate;
+
+
+(* functions *)
+List.iter (fun (arg, value) ->
+match arg with
+  "VDC" -> 
+    let num = int_of_string value in
+    let file = file_find num in
+    file_cancel file
+| "VDP" -> 
+    let num = int_of_string value in
+    let file = file_find num in
+    file_pause file
+| "VDR" -> 
+    let num = int_of_string value in
+    let file = file_find num in
+    file_resume file
+| _ -> ()
+) r.get_url.Url.args;
+
+(* downloads *)
+Printf.bprintf buf "<p align=\"left\"><small>";
+let mfiles = List2.tail_map file_info !!files in
+    (List.map (fun file ->
+          [|
+            Printf.bprintf buf  "<a href=\"wap.wml?%s=%d\">%s</a> <a href=\"wap.wml?VDC=%d\">C</a> [%-5d] %5.1f %s %s/%s <br />" (if downloading file then "VDP" else "VDR" ) (file.file_num) (if downloading file then "P" else "R" ) (file.file_num) (file.file_num) (file.file_download_rate /. 1024.)(short_name file) (print_human_readable(Int64.sub file.file_size file.file_downloaded)) (print_human_readable file.file_size);
+	  |]
+      ) mfiles);
+Printf.bprintf buf "<br />Downloaded %d/%d files " (List.length !!done_files) (List.length !!files);
+Printf.bprintf buf "</small></p>";
+
+
+Printf.bprintf buf "</card></wml>";
+     end	
         | "/commands.html" ->
             html_open_page buf t r true;
 			let this_page = "commands.html" in 
@@ -770,7 +828,8 @@ let http_handler o t r =
                       try
                         let num = int_of_string value in 
                         let r = result_find num in
-                        result_download r [] false;
+                        let file = result_download r [] false in
+                        CommonInteractive.start_download file;
                         
                         let module M = CommonMessages in
                         Gettext.buftext buf M.download_started num

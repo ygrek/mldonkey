@@ -106,8 +106,9 @@ type brand =
 | Brand_lmule
 | Brand_shareaza
 | Brand_server
+| Brand_amule
   
-let brand_count = 11
+let brand_count = 12
   
 type server = (*[]*){
     mutable server_server : server CommonServer.server_impl;
@@ -199,12 +200,6 @@ and server_change_kind =
 
 and availability = bool array
 
-and challenge = {
-    mutable challenge_md4 : Md4.t;
-    mutable challenge_solved : Md4.t;
-    mutable challenge_ok : bool;
-  }
-  
 and client = {
     client_client : client CommonClient.client_impl;
     mutable client_kind : location_kind;
@@ -237,7 +232,6 @@ and client = {
     mutable client_uploaded : Int64.t;
     mutable client_brand : brand;
     mutable client_banned : bool;
-    mutable client_has_a_slot : bool;
     mutable client_overnet : bool;
     mutable client_score : int;
     mutable client_files : file_request list;

@@ -49,6 +49,7 @@ let brand_to_int b =
   | Brand_cdonkey -> 8
   | Brand_lmule -> 9
   | Brand_shareaza -> 10
+  | Brand_amule -> 11
       
 let brand_of_int b =
   match b with
@@ -63,6 +64,7 @@ let brand_of_int b =
   | 8 -> Brand_cdonkey
   | 9 -> Brand_lmule
   | 10 -> Brand_shareaza
+  | 11 -> Brand_amule
   | _ -> raise Not_found
       
 let gbrand_to_string b =
@@ -75,9 +77,10 @@ let gbrand_to_string b =
   | Brand_mldonkey3 -> "tML"
   | Brand_overnet -> "OVR"
   | Brand_newemule -> "eMU"
-  | Brand_lmule -> "lMU"
+  | Brand_lmule -> "xMU"
   | Brand_shareaza -> "sZA"
   | Brand_server -> "SER"
+  | Brand_amule -> "aMU"
 
 let stats_all = dummy_stats 
 let stats_by_brand = Array.init brand_count (fun _ ->

@@ -946,7 +946,7 @@ let udp_client_handler t p =
 (*lprintf "FIXME: Received a BCP type 1 %s for MD4 %s" 
 				  bcp (Md4.to_string md4);
 				lprint_newline (); *)
-                                  if Ip.valid ip && Ip.reachable ip then
+                                  if Ip.valid ip && ip_reachable ip then
                                     let c = DonkeySources.new_source (ip, port) file in
                                     c.source_overnet <- true;
                               | _ ->

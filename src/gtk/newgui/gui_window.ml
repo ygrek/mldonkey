@@ -55,6 +55,9 @@ class window () =
 
     method current_page = current_page
 
+    method set_connect_status s =
+      label_connect_status#set_text s
+      
     method clear =
       tab_servers#clear;
       tab_downloads#clear;

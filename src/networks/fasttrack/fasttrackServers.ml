@@ -308,7 +308,7 @@ let download_file (r : result) =
       get_file_from_source c file;
   ) r.result_sources;
   recover_file file;
-  ()
+  (as_file file.file_file)
 
 let recover_files () = (* called every 10 minutes *)
   List.iter (fun file ->

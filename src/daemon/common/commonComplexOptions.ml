@@ -431,7 +431,9 @@ let file_commit file =
       Unix32.close (file_fd file);
       (* Commit the file first, and share it after... *)
       impl.impl_file_ops.op_file_commit impl.impl_file_val new_name;
-      ignore (CommonShared.new_shared !!incoming_directory !!incoming_directory_prio best_name new_name);
+      if not (Unix2.is_directory new_name) then 
+        ignore (CommonShared.new_shared 
+            !!incoming_directory !!incoming_directory_prio best_name new_name);
       done_files =:= List2.removeq file !!done_files;
       update_file_state impl FileShared;
     with e ->

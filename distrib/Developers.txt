@@ -1,0 +1,153 @@
+
+ Yes, we are looking for developpers. If you have some programming skills, 
+you are welcome to help the development of mldonkey. There are different ways
+to help us. You can see a bug, or a missing feature, and fix it, and then
+send us a patch. If you want to spend more time, you can fix a lot of bugs, or
+add more features, and we will grant you access to the CVS in the future.
+You can also provide mldonkey with support for another p2p network.
+
+If you don't want how to start, you must first understand the code (see the
+informations below), and then, you can call "mldonkey -check_impl" to
+see which methods have not been implemented yet. You can also test different
+operations and see what is not working good. Another option is to test
+other p2p applications and try to import some interesting features in
+mldonkey... 
+
+Peer-to-peer systems that could be interested to implement:
+
+ SoulSeek (see pyslsk, a python clone)
+ Hotline (see fidelio, an open-source clone)
+ Mediaseek (audio galaxy clone)
+ File Utopia
+ Imesh
+ FastTrack
+
+The last ones use cryptography to protect the protocol. Maybe some of them
+use the SSL library, and could be cracked this way ? 
+
+Maybe you need now some help to understand the code ?
+
+  1) Learn Objective-Caml (you won't be disappointed):
+   --------------------------------------------------  
+
+        http://ocaml.inria.fr/
+
+  2) mldonkey directory tree:
+   --------------------------
+
+Special directories:
+
+config/		contains the autoconf configure.in script and other files
+distrib/		files distributed with binaries in a release
+patches/		patches to external programs (e.g. ocaml)
+scripts/		nothing interesting here ...
+tools/		useful tools to compile mldonkey (e.g. pa_zog.cma)
+
+Useful general libraries:
+
+cdk/		these two directories contain general modules and
+lib/		data structures. diff is from history
+
+net/		socket manipulation library around a select call (mldonkey
+		is fortunately not multi-threaded, that's why it works)
+
+chat/		part of the mlchat program inside mldonkey:
+
+mp3tagui/	mp3 manipulation library
+
+Program header:
+
+common/		basic types and data structures common to all
+		p2p systems.
+
+Peer-to-peer modules (not necessary):
+
+audio_galaxy/	Audio-Galaxy (not useful anymore)
+direct_connect/	Direct-Connect (must work on that)
+limewire/	LimeWire (Gnutella client)
+opennap/		Open-Napster
+
+donkey/		the client part of donkey
+server/		the server part of donkey
+
+Program end (main):
+
+driver/		communication with interfaces and main loop
+
+Graphical interface:
+
+configwin/	configuration windows for lablgtk
+gpattern/	tables and columns manipulation in lablgtk
+okey/		key manipulation in lablgtk
+gui/		the GTK interface
+
+icons/		some icons
+
+  3) General architecture:
+   -----------------------
+
+The main loop of mldonkey is located in the net/ library, which is responsible
+for managing the connections and the timers around a select system call (there
+are no threads in mldonkey).
+
+mldonkey executes its modules in the following way:
+
+1) The common/ part is executed: data structures are defined for all the
+  types that are common to all networks. For each type, an _ops type
+  defines operations that can be executed on this type. Each network
+  will have to fill such a structure to define its specific behaviors for
+  these types (well, it looks like object-oriented programming, but we don't
+  define classes).
+
+commonTypes.ml: basic simple types (it also contains the network type def)
+gui_proto.ml:   the protocol used to communicate with the GUI
+
+  Types and operations on these types that have to be defined by each network.
+
+commonChatRoom.ml: chat rooms
+commonClient.ml  : client (either friend or source for a downloaded file)
+commonFile.ml    : downloaded file
+commonNetwork.ml : network
+commonResult.ml  : result of a search
+commonServer.ml  : server
+commonShared.ml  : shared file
+commonUser.ml    : user (either server user or source for a result)
+
+  Main options:
+
+commonOptions.ml : basic options
+commonComplexOptions.ml: complex options (downloaded files, servers, friends, etc)
+
+  Different useful functions:
+
+commonSearch.ml
+commonChat.ml
+commonGlobals.ml
+commonInteractive.ml
+commonMultimedia.ml
+
+2) All network modules are executed. The network modules have to register a
+  network structure (it is often done in the ...Types module). All modules 
+  often use the same naming scheme:
+
+...Types.ml     : types specific to a network. operations structures are
+                  also often defined there.
+...Globals.ml   : basic values (hash tables) and functions to store and
+                   manipulate these types.
+...Options.ml   : basic options for this network
+...ComplexOptions.ml : complex options for this network. often defines how
+                  files, servers, etc should be stored in the common
+                  option files
+...Protocol.ml  : encoding and decoding of messages for that network.
+...Clients.ml   : communication between mldonkey and another client.
+...Servers.ml   : communication between mldonkey and a server.
+...Interactive.ml : most functions that are called from the interfaces on
+                  the network objects.
+...Main.ml      : the functions to start and stop a network. the start function
+                  creates sockets to connect to mldonkey, and timers
+                  that are executed from time to time.
+
+3) The final driver/ modules are executed. The last one (...Main.ml) call
+  the net/ loop.
+    
+

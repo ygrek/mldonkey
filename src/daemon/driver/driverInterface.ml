@@ -647,7 +647,8 @@ search.op_search_end_reply_handlers;
           | P.Download_query (filenames, num, force) ->
               begin
                 let r = result_find num in
-                result_download r filenames force
+                let file = result_download r filenames force in
+                CommonInteractive.start_download file
               end
           
           | P.ConnectMore_query ->
@@ -984,6 +985,7 @@ let gift_handler t event =
         gui.gui_result_handler <- gift_result_handler gui;
         guis := gui :: !guis;
         
+	BasicSocket.prevent_close (TcpBufferedSocket.sock sock);
         TcpBufferedSocket.set_max_write_buffer sock !!interface_buffer;
         TcpBufferedSocket.set_reader sock (GiftDecoding.gui_cut_messages
             (fun s ->

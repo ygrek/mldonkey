@@ -74,7 +74,7 @@ type file_info = {
     mutable file_age : int;
     mutable file_last_seen : int;
     mutable file_priority : int;
-    mutable file_uids : file_uid list;
+    mutable file_uids : Uid.t list;
   }
   
 type user_info = {

@@ -35,6 +35,7 @@ open CommonFile
 open CommonGlobals
 open CommonSwarming  
 open CommonNetwork
+open CommonHosts
   
 open G2Types
 open G2Options
@@ -114,8 +115,6 @@ let current_files = ref ([] : G2Types.file list)
 
 let listen_sock = ref (None : TcpServerSocket.t option)
   
-let hosts_by_key = Hashtbl.create 103
-
 let (searches_by_uid : (Md4.t, local_search) Hashtbl.t) = Hashtbl.create 11
 
   (*
@@ -168,51 +167,31 @@ let nservers = ref 0
 let connected_servers = ref ([] : server list)
   
   
+module H = CommonHosts.Make(struct
+      include G2Types
+      type ip = Ip.t
 
-let host_queue_add q h time =
-  if not (List.memq q h.host_queues) then begin
-      Queue.put q (time, h);
-      h.host_queues <- q :: h.host_queues
-    end
+      let requests = 
+        [ 
+          Tcp_Connect, 
+          (600, (fun kind ->
+                [ match kind with
+                  | true -> ultrapeers_waiting_queue
+                  | (_) -> peers_waiting_queue
+                ]
+            ));
+          Udp_Connect,
+          (600, (fun kind ->
+                   [waiting_udp_queue]
+            ))]
 
-let host_queue_take q =
-  let (time,h) = Queue.take q in
-  if List.memq q h.host_queues then begin
-      h.host_queues <- List2.removeq q h.host_queues 
-    end;
-  h
+      let default_requests kind = [Tcp_Connect,0; Udp_Connect,0]
+    end)
       
-let hosts_counter = ref 0
   
-let new_host ip port ultrapeer kind = 
-  let key = (ip,port) in
-  try
-    let h = Hashtbl.find hosts_by_key key in
-    h.host_age <- last_time ();
-    h
-  with _ ->
-      incr hosts_counter;
-      let host = {
-          host_num = !hosts_counter;
-          host_server = None;
-          host_ip = ip;
-          host_port = port;
-          
-          host_age = last_time ();
-          host_tcp_request = 0;
-          host_udp_request = 0;
-          host_connected = 0;
-          
-          host_kind = kind;
-          host_ultrapeer = ultrapeer;
-          host_queues = [];
-        } in
-      Hashtbl.add hosts_by_key key host;
-      host_queue_add workflow host 0;
-      host
       
 let new_server ip port =
-  let h = new_host ip port true 0 in
+  let h = H.new_host ip port true in
   match h.host_server with
     Some s -> s
   | None ->
@@ -231,7 +210,6 @@ let new_server ip port =
           server_vendor = "";
           
           server_connected = Int32.zero;
-          server_gnutella2 = false;
           server_query_key = NoUdpSupport;
         } and
         server_impl = {
@@ -243,7 +221,7 @@ let new_server ip port =
       h.host_server <- Some s;
       s
 
-let extract_uids arg = expand_uids [uid_of_string arg]
+let extract_uids arg = Uid.expand [Uid.of_string arg]
   
 let add_source r s index =
   let key = (s, index) in
@@ -545,20 +523,34 @@ let udp_sock = ref (None : UdpSocket.t option)
 
 let client_ip sock =
   CommonOptions.client_ip
-  (match sock with Connection sock -> Some sock | _ -> None)
+    (match sock with 
+      Connection sock | CompressedConnection (_,_,_,sock)
+      -> Some sock | _ -> None)
 
-let disconnect_from_server nservers s r =
+let disconnect_from_server s r =
   match s.server_sock with
-  | Connection sock ->
+  | Connection sock | CompressedConnection (_,_,_,sock) ->
       let h = s.server_host in
       (match server_state s with 
           Connected _ ->
             let connection_time = Int32.to_int (
                 Int32.sub (int32_time ()) s.server_connected) in
             lprintf "DISCONNECT FROM SERVER %s:%d after %d seconds\n" 
-              (Ip.to_string h.host_ip) h.host_port
+              (Ip.to_string h.host_addr) h.host_port
               connection_time
             ;
+            lprintf "Reason: %s\n"
+                (
+                match r with
+                  Closed_for_timeout -> "timeout"
+                | Closed_for_lifetime -> "lifetime"
+                | Closed_by_peer -> "closed by peer"
+                | Closed_for_error error -> error
+                | Closed_by_user -> "by me"
+                | Closed_for_overflow -> "overflow"
+                | Closed_connect_failed -> "connect failed"
+                | Closed_for_exception e -> Printexc2.to_string e
+              )
         | _ -> ()
       );
       (try close sock r with _ -> ());
@@ -570,32 +562,6 @@ let disconnect_from_server nservers s r =
         connected_servers := List2.removeq s !connected_servers
   | _ -> ()
 
-
-      (*
-let parse_magnet url =
-  let url = Url.of_string url in
-  if url.Url.file = "magnet:" then 
-    let uids = ref [] in
-    let name = ref "" in
-    List.iter (fun (value, arg) ->
-        if String2.starts_with value "xt" then
-          uids := (extract_uids arg) @ !uids
-        else 
-        if String2.starts_with value "dn" then
-          name := Url.decode arg
-        else 
-        if arg = "" then
-(* This is an error in the magnet, where a & has been kept instead of being
-  url-encoded *)
-          name := Printf.sprintf "%s&%s" !name value
-        else
-          lprintf "MAGNET: unused field %s = %s\n"
-            value arg
-    ) url.Url.args;
-    !name, !uids
-  else raise Not_found
-*)    
-    
 let clean_file s =
   String2.replace_char s '\r' '\n';
   String2.replace_char s ' ' '\n'
@@ -603,5 +569,5 @@ let clean_file s =
 let local_login () =
   let name = !!global_login in
   let len = String.length name in
-  if len > 32 then name else  String.sub name 0 32
+  if len < 32 then name else  String.sub name 0 32
     

@@ -195,3 +195,49 @@ let server_send_query s ss =
       server_send s 0x06 m
       
   | _ -> ()
+
+let known_download_headers = []
+  
+module ServerToClient = struct
+    
+    type t =    
+      NodeListReq
+    | QueryReq
+    | QueryReplyReq
+    | QueryEndReq
+    | NetworkStatsReq
+    | NetworkNameReq
+    | PushRequestReq
+    | ExternalIpReq
+    | ShareFileReq
+    | UnshareFileReq
+    
+    let parse msg_type m =
+      match msg_type with
+        0x00 -> NodeListReq
+      | 0x06 -> QueryReq
+      | 0x07 -> QueryReplyReq
+      | 0x08 -> QueryEndReq
+      | 0x09 -> NetworkStatsReq
+      | 0x1d -> NetworkNameReq
+      | 0x0d -> PushRequestReq
+(*
+        /* push id */
+        fst_packet_put_uint32 (packet, htonl (push->push_id));
+        /* ip and port the push shall be sent to */
+        fst_packet_put_uint32 (packet, FST_PLUGIN->external_ip);
+        fst_packet_put_uint16 (packet, htons(FST_PLUGIN->server->port));
+        /* ip and port of pushing user */
+        fst_packet_put_uint32 (packet, ip);
+        fst_packet_put_uint16 (packet, htons(port));
+        /* ip and port of pushing user's supernode */
+        fst_packet_put_uint32 (packet, shost);
+        fst_packet_put_uint16 (packet, htons(sport));
+        /* pushing user's name */
+        fst_packet_put_ustr (packet, username, strlen (username));
+*)
+      | 0x2c -> ExternalIpReq (* IP address on 4 bytes *)
+      | 0x22 -> ShareFileReq
+      | 0x05 -> UnshareFileReq
+          
+  end

@@ -164,22 +164,7 @@ case "$host" in
   powerpc-*-aix*)               arch=power; model=ppc; system=aix;;
   powerpc-*-linux*)             arch=power; model=ppc; system=elf;;
   powerpc-*-rhapsody*)          arch=power; model=ppc; system=rhapsody;;
-  powerpc-*-darwin*)            arch=power; model=ppc; system=rhapsody
-    REQUIRED_OCAML=3.07
-    
-    echo "***************************************************"
-    echo
-    echo "On Mac OS X, you must use a CVS version of Ocaml"
-    echo "($REQUIRED_OCAML for example): you can get a tar.gz"
-    echo "from :"
-    echo "http://savannah.nongnu.org/download/mldonkey/tools/"
-    echo
-    echo "***************************************************"
-	
-    case `uname -r` in
-      6.0) CHECKBOUNDS=true;;
-    esac
-    ;;
+  powerpc-*-darwin*)            arch=power; model=ppc; system=rhapsody;;
   arm*-*-linux*)                arch=arm; system=linux;;
   ia64-*-linux*)                arch=ia64; system=linux;;
 esac
@@ -710,7 +695,7 @@ AC_MSG_CHECKING(compile GTK GUI)
   fi
 
 case "`uname -s`" in
-  *win32* | *WIN32*) 
+  *win32* | *WIN32* | MINGW* ) 
       CURRENT_DIR=""
       WINDOWS="true"
       ;;
@@ -749,6 +734,10 @@ if test "$OS_FILES" = "mingw"; then
    OCAMLDEP_OPTIONS="-slash"
 fi
 
+AC_CHECK_FILE(../src/pic/picMain.ml,EXTRA_DIRS="$EXTRA_DIRS src/pic", )
+AC_CHECK_FILE(../src/spider/spiderMain.ml,EXTRA_DIRS="$EXTRA_DIRS src/spider", )
+
+AC_SUBST(EXTRA_DIRS)
 
 AC_SUBST(TYPE_FORMAT)
 AC_SUBST(OCAMLC)

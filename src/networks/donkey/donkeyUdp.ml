@@ -208,7 +208,7 @@ let force_check_locations () =
 
 let add_user_friend s u = 
   let kind = 
-    if Ip.valid u.user_ip && Ip.reachable u.user_ip then
+    if Ip.valid u.user_ip && ip_reachable u.user_ip then
       Known_location (u.user_ip, u.user_port)
     else begin
         begin

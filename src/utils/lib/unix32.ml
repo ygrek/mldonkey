@@ -737,7 +737,9 @@ let fds_size = Unix2.c_getdtablesize ()
 let buffered_bytes = ref Int64.zero
 let modified_files = ref []
 
+(*
 let _ =
+
   lprintf "Your system supports %d file descriptors\n" fds_size;
   lprintf "You can download files up to %s\n\n" 
     ( match Unix2.c_sizeofoff_t () with 
@@ -745,6 +747,7 @@ let _ =
 	|  _ -> Printf.sprintf "2^%d-1 bits (do the maths ;-p)" 
 	     ((Unix2.c_sizeofoff_t () *8)-1)			
     )
+*)
 
 (* at most 50 files can be opened simultaneously *)
 

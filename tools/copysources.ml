@@ -32,6 +32,8 @@ Unix2.copy full_srcfile full_destfile;
   ) (String2.split_simplify s '\n')
 
 let _ =
-  ignore (command "rm -rf /tmp/mldonkey");
-  mkdir "/tmp/mldonkey" 0o755;
-  iter "." "/tmp/mldonkey"
+  let directory = Sys.argv.(1) in
+  ignore (command ("rm -rf " ^ directory));
+  mkdir directory 0o755;
+  iter "." directory
+

@@ -62,19 +62,15 @@ let max_udp_sends = define_expert_option donkey_section ["max_udp_sends"]
 
 let max_server_age = define_expert_option donkey_section ["max_server_age"] "max number of days after which an unconnected server is removed" int_option 2
 
-let use_file_history = define_expert_option donkey_section ["use_file_history"] "keep seen files in history to allow local search (can be expensive in memory)" bool_option true
+let use_file_history = define_expert_option donkey_section ["use_file_history"] "keep seen files in history to allow local search (can be expensive in memory)" bool_option false
 
 let reliable_sources = define_option donkey_section ["reliable_sources"] 
-    "Should mldonkey try to detect sources responsible for corruption and ban them" bool_option false
-
-let ban_identity_thieves = define_option donkey_section
-  ["ban_identity_thieves"] 
-    "Should mldonkey try to detect sources masquerading as others and ban them" bool_option false
+    "Should mldonkey try to detect sources responsible for corruption and ban them" bool_option true
   
 let ban_identity_thieves = define_option donkey_section ["ban_identity_thieves"] 
-  "Should mldonkey try to detect sources masquerading as others and ban them" bool_option false
+  "Should mldonkey try to detect sources masquerading as others and ban them" bool_option true
   
-let save_file_history = define_expert_option donkey_section ["save_file_history"] "save the file history in a file and load it at startup" bool_option true
+let save_file_history = define_expert_option donkey_section ["save_file_history"] "save the file history in a file and load it at startup" bool_option false
 
   
 let filters = define_option donkey_section ["filters"] 
@@ -114,7 +110,7 @@ let master_server_min_users = define_option donkey_section
   
 let force_high_id = define_option donkey_section ["force_high_id"] 
     "immediately close connection to servers that don't grant a High ID"
-    bool_option false
+    bool_option true
 
 let update_server_list = define_option donkey_section
     ["update_server_list"] "Set this option to false if you don't want auto
@@ -149,7 +145,7 @@ let log_clients_on_console = define_expert_option donkey_section
 
 let propagate_sources = define_expert_option donkey_section ["propagate_sources"]
     "Allow mldonkey to propagate your sources to other donkey clients"
-    bool_option true
+    bool_option false
   
 let max_sources_per_file = define_option donkey_section ["max_sources_per_file"]
     "Maximal number of sources for each file"
@@ -168,8 +164,8 @@ let mldonkey_md4 md4 =
   md4.[14] <- Char.chr 111;
   Md4.direct_of_string md4
 
-let server_client_md4 = define_option donkey_section ["server_client_md4"]
-    "The MD4 of this client" Md4.option ( (Md4.random ())) 
+(* let server_client_md4 = define_option donkey_section ["server_client_md4"]
+    "The MD4 of this client" Md4.option ( (Md4.random ())) *)
 
 let client_md4 = define_option donkey_section ["client_md4"]
     "The MD4 of this client" Md4.option (mldonkey_md4 (Md4.random ()))
@@ -211,10 +207,25 @@ let upload_timeout =
     "How long can a silent client stay in the upload queue"
     float_option 1800. 
       
+let upload_lifetime = 
+  define_expert_option donkey_section ["upload_lifetime"] 
+    "How long a downloading client can stay in my upload queue (in minutes >5)"
+    int_option 90 
+      
+let dynamic_upload_lifetime = 
+  define_expert_option donkey_section ["dynamic_upload_lifetime"] 
+    "Each client upload lifetime depends on download-upload ratio"
+    bool_option false 
+      
+let dynamic_upload_threshold = 
+  define_expert_option donkey_section ["dynamic_upload_threshold"] 
+    "Uploaded zones (1 zone = 180 kBytes) needed to enable the dynamic upload lifetime"
+    int_option 10
+
 let random_order_download = 
   define_option donkey_section ["random_order_download"] 
   "Should we try to download chunks in random order (false = linearly) ?"
-    bool_option false
+    bool_option true
       
 let connected_server_timeout = 
   define_expert_option donkey_section ["connected_server_timeout"]
@@ -232,7 +243,7 @@ let upload_power = define_expert_option donkey_section ["upload_power"]
 let propagate_servers = define_expert_option donkey_section ["propagate_servers"]
   "Send an UDP packet to a central servers with the list of servers you
   are currently connected to, for the central server to be able to
-    generate accurate server lists." bool_option true
+    generate accurate server lists." bool_option false
 
 let files_queries_per_minute = define_expert_option donkey_section
     ["files_queries_per_minute"] 

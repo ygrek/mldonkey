@@ -717,7 +717,7 @@ let parse_magnet url =
     let name = ref "" in
     List.iter (fun (value, arg) ->
         if String2.starts_with value "xt" then
-          uids := expand_uids (uid_of_string arg :: !uids)
+          uids := Uid.expand (Uid.of_string arg :: !uids)
         else 
         if String2.starts_with value "dn" then
           name := Url.decode arg
@@ -830,3 +830,5 @@ module CanBeCompressed = struct
           raise e
   end
   
+let ip_reachable ip =
+  !!allow_local_network || Ip.reachable ip

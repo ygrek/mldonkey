@@ -43,7 +43,9 @@ type client = {
     mutable client_blocks : Int64Swarmer.block list;
     mutable client_ranges : Int64Swarmer.range list;
     mutable client_block : Int64Swarmer.block option;
-    mutable client_choked : bool;
+    
+    mutable client_sent_choke : bool; (* we sent a Choke to the client *)
+    mutable client_choked : bool;      (* we received a Choke from the client *)
     mutable client_interested : bool;
     mutable client_uid : Sha1.t;
     

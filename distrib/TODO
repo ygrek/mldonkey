@@ -79,6 +79,7 @@ Direct-Connect:
 
 ***********************************************************************
 Core:
+  * LittleEndian: is buf_int correct with negative values
   * Change ClientKind so that it does not depend on edonkey anymore.
   * Configurable map to translate characters appearing in the file names.
   * BUG: What happens when the writes are buffered, mtime does not correspond to
@@ -104,6 +105,10 @@ Core:
   * CD get and Collections
   * Change temporary files names to allow recover on all networks.
   * Socks 5 support
+  * The core sends more File_info messages than File_downloaded, which is
+     not normal !
+  * Send messages to GUI with a classifier (to be able to display messages
+     in different consoles, server console, download console, clients console)
 
 ***********************************************************************
 GUI:

@@ -266,7 +266,7 @@ connection from another client. In this case, we should immediatly connect.
 *)
       
       let module Q = M.QueryIDReply in
-      if Ip.valid t.Q.ip && Ip.reachable t.Q.ip then begin
+      if Ip.valid t.Q.ip && ip_reachable t.Q.ip then begin
           match Fifo.take s.server_id_requests with
             None -> 
               let c = new_client (Known_location (t.Q.ip, t.Q.port)) in

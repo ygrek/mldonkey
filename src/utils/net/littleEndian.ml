@@ -77,8 +77,9 @@ let get_int24 s pos =
 let buf_int buf i = 
   buf_int8 buf i;
   buf_int8 buf (i lsr 8);
-  buf_int8 buf (i lsr 16);
-  buf_int8 buf (i lsr 24)
+  buf_int8 buf (i lsr 16); 
+  let x = i lsr 24 in  
+  buf_int8 buf (x lor ((x lsl 1) land 0x80))
 
 let str_int s pos i =
   s.[pos] <- char_of_int (i land 255);
@@ -91,7 +92,8 @@ let get_int s pos =
   let c2 = get_int8 s (pos+1) in
   let c3 = get_int8 s (pos+2) in
   let c4 = get_int8 s (pos+3) in
-  c1 lor (c2 lsl 8) lor (c3 lsl 16) lor (c4 lsl 24)
+  let x =   c1 lor (c2 lsl 8) lor (c3 lsl 16) lor (c4 lsl 24) in
+  x
 
 (******** Operations on 32 bits integers ********)
   

@@ -69,7 +69,7 @@ and server = {
 
 type search_type =
   UserSearch of search * string * string
-| FileUidSearch of file * file_uid
+| FileUidSearch of file * Uid.t
 | FileWordSearch of file * string
   
 and local_search = {
@@ -122,7 +122,7 @@ and result = {
     result_size : int64;
     mutable result_tags : tag list;
     mutable result_sources : (user * file_uri) list;
-    mutable result_uids : file_uid list;
+    mutable result_uids : Uid.t list;
   }
 
 and file = {
@@ -132,7 +132,7 @@ and file = {
     file_swarmer : Int64Swarmer.t;
     file_partition : CommonSwarming.Int64Swarmer.partition;
     mutable file_clients : client list;
-    mutable file_uids : file_uid list; 
+    mutable file_uids : Uid.t list; 
     mutable file_searches : local_search list;
   }
 

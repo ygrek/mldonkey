@@ -348,7 +348,7 @@ let remove_client_chunks file client_chunks =
 let is_black_address ip port =
   !!black_list && (
 (* lprintf "is black ="; *)
-    not (Ip.reachable ip) || (Ip.matches ip !!server_black_list) ||
+    not (ip_reachable ip) || (Ip.matches ip !!server_black_list) ||
     (List.mem port !!port_black_list) )
       
 let new_server ip port score = 
@@ -445,7 +445,6 @@ let dummy_client =
       client_downloaded = Int64.zero;
       client_uploaded = Int64.zero;
       client_banned = false;
-      client_has_a_slot = false;
       client_overnet = false;
       client_score = 0;
       client_files = [];
@@ -502,7 +501,6 @@ let create_client key num =
       client_downloaded = Int64.zero;
       client_uploaded = Int64.zero;
       client_banned = false;
-      client_has_a_slot = false;
       client_overnet = false;
       client_score = 0;
       client_files = [];
@@ -744,9 +742,10 @@ let brand_to_string b =
   | Brand_mldonkey3 -> "trusted mldonkey"
   | Brand_overnet -> "Overnet"
   | Brand_newemule -> "eMule"
-  | Brand_lmule -> "lMule"
+  | Brand_lmule -> "xMule"
   | Brand_shareaza -> "shareaza"
   | Brand_server -> "server"
+  | Brand_amule -> "aMule"
 
 
       

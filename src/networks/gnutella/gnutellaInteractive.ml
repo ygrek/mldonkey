@@ -283,7 +283,7 @@ let _ =
         C.result_format = result_format_of_name r.result_name;
         C.result_type = result_media_of_name r.result_name;
         C.result_tags = r.result_tags @ (List.map (fun uid ->
-            string_tag ("urn") (string_of_uid uid)
+            string_tag ("urn") (Uid.to_string uid)
         ) r.result_uids);
         C.result_comment = "";
         C.result_done = false;
@@ -322,7 +322,8 @@ let _ =
           if uids <> [] then begin
 (* Start a download for this file *)
               let r = new_result name Int64.zero [] uids in
-              GnutellaServers.download_file r;
+              let file = GnutellaServers.download_file r in
+              CommonInteractive.start_download file;
               true
             end
           else false

@@ -38,6 +38,7 @@ open G2Globals
 open G2ComplexOptions
 open BasicSocket
 
+open CommonHosts
 open G2Protocol
 
 (* Don't share files greater than 10 MB on G2 and limit to 200 files. 
@@ -144,6 +145,9 @@ let xml_query_of_query q =
       
 let _ =
   network.op_network_search <- (fun search buf ->
+      match search.search_type with
+        LocalSearch -> ()
+      | _ ->
       let query = search.search_query in
       let words, xml_query = xml_query_of_query query in
       let words = String2.unsplit words ' ' in
@@ -179,7 +183,16 @@ that we can reuse queries *)
       let sh = CommonUploads.add_shared fullname codedname size in
       CommonUploads.ask_for_uid sh SHA1 (fun sh uid -> 
             lprintf "Could share urn\n";
-            ())
+              ());
+            CommonUploads.ask_for_uid sh TIGER (fun sh uid -> 
+               lprintf "Could share urn:tiger:\n";
+               ());
+           CommonUploads.ask_for_uid sh BITPRINT (fun sh uid -> 
+               lprintf "Could share urn:bitprint:\n";
+               ());
+           CommonUploads.ask_for_uid sh ED2K (fun sh uid -> 
+               lprintf "Could share urn:bitprint:\n";
+               ());
       end
   )
   
@@ -246,7 +259,7 @@ let _ =
         {
           P.server_num = (server_num s);
           P.server_network = network.network_num;
-          P.server_addr = Ip.addr_of_ip s.server_host.host_ip;
+          P.server_addr = Ip.addr_of_ip s.server_host.host_addr;
           P.server_port = s.server_host.host_port;
           P.server_score = 0;
           P.server_tags = [];
@@ -261,10 +274,7 @@ let _ =
         raise Not_found
   );
   server_ops.op_server_connect <- (fun s ->
-      G2Servers.connect_server 
-        nservers
-      s.server_gnutella2 
-      G2Servers.retry_and_fake s.server_host []);
+      G2Servers.connect_server s.server_host []);
   server_ops.op_server_disconnect <-
 (fun s -> G2Servers.disconnect_server s BasicSocket.Closed_by_user);
   server_ops.op_server_to_option <- (fun _ -> raise Not_found)
@@ -283,7 +293,7 @@ let _ =
         C.result_format = result_format_of_name r.result_name;
         C.result_type = result_media_of_name r.result_name;
         C.result_tags = r.result_tags @ (List.map (fun uid ->
-            string_tag ("urn") (string_of_uid uid)
+            string_tag ("urn") (Uid.to_string uid)
         ) r.result_uids);
         C.result_comment = "";
         C.result_done = false;
@@ -322,7 +332,7 @@ let _ =
           if uids <> [] then begin
 (* Start a download for this file *)
               let r = new_result name Int64.zero [] uids in
-              G2Servers.download_file r;
+              let file = G2Servers.download_file r in
               true
             end
           else false

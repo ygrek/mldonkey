@@ -17,18 +17,21 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open G2Globals
-
 open Printf2
-open CommonOptions
-open G2Options
 open Options
 open Md4
-open CommonGlobals
+  
 open LittleEndian
 open TcpBufferedSocket
 open AnyEndian
+
+open CommonTypes
+open CommonGlobals
+open CommonOptions
+
+open G2Options
 open G2Types
+open G2Globals
 
 
 type ghandler =
@@ -37,16 +40,9 @@ type ghandler =
 
 and gconn = {
     mutable gconn_handler : ghandler;
-    mutable gconn_refill : (TcpBufferedSocket.t -> unit) list;
+    mutable gconn_refill : (tcp_connection -> unit) list;
     mutable gconn_close_on_write : bool;
-
-(* If the connection is compressed, the TcpBufferedSocket.buf buffer
-only contains the data that has not been decompressed yet. gconn.gconn_zout
-contains the part that has been decompressed. If the socket is not
-decompressed, the two buffers point to the same buffer.
-  *)
-    mutable gconn_deflate : bool;
-    mutable gconn_zout : TcpBufferedSocket.buf;
+    mutable gconn_sock : tcp_connection;
   }
   
 module type G2Protocol = sig
@@ -108,8 +104,39 @@ struct gnutella_qrp_patch {
         table = String.sub s 4 (String.length s - 4);
       }
     
-    let print t = 
-      lprintf "QRT PATCH"
+    let patches = ref ""
+    
+    let print buf t = 
+      Printf.bprintf buf "QRT PATCH:\n";
+      Printf.bprintf buf "  seq_no: %d/%d\n" t.seq_no t.seq_size;
+      Printf.bprintf buf "  compressor: %d\n" t.compressor;
+      Printf.bprintf buf "  entry bits: %d\n" t.entry_bits;
+      Printf.bprintf buf "  table: ";
+      if t.seq_no = 1 then patches := t.table
+      else patches := !patches ^ t.table;
+      if t.seq_no = t.seq_size then begin
+          if t.compressor < 2 then
+            let table = 
+              if t.compressor = 1 then
+                Autoconf.zlib__uncompress_string2 !patches
+              else
+                !patches
+            in
+            let nbits = ref 0 in
+            for i = 0 to String.length table - 1 do
+              let c = int_of_char table.[i] in
+              for j = 0 to 7 do
+                if (1 lsl j) land c <> 0 then begin
+                    incr nbits;
+                    Printf.bprintf buf "(%d)" (i*8+j);
+                  end
+              done
+            done;
+            Printf.bprintf buf "  = %d bits\n" !nbits               
+          else
+            Printf.bprintf buf " (compressed) \n"
+        end else
+        Printf.bprintf buf " (partial) \n"            
     
     let write buf t = 
       buf_int8 buf t.seq_no;
@@ -129,7 +156,7 @@ let add_header_fields header sock trailer =
   Printf.bprintf buf "%s" header;
   Printf.bprintf buf "User-Agent: %s\r\n" user_agent;
   Printf.bprintf buf "X-My-Address: %s:%d\r\n"
-    (Ip.to_string (client_ip (Some sock))) !!client_port;
+    (Ip.to_string (client_ip (Connection sock))) !!client_port;
   Printf.bprintf buf "X-Ultrapeer: False\r\n";
   Printf.bprintf buf "X-Query-Routing: 0.1\r\n";
   Printf.bprintf buf "GGEP: 0.5\r\n";
@@ -139,7 +166,7 @@ let add_header_fields header sock trailer =
 let handlers info gconn =
   let rec iter_read sock nread =
 (*    lprintf "iter_read %d\n" nread; *)
-    let b = TcpBufferedSocket.buf sock in
+    let b = CanBeCompressed.buf gconn.gconn_sock in
     if b.len > 0 then
       match gconn.gconn_handler with
       | HttpHeader h ->
@@ -181,19 +208,21 @@ end; *)
   iter_read
 
 
-let set_gnutella_sock sock info ghandler = 
+let set_gnutella_sock conn info ghandler = 
+  match conn with
+    ConnectionAborted|ConnectionWaiting|NoConnection -> assert false
+  | Connection sock | CompressedConnection (_,_,_,sock) ->
   let gconn = {
       gconn_handler = ghandler;
       gconn_refill = [];
       gconn_close_on_write = false;
-      gconn_deflate = false;
-      gconn_zout = TcpBufferedSocket.buf sock;
+          gconn_sock = conn;
     } in
   TcpBufferedSocket.set_reader sock (handlers info gconn);
   TcpBufferedSocket.set_refill sock (fun sock ->
       match gconn.gconn_refill with
         [] -> ()
-      | refill :: _ -> refill sock
+      | refill :: _ -> refill gconn.gconn_sock
   );
   TcpBufferedSocket.set_handler sock TcpBufferedSocket.WRITE_DONE (
     fun sock ->
@@ -206,7 +235,11 @@ let set_gnutella_sock sock info ghandler =
               if gconn.gconn_close_on_write then 
                 set_lifetime sock 30.
 (*                TcpBufferedSocket.close sock "write done" *)
-          | refill :: _ -> refill sock)
+              | refill :: _ -> 
+(* BUG: here, we should immediatly flush the data, and not wait for
+the timer in CanBeCompressed *)
+
+                  refill gconn.gconn_sock)
 
 
 let parse_range range =

@@ -32,7 +32,8 @@ type 'a result_impl = {
   
 and 'a result_ops = {
     mutable op_result_network : network;
-    mutable op_result_download : ('a -> string list -> bool -> unit);
+    mutable op_result_download : ('a -> string list -> bool -> 
+    file);
     mutable op_result_info : ('a -> CommonTypes.result_info);
   }
   
@@ -104,7 +105,7 @@ let results_ops = ref []
 let new_result_ops network = 
   let r = {
       op_result_network =  network;
-      op_result_download = (fun _ _ _ -> ni_ok network "result_download");
+      op_result_download = (fun _ _ _ -> fni network "result_download");
       op_result_info = (fun _ -> fni network "result_info");
     }
   in

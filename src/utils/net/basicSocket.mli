@@ -115,3 +115,4 @@ val int32_time : unit -> int32
   
 val string_of_reason : close_reason -> string
   
+val loop_delay : float ref

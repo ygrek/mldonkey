@@ -348,7 +348,8 @@ let _ =
           let hash = Md5Ext.of_string hash in
           
           let r = new_result filename size [] hash in
-          FasttrackServers.download_file r;
+          let file = FasttrackServers.download_file r in
+          CommonInteractive.start_download file;
           true
       | "ft://" :: "server"  :: ip :: port :: _ ->  
           let ip = Ip.addr_of_string ip in

@@ -221,7 +221,10 @@ let color_network_disabled =  define_option mldonkey_gui_section ["colors"; "net
 (** {2 Fonts} *)
 
 let font_list =  define_option mldonkey_gui_section ["fonts"; "list"]
-    (gettext M.h_font_list) string_option "-*-*-*-*-*-*-*-*-*-*-*-*-*-*"
+    (gettext M.h_font_list) string_option
+     ( if Autoconf.windows then "-unknown-Tahoma-normal-r-normal-*-*-100-*-*-p-*-iso8859-1"
+     else "-*-*-*-*-*-*-*-*-*-*-*-*-*-*" )
+
 let font_main_tab =  define_option mldonkey_gui_section ["fonts"; "main_tab"]
     (gettext M.h_font_main_tab) string_option "-*-*-*-*-*-*-*-*-*-*-*-*-*-*"
 let font_networks =  define_option mldonkey_gui_section ["fonts"; "networks"]

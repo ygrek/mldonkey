@@ -191,20 +191,26 @@ let new_file file_id file_name file_size file_tracker piece_size file_u =
 (*      lprintf "ADD FILE TO DOWNLOAD LIST\n"; *)
   file
   
-let new_file file_id file_name file_size file_tracker piece_size file_files =
+let new_file file_id 
+    file_name file_size file_tracker piece_size file_files file_temp =
   try
     Hashtbl.find files_by_uid file_id;
   with Not_found -> 
-    let file_temp = Filename.concat !!DO.temp_directory 
-		      (Printf.sprintf "BT-%s" (Sha1.to_string file_id)) in
-    let file_u = 
-    if file_files <> [] then
-      Unix32.create_multifile file_temp [Unix.O_RDWR; Unix.O_CREAT] 0o666 file_files
-    else
-      Unix32.create_rw file_temp 
-    in
+      let file_u = 
+        if file_files <> [] then
+          Unix32.create_multifile file_temp [Unix.O_RDWR; Unix.O_CREAT] 0o666 file_files
+        else
+          Unix32.create_rw file_temp 
+      in
       new_file file_id file_name file_size file_tracker piece_size file_u
-  
+      
+let new_download file_id 
+  file_name file_size file_tracker piece_size file_files =
+  let file_temp = Filename.concat !!DO.temp_directory 
+      (Printf.sprintf "BT-%s" (Sha1.to_string file_id)) in
+  new_file file_id 
+    file_name file_size file_tracker piece_size file_files file_temp
+      
 let new_client file peer_id kind =
   try
     let c = Hashtbl.find file.file_clients peer_id in
@@ -219,6 +225,7 @@ let new_client file peer_id kind =
           client_file = file;
           client_host = kind;
           client_choked = true;
+          client_sent_choke = false;
           client_interested = false;
           client_blocks = [];
           client_chunks = [];

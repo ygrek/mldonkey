@@ -1,0 +1,104 @@
+
+body {
+background: #CBE5CB; margin-top: 3px; margin-left: 5px; margin-right: 5px; 
+font-family: Verdana, sans-serif;
+font-size: 12px;
+scrollbar-face-color: #94AE94; scrollbar-shadow-color: #94AE94;
+scrollbar-highlight-color: #E5FFE5; scrollbar-3dlight-color: #000000;
+scrollbar-darkshadow-color: #000000; scrollbar-track-color: #CBE5CB;
+scrollbar-arrow-color: #000000; }
+table.commands {border: #000 solid 1px; background: #CBE5CB }
+table.topcommands {background: #CBE5CB; border: #000 solid 1px; border-top: #E5FFE5 solid 1px; border-left: #E5FFE5 solid 1px;} 
+pre {color: #000; font-family: Courier, Arial, Helvetica, sans-serif; font-size: 12px;}
+p {color: #000; font-family: Verdana, Courier, Arial, Helvetica, sans-serif; font-size: 12px;}
+input.txt {background: #BADEBA}
+input.txt2 {background: #B2CCB2;
+font: 12px courier; padding: 0px;
+width: 38px; height: 18px; line-height: 14px; color: #000;
+BORDER-RIGHT: #000 2px solid; BORDER-TOP: #fff 1px solid;
+BORDER-LEFT: #fff 1px solid; BORDER-BOTTOM: #000 2px solid;
+}
+input.but2 {background: #A3BDA3;
+border: 0px; padding: 0px; font: bold 10px verdana; 
+width: 36px; height: 14px;}
+input.but {background: #A3BDA3};
+
+a:link,a:active,a:visited { text-decoration: none; font-face: verdana;
+font-size: 10px; color: #000000; }
+a:hover { color: #000000; text-decoration: underline;}
+.bu {
+font-variant: small-caps; vertical-align: middle; white-space: nowrap;
+background: #00F; color: #3D3D3D;
+font-family: Verdana; font-size: 9px; line-height: 12px;
+margin-top: 0px; margin-bottom: 0px;
+padding-left: 6px; padding-right: 6px; padding-top: 1px; padding-bottom: 1px;
+border: #FFF 0px solid; 
+}
+.bbig {
+text-align: center; font-size: 10px; font-family: Verdana; font-weight: 500;
+border-top: #E5FFE5 1px solid; border-left: #E5FFE5 1px solid; border-bottom: #000 1px solid; border-right: #000 1px solid;
+padding-left: 4px; padding-right: 4px; padding-top: 1px; padding-bottom: 1px;
+color: #000; background: #B2CCB2;
+}
+.bbigm {
+text-align: center; font: bold 10px verdana; 
+border-top: #E5FFE5 1px solid; border-left: #E5FFE5 1px solid; border-bottom: #000 1px solid; border-right: #000 1px solid;
+padding-left: 4px; padding-right: 4px; padding-top: 1px; padding-bottom: 1px;
+color: #000; background: #A3BDA3;
+}
+.bsmall { background: #BCD6BC; }
+.bsmall1 { background: #B2CCB2; }
+.bsmall2 { background: #A8C2A8; }
+.bsmall3 { background: #A3BDA3; }
+.bbig2 {background: #A3BDA3; }
+.bbig3 {background: #94AE94; }
+.b1 { border-left: #718B71 solid 1px; border-top: #718B71 solid 1px; border-right: #718B71 solid 1px; border-bottom: #718B71 solid 1px; }
+.b2 { border-left: #718B71 solid 0px; border-top: #718B71 solid 1px; border-right: #718B71 solid 1px; border-bottom: #718B71 solid 1px; }
+.b3 { border-left: #718B71 solid 1px; border-top: #718B71 solid 0px; border-right: #718B71 solid 1px; border-bottom: #718B71 solid 1px; }
+.b4 { border-left: #718B71 solid 0px; border-top: #718B71 solid 0px; border-right: #718B71 solid 1px; border-bottom: #718B71 solid 1px; }
+.bb1 { border-left: #000 solid 1px; border-top: #E5FFE5 solid 1px; border-right: #E5FFE5 solid 1px; border-bottom: #000 solid 1px; }
+.bb2 { border-left: #E5E5E5 solid 1px; border-top: #E5FFE5 solid 1px; border-right: #E5FFE5 solid 0px; border-bottom: #000 solid 1px; }
+.bb3 { border-left: #E5E5E5 solid 1px; border-top: #E5FFE5 solid 1px; border-right: #000 solid 0px; border-bottom: #000 solid 0px; }
+.bb4 { border-left: #E5E5E5 solid 1px; border-top: #E5FFE5 solid 1px; border-right: #000 solid 1px; border-bottom: #000 solid 0px; }
+.src { border-left: #000 solid 0px; border-top: #000 solid 0px; border-right: #000 solid 1px; border-bottom: #000 solid 1px; }
+.srctd { font-family: Verdana; font-size: 8px; }
+td.fbig { cursor: pointer; padding-left: 2px; padding-right: 2px; font-family: Verdana; font-size: 10px; background: #86BE86; border-top: #000 solid 1px; border-left: #000 solid
+1px; }
+td.pr { border-right: #000 solid 1px; }
+td.fbigb { border-top: #000 solid 0px; border-bottom: #000 solid 1px; }
+td, tr {font-size: 12px; font-face: verdana; }
+td.sr { white-space: nowrap; padding-top: 2px; padding-bottom: 2px; padding-left: 4px; padding-right: 4px; font-family: verdana; font-size: 10px; color: #000;  }
+td.srp { white-space: nowrap; padding-top: 2px; padding-bottom: 2px; padding-left: 0px; padding-right: 4px; font-family: verdana; font-size: 10px; color: #555;  }
+td.srw { padding-top: 2px; padding-bottom: 2px; padding-left: 4px; padding-right: 4px; font-family: verdana; font-size: 10px; color: #000;  }
+td.srh { cursor: pointer; vertical-align: top; background: #90C890; white-space: nowrap; padding-top: 2px; padding-bottom: 2px; padding-left: 4px; padding-right: 4px;
+font-family: verdana; font-size: 10px; color: #000;  }
+tr.dl-1, td.dl-1 { background: #FFF; }
+tr.dl-2, td.dl-2 { background: #EEE; }
+.mOvr1, tr.mOvr1 {background: #BADEBA; cursor: pointer; }
+.mOvr2, tr.mOvr2 {background: #F00; cursor: pointer; }
+.mOvr3, tr.mOvr3 {background: #94AE94; cursor: pointer; }
+table.uploaders, table.friends, table.bw_stats, table.vo, table.cs, table.servers,
+table.shares, table.downloaders, table.scan_temp, table.upstats, table.messages,
+table.shares, table.vc, table.results {
+ margin-right: auto;
+ margin-left: auto;
+ border: 1;
+ border: #000 solid 1px;
+ border-collapse: collapse;
+}
+table.sourcesInfo, table.serversC { width: 100%; margin-right: auto; margin-left: auto; border: 1; border: #000 solid 1px; border-collapse: collapse;}
+table.sources {border: 1; border: #000 solid 1px; border-collapse: collapse; }
+table.main { margin-right: auto; margin-left: auto; }
+div.main, div.uploaders, div.friends, div.cs, div.shares, div.upstats, div.servers, div.serversC, div.vo,
+div.downloaders, div.messages, div.vc, div.bw_stats, div.scan_temp, div.results { text-align: center; }
+td.srb { padding-top: 1px; padding-bottom: 1px; font-size: 10px; font-family: Verdana; white-space: nowrap; border-right: #000 solid 1px; border-bottom: #000 solid 1px;
+border-left: #000 solid 1px; border-top: #000 solid 0px; padding-left: 3px; padding-right: 3px;}
+td.act { font-size: 10px; font-weight: 700; }
+td.br {border-right: #000 dotted 1px;}
+td.ar {text-align: right;}
+td.al {text-align: left;}
+td.ac {text-align: center;}
+.chunk0 { background: #F33}
+.chunk1 { background: #1010DC}
+.chunk2 { background: #33F}
+.chunk3 { background: #00F}

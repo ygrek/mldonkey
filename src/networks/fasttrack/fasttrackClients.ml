@@ -160,13 +160,30 @@ let rec client_parse_header c gconn sock header =
 (*              lprintf "SPLIT HEADER...\n"; *)
     let lines = Http_client.split_header header in
 (*              lprintf "REMOVE HEADLINE...\n"; *)
-    let headers = match lines with
+    let first_line, headers = match lines with
         [] -> raise Not_found        
-      | _ :: headers -> headers
+      | line :: headers -> line, headers
     in
 (*                  lprintf "CUT HEADERS...\n"; *)
     let headers = Http_client.cut_headers headers in
 (*                  lprintf "START POS...\n"; *)
+    
+    
+    if !verbose_unknown_messages then begin
+        let unknown_header = ref false in
+        List.iter (fun (header, _) ->
+            unknown_header := !unknown_header || not (List.mem header FasttrackProto.known_download_headers)
+        ) headers;
+        if !unknown_header then begin
+            lprintf "FT DEVEL: Download Header contains unknown fields\n";
+            lprintf "    %s\n" first_line;
+            List.iter (fun (header, (value,header2)) ->
+                lprintf "    [%s] = [%s](%s)\n" header value header2;
+            ) headers;
+            lprintf "FT DEVEL: end of header\n";        
+          end;
+      end;
+    
     
     if  code < 200 || code > 299 then
       failwith "Bad HTTP code";

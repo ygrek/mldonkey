@@ -48,8 +48,10 @@ let download r filenames =
       List.iter (fun (user, filename) ->
           ignore (add_file_client file user filename)
       ) r.result_sources;
-      DcServers.ask_for_file file
-    end
+      DcServers.ask_for_file file;
+      as_file file.file_file
+    end else
+    failwith "File already downloaded"
 
 let browse_client c =
   DcServers.try_connect_client c          

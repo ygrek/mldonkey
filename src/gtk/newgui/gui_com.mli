@@ -17,15 +17,15 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-val disconnect :
-  < 
-  clear : 'a; 
-  label_connect_status : < set_text : string -> 'b; .. >;
-      .. > -> BasicSocket.close_reason -> unit
+type gui = <
+  clear : unit;
+  set_connect_status : string -> unit;
+    >
+
+val disconnect : gui -> BasicSocket.close_reason -> unit
 val send : GuiProto.from_gui -> unit
-val reconnect :  (< clear : 'b; label_connect_status : < set_text : string -> 'c; .. >;
-       .. > as 'a) ->
-    ('a -> GuiProto.to_gui -> unit) -> BasicSocket.close_reason -> unit
+val reconnect : gui ->
+    ('a -> GuiProto.to_gui -> unit) -> 'a -> BasicSocket.close_reason -> unit
 val connected : unit -> bool
   
 val to_gui_protocol_used : int array

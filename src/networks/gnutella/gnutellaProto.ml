@@ -742,7 +742,7 @@ let server_ask_uid s quid fuid =
   let t = QueryReq {
       Q.min_speed = 0;
       Q.keywords = "\\";
-      Q.xml_query  = [CommonTypes.string_of_uid fuid];
+      Q.xml_query  = [Uid.to_string fuid];
       Q.s = "";
     } in
   let pp = new_packet t in

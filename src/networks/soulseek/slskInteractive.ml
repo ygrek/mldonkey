@@ -45,8 +45,10 @@ let download r filenames =
       List.iter (fun (user, filename) ->
           ignore (add_file_client file user filename)
       ) r.result_sources;
-      SlskServers.ask_for_file file
-    end
+      SlskServers.ask_for_file file;
+      as_file file.file_file
+    end else
+    failwith "Download already started"
 
 let _ =
   network.op_network_search <- (fun q buf ->

@@ -150,7 +150,7 @@ open Bencode
 let load_torrent_file filename =
   let s = File.to_string filename in  
   let file_id, torrent = BTTracker.decode_torrent s in
-  let file = new_file file_id torrent.torrent_name 
+  let file = new_download file_id torrent.torrent_name 
     torrent.torrent_length 
     torrent.torrent_announce torrent.torrent_piece_size 
     torrent.torrent_files
@@ -160,6 +160,19 @@ let load_torrent_file filename =
   BTClients.connect_tracker file torrent.torrent_announce;
   ()
   
+let share_files () =
+  List.iter (fun (filename, shared_file) ->
+      let s = File.to_string filename in  
+      let file_id, torrent = BTTracker.decode_torrent s in
+      let file = new_file file_id torrent.torrent_name 
+          torrent.torrent_length 
+          torrent.torrent_announce torrent.torrent_piece_size 
+          torrent.torrent_files shared_file
+      in
+      file.file_files <- torrent.torrent_files;
+      file.file_chunks <- torrent.torrent_pieces;
+      BTClients.connect_tracker file torrent.torrent_announce;
+  ) !!shared_files  
   
   
 let _ =
