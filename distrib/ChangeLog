@@ -2,6 +2,10 @@ ChangeLog
 =========
 
 2003/11/27: Fabrice
+  * Unix32: and yet another bug fixed in MultiFile: no more 
+      Invalid_argument("Unix.write") error
+
+2003/11/27: Fabrice
    * Applied patches #2341 (BT), #2354 (BT with MultiFile), 
        #2339 (improved telnet), #2311 (Overnet [EXPERIMENTAL])
     BUT: is there a bug on Savannah, or is it my browser that incorrectly

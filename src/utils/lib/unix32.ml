@@ -32,6 +32,14 @@ let max_cache_size = ref 50
 let mini (x: int) (y: int) =
   if x > y then y else x
 
+let really_write fd s pos len =
+  try
+    Unix2.really_write fd s pos len
+  with e ->
+      lprintf "Exception in really_write: pos=%d len=%d, string length=%d\n"
+        pos len (String.length s);
+      raise e
+    
 module FDCache = struct
     
     type t = {
@@ -120,7 +128,7 @@ module FDCache = struct
       let fd = local_force_fd file in
       let final_pos = Unix2.c_seek64 fd file_pos Unix.SEEK_SET in
       if verbose then lprintf "really_write %d\n" len;
-      Unix2.really_write fd string string_pos len
+      really_write fd string string_pos len
     
     
     let copy_chunk t1 t2 pos1 pos2 len =
@@ -497,7 +505,7 @@ TODO:
 
 (* first file *)
       let in_pos = chunk_begin -- file_begin in
-      let in_len = file_end -- in_pos in
+      let in_len = file_end -- chunk_begin in
       FDCache.copy_chunk file.fd file_out zero 
         in_pos (Int64.to_int in_len);
 (* other files *)
@@ -553,11 +561,11 @@ TODO:
 
 (* first file *)
       let in_pos = chunk_begin -- file_begin in
-      let first_write = file_end -- in_pos in
-      let in_len = Int64.to_int first_write in
+      let first_read = file_end -- chunk_begin in
+      let in_len = Int64.to_int first_read in
       FDCache.read file.fd in_pos string 0 in_len;
 (* other files *)
-      do_on_remaining tail in_len  (chunk_len -- first_write)
+      do_on_remaining tail in_len  (chunk_len -- first_read)
       (fun file string_pos len ->          
           let len = Int64.to_int len in
           FDCache.read file.fd zero string string_pos len;
@@ -579,7 +587,7 @@ TODO:
 
 (* first file *)
         let in_pos = chunk_begin -- file_begin in
-        let first_write = file_end -- in_pos in
+        let first_write = file_end -- chunk_begin in
         let in_len = Int64.to_int first_write in
         FDCache.write file.fd in_pos string 0 in_len;
 (* other files *)
@@ -1059,14 +1067,20 @@ let _ =
       "4", Int64.of_int 10;
     ]
   in
+
+  (*
   write t zero "1234567890" 0 10;
   write t (Int64.of_int 10) "aaaaabbbbb" 0 10;
   write t (Int64.of_int 20) "aaaaabbbbb" 0 10;
   write t (Int64.of_int 30) "aaaaabbbbb" 0 10;
+*)
+  
+  write t zero "123456789\n123456789\n123456789\n123456789\n" 0 40;
+  write t (Int64.of_int 9) "11" 0 2;
   
   let s = String.create 40 in
   read t zero s 0 40;
   lprintf "%s\n" s;
   flush_fd t;
   exit 2
-  *)
+*)
